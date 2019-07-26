@@ -265,6 +265,8 @@ protected:
 
   BasicLayerManager* CreateBasicLayerManager();
 
+  nsPopupType PopupType() const { return mPopupType; }
+
 protected:
   
 
@@ -304,6 +306,7 @@ protected:
   PRInt32           mZIndex;
   nsSizeMode        mSizeMode;
   nsPopupLevel      mPopupLevel;
+  nsPopupType       mPopupType;
 
   
   

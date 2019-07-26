@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_ContentChild_h
 #define mozilla_dom_ContentChild_h
@@ -52,10 +52,11 @@ public:
         return mAppInfo;
     }
 
-    
+    /* if you remove this, please talk to cjones or dougt */
     virtual bool RecvDummy(Shmem& foo) { return true; }
 
-    virtual PBrowserChild* AllocPBrowser(const PRUint32& aChromeFlags);
+    virtual PBrowserChild* AllocPBrowser(const PRUint32& aChromeFlags,
+                                         const bool& aIsBrowserFrame);
     virtual bool DeallocPBrowser(PBrowserChild*);
 
     virtual PCrashReporterChild*
@@ -111,7 +112,7 @@ public:
     virtual bool RecvSetOffline(const bool& offline);
 
     virtual bool RecvNotifyVisited(const IPC::URI& aURI);
-    
+    // auto remove when alertfinished is received.
     nsresult AddRemoteAlertObserver(const nsString& aData, nsIObserver* aObserver);
 
     virtual bool RecvPreferenceUpdate(const PrefTuple& aPref);
@@ -143,8 +144,8 @@ public:
     gfxIntSize GetScreenSize() { return mScreenSize; }
 #endif
 
-    
-    
+    // Get the directory for IndexedDB files. We query the parent for this and
+    // cache the value
     nsString &GetIndexedDBPath();
 
     PRUint64 GetID() { return mID; }
@@ -156,10 +157,10 @@ private:
     NS_OVERRIDE
     virtual void ProcessingError(Result what);
 
-    
-
-
-
+    /**
+     * Exit *now*.  Do not shut down XPCOM, do not pass Go, do not run
+     * static destructors, do not collect $200.
+     */
     MOZ_NORETURN void QuickExit();
 
     InfallibleTArray<nsAutoPtr<AlertObserver> > mAlertObservers;
@@ -168,13 +169,13 @@ private:
     gfxIntSize mScreenSize;
 #endif
 
-    
-
-
-
-
-
-
+    /**
+     * An ID unique to the process containing our corresponding
+     * content parent.
+     *
+     * We expect our content parent to set this ID immediately after opening a
+     * channel to us.
+     */
     PRUint64 mID;
 
     AppInfo mAppInfo;
@@ -184,7 +185,7 @@ private:
     DISALLOW_EVIL_CONSTRUCTORS(ContentChild);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #endif

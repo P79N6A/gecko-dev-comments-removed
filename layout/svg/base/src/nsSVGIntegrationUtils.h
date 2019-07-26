@@ -23,7 +23,7 @@ struct nsSize;
 
 
 
-class nsSVGIntegrationUtils
+class nsSVGIntegrationUtils MOZ_FINAL
 {
 public:
   
@@ -84,19 +84,42 @@ public:
 
 
 
-  static nsRect
-  ComputeFrameEffectsRect(nsIFrame* aFrame, const nsRect& aOverflowRect);
+
+
+  static gfxRect
+  GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame);
+
   
 
 
+
+
+
+
+
+
+
+
+
+
   static nsRect
-  GetInvalidAreaForChangedSource(nsIFrame* aFrame, const nsRect& aInvalidRect);
+  ComputePostEffectsVisualOverflowRect(nsIFrame* aFrame,
+                                       const nsRect& aPreEffectsOverflowRect);
+
+  
+
+
+
+  static nsRect
+  AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame, const nsRect& aInvalidRect);
+
   
 
 
 
   static nsRect
   GetRequiredSourceForInvalidArea(nsIFrame* aFrame, const nsRect& aDamageRect);
+
   
 
 
@@ -115,23 +138,14 @@ public:
                          nsDisplayListBuilder* aBuilder,
                          nsDisplayList* aInnerList);
 
+  
+
+
+
+
+
   static gfxMatrix
-  GetInitialMatrix(nsIFrame* aNonSVGFrame);
-  
-
-
-
-
-
-  static gfxRect
-  GetSVGRectForNonSVGFrame(nsIFrame* aNonSVGFrame);
-  
-
-
-
-
-  static gfxRect
-  GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame);
+  GetCSSPxToDevPxMatrix(nsIFrame* aNonSVGFrame);
 
   
 

@@ -777,6 +777,13 @@ protected:
 
   virtual void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
 
+  
+
+
+
+
+  nsIntSize GetPaddingRectSize();
+
   nsIFrame* GetStyledFrame();
 
   virtual mozilla::dom::Element* GetNameSpaceElement()

@@ -1,10 +1,10 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+/* Code for throwing errors into JavaScript. */
 
 #include "xpcprivate.h"
 #include "xpcpublic.h"
@@ -12,7 +12,7 @@
 
 JSBool XPCThrower::sVerbose = true;
 
-
+// static
 void
 XPCThrower::Throw(nsresult rv, JSContext* cx)
 {
@@ -33,26 +33,22 @@ Throw(JSContext *cx, nsresult rv)
     return false;
 }
 
-} 
+} // namespace xpc
 
-
-
-
-
-
-
+/*
+ * If there has already been an exception thrown, see if we're throwing the
+ * same sort of exception, and if we are, don't clobber the old one. ccx
+ * should be the current call context.
+ */
+// static
 JSBool
 XPCThrower::CheckForPendingException(nsresult result, JSContext *cx)
 {
-    nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-    if (!xpc)
-        return false;
-
     nsCOMPtr<nsIException> e;
-    xpc->GetPendingException(getter_AddRefs(e));
+    XPCJSRuntime::Get()->GetPendingException(getter_AddRefs(e));
     if (!e)
         return false;
-    xpc->SetPendingException(nsnull);
+    XPCJSRuntime::Get()->SetPendingException(nsnull);
 
     nsresult e_result;
     if (NS_FAILED(e->GetResult(&e_result)) || e_result != result)
@@ -63,7 +59,7 @@ XPCThrower::CheckForPendingException(nsresult result, JSContext *cx)
     return true;
 }
 
-
+// static
 void
 XPCThrower::Throw(nsresult rv, XPCCallContext& ccx)
 {
@@ -88,7 +84,7 @@ XPCThrower::Throw(nsresult rv, XPCCallContext& ccx)
 }
 
 
-
+// static
 void
 XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
 {
@@ -96,17 +92,17 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
     const char* format;
     const char* name;
 
-    
-
-
-
-
-
+    /*
+    *  If there is a pending exception when the native call returns and
+    *  it has the same error result as returned by the native call, then
+    *  the native call may be passing through an error from a previous JS
+    *  call. So we'll just throw that exception into our JS.
+    */
 
     if (CheckForPendingException(result, ccx))
         return;
 
-    
+    // else...
 
     if (!nsXPCException::NameAndFormatForNSResult(rv, nsnull, &format) || !format)
         format = "";
@@ -125,7 +121,7 @@ XPCThrower::ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx)
         JS_smprintf_free(sz);
 }
 
-
+// static
 void
 XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum, XPCCallContext& ccx)
 {
@@ -147,7 +143,7 @@ XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum, XPCCallContext& ccx)
 }
 
 
-
+// static
 void
 XPCThrower::Verbosify(XPCCallContext& ccx,
                       char** psz, bool own)
@@ -172,40 +168,39 @@ XPCThrower::Verbosify(XPCCallContext& ccx,
     }
 }
 
-
+// static
 void
 XPCThrower::BuildAndThrowException(JSContext* cx, nsresult rv, const char* sz)
 {
     JSBool success = false;
 
-    
+    /* no need to set an expection if the security manager already has */
     if (rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO && JS_IsExceptionPending(cx))
         return;
     nsCOMPtr<nsIException> finalException;
     nsCOMPtr<nsIException> defaultException;
     nsXPCException::NewException(sz, rv, nsnull, nsnull, getter_AddRefs(defaultException));
-    XPCPerThreadData* tls = XPCPerThreadData::GetData(cx);
-    if (tls) {
-        nsIExceptionManager * exceptionManager = tls->GetExceptionManager();
-        if (exceptionManager) {
-           
-           
-            exceptionManager->GetExceptionFromProvider(rv,
-                                                       defaultException,
-                                                       getter_AddRefs(finalException));
-            
-            
-            if (finalException == nsnull) {
-                finalException = defaultException;
-            }
+
+    nsIExceptionManager * exceptionManager = XPCJSRuntime::Get()->GetExceptionManager();
+    if (exceptionManager) {
+        // Ask the provider for the exception, if there is no provider
+        // we expect it to set e to null
+        exceptionManager->GetExceptionFromProvider(rv,
+                                                   defaultException,
+                                                   getter_AddRefs(finalException));
+        // We should get at least the defaultException back,
+        // but just in case
+        if (finalException == nsnull) {
+            finalException = defaultException;
         }
     }
-    
-    
+
+    // XXX Should we put the following test and call to JS_ReportOutOfMemory
+    // inside this test?
     if (finalException)
         success = ThrowExceptionObject(cx, finalException);
-    
-    
+    // If we weren't able to build or throw an exception we're
+    // most likely out of memory
     if (!success)
         JS_ReportOutOfMemory(cx);
 }
@@ -216,22 +211,7 @@ IsCallerChrome(JSContext* cx)
     nsresult rv;
 
     nsCOMPtr<nsIScriptSecurityManager> secMan;
-    if (XPCPerThreadData::IsMainThread(cx)) {
-        secMan = XPCWrapper::GetSecurityManager();
-    } else {
-        nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-        if (!xpc)
-            return false;
-
-        nsCOMPtr<nsIXPCSecurityManager> xpcSecMan;
-        PRUint16 flags = 0;
-        rv = xpc->GetSecurityManagerForJSContext(cx, getter_AddRefs(xpcSecMan),
-                                                 &flags);
-        if (NS_FAILED(rv) || !xpcSecMan)
-            return false;
-
-        secMan = do_QueryInterface(xpcSecMan);
-    }
+    secMan = XPCWrapper::GetSecurityManager();
 
     if (!secMan)
         return false;
@@ -241,7 +221,7 @@ IsCallerChrome(JSContext* cx)
     return NS_SUCCEEDED(rv) && isChrome;
 }
 
-
+// static
 JSBool
 XPCThrower::ThrowExceptionObject(JSContext* cx, nsIException* e)
 {
@@ -251,9 +231,9 @@ XPCThrower::ThrowExceptionObject(JSContext* cx, nsIException* e)
         jsval thrown;
         nsXPConnect* xpc;
 
-        
-        
-        
+        // If we stored the original thrown JS value in the exception
+        // (see XPCConvert::ConstructException) and we are in a web
+        // context (i.e., not chrome), rethrow the original value.
         if (!IsCallerChrome(cx) &&
             (xpcEx = do_QueryInterface(e)) &&
             NS_SUCCEEDED(xpcEx->StealJSVal(&thrown))) {

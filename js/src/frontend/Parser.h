@@ -1,16 +1,16 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=78:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef Parser_h__
 #define Parser_h__
 
-
-
-
+/*
+ * JS parser definitions.
+ */
 #include "jsversion.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
@@ -34,73 +34,72 @@ enum VarContext { HoistVars, DontHoistVars };
 
 struct Parser : private AutoGCRooter
 {
-    JSContext           *const context; 
-    StrictModeGetter    strictModeGetter; 
+    JSContext           *const context; /* FIXME Bug 551291: use AutoGCRooter::context? */
+    StrictModeGetter    strictModeGetter; /* used by tokenStream to test for strict mode */
     TokenStream         tokenStream;
-    void                *tempPoolMark;  
-    StackFrame          *const callerFrame;  
+    void                *tempPoolMark;  /* initial JSContext.tempLifoAlloc mark */
     ParseNodeAllocator  allocator;
-    ObjectBox           *traceListHead; 
+    ObjectBox           *traceListHead; /* list of parsed object for GC tracing */
 
-    TreeContext         *tc;            
+    TreeContext         *tc;            /* innermost tree context (stack-allocated) */
 
-    
+    /* Root atoms and objects allocated for the parsed tree. */
     AutoKeepAtoms       keepAtoms;
 
-    
+    /* Perform constant-folding; must be true when interfacing with the emitter. */
     const bool          foldConstants:1;
 
   private:
-    
+    /* Script can optimize name references based on scope chain. */
     const bool          compileAndGo:1;
 
   public:
     Parser(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
            const jschar *chars, size_t length, const char *fn, unsigned ln, JSVersion version,
-           StackFrame *cfp, bool foldConstants, bool compileAndGo);
+           bool foldConstants, bool compileAndGo);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
 
-    
-
-
-
-
-
+    /*
+     * Initialize a parser. The compiler owns the arena pool "tops-of-stack"
+     * space above the current JSContext.tempLifoAlloc mark. This means you
+     * cannot allocate from tempLifoAlloc and save the pointer beyond the next
+     * Parser destructor invocation.
+     */
     bool init();
 
     const char *getFilename() const { return tokenStream.getFilename(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
 
-    
-
-
+    /*
+     * Parse a top-level JS script.
+     */
     ParseNode *parse(JSObject *chain);
 
 #if JS_HAS_XML_SUPPORT
     ParseNode *parseXMLText(JSObject *chain, bool allowList);
 #endif
 
-    
-
-
-
+    /*
+     * Allocate a new parsed object or function container from
+     * cx->tempLifoAlloc.
+     */
     ObjectBox *newObjectBox(JSObject *obj);
 
     FunctionBox *newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc);
 
-    
-
-
-
+    /*
+     * Create a new function object given tree context (tc) and a name (which
+     * is optional if this is a function expression).
+     */
     JSFunction *newFunction(TreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind);
 
     void trace(JSTracer *trc);
 
-    
-
-
+    /*
+     * Report a parse (compile) error.
+     */
     inline bool reportErrorNumber(ParseNode *pn, unsigned flags, unsigned errorNumber, ...);
 
   private:
@@ -109,17 +108,17 @@ struct Parser : private AutoGCRooter
         return static_cast<ParseNode *>(allocator.allocNode());
     }
 
-    
-
-
-
+    /*
+     * Create a parse node with the given kind and op using the current token's
+     * atom.
+     */
     ParseNode *atomNode(ParseNodeKind kind, JSOp op);
 
   public:
     ParseNode *freeTree(ParseNode *pn) { return allocator.freeTree(pn); }
     void prepareNodeForMutation(ParseNode *pn) { return allocator.prepareNodeForMutation(pn); }
 
-    
+    /* new_ methods for creating parse nodes. These report OOM on context. */
     JS_DECLARE_NEW_METHODS(allocParseNode, inline)
 
     ParseNode *cloneNode(const ParseNode &other) {
@@ -130,36 +129,34 @@ struct Parser : private AutoGCRooter
         return node;
     }
 
-    
+    /* Public entry points for parsing. */
     ParseNode *statement();
     bool recognizeDirectivePrologue(ParseNode *pn, bool *isDirectivePrologueMember);
 
-    
-
-
-
+    /*
+     * Parse a function body.  Pass StatementListBody if the body is a list of
+     * statements; pass ExpressionBody if the body is a single expression.
+     */
     enum FunctionBodyType { StatementListBody, ExpressionBody };
     ParseNode *functionBody(FunctionBodyType type);
 
-    bool checkForArgumentsAndRest();
-
   private:
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * JS parsers, from lowest to highest precedence.
+     *
+     * Each parser must be called during the dynamic scope of a TreeContext
+     * object, pointed to by this->tc.
+     *
+     * Each returns a parse node tree or null on error.
+     *
+     * Parsers whose name has a '1' suffix leave the TokenStream state
+     * pointing to the token one past the end of the parsed fragment.  For a
+     * number of the parsers this is convenient and avoids a lot of
+     * unnecessary ungetting and regetting of tokens.
+     *
+     * Some parsers have two versions:  an always-inlined version (with an 'i'
+     * suffix) and a never-inlined version (with an 'n' suffix).
+     */
     ParseNode *functionStmt();
     ParseNode *functionExpr();
     ParseNode *statements(bool *hasFunctionStmt = NULL);
@@ -202,9 +199,9 @@ struct Parser : private AutoGCRooter
     ParseNode *primaryExpr(TokenKind tt, bool afterDoubleDot);
     ParseNode *parenExpr(JSBool *genexp = NULL);
 
-    
-
-
+    /*
+     * Additional JS parsers.
+     */
     enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(ParseNode **list, bool &hasRest);
 
@@ -227,7 +224,7 @@ struct Parser : private AutoGCRooter
     ParseNode *identifierName(bool afterDoubleDot);
 
 #if JS_HAS_XML_SUPPORT
-    
+    // True if E4X syntax is allowed in the current syntactic context.
     bool allowsXML() const { return !tc->sc->inStrictMode() && tokenStream.allowsXML(); }
 
     ParseNode *endBracketedExpr();
@@ -245,7 +242,7 @@ struct Parser : private AutoGCRooter
 
     ParseNode *starOrAtPropertyIdentifier(TokenKind tt);
     ParseNode *propertyQualifiedIdentifier();
-#endif 
+#endif /* JS_HAS_XML_SUPPORT */
 
     bool setAssignmentLhsOps(ParseNode *pn, JSOp op);
     bool matchInOrOf(bool *isForOfp);
@@ -264,11 +261,11 @@ Parser::reportErrorNumber(ParseNode *pn, unsigned flags, unsigned errorNumber, .
 bool
 DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser);
 
-} 
+} /* namespace js */
 
-
-
-
+/*
+ * Convenience macro to access Parser.tokenStream as a pointer.
+ */
 #define TS(p) (&(p)->tokenStream)
 
-#endif 
+#endif /* Parser_h__ */

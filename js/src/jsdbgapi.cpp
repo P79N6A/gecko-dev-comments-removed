@@ -1,13 +1,13 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
+/*
+ * JS debugging API.
+ */
 #include <string.h>
 #include <stdarg.h>
 #include "jsprvtd.h"
@@ -127,7 +127,7 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
     return Debugger::onLeaveFrame(cx, ok);
 }
 
-} 
+} /* namespace js */
 
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForAllCompartments(JSContext *cx, JSBool debug)
@@ -135,7 +135,7 @@ JS_SetDebugModeForAllCompartments(JSContext *cx, JSBool debug)
     AutoDebugModeGC dmgc(cx->runtime);
 
     for (CompartmentsIter c(cx->runtime); !c.done(); c.next()) {
-        
+        // Ignore special compartments (atoms, JSD compartments)
         if (c->principals) {
             if (!c->setDebugModeFromC(cx, !!debug, dmgc))
                 return false;
@@ -155,11 +155,11 @@ static JSBool
 CheckDebugMode(JSContext *cx)
 {
     JSBool debugMode = JS_GetDebugMode(cx);
-    
-
-
-
-
+    /*
+     * :TODO:
+     * This probably should be an assertion, since it's indicative of a severe
+     * API misuse.
+     */
     if (!debugMode) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
                                      NULL, JSMSG_NEED_DEBUG_MODE);
@@ -238,7 +238,7 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
     return JS_TRUE;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id,
@@ -268,10 +268,10 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id,
             return false;
     }
 
-    
-
-
-
+    /*
+     * If, by unwrapping and innerizing, we changed the object, check
+     * again to make sure that we're allowed to set a watch point.
+     */
     if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
         return false;
 
@@ -326,7 +326,7 @@ JS_ClearAllWatchPoints(JSContext *cx)
     return true;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(unsigned)
 JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -418,7 +418,7 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp)
     if (!fun->script()->bindings.getLocalNameArray(cx, &localNames))
         return NULL;
 
-    
+    /* Munge data into the API this method implements.  Avert your eyes! */
     *markp = cx->tempLifoAlloc().mark();
 
     uintptr_t *names = cx->tempLifoAlloc().newArray<uintptr_t>(localNames.length());
@@ -475,11 +475,11 @@ JS_GetScriptOriginPrincipals(JSScript *script)
     return script->originPrincipals;
 }
 
+/************************************************************************/
 
-
-
-
-
+/*
+ *  Stack Frame Iterator
+ */
 JS_PUBLIC_API(JSStackFrame *)
 JS_FrameIterator(JSContext *cx, JSStackFrame **iteratorp)
 {
@@ -508,10 +508,10 @@ JS_GetFrameAnnotation(JSContext *cx, JSStackFrame *fpArg)
         JSPrincipals *principals = fp->scopeChain()->principals(cx);
 
         if (principals) {
-            
-
-
-
+            /*
+             * Give out an annotation only if privileges have not been revoked
+             * or disabled globally.
+             */
             return fp->annotation();
         }
     }
@@ -555,14 +555,14 @@ JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fpArg)
 
     JSObject *o = GetDebugScopeForFrame(cx, fp);
 
-    
-
-
-
-
-
-
-
+    /*
+     * Given that fp is a function frame and GetDebugScopeForFrame always fills
+     * in missing scopes, we can expect to find fp's CallObject on 'o'. Note:
+     *  - GetDebugScopeForFrame wraps every ScopeObject (missing or not) with
+     *    a DebugScopeObject proxy.
+     *  - If fp is an eval-in-function, then fp has no callobj of its own and
+     *    JS_GetFrameCallObject will return the innermost function's callobj.
+     */
     while (o) {
         ScopeObject &scope = o->asDebugScope().scope();
         if (scope.isCall())
@@ -667,7 +667,7 @@ JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fpArg, jsval rval)
     fp->setReturnValue(rval);
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script)
@@ -699,7 +699,7 @@ JS_GetScriptVersion(JSContext *cx, JSScript *script)
     return VersionNumber(script->getVersion());
 }
 
-
+/***************************************************************************/
 
 JS_PUBLIC_API(void)
 JS_SetNewScriptHook(JSRuntime *rt, JSNewScriptHook hook, void *callerdata)
@@ -716,7 +716,7 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
     rt->debugHooks.destroyScriptHookData = callerdata;
 }
 
-
+/***************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
@@ -765,9 +765,9 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
     return ok;
 }
 
+/************************************************************************/
 
-
-
+/* This all should be reworked to avoid requiring JSScopeProperty types. */
 
 static JSBool
 GetPropertyDesc(JSContext *cx, JSObject *obj_, Shape *shape, JSPropertyDesc *pd)
@@ -783,7 +783,8 @@ GetPropertyDesc(JSContext *cx, JSObject *obj_, Shape *shape, JSPropertyDesc *pd)
         lastException = cx->getPendingException();
     cx->clearPendingException();
 
-    if (!baseops::GetProperty(cx, obj, RootedId(cx, shape->propid()), &pd->value)) {
+    Rooted<jsid> id(cx, shape->propid());
+    if (!baseops::GetProperty(cx, obj, id, &pd->value)) {
         if (!cx->isExceptionPending()) {
             pd->flags = JSPD_ERROR;
             pd->value = JSVAL_VOID;
@@ -859,7 +860,7 @@ JS_GetPropertyDescArray(JSContext *cx, JSObject *obj_, JSPropertyDescArray *pda)
     if (!clasp->enumerate(cx, obj))
         return false;
 
-    
+    /* Return an empty pda early if obj has no own properties. */
     if (obj->nativeEmpty()) {
         pda->length = 0;
         pda->array = NULL;
@@ -911,7 +912,7 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda)
     pda->length = 0;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler handler, void *closure)
@@ -961,7 +962,7 @@ JS_SetDebugErrorHook(JSRuntime *rt, JSDebugErrorHook hook, void *closure)
     return JS_TRUE;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(size_t)
 JS_GetObjectTotalSize(JSContext *cx, JSObject *obj)
@@ -1058,7 +1059,7 @@ JS_MakeSystemObject(JSContext *cx, JSObject *obj)
     return obj->setSystem(cx);
 }
 
-
+/************************************************************************/
 
 JS_FRIEND_API(void)
 js_RevertVersion(JSContext *cx)
@@ -1072,11 +1073,11 @@ JS_GetGlobalDebugHooks(JSRuntime *rt)
     return &rt->debugHooks;
 }
 
+/************************************************************************/
 
+/* Profiling-related API */
 
-
-
-
+/* Thread-unsafe error management */
 
 static char gLastError[2000];
 
@@ -1110,7 +1111,7 @@ JS_StartProfiling(const char *profileName)
         ok = JS_FALSE;
     }
 #endif
-#if 0 
+#if 0 //def MOZ_VTUNE
     if (!js_StartVtune(profileName))
         ok = JS_FALSE;
 #endif
@@ -1128,7 +1129,7 @@ JS_StopProfiling(const char *profileName)
 #if defined(MOZ_SHARK) && defined(__APPLE__)
     Shark::Stop();
 #endif
-#if 0 
+#if 0 //def MOZ_VTUNE
     if (!js_StopVtune())
         ok = JS_FALSE;
 #endif
@@ -1139,10 +1140,10 @@ JS_StopProfiling(const char *profileName)
     return ok;
 }
 
-
-
-
-
+/*
+ * Start or stop whatever platform- and configuration-specific profiling
+ * backends are available.
+ */
 static JSBool
 ControlProfilers(bool toState)
 {
@@ -1161,7 +1162,7 @@ ControlProfilers(bool toState)
             ok = JS_FALSE;
         }
 #endif
-#if 0 
+#if 0 //def MOZ_VTUNE
         if (! js_ResumeVtune())
             ok = JS_FALSE;
 #endif
@@ -1175,7 +1176,7 @@ ControlProfilers(bool toState)
             ok = JS_FALSE;
         }
 #endif
-#if 0 
+#if 0 //def MOZ_VTUNE
         if (! js_PauseVtune())
             ok = JS_FALSE;
 #endif
@@ -1186,14 +1187,14 @@ ControlProfilers(bool toState)
     return ok;
 }
 
-
-
-
-
-
-
-
-
+/*
+ * Pause/resume whatever profiling mechanism is currently compiled
+ * in, if applicable. This will not affect things like dtrace.
+ *
+ * Do not mix calls to these APIs with calls to the individual
+ * profilers' pause/resume functions, because only overall state is
+ * tracked, not the state of each profiler.
+ */
 JS_PUBLIC_API(JSBool)
 JS_PauseProfilers(const char *profileName)
 {
@@ -1301,7 +1302,7 @@ ResumeProfilers(JSContext *cx, unsigned argc, jsval *vp)
     return JS_TRUE;
 }
 
-
+/* Usage: DumpProfile([filename[, profileName]]) */
 static JSBool
 DumpProfile(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -1411,7 +1412,7 @@ static JSFunctionSpec profiling_functions[] = {
     JS_FN("resumeProfilers", ResumeProfilers,     1,0),
     JS_FN("dumpProfile",     DumpProfile,         2,0),
 #ifdef MOZ_SHARK
-    
+    /* Keep users of the old shark API happy. */
     JS_FN("connectShark",    IgnoreAndReturnTrue, 0,0),
     JS_FN("disconnectShark", IgnoreAndReturnTrue, 0,0),
     JS_FN("startShark",      StartProfiling,      0,0),
@@ -1422,7 +1423,7 @@ static JSFunctionSpec profiling_functions[] = {
     JS_FN("stopCallgrind",  StopCallgrind,        0,0),
     JS_FN("dumpCallgrind",  DumpCallgrind,        1,0),
 #endif
-#if 0 
+#if 0 //ef MOZ_VTUNE
     JS_FN("startVtune",     js_StartVtune,        1,0),
     JS_FN("stopVtune",      js_StopVtune,         0,0),
     JS_FN("pauseVtune",     js_PauseVtune,        0,0),
@@ -1475,9 +1476,9 @@ js_DumpCallgrind(const char *outfile)
     return true;
 }
 
-#endif 
+#endif /* MOZ_CALLGRIND */
 
-#if 0 
+#if 0 //def MOZ_VTUNE
 #include <VTuneApi.h>
 
 static const char *vtuneErrorMessages[] = {
@@ -1523,12 +1524,12 @@ js_StartVtune(const char *profileName)
     VTUNE_SAMPLING_PARAMS params = {
         sizeof(VTUNE_SAMPLING_PARAMS),
         sizeof(VTUNE_EVENT),
-        0, 0, 
-        1,    
-        0,    
-        4096, 
-        0.1,  
-        1,    
+        0, 0, /* Reserved fields */
+        1,    /* Initialize in "paused" state */
+        0,    /* Max samples, or 0 for "continuous" */
+        4096, /* Samples per buffer */
+        0.1,  /* Sampling interval in ms */
+        1,    /* 1 for event-based sampling, 0 for time-based */
 
         n_events,
         events,
@@ -1586,30 +1587,30 @@ js_ResumeVtune()
     return true;
 }
 
-#endif 
+#endif /* MOZ_VTUNE */
 
 #ifdef __linux__
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Code for starting and stopping |perf|, the Linux profiler.
+ *
+ * Output from profiling is written to mozperf.data in your cwd.
+ *
+ * To enable, set MOZ_PROFILE_WITH_PERF=1 in your environment.
+ *
+ * To pass additional parameters to |perf record|, provide them in the
+ * MOZ_PROFILE_PERF_FLAGS environment variable.  If this variable does not
+ * exist, we default it to "--call-graph".  (If you don't want --call-graph but
+ * don't want to pass any other args, define MOZ_PROFILE_PERF_FLAGS to the empty
+ * string.)
+ *
+ * If you include --pid or --output in MOZ_PROFILE_PERF_FLAGS, you're just
+ * asking for trouble.
+ *
+ * Our split-on-spaces logic is lame, so don't expect MOZ_PROFILE_PERF_FLAGS to
+ * work if you pass an argument which includes a space (e.g.
+ * MOZ_PROFILE_PERF_FLAGS="-e 'foo bar'").
+ */
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -1628,16 +1629,16 @@ JSBool js_StartPerf()
         return false;
     }
 
-    
+    // Bail if MOZ_PROFILE_WITH_PERF is empty or undefined.
     if (!getenv("MOZ_PROFILE_WITH_PERF") ||
         !strlen(getenv("MOZ_PROFILE_WITH_PERF"))) {
         return true;
     }
 
-    
-
-
-
+    /*
+     * Delete mozperf.data the first time through -- we're going to append to it
+     * later on, so we want it to be clean when we start out.
+     */
     if (!perfInitialized) {
         perfInitialized = true;
         unlink(outfile);
@@ -1650,7 +1651,7 @@ JSBool js_StartPerf()
 
     pid_t childPid = fork();
     if (childPid == 0) {
-        
+        /* perf record --append --pid $mainPID --output=$outfile $MOZ_PROFILE_PERF_FLAGS */
 
         char mainPidStr[16];
         snprintf(mainPidStr, sizeof(mainPidStr), "%d", mainPid);
@@ -1665,8 +1666,8 @@ JSBool js_StartPerf()
             flags = "--call-graph";
         }
 
-        
-        
+        // Split |flags| on spaces.  (Don't bother to free it -- we're going to
+        // exec anyway.)
         char *toksave;
         char *tok = strtok_r(strdup(flags), " ", &toksave);
         while (tok) {
@@ -1678,14 +1679,14 @@ JSBool js_StartPerf()
 
         execvp("perf", const_cast<char**>(args.begin()));
 
-        
+        /* Reached only if execlp fails. */
         fprintf(stderr, "Unable to start perf.\n");
         exit(1);
     }
     else if (childPid > 0) {
         perfPid = childPid;
 
-        
+        /* Give perf a chance to warm up. */
         usleep(500 * 1000);
         return true;
     }
@@ -1705,7 +1706,7 @@ JSBool js_StopPerf()
     if (kill(perfPid, SIGINT)) {
         UnsafeError("js_StopPerf: kill failed\n");
 
-        
+        // Try to reap the process anyway.
         waitpid(perfPid, NULL, WNOHANG);
     }
     else {
@@ -1716,7 +1717,7 @@ JSBool js_StopPerf()
     return true;
 }
 
-#endif 
+#endif /* __linux__ */
 
 JS_PUBLIC_API(void)
 JS_DumpBytecode(JSContext *cx, JSScript *script)
@@ -1763,7 +1764,7 @@ DumpBytecodeScriptCallback(JSRuntime *rt, void *data, void *thing,
     static_cast<ScriptsToDump *>(data)->append(script);
 }
 
-} 
+} /* anonymous namespace */
 
 JS_PUBLIC_API(void)
 JS_DumpCompartmentBytecode(JSContext *cx)
@@ -1794,7 +1795,7 @@ JS_UnwrapObject(JSObject *obj)
 JS_PUBLIC_API(JSObject *)
 JS_UnwrapObjectAndInnerize(JSObject *obj)
 {
-    return UnwrapObject(obj,  false);
+    return UnwrapObject(obj, /* stopAtOuter = */ false);
 }
 
 JS_FRIEND_API(JSBool)

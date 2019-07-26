@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_ContentParent_h
 #define mozilla_dom_ContentParent_h
@@ -51,7 +51,13 @@ public:
     NS_DECL_NSITHREADOBSERVER
     NS_DECL_NSIDOMGEOPOSITIONCALLBACK
 
-    TabParent* CreateTab(PRUint32 aChromeFlags);
+    /**
+     * Create a new tab.
+     *
+     * |aIsBrowserFrame| indicates whether this tab is part of an
+     * <iframe mozbrowser>.
+     */
+    TabParent* CreateTab(PRUint32 aChromeFlags, bool aIsBrowserFrame);
 
     TestShellParent* CreateTestShell();
     bool DestroyTestShell(TestShellParent* aTestShell);
@@ -80,8 +86,8 @@ private:
     static nsTArray<ContentParent*>* gContentParents;
     static nsTArray<ContentParent*>* gPrivateContent;
 
-    
-    
+    // Hide the raw constructor methods since we don't want client code
+    // using them.
     using PContentParent::SendPBrowserConstructor;
     using PContentParent::SendPTestShellConstructor;
 
@@ -90,7 +96,7 @@ private:
 
     void Init();
 
-    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags);
+    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags, const bool& aIsBrowserFrame);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
 
     virtual PCrashReporterParent* AllocPCrashReporter(const NativeThreadId& tid,
@@ -196,10 +202,10 @@ private:
     int mRunToCompletionDepth;
     bool mShouldCallUnblockChild;
 
-    
-    
-    
-    
+    // This is a cache of all of the memory reporters
+    // registered in the child process.  To update this, one
+    // can broadcast the topic "child-memory-reporter-request" using
+    // the nsIObserverService.
     nsCOMArray<nsIMemoryReporter> mMemoryReporters;
 
     bool mIsAlive;
@@ -210,7 +216,7 @@ private:
     friend class CrashReporterParent;
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #endif

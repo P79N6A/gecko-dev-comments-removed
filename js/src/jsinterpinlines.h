@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jsinterpinlines_h__
 #define jsinterpinlines_h__
@@ -28,31 +28,31 @@
 
 namespace js {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Compute the implicit |this| parameter for a call expression where the callee
+ * funval was resolved from an unqualified name reference to a property on obj
+ * (an object on the scope chain).
+ *
+ * We can avoid computing |this| eagerly and push the implicit callee-coerced
+ * |this| value, undefined, if any of these conditions hold:
+ *
+ * 1. The nominal |this|, obj, is a global object.
+ *
+ * 2. The nominal |this|, obj, has one of Block, Call, or DeclEnv class (this
+ *    is what IsCacheableNonGlobalScope tests). Such objects-as-scopes must be
+ *    censored with undefined.
+ *
+ * Otherwise, we bind |this| to obj->thisObject(). Only names inside |with|
+ * statements and embedding-specific scope objects fall into this category.
+ *
+ * If the callee is a strict mode function, then code implementing JSOP_THIS
+ * in the interpreter and JITs will leave undefined as |this|. If funval is a
+ * function not in strict mode, JSOP_THIS code replaces undefined with funval's
+ * global.
+ *
+ * We set *vp to undefined early to reduce code size and bias this code for the
+ * common and future-friendly cases.
+ */
 inline bool
 ComputeImplicitThis(JSContext *cx, JSObject *obj, Value *vp)
 {
@@ -81,29 +81,29 @@ ComputeThis(JSContext *cx, StackFrame *fp)
     if (fp->isFunctionFrame()) {
         if (fp->fun()->inStrictMode())
             return true;
-        
-
-
-
-
-
-
+        /*
+         * Eval function frames have their own |this| slot, which is a copy of the function's
+         * |this| slot. If we lazily wrap a primitive |this| in an eval function frame, the
+         * eval's frame will get the wrapper, but the function's frame will not. To prevent
+         * this, we always wrap a function's |this| before pushing an eval frame, and should
+         * thus never see an unwrapped primitive in a non-strict eval function frame.
+         */
         JS_ASSERT(!fp->isEvalFrame());
     }
     return BoxNonStrictThis(cx, fp->callReceiver());
 }
 
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Return an object on which we should look for the properties of |value|.
+ * This helps us implement the custom [[Get]] method that ES5's GetValue
+ * algorithm uses for primitive values, without actually constructing the
+ * temporary object that the specification does.
+ *
+ * For objects, return the object itself. For string, boolean, and number
+ * primitive values, return the appropriate constructor's prototype. For
+ * undefined and null, throw an error and return NULL, attributing the
+ * problem to the value at |spindex| on the stack.
+ */
 JS_ALWAYS_INLINE JSObject *
 ValuePropertyBearer(JSContext *cx, StackFrame *fp, const Value &v, int spindex)
 {
@@ -125,10 +125,11 @@ ValuePropertyBearer(JSContext *cx, StackFrame *fp, const Value &v, int spindex)
 }
 
 inline bool
-NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj, const Shape *shape, unsigned getHow, Value *vp)
+NativeGet(JSContext *cx, Handle<JSObject*> obj, Handle<JSObject*> pobj, const Shape *shape,
+          unsigned getHow, Value *vp)
 {
     if (shape->isDataDescriptor() && shape->hasDefaultGetter()) {
-        
+        /* Fast path for Object instance properties. */
         JS_ASSERT(shape->hasSlot());
         *vp = pobj->nativeGetSlot(shape->slot());
     } else {
@@ -152,10 +153,10 @@ AssertValidPropertyCacheHit(JSContext *cx, JSObject *start, JSObject *found,
 inline bool
 GetPropertyGenericMaybeCallXML(JSContext *cx, JSOp op, HandleObject obj, HandleId id, Value *vp)
 {
-    
-
-
-
+    /*
+     * Various XML properties behave differently when accessed in a
+     * call vs. normal context, and getGeneric will not work right.
+     */
 #if JS_HAS_XML_SUPPORT
     if (op == JSOP_CALLPROP && obj->isXML())
         return js_GetXMLMethod(cx, obj, id, vp);
@@ -172,7 +173,7 @@ GetPropertyOperation(JSContext *cx, jsbytecode *pc, const Value &lval, Value *vp
     JSOp op = JSOp(*pc);
 
     if (op == JSOP_LENGTH) {
-        
+        /* Optimize length accesses on strings, arrays, and arguments. */
         if (lval.isString()) {
             *vp = Int32Value(lval.toString()->length());
             return true;
@@ -211,9 +212,9 @@ GetPropertyOperation(JSContext *cx, jsbytecode *pc, const Value &lval, Value *vp
         return false;
 
     PropertyCacheEntry *entry;
-    JSObject *obj2;
+    Rooted<JSObject*> obj2(cx);
     PropertyName *name;
-    JS_PROPERTY_CACHE(cx).test(cx, pc, obj.reference(), obj2, entry, name);
+    JS_PROPERTY_CACHE(cx).test(cx, pc, obj.reference(), obj2.reference(), entry, name);
     if (!name) {
         AssertValidPropertyCacheHit(cx, obj, obj2, entry);
         if (!NativeGet(cx, obj, obj2, entry->prop, JSGET_CACHE_RESULT, vp))
@@ -258,14 +259,14 @@ SetPropertyOperation(JSContext *cx, jsbytecode *pc, const Value &lval, const Val
     JSObject *obj2;
     PropertyName *name;
     if (JS_PROPERTY_CACHE(cx).testForSet(cx, pc, obj, &entry, &obj2, &name)) {
-        
-
-
-
-
-
-
-
+        /*
+         * Property cache hit, only partially confirmed by testForSet. We
+         * know that the entry applies to regs.pc and that obj's shape
+         * matches.
+         *
+         * The entry predicts a set either an existing "own" property, or
+         * on a prototype property that has a setter.
+         */
         const Shape *shape = entry->prop;
         JS_ASSERT_IF(shape->isDataDescriptor(), shape->writable());
         JS_ASSERT_IF(shape->hasSlot(), entry->isOwnPropertyHit());
@@ -284,7 +285,7 @@ SetPropertyOperation(JSContext *cx, jsbytecode *pc, const Value &lval, const Val
 #endif
 
             if (shape->hasDefaultSetter() && shape->hasSlot()) {
-                
+                /* Fast path for, e.g., plain Object instance properties. */
                 obj->nativeSetSlotWithType(cx, shape, rval);
             } else {
                 RootedValue rref(cx, rval);
@@ -333,13 +334,14 @@ FetchName(JSContext *cx, HandleObject obj, HandleObject obj2, HandlePropertyName
         return false;
     }
 
-    
+    /* Take the slow path if prop was not found in a native object. */
     if (!obj->isNative() || !obj2->isNative()) {
-        if (!obj->getGeneric(cx, RootedId(cx, NameToId(name)), vp))
+        Rooted<jsid> id(cx, NameToId(name));
+        if (!obj->getGeneric(cx, id, vp))
             return false;
     } else {
         Shape *shape = (Shape *)prop;
-        JSObject *normalized = obj;
+        Rooted<JSObject*> normalized(cx, obj);
         if (normalized->getClass() == &WithClass && !shape->hasDefaultGetter())
             normalized = &normalized->asWith().object();
         if (!NativeGet(cx, normalized, obj2, shape, 0, vp))
@@ -353,15 +355,15 @@ NameOperation(JSContext *cx, jsbytecode *pc, Value *vp)
 {
     RootedObject obj(cx, cx->stack.currentScriptedScopeChain());
 
-    
-
-
-
-
-
-
-
-
+    /*
+     * Skip along the scope chain to the enclosing global object. This is
+     * used for GNAME opcodes where the bytecode emitter has determined a
+     * name access must be on the global. It also insulates us from bugs
+     * in the emitter: type inference will assume that GNAME opcodes are
+     * accessing the global object, and the inferred behavior should match
+     * the actual behavior even if the id could be found on the scope chain
+     * before the global object.
+     */
     if (js_CodeSpec[*pc].format & JOF_GNAME)
         obj = &obj->global();
 
@@ -380,7 +382,7 @@ NameOperation(JSContext *cx, jsbytecode *pc, Value *vp)
     if (!FindPropertyHelper(cx, name, true, obj, obj.address(), obj2.address(), &prop))
         return false;
 
-    
+    /* Kludge to allow (typeof foo == "undefined") tests. */
     JSOp op2 = JSOp(pc[JSOP_NAME_LENGTH]);
     if (op2 == JSOP_TYPEOF)
         return FetchName<true>(cx, obj, obj2, name, prop, vp);
@@ -398,17 +400,17 @@ DefVarOrConstOperation(JSContext *cx, HandleObject varobj, PropertyName *dn, uns
     if (!varobj->lookupProperty(cx, dn, &obj2, &prop))
         return false;
 
-    
+    /* Steps 8c, 8d. */
     if (!prop || (obj2 != varobj && varobj->isGlobal())) {
         if (!varobj->defineProperty(cx, dn, UndefinedValue(), JS_PropertyStub,
                                     JS_StrictPropertyStub, attrs)) {
             return false;
         }
     } else {
-        
-
-
-
+        /*
+         * Extension: ordinarily we'd be done here -- but for |const|.  If we
+         * see a redeclaration that's |const|, we consider it a conflict.
+         */
         unsigned oldAttrs;
         if (!varobj->getPropertyAttributes(cx, dn, &oldAttrs))
             return false;
@@ -463,10 +465,10 @@ AddOperation(JSContext *cx, const Value &lhs, const Value &rhs, Value *res)
         Value &lval = lval_.reference();
         Value &rval = rval_.reference();
 
-        
-
-
-
+        /*
+         * If either operand is an object, any non-integer result must be
+         * reported to inference.
+         */
         bool lIsObject = lval.isObject(), rIsObject = rval.isObject();
 
         if (!ToPrimitive(cx, &lval))
@@ -629,8 +631,8 @@ GetObjectElementOperation(JSContext *cx, JSOp op, HandleObject obj, const Value 
         } while(0);
     } else {
         if (!cx->fp()->runningInIon()) {
-            
-            
+            // Don't update getStringElement if called from Ion code, since
+            // ion::GetPcScript is expensive.
             JSScript *script;
             jsbytecode *pc;
             types::TypeScript::GetPcScript(cx, &script, &pc);
@@ -879,6 +881,6 @@ GuardFunApplySpeculation(JSContext *cx, FrameRegs &regs)
     return true;
 }
 
-}  
+}  /* namespace js */
 
-#endif 
+#endif /* jsinterpinlines_h__ */

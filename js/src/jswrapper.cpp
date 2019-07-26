@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsapi.h"
 #include "jscntxt.h"
@@ -108,7 +108,7 @@ bool
 AbstractWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
                                        PropertyDescriptor *desc)
 {
-    desc->obj = NULL; 
+    desc->obj = NULL; // default result if we refuse to perform this action
     CHECKED(IndirectProxyHandler::getPropertyDescriptor(cx, wrapper, id, set, desc),
             set ? SET : GET);
 }
@@ -117,7 +117,7 @@ bool
 AbstractWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
                                           PropertyDescriptor *desc)
 {
-    desc->obj = NULL; 
+    desc->obj = NULL; // default result if we refuse to perform this action
     CHECKED(IndirectProxyHandler::getOwnPropertyDescriptor(cx, wrapper, id, set, desc), GET);
 }
 
@@ -130,7 +130,7 @@ AbstractWrapper::defineProperty(JSContext *cx, JSObject *wrapper, jsid id, Prope
 bool
 AbstractWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 {
-    
+    // if we refuse to perform this action, props remains empty
     jsid id = JSID_VOID;
     GET(IndirectProxyHandler::getOwnPropertyNames(cx, wrapper, props));
 }
@@ -138,14 +138,14 @@ AbstractWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVec
 bool
 AbstractWrapper::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
-    *bp = true; 
+    *bp = true; // default result if we refuse to perform this action
     SET(IndirectProxyHandler::delete_(cx, wrapper, id, bp));
 }
 
 bool
 AbstractWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 {
-    
+    // if we refuse to perform this action, props remains empty
     static jsid id = JSID_VOID;
     GET(IndirectProxyHandler::enumerate(cx, wrapper, props));
 }
@@ -160,7 +160,7 @@ Cond(JSBool b, bool *bp)
 bool
 DirectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
-    *bp = false; 
+    *bp = false; // default result if we refuse to perform this action
     JSBool found;
     GET(JS_HasPropertyById(cx, wrappedObject(wrapper), id, &found) &&
         Cond(found, bp));
@@ -169,7 +169,7 @@ DirectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 bool
 DirectWrapper::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
-    *bp = false; 
+    *bp = false; // default result if we refuse to perform this action
     PropertyDescriptor desc;
     JSObject *wobj = wrappedObject(wrapper);
     GET(JS_GetPropertyDescriptorById(cx, wobj, id, JSRESOLVE_QUALIFIED, &desc) &&
@@ -177,23 +177,26 @@ DirectWrapper::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 }
 
 bool
-DirectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, Value *vp)
+DirectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver_, jsid id_, Value *vp)
 {
-    vp->setUndefined(); 
-    GET(wrappedObject(wrapper)->getGeneric(cx, RootedObject(cx, receiver), RootedId(cx, id), vp));
+    vp->setUndefined(); // default result if we refuse to perform this action
+    Rooted<JSObject*> receiver(cx, receiver_);
+    Rooted<jsid> id(cx, id_);
+    GET(wrappedObject(wrapper)->getGeneric(cx, receiver, id, vp));
 }
 
 bool
-DirectWrapper::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id, bool strict,
+DirectWrapper::set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id_, bool strict,
                Value *vp)
 {
-    SET(wrappedObject(wrapper)->setGeneric(cx, RootedId(cx, id), vp, strict));
+    Rooted<jsid> id(cx, id_);
+    SET(wrappedObject(wrapper)->setGeneric(cx, id, vp, strict));
 }
 
 bool
 DirectWrapper::keys(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 {
-    
+    // if we refuse to perform this action, props remains empty
     const jsid id = JSID_VOID;
     GET(GetPropertyNames(cx, wrappedObject(wrapper), JSITER_OWNONLY, &props));
 }
@@ -201,15 +204,16 @@ DirectWrapper::keys(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 bool
 DirectWrapper::iterate(JSContext *cx, JSObject *wrapper, unsigned flags, Value *vp)
 {
-    vp->setUndefined(); 
+    vp->setUndefined(); // default result if we refuse to perform this action
     const jsid id = JSID_VOID;
-    GET(GetIterator(cx, RootedObject(cx, wrappedObject(wrapper)), flags, vp));
+    Rooted<JSObject*> wrapped(cx, wrappedObject(wrapper));
+    GET(GetIterator(cx, wrapped, flags, vp));
 }
 
 bool
 DirectWrapper::call(JSContext *cx, JSObject *wrapper, unsigned argc, Value *vp)
 {
-    vp->setUndefined(); 
+    vp->setUndefined(); // default result if we refuse to perform this action
     const jsid id = JSID_VOID;
     CHECKED(IndirectProxyHandler::call(cx, wrapper, argc, vp), CALL);
 }
@@ -217,7 +221,7 @@ DirectWrapper::call(JSContext *cx, JSObject *wrapper, unsigned argc, Value *vp)
 bool
 DirectWrapper::construct(JSContext *cx, JSObject *wrapper, unsigned argc, Value *argv, Value *vp)
 {
-    vp->setUndefined(); 
+    vp->setUndefined(); // default result if we refuse to perform this action
     const jsid id = JSID_VOID;
     CHECKED(IndirectProxyHandler::construct(cx, wrapper, argc, argv, vp), CALL);
 }
@@ -232,7 +236,7 @@ DirectWrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native
 bool
 DirectWrapper::hasInstance(JSContext *cx, JSObject *wrapper, const Value *vp, bool *bp)
 {
-    *bp = false; 
+    *bp = false; // default result if we refuse to perform this action
     const jsid id = JSID_VOID;
     GET(IndirectProxyHandler::hasInstance(cx, wrapper, vp, bp));
 }
@@ -243,7 +247,7 @@ DirectWrapper::obj_toString(JSContext *cx, JSObject *wrapper)
     bool status;
     if (!enter(cx, wrapper, JSID_VOID, GET, &status)) {
         if (status) {
-            
+            // Perform some default behavior that doesn't leak any information.
             return JS_NewStringCopyZ(cx, "[object Object]");
         }
         return NULL;
@@ -259,7 +263,7 @@ DirectWrapper::fun_toString(JSContext *cx, JSObject *wrapper, unsigned indent)
     bool status;
     if (!enter(cx, wrapper, JSID_VOID, GET, &status)) {
         if (status) {
-            
+            // Perform some default behavior that doesn't leak any information.
             if (wrapper->isCallable())
                 return JS_NewStringCopyZ(cx, "function () {\n    [native code]\n}");
             js::Value v = ObjectValue(*wrapper);
@@ -316,7 +320,7 @@ DirectWrapper::New(JSContext *cx, JSObject *obj, JSObject *proto,
                           obj->isCallable() ? obj : NULL, NULL);
 }
 
-
+/* Compartments. */
 
 namespace js {
 
@@ -324,7 +328,7 @@ extern JSObject *
 TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSObject *parent,
                          unsigned flags)
 {
-    
+    // Allow wrapping outer window proxies.
     JS_ASSERT(!obj->isWrapper() || obj->getClass()->ext.innerObject);
     return Wrapper::New(cx, obj, wrappedProto, parent, &CrossCompartmentWrapper::singleton);
 }
@@ -415,14 +419,15 @@ ErrorCopier::~ErrorCopier()
         if (exc.isObject() && exc.toObject().isError() && exc.toObject().getPrivate()) {
             cx->clearPendingException();
             ac.leave();
-            JSObject *copyobj = js_CopyErrorObject(cx, RootedObject(cx, &exc.toObject()), scope);
+            Rooted<JSObject*> errObj(cx, &exc.toObject());
+            JSObject *copyobj = js_CopyErrorObject(cx, errObj, scope);
             if (copyobj)
                 cx->setPendingException(ObjectValue(*copyobj));
         }
     }
 }
 
-
+/* Cross compartment wrappers. */
 
 CrossCompartmentWrapper::CrossCompartmentWrapper(unsigned flags)
   : DirectWrapper(CROSS_COMPARTMENT | flags)
@@ -452,7 +457,7 @@ CrossCompartmentWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
     PIERCE(cx, wrapper, set ? SET : GET,
            call.destination->wrapId(cx, &id),
            DirectWrapper::getPropertyDescriptor(cx, wrapper, id, set, desc),
-           call.origin->wrap(cx, desc));
+           cx->compartment->wrap(cx, desc));
 }
 
 bool
@@ -462,7 +467,7 @@ CrossCompartmentWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapp
     PIERCE(cx, wrapper, set ? SET : GET,
            call.destination->wrapId(cx, &id),
            DirectWrapper::getOwnPropertyDescriptor(cx, wrapper, id, set, desc),
-           call.origin->wrap(cx, desc));
+           cx->compartment->wrap(cx, desc));
 }
 
 bool
@@ -481,7 +486,7 @@ CrossCompartmentWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper, A
     PIERCE(cx, wrapper, GET,
            NOTHING,
            DirectWrapper::getOwnPropertyNames(cx, wrapper, props),
-           call.origin->wrap(cx, props));
+           cx->compartment->wrap(cx, props));
 }
 
 bool
@@ -499,7 +504,7 @@ CrossCompartmentWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVecto
     PIERCE(cx, wrapper, GET,
            NOTHING,
            DirectWrapper::enumerate(cx, wrapper, props),
-           call.origin->wrap(cx, props));
+           cx->compartment->wrap(cx, props));
 }
 
 bool
@@ -526,7 +531,7 @@ CrossCompartmentWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receive
     PIERCE(cx, wrapper, GET,
            call.destination->wrap(cx, &receiver) && call.destination->wrapId(cx, &id),
            DirectWrapper::get(cx, wrapper, receiver, id, vp),
-           call.origin->wrap(cx, vp));
+           cx->compartment->wrap(cx, vp));
 }
 
 bool
@@ -550,13 +555,13 @@ CrossCompartmentWrapper::keys(JSContext *cx, JSObject *wrapper, AutoIdVector &pr
     PIERCE(cx, wrapper, GET,
            NOTHING,
            DirectWrapper::keys(cx, wrapper, props),
-           call.origin->wrap(cx, props));
+           cx->compartment->wrap(cx, props));
 }
 
-
-
-
-
+/*
+ * We can reify non-escaping iterator objects instead of having to wrap them. This
+ * allows fast iteration over objects across a compartment boundary.
+ */
 static bool
 CanReify(Value *vp)
 {
@@ -587,16 +592,16 @@ Reify(JSContext *cx, JSCompartment *origin, Value *vp)
 
     AutoCloseIterator close(cx, iterObj);
 
-    
+    /* Wrap the iteratee. */
     RootedObject obj(cx, ni->obj);
     if (!origin->wrap(cx, obj.address()))
         return false;
 
-    
-
-
-
-
+    /*
+     * Wrap the elements in the iterator's snapshot.
+     * N.B. the order of closing/creating iterators is important due to the
+     * implicit cx->enumerators state.
+     */
     size_t length = ni->numKeys();
     bool isKeyIter = ni->isKeyIter();
     AutoIdVector keys(cx);
@@ -628,7 +633,7 @@ CrossCompartmentWrapper::iterate(JSContext *cx, JSObject *wrapper, unsigned flag
     PIERCE(cx, wrapper, GET,
            NOTHING,
            DirectWrapper::iterate(cx, wrapper, flags, vp),
-           CanReify(vp) ? Reify(cx, call.origin, vp) : call.origin->wrap(cx, vp));
+           CanReify(vp) ? Reify(cx, cx->compartment, vp) : cx->compartment->wrap(cx, vp));
 }
 
 bool
@@ -652,7 +657,7 @@ CrossCompartmentWrapper::call(JSContext *cx, JSObject *wrapper_, unsigned argc, 
         return false;
 
     call.leave();
-    return call.origin->wrap(cx, vp);
+    return cx->compartment->wrap(cx, vp);
 }
 
 bool
@@ -673,7 +678,7 @@ CrossCompartmentWrapper::construct(JSContext *cx, JSObject *wrapper_, unsigned a
         return false;
 
     call.leave();
-    return call.origin->wrap(cx, rval);
+    return cx->compartment->wrap(cx, rval);
 }
 
 extern JSBool
@@ -712,7 +717,7 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, JSObject *wrapper, Class *cla
     srcArgs.rval() = dstArgs.rval();
     dstArgs.pop();
     call.leave();
-    return call.origin->wrap(cx, &srcArgs.rval());
+    return cx->compartment->wrap(cx, &srcArgs.rval());
 }
 
 bool
@@ -740,7 +745,7 @@ CrossCompartmentWrapper::obj_toString(JSContext *cx, JSObject *wrapper)
         return NULL;
 
     call.leave();
-    if (!call.origin->wrap(cx, &str))
+    if (!cx->compartment->wrap(cx, &str))
         return NULL;
     return str;
 }
@@ -757,7 +762,7 @@ CrossCompartmentWrapper::fun_toString(JSContext *cx, JSObject *wrapper, unsigned
         return NULL;
 
     call.leave();
-    if (!call.origin->wrap(cx, &str))
+    if (!cx->compartment->wrap(cx, &str))
         return NULL;
     return str;
 }
@@ -773,7 +778,7 @@ CrossCompartmentWrapper::defaultValue(JSContext *cx, JSObject *wrapper, JSType h
         return false;
 
     call.leave();
-    return call.origin->wrap(cx, vp);
+    return cx->compartment->wrap(cx, vp);
 }
 
 bool
@@ -782,12 +787,12 @@ CrossCompartmentWrapper::iteratorNext(JSContext *cx, JSObject *wrapper, Value *v
     PIERCE(cx, wrapper, GET,
            NOTHING,
            IndirectProxyHandler::iteratorNext(cx, wrapper, vp),
-           call.origin->wrap(cx, vp));
+           cx->compartment->wrap(cx, vp));
 }
 
 CrossCompartmentWrapper CrossCompartmentWrapper::singleton(0u);
 
-
+/* Security wrappers. */
 
 template <class Base>
 SecurityWrapper<Base>::SecurityWrapper(unsigned flags)
@@ -799,10 +804,10 @@ bool
 SecurityWrapper<Base>::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp, Native native,
                                   CallArgs args)
 {
-    
-
-
-
+    /*
+     * Let this through until compartment-per-global lets us have stronger
+     * invariants wrt document.domain (bug 714547).
+     */
     return Base::nativeCall(cx, wrapper, clasp, native, args);
 }
 
@@ -810,10 +815,10 @@ template <class Base>
 bool
 SecurityWrapper<Base>::objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx)
 {
-    
-
-
-
+    /*
+     * Let this through until compartment-per-global lets us have stronger
+     * invariants wrt document.domain (bug 714547).
+     */
     return Base::objectClassIs(obj, classValue, cx);
 }
 
@@ -836,7 +841,7 @@ class JS_FRIEND_API(DeadObjectProxy) : public BaseProxyHandler
 
     explicit DeadObjectProxy();
 
-    
+    /* ES5 Harmony fundamental wrapper traps. */
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
                                        PropertyDescriptor *desc) MOZ_OVERRIDE;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id, bool set,
@@ -847,7 +852,7 @@ class JS_FRIEND_API(DeadObjectProxy) : public BaseProxyHandler
     virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
     virtual bool enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props) MOZ_OVERRIDE;
 
-    
+    /* Spidermonkey extensions. */
     virtual bool call(JSContext *cx, JSObject *proxy, unsigned argc, Value *vp);
     virtual bool construct(JSContext *cx, JSObject *proxy, unsigned argc, Value *argv, Value *rval);
     virtual bool nativeCall(JSContext *cx, JSObject *proxy, Class *clasp, Native native, CallArgs args);
@@ -1018,14 +1023,14 @@ js::NukeCrossCompartmentWrapper(JSObject *wrapper)
     wrapper->setReservedSlot(JSSLOT_PROXY_EXTRA + 1, NullValue());
 }
 
-
-
-
-
-
-
-
-
+/*
+ * NukeChromeCrossCompartmentWrappersForGlobal reaches into chrome and cuts
+ * all of the cross-compartment wrappers that point to objects parented to
+ * obj's global.  The snag here is that we need to avoid cutting wrappers that
+ * point to the window object on page navigation (inner window destruction)
+ * and only do that on tab close (outer window destruction).  Thus the
+ * option of how to handle the global object.
+ */
 JS_FRIEND_API(JSBool)
 js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
                                                 js::NukedGlobalHandling nukeGlobal)
@@ -1035,19 +1040,19 @@ js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
     JSRuntime *rt = cx->runtime;
     JSObject *global = &obj->global();
 
-    
-    
+    // Iterate through scopes looking for system cross compartment wrappers
+    // that point to an object that shares a global with obj.
 
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        
+        // Skip non-system compartments because this breaks the web.
         if (!js::IsSystemCompartment(c))
             continue;
 
-        
+        // Iterate the wrappers looking for anything interesting.
         WrapperMap &pmap = c->crossCompartmentWrappers;
         for (WrapperMap::Enum e(pmap); !e.empty(); e.popFront()) {
-            
-            
+            // Some cross-compartment wrappers are for strings.  We're not
+            // interested in those.
             const CrossCompartmentKey &k = e.front().key;
             if (k.kind != CrossCompartmentKey::ObjectWrapper)
                 continue;
@@ -1056,13 +1061,13 @@ js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
             JSObject *wrapped = UnwrapObject(wobj, false);
 
             if (js::IsSystemCompartment(wrapped->compartment()))
-                continue; 
+                continue; // Not interested in chrome->chrome wrappers.
 
             if (nukeGlobal == DontNukeForGlobalObject && wrapped == global)
                 continue;
 
             if (&wrapped->global() == global) {
-                
+                // We found a wrapper to nuke.
                 e.removeFront();
                 NukeCrossCompartmentWrapper(wobj);
             }

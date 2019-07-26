@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
+/* rendering object for list-item bullets */
 
 #include "nsCOMPtr.h"
 #include "nsBulletFrame.h"
@@ -45,9 +45,9 @@ nsBulletFrame::~nsBulletFrame()
 void
 nsBulletFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  
+  // Stop image loading first
   if (mImageRequest) {
-    
+    // Deregister our image request from the refresh driver
     nsLayoutUtils::DeregisterImageRequest(PresContext(),
                                           mImageRequest,
                                           &mRequestRegistered);
@@ -59,7 +59,7 @@ nsBulletFrame::DestroyFrom(nsIFrame* aDestructRoot)
     mListener->SetFrame(nsnull);
   }
 
-  
+  // Let base class do the rest
   nsFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -89,7 +89,7 @@ nsBulletFrame::IsSelfEmpty()
   return GetStyleList()->mListStyleType == NS_STYLE_LIST_STYLE_NONE;
 }
 
- void
+/* virtual */ void
 nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
   nsFrame::DidSetStyleContext(aOldStyleContext);
@@ -106,7 +106,7 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     bool needNewRequest = true;
 
     if (mImageRequest) {
-      
+      // Reload the image, maybe...
       nsCOMPtr<nsIURI> oldURI;
       mImageRequest->GetURI(getter_AddRefs(oldURI));
       nsCOMPtr<nsIURI> newURI;
@@ -134,7 +134,7 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
       }
     }
   } else {
-    
+    // No image request on the new style context
     if (mImageRequest) {
       nsLayoutUtils::DeregisterImageRequest(PresContext(), mImageRequest,
                                             &mRequestRegistered);
@@ -145,8 +145,8 @@ nsBulletFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   }
 
 #ifdef ACCESSIBILITY
-  
-  
+  // Update the list bullet accessible. If old style list isn't available then
+  // no need to update the accessible tree because it's not created yet.
   if (aOldStyleContext) {
     nsAccessibilityService* accService = nsIPresShell::AccService();
     if (accService) {
@@ -276,12 +276,12 @@ nsBulletFrame::PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
       nsRect rect(aPt, mRect.Size());
       rect.Deflate(mPadding);
 
-      
-      
-      
-      
-      
-      
+      // Snap the height and the width of the rectangle to device pixels,
+      // and then center the result within the original rectangle, so that
+      // all square bullets at the same font size have the same visual
+      // size (bug 376690).
+      // FIXME: We should really only do this if we're not transformed
+      // (like gfxContext::UserToDevicePixelSnapped does).
       nsPresContext *pc = PresContext();
       nsRect snapRect(rect.x, rect.y, 
                       pc->RoundAppUnitsToNearestDevPixels(rect.width),
@@ -355,13 +355,13 @@ PRInt32
 nsBulletFrame::SetListItemOrdinal(PRInt32 aNextOrdinal,
                                   bool* aChanged)
 {
-  
+  // Assume that the ordinal comes from the caller
   PRInt32 oldOrdinal = mOrdinal;
   mOrdinal = aNextOrdinal;
 
-  
-  
-  
+  // Try to get value directly from the list-item, if it specifies a
+  // value attribute. Note: we do this with our parent's content
+  // because our parent is the list-item.
   nsIContent* parentContent = mParent->GetContent();
   if (parentContent) {
     nsGenericHTMLElement *hc =
@@ -369,7 +369,7 @@ nsBulletFrame::SetListItemOrdinal(PRInt32 aNextOrdinal,
     if (hc) {
       const nsAttrValue* attr = hc->GetParsedAttr(nsGkAtoms::value);
       if (attr && attr->Type() == nsAttrValue::eInteger) {
-        
+        // Use ordinal specified by the value attribute
         mOrdinal = attr->GetIntegerValue();
       }
     }
@@ -381,14 +381,14 @@ nsBulletFrame::SetListItemOrdinal(PRInt32 aNextOrdinal,
 }
 
 
+// XXX change roman/alpha to use unsigned math so that maxint and
+// maxnegint will work
 
-
-
-
-
-
-
-
+/**
+ * For all functions below, a return value of true means that we
+ * could represent mOrder in the desired numbering system.  false
+ * means we had to fall back to decimal
+ */
 static bool DecimalToText(PRInt32 ordinal, nsString& result)
 {
    char cbuf[40];
@@ -409,7 +409,7 @@ static bool OtherDecimalToText(PRInt32 ordinal, PRUnichar zeroChar, nsString& re
    DecimalToText(ordinal, result);
    PRUnichar* p = result.BeginWriting();
    if (ordinal < 0) {
-     
+     // skip the leading '-'
      ++p;
    }     
    for(; nsnull != *p ; p++) 
@@ -421,7 +421,7 @@ static bool TamilToText(PRInt32 ordinal,  nsString& result)
    PRUnichar diff = 0x0BE6 - PRUnichar('0');
    DecimalToText(ordinal, result); 
    if (ordinal < 1 || ordinal > 9999) {
-     
+     // Can't do those in this system.
      return false;
    }
    PRUnichar* p = result.BeginWriting();
@@ -457,16 +457,16 @@ static bool RomanToText(PRInt32 ordinal, nsString& result, const char* achars, c
     switch(*dp) {
       case '3':
         addOn.Append(PRUnichar(achars[romanPos]));
-        
+        // FALLTHROUGH
       case '2':
         addOn.Append(PRUnichar(achars[romanPos]));
-        
+        // FALLTHROUGH
       case '1':
         addOn.Append(PRUnichar(achars[romanPos]));
         break;
       case '4':
         addOn.Append(PRUnichar(achars[romanPos]));
-        
+        // FALLTHROUGH
       case '5': case '6':
       case '7': case '8':
         addOn.Append(PRUnichar(bchars[romanPos]));
@@ -489,100 +489,100 @@ static bool RomanToText(PRInt32 ordinal, nsString& result, const char* achars, c
 #define ALPHA_SIZE 26
 static const PRUnichar gLowerAlphaChars[ALPHA_SIZE]  = 
 {
-0x0061, 0x0062, 0x0063, 0x0064, 0x0065, 
-0x0066, 0x0067, 0x0068, 0x0069, 0x006A, 
-0x006B, 0x006C, 0x006D, 0x006E, 0x006F, 
-0x0070, 0x0071, 0x0072, 0x0073, 0x0074, 
-0x0075, 0x0076, 0x0077, 0x0078, 0x0079, 
-0x007A                                  
+0x0061, 0x0062, 0x0063, 0x0064, 0x0065, // A   B   C   D   E
+0x0066, 0x0067, 0x0068, 0x0069, 0x006A, // F   G   H   I   J
+0x006B, 0x006C, 0x006D, 0x006E, 0x006F, // K   L   M   N   O
+0x0070, 0x0071, 0x0072, 0x0073, 0x0074, // P   Q   R   S   T
+0x0075, 0x0076, 0x0077, 0x0078, 0x0079, // U   V   W   X   Y
+0x007A                                  // Z
 };
 
 static const PRUnichar gUpperAlphaChars[ALPHA_SIZE]  = 
 {
-0x0041, 0x0042, 0x0043, 0x0044, 0x0045, 
-0x0046, 0x0047, 0x0048, 0x0049, 0x004A, 
-0x004B, 0x004C, 0x004D, 0x004E, 0x004F, 
-0x0050, 0x0051, 0x0052, 0x0053, 0x0054, 
-0x0055, 0x0056, 0x0057, 0x0058, 0x0059, 
-0x005A                                  
+0x0041, 0x0042, 0x0043, 0x0044, 0x0045, // A   B   C   D   E
+0x0046, 0x0047, 0x0048, 0x0049, 0x004A, // F   G   H   I   J
+0x004B, 0x004C, 0x004D, 0x004E, 0x004F, // K   L   M   N   O
+0x0050, 0x0051, 0x0052, 0x0053, 0x0054, // P   Q   R   S   T
+0x0055, 0x0056, 0x0057, 0x0058, 0x0059, // U   V   W   X   Y
+0x005A                                  // Z
 };
 
 
 #define KATAKANA_CHARS_SIZE 48
-
-
+// Page 94 Writing Systems of The World
+// after modification by momoi
 static const PRUnichar gKatakanaChars[KATAKANA_CHARS_SIZE] =
 {
-0x30A2, 0x30A4, 0x30A6, 0x30A8, 0x30AA, 
-0x30AB, 0x30AD, 0x30AF, 0x30B1, 0x30B3, 
-0x30B5, 0x30B7, 0x30B9, 0x30BB, 0x30BD, 
-0x30BF, 0x30C1, 0x30C4, 0x30C6, 0x30C8, 
-0x30CA, 0x30CB, 0x30CC, 0x30CD, 0x30CE, 
-0x30CF, 0x30D2, 0x30D5, 0x30D8, 0x30DB, 
-0x30DE, 0x30DF, 0x30E0, 0x30E1, 0x30E2, 
-0x30E4,         0x30E6,         0x30E8, 
-0x30E9, 0x30EA, 0x30EB, 0x30EC, 0x30ED, 
-0x30EF, 0x30F0,         0x30F1, 0x30F2, 
-0x30F3                                  
+0x30A2, 0x30A4, 0x30A6, 0x30A8, 0x30AA, //  a    i   u    e    o
+0x30AB, 0x30AD, 0x30AF, 0x30B1, 0x30B3, // ka   ki  ku   ke   ko
+0x30B5, 0x30B7, 0x30B9, 0x30BB, 0x30BD, // sa  shi  su   se   so
+0x30BF, 0x30C1, 0x30C4, 0x30C6, 0x30C8, // ta  chi tsu   te   to
+0x30CA, 0x30CB, 0x30CC, 0x30CD, 0x30CE, // na   ni  nu   ne   no
+0x30CF, 0x30D2, 0x30D5, 0x30D8, 0x30DB, // ha   hi  hu   he   ho
+0x30DE, 0x30DF, 0x30E0, 0x30E1, 0x30E2, // ma   mi  mu   me   mo
+0x30E4,         0x30E6,         0x30E8, // ya       yu        yo 
+0x30E9, 0x30EA, 0x30EB, 0x30EC, 0x30ED, // ra   ri  ru   re   ro
+0x30EF, 0x30F0,         0x30F1, 0x30F2, // wa (w)i     (w)e (w)o
+0x30F3                                  //  n
 };
 
 #define HIRAGANA_CHARS_SIZE 48 
 static const PRUnichar gHiraganaChars[HIRAGANA_CHARS_SIZE] =
 {
-0x3042, 0x3044, 0x3046, 0x3048, 0x304A, 
-0x304B, 0x304D, 0x304F, 0x3051, 0x3053, 
-0x3055, 0x3057, 0x3059, 0x305B, 0x305D, 
-0x305F, 0x3061, 0x3064, 0x3066, 0x3068, 
-0x306A, 0x306B, 0x306C, 0x306D, 0x306E, 
-0x306F, 0x3072, 0x3075, 0x3078, 0x307B, 
-0x307E, 0x307F, 0x3080, 0x3081, 0x3082, 
-0x3084,         0x3086,         0x3088, 
-0x3089, 0x308A, 0x308B, 0x308C, 0x308D, 
-0x308F, 0x3090,         0x3091, 0x3092, 
-0x3093                                  
+0x3042, 0x3044, 0x3046, 0x3048, 0x304A, //  a    i    u    e    o
+0x304B, 0x304D, 0x304F, 0x3051, 0x3053, // ka   ki   ku   ke   ko
+0x3055, 0x3057, 0x3059, 0x305B, 0x305D, // sa  shi   su   se   so
+0x305F, 0x3061, 0x3064, 0x3066, 0x3068, // ta  chi  tsu   te   to
+0x306A, 0x306B, 0x306C, 0x306D, 0x306E, // na   ni   nu   ne   no
+0x306F, 0x3072, 0x3075, 0x3078, 0x307B, // ha   hi   hu   he   ho
+0x307E, 0x307F, 0x3080, 0x3081, 0x3082, // ma   mi   mu   me   mo
+0x3084,         0x3086,         0x3088, // ya        yu       yo 
+0x3089, 0x308A, 0x308B, 0x308C, 0x308D, // ra   ri   ru   re   ro
+0x308F, 0x3090,         0x3091, 0x3092, // wa (w)i      (w)e (w)o
+0x3093                                  // n
 };
 
 
 #define HIRAGANA_IROHA_CHARS_SIZE 47
-
+// Page 94 Writing Systems of The World
 static const PRUnichar gHiraganaIrohaChars[HIRAGANA_IROHA_CHARS_SIZE] =
 {
-0x3044, 0x308D, 0x306F, 0x306B, 0x307B, 
-0x3078, 0x3068, 0x3061, 0x308A, 0x306C, 
-0x308B, 0x3092, 0x308F, 0x304B, 0x3088, 
-0x305F, 0x308C, 0x305D, 0x3064, 0x306D, 
-0x306A, 0x3089, 0x3080, 0x3046, 0x3090, 
-0x306E, 0x304A, 0x304F, 0x3084, 0x307E, 
-0x3051, 0x3075, 0x3053, 0x3048, 0x3066, 
-0x3042, 0x3055, 0x304D, 0x3086, 0x3081, 
-0x307F, 0x3057, 0x3091, 0x3072, 0x3082, 
-0x305B, 0x3059                          
+0x3044, 0x308D, 0x306F, 0x306B, 0x307B, //  i   ro   ha   ni   ho
+0x3078, 0x3068, 0x3061, 0x308A, 0x306C, // he   to  chi   ri   nu
+0x308B, 0x3092, 0x308F, 0x304B, 0x3088, // ru (w)o   wa   ka   yo
+0x305F, 0x308C, 0x305D, 0x3064, 0x306D, // ta   re   so  tsu   ne
+0x306A, 0x3089, 0x3080, 0x3046, 0x3090, // na   ra   mu    u (w)i
+0x306E, 0x304A, 0x304F, 0x3084, 0x307E, // no    o   ku   ya   ma
+0x3051, 0x3075, 0x3053, 0x3048, 0x3066, // ke   hu   ko    e   te
+0x3042, 0x3055, 0x304D, 0x3086, 0x3081, //  a   sa   ki   yu   me
+0x307F, 0x3057, 0x3091, 0x3072, 0x3082, // mi  shi (w)e   hi   mo 
+0x305B, 0x3059                          // se   su
 };
 
 #define KATAKANA_IROHA_CHARS_SIZE 47
 static const PRUnichar gKatakanaIrohaChars[KATAKANA_IROHA_CHARS_SIZE] =
 {
-0x30A4, 0x30ED, 0x30CF, 0x30CB, 0x30DB, 
-0x30D8, 0x30C8, 0x30C1, 0x30EA, 0x30CC, 
-0x30EB, 0x30F2, 0x30EF, 0x30AB, 0x30E8, 
-0x30BF, 0x30EC, 0x30BD, 0x30C4, 0x30CD, 
-0x30CA, 0x30E9, 0x30E0, 0x30A6, 0x30F0, 
-0x30CE, 0x30AA, 0x30AF, 0x30E4, 0x30DE, 
-0x30B1, 0x30D5, 0x30B3, 0x30A8, 0x30C6, 
-0x30A2, 0x30B5, 0x30AD, 0x30E6, 0x30E1, 
-0x30DF, 0x30B7, 0x30F1, 0x30D2, 0x30E2, 
-0x30BB, 0x30B9                          
+0x30A4, 0x30ED, 0x30CF, 0x30CB, 0x30DB, //  i   ro   ha   ni   ho
+0x30D8, 0x30C8, 0x30C1, 0x30EA, 0x30CC, // he   to  chi   ri   nu
+0x30EB, 0x30F2, 0x30EF, 0x30AB, 0x30E8, // ru (w)o   wa   ka   yo
+0x30BF, 0x30EC, 0x30BD, 0x30C4, 0x30CD, // ta   re   so  tsu   ne
+0x30CA, 0x30E9, 0x30E0, 0x30A6, 0x30F0, // na   ra   mu    u (w)i
+0x30CE, 0x30AA, 0x30AF, 0x30E4, 0x30DE, // no    o   ku   ya   ma
+0x30B1, 0x30D5, 0x30B3, 0x30A8, 0x30C6, // ke   hu   ko    e   te
+0x30A2, 0x30B5, 0x30AD, 0x30E6, 0x30E1, //  a   sa   ki   yu   me
+0x30DF, 0x30B7, 0x30F1, 0x30D2, 0x30E2, // mi  shi (w)e   hi   mo 
+0x30BB, 0x30B9                          // se   su
 };
 
 #define LOWER_GREEK_CHARS_SIZE 24
-
+// Note: 0x03C2 GREEK FINAL SIGMA is not used in here....
 static const PRUnichar gLowerGreekChars[LOWER_GREEK_CHARS_SIZE] =
 {
-0x03B1, 0x03B2, 0x03B3, 0x03B4, 0x03B5, 
-0x03B6, 0x03B7, 0x03B8, 0x03B9, 0x03BA, 
-0x03BB, 0x03BC, 0x03BD, 0x03BE, 0x03BF, 
-0x03C0, 0x03C1, 0x03C3, 0x03C4, 0x03C5, 
-0x03C6, 0x03C7, 0x03C8, 0x03C9          
+0x03B1, 0x03B2, 0x03B3, 0x03B4, 0x03B5, // alpha  beta  gamma  delta  epsilon
+0x03B6, 0x03B7, 0x03B8, 0x03B9, 0x03BA, // zeta   eta   theta  iota   kappa   
+0x03BB, 0x03BC, 0x03BD, 0x03BE, 0x03BF, // lamda  mu    nu     xi     omicron 
+0x03C0, 0x03C1, 0x03C3, 0x03C4, 0x03C5, // pi     rho   sigma  tau    upsilon 
+0x03C6, 0x03C7, 0x03C8, 0x03C9          // phi    chi   psi    omega    
 };
 
 #define CJK_HEAVENLY_STEM_CHARS_SIZE 10 
@@ -612,10 +612,10 @@ static const PRUnichar gHangulConsonantChars[HANGUL_CONSONANT_CHARS_SIZE] =
 0x314d, 0x314e
 };
 
-
-
-
-
+// Ge'ez set of Ethiopic ordered list. There are other locale-dependent sets.
+// For the time being, let's implement two Ge'ez sets only
+// per Momoi san's suggestion in bug 102252. 
+// For details, refer to http://www.ethiopic.org/Collation/OrderedLists.html.
 #define ETHIOPIC_HALEHAME_CHARS_SIZE 26
 static const PRUnichar gEthiopicHalehameChars[ETHIOPIC_HALEHAME_CHARS_SIZE] =
 {                                      
@@ -657,10 +657,10 @@ static const PRUnichar gEthiopicHalehameTiEtChars[ETHIOPIC_HALEHAME_TI_ET_CHARS_
 };
 
 
-
-
-
-
+// We know cjk-ideographic need 31 characters to display 99,999,999,999,999,999
+// georgian needs 6 at most
+// armenian needs 12 at most
+// hebrew may need more...
 
 #define NUM_BUF_SIZE 34 
 
@@ -673,7 +673,7 @@ static bool CharListToText(PRInt32 ordinal, nsString& result, const PRUnichar* c
     return false;
   }
   do {
-    ordinal--; 
+    ordinal--; // a == 0
     PRInt32 cur = ordinal % aBase;
     buf[--idx] = chars[cur];
     ordinal /= aBase ;
@@ -685,18 +685,18 @@ static bool CharListToText(PRInt32 ordinal, nsString& result, const PRUnichar* c
 
 static const PRUnichar gCJKIdeographicDigit1[10] =
 {
-  0x96f6, 0x4e00, 0x4e8c, 0x4e09, 0x56db,  
-  0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d   
+  0x96f6, 0x4e00, 0x4e8c, 0x4e09, 0x56db,  // 0 - 4
+  0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d   // 5 - 9
 };
 static const PRUnichar gCJKIdeographicDigit2[10] =
 {
-  0x96f6, 0x58f9, 0x8cb3, 0x53c3, 0x8086,  
-  0x4f0d, 0x9678, 0x67d2, 0x634c, 0x7396   
+  0x96f6, 0x58f9, 0x8cb3, 0x53c3, 0x8086,  // 0 - 4
+  0x4f0d, 0x9678, 0x67d2, 0x634c, 0x7396   // 5 - 9
 };
 static const PRUnichar gCJKIdeographicDigit3[10] =
 {
-  0x96f6, 0x58f9, 0x8d30, 0x53c1, 0x8086,  
-  0x4f0d, 0x9646, 0x67d2, 0x634c, 0x7396   
+  0x96f6, 0x58f9, 0x8d30, 0x53c1, 0x8086,  // 0 - 4
+  0x4f0d, 0x9646, 0x67d2, 0x634c, 0x7396   // 5 - 9
 };
 static const PRUnichar gCJKIdeographicUnit1[4] =
 {
@@ -724,16 +724,16 @@ static const bool CJKIdeographicToText(PRInt32 ordinal, nsString& result,
                                    const PRUnichar *unit, 
                                    const PRUnichar* unit10k)
 {
-
-
-
-
-
-
-
-
-
-
+// In theory, we need the following if condiction,
+// However, the limit, 10 ^ 16, is greater than the max of PRUint32
+// so we don't really need to test it here.
+// if( ordinal > 9999999999999999)
+// {
+//    PR_snprintf(cbuf, sizeof(cbuf), "%ld", ordinal);
+//    result.Append(cbuf);
+// } 
+// else 
+// {
   if (ordinal < 0) {
     DecimalToText(ordinal, result);
     return false;
@@ -780,18 +780,18 @@ static const bool CJKIdeographicToText(PRInt32 ordinal, nsString& result,
 
   } while( ordinal > 0);
   result.Append(buf+idx,NUM_BUF_SIZE-idx);
-
+// }
   return true;
 }
 
 #define HEBREW_GERESH       0x05F3
 static const PRUnichar gHebrewDigit[22] = 
 {
-
+//   1       2       3       4       5       6       7       8       9
 0x05D0, 0x05D1, 0x05D2, 0x05D3, 0x05D4, 0x05D5, 0x05D6, 0x05D7, 0x05D8,
-
+//  10      20      30      40      50      60      70      80      90
 0x05D9, 0x05DB, 0x05DC, 0x05DE, 0x05E0, 0x05E1, 0x05E2, 0x05E4, 0x05E6,
-
+// 100     200     300     400
 0x05E7, 0x05E8, 0x05E9, 0x05EA
 };
 
@@ -806,7 +806,7 @@ static bool HebrewToText(PRInt32 ordinal, nsString& result)
   do {
     thousandsGroup.Truncate();
     PRInt32 n3 = ordinal % 1000;
-    
+    // Process digit for 100 - 900
     for(PRInt32 n1 = 400; n1 > 0; )
     {
       if( n3 >= n1)
@@ -815,28 +815,28 @@ static bool HebrewToText(PRInt32 ordinal, nsString& result)
         thousandsGroup.Append(gHebrewDigit[(n1/100)-1+18]);
       } else {
         n1 -= 100;
-      } 
-    } 
+      } // if
+    } // for
 
-    
+    // Process digit for 10 - 90
     PRInt32 n2;
     if( n3 >= 10 )
     {
-      
+      // Special process for 15 and 16
       if(( 15 == n3 ) || (16 == n3)) {
-        
-        
-        
+        // Special rule for religious reason...
+        // 15 is represented by 9 and 6, not 10 and 5
+        // 16 is represented by 9 and 7, not 10 and 6
         n2 = 9;
         thousandsGroup.Append(gHebrewDigit[ n2 - 1]);
       } else {
         n2 = n3 - (n3 % 10);
         thousandsGroup.Append(gHebrewDigit[(n2/10)-1+9]);
-      } 
+      } // if
       n3 -= n2;
-    } 
+    } // if
   
-    
+    // Process digit for 1 - 9 
     if ( n3 > 0)
       thousandsGroup.Append(gHebrewDigit[n3-1]);
     if (outputSep) 
@@ -856,7 +856,7 @@ static bool HebrewToText(PRInt32 ordinal, nsString& result)
 
 static bool ArmenianToText(PRInt32 ordinal, nsString& result)
 {
-  if (ordinal < 1 || ordinal > 9999) { 
+  if (ordinal < 1 || ordinal > 9999) { // zero or reach the limit of Armenian numbering system
     DecimalToText(ordinal, result);
     return false;
   }
@@ -879,21 +879,21 @@ static bool ArmenianToText(PRInt32 ordinal, nsString& result)
 }
 
 
-static const PRUnichar gGeorgianValue [ 37 ] = { 
-
+static const PRUnichar gGeorgianValue [ 37 ] = { // 4 * 9 + 1 = 37
+//      1       2       3       4       5       6       7       8       9
    0x10D0, 0x10D1, 0x10D2, 0x10D3, 0x10D4, 0x10D5, 0x10D6, 0x10F1, 0x10D7,
-
+//     10      20      30      40      50      60      70      80      90
    0x10D8, 0x10D9, 0x10DA, 0x10DB, 0x10DC, 0x10F2, 0x10DD, 0x10DE, 0x10DF,
-
+//    100     200     300     400     500     600     700     800     900
    0x10E0, 0x10E1, 0x10E2, 0x10F3, 0x10E4, 0x10E5, 0x10E6, 0x10E7, 0x10E8,
-
+//   1000    2000    3000    4000    5000    6000    7000    8000    9000
    0x10E9, 0x10EA, 0x10EB, 0x10EC, 0x10ED, 0x10EE, 0x10F4, 0x10EF, 0x10F0,
-
+//  10000
    0x10F5
 };
 static bool GeorgianToText(PRInt32 ordinal, nsString& result)
 {
-  if (ordinal < 1 || ordinal > 19999) { 
+  if (ordinal < 1 || ordinal > 19999) { // zero or reach the limit of Georgian numbering system
     DecimalToText(ordinal, result);
     return false;
   }
@@ -915,11 +915,11 @@ static bool GeorgianToText(PRInt32 ordinal, nsString& result)
   return true;
 }
 
-
-
-
-
-
+// Convert ordinal to Ethiopic numeric representation.
+// The detail is available at http://www.ethiopic.org/Numerals/
+// The algorithm used here is based on the pseudo-code put up there by
+// Daniel Yacob <yacob@geez.org>.
+// Another reference is Unicode 3.0 standard section 11.1.
 #define ETHIOPIC_ONE             0x1369
 #define ETHIOPIC_TEN             0x1372
 #define ETHIOPIC_HUNDRED         0x137B
@@ -927,7 +927,7 @@ static bool GeorgianToText(PRInt32 ordinal, nsString& result)
 
 static bool EthiopicToText(PRInt32 ordinal, nsString& result)
 {
-  nsAutoString asciiNumberString;      
+  nsAutoString asciiNumberString;      // decimal string representation of ordinal
   DecimalToText(ordinal, asciiNumberString);
   if (ordinal < 1) {
     result.Append(asciiNumberString);
@@ -935,20 +935,20 @@ static bool EthiopicToText(PRInt32 ordinal, nsString& result)
   }
   PRUint8 asciiStringLength = asciiNumberString.Length();
 
-  
-  
-  
-  
-  
+  // If number length is odd, add a leading "0"
+  // the leading "0" preconditions the string to always have the
+  // leading tens place populated, this avoids a check within the loop.
+  // If we didn't add the leading "0", decrement asciiStringLength so
+  // it will be equivalent to a zero-based index in both cases.
   if (asciiStringLength & 1) {
     asciiNumberString.Insert(NS_LITERAL_STRING("0"), 0);
   } else {
     asciiStringLength--;
   }
 
-  
-  
-  
+  // Iterate from the highest digits to lowest
+  // indexFromLeft       indexes digits (0 = most significant)
+  // groupIndexFromRight indexes pairs of digits (0 = least significant)
   for (PRUint8 indexFromLeft = 0, groupIndexFromRight = asciiStringLength >> 1;
        indexFromLeft <= asciiStringLength;
        indexFromLeft += 2, groupIndexFromRight--) {
@@ -958,24 +958,24 @@ static bool EthiopicToText(PRInt32 ordinal, nsString& result)
 
     bool oddGroup = (groupIndexFromRight & 1);
 
-    
+    // we want to clear ETHIOPIC_ONE when it is superfluous
     if (ordinal > 1 &&
-        groupValue == 1 &&                  
-        (oddGroup || indexFromLeft == 0)) { 
+        groupValue == 1 &&                  // one without a leading ten
+        (oddGroup || indexFromLeft == 0)) { // preceding (100) or leading the sequence
       unitsValue = 0;
     }
 
-    
+    // put it all together...
     if (tensValue) {
-      
+      // map onto Ethiopic "tens":
       result.Append((PRUnichar) (tensValue +  ETHIOPIC_TEN - 1));
     }
     if (unitsValue) {
-      
+      //map onto Ethiopic "units":
       result.Append((PRUnichar) (unitsValue + ETHIOPIC_ONE - 1));
     }
-    
-    
+    // Add a separator for all even groups except the last,
+    // and for odd groups with non-zero value.
     if (oddGroup) {
       if (groupValue) {
         result.Append((PRUnichar) ETHIOPIC_HUNDRED);
@@ -990,7 +990,7 @@ static bool EthiopicToText(PRInt32 ordinal, nsString& result)
 }
 
 
- bool
+/* static */ bool
 nsBulletFrame::AppendCounterText(PRInt32 aListStyleType,
                                  PRInt32 aOrdinal,
                                  nsString& result)
@@ -998,27 +998,27 @@ nsBulletFrame::AppendCounterText(PRInt32 aListStyleType,
   bool success = true;
   
   switch (aListStyleType) {
-    case NS_STYLE_LIST_STYLE_NONE: 
+    case NS_STYLE_LIST_STYLE_NONE: // used by counters code only
       break;
 
-    case NS_STYLE_LIST_STYLE_DISC: 
-      
+    case NS_STYLE_LIST_STYLE_DISC: // used by counters code only
+      // XXX We really need to do this the same way we do list bullets.
       result.Append(PRUnichar(0x2022));
       break;
 
-    case NS_STYLE_LIST_STYLE_CIRCLE: 
-      
+    case NS_STYLE_LIST_STYLE_CIRCLE: // used by counters code only
+      // XXX We really need to do this the same way we do list bullets.
       result.Append(PRUnichar(0x25E6));
       break;
 
-    case NS_STYLE_LIST_STYLE_SQUARE: 
-      
+    case NS_STYLE_LIST_STYLE_SQUARE: // used by counters code only
+      // XXX We really need to do this the same way we do list bullets.
       result.Append(PRUnichar(0x25FE));
       break;
 
     case NS_STYLE_LIST_STYLE_DECIMAL:
-    default: 
-      
+    default: // CSS2 say "A users  agent that does not recognize a numbering system
+      // should use 'decimal'
       success = DecimalToText(aOrdinal, result);
       break;
 
@@ -1240,15 +1240,15 @@ nsBulletFrame::GetListItemText(const nsStyleList& aListStyle,
   if (success && aListStyle.mListStyleType == NS_STYLE_LIST_STYLE_HEBREW)
     mTextIsRTL = true;
 
-  
-  
+  // XXX For some of these systems, "." is wrong!  This should really be
+  // pushed down into the individual cases!
   nsString suffix = NS_LITERAL_STRING(".");
 
-  
-  
-  
-  
-  
+  // We're not going to do proper Bidi reordering on the list item marker, but
+  // just display the whole thing as RTL or LTR, so we fake reordering by
+  // appending the suffix to the end of the list item marker if the
+  // directionality of the characters is the same as the style direction or
+  // prepending it to the beginning if they are different.
   result = (mTextIsRTL == (vis->mDirection == NS_STYLE_DIRECTION_RTL)) ?
           result + suffix : suffix + result;
   return success;
@@ -1263,7 +1263,7 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
                               nsHTMLReflowMetrics& aMetrics,
                               float aFontSizeInflation)
 {
-  
+  // Reset our padding.  If we need it, we'll set it below.
   mPadding.SizeTo(0, 0, 0, 0);
   
   const nsStyleList* myList = GetStyleList();
@@ -1276,12 +1276,9 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
     mImageRequest->GetImageStatus(&status);
     if (status & imgIRequest::STATUS_SIZE_AVAILABLE &&
         !(status & imgIRequest::STATUS_ERROR)) {
-      
-      mComputedSize.width = mIntrinsicSize.width;
-      mComputedSize.height = mIntrinsicSize.height;
-
-      aMetrics.width = mComputedSize.width;
-      aMetrics.ascent = aMetrics.height = mComputedSize.height;
+      // auto size the image
+      aMetrics.width = mIntrinsicSize.width;
+      aMetrics.ascent = aMetrics.height = mIntrinsicSize.height;
 
       AddStateBits(BULLET_FRAME_IMAGE_LOADING);
 
@@ -1289,12 +1286,12 @@ nsBulletFrame::GetDesiredSize(nsPresContext*  aCX,
     }
   }
 
-  
-  
-  
-  
-  
-  
+  // If we're getting our desired size and don't have an image, reset
+  // mIntrinsicSize to (0,0).  Otherwise, if we used to have an image, it
+  // changed, and the new one is coming in, but we're reflowing before it's
+  // fully there, we'll end up with mIntrinsicSize not matching our size, but
+  // won't trigger a reflow in OnStartContainer (because mIntrinsicSize will
+  // match the image size).
   mIntrinsicSize.SizeTo(0, 0);
 
   nsRefPtr<nsFontMetrics> fm;
@@ -1391,20 +1388,20 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   SetFontSizeInflation(inflation);
 
-  
+  // Get the base size
   GetDesiredSize(aPresContext, aReflowState.rendContext, aMetrics, inflation);
 
-  
-  
+  // Add in the border and padding; split the top/bottom between the
+  // ascent and descent to make things look nice
   const nsMargin& borderPadding = aReflowState.mComputedBorderPadding;
   aMetrics.width += borderPadding.left + borderPadding.right;
   aMetrics.height += borderPadding.top + borderPadding.bottom;
   aMetrics.ascent += borderPadding.top;
 
-  
-  
-  
-  
+  // XXX this is a bit of a hack, we're assuming that no glyphs used for bullets
+  // overflow their font-boxes. It'll do for now; to fix it for real, we really
+  // should rewrite all the text-handling code here to use gfxTextRun (bug
+  // 397294).
   aMetrics.SetOverflowAreasToDesiredBounds();
 
   aStatus = NS_FRAME_COMPLETE;
@@ -1412,7 +1409,7 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
   return NS_OK;
 }
 
- nscoord
+/* virtual */ nscoord
 nsBulletFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   nsHTMLReflowMetrics metrics;
@@ -1421,7 +1418,7 @@ nsBulletFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
   return metrics.width;
 }
 
- nscoord
+/* virtual */ nscoord
 nsBulletFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   nsHTMLReflowMetrics metrics;
@@ -1455,8 +1452,8 @@ NS_IMETHODIMP nsBulletFrame::OnStartContainer(imgIRequest *aRequest,
   if (mIntrinsicSize != newsize) {
     mIntrinsicSize = newsize;
 
-    
-    
+    // Now that the size is available (or an error occurred), trigger
+    // a reflow of the bullet frame.
     nsIPresShell *shell = presContext->GetPresShell();
     if (shell) {
       shell->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
@@ -1464,11 +1461,11 @@ NS_IMETHODIMP nsBulletFrame::OnStartContainer(imgIRequest *aRequest,
     }
   }
 
-  
+  // Handle animations
   aImage->SetAnimationMode(presContext->ImageAnimationMode());
-  
-  
-  
+  // Ensure the animation (if any) is started. Note: There is no
+  // corresponding call to Decrement for this. This Increment will be
+  // 'cleaned up' by the Request when it is destroyed, but only then.
   aRequest->IncrementAnimationConsumers();
   
   return NS_OK;
@@ -1478,9 +1475,9 @@ NS_IMETHODIMP nsBulletFrame::OnDataAvailable(imgIRequest *aRequest,
                                              bool aCurrentFrame,
                                              const nsIntRect *aRect)
 {
-  
-  
-  
+  // The image has changed.
+  // Invalidate the entire content area. Maybe it's not optimal but it's simple and
+  // always correct, and I'll be a stunned mullet if it ever matters for performance
   Invalidate(nsRect(0, 0, mRect.width, mRect.height));
 
   return NS_OK;
@@ -1490,12 +1487,12 @@ NS_IMETHODIMP nsBulletFrame::OnStopDecode(imgIRequest *aRequest,
                                           nsresult aStatus,
                                           const PRUnichar *aStatusArg)
 {
-  
-  
+  // XXX should the bulletframe do anything if the image failed to load?
+  //     it didn't in the old code...
 
 #if 0
   if (NS_FAILED(aStatus)) {
-    
+    // We failed to load the image. Notify the pres shell
     if (NS_FAILED(aStatus) && (mImageRequest == aRequest || !mImageRequest)) {
       imageFailed = true;
     }
@@ -1507,8 +1504,8 @@ NS_IMETHODIMP nsBulletFrame::OnStopDecode(imgIRequest *aRequest,
 
 NS_IMETHODIMP nsBulletFrame::OnImageIsAnimated(imgIRequest* aRequest)
 {
-  
-  
+  // Register the image request with the refresh driver now that we know it's
+  // animated.
   if (aRequest == mImageRequest) {
     nsLayoutUtils::RegisterImageRequest(PresContext(), mImageRequest,
                                         &mRequestRegistered);
@@ -1521,8 +1518,8 @@ NS_IMETHODIMP nsBulletFrame::FrameChanged(imgIRequest *aRequest,
                                           imgIContainer *aContainer,
                                           const nsIntRect *aDirtyRect)
 {
-  
-  
+  // Invalidate the entire content area. Maybe it's not optimal but it's simple and
+  // always correct.
   Invalidate(nsRect(0, 0, mRect.width, mRect.height));
 
   return NS_OK;
@@ -1545,7 +1542,7 @@ nsBulletFrame::GetLoadGroup(nsPresContext *aPresContext, nsILoadGroup **aLoadGro
   if (!doc)
     return;
 
-  *aLoadGroup = doc->GetDocumentLoadGroup().get();  
+  *aLoadGroup = doc->GetDocumentLoadGroup().get();  // already_AddRefed
 }
 
 union VoidPtrOrFloat {

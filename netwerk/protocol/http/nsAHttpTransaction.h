@@ -105,6 +105,11 @@ public:
     
     
     virtual nsHttpPipeline *QueryPipeline() { return nsnull; }
+
+    
+    
+    
+    virtual bool IsNullTransaction() { return false; }
     
     
     
