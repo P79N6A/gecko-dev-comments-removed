@@ -2483,17 +2483,6 @@ public:
     virtual bool ReleaseTexImage() { return false; }
 
     
-
-
-    void ApplyFilterToBoundTexture(GraphicsFilter aFilter);
-
-    
-
-
-    void ApplyFilterToBoundTexture(GLuint aTarget,
-                                   GraphicsFilter aFilter);
-
-    
     void GuaranteeResolve();
 
     
