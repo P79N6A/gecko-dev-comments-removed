@@ -185,12 +185,6 @@ public:
   void SetWorldTransform(const gfxMatrix& aMatrix);
   gfxMatrix& GetWorldTransform(void);
 
-  static bool AddMaskEffect(Layer* aMaskLayer,
-                            EffectChain& aEffect,
-                            bool aIs3D = false);
-
-  static void RemoveMaskEffect(Layer* aMaskLayer);
-
   
 
 
