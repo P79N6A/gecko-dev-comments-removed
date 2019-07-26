@@ -145,6 +145,11 @@ RangeAnalysis::addBetaNodes()
             continue;
 
         MCompare *compare = test->getOperand(0)->toCompare();
+
+        
+        if (compare->compareType() == MCompare::Compare_UInt32)
+            continue;
+
         MDefinition *left = compare->getOperand(0);
         MDefinition *right = compare->getOperand(1);
         double bound;
