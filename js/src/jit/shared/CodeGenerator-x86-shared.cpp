@@ -788,13 +788,19 @@ CodeGeneratorX86Shared::visitReturnZero(ReturnZero *ool)
 bool
 CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
 {
-    JS_ASSERT(ToRegister(ins->lhs()) == eax);
+    Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     Register output = ToRegister(ins->output());
 
+    JS_ASSERT_IF(lhs != rhs, rhs != eax);
+    JS_ASSERT(rhs != edx);
     JS_ASSERT_IF(output == eax, ToRegister(ins->remainder()) == edx);
 
     ReturnZero *ool = nullptr;
+
+    
+    if (lhs != eax)
+        masm.mov(lhs, eax);
 
     
     if (ins->canBeDivideByZero()) {
@@ -809,6 +815,7 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
         }
     }
 
+    
     masm.mov(ImmWord(0), edx);
     masm.udiv(rhs);
 
@@ -893,28 +900,6 @@ CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitDivSelfI(LDivSelfI *ins)
-{
-    Register op = ToRegister(ins->op());
-    Register output = ToRegister(ins->output());
-    MDiv *mir = ins->mir();
-
-    
-    JS_ASSERT(mir->canBeDivideByZero());
-
-    masm.testl(op, op);
-    if (mir->isTruncated()) {
-        masm.emitSet(Assembler::NonZero, output);
-    } else {
-       if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-           return false;
-        masm.mov(ImmWord(1), output);
-    }
-
-    return true;
-}
-
-bool
 CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 {
     Register remainder = ToRegister(ins->remainder());
@@ -924,12 +909,18 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 
     MDiv *mir = ins->mir();
 
+    JS_ASSERT_IF(lhs != rhs, rhs != eax);
+    JS_ASSERT(rhs != edx);
     JS_ASSERT(remainder == edx);
-    JS_ASSERT(lhs == eax);
     JS_ASSERT(output == eax);
 
     Label done;
     ReturnZero *ool = nullptr;
+
+    
+    
+    if (lhs != eax)
+        masm.mov(lhs, eax);
 
     
     if (mir->canBeDivideByZero()) {
@@ -976,6 +967,8 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     }
 
     
+    if (lhs != eax)
+        masm.mov(lhs, eax);
     masm.cdq();
     masm.idiv(rhs);
 
@@ -993,39 +986,6 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
             return false;
         masm.bind(ool->rejoin());
     }
-
-    return true;
-}
-
-bool
-CodeGeneratorX86Shared::visitModSelfI(LModSelfI *ins)
-{
-    Register op = ToRegister(ins->op());
-    Register output = ToRegister(ins->output());
-    MMod *mir = ins->mir();
-
-    
-    JS_ASSERT(mir->fallible());
-    JS_ASSERT(mir->canBeDivideByZero() || (!mir->isUnsigned() && mir->canBeNegativeDividend()));
-
-    masm.testl(op, op);
-
-    
-    
-    if (!mir->isUnsigned() && mir->canBeNegativeDividend()) {
-        if (!bailoutIf(Assembler::Signed, ins->snapshot()))
-             return false;
-    }
-
-    
-    
-    if (mir->canBeDivideByZero()) {
-        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-            return false;
-    }
-
-    
-    masm.mov(ImmWord(0), output);
 
     return true;
 }
@@ -1114,13 +1074,18 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     Register rhs = ToRegister(ins->rhs());
 
     
-    JS_ASSERT(lhs == eax);
+    JS_ASSERT_IF(lhs != rhs, rhs != eax);
+    JS_ASSERT(rhs != edx);
     JS_ASSERT(remainder == edx);
     JS_ASSERT(ToRegister(ins->getTemp(0)) == eax);
 
     Label done;
     ReturnZero *ool = nullptr;
     ModOverflowCheck *overflow = nullptr;
+
+    
+    if (lhs != eax)
+        masm.mov(lhs, eax);
 
     
     if (ins->mir()->canBeDivideByZero()) {

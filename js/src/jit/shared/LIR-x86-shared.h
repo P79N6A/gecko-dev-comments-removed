@@ -72,25 +72,6 @@ class LDivPowTwoI : public LBinaryMath<0>
     }
 };
 
-
-class LDivSelfI : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(DivSelfI)
-
-    LDivSelfI(const LAllocation &op) {
-        setOperand(0, op);
-    }
-
-    const LAllocation *op() {
-        return getOperand(0);
-    }
-
-    MDiv *mir() const {
-        return mir_->toDiv();
-    }
-};
-
 class LModI : public LBinaryMath<1>
 {
   public:
@@ -109,25 +90,6 @@ class LModI : public LBinaryMath<1>
     const LDefinition *remainder() {
         return getDef(0);
     }
-    MMod *mir() const {
-        return mir_->toMod();
-    }
-};
-
-
-class LModSelfI : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(ModSelfI)
-
-    LModSelfI(const LAllocation &op) {
-        setOperand(0, op);
-    }
-
-    const LAllocation *op() {
-        return getOperand(0);
-    }
-
     MMod *mir() const {
         return mir_->toMod();
     }
