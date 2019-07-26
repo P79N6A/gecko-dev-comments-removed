@@ -294,13 +294,6 @@ function onSearchSubmit(aEvent)
   let searchURL = document.documentElement.getAttribute("searchEngineURL");
 
   if (searchURL && searchTerms.length > 0) {
-    const SEARCH_TOKENS = {
-      "_searchTerms_": encodeURIComponent(searchTerms)
-    }
-    for (let key in SEARCH_TOKENS) {
-      searchURL = searchURL.replace(key, SEARCH_TOKENS[key]);
-    }
-
     
     
     
@@ -308,7 +301,42 @@ function onSearchSubmit(aEvent)
     let event = new CustomEvent("AboutHomeSearchEvent", {detail: engineName});
     document.dispatchEvent(event);
 
-    window.location.href = searchURL;
+    const SEARCH_TOKEN = "_searchTerms_";
+    let searchPostData = document.documentElement.getAttribute("searchEnginePostData");
+    if (searchPostData) {
+      
+      const POST_FORM_NAME = "searchFormPost";
+      let form = document.forms[POST_FORM_NAME];
+      if (form) {
+        form.parentNode.removeChild(form);
+      }
+
+      
+      form = document.body.appendChild(document.createElement("form"));
+      form.setAttribute("name", POST_FORM_NAME);
+      
+      form.setAttribute("action", searchURL.replace(SEARCH_TOKEN, searchTerms));
+      form.setAttribute("method", "post");
+
+      
+      searchPostData = searchPostData.split("&");
+      for (let postVar of searchPostData) {
+        let [name, value] = postVar.split("=");
+        if (value == SEARCH_TOKEN) {
+          value = searchTerms;
+        }
+        let input = document.createElement("input");
+        input.setAttribute("type", "hidden");
+        input.setAttribute("name", name);
+        input.setAttribute("value", value);
+        form.appendChild(input);
+      }
+      
+      form.submit();
+   } else {
+      searchURL = searchURL.replace(SEARCH_TOKEN, encodeURIComponent(searchTerms));
+      window.location.href = searchURL;
+    }
   }
 
   aEvent.preventDefault();

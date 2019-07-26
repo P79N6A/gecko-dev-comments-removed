@@ -931,6 +931,7 @@ EngineURL.prototype = {
     }
 
     var postData = null;
+    let postDataString = null;
     if (this.method == "GET") {
       
       
@@ -939,7 +940,7 @@ EngineURL.prototype = {
       url += dataString;
     } else if (this.method == "POST") {
       
-      
+      postDataString = dataString;
       var stringStream = Cc["@mozilla.org/io/string-input-stream;1"].
                          createInstance(Ci.nsIStringInputStream);
       stringStream.data = dataString;
@@ -951,7 +952,7 @@ EngineURL.prototype = {
       postData.setData(stringStream);
     }
 
-    return new Submission(makeURI(url), postData);
+    return new Submission(makeURI(url), postData, postDataString);
   },
 
   _hasRelation: function SRC_EURL__hasRelation(aRel)
@@ -2543,7 +2544,7 @@ Engine.prototype = {
 
     if (!aData) {
       
-      return new Submission(makeURI(this.searchForm), null);
+      return new Submission(makeURI(this.searchForm));
     }
 
     LOG("getSubmission: In data: \"" + aData + "\"; Purpose: \"" + aPurpose + "\"");
@@ -2580,9 +2581,10 @@ Engine.prototype = {
 };
 
 
-function Submission(aURI, aPostData) {
+function Submission(aURI, aPostData = null, aPostDataString = null) {
   this._uri = aURI;
   this._postData = aPostData;
+  this._postDataString = aPostDataString;
 }
 Submission.prototype = {
   get uri() {
@@ -2590,6 +2592,9 @@ Submission.prototype = {
   },
   get postData() {
     return this._postData;
+  },
+  get postDataString() {
+    return this._postDataString;
   },
   QueryInterface: function SRCH_SUBM_QI(aIID) {
     if (aIID.equals(Ci.nsISearchSubmission) ||
