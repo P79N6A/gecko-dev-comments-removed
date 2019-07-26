@@ -61,7 +61,7 @@ public:
 
 
 
-  virtual void DeprecatedPaint(gfxContext* aContext, Layer* aMaskLayer) {}
+  virtual void Paint(gfx::DrawTarget* aDT, Layer* aMaskLayer) {}
 
   
 

@@ -29,15 +29,6 @@ struct gfxPoint : public mozilla::gfx::BasePoint<gfxFloat, gfxPoint> {
     gfxPoint(gfxFloat aX, gfxFloat aY) : Super(aX, aY) {}
     gfxPoint(const nsIntPoint& aPoint) : Super(aPoint.x, aPoint.y) {}
 
-    
-    
-    
-    gfxPoint& Round() {
-        x = floor(x + 0.5);
-        y = floor(y + 0.5);
-        return *this;
-    }
-
     bool WithinEpsilonOf(const gfxPoint& aPoint, gfxFloat aEpsilon) {
         return fabs(aPoint.x - x) < aEpsilon && fabs(aPoint.y - y) < aEpsilon;
     }
