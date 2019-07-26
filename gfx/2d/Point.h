@@ -75,8 +75,8 @@ struct IntSizeTyped :
   public units {
   typedef BaseSize< int32_t, IntSizeTyped<units> > Super;
 
-  IntSizeTyped() : Super() {}
-  IntSizeTyped(int32_t aWidth, int32_t aHeight) : Super(aWidth, aHeight) {}
+  MOZ_CONSTEXPR IntSizeTyped() : Super() {}
+  MOZ_CONSTEXPR IntSizeTyped(int32_t aWidth, int32_t aHeight) : Super(aWidth, aHeight) {}
 
   
   
