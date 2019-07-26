@@ -1157,6 +1157,7 @@ NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
 #elif defined(HAVE__UNWIND_BACKTRACE)
 
 
+#define _GNU_SOURCE
 #include <unwind.h>
 
 struct unwind_info {

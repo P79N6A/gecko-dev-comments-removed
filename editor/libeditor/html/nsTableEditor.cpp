@@ -424,7 +424,7 @@ nsHTMLEditor::InsertTableColumn(PRInt32 aNumber, bool aAfter)
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::insertNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
 
   
   if (aAfter)
@@ -561,7 +561,7 @@ nsHTMLEditor::InsertTableRow(PRInt32 aNumber, bool aAfter)
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::insertNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
 
   if (aAfter)
   {
@@ -761,7 +761,7 @@ nsHTMLEditor::DeleteTableCell(PRInt32 aNumber)
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
   nsCOMPtr<nsIDOMElement> firstCell;
   nsCOMPtr<nsIDOMRange> range;
@@ -954,7 +954,7 @@ nsHTMLEditor::DeleteTableCellContents()
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
   
   nsAutoTxnsConserveSelection dontChangeSelection(this);
 
@@ -995,7 +995,7 @@ nsHTMLEditor::DeleteCellContents(nsIDOMElement *aCell)
   NS_ENSURE_TRUE(aCell, NS_ERROR_NULL_POINTER);
 
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
   nsCOMPtr<nsIDOMNode> child;
   bool hasChild;
@@ -1039,7 +1039,7 @@ nsHTMLEditor::DeleteTableColumn(PRInt32 aNumber)
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
   
   nsCOMPtr<nsIDOMElement> firstCell;
@@ -1215,7 +1215,7 @@ nsHTMLEditor::DeleteTableRow(PRInt32 aNumber)
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
   nsCOMPtr<nsIDOMElement> firstCell;
   nsCOMPtr<nsIDOMRange> range;
@@ -1302,7 +1302,7 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, PRInt32 aRowIndex)
   nsresult res = NS_OK;
    
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
   
   
@@ -1727,7 +1727,7 @@ nsHTMLEditor::SplitTableCell()
   
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::insertNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
 
   
   nsSetSelectionAfterTableEdit setCaret(this, table, startRowIndex, startColIndex, ePreviousColumn, false);
@@ -1945,7 +1945,7 @@ nsHTMLEditor::SwitchTableCellHeaderType(nsIDOMElement *aSourceCell, nsIDOMElemen
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::insertNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
 
   nsCOMPtr<nsIDOMNode> newNode;
 
@@ -2204,7 +2204,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
 
     
     
-    nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+    nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
     for (PRUint32 i = 0, n = deleteList.Length(); i < n; i++)
     {
@@ -2330,7 +2330,7 @@ nsHTMLEditor::MergeCells(nsCOMPtr<nsIDOMElement> aTargetCell,
   NS_ENSURE_TRUE(targetCell && cellToMerge, NS_ERROR_NULL_POINTER);
 
   
-  nsAutoRules beginRulesSniffing(this, OperationID::deleteNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::deleteNode, nsIEditor::eNext);
 
   
   if (!IsEmptyCell(cellToMerge)) {
@@ -2508,7 +2508,7 @@ nsHTMLEditor::NormalizeTable(nsIDOMElement *aTable)
 
   nsAutoEditBatch beginBatching(this);
   
-  nsAutoRules beginRulesSniffing(this, OperationID::insertNode, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::insertNode, nsIEditor::eNext);
 
   nsCOMPtr<nsIDOMElement> cell;
   PRInt32 startRowIndex, startColIndex, rowSpan, colSpan, actualRowSpan, actualColSpan;

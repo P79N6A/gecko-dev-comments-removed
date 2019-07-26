@@ -49,7 +49,6 @@ private:
     void MaybeUnhook(nsIContent* aContent);
 
     nsIDocument* mDocument; 
-    PRUint32 mUpdateDepth;
     bool mUnhookPending;
 };
 

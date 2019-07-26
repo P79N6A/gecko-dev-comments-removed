@@ -49,9 +49,9 @@ public:
   
   NS_IMETHOD Init(nsPlaintextEditor *aEditor);
   NS_IMETHOD DetachEditor();
-  NS_IMETHOD BeforeEdit(OperationID action,
+  NS_IMETHOD BeforeEdit(EditAction action,
                         nsIEditor::EDirection aDirection);
-  NS_IMETHOD AfterEdit(OperationID action,
+  NS_IMETHOD AfterEdit(EditAction action,
                        nsIEditor::EDirection aDirection);
   NS_IMETHOD WillDoAction(mozilla::Selection* aSelection, nsRulesInfo* aInfo,
                           bool* aCancel, bool* aHandled);
@@ -101,7 +101,7 @@ public:
 protected:
 
   
-  nsresult WillInsertText(  OperationID aAction,
+  nsresult WillInsertText(  EditAction aAction,
                             mozilla::Selection* aSelection,
                             bool            *aCancel,
                             bool            *aHandled,
@@ -233,7 +233,7 @@ protected:
                                                
                                                
                                                
-  OperationID mTheAction;     
+  EditAction mTheAction;     
   nsCOMPtr<nsITimer>   mTimer;
   PRUint32             mLastStart, mLastLength;
 
@@ -248,7 +248,7 @@ class nsTextRulesInfo : public nsRulesInfo
 {
  public:
  
-  nsTextRulesInfo(OperationID aAction) :
+  nsTextRulesInfo(EditAction aAction) :
     nsRulesInfo(aAction),
     inString(0),
     outString(0),

@@ -36,11 +36,15 @@ using namespace mozilla;
 
 
 
-
 static const PRUnichar   kSpaceCh   = PRUnichar(' ');
 static const nsGlyphCode kNullGlyph = {{0, 0}, 0};
 typedef enum {eExtension_base, eExtension_variants, eExtension_parts}
   nsMathfontPrefExtension;
+
+
+
+
+
 
 
 
@@ -130,7 +134,8 @@ public:
     mFontName.AppendElement(aPrimaryFontName);
   }
 
-  ~nsGlyphTable() 
+  
+  ~nsGlyphTable()
   {
     MOZ_COUNT_DTOR(nsGlyphTable);
   }
@@ -174,7 +179,8 @@ public:
   nsGlyphCode GlueOf(nsPresContext* aPresContext, nsMathMLChar* aChar) {
     return ElementAt(aPresContext, aChar, 3);
   }
-  nsGlyphCode BigOf(nsPresContext* aPresContext, nsMathMLChar* aChar, PRInt32 aSize) {
+  nsGlyphCode BigOf(nsPresContext* aPresContext, nsMathMLChar* aChar,
+                    PRInt32 aSize) {
     return ElementAt(aPresContext, aChar, 4 + aSize);
   }
   nsGlyphCode LeftOf(nsPresContext* aPresContext, nsMathMLChar* aChar) {
@@ -185,7 +191,8 @@ public:
   }
 
 private:
-  nsGlyphCode ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint32 aPosition);
+  nsGlyphCode ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
+                        PRUint32 aPosition);
 
   
   PRInt32 mType;    
@@ -199,8 +206,12 @@ private:
   PRInt32 mState;
 
   
+  
   nsCOMPtr<nsIPersistentProperties> mGlyphProperties;
 
+  
+  
+  
   
   
   
@@ -222,7 +233,8 @@ private:
 };
 
 nsGlyphCode
-nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint32 aPosition)
+nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
+                        PRUint32 aPosition)
 {
   if (mState == NS_TABLE_STATE_ERROR) return kNullGlyph;
   
@@ -268,9 +280,13 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
     
     char key[10]; PR_snprintf(key, sizeof(key), "\\u%04X", uchar);
     nsAutoString value;
-    nsresult rv = mGlyphProperties->GetStringProperty(nsDependentCString(key), value);
+    nsresult rv = mGlyphProperties->GetStringProperty(nsDependentCString(key),
+                                                      value);
     if (NS_FAILED(rv)) return kNullGlyph;
     Clean(value);
+    
+    
+    
     
     
     
@@ -290,26 +306,6 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
         
         j = -1;
       }
-#if 0 
-      
-      
-      
-      else if (code == PRUnichar(0xF8FF) && gGlyphTableList &&
-               this != &gGlyphTableList->mUnicodeTable) {
-        code = gGlyphTableList->mUnicodeTable.
-          ElementAt(aPresContext, aChar, aPosition).code;
-      }
-      
-      
-      else if ((i+1 < length) && (value[i] == PRUnichar('.'))) {
-        ++i;
-        
-        
-        if (1)
-          return kNullGlyph;
-        ++i;
-      }
-#endif
       
       if (i < length && NS_IS_HIGH_SURROGATE(code)) {
         code = value[i];
@@ -363,9 +359,11 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
       offset += 5; 
       child = child->mSibling;
     }
-    length = 3*(offset + 4); 
+    
+    length = 3*(offset + 4);
   }
-  PRUint32 index = 3*(offset + aPosition); 
+  
+  PRUint32 index = 3*(offset + aPosition);
   if (index+2 >= length) return kNullGlyph;
   nsGlyphCode ch;
   ch.code[0] = mGlyphCache.CharAt(index);
@@ -583,6 +581,7 @@ GetFontExtensionPref(PRUnichar aChar,
   
   aValue.Truncate();
 
+  
   
   
   
@@ -855,7 +854,8 @@ IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, PRUint32 aHint)
   bool isNearer = false;
   if (aHint & (NS_STRETCH_NEARER | NS_STRETCH_LARGEOP)) {
     float c = NS_MAX(float(b) * NS_MATHML_DELIMITER_FACTOR,
-                     float(b) - nsPresContext::CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
+                     float(b) - nsPresContext::
+                     CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
     isNearer = bool(float(NS_ABS(b - a)) <= (float(b) - c));
   }
   
@@ -1179,7 +1179,8 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
   }
 
   return haveBetter &&
-    (largeopOnly || IsSizeOK(mPresContext, bestSize, mTargetSize, mStretchHint));
+    (largeopOnly ||
+     IsSizeOK(mPresContext, bestSize, mTargetSize, mStretchHint));
 }
 
 
@@ -1317,6 +1318,7 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
     
     
     mBoundingMetrics.ascent = bmdata[0].ascent; 
+                                                
     mBoundingMetrics.descent = computedSize - mBoundingMetrics.ascent;
     mBoundingMetrics.leftBearing = lbearing;
     mBoundingMetrics.rightBearing = rbearing;
@@ -1357,7 +1359,8 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
   
   
   nsGlyphTable* glyphTable = aGeneric ?
-    &gGlyphTableList->mUnicodeTable : gGlyphTableList->GetGlyphTableFor(aFamily);
+    &gGlyphTableList->mUnicodeTable :
+    gGlyphTableList->GetGlyphTableFor(aFamily);
 
   if (context->mTablesTried.Contains(glyphTable))
     return true; 
@@ -1729,6 +1732,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   if (!count) return NS_ERROR_FAILURE;
   
   
+  
   nsMathMLChar* last = this;
   while ((i < count) && last->mSibling) {
     i++;
@@ -1755,6 +1759,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   nscoord dx = 0, dy = 0;
   for (i = 0, child = mSibling; child; child = child->mSibling, i++) {
     
+    
     child->mData = mData;
     child->mDirection = mDirection;
     child->mStyleContext = mStyleContext;
@@ -1765,12 +1770,15 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
     nsresult rv = child->Stretch(aPresContext, aRenderingContext, mDirection,
                                  splitSize, childSize, aStretchHint, mMirrored);
     
-    if (NS_FAILED(rv) || (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
+    
+    if (NS_FAILED(rv) ||
+        (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
       delete mSibling; 
       mSibling = nullptr;
       return NS_ERROR_FAILURE;
     }
-    child->SetRect(nsRect(dx, dy, childSize.width, childSize.ascent+childSize.descent));
+    child->SetRect(nsRect(dx, dy, childSize.width,
+                          childSize.ascent+childSize.descent));
     if (0 == i)
       aCompositeSize = childSize;
     else {
@@ -1828,7 +1836,8 @@ public:
   nsDisplayMathMLCharBackground(nsDisplayListBuilder* aBuilder,
                                 nsIFrame* aFrame, const nsRect& aRect,
                                 nsStyleContext* aStyleContext)
-    : nsDisplayItem(aBuilder, aFrame), mStyleContext(aStyleContext), mRect(aRect) {
+    : nsDisplayItem(aBuilder, aFrame), mStyleContext(aStyleContext),
+      mRect(aRect) {
     MOZ_COUNT_CTOR(nsDisplayMathMLCharBackground);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1897,7 +1906,10 @@ public:
     return GetBounds(aBuilder, &snap);
   }
   
-  virtual PRUint32 GetPerFrameKey() { return (mIndex << nsDisplayItem::TYPE_BITS) | nsDisplayItem::GetPerFrameKey(); }
+  virtual PRUint32 GetPerFrameKey() {
+    return (mIndex << nsDisplayItem::TYPE_BITS)
+      | nsDisplayItem::GetPerFrameKey();
+  }
 
 private:
   nsMathMLChar* mChar;
@@ -1977,7 +1989,8 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
     if (styleContext != parentContext &&
         NS_GET_A(backg->mBackgroundColor) > 0) {
       rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-          nsDisplayMathMLCharBackground(aBuilder, aForFrame, mRect, styleContext));
+          nsDisplayMathMLCharBackground(aBuilder, aForFrame, mRect,
+                                        styleContext));
       NS_ENSURE_SUCCESS(rv, rv);
     }
     
@@ -1993,7 +2006,8 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
   return aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayMathMLCharForeground(aBuilder, aForFrame, this,
                                       aIndex,
-                                      aSelectedRect && !aSelectedRect->IsEmpty()));
+                                      aSelectedRect &&
+                                      !aSelectedRect->IsEmpty()));
 }
 
 void
@@ -2057,27 +2071,22 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
     
     
     PRUint32 len = PRUint32(mData.Length());
-
-
     aRenderingContext.DrawString(mData.get(), len, 0, mUnscaledAscent);
   }
   else {
     
     
     if (mGlyph.Exists()) {
-
-
       aRenderingContext.DrawString(mGlyph.code, mGlyph.Length(),
                                    0, mUnscaledAscent);
     }
     else { 
-
       if (NS_STRETCH_DIRECTION_VERTICAL == mDirection)
         PaintVertically(aPresContext, aRenderingContext, theFont, styleContext,
                         mGlyphTable, r);
       else if (NS_STRETCH_DIRECTION_HORIZONTAL == mDirection)
-        PaintHorizontally(aPresContext, aRenderingContext, theFont, styleContext,
-                          mGlyphTable, r);
+        PaintHorizontally(aPresContext, aRenderingContext, theFont,
+                          styleContext, mGlyphTable, r);
     }
   }
 
@@ -2212,11 +2221,6 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
     ch = chdata[i];
     
     if (ch.Exists()) {
-#ifdef SHOW_BORDERS
-      
-      aRenderingContext.SetColor(NS_RGB(0,0,0));
-      aRenderingContext.DrawRect(nsRect(dx,start[i],aRect.width+30*(i+1),end[i]-start[i]));
-#endif
       nscoord dy = offset[i];
       
       
@@ -2251,6 +2255,7 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
   
   
   if (!chGlue.Exists()) { 
+    
     
     
     
@@ -2306,14 +2311,6 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
       
       nscoord dy = NS_MAX(end[i], aRect.y);
       nscoord fillEnd = NS_MIN(start[i+1], aRect.YMost());
-#ifdef SHOW_BORDERS
-      
-      aRenderingContext.SetColor(NS_RGB(255,0,0));
-      clipRect.y = dy;
-      clipRect.height = fillEnd - dy;
-      aRenderingContext.DrawRect(clipRect);
-      {
-#endif
       while (dy < fillEnd) {
         clipRect.y = dy;
         clipRect.height = NS_MIN(bm.ascent + bm.descent, fillEnd - dy);
@@ -2322,13 +2319,6 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
         aRenderingContext.DrawString(chGlue.code, chGlue.Length(), dx, dy);
         dy += bm.descent;
       }
-#ifdef SHOW_BORDERS
-      }
-      
-      nscoord height = bm.ascent + bm.descent;
-      aRenderingContext.SetColor(NS_RGB(0,255,0));
-      aRenderingContext.DrawRect(nsRect(dx, dy-bm.ascent, aRect.width, height));
-#endif
     }
   }
 #ifdef DEBUG
@@ -2437,11 +2427,6 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
     ch = chdata[i];
     
     if (ch.Exists()) {
-#ifdef SHOW_BORDERS
-      aRenderingContext.SetColor(NS_RGB(255,0,0));
-      aRenderingContext.DrawRect(nsRect(start[i], dy - bmdata[i].ascent,
-                                 end[i] - start[i], bmdata[i].ascent + bmdata[i].descent));
-#endif
       nscoord dx = offset[i];
       nsRect clipRect = unionRect;
       
@@ -2528,14 +2513,6 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
       
       nscoord dx = NS_MAX(end[i], aRect.x);
       nscoord fillEnd = NS_MIN(start[i+1], aRect.XMost());
-#ifdef SHOW_BORDERS
-      
-      aRenderingContext.SetColor(NS_RGB(255,0,0));
-      clipRect.x = dx;
-      clipRect.width = fillEnd - dx;
-      aRenderingContext.DrawRect(clipRect);
-      {
-#endif
       while (dx < fillEnd) {
         clipRect.x = dx;
         clipRect.width = NS_MIN(bm.rightBearing - bm.leftBearing, fillEnd - dx);
@@ -2544,13 +2521,6 @@ nsMathMLChar::PaintHorizontally(nsPresContext*      aPresContext,
         aRenderingContext.DrawString(chGlue.code, chGlue.Length(), dx, dy);
         dx += bm.rightBearing;
       }
-#ifdef SHOW_BORDERS
-      }
-      
-      nscoord width = bm.rightBearing - bm.leftBearing;
-      aRenderingContext.SetColor(NS_RGB(0,255,0));
-      aRenderingContext.DrawRect(nsRect(dx + bm.leftBearing, aRect.y, width, aRect.height));
-#endif
     }
   }
 #ifdef DEBUG

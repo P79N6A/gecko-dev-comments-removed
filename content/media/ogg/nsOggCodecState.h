@@ -15,6 +15,9 @@
 #endif
 #ifdef MOZ_OPUS
 #include <opus/opus.h>
+extern "C" {
+#include "opus/opus_multistream.h"
+}
 
 #include "nsBuiltinDecoderStateMachine.h"
 #include "nsBuiltinDecoderReader.h"
@@ -326,8 +329,11 @@ public:
 #endif
   int mChannelMapping; 
   int mStreams;     
+  int mCoupledStreams; 
+  unsigned char mMappingTable[255]; 
 
-  OpusDecoder *mDecoder;
+  OpusMSDecoder *mDecoder;
+
   int mSkip;        
   
   

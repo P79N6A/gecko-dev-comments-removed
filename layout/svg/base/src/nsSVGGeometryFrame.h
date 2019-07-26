@@ -23,10 +23,6 @@ struct nsStyleSVGPaint;
 
 typedef nsFrame nsSVGGeometryFrameBase;
 
-#define SVG_HIT_TEST_FILL        0x01
-#define SVG_HIT_TEST_STROKE      0x02
-#define SVG_HIT_TEST_CHECK_MRECT 0x04
-
 
 
 
@@ -59,31 +55,6 @@ public:
   virtual gfxMatrix GetCanvasTM(PRUint32 aFor) = 0;
   PRUint16 GetClipRule();
 
-  float GetStrokeWidth();
-
-  
-
-
-
-  bool SetupCairoFill(gfxContext *aContext);
-  
-
-
-  bool HasStroke();
-  
-
-
-  void SetupCairoStrokeGeometry(gfxContext *aContext);
-  
-
-
-  void SetupCairoStrokeHitGeometry(gfxContext *aContext);
-  
-
-
-
-  bool SetupCairoStroke(gfxContext *aContext);
-
 protected:
   
 
@@ -92,18 +63,6 @@ protected:
 
 
   virtual PRUint16 GetHitTestFlags();
-
-  
-
-
-
-
-
-
-  float MaybeOptimizeOpacity(float aFillOrStrokeOpacity);
-
-private:
-  bool GetStrokeDashData(FallibleTArray<gfxFloat>& dashes, gfxFloat *dashOffset);
 };
 
 #endif 

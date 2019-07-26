@@ -298,6 +298,9 @@ AtomizeInline(JSContext *cx, const jschar **pchars, size_t length,
 
     SkipRoot skip(cx, &chars);
 
+    
+    SkipRoot skip2(cx, &p);
+
     if (ocb == TakeCharOwnership) {
         key = js_NewString(cx, const_cast<jschar *>(chars), length);
         if (!key)

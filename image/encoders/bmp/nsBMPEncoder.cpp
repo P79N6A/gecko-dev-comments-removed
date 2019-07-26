@@ -321,7 +321,7 @@ NS_IMETHODIMP nsBMPEncoder::Close()
 }
 
 
-NS_IMETHODIMP nsBMPEncoder::Available(PRUint32 *_retval)
+NS_IMETHODIMP nsBMPEncoder::Available(PRUint64 *_retval)
 {
   if (!mImageBufferStart || !mImageBufferCurr) {
     return NS_BASE_STREAM_CLOSED;

@@ -319,7 +319,7 @@ class nsGnomeVFSInputStream MOZ_FINAL : public nsIInputStream
       : mSpec(uriSpec)
       , mChannel(nullptr)
       , mHandle(nullptr)
-      , mBytesRemaining(PR_UINT32_MAX)
+      , mBytesRemaining(PR_UINT64_MAX)
       , mStatus(NS_OK)
       , mDirList(nullptr)
       , mDirListPtr(nullptr)
@@ -355,7 +355,7 @@ class nsGnomeVFSInputStream MOZ_FINAL : public nsIInputStream
     nsCString                mSpec;
     nsIChannel              *mChannel; 
     GnomeVFSHandle          *mHandle;
-    PRUint32                 mBytesRemaining;
+    PRUint64                 mBytesRemaining;
     nsresult                 mStatus;
     GList                   *mDirList;
     GList                   *mDirListPtr;
@@ -429,13 +429,14 @@ nsGnomeVFSInputStream::DoOpen()
       if (info.mime_type && (strcmp(info.mime_type, APPLICATION_OCTET_STREAM) != 0))
         SetContentTypeOfChannel(info.mime_type);
 
-      
-      mBytesRemaining = (PRUint32) info.size;
+      mBytesRemaining = info.size;
 
       
       
-      if (mBytesRemaining != PR_UINT32_MAX)
-        mChannel->SetContentLength(mBytesRemaining);
+      if (mBytesRemaining != PR_UINT64_MAX) {
+        
+        mChannel->SetContentLength(NS_MAX((PRInt32)mBytesRemaining, PR_INT32_MAX));
+      }
     }
     else
     {
@@ -478,6 +479,7 @@ nsGnomeVFSInputStream::DoRead(char *aBuf, PRUint32 aCount, PRUint32 *aCountRead)
     rv = gnome_vfs_read(mHandle, aBuf, aCount, &bytesRead);
     if (rv == GNOME_VFS_OK)
     {
+      
       *aCountRead = (PRUint32) bytesRead;
       mBytesRemaining -= *aCountRead;
     }
@@ -668,7 +670,7 @@ nsGnomeVFSInputStream::Close()
 }
 
 NS_IMETHODIMP
-nsGnomeVFSInputStream::Available(PRUint32 *aResult)
+nsGnomeVFSInputStream::Available(PRUint64 *aResult)
 {
   if (NS_FAILED(mStatus))
     return mStatus;

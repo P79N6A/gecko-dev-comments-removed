@@ -4645,23 +4645,20 @@ nsCanvasRenderingContext2DAzure::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
   }
   CanvasRenderingContext2DUserDataAzure *userData = nullptr;
-  if (aBuilder->IsPaintingToWindow()) {
-    
-    
-    
-    
-    
-    
+  
+  
+  
+  
+  
 
-    
-    
-    
-    
-    
-    userData = new CanvasRenderingContext2DUserDataAzure(this);
-    canvasLayer->SetDidTransactionCallback(
-            CanvasRenderingContext2DUserDataAzure::DidTransactionCallback, userData);
-  }
+  
+  
+  
+  
+  
+  userData = new CanvasRenderingContext2DUserDataAzure(this);
+  canvasLayer->SetDidTransactionCallback(
+          CanvasRenderingContext2DUserDataAzure::DidTransactionCallback, userData);
   canvasLayer->SetUserData(&g2DContextLayerUserData, userData);
 
   CanvasLayer::Data data;

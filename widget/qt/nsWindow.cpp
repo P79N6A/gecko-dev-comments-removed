@@ -86,6 +86,7 @@ using namespace QtMobility;
 #include "gfxImageSurface.h"
 
 #include "nsIDOMSimpleGestureEvent.h" 
+#include "nsIDOMWheelEvent.h"
 
 #if MOZ_PLATFORM_MAEMO > 5
 #include "nsIDOMWindow.h"
@@ -1935,35 +1936,38 @@ nsEventStatus
 nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
 {
     
-    nsMouseScrollEvent event(true, NS_MOUSE_SCROLL, this);
+    WheelEvent wheelEvent(true, NS_WHEEL_WHEEL, this);
+    wheelEvent.deltaMode = nsIDOMWheelEvent::DOM_DELTA_LINE;
+
+    
+    
+    
+    
+    
+    PRInt32 delta = (int)(aEvent->delta() / WHEEL_DELTA) * -3;
 
     switch (aEvent->orientation()) {
     case Qt::Vertical:
-        event.scrollFlags = nsMouseScrollEvent::kIsVertical;
+        wheelEvent.deltaY = wheelEvent.lineOrPageDeltaY = delta;
         break;
     case Qt::Horizontal:
-        event.scrollFlags = nsMouseScrollEvent::kIsHorizontal;
+        wheelEvent.deltaX = wheelEvent.lineOrPageDeltaX = delta;
         break;
     default:
         Q_ASSERT(0);
         break;
     }
 
-    
-    
+    wheelEvent.refPoint.x = nscoord(aEvent->scenePos().x());
+    wheelEvent.refPoint.y = nscoord(aEvent->scenePos().y());
 
-    event.delta = (int)(aEvent->delta() / WHEEL_DELTA) * -3;
+    wheelEvent.InitBasicModifiers(aEvent->modifiers() & Qt::ControlModifier,
+                                  aEvent->modifiers() & Qt::AltModifier,
+                                  aEvent->modifiers() & Qt::ShiftModifier,
+                                  aEvent->modifiers() & Qt::MetaModifier);
+    wheelEvent.time = 0;
 
-    event.refPoint.x = nscoord(aEvent->scenePos().x());
-    event.refPoint.y = nscoord(aEvent->scenePos().y());
-
-    event.InitBasicModifiers(aEvent->modifiers() & Qt::ControlModifier,
-                             aEvent->modifiers() & Qt::AltModifier,
-                             aEvent->modifiers() & Qt::ShiftModifier,
-                             aEvent->modifiers() & Qt::MetaModifier);
-    event.time            = 0;
-
-    return DispatchEvent(&event);
+    return DispatchEvent(&wheelEvent);
 }
 
 

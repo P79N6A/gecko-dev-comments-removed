@@ -98,7 +98,7 @@ public:
 
   void EndConstruction();
 
-  virtual bool EndEmptyTransaction();
+  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT);
 
   struct CallbackInfo {
     DrawThebesLayerCallback Callback;
@@ -176,6 +176,9 @@ public:
 
   void ReportFailure(const nsACString &aMsg, HRESULT aCode);
 
+  bool CompositingDisabled() { return mCompositingDisabled; }
+  void SetCompositingDisabled(bool aCompositingDisabled) { mCompositingDisabled = aCompositingDisabled; }
+
 private:
   
   static DeviceManagerD3D9 *mDefaultDeviceManager;
@@ -207,6 +210,12 @@ private:
 
 
   PRUint32 mDeviceResetCount;
+
+  
+
+
+
+  bool mCompositingDisabled;
 
   
 

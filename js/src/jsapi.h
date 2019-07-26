@@ -1053,16 +1053,17 @@ class JS_PUBLIC_API(AutoGCRooter) {
         STRING =      -14, 
         IDVECTOR =    -15, 
         OBJVECTOR =   -16, 
-        SCRIPTVECTOR =-17, 
-        PROPDESC =    -18, 
-        SHAPERANGE =  -19, 
-        STACKSHAPE =  -20, 
-        STACKBASESHAPE=-21,
-        BINDINGS =    -22, 
-        GETTERSETTER =-23, 
-        REGEXPSTATICS=-24, 
-        HASHABLEVALUE=-25,
-        IONMASM =     -26  
+        STRINGVECTOR =-17, 
+        SCRIPTVECTOR =-18, 
+        PROPDESC =    -19, 
+        SHAPERANGE =  -20, 
+        STACKSHAPE =  -21, 
+        STACKBASESHAPE=-22,
+        BINDINGS =    -23, 
+        GETTERSETTER =-24, 
+        REGEXPSTATICS=-25, 
+        HASHABLEVALUE=-26,
+        IONMASM =     -27  
     };
 
   private:
@@ -1256,8 +1257,12 @@ class AutoVectorRooter : protected AutoGCRooter
     }
 
     size_t length() const { return vector.length(); }
+    bool empty() const { return vector.empty(); }
 
     bool append(const T &v) { return vector.append(v); }
+    bool append(const AutoVectorRooter<T> &other) {
+        return vector.append(other.vector);
+    }
 
     
     void infallibleAppend(const T &v) { vector.infallibleAppend(v); }
@@ -1379,8 +1384,15 @@ class CallReceiver
     friend CallReceiver CallReceiverFromArgv(Value *);
     Value *base() const { return argv_ - 2; }
     JSObject &callee() const { JS_ASSERT(!usedRval_); return argv_[-2].toObject(); }
-    Value &calleev() const { JS_ASSERT(!usedRval_); return argv_[-2]; }
-    Value &thisv() const { return argv_[-1]; }
+
+    JS::HandleValue calleev() const {
+        JS_ASSERT(!usedRval_);
+        return JS::HandleValue::fromMarkedLocation(&argv_[-2]);
+    }
+
+    JS::HandleValue thisv() const {
+        return JS::HandleValue::fromMarkedLocation(&argv_[-1]);
+    }
 
     JS::MutableHandleValue rval() const {
         setUsedRval();
@@ -1392,9 +1404,13 @@ class CallReceiver
         return argv_ - 1;
     }
 
-    void setCallee(Value calleev) {
+    void setCallee(Value calleev) const {
         clearUsedRval();
-        this->calleev() = calleev;
+        argv_[-2] = calleev;
+    }
+
+    void setThis(Value thisv) const {
+        argv_[-1] = thisv;
     }
 };
 

@@ -45,6 +45,7 @@ class nsSVGLength2;
 class nsSVGOuterSVGFrame;
 class nsSVGPathGeometryFrame;
 class nsSVGSVGElement;
+class nsTextFrame;
 
 struct nsStyleSVG;
 struct nsStyleSVGPaint;
@@ -89,6 +90,10 @@ class Element;
 
 #define SVG_WSP_DELIM       "\x20\x9\xD\xA"
 #define SVG_COMMA_WSP_DELIM "," SVG_WSP_DELIM
+
+#define SVG_HIT_TEST_FILL        0x01
+#define SVG_HIT_TEST_STROKE      0x02
+#define SVG_HIT_TEST_CHECK_MRECT 0x04
 
 inline bool
 IsSVGWhitespace(char aChar)
@@ -653,6 +658,9 @@ public:
                                                nsSVGGeometryFrame* aFrame,
                                                const gfxMatrix& aMatrix);
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
+                                               nsTextFrame* aFrame,
+                                               const gfxMatrix& aMatrix);
+  static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
                                                nsSVGPathGeometryFrame* aFrame,
                                                const gfxMatrix& aMatrix);
 
@@ -673,11 +681,45 @@ public:
   
 
 
-  static bool SetupCairoFill(gfxContext *aContext, nsIFrame *aFrame);
+
+  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext);
+
   
 
 
-  static bool SetupCairoStroke(gfxContext *aContext, nsIFrame *aFrame);
+
+  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext);
+
+  
+
+
+  static bool HasStroke(nsIFrame* aFrame);
+
+  static float GetStrokeWidth(nsIFrame* aFrame);
+
+  
+
+
+  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext);
+
+  
+
+
+  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext);
+
+  
+
+
+
+  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext);
+
+  
+
+
+
+
+
+  static PRUint16 GetGeometryHitTestFlags(nsIFrame* aFrame);
 };
 
 #endif

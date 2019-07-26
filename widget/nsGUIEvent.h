@@ -16,6 +16,7 @@
 #include "nsIAtom.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIDOMWheelEvent.h"
 #include "nsIDOMDataTransfer.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMTouchEvent.h"
@@ -92,6 +93,7 @@ class nsHashKey;
 #define NS_MOZTOUCH_EVENT                 42
 #define NS_PLUGIN_EVENT                   43
 #define NS_TOUCH_EVENT                    44
+#define NS_WHEEL_EVENT                    45
 
 
 
@@ -393,12 +395,6 @@ class nsHashKey;
 #define NS_QUERY_DOM_WIDGET_HITTEST     (NS_QUERY_CONTENT_EVENT_START + 9)
 
 
-
-
-
-#define NS_QUERY_SCROLL_TARGET_INFO     (NS_QUERY_CONTENT_EVENT_START + 99)
-
-
 #define NS_MEDIA_EVENT_START            3300
 #define NS_LOADSTART           (NS_MEDIA_EVENT_START)
 #define NS_PROGRESS            (NS_MEDIA_EVENT_START+1)
@@ -536,6 +532,9 @@ class nsHashKey;
 #define NS_POINTERLOCK_START         5300
 #define NS_POINTERLOCKCHANGE         (NS_POINTERLOCK_START)
 #define NS_POINTERLOCKERROR          (NS_POINTERLOCK_START + 1)
+
+#define NS_WHEEL_EVENT_START         5400
+#define NS_WHEEL_WHEEL               (NS_WHEEL_EVENT_START)
 
 
 
@@ -1296,90 +1295,120 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsMouseScrollEvent : public nsMouseEvent_base
 {
 private:
-  friend class mozilla::dom::PBrowserParent;
-  friend class mozilla::dom::PBrowserChild;
-
   nsMouseScrollEvent()
   {
   }
 
 public:
-  enum nsMouseScrollFlags {
-    kIsFullPage =   1 << 0,
-    kIsVertical =   1 << 1,
-    kIsHorizontal = 1 << 2,
-    kHasPixels =    1 << 3, 
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-    kNoLines =      1 << 4, 
-                            
-                            
-                            
-                            
-    kNoDefer =      1 << 5, 
-                            
-    kIsMomentum =   1 << 6, 
-                            
-                            
-    kAllowSmoothScroll = 1 << 7, 
-                                 
-    kFromLines =    1 << 8  
-                            
-                            
-                            
-                            
-};
-
   nsMouseScrollEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
-      scrollFlags(0), delta(0), scrollOverflow(0)
+      delta(0), isHorizontal(false)
   {
   }
 
-  PRInt32               scrollFlags;
   PRInt32               delta;
-  PRInt32               scrollOverflow;
+  bool                  isHorizontal;
 };
+
+
+
+
+
+namespace mozilla {
+namespace widget {
+
+class WheelEvent : public nsMouseEvent_base
+{
+private:
+  friend class mozilla::dom::PBrowserParent;
+  friend class mozilla::dom::PBrowserChild;
+
+  WheelEvent()
+  {
+  }
+
+public:
+  WheelEvent(bool aIsTrusted, PRUint32 aMessage, nsIWidget* aWidget) :
+    nsMouseEvent_base(aIsTrusted, aMessage, aWidget, NS_WHEEL_EVENT),
+    deltaX(0.0), deltaY(0.0), deltaZ(0.0),
+    deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL),
+    customizedByUserPrefs(false), isMomentum(false), isPixelOnlyDevice(false),
+    lineOrPageDeltaX(0), lineOrPageDeltaY(0), scrollType(SCROLL_DEFAULT),
+    overflowDeltaX(0.0), overflowDeltaY(0.0)
+  {
+  }
+
+  double deltaX;
+  double deltaY;
+  double deltaZ;
+
+  
+  PRUint32 deltaMode;
+
+  
+
+  
+  
+  bool customizedByUserPrefs;
+
+  
+  bool isMomentum;
+
+  
+  
+  
+  
+  bool isPixelOnlyDevice;
+
+  
+  
+  
+  PRInt32 lineOrPageDeltaX;
+  PRInt32 lineOrPageDeltaY;
+
+  
+  
+  PRInt32 GetPreferredIntDelta()
+  {
+    if (!lineOrPageDeltaX && !lineOrPageDeltaY) {
+      return 0;
+    }
+    if (lineOrPageDeltaY && !lineOrPageDeltaX) {
+      return lineOrPageDeltaY;
+    }
+    if (lineOrPageDeltaX && !lineOrPageDeltaY) {
+      return lineOrPageDeltaX;
+    }
+    if ((lineOrPageDeltaX < 0 && lineOrPageDeltaY > 0) ||
+        (lineOrPageDeltaX > 0 && lineOrPageDeltaY < 0)) {
+      return 0; 
+    }
+    return (NS_ABS(lineOrPageDeltaX) > NS_ABS(lineOrPageDeltaY)) ?
+             lineOrPageDeltaX : lineOrPageDeltaY;
+  }
+
+  
+  
+  
+  enum ScrollType {
+    SCROLL_DEFAULT,
+    SCROLL_SYNCHRONOUSLY,
+    SCROLL_ASYNCHRONOUSELY,
+    SCROLL_SMOOTHLY
+  };
+  ScrollType scrollType;
+
+  
+  
+  double overflowDeltaX;
+  double overflowDeltaY;
+};
+
+} 
+} 
 
 
 
@@ -1462,13 +1491,6 @@ public:
     refPoint = aPoint;
   }
 
-  void InitForQueryScrollTargetInfo(nsMouseScrollEvent* aEvent)
-  {
-    NS_ASSERTION(message == NS_QUERY_SCROLL_TARGET_INFO,
-                 "wrong initializer is called");
-    mInput.mMouseScrollEvent = aEvent;
-  }
-
   PRUint32 GetSelectionStart(void) const
   {
     NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
@@ -1488,8 +1510,6 @@ public:
   struct {
     PRUint32 mOffset;
     PRUint32 mLength;
-    
-    nsMouseScrollEvent* mMouseScrollEvent;
   } mInput;
   struct {
     void* mContentsRoot;
@@ -1503,18 +1523,6 @@ public:
     bool mWidgetIsHit; 
     
     nsCOMPtr<nsITransferable> mTransferable;
-    
-    PRInt32 mLineHeight;
-    PRInt32 mPageWidth;
-    PRInt32 mPageHeight;
-    
-    
-    
-    
-    
-    
-    PRInt32 mComputedScrollAmount;
-    PRInt32 mComputedScrollAction;
   } mReply;
 
   enum {
@@ -1915,8 +1923,7 @@ enum nsDragDropEventStatus {
 
 #define NS_IS_IME_RELATED_EVENT(evnt) \
   (NS_IS_IME_EVENT(evnt) || \
-   (NS_IS_QUERY_CONTENT_EVENT(evnt) && \
-    evnt->message != NS_QUERY_SCROLL_TARGET_INFO) || \
+   NS_IS_QUERY_CONTENT_EVENT(evnt) || \
    NS_IS_SELECTION_EVENT(evnt))
 
 
@@ -1991,4 +1998,4 @@ inline bool NS_IsEventTargetedAtFocusedContent(nsEvent* aEvent)
          NS_IS_RETARGETED_PLUGIN_EVENT(aEvent);
 }
 
-#endif
+#endif 

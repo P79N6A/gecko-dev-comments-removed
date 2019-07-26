@@ -202,9 +202,10 @@ IndirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props
     GET(IndirectProxyHandler::enumerate(cx, wrapper, props));
 }
 
-DirectWrapper::DirectWrapper(unsigned flags) : Wrapper(flags),
+DirectWrapper::DirectWrapper(unsigned flags, bool hasPrototype) : Wrapper(flags),
         DirectProxyHandler(&sWrapperFamily)
 {
+    setHasPrototype(hasPrototype);
 }
 
 DirectWrapper::~DirectWrapper()
@@ -216,6 +217,7 @@ DirectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
                                      jsid id, bool set,
                                      PropertyDescriptor *desc)
 {
+    JS_ASSERT(!hasPrototype()); 
     desc->obj = NULL; 
     CHECKED(DirectProxyHandler::getPropertyDescriptor(cx, wrapper, id, set, desc),
             set ? SET : GET);
@@ -256,6 +258,7 @@ DirectWrapper::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 bool
 DirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 {
+    JS_ASSERT(!hasPrototype()); 
     
     static jsid id = JSID_VOID;
     GET(DirectProxyHandler::enumerate(cx, wrapper, props));
@@ -264,6 +267,7 @@ DirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 bool
 DirectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
+    JS_ASSERT(!hasPrototype()); 
     *bp = false; 
     GET(DirectProxyHandler::has(cx, wrapper, id, bp));
 }
@@ -300,6 +304,7 @@ DirectWrapper::keys(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 bool
 DirectWrapper::iterate(JSContext *cx, JSObject *wrapper, unsigned flags, Value *vp)
 {
+    JS_ASSERT(!hasPrototype()); 
     vp->setUndefined(); 
     const jsid id = JSID_VOID;
     GET(DirectProxyHandler::iterate(cx, wrapper, flags, vp));
@@ -371,6 +376,7 @@ DirectWrapper::fun_toString(JSContext *cx, JSObject *wrapper, unsigned indent)
 }
 
 DirectWrapper DirectWrapper::singleton((unsigned)0);
+DirectWrapper DirectWrapper::singletonWithPrototype((unsigned)0, true);
 
 
 
@@ -484,8 +490,8 @@ ErrorCopier::~ErrorCopier()
 
 
 
-CrossCompartmentWrapper::CrossCompartmentWrapper(unsigned flags)
-  : DirectWrapper(CROSS_COMPARTMENT | flags)
+CrossCompartmentWrapper::CrossCompartmentWrapper(unsigned flags, bool hasPrototype)
+  : DirectWrapper(CROSS_COMPARTMENT | flags, hasPrototype)
 {
 }
 

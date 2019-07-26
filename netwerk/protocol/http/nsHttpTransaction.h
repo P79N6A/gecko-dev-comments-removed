@@ -141,7 +141,7 @@ private:
 
     nsCString                       mReqHeaderBuf;    
     nsCOMPtr<nsIInputStream>        mRequestStream;
-    PRUint32                        mRequestSize;
+    PRUint64                        mRequestSize;
 
     nsAHttpConnection              *mConnection;      
     nsHttpConnectionInfo           *mConnInfo;        

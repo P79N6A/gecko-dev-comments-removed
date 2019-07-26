@@ -1382,39 +1382,41 @@ pref("mousewheel.system_scroll_override_on_root_content.vertical.factor", 200);
 pref("mousewheel.system_scroll_override_on_root_content.horizontal.factor", 200);
 
 
-pref("mousewheel.withnokey.action",0);
-pref("mousewheel.withnokey.numlines",6);
-pref("mousewheel.withnokey.sysnumlines",true);
-pref("mousewheel.withcontrolkey.action",0);
-pref("mousewheel.withcontrolkey.numlines",1);
-pref("mousewheel.withcontrolkey.sysnumlines",true);
-
-pref("mousewheel.withshiftkey.action",0);
-pref("mousewheel.withshiftkey.numlines",1);
-pref("mousewheel.withshiftkey.sysnumlines",true);
-pref("mousewheel.withaltkey.action",2);
-pref("mousewheel.withaltkey.numlines",1);
-pref("mousewheel.withaltkey.sysnumlines",false);
-pref("mousewheel.withmetakey.action",0);
-pref("mousewheel.withmetakey.numlines",1);
-pref("mousewheel.withmetakey.sysnumlines",true);
 
 
-pref("mousewheel.horizscroll.withnokey.action",0);
-pref("mousewheel.horizscroll.withnokey.numlines",1);
-pref("mousewheel.horizscroll.withnokey.sysnumlines",true);
-pref("mousewheel.horizscroll.withcontrolkey.action",0);
-pref("mousewheel.horizscroll.withcontrolkey.numlines",1);
-pref("mousewheel.horizscroll.withcontrolkey.sysnumlines",true);
-pref("mousewheel.horizscroll.withshiftkey.action",0);
-pref("mousewheel.horizscroll.withshiftkey.numlines",1);
-pref("mousewheel.horizscroll.withshiftkey.sysnumlines",true);
-pref("mousewheel.horizscroll.withaltkey.action",2);
-pref("mousewheel.horizscroll.withaltkey.numlines",-1);
-pref("mousewheel.horizscroll.withaltkey.sysnumlines",false);
-pref("mousewheel.horizscroll.withmetakey.action",0);
-pref("mousewheel.horizscroll.withmetakey.numlines",1);
-pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
+
+
+
+
+pref("mousewheel.default.action", 1);
+pref("mousewheel.with_alt.action", 2);
+pref("mousewheel.with_control.action", 3);
+pref("mousewheel.with_meta.action", 1);  
+pref("mousewheel.with_shift.action", 1);
+pref("mousewheel.with_win.action", 1);
+
+
+
+
+
+pref("mousewheel.default.delta_multiplier_x", 100);
+pref("mousewheel.default.delta_multiplier_y", 100);
+pref("mousewheel.default.delta_multiplier_z", 100);
+pref("mousewheel.with_alt.delta_multiplier_x", 100);
+pref("mousewheel.with_alt.delta_multiplier_y", 100);
+pref("mousewheel.with_alt.delta_multiplier_z", 100);
+pref("mousewheel.with_control.delta_multiplier_x", 100);
+pref("mousewheel.with_control.delta_multiplier_y", 100);
+pref("mousewheel.with_control.delta_multiplier_z", 100);
+pref("mousewheel.with_meta.delta_multiplier_x", 100);  
+pref("mousewheel.with_meta.delta_multiplier_y", 100);  
+pref("mousewheel.with_meta.delta_multiplier_z", 100);  
+pref("mousewheel.with_shift.delta_multiplier_x", 100);
+pref("mousewheel.with_shift.delta_multiplier_y", 100);
+pref("mousewheel.with_shift.delta_multiplier_z", 100);
+pref("mousewheel.with_win.delta_multiplier_x", 100);
+pref("mousewheel.with_win.delta_multiplier_y", 100);
+pref("mousewheel.with_win.delta_multiplier_z", 100);
 
 
 
@@ -1760,6 +1762,29 @@ pref("font.size.inflation.minTwips", 0);
 
 
 pref("font.size.inflation.lineThreshold", 400);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("font.size.inflation.mappingIntercept", 1);
 
 #ifdef XP_WIN
 

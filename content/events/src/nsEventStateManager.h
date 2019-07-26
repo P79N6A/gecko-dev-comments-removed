@@ -86,6 +86,14 @@ public:
                            nsIFrame* aTargetFrame,
                            nsEventStatus* aStatus);
 
+  
+
+
+
+  void DispatchLegacyMouseScrollEvents(nsIFrame* aTargetFrame,
+                                       mozilla::widget::WheelEvent* aEvent,
+                                       nsEventStatus* aStatus);
+
   void NotifyDestroyPresContext(nsPresContext* aPresContext);
   void SetPresContext(nsPresContext* aPresContext);
   void ClearFrameRefs(nsIFrame* aFrame);
@@ -317,15 +325,107 @@ protected:
   bool IsShellVisible(nsIDocShell* aShell);
 
   
-  void SendLineScrollEvent(nsIFrame* aTargetFrame,
-                           nsMouseScrollEvent* aEvent,
-                           nsPresContext* aPresContext,
-                           nsEventStatus* aStatus,
-                           PRInt32 aNumLines);
-  void SendPixelScrollEvent(nsIFrame* aTargetFrame,
-                            nsMouseScrollEvent* aEvent,
-                            nsPresContext* aPresContext,
-                            nsEventStatus* aStatus);
+
+  class WheelPrefs
+  {
+  public:
+    static WheelPrefs* GetInstance();
+    static void Shutdown();
+
+    
+
+
+
+    void ApplyUserPrefsToDelta(mozilla::widget::WheelEvent* aEvent);
+
+    
+
+
+
+
+    void CancelApplyingUserPrefsFromOverflowDelta(
+                                    mozilla::widget::WheelEvent* aEvent);
+
+    
+
+
+    enum Action
+    {
+      ACTION_NONE = 0,
+      ACTION_SCROLL,
+      ACTION_HISTORY,
+      ACTION_ZOOM,
+      ACTION_LAST = ACTION_ZOOM
+    };
+    Action ComputeActionFor(mozilla::widget::WheelEvent* aEvent);
+
+    
+
+
+
+    bool NeedToComputeLineOrPageDelta(mozilla::widget::WheelEvent* aEvent);
+
+  private:
+    WheelPrefs();
+    ~WheelPrefs();
+
+    static int OnPrefChanged(const char* aPrefName, void* aClosure);
+
+    enum Index
+    {
+      INDEX_DEFAULT = 0,
+      INDEX_ALT,
+      INDEX_CONTROL,
+      INDEX_META,
+      INDEX_SHIFT,
+      INDEX_OS,
+      COUNT_OF_MULTIPLIERS
+    };
+
+    
+
+
+
+
+
+
+
+    Index GetIndexFor(mozilla::widget::WheelEvent* aEvent);
+
+    
+
+
+
+
+
+
+
+    void GetBasePrefName(Index aIndex, nsACString& aBasePrefName);
+
+    void Init(Index aIndex);
+
+    void Reset();
+
+    bool mInit[COUNT_OF_MULTIPLIERS];
+    double mMultiplierX[COUNT_OF_MULTIPLIERS];
+    double mMultiplierY[COUNT_OF_MULTIPLIERS];
+    double mMultiplierZ[COUNT_OF_MULTIPLIERS];
+    Action mActions[COUNT_OF_MULTIPLIERS];
+
+    static WheelPrefs* sInstance;
+  };
+
+  
+
+
+
+
+  enum DeltaDirection
+  {
+    DELTA_DIRECTION_X = 0,
+    DELTA_DIRECTION_Y
+  };
+
   
 
 
@@ -334,50 +434,132 @@ protected:
 
 
 
-  nsresult DoScrollText(nsIFrame* aTargetFrame,
-                        nsMouseScrollEvent* aMouseEvent,
-                        nsIScrollableFrame::ScrollUnit aScrollQuantity,
-                        bool aAllowScrollSpeedOverride,
-                        nsQueryContentEvent* aQueryEvent = nullptr,
-                        nsIAtom *aOrigin = nullptr);
+
+
+
+
+  void SendLineScrollEvent(nsIFrame* aTargetFrame,
+                           mozilla::widget::WheelEvent* aEvent,
+                           nsEventStatus* aStatus,
+                           PRInt32 aDelta,
+                           DeltaDirection aDeltaDirection);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void SendPixelScrollEvent(nsIFrame* aTargetFrame,
+                            mozilla::widget::WheelEvent* aEvent,
+                            nsEventStatus* aStatus,
+                            PRInt32 aPixelDelta,
+                            DeltaDirection aDeltaDirection);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
+                                          mozilla::widget::WheelEvent* aEvent,
+                                          bool aForDefaultAction);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsSize GetScrollAmount(nsPresContext* aPresContext,
+                         mozilla::widget::WheelEvent* aEvent,
+                         nsIScrollableFrame* aScrollableFrame);
+
+  
+
+
+  void DoScrollText(nsIScrollableFrame* aScrollableFrame,
+                    mozilla::widget::WheelEvent* aEvent);
+
   void DoScrollHistory(PRInt32 direction);
   void DoScrollZoom(nsIFrame *aTargetFrame, PRInt32 adjustment);
   nsresult GetMarkupDocumentViewer(nsIMarkupDocumentViewer** aMv);
   nsresult ChangeTextSize(PRInt32 change);
   nsresult ChangeFullZoom(PRInt32 change);
+
   
 
 
 
 
-  PRInt32 ComputeWheelDeltaFor(nsMouseScrollEvent* aMouseEvent);
-  
+
+  class DeltaAccumulator
+  {
+  public:
+    static DeltaAccumulator* GetInstance()
+    {
+      if (!sInstance) {
+        sInstance = new DeltaAccumulator;
+      }
+      return sInstance;
+    }
+
+    static void Shutdown()
+    {
+      delete sInstance;
+      sInstance = nullptr;
+    }
+
+    
 
 
 
 
+    void InitLineOrPageDelta(nsIFrame* aTargetFrame,
+                             nsEventStateManager* aESM,
+                             mozilla::widget::WheelEvent* aEvent);
+
+    
 
 
+    void Reset();
 
-  PRInt32 ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent,
-                                bool aUseSystemSettings);
-  
+  private:
+    DeltaAccumulator() :
+      mX(0.0), mY(0.0), mHandlingDeltaMode(PR_UINT32_MAX),
+      mHandlingPixelOnlyDevice(false)
+    {
+    }
 
+    double mX;
+    double mY;
+    TimeStamp mLastTime;
 
+    PRUint32 mHandlingDeltaMode;
+    bool mHandlingPixelOnlyDevice;
 
+    static DeltaAccumulator* sInstance;
+  };
 
-  PRInt32 GetWheelActionFor(nsMouseScrollEvent* aMouseEvent);
-  
-
-
-
-
-  PRInt32 GetScrollLinesFor(nsMouseScrollEvent* aMouseEvent);
-  
-
-
-
-  bool UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent);
   
 
   
@@ -440,8 +622,6 @@ protected:
   nsresult DoContentCommandEvent(nsContentCommandEvent* aEvent);
   nsresult DoContentCommandScrollEvent(nsContentCommandEvent* aEvent);
 
-  void DoQueryScrollTargetInfo(nsQueryContentEvent* aEvent,
-                               nsIFrame* aTargetFrame);
   void DoQuerySelectedText(nsQueryContentEvent* aEvent);
 
   bool RemoteQueryContentEvent(nsEvent *aEvent);
@@ -529,10 +709,6 @@ public:
   static nsresult UpdateUserActivityTimer(void);
   
   nsCOMArray<nsIContent> mAccessKeys;
-
-  
-  bool mLastLineScrollConsumedX;
-  bool mLastLineScrollConsumedY;
 
   static PRInt32 sUserInputEventDepth;
   

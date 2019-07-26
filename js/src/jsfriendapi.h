@@ -552,7 +552,8 @@ GetPCCountScriptContents(JSContext *cx, size_t script);
 
 
 
-struct ProfileEntry {
+class ProfileEntry
+{
     
 
 
@@ -563,8 +564,47 @@ struct ProfileEntry {
 
 
 
-    const char * volatile string;
-    void * volatile sp;
+
+
+
+
+
+    const char * volatile string; 
+    void * volatile sp;           
+    JSScript * volatile script_;  
+    uint32_t volatile idx;        
+
+  public:
+    
+
+
+
+
+
+
+    bool js() volatile {
+        JS_ASSERT_IF(sp == NULL, script_ != NULL);
+        return sp == NULL;
+    }
+
+    uint32_t line() volatile { JS_ASSERT(!js()); return idx; }
+    JSScript *script() volatile { JS_ASSERT(js()); return script_; }
+    void *stackAddress() volatile { return sp; }
+    const char *label() volatile { return string; }
+
+    void setLine(uint32_t line) volatile { JS_ASSERT(!js()); idx = line; }
+    void setLabel(const char *string) volatile { this->string = string; }
+    void setStackAddress(void *sp) volatile { this->sp = sp; }
+    void setScript(JSScript *script) volatile { script_ = script; }
+
+    
+    JS_FRIEND_API(jsbytecode *) pc() volatile;
+    JS_FRIEND_API(void) setPC(jsbytecode *pc) volatile;
+
+    static size_t offsetOfString() { return offsetof(ProfileEntry, string); }
+    static size_t offsetOfStackAddress() { return offsetof(ProfileEntry, sp); }
+    static size_t offsetOfPCIdx() { return offsetof(ProfileEntry, idx); }
+    static size_t offsetOfScript() { return offsetof(ProfileEntry, script_); }
 };
 
 JS_FRIEND_API(void)
@@ -573,6 +613,9 @@ SetRuntimeProfilingStack(JSRuntime *rt, ProfileEntry *stack, uint32_t *size,
 
 JS_FRIEND_API(void)
 EnableRuntimeProfilingStack(JSRuntime *rt, bool enabled);
+
+JS_FRIEND_API(jsbytecode*)
+ProfilingGetPC(JSRuntime *rt, JSScript *script, void *ip);
 
 #ifdef JS_THREADSAFE
 JS_FRIEND_API(void *)
