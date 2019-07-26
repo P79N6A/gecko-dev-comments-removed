@@ -2167,6 +2167,26 @@ public:
 
   static bool WantSubAPZC();
 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
+                                          nsIFrame* aScrollFrame,
+                                          nsRect aDisplayPortBase,
+                                          nsRect* aOutDisplayport);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
