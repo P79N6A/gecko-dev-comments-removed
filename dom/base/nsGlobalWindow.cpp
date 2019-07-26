@@ -2179,6 +2179,7 @@ CreateNativeGlobalForInner(JSContext* aCx,
   bool needComponents = nsContentUtils::IsSystemPrincipal(aPrincipal) ||
                         TreatAsRemoteXUL(aPrincipal);
   uint32_t flags = needComponents ? 0 : nsIXPConnect::OMIT_COMPONENTS_OBJECT;
+  flags |= nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK;
 
   nsRefPtr<nsIXPConnectJSObjectHolder> jsholder;
   nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
@@ -2591,6 +2592,13 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   mContext->GC(JS::gcreason::SET_NEW_DOCUMENT);
   mContext->DidInitializeContext();
+
+  
+  
+  if (createdInnerWindow) {
+    JS::Rooted<JSObject*> global(cx, newInnerWindow->mJSObject);
+    JS_FireOnNewGlobalObject(cx, global);
+  }
 
   if (newInnerWindow && !newInnerWindow->mHasNotifiedGlobalCreated && mDoc) {
     
