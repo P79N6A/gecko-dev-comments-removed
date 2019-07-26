@@ -544,18 +544,17 @@ public:
   
 
 
-  uint32_t StartFrameTimeRecording();
+  virtual uint32_t StartFrameTimeRecording(int32_t aBufferSize);
 
   
 
 
 
-  void StopFrameTimeRecording(uint32_t         aStartIndex,
-                              nsTArray<float>& aFrameIntervals,
-                              nsTArray<float>& aPaintTimes);
 
-  void SetPaintStartTime(TimeStamp& aTime);
+  virtual void StopFrameTimeRecording(uint32_t         aStartIndex,
+                                      nsTArray<float>& aFrameIntervals);
 
+  void RecordFrame();
   void PostPresent();
 
   void BeginTabSwitch();
@@ -600,9 +599,7 @@ private:
     bool mIsPaused;
     uint32_t mNextIndex;
     TimeStamp mLastFrameTime;
-    TimeStamp mPaintStartTime;
     nsTArray<float> mIntervals;
-    nsTArray<float> mPaints;
     uint32_t mLatestStartIndex;
     uint32_t mCurrentRunStartIndex;
   };
