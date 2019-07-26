@@ -40,6 +40,33 @@ using namespace mozilla;
 
 namespace mozilla {
 
+class OmxDecoderProcessCachedDataTask : public Task
+{
+public:
+  OmxDecoderProcessCachedDataTask(android::OmxDecoder* aOmxDecoder, int64_t aOffset)
+  : mOmxDecoder(aOmxDecoder),
+    mOffset(aOffset)
+  { }
+
+  void Run()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(mOmxDecoder.get());
+    mOmxDecoder->ProcessCachedData(mOffset, false);
+  }
+
+private:
+  android::sp<android::OmxDecoder> mOmxDecoder;
+  int64_t                          mOffset;
+};
+
+
+
+
+
+
+
+
 
 
 
@@ -51,11 +78,12 @@ namespace mozilla {
 class OmxDecoderNotifyDataArrivedRunnable : public nsRunnable
 {
 public:
-  OmxDecoderNotifyDataArrivedRunnable(android::OmxDecoder* aOmxDecoder, const char* aBuffer, uint64_t aLength, int64_t aOffset)
+  OmxDecoderNotifyDataArrivedRunnable(android::OmxDecoder* aOmxDecoder, const char* aBuffer, uint64_t aLength, int64_t aOffset, uint64_t aFullLength)
   : mOmxDecoder(aOmxDecoder),
     mBuffer(aBuffer),
     mLength(aLength),
     mOffset(aOffset),
+    mFullLength(aFullLength),
     mCompletedMonitor("OmxDecoderNotifyDataArrived.mCompleted"),
     mCompleted(false)
   {
@@ -78,6 +106,13 @@ public:
       mOffset += length;
     }
 
+    if (mOffset < mFullLength) {
+      
+      
+      
+      XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new OmxDecoderProcessCachedDataTask(mOmxDecoder.get(), mOffset));
+    }
+
     Completed();
 
     return NS_OK;
@@ -92,8 +127,6 @@ public:
       mCompletedMonitor.Wait();
     }
   }
-
-  static nsresult ProcessCachedData(android::OmxDecoder* aOmxDecoder);
 
 private:
   
@@ -110,42 +143,11 @@ private:
   nsAutoArrayPtr<const char>       mBuffer;
   uint64_t                         mLength;
   int64_t                          mOffset;
+  uint64_t                         mFullLength;
 
   Monitor mCompletedMonitor;
   bool    mCompleted;
 };
-
-nsresult OmxDecoderNotifyDataArrivedRunnable::ProcessCachedData(android::OmxDecoder* aOmxDecoder)
-{
-  MOZ_ASSERT(aOmxDecoder);
-
-  NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
-
-  MediaResource* resource = aOmxDecoder->GetResource();
-  MOZ_ASSERT(resource);
-
-  int64_t length = resource->GetCachedDataEnd(0);
-  NS_ENSURE_TRUE(length >= 0, NS_ERROR_UNEXPECTED);
-
-  if (!length) {
-    return NS_OK; 
-  }
-
-  nsAutoArrayPtr<char> buffer(new char[length]);
-
-  nsresult rv = resource->ReadFromCache(buffer.get(), 0, length);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsRefPtr<OmxDecoderNotifyDataArrivedRunnable> runnable(
-    new OmxDecoderNotifyDataArrivedRunnable(aOmxDecoder, buffer.forget(), length, 0));
-
-  rv = NS_DispatchToMainThread(runnable.get());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  runnable->WaitForCompletion();
-
-  return NS_OK;
-}
 
 namespace layers {
 
@@ -394,9 +396,7 @@ bool OmxDecoder::TryLoad() {
       
       
       
-      nsresult rv = OmxDecoderNotifyDataArrivedRunnable::ProcessCachedData(this);
-
-      if (rv == NS_OK) {
+      if (ProcessCachedData(0, true)) {
         durationUs = mMP3FrameParser.GetDuration();
         if (durationUs > totalDurationUs) {
           totalDurationUs = durationUs;
@@ -992,3 +992,43 @@ void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
   releasingVideoBuffers.clear();
 }
 
+bool OmxDecoder::ProcessCachedData(int64_t aOffset, bool aWaitForCompletion)
+{
+  
+  
+  static const int64_t sReadSize = 8 * 1024 * 1024;
+
+  NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
+
+  MOZ_ASSERT(mResource);
+
+  int64_t resourceLength = mResource->GetCachedDataEnd(0);
+  NS_ENSURE_TRUE(resourceLength >= 0, false);
+
+  if (aOffset >= resourceLength) {
+    return true; 
+  }
+
+  int64_t bufferLength = std::min<int64_t>(resourceLength-aOffset, sReadSize);
+
+  nsAutoArrayPtr<char> buffer(new char[bufferLength]);
+
+  nsresult rv = mResource->ReadFromCache(buffer.get(), aOffset, bufferLength);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  nsRefPtr<OmxDecoderNotifyDataArrivedRunnable> runnable(
+    new OmxDecoderNotifyDataArrivedRunnable(this,
+                                            buffer.forget(),
+                                            bufferLength,
+                                            aOffset,
+                                            resourceLength));
+
+  rv = NS_DispatchToMainThread(runnable.get());
+  NS_ENSURE_SUCCESS(rv, false);
+
+  if (aWaitForCompletion) {
+    runnable->WaitForCompletion();
+  }
+
+  return true;
+}
