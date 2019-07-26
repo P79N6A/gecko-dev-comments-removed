@@ -262,15 +262,6 @@ bool WaitForProcessesToExit(const std::wstring& executable_name,
 
 
 
-bool WaitForSingleProcess(ProcessHandle handle,
-                          int wait_milliseconds);
-
-
-
-bool CrashAwareSleep(ProcessHandle handle, int wait_milliseconds);
-
-
-
 
 
 
@@ -402,22 +393,9 @@ class ProcessMetrics {
   
   
   
-  bool CalculateFreeMemory(FreeMBytes* free) const;
-
-  
-  
-  
-  
   
   
   int GetCPUUsage();
-
-  
-  
-  
-  
-  
-  bool GetIOCounters(IoCounters* io_counters) const;
 
  private:
   explicit ProcessMetrics(ProcessHandle process);
@@ -432,22 +410,6 @@ class ProcessMetrics {
 
   DISALLOW_EVIL_CONSTRUCTORS(ProcessMetrics);
 };
-
-
-
-
-
-
-
-bool EnableLowFragmentationHeap();
-
-
-
-void EnableTerminationOnHeapCorruption();
-
-
-
-void RaiseProcessToHighPriority();
 
 }  
 

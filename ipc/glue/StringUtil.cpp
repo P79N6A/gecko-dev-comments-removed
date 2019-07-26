@@ -28,7 +28,6 @@
 
 
 namespace base {
-string16 SysWideToUTF16(const std::wstring& wide);
 
 
 template<typename FromType, typename ToType>
@@ -53,30 +52,10 @@ WideToUTF8(const std::wstring& wide)
     return base::SysWideToUTF8(wide);
 }
 
-string16
-UTF8ToUTF16(const std::string& utf8)
-{
-    
-    return base::GhettoStringConvert<std::string, string16>(utf8);
-}
-
 std::wstring
 UTF8ToWide(const StringPiece& utf8)
 {
     return base::SysUTF8ToWide(utf8);
-}
-
-string16
-WideToUTF16(const std::wstring& wide)
-{
-    return base::SysWideToUTF16(wide);
-}
-
-std::string
-UTF16ToUTF8(const string16& utf16)
-{
-    
-    return base::GhettoStringConvert<string16, std::string>(utf16);
 }
 
 namespace base {
@@ -91,16 +70,6 @@ std::string SysWideToUTF8(const std::wstring& wide) {
   return GhettoStringConvert<std::wstring, std::string>(wide);
 }
 #endif
-
-string16 SysWideToUTF16(const std::wstring& wide)
-{
-#if defined(WCHAR_T_IS_UTF16)
-  return wide;
-#else
-  
-  return GhettoStringConvert<std::wstring, string16>(wide);
-#endif
-}
 
 #if !defined(OS_MACOSX) && !defined(OS_WIN)
 std::wstring SysUTF8ToWide(const StringPiece& utf8) {

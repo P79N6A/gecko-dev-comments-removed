@@ -244,15 +244,6 @@ ProcessMetrics* ProcessMetrics::CreateProcessMetrics(ProcessHandle process) {
 
 ProcessMetrics::~ProcessMetrics() { }
 
-void EnableTerminationOnHeapCorruption() {
-  
-}
-
-void RaiseProcessToHighPriority() {
-  
-  
-}
-
 bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
   int status;
   const int result = HANDLE_EINTR(waitpid(handle, &status, WNOHANG));
@@ -304,91 +295,6 @@ bool WaitForExitCode(ProcessHandle handle, int* exit_code) {
   
   DCHECK(WIFSIGNALED(status));
   return false;
-}
-
-namespace {
-
-int WaitpidWithTimeout(ProcessHandle handle, int wait_milliseconds,
-                       bool* success) {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  int status = -1;
-  pid_t ret_pid = HANDLE_EINTR(waitpid(handle, &status, WNOHANG));
-  static const int64_t kQuarterSecondInMicroseconds = kMicrosecondsPerSecond/4;
-
-  
-  Time wakeup_time = Time::Now() + TimeDelta::FromMilliseconds(
-      wait_milliseconds);
-  while (ret_pid == 0) {
-    Time now = Time::Now();
-    if (now > wakeup_time)
-      break;
-    
-    int64_t sleep_time_usecs = (wakeup_time - now).InMicroseconds();
-    
-    if (sleep_time_usecs > kQuarterSecondInMicroseconds) {
-      sleep_time_usecs = kQuarterSecondInMicroseconds;
-    }
-
-    
-    
-    usleep(sleep_time_usecs);
-    ret_pid = HANDLE_EINTR(waitpid(handle, &status, WNOHANG));
-  }
-
-  if (success)
-    *success = (ret_pid != -1);
-
-  return status;
-}
-
-}  
-
-bool WaitForSingleProcess(ProcessHandle handle, int wait_milliseconds) {
-  bool waitpid_success;
-  int status;
-  if (wait_milliseconds == base::kNoTimeout)
-    waitpid_success = (HANDLE_EINTR(waitpid(handle, &status, 0)) != -1);
-  else
-    status = WaitpidWithTimeout(handle, wait_milliseconds, &waitpid_success);
-  if (status != -1) {
-    DCHECK(waitpid_success);
-    return WIFEXITED(status);
-  } else {
-    return false;
-  }
-}
-
-bool CrashAwareSleep(ProcessHandle handle, int wait_milliseconds) {
-  bool waitpid_success;
-  int status = WaitpidWithTimeout(handle, wait_milliseconds, &waitpid_success);
-  if (status != -1) {
-    DCHECK(waitpid_success);
-    return !(WIFEXITED(status) || WIFSIGNALED(status));
-  } else {
-    
-    
-    return waitpid_success;
-  }
 }
 
 namespace {

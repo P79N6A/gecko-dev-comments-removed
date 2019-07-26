@@ -268,12 +268,6 @@ class Comparator {
   void SetSubgroupTiebreaker(Selector selector);
 
   
-  void ParseKeyphrase(const std::string key_phrase);
-
-  
-  bool ParseQuery(const std::string query);
-
-  
   
   
   bool WriteSortGrouping(const Snapshot& sample, std::string* output) const;
@@ -324,16 +318,6 @@ class ThreadData {
   
   
   static ThreadData* current();
-
-  
-  
-  static void WriteHTML(const std::string& query, std::string* output);
-
-  
-  
-  static void WriteHTMLTotalAndSubtotals(
-      const DataCollector::Collection& match_array,
-      const Comparator& comparator, std::string* output);
 
   
   Births* FindLifetime(const Location& location);
