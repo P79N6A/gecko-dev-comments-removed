@@ -65,22 +65,6 @@ class SVGFilterElement;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsSVGFilterInstance
 {
   typedef mozilla::gfx::Point3D Point3D;
@@ -97,7 +81,9 @@ public:
 
   nsSVGFilterInstance(const nsStyleFilter& aFilter,
                       nsIFrame *aTargetFrame,
-                      const gfxRect& aTargetBBox);
+                      const gfxRect& aTargetBBox,
+                      const gfxSize& aUserSpaceToFilterSpaceScale,
+                      const gfxSize& aFilterSpaceToUserSpaceScale);
 
   
 
@@ -178,8 +164,7 @@ private:
   
 
 
-  gfxRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpaceRect) const;
-  gfxRect IntermediateSpaceToUserSpace(const gfxRect& aIntermediateSpaceRect) const;
+  gfxRect FilterSpaceToUserSpace(const gfxRect& aFilterSpaceRect) const;
 
   
 
@@ -199,11 +184,6 @@ private:
                             const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
                             const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
                             nsTArray<int32_t>& aSourceIndices);
-
-  
-
-
-  nsresult ComputeUserSpaceToIntermediateSpaceScale();
 
   
 
@@ -240,14 +220,13 @@ private:
 
 
   gfxRect                 mUserSpaceBounds;
-  nsIntRect               mIntermediateSpaceBounds;
   nsIntRect               mFilterSpaceBounds;
 
   
 
 
-  gfxSize                 mUserSpaceToIntermediateSpaceScale;
-  gfxSize                 mIntermediateSpaceToUserSpaceScale;
+  gfxSize                 mUserSpaceToFilterSpaceScale;
+  gfxSize                 mFilterSpaceToUserSpaceScale;
 
   
 

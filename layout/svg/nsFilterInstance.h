@@ -155,11 +155,6 @@ public:
 
   nsresult ComputeSourceNeededRect(nsRect* aDirty);
 
-  
-
-
-
-  gfxMatrix GetUserSpaceToFilterSpaceTransform() const;
 
   
 
@@ -227,7 +222,16 @@ private:
 
   void ComputeNeededBoxes();
 
+  
+
+
+  nsresult ComputeUserSpaceToFilterSpaceScale();
+
+  
+
+
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+  gfxRect FilterSpaceToUserSpace(const gfxRect& aFilterSpaceRect) const;
 
   
 
@@ -271,8 +275,14 @@ private:
   
 
 
-  gfxRect                 mFilterRegion;
+  gfxRect                 mUserSpaceBounds;
   nsIntRect               mFilterSpaceBounds;
+
+  
+
+
+  gfxSize                 mUserSpaceToFilterSpaceScale;
+  gfxSize                 mFilterSpaceToUserSpaceScale;
 
   
 
