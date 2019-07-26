@@ -6034,11 +6034,19 @@ nsGlobalWindow::GetTopWindowRoot()
 NS_IMETHODIMP
 nsGlobalWindow::Scroll(int32_t aXScroll, int32_t aYScroll)
 {
-  return ScrollTo(aXScroll, aYScroll);
+  ScrollTo(CSSIntPoint(aXScroll, aYScroll));
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::ScrollTo(int32_t aXScroll, int32_t aYScroll)
+{
+  ScrollTo(CSSIntPoint(aXScroll, aYScroll));
+  return NS_OK;
+}
+
+void
+nsGlobalWindow::ScrollTo(const CSSIntPoint& aScroll)
 {
   FlushPendingNotifications(Flush_Layout);
   nsIScrollableFrame *sf = GetScrollFrame();
@@ -6051,17 +6059,16 @@ nsGlobalWindow::ScrollTo(int32_t aXScroll, int32_t aYScroll)
     
     const int32_t maxpx = nsPresContext::AppUnitsToIntCSSPixels(0x7fffffff) - 4;
 
-    if (aXScroll > maxpx) {
-      aXScroll = maxpx;
+    CSSIntPoint scroll(aScroll);
+    if (scroll.x > maxpx) {
+      scroll.x = maxpx;
     }
 
-    if (aYScroll > maxpx) {
-      aYScroll = maxpx;
+    if (scroll.y > maxpx) {
+      scroll.y = maxpx;
     }
-    sf->ScrollToCSSPixels(nsIntPoint(aXScroll, aYScroll));
+    sf->ScrollToCSSPixels(nsIntPoint(scroll.x, scroll.y));
   }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -6071,12 +6078,13 @@ nsGlobalWindow::ScrollBy(int32_t aXScrollDif, int32_t aYScrollDif)
   nsIScrollableFrame *sf = GetScrollFrame();
 
   if (sf) {
-    nsPoint scrollPos = sf->GetScrollPosition();
+    CSSIntPoint scrollPos =
+      CSSIntPoint::FromAppUnitsRounded(sf->GetScrollPosition()) +
+      CSSIntPoint(aXScrollDif, aYScrollDif);
     
     
     
-    return ScrollTo(nsPresContext::AppUnitsToIntCSSPixels(scrollPos.x) + aXScrollDif,
-                    nsPresContext::AppUnitsToIntCSSPixels(scrollPos.y) + aYScrollDif);
+    ScrollTo(scrollPos);
   }
 
   return NS_OK;
