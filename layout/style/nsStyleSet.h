@@ -23,12 +23,11 @@
 #include "nsAutoPtr.h"
 #include "nsIStyleRule.h"
 #include "nsCSSPseudoElements.h"
-#include "gfxFontFeatures.h"
+#include "mozilla/Attributes.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
 class nsCSSKeyframesRule;
-class nsCSSFontFeatureValuesRule;
 class nsCSSPageRule;
 class nsRuleWalker;
 struct ElementDependentRuleProcessorData;
@@ -37,7 +36,7 @@ struct TreeMatchContext;
 class nsEmptyStyleRule MOZ_FINAL : public nsIStyleRule
 {
   NS_DECL_ISUPPORTS
-  virtual void MapRuleInfoInto(nsRuleData* aRuleData) MOZ_OVERRIDE;
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
 #endif
@@ -46,7 +45,7 @@ class nsEmptyStyleRule MOZ_FINAL : public nsIStyleRule
 class nsInitialStyleRule MOZ_FINAL : public nsIStyleRule
 {
   NS_DECL_ISUPPORTS
-  virtual void MapRuleInfoInto(nsRuleData* aRuleData) MOZ_OVERRIDE;
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
 #endif
@@ -138,7 +137,7 @@ class nsStyleSet
                           nsCSSPseudoElements::Type aType,
                           nsStyleContext* aParentContext,
                           TreeMatchContext& aTreeMatchContext);
-
+  
   
   
   already_AddRefed<nsStyleContext>
@@ -164,14 +163,6 @@ class nsStyleSet
   
   bool AppendKeyframesRules(nsPresContext* aPresContext,
                               nsTArray<nsCSSKeyframesRule*>& aArray);
-
-  
-  already_AddRefed<gfxFontFeatureValueSet> GetFontFeatureValuesLookup();
-
-  
-  
-  bool AppendFontFeatureValuesRules(nsPresContext* aPresContext,
-                              nsTArray<nsCSSFontFeatureValuesRule*>& aArray);
 
   
   
@@ -415,7 +406,6 @@ class nsStyleSet
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
-  unsigned mInitFontFeatureValuesLookup : 1;
   unsigned mDirty : 9;  
 
   uint32_t mUnusedRuleNodeCount; 
@@ -433,9 +423,6 @@ class nsStyleSet
   
   
   nsTArray<nsRuleNode*> mOldRuleTrees;
-
-  
-  nsRefPtr<gfxFontFeatureValueSet> mFontFeatureValuesLookup;
 };
 
 #ifdef _IMPL_NS_LAYOUT

@@ -727,7 +727,7 @@ pref("dom.allow_scripts_to_close_windows",          false);
 
 pref("dom.disable_open_during_load",                false);
 pref("dom.popup_maximum",                           20);
-pref("dom.popup_allowed_events", "change click dblclick mouseup reset submit touchend");
+pref("dom.popup_allowed_events", "change click dblclick mouseup reset submit");
 pref("dom.disable_open_click_delay", 1000);
 
 pref("dom.storage.enabled", true);
@@ -1740,19 +1740,6 @@ pref("layout.css.supports-rule.enabled", true);
 pref("layout.css.flexbox.enabled", true);
 
 
-
-
-
-
-
-
-#ifdef RELEASE_BUILD
-pref("layout.css.font-features.enabled", false);
-#else
-pref("layout.css.font-features.enabled", true);
-#endif
-
-
 pref("layout.css.prefixes.border-image", true);
 pref("layout.css.prefixes.transforms", true);
 pref("layout.css.prefixes.transitions", true);
@@ -1825,8 +1812,6 @@ pref("hangmonitor.timeout", 0);
 pref("plugins.load_appdir_plugins", false);
 
 pref("plugins.click_to_play", false);
-
-pref("plugin.default.state", 2);
 
 #ifndef DEBUG
 
@@ -4081,8 +4066,6 @@ pref("dom.sms.requestStatusReport", true);
 
 
 pref("dom.mozContacts.enabled", false);
-pref("dom.navigator-property.disable.mozContacts", true);
-pref("dom.global-constructor.disable.mozContact", true);
 
 
 pref("dom.mozAlarms.enabled", false);
@@ -4095,7 +4078,6 @@ pref("dom.mozNetworkStats.enabled", false);
 
 
 pref("dom.mozSettings.enabled", false);
-pref("dom.navigator-property.disable.mozSettings", true);
 pref("dom.mozPermissionSettings.enabled", false);
 
 

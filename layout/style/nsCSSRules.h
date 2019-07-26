@@ -15,7 +15,6 @@
 #include "mozilla/Preferences.h"
 #include "nsIDOMCSSConditionRule.h"
 #include "nsIDOMCSSFontFaceRule.h"
-#include "nsIDOMCSSFontFeatureValuesRule.h"
 #include "nsIDOMCSSGroupingRule.h"
 #include "nsIDOMCSSMediaRule.h"
 #include "nsIDOMCSSMozDocumentRule.h"
@@ -32,7 +31,6 @@
 #include "Declaration.h"
 #include "nsIDOMCSSPageRule.h"
 #include "StyleRule.h"
-#include "gfxFontFeatures.h"
 
 class nsMediaList;
 
@@ -56,7 +54,7 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
@@ -114,7 +112,7 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
@@ -214,7 +212,7 @@ protected:
 #include "nsCSSFontDescList.h"
 #undef CSS_FONT_DESC
 
-  static nsCSSValue nsCSSFontFaceStyleDecl::* const Fields[];
+  static nsCSSValue nsCSSFontFaceStyleDecl::* const Fields[];  
   inline nsCSSFontFaceRule* ContainingRule();
   inline const nsCSSFontFaceRule* ContainingRule() const;
 
@@ -241,13 +239,13 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
 
-  virtual int32_t GetType() const MOZ_OVERRIDE;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -287,61 +285,6 @@ nsCSSFontFaceStyleDecl::ContainingRule() const
     (reinterpret_cast<const char*>(this) - offsetof(nsCSSFontFaceRule, mDecl));
 }
 
-class nsCSSFontFeatureValuesRule MOZ_FINAL :
-                                       public mozilla::css::Rule,
-                                       public nsIDOMCSSFontFeatureValuesRule
-{
-public:
-  nsCSSFontFeatureValuesRule() {}
-
-  nsCSSFontFeatureValuesRule(const nsCSSFontFeatureValuesRule& aCopy)
-    
-    : mozilla::css::Rule(aCopy),
-      mFamilyList(aCopy.mFamilyList),
-      mFeatureValues(aCopy.mFeatureValues) {}
-
-  NS_DECL_ISUPPORTS
-
-  
-#ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
-#endif
-
-  
-  DECL_STYLE_RULE_INHERIT
-
-  virtual int32_t GetType() const MOZ_OVERRIDE;
-  virtual already_AddRefed<mozilla::css::Rule> Clone() const MOZ_OVERRIDE;
-
-  
-  NS_DECL_NSIDOMCSSRULE
-
-  
-  NS_DECL_NSIDOMCSSFONTFEATUREVALUESRULE
-
-  const nsTArray<nsString>& GetFamilyList() { return mFamilyList; }
-  void SetFamilyList(const nsAString& aFamilyList, bool& aContainsGeneric);
-
-  void AddValueList(int32_t aVariantAlternate,
-                    nsTArray<gfxFontFeatureValueSet::ValueList>& aValueList);
-
-  const nsTArray<gfxFontFeatureValueSet::FeatureValues>& GetFeatureValues()
-  {
-    return mFeatureValues;
-  }
-
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
-
-  static bool PrefEnabled()
-  {
-    return mozilla::Preferences::GetBool("layout.css.font-features.enabled");
-  }
-
-protected:
-  nsTArray<nsString> mFamilyList;
-  nsTArray<gfxFontFeatureValueSet::FeatureValues> mFeatureValues;
-};
-
 namespace mozilla {
 namespace css {
 
@@ -362,7 +305,7 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
@@ -404,7 +347,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsCSSKeyframeStyleDeclaration,
                                                          nsICSSDeclaration)
 
-  virtual nsINode* GetParentObject() MOZ_OVERRIDE;
+  virtual nsINode* GetParentObject();
 
 protected:
   
@@ -432,12 +375,12 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
-  virtual int32_t GetType() const MOZ_OVERRIDE;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -478,7 +421,7 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
@@ -532,7 +475,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsCSSPageStyleDeclaration,
                                                          nsICSSDeclaration)
 
-  virtual nsINode *GetParentObject() MOZ_OVERRIDE;
+  virtual nsINode *GetParentObject();
 
 protected:
   
@@ -558,12 +501,12 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
-  virtual int32_t GetType() const MOZ_OVERRIDE;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -578,7 +521,7 @@ public:
 
   mozilla::css::ImportantRule* GetImportantRule();
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
+  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 private:
   nsAutoPtr<mozilla::css::Declaration>    mDeclaration;
   
@@ -597,7 +540,7 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   

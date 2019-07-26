@@ -7,15 +7,11 @@
 
 #include "nsCoord.h"
 #include "nsCSSProperty.h"
-#include "nsIPrincipal.h"
-#include "nsSubstring.h"
-#include "gfxFontFeatures.h"
 
 class nsCSSValue;
 class nsStringComparator;
 class nsIContent;
 struct gfxFontFeature;
-class nsCSSValueList;
 template <class E> class nsTArray;
 
 
@@ -54,20 +50,6 @@ public:
                                         nsAString& aResult);
 
   
-  static void GetFunctionalAlternatesName(int32_t aFeature,
-                                          nsAString& aFeatureName);
-
-  
-  static void
-  SerializeFunctionalAlternates(const nsTArray<gfxAlternateValue>& aAlternates,
-                                nsAString& aResult);
-
-  
-  static void
-  ComputeFunctionalAlternates(const nsCSSValueList* aList,
-                              nsTArray<gfxAlternateValue>& aAlternateValues);
-
-  
 
 
 
@@ -92,22 +74,6 @@ public:
   static bool IsSignificantChild(nsIContent* aChild,
                                    bool aTextIsSignificant,
                                    bool aWhitespaceIsSignificant);
-  
-
-
-
-
-
-
-
-
-
-  static bool CSPAllowsInlineStyle(nsIPrincipal* aPrincipal,
-                                   nsIURI* aSourceURI,
-                                   uint32_t aLineNumber,
-                                   const nsSubstring& aStyleText,
-                                   nsresult* aRv);
-
 };
 
 

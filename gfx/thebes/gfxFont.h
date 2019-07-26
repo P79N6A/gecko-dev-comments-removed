@@ -74,21 +74,7 @@ struct THEBES_API gfxFontStyle {
     nsRefPtr<nsIAtom> language;
 
     
-    
-    
-
-    
     nsTArray<gfxFontFeature> featureSettings;
-
-    
-    
-    
-
-    
-    nsTArray<gfxAlternateValue> alternateValues;
-
-    
-    nsRefPtr<gfxFontFeatureValueSet> featureValueLookup;
 
     
     gfxFloat size;
@@ -158,9 +144,7 @@ struct THEBES_API gfxFontStyle {
             (*reinterpret_cast<const uint32_t*>(&sizeAdjust) ==
              *reinterpret_cast<const uint32_t*>(&other.sizeAdjust)) &&
             (featureSettings == other.featureSettings) &&
-            (languageOverride == other.languageOverride) &&
-            (alternateValues == other.alternateValues) &&
-            (featureValueLookup == other.featureValueLookup);
+            (languageOverride == other.languageOverride);
     }
 
     static void ParseFontFeatureSettings(const nsString& aFeatureString,
@@ -1163,10 +1147,9 @@ public:
 
     
     static bool
-    MergeFontFeatures(const gfxFontStyle *aStyle,
+    MergeFontFeatures(const nsTArray<gfxFontFeature>& aStyleRuleFeatures,
                       const nsTArray<gfxFontFeature>& aFontFeatures,
                       bool aDisableLigatures,
-                      const nsAString& aFamilyName,
                       nsDataHashtable<nsUint32HashKey,uint32_t>& aMergedFeatures);
 
 protected:
@@ -1596,10 +1579,6 @@ public:
 
     virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont> GetScaledFont(mozilla::gfx::DrawTarget *aTarget)
     { return gfxPlatform::GetPlatform()->GetScaledFontForFont(aTarget, this); }
-
-    bool KerningDisabled() {
-        return mKerningSet && !mKerningEnabled;
-    }
 
 protected:
 

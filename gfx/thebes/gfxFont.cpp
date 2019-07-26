@@ -241,15 +241,20 @@ gfxFontEntry::RenderSVGGlyph(gfxContext *aContext, uint32_t aGlyphId,
 bool
 gfxFontEntry::TryGetSVGData()
 {
-    if (!gfxPlatform::GetPlatform()->OpenTypeSVGEnabled()) {
-        return false;
-    }
-
     if (!mSVGInitialized) {
         mSVGInitialized = true;
 
+        bool svgEnabled;
+        nsresult rv =
+            Preferences::GetBool("gfx.font_rendering.opentype_svg.enabled",
+                                 &svgEnabled);
+
+        if (NS_FAILED(rv) || !svgEnabled) {
+            return false;
+        }
+
         FallibleTArray<uint8_t> svgTable;
-        nsresult rv = GetFontTable(TRUETYPE_TAG('S', 'V', 'G', ' '), svgTable);
+        rv = GetFontTable(TRUETYPE_TAG('S', 'V', 'G', ' '), svgTable);
         if (NS_FAILED(rv)) {
             return false;
         }
@@ -1367,111 +1372,17 @@ gfxFontCache::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
     SizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
 
-#define MAX_SSXX_VALUE 99
-#define MAX_CVXX_VALUE 99
-
-static void
-LookupAlternateValues(gfxFontFeatureValueSet *featureLookup,
-                      const nsAString& aFamily,
-                      const nsTArray<gfxAlternateValue>& altValue,
-                      nsTArray<gfxFontFeature>& aFontFeatures)
-{
-    uint32_t numAlternates = altValue.Length();
-    for (uint32_t i = 0; i < numAlternates; i++) {
-        const gfxAlternateValue& av = altValue.ElementAt(i);
-        nsAutoTArray<uint32_t,4> values;
-
-        
-        bool found =
-            featureLookup->GetFontFeatureValuesFor(aFamily, av.alternate,
-                                                   av.value, values);
-        uint32_t numValues = values.Length();
-
-        
-        if (!found || numValues == 0) {
-            continue;
-        }
-
-        gfxFontFeature feature;
-        if (av.alternate == NS_FONT_VARIANT_ALTERNATES_CHARACTER_VARIANT) {
-            NS_ASSERTION(numValues <= 2,
-                         "too many values allowed for character-variant");
-            
-            uint32_t nn = values.ElementAt(0);
-            
-            if (nn == 0 || nn > MAX_CVXX_VALUE) {
-                continue;
-            }
-            feature.mValue = 1;
-            if (numValues > 1) {
-                feature.mValue = values.ElementAt(1);
-            }
-            feature.mTag = HB_TAG('c','v',('0' + nn / 10), ('0' + nn % 10));
-            aFontFeatures.AppendElement(feature);
-
-        } else if (av.alternate == NS_FONT_VARIANT_ALTERNATES_STYLESET) {
-            
-            feature.mValue = 1;
-            for (uint32_t v = 0; v < numValues; v++) {
-                uint32_t nn = values.ElementAt(v);
-                if (nn == 0 || nn > MAX_SSXX_VALUE) {
-                    continue;
-                }
-                feature.mTag = HB_TAG('s','s',('0' + nn / 10), ('0' + nn % 10));
-                aFontFeatures.AppendElement(feature);
-            }
-
-        } else {
-            NS_ASSERTION(numValues == 1,
-                   "too many values for font-specific font-variant-alternates");
-            feature.mValue = values.ElementAt(0);
-
-            switch (av.alternate) {
-                case NS_FONT_VARIANT_ALTERNATES_STYLISTIC:  
-                    feature.mTag = HB_TAG('s','a','l','t');
-                    break;
-                case NS_FONT_VARIANT_ALTERNATES_SWASH:  
-                    feature.mTag = HB_TAG('s','w','s','h');
-                    aFontFeatures.AppendElement(feature);
-                    feature.mTag = HB_TAG('c','s','w','h');
-                    break;
-                case NS_FONT_VARIANT_ALTERNATES_ORNAMENTS: 
-                    feature.mTag = HB_TAG('o','r','n','m');
-                    break;
-                case NS_FONT_VARIANT_ALTERNATES_ANNOTATION: 
-                    feature.mTag = HB_TAG('n','a','l','t');
-                    break;
-                default:
-                    feature.mTag = 0;
-                    break;
-            }
-
-            NS_ASSERTION(feature.mTag, "unsupported alternate type");
-            if (!feature.mTag) {
-                continue;
-            }
-            aFontFeatures.AppendElement(feature);
-        }
-    }
-}
-
  bool
 gfxFontShaper::MergeFontFeatures(
-    const gfxFontStyle *aStyle,
+    const nsTArray<gfxFontFeature>& aStyleRuleFeatures,
     const nsTArray<gfxFontFeature>& aFontFeatures,
     bool aDisableLigatures,
-    const nsAString& aFamilyName,
     nsDataHashtable<nsUint32HashKey,uint32_t>& aMergedFeatures)
 {
-    uint32_t numAlts = aStyle->alternateValues.Length();
-    const nsTArray<gfxFontFeature>& styleRuleFeatures =
-        aStyle->featureSettings;
-
     
-    if (styleRuleFeatures.IsEmpty() &&
+    if (aStyleRuleFeatures.IsEmpty() &&
         aFontFeatures.IsEmpty() &&
-        !aDisableLigatures &&
-        numAlts == 0) {
+        !aDisableLigatures) {
         return false;
     }
 
@@ -1494,24 +1405,9 @@ gfxFontShaper::MergeFontFeatures(
     }
 
     
-    if (aStyle->featureValueLookup && numAlts > 0) {
-        nsAutoTArray<gfxFontFeature,4> featureList;
-
-        
-        LookupAlternateValues(aStyle->featureValueLookup, aFamilyName,
-                              aStyle->alternateValues, featureList);
-
-        count = featureList.Length();
-        for (i = 0; i < count; i++) {
-            const gfxFontFeature& feature = featureList.ElementAt(i);
-            aMergedFeatures.Put(feature.mTag, feature.mValue);
-        }
-    }
-
-    
-    count = styleRuleFeatures.Length();
+    count = aStyleRuleFeatures.Length();
     for (i = 0; i < count; i++) {
-        const gfxFontFeature& feature = styleRuleFeatures.ElementAt(i);
+        const gfxFontFeature& feature = aStyleRuleFeatures.ElementAt(i);
         aMergedFeatures.Put(feature.mTag, feature.mValue);
     }
 
@@ -4900,7 +4796,6 @@ gfxFontStyle::gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
 
 gfxFontStyle::gfxFontStyle(const gfxFontStyle& aStyle) :
     language(aStyle.language),
-    featureValueLookup(aStyle.featureValueLookup),
     size(aStyle.size), sizeAdjust(aStyle.sizeAdjust),
     languageOverride(aStyle.languageOverride),
     weight(aStyle.weight), stretch(aStyle.stretch),
@@ -4908,7 +4803,6 @@ gfxFontStyle::gfxFontStyle(const gfxFontStyle& aStyle) :
     style(aStyle.style)
 {
     featureSettings.AppendElements(aStyle.featureSettings);
-    alternateValues.AppendElements(aStyle.alternateValues);
 }
 
 int8_t
