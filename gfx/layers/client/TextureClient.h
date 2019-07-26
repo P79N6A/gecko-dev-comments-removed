@@ -113,16 +113,6 @@ public:
     return mID;
   }
 
-  void SetNextSibling(TextureClient* aNext)
-  {
-    mNextSibling = aNext;
-  }
-
-  TextureClient* GetNextSibling()
-  {
-    return mNextSibling;
-  }
-
   virtual bool IsAllocated() const = 0;
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
@@ -158,7 +148,6 @@ protected:
   }
 
   uint64_t mID;
-  RefPtr<TextureClient> mNextSibling;
   TextureFlags mFlags;
 };
 

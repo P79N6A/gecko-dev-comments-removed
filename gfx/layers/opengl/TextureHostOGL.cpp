@@ -152,6 +152,7 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
       
       
       
+      
       mTexImage = mGL->CreateTextureImage(size,
                                           gfx::ContentForFormat(aSurface->GetFormat()),
                                           WrapMode(mGL, aFlags & TEXTURE_ALLOW_REPEAT),
@@ -260,7 +261,7 @@ SharedTextureSourceOGL::SetCompositor(CompositorOGL* aCompositor)
 bool
 SharedTextureSourceOGL::IsValid() const
 {
-  return gl() != nullptr;
+  return !!gl();
 }
 
 gl::GLContext*
@@ -312,7 +313,7 @@ SharedTextureHostOGL::Lock()
     }
 
     GLenum wrapMode = LOCAL_GL_CLAMP_TO_EDGE;
-    mTextureSource = new SharedTextureSourceOGL(nullptr, 
+    mTextureSource = new SharedTextureSourceOGL(mCompositor,
                                                 mSharedHandle,
                                                 handleDetails.mTextureFormat,
                                                 handleDetails.mTarget,
@@ -1217,7 +1218,7 @@ GrallocDeprecatedTextureHostOGL::GetAsSurface() {
     : nullptr;
   return surf.forget();
 }
-#endif
+#endif 
 
 } 
 } 

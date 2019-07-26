@@ -10,14 +10,8 @@
 #include "ISurfaceAllocator.h" 
 #include "GLContext.h" 
 
-#ifdef MOZ_WIDGET_GONK
-#include <ui/GraphicBuffer.h>
-#endif
-
 namespace mozilla {
 namespace layers {
-
-
 
 
 

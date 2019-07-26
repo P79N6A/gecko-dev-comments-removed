@@ -208,6 +208,7 @@ public:
     SetUpdateSerial(0);
   }
 
+#ifdef DEBUG
   
 
 
@@ -215,6 +216,8 @@ public:
 
 
   virtual TemporaryRef<gfx::DataSourceSurface> ReadBack() { return nullptr; };
+#endif
+
 private:
   uint32_t mUpdateSerial;
 };
@@ -437,9 +440,9 @@ public:
 
   virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
 
-  virtual already_AddRefed<gfxImageSurface> GetAsSurface() MOZ_OVERRIDE;
-
   virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
+
+  virtual already_AddRefed<gfxImageSurface> GetAsSurface() MOZ_OVERRIDE;
 
 protected:
   bool Upload(nsIntRegion *aRegion = nullptr);

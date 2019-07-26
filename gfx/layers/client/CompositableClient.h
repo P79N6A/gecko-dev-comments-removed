@@ -131,11 +131,11 @@ public:
   
 
 
-  virtual void Detach() {}
+  virtual void OnDetach() {}
 
 protected:
   
-  std::vector<uint64_t> mTexturesToRemove;
+  nsTArray<uint64_t> mTexturesToRemove;
   uint64_t mNextTextureID;
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
