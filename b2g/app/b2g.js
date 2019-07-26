@@ -600,7 +600,6 @@ pref("javascript.options.mem.gc_decommit_threshold_mb", 1);
 
 
 pref("ui.showHideScrollbars", 1);
-pref("ui.useOverlayScrollbars", 1);
 
 
 
@@ -821,8 +820,10 @@ pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
 
 
 
+#ifdef MOZ_WIDGET_GONK
 pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.canvas.azure.accelerated", true);
+#endif
 
 
 pref("gfx.canvas.skiagl.dynamic-cache", true);
