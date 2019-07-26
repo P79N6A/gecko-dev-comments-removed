@@ -92,6 +92,7 @@ nsFtpState::nsFtpState()
     , mPort(21)
     , mAddressChecked(false)
     , mServerIsIPv6(false)
+    , mUseUTF8(false)
     , mControlStatus(NS_OK)
     , mDeferredCallbackPending(false)
 {
@@ -276,7 +277,12 @@ nsFtpState::EstablishControlConnection()
             mServerType = mControlConnection->mServerType;           
             mPassword   = mControlConnection->mPassword;
             mPwd        = mControlConnection->mPwd;
+            mUseUTF8    = mControlConnection->mUseUTF8;
             mTryingCachedControl = true;
+
+            
+            if (mUseUTF8)
+                mChannel->SetContentCharset(NS_LITERAL_CSTRING("UTF-8"));
             
             
             mState = FTP_S_PASV;
@@ -646,7 +652,43 @@ nsFtpState::Process()
                 mInternalError = NS_ERROR_FTP_PWD;
 
             break;
+
+
+          case FTP_S_FEAT:
+            rv = S_feat();
+
+            if (NS_FAILED(rv))
+                mInternalError = rv;
+
+            MoveToNextState(FTP_R_FEAT);
+            break;
+
+          case FTP_R_FEAT:
+            mState = R_feat();
+
             
+            if (FTP_ERROR == mState && NS_SUCCEEDED(mInternalError))
+                mInternalError = NS_ERROR_FAILURE;
+            break;
+
+
+          case FTP_S_OPTS:
+            rv = S_opts();
+
+            if (NS_FAILED(rv))
+                mInternalError = rv;
+
+            MoveToNextState(FTP_R_OPTS);
+            break;
+
+          case FTP_R_OPTS:
+            mState = R_opts();
+
+            
+            if (FTP_ERROR == mState && NS_SUCCEEDED(mInternalError))
+                mInternalError = NS_ERROR_FAILURE;
+            break;
+
           default:
             ;
             
@@ -923,7 +965,7 @@ nsFtpState::R_syst() {
             return FTP_ERROR;
         }
         
-        return FTP_S_PWD;
+        return FTP_S_FEAT;
     }
 
     if (mResponseCode/100 == 5) {   
@@ -931,7 +973,7 @@ nsFtpState::R_syst() {
         
         mServerType = FTP_UNIX_TYPE;
 
-        return FTP_S_PWD;
+        return FTP_S_FEAT;
     }
     return FTP_ERROR;
 }
@@ -1134,6 +1176,10 @@ nsFtpState::S_list() {
         nsAutoCString serverType;
         serverType.AppendInt(mServerType);
         mCacheEntry->SetMetaDataElement("servertype", serverType.get());
+
+        nsAutoCString useUTF8;
+        useUTF8.AppendInt(mUseUTF8);
+        mCacheEntry->SetMetaDataElement("useUTF8", useUTF8.get());
 
         
         if (NS_FAILED(InstallCacheListener())) {
@@ -1551,6 +1597,39 @@ nsFtpState::R_pasv() {
     return FTP_S_SIZE;
 }
 
+nsresult
+nsFtpState::S_feat() {
+    return SendFTPCommand(NS_LITERAL_CSTRING("FEAT" CRLF));
+}
+
+FTP_STATE
+nsFtpState::R_feat() {
+    if (mResponseCode/100 == 2) {
+        if (mResponseMsg.Find(NS_LITERAL_CSTRING(CRLF " UTF8" CRLF), true) > -1) {
+            
+            mChannel->SetContentCharset(NS_LITERAL_CSTRING("UTF-8"));
+            mUseUTF8 = true;
+            return FTP_S_OPTS;
+        }
+    }
+
+    mUseUTF8 = false;
+    return FTP_S_PWD;
+}
+
+nsresult
+nsFtpState::S_opts() {
+     
+    return SendFTPCommand(NS_LITERAL_CSTRING("OPTS UTF8 ON" CRLF));
+}
+
+FTP_STATE
+nsFtpState::R_opts() {
+    
+    
+    return FTP_S_PWD;
+}
+
 
 
 
@@ -1847,6 +1926,7 @@ nsFtpState::KillControlConnection()
         mControlConnection->mServerType = mServerType;           
         mControlConnection->mPassword = mPassword;
         mControlConnection->mPwd = mPwd;
+        mControlConnection->mUseUTF8 = mUseUTF8;
         
         nsresult rv = NS_OK;
         
@@ -1865,7 +1945,7 @@ nsFtpState::KillControlConnection()
 class nsFtpAsyncAlert : public nsRunnable
 {
 public:
-    nsFtpAsyncAlert(nsIPrompt *aPrompter, nsACString& aResponseMsg)
+    nsFtpAsyncAlert(nsIPrompt *aPrompter, nsString aResponseMsg)
         : mPrompter(aPrompter)
         , mResponseMsg(aResponseMsg)
     {
@@ -1878,15 +1958,15 @@ public:
     NS_IMETHOD Run()
     {
         if (mPrompter) {
-            mPrompter->Alert(nullptr, NS_ConvertASCIItoUTF16(mResponseMsg).get());
+            mPrompter->Alert(nullptr, mResponseMsg.get());
         }
         return NS_OK;
     }
 private:
     nsCOMPtr<nsIPrompt> mPrompter;
-    nsCString mResponseMsg;
+    nsString mResponseMsg;
 };
-    
+
 
 nsresult
 nsFtpState::StopProcessing()
@@ -1910,8 +1990,14 @@ nsFtpState::StopProcessing()
         nsCOMPtr<nsIPrompt> prompter;
         mChannel->GetCallback(prompter);
         if (prompter) {
-            nsCOMPtr<nsIRunnable> alertEvent =
-                new nsFtpAsyncAlert(prompter, mResponseMsg);
+            nsCOMPtr<nsIRunnable> alertEvent;
+            if (mUseUTF8) {
+                alertEvent = new nsFtpAsyncAlert(prompter,
+                    NS_ConvertUTF8toUTF16(mResponseMsg));
+            } else {
+                alertEvent = new nsFtpAsyncAlert(prompter,
+                    NS_ConvertASCIItoUTF16(mResponseMsg));
+            }
             NS_DispatchToMainThread(alertEvent, NS_DISPATCH_NORMAL);
         }
     }
@@ -2372,6 +2458,12 @@ nsFtpState::ReadCacheEntry()
     nsAutoCString serverNum(serverType.get());
     nsresult err;
     mServerType = serverNum.ToInteger(&err);
+
+    nsXPIDLCString charset;
+    mCacheEntry->GetMetaDataElement("useUTF8", getter_Copies(charset));
+    const char *useUTF8 = charset.get();
+    if (useUTF8 && atoi(useUTF8) == 1)
+        mChannel->SetContentCharset(NS_LITERAL_CSTRING("UTF-8"));
     
     mChannel->PushStreamConverter("text/ftp-dir",
                                   APPLICATION_HTTP_INDEX_FORMAT);
