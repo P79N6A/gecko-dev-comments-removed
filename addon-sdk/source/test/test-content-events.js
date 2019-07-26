@@ -121,12 +121,8 @@ exports["test nested frames"] = function(assert, done) {
 
 
 
-
 function eventFilter (type, target, callback) {
-  if (target.URL !== "about:blank" &&
-    target.URL !== "about:home" &&
-    !target.URL.match(/^https?:\/\//i) &&
-    !target.URL.match(/searchplugins/) &&
+  if (target.URL.startsWith("data:text/html,") &&
     type !== "chrome-document-global-created" &&
     type !== "content-document-global-created")
   
