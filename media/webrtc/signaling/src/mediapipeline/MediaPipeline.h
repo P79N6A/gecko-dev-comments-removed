@@ -21,7 +21,6 @@
 #include "MediaPipelineFilter.h"
 #include "AudioSegment.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "mozilla/Atomics.h"
 #include "SrtpFlow.h"
 #include "databuffer.h"
 #include "runnable_utils.h"
@@ -34,8 +33,6 @@
 #include "webrtc/modules/rtp_rtcp/interface/rtp_header_parser.h"
 
 namespace mozilla {
-
-class PeerIdentity;
 
 
 
@@ -357,7 +354,7 @@ private:
 
 
 class MediaPipelineTransmit : public MediaPipeline {
-public:
+ public:
   
   MediaPipelineTransmit(const std::string& pc,
                         nsCOMPtr<nsIEventTarget> main_thread,
@@ -376,14 +373,7 @@ public:
   {}
 
   
-  virtual nsresult Init() MOZ_OVERRIDE;
-
-#ifdef MOZILLA_INTERNAL_API
-  
-  
-  virtual void UpdateSinkIdentity_m(nsIPrincipal* principal,
-                                    const PeerIdentity* sinkIdentity);
-#endif
+  virtual nsresult Init();
 
   
   virtual void DetachMediaStream() {
@@ -405,7 +395,6 @@ public:
     PipelineListener(const RefPtr<MediaSessionConduit>& conduit)
       : conduit_(conduit),
         active_(false),
-        enabled_(false),
         direct_connect_(false),
         samples_10ms_buffer_(nullptr),
         buffer_current_(0),
@@ -427,8 +416,11 @@ public:
       }
     }
 
+
+    
+    
+    
     void SetActive(bool active) { active_ = active; }
-    void SetEnabled(bool enabled) { enabled_ = enabled; }
 
     
     virtual void NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
@@ -459,15 +451,8 @@ public:
                                    TrackRate rate, VideoChunk& chunk);
 #endif
     RefPtr<MediaSessionConduit> conduit_;
-
-    
-    mozilla::Atomic<bool> active_;
-    
-    
-    mozilla::Atomic<bool> enabled_;
-
+    volatile bool active_;
     bool direct_connect_;
-
 
     
     
@@ -564,7 +549,7 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
     stream_ = nullptr;
   }
 
-  virtual nsresult Init() MOZ_OVERRIDE;
+  virtual nsresult Init();
 
  private:
   
@@ -638,7 +623,7 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
     stream_ = nullptr;
   }
 
-  virtual nsresult Init() MOZ_OVERRIDE;
+  virtual nsresult Init();
 
  private:
   class PipelineRenderer : public VideoRenderer {
