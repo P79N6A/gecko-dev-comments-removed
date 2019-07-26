@@ -76,7 +76,7 @@ ReadFrameBooleanSlot(IonJSFrameLayout *fp, int32_t slot)
 }
 
 JitFrameIterator::JitFrameIterator(ThreadSafeContext *cx)
-  : current_(cx->perThreadData->ionTop),
+  : current_(cx->perThreadData->jitTop),
     type_(JitFrame_Exit),
     returnAddressToFp_(nullptr),
     frameSize_(0),
@@ -615,8 +615,8 @@ HandleException(ResumeFromException *rfe)
     
     
     
-    if (cx->runtime()->hasIonReturnOverride())
-        cx->runtime()->takeIonReturnOverride();
+    if (cx->runtime()->jitRuntime()->hasIonReturnOverride())
+        cx->runtime()->jitRuntime()->takeIonReturnOverride();
 
     JitFrameIterator iter(cx);
     while (!iter.isEntry()) {
@@ -721,7 +721,7 @@ HandleException(ResumeFromException *rfe)
             
             
             EnsureExitFrame(current);
-            cx->mainThread().ionTop = (uint8_t *)current;
+            cx->mainThread().jitTop = (uint8_t *)current;
         }
 
         if (overrecursed) {
@@ -737,7 +737,7 @@ void
 HandleParallelFailure(ResumeFromException *rfe)
 {
     ForkJoinContext *cx = ForkJoinContext::current();
-    JitFrameIterator iter(cx->perThreadData->ionTop, ParallelExecution);
+    JitFrameIterator iter(cx->perThreadData->jitTop, ParallelExecution);
 
     parallel::Spew(parallel::SpewBailouts, "Bailing from VM reentry");
 
@@ -1275,7 +1275,7 @@ GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
     JSRuntime *rt = cx->runtime();
 
     
-    JitFrameIterator it(rt->mainThread.ionTop, SequentialExecution);
+    JitFrameIterator it(rt->mainThread.jitTop, SequentialExecution);
 
     
     

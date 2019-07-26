@@ -216,6 +216,20 @@ class JitRuntime
     
     InlineList<PatchableBackedge> backedgeList_;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    js::Value ionReturnOverride_;
+
   private:
     JitCode *generateExceptionTailStub(JSContext *cx);
     JitCode *generateBailoutTailStub(JSContext *cx);
@@ -340,6 +354,20 @@ class JitRuntime
     bool ensureForkJoinGetSliceStubExists(JSContext *cx);
     JitCode *forkJoinGetSliceStub() const {
         return forkJoinGetSliceStub_;
+    }
+
+    bool hasIonReturnOverride() const {
+        return !ionReturnOverride_.isMagic(JS_ARG_POISON);
+    }
+    js::Value takeIonReturnOverride() {
+        js::Value v = ionReturnOverride_;
+        ionReturnOverride_ = js::MagicValue(JS_ARG_POISON);
+        return v;
+    }
+    void setIonReturnOverride(const js::Value &v) {
+        JS_ASSERT(!hasIonReturnOverride());
+        JS_ASSERT(!v.isMagic());
+        ionReturnOverride_ = v;
     }
 };
 

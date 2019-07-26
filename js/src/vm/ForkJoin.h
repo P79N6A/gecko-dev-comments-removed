@@ -216,7 +216,7 @@ namespace js {
 
 class ForkJoinActivation : public Activation
 {
-    uint8_t *prevIonTop_;
+    uint8_t *prevJitTop_;
 
     
     

@@ -283,9 +283,9 @@ MakeFrameDescriptor(uint32_t frameSize, FrameType type)
 
 
 inline JSScript *
-GetTopIonJSScript(uint8_t *ionTop, void **returnAddrOut, ExecutionMode mode)
+GetTopIonJSScript(uint8_t *jitTop, void **returnAddrOut, ExecutionMode mode)
 {
-    JitFrameIterator iter(ionTop, mode);
+    JitFrameIterator iter(jitTop, mode);
     JS_ASSERT(iter.type() == JitFrame_Exit);
     ++iter;
 

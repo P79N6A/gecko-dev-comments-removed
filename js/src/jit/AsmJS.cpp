@@ -6611,15 +6611,15 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         
         size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
                                     PerThreadData::offsetOfActivation();
-        size_t offsetOfIonTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, ionTop);
+        size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
         size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
                                       offsetof(PerThreadData, jitJSContext);
         masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg3);
         masm.loadPtr(Address(reg3, JSContext::offsetOfRuntime()), reg0);
         masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
         masm.store8(Imm32(1), Address(reg1, JitActivation::offsetOfActiveUint8()));
-        masm.loadPtr(Address(reg0, offsetOfIonTop), reg2);
-        masm.storePtr(reg2, Address(reg1, JitActivation::offsetOfPrevIonTop()));
+        masm.loadPtr(Address(reg0, offsetOfJitTop), reg2);
+        masm.storePtr(reg2, Address(reg1, JitActivation::offsetOfPrevJitTop()));
         masm.loadPtr(Address(reg0, offsetOfJitJSContext), reg2);
         masm.storePtr(reg2, Address(reg1, JitActivation::offsetOfPrevJitJSContext()));
         masm.storePtr(reg3, Address(reg0, offsetOfJitJSContext));
@@ -6652,15 +6652,15 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         
         size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
                                     PerThreadData::offsetOfActivation();
-        size_t offsetOfIonTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, ionTop);
+        size_t offsetOfJitTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, jitTop);
         size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
                                       offsetof(PerThreadData, jitJSContext);
         masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg0);
         masm.loadPtr(Address(reg0, JSContext::offsetOfRuntime()), reg0);
         masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
         masm.store8(Imm32(0), Address(reg1, JitActivation::offsetOfActiveUint8()));
-        masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevIonTop()), reg2);
-        masm.storePtr(reg2, Address(reg0, offsetOfIonTop));
+        masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevJitTop()), reg2);
+        masm.storePtr(reg2, Address(reg0, offsetOfJitTop));
         masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevJitJSContext()), reg2);
         masm.storePtr(reg2, Address(reg0, offsetOfJitJSContext));
     }

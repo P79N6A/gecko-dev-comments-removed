@@ -476,7 +476,7 @@ class PerThreadData : public PerThreadDataFriendFields
 
 
 
-    uint8_t             *ionTop;
+    uint8_t             *jitTop;
 
     
 
@@ -1245,20 +1245,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     uint32_t forkJoinWarmup;
 
   private:
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    js::Value            ionReturnOverride_;
-
 #ifdef JS_THREADSAFE
     static mozilla::Atomic<size_t> liveRuntimesCount;
 #else
@@ -1268,19 +1254,6 @@ struct JSRuntime : public JS::shadow::Runtime,
   public:
     static bool hasLiveRuntimes() {
         return liveRuntimesCount > 0;
-    }
-
-    bool hasIonReturnOverride() const {
-        return !ionReturnOverride_.isMagic();
-    }
-    js::Value takeIonReturnOverride() {
-        js::Value v = ionReturnOverride_;
-        ionReturnOverride_ = js::MagicValue(JS_ARG_POISON);
-        return v;
-    }
-    void setIonReturnOverride(const js::Value &v) {
-        JS_ASSERT(!hasIonReturnOverride());
-        ionReturnOverride_ = v;
     }
 
     JSRuntime(JSRuntime *parentRuntime, JSUseHelperThreads useHelperThreads);

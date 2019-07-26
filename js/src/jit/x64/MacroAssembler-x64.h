@@ -1303,8 +1303,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     void linkExitFrame() {
-        storePtr(StackPointer,
-                 AbsoluteAddress(GetIonContext()->runtime->addressOfIonTop()));
+        storePtr(StackPointer, AbsoluteAddress(GetIonContext()->runtime->addressOfJitTop()));
     }
 
     void callWithExitFrame(JitCode *target, Register dynStack) {
@@ -1317,7 +1316,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     void linkParallelExitFrame(const Register &pt) {
-        storePtr(StackPointer, Address(pt, offsetof(PerThreadData, ionTop)));
+        storePtr(StackPointer, Address(pt, offsetof(PerThreadData, jitTop)));
     }
 
     

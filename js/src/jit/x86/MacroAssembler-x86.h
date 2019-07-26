@@ -1100,7 +1100,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     void linkExitFrame() {
-        movl(StackPointer, Operand(AbsoluteAddress(GetIonContext()->runtime->addressOfIonTop())));
+        movl(StackPointer, Operand(AbsoluteAddress(GetIonContext()->runtime->addressOfJitTop())));
     }
 
     void callWithExitFrame(JitCode *target, Register dynStack) {
@@ -1120,7 +1120,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     void linkParallelExitFrame(const Register &pt) {
-        movl(StackPointer, Operand(pt, offsetof(PerThreadData, ionTop)));
+        movl(StackPointer, Operand(pt, offsetof(PerThreadData, jitTop)));
     }
 
 #ifdef JSGC_GENERATIONAL

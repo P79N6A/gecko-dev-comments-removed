@@ -1327,7 +1327,7 @@ namespace jit {
 
 class JitActivation : public Activation
 {
-    uint8_t *prevIonTop_;
+    uint8_t *prevJitTop_;
     JSContext *prevJitJSContext_;
     bool firstFrameIsConstructing_;
     bool active_;
@@ -1364,14 +1364,14 @@ class JitActivation : public Activation
     }
     void setActive(JSContext *cx, bool active = true);
 
-    uint8_t *prevIonTop() const {
-        return prevIonTop_;
+    uint8_t *prevJitTop() const {
+        return prevJitTop_;
     }
     bool firstFrameIsConstructing() const {
         return firstFrameIsConstructing_;
     }
-    static size_t offsetOfPrevIonTop() {
-        return offsetof(JitActivation, prevIonTop_);
+    static size_t offsetOfPrevJitTop() {
+        return offsetof(JitActivation, prevJitTop_);
     }
     static size_t offsetOfPrevJitJSContext() {
         return offsetof(JitActivation, prevJitJSContext_);
