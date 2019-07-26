@@ -25,14 +25,17 @@ public:
     , mCurrentCombinedClip(nullptr)
   {}
 
+  
+
+
+
   const DisplayItemClip* GetCurrentCombinedClip(nsDisplayListBuilder* aBuilder);
 
-  const DisplayItemClip* GetClipForContainingBlockDescendants()
+  const DisplayItemClip* GetClipForContainingBlockDescendants() const
   {
     return mClipContainingBlockDescendants;
   }
-
-  const DisplayItemClip* GetClipForContentDescendants()
+  const DisplayItemClip* GetClipForContentDescendants() const
   {
     return mClipContentDescendants;
   }
@@ -48,6 +51,46 @@ public:
     mCurrentCombinedClip = nullptr;
   }
 
+  void Clear()
+  {
+    mClipContentDescendants = nullptr;
+    mClipContainingBlockDescendants = nullptr;
+    mCurrentCombinedClip = nullptr;
+  }
+
+  
+
+
+
+
+  void ClipContainingBlockDescendants(const nsRect& aRect,
+                                      const nscoord* aRadii,
+                                      DisplayItemClip& aClipOnStack);
+
+  void ClipContentDescendants(const nsRect& aRect,
+                              DisplayItemClip& aClipOnStack);
+
+  enum {
+    ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT = 0x01
+  };
+  
+
+
+
+
+
+
+
+  void ClipContainingBlockDescendantsToContentBox(nsDisplayListBuilder* aBuilder,
+                                                  nsIFrame* aFrame,
+                                                  DisplayItemClip& aClipOnStack,
+                                                  uint32_t aFlags = 0);
+
+  class AutoSaveRestore;
+  friend class AutoSaveRestore;
+
+  class AutoClipContainingBlockDescendantsToContentBox;
+
 private:
   
 
@@ -56,6 +99,7 @@ private:
 
   const DisplayItemClip* mClipContentDescendants;
   
+
 
 
 
@@ -69,6 +113,34 @@ private:
 
 
   const DisplayItemClip* mCurrentCombinedClip;
+};
+
+class DisplayListClipState::AutoSaveRestore {
+public:
+  AutoSaveRestore(DisplayListClipState& aState)
+    : mState(aState)
+    , mSavedState(aState)
+  {}
+  void Restore()
+  {
+    mState = mSavedState;
+  }
+  ~AutoSaveRestore()
+  {
+    mState = mSavedState;
+  }
+protected:
+  DisplayListClipState& mState;
+  DisplayListClipState mSavedState;
+};
+
+class DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox : public AutoSaveRestore {
+public:
+  AutoClipContainingBlockDescendantsToContentBox(nsDisplayListBuilder* aBuilder,
+                                                 nsIFrame* aFrame,
+                                                 uint32_t aFlags = 0);
+protected:
+  DisplayItemClip mClip;
 };
 
 }
