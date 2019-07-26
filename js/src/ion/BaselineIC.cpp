@@ -2170,7 +2170,7 @@ DoConcatStringObject(JSContext *cx, bool lhsIsString, HandleValue lhs, HandleVal
 typedef bool (*DoConcatStringObjectFn)(JSContext *, bool lhsIsString, HandleValue, HandleValue,
                                        MutableHandleValue);
 static const VMFunction DoConcatStringObjectInfo =
-        FunctionInfo<DoConcatStringObjectFn>(DoConcatStringObject);
+    FunctionInfo<DoConcatStringObjectFn>(DoConcatStringObject, PopValues(2));
 
 bool
 ICBinaryArith_StringObjectConcat::Compiler::generateStubCode(MacroAssembler &masm)
@@ -2187,6 +2187,11 @@ ICBinaryArith_StringObjectConcat::Compiler::generateStubCode(MacroAssembler &mas
     
     EmitRestoreTailCallReg(masm);
 
+    
+    masm.pushValue(R0);
+    masm.pushValue(R1);
+
+    
     masm.pushValue(R1);
     masm.pushValue(R0);
     masm.push(Imm32(lhsIsString_));
