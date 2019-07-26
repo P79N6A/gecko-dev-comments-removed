@@ -17,25 +17,12 @@ const PanelUI = {
 
   get kElements() {
     return {
-      clickCapturer: "PanelUI-clickCapturer",
-      container: "PanelUI-container",
       contents: "PanelUI-contents",
       mainView: "PanelUI-mainView",
-      mainViewSpring: "PanelUI-mainView-spring",
+      multiView: "PanelUI-multiView",
       menuButton: "PanelUI-menu-button",
       panel: "PanelUI-popup",
-      subViews: "PanelUI-subViews",
-      viewStack: "PanelUI-viewStack"
     };
-  },
-
-  
-
-
-
-  get _showingSubView() {
-    return (this.viewStack.hasAttribute("view") &&
-            this.viewStack.getAttribute("view") == "subview");
   },
 
   init: function() {
@@ -52,31 +39,12 @@ const PanelUI = {
     for (let event of this.kEvents) {
       this.panel.addEventListener(event, this);
     }
-
-    this.clickCapturer.addEventListener("click", this._onCapturerClick,
-                                        true);
-
-    var self = this;
-    this.subViews.addEventListener("overflow", function() {
-      
-      Services.tm.currentThread.dispatch(self._syncContainerWithSubView.bind(self),
-        Ci.nsIThread.DISPATCH_NORMAL);
-    });
-
-    
-    
-    this._subViewObserver = new MutationObserver(function(aMutations) {
-      this._syncContainerWithSubView();
-    }.bind(this));
   },
 
   uninit: function() {
     for (let event of this.kEvents) {
       this.panel.removeEventListener(event, this);
     }
-
-    this.clickCapturer.removeEventListener("click", this._onCapturerClick,
-                                           true);
   },
 
   
@@ -88,8 +56,7 @@ const PanelUI = {
 
 
   replaceMainView: function(aMainView) {
-    this.viewStack.insertBefore(aMainView, this.viewStack.firstChild);
-    this._syncContainerWithMainView();
+    this.multiView.insertBefore(aMainView, this.multiView.firstChild);
   },
 
   
@@ -104,6 +71,8 @@ const PanelUI = {
     if (this.panel.state == "open") {
       this.hide();
     } else if (this.panel.state == "closed") {
+      this.ensureRegistered();
+
       let anchor = aEvent.target;
       let iconAnchor =
         document.getAnonymousElementByAttribute(anchor, "class",
@@ -122,17 +91,12 @@ const PanelUI = {
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "popupshowing":
-        this.ensureRegistered();
-        let cstyle = window.getComputedStyle(this.viewStack, null);
-        this.container.style.height = cstyle.getPropertyValue("height");
-        this.container.style.width = cstyle.getPropertyValue("width");
         
       case "popupshown":
         
       case "popuphiding":
         
       case "popuphidden": {
-        this.showMainView();
         this._updatePanelButton(aEvent.target);
         break;
       }
@@ -154,22 +118,7 @@ const PanelUI = {
 
 
   showMainView: function() {
-    
-    if (this._showingSubView) {
-      let viewNode = this._currentSubView;
-      let evt = document.createEvent("CustomEvent");
-      evt.initCustomEvent("ViewHiding", true, true, viewNode);
-      viewNode.dispatchEvent(evt);
-
-      viewNode.removeAttribute("current");
-      this._currentSubView = null;
-      this._subViewObserver.disconnect();
-    }
-
-    this.viewStack.setAttribute("view", "main");
-    this._syncContainerWithMainView();
-
-    this._shiftMainView();
+    this.multiView.showMainView();
   },
 
   
@@ -192,46 +141,7 @@ const PanelUI = {
     }
 
     if (aPlacementArea == CustomizableUI.AREA_PANEL) {
-      
-      
-      
-      if (viewNode.parentElement != this.subViews) {
-        this.subViews.appendChild(viewNode);
-      }
-
-      let oldHeight = this.mainView.clientHeight;
-      viewNode.setAttribute("current", true);
-      this._currentSubView = viewNode;
-
-      
-      
-      let evt = document.createEvent("CustomEvent");
-      evt.initCustomEvent("ViewShowing", true, true, viewNode);
-      viewNode.dispatchEvent(evt);
-
-      this.viewStack.setAttribute("view", "subview");
-      this.mainViewSpring.style.height = this.subViews.scrollHeight - oldHeight + "px";
-      this.container.style.height = this.subViews.scrollHeight + "px";
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      this._shiftMainView(aAnchor);
-      this._subViewObserver.observe(viewNode, {
-        attributes: true,
-        characterData: true,
-        childList: true,
-        subtree: true
-      });
+      this.multiView.showSubView(aViewId, aAnchor);
     } else {
       
       
@@ -239,41 +149,19 @@ const PanelUI = {
       evt.initCustomEvent("ViewShowing", true, true, viewNode);
       viewNode.dispatchEvent(evt);
 
-      let panel = document.createElement("panel");
-      panel.appendChild(viewNode);
-      panel.setAttribute("type", "arrow");
-      panel.setAttribute("id", "customizationui-widget-panel");
-      document.getElementById(CustomizableUI.AREA_NAVBAR).appendChild(panel);
-      panel.addEventListener("popuphidden", function() {
-        this.subViews.appendChild(viewNode);
-        panel.parentElement.removeChild(panel);
-      });
+      let tempPanel = document.createElement("panel");
+      tempPanel.appendChild(viewNode);
+      tempPanel.setAttribute("type", "arrow");
+      tempPanel.setAttribute("id", "customizationui-widget-panel");
+      document.getElementById(CustomizableUI.AREA_NAVBAR).appendChild(tempPanel);
+      tempPanel.addEventListener("popuphidden", function panelRemover() {
+        tempPanel.removeEventListener("popuphidden", panelRemover);
+        this.multiView.appendChild(viewNode);
+        tempPanel.parentElement.removeChild(tempPanel);
+      }.bind(this));
 
-      panel.openPopup(aAnchor, "bottomcenter topright");
+      tempPanel.openPopup(aAnchor, "bottomcenter topright");
     }
-  },
-
-  
-
-
-
-
-  _syncContainerWithMainView: function() {
-    let springHeight = this.mainViewSpring.getBoundingClientRect().height;
-    this.container.style.height = (this.mainView.scrollHeight - springHeight) + "px";
-    this.mainViewSpring.style.height = "";
-  },
-
-  
-
-
-
-
-  _syncContainerWithSubView: function() {
-    let springHeight = this.mainViewSpring.getBoundingClientRect().height;
-    let mainViewHeight = this.mainView.clientHeight - springHeight;
-    this.container.style.height = this.subViews.scrollHeight + "px";
-    this.mainViewSpring.style.height = (this.subViews.scrollHeight - mainViewHeight) + "px";
   },
 
   
@@ -283,44 +171,5 @@ const PanelUI = {
   _updatePanelButton: function() {
     this.menuButton.open = this.panel.state == "open" ||
                            this.panel.state == "showing";
-  },
-
-  
-
-
-  anchorElement: null,
-
-  
-
-
-
-
-
-  _shiftMainView: function(aAnchor) {
-    if (aAnchor) {
-      
-      
-      
-      let anchorRect = aAnchor.getBoundingClientRect();
-      let mainViewRect = this.mainView.getBoundingClientRect();
-      let leftEdge = anchorRect.left - mainViewRect.left;
-      let center = aAnchor.clientWidth / 2;
-      let target = leftEdge + center;
-      this.mainView.style.transform = "translateX(-" + target + "px)";
-      aAnchor.classList.add("panelui-mainview-anchor");
-    } else {
-      this.mainView.style.transform = "";
-      if (this.anchorElement)
-        this.anchorElement.classList.remove("panelui-mainview-anchor");
-    }
-    this.anchorElement = aAnchor;
-  },
-
-  
-
-
-
-  _onCapturerClick: function(aEvent) {
-    PanelUI.showMainView();
-  },
+  }
 };
