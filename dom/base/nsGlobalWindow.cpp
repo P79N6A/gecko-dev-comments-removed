@@ -2070,7 +2070,7 @@ nsGlobalWindow::SetOuterObject(JSContext* aCx, JS::Handle<JSObject*> aOuterObjec
   JSAutoCompartment ac(aCx, aOuterObject);
 
   
-  JS_SetGlobalObject(aCx, aOuterObject);
+  js::SetDefaultObjectForContext(aCx, aOuterObject);
 
   
   JSObject* inner = JS_GetParent(aOuterObject);
@@ -2474,7 +2474,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    JS_SetGlobalObject(cx, mJSObject);
+    js::SetDefaultObjectForContext(cx, mJSObject);
 #ifdef DEBUG
     JSObject *proto1, *proto2;
     JS_GetPrototype(cx, mJSObject, &proto1);

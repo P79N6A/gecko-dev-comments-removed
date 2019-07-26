@@ -163,7 +163,7 @@ XPCJSContextStack::GetSafeJSContext()
 
     
     
-    JS_SetGlobalObject(mSafeJSContext, glob);
+    js::SetDefaultObjectForContext(mSafeJSContext, glob);
 
     
     
