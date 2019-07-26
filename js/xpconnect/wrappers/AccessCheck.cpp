@@ -255,24 +255,13 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
     MOZ_ASSERT(js::IsWrapper(wrapper));
 
     unsigned flags;
-    JSObject *obj = js::UnwrapObject(wrapper, true, &flags);
+    (void) js::UnwrapObject(wrapper, true, &flags);
 
     
     if (flags & WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG) {
         if (flags & WrapperFactory::SOW_FLAG)
             return !isSystemOnlyAccessPermitted(cx);
         return true;
-    }
-
-    
-    if (js::GetProxyHandler(wrapper) ==
-        &FilteringWrapper<CrossCompartmentSecurityWrapper,
-        CrossOriginAccessiblePropertiesOnly>::singleton) {
-        jsid scriptOnlyId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_SCRIPTONLY);
-        jsval scriptOnly;
-        if (JS_LookupPropertyById(cx, obj, scriptOnlyId, &scriptOnly) &&
-            scriptOnly == JSVAL_TRUE)
-            return true; 
     }
 
     return false;
