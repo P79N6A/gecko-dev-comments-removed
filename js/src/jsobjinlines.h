@@ -234,19 +234,21 @@ JSObject::finalize(js::FreeOp *fop)
 {
     js::Probes::finalizeObject(this);
 
+#ifdef DEBUG
     if (!IsBackgroundFinalized(getAllocKind())) {
         
         fop->runtime()->assertValidThread();
-
-        
-
-
-
-
-        js::Class *clasp = getClass();
-        if (clasp->finalize)
-            clasp->finalize(fop, this);
     }
+#endif
+
+    
+
+
+
+
+    js::Class *clasp = getClass();
+    if (clasp->finalize)
+        clasp->finalize(fop, this);
 
     finish(fop);
 }
