@@ -27,11 +27,12 @@ const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 
 const CHECK_TIMEOUT_MILLI = 1000;
 
+
 const MAX_TIMEOUT_RUNS = 300;
 
 
 
-const APP_TIMER_TIMEOUT = 15000;
+const APP_TIMER_TIMEOUT = 20000;
 
 Components.utils.import("resource://gre/modules/ctypes.jsm");
 

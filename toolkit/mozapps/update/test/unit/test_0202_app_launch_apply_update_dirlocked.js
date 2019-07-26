@@ -27,12 +27,6 @@ const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 
 const CHECK_TIMEOUT_MILLI = 1000;
 
-
-
-const APP_TIMER_TIMEOUT = 15000;
-
-let gAppTimer;
-let gProcess;
 let gActiveUpdate;
 
 
