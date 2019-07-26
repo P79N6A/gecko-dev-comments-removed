@@ -297,11 +297,15 @@ def check_output(out, err, rc, test):
     return True
 
 def print_tinderbox(label, test, message=None):
+    
+    
+    
+    
     if (test != None):
         jitflags = " ".join(test.jitflags)
-        result = "%s | jit_test.py %-15s| %s" % (label, jitflags, test.path)
+        result = "%s | %s | %s" % (label, test.path, jitflags)
     else:
-        result = "%s | jit_test.py " % label
+        result = "%s | jit_test.py" % label
 
     if message:
         result += ": " + message
