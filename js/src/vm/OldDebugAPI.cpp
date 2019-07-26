@@ -305,9 +305,6 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
     if (!obj)
         return false;
 
-    RootedValue v(cx);
-    unsigned attrs;
-
     RootedId propid(cx);
 
     if (JSID_IS_INT(id)) {
@@ -320,13 +317,6 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
         if (!ValueToId<CanGC>(cx, val, &propid))
             return false;
     }
-
-    
-
-
-
-    if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
-        return false;
 
     if (!obj->isNative()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_WATCH,
