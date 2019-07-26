@@ -101,41 +101,36 @@ this.ForgetAboutSite = {
     let (dm = Cc["@mozilla.org/download-manager;1"].
               getService(Ci.nsIDownloadManager)) {
       
-      for (let enumerator of [dm.activeDownloads, dm.activePrivateDownloads]) {
-        while (enumerator.hasMoreElements()) {
-          let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
-          if (hasRootDomain(dl.source.host, aDomain)) {
-            dl.cancel();
-            dl.remove();
-          }
-        }
-      }
-
-      function deleteAllLike(db) {
-        
-        
-        
-        let stmt = db.createStatement(
-          "DELETE FROM moz_downloads " +
-          "WHERE source LIKE ?1 ESCAPE '/' " +
-          "AND state NOT IN (?2, ?3, ?4)"
-        );
-        let pattern = stmt.escapeStringForLIKE(aDomain, "/");
-        stmt.bindByIndex(0, "%" + pattern + "%");
-        stmt.bindByIndex(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
-        stmt.bindByIndex(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
-        stmt.bindByIndex(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
-        try {
-          stmt.execute();
-        }
-        finally {
-          stmt.finalize();
+      let enumerator = dm.activeDownloads;
+      while (enumerator.hasMoreElements()) {
+        let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
+        if (hasRootDomain(dl.source.host, aDomain)) {
+          dm.cancelDownload(dl.id);
+          dm.removeDownload(dl.id);
         }
       }
 
       
-      deleteAllLike(dm.DBConnection);
-      deleteAllLike(dm.privateDBConnection);
+      let db = dm.DBConnection;
+      
+      
+      
+      let stmt = db.createStatement(
+        "DELETE FROM moz_downloads " +
+        "WHERE source LIKE ?1 ESCAPE '/' " +
+        "AND state NOT IN (?2, ?3, ?4)"
+      );
+      let pattern = stmt.escapeStringForLIKE(aDomain, "/");
+      stmt.bindByIndex(0, "%" + pattern + "%");
+      stmt.bindByIndex(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
+      stmt.bindByIndex(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
+      stmt.bindByIndex(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
+      try {
+        stmt.execute();
+      }
+      finally {
+        stmt.finalize();
+      }
 
       
       
