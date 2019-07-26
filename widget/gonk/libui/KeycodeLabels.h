@@ -14,8 +14,8 @@
 
 
 
-#ifndef _UI_KEYCODE_LABELS_H
-#define _UI_KEYCODE_LABELS_H
+#ifndef _ANDROIDFW_KEYCODE_LABELS_H
+#define _ANDROIDFW_KEYCODE_LABELS_H
 
 #include "android_keycodes.h"
 
@@ -235,6 +235,17 @@ static const KeycodeLabel KEYCODES[] = {
     { "CALENDAR", 208 },
     { "MUSIC", 209 },
     { "CALCULATOR", 210 },
+    { "ZENKAKU_HANKAKU", 211 },
+    { "EISU", 212 },
+    { "MUHENKAN", 213 },
+    { "HENKAN", 214 },
+    { "KATAKANA_HIRAGANA", 215 },
+    { "YEN", 216 },
+    { "RO", 217 },
+    { "KANA", 218 },
+    { "ASSIST", 219 },
+    { "BRIGHTNESS_DOWN", 220 },
+    { "BRIGHTNESS_UP", 221 },
 
     
     

@@ -14,13 +14,14 @@
 
 
 
-#ifndef _UI_KEYBOARD_H
-#define _UI_KEYBOARD_H
+#ifndef _ANDROIDFW_KEYBOARD_H
+#define _ANDROIDFW_KEYBOARD_H
 
 #include "Input.h"
+#include "InputDevice.h"
 #include <utils/Errors.h>
-#include "String8.h"
-#include "PropertyMap.h"
+#include <utils/String8.h>
+#include <utils/PropertyMap.h>
 
 namespace android {
 
@@ -42,10 +43,10 @@ class KeyCharacterMap;
 class KeyMap {
 public:
     String8 keyLayoutFile;
-    KeyLayoutMap* keyLayoutMap;
+    sp<KeyLayoutMap> keyLayoutMap;
 
     String8 keyCharacterMapFile;
-    KeyCharacterMap* keyCharacterMap;
+    sp<KeyCharacterMap> keyCharacterMap;
 
     KeyMap();
     ~KeyMap();

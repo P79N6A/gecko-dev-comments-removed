@@ -14,8 +14,8 @@
 
 
 
-#ifndef _UI_VIRTUAL_KEY_MAP_H
-#define _UI_VIRTUAL_KEY_MAP_H
+#ifndef _ANDROIDFW_VIRTUAL_KEY_MAP_H
+#define _ANDROIDFW_VIRTUAL_KEY_MAP_H
 
 #include <stdint.h>
 
@@ -23,8 +23,8 @@
 #include <utils/Errors.h>
 #include <utils/KeyedVector.h>
 #include "Tokenizer.h"
-#include "String8.h"
-#include "Unicode.h"
+#include <utils/String8.h>
+#include <utils/Unicode.h>
 
 namespace android {
 
@@ -38,6 +38,8 @@ struct VirtualKeyDefinition {
     int32_t width;
     int32_t height;
 };
+
+
 
 
 

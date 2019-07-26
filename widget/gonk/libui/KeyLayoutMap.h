@@ -14,13 +14,14 @@
 
 
 
-#ifndef _UI_KEY_LAYOUT_MAP_H
-#define _UI_KEY_LAYOUT_MAP_H
+#ifndef _ANDROIDFW_KEY_LAYOUT_MAP_H
+#define _ANDROIDFW_KEY_LAYOUT_MAP_H
 
 #include <stdint.h>
 #include <utils/Errors.h>
 #include <utils/KeyedVector.h>
 #include "Tokenizer.h"
+#include <utils/RefBase.h>
 
 namespace android {
 
@@ -57,16 +58,20 @@ struct AxisInfo {
 
 
 
-class KeyLayoutMap {
+
+
+class KeyLayoutMap : public RefBase {
 public:
-    ~KeyLayoutMap();
+    static status_t load(const String8& filename, sp<KeyLayoutMap>* outMap);
 
-    static status_t load(const String8& filename, KeyLayoutMap** outMap);
-
-    status_t mapKey(int32_t scanCode, int32_t* keyCode, uint32_t* flags) const;
+    status_t mapKey(int32_t scanCode, int32_t usageCode,
+            int32_t* outKeyCode, uint32_t* outFlags) const;
     status_t findScanCodesForKey(int32_t keyCode, Vector<int32_t>* outScanCodes) const;
 
     status_t mapAxis(int32_t scanCode, AxisInfo* outAxisInfo) const;
+
+protected:
+    virtual ~KeyLayoutMap();
 
 private:
     struct Key {
@@ -74,10 +79,13 @@ private:
         uint32_t flags;
     };
 
-    KeyedVector<int32_t, Key> mKeys;
+    KeyedVector<int32_t, Key> mKeysByScanCode;
+    KeyedVector<int32_t, Key> mKeysByUsageCode;
     KeyedVector<int32_t, AxisInfo> mAxes;
 
     KeyLayoutMap();
+
+    const Key* getKey(int32_t scanCode, int32_t usageCode) const;
 
     class Parser {
         KeyLayoutMap* mMap;

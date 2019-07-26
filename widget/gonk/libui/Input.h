@@ -14,8 +14,8 @@
 
 
 
-#ifndef _UI_INPUT_H
-#define _UI_INPUT_H
+#ifndef _ANDROIDFW_INPUT_H
+#define _ANDROIDFW_INPUT_H
 
 
 
@@ -24,10 +24,9 @@
 #include "android_input.h"
 #include <utils/Vector.h>
 #include <utils/KeyedVector.h>
-#include "Timers.h"
+#include <utils/Timers.h>
 #include <utils/RefBase.h>
-#include "String8.h"
-#include "BitSet.h"
+#include <utils/String8.h>
 
 #ifdef HAVE_ANDROID_OS
 class SkMatrix;
@@ -38,6 +37,9 @@ class SkMatrix;
 
 enum {
     
+    AKEY_EVENT_FLAG_PREDISPATCH = 0x20000000,
+
+    
     AKEY_EVENT_FLAG_START_TRACKING = 0x40000000,
 
     
@@ -47,6 +49,15 @@ enum {
 enum {
     
     AMOTION_EVENT_FLAG_TAINTED = 0x80000000,
+};
+
+enum {
+    
+
+    ADISPLAY_ID_NONE = -1,
+
+    
+    ADISPLAY_ID_DEFAULT = 0,
 };
 
 enum {
@@ -159,37 +170,6 @@ enum {
 
 
 
-struct InputConfiguration {
-    enum {
-        TOUCHSCREEN_UNDEFINED = 0,
-        TOUCHSCREEN_NOTOUCH = 1,
-        TOUCHSCREEN_STYLUS = 2,
-        TOUCHSCREEN_FINGER = 3
-    };
-
-    enum {
-        KEYBOARD_UNDEFINED = 0,
-        KEYBOARD_NOKEYS = 1,
-        KEYBOARD_QWERTY = 2,
-        KEYBOARD_12KEY = 3
-    };
-
-    enum {
-        NAVIGATION_UNDEFINED = 0,
-        NAVIGATION_NONAV = 1,
-        NAVIGATION_DPAD = 2,
-        NAVIGATION_TRACKBALL = 3,
-        NAVIGATION_WHEEL = 4
-    };
-
-    int32_t touchScreen;
-    int32_t keyboard;
-    int32_t navigation;
-};
-
-
-
-
 struct PointerCoords {
     enum { MAX_AXES = 14 }; 
 
@@ -291,6 +271,8 @@ public:
     inline int32_t getAction() const { return mAction; }
 
     inline int32_t getFlags() const { return mFlags; }
+
+    inline void setFlags(int32_t flags) { mFlags = flags; }
 
     inline int32_t getKeyCode() const { return mKeyCode; }
 
@@ -618,279 +600,22 @@ private:
 
 
 
-class VelocityTracker {
+class PooledInputEventFactory : public InputEventFactoryInterface {
 public:
-    
-    static const uint32_t DEFAULT_DEGREE = 2;
+    PooledInputEventFactory(size_t maxPoolSize = 20);
+    virtual ~PooledInputEventFactory();
 
-    
-    
-    
-    static const nsecs_t DEFAULT_HORIZON = 100 * 1000000; 
+    virtual KeyEvent* createKeyEvent();
+    virtual MotionEvent* createMotionEvent();
 
-    struct Position {
-        float x, y;
-    };
-
-    struct Estimator {
-        static const size_t MAX_DEGREE = 2;
-
-        
-        float xCoeff[MAX_DEGREE + 1], yCoeff[MAX_DEGREE + 1];
-
-        
-        
-        uint32_t degree;
-
-        
-        float confidence;
-
-        inline void clear() {
-            degree = 0;
-            confidence = 0;
-            for (size_t i = 0; i <= MAX_DEGREE; i++) {
-                xCoeff[i] = 0;
-                yCoeff[i] = 0;
-            }
-        }
-    };
-
-    VelocityTracker();
-
-    
-    void clear();
-
-    
-    
-    
-    void clearPointers(BitSet32 idBits);
-
-    
-    
-    
-    
-    
-    void addMovement(nsecs_t eventTime, BitSet32 idBits, const Position* positions);
-
-    
-    void addMovement(const MotionEvent* event);
-
-    
-    
-    
-    bool getVelocity(uint32_t id, float* outVx, float* outVy) const;
-
-    
-    
-    
-    bool getEstimator(uint32_t id, uint32_t degree, nsecs_t horizon,
-            Estimator* outEstimator) const;
-
-    
-    inline int32_t getActivePointerId() const { return mActivePointerId; }
-
-    
-    inline BitSet32 getCurrentPointerIdBits() const { return mMovements[mIndex].idBits; }
+    void recycle(InputEvent* event);
 
 private:
-    
-    static const uint32_t HISTORY_SIZE = 20;
+    const size_t mMaxPoolSize;
 
-    struct Movement {
-        nsecs_t eventTime;
-        BitSet32 idBits;
-        Position positions[MAX_POINTERS];
-
-        inline const Position& getPosition(uint32_t id) const {
-            return positions[idBits.getIndexOfBit(id)];
-        }
-    };
-
-    uint32_t mIndex;
-    Movement mMovements[HISTORY_SIZE];
-    int32_t mActivePointerId;
+    Vector<KeyEvent*> mKeyEventPool;
+    Vector<MotionEvent*> mMotionEventPool;
 };
-
-
-
-
-
-struct VelocityControlParameters {
-    
-    
-    
-    
-    
-    
-    
-    float scale;
-
-    
-    
-    
-    
-    
-    
-    float lowThreshold;
-
-    
-    
-    
-    
-    
-    
-    
-    float highThreshold;
-
-    
-    
-    
-    
-    
-    
-    float acceleration;
-
-    VelocityControlParameters() :
-            scale(1.0f), lowThreshold(0.0f), highThreshold(0.0f), acceleration(1.0f) {
-    }
-
-    VelocityControlParameters(float scale, float lowThreshold,
-            float highThreshold, float acceleration) :
-            scale(scale), lowThreshold(lowThreshold),
-            highThreshold(highThreshold), acceleration(acceleration) {
-    }
-};
-
-
-
-
-class VelocityControl {
-public:
-    VelocityControl();
-
-    
-    void setParameters(const VelocityControlParameters& parameters);
-
-    
-
-    void reset();
-
-    
-
-    void move(nsecs_t eventTime, float* deltaX, float* deltaY);
-
-private:
-    
-    
-    static const nsecs_t STOP_TIME = 500 * 1000000; 
-
-    VelocityControlParameters mParameters;
-
-    nsecs_t mLastMovementTime;
-    VelocityTracker::Position mRawPosition;
-    VelocityTracker mVelocityTracker;
-};
-
-
-
-
-
-class InputDeviceInfo {
-public:
-    InputDeviceInfo();
-    InputDeviceInfo(const InputDeviceInfo& other);
-    ~InputDeviceInfo();
-
-    struct MotionRange {
-        int32_t axis;
-        uint32_t source;
-        float min;
-        float max;
-        float flat;
-        float fuzz;
-    };
-
-    void initialize(int32_t id, const String8& name);
-
-    inline int32_t getId() const { return mId; }
-    inline const String8 getName() const { return mName; }
-    inline uint32_t getSources() const { return mSources; }
-
-    const MotionRange* getMotionRange(int32_t axis, uint32_t source) const;
-
-    void addSource(uint32_t source);
-    void addMotionRange(int32_t axis, uint32_t source,
-            float min, float max, float flat, float fuzz);
-    void addMotionRange(const MotionRange& range);
-
-    inline void setKeyboardType(int32_t keyboardType) { mKeyboardType = keyboardType; }
-    inline int32_t getKeyboardType() const { return mKeyboardType; }
-
-    inline void setKeyCharacterMapFile(const String8& value) { mKeyCharacterMapFile = value; }
-    inline const String8& getKeyCharacterMapFile() const { return mKeyCharacterMapFile; }
-
-    inline const Vector<MotionRange>& getMotionRanges() const {
-        return mMotionRanges;
-    }
-
-private:
-    int32_t mId;
-    String8 mName;
-    uint32_t mSources;
-    int32_t mKeyboardType;
-    String8 mKeyCharacterMapFile;
-
-    Vector<MotionRange> mMotionRanges;
-};
-
-
-
-
-struct InputDeviceIdentifier {
-    inline InputDeviceIdentifier() :
-            bus(0), vendor(0), product(0), version(0) {
-    }
-
-    String8 name;
-    String8 location;
-    String8 uniqueId;
-    uint16_t bus;
-    uint16_t vendor;
-    uint16_t product;
-    uint16_t version;
-};
-
-
-enum InputDeviceConfigurationFileType {
-    INPUT_DEVICE_CONFIGURATION_FILE_TYPE_CONFIGURATION = 0,     
-    INPUT_DEVICE_CONFIGURATION_FILE_TYPE_KEY_LAYOUT = 1,        
-    INPUT_DEVICE_CONFIGURATION_FILE_TYPE_KEY_CHARACTER_MAP = 2, 
-};
-
-
-
-
-
-
-
-
-
-
-extern String8 getInputDeviceConfigurationFilePathByDeviceIdentifier(
-        const InputDeviceIdentifier& deviceIdentifier,
-        InputDeviceConfigurationFileType type);
-
-
-
-
-
-
-
-
-
-
-extern String8 getInputDeviceConfigurationFilePathByName(
-        const String8& name, InputDeviceConfigurationFileType type);
 
 } 
 

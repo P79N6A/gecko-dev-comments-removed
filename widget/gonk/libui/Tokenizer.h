@@ -20,7 +20,7 @@
 #include <assert.h>
 #include <utils/Errors.h>
 #include <utils/FileMap.h>
-#include "String8.h"
+#include <utils/String8.h>
 
 namespace android {
 
@@ -28,7 +28,8 @@ namespace android {
 
 
 class Tokenizer {
-    Tokenizer(const String8& filename, FileMap* fileMap, char* buffer, size_t length);
+    Tokenizer(const String8& filename, FileMap* fileMap, char* buffer,
+            bool ownBuffer, size_t length);
 
 public:
     ~Tokenizer();
@@ -40,6 +41,15 @@ public:
 
 
     static status_t open(const String8& filename, Tokenizer** outTokenizer);
+
+    
+
+
+
+
+
+    static status_t fromContents(const String8& filename,
+            const char* contents, Tokenizer** outTokenizer);
 
     
 
@@ -111,6 +121,7 @@ private:
     String8 mFilename;
     FileMap* mFileMap;
     char* mBuffer;
+    bool mOwnBuffer;
     size_t mLength;
 
     const char* mCurrent;

@@ -263,6 +263,8 @@ enum {
     AKEYCODE_RO              = 217,
     AKEYCODE_KANA            = 218,
     AKEYCODE_ASSIST          = 219,
+    AKEYCODE_BRIGHTNESS_DOWN = 220,
+    AKEYCODE_BRIGHTNESS_UP   = 221,
 
     
     
