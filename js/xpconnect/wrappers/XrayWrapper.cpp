@@ -18,6 +18,7 @@
 #include "jsapi.h"
 #include "jsprf.h"
 #include "nsJSUtils.h"
+#include "nsPrintfCString.h"
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/WindowBinding.h"
@@ -386,6 +387,12 @@ public:
         return js::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
     }
 
+    static bool getOwnPropertyFromTargetIfSafe(JSContext *cx,
+                                               HandleObject target,
+                                               HandleObject wrapper,
+                                               HandleId id,
+                                               MutableHandle<JSPropertyDescriptor> desc);
+
     static const JSClass HolderClass;
     static JSXrayTraits singleton;
 };
@@ -396,6 +403,101 @@ const JSClass JSXrayTraits::HolderClass = {
     JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
 };
+
+inline bool
+SilentFailure(JSContext *cx, HandleId id, const char *reason)
+{
+#ifdef DEBUG
+    nsDependentJSString name(id);
+    AutoFilename filename;
+    unsigned line = 0;
+    DescribeScriptedCaller(cx, &filename, &line);
+    NS_WARNING(nsPrintfCString("Denied access to property |%s| on Xrayed Object: %s (@%s:%u)",
+                               NS_LossyConvertUTF16toASCII(name).get(), reason,
+                               filename.get(), line).get());
+#endif
+    return true;
+}
+
+bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
+                                                  HandleObject target,
+                                                  HandleObject wrapper,
+                                                  HandleId idArg,
+                                                  MutableHandle<JSPropertyDescriptor> outDesc)
+{
+    
+    
+    MOZ_ASSERT(getTargetObject(wrapper) == target);
+    MOZ_ASSERT(js::IsObjectInContextCompartment(target, cx));
+    MOZ_ASSERT(WrapperFactory::IsXrayWrapper(wrapper));
+    MOZ_ASSERT(outDesc.object() == nullptr);
+
+    RootedId id(cx, idArg);
+    if (!JS_WrapId(cx, &id))
+        return false;
+    Rooted<JSPropertyDescriptor> desc(cx);
+    if (!JS_GetOwnPropertyDescriptorById(cx, target, id, &desc))
+        return false;
+
+    
+    if (!desc.object())
+        return true;
+
+    
+    if (desc.hasGetterOrSetter())
+        return SilentFailure(cx, id, "Property has accessor");
+
+    
+    if (desc.value().isObject()) {
+        RootedObject propObj(cx, js::UncheckedUnwrap(&desc.value().toObject()));
+        JSAutoCompartment ac(cx, propObj);
+
+        
+        if (!AccessCheck::subsumes(target, propObj))
+            return SilentFailure(cx, id, "Value not same-origin with target");
+
+        
+        if (GetXrayType(propObj) == NotXray) {
+            
+            
+            
+            
+            
+            
+            
+            JSProtoKey key = IdentifyStandardInstanceOrPrototype(propObj);
+            if (key != JSProto_Array && key != JSProto_Uint8ClampedArray &&
+                key != JSProto_Int8Array && key != JSProto_Uint8Array &&
+                key != JSProto_Int16Array && key != JSProto_Uint16Array &&
+                key != JSProto_Int32Array && key != JSProto_Uint32Array &&
+                key != JSProto_Float32Array && key != JSProto_Float64Array)
+            {
+                return SilentFailure(cx, id, "Value not Xrayable");
+            }
+        }
+
+        
+        if (JS_ObjectIsCallable(cx, propObj))
+            return SilentFailure(cx, id, "Value is callable");
+    }
+
+    
+    
+    JSAutoCompartment ac2(cx, wrapper);
+    RootedObject proto(cx);
+    bool foundOnProto = false;
+    if (!JS_GetPrototype(cx, wrapper, &proto) ||
+        (proto && !JS_HasPropertyById(cx, proto, id, &foundOnProto)))
+    {
+        return false;
+    }
+    if (foundOnProto)
+        return SilentFailure(cx, id, "Value shadows a property on the standard prototype");
+
+    
+    outDesc.assign(desc.get());
+    return true;
+}
 
 bool
 JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
@@ -409,9 +511,27 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     if (!ok || desc.object())
         return ok;
 
-    
-    if (!isPrototype(holder))
+    RootedObject target(cx, getTargetObject(wrapper));
+    if (!isPrototype(holder)) {
+        
+        
+        switch (getProtoKey(holder)) {
+          case JSProto_Object:
+            {
+                JSAutoCompartment ac(cx, target);
+                if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc))
+                    return false;
+            }
+            return JS_WrapPropertyDescriptor(cx, desc);
+
+          default:
+            
+            break;
+        }
+
+        
         return true;
+    }
 
     
     
@@ -426,7 +546,6 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     }
 
     
-    RootedObject target(cx, getTargetObject(wrapper));
     const js::Class *clasp = js::GetObjectClass(target);
     JSProtoKey protoKey = JSCLASS_CACHED_PROTO_KEY(clasp);
     MOZ_ASSERT(protoKey == getProtoKey(holder));
@@ -540,16 +659,44 @@ bool
 JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
                              AutoIdVector &props)
 {
+    RootedObject target(cx, getTargetObject(wrapper));
     RootedObject holder(cx, ensureHolder(cx, wrapper));
     if (!holder)
         return false;
 
-    
-    if (!isPrototype(holder))
+    if (!isPrototype(holder)) {
+        
+        
+        switch (getProtoKey(holder)) {
+          case JSProto_Object:
+            MOZ_ASSERT(props.empty());
+            {
+                JSAutoCompartment ac(cx, target);
+                AutoIdVector targetProps(cx);
+                if (!js::GetPropertyNames(cx, target, flags | JSITER_OWNONLY, &targetProps))
+                    return false;
+                
+                
+                for (size_t i = 0; i < targetProps.length(); ++i) {
+                    Rooted<JSPropertyDescriptor> desc(cx);
+                    RootedId id(cx, targetProps[i]);
+                    if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, &desc))
+                        return false;
+                    if (desc.object())
+                        props.append(id);
+                }
+            }
+            return JS_WrapAutoIdVector(cx, props);
+          default:
+            
+            break;
+        }
+
+        
         return true;
+    }
 
     
-    RootedObject target(cx, getTargetObject(wrapper));
     const js::Class *clasp = js::GetObjectClass(target);
     MOZ_ASSERT(JSCLASS_CACHED_PROTO_KEY(clasp) == getProtoKey(holder));
     MOZ_ASSERT(clasp->spec.defined());
