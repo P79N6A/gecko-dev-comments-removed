@@ -143,9 +143,18 @@ class StoreBuffer
 
         T *highwater;
 
+        
+
+
+
+
+        EdgeSet duplicates;
+
         MonoTypeBuffer(StoreBuffer *owner)
           : owner(owner), base(NULL), pos(NULL), top(NULL)
-        {}
+        {
+            duplicates.init();
+        }
 
         MonoTypeBuffer &operator=(const MonoTypeBuffer& other) MOZ_DELETE;
 
@@ -160,6 +169,7 @@ class StoreBuffer
         
         template <typename NurseryType>
         void compactNotInSet(NurseryType *nursery);
+        void compactRemoveDuplicates();
 
         
 
