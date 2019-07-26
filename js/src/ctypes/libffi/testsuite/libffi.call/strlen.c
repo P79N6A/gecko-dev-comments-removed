@@ -7,7 +7,7 @@
 
 #include "ffitest.h"
 
-static size_t my_strlen(char *s)
+static size_t ABI_ATTR my_strlen(char *s)
 {
   return (strlen(s));
 }
@@ -24,7 +24,7 @@ int main (void)
   values[0] = (void*) &s;
   
   
-  CHECK(ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, 
+  CHECK(ffi_prep_cif(&cif, ABI_NUM, 1,
 		     &ffi_type_sint, args) == FFI_OK);
   
   s = "a";

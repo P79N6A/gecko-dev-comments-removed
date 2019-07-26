@@ -24,6 +24,7 @@
 
 
 
+
 #include <ffi.h>
 #include <ffi_common.h>
 #include <stdlib.h>
@@ -177,6 +178,9 @@ ffi_prep_closure_loc (ffi_closure* closure,
 		      void *codeloc)
 {
   unsigned int *tramp;
+
+  if (cif->abi != FFI_OSF)
+    return FFI_BAD_ABI;
 
   tramp = (unsigned int *) &closure->tramp[0];
   tramp[0] = 0x47fb0401;	

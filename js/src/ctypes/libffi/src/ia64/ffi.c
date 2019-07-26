@@ -25,6 +25,7 @@
 
 
 
+
 #include <ffi.h>
 #include <ffi_common.h>
 
@@ -324,13 +325,17 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 	case FFI_TYPE_FLOAT:
 	  if (gpcount < 8 && fpcount < 8)
 	    stf_spill (&stack->fp_regs[fpcount++], *(float *)avalue[i]);
-	  stack->gp_regs[gpcount++] = *(UINT32 *)avalue[i];
+	  {
+	    UINT32 tmp;
+	    memcpy (&tmp, avalue[i], sizeof (UINT32));
+	    stack->gp_regs[gpcount++] = tmp;
+	  }
 	  break;
 
 	case FFI_TYPE_DOUBLE:
 	  if (gpcount < 8 && fpcount < 8)
 	    stf_spill (&stack->fp_regs[fpcount++], *(double *)avalue[i]);
-	  stack->gp_regs[gpcount++] = *(UINT64 *)avalue[i];
+	  memcpy (&stack->gp_regs[gpcount++], avalue[i], sizeof (UINT64));
 	  break;
 
 	case FFI_TYPE_LONGDOUBLE:
@@ -425,7 +430,8 @@ ffi_prep_closure_loc (ffi_closure* closure,
   struct ffi_ia64_trampoline_struct *tramp;
   struct ia64_fd *fd;
 
-  FFI_ASSERT (cif->abi == FFI_UNIX);
+  if (cif->abi != FFI_UNIX)
+    return FFI_BAD_ABI;
 
   tramp = (struct ffi_ia64_trampoline_struct *)closure->tramp;
   fd = (struct ia64_fd *)(void *)ffi_closure_unix;

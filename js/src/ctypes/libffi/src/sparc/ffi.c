@@ -24,6 +24,7 @@
 
 
 
+
 #include <ffi.h>
 #include <ffi_common.h>
 
@@ -375,6 +376,10 @@ extern int ffi_call_v8(void *, extended_cif *, unsigned,
 		       unsigned, unsigned *, void (*fn)(void));
 #endif
 
+#ifndef __GNUC__
+void ffi_flush_icache (void *, size_t);
+#endif
+
 void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 {
   extended_cif ecif;
@@ -406,8 +411,54 @@ void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
       
       FFI_ASSERT(0);
 #else
-      ffi_call_v8(ffi_prep_args_v8, &ecif, cif->bytes, 
-		  cif->flags, rvalue, fn);
+      if (rvalue && (cif->rtype->type == FFI_TYPE_STRUCT
+#if FFI_TYPE_LONGDOUBLE != FFI_TYPE_DOUBLE
+	  || cif->flags == FFI_TYPE_LONGDOUBLE
+#endif
+	  ))
+	{
+	  
+	  
+	  
+	  unsigned int *call_struct = NULL;
+	  ffi_closure_alloc(32, (void **)&call_struct);
+	  if (call_struct)
+	    {
+	      unsigned long f = (unsigned long)fn;
+	      call_struct[0] = 0xae10001f;		 
+	      call_struct[1] = 0xbe10000f;		 
+	      call_struct[2] = 0x03000000 | f >> 10;     
+	      call_struct[3] = 0x9fc06000 | (f & 0x3ff); 
+	      call_struct[4] = 0x01000000;		 
+	      if (cif->rtype->size < 0x7f)
+		call_struct[5] = cif->rtype->size;	 
+	      else
+		call_struct[5] = 0x01000000;	     	 
+	      call_struct[6] = 0x81c7e008;		 
+	      call_struct[7] = 0xbe100017;		 
+#ifdef __GNUC__
+	      asm volatile ("iflush %0; iflush %0+8; iflush %0+16; iflush %0+24" : :
+			    "r" (call_struct) : "memory");
+	      
+	      asm volatile ("nop; nop; nop; nop; nop");
+#else
+	      ffi_flush_icache (call_struct, 32);
+#endif
+	      ffi_call_v8(ffi_prep_args_v8, &ecif, cif->bytes,
+			  cif->flags, rvalue, call_struct);
+	      ffi_closure_free(call_struct);
+	    }
+	  else
+	    {
+	      ffi_call_v8(ffi_prep_args_v8, &ecif, cif->bytes,
+			  cif->flags, rvalue, fn);
+	    }
+	}
+      else
+	{
+	  ffi_call_v8(ffi_prep_args_v8, &ecif, cif->bytes,
+		      cif->flags, rvalue, fn);
+	}
 #endif
       break;
     case FFI_V9:
@@ -425,7 +476,6 @@ void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
       FFI_ASSERT(0);
       break;
     }
-
 }
 
 
@@ -447,7 +497,8 @@ ffi_prep_closure_loc (ffi_closure* closure,
 #ifdef SPARC64
   
 
-  FFI_ASSERT (cif->abi == FFI_V9);
+  if (cif->abi != FFI_V9)
+    return FFI_BAD_ABI;
   fn = (unsigned long) ffi_closure_v9;
   tramp[0] = 0x83414000;	
   tramp[1] = 0xca586010;	
@@ -456,7 +507,8 @@ ffi_prep_closure_loc (ffi_closure* closure,
   *((unsigned long *) &tramp[4]) = fn;
 #else
   unsigned long ctx = (unsigned long) codeloc;
-  FFI_ASSERT (cif->abi == FFI_V8);
+  if (cif->abi != FFI_V8)
+    return FFI_BAD_ABI;
   fn = (unsigned long) ffi_closure_v8;
   tramp[0] = 0x03000000 | fn >> 10;	
   tramp[1] = 0x05000000 | ctx >> 10;	
@@ -469,12 +521,16 @@ ffi_prep_closure_loc (ffi_closure* closure,
   closure->user_data = user_data;
 
   
+#ifdef __GNUC__
 #ifdef SPARC64
-  asm volatile ("flush	%0" : : "r" (closure) : "memory");
-  asm volatile ("flush	%0" : : "r" (((char *) closure) + 8) : "memory");
+  asm volatile ("flush	%0; flush %0+8" : : "r" (closure) : "memory");
 #else
-  asm volatile ("iflush	%0" : : "r" (closure) : "memory");
-  asm volatile ("iflush	%0" : : "r" (((char *) closure) + 8) : "memory");
+  asm volatile ("iflush	%0; iflush %0+8" : : "r" (closure) : "memory");
+  
+  asm volatile ("nop; nop; nop; nop; nop");
+#endif
+#else
+  ffi_flush_icache (closure, 16);
 #endif
 
   return FFI_OK;

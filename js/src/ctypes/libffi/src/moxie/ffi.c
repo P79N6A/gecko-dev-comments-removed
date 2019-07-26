@@ -43,6 +43,12 @@ void *ffi_prep_args(char *stack, extended_cif *ecif)
   p_argv = ecif->avalue;
   argp = stack;
 
+  if (ecif->cif->rtype->type == FFI_TYPE_STRUCT)
+    {
+      *(void **) argp = ecif->rvalue;
+      argp += 4;
+    }
+
   for (i = ecif->cif->nargs, p_arg = ecif->cif->arg_types;
        (i != 0);
        i--, p_arg++)
@@ -56,17 +62,6 @@ void *ffi_prep_args(char *stack, extended_cif *ecif)
 	  z = sizeof(void*);
 	  *(void **) argp = *p_argv;
 	} 
-      
-
-
-
-
-
-
-
-
-
-
       else if (z < sizeof(int))
 	{
 	  z = sizeof(int);
@@ -147,8 +142,7 @@ void ffi_call(ffi_cif *cif,
     }
   else
     ecif.rvalue = rvalue;
-    
-  
+
   switch (cif->abi) 
     {
     case FFI_EABI:
@@ -167,23 +161,35 @@ void ffi_closure_eabi (unsigned arg1, unsigned arg2, unsigned arg3,
   
 
 
-  register ffi_closure *creg __asm__ ("gr7");
+  register ffi_closure *creg __asm__ ("$r12");
   ffi_closure *closure = creg;
 
   
 
-  register char *frame_pointer __asm__ ("fp");
-  char *stack_args = frame_pointer + 16;
+  register char *frame_pointer __asm__ ("$fp");
+
+  
+  void *struct_rvalue = (void *) arg1;
+
+  
+  char *stack_args = frame_pointer + 9*4; 
 
   
   unsigned register_args[6] =
     { arg1, arg2, arg3, arg4, arg5, arg6 };
+  char *register_args_ptr = (char *) register_args;
 
   ffi_cif *cif = closure->cif;
   ffi_type **arg_types = cif->arg_types;
   void **avalue = alloca (cif->nargs * sizeof(void *));
   char *ptr = (char *) register_args;
   int i;
+
+  
+  if ((cif->rtype != NULL) && (cif->rtype->type == FFI_TYPE_STRUCT)) {
+    ptr += 4;
+    register_args_ptr = (char *)&register_args[1];
+  }
 
   
   for (i = 0; i < cif->nargs; i++)
@@ -201,6 +207,7 @@ void ffi_closure_eabi (unsigned arg1, unsigned arg2, unsigned arg3,
 	case FFI_TYPE_SINT32:
 	case FFI_TYPE_UINT32:
 	case FFI_TYPE_FLOAT:
+	case FFI_TYPE_POINTER:
 	  avalue[i] = ptr;
 	  break;
 	case FFI_TYPE_STRUCT:
@@ -216,30 +223,21 @@ void ffi_closure_eabi (unsigned arg1, unsigned arg2, unsigned arg3,
 
       
 
-      if (ptr == ((char *)register_args + (6*4)))
+      if (ptr == &register_args[6])
 	ptr = stack_args;
     }
 
   
-  if (cif->rtype->type == FFI_TYPE_STRUCT)
+  if (cif->rtype && (cif->rtype->type == FFI_TYPE_STRUCT))
     {
-      
-
-
-      register void *return_struct_ptr __asm__("gr3");
-      (closure->fun) (cif, return_struct_ptr, avalue, closure->user_data);
+      (closure->fun) (cif, struct_rvalue, avalue, closure->user_data);
     }
   else
     {
       
       long long rvalue;
       (closure->fun) (cif, &rvalue, avalue, closure->user_data);
-
-      
-
- 
-      asm ("ldi  @(%0, #0), gr8" : : "r" (&rvalue));
-      asm ("ldi  @(%0, #0), gr9" : : "r" (&((int *) &rvalue)[1]));
+      asm ("mov $r12, %0\n ld.l $r0, ($r12)\n ldo.l $r1, 4($r12)" : : "r" (&rvalue));
     }
 }
 
@@ -250,27 +248,25 @@ ffi_prep_closure_loc (ffi_closure* closure,
 		      void *user_data,
 		      void *codeloc)
 {
-  unsigned int *tramp = (unsigned int *) &closure->tramp[0];
+  unsigned short *tramp = (unsigned short *) &closure->tramp[0];
   unsigned long fn = (long) ffi_closure_eabi;
   unsigned long cls = (long) codeloc;
-  int i;
+
+  if (cif->abi != FFI_EABI)
+    return FFI_BAD_ABI;
 
   fn = (unsigned long) ffi_closure_eabi;
 
-  tramp[0] = 0x8cfc0000 + (fn  & 0xffff); 
-  tramp[1] = 0x8efc0000 + (cls & 0xffff); 
-  tramp[2] = 0x8cf80000 + (fn  >> 16);	  
-  tramp[3] = 0x8ef80000 + (cls >> 16);    
-  tramp[4] = 0x80300006;                  
+  tramp[0] = 0x01e0; 
+  tramp[1] = cls >> 16;
+  tramp[2] = cls & 0xffff;
+  tramp[3] = 0x1a00; 
+  tramp[4] = fn >> 16;
+  tramp[5] = fn & 0xffff;
 
   closure->cif = cif;
   closure->fun = fun;
   closure->user_data = user_data;
-
-  
-  for (i = 0; i < FFI_TRAMPOLINE_SIZE; i++)
-    __asm__ volatile ("dcf @(%0,%1)\n\tici @(%2,%1)" :: "r" (tramp), "r" (i),
-		      "r" (codeloc));
 
   return FFI_OK;
 }

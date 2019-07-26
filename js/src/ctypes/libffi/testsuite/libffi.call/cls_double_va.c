@@ -36,8 +36,9 @@ int main (void)
 	arg_types[1] = &ffi_type_double;
 	arg_types[2] = NULL;
 
-	CHECK(ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 2, &ffi_type_sint,
-		arg_types) == FFI_OK);
+	
+	CHECK(ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, 1, 2, &ffi_type_sint,
+			       arg_types) == FFI_OK);
 
 	args[0] = &format;
 	args[1] = &doubleArg;
@@ -48,9 +49,10 @@ int main (void)
 	printf("res: %d\n", (int) res);
 	
 
-	CHECK(ffi_prep_closure_loc(pcl, &cif, cls_double_va_fn, NULL, code) == FFI_OK);
+	CHECK(ffi_prep_closure_loc(pcl, &cif, cls_double_va_fn, NULL,
+				   code) == FFI_OK);
 
-	res	= ((int(*)(char*, double))(code))(format, doubleArg);
+	res = ((int(*)(char*, ...))(code))(format, doubleArg);
 	
 	printf("res: %d\n", (int) res);
 	

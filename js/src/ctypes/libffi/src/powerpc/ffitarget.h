@@ -44,6 +44,9 @@
 #ifndef POWERPC64
 #define POWERPC64
 #endif
+#ifndef POWERPC_DARWIN64
+#define POWERPC_DARWIN64
+#endif
 #elif defined (POWERPC_AIX) && defined (__64BIT__)	
 #ifndef POWERPC64
 #define POWERPC64
@@ -57,45 +60,76 @@ typedef signed long            ffi_sarg;
 typedef enum ffi_abi {
   FFI_FIRST_ABI = 0,
 
-#ifdef POWERPC
-  FFI_SYSV,
-  FFI_GCC_SYSV,
-  FFI_LINUX64,
-  FFI_LINUX,
-  FFI_LINUX_SOFT_FLOAT,
-# if defined(POWERPC64)
-  FFI_DEFAULT_ABI = FFI_LINUX64,
-# elif defined(__NO_FPRS__)
-  FFI_DEFAULT_ABI = FFI_LINUX_SOFT_FLOAT,
-# elif (__LDBL_MANT_DIG__ == 106)
-  FFI_DEFAULT_ABI = FFI_LINUX,
-# else
-  FFI_DEFAULT_ABI = FFI_GCC_SYSV,
-# endif
-#endif
-
-#ifdef POWERPC_AIX
+#if defined (POWERPC_AIX)
   FFI_AIX,
   FFI_DARWIN,
   FFI_DEFAULT_ABI = FFI_AIX,
-#endif
+  FFI_LAST_ABI
 
-#ifdef POWERPC_DARWIN
+#elif defined (POWERPC_DARWIN)
   FFI_AIX,
   FFI_DARWIN,
   FFI_DEFAULT_ABI = FFI_DARWIN,
-#endif
-
-#ifdef POWERPC_FREEBSD
-  FFI_SYSV,
-  FFI_GCC_SYSV,
-  FFI_LINUX64,
-  FFI_LINUX,
-  FFI_LINUX_SOFT_FLOAT,
-  FFI_DEFAULT_ABI = FFI_SYSV,
-#endif
-
   FFI_LAST_ABI
+
+#else
+  
+
+
+  FFI_COMPAT_SYSV,
+  FFI_COMPAT_GCC_SYSV,
+  FFI_COMPAT_LINUX64,
+  FFI_COMPAT_LINUX,
+  FFI_COMPAT_LINUX_SOFT_FLOAT,
+
+# if defined (POWERPC64)
+  
+
+
+
+  FFI_LINUX = 8,
+  
+  FFI_LINUX_STRUCT_ALIGN = 1,
+  FFI_LINUX_LONG_DOUBLE_128 = 2,
+  FFI_DEFAULT_ABI = (FFI_LINUX
+#  ifdef __STRUCT_PARM_ALIGN__
+		     | FFI_LINUX_STRUCT_ALIGN
+#  endif
+#  ifdef __LONG_DOUBLE_128__
+		     | FFI_LINUX_LONG_DOUBLE_128
+#  endif
+		     ),
+  FFI_LAST_ABI = 12
+
+# else
+  
+
+  FFI_SYSV = 8,
+  
+  FFI_SYSV_SOFT_FLOAT = 1,
+  FFI_SYSV_STRUCT_RET = 2,
+  FFI_SYSV_IBM_LONG_DOUBLE = 4,
+  FFI_SYSV_LONG_DOUBLE_128 = 16,
+
+  FFI_DEFAULT_ABI = (FFI_SYSV
+#  ifdef __NO_FPRS__
+		     | FFI_SYSV_SOFT_FLOAT
+#  endif
+#  if (defined (__SVR4_STRUCT_RETURN)					\
+       || defined (POWERPC_FREEBSD) && !defined (__AIX_STRUCT_RETURN))
+		     | FFI_SYSV_STRUCT_RET
+#  endif
+#  if __LDBL_MANT_DIG__ == 106
+		     | FFI_SYSV_IBM_LONG_DOUBLE
+#  endif
+#  ifdef __LONG_DOUBLE_128__
+		     | FFI_SYSV_LONG_DOUBLE_128
+#  endif
+		     ),
+  FFI_LAST_ABI = 32
+# endif
+#endif
+
 } ffi_abi;
 #endif
 
@@ -115,8 +149,6 @@ typedef enum ffi_abi {
 #define FFI_TYPE_UINT128 (FFI_TYPE_LAST + 1)
 
 
-
-
 #define FFI_SYSV_TYPE_SMALL_STRUCT (FFI_TYPE_LAST + 2)
 
 
@@ -128,7 +160,11 @@ typedef enum ffi_abi {
 # define FFI_TRAMPOLINE_SIZE 32
 #else
 # if defined(POWERPC64) || defined(POWERPC_AIX)
-#  define FFI_TRAMPOLINE_SIZE 24
+#  if defined(POWERPC_DARWIN64)
+#    define FFI_TRAMPOLINE_SIZE 48
+#  else
+#    define FFI_TRAMPOLINE_SIZE 24
+#  endif
 # else 
 #  define FFI_TRAMPOLINE_SIZE 40
 # endif

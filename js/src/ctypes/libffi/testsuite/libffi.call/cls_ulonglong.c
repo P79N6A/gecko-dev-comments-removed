@@ -11,7 +11,7 @@
 static void cls_ret_ulonglong_fn(ffi_cif* cif __UNUSED__, void* resp,
 				 void** args, void* userdata __UNUSED__)
 {
-  *(unsigned long long *)resp=  *(unsigned long long *)args[0];
+  *(unsigned long long *)resp= 0xfffffffffffffffLL ^ *(unsigned long long *)args[0];
 
   printf("%" PRIuLL ": %" PRIuLL "\n",*(unsigned long long *)args[0],
 	 *(unsigned long long *)(resp));

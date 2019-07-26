@@ -26,6 +26,8 @@
 
 
 
+
+
 #include <ffi.h>
 #include <ffi_common.h>
 
@@ -633,7 +635,8 @@ ffi_prep_closure_loc (ffi_closure* closure,
   UINT32 *tmp;
 #endif
 
-  FFI_ASSERT (cif->abi == FFI_PA32);
+  if (cif->abi != FFI_PA32)
+    return FFI_BAD_ABI;
 
   
 

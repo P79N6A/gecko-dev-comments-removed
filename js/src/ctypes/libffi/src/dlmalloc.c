@@ -622,6 +622,9 @@
 #include "/usr/include/malloc.h"
 #else 
 
+
+#define _STRUCT_MALLINFO
+
 struct mallinfo {
   MALLINFO_FIELD_TYPE arena;    
   MALLINFO_FIELD_TYPE ordblks;  
@@ -1658,7 +1661,7 @@ struct malloc_chunk {
 typedef struct malloc_chunk  mchunk;
 typedef struct malloc_chunk* mchunkptr;
 typedef struct malloc_chunk* sbinptr;  
-typedef unsigned int bindex_t;         
+typedef size_t bindex_t;               
 typedef unsigned int binmap_t;         
 typedef unsigned int flag_t;           
 
@@ -3385,7 +3388,7 @@ static void add_segment(mstate m, char* tbase, size_t tsize, flag_t mmapped) {
   *ss = m->seg; 
   m->seg.base = tbase;
   m->seg.size = tsize;
-  set_segment_flags(&m->seg, mmapped);
+  (void)set_segment_flags(&m->seg, mmapped);
   m->seg.next = ss;
 
   
@@ -3545,7 +3548,7 @@ static void* sys_alloc(mstate m, size_t nb) {
     if (!is_initialized(m)) { 
       m->seg.base = m->least_addr = tbase;
       m->seg.size = tsize;
-      set_segment_flags(&m->seg, mmap_flag);
+      (void)set_segment_flags(&m->seg, mmap_flag);
       m->magic = mparams.magic;
       init_bins(m);
       if (is_global(m)) 

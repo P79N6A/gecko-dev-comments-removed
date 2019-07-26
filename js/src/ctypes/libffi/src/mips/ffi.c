@@ -25,6 +25,7 @@
 
 
 
+
 #include <ffi.h>
 #include <ffi_common.h>
 
@@ -169,7 +170,14 @@ static void ffi_prep_args(char *stack,
 		break;
 		  
 	      case FFI_TYPE_UINT32:
+#ifdef FFI_MIPS_N32
+		
+
+
+		*(ffi_arg *)argp = *(SINT32 *)(* p_argv);
+#else
 		*(ffi_arg *)argp = *(UINT32 *)(* p_argv);
+#endif
 		break;
 
 	      
@@ -666,10 +674,19 @@ ffi_prep_closure_loc (ffi_closure *closure,
   char *clear_location = (char *) codeloc;
 
 #if defined(FFI_MIPS_O32)
-  FFI_ASSERT(cif->abi == FFI_O32 || cif->abi == FFI_O32_SOFT_FLOAT);
+  if (cif->abi != FFI_O32 && cif->abi != FFI_O32_SOFT_FLOAT)
+    return FFI_BAD_ABI;
   fn = ffi_closure_O32;
-#else 
-  FFI_ASSERT(cif->abi == FFI_N32 || cif->abi == FFI_N64);
+#else
+#if _MIPS_SIM ==_ABIN32
+  if (cif->abi != FFI_N32
+      && cif->abi != FFI_N32_SOFT_FLOAT)
+    return FFI_BAD_ABI;
+#else
+  if (cif->abi != FFI_N64
+      && cif->abi != FFI_N64_SOFT_FLOAT)
+    return FFI_BAD_ABI;
+#endif
   fn = ffi_closure_N32;
 #endif 
 

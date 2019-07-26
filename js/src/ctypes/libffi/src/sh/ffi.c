@@ -463,7 +463,8 @@ ffi_prep_closure_loc (ffi_closure* closure,
   unsigned int *tramp;
   unsigned int insn;
 
-  FFI_ASSERT (cif->abi == FFI_GCC_SYSV);
+  if (cif->abi != FFI_SYSV)
+    return FFI_BAD_ABI;
 
   tramp = (unsigned int *) &closure->tramp[0];
   

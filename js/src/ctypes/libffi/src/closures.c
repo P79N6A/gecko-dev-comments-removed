@@ -25,6 +25,7 @@
 
 
 
+
 #if defined __linux__ && !defined _GNU_SOURCE
 #define _GNU_SOURCE 1
 #endif
@@ -32,8 +33,8 @@
 #include <ffi.h>
 #include <ffi_common.h>
 
-#ifndef FFI_MMAP_EXEC_WRIT
-# if __gnu_linux__
+#if !FFI_MMAP_EXEC_WRIT && !FFI_EXEC_TRAMPOLINE_TABLE
+# if __gnu_linux__ && !defined(__ANDROID__)
 
 
 
@@ -63,7 +64,11 @@
 
 #if FFI_CLOSURES
 
-# if FFI_MMAP_EXEC_WRIT
+# if FFI_EXEC_TRAMPOLINE_TABLE
+
+
+
+# elif FFI_MMAP_EXEC_WRIT 
 
 #define USE_LOCKS 1
 #define USE_DL_PREFIX 1
@@ -167,13 +172,52 @@ selinux_enabled_check (void)
 
 #endif 
 
-#elif defined (__CYGWIN__)
+
+#ifdef FFI_MMAP_EXEC_EMUTRAMP_PAX
+#include <stdlib.h>
+
+static int emutramp_enabled = -1;
+
+static int
+emutramp_enabled_check (void)
+{
+  char *buf = NULL;
+  size_t len = 0;
+  FILE *f;
+  int ret;
+  f = fopen ("/proc/self/status", "r");
+  if (f == NULL)
+    return 0;
+  ret = 0;
+
+  while (getline (&buf, &len, f) != -1)
+    if (!strncmp (buf, "PaX:", 4))
+      {
+        char emutramp;
+        if (sscanf (buf, "%*s %*c%c", &emutramp) == 1)
+          ret = (emutramp == 'E');
+        break;
+      }
+  free (buf);
+  fclose (f);
+  return ret;
+}
+
+#define is_emutramp_enabled() (emutramp_enabled >= 0 ? emutramp_enabled \
+                               : (emutramp_enabled = emutramp_enabled_check ()))
+#endif 
+
+#elif defined (__CYGWIN__) || defined(__INTERIX)
 
 #include <sys/mman.h>
 
 
 #define is_selinux_enabled() 0
 
+#endif 
+
+#ifndef FFI_MMAP_EXEC_EMUTRAMP_PAX
+#define is_emutramp_enabled() 0
 #endif 
 
 
@@ -193,7 +237,7 @@ static int dlmalloc_trim(size_t) MAYBE_UNUSED;
 static size_t dlmalloc_usable_size(void*) MAYBE_UNUSED;
 static void dlmalloc_stats(void) MAYBE_UNUSED;
 
-#if !(defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)) || defined (__CYGWIN__)
+#if !(defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)) || defined (__CYGWIN__) || defined(__INTERIX)
 
 static void *dlmmap(void *, size_t, int, int, int, off_t);
 static int dlmunmap(void *, size_t);
@@ -207,7 +251,7 @@ static int dlmunmap(void *, size_t);
 #undef mmap
 #undef munmap
 
-#if !(defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)) || defined (__CYGWIN__)
+#if !(defined(X86_WIN32) || defined(X86_WIN64) || defined(__OS2__)) || defined (__CYGWIN__) || defined(__INTERIX)
 
 
 static pthread_mutex_t open_temp_exec_file_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -236,7 +280,7 @@ static int
 open_temp_exec_file_dir (const char *dir)
 {
   static const char suffix[] = "/ffiXXXXXX";
-  int lendir = strlen (dir);
+  size_t lendir = strlen (dir);
   char *tempname = __builtin_alloca (lendir + sizeof (suffix));
 
   if (!tempname)
@@ -294,7 +338,7 @@ open_temp_exec_file_mnt (const char *mounts)
       struct mntent mnt;
       char buf[MAXPATHLEN * 3];
 
-      if (getmntent_r (last_mntent, &mnt, buf, sizeof (buf)))
+      if (getmntent_r (last_mntent, &mnt, buf, sizeof (buf)) == NULL)
 	return -1;
 
       if (hasmntopt (&mnt, "ro")
@@ -452,6 +496,12 @@ dlmmap (void *start, size_t length, int prot,
 #if FFI_CLOSURE_TEST
   printf ("mapping in %zi\n", length);
 #endif
+
+  if (execfd == -1 && is_emutramp_enabled ())
+    {
+      ptr = mmap (start, length, prot & ~PROT_EXEC, flags, fd, offset);
+      return ptr;
+    }
 
   if (execfd == -1 && !is_selinux_enabled ())
     {
