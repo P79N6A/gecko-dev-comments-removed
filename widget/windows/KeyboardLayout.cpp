@@ -23,6 +23,10 @@
 #include "nsIDOMKeyEvent.h"
 #include "nsIIdleServiceInternal.h"
 
+#ifdef MOZ_CRASHREPORTER
+#include "nsExceptionHandler.h"
+#endif
+
 #include "npapi.h"
 
 #include <windows.h>
@@ -1055,7 +1059,7 @@ NativeKey::NeedsToHandleWithoutFollowingCharMessages() const
 
   
   
-  if (mIsDeadKey) {
+  if (mIsDeadKey && mCommittedCharsAndModifiers.IsEmpty()) {
     return false;
   }
 
@@ -1498,16 +1502,31 @@ KeyboardLayout::InitNativeKey(NativeKey& aNativeKey,
 
     
     
+    
+    
+    
+    
+    if (mActiveDeadKey < 0) {
+      aNativeKey.mCommittedCharsAndModifiers =
+        mVirtualKeys[virtualKeyIndex].GetUniChars(shiftState);
+      return;
+    }
+
     int32_t activeDeadKeyIndex = GetKeyIndex(mActiveDeadKey);
-#ifdef DEBUG
     if (activeDeadKeyIndex < 0 || activeDeadKeyIndex >= NS_NUM_OF_KEYS) {
+#if defined(DEBUG) || defined(MOZ_CRASHREPORTER)
       nsPrintfCString warning("The virtual key index (%d) of mActiveDeadKey "
                               "(0x%02X) is not a printable key (virtualKey="
                               "0x%02X)",
                               activeDeadKeyIndex, mActiveDeadKey, virtualKey);
       NS_WARNING(warning.get());
+#ifdef MOZ_CRASHREPORTER
+      CrashReporter::AppendAppNotesToCrashReport(
+                       NS_LITERAL_CSTRING("\n") + warning);
+#endif 
+#endif 
+      MOZ_CRASH("Trying to reference out of range of mVirtualKeys");
     }
-#endif
     UniCharsAndModifiers prevDeadChars =
       mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState);
     UniCharsAndModifiers newChars =
