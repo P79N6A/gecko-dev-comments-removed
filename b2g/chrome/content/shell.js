@@ -730,11 +730,17 @@ function startDebugger() {
   }
 }
 
-window.addEventListener('ContentStart', function(evt) {
-  if (Services.prefs.getBoolPref('devtools.debugger.remote-enabled')) {
-    startDebugger();
+function stopDebugger() {
+  if (!DebuggerServer.initialized) {
+    return;
   }
-});
+
+  try {
+    DebuggerServer.closeListener();
+  } catch (e) {
+    dump('Unable to stop debugger server: ' + e + '\n');
+  }
+}
 
 
 
