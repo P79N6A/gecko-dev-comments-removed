@@ -353,13 +353,46 @@ AboutReader.prototype = {
     Services.prefs.setIntPref("reader.font_size", this._fontSize);
   },
 
-  _handleDeviceLight: function Reader_handleDeviceLight(luxValue) {
+  _handleDeviceLight: function Reader_handleDeviceLight(newLux) {
     
-    if ((this._colorScheme === "dark" && luxValue < 50) ||
-        (this._colorScheme === "light" && luxValue > 25))
+    let luxValuesSize = 10;
+    
+    this._luxValues.unshift(newLux);
+    
+    this._totalLux += newLux;
+
+    
+    if (this._luxValues.length < luxValuesSize) {
+      
+      if (this._luxValues.length == 1) {
+        this._updateColorScheme(newLux);
+      }
+      return;
+    }
+    
+    let averageLuxValue = this._totalLux/luxValuesSize;
+
+    this._updateColorScheme(averageLuxValue);
+    
+    let oldLux = this._luxValues.pop();
+    
+    this._totalLux -= oldLux;
+  },
+
+  _updateColorScheme: function Reader_updateColorScheme(luxValue) {
+    
+    let upperBoundDark = 50;
+    
+    let lowerBoundLight = 10;
+    
+    let colorChangeThreshold = 20;
+
+    
+    if ((this._colorScheme === "dark" && luxValue < upperBoundDark) ||
+        (this._colorScheme === "light" && luxValue > lowerBoundLight))
       return;
 
-    if (luxValue < 30)
+    if (luxValue < colorChangeThreshold)
       this._setColorScheme("dark");
     else
       this._setColorScheme("light");
@@ -383,9 +416,13 @@ AboutReader.prototype = {
   _setColorSchemePref: function Reader_setColorSchemePref(colorSchemePref) {
     if (colorSchemePref === "auto") {
       this._win.addEventListener("devicelight", this, false);
+      this._luxValues = [];
+      this._totalLux = 0;
     } else {
       this._win.removeEventListener("devicelight", this, false);
       this._setColorScheme(colorSchemePref);
+      delete this._luxValues;
+      delete this._totalLux;
     }
 
     Services.prefs.setCharPref("reader.color_scheme", colorSchemePref);
