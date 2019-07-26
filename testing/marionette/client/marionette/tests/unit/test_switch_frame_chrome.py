@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import JavascriptException
+from marionette import JavascriptException
 
 class TestSwitchFrameChrome(MarionetteTestCase):
     def setUp(self):

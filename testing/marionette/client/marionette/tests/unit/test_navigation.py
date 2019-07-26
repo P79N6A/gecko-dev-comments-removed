@@ -3,8 +3,8 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import MarionetteException
-from errors import TimeoutException
+from marionette import MarionetteException
+from marionette import TimeoutException
 
 class TestNavigate(MarionetteTestCase):
     def test_navigate(self):

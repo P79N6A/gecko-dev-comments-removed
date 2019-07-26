@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import *
+from marionette import *
 
 class TestGaiaLaunch(MarionetteTestCase):
     """Trivial example of launching a Gaia app, entering its context and performing some test on it.

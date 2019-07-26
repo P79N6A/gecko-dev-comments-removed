@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import NoSuchElementException
+from marionette import NoSuchElementException
 
 class TestImplicitWaits(MarionetteTestCase):
     def testShouldImplicitlyWaitForASingleElement(self):

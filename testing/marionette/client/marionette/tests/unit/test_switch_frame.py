@@ -4,7 +4,7 @@
 
 import os
 from marionette_test import MarionetteTestCase
-from errors import JavascriptException
+from marionette import JavascriptException
 
 
 def switch_to_window_verify(test, start_url, frame, verify_title, verify_url):
