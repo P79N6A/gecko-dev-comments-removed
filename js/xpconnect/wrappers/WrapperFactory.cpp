@@ -472,9 +472,16 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
 JSObject *
 WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
 {
+    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, cx));
+
     
     
     
+
+    
+    
+    obj = JS_ObjectToOuterObject(cx, obj);
+    NS_ENSURE_TRUE(obj, nullptr);
 
     if (dom::GetSameCompartmentWrapperForDOMBinding(obj)) {
         return obj;
