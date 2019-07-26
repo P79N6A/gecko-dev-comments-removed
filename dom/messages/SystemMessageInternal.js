@@ -342,7 +342,8 @@ SystemMessageInternal.prototype = {
     
     
     if (["SystemMessageManager:Register",
-         "SystemMessageManager:Unregister",
+         
+         
          "SystemMessageManager:GetPendingMessages",
          "SystemMessageManager:HasPendingMessages",
          "SystemMessageManager:Message:Return:OK",
