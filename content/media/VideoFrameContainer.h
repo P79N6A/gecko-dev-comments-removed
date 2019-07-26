@@ -55,7 +55,12 @@ public:
   
   double GetFrameDelay();
   
-  void Invalidate();
+  enum {
+    INVALIDATE_DEFAULT,
+    INVALIDATE_FORCE
+  };
+  void Invalidate() { InvalidateWithFlags(INVALIDATE_DEFAULT); }
+  void InvalidateWithFlags(uint32_t aFlags);
   ImageContainer* GetImageContainer();
   void ForgetElement() { mElement = nullptr; }
 
