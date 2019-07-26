@@ -162,11 +162,8 @@ math_asinh(JSContext *cx, unsigned argc, js::Value *vp);
 extern bool
 math_atanh(JSContext *cx, unsigned argc, js::Value *vp);
 
-
-#if 0
 extern bool
 math_hypot(JSContext *cx, unsigned argc, Value *vp);
-#endif
 
 extern bool
 math_trunc(JSContext *cx, unsigned argc, Value *vp);

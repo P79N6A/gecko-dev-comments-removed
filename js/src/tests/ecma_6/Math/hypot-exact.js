@@ -1,7 +1,7 @@
 
 
 
-
+assertEq(Math.hypot(), +0);
 
 
 
@@ -31,8 +31,7 @@ for (var inf of [Infinity, -Infinity]) {
 }
 
 
-assertEq(Math.hypot(), NaN);
-assertEq(Math.hypot(1), NaN);
+assertEq(Math.hypot(NaN), NaN);
 
 assertEq(Math.hypot(NaN, 0), NaN);
 assertEq(Math.hypot(0, NaN), NaN);
