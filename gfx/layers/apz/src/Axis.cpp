@@ -85,8 +85,20 @@ float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut)
   return displacement;
 }
 
+float Axis::ApplyResistance(float aRequestedOverscroll) const {
+  
+  
+  
+  
+  
+  
+  float resistanceFactor = 1 - fabsf(mOverscroll) / GetCompositionLength();
+  return resistanceFactor < 0 ? 0 : aRequestedOverscroll * resistanceFactor;
+}
+
 void Axis::OverscrollBy(float aOverscroll) {
   MOZ_ASSERT(CanScroll());
+  aOverscroll = ApplyResistance(aOverscroll);
   if (aOverscroll > 0) {
     MOZ_ASSERT(FuzzyEqualsAdditive(GetCompositionEnd(), GetPageEnd(), COORDINATE_EPSILON));
     MOZ_ASSERT(mOverscroll >= 0);

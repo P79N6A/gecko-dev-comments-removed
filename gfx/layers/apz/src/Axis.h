@@ -225,6 +225,10 @@ protected:
   nsTArray<float> mVelocityQueue;
 
   const FrameMetrics& GetFrameMetrics() const;
+
+  
+  
+  float ApplyResistance(float aOverscroll) const;
 };
 
 class AxisX : public Axis {
