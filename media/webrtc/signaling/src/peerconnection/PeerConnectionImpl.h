@@ -246,10 +246,7 @@ public:
   }
 
   
-  mozilla::RefPtr<DtlsIdentity> const GetIdentity() const;
-  std::string GetFingerprint() const;
-  std::string GetFingerprintAlgorithm() const;
-  std::string GetFingerprintHexValue() const;
+  mozilla::RefPtr<DtlsIdentity> const GetIdentity();
 
   
   nsresult CreateFakeMediaStream(uint32_t hint, nsIDOMMediaStream** retval);
@@ -534,10 +531,6 @@ private:
       mozilla::dom::PCImplIceConnectionState aState);
   nsresult IceGatheringStateChange_m(
       mozilla::dom::PCImplIceGatheringState aState);
-
-  NS_IMETHOD FingerprintSplitHelper(
-      std::string& fingerprint, size_t& spaceIdx) const;
-
 
 #ifdef MOZILLA_INTERNAL_API
   
