@@ -377,6 +377,13 @@ FTPChannelParent::OnDataAvailable(nsIRequest* aRequest,
 
 
 NS_IMETHODIMP
+FTPChannelParent::SetParentListener(HttpChannelParentListener* aListener)
+{
+  
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 FTPChannelParent::Delete()
 {
   if (mIPCClosed || !SendDeleteSelf())
