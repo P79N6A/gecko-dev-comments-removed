@@ -289,15 +289,7 @@ add_task(function test_DirectoryLinksProvider__prefObserver_url() {
   yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, exampleUrl);
   do_check_eq(DirectoryLinksProvider._linksURL, exampleUrl);
 
-  
   let newLinks = yield fetchData();
-  isIdentical(newLinks, expectedData);
-
-  
-  yield cleanJsonFile();
-  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, exampleUrl + " ");
-  
-  newLinks = yield fetchData();
   isIdentical(newLinks, []);
 
   yield promiseCleanDirectoryLinksProvider();
@@ -414,18 +406,6 @@ add_task(function test_DirectoryLinksProvider_fetchDirectoryOnInit() {
   yield DirectoryLinksProvider.init();
   let data = yield readJsonFile();
   isIdentical(data, kURLData);
-
-  yield promiseCleanDirectoryLinksProvider();
-});
-
-add_task(function test_DirectoryLinksProvider_getLinksFromCorruptedFile() {
-  yield promiseSetupDirectoryLinksProvider();
-
-  
-  let directoryLinksFilePath = OS.Path.join(OS.Constants.Path.profileDir, DIRECTORY_LINKS_FILE);
-  yield OS.File.writeAtomic(directoryLinksFilePath, '{"en-US":');
-  let data = yield fetchData();
-  isIdentical(data, []);
 
   yield promiseCleanDirectoryLinksProvider();
 });

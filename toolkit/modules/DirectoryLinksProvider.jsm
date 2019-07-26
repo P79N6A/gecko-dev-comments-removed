@@ -22,9 +22,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "OS",
   "resource://gre/modules/osfile.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyGetter(this, "gTextDecoder", () => {
-  return new TextDecoder();
-});
 
 
 const DIRECTORY_LINKS_FILE = "directoryLinks.json";
@@ -140,6 +137,38 @@ let DirectoryLinksProvider = {
     }
   },
 
+  
+
+
+
+  _fetchLinks: function DirectoryLinksProvider_fetchLinks(aCallback) {
+    try {
+      NetUtil.asyncFetch(this._linksURL, (aInputStream, aResult, aRequest) => {
+        let output;
+        if (Components.isSuccessCode(aResult)) {
+          try {
+            let json = NetUtil.readInputStreamToString(aInputStream,
+                                                       aInputStream.available(),
+                                                       {charset: "UTF-8"});
+            let locale = this.locale;
+            output = JSON.parse(json)[locale];
+          }
+          catch (e) {
+            Cu.reportError(e);
+          }
+        }
+        else {
+          Cu.reportError(new Error("the fetch of " + this._linksURL + "was unsuccessful"));
+        }
+        aCallback(output || []);
+      });
+    }
+    catch (e) {
+      Cu.reportError(e);
+      aCallback([]);
+    }
+  },
+
   _fetchAndCacheLinks: function DirectoryLinksProvider_fetchAndCacheLinks(uri) {
     let deferred = Promise.defer();
     let xmlHttp = new XMLHttpRequest();
@@ -220,29 +249,6 @@ let DirectoryLinksProvider = {
 
 
 
-  _readDirectoryLinksFile: function DirectoryLinksProvider_readDirectoryLinksFile() {
-    return OS.File.read(this._directoryFilePath).then(binaryData => {
-      let output;
-      try {
-        let locale = this.locale;
-        let json = gTextDecoder.decode(binaryData);
-        output = JSON.parse(json)[locale];
-      }
-      catch (e) {
-        Cu.reportError(e);
-      }
-      return output || [];
-    },
-    error => {
-      Cu.reportError(error);
-      return [];
-    });
-  },
-
-  
-
-
-
 
 
 
@@ -260,7 +266,7 @@ let DirectoryLinksProvider = {
 
 
   getLinks: function DirectoryLinksProvider_getLinks(aCallback) {
-    this._readDirectoryLinksFile().then(rawLinks => {
+    this._fetchLinks(rawLinks => {
       
       aCallback(rawLinks.map((link, position) => {
         link.frecency = DIRECTORY_FRECENCY;
