@@ -650,21 +650,6 @@ abstract public class BrowserApp extends GeckoApp
 
     @Override
     public void refreshChrome() {
-        
-        if (Build.VERSION.SDK_INT >= 14 && !HardwareUtils.isTablet()) {
-            int index = mMainLayout.indexOfChild(mBrowserToolbar.getLayout());
-            mMainLayout.removeViewAt(index);
-
-            LinearLayout actionBar = (LinearLayout) getActionBarLayout();
-            mMainLayout.addView(actionBar, index);
-            mBrowserToolbar.from(actionBar);
-            mBrowserToolbar.refresh();
-
-            
-            if (mDoorHangerPopup != null)
-                mDoorHangerPopup.setAnchor(mBrowserToolbar.mFavicon);
-        }
-
         invalidateOptionsMenu();
         updateSideBarState();
         mTabsPanel.refresh();
