@@ -29,7 +29,7 @@ struct nsIntRect;
 
 
 
-class THEBES_API gfxASurface {
+class gfxASurface {
 public:
 #ifdef MOZILLA_INTERNAL_API
     nsrefcnt AddRef(void);
@@ -352,7 +352,7 @@ protected:
 
 
 
-class THEBES_API gfxUnknownSurface : public gfxASurface {
+class gfxUnknownSurface : public gfxASurface {
 public:
     gfxUnknownSurface(cairo_surface_t *surf) {
         Init(surf, true);

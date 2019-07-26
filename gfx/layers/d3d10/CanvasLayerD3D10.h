@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef GFX_CANVASLAYERD3D10_H
 #define GFX_CANVASLAYERD3D10_H
@@ -15,8 +15,8 @@
 namespace mozilla {
 namespace layers {
 
-class THEBES_API CanvasLayerD3D10 : public CanvasLayer,
-                                    public LayerD3D10
+class CanvasLayerD3D10 : public CanvasLayer,
+                         public LayerD3D10
 {
 public:
   CanvasLayerD3D10(LayerManagerD3D10 *aManager)
@@ -32,10 +32,10 @@ public:
 
   ~CanvasLayerD3D10();
 
-  // CanvasLayer implementation
+  
   virtual void Initialize(const Data& aData);
 
-  // LayerD3D10 implementation
+  
   virtual Layer* GetLayer();
   virtual void RenderLayer();
 
@@ -76,6 +76,6 @@ private:
   }
 };
 
-} /* layers */
-} /* mozilla */
-#endif /* GFX_CANVASLAYERD3D10_H */
+} 
+} 
+#endif 

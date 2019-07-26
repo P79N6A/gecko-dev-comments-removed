@@ -18,7 +18,7 @@ class ReadbackProcessor;
 
 
 
-class THEBES_API ReadbackSink {
+class ReadbackSink {
 public:
   ReadbackSink() {}
   virtual ~ReadbackSink() {}
@@ -66,7 +66,7 @@ public:
 
 
 
-class THEBES_API ReadbackLayer : public Layer {
+class ReadbackLayer : public Layer {
 public:
   MOZ_LAYER_DECL_NAME("ReadbackLayer", TYPE_READBACK)
 

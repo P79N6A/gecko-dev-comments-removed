@@ -15,7 +15,7 @@
 #include "GLXLibrary.h"
 #endif
 
-class THEBES_API gfxXlibSurface : public gfxASurface {
+class gfxXlibSurface : public gfxASurface {
 public:
     
     

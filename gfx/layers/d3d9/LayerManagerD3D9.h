@@ -56,7 +56,7 @@ struct ShaderConstantRect
 
 
 
-class THEBES_API LayerManagerD3D9 : public LayerManager {
+class LayerManagerD3D9 : public LayerManager {
 public:
   LayerManagerD3D9(nsIWidget *aWidget);
   virtual ~LayerManagerD3D9();

@@ -18,7 +18,7 @@
 
 
 
-class THEBES_API gfxTeeSurface : public gfxASurface {
+class gfxTeeSurface : public gfxASurface {
 public:
     gfxTeeSurface(cairo_surface_t *csurf);
     gfxTeeSurface(gfxASurface **aSurfaces, int32_t aSurfaceCount);

@@ -35,7 +35,7 @@ namespace mozilla {
 
 
 
-class THEBES_API gfxAlphaBoxBlur
+class gfxAlphaBoxBlur
 {
 public:
     gfxAlphaBoxBlur();

@@ -37,7 +37,7 @@ namespace layers {
 
 
 
-class THEBES_API GrallocPlanarYCbCrImage : public PlanarYCbCrImage {
+class GrallocPlanarYCbCrImage : public PlanarYCbCrImage {
   typedef PlanarYCbCrImage::Data Data;
 
 public:

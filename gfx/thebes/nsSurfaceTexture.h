@@ -21,7 +21,7 @@ class gfxASurface;
 
 
 
-class THEBES_API nsSurfaceTexture {
+class nsSurfaceTexture {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsSurfaceTexture)
 
 public:

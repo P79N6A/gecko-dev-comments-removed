@@ -21,7 +21,7 @@ class gfxContext;
 
 
 
-class THEBES_API gfxXlibNativeRenderer {
+class gfxXlibNativeRenderer {
 public:
     
 

@@ -20,7 +20,7 @@ class QRect;
 
 
 
-class THEBES_API gfxQtNativeRenderer {
+class gfxQtNativeRenderer {
 public:
     
 

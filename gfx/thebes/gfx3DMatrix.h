@@ -27,7 +27,7 @@
 
 
 
-class THEBES_API gfx3DMatrix
+class gfx3DMatrix
 {
 public:
   

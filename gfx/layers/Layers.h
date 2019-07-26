@@ -78,7 +78,7 @@ struct EffectMask;
 
 
 
-class THEBES_API LayerUserData {
+class LayerUserData {
 public:
   virtual ~LayerUserData() {}
 };
@@ -137,7 +137,7 @@ static void LayerManagerUserDataDestroy(void *data)
 
 
 
-class THEBES_API LayerManager {
+class LayerManager {
   NS_INLINE_DECL_REFCOUNTING(LayerManager)
 
 public:
@@ -589,7 +589,7 @@ struct AnimData {
 
 
 
-class THEBES_API Layer {
+class Layer {
   NS_INLINE_DECL_REFCOUNTING(Layer)
 
 public:
@@ -1271,7 +1271,7 @@ protected:
 
 
 
-class THEBES_API ThebesLayer : public Layer {
+class ThebesLayer : public Layer {
 public:
   
 
@@ -1369,7 +1369,7 @@ protected:
 
 
 
-class THEBES_API ContainerLayer : public Layer {
+class ContainerLayer : public Layer {
 public:
   
 
@@ -1540,7 +1540,7 @@ protected:
 
 
 
-class THEBES_API ColorLayer : public Layer {
+class ColorLayer : public Layer {
 public:
   virtual ColorLayer* AsColorLayer() { return this; }
 
@@ -1590,7 +1590,7 @@ protected:
 
 
 
-class THEBES_API CanvasLayer : public Layer {
+class CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
@@ -1763,7 +1763,7 @@ private:
 
 
 
-class THEBES_API RefLayer : public ContainerLayer {
+class RefLayer : public ContainerLayer {
   friend class LayerManager;
 
 private:

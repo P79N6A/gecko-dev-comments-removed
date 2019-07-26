@@ -22,7 +22,7 @@ class gfxContext;
 
 
 
-class THEBES_API gfxCachedTempSurface {
+class gfxCachedTempSurface {
 public:
   
 

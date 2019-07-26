@@ -40,7 +40,7 @@ bool SetProcessName(const char* aProcessName);
 
 
 
-class THEBES_API nsDoubleBufferCARenderer {
+class nsDoubleBufferCARenderer {
 public:
   nsDoubleBufferCARenderer() : mCALayer(nullptr), mContentsScaleFactor(1.0) {}
   

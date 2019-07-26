@@ -139,7 +139,7 @@ GetBackendName(mozilla::gfx::BackendType aBackend)
   MOZ_NOT_REACHED("Incomplete switch");
 }
 
-class THEBES_API gfxPlatform {
+class gfxPlatform {
 public:
     
 

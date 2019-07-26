@@ -21,7 +21,7 @@ class gfxContext;
 
 
 
-class THEBES_API gfxGdkNativeRenderer
+class gfxGdkNativeRenderer
 #ifdef MOZ_X11
     : private gfxXlibNativeRenderer
 #endif

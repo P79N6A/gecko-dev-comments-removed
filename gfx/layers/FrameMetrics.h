@@ -20,7 +20,7 @@ namespace layers {
 
 
 
-struct THEBES_API FrameMetrics {
+struct FrameMetrics {
 public:
   
   typedef uint64_t ViewID;

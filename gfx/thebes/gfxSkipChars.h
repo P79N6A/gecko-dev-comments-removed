@@ -35,7 +35,7 @@
 
 
 
-class THEBES_API gfxSkipCharsBuilder {
+class gfxSkipCharsBuilder {
 public:
     gfxSkipCharsBuilder() :
         mCharCount(0), mRunCharCount(0), mRunSkipped(false), mInErrorState(false)
@@ -93,7 +93,7 @@ private:
 
 
 
-class THEBES_API gfxSkipChars {
+class gfxSkipChars {
 public:
     gfxSkipChars() : mListLength(0), mCharCount(0) {}
   
@@ -180,7 +180,7 @@ private:
 
 
 
-class THEBES_API gfxSkipCharsIterator {
+class gfxSkipCharsIterator {
 public:
     
 

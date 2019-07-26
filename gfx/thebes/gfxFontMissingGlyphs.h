@@ -14,7 +14,7 @@
 
 
 
-class THEBES_API gfxFontMissingGlyphs {
+class gfxFontMissingGlyphs {
 public:
     
 

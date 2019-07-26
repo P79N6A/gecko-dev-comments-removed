@@ -11,7 +11,7 @@
 #include "gfxContext.h"
 #include "gfxQuartzSurface.h"
 
-class THEBES_API gfxQuartzNativeDrawing {
+class gfxQuartzNativeDrawing {
 public:
 
     

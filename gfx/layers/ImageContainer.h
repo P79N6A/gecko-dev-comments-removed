@@ -56,7 +56,7 @@ protected:
 
 
 
-class THEBES_API Image {
+class Image {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Image)
 
 public:
@@ -167,7 +167,7 @@ public:
 
 
 
-class THEBES_API ImageFactory
+class ImageFactory
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageFactory)
 protected:
@@ -260,7 +260,7 @@ struct RemoteImageData {
 
 
 
-class THEBES_API ImageContainer {
+class ImageContainer {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 public:
 
@@ -634,7 +634,7 @@ private:
 
 
 
-class THEBES_API PlanarYCbCrImage : public Image {
+class PlanarYCbCrImage : public Image {
 public:
   struct Data {
     
@@ -754,7 +754,7 @@ protected:
 
 
 
-class THEBES_API CairoImage : public Image {
+class CairoImage : public Image {
 public:
   struct Data {
     gfxASurface* mSurface;

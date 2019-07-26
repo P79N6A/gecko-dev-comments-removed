@@ -90,7 +90,7 @@ protected:
 };
 
 #ifndef ANDROID 
-class THEBES_API gfxFT2FontGroup : public gfxFontGroup {
+class gfxFT2FontGroup : public gfxFontGroup {
 public: 
     gfxFT2FontGroup (const nsAString& families,
                     const gfxFontStyle *aStyle,

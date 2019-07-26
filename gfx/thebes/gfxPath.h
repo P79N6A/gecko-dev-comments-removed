@@ -17,7 +17,7 @@ typedef struct cairo_path cairo_path_t;
 
 
 
-class THEBES_API gfxPath {
+class gfxPath {
     NS_INLINE_DECL_REFCOUNTING(gfxPath)
 
     friend class gfxContext;
@@ -36,7 +36,7 @@ protected:
 
 
 
-class THEBES_API gfxFlattenedPath : public gfxPath {
+class gfxFlattenedPath : public gfxPath {
     friend class gfxContext;
 
 protected:

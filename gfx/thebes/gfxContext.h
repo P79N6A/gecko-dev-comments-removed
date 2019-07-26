@@ -38,7 +38,7 @@ template <typename T> class FallibleTArray;
 
 
 
-class THEBES_API gfxContext {
+class gfxContext {
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
 public:
@@ -800,7 +800,7 @@ private:
 
 
 
-class THEBES_API gfxContextAutoSaveRestore
+class gfxContextAutoSaveRestore
 {
 public:
   gfxContextAutoSaveRestore() : mContext(nullptr) {}
@@ -842,7 +842,7 @@ private:
 
 
 
-class THEBES_API gfxContextPathAutoSaveRestore
+class gfxContextPathAutoSaveRestore
 {
 public:
     gfxContextPathAutoSaveRestore() : mContext(nullptr) {}
@@ -900,7 +900,7 @@ private:
 
 
 
-class THEBES_API gfxContextMatrixAutoSaveRestore
+class gfxContextMatrixAutoSaveRestore
 {
 public:
     gfxContextMatrixAutoSaveRestore(gfxContext *aContext) :
@@ -924,7 +924,7 @@ private:
 };
 
 
-class THEBES_API gfxContextAutoDisableSubpixelAntialiasing {
+class gfxContextAutoDisableSubpixelAntialiasing {
 public:
     gfxContextAutoDisableSubpixelAntialiasing(gfxContext *aContext, bool aDisable)
     {

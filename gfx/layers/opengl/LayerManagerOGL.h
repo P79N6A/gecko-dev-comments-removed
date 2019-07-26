@@ -43,7 +43,7 @@ struct FPSState;
 
 
 
-class THEBES_API LayerManagerOGL : public LayerManager
+class LayerManagerOGL : public LayerManager
 {
   typedef mozilla::gl::GLContext GLContext;
   typedef mozilla::gl::ShaderProgramType ProgramType;

@@ -24,7 +24,7 @@ class SourceSurface;
 
 
 
-class THEBES_API gfxImageSurface : public gfxASurface {
+class gfxImageSurface : public gfxASurface {
 public:
     
 
@@ -143,7 +143,7 @@ protected:
     long mStride;
 };
 
-class THEBES_API gfxSubimageSurface : public gfxImageSurface {
+class gfxSubimageSurface : public gfxImageSurface {
 protected:
     friend class gfxImageSurface;
     gfxSubimageSurface(gfxImageSurface* aParent,
