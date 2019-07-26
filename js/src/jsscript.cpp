@@ -1841,6 +1841,8 @@ JSScript::isShortRunning()
 bool
 JSScript::enclosingScriptsCompiledSuccessfully() const
 {
+    AutoAssertNoGC nogc;
+
     
 
 
@@ -1852,7 +1854,7 @@ JSScript::enclosingScriptsCompiledSuccessfully() const
     while (enclosing) {
         if (enclosing->isFunction()) {
             RawFunction fun = enclosing->toFunction();
-            if (!fun->hasScript())
+            if (!fun->script().get(nogc))
                 return false;
             enclosing = fun->script()->enclosingScope_;
         } else {
