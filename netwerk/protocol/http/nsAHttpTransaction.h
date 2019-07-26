@@ -51,6 +51,9 @@ public:
     virtual uint32_t Caps() = 0;
 
     
+    virtual void     SetDNSWasRefreshed() = 0;
+
+    
     virtual uint64_t Available() = 0;
 
     
@@ -154,6 +157,7 @@ public:
     bool     IsDone(); \
     nsresult Status(); \
     uint32_t Caps();   \
+    void     SetDNSWasRefreshed(); \
     uint64_t Available(); \
     nsresult ReadSegments(nsAHttpSegmentReader *, uint32_t, uint32_t *); \
     nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *); \
