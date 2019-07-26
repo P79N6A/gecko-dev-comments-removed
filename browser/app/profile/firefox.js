@@ -1209,9 +1209,6 @@ pref("devtools.shadereditor.enabled", false);
 pref("devtools.canvasdebugger.enabled", false);
 
 
-pref("devtools.chrome.enabled", false);
-
-
 pref("devtools.theme", "light");
 
 
