@@ -43,7 +43,7 @@ nsStackFrame::nsStackFrame(nsIPresShell* aPresShell, nsStyleContext* aContext):
 
 
 
-void
+NS_IMETHODIMP
 nsStackFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                           const nsRect&           aDirtyRect,
                                           const nsDisplayListSet& aLists)
@@ -56,8 +56,11 @@ nsStackFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
   nsIFrame* kid = mFrames.FirstChild();
   while (kid) {
     
-    BuildDisplayListForChild(aBuilder, kid, aDirtyRect, kidLists,
-                             DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
+    nsresult rv =
+      BuildDisplayListForChild(aBuilder, kid, aDirtyRect, kidLists,
+                               DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
+    NS_ENSURE_SUCCESS(rv, rv);
     kid = kid->GetNextSibling();
   }
+  return NS_OK;
 }

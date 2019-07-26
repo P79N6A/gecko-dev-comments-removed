@@ -294,36 +294,35 @@ nsSubDocumentFrame::PassPointerEventsToChildren()
   return false;
 }
 
-void
+NS_IMETHODIMP
 nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                      const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
   if (!IsVisibleForPainting(aBuilder))
-    return;
+    return NS_OK;
 
   
   
   if (aBuilder->IsForEventDelivery() && !PassPointerEventsToChildren())
-    return;
+    return NS_OK;
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
   if (!mInnerView)
-    return;
+    return NS_OK;
 
   nsFrameLoader* frameLoader = FrameLoader();
   if (frameLoader) {
     RenderFrameParent* rfp = frameLoader->GetCurrentRemoteFrame();
     if (rfp) {
-      rfp->BuildDisplayList(aBuilder, this, aDirtyRect, aLists);
-      return;
+      return rfp->BuildDisplayList(aBuilder, this, aDirtyRect, aLists);
     }
   }
 
   nsView* subdocView = mInnerView->GetFirstChild();
   if (!subdocView)
-    return;
+    return NS_OK;
 
   nsCOMPtr<nsIPresShell> presShell = nullptr;
 
@@ -354,14 +353,14 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (!presShell) {
       
       if (!mFrameLoader)
-        return;
+        return NS_OK;
       nsCOMPtr<nsIDocShell> docShell;
       mFrameLoader->GetDocShell(getter_AddRefs(docShell));
       if (!docShell)
-        return;
+        return NS_OK;
       presShell = docShell->GetPresShell();
       if (!presShell)
-        return;
+        return NS_OK;
     }
   }
 
@@ -473,6 +472,8 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   childItems.DeleteAll();
+
+  return NS_OK;
 }
 
 nscoord

@@ -507,10 +507,10 @@ public:
 
 
 
-  void DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
-                                      const nsDisplayListSet& aLists,
-                                      bool aForceBackground,
-                                      nsDisplayBackgroundImage** aBackground);
+  nsresult DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
+                                          const nsDisplayListSet& aLists,
+                                          bool aForceBackground,
+                                          nsDisplayBackgroundImage** aBackground);
   
 
 
@@ -520,20 +520,20 @@ public:
 
 
 
-  void DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
-                                      const nsDisplayListSet& aLists,
-                                      bool aForceBackground = false);
+  nsresult DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
+                                          const nsDisplayListSet& aLists,
+                                          bool aForceBackground = false);
   
 
 
-  void DisplayOutlineUnconditional(nsDisplayListBuilder*   aBuilder,
-                                   const nsDisplayListSet& aLists);
+  nsresult DisplayOutlineUnconditional(nsDisplayListBuilder*   aBuilder,
+                                       const nsDisplayListSet& aLists);
   
 
 
 
-  void DisplayOutline(nsDisplayListBuilder*   aBuilder,
-                      const nsDisplayListSet& aLists);
+  nsresult DisplayOutline(nsDisplayListBuilder*   aBuilder,
+                          const nsDisplayListSet& aLists);
 
   
 
@@ -558,7 +558,7 @@ protected:
 
 
 
-  void DisplaySelectionOverlay(nsDisplayListBuilder* aBuilder,
+  nsresult DisplaySelectionOverlay(nsDisplayListBuilder* aBuilder,
       nsDisplayList* aList, uint16_t aContentType = nsISelectionDisplay::DISPLAY_FRAMES);
 
   int16_t DisplaySelection(nsPresContext* aPresContext, bool isOkToTurnOn = false);

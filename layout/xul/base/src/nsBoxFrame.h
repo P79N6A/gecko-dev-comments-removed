@@ -153,13 +153,13 @@ public:
 
   
   
-  virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                           const nsRect&           aDirtyRect,
-                                           const nsDisplayListSet& aLists);
+  NS_IMETHOD BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
+                                         const nsRect&           aDirtyRect,
+                                         const nsDisplayListSet& aLists);
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists) MOZ_OVERRIDE;
   
 #ifdef DEBUG_LAYOUT
     virtual void SetDebugOnChildList(nsBoxLayoutState& aState, nsIFrame* aChild, bool aDebug);
@@ -174,9 +174,9 @@ public:
 
 
 
-  void WrapListsInRedirector(nsDisplayListBuilder*   aBuilder,
-                             const nsDisplayListSet& aIn,
-                             const nsDisplayListSet& aOut);
+  nsresult WrapListsInRedirector(nsDisplayListBuilder*   aBuilder,
+                                 const nsDisplayListSet& aIn,
+                                 const nsDisplayListSet& aOut);
 
   
 

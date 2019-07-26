@@ -354,9 +354,9 @@ public:
 
 
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists);
 
   
   static void DestroyFrameList(void* aPropertyValue)
@@ -391,21 +391,22 @@ protected:
 
 
 
-  void BuildDisplayListForNonBlockChildren(nsDisplayListBuilder*   aBuilder,
-                                           const nsRect&           aDirtyRect,
-                                           const nsDisplayListSet& aLists,
-                                           uint32_t                aFlags = 0);
+  nsresult BuildDisplayListForNonBlockChildren(nsDisplayListBuilder*   aBuilder,
+                                               const nsRect&           aDirtyRect,
+                                               const nsDisplayListSet& aLists,
+                                               uint32_t                aFlags = 0);
 
   
 
 
 
-  void BuildDisplayListForInline(nsDisplayListBuilder*   aBuilder,
-                                 const nsRect&           aDirtyRect,
-                                 const nsDisplayListSet& aLists) {
+  nsresult BuildDisplayListForInline(nsDisplayListBuilder*   aBuilder,
+                                     const nsRect&           aDirtyRect,
+                                     const nsDisplayListSet& aLists) {
     DisplayBorderBackgroundOutline(aBuilder, aLists);
     BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists,
                                         DISPLAY_CHILD_INLINE);
+    return NS_OK;
   }
 
 

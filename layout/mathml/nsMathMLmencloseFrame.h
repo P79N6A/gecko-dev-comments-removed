@@ -68,9 +68,9 @@ public:
   virtual nsStyleContext*
   GetAdditionalStyleContext(int32_t aIndex) const;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) MOZ_OVERRIDE;
@@ -109,10 +109,10 @@ protected:
 
   
   
-  void DisplayNotation(nsDisplayListBuilder* aBuilder,
-                       nsIFrame* aFrame, const nsRect& aRect,
-                       const nsDisplayListSet& aLists,
-                       nscoord aThickness, nsMencloseNotation aType);
+  nsresult DisplayNotation(nsDisplayListBuilder* aBuilder,
+                           nsIFrame* aFrame, const nsRect& aRect,
+                           const nsDisplayListSet& aLists,
+                           nscoord aThickness, nsMencloseNotation aType);
 };
 
 #endif 
