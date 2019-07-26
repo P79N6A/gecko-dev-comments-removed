@@ -272,6 +272,12 @@ IonBuilder::inlineArray(CallInfo &callInfo)
         if (initLength >= JSObject::NELEMENTS_LIMIT)
             return InliningStatus_NotInlined;
 
+        
+        
+        
+        if (initLength != templateObject->as<ArrayObject>().length())
+            return InliningStatus_NotInlined;
+
         if (initLength <= ArrayObject::EagerAllocationMaxLength)
             allocating = MNewArray::NewArray_Allocating;
     }
