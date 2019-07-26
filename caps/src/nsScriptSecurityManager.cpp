@@ -262,10 +262,7 @@ JSContext *
 nsScriptSecurityManager::GetCurrentJSContext()
 {
     
-    JSContext *cx;
-    if (NS_FAILED(sXPConnect->Peek(&cx)))
-        return nullptr;
-    return cx;
+    return sXPConnect->GetCurrentJSContext();
 }
 
 JSContext *
