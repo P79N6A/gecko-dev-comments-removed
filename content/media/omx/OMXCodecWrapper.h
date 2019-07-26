@@ -280,12 +280,6 @@ public:
 
 
 
-  nsresult GetCodecConfig(nsTArray<uint8_t>* aOutputBuf);
-
-  
-
-
-
   nsresult RequestIDRFrame();
 
 protected:
@@ -313,7 +307,6 @@ private:
     , mWidth(0)
     , mHeight(0)
     , mBlobFormat(BlobFormat::AVC_MP4)
-    , mHasConfigBlob(false)
   {}
 
   
@@ -322,7 +315,6 @@ private:
   int mWidth;
   int mHeight;
   BlobFormat mBlobFormat;
-  bool mHasConfigBlob;
 };
 
 } 
