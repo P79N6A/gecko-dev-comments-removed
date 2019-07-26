@@ -167,6 +167,13 @@ var ignoreFunctions = {
 
     
     
+    
+    
+    "void mozilla::AutoJSContext::AutoJSContext(mozilla::detail::GuardObjectNotifier*)" : true,
+    "void mozilla::AutoSafeJSContext::~AutoSafeJSContext(int32)" : true,
+
+    
+    
     "void js::AutoCompartment::AutoCompartment(js::ExclusiveContext*, JSCompartment*)": true,
 };
 
