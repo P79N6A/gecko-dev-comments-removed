@@ -232,8 +232,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   getOtherBreakpoints: function(aLocation = {}, aStore = []) {
-    for (let source in this) {
-      for (let breakpointItem in source) {
+    for (let source of this) {
+      for (let breakpointItem of source) {
         let { url, line } = breakpointItem.attachment;
         if (url != aLocation.url || line != aLocation.line) {
           aStore.push(breakpointItem);
@@ -1369,7 +1369,7 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
   switchExpression: function(aVar, aExpression) {
     let expressionItem =
-      [i for (i in this) if (i.attachment.currentExpression == aVar.name)][0];
+      [i for (i of this) if (i.attachment.currentExpression == aVar.name)][0];
 
     
     if (!aExpression || this.getAllStrings().indexOf(aExpression) != -1) {
@@ -1395,7 +1395,7 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
   deleteExpression: function(aVar) {
     let expressionItem =
-      [i for (i in this) if (i.attachment.currentExpression == aVar.name)][0];
+      [i for (i of this) if (i.attachment.currentExpression == aVar.name)][0];
 
     
     this.remove(expressionItem);
@@ -2027,7 +2027,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
   _createGlobalResultsUI: function(aGlobalResults) {
     let i = 0;
 
-    for (let sourceResults in aGlobalResults) {
+    for (let sourceResults of aGlobalResults) {
       if (i++ == 0) {
         this._createSourceResultsUI(sourceResults);
       } else {
@@ -2465,9 +2465,9 @@ LineResults.prototype = {
 
 
 
-GlobalResults.prototype.__iterator__ =
-SourceResults.prototype.__iterator__ =
-LineResults.prototype.__iterator__ = function() {
+GlobalResults.prototype.iterator =
+SourceResults.prototype.iterator =
+LineResults.prototype.iterator = function() {
   for (let item of this._store) {
     yield item;
   }

@@ -1007,7 +1007,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     
     
-    for (let { target, attachment } in this) {
+    for (let { target, attachment } of this) {
       let timingsNode = $(".requests-menu-timings", target);
       let startCapNode = $(".requests-menu-timings-cap.start", target);
       let endCapNode = $(".requests-menu-timings-cap.end", target);
@@ -1143,7 +1143,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _flushWaterfallBackgrounds: function() {
-    for (let { target } in this) {
+    for (let { target } of this) {
       let waterfallNode = $(".requests-menu-waterfall", target);
       waterfallNode.style.backgroundImage = this._cachedWaterfallBackground;
     }
