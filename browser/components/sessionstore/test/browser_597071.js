@@ -2,52 +2,37 @@
 
 
 
-function test() {
-  
 
-  waitForExplicitFinish();
 
-  
-  
-  let closedWindowCount = ss.getClosedWindowCount();
-  Services.prefs.setIntPref("browser.sessionstore.max_windows_undo",
-                            closedWindowCount + 1);
 
-  let currentState = ss.getBrowserState();
-  let popupState = { windows:[
-    { tabs:[ {entries:[] }], isPopup: true, hidden: "toolbar" }
-  ] };
+add_task(function test_close_last_nonpopup_window() {
+  
+  while (ss.getClosedWindowCount()) {
+    ss.forgetClosedWindow(0);
+  }
+
+  let oldState = ss.getWindowState(window);
+
+  let popupState = {windows: [
+    {tabs: [{entries: []}], isPopup: true, hidden: "toolbar"}
+  ]};
 
   
   ss.setWindowState(window, JSON.stringify(popupState), true);
 
   
-  let newWin = openDialog(location, "", "chrome,all,dialog=no", "http://example.com");
-  newWin.addEventListener("load", function(aEvent) {
-    newWin.removeEventListener("load", arguments.callee, false);
+  let win = yield promiseNewWindowLoaded({private: false});
+  let tab = win.gBrowser.addTab("http://example.com/");
+  yield promiseBrowserLoaded(tab.linkedBrowser);
 
-    newWin.gBrowser.addEventListener("load", function(aEvent) {
-      newWin.gBrowser.removeEventListener("load", arguments.callee, true);
+  
+  let state = JSON.parse(ss.getBrowserState());
+  is(state.windows.length, 2, "sessionstore knows about this window");
 
-      newWin.gBrowser.addTab().linkedBrowser.stop();
+  
+  yield promiseWindowClosed(win);
+  is(ss.getClosedWindowCount(), 1, "correct closed window count");
 
-      
-      let state = JSON.parse(ss.getBrowserState());
-      is(state.windows.length, 2, "sessionstore knows about this window");
-
-      newWin.close();
-      newWin.addEventListener("unload", function(aEvent) {
-        newWin.removeEventListener("unload", arguments.callee, false);
-
-        is(ss.getClosedWindowCount(), closedWindowCount + 1,
-           "increased closed window count");
-
-        Services.prefs.clearUserPref("browser.sessionstore.max_windows_undo");
-        ss.setBrowserState(currentState);
-        executeSoon(finish);
-
-      }, false);
-    }, true);
-  }, false);
-}
-
+  
+  ss.setWindowState(window, oldState, true);
+});
