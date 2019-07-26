@@ -26,7 +26,7 @@
 #include "nsICacheSession.h"
 #include "nsICookieService.h"
 #include "nsITimer.h"
-#include "nsIStrictTransportSecurityService.h"
+#include "nsISiteSecurityService.h"
 #include "nsISpeculativeConnect.h"
 
 class nsHttpConnectionInfo;
@@ -196,7 +196,7 @@ public:
     nsresult GetStreamConverterService(nsIStreamConverterService **);
     nsresult GetIOService(nsIIOService** service);
     nsICookieService * GetCookieService(); 
-    nsIStrictTransportSecurityService * GetSTSService();
+    nsISiteSecurityService * GetSSService();
 
     
     uint32_t Get32BitsOfPseudoRandom();
@@ -308,7 +308,7 @@ private:
     nsCOMPtr<nsIStreamConverterService> mStreamConvSvc;
     nsCOMPtr<nsIObserverService>        mObserverService;
     nsCOMPtr<nsICookieService>          mCookieService;
-    nsCOMPtr<nsIStrictTransportSecurityService> mSTSService;
+    nsCOMPtr<nsISiteSecurityService>    mSSService;
 
     
     nsHttpAuthCache mAuthCache;
