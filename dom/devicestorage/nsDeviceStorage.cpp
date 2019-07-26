@@ -184,6 +184,7 @@ public:
   nsCOMPtr<nsIFile> apps;
   nsCOMPtr<nsIFile> sdcard;
 #endif
+  nsCOMPtr<nsIFile> crashes;
   nsCOMPtr<nsIFile> temp;
 };
 
@@ -268,7 +269,8 @@ DeviceStorageTypeChecker::Check(const nsAString& aType, nsIDOMBlob* aBlob)
   }
 
   if (aType.EqualsLiteral(DEVICESTORAGE_APPS) ||
-      aType.EqualsLiteral(DEVICESTORAGE_SDCARD)) {
+      aType.EqualsLiteral(DEVICESTORAGE_SDCARD) ||
+      aType.EqualsLiteral(DEVICESTORAGE_CRASHES)) {
     
     return true;
   }
@@ -282,7 +284,8 @@ DeviceStorageTypeChecker::Check(const nsAString& aType, nsIFile* aFile)
   NS_ASSERTION(aFile, "Calling Check without a file");
 
   if (aType.EqualsLiteral(DEVICESTORAGE_APPS) ||
-      aType.EqualsLiteral(DEVICESTORAGE_SDCARD)) {
+      aType.EqualsLiteral(DEVICESTORAGE_SDCARD) ||
+      aType.EqualsLiteral(DEVICESTORAGE_CRASHES)) {
     
     return true;
   }
@@ -362,7 +365,8 @@ DeviceStorageTypeChecker::GetPermissionForType(const nsAString& aType,
       !aType.EqualsLiteral(DEVICESTORAGE_VIDEOS) &&
       !aType.EqualsLiteral(DEVICESTORAGE_MUSIC) &&
       !aType.EqualsLiteral(DEVICESTORAGE_APPS) &&
-      !aType.EqualsLiteral(DEVICESTORAGE_SDCARD)) {
+      !aType.EqualsLiteral(DEVICESTORAGE_SDCARD) &&
+      !aType.EqualsLiteral(DEVICESTORAGE_CRASHES)) {
     
     return NS_ERROR_FAILURE;
   }
@@ -406,7 +410,8 @@ DeviceStorageTypeChecker::IsVolumeBased(const nsAString& aType)
   
   
   
-  return !aType.EqualsLiteral(DEVICESTORAGE_APPS);
+  return !aType.EqualsLiteral(DEVICESTORAGE_APPS) &&
+         !aType.EqualsLiteral(DEVICESTORAGE_CRASHES);
 #else
   return false;
 #endif
@@ -634,6 +639,21 @@ InitDirs()
   }
 #endif 
 
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    NS_GetSpecialDirectory("UAppData", getter_AddRefs(sDirs->crashes));
+    if (sDirs->crashes) {
+      sDirs->crashes->Append(NS_LITERAL_STRING("Crash Reports"));
+    }
+  } else {
+    
+    
+#ifdef MOZ_WIDGET_GONK
+    NS_NewLocalFile(NS_LITERAL_STRING("/data/b2g/mozilla/Crash Reports"),
+                                      false,
+                                      getter_AddRefs(sDirs->crashes));
+#endif
+  }
+
   if (mozilla::Preferences::GetBool("device.storage.testing", false)) {
     dirService->Get(NS_OS_TEMP_DIR, NS_GET_IID(nsIFile),
                     getter_AddRefs(sDirs->temp));
@@ -729,6 +749,11 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
 #else
      f = sDirs->sdcard;
 #endif
+  }
+
+  
+  else if (aStorageType.EqualsLiteral(DEVICESTORAGE_CRASHES)) {
+    f = sDirs->crashes;
   }
 
   
