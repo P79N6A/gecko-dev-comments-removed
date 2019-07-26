@@ -1247,8 +1247,8 @@ public:
   
 
 
-  static void AppendNodeTextContent(nsINode* aNode, bool aDeep,
-                                    nsAString& aResult);
+  static bool AppendNodeTextContent(nsINode* aNode, bool aDeep,
+                                    nsAString& aResult, const mozilla::fallible_t&);
 
   
 
