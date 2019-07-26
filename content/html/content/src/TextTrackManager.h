@@ -30,12 +30,14 @@ public:
                                            const nsAString& aLabel,
                                            const nsAString& aLanguage);
   void AddTextTrack(TextTrack* aTextTrack);
-  void RemoveTextTrack(TextTrack* aTextTrack);
+  void RemoveTextTrack(TextTrack* aTextTrack, bool aPendingListOnly);
   void DidSeek();
 
   
   
   void Update(double aTime);
+
+  void PopulatePendingList();
 
 private:
   
@@ -45,6 +47,8 @@ private:
   HTMLMediaElement* mMediaElement;
   
   nsRefPtr<TextTrackList> mTextTracks;
+  
+  nsRefPtr<TextTrackList> mPendingTextTracks;
 };
 
 } 

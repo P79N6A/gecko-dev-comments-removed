@@ -532,9 +532,9 @@ public:
     }
   }
 
-  void RemoveTextTrack(TextTrack* aTextTrack) {
+  void RemoveTextTrack(TextTrack* aTextTrack, bool aPendingListOnly = false) {
     if (mTextTrackManager) {
-      mTextTrackManager->RemoveTextTrack(aTextTrack);
+      mTextTrackManager->RemoveTextTrack(aTextTrack, aPendingListOnly);
     }
   }
 
@@ -861,6 +861,11 @@ protected:
 
   
   virtual void UpdateAudioChannelPlayingState();
+
+  
+  
+  
+  void PopulatePendingTextTrackList();
 
   
   
