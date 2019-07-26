@@ -88,7 +88,7 @@ function run_test()
 
   httpserv = new HttpServer();
   httpserv.registerDirectory("/", do_get_cwd());
-  httpserv.start(4444);
+  httpserv.start(-1);
 
   var listener = {
     onDownloadStateChange: function test_401430_odsc(aState, aDownload) {
@@ -107,6 +107,7 @@ function run_test()
   
   
   
-  var dl = addDownload({resultFileName: resultFileName,
-			targetFile: do_get_file(resultFileName, true)});
+  var dl = addDownload(httpserv,
+                       {resultFileName: resultFileName,
+                        targetFile: do_get_file(resultFileName, true)});
 }

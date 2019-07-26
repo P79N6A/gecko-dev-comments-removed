@@ -85,10 +85,9 @@ function run_test() {
   do_test_pending();
   let httpserv = new HttpServer();
   httpserv.registerDirectory("/", do_get_cwd());
+  httpserv.start(-1);
 
-  let tmpDir = Cc["@mozilla.org/file/directory_service;1"].
-               getService(Ci.nsIProperties).
-               get("TmpD", Ci.nsIFile);
+  let tmpDir = do_get_tempdir();
   const nsIWBP = Ci.nsIWebBrowserPersist;
 
   
@@ -153,7 +152,7 @@ function run_test() {
           do_check_eq(dm.activeDownloadCount, 0);
 
           
-          let dlB = addDownload({
+          let dlB = addDownload(httpserv, {
             isPrivate: true,
             targetFile: fileB,
             sourceURI: downloadBSource,
@@ -182,8 +181,7 @@ function run_test() {
           Services.obs.notifyObservers(null, "last-pb-context-exited", null);
 
           
-          httpserv.start(4444);
-          dlC = addDownload({
+          dlC = addDownload(httpserv, {
             isPrivate: false,
             targetFile: fileC,
             sourceURI: downloadCSource,
@@ -257,7 +255,9 @@ function run_test() {
 
   
   let downloadC = -1;
-  const downloadCSource = "http://localhost:4444/head_download_manager.js";
+  const downloadCSource = "http://localhost:" +
+                          httpserv.identity.primaryPort +
+                          "/head_download_manager.js";
   const downloadCDest = "download-file-C";
   const downloadCName = "download-C";
 
@@ -276,7 +276,7 @@ function run_test() {
   let dlC;
 
   
-  let dlA = addDownload({
+  let dlA = addDownload(httpserv, {
     isPrivate: false,
     targetFile: fileA,
     sourceURI: downloadASource,
