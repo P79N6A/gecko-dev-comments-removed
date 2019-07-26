@@ -1201,7 +1201,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     
     if (mAdjustOffsetForContextMenu) {
       int32_t offsetForContextMenuDev =
-        nsPresContext::CSSPixelsToAppUnits(2) / factor;
+        nsPresContext::CSSPixelsToAppUnits(CONTEXT_MENU_OFFSET_PIXELS) / factor;
       offsetForContextMenu = presContext->DevPixelsToAppUnits(offsetForContextMenuDev);
     }
 
@@ -1846,6 +1846,15 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
   
   nsMargin margin(0, 0, 0, 0);
   GetStyleMargin()->GetMargin(margin);
+
+  
+  if (mAdjustOffsetForContextMenu) {
+    nscoord offsetForContextMenu =
+      nsPresContext::CSSPixelsToAppUnits(CONTEXT_MENU_OFFSET_PIXELS);
+    margin.left += offsetForContextMenu;
+    margin.top += offsetForContextMenu;
+  }
+
   nsPresContext* presContext = PresContext();
   mScreenXPos = aLeft - presContext->AppUnitsToIntCSSPixels(margin.left);
   mScreenYPos = aTop - presContext->AppUnitsToIntCSSPixels(margin.top);
