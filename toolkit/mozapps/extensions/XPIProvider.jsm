@@ -1727,7 +1727,8 @@ var XPIProvider = {
   bootstrapScopes: {},
   
   extensionsActive: false,
-
+  
+  installStates: [],
   
   
   allAppGlobal: true,
@@ -3371,7 +3372,8 @@ var XPIProvider = {
     }
 
     
-    let cache = JSON.stringify(this.getInstallLocationStates());
+    this.installStates = this.getInstallLocationStates();
+    let cache = JSON.stringify(this.installStates);
     Services.prefs.setCharPref(PREF_INSTALL_CACHE, cache);
     this.persistBootstrappedAddons();
 
@@ -3446,11 +3448,6 @@ var XPIProvider = {
     }
 
     
-    if (DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0)) {
-      updateReasons.push("schemaChanged");
-    }
-
-    
     if (aAppChanged !== false &&
         Prefs.getBoolPref(PREF_INSTALL_DISTRO_ADDONS, true))
     {
@@ -3462,16 +3459,18 @@ var XPIProvider = {
 
     
     let telemetryCaptureTime = Date.now();
-    let state = this.getInstallLocationStates();
+    this.installStates = this.getInstallLocationStates();
     let telemetry = Services.telemetry;
     telemetry.getHistogramById("CHECK_ADDONS_MODIFIED_MS").add(Date.now() - telemetryCaptureTime);
 
     
-    let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
+    let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, "[]");
     
     
-    if (cache != JSON.stringify(state)) {
-      if (directoryStateDiffers(state, cache)) {
+    let newState = JSON.stringify(this.installStates);
+    if (cache != newState) {
+      LOG("Directory state JSON differs: cache " + cache + " state " + newState);
+      if (directoryStateDiffers(this.installStates, cache)) {
         updateReasons.push("directoryState");
       }
       else {
@@ -3480,10 +3479,23 @@ var XPIProvider = {
     }
 
     
+    if (DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0)) {
+      
+      
+      if (this.installStates.length == 0) {
+        LOG("Empty XPI database, setting schema version preference to " + DB_SCHEMA);
+        Services.prefs.setIntPref(PREF_DB_SCHEMA, DB_SCHEMA);
+      }
+      else {
+        updateReasons.push("schemaChanged");
+      }
+    }
+
+    
     
     
     let dbFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
-    if (!dbFile.exists() && state.length > 0) {
+    if (!dbFile.exists() && this.installStates.length > 0) {
       updateReasons.push("needNewDatabase");
     }
 
@@ -3491,7 +3503,7 @@ var XPIProvider = {
       let bootstrapDescriptors = [this.bootstrappedAddons[b].descriptor
                                   for (b in this.bootstrappedAddons)];
 
-      state.forEach(function(aInstallLocationState) {
+      this.installStates.forEach(function(aInstallLocationState) {
         for (let id in aInstallLocationState.addons) {
           let pos = bootstrapDescriptors.indexOf(aInstallLocationState.addons[id].descriptor);
           if (pos != -1)
@@ -3514,7 +3526,7 @@ var XPIProvider = {
         AddonManagerPrivate.recordSimpleMeasure("XPIDB_startup_load_reasons", updateReasons);
         XPIDatabase.syncLoadDB(false);
         try {
-          extensionListChanged = this.processFileChanges(state, manifests,
+          extensionListChanged = this.processFileChanges(this.installStates, manifests,
                                                          aAppChanged,
                                                          aOldAppVersion,
                                                          aOldPlatformVersion);
@@ -3566,7 +3578,7 @@ var XPIProvider = {
     
     let addonsList = FileUtils.getFile(KEY_PROFILEDIR, [FILE_XPI_ADDONS_LIST],
                                        true);
-    if (addonsList.exists() == (state.length == 0)) {
+    if (addonsList.exists() == (this.installStates.length == 0)) {
       LOG("Add-ons list is invalid, rebuilding");
       XPIDatabase.writeAddonsList();
     }

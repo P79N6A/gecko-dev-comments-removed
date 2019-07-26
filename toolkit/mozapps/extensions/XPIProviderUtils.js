@@ -616,6 +616,9 @@ this.XPIDatabase = {
                                                 "schemaMismatch-" + inputAddons.schemaVersion);
         LOG("JSON schema mismatch: expected " + DB_SCHEMA +
             ", actual " + inputAddons.schemaVersion);
+        
+        
+        
       }
       
       
@@ -656,6 +659,7 @@ this.XPIDatabase = {
       let schemaVersion = Services.prefs.getIntPref(PREF_DB_SCHEMA);
       if (schemaVersion <= LAST_SQLITE_DB_SCHEMA) {
         
+        LOG("Attempting to upgrade from SQLITE database");
         this.migrateData = this.getMigrateDataFromSQLITE();
       }
       else {
@@ -756,6 +760,12 @@ this.XPIDatabase = {
     this.addonDB = new Map();
     this.initialized = true;
 
+    if (XPIProvider.installStates && XPIProvider.installStates.length == 0) {
+      
+      LOG("Rebuilding XPI database with no extensions");
+      return;
+    }
+
     
     
     if (!this.migrateData)
@@ -764,8 +774,7 @@ this.XPIDatabase = {
     if (aRebuildOnError) {
       WARN("Rebuilding add-ons database from installed extensions.");
       try {
-        let state = XPIProvider.getInstallLocationStates();
-        XPIProvider.processFileChanges(state, {}, false);
+        XPIProvider.processFileChanges(XPIProvider.installStates, {}, false);
       }
       catch (e) {
         ERROR("Failed to rebuild XPI database from installed extensions", e);
@@ -786,10 +795,13 @@ this.XPIDatabase = {
   getActiveBundles: function XPIDB_getActiveBundles() {
     let bundles = [];
 
+    
     let addonsList = FileUtils.getFile(KEY_PROFILEDIR, [FILE_XPI_ADDONS_LIST],
                                        true);
 
     if (!addonsList.exists())
+      
+      
       return null;
 
     try {

@@ -179,9 +179,7 @@ function run_test_3() {
 
   
   
-  var file = gProfD.clone();
-  file.append("extensions.ini");
-  file.remove(true);
+  gExtensionsINI.remove(true);
   restartManager();
 
   AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
