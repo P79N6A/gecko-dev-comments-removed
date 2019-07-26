@@ -150,6 +150,28 @@ public:
     DECL_WEBGL_EXTENSION_GOOP
 };
 
+class WebGLExtensionDrawBuffers
+    : public WebGLExtensionBase
+{
+public:
+    WebGLExtensionDrawBuffers(WebGLContext*);
+    virtual ~WebGLExtensionDrawBuffers();
+
+    void DrawBuffersWEBGL(const dom::Sequence<GLenum>& buffers);
+
+    static bool IsSupported(const WebGLContext*);
+
+    static const size_t sMinColorAttachments = 4;
+    static const size_t sMinDrawBuffers = 4;
+    
+
+
+
+
+
+    DECL_WEBGL_EXTENSION_GOOP
+};
+
 } 
 
 #endif
