@@ -608,6 +608,9 @@ pref("browser.firstrun.show.localepicker", false);
 pref("browser.dom.window.dump.enabled", true);
 
 
+pref("services.push.enabled", false);
+
+
 pref("device.camera.enabled", true);
 pref("media.realtime_decoder.enabled", true);
 
