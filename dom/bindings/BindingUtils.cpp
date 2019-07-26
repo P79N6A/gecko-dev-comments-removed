@@ -2433,7 +2433,14 @@ void
 CreateGlobalOptions<nsGlobalWindow>::TraceGlobal(JSTracer* aTrc, JSObject* aObj)
 {
   mozilla::dom::TraceProtoAndIfaceCache(aTrc, aObj);
-  xpc::GetCompartmentPrivate(aObj)->scope->TraceSelf(aTrc);
+
+  
+  
+  
+  xpc::CompartmentPrivate* compartmentPrivate = xpc::GetCompartmentPrivate(aObj);
+  if (compartmentPrivate && compartmentPrivate->scope) {
+    compartmentPrivate->scope->TraceSelf(aTrc);
+  }
 }
 
 
