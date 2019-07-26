@@ -1035,25 +1035,12 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
     
     c->Hold();
 
-    
-    proto = ::JS_InitClass(cx,                  
-                           global,              
-                           parent_proto,        
-                           c,                   
-                           nullptr,              
-                           0,                   
-                           nullptr,              
-                           nullptr,              
-                           nullptr,              
-                           nullptr);             
-    if (!proto) {
-      
-      
-
+    proto = JS_NewObjectWithGivenProto(cx, c, parent_proto, global);
+    if (!proto || !JS_DefineProperty(cx, global, c->name, JS::ObjectValue(*proto),
+                                     JS_PropertyStub, JS_StrictPropertyStub, 0))
+    {
       nsXBLService::gClassTable->Remove(xblKey);
-
       c->Drop();
-
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
