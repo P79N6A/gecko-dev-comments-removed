@@ -27,10 +27,12 @@ mozilla::Monitor * gMonitor = nullptr;
 
 
 
-bool volatile gInitialized = false;
 
 
-bool volatile gCapture = false;
+bool gInitialized;
+
+
+bool gCapture;
 
 
 mozilla::TimeStamp * gProfilerStart;
@@ -129,7 +131,7 @@ public:
 
   Record * mRecordsHead;
   Record * mRecordsTail;
-  Record * volatile mNextRecord;
+  Record * mNextRecord;
 
   RecordBatch * mNextBatch;
   char * mThreadNameCopy;
@@ -138,8 +140,8 @@ public:
 
 
 
-RecordBatch * volatile gLogHead = nullptr;
-RecordBatch * volatile gLogTail = nullptr;
+RecordBatch * gLogHead = nullptr;
+RecordBatch * gLogTail = nullptr;
 
 
 
