@@ -8,13 +8,13 @@
 
 #include "nsIStreamConverterService.h"
 
-#include "nsHashtable.h"
 #include "nsTArrayForwardDeclare.h"
 
+class nsObjectHashtable;
 class nsCString;
 
 class nsStreamConverterService : public nsIStreamConverterService {
-public:
+public:    
     
     
     NS_DECL_ISUPPORTS
@@ -29,6 +29,9 @@ public:
     nsStreamConverterService();
     virtual ~nsStreamConverterService();
 
+    
+    nsresult Init();
+
 private:
     
     nsresult FindConverter(const char *aContractID, nsTArray<nsCString> **aEdgeList);
@@ -37,7 +40,7 @@ private:
     nsresult ParseFromTo(const char *aContractID, nsCString &aFromRes, nsCString &aToRes);
 
     
-    nsObjectHashtable mAdjacencyList;
+    nsObjectHashtable              *mAdjacencyList;
 };
 
 #endif 
