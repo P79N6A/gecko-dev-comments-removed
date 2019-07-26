@@ -572,6 +572,14 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
   if (NS_WARN_IF(PR_GetCurrentThread() != mThread))
     return NS_ERROR_NOT_SAME_THREAD;
 
+  
+  
+  
+  
+  
+  
+  
+  
   bool reallyWait = mayWait && (mRunningEvent > 0 || !ShuttingDown());
 
   if (MAIN_THREAD == mIsMainThread && reallyWait)
