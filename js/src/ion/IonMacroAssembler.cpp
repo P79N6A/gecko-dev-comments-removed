@@ -717,7 +717,10 @@ MacroAssembler::performOsr()
     bind(&isFunction);
     {
         
-        orPtr(Imm32(CalleeToken_Function), calleeToken);
+
+        
+        JS_ASSERT(CalleeToken_Function == 0);
+
         loadPtr(Address(script, JSFunction::offsetOfNativeOrScript()), script);
     }
 
