@@ -738,7 +738,13 @@ DragDataProducer::AddStringsToDataTransfer(nsIContent* aDragNode,
   if (!mUrlString.IsEmpty() && mIsAnchor) {
     nsAutoString dragData(mUrlString);
     dragData.AppendLiteral("\n");
-    dragData += mTitleString;
+    
+    
+    
+    nsAutoString title(mTitleString);
+    title.Trim("\r\n");
+    title.ReplaceChar("\r\n", ' ');
+    dragData += title;
 
     AddString(aDataTransfer, NS_LITERAL_STRING(kURLMime), dragData, principal);
     AddString(aDataTransfer, NS_LITERAL_STRING(kURLDataMime), mUrlString, principal);
