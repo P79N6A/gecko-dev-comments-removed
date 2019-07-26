@@ -217,59 +217,6 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle);
 
 
 
-class NamedProcessIterator {
- public:
-  NamedProcessIterator(const std::wstring& executable_name,
-                       const ProcessFilter* filter);
-  ~NamedProcessIterator();
-
-  
-  
-  
-  
-  
-  const ProcessEntry* NextProcessEntry();
-
- private:
-#if !defined(OS_BSD) || defined(__GLIBC__)
-  
-  
-  
-  bool CheckForNextProcess();
-
-  bool IncludeEntry();
-
-  
-  
-  void InitProcessEntry(ProcessEntry* entry);
-
-  std::wstring executable_name_;
-#endif
-
-#if defined(OS_WIN)
-  HANDLE snapshot_;
-  bool started_iteration_;
-#elif defined(OS_LINUX) || defined(__GLIBC__)
-  DIR *procfs_dir_;
-#elif defined(OS_BSD)
-  std::vector<ProcessEntry> content;
-  size_t nextEntry;
-#elif defined(OS_MACOSX)
-  std::vector<kinfo_proc> kinfo_procs_;
-  size_t index_of_kinfo_proc_;
-#endif
-#if !defined(OS_BSD) || defined(__GLIBC__)
-  ProcessEntry entry_;
-  const ProcessFilter* filter_;
-#endif
-
-  DISALLOW_EVIL_CONSTRUCTORS(NamedProcessIterator);
-};
-
-
-
-
-
 class ProcessMetrics {
  public:
   
