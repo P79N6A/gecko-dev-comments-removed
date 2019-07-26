@@ -1771,7 +1771,7 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
 
     
     
-    masm.assume_unreachable("Should have returned directly to its caller instead of here.");
+    masm.assumeUnreachable("Should have returned directly to its caller instead of here.");
     return true;
 }
 
