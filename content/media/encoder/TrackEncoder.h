@@ -12,6 +12,7 @@
 #include "EncodedFrameContainer.h"
 #include "StreamBuffer.h"
 #include "TrackMetadataBase.h"
+#include "VideoSegment.h"
 
 namespace mozilla {
 
@@ -208,7 +209,85 @@ protected:
 
 class VideoTrackEncoder : public TrackEncoder
 {
+public:
+  VideoTrackEncoder()
+    : TrackEncoder()
+    , mFrameWidth(0)
+    , mFrameHeight(0)
+    , mTrackRate(0)
+    , mTotalFrameDuration(0)
+  {}
 
+  
+
+
+
+  void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
+                                TrackRate aTrackRate,
+                                TrackTicks aTrackOffset,
+                                uint32_t aTrackEvents,
+                                const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
+
+protected:
+  
+
+
+
+
+
+
+  virtual nsresult Init(int aWidth, int aHeight, TrackRate aTrackRate) = 0;
+
+  
+
+
+
+  nsresult AppendVideoSegment(const VideoSegment& aSegment);
+
+  
+
+
+
+
+  virtual void NotifyEndOfStream() MOZ_OVERRIDE;
+
+  
+
+
+
+  void CreateMutedFrame(nsTArray<uint8_t>* aOutputBuffer);
+
+  
+
+
+  int mFrameWidth;
+
+  
+
+
+  int mFrameHeight;
+
+  
+
+
+  TrackRate mTrackRate;
+
+  
+
+
+
+  TrackTicks mTotalFrameDuration;
+
+  
+
+
+
+  VideoFrame mLastFrame;
+
+  
+
+
+  VideoSegment mRawSegment;
 };
 
 }
