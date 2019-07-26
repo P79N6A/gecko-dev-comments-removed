@@ -238,14 +238,6 @@
 
 
 
-     File.prototype.setPermissions = function setPermissions(options = {}) {
-         
-     };
-
-     
-
-
-
 
 
 
@@ -959,14 +951,6 @@
        
        winFlags: Const.FILE_FLAG_BACKUP_SEMANTICS,
        winDisposition: Const.OPEN_EXISTING
-     };
-
-     
-
-
-
-     File.setPermissions = function setPermissions(path, options = {}) {
-         
      };
 
      

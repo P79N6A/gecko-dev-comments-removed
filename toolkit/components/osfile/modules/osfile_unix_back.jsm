@@ -348,12 +348,6 @@
                             Type.negativeone_or_nothing,
                                 Type.fd);
 
-       libc.declareLazyFFI(SysFile,  "fchmod",
-                           "fchmod", ctypes.default_abi,
-                            Type.negativeone_or_nothing,
-                                Type.fd,
-                              Type.mode_t);
-
        libc.declareLazyFFI(SysFile,  "fchown",
                            "fchown", ctypes.default_abi,
                             Type.negativeone_or_nothing,
