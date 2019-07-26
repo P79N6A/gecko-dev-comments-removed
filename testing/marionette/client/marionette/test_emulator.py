@@ -2,8 +2,7 @@
 
 
 
-import time
-from marionette import Marionette, HTMLElement
+from marionette import Marionette
 
 
 
