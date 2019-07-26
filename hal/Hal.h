@@ -440,6 +440,12 @@ hal::SwitchState GetCurrentSwitchState(hal::SwitchDevice aDevice);
 
 
 
+void NotifySwitchStateFromInputDevice(hal::SwitchDevice aDevice,
+                                      hal::SwitchState aState);
+
+
+
+
 
 
 
