@@ -345,6 +345,10 @@ public:
 
   void QueueMetadata(int64_t aPublishTime, int aChannels, int aRate, bool aHasAudio, bool aHasVideo, MetadataTags* aTags);
 
+  
+  
+  bool IsPlaying();
+
 protected:
   virtual uint32_t GetAmpleVideoFrames() { return mAmpleVideoFrames; }
 
@@ -518,10 +522,6 @@ private:
   void StartWaitForResources();
 
   void StartDecodeMetadata();
-
-  
-  
-  bool IsPlaying();
 
   
   

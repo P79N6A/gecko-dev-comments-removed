@@ -384,6 +384,9 @@ public:
     
     
     bool mHaveBlockedForPlayState;
+    
+    
+    bool mHaveBlockedForStateMachineNotPlaying;
 
     virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
   };
@@ -412,7 +415,13 @@ public:
 
 
 
+
   void RecreateDecodedStream(int64_t aStartTimeUSecs);
+  
+
+
+
+  void UpdateStreamBlockingForStateMachinePlaying();
   
 
 
