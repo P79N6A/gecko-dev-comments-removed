@@ -372,9 +372,11 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           CompareVersions(mOSVersion.get(), "2.4.0") < 0)
       {
         
-	
+        
+        
 	bool isWhitelisted =
-          cManufacturer.Equals("htc", nsCaseInsensitiveCStringComparator());
+          cManufacturer.Equals("htc", nsCaseInsensitiveCStringComparator()) ||
+          cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator());
 
         if (!isWhitelisted) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
