@@ -399,11 +399,11 @@ RasterImage::~RasterImage()
     DiscardTracker::Remove(&mDiscardTrackerNode);
   }
 
-  
   if (mDecoder) {
-    nsresult rv = ShutdownDecoder(eShutdownIntent_Interrupted);
-    if (NS_FAILED(rv))
-      NS_WARNING("Failed to shut down decoder in destructor!");
+    
+    
+    DecodeWorker::Singleton()->StopDecoding(this);
+    mDecoder = nullptr;
   }
 
   delete mAnim;
