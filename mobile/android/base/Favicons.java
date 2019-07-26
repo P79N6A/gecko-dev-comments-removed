@@ -139,6 +139,12 @@ public class Favicons {
     }
 
     public Bitmap getFaviconFromMemCache(String pageUrl) {
+        
+        
+        if (pageUrl == null) {
+            return null;
+        }
+
         return mFaviconsCache.get(pageUrl);
     }
 
