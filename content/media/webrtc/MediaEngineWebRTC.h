@@ -40,6 +40,7 @@
 #include "webrtc/voice_engine/include/voe_volume_control.h"
 #include "webrtc/voice_engine/include/voe_external_media.h"
 #include "webrtc/voice_engine/include/voe_audio_processing.h"
+#include "webrtc/voice_engine/include/voe_call_report.h"
 
 
 #include "webrtc/video_engine/include/vie_base.h"
@@ -261,6 +262,7 @@ public:
     , mChannel(-1)
     , mInitDone(false)
     , mStarted(false)
+    , mSamples(0)
     , mEchoOn(false), mAgcOn(false), mNoiseOn(false)
     , mEchoCancel(webrtc::kEcDefault)
     , mAGC(webrtc::kAgcDefault)
@@ -317,6 +319,7 @@ private:
   ScopedCustomReleasePtr<webrtc::VoEExternalMedia> mVoERender;
   ScopedCustomReleasePtr<webrtc::VoENetwork> mVoENetwork;
   ScopedCustomReleasePtr<webrtc::VoEAudioProcessing> mVoEProcessing;
+  ScopedCustomReleasePtr<webrtc::VoECallReport> mVoECallReport;
 
   
   
@@ -329,6 +332,7 @@ private:
   TrackID mTrackID;
   bool mInitDone;
   bool mStarted;
+  int mSamples; 
 
   nsString mDeviceName;
   nsString mDeviceUUID;
