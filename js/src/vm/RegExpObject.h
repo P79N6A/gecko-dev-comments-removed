@@ -145,6 +145,7 @@ class RegExpShared
 
     RegExpFlag         flags;
     unsigned           parenCount;
+    bool               canStringMatch;
 
 #if ENABLE_YARR_JIT
     
@@ -204,7 +205,11 @@ class RegExpShared
 
     
 
-    size_t getParenCount() const        { JS_ASSERT(isCompiled()); return parenCount; }
+    size_t getParenCount() const {
+        JS_ASSERT(isCompiled() || canStringMatch);
+        return parenCount;
+    }
+
     void incRef()                       { activeUseCount++; }
     void decRef()                       { JS_ASSERT(activeUseCount > 0); activeUseCount--; }
 
