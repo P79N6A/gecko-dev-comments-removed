@@ -3,6 +3,8 @@
 
 
 #include "StartupTimeline.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/TimeStamp.h"
 #include "nsXULAppAPI.h"
 
 namespace mozilla {
@@ -14,7 +16,45 @@ const char *StartupTimeline::sStartupTimelineDesc[StartupTimeline::MAX_EVENT_ID]
 #undef mozilla_StartupTimeline_Event
 };
 
+
+
+
+
+
+
+void
+StartupTimelineRecordExternal(int aEvent, uint64_t aWhen)
+{
+#if XP_WIN
+  TimeStamp ts = TimeStampValue(aWhen, 0, 0);
+#else
+  TimeStamp ts = TimeStampValue(aWhen);
+#endif
+  bool error = false;
+
+  
+  
+  if (ts < TimeStamp::ProcessCreation(error)) {
+    Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS,
+      (StartupTimeline::Event)aEvent);
+  } else {
+    StartupTimeline::Record((StartupTimeline::Event)aEvent, ts);
+  }
+}
+
 } 
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -23,8 +63,5 @@ const char *StartupTimeline::sStartupTimelineDesc[StartupTimeline::MAX_EVENT_ID]
 void
 XRE_StartupTimelineRecord(int aEvent, PRTime aWhen)
 {
-  
-
-  mozilla::StartupTimeline::Record((mozilla::StartupTimeline::Event) aEvent,
-    mozilla::TimeStamp());
+  mozilla::StartupTimelineRecordExternal(aEvent, aWhen);
 }
