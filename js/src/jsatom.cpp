@@ -365,13 +365,6 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
     if (pp)
         return pp->asPtr();
 
-    
-
-
-
-
-
-
     AutoLockForExclusiveAccess lock(cx);
 
     AtomSet& atoms = cx->atoms();
@@ -392,7 +385,10 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
 
     JSAtom *atom = flat->morphAtomizedStringIntoAtom();
 
-    if (!atoms.relookupOrAdd(p, lookup, AtomStateEntry(atom, bool(ib)))) {
+    
+    
+    
+    if (!atoms.add(p, AtomStateEntry(atom, bool(ib)))) {
         js_ReportOutOfMemory(cx); 
         return nullptr;
     }
