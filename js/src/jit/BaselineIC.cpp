@@ -8845,6 +8845,11 @@ DoInstanceOfFallback(JSContext *cx, ICInstanceOf_Fallback *stub,
 
     RootedObject obj(cx, &rhs.toObject());
 
+    
+    
+    if (obj->is<JSFunction>() && IsIonEnabled(cx))
+        types::EnsureTrackPropertyTypes(cx, obj, NameToId(cx->names().prototype));
+
     bool cond = false;
     if (!HasInstance(cx, obj, lhs, &cond))
         return false;
