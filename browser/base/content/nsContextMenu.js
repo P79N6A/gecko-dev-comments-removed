@@ -277,18 +277,6 @@ nsContextMenu.prototype = {
     this.showItem("context-keywordfield",
                   this.onTextInput && this.onKeywordField);
     this.showItem("frame", this.inFrame);
-
-    
-    
-    
-    
-    
-    this.showItem("context-showonlythisframe", !this.inSrcdocFrame);
-    this.showItem("context-openframeintab", !this.inSrcdocFrame);
-    this.showItem("context-openframe", !this.inSrcdocFrame);
-    this.showItem("context-bookmarkframe", !this.inSrcdocFrame);
-    this.showItem("open-frame-sep", !this.inSrcdocFrame);
-
     this.showItem("frame-sep", this.inFrame && isTextSelected);
 
     
@@ -528,7 +516,6 @@ nsContextMenu.prototype = {
     this.linkProtocol      = "";
     this.onMathML          = false;
     this.inFrame           = false;
-    this.inSrcdocFrame     = false;
     this.inSyntheticDoc    = false;
     this.hasBGImage        = false;
     this.bgImageURL        = "";
@@ -692,11 +679,11 @@ nsContextMenu.prototype = {
     
     var docDefaultView = this.target.ownerDocument.defaultView;
     if (docDefaultView != docDefaultView.top) {
-      this.inFrame = true;
-
-      if (this.target.ownerDocument.isSrcdocDocument) {
-          this.inSrcdocFrame = true;
-      }
+      
+      
+      
+      if (!this.target.ownerDocument.isSrcdocDocument)
+        this.inFrame = true;
     }
 
     
@@ -726,7 +713,6 @@ nsContextMenu.prototype = {
           this.onCompletedImage  = false;
           this.onMathML          = false;
           this.inFrame           = false;
-          this.inSrcdocFrame     = false;
           this.hasBGImage        = false;
           this.isDesignMode      = true;
           this.onEditableArea = true;
