@@ -28,6 +28,8 @@ const SEARCH_TOKEN_FLAG = "#";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
 
+Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
+
 
 
 
@@ -280,7 +282,9 @@ let DebuggerView = {
     },
     ([, aError]) => {
       
-      let msg = "Error loading: " + aSource.url + "\n" + aError;
+      let msg = L10N.getStr("errorLoadingText") + DevToolsUtils.safeErrorString(aError);
+      this.editor.setText(msg);
+      window.dispatchEvent(document, "Debugger:SourceErrorShown", aError);
       dumpn(msg);
       Cu.reportError(msg);
     });
