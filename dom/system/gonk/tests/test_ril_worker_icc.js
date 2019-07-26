@@ -2606,44 +2606,36 @@ add_test(function test_find_free_icc_contact() {
   contactHelper.findFreeICCContact(CARD_APPTYPE_USIM, "adn", successCb, errorCb);
 });
 
-
-
-
-add_test(function test_card_state_corporateLocked() {
+add_test(function test_personalization_state() {
   let worker = newUint8Worker();
   let ril = worker.RIL;
-  let iccStatus = {
-    gsmUmtsSubscriptionAppIndex: 0,
-    apps: [
-      {
-        app_state: CARD_APPSTATE_SUBSCRIPTION_PERSO,
-        perso_substate: CARD_PERSOSUBSTATE_SIM_CORPORATE
-      }],
-  };
 
-  ril._processICCStatus(iccStatus);
-  do_check_eq(ril.cardState, GECKO_CARDSTATE_CORPORATE_LOCKED);
+  function testPersonalization(cardPersoState, geckoCardState) {
+    let iccStatus = {
+      gsmUmtsSubscriptionAppIndex: 0,
+      apps: [
+        {
+          app_state: CARD_APPSTATE_SUBSCRIPTION_PERSO,
+          perso_substate: cardPersoState
+        }],
+    };
 
-  run_next_test();
-});
+    ril._processICCStatus(iccStatus);
+    do_check_eq(ril.cardState, geckoCardState);
+  }
 
-
-
-
-add_test(function test_card_state_serviceProviderLocked() {
-  let worker = newUint8Worker();
-  let ril = worker.RIL;
-  let iccStatus = {
-    gsmUmtsSubscriptionAppIndex: 0,
-    apps: [
-      {
-        app_state: CARD_APPSTATE_SUBSCRIPTION_PERSO,
-        perso_substate: CARD_PERSOSUBSTATE_SIM_SERVICE_PROVIDER
-      }],
-  };
-
-  ril._processICCStatus(iccStatus);
-  do_check_eq(ril.cardState, GECKO_CARDSTATE_SERVICE_PROVIDER_LOCKED);
+  testPersonalization(CARD_PERSOSUBSTATE_SIM_NETWORK,
+                      GECKO_CARDSTATE_NETWORK_LOCKED);
+  testPersonalization(CARD_PERSOSUBSTATE_SIM_CORPORATE,
+                      GECKO_CARDSTATE_CORPORATE_LOCKED);
+  testPersonalization(CARD_PERSOSUBSTATE_SIM_SERVICE_PROVIDER,
+                      GECKO_CARDSTATE_SERVICE_PROVIDER_LOCKED);
+  testPersonalization(CARD_PERSOSUBSTATE_SIM_NETWORK_PUK,
+                      GECKO_CARDSTATE_NETWORK_PUK_REQUIRED);
+  testPersonalization(CARD_PERSOSUBSTATE_SIM_CORPORATE_PUK,
+                      GECKO_CARDSTATE_CORPORATE_PUK_REQUIRED);
+  testPersonalization(CARD_PERSOSUBSTATE_SIM_SERVICE_PROVIDER_PUK,
+                      GECKO_CARDSTATE_SERVICE_PROVIDER_PUK_REQUIRED);
 
   run_next_test();
 });
@@ -2656,8 +2648,9 @@ add_test(function test_unlock_card_lock_corporateLocked() {
   let ril = worker.RIL;
   let buf = worker.Buf;
   const pin = "12345678";
+  const puk = "12345678";
 
-  function do_test(aLock, aPin) {
+  function do_test(aLock, aPassword) {
     buf.sendParcel = function fakeSendParcel () {
       
       do_check_eq(this.readUint32(), REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE);
@@ -2665,23 +2658,29 @@ add_test(function test_unlock_card_lock_corporateLocked() {
       
       this.readUint32();
 
-      let lockType = aLock === "cck" ?
-                     CARD_PERSOSUBSTATE_SIM_CORPORATE :
-                     CARD_PERSOSUBSTATE_SIM_SERVICE_PROVIDER;
-
+      let lockType = GECKO_PERSO_LOCK_TO_CARD_PERSO_LOCK[aLock];
       
       do_check_eq(this.readUint32(), lockType);
 
       
-      do_check_eq(this.readString(), aPin);
+      do_check_eq(this.readString(), aPassword);
     };
 
-    ril.iccUnlockCardLock({lockType: aLock,
-                           pin: aPin});
+    if (aLock.endsWith("Puk")) {
+      ril.iccUnlockCardLock({lockType: aLock,
+                             puk: aPassword});
+    } else {
+      ril.iccUnlockCardLock({lockType: aLock,
+                             pin: aPassword});
+    }
   }
 
+  do_test("nck", pin);
   do_test("cck", pin);
   do_test("spck", pin);
+  do_test("nckPuk", puk);
+  do_test("cckPuk", puk);
+  do_test("spckPuk", puk);
 
   run_next_test();
 });

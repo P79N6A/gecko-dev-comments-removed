@@ -980,17 +980,19 @@ let RIL = {
         this.enterICCPUK2(options);
         break;
       case "nck":
-        options.type = CARD_PERSOSUBSTATE_SIM_NETWORK;
-        this.enterDepersonalization(options);
+      case "cck": 
+      case "spck": {
+        let type = GECKO_PERSO_LOCK_TO_CARD_PERSO_LOCK[options.lockType];
+        this.enterDepersonalization(type, options.pin, options);
         break;
-      case "cck":
-        options.type = CARD_PERSOSUBSTATE_SIM_CORPORATE;
-        this.enterDepersonalization(options);
+      }
+      case "nckPuk":
+      case "cckPuk": 
+      case "spckPuk": {
+        let type = GECKO_PERSO_LOCK_TO_CARD_PERSO_LOCK[options.lockType];
+        this.enterDepersonalization(type, options.puk, options);
         break;
-      case "spck":
-        options.type = CARD_PERSOSUBSTATE_SIM_SERVICE_PROVIDER;
-        this.enterDepersonalization(options);
-        break;
+      }
       default:
         options.errorMsg = "Unsupported Card Lock.";
         options.success = false;
@@ -1042,10 +1044,10 @@ let RIL = {
 
 
 
-  enterDepersonalization: function enterDepersonalization(options) {
+  enterDepersonalization: function enterDepersonalization(type, password, options) {
     Buf.newParcel(REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE, options);
-    Buf.writeUint32(options.type);
-    Buf.writeString(options.pin);
+    Buf.writeUint32(type);
+    Buf.writeString(password);
     Buf.sendParcel();
   },
 
