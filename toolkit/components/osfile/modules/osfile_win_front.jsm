@@ -134,6 +134,11 @@
 
 
      File.prototype._write = function _write(buffer, nbytes, options) {
+       if (this._appendMode) {
+         
+         
+         this.setPosition(0, File.POS_END);
+       }
        
        throw_on_zero("write",
          WinFile.WriteFile(this.fd, buffer, nbytes, gBytesWrittenPtr, null)
@@ -257,6 +262,9 @@
 
 
 
+
+
+
      File.open = function Win_open(path, mode = {}, options = {}) {
        let share = options.winShare !== undefined ? options.winShare : DEFAULT_SHARE;
        let security = options.winSecurity || null;
@@ -264,6 +272,9 @@
        let template = options.winTemplate ? options.winTemplate._fd : null;
        let access;
        let disposition;
+
+       mode = OS.Shared.AbstractFile.normalizeOpenMode(mode);
+
        if ("winAccess" in options && "winDisposition" in options) {
          access = options.winAccess;
          disposition = options.winDisposition;
@@ -272,7 +283,6 @@
          throw new TypeError("OS.File.open requires either both options " +
            "winAccess and winDisposition or neither");
        } else {
-         mode = OS.Shared.AbstractFile.normalizeOpenMode(mode);
          if (mode.read) {
            access |= Const.GENERIC_READ;
          }
@@ -293,16 +303,18 @@
            disposition = Const.CREATE_NEW;
          } else if (mode.read && !mode.write) {
            disposition = Const.OPEN_EXISTING;
-         } else  {
-           if (mode.existing) {
-             disposition = Const.OPEN_EXISTING;
-           } else {
-             disposition = Const.OPEN_ALWAYS;
-           }
+         } else if (mode.existing) {
+           disposition = Const.OPEN_EXISTING;
+         } else {
+           disposition = Const.OPEN_ALWAYS;
          }
        }
+
        let file = error_or_file(WinFile.CreateFile(path,
          access, share, security, disposition, flags, template));
+
+       file._appendMode = !!mode.append;
+
        if (!(mode.trunc && mode.existing)) {
          return file;
        }
