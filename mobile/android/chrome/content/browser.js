@@ -731,6 +731,38 @@ var BrowserApp = {
   },
 
   
+
+
+
+
+
+  getTabWithURL: function getTabWithURL(aURL) {
+    let uri = Services.io.newURI(aURL, null, null);
+    for (let i = 0; i < this._tabs.length; ++i) {
+      let tab = this._tabs[i];
+      if (tab.browser.currentURI.equals(uri)) {
+        return tab;
+      }
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+  selectOrOpenTab: function selectOrOpenTab(aURL) {
+    let tab = this.getTabWithURL(aURL);
+    if (tab == null) {
+      this.addTab(aURL);
+    } else {
+      this.selectTab(tab);
+    }
+  },
+
+  
   
   _handleTabSelected: function _handleTabSelected(aTab) {
     this.selectedTab = aTab;
