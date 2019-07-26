@@ -698,11 +698,6 @@ GLContext::CanUploadSubTextures()
 
     
     
-    if (HasLockSurface())
-        return true;
-
-    
-    
     if (Renderer() == RendererAdreno200 || Renderer() == RendererAdreno205)
         return false;
 

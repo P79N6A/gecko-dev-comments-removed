@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #ifndef GLLIBRARYEGL_H_
 #define GLLIBRARYEGL_H_
@@ -35,20 +35,20 @@ typedef void *EGLNativePixmapType;
 typedef void *EGLNativeWindowType;
 
 #ifdef ANDROID
-// We only need to explicitly dlopen egltrace
-// on android as we can use LD_PRELOAD or other tricks
-// on other platforms. We look for it in /data/local
-// as that's writeable by all users
-//
-// This should really go in GLLibraryEGL.cpp but we currently reference
-// APITRACE_LIB in GLContextProviderEGL.cpp. Further refactoring
-// will come in subsequent patches on Bug 732865
+
+
+
+
+
+
+
+
 #define APITRACE_LIB "/data/local/egltrace.so"
 
 #ifdef MOZ_WIDGET_ANDROID
 
-#endif // MOZ_WIDGET_ANDROID
-#endif // ANDROID
+#endif 
+#endif 
 #endif
 
 #if defined(MOZ_X11)
@@ -71,8 +71,8 @@ namespace gl {
 #define AFTER_GL_CALL do {           \
     AfterGLCall(MOZ_FUNCTION_NAME);  \
 } while (0)
-// We rely on the fact that GLLibraryEGL.h #defines BEFORE_GL_CALL and
-// AFTER_GL_CALL to nothing if !defined(DEBUG).
+
+
 #endif
 
 static inline void BeforeGLCall(const char* glFunction)
@@ -102,13 +102,13 @@ public:
 
     void InitExtensions();
 
-    /**
-     * Known GL extensions that can be queried by
-     * IsExtensionSupported.  The results of this are cached, and as
-     * such it's safe to use this even in performance critical code.
-     * If you add to this array, remember to add to the string names
-     * in GLContext.cpp.
-     */
+    
+
+
+
+
+
+
     enum EGLExtensions {
         KHR_image_base,
         KHR_image_pixmap,
@@ -342,7 +342,7 @@ public:
         return b;
     }
 
-    // New extension which allow us to lock texture and get raw image pointer
+    
     EGLBoolean fLockSurface(EGLDisplay dpy, EGLSurface surface, const EGLint *attrib_list)
     {
         BEFORE_GL_CALL;
@@ -428,10 +428,6 @@ public:
         return IsExtensionSupported(KHR_gl_texture_2D_image);
     }
 
-    bool HasKHRLockSurface() {
-        return IsExtensionSupported(KHR_lock_surface);
-    }
-
     bool HasANGLESurfaceD3DTexture2DShareHandle() {
         return IsExtensionSupported(ANGLE_surface_d3d_texture_2d_share_handle);
     }
@@ -501,7 +497,7 @@ public:
         typedef EGLBoolean (GLAPIENTRY * pfnDestroyImage)(EGLDisplay dpy, EGLImage image);
         pfnDestroyImage fDestroyImage;
 
-        // New extension which allow us to lock texture and get raw image pointer
+        
         typedef EGLBoolean (GLAPIENTRY * pfnLockSurface)(EGLDisplay dpy, EGLSurface surface, const EGLint *attrib_list);
         pfnLockSurface fLockSurface;
         typedef EGLBoolean (GLAPIENTRY * pfnUnlockSurface)(EGLDisplay dpy, EGLSurface surface);
@@ -530,8 +526,8 @@ private:
     bool mIsANGLE;
 };
 
-} /* namespace gl */
-} /* namespace mozilla */
+} 
+} 
 
-#endif /* GLLIBRARYEGL_H_ */
+#endif 
 
