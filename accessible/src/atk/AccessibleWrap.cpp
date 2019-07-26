@@ -406,13 +406,9 @@ AccessibleWrap::CreateMaiInterfaces(void)
 
   if (!nsAccUtils::MustPrune(this)) {  
     
-    nsCOMPtr<nsIAccessibleTable> accessInterfaceTable;
-    QueryInterface(NS_GET_IID(nsIAccessibleTable),
-                   getter_AddRefs(accessInterfaceTable));
-    if (accessInterfaceTable) {
+    if (AsTable())
       interfacesBits |= 1 << MAI_INTERFACE_TABLE;
-    }
-      
+ 
     
     if (IsSelect()) {
       interfacesBits |= 1 << MAI_INTERFACE_SELECTION;
