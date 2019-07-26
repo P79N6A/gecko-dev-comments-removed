@@ -216,6 +216,23 @@ TEST_F(pkixder_input_tests, ReadBytePastEnd)
   ASSERT_NE(0x22, readByte2);
 }
 
+TEST_F(pkixder_input_tests, ReadByteWrapAroundPointer)
+{
+  
+  
+  
+  
+  
+  
+  const uint8_t* der = nullptr;
+  --der;
+  Input input;
+  ASSERT_EQ(Success, input.Init(der, 0));
+  uint8_t b;
+  ASSERT_EQ(Failure, input.Read(b));
+  ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
+}
+
 TEST_F(pkixder_input_tests, ReadWord)
 {
   Input input;
@@ -257,6 +274,23 @@ TEST_F(pkixder_input_tests, ReadWordWithInsufficentData)
   uint16_t readWord1 = 0;
   ASSERT_EQ(Failure, input.Read(readWord1));
   ASSERT_NE(0x1122, readWord1);
+}
+
+TEST_F(pkixder_input_tests, ReadWordWrapAroundPointer)
+{
+  
+  
+  
+  
+  
+  
+  const uint8_t* der = nullptr;
+  --der;
+  Input input;
+  ASSERT_EQ(Success, input.Init(der, 0));
+  uint16_t b;
+  ASSERT_EQ(Failure, input.Read(b));
+  ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
 }
 
 TEST_F(pkixder_input_tests, InputSkip)
@@ -349,6 +383,22 @@ TEST_F(pkixder_input_tests, InputSkipToSECItem)
   ASSERT_EQ(sizeof expectedItemData, item.len);
   ASSERT_EQ(der, item.data);
   ASSERT_EQ(0, memcmp(item.data, expectedItemData, sizeof expectedItemData));
+}
+
+TEST_F(pkixder_input_tests, SkipWrapAroundPointer)
+{
+  
+  
+  
+  
+  
+  
+  const uint8_t* der = nullptr;
+  --der;
+  Input input;
+  ASSERT_EQ(Success, input.Init(der, 0));
+  ASSERT_EQ(Failure, input.Skip(1));
+  ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
 }
 
 TEST_F(pkixder_input_tests, SkipToSECItemPastEnd)
