@@ -148,8 +148,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     void TeardownProtoChain();
 
     
-    bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject, JS::Handle<jsid> aId,
-                      unsigned aFlags, JS::MutableHandle<JSObject*> aObjp);
+    bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
+                      JS::Handle<jsid> aId,
+                      JS::MutableHandle<JS::Value> aValue);
 
     
     nsIDocument* GetContentDocument();

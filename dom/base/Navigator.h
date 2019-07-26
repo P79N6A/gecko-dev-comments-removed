@@ -350,8 +350,7 @@ public:
                               ErrorResult& aRv);
 #endif 
   bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                    JS::Handle<jsid> aId, unsigned aFlags,
-                    JS::MutableHandle<JSObject*> aObjp);
+                    JS::Handle<jsid> aId, JS::MutableHandle<JS::Value> aValue);
 
   
   static bool HasBatterySupport(JSContext* , JSObject* );
