@@ -7351,9 +7351,6 @@ var Distribution = {
   
   _file: null,
 
-  
-  _path: null,
-
   init: function dc_init() {
     Services.obs.addObserver(this, "Distribution:Set", false);
     Services.obs.addObserver(this, "prefservice:after-app-defaults", false);
@@ -7375,8 +7372,6 @@ var Distribution = {
   observe: function dc_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "Distribution:Set":
-        this._path = aData;
-
         
         Services.prefs.QueryInterface(Ci.nsIObserver).observe(null, "reload-default-prefs", null);
         break;
@@ -7417,20 +7412,12 @@ var Distribution = {
   },
 
   getPrefs: function dc_getPrefs() {
-    let file;
-    if (this._path) {
-      file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-      file.initWithPath(this._path);
-      
-      Services.prefs.setCharPref("distribution.path", this._path);
-    } else {
-      
-      
-      file = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
-      file.append("distribution");
-    }
-    file.append("preferences.json");
+    
+    let file = FileUtils.getDir("XREAppDist", [], false);
+    if (!file.exists())
+      return;
 
+    file.append("preferences.json");
     this.readJSON(file, this.applyPrefs);
   },
 

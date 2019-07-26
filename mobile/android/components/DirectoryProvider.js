@@ -2,6 +2,8 @@
 
 
 
+#filter substitution
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -19,9 +21,12 @@ const NS_APP_SEARCH_DIR       = "SrchPlugns";
 const NS_APP_SEARCH_DIR_LIST  = "SrchPluginsDL";
 const NS_APP_USER_SEARCH_DIR  = "UsrSrchPlugns";
 const NS_XPCOM_CURRENT_PROCESS_DIR = "XCurProcD";
+const XRE_APP_DISTRIBUTION_DIR = "XREAppDist";
 const XRE_UPDATE_ROOT_DIR     = "UpdRootD";
 const ENVVAR_UPDATE_DIR       = "UPDATES_DIRECTORY";
 const WEBAPPS_DIR             = "webappsDir";
+
+const SYSTEM_DIST_PATH = "/system/@ANDROID_PACKAGE_NAME@/distribution";
 
 function DirectoryProvider() {}
 
@@ -43,6 +48,19 @@ DirectoryProvider.prototype = {
       let dirsvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
       let profile = dirsvc.get("ProfD", Ci.nsIFile);
       return profile.parent;
+    } else if (prop == XRE_APP_DISTRIBUTION_DIR) {
+      
+      let dataDist = FileUtils.getDir(NS_XPCOM_CURRENT_PROCESS_DIR, ["distribution"], false);
+      if (!dataDist.exists()) {
+        
+        let systemDist = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+        systemDist.initWithPath(SYSTEM_DIST_PATH);
+        
+        if (systemDist.exists()) {
+          return systemDist;
+        }
+      }
+      return dataDist;
     } else if (prop == XRE_UPDATE_ROOT_DIR) {
       let env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
       if (env.exists(ENVVAR_UPDATE_DIR)) {
@@ -80,20 +98,9 @@ DirectoryProvider.prototype = {
 
 
   _appendDistroSearchDirs: function(array) {
-    let distro = FileUtils.getDir(NS_XPCOM_CURRENT_PROCESS_DIR, ["distribution"], false);
-    if (!distro.exists()) {
-      
-      let path;
-      try {
-        path = Services.prefs.getCharPref("distribution.path");
-      } catch (e) { }
-
-      if (!path)
-        return;
-
-      distro = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-      distro.initWithPath(path);
-    }
+    let distro = this.getFile(XRE_APP_DISTRIBUTION_DIR);
+    if (!distro.exists())
+      return;
 
     let searchPlugins = distro.clone();
     searchPlugins.append("searchplugins");
