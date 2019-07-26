@@ -2,9 +2,12 @@
 
 
 
+import errno
 import os
 import re
 import shutil
+import stat
+import uuid
 from mozpack.executables import (
     is_executable,
     may_strip,
@@ -156,6 +159,100 @@ class ExecutableFile(File):
         except ErrorMessage:
             os.remove(dest)
             raise
+        return True
+
+
+class AbsoluteSymlinkFile(File):
+    '''File class that is copied by symlinking (if available).
+
+    This class only works if the target path is absolute.
+    '''
+
+    def __init__(self, path):
+        if not os.path.isabs(path):
+            raise ValueError('Symlink target not absolute: %s' % path)
+
+        File.__init__(self, path)
+
+    def copy(self, dest, skip_if_older=True):
+        assert isinstance(dest, basestring)
+
+        
+        
+        
+        
+
+        
+        
+        if not hasattr(os, 'symlink'):
+            return File.copy(self, dest, skip_if_older=skip_if_older)
+
+        
+        if not os.path.exists(self.path):
+            raise ErrorMessage('Symlink target path does not exist: %s' % self.path)
+
+        st = None
+
+        try:
+            st = os.lstat(dest)
+        except OSError as ose:
+            if ose.errno != errno.ENOENT:
+                raise
+
+        
+        
+        
+        if st and stat.S_ISLNK(st.st_mode):
+            link = os.readlink(dest)
+            if link == self.path:
+                return False
+
+            os.remove(dest)
+            os.symlink(self.path, dest)
+            return True
+
+        
+        
+        if not st:
+            try:
+                os.symlink(self.path, dest)
+                return True
+            except OSError:
+                return File.copy(self, dest, skip_if_older=skip_if_older)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        temp_dest = os.path.join(os.path.dirname(dest), str(uuid.uuid4()))
+        try:
+            os.symlink(self.path, temp_dest)
+        
+        
+        except EnvironmentError:
+            return File.copy(self, dest, skip_if_older=skip_if_older)
+
+        
+        
+        try:
+            os.remove(dest)
+        except EnvironmentError:
+            os.remove(temp_dest)
+            raise
+
+        os.rename(temp_dest, dest)
         return True
 
 
