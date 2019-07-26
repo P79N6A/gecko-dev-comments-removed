@@ -2209,6 +2209,13 @@ function UpdateUrlbarSearchSplitterState()
   var urlbar = document.getElementById("urlbar-container");
   var searchbar = document.getElementById("search-container");
 
+  
+  if (splitter &&
+      ((splitter.nextSibling == searchbar && splitter.previousSibling == urlbar) ||
+       (splitter.nextSibling == urlbar && splitter.previousSibling == searchbar))) {
+    return;
+  }
+
   var ibefore = null;
   if (urlbar && searchbar) {
     if (urlbar.nextSibling == searchbar)
