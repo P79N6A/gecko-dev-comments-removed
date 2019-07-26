@@ -88,6 +88,7 @@ def checkout(git_dir, tag):
 
 
 
+
 def untracked_files(hg_dir):
     """untracked files in an hg repository"""
     process = subprocess.Popen(['hg', 'st'],
@@ -153,6 +154,18 @@ def setup(**kwargs):
     assert current_package
     current_package_info[current_package] = kwargs
 
+def checkout_tag(src, directory, version):
+    """
+    front end to checkout + version_tag;
+    if version is None, checkout HEAD
+    """
+
+    if version is None:
+        tag = 'HEAD'
+    else:
+        tag = version_tag(directory, version)
+    checkout(src, tag)
+
 def check_consistency(*package_info):
     """checks consistency between a set of packages"""
 
@@ -213,6 +226,8 @@ def main(args=sys.argv[1:]):
                                    formatter=PlainDescriptionFormatter())
     parser.add_option('-o', '--output', dest='output',
                       help="specify the output file; otherwise will be in the current directory with a name based on the hash")
+    parser.add_option('--develop', dest='develop',
+                      help="use development (HEAD) version of packages")
     parser.add_option('--packages', dest='output_packages',
                       default=False, action='store_true',
                       help="generate packages.txt and exit")
@@ -277,10 +292,17 @@ def main(args=sys.argv[1:]):
 
         
         for index, (directory, version) in enumerate(versions):
+
+            setup_py = os.path.join(src, directory, 'setup.py')
+            assert os.path.exists(setup_py), "'%s' not found" % setup_py
+
             if not version:
+
+                if options.develop:
+                    
+                    continue
+
                 
-                setup_py = os.path.join(src, directory, 'setup.py')
-                assert os.path.exists(setup_py), "'%s' not found" % setup_py
                 with file(setup_py) as f:
                     for line in f.readlines():
                         line = line.strip()
@@ -305,8 +327,7 @@ def main(args=sys.argv[1:]):
             for directory, version in versions:
 
                 
-                tag = version_tag(directory, version)
-                checkout(src, tag)
+                checkout_tag(src, directory, version)
 
                 
                 setup_py = os.path.join(src, directory, 'setup.py')
@@ -324,8 +345,7 @@ def main(args=sys.argv[1:]):
         for directory, version in versions:
 
             
-            tag = version_tag(directory, version)
-            checkout(src, tag)
+            checkout_tag(src, directory, version)
 
             
             remove(os.path.join(here, directory))
