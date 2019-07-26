@@ -77,6 +77,12 @@ ion::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             
+            if (ins->isFolded())
+                continue;
+
+            
+            
+            
             
             
             uint32_t maxDefinition = 0;
@@ -119,10 +125,6 @@ ion::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
                 block->insertBefore(*(block->begin()), constant);
                 uses = mrp->replaceOperand(uses, constant);
             }
-
-            MResumePoint *mrp = ins->resumePoint();
-            if (!mrp)
-                continue;
         }
     }
 
@@ -161,7 +163,7 @@ IsPhiObservable(MPhi *phi)
 {
     
     
-    if (phi->hasBytecodeUses())
+    if (phi->isFolded())
         return true;
 
     
@@ -204,9 +206,8 @@ IsPhiRedundant(MPhi *phi)
     }
 
     
-    
-    if (phi->hasBytecodeUses() && first->isPhi())
-        first->toPhi()->setHasBytecodeUses();
+    if (phi->isFolded())
+        first->setFoldedUnchecked();
 
     return first;
 }
