@@ -868,15 +868,26 @@ this.DOMApplicationRegistry = {
   },
 
   cancelDownload: function cancelDownload(aManifestURL) {
-    
-    if (!this.downloads[aManifestURL]) {
+    debug("cancelDownload " + aManifestURL);
+    let download = this.downloads[aManifestURL];
+    if (!download) {
+      debug("Could not find a download for " + aManifestURL);
       return;
     }
-    
-    let download = this.downloads[aManifestURL]
-    download.channel.cancel(Cr.NS_BINDING_ABORTED);
-    let app = this.webapps[download.appId];
 
+    if (download.cacheUpdate) {
+      
+      try {
+        download.cacheUpdate.cancel();
+      } catch (e) { debug (e); }
+    } else if (download.channel) {
+      
+      download.channel.cancel(Cr.NS_BINDING_ABORTED);
+    } else {
+      return;
+    }
+
+    let app = this.webapps[download.appId];
     app.progress = 0;
     app.installState = download.previousState;
     app.downloading = false;
@@ -1038,26 +1049,42 @@ this.DOMApplicationRegistry = {
                                                                 aProfileDir,
                                                                 aOfflineCacheObserver,
                                                                 aIsUpdate) {
+    if (!aManifest.appcache_path) {
+      return;
+    }
+
     
-    if (aManifest.appcache_path) {
-      let appcacheURI = Services.io.newURI(aManifest.fullAppcachePath(), null, null);
-      let docURI = Services.io.newURI(aManifest.fullLaunchPath(), null, null);
-      
-      
-      
-      if (aIsUpdate) {
-        aApp.installState = "updating";
-      }
-      
-      
-      aApp.downloading = true;
-      let cacheUpdate = aProfileDir
-        ? updateSvc.scheduleCustomProfileUpdate(appcacheURI, docURI, aProfileDir)
-        : updateSvc.scheduleAppUpdate(appcacheURI, docURI, aApp.localId, false);
-      cacheUpdate.addObserver(new AppcacheObserver(aApp), false);
-      if (aOfflineCacheObserver) {
-        cacheUpdate.addObserver(aOfflineCacheObserver, false);
-      }
+    
+    let appcacheURI = Services.io.newURI(aManifest.fullAppcachePath(),
+                                         null, null);
+    let docURI = Services.io.newURI(aManifest.fullLaunchPath(), null, null);
+
+    
+    
+    
+    if (aIsUpdate) {
+      aApp.installState = "updating";
+    }
+
+    
+    
+    aApp.downloading = true;
+    let cacheUpdate = aProfileDir
+      ? updateSvc.scheduleCustomProfileUpdate(appcacheURI, docURI, aProfileDir)
+      : updateSvc.scheduleAppUpdate(appcacheURI, docURI, aApp.localId, false);
+
+    
+    
+    let download = {
+      cacheUpdate: cacheUpdate,
+      appId: this._appIdForManifestURL(aApp.manifestURL),
+      previousState: aIsUpdate ? "installed" : "pending"
+    };
+    this.downloads[aApp.manifestURL] = download;
+
+    cacheUpdate.addObserver(new AppcacheObserver(aApp), false);
+    if (aOfflineCacheObserver) {
+      cacheUpdate.addObserver(aOfflineCacheObserver, false);
     }
   },
 
@@ -1714,11 +1741,11 @@ this.DOMApplicationRegistry = {
 
       let requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
                                   .QueryInterface(Ci.nsIHttpChannel);
-      self.downloads[aApp.manifestURL] =
-        { channel:requestChannel,
-          appId: id,
-          previousState: aIsUpdate ? "installed" : "pending"
-        };
+      self.downloads[aApp.manifestURL] = {
+        channel: requestChannel,
+        appId: id,
+        previousState: aIsUpdate ? "installed" : "pending"
+      };
 
       let lastProgressTime = 0;
       requestChannel.notificationCallbacks = {
