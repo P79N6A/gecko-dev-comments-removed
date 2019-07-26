@@ -526,14 +526,12 @@ imgStatusTracker::SyncAndSyncNotifyDifference(imgStatusTracker* other)
   mImageStatus = other->mImageStatus;
   mIsMultipart = other->mIsMultipart;
   mHadLastPart = other->mHadLastPart;
+  mImageStatus |= other->mImageStatus;
 
   
-  if (mImageStatus == imgIRequest::STATUS_ERROR ||
-      other->mImageStatus == imgIRequest::STATUS_ERROR) {
+  if (mImageStatus & imgIRequest::STATUS_ERROR) {
     mImageStatus = imgIRequest::STATUS_ERROR;
   } else {
-    mImageStatus |= other->mImageStatus;
-
     
     if (!(other->mImageStatus & imgIRequest::STATUS_DECODE_STARTED)) {
       mImageStatus &= ~imgIRequest::STATUS_DECODE_STARTED;

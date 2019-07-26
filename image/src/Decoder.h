@@ -192,6 +192,11 @@ protected:
   RefPtr<imgDecoderObserver> mObserver;
   ImageMetadata mImageMetadata;
 
+  uint8_t* mImageData;       
+  uint32_t mImageDataLength;
+  uint32_t* mColormap;       
+  uint32_t mColormapSize;
+
   uint32_t mDecodeFlags;
   bool mDecodeDone;
   bool mDataError;

@@ -21,8 +21,6 @@ nsIconDecoder::nsIconDecoder(RasterImage &aImage)
    mWidth(-1),
    mHeight(-1),
    mPixBytesRead(0),
-   mPixBytesTotal(0),
-   mImageData(nullptr),
    mState(iconStateStart)
 {
   
@@ -40,10 +38,6 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
   
   uint32_t bytesToRead = 0;
   nsresult rv;
-
-  
-  
-  nsIntRect r(0, 0, mWidth, mHeight);
 
   
   while (aCount > 0) {
@@ -81,7 +75,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
         
         rv = mImage.EnsureFrame(0, 0, 0, mWidth, mHeight,
                                 gfxASurface::ImageFormatARGB32,
-                                &mImageData, &mPixBytesTotal);
+                                &mImageData, &mImageDataLength);
         if (NS_FAILED(rv)) {
           PostDecoderError(rv);
           return;
@@ -97,12 +91,17 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
         break;
 
       case iconStateReadPixels:
+      {
 
         
-        bytesToRead = std::min(aCount, mPixBytesTotal - mPixBytesRead);
+        bytesToRead = std::min(aCount, mImageDataLength - mPixBytesRead);
 
         
         memcpy(mImageData + mPixBytesRead, aBuffer, bytesToRead);
+
+        
+        
+        nsIntRect r(0, 0, mWidth, mHeight);
 
         
         PostInvalidation(r);
@@ -113,12 +112,13 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
         mPixBytesRead += bytesToRead;
 
         
-        if (mPixBytesRead == mPixBytesTotal) {
+        if (mPixBytesRead == mImageDataLength) {
           PostFrameStop();
           PostDecodeDone();
           mState = iconStateFinished;
         }
         break;
+      }
 
       case iconStateFinished:
 

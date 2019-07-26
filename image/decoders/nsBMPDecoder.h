@@ -67,7 +67,6 @@ private:
 
     bitFields mBitFields;
 
-    uint32_t *mImageData; 
     uint8_t *mRow;      
     uint32_t mRowBytes; 
     int32_t mCurLine;   
