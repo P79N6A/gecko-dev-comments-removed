@@ -1,5 +1,11 @@
-#ifndef mozilla_dom_AtomList_h__
-#define mozilla_dom_AtomList_h__
+
+
+
+
+
+
+#ifndef mozilla_dom_AtomList_h
+#define mozilla_dom_AtomList_h
 
 #include "jsapi.h"
 #include "mozilla/dom/GeneratedAtomList.h"
