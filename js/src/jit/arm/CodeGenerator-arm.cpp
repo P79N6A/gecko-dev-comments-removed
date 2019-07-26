@@ -27,6 +27,7 @@ using namespace js;
 using namespace js::jit;
 
 using mozilla::FloorLog2;
+using mozilla::NegativeInfinity;
 
 
 CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
@@ -972,7 +973,7 @@ CodeGeneratorARM::visitPowHalfD(LPowHalfD *ins)
     Label done;
 
     
-    masm.ma_vimm(js_NegativeInfinity, ScratchFloatReg);
+    masm.ma_vimm(NegativeInfinity(), ScratchFloatReg);
     masm.compareDouble(input, ScratchFloatReg);
     masm.ma_vneg(ScratchFloatReg, output, Assembler::Equal);
     masm.ma_b(&done, Assembler::Equal);
