@@ -1010,11 +1010,11 @@ let RIL = {
     Buf.sendParcel();
   },
 
-   
+  
 
 
   iccSetCardLock: function iccSetCardLock(options) {
-    if (options.newPin !== undefined) {
+    if (options.newPin !== undefined) { 
       switch (options.lockType) {
         case "pin":
           this.changeICCPIN(options);
@@ -1028,13 +1028,26 @@ let RIL = {
           this.sendDOMMessage(options);
       }
     } else { 
-      if (options.lockType != "pin") {
-        options.errorMsg = "Unsupported Card Lock.";
-        options.success = false;
-        this.sendDOMMessage(options);
-        return;
+      switch (options.lockType) {
+        case "pin":
+          options.facility = ICC_CB_FACILITY_SIM;
+          options.password = options.pin;
+          break;
+        case "fdn":
+          options.facility = ICC_CB_FACILITY_FDN;
+          options.password = options.pin2;
+          break;
+        default:
+          options.errorMsg = "Unsupported Card Lock.";
+          options.success = false;
+          this.sendDOMMessage(options);
+          return;
       }
-      this.setICCPinLock(options);
+      options.enabled = options.enabled;
+      options.serviceClass = ICC_SERVICE_CLASS_VOICE |
+                             ICC_SERVICE_CLASS_DATA  |
+                             ICC_SERVICE_CLASS_FAX;
+      this.setICCFacilityLock(options);
     }
   },
 
@@ -1127,23 +1140,18 @@ let RIL = {
   iccGetCardLock: function iccGetCardLock(options) {
     switch (options.lockType) {
       case "pin":
-        this.getICCPinLock(options);
+        options.facility = ICC_CB_FACILITY_SIM;
+        break;
+      case "fdn":
+        options.facility = ICC_CB_FACILITY_FDN;
         break;
       default:
         options.errorMsg = "Unsupported Card Lock.";
         options.success = false;
         this.sendDOMMessage(options);
+        return;
     }
-  },
 
-  
-
-
-
-
-
-  getICCPinLock: function getICCPinLock(options) {
-    options.facility = ICC_CB_FACILITY_SIM;
     options.password = ""; 
     options.serviceClass = ICC_SERVICE_CLASS_VOICE |
                            ICC_SERVICE_CLASS_DATA  |
@@ -1173,26 +1181,6 @@ let RIL = {
       Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  setICCPinLock: function setICCPinLock(options) {
-    options.facility = ICC_CB_FACILITY_SIM;
-    options.enabled = options.enabled;
-    options.password = options.pin;
-    options.serviceClass = ICC_SERVICE_CLASS_VOICE |
-                           ICC_SERVICE_CLASS_DATA  |
-                           ICC_SERVICE_CLASS_FAX;
-    this.setICCFacilityLock(options);
   },
 
   
