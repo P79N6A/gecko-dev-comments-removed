@@ -2761,10 +2761,30 @@ HTMLInputElement::ShouldPreventDOMActivateDispatch(EventTarget* aOriginalTarget)
                              nsGkAtoms::button, eCaseMatters);
 }
 
+void
+HTMLInputElement::MaybeFireAsyncClickHandler(nsEventChainPostVisitor& aVisitor)
+{
+  
+  
+  
+  
+  
+  
+  
+  if ((mType == NS_FORM_INPUT_FILE || mType == NS_FORM_INPUT_COLOR) &&
+      NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
+      !aVisitor.mEvent->mFlags.mDefaultPrevented) {
+    FireAsyncClickHandler();
+  }
+}
+
 nsresult
 HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {
   if (!aVisitor.mPresContext) {
+    
+    
+    MaybeFireAsyncClickHandler(aVisitor);
     return NS_OK;
   }
 
@@ -3168,18 +3188,7 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     PostHandleEventForRangeThumb(aVisitor);
   }
 
-  
-  
-  
-  
-  
-  
-  
-  if ((mType == NS_FORM_INPUT_FILE || mType == NS_FORM_INPUT_COLOR) &&
-      NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
-      !aVisitor.mEvent->mFlags.mDefaultPrevented) {
-    return FireAsyncClickHandler();
-  }
+  MaybeFireAsyncClickHandler(aVisitor);
 
   return rv;
 }
