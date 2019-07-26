@@ -1167,13 +1167,6 @@ class Activation
     
     size_t savedFrameChain_;
 
-    
-    
-    
-    
-    
-    size_t hideScriptedCallerCount_;
-
     enum Kind { Interpreter, Jit, ForkJoin };
     Kind kind_;
 
@@ -1223,17 +1216,6 @@ class Activation
     }
     bool hasSavedFrameChain() const {
         return savedFrameChain_ > 0;
-    }
-
-    void hideScriptedCaller() {
-        hideScriptedCallerCount_++;
-    }
-    void unhideScriptedCaller() {
-        JS_ASSERT(hideScriptedCallerCount_ > 0);
-        hideScriptedCallerCount_--;
-    }
-    bool scriptedCallerIsHidden() const {
-        return hideScriptedCallerCount_ > 0;
     }
 
   private:

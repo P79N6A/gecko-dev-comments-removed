@@ -9,7 +9,6 @@
 #include "mozilla/Assertions.h"
 
 #include "jsapi.h"
-#include "xpcpublic.h"
 #include "nsIGlobalObject.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptContext.h"
@@ -92,39 +91,6 @@ void DestroyScriptSettings()
   delete ptr;
 }
 
-
-
-
-nsIGlobalObject*
-GetIncumbentGlobal()
-{
-  
-  
-  
-  
-  
-  JSContext *cx = nsContentUtils::GetCurrentJSContextForThread();
-  if (!cx) {
-    MOZ_ASSERT(ScriptSettingsStack::Ref().EntryPoint() == nullptr);
-    return nullptr;
-  }
-
-  
-  
-  
-  
-  JS::RootedScript script(cx);
-  if (JS_DescribeScriptedCaller(cx, &script, nullptr)) {
-    JS::RootedObject global(cx, JS_GetGlobalFromScript(script));
-    MOZ_ASSERT(global);
-    return xpc::GetNativeForGlobal(global);
-  }
-
-  
-  
-  return ScriptSettingsStack::Ref().Incumbent();
-}
-
 AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
                                  bool aIsMainThread,
                                  JSContext* aCx)
@@ -162,7 +128,6 @@ AutoEntryScript::~AutoEntryScript()
 AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
   : mStack(ScriptSettingsStack::Ref())
   , mEntry(aGlobalObject,  false)
-  , mCallerOverride(nsContentUtils::GetCurrentJSContextForThread())
 {
   mStack.Push(&mEntry);
 }
