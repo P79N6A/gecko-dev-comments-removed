@@ -1273,8 +1273,8 @@ let SessionStoreInternal = {
     
     
     
-    let previousState;
-    if (previousState = browser.__SS_restoreState) {
+    let previousState = browser.__SS_restoreState;
+    if (previousState) {
       this._resetTabRestoringState(aTab);
       if (previousState == TAB_STATE_RESTORING)
         this.restoreNextTab();
