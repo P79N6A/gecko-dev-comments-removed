@@ -134,14 +134,32 @@ DOMRequestIpcHelper.prototype = {
     return id;
   },
 
+  getPromiseResolverId: function(aPromiseResolver) {
+    
+    
+    return this.getRequestId(aPromiseResolver);
+  },
+
   getRequest: function(aId) {
     if (this._requests[aId])
       return this._requests[aId];
   },
 
+  getPromiseResolver: function(aId) {
+    
+    
+    return this.getRequest(aId);
+  },
+
   removeRequest: function(aId) {
     if (this._requests[aId])
       delete this._requests[aId];
+  },
+
+  removePromiseResolver: function(aId) {
+    
+    
+    this.removeRequest(aId);
   },
 
   takeRequest: function(aId) {
@@ -150,6 +168,12 @@ DOMRequestIpcHelper.prototype = {
     let request = this._requests[aId];
     delete this._requests[aId];
     return request;
+  },
+
+  takePromiseResolver: function(aId) {
+    
+    
+    return this.takeRequest(aId);
   },
 
   _getRandomId: function() {
@@ -176,5 +200,14 @@ DOMRequestIpcHelper.prototype = {
 
   createRequest: function() {
     return Services.DOMRequest.createRequest(this._window);
+  },
+
+  
+
+
+
+
+  createPromise: function(aPromiseInit) {
+    return new this._window.Promise(aPromiseInit);
   }
 }
