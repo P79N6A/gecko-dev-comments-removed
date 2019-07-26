@@ -12,6 +12,7 @@ const Cr = Components.results;
 
 this.EXPORTED_SYMBOLS = ["DebuggerTransport",
                          "DebuggerClient",
+                         "RootClient",
                          "debuggerSocketConnect",
                          "LongStringClient",
                          "GripClient"];
@@ -204,8 +205,6 @@ const UnsolicitedPauses = {
   "exception": "exception"
 };
 
-const ROOT_ACTOR_NAME = "root";
-
 
 
 
@@ -222,6 +221,9 @@ this.DebuggerClient = function DebuggerClient(aTransport)
   this._pendingRequests = [];
   this._activeRequests = {};
   this._eventsEnabled = true;
+
+  
+  this.mainRoot = null;
 
   this.compat = new ProtocolCompatibility(this, [
     new SourcesShim(),
@@ -393,14 +395,7 @@ DebuggerClient.prototype = {
 
 
 
-
-
-  listTabs: DebuggerClient.requester({
-    to: ROOT_ACTOR_NAME,
-    type: "listTabs"
-  }, {
-    telemetry: "LISTTABS"
-  }),
+  listTabs: function(aOnResponse) { return this.mainRoot.listTabs(aOnResponse); },
 
   
 
@@ -581,6 +576,7 @@ DebuggerClient.prototype = {
       if (!this._connected) {
         
         this._connected = true;
+        this.mainRoot = new RootClient(this, aPacket);
         this.notify("connected",
                     aPacket.applicationType,
                     aPacket.traits);
@@ -879,6 +875,54 @@ TabClient.prototype = {
 };
 
 eventSource(TabClient.prototype);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function RootClient(aClient, aGreeting) {
+  this._client = aClient;
+  this.actor = aGreeting.from;
+  this.applicationType = aGreeting.applicationType;
+  this.traits = aGreeting.traits;
+}
+
+RootClient.prototype = {
+  constructor: RootClient,
+
+  
+
+
+
+
+
+  listTabs: DebuggerClient.requester({ type: "listTabs" },
+                                     { telemetry: "LISTTABS" }),
+
+  
+
+
+
+  get _transport() { return this._client._transport; },
+  get request()    { return this._client.request;    }
+};
+
 
 
 
