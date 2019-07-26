@@ -80,6 +80,8 @@ public class UninstallListener extends BroadcastReceiver {
             if (index == -1)
                 continue;
 
+            allocator.releaseIndex(index);
+
             
             String targetProcessName = context.getPackageName();
             targetProcessName = targetProcessName + ":" + targetProcessName + ".Webapp" + index;
