@@ -289,13 +289,9 @@ DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
         MOZ_ASSERT(handler->isSafeToUnwrap());
-    } else if (WrapperFactory::IsComponentsObject(obj))
-    {
+    } else if (WrapperFactory::IsComponentsObject(obj)) {
         
         MOZ_ASSERT(!handler->isSafeToUnwrap());
-    } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
-        
-        
     } else if (handler == &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton) {
         
         
@@ -401,8 +397,7 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
                xpc::AllowXBLScope(target) &&
                !(targetIsChrome || (targetSubsumesOrigin && nsContentUtils::IsCallerXBL())))
     {
-        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                    OnlyIfSubjectIsSystem>::singleton;
+        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
     }
 
     
@@ -575,7 +570,7 @@ WrapperFactory::WrapSOWObject(JSContext *cx, JSObject *objArg)
     JSObject *wrapperObj =
         Wrapper::New(cx, obj, proto, JS_GetGlobalForObject(cx, obj),
                      &FilteringWrapper<SameCompartmentSecurityWrapper,
-                     OnlyIfSubjectIsSystem>::singleton);
+                     Opaque>::singleton);
     return wrapperObj;
 }
 

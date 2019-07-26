@@ -258,13 +258,6 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
 }
 
 bool
-AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
-{
-    MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
-    return nsContentUtils::CanAccessNativeAnon();
-}
-
-bool
 AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 {
     JSObject* wrapper = obj;
@@ -276,21 +269,6 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(js::GetObjectPrivate(obj));
     return wn->NeedsSOW();
-}
-
-bool
-OnlyIfSubjectIsSystem::isSafeToUnwrap()
-{
-    
-    
-    JSContext *cx = nsContentUtils::GetCurrentJSContext();
-    if (!cx)
-        return true;
-    
-    
-    if (xpc::AllowXBLScope(js::GetContextCompartment(cx)))
-        return false;
-    return AccessCheck::isSystemOnlyAccessPermitted(cx);
 }
 
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };

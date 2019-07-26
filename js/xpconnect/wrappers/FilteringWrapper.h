@@ -19,9 +19,6 @@ class FilteringWrapper : public Base {
     FilteringWrapper(unsigned flags);
     virtual ~FilteringWrapper();
 
-    
-    virtual bool isSafeToUnwrap();
-
     virtual bool getPropertyDescriptor(JSContext *cx, JS::Handle<JSObject*> wrapper,
                                        JS::Handle<jsid> id, js::PropertyDescriptor *desc,
                                        unsigned flags) MOZ_OVERRIDE;
