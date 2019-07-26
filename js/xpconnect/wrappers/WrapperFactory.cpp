@@ -334,7 +334,41 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
 
     Wrapper *wrapper;
     CompartmentPrivate *targetdata = EnsureCompartmentPrivate(target);
-    if (targetIsChrome) {
+
+    
+    
+    
+
+    
+    
+    if (xpc::IsUniversalXPConnectEnabled(target)) {
+        wrapper = &CrossCompartmentWrapper::singleton;
+
+    
+    
+    } else if (originIsChrome && !targetIsChrome && xrayType == NotXray) {
+        wrapper = &ChromeObjectWrapper::singleton;
+
+    
+    
+    } else if (IsComponentsObject(obj) && !AccessCheck::isChrome(target)) {
+        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
+                                    ComponentsObjectPolicy>::singleton;
+    } else if (AccessCheck::needsSystemOnlyWrapper(obj) && !AccessCheck::isChrome(target)) {
+        
+        if (!AccessCheck::subsumes(target, origin)) {
+            JS_ReportError(cx, "Don't expose cross-origin NAC");
+            return nullptr;
+        }
+        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
+                                    OnlyIfSubjectIsSystem>::singleton;
+    }
+
+    
+    
+    
+
+    else if (targetIsChrome) {
         if (originIsChrome) {
             wrapper = &CrossCompartmentWrapper::singleton;
         } else {
@@ -353,19 +387,14 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
                 }
             }
         }
-    } else if (xpc::IsUniversalXPConnectEnabled(target)) {
-        wrapper = &CrossCompartmentWrapper::singleton;
     } else if (originIsChrome) {
 
         if (xrayType == XrayForWrappedNative) {
             wrapper = &FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>::singleton;
         } else if (xrayType == XrayForDOMObject) {
             wrapper = &FilteringWrapper<SecurityXrayDOM, CrossOriginAccessiblePropertiesOnly>::singleton;
-        } else if (IsComponentsObject(obj)) {
-            wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                        ComponentsObjectPolicy>::singleton;
         } else {
-            wrapper = &ChromeObjectWrapper::singleton;
+            MOZ_NOT_REACHED();
         }
     } else if (targetSubsumesOrigin) {
         
@@ -377,13 +406,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
         
         
         
-        if (AccessCheck::needsSystemOnlyWrapper(obj)) {
-            wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                        OnlyIfSubjectIsSystem>::singleton;
-        } else if (IsComponentsObject(obj)) {
-            wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                        ComponentsObjectPolicy>::singleton;
-        } else if (!targetdata->wantXrays || xrayType == NotXray) {
+        if (!targetdata->wantXrays || xrayType == NotXray) {
             wrapper = &CrossCompartmentWrapper::singleton;
         } else if (xrayType == XrayForDOMObject) {
             wrapper = &PermissiveXrayDOM::singleton;
@@ -391,9 +414,6 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
             wrapper = &PermissiveXrayXPCWN::singleton;
         }
     } else {
-        NS_ASSERTION(!AccessCheck::needsSystemOnlyWrapper(obj),
-                     "bad object exposed across origins");
-
         
         
         if (xrayType == NotXray) {
