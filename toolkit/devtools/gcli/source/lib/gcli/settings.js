@@ -16,23 +16,32 @@
 
 'use strict';
 
+var imports = {};
+
+var Cc = require('chrome').Cc;
+var Ci = require('chrome').Ci;
+var Cu = require('chrome').Cu;
+
+var XPCOMUtils = Cu.import('resource://gre/modules/XPCOMUtils.jsm', {}).XPCOMUtils;
+var Services = Cu.import('resource://gre/modules/Services.jsm', {}).Services;
+
+XPCOMUtils.defineLazyGetter(imports, 'prefBranch', function() {
+  var prefService = Cc['@mozilla.org/preferences-service;1']
+          .getService(Ci.nsIPrefService);
+  return prefService.getBranch(null).QueryInterface(Ci.nsIPrefBranch2);
+});
+
+XPCOMUtils.defineLazyGetter(imports, 'supportsString', function() {
+  return Cc['@mozilla.org/supports-string;1']
+          .createInstance(Ci.nsISupportsString);
+});
+
 var util = require('./util/util');
 
 
 
 
-
-var settings = {};
-
-
-
-
-var settingValues = {};
-
-
-
-
-var settingStorage;
+var DEVTOOLS_PREFIX = 'devtools.gcli.';
 
 
 
@@ -42,52 +51,214 @@ var types;
 
 
 
-exports.setDefaults = function(newValues) {
-  Object.keys(newValues).forEach(function(name) {
-    if (settingValues[name] === undefined) {
-      settingValues[name] = newValues[name];
+
+function Setting(prefSpec) {
+  if (typeof prefSpec === 'string') {
+    
+    this.name = prefSpec;
+    this.description = '';
+  }
+  else {
+    
+    this.name = DEVTOOLS_PREFIX + prefSpec.name;
+
+    if (prefSpec.ignoreTypeDifference !== true && prefSpec.type) {
+      if (this.type.name !== prefSpec.type) {
+        throw new Error('Locally declared type (' + prefSpec.type + ') != ' +
+            'Mozilla declared type (' + this.type.name + ') for ' + this.name);
+      }
     }
+
+    this.description = prefSpec.description;
+  }
+
+  this.onChange = util.createEvent('Setting.onChange');
+}
+
+
+
+
+Object.defineProperty(Setting.prototype, 'type', {
+  get: function() {
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        return types.createType('boolean');
+
+      case imports.prefBranch.PREF_INT:
+        return types.createType('number');
+
+      case imports.prefBranch.PREF_STRING:
+        return types.createType('string');
+
+      default:
+        throw new Error('Unknown type for ' + this.name);
+    }
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Setting.prototype, 'value', {
+  get: function() {
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        return imports.prefBranch.getBoolPref(this.name);
+
+      case imports.prefBranch.PREF_INT:
+        return imports.prefBranch.getIntPref(this.name);
+
+      case imports.prefBranch.PREF_STRING:
+        var value = imports.prefBranch.getComplexValue(this.name,
+                Ci.nsISupportsString).data;
+        
+        if (/^chrome:\/\/.+\/locale\/.+\.properties/.test(value)) {
+          value = imports.prefBranch.getComplexValue(this.name,
+                  Ci.nsIPrefLocalizedString).data;
+        }
+        return value;
+
+      default:
+        throw new Error('Invalid value for ' + this.name);
+    }
+  },
+
+  set: function(value) {
+    if (imports.prefBranch.prefIsLocked(this.name)) {
+      throw new Error('Locked preference ' + this.name);
+    }
+
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        imports.prefBranch.setBoolPref(this.name, value);
+        break;
+
+      case imports.prefBranch.PREF_INT:
+        imports.prefBranch.setIntPref(this.name, value);
+        break;
+
+      case imports.prefBranch.PREF_STRING:
+        imports.supportsString.data = value;
+        imports.prefBranch.setComplexValue(this.name,
+                Ci.nsISupportsString,
+                imports.supportsString);
+        break;
+
+      default:
+        throw new Error('Invalid value for ' + this.name);
+    }
+
+    Services.prefs.savePrefFile(null);
+  },
+
+  enumerable: true
+});
+
+
+
+
+Setting.prototype.setDefault = function() {
+  imports.prefBranch.clearUserPref(this.name);
+  Services.prefs.savePrefFile(null);
+};
+
+
+
+
+
+var settingsAll = [];
+
+
+
+
+var settingsMap = new Map();
+
+
+
+
+var hasReadSystem = false;
+
+
+
+
+function reset() {
+  settingsMap = new Map();
+  settingsAll = [];
+  hasReadSystem = false;
+}
+
+
+
+
+exports.startup = function(t) {
+  reset();
+  types = t;
+  if (types == null) {
+    throw new Error('no types');
+  }
+};
+
+exports.shutdown = function() {
+  reset();
+};
+
+
+
+
+
+function readSystem() {
+  if (hasReadSystem) {
+    return;
+  }
+
+  imports.prefBranch.getChildList('').forEach(function(name) {
+    var setting = new Setting(name);
+    settingsAll.push(setting);
+    settingsMap.set(name, setting);
+  });
+
+  settingsAll.sort(function(s1, s2) {
+    return s1.name.localeCompare(s2.name);
+  });
+
+  hasReadSystem = true;
+}
+
+
+
+
+
+exports.getAll = function(filter) {
+  readSystem();
+
+  if (filter == null) {
+    return settingsAll;
+  }
+
+  return settingsAll.filter(function(setting) {
+    return setting.name.indexOf(filter) !== -1;
   });
 };
 
 
 
 
-exports.startup = function(t) {
-  types = t;
-  settingStorage = new LocalSettingStorage();
-  settingStorage.load(settingValues);
-};
-
-exports.shutdown = function() {
-};
-
-
-
-
-exports.getAll = function(filter) {
-  var all = [];
-  Object.keys(settings).forEach(function(name) {
-    if (filter == null || name.indexOf(filter) !== -1) {
-      all.push(settings[name]);
-    }
-  }.bind(this));
-  all.sort(function(s1, s2) {
-    return s1.name.localeCompare(s2.name);
-  }.bind(this));
-  return all;
-};
-
-
-
-
-
 exports.addSetting = function(prefSpec) {
-  var type = types.createType(prefSpec.type);
-  var setting = new Setting(prefSpec.name, type, prefSpec.description,
-                            prefSpec.defaultValue);
-  settings[setting.name] = setting;
+  var setting = new Setting(prefSpec);
+
+  if (settingsMap.has(setting.name)) {
+    
+    for (var i = 0; i < settingsAll.length; i++) {
+      if (settingsAll[i].name === setting.name) {
+        settingsAll[i] = setting;
+      }
+    }
+  }
+
+  settingsMap.set(setting.name, setting);
   exports.onChange({ added: setting.name });
+
   return setting;
 };
 
@@ -101,16 +272,28 @@ exports.addSetting = function(prefSpec) {
 
 
 exports.getSetting = function(name) {
-  return settings[name];
-};
+  
+  
+  var found = settingsMap.get(name);
+  if (!found) {
+    found = settingsMap.get(DEVTOOLS_PREFIX + name);
+  }
 
+  if (found) {
+    return found;
+  }
 
-
-
-exports.removeSetting = function(nameOrSpec) {
-  var name = typeof nameOrSpec === 'string' ? nameOrSpec : nameOrSpec.name;
-  delete settings[name];
-  exports.onChange({ removed: name });
+  if (hasReadSystem) {
+    return undefined;
+  }
+  else {
+    readSystem();
+    found = settingsMap.get(name);
+    if (!found) {
+      found = settingsMap.get(DEVTOOLS_PREFIX + name);
+    }
+    return found;
+  }
 };
 
 
@@ -121,68 +304,4 @@ exports.onChange = util.createEvent('Settings.onChange');
 
 
 
-
-function LocalSettingStorage() {
-}
-
-LocalSettingStorage.prototype.load = function(values) {
-  if (typeof localStorage === 'undefined') {
-    return;
-  }
-
-  var gcliSettings = localStorage.getItem('gcli-settings');
-  if (gcliSettings != null) {
-    var parsed = JSON.parse(gcliSettings);
-    Object.keys(parsed).forEach(function(name) {
-      values[name] = parsed[name];
-    });
-  }
-};
-
-LocalSettingStorage.prototype.save = function(values) {
-  if (typeof localStorage !== 'undefined') {
-    var json = JSON.stringify(values);
-    localStorage.setItem('gcli-settings', json);
-  }
-};
-
-exports.LocalSettingStorage = LocalSettingStorage;
-
-
-
-
-
-
-function Setting(name, type, description, defaultValue) {
-  this.name = name;
-  this.type = type;
-  this.description = description;
-  this._defaultValue = defaultValue;
-
-  this.onChange = util.createEvent('Setting.onChange');
-  this.setDefault();
-}
-
-
-
-
-Setting.prototype.setDefault = function() {
-  this.value = this._defaultValue;
-};
-
-
-
-
-Object.defineProperty(Setting.prototype, 'value', {
-  get: function() {
-    return settingValues[this.name];
-  },
-
-  set: function(value) {
-    settingValues[this.name] = value;
-    settingStorage.save(settingValues);
-    this.onChange({ setting: this, value: value });
-  },
-
-  enumerable: true
-});
+exports.removeSetting = function() { };

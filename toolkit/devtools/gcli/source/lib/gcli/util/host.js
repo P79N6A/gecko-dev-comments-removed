@@ -16,18 +16,14 @@
 
 'use strict';
 
+var Cu = require('chrome').Cu;
+var Cc = require('chrome').Cc;
+var Ci = require('chrome').Ci;
 
-
-
-var childProcess = require('child_process');
-var fs = require('fs');
-var path = require('path');
+var OS = Cu.import('resource://gre/modules/osfile.jsm', {}).OS;
 
 var promise = require('./promise');
 var util = require('./util');
-
-var ATTR_NAME = '__gcli_border';
-var HIGHLIGHT_STYLE = '1px dashed black';
 
 function Highlighter(document) {
   this._document = document;
@@ -53,19 +49,11 @@ Highlighter.prototype.destroy = function() {
 };
 
 Highlighter.prototype._highlightNode = function(node) {
-  if (node.hasAttribute(ATTR_NAME)) {
-    return;
-  }
-
-  var styles = this._document.defaultView.getComputedStyle(node);
-  node.setAttribute(ATTR_NAME, styles.border);
-  node.style.border = HIGHLIGHT_STYLE;
+  
 };
 
 Highlighter.prototype._unhighlightNode = function(node) {
-  var previous = node.getAttribute(ATTR_NAME);
-  node.style.border = previous;
-  node.removeAttribute(ATTR_NAME);
+  
 };
 
 exports.Highlighter = Highlighter;
@@ -74,38 +62,8 @@ exports.Highlighter = Highlighter;
 
 
 exports.exec = function(execSpec) {
-  var deferred = promise.defer();
-
-  var output = { data: '' };
-  var child = childProcess.spawn(execSpec.cmd, execSpec.args, {
-    env: execSpec.env,
-    cwd: execSpec.cwd
-  });
-
-  child.stdout.on('data', function(data) {
-    output.data += data;
-  });
-
-  child.stderr.on('data', function(data) {
-    output.data += data;
-  });
-
-  child.on('close', function(code) {
-    output.code = code;
-    if (code === 0) {
-      deferred.resolve(output);
-    }
-    else {
-      deferred.reject(output);
-    }
-  });
-
-  return deferred.promise;
+  throw new Error('Not supported');
 };
-
-
-
-
 
 
 
@@ -114,16 +72,33 @@ exports.exec = function(execSpec) {
 exports.staticRequire = function(requistingModule, name) {
   var deferred = promise.defer();
 
-  var parent = path.dirname(requistingModule.id);
-  var filename = parent + '/' + name;
+  if (name.match(/\.css$/)) {
+    deferred.resolve('');
+  }
+  else {
+    var filename = OS.Path.dirname(requistingModule.id) + '/' + name;
+    filename = filename.replace(/\/\.\//g, '/');
+    filename = 'resource://gre/modules/devtools/' + filename;
 
-  fs.readFile(filename, { encoding: 'utf8' }, function(err, data) {
-    if (err) {
+    var xhr = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
+                .createInstance(Ci.nsIXMLHttpRequest);
+
+    xhr.onload = function onload() {
+      deferred.resolve(xhr.responseText);
+    }.bind(this);
+
+    xhr.onabort = xhr.onerror = xhr.ontimeout = function(err) {
       deferred.reject(err);
-    }
+    }.bind(this);
 
-    deferred.resolve(data);
-  });
+    try {
+      xhr.open('GET', filename);
+      xhr.send();
+    }
+    catch (ex) {
+      deferred.reject(ex);
+    }
+  }
 
   return deferred.promise;
 };
@@ -132,27 +107,103 @@ exports.staticRequire = function(requistingModule, name) {
 
 
 
-exports.script = {
-  onOutput: util.createEvent('Script.onOutput'),
+var client;
+var target;
+var consoleActor;
+var webConsoleClient;
+
+exports.script = { };
+
+exports.script.onOutput = util.createEvent('Script.onOutput');
+
+
+
+
+exports.script.useTarget = function(tgt) {
+  target = tgt;
 
   
-  useTarget: function(tgt) { },
+  var targetPromise = target.isRemote ?
+                      promise.resolve(target) :
+                      target.makeRemote();
 
-  
-  eval: function(javascript) {
-    try {
-      return promise.resolve({
-        input: javascript,
-        output: eval(javascript),
-        exception: null
-      });
+  return targetPromise.then(function() {
+    var deferred = promise.defer();
+
+    client = target._client;
+
+    client.addListener('pageError', function(packet) {
+      if (packet.from === consoleActor) {
+        
+        exports.script.onOutput({
+          level: 'exception',
+          message: packet.exception.class
+        });
+      }
+    });
+
+    client.addListener('consoleAPICall', function(type, packet) {
+      if (packet.from === consoleActor) {
+        var data = packet.message;
+
+        var ev = {
+          level: data.level,
+          arguments: data.arguments,
+        };
+
+        if (data.filename !== 'debugger eval code') {
+          ev.source = {
+            filename: data.filename,
+            lineNumber: data.lineNumber,
+            functionName: data.functionName
+          };
+        }
+
+        exports.script.onOutput(ev);
+      }
+    });
+
+    consoleActor = target._form.consoleActor;
+
+    var onAttach = function(response, wcc) {
+      webConsoleClient = wcc;
+
+      if (response.error != null) {
+        deferred.reject(response);
+      }
+      else {
+        deferred.resolve(response);
+      }
+
+      
+    };
+
+    var listeners = [ 'PageError', 'ConsoleAPI' ];
+    client.attachConsole(consoleActor, listeners, onAttach);
+
+    return deferred.promise;
+  });
+};
+
+
+
+
+exports.script.eval = function(javascript) {
+  var deferred = promise.defer();
+
+  var onResult = function(response) {
+    var output = response.result;
+    if (typeof output === 'object' && output.type === 'undefined') {
+      output = undefined;
     }
-    catch (ex) {
-      return promise.resolve({
-        input: javascript,
-        output: null,
-        exception: ex
-      });
-    }
-  }
+
+    deferred.resolve({
+      input: response.input,
+      output: output,
+      exception: response.exception
+    });
+  };
+
+  webConsoleClient.evaluateJS(javascript, onResult, {});
+  return deferred.promise;
 };
