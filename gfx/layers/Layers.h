@@ -1627,6 +1627,22 @@ public:
   void SetAsyncPanZoomController(AsyncPanZoomController *controller);
   AsyncPanZoomController* GetAsyncPanZoomController() const;
 
+  
+
+
+
+
+
+
+  void SetScrollHandoffParentId(FrameMetrics::ViewID aScrollParentId)
+  {
+    if (mScrollHandoffParentId != aScrollParentId) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ScrollHandoffParentId", this));
+      mScrollHandoffParentId = aScrollParentId;
+      Mutated();
+    }
+  }
+
   void SetPreScale(float aXScale, float aYScale)
   {
     if (mPreXScale == aXScale && mPreYScale == aYScale) {
@@ -1663,6 +1679,7 @@ public:
   virtual Layer* GetFirstChild() const { return mFirstChild; }
   virtual Layer* GetLastChild() const { return mLastChild; }
   const FrameMetrics& GetFrameMetrics() const { return mFrameMetrics; }
+  FrameMetrics::ViewID GetScrollHandoffParentId() const { return mScrollHandoffParentId; }
   float GetPreXScale() const { return mPreXScale; }
   float GetPreYScale() const { return mPreYScale; }
   float GetInheritedXScale() const { return mInheritedXScale; }
@@ -1734,6 +1751,7 @@ protected:
   Layer* mLastChild;
   FrameMetrics mFrameMetrics;
   nsRefPtr<AsyncPanZoomController> mAPZC;
+  FrameMetrics::ViewID mScrollHandoffParentId;
   float mPreXScale;
   float mPreYScale;
   
