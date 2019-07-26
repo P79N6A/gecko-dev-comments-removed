@@ -177,29 +177,6 @@ nsDOMUIEvent::InitUIEvent(const nsAString& typeArg,
 }
 
 
-nsIntPoint
-nsDOMUIEvent::GetPagePoint()
-{
-  if (mPrivateDataDuplicated) {
-    return mPagePoint;
-  }
-
-  nsIntPoint pagePoint = GetClientPoint();
-
-  
-  if (mPresContext && mPresContext->GetPresShell()) {
-    nsIPresShell* shell = mPresContext->GetPresShell();
-    nsIScrollableFrame* scrollframe = shell->GetRootScrollFrameAsScrollable();
-    if (scrollframe) {
-      nsPoint pt = scrollframe->GetScrollPosition();
-      pagePoint += nsIntPoint(nsPresContext::AppUnitsToIntCSSPixels(pt.x),
-                              nsPresContext::AppUnitsToIntCSSPixels(pt.y));
-    }
-  }
-
-  return pagePoint;
-}
-
 NS_IMETHODIMP
 nsDOMUIEvent::GetPageX(int32_t* aPageX)
 {
