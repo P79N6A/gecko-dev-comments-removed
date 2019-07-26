@@ -308,21 +308,9 @@ nsPrincipal::Equals(nsIPrincipal *aOther, bool *aResult)
 }
 
 NS_IMETHODIMP
-nsPrincipal::EqualsIgnoringDomain(nsIPrincipal *aOther, bool *aResult)
-{
-  return Equals(aOther, aResult);
-}
-
-NS_IMETHODIMP
 nsPrincipal::Subsumes(nsIPrincipal *aOther, bool *aResult)
 {
   return Equals(aOther, aResult);
-}
-
-NS_IMETHODIMP
-nsPrincipal::SubsumesIgnoringDomain(nsIPrincipal *aOther, bool *aResult)
-{
-  return EqualsIgnoringDomain(aOther, aResult);
 }
 
 NS_IMETHODIMP
@@ -703,12 +691,6 @@ nsExpandedPrincipal::Equals(nsIPrincipal* aOther, bool* aResult)
 }
 
 NS_IMETHODIMP
-nsExpandedPrincipal::EqualsIgnoringDomain(nsIPrincipal* aOther, bool* aResult)
-{
-  return ::Equals(this, &nsIPrincipal::SubsumesIgnoringDomain, aOther, aResult);
-}
-
-NS_IMETHODIMP
 nsExpandedPrincipal::EqualsConsideringDomain(nsIPrincipal* aOther, bool* aResult)
 {
   return ::Equals(this, &nsIPrincipal::SubsumesConsideringDomain, aOther, aResult);
@@ -758,12 +740,6 @@ NS_IMETHODIMP
 nsExpandedPrincipal::Subsumes(nsIPrincipal* aOther, bool* aResult)
 {
   return ::Subsumes(this, &nsIPrincipal::Subsumes, aOther, aResult);
-}
-
-NS_IMETHODIMP
-nsExpandedPrincipal::SubsumesIgnoringDomain(nsIPrincipal* aOther, bool* aResult)
-{
-  return ::Subsumes(this, &nsIPrincipal::SubsumesIgnoringDomain, aOther, aResult);
 }
 
 NS_IMETHODIMP
