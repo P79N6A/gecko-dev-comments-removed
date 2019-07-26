@@ -689,6 +689,21 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
 #endif
 }
 
+static void
+MarkBaselineStubFrame(JSTracer *trc, const IonFrameIterator &frame)
+{
+    
+    
+
+    JS_ASSERT(frame.type() == IonFrame_BaselineStub);
+    IonBaselineStubFrameLayout *layout = (IonBaselineStubFrameLayout *)frame.fp();
+
+    ICStub *stub = layout->stubPtr();
+    JS_ASSERT(ICStub::CanMakeCalls(stub->kind()));
+
+    stub->trace(trc);
+}
+
 void
 IonActivationIterator::ionStackRange(uintptr_t *&min, uintptr_t *&end)
 {
@@ -833,7 +848,7 @@ MarkIonActivation(JSTracer *trc, const IonActivationIterator &activations)
             frames.baselineFrame()->trace(trc);
             break;
           case IonFrame_BaselineStub:
-            
+            MarkBaselineStubFrame(trc, frames);
             break;
           case IonFrame_OptimizedJS:
             MarkIonJSFrame(trc, frames);

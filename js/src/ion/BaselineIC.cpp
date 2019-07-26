@@ -378,9 +378,22 @@ ICFallbackStub::unlinkStub(Zone *zone, ICStub *prev, ICStub *stub)
         stub->trace(zone->barrierTracer());
     }
 
+    if (ICStub::CanMakeCalls(stub->kind()) && stub->isMonitored()) {
+        
+        
+        
+        
+        ICTypeMonitor_Fallback *monitorFallback = toMonitoredFallbackStub()->fallbackMonitorStub();
+        stub->toMonitoredStub()->resetFirstMonitorStub(monitorFallback);
+    }
+
 #ifdef DEBUG
     
-    stub->stubCode_ = (uint8_t *)0xbad;
+    
+    
+    
+    if (!ICStub::CanMakeCalls(stub->kind()))
+        stub->stubCode_ = (uint8_t *)0xbad;
 #endif
 }
 
