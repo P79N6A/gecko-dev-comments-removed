@@ -2312,12 +2312,14 @@ gfxFont::Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
     
     
     double synBoldOnePixelOffset = 0;
-    int32_t strikes = 0;
+    int32_t strikes = 1;
     if (IsSyntheticBold()) {
         double xscale = CalcXScale(aContext);
         synBoldOnePixelOffset = direction * xscale;
-        
-        strikes = NS_lroundf(GetSyntheticBoldOffset() / xscale);
+        if (xscale != 0.0) {
+            
+            strikes = NS_lroundf(GetSyntheticBoldOffset() / xscale);
+        }
     }
 
     uint32_t i;
