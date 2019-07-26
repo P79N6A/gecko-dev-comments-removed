@@ -4,7 +4,7 @@
 
 #filter substitution
 
-pref("toolkit.defaultChromeURI", "chrome://browser/content/shell.html");
+pref("toolkit.defaultChromeURI", "chrome://browser/content/shell.xul");
 pref("browser.chromeURL", "chrome://browser/content/");
 
 

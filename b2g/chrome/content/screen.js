@@ -11,7 +11,7 @@ window.addEventListener('ContentStart', function() {
   let shell = document.getElementById('shell');
 
   
-  let browser = document.getElementById('systemapp');
+  let browser = document.getElementById('homescreen');
 
   
   let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
