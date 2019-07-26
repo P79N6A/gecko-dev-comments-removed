@@ -646,8 +646,14 @@ public:
     MOZ_ASSERT(entry.mPc == aPc);
 
     
-    W("   %s[%s +0x%X] %p\n", entry.mFunction ? entry.mFunction : "???",
-      entry.mLibrary, entry.mLOffset, entry.mPc);
+    
+    if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
+      W("   ??? %p\n", entry.mPc);
+    } else {
+      
+      W("   %s[%s +0x%X] %p\n", entry.mFunction ? entry.mFunction : "???",
+        entry.mLibrary, entry.mLOffset, entry.mPc);
+    }
   }
 
   size_t SizeOfIncludingThis()
