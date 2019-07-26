@@ -2209,27 +2209,12 @@ RadioInterface.prototype = {
         break;
       case kNetworkInterfaceStateChangedTopic:
         let network = subject.QueryInterface(Ci.nsINetworkInterface);
-        if (network.state != Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
-          return;
-        }
-
-        
-        if (network.type != Ci.nsINetworkInterface.NETWORK_TYPE_WIFI &&
-            network.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
-          return;
-        }
-
-        
-        if (subject instanceof Ci.nsIRilNetworkInterface) {
-          network = subject.QueryInterface(Ci.nsIRilNetworkInterface);
-          if (network.serviceId != this.clientId) {
-            return;
+        if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
+          
+          
+          if (this._sntp.isExpired()) {
+            this._sntp.request();
           }
-        }
-
-        
-        if (this._sntp.isExpired()) {
-          this._sntp.request();
         }
         break;
       case kScreenStateChangedTopic:
