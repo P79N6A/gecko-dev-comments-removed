@@ -160,9 +160,30 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
     }
 
     
+
+
+
+    private static Bitmap fetchJARFavicon(String uri) {
+        if (uri == null) {
+            return null;
+        }
+        if (uri.startsWith("jar:jar:")) {
+            Log.d(LOGTAG, "Fetching favicon from JAR.");
+            return GeckoJarReader.getBitmap(sContext.getResources(), uri);
+        }
+        return null;
+    }
+
+    
     private Bitmap downloadFavicon(URI targetFaviconURI) {
-        if (mFaviconUrl.startsWith("jar:jar:")) {
-            return GeckoJarReader.getBitmap(sContext.getResources(), mFaviconUrl);
+        if (targetFaviconURI == null) {
+            return null;
+        }
+
+        final String uriString = targetFaviconURI.toString();
+        Bitmap image = fetchJARFavicon(uriString);
+        if (image != null) {
+            return image;
         }
 
         
@@ -173,7 +194,6 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
         
         
-        Bitmap image = null;
         try {
             
             HttpResponse response = tryDownload(targetFaviconURI);
@@ -285,11 +305,20 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
             return null;
         }
 
+        
+        image = fetchJARFavicon(mFaviconUrl);
+        if (image != null) {
+            
+            return image;
+        }
+
         try {
             image = downloadFavicon(new URI(mFaviconUrl));
         } catch (URISyntaxException e) {
             Log.e(LOGTAG, "The provided favicon URL is not valid");
             return null;
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Couldn't download favicon.", e);
         }
 
         
