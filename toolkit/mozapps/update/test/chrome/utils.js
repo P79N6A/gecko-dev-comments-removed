@@ -123,6 +123,7 @@ const PAGEID_CHECKING         = "checking";
 const PAGEID_PLUGIN_UPDATES   = "pluginupdatesfound";
 const PAGEID_NO_UPDATES_FOUND = "noupdatesfound";        
 const PAGEID_MANUAL_UPDATE    = "manualUpdate"; 
+const PAGEID_UNSUPPORTED      = "unsupported";           
 const PAGEID_INCOMPAT_CHECK   = "incompatibleCheck";     
 const PAGEID_FOUND_BASIC      = "updatesfoundbasic";     
 const PAGEID_FOUND_BILLBOARD  = "updatesfoundbillboard"; 
@@ -553,6 +554,7 @@ function getExpectedButtonStates() {
       return { extra1: { disabled: false, hidden: false } };
     case PAGEID_NO_UPDATES_FOUND:
     case PAGEID_MANUAL_UPDATE:
+    case PAGEID_UNSUPPORTED:
     case PAGEID_ERRORS:
     case PAGEID_ERROR_EXTRA:
     case PAGEID_INSTALLED:
@@ -960,6 +962,10 @@ function resetPrefs() {
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_SHOW_INSTALLED_UI)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_SHOW_INSTALLED_UI);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_NOTIFIEDUNSUPPORTED)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_NOTIFIEDUNSUPPORTED);
   }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_LOG)) {
