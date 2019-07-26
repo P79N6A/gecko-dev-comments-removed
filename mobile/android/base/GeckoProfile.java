@@ -35,6 +35,7 @@ public final class GeckoProfile {
     private final String mName;
     private File mMozDir;
     private File mDir;
+    public static boolean sIsUsingCustomProfile = false;
 
     
     private enum LockState {
@@ -60,7 +61,13 @@ public final class GeckoProfile {
     }
 
     public static GeckoProfile get(Context context) {
-        if (context instanceof GeckoApp) {
+        boolean isGeckoApp = false;
+        try {
+            isGeckoApp = context instanceof GeckoApp;
+        } catch (NoClassDefFoundError ex) {}
+        
+
+        if (isGeckoApp) {
             
             
             if (((GeckoApp)context).mProfile != null) {
@@ -74,7 +81,7 @@ public final class GeckoProfile {
             return guest;
         }
 
-        if (context instanceof GeckoApp) {
+        if (isGeckoApp) {
             
             return get(context, ((GeckoApp)context).getDefaultProfileName());
         }

@@ -46,7 +46,12 @@ public class GeckoView extends LayerView
 
         
         
-        if (!(context instanceof GeckoActivity)) {
+        boolean isGeckoActivity = false;
+        try {
+            isGeckoActivity = context instanceof GeckoActivity;
+        } catch (NoClassDefFoundError ex) {}
+
+        if (!isGeckoActivity) {
             
             
             if (context instanceof Activity && getGeckoInterface() == null) {
@@ -59,7 +64,7 @@ public class GeckoView extends LayerView
 
             GeckoLoader.loadMozGlue();
             BrowserDB.setEnableContentProviders(false);
-        }
+         }
 
         if (url != null) {
             GeckoThread.setUri(url);
