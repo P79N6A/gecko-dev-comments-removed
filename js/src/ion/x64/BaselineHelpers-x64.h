@@ -36,12 +36,7 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
               BaselineStubReg);
 
     
-    
-    masm.movq(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
-              BaselineTailCallReg);
-
-    
-    masm.call(BaselineTailCallReg);
+    masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
 }
 
 inline void
@@ -214,11 +209,7 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
               BaselineStubReg);
 
     
-    masm.movq(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
-              BaselineTailCallReg);
-
-    
-    masm.call(BaselineTailCallReg);
+    masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
 
     
     masm.pop(BaselineStubReg);
@@ -226,7 +217,7 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
     
     
     Label success;
-    masm.cmpPtr(R1.scratchReg(), ImmWord(1));
+    masm.cmp32(R1.scratchReg(), Imm32(1));
     masm.j(Assembler::Equal, &success);
 
     

@@ -37,11 +37,7 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 
     
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
-              BaselineTailCallReg);
-
-    
-    masm.call(BaselineTailCallReg);
+    masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
 }
 
 inline void
@@ -218,11 +214,7 @@ EmitCallTypeUpdateIC(MacroAssembler &masm, IonCode *code)
               BaselineStubReg);
 
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),
-              BaselineTailCallReg);
-
-    
-    masm.call(BaselineTailCallReg);
+    masm.call(Operand(BaselineStubReg, ICStub::offsetOfStubCode()));
 
     
     masm.pop(BaselineStubReg);
