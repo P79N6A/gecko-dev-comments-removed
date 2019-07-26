@@ -593,7 +593,7 @@ nsWindow::Create(nsIWidget *aParent,
   nsIMEContext IMEContext(mWnd);
   mInputContext.mNativeIMEContext = static_cast<void*>(IMEContext.get());
   MOZ_ASSERT(mInputContext.mNativeIMEContext ||
-             !nsIMM32Handler::IsIMEAvailable());
+             !IMEHandler::CurrentKeyboardLayoutHasIME());
   
   
   if (!mInputContext.mNativeIMEContext) {
@@ -7528,7 +7528,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
     
     
     
-    NS_ASSERTION(ret || !nsIMM32Handler::IsIMEAvailable(),
+    NS_ASSERTION(ret || !IMEHandler::CurrentKeyboardLayoutHasIME(),
                  "ImmAssociateContextEx failed to restore default IMC");
     if (ret) {
       nsIMEContext newIMEContext(mWnd);

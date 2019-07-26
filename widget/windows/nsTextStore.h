@@ -168,6 +168,11 @@ public:
     return sTsfThreadMgr != nullptr;
   }
 
+#ifdef DEBUG
+  
+  static bool     CurrentKeyboardLayoutHasIME();
+#endif 
+
 protected:
   nsTextStore();
   ~nsTextStore();

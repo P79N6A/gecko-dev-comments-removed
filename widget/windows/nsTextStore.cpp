@@ -3179,3 +3179,57 @@ nsTextStore::Terminate(void)
     NS_RELEASE(sTsfThreadMgr);
   }
 }
+
+#ifdef DEBUG
+
+bool
+nsTextStore::CurrentKeyboardLayoutHasIME()
+{
+  
+  
+  
+  
+  nsRefPtr<ITfInputProcessorProfiles> profiles;
+  HRESULT hr = ::CoCreateInstance(CLSID_TF_InputProcessorProfiles, NULL,
+                                  CLSCTX_INPROC_SERVER,
+                                  IID_ITfInputProcessorProfiles,
+                                  getter_AddRefs(profiles));
+  if (FAILED(hr) || !profiles) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+      ("TSF: nsTextStore::CurrentKeyboardLayoutHasIME() FAILED to create "
+       "an input processor profiles instance"));
+    return false;
+  }
+  nsRefPtr<ITfInputProcessorProfileMgr> profileMgr;
+  hr = profiles->QueryInterface(IID_ITfInputProcessorProfileMgr,
+                                getter_AddRefs(profileMgr));
+  if (FAILED(hr) || !profileMgr) {
+    
+    
+    
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+        ("TSF: nsTextStore::CurrentKeyboardLayoutHasIME() FAILED to query "
+         "ITfInputProcessorProfileMgr"));
+      return false;
+    }
+    
+    
+    
+    return ::ImmIsIME(::GetKeyboardLayout(0));
+  }
+
+  TF_INPUTPROCESSORPROFILE profile;
+  hr = profileMgr->GetActiveProfile(GUID_TFCAT_TIP_KEYBOARD, &profile);
+  if (hr == S_FALSE) {
+    return false; 
+  }
+  if (FAILED(hr)) {
+    PR_LOG(sTextStoreLog, PR_LOG_ERROR,
+      ("TSF: nsTextStore::CurrentKeyboardLayoutHasIME() FAILED to retreive "
+       "active profile"));
+    return false;
+  }
+  return (profile.dwProfileType == TF_PROFILETYPE_INPUTPROCESSOR);
+}
+#endif 

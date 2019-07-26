@@ -43,6 +43,13 @@ public:
 
   static bool IsDoingKakuteiUndo(HWND aWnd);
 
+#ifdef DEBUG
+  
+
+
+  static bool CurrentKeyboardLayoutHasIME();
+#endif 
+
 private:
 #ifdef NS_ENABLE_TSF
   static bool sIsInTSFMode;

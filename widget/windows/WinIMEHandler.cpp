@@ -70,6 +70,21 @@ IMEHandler::ProcessMessage(nsWindow* aWindow, UINT aMessage,
                                         aRetValue, aEatMessage);
 }
 
+#ifdef DEBUG
+
+bool
+IMEHandler::CurrentKeyboardLayoutHasIME()
+{
+#ifdef NS_ENABLE_TSF
+  if (sIsInTSFMode) {
+    return nsTextStore::CurrentKeyboardLayoutHasIME();
+  }
+#endif 
+
+  return nsIMM32Handler::IsIMEAvailable();
+}
+#endif 
+
 
 bool
 IMEHandler::IsDoingKakuteiUndo(HWND aWnd)
