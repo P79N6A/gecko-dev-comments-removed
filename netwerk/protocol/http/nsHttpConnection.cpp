@@ -383,6 +383,13 @@ nsHttpConnection::SetupNPN(uint32_t caps)
                 return;
 
             nsTArray<nsCString> protocolArray;
+
+            
+            
+            
+            
+            protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
+
             if (gHttpHandler->IsSpdyEnabled() &&
                 !(caps & NS_HTTP_DISALLOW_SPDY)) {
                 LOG(("nsHttpConnection::SetupNPN Allow SPDY NPN selection"));
@@ -394,7 +401,6 @@ nsHttpConnection::SetupNPN(uint32_t caps)
                         gHttpHandler->SpdyInfo()->VersionString[1]);
             }
 
-            protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
             if (NS_SUCCEEDED(ssl->SetNPNList(protocolArray))) {
                 LOG(("nsHttpConnection::Init Setting up SPDY Negotiation OK"));
                 mNPNComplete = false;
