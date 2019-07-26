@@ -15,10 +15,10 @@
 #include "mozilla/Move.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ReentrancyGuard.h"
+#include "mozilla/TemplateLib.h"
 #include "mozilla/TypeTraits.h"
 #include "mozilla/Util.h"
 
-#include "js/TemplateLib.h"
 #include "js/Utility.h"
 
 namespace js {
@@ -540,7 +540,7 @@ struct DefaultHasher
 
 
 template <class T>
-struct DefaultHasher<T *> : PointerHasher<T *, tl::FloorLog2<sizeof(void *)>::result>
+struct DefaultHasher<T *> : PointerHasher<T *, mozilla::tl::FloorLog2<sizeof(void *)>::value>
 {};
 
 
@@ -890,7 +890,7 @@ class HashTable : private AllocPolicy
     static const unsigned sMinCapacity  = 1 << sMinCapacityLog2;
     static const unsigned sMaxInit      = JS_BIT(23);
     static const unsigned sMaxCapacity  = JS_BIT(24);
-    static const unsigned sHashBits     = tl::BitSize<HashNumber>::result;
+    static const unsigned sHashBits     = mozilla::tl::BitSize<HashNumber>::value;
     static const uint8_t  sMinAlphaFrac = 64;  
     static const uint8_t  sMaxAlphaFrac = 192; 
     static const uint8_t  sInvMaxAlpha  = 171; 
