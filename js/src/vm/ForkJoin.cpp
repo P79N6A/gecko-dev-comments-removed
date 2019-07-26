@@ -4,6 +4,12 @@
 
 
 
+#if defined(XP_OS2) || defined(XP_WIN)
+# include <io.h>     
+#else
+# include <unistd.h> 
+#endif
+
 #include "vm/ForkJoin.h"
 
 #include "mozilla/ThreadLocal.h"
@@ -40,7 +46,7 @@ using mozilla::ThreadLocal;
 
 
 static bool
-ExecuteSequentially(JSContext *cx_, HandleValue funVal, bool *complete);
+ExecuteSequentially(JSContext *cx_, HandleValue funVal, bool *complete, uint16_t numSlices);
 
 #if !defined(JS_THREADSAFE) || !defined(JS_ION)
 bool
@@ -49,12 +55,6 @@ js::ForkJoin(JSContext *cx, CallArgs &args)
     RootedValue argZero(cx, args[0]);
     bool complete = false; 
     return ExecuteSequentially(cx, argZero, &complete);
-}
-
-uint32_t
-js::ForkJoinSlices(JSContext *cx)
-{
-    return 1; 
 }
 
 JSContext *
@@ -150,20 +150,18 @@ js::ParallelTestsShouldPass(JSContext *cx)
 
 
 static bool
-ExecuteSequentially(JSContext *cx, HandleValue funVal, bool *complete)
+ExecuteSequentially(JSContext *cx, HandleValue funVal, bool *complete, uint16_t numSlices)
 {
-    uint32_t numSlices = ForkJoinSlices(cx);
     bool allComplete = true;
-    for (uint32_t i = 0; i < numSlices; i++) {
+    for (uint16_t i = 0; i < numSlices; i++) {
         FastInvokeGuard fig(cx, funVal);
         InvokeArgs &args = fig.args();
-        if (!args.init(3))
+        if (!args.init(2))
             return false;
         args.setCallee(funVal);
         args.setThis(UndefinedValue());
         args[0].setInt32(i);
-        args[1].setInt32(numSlices);
-        args[2].setBoolean(!!cx->runtime()->parallelWarmup);
+        args[1].setBoolean(!!cx->runtime()->parallelWarmup);
         if (!fig.invoke(cx))
             return false;
         allComplete = allComplete & args.rval().toBoolean();
@@ -230,7 +228,7 @@ enum ForkJoinMode {
     NumForkJoinModes
 };
 
-class ParallelDo
+class ForkJoinOperation
 {
   public:
     
@@ -242,7 +240,7 @@ class ParallelDo
     RootedScript bailoutScript;
     jsbytecode *bailoutBytecode;
 
-    ParallelDo(JSContext *cx, HandleObject fun, ForkJoinMode mode);
+    ForkJoinOperation(JSContext *cx, HandleObject fun, ForkJoinMode mode, uint16_t numSlices);
     ExecutionStatus apply();
 
   private:
@@ -285,6 +283,7 @@ class ParallelDo
     AutoScriptVector worklist_;
     Vector<WorklistData, 16> worklistData_;
     ForkJoinMode mode_;
+    uint16_t numSlices_;
 
     TrafficLight enqueueInitialScript(ExecutionStatus *status);
     TrafficLight compileForParallelExecution(ExecutionStatus *status);
@@ -306,7 +305,7 @@ class ParallelDo
     inline bool hasScript(Vector<types::RecompileInfo> &scripts, JSScript *script);
 }; 
 
-class ForkJoinShared : public TaskExecutor, public Monitor
+class ForkJoinShared : public ParallelJob, public Monitor
 {
     
     
@@ -314,8 +313,7 @@ class ForkJoinShared : public TaskExecutor, public Monitor
     JSContext *const cx_;          
     ThreadPool *const threadPool_; 
     HandleObject fun_;             
-    const uint32_t numSlices_;     
-    PRCondVar *rendezvousEnd_;     
+    uint16_t numSlices_;           
     PRLock *cxLock_;               
     ParallelBailoutRecord *const records_; 
 
@@ -331,9 +329,6 @@ class ForkJoinShared : public TaskExecutor, public Monitor
     
     
 
-    uint32_t uncompleted_;          
-    uint32_t blocked_;              
-    uint32_t rendezvousIndex_;      
     bool gcRequested_;              
     JS::gcreason::Reason gcReason_; 
     Zone *gcZone_;                  
@@ -350,41 +345,11 @@ class ForkJoinShared : public TaskExecutor, public Monitor
     
     volatile bool fatal_;
 
-    
-    volatile bool rendezvous_;
-
-    
-    void executeFromMainThread();
-
-    
-    
-    void executePortion(PerThreadData *perThread, uint32_t threadId);
-
-    
-    
-    
-    
-
-    friend class AutoRendezvous;
-
-    
-    
-    void initiateRendezvous(ForkJoinSlice &threadCx);
-
-    
-    
-    void joinRendezvous(ForkJoinSlice &threadCx);
-
-    
-    
-    void endRendezvous(ForkJoinSlice &threadCx);
-
   public:
     ForkJoinShared(JSContext *cx,
                    ThreadPool *threadPool,
                    HandleObject fun,
-                   uint32_t numSlices,
-                   uint32_t uncompleted,
+                   uint16_t numSlices,
                    ParallelBailoutRecord *records);
     ~ForkJoinShared();
 
@@ -393,9 +358,15 @@ class ForkJoinShared : public TaskExecutor, public Monitor
     ParallelResult execute();
 
     
-    virtual void executeFromWorker(uint32_t threadId, uintptr_t stackLimit);
+    virtual bool executeFromWorker(uint16_t sliceId, uint32_t workerId,
+                                   uintptr_t stackLimit) MOZ_OVERRIDE;
 
     
+    virtual bool executeFromMainThread(uint16_t sliceId) MOZ_OVERRIDE;
+
+    
+    void executePortion(PerThreadData *perThread, uint16_t sliceId, uint32_t workerId);
+
     
     
     
@@ -429,23 +400,6 @@ class AutoEnterWarmup
   public:
     AutoEnterWarmup(JSRuntime *runtime) : runtime_(runtime) { runtime_->parallelWarmup++; }
     ~AutoEnterWarmup() { runtime_->parallelWarmup--; }
-};
-
-class AutoRendezvous
-{
-  private:
-    ForkJoinSlice &threadCx;
-
-  public:
-    AutoRendezvous(ForkJoinSlice &threadCx)
-        : threadCx(threadCx)
-    {
-        threadCx.shared->initiateRendezvous(threadCx);
-    }
-
-    ~AutoRendezvous() {
-        threadCx.shared->endRendezvous(threadCx);
-    }
 };
 
 class AutoSetForkJoinSlice
@@ -511,18 +465,19 @@ static const char *ForkJoinModeString(ForkJoinMode mode);
 bool
 js::ForkJoin(JSContext *cx, CallArgs &args)
 {
-    JS_ASSERT(args[0].isObject()); 
+    JS_ASSERT(args.length() == 3); 
+    JS_ASSERT(args[0].isObject());
     JS_ASSERT(args[0].toObject().is<JSFunction>());
-
-    ForkJoinMode mode = ForkJoinModeNormal;
-    if (args.length() > 1) {
-        JS_ASSERT(args[1].isInt32()); 
-        JS_ASSERT(args[1].toInt32() < NumForkJoinModes);
-        mode = (ForkJoinMode) args[1].toInt32();
-    }
+    JS_ASSERT(args[1].isInt32());
+    JS_ASSERT(args[1].toInt32() < NumForkJoinModes);
+    JS_ASSERT(args[2].isInt32());
 
     RootedObject fun(cx, &args[0].toObject());
-    ParallelDo op(cx, fun, mode);
+    ForkJoinMode mode = (ForkJoinMode) args[1].toInt32();
+    uint32_t numSlices = args[2].toInt32();
+    MOZ_ASSERT(uint32_t(uint16_t(numSlices)) == numSlices);
+
+    ForkJoinOperation op(cx, fun, mode, numSlices);
     ExecutionStatus status = op.apply();
     if (status == ExecutionFatal)
         return false;
@@ -581,9 +536,8 @@ ForkJoinModeString(ForkJoinMode mode) {
     return "???";
 }
 
-js::ParallelDo::ParallelDo(JSContext *cx,
-                           HandleObject fun,
-                           ForkJoinMode mode)
+js::ForkJoinOperation::ForkJoinOperation(JSContext *cx, HandleObject fun, ForkJoinMode mode,
+                                         uint16_t numSlices)
   : bailouts(0),
     bailoutCause(ParallelBailoutNone),
     bailoutScript(cx),
@@ -593,11 +547,12 @@ js::ParallelDo::ParallelDo(JSContext *cx,
     bailoutRecords_(cx),
     worklist_(cx),
     worklistData_(cx),
-    mode_(mode)
+    mode_(mode),
+    numSlices_(numSlices)
 { }
 
 ExecutionStatus
-js::ParallelDo::apply()
+js::ForkJoinOperation::apply()
 {
     ExecutionStatus status;
 
@@ -627,14 +582,15 @@ js::ParallelDo::apply()
     if (!jit::IsBaselineEnabled(cx_) || !jit::IsIonEnabled(cx_))
         return sequentialExecution(true);
 
-    SpewBeginOp(cx_, "ParallelDo");
+    SpewBeginOp(cx_, "ForkJoinOperation");
 
-    uint32_t slices = ForkJoinSlices(cx_);
+    
+    unsigned numWorkersWithMain = cx_->runtime()->threadPool.numWorkers() + 1;
 
-    if (!bailoutRecords_.resize(slices))
+    if (!bailoutRecords_.resize(numWorkersWithMain))
         return SpewEndOp(ExecutionFatal);
 
-    for (uint32_t i = 0; i < slices; i++)
+    for (uint32_t i = 0; i < numWorkersWithMain; i++)
         bailoutRecords_[i].init(cx_);
 
     if (enqueueInitialScript(&status) == RedLight)
@@ -664,7 +620,7 @@ js::ParallelDo::apply()
     }
 
     while (bailouts < MAX_BAILOUTS) {
-        for (uint32_t i = 0; i < slices; i++)
+        for (uint32_t i = 0; i < numWorkersWithMain; i++)
             bailoutRecords_[i].reset(cx_);
 
         if (compileForParallelExecution(&status) == RedLight)
@@ -682,8 +638,8 @@ js::ParallelDo::apply()
     return SpewEndOp(sequentialExecution(true));
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::enqueueInitialScript(ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::enqueueInitialScript(ExecutionStatus *status)
 {
     
     
@@ -720,8 +676,8 @@ js::ParallelDo::enqueueInitialScript(ExecutionStatus *status)
     return GreenLight;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
 {
     
     
@@ -910,9 +866,8 @@ js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
     return GreenLight;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::appendCallTargetsToWorklist(uint32_t index,
-                                            ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::appendCallTargetsToWorklist(uint32_t index, ExecutionStatus *status)
 {
     
     
@@ -940,9 +895,8 @@ js::ParallelDo::appendCallTargetsToWorklist(uint32_t index,
     return GreenLight;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::appendCallTargetToWorklist(HandleScript script,
-                                           ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::appendCallTargetToWorklist(HandleScript script, ExecutionStatus *status)
 {
     
     
@@ -972,7 +926,7 @@ js::ParallelDo::appendCallTargetToWorklist(HandleScript script,
 }
 
 bool
-js::ParallelDo::addToWorklist(HandleScript script)
+js::ForkJoinOperation::addToWorklist(HandleScript script)
 {
     for (uint32_t i = 0; i < worklist_.length(); i++) {
         if (worklist_[i] == script) {
@@ -1000,8 +954,8 @@ js::ParallelDo::addToWorklist(HandleScript script)
     return true;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::sequentialExecution(bool disqualified, ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::sequentialExecution(bool disqualified, ExecutionStatus *status)
 {
     
 
@@ -1010,7 +964,7 @@ js::ParallelDo::sequentialExecution(bool disqualified, ExecutionStatus *status)
 }
 
 ExecutionStatus
-js::ParallelDo::sequentialExecution(bool disqualified)
+js::ForkJoinOperation::sequentialExecution(bool disqualified)
 {
     
 
@@ -1019,7 +973,7 @@ js::ParallelDo::sequentialExecution(bool disqualified)
 
     bool complete = false;
     RootedValue funVal(cx_, ObjectValue(*fun_));
-    if (!ExecuteSequentially(cx_, funVal, &complete))
+    if (!ExecuteSequentially(cx_, funVal, &complete, numSlices_))
         return ExecutionFatal;
 
     
@@ -1028,8 +982,8 @@ js::ParallelDo::sequentialExecution(bool disqualified)
     return ExecutionSequential;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::fatalError(ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::fatalError(ExecutionStatus *status)
 {
     
 
@@ -1081,7 +1035,7 @@ BailoutExplanation(ParallelBailoutCause cause)
 }
 
 void
-js::ParallelDo::determineBailoutCause()
+js::ForkJoinOperation::determineBailoutCause()
 {
     bailoutCause = ParallelBailoutNone;
     for (uint32_t i = 0; i < bailoutRecords_.length(); i++) {
@@ -1119,7 +1073,7 @@ js::ParallelDo::determineBailoutCause()
 }
 
 bool
-js::ParallelDo::invalidateBailedOutScripts()
+js::ForkJoinOperation::invalidateBailedOutScripts()
 {
     Vector<types::RecompileInfo> invalid(cx_);
     for (uint32_t i = 0; i < bailoutRecords_.length(); i++) {
@@ -1171,9 +1125,8 @@ js::ParallelDo::invalidateBailedOutScripts()
     return true;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::warmupExecution(bool stopIfComplete,
-                                ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::warmupExecution(bool stopIfComplete, ExecutionStatus *status)
 {
     
     
@@ -1183,7 +1136,7 @@ js::ParallelDo::warmupExecution(bool stopIfComplete,
     AutoEnterWarmup warmup(cx_->runtime());
     RootedValue funVal(cx_, ObjectValue(*fun_));
     bool complete;
-    if (!ExecuteSequentially(cx_, funVal, &complete)) {
+    if (!ExecuteSequentially(cx_, funVal, &complete, numSlices_)) {
         *status = ExecutionFatal;
         return RedLight;
     }
@@ -1197,8 +1150,8 @@ js::ParallelDo::warmupExecution(bool stopIfComplete,
     return GreenLight;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::parallelExecution(ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::parallelExecution(ExecutionStatus *status)
 {
     
     
@@ -1211,11 +1164,9 @@ js::ParallelDo::parallelExecution(ExecutionStatus *status)
     ForkJoinActivation activation(cx_);
 
     ThreadPool *threadPool = &cx_->runtime()->threadPool;
-    uint32_t numSlices = ForkJoinSlices(cx_);
 
     RootedObject rootedFun(cx_, fun_);
-    ForkJoinShared shared(cx_, threadPool, rootedFun, numSlices, numSlices - 1,
-                          &bailoutRecords_[0]);
+    ForkJoinShared shared(cx_, threadPool, rootedFun, numSlices_, &bailoutRecords_[0]);
     if (!shared.init()) {
         *status = ExecutionFatal;
         return RedLight;
@@ -1238,8 +1189,8 @@ js::ParallelDo::parallelExecution(ExecutionStatus *status)
     return GreenLight;
 }
 
-js::ParallelDo::TrafficLight
-js::ParallelDo::recoverFromBailout(ExecutionStatus *status)
+js::ForkJoinOperation::TrafficLight
+js::ForkJoinOperation::recoverFromBailout(ExecutionStatus *status)
 {
     
     
@@ -1267,7 +1218,7 @@ js::ParallelDo::recoverFromBailout(ExecutionStatus *status)
 }
 
 bool
-js::ParallelDo::hasScript(Vector<types::RecompileInfo> &scripts, JSScript *script)
+js::ForkJoinOperation::hasScript(Vector<types::RecompileInfo> &scripts, JSScript *script)
 {
     for (uint32_t i = 0; i < scripts.length(); i++) {
         if (scripts[i] == script->parallelIonScript()->recompileInfo())
@@ -1324,26 +1275,20 @@ class ParallelIonInvoke
 ForkJoinShared::ForkJoinShared(JSContext *cx,
                                ThreadPool *threadPool,
                                HandleObject fun,
-                               uint32_t numSlices,
-                               uint32_t uncompleted,
+                               uint16_t numSlices,
                                ParallelBailoutRecord *records)
   : cx_(cx),
     threadPool_(threadPool),
     fun_(fun),
     numSlices_(numSlices),
-    rendezvousEnd_(nullptr),
     cxLock_(nullptr),
     records_(records),
     allocators_(cx),
-    uncompleted_(uncompleted),
-    blocked_(0),
-    rendezvousIndex_(0),
     gcRequested_(false),
     gcReason_(JS::gcreason::NUM_REASONS),
     gcZone_(nullptr),
     abort_(false),
-    fatal_(false),
-    rendezvous_(false)
+    fatal_(false)
 {
 }
 
@@ -1363,15 +1308,11 @@ ForkJoinShared::init()
     if (!Monitor::init())
         return false;
 
-    rendezvousEnd_ = PR_NewCondVar(lock_);
-    if (!rendezvousEnd_)
-        return false;
-
     cxLock_ = PR_NewLock();
     if (!cxLock_)
         return false;
 
-    for (unsigned i = 0; i < numSlices_; i++) {
+    for (unsigned i = 0; i < (threadPool_->numWorkers() + 1); i++) {
         Allocator *allocator = cx_->new_<Allocator>(cx_->zone());
         if (!allocator)
             return false;
@@ -1387,9 +1328,6 @@ ForkJoinShared::init()
 
 ForkJoinShared::~ForkJoinShared()
 {
-    if (rendezvousEnd_)
-        PR_DestroyCondVar(rendezvousEnd_);
-
     PR_DestroyLock(cxLock_);
 
     while (allocators_.length() > 0)
@@ -1407,17 +1345,15 @@ ForkJoinShared::execute()
 
     AutoLockMonitor lock(*this);
 
-    
+    ParallelResult jobResult = TP_SUCCESS;
     {
         AutoUnlockMonitor unlock(*this);
-        if (!threadPool_->submitAll(cx_, this))
-            return TP_FATAL;
-        executeFromMainThread();
-    }
 
-    
-    while (uncompleted_ > 0)
-        lock.wait();
+        
+        jobResult = threadPool_->executeJob(cx_, this, numSlices_);
+        if (jobResult == TP_FATAL)
+            return TP_FATAL;
+    }
 
     transferArenasToCompartmentAndProcessGCRequests();
 
@@ -1425,19 +1361,26 @@ ForkJoinShared::execute()
     if (abort_) {
         if (fatal_)
             return TP_FATAL;
-        else
-            return TP_RETRY_SEQUENTIALLY;
+        return TP_RETRY_SEQUENTIALLY;
     }
 
+#ifdef DEBUG
+    Spew(SpewOps, "Completed parallel job [slices %d, threads: %d (+1), stolen: %d (work stealing:%s)]",
+         numSlices_,
+         threadPool_->numWorkers(),
+         threadPool_->stolenSlices(),
+         threadPool_->workStealing() ? "ON" : "OFF");
+#endif
+
     
-    return TP_SUCCESS;
+    return jobResult;
 }
 
 void
 ForkJoinShared::transferArenasToCompartmentAndProcessGCRequests()
 {
     JSCompartment *comp = cx_->compartment();
-    for (unsigned i = 0; i < numSlices_; i++)
+    for (unsigned i = 0; i < (threadPool_->numWorkers() + 1); i++)
         comp->adoptWorkerAllocator(allocators_[i]);
 
     if (gcRequested_) {
@@ -1450,43 +1393,36 @@ ForkJoinShared::transferArenasToCompartmentAndProcessGCRequests()
     }
 }
 
-void
-ForkJoinShared::executeFromWorker(uint32_t workerId, uintptr_t stackLimit)
+bool
+ForkJoinShared::executeFromWorker(uint16_t sliceId, uint32_t workerId, uintptr_t stackLimit)
 {
-    JS_ASSERT(workerId < numSlices_ - 1);
+    JS_ASSERT(sliceId <= numSlices_);
 
     PerThreadData thisThread(cx_->runtime());
     if (!thisThread.init()) {
         setAbortFlag(true);
-        return;
+        return false;
     }
     TlsPerThreadData.set(&thisThread);
 
     
     
     thisThread.ionStackLimit = stackLimit;
-    executePortion(&thisThread, workerId);
+    executePortion(&thisThread, sliceId, workerId);
     TlsPerThreadData.set(nullptr);
 
-    AutoLockMonitor lock(*this);
-    uncompleted_ -= 1;
-    if (blocked_ == uncompleted_) {
-        
-        
-        
-        lock.notify();
-    }
+    return !abort_;
 }
 
-void
-ForkJoinShared::executeFromMainThread()
+bool
+ForkJoinShared::executeFromMainThread(uint16_t sliceId)
 {
-    executePortion(&cx_->mainThread(), numSlices_ - 1);
+    executePortion(&cx_->mainThread(), sliceId, threadPool_->numWorkers());
+    return !abort_;
 }
 
 void
-ForkJoinShared::executePortion(PerThreadData *perThread,
-                               uint32_t threadId)
+ForkJoinShared::executePortion(PerThreadData *perThread, uint16_t sliceId, uint32_t workerId)
 {
     
     
@@ -1496,12 +1432,17 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
     
     JS::AutoAssertNoGC nogc(runtime());
 
-    Allocator *allocator = allocators_[threadId];
-    ForkJoinSlice slice(perThread, threadId, numSlices_, allocator,
-                        this, &records_[threadId]);
+    Allocator *allocator = allocators_[workerId];
+    ForkJoinSlice slice(perThread, sliceId, workerId, allocator, this, &records_[workerId]);
     AutoSetForkJoinSlice autoContext(&slice);
 
-    Spew(SpewOps, "Up");
+#ifdef DEBUG
+    
+    slice.maxSliceId = numSlices_ - 1;
+    slice.maxWorkerId = threadPool_->numWorkers();
+#endif
+
+    Spew(SpewOps, "Slice up");
 
     
     
@@ -1523,11 +1464,10 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
         slice.bailoutRecord->setCause(ParallelBailoutMainScriptNotPresent);
         setAbortFlag(false);
     } else {
-        ParallelIonInvoke<3> fii(cx_->runtime(), callee, 3);
+        ParallelIonInvoke<2> fii(cx_->runtime(), callee, 2);
 
         fii.args[0] = Int32Value(slice.sliceId);
-        fii.args[1] = Int32Value(slice.numSlices);
-        fii.args[2] = BooleanValue(false);
+        fii.args[1] = BooleanValue(false);
 
         bool ok = fii.invoke(perThread);
         JS_ASSERT(ok == !slice.bailoutRecord->topScript);
@@ -1535,7 +1475,7 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
             setAbortFlag(false);
     }
 
-    Spew(SpewOps, "Down");
+    Spew(SpewOps, "Slice down");
 }
 
 bool
@@ -1555,102 +1495,13 @@ ForkJoinShared::check(ForkJoinSlice &slice)
             
             JS_ASSERT(!cx_->runtime()->gcIsNeeded);
 
-            
-            
-            
-            
-            
             slice.bailoutRecord->setCause(ParallelBailoutInterrupt);
             setAbortFlag(false);
             return false;
         }
-    } else if (rendezvous_) {
-        joinRendezvous(slice);
     }
 
     return true;
-}
-
-void
-ForkJoinShared::initiateRendezvous(ForkJoinSlice &slice)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    JS_ASSERT(slice.isMainThread());
-    JS_ASSERT(!rendezvous_ && blocked_ == 0);
-    JS_ASSERT(cx_->runtime()->interrupt);
-
-    AutoLockMonitor lock(*this);
-
-    
-    rendezvous_ = true;
-
-    
-    while (blocked_ != uncompleted_)
-        lock.wait();
-}
-
-void
-ForkJoinShared::joinRendezvous(ForkJoinSlice &slice)
-{
-    JS_ASSERT(!slice.isMainThread());
-    JS_ASSERT(rendezvous_);
-
-    AutoLockMonitor lock(*this);
-    const uint32_t index = rendezvousIndex_;
-    blocked_ += 1;
-
-    
-    if (blocked_ == uncompleted_)
-        lock.notify();
-
-    
-    
-    
-    
-    while (rendezvousIndex_ == index)
-        PR_WaitCondVar(rendezvousEnd_, PR_INTERVAL_NO_TIMEOUT);
-}
-
-void
-ForkJoinShared::endRendezvous(ForkJoinSlice &slice)
-{
-    JS_ASSERT(slice.isMainThread());
-
-    AutoLockMonitor lock(*this);
-    rendezvous_ = false;
-    blocked_ = 0;
-    rendezvousIndex_++;
-
-    
-    PR_NotifyAllCondVar(rendezvousEnd_);
 }
 
 void
@@ -1700,12 +1551,12 @@ ForkJoinShared::requestZoneGC(JS::Zone *zone, JS::gcreason::Reason reason)
 
 
 ForkJoinSlice::ForkJoinSlice(PerThreadData *perThreadData,
-                             uint32_t sliceId, uint32_t numSlices,
+                             uint16_t sliceId, uint32_t workerId,
                              Allocator *allocator, ForkJoinShared *shared,
                              ParallelBailoutRecord *bailoutRecord)
   : ThreadSafeContext(shared->runtime(), perThreadData, Context_ForkJoin),
     sliceId(sliceId),
-    numSlices(numSlices),
+    workerId(workerId),
     bailoutRecord(bailoutRecord),
     shared(shared),
     acquiredContext_(false),
@@ -1792,15 +1643,6 @@ ForkJoinSlice::setPendingAbortFatal(ParallelBailoutCause cause)
     shared->setPendingAbortFatal();
     bailoutRecord->setCause(cause);
     return false;
-}
-
-
-
-uint32_t
-js::ForkJoinSlices(JSContext *cx)
-{
-    
-    return cx->runtime()->threadPool.numWorkers() + 1;
 }
 
 
@@ -1908,6 +1750,19 @@ MethodStatusToString(MethodStatus status)
     return "(unknown status)";
 }
 
+static unsigned
+NumberOfDigits(unsigned n)
+{
+    if (n == 0)
+        return 1;
+    unsigned d = 0;
+    while (n != 0) {
+        d++;
+        n /= 10;
+    }
+    return d;
+}
+
 static const size_t BufferSize = 4096;
 
 class ParallelSpewer
@@ -1928,7 +1783,7 @@ class ParallelSpewer
     const char *green() { return color("\x1b[32m"); }
     const char *yellow() { return color("\x1b[33m"); }
     const char *cyan() { return color("\x1b[36m"); }
-    const char *sliceColor(uint32_t id) {
+    const char *workerColor(uint32_t id) {
         static const char *colors[] = {
             "\x1b[7m\x1b[31m", "\x1b[7m\x1b[32m", "\x1b[7m\x1b[33m",
             "\x1b[7m\x1b[34m", "\x1b[7m\x1b[35m", "\x1b[7m\x1b[36m",
@@ -1962,7 +1817,7 @@ class ParallelSpewer
         }
 
         env = getenv("TERM");
-        if (env) {
+        if (env && isatty(fileno(stderr))) {
             if (strcmp(env, "xterm-color") == 0 || strcmp(env, "xterm-256color") == 0)
                 colorable = true;
         }
@@ -1981,8 +1836,13 @@ class ParallelSpewer
         char buf[BufferSize];
 
         if (ForkJoinSlice *slice = ForkJoinSlice::current()) {
-            JS_snprintf(buf, BufferSize, "[%sParallel:%u%s] ",
-                        sliceColor(slice->sliceId), slice->sliceId, reset());
+            
+            
+            char bufbuf[BufferSize];
+            JS_snprintf(bufbuf, BufferSize, "[%%sParallel:%%0%du(%%0%du)%%s] ",
+                        NumberOfDigits(slice->maxWorkerId), NumberOfDigits(slice->maxSliceId));
+            JS_snprintf(buf, BufferSize, bufbuf, workerColor(slice->workerId),
+                        slice->workerId, slice->sliceId, reset());
         } else {
             JS_snprintf(buf, BufferSize, "[Parallel:M] ");
         }

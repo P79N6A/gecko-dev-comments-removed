@@ -6,75 +6,194 @@
 
 #include "vm/ThreadPool.h"
 
+#include "mozilla/Atomics.h"
+
 #include "jslock.h"
 
+#include "vm/ForkJoin.h"
 #include "vm/Monitor.h"
 #include "vm/Runtime.h"
 
 using namespace js;
 
+const size_t WORKER_THREAD_STACK_SIZE = 1*1024*1024;
 
 
 
 
 
 
-
-
-static const size_t WORKER_THREAD_STACK_SIZE = 1*1024*1024;
-
-class js::ThreadPoolWorker : public Monitor
+class js::ThreadPoolBaseWorker
 {
-    const size_t workerId_;
+  protected:
+    const uint32_t workerId_;
+    ThreadPool *pool_;
+
+  private:
+    
+    
+    
+    
+    
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> sliceBounds_;
+
+  protected:
+    static uint32_t ComposeSliceBounds(uint16_t from, uint16_t to) {
+        MOZ_ASSERT(from <= to);
+        return (uint32_t(from) << 16) | to;
+    }
+
+    static void DecomposeSliceBounds(uint32_t bounds, uint16_t *from, uint16_t *to) {
+        *from = bounds >> 16;
+        *to = bounds & uint16_t(~0);
+        MOZ_ASSERT(*from <= *to);
+    }
+
+    bool hasWork() const {
+        uint16_t from, to;
+        DecomposeSliceBounds(sliceBounds_, &from, &to);
+        return from != to;
+    }
+
+    bool popSliceFront(uint16_t *sliceId);
+    bool popSliceBack(uint16_t *sliceId);
+    bool stealFrom(ThreadPoolBaseWorker *victim, uint16_t *sliceId);
+
+  public:
+    ThreadPoolBaseWorker(uint32_t workerId, ThreadPool *pool)
+      : workerId_(workerId),
+        pool_(pool),
+        sliceBounds_(0)
+    { }
+
+    void submitSlices(uint16_t sliceFrom, uint16_t sliceTo) {
+        MOZ_ASSERT(!hasWork());
+        MOZ_ASSERT(sliceFrom < sliceTo);
+        sliceBounds_ = ComposeSliceBounds(sliceFrom, sliceTo);
+    }
+
+    void abort();
+};
+
+
+
+
+
+
+
+
+
+class js::ThreadPoolWorker : public ThreadPoolBaseWorker
+{
+    friend class ThreadPoolMainWorker;
 
     
     
     
-    enum WorkerState {
-        CREATED, ACTIVE, TERMINATING, TERMINATED
+    volatile enum WorkerState {
+        CREATED, ACTIVE, TERMINATED
     } state_;
-
-    
-    
-    
-    js::Vector<TaskExecutor*, 4, SystemAllocPolicy> worklist_;
 
     
     static void ThreadMain(void *arg);
     void run();
 
-  public:
-    ThreadPoolWorker(size_t workerId);
-    ~ThreadPoolWorker();
+    
+    
+    bool getSlice(uint16_t *sliceId);
 
-    bool init();
+  public:
+    ThreadPoolWorker(uint32_t workerId, ThreadPool *pool)
+      : ThreadPoolBaseWorker(workerId, pool),
+        state_(CREATED)
+    { }
 
     
     bool start();
 
     
-    
-    
-    bool submit(TaskExecutor *task);
-
-    
-    
     void terminate();
 };
 
-ThreadPoolWorker::ThreadPoolWorker(size_t workerId)
-  : workerId_(workerId),
-    state_(CREATED),
-    worklist_()
-{ }
 
-ThreadPoolWorker::~ThreadPoolWorker()
-{ }
+
+
+
+
+class js::ThreadPoolMainWorker : public ThreadPoolBaseWorker
+{
+    friend class ThreadPoolWorker;
+
+    
+    bool getSlice(uint16_t *sliceId);
+
+  public:
+    ThreadPoolMainWorker(ThreadPool *pool)
+      : ThreadPoolBaseWorker(0, pool)
+    { }
+
+    
+    void executeJob();
+};
 
 bool
-ThreadPoolWorker::init()
+ThreadPoolBaseWorker::popSliceFront(uint16_t *sliceId)
 {
-    return Monitor::init();
+    uint32_t bounds;
+    uint16_t from, to;
+    do {
+        bounds = sliceBounds_;
+        DecomposeSliceBounds(bounds, &from, &to);
+        if (from == to)
+            return false;
+    } while (!sliceBounds_.compareExchange(bounds, ComposeSliceBounds(from + 1, to)));
+
+    *sliceId = from;
+    pool_->pendingSlices_--;
+    return true;
+}
+
+bool
+ThreadPoolBaseWorker::popSliceBack(uint16_t *sliceId)
+{
+    uint32_t bounds;
+    uint16_t from, to;
+    do {
+        bounds = sliceBounds_;
+        DecomposeSliceBounds(bounds, &from, &to);
+        if (from == to)
+            return false;
+    } while (!sliceBounds_.compareExchange(bounds, ComposeSliceBounds(from, to - 1)));
+
+    *sliceId = to - 1;
+    pool_->pendingSlices_--;
+    return true;
+}
+
+void
+ThreadPoolBaseWorker::abort()
+{
+    uint32_t bounds;
+    uint16_t from, to;
+    do {
+        bounds = sliceBounds_;
+        DecomposeSliceBounds(bounds, &from, &to);
+    } while (!sliceBounds_.compareExchange(bounds, 0));
+
+    pool_->pendingSlices_ -= to - from;
+}
+
+bool
+ThreadPoolBaseWorker::stealFrom(ThreadPoolBaseWorker *victim, uint16_t *sliceId)
+{
+    
+    
+    if (!victim->popSliceBack(sliceId))
+        return false;
+#ifdef DEBUG
+    pool_->stolenSlices_++;
+#endif
+    return true;
 }
 
 bool
@@ -83,7 +202,7 @@ ThreadPoolWorker::start()
 #ifndef JS_THREADSAFE
     return false;
 #else
-    JS_ASSERT(state_ == CREATED);
+    MOZ_ASSERT(state_ == CREATED);
 
     
     state_ = ACTIVE;
@@ -106,8 +225,37 @@ ThreadPoolWorker::start()
 void
 ThreadPoolWorker::ThreadMain(void *arg)
 {
-    ThreadPoolWorker *thread = (ThreadPoolWorker*) arg;
-    thread->run();
+    ThreadPoolWorker *worker = (ThreadPoolWorker*) arg;
+    worker->run();
+}
+
+bool
+ThreadPoolWorker::getSlice(uint16_t *sliceId)
+{
+    
+    if (popSliceFront(sliceId))
+        return true;
+
+    
+    if (!pool_->workStealing())
+        return false;
+
+    ThreadPoolBaseWorker *victim;
+    do {
+        if (!pool_->hasWork())
+            return false;
+
+        
+        uint32_t victimId = rand() % (pool_->numWorkers() + 1);
+
+        
+        if (victimId == 0)
+            victim = pool_->mainWorker_;
+        else
+            victim = pool_->workers_[victimId - 1];
+    } while (!stealFrom(victim, sliceId));
+
+    return true;
 }
 
 void
@@ -121,59 +269,80 @@ ThreadPoolWorker::run()
     uintptr_t stackLimit = (((uintptr_t)&stackLimitOffset) +
                              stackLimitOffset * JS_STACK_GROWTH_DIRECTION);
 
-    AutoLockMonitor lock(*this);
-
     for (;;) {
-        while (!worklist_.empty()) {
-            TaskExecutor *task = worklist_.popCopy();
-            {
-                
-                
-                AutoUnlockMonitor unlock(*this);
-                task->executeFromWorker(workerId_, stackLimit);
+        
+        {
+            AutoLockMonitor lock(*pool_);
+            while (state_ == ACTIVE && !pool_->hasWork())
+                lock.wait();
+
+            if (state_ == TERMINATED) {
+                pool_->join();
+                return;
+            }
+
+            pool_->activeWorkers_++;
+        }
+
+        ParallelJob *job = pool_->job();
+        uint16_t sliceId;
+        while (getSlice(&sliceId)) {
+            if (!job->executeFromWorker(sliceId, workerId_, stackLimit)) {
+                pool_->abortJob();
+                break;
             }
         }
 
-        if (state_ == TERMINATING)
-            break;
-
-        JS_ASSERT(state_ == ACTIVE);
-
-        lock.wait();
+        
+        {
+            AutoLockMonitor lock(*pool_);
+            pool_->join();
+        }
     }
-
-    JS_ASSERT(worklist_.empty() && state_ == TERMINATING);
-    state_ = TERMINATED;
-    lock.notify();
-}
-
-bool
-ThreadPoolWorker::submit(TaskExecutor *task)
-{
-    AutoLockMonitor lock(*this);
-    JS_ASSERT(state_ == ACTIVE);
-    if (!worklist_.append(task))
-        return false;
-    lock.notify();
-    return true;
 }
 
 void
 ThreadPoolWorker::terminate()
 {
-    AutoLockMonitor lock(*this);
+    MOZ_ASSERT(state_ != TERMINATED);
+    pool_->assertIsHoldingLock();
+    state_ = TERMINATED;
+}
 
-    if (state_ == CREATED) {
-        state_ = TERMINATED;
-        return;
-    } else if (state_ == ACTIVE) {
-        state_ = TERMINATING;
-        lock.notify();
-        while (state_ != TERMINATED)
-            lock.wait();
-    } else {
-        JS_ASSERT(state_ == TERMINATED);
+void
+ThreadPoolMainWorker::executeJob()
+{
+    ParallelJob *job = pool_->job();
+    uint16_t sliceId;
+    while (getSlice(&sliceId)) {
+        if (!job->executeFromMainThread(sliceId)) {
+            pool_->abortJob();
+            return;
+        }
     }
+}
+
+bool
+ThreadPoolMainWorker::getSlice(uint16_t *sliceId)
+{
+    
+    if (popSliceFront(sliceId))
+        return true;
+
+    
+    if (!pool_->workStealing())
+        return false;
+
+    
+    ThreadPoolWorker *victim;
+    do {
+        if (!pool_->hasWork())
+            return false;
+
+        victim = pool_->workers_[rand() % pool_->numWorkers()];
+    } while (!stealFrom(victim, sliceId));
+
+    return true;
 }
 
 
@@ -183,19 +352,53 @@ ThreadPoolWorker::terminate()
 
 
 ThreadPool::ThreadPool(JSRuntime *rt)
-  : runtime_(rt)
-{
-}
+  : runtime_(rt),
+    mainWorker_(nullptr),
+    activeWorkers_(0),
+    joinBarrier_(nullptr),
+    job_(nullptr),
+#ifdef DEBUG
+    stolenSlices_(0),
+#endif
+    pendingSlices_(0)
+{ }
 
 ThreadPool::~ThreadPool()
 {
     terminateWorkers();
+    if (joinBarrier_)
+        PR_DestroyCondVar(joinBarrier_);
 }
 
-size_t
+bool
+ThreadPool::init()
+{
+#ifdef JS_THREADSAFE
+    if (!Monitor::init())
+        return false;
+    joinBarrier_ = PR_NewCondVar(lock_);
+    return !!joinBarrier_;
+#else
+    return true;
+#endif
+}
+
+uint32_t
 ThreadPool::numWorkers() const
 {
-    return runtime_->workerThreadCount();
+    
+    return runtime_->cpuCount() - 1;
+}
+
+bool
+ThreadPool::workStealing() const
+{
+#ifdef DEBUG
+    if (char *stealEnv = getenv("JS_THREADPOOL_STEAL"))
+        return !!strtol(stealEnv, nullptr, 10);
+#endif
+
+    return true;
 }
 
 bool
@@ -207,11 +410,9 @@ ThreadPool::lazyStartWorkers(JSContext *cx)
     
     
 
-#ifndef JS_THREADSAFE
-    return true;
-#else
+#ifdef JS_THREADSAFE
     if (!workers_.empty()) {
-        JS_ASSERT(workers_.length() == numWorkers());
+        MOZ_ASSERT(workers_.length() == numWorkers());
         return true;
     }
 
@@ -219,18 +420,16 @@ ThreadPool::lazyStartWorkers(JSContext *cx)
     
     
     
-    for (size_t workerId = 0; workerId < numWorkers(); workerId++) {
-        ThreadPoolWorker *worker = js_new<ThreadPoolWorker>(workerId);
-        if (!worker) {
+    for (uint32_t workerId = 0; workerId < numWorkers(); workerId++) {
+        ThreadPoolWorker *worker = cx->new_<ThreadPoolWorker>(workerId, this);
+        if (!worker || !workers_.append(worker)) {
             terminateWorkersAndReportOOM(cx);
             return false;
         }
-        if (!worker->init() || !workers_.append(worker)) {
-            js_delete(worker);
-            terminateWorkersAndReportOOM(cx);
-            return false;
-        }
-        if (!worker->start()) {
+    }
+
+    for (uint32_t workerId = 0; workerId < numWorkers(); workerId++) {
+        if (!workers_[workerId]->start()) {
             
             
             
@@ -238,47 +437,140 @@ ThreadPool::lazyStartWorkers(JSContext *cx)
             return false;
         }
     }
+#endif
 
     return true;
-#endif
 }
 
 void
 ThreadPool::terminateWorkersAndReportOOM(JSContext *cx)
 {
     terminateWorkers();
-    JS_ASSERT(workers_.empty());
-    JS_ReportOutOfMemory(cx);
+    MOZ_ASSERT(workers_.empty());
+    js_ReportOutOfMemory(cx);
 }
 
 void
 ThreadPool::terminateWorkers()
 {
-    while (workers_.length() > 0) {
-        ThreadPoolWorker *worker = workers_.popCopy();
-        worker->terminate();
-        js_delete(worker);
+    if (workers_.length() > 0) {
+        AutoLockMonitor lock(*this);
+
+        
+        for (uint32_t i = 0; i < workers_.length(); i++)
+            workers_[i]->terminate();
+
+        
+        
+        activeWorkers_ = workers_.length();
+        lock.notifyAll();
+
+        
+        waitForWorkers();
+
+        while (workers_.length() > 0)
+            js_delete(workers_.popCopy());
     }
+
+    js_delete(mainWorker_);
 }
 
-bool
-ThreadPool::submitAll(JSContext *cx, TaskExecutor *executor)
-{
-    JS_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
-
-    if (!lazyStartWorkers(cx))
-        return false;
-
-    for (size_t id = 0; id < numWorkers(); id++) {
-        if (!workers_[id]->submit(executor))
-            return false;
-    }
-    return true;
-}
-
-bool
+void
 ThreadPool::terminate()
 {
     terminateWorkers();
-    return true;
+}
+
+void
+ThreadPool::join()
+{
+#ifdef JS_THREADSAFE
+    assertIsHoldingLock();
+    if (--activeWorkers_ == 0)
+        PR_NotifyCondVar(joinBarrier_);
+#endif
+}
+
+void
+ThreadPool::waitForWorkers()
+{
+#ifdef JS_THREADSAFE
+    assertIsHoldingLock();
+    while (activeWorkers_ > 0) {
+        mozilla::DebugOnly<PRStatus> status =
+            PR_WaitCondVar(joinBarrier_, PR_INTERVAL_NO_TIMEOUT);
+        MOZ_ASSERT(status == PR_SUCCESS);
+    }
+    job_ = nullptr;
+#endif
+}
+
+ParallelResult
+ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices)
+{
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
+    MOZ_ASSERT(activeWorkers_ == 0);
+    MOZ_ASSERT(!hasWork());
+
+    
+    if (!mainWorker_) {
+        mainWorker_ = cx->new_<ThreadPoolMainWorker>(this);
+        if (!mainWorker_) {
+            terminateWorkersAndReportOOM(cx);
+            return TP_FATAL;
+        }
+    }
+
+    if (!lazyStartWorkers(cx))
+        return TP_FATAL;
+
+    
+    uint16_t slicesPerWorker = numSlices / (numWorkers() + 1);
+    uint16_t leftover = numSlices % slicesPerWorker;
+    uint16_t sliceFrom = 0;
+    uint16_t sliceTo = 0;
+    for (uint32_t workerId = 0; workerId < numWorkers(); workerId++) {
+        if (leftover > 0) {
+            sliceTo += slicesPerWorker + 1;
+            leftover--;
+        } else {
+            sliceTo += slicesPerWorker;
+        }
+        workers_[workerId]->submitSlices(sliceFrom, sliceTo);
+        sliceFrom = sliceTo;
+    }
+    MOZ_ASSERT(leftover == 0);
+    mainWorker_->submitSlices(sliceFrom, sliceFrom + slicesPerWorker);
+
+    
+    {
+        job_ = job;
+        pendingSlices_ = numSlices;
+#ifdef DEBUG
+        stolenSlices_ = 0;
+#endif
+        AutoLockMonitor lock(*this);
+        lock.notifyAll();
+    }
+
+    
+    mainWorker_->executeJob();
+
+    
+    
+    {
+        AutoLockMonitor lock(*this);
+        waitForWorkers();
+    }
+
+    
+    return TP_SUCCESS;
+}
+
+void
+ThreadPool::abortJob()
+{
+    mainWorker_->abort();
+    for (uint32_t workerId = 0; workerId < numWorkers(); workerId++)
+        workers_[workerId]->abort();
 }

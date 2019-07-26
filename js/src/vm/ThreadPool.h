@@ -7,28 +7,33 @@
 #ifndef vm_ThreadPool_h
 #define vm_ThreadPool_h
 
-#include <stddef.h>
-#include <stdint.h>
+#include "mozilla/Atomics.h"
 
 #include "jsalloc.h"
 #include "jslock.h"
 #include "jspubtd.h"
 
 #include "js/Vector.h"
+#include "vm/Monitor.h"
 
 struct JSRuntime;
 struct JSCompartment;
 
 namespace js {
 
+class ThreadPoolBaseWorker;
 class ThreadPoolWorker;
+class ThreadPoolMainWorker;
 
-typedef void (*TaskFun)(void *userdata, uint32_t workerId, uintptr_t stackLimit);
 
-class TaskExecutor
+
+
+
+class ParallelJob
 {
   public:
-    virtual void executeFromWorker(uint32_t workerId, uintptr_t stackLimit) = 0;
+    virtual bool executeFromWorker(uint16_t sliceId, uint32_t workerId, uintptr_t stackLimit) = 0;
+    virtual bool executeFromMainThread(uint16_t sliceId) = 0;
 };
 
 
@@ -52,33 +57,97 @@ class TaskExecutor
 
 
 
-class ThreadPool
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ThreadPool : public Monitor
 {
   private:
+    friend class ThreadPoolBaseWorker;
     friend class ThreadPoolWorker;
+    friend class ThreadPoolMainWorker;
 
     
     JSRuntime *const runtime_;
-    js::Vector<ThreadPoolWorker*, 8, SystemAllocPolicy> workers_;
+
+    
+    
+    js::Vector<ThreadPoolWorker *, 8, SystemAllocPolicy> workers_;
+    ThreadPoolMainWorker *mainWorker_;
+
+    
+    uint32_t activeWorkers_;
+    PRCondVar *joinBarrier_;
+
+    
+    ParallelJob *job_;
+
+#ifdef DEBUG
+    
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stolenSlices_;
+#endif
+
+    
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> pendingSlices_;
 
     bool lazyStartWorkers(JSContext *cx);
     void terminateWorkers();
     void terminateWorkersAndReportOOM(JSContext *cx);
+    void join();
+    void waitForWorkers();
 
   public:
     ThreadPool(JSRuntime *rt);
     ~ThreadPool();
 
-    
-    size_t numWorkers() const;
+    bool init();
 
     
-    bool submitAll(JSContext *cx, TaskExecutor *executor);
+    uint32_t numWorkers() const;
+
+    
+    bool hasWork() const { return pendingSlices_ != 0; }
+
+    
+    ParallelJob *job() const {
+        MOZ_ASSERT(job_);
+        return job_;
+    }
+
+    
+    bool workStealing() const;
+
+#ifdef DEBUG
+    
+    uint16_t stolenSlices() { return stolenSlices_; }
+#endif
 
     
     
     
-    bool terminate();
+    void terminate();
+
+    
+    
+    ParallelResult executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices);
+
+    
+    void abortJob();
 };
 
 } 

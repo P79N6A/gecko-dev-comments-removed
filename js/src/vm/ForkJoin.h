@@ -200,7 +200,6 @@
 
 
 
-
 namespace js {
 
 class ForkJoinActivation : public Activation
@@ -221,10 +220,6 @@ class ForkJoinActivation : public Activation
 class ForkJoinSlice;
 
 bool ForkJoin(JSContext *cx, CallArgs &args);
-
-
-
-uint32_t ForkJoinSlices(JSContext *cx);
 
 struct IonLIRTraceData {
     uint32_t blockIndex;
@@ -307,10 +302,10 @@ class ForkJoinSlice : public ThreadSafeContext
 {
   public:
     
-    const uint32_t sliceId;
+    const uint16_t sliceId;
 
     
-    const uint32_t numSlices;
+    const uint32_t workerId;
 
     
     ParallelBailoutRecord *const bailoutRecord;
@@ -318,9 +313,13 @@ class ForkJoinSlice : public ThreadSafeContext
 #ifdef DEBUG
     
     IonLIRTraceData traceData;
+
+    
+    uint16_t maxSliceId;
+    uint32_t maxWorkerId;
 #endif
 
-    ForkJoinSlice(PerThreadData *perThreadData, uint32_t sliceId, uint32_t numSlices,
+    ForkJoinSlice(PerThreadData *perThreadData, uint16_t sliceId, uint32_t workerId,
                   Allocator *allocator, ForkJoinShared *shared,
                   ParallelBailoutRecord *bailoutRecord);
 
@@ -380,7 +379,6 @@ class ForkJoinSlice : public ThreadSafeContext
     static bool initialize();
 
   private:
-    friend class AutoRendezvous;
     friend class AutoSetForkJoinSlice;
 
     

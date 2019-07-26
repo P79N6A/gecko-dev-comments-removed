@@ -15,7 +15,8 @@ function testReduce() {
     return r;
   }
 
-  var array = build(4096, function() { return 1; });
+  
+  var array = build(8 * 4096, function() { return 1; });
   var seqResult = array.reduce(sum);
   var seqCounter = aCounter;
 
