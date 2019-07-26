@@ -106,7 +106,7 @@ public:
 
 
 
-  virtual void OnStopRequest(bool aIsLastPart) = 0;
+  virtual void OnStopRequest(bool aIsLastPart, nsresult aStatus) = 0;
 
   
 
@@ -119,6 +119,11 @@ public:
 
 
   virtual void OnUnlockedDraw() = 0;
+
+  
+
+
+  virtual void OnError() = 0;
 };
 
 

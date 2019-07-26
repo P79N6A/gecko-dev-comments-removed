@@ -604,11 +604,6 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
 {
   LOG_FUNC(GetImgLog(), "imgRequest::OnStopRequest");
 
-  bool lastPart = true;
-  nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
-  if (mpchan)
-    mpchan->GetIsLastPart(&lastPart);
-
   
   
   
@@ -624,6 +619,11 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     mChannel = nullptr;
   }
 
+  bool lastPart = true;
+  nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
+  if (mpchan)
+    mpchan->GetIsLastPart(&lastPart);
+
   
   
   
@@ -636,12 +636,6 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     
     if (NS_FAILED(rv) && NS_SUCCEEDED(status))
       status = rv;
-  } else {
-    
-    
-    imgStatusTracker& statusTracker = GetStatusTracker();
-    statusTracker.RecordCancel();  
-    statusTracker.OnStopRequest(lastPart, status);
   }
 
   
@@ -654,6 +648,13 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   else {
     
     this->Cancel(status);
+  }
+
+  if (!mImage) {
+    
+    
+    imgStatusTracker& statusTracker = GetStatusTracker();
+    statusTracker.OnStopRequest(lastPart, status);
   }
 
   mTimedChannel = nullptr;

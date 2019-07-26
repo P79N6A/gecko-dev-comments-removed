@@ -125,10 +125,6 @@ function getChannelLoadImageStartCallback(streamlistener)
 function getChannelLoadImageStopCallback(streamlistener, next)
 {
   return function channelLoadStop(imglistener, aRequest) {
-    
-    
-    
-    do_check_eq(streamlistener.requestStatus & STOP_REQUEST, 0);
 
     next();
 
