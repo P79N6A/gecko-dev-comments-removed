@@ -5223,7 +5223,7 @@ StackDecrementForCall(MacroAssembler &masm, const VectorT &argTypes, unsigned ex
 
 static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * STACK_SLOT_SIZE +
                                              NonVolatileRegs.fpus().size() * sizeof(double);
-#ifndef JS_CPU_ARM
+
 static bool
 GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFunc)
 {
@@ -5237,26 +5237,37 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     
     masm.setFramePushed(0);
     masm.PushRegsInMask(NonVolatileRegs);
+    JS_ASSERT(masm.framePushed() == FramePushedAfterSave);
 
     
     
     
     
-    JS_ASSERT(masm.framePushed() == FramePushedAfterSave);
     Register activation = ABIArgGenerator::NonArgReturnVolatileReg0;
     LoadAsmJSActivationIntoRegister(masm, activation);
-    masm.movePtr(StackPointer, Operand(activation, AsmJSActivation::offsetOfErrorRejoinSP()));
+    masm.storePtr(StackPointer, Address(activation, AsmJSActivation::offsetOfErrorRejoinSP()));
 
-#if defined(JS_CPU_X64)
-    masm.movq(Operand(IntArgReg1, m.module().heapOffset()), HeapReg);
+    
+    
+    
+#if defined(JS_CPU_ARM)
+    masm.movePtr(IntArgReg1, GlobalReg);
+    masm.ma_vimm(js_NaN, NANReg);
 #endif
 
+    
+    
+#if defined(JS_CPU_X64) || defined(JS_CPU_ARM)
+    masm.loadPtr(Address(IntArgReg1, m.module().heapOffset()), HeapReg);
+#endif
+
+    
     Register argv = ABIArgGenerator::NonArgReturnVolatileReg0;
     Register scratch = ABIArgGenerator::NonArgReturnVolatileReg1;
 #if defined(JS_CPU_X86)
-    masm.movl(Operand(StackPointer, NativeFrameSize + masm.framePushed()), argv);
-#elif defined(JS_CPU_X64)
-    masm.movq(IntArgReg0, argv);
+    masm.loadPtr(Address(StackPointer, NativeFrameSize + masm.framePushed()), argv);
+#else
+    masm.movePtr(IntArgReg0, argv);
 #endif
     masm.Push(argv);
 
@@ -5265,142 +5276,41 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     unsigned stackDec = StackDecrementForCall(masm, func.sig().args());
     masm.reserveStack(stackDec);
 
+    
+    
     for (ABIArgTypeIter iter(func.sig().args()); !iter.done(); iter++) {
-        Operand src(argv, iter.index() * sizeof(uint64_t));
+        unsigned argOffset = iter.index() * sizeof(uint64_t);
+        Address src(argv, argOffset);
         switch (iter->kind()) {
           case ABIArg::GPR:
             masm.load32(src, iter->gpr());
             break;
           case ABIArg::FPU:
+#if defined(JS_CPU_ARM) and !defined(JS_CPU_ARM_HARDFP)
+            masm.ma_dataTransferN(IsLoad, 64, true, argv, Imm32(argOffset),
+                                  Register::FromCode(iter->fpu().code()*2));
+#else
             masm.loadDouble(src, iter->fpu());
-            break;
-          case ABIArg::Stack:
-            if (iter.mirType() == MIRType_Int32) {
-                masm.load32(src, scratch);
-                masm.storePtr(scratch, Operand(StackPointer, iter->offsetFromArgBase()));
-            } else {
-                JS_ASSERT(iter.mirType() == MIRType_Double);
-                masm.loadDouble(src, ScratchFloatReg);
-                masm.storeDouble(ScratchFloatReg, Operand(StackPointer, iter->offsetFromArgBase()));
-            }
-            break;
-        }
-    }
-
-    AssertStackAlignment(masm);
-    masm.call(func.code());
-
-    masm.freeStack(stackDec);
-    masm.Pop(argv);
-
-    
-    switch (func.sig().retType().which()) {
-      case RetType::Void:
-        break;
-      case RetType::Signed:
-        masm.storeValue(JSVAL_TYPE_INT32, ReturnReg, Address(argv, 0));
-        break;
-      case RetType::Double:
-        masm.canonicalizeDouble(ReturnFloatReg);
-        masm.storeDouble(ReturnFloatReg, Address(argv, 0));
-        break;
-    }
-
-    
-    masm.PopRegsInMask(NonVolatileRegs);
-    JS_ASSERT(masm.framePushed() == 0);
-
-    masm.move32(Imm32(true), ReturnReg);
-    masm.ret();
-    return true;
-}
-#else
-static bool
-GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFunc)
-{
-    const ModuleCompiler::Func &func = *m.lookupFunction(exportedFunc.name());
-
-    MacroAssembler &masm = m.masm();
-
-    
-    
-    
-    
-    
-    
-    masm.setFramePushed(0);
-    masm.PushRegsInMask(NonVolatileRegs);
-    JS_ASSERT(masm.framePushed() == FramePushedAfterSave);
-    JS_ASSERT(masm.framePushed() % 8 == 0);
-
-    
-    
-    
-    
-
-    LoadAsmJSActivationIntoRegister(masm, r9);
-    masm.ma_str(StackPointer, Address(r9, AsmJSActivation::offsetOfErrorRejoinSP()));
-    
-
-    
-    
-    Register argv = r9;
-    masm.movePtr(IntArgReg1, GlobalReg);  
-    masm.movePtr(IntArgReg0, argv);       
-
-    masm.ma_ldr(Operand(GlobalReg, Imm32(m.module().heapOffset())), HeapReg);
-    
-    JS_ASSERT(masm.framePushed() % 8 == 0);
-    masm.Push(argv);
-    JS_ASSERT(masm.framePushed() % 8 == 4);
-
-    
-    
-    unsigned numStackArgs = 0;
-    for (ABIArgTypeIter iter(func.sig().args()); !iter.done(); iter++) {
-        if (iter->kind() == ABIArg::Stack)
-            numStackArgs++;
-    }
-
-    
-    
-    
-    JS_ASSERT(masm.framePushed() % 8 == 4);
-    unsigned stackDec = numStackArgs * sizeof(double) + (masm.framePushed() >> 2) % 2 * sizeof(uint32_t);
-    masm.reserveStack(stackDec);
-    
-    if(getenv("GDB_BREAK")) {
-        masm.breakpoint(js::jit::Assembler::Always);
-    }
-    
-    
-    for (ABIArgTypeIter iter(func.sig().args()); !iter.done(); iter++) {
-        unsigned argOffset = iter.index() * sizeof(uint64_t);
-        switch (iter->kind()) {
-          case ABIArg::GPR:
-            masm.ma_ldr(Operand(argv, argOffset), iter->gpr());
-            break;
-          case ABIArg::FPU:
-#if defined(JS_CPU_ARM_HARDFP)
-            masm.ma_vldr(Operand(argv, argOffset), iter->fpu());
-#else
-            
-            
-            masm.ma_dataTransferN(IsLoad, 64, true, argv, Imm32(argOffset), Register::FromCode(iter->fpu().code()*2));
 #endif
             break;
           case ABIArg::Stack:
             if (iter.mirType() == MIRType_Int32) {
-                masm.memMove32(Address(argv, argOffset), Address(StackPointer, iter->offsetFromArgBase()));
+                masm.load32(src, scratch);
+                masm.storePtr(scratch, Address(StackPointer, iter->offsetFromArgBase()));
             } else {
-                masm.memMove64(Address(argv, argOffset), Address(StackPointer, iter->offsetFromArgBase()));
+                JS_ASSERT(iter.mirType() == MIRType_Double);
+                masm.loadDouble(src, ScratchFloatReg);
+                masm.storeDouble(ScratchFloatReg, Address(StackPointer, iter->offsetFromArgBase()));
             }
             break;
         }
     }
-    masm.ma_vimm(js_NaN, NANReg);
+
+    
+    AssertStackAlignment(masm);
     masm.call(func.code());
 
+    
     
     masm.freeStack(stackDec);
     masm.Pop(argv);
@@ -5413,7 +5323,7 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
         masm.storeValue(JSVAL_TYPE_INT32, ReturnReg, Address(argv, 0));
         break;
       case RetType::Double:
-#ifndef JS_CPU_ARM_HARDFP
+#if defined(JS_CPU_ARM) and !defined(JS_CPU_ARM_HARDFP)
         masm.ma_vxfer(r0, r1, d0);
 #endif
         masm.canonicalizeDouble(ReturnFloatReg);
@@ -5421,13 +5331,15 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
         break;
     }
 
+    
     masm.PopRegsInMask(NonVolatileRegs);
 
-    masm.ma_mov(Imm32(true), ReturnReg);
+    JS_ASSERT(masm.framePushed() == 0);
+
+    masm.move32(Imm32(true), ReturnReg);
     masm.abiret();
     return true;
 }
-#endif
 
 static inline bool
 TryEnablingIon(JSContext *cx, AsmJSModule &module, HandleFunction fun, uint32_t exitIndex,
