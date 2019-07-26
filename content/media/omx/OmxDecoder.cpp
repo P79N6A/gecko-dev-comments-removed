@@ -426,18 +426,6 @@ bool OmxDecoder::TryLoad() {
   if (mAudioSource.get()) {
     
     
-    if (mResource->GetRtspPointer()) {
-      sp<MetaData> meta = mAudioSource->getFormat();
-      if (!meta->findInt32(kKeyChannelCount, &mAudioChannels) ||
-          !meta->findInt32(kKeySampleRate, &mAudioSampleRate)) {
-        NS_WARNING("Couldn't get audio metadata from OMX decoder");
-        return false;
-      }
-      return true;
-    }
-
-    
-    
     status_t err = mAudioSource->read(&mAudioBuffer);
     if (err != INFO_FORMAT_CHANGED) {
       if (err != OK) {
