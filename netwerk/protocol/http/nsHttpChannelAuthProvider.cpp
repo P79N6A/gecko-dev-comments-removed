@@ -853,6 +853,7 @@ nsHttpChannelAuthProvider::ParseRealm(const char *challenge,
     
     
     
+
     const char *p = PL_strcasestr(challenge, "realm=");
     if (p) {
         bool has_quote = false;
@@ -862,21 +863,31 @@ nsHttpChannelAuthProvider::ParseRealm(const char *challenge,
             p++;
         }
 
-        const char *end = p;
-        while (*end && has_quote) {
-           
-           
-            if (*end == '"' && end[-1] != '\\')
-                break;
-            ++end;
-        }
+        const char *end;
+        if (has_quote) {
+            end = p;
+            while (*end) {
+                if (*end == '\\') {
+                    
+                    if (!*++end)
+                        break;
+                }
+                else if (*end == '\"')
+                    
+                    break;
 
-        if (!has_quote)
+                realm.Append(*end);
+                ++end;
+            }
+        }
+        else {
+            
             end = strchr(p, ' ');
-        if (end)
-            realm.Assign(p, end - p);
-        else
-            realm.Assign(p);
+            if (end)
+                realm.Assign(p, end - p);
+            else
+                realm.Assign(p);
+        }
     }
 }
 
