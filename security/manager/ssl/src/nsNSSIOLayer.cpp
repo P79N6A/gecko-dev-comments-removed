@@ -2448,7 +2448,7 @@ loser:
 static nsresult
 nsSSLIOLayerSetOptions(PRFileDesc *fd, bool forSTARTTLS, 
                        const char *proxyHost, const char *host, int32_t port,
-                       nsNSSSocketInfo *infoObject)
+                       bool anonymousLoad, nsNSSSocketInfo *infoObject)
 {
   nsNSSShutDownPreventionLock locker;
   if (forSTARTTLS || proxyHost) {
@@ -2502,22 +2502,19 @@ nsSSLIOLayerSetOptions(PRFileDesc *fd, bool forSTARTTLS,
   }
 
   
+  char *peerId;
+  if (anonymousLoad) {  
+      peerId = PR_smprintf("anon:%s:%d", host, port);
+  } else {
+      peerId = PR_smprintf("%s:%d", host, port);
+  }
   
-  uint32_t flags = infoObject->GetProviderFlags();
-  nsAutoCString peerId;
-  if (flags & nsISocketProvider::ANONYMOUS_CONNECT) { 
-    peerId.Append("anon:");
-  }
-  if (flags & nsISocketProvider::NO_PERMANENT_STORAGE) {
-    peerId.Append("private:");
-  }
-  peerId.Append(host);
-  peerId.Append(':');
-  peerId.AppendInt(port);
-  if (SECSuccess != SSL_SetSockPeerID(fd, peerId.get())) {
+  if (SECSuccess != SSL_SetSockPeerID(fd, peerId)) {
+    PR_smprintf_free(peerId);
     return NS_ERROR_FAILURE;
   }
 
+  PR_smprintf_free(peerId);
   return NS_OK;
 }
 
@@ -2547,6 +2544,7 @@ nsSSLIOLayerAddToSocket(int32_t family,
   infoObject->SetHostName(host);
   infoObject->SetPort(port);
 
+  bool anonymousLoad = providerFlags & nsISocketProvider::ANONYMOUS_CONNECT;
   PRFileDesc *sslSock = nsSSLIOLayerImportFD(fd, infoObject, host);
   if (!sslSock) {
     NS_ASSERTION(false, "NSS: Error importing socket");
@@ -2555,7 +2553,8 @@ nsSSLIOLayerAddToSocket(int32_t family,
 
   infoObject->SetFileDescPtr(sslSock);
 
-  rv = nsSSLIOLayerSetOptions(sslSock, forSTARTTLS, proxyHost, host, port,
+  rv = nsSSLIOLayerSetOptions(sslSock,
+                              forSTARTTLS, proxyHost, host, port, anonymousLoad,
                               infoObject);
 
   if (NS_FAILED(rv))
