@@ -317,6 +317,11 @@ class Histogram {
   };
 
   
+  typedef size_t (*MallocSizeOf)(const void*);
+
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf);
+
+  
   
 
   class SampleSet {
@@ -344,6 +349,8 @@ class Histogram {
 
     bool Serialize(Pickle* pickle) const;
     bool Deserialize(void** iter, const Pickle& pickle);
+
+    size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf);
 
    protected:
     
