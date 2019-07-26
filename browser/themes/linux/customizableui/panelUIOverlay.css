@@ -2,7 +2,4 @@
 
 
 
-%filter substitution
-%define menuPanelWidth 21em
-
 %include ../../shared/customizableui/panelUIOverlay.inc.css
