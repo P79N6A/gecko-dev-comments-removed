@@ -5058,16 +5058,6 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     return mFontSizeScaleFactor != oldFontSizeScaleFactor;
   }
 
-  gfxMatrix m;
-  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) ||
-      mGetCanvasTMForFlag != FOR_OUTERSVG_TM) {
-    m = GetCanvasTM(mGetCanvasTMForFlag);
-    if (m.IsSingular()) {
-      mFontSizeScaleFactor = 1.0;
-      return mFontSizeScaleFactor != oldFontSizeScaleFactor;
-    }
-  }
-
   double minSize = presContext->AppUnitsToFloatCSSPixels(min);
 
   if (geometricPrecision) {
@@ -5076,10 +5066,21 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
     return mFontSizeScaleFactor != oldFontSizeScaleFactor;
   }
 
-  double maxSize = presContext->AppUnitsToFloatCSSPixels(max);
-
-  double contextScale = GetContextScale(m);
+  
+  
+  
+  
+  
+  double contextScale = 1.0;
+  if (!(mState & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    gfxMatrix m(GetCanvasTM(mGetCanvasTMForFlag));
+    if (!m.IsSingular()) {
+      contextScale = GetContextScale(m);
+    }
+  }
   mLastContextScale = contextScale;
+
+  double maxSize = presContext->AppUnitsToFloatCSSPixels(max);
 
   
   
