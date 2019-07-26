@@ -126,7 +126,7 @@ public:
   
 
 
-  virtual void AddTextureClient(TextureClient* aClient);
+  virtual bool AddTextureClient(TextureClient* aClient);
 
   
 
