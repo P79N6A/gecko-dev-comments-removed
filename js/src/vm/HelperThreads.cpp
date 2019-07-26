@@ -702,6 +702,11 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
 
         
         CallNewScriptHookForAllScripts(cx, script);
+
+        
+        
+        if (script->scriptSource()->hasCompressedSource())
+            script->scriptSource()->updateCompressedSourceSet(rt);
     }
 
     return script;
@@ -990,7 +995,8 @@ SourceCompressionTask::complete()
     }
 
     if (result == Success) {
-        ss->setCompressedSource(compressed, compressedBytes);
+        ss->setCompressedSource(cx->isJSContext() ? cx->asJSContext()->runtime() : nullptr,
+                                compressed, compressedBytes, compressedHash);
 
         
         cx->updateMallocCounter(ss->computedSizeOfData());

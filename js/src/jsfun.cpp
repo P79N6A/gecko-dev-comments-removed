@@ -1285,7 +1285,7 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
         JS_ASSERT(lazy->source()->hasSourceData());
 
         
-        SourceDataCache::AutoHoldEntry holder;
+        UncompressedSourceCache::AutoHoldEntry holder;
         const jschar *chars = lazy->source()->chars(cx, holder);
         if (!chars)
             return false;
