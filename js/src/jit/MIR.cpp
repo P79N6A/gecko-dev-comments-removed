@@ -953,20 +953,33 @@ MPhi::removeOperand(size_t index)
 }
 
 MDefinition *
+MPhi::operandIfRedundant()
+{
+    JS_ASSERT(inputs_.length() != 0);
+
+    
+    
+    
+    MDefinition *first = getOperand(0);
+    for (size_t i = 1, e = numOperands(); i < e; i++) {
+        
+        
+        if (!EqualValues(false, getOperand(i), first) &&
+            !EqualValues(false, getOperand(i), this))
+        {
+            return nullptr;
+        }
+    }
+    return first;
+}
+
+MDefinition *
 MPhi::foldsTo(TempAllocator &alloc, bool useValueNumbers)
 {
-    JS_ASSERT(!inputs_.empty());
+    if (MDefinition *def = operandIfRedundant())
+        return def;
 
-    MDefinition *first = getOperand(0);
-
-    for (size_t i = 1; i < inputs_.length(); i++) {
-        
-        
-        if (!EqualValues(false, getOperand(i), first))
-            return this;
-    }
-
-    return first;
+    return this;
 }
 
 bool
