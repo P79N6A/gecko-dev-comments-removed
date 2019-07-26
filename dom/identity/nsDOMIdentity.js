@@ -38,6 +38,14 @@ XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
+
+const ERRORS = {
+  "ERROR_NOT_AUTHORIZED_FOR_FIREFOX_ACCOUNTS":
+    "Only privileged and certified apps may use Firefox Accounts",
+  "ERROR_INVALID_ASSERTION_AUDIENCE":
+    "Assertion audience may not differ from origin",
+};
+
 function nsDOMIdentity(aIdentityInternal) {
   this._identityInternal = aIdentityInternal;
 }
@@ -64,10 +72,27 @@ nsDOMIdentity.prototype = {
 
   
   get nativeEventsRequired() {
-    if (Services.prefs.prefHasUserValue(PREF_SYNTHETIC_EVENTS_OK)) {
+    if (Services.prefs.prefHasUserValue(PREF_SYNTHETIC_EVENTS_OK) &&
+        (Services.prefs.getPrefType(PREF_SYNTHETIC_EVENTS_OK) ===
+         Ci.nsIPrefBranch.PREF_BOOL)) {
       return !Services.prefs.getBoolPref(PREF_SYNTHETIC_EVENTS_OK);
     }
     return true;
+  },
+
+  reportErrors: function(message) {
+    let onerror = function() {};
+    if (this._rpWatcher && this._rpWatcher.onerror) {
+      onerror = this._rpWatcher.onerror;
+    }
+
+    message.errors.forEach((error) => {
+      
+      Cu.reportError(ERRORS[error]);
+
+      
+      onerror(error);
+    });
   },
 
   
@@ -106,7 +131,7 @@ nsDOMIdentity.prototype = {
     }
 
     
-    for (let cb of ["onready", "onlogout"]) {
+    for (let cb of ["onready", "onerror", "onlogout"]) {
       if (aOptions[cb] && typeof(aOptions[cb]) != "function") {
         throw new Error(cb + " must be a function");
       }
@@ -140,10 +165,19 @@ nsDOMIdentity.prototype = {
     this._log("loggedInUser: " + message.loggedInUser);
 
     this._rpWatcher = aOptions;
+    this._rpWatcher.audience = message.audience;
+
+    if (message.errors.length) {
+      this.reportErrors(message);
+      
+      
+      return;
+    }
     this._identityInternal._mm.sendAsyncMessage("Identity:RP:Watch", message);
   },
 
   request: function nsDOMIdentity_request(aOptions = {}) {
+    this._log("request: " + JSON.stringify(aOptions));
     let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindowUtils);
 
@@ -165,6 +199,12 @@ nsDOMIdentity.prototype = {
     }
 
     let message = this.DOMIdentityMessage(aOptions);
+
+    
+    if (message.errors.length) {
+      this.reportErrors(message);
+      return;
+    }
 
     if (aOptions) {
       
@@ -204,6 +244,13 @@ nsDOMIdentity.prototype = {
 
     this._rpCalls++;
     let message = this.DOMIdentityMessage();
+
+    
+    if (message.errors.length) {
+      this.reportErrors(message);
+      return;
+    }
+
     this._identityInternal._mm.sendAsyncMessage("Identity:RP:Logout", message);
   },
 
@@ -394,6 +441,7 @@ nsDOMIdentity.prototype = {
     this._window = aWindow;
     this._origin = aWindow.document.nodePrincipal.origin;
     this._appStatus = aWindow.document.nodePrincipal.appStatus;
+    this._appId = aWindow.document.nodePrincipal.appId;
 
     
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -549,9 +597,13 @@ nsDOMIdentity.prototype = {
 
 
 
+
   DOMIdentityMessage: function DOMIdentityMessage(aOptions) {
     aOptions = aOptions || {};
-    let message = {};
+    let message = {
+      errors: []
+    };
+    let principal = Ci.nsIPrincipal;
 
     objectCopy(aOptions, message);
 
@@ -565,6 +617,38 @@ nsDOMIdentity.prototype = {
     
     
     message.appStatus = this._appStatus;
+
+    
+    
+    if (this._appStatus !== principal.APP_STATUS_PRIVILEGED &&
+        this._appStatus !== principal.APP_STATUS_CERTIFIED) {
+      message.errors.push("ERROR_NOT_AUTHORIZED_FOR_FIREFOX_ACCOUNTS");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let _audience = message.origin;
+    if (message.audience && message.audience != message.origin) {
+      if (this._appStatus === principal.APP_STATUS_CERTIFIED) {
+        _audience = message.audience;
+        this._log("Certified app setting assertion audience: " + _audience);
+      } else {
+        message.errors.push("ERROR_INVALID_ASSERTION_AUDIENCE");
+      }
+    }
+
+    
+    message.audience = _audience;
+
+    this._log("Generated message: " + JSON.stringify(message));
 
     return message;
   },

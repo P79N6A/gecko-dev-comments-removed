@@ -1,0 +1,51 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html>
+  
+
+
+
+<head>
+  <meta charset="utf-8">
+  <title>Test app for bug 947374</title>
+</head>
+
+<body>
+    <div id='test'>
+<script type="application/javascript;version=1.8">
+
+  function postResults(message) {
+    window.realParent.postMessage(JSON.stringify(message), "*");
+  }
+
+  function onready() {
+    navigator.mozId.request();
+  }
+
+  function onlogin(backedAssertion) {
+    postResults({success: true, backedAssertion: backedAssertion});
+  }
+
+  function onerror(error) {
+    postResults({success: false, error: error});
+  }
+
+  onmessage = function(event) {
+    navigator.mozId.watch({
+      wantIssuer: "firefox-accounts",
+      audience: event.data.audience,
+      onready: onready,
+      onlogin: onlogin,
+      onerror: onerror,
+      onlogout: function() {},
+    });
+  };
+
+</script>
+</div>
+</body>
+</html>
