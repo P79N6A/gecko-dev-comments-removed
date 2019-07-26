@@ -648,6 +648,7 @@ pref("dom.disable_window_open_dialog_feature", true);
 
 
 pref("accessibility.accessfu.activate", 2);
+pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,Landmark,ListItem");
 
 pref("accessibility.accessfu.utterance", 1);
 

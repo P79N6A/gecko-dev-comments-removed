@@ -655,7 +655,7 @@ pref("ui.scrolling.axis_lock_mode", "standard");
 
 
 pref("accessibility.accessfu.activate", 2);
-pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,ListItem");
+pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,Landmark,ListItem");
 
 pref("accessibility.accessfu.utterance", 1);
 
