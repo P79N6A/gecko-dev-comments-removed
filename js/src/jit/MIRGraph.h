@@ -582,17 +582,6 @@ class MIRGraph
     MBasicBlock *entryBlock() {
         return *blocks_.begin();
     }
-
-    void clearBlockList() {
-        blocks_.clear();
-        blockIdGen_ = 0;
-        numBlocks_ = 0;
-    }
-    void resetInstructionNumber() {
-        
-        
-        idGen_ = 1;
-    }
     MBasicBlockIterator begin() {
         return blocks_.begin();
     }

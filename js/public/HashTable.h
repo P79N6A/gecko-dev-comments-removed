@@ -183,9 +183,6 @@ class HashMap
     void clear()                                      { impl.clear(); }
 
     
-    void clearWithoutCallingDestructors()             { impl.clearWithoutCallingDestructors(); }
-
-    
     
     void finish()                                     { impl.finish(); }
 

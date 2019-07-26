@@ -60,13 +60,6 @@ JS_Assert(const char *s, const char *file, int ln);
 
 
 
-
-
-extern JS_PUBLIC_API(void) JS_Abort(void);
-
-
-
-
 #if defined JS_USE_CUSTOM_ALLOCATOR
 # include "jscustomallocator.h"
 #else
