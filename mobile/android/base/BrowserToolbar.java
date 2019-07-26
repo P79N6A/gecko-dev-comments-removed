@@ -333,7 +333,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     mActivity.openOptionsMenu();
                 }
             });
+        }
 
+        if (!mActivity.isTablet()) {
             
             
             mLayout.post(new Runnable() {
@@ -342,8 +344,16 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     int height = mTabs.getHeight();
                     int width = mTabs.getWidth();
                     int tail = (width - height) / 2;
-                    Rect bounds = new Rect(width - tail, 0, width, height);
-                    mTabs.setTouchDelegate(new TailTouchDelegate(bounds, mMenu));
+
+                    Rect leftBounds = new Rect(0, 0, tail, height);
+                    Rect rightBounds = new Rect(width - tail, 0, width, height);
+
+                    TailTouchDelegate delegate = new TailTouchDelegate(leftBounds, mAddressBarView);
+
+                    if (mHasSoftMenuButton)
+                        delegate.add(rightBounds, mMenu);
+
+                    mTabs.setTouchDelegate(delegate);
                 }
             });
         }
