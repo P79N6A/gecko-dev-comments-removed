@@ -70,6 +70,15 @@ public:
     aString.Trim(" \t\n\f\r");
   }
 
+  
+
+
+
+
+
+
+  static bool IsAsciiCompatible(const nsACString& aPreferredName);
+
 private:
   EncodingUtils() MOZ_DELETE;
 };
