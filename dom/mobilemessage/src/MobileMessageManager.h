@@ -47,8 +47,8 @@ private:
   
 
 
-  nsresult GetMessageId(AutoPushJSContext &aCx, const JS::Value &aMessage,
-                        int32_t &aId);
+  nsresult GetMessageId(JSContext* aCx, const JS::Value& aMessage,
+                        int32_t* aId);
 };
 
 } 
