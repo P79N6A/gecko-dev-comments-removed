@@ -1329,7 +1329,7 @@ HasOwn(JSContext *cx, HandleObject obj, HandleId id, bool *bp)
 }
 
 static bool
-IdToValue(JSContext *cx, HandleId id, MutableHandleValue value)
+IdToExposableValue(JSContext *cx, HandleId id, MutableHandleValue value)
 {
     value.set(IdToValue(id)); 
     JSString *name = ToString<CanGC>(cx, value);
@@ -1374,7 +1374,7 @@ TrapGetOwnProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHandle
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectValue(*target),
@@ -1488,7 +1488,7 @@ TrapDefineOwnProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHan
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectValue(*target),
@@ -1823,7 +1823,7 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectValue(*target),
@@ -1918,7 +1918,7 @@ ScriptedDirectProxyHandler::has(JSContext *cx, HandleObject proxy, HandleId id, 
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectOrNullValue(target),
@@ -1981,7 +1981,7 @@ ScriptedDirectProxyHandler::hasOwn(JSContext *cx, HandleObject proxy, HandleId i
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectOrNullValue(target),
@@ -2058,7 +2058,7 @@ ScriptedDirectProxyHandler::get(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectOrNullValue(target),
@@ -2121,7 +2121,7 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     RootedValue value(cx);
-    if (!IdToValue(cx, id, &value))
+    if (!IdToExposableValue(cx, id, &value))
         return false;
     Value argv[] = {
         ObjectOrNullValue(target),
