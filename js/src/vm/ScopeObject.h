@@ -181,7 +181,7 @@ class ScopeObject : public JSObject
 
 
     inline JSObject &enclosingScope() const {
-        return getReservedSlot(SCOPE_CHAIN_SLOT).toObject();
+        return getFixedSlot(SCOPE_CHAIN_SLOT).toObject();
     }
 
     void setEnclosingScope(HandleObject obj);
@@ -232,10 +232,10 @@ class CallObject : public ScopeObject
 
     
     bool isForEval() const {
-        JS_ASSERT(getReservedSlot(CALLEE_SLOT).isObjectOrNull());
-        JS_ASSERT_IF(getReservedSlot(CALLEE_SLOT).isObject(),
-                     getReservedSlot(CALLEE_SLOT).toObject().is<JSFunction>());
-        return getReservedSlot(CALLEE_SLOT).isNull();
+        JS_ASSERT(getFixedSlot(CALLEE_SLOT).isObjectOrNull());
+        JS_ASSERT_IF(getFixedSlot(CALLEE_SLOT).isObject(),
+                     getFixedSlot(CALLEE_SLOT).toObject().is<JSFunction>());
+        return getFixedSlot(CALLEE_SLOT).isNull();
     }
 
     
@@ -243,7 +243,7 @@ class CallObject : public ScopeObject
 
 
     JSFunction &callee() const {
-        return getReservedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
+        return getFixedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
     }
 
     
@@ -333,7 +333,7 @@ class BlockObject : public NestedScopeObject
 
     
     uint32_t slotCount() const {
-        return propertyCount();
+        return propertyCountForCompilation();
     }
 
     
@@ -368,7 +368,7 @@ class StaticBlockObject : public BlockObject
 
     
     JSObject *enclosingStaticScope() const {
-        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+        return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
     }
 
     
@@ -398,7 +398,9 @@ class StaticBlockObject : public BlockObject
 
 
     bool needsClone() {
-        return !slotValue(0).isFalse();
+        
+        
+        return !getFixedSlot(RESERVED_SLOTS).isFalse();
     }
 
     

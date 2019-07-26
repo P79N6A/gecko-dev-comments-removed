@@ -334,6 +334,25 @@ js::ObjectImpl::nativeLookupPure(jsid id)
     return Shape::searchNoHashify(lastProperty(), id);
 }
 
+uint32_t
+js::ObjectImpl::numFixedSlotsForCompilation() const
+{
+    
+    
+    
+    
+    if (static_cast<const JSObject *>(this)->is<ArrayObject>())
+        return 0;
+#ifdef JSGC_GENERATIONAL
+    
+    
+    if (!isTenured())
+        return numFixedSlots();
+#endif
+    gc::AllocKind kind = tenuredGetAllocKind();
+    return gc::GetGCKindSlots(kind, getClass());
+}
+
 void
 js::ObjectImpl::markChildren(JSTracer *trc)
 {

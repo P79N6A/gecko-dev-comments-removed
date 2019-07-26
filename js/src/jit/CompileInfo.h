@@ -15,7 +15,7 @@ namespace js {
 namespace jit {
 
 inline unsigned
-StartArgSlot(JSScript *script, JSFunction *fun)
+StartArgSlot(JSScript *script)
 {
     
     
@@ -37,7 +37,7 @@ CountArgSlots(JSScript *script, JSFunction *fun)
     
 
     
-    return StartArgSlot(script, fun) + (fun ? fun->nargs + 1 : 0);
+    return StartArgSlot(script) + (fun ? fun->nargs + 1 : 0);
 }
 
 
@@ -58,7 +58,7 @@ class CompileInfo
             JS_ASSERT(fun_->isTenured());
         }
 
-        nimplicit_ = StartArgSlot(script, fun)              
+        nimplicit_ = StartArgSlot(script)                   
                    + (fun ? 1 : 0);                         
         nargs_ = fun ? fun->nargs : 0;
         nlocals_ = script->nfixed;
@@ -209,7 +209,7 @@ class CompileInfo
 
     uint32_t startArgSlot() const {
         JS_ASSERT(script());
-        return StartArgSlot(script(), fun());
+        return StartArgSlot(script());
     }
     uint32_t endArgSlot() const {
         JS_ASSERT(script());
