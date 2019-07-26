@@ -12,8 +12,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
 
+
+
+
+
+
+
+
+
+
 public final class RawResource {
-    public static String get(Context context, int id) throws IOException {
+    public static String getAsString(Context context, int id) throws IOException {
         InputStreamReader reader = null;
 
         try {

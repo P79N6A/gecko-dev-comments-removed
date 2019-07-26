@@ -57,7 +57,7 @@ public class TestRawResource extends BrowserTestCase {
         String result;
 
         try {
-            result = RawResource.get(context, RAW_RESOURCE_ID);
+            result = RawResource.getAsString(context, RAW_RESOURCE_ID);
         } catch (IOException e) {
             result = null;
         }
