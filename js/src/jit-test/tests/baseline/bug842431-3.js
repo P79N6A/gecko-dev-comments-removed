@@ -1,6 +1,9 @@
 
 
 
+
+
+
 var g = newGlobal('new-compartment');
 var dbg = new Debugger(g);
 
