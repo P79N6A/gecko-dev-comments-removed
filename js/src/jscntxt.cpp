@@ -257,23 +257,31 @@ JSRuntime::initSelfHosting(JSContext *cx)
     if (!(selfHostedGlobal_ = JS_NewGlobalObject(cx, &self_hosting_global_class, NULL)))
         return false;
     JS_SetGlobalObject(cx, selfHostedGlobal_);
-
-    const char *src = selfhosted::raw_sources;
-    uint32_t srcLen = selfhosted::GetRawScriptsSize();
+    RootedObject shg(cx, selfHostedGlobal_);
 
     CompileOptions options(cx);
     options.setFileAndLine("self-hosted", 1);
     options.setSelfHostingMode(true);
 
-    RootedObject shg(cx, selfHostedGlobal_);
-    Value rv;
     
 
 
 
 
     JSErrorReporter oldReporter = JS_SetErrorReporter(cx, selfHosting_ErrorReporter);
-    bool ok = Evaluate(cx, shg, options, src, srcLen, &rv);
+    Value rv;
+    bool ok;
+
+    char *filename = getenv("MOZ_SELFHOSTEDJS");
+    if (filename) {
+        RootedScript script(cx, Compile(cx, shg, options, filename));
+        if (script)
+            ok = Execute(cx, script, *shg.get(), &rv);
+    } else {
+        const char *src = selfhosted::raw_sources;
+        uint32_t srcLen = selfhosted::GetRawScriptsSize();
+        ok = Evaluate(cx, shg, options, src, srcLen, &rv);
+    }
     JS_SetErrorReporter(cx, oldReporter);
     JS_SetGlobalObject(cx, savedGlobal);
     return ok;
