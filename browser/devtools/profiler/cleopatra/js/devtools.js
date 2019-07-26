@@ -15,10 +15,6 @@ var gInstanceUID;
 
 
 
-
-
-
-
 function notifyParent(status, data={}) {
   if (!gInstanceUID) {
     gInstanceUID = window.location.search.substr(1);
@@ -109,22 +105,10 @@ function initUI() {
     notifyParent("stop");
   }, false);
 
-  var controlPane = document.createElement("div");
-  var startProfiling = gStrings.getFormatStr("profiler.startProfiling",
-    ["<span class='btn'></span>"]);
-  var stopProfiling = gStrings.getFormatStr("profiler.stopProfiling",
-    ["<span class='btn'></span>"]);
-
-  controlPane.className = "controlPane";
-  controlPane.innerHTML =
-    "<p id='startWrapper'>" + startProfiling + "</p>" +
-    "<p id='stopWrapper'>" + stopProfiling + "</p>" +
-    "<p id='profilerMessage'></p>";
-
-  controlPane.querySelector("#startWrapper > span.btn").appendChild(startButton);
-  controlPane.querySelector("#stopWrapper > span.btn").appendChild(stopButton);
-
-  gMainArea.appendChild(controlPane);
+  var message = document.createElement("div");
+  message.className = "message";
+  message.innerHTML = "To start profiling click the button above.";
+  gMainArea.appendChild(message);
 }
 
 

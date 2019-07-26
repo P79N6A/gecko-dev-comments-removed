@@ -15,6 +15,37 @@ function getCurrentTime() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function ProfilerActor(aConnection)
 {
   this._profiler = Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
