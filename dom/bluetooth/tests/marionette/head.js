@@ -183,10 +183,19 @@ function waitForManagerEvent(aEventName) {
 
 
 function setBluetoothEnabledAndWait(aEnabled) {
-  return Promise.all([
-    setBluetoothEnabled(aEnabled),
-    waitForManagerEvent(aEnabled ? "enabled" : "disabled"),
-  ]);
+  let promises = [];
+
+  
+  
+  
+  
+  
+  
+  
+  promises.push(waitForManagerEvent(aEnabled ? "enabled" : "disabled"));
+  promises.push(setBluetoothEnabled(aEnabled));
+
+  return Promise.all(promises);
 }
 
 
@@ -267,10 +276,13 @@ function startBluetoothTest(aReenable, aTestCaseMain) {
       .then(function() {
         if (needEnable) {
           log("  Enable 'bluetooth.enabled' ...");
-          return Promise.all([
-            setBluetoothEnabledAndWait(true),
-            waitForManagerEvent("adapteradded"),
-          ]);
+
+          
+          
+          let promises = [];
+          promises.push(waitForManagerEvent("adapteradded"));
+          promises.push(setBluetoothEnabledAndWait(true));
+          return Promise.all(promises);
         }
       })
       .then(getDefaultAdapter)
