@@ -409,9 +409,14 @@ public class BrowserDB {
 
             
             
+            
             int before = getPinnedBefore(position);
             int p2 = position - before;
-            if (p2 >= -1 && p2 <= mCursor.getCount()) {
+            if (p2 <= -1) {
+                super.moveToPosition(-1);
+            } else if (p2 >= mCursor.getCount()) {
+                super.moveToPosition(mCursor.getCount());
+            } else {
                 super.moveToPosition(p2);
             }
 
