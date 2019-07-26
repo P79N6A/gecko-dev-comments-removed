@@ -150,7 +150,6 @@ dfn {
 
 
 hr {
-    -moz-box-sizing: content-box;
     box-sizing: content-box;
     height: 0;
 }
@@ -354,12 +353,9 @@ input[type="radio"] {
 
 
 
-
 input[type="search"] {
     -webkit-appearance: textfield; 
-    -moz-box-sizing: content-box;
-    -webkit-box-sizing: content-box; 
-    box-sizing: content-box;
+    box-sizing: content-box; 
 }
 
 
