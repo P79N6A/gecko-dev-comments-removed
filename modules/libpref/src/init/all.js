@@ -198,6 +198,10 @@ pref("media.directshow.enabled", true);
 #endif
 #ifdef MOZ_FMP4
 pref("media.fragmented-mp4.enabled", true);
+
+
+
+pref("media.fragmented-mp4.exposed", false);
 #endif
 #ifdef MOZ_RAW
 pref("media.raw.enabled", true);
