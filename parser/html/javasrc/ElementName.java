@@ -406,6 +406,8 @@ public final class ElementName
 
 
 
+
+
     
     public static final ElementName A = new ElementName("a", "a", TreeBuilder.A);
     public static final ElementName B = new ElementName("b", "b", TreeBuilder.B_OR_BIG_OR_CODE_OR_EM_OR_I_OR_S_OR_SMALL_OR_STRIKE_OR_STRONG_OR_TT_OR_U);
@@ -724,6 +726,7 @@ public final class ElementName
     public static final ElementName QUOTIENT = new ElementName("quotient", "quotient", TreeBuilder.OTHER);
     public static final ElementName SELECTOR = new ElementName("selector", "selector", TreeBuilder.OTHER);
     public static final ElementName TEXTAREA = new ElementName("textarea", "textarea", TreeBuilder.TEXTAREA | SPECIAL);
+    public static final ElementName TEMPLATE = new ElementName("template", "template", TreeBuilder.TEMPLATE | SPECIAL);
     public static final ElementName TEXTPATH = new ElementName("textpath", "textPath", TreeBuilder.OTHER);
     public static final ElementName VARIANCE = new ElementName("variance", "variance", TreeBuilder.OTHER);
     public static final ElementName ANIMATION = new ElementName("animation", "animation", TreeBuilder.OTHER);
@@ -1118,6 +1121,7 @@ public final class ElementName
     QUOTIENT,
     SELECTOR,
     TEXTAREA,
+    TEMPLATE,
     TEXTPATH,
     VARIANCE,
     ANIMATION,
@@ -1513,6 +1517,7 @@ public final class ElementName
     286931113,
     288964227,
     289445441,
+    289591340,
     289689648,
     291671489,
     303512884,

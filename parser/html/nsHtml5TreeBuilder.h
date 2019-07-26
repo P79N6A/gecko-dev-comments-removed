@@ -84,6 +84,8 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     nsIAtom* contextName;
     int32_t contextNamespace;
     nsIContent** contextNode;
+    autoJArray<int32_t,int32_t> templateModeStack;
+    int32_t templateModePtr;
     autoJArray<nsHtml5StackNode*,int32_t> stack;
     int32_t currentPtr;
     autoJArray<nsHtml5StackNode*,int32_t> listOfActiveFormattingElements;
@@ -106,6 +108,10 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     void endTokenization();
     void startTag(nsHtml5ElementName* elementName, nsHtml5HtmlAttributes* attributes, bool selfClosing);
   private:
+    void startTagGenericRawText(nsHtml5ElementName* elementName, nsHtml5HtmlAttributes* attributes);
+    void startTagScriptInHead(nsHtml5ElementName* elementName, nsHtml5HtmlAttributes* attributes);
+    void startTagTemplateInHead(nsHtml5ElementName* elementName, nsHtml5HtmlAttributes* attributes);
+    bool isTemplateContents();
     bool isSpecialParentInForeign(nsHtml5StackNode* stackNode);
   public:
     static nsString* extractCharsetFromContent(nsString* attributeValue);
@@ -114,7 +120,8 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
   public:
     void endTag(nsHtml5ElementName* elementName);
   private:
-    int32_t findLastInTableScopeOrRootTbodyTheadTfoot();
+    void endTagTemplateInHead(nsIAtom* name);
+    int32_t findLastInTableScopeOrRootTemplateTbodyTheadTfoot();
     int32_t findLast(nsIAtom* name);
     int32_t findLastInTableScope(nsIAtom* name);
     int32_t findLastInButtonScope(nsIAtom* name);
@@ -134,6 +141,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     void implicitlyCloseP();
     bool debugOnlyClearLastStackSlot();
     bool debugOnlyClearLastListSlot();
+    void pushTemplateMode(int32_t mode);
     void push(nsHtml5StackNode* node);
     void silentPush(nsHtml5StackNode* node);
     void append(nsHtml5StackNode* node);
@@ -165,6 +173,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     void reconstructTheActiveFormattingElements();
     void insertIntoFosterParent(nsIContent** child);
     bool isInStack(nsHtml5StackNode* node);
+    void popTemplateMode();
     void pop();
     void silentPop();
     void popOnEof();
@@ -320,6 +329,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
 #define NS_HTML5TREE_BUILDER_FONT 64
 #define NS_HTML5TREE_BUILDER_KEYGEN 65
 #define NS_HTML5TREE_BUILDER_MENUITEM 66
+#define NS_HTML5TREE_BUILDER_TEMPLATE 67
 #define NS_HTML5TREE_BUILDER_IN_ROW 0
 #define NS_HTML5TREE_BUILDER_IN_TABLE_BODY 1
 #define NS_HTML5TREE_BUILDER_IN_TABLE 2
@@ -342,6 +352,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
 #define NS_HTML5TREE_BUILDER_AFTER_AFTER_BODY 19
 #define NS_HTML5TREE_BUILDER_AFTER_AFTER_FRAMESET 20
 #define NS_HTML5TREE_BUILDER_TEXT 21
+#define NS_HTML5TREE_BUILDER_TEMPLATE_CONTENTS 22
 #define NS_HTML5TREE_BUILDER_CHARSET_INITIAL 0
 #define NS_HTML5TREE_BUILDER_CHARSET_C 1
 #define NS_HTML5TREE_BUILDER_CHARSET_H 2

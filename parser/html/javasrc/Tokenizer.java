@@ -270,22 +270,24 @@ public class Tokenizer implements Locator {
     
 
 
-    private static final @NoLength char[] CDATA_LSQB = "CDATA[".toCharArray();
+    private static final @NoLength char[] CDATA_LSQB = { 'C', 'D', 'A', 'T',
+            'A', '[' };
 
     
 
 
-    private static final @NoLength char[] OCTYPE = "octype".toCharArray();
+    private static final @NoLength char[] OCTYPE = { 'o', 'c', 't', 'y', 'p',
+            'e' };
 
     
 
 
-    private static final @NoLength char[] UBLIC = "ublic".toCharArray();
+    private static final @NoLength char[] UBLIC = { 'u', 'b', 'l', 'i', 'c' };
 
     
 
 
-    private static final @NoLength char[] YSTEM = "ystem".toCharArray();
+    private static final @NoLength char[] YSTEM = { 'y', 's', 't', 'e', 'm' };
 
     private static final char[] TITLE_ARR = { 't', 'i', 't', 'l', 'e' };
 
