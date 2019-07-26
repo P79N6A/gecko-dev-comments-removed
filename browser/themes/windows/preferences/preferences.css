@@ -54,6 +54,12 @@ label.small {
 }
 
 
+#translationAttributionImage {
+  width: 70px;
+  cursor: pointer;
+}
+
+
 #BrowserPreferences[animated="true"] #handlersView {
   height: 25em;
 }
