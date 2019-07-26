@@ -2479,7 +2479,8 @@ SetRemoteExceptionHandler()
 #ifndef XP_LINUX
   xpstring path = "";
 #else
-  google_breakpad::MinidumpDescriptor path("");
+  
+  google_breakpad::MinidumpDescriptor path(".");
 #endif
   gExceptionHandler = new google_breakpad::
     ExceptionHandler(path,
