@@ -122,13 +122,6 @@ pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
-pref("dom.webcrypto.enabled", false);
-#else
-pref("dom.webcrypto.enabled", true);
-#endif
-
-
 pref("dom.undo_manager.enabled", false);
 
 
@@ -1427,7 +1420,6 @@ pref("network.proxy.socks",                 "");
 pref("network.proxy.socks_port",            0);
 pref("network.proxy.socks_version",         5);
 pref("network.proxy.socks_remote_dns",      false);
-pref("network.proxy.proxy_over_tls",        true);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); 
 pref("network.online",                      true); 
@@ -2095,13 +2087,6 @@ pref("svg.svg-iframe.enabled", false);
 pref("svg.svg-iframe.enabled", false);
 #endif
 
-
-
-#ifdef RELEASE_BUILD
-pref("svg.new-getBBox.enabled", false);
-#else
-pref("svg.new-getBBox.enabled", true);
-#endif
 
 
 pref("font.default.ar", "sans-serif");
@@ -3732,8 +3717,6 @@ pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
 pref("layers.frame-counter", false);
 pref("layers.enable-tiles", false);
-pref("layers.tile-width", 256);
-pref("layers.tile-height", 256);
 
 pref("layers.max-active", -1);
 
@@ -4165,5 +4148,5 @@ pref("beacon.enabled", true);
 #endif
 
 
-pref("camera.control.autofocus_moving_callback.enabled", false);
+pref("camera.control.autofocus_moving_callback.enabled", true);
 pref("camera.control.face_detection.enabled", true);
