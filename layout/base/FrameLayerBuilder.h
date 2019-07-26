@@ -13,6 +13,7 @@
 #include "nsIFrame.h"
 #include "nsDisplayListInvalidation.h"
 #include "LayerTreeInvalidation.h"
+#include "ImageLayers.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -100,6 +101,7 @@ public:
   typedef layers::ContainerLayer ContainerLayer;
   typedef layers::Layer Layer;
   typedef layers::ThebesLayer ThebesLayer;
+  typedef layers::ImageLayer ImageLayer;
   typedef layers::LayerManager LayerManager;
 
   FrameLayerBuilder() :
@@ -414,6 +416,14 @@ public:
 
 
 
+
+
+  void StoreOptimizedLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey, Layer* aImage);
+
+  
+
+
+
   struct Clip {
     struct RoundedRect {
       nsRect mRect;
@@ -534,6 +544,7 @@ protected:
     bool FrameListMatches(nsDisplayItem* aOther);
 
     nsRefPtr<Layer> mLayer;
+    nsRefPtr<Layer> mOptLayer;
     nsRefPtr<LayerManager> mInactiveManager;
     nsAutoTArray<nsIFrame*, 2> mFrameList;
     nsAutoPtr<nsDisplayItemGeometry> mGeometry;
