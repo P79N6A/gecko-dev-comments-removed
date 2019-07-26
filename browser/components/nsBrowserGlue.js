@@ -1285,7 +1285,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 17;
+    const UI_VERSION = 18;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1479,23 +1479,7 @@ BrowserGlue.prototype = {
       OS.File.remove(path);
     }
 
-    if (currentUIVersion < 15) {
-      
-      let updateToolbars = function (aToolbarIds, aResourceName, aResourceValue) {
-        let resource = this._rdf.GetResource(aResourceName);
-        for (toolbarId of aToolbarIds) {
-          let toolbar = this._rdf.GetResource(BROWSER_DOCURL + toolbarId);
-          let oldValue = this._getPersist(toolbar, resource);
-          if (oldValue && oldValue != aResourceValue) {
-            this._setPersist(toolbar, resource, aResourceValue);
-          }
-        }
-      }.bind(this);
-
-      updateToolbars(["navigator-toolbox", "nav-bar", "PersonalToolbar", "addon-bar"], "mode", "icons");
-      
-      updateToolbars(["navigator-toolbox", "nav-bar"], "iconsize", "large");
-    }
+    
 
     if (currentUIVersion < 16) {
       let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
@@ -1529,6 +1513,21 @@ BrowserGlue.prototype = {
                                             "$1bookmarks-menu-button,window-controls$2")
           }
           this._setPersist(toolbarResource, currentsetResource, currentset);
+        }
+      }
+    }
+
+    if (currentUIVersion < 18) {
+      
+      let toolbars = ["navigator-toolbox", "nav-bar", "PersonalToolbar",
+                      "addon-bar", "TabsToolbar", "toolbar-menubar"];
+      for (let resourceName of ["mode", "iconsize"]) {
+        let resource = this._rdf.GetResource(resourceName);
+        for (let toolbarId of toolbars) {
+          let toolbar = this._rdf.GetResource(BROWSER_DOCURL + toolbarId);
+          if (this._getPersist(toolbar, resource)) {
+            this._setPersist(toolbar, resource);
+          }
         }
       }
     }
