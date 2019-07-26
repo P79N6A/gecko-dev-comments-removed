@@ -336,6 +336,14 @@ nsWinGesture::ProcessGestureMessage(HWND hWnd, WPARAM wParam, LPARAM lParam, nsS
         evt.message = NS_SIMPLE_GESTURE_MAGNIFY_START;
         evt.delta = 0.0;
       }
+      else if (gi.dwFlags & GF_END) {
+        
+        
+        evt.message = NS_SIMPLE_GESTURE_MAGNIFY;
+        
+        evt.delta = -1.0 * (mZoomIntermediate - (float)gi.ullArguments);
+        mZoomIntermediate = (float)gi.ullArguments;
+      }
       else {
         
         
