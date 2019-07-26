@@ -175,7 +175,7 @@ public class DynamicPanel extends HomeFragment {
             bundle.putParcelable(DATASET_REQUEST, request);
 
             
-            final int loaderId = generateLoaderId(request.datasetId);
+            final int loaderId = generateLoaderId(request.getDatasetId());
             getLoaderManager().restartLoader(loaderId, bundle, mLoaderCallbacks);
         }
 
@@ -218,12 +218,12 @@ public class DynamicPanel extends HomeFragment {
             final String[] selectionArgs;
 
             
-            if (mRequest.filter == null) {
+            if (mRequest.getFilter() == null) {
                 selection = DBUtils.concatenateWhere(HomeItems.DATASET_ID + " = ?", HomeItems.FILTER + " IS NULL");
-                selectionArgs = new String[] { mRequest.datasetId };
+                selectionArgs = new String[] { mRequest.getDatasetId() };
             } else {
                 selection = DBUtils.concatenateWhere(HomeItems.DATASET_ID + " = ?", HomeItems.FILTER + " = ?");
-                selectionArgs = new String[] { mRequest.datasetId, mRequest.filter };
+                selectionArgs = new String[] { mRequest.getDatasetId(), mRequest.getFilter() };
             }
 
             
@@ -256,7 +256,7 @@ public class DynamicPanel extends HomeFragment {
             final DatasetRequest request = getRequestFromLoader(loader);
             Log.d(LOGTAG, "Resetting loader for request: " + request);
             if (mLayout != null) {
-                mLayout.releaseDataset(request.datasetId);
+                mLayout.releaseDataset(request.getDatasetId());
             }
         }
 
