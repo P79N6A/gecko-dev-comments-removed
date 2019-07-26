@@ -396,7 +396,8 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         return mDisplayPort;
     }
 
-    public DisplayPortMetrics getDisplayPort(boolean pageSizeUpdate, boolean isBrowserContentDisplayed, int tabId, ImmutableViewportMetrics metrics) {
+    
+    DisplayPortMetrics getDisplayPort(boolean pageSizeUpdate, boolean isBrowserContentDisplayed, int tabId, ImmutableViewportMetrics metrics) {
         Tabs tabs = Tabs.getInstance();
         if (tabs.isSelectedTab(tabs.getTab(tabId)) && isBrowserContentDisplayed) {
             
