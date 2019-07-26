@@ -23,7 +23,7 @@
 #include "nsAutoPtr.h"
 #include "nsIStyleRule.h"
 #include "nsCSSPseudoElements.h"
-#include "mozilla/Attributes.h"
+#include "gfxFontFeatures.h"
 
 class nsIURI;
 class nsCSSFontFaceRule;
@@ -163,6 +163,12 @@ class nsStyleSet
   
   bool AppendKeyframesRules(nsPresContext* aPresContext,
                               nsTArray<nsCSSKeyframesRule*>& aArray);
+
+  already_AddRefed<gfxFontFeatureValueSet>
+  GetFontFeatureValuesLookup()
+  {
+    return nullptr; 
+  }
 
   
   

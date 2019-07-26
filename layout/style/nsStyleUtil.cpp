@@ -269,6 +269,118 @@ nsStyleUtil::AppendFontFeatureSettings(const nsCSSValue& aSrc,
   AppendFontFeatureSettings(featureSettings, aResult);
 }
 
+ void
+nsStyleUtil::GetFunctionalAlternatesName(int32_t aFeature,
+                                         nsAString& aFeatureName)
+{
+  aFeatureName.Truncate();
+  nsCSSKeyword key =
+    nsCSSProps::ValueToKeywordEnum(aFeature,
+                           nsCSSProps::kFontVariantAlternatesFuncsKTable);
+
+  NS_ASSERTION(key != eCSSKeyword_UNKNOWN, "bad alternate feature type");
+  AppendUTF8toUTF16(nsCSSKeywords::GetStringValue(key), aFeatureName);
+}
+
+ void
+nsStyleUtil::AppendFunctionalAlternates(
+    const nsTArray<gfxAlternateValue>& aAlternates,
+    nsAString& aResult)
+{
+  nsAutoString funcName, funcParams;
+  uint32_t numValues = aAlternates.Length();
+
+  uint32_t feature = 0;
+  for (uint32_t i = 0; i < numValues; i++) {
+    const gfxAlternateValue& v = aAlternates.ElementAt(i);
+    if (feature != v.alternate) {
+      feature = v.alternate;
+      if (!funcName.IsEmpty() && !funcParams.IsEmpty()) {
+        if (!aResult.IsEmpty()) {
+          aResult.Append(PRUnichar(' '));
+        }
+
+        
+        aResult.Append(funcName);
+        aResult.Append(PRUnichar('('));
+        aResult.Append(funcParams);
+        aResult.Append(PRUnichar(')'));
+      }
+
+      
+      GetFunctionalAlternatesName(v.alternate, funcName);
+      NS_ASSERTION(!funcName.IsEmpty(), "unknown property value name");
+
+      
+      funcParams.Assign(v.value);
+    } else {
+      if (!funcParams.IsEmpty()) {
+        funcParams.Append(NS_LITERAL_STRING(", "));
+      }
+      funcParams.Append(v.value);
+    }
+  }
+
+    
+  if (!funcName.IsEmpty() && !funcParams.IsEmpty()) {
+    if (!aResult.IsEmpty()) {
+      aResult.Append(PRUnichar(' '));
+    }
+
+    aResult.Append(funcName);
+    aResult.Append(PRUnichar('('));
+    aResult.Append(funcParams);
+    aResult.Append(PRUnichar(')'));
+  }
+}
+
+ void
+nsStyleUtil::AppendAlternateValues(const nsCSSValueList* aList,
+                                  nsTArray<gfxAlternateValue>& aAlternateValues)
+{
+  gfxAlternateValue v;
+
+  aAlternateValues.Clear();
+  for (const nsCSSValueList* curr = aList; curr != nullptr; curr = curr->mNext) {
+    
+    if (curr->mValue.GetUnit() != eCSSUnit_Function) {
+      continue;
+    }
+
+    
+    const nsCSSValue::Array *func = curr->mValue.GetArrayValue();
+
+    
+    nsAutoString keywordStr;
+    func->Item(0).GetStringValue(keywordStr);
+    nsCSSKeyword key = nsCSSKeywords::LookupKeyword(keywordStr);
+    NS_ASSERTION(key != eCSSKeyword_UNKNOWN, "unknown alternate property value");
+
+    int32_t alternate;
+    if (key == eCSSKeyword_UNKNOWN ||
+        !nsCSSProps::FindKeyword(key,
+                                 nsCSSProps::kFontVariantAlternatesFuncsKTable,
+                                 alternate)) {
+      continue;
+    }
+    v.alternate = alternate;
+
+    
+    
+    uint32_t numElems = func->Count();
+    for (uint32_t i = 1; i < numElems; i++) {
+      const nsCSSValue& value = func->Item(i);
+      NS_ASSERTION(value.GetUnit() == eCSSUnit_Ident,
+                   "weird unit found in variant alternate");
+      if (value.GetUnit() != eCSSUnit_Ident) {
+        continue;
+      }
+      value.GetStringValue(v.value);
+      aAlternateValues.AppendElement(v);
+    }
+  }
+}
+
  float
 nsStyleUtil::ColorComponentToFloat(uint8_t aAlpha)
 {

@@ -7,11 +7,13 @@
 
 #include "nsCoord.h"
 #include "nsCSSProperty.h"
+#include "gfxFontFeatures.h"
 
 class nsCSSValue;
 class nsStringComparator;
 class nsIContent;
 struct gfxFontFeature;
+class nsCSSValueList;
 template <class E> class nsTArray;
 
 
@@ -48,6 +50,20 @@ public:
 
   static void AppendFontFeatureSettings(const nsCSSValue& src,
                                         nsAString& aResult);
+
+  
+  static void GetFunctionalAlternatesName(int32_t aFeature,
+                                          nsAString& aFeatureName);
+
+  
+  static void
+  AppendFunctionalAlternates(const nsTArray<gfxAlternateValue>& aAlternates,
+                             nsAString& aResult);
+
+  
+  static void
+  AppendAlternateValues(const nsCSSValueList* aList,
+                        nsTArray<gfxAlternateValue>& aAlternateValues);
 
   
 

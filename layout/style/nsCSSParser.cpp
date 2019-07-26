@@ -563,6 +563,8 @@ protected:
   bool ParseCursor();
   bool ParseFont();
   bool ParseFontSynthesis(nsCSSValue& aValue);
+  bool ParseSingleAlternate(int32_t& aWhichFeature, nsCSSValue& aValue);
+  bool ParseFontVariantAlternates(nsCSSValue& aValue);
   bool ParseBitmaskValues(nsCSSValue& aValue, const int32_t aKeywordTable[],
                           const int32_t aMasks[]);
   bool ParseFontVariantEastAsian(nsCSSValue& aValue);
@@ -671,12 +673,13 @@ protected:
   
   bool ParseSingleTransform(bool aIsPrefixed, nsCSSValue& aValue, bool& aIs3D);
   bool ParseFunction(const nsString &aFunction, const int32_t aAllowedTypes[],
-                       uint16_t aMinElems, uint16_t aMaxElems,
-                       nsCSSValue &aValue);
+                     int32_t aVariantMaskAll, uint16_t aMinElems,
+                     uint16_t aMaxElems, nsCSSValue &aValue);
   bool ParseFunctionInternals(const int32_t aVariantMask[],
-                                uint16_t aMinElems,
-                                uint16_t aMaxElems,
-                                InfallibleTArray<nsCSSValue>& aOutput);
+                              int32_t aVariantMaskAll,
+                              uint16_t aMinElems,
+                              uint16_t aMaxElems,
+                              InfallibleTArray<nsCSSValue>& aOutput);
 
   
   bool ParseTransformOrigin(bool aPerspective);
@@ -6378,6 +6381,8 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
         return ParseFamily(aValue);
       case eCSSProperty_font_synthesis:
         return ParseFontSynthesis(aValue);
+      case eCSSProperty_font_variant_alternates:
+        return ParseFontVariantAlternates(aValue);
       case eCSSProperty_font_variant_east_asian:
         return ParseFontVariantEastAsian(aValue);
       case eCSSProperty_font_variant_ligatures:
@@ -8319,6 +8324,7 @@ CSSParserImpl::ParseFont()
         AppendValue(eCSSProperty_font_language_override, family);
         AppendValue(eCSSProperty_font_kerning, family);
         AppendValue(eCSSProperty_font_synthesis, family);
+        AppendValue(eCSSProperty_font_variant_alternates, family);
         AppendValue(eCSSProperty_font_variant_caps, family);
         AppendValue(eCSSProperty_font_variant_east_asian, family);
         AppendValue(eCSSProperty_font_variant_ligatures, family);
@@ -8340,6 +8346,7 @@ CSSParserImpl::ParseFont()
         AppendValue(eCSSProperty_font_language_override, systemFont);
         AppendValue(eCSSProperty_font_kerning, systemFont);
         AppendValue(eCSSProperty_font_synthesis, systemFont);
+        AppendValue(eCSSProperty_font_variant_alternates, systemFont);
         AppendValue(eCSSProperty_font_variant_caps, systemFont);
         AppendValue(eCSSProperty_font_variant_east_asian, systemFont);
         AppendValue(eCSSProperty_font_variant_ligatures, systemFont);
@@ -8413,6 +8420,8 @@ CSSParserImpl::ParseFont()
       AppendValue(eCSSProperty_font_synthesis,
                   nsCSSValue(NS_FONT_SYNTHESIS_WEIGHT | NS_FONT_SYNTHESIS_STYLE,
                              eCSSUnit_Enumerated));
+      AppendValue(eCSSProperty_font_variant_alternates,
+                  nsCSSValue(eCSSUnit_Normal));
       AppendValue(eCSSProperty_font_variant_caps, nsCSSValue(eCSSUnit_Normal));
       AppendValue(eCSSProperty_font_variant_east_asian,
                   nsCSSValue(eCSSUnit_Normal));
@@ -8455,6 +8464,111 @@ CSSParserImpl::ParseFontSynthesis(nsCSSValue& aValue)
     }
     aValue.SetIntValue(nextIntValue | intValue, eCSSUnit_Enumerated);
   }
+
+  return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MAX_ALLOWED_FEATURES 512
+
+bool
+CSSParserImpl::ParseSingleAlternate(int32_t& aWhichFeature,
+                                    nsCSSValue& aValue)
+{
+  if (!GetToken(true)) {
+    return false;
+  }
+
+  bool isIdent = (mToken.mType == eCSSToken_Ident);
+  if (mToken.mType != eCSSToken_Function && !isIdent) {
+    UngetToken();
+    return false;
+  }
+
+  
+  
+
+  nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
+  if (eCSSKeyword_UNKNOWN < keyword &&
+      nsCSSProps::FindKeyword(keyword,
+                              (isIdent ?
+                               nsCSSProps::kFontVariantAlternatesKTable :
+                               nsCSSProps::kFontVariantAlternatesFuncsKTable),
+                              aWhichFeature))
+  {
+    if (isIdent) {
+      aValue.SetIntValue(aWhichFeature, eCSSUnit_Enumerated);
+      return true;
+    } else {
+      uint16_t maxElems = 1;
+      if (keyword == eCSSKeyword_styleset ||
+          keyword == eCSSKeyword_character_variant) {
+        maxElems = MAX_ALLOWED_FEATURES;
+      }
+      return ParseFunction(mToken.mIdent, nullptr, VARIANT_IDENTIFIER,
+                           1, maxElems, aValue);
+    }
+  }
+
+  
+  UngetToken();
+  return false;
+}
+
+bool
+CSSParserImpl::ParseFontVariantAlternates(nsCSSValue& aValue)
+{
+  if (ParseVariant(aValue, VARIANT_INHERIT | VARIANT_NORMAL, nullptr)) {
+    if (!ExpectEndProperty()) {
+      return false;
+    }
+    return true;
+  }
+
+  
+  nsCSSValue listValue;
+  int32_t feature, featureFlags = 0;
+
+  nsCSSValueList* cur = listValue.SetListValue();
+  while (ParseSingleAlternate(feature, cur->mValue)) {
+
+    
+    if (feature == 0 ||
+        feature & featureFlags) {
+      return false;
+    }
+
+    featureFlags |= feature;
+
+    if (cur->mValue.GetUnit() == eCSSUnit_Function) {
+      cur->mNext = new nsCSSValueList;
+      cur = cur->mNext;
+    }
+
+  }
+
+  nsCSSValue featureValue;
+  featureValue.SetIntValue(featureFlags, eCSSUnit_Enumerated);
+  aValue.SetPairValue(featureValue, listValue);
 
   return true;
 }
@@ -9343,14 +9457,17 @@ CSSParserImpl::ParseTextOverflow(nsCSSValue& aValue)
 
 bool
 CSSParserImpl::ParseFunctionInternals(const int32_t aVariantMask[],
+                                      int32_t aVariantMaskAll,
                                       uint16_t aMinElems,
                                       uint16_t aMaxElems,
                                       InfallibleTArray<nsCSSValue> &aOutput)
 {
   for (uint16_t index = 0; index < aMaxElems; ++index) {
     nsCSSValue newValue;
-    if (!ParseVariant(newValue, aVariantMask[index], nullptr))
+    int32_t m = aVariantMaskAll ? aVariantMaskAll : aVariantMask[index];
+    if (!ParseVariant(newValue, m, nullptr)) {
       return false;
+    }
 
     aOutput.AppendElement(newValue);
 
@@ -9385,9 +9502,11 @@ CSSParserImpl::ParseFunctionInternals(const int32_t aVariantMask[],
 
 
 
+
 bool
 CSSParserImpl::ParseFunction(const nsString &aFunction,
                              const int32_t aAllowedTypes[],
+                             int32_t aAllowedTypesAll,
                              uint16_t aMinElems, uint16_t aMaxElems,
                              nsCSSValue &aValue)
 {
@@ -9408,9 +9527,10 @@ CSSParserImpl::ParseFunction(const nsString &aFunction,
 
 
   InfallibleTArray<nsCSSValue> foundValues;
-  if (!ParseFunctionInternals(aAllowedTypes, aMinElems, aMaxElems,
-                              foundValues))
+  if (!ParseFunctionInternals(aAllowedTypes, aAllowedTypesAll, aMinElems,
+                              aMaxElems, foundValues)) {
     return false;
+  }
 
   
 
@@ -9685,7 +9805,8 @@ CSSParserImpl::ParseSingleTransform(bool aIsPrefixed,
       break;
   }
 
-  return ParseFunction(mToken.mIdent, variantMask, minElems, maxElems, aValue);
+  return ParseFunction(mToken.mIdent, variantMask, 0, minElems,
+                       maxElems, aValue);
 }
 
 
