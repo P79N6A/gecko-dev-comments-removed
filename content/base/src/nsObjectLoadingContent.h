@@ -80,6 +80,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       
       
+      
+      
       eFallbackClickToPlay = nsIObjectLoadingContent::PLUGIN_CLICK_TO_PLAY,
       
       eFallbackVulnerableUpdatable = nsIObjectLoadingContent::PLUGIN_VULNERABLE_UPDATABLE,
