@@ -60,6 +60,11 @@
 
 
 
+
+
+
+
+
 #include <stdint.h>
 
 namespace mozilla {
@@ -219,6 +224,12 @@ class WindowsDllDetourPatcher
 {
   typedef unsigned char *byteptr_t;
 public:
+  enum JumpType
+  {
+    JUMP_DONTCARE,
+    JUMP_ABSOLUTE
+  };
+
   WindowsDllDetourPatcher() 
     : mModule(0), mHookPage(0), mMaxHooks(0), mCurHooks(0)
   {
@@ -246,7 +257,8 @@ public:
 
       
 #if defined(_M_IX86)
-      if (*origBytes != opTrampolineRelativeJump) {
+      if (tramp->jumpType != JUMP_ABSOLUTE &&
+          *origBytes != opTrampolineRelativeJump) {
         continue;
       }
 #elif defined(_M_X64)
@@ -267,7 +279,12 @@ public:
       
       intptr_t dest = (intptr_t)(&tramp->code[0]);
 #if defined(_M_IX86)
-      *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
+      if (tramp->jumpType == JUMP_ABSOLUTE) {
+        
+        tramp->jumpTarget = dest;
+      } else {
+        *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
+      }
 #elif defined(_M_X64)
       *((intptr_t*)(origBytes+2)) = dest;
 #else
@@ -322,7 +339,7 @@ public:
     mModule = 0;
   }
 
-  bool AddHook(const char *pname, intptr_t hookDest, void **origFunc)
+  bool AddHook(const char *pname, intptr_t hookDest, JumpType jumpType, void **origFunc)
   {
     if (!mModule)
       return false;
@@ -333,7 +350,7 @@ public:
       return false;
     }
 
-    CreateTrampoline(pAddr, hookDest, origFunc);
+    CreateTrampoline(pAddr, hookDest, jumpType, origFunc);
     if (!*origFunc) {
       
       return false;
@@ -348,6 +365,7 @@ protected:
   const static int kCodeSize = 100;
 
   const static uint8_t opTrampolineRelativeJump = 0xe9;
+  const static uint16_t opTrampolineIndirectJump = 0x25ff;
   const static uint16_t opTrampolineRegLoad = 0xbb49;
 
   HMODULE mModule;
@@ -358,6 +376,8 @@ protected:
   struct Trampoline
   {
     void *origFunction;
+    JumpType jumpType;
+    intptr_t jumpTarget;
     uint8_t code[kCodeSize];
   };
 
@@ -365,6 +385,7 @@ protected:
 
   void CreateTrampoline(void *origFunction,
                         intptr_t dest,
+                        JumpType jumpType,
                         void **outTramp)
   {
     *outTramp = nullptr;
@@ -379,7 +400,9 @@ protected:
     int pJmp32 = -1;
 
 #if defined(_M_IX86)
-    while (nBytes < 5) {
+    const int bytesNeeded = (jumpType == JUMP_ABSOLUTE) ? 6 : 5;
+
+    while (nBytes < bytesNeeded) {
       
       
       
@@ -598,6 +621,8 @@ protected:
     
     
     tramp->origFunction = origFunction;
+    tramp->jumpType = jumpType;
+    tramp->jumpTarget = dest;
 
     memcpy(&tramp->code[0], origFunction, nBytes);
 
@@ -649,8 +674,15 @@ protected:
 
 #if defined(_M_IX86)
     
-    origBytes[0] = opTrampolineRelativeJump; 
-    *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
+    if (jumpType == JUMP_ABSOLUTE) {
+      
+      
+      *((uint16_t*)(origBytes)) = opTrampolineIndirectJump;
+      *((intptr_t*)(origBytes+2)) = (intptr_t)&tramp->jumpTarget;
+    } else {
+      origBytes[0] = opTrampolineRelativeJump; 
+      *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
+    }
 #elif defined(_M_X64)
     
     *((uint16_t*)(origBytes)) = opTrampolineRegLoad;
@@ -685,6 +717,7 @@ class WindowsDllInterceptor
 {
   internal::WindowsDllNopSpacePatcher mNopSpacePatcher;
   internal::WindowsDllDetourPatcher mDetourPatcher;
+  typedef internal::WindowsDllDetourPatcher::JumpType JumpType;
 
   const char *mModuleName;
   int mNHooks;
@@ -732,10 +765,32 @@ public:
       mDetourPatcher.Init(mModuleName, mNHooks);
     }
 
-    bool rv = mDetourPatcher.AddHook(pname, hookDest, origFunc);
+    bool rv = mDetourPatcher.AddHook(pname, hookDest, JumpType::JUMP_DONTCARE,
+                                     origFunc);
+
     
     return rv;
   }
+
+  bool AddSharedHook(const char *pname, intptr_t hookDest, void **origFunc)
+  {
+    if (!mModuleName) {
+      return false;
+    }
+
+    
+    
+
+    if (!mDetourPatcher.Initialized()) {
+      mDetourPatcher.Init(mModuleName, mNHooks);
+    }
+
+    bool rv = mDetourPatcher.AddHook(pname, hookDest, JumpType::JUMP_ABSOLUTE,
+                                     origFunc);
+
+    return rv;
+  }
+
 };
 
 } 
