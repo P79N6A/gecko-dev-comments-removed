@@ -45,8 +45,20 @@ png_do_write_transformations(png_structp png_ptr, png_row_infop row_info)
 
 #ifdef PNG_WRITE_FILLER_SUPPORTED
    if (png_ptr->transformations & PNG_FILLER)
-      png_do_strip_channel(row_info, png_ptr->row_buf + 1,
-         !(png_ptr->flags & PNG_FLAG_FILLER_AFTER));
+   {
+      if (png_ptr->color_type & (PNG_COLOR_MASK_ALPHA|PNG_COLOR_MASK_PALETTE))
+      {
+         
+
+
+         png_warning(png_ptr, "incorrect png_set_filler call ignored");
+         png_ptr->transformations &= ~PNG_FILLER;
+      }
+
+      else
+         png_do_strip_channel(row_info, png_ptr->row_buf + 1,
+            !(png_ptr->flags & PNG_FLAG_FILLER_AFTER));
+   }
 #endif
 
 #ifdef PNG_WRITE_PACKSWAP_SUPPORTED

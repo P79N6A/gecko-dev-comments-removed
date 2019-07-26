@@ -344,21 +344,23 @@
 #    ifndef PNG_NORETURN
 #      define PNG_NORETURN   __attribute__((__noreturn__))
 #    endif
-#    ifndef PNG_ALLOCATED
-#      define PNG_ALLOCATED  __attribute__((__malloc__))
-#    endif
-#    ifndef PNG_DEPRECATED
-#      define PNG_DEPRECATED __attribute__((__deprecated__))
-#    endif
-#    ifndef PNG_PRIVATE
-#      if 0 
-#        define PNG_PRIVATE \
-          __attribute__((warning("This function is not exported by libpng.")))
-#      else
-#        define PNG_PRIVATE \
-          __attribute__((__deprecated__))
+#    if __GNUC__ >= 3
+#      ifndef PNG_ALLOCATED
+#        define PNG_ALLOCATED  __attribute__((__malloc__))
 #      endif
-#    endif
+#      ifndef PNG_DEPRECATED
+#        define PNG_DEPRECATED __attribute__((__deprecated__))
+#      endif
+#      ifndef PNG_PRIVATE
+#        if 0 
+#          define PNG_PRIVATE \
+            __attribute__((warning("This function is not exported by libpng.")))
+#        else
+#          define PNG_PRIVATE \
+            __attribute__((__deprecated__))
+#        endif
+#      endif
+#    endif 
 #  endif 
 
 #  if defined(_MSC_VER)  && (_MSC_VER >= 1300)
@@ -400,7 +402,7 @@
 #ifndef PNG_FP_EXPORT     
 #  ifdef PNG_FLOATING_POINT_SUPPORTED
 #     define PNG_FP_EXPORT(ordinal, type, name, args)\
-         PNG_EXPORT(ordinal, type, name, args)
+         PNG_EXPORT(ordinal, type, name, args);
 #  else                   
 #     define PNG_FP_EXPORT(ordinal, type, name, args)
 #  endif
@@ -408,7 +410,7 @@
 #ifndef PNG_FIXED_EXPORT  
 #  ifdef PNG_FIXED_POINT_SUPPORTED
 #     define PNG_FIXED_EXPORT(ordinal, type, name, args)\
-         PNG_EXPORT(ordinal, type, name, args)
+         PNG_EXPORT(ordinal, type, name, args);
 #  else                   
 #     define PNG_FIXED_EXPORT(ordinal, type, name, args)
 #  endif

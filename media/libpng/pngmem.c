@@ -56,7 +56,7 @@ png_create_struct_2,(int type, png_malloc_ptr malloc_fn, png_voidp mem_ptr),
    if (malloc_fn != NULL)
    {
       png_struct dummy_struct;
-      memset(&dummy_struct, 0, sizeof dummy_struct);
+      png_memset(&dummy_struct, 0, sizeof dummy_struct);
       dummy_struct.mem_ptr=mem_ptr;
       struct_ptr = (*(malloc_fn))(&dummy_struct, (png_alloc_size_t)size);
    }
@@ -90,7 +90,7 @@ png_destroy_struct_2(png_voidp struct_ptr, png_free_ptr free_fn,
       if (free_fn != NULL)
       {
          png_struct dummy_struct;
-         memset(&dummy_struct, 0, sizeof dummy_struct);
+         png_memset(&dummy_struct, 0, sizeof dummy_struct);
          dummy_struct.mem_ptr=mem_ptr;
          (*(free_fn))(&dummy_struct, struct_ptr);
          return;

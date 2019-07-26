@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_5_11 Your_png_h_is_not_version_1_5_11;
+typedef png_libpng_version_1_5_13 Your_png_h_is_not_version_1_5_13;
 
 
 
@@ -655,13 +655,13 @@ png_get_copyright(png_const_structp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.5.11 - June 14, 2012" PNG_STRING_NEWLINE \
+     "libpng version 1.5.13 - September 27, 2012" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2012 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.5.11 - June 14, 2012\
+      return "libpng version 1.5.13 - September 27, 2012\
       Copyright (c) 1998-2012 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
