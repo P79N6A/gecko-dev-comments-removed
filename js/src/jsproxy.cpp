@@ -2390,20 +2390,23 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
 {
     JS_CHECK_RECURSION(cx, return false);
     BaseProxyHandler *handler = GetProxyHandler(proxy);
-    RootedObject proto(cx);
     if (handler->hasPrototype()) {
         
         
         bool hasOwn;
-        AutoPropertyDescriptorRooter desc(cx);
-        if (handler->hasOwn(cx, proxy, id, &hasOwn) && !hasOwn &&
-            handler->getPrototypeOf(cx, proxy, proto.address()) && proto &&
-            JS_GetPropertyDescriptorById(cx, proto, id, 0, &desc) &&
-            desc.obj && desc.setter)
-        {
-            return JSObject::setGeneric(cx, proto, receiver, id, vp, strict);
-        } else if (cx->isExceptionPending()) {
+        if (!handler->hasOwn(cx, proxy, id, &hasOwn))
             return false;
+        if (!hasOwn) {
+            RootedObject proto(cx);
+            if (!handler->getPrototypeOf(cx, proxy, proto.address()))
+                return false;
+            if (proto) {
+                AutoPropertyDescriptorRooter desc(cx);
+                if (!JS_GetPropertyDescriptorById(cx, proto, id, 0, &desc))
+                    return false;
+                if (desc.obj && desc.setter)
+                    return JSObject::setGeneric(cx, proto, receiver, id, vp, strict);
+            }
         }
     }
     return handler->set(cx, proxy, receiver, id, strict, vp.address());
