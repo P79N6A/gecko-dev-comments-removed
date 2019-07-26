@@ -996,9 +996,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     
 
 
-
-
-    volatile uint32_t   gcNumArenasFreeCommitted;
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcNumArenasFreeCommitted;
     js::GCMarker        gcMarker;
     void                *gcVerifyPreData;
     void                *gcVerifyPostData;
