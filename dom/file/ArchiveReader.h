@@ -81,7 +81,7 @@ protected:
   nsCOMPtr<nsIDOMBlob> mBlob;
 
   
-  nsCOMPtr<nsIDOMWindow> mWindow;
+  nsCOMPtr<nsPIDOMWindow> mWindow;
 
   
   enum {
