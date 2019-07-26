@@ -57,10 +57,6 @@ public:
 
   void Clear();
 
-  
-  bool HasModule(const Module &aModule) const;
-  void RemoveModule(unsigned aIndex);
-
 private:
   std::vector<Module> mModules;
   std::vector<Frame> mStack;
