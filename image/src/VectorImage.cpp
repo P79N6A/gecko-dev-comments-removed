@@ -834,45 +834,16 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
     return Show(svgDrawable, aParams);
 
   
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> target;
-  nsRefPtr<gfxContext> ctx;
-  nsRefPtr<gfxASurface> surface;
-
-  if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
-    target = gfxPlatform::GetPlatform()->
-      CreateOffscreenContentDrawTarget(aParams.imageRect.Size(), gfx::FORMAT_B8G8R8A8);
-
-    
-    
-    
-    if (target) {
-      switch (target->GetType()) {
-        case mozilla::gfx::BACKEND_DIRECT2D:
-        case mozilla::gfx::BACKEND_DIRECT2D1_1:
-        case mozilla::gfx::BACKEND_SKIA:
-          
-          return Show(svgDrawable, aParams);
-
-        default:
-          surface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(target);
-          ctx = new gfxContext(target);
-      }
-    }
-  } else {
-    target = gfxPlatform::GetPlatform()->
-      CreateOffscreenCanvasDrawTarget(aParams.imageRect.Size(), gfx::FORMAT_B8G8R8A8);
-    surface = target ? gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(target)
-                     : nullptr;
-    ctx = surface ? new gfxContext(surface) : nullptr;
-  }
+  mozilla::RefPtr<mozilla::gfx::DrawTarget> target =
+   gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aParams.imageRect.Size(), gfx::FORMAT_B8G8R8A8);
 
   
   
   
-  
-  
-  if (!target || !surface)
+  if (!target)
     return Show(svgDrawable, aParams);
+
+  nsRefPtr<gfxContext> ctx = new gfxContext(target);
 
   
   gfxUtils::DrawPixelSnapped(ctx, svgDrawable, gfxMatrix(),
@@ -891,7 +862,7 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
   
   
   
-  nsRefPtr<gfxDrawable> drawable = new gfxSurfaceDrawable(surface, aParams.imageRect.Size());
+  nsRefPtr<gfxDrawable> drawable = new gfxSurfaceDrawable(target, aParams.imageRect.Size());
   Show(drawable, aParams);
 }
 
