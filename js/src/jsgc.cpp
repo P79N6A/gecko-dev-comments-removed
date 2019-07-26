@@ -2146,10 +2146,15 @@ GCRuntime::triggerGC(JS::gcreason::Reason reason)
     }
 
     
-    if (rt->currentThreadOwnsInterruptLock())
+
+
+
+    if (!CurrentThreadCanAccessRuntime(rt))
         return false;
 
-    JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
+    
+    if (rt->currentThreadOwnsInterruptLock())
+        return false;
 
     
     if (rt->isHeapCollecting())
