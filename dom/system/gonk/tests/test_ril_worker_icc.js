@@ -32,7 +32,7 @@ function newUint8Worker() {
   return worker;
 }
 
-function newUint8WithOutgoingIndexWorker() {
+function newUint8SupportOutgoingIndexWorker() {
   let worker = newWorker();
   let index = 4;          
   let buf = [0, 0, 0, 0]; 
@@ -1371,7 +1371,7 @@ add_test(function test_parse_pbr_tlvs() {
 
 
 add_test(function test_stk_event_download_location_status() {
-  let worker = newUint8WithOutgoingIndexWorker();
+  let worker = newUint8SupportOutgoingIndexWorker();
   let buf = worker.Buf;
   let pduHelper = worker.GsmPDUHelper;
 
@@ -1450,8 +1450,8 @@ add_test(function test_stk_event_download_location_status() {
 
 
 
-add_test(function test_stk_event_download_location_status() {
-  let worker = newUint8WithOutgoingIndexWorker();
+add_test(function test_stk_terminal_response() {
+  let worker = newUint8SupportOutgoingIndexWorker();
   let buf = worker.Buf;
   let pduHelper = worker.GsmPDUHelper;
 
