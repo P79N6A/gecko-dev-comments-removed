@@ -8,7 +8,6 @@
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
-#include "nsIDOMHTMLOutputElement.h"
 #include "nsStubMutationObserver.h"
 #include "nsIConstraintValidation.h"
 
@@ -16,7 +15,7 @@ namespace mozilla {
 namespace dom {
 
 class HTMLOutputElement MOZ_FINAL : public nsGenericHTMLFormElement,
-                                    public nsIDOMHTMLOutputElement,
+                                    public nsIDOMHTMLElement,
                                     public nsStubMutationObserver,
                                     public nsIConstraintValidation
 {
@@ -37,9 +36,6 @@ public:
 
   
   NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
-  
-  NS_DECL_NSIDOMHTMLOUTPUTELEMENT
 
   
   NS_IMETHOD_(uint32_t) GetType() const { return NS_FORM_OUTPUT; }
@@ -79,31 +75,40 @@ public:
   
   nsDOMSettableTokenList* HtmlFor();
   
-  using nsGenericHTMLFormElement::GetForm;
-  
+  void GetName(nsAString& aName)
+  {
+    GetHTMLAttr(nsGkAtoms::name, aName);
+  }
+
   void SetName(const nsAString& aName, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::name, aName, aRv);
   }
 
-  
-  
-  void SetDefaultValue(const nsAString& aDefaultValue, ErrorResult& aRv)
+  void GetType(nsAString& aType)
   {
-    aRv = SetDefaultValue(aDefaultValue);
+    aType.AssignLiteral("output");
   }
-  
-  void SetValue(const nsAString& aValue, ErrorResult& aRv)
+
+  void GetDefaultValue(nsAString& aDefaultValue)
   {
-    aRv = SetValue(aValue);
+    aDefaultValue = mDefaultValue;
   }
+
+  void SetDefaultValue(const nsAString& aDefaultValue, ErrorResult& aRv);
+
+  void GetValue(nsAString& aValue)
+  {
+    nsContentUtils::GetNodeTextContent(this, true, aValue);
+  }
+
+  void SetValue(const nsAString& aValue, ErrorResult& aRv);
 
   
   
   
   
-  using nsIConstraintValidation::CheckValidity;
-  
+  void SetCustomValidity(const nsAString& aError);
 
 protected:
   enum ValueModeFlag {
