@@ -26,6 +26,39 @@
 
 namespace mozilla {
 class RestyleTracker;
+
+
+
+
+
+struct UndisplayedNode {
+  UndisplayedNode(nsIContent* aContent, nsStyleContext* aStyle)
+    : mContent(aContent),
+      mStyle(aStyle),
+      mNext(nullptr)
+  {
+    MOZ_COUNT_CTOR(mozilla::UndisplayedNode);
+  }
+
+  NS_HIDDEN ~UndisplayedNode()
+  {
+    MOZ_COUNT_DTOR(mozilla::UndisplayedNode);
+
+    
+    UndisplayedNode* cur = mNext;
+    while (cur) {
+      UndisplayedNode* next = cur->mNext;
+      cur->mNext = nullptr;
+      delete cur;
+      cur = next;
+    }
+  }
+
+  nsCOMPtr<nsIContent>      mContent;
+  nsRefPtr<nsStyleContext>  mStyle;
+  UndisplayedNode*          mNext;
+};
+
 } 
 
 struct TreeMatchContext;
@@ -74,6 +107,8 @@ public:
 
   
   NS_HIDDEN_(nsStyleContext*) GetUndisplayedContent(nsIContent* aContent);
+  NS_HIDDEN_(mozilla::UndisplayedNode*)
+    GetAllUndisplayedContentIn(nsIContent* aParentContent);
   NS_HIDDEN_(void) SetUndisplayedContent(nsIContent* aContent,
                                          nsStyleContext* aStyleContext);
   NS_HIDDEN_(void) ChangeUndisplayedContent(nsIContent* aContent,
