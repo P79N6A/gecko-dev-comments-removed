@@ -39,6 +39,27 @@ public:
   NS_DECL_NSIIMAGELOADINGCONTENT
   NS_DECL_IMGIONLOADBLOCKER
 
+  
+  
+  
+  
+
+  bool LoadingEnabled() const { return mLoadingEnabled; }
+  int16_t ImageBlockingStatus() const
+  {
+    return mImageBlockingStatus;
+  }
+  already_AddRefed<imgIRequest>
+    GetRequest(int32_t aRequestType, mozilla::ErrorResult& aError);
+  int32_t
+    GetRequestType(imgIRequest* aRequest, mozilla::ErrorResult& aError);
+  already_AddRefed<nsIURI> GetCurrentURI(mozilla::ErrorResult& aError);
+  already_AddRefed<nsIStreamListener>
+    LoadImageWithChannel(nsIChannel* aChannel, mozilla::ErrorResult& aError);
+  void ForceReload(mozilla::ErrorResult& aError);
+
+
+
 protected:
   
 
@@ -142,8 +163,6 @@ protected:
 
   void ClearBrokenState() { mBroken = false; }
 
-  bool LoadingEnabled() { return mLoadingEnabled; }
-
   
   
   void SetBlockingOnload(bool aBlocking);
@@ -234,6 +253,7 @@ private:
 
 
   nsresult FireEvent(const nsAString& aEventType);
+
 protected:
   
 
