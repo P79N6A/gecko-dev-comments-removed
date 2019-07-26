@@ -336,32 +336,63 @@ RTCPeerConnection.prototype = {
 
 
   _mustValidateConstraints: function(constraints, errorMsg) {
+    function isObject(obj) {
+      return obj && (typeof obj === "object");
+    }
+    function isArraylike(obj) {
+      return isObject(obj) && ("length" in obj);
+    }
+    const SUPPORTED_CONSTRAINTS = {
+      OfferToReceiveAudio:1,
+      OfferToReceiveVideo:1,
+      MozDontOfferDataChannel:1
+    };
+    const OTHER_KNOWN_CONSTRAINTS = {
+      VoiceActivityDetection:1,
+      IceTransports:1,
+      RequestIdentity:1
+    };
+    
+    
+    if (!isObject(constraints) || Array.isArray(constraints)) {
+      throw new this._win.DOMError("", errorMsg);
+    }
     if (constraints.mandatory) {
-      let supported;
-      try {
-        
-        supported = this._observer.getSupportedConstraints(constraints.mandatory);
-      } catch (e) {
-        throw new this._win.DOMError("", errorMsg + " - " + e.message);
+      
+      
+      if (!isObject(constraints.mandatory) || Array.isArray(constraints.mandatory)) {
+        throw new this._win.DOMError("",
+            errorMsg + " - malformed mandatory constraints");
       }
-
-      for (let constraint of Object.keys(constraints.mandatory)) {
-        if (!(constraint in supported)) {
-          throw new this._win.DOMError("",
-              errorMsg + " - unsupported mandatory constraint: " + constraint);
+      for (let constraint in constraints.mandatory) {
+        if (!(constraint in SUPPORTED_CONSTRAINTS) &&
+            constraints.mandatory.hasOwnProperty(constraint)) {
+          throw new this._win.DOMError("", errorMsg + " - " +
+              ((constraint in OTHER_KNOWN_CONSTRAINTS)? "unsupported" : "unknown") +
+              " mandatory constraint: " + constraint);
         }
       }
     }
     if (constraints.optional) {
+      if (!isArraylike(constraints.optional)) {
+        throw new this._win.DOMError("",
+            errorMsg + " - malformed optional constraint array");
+      }
       let len = constraints.optional.length;
-      for (let i = 0; i < len; i++) {
+      for (let i = 0; i < len; i += 1) {
+        if (!isObject(constraints.optional[i])) {
+          throw new this._win.DOMError("", errorMsg +
+              " - malformed optional constraint: " + constraints.optional[i]);
+        }
         let constraints_per_entry = 0;
-        for (let constraint in Object.keys(constraints.optional[i])) {
-          if (constraints_per_entry) {
-            throw new this._win.DOMError("", errorMsg +
-                " - optional constraint must be single key/value pair");
+        for (let constraint in constraints.optional[i]) {
+          if (constraints.optional[i].hasOwnProperty(constraint)) {
+            if (constraints_per_entry) {
+              throw new this._win.DOMError("", errorMsg +
+                  " - optional constraint must be single key/value pair");
+            }
+            constraints_per_entry += 1;
           }
-          constraints_per_entry += 1;
         }
       }
     }
@@ -1075,14 +1106,6 @@ PeerConnectionObserver.prototype = {
 
   notifyClosedConnection: function() {
     this.dispatchEvent(new this._dompc._win.Event("closedconnection"));
-  },
-
-  getSupportedConstraints: function(dict) {
-
-
-    return { "OfferToReceiveAudio":true,
-             "OfferToReceiveVideo":true,
-             "MozDontOfferDataChannel":true };
   }
 };
 
