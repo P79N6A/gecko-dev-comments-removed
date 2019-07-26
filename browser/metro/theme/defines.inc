@@ -3,6 +3,7 @@
 %define panel_dark_color #41464C
 %define panel_dark_background url(chrome:
 %define panel_light_color #F1F1F1
+%define panel_light_background url(chrome:
 
 %define field_sizing 30px
 %define field_foreground_color #000000
