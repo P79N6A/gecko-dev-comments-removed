@@ -1220,7 +1220,41 @@ HyperTextAccessible::GetTextAfterOffset(int32_t aOffset,
       return GetText(*aStartOffset, *aEndOffset, aText);
 
     case BOUNDARY_LINE_START:
+      if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
+        offset = AdjustCaretOffset(offset);
+
+      
+      *aStartOffset = FindLineBoundary(offset, eDirNext, eSelectLine);
+      if (*aStartOffset != CharacterCount()) {
+        *aStartOffset = FindLineBoundary(*aStartOffset, eDirPrevious, eSelectBeginLine);
+        *aEndOffset = FindLineBoundary(*aStartOffset, eDirNext, eSelectLine);
+        if (*aEndOffset != CharacterCount())
+          *aEndOffset = FindLineBoundary(*aEndOffset, eDirPrevious, eSelectBeginLine);
+      } else {
+        *aEndOffset = CharacterCount();
+      }
+      return GetText(*aStartOffset, *aEndOffset, aText);
+
     case BOUNDARY_LINE_END:
+      if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
+        offset = AdjustCaretOffset(offset);
+
+      
+      
+      
+      if (IsEmptyLastLineOffset(offset)) {
+        *aStartOffset = *aEndOffset = offset;
+        return NS_OK;
+      }
+
+      
+      *aStartOffset = FindLineBoundary(offset, eDirNext, eSelectEndLine);
+      *aEndOffset = FindLineBoundary(*aStartOffset, eDirNext, eSelectLine);
+      if (*aEndOffset != CharacterCount())
+        *aEndOffset = FindLineBoundary(*aEndOffset, eDirNext, eSelectEndLine);
+
+      return GetText(*aStartOffset, *aEndOffset, aText);
+
     case BOUNDARY_ATTRIBUTE_RANGE:
       return GetTextHelper(eGetAfter, aBoundaryType, aOffset,
                            aStartOffset, aEndOffset, aText);
