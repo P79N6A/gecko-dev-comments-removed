@@ -5512,6 +5512,8 @@ CodeGenerator::visitRestPar(LRestPar *lir)
 bool
 CodeGenerator::generateAsmJS()
 {
+    IonSpew(IonSpew_Codegen, "# Emitting asm.js code");
+
     
     
     
@@ -5552,6 +5554,10 @@ CodeGenerator::generateAsmJS()
 bool
 CodeGenerator::generate()
 {
+    IonSpew(IonSpew_Codegen, "# Emitting code for script %s:%d",
+            gen->info().script()->filename(),
+            gen->info().script()->lineno);
+
     if (!safepoints_.init(graph.totalSlotCount()))
         return false;
 
