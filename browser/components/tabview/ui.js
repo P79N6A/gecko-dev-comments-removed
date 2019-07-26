@@ -527,11 +527,15 @@ let UI = {
     if (!this.isTabViewVisible() || this._isChangingVisibility)
       return;
 
-    this._isChangingVisibility = true;
-
     
     
     GroupItems.removeHiddenGroups();
+
+    
+    
+    
+    this._isChangingVisibility = true;
+
     TabItems.pausePainting();
 
     this._reorderTabsOnHide.forEach(function(groupItem) {
