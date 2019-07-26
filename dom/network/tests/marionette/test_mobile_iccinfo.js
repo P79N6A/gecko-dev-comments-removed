@@ -78,5 +78,9 @@ function testSPN(mcc, mnc, expectedIsDisplayNetworkNameRequired,
 
 testDisplayConditionChange(testSPN, [
   [123, 456, false, true], 
-  [310, 260, true, true], 
+  [234, 136,  true, true], 
+  [123, 456, false, true], 
+  [466,  92,  true, true], 
+  [123, 456, false, true], 
+  [310, 260,  true, true], 
 ], finalize);
