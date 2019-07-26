@@ -22,7 +22,7 @@ struct SeekableZStreamHeader: public Zip::SignedEntity<SeekableZStreamHeader>
 {
   SeekableZStreamHeader()
   : Zip::SignedEntity<SeekableZStreamHeader>(magic)
-  , totalSize(0), chunkSize(0), nChunks(0), lastChunkSize(0) { }
+  , totalSize(0), chunkSize(0), nChunks(0), lastChunkSize(0), windowBits(0) { }
 
   
 
@@ -38,7 +38,13 @@ struct SeekableZStreamHeader: public Zip::SignedEntity<SeekableZStreamHeader>
   le_uint32 nChunks;
 
   
-  le_uint32 lastChunkSize;
+  le_uint16 lastChunkSize;
+
+  
+  signed char windowBits;
+
+  
+  unsigned char unused;
 };
 #pragma pack()
 
@@ -94,6 +100,9 @@ private:
 
   
   uint32_t lastChunkSize;
+
+  
+  int windowBits;
 
   
   Array<le_uint32> offsetTable;
