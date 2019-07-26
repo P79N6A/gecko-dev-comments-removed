@@ -133,21 +133,85 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use strict";
 (function(){
-var interfaces = {};
-
 
 
 window.IdlArray = function()
 
 {
+    
+
+
+
+
     this.members = {};
+
+    
+
+
+
+
+
+
+
+
+
     this.objects = {};
+
     
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     this.partials = [];
     this.implements = {};
 }
@@ -156,6 +220,7 @@ window.IdlArray = function()
 IdlArray.prototype.add_idls = function(raw_idls)
 
 {
+    
     this.internal_add_idls(WebIDLParser.parse(raw_idls));
 };
 
@@ -163,6 +228,7 @@ IdlArray.prototype.add_idls = function(raw_idls)
 IdlArray.prototype.add_untested_idls = function(raw_idls)
 
 {
+    
     var parsed_idls = WebIDLParser.parse(raw_idls);
     for (var i = 0; i < parsed_idls.length; i++)
     {
@@ -182,6 +248,14 @@ IdlArray.prototype.add_untested_idls = function(raw_idls)
 IdlArray.prototype.internal_add_idls = function(parsed_idls)
 
 {
+    
+
+
+
+
+
+
+
     parsed_idls.forEach(function(parsed_idl)
     {
         if (parsed_idl.type == "partialinterface")
@@ -239,6 +313,7 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls)
 IdlArray.prototype.add_objects = function(dict)
 
 {
+    
     for (var k in dict)
     {
         if (k in this.objects)
@@ -256,6 +331,7 @@ IdlArray.prototype.add_objects = function(dict)
 IdlArray.prototype.prevent_multiple_testing = function(name)
 
 {
+    
     this.members[name].prevent_multiple_testing = true;
 }
 
@@ -263,6 +339,16 @@ IdlArray.prototype.prevent_multiple_testing = function(name)
 IdlArray.prototype.recursively_get_implements = function(interface_name)
 
 {
+    
+
+
+
+
+
+
+
+
+
     var ret = this.implements[interface_name];
     if (ret === undefined)
     {
@@ -283,6 +369,10 @@ IdlArray.prototype.recursively_get_implements = function(interface_name)
 IdlArray.prototype.test = function()
 
 {
+    
+
+    
+    
     this.partials.forEach(function(parsed_idl)
     {
         if (!(parsed_idl.name in this.members)
@@ -323,6 +413,7 @@ IdlArray.prototype.test = function()
     }
     this.implements = {};
 
+    
     for (var name in this.members)
     {
         this.members[name].test();
@@ -340,6 +431,13 @@ IdlArray.prototype.test = function()
 IdlArray.prototype.assert_type_is = function(value, type)
 
 {
+    
+
+
+
+
+
+
     if (type.idlType == "any")
     {
         
@@ -475,9 +573,23 @@ IdlArray.prototype.assert_type_is = function(value, type)
 
 
 function IdlObject() {}
+IdlObject.prototype.test = function()
+
+{
+    
+
+
+
+};
+
+
 IdlObject.prototype.has_extended_attribute = function(name)
 
 {
+    
+
+
+
     return this.extAttrs.some(function(o)
     {
         return o.name == name;
@@ -485,54 +597,109 @@ IdlObject.prototype.has_extended_attribute = function(name)
 };
 
 
-IdlObject.prototype.test = function() {};
 
 
 
 function IdlDictionary(obj)
 
 {
+    
+
+
+
+
+    
     this.name = obj.name;
-    this.members = obj.members ? obj.members : [];
-    this.inheritance = obj.inheritance ? obj.inheritance: [];
+
+    
+    this.members = obj.members;
+
+    
+
+
+
+    if (obj.inheritance.length > 1) {
+        throw "Multiple inheritance is no longer supported in WebIDL";
+    }
+    this.base = obj.inheritance.length ? obj.inheritance[0] : null;
 }
 
 
 IdlDictionary.prototype = Object.create(IdlObject.prototype);
 
 
-function IdlException(obj)
+
+function IdlExceptionOrInterface(obj)
 
 {
+    
+
+
+
+
+    
     this.name = obj.name;
+
+    
     this.array = obj.array;
+
+    
+
+
+
+
     this.untested = obj.untested;
-    this.extAttrs = obj.extAttrs ? obj.extAttrs : [];
-    this.members = obj.members ? obj.members.map(function(m){return new IdlInterfaceMember(m)}) : [];
-    this.inheritance = obj.inheritance ? obj.inheritance : [];
+
+    
+    this.extAttrs = obj.extAttrs;
+
+    
+    this.members = obj.members.map(function(m){return new IdlInterfaceMember(m)});
+
+    
+
+
+
+    if (obj.inheritance.length > 1) {
+        throw "Multiple inheritance is no longer supported in WebIDL";
+    }
+    this.base = obj.inheritance.length ? obj.inheritance[0] : null;
 }
+ 
 
-
-IdlException.prototype = Object.create(IdlObject.prototype);
-IdlException.prototype.test = function()
+IdlExceptionOrInterface.prototype = Object.create(IdlObject.prototype);
+IdlExceptionOrInterface.prototype.test = function()
 
 {
-    
-    
     if (this.has_extended_attribute("NoInterfaceObject"))
     {
+        
+        
         
         return;
     }
 
     if (!this.untested)
     {
+        
+        
         this.test_self();
     }
+    
+    
+    
+    
+    
+    
+    
     this.test_members();
 }
 
 
+
+
+function IdlException(obj) { IdlExceptionOrInterface.call(this, obj); }
+IdlException.prototype = Object.create(IdlExceptionOrInterface.prototype);
 IdlException.prototype.test_self = function()
 
 {
@@ -582,6 +749,7 @@ IdlException.prototype.test_self = function()
 
         
         
+        
     }.bind(this), this.name + " exception: existence and properties of exception interface object");
 
     test(function()
@@ -614,7 +782,8 @@ IdlException.prototype.test_self = function()
         
         
         
-        var inherit_exception = this.inheritance.length ? this.inheritance[0] : "Error";
+        
+        var inherit_exception = this.base ? this.base : "Error";
         assert_own_property(window, inherit_exception,
                             'should inherit from ' + inherit_exception + ', but window has no such property');
         assert_own_property(window[inherit_exception], "prototype",
@@ -626,12 +795,10 @@ IdlException.prototype.test_self = function()
         
         
         
-        
-        
         assert_class_string(window[this.name].prototype, this.name + "Prototype",
                             "class string of " + this.name + ".prototype");
-        assert_equals(String(window[this.name].prototype), "[object " + this.name + "Prototype]",
-                      "String(" + this.name + ".prototype)");
+        
+        
     }.bind(this), this.name + " exception: existence and properties of exception interface prototype object");
 
     test(function()
@@ -813,6 +980,7 @@ IdlException.prototype.test_object = function(desc)
         
         
         
+        
         if (!this.has_extended_attribute("NoInterfaceObject")
         && (typeof obj != "object" || obj instanceof Object))
         {
@@ -859,37 +1027,8 @@ IdlException.prototype.test_object = function(desc)
 
 
 
-function IdlInterface(obj)
-
-{
-    this.name = obj.name;
-    this.array = obj.array;
-    this.untested = obj.untested;
-    this.extAttrs = obj.extAttrs ? obj.extAttrs : [];
-    this.members = obj.members ? obj.members.map(function(m){return new IdlInterfaceMember(m)}) : [];
-    this.inheritance = obj.inheritance ? obj.inheritance : [];
-    interfaces[this.name] = this;
-}
-
-
-IdlInterface.prototype = Object.create(IdlObject.prototype);
-IdlInterface.prototype.test = function()
-
-{
-    if (this.has_extended_attribute("NoInterfaceObject"))
-    {
-        
-        return;
-    }
-
-    if (!this.untested)
-    {
-        this.test_self();
-    }
-    this.test_members();
-}
-
-
+function IdlInterface(obj) { IdlExceptionOrInterface.call(this, obj); }
+IdlInterface.prototype = Object.create(IdlExceptionOrInterface.prototype);
 IdlInterface.prototype.test_self = function()
 
 {
@@ -1020,42 +1159,60 @@ IdlInterface.prototype.test_self = function()
         
         
         
-        
-        
-        
-        
-        var inherit_interface = (function()
-        {
-            for (var i = 0; i < this.inheritance.length; ++i)
-            {
-                if (!interfaces[this.inheritance[i]].has_extended_attribute("NoInterfaceObject"))
-                {
-                    return this.inheritance[i];
-                }
-            }
-            if (this.has_extended_attribute("ArrayClass"))
-            {
-                return "Array";
-            }
-            return "Object";
-        }).bind(this)();
-        assert_own_property(window, inherit_interface,
-                            'should inherit from ' + inherit_interface + ', but window has no such property');
-        assert_own_property(window[inherit_interface], "prototype",
-                            'should inherit from ' + inherit_interface + ', but that object has no "prototype" property');
-        assert_equals(Object.getPrototypeOf(window[this.name].prototype),
-                      window[inherit_interface].prototype,
-                      'prototype of ' + this.name + '.prototype is not ' + inherit_interface + '.prototype');
 
         
         
         
         
         
+        
+        
+        
+        
+        
+        var inherit_interface, inherit_interface_has_interface_object;
+        if (this.base) {
+            inherit_interface = this.base;
+            inherit_interface_has_interface_object =
+                !this.array
+                     .members[inherit_interface]
+                     .has_extended_attribute("NoInterfaceObject");
+        } else if (this.has_extended_attribute('ArrayClass')) {
+            inherit_interface = 'Array';
+            inherit_interface_has_interface_object = true;
+        } else {
+            inherit_interface = 'Object';
+            inherit_interface_has_interface_object = true;
+        }
+        if (inherit_interface_has_interface_object) {
+            assert_own_property(window, inherit_interface,
+                                'should inherit from ' + inherit_interface + ', but window has no such property');
+            assert_own_property(window[inherit_interface], 'prototype',
+                                'should inherit from ' + inherit_interface + ', but that object has no "prototype" property');
+            assert_equals(Object.getPrototypeOf(window[this.name].prototype),
+                          window[inherit_interface].prototype,
+                          'prototype of ' + this.name + '.prototype is not ' + inherit_interface + '.prototype');
+        } else {
+            
+            
+            
+            assert_class_string(Object.getPrototypeOf(window[this.name].prototype),
+                                inherit_interface + 'Prototype',
+                                'Class name for prototype of ' + this.name +
+                                '.prototype is not "' + inherit_interface + 'Prototype"');
+        }
+
+        
+        
+        
         assert_class_string(window[this.name].prototype, this.name + "Prototype",
                             "class string of " + this.name + ".prototype");
-        assert_equals(String(window[this.name].prototype), "[object " + this.name + "Prototype]",
-                      "String(" + this.name + ".prototype)");
+        
+        
+        if (!this.has_stringifier()) {
+            assert_equals(String(window[this.name].prototype), "[object " + this.name + "Prototype]",
+                    "String(" + this.name + ".prototype)");
+        }
     }.bind(this), this.name + " interface: existence and properties of interface prototype object");
 
     test(function()
@@ -1207,6 +1364,7 @@ IdlInterface.prototype.test_members = function()
                 
                 
                 
+                
                 assert_equals(window[this.name].prototype[member.name].length,
                     member.arguments.filter(function(arg) {
                         return !arg.optional;
@@ -1225,10 +1383,12 @@ IdlInterface.prototype.test_members = function()
                 
                 
                 
+                
                 assert_throws(new TypeError(), function() {
                     window[this.name].prototype[member.name].apply(null, args);
                 }, "calling operation with this = null didn't throw TypeError");
 
+                
                 
                 
                 
@@ -1281,7 +1441,7 @@ IdlInterface.prototype.test_object = function(desc)
             return;
         }
         current_interface.test_interface_of(desc, obj, exception, expected_typeof);
-        current_interface = this.array.members[current_interface.inheritance[0]];
+        current_interface = this.array.members[current_interface.base];
     }
 }
 
@@ -1308,6 +1468,7 @@ IdlInterface.prototype.test_primary_interface_of = function(desc, obj, exception
             
             
             
+            
             assert_equals(Object.getPrototypeOf(obj),
                           window[this.name].prototype,
                           desc + "'s prototype is not " + this.name + ".prototype");
@@ -1322,7 +1483,7 @@ IdlInterface.prototype.test_primary_interface_of = function(desc, obj, exception
         assert_equals(exception, null, "Unexpected exception when evaluating object");
         assert_equals(typeof obj, expected_typeof, "wrong typeof object");
         assert_class_string(obj, this.name, "class string of " + desc);
-        if (!this.members.some(function(member) { return member.stringifier || member.type == "stringifier"}))
+        if (!this.has_stringifier())
         {
             assert_equals(String(obj), "[object " + this.name + "]", "String(" + desc + ")");
         }
@@ -1419,6 +1580,20 @@ IdlInterface.prototype.test_interface_of = function(desc, obj, exception, expect
 }
 
 
+IdlInterface.prototype.has_stringifier = function()
+
+{
+    if (this.members.some(function(member) { return member.stringifier })) {
+        return true;
+    }
+    if (this.base &&
+        this.array.members[this.base].has_stringifier()) {
+        return true;
+    }
+    return false;
+}
+
+
 function do_interface_attribute_asserts(obj, member)
 
 {
@@ -1429,9 +1604,9 @@ function do_interface_attribute_asserts(obj, member)
     
     
     
+    
     assert_own_property(obj, member.name);
 
-    
     
     
     
@@ -1474,7 +1649,6 @@ function do_interface_attribute_asserts(obj, member)
     
     
     
-    
     if (member.readonly
     && !member.has_extended_attribute("PutForwards")
     && !member.has_extended_attribute("Replaceable"))
@@ -1493,16 +1667,14 @@ function do_interface_attribute_asserts(obj, member)
 function IdlInterfaceMember(obj)
 
 {
+    
+
+
+
+
     for (var k in obj)
     {
-        if (k == "extAttrs")
-        {
-            this.extAttrs = obj.extAttrs ? obj.extAttrs : [];
-        }
-        else
-        {
-            this[k] = obj[k];
-        }
+        this[k] = obj[k];
     }
     if (!("extAttrs" in this))
     {
@@ -1517,6 +1689,11 @@ IdlInterfaceMember.prototype = Object.create(IdlObject.prototype);
 function create_suitable_object(type)
 
 {
+    
+
+
+
+
     if (type.nullable)
     {
         return null;
