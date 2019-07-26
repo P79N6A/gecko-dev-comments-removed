@@ -676,6 +676,9 @@ protected:
                                   nsCSSValueGridTemplateAreas& aResult,
                                   nsDataHashtable<nsStringHashKey, uint32_t>& aAreaIndices);
   bool ParseGridTemplateAreas();
+  bool ParseGridTemplate();
+  bool ParseGridTemplateAfterSlash(bool aColumnsIsTrackList);
+  bool ParseGridTemplateAfterString(const nsCSSValue& aFirstLineNames);
   bool ParseGridLine(nsCSSValue& aValue);
   bool ParseGridAutoPosition();
   bool ParseGridColumnRowStartEnd(nsCSSProperty aPropID);
@@ -7264,6 +7267,152 @@ CSSParserImpl::ParseGridTemplateAreas()
   return true;
 }
 
+bool
+CSSParserImpl::ParseGridTemplate()
+{
+  
+  
+  
+  
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT, nullptr)) {
+    AppendValue(eCSSProperty_grid_template_areas, value);
+    AppendValue(eCSSProperty_grid_template_columns, value);
+    AppendValue(eCSSProperty_grid_template_rows, value);
+    return true;
+  }
+
+  
+
+  if (ParseVariant(value, VARIANT_NONE, nullptr)) {
+    AppendValue(eCSSProperty_grid_template_columns, value);
+    if (ExpectSymbol('/', true)) {
+      return ParseGridTemplateAfterSlash( false);
+    }
+    AppendValue(eCSSProperty_grid_template_areas, value);
+    AppendValue(eCSSProperty_grid_template_rows, value);
+    return true;
+  }
+
+  
+  
+
+  
+  
+  
+  nsCSSValue firstLineNames;
+  if (!(ParseGridLineNames(firstLineNames) &&
+        GetToken(true))) {
+    return false;
+  }
+  if (mToken.mType == eCSSToken_String) {
+    
+    
+    value.SetNoneValue();
+    AppendValue(eCSSProperty_grid_template_columns, value);
+    return ParseGridTemplateAfterString(firstLineNames);
+  }
+  UngetToken();
+
+  if (!(ParseGridTrackListWithFirstLineNames(value, firstLineNames) &&
+        ExpectSymbol('/', true))) {
+    return false;
+  }
+  AppendValue(eCSSProperty_grid_template_columns, value);
+  return ParseGridTemplateAfterSlash( true);
+}
+
+
+bool
+CSSParserImpl::ParseGridTemplateAfterSlash(bool aColumnsIsTrackList)
+{
+  nsCSSValue rowsValue;
+  if (!ParseVariant(rowsValue, VARIANT_NONE, nullptr)) {
+    
+    
+
+    nsCSSValue firstLineNames;
+    if (!(ParseGridLineNames(firstLineNames) &&
+          GetToken(true))) {
+      return false;
+    }
+    if (aColumnsIsTrackList && mToken.mType == eCSSToken_String) {
+      return ParseGridTemplateAfterString(firstLineNames);
+    }
+    UngetToken();
+
+    if (!ParseGridTrackListWithFirstLineNames(rowsValue, firstLineNames)) {
+      return false;
+    }
+  }
+  
+  
+  
+  nsCSSValue areasValue(eCSSUnit_None);  
+  AppendValue(eCSSProperty_grid_template_areas, areasValue);
+  AppendValue(eCSSProperty_grid_template_rows, rowsValue);
+  return true;
+}
+
+
+
+
+
+bool
+CSSParserImpl::ParseGridTemplateAfterString(const nsCSSValue& aFirstLineNames)
+{
+  MOZ_ASSERT(mToken.mType == eCSSToken_String,
+             "ParseGridTemplateAfterString called with a non-string token");
+
+  nsCSSValue areasValue;
+  nsCSSValue rowsValue;
+  nsCSSValueGridTemplateAreas& areas = areasValue.SetGridTemplateAreas();
+  nsDataHashtable<nsStringHashKey, uint32_t> areaIndices;
+  nsCSSValueList* rowsItem = rowsValue.SetListValue();
+  rowsItem->mValue = aFirstLineNames;
+
+  for (;;) {
+    if (!ParseGridTemplateAreasLine(mToken.mIdent, areas, areaIndices)) {
+      return false;
+    }
+
+    rowsItem->mNext = new nsCSSValueList;
+    rowsItem = rowsItem->mNext;
+    
+    nsParsingStatus result = ParseGridTrackSize(rowsItem->mValue);
+    if (result == nsParsingStatus::Error) {
+      return false;
+    }
+    if (result == nsParsingStatus::NotFound) {
+      rowsItem->mValue.SetAutoValue();
+    }
+
+    rowsItem->mNext = new nsCSSValueList;
+    rowsItem = rowsItem->mNext;
+    if (!ParseGridLineNames(rowsItem->mValue)) {
+      return false;
+    }
+
+    if (CheckEndProperty()) {
+      break;
+    }
+
+    
+    if (!(ParseGridLineNames(rowsItem->mValue) &&
+          GetToken(true))) {
+      return false;
+    }
+    if (eCSSToken_String != mToken.mType) {
+      UngetToken();
+      return false;
+    }
+  }
+
+  AppendValue(eCSSProperty_grid_template_areas, areasValue);
+  AppendValue(eCSSProperty_grid_template_rows, rowsValue);
+  return true;
+}
+
 
 
 
@@ -8521,6 +8670,8 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
   case eCSSProperty_grid_template_columns:
   case eCSSProperty_grid_template_rows:
     return ParseGridTemplateColumnsRows(aPropID);
+  case eCSSProperty_grid_template:
+    return ParseGridTemplate();
   case eCSSProperty_grid_auto_position:
     return ParseGridAutoPosition();
   case eCSSProperty_grid_column_start:

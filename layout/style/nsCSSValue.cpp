@@ -1667,12 +1667,12 @@ AppendGridTemplateToString(const nsCSSValueList* val,
 {
   
   for (;;) {
-    bool addSpaceSpearator = true;
+    bool addSpaceSeparator = true;
     nsCSSUnit unit = val->mValue.GetUnit();
 
     if (unit == eCSSUnit_Null) {
       
-      addSpaceSpearator = false;  
+      addSpaceSeparator = false;  
 
     } else if (unit == eCSSUnit_List || unit == eCSSUnit_ListDep) {
       
@@ -1691,7 +1691,7 @@ AppendGridTemplateToString(const nsCSSValueList* val,
       break;
     }
 
-    if (addSpaceSpearator) {
+    if (addSpaceSeparator) {
       aResult.Append(char16_t(' '));
     }
   }
