@@ -3279,8 +3279,10 @@ PresShell::DoScrollContentIntoView()
     return;
   }
 
+  
+  
   nsIFrame* container =
-    nsLayoutUtils::GetClosestFrameOfType(frame, nsGkAtoms::scrollFrame);
+    nsLayoutUtils::GetClosestFrameOfType(frame->GetParent(), nsGkAtoms::scrollFrame);
   if (!container) {
     
     return;
