@@ -741,10 +741,6 @@ nsPresContext::GetUserPreferences()
   mUseDocumentFonts =
     Preferences::GetInt("browser.display.use_document_fonts") != 0;
 
-  
-  mEnableJapaneseTransform =
-    Preferences::GetBool("layout.enable_japanese_specific_transform");
-
   mPrefScrollbarSide = Preferences::GetInt("layout.scrollbar.side");
 
   ResetCachedFontPrefs();
