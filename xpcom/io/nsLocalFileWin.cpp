@@ -592,7 +592,7 @@ struct PRFilePrivate {
 
 
 
-nsresult
+static nsresult
 OpenFile(const nsAFlatString &name, int osflags, int mode,
          PRFileDesc **fd)
 {

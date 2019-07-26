@@ -165,15 +165,6 @@ Object.defineProperty(OSError.prototype, "becauseAccessDenied", {
 
 
 
-Object.defineProperty(OSError.prototype, "becauseInvalidArgument", {
-  get: function becauseInvalidArgument() {
-    return this.winLastError == Const.ERROR_NOT_SUPPORTED;
-  }
-});
-
-
-
-
 
 OSError.toMsg = function toMsg(error) {
   return {
@@ -375,10 +366,6 @@ OSError.exists = function exists(operation, path) {
 
 OSError.noSuchFile = function noSuchFile(operation, path) {
   return new OSError(operation, Const.ERROR_FILE_NOT_FOUND, path);
-};
-
-OSError.invalidArgument = function invalidArgument(operation) {
-  return new OSError(operation, Const.ERROR_NOT_SUPPORTED);
 };
 
 let EXPORTED_SYMBOLS = [

@@ -58,7 +58,6 @@ Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
-let Native = Cu.import("resource://gre/modules/osfile/osfile_native.jsm", {});
 
 
 
@@ -349,7 +348,7 @@ const PREF_OSFILE_LOG_REDIRECT = "toolkit.osfile.log.redirect";
 
 
 
-function readDebugPref(prefName, oldPref = false) {
+let readDebugPref = function readDebugPref(prefName, oldPref = false) {
   let pref = oldPref;
   try {
     pref = Services.prefs.getBoolPref(prefName);
@@ -379,19 +378,6 @@ Services.prefs.addObserver(PREF_OSFILE_LOG_REDIRECT,
     SharedAll.Config.TEST = readDebugPref(PREF_OSFILE_LOG_REDIRECT, OS.Shared.TEST);
   }, false);
 SharedAll.Config.TEST = readDebugPref(PREF_OSFILE_LOG_REDIRECT, false);
-
-
-
-
-
-
-let nativeWheneverAvailable = true;
-const PREF_OSFILE_NATIVE = "toolkit.osfile.native";
-Services.prefs.addObserver(PREF_OSFILE_NATIVE,
-  function prefObserver(aSubject, aTopic, aData) {
-    nativeWheneverAvailable = readDebugPref(PREF_OSFILE_NATIVE, nativeWheneverAvailable);
-  }, false);
-
 
 
 
@@ -927,32 +913,12 @@ File.makeDir = function makeDir(path, options) {
 
 
 File.read = function read(path, bytes, options = {}) {
-  if (typeof bytes == "object") {
-    
-    
-    options = bytes || {};
-  } else {
-    options = clone(options, ["outExecutionDuration"]);
-    if (typeof bytes != "undefined") {
-      options.bytes = bytes;
-    }
-  }
-
-  if (options.compression || !nativeWheneverAvailable) {
-    
-    let promise = Scheduler.post("read",
-      [Type.path.toMsg(path), bytes, options], path);
-    return promise.then(
-      function onSuccess(data) {
-        if (typeof data == "string") {
-          return data;
-        }
-        return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-      });
-  }
-
-  
-  return Scheduler.push(() => Native.read(path, options));
+  let promise = Scheduler.post("read",
+    [Type.path.toMsg(path), bytes, options], path);
+  return promise.then(
+    function onSuccess(data) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    });
 };
 
 
