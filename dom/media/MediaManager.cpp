@@ -7,8 +7,12 @@
 #include "MediaStreamGraph.h"
 #include "nsIDOMFile.h"
 #include "nsIEventTarget.h"
+#include "nsIUUIDGenerator.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIPopupWindowManager.h"
+
+
+#include "prprf.h"
 
 #include "nsJSUtils.h"
 #include "nsDOMFile.h"
@@ -386,6 +390,29 @@ public:
   }
 
   nsresult
+  Denied()
+  {
+    if (NS_IsMainThread()) {
+      nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
+      error->OnError(NS_LITERAL_STRING("PERMISSION_DENIED"));
+    } else {
+      NS_DispatchToMainThread(new ErrorCallbackRunnable(
+        mSuccess, mError, NS_LITERAL_STRING("PERMISSION_DENIED"), mWindowID
+      ));
+    }
+
+    return NS_OK;
+  }
+
+  nsresult
+  SetDevice(MediaDevice* aDevice)
+  {
+    mDevice = aDevice;
+    mDeviceChosen = true;
+    return NS_OK;
+  }
+
+  nsresult
   SelectDevice()
   {
     uint32_t count;
@@ -628,16 +655,6 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
 #endif
 
   
-
-
-
-
-  if (!aPrivileged && !picture) {
-    
-    
-  }
-
-  
   
   uint64_t windowID = aWindow->WindowID();
   StreamListeners* listeners = mActiveWindows.Get(windowID);
@@ -655,7 +672,7 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
 
 
 
-  nsCOMPtr<nsIRunnable> gUMRunnable;
+  nsRefPtr<GetUserMediaRunnable> gUMRunnable;
   if (fake) {
     
     gUMRunnable = new GetUserMediaRunnable(
@@ -679,15 +696,50 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   if (picture) {
     
     NS_DispatchToMainThread(gUMRunnable);
-  } else {
-    
+  } else if (aPrivileged) {
     if (!mMediaThread) {
-      rv = NS_NewThread(getter_AddRefs(mMediaThread));
+      nsresult rv = NS_NewThread(getter_AddRefs(mMediaThread));
       NS_ENSURE_SUCCESS(rv, rv);
     }
-
     mMediaThread->Dispatch(gUMRunnable, NS_DISPATCH_NORMAL);
+  } else {
+    
+    
+    
+    nsresult rv;
+    nsCOMPtr<nsIUUIDGenerator> uuidgen =
+      do_GetService("@mozilla.org/uuid-generator;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsID id;
+    rv = uuidgen->GenerateUUIDInPlace(&id);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    char buffer[NSID_LENGTH];
+    id.ToProvidedString(buffer);
+    NS_ConvertUTF8toUTF16 callID(buffer);
+
+    
+    mActiveCallbacks.Put(callID, gUMRunnable);
+
+    
+    nsAutoString data;
+    data.Append(NS_LITERAL_STRING("{\"windowID\":"));
+
+    
+    char windowBuffer[32];
+    PR_snprintf(windowBuffer, 32, "%llu", aWindow->GetOuterWindow()->WindowID());
+    data.Append(NS_ConvertUTF8toUTF16(windowBuffer));
+
+    data.Append(NS_LITERAL_STRING(", \"callID\":\""));
+    data.Append(callID);
+    data.Append(NS_LITERAL_STRING("\"}"));
+
+    nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+    obs->NotifyObservers(aParams, "getUserMedia:request", data.get());
   }
+
   return NS_OK;
 }
 
@@ -762,16 +814,62 @@ nsresult
 MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
   const PRUnichar* aData)
 {
-  if (strcmp(aTopic, "xpcom-shutdown")) {
+  NS_ASSERTION(NS_IsMainThread(), "Observer invoked off the main thread");
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+
+  if (!strcmp(aTopic, "xpcom-shutdown")) {
+    obs->RemoveObserver(this, "xpcom-shutdown");
+    obs->RemoveObserver(this, "getUserMedia:response:allow");
+    obs->RemoveObserver(this, "getUserMedia:response:deny");
+
+    
+    mActiveWindows.Clear();
+    mActiveCallbacks.Clear();
+    sSingleton = nullptr;
+
     return NS_OK;
   }
 
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-  obs->RemoveObserver(this, "xpcom-shutdown");
+  if (!strcmp(aTopic, "getUserMedia:response:allow")) {
+    nsString key(aData);
+    nsRefPtr<nsRunnable> runnable;
+    if (!mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
+      return NS_OK;
+    }
 
-  
-  mActiveWindows.Clear();
-  sSingleton = nullptr;
+    
+    if (!mMediaThread) {
+      nsresult rv = NS_NewThread(getter_AddRefs(mMediaThread));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    if (aSubject) {
+      
+      nsCOMPtr<nsIMediaDevice> device = do_QueryInterface(aSubject);
+      if (device) {
+        GetUserMediaRunnable* gUMRunnable =
+          static_cast<GetUserMediaRunnable*>(runnable.get());
+        gUMRunnable->SetDevice(static_cast<MediaDevice*>(device.get()));
+      }
+    }
+
+    mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+    mActiveCallbacks.Remove(key);
+    return NS_OK;
+  }
+
+  if (!strcmp(aTopic, "getUserMedia:response:deny")) {
+    nsString key(aData);
+    nsRefPtr<nsRunnable> runnable;
+    if (mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
+      GetUserMediaRunnable* gUMRunnable =
+          static_cast<GetUserMediaRunnable*>(runnable.get());
+      gUMRunnable->Denied();
+      mActiveCallbacks.Remove(key);
+    }
+
+    return NS_OK;
+  }
 
   return NS_OK;
 }
