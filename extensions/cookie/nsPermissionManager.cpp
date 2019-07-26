@@ -242,7 +242,7 @@ CloseDatabaseListener::CloseDatabaseListener(nsPermissionManager* aManager,
 }
 
 NS_IMETHODIMP
-CloseDatabaseListener::Complete()
+CloseDatabaseListener::Complete(nsresult, nsISupports*)
 {
   
   nsRefPtr<nsPermissionManager> manager = mManager.forget();
