@@ -296,6 +296,9 @@ private:
     
     void MaybeForwardEventToRenderFrame(const nsInputEvent& aEvent,
                                         nsInputEvent* aOutEvent);
+    
+    
+    bool mIsDestroyed;
 };
 
 } 
