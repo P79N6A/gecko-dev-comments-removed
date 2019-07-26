@@ -303,13 +303,14 @@ NS_IMPL_ISUPPORTS3(VectorImage,
 
 VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
                          ImageURL* aURI ) :
-  ImageResource(aStatusTracker, aURI), 
+  ImageResource(aURI), 
   mIsInitialized(false),
   mIsFullyLoaded(false),
   mIsDrawing(false),
   mHaveAnimations(false),
   mHasPendingInvalidation(false)
 {
+  mStatusTrackerInit = new imgStatusTrackerInit(this, aStatusTracker);
 }
 
 VectorImage::~VectorImage()

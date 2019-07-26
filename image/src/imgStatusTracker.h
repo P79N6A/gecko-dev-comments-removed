@@ -125,6 +125,10 @@ public:
   void SetImage(mozilla::image::Image* aImage);
 
   
+  
+  void ResetImage();
+
+  
   void SetIsMultipart() { mIsMultipart = true; }
 
   
@@ -264,7 +268,11 @@ public:
   bool IsMultipart() const { return mIsMultipart; }
 
   
-  inline mozilla::image::Image* GetImage() const { return mImage; }
+  inline already_AddRefed<mozilla::image::Image> GetImage() const {
+    nsRefPtr<mozilla::image::Image> image = mImage;
+    return image.forget();
+  }
+  inline bool HasImage() { return mImage; }
 
   inline imgDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 
@@ -292,6 +300,7 @@ private:
   friend class imgRequestNotifyRunnable;
   friend class imgStatusTrackerObserver;
   friend class imgStatusTrackerNotifyingObserver;
+  friend class imgStatusTrackerInit;
   imgStatusTracker(const imgStatusTracker& aOther);
 
   
@@ -324,6 +333,16 @@ private:
   bool mIsMultipart    : 1;
   bool mHadLastPart    : 1;
   bool mHasBeenDecoded : 1;
+};
+
+class imgStatusTrackerInit
+{
+public:
+  imgStatusTrackerInit(mozilla::image::Image* aImage,
+                       imgStatusTracker* aTracker);
+  ~imgStatusTrackerInit();
+private:
+  imgStatusTracker* mTracker;
 };
 
 #endif

@@ -26,7 +26,8 @@ class ProxyBehaviour
  public:
   virtual ~ProxyBehaviour() {}
 
-  virtual mozilla::image::Image* GetImage() const = 0;
+  virtual already_AddRefed<mozilla::image::Image> GetImage() const = 0;
+  virtual bool HasImage() const = 0;
   virtual already_AddRefed<imgStatusTracker> GetStatusTracker() const = 0;
   virtual imgRequest* GetOwner() const = 0;
   virtual void SetOwner(imgRequest* aOwner) = 0;
@@ -37,7 +38,8 @@ class RequestBehaviour : public ProxyBehaviour
  public:
   RequestBehaviour() : mOwner(nullptr), mOwnerHasImage(false) {}
 
-  virtual mozilla::image::Image* GetImage() const MOZ_OVERRIDE;
+  virtual already_AddRefed<mozilla::image::Image> GetImage() const MOZ_OVERRIDE;
+  virtual bool HasImage() const MOZ_OVERRIDE;
   virtual already_AddRefed<imgStatusTracker> GetStatusTracker() const MOZ_OVERRIDE;
 
   virtual imgRequest* GetOwner() const MOZ_OVERRIDE {
@@ -49,7 +51,7 @@ class RequestBehaviour : public ProxyBehaviour
 
     if (mOwner) {
       nsRefPtr<imgStatusTracker> ownerStatusTracker = GetStatusTracker();
-      mOwnerHasImage = ownerStatusTracker && ownerStatusTracker->GetImage();
+      mOwnerHasImage = ownerStatusTracker && ownerStatusTracker->HasImage();
     } else {
       mOwnerHasImage = false;
     }
@@ -67,7 +69,7 @@ class RequestBehaviour : public ProxyBehaviour
   bool mOwnerHasImage;
 };
 
-mozilla::image::Image*
+already_AddRefed<mozilla::image::Image>
 RequestBehaviour::GetImage() const
 {
   if (!mOwnerHasImage)
@@ -200,7 +202,7 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   
   bool wasDecoded = false;
   nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
-  if (GetImage() &&
+  if (statusTracker->HasImage() &&
       statusTracker->GetImageStatus() & imgIRequest::STATUS_FRAME_COMPLETE) {
     wasDecoded = true;
   }
@@ -381,8 +383,9 @@ NS_IMETHODIMP
 imgRequestProxy::LockImage()
 {
   mLockCount++;
-  if (GetImage())
-    return GetImage()->LockImage();
+  nsRefPtr<Image> image = GetImage();
+  if (image)
+    return image->LockImage();
   return NS_OK;
 }
 
@@ -393,8 +396,9 @@ imgRequestProxy::UnlockImage()
   NS_ABORT_IF_FALSE(mLockCount > 0, "calling unlock but no locks!");
 
   mLockCount--;
-  if (GetImage())
-    return GetImage()->UnlockImage();
+  nsRefPtr<Image> image = GetImage();
+  if (image)
+    return image->UnlockImage();
   return NS_OK;
 }
 
@@ -402,8 +406,9 @@ imgRequestProxy::UnlockImage()
 NS_IMETHODIMP
 imgRequestProxy::RequestDiscard()
 {
-  if (GetImage())
-    return GetImage()->RequestDiscard();
+  nsRefPtr<Image> image = GetImage();
+  if (image)
+    return image->RequestDiscard();
   return NS_OK;
 }
 
@@ -411,8 +416,9 @@ NS_IMETHODIMP
 imgRequestProxy::IncrementAnimationConsumers()
 {
   mAnimationConsumers++;
-  if (GetImage())
-    GetImage()->IncrementAnimationConsumers();
+  nsRefPtr<Image> image = GetImage();
+  if (image)
+    image->IncrementAnimationConsumers();
   return NS_OK;
 }
 
@@ -427,8 +433,9 @@ imgRequestProxy::DecrementAnimationConsumers()
   
   if (mAnimationConsumers > 0) {
     mAnimationConsumers--;
-    if (GetImage())
-      GetImage()->DecrementAnimationConsumers();
+    nsRefPtr<Image> image = GetImage();
+    if (image)
+      image->DecrementAnimationConsumers();
   }
   return NS_OK;
 }
@@ -479,20 +486,24 @@ NS_IMETHODIMP imgRequestProxy::SetLoadFlags(nsLoadFlags flags)
 
 
 
-NS_IMETHODIMP imgRequestProxy::GetImage(imgIContainer * *aImage)
+NS_IMETHODIMP imgRequestProxy::GetImage(imgIContainer **aImage)
 {
+  NS_ENSURE_TRUE(aImage, NS_ERROR_NULL_POINTER);
   
   
   
   
-  imgIContainer* imageToReturn = GetImage();
+  nsRefPtr<Image> image = GetImage();
+  nsCOMPtr<imgIContainer> imageToReturn;
+  if (image)
+    imageToReturn = do_QueryInterface(image);
   if (!imageToReturn && GetOwner())
-    imageToReturn = GetOwner()->mImage.get();
+    imageToReturn = GetOwner()->mImage;
 
   if (!imageToReturn)
     return NS_ERROR_FAILURE;
 
-  NS_ADDREF(*aImage = imageToReturn);
+  imageToReturn.swap(*aImage);
 
   return NS_OK;
 }
@@ -557,7 +568,8 @@ imgRequestProxy* NewStaticProxy(imgRequestProxy* aThis)
 {
   nsCOMPtr<nsIPrincipal> currentPrincipal;
   aThis->GetImagePrincipal(getter_AddRefs(currentPrincipal));
-  return new imgRequestProxyStatic(aThis->GetImage(), currentPrincipal);
+  nsRefPtr<Image> image = aThis->GetImage();
+  return new imgRequestProxyStatic(image, currentPrincipal);
 }
 
 NS_IMETHODIMP imgRequestProxy::Clone(imgINotificationObserver* aObserver,
@@ -906,7 +918,7 @@ nsresult
 imgRequestProxy::GetStaticRequest(imgRequestProxy** aReturn)
 {
   *aReturn = nullptr;
-  mozilla::image::Image* image = GetImage();
+  nsRefPtr<Image> image = GetImage();
 
   bool animated;
   if (!image || (NS_SUCCEEDED(image->GetAnimated(&animated)) && !animated)) {
@@ -951,7 +963,7 @@ void imgRequestProxy::NotifyListener()
   } else {
     
     
-    NS_ABORT_IF_FALSE(GetImage(),
+    NS_ABORT_IF_FALSE(HasImage(),
                       "if we have no imgRequest, we should have an Image");
     statusTracker->NotifyCurrentState(this);
   }
@@ -973,7 +985,7 @@ imgRequestProxy::SetHasImage()
 {
   nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
   MOZ_ASSERT(statusTracker);
-  Image* image = statusTracker->GetImage();
+  nsRefPtr<Image> image = statusTracker->GetImage();
   MOZ_ASSERT(image);
 
   
@@ -995,10 +1007,25 @@ imgRequestProxy::GetStatusTracker() const
   return mBehaviour->GetStatusTracker();
 }
 
-mozilla::image::Image*
+already_AddRefed<mozilla::image::Image>
 imgRequestProxy::GetImage() const
 {
   return mBehaviour->GetImage();
+}
+
+bool
+RequestBehaviour::HasImage() const
+{
+  if (!mOwnerHasImage)
+    return false;
+  nsRefPtr<imgStatusTracker> statusTracker = GetStatusTracker();
+  return statusTracker ? statusTracker->HasImage() : false;
+}
+
+bool
+imgRequestProxy::HasImage() const
+{
+  return mBehaviour->HasImage();
 }
 
 imgRequest*
@@ -1014,11 +1041,17 @@ class StaticBehaviour : public ProxyBehaviour
 public:
   StaticBehaviour(mozilla::image::Image* aImage) : mImage(aImage) {}
 
-  virtual mozilla::image::Image* GetImage() const MOZ_OVERRIDE {
+  virtual already_AddRefed<mozilla::image::Image>
+  GetImage() const MOZ_OVERRIDE {
+    nsRefPtr<mozilla::image::Image> image = mImage;
+    return image.forget();
+  }
+
+  virtual bool HasImage() const MOZ_OVERRIDE {
     return mImage;
   }
 
-  virtual already_AddRefed<imgStatusTracker> GetStatusTracker() const MOZ_OVERRIDE {
+  virtual already_AddRefed<imgStatusTracker> GetStatusTracker() const MOZ_OVERRIDE  {
     return mImage->GetStatusTracker();
   }
 
