@@ -39,18 +39,31 @@ struct Module
 
 
 
+  enum ProcessSelector
+  {
+    ANY_PROCESS = 0,
+    MAIN_PROCESS_ONLY,
+    CONTENT_PROCESS_ONLY
+  };
+
+  
+
+
+
   struct CIDEntry
   {
     const nsCID* cid;
     bool service;
     GetFactoryProcPtr getFactoryProc;
     ConstructorProcPtr constructorProc;
+    ProcessSelector processSelector;
   };
 
   struct ContractIDEntry
   {
     const char* contractid;
     nsID const * cid;
+    ProcessSelector processSelector;
   };
 
   struct CategoryEntry
