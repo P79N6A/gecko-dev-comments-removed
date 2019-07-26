@@ -16,6 +16,7 @@
 #include "nsThreadUtils.h"
 #include "XPCWrapper.h"
 #include "WorkerPrivate.h"
+#include "nsContentUtils.h"
 
 namespace {
 
@@ -168,9 +169,12 @@ GetCurrentJSStack()
   if (NS_IsMainThread()) {
     
     
-    
-    nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
-    cx = xpc->GetCurrentJSContext();
+    if (nsContentUtils::XPConnect()) {
+      cx = nsContentUtils::XPConnect()->GetCurrentJSContext();
+    } else {
+      nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
+      cx = xpc->GetCurrentJSContext();
+    }
   } else {
     cx = workers::GetCurrentThreadJSContext();
   }
