@@ -1252,9 +1252,13 @@ nsStylePosition::nsStylePosition(void)
   mFlexGrow = 0.0f;
   mFlexShrink = 1.0f;
   mZIndex.SetAutoValue();
+  mGridAutoPositionColumn.SetToInteger(1);
+  mGridAutoPositionRow.SetToInteger(1);
   
   
   
+  
+
   
 }
 
@@ -1267,6 +1271,12 @@ nsStylePosition::nsStylePosition(const nsStylePosition& aSource)
   : mGridTemplateColumns(aSource.mGridTemplateColumns)
   , mGridTemplateRows(aSource.mGridTemplateRows)
   , mGridTemplateAreas(aSource.mGridTemplateAreas)
+  , mGridAutoPositionColumn(aSource.mGridAutoPositionColumn)
+  , mGridAutoPositionRow(aSource.mGridAutoPositionRow)
+  , mGridColumnStart(aSource.mGridColumnStart)
+  , mGridColumnEnd(aSource.mGridColumnEnd)
+  , mGridRowStart(aSource.mGridRowStart)
+  , mGridRowEnd(aSource.mGridRowEnd)
 {
   MOZ_COUNT_CTOR(nsStylePosition);
   
@@ -1279,7 +1289,13 @@ nsStylePosition::nsStylePosition(const nsStylePosition& aSource)
                 offsetof(nsStylePosition, mGridTemplateColumns) +
                 sizeof(mGridTemplateColumns) +
                 sizeof(mGridTemplateRows) +
-                sizeof(mGridTemplateAreas),
+                sizeof(mGridTemplateAreas) +
+                sizeof(mGridAutoPositionColumn) +
+                sizeof(mGridAutoPositionRow) +
+                sizeof(mGridColumnStart) +
+                sizeof(mGridColumnEnd) +
+                sizeof(mGridRowStart) +
+                sizeof(mGridRowEnd),
                 "Unexpected size or offset in nsStylePosition");
   memcpy((nsStylePosition*) this,
          &aSource,
@@ -1332,7 +1348,8 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
-
+  
+  
   
   if (mGridTemplateColumns != aOther.mGridTemplateColumns ||
       mGridTemplateRows != aOther.mGridTemplateRows ||
@@ -1345,6 +1362,15 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
+  
+  
+  
+  if (mGridColumnStart != aOther.mGridColumnStart ||
+      mGridColumnEnd != aOther.mGridColumnEnd ||
+      mGridRowStart != aOther.mGridRowStart ||
+      mGridRowEnd != aOther.mGridRowEnd) {
+    return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
+  }
 
   
   

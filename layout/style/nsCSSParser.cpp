@@ -643,6 +643,9 @@ protected:
                                   uint32_t aRow,
                                   uint32_t& aColumns);
   bool ParseGridTemplateAreas();
+  bool ParseGridLine(nsCSSValue& aValue);
+  bool ParseGridAutoPosition();
+  bool ParseGridColumnRowStartEnd(nsCSSProperty aPropID);
 
   
   bool ParseRect(nsCSSProperty aPropID);
@@ -7186,6 +7189,142 @@ CSSParserImpl::ParseGridTemplateAreas()
 
 
 
+
+
+
+
+
+
+
+bool
+CSSParserImpl::ParseGridLine(nsCSSValue& aValue)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (ParseVariant(aValue, VARIANT_AUTO, nullptr)) {
+    return true;
+  }
+
+  static const nsCSSKeyword kGridLineKeywords[] = {
+    eCSSKeyword_span,
+    eCSSKeyword_UNKNOWN  
+  };
+  bool hasSpan = false;
+  bool hasInteger = false;
+  bool hasIdent = false;
+  int32_t integer;
+  nsCSSValue ident;
+
+  if (!GetToken(true)) {
+    return false;
+  }
+  if (mToken.mType == eCSSToken_Ident &&
+      mToken.mIdent.LowerCaseEqualsLiteral("span")) {
+    hasSpan = true;
+    if (!GetToken(true)) {
+      return false;
+    }
+  }
+
+  do {
+    if (!hasIdent &&
+        mToken.mType == eCSSToken_Ident &&
+        ParseCustomIdent(ident, mToken.mIdent, kGridLineKeywords)) {
+      hasIdent = true;
+    } else if (!hasInteger &&
+               mToken.mType == eCSSToken_Number &&
+               mToken.mIntegerValid &&
+               mToken.mInteger != 0) {
+      hasInteger = true;
+      integer = mToken.mInteger;
+    } else {
+      UngetToken();
+      break;
+    }
+  } while (!(hasInteger && hasIdent) && GetToken(true));
+
+  
+  if (!(hasInteger || hasIdent)) {
+    return false;
+  }
+
+  if (!hasSpan && GetToken(true)) {
+    if (mToken.mType == eCSSToken_Ident &&
+        mToken.mIdent.LowerCaseEqualsLiteral("span")) {
+      hasSpan = true;
+    } else {
+      UngetToken();
+    }
+  }
+
+  nsCSSValueList* item = aValue.SetListValue();
+  if (hasSpan) {
+    
+    if (hasInteger && integer < 0) {
+      return false;
+    }
+    
+    
+    item->mValue.SetIntValue(1, eCSSUnit_Enumerated);
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+  }
+  if (hasInteger) {
+    item->mValue.SetIntValue(integer, eCSSUnit_Integer);
+    if (hasIdent) {
+      item->mNext = new nsCSSValueList;
+      item = item->mNext;
+    }
+  }
+  if (hasIdent) {
+    item->mValue = ident;
+  }
+  return true;
+}
+
+bool
+CSSParserImpl::ParseGridAutoPosition()
+{
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT, nullptr)) {
+    AppendValue(eCSSProperty_grid_auto_position, value);
+    return true;
+  }
+  nsCSSValue columnStartValue;
+  nsCSSValue rowStartValue;
+  if (ParseGridLine(columnStartValue) &&
+      ExpectSymbol('/', true) &&
+      ParseGridLine(rowStartValue)) {
+    value.SetPairValue(columnStartValue, rowStartValue);
+    AppendValue(eCSSProperty_grid_auto_position, value);
+    return true;
+  }
+  return false;
+}
+
+bool
+CSSParserImpl::ParseGridColumnRowStartEnd(nsCSSProperty aPropID)
+{
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT, nullptr) ||
+      ParseGridLine(value)) {
+    AppendValue(aPropID, value);
+    return true;
+  }
+  return false;
+}
+
+
 bool
 CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
 {
@@ -8209,6 +8348,13 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
   case eCSSProperty_grid_template_columns:
   case eCSSProperty_grid_template_rows:
     return ParseGridTrackList(aPropID);
+  case eCSSProperty_grid_auto_position:
+    return ParseGridAutoPosition();
+  case eCSSProperty_grid_column_start:
+  case eCSSProperty_grid_column_end:
+  case eCSSProperty_grid_row_start:
+  case eCSSProperty_grid_row_end:
+    return ParseGridColumnRowStartEnd(aPropID);
   case eCSSProperty_image_region:
     return ParseRect(eCSSProperty_image_region);
   case eCSSProperty_list_style:
