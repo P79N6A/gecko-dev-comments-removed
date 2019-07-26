@@ -266,6 +266,12 @@ protected:
   
 
 
+  int32_t FindWordBoundary(int32_t aOffset, nsDirection aDirection,
+                           EWordMovementType aWordMovementType);
+
+  
+
+
 
 
 
