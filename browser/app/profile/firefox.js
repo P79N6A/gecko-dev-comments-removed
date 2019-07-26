@@ -137,15 +137,7 @@ pref("app.update.auto", true);
 
 
 
-
-
-
-
-
-
-
-
-pref("app.update.mode", 0);
+pref("app.update.mode", 1);
 
 #ifdef XP_WIN
 #ifdef MOZ_METRO
