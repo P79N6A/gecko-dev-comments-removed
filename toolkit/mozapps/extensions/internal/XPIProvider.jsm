@@ -908,28 +908,12 @@ function loadManifestFromRDF(aUri, aStream) {
     addon.userDisabled = !!LightweightThemeManager.currentTheme ||
                          addon.internalName != XPIProvider.selectedSkin;
   }
-  
-  
-  else if (addon.type == "experiment") {
-    addon.userDisabled = true;
-  }
   else {
     addon.userDisabled = false;
     addon.softDisabled = addon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
   }
 
   addon.applyBackgroundUpdates = AddonManager.AUTOUPDATE_DEFAULT;
-
-  
-  
-  if (addon.type == "experiment") {
-    addon.applyBackgroundUpdates = AddonManager.AUTOUPDATE_DISABLE;
-    addon.updateURL = null;
-    addon.updateKey = null;
-
-    addon.targetApplications = [];
-    addon.targetPlatforms = [];
-  }
 
   
   
@@ -2087,19 +2071,8 @@ var XPIProvider = {
 
 
   persistBootstrappedAddons: function XPI_persistBootstrappedAddons() {
-    
-    let filtered = {};
-    for (let id in this.bootstrappedAddons) {
-      let entry = this.bootstrappedAddons[id];
-      if (entry.type == "experiment") {
-        continue;
-      }
-
-      filtered[id] = entry;
-    }
-
     Services.prefs.setCharPref(PREF_BOOTSTRAP_ADDONS,
-                               JSON.stringify(filtered));
+                               JSON.stringify(this.bootstrappedAddons));
   },
 
   
@@ -4255,15 +4228,11 @@ var XPIProvider = {
     let appDisabledChanged = aAddon.appDisabled != appDisabled;
 
     
-    
-    
-    if (aAddon.type != "experiment") {
-      XPIDatabase.setAddonProperties(aAddon, {
-        userDisabled: aUserDisabled,
-        appDisabled: appDisabled,
-        softDisabled: aSoftDisabled
-      });
-    }
+    XPIDatabase.setAddonProperties(aAddon, {
+      userDisabled: aUserDisabled,
+      appDisabled: appDisabled,
+      softDisabled: aSoftDisabled
+    });
 
     if (appDisabledChanged) {
       AddonManagerPrivate.callAddonListeners("onPropertyChanged",
@@ -6045,17 +6014,6 @@ AddonInternal.prototype = {
   },
 
   isCompatibleWith: function AddonInternal_isCompatibleWith(aAppVersion, aPlatformVersion) {
-    
-    
-    
-    
-    
-    
-    
-    if (this.type == "experiment") {
-      return true;
-    }
-
     let app = this.matchingTargetApplication;
     if (!app)
       return false;
@@ -6440,11 +6398,6 @@ function AddonWrapper(aAddon) {
     return aAddon.applyBackgroundUpdates;
   });
   this.__defineSetter__("applyBackgroundUpdates", function AddonWrapper_applyBackgroundUpdatesSetter(val) {
-    if (this.type == "experiment") {
-      logger.warn("Setting applyBackgroundUpdates on an experiment is not supported.");
-      return;
-    }
-
     if (val != AddonManager.AUTOUPDATE_DEFAULT &&
         val != AddonManager.AUTOUPDATE_DISABLE &&
         val != AddonManager.AUTOUPDATE_ENABLE) {
@@ -6545,33 +6498,22 @@ function AddonWrapper(aAddon) {
     if (!(aAddon.inDatabase))
       return permissions;
 
-    
-    
-    
-    if (aAddon.type == "experiment") {
-      return AddonManager.PERM_CAN_UNINSTALL;
-    }
-
     if (!aAddon.appDisabled) {
-      if (this.userDisabled) {
+      if (this.userDisabled)
         permissions |= AddonManager.PERM_CAN_ENABLE;
-      }
-      else if (aAddon.type != "theme") {
+      else if (aAddon.type != "theme")
         permissions |= AddonManager.PERM_CAN_DISABLE;
-      }
     }
 
     
     
     if (!aAddon._installLocation.locked && !aAddon.pendingUninstall) {
       
-      if (!aAddon._installLocation.isLinkedAddon(aAddon.id)) {
+      if (!aAddon._installLocation.isLinkedAddon(aAddon.id))
         permissions |= AddonManager.PERM_CAN_UPGRADE;
-      }
 
       permissions |= AddonManager.PERM_CAN_UNINSTALL;
     }
-
     return permissions;
   });
 
@@ -6653,14 +6595,6 @@ function AddonWrapper(aAddon) {
   };
 
   this.findUpdates = function AddonWrapper_findUpdates(aListener, aReason, aAppVersion, aPlatformVersion) {
-    
-    
-    if (this.type == "experiment") {
-      AddonManagerPrivate.callNoUpdateListeners(this, aListener, aReason,
-                                                aAppVersion, aPlatformVersion);
-      return;
-    }
-
     new UpdateChecker(aAddon, aListener, aReason, aAppVersion, aPlatformVersion);
   };
 

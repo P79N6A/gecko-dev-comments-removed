@@ -50,7 +50,8 @@ add_test(function testActiveExperiment() {
   install_addon("addons/browser_experiment1.xpi", (addon) => {
     gInstalledAddons.push(addon);
 
-    Assert.ok(addon.userDisabled, "Add-on is disabled upon initial install.");
+    
+    
     Assert.equal(addon.isActive, false, "Add-on is not active.");
 
     Assert.ok(gCategoryUtilities.isTypeVisible("experiment"), "Experiment tab visible.");
@@ -130,24 +131,5 @@ add_test(function testOpenPreferences() {
 
     info("Loading preferences pane.");
     EventUtils.synthesizeMouseAtCenter(btn, {}, gManagerWindow);
-  });
-});
-
-add_test(function testButtonPresence() {
-  gCategoryUtilities.openType("experiment", (win) => {
-    let item = get_addon_element(gManagerWindow, "test-experiment1@experiments.mozilla.org");
-    Assert.ok(item, "Got add-on element.");
-
-    let el = item.ownerDocument.getAnonymousElementByAttribute(item, "anonid", "remove-btn");
-    
-    is_element_visible(el, "Remove button is visible.");
-    
-    el = item.ownerDocument.getAnonymousElementByAttribute(item, "anonid", "disable-btn");
-    is_element_hidden(el, "Disable button not visible.");
-    
-    el = item.ownerDocument.getAnonymousElementByAttribute(item, "anonid", "enable-btn");
-    is_element_hidden(el, "Enable button not visible.");
-
-    run_next_test();
   });
 });
