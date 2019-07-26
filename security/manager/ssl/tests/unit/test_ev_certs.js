@@ -178,33 +178,70 @@ add_test(function() {
 
 
 
-function check_no_ocsp_requests(cert_name) {
+
+
+function check_no_ocsp_requests(cert_name, expected_error) {
   clearOCSPCache();
   let ocspResponder = failingOCSPResponder();
   let cert = certdb.findCertByNickname(null, cert_name);
   let hasEVPolicy = {};
   let verifiedChain = {};
   let flags = Ci.nsIX509CertDB.FLAG_LOCAL_ONLY |
-              Ci.nsIX509CertDB.FLAG_NO_DV_FALLBACK_FOR_EV;
+              Ci.nsIX509CertDB.FLAG_MUST_BE_EV;
   let error = certdb.verifyCertNow(cert, certificateUsageSSLServer, flags,
                                    verifiedChain, hasEVPolicy);
   
   do_check_eq(hasEVPolicy.value, false);
-  do_check_eq(0, error);
+  do_check_eq(expected_error, error);
   
   let identityInfo = cert.QueryInterface(Ci.nsIIdentityInfo);
   do_check_eq(identityInfo.isExtendedValidation, false);
   ocspResponder.stop(run_next_test);
 }
 
+
 add_test(function() {
-  check_no_ocsp_requests("ev-valid");
+  check_no_ocsp_requests("ev-valid",   isDebugBuild ?
+                                       SEC_ERROR_REVOKED_CERTIFICATE:
+                                       SEC_ERROR_EXTENSION_NOT_FOUND);
 });
 
 add_test(function() {
-  check_no_ocsp_requests("non-ev-root");
+  check_no_ocsp_requests("non-ev-root", isDebugBuild ?
+                                        SEC_ERROR_UNTRUSTED_ISSUER:
+                                        SEC_ERROR_EXTENSION_NOT_FOUND);
 });
 
+
 add_test(function() {
-  check_no_ocsp_requests("no-ocsp-url-cert");
+  check_no_ocsp_requests("no-ocsp-url-cert", isDebugBuild?
+                                             SEC_ERROR_REVOKED_CERTIFICATE:
+                                             SEC_ERROR_EXTENSION_NOT_FOUND);
 });
+
+
+
+add_test(function() {
+  clearOCSPCache();
+  let ocspResponder = start_ocsp_responder(
+                        isDebugBuild ? ["int-ev-valid", "ev-valid"]
+                                     : ["ev-valid"]);
+  check_ee_for_ev("ev-valid", isDebugBuild);
+  ocspResponder.stop(run_next_test);
+
+  
+  let failingOcspResponder = failingOCSPResponder();
+  let cert = certdb.findCertByNickname(null, "ev-valid");
+  let hasEVPolicy = {};
+  let verifiedChain = {};
+  let flags = Ci.nsIX509CertDB.FLAG_LOCAL_ONLY |
+              Ci.nsIX509CertDB.FLAG_MUST_BE_EV;
+
+  let error = certdb.verifyCertNow(cert, certificateUsageSSLServer,
+                                   flags, verifiedChain, hasEVPolicy);
+  do_check_eq(hasEVPolicy.value, isDebugBuild);
+  do_check_eq(error, isDebugBuild ? 0 : SEC_ERROR_EXTENSION_NOT_FOUND);
+  failingOcspResponder.stop(run_next_test);
+
+});
+

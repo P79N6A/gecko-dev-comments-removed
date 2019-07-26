@@ -19,7 +19,7 @@ public:
   
   static const Flags FLAG_LOCAL_ONLY;
   
-  static const Flags FLAG_NO_DV_FALLBACK_FOR_EV;
+  static const Flags FLAG_MUST_BE_EV;
 
   
   
