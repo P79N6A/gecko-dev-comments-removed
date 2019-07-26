@@ -39,7 +39,7 @@ static const int kFrameDurationMs  = 20;
 
 
 
-static const int kOpusSupportedInputSamplingRates[5] =
+static const int kOpusSupportedInputSamplingRates[] =
                    {8000, 12000, 16000, 24000, 48000};
 
 namespace {
@@ -70,8 +70,8 @@ SerializeOpusIdHeader(uint8_t aChannelCount, uint16_t aPreskip,
                       uint32_t aInputSampleRate, nsTArray<uint8_t>* aOutput)
 {
   
-  static const uint8_t magic[9] = "OpusHead";
-  memcpy(aOutput->AppendElements(sizeof(magic) - 1), magic, sizeof(magic) - 1);
+  static const uint8_t magic[] = "OpusHead";
+  aOutput->AppendElements(magic, sizeof(magic) - 1);
 
   
   aOutput->AppendElement(1);
@@ -101,8 +101,8 @@ SerializeOpusCommentHeader(const nsCString& aVendor,
                            nsTArray<uint8_t>* aOutput)
 {
   
-  static const uint8_t magic[9] = "OpusTags";
-  memcpy(aOutput->AppendElements(sizeof(magic) - 1), magic, sizeof(magic) - 1);
+  static const uint8_t magic[] = "OpusTags";
+  aOutput->AppendElements(magic, sizeof(magic) - 1);
 
   
   
@@ -162,7 +162,7 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   
   nsTArray<int> supportedSamplingRates;
   supportedSamplingRates.AppendElements(kOpusSupportedInputSamplingRates,
-                         MOZ_ARRAY_LENGTH(kOpusSupportedInputSamplingRates));
+                         ArrayLength(kOpusSupportedInputSamplingRates));
   if (!supportedSamplingRates.Contains(aSamplingRate)) {
     int error;
     mResampler = speex_resampler_init(mChannels,
