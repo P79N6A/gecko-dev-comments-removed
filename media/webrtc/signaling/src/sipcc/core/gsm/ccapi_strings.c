@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "cpr_types.h"
 #define __CC_FEATURE_STRINGS__
 #define __CC_MESSAGES_STRINGS__

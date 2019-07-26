@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CSFVIDEOCONTROLWRAPPER_H_
 #define CSFVIDEOCONTROLWRAPPER_H_
 

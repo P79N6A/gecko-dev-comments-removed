@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __CCSIP_PLATFORM_TCP__H__
 #define __CCSIP_PLATFORM_TCP__H__
 

@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _Included_cip_mmgr_MediaDefinitions
 #define _Included_cip_mmgr_MediaDefinitions
 #ifdef __cplusplus

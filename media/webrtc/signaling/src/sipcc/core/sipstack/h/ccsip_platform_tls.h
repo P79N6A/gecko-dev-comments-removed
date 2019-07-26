@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __CCSIP_PLATFORM_TLS__H__
 #define __CCSIP_PLATFORM_TLS__H__
 

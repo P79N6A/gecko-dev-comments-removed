@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CCAPI_DEVICE_LISTENER_H_
 #define _CCAPI_DEVICE_LISTENER_H_
 

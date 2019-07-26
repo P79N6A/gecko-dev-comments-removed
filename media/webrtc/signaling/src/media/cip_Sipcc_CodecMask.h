@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _Included_cip_sipcc_CodecMask
 #define _Included_cip_sipcc_CodecMask
 #ifdef __cplusplus

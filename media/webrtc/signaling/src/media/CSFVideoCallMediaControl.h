@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CSFVIDEOCALLMEDIACONTROL_H_
 #define CSFVIDEOCALLMEDIACONTROL_H_
 

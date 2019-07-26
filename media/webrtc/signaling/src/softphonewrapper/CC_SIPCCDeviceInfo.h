@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CC_SIPCC_DEVICEINFO_H
 #define _CC_SIPCC_DEVICEINFO_H
 

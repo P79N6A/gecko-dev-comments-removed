@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __CPR_LINUX_ALIGN_H__
 #define __CPR_LINUX_ALIGN_H__
 #include "cpr_types.h"

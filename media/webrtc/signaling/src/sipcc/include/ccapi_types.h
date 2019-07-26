@@ -39,41 +39,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CCAPI_TYPES_H_
 #define _CCAPI_TYPES_H_
 

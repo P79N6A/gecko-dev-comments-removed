@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CCAPIAPI_FEATURE_INFO_H_
 #define _CCAPIAPI_FEATURE_INFO_H_
 

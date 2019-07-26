@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CSF_VCM_SIPCC_BINDING_H_
 #define _CSF_VCM_SIPCC_BINDING_H_
 

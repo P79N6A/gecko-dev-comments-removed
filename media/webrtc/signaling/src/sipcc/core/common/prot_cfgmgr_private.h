@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PROT_CFGMGR_PRIVATE_H_
 #define _PROT_CFGMGR_PRIVATE_H_
 

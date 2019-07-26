@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef PRES_SUB_NOT_HANDLER_H
 #define PRES_SUB_NOT_HANDLER_H
 

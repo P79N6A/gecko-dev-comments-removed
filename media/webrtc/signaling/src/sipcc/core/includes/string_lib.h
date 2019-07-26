@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef  _STRING_LIB_INCLUDED_H 
 #define  _STRING_LIB_INCLUDED_H
 

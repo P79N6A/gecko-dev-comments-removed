@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CSFVIDEOMEDIATERMINATION_H_
 #define CSFVIDEOMEDIATERMINATION_H_
 

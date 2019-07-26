@@ -3,31 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "CallControlManager.h"
 #include "CC_Device.h"
 #include "CC_Call.h"

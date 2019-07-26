@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _PHONE_PLATFORM_CONSTANTS_H_
 #define _PHONE_PLATFORM_CONSTANTS_H_
 

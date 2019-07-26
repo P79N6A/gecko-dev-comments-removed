@@ -51,41 +51,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "cpr.h"
 #include "cpr_socket.h"
 #include "cpr_stdlib.h"

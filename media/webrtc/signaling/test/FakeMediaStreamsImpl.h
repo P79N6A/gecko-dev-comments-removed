@@ -2,31 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef FAKE_MEDIA_STREAMIMPL_H_
 #define FAKE_MEDIA_STREAMIMPL_H_
 

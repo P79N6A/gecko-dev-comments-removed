@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _SIP_INTERFACE_REGMGR_H_
 #define _SIP_INTERFACE_REGMGR_H_
 

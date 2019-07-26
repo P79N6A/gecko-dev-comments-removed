@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define MILLISECONDS_TO_SAMPLES(PERIOD)   (short)((PERIOD) << 3)
 
 #define TGN_COEF_300        (short)31863

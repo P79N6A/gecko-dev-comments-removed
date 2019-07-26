@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _CC_DEVICE_LISTENER_H_
 #define _CC_DEVICE_LISTENER_H_
 #include "cc_constants.h"

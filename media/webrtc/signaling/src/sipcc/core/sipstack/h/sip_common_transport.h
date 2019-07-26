@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __SIP_COMMON_TRANSPORT_H__
 #define __SIP_COMMON_TRANSPORT_H__
 
