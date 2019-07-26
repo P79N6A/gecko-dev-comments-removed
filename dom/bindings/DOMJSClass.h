@@ -167,8 +167,14 @@ typedef JSObject* (*ParentGetter)(JSContext* aCx, JS::Handle<JSObject*> aObj);
 typedef JS::Handle<JSObject*> (*ProtoGetter)(JSContext* aCx,
                                              JS::Handle<JSObject*> aGlobal);
 
-struct DOMClass
+
+struct DOMJSClass
 {
+  
+  
+  
+  const js::Class mBase;
+
   
   
   const prototypes::ID mInterfaceChain[MAX_PROTOTYPE_CHAIN_LENGTH];
@@ -188,17 +194,6 @@ struct DOMClass
   
   
   nsCycleCollectionParticipant* mParticipant;
-};
-
-
-struct DOMJSClass
-{
-  
-  
-  
-  const js::Class mBase;
-
-  const DOMClass mClass;
 
   static const DOMJSClass* FromJSClass(const JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);
