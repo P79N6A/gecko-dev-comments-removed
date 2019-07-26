@@ -15,22 +15,18 @@ namespace mozilla {
 
 class WMFAudioDecoder : public MediaDataDecoder {
 public:
-  WMFAudioDecoder();
+  WMFAudioDecoder(uint32_t aChannelCount,
+                  uint32_t aSampleRate,
+                  uint16_t aBitsPerSample,
+                  const uint8_t* aUserData,
+                  uint32_t aUserDataLength);
 
-  nsresult Init(uint32_t aChannelCount,
-                uint32_t aSampleRate,
-                uint16_t aBitsPerSample,
-                const uint8_t* aUserData,
-                uint32_t aUserDataLength);
+  virtual nsresult Init() MOZ_OVERRIDE;
 
   virtual nsresult Shutdown() MOZ_OVERRIDE;
 
   
-  virtual DecoderStatus Input(const uint8_t* aData,
-                              uint32_t aLength,
-                              Microseconds aDTS,
-                              Microseconds aPTS,
-                              int64_t aOffsetInStream);
+  virtual DecoderStatus Input(nsAutoPtr<mp4_demuxer::MP4Sample>& aSample);
 
   
   virtual DecoderStatus Output(nsAutoPtr<MediaData>& aOutData);
@@ -53,6 +49,7 @@ private:
   uint32_t mAudioChannels;
   uint32_t mAudioBytesPerSample;
   uint32_t mAudioRate;
+  nsTArray<BYTE> mUserData;
 
   
   
