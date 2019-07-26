@@ -1628,6 +1628,10 @@ MediaCacheStream::NotifyDataStarted(int64_t aOffset)
     
     mStreamLength = NS_MAX(mStreamLength, mChannelOffset);
   }
+  
+  if (mDownloadCancelled) {
+    mDownloadCancelled = false;
+  }
 }
 
 bool
@@ -1795,6 +1799,24 @@ MediaCacheStream::NotifyDataEnded(nsresult aStatus)
 
   mChannelEnded = true;
   gMediaCache->QueueUpdate();
+}
+
+void
+MediaCacheStream::NotifyDownloadCancelled()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+
+  ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
+
+  MediaCache::ResourceStreamIterator iter(mResourceID);
+  while (MediaCacheStream* stream = iter.Next()) {
+    
+    
+    stream->mDownloadCancelled = true;
+  }
+
+  
+  mon.NotifyAll();
 }
 
 MediaCacheStream::~MediaCacheStream()
@@ -2140,6 +2162,11 @@ MediaCacheStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
         
         
         return NS_ERROR_FAILURE;
+      }
+      
+      if (mDownloadCancelled) {
+        mDownloadCancelled = false;
+        return NS_OK;
       }
       continue;
     }

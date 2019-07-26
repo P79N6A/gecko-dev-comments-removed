@@ -98,6 +98,9 @@ private:
 };
 
 
+class TimestampedMediaByteRange;
+
+
 
 class MediaByteRange {
 public:
@@ -108,6 +111,8 @@ public:
   {
     NS_ASSERTION(mStart < mEnd, "Range should end after start!");
   }
+
+  MediaByteRange(TimestampedMediaByteRange& aByteRange);
 
   bool IsNull() const {
     return mStart == 0 && mEnd == 0;
@@ -121,6 +126,39 @@ public:
 
   int64_t mStart, mEnd;
 };
+
+
+
+class TimestampedMediaByteRange : public MediaByteRange {
+public:
+  TimestampedMediaByteRange() : MediaByteRange(), mStartTime(-1) {}
+
+  TimestampedMediaByteRange(int64_t aStart, int64_t aEnd, int64_t aStartTime)
+    : MediaByteRange(aStart, aEnd), mStartTime(aStartTime)
+  {
+    NS_ASSERTION(aStartTime >= 0, "Start time should not be negative!");
+  }
+
+  bool IsNull() const {
+    return MediaByteRange::IsNull() && mStartTime == -1;
+  }
+
+  
+  void Clear() {
+    MediaByteRange::Clear();
+    mStartTime = -1;
+  }
+
+  
+  int64_t mStartTime;
+};
+
+inline MediaByteRange::MediaByteRange(TimestampedMediaByteRange& aByteRange)
+  : mStart(aByteRange.mStart), mEnd(aByteRange.mEnd)
+{
+  NS_ASSERTION(mStart < mEnd, "Range should end after start!");
+}
+
 
 
 
@@ -302,6 +340,12 @@ public:
 
 
 
+  virtual void CancelByteRangeOpen() { }
+
+  
+
+
+
 
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
 
@@ -406,6 +450,7 @@ public:
   virtual nsresult Open(nsIStreamListener** aStreamListener);
   virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
                                  MediaByteRange const & aByteRange);
+  virtual void     CancelByteRangeOpen();
   virtual nsresult Close();
   virtual void     Suspend(bool aCloseImmediately);
   virtual void     Resume();
@@ -443,6 +488,7 @@ public:
   {
   public:
     Listener(ChannelMediaResource* aResource) : mResource(aResource) {}
+    ~Listener() {}
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER

@@ -155,7 +155,8 @@ DASHDecoder::DASHDecoder() :
   mAudioSubsegmentIdx(0),
   mVideoSubsegmentIdx(0),
   mAudioMetadataReadCount(0),
-  mVideoMetadataReadCount(0)
+  mVideoMetadataReadCount(0),
+  mSeeking(false)
 {
   MOZ_COUNT_CTOR(DASHDecoder);
 }
@@ -191,8 +192,8 @@ DASHDecoder::ReleaseStateMachine()
 
 nsresult
 DASHDecoder::Load(MediaResource* aResource,
-                    nsIStreamListener** aStreamListener,
-                    MediaDecoder* aCloneDonor)
+                  nsIStreamListener** aStreamListener,
+                  MediaDecoder* aCloneDonor)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
@@ -935,6 +936,18 @@ DASHDecoder::PossiblySwitchDecoder(DASHRepDecoder* aRepDecoder)
     
     toDecoderIdx = bestRepIdx;
   }
+
+  
+  
+  if (mVideoSubsegmentIdx < mVideoSubsegmentLoads.Length() &&
+      toDecoderIdx < mVideoSubsegmentLoads[mVideoSubsegmentIdx]) {
+    
+    uint32_t betterRepIdx = mVideoSubsegmentLoads[mVideoSubsegmentIdx];
+    if (mVideoRepDecoders[betterRepIdx]->IsSubsegmentCached(mVideoSubsegmentIdx)) {
+      toDecoderIdx = betterRepIdx;
+    }
+  }
+
   NS_ENSURE_TRUE(toDecoderIdx < mVideoRepDecoders.Length(),
                  NS_ERROR_ILLEGAL_VALUE);
 
@@ -958,6 +971,95 @@ DASHDecoder::PossiblySwitchDecoder(DASHRepDecoder* aRepDecoder)
   return NS_OK;
 }
 
+nsresult
+DASHDecoder::Seek(double aTime)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  NS_ENSURE_FALSE(mShuttingDown, NS_ERROR_UNEXPECTED);
+
+  LOG("Seeking to [%.2fs]", aTime);
+
+  {
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+    
+    
+
+    
+    
+    mSeeking = true;
+
+    
+    for (uint32_t i = 0; i < mAudioRepDecoders.Length(); i++) {
+      mAudioRepDecoders[i]->CancelByteRangeLoad();
+    }
+    for (uint32_t i = 0; i < mVideoRepDecoders.Length(); i++) {
+      mVideoRepDecoders[i]->CancelByteRangeLoad();
+    }
+  }
+
+  return MediaDecoder::Seek(aTime);
+}
+
+void
+DASHDecoder::NotifySeekInVideoSubsegment(int32_t aRepDecoderIdx,
+                                         int32_t aSubsegmentIdx)
+{
+  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+
+  NS_ASSERTION(0 <= aRepDecoderIdx &&
+               aRepDecoderIdx < mVideoRepDecoders.Length(),
+               "Video decoder index is out of bounds");
+
+  
+  mVideoSubsegmentIdx = aSubsegmentIdx;
+  
+  
+  mVideoRepDecoderIdx = aRepDecoderIdx;
+
+  mSeeking = false;
+
+  LOG("Dispatching load for video decoder [%d] [%p]: seek in subsegment [%d]",
+      mVideoRepDecoderIdx, VideoRepDecoder(), aSubsegmentIdx);
+
+  nsCOMPtr<nsIRunnable> event =
+    NS_NewRunnableMethod(VideoRepDecoder(),
+                         &DASHRepDecoder::LoadNextByteRange);
+  nsresult rv = NS_DispatchToMainThread(event);
+  if (NS_FAILED(rv)) {
+    LOG("Error dispatching video byte range load: rv[0x%x].",
+        rv);
+    NetworkError();
+    return;
+  }
+}
+
+void
+DASHDecoder::NotifySeekInAudioSubsegment(int32_t aSubsegmentIdx)
+{
+  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+
+  
+  mAudioSubsegmentIdx = aSubsegmentIdx;
+
+  LOG("Dispatching seeking load for audio decoder [%d] [%p]: subsegment [%d]",
+     mAudioRepDecoderIdx, AudioRepDecoder(), aSubsegmentIdx);
+
+  nsCOMPtr<nsIRunnable> event =
+    NS_NewRunnableMethod(AudioRepDecoder(),
+                         &DASHRepDecoder::LoadNextByteRange);
+  nsresult rv = NS_DispatchToMainThread(event);
+  if (NS_FAILED(rv)) {
+    LOG("Error dispatching audio byte range load: rv[0x%x].",
+        rv);
+    NetworkError();
+    return;
+  }
+}
+
 bool
 DASHDecoder::IsDecoderAllowedToDownloadData(DASHRepDecoder* aRepDecoder)
 {
@@ -979,6 +1081,10 @@ DASHDecoder::IsDecoderAllowedToDownloadSubsegment(DASHRepDecoder* aRepDecoder,
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
 
   
+  if (mSeeking) {
+    return false;
+  }
+  
   if (mAudioMetadataReadCount != 0 || mVideoMetadataReadCount != 0) {
     return false;
   }
@@ -992,6 +1098,25 @@ DASHDecoder::IsDecoderAllowedToDownloadSubsegment(DASHRepDecoder* aRepDecoder,
     return true;
   }
   return false;
+}
+
+void
+DASHDecoder::SetSubsegmentIndex(DASHRepDecoder* aRepDecoder,
+                                int32_t aSubsegmentIdx)
+{
+  NS_ASSERTION(0 <= aSubsegmentIdx,
+               "Subsegment index should not be negative!");
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  if (aRepDecoder == AudioRepDecoder()) {
+    mAudioSubsegmentIdx = aSubsegmentIdx;
+  } else if (aRepDecoder == VideoRepDecoder()) {
+    
+    
+    
+    
+    
+    mVideoSubsegmentIdx = aSubsegmentIdx;
+  }
 }
 
 } 

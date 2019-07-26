@@ -29,6 +29,7 @@ class DASHReader : public MediaDecoderReader
 public:
   DASHReader(AbstractMediaDecoder* aDecoder);
   ~DASHReader();
+  nsresult ResetDecode() MOZ_OVERRIDE;
 
   
   
@@ -38,7 +39,7 @@ public:
   
   
   nsresult ReadMetadata(VideoInfo* aInfo,
-                        MetadataTags** aTags);
+                        MetadataTags** aTags) MOZ_OVERRIDE;
 
   
   
@@ -79,8 +80,8 @@ public:
 
   
   
-  bool HasAudio();
-  bool HasVideo();
+  bool HasAudio() MOZ_OVERRIDE;
+  bool HasVideo() MOZ_OVERRIDE;
 
   
   
@@ -88,11 +89,11 @@ public:
   MediaQueue<VideoData>& VideoQueue() MOZ_OVERRIDE;
 
   
-  nsresult Init(MediaDecoderReader* aCloneDonor);
+  nsresult Init(MediaDecoderReader* aCloneDonor) MOZ_OVERRIDE;
 
   
-  int64_t VideoQueueMemoryInUse();
-  int64_t AudioQueueMemoryInUse();
+  int64_t VideoQueueMemoryInUse() MOZ_OVERRIDE;
+  int64_t AudioQueueMemoryInUse() MOZ_OVERRIDE;
 
   
   
@@ -100,20 +101,20 @@ public:
   void PrepareToDecode() MOZ_OVERRIDE;
 
   
-  bool DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold);
-  bool DecodeAudioData();
+  bool DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold) MOZ_OVERRIDE;
+  bool DecodeAudioData() MOZ_OVERRIDE;
 
   
   nsresult Seek(int64_t aTime,
                 int64_t aStartTime,
                 int64_t aEndTime,
-                int64_t aCurrentTime);
+                int64_t aCurrentTime) MOZ_OVERRIDE;
 
   
-  nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
+  nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime) MOZ_OVERRIDE;
 
   
-  VideoData* FindStartTime(int64_t& aOutStartTime);
+  VideoData* FindStartTime(int64_t& aOutStartTime) MOZ_OVERRIDE;
 
   
   

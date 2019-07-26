@@ -64,6 +64,13 @@ public:
   
   
   
+  void NotifySeekInVideoSubsegment(int32_t aRepDecoderIdx,
+                                   int32_t aSubsegmentIdx);
+  void NotifySeekInAudioSubsegment(int32_t aSubsegmentIdx);
+
+  
+  
+  
   void NotifyDownloadEnded(DASHRepDecoder* aRepDecoder,
                            nsresult aStatus,
                            int32_t const aSubsegmentIdx);
@@ -71,6 +78,9 @@ public:
   
   
   void OnReadMetadataCompleted() MOZ_OVERRIDE { }
+
+  
+  nsresult Seek(double aTime) MOZ_OVERRIDE;
 
   
   
@@ -102,15 +112,7 @@ public:
   
   
   void SetSubsegmentIndex(DASHRepDecoder* aRepDecoder,
-                          uint32_t aSubsegmentIdx)
-  {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    if (aRepDecoder == AudioRepDecoder()) {
-      mAudioSubsegmentIdx = aSubsegmentIdx;
-    } else if (aRepDecoder == VideoRepDecoder()) {
-      mVideoSubsegmentIdx = aSubsegmentIdx;
-    }
-  }
+                          int32_t aSubsegmentIdx);
 private:
   
   
@@ -145,7 +147,7 @@ public:
   
   int32_t GetRepIdxForVideoSubsegmentLoad(int32_t aSubsegmentIdx)
   {
-    NS_ASSERTION(0 < aSubsegmentIdx, "Subsegment index should not be negative.");
+    NS_ASSERTION(0 <= aSubsegmentIdx, "Subsegment index should not be negative.");
     ReentrantMonitorConditionallyEnter mon(!OnDecodeThread(),
                                            GetReentrantMonitor());
     if ((uint32_t)aSubsegmentIdx < mVideoSubsegmentLoads.Length()) {
@@ -154,6 +156,27 @@ public:
       
       return 0;
     }
+  }
+
+  int32_t GetSwitchCountAtVideoSubsegment(int32_t aSubsegmentIdx)
+  {
+    ReentrantMonitorConditionallyEnter mon(!OnDecodeThread(),
+                                           GetReentrantMonitor());
+    NS_ASSERTION(0 <= aSubsegmentIdx, "Subsegment index should not be negative.");
+    if (aSubsegmentIdx == 0) {
+      
+      return 0;
+    }
+    int32_t switchCount = 0;
+    for (uint32_t i = 1;
+         i < mVideoSubsegmentLoads.Length() &&
+         i <= (uint32_t)aSubsegmentIdx;
+         i++) {
+      if (mVideoSubsegmentLoads[i-1] != mVideoSubsegmentLoads[i]) {
+        switchCount++;
+      }
+    }
+    return switchCount;
   }
 
   
@@ -292,6 +315,11 @@ private:
   
   
   nsTArray<int32_t> mVideoSubsegmentLoads;
+
+  
+  
+  
+  bool mSeeking;
 };
 
 } 
