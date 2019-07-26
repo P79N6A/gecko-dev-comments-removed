@@ -226,6 +226,10 @@ CustomElf::Load(Mappable *mappable, const char *path, int flags)
 
 CustomElf::~CustomElf()
 {
+  
+
+
+  AddRef();
   debug("CustomElf::~CustomElf(%p [\"%s\"])",
         reinterpret_cast<void *>(this), GetPath());
   CallFini();

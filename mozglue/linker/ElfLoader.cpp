@@ -741,9 +741,8 @@ void SEGVHandler::handler(int signum, siginfo_t *info, void *context)
   
 
   if (info->si_code == SEGV_ACCERR) {
-    
-
-    LibHandle *handle = ElfLoader::Singleton.GetHandleByPtr(info->si_addr).drop();
+    mozilla::RefPtr<LibHandle> handle =
+      ElfLoader::Singleton.GetHandleByPtr(info->si_addr);
     if (handle && !handle->IsSystemElf()) {
       debug("Within the address space of a CustomElf");
       CustomElf *elf = static_cast<CustomElf *>(static_cast<LibHandle *>(handle));
