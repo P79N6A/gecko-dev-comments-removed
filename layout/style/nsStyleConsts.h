@@ -1026,6 +1026,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_BLEND_LUMINOSITY                   15
 
 
+#define NS_STYLE_CONTROL_CHARACTER_VISIBILITY_HIDDEN  0
+#define NS_STYLE_CONTROL_CHARACTER_VISIBILITY_VISIBLE 1
+
+
 
 
 

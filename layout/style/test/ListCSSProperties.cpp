@@ -144,6 +144,7 @@ const char *gInaccessibleProperties[] = {
     "padding-left-rtl-source",
     "padding-right-ltr-source",
     "padding-right-rtl-source",
+    "-moz-control-character-visibility",
     "-moz-script-level", 
     "-moz-script-size-multiplier",
     "-moz-script-min-size",
