@@ -52,7 +52,6 @@ const kMessages =["Webapps:Connect",
 this.InterAppCommService = {
   init: function() {
     Services.obs.addObserver(this, "xpcom-shutdown", false);
-    Services.obs.addObserver(this, "inter-app-comm-select-app-result", false);
 
     kMessages.forEach(function(aMsg) {
       ppmm.addMessageListener(aMsg, this);
@@ -544,30 +543,36 @@ this.InterAppCommService = {
       target: aTarget
     };
 
-    
-    
-    
-    
-    
-    
-    
+    let glue = Cc["@mozilla.org/dom/apps/inter-app-comm-ui-glue;1"]
+                 .createInstance(Ci.nsIInterAppCommUIGlue);
+    if (glue) {
+      glue.selectApps(callerID, pubAppManifestURL, keyword, appsToSelect).then(
+        function(aData) {
+          this._handleSelectedApps(aData);
+        }.bind(this),
+        function(aError) {
+          if (DEBUG) {
+            debug("Error occurred in the UI glue component. " + aError)
+          }
 
+          
+          this._handleSelectedApps({ callerID: callerID,
+                                     keyword: keyword,
+                                     manifestURL: pubAppManifestURL,
+                                     selectedApps: [] });
+        }.bind(this)
+      );
+    } else {
+      if (DEBUG) {
+        debug("Error! The UI glue component is not implemented.")
+      }
 
-
-
-
-
-
-
-    
-    
-    
-    if (DEBUG) debug("appsToSelect: " + appsToSelect);
-    Services.obs.notifyObservers(null, 'inter-app-comm-select-app-result',
-      JSON.stringify({ callerID: callerID,
-                       manifestURL: pubAppManifestURL,
-                       keyword: keyword,
-                       selectedApps: appsToSelect }));
+      
+      this._handleSelectedApps({ callerID: callerID,
+                                 keyword: keyword,
+                                 manifestURL: pubAppManifestURL,
+                                 selectedApps: [] });
+    }
   },
 
   _getConnections: function(aMessage, aTarget) {
@@ -780,7 +785,7 @@ this.InterAppCommService = {
                                        message: message });
   },
 
-  _handleSelectcedApps: function(aData) {
+  _handleSelectedApps: function(aData) {
     let callerID = aData.callerID;
     let caller = this._promptUICallers[callerID];
     if (!caller) {
@@ -877,15 +882,10 @@ this.InterAppCommService = {
     switch (aTopic) {
       case "xpcom-shutdown":
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        Services.obs.removeObserver(this, "inter-app-comm-select-app-result");
         kMessages.forEach(function(aMsg) {
           ppmm.removeMessageListener(aMsg, this);
         }, this);
         ppmm = null;
-        break;
-      case "inter-app-comm-select-app-result":
-        if (DEBUG) debug("inter-app-comm-select-app-result: " + aData);
-        this._handleSelectcedApps(JSON.parse(aData));
         break;
     }
   }
