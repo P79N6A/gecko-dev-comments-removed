@@ -174,10 +174,19 @@ var ContextUI = {
   },
 
   
+
+
+
+
   displayNavbar: function () {
+    if (Elements.chromeState.getAttribute("navbar") == "visible") {
+      return false;
+    }
+
     Elements.navbar.show();
     Elements.chromeState.setAttribute("navbar", "visible");
     ContentAreaObserver.updateContentArea();
+    return true;
   },
 
   
