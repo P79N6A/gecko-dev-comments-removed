@@ -1,0 +1,192 @@
+
+
+
+
+
+
+#ifndef mozilla_dom_TextTrackRegion_h
+#define mozilla_dom_TextTrackRegion_h
+
+#include "nsAutoPtr.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsString.h"
+#include "nsWrapperCache.h"
+#include "mozilla/ErrorResult.h"
+
+namespace mozilla {
+namespace dom {
+
+class GlobalObject;
+class TextTrack;
+
+class TextTrackRegion MOZ_FINAL : public nsISupports,
+                                  public nsWrapperCache
+{
+public:
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(TextTrackRegion)
+
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+
+  nsISupports* GetParentObject() const
+  {
+    return mParent;
+  }
+
+  TextTrackRegion(nsISupports* aGlobal);
+
+  
+
+  static already_AddRefed<TextTrackRegion>
+  Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
+
+  TextTrack* GetTrack() const
+  {
+    return mTrack;
+  }
+
+  void  GetId(nsAString& aId) const
+  {
+    aId = mId;
+  }
+
+  void SetId(const nsAString& aId)
+  {
+    mId = aId;
+  }
+
+  double Lines() const
+  {
+    return mLines;
+  }
+
+  void SetLines(double aLines)
+  {
+    mLines = aLines;
+  }
+
+  double Width() const
+  {
+    return mWidth;
+  }
+
+  void SetWidth(double aWidth, ErrorResult& aRv)
+  {
+    if (!InvalidValue(aWidth, aRv)) {
+      mWidth = aWidth;
+    }
+  }
+
+  double RegionAnchorX() const
+  {
+    return mRegionAnchorX;
+  }
+
+  void SetRegionAnchorX(double aVal, ErrorResult& aRv)
+  {
+    if (!InvalidValue(aVal, aRv)) {
+      mRegionAnchorX = aVal;
+    }
+  }
+
+  double RegionAnchorY() const
+  {
+    return mRegionAnchorY;
+  }
+
+  void SetRegionAnchorY(double aVal, ErrorResult& aRv)
+  {
+    if (!InvalidValue(aVal, aRv)) {
+      mRegionAnchorY = aVal;
+    }
+  }
+
+  double ViewportAnchorX() const
+  {
+    return mViewportAnchorX;
+  }
+
+  void SetViewportAnchorX(double aVal, ErrorResult& aRv)
+  {
+    if (!InvalidValue(aVal, aRv)) {
+      mViewportAnchorX = aVal;
+    }
+  }
+
+  double ViewportAnchorY() const
+  {
+    return mViewportAnchorY;
+  }
+
+  void SetViewportAnchorY(double aVal, ErrorResult& aRv)
+  {
+    if (!InvalidValue(aVal, aRv)) {
+      mViewportAnchorY = aVal;
+    }
+  }
+
+  void GetScroll(nsAString& aScroll) const
+  {
+    aScroll = mScroll;
+  }
+
+  void SetScroll(const nsAString& aScroll, ErrorResult& aRv)
+  {
+    if (!aScroll.EqualsLiteral("") && !aScroll.EqualsLiteral("up")) {
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+      return;
+    }
+
+    mScroll = aScroll;
+  }
+
+  
+
+  
+  
+  void CopyValues(TextTrackRegion& aRegion);
+
+  
+  const nsAString& Scroll() const
+  {
+    return mScroll;
+  }
+
+  const nsAString& Id() const
+  {
+    return mId;
+  }
+
+
+private:
+  nsCOMPtr<nsISupports> mParent;
+  nsRefPtr<TextTrack> mTrack;
+  nsString mId;
+  double mWidth;
+  long mLines;
+  double mRegionAnchorX;
+  double mRegionAnchorY;
+  double mViewportAnchorX;
+  double mViewportAnchorY;
+  nsString mScroll;
+
+  
+  
+  inline bool InvalidValue(double aValue, ErrorResult& aRv)
+  {
+    if(aValue < 0.0  || aValue > 100.0) {
+      aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+      return true;
+    }
+
+    return false;
+  }
+
+};
+
+} 
+} 
+
+#endif 
