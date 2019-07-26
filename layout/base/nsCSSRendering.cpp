@@ -2283,6 +2283,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   gfxRect areaToFill =
     nsLayoutUtils::RectToGfxRect(aFillArea, appUnitsPerPixel);
   gfxMatrix ctm = ctx->CurrentMatrix();
+  bool isCTMPreservingAxisAlignedRectangles = ctm.PreservesAxisAlignedRectangles();
 
   
   nscoord xStart = FindTileStart(dirty.x, aOneCellArea.x, aOneCellArea.width);
@@ -2304,25 +2305,28 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       ctx->NewPath();
       
       
-      gfxRect fillRectSnapped = fillRect;
-      
-      
-      
-      
-      gfxPoint tileRectSnappedTopLeft = tileRect.TopLeft();
-      gfxPoint tileRectSnappedBottomRight = tileRect.BottomRight();
-      if (ctx->UserToDevicePixelSnapped(fillRectSnapped, true) &&
-          ctx->UserToDevicePixelSnapped(tileRectSnappedTopLeft, true) &&
-          ctx->UserToDevicePixelSnapped(tileRectSnappedBottomRight, true)) {
+      gfxPoint snappedFillRectTopLeft = fillRect.TopLeft();
+      gfxPoint snappedFillRectBottomRight = fillRect.BottomRight();
+      if (isCTMPreservingAxisAlignedRectangles &&
+          ctx->UserToDevicePixelSnapped(snappedFillRectTopLeft, true) &&
+          ctx->UserToDevicePixelSnapped(snappedFillRectBottomRight, true)) {
+        if (snappedFillRectTopLeft.x == snappedFillRectBottomRight.x ||
+            snappedFillRectTopLeft.y == snappedFillRectBottomRight.y) {
+          
+          
+          continue;
+        }
+        
+        
+        
         ctx->IdentityMatrix();
-        ctx->Rectangle(fillRectSnapped);
-        ctx->Translate(tileRectSnappedTopLeft);
-        ctx->Scale((tileRectSnappedBottomRight.x - tileRectSnappedTopLeft.x)/tileRect.width,
-                   (tileRectSnappedBottomRight.y - tileRectSnappedTopLeft.y)/tileRect.height);
-      } else {
-        ctx->Rectangle(fillRect);
-        ctx->Translate(tileRect.TopLeft());
+        ctx->Translate(snappedFillRectTopLeft);
+        ctx->Scale((snappedFillRectBottomRight.x - snappedFillRectTopLeft.x)/fillRect.width,
+                   (snappedFillRectBottomRight.y - snappedFillRectTopLeft.y)/fillRect.height);
+        ctx->Translate(-fillRect.TopLeft());
       }
+      ctx->Rectangle(fillRect);
+      ctx->Translate(tileRect.TopLeft());
       ctx->SetPattern(pattern->mPattern);
       ctx->Fill();
       ctx->SetMatrix(ctm);
