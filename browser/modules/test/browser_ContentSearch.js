@@ -146,6 +146,31 @@ add_task(function* search() {
   yield deferred.promise;
 });
 
+add_task(function* badImage() {
+  yield addTab();
+  
+  
+  
+  let vals = yield waitForNewEngine("contentSearchBadImage.xml", 1);
+  let engine = vals[0];
+  let finalCurrentStateMsg = vals[vals.length - 1];
+  let expectedCurrentState = yield currentStateObj();
+  let expectedEngine =
+    expectedCurrentState.engines.find(e => e.name == engine.name);
+  ok(!!expectedEngine, "Sanity check: engine should be in expected state");
+  ok(expectedEngine.iconBuffer === null,
+     "Sanity check: icon array buffer of engine in expected state " +
+     "should be null: " + expectedEngine.iconBuffer);
+  checkMsg(finalCurrentStateMsg, {
+    type: "CurrentState",
+    data: expectedCurrentState,
+  });
+  
+  
+  Services.search.removeEngine(engine);
+  yield waitForTestMsg("CurrentState");
+});
+
 function checkMsg(actualMsg, expectedMsgData) {
   SimpleTest.isDeeply(actualMsg.data, expectedMsgData, "Checking message");
 }
@@ -165,6 +190,35 @@ function waitForMsg(name, type) {
 
 function waitForTestMsg(type) {
   return waitForMsg(TEST_MSG, type);
+}
+
+function waitForNewEngine(basename, numImages) {
+  info("Waiting for engine to be added: " + basename);
+
+  
+  
+  let expectedSearchEvents = ["CurrentState", "CurrentState"];
+  
+  for (let i = 0; i < numImages; i++) {
+    expectedSearchEvents.push("CurrentState");
+  }
+  let eventPromises = expectedSearchEvents.map(e => waitForTestMsg(e));
+
+  
+  let addDeferred = Promise.defer();
+  let url = getRootDirectory(gTestPath) + basename;
+  Services.search.addEngine(url, Ci.nsISearchEngine.TYPE_MOZSEARCH, "", false, {
+    onSuccess: function (engine) {
+      info("Search engine added: " + basename);
+      addDeferred.resolve(engine);
+    },
+    onError: function (errCode) {
+      ok(false, "addEngine failed with error code " + errCode);
+      addDeferred.reject();
+    },
+  });
+
+  return Promise.all([addDeferred.promise].concat(eventPromises));
 }
 
 function addTab() {
@@ -230,6 +284,11 @@ function arrayBufferFromDataURI(uri) {
   xhr.onloadend = () => {
     deferred.resolve(xhr.response);
   };
-  xhr.send();
+  try {
+    xhr.send();
+  }
+  catch (err) {
+    return Promise.resolve(null);
+  }
   return deferred.promise;
 }
