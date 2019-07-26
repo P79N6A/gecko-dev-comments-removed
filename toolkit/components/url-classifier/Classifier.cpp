@@ -424,6 +424,11 @@ Classifier::MarkSpoiled(nsTArray<nsCString>& aTables)
     LOG(("Spoiling table: %s", aTables[i].get()));
     
     mTableFreshness.Remove(aTables[i]);
+    
+    LookupCache *cache = GetLookupCache(aTables[i]);
+    if (cache) {
+      cache->ClearCompleteCache();
+    }
   }
   return NS_OK;
 }
@@ -666,6 +671,7 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 
   uint32_t applied = 0;
   bool updateFreshness = false;
+  bool hasCompletes = false;
 
   for (uint32_t i = 0; i < aUpdates->Length(); i++) {
     TableUpdate *update = aUpdates->ElementAt(i);
@@ -692,6 +698,12 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
       LOG(("Remote update, updating freshness"));
     }
 
+    if (update->AddCompletes().Length() > 0
+        || update->SubCompletes().Length() > 0) {
+      hasCompletes = true;
+      LOG(("Contains Completes, keeping cache."));
+    }
+
     aUpdates->ElementAt(i) = nullptr;
     delete update;
   }
@@ -700,6 +712,11 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 
   rv = store->Rebuild();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (!hasCompletes) {
+    store->ClearCompletes();
+  }
 
   LOG(("Table %s now has:", store->TableName().get()));
   LOG(("  %d add chunks", store->AddChunks().Length()));
@@ -716,6 +733,7 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
   
   rv = prefixSet->Build(store->AddPrefixes(), store->AddCompletes());
   NS_ENSURE_SUCCESS(rv, rv);
+
 #if defined(DEBUG) && defined(PR_LOGGING)
   prefixSet->Dump();
 #endif

@@ -111,6 +111,9 @@ public:
   
   nsresult WriteFile();
 
+  
+  void ClearCompletes();
+
 private:
   nsresult Reset();
 
