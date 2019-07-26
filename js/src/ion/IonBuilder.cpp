@@ -64,7 +64,8 @@ IonBuilder::IonBuilder(JSContext *cx, HandleObject scopeChain, TempAllocator &te
     callerResumePoint_(NULL),
     callerBuilder_(NULL),
     oracle(oracle),
-    inliningDepth(inliningDepth)
+    inliningDepth(inliningDepth),
+    failedBoundsCheck_(script->failedBoundsCheck)
 {
     pc = info.startPC();
 }
@@ -394,6 +395,9 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
 
     callerBuilder_ = callerBuilder;
     callerResumePoint_ = callerResumePoint;
+
+    if (callerBuilder->failedBoundsCheck_)
+        failedBoundsCheck_ = true;
 
     
     current = newBlock(pc);
@@ -5370,6 +5374,10 @@ IonBuilder::addBoundsCheck(MDefinition *index, MDefinition *length)
 {
     MInstruction *check = MBoundsCheck::New(index, length);
     current->add(check);
+
+    
+    if (failedBoundsCheck_)
+        check->setNotMovable();
 
     return check;
 }

@@ -460,6 +460,10 @@ class IonBuilder : public MIRGenerator
     Vector<MInstruction *, 2, IonAllocPolicy> iterators_;
     TypeOracle *oracle;
     size_t inliningDepth;
+
+    
+    
+    bool failedBoundsCheck_;
 };
 
 } 
