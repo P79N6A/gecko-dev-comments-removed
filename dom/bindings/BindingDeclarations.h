@@ -515,6 +515,34 @@ public:
   }
 };
 
+class LazyRootedValue : public Maybe<JS::Rooted<JS::Value> >
+{
+public:
+  operator JS::Value() const
+  {
+    
+    return ref();
+  }
+
+  operator JS::Rooted<JS::Value>& ()
+  {
+    
+    return ref();
+  }
+
+  operator JS::Handle<JS::Value>()
+  {
+    
+    return ref();
+  }
+
+  JS::Value* operator&()
+  {
+    
+    return ref().address();
+  }
+};
+
 } 
 } 
 
