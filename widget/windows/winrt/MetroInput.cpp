@@ -105,6 +105,38 @@ namespace {
 
 
 
+
+  bool
+  HasPointMoved(Touch* aTouch, UI::Input::IPointerPoint* aPoint) {
+    WRL::ComPtr<UI::Input::IPointerPointProperties> props;
+    Foundation::Point position;
+    Foundation::Rect contactRect;
+    float pressure;
+
+    aPoint->get_Properties(props.GetAddressOf());
+    aPoint->get_Position(&position);
+    props->get_ContactRect(&contactRect);
+    props->get_Pressure(&pressure);
+    nsIntPoint touchPoint = MetroUtils::LogToPhys(position);
+    nsIntPoint touchRadius;
+    touchRadius.x = MetroUtils::LogToPhys(contactRect.Width) / 2;
+    touchRadius.y = MetroUtils::LogToPhys(contactRect.Height) / 2;
+
+    
+    return touchPoint != aTouch->mRefPoint ||
+           pressure != aTouch->Force() ||
+           
+           touchRadius.x != aTouch->RadiusX() ||
+           touchRadius.y != aTouch->RadiusY();
+  }
+
+  
+
+
+
+
+
+
   void
   MozInputSourceFromDeviceType(
               Devices::Input::PointerDeviceType const& aDeviceType,
@@ -470,7 +502,14 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
 
   
   
-  if (touch->mChanged) {
+  
+  if (!HasPointMoved(touch, currentPoint.Get())) {
+    return S_OK;
+  }
+
+  
+  
+  if (!mIsFirstTouchMove && touch->mChanged) {
     nsTouchEvent* touchEvent =
       new nsTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
     InitTouchEventTouchList(touchEvent);
@@ -1061,7 +1100,8 @@ MetroInput::DeliverNextQueuedTouchEvent()
   MOZ_ASSERT(event);
   nsEventStatus status;
   mWidget->DispatchEvent(event, status);
-  if (status != nsEventStatus_eConsumeNoDefault && MetroWidget::sAPZC) {
+  
+  if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented && MetroWidget::sAPZC) {
     MultiTouchInput inputData(*event);
     MetroWidget::sAPZC->ReceiveInputEvent(inputData);
   }
