@@ -1346,7 +1346,7 @@ BinaryArray::obj_getGenericAttributes(JSContext *cx, HandleObject obj,
         return true;
     }
 
-	return false;
+    return false;
 }
 
 JSBool
@@ -1455,36 +1455,36 @@ Class BinaryStruct::class_ = {
     BinaryStruct::obj_trace,
     JS_NULL_CLASS_EXT,
     {
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
         BinaryStruct::obj_getGeneric,
         BinaryStruct::obj_getProperty,
-        NULL,
-        NULL,
+        NULL, 
+        NULL, 
         BinaryStruct::obj_getSpecial,
         BinaryStruct::obj_setGeneric,
         BinaryStruct::obj_setProperty,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        NULL, 
+        BinaryStruct::obj_enumerate,
+        NULL, 
     }
 };
 
@@ -1815,6 +1815,45 @@ BinaryStruct::obj_trace(JSTracer *tracer, JSObject *obj)
 
     HeapPtrObject type(obj->getFixedSlot(SLOT_DATATYPE).toObjectOrNull());
     MarkObject(tracer, &type, "binarystruct.type");
+}
+
+JSBool
+BinaryStruct::obj_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
+                            MutableHandleValue statep, MutableHandleId idp)
+{
+    JS_ASSERT(IsBinaryStruct(obj));
+
+    RootedObject type(cx, GetType(obj));
+
+    FieldList *fieldList = static_cast<FieldList *>(type->getPrivate());
+    JS_ASSERT(fieldList);
+
+    uint32_t index;
+    switch (enum_op) {
+        case JSENUMERATE_INIT_ALL:
+        case JSENUMERATE_INIT:
+            statep.setInt32(0);
+            idp.set(INT_TO_JSID(fieldList->size()));
+            break;
+
+        case JSENUMERATE_NEXT:
+            index = static_cast<uint32_t>(statep.toInt32());
+
+            if (index < fieldList->size()) {
+                idp.set(fieldList->at(index).name);
+                statep.setInt32(index + 1);
+            } else {
+                statep.setNull();
+            }
+
+            break;
+
+        case JSENUMERATE_DESTROY:
+            statep.setNull();
+            break;
+    }
+
+    return true;
 }
 
 JSBool
