@@ -288,7 +288,7 @@ nsWindowsRegKey::ReadStringValue(const nsAString &name, nsAString &result)
   }
 
   
-  DWORD resultLen = size / 2 - 1;
+  DWORD resultLen = size / 2;
 
   result.SetLength(resultLen);
   nsAString::iterator begin;
@@ -298,6 +298,11 @@ nsWindowsRegKey::ReadStringValue(const nsAString &name, nsAString &result)
 
   rv = RegQueryValueExW(mKey, flatName.get(), 0, &type, (LPBYTE) begin.get(),
                         &size);
+
+  if (!result.CharAt(resultLen-1)) {
+    
+    result.Truncate(resultLen-1);
+  }
 
   
   if (type == REG_EXPAND_SZ) {
