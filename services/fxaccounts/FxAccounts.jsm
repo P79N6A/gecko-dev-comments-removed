@@ -805,24 +805,36 @@ FxAccountsInternal.prototype = {
               this.notifyObservers(ON_FXA_UPDATE_NOTIFICATION, ONVERIFIED_NOTIFICATION);
             });
         } else {
-          log.debug("polling with step = " + this.POLL_STEP);
-          this.pollTimeRemaining -= this.POLL_STEP;
-          log.debug("time remaining: " + this.pollTimeRemaining);
-          if (this.pollTimeRemaining > 0) {
-            this.currentTimer = setTimeout(() => {
-              this.pollEmailStatus(currentState, sessionToken, "timer")}, this.POLL_STEP);
-            log.debug("started timer " + this.currentTimer);
-          } else {
-            if (currentState.whenVerifiedDeferred) {
-              currentState.whenVerifiedDeferred.reject(
-                new Error("User email verification timed out.")
-              );
-              delete currentState.whenVerifiedDeferred;
-            }
-          }
+          
+          this.pollEmailStatusAgain(currentState, sessionToken);
+        }
+      }, error => {
+        
+        
+        if (!error || !error.code || error.code != 401) {
+          this.pollEmailStatusAgain(currentState, sessionToken);
         }
       });
-    },
+  },
+
+  
+  pollEmailStatusAgain: function (currentState, sessionToken) {
+    log.debug("polling with step = " + this.POLL_STEP);
+    this.pollTimeRemaining -= this.POLL_STEP;
+    log.debug("time remaining: " + this.pollTimeRemaining);
+    if (this.pollTimeRemaining > 0) {
+      this.currentTimer = setTimeout(() => {
+        this.pollEmailStatus(currentState, sessionToken, "timer");
+      }, this.POLL_STEP);
+      log.debug("started timer " + this.currentTimer);
+    } else {
+      if (currentState.whenVerifiedDeferred) {
+        let error = new Error("User email verification timed out.")
+        currentState.whenVerifiedDeferred.reject(error);
+        delete currentState.whenVerifiedDeferred;
+      }
+    }
+  },
 
   
   getAccountsSignUpURI: function() {
