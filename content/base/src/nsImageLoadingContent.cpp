@@ -1329,17 +1329,30 @@ nsImageLoadingContent::UntrackImage(imgIRequest* aImage, uint32_t aFlags )
   
   
   
+  
+  
+  
   nsIDocument* doc = GetOurCurrentDoc();
-  if (doc) {
-    if (aImage == mCurrentRequest && (mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
+  if (aImage == mCurrentRequest) {
+    if (doc && (mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
       mCurrentRequestFlags &= ~REQUEST_IS_TRACKED;
       doc->RemoveImage(mCurrentRequest,
                        (aFlags & REQUEST_DISCARD) ? nsIDocument::REQUEST_DISCARD : 0);
     }
-    if (aImage == mPendingRequest && (mPendingRequestFlags & REQUEST_IS_TRACKED)) {
+    else if (aFlags & REQUEST_DISCARD) {
+      
+      aImage->RequestDiscard();
+    }
+  }
+  if (aImage == mPendingRequest) {
+    if (doc && (mPendingRequestFlags & REQUEST_IS_TRACKED)) {
       mPendingRequestFlags &= ~REQUEST_IS_TRACKED;
       doc->RemoveImage(mPendingRequest,
                        (aFlags & REQUEST_DISCARD) ? nsIDocument::REQUEST_DISCARD : 0);
+    }
+    else if (aFlags & REQUEST_DISCARD) {
+      
+      aImage->RequestDiscard();
     }
   }
   return NS_OK;
