@@ -171,19 +171,15 @@ this.CryptoUtils = {
 
 
 
-
-
-
-
-
-  pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen,
-                       hmacAlg=Ci.nsICryptoHMAC.SHA1, hmacLen=20) {
-
+  pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen) {
     
     
     if (!dkLen) {
       dkLen = SYNC_KEY_DECODED_LENGTH;
     }
+
+    
+    const HLEN = 20;
 
     function F(S, c, i, h) {
 
@@ -220,27 +216,27 @@ this.CryptoUtils = {
       }
 
       ret = U[0];
-      for (let j = 1; j < c; j++) {
+      for (j = 1; j < c; j++) {
         ret = CommonUtils.byteArrayToString(XOR(ret, U[j]));
       }
 
       return ret;
     }
 
-    let l = Math.ceil(dkLen / hmacLen);
-    let r = dkLen - ((l - 1) * hmacLen);
+    let l = Math.ceil(dkLen / HLEN);
+    let r = dkLen - ((l - 1) * HLEN);
 
     
-    let h = CryptoUtils.makeHMACHasher(hmacAlg,
+    let h = CryptoUtils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1,
                                        CryptoUtils.makeHMACKey(P));
 
-    let T = [];
+    T = [];
     for (let i = 0; i < l;) {
       T[i] = F(S, c, ++i, h);
     }
 
     let ret = "";
-    for (let i = 0; i < l-1;) {
+    for (i = 0; i < l-1;) {
       ret += T[i++];
     }
     ret += T[l - 1].substr(0, r);
