@@ -3848,6 +3848,11 @@ void HTMLMediaElement::UpdateAudioChannelPlayingState()
       mAudioChannelAgent->SetVisibilityState(!OwnerDoc()->Hidden());
     }
 
+    
+    
+    
+    AutoNoJSAPI nojsapi;
+
     if (mPlayingThroughTheAudioChannel) {
       int32_t canPlay;
       mAudioChannelAgent->StartPlaying(&canPlay);
