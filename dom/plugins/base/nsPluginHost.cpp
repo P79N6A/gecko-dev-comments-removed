@@ -2633,6 +2633,8 @@ nsPluginHost::ReadPluginInfo()
     mCachedPlugins = tag;
   }
 
+
+#ifndef MOZ_WIDGET_ANDROID
   if (hasInvalidPlugins) {
     if (!ReadSectionHeader(reader, "INVALID")) {
       return rv;
@@ -2656,6 +2658,7 @@ nsPluginHost::ReadPluginInfo()
       mInvalidPlugins = invalidTag;
     }
   }
+#endif
 
   
   Preferences::SetBool("plugin.importedState", true);
