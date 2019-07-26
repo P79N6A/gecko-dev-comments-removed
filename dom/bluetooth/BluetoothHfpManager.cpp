@@ -837,7 +837,7 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     NS_ASSERTION(vgm >= 0 && vgm <= 15, "Received invalid VGM value");
     mCurrentVgm = vgm;
   } else if (msg.Find("AT+CHLD=?") != -1) {
-    SendLine("+CHLD: (1,2)");
+    SendLine("+CHLD: (0,1,2)");
   } else if (msg.Find("AT+CHLD=") != -1) {
     ParseAtCommand(msg, 8, atCommandValues);
 
@@ -858,14 +858,21 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
 
 
 
+
+
     char chld = atCommandValues[0][0];
     bool valid = true;
     if (atCommandValues[0].Length() > 1) {
       NS_WARNING("No index should be included in command [AT+CHLD]");
       valid = false;
-    } else if (chld == '0' || chld == '3' || chld == '4') {
+    } else if (chld == '3' || chld == '4') {
       NS_WARNING("The value of command [AT+CHLD] is not supported");
       valid = false;
+    } else if (chld == '0') {
+      
+      
+      
+      NotifyDialer(NS_LITERAL_STRING("CHLD=0"));
     } else if (chld == '1') {
       NotifyDialer(NS_LITERAL_STRING("CHUP+ATA"));
     } else if (chld == '2') {
