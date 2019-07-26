@@ -4964,7 +4964,7 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame,
     
     
     
-    if (aFrame->StyleSVGReset()->mFilter) {
+    if (aFrame->StyleSVGReset()->SingleFilter()) {
       if (aStoreRectProperties) {
         aFrame->Properties().
           Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));

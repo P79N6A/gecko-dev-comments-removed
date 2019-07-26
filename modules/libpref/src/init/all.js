@@ -455,9 +455,6 @@ pref("devtools.debugger.remote-port", 6000);
 pref("devtools.debugger.force-local", true);
 
 
-pref("devtools.debugger.enable-content-actors", false);
-
-
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
@@ -1776,6 +1773,9 @@ pref("layout.css.masking.enabled", true);
 
 
 pref("layout.css.supports-rule.enabled", true);
+
+
+pref("layout.css.filters.enabled", false);
 
 
 pref("layout.css.flexbox.enabled", true);
