@@ -44,6 +44,7 @@ public:
   
   void OpGetFilenames();
   void OpGetFile(const nsAString& aFilename);
+  void OpGetFiles();
 
   nsresult ReaderReady(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
                        nsresult aStatus);
@@ -56,11 +57,14 @@ private:
   ~ArchiveRequest();
 
   nsresult GetFilenamesResult(JSContext* aCx,
-                              jsval* aValue,
+                              JS::Value* aValue,
                               nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList);
   nsresult GetFileResult(JSContext* aCx,
-                         jsval* aValue,
+                         JS::Value* aValue,
                          nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList);
+  nsresult GetFilesResult(JSContext* aCx,
+                          JS::Value* aValue,
+                          nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList);
 
 protected:
   
@@ -69,7 +73,8 @@ protected:
   
   enum {
     GetFilenames,
-    GetFile
+    GetFile,
+    GetFiles
   } mOperation;
 
   
