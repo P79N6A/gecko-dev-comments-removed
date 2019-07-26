@@ -188,12 +188,15 @@ gfxAndroidPlatform::GetCommonFallbackFonts(const uint32_t aCh,
             aFontList.AppendElement("Droid Sans Arabic");
             break;
         case 0x09:
+            aFontList.AppendElement("Noto Sans Devanagari");
             aFontList.AppendElement("Droid Sans Devanagari");
             break;
         case 0x0b:
+            aFontList.AppendElement("Noto Sans Tamil");
             aFontList.AppendElement("Droid Sans Tamil");
             break;
         case 0x0e:
+            aFontList.AppendElement("Noto Sans Thai");
             aFontList.AppendElement("Droid Sans Thai");
             break;
         case 0x10: case 0x2d:
