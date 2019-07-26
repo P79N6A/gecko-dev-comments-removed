@@ -1869,6 +1869,7 @@ public:
       , mStream(nullptr)
       , mTexID(0)
       , mSize(0,0)
+      , mHasAlpha(false)
       , mIsGLAlphaPremult(false)
     { }
 
@@ -1884,6 +1885,9 @@ public:
 
     
     nsIntSize mSize;
+
+    
+    bool mHasAlpha;
 
     
     bool mIsGLAlphaPremult;
