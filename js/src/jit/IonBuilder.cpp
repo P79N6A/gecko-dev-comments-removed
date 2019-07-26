@@ -280,7 +280,7 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
 
     
     
-    if (target->isInterpretedLazy() && info().executionMode() == DefinitePropertiesAnalysis) {
+    if (target->isInterpreted() && info().executionMode() == DefinitePropertiesAnalysis) {
         if (!target->getOrCreateScript(context()))
             return false;
 
