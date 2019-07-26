@@ -370,6 +370,9 @@ class RemoteReftest(RefTest):
         prefs["plugins.update.url"] = "http://127.0.0.1:8888/plugins-dummy/updateCheckURL"
 
         
+        prefs["gfx.canvas.azure.accelerated"] = False
+
+        
         profile.set_preferences(prefs)
 
         try:
