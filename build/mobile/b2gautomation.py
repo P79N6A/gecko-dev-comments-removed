@@ -48,6 +48,7 @@ class B2GRemoteAutomation(Automation):
 
         
         self._product = "b2g"
+        self.lastTestSeen = "b2gautomation.py"
         
         self.logFinish = 'INFO SimpleTest FINISHED' 
         Automation.__init__(self)
@@ -137,6 +138,12 @@ class B2GRemoteAutomation(Automation):
             if currentlog:
                 responseDueBy = time.time() + timeout
                 print currentlog
+                
+                
+                
+                testStartFilenames = re.findall(r"TEST-START \| ([^\s]*)", currentlog)
+                if testStartFilenames:
+                    self.lastTestSeen = testStartFilenames[-1]
                 if hasattr(self, 'logFinish') and self.logFinish in currentlog:
                     return 0
             else:
