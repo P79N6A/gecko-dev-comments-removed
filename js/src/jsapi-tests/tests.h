@@ -155,8 +155,11 @@ class JSAPITest
         return JSAPITestString(JS_VersionToString(v));
     }
 
-    template<typename T>
-    bool checkEqual(const T &actual, const T &expected,
+    
+    
+    
+    template <typename T, typename U>
+    bool checkEqual(const T &actual, const U &expected,
                     const char *actualExpr, const char *expectedExpr,
                     const char *filename, int lineno) {
         return (actual == expected) ||
@@ -165,21 +168,24 @@ class JSAPITest
                  ", got (" + actualExpr + ") = " + toSource(actual), filename, lineno);
     }
 
-    
-    
-    
-    
-    
-    template<typename T, typename U>
-    bool checkEqual(const T &actual, const U &expected,
-                   const char *actualExpr, const char *expectedExpr,
-                   const char *filename, int lineno) {
-        return checkEqual(U(actual), expected, actualExpr, expectedExpr, filename, lineno);
-    }
-
 #define CHECK_EQUAL(actual, expected) \
     do { \
         if (!checkEqual(actual, expected, #actual, #expected, __FILE__, __LINE__)) \
+            return false; \
+    } while (false)
+
+    template <typename T>
+    bool checkNull(const T *actual, const char *actualExpr,
+                   const char *filename, int lineno) {
+        return (actual == nullptr) ||
+            fail(JSAPITestString("CHECK_NULL failed: expected nullptr, got (") +
+                 actualExpr + ") = " + toSource(actual),
+                 filename, lineno);
+    }
+
+#define CHECK_NULL(actual) \
+    do { \
+        if (!checkNull(actual, #actual, __FILE__, __LINE__)) \
             return false; \
     } while (false)
 

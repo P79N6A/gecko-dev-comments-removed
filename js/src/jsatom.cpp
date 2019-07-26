@@ -27,6 +27,7 @@
 #include "jsobjinlines.h"
 
 #include "vm/String-inl.h"
+#include "vm/Symbol-inl.h"
 
 using namespace js;
 using namespace js::gc;
@@ -380,6 +381,9 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const CharT *tbchars, size_t length, I
 
     JSFlatString *flat = js_NewStringCopyN<NoGC>(cx, tbchars, length);
     if (!flat) {
+        
+        
+        
         js_ReportOutOfMemory(cx);
         return nullptr;
     }
