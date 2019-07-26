@@ -233,8 +233,10 @@ public:
   
 
 
-
-  void GetDeviceContext(nsDeviceContext *&aContext);
+  nsDeviceContext* GetDeviceContext() const
+  {
+    return mContext;
+  }
 
   
 

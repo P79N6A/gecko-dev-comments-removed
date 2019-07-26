@@ -237,8 +237,7 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   
   
   nsIntRect newBounds;
-  nsRefPtr<nsDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
+  nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   nsWindowType type;
   widget->GetWindowType(type);
@@ -519,8 +518,7 @@ nsresult nsView::CreateWidget(nsWidgetInitData *aWidgetInitData,
 
   nsIntRect trect = CalcWidgetBounds(aWidgetInitData->mWindowType);
 
-  nsRefPtr<nsDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
+  nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   nsIWidget* parentWidget =
     GetParent() ? GetParent()->GetNearestWidget(nullptr) : nullptr;
@@ -558,8 +556,7 @@ nsresult nsView::CreateWidgetForParent(nsIWidget* aParentWidget,
 
   nsIntRect trect = CalcWidgetBounds(aWidgetInitData->mWindowType);
 
-  nsRefPtr<nsDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
+  nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   mWindow =
     aParentWidget->CreateChild(trect, dx, aWidgetInitData).get();
@@ -584,8 +581,7 @@ nsresult nsView::CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
 
   nsIntRect trect = CalcWidgetBounds(aWidgetInitData->mWindowType);
 
-  nsRefPtr<nsDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
+  nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   
   
@@ -653,8 +649,7 @@ nsresult nsView::AttachToTopLevelWidget(nsIWidget* aWidget)
     }
   }
 
-  nsRefPtr<nsDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
+  nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   
   
@@ -952,8 +947,7 @@ nsView::WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight)
   
   SetForcedRepaint(true);
   if (this == mViewManager->GetRootView()) {
-    nsRefPtr<nsDeviceContext> devContext;
-    mViewManager->GetDeviceContext(*getter_AddRefs(devContext));
+    nsRefPtr<nsDeviceContext> devContext = mViewManager->GetDeviceContext();
     
     
     devContext->CheckDPIChange();
