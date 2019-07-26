@@ -21,6 +21,14 @@ InitMemorySubsystem(JSRuntime *rt);
 
 
 void *
+AllocateAlignedAddressRange(JSRuntime *rt, size_t size, size_t alignment);
+
+
+bool
+CommitAddressRange(void *addr, size_t size);
+
+
+void *
 MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment);
 
 void
