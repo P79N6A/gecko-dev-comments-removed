@@ -815,6 +815,9 @@ pref("network.sntp.port", 123);
 pref("network.sntp.timeout", 30); 
 
 
+pref("dom.promise.enabled", false);
+
+
 #ifdef RELEASE_BUILD
 pref("dom.datastore.enabled", false);
 #else

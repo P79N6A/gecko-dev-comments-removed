@@ -165,6 +165,7 @@ struct JSSettings
 enum WorkerPreference
 {
   WORKERPREF_DUMP = 0, 
+  WORKERPREF_PROMISE,  
   WORKERPREF_COUNT
 };
 

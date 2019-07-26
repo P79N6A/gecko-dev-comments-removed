@@ -244,6 +244,28 @@ Promise::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
   return PromiseBinding::Wrap(aCx, aScope, this);
 }
 
+ bool
+Promise::EnabledForScope(JSContext* aCx, JSObject* )
+{
+  if (NS_IsMainThread()) {
+    
+    if (Preferences::GetBool("dom.promise.enabled", false)) {
+      return true;
+    }
+  } else {
+    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+    return workerPrivate->PromiseEnabled() || workerPrivate->UsesSystemPrincipal();
+  }
+  
+  
+  
+  
+  
+  nsIPrincipal* prin = nsContentUtils::GetSubjectPrincipal();
+  return nsContentUtils::IsSystemPrincipal(prin) ||
+    prin->GetAppStatus() == nsIPrincipal::APP_STATUS_CERTIFIED;
+}
+
 void
 Promise::MaybeResolve(JSContext* aCx,
                       JS::Handle<JS::Value> aValue)
