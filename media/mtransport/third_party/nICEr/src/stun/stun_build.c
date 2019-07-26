@@ -467,7 +467,6 @@ nr_stun_form_error_response(nr_stun_message *req, nr_stun_message* res, int numb
     memcpy(&res->header.id, &req->header.id, sizeof(res->header.id));
 
     
-    assert(number != 500);
 
     str = 0;
     switch (number) {
@@ -482,7 +481,6 @@ nr_stun_form_error_response(nr_stun_message *req, nr_stun_message* res, int numb
     case 500:  str = "Server Error";        break;
     }
     if (str == 0) {
-        assert(0);  
         str = "Unknown";
     }
 
