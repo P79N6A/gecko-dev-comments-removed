@@ -48,19 +48,15 @@ BytecodeAnalysis::init()
             JS_ASSERT(!infos_[chkpc - script_->code].initialized);
 #endif
 
-        
-        
-        if (!(js_CodeSpec[op].format & JOF_DECOMPOSE)) {
-            unsigned nuses = GetUseCount(script_, offset);
-            unsigned ndefs = GetDefCount(script_, offset);
+        unsigned nuses = GetUseCount(script_, offset);
+        unsigned ndefs = GetDefCount(script_, offset);
 
-            JS_ASSERT(stackDepth >= nuses);
-            stackDepth -= nuses;
-            stackDepth += ndefs;
+        JS_ASSERT(stackDepth >= nuses);
+        stackDepth -= nuses;
+        stackDepth += ndefs;
 
-            
-            JS_ASSERT(stackDepth <= BytecodeInfo::MAX_STACK_DEPTH);
-        }
+        
+        JS_ASSERT(stackDepth <= BytecodeInfo::MAX_STACK_DEPTH);
 
         if (op == JSOP_TABLESWITCH) {
             unsigned defaultOffset = offset + GET_JUMP_OFFSET(pc);

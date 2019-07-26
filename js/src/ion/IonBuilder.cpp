@@ -1090,10 +1090,6 @@ IonBuilder::snoopControlFlow(JSOp op)
 bool
 IonBuilder::inspectOpcode(JSOp op)
 {
-    
-    if (js_CodeSpec[op].format & JOF_DECOMPOSE)
-        return true;
-
     switch (op) {
       case JSOP_NOP:
       case JSOP_LINENO:
