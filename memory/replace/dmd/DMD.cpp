@@ -715,7 +715,7 @@ public:
       W("   ??? 0x%x\n", entryPc);
     } else {
       
-      char* entryFunction = entry.mFunction ? entry.mFunction : "???";
+      const char* entryFunction = entry.mFunction ? entry.mFunction : "???";
       if (entry.mFileName) {
         
         W("   %s (%s:%lu) 0x%x\n",
