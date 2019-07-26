@@ -11,8 +11,6 @@ const { ViewHelpers } = Cu.import("resource:///modules/devtools/ViewHelpers.jsm"
 
 
 
-
-
 const FastListWidget = module.exports = function FastListWidget(aNode) {
   this.document = aNode.ownerDocument;
   this.window = this.document.defaultView;
@@ -21,11 +19,9 @@ const FastListWidget = module.exports = function FastListWidget(aNode) {
 
   
   this._templateElement = this.document.createElement("hbox");
-  this._templateElement.className = "side-menu-widget-item side-menu-widget-item-contents";
 
   
   this._list = this.document.createElement("scrollbox");
-  this._list.className = "side-menu-widget-container";
   this._list.setAttribute("flex", "1");
   this._list.setAttribute("orient", "vertical");
   this._list.setAttribute("theme", "dark");

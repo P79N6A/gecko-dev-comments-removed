@@ -125,6 +125,12 @@
   -moz-padding-start: 4px !important;
 }
 
+#tracer-traces > scrollbox {
+  overflow: scroll;
+  
+  transform: translateZ(0);
+}
+
 
 
 .theme-dark #tracer-message {
@@ -140,8 +146,12 @@
   color: #f5f7fa; 
 }
 
-.trace-item.selected-matching {
-  background-color: #1d4f73; 
+.theme-dark .trace-item.selected-matching {
+  background-color: rgba(29, 79, 115, .4); 
+}
+
+.theme-dark .selected > .trace-item {
+  background-color: rgba(29, 79, 115, .75); 
 }
 
 .theme-dark .trace-call {
@@ -158,11 +168,11 @@
 }
 
 .theme-dark .trace-param {
-  color: #8fa1b2; 
+  color: #b8c8d9; 
 }
 
 .theme-dark .trace-syntax {
-  color: #5e88b0; 
+  color: #8fa1b2; 
 }
 
 
@@ -180,8 +190,12 @@
   color: #292e33; 
 }
 
-.trace-item.selected-matching {
-  background-color: #4c9ed9; 
+.theme-light .trace-item.selected-matching {
+  background-color: rgba(76, 158, 217, .4); 
+}
+
+.theme-light .selected > .trace-item {
+  background-color: rgba(76, 158, 217, .75); 
 }
 
 .theme-light .trace-call {
@@ -198,11 +212,11 @@
 }
 
 .theme-light .trace-param {
-  color: #8fa1b2; 
+  color: #667380; 
 }
 
 .theme-light .trace-syntax {
-  color: #5f88b0; 
+  color: #8fa1b2; 
 }
 
 
