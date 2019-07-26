@@ -1780,7 +1780,7 @@ SignCert(CERTCertDBHandle *handle, CERTCertificate *cert, PRBool selfsign,
     switch(certVersion) {
       case (SEC_CERTIFICATE_VERSION_1):
         
-        
+
         cert->version.data = NULL;
         cert->version.len = 0;
         break;
