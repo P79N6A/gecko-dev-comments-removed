@@ -296,6 +296,10 @@ protected:
   
 
 
+  void GeneratePointerEnterExit(uint32_t aMessage, WidgetMouseEvent* aEvent);
+  
+
+
 
   void GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent);
   
