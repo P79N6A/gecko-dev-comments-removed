@@ -168,6 +168,9 @@ class RefTest(object):
     
     
     prefs['toolkit.telemetry.enabled'] = False
+    
+    prefs['browser.safebrowsing.enabled'] = False
+    prefs['browser.safebrowsing.malware.enabled'] = False
 
     if options.e10s:
       prefs['browser.tabs.remote.autostart'] = True
