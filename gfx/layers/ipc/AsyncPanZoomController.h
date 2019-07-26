@@ -228,15 +228,6 @@ public:
 
 
 
-
-  gfx3DMatrix GetTransformToLastDispatchedPaint();
-
-  
-
-
-
-
-
   static const CSSRect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const ScreenPoint& aVelocity,
@@ -491,12 +482,7 @@ protected:
 
 
 
-  void RequestContentRepaint(FrameMetrics& aFrameMetrics);
-
-  
-
-
-  void DispatchRepaintRequest(const FrameMetrics& aFrameMetrics);
+  void ScheduleContentRepaint(FrameMetrics &aFrameMetrics);
 
   
 
@@ -647,11 +633,6 @@ private:
   
   
   FrameMetrics mLastPaintRequestMetrics;
-  
-  
-  
-  
-  FrameMetrics mLastDispatchedPaintMetrics;
 
   nsTArray<MultiTouchInput> mTouchQueue;
 
