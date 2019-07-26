@@ -22,7 +22,7 @@
      if (exports.OS.Shared.Type) {
        return; 
      }
-
+     OS.Shared.TEST = false;
      
      
      if (typeof Components != "undefined") {
