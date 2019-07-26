@@ -26,9 +26,6 @@ var gTabsPane = {
 
 
 
-
-
-
 #ifdef XP_WIN
   
 

@@ -566,14 +566,9 @@ var FullScreen = {
 
     
     
-    
-    
     var fullscreenctls = document.getElementById("window-controls");
     var navbar = document.getElementById("nav-bar");
-    var ctlsOnTabbar = window.toolbar.visible &&
-                       (navbar.collapsed ||
-                          (TabsOnTop.enabled &&
-                           !gPrefService.getBoolPref("browser.tabs.autoHide")));
+    var ctlsOnTabbar = window.toolbar.visible && (navbar.collapsed || TabsOnTop.enabled);
     if (fullscreenctls.parentNode == navbar && ctlsOnTabbar) {
       fullscreenctls.removeAttribute("flex");
       document.getElementById("TabsToolbar").appendChild(fullscreenctls);
