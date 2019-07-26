@@ -12,21 +12,9 @@
 #error "This code is for Linux ARM only. Please check if it works for you, too.\nDepends strongly on gcc behaviour."
 #endif
 
-#ifdef __GNUC__
-
-
-
-#define DONT_DROP_OR_WARN __attribute__((used))
-#else
-
-
-
-#define DONT_DROP_OR_WARN __attribute__((unused))
-#endif
-
 
 static nsresult PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args) asm("_PrepareAndDispatch")
-DONT_DROP_OR_WARN;
+ATTRIBUTE_USED;
 
 #ifdef __ARM_EABI__
 #define DOUBLEWORD_ALIGN(p) ((uint32_t *)((((uint32_t)(p)) + 7) & 0xfffffff8))
