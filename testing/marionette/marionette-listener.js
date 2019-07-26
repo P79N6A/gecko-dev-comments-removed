@@ -1937,7 +1937,8 @@ function screenShot(msg) {
 
   
   
-  sendResponse({value:canvas.toDataURL("image/png","")}, msg.json.command_id);
+  var data_url = canvas.toDataURL("image/png","");
+  sendResponse({value: data_url.substring(data_url.indexOf(",") + 1)}, msg.json.command_id);
 }
 
 
