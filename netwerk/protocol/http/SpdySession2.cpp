@@ -95,10 +95,29 @@ SpdySession2::ShutdownEnumerator(nsAHttpTransaction *key,
   
   
   
-  if (self->mCleanShutdown && (stream->StreamID() > self->mGoAwayID))
+  
+  
+  if (self->mCleanShutdown &&
+      (stream->StreamID() > self->mGoAwayID || !stream->HasRegisteredID()))
     self->CloseStream(stream, NS_ERROR_NET_RESET); 
   else
     self->CloseStream(stream, NS_ERROR_ABORT);
+
+  return PL_DHASH_NEXT;
+}
+
+PLDHashOperator
+SpdySession2::GoAwayEnumerator(nsAHttpTransaction *key,
+                               nsAutoPtr<SpdyStream2> &stream,
+                               void *closure)
+{
+  SpdySession2 *self = static_cast<SpdySession2 *>(closure);
+
+  
+  
+  
+  if (stream->StreamID() > self->mGoAwayID || !stream->HasRegisteredID())
+    self->mGoAwayStreamsToRestart.Push(stream);
 
   return PL_DHASH_NEXT;
 }
@@ -1324,9 +1343,38 @@ SpdySession2::HandleGoAway(SpdySession2 *self)
   self->mGoAwayID =
     PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
   self->mCleanShutdown = true;
+
   
-  LOG3(("SpdySession2::HandleGoAway %p GOAWAY Last-Good-ID 0x%X.",
-        self, self->mGoAwayID));
+  
+  
+  self->mStreamTransactionHash.Enumerate(GoAwayEnumerator, self);
+
+  
+  uint32_t size = self->mGoAwayStreamsToRestart.GetSize();
+  for (uint32_t count = 0; count < size; ++count) {
+    SpdyStream2 *stream =
+      static_cast<SpdyStream2 *>(self->mGoAwayStreamsToRestart.PopFront());
+
+    self->CloseStream(stream, NS_ERROR_NET_RESET);
+    if (stream->HasRegisteredID())
+      self->mStreamIDHash.Remove(stream->StreamID());
+    self->mStreamTransactionHash.Remove(stream->Transaction());
+  }
+
+  
+  
+  
+  size = self->mQueuedStreams.GetSize();
+  for (uint32_t count = 0; count < size; ++count) {
+    SpdyStream2 *stream =
+      static_cast<SpdyStream2 *>(self->mQueuedStreams.PopFront());
+    self->CloseStream(stream, NS_ERROR_NET_RESET);
+    self->mStreamTransactionHash.Remove(stream->Transaction());
+  }
+
+  LOG3(("SpdySession2::HandleGoAway %p GOAWAY Last-Good-ID 0x%X."
+        "live streams=%d\n", self, self->mGoAwayID,
+        self->mStreamTransactionHash.Count()));
   self->ResumeRecv();
   self->ResetDownstreamState();
   return NS_OK;

@@ -41,6 +41,8 @@ public:
     mFullyOpen = 1;
   }
 
+  bool HasRegisteredID() { return mStreamID != 0; }
+
   nsAHttpTransaction *Transaction()
   {
     return mTransaction;

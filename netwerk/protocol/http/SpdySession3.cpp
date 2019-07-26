@@ -96,10 +96,29 @@ SpdySession3::ShutdownEnumerator(nsAHttpTransaction *key,
   
   
   
-  if (self->mCleanShutdown && (stream->StreamID() > self->mGoAwayID))
+  
+  
+  if (self->mCleanShutdown &&
+      (stream->StreamID() > self->mGoAwayID || !stream->HasRegisteredID()))
     self->CloseStream(stream, NS_ERROR_NET_RESET); 
   else
     self->CloseStream(stream, NS_ERROR_ABORT);
+
+  return PL_DHASH_NEXT;
+}
+
+PLDHashOperator
+SpdySession3::GoAwayEnumerator(nsAHttpTransaction *key,
+                               nsAutoPtr<SpdyStream3> &stream,
+                               void *closure)
+{
+  SpdySession3 *self = static_cast<SpdySession3 *>(closure);
+
+  
+  
+  
+  if (stream->StreamID() > self->mGoAwayID || !stream->HasRegisteredID())
+    self->mGoAwayStreamsToRestart.Push(stream);
 
   return PL_DHASH_NEXT;
 }
@@ -300,7 +319,6 @@ SpdySession3::AddStream(nsAHttpTransaction *aHttpTransaction,
                                       &mUpstreamZlib,
                                       aPriority);
 
-  
   LOG3(("SpdySession3::AddStream session=%p stream=%p NextID=0x%X (tentative)",
         this, stream, mNextStreamID));
 
@@ -1253,10 +1271,39 @@ SpdySession3::HandleGoAway(SpdySession3 *self)
   self->mGoAwayID =
     PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[2]);
   self->mCleanShutdown = true;
+
   
-  LOG3(("SpdySession3::HandleGoAway %p GOAWAY Last-Good-ID 0x%X status 0x%X\n",
-        self, self->mGoAwayID, 
-        PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[3])));
+  
+  
+  self->mStreamTransactionHash.Enumerate(GoAwayEnumerator, self);
+
+  
+  uint32_t size = self->mGoAwayStreamsToRestart.GetSize();
+  for (uint32_t count = 0; count < size; ++count) {
+    SpdyStream3 *stream =
+      static_cast<SpdyStream3 *>(self->mGoAwayStreamsToRestart.PopFront());
+
+    self->CloseStream(stream, NS_ERROR_NET_RESET);
+    if (stream->HasRegisteredID())
+      self->mStreamIDHash.Remove(stream->StreamID());
+    self->mStreamTransactionHash.Remove(stream->Transaction());
+  }
+
+  
+  
+  
+  size = self->mQueuedStreams.GetSize();
+  for (uint32_t count = 0; count < size; ++count) {
+    SpdyStream3 *stream =
+      static_cast<SpdyStream3 *>(self->mQueuedStreams.PopFront());
+    self->CloseStream(stream, NS_ERROR_NET_RESET);
+    self->mStreamTransactionHash.Remove(stream->Transaction());
+  }
+
+  LOG3(("SpdySession3::HandleGoAway %p GOAWAY Last-Good-ID 0x%X status 0x%X "
+        "live streams=%d\n", self, self->mGoAwayID, 
+        PR_ntohl(reinterpret_cast<uint32_t *>(self->mInputFrameBuffer.get())[3]),
+        self->mStreamTransactionHash.Count()));
 
   self->ResumeRecv();
   self->ResetDownstreamState();
