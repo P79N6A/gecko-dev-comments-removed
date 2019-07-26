@@ -181,7 +181,9 @@ var ContextUI = {
 
   
   dismissNavbar: function dismissNavbar() {
-    Elements.navbar.dismiss();
+    if (!StartUI.isVisible) {
+      Elements.navbar.dismiss();
+    }
   },
 
   
