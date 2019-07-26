@@ -29,6 +29,7 @@ class TextCompositionArray;
 
 class nsIMEStateManager
 {
+  friend class nsTextStateManager;
 protected:
   typedef mozilla::widget::IMEState IMEState;
   typedef mozilla::widget::InputContext InputContext;
@@ -55,17 +56,6 @@ public:
   
 
   
-  
-  
-  
-  static nsresult OnTextStateBlur(nsPresContext* aPresContext,
-                                  nsIContent* aContent);
-  
-  
-  
-  static nsresult OnTextStateFocus(nsPresContext* aPresContext,
-                                   nsIContent* aContent);
-  
   static nsresult GetFocusSelectionAndRoot(nsISelection** aSel,
                                            nsIContent** aRoot);
   
@@ -83,6 +73,14 @@ public:
   static void OnClickInEditor(nsPresContext* aPresContext,
                               nsIContent* aContent,
                               nsIDOMMouseEvent* aMouseEvent);
+
+  
+  
+  
+  
+  
+  static void OnFocusInEditor(nsPresContext* aPresContext,
+                              nsIContent* aContent);
 
   
 
@@ -118,6 +116,12 @@ protected:
                                  nsIContent* aContent);
 
   static void EnsureTextCompositionArray();
+  static void CreateTextStateManager();
+  static void DestroyTextStateManager();
+
+  static bool IsEditable(nsINode* node);
+  static nsINode* GetRootEditableNode(nsPresContext* aPresContext,
+                                      nsIContent* aContent);
 
   static nsIContent*    sContent;
   static nsPresContext* sPresContext;
