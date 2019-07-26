@@ -108,7 +108,9 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, MoveO
     
     
     
-    if (kind == MoveOp::DOUBLE) {
+    switch (kind) {
+      case MoveOp::FLOAT32:
+      case MoveOp::DOUBLE:
         if (to.isMemory()) {
             FloatRegister temp = ScratchFloatReg;
             masm.ma_vldr(toOperand(to, true), temp);
@@ -116,7 +118,8 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, MoveO
         } else {
             masm.ma_vstr(to.floatReg(), cycleSlot());
         }
-    } else {
+        break;
+      case MoveOp::GENERAL:
         
         if (to.isMemory()) {
             Register temp = tempReg();
@@ -130,6 +133,9 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, MoveO
             }
             masm.ma_str(to.reg(), cycleSlot());
         }
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
     }
 }
 
@@ -142,7 +148,9 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
     
     
     
-    if (kind == MoveOp::DOUBLE) {
+    switch (kind) {
+      case MoveOp::FLOAT32:
+      case MoveOp::DOUBLE:
         if (to.isMemory()) {
             FloatRegister temp = ScratchFloatReg;
             masm.ma_vldr(cycleSlot(), temp);
@@ -150,7 +158,8 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
         } else {
             masm.ma_vldr(cycleSlot(), to.floatReg());
         }
-    } else {
+        break;
+      case MoveOp::GENERAL:
         if (to.isMemory()) {
             Register temp = tempReg();
             masm.ma_ldr(cycleSlot(), temp);
@@ -162,6 +171,9 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
             }
             masm.ma_ldr(cycleSlot(), to.reg());
         }
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
     }
 }
 
@@ -248,10 +260,17 @@ MoveEmitterARM::emit(const MoveOp &move)
         inCycle_ = true;
     }
 
-    if (move.kind() == MoveOp::DOUBLE)
+    switch (move.kind()) {
+      case MoveOp::FLOAT32:
+      case MoveOp::DOUBLE:
         emitDoubleMove(from, to);
-    else
+        break;
+      case MoveOp::GENERAL:
         emitMove(from, to);
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Unexpected move kind");
+    }
 }
 
 void
