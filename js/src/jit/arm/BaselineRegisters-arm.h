@@ -50,7 +50,7 @@ static MOZ_CONSTEXPR_VAR Register BaselineSecondScratchReg = r6;
 
 
 static MOZ_CONSTEXPR_VAR FloatRegister FloatReg0      = d0;
-static MOZ_CONSTEXPR_VAR FloatRegister FloatReg1      = d2;
+static MOZ_CONSTEXPR_VAR FloatRegister FloatReg1      = d1;
 
 } 
 } 
