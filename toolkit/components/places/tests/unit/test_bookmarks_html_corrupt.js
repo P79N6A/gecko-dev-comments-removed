@@ -21,8 +21,7 @@ var icos = Cc["@mozilla.org/browser/favicon-service;1"].
            getService(Ci.nsIFaviconService);
 var ps = Cc["@mozilla.org/preferences-service;1"].
          getService(Ci.nsIPrefBranch);
-var ies = Cc["@mozilla.org/browser/places/import-export-service;1"].
-          getService(Ci.nsIPlacesImportExportService);
+
 Cu.import("resource://gre/modules/BookmarkHTMLUtils.jsm");
 
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
@@ -33,61 +32,42 @@ const TEST_FAVICON_PAGE_URL = "http://en-US.www.mozilla.com/en-US/firefox/centra
 const TEST_FAVICON_DATA_SIZE = 580;
 
 function run_test() {
-  do_test_pending();
+  run_next_test();
+}
 
+add_task(function test_corrupt_file() {
   
   ps.setIntPref("browser.places.smartBookmarksVersion", -1);
 
   
-  var corruptBookmarksFile = do_get_file("bookmarks.corrupt.html");
-  try {
-    BookmarkHTMLUtils.importFromFile(corruptBookmarksFile, true, after_import);
-  } catch(ex) { do_throw("couldn't import corrupt bookmarks file: " + ex); }
-}
-
-function after_import(success) {
-  if (!success) {
-    do_throw("Couldn't import corrupt bookmarks file.");
-  }
+  yield BookmarkHTMLUtils.importFromFile(do_get_file("bookmarks.corrupt.html"),
+                                         true);
 
   
+  yield database_check();
+});
+
+add_task(function test_corrupt_database() {
   
-  database_check(function () {
-    
-    var corruptItemId = bs.insertBookmark(bs.toolbarFolder,
-                                          uri("http://test.mozilla.org"),
-                                          bs.DEFAULT_INDEX, "We love belugas");
-    var stmt = dbConn.createStatement("UPDATE moz_bookmarks SET fk = NULL WHERE id = :itemId");
-    stmt.params.itemId = corruptItemId;
-    stmt.execute();
-    stmt.finalize();
+  var corruptItemId = bs.insertBookmark(bs.toolbarFolder,
+                                        uri("http://test.mozilla.org"),
+                                        bs.DEFAULT_INDEX, "We love belugas");
+  var stmt = dbConn.createStatement("UPDATE moz_bookmarks SET fk = NULL WHERE id = :itemId");
+  stmt.params.itemId = corruptItemId;
+  stmt.execute();
+  stmt.finalize();
 
-    
-    var bookmarksFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-    bookmarksFile.append("bookmarks.exported.html");
-    if (bookmarksFile.exists())
-      bookmarksFile.remove(false);
-    bookmarksFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
-    if (!bookmarksFile.exists())
-      do_throw("couldn't create file: bookmarks.exported.html");
-    try {
-      ies.exportHTMLToFile(bookmarksFile);
-    } catch(ex) { do_throw("couldn't export to bookmarks.exported.html: " + ex); }
+  let bookmarksFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
+  bookmarksFile.append("bookmarks.exported.html");
+  if (bookmarksFile.exists())
+    bookmarksFile.remove(false);
+  yield BookmarkHTMLUtils.exportToFile(bookmarksFile);
 
-    
-    remove_all_bookmarks();
-
-    
-    try {
-    BookmarkHTMLUtils.importFromFile(bookmarksFile, true, before_database_check);
-    } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-  });
-}
-
-function before_database_check(success) {
   
-  database_check(do_test_finished);
-}
+  remove_all_bookmarks();
+  yield BookmarkHTMLUtils.importFromFile(bookmarksFile, true);
+  yield database_check();
+});
 
 
 
@@ -95,7 +75,8 @@ function before_database_check(success) {
 
 
 
-function database_check(aCallback) {
+
+function database_check() {
   
   var query = hs.getNewQuery();
   query.setFolders([bs.bookmarksMenuFolder], 1);
@@ -194,6 +175,7 @@ function database_check(aCallback) {
   unfiledBookmarks.containerOpen = false;
 
   
+  let deferred = Promise.defer();
   icos.getFaviconDataForPage(uri(TEST_FAVICON_PAGE_URL),
     function DC_onComplete(aURI, aDataLen, aData, aMimeType) {
       
@@ -202,6 +184,7 @@ function database_check(aCallback) {
       
       
       do_check_eq(TEST_FAVICON_DATA_SIZE, aDataLen);
-      aCallback();
+      deferred.resolve();
     });
+  return deferred.promise;
 }

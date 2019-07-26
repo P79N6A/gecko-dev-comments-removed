@@ -1,7 +1,61 @@
 
 
 
- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 this.EXPORTED_SYMBOLS = [ "BookmarkHTMLUtils" ];
 
 const Ci = Components.interfaces;
@@ -10,7 +64,9 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 
 const Container_Normal = 0;
 const Container_Toolbar = 1;
@@ -18,31 +74,72 @@ const Container_Menu = 2;
 const Container_Unfiled = 3;
 const Container_Places = 4;
 
-const RESTORE_BEGIN_NSIOBSERVER_TOPIC = "bookmarks-restore-begin";
-const RESTORE_SUCCESS_NSIOBSERVER_TOPIC = "bookmarks-restore-success";
-const RESTORE_FAILED_NSIOBSERVER_TOPIC = "bookmarks-restore-failed";
-const RESTORE_NSIOBSERVER_DATA = "html";
-const RESTORE_INITIAL_NSIOBSERVER_DATA = "html-initial";
-
 const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
-const POST_DATA_ANNO = "bookmarkProperties/POSTData";
+
+const MICROSEC_PER_SEC = 1000000;
+
+const EXPORT_INDENT = "    "; 
+
+#ifdef XP_WIN
+const EXPORT_NEWLINE = "\r\n";
+#elifdef XP_OS2
+const EXPORT_NEWLINE = "\r\n";
+#else
+const EXPORT_NEWLINE = "\n";
+#endif
 
 let serialNumber = 0; 
 
 this.BookmarkHTMLUtils = Object.freeze({
-  importFromURL: function importFromFile(aUrlString,
-                                         aInitialImport,
-                                         aCallback) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  importFromURL: function BHU_importFromURL(aUrlString, aInitialImport) {
     let importer = new BookmarkImporter(aInitialImport);
-    importer.importFromURL(aUrlString, aCallback);
+    return importer.importFromURL(aUrlString);
   },
 
-  importFromFile: function importFromFile(aLocalFile,
-                                          aInitialImport,
-                                          aCallback) {
+  
+
+
+
+
+
+
+
+
+
+
+
+  importFromFile: function BHU_importFromFile(aLocalFile, aInitialImport) {
     let importer = new BookmarkImporter(aInitialImport);
-    importer.importFromFile(aLocalFile, aCallback);
+    return importer.importFromURL(NetUtil.newURI(aLocalFile).spec);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  exportToFile: function BHU_exportToFile(aLocalFile) {
+    let exporter = new BookmarkExporter();
+    return exporter.exportToFile(aLocalFile);
   },
 });
 
@@ -404,7 +501,7 @@ BookmarkImporter.prototype = {
         PlacesUtils.bookmarks.setKeywordForBookmark(frame.previousId, keyword);
         if (postData) {
           PlacesUtils.annotations.setItemAnnotation(frame.previousId,
-                                                    POST_DATA_ANNO,
+                                                    PlacesUtils.POST_DATA_ANNO,
                                                     postData,
                                                     0,
                                                     PlacesUtils.annotations.EXPIRE_NEVER);
@@ -739,63 +836,336 @@ BookmarkImporter.prototype = {
   _notifyObservers: function notifyObservers(topic) {
     Services.obs.notifyObservers(null,
                                  topic,
-                                 this._isImportDefaults ?
-                                   RESTORE_INITIAL_NSIOBSERVER_DATA :
-                                   RESTORE_NSIOBSERVER_DATA);   
+                                 this._isImportDefaults ? "html-initial"
+                                                        : "html");
   },
 
   importFromURL: function importFromURL(aUrlString, aCallback) {
+    let deferred = Promise.defer();
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
     xhr.onload = (function onload() {
       try {
         this._walkTreeForImport(xhr.responseXML);
-        this._notifyObservers(RESTORE_SUCCESS_NSIOBSERVER_TOPIC);
-        if (aCallback) {
-          try {
-            aCallback(true);
-          } catch(ex) {
-          }
-        }
+        this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS);
+        deferred.resolve();
       } catch(e) {
-        this._notifyObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC);
-        if (aCallback) {
-          try {
-            aCallback(false);
-          } catch(ex) {
-          }
-        }
+        this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+        deferred.reject(e);
         throw e;
       }
     }).bind(this);
     xhr.onabort = xhr.onerror = xhr.ontimeout = (function handleFail() {
-      this._notifyObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC);
-      if (aCallback) {
-        try {
-          aCallback(false);
-        } catch(ex) {
-        }
-      }
+      this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+      deferred.reject(new Error("xmlhttprequest failed"));
     }).bind(this);
-    this._notifyObservers(RESTORE_BEGIN_NSIOBSERVER_TOPIC);
+    this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
     try {
       xhr.open("GET", aUrlString);
       xhr.responseType = "document";
       xhr.overrideMimeType("text/html");
       xhr.send();
     } catch (e) {
-      this._notifyObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC);
-      if (aCallback) {
+      this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+      deferred.reject(e);
+    }
+    return deferred.promise;
+  },
+
+};
+
+function BookmarkExporter() { }
+
+BookmarkExporter.prototype = {
+
+  
+
+
+
+  escapeHtml: function escapeHtml(aText) {
+    return (aText || "").replace("&", "&amp;", "g")
+                        .replace("<", "&lt;", "g")
+                        .replace(">", "&gt;", "g")
+                        .replace("\"", "&quot;", "g")
+                        .replace("'", "&#39;", "g");
+  },
+
+  
+
+
+
+  escapeUrl: function escapeUrl(aText) {
+    return (aText || "").replace("\"", "%22", "g");
+  },
+
+  exportToFile: function exportToFile(aLocalFile) {
+    let deferred = Promise.defer();
+    try {
+      this._doExportToFile(aLocalFile);
+      deferred.resolve();
+    } catch (ex) {
+      deferred.reject(ex);
+    }
+    return deferred.promise;
+  },
+
+  _doExportToFile: function doExportToFile(aLocalFile) {
+    
+    let safeFileOut = Cc["@mozilla.org/network/safe-file-output-stream;1"]
+                      .createInstance(Ci.nsIFileOutputStream);
+    safeFileOut.init(aLocalFile,
+                     FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE
+                                           | FileUtils.MODE_TRUNCATE,
+                     parseInt("0600", 8), 0);
+    try {
+      
+      let bufferedOut = Cc["@mozilla.org/network/buffered-output-stream;1"]
+                        .createInstance(Ci.nsIBufferedOutputStream);
+      bufferedOut.init(safeFileOut, 4096);
+      try {
+        
+        this._converterOut = Cc["@mozilla.org/intl/converter-output-stream;1"]
+                             .createInstance(Ci.nsIConverterOutputStream);
+        this._converterOut.init(bufferedOut, "utf-8", 0, 0);
         try {
-          aCallback(false);
-        } catch(ex) {
+          this._doExport();
+
+          
+          bufferedOut.QueryInterface(Ci.nsISafeOutputStream).finish();
+        } finally {
+          this._converterOut.close();
+          this._converterOut = null;
         }
+      } finally {
+        bufferedOut.close();
+      }
+    } finally {
+      safeFileOut.close();
+    }
+  },
+
+  _converterOut: null,
+
+  _write: function write(aText) {
+    this._converterOut.writeString(aText || "");
+  },
+
+  _writeLine: function writeLine(aText) {
+    this._write(aText + EXPORT_NEWLINE);
+  },
+
+  _doExport: function doExport() {
+    this._writeLine("<!DOCTYPE NETSCAPE-Bookmark-file-1>");
+    this._writeLine("<!-- This is an automatically generated file.");
+    this._writeLine("     It will be read and overwritten.");
+    this._writeLine("     DO NOT EDIT! -->");
+    this._writeLine("<META HTTP-EQUIV=\"Content-Type\"" +
+                    " CONTENT=\"text/html; charset=UTF-8\">");
+    this._writeLine("<TITLE>Bookmarks</TITLE>");
+
+    
+    let root = PlacesUtils.getFolderContents(
+                                    PlacesUtils.bookmarksMenuFolderId).root;
+    try {
+      this._writeLine("<H1>" + this.escapeHtml(root.title) + "</H1>");
+      this._writeLine("");
+      this._writeLine("<DL><p>");
+      this._writeContainerContents(root, "");
+    } finally {
+      root.containerOpen = false;
+    }
+
+    
+    root = PlacesUtils.getFolderContents(PlacesUtils.toolbarFolderId).root;
+    try {
+      if (root.childCount > 0) {
+        this._writeContainer(root, EXPORT_INDENT);
+      }
+    } finally {
+      root.containerOpen = false;
+    }
+
+    
+    root = PlacesUtils.getFolderContents(
+                                PlacesUtils.unfiledBookmarksFolderId).root;
+    try {
+      if (root.childCount > 0) {
+        this._writeContainer(root, EXPORT_INDENT);
+      }
+    } finally {
+      root.containerOpen = false;
+    }
+
+    this._writeLine("</DL><p>");
+  },
+
+  _writeContainer: function writeContainer(aItem, aIndent) {
+    this._write(aIndent + "<DT><H3");
+    this._writeDateAttributes(aItem);
+
+    if (aItem.itemId == PlacesUtils.placesRootId) {
+      this._write(" PLACES_ROOT=\"true\"");
+    } else if (aItem.itemId == PlacesUtils.bookmarksMenuFolderId) {
+      this._write(" BOOKMARKS_MENU=\"true\"");
+    } else if (aItem.itemId == PlacesUtils.unfiledBookmarksFolderId) {
+      this._write(" UNFILED_BOOKMARKS_FOLDER=\"true\"");
+    } else if (aItem.itemId == PlacesUtils.toolbarFolderId) {
+      this._write(" PERSONAL_TOOLBAR_FOLDER=\"true\"");
+    }
+
+    this._writeLine(">" + this.escapeHtml(aItem.title) + "</H3>");
+    this._writeDescription(aItem);
+    this._writeLine(aIndent + "<DL><p>");
+    this._writeContainerContents(aItem, aIndent);
+    this._writeLine(aIndent + "</DL><p>");
+  },
+
+  _writeContainerContents: function writeContainerContents(aItem, aIndent) {
+    let localIndent = aIndent + EXPORT_INDENT;
+
+    for (let i = 0; i < aItem.childCount; ++i) {
+      let child = aItem.getChild(i);
+      if (child.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER) {
+        
+        
+        if (PlacesUtils.annotations
+                       .itemHasAnnotation(child.itemId,
+                                          PlacesUtils.LMANNO_FEEDURI)) {
+          this._writeLivemark(child, localIndent);
+        } else {
+          
+          PlacesUtils.asContainer(child).containerOpen = true;
+          try {
+            this._writeContainer(child, localIndent);
+          } finally {
+            child.containerOpen = false;
+          }
+        }
+      } else if (child.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
+        this._writeSeparator(child, localIndent);
+      } else {
+        this._writeItem(child, localIndent);
       }
     }
   },
 
-  importFromFile: function importFromFile(aLocalFile, aCallback) {
-    let url = NetUtil.newURI(aLocalFile);
-    this.importFromURL(url.spec, aCallback);
+  _writeSeparator: function writeSeparator(aItem, aIndent) {
+    this._write(aIndent + "<HR");
+
+    
+    let title = null;
+    try {
+      title = PlacesUtils.bookmarks.getItemTitle(aItem.itemId);
+    } catch (ex) { }
+
+    if (title) {
+      this._write(" NAME=\"" + this.escapeHtml(title) + "\"");
+    }
+
+    this._write(">");
+  },
+
+  _writeLivemark: function writeLivemark(aItem, aIndent) {
+    this._write(aIndent + "<DT><A");
+    let feedSpec = PlacesUtils.annotations
+                              .getItemAnnotation(aItem.itemId,
+                                                 PlacesUtils.LMANNO_FEEDURI);
+    this._write(" FEEDURL=\"" + this.escapeUrl(feedSpec) + "\"");
+
+    
+    try {
+      let siteSpec = PlacesUtils.annotations
+                                .getItemAnnotation(aItem.itemId,
+                                                   PlacesUtils.LMANNO_SITEURI);
+      if (siteSpec) {
+        this._write(" HREF=\"" + this.escapeUrl(siteSpec) + "\"");
+      }
+    } catch (ex) { }
+
+    this._writeLine(">" + this.escapeHtml(aItem.title) + "</A>");
+    this._writeDescription(aItem);
+  },
+
+  _writeItem: function writeItem(aItem, aIndent) {
+    let itemUri = null;
+    try {
+      itemUri = NetUtil.newURI(aItem.uri);
+    } catch (ex) {
+      
+      return;
+    }
+
+    this._write(aIndent + "<DT><A HREF=\"" + this.escapeUrl(aItem.uri) + "\"");
+    this._writeDateAttributes(aItem);
+    this._writeFaviconAttribute(itemUri);
+
+    let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(aItem.itemId);
+    if (keyword) {
+      this._write(" SHORTCUTURL=\"" + this.escapeHtml(keyword) + "\"");
+    }
+
+    if (PlacesUtils.annotations.itemHasAnnotation(aItem.itemId,
+                                                  PlacesUtils.POST_DATA_ANNO)) {
+      let postData = PlacesUtils.annotations
+                                .getItemAnnotation(aItem.itemId,
+                                                   PlacesUtils.POST_DATA_ANNO);
+      this._write(" POST_DATA=\"" + this.escapeHtml(postData) + "\"");
+    }
+
+    if (PlacesUtils.annotations.itemHasAnnotation(aItem.itemId,
+                                                  LOAD_IN_SIDEBAR_ANNO)) {
+      this._write(" WEB_PANEL=\"true\"");
+    }
+
+    try {
+      let lastCharset = PlacesUtils.history.getCharsetForURI(itemUri);
+      if (lastCharset) {
+        this._write(" LAST_CHARSET=\"" + this.escapeHtml(lastCharset) + "\"");
+      }
+    } catch(ex) { }
+
+    this._writeLine(">" + this.escapeHtml(aItem.title) + "</A>");
+    this._writeDescription(aItem);
+  },
+
+  _writeDateAttributes: function writeDateAttributes(aItem) {
+    if (aItem.dateAdded) {
+      this._write(" ADD_DATE=\"" +
+                  Math.floor(aItem.dateAdded / MICROSEC_PER_SEC) + "\"");
+    }
+    if (aItem.lastModified) {
+      this._write(" LAST_MODIFIED=\"" +
+                  Math.floor(aItem.lastModified / MICROSEC_PER_SEC) + "\"");
+    }
+  },
+
+  _writeFaviconAttribute: function writeFaviconAttribute(aItemUri) {
+    let faviconURI = null;
+    try {
+      faviconURI = PlacesUtils.favicons.getFaviconForPage(aItemUri);
+    } catch (ex) {
+      return;
+    }
+
+    this._write(" ICON_URI=\"" + this.escapeUrl(faviconURI.spec) + "\"");
+
+    if (faviconURI.scheme != "chrome") {
+      let faviconContents =
+          PlacesUtils.favicons.getFaviconDataAsDataURL(faviconURI);
+      if (faviconContents) {
+        this._write(" ICON=\"" + faviconContents + "\"");
+      }
+    }
+  },
+
+  _writeDescription: function writeDescription(aItem) {
+    if (PlacesUtils.annotations.itemHasAnnotation(aItem.itemId,
+                                                  DESCRIPTION_ANNO)) {
+      let description = PlacesUtils.annotations
+                                   .getItemAnnotation(aItem.itemId,
+                                                      DESCRIPTION_ANNO);
+      
+      this._writeLine("<DD>" + this.escapeHtml(description));
+    }
   },
 
 };

@@ -267,12 +267,13 @@ this.MigratorPrototype = {
         browserGlue.observe(null, TOPIC_WILL_IMPORT_BOOKMARKS, "");
 
         
-        
+        let onImportComplete = function() {
+          browserGlue.observe(null, TOPIC_DID_IMPORT_BOOKMARKS, "");
+          doMigrate();
+        };
         BookmarkHTMLUtils.importFromURL(
-          "resource:///defaults/profile/bookmarks.html", true, function(a) {
-            browserGlue.observe(null, TOPIC_DID_IMPORT_BOOKMARKS, "");
-            doMigrate();
-          });
+          "resource:///defaults/profile/bookmarks.html", true).then(
+          onImportComplete, onImportComplete);
         return;
       }
     }

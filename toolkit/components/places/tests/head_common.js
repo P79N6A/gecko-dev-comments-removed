@@ -31,6 +31,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/promise/core.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
@@ -58,6 +60,33 @@ let gProfD = do_get_profile();
 
 clearDB();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function add_task(aTaskFn) {
+  function wrapperFn() {
+    Task.spawn(aTaskFn)
+        .then(run_next_test, do_report_unexpected_exception);
+  }
+  eval("add_test(function " + aTaskFn.name + "() wrapperFn());");
+}
 
 
 

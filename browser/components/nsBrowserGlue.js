@@ -24,6 +24,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "UserAgentOverrides",
                                   "resource://gre/modules/UserAgentOverrides.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 
@@ -1157,19 +1160,20 @@ BrowserGlue.prototype = {
       if (bookmarksURI) {
         
         try {
-          BookmarkHTMLUtils.importFromURL(bookmarksURI.spec, true, (function (success) {
-            if (success) {
+          BookmarkHTMLUtils.importFromURL(bookmarksURI.spec, true).then(null,
+            function onFailure() {
+              Cu.reportError("Bookmarks.html file could be corrupt.");
+            }
+          ).then(
+            function onComplete() {
               
               
               this._distributionCustomizer.applyBookmarks();
               
               
               this.ensurePlacesDefaultQueriesInitialized();
-            }
-            else {
-              Cu.reportError("Bookmarks.html file could be corrupt.");
-            }
-          }).bind(this));
+            }.bind(this)
+          );
         } catch (err) {
           Cu.reportError("Bookmarks.html file could be corrupt. " + err);
         }
@@ -1211,16 +1215,31 @@ BrowserGlue.prototype = {
 
     
     
-    var autoExportHTML = false;
     try {
-      autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML");
+      
+      if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
+        
+        
+        
+        
+        
+        
+        let shutdownComplete = false;
+        BookmarkHTMLUtils.exportToFile(FileUtils.getFile("BMarks", [])).then(
+          function onSuccess() {
+            shutdownComplete = true;
+          },
+          function onFailure() {
+            
+            shutdownComplete = true;
+          }
+        );
+        let thread = Services.tm.currentThread;
+        while (!shutdownComplete) {
+          thread.processNextEvent(true);
+        }
+      }
     } catch(ex) {  }
-
-    if (autoExportHTML) {
-      Cc["@mozilla.org/browser/places/import-export-service;1"].
-        getService(Ci.nsIPlacesImportExportService).
-        backupBookmarksFile();
-    }
   },
 
   
