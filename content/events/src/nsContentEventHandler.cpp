@@ -1006,12 +1006,23 @@ static void AdjustRangeForSelection(nsIContent* aRoot,
 {
   nsINode* node = *aNode;
   int32_t offset = *aOffset;
-  if (aRoot != node && node->GetParent() &&
-      !node->IsNodeOfType(nsINode::eTEXT)) {
-    node = node->GetParent();
-    offset = node->IndexOf(*aNode) + (offset ? 1 : 0);
+  if (aRoot != node && node->GetParent()) {
+    if (node->IsNodeOfType(nsINode::eTEXT)) {
+      
+      
+      
+      int32_t length = (int32_t)(static_cast<nsIContent*>(node)->TextLength());
+      MOZ_ASSERT(offset <= length, "Offset is past length of text node");
+      if (offset == length) {
+        node = node->GetParent();
+        offset = node->IndexOf(*aNode) + 1;
+      }
+    } else {
+      node = node->GetParent();
+      offset = node->IndexOf(*aNode) + (offset ? 1 : 0);
+    }
   }
-  
+
   nsIContent* brContent = node->GetChildAt(offset - 1);
   while (brContent && brContent->IsHTML()) {
     if (brContent->Tag() != nsGkAtoms::br || IsContentBR(brContent))
