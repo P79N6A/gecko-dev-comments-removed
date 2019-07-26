@@ -890,7 +890,7 @@ inline char** GetEnviron() {
 #  else
 
 
-extern "C" char** environ;
+extern "C" __attribute__ ((visibility ("default"))) char** environ;
 inline char** GetEnviron() { return environ; }
 #  endif  
 
