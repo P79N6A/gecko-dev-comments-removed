@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsinterp_h___
 #define jsinterp_h___
 
@@ -371,6 +372,10 @@ SetObjectElement(JSContext *cx, HandleObject obj, HandleValue index, HandleValue
 bool
 SetObjectElement(JSContext *cx, HandleObject obj, HandleValue index, HandleValue value,
                  JSBool strict, HandleScript script, jsbytecode *pc);
+
+bool
+InitElementArray(JSContext *cx, jsbytecode *pc,
+                 HandleObject obj, uint32_t index, HandleValue value);
 
 bool
 AddValues(JSContext *cx, HandleScript script, jsbytecode *pc,

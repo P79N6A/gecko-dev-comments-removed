@@ -4,6 +4,7 @@
 
 
 
+
 #include "IonBuilder.h"
 #include "MIRGraph.h"
 #include "Ion.h"
@@ -528,7 +529,7 @@ TypeAnalyzer::adjustPhiInputs(MPhi *phi)
         if (in->type() == MIRType_Value)
             continue;
 
-        if (in->isUnbox()) {
+        if (in->isUnbox() && phi->typeIncludes(in->toUnbox()->input())) {
             
             
             phi->replaceOperand(i, in->toUnbox()->input());
@@ -1271,8 +1272,8 @@ TryEliminateTypeBarrier(MTypeBarrier *barrier, bool *eliminated)
 {
     JS_ASSERT(!*eliminated);
 
-    const types::StackTypeSet *barrierTypes = barrier->typeSet();
-    const types::StackTypeSet *inputTypes = barrier->input()->typeSet();
+    const types::StackTypeSet *barrierTypes = barrier->resultTypeSet();
+    const types::StackTypeSet *inputTypes = barrier->input()->resultTypeSet();
 
     if (!barrierTypes || !inputTypes)
         return true;

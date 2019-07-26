@@ -4,10 +4,11 @@
 
 
 
+
 #ifndef jsion_type_policy_h__
 #define jsion_type_policy_h__
 
-#include "TypeOracle.h"
+#include "IonTypes.h"
 
 namespace js {
 namespace ion {
@@ -180,20 +181,6 @@ class MixPolicy : public TypePolicy
   public:
     static bool staticAdjustInputs(MInstruction *ins) {
         return Lhs::staticAdjustInputs(ins) && Rhs::staticAdjustInputs(ins);
-    }
-    virtual bool adjustInputs(MInstruction *ins) {
-        return staticAdjustInputs(ins);
-    }
-};
-
-
-template <class Policy1, class Policy2, class Policy3>
-class Mix3Policy : public TypePolicy
-{
-  public:
-    static bool staticAdjustInputs(MInstruction *ins) {
-        return Policy1::staticAdjustInputs(ins) && Policy2::staticAdjustInputs(ins) &&
-               Policy3::staticAdjustInputs(ins);
     }
     virtual bool adjustInputs(MInstruction *ins) {
         return staticAdjustInputs(ins);

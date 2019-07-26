@@ -4,6 +4,7 @@
 
 
 
+
 #include <stdio.h>
 
 #include "Ion.h"
@@ -172,7 +173,6 @@ class ParallelArrayVisitor : public MInstructionVisitor
     CUSTOM_OP(NewObject)
     CUSTOM_OP(NewCallObject)
     CUSTOM_OP(NewParallelArray)
-    UNSAFE_OP(InitElem)
     UNSAFE_OP(InitProp)
     SAFE_OP(Start)
     UNSAFE_OP(OsrEntry)
@@ -220,6 +220,7 @@ class ParallelArrayVisitor : public MInstructionVisitor
     UNSAFE_OP(CallsiteCloneCache)
     UNSAFE_OP(CallGetElement)
     UNSAFE_OP(CallSetElement)
+    UNSAFE_OP(CallInitElementArray)
     UNSAFE_OP(CallSetProperty)
     UNSAFE_OP(DeleteProperty)
     UNSAFE_OP(SetPropertyCache)
@@ -261,7 +262,6 @@ class ParallelArrayVisitor : public MInstructionVisitor
     SAFE_OP(PolyInlineDispatch)
     SAFE_OP(FunctionDispatch)
     SAFE_OP(TypeObjectDispatch)
-    SAFE_OP(IsCallable)
     UNSAFE_OP(EffectiveAddress)
     UNSAFE_OP(AsmJSUnsignedToDouble)
     UNSAFE_OP(AsmJSNeg)
@@ -506,6 +506,11 @@ ParallelArrayVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
     block->unmark();
 
     
+    jsbytecode *pc = block->pc();
+    if (!pc)
+        pc = block->pc();
+
+    
     
     
     
@@ -520,8 +525,7 @@ ParallelArrayVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
             continue;
 
         
-        MBasicBlock *bailBlock = MBasicBlock::NewParBailout(graph_, block->info(), pred,
-                                                            block->pc(), block->entryResumePoint());
+        MBasicBlock *bailBlock = MBasicBlock::NewParBailout(graph_, pred->info(), pred, pc);
         if (!bailBlock)
             return false;
 
@@ -768,8 +772,6 @@ GetPossibleCallees(JSContext *cx, HandleScript script, jsbytecode *pc,
 bool
 ParallelArrayVisitor::visitCall(MCall *ins)
 {
-    JS_ASSERT(ins->getSingleTarget() || ins->calleeTypes());
-
     
     if (ins->isDOMFunction()) {
         SpewMIR(ins, "call to dom function");
@@ -791,9 +793,12 @@ ParallelArrayVisitor::visitCall(MCall *ins)
         return markUnsafe();
     }
 
+    types::StackTypeSet *calleeTypes = ins->getFunction()->resultTypeSet();
+    JS_ASSERT(calleeTypes);
+
     RootedScript script(cx_, ins->block()->info().script());
     return GetPossibleCallees(cx_, script, ins->resumePoint()->pc(),
-                              ins->calleeTypes(), graph_);
+                              calleeTypes, graph_);
 }
 
 

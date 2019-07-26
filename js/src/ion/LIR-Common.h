@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_lir_common_h__
 #define jsion_lir_common_h__
 
@@ -476,26 +477,6 @@ class LParBailout : public LInstructionHelper<0, 0, 0>
 {
   public:
     LIR_HEADER(ParBailout);
-};
-
-class LInitElem : public LCallInstructionHelper<0, 1 + 2*BOX_PIECES, 0>
-{
-  public:
-    LIR_HEADER(InitElem)
-
-    LInitElem(const LAllocation &object) {
-        setOperand(0, object);
-    }
-
-    static const size_t IdIndex = 1;
-    static const size_t ValueIndex = 1 + BOX_PIECES;
-
-    const LAllocation *getObject() {
-        return getOperand(0);
-    }
-    MInitElem *mir() const {
-        return mir_->toInitElem();
-    }
 };
 
 
@@ -2178,15 +2159,14 @@ class LBinaryV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0>
 };
 
 
-class LConcat : public LInstructionHelper<1, 2, 1>
+class LConcat : public LCallInstructionHelper<1, 2, 0>
 {
   public:
     LIR_HEADER(Concat)
 
-    LConcat(const LAllocation &lhs, const LAllocation &rhs, const LDefinition &temp) {
+    LConcat(const LAllocation &lhs, const LAllocation &rhs) {
         setOperand(0, lhs);
         setOperand(1, rhs);
-        setTemp(0, temp);
     }
 
     const LAllocation *lhs() {
@@ -2194,9 +2174,6 @@ class LConcat : public LInstructionHelper<1, 2, 1>
     }
     const LAllocation *rhs() {
         return this->getOperand(1);
-    }
-    const LDefinition *temp() {
-        return this->getTemp(0);
     }
 };
 
@@ -2742,18 +2719,15 @@ class LLoadElementV : public LInstructionHelper<BOX_PIECES, 2, 0>
     }
 };
 
-class LInArray : public LInstructionHelper<1, 4, 0>
+class LInArray : public LInstructionHelper<1, 3, 0>
 {
   public:
     LIR_HEADER(InArray)
 
-    LInArray(const LAllocation &elements, const LAllocation &index,
-             const LAllocation &initLength, const LAllocation &object)
-    {
+    LInArray(const LAllocation &elements, const LAllocation &index, const LAllocation &initLength) {
         setOperand(0, elements);
         setOperand(1, index);
         setOperand(2, initLength);
-        setOperand(3, object);
     }
     const MInArray *mir() const {
         return mir_->toInArray();
@@ -2766,9 +2740,6 @@ class LInArray : public LInstructionHelper<1, 4, 0>
     }
     const LAllocation *initLength() {
         return getOperand(2);
-    }
-    const LAllocation *object() {
-        return getOperand(3);
     }
 };
 
@@ -3626,6 +3597,19 @@ class LCallSetElement : public LCallInstructionHelper<0, 1 + 2 * BOX_PIECES, 0>
 };
 
 
+class LCallInitElementArray : public LCallInstructionHelper<0, 1 + BOX_PIECES, 0>
+{
+public:
+    LIR_HEADER(CallInitElementArray)
+
+    static const size_t Value = 1;
+
+    const MCallInitElementArray *mir() const {
+        return mir_->toCallInitElementArray();
+    }
+};
+
+
 class LCallSetProperty : public LCallInstructionHelper<0, 1 + BOX_PIECES, 0>
 {
   public:
@@ -4094,22 +4078,6 @@ class LFunctionBoundary : public LInstructionHelper<0, 0, 1>
 
     unsigned inlineLevel() {
         return mir_->toFunctionBoundary()->inlineLevel();
-    }
-};
-
-class LIsCallable : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(IsCallable);
-    LIsCallable(const LAllocation &object) {
-        setOperand(0, object);
-    }
-
-    const LAllocation *object() {
-        return getOperand(0);
-    }
-    MIsCallable *mir() const {
-        return mir_->toIsCallable();
     }
 };
 

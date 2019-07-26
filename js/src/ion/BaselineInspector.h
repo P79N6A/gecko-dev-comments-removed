@@ -4,6 +4,7 @@
 
 
 
+
 #if !defined(jsion_baseline_inspector_h__) && defined(JS_ION)
 #define jsion_baseline_inspector_h__
 
@@ -94,6 +95,8 @@ class BaselineInspector
     SetElemICInspector setElemICInspector(jsbytecode *pc) {
         return makeICInspector<SetElemICInspector>(pc, ICStub::SetElem_Fallback);
     }
+
+    MIRType expectedResultType(jsbytecode *pc);
 };
 
 } 

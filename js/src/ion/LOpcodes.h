@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_lir_opcodes_common_h__
 #define jsion_lir_opcodes_common_h__
 
@@ -32,7 +33,6 @@
     _(ParNewDenseArray)             \
     _(ParNewCallObject)             \
     _(ParBailout)                   \
-    _(InitElem)                     \
     _(InitProp)                     \
     _(CheckOverRecursed)            \
     _(ParCheckOverRecursed)         \
@@ -178,6 +178,7 @@
     _(CallsiteCloneCache)           \
     _(CallGetElement)               \
     _(CallSetElement)               \
+    _(CallInitElementArray)         \
     _(CallSetProperty)              \
     _(CallDeleteProperty)           \
     _(SetPropertyCacheV)            \
@@ -207,7 +208,6 @@
     _(GetDOMProperty)               \
     _(SetDOMProperty)               \
     _(CallDOMNative)                \
-    _(IsCallable)                   \
     _(AsmJSLoadHeap)                \
     _(AsmJSStoreHeap)               \
     _(AsmJSLoadGlobalVar)           \

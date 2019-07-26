@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_lir_h__
 #define jsion_lir_h__
 
@@ -15,7 +16,6 @@
 #include "InlineList.h"
 #include "FixedArityList.h"
 #include "LOpcodes.h"
-#include "TypeOracle.h"
 #include "Registers.h"
 #include "MIR.h"
 #include "MIRGraph.h"

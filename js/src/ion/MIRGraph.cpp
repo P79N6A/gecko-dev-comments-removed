@@ -4,6 +4,7 @@
 
 
 
+
 #include "Ion.h"
 #include "IonSpewer.h"
 #include "MIR.h"
@@ -60,6 +61,27 @@ MIRGraph::insertBlockAfter(MBasicBlock *at, MBasicBlock *block)
     block->setId(blockIdGen_++);
     blocks_.insertAfter(at, block);
     numBlocks_++;
+}
+
+void
+MIRGraph::removeBlocksAfter(MBasicBlock *start)
+{
+    MBasicBlockIterator iter(begin());
+    iter++;
+    while (iter != end()) {
+        MBasicBlock *block = *iter;
+        iter++;
+
+        if (block->id() <= start->id())
+            continue;
+
+        if (block == osrBlock_)
+            osrBlock_ = NULL;
+        block->discardAllInstructions();
+        block->discardAllPhis();
+        block->markAsDead();
+        removeBlock(block);
+    }
 }
 
 void
@@ -161,21 +183,17 @@ MBasicBlock::NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred)
 
 MBasicBlock *
 MBasicBlock::NewParBailout(MIRGraph &graph, CompileInfo &info,
-                           MBasicBlock *pred, jsbytecode *entryPc,
-                           MResumePoint *resumePoint)
+                           MBasicBlock *pred, jsbytecode *entryPc)
 {
-    MBasicBlock *block = new MBasicBlock(graph, info, entryPc, NORMAL);
-
-    resumePoint->block_ = block;
-    block->entryResumePoint_ = resumePoint;
-
-    if (!block->init())
+    MBasicBlock *block = MBasicBlock::New(graph, info, pred, entryPc, NORMAL);
+    if (!block)
         return NULL;
 
-    if (!block->addPredecessorWithoutPhis(pred))
+    MParBailout *bailout = new MParBailout();
+    if (!bailout)
         return NULL;
 
-    block->end(new MParBailout());
+    block->end(bailout);
     return block;
 }
 
@@ -350,10 +368,12 @@ MBasicBlock::linkOsrValues(MStart *start)
 
     for (uint32_t i = 0; i < stackDepth(); i++) {
         MDefinition *def = slots_[i];
-        if (i == info().scopeChainSlot())
-            def->toOsrScopeChain()->setResumePoint(res);
-        else
+        if (i == info().scopeChainSlot()) {
+            if (def->isOsrScopeChain())
+                def->toOsrScopeChain()->setResumePoint(res);
+        } else {
             def->toOsrValue()->setResumePoint(res);
+        }
     }
 }
 
@@ -577,6 +597,31 @@ MBasicBlock::discardDefAt(MDefinitionIterator &old)
 }
 
 void
+MBasicBlock::discardAllInstructions()
+{
+    for (MInstructionIterator iter = begin(); iter != end(); ) {
+        for (size_t i = 0; i < iter->numOperands(); i++)
+            iter->discardOperand(i);
+        iter = instructions_.removeAt(iter);
+    }
+    lastIns_ = NULL;
+}
+
+void
+MBasicBlock::discardAllPhis()
+{
+    for (MPhiIterator iter = phisBegin(); iter != phisEnd(); ) {
+        MPhi *phi = *iter;
+        for (size_t i = 0; i < phi->numOperands(); i++)
+            phi->discardOperand(i);
+        iter = phis_.removeAt(iter);
+    }
+
+    for (MBasicBlock **pred = predecessors_.begin(); pred != predecessors_.end(); pred++)
+        (*pred)->setSuccessorWithPhis(NULL, 0);
+}
+
+void
 MBasicBlock::insertBefore(MInstruction *at, MInstruction *ins)
 {
     ins->setBlock(this);
@@ -725,7 +770,7 @@ MBasicBlock::dominates(MBasicBlock *other)
     return other->domIndex() >= low && other->domIndex() <= high;
 }
 
-bool
+AbortReason
 MBasicBlock::setBackedge(MBasicBlock *pred)
 {
     
@@ -735,6 +780,8 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
 
     
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
+
+    bool hadTypeChange = false;
 
     
     for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++) {
@@ -755,17 +802,30 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
             exitDef = entryDef->getOperand(0);
         }
 
-        if (!entryDef->addInputSlow(exitDef))
-            return false;
+        bool typeChange = false;
+
+        if (!entryDef->addInputSlow(exitDef, &typeChange))
+            return AbortReason_Alloc;
+
+        hadTypeChange |= typeChange;
 
         JS_ASSERT(entryDef->slot() < pred->stackDepth());
         setSlot(entryDef->slot(), entryDef);
     }
 
+    if (hadTypeChange) {
+        for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++)
+            phi->removeOperand(phi->numOperands() - 1);
+        return AbortReason_Disable;
+    }
+
     
     kind_ = LOOP_HEADER;
 
-    return predecessors_.append(pred);
+    if (!predecessors_.append(pred))
+        return AbortReason_Alloc;
+
+    return AbortReason_NoAbort;
 }
 
 void
@@ -887,6 +947,15 @@ MBasicBlock::inheritPhis(MBasicBlock *header)
         
         
         setSlot(phi->slot(), phi);
+    }
+}
+
+void
+MBasicBlock::specializePhis()
+{
+    for (MPhiIterator iter = phisBegin(); iter != phisEnd(); iter++) {
+        MPhi *phi = *iter;
+        phi->specializeType();
     }
 }
 

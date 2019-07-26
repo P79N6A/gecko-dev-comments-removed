@@ -5,6 +5,7 @@
 
 
 
+
 #ifndef jsion_mir_opcodes_h__
 #define jsion_mir_opcodes_h__
 
@@ -81,7 +82,6 @@ namespace ion {
     _(NewDeclEnvObject)                                                     \
     _(NewCallObject)                                                        \
     _(NewStringObject)                                                      \
-    _(InitElem)                                                             \
     _(InitProp)                                                             \
     _(Start)                                                                \
     _(OsrEntry)                                                             \
@@ -135,6 +135,7 @@ namespace ion {
     _(CallGetElement)                                                       \
     _(CallSetElement)                                                       \
     _(CallSetProperty)                                                      \
+    _(CallInitElementArray)                                                 \
     _(DeleteProperty)                                                       \
     _(SetPropertyCache)                                                     \
     _(IteratorStart)                                                        \
@@ -153,7 +154,6 @@ namespace ion {
     _(FunctionBoundary)                                                     \
     _(GetDOMProperty)                                                       \
     _(SetDOMProperty)                                                       \
-    _(IsCallable)                                                           \
     _(AsmJSNeg)                                                             \
     _(AsmJSUDiv)                                                            \
     _(AsmJSUMod)                                                            \

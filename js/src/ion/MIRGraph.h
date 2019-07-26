@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_mirgraph_h__
 #define jsion_mirgraph_h__
 
@@ -36,7 +37,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         NORMAL,
         PENDING_LOOP_HEADER,
         LOOP_HEADER,
-        SPLIT_EDGE
+        SPLIT_EDGE,
+        DEAD
     };
 
   private:
@@ -75,8 +77,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
                                              MBasicBlock *pred, jsbytecode *entryPc);
     static MBasicBlock *NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred);
     static MBasicBlock *NewParBailout(MIRGraph &graph, CompileInfo &info,
-                                      MBasicBlock *pred, jsbytecode *entryPc,
-                                      MResumePoint *resumePoint);
+                                      MBasicBlock *pred, jsbytecode *entryPc);
 
     bool dominates(MBasicBlock *other);
 
@@ -184,7 +185,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     
-    bool setBackedge(MBasicBlock *block);
+    
+    AbortReason setBackedge(MBasicBlock *block);
 
     
     
@@ -192,6 +194,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     void inheritPhis(MBasicBlock *header);
+
+    
+    void specializePhis();
 
     void insertBefore(MInstruction *at, MInstruction *ins);
     void insertAfter(MInstruction *at, MInstruction *ins);
@@ -208,9 +213,16 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     MInstructionIterator discardAt(MInstructionIterator &iter);
     MInstructionReverseIterator discardAt(MInstructionReverseIterator &iter);
     MDefinitionIterator discardDefAt(MDefinitionIterator &iter);
+    void discardAllInstructions();
+    void discardAllPhis();
 
     
     MPhiIterator discardPhiAt(MPhiIterator &at);
+
+    
+    void markAsDead() {
+        kind_ = DEAD;
+    }
 
     
     
@@ -301,6 +313,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     }
     bool isSplitEdge() const {
         return kind_ == SPLIT_EDGE;
+    }
+    bool isDead() const {
+        return kind_ == DEAD;
     }
 
     uint32_t stackDepth() const {
@@ -554,6 +569,7 @@ class MIRGraph
     ReversePostorderIterator rpoEnd() {
         return blocks_.end();
     }
+    void removeBlocksAfter(MBasicBlock *block);
     void removeBlock(MBasicBlock *block) {
         blocks_.remove(block);
         numBlocks_--;

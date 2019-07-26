@@ -437,6 +437,8 @@ class TypeSet
         : flags(0), objectSet(NULL), constraintList(NULL)
     {}
 
+    TypeSet(Type type);
+
     void print();
 
     inline void sweep(JS::Zone *zone);
@@ -468,7 +470,10 @@ class TypeSet
 
 
 
-    const StackTypeSet *clone(LifoAlloc *alloc) const;
+    StackTypeSet *clone(LifoAlloc *alloc) const;
+
+    
+    static StackTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
 
     
 
@@ -478,6 +483,12 @@ class TypeSet
 
     
     inline void setOwnProperty(JSContext *cx, bool configured);
+
+    
+
+
+
+    bool addObject(TypeObjectKey *key, LifoAlloc *alloc);
 
     
 
@@ -542,6 +553,9 @@ class StackTypeSet : public TypeSet
 {
   public:
 
+    StackTypeSet() : TypeSet() {}
+    StackTypeSet(Type type) : TypeSet(type) {}
+
     
 
 
@@ -576,6 +590,9 @@ class StackTypeSet : public TypeSet
 
     
     JSValueType getKnownTypeTag();
+
+    
+    bool mightBeType(JSValueType type);
 
     bool isMagicArguments() { return getKnownTypeTag() == JSVAL_TYPE_MAGIC; }
 
@@ -627,14 +644,6 @@ class StackTypeSet : public TypeSet
 
 
     bool knownNonStringPrimitive();
-
-    bool knownPrimitiveOrObject() {
-        TypeFlags flags = TYPE_FLAG_PRIMITIVE | TYPE_FLAG_ANYOBJECT;
-        if (baseFlags() & (~flags & TYPE_FLAG_BASE_MASK))
-            return false;
-
-        return true;
-    }
 
     enum DoubleConversion {
         
@@ -1192,12 +1201,6 @@ class TypeScript
     
     static inline StackTypeSet *SlotTypes(RawScript script, unsigned slot);
 
-#ifdef DEBUG
-    
-    static void CheckBytecode(JSContext *cx, HandleScript script, jsbytecode *pc,
-                              const js::Value *sp);
-#endif
-
     
     static inline TypeObject *StandardType(JSContext *cx, JSProtoKey kind);
 
@@ -1242,7 +1245,7 @@ class TypeScript
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg,
                                    const js::Value &value);
 
-    static void AddFreezeConstraints(JSContext *cx, HandleScript script);
+    static void AddFreezeConstraints(JSContext *cx, JSScript *script);
     static void Purge(JSContext *cx, HandleScript script);
 
     static void Sweep(FreeOp *fop, RawScript script);
