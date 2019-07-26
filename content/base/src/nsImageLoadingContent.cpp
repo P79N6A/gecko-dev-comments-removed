@@ -237,6 +237,11 @@ nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
 void
 nsImageLoadingContent::OnUnlockedDraw()
 {
+  if (mVisibleCount > 0) {
+    
+    return;
+  }
+
   nsPresContext* presContext = GetFramePresContext();
   if (!presContext)
     return;
@@ -395,6 +400,11 @@ nsImageLoadingContent::FrameCreated(nsIFrame* aFrame)
 {
   NS_ASSERTION(aFrame, "aFrame is null");
 
+  nsPresContext* presContext = aFrame->PresContext();
+  if (mVisibleCount == 0) {
+    presContext->PresShell()->EnsureImageInVisibleList(this);
+  }
+
   
   
   TrackImage(mCurrentRequest, SKIP_FRAME_CHECK);
@@ -402,8 +412,6 @@ nsImageLoadingContent::FrameCreated(nsIFrame* aFrame)
 
   
   
-  nsPresContext* presContext = aFrame->PresContext();
-
   if (mCurrentRequest) {
     nsLayoutUtils::RegisterImageRequestIfAnimated(presContext, mCurrentRequest,
                                                   &mCurrentRequestRegistered);

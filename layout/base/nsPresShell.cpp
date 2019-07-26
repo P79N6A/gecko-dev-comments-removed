@@ -5428,10 +5428,9 @@ PresShell::EnsureImageInVisibleList(nsIImageLoadingContent* aImage)
 #endif
 
   
-  if (mVisibleImages.Contains(aImage)) {
-    return;
-  }
-
+  
+  
+  MOZ_ASSERT(!mVisibleImages.Contains(aImage), "image already in the array");
   mVisibleImages.AppendElement(aImage);
   aImage->IncrementVisibleCount();
 }
