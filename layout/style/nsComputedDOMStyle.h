@@ -327,6 +327,7 @@ private:
   mozilla::dom::CSSValue* DoGetOpacity();
   mozilla::dom::CSSValue* DoGetPointerEvents();
   mozilla::dom::CSSValue* DoGetVisibility();
+  mozilla::dom::CSSValue* DoGetWritingMode();
 
   
   mozilla::dom::CSSValue* DoGetDirection();

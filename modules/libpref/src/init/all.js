@@ -1773,6 +1773,9 @@ pref("layout.css.scope-pseudo.enabled", true);
 #endif
 
 
+pref("layout.css.vertical-text.enabled", false);
+
+
 
 
 

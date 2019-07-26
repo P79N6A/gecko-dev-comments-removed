@@ -1370,6 +1370,7 @@ struct nsStyleVisibility {
   uint8_t mDirection;                  
   uint8_t mVisible;                    
   uint8_t mPointerEvents;              
+  uint8_t mWritingMode;                
 
   bool IsVisible() const {
     return (mVisible == NS_STYLE_VISIBILITY_VISIBLE);
