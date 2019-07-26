@@ -535,17 +535,7 @@ var SelectionHandler = {
     this._contentWindow = contentWindow;
     this._contentOffset = offset;
     this._domWinUtils = utils;
-    this._targetIsEditable = false;
-    if (this._isTextInput(this._targetElement)) {
-      this._targetIsEditable = true;
-      
-      
-      
-      
-      
-      
-      this._targetElement.focus();
-    }
+    this._targetIsEditable = this._isTextInput(this._targetElement);
     return true;
   },
 
