@@ -7,8 +7,8 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-const { DevToolsLoader, devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-const worker = new DevToolsLoader(); 
+const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const { worker } = Cu.import("resource://gre/modules/devtools/worker-loader.js", {})
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const Services = devtools.require("Services");
@@ -96,17 +96,7 @@ let listener = {
     while (DebuggerServer.xpcInspector.eventLoopNestLevel > 0) {
       DebuggerServer.xpcInspector.exitNestedEventLoop();
     }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    dump("head_dbg.js observed a console message: " + string + "\n");
+    do_throw("head_dbg.js got console message: " + string + "\n");
   }
 };
 
