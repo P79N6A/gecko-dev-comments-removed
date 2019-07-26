@@ -792,6 +792,16 @@ var SelectionHelperUI = {
 
 
 
+   urlbarClick: function() {
+    
+    
+    
+    Browser.selectedTab.browser.messageManager.sendAsyncMessage("Browser:ResetLastPos", {
+      xPos: null,
+      yPos: null
+    });
+   },
+
   
 
 
