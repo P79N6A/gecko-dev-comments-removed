@@ -130,8 +130,7 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
         
         
         UnrootedScript script = iter.script();
-        if (!script->hasAnyIonScript())
-            ion::ForbidCompilation(cx, script);
+        ion::ForbidCompilation(cx, script);
 #endif
 
         vp.setObject(*argsobj);
