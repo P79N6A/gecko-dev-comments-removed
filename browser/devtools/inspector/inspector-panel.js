@@ -163,10 +163,17 @@ InspectorPanel.prototype = {
       return this._defaultNode;
     }
     let walker = this.walker;
+    let rootNode = null;
 
     
     
-    return walker.getRootNode().then(rootNode => {
+    return walker.getRootNode().then(aRootNode => {
+      rootNode = aRootNode;
+      return walker.querySelector(aRootNode, this.selectionCssSelector);
+    }).then(front => {
+      if (front) {
+        return front;
+      }
       return walker.querySelector(rootNode, "body");
     }).then(front => {
       if (front) {
@@ -179,7 +186,7 @@ InspectorPanel.prototype = {
       }
       this._defaultNode = node;
       return node;
-    })
+    });
   },
 
   
@@ -288,8 +295,7 @@ InspectorPanel.prototype = {
   
 
 
-  onNavigatedAway: function InspectorPanel_onNavigatedAway(event, payload) {
-    let newWindow = payload._navPayload || payload;
+  onNavigatedAway: function InspectorPanel_onNavigatedAway() {
     this._defaultNode = null;
     this.selection.setNodeFront(null);
     this._destroyMarkup();
@@ -309,21 +315,57 @@ InspectorPanel.prototype = {
     });
   },
 
+  _selectionCssSelector: null,
+
   
 
 
-  onNewSelection: function InspectorPanel_onNewSelection() {
+
+
+  set selectionCssSelector(cssSelector) {
+    this._selectionCssSelector = {
+      selector: cssSelector,
+      url: this._target.url
+    };
+  },
+
+  
+
+
+
+  get selectionCssSelector() {
+    if (this._selectionCssSelector &&
+        this._selectionCssSelector.url === this._target.url) {
+      return this._selectionCssSelector.selector;
+    } else {
+      return null;
+    }
+  },
+
+  
+
+
+  onNewSelection: function InspectorPanel_onNewSelection(event, value, reason) {
     this.cancelLayoutChange();
 
     
     
     let selection = this.selection.nodeFront;
+
+    
+    
+    if (reason !== "navigateaway" &&
+        this.selection.node &&
+        this.selection.isElementNode()) {
+      this.selectionCssSelector = CssLogic.findCssSelector(this.selection.node);
+    }
+
     let selfUpdate = this.updating("inspector-panel");
     Services.tm.mainThread.dispatch(() => {
       try {
         selfUpdate(selection);
       } catch(ex) {
-        console.error(ex)
+        console.error(ex);
       }
     }, Ci.nsIThread.DISPATCH_NORMAL);
   },
@@ -360,7 +402,7 @@ InspectorPanel.prototype = {
           self._updateProgress = null;
           self.emit("inspector-updated");
         },
-      }
+      };
     }
 
     let progress = this._updateProgress;
@@ -713,9 +755,8 @@ InspectorPanel.prototype = {
       this.panelWin.clearTimeout(this._timer);
       delete this._timer;
     }
-  },
-
-}
+  }
+};
 
 
 
