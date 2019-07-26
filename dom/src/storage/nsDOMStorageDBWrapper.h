@@ -173,7 +173,7 @@ public:
 
 
 
-  static nsresult CreateScopeDBKey(nsIURI* aUri, nsACString& aKey);
+  static nsresult CreateScopeDBKey(nsIPrincipal* aPrincipal, nsACString& aKey);
 
   
 
@@ -187,8 +187,19 @@ public:
 
 
 
-  static nsresult CreateQuotaDBKey(const nsACString& aAsciiDomain,
+  static nsresult CreateQuotaDBKey(nsIPrincipal* aPrincipal,
                                    nsACString& aKey);
+
+  
+
+
+
+
+  static nsresult CreateQuotaDBKey(const nsACString& aDomain,
+                                   nsACString& aKey)
+  {
+    return CreateReversedDomain(aDomain, aKey);
+  }
 
   
 

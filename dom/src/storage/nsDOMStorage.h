@@ -109,8 +109,8 @@ public:
   DOMStorageBase();
   DOMStorageBase(DOMStorageBase&);
 
-  virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aPrivate);
+  virtual void InitAsSessionStorage(nsIPrincipal* aPrincipal, bool aPrivate);
+  virtual void InitAsLocalStorage(nsIPrincipal* aPrincipal, bool aPrivate);
 
   virtual nsTArray<nsString>* GetKeys(bool aCallerSecure) = 0;
   virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength) = 0;
@@ -191,9 +191,6 @@ protected:
   bool mSessionOnly;
 
   
-  nsCString mDomain;
-
-  
   
   nsCString mScopeDBKey;
   nsCString mQuotaDBKey;
@@ -212,9 +209,6 @@ public:
   DOMStorageImpl(nsDOMStorage*);
   DOMStorageImpl(nsDOMStorage*, DOMStorageImpl&);
   ~DOMStorageImpl();
-
-  virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aPrivate);
 
   bool SessionOnly() {
     return mSessionOnly;
@@ -281,7 +275,7 @@ private:
   
   
   void InitFromChild(bool aUseDB, bool aSessionOnly,
-                     bool aPrivate, const nsACString& aDomain,
+                     bool aPrivate,
                      const nsACString& aScopeDBKey,
                      const nsACString& aQuotaDBKey,
                      uint32_t aStorageType);
