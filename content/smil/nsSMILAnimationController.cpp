@@ -137,16 +137,16 @@ nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
 
   nsSMILTime elapsedTime =
     (nsSMILTime)(aTime - mCurrentSampleTime).ToMilliseconds();
-  
   if (mAvgTimeBetweenSamples == 0) {
+    
     mAvgTimeBetweenSamples = elapsedTime;
-  
-  } else if (elapsedTime > SAMPLE_DEV_THRESHOLD * mAvgTimeBetweenSamples) {
-    NS_WARNING("Detected really long delay between samples, continuing from "
-               "previous sample");
-    mParentOffset += elapsedTime - mAvgTimeBetweenSamples;
-  
   } else {
+    if (elapsedTime > SAMPLE_DEV_THRESHOLD * mAvgTimeBetweenSamples) {
+      
+      NS_WARNING("Detected really long delay between samples, continuing from "
+                 "previous sample");
+      mParentOffset += elapsedTime - mAvgTimeBetweenSamples;
+    }
     
     
     mAvgTimeBetweenSamples =
