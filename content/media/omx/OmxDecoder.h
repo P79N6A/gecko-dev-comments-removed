@@ -10,7 +10,6 @@
 #include "GonkNativeWindow.h"
 #include "GonkNativeWindowClient.h"
 #include "GrallocImages.h"
-#include "mozilla/layers/FenceUtils.h"
 #include "MP3FrameParser.h"
 #include "MPAPI.h"
 #include "MediaResource.h"
@@ -84,7 +83,6 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
   typedef mozilla::MP3FrameParser MP3FrameParser;
   typedef mozilla::MediaResource MediaResource;
   typedef mozilla::AbstractMediaDecoder AbstractMediaDecoder;
-  typedef mozilla::layers::FenceHandle FenceHandle;
 
   enum {
     kPreferSoftwareCodecs = 1,
@@ -124,26 +122,11 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
   MediaBuffer *mVideoBuffer;
   MediaBuffer *mAudioBuffer;
 
-  struct BufferItem {
-    BufferItem()
-     : mMediaBuffer(nullptr)
-    {
-    }
-    BufferItem(MediaBuffer* aMediaBuffer, const FenceHandle& aReleaseFenceHandle)
-     : mMediaBuffer(aMediaBuffer)
-     , mReleaseFenceHandle(aReleaseFenceHandle) {
-    }
-
-    MediaBuffer* mMediaBuffer;
-    
-    FenceHandle mReleaseFenceHandle;
-  };
-
   
   
   
   
-  Vector<BufferItem> mPendingVideoBuffers;
+  Vector<MediaBuffer *> mPendingVideoBuffers;
   
   Mutex mPendingVideoBuffersLock;
 
@@ -252,7 +235,7 @@ public:
   void Pause();
 
   
-  void PostReleaseVideoBuffer(MediaBuffer *aBuffer, const FenceHandle& aReleaseFenceHandle);
+  void PostReleaseVideoBuffer(MediaBuffer *aBuffer);
   
   
   void onMessageReceived(const sp<AMessage> &msg);

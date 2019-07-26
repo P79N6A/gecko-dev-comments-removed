@@ -75,9 +75,6 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
     return true;
   }
 
-  
-  ClearPrevFenceHandles();
-
   EditReplyVector replyv;
   for (EditArray::index_type i = 0; i < aEdits.Length(); ++i) {
     ReceiveCompositableUpdate(aEdits[i], replyv);

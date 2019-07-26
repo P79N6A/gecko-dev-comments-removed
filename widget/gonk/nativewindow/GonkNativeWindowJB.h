@@ -116,7 +116,7 @@ class GonkNativeWindow: public GonkConsumerBase
 
     
     
-    bool returnBuffer(uint32_t index, uint32_t generation, const sp<Fence>& fence);
+    bool returnBuffer(uint32_t index, uint32_t generation);
 
     SurfaceDescriptor* getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
 
@@ -157,7 +157,22 @@ public:
 protected:
     
     
-    virtual void Unlock() MOZ_OVERRIDE;
+    virtual void Unlock() MOZ_OVERRIDE
+    {
+        if (mLocked) {
+            
+            
+            sp<GonkNativeWindow> window = mNativeWindow.promote();
+            if (window.get() && window->returnBuffer(mIndex, mGeneration)) {
+                mLocked = false;
+            } else {
+                
+                
+                ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
+                ibc->DeallocSurfaceDescriptorGralloc(mSurfaceDescriptor);
+            } 
+        }
+    }
 
 protected:
     wp<GonkNativeWindow> mNativeWindow;

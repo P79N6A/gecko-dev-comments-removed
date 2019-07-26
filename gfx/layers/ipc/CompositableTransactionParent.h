@@ -16,8 +16,6 @@
 namespace mozilla {
 namespace layers {
 
-class CompositableHost;
-
 typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 
 
@@ -39,14 +37,6 @@ protected:
 
 
   virtual bool IsAsync() const { return false; }
-
-  void ReturnTextureDataIfNecessary(CompositableHost* aCompositable,
-                                    EditReplyVector& replyv,
-                                    PCompositableParent* aParent);
-  void ClearPrevFenceHandles();
-
-protected:
-  std::vector<FenceHandle> mPrevFenceHandles;
 };
 
 } 

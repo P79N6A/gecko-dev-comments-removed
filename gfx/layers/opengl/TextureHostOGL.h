@@ -32,9 +32,6 @@
 #include "OGLShaderProgram.h"           
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
-#if ANDROID_VERSION >= 18
-#include <ui/Fence.h>
-#endif
 #endif
 
 class gfxImageSurface;
@@ -118,29 +115,6 @@ public:
   virtual gfx::Matrix4x4 GetTextureTransform() { return gfx::Matrix4x4(); }
 
   virtual TextureImageDeprecatedTextureHostOGL* AsTextureImageDeprecatedTextureHost() { return nullptr; }
-};
-
-
-
-
-class TextureHostOGL
-{
-public:
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 18
-
-  
-
-
-
-  virtual bool SetReleaseFence(const android::sp<android::Fence>& aReleaseFence);
-
-  
-
-
-  virtual android::sp<android::Fence> GetAndResetReleaseFence();
-protected:
-  android::sp<android::Fence> mReleaseFence;
-#endif
 };
 
 
