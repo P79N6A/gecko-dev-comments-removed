@@ -1789,10 +1789,10 @@ GetPrevContinuationWithPossiblySameStyle(nsIFrame* aFrame)
     
     
     prevContinuation = static_cast<nsIFrame*>(
-      aFrame->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+      aFrame->Properties().Get(nsIFrame::IBSplitPrevSibling()));
     if (prevContinuation) {
       prevContinuation = static_cast<nsIFrame*>(
-        prevContinuation->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+        prevContinuation->Properties().Get(nsIFrame::IBSplitPrevSibling()));
     }
   }
 
