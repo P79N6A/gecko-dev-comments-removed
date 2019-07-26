@@ -59,7 +59,7 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
   
   
   
-  LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
+  ShadowLayerManager::PlatformSyncBeforeReplyUpdate();
 
   return true;
 }
