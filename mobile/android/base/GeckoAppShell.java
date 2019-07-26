@@ -2155,11 +2155,6 @@ public class GeckoAppShell
         ((SurfaceTexture)surfaceTexture).setOnFrameAvailableListener(null);
     }
 
-    public static void notifyCheckUpdateResult(boolean result) {
-        if (GeckoApp.mAppContext != null)
-            GeckoApp.mAppContext.notifyCheckUpdateResult(result);
-    }
-
     public static boolean unlockProfile() {
         
         GeckoAppShell.killAnyZombies();
