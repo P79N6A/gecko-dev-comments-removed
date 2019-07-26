@@ -280,7 +280,7 @@ nsSVGMarkerProperty::DoUpdate()
   if (!(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
     
     
-    nsSVGUtils::InvalidateBounds(mFrame, false);
+    nsSVGEffects::InvalidateRenderingObservers(mFrame);
     
     nsSVGUtils::ScheduleReflowSVG(mFrame);
   }
@@ -337,7 +337,8 @@ nsSVGPaintingProperty::DoUpdate()
     return;
 
   if (mFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
-    nsSVGUtils::InvalidateBounds(mFrame);
+    nsSVGEffects::InvalidateRenderingObservers(mFrame);
+    mFrame->InvalidateFrameSubtree();
   } else {
     InvalidateAllContinuations(mFrame);
   }
