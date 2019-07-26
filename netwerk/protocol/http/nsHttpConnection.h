@@ -17,16 +17,13 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIInterfaceRequestor.h"
 
-class nsHttpRequestHead;
-class nsHttpResponseHead;
-class nsHttpHandler;
 class nsISocketTransport;
 
 namespace mozilla {
 namespace net {
+
+class nsHttpHandler;
 class ASpdySession;
-}
-}
 
 
 
@@ -213,7 +210,7 @@ private:
 
     nsRefPtr<nsHttpHandler>         mHttpHandler; 
 
-    mozilla::Mutex                  mCallbacksLock;
+    Mutex                           mCallbacksLock;
     nsMainThreadPtrHandle<nsIInterfaceRequestor> mCallbacks;
 
     nsRefPtr<nsHttpConnectionInfo> mConnInfo;
@@ -266,7 +263,7 @@ private:
     
     uint8_t                         mUsingSpdyVersion;
 
-    nsRefPtr<mozilla::net::ASpdySession> mSpdySession;
+    nsRefPtr<ASpdySession>          mSpdySession;
     int32_t                         mPriority;
     bool                            mReportedSpdy;
 
@@ -281,5 +278,7 @@ private:
 
     bool                            mResponseTimeoutEnabled;
 };
+
+}} 
 
 #endif 

@@ -10,6 +10,8 @@
 #include "nsHttpHeaderArray.h"
 #include "nsString.h"
 
+namespace mozilla { namespace net {
+
 
 
 
@@ -68,5 +70,7 @@ private:
     nsHttpVersion     mVersion;
     nsCString         mRequestURI;
 };
+
+}} 
 
 #endif 

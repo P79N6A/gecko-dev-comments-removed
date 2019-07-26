@@ -18,6 +18,8 @@ extern PRLogModuleInfo *gHttpLog;
 
 
 
+namespace mozilla { namespace net {
+
 class nsHttpConnectionInfo
 {
 public:
@@ -91,5 +93,7 @@ private:
 
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsHttpConnectionInfo)
 };
+
+}} 
 
 #endif

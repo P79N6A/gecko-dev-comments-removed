@@ -20,16 +20,12 @@
 #include "nsIObserver.h"
 #include "nsITimer.h"
 
-class nsHttpPipeline;
-
 class nsIHttpUpgradeListener;
 
 namespace mozilla {
 namespace net {
 class EventTokenBucket;
 struct HttpRetParams;
-}
-}
 
 
 
@@ -130,7 +126,7 @@ public:
 
     
     
-    nsresult UpdateRequestTokenBucket(mozilla::net::EventTokenBucket *aBucket);
+    nsresult UpdateRequestTokenBucket(EventTokenBucket *aBucket);
 
     
 
@@ -231,7 +227,7 @@ public:
 
     bool     SupportsPipelining(nsHttpConnectionInfo *);
 
-    bool GetConnectionData(nsTArray<mozilla::net::HttpRetParams> *);
+    bool GetConnectionData(nsTArray<HttpRetParams> *);
 
     void ResetIPFamilyPreference(nsHttpConnectionInfo *);
 
@@ -328,7 +324,7 @@ private:
         int16_t                   mPipeliningClassPenalty[nsAHttpTransaction::CLASS_MAX];
 
         
-        mozilla::TimeStamp        mLastCreditTime;
+        TimeStamp        mLastCreditTime;
 
         
         
@@ -344,7 +340,7 @@ private:
         
         
         uint32_t            mSpdyCWND;
-        mozilla::TimeStamp  mSpdyCWNDTimeStamp;
+        TimeStamp  mSpdyCWNDTimeStamp;
 
         
         
@@ -424,7 +420,7 @@ private:
         void     SetupBackupTimer();
         void     CancelBackupTimer();
         void     Abandon();
-        double   Duration(mozilla::TimeStamp epoch);
+        double   Duration(TimeStamp epoch);
         nsISocketTransport *SocketTransport() { return mSocketTransport; }
         nsISocketTransport *BackupTransport() { return mBackupTransport; }
 
@@ -453,8 +449,8 @@ private:
         
         bool                           mSpeculative;
 
-        mozilla::TimeStamp             mPrimarySynStarted;
-        mozilla::TimeStamp             mBackupSynStarted;
+        TimeStamp             mPrimarySynStarted;
+        TimeStamp             mBackupSynStarted;
 
         
         nsCOMPtr<nsITimer>             mSynTimer;
@@ -470,7 +466,7 @@ private:
     
     
 
-    mozilla::ReentrantMonitor    mReentrantMonitor;
+    ReentrantMonitor    mReentrantMonitor;
     nsCOMPtr<nsIEventTarget>     mSocketThreadTarget;
 
     
@@ -661,5 +657,7 @@ private:
                                               void *closure);
     nsCString mLogData;
 };
+
+}} 
 
 #endif 

@@ -7,6 +7,8 @@
 
 #include "nsIHttpAuthenticator.h"
 
+namespace mozilla { namespace net {
+
 class nsHttpNTLMAuth : public nsIHttpAuthenticator
 {
 public:
@@ -21,5 +23,7 @@ private:
     
     bool  mUseNative;
 };
+
+}} 
 
 #endif 

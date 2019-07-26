@@ -28,8 +28,6 @@ namespace net {
         SPDY_VERSION_3 = 3,
         SPDY_VERSION_31 = 4
     };
-} 
-} 
 
 typedef uint8_t nsHttpVersion;
 
@@ -105,7 +103,7 @@ struct nsHttp
     
     
     
-    static mozilla::Mutex *GetLock();
+    static Mutex *GetLock();
 
     
     static nsHttpAtom ResolveAtom(const char *);
@@ -188,5 +186,8 @@ PRTimeToSeconds(PRTime t_usec)
 
 #define HTTP_LWS " \t"
 #define HTTP_HEADER_VALUE_SEPS HTTP_LWS ","
+
+} 
+} 
 
 #endif 

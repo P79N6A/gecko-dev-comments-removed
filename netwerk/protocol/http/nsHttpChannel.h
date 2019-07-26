@@ -25,10 +25,8 @@
 #include "AutoClose.h"
 #include "mozilla/Telemetry.h"
 
-class nsAHttpConnection;
 class nsIPrincipal;
 class nsDNSPrefetch;
-class nsHttpTransaction;
 class nsICacheEntryDescriptor;
 class nsICancelable;
 class nsIHttpChannelAuthProvider;
@@ -402,10 +400,10 @@ private:
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
     PRTime                            mChannelCreationTime;
-    mozilla::TimeStamp                mChannelCreationTimestamp;
-    mozilla::TimeStamp                mAsyncOpenTime;
-    mozilla::TimeStamp                mCacheReadStart;
-    mozilla::TimeStamp                mCacheReadEnd;
+    TimeStamp                         mChannelCreationTimestamp;
+    TimeStamp                         mAsyncOpenTime;
+    TimeStamp                         mCacheReadStart;
+    TimeStamp                         mCacheReadEnd;
     
     
     TimingStruct                      mTransactionTimings;

@@ -11,6 +11,9 @@
 #include "nsURLHelper.h"
 #include "nsIHttpHeaderVisitor.h"
 
+namespace mozilla {
+namespace net {
+
 
 
 
@@ -212,3 +215,6 @@ nsHttpHeaderArray::Clear()
 {
     mHeaders.Clear();
 }
+
+} 
+} 

@@ -10,6 +10,8 @@
 #include "nsHttp.h"
 #include "nsString.h"
 
+namespace mozilla { namespace net {
+
 
 
 
@@ -132,5 +134,6 @@ private:
 
     friend struct IPC::ParamTraits<nsHttpResponseHead>;
 };
+}} 
 
 #endif 

@@ -20,6 +20,9 @@
 extern PRThread *gSocketThread;
 #endif
 
+namespace mozilla {
+namespace net {
+
 
 
 
@@ -901,3 +904,6 @@ nsHttpPipeline::FillSendBuf()
     }
     return NS_OK;
 }
+
+} 
+} 

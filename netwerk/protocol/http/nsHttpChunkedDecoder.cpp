@@ -9,6 +9,9 @@
 #include "nsHttpChunkedDecoder.h"
 #include <algorithm>
 
+namespace mozilla {
+namespace net {
+
 
 
 
@@ -146,3 +149,6 @@ nsHttpChunkedDecoder::ParseChunkRemaining(char *buf,
 
     return NS_OK;
 }
+
+} 
+} 

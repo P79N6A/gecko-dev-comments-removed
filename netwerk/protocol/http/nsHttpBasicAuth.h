@@ -8,6 +8,8 @@
 
 #include "nsIHttpAuthenticator.h"
 
+namespace mozilla { namespace net {
+
 
 
 
@@ -22,5 +24,7 @@ public:
 	nsHttpBasicAuth();
 	virtual ~nsHttpBasicAuth();
 };
+
+}} 
 
 #endif 

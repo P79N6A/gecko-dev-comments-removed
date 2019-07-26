@@ -10,16 +10,16 @@
 #include "nsAHttpTransaction.h"
 #include "mozilla/Attributes.h"
 
-class nsAHttpConnection;
-class nsHttpRequestHead;
-class nsHttpConnectionInfo;
-
 
 
 
 
 
 namespace mozilla { namespace net {
+
+class nsAHttpConnection;
+class nsHttpConnectionInfo;
+class nsHttpRequestHead;
 
 class NullHttpTransaction MOZ_FINAL : public nsAHttpTransaction
 {

@@ -13,11 +13,12 @@
 #include "mozilla/HashFunctions.h"
 #include "nsCRT.h"
 
-using namespace mozilla;
-
 #if defined(PR_LOGGING)
 PRLogModuleInfo *gHttpLog = nullptr;
 #endif
+
+namespace mozilla {
+namespace net {
 
 
 #define HTTP_ATOM(_name, _value) nsHttpAtom nsHttp::_name = { _value };
@@ -31,8 +32,6 @@ enum {
     NUM_HTTP_ATOMS
 };
 #undef HTTP_ATOM
-
-using namespace mozilla;
 
 
 
@@ -324,3 +323,5 @@ nsHttp::IsSafeMethod(nsHttpAtom method)
          method == nsHttp::Trace;
 }
 
+} 
+} 

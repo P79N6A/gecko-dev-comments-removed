@@ -21,10 +21,6 @@
 #include "nsISpeculativeConnect.h"
 #include "nsICache.h"
 
-class nsHttpConnection;
-class nsHttpConnectionInfo;
-class nsHttpHeaderArray;
-class nsHttpTransaction;
 class nsIHttpChannel;
 class nsIPrefBranch;
 class nsICancelable;
@@ -40,8 +36,9 @@ namespace net {
 class ATokenBucketEvent;
 class EventTokenBucket;
 class Tickler;
-}
-}
+class nsHttpConnection;
+class nsHttpConnectionInfo;
+class nsHttpTransaction;
 
 
 
@@ -269,7 +266,7 @@ public:
 
     PRIntervalTime GetPipelineTimeout()   { return mPipelineReadTimeout; }
 
-    mozilla::net::SpdyInformation *SpdyInfo() { return &mSpdyInfo; }
+    SpdyInformation *SpdyInfo() { return &mSpdyInfo; }
 
     
     bool Active() { return mHandlerActive; }
@@ -283,9 +280,9 @@ public:
 
     
     
-    mozilla::TimeStamp GetCacheSkippedUntil() { return mCacheSkippedUntil; }
-    void SetCacheSkippedUntil(mozilla::TimeStamp arg) { mCacheSkippedUntil = arg; }
-    void ClearCacheSkippedUntil() { mCacheSkippedUntil = mozilla::TimeStamp(); }
+    TimeStamp GetCacheSkippedUntil() { return mCacheSkippedUntil; }
+    void SetCacheSkippedUntil(TimeStamp arg) { mCacheSkippedUntil = arg; }
+    void ClearCacheSkippedUntil() { mCacheSkippedUntil = TimeStamp(); }
 
 private:
 
@@ -421,7 +418,7 @@ private:
     bool           mHandlerActive;
 
     
-    mozilla::net::SpdyInformation mSpdyInfo;
+    SpdyInformation mSpdyInfo;
     bool           mEnableSpdy;
     bool           mSpdyV3;
     bool           mSpdyV31;
@@ -459,17 +456,17 @@ private:
 
     
     
-    mozilla::TimeStamp                mCacheSkippedUntil;
+    TimeStamp      mCacheSkippedUntil;
 
 private:
     
     
     void MakeNewRequestTokenBucket();
-    nsRefPtr<mozilla::net::EventTokenBucket> mRequestTokenBucket;
+    nsRefPtr<EventTokenBucket> mRequestTokenBucket;
 
 public:
     
-    nsresult SubmitPacedRequest(mozilla::net::ATokenBucketEvent *event,
+    nsresult SubmitPacedRequest(ATokenBucketEvent *event,
                                 nsICancelable **cancel)
     {
         if (!mRequestTokenBucket)
@@ -478,7 +475,7 @@ public:
     }
 
     
-    void SetRequestTokenBucket(mozilla::net::EventTokenBucket *aTokenBucket)
+    void SetRequestTokenBucket(EventTokenBucket *aTokenBucket)
     {
         mRequestTokenBucket = aTokenBucket;
     }
@@ -492,7 +489,7 @@ private:
     bool     mNetworkTypeKnown;
     bool     mNetworkTypeWasEthernet;
 
-    nsRefPtr<mozilla::net::Tickler> mWifiTickler;
+    nsRefPtr<Tickler> mWifiTickler;
     nsresult GetNetworkEthernetInfo(nsIInterfaceRequestor *cb,
                                     bool *ethernet);
     nsresult GetNetworkEthernetInfoInner(nsIInterfaceRequestor *cb,
@@ -536,5 +533,7 @@ public:
 
     nsresult Init();
 };
+
+}} 
 
 #endif 
