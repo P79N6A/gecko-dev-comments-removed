@@ -197,7 +197,7 @@ protected:
 
   
   
-  nsHTMLFormElement* mForm;
+  HTMLFormElement* mForm;
 };
 
 } 

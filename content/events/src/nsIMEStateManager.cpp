@@ -31,7 +31,7 @@
 #include "mozilla/Services.h"
 #include "nsIFormControl.h"
 #include "nsIForm.h"
-#include "nsHTMLFormElement.h"
+#include "mozilla/dom/HTMLFormElement.h"
 #include "mozilla/Attributes.h"
 #include "nsEventDispatcher.h"
 #include "TextComposition.h"
@@ -487,7 +487,7 @@ nsIMEStateManager::SetIMEState(const IMEState &aState,
           willSubmit = true;
         
         } else if (formElement && formElement->Tag() == nsGkAtoms::form && formElement->IsHTML() &&
-                   static_cast<nsHTMLFormElement*>(formElement)->HasSingleTextControl()) {
+                   static_cast<dom::HTMLFormElement*>(formElement)->HasSingleTextControl()) {
           willSubmit = true;
         }
       }

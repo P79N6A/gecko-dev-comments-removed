@@ -9,7 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "nsIDOMHTMLLegendElement.h"
 #include "nsGenericHTMLElement.h"
-#include "nsHTMLFormElement.h"
+#include "mozilla/dom/HTMLFormElement.h"
 
 namespace mozilla {
 namespace dom {
@@ -85,7 +85,7 @@ public:
 
 
 
-  already_AddRefed<nsHTMLFormElement> GetForm();
+  already_AddRefed<HTMLFormElement> GetForm();
 
   
   void SetAlign(const nsAString& aAlign, ErrorResult& aError)

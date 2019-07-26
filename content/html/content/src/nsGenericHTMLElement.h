@@ -33,13 +33,13 @@ class nsILayoutHistoryState;
 class nsIEditor;
 struct nsRect;
 struct nsSize;
-class nsHTMLFormElement;
 class nsIDOMHTMLMenuElement;
 class nsIDOMHTMLCollection;
 class nsDOMSettableTokenList;
 
 namespace mozilla {
 namespace dom{
+class HTMLFormElement;
 class HTMLPropertiesCollection;
 class HTMLMenuElement;
 }
@@ -666,7 +666,8 @@ public:
 
 
 
-  nsHTMLFormElement* FindAncestorForm(nsHTMLFormElement* aCurrentForm = nullptr);
+  mozilla::dom::HTMLFormElement*
+  FindAncestorForm(mozilla::dom::HTMLFormElement* aCurrentForm = nullptr);
 
   virtual void RecompileScriptEventListeners() MOZ_OVERRIDE;
 
@@ -1087,7 +1088,7 @@ public:
 
   
   virtual mozilla::dom::Element* GetFormElement() MOZ_OVERRIDE;
-  nsHTMLFormElement* GetForm() const
+  mozilla::dom::HTMLFormElement* GetForm() const
   {
     return mForm;
   }
@@ -1221,7 +1222,7 @@ protected:
   FocusTristate FocusState();
 
   
-  nsHTMLFormElement* mForm;
+  mozilla::dom::HTMLFormElement* mForm;
 
   
   mozilla::dom::HTMLFieldSetElement* mFieldSet;
