@@ -2,6 +2,7 @@
 
 
 
+#include "WebGLContext.h"
 #include "WebGLTexelConversions.h"
 
 namespace mozilla {
