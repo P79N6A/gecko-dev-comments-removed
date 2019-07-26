@@ -2042,12 +2042,16 @@ _cairo_win32_font_face_destroy (void *abstract_face)
     cairo_win32_font_face_t *font_face = abstract_face;
 
     hash_table = _cairo_win32_font_face_hash_table_lock ();
-    if (unlikely (hash_table == NULL)) {
-        return;
+    if (hash_table) {
+        _cairo_hash_table_remove (hash_table, &font_face->base.hash_entry);
+        _cairo_win32_font_face_hash_table_unlock ();
     }
-    _cairo_hash_table_remove (hash_table, &font_face->base.hash_entry);
-    _cairo_win32_font_face_hash_table_unlock ();
+
+    if (font_face->hfont) {
+        DeleteObject (font_face->hfont);
+    }
 }
+
 
 
 
@@ -2078,6 +2082,12 @@ cairo_win32_font_face_create_for_logfontw_hfont (LOGFONTW *logfont, HFONT font)
     hash_table = _cairo_win32_font_face_hash_table_lock ();
     if (unlikely (hash_table == NULL)) {
         _cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
+        if (font) {
+            
+
+
+            DeleteObject (font);
+        }
 	return (cairo_font_face_t *)&_cairo_font_face_nil;
     }
 
@@ -2087,6 +2097,12 @@ cairo_win32_font_face_create_for_logfontw_hfont (LOGFONTW *logfont, HFONT font)
     font_face = _cairo_hash_table_lookup (hash_table,
 					 &key.base.hash_entry);
     if (font_face != NULL) {
+        if (font) {
+            
+
+
+            DeleteObject (font);
+        }
 	cairo_font_face_reference (&font_face->base);
 	goto DONE;
     }
@@ -2114,6 +2130,13 @@ DONE:
 
 FAIL:
     _cairo_win32_font_face_hash_table_unlock ();
+
+    if (font) {
+        
+
+
+        DeleteObject (font);
+    }
 
     return (cairo_font_face_t *)&_cairo_font_face_nil;
 }
