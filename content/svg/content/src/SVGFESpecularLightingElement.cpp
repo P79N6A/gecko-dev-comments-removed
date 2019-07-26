@@ -3,88 +3,83 @@
 
 
 
-#include "nsSVGFilters.h"
+#include "mozilla/dom/SVGFESpecularLightingElement.h"
+#include "mozilla/dom/SVGFESpecularLightingElementBinding.h"
+#include "nsSVGUtils.h"
 
-NS_IMPL_NS_NEW_SVG_ELEMENT(FESpecularLighting)
+NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FESpecularLighting)
 
 namespace mozilla {
 namespace dom {
 
-
-
-
-NS_IMPL_ADDREF_INHERITED(nsSVGFESpecularLightingElement,nsSVGFESpecularLightingElementBase)
-NS_IMPL_RELEASE_INHERITED(nsSVGFESpecularLightingElement,nsSVGFESpecularLightingElementBase)
-
-DOMCI_NODE_DATA(SVGFESpecularLightingElement, nsSVGFESpecularLightingElement)
-
-NS_INTERFACE_TABLE_HEAD(nsSVGFESpecularLightingElement)
-  NS_NODE_INTERFACE_TABLE5(nsSVGFESpecularLightingElement, nsIDOMNode,
-                           nsIDOMElement, nsIDOMSVGElement,
-                           nsIDOMSVGFilterPrimitiveStandardAttributes,
-                           nsIDOMSVGFESpecularLightingElement)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGFESpecularLightingElement)
-NS_INTERFACE_MAP_END_INHERITING(nsSVGFESpecularLightingElementBase)
-
-
-
-
-NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGFESpecularLightingElement)
-
-
-
-
-NS_IMETHODIMP
-nsSVGFESpecularLightingElement::GetIn1(nsIDOMSVGAnimatedString * *aIn)
+JSObject*
+SVGFESpecularLightingElement::WrapNode(JSContext* aCx, JSObject* aScope)
 {
-  return mStringAttributes[IN1].ToDOMAnimatedString(aIn, this);
+  return SVGFESpecularLightingElementBinding::Wrap(aCx, aScope, this);
 }
 
-NS_IMETHODIMP
-nsSVGFESpecularLightingElement::GetSurfaceScale(nsIDOMSVGAnimatedNumber **aScale)
+
+
+
+NS_IMPL_ADDREF_INHERITED(SVGFESpecularLightingElement,SVGFESpecularLightingElementBase)
+NS_IMPL_RELEASE_INHERITED(SVGFESpecularLightingElement,SVGFESpecularLightingElementBase)
+
+NS_INTERFACE_TABLE_HEAD(SVGFESpecularLightingElement)
+  NS_NODE_INTERFACE_TABLE3(SVGFESpecularLightingElement, nsIDOMNode,
+                           nsIDOMElement, nsIDOMSVGElement)
+NS_INTERFACE_MAP_END_INHERITING(SVGFESpecularLightingElementBase)
+
+
+
+
+NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFESpecularLightingElement)
+
+already_AddRefed<nsIDOMSVGAnimatedString>
+SVGFESpecularLightingElement::In1()
 {
-  return mNumberAttributes[SURFACE_SCALE].ToDOMAnimatedNumber(aScale,
-                                                              this);
+  return mStringAttributes[IN1].ToDOMAnimatedString(this);
 }
 
-NS_IMETHODIMP
-nsSVGFESpecularLightingElement::GetSpecularConstant(nsIDOMSVGAnimatedNumber **aConstant)
+already_AddRefed<nsIDOMSVGAnimatedNumber>
+SVGFESpecularLightingElement::SurfaceScale()
 {
-  return mNumberAttributes[SPECULAR_CONSTANT].ToDOMAnimatedNumber(aConstant,
-                                                                  this);
+  return mNumberAttributes[SURFACE_SCALE].ToDOMAnimatedNumber(this);
 }
 
-NS_IMETHODIMP
-nsSVGFESpecularLightingElement::GetSpecularExponent(nsIDOMSVGAnimatedNumber **aExponent)
+already_AddRefed<nsIDOMSVGAnimatedNumber>
+SVGFESpecularLightingElement::SpecularConstant()
 {
-  return mNumberAttributes[SPECULAR_EXPONENT].ToDOMAnimatedNumber(aExponent,
-                                                                  this);
+  return mNumberAttributes[SPECULAR_CONSTANT].ToDOMAnimatedNumber(this);
 }
 
-NS_IMETHODIMP
-nsSVGFESpecularLightingElement::GetKernelUnitLengthX(nsIDOMSVGAnimatedNumber **aKernelX)
+already_AddRefed<nsIDOMSVGAnimatedNumber>
+SVGFESpecularLightingElement::SpecularExponent()
 {
-  return mNumberPairAttributes[KERNEL_UNIT_LENGTH].ToDOMAnimatedNumber(aKernelX,
-                                                                       nsSVGNumberPair::eFirst,
-                                                                       this);
+  return mNumberAttributes[SPECULAR_EXPONENT].ToDOMAnimatedNumber(this);
 }
 
-NS_IMETHODIMP
-nsSVGFESpecularLightingElement::GetKernelUnitLengthY(nsIDOMSVGAnimatedNumber **aKernelY)
+already_AddRefed<nsIDOMSVGAnimatedNumber>
+SVGFESpecularLightingElement::KernelUnitLengthX()
 {
-  return mNumberPairAttributes[KERNEL_UNIT_LENGTH].ToDOMAnimatedNumber(aKernelY,
-                                                                       nsSVGNumberPair::eSecond,
-                                                                       this);
+  return mNumberPairAttributes[KERNEL_UNIT_LENGTH].ToDOMAnimatedNumber(
+    nsSVGNumberPair::eFirst, this);
+}
+
+already_AddRefed<nsIDOMSVGAnimatedNumber>
+SVGFESpecularLightingElement::KernelUnitLengthY()
+{
+  return mNumberPairAttributes[KERNEL_UNIT_LENGTH].ToDOMAnimatedNumber(
+    nsSVGNumberPair::eSecond, this);
 }
 
 
 
 
 nsresult
-nsSVGFESpecularLightingElement::Filter(nsSVGFilterInstance *instance,
-                                       const nsTArray<const Image*>& aSources,
-                                       const Image* aTarget,
-                                       const nsIntRect& rect)
+SVGFESpecularLightingElement::Filter(nsSVGFilterInstance* instance,
+                                     const nsTArray<const Image*>& aSources,
+                                     const Image* aTarget,
+                                     const nsIntRect& rect)
 {
   float specularExponent = mNumberAttributes[SPECULAR_EXPONENT].GetAnimValue();
 
@@ -92,22 +87,22 @@ nsSVGFESpecularLightingElement::Filter(nsSVGFilterInstance *instance,
   if (specularExponent < 1 || specularExponent > 128)
     return NS_ERROR_FAILURE;
 
-  return nsSVGFESpecularLightingElementBase::Filter(instance, aSources, aTarget, rect);
+  return SVGFESpecularLightingElementBase::Filter(instance, aSources, aTarget, rect);
 }
 
 bool
-nsSVGFESpecularLightingElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                                          nsIAtom* aAttribute) const
+SVGFESpecularLightingElement::AttributeAffectsRendering(int32_t aNameSpaceID,
+                                                        nsIAtom* aAttribute) const
 {
-  return nsSVGFESpecularLightingElementBase::AttributeAffectsRendering(aNameSpaceID, aAttribute) ||
+  return SVGFESpecularLightingElementBase::AttributeAffectsRendering(aNameSpaceID, aAttribute) ||
          (aNameSpaceID == kNameSpaceID_None &&
           (aAttribute == nsGkAtoms::specularConstant ||
            aAttribute == nsGkAtoms::specularExponent));
 }
 
 void
-nsSVGFESpecularLightingElement::LightPixel(const float *N, const float *L,
-                                           nscolor color, uint8_t *targetData)
+SVGFESpecularLightingElement::LightPixel(const float *N, const float *L,
+                                         nscolor color, uint8_t *targetData)
 {
   float H[3];
   H[0] = L[0];
