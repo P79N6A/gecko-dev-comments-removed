@@ -443,8 +443,10 @@ struct BaselineStackBuilder
 
 
 static bool
-InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, SnapshotIterator &iter,
-                bool invalidate, BaselineStackBuilder &builder, MutableHandleFunction nextCallee)
+InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
+                HandleFunction fun, HandleScript script, SnapshotIterator &iter,
+                bool invalidate, BaselineStackBuilder &builder,
+                MutableHandleFunction nextCallee, jsbytecode **callPC)
 {
     uint32_t exprStackSlots = iter.slots() - (script->nfixed + CountArgSlots(fun));
 
@@ -509,7 +511,8 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
 
     
     JSObject *scopeChain = NULL;
-    if (iter.bailoutKind() == Bailout_ArgumentCheck) {
+    BailoutKind bailoutKind = iter.bailoutKind();
+    if (bailoutKind == Bailout_ArgumentCheck) {
         
         
         
@@ -642,11 +645,14 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
                 resumeAfter ? "after" : "at", (int) pcOff, js_CodeName[op],
                 PCToLineNumber(script, pc), script->filename(), (int) script->lineno);
     IonSpew(IonSpew_BaselineBailouts, "      Bailout kind: %s",
-            BailoutKindString(iter.bailoutKind()));
+            BailoutKindString(bailoutKind));
 #endif
 
     
     if (!iter.moreFrames()) {
+        
+        *callPC = NULL;
+
         
         
         
@@ -752,6 +758,32 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
 
                 
                 blFrame->unsetPushedSPSFrame();
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                if (cx->runtime->spsProfiler.enabled()) {
+                    if (caller && bailoutKind == Bailout_ArgumentCheck) {
+                        IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx on innermost "
+                                "inlined frame's parent's SPS entry (%s:%d) (pcIdx=%d)!",
+                                caller->filename(), caller->lineno, callerPC - caller->code);
+                        cx->runtime->spsProfiler.updatePC(caller, callerPC);
+                    } else if (bailoutKind != Bailout_ArgumentCheck) {
+                        IonSpew(IonSpew_BaselineBailouts,
+                                "      Popping SPS entry for innermost inlined frame's SPS entry");
+                        cx->runtime->spsProfiler.exit(cx, script, fun);
+                    }
+                }
             } else {
                 opReturnAddr = nativeCodeForPC;
             }
@@ -761,6 +793,8 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
 
         return true;
     }
+
+    *callPC = pc;
 
     
     size_t baselineFrameDescr = MakeFrameDescriptor((uint32_t) builder.framePushed(),
@@ -1018,18 +1052,29 @@ ion::BailoutIonToBaseline(JSContext *cx, IonActivation *activation, IonBailoutIt
     int frameNo = 0;
 
     
+    RootedScript caller(cx);
+    jsbytecode *callerPC = NULL;
     RootedFunction fun(cx, callee);
     RootedScript scr(cx, iter.script());
     while (true) {
         IonSpew(IonSpew_BaselineBailouts, "    FrameNo %d", frameNo);
+        jsbytecode *callPC = NULL;
         RootedFunction nextCallee(cx, NULL);
-        if (!InitFromBailout(cx, fun, scr, snapIter, invalidate, builder, &nextCallee))
+        if (!InitFromBailout(cx, caller, callerPC, fun, scr, snapIter, invalidate, builder,
+                             &nextCallee, &callPC))
+        {
             return BAILOUT_RETURN_FATAL_ERROR;
+        }
 
-        if (!snapIter.moreFrames())
-             break;
+        if (!snapIter.moreFrames()) {
+            JS_ASSERT(!callPC);
+            break;
+        }
 
         JS_ASSERT(nextCallee);
+        JS_ASSERT(callPC);
+        caller = scr;
+        callerPC = callPC;
         fun = nextCallee;
         scr = fun->nonLazyScript();
         snapIter.nextFrame();
