@@ -697,7 +697,8 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
       MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
       bool typeIsRange = static_cast<dom::HTMLInputElement*>(mContent)->GetType() ==
                            NS_FORM_INPUT_RANGE;
-      MOZ_ASSERT(typeIsRange || aAttribute == nsGkAtoms::value, "why?");
+      
+      
       if (typeIsRange) {
         UpdateForValueChange();
       }
