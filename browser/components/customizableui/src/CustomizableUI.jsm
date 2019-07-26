@@ -1856,17 +1856,23 @@ let CustomizableUIInternal = {
       if (buildAreaNodes && buildAreaNodes.size) {
         let container = [...buildAreaNodes][0];
         
-        currentPlacements = [...currentPlacements];
         
-        let itemIndex = currentPlacements.length;
-        while (itemIndex--) {
-          if (!container.querySelector(idToSelector(currentPlacements[itemIndex]))) {
-            currentPlacements.splice(itemIndex, 1);
+        if (props.get("type") == CustomizableUI.TYPE_TOOLBAR) {
+          currentPlacements = container.currentSet.split(',');
+        } else {
+          
+          currentPlacements = [...currentPlacements];
+          
+          let itemIndex = currentPlacements.length;
+          while (itemIndex--) {
+            if (!container.querySelector(idToSelector(currentPlacements[itemIndex]))) {
+              currentPlacements.splice(itemIndex, 1);
+            }
           }
         }
       }
-      LOG("Checking default state for " + areaId + ":\n" + currentPlacements.join("\n") +
-          " vs. " + defaultPlacements.join("\n"));
+      LOG("Checking default state for " + areaId + ":\n" + currentPlacements.join(",") +
+          "\nvs.\n" + defaultPlacements.join(","));
 
       if (currentPlacements.length != defaultPlacements.length) {
         return false;
