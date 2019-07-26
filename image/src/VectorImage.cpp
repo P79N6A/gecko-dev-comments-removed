@@ -690,29 +690,50 @@ VectorImage::Draw(gfxContext* aContext,
   AutoSVGRenderingState autoSVGState(aSVGContext,
                                      time,
                                      mSVGDocumentWrapper->GetRootSVGElem());
-  mSVGDocumentWrapper->UpdateViewportBounds(aViewportSize);
+
+  
+  
+  
+  
+  
+  
+  gfxSize scale(aUserSpaceToImageSpace.ScaleFactors(true));
+  gfxPoint translation(aUserSpaceToImageSpace.GetTranslation());
+
+  
+  nsIntSize scaledViewport(aViewportSize.width / scale.width,
+                           aViewportSize.height / scale.height);
+  gfxIntSize scaledViewportGfx(scaledViewport.width, scaledViewport.height);
+  nsIntRect scaledSubimage(aSubimage);
+  scaledSubimage.ScaleRoundOut(1.0 / scale.width, 1.0 / scale.height);
+
+  
+  gfxMatrix unscale;
+  unscale.Translate(gfxPoint(translation.x / scale.width,
+                             translation.y / scale.height));
+  unscale.Scale(1.0 / scale.width, 1.0 / scale.height);
+  unscale.Translate(-translation);
+  gfxMatrix unscaledTransform(aUserSpaceToImageSpace * unscale);
+
+  mSVGDocumentWrapper->UpdateViewportBounds(scaledViewport);
   mSVGDocumentWrapper->FlushImageTransformInvalidation();
 
   
-  
-  
-  gfxIntSize imageSizeGfx(aViewportSize.width, aViewportSize.height);
-
-  
-  gfxRect sourceRect = aUserSpaceToImageSpace.Transform(aFill);
-  gfxRect imageRect(0, 0, aViewportSize.width, aViewportSize.height);
-  gfxRect subimage(aSubimage.x, aSubimage.y, aSubimage.width, aSubimage.height);
+  gfxRect sourceRect = unscaledTransform.Transform(aFill);
+  gfxRect imageRect(0, 0, scaledViewport.width, scaledViewport.height);
+  gfxRect subimage(scaledSubimage.x, scaledSubimage.y,
+                   scaledSubimage.width, scaledSubimage.height);
 
 
   nsRefPtr<gfxDrawingCallback> cb =
     new SVGDrawingCallback(mSVGDocumentWrapper,
-                           nsIntRect(nsIntPoint(0, 0), aViewportSize),
+                           nsIntRect(nsIntPoint(0, 0), scaledViewport),
                            aFlags);
 
-  nsRefPtr<gfxDrawable> drawable = new gfxCallbackDrawable(cb, imageSizeGfx);
+  nsRefPtr<gfxDrawable> drawable = new gfxCallbackDrawable(cb, scaledViewportGfx);
 
   gfxUtils::DrawPixelSnapped(aContext, drawable,
-                             aUserSpaceToImageSpace,
+                             unscaledTransform,
                              subimage, sourceRect, imageRect, aFill,
                              gfxASurface::ImageFormatARGB32, aFilter,
                              aFlags);
