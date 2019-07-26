@@ -699,8 +699,13 @@ CustomizeMode.prototype = {
     
     let win = aEvent.target.ownerDocument.defaultView;
     win.setTimeout(function() {
-      item.hidden = true;
-      this._showPanelCustomizationPlaceholders();
+      
+      
+      
+      if (this._customizing && !this._transitioning) {
+        item.hidden = true;
+        this._showPanelCustomizationPlaceholders();
+      }
     }.bind(this), 0);
   },
 
