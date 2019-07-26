@@ -5707,6 +5707,18 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   
   nsIDocument* doc = node->OwnerDoc();
 
+  
+  
+  
+  
+  
+  
+  
+  bool hasHadScriptHandlingObject = false;
+  NS_ENSURE_STATE(doc->GetScriptHandlingObject(hasHadScriptHandlingObject) ||
+                  hasHadScriptHandlingObject ||
+                  nsContentUtils::IsCallerChrome());
+
   nsINode *native_parent;
 
   bool nodeIsElement = node->IsElement();
@@ -5758,11 +5770,23 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
     
 
     
-    
-    nsIGlobalObject* scope = doc->GetScopeObject();
-    NS_ENSURE_TRUE(scope, NS_ERROR_UNEXPECTED);
+    nsISupports *scope = doc->GetScopeObject();
 
-    *parentObj = scope->GetGlobalJSObject();
+    if (scope) {
+        jsval v;
+        nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+        nsresult rv = WrapNative(cx, globalObj, scope, false, &v,
+                                 getter_AddRefs(holder));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        holder->GetJSObject(parentObj);
+    }
+    else {
+      
+      
+
+      *parentObj = globalObj;
+    }
 
     
     return node->ChromeOnlyAccess() ?

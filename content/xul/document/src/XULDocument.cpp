@@ -1520,25 +1520,6 @@ XULDocument::GetHeight(ErrorResult& aRv)
     return height;
 }
 
-nsIGlobalObject*
-GetScopeObjectOfNode(nsIDOMNode* node)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    nsIDocument* doc = nullptr;
-    for (nsCOMPtr<nsINode> inode = do_QueryInterface(node);
-         !doc && inode; inode = inode->GetParent()) {
-        doc = inode->OwnerDoc();
-    }
-    return doc ? doc->GetScopeObject() : nullptr;
-}
-
 
 
 
@@ -1561,10 +1542,8 @@ XULDocument::GetPopupNode(nsIDOMNode** aNode)
         }
     }
 
-    if (node && nsContentUtils::CanCallerAccess(node)
-        && GetScopeObjectOfNode(node)) {
-        node.swap(*aNode);
-    }
+    if (node && nsContentUtils::CanCallerAccess(node))
+      node.swap(*aNode);
 
     return NS_OK;
 }
