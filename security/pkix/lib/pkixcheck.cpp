@@ -377,6 +377,16 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
       SECOidTag oidTag = SECOID_FindOIDTag(*oids);
       if (requiredEKU != SEC_OID_UNKNOWN && oidTag == requiredEKU) {
         found = true;
+      } else {
+        
+        
+        
+        
+        if (endEntityOrCA == MustBeCA &&
+            requiredEKU == SEC_OID_EXT_KEY_USAGE_SERVER_AUTH &&
+            oidTag == SEC_OID_NS_KEY_USAGE_GOVT_APPROVED) {
+          found = true;
+        }
       }
       if (oidTag == SEC_OID_OCSP_RESPONDER) {
         foundOCSPSigning = true;
