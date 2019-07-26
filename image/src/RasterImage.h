@@ -270,7 +270,7 @@ public:
 
   
   
-  enum {
+  enum FrameBlendMethod {
     
     
     kBlendSource =  0,
@@ -280,7 +280,7 @@ public:
     kBlendOver
   };
 
-  enum {
+  enum FrameDisposalMethod {
     kDisposeClearAll         = -1, 
                                    
     kDisposeNotSpecified,   
@@ -289,7 +289,14 @@ public:
     kDisposeRestorePrevious 
   };
 
-  nsCString GetURIString() {
+  
+  
+  enum FrameAlpha {
+    kFrameHasAlpha,
+    kFrameOpaque
+  };
+
+ nsCString GetURIString() {
     nsCString spec;
     if (GetURI()) {
       GetURI()->GetSpec(spec);

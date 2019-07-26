@@ -153,7 +153,16 @@ protected:
   
   
   void PostFrameStart();
-  void PostFrameStop();
+
+  
+  
+  
+  
+  
+  void PostFrameStop(RasterImage::FrameAlpha aFrameAlpha = RasterImage::kFrameHasAlpha,
+                     RasterImage::FrameDisposalMethod aDisposalMethod = RasterImage::kDisposeKeep,
+                     int32_t aTimeout = 0,
+                     RasterImage::FrameBlendMethod aBlendMethod = RasterImage::kBlendOver);
 
   
   
@@ -164,7 +173,10 @@ protected:
   
   
   
-  void PostDecodeDone();
+  
+  
+  
+  void PostDecodeDone(int32_t aLoopCount = 0);
 
   
   void PostDataError();

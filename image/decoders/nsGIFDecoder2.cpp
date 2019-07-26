@@ -112,11 +112,9 @@ nsGIFDecoder2::FinishInternal()
   if (!IsSizeDecode() && mGIFOpen) {
     if (mCurrentFrame == mGIFStruct.images_decoded)
       EndImageFrame();
-    PostDecodeDone();
+    PostDecodeDone(mGIFStruct.loop_count - 1);
     mGIFOpen = false;
   }
-
-  mImage.SetLoopCount(mGIFStruct.loop_count - 1);
 }
 
 
@@ -208,9 +206,6 @@ nsresult nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 
   memset(mImageData, 0, imageDataLength);
 
-  mImage.SetFrameDisposalMethod(mGIFStruct.images_decoded,
-                                mGIFStruct.disposal_method);
-
   
   PostFrameStart();
 
@@ -232,6 +227,8 @@ nsresult nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 
 void nsGIFDecoder2::EndImageFrame()
 {
+  RasterImage::FrameAlpha alpha = RasterImage::kFrameHasAlpha;
+
   
   if (!mGIFStruct.images_decoded) {
     
@@ -249,7 +246,7 @@ void nsGIFDecoder2::EndImageFrame()
     }
     
     if (mGIFStruct.is_transparent && !mSawTransparency) {
-      mImage.SetFrameHasNoAlpha(mGIFStruct.images_decoded);
+      alpha = RasterImage::kFrameOpaque;
     }
   }
   mCurrentRow = mLastFlushedRow = -1;
@@ -262,12 +259,6 @@ void nsGIFDecoder2::EndImageFrame()
       uint8_t *rowp = mImageData + ((mGIFStruct.height - mGIFStruct.rows_remaining) * mGIFStruct.width);
       memset(rowp, 0, mGIFStruct.rows_remaining * mGIFStruct.width);
     }
-
-    
-    
-    
-    
-    mImage.SetFrameTimeout(mGIFStruct.images_decoded, mGIFStruct.delay_time);
   }
 
   
@@ -277,7 +268,9 @@ void nsGIFDecoder2::EndImageFrame()
   mGIFStruct.images_decoded++;
 
   
-  PostFrameStop();
+  PostFrameStop(alpha,
+                RasterImage::FrameDisposalMethod(mGIFStruct.disposal_method),
+                mGIFStruct.delay_time);
 
   
   if (mOldColor) {
