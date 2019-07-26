@@ -83,6 +83,81 @@ add_test_incoming_parcel(null,
 );
 
 
+add_test(function test_incoming_parcel_buffer_overwritten() {
+  let worker = newWorker({
+    postRILMessage: function fakePostRILMessage(data) {
+      
+    },
+    postMessage: function fakePostMessage(message) {
+      
+    }
+  });
+
+  
+  let buf = worker.Buf;
+
+  
+  function calloc(length, value) {
+    let array = new Array(length);
+    for (let i = 0; i < length; i++) {
+      array[i] = value;
+    }
+    return array;
+  }
+
+  
+  let request = worker.REQUEST_REGISTRATION_STATE;
+  worker.RIL[request] = null;
+
+  
+  
+  let pA_dataLength = buf.INCOMING_BUFFER_LENGTH / 2;
+  let pA = newIncomingParcel(-1,
+                             worker.RESPONSE_TYPE_UNSOLICITED,
+                             request,
+                             calloc(pA_dataLength, 1));
+  let pA_parcelSize = pA.length - worker.PARCEL_SIZE_SIZE;
+
+  let pB_dataLength = buf.INCOMING_BUFFER_LENGTH * 3 / 4;
+  let pB = newIncomingParcel(-1,
+                             worker.RESPONSE_TYPE_UNSOLICITED,
+                             request,
+                             calloc(pB_dataLength, 1));
+  let pB_parcelSize = pB.length - worker.PARCEL_SIZE_SIZE;
+
+  
+  let p1 = pA.subarray(0, pA.length - 1);
+  worker.onRILMessage(p1);
+  
+  do_check_eq(buf.readAvailable, 0);
+  
+  
+  do_check_eq(buf.currentParcelSize, pA_parcelSize);
+  
+  do_check_eq(buf.readIncoming, p1.length - worker.PARCEL_SIZE_SIZE);
+  
+  do_check_eq(buf.incomingWriteIndex, p1.length);
+
+  
+  
+  let p2 = new Uint8Array(1 + pB.length);
+  p2.set(pA.subarray(pA.length - 1), 0);
+  p2.set(pB, 1);
+  worker.onRILMessage(p2);
+  
+  do_check_eq(buf.readAvailable, 0);
+  
+  do_check_eq(buf.currentParcelSize, 0);
+  
+  do_check_eq(buf.readIncoming, 0);
+  
+  do_check_eq(buf.incomingWriteIndex, pA.length + pB.length);
+
+  
+  run_next_test();
+});
+
+
 add_test_incoming_parcel(null,
   function test_buf_readUint8Array(worker) {
     let buf = worker.Buf;
