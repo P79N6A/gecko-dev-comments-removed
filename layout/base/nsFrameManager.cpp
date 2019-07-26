@@ -879,7 +879,7 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
 
         
         
-        nsChangeHint styleChange =
+        DebugOnly<nsChangeHint> styleChange =
           oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
         
         

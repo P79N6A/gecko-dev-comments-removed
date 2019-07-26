@@ -1236,7 +1236,7 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
   
   
   const nsFrameList& childList = containingBlock->GetChildList(aChildListID);
-  nsresult rv = NS_OK;
+  DebugOnly<nsresult> rv = NS_OK;
   if (childList.IsEmpty() &&
       (containingBlock->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
