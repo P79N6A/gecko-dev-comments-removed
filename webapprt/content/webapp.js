@@ -32,6 +32,10 @@ let progressListener = {
     let origin = location.prePath;
     if (origin != WebappRT.config.app.origin) {
       title = origin + " - " + title;
+
+      
+      
+      document.mozCancelFullScreen();
     }
     document.documentElement.setAttribute("title", title);
   },
