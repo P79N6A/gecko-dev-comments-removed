@@ -797,8 +797,13 @@ StackFrames.prototype = {
 
 
   _onPrettyPrintChange: function() {
+    
+    
+    const source = DebuggerView.Sources.selectedValue;
     if (this.activeThread.state == "paused") {
-      this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
+      this.activeThread.fillFrames(
+         CALL_STACK_PAGE_SIZE,
+         () => DebuggerView.Sources.selectedValue = source);
     }
   },
 

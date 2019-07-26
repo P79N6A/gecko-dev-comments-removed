@@ -1579,7 +1579,8 @@ ThreadClient.prototype = {
 
 
 
-  fillFrames: function (aTotal) {
+
+  fillFrames: function (aTotal, aCallback=noop) {
     this._assertPaused("fillFrames");
 
     if (this._frameCache.length >= aTotal) {
@@ -1589,14 +1590,22 @@ ThreadClient.prototype = {
     let numFrames = this._frameCache.length;
 
     this.getFrames(numFrames, aTotal - numFrames, (aResponse) => {
+      if (aResponse.error) {
+        aCallback(aResponse);
+        return;
+      }
+
       for each (let frame in aResponse.frames) {
         this._frameCache[frame.depth] = frame;
       }
-      
-      
 
+      
+      
       this.notify("framesadded");
+
+      aCallback(aResponse);
     });
+
     return true;
   },
 
@@ -2277,3 +2286,4 @@ this.debuggerSocketConnect = function (aHost, aPort)
 function pair(aItemOne, aItemTwo) {
   return [aItemOne, aItemTwo];
 }
+function noop() {}
