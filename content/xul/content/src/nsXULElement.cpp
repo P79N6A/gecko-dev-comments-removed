@@ -1779,7 +1779,7 @@ nsXULElement::GetWindowWidget()
     nsIDocument* doc = GetCurrentDoc();
 
     
-    if (doc->IsRootDisplayDocument()) {
+    if (doc && doc->IsRootDisplayDocument()) {
         nsCOMPtr<nsISupports> container = doc->GetContainer();
         nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
         if (baseWindow) {
