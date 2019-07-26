@@ -13,6 +13,7 @@
 
 
 enum mozFlushType {
+  Flush_None             = 0, 
   Flush_Content          = 1, 
   Flush_ContentAndNotify = 2, 
 

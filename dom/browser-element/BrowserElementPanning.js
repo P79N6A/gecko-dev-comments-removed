@@ -385,30 +385,15 @@ const ContentPanning = {
     return null;
   },
 
-  _generateCallback: function cp_generateCallback(content) {
+  _generateCallback: function cp_generateCallback(root) {
     let firstScroll = true;
     let target;
-    let isScrolling = false;
-    let oldX, oldY, newX, newY;
+    let current;
     let win, doc, htmlNode, bodyNode;
-    let xScrollable;
-    let yScrollable;
 
     function doScroll(node, delta) {
-      
-      xScrollable = node.scrollWidth > node.clientWidth;
-      yScrollable = node.scrollHeight > node.clientHeight;
       if (node instanceof Ci.nsIDOMHTMLElement) {
-        newX = oldX = node.scrollLeft, newY = oldY = node.scrollTop;
-        if (xScrollable) {
-           node.scrollLeft += delta.x;
-           newX = node.scrollLeft;
-        }
-        if (yScrollable) {
-           node.scrollTop += delta.y;
-           newY = node.scrollTop;
-        }
-        return (newX != oldX || newY != oldY);
+        return node.scrollByNoFlush(delta.x, delta.y);
       } else if (node instanceof Ci.nsIDOMWindow) {
         win = node;
         doc = win.document;
@@ -427,41 +412,39 @@ const ContentPanning = {
             delta.y = 0;
           }
         }
-        oldX = node.scrollX, oldY = node.scrollY;
+        let oldX = node.scrollX;
+        let oldY = node.scrollY;
         node.scrollBy(delta.x, delta.y);
-        newX = node.scrollX, newY = node.scrollY;
-        return (newX != oldX || newY != oldY);
+        return (node.scrollX != oldX || node.scrollY != oldY);
       }
       
       
       return false;
-    };
+    }
 
     function targetParent(node) {
-      if (node.parentNode) {
-        return node.parentNode;
-      }
-      if (node.frameElement) {
-        return node.frameElement;
-      }
-      return null;
+      return node.parentNode || node.frameElement || null;
     }
 
     function scroll(delta) {
-      for (target = content; target;
-           target = ContentPanning._findPannable(targetParent(target))) {
-        isScrolling = doScroll(target, delta);
-        if (isScrolling || !firstScroll) {
-          break;
+      current = root;
+      while (current) {
+        if (doScroll(current, delta)) {
+          firstScroll = false;
+          return true;
         }
-      }
-      if (isScrolling) {
-        if (firstScroll) {
-          content = target; 
+
+        
+        
+        if (!firstScroll) {
+          return false;
         }
-        firstScroll = false; 
+
+        current = ContentPanning._findPannable(targetParent(current));
       }
-      return isScrolling;
+
+      
+      return false;
     }
     return scroll;
   },
