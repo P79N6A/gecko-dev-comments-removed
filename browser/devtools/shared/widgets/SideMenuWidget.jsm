@@ -28,18 +28,25 @@ this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
 
 
 
-this.SideMenuWidget = function SideMenuWidget(aNode, aShowArrows = true) {
+
+
+
+this.SideMenuWidget = function SideMenuWidget(aNode, aOptions={}) {
   this.document = aNode.ownerDocument;
   this.window = this.document.defaultView;
   this._parent = aNode;
-  this._showArrows = aShowArrows;
+
+  let { showArrows, showCheckboxes } = aOptions;
+  this._showArrows = showArrows || false;
+  this._showCheckboxes = showCheckboxes || false;
 
   
   this._list = this.document.createElement("scrollbox");
   this._list.className = "side-menu-widget-container";
   this._list.setAttribute("flex", "1");
   this._list.setAttribute("orient", "vertical");
-  this._list.setAttribute("with-arrow", aShowArrows);
+  this._list.setAttribute("with-arrow", showArrows);
+  this._list.setAttribute("with-checkboxes", showCheckboxes);
   this._list.setAttribute("tabindex", "0");
   this._list.addEventListener("keypress", e => this.emit("keyPress", e), false);
   this._list.addEventListener("mousedown", e => this.emit("mousePress", e), false);
@@ -94,7 +101,9 @@ SideMenuWidget.prototype = {
 
 
 
-  insertItemAt: function(aIndex, aContents, aTooltip = "", aGroup = "") {
+
+
+  insertItemAt: function(aIndex, aContents, aTooltip = "", aGroup = "", aAttachment={}) {
     aTooltip = NetworkHelper.convertToUnicode(unescape(aTooltip));
     aGroup = NetworkHelper.convertToUnicode(unescape(aGroup));
 
@@ -115,7 +124,7 @@ SideMenuWidget.prototype = {
       (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
 
     let group = this._getMenuGroupForName(aGroup);
-    let item = this._getMenuItemForGroup(group, aContents, aTooltip);
+    let item = this._getMenuItemForGroup(group, aContents, aTooltip, aAttachment);
     let element = item.insertSelfAt(aIndex);
 
     if (this.maintainSelectionVisible) {
@@ -398,13 +407,16 @@ SideMenuWidget.prototype = {
 
 
 
-  _getMenuItemForGroup: function(aGroup, aContents, aTooltip) {
-    return new SideMenuItem(aGroup, aContents, aTooltip, this._showArrows);
+
+
+  _getMenuItemForGroup: function(aGroup, aContents, aTooltip, aAttachment) {
+    return new SideMenuItem(aGroup, aContents, aTooltip, this._showArrows, this._showCheckboxes, aAttachment);
   },
 
   window: null,
   document: null,
   _showArrows: false,
+  _showCheckboxes: false,
   _parent: null,
   _list: null,
   _boxObject: null,
@@ -528,13 +540,29 @@ SideMenuGroup.prototype = {
 
 
 
-function SideMenuItem(aGroup, aContents, aTooltip, aArrowFlag) {
+
+
+
+
+function SideMenuItem(aGroup, aContents, aTooltip, aArrowFlag, aCheckboxFlag, aAttachment={}) {
   this.document = aGroup.document;
   this.window = aGroup.window;
   this.ownerView = aGroup;
 
-  
-  if (aArrowFlag) {
+  let makeCheckbox = () => {
+    let checkbox = this.document.createElement("checkbox");
+    checkbox.className = "side-menu-widget-item-checkbox";
+    checkbox.setAttribute("checked", aAttachment.checkboxState);
+    checkbox.setAttribute("tooltiptext", aAttachment.checkboxTooltip);
+    checkbox.addEventListener("command", function () {
+      ViewHelpers.dispatchEvent(checkbox, "check", {
+        checked: checkbox.checked,
+      });
+    }, false);
+    return checkbox;
+  };
+
+  if (aArrowFlag || aCheckboxFlag) {
     let container = this._container = this.document.createElement("hbox");
     container.className = "side-menu-widget-item";
     container.setAttribute("tooltiptext", aTooltip);
@@ -542,11 +570,20 @@ function SideMenuItem(aGroup, aContents, aTooltip, aArrowFlag) {
     let target = this._target = this.document.createElement("vbox");
     target.className = "side-menu-widget-item-contents";
 
-    let arrow = this._arrow = this.document.createElement("hbox");
-    arrow.className = "side-menu-widget-item-arrow";
+    
+    if (aCheckboxFlag) {
+      let checkbox = this._checkbox = makeCheckbox();
+      container.appendChild(checkbox);
+    }
 
     container.appendChild(target);
-    container.appendChild(arrow);
+
+    
+    if (aArrowFlag) {
+      let arrow = this._arrow = this.document.createElement("hbox");
+      arrow.className = "side-menu-widget-item-arrow";
+      container.appendChild(arrow);
+    }
   }
   
   else {
