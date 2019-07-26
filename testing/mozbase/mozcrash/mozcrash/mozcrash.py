@@ -2,7 +2,8 @@
 
 
 
-__all__ = ['check_for_crashes']
+__all__ = ['check_for_crashes',
+           'check_for_java_exception']
 
 import glob
 import mozlog
@@ -17,6 +18,7 @@ import zipfile
 
 from mozfile import extract_zip
 from mozfile import is_url
+
 
 def check_for_crashes(dump_directory, symbols_path,
                       stackwalk_binary=None,
@@ -152,3 +154,44 @@ def check_for_crashes(dump_directory, symbols_path,
             shutil.rmtree(symbols_path)
 
     return True
+
+
+def check_for_java_exception(logcat):
+    """
+    Print a summary of a fatal Java exception, if present in the provided
+    logcat output.
+
+    Example:
+    PROCESS-CRASH | java-exception | java.lang.NullPointerException at org.mozilla.gecko.GeckoApp$21.run(GeckoApp.java:1833)
+
+    `logcat` should be a list of strings.
+
+    Returns True if a fatal Java exception was found, False otherwise.
+    """
+    found_exception = False
+
+    for i, line in enumerate(logcat):
+        
+        
+        
+        
+        
+        
+        if "REPORTING UNCAUGHT EXCEPTION" in line or "FATAL EXCEPTION" in line:
+            
+            
+            found_exception = True
+            if len(logcat) >= i + 3:
+                logre = re.compile(r".*\): \t?(.*)")
+                m = logre.search(logcat[i+1])
+                if m and m.group(1):
+                    exception_type = m.group(1)
+                m = logre.search(logcat[i+2])
+                if m and m.group(1):
+                    exception_location = m.group(1)
+                print "PROCESS-CRASH | java-exception | %s %s" % (exception_type, exception_location)
+            else:
+                print "Automation Error: Logcat is truncated!"
+            break
+
+    return found_exception
