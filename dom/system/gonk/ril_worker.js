@@ -4896,7 +4896,16 @@ let RIL = {
 
   processStkProactiveCommand: function processStkProactiveCommand() {
     let length = Buf.readInt32();
-    let berTlv = BerTlvHelper.decode(length / 2);
+    let berTlv;
+    try {
+      berTlv = BerTlvHelper.decode(length / 2);
+    } catch (e) {
+      if (DEBUG) debug("processStkProactiveCommand : " + e);
+      RIL.sendStkTerminalResponse({
+        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
+      return;
+    }
+
     Buf.readStringDelimiter(length);
 
     let ctlvs = berTlv.value;
@@ -10629,8 +10638,6 @@ let ComprehensionTlvHelper = {
       case 0x0: 
       case 0xff: 
       case 0x80: 
-        RIL.sendStkTerminalResponse({
-          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
         throw new Error("Invalid octet when parsing Comprehension TLV :" + temp);
       case 0x7f: 
         
@@ -10670,16 +10677,12 @@ let ComprehensionTlvHelper = {
       length = GsmPDUHelper.readHexOctet();
       hlen++;
       if (length < 0x80) {
-        RIL.sendStkTerminalResponse({
-          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
         throw new Error("Invalid length in Comprehension TLV :" + length);
       }
     } else if (temp == 0x82) {
       length = (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
       hlen += 2;
       if (lenth < 0x0100) {
-         RIL.sendStkTerminalResponse({
-          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
         throw new Error("Invalid length in 3-byte Comprehension TLV :" + length);
       }
     } else if (temp == 0x83) {
@@ -10688,13 +10691,9 @@ let ComprehensionTlvHelper = {
                 GsmPDUHelper.readHexOctet();
       hlen += 3;
       if (length < 0x010000) {
-        RIL.sendStkTerminalResponse({
-          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
         throw new Error("Invalid length in 4-byte Comprehension TLV :" + length);
       }
     } else {
-      RIL.sendStkTerminalResponse({
-        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
       throw new Error("Invalid octet in Comprehension TLV :" + temp);
     }
 
@@ -10894,7 +10893,6 @@ let BerTlvHelper = {
 
 
   decode: function decode(dataLen) {
-    
     let hlen = 0;
     let tag = GsmPDUHelper.readHexOctet();
     hlen++;
@@ -10902,45 +10900,182 @@ let BerTlvHelper = {
     
     
     
+    
     let length;
-    if (tag == BER_PROACTIVE_COMMAND_TAG) {
-      let temp = GsmPDUHelper.readHexOctet();
+    let temp = GsmPDUHelper.readHexOctet();
+    hlen++;
+    if (temp < 0x80) {
+      length = temp;
+    } else if (temp === 0x81) {
+      length = GsmPDUHelper.readHexOctet();
       hlen++;
-      if (temp < 0x80) {
-        length = temp;
-      } else if(temp == 0x81) {
-        length = GsmPDUHelper.readHexOctet();
-        if (length < 0x80) {
-          RIL.sendStkTerminalResponse({
-            resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
-          throw new Error("Invalid length " + length);
-        }
-      } else {
-        RIL.sendStkTerminalResponse({
-          resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
-        throw new Error("Invalid length octet " + temp);
+      if (length < 0x80) {
+        throw new Error("Invalid length " + length);
       }
     } else {
-      RIL.sendStkTerminalResponse({
-        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
-      throw new Error("Unknown BER tag");
+      throw new Error("Invalid length octet " + temp);
     }
 
     
-    if (dataLen - hlen < length) {
-      RIL.sendStkTerminalResponse({
-        resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
-      throw new Error("BerTlvHelper value length too long!!");
+    if (dataLen - hlen !== length) {
+      throw new Error("Unexpected BerTlvHelper value length!!");
     }
 
-    let ctlvs = ComprehensionTlvHelper.decodeChunks(length);
-    let berTlv = {
+    let method = this[tag];
+    if (typeof method != "function") {
+      throw new Error("Unknown Ber tag 0x" + tag.toString(16));
+    }
+
+    let value = method.call(this, length);
+
+    return {
       tag: tag,
       length: length,
-      value: ctlvs
+      value: value
     };
-    return berTlv;
+  },
+
+  
+
+
+
+
+
+  processFcpTemplate: function processFcpTemplate(length) {
+    let tlvs = this.decodeChunks(length);
+    return tlvs;
+  },
+
+  
+
+
+
+
+
+  processProactiveCommand: function processProactiveCommand(length) {
+    let ctlvs = ComprehensionTlvHelper.decodeChunks(length);
+    return ctlvs;
+  },
+
+  
+
+
+  decodeInnerTlv: function decodeInnerTlv() {
+    let tag = GsmPDUHelper.readHexOctet();
+    let length = GsmPDUHelper.readHexOctet();
+    return {
+      tag: tag,
+      length: length,
+      value: this.retrieve(tag, length)
+    };
+  },
+
+  decodeChunks: function decodeChunks(length) {
+    let chunks = [];
+    let index = 0;
+    while (index < length) {
+      let tlv = this.decodeInnerTlv();
+      if (tlv.value) {
+        chunks.push(tlv);
+      }
+      index += tlv.length;
+      
+      index += 2;
+    }
+    return chunks;
+  },
+
+  retrieve: function retrieve(tag, length) {
+    let method = this[tag];
+    if (typeof method != "function") {
+      if (DEBUG) {
+        debug("Unknown Ber tag : 0x" + tag.toString(16));
+      }
+      Buf.seekIncoming(length * Buf.PDU_HEX_OCTET_SIZE);
+      return null;
+    }
+    return method.call(this, length);
+  },
+
+  
+
+
+
+
+
+
+
+
+  retrieveFileSizeData: function retrieveFileSizeData(length) {
+    let fileSizeData = 0;
+    for (let i = 0; i < length; i++) {
+      fileSizeData = fileSizeData << 8;
+      fileSizeData += GsmPDUHelper.readHexOctet();
+    }
+
+    return {fileSizeData: fileSizeData};
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  retrieveFileDescriptor: function retrieveFileDescriptor(length) {
+    let fileDescriptorByte = GsmPDUHelper.readHexOctet();
+    let dataCodingByte = GsmPDUHelper.readHexOctet();
+    
+    
+    let fileStructure = fileDescriptorByte & 0x07;
+
+    let fileDescriptor = {
+      fileStructure: fileStructure
+    };
+    
+    
+    if (fileStructure === UICC_EF_STRUCTURE[EF_TYPE_LINEAR_FIXED] ||
+        fileStructure === UICC_EF_STRUCTURE[EF_TYPE_CYCLIC]) {
+      fileDescriptor.recordLength = (GsmPDUHelper.readHexOctet() << 8) +
+                                     GsmPDUHelper.readHexOctet();
+      fileDescriptor.numOfRecords = GsmPDUHelper.readHexOctet();
+    }
+
+    return fileDescriptor;
+  },
+
+  
+
+
+
+
+
+
+
+  retrieveFileIdentifier: function retrieveFileIdentifier(length) {
+    return {fileId : (GsmPDUHelper.readHexOctet() << 8) +
+                      GsmPDUHelper.readHexOctet()};
   }
+};
+BerTlvHelper[BER_FCP_TEMPLATE_TAG] = function BER_FCP_TEMPLATE_TAG(length) {
+  return this.processFcpTemplate(length);
+};
+BerTlvHelper[BER_PROACTIVE_COMMAND_TAG] = function BER_PROACTIVE_COMMAND_TAG(length) {
+  return this.processProactiveCommand(length);
+};
+BerTlvHelper[BER_FCP_FILE_SIZE_DATA_TAG] = function BER_FCP_FILE_SIZE_DATA_TAG(length) {
+  return this.retrieveFileSizeData(length);
+};
+BerTlvHelper[BER_FCP_FILE_DESCRIPTOR_TAG] = function BER_FCP_FILE_DESCRIPTOR_TAG(length) {
+  return this.retrieveFileDescriptor(length);
+};
+BerTlvHelper[BER_FCP_FILE_IDENTIFIER_TAG] = function BER_FCP_FILE_IDENTIFIER_TAG(length) {
+  return this.retrieveFileIdentifier(length);
 };
 
 
