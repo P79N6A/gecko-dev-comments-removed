@@ -28,7 +28,8 @@ public interface SchedulePolicy {
 
 
 
-  public abstract void configureBackoffMillisBeforeSyncing(BackoffHandler backoffHandler);
+
+  public abstract void configureBackoffMillisBeforeSyncing(BackoffHandler rateHandler, BackoffHandler backgroundHandler);
 
   
 

@@ -66,7 +66,8 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
   private static final String PREF_BACKOFF_STORAGE_HOST = "backoffStorageHost";
 
   
-  private static final int MINIMUM_SYNC_DELAY_MILLIS = 5000;
+  
+  private static final int MINIMUM_SYNC_DELAY_MILLIS = 15 * 1000;        
   private volatile long lastSyncRealtimeMillis = 0L;
 
   protected final ExecutorService executor;
@@ -188,6 +189,15 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
 
       }
       setSyncResultSoftError();
+      latch.countDown();
+    }
+
+    
+
+
+
+
+    public void rejectSync() {
       latch.countDown();
     }
   }
@@ -411,6 +421,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     Logger.setThreadLogTag(FxAccountConstants.GLOBAL_LOG_TAG);
     Logger.resetLogging();
 
+    
     if (this.lastSyncRealtimeMillis > 0L &&
         (this.lastSyncRealtimeMillis + MINIMUM_SYNC_DELAY_MILLIS) > SystemClock.elapsedRealtime()) {
       Logger.info(LOG_TAG, "Not syncing FxAccount " + Utils.obfuscateEmail(account.name) +
@@ -444,18 +455,34 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
       
       final SharedPreferences sharedPrefs = fxAccount.getSyncPrefs();
 
+      final BackoffHandler backgroundBackoffHandler = new PrefsBackoffHandler(sharedPrefs, "background");
+      final BackoffHandler rateLimitBackoffHandler = new PrefsBackoffHandler(sharedPrefs, "rate");
+
       
-      final BackoffHandler schedulerBackoffHandler = new PrefsBackoffHandler(sharedPrefs, "scheduler");
-      if (!shouldPerformSync(schedulerBackoffHandler, "scheduler", extras)) {
-        Logger.info(LOG_TAG, "Not syncing (scheduler).");
-        syncDelegate.postponeSync(schedulerBackoffHandler.delayMilliseconds());
+      final boolean isImmediate = (extras != null) &&
+                                  (extras.getBoolean(ContentResolver.SYNC_EXTRAS_UPLOAD, false) ||
+                                   extras.getBoolean(ContentResolver.SYNC_EXTRAS_FORCE, false));
+
+      
+      
+      if (!isImmediate) {
+        if (!shouldPerformSync(backgroundBackoffHandler, "background", extras)) {
+          syncDelegate.rejectSync();
+          return;
+        }
+      }
+
+      
+      if (!shouldPerformSync(rateLimitBackoffHandler, "rate", extras)) {
+        syncDelegate.postponeSync(rateLimitBackoffHandler.delayMilliseconds());
         return;
       }
 
       final SchedulePolicy schedulePolicy = new FxAccountSchedulePolicy(context, fxAccount);
 
       
-      schedulePolicy.configureBackoffMillisBeforeSyncing(schedulerBackoffHandler);
+      
+      schedulePolicy.configureBackoffMillisBeforeSyncing(rateLimitBackoffHandler, backgroundBackoffHandler);
 
       final String audience = fxAccount.getAudience();
       final String authServerEndpoint = fxAccount.getAccountServerURI();

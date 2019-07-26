@@ -20,7 +20,10 @@ public class FxAccountSchedulePolicy implements SchedulePolicy {
 
   
   
-
+  
+  
+  
+  
   
   
   
@@ -37,23 +40,36 @@ public class FxAccountSchedulePolicy implements SchedulePolicy {
   
   
   
-  public static final long POLL_INTERVAL_ERROR_STATE = 24 * 60 * 60;        
+  public static final long POLL_INTERVAL_ERROR_STATE_SEC = 24 * 60 * 60;    
 
   
   
-  public static final long POLL_INTERVAL_SINGLE_DEVICE_SEC = 8 * 60 * 60;   
+  public static final long POLL_INTERVAL_SINGLE_DEVICE_SEC = 18 * 60 * 60;  
 
   
   
   
-  public static final long POLL_INTERVAL_MULTI_DEVICE_SEC = 30 * 60;        
-
   
-  public static final long POLL_INTERVAL_MINIMUM_SEC = 45;                  
+  public static final long POLL_INTERVAL_MULTI_DEVICE_SEC = 12 * 60 * 60;   
 
   
   
   private static volatile long POLL_INTERVAL_CURRENT_SEC = POLL_INTERVAL_SINGLE_DEVICE_SEC;
+
+  
+  
+  public static final long RATE_LIMIT_FUNDAMENTAL_SEC = 90;                 
+
+  
+
+
+
+
+
+
+
+
+  public static final long RATE_LIMIT_BACKGROUND_SEC = 60 * 60;             
 
   private final AndroidFxAccount account;
   private final Context context;
@@ -101,7 +117,7 @@ public class FxAccountSchedulePolicy implements SchedulePolicy {
     switch (needed) {
     case NeedsPassword:
     case NeedsUpgrade:
-      requestPeriodicSync(POLL_INTERVAL_ERROR_STATE);
+      requestPeriodicSync(POLL_INTERVAL_ERROR_STATE_SEC);
       break;
     case NeedsVerification:
       requestPeriodicSync(POLL_INTERVAL_PENDING_VERIFICATION);
@@ -117,14 +133,14 @@ public class FxAccountSchedulePolicy implements SchedulePolicy {
   public void onUpgradeRequired() {
     
     
-    requestPeriodicSync(POLL_INTERVAL_ERROR_STATE);
+    requestPeriodicSync(POLL_INTERVAL_ERROR_STATE_SEC);
   }
 
   @Override
   public void onUnauthorized() {
     
     
-    requestPeriodicSync(POLL_INTERVAL_ERROR_STATE);
+    requestPeriodicSync(POLL_INTERVAL_ERROR_STATE_SEC);
   }
 
   @Override
@@ -147,8 +163,14 @@ public class FxAccountSchedulePolicy implements SchedulePolicy {
     }
   }
 
+  
+
+
+
+
   @Override
-  public void configureBackoffMillisBeforeSyncing(BackoffHandler backoffHandler) {
-    backoffHandler.setEarliestNextRequest(delay(POLL_INTERVAL_MINIMUM_SEC * 1000));
+  public void configureBackoffMillisBeforeSyncing(BackoffHandler fundamentalRateHandler, BackoffHandler backgroundRateHandler) {
+    fundamentalRateHandler.setEarliestNextRequest(delay(RATE_LIMIT_FUNDAMENTAL_SEC * 1000));
+    backgroundRateHandler.setEarliestNextRequest(delay(RATE_LIMIT_BACKGROUND_SEC * 1000));
   }
 }
