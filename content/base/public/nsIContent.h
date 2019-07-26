@@ -398,13 +398,12 @@ public:
 
 
 
-  virtual bool AttrValueIs(int32_t aNameSpaceID,
-                             nsIAtom* aName,
-                             const nsAString& aValue,
-                             nsCaseTreatment aCaseSensitive) const
-  {
-    return false;
-  }
+
+
+  bool AttrValueIs(int32_t aNameSpaceID,
+                   nsIAtom* aName,
+                   const nsAString& aValue,
+                   nsCaseTreatment aCaseSensitive) const;
   
   
 
@@ -416,13 +415,12 @@ public:
 
 
 
-  virtual bool AttrValueIs(int32_t aNameSpaceID,
-                             nsIAtom* aName,
-                             nsIAtom* aValue,
-                             nsCaseTreatment aCaseSensitive) const
-  {
-    return false;
-  }
+
+
+  bool AttrValueIs(int32_t aNameSpaceID,
+                   nsIAtom* aName,
+                   nsIAtom* aValue,
+                   nsCaseTreatment aCaseSensitive) const;
   
   enum {
     ATTR_MISSING = -1,

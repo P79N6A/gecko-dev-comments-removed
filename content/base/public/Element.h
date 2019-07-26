@@ -468,12 +468,12 @@ public:
                nsAString& aResult) const;
   inline bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
   
-  virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
-                             const nsAString& aValue,
-                             nsCaseTreatment aCaseSensitive) const;
-  virtual bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
-                             nsIAtom* aValue,
-                             nsCaseTreatment aCaseSensitive) const;
+  inline bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
+                          const nsAString& aValue,
+                          nsCaseTreatment aCaseSensitive) const;
+  inline bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
+                          nsIAtom* aValue,
+                          nsCaseTreatment aCaseSensitive) const;
   virtual int32_t FindAttrValueIn(int32_t aNameSpaceID,
                                   nsIAtom* aName,
                                   AttrValuesArray* aValues,
@@ -1176,6 +1176,33 @@ Element::HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const
   return mAttrsAndChildren.IndexOfAttr(aName, aNameSpaceID) >= 0;
 }
 
+inline bool
+Element::AttrValueIs(int32_t aNameSpaceID,
+                     nsIAtom* aName,
+                     const nsAString& aValue,
+                     nsCaseTreatment aCaseSensitive) const
+{
+  NS_ASSERTION(aName, "Must have attr name");
+  NS_ASSERTION(aNameSpaceID != kNameSpaceID_Unknown, "Must have namespace");
+
+  const nsAttrValue* val = mAttrsAndChildren.GetAttr(aName, aNameSpaceID);
+  return val && val->Equals(aValue, aCaseSensitive);
+}
+
+inline bool
+Element::AttrValueIs(int32_t aNameSpaceID,
+                     nsIAtom* aName,
+                     nsIAtom* aValue,
+                     nsCaseTreatment aCaseSensitive) const
+{
+  NS_ASSERTION(aName, "Must have attr name");
+  NS_ASSERTION(aNameSpaceID != kNameSpaceID_Unknown, "Must have namespace");
+  NS_ASSERTION(aValue, "Null value atom");
+
+  const nsAttrValue* val = mAttrsAndChildren.GetAttr(aName, aNameSpaceID);
+  return val && val->Equals(aValue, aCaseSensitive);
+}
+
 } 
 } 
 
@@ -1211,6 +1238,25 @@ inline bool nsIContent::HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const
   return IsElement() && AsElement()->HasAttr(aNameSpaceID, aName);
 }
 
+inline bool
+nsIContent::AttrValueIs(int32_t aNameSpaceID,
+                        nsIAtom* aName,
+                        const nsAString& aValue,
+                        nsCaseTreatment aCaseSensitive) const
+{
+  return IsElement() &&
+    AsElement()->AttrValueIs(aNameSpaceID, aName, aValue, aCaseSensitive);
+}
+
+inline bool
+nsIContent::AttrValueIs(int32_t aNameSpaceID,
+                        nsIAtom* aName,
+                        nsIAtom* aValue,
+                        nsCaseTreatment aCaseSensitive) const
+{
+  return IsElement() &&
+    AsElement()->AttrValueIs(aNameSpaceID, aName, aValue, aCaseSensitive);
+}
 
 
 
