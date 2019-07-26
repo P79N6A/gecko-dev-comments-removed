@@ -145,6 +145,7 @@ extern "C" {
 #endif 
 
 using namespace mozilla;
+using namespace mozilla::plugins;
 using namespace mozilla::layers;
 
 class PluginBackgroundSink : public ReadbackSink {
@@ -1790,7 +1791,7 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
         
         
         NPEvent pluginEvent;
-        pluginEvent.event = plugins::DoublePassRenderingEvent();
+        pluginEvent.event = DoublePassRenderingEvent();
         pluginEvent.wParam = 0;
         pluginEvent.lParam = 0;
         if (pluginEvent.event)

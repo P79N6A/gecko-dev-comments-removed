@@ -16,8 +16,6 @@
 
 class nsIURI;
 
-struct nsWidgetInitData;
-
 namespace mozilla {
 class WebShellWindowTimerCallback;
 } 
