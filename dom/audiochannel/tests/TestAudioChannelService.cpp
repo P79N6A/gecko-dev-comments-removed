@@ -9,6 +9,11 @@
 
 #include "TestHarness.h"
 
+
+
+#include "nsIWeakReference.h"
+typedef nsCOMPtr<nsIWeakReference> nsWeakPtr;
+
 #include "AudioChannelService.h"
 #include "AudioChannelAgent.h"
 

@@ -11,8 +11,7 @@ using namespace mozilla::dom;
 NS_IMPL_ISUPPORTS1(AudioChannelAgent, nsIAudioChannelAgent)
 
 AudioChannelAgent::AudioChannelAgent()
-  : mCallback(nullptr)
-  , mAudioChannelType(AUDIO_AGENT_CHANNEL_ERROR)
+  : mAudioChannelType(AUDIO_AGENT_CHANNEL_ERROR)
   , mIsRegToService(false)
   , mVisible(true)
 {
@@ -35,6 +34,23 @@ NS_IMETHODIMP AudioChannelAgent::GetAudioChannelType(int32_t *aAudioChannelType)
 
 NS_IMETHODIMP AudioChannelAgent::Init(int32_t channelType, nsIAudioChannelAgentCallback *callback)
 {
+  return InitInternal(channelType, callback,  false);
+}
+
+
+
+NS_IMETHODIMP
+AudioChannelAgent::InitWithWeakCallback(int32_t channelType,
+                                        nsIAudioChannelAgentCallback *callback)
+{
+  return InitInternal(channelType, callback,  true);
+}
+
+nsresult
+AudioChannelAgent::InitInternal(int32_t aChannelType,
+                                nsIAudioChannelAgentCallback *aCallback,
+                                bool aUseWeakRef)
+{
   
   
   MOZ_STATIC_ASSERT(static_cast<AudioChannelType>(AUDIO_AGENT_CHANNEL_NORMAL) ==
@@ -54,13 +70,19 @@ NS_IMETHODIMP AudioChannelAgent::Init(int32_t channelType, nsIAudioChannelAgentC
                     "Enum of channel on nsIAudioChannelAgent.idl should be the same with AudioChannelCommon.h");
 
   if (mAudioChannelType != AUDIO_AGENT_CHANNEL_ERROR ||
-      channelType > AUDIO_AGENT_CHANNEL_PUBLICNOTIFICATION ||
-      channelType < AUDIO_AGENT_CHANNEL_NORMAL) {
+      aChannelType > AUDIO_AGENT_CHANNEL_PUBLICNOTIFICATION ||
+      aChannelType < AUDIO_AGENT_CHANNEL_NORMAL) {
     return NS_ERROR_FAILURE;
   }
 
-  mAudioChannelType = channelType;
-  mCallback = callback;
+  mAudioChannelType = aChannelType;
+
+  if (aUseWeakRef) {
+    mWeakCallback = do_GetWeakReference(aCallback);
+  } else {
+    mCallback = aCallback;
+  }
+
   return NS_OK;
 }
 
@@ -99,19 +121,31 @@ NS_IMETHODIMP AudioChannelAgent::SetVisibilityState(bool visible)
 {
   bool oldVisibility = mVisible;
 
+  nsCOMPtr<nsIAudioChannelAgentCallback> callback = GetCallback();
+
   mVisible = visible;
-  if (mIsRegToService && oldVisibility != mVisible && mCallback != nullptr) {
+  if (mIsRegToService && oldVisibility != mVisible && callback) {
     AudioChannelService *service = AudioChannelService::GetAudioChannelService();
-    mCallback->CanPlayChanged(!service->GetMuted(this, !mVisible));
+    callback->CanPlayChanged(!service->GetMuted(this, !mVisible));
   }
   return NS_OK;
 }
 
 void AudioChannelAgent::NotifyAudioChannelStateChanged()
 {
-  if (mCallback != nullptr) {
+  nsCOMPtr<nsIAudioChannelAgentCallback> callback = GetCallback();
+  if (callback) {
     AudioChannelService *service = AudioChannelService::GetAudioChannelService();
-    mCallback->CanPlayChanged(!service->GetMuted(this, !mVisible));
+    callback->CanPlayChanged(!service->GetMuted(this, !mVisible));
   }
 }
 
+already_AddRefed<nsIAudioChannelAgentCallback>
+AudioChannelAgent::GetCallback()
+{
+  nsCOMPtr<nsIAudioChannelAgentCallback> callback = mCallback;
+  if (!callback) {
+    callback = do_QueryReferent(mWeakCallback);
+  }
+  return callback.forget();
+}

@@ -3687,7 +3687,8 @@ void HTMLMediaElement::UpdateAudioChannelPlayingState()
       if (!mAudioChannelAgent) {
         return;
       }
-      mAudioChannelAgent->Init(mAudioChannelType, this);
+      
+      mAudioChannelAgent->InitWithWeakCallback(mAudioChannelType, this);
 
       nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
       if (domDoc) {

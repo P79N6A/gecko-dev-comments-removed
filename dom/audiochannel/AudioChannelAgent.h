@@ -9,6 +9,7 @@
 
 #include "nsIAudioChannelAgent.h"
 #include "nsCOMPtr.h"
+#include "nsWeakPtr.h"
 
 #define NS_AUDIOCHANNELAGENT_CONTRACTID "@mozilla.org/audiochannelagent;1"
 
@@ -30,7 +31,17 @@ public:
 
 private:
   virtual ~AudioChannelAgent();
+
+  
+  
+  already_AddRefed<nsIAudioChannelAgentCallback> GetCallback();
+
+  nsresult InitInternal(int32_t aAudioAgentType,
+                        nsIAudioChannelAgentCallback* aCallback,
+                        bool aUseWeakRef);
+
   nsCOMPtr<nsIAudioChannelAgentCallback> mCallback;
+  nsWeakPtr mWeakCallback;
   int32_t mAudioChannelType;
   bool mIsRegToService;
   bool mVisible;
