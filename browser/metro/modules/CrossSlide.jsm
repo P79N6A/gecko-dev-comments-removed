@@ -42,32 +42,28 @@ function isSelectable(aElement) {
   
   return aElement.nodeName == 'richgriditem';
 }
-
 function withinCone(aLen, aHeight) {
   
   return aLen > aHeight;
 }
-
 function getScrollAxisFromElement(aElement) {
-  let elem = aElement,
-      win = elem.ownerDocument.defaultView;
-  let scrollX, scrollY;
-  for (; elem && 1==elem.nodeType; elem = elem.parentNode) {
-    let cs = win.getComputedStyle(elem);
-    scrollX = (cs.overflowX=='scroll' || cs.overflowX=='auto');
-    scrollY = (cs.overflowX=='scroll' || cs.overflowX=='auto');
-    if (scrollX || scrollY) {
-      break;
-    }
-  }
-  return scrollX ? 'x' : 'y';
-}
+  
+  let win = aElement.ownerDocument.defaultView;
+  let scrollX = win.scrollMaxX,
+      scrollY = win.scrollMaxY;
+  
+  if (scrollX || scrollY)
+    return scrollX >= scrollY ? 'x' : 'y';
 
+  
+  let docElem = aElement.ownerDocument.documentElement;
+  return  docElem.clientWidth >= docElem.clientHeight ?
+          'x' : 'y';
+}
 function pointFromTouchEvent(aEvent) {
   let touch = aEvent.touches[0];
   return { x: touch.clientX, y: touch.clientY };
 }
-
 
 
 
