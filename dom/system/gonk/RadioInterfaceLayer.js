@@ -1816,7 +1816,19 @@ function RadioInterface(aClientId, aWorkerMessenger) {
   this.setTimezoneAutoUpdateAvailable(false);
 
   
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
   lock.get(kSettingsCellBroadcastSearchList, this);
 
   Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
@@ -2493,11 +2505,18 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  setCellBroadcastSearchList: function(newSearchList) {
-    if ((newSearchList == this._cellBroadcastSearchList) ||
-          (newSearchList && this._cellBroadcastSearchList &&
-            newSearchList.gsm == this._cellBroadcastSearchList.gsm &&
-            newSearchList.cdma == this._cellBroadcastSearchList.cdma)) {
+  setCellBroadcastSearchList: function(settings) {
+    let newSearchList =
+      Array.isArray(settings) ? settings[this.clientId] : settings;
+    let oldSearchList =
+      Array.isArray(this._cellBroadcastSearchList) ?
+        this._cellBroadcastSearchList[this.clientId] :
+        this._cellBroadcastSearchList;
+
+    if ((newSearchList == oldSearchList) ||
+          (newSearchList && oldSearchList &&
+            newSearchList.gsm == oldSearchList.gsm &&
+            newSearchList.cdma == oldSearchList.cdma)) {
       return;
     }
 
@@ -2509,7 +2528,7 @@ RadioInterface.prototype = {
         lock.set(kSettingsCellBroadcastSearchList,
                  this._cellBroadcastSearchList, null);
       } else {
-        this._cellBroadcastSearchList = response.searchList;
+        this._cellBroadcastSearchList = settings;
       }
 
       return false;
@@ -3475,9 +3494,8 @@ RadioInterface.prototype = {
           this.debug("'" + kSettingsCellBroadcastSearchList +
             "' is now " + JSON.stringify(aResult));
         }
-        
-        let result = Array.isArray(aResult) ? aResult[0] : aResult;
-        this.setCellBroadcastSearchList(result);
+
+        this.setCellBroadcastSearchList(aResult);
         break;
     }
   },
