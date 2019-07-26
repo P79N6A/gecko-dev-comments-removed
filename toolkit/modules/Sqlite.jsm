@@ -607,11 +607,11 @@ OpenedConnection.prototype = Object.freeze({
 
 
 
-
-
   tableExists: function (name) {
     return this.execute(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      "SELECT name FROM (SELECT * FROM sqlite_master UNION ALL " +
+                        "SELECT * FROM sqlite_temp_master) " +
+      "WHERE type = 'table' AND name=?",
       [name])
       .then(function onResult(rows) {
         return Promise.resolve(rows.length > 0);
@@ -627,11 +627,11 @@ OpenedConnection.prototype = Object.freeze({
 
 
 
-
-
   indexExists: function (name) {
     return this.execute(
-      "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+      "SELECT name FROM (SELECT * FROM sqlite_master UNION ALL " +
+                        "SELECT * FROM sqlite_temp_master) " +
+      "WHERE type = 'index' AND name=?",
       [name])
       .then(function onResult(rows) {
         return Promise.resolve(rows.length > 0);
