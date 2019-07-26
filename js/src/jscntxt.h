@@ -815,6 +815,12 @@ struct JSRuntime : js::RuntimeFriendFields
     JSCList             debuggerList;
 
     
+
+
+
+    JSCList             onNewGlobalObjectWatchers;
+
+    
     js::DebugScopes     *debugScopes;
 
     

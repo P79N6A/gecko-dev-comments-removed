@@ -34,6 +34,7 @@ class Debugger {
         OnExceptionUnwind,
         OnNewScript,
         OnEnterFrame,
+        OnNewGlobalObject,
         HookCount
     };
 
@@ -56,6 +57,14 @@ class Debugger {
     js::HeapPtrObject uncaughtExceptionHook; 
     bool enabled;
     JSCList breakpoints;                
+
+    
+
+
+
+
+
+    JSCList onNewGlobalObjectWatchersLink;
 
     
 
@@ -161,6 +170,8 @@ class Debugger {
     static JSBool setOnNewScript(JSContext *cx, unsigned argc, Value *vp);
     static JSBool getOnEnterFrame(JSContext *cx, unsigned argc, Value *vp);
     static JSBool setOnEnterFrame(JSContext *cx, unsigned argc, Value *vp);
+    static JSBool getOnNewGlobalObject(JSContext *cx, unsigned argc, Value *vp);
+    static JSBool setOnNewGlobalObject(JSContext *cx, unsigned argc, Value *vp);
     static JSBool getUncaughtExceptionHook(JSContext *cx, unsigned argc, Value *vp);
     static JSBool setUncaughtExceptionHook(JSContext *cx, unsigned argc, Value *vp);
     static JSBool addDebuggee(JSContext *cx, unsigned argc, Value *vp);
@@ -182,11 +193,13 @@ class Debugger {
     static bool slowPathOnLeaveFrame(JSContext *cx, bool ok);
     static void slowPathOnNewScript(JSContext *cx, JSScript *script,
                                     GlobalObject *compileAndGoGlobal);
+    static bool slowPathOnNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
     static JSTrapStatus dispatchHook(JSContext *cx, Value *vp, Hook which);
 
     JSTrapStatus fireDebuggerStatement(JSContext *cx, Value *vp);
     JSTrapStatus fireExceptionUnwind(JSContext *cx, Value *vp);
     JSTrapStatus fireEnterFrame(JSContext *cx, Value *vp);
+    JSTrapStatus fireNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global, Value *vp);
 
     
 
@@ -202,6 +215,8 @@ class Debugger {
 
     static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
+
+    static inline Debugger *fromOnNewGlobalObjectWatchersLink(JSCList *link);
 
   public:
     Debugger(JSContext *cx, JSObject *dbg);
@@ -242,6 +257,7 @@ class Debugger {
     static inline JSTrapStatus onExceptionUnwind(JSContext *cx, Value *vp);
     static inline void onNewScript(JSContext *cx, JSScript *script,
                                    GlobalObject *compileAndGoGlobal);
+    static inline bool onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
     static JSTrapStatus onTrap(JSContext *cx, Value *vp);
     static JSTrapStatus onSingleStep(JSContext *cx, Value *vp);
 
@@ -249,6 +265,7 @@ class Debugger {
 
     inline bool observesEnterFrame() const;
     inline bool observesNewScript() const;
+    inline bool observesNewGlobalObject() const;
     inline bool observesGlobal(GlobalObject *global) const;
     inline bool observesFrame(StackFrame *fp) const;
     bool observesScript(JSScript *script) const;
@@ -421,7 +438,7 @@ class Breakpoint {
 Debugger *
 Debugger::fromLinks(JSCList *links)
 {
-    unsigned char *p = reinterpret_cast<unsigned char *>(links);
+    char *p = reinterpret_cast<char *>(links);
     return reinterpret_cast<Debugger *>(p - offsetof(Debugger, link));
 }
 
@@ -431,6 +448,12 @@ Debugger::firstBreakpoint() const
     if (JS_CLIST_IS_EMPTY(&breakpoints))
         return NULL;
     return Breakpoint::fromDebuggerLinks(JS_NEXT_LINK(&breakpoints));
+}
+
+Debugger *
+Debugger::fromOnNewGlobalObjectWatchersLink(JSCList *link) {
+    char *p = reinterpret_cast<char *>(link);
+    return reinterpret_cast<Debugger *>(p - offsetof(Debugger, onNewGlobalObjectWatchersLink));
 }
 
 const js::HeapPtrObject &
@@ -464,6 +487,12 @@ bool
 Debugger::observesNewScript() const
 {
     return enabled && getHook(OnNewScript);
+}
+
+bool
+Debugger::observesNewGlobalObject() const
+{
+    return enabled && getHook(OnNewGlobalObject);
 }
 
 bool
@@ -522,6 +551,14 @@ Debugger::onNewScript(JSContext *cx, JSScript *script, GlobalObject *compileAndG
         slowPathOnNewScript(cx, script, compileAndGoGlobal);
 }
 
+bool
+Debugger::onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global)
+{
+    if (JS_CLIST_IS_EMPTY(&cx->runtime->onNewGlobalObjectWatchers))
+        return true;
+    return Debugger::slowPathOnNewGlobalObject(cx, global);
+}
+
 extern JSBool
 EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, StackFrame *fp,
               StableCharPtr chars, unsigned length, const char *filename, unsigned lineno,
@@ -529,4 +566,4 @@ EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, StackFrame *fp
 
 }
 
-#endif
+#endif 
