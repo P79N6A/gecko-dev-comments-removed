@@ -317,6 +317,14 @@ nsOfflineCacheUpdateItem::OpenChannel(nsOfflineCacheUpdate *aUpdate)
     }
 #endif
 
+    if (mUpdate) {
+        
+        
+        
+        LOG(("  %p is already running! ignoring", this));
+        return NS_ERROR_ALREADY_OPENED;
+    }
+
     nsresult rv = nsOfflineCacheUpdate::GetCacheKey(mURI, mCacheKey);
     NS_ENSURE_SUCCESS(rv, rv);
 
