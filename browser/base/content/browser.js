@@ -3475,8 +3475,6 @@ var XULBrowserWindow = {
   },
 
   init: function () {
-    this.throbberElement = document.getElementById("navigator-throbber");
-
     
     if (gMultiProcessBrowser)
       return;
@@ -3490,7 +3488,6 @@ var XULBrowserWindow = {
 
   destroy: function () {
     
-    delete this.throbberElement;
     delete this.stopCommand;
     delete this.reloadCommand;
     delete this.statusTextField;
@@ -3616,10 +3613,6 @@ var XULBrowserWindow = {
         this._busyUI = true;
 
         
-        if (this.throbberElement)
-          this.throbberElement.setAttribute("busy", "true");
-
-        
         this.stopCommand.removeAttribute("disabled");
         CombinedStopReload.switchToStop();
       }
@@ -3662,10 +3655,6 @@ var XULBrowserWindow = {
 
       if (this._busyUI) {
         this._busyUI = false;
-
-        
-        if (this.throbberElement)
-          this.throbberElement.removeAttribute("busy");
 
         this.stopCommand.setAttribute("disabled", "true");
         CombinedStopReload.switchToReload(aRequest instanceof Ci.nsIRequest);
