@@ -861,6 +861,28 @@ js::IsAsmJSModule(HandleFunction fun)
     return fun->isNative() && fun->maybeNative() == LinkAsmJS;
 }
 
+static bool
+AppendUseStrictSource(JSContext *cx, HandleFunction fun, Handle<JSFlatString*> src, StringBuffer &out)
+{
+    
+    
+    size_t bodyStart = 0, bodyEnd;
+
+    
+    
+    
+    
+    
+
+    ConstTwoByteChars chars(src->chars(), src->length());
+    if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+        return false;
+
+    return out.append(chars, bodyStart) &&
+           out.append("\n\"use strict\";\n") &&
+           out.append(chars + bodyStart, src->length() - bodyStart);
+}
+
 JSString *
 js::AsmJSModuleToString(JSContext *cx, HandleFunction fun, bool addParenToLambda)
 {
@@ -910,26 +932,8 @@ js::AsmJSModuleToString(JSContext *cx, HandleFunction fun, bool addParenToLambda
         return nullptr;
 
     if (module.strict()) {
-        
-        
-        size_t bodyStart = 0, bodyEnd;
-
-        
-        
-        
-        
-        
-
-        ConstTwoByteChars chars(src->chars(), src->length());
-        if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+        if (!AppendUseStrictSource(cx, fun, src, out))
             return nullptr;
-
-        if (!out.append(chars, bodyStart) ||
-            !out.append("\n\"use strict\";\n") ||
-            !out.append(chars + bodyStart, src->length() - bodyStart))
-        {
-            return nullptr;
-        }
     } else {
         if (!out.append(src->chars(), src->length()))
             return nullptr;
@@ -999,26 +1003,17 @@ js::AsmJSFunctionToString(JSContext *cx, HandleFunction fun)
     if (module.strict()) {
         
         
-        size_t bodyStart = 0, bodyEnd;
+        
 
         
-        
-        
-        JS_ASSERT(fun->atom()); 
+        JS_ASSERT(fun->atom());
+        if (!out.append(fun->atom()))
+            return nullptr;
+
         size_t nameEnd = begin + fun->atom()->length();
-
         Rooted<JSFlatString*> src(cx, source->substring(cx, nameEnd, end));
-        ConstTwoByteChars chars(src->chars(), src->length());
-        if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+        if (!AppendUseStrictSource(cx, fun, src, out))
             return nullptr;
-
-        if (!out.append(fun->atom()) ||
-            !out.append(chars, bodyStart) ||
-            !out.append("\n\"use strict\";\n") ||
-            !out.append(chars + bodyStart, src->length() - bodyStart))
-        {
-            return nullptr;
-        }
     } else {
         Rooted<JSFlatString*> src(cx, source->substring(cx, begin, end));
         if (!src)
