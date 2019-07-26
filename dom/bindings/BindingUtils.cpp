@@ -584,8 +584,7 @@ NativeInterface2JSObjectAndThrowIfFailed(JSContext* aCx,
                                          bool aAllowNativeWrapper)
 {
   nsresult rv;
-  XPCLazyCallContext lccx(JS_CALLER, aCx, aScope);
-  if (!XPCConvert::NativeInterface2JSObject(lccx, aRetval, NULL, aHelper, aIID,
+  if (!XPCConvert::NativeInterface2JSObject(aRetval, NULL, aHelper, aIID,
                                             NULL, aAllowNativeWrapper, &rv)) {
     
     
@@ -655,8 +654,7 @@ VariantToJsval(JSContext* aCx, JS::Handle<JSObject*> aScope,
                nsIVariant* aVariant, JS::Value* aRetval)
 {
   nsresult rv;
-  XPCLazyCallContext lccx(JS_CALLER, aCx, aScope);
-  if (!XPCVariant::VariantDataToJS(lccx, aVariant, &rv, aRetval)) {
+  if (!XPCVariant::VariantDataToJS(aVariant, &rv, aRetval)) {
     
     if (!JS_IsExceptionPending(aCx)) {
       Throw<true>(aCx, NS_FAILED(rv) ? rv : NS_ERROR_UNEXPECTED);
