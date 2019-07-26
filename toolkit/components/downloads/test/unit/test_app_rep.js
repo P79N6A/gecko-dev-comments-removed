@@ -136,8 +136,6 @@ add_test(function test_local_list() {
 
   
   
-  registerTableUpdate("goog-badbinurl-shavar", "data/block_digest.chunk");
-  
   registerTableUpdate("goog-downloadwhite-digest256", "data/digest.chunk");
 
   
@@ -153,61 +151,22 @@ add_test(function test_local_list() {
     do_throw("We didn't download or update correctly: " + aEvent);
   }
   streamUpdater.downloadUpdates(
-    "goog-downloadwhite-digest256,goog-badbinurl-shavar",
-    "goog-downloadwhite-digest256,goog-badbinurl-shavar;\n",
+    "goog-downloadwhite-digest256",
+    "goog-downloadwhite-digest256;\n",
     updateSuccess, handleError, handleError);
 });
 
-add_test(function test_unlisted() {
-  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
-                             "http://localhost:4444/download");
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://example.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    do_check_eq(Cr.NS_OK, aStatus);
-    do_check_false(aShouldBlock);
-    run_next_test();
-  });
-});
 
-add_test(function test_local_blacklist() {
-  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
-                             "http://localhost:4444/download");
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://blocklisted.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    do_check_eq(Cr.NS_OK, aStatus);
-    do_check_true(aShouldBlock);
-    run_next_test();
-  });
-});
-
-add_test(function test_referer_blacklist() {
-  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
-                             "http://localhost:4444/download");
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://example.com"),
-    referrerURI: createURI("http://blocklisted.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    do_check_eq(Cr.NS_OK, aStatus);
-    do_check_true(aShouldBlock);
-    run_next_test();
-  });
-});
-
-add_test(function test_blocklist_trumps_allowlist() {
+add_test(function test_local_whitelist() {
   Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
                              "http://localhost:4444/download");
   gAppRep.queryReputation({
     sourceURI: createURI("http://whitelisted.com"),
-    referrerURI: createURI("http://blocklisted.com"),
     fileSize: 12,
   }, function onComplete(aShouldBlock, aStatus) {
+    
     do_check_eq(Cr.NS_OK, aStatus);
-    do_check_true(aShouldBlock);
+    do_check_false(aShouldBlock);
     run_next_test();
   });
 });
