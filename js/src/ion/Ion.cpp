@@ -156,7 +156,14 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 
     bool mustMarkEnterJIT = false;
     for (IonActivationIterator iter(trc->runtime); iter.more(); ++iter) {
-        if (iter.activation()->compartment() != compartment)
+        IonActivation *activation = iter.activation();
+
+        if (activation->compartment() != compartment)
+            continue;
+
+        
+        
+        if (!activation->entryfp() || activation->entryfp()->callingIntoIon())
             continue;
 
         
