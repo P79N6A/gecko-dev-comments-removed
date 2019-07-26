@@ -56,8 +56,10 @@ let gFxAccounts = {
     if (!service.ready) {
       return false;
     }
-    return Weave.Service.identity.readyToAuthenticate &&
-           Weave.Status.login != Weave.LOGIN_SUCCEEDED;
+    
+    
+    
+    return Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED;
   },
 
   get isActiveWindow() {
