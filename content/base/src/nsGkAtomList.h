@@ -25,7 +25,7 @@
 
 #ifdef small
 #undef small
-#endif 
+#endif
 
 
 
@@ -766,6 +766,8 @@ GK_ATOM(onpopupshowing, "onpopupshowing")
 GK_ATOM(onpopupshown, "onpopupshown")
 GK_ATOM(onreadystatechange, "onreadystatechange")
 GK_ATOM(onreceived, "onreceived")
+GK_ATOM(onremoteheld, "onremoteheld")
+GK_ATOM(onremoteresumed, "onremoteresumed")
 GK_ATOM(onretrieving, "onretrieving")
 GK_ATOM(onRequest, "onRequest")
 GK_ATOM(onreset, "onreset")
