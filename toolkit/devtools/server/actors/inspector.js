@@ -110,6 +110,13 @@ function delayedResolve(value) {
   return deferred.promise;
 }
 
+types.addDictType("imageData", {
+  
+  data: "nullable:longstring",
+  
+  size: "json"
+});
+
 
 
 
@@ -256,7 +263,11 @@ var NodeActor = protocol.ActorClass({
 
 
 
-  getImageData: method(function() {
+
+
+
+
+  getImageData: method(function(maxDim) {
     let isImg = this.rawNode.tagName.toLowerCase() === "img";
     let isCanvas = this.rawNode.tagName.toLowerCase() === "canvas";
 
@@ -264,29 +275,44 @@ var NodeActor = protocol.ActorClass({
       return null;
     }
 
-    let imageData;
-    if (isImg) {
-      let canvas = this.rawNode.ownerDocument.createElement("canvas");
-      canvas.width = this.rawNode.naturalWidth;
-      canvas.height = this.rawNode.naturalHeight;
-      let ctx = canvas.getContext("2d");
-      try {
-        
-        ctx.drawImage(this.rawNode, 0, 0);
-        imageData = canvas.toDataURL("image/png");
-      } catch (e) {
-        imageData = "";
-      }
-    } else if (isCanvas) {
-      imageData = this.rawNode.toDataURL("image/png");
+    
+    let resizeRatio = 1;
+    let imgWidth = isImg ? this.rawNode.naturalWidth : this.rawNode.width;
+    let imgHeight = isImg ? this.rawNode.naturalHeight : this.rawNode.height;
+    let imgMax = Math.max(imgWidth, imgHeight);
+    if (maxDim && imgMax > maxDim) {
+      resizeRatio = maxDim / imgMax;
     }
 
-    return LongStringActor(this.conn, imageData);
-  }, {
-    request: {},
-    response: {
-      data: RetVal("nullable:longstring")
+    
+    let canvas = this.rawNode.ownerDocument.createElement("canvas");
+    canvas.width = imgWidth * resizeRatio;
+    canvas.height = imgHeight * resizeRatio;
+    let ctx = canvas.getContext("2d");
+
+    
+    let imageData;
+    
+    try {
+      ctx.drawImage(this.rawNode, 0, 0, canvas.width, canvas.height);
+      imageData = canvas.toDataURL("image/png");
+    } catch (e) {
+      imageData = "";
     }
+
+    return {
+      data: LongStringActor(this.conn, imageData),
+      size: {
+        naturalWidth: imgWidth,
+        naturalHeight: imgHeight,
+        width: canvas.width,
+        height: canvas.height,
+        resized: resizeRatio !== 1
+      }
+    }
+  }, {
+    request: {maxDim: Arg(0, "nullable:number")},
+    response: RetVal("imageData")
   }),
 
   

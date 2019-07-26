@@ -291,7 +291,18 @@ Tooltip.prototype = {
 
 
 
-  setImageContent: function(imageUrl, maxDim=400) {
+
+
+
+
+
+
+
+
+
+
+
+  setImageContent: function(imageUrl, options={}) {
     
     let vbox = this.doc.createElement("vbox");
     vbox.setAttribute("align", "center")
@@ -308,9 +319,9 @@ Tooltip.prototype = {
     
     let image = this.doc.createElement("image");
     image.setAttribute("src", imageUrl);
-    if (maxDim) {
-      image.style.maxWidth = maxDim + "px";
-      image.style.maxHeight = maxDim + "px";
+    if (options.maxDim) {
+      image.style.maxWidth = options.maxDim + "px";
+      image.style.maxHeight = options.maxDim + "px";
     }
     tiles.appendChild(image);
 
@@ -323,11 +334,9 @@ Tooltip.prototype = {
       imgObj.onload = null;
 
       
-      label.textContent = imgObj.naturalWidth + " x " + imgObj.naturalHeight;
-      if (imgObj.naturalWidth > maxDim ||
-        imgObj.naturalHeight > maxDim) {
-        label.textContent += " *";
-      }
+      let w = options.naturalWidth || imgObj.naturalWidth;
+      let h = options.naturalHeight || imgObj.naturalHeight;
+      label.textContent = w + " x " + h;
     }
   },
 
@@ -338,7 +347,9 @@ Tooltip.prototype = {
   setCssBackgroundImageContent: function(cssBackground, sheetHref, maxDim=400) {
     let uri = getBackgroundImageUri(cssBackground, sheetHref);
     if (uri) {
-      this.setImageContent(uri, maxDim);
+      this.setImageContent(uri, {
+        maxDim: maxDim
+      });
     }
   },
 
