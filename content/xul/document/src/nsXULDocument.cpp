@@ -3463,9 +3463,7 @@ nsXULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
 
         aStatus = rv;
         if (NS_SUCCEEDED(rv)) {
-            if (nsScriptLoader::ShouldExecuteScript(this, channel)) {
-                rv = ExecuteScript(scriptProto);
-            }
+            rv = ExecuteScript(scriptProto);
 
             
             
@@ -3544,8 +3542,7 @@ nsXULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
         doc->mNextSrcLoadWaiter = nullptr;
 
         
-        if (NS_SUCCEEDED(aStatus) && scriptProto->mScriptObject.mObject &&
-            nsScriptLoader::ShouldExecuteScript(doc, channel)) {
+        if (NS_SUCCEEDED(aStatus) && scriptProto->mScriptObject.mObject) {
             doc->ExecuteScript(scriptProto);
         }
         doc->ResumeWalk();

@@ -1182,10 +1182,6 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
                         aRequest->mScriptText);
 
     NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!ShouldExecuteScript(mDocument, channel)) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
   }
 
   
@@ -1204,36 +1200,6 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
   aRequest->mLoading = false;
 
   return NS_OK;
-}
-
-
-bool
-nsScriptLoader::ShouldExecuteScript(nsIDocument* aDocument,
-                                    nsIChannel* aChannel)
-{
-  if (!aChannel) {
-    return false;
-  }
-
-  bool hasCert;
-  nsIPrincipal* docPrincipal = aDocument->NodePrincipal();
-  docPrincipal->GetHasCertificate(&hasCert);
-  if (!hasCert) {
-    return true;
-  }
-
-  nsCOMPtr<nsIPrincipal> channelPrincipal;
-  nsresult rv = nsContentUtils::GetSecurityManager()->
-    GetChannelPrincipal(aChannel, getter_AddRefs(channelPrincipal));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  NS_ASSERTION(channelPrincipal, "Gotta have a principal here!");
-
-  
-  
-  bool subsumes;
-  rv = channelPrincipal->Subsumes(docPrincipal, &subsumes);
-  return NS_SUCCEEDED(rv) && subsumes;
 }
 
 void

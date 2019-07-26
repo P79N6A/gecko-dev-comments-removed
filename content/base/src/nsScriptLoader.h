@@ -165,13 +165,6 @@ public:
 
 
 
-  static bool ShouldExecuteScript(nsIDocument* aDocument,
-                                    nsIChannel* aChannel);
-
-  
-
-
-
   void BeginDeferringScripts()
   {
     mDeferEnabled = true;
