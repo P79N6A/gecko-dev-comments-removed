@@ -139,14 +139,34 @@ TLSInfoList;
 
 
 
+static size_t getPageSize(void) {
+#ifdef HAVE_GETPAGESIZE
+  return getpagesize();
+#elif defined(_SC_PAGESIZE)
+  return sysconf(_SC_PAGESIZE);
+#elif defined(PAGE_SIZE)
+  return PAGE_SIZE;
+#else
+  #warning "Hard-coding page size to 4096 bytes"
+  return 4096
+#endif
+}
+
+
+
+
+static uintptr_t ceilToPage(uintptr_t aPtr) {
+  size_t pageSize = getPageSize();
+
+  return ((aPtr + pageSize - 1) / pageSize) * pageSize;
+}
+
+
+
+
 
 
 #ifndef NUWA_STACK_SIZE
-#ifndef PAGE_SIZE
-#warning "Hard-coding page size to 4096 byte"
-#define PAGE_SIZE 4096ul
-#endif
-#define PAGE_ALIGN_MASK (~(PAGE_SIZE-1))
 #define NUWA_STACK_SIZE (1024 * 128)
 #endif
 
@@ -495,17 +515,13 @@ thread_info_new(void) {
   tinfo->recreatedThreadID = 0;
   tinfo->recreatedNativeThreadID = 0;
   tinfo->reacquireMutex = nullptr;
-  tinfo->stk = malloc(NUWA_STACK_SIZE + PAGE_SIZE);
+  tinfo->stk = malloc(NUWA_STACK_SIZE + getPageSize());
 
   
   
   
-  unsigned long long pageGuard = ((unsigned long long)tinfo->stk);
-  pageGuard &= PAGE_ALIGN_MASK;
-  if (pageGuard != (unsigned long long) tinfo->stk) {
-    pageGuard += PAGE_SIZE; 
-  }
-  mprotect((void*)pageGuard, PAGE_SIZE, PROT_READ);
+  uintptr_t pageGuard = ceilToPage((uintptr_t)tinfo->stk);
+  mprotect((void*)pageGuard, getPageSize(), PROT_READ);
 
   pthread_attr_init(&tinfo->threadAttr);
 
