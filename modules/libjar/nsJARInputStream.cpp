@@ -281,12 +281,8 @@ nsJARInputStream::ContinueInflate(char* aBuffer, uint32_t aCount,
         inflateEnd(&mZs);
 
         
-        if (mOutCrc != mInCrc) {
-            
-            
-            NS_NOTREACHED(0);
+        if (mOutCrc != mInCrc)
             return NS_ERROR_FILE_CORRUPTED;
-        }
     }
 
     return NS_OK;
