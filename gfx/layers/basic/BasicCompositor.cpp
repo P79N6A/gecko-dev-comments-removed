@@ -546,11 +546,19 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
 {
   nsIntRect intRect;
   mWidget->GetClientBounds(intRect);
+
+  
+  
+  intRect.MoveTo(0, 0);
   Rect rect = Rect(0, 0, intRect.width, intRect.height);
 
-  nsIntRect invalidRect = aInvalidRegion.GetBounds();
+  
+  nsIntRegion invalidRegionSafe;
+  invalidRegionSafe.And(aInvalidRegion, intRect);
+
+  nsIntRect invalidRect = invalidRegionSafe.GetBounds();
   mInvalidRect = IntRect(invalidRect.x, invalidRect.y, invalidRect.width, invalidRect.height);
-  mInvalidRegion = aInvalidRegion;
+  mInvalidRegion = invalidRegionSafe;
 
   if (aRenderBoundsOut) {
     *aRenderBoundsOut = Rect();
