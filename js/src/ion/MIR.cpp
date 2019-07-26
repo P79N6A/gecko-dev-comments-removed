@@ -850,43 +850,6 @@ MMod::foldsTo(bool useValueNumbers)
     if (MDefinition *folded = EvaluateConstantOperands(this))
         return folded;
 
-    JSRuntime *rt = GetIonContext()->compartment->rt;
-    double NaN = rt->NaNValue.toDouble();
-    double Inf = rt->positiveInfinityValue.toDouble();
-
-    
-    bool lhsConstant = lhs()->isConstant() && lhs()->toConstant()->value().isNumber();
-    bool rhsConstant = rhs()->isConstant() && rhs()->toConstant()->value().isNumber();
-
-    double lhsd = lhsConstant ? lhs()->toConstant()->value().toNumber() : 0;
-    double rhsd = rhsConstant ? rhs()->toConstant()->value().toNumber() : 0;
-
-    
-    if (lhsConstant && lhsd == NaN)
-        return lhs();
-
-    
-    if (rhsConstant && rhsd == NaN)
-        return rhs();
-
-    
-    if (rhsConstant && (rhsd == 0))
-        return TryFold(this, MConstant::New(rt->NaNValue));
-
-    
-    
-    if (lhsConstant && (lhsd == 0))
-        return TryFold(this, lhs());
-
-    
-    if (lhsConstant && (lhsd == Inf || lhsd == -Inf))
-        return TryFold(this, MConstant::New(rt->NaNValue));
-
-    
-    
-    if (rhsConstant && (rhsd == Inf || rhsd == -Inf))
-        return TryFold(this, lhs());
-
     return this;
 }
 
