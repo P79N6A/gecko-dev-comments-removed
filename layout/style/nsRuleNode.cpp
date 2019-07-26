@@ -3198,14 +3198,6 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   }
 
   
-  SetDiscrete(*aRuleData->ValueForFontSmoothing(),
-              aFont->mFont.smoothing, aCanStoreInRuleTree,
-              SETDSC_ENUMERATED,
-              aParentFont->mFont.smoothing,
-              defaultVariableFont->smoothing,
-              0, 0, 0, 0);
-
-  
   SetDiscrete(*aRuleData->ValueForFontStyle(),
               aFont->mFont.style, aCanStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_SYSTEM_FONT,
