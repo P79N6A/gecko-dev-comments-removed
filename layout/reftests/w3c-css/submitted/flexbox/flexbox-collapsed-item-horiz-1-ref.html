@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      background: yellow;
+      border: 1px dotted black;
+      float: left;
+      margin: 5px;
+    }
+    .flexContainer > * {
+      /* All flex items have 20px base size */
+      width: 20px;
+    }
+    .collapse {
+      flex-basis: 0;
+      height: 20px;
+    }
+    .flexible {
+      flex: 1 auto;
+    }
+    .heightTall {
+      height: 40px;
+      background: purple;
+    }
+    .heightAuto {
+      background: teal;
+    }
+    .heightShort {
+      height: 10px;
+      background: pink;
+    }
+  </style>
+</head>
+<body>
+  
+  
+
+  <div class="flexContainer">
+    <div class="heightTall collapse"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  
+  
+
+  <div class="flexContainer">
+    <div class="heightTall collapse"></div>
+    <div class="heightShort"></div>
+  </div>
+  
+  <div class="flexContainer">
+    <div class="heightShort"></div>
+    <div class="heightTall collapse"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  
+  
+
+  <div class="flexContainer">
+    <div class="heightTall collapse"></div>
+    <div class="heightAuto"></div>
+  </div>
+  
+  <div class="flexContainer">
+    <div class="heightAuto"></div>
+    <div class="heightTall collapse"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  
+  
+
+  <div class="flexContainer">
+    <div class="heightAuto collapse"></div>
+    <div class="heightTall flexible"></div>
+  </div>
+  
+  <div class="flexContainer">
+    <div class="heightTall flexible"></div>
+    <div class="heightAuto collapse"></div>
+  </div>
+
+</body>
+</html>

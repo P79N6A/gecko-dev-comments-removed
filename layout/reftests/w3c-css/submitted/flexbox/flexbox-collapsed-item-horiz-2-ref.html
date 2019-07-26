@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+
+
+
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      flex-wrap: wrap;
+
+      /* These let us show where each flex line begins (and hence, how tall
+         the flex lines end up) */
+      align-content: flex-start;
+      align-items: flex-start;
+
+      width: 30px;
+      background: yellow;
+      border: 1px dotted black;
+      float: left;
+      margin: 5px;
+    }
+    .collapsedItem {
+      width: 0;
+      height: 25px;
+    }
+    .halfWidthItem {
+      width: 15px;
+      height: 15px;
+      background: teal;
+    }
+    .fullWidthItem {
+      width: 30px;
+      height: 20px;
+      background: purple;
+    }
+    .veryTallItem {
+      width: 15px;
+      height: 40px;
+      background: olive;
+    }
+  </style>
+</head>
+<body>
+  
+  
+
+  <div class="flexContainer">
+    <div class="collapsedItem"></div>
+    <div class="halfWidthItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+  
+  <div class="flexContainer">
+    <div class="halfWidthItem"></div>
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  
+  
+
+
+  <div class="flexContainer">
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+  </div>
+  <div class="flexContainer">
+    <div class="fullWidthItem"></div>
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem"></div>
+  </div>
+
+  <div style="clear: both"></div>
+
+  
+  
+
+
+
+  <div class="flexContainer">
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem" style="height: 40px"></div>
+    <div class="veryTallItem"></div>
+  </div>
+  
+
+
+  <div class="flexContainer">
+    <div class="collapsedItem"></div>
+    <div class="fullWidthItem"></div>
+    <div class="collapsedItem" style="height: 40px"></div>
+    <div class="veryTallItem"></div>
+  </div>
+</body>
+</html>
