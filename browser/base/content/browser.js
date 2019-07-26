@@ -6855,6 +6855,14 @@ let gRemoteTabsUI = {
 function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
   
   function switchIfURIInWindow(aWindow) {
+    
+    
+    if ((PrivateBrowsingUtils.isWindowPrivate(window) ||
+        PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
+        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      return false;
+    }
+
     let browsers = aWindow.gBrowser.browsers;
     for (let i = 0; i < browsers.length; i++) {
       let browser = browsers[i];
