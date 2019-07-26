@@ -1125,6 +1125,9 @@ class LazyScript : public js::gc::Cell
     HeapPtrScript script_;
 
     
+    HeapPtrFunction function_;
+
+    
     HeapPtrObject enclosingScope_;
 
     
@@ -1133,10 +1136,6 @@ class LazyScript : public js::gc::Cell
 
     
     void *table_;
-
-#if JS_BITS_PER_WORD == 32
-    uint32_t padding;
-#endif
 
     
     JSPrincipals *originPrincipals_;
@@ -1159,14 +1158,19 @@ class LazyScript : public js::gc::Cell
     uint32_t lineno_;
     uint32_t column_;
 
-    LazyScript(void *table, uint32_t numFreeVariables, uint32_t numInnerFunctions, JSVersion version,
+    LazyScript(JSFunction *fun, void *table,
+               uint32_t numFreeVariables, uint32_t numInnerFunctions, JSVersion version,
                uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column);
 
   public:
-    static LazyScript *Create(ExclusiveContext *cx,
+    static LazyScript *Create(ExclusiveContext *cx, HandleFunction fun,
                               uint32_t numFreeVariables, uint32_t numInnerFunctions,
                               JSVersion version, uint32_t begin, uint32_t end,
                               uint32_t lineno, uint32_t column);
+
+    JSFunction *function() const {
+        return function_;
+    }
 
     void initScript(JSScript *script);
     JSScript *maybeScript() {
