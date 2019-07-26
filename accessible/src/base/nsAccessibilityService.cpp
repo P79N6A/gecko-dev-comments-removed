@@ -1544,8 +1544,12 @@ nsAccessibilityService::CreateAccessibleByFrameType(nsIFrame* aFrame,
       
       
       
+      
+      
       if (aContext->IsHTMLTableRow() || aContext->IsHTMLTable())
         newAcc = new HTMLTableCellAccessibleWrap(aContent, document);
+      else
+        newAcc = new HyperTextAccessibleWrap(aContent, document);
       break;
 
     case eHTMLTableRowType: {
