@@ -27,16 +27,6 @@ WindowNamedPropertiesHandler::getOwnPropertyDescriptor(JSContext* aCx,
   }
 
   JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForObject(aCx, aProxy));
-  nsresult rv =
-    nsDOMClassInfo::ScriptSecurityManager()->CheckPropertyAccess(aCx, global,
-                                                                 "Window", aId,
-                                                                 nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
-  if (NS_FAILED(rv)) {
-    
-    
-    return false;
-  }
-
   if (HasPropertyOnPrototype(aCx, aProxy, aId)) {
     return true;
   }
