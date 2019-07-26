@@ -58,7 +58,7 @@ namespace {
 
   
   
-  static int sWaitingForProcessingBLDNInterval = 2000; 
+  static int sWaitingForDialingInterval = 2000; 
 } 
 
 
@@ -276,8 +276,8 @@ private:
   {
     MOZ_ASSERT(gBluetoothHfpManager);
 
-    if (!gBluetoothHfpManager->mBLDNProcessed) {
-      gBluetoothHfpManager->mBLDNProcessed = true;
+    if (!gBluetoothHfpManager->mDialingRequestProcessed) {
+      gBluetoothHfpManager->mDialingRequestProcessed = true;
       gBluetoothHfpManager->SendLine("ERROR");
     }
   }
@@ -374,7 +374,7 @@ BluetoothHfpManager::Reset()
   mCMEE = false;
   mCMER = false;
   mReceiveVgsFlag = false;
-  mBLDNProcessed = true;
+  mDialingRequestProcessed = true;
 
   ResetCallArray();
 }
@@ -883,13 +883,17 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     
     
     
-    
-    mBLDNProcessed = false;
-    NotifyDialer(NS_LITERAL_STRING("BLDN"));
+    mDialingRequestProcessed = false;
+
+    if (msg.Find("AT+BLDN") != -1) {
+      NotifyDialer(NS_LITERAL_STRING("BLDN"));
+    } else {
+      NotifyDialer(NS_ConvertUTF8toUTF16(msg));
+    }
 
     MessageLoop::current()->
       PostDelayedTask(FROM_HERE, new RespondToBLDNTask(),
-                      sWaitingForProcessingBLDNInterval);
+                      sWaitingForDialingInterval);
 
     
     
@@ -1313,9 +1317,9 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       }
       break;
     case nsITelephonyProvider::CALL_STATE_DIALING:
-      if (!mBLDNProcessed) {
+      if (!mDialingRequestProcessed) {
         SendLine("OK");
-        mBLDNProcessed = true;
+        mDialingRequestProcessed = true;
       }
 
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING, aSend);
