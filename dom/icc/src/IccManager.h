@@ -2,8 +2,8 @@
 
 
 
-#ifndef mozilla_dom_icc_IccManager_h
-#define mozilla_dom_icc_IccManager_h
+#ifndef mozilla_dom_IccManager_h
+#define mozilla_dom_IccManager_h
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsDOMEventTargetHelper.h"
@@ -12,7 +12,6 @@
 
 namespace mozilla {
 namespace dom {
-namespace icc {
 
 class IccManager : public nsDOMEventTargetHelper
                  , public nsIDOMMozIccManager
@@ -42,7 +41,6 @@ private:
   nsRefPtr<Listener> mListener;
 };
 
-} 
 } 
 } 
 
