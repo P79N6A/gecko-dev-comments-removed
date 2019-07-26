@@ -94,6 +94,29 @@ XPCWrappedNativeScope::GetNewOrUsed(JSContext *cx, JSObject* aGlobal)
     return scope;
 }
 
+static bool
+RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal)
+{
+  
+  
+  
+  
+  if (!nsContentUtils::IsInitialized() || !aPrincipal)
+      return false;
+
+  
+  
+  if (nsContentUtils::IsSystemPrincipal(aPrincipal))
+      return false;
+
+  
+  if (!nsContentUtils::AllowXULXBLForPrincipal(aPrincipal))
+      return false;
+
+  
+  return !Preferences::GetBool("dom.use_xbl_scopes_for_remote_xul", false);
+}
+
 XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
                                              JSObject* aGlobal)
       : mWrappedNativeMap(Native2WrappedNativeMap::newMap(XPC_NATIVE_MAP_SIZE)),
@@ -130,8 +153,14 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
     priv->scope = this;
 
     
+    
+    
     nsIPrincipal *principal = GetPrincipal();
-    mUseXBLScope = XPCJSRuntime::Get()->XBLScopesEnabled();
+    mAllowXBLScope = XPCJSRuntime::Get()->XBLScopesEnabled() &&
+                     !RemoteXULForbidsXBLScope(principal);
+
+    
+    mUseXBLScope = mAllowXBLScope;
     if (mUseXBLScope) {
       js::Class *clasp = js::GetObjectClass(mGlobalJSObject);
       mUseXBLScope = !strcmp(clasp->name, "Window") ||
@@ -140,11 +169,6 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
     }
     if (mUseXBLScope) {
       mUseXBLScope = principal && !nsContentUtils::IsSystemPrincipal(principal);
-    }
-    if (mUseXBLScope) {
-      mUseXBLScope = !nsContentUtils::AllowXULXBLForPrincipal(principal) ||
-                      Preferences::GetBool("dom.use_xbl_scopes_for_remote_xul",
-                                           false);
     }
 }
 
@@ -247,6 +271,12 @@ JSObject *GetXBLScope(JSContext *cx, JSObject *contentScope)
     scope = js::UnwrapObject(scope);
     xpc_UnmarkGrayObject(scope);
     return scope;
+}
+
+bool AllowXBLScope(JSCompartment *c)
+{
+  XPCWrappedNativeScope *scope = EnsureCompartmentPrivate(c)->scope;
+  return scope && scope->AllowXBLScope();
 }
 } 
 

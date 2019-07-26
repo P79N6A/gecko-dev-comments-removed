@@ -52,6 +52,11 @@ TransplantObjectWithWrapper(JSContext *cx,
 JSObject *
 GetXBLScope(JSContext *cx, JSObject *contentScope);
 
+
+
+bool
+AllowXBLScope(JSCompartment *c);
+
 bool
 IsSandboxPrototypeProxy(JSObject *obj);
 

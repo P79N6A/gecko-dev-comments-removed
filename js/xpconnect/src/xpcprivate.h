@@ -1706,6 +1706,7 @@ public:
     nsAutoPtr<JSObject2JSObjectMap> mWaiverWrapperMap;
 
     bool IsXBLScope() { return mIsXBLScope; }
+    bool AllowXBLScope() { return mAllowXBLScope; }
 
 protected:
     virtual ~XPCWrappedNativeScope();
@@ -1743,6 +1744,22 @@ private:
     nsAutoPtr<DOMExpandoMap> mDOMExpandoMap;
 
     bool mIsXBLScope;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool mAllowXBLScope;
     bool mUseXBLScope;
 };
 

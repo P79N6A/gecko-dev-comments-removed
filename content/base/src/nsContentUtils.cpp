@@ -1775,8 +1775,9 @@ nsContentUtils::IsCallerXBL()
         return false;
 
     
-    if (XPCJSRuntime::Get()->XBLScopesEnabled())
-        return xpc::IsXBLScope(js::GetContextCompartment(cx));
+    JSCompartment *c = js::GetContextCompartment(cx);
+    if (xpc::AllowXBLScope(c))
+        return xpc::IsXBLScope(c);
 
     
     if (!JS_DescribeScriptedCaller(cx, &script, nullptr) || !script)
