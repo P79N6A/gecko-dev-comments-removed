@@ -241,6 +241,7 @@ typedef enum {
 } MediaOperation;
 
 class MediaManager;
+class GetUserMediaRunnable;
 
 
 
@@ -524,7 +525,8 @@ private:
 
   
   WindowTable mActiveWindows;
-  nsRefPtrHashtable<nsStringHashKey, nsRunnable> mActiveCallbacks;
+  nsRefPtrHashtable<nsStringHashKey, GetUserMediaRunnable> mActiveCallbacks;
+  nsClassHashtable<nsUint64HashKey, nsTArray<nsString>> mCallIds;
   
   nsCOMPtr<nsIThread> mMediaThread;
 
