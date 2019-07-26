@@ -469,7 +469,7 @@ js::PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx)
 {
     JSObject &callee = call.callee();
     JS_ASSERT(IsAnyBuiltinEval(&callee.as<JSFunction>()) ||
-              IsBuiltinFunctionConstructor(&callee.as<JSFunction>()));
+              callee.as<JSFunction>().isBuiltinFunctionConstructor());
 
     
     

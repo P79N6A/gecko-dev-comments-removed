@@ -11,6 +11,7 @@
 
 #include "jsprvtd.h"
 #include "jsobj.h"
+#include "jsscript.h"
 
 #include "gc/Barrier.h"
 
@@ -82,7 +83,17 @@ class JSFunction : public JSObject
   public:
 
     
-    inline bool isHeavyweight() const;
+    bool isHeavyweight() const {
+        JS_ASSERT(!isInterpretedLazy());
+
+        if (isNative())
+            return false;
+
+        
+        return nonLazyScript()->bindings.hasAnyAliasedBindings() ||
+               nonLazyScript()->funHasExtensibleScope ||
+               nonLazyScript()->funNeedsDeclEnvObject;
+    }
 
     
     bool isInterpreted()            const { return flags & (INTERPRETED | INTERPRETED_LAZY); }
@@ -128,12 +139,16 @@ class JSFunction : public JSObject
         return isInterpreted() && !isFunctionPrototype() &&
                (!isSelfHostedBuiltin() || isSelfHostedConstructor());
     }
-    bool isNamedLambda()     const {
+    bool isNamedLambda() const {
         return isLambda() && atom_ && !hasGuessedAtom();
     }
 
+    bool isBuiltinFunctionConstructor();
+
     
-    inline bool strict() const;
+    bool strict() const {
+        return nonLazyScript()->strict;
+    }
 
     
     void setArgCount(uint16_t nargs) {
@@ -190,7 +205,10 @@ class JSFunction : public JSObject
 
 
 
-    inline JSObject *environment() const;
+    JSObject *environment() const {
+        JS_ASSERT(isInterpreted());
+        return u.i.env_;
+    }
     inline void setEnvironment(JSObject *obj);
     inline void initEnvironment(JSObject *obj);
 
@@ -258,7 +276,12 @@ class JSFunction : public JSObject
 
     inline void setScript(JSScript *script_);
     inline void initScript(JSScript *script_);
-    inline void initLazyScript(js::LazyScript *script);
+    void initLazyScript(js::LazyScript *lazy) {
+        JS_ASSERT(isInterpreted());
+        flags &= ~INTERPRETED;
+        flags |= INTERPRETED_LAZY;
+        u.i.s.lazy_ = lazy;
+    }
 
     JSNative native() const {
         JS_ASSERT(isNative());
@@ -269,9 +292,21 @@ class JSFunction : public JSObject
         return isInterpreted() ? NULL : native();
     }
 
-    inline void initNative(js::Native native, const JSJitInfo *jitinfo);
-    inline const JSJitInfo *jitInfo() const;
-    inline void setJitInfo(const JSJitInfo *data);
+    void initNative(js::Native native, const JSJitInfo *jitinfo) {
+        JS_ASSERT(native);
+        u.n.native = native;
+        u.n.jitinfo = jitinfo;
+    }
+
+    const JSJitInfo *jitInfo() const {
+        JS_ASSERT(isNative());
+        return u.n.jitinfo;
+    }
+
+    void setJitInfo(const JSJitInfo *data) {
+        JS_ASSERT(isNative());
+        u.n.jitinfo = data;
+    }
 
     static unsigned offsetOfNativeOrScript() {
         JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, i.s.script_));
@@ -347,6 +382,31 @@ JSAPIToJSFunctionFlags(unsigned flags)
 
 namespace js {
 
+
+static JS_ALWAYS_INLINE bool
+IsConstructing(const Value *vp)
+{
+#ifdef DEBUG
+    JSObject *callee = &JS_CALLEE(cx, vp).toObject();
+    if (callee->is<JSFunction>()) {
+        JSFunction *fun = &callee->as<JSFunction>();
+        JS_ASSERT(fun->isNativeConstructor());
+    } else {
+        JS_ASSERT(callee->getClass()->construct != NULL);
+    }
+#endif
+    return vp[1].isMagic();
+}
+
+inline bool
+IsConstructing(CallReceiver call)
+{
+    return IsConstructing(call.base());
+}
+
+extern JSBool
+Function(JSContext *cx, unsigned argc, Value *vp);
+
 extern JSFunction *
 NewFunction(JSContext *cx, HandleObject funobj, JSNative native, unsigned nargs,
             JSFunction::Flags flags, HandleObject parent, HandleAtom atom,
@@ -395,6 +455,13 @@ JSFunction::toExtended() const
 {
     JS_ASSERT(isExtended());
     return static_cast<const js::FunctionExtended *>(this);
+}
+
+inline const js::Value &
+JSFunction::getExtendedSlot(size_t which) const
+{
+    JS_ASSERT(which < mozilla::ArrayLength(toExtended()->extendedSlots));
+    return toExtended()->extendedSlots[which];
 }
 
 namespace js {
