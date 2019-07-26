@@ -766,7 +766,10 @@ public:
 
 
 
-  void TakeOverFling(ScreenPoint aVelocity);
+
+
+
+  bool TakeOverFling(ScreenPoint aVelocity);
 
 private:
   friend class FlingAnimation;
@@ -774,6 +777,16 @@ private:
   ScreenPoint mLastFlingVelocity;
   
   TimeStamp mLastFlingTime;
+
+  
+  
+  
+  
+  
+  void HandleFlingOverscroll(const ScreenPoint& aVelocity);
+
+  
+  void AcceptFling(const ScreenPoint& aVelocity, bool aAllowOverscroll);
 
 
   

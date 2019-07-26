@@ -747,7 +747,7 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
   return next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
 }
 
-void
+bool
 APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVelocity)
 {
   
@@ -786,7 +786,7 @@ APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVeloci
 
   
   if (next == nullptr) {
-    return;
+    return false;
   }
 
   
@@ -802,7 +802,7 @@ APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVeloci
   ScreenPoint transformedVelocity = endPoint - startPoint;
 
   
-  next->TakeOverFling(transformedVelocity);
+  return next->TakeOverFling(transformedVelocity);
 }
 
 bool

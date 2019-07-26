@@ -352,9 +352,12 @@ GetFrameTime() {
 
 class FlingAnimation: public AsyncPanZoomAnimation {
 public:
-  FlingAnimation(AsyncPanZoomController& aApzc, bool aApplyAcceleration)
+  FlingAnimation(AsyncPanZoomController& aApzc,
+                 bool aApplyAcceleration,
+                 bool aAllowOverscroll)
     : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(gfxPrefs::APZFlingRepaintInterval()))
     , mApzc(aApzc)
+    , mAllowOverscroll(aAllowOverscroll)
   {
     TimeStamp now = GetFrameTime();
     ScreenPoint velocity(mApzc.mX.GetVelocity(), mApzc.mY.GetVelocity());
@@ -410,6 +413,7 @@ private:
   }
 
   AsyncPanZoomController& mApzc;
+  bool mAllowOverscroll;
 };
 
 class ZoomAnimation: public AsyncPanZoomAnimation {
@@ -849,7 +853,9 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     mX.EndTouch();
     mY.EndTouch();
     SetState(FLING);
-    StartAnimation(new FlingAnimation(*this, true));
+    StartAnimation(new FlingAnimation(*this,
+                                      true  ,
+                                      false ));
     return nsEventStatus_eConsumeNoDefault;
 
   case PINCHING:
@@ -1309,13 +1315,42 @@ bool AsyncPanZoomController::OverscrollBy(const CSSPoint& aOverscroll) {
   return false;
 }
 
-void AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity) {
+void AsyncPanZoomController::AcceptFling(const ScreenPoint& aVelocity,
+                                         bool aAllowOverscroll) {
   
   
   mX.SetVelocity(mX.GetVelocity() + aVelocity.x);
   mY.SetVelocity(mY.GetVelocity() + aVelocity.y);
   SetState(FLING);
-  StartAnimation(new FlingAnimation(*this, false));
+  StartAnimation(new FlingAnimation(*this, false ,
+                                    aAllowOverscroll));
+}
+
+bool AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity) {
+  
+  if (IsPannable()) {
+    AcceptFling(aVelocity, false );
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  return treeManagerLocal
+      && treeManagerLocal->HandOffFling(this, aVelocity);
+}
+
+void AsyncPanZoomController::HandleFlingOverscroll(const ScreenPoint& aVelocity) {
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  if (!(treeManagerLocal && treeManagerLocal->HandOffFling(this, aVelocity))) {
+    
+    if (IsPannable()) {
+      AcceptFling(aVelocity, true );
+    }
+  }
 }
 
 bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
@@ -1414,35 +1449,44 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
   ));
 
   
-  
   if (!IsZero(overscroll)) {
-    
-    
-    
-    if (FuzzyEqualsMultiplicative(overscroll.x, 0.0f)) {
-      velocity.x = 0;
-    } else if (FuzzyEqualsMultiplicative(overscroll.y, 0.0f)) {
-      velocity.y = 0;
-    }
+    if (mAllowOverscroll) {
+      
 
-    
-    
-    
-    
-    
+      mApzc.OverscrollBy(overscroll);
 
-    
-    
-    
-    APZCTreeManager* treeManagerLocal = mApzc.mTreeManager;
-    if (treeManagerLocal) {
+      
+      
+      mApzc.mX.SetVelocity(velocity.x);
+      mApzc.mY.SetVelocity(velocity.y);
+
+    } else {
+      
+      
+
+      
+      
+      
+      if (FuzzyEqualsAdditive(overscroll.x, 0.0f, COORDINATE_EPSILON)) {
+        velocity.x = 0;
+      } else if (FuzzyEqualsAdditive(overscroll.y, 0.0f, COORDINATE_EPSILON)) {
+        velocity.y = 0;
+      }
+
       
       
       
       
-      mDeferredTasks.append(NewRunnableMethod(treeManagerLocal,
-                                              &APZCTreeManager::HandOffFling,
-                                              &mApzc,
+      
+      
+      
+      
+      
+      
+      
+      
+      mDeferredTasks.append(NewRunnableMethod(&mApzc,
+                                              &AsyncPanZoomController::HandleFlingOverscroll,
                                               velocity));
     }
   }

@@ -281,7 +281,10 @@ public:
 
 
 
-  void HandOffFling(AsyncPanZoomController* aApzc, ScreenPoint aVelocity);
+
+
+
+  bool HandOffFling(AsyncPanZoomController* aApzc, ScreenPoint aVelocity);
 
   bool FlushRepaintsForOverscrollHandoffChain();
 
