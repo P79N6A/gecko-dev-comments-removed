@@ -894,7 +894,16 @@ typedef Vector<MBasicBlock*,16> CaseVector;
 
 
 
-class ModuleCompiler
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS ModuleCompiler
 {
   public:
     class Func

@@ -63,6 +63,7 @@ var ignoreCallees = {
     "js::ion::MDefinition.opName" : true, 
     "js::ion::LInstruction.getDef" : true, 
     "js::ion::IonCache.kind" : true, 
+    "icu_50::UObject.__deleting_dtor" : true, 
 };
 
 function fieldCallCannotGC(csu, fullfield)
@@ -133,7 +134,8 @@ function isRootedTypeName(name)
 {
     if (name == "mozilla::ErrorResult" ||
         name == "js::frontend::TokenStream" ||
-        name == "js::frontend::TokenStream::Position")
+        name == "js::frontend::TokenStream::Position" ||
+        name == "ModuleCompiler")
     {
         return true;
     }
