@@ -6,6 +6,8 @@
 
  
 
+"use strict";
+
 var TestEchoReceiver = {
   init: function init() {
     addMessageListener("Test:EchoRequest", this);

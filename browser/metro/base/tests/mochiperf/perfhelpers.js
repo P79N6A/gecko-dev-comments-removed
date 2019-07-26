@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 
 const kInfoHeader = "PERF-TEST | ";
 const kDeclareId = "DECLARE ";
