@@ -40,6 +40,9 @@ pref("metro.private_browsing.enabled", false);
 pref("prompts.tab_modal.enabled", true);
 
 
+pref("browser.newtabpage.enabled", true);
+
+
 pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.async-pan-zoom.enabled", true);
 pref("layers.componentalpha.enabled", false);
