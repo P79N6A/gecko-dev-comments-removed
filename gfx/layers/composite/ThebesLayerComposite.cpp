@@ -28,6 +28,7 @@
 #include "nsSize.h"                     
 #include "nsString.h"                   
 #include "nsTraceRefcnt.h"              
+#include "GeckoProfiler.h"
 
 namespace mozilla {
 namespace layers {
@@ -100,6 +101,7 @@ ThebesLayerComposite::RenderLayer(const nsIntPoint& aOffset,
   if (!mBuffer || !mBuffer->IsAttached()) {
     return;
   }
+  PROFILER_LABEL("ThebesLayerComposite", "RenderLayer");
 
   MOZ_ASSERT(mBuffer->GetCompositor() == mCompositeManager->GetCompositor() &&
              mBuffer->GetLayer() == this,

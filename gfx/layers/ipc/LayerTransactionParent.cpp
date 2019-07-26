@@ -38,6 +38,7 @@
 #include "nsPoint.h"                    
 #include "nsTArray.h"                   
 #include "nsTraceRefcnt.h"              
+#include "GeckoProfiler.h"
 
 typedef std::vector<mozilla::layers::EditReply> EditReplyVector;
 
@@ -186,6 +187,7 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
                                    const bool& isFirstPaint,
                                    InfallibleTArray<EditReply>* reply)
 {
+  PROFILER_LABEL("LayerTransactionParent", "RecvUpdate");
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
   TimeStamp updateStart = TimeStamp::Now();
 #endif
