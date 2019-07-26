@@ -359,8 +359,8 @@ public:
 
 
   virtual bool AllocUnsafeShmem(size_t aSize,
-                                ipc::SharedMemory::SharedMemoryType aType,
-                                ipc::Shmem* aShmem) MOZ_OVERRIDE;
+                                mozilla::ipc::SharedMemory::SharedMemoryType aType,
+                                mozilla::ipc::Shmem* aShmem) MOZ_OVERRIDE;
   
 
 
@@ -368,15 +368,15 @@ public:
 
 
   virtual bool AllocShmem(size_t aSize,
-                          ipc::SharedMemory::SharedMemoryType aType,
-                          ipc::Shmem* aShmem) MOZ_OVERRIDE;
+                          mozilla::ipc::SharedMemory::SharedMemoryType aType,
+                          mozilla::ipc::Shmem* aShmem) MOZ_OVERRIDE;
   
 
 
 
 
 
-  virtual void DeallocShmem(ipc::Shmem& aShmem);
+  virtual void DeallocShmem(mozilla::ipc::Shmem& aShmem);
 
 protected:
   ImageBridgeChild();
