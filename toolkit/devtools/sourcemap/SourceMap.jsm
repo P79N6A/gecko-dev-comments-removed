@@ -60,6 +60,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
 
 
+
   function SourceMapConsumer(aSourceMap) {
     var sourceMap = aSourceMap;
     if (typeof aSourceMap === 'string') {
@@ -70,6 +71,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
     var sources = util.getArg(sourceMap, 'sources');
     var names = util.getArg(sourceMap, 'names');
     var sourceRoot = util.getArg(sourceMap, 'sourceRoot', null);
+    var sourcesContent = util.getArg(sourceMap, 'sourcesContent', null);
     var mappings = util.getArg(sourceMap, 'mappings');
     var file = util.getArg(sourceMap, 'file');
 
@@ -79,7 +81,8 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
     this._names = ArraySet.fromArray(names);
     this._sources = ArraySet.fromArray(sources);
-    this._sourceRoot = sourceRoot;
+    this.sourceRoot = sourceRoot;
+    this.sourcesContent = sourcesContent;
     this.file = file;
 
     
@@ -121,7 +124,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
   Object.defineProperty(SourceMapConsumer.prototype, 'sources', {
     get: function () {
       return this._sources.toArray().map(function (s) {
-        return this._sourceRoot ? util.join(this._sourceRoot, s) : s;
+        return this.sourceRoot ? util.join(this.sourceRoot, s) : s;
       }, this);
     }
   });
@@ -165,12 +168,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
           if (str.length > 0 && !mappingSeparator.test(str.charAt(0))) {
             
             temp = base64VLQ.decode(str);
-            if (aSourceRoot) {
-              mapping.source = util.join(aSourceRoot, this._sources.at(previousSource + temp.value));
-            }
-            else {
-              mapping.source = this._sources.at(previousSource + temp.value);
-            }
+            mapping.source = this._sources.at(previousSource + temp.value);
             previousSource += temp.value;
             str = temp.rest;
             if (str.length === 0 || mappingSeparator.test(str.charAt(0))) {
@@ -204,7 +202,9 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
           }
 
           this._generatedMappings.push(mapping);
-          this._originalMappings.push(mapping);
+          if (typeof mapping.originalLine === 'number') {
+            this._originalMappings.push(mapping);
+          }
         }
       }
 
@@ -291,11 +291,15 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
                                       this._generatedMappings,
                                       "generatedLine",
                                       "generatedColumn",
-                                      this._compareGeneratedPositions)
+                                      this._compareGeneratedPositions);
 
       if (mapping) {
+        var source = util.getArg(mapping, 'source', null);
+        if (source && this.sourceRoot) {
+          source = util.join(this.sourceRoot, source);
+        }
         return {
-          source: util.getArg(mapping, 'source', null),
+          source: source,
           line: util.getArg(mapping, 'originalLine', null),
           column: util.getArg(mapping, 'originalColumn', null),
           name: util.getArg(mapping, 'name', null)
@@ -308,6 +312,32 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
         column: null,
         name: null
       };
+    };
+
+  
+
+
+
+
+  SourceMapConsumer.prototype.sourceContentFor =
+    function SourceMapConsumer_sourceContentFor(aSource) {
+      if (!this.sourcesContent) {
+        return null;
+      }
+
+      if (this.sourceRoot) {
+        
+        var relativeUrl = util.relative(this.sourceRoot, aSource);
+        if (this._sources.has(relativeUrl)) {
+          return this.sourcesContent[this._sources.indexOf(relativeUrl)];
+        }
+      }
+
+      if (this._sources.has(aSource)) {
+        return this.sourcesContent[this._sources.indexOf(aSource)];
+      }
+
+      throw new Error('"' + aSource + '" is not in the SourceMap.');
     };
 
   
@@ -332,11 +362,15 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
         originalColumn: util.getArg(aArgs, 'column')
       };
 
+      if (this.sourceRoot) {
+        needle.source = util.relative(this.sourceRoot, needle.source);
+      }
+
       var mapping = this._findMapping(needle,
                                       this._originalMappings,
                                       "originalLine",
                                       "originalColumn",
-                                      this._compareOriginalPositions)
+                                      this._compareOriginalPositions);
 
       if (mapping) {
         return {
@@ -370,7 +404,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
 
 
-
   SourceMapConsumer.prototype.eachMapping =
     function SourceMapConsumer_eachMapping(aCallback, aContext, aOrder) {
       var context = aContext || null;
@@ -388,7 +421,21 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
         throw new Error("Unknown order of iteration.");
       }
 
-      mappings.forEach(aCallback, context);
+      var sourceRoot = this.sourceRoot;
+      mappings.map(function (mapping) {
+        var source = mapping.source;
+        if (source && sourceRoot) {
+          source = util.join(sourceRoot, source);
+        }
+        return {
+          source: source,
+          generatedLine: mapping.generatedLine,
+          generatedColumn: mapping.generatedColumn,
+          originalLine: mapping.originalLine,
+          originalColumn: mapping.originalColumn,
+          name: mapping.name
+        };
+      }).forEach(aCallback, context);
     };
 
   exports.SourceMapConsumer = SourceMapConsumer;
@@ -426,9 +473,36 @@ define('source-map/util', ['require', 'exports', 'module' , ], function(require,
   function join(aRoot, aPath) {
     return aPath.charAt(0) === '/'
       ? aPath
-      : aRoot.replace(/\/*$/, '') + '/' + aPath;
+      : aRoot.replace(/\/$/, '') + '/' + aPath;
   }
   exports.join = join;
+
+  
+
+
+
+
+
+
+
+
+  function toSetString(aStr) {
+    return '$' + aStr;
+  }
+  exports.toSetString = toSetString;
+
+  function fromSetString(aStr) {
+    return aStr.substr(1);
+  }
+  exports.fromSetString = fromSetString;
+
+  function relative(aRoot, aPath) {
+    aRoot = aRoot.replace(/\/$/, '');
+    return aPath.indexOf(aRoot + '/') === 0
+      ? aPath.substr(aRoot.length + 1)
+      : aPath;
+  }
+  exports.relative = relative;
 
 });
 
@@ -515,7 +589,9 @@ define('source-map/binary-search', ['require', 'exports', 'module' , ], function
 
 
 
-define('source-map/array-set', ['require', 'exports', 'module' , ], function(require, exports, module) {
+define('source-map/array-set', ['require', 'exports', 'module' ,  'source-map/util'], function(require, exports, module) {
+
+  var util = require('source-map/util');
 
   
 
@@ -544,19 +620,6 @@ define('source-map/array-set', ['require', 'exports', 'module' , ], function(req
 
 
 
-
-
-
-
-  ArraySet.prototype._toSetString = function ArraySet__toSetString (aStr) {
-    return "$" + aStr;
-  };
-
-  
-
-
-
-
   ArraySet.prototype.add = function ArraySet_add(aStr) {
     if (this.has(aStr)) {
       
@@ -564,7 +627,7 @@ define('source-map/array-set', ['require', 'exports', 'module' , ], function(req
     }
     var idx = this._array.length;
     this._array.push(aStr);
-    this._set[this._toSetString(aStr)] = idx;
+    this._set[util.toSetString(aStr)] = idx;
   };
 
   
@@ -574,7 +637,7 @@ define('source-map/array-set', ['require', 'exports', 'module' , ], function(req
 
   ArraySet.prototype.has = function ArraySet_has(aStr) {
     return Object.prototype.hasOwnProperty.call(this._set,
-                                                this._toSetString(aStr));
+                                                util.toSetString(aStr));
   };
 
   
@@ -584,7 +647,7 @@ define('source-map/array-set', ['require', 'exports', 'module' , ], function(req
 
   ArraySet.prototype.indexOf = function ArraySet_indexOf(aStr) {
     if (this.has(aStr)) {
-      return this._set[this._toSetString(aStr)];
+      return this._set[util.toSetString(aStr)];
     }
     throw new Error('"' + aStr + '" is not in the set.');
   };
@@ -819,9 +882,57 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' ,  'so
     this._sources = new ArraySet();
     this._names = new ArraySet();
     this._mappings = [];
+    this._sourcesContents = null;
   }
 
   SourceMapGenerator.prototype._version = 3;
+
+  
+
+
+
+
+  SourceMapGenerator.fromSourceMap =
+    function SourceMapGenerator_fromSourceMap(aSourceMapConsumer) {
+      var sourceRoot = aSourceMapConsumer.sourceRoot;
+      var generator = new SourceMapGenerator({
+        file: aSourceMapConsumer.file,
+        sourceRoot: sourceRoot
+      });
+      aSourceMapConsumer.eachMapping(function (mapping) {
+        var newMapping = {
+          generated: {
+            line: mapping.generatedLine,
+            column: mapping.generatedColumn
+          }
+        };
+
+        if (mapping.source) {
+          newMapping.source = mapping.source;
+          if (sourceRoot) {
+            newMapping.source = util.relative(sourceRoot, newMapping.source);
+          }
+
+          newMapping.original = {
+            line: mapping.originalLine,
+            column: mapping.originalColumn
+          };
+
+          if (mapping.name) {
+            newMapping.name = mapping.name;
+          }
+        }
+
+        generator.addMapping(newMapping);
+      });
+      aSourceMapConsumer.sources.forEach(function (sourceFile) {
+        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
+        if (content) {
+          generator.setSourceContent(sourceFile, content);
+        }
+      });
+      return generator;
+    };
 
   
 
@@ -856,6 +967,110 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' ,  'so
         source: source,
         name: name
       });
+    };
+
+  
+
+
+  SourceMapGenerator.prototype.setSourceContent =
+    function SourceMapGenerator_setSourceContent(aSourceFile, aSourceContent) {
+      var source = aSourceFile;
+      if (this._sourceRoot) {
+        source = util.relative(this._sourceRoot, source);
+      }
+
+      if (aSourceContent !== null) {
+        
+        
+        if (!this._sourcesContents) {
+          this._sourcesContents = {};
+        }
+        this._sourcesContents[util.toSetString(source)] = aSourceContent;
+      } else {
+        
+        
+        delete this._sourcesContents[util.toSetString(source)];
+        if (Object.keys(this._sourcesContents).length === 0) {
+          this._sourcesContents = null;
+        }
+      }
+    };
+
+  
+
+
+
+
+
+
+
+
+
+  SourceMapGenerator.prototype.applySourceMap =
+    function SourceMapGenerator_applySourceMap(aSourceMapConsumer, aSourceFile) {
+      
+      if (!aSourceFile) {
+        aSourceFile = aSourceMapConsumer.file;
+      }
+      var sourceRoot = this._sourceRoot;
+      
+      if (sourceRoot) {
+        aSourceFile = util.relative(sourceRoot, aSourceFile);
+      }
+      
+      
+      var newSources = new ArraySet();
+      var newNames = new ArraySet();
+
+      
+      this._mappings.forEach(function (mapping) {
+        if (mapping.source === aSourceFile && mapping.original) {
+          
+          var original = aSourceMapConsumer.originalPositionFor({
+            line: mapping.original.line,
+            column: mapping.original.column
+          });
+          if (original.source !== null) {
+            
+            if (sourceRoot) {
+              mapping.source = util.relative(sourceRoot, original.source);
+            } else {
+              mapping.source = original.source;
+            }
+            mapping.original.line = original.line;
+            mapping.original.column = original.column;
+            if (original.name !== null && mapping.name !== null) {
+              
+              
+              mapping.name = original.name;
+            }
+          }
+        }
+
+        var source = mapping.source;
+        if (source && !newSources.has(source)) {
+          newSources.add(source);
+        }
+
+        var name = mapping.name;
+        if (name && !newNames.has(name)) {
+          newNames.add(name);
+        }
+
+      }, this);
+      this._sources = newSources;
+      this._names = newNames;
+
+      
+      aSourceMapConsumer.sources.forEach(function (sourceFile) {
+        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
+        if (content) {
+          if (sourceRoot) {
+            sourceFile = util.relative(sourceRoot, sourceFile);
+          }
+          this.setSourceContent(sourceFile, content);
+        }
+      }, this);
     };
 
   
@@ -978,6 +1193,17 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' ,  'so
       if (this._sourceRoot) {
         map.sourceRoot = this._sourceRoot;
       }
+      if (this._sourcesContents) {
+        map.sourcesContent = map.sources.map(function (source) {
+          if (map.sourceRoot) {
+            source = util.relative(map.sourceRoot, source);
+          }
+          return Object.prototype.hasOwnProperty.call(
+            this._sourcesContents, util.toSetString(source))
+            ? this._sourcesContents[util.toSetString(source)]
+            : null;
+        }, this);
+      }
       return map;
     };
 
@@ -998,9 +1224,10 @@ define('source-map/source-map-generator', ['require', 'exports', 'module' ,  'so
 
 
 
-define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/source-map-generator'], function(require, exports, module) {
+define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/source-map-generator', 'source-map/util'], function(require, exports, module) {
 
   var SourceMapGenerator = require('source-map/source-map-generator').SourceMapGenerator;
+  var util = require('source-map/util');
 
   
 
@@ -1013,13 +1240,119 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
 
 
 
-  function SourceNode(aLine, aColumn, aSource, aChunks) {
+
+  function SourceNode(aLine, aColumn, aSource, aChunks, aName) {
     this.children = [];
-    this.line = aLine;
-    this.column = aColumn;
-    this.source = aSource;
+    this.sourceContents = {};
+    this.line = aLine === undefined ? null : aLine;
+    this.column = aColumn === undefined ? null : aColumn;
+    this.source = aSource === undefined ? null : aSource;
+    this.name = aName === undefined ? null : aName;
     if (aChunks != null) this.add(aChunks);
   }
+
+  
+
+
+
+
+
+  SourceNode.fromStringWithSourceMap =
+    function SourceNode_fromStringWithSourceMap(aGeneratedCode, aSourceMapConsumer) {
+      
+      
+      var node = new SourceNode();
+
+      
+      
+      var remainingLines = aGeneratedCode.split('\n');
+
+      
+      var lastGeneratedLine = 1, lastGeneratedColumn = 0;
+
+      
+      
+      
+      var lastMapping = null;
+
+      aSourceMapConsumer.eachMapping(function (mapping) {
+        if (lastMapping === null) {
+          
+          
+          
+          while (lastGeneratedLine < mapping.generatedLine) {
+            node.add(remainingLines.shift() + "\n");
+            lastGeneratedLine++;
+          }
+          if (lastGeneratedColumn < mapping.generatedColumn) {
+            var nextLine = remainingLines[0];
+            node.add(nextLine.substr(0, mapping.generatedColumn));
+            remainingLines[0] = nextLine.substr(mapping.generatedColumn);
+            lastGeneratedColumn = mapping.generatedColumn;
+          }
+        } else {
+          
+          
+          if (lastGeneratedLine < mapping.generatedLine) {
+            var code = "";
+            
+            do {
+              code += remainingLines.shift() + "\n";
+              lastGeneratedLine++;
+              lastGeneratedColumn = 0;
+            } while (lastGeneratedLine < mapping.generatedLine);
+            
+            
+            if (lastGeneratedColumn < mapping.generatedColumn) {
+              var nextLine = remainingLines[0];
+              code += nextLine.substr(0, mapping.generatedColumn);
+              remainingLines[0] = nextLine.substr(mapping.generatedColumn);
+              lastGeneratedColumn = mapping.generatedColumn;
+            }
+            
+            addMappingWithCode(lastMapping, code);
+          } else {
+            
+            
+            
+            var nextLine = remainingLines[0];
+            var code = nextLine.substr(0, mapping.generatedColumn -
+                                          lastGeneratedColumn);
+            remainingLines[0] = nextLine.substr(mapping.generatedColumn -
+                                                lastGeneratedColumn);
+            lastGeneratedColumn = mapping.generatedColumn;
+            addMappingWithCode(lastMapping, code);
+          }
+        }
+        lastMapping = mapping;
+      }, this);
+      
+      
+      
+      addMappingWithCode(lastMapping, remainingLines.join("\n"));
+
+      
+      aSourceMapConsumer.sources.forEach(function (sourceFile) {
+        var content = aSourceMapConsumer.sourceContentFor(sourceFile);
+        if (content) {
+          node.setSourceContent(sourceFile, content);
+        }
+      });
+
+      return node;
+
+      function addMappingWithCode(mapping, code) {
+        if (mapping.source === undefined) {
+          node.add(code);
+        } else {
+          node.add(new SourceNode(mapping.originalLine,
+                                  mapping.originalColumn,
+                                  mapping.source,
+                                  code,
+                                  mapping.name));
+        }
+      }
+    };
 
   
 
@@ -1083,7 +1416,10 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
       }
       else {
         if (chunk !== '') {
-          aFn(chunk, { source: this.source, line: this.line, column: this.column });
+          aFn(chunk, { source: this.source,
+                       line: this.line,
+                       column: this.column,
+                       name: this.name });
         }
       }
     }, this);
@@ -1098,7 +1434,7 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
   SourceNode.prototype.join = function SourceNode_join(aSep) {
     var newChildren;
     var i;
-    var len = this.children.length
+    var len = this.children.length;
     if (len > 0) {
       newChildren = [];
       for (i = 0; i < len-1; i++) {
@@ -1136,6 +1472,36 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
 
 
 
+
+
+
+  SourceNode.prototype.setSourceContent =
+    function SourceNode_setSourceContent(aSourceFile, aSourceContent) {
+      this.sourceContents[util.toSetString(aSourceFile)] = aSourceContent;
+    };
+
+  
+
+
+
+
+
+  SourceNode.prototype.walkSourceContents =
+    function SourceNode_walkSourceContents(aFn) {
+      this.children.forEach(function (chunk) {
+        if (chunk instanceof SourceNode) {
+          chunk.walkSourceContents(aFn);
+        }
+      }, this);
+      Object.keys(this.sourceContents).forEach(function (sourceFileKey) {
+        aFn(util.fromSetString(sourceFileKey), this.sourceContents[sourceFileKey]);
+      }, this);
+    };
+
+  
+
+
+
   SourceNode.prototype.toString = function SourceNode_toString() {
     var str = "";
     this.walk(function (chunk) {
@@ -1155,11 +1521,12 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
       column: 0
     };
     var map = new SourceMapGenerator(aArgs);
+    var sourceMappingActive = false;
     this.walk(function (chunk, original) {
       generated.code += chunk;
-      if (original.source != null
-          && original.line != null
-          && original.column != null) {
+      if (original.source !== null
+          && original.line !== null
+          && original.column !== null) {
         map.addMapping({
           source: original.source,
           original: {
@@ -1169,17 +1536,30 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
           generated: {
             line: generated.line,
             column: generated.column
+          },
+          name: original.name
+        });
+        sourceMappingActive = true;
+      } else if (sourceMappingActive) {
+        map.addMapping({
+          generated: {
+            line: generated.line,
+            column: generated.column
           }
         });
+        sourceMappingActive = false;
       }
-      chunk.split('').forEach(function (char) {
-        if (char === '\n') {
+      chunk.split('').forEach(function (ch) {
+        if (ch === '\n') {
           generated.line++;
           generated.column = 0;
         } else {
           generated.column++;
         }
       });
+    });
+    this.walkSourceContents(function (sourceFile, sourceContent) {
+      map.setSourceContent(sourceFile, sourceContent);
     });
 
     return { code: generated.code, map: map };
@@ -1191,6 +1571,6 @@ define('source-map/source-node', ['require', 'exports', 'module' ,  'source-map/
 
 
 
-let SourceMapConsumer = require('source-map/source-map-consumer').SourceMapConsumer;
-let SourceMapGenerator = require('source-map/source-map-generator').SourceMapGenerator;
-let SourceNode = require('source-map/source-node').SourceNode;
+this.SourceMapConsumer = require('source-map/source-map-consumer').SourceMapConsumer;
+this.SourceMapGenerator = require('source-map/source-map-generator').SourceMapGenerator;
+this.SourceNode = require('source-map/source-node').SourceNode;
