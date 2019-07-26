@@ -241,6 +241,18 @@ nsDOMCameraControl::SetOnRecorderStateChange(nsICameraRecorderStateChange* aOnRe
 
 
 NS_IMETHODIMP
+nsDOMCameraControl::GetOnPreviewStateChange(nsICameraPreviewStateChange** aOnPreviewStateChange)
+{
+  return mCameraControl->Get(aOnPreviewStateChange);
+}
+NS_IMETHODIMP
+nsDOMCameraControl::SetOnPreviewStateChange(nsICameraPreviewStateChange* aOnPreviewStateChange)
+{
+  return mCameraControl->Set(aOnPreviewStateChange);
+}
+
+
+NS_IMETHODIMP
 nsDOMCameraControl::StartRecording(const JS::Value& aOptions, nsIDOMDeviceStorage* storageArea, const nsAString& filename, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError, JSContext* cx)
 {
   NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
