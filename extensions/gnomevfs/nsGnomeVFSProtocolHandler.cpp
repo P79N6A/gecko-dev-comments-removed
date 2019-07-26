@@ -433,9 +433,10 @@ nsGnomeVFSInputStream::DoOpen()
 
       
       
-      if (mBytesRemaining != UINT64_MAX) {
-        
-        mChannel->SetContentLength(NS_MAX((int32_t)mBytesRemaining, INT32_MAX));
+      if (mBytesRemaining > INT64_MAX) {
+        mChannel->SetContentLength(-1);
+      } else {
+        mChannel->SetContentLength(mBytesRemaining);
       }
     }
     else

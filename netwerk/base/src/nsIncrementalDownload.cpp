@@ -568,13 +568,9 @@ nsIncrementalDownload::OnStartRequest(nsIRequest *request,
       if (PR_sscanf(buf.get() + slash + 1, "%lld", (int64_t *) &mTotalSize) != 1)
         return NS_ERROR_UNEXPECTED;
     } else {
-      
-      
-      nsCOMPtr<nsIPropertyBag2> props = do_QueryInterface(request, &rv);
+      rv = http->GetContentLength(&mTotalSize);
       if (NS_FAILED(rv))
         return rv;
-      rv = props->GetPropertyAsInt64(NS_CHANNEL_PROP_CONTENT_LENGTH,
-                                     &mTotalSize);
       
       if (mTotalSize == int64_t(-1)) {
         NS_WARNING("server returned no content-length header!");

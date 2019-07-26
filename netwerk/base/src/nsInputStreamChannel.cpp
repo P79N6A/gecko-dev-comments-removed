@@ -17,8 +17,7 @@ nsInputStreamChannel::OpenContentStream(bool async, nsIInputStream **result,
   
   
 
-  int64_t len = ContentLength64();
-  if (len < 0) {
+  if (mContentLength < 0) {
     uint64_t avail;
     nsresult rv = mContentStream->Available(&avail);
     if (rv == NS_BASE_STREAM_CLOSED) {
@@ -27,7 +26,7 @@ nsInputStreamChannel::OpenContentStream(bool async, nsIInputStream **result,
     } else if (NS_FAILED(rv)) {
       return rv;
     }
-    SetContentLength64(avail);
+    mContentLength = avail;
   }
 
   EnableSynthesizedProgressEvents(true);

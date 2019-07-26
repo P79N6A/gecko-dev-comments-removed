@@ -103,10 +103,11 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer *aTimer, void *aClosure)
   
   
   if (pe->mLoadingState == gfxProxyFontEntry::LOADING_STARTED) {
-    int32_t contentLength;
+    int64_t contentLength;
     uint32_t numBytesRead;
     if (NS_SUCCEEDED(loader->mChannel->GetContentLength(&contentLength)) &&
         contentLength > 0 &&
+        contentLength < UINT32_MAX &&
         NS_SUCCEEDED(loader->mStreamLoader->GetNumBytesRead(&numBytesRead)) &&
         numBytesRead > 3 * (uint32_t(contentLength) >> 2))
     {
