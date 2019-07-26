@@ -23,6 +23,7 @@
 #include "SkPathEffect.h"
 #include "SkStroke.h"
 #include "SkUtils.h"
+#include "SkRasterizer.h"
 
 #define CACHE_COMPATIBLE_DEVICE_TEXTURES 1
 
@@ -668,7 +669,9 @@ void SkGpuDevice::drawRect(const SkDraw& draw, const SkRect& rect,
     bool usePath = doStroke && width > 0 &&
                     paint.getStrokeJoin() != SkPaint::kMiter_Join;
     
-    if (paint.getMaskFilter() || paint.getPathEffect()) {
+    if (paint.getMaskFilter() ||
+        paint.getPathEffect() ||
+        paint.getRasterizer()) {
         usePath = true;
     }
     
@@ -749,9 +752,14 @@ inline bool shouldDrawBlurWithCPU(const SkRect& rect, SkScalar radius) {
     return false;
 }
 
-bool drawWithGPUMaskFilter(GrContext* context, const SkPath& devPath, const SkStrokeRec& stroke,
-                           SkMaskFilter* filter, const SkRegion& clip,
+bool drawWithGPUMaskFilter(GrContext* context, SkPath& path, bool pathIsMutable,
+                           const SkStrokeRec& stroke, SkMaskFilter* filter,
+                           SkRasterizer *rasterizer, const SkRegion& clip,
                            SkBounder* bounder, GrPaint* grp) {
+    if (rasterizer) {
+        return false;
+    }
+
     SkMaskFilter::BlurInfo info;
     SkMaskFilter::BlurType blurType = filter->asABlur(&info);
     if (SkMaskFilter::kNone_BlurType == blurType) {
@@ -764,7 +772,13 @@ bool drawWithGPUMaskFilter(GrContext* context, const SkPath& devPath, const SkSt
         return false;
     }
 
-    SkRect srcRect = devPath.getBounds();
+    SkPath tmpPath;
+    SkPath* devPathPtr = pathIsMutable ? &path : &tmpPath;
+
+    
+    path.transform(context->getMatrix(), devPathPtr);
+
+    SkRect srcRect = devPathPtr->getBounds();
     if (shouldDrawBlurWithCPU(srcRect, radius)) {
         return false;
     }
@@ -834,7 +848,7 @@ bool drawWithGPUMaskFilter(GrContext* context, const SkPath& devPath, const SkSt
         SkMatrix translate;
         translate.setTranslate(offset.fX, offset.fY);
         am.set(context, translate);
-        context->drawPath(tempPaint, devPath, stroke);
+        context->drawPath(tempPaint, *devPathPtr, stroke);
 
         
         
@@ -890,22 +904,42 @@ bool drawWithGPUMaskFilter(GrContext* context, const SkPath& devPath, const SkSt
     return true;
 }
 
-bool drawWithMaskFilter(GrContext* context, const SkPath& devPath,
-                        SkMaskFilter* filter, const SkRegion& clip, SkBounder* bounder,
+bool drawWithMaskFilter(GrContext* context, SkPath& path, bool pathIsMutable,
+                        SkMaskFilter* filter, SkRasterizer* rasterizer,
+                        const SkRegion& clip, SkBounder* bounder,
                         GrPaint* grp, SkPaint::Style style) {
     SkMask  srcM, dstM;
 
-    if (!SkDraw::DrawToMask(devPath, &clip.getBounds(), filter, &context->getMatrix(), &srcM,
-                            SkMask::kComputeBoundsAndRenderImage_CreateMode, style)) {
-        return false;
+    if (rasterizer) {
+        if (!rasterizer->rasterize(path, context->getMatrix(),
+                                   &clip.getBounds(), filter, &srcM,
+                                   SkMask::kComputeBoundsAndRenderImage_CreateMode)) {
+            return false;
+        }
+    } else {
+        SkPath tmpPath;
+        SkPath* devPathPtr = pathIsMutable ? &path : &tmpPath;
+
+        
+        path.transform(context->getMatrix(), devPathPtr);
+        if (!SkDraw::DrawToMask(*devPathPtr, &clip.getBounds(), filter, &context->getMatrix(),
+                                &srcM, SkMask::kComputeBoundsAndRenderImage_CreateMode,
+                                style)) {
+            return false;
+        }
     }
     SkAutoMaskFreeImage autoSrc(srcM.fImage);
 
-    if (!filter->filterMask(&dstM, srcM, context->getMatrix(), NULL)) {
+    if (filter && !filter->filterMask(&dstM, srcM, context->getMatrix(), NULL)) {
         return false;
+    } else if (!filter) {
+        dstM = srcM;
     }
+
     
-    SkAutoMaskFreeImage autoDst(dstM.fImage);
+    
+    
+    SkAutoMaskFreeImage autoDst(filter ? dstM.fImage : NULL);
 
     if (clip.quickReject(dstM.fBounds)) {
         return false;
@@ -1008,7 +1042,7 @@ void SkGpuDevice::drawPath(const SkDraw& draw, const SkPath& origSrcPath,
         stroke.setHairlineStyle();
     }
 
-    if (paint.getMaskFilter()) {
+    if (paint.getMaskFilter() || paint.getRasterizer()) {
         if (!stroke.isHairlineStyle()) {
             if (stroke.applyToPath(&tmpPath, *pathPtr)) {
                 pathPtr = &tmpPath;
@@ -1016,16 +1050,14 @@ void SkGpuDevice::drawPath(const SkDraw& draw, const SkPath& origSrcPath,
             }
         }
 
-        
-        SkPath* devPathPtr = pathIsMutable ? pathPtr : &tmpPath;
-
-        
-        pathPtr->transform(fContext->getMatrix(), devPathPtr);
-        if (!drawWithGPUMaskFilter(fContext, *devPathPtr, stroke, paint.getMaskFilter(),
-                                   *draw.fClip, draw.fBounder, &grPaint)) {
+        if (!drawWithGPUMaskFilter(fContext, *pathPtr, pathIsMutable,
+                                   stroke, paint.getMaskFilter(),
+                                   paint.getRasterizer(), *draw.fClip,
+                                   draw.fBounder, &grPaint)) {
             SkPaint::Style style = stroke.isHairlineStyle() ? SkPaint::kStroke_Style :
                                                               SkPaint::kFill_Style;
-            drawWithMaskFilter(fContext, *devPathPtr, paint.getMaskFilter(),
+            drawWithMaskFilter(fContext, *pathPtr, pathIsMutable,
+                               paint.getMaskFilter(), paint.getRasterizer(),
                                *draw.fClip, draw.fBounder, &grPaint, style);
         }
         return;
