@@ -80,6 +80,17 @@ public:
             nsBoundingMetrics& bm,
             nscoord&           dx);
 
+  virtual bool
+  IsMrowLike() MOZ_OVERRIDE
+  {
+    
+    
+    
+    
+    
+    return true;
+  }
+
 protected:
   nsMathMLmfencedFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmfencedFrame();

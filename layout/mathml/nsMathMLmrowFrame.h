@@ -32,6 +32,15 @@ public:
     return TransmitAutomaticDataForMrowLikeElement();
   }
 
+  bool
+  IsMrowLike() MOZ_OVERRIDE {
+    
+    
+    
+    return mFrames.FirstChild() != mFrames.LastChild() ||
+           !mFrames.FirstChild();
+  }
+
 protected:
   nsMathMLmrowFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmrowFrame();

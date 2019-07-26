@@ -200,6 +200,13 @@ public:
   
   virtual uint8_t
   ScriptIncrement(nsIFrame* aFrame) = 0;
+
+  
+  
+  
+  
+  virtual bool
+  IsMrowLike() = 0;
 };
 
 

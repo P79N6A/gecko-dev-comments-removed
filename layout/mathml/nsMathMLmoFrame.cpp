@@ -311,10 +311,22 @@ nsMathMLmoFrame::ProcessOperatorData()
     nsIFrame* prevSibling = embellishAncestor->GetPrevSibling();
 
     
-    if (!prevSibling && !nextSibling)
+    
+    nsIMathMLFrame* mathAncestor = do_QueryFrame(parentAncestor);
+    bool zeroSpacing = false;
+    if (mathAncestor) {
+      zeroSpacing =  !mathAncestor->IsMrowLike();
+    } else {
+      nsMathMLmathBlockFrame* blockFrame = do_QueryFrame(parentAncestor);
+      if (blockFrame) {
+        zeroSpacing = !blockFrame->IsMrowLike();
+      }
+    }
+    if (zeroSpacing) {
       mFlags |= NS_MATHML_OPERATOR_EMBELLISH_ISOLATED;
-    else
+    } else {
       mFlags &= ~NS_MATHML_OPERATOR_EMBELLISH_ISOLATED;
+    }
 
     
     form = NS_MATHML_OPERATOR_FORM_INFIX;
@@ -344,7 +356,10 @@ nsMathMLmoFrame::ProcessOperatorData()
     nsAutoString data;
     mMathMLChar.GetData(data);
     nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
-    if (lspace || rspace) {
+    
+    
+    if (!NS_MATHML_OPERATOR_EMBELLISH_IS_ISOLATED(mFlags) &&
+        (lspace || rspace)) {
       
       
       nscoord em;
@@ -358,16 +373,10 @@ nsMathMLmoFrame::ProcessOperatorData()
       
       
       
-      if (StyleFont()->mScriptLevel > 0) {
-        if (NS_MATHML_OPERATOR_EMBELLISH_IS_ISOLATED(mFlags)) {
-          
-          mEmbellishData.leadingSpace = 0;
-          mEmbellishData.trailingSpace  = 0;
-        }
-        else if (!NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
-          mEmbellishData.leadingSpace /= 2;
-          mEmbellishData.trailingSpace  /= 2;
-        }
+      if (StyleFont()->mScriptLevel > 0 &&
+          !NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
+        mEmbellishData.leadingSpace /= 2;
+        mEmbellishData.trailingSpace /= 2;
       }
     }
   }
