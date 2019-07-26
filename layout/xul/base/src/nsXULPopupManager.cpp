@@ -1473,11 +1473,8 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   
   nsCOMPtr<nsIWidget> mainWidget;
   baseWin->GetMainWidget(getter_AddRefs(mainWidget));
-  if (mainWidget) {
-    int32_t sizeMode;
-    mainWidget->GetSizeMode(&sizeMode);
-    if (sizeMode == nsSizeMode_Minimized)
-      return false;
+  if (mainWidget && mainWidget->SizeMode() == nsSizeMode_Minimized) {
+    return false;
   }
 
   

@@ -561,17 +561,6 @@ NS_IMETHODIMP nsBaseWidget::SetSizeMode(int32_t aMode)
 
 
 
-NS_IMETHODIMP nsBaseWidget::GetSizeMode(int32_t* aMode)
-{
-  *aMode = mSizeMode;
-  return NS_OK;
-}
-
-
-
-
-
-
 nscolor nsBaseWidget::GetForegroundColor(void)
 {
   return mForeground;
