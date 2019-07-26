@@ -801,7 +801,7 @@ pref("browser.ui.linkify.phone", false);
 pref("snav.enabled", true);
 
 
-pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/mobile");
+pref("identity.fxaccounts.remote.uri", "https://accounts.dev.lcip.org/mobile");
 
 
 

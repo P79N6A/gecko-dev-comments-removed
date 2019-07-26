@@ -1337,7 +1337,7 @@ pref("browser.uiCustomization.debug", false);
 
 
 
-pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/?service=sync");
+pref("identity.fxaccounts.remote.uri", "https://accounts.dev.lcip.org/?service=sync");
 
 
 pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
