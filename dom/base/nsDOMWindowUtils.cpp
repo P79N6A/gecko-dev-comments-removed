@@ -2402,7 +2402,7 @@ nsDOMWindowUtils::StopFrameTimeRecording(uint32_t   startIndex,
   mgr->StopFrameTimeRecording(startIndex, tmpFrameIntervals);
   *frameCount = tmpFrameIntervals.Length();
 
-  *frameIntervals = (float*)nsMemory::Alloc(*frameCount * sizeof(float*));
+  *frameIntervals = (float*)nsMemory::Alloc(*frameCount * sizeof(float));
 
   
   for (uint32_t i = 0; i < *frameCount; i++) {
