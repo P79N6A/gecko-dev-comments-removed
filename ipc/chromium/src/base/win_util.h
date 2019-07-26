@@ -27,8 +27,6 @@ enum WinVersion {
   WINVERSION_WIN7 = 6
 };
 
-void GetNonClientMetrics(NONCLIENTMETRICS* metrics);
-
 
 WinVersion GetWinVersion();
 
