@@ -168,7 +168,6 @@ var ContextUI = {
 
   
   displayNavbar: function () {
-    this._clearDelayedTimeout();
     Elements.navbar.show();
     ContentAreaObserver.updateContentArea();
   },
