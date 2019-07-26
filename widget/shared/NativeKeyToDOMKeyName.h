@@ -778,7 +778,12 @@ KEY_MAP_ANDROID (VolumeMute, AKEYCODE_VOLUME_MUTE)
 
 
 
-KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
+
+
+KEY_MAP_WIN     (LaunchMail, VK_LAUNCH_MAIL)
+KEY_MAP_GTK     (LaunchMail, GDK_Mail)
+KEY_MAP_QT      (LaunchMail, Qt::Key_LaunchMail)
+KEY_MAP_ANDROID (LaunchMail, AKEYCODE_ENVELOPE)
 
 
 KEY_MAP_WIN     (LaunchApplication1, VK_LAUNCH_APP1)
@@ -854,10 +859,8 @@ KEY_MAP_QT      (LaunchApplication17, Qt::Key_LaunchG)
 KEY_MAP_QT      (LaunchApplication18, Qt::Key_LaunchH)
 
 
-KEY_MAP_WIN     (LaunchMail, VK_LAUNCH_MAIL)
-KEY_MAP_GTK     (LaunchMail, GDK_Mail)
-KEY_MAP_QT      (LaunchMail, Qt::Key_LaunchMail)
-KEY_MAP_ANDROID (LaunchMail, AKEYCODE_ENVELOPE)
+
+KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
 
 
 
