@@ -10,6 +10,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 const kPrefCustomizationDebug = "browser.uiCustomization.debug";
 const kPaletteId = "customization-palette";
+const kAboutURI = "about:customizing";
 
 let gDebug = false;
 try {
@@ -30,11 +31,7 @@ Cu.import("resource:///modules/CustomizableUI.jsm");
 function CustomizeMode(aWindow) {
   this.window = aWindow;
   this.document = aWindow.document;
-  
-  
-  
-  
-  this.visiblePalette = this.document.getElementById(kPaletteId);
+  this.browser = aWindow.gBrowser;
 };
 
 CustomizeMode.prototype = {
@@ -52,10 +49,33 @@ CustomizeMode.prototype = {
   
   _stowedPalette: null,
   _dragOverItem: null,
+  _customizing: false,
+
+  init: function() {
+    
+    
+    
+    
+    this.visiblePalette = this.document.getElementById(kPaletteId);
+
+    this.browser.tabContainer.addEventListener("TabSelect", this, false);
+    this.browser.addTabsProgressListener(this);
+  },
+
+  uninit: function() {
+    this.browser.tabContainer.removeEventListener("TabSelect", this, false);
+    this.browser.removeTabsProgressListener(this);
+  },
 
   enter: function() {
     let window = this.window;
     let document = this.document;
+
+    
+    
+    if (this.browser.selectedBrowser.currentURI.spec != kAboutURI) {
+      this.window.switchToTabHavingURI(kAboutURI, true);
+    }
 
     CustomizableUI.addListener(this);
 
@@ -116,9 +136,10 @@ CustomizeMode.prototype = {
     this.visiblePalette.addEventListener("drop", this);
 
     document.documentElement.setAttribute("customizing", true);
+    this._customizing = true;
   },
 
-  exit: function(aToolboxChanged) {
+  exit: function() {
     CustomizableUI.removeListener(this);
 
     let tabViewDeck = this.document.getElementById("tab-view-deck");
@@ -168,7 +189,23 @@ CustomizeMode.prototype = {
 
     let browser = document.getElementById("browser");
     browser.parentNode.selectedPanel = browser;
+
+    if (this.browser.selectedBrowser.currentURI.spec == kAboutURI) {
+      let custBrowser = this.browser.selectedBrowser;
+      if (custBrowser.canGoBack) {
+        
+        custBrowser.goBack();
+      } else {
+        let customizationTab = this.browser.selectedTab;
+        if (this.browser.browsers.length == 1) {
+          this.window.BrowserOpenTab();
+        }
+        this.browser.removeTab(customizationTab);
+      }
+    }
+
     this._changed = false;
+    this._customizing = false;
   },
 
   populatePalette: function() {
@@ -404,6 +441,9 @@ CustomizeMode.prototype = {
           aEvent.preventDefault();
         }
         break;
+      case "TabSelect":
+        this._onTabSelect(aEvent);
+        break;
     }
   },
 
@@ -456,7 +496,7 @@ CustomizeMode.prototype = {
     }
 
     
-    if (targetArea.localName === "toolbar") {
+    if (targetArea.localName == "toolbar") {
       this._setDragActive(dragOverItem, true);
     }
     this._dragOverItem = dragOverItem;
@@ -489,7 +529,7 @@ CustomizeMode.prototype = {
 
     
     
-    if (targetArea.id === kPaletteId) {
+    if (targetArea.id == kPaletteId) {
       if (originArea.id !== kPaletteId) {
         this._removeParentFlex(draggedWrapper);
         let widget = this.unwrapToolbarItem(draggedWrapper);
@@ -519,7 +559,7 @@ CustomizeMode.prototype = {
     
     
     
-    if (targetArea === originArea) {
+    if (targetArea == originArea) {
       let properPlace = getPlaceForItem(targetNode);
       
       
@@ -628,6 +668,34 @@ CustomizeMode.prototype = {
       aElement = aElement.parentNode;
     }
     return aElement;
+  },
+
+  _onTabSelect: function(aEvent) {
+    this._toggleCustomizationModeIfNecessary();
+  },
+
+  onLocationChange: function(aBrowser, aProgress, aRequest, aLocation, aFlags) {
+    if (this.browser.selectedBrowser != aBrowser) {
+      return;
+    }
+
+    this._toggleCustomizationModeIfNecessary();
+  },
+
+  
+
+
+
+
+  _toggleCustomizationModeIfNecessary: function() {
+    let browser = this.browser.selectedBrowser;
+    if (browser.currentURI.spec == kAboutURI &&
+        !this._customizing) {
+      this.enter();
+    } else if (browser.currentURI.spec != kAboutURI &&
+               this._customizing) {
+      this.exit();
+    }
   }
 };
 

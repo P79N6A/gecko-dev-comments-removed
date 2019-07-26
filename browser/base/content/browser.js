@@ -1279,6 +1279,8 @@ var gBrowserInit = {
     window.addEventListener("CustomizationStart", CustomizationHandler, false);
     window.addEventListener("CustomizationEnd", CustomizationHandler, false);
 
+    gCustomizeMode.init();
+
     
     
     try {
@@ -1374,6 +1376,7 @@ var gBrowserInit = {
       IndexedDBPromptHelper.uninit();
       AddonManager.removeAddonListener(AddonsMgrListener);
       SocialUI.uninit();
+      gCustomizeMode.uninit();
       PanelUI.uninit();
     }
 
