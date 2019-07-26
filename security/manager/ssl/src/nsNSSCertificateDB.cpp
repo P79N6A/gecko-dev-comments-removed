@@ -1256,20 +1256,6 @@ finish:
 }
 
 
-
-
-NS_IMETHODIMP 
-nsNSSCertificateDB::GetIsOcspOn(bool *aOcspOn)
-{
-  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
-  int32_t ocspEnabled;
-  pref->GetIntPref("security.OCSP.enabled", &ocspEnabled);
-  *aOcspOn = ( ocspEnabled == 0 ) ? false : true; 
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP
 nsNSSCertificateDB::FindEmailEncryptionCert(const nsAString &aNickname, nsIX509Cert **_retval)
 {
