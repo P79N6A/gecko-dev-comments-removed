@@ -56,25 +56,6 @@ var provider = {
 };
 dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
 
-
-
-
-
-
-
-
-function importDownloadsFile(aFName)
-{
-  var file = do_get_file(aFName);
-  var newFile = dirSvc.get("ProfD", Ci.nsIFile);
-  if (/\.rdf$/i.test(aFName))
-    file.copyTo(newFile, "downloads.rdf");
-  else if (/\.sqlite$/i.test(aFName))
-    file.copyTo(newFile, "downloads.sqlite");
-  else
-    do_throw("Unexpected filename!");
-}
-
 var gDownloadCount = 0;
 
 
