@@ -1,8 +1,14 @@
 
 
 
-
 "use strict";
+
+
+module.metadata = {
+  engines: {
+    'Firefox': '*'
+  }
+};
 
 const { Loader } = require("sdk/test/loader");
 const { open, getMostRecentBrowserWindow, getOuterId } = require("sdk/window/utils");
@@ -43,14 +49,4 @@ exports["test browser events"] = function(assert, done) {
   let window = open();
 };
 
-if (require("sdk/system/xul-app").is("Fennec")) {
-  module.exports = {
-    "test Unsupported Test": function UnsupportedTest (assert) {
-        assert.pass(
-          "Skipping this test until Fennec support is implemented." +
-          "See bug 793071");
-    }
-  }
-}
-
-require("test").run(exports);
+require("sdk/test").run(exports);

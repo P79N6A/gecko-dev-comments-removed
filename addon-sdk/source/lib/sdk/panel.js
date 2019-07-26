@@ -71,7 +71,6 @@ function modelFor(panel) models.get(panel)
 function panelFor(view) panels.get(view)
 function workerFor(panel) workers.get(panel)
 
-getActiveView.define(Panel, viewFor);
 
 
 
@@ -232,6 +231,9 @@ const Panel = Class({
   }
 });
 exports.Panel = Panel;
+
+
+getActiveView.define(Panel, viewFor);
 
 
 let panelEvents = filter(events, function({target}) panelFor(target));

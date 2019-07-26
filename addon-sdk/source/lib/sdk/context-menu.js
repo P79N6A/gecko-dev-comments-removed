@@ -4,7 +4,11 @@
 "use strict";
 
 module.metadata = {
-  "stability": "stable"
+  "stability": "stable",
+  "engines": {
+    
+    "Firefox": "*"
+  }
 };
 
 const { Class, mix } = require("./core/heritage");

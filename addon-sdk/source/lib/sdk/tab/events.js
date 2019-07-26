@@ -17,6 +17,7 @@ const { windows, isInteractive } = require("../window/utils");
 const { events } = require("../browser/events");
 const { open } = require("../event/dom");
 const { filter, map, merge, expand } = require("../event/utils");
+const isFennec = require("sdk/system/xul-app").is("Fennec");
 
 
 
@@ -57,4 +58,13 @@ let eventsFromInteractive = merge(interactiveWindows.map(tabEventsFor));
 
 
 
-exports.events = merge([eventsFromInteractive, eventsFromFuture]);
+let allEvents = merge([eventsFromInteractive, eventsFromFuture]);
+
+
+exports.events = map(allEvents, function (event) {
+  return !isFennec ? event : {
+    type: event.type,
+    target: event.target.ownerDocument.defaultView.BrowserApp
+            .getTabForBrowser(event.target)
+  };
+});

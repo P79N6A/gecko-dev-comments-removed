@@ -26,10 +26,9 @@ Object.defineProperties(tabs, {
         newTabWindow(options);
         return undefined;
     }
-    
 
     let activeWindow = windows.activeWindow;
-    let privateState = !!options.isPrivate;
+    let privateState = (supportPrivateTabs && (options.isPrivate || isPrivate(activeWindow))) || false;
 
     
     if (activeWindow && (!supportPrivateTabs || privateState === isPrivate(activeWindow))) {

@@ -3,6 +3,13 @@
 
 "use strict";
 
+
+module.metadata = {
+  engines: {
+    'Firefox': '*'
+  }
+};
+
 const { Loader } = require("sdk/test/loader");
 const { open, close } = require("sdk/window/helpers");
 const { browserWindows: windows } = require("sdk/windows");
@@ -41,15 +48,5 @@ exports["test unload window observer"] = function(assert, done) {
     }).
     then(done, assert.fail);
 };
-
-if (require("sdk/system/xul-app").is("Fennec")) {
-  module.exports = {
-    "test Unsupported Test": function UnsupportedTest (assert) {
-        assert.pass(
-          "Skipping this test until Fennec support is implemented." +
-          "See bug 793071");
-    }
-  }
-}
 
 require("test").run(exports);

@@ -3,6 +3,13 @@
 
 'use strict';
 
+
+module.metadata = {
+  engines: {
+    'Firefox': '*'
+  }
+};
+
 const { Ci } = require('chrome');
 const { open, backgroundify, windows, isBrowser,
         getXULWindow, getBaseWindow, getToplevelWindow, getMostRecentWindow,
@@ -59,6 +66,34 @@ exports['test new top window with options'] = function(assert, done) {
 
   
   close(window).then(done);
+};
+
+exports['test new top window with various URIs'] = function(assert, done) {
+  let msg = 'only chrome, resource and data uris are allowed';
+  assert.throws(function () {
+    open('foo');
+  }, msg);
+  assert.throws(function () {
+    open('http://foo');
+  }, msg);
+  assert.throws(function () {
+    open('https://foo');
+  }, msg); 
+  assert.throws(function () {
+    open('ftp://foo');
+  }, msg);
+  assert.throws(function () {
+    open('//foo');
+  }, msg);
+
+  let chromeWindow = open('chrome://foo/content/');
+  assert.ok(~windows().indexOf(chromeWindow), 'chrome URI works');
+  
+  let resourceWindow = open('resource://foo');
+  assert.ok(~windows().indexOf(resourceWindow), 'resource URI works');
+
+  
+  close(chromeWindow).then(close.bind(null, resourceWindow)).then(done);
 };
 
 exports.testBackgroundify = function(assert, done) {

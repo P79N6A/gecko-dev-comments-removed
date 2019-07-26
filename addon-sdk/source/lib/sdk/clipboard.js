@@ -7,7 +7,11 @@
 "use strict";
 
 module.metadata = {
-  "stability": "stable"
+  "stability": "stable",
+  "engines": {
+    
+    "Firefox": "*"
+  }
 };
 
 const { Cc, Ci } = require("chrome");

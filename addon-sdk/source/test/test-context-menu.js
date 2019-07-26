@@ -7,6 +7,8 @@
 
 let { Cc, Ci } = require("chrome");
 
+require("sdk/context-menu");
+
 const { Loader } = require('sdk/test/loader');
 const timer = require("sdk/timers");
 const { merge } = require("sdk/util/object");
@@ -3134,16 +3136,6 @@ exports.testSelectionInOuterFrameNoMatch = function (test) {
   });
 };
 
-
-
-
-if (!require("sdk/system/xul-app").is("Firefox")) {
-  module.exports = {
-    testAppNotSupported: function (test) {
-      test.pass("context-menu does not support this application.");
-    }
-  };
-}
 
 
 

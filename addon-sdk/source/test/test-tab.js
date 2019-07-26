@@ -6,6 +6,7 @@
 const tabs = require("sdk/tabs"); 
 const windowUtils = require("sdk/deprecated/window-utils");
 const { getTabForWindow } = require('sdk/tabs/helpers');
+const app = require("sdk/system/xul-app");
 
 
 var primaryTab;
@@ -122,24 +123,17 @@ exports["test behavior on close"] = function(assert, done) {
                      "After being closed, tab attributes are undefined (url)");
         assert.equal(tab.index, undefined,
                      "After being closed, tab attributes are undefined (index)");
-        
-        tab.destroy();
-        tab.destroy();
+        if (app.is("Firefox")) {
+          
+          
+          tab.destroy();
+          tab.destroy();
+        }
 
         done();
       });
     }
   });
 };
-
-if (require("sdk/system/xul-app").is("Fennec")) {
-  module.exports = {
-    "test Unsupported Test": function UnsupportedTest (assert) {
-        assert.pass(
-          "Skipping this test until Fennec support is implemented." +
-          "See Bug 809362");
-    }
-  }
-}
 
 require("test").run(exports);

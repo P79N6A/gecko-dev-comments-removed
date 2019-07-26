@@ -12,9 +12,11 @@ const { Cc, Ci, CC } = require("chrome");
 
 const { setTimeout } = require("../timers");
 const { Stream, InputStream, OutputStream } = require("./stream");
+const { emit, on } = require("../event/core");
 const { Buffer } = require("./buffer");
 const { ns } = require("../core/namespace");
 const { Class } = require("../core/heritage");
+
 
 const nsILocalFile = CC("@mozilla.org/file/local;1", "nsILocalFile",
                         "initWithPath");
@@ -32,6 +34,8 @@ const StreamPump = CC("@mozilla.org/network/input-stream-pump;1",
 const { createOutputTransport, createInputTransport } =
   Cc["@mozilla.org/network/stream-transport-service;1"].
   getService(Ci.nsIStreamTransportService);
+
+const { OPEN_UNBUFFERED } = Ci.nsITransport;
 
 
 const { REOPEN_ON_REWIND, DEFER_OPEN } = Ci.nsIFileInputStream;
@@ -157,14 +161,16 @@ const ReadStream = Class({
     
     
     
-    let asyncInputStream = transport.openInputStream(null, 0, 0);
-    let binaryInputStream = BinaryInputStream(asyncInputStream);
-    nsIBinaryInputStream(fd, binaryInputStream);
-    let pump = StreamPump(asyncInputStream, position, length, 0, 0, false);
-
     InputStream.prototype.initialize.call(this, {
-      input: binaryInputStream, pump: pump
+      asyncInputStream: transport.openInputStream(null, 0, 0)
     });
+
+    
+    on(this, "end", _ => {
+      this.destroy();
+      emit(this, "close");
+    });
+
     this.read();
   },
   destroy: function() {
@@ -211,21 +217,20 @@ const WriteStream = Class({
     
     
     
-    let asyncOutputStream = transport.openOutputStream(null, 0, 0);
-    
-    
-    let binaryOutputStream = BinaryOutputStream(asyncOutputStream);
-    nsIBinaryOutputStream(fd, binaryOutputStream);
+    OutputStream.prototype.initialize.call(this, {
+      asyncOutputStream: transport.openOutputStream(OPEN_UNBUFFERED, 0, 0),
+      output: output
+    });
 
     
-    OutputStream.prototype.initialize.call(this, {
-      output: binaryOutputStream,
-      asyncOutputStream: asyncOutputStream
+    on(this, "finish", _ => {
+       this.destroy();
+       emit(this, "close");
     });
   },
   destroy: function() {
-    closeSync(this.fd);
     OutputStream.prototype.destroy.call(this);
+    closeSync(this.fd);
   }
 });
 exports.WriteStream = WriteStream;
@@ -365,7 +370,7 @@ function ftruncate(fd, length, callback) {
 }
 exports.ftruncate = ftruncate;
 
-function ftruncateSync(fd, length) {
+function ftruncateSync(fd, length = 0) {
   writeSync(fd, new Buffer(length), 0, length, 0);
 }
 exports.ftruncateSync = ftruncateSync;
@@ -634,6 +639,8 @@ function openSync(path, flags, mode) {
   let [ fd, flags, mode, file ] =
       [ { path: path }, Flags(flags), Mode(mode), nsILocalFile(path) ];
 
+  nsIFile(fd, file);
+
   
   
   if (!file.exists() && !isWritable(flags))
@@ -675,7 +682,9 @@ function writeSync(fd, buffer, offset, length, position) {
   }
   let writeStream = new WriteStream(fd, { position: position,
                                           length: length });
-  let output = nsIBinaryOutputStream(fd);
+
+  let output = BinaryOutputStream(nsIFileOutputStream(fd));
+  nsIBinaryOutputStream(fd, output);
   
   
   output.writeByteArray(buffer.valueOf(), buffer.length);
@@ -736,10 +745,14 @@ function readSync(fd, buffer, offset, length, position) {
   
   let binaryInputStream = BinaryInputStream(input);
   let count = length === ALL ? binaryInputStream.available() : length;
-  var bytes = binaryInputStream.readByteArray(count);
-  buffer.copy.call(bytes, buffer, offset);
+  if (offset === 0) binaryInputStream.readArrayBuffer(count, buffer.buffer);
+  else {
+    let chunk = new Buffer(count);
+    binaryInputStream.readArrayBuffer(count, chunk.buffer);
+    chunk.copy(buffer, offset);
+  }
 
-  return bytes;
+  return buffer.slice(offset, offset + count);
 };
 exports.readSync = readSync;
 
@@ -759,9 +772,9 @@ exports.readSync = readSync;
 function read(fd, buffer, offset, length, position, callback) {
   let bytesRead = 0;
   let readStream = new ReadStream(fd, { position: position, length: length });
-  readStream.on("data", function onData(chunck) {
-      chunck.copy(buffer, offset + bytesRead);
-      bytesRead += chunck.length;
+  readStream.on("data", function onData(data) {
+      data.copy(buffer, offset + bytesRead);
+      bytesRead += data.length;
   });
   readStream.on("end", function onEnd() {
     callback(null, bytesRead, buffer);
@@ -781,19 +794,26 @@ function readFile(path, encoding, callback) {
     encoding = null
   }
 
-  let buffer = new Buffer();
+  let buffer = null;
   try {
     let readStream = new ReadStream(path);
-    readStream.on("data", function(chunck) {
-      chunck.copy(buffer, buffer.length);
+    readStream.on("data", function(data) {
+      if (!buffer) buffer = data;
+      else {
+        let bufferred = buffer
+        buffer = new Buffer(buffer.length + data.length);
+        bufferred.copy(buffer, 0);
+        data.copy(buffer, bufferred.length);
+      }
     });
     readStream.on("error", function onError(error) {
       callback(error);
-      readStream.destroy();
     });
     readStream.on("end", function onEnd() {
-      callback(null, buffer);
+      
+      
       readStream.destroy();
+      callback(null, buffer);
     });
   } catch (error) {
     setTimeout(callback, 0, error);
@@ -807,8 +827,9 @@ exports.readFile = readFile;
 
 
 function readFileSync(path, encoding) {
-  let buffer = new Buffer();
   let fd = openSync(path, "r");
+  let size = fstatSync(fd).size;
+  let buffer = new Buffer(size);
   try {
     readSync(fd, buffer, 0, ALL, 0);
   }
@@ -833,13 +854,16 @@ function writeFile(path, content, encoding, callback) {
       content = new Buffer(content, encoding);
 
     let writeStream = new WriteStream(path);
-    writeStream.on("error", function onError(error) {
+    let error = null;
+
+    writeStream.end(content, function() {
+      writeStream.destroy();
       callback(error);
-      writeStream.destroy();
     });
-    writeStream.write(content, function onDrain() {
+
+    writeStream.on("error", function onError(reason) {
+      error = reason;
       writeStream.destroy();
-      callback(null);
     });
   } catch (error) {
     callback(error);
