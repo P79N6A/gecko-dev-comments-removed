@@ -1483,19 +1483,7 @@ this.DOMApplicationRegistry = {
     }
 
     
-    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                .createInstance(Ci.nsIXMLHttpRequest);
-    xhr.open("GET", aData.manifestURL, true);
-    xhr.channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
-    xhr.responseType = "json";
-    if (app.etag) {
-      debug("adding manifest etag:" + app.etag);
-      xhr.setRequestHeader("If-None-Match", app.etag);
-    }
-    xhr.channel.notificationCallbacks =
-      this.createLoadContext(app.installerAppId, app.installerIsBrowser);
-
-    xhr.addEventListener("load", (function() {
+    function onload(xhr, oldManifest) {
       debug("Got http status=" + xhr.status + " for " + aData.manifestURL);
       let oldHash = app.manifestHash;
       let isPackage = app.origin.startsWith("app://");
@@ -1514,6 +1502,8 @@ this.DOMApplicationRegistry = {
           sendError("INSTALL_FROM_DENIED");
           return;
         } else {
+          AppsUtils.ensureSameAppName(oldManifest, manifest, app);
+
           let hash = this.computeManifestHash(manifest);
           debug("Manifest hash = " + hash);
           if (isPackage) {
@@ -1543,12 +1533,10 @@ this.DOMApplicationRegistry = {
               this._saveApps();
             }
           } else {
-            this._readManifests([{ id: id }], (function(aResult) {
-              
-              
-              updateHostedApp.call(this, aResult[0].manifest,
-                                   oldHash == hash ? null : manifest);
-            }).bind(this));
+            
+            
+            updateHostedApp.call(this, oldManifest,
+                                 oldHash == hash ? null : manifest);
           }
         }
       } else if (xhr.status == 304) {
@@ -1567,21 +1555,40 @@ this.DOMApplicationRegistry = {
         } else {
           
           
-          this._readManifests([{ id: id }], (function(aResult) {
-            updateHostedApp.call(this, aResult[0].manifest, null);
-          }).bind(this));
+          updateHostedApp.call(this, oldManifest, null);
         }
       } else {
         sendError("MANIFEST_URL_ERROR");
       }
-    }).bind(this), false);
+    }
 
-    xhr.addEventListener("error", (function() {
-      sendError("NETWORK_ERROR");
-    }).bind(this), false);
+    
+    function doRequest(oldManifest) {
+      let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+                  .createInstance(Ci.nsIXMLHttpRequest);
+      xhr.open("GET", aData.manifestURL, true);
+      xhr.channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
+      xhr.responseType = "json";
+      if (app.etag) {
+        debug("adding manifest etag:" + app.etag);
+        xhr.setRequestHeader("If-None-Match", app.etag);
+      }
+      xhr.channel.notificationCallbacks =
+        this.createLoadContext(app.installerAppId, app.installerIsBrowser);
 
-    debug("Checking manifest at " + aData.manifestURL);
-    xhr.send(null);
+      xhr.addEventListener("load", onload.bind(this, xhr, oldManifest), false);
+      xhr.addEventListener("error", (function() {
+        sendError("NETWORK_ERROR");
+      }).bind(this), false);
+
+      debug("Checking manifest at " + aData.manifestURL);
+      xhr.send(null);
+    }
+
+    
+    this._readManifests([{ id: id }], (function(aResult) {
+      doRequest.call(this, aResult[0].manifest);
+    }).bind(this));
   },
 
   
@@ -2305,12 +2312,13 @@ this.DOMApplicationRegistry = {
                 let manifest = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(istream,
                                                                      istream.available()) || ""));
 
-                
-                
-                
                 if (!AppsUtils.checkManifest(manifest, app)) {
                   throw "INVALID_MANIFEST";
                 }
+
+                
+                
+                AppsUtils.ensureSameAppName(aManifest._manifest, manifest, app);
 
                 if (!AppsUtils.compareManifests(manifest,
                                                 aManifest._manifest)) {

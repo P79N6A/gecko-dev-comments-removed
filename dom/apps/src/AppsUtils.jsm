@@ -235,9 +235,6 @@ this.AppsUtils = {
       }
     }
 
-    
-    AppsUtils.normalizeManifest(aManifest, app);
-
     return true;
   },
 
@@ -257,33 +254,24 @@ this.AppsUtils = {
 
 
 
-  normalizeManifest: function normalizeManifest(aManifest, aApp) {
+  ensureSameAppName: function ensureSameAppName(aOldManifest, aNewManifest, aApp) {
     
-    
-    if (aApp.installState != "installed" &&
-        aApp.installState != "updating") {
-      return;
-    }
-
-    let previousManifest = aApp.manifest;
+    aNewManifest.name = aApp.name;
 
     
-    aManifest.name = aApp.name;
-
-    
-    if ('locales' in aManifest) {
-      let defaultName = new ManifestHelper(aManifest, aApp.origin).name;
-      for (let locale in aManifest.locales) {
-        let entry = aManifest.locales[locale];
+    if ('locales' in aNewManifest) {
+      let defaultName = new ManifestHelper(aOldManifest, aApp.origin).name;
+      for (let locale in aNewManifest.locales) {
+        let entry = aNewManifest.locales[locale];
         if (!entry.name) {
           continue;
         }
         
         
         let localizedName = defaultName;
-        if (previousManifest && 'locales' in previousManifest &&
-            locale in previousManifest.locales) {
-          localizedName = previousManifest.locales[locale].name;
+        if (aOldManifest && 'locales' in aOldManifest &&
+            locale in aOldManifest.locales) {
+          localizedName = aOldManifest.locales[locale].name;
         }
         entry.name = localizedName;
       }
