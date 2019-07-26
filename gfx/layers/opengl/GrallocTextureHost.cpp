@@ -10,6 +10,7 @@
 #include "GrallocImages.h"  
 #include "mozilla/layers/GrallocTextureHost.h"
 #include "mozilla/layers/CompositorOGL.h"
+#include "EGLImageHelpers.h"
 #include "GLContextUtils.h"
 
 namespace mozilla {
@@ -194,7 +195,7 @@ GrallocTextureSourceOGL::SetCompositableBackendSpecificData(CompositableBackendS
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
   gl()->fBindTexture(textureTarget, tex);
   
-  mEGLImage = gl()->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
+  mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
   gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
   mNeedsReset = false;
 }
@@ -215,8 +216,8 @@ GrallocTextureSourceOGL::DeallocateDeviceData()
   if (mEGLImage) {
     MOZ_ASSERT(gl());
     gl()->MakeCurrent();
-    gl()->DestroyEGLImage(mEGLImage);
-    mEGLImage = 0;
+    EGLImageDestroy(gl(), mEGLImage);
+    mEGLImage = EGL_NO_IMAGE;
   }
 }
 
@@ -330,7 +331,7 @@ GrallocTextureSourceOGL::GetAsSurface() {
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
   gl()->fBindTexture(GetTextureTarget(), tex);
   if (!mEGLImage) {
-    mEGLImage = gl()->CreateEGLImageForNativeBuffer(mGraphicBuffer->getNativeBuffer());
+    mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
   }
   gl()->fEGLImageTargetTexture2D(GetTextureTarget(), mEGLImage);
 
