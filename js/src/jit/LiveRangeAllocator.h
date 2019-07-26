@@ -43,7 +43,10 @@ class Requirement
     Requirement(Kind kind, CodePosition at)
       : kind_(kind),
         position_(at)
-    { }
+    {
+        
+        JS_ASSERT(kind != FIXED && kind != SAME_AS_OTHER);
+    }
 
     Requirement(LAllocation fixed)
       : kind_(FIXED),
