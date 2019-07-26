@@ -23,6 +23,7 @@ const TAB_STATE_RESTORING = 2;
 
 const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
 const NOTIFY_BROWSER_STATE_RESTORED = "sessionstore-browser-state-restored";
+const NOTIFY_LAST_SESSION_CLEARED = "sessionstore-last-session-cleared";
 
 
 
@@ -332,12 +333,6 @@ let SessionStoreInternal = {
   
   
   
-  
-  _lastSessionState: null,
-
-  
-  
-  
   _deferredInitialState: null,
 
   
@@ -361,16 +356,15 @@ let SessionStoreInternal = {
     return this._deferredInitialized.promise;
   },
 
-  
   get canRestoreLastSession() {
-    return !!this._lastSessionState;
+    return LastSession.canRestore;
   },
 
   set canRestoreLastSession(val) {
     
-    if (val)
-      return;
-    this._lastSessionState = null;
+    if (!val) {
+      LastSession.clear();
+    }
   },
 
   
@@ -419,13 +413,15 @@ let SessionStoreInternal = {
             state = iniState;
           else
             state = null;
-          if (remainingState.windows.length)
-            this._lastSessionState = remainingState;
+
+          if (remainingState.windows.length) {
+            LastSession.setState(remainingState);
+          }
         }
         else {
           
           
-          this._lastSessionState = state.lastSessionState;
+          LastSession.setState(state.lastSessionState);
 
           let lastSessionCrashed =
             state.session && state.session.state &&
@@ -1062,7 +1058,7 @@ let SessionStoreInternal = {
 
     if (aData != "restart") {
       
-      this._lastSessionState = null;
+      LastSession.clear();
     }
 
     this._loadState = STATE_QUITTING; 
@@ -1079,7 +1075,7 @@ let SessionStoreInternal = {
     
     if (this._loadState == STATE_QUITTING)
       return;
-    this._lastSessionState = null;
+    LastSession.clear();
     let openWindows = {};
     this._forEachBrowserWindow(function(aWindow) {
       Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
@@ -1783,7 +1779,7 @@ let SessionStoreInternal = {
         windows[aWindow.__SS_lastSessionWindowID] = aWindow;
     });
 
-    let lastSessionState = this._lastSessionState;
+    let lastSessionState = LastSession.getState();
 
     
     if (!lastSessionState.windows.length)
@@ -1862,7 +1858,7 @@ let SessionStoreInternal = {
     
     this._updateSessionStartTime(lastSessionState);
 
-    this._lastSessionState = null;
+    LastSession.clear();
   },
 
   
@@ -2123,8 +2119,8 @@ let SessionStoreInternal = {
     };
 
     
-    if (this._lastSessionState) {
-      state.lastSessionState = this._lastSessionState;
+    if (LastSession.canRestore) {
+      state.lastSessionState = LastSession.getState();
     }
 
     
@@ -4532,4 +4528,31 @@ let TabState = {
 
     return true;
   },
+};
+
+
+
+
+
+let LastSession = {
+  _state: null,
+
+  get canRestore() {
+    return !!this._state;
+  },
+
+  getState: function () {
+    return this._state;
+  },
+
+  setState: function (state) {
+    this._state = state;
+  },
+
+  clear: function () {
+    if (this._state) {
+      this._state = null;
+      Services.obs.notifyObservers(null, NOTIFY_LAST_SESSION_CLEARED, null);
+    }
+  }
 };
