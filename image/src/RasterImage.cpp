@@ -3278,7 +3278,6 @@ RasterImage::IsDecodeFinished()
   
   mDecodingMutex.AssertCurrentThreadOwns();
   NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
-  MOZ_ASSERT(mDecodeRequest);
 
   
   if (mDecoder->IsSizeDecode()) {
@@ -3288,11 +3287,12 @@ RasterImage::IsDecodeFinished()
   } else if (mDecoder->GetDecodeDone()) {
     return true;
   }
+
   
   
   
-  
-  if (mDecoder->NeedsNewFrame() || mDecodeRequest->mAllocatedNewFrame) {
+  if (mDecoder->NeedsNewFrame() ||
+      (mDecodeRequest && mDecodeRequest->mAllocatedNewFrame)) {
     return false;
   }
 
