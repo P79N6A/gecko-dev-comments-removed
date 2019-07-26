@@ -986,6 +986,11 @@ XPCConvert::JSObject2NativeInterface(void** dest, HandleObject src,
         
         
         
+        
+        
+        
+        
+        
         JSObject* inner = js::CheckedUnwrap(src,  false);
 
         
