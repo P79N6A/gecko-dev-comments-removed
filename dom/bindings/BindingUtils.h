@@ -552,6 +552,7 @@ template <class T>
 MOZ_ALWAYS_INLINE bool
 WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
 {
+  MOZ_ASSERT(value);
   JSObject* obj = value->GetWrapperPreserveColor();
   bool couldBeDOMBinding = CouldBeDOMBinding(value);
   if (obj) {
@@ -614,6 +615,7 @@ inline bool
 WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
                                      JS::Value* vp)
 {
+  MOZ_ASSERT(value);
   
   JSObject* obj;
   {
@@ -649,6 +651,11 @@ inline bool
 WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx, JSObject* scope,
                                           nsAutoPtr<T>& value, JS::Value* vp)
 {
+  
+  
+  if (!value) {
+    NS_RUNTIMEABORT("Don't try to wrap null objects");
+  }
   
   JSObject* obj;
   {
