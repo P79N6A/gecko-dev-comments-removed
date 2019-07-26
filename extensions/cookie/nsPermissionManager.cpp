@@ -765,9 +765,15 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
       if (entry->GetPermissions()[index].mExpireType != nsIPermissionManager::EXPIRE_SESSION &&
           aExpireType == nsIPermissionManager::EXPIRE_SESSION) {
         entry->GetPermissions()[index].mNonSessionPermission = entry->GetPermissions()[index].mPermission;
+        entry->GetPermissions()[index].mNonSessionExpireType = entry->GetPermissions()[index].mExpireType;
+      } else if (aExpireType != nsIPermissionManager::EXPIRE_SESSION) {
+        entry->GetPermissions()[index].mNonSessionPermission = aPermission;
+        entry->GetPermissions()[index].mNonSessionExpireType = aExpireType;
+        entry->GetPermissions()[index].mExpireTime = aExpireTime;
       }
 
       entry->GetPermissions()[index].mPermission = aPermission;
+      entry->GetPermissions()[index].mExpireType = aExpireType;
 
       if (aDBOperation == eWriteToDB && aExpireType != nsIPermissionManager::EXPIRE_SESSION)
         
@@ -1234,7 +1240,11 @@ nsPermissionManager::RemoveExpiredPermissionsForAppEnumerator(
     }
 
     nsPermissionManager::PermissionEntry& permEntry = entry->GetPermissions()[i];
-    if (permEntry.mExpireType == nsIPermissionManager::EXPIRE_SESSION) {
+    if (permEntry.mExpireType != nsIPermissionManager::EXPIRE_SESSION) {
+      continue;
+    }
+
+    if (permEntry.mNonSessionExpireType == nsIPermissionManager::EXPIRE_SESSION) {
       PermissionEntry oldPermissionEntry = entry->GetPermissions()[i];
 
       entry->GetPermissions().RemoveElementAt(i);
@@ -1251,18 +1261,17 @@ nsPermissionManager::RemoveExpiredPermissionsForAppEnumerator(
       continue;
     }
 
-    if (permEntry.mNonSessionPermission != permEntry.mPermission) {
-      permEntry.mPermission = permEntry.mNonSessionPermission;
+    permEntry.mPermission = permEntry.mNonSessionPermission;
+    permEntry.mExpireType = permEntry.mNonSessionExpireType;
 
-      gPermissionManager->NotifyObserversWithPermission(entry->GetKey()->mHost,
-                                                        entry->GetKey()->mAppId,
-                                                        entry->GetKey()->mIsInBrowserElement,
-                                                        gPermissionManager->mTypeArray.ElementAt(permEntry.mType),
-                                                        permEntry.mPermission,
-                                                        permEntry.mExpireType,
-                                                        permEntry.mExpireTime,
-                                                        NS_LITERAL_STRING("changed").get());
-    }
+    gPermissionManager->NotifyObserversWithPermission(entry->GetKey()->mHost,
+                                                      entry->GetKey()->mAppId,
+                                                      entry->GetKey()->mIsInBrowserElement,
+                                                      gPermissionManager->mTypeArray.ElementAt(permEntry.mType),
+                                                      permEntry.mPermission,
+                                                      permEntry.mExpireType,
+                                                      permEntry.mExpireTime,
+                                                      NS_LITERAL_STRING("changed").get());
   }
 
   return PL_DHASH_NEXT;
