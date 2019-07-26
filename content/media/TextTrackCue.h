@@ -8,13 +8,10 @@
 #define mozilla_dom_TextTrackCue_h
 
 #include "mozilla/dom/DocumentFragment.h"
-#include "mozilla/dom/TextTrack.h"
 #include "mozilla/dom/VTTCueBinding.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDOMEventTargetHelper.h"
 #include "nsIDocument.h"
-
-struct webvtt_node;
 
 namespace mozilla {
 namespace dom {
@@ -46,9 +43,7 @@ public:
 
   TextTrackCue(nsISupports* aGlobal, double aStartTime, double aEndTime,
                const nsAString& aText, HTMLTrackElement* aTrackElement,
-               webvtt_node* head, ErrorResult& aRv);
-
-  ~TextTrackCue();
+               ErrorResult& aRv);
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
@@ -234,12 +229,6 @@ public:
     CueChanged();
   }
 
-  already_AddRefed<DocumentFragment> GetCueAsHTML() const
-  {
-    
-    return nullptr;
-  }
-
   IMPL_EVENT_HANDLER(enter)
   IMPL_EVENT_HANDLER(exit)
 
@@ -294,32 +283,6 @@ public:
 
   already_AddRefed<DocumentFragment> GetCueAsHTML();
 
-  
-
-
-
-
-
-
-
-
-  void
-  ConvertNodeTreeToDOMTree(nsIContent* aParentContent);
-
-  
-
-
-
-  already_AddRefed<nsIContent>
-  ConvertInternalNodeToContent(const webvtt_node* aWebVTTNode);
-
-  
-
-
-
-  already_AddRefed<nsIContent>
-  ConvertLeafNodeToContent(const webvtt_node* aWebVTTNode);
-
 private:
   void CueChanged();
   void SetDefaultCueSettings();
@@ -333,7 +296,6 @@ private:
 
   nsRefPtr<TextTrack> mTrack;
   nsRefPtr<HTMLTrackElement> mTrackElement;
-  webvtt_node *mHead;
   nsString mId;
   int32_t mPosition;
   int32_t mSize;
