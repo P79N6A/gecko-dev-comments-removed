@@ -69,10 +69,6 @@ public:
                                         int32_t aRunScript,
                                         nsTArray<const char*>& aFontList);
 
-    
-    
-    int32_t OSXVersion();
-
     bool UseAcceleratedCanvas();
 
     
