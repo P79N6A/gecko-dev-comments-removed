@@ -376,7 +376,7 @@
 #include "nsIMessageManager.h"
 #include "mozilla/dom/Element.h"
 #include "nsHTMLSelectElement.h"
-#include "nsHTMLLegendElement.h"
+#include "HTMLLegendElement.h"
 
 #include "DOMSVGStringList.h"
 
@@ -6798,8 +6798,8 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
       else {
         
         
-        nsHTMLLegendElement *legend =
-          nsHTMLLegendElement::FromContent(node->AsElement());
+        HTMLLegendElement *legend =
+          HTMLLegendElement::FromContent(node->AsElement());
         if (legend) {
           Element *form = legend->GetFormElement();
 
