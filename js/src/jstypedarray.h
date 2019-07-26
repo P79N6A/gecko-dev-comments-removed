@@ -192,8 +192,8 @@ class ArrayBufferObject : public JSObject
 
 
 
-
-class BufferView : public JSObject {
+class ArrayBufferViewObject : public JSObject
+{
   public:
     
     static const size_t BYTEOFFSET_SLOT  = 0;
@@ -225,7 +225,7 @@ class BufferView : public JSObject {
 
 
 
-struct TypedArray : public BufferView {
+struct TypedArray : public ArrayBufferViewObject {
     enum {
         TYPE_INT8 = 0,
         TYPE_UINT8,
@@ -249,9 +249,9 @@ struct TypedArray : public BufferView {
 
 
 
-    static const size_t LENGTH_SLOT     = BufferView::NUM_SLOTS;
-    static const size_t TYPE_SLOT       = BufferView::NUM_SLOTS + 1;
-    static const size_t RESERVED_SLOTS  = BufferView::NUM_SLOTS + 2;
+    static const size_t LENGTH_SLOT     = ArrayBufferViewObject::NUM_SLOTS;
+    static const size_t TYPE_SLOT       = ArrayBufferViewObject::NUM_SLOTS + 1;
+    static const size_t RESERVED_SLOTS  = ArrayBufferViewObject::NUM_SLOTS + 2;
     static const size_t DATA_SLOT       = 7; 
 
     static Class classes[TYPE_MAX];
@@ -357,7 +357,7 @@ TypedArrayShift(ArrayBufferView::ViewType viewType)
     MOZ_ASSUME_UNREACHABLE("Unexpected array type");
 }
 
-class DataViewObject : public BufferView
+class DataViewObject : public ArrayBufferViewObject
 {
 public:
     static Class class_;
@@ -380,7 +380,7 @@ private:
     defineGetter(JSContext *cx, PropertyName *name, HandleObject proto);
 
   public:
-    static const size_t RESERVED_SLOTS = BufferView::NUM_SLOTS;
+    static const size_t RESERVED_SLOTS = ArrayBufferViewObject::NUM_SLOTS;
     static const size_t DATA_SLOT       = 7; 
 
     static inline Value bufferValue(DataViewObject &view);
