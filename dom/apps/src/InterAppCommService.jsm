@@ -465,67 +465,6 @@ this.InterAppCommService = {
                                oid: aOuterWindowID, requestID: aRequestID });
   },
 
-  
-
-
-
-
-
-
-
-  _getAllowedSubAppManifestURLs: function(aKeyword, aPubAppManifestURL) {
-    let allowedPubAppManifestURLs = this._allowedConnections[aKeyword];
-    if (!allowedPubAppManifestURLs) {
-      return [];
-    }
-
-    let allowedSubAppManifestURLs =
-      allowedPubAppManifestURLs[aPubAppManifestURL];
-    if (!allowedSubAppManifestURLs) {
-      return [];
-    }
-
-    return allowedSubAppManifestURLs;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _addSelectedApps: function(aKeyword, aPubAppManifestURL, aSelectedApps) {
-    let allowedPubAppManifestURLs = this._allowedConnections[aKeyword];
-
-    
-    if (!allowedPubAppManifestURLs) {
-      allowedPubAppManifestURLs = this._allowedConnections[aKeyword] = {};
-    }
-
-    let allowedSubAppManifestURLs =
-      allowedPubAppManifestURLs[aPubAppManifestURL];
-
-    
-    if (!allowedSubAppManifestURLs) {
-      allowedSubAppManifestURLs =
-        allowedPubAppManifestURLs[aPubAppManifestURL] = [];
-    }
-
-    
-    aSelectedApps.forEach(function(aSelectedApp) {
-      let allowedSubAppManifestURL = aSelectedApp.manifestURL;
-      if (allowedSubAppManifestURLs.indexOf(allowedSubAppManifestURL) == -1) {
-        allowedSubAppManifestURLs.push(allowedSubAppManifestURL);
-      }
-    });
-
-    return allowedSubAppManifestURLs;
-  },
-
   _connect: function(aMessage, aTarget) {
     let keyword = aMessage.keyword;
     let pubRules = aMessage.rules;
@@ -546,8 +485,12 @@ this.InterAppCommService = {
     
     
     
-    let allowedSubAppManifestURLs =
-      this._getAllowedSubAppManifestURLs(keyword, pubAppManifestURL);
+    let allowedSubAppManifestURLs = [];
+    let allowedPubAppManifestURLs = this._allowedConnections[keyword];
+    if (allowedPubAppManifestURLs &&
+        allowedPubAppManifestURLs[pubAppManifestURL]) {
+      allowedSubAppManifestURLs = allowedPubAppManifestURLs[pubAppManifestURL];
+    }
 
     
     let appsToSelect = [];
@@ -856,26 +799,34 @@ this.InterAppCommService = {
     let requestID = caller.requestID;
     let target = caller.target;
 
-    let pubAppManifestURL = aData.manifestURL;
+    let manifestURL = aData.manifestURL;
     let keyword = aData.keyword;
     let selectedApps = aData.selectedApps;
 
-    let allowedSubAppManifestURLs;
     if (selectedApps.length == 0) {
-      
-      
-      if (DEBUG) debug("No new apps are selected to connect.")
-
-      allowedSubAppManifestURLs =
-        this._getAllowedSubAppManifestURLs(keyword, pubAppManifestURL);
-    } else {
-      
-      
-      if (DEBUG) debug("Some new apps are selected to connect.")
-
-      allowedSubAppManifestURLs =
-        this._addSelectedApps(keyword, pubAppManifestURL, selectedApps);
+      if (DEBUG) debug("No apps are selected to connect.")
+      this._dispatchMessagePorts(keyword, manifestURL, [],
+                                 target, outerWindowID, requestID);
+      return;
     }
+
+    
+    let allowedPubAppManifestURLs = this._allowedConnections[keyword];
+    if (!allowedPubAppManifestURLs) {
+      allowedPubAppManifestURLs = this._allowedConnections[keyword] = {};
+    }
+    let allowedSubAppManifestURLs = allowedPubAppManifestURLs[manifestURL];
+    if (!allowedSubAppManifestURLs) {
+      allowedSubAppManifestURLs = allowedPubAppManifestURLs[manifestURL] = [];
+    }
+
+    
+    selectedApps.forEach(function(aSelectedApp) {
+      let allowedSubAppManifestURL = aSelectedApp.manifestURL;
+      if (allowedSubAppManifestURLs.indexOf(allowedSubAppManifestURL) == -1) {
+        allowedSubAppManifestURLs.push(allowedSubAppManifestURL);
+      }
+    });
 
     
     
