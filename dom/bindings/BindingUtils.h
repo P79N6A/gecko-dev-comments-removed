@@ -91,32 +91,17 @@ IsDOMIfaceAndProtoClass(const js::Class* clasp)
   return IsDOMIfaceAndProtoClass(Jsvalify(clasp));
 }
 
-
-
-
-enum DOMObjectSlot {
-  eNonDOMObject = -1,
-  eRegularDOMObject = DOM_OBJECT_SLOT,
-  eProxyDOMObject = DOM_PROXY_OBJECT_SLOT
-};
-
+MOZ_STATIC_ASSERT(DOM_OBJECT_SLOT == js::JSSLOT_PROXY_PRIVATE,
+                  "JSSLOT_PROXY_PRIVATE doesn't match DOM_OBJECT_SLOT.  "
+                  "Expect bad things");
 template <class T>
 inline T*
-UnwrapDOMObject(JSObject* obj, DOMObjectSlot slot)
+UnwrapDOMObject(JSObject* obj)
 {
-  MOZ_ASSERT(slot != eNonDOMObject,
+  MOZ_ASSERT(IsDOMClass(js::GetObjectClass(obj)) || IsDOMProxy(obj),
              "Don't pass non-DOM objects to this function");
 
-#ifdef DEBUG
-  if (IsDOMClass(js::GetObjectClass(obj))) {
-    MOZ_ASSERT(slot == eRegularDOMObject);
-  } else {
-    MOZ_ASSERT(IsDOMProxy(obj));
-    MOZ_ASSERT(slot == eProxyDOMObject);
-  }
-#endif
-
-  JS::Value val = js::GetReservedSlot(obj, slot);
+  JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
   
   
   
@@ -128,7 +113,6 @@ UnwrapDOMObject(JSObject* obj, DOMObjectSlot slot)
   return static_cast<T*>(val.toPrivate());
 }
 
-
 inline const DOMClass*
 GetDOMClass(JSObject* obj)
 {
@@ -137,41 +121,25 @@ GetDOMClass(JSObject* obj)
     return &DOMJSClass::FromJSClass(clasp)->mClass;
   }
 
-  MOZ_ASSERT(IsDOMProxy(obj));
-  js::BaseProxyHandler* handler = js::GetProxyHandler(obj);
-  return &static_cast<DOMProxyHandler*>(handler)->mClass;
-}
-
-inline DOMObjectSlot
-GetDOMClass(JSObject* obj, const DOMClass*& result)
-{
-  js::Class* clasp = js::GetObjectClass(obj);
-  if (IsDOMClass(clasp)) {
-    result = &DOMJSClass::FromJSClass(clasp)->mClass;
-    return eRegularDOMObject;
-  }
-
   if (js::IsObjectProxyClass(clasp) || js::IsFunctionProxyClass(clasp)) {
     js::BaseProxyHandler* handler = js::GetProxyHandler(obj);
     if (handler->family() == ProxyFamily()) {
-      result = &static_cast<DOMProxyHandler*>(handler)->mClass;
-      return eProxyDOMObject;
+      return &static_cast<DOMProxyHandler*>(handler)->mClass;
     }
   }
 
-  return eNonDOMObject;
+  return nullptr;
 }
 
 inline bool
 UnwrapDOMObjectToISupports(JSObject* obj, nsISupports*& result)
 {
-  const DOMClass* clasp;
-  DOMObjectSlot slot = GetDOMClass(obj, clasp);
-  if (slot == eNonDOMObject || !clasp->mDOMObjectIsISupports) {
+  const DOMClass* clasp = GetDOMClass(obj);
+  if (!clasp || !clasp->mDOMObjectIsISupports) {
     return false;
   }
  
-  result = UnwrapDOMObject<nsISupports>(obj, slot);
+  result = UnwrapDOMObject<nsISupports>(obj);
   return true;
 }
 
@@ -191,9 +159,8 @@ MOZ_ALWAYS_INLINE nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   
-  const DOMClass* domClass;
-  DOMObjectSlot slot = GetDOMClass(obj, domClass);
-  if (slot == eNonDOMObject) {
+  const DOMClass* domClass = GetDOMClass(obj);
+  if (!domClass) {
     
     if (!js::IsWrapper(obj)) {
       
@@ -205,8 +172,8 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
       return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
     }
     MOZ_ASSERT(!js::IsWrapper(obj));
-    slot = GetDOMClass(obj, domClass);
-    if (slot == eNonDOMObject) {
+    domClass = GetDOMClass(obj);
+    if (!domClass) {
       
       return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
@@ -217,7 +184,7 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 
   if (domClass->mInterfaceChain[PrototypeTraits<PrototypeID>::Depth] ==
       PrototypeID) {
-    value = UnwrapDOMObject<T>(obj, slot);
+    value = UnwrapDOMObject<T>(obj);
     return NS_OK;
   }
 
@@ -543,11 +510,10 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
   }
 
 #ifdef DEBUG
-  const DOMClass* clasp = nullptr;
-  DOMObjectSlot slot = GetDOMClass(obj, clasp);
+  const DOMClass* clasp = GetDOMClass(obj);
   
   
-  if (slot != eNonDOMObject) {
+  if (clasp) {
     
     
     
