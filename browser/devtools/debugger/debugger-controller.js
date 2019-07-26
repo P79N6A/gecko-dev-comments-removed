@@ -1189,7 +1189,8 @@ SourceScripts.prototype = {
     
     this.activeThread.source(aSource.source).source(function(aResponse) {
       if (aResponse.error) {
-        Cu.reportError("Error loading " + aUrl);
+        Cu.reportError("Error loading " + aSource.url + "\n" + aResponse.error);
+        aCallback(aSource.url, "");
         return;
       }
       aSource.loaded = true;
