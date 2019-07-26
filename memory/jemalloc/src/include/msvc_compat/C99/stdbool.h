@@ -5,7 +5,9 @@
 
 
 
+#ifndef __clang__
 typedef BOOL _Bool;
+#endif
 
 #define bool _Bool
 #define true 1
