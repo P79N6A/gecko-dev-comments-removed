@@ -530,21 +530,25 @@ SetSystemOnlyWrapper(JSObject* obj, nsWrapperCache* cache, JSObject& wrapper)
 
 
 
-
-MOZ_ALWAYS_INLINE bool
-MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+MOZ_ALWAYS_INLINE
+bool
+MaybeWrapStringValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
 {
-  if (rval.isString()) {
-    JSString* str = rval.toString();
-    if (JS::GetGCThingZone(str) != js::GetContextZone(cx)) {
-      return JS_WrapValue(cx, rval.address());
-    }
-    return true;
+  MOZ_ASSERT(rval.isString());
+  JSString* str = rval.toString();
+  if (JS::GetGCThingZone(str) != js::GetContextZone(cx)) {
+    return JS_WrapValue(cx, rval.address());
   }
+  return true;
+}
 
-  if (!rval.isObject()) {
-    return true;
-  }
+
+
+MOZ_ALWAYS_INLINE
+bool
+MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+{
+  MOZ_ASSERT(rval.isObject());
 
   JSObject* obj = &rval.toObject();
   if (js::GetObjectCompartment(obj) != js::GetContextCompartment(cx)) {
@@ -559,7 +563,67 @@ MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
     return true;
   }
 
+  
+  
   return JS_WrapValue(cx, rval.address());
+}
+
+
+MOZ_ALWAYS_INLINE
+bool
+MaybeWrapObjectOrNullValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+{
+  MOZ_ASSERT(rval.isObjectOrNull());
+  if (rval.isNull()) {
+    return true;
+  }
+  return MaybeWrapObjectValue(cx, rval);
+}
+
+
+MOZ_ALWAYS_INLINE
+bool
+MaybeWrapNonDOMObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+{
+  MOZ_ASSERT(rval.isObject());
+  MOZ_ASSERT(!GetDOMClass(&rval.toObject()));
+  MOZ_ASSERT(!(js::GetObjectClass(&rval.toObject())->flags &
+               JSCLASS_PRIVATE_IS_NSISUPPORTS));
+
+  JSObject* obj = &rval.toObject();
+  if (js::GetObjectCompartment(obj) == js::GetContextCompartment(cx)) {
+    return true;
+  }
+  return JS_WrapValue(cx, rval.address());
+}
+
+
+MOZ_ALWAYS_INLINE
+bool
+MaybeWrapNonDOMObjectOrNullValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+{
+  MOZ_ASSERT(rval.isObjectOrNull());
+  if (rval.isNull()) {
+    return true;
+  }
+  return MaybeWrapNonDOMObjectValue(cx, rval);
+}
+
+
+
+
+MOZ_ALWAYS_INLINE bool
+MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+{
+  if (rval.isString()) {
+    return MaybeWrapStringValue(cx, rval);
+  }
+
+  if (!rval.isObject()) {
+    return true;
+  }
+
+  return MaybeWrapObjectValue(cx, rval);
 }
 
 static inline void
