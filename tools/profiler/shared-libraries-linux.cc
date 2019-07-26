@@ -14,7 +14,7 @@
 #include "platform.h"
 #include "shared-libraries.h"
 
-#ifndef __GLIBC__
+#if !defined(__GLIBC__) && ANDROID_VERSION < 18
 
 static ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 {
