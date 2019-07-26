@@ -302,10 +302,13 @@ class RValueAllocation
     };
 };
 
+class RecoverWriter;
+
 
 
 class SnapshotWriter
 {
+    friend class RecoverWriter;
     CompactBufferWriter writer_;
     CompactBufferWriter allocWriter_;
 
@@ -316,10 +319,9 @@ class SnapshotWriter
     RValueAllocMap allocMap_;
 
     
-    uint32_t nallocs_;
     uint32_t allocWritten_;
-    uint32_t nframes_;
-    uint32_t framesWritten_;
+
+    
     SnapshotOffset lastStart_;
 
   public:
@@ -330,9 +332,6 @@ class SnapshotWriter
     void trackSnapshot(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mirId,
                        uint32_t lirOpcode, uint32_t lirId);
 #endif
-    void startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack);
-    void endFrame();
-
     bool add(const RValueAllocation &slot);
 
     void endSnapshot();
@@ -354,6 +353,26 @@ class SnapshotWriter
     const uint8_t *RVATableBuffer() const {
         return allocWriter_.buffer();
     }
+};
+
+class RecoverWriter
+{
+    SnapshotWriter &snapshot_;
+
+    uint32_t nallocs_;
+
+    uint32_t nframes_;
+    uint32_t framesWritten_;
+
+  public:
+    RecoverWriter(SnapshotWriter &snapshot);
+
+    SnapshotOffset startRecover(uint32_t frameCount, BailoutKind kind, bool resumeAfter);
+
+    void startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack);
+    void endFrame();
+
+    void endRecover();
 };
 
 class RecoverReader;
