@@ -33,11 +33,9 @@ loader.lazyImporter(this, "VariablesViewController", "resource:///modules/devtoo
 const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
 let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
 
+const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
-
-const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-
-const MIXED_CONTENT_LEARN_MORE = "https://developer.mozilla.org/Security/MixedContent";
+const MIXED_CONTENT_LEARN_MORE = "https://developer.mozilla.org/docs/Security/MixedContent";
 
 const INSECURE_PASSWORDS_LEARN_MORE = "https://developer.mozilla.org/docs/Security/InsecurePasswords";
 
@@ -940,15 +938,15 @@ WebConsoleFrame.prototype = {
   mergeFilteredMessageNode:
   function WCF_mergeFilteredMessageNode(aOriginal, aFiltered)
   {
-    
-    
-    let repeatNode = aOriginal.childNodes[3].firstChild;
+    let repeatNode = aOriginal.getElementsByClassName("webconsole-msg-repeat")[0];
     if (!repeatNode) {
       return; 
     }
 
     let occurrences = parseInt(repeatNode.getAttribute("value")) + 1;
     repeatNode.setAttribute("value", occurrences);
+    repeatNode.textContent = occurrences;
+    repeatNode.title = l10n.getFormatStr("messageRepeats.tooltip", [occurrences]);
   },
 
   
@@ -1090,7 +1088,7 @@ WebConsoleFrame.prototype = {
         body = l10n.getFormatStr("stacktrace.outputMessage",
                                  [filename, functionName, sourceLine]);
 
-        clipboardText = "";
+        clipboardText = body + "\n";
 
         aMessage.stacktrace.forEach(function(aFrame) {
           clipboardText += aFrame.filename + " :: " +
@@ -1173,7 +1171,7 @@ WebConsoleFrame.prototype = {
     if (objectActors.size > 0) {
       node._objectActors = objectActors;
 
-      let repeatNode = node.querySelector(".webconsole-msg-repeat");
+      let repeatNode = node.getElementsByClassName("webconsole-msg-repeat")[0];
       repeatNode._uid += [...objectActors].join("-");
     }
 
@@ -1344,59 +1342,51 @@ WebConsoleFrame.prototype = {
     }
 
     let request = networkInfo.request;
-
-    let msgNode = this.document.createElementNS(XUL_NS, "hbox");
-
-    let methodNode = this.document.createElementNS(XUL_NS, "label");
-    methodNode.setAttribute("value", request.method);
-    methodNode.classList.add("webconsole-msg-body-piece");
-    msgNode.appendChild(methodNode);
-
-    let linkNode = this.document.createElementNS(XUL_NS, "hbox");
-    linkNode.flex = 1;
-    linkNode.classList.add("webconsole-msg-body-piece");
-    linkNode.classList.add("webconsole-msg-link");
-    msgNode.appendChild(linkNode);
-
-    let urlNode = this.document.createElementNS(XUL_NS, "label");
-    urlNode.flex = 1;
-    urlNode.setAttribute("crop", "center");
-    urlNode.setAttribute("title", request.url);
-    urlNode.setAttribute("tooltiptext", request.url);
-    urlNode.setAttribute("value", request.url);
-    urlNode.classList.add("hud-clickable");
-    urlNode.classList.add("webconsole-msg-body-piece");
-    urlNode.classList.add("webconsole-msg-url");
-    linkNode.appendChild(urlNode);
-
+    let clipboardText = request.method + " " + request.url;
     let severity = SEVERITY_LOG;
     let mixedRequest =
       WebConsoleUtils.isMixedHTTPSRequest(request.url, this.contentLocation);
     if (mixedRequest) {
-      urlNode.classList.add("webconsole-mixed-content");
-      this.makeMixedContentNode(linkNode);
-      
-      
       severity = SEVERITY_WARNING;
     }
 
-    let statusNode = this.document.createElementNS(XUL_NS, "label");
-    statusNode.setAttribute("value", "");
-    statusNode.classList.add("hud-clickable");
-    statusNode.classList.add("webconsole-msg-body-piece");
-    statusNode.classList.add("webconsole-msg-status");
-    linkNode.appendChild(statusNode);
-
-    let clipboardText = request.method + " " + request.url;
+    let methodNode = this.document.createElementNS(XHTML_NS, "span");
+    methodNode.className = "webconsole-msg-method";
+    methodNode.textContent = request.method + " ";
 
     let messageNode = this.createMessageNode(CATEGORY_NETWORK, severity,
-                                             msgNode, null, null, clipboardText);
+                                             methodNode, null, null,
+                                             clipboardText);
     if (networkInfo.private) {
       messageNode.setAttribute("private", true);
     }
-
     messageNode._connectionId = aActorId;
     messageNode.url = request.url;
+
+    let body = methodNode.parentNode;
+    body.setAttribute("aria-haspopup", true);
+
+    let displayUrl = request.url;
+    let pos = displayUrl.indexOf("?");
+    if (pos > -1) {
+      displayUrl = displayUrl.substr(0, pos);
+    }
+
+    let urlNode = this.document.createElementNS(XHTML_NS, "a");
+    urlNode.classList.add("webconsole-msg-url");
+    urlNode.setAttribute("title", request.url);
+    urlNode.textContent = displayUrl;
+    body.appendChild(urlNode);
+    body.appendChild(this.document.createTextNode(" "));
+
+    if (mixedRequest) {
+      urlNode.classList.add("webconsole-mixed-content");
+      this.makeMixedContentNode(body);
+    }
+
+    let statusNode = this.document.createElementNS(XHTML_NS, "a");
+    statusNode.classList.add("webconsole-msg-status");
+    body.appendChild(statusNode);
 
     this.makeOutputMessageLink(messageNode, function WCF_net_message_link() {
       if (!messageNode._panelOpen) {
@@ -1422,11 +1412,10 @@ WebConsoleFrame.prototype = {
     let mixedContentWarning = "[" + l10n.getStr("webConsoleMixedContentWarning") + "]";
 
     
-    let mixedContentWarningNode = this.document.createElement("label");
-    mixedContentWarningNode.setAttribute("value", mixedContentWarning);
-    mixedContentWarningNode.setAttribute("title", mixedContentWarning);
-    mixedContentWarningNode.classList.add("hud-clickable");
+    let mixedContentWarningNode = this.document.createElementNS(XHTML_NS, "a");
+    mixedContentWarningNode.title = MIXED_CONTENT_LEARN_MORE;
     mixedContentWarningNode.classList.add("webconsole-mixed-content-link");
+    mixedContentWarningNode.textContent = mixedContentWarning;
 
     aLinkNode.appendChild(mixedContentWarningNode);
 
@@ -1483,21 +1472,11 @@ WebConsoleFrame.prototype = {
   addLearnMoreWarningNode:
   function WCF_addLearnMoreWarningNode(aNode, aURL)
   {
-    let moreInfoLabel =
-      "[" + l10n.getStr("webConsoleMoreInfoLabel") + "]";
+    let moreInfoLabel = "[" + l10n.getStr("webConsoleMoreInfoLabel") + "]";
 
-    
-    let linkNode = this.document.createElementNS(XUL_NS, "hbox");
-    linkNode.flex = 1;
-    linkNode.classList.add("webconsole-msg-body-piece");
-    linkNode.classList.add("webconsole-msg-link");
-    aNode.appendChild(linkNode);
-
-    
-    let warningNode = this.document.createElement("label");
-    warningNode.setAttribute("value", moreInfoLabel);
-    warningNode.setAttribute("title", moreInfoLabel);
-    warningNode.classList.add("hud-clickable");
+    let warningNode = this.document.createElementNS(XHTML_NS, "a");
+    warningNode.title = aURL;
+    warningNode.textContent = moreInfoLabel;
     warningNode.classList.add("webconsole-learn-more-link");
 
     warningNode.addEventListener("click", function(aEvent) {
@@ -1506,7 +1485,7 @@ WebConsoleFrame.prototype = {
       aEvent.stopPropagation();
     }.bind(this));
 
-    linkNode.appendChild(warningNode);
+    aNode.appendChild(warningNode);
   },
 
   
@@ -1519,14 +1498,10 @@ WebConsoleFrame.prototype = {
 
   logFileActivity: function WCF_logFileActivity(aFileURI)
   {
-    let urlNode = this.document.createElementNS(XUL_NS, "label");
-    urlNode.flex = 1;
-    urlNode.setAttribute("crop", "center");
+    let urlNode = this.document.createElementNS(XHTML_NS, "a");
     urlNode.setAttribute("title", aFileURI);
-    urlNode.setAttribute("tooltiptext", aFileURI);
-    urlNode.setAttribute("value", aFileURI);
-    urlNode.classList.add("hud-clickable");
     urlNode.classList.add("webconsole-msg-url");
+    urlNode.textContent = aFileURI;
 
     let outputNode = this.createMessageNode(CATEGORY_NETWORK, SEVERITY_LOG,
                                             urlNode, null, null, aFileURI);
@@ -1645,8 +1620,8 @@ WebConsoleFrame.prototype = {
         break;
     }
 
-    if (networkInfo.node) {
-      this._updateNetMessage(aActorId);
+    if (networkInfo.node && this._updateNetMessage(aActorId)) {
+      this.emit("messages-updated", new Set([networkInfo.node]));
     }
 
     
@@ -1659,6 +1634,8 @@ WebConsoleFrame.prototype = {
   },
 
   
+
+
 
 
 
@@ -1679,6 +1656,7 @@ WebConsoleFrame.prototype = {
     let hasResponseStart = updates.indexOf("responseStart") > -1;
     let request = networkInfo.request;
     let response = networkInfo.response;
+    let updated = false;
 
     if (hasEventTimings || hasResponseStart) {
       let status = [];
@@ -1691,9 +1669,8 @@ WebConsoleFrame.prototype = {
       }
       let statusText = "[" + status.join(" ") + "]";
 
-      let linkNode = messageNode.querySelector(".webconsole-msg-link");
-      let statusNode = linkNode.querySelector(".webconsole-msg-status");
-      statusNode.setAttribute("value", statusText);
+      let statusNode = messageNode.getElementsByClassName("webconsole-msg-status")[0];
+      statusNode.textContent = statusText;
 
       messageNode.clipboardText = [request.method, request.url, statusText]
                                   .join(" ");
@@ -1702,11 +1679,15 @@ WebConsoleFrame.prototype = {
           response.status <= MAX_HTTP_ERROR_CODE) {
         this.setMessageType(messageNode, CATEGORY_NETWORK, SEVERITY_ERROR);
       }
+
+      updated = true;
     }
 
     if (messageNode._netPanel) {
       messageNode._netPanel.update();
     }
+
+    return updated;
   },
 
   
@@ -1960,9 +1941,8 @@ WebConsoleFrame.prototype = {
 
     let outputNode = this.outputNode;
     let lastVisibleNode = null;
+    let scrollNode = outputNode.parentNode;
     let scrolledToBottom = Utils.isOutputScrolledToBottom(outputNode);
-    let scrollBox = outputNode.scrollBoxObject.element;
-
     let hudIdSupportsString = WebConsoleUtils.supportsString(this.hudId);
 
     
@@ -1989,7 +1969,7 @@ WebConsoleFrame.prototype = {
     
     let removedNodes = 0;
     if (shouldPrune || !this._outputQueue.length) {
-      oldScrollHeight = scrollBox.scrollHeight;
+      oldScrollHeight = scrollNode.scrollHeight;
 
       let categories = Object.keys(this._pruneCategoriesQueue);
       categories.forEach(function _pruneOutput(aCategory) {
@@ -2009,10 +1989,10 @@ WebConsoleFrame.prototype = {
       Utils.scrollToVisible(lastVisibleNode);
     }
     else if (!scrolledToBottom && removedNodes > 0 &&
-             oldScrollHeight != scrollBox.scrollHeight) {
+             oldScrollHeight != scrollNode.scrollHeight) {
       
       
-      scrollBox.scrollTop -= oldScrollHeight - scrollBox.scrollHeight;
+      scrollNode.scrollTop -= oldScrollHeight - scrollNode.scrollHeight;
     }
 
     if (newMessages.size) {
@@ -2028,7 +2008,14 @@ WebConsoleFrame.prototype = {
     }
     else {
       this._outputTimerInitialized = false;
-      this._flushCallback && this._flushCallback();
+      if (this._flushCallback) {
+        try {
+          this._flushCallback();
+        }
+        catch (ex) {
+          console.error(ex);
+        }
+      }
     }
 
     this._lastOutputFlush = Date.now();
@@ -2305,25 +2292,11 @@ WebConsoleFrame.prototype = {
     
     
     
-    let iconContainer = this.document.createElementNS(XUL_NS, "vbox");
-    iconContainer.classList.add("webconsole-msg-icon-container");
-    
-    iconContainer.style.marginLeft = this.groupDepth * GROUP_INDENT + "px";
+    let iconContainer = this.document.createElementNS(XHTML_NS, "span");
+    iconContainer.className = "webconsole-msg-icon";
 
     
-    
-    let iconNode = this.document.createElementNS(XUL_NS, "image");
-    iconNode.classList.add("webconsole-msg-icon");
-    iconContainer.appendChild(iconNode);
-
-    
-    let spacer = this.document.createElementNS(XUL_NS, "spacer");
-    spacer.flex = 1;
-    iconContainer.appendChild(spacer);
-
-    
-    let bodyNode = this.document.createElementNS(XUL_NS, "description");
-    bodyNode.flex = 1;
+    let bodyNode = this.document.createElementNS(XHTML_NS, "span");
     bodyNode.classList.add("webconsole-msg-body");
     bodyNode.classList.add("devtools-monospace");
 
@@ -2335,8 +2308,15 @@ WebConsoleFrame.prototype = {
                      (aBody + (aSourceURL ? " @ " + aSourceURL : "") +
                               (aSourceLine ? ":" + aSourceLine : ""));
 
+    let timestamp = aTimeStamp || Date.now();
+
     
-    let node = this.document.createElementNS(XUL_NS, "richlistitem");
+    let node = this.document.createElementNS(XHTML_NS, "div");
+    node.id = "console-msg-" + gSequenceId();
+    node.className = "hud-msg-node";
+    node.clipboardText = aClipboardText;
+    node.timestamp = timestamp;
+    this.setMessageType(node, aCategory, aSeverity);
 
     if (aBody instanceof Ci.nsIDOMNode) {
       bodyNode.appendChild(aBody);
@@ -2360,23 +2340,27 @@ WebConsoleFrame.prototype = {
       }
     }
 
-    let repeatContainer = this.document.createElementNS(XUL_NS, "hbox");
-    repeatContainer.setAttribute("align", "start");
-    let repeatNode = this.document.createElementNS(XUL_NS, "label");
-    repeatNode.setAttribute("value", "1");
-    repeatNode.classList.add("webconsole-msg-repeat");
-    repeatNode._uid = [bodyNode.textContent, aCategory, aSeverity, aLevel,
-                       aSourceURL, aSourceLine].join(":");
-    repeatContainer.appendChild(repeatNode);
+    
+    let repeatNode = null;
+    if (aCategory != CATEGORY_INPUT && aCategory != CATEGORY_OUTPUT &&
+        aCategory != CATEGORY_NETWORK) {
+      repeatNode = this.document.createElementNS(XHTML_NS, "span");
+      repeatNode.setAttribute("value", "1");
+      repeatNode.classList.add("webconsole-msg-repeat");
+      repeatNode.textContent = 1;
+      repeatNode._uid = [bodyNode.textContent, aCategory, aSeverity, aLevel,
+                         aSourceURL, aSourceLine].join(":");
+    }
 
     
-    let timestampNode = this.document.createElementNS(XUL_NS, "label");
+    let timestampNode = this.document.createElementNS(XHTML_NS, "span");
     timestampNode.classList.add("webconsole-timestamp");
     timestampNode.classList.add("devtools-monospace");
+    
+    timestampNode.style.marginRight = this.groupDepth * GROUP_INDENT + "px";
 
-    let timestamp = aTimeStamp || Date.now();
     let timestampString = l10n.timestampString(timestamp);
-    timestampNode.setAttribute("value", timestampString);
+    timestampNode.textContent = timestampString + " ";
 
     
     
@@ -2385,25 +2369,17 @@ WebConsoleFrame.prototype = {
       locationNode = this.createLocationNode(aSourceURL, aSourceLine);
     }
 
-    node.clipboardText = aClipboardText;
-    node.classList.add("hud-msg-node");
-
-    node.timestamp = timestamp;
-    this.setMessageType(node, aCategory, aSeverity);
-
     node.appendChild(timestampNode);
     node.appendChild(iconContainer);
 
     
     if (aLevel == "dir") {
-      let viewContainer = this.document.createElement("hbox");
-      viewContainer.flex = 1;
-      viewContainer.height = this.outputNode.clientHeight *
-                             CONSOLE_DIR_VIEW_HEIGHT;
+      bodyNode.style.height = (this.window.innerHeight *
+                               CONSOLE_DIR_VIEW_HEIGHT) + "px";
 
       let options = {
         objectActor: body.arguments[0],
-        targetElement: viewContainer,
+        targetElement: bodyNode,
         hideFilterInput: true,
       };
       this.jsterm.openVariablesView(options).then((aView) => {
@@ -2413,22 +2389,16 @@ WebConsoleFrame.prototype = {
         }
       });
 
-      let bodyContainer = this.document.createElement("vbox");
-      bodyContainer.flex = 1;
-      bodyContainer.appendChild(bodyNode);
-      bodyContainer.appendChild(viewContainer);
-      node.appendChild(bodyContainer);
       node.classList.add("webconsole-msg-inspector");
     }
-    else {
-      node.appendChild(bodyNode);
+
+    node.appendChild(bodyNode);
+    if (repeatNode) {
+      node.appendChild(repeatNode);
     }
-    node.appendChild(repeatContainer);
     if (locationNode) {
       node.appendChild(locationNode);
     }
-
-    node.setAttribute("id", "console-msg-" + gSequenceId());
 
     return node;
   },
@@ -2452,7 +2422,7 @@ WebConsoleFrame.prototype = {
   {
     Object.defineProperty(aMessage, "_panelOpen", {
       get: function() {
-        let nodes = aContainer.querySelectorAll(".hud-clickable");
+        let nodes = aContainer.getElementsByTagName("a");
         return Array.prototype.some.call(nodes, function(aNode) {
           return aNode._panelOpen;
         });
@@ -2473,8 +2443,7 @@ WebConsoleFrame.prototype = {
         aContainer.appendChild(this.document.createTextNode(text));
 
         if (aItem.type && aItem.type == "longString") {
-          let ellipsis = this.document.createElement("description");
-          ellipsis.classList.add("hud-clickable");
+          let ellipsis = this.document.createElementNS(XHTML_NS, "a");
           ellipsis.classList.add("longStringEllipsis");
           ellipsis.textContent = l10n.getStr("longStringEllipsis");
 
@@ -2489,10 +2458,9 @@ WebConsoleFrame.prototype = {
       }
 
       
-      let elem = this.document.createElement("description");
-      elem.classList.add("hud-clickable");
+      let elem = this.document.createElementNS(XHTML_NS, "a");
       elem.setAttribute("aria-haspopup", "true");
-      elem.appendChild(this.document.createTextNode(text));
+      elem.textContent = text;
 
       this._addMessageLinkCallback(elem,
         this._consoleLogClick.bind(this, elem, aItem));
@@ -2569,7 +2537,7 @@ WebConsoleFrame.prototype = {
 
   createLocationNode: function WCF_createLocationNode(aSourceURL, aSourceLine)
   {
-    let locationNode = this.document.createElementNS(XUL_NS, "label");
+    let locationNode = this.document.createElementNS(XHTML_NS, "a");
 
     
     
@@ -2590,14 +2558,9 @@ WebConsoleFrame.prototype = {
       locationNode.sourceLine = aSourceLine;
     }
 
-    locationNode.setAttribute("value", displayLocation);
-
-    
-    locationNode.setAttribute("crop", "center");
+    locationNode.textContent = " " + displayLocation;
     locationNode.setAttribute("title", aSourceURL);
-    locationNode.setAttribute("tooltiptext", aSourceURL);
     locationNode.classList.add("webconsole-location");
-    locationNode.classList.add("text-link");
     locationNode.classList.add("devtools-monospace");
 
     
@@ -2729,19 +2692,17 @@ WebConsoleFrame.prototype = {
 
   copySelectedItems: function WCF_copySelectedItems(aOptions)
   {
-    aOptions = aOptions || { linkOnly: false };
+    aOptions = aOptions || { linkOnly: false, contextmenu: false };
 
     
     let strings = [];
 
-    let children = this.outputNode.children;
+    let children = this.output.getSelectedMessages();
+    if (!children.length && aOptions.contextmenu) {
+      children = [this._contextMenuHandler.lastClickedMessage];
+    }
 
-    for (let i = 0; i < children.length; i++) {
-      let item = children[i];
-      if (!item.selected) {
-        continue;
-      }
-
+    for (let item of children) {
       
       if (!item.classList.contains("hud-filtered-by-type") &&
           !item.classList.contains("hud-filtered-by-string")) {
@@ -2800,7 +2761,8 @@ WebConsoleFrame.prototype = {
 
   openSelectedItemInTab: function WCF_openSelectedItemInTab()
   {
-    let item = this.outputNode.selectedItem;
+    let item = this.output.getSelectedMessages(1)[0] ||
+               this._contextMenuHandler.lastClickedMessage;
 
     if (!item || !item.url) {
       return;
@@ -3136,15 +3098,6 @@ JSTerm.prototype = {
       return;
     }
 
-    if (aCallback) {
-      let oldFlushCallback = this.hud._flushCallback;
-      this.hud._flushCallback = function() {
-        aCallback();
-        oldFlushCallback && oldFlushCallback();
-        this.hud._flushCallback = oldFlushCallback;
-      }.bind(this);
-    }
-
     let node;
 
     if (errorMessage) {
@@ -3159,6 +3112,20 @@ JSTerm.prototype = {
     else {
       node = this.writeOutput(resultString, CATEGORY_OUTPUT, SEVERITY_LOG,
                               aAfterNode, aResponse.timestamp);
+    }
+
+    if (aCallback) {
+      let oldFlushCallback = this.hud._flushCallback;
+      this.hud._flushCallback = () => {
+        aCallback(node);
+        if (oldFlushCallback) {
+          oldFlushCallback();
+          this.hud._flushCallback = oldFlushCallback;
+        }
+        else {
+          this.hud._flushCallback = null;
+        }
+      };
     }
 
     node._objectActors = new Set();
@@ -3176,8 +3143,7 @@ JSTerm.prototype = {
         
 
         let body = node.querySelector(".webconsole-msg-body");
-        let ellipsis = this.hud.document.createElement("description");
-        ellipsis.classList.add("hud-clickable");
+        let ellipsis = this.hud.document.createElementNS(XHTML_NS, "a");
         ellipsis.classList.add("longStringEllipsis");
         ellipsis.textContent = l10n.getStr("longStringEllipsis");
 
@@ -3352,7 +3318,7 @@ JSTerm.prototype = {
       let deferred = promise.defer();
       openPromise = deferred.promise;
       let document = aOptions.targetElement.ownerDocument;
-      let iframe = document.createElement("iframe");
+      let iframe = document.createElementNS(XHTML_NS, "iframe");
 
       iframe.addEventListener("load", function onIframeLoad(aEvent) {
         iframe.removeEventListener("load", onIframeLoad, true);
@@ -3777,7 +3743,7 @@ JSTerm.prototype = {
 
   clearPrivateMessages: function JST_clearPrivateMessages()
   {
-    let nodes = this.hud.outputNode.querySelectorAll("richlistitem[private]");
+    let nodes = this.hud.outputNode.querySelectorAll(".hud-msg-node[private]");
     for (let node of nodes) {
       this.hud.removeOutputMessage(node);
     }
@@ -4509,32 +4475,13 @@ var Utils = {
   
 
 
-  scroll: true,
-
-  
-
-
-
 
 
 
 
   scrollToVisible: function Utils_scrollToVisible(aNode)
   {
-    if (!this.scroll) {
-      return;
-    }
-
-    
-    let richListBoxNode = aNode.parentNode;
-    while (richListBoxNode.tagName != "richlistbox") {
-      richListBoxNode = richListBoxNode.parentNode;
-    }
-
-    
-    let boxObject = richListBoxNode.scrollBoxObject;
-    let nsIScrollBoxObject = boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-    nsIScrollBoxObject.ensureElementIsVisible(aNode);
+    aNode.scrollIntoView(false);
   },
 
   
@@ -4549,10 +4496,9 @@ var Utils = {
   {
     let lastNodeHeight = aOutputNode.lastChild ?
                          aOutputNode.lastChild.clientHeight : 0;
-    let scrollBox = aOutputNode.scrollBoxObject.element;
-
-    return scrollBox.scrollTop + scrollBox.clientHeight >=
-           scrollBox.scrollHeight - lastNodeHeight / 2;
+    let scrollNode = aOutputNode.parentNode;
+    return scrollNode.scrollTop + scrollNode.clientHeight >=
+           scrollNode.scrollHeight - lastNodeHeight / 2;
   },
 
   
@@ -4624,18 +4570,9 @@ CommandController.prototype = {
   
 
 
-
-  copy: function CommandController_copy()
-  {
-    this.owner.copySelectedItems();
-  },
-
-  
-
-
   selectAll: function CommandController_selectAll()
   {
-    this.owner.outputNode.selectAll();
+    this.owner.output.selectAllMessages();
   },
 
   
@@ -4648,24 +4585,25 @@ CommandController.prototype = {
 
   copyURL: function CommandController_copyURL()
   {
-    this.owner.copySelectedItems({ linkOnly: true });
+    this.owner.copySelectedItems({ linkOnly: true, contextmenu: true });
   },
 
   supportsCommand: function CommandController_supportsCommand(aCommand)
   {
+    if (!this.owner || !this.owner.output) {
+      return false;
+    }
     return this.isCommandEnabled(aCommand);
   },
 
   isCommandEnabled: function CommandController_isCommandEnabled(aCommand)
   {
     switch (aCommand) {
-      case "cmd_copy":
-        
-        return this.owner.outputNode.selectedCount > 0;
       case "consoleCmd_openURL":
       case "consoleCmd_copyURL": {
         
-        let selectedItem = this.owner.outputNode.selectedItem;
+        let selectedItem = this.owner.output.getSelectedMessages(1)[0] ||
+                           this.owner._contextMenuHandler.lastClickedMessage;
         return selectedItem && "url" in selectedItem;
       }
       case "consoleCmd_clearOutput":
@@ -4684,9 +4622,6 @@ CommandController.prototype = {
   doCommand: function CommandController_doCommand(aCommand)
   {
     switch (aCommand) {
-      case "cmd_copy":
-        this.copy();
-        break;
       case "consoleCmd_openURL":
         this.openURL();
         break;
@@ -5168,14 +5103,14 @@ function ConsoleContextMenu(aOwner)
 }
 
 ConsoleContextMenu.prototype = {
+  lastClickedMessage: null,
+
   
 
 
   build: function CCM_build(aEvent)
   {
-    let view = this.owner.outputNode;
-    let metadata = this.getSelectionMetadata(view);
-
+    let metadata = this.getSelectionMetadata(aEvent.rangeParent);
     for (let element of this.popup.children) {
       element.hidden = this.shouldHideMenuItem(element, metadata);
     }
@@ -5189,16 +5124,22 @@ ConsoleContextMenu.prototype = {
 
 
 
-
-  getSelectionMetadata: function CCM_getSelectionMetadata(aView)
+  getSelectionMetadata: function CCM_getSelectionMetadata(aClickElement)
   {
     let metadata = {
       selectionType: "",
       selection: new Set(),
     };
-    let selectedItems = aView.selectedItems;
+    let selectedItems = this.owner.output.getSelectedMessages();
+    if (!selectedItems.length) {
+      let clickedItem = this.owner.output.getMessageForElement(aClickElement);
+      if (clickedItem) {
+        this.lastClickedMessage = clickedItem;
+        selectedItems = [clickedItem];
+      }
+    }
 
-    metadata.selectionType = (selectedItems > 1) ? "multiple" : "single";
+    metadata.selectionType = selectedItems.length > 1 ? "multiple" : "single";
 
     let selection = metadata.selection;
     for (let item of selectedItems) {
@@ -5262,6 +5203,7 @@ ConsoleContextMenu.prototype = {
     this.popup.removeEventListener("popupshowing", this.build);
     this.popup = null;
     this.owner = null;
+    this.lastClickedMessage = null;
   },
 };
 
