@@ -19,6 +19,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Sntp.jsm");
 
 var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
@@ -58,8 +59,10 @@ const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
 const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
 const kSysClockChangeObserverTopic       = "system-clock-change";
 const kScreenStateChangedTopic           = "screen-state-changed";
-const kTimeNitzAutomaticUpdateEnabled    = "time.nitz.automatic-update.enabled";
-const kTimeNitzAvailable                 = "time.nitz.available";
+const kClockAutoUpdateEnabled            = "time.clock.automatic-update.enabled";
+const kClockAutoUpdateAvailable          = "time.clock.automatic-update.available";
+const kTimezoneAutoUpdateEnabled         = "time.timezone.automatic-update.enabled";
+const kTimezoneAutoUpdateAvailable       = "time.timezone.automatic-update.available";
 const kCellBroadcastSearchList           = "ril.cellbroadcast.searchlist";
 const kCellBroadcastDisabled             = "ril.cellbroadcast.disabled";
 const kPrefenceChangedObserverTopic      = "nsPref:changed";
@@ -711,10 +714,17 @@ function RadioInterface(options) {
 
   
   
-  lock.get(kTimeNitzAutomaticUpdateEnabled, this);
+  lock.get(kClockAutoUpdateEnabled, this);
 
   
-  this.setNitzAvailable(false);
+  
+  lock.get(kTimezoneAutoUpdateEnabled, this);
+
+  
+  this.setClockAutoUpdateAvailable(false);
+
+  
+  this.setTimezoneAutoUpdateAvailable(false);
 
   
   
@@ -726,11 +736,20 @@ function RadioInterface(options) {
   Services.obs.addObserver(this, kSysClockChangeObserverTopic, false);
   Services.obs.addObserver(this, kScreenStateChangedTopic, false);
 
+  Services.obs.addObserver(this, kNetworkInterfaceStateChangedTopic, false);
   Services.prefs.addObserver(kCellBroadcastDisabled, this, false);
 
   this.portAddressedSmsApps = {};
   this.portAddressedSmsApps[WAP.WDP_PORT_PUSH] = this.handleSmsWdpPortPush.bind(this);
+
+  this._sntp = new Sntp(this.setClockBySntp.bind(this),
+                        Services.prefs.getIntPref('network.sntp.maxRetryCount'),
+                        Services.prefs.getIntPref('network.sntp.refreshPeriod'),
+                        Services.prefs.getIntPref('network.sntp.timeout'),
+                        Services.prefs.getCharPref('network.sntp.pools').split(';'),
+                        Services.prefs.getIntPref('network.sntp.port'));
 }
+
 RadioInterface.prototype = {
 
   classID:   RADIOINTERFACE_CID,
@@ -1862,20 +1881,33 @@ RadioInterface.prototype = {
   
 
 
-  setNitzAvailable: function setNitzAvailable(value) {
-    gSettingsService.createLock().set(kTimeNitzAvailable, value, null,
+  setClockAutoUpdateAvailable: function setClockAutoUpdateAvailable(value) {
+    gSettingsService.createLock().set(kClockAutoUpdateAvailable, value, null,
                                       "fromInternalSetting");
   },
 
   
 
 
-  setNitzTime: function setNitzTime(message) {
+  setTimezoneAutoUpdateAvailable: function setTimezoneAutoUpdateAvailable(value) {
+    gSettingsService.createLock().set(kTimezoneAutoUpdateAvailable, value, null,
+                                      "fromInternalSetting");
+  },
+
+  
+
+
+  setClockByNitz: function setClockByNitz(message) {
     
     
     gTimeService.set(
       message.networkTimeInMS + (Date.now() - message.receiveTimeInMS));
+  },
 
+  
+
+
+  setTimezoneByNitz: function setTimezoneByNitz(message) {
     
     
     
@@ -1898,15 +1930,36 @@ RadioInterface.prototype = {
 
   handleNitzTime: function handleNitzTime(message) {
     
-    this.setNitzAvailable(true);
+    this.setClockAutoUpdateAvailable(true);
+    this.setTimezoneAutoUpdateAvailable(true);
 
     
     this._lastNitzMessage = message;
 
     
-    if (this._nitzAutomaticUpdateEnabled) {
-      this.setNitzTime(message);
+    if (this._clockAutoUpdateEnabled) {
+      this.setClockByNitz(message);
     }
+    
+    if (this._timezoneAutoUpdateEnabled) {
+      this.setTimezoneByNitz(message);
+    }
+  },
+
+  
+
+
+  setClockBySntp: function setClockBySntp(offset) {
+    
+    this.setClockAutoUpdateAvailable(true);
+    if (!this._clockAutoUpdateEnabled) {
+      return;
+    }
+    if (this._lastNitzMessage) {
+      debug("SNTP: NITZ available, discard SNTP");
+      return;
+    }
+    gTimeService.set(Date.now() + offset);
   },
 
   handleIccMbdn: function handleIccMbdn(message) {
@@ -2023,11 +2076,24 @@ RadioInterface.prototype = {
         Services.obs.removeObserver(this, kMozSettingsChangedObserverTopic);
         Services.obs.removeObserver(this, kSysClockChangeObserverTopic);
         Services.obs.removeObserver(this, kScreenStateChangedTopic);
+        Services.obs.removeObserver(this, kNetworkInterfaceStateChangedTopic);
         Services.prefs.removeObserver(kCellBroadcastDisabled, this);
         break;
       case kSysClockChangeObserverTopic:
+        let offset = parseInt(data, 10);
         if (this._lastNitzMessage) {
-          this._lastNitzMessage.receiveTimeInMS += parseInt(data, 10);
+          this._lastNitzMessage.receiveTimeInMS += offset;
+        }
+        this._sntp.updateOffset(offset);
+        break;
+      case kNetworkInterfaceStateChangedTopic:
+        let network = subject.QueryInterface(Ci.nsINetworkInterface);
+        if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
+          
+          
+          if (this._sntp.isExpired()) {
+            this._sntp.request();
+          }
         }
         break;
       case kScreenStateChangedTopic:
@@ -2055,11 +2121,18 @@ RadioInterface.prototype = {
 
   
   
-  _nitzAutomaticUpdateEnabled: null,
+  _clockAutoUpdateEnabled: null,
+
+  
+  
+  _timezoneAutoUpdateEnabled: null,
 
   
   
   _lastNitzMessage: null,
+
+  
+  _sntp: null,
 
   
   _cellBroadcastSearchListStr: null,
@@ -2067,14 +2140,30 @@ RadioInterface.prototype = {
   handleSettingsChange: function handleSettingsChange(aName, aResult, aMessage) {
     
     
-    let isNitzAvailable = (this._lastNitzMessage !== null);
-    if (aName === kTimeNitzAvailable && aMessage !== "fromInternalSetting" &&
-        aResult !== isNitzAvailable) {
-      if (DEBUG) {
-        this.debug("Content processes cannot modify 'time.nitz.available'. Restore!");
+    if (aName === kClockAutoUpdateAvailable &&
+        aMessage !== "fromInternalSetting") {
+      let isClockAutoUpdateAvailable = this._lastNitzMessage !== null ||
+                                       this._sntp.isAvailable();
+      if (aResult !== isClockAutoUpdateAvailable) {
+        debug("Content processes cannot modify 'time.clock.automatic-update.available'. Restore!");
+        
+        this.setClockAutoUpdateAvailable(isClockAutoUpdateAvailable);
       }
-      
-      this.setNitzAvailable(isNitzAvailable);
+    }
+
+    
+    
+    
+    if (aName === kTimezoneAutoUpdateAvailable &&
+        aMessage !== "fromInternalSetting") {
+      let isTimezoneAutoUpdateAvailable = this._lastNitzMessage !== null;
+      if (aResult !== isTimezoneAutoUpdateAvailable) {
+        if (DEBUG) {
+          this.debug("Content processes cannot modify 'time.timezone.automatic-update.available'. Restore!");
+        }
+        
+        this.setTimezoneAutoUpdateAvailable(isTimezoneAutoUpdateAvailable);
+      }
     }
 
     this.handle(aName, aResult);
@@ -2117,12 +2206,34 @@ RadioInterface.prototype = {
           this.updateRILNetworkInterface();
         }
         break;
-      case kTimeNitzAutomaticUpdateEnabled:
-        this._nitzAutomaticUpdateEnabled = aResult;
+      case kClockAutoUpdateEnabled:
+        this._clockAutoUpdateEnabled = aResult;
+        if (!this._clockAutoUpdateEnabled) {
+          break;
+        }
 
         
-        if (this._nitzAutomaticUpdateEnabled && this._lastNitzMessage) {
-          this.setNitzTime(this._lastNitzMessage);
+        if (this._lastNitzMessage) {
+          this.setClockByNitz(this._lastNitzMessage);
+        } else if (gNetworkManager.active && gNetworkManager.active.state ==
+                 Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
+          
+          if (!this._sntp.isExpired()) {
+            this.setClockBySntp(this._sntp.getOffset());
+          } else {
+            
+            this._sntp.request();
+          }
+        }
+        break;
+      case kTimezoneAutoUpdateEnabled:
+        this._timezoneAutoUpdateEnabled = aResult;
+
+        if (this._timezoneAutoUpdateEnabled) {
+          
+          if (this._timezoneAutoUpdateEnabled && this._lastNitzMessage) {
+            this.setTimezoneByNitz(this._lastNitzMessage);
+          }
         }
         break;
       case kCellBroadcastSearchList:

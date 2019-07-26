@@ -748,6 +748,14 @@ pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
 pref("disk_space_watcher.enabled", true);
 
 
+pref("network.sntp.maxRetryCount", 10);
+pref("network.sntp.refreshPeriod", 86400); 
+pref("network.sntp.pools", 
+     "0.pool.ntp.org;1.pool.ntp.org;2.pool.ntp.org;3.pool.ntp.org");
+pref("network.sntp.port", 123);
+pref("network.sntp.timeout", 30); 
+
+
 pref("dom.promise.enabled", false);
 
 
