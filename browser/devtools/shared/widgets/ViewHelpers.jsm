@@ -20,8 +20,7 @@ Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 this.EXPORTED_SYMBOLS = [
   "Heritage", "ViewHelpers", "WidgetMethods",
-  "setNamedTimeout", "clearNamedTimeout",
-  "setConditionalTimeout", "clearConditionalTimeout",
+  "setNamedTimeout", "clearNamedTimeout"
 ];
 
 
@@ -58,7 +57,7 @@ this.Heritage = {
 
 
 
-this.setNamedTimeout = function setNamedTimeout(aId, aWait, aCallback) {
+this.setNamedTimeout = function(aId, aWait, aCallback) {
   clearNamedTimeout(aId);
 
   namedTimeoutsStore.set(aId, setTimeout(() =>
@@ -72,47 +71,12 @@ this.setNamedTimeout = function setNamedTimeout(aId, aWait, aCallback) {
 
 
 
-this.clearNamedTimeout = function clearNamedTimeout(aId) {
+this.clearNamedTimeout = function(aId) {
   if (!namedTimeoutsStore) {
     return;
   }
   clearTimeout(namedTimeoutsStore.get(aId));
   namedTimeoutsStore.delete(aId);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.setConditionalTimeout = function setConditionalTimeout(aId, aWait, aPredicate, aCallback) {
-  setNamedTimeout(aId, aWait, function maybeCallback() {
-    if (aPredicate()) {
-      aCallback();
-      return;
-    }
-    setConditionalTimeout(aId, aWait, aPredicate, aCallback);
-  });
-};
-
-
-
-
-
-
-
-
-this.clearConditionalTimeout = function clearConditionalTimeout(aId) {
-  clearNamedTimeout(aId);
 };
 
 XPCOMUtils.defineLazyGetter(this, "namedTimeoutsStore", () => new Map());
