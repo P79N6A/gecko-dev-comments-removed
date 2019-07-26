@@ -594,13 +594,7 @@ const Class NormalArgumentsObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    ArgumentsObject::trace,
-    {
-        nullptr,    
-        nullptr,    
-        nullptr,    
-        false,      
-    }
+    ArgumentsObject::trace
 };
 
 
@@ -624,11 +618,5 @@ const Class StrictArgumentsObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    ArgumentsObject::trace,
-    {
-        nullptr,    
-        nullptr,    
-        nullptr,    
-        false,      
-    }
+    ArgumentsObject::trace
 };

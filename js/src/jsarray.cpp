@@ -843,13 +843,7 @@ const Class ArrayObject::class_ = {
     nullptr,        
     nullptr,        
     nullptr,        
-    nullptr,        
-    {
-        nullptr,    
-        nullptr,    
-        nullptr,    
-        false,      
-    }
+    nullptr         
 };
 
 static bool

@@ -674,6 +674,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
     nullptr,                         
     nullptr,                         
     XPC_WN_NoHelper_Trace,          
+    JS_NULL_CLASS_SPEC,
 
     
     {
@@ -1427,6 +1428,7 @@ const js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     nullptr,                         
     XPC_WN_Shared_Proto_Trace,      
 
+    JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
 };
@@ -1451,6 +1453,7 @@ const js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     nullptr,                         
     XPC_WN_Shared_Proto_Trace,      
 
+    JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
@@ -1537,6 +1540,7 @@ const js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     nullptr,                         
     XPC_WN_Shared_Proto_Trace,      
 
+    JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
 };
@@ -1561,6 +1565,7 @@ const js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     nullptr,                         
     XPC_WN_Shared_Proto_Trace,      
 
+    JS_NULL_CLASS_SPEC,
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
