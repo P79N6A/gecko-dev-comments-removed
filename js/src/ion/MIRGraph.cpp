@@ -4,11 +4,11 @@
 
 
 
-#include "Ion.h"
-#include "IonSpewer.h"
-#include "MIR.h"
-#include "MIRGraph.h"
-#include "IonBuilder.h"
+#include "ion/Ion.h"
+#include "ion/IonSpewer.h"
+#include "ion/MIR.h"
+#include "ion/MIRGraph.h"
+#include "ion/IonBuilder.h"
 #include "jsscriptinlines.h"
 
 using namespace js;

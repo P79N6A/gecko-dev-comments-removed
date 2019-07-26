@@ -4,10 +4,10 @@
 
 
 
-#include "UnreachableCodeElimination.h"
-#include "IonAnalysis.h"
-#include "AliasAnalysis.h"
-#include "ValueNumbering.h"
+#include "ion/UnreachableCodeElimination.h"
+#include "ion/IonAnalysis.h"
+#include "ion/AliasAnalysis.h"
+#include "ion/ValueNumbering.h"
 
 using namespace js;
 using namespace ion;

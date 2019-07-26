@@ -5,7 +5,7 @@
 
 
 #define HWCAP_ARMv7 (1 << 31)
-#include <mozilla/StandardInteger.h>
+#include "mozilla/StandardInteger.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

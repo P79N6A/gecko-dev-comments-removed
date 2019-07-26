@@ -4,7 +4,7 @@
 
 
 
-#include "BaselineCompiler-x64.h"
+#include "ion/x64/BaselineCompiler-x64.h"
 
 using namespace js;
 using namespace js::ion;

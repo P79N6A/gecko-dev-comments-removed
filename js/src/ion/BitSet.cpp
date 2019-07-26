@@ -5,7 +5,7 @@
 
 
 #include "jsutil.h"
-#include "BitSet.h"
+#include "ion/BitSet.h"
 
 #include "jsscriptinlines.h"
 

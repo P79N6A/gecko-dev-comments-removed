@@ -4,7 +4,7 @@
 
 
 
-#include "StupidAllocator.h"
+#include "ion/StupidAllocator.h"
 
 using namespace js;
 using namespace js::ion;

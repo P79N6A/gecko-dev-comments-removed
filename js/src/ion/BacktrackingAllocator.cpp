@@ -4,7 +4,7 @@
 
 
 
-#include "BacktrackingAllocator.h"
+#include "ion/BacktrackingAllocator.h"
 
 using namespace js;
 using namespace js::ion;

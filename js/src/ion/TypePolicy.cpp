@@ -4,9 +4,9 @@
 
 
 
-#include "TypePolicy.h"
-#include "MIR.h"
-#include "MIRGraph.h"
+#include "ion/TypePolicy.h"
+#include "ion/MIR.h"
+#include "ion/MIRGraph.h"
 
 using namespace js;
 using namespace js::ion;

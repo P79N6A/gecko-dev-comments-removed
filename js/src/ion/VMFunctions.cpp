@@ -4,8 +4,8 @@
 
 
 
-#include "Ion.h"
-#include "IonCompartment.h"
+#include "ion/Ion.h"
+#include "ion/IonCompartment.h"
 #include "ion/BaselineFrame-inl.h"
 #include "ion/BaselineIC.h"
 #include "ion/IonFrames.h"

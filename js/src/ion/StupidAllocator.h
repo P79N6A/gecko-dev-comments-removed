@@ -7,7 +7,7 @@
 #ifndef ion_StupidAllocator_h
 #define ion_StupidAllocator_h
 
-#include "RegisterAllocator.h"
+#include "ion/RegisterAllocator.h"
 
 
 

@@ -4,17 +4,17 @@
 
 
 
-#include "MIR.h"
+#include "ion/MIR.h"
 
 #include "mozilla/Casting.h"
 
-#include "BaselineInspector.h"
-#include "IonBuilder.h"
-#include "LICM.h" 
-#include "MIRGraph.h"
-#include "EdgeCaseAnalysis.h"
-#include "RangeAnalysis.h"
-#include "IonSpewer.h"
+#include "ion/BaselineInspector.h"
+#include "ion/IonBuilder.h"
+#include "ion/LICM.h" 
+#include "ion/MIRGraph.h"
+#include "ion/EdgeCaseAnalysis.h"
+#include "ion/RangeAnalysis.h"
+#include "ion/IonSpewer.h"
 #include "jsnum.h"
 #include "jsstr.h"
 #include "jsatominlines.h"

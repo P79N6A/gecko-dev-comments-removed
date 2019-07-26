@@ -4,11 +4,11 @@
 
 
 
-#include "IonBuilder.h"
-#include "MIRGraph.h"
-#include "Ion.h"
-#include "IonAnalysis.h"
-#include "LIR.h"
+#include "ion/IonBuilder.h"
+#include "ion/MIRGraph.h"
+#include "ion/Ion.h"
+#include "ion/IonAnalysis.h"
+#include "ion/LIR.h"
 
 using namespace js;
 using namespace js::ion;

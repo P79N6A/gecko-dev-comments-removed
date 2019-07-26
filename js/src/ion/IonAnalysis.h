@@ -9,8 +9,8 @@
 
 
 
-#include "IonAllocPolicy.h"
-#include "MIR.h"
+#include "ion/IonAllocPolicy.h"
+#include "ion/MIR.h"
 
 namespace js {
 namespace ion {

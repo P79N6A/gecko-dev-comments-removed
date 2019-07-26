@@ -4,7 +4,7 @@
 
 
 
-#include "Assembler-x86.h"
+#include "ion/x86/Assembler-x86.h"
 #include "gc/Marking.h"
 
 using namespace js;

@@ -4,10 +4,10 @@
 
 
 
-#include "BaselineFrame.h"
-#include "BaselineIC.h"
-#include "BaselineJIT.h"
-#include "Ion.h"
+#include "ion/BaselineFrame.h"
+#include "ion/BaselineIC.h"
+#include "ion/BaselineJIT.h"
+#include "ion/Ion.h"
 
 #include "vm/Debugger.h"
 #include "vm/ScopeObject.h"

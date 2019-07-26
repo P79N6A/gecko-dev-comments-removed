@@ -9,12 +9,11 @@
 
 #include "jscntxt.h"
 
-#include "IonAllocPolicy.h"
+#include "ion/IonAllocPolicy.h"
 #include "js/Vector.h"
 
 namespace js {
 namespace ion {
-
 
 
 struct BytecodeInfo

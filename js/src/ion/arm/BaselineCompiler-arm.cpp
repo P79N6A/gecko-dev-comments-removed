@@ -4,7 +4,7 @@
 
 
 
-#include "BaselineCompiler-arm.h"
+#include "ion/arm/BaselineCompiler-arm.h"
 
 using namespace js;
 using namespace js::ion;

@@ -4,8 +4,8 @@
 
 
 
-#include "BaselineIC.h"
-#include "BaselineInspector.h"
+#include "ion/BaselineIC.h"
+#include "ion/BaselineInspector.h"
 
 using namespace js;
 using namespace js::ion;

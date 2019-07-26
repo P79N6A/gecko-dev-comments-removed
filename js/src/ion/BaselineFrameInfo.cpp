@@ -4,9 +4,9 @@
 
 
 
-#include "BaselineFrameInfo.h"
-#include "IonSpewer.h"
-#include "shared/BaselineCompiler-shared.h"
+#include "ion/BaselineFrameInfo.h"
+#include "ion/IonSpewer.h"
+#include "ion/shared/BaselineCompiler-shared.h"
 
 #include "jsanalyze.h"
 #include "jsinferinlines.h"

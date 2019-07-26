@@ -4,9 +4,9 @@
 
 
 
-#include "Safepoints.h"
-#include "IonSpewer.h"
-#include "LIR.h"
+#include "ion/Safepoints.h"
+#include "ion/IonSpewer.h"
+#include "ion/LIR.h"
 
 using namespace js;
 using namespace ion;

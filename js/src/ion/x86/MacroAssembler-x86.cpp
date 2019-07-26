@@ -4,7 +4,7 @@
 
 
 
-#include "MacroAssembler-x86.h"
+#include "ion/x86/MacroAssembler-x86.h"
 #include "ion/BaselineFrame.h"
 #include "ion/MoveEmitter.h"
 #include "ion/IonFrames.h"
