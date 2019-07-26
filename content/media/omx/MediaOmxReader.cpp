@@ -26,7 +26,7 @@
 
 #define MAX_DROPPED_FRAMES 25
 
-#define MAX_VIDEO_DECODE_SECONDS 3.0
+#define MAX_VIDEO_DECODE_SECONDS 0.1
 
 using namespace mozilla::gfx;
 using namespace android;
