@@ -3,10 +3,11 @@
 
 
 
-#include "mozilla/layers/TextureClientOGL.h"
 #include "GLContext.h"                  
+#include "SurfaceStream.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/layers/ISurfaceAllocator.h"
+#include "mozilla/layers/TextureClientOGL.h"
 #include "nsSize.h"                     
 
 using namespace mozilla::gl;
@@ -63,6 +64,42 @@ bool
 SharedTextureClientOGL::IsAllocated() const
 {
   return mHandle != 0;
+}
+
+StreamTextureClientOGL::StreamTextureClientOGL(TextureFlags aFlags)
+  : TextureClient(aFlags)
+  , mStream(0)
+{
+}
+
+StreamTextureClientOGL::~StreamTextureClientOGL()
+{
+  
+}
+
+bool
+StreamTextureClientOGL::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
+{
+  if (!IsAllocated()) {
+    return false;
+  }
+
+  gfx::SurfaceStreamHandle handle = mStream->GetShareHandle();
+  aOutDescriptor = SurfaceStreamDescriptor(handle, false);
+  return true;
+}
+
+void
+StreamTextureClientOGL::InitWith(gfx::SurfaceStream* aStream)
+{
+  MOZ_ASSERT(!IsAllocated());
+  mStream = aStream;
+}
+
+bool
+StreamTextureClientOGL::IsAllocated() const
+{
+  return mStream != 0;
 }
 
 DeprecatedTextureClientSharedOGL::DeprecatedTextureClientSharedOGL(CompositableForwarder* aForwarder,
