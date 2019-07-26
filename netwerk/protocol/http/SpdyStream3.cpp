@@ -313,6 +313,12 @@ SpdyStream3::ParseHttpRequestHeaders(const char *buf,
 
       
       
+      
+      
+      mSession->DecrementConcurrent(this);
+
+      
+      
       mSession->ConnectPushedStream(this);
       return NS_OK;
     }

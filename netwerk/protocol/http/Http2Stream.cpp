@@ -324,6 +324,13 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
 
       
       
+      
+      
+      
+      mSession->MaybeDecrementConcurrent(this);
+
+      
+      
       mSession->ConnectPushedStream(this);
       return NS_OK;
     }
