@@ -80,7 +80,7 @@ HANDLE
 UACHelper::OpenUserToken(DWORD sessionID)
 {
   HMODULE module = LoadLibraryW(L"wtsapi32.dll");
-  HANDLE token = NULL;
+  HANDLE token = nullptr;
   LPWTSQueryUserToken wtsQueryUserToken = 
     (LPWTSQueryUserToken)GetProcAddress(module, "WTSQueryUserToken");
   if (wtsQueryUserToken) {
@@ -105,7 +105,7 @@ UACHelper::OpenLinkedToken(HANDLE token)
   
   
   TOKEN_LINKED_TOKEN tlt;
-  HANDLE hNewLinkedToken = NULL;
+  HANDLE hNewLinkedToken = nullptr;
   DWORD len;
   if (GetTokenInformation(token, (TOKEN_INFORMATION_CLASS)TokenLinkedToken, 
                           &tlt, sizeof(TOKEN_LINKED_TOKEN), &len)) {
@@ -128,7 +128,7 @@ BOOL
 UACHelper::SetPrivilege(HANDLE token, LPCTSTR priv, BOOL enable)
 {
   LUID luidOfPriv;
-  if (!LookupPrivilegeValue(NULL, priv, &luidOfPriv)) {
+  if (!LookupPrivilegeValue(nullptr, priv, &luidOfPriv)) {
     return FALSE; 
   }
 
@@ -139,7 +139,7 @@ UACHelper::SetPrivilege(HANDLE token, LPCTSTR priv, BOOL enable)
 
   SetLastError(ERROR_SUCCESS);
   if (!AdjustTokenPrivileges(token, false, &tokenPriv,
-                             sizeof(tokenPriv), NULL, NULL)) {
+                             sizeof(tokenPriv), nullptr, nullptr)) {
     return FALSE; 
   } 
 
@@ -161,7 +161,7 @@ UACHelper::DisableUnneededPrivileges(HANDLE token,
                                      LPCTSTR *unneededPrivs, 
                                      size_t count)
 {
-  HANDLE obtainedToken = NULL;
+  HANDLE obtainedToken = nullptr;
   if (!token) {
     
     HANDLE process = GetCurrentProcess();
