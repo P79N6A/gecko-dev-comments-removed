@@ -43,6 +43,7 @@
 #include "nsIForm.h"
 #include "nsIFormControl.h"
 
+#include "nsDeckFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsIPresShell.h"
 #include "nsIStringBundle.h"
@@ -606,26 +607,35 @@ Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut)
 uint64_t
 Accessible::VisibilityState()
 {
-  uint64_t vstates = states::INVISIBLE | states::OFFSCREEN;
-
   nsIFrame* frame = GetFrame();
   if (!frame)
-    return vstates;
-
-  nsIPresShell* shell(mDoc->PresShell());
-  if (!shell)
-    return vstates;
+    return states::INVISIBLE;
 
   
   
-  const uint16_t kMinPixels  = 12;
-  const nsSize frameSize = frame->GetSize();
-  const nsRectVisibility rectVisibility =
-    shell->GetRectVisibility(frame, nsRect(nsPoint(0,0), frameSize),
-                             nsPresContext::CSSPixelsToAppUnits(kMinPixels));
+  if (!frame->GetStyleVisibility()->IsVisible())
+    return states::INVISIBLE;
 
-  if (rectVisibility == nsRectVisibility_kVisible)
-    vstates &= ~states::OFFSCREEN;
+  nsIFrame* curFrame = frame;
+  do {
+    nsIView* view = curFrame->GetView();
+    if (view && view->GetVisibility() == nsViewVisibility_kHide)
+      return states::INVISIBLE;
+
+    
+    nsIFrame* parentFrame = curFrame->GetParent();
+    nsDeckFrame* deckFrame = do_QueryFrame(parentFrame);
+    if (deckFrame && deckFrame->GetSelectedBox() != curFrame)
+      return states::OFFSCREEN;
+
+    if (!parentFrame) {
+      parentFrame = nsLayoutUtils::GetCrossDocParentFrame(curFrame);
+      if (parentFrame && !parentFrame->GetStyleVisibility()->IsVisible())
+        return states::INVISIBLE;
+    }
+
+    curFrame = parentFrame;
+  } while (curFrame);
 
   
   
@@ -638,16 +648,21 @@ Accessible::VisibilityState()
     nsAutoString renderedText;
     frame->GetRenderedText(&renderedText, nullptr, nullptr, 0, 1);
     if (renderedText.IsEmpty())
-      return vstates;
-
+      return states::INVISIBLE;
   }
 
   
-  if (!frame->IsVisibleConsideringAncestors(nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY))
-    return vstates;
-
   
-  return vstates &= ~states::INVISIBLE;
+  const uint16_t kMinPixels  = 12;
+  const nsSize frameSize = frame->GetSize();
+  const nsRectVisibility rectVisibility =
+    mDoc->PresShell()->GetRectVisibility(frame, nsRect(nsPoint(0,0), frameSize),
+                                         nsPresContext::CSSPixelsToAppUnits(kMinPixels));
+
+  if (rectVisibility != nsRectVisibility_kVisible)
+    return states::OFFSCREEN;
+
+  return 0;
 }
 
 uint64_t
