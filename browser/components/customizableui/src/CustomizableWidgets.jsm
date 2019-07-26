@@ -36,49 +36,6 @@ function setAttributes(aNode, aAttrs) {
   }
 }
 
-
-
-
-function adjustPosition(aNode) {
-  
-  
-  const kColumnsInMenuPanel = 3;
-
-  let nodeId = aNode.id;
-  
-  if (aNode.parentNode.localName == "toolbarpaletteitem") {
-    aNode = aNode.parentNode;
-  }
-
-  
-  let prevSibling = aNode.previousElementSibling;
-  let previousSiblingCount = 0;
-  while (prevSibling) {
-    let nodeToCheck = prevSibling.localName == "toolbarpaletteitem" ? prevSibling.firstChild : prevSibling;
-    if (!nodeToCheck.classList.contains(kWidePanelItemClass)) {
-      previousSiblingCount++;
-    }
-    prevSibling = prevSibling.previousElementSibling;
-  }
-  if (previousSiblingCount % kColumnsInMenuPanel) {
-    let previousElement = aNode.previousElementSibling;
-    if (!previousElement) {
-      return;
-    }
-    let nodeToCheck = previousElement.localName == "toolbarpaletteitem" ? previousElement.firstChild : previousElement;
-    if (nodeToCheck.classList.contains(kWidePanelItemClass)) {
-      return;
-    }
-
-    let position = CustomizableUI.getPlacementOfWidget(nodeId).position;
-    
-    
-    
-    
-    CustomizableUI.moveWidgetWithinArea(nodeId, position - 1);
-  }
-}
-
 const CustomizableWidgets = [{
     id: "history-panelmenu",
     type: "view",
@@ -380,10 +337,6 @@ const CustomizableWidgets = [{
 
       let listener = {
         onWidgetAdded: function(aWidgetId, aArea, aPosition) {
-          if (this.currentArea == CustomizableUI.AREA_PANEL) {
-            adjustPosition(node);
-          }
-
           if (aWidgetId != this.id)
             return;
 
@@ -395,10 +348,6 @@ const CustomizableWidgets = [{
         }.bind(this),
 
         onWidgetRemoved: function(aWidgetId, aPrevArea) {
-          if (this.currentArea == CustomizableUI.AREA_PANEL) {
-            adjustPosition(node);
-          }
-
           if (aWidgetId != this.id)
             return;
 
@@ -419,10 +368,6 @@ const CustomizableWidgets = [{
         }.bind(this),
 
         onWidgetMoved: function(aWidgetId, aArea) {
-          if (this.currentArea == CustomizableUI.AREA_PANEL) {
-            adjustPosition(node);
-          }
-
           if (aWidgetId != this.id)
             return;
           updateWidgetStyle(aArea);
@@ -512,20 +457,12 @@ const CustomizableWidgets = [{
 
       let listener = {
         onWidgetAdded: function(aWidgetId, aArea, aPosition) {
-          if (this.currentArea == CustomizableUI.AREA_PANEL) {
-            adjustPosition(node);
-          }
-
           if (aWidgetId != this.id)
             return;
           updateWidgetStyle(aArea);
         }.bind(this),
 
         onWidgetRemoved: function(aWidgetId, aPrevArea) {
-          if (this.currentArea == CustomizableUI.AREA_PANEL) {
-            adjustPosition(node);
-          }
-
           if (aWidgetId != this.id)
             return;
           
@@ -540,10 +477,6 @@ const CustomizableWidgets = [{
         }.bind(this),
 
         onWidgetMoved: function(aWidgetId, aArea) {
-          if (this.currentArea == CustomizableUI.AREA_PANEL) {
-            adjustPosition(node);
-          }
-
           if (aWidgetId != this.id)
             return;
           updateWidgetStyle(aArea);
