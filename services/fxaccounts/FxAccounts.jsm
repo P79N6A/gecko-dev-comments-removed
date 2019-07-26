@@ -176,6 +176,8 @@ FxAccountsInternal.prototype = {
 
 
 
+
+
   getSignedInUser: function getSignedInUser() {
     return this.getUserAccountData().then(data => {
       if (!data) {
@@ -192,6 +194,8 @@ FxAccountsInternal.prototype = {
   },
 
   
+
+
 
 
 
