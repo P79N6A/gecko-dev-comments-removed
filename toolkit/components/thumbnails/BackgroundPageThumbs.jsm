@@ -332,7 +332,8 @@ Capture.prototype = {
       delete this._msgMan;
     }
     delete this.captureCallback;
-    Services.ww.unregisterNotification(this);
+    delete this.doneCallbacks;
+    delete this.options;
   },
 
   
@@ -354,6 +355,8 @@ Capture.prototype = {
     
     
     
+    let { captureCallback, doneCallbacks, options } = this;
+    this.destroy();
 
     if (typeof(reason) != "number")
       throw new Error("A done reason must be given.");
@@ -366,11 +369,10 @@ Capture.prototype = {
     }
 
     let done = () => {
-      this.captureCallback(this);
-      this.destroy();
-      for (let callback of this.doneCallbacks) {
+      captureCallback(this);
+      for (let callback of doneCallbacks) {
         try {
-          callback.call(this.options, this.url);
+          callback.call(options, this.url);
         }
         catch (err) {
           Cu.reportError(err);
