@@ -168,8 +168,9 @@ ProfilerActor.prototype = {
 
 
 
-    aSubject = (aSubject && aSubject.wrappedJSObject) || aSubject;
-    aData    = (aData    && aData.wrappedJSObject)    || aData;
+
+    aSubject = (aSubject && !Cu.isXrayWrapper(aSubject) && aSubject.wrappedJSObject) || aSubject;
+    aData    = (aData && !Cu.isXrayWrapper(aData) && aData.wrappedJSObject) || aData;
 
     let subj = JSON.parse(JSON.stringify(aSubject, cycleBreaker));
     let data = JSON.parse(JSON.stringify(aData,    cycleBreaker));

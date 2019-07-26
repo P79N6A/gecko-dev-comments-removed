@@ -912,7 +912,7 @@ TabActor.prototype = {
       this.threadActor.clearDebuggees();
       if (this.threadActor.dbg) {
         this.threadActor.dbg.enabled = true;
-        this.threadActor.global = evt.target.defaultView.wrappedJSObject;
+        this.threadActor.global = evt.target.defaultView;
         this.threadActor.maybePauseOnExceptions();
       }
     }

@@ -296,6 +296,8 @@ WebConsoleActor.prototype =
   hasNativeConsoleAPI: function WCA_hasNativeConsoleAPI(aWindow) {
     let isNative = false;
     try {
+      
+      
       let console = aWindow.wrappedJSObject.console;
       isNative = console instanceof aWindow.Console;
     }
