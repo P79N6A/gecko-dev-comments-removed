@@ -189,25 +189,11 @@ public class TwoLinePageRow extends LinearLayout
         }
 
         updateDisplayedUrl(url);
-
-        int faviconIndex = cursor.getColumnIndex(URLColumns.FAVICON);
-        Bitmap favicon = null;
-        if (faviconIndex != -1) {
-            byte[] b = cursor.getBlob(faviconIndex);
-
-            if (b != null) {
-                Bitmap bitmap = BitmapUtils.decodeByteArray(b);
-                if (bitmap != null) {
-                    favicon = Favicons.scaleImage(bitmap);
-                }
-            }
-        } else {
-            
-            favicon = Favicons.getFaviconFromMemCache(url);
-        }
-
         cancelLoadFaviconTask();
 
+        
+        
+        final Bitmap favicon = Favicons.getFaviconFromMemCache(url);
         if (favicon != null) {
             setFaviconWithUrl(favicon, url);
         } else {
