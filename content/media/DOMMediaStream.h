@@ -95,6 +95,10 @@ public:
 
 
   void NotifyMediaStreamGraphShutdown();
+  
+
+
+  void NotifyStreamStateChanged();
 
   
   enum {
@@ -147,6 +151,17 @@ public:
   
   void OnTracksAvailable(OnTracksAvailableCallback* aCallback);
 
+  
+
+
+
+  void AddConsumerToKeepAlive(nsISupports* aConsumer)
+  {
+    if (!IsFinished() && !mNotifiedOfMediaStreamGraphShutdown) {
+      mConsumersToKeepAlive.AppendElement(aConsumer);
+    }
+  }
+
 protected:
   void Destroy();
   void InitSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
@@ -174,6 +189,9 @@ protected:
   nsRefPtr<StreamListener> mListener;
 
   nsTArray<nsAutoPtr<OnTracksAvailableCallback> > mRunOnTracksAvailable;
+
+  
+  nsTArray<nsCOMPtr<nsISupports> > mConsumersToKeepAlive;
 
   
   uint8_t mHintContents;
