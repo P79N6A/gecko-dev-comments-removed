@@ -71,8 +71,6 @@ public:
     return mListener != nullptr;
   }
 
-  void SetPrincipal(nsIPrincipal *aPrincipal);
-
   
   
   
@@ -203,10 +201,6 @@ private:
 
   
   
-  nsCOMPtr<nsIPrincipal> mPrincipal;
-
-  
-  
   
   imgIDecoderObserver* mListener;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
@@ -226,6 +220,23 @@ private:
   
   
   bool mSentStartContainer;
+};
+
+
+
+class imgRequestProxyStatic : public imgRequestProxy
+{
+
+public:
+  imgRequestProxyStatic(nsIPrincipal* aPrincipal) : mPrincipal(aPrincipal) {};
+
+  NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal);
+
+protected:
+  
+  
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+
 };
 
 #endif 
