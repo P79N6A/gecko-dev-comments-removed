@@ -1013,7 +1013,8 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
 
 
   mFixedPosIsAbsPos = aPositionedFrame &&
-      aPositionedFrame->StyleDisplay()->HasTransform(aPositionedFrame);
+      (aPositionedFrame->StyleDisplay()->HasTransform(aPositionedFrame) ||
+       aPositionedFrame->StyleDisplay()->HasPerspectiveStyle());
 
   if (aNewAbsoluteContainingBlock) {
     aNewAbsoluteContainingBlock->MarkAsAbsoluteContainingBlock();
@@ -1951,11 +1952,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
 
   
   newFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
-  if ((display->IsRelativelyPositionedStyle() ||
-       display->IsAbsolutelyPositionedStyle() ||
-       (display->HasTransformStyle() &&
-        aParentFrame->IsFrameOfType(nsIFrame::eSupportsCSSTransforms))) &&
-      !aParentFrame->IsSVGText()) {
+  if (display->IsPositioned(newFrame)) {
     aState.PushAbsoluteContainingBlock(newFrame, newFrame, absoluteSaveState);
   }
   NS_ASSERTION(aItem.mAnonChildren.IsEmpty(),
@@ -1998,9 +1995,7 @@ MakeTablePartAbsoluteContainingBlockIfNeeded(nsFrameConstructorState&     aState
   
   
   
-  if (aDisplay->IsRelativelyPositionedStyle() ||
-      aDisplay->IsAbsolutelyPositionedStyle() ||
-      aDisplay->HasTransform(aFrame)) {
+  if (aDisplay->IsPositioned(aFrame)) {
     aFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
     aState.PushAbsoluteContainingBlock(aFrame, aFrame, aAbsSaveState);
     nsTableFrame::RegisterPositionedTablePart(aFrame);
@@ -3710,10 +3705,15 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
     } else if (!(bits & FCDATA_SKIP_ABSPOS_PUSH)) {
       nsIFrame* cb = maybeAbsoluteContainingBlock;
       cb->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
+      
+      
+      
+      
       if ((maybeAbsoluteContainingBlockDisplay->IsAbsolutelyPositionedStyle() ||
            maybeAbsoluteContainingBlockDisplay->IsRelativelyPositionedStyle() ||
            (maybeAbsoluteContainingBlockDisplay->HasTransformStyle() &&
-            cb->IsFrameOfType(nsIFrame::eSupportsCSSTransforms))) &&
+            cb->IsFrameOfType(nsIFrame::eSupportsCSSTransforms)) ||
+           maybeAbsoluteContainingBlockDisplay->HasPerspectiveStyle()) &&
           !cb->IsSVGText()) {
         aState.PushAbsoluteContainingBlock(cb, cb, absoluteSaveState);
       }
@@ -5676,7 +5676,9 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
     
     
     if (!frame->IsPositioned() ||
-        (aType == FIXED_POS && !frame->StyleDisplay()->HasTransform(frame))) {
+        (aType == FIXED_POS &&
+         !frame->StyleDisplay()->HasTransform(frame) &&
+         !frame->StyleDisplay()->HasPerspectiveStyle())) {
       continue;
     }
     nsIFrame* absPosCBCandidate = frame;
