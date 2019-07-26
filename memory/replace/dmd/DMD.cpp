@@ -794,11 +794,11 @@ StackTrace::Get(Thread* aT)
   
   
   
+  
+  
   StackTrace tmp;
   {
-#ifdef XP_WIN
     AutoUnlockState unlock;
-#endif
     
     
     
