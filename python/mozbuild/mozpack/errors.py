@@ -128,5 +128,10 @@ class ErrorCollector(object):
         if count:
             raise AccumulatedErrors()
 
+    @property
+    def count(self):
+        
+        return self._count if self._count else 0
+
 
 errors = ErrorCollector()
