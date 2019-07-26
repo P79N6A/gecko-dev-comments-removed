@@ -70,6 +70,26 @@ public:
 
 
 
+
+
+
+
+  void GetVariableAt(size_t aIndex, nsAString& aName) const;
+
+  
+
+
+  size_t Count() const;
+
+  
+
+
+
+
+
+
+
+
   void Put(const nsAString& aName,
            nsString aValue,
            nsCSSTokenSerializationType aFirstToken,
