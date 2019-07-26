@@ -81,6 +81,8 @@ public:
   bool Is2D(gfxMatrix* aMatrix) const;
   bool Is2D() const;
 
+  bool IsProjective() const;
+
   
 
 
