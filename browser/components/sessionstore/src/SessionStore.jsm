@@ -2011,6 +2011,7 @@ let SessionStoreInternal = {
 
     var activeWindow = this._getMostRecentBrowserWindow();
 
+    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS");
     if (this._loadState == STATE_RUNNING) {
       
       this._forEachBrowserWindow(function(aWindow) {
@@ -2025,6 +2026,7 @@ let SessionStoreInternal = {
       });
       DirtyWindows.clear();
     }
+    TelemetryStopwatch.stop("FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS");
 
     
     var total = [];
@@ -2043,7 +2045,10 @@ let SessionStoreInternal = {
       if (!this._windows[ix].isPopup)
         nonPopupCount++;
     }
+
+    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_COOKIES_MS");
     SessionCookies.update(total);
+    TelemetryStopwatch.stop("FX_SESSION_RESTORE_COLLECT_COOKIES_MS");
 
     
     for (ix in this._statesToRestore) {
@@ -2089,7 +2094,7 @@ let SessionStoreInternal = {
     };
 
     
-    var scratchpads = ScratchpadManager.getSessionState();
+    let scratchpads = ScratchpadManager.getSessionState();
 
     let state = {
       windows: total,
@@ -2138,6 +2143,7 @@ let SessionStoreInternal = {
   _collectWindowData: function ssi_collectWindowData(aWindow) {
     if (!this._isWindowLoaded(aWindow))
       return;
+    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_SINGLE_WINDOW_DATA_MS");
 
     let tabbrowser = aWindow.gBrowser;
     let tabs = tabbrowser.tabs;
@@ -2159,6 +2165,7 @@ let SessionStoreInternal = {
         aWindow.__SS_lastSessionWindowID;
 
     DirtyWindows.remove(aWindow);
+    TelemetryStopwatch.stop("FX_SESSION_RESTORE_COLLECT_SINGLE_WINDOW_DATA_MS");
   },
 
   
