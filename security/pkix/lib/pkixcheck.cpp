@@ -110,25 +110,77 @@ CheckKeyUsage(EndEntityOrCA endEntityOrCA,
 
 
 
-Result
-CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
-                         bool isTrustAnchor, SECOidTag requiredPolicy)
+
+
+
+
+
+ const CertPolicyId CertPolicyId::anyPolicy = {
+  4, { (40*2)+5, 29, 32, 0 }
+};
+
+bool CertPolicyId::IsAnyPolicy() const
 {
-  if (requiredPolicy == SEC_OID_X509_ANY_POLICY) {
+  return this == &anyPolicy ||
+         (numBytes == anyPolicy.numBytes &&
+          !memcmp(bytes, anyPolicy.bytes, anyPolicy.numBytes));
+}
+
+
+
+
+
+inline der::Result
+CheckPolicyInformation(der::Input& input, EndEntityOrCA endEntityOrCA,
+                       const CertPolicyId& requiredPolicy,
+                        bool& found)
+{
+  if (input.MatchTLV(der::OIDTag, requiredPolicy.numBytes,
+                     requiredPolicy.bytes)) {
+    found = true;
+  } else if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
+             input.MatchTLV(der::OIDTag, CertPolicyId::anyPolicy.numBytes,
+                            CertPolicyId::anyPolicy.bytes)) {
+    found = true;
+  }
+
+  
+  
+  
+  
+  
+  
+
+  
+  input.SkipToEnd();
+
+  return der::Success;
+}
+
+
+Result
+CheckCertificatePolicies(EndEntityOrCA endEntityOrCA,
+                         const SECItem* encodedCertificatePolicies,
+                         const SECItem* encodedInhibitAnyPolicy,
+                         TrustLevel trustLevel,
+                         const CertPolicyId& requiredPolicy)
+{
+  if (requiredPolicy.numBytes == 0 ||
+      requiredPolicy.numBytes > sizeof requiredPolicy.bytes) {
+    return Fail(FatalError, SEC_ERROR_INVALID_ARGS);
+  }
+
+  
+  
+  
+  if (requiredPolicy.IsAnyPolicy()) {
     return Success;
   }
 
   
   
-  if (requiredPolicy == SEC_OID_UNKNOWN) {
-    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
-    return FatalError;
-  }
-
   
-  
-  
-  if (cert.encodedInhibitAnyPolicy) {
+  if (encodedInhibitAnyPolicy) {
     return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
   }
 
@@ -136,34 +188,35 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   
   
   
-  if (isTrustAnchor && endEntityOrCA == EndEntityOrCA::MustBeCA) {
+  if (trustLevel == TrustLevel::TrustAnchor &&
+      endEntityOrCA == EndEntityOrCA::MustBeCA) {
     return Success;
   }
 
-  if (!cert.encodedCertificatePolicies) {
+  if (!encodedCertificatePolicies) {
     return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
   }
 
-  ScopedPtr<CERTCertificatePolicies, CERT_DestroyCertificatePoliciesExtension>
-    policies(CERT_DecodeCertificatePoliciesExtension(
-                cert.encodedCertificatePolicies));
-  if (!policies) {
-    return MapSECStatus(SECFailure);
+  bool found = false;
+
+  der::Input input;
+  if (input.Init(encodedCertificatePolicies->data,
+                 encodedCertificatePolicies->len) != der::Success) {
+    return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
+  }
+  if (der::NestedOf(input, der::SEQUENCE, der::SEQUENCE, der::EmptyAllowed::No,
+                    bind(CheckPolicyInformation, _1, endEntityOrCA,
+                         requiredPolicy, ref(found))) != der::Success) {
+    return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
+  }
+  if (der::End(input) != der::Success) {
+    return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
+  }
+  if (!found) {
+    return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
   }
 
-  for (const CERTPolicyInfo* const* policyInfos = policies->policyInfos;
-       *policyInfos; ++policyInfos) {
-    if ((*policyInfos)->oid == requiredPolicy) {
-      return Success;
-    }
-    
-    if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
-        (*policyInfos)->oid == SEC_OID_X509_ANY_POLICY) {
-      return Success;
-    }
-  }
-
-  return Fail(RecoverableError, SEC_ERROR_POLICY_VALIDATION_FAILED);
+  return Success;
 }
 
 static const long UNLIMITED_PATH_LEN = -1; 
@@ -500,7 +553,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  EndEntityOrCA endEntityOrCA,
                                  KeyUsages requiredKeyUsagesIfPresent,
                                  KeyPurposeId requiredEKUIfPresent,
-                                 SECOidTag requiredPolicy,
+                                 const CertPolicyId& requiredPolicy,
                                  unsigned int subCACount,
                  TrustLevel* trustLevelOut)
 {
@@ -527,9 +580,6 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
     *trustLevelOut = trustLevel;
   }
 
-  bool isTrustAnchor = endEntityOrCA == EndEntityOrCA::MustBeCA &&
-                       trustLevel == TrustLevel::TrustAnchor;
-
   
   
   
@@ -555,7 +605,8 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   }
 
   
-  rv = CheckCertificatePolicies(cert, endEntityOrCA, isTrustAnchor,
+  rv = CheckCertificatePolicies(endEntityOrCA, cert.encodedCertificatePolicies,
+                                cert.encodedInhibitAnyPolicy, trustLevel,
                                 requiredPolicy);
   if (rv != Success) {
     return rv;

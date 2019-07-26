@@ -66,7 +66,7 @@ public:
                  mozilla::pkix::ScopedCERTCertList& results);
 
   virtual SECStatus GetCertTrust(mozilla::pkix::EndEntityOrCA endEntityOrCA,
-                                 SECOidTag policy,
+                                 const mozilla::pkix::CertPolicyId& policy,
                                  const CERTCertificate* candidateCert,
                           mozilla::pkix::TrustLevel* trustLevel);
 

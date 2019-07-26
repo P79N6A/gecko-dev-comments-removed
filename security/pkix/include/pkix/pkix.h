@@ -95,7 +95,7 @@ SECStatus BuildCertChain(TrustDomain& trustDomain,
                          EndEntityOrCA endEntityOrCA,
              KeyUsages requiredKeyUsagesIfPresent,
                          KeyPurposeId requiredEKUIfPresent,
-             SECOidTag requiredPolicy,
+                         const CertPolicyId& requiredPolicy,
              const SECItem* stapledOCSPResponse,
                   ScopedCERTCertList& results);
 

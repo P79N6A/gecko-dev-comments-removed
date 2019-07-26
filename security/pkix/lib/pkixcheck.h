@@ -38,7 +38,7 @@ Result CheckIssuerIndependentProperties(
           EndEntityOrCA endEntityOrCA,
           KeyUsages requiredKeyUsagesIfPresent,
           KeyPurposeId requiredEKUIfPresent,
-          SECOidTag requiredPolicy,
+          const CertPolicyId& requiredPolicy,
           unsigned int subCACount,
            TrustLevel* trustLevel = nullptr);
 
