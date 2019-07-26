@@ -137,6 +137,10 @@ public:
     virtual bool resolveNativeProperty(JSContext *cx, HandleObject wrapper,
                                        HandleObject holder, HandleId id,
                                        JSPropertyDescriptor *desc, unsigned flags) = 0;
+    
+    
+    
+    
     virtual bool resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
                                     HandleObject wrapper, HandleObject holder,
                                     HandleId id, JSPropertyDescriptor *desc, unsigned flags);
@@ -1039,7 +1043,19 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper
 #endif
     }
 
-    return true;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return JS_GetPropertyDescriptorById(cx, holder, id, 0, desc);
 }
 
 bool
@@ -1473,9 +1489,28 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
         return true;
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
     if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, flags))
         return false;
-
     if (desc->obj) {
         desc->obj = wrapper;
         return true;
@@ -1504,6 +1539,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
         }
     }
 
+    
     if (!JS_GetPropertyDescriptorById(cx, holder, id, 0, desc))
         return false;
     if (desc->obj) {
@@ -1598,19 +1634,8 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, HandleObject 
 
     if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, desc, flags))
         return false;
-
-    if (desc->obj) {
-        desc->obj = wrapper;
-        return true;
-    }
-
-    if (!JS_GetPropertyDescriptorById(cx, holder, id, flags, desc))
-        return false;
-
-    
     if (desc->obj)
         desc->obj = wrapper;
-
     return true;
 }
 
