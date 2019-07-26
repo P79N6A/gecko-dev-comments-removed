@@ -337,6 +337,8 @@ private:
     }
   }
 
+  void RunNextPhase();
+
   void Decode();
   void AllocateBuffer();
   void CopyBuffer();
@@ -414,9 +416,39 @@ MediaDecodeTask::CreateReader()
 }
 
 void
+MediaDecodeTask::RunNextPhase()
+{
+  
+  
+  
+  
+  
+  if (!mThreadPool) {
+    Run();
+    return;
+  }
+
+  switch (mPhase) {
+  case PhaseEnum::AllocateBuffer:
+  case PhaseEnum::Done:
+    MOZ_ASSERT(!NS_IsMainThread());
+    NS_DispatchToMainThread(this);
+    break;
+  case PhaseEnum::CopyBuffer:
+    MOZ_ASSERT(NS_IsMainThread());
+    mThreadPool->Dispatch(this, nsIThreadPool::DISPATCH_NORMAL);
+    break;
+  case PhaseEnum::Decode:
+    MOZ_NOT_REACHED("Invalid phase Decode");
+    break;
+  }
+}
+
+void
 MediaDecodeTask::Decode()
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!mThreadPool == NS_IsMainThread(),
+             "We should be on the main thread only if we don't have a thread pool");
 
   mBufferDecoder->BeginDecoding(NS_GetCurrentThread());
 
@@ -469,7 +501,7 @@ MediaDecodeTask::Decode()
   }
 
   mPhase = PhaseEnum::AllocateBuffer;
-  NS_DispatchToMainThread(this);
+  RunNextPhase();
 }
 
 void
@@ -483,13 +515,15 @@ MediaDecodeTask::AllocateBuffer()
   }
 
   mPhase = PhaseEnum::CopyBuffer;
-  mThreadPool->Dispatch(this, nsIThreadPool::DISPATCH_NORMAL);
+  RunNextPhase();
 }
 
 void
 MediaDecodeTask::CopyBuffer()
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!mThreadPool == NS_IsMainThread(),
+             "We should be on the main thread only if we don't have a thread pool");
+
   MOZ_ASSERT(mDecodeJob.mOutput);
   MOZ_ASSERT(mDecodeJob.mChannels);
   MOZ_ASSERT(mDecoderReader);
@@ -566,7 +600,7 @@ MediaDecodeTask::CopyBuffer()
   }
 
   mPhase = PhaseEnum::Done;
-  NS_DispatchToMainThread(this);
+  RunNextPhase();
 }
 
 void
@@ -681,6 +715,29 @@ MediaBufferDecoder::AsyncDecodeMedia(const char* aContentType, uint8_t* aBuffer,
 }
 
 bool
+MediaBufferDecoder::SyncDecodeMedia(const char* aContentType, uint8_t* aBuffer,
+                                    uint32_t aLength,
+                                    WebAudioDecodeJob& aDecodeJob)
+{
+  
+  
+  if (!*aContentType ||
+      strcmp(aContentType, APPLICATION_OCTET_STREAM) == 0) {
+    return false;
+  }
+
+  nsRefPtr<MediaDecodeTask> task =
+    new MediaDecodeTask(aContentType, aBuffer, aLength, aDecodeJob, nullptr);
+  if (!task->CreateReader()) {
+    return false;
+  }
+
+  task->Run();
+  return true;
+}
+
+
+bool
 MediaBufferDecoder::EnsureThreadPoolInitialized()
 {
   if (!mThreadPool) {
@@ -719,9 +776,12 @@ WebAudioDecodeJob::WebAudioDecodeJob(const nsACString& aContentType,
   , mFailureCallback(aFailureCallback)
 {
   MOZ_ASSERT(aContext);
-  MOZ_ASSERT(aSuccessCallback);
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_COUNT_CTOR(WebAudioDecodeJob);
+
+  MOZ_ASSERT(aSuccessCallback ||
+             (!aSuccessCallback && !aFailureCallback),
+             "If a success callback is not passed, no failure callback should be passed either");
 }
 
 WebAudioDecodeJob::~WebAudioDecodeJob()
@@ -738,8 +798,10 @@ WebAudioDecodeJob::OnSuccess(ErrorCode aErrorCode)
 
   
   
-  ErrorResult rv;
-  mSuccessCallback->Call(*mOutput, rv);
+  if (mSuccessCallback) {
+    ErrorResult rv;
+    mSuccessCallback->Call(*mOutput, rv);
+  }
 
   mContext->RemoveFromDecodeQueue(this);
 }
