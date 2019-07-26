@@ -48,7 +48,7 @@ class WeakMapBase {
             
             
             
-            JS_ASSERT(tracer->eagerlyTraceWeakMaps == DoNotTraceWeakMaps);
+            JS_ASSERT(tracer->eagerlyTraceWeakMaps() == DoNotTraceWeakMaps);
 
             
             
@@ -61,11 +61,11 @@ class WeakMapBase {
             
             
             
-            if (tracer->eagerlyTraceWeakMaps == DoNotTraceWeakMaps)
+            if (tracer->eagerlyTraceWeakMaps() == DoNotTraceWeakMaps)
                 return;
 
             nonMarkingTraceValues(tracer);
-            if (tracer->eagerlyTraceWeakMaps == TraceWeakMapKeysValues)
+            if (tracer->eagerlyTraceWeakMaps() == TraceWeakMapKeysValues)
                 nonMarkingTraceKeys(tracer);
         }
     }

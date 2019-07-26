@@ -1428,17 +1428,17 @@ Debugger::slowPathOnNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global
 
 
 void
-Debugger::markKeysInCompartment(JSTracer *tracer)
+Debugger::markKeysInCompartment(JSTracer *trc)
 {
     
 
 
 
 
-    objects.markKeys(tracer);
-    environments.markKeys(tracer);
-    scripts.markKeys(tracer);
-    sources.markKeys(tracer);
+    objects.markKeys(trc);
+    environments.markKeys(trc);
+    scripts.markKeys(trc);
+    sources.markKeys(trc);
 }
 
 
@@ -1464,9 +1464,9 @@ Debugger::markKeysInCompartment(JSTracer *tracer)
 
 
 void
-Debugger::markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer)
+Debugger::markCrossCompartmentDebuggerObjectReferents(JSTracer *trc)
 {
-    JSRuntime *rt = tracer->runtime;
+    JSRuntime *rt = trc->runtime();
 
     
 
@@ -1474,7 +1474,7 @@ Debugger::markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer)
 
     for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         if (!dbg->object->zone()->isCollecting())
-            dbg->markKeysInCompartment(tracer);
+            dbg->markKeysInCompartment(trc);
     }
 }
 
@@ -1497,7 +1497,7 @@ Debugger::markAllIteratively(GCMarker *trc)
 
 
 
-    JSRuntime *rt = trc->runtime;
+    JSRuntime *rt = trc->runtime();
     for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
         GlobalObjectSet &debuggees = c->getDebuggees();
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
@@ -1566,7 +1566,7 @@ Debugger::markAllIteratively(GCMarker *trc)
 void
 Debugger::markAll(JSTracer *trc)
 {
-    JSRuntime *rt = trc->runtime;
+    JSRuntime *rt = trc->runtime();
     for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         GlobalObjectSet &debuggees = dbg->debuggees;
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {

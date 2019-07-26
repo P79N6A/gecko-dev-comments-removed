@@ -795,7 +795,7 @@ ArrayBufferObject::finalize(FreeOp *fop, JSObject *obj)
  void
 ArrayBufferObject::obj_trace(JSTracer *trc, JSObject *obj)
 {
-    if (!IS_GC_MARKING_TRACER(trc) && !trc->runtime->isHeapMinorCollecting())
+    if (!IS_GC_MARKING_TRACER(trc) && !trc->runtime()->isHeapMinorCollecting())
         return;
 
     
@@ -815,7 +815,7 @@ ArrayBufferObject::obj_trace(JSTracer *trc, JSObject *obj)
     if (!viewsHead)
         return;
 
-    buffer.setViewList(UpdateObjectIfRelocated(trc->runtime, &viewsHead));
+    buffer.setViewList(UpdateObjectIfRelocated(trc->runtime(), &viewsHead));
 
     if (viewsHead->nextView() == nullptr) {
         

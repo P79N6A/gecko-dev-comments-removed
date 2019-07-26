@@ -11,7 +11,7 @@
 #include "js/Id.h"          
 #include "js/Value.h"       
 #include "js/RootingAPI.h"
-#include "js/Tracer.h"
+#include "js/TracingAPI.h"
 
 class XPCWrappedNativeScope;
 

@@ -4,14 +4,14 @@
 
 
 
-#ifndef js_Tracer_h
-#define js_Tracer_h
+#ifndef js_TracingAPI_h
+#define js_TracingAPI_h
 
 #include "mozilla/NullPtr.h"
- 
+
 #include "jspubtd.h"
 
-struct JSTracer;
+class JS_PUBLIC_API(JSTracer);
 
 namespace JS {
 template <typename T> class Heap;
@@ -46,74 +46,101 @@ enum WeakMapTraceKind {
     TraceWeakMapKeysValues = 2
 };
 
-struct JSTracer {
-    JSRuntime           *runtime;
-    JSTraceCallback     callback;
-    JSTraceNamePrinter  debugPrinter;
-    const void          *debugPrintArg;
-    size_t              debugPrintIndex;
-    WeakMapTraceKind    eagerlyTraceWeakMaps;
+class JS_PUBLIC_API(JSTracer)
+{
+  public:
+    JSTracer(JSRuntime *rt, JSTraceCallback traceCallback,
+             WeakMapTraceKind weakTraceKind = TraceWeakMapValues);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    void setTracingDetails(JSTraceNamePrinter printer, const void *arg, size_t index) {
+        debugPrinter_ = printer;
+        debugPrintArg_ = arg;
+        debugPrintIndex_ = index;
+    }
+
+    void setTracingIndex(const char *name, size_t index) {
+        setTracingDetails(nullptr, (void *)name, index);
+    }
+
+    void setTracingName(const char *name) {
+        setTracingDetails(nullptr, (void *)name, size_t(-1));
+    }
+
+    
+    void clearTracingDetails() {
+        debugPrinter_ = nullptr;
+        debugPrintArg_ = nullptr;
+    }
+
+    
+    bool hasTracingDetails() const;
+
+    
+    
+    const char *tracingName(const char *fallback) const;
+
+    
+    
+    const char *getTracingEdgeName(char *buffer, size_t bufferSize);
+
+    
+    JSTraceNamePrinter debugPrinter() const;
+    const void *debugPrintArg() const;
+    size_t debugPrintIndex() const;
+
+    
+    JSRuntime *runtime() const { return runtime_; }
+
+    
+    WeakMapTraceKind eagerlyTraceWeakMaps() const { return eagerlyTraceWeakMaps_; }
+
+    
+    void setTraceCallback(JSTraceCallback traceCallback);
+
 #ifdef JS_GC_ZEAL
-    void                *realLocation;
+    
+    
+    
+    
+    
+    
+    void setTracingLocation(void *location);
+    void unsetTracingLocation();
+    void **tracingLocation(void **thingp);
+#else
+    void setTracingLocation(void *location) {}
+    void unsetTracingLocation() {}
+    void **tracingLocation(void **thingp) { return nullptr; }
+#endif
+
+    
+    
+    JSTraceCallback     callback;
+
+  private:
+    JSRuntime           *runtime_;
+    JSTraceNamePrinter  debugPrinter_;
+    const void          *debugPrintArg_;
+    size_t              debugPrintIndex_;
+    WeakMapTraceKind    eagerlyTraceWeakMaps_;
+#ifdef JS_GC_ZEAL
+    void                *realLocation_;
 #endif
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# define JS_SET_TRACING_DETAILS(trc, printer, arg, index)                     \
-    JS_BEGIN_MACRO                                                            \
-        (trc)->debugPrinter = (printer);                                      \
-        (trc)->debugPrintArg = (arg);                                         \
-        (trc)->debugPrintIndex = (index);                                     \
-    JS_END_MACRO
-
-
-
-
-
-
-
-
-#ifdef JS_GC_ZEAL
-# define JS_SET_TRACING_LOCATION(trc, location)                               \
-    JS_BEGIN_MACRO                                                            \
-        if (!(trc)->realLocation || !(location))                              \
-            (trc)->realLocation = (location);                                 \
-    JS_END_MACRO
-# define JS_UNSET_TRACING_LOCATION(trc)                                       \
-    JS_BEGIN_MACRO                                                            \
-        (trc)->realLocation = nullptr;                                        \
-    JS_END_MACRO
-#else
-# define JS_SET_TRACING_LOCATION(trc, location)                               \
-    JS_BEGIN_MACRO                                                            \
-    JS_END_MACRO
-# define JS_UNSET_TRACING_LOCATION(trc)                                       \
-    JS_BEGIN_MACRO                                                            \
-    JS_END_MACRO
-#endif
-
-
-
-# define JS_SET_TRACING_INDEX(trc, name, index)                               \
-    JS_SET_TRACING_DETAILS(trc, nullptr, name, index)
-
-
-# define JS_SET_TRACING_NAME(trc, name)                                       \
-    JS_SET_TRACING_DETAILS(trc, nullptr, name, (size_t)-1)
 
 
 
@@ -165,7 +192,7 @@ inline void
 JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, const char *name)
 {
     JSObject *updated = key;
-    JS_SET_TRACING_LOCATION(trc, reinterpret_cast<void *>(&const_cast<JSObject *&>(key)));
+    trc->setTracingLocation(reinterpret_cast<void *>(&const_cast<JSObject *&>(key)));
     JS_CallObjectTracer(trc, &updated, name);
     if (updated != key)
         e.rekeyFront(key, updated);
@@ -176,10 +203,6 @@ JS_CallHashSetObjectTracer(JSTracer *trc, HashSetEnum &e, JSObject *const &key, 
 extern JS_PUBLIC_API(void)
 JS_CallTenuredObjectTracer(JSTracer *trc, JS::TenuredHeap<JSObject *> *objp, const char *name);
 
-
-extern JS_PUBLIC_API(void)
-JS_TracerInit(JSTracer *trc, JSRuntime *rt, JSTraceCallback callback);
-
 extern JS_PUBLIC_API(void)
 JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
@@ -189,8 +212,5 @@ JS_TraceRuntime(JSTracer *trc);
 extern JS_PUBLIC_API(void)
 JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
                      void *thing, JSGCTraceKind kind, bool includeDetails);
-
-extern JS_PUBLIC_API(const char *)
-JS_GetTraceEdgeName(JSTracer *trc, char *buffer, int bufferSize);
 
 #endif 

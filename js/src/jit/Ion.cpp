@@ -565,8 +565,8 @@ FinishAllOffThreadCompilations(JSCompartment *comp)
  void
 JitRuntime::Mark(JSTracer *trc)
 {
-    JS_ASSERT(!trc->runtime->isHeapMinorCollecting());
-    Zone *zone = trc->runtime->atomsCompartment()->zone();
+    JS_ASSERT(!trc->runtime()->isHeapMinorCollecting());
+    Zone *zone = trc->runtime()->atomsCompartment()->zone();
     for (gc::CellIterUnderGC i(zone, gc::FINALIZE_JITCODE); !i.done(); i.next()) {
         JitCode *code = i.get<JitCode>();
         MarkJitCodeRoot(trc, &code, "wrapper");
@@ -579,12 +579,12 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
     
     
-    JS_ASSERT(!trc->runtime->isHeapMinorCollecting());
+    JS_ASSERT(!trc->runtime()->isHeapMinorCollecting());
     CancelOffThreadIonCompile(compartment, nullptr);
     FinishAllOffThreadCompilations(compartment);
 
     
-    trc->runtime->jitRuntime()->freeOsrTempData();
+    trc->runtime()->jitRuntime()->freeOsrTempData();
 
     
     if (activeParallelEntryScripts_) {
@@ -607,7 +607,7 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
             
             
             
-            if (ShouldPreserveParallelJITCode(trc->runtime, script,  true)) {
+            if (ShouldPreserveParallelJITCode(trc->runtime(), script,  true)) {
                 MarkScript(trc, const_cast<EncapsulatedPtrScript *>(&e.front()), "par-script");
                 MOZ_ASSERT(script == e.front());
             }
