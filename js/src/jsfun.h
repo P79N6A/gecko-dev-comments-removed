@@ -100,7 +100,8 @@ class JSFunction : public JSObject
         
         return nonLazyScript()->bindings.hasAnyAliasedBindings() ||
                nonLazyScript()->funHasExtensibleScope ||
-               nonLazyScript()->funNeedsDeclEnvObject;
+               nonLazyScript()->funNeedsDeclEnvObject ||
+               isGenerator();
     }
 
     

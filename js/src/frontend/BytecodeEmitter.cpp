@@ -1024,7 +1024,12 @@ BytecodeEmitter::isAliasedName(ParseNode *pn)
 
 
 
-        return dn->isClosed() || sc->bindingsAccessedDynamically();
+
+
+
+
+
+        return dn->isClosed() || sc->allLocalsAliased();
       case Definition::ARG:
         
 
@@ -1039,6 +1044,7 @@ BytecodeEmitter::isAliasedName(ParseNode *pn)
         return script->formalIsAliased(pn->pn_cookie.slot());
       case Definition::VAR:
       case Definition::CONST:
+        JS_ASSERT_IF(sc->allLocalsAliased(), script->varIsAliased(pn->pn_cookie.slot()));
         return script->varIsAliased(pn->pn_cookie.slot());
       case Definition::PLACEHOLDER:
       case Definition::NAMED_LAMBDA:
@@ -1069,6 +1075,17 @@ AdjustBlockSlot(ExclusiveContext *cx, BytecodeEmitter *bce, int slot)
     }
     return slot;
 }
+
+#ifdef DEBUG
+static bool
+AllLocalsAliased(StaticBlockObject &obj)
+{
+    for (unsigned i = 0; i < obj.slotCount(); i++)
+        if (!obj.isAliased(i))
+            return false;
+    return true;
+}
+#endif
 
 static bool
 EmitEnterBlock(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp op)
@@ -1106,7 +1123,7 @@ EmitEnterBlock(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp o
 
         
         if (!dn) {
-            blockObj->setAliased(i, bce->sc->bindingsAccessedDynamically());
+            blockObj->setAliased(i, bce->sc->allLocalsAliased());
             continue;
         }
 
@@ -1126,6 +1143,8 @@ EmitEnterBlock(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp o
 
         blockObj->setAliased(i, bce->isAliasedName(dn));
     }
+
+    JS_ASSERT_IF(bce->sc->allLocalsAliased(), AllLocalsAliased(*blockObj));
 
     return true;
 }

@@ -549,13 +549,6 @@ class ScopeIter
                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
-
-
-
-    ScopeIter(const ScopeIter &si, AbstractFramePtr frame, JSContext *cx
-              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-
-    
     ScopeIter(AbstractFramePtr frame, ScopeObject &scope, JSContext *cx
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
@@ -720,14 +713,11 @@ class DebugScopes
     static AbstractFramePtr hasLiveFrame(ScopeObject &scope);
 
     
-
-
-
+    
     static void onPopCall(AbstractFramePtr frame, JSContext *cx);
     static void onPopBlock(JSContext *cx, AbstractFramePtr frame);
     static void onPopWith(AbstractFramePtr frame);
     static void onPopStrictEvalScope(AbstractFramePtr frame);
-    static void onGeneratorFrameChange(AbstractFramePtr from, AbstractFramePtr to, JSContext *cx);
     static void onCompartmentLeaveDebugMode(JSCompartment *c);
 };
 

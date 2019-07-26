@@ -886,18 +886,6 @@ ScopeIter::ScopeIter(AbstractFramePtr frame, JSContext *cx
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 }
 
-ScopeIter::ScopeIter(const ScopeIter &si, AbstractFramePtr frame, JSContext *cx
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-  : cx(si.cx),
-    frame_(frame),
-    cur_(cx, si.cur_),
-    block_(cx, si.block_),
-    type_(si.type_),
-    hasScopeObject_(si.hasScopeObject_)
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-}
-
 ScopeIter::ScopeIter(AbstractFramePtr frame, ScopeObject &scope, JSContext *cx
                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
   : cx(cx),
@@ -1091,7 +1079,6 @@ class DebugScopeProxy : public BaseProxyHandler
     enum Action { SET, GET };
 
     
-
 
 
 
@@ -1590,7 +1577,6 @@ DebugScopes::sweep(JSRuntime *rt)
 
 
 
-
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
         if (IsObjectAboutToBeFinalized(e.front().value().unsafeGet()))
             e.removeFront();
@@ -1598,7 +1584,6 @@ DebugScopes::sweep(JSRuntime *rt)
 
     for (LiveScopeMap::Enum e(liveScopes); !e.empty(); e.popFront()) {
         ScopeObject *scope = e.front().key();
-        AbstractFramePtr frame = e.front().value();
 
         
 
@@ -1607,19 +1592,6 @@ DebugScopes::sweep(JSRuntime *rt)
         if (IsObjectAboutToBeFinalized(&scope)) {
             e.removeFront();
             continue;
-        }
-
-        
-
-
-
-
-        if (JSGenerator *gen = frame.maybeSuspendedGenerator(rt)) {
-            JS_ASSERT(gen->state == JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
-            if (IsObjectAboutToBeFinalized(&gen->obj)) {
-                e.removeFront();
-                continue;
-            }
         }
     }
 }
@@ -1711,6 +1683,7 @@ DebugScopes::addDebugScope(JSContext *cx, const ScopeIter &si, DebugScopeObject 
 {
     JS_ASSERT(!si.hasScopeObject());
     JS_ASSERT(cx->compartment() == debugScope.compartment());
+    JS_ASSERT_IF(si.frame().isFunctionFrame(), !si.frame().callee()->isGenerator());
 
     if (!CanUseDebugScopeMaps(cx))
         return true;
@@ -1863,43 +1836,6 @@ DebugScopes::onPopStrictEvalScope(AbstractFramePtr frame)
 }
 
 void
-DebugScopes::onGeneratorFrameChange(AbstractFramePtr from, AbstractFramePtr to, JSContext *cx)
-{
-    for (ScopeIter toIter(to, cx); !toIter.done(); ++toIter) {
-        DebugScopes *scopes = ensureCompartmentData(cx);
-        if (!scopes)
-            return;
-
-        if (toIter.hasScopeObject()) {
-            
-
-
-
-
-
-
-            JS_ASSERT(toIter.scope().compartment() == cx->compartment());
-            LiveScopeMap::AddPtr livePtr = scopes->liveScopes.lookupForAdd(&toIter.scope());
-            if (livePtr) {
-                livePtr->value() = to;
-            } else {
-                scopes->liveScopes.add(livePtr, &toIter.scope(), to);  
-                liveScopesPostWriteBarrier(cx->runtime(), &scopes->liveScopes, &toIter.scope());
-            }
-        } else {
-            ScopeIter si(toIter, from, cx);
-            JS_ASSERT(si.frame().scopeChain()->compartment() == cx->compartment());
-            if (MissingScopeMap::Ptr p = scopes->missingScopes.lookup(si)) {
-                DebugScopeObject &debugScope = *p->value();
-                scopes->liveScopes.lookup(&debugScope.scope())->value() = to;
-                scopes->missingScopes.remove(p);
-                scopes->missingScopes.put(toIter, &debugScope);  
-            }
-        }
-    }
-}
-
-void
 DebugScopes::onCompartmentLeaveDebugMode(JSCompartment *c)
 {
     DebugScopes *scopes = c->debugScopes;
@@ -1938,6 +1874,9 @@ DebugScopes::updateLiveScopes(JSContext *cx)
         if (frame.scopeChain()->compartment() != cx->compartment())
             continue;
 
+        if (frame.isFunctionFrame() && frame.callee()->isGenerator())
+            continue;
+
         for (ScopeIter si(frame, cx); !si.done(); ++si) {
             if (si.hasScopeObject()) {
                 JS_ASSERT(si.scope().compartment() == cx->compartment());
@@ -1966,25 +1905,9 @@ DebugScopes::hasLiveFrame(ScopeObject &scope)
     if (!scopes)
         return NullFramePtr();
 
-    if (LiveScopeMap::Ptr p = scopes->liveScopes.lookup(&scope)) {
-        AbstractFramePtr frame = p->value();
+    if (LiveScopeMap::Ptr p = scopes->liveScopes.lookup(&scope))
+        return p->value();
 
-        
-
-
-
-
-
-
-
-
-
-
-        if (JSGenerator *gen = frame.maybeSuspendedGenerator(scope.compartment()->runtimeFromMainThread()))
-            JSObject::readBarrier(gen->obj);
-
-        return frame;
-    }
     return NullFramePtr();
 }
 
@@ -2046,6 +1969,8 @@ GetDebugScopeForMissing(JSContext *cx, const ScopeIter &si)
     DebugScopeObject *debugScope = nullptr;
     switch (si.type()) {
       case ScopeIter::Call: {
+        
+        JS_ASSERT(!si.frame().callee()->isGenerator());
         Rooted<CallObject*> callobj(cx, CallObject::createForFunction(cx, si.frame()));
         if (!callobj)
             return nullptr;
@@ -2062,6 +1987,8 @@ GetDebugScopeForMissing(JSContext *cx, const ScopeIter &si)
         break;
       }
       case ScopeIter::Block: {
+        
+        JS_ASSERT_IF(si.frame().isFunctionFrame(), !si.frame().callee()->isGenerator());
         Rooted<StaticBlockObject *> staticBlock(cx, &si.staticBlock());
         ClonedBlockObject *block = ClonedBlockObject::create(cx, staticBlock, si.frame());
         if (!block)
