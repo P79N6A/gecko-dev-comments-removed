@@ -131,6 +131,14 @@ extern bool
 GetPrefixInteger(ExclusiveContext *cx, const jschar *start, const jschar *end, int base,
                  const jschar **endp, double *dp);
 
+
+
+
+
+
+extern bool
+GetDecimalInteger(ExclusiveContext *cx, const jschar *start, const jschar *end, double *dp);
+
 extern bool
 StringToNumber(ExclusiveContext *cx, JSString *str, double *result);
 

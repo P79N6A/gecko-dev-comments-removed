@@ -232,6 +232,30 @@ js::GetPrefixInteger(ExclusiveContext *cx, const jschar *start, const jschar *en
     return true;
 }
 
+bool
+js::GetDecimalInteger(ExclusiveContext *cx, const jschar *start, const jschar *end, double *dp)
+{
+    JS_ASSERT(start <= end);
+
+    const jschar *s = start;
+    double d = 0.0;
+    for (; s < end; s++) {
+        jschar c = *s;
+        JS_ASSERT('0' <= c && c <= '9');
+        int digit = c - '0';
+        d = d * 10 + digit;
+    }
+
+    *dp = d;
+
+    
+    if (d < DOUBLE_INTEGRAL_PRECISION_LIMIT)
+        return true;
+
+    
+    return ComputeAccurateDecimalInteger(cx, start, s, dp);
+}
+
 static JSBool
 num_isNaN(JSContext *cx, unsigned argc, Value *vp)
 {
