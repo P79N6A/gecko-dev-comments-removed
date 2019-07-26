@@ -1262,7 +1262,7 @@ var gBrowserInit = {
     }, true);
 
     
-    Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+    Services.logins;
 
     if (mustLoadSidebar) {
       let sidebar = document.getElementById("sidebar");
@@ -1341,7 +1341,7 @@ var gBrowserInit = {
     
     
     setTimeout(function() {
-      Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
+      Services.downloads;
 
 #ifdef XP_WIN
       if (Win7Features) {
@@ -1495,10 +1495,8 @@ var gBrowserInit = {
     
     
     try {
-      let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].
-                       getService(Ci.nsIAppStartup);
       const startupCrashEndDelay = 30 * 1000;
-      setTimeout(appStartup.trackStartupCrashEnd, startupCrashEndDelay);
+      setTimeout(Services.startup.trackStartupCrashEnd, startupCrashEndDelay);
     } catch (ex) {
       Cu.reportError("Could not end startup crash tracking: " + ex);
     }
@@ -2223,10 +2221,6 @@ function readFromClipboard()
 
   try {
     
-    var clipboard = Components.classes["@mozilla.org/widget/clipboard;1"]
-                              .getService(Components.interfaces.nsIClipboard);
-
-    
     var trans = Components.classes["@mozilla.org/widget/transferable;1"]
                           .createInstance(Components.interfaces.nsITransferable);
     trans.init(getLoadContext());
@@ -2234,10 +2228,10 @@ function readFromClipboard()
     trans.addDataFlavor("text/unicode");
 
     
-    if (clipboard.supportsSelectionClipboard())
-      clipboard.getData(trans, clipboard.kSelectionClipboard);
+    if (Services.clipboard.supportsSelectionClipboard())
+      Services.clipboard.getData(trans, Services.clipboard.kSelectionClipboard);
     else
-      clipboard.getData(trans, clipboard.kGlobalClipboard);
+      Services.clipboard.getData(trans, Services.clipboard.kGlobalClipboard);
 
     var data = {};
     var dataLen = {};
@@ -2303,9 +2297,7 @@ function BrowserViewSourceOfDocument(aDocument)
 
 function BrowserPageInfo(doc, initialTab, imageElement) {
   var args = {doc: doc, initialTab: initialTab, imageElement: imageElement};
-  var windows = Cc['@mozilla.org/appshell/window-mediator;1']
-                  .getService(Ci.nsIWindowMediator)
-                  .getEnumerator("Browser:page-info");
+  var windows = Services.wm.getEnumerator("Browser:page-info");
 
   var documentURL = doc ? doc.location : window.content.document.location;
 
@@ -2468,7 +2460,7 @@ function PageProxyClickHandler(aEvent)
 
 
 function BrowserOnAboutPageLoad(document) {
-  if (/^about:home$/i.test(document.documentURI)) {
+  if (document.documentURI.toLowerCase() == "about:home") {
     
     
     if (getBoolPref("browser.aboutHome.apps", false))
@@ -2517,16 +2509,14 @@ let BrowserOnClick = {
     else if (ownerDoc.documentURI.startsWith("about:neterror")) {
       this.onAboutNetError(originalTarget, ownerDoc);
     }
-    else if (/^about:home$/i.test(ownerDoc.documentURI)) {
+    else if (ownerDoc.documentURI.toLowerCase() == "about:home") {
       this.onAboutHome(originalTarget, ownerDoc);
     }
   },
 
   onAboutCertError: function BrowserOnClick_onAboutCertError(aTargetElm, aOwnerDoc) {
     let elmId = aTargetElm.getAttribute("id");
-    let secHistogram = Cc["@mozilla.org/base/telemetry;1"].
-                        getService(Ci.nsITelemetry).
-                        getHistogramById("SECURITY_UI");
+    let secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
 
     switch (elmId) {
       case "exceptionDialogButton":
@@ -2571,9 +2561,7 @@ let BrowserOnClick = {
 
   onAboutBlocked: function BrowserOnClick_onAboutBlocked(aTargetElm, aOwnerDoc) {
     let elmId = aTargetElm.getAttribute("id");
-    let secHistogram = Cc["@mozilla.org/base/telemetry;1"].
-                        getService(Ci.nsITelemetry).
-                        getHistogramById("SECURITY_UI");
+    let secHistogram = Services.telemetry.getHistogramById("SECURITY_UI");
 
     
     
@@ -2743,8 +2731,7 @@ let BrowserOnClick = {
 
 function getMeOutOfHere() {
   
-  var prefs = Cc["@mozilla.org/preferences-service;1"]
-             .getService(Ci.nsIPrefService).getDefaultBranch(null);
+  var prefs = Services.prefs.getDefaultBranch(null);
   var url = BROWSER_NEW_TAB_URL;
   try {
     url = prefs.getComplexValue("browser.startup.homepage",
@@ -3134,8 +3121,7 @@ const DOMLinkHandler = {
     ].some(function (re) re.test(targetDoc.documentURI));
 
     if (!isAllowedPage || !uri.schemeIs("chrome")) {
-      var ssm = Cc["@mozilla.org/scriptsecuritymanager;1"].
-                getService(Ci.nsIScriptSecurityManager);
+      var ssm = Services.scriptSecurityManager;
       try {
         ssm.checkLoadURIWithPrincipal(targetDoc.nodePrincipal, uri,
                                       Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
@@ -3768,7 +3754,8 @@ function updateEditUIVisibility()
 
 function mimeTypeIsTextBased(aMimeType)
 {
-  return /^text\/|\+xml$/.test(aMimeType) ||
+  return aMimeType.startsWith("text/") ||
+         aMimeType.endsWith("+xml") ||
          aMimeType == "application/x-javascript" ||
          aMimeType == "application/javascript" ||
          aMimeType == "application/xml" ||
@@ -4066,7 +4053,7 @@ var XULBrowserWindow = {
       let newSpec = location;
       let newIndexOfHash = newSpec.indexOf("#");
       if (newIndexOfHash != -1)
-        newSpec = newSpec.substr(0, newSpec.indexOf("#"));
+        newSpec = newSpec.substr(0, newIndexOfHash);
       if (newSpec != oldSpec) {
         
         
@@ -5083,8 +5070,8 @@ var gHomeButton = {
 
     
     if (!url) {
-      var SBS = Cc["@mozilla.org/intl/stringbundle;1"].getService(Ci.nsIStringBundleService);
-      var configBundle = SBS.createBundle("chrome://branding/locale/browserconfig.properties");
+      var configBundle = Services.strings
+                                 .createBundle("chrome://branding/locale/browserconfig.properties");
       url = configBundle.GetStringFromName(this.prefDomain);
     }
 
@@ -5144,9 +5131,7 @@ function getBrowserSelection(aCharLen) {
       selection = RegExp.lastMatch;
     }
 
-    selection = selection.replace(/^\s+/, "")
-                         .replace(/\s+$/, "")
-                         .replace(/\s+/g, " ");
+    selection = selection.trim().replace(/\s+/g, " ");
 
     if (selection.length > charLen)
       selection = selection.substr(0, charLen);
@@ -5278,8 +5263,8 @@ function contentAreaClick(event, isPanelClick)
     if (isPanelClick && mainTarget) {
       
       if (linkNode.getAttribute("onclick") ||
-          href.substr(0, 11) === "javascript:" ||
-          href.substr(0, 5) === "data:")
+          href.startsWith("javascript:") ||
+          href.startsWith("data:"))
         return;
 
       try {
@@ -6644,16 +6629,12 @@ var gIdentityHandler = {
 
 
   getEffectiveHost : function() {
-    
-    if (!this._eTLDService)
-      this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
-                         .getService(Ci.nsIEffectiveTLDService);
     if (!this._IDNService)
       this._IDNService = Cc["@mozilla.org/network/idn-service;1"]
                          .getService(Ci.nsIIDNService);
     try {
       let baseDomain =
-        this._eTLDService.getBaseDomainFromHost(this._lastLocation.hostname);
+        Services.eTLD.getBaseDomainFromHost(this._lastLocation.hostname);
       return this._IDNService.convertToDisplayIDN(baseDomain, {});
     } catch (e) {
       
@@ -7000,8 +6981,7 @@ let gPrivateBrowsingUI = {
     }
     catch (ex) { }
 
-    var bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
-                        getService(Ci.nsIStringBundleService);
+    var bundleService = Services.strings;
     var pbBundle = bundleService.createBundle("chrome://browser/locale/browser.properties");
     var brandBundle = bundleService.createBundle("chrome://branding/locale/brand.properties");
 
@@ -7332,9 +7312,7 @@ function safeModeRestart()
                                      buttonFlags, restartText, null, null,
                                      null, {});
   if (rv == 0) {
-    let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].
-                     getService(Ci.nsIAppStartup);
-    appStartup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit);
+    Services.startup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit);
   }
 }
 
@@ -7401,9 +7379,7 @@ XPCOMUtils.defineLazyGetter(ResponsiveUI, "ResponsiveUIManager", function() {
 XPCOMUtils.defineLazyGetter(window, "gShowPageResizers", function () {
 #ifdef XP_WIN
   
-  let sysInfo = Components.classes["@mozilla.org/system-info;1"]
-                          .getService(Components.interfaces.nsIPropertyBag2);
-  return parseFloat(sysInfo.getProperty("version")) < 6;
+  return parseFloat(Services.sysinfo.getProperty("version")) < 6;
 #else
   return false;
 #endif
@@ -7473,7 +7449,7 @@ var MousePosTracker = {
 };
 
 function focusNextFrame(event) {
-  let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+  let fm = Services.focus;
   let dir = event.shiftKey ? fm.MOVEFOCUS_BACKWARDDOC : fm.MOVEFOCUS_FORWARDDOC;
   let element = fm.moveFocus(window, null, dir, fm.FLAG_BYKEY);
   if (element.ownerDocument == document)
