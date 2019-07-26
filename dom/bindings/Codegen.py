@@ -7657,8 +7657,21 @@ class GlobalGenRoots():
         idEnum = CGNamespacedEnum('id', 'ID', ['_ID_Start'] + protos,
                                   [0, '_ID_Start'])
         idEnum = CGList([idEnum])
-        idEnum.append(CGGeneric(declare="const unsigned MaxProtoChainLength = " +
-                                str(config.maxProtoChainLength) + ";\n\n"))
+
+        
+        
+        def ifaceChainMacro(ifaceCount):
+            supplied = [CGGeneric(declare="_iface_" + str(i + 1)) for i in range(ifaceCount)]
+            remaining = [CGGeneric(declare="prototypes::id::_ID_Count")] * (config.maxProtoChainLength - ifaceCount)
+            macro = CGWrapper(CGList(supplied, ", "),
+                              pre="#define INTERFACE_CHAIN_" + str(ifaceCount) + "(",
+                              post=") \\\n")
+            macroContent = CGIndenter(CGList(supplied + remaining, ", \\\n"))
+            macroContent = CGIndenter(CGWrapper(macroContent, pre="{ \\\n",
+                                                post=" \\\n}"))
+            return CGWrapper(CGList([macro, macroContent]), post="\n\n")
+
+        idEnum.append(ifaceChainMacro(1))
 
         
         idEnum = CGNamespace.build(['mozilla', 'dom', 'prototypes'],
