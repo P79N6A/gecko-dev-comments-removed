@@ -31,14 +31,8 @@
 
 
 
-
-
-
 #ifdef DEBUG
 
-#define RECURSION_LEVEL(table_) (*(uint32_t*)(table_->entryStore + \
-                                            PL_DHASH_TABLE_SIZE(table_) * \
-                                            table_->entrySize))
 
 
 
@@ -47,29 +41,27 @@
 
 
 
-#define IMMUTABLE_RECURSION_LEVEL ((uint32_t)-1)
+#define IMMUTABLE_RECURSION_LEVEL ((uint16_t)-1)
 
 #define RECURSION_LEVEL_SAFE_TO_FINISH(table_)                                \
-    (RECURSION_LEVEL(table_) == 0 ||                                          \
-     RECURSION_LEVEL(table_) == IMMUTABLE_RECURSION_LEVEL)
+    (table_->recursionLevel == 0 ||                                           \
+     table_->recursionLevel == IMMUTABLE_RECURSION_LEVEL)
 
-#define ENTRY_STORE_EXTRA                   sizeof(uint32_t)
 #define INCREMENT_RECURSION_LEVEL(table_)                                     \
     PR_BEGIN_MACRO                                                            \
-        if (RECURSION_LEVEL(table_) != IMMUTABLE_RECURSION_LEVEL)             \
-            ++RECURSION_LEVEL(table_);                                        \
+        if (table_->recursionLevel != IMMUTABLE_RECURSION_LEVEL)              \
+            ++table_->recursionLevel;                                         \
     PR_END_MACRO
 #define DECREMENT_RECURSION_LEVEL(table_)                                     \
     PR_BEGIN_MACRO                                                            \
-        if (RECURSION_LEVEL(table_) != IMMUTABLE_RECURSION_LEVEL) {           \
-            MOZ_ASSERT(RECURSION_LEVEL(table_) > 0);                          \
-            --RECURSION_LEVEL(table_);                                        \
+        if (table->recursionLevel != IMMUTABLE_RECURSION_LEVEL) {             \
+            MOZ_ASSERT(table->recursionLevel > 0);                            \
+            --table->recursionLevel;                                          \
         }                                                                     \
     PR_END_MACRO
 
 #else
 
-#define ENTRY_STORE_EXTRA 0
 #define INCREMENT_RECURSION_LEVEL(table_)   PR_BEGIN_MACRO PR_END_MACRO
 #define DECREMENT_RECURSION_LEVEL(table_)   PR_BEGIN_MACRO PR_END_MACRO
 
@@ -234,15 +226,14 @@ PL_DHashTableInit(PLDHashTable *table, const PLDHashTableOps *ops, void *data,
     if (!SizeOfEntryStore(capacity, entrySize, &nbytes))
         return false;   
 
-    table->entryStore = (char *) ops->allocTable(table,
-                                                 nbytes + ENTRY_STORE_EXTRA);
+    table->entryStore = (char *) ops->allocTable(table, nbytes);
     if (!table->entryStore)
         return false;
     memset(table->entryStore, 0, nbytes);
     METER(memset(&table->stats, 0, sizeof table->stats));
 
 #ifdef DEBUG
-    RECURSION_LEVEL(table) = 0;
+    table->recursionLevel = 0;
 #endif
 
     return true;
@@ -488,14 +479,13 @@ ChangeTable(PLDHashTable *table, int deltaLog2)
     if (!SizeOfEntryStore(newCapacity, entrySize, &nbytes))
         return false;   
 
-    newEntryStore = (char *) table->ops->allocTable(table,
-                                                    nbytes + ENTRY_STORE_EXTRA);
+    newEntryStore = (char *) table->ops->allocTable(table, nbytes);
     if (!newEntryStore)
         return false;
 
     
 #ifdef DEBUG
-    recursionLevel = RECURSION_LEVEL(table);
+    recursionLevel = table->recursionLevel;
 #endif
     table->hashShift = PL_DHASH_BITS - newLog2;
     table->removedCount = 0;
@@ -507,7 +497,7 @@ ChangeTable(PLDHashTable *table, int deltaLog2)
     table->entryStore = newEntryStore;
     moveEntry = table->ops->moveEntry;
 #ifdef DEBUG
-    RECURSION_LEVEL(table) = recursionLevel;
+    table->recursionLevel = recursionLevel;
 #endif
 
     
@@ -536,7 +526,7 @@ PL_DHashTableOperate(PLDHashTable *table, const void *key, PLDHashOperator op)
     uint32_t size;
     int deltaLog2;
 
-    MOZ_ASSERT(op == PL_DHASH_LOOKUP || RECURSION_LEVEL(table) == 0);
+    MOZ_ASSERT(op == PL_DHASH_LOOKUP || table->recursionLevel == 0);
     INCREMENT_RECURSION_LEVEL(table);
 
     keyHash = table->ops->hashKey(table, key);
@@ -637,7 +627,7 @@ PL_DHashTableRawRemove(PLDHashTable *table, PLDHashEntryHdr *entry)
 {
     PLDHashNumber keyHash;      
 
-    MOZ_ASSERT(RECURSION_LEVEL(table) != IMMUTABLE_RECURSION_LEVEL);
+    MOZ_ASSERT(table->recursionLevel != IMMUTABLE_RECURSION_LEVEL);
 
     NS_ASSERTION(PL_DHASH_ENTRY_IS_LIVE(entry),
                  "PL_DHASH_ENTRY_IS_LIVE(entry)");
@@ -685,7 +675,7 @@ PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg)
         entryAddr += entrySize;
     }
 
-    MOZ_ASSERT(!didRemove || RECURSION_LEVEL(table) == 1);
+    MOZ_ASSERT(!didRemove || table->recursionLevel == 1);
 
     
 
@@ -764,7 +754,7 @@ PL_DHashTableSizeOfIncludingThis(const PLDHashTable *table,
 void
 PL_DHashMarkTableImmutable(PLDHashTable *table)
 {
-    RECURSION_LEVEL(table) = IMMUTABLE_RECURSION_LEVEL;
+    table->recursionLevel = IMMUTABLE_RECURSION_LEVEL;
 }
 #endif
 

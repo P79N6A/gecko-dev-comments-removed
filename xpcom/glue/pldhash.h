@@ -186,6 +186,13 @@ struct PLDHashTable {
     const PLDHashTableOps *ops;         
     void                *data;          
     int16_t             hashShift;      
+    
+
+
+
+
+
+    uint16_t            recursionLevel; 
     uint32_t            entrySize;      
     uint32_t            entryCount;     
     uint32_t            removedCount;   
