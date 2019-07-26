@@ -188,6 +188,10 @@ private:
   nsCOMPtr<nsIRunnable> mRequestRunnable;
 
   
+  
+  nsIntRect mInvalidRect;
+
+  
   mozilla::image::Image* mImage;
 
   
