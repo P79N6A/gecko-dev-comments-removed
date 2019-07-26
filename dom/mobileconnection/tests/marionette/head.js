@@ -10,6 +10,7 @@ const SETTINGS_KEY_DATA_APN_SETTINGS = "ril.data.apnSettings";
 let Promise = Cu.import("resource://gre/modules/Promise.jsm").Promise;
 
 let _pendingEmulatorCmdCount = 0;
+let _pendingEmulatorShellCmdCount = 0;
 
 
 
@@ -42,6 +43,35 @@ function runEmulatorCmdSafe(aCommand) {
     } else {
       deferred.reject(aResult);
     }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function runEmulatorShellCmdSafe(aCommands) {
+  let deferred = Promise.defer();
+
+  ++_pendingEmulatorShellCmdCount;
+  runEmulatorShell(aCommands, function(aResult) {
+    --_pendingEmulatorShellCmdCount;
+
+    log("Emulator shell response: " + JSON.stringify(aResult));
+    deferred.resolve(aResult);
   });
 
   return deferred.promise;
@@ -434,6 +464,45 @@ function sendMMI(aMmi) {
   let request = mobileConnection.setRoamingPreference(aMode);
   return wrapDomRequestAsPromise(request)
     .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ function setPreferredNetworkType(aType) {
+  let request = mobileConnection.setPreferredNetworkType(aType);
+  return wrapDomRequestAsPromise(request)
+    .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+ function getPreferredNetworkType() {
+  let request = mobileConnection.getPreferredNetworkType();
+  return wrapDomRequestAsPromise(request)
+    .then(() => request.result, () => { throw request.error });
 }
 
 
@@ -859,7 +928,8 @@ function cleanUp() {
       finish();
     });
   }, function() {
-    return _pendingEmulatorCmdCount === 0;
+    return _pendingEmulatorCmdCount === 0 &&
+           _pendingEmulatorShellCmdCount === 0;
   });
 }
 
