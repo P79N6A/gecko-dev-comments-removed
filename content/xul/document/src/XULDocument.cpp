@@ -245,6 +245,10 @@ XULDocument::~XULDocument()
         NS_IF_RELEASE(kNC_attribute);
         NS_IF_RELEASE(kNC_value);
     }
+
+    if (mOffThreadCompileStringBuf) {
+      js_free(mOffThreadCompileStringBuf);
+    }
 }
 
 } 
@@ -3526,14 +3530,26 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
 
         
 
-        MOZ_ASSERT(!mOffThreadCompiling && mOffThreadCompileString.Length() == 0,
+        MOZ_ASSERT(!mOffThreadCompiling && (mOffThreadCompileStringLength == 0 &&
+                                            !mOffThreadCompileStringBuf),
                    "XULDocument can't load multiple scripts at once");
 
         rv = nsScriptLoader::ConvertToUTF16(channel, string, stringLen,
-                                            EmptyString(), this, mOffThreadCompileString);
+                                            EmptyString(), this,
+                                            mOffThreadCompileStringBuf,
+                                            mOffThreadCompileStringLength);
         if (NS_SUCCEEDED(rv)) {
-            rv = mCurrentScriptProto->Compile(mOffThreadCompileString.get(),
-                                              mOffThreadCompileString.Length(),
+            
+            
+            
+            
+            JS::SourceBufferHolder srcBuf(mOffThreadCompileStringBuf,
+                                          mOffThreadCompileStringLength,
+                                          JS::SourceBufferHolder::GiveOwnership);
+            mOffThreadCompileStringBuf = nullptr;
+            mOffThreadCompileStringLength = 0;
+
+            rv = mCurrentScriptProto->Compile(srcBuf,
                                               uri, 1, this,
                                               mCurrentPrototype,
                                               this);
@@ -3542,10 +3558,15 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
                 
                 
                 mOffThreadCompiling = true;
+                
+                
+                mOffThreadCompileStringBuf = srcBuf.take();
+                if (mOffThreadCompileStringBuf) {
+                  mOffThreadCompileStringLength = srcBuf.length();
+                }
                 BlockOnload();
                 return NS_OK;
             }
-            mOffThreadCompileString.Truncate();
         }
     }
 
@@ -3567,7 +3588,11 @@ XULDocument::OnScriptCompileComplete(JSScript* aScript, nsresult aStatus)
     }
 
     
-    mOffThreadCompileString.Truncate();
+    if (mOffThreadCompileStringBuf) {
+      js_free(mOffThreadCompileStringBuf);
+      mOffThreadCompileStringBuf = nullptr;
+      mOffThreadCompileStringLength = 0;
+    }
 
     
     

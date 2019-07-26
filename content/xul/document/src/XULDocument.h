@@ -460,7 +460,8 @@ protected:
 
 
 
-    nsString mOffThreadCompileString;
+    jschar* mOffThreadCompileStringBuf;
+    size_t mOffThreadCompileStringLength;
 
     
 
