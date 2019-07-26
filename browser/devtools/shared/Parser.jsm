@@ -93,6 +93,16 @@ Parser.prototype = {
     this._cache.clear();
   },
 
+  
+
+
+
+
+
+  clearSource: function P_clearSource(aUrl) {
+    this._cache.delete(aUrl);
+  },
+
   _cache: null
 };
 

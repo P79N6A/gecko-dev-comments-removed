@@ -274,9 +274,13 @@ let DebuggerView = {
 
 
 
-  _setEditorSource: function(aSource) {
+
+
+
+
+  _setEditorSource: function(aSource, aFlags={}) {
     
-    if (this._editorSource.url == aSource.url) {
+    if (this._editorSource.url == aSource.url && !aFlags.force) {
       return this._editorSource.promise;
     }
 
@@ -335,6 +339,8 @@ let DebuggerView = {
 
 
 
+
+
   setEditorLocation: function(aUrl, aLine = 0, aFlags = {}) {
     
     if (!this.Sources.containsValue(aUrl)) {
@@ -356,7 +362,7 @@ let DebuggerView = {
 
     
     
-    return this._setEditorSource(sourceForm).then(() => {
+    return this._setEditorSource(sourceForm, aFlags).then(() => {
       
       
       if (aLine < 1) {
