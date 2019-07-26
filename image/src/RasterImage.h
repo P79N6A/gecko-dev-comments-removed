@@ -154,9 +154,6 @@ public:
 #endif
 
   
-  
-  
-  RasterImage(imgStatusTracker* aStatusTracker = nullptr);
   virtual ~RasterImage();
 
   virtual nsresult StartAnimation();
@@ -736,6 +733,8 @@ private:
   bool StoringSourceData() const;
 
 protected:
+  RasterImage(imgStatusTracker* aStatusTracker = nullptr);
+
   bool ShouldAnimate();
 
   friend class ImageFactory;
@@ -774,4 +773,4 @@ class imgDecodeRequestor : public nsRunnable
 } 
 } 
 
-#endif 
+#endif
