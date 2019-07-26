@@ -794,7 +794,7 @@ nsXBLBinding::InstallImplementation()
     nsresult rv = mNextBinding->InstallImplementation();
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  
+
   
   if (AllowScripts())
     return mPrototypeBinding->InstallImplementation(this);
@@ -1397,7 +1397,7 @@ nsXBLBinding::GetFirstStyleBinding()
 }
 
 bool
-nsXBLBinding::ResolveAllFields(JSContext *cx, JSObject *obj) const
+nsXBLBinding::ResolveAllFields(JSContext *cx, JS::Handle<JSObject*> obj) const
 {
   if (!mPrototypeBinding->ResolveAllFields(cx, obj)) {
     return false;

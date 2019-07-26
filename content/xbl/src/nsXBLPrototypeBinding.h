@@ -101,14 +101,14 @@ public:
 
   
   
-  bool ResolveAllFields(JSContext* cx, JSObject* obj) const
+  bool ResolveAllFields(JSContext* cx, JS::Handle<JSObject*> obj) const
   {
     return !mImplementation || mImplementation->ResolveAllFields(cx, obj);
   }
 
   
   
-  void UndefineFields(JSContext* cx, JSObject* obj) const {
+  void UndefineFields(JSContext* cx, JS::Handle<JSObject*> obj) const {
     if (mImplementation) {
       mImplementation->UndefineFields(cx, obj);
     }
