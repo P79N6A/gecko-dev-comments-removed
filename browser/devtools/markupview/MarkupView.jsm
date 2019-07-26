@@ -1179,27 +1179,20 @@ ElementEditor.prototype = {
 
 
 
-
   _applyAttributes: function EE__applyAttributes(aValue, aAttrNode)
   {
-    
-    let dummyNode = this.doc.createElement("div");
-
-    let parseTag = (this.node.namespaceURI.match(/svg/i) ? "svg" :
-                   (this.node.namespaceURI.match(/mathml/i) ? "math" : "div"));
-    let parseText = "<" + parseTag + " " + aValue + "/>";
-    
-    dummyNode.innerHTML = parseText;
-    let parsedNode = dummyNode.firstChild;
-
-    let attrs = parsedNode.attributes;
+    let attrs = escapeAttributeValues(aValue);
 
     this.undo.startBatch();
 
-    for (let i = 0; i < attrs.length; i++) {
+    for (let attr of attrs) {
+      let attribute = {
+        name: attr.name,
+        value: attr.value
+      };
       
-      this._createAttribute(attrs[i], aAttrNode ? aAttrNode.nextSibling : null);
-      this._setAttribute(this.node, attrs[i].name, attrs[i].value);
+      this._createAttribute(attribute, aAttrNode ? aAttrNode.nextSibling : null);
+      this._setAttribute(this.node, attr.name, attr.value);
     }
 
     this.undo.endBatch();
@@ -1424,6 +1417,100 @@ DocumentWalker.prototype = {
   nextSibling: function DW_nextSibling() this.walker.nextSibling(),
 
   
+};
+
+
+
+
+
+
+
+
+
+function escapeAttributeValues(attr) {
+  let name = null;
+  let value = null;
+  let result = "";
+  let attributes = [];
+
+  while(attr.length > 0) {
+    let match;
+    let dirty = false;
+
+    
+    match = attr.match(/^["\s]+/);
+    if (match && match.length == 1) {
+      attr = attr.substr(match[0].length);
+    }
+
+    
+    if (!dirty) {
+      match = attr.match(/^([\w-]+)="/);
+      if (match && match.length == 2) {
+        if (name) {
+          
+          value = "";
+        } else {
+          name = match[1];
+          attr = attr.substr(match[0].length);
+        }
+        dirty = true;
+      }
+    }
+
+    
+    if (!dirty) {
+      match = attr.match(/^(.+?)"\s+[\w-]+="/);
+      if (match && match.length > 1) {
+        value = typeof match[1] == "undefined" ? match[2] : match[1];
+        attr = attr.substr(value.length);
+        value = simpleEscape(value);
+        dirty = true;
+      }
+    }
+
+    
+    if (!dirty && attr.indexOf("=\"") == -1) {
+      
+      if (attr.charAt(attr.length - 1) == '"') {
+        attr = attr.substr(0, attr.length - 1);
+      }
+
+      if (!name) {
+        name = attr;
+        value = "";
+      } else {
+        value = simpleEscape(attr);
+      }
+      attr = "";
+      dirty = true;
+    }
+
+    if (name !== null && value !== null) {
+      attributes.push({name: name, value: value});
+      name = value = null;
+    }
+
+    if (!dirty) {
+      
+      return attributes;
+    }
+  }
+  return attributes;
+}
+
+
+
+
+
+
+
+
+function simpleEscape(value) {
+  return value.replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&apos;");
 }
 
 
