@@ -46,10 +46,14 @@ public class FaviconsForURL {
 
         
         
-        if (index < 0) {
-            index++;
-            index = -index;
+        if (index >= 0) {
+            return mFavicons.get(index);
         }
+
+        
+        
+        index++;
+        index = -index;
         mFavicons.add(index, c);
 
         return c;

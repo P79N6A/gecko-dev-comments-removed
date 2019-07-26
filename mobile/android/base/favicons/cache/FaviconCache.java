@@ -163,18 +163,6 @@ public class FaviconCache {
 
 
 
-    private void upgradeReadToWrite() {
-        mTurnSemaphore.acquireUninterruptibly();
-        if (mOngoingReads.decrementAndGet() == 0) {
-            mWriteLock.release();
-        }
-        mWriteLock.acquireUninterruptibly();
-    }
-
-    
-
-
-
     private void finishRead() {
         if (mOngoingReads.decrementAndGet() == 0) {
             mWriteLock.release();
@@ -217,9 +205,6 @@ public class FaviconCache {
 
         startRead();
 
-        boolean isExpired = false;
-        boolean isAborting = false;
-
         try {
             
             
@@ -241,33 +226,21 @@ public class FaviconCache {
             final long failureDiff = System.currentTimeMillis() - failureTimestamp;
 
             
-            if (failureDiff > FAILURE_RETRY_MILLISECONDS) {
-                isExpired = true;
-            } else {
+            if (failureDiff < FAILURE_RETRY_MILLISECONDS) {
                 return true;
             }
         } catch (Exception unhandled) {
-            
-            finishRead();
-
-            
-            isAborting = true;
             Log.e(LOGTAG, "FaviconCache exception!", unhandled);
             return true;
         }  finally {
-            if (!isAborting) {
-                if (isExpired) {
-                    
-                    upgradeReadToWrite();
-                } else {
-                    finishRead();
-                }
-            }
+            finishRead();
         }
 
+        startWrite();
+
+        
         try {
-            recordRemoved(mBackingMap.get(faviconURL));
-            mBackingMap.remove(faviconURL);
+            recordRemoved(mBackingMap.remove(faviconURL));
             return false;
         } finally {
             finishWrite();
@@ -282,14 +255,12 @@ public class FaviconCache {
     public void putFailed(String faviconURL) {
         startWrite();
 
-        if (mBackingMap.containsKey(faviconURL)) {
-            recordRemoved(mBackingMap.get(faviconURL));
+        try {
+            FaviconsForURL container = new FaviconsForURL(0, true);
+            recordRemoved(mBackingMap.put(faviconURL, container));
+        } finally {
+            finishWrite();
         }
-
-        FaviconsForURL container = new FaviconsForURL(0, true);
-        mBackingMap.put(faviconURL, container);
-
-        finishWrite();
     }
 
     
@@ -309,9 +280,7 @@ public class FaviconCache {
             return null;
         }
 
-        boolean doingWrites = false;
         boolean shouldComputeColour = false;
-        boolean isAborting = false;
         boolean wasPermanent = false;
         FaviconsForURL container;
         final Bitmap newBitmap;
@@ -347,7 +316,7 @@ public class FaviconCache {
 
                 
                 if (cacheElement.mImageSize == targetSize) {
-                    setMostRecentlyUsed(cacheElement);
+                    setMostRecentlyUsedWithinRead(cacheElement);
                     return cacheElement.mFaviconPayload;
                 }
             } else {
@@ -374,11 +343,6 @@ public class FaviconCache {
             }
 
             
-            
-            
-            doingWrites = true;
-
-            
             Bitmap largestElementBitmap = cacheElement.mFaviconPayload;
             int largestSize = cacheElement.mImageSize;
 
@@ -401,24 +365,16 @@ public class FaviconCache {
                 }
             }
         } catch (Exception unhandled) {
-            isAborting = true;
-
             
-            finishRead();
 
             
             Log.e(LOGTAG, "FaviconCache exception!", unhandled);
             return null;
         } finally {
-            if (!isAborting) {
-                if (doingWrites) {
-                    upgradeReadToWrite();
-                } else {
-                    finishRead();
-                }
-            }
+            finishRead();
         }
 
+        startWrite();
         try {
             if (shouldComputeColour) {
                 
@@ -432,8 +388,9 @@ public class FaviconCache {
             FaviconCacheElement newElement = container.addSecondary(newBitmap, targetSize);
 
             if (!wasPermanent) {
-                setMostRecentlyUsed(newElement);
-                mCurrentSize.addAndGet(newElement.sizeOf());
+                if (setMostRecentlyUsedWithinWrite(newElement)) {
+                    mCurrentSize.addAndGet(newElement.sizeOf());
+                }
             }
         } finally {
             finishWrite();
@@ -463,7 +420,6 @@ public class FaviconCache {
                 finishRead();
                 return 0xFFFFFF;
             }
-
 
             return element.ensureDominantColor();
         } finally {
@@ -505,6 +461,7 @@ public class FaviconCache {
         if (favicon.getWidth() > mMaxCachedWidth) {
             return Bitmap.createScaledBitmap(favicon, mMaxCachedWidth, mMaxCachedWidth, true);
         }
+
         return favicon;
     }
 
@@ -514,11 +471,29 @@ public class FaviconCache {
 
 
 
-    private void setMostRecentlyUsed(FaviconCacheElement element) {
+
+    private boolean setMostRecentlyUsedWithinRead(FaviconCacheElement element) {
         mReorderingSemaphore.acquireUninterruptibly();
-        mOrdering.remove(element);
+        try {
+            boolean contained = mOrdering.remove(element);
+            mOrdering.offer(element);
+            return contained;
+        } finally {
+            mReorderingSemaphore.release();
+        }
+    }
+
+    
+
+
+
+
+
+
+    private boolean setMostRecentlyUsedWithinWrite(FaviconCacheElement element) {
+        boolean contained = mOrdering.remove(element);
         mOrdering.offer(element);
-        mReorderingSemaphore.release();
+        return contained;
     }
 
     
@@ -546,7 +521,7 @@ public class FaviconCache {
         startWrite();
         try {
             
-            setMostRecentlyUsed(newElement);
+            setMostRecentlyUsedWithinWrite(newElement);
 
             mCurrentSize.addAndGet(newElement.sizeOf());
 
@@ -584,42 +559,23 @@ public class FaviconCache {
             sizeGained += newElement.sizeOf();
         }
 
-        startRead();
-
-        boolean abortingRead = false;
-
-        
-        
-        mReorderingSemaphore.acquireUninterruptibly();
-        try {
-            if (!permanently) {
-                for (FaviconCacheElement newElement : toInsert.mFavicons) {
-                    mOrdering.offer(newElement);
-                }
-            }
-        } catch (Exception e) {
-            abortingRead = true;
-            mReorderingSemaphore.release();
-            finishRead();
-
-            Log.e(LOGTAG, "Favicon cache exception!", e);
-            return;
-        } finally {
-            if (!abortingRead) {
-                mReorderingSemaphore.release();
-                upgradeReadToWrite();
-            }
-        }
-
+        startWrite();
         try {
             if (permanently) {
                 mPermanentBackingMap.put(faviconURL, toInsert);
-            } else {
-                mCurrentSize.addAndGet(sizeGained);
-
-                
-                recordRemoved(mBackingMap.put(faviconURL, toInsert));
+                return;
             }
+
+            for (FaviconCacheElement newElement : toInsert.mFavicons) {
+                setMostRecentlyUsedWithinWrite(newElement);
+            }
+
+            
+            
+            mCurrentSize.addAndGet(sizeGained);
+
+            
+            recordRemoved(mBackingMap.put(faviconURL, toInsert));
         } finally {
             finishWrite();
         }
