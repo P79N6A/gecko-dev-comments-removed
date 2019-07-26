@@ -234,6 +234,7 @@ pref("accessibility.browsewithcaret_shortcut.enabled", false);
 
 
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
+pref("intl.charsetmenu.browser.static", "chrome://browser/locale/browser.properties");
 
 
 pref("browser.search.defaultenginename", "chrome://browser/locale/region.properties");
