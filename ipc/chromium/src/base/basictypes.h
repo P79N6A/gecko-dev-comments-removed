@@ -157,6 +157,15 @@ inline To implicit_cast(From const &f) {
 
 
 
+#  if defined(__GNUC__)
+#    define COMPILE_ASSERT_UNUSED_ATTRIBUTE __attribute__((unused))
+#  else
+#    define COMPILE_ASSERT_UNUSED_ATTRIBUTE
+#  endif
+
+
+
+
 
 
 
@@ -176,7 +185,8 @@ struct CompileAssert {
 };
 
 #define COMPILE_ASSERT(expr, msg) \
-  typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
+  typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1] \
+  COMPILE_ASSERT_UNUSED_ATTRIBUTE
 #endif
 
 
