@@ -82,14 +82,6 @@ function createBrandingFiles() {
 this.startup = function(window) {
   return Task.spawn(function () {
     
-    let deferredRegistry = Promise.defer();
-    function observeRegistryLoading() {
-      Services.obs.removeObserver(observeRegistryLoading, "webapps-registry-start");
-      deferredRegistry.resolve();
-    }
-    Services.obs.addObserver(observeRegistryLoading, "webapps-registry-start", false);
-
-    
     
     let deferredWindowLoad = Promise.defer();
     if (window.document && window.document.getElementById("content")) {
@@ -102,7 +94,7 @@ this.startup = function(window) {
     }
 
     
-    yield deferredRegistry.promise;
+    yield DOMApplicationRegistry.registryStarted;
 
     
     let appID = Ci.nsIScriptSecurityManager.NO_APP_ID;
