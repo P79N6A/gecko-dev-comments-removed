@@ -230,14 +230,13 @@ private:
   nsIntRect mPicture;
 
   
-  bool mHasVideo;
-  bool mHasAudio;
-
-  
   int mAudioCodec;
   
   int mVideoCodec;
 
+  
+  bool mHasVideo;
+  bool mHasAudio;
 };
 
 } 
