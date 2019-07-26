@@ -8,8 +8,8 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 let modules = {
   start: {
-    uri: "about:blank",
-    privileged: false
+    uri: "chrome://browser/content/Start.xul",
+    privileged: true
   },
   
   empty: {
@@ -36,9 +36,8 @@ let modules = {
     uri: "chrome://browser/content/aboutCertError.xhtml",
     privileged: true
   },
-  
   home: {
-    uri: "about:blank",
+    uri: "about:start",
     privileged: true
   }
 }
