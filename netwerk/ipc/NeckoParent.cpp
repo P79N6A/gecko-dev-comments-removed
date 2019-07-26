@@ -16,7 +16,6 @@
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/dom/network/TCPSocketParent.h"
 #include "mozilla/ipc/URIUtils.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/LoadContext.h"
 #include "nsPrintfCString.h"
 #include "nsHTMLDNSPrefetch.h"
@@ -31,15 +30,10 @@ using IPC::SerializedLoadContext;
 namespace mozilla {
 namespace net {
 
-static bool gDisableIPCSecurity = false;
-static const char kPrefDisableIPCSecurity[] = "network.disable.ipc.security";
-
 
 NeckoParent::NeckoParent()
 {
-  Preferences::AddBoolVarCache(&gDisableIPCSecurity, kPrefDisableIPCSecurity);
-
-  if (!gDisableIPCSecurity) {
+  if (UsingNeckoIPCSecurity()) {
     
     nsAutoString corePath, webPath;
     nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
@@ -76,7 +70,7 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
                                  uint32_t* aAppId,
                                  bool* aInBrowserElement)
 {
-  if (!gDisableIPCSecurity) {
+  if (UsingNeckoIPCSecurity()) {
     if (!aBrowser) {
       return "missing required PBrowser argument";
     }
@@ -102,7 +96,7 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
       if (tabParent->HasOwnApp()) {
         return "TabParent reports NECKO_NO_APP_ID but also is an app";
       }
-      if (!gDisableIPCSecurity && tabParent->IsBrowserElement()) {
+      if (UsingNeckoIPCSecurity() && tabParent->IsBrowserElement()) {
         
         
         
@@ -113,8 +107,8 @@ NeckoParent::GetValidatedAppInfo(const SerializedLoadContext& aSerialized,
   } else {
     
     
-    MOZ_ASSERT(gDisableIPCSecurity);
-    if (!gDisableIPCSecurity) {
+    MOZ_ASSERT(!UsingNeckoIPCSecurity());
+    if (UsingNeckoIPCSecurity()) {
       return "internal error";
     }
     if (aSerialized.IsNotNull()) {
@@ -310,7 +304,7 @@ NeckoParent::AllocPRemoteOpenFile(const URIParams& aURI,
   }
 
   
-  if (!gDisableIPCSecurity) {
+  if (UsingNeckoIPCSecurity()) {
     if (!aBrowser) {
       printf_stderr("NeckoParent::AllocPRemoteOpenFile: "
                     "FATAL error: missing TabParent: KILLING CHILD PROCESS\n");
