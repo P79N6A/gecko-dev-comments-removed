@@ -26,7 +26,7 @@ namespace js {
 
 
 class HashableValue {
-    RelocatableValue value;
+    EncapsulatedValue value;
 
   public:
     struct Hasher {
