@@ -295,6 +295,10 @@ function openLinkIn(url, where, params) {
     }
   }
 
+  
+  
+  w.focus();
+
   switch (where) {
   case "current":
     let flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
@@ -322,14 +326,6 @@ function openLinkIn(url, where, params) {
     break;
   }
 
-  
-  
-  
-  
-  var fm = Components.classes["@mozilla.org/focus-manager;1"].
-             getService(Components.interfaces.nsIFocusManager);
-  if (window == fm.activeWindow || w.isBlankPageURL(url))
-    w.focus();
   w.gBrowser.selectedBrowser.focus();
 
   if (!loadInBackground && w.isBlankPageURL(url))
