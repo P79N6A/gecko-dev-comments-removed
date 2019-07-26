@@ -749,27 +749,34 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
 
       if ((contentBottom > aReflowState.mComputedMaxHeight ||
-           contentBottom > aReflowState.ComputedHeight()) &&
-           aConfig.mBalanceColCount < INT32_MAX) {
+          contentBottom > aReflowState.ComputedHeight()) &&
+          aConfig.mBalanceColCount < INT32_MAX) {
         
         
         
         aColData.mShouldRevertToAuto = true;
-        break;
       }
 
       if (columnCount >= aConfig.mBalanceColCount) {
-        
-        aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
-        kidNextInFlow->AddStateBits(NS_FRAME_IS_DIRTY);
-        
-        
-        const nsFrameList& continuationColumns = mFrames.RemoveFramesAfter(child);
-        if (continuationColumns.NotEmpty()) {
-          SetOverflowFrames(PresContext(), continuationColumns);
+        if (contentBottom >= aReflowState.availableHeight) {
+          
+          aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
+          kidNextInFlow->AddStateBits(NS_FRAME_IS_DIRTY);
+          
+          
+          const nsFrameList& continuationColumns = mFrames.RemoveFramesAfter(child);
+          if (continuationColumns.NotEmpty()) {
+            SetOverflowFrames(PresContext(), continuationColumns);
+          }
+          child = nullptr;
+          break;
+        } else if (contentBottom > aReflowState.mComputedMaxHeight ||
+                   contentBottom > aReflowState.ComputedHeight()) {
+          aColData.mShouldRevertToAuto = true;
+        } else {
+          
+          allFit = false;
         }
-        child = nullptr;
-        break;
       }
     }
 
