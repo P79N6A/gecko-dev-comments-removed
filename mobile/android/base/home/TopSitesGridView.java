@@ -107,12 +107,19 @@ public class TopSitesGridView extends GridView {
 
                 
                 String url = HomeFragment.decodeUserEnteredUrl(item.getUrl());
+                int type = item.getType();
 
                 
                 
-                if (item.getType() != TopSites.TYPE_BLANK) {
+                if (type != TopSites.TYPE_BLANK) {
                     if (mUrlOpenListener != null) {
-                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.GRID_ITEM);
+                        final String method;
+                        if (type == TopSites.TYPE_SUGGESTED) {
+                            method = TelemetryContract.Method.SUGGESTION;
+                        } else {
+                            method = TelemetryContract.Method.GRID_ITEM;
+                        }
+                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, method);
 
                         mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
                     }
