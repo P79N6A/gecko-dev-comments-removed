@@ -1627,7 +1627,7 @@ DecompileArgumentFromStack(JSContext *cx, int formalIndex, char **res)
 
 
 
-    StackIter frameIter(cx);
+    ScriptFrameIter frameIter(cx);
     JS_ASSERT(!frameIter.done());
 
     

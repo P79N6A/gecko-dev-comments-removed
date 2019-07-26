@@ -397,7 +397,7 @@ class StackFrame
     friend class FrameRegs;
     friend class ContextStack;
     friend class StackSpace;
-    friend class StackIter;
+    friend class ScriptFrameIter;
     friend class CallObject;
     friend class ClonedBlockObject;
     friend class ArgumentsObject;
@@ -1585,7 +1585,7 @@ class ContextStack
     friend class GeneratorFrameGuard;
     void popGeneratorFrame(const GeneratorFrameGuard &gfg);
 
-    friend class StackIter;
+    friend class ScriptFrameIter;
 
   public:
     ContextStack(JSContext *cx);
@@ -1801,7 +1801,7 @@ struct DefaultHasher<AbstractFramePtr> {
 
 
 
-class StackIter
+class ScriptFrameIter
 {
   public:
     enum SavedOption { STOP_AT_SAVED, GO_THROUGH_SAVED };
@@ -1854,18 +1854,18 @@ class StackIter
     void startOnSegment(StackSegment *seg);
 
   public:
-    StackIter(JSContext *cx, SavedOption = STOP_AT_SAVED);
-    StackIter(JSRuntime *rt, StackSegment &seg);
-    StackIter(const StackIter &iter);
-    StackIter(const Data &data);
+    ScriptFrameIter(JSContext *cx, SavedOption = STOP_AT_SAVED);
+    ScriptFrameIter(JSRuntime *rt, StackSegment &seg);
+    ScriptFrameIter(const ScriptFrameIter &iter);
+    ScriptFrameIter(const Data &data);
 
     bool done() const { return data_.state_ == DONE; }
-    StackIter &operator++();
+    ScriptFrameIter &operator++();
 
     Data *copyData() const;
 
-    bool operator==(const StackIter &rhs) const;
-    bool operator!=(const StackIter &rhs) const { return !(*this == rhs); }
+    bool operator==(const ScriptFrameIter &rhs) const;
+    bool operator!=(const ScriptFrameIter &rhs) const { return !(*this == rhs); }
 
     JSCompartment *compartment() const;
 
@@ -1956,34 +1956,22 @@ class StackIter
 };
 
 
-class ScriptFrameIter : public StackIter
-{
-  public:
-    ScriptFrameIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
-      : StackIter(cx, opt) { }
-
-    ScriptFrameIter(const StackIter::Data &data)
-      : StackIter(data)
-    {}
-};
-
-
-class NonBuiltinScriptFrameIter : public StackIter
+class NonBuiltinScriptFrameIter : public ScriptFrameIter
 {
     void settle() {
         while (!done() && script()->selfHosted)
-            StackIter::operator++();
+            ScriptFrameIter::operator++();
     }
 
   public:
-    NonBuiltinScriptFrameIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
-        : StackIter(cx, opt) { settle(); }
+    NonBuiltinScriptFrameIter(JSContext *cx, ScriptFrameIter::SavedOption opt = ScriptFrameIter::STOP_AT_SAVED)
+        : ScriptFrameIter(cx, opt) { settle(); }
 
-    NonBuiltinScriptFrameIter(const StackIter::Data &data)
-      : StackIter(data)
+    NonBuiltinScriptFrameIter(const ScriptFrameIter::Data &data)
+      : ScriptFrameIter(data)
     {}
 
-    NonBuiltinScriptFrameIter &operator++() { StackIter::operator++(); settle(); return *this; }
+    NonBuiltinScriptFrameIter &operator++() { ScriptFrameIter::operator++(); settle(); return *this; }
 };
 
 

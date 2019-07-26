@@ -123,7 +123,7 @@ class ArgumentsObject : public JSObject
 
 
 
-    static ArgumentsObject *createUnexpected(JSContext *cx, StackIter &iter);
+    static ArgumentsObject *createUnexpected(JSContext *cx, ScriptFrameIter &iter);
     static ArgumentsObject *createUnexpected(JSContext *cx, AbstractFramePtr frame);
 #if defined(JS_ION)
     static ArgumentsObject *createForIon(JSContext *cx, ion::IonJSFrameLayout *frame,
