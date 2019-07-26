@@ -269,4 +269,11 @@ ArrayEnd(T (&arr)[N])
 
 #endif 
 
+
+
+
+
+
+#define MOZ_ARRAY_LENGTH(array) (sizeof(array)/sizeof((array)[0]))
+
 #endif  
