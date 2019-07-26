@@ -406,6 +406,11 @@ class ForkJoinContext : public ThreadSafeContext
     
     static bool initialize();
 
+    
+    static size_t offsetOfWorker() {
+        return offsetof(ForkJoinContext, worker_);
+    }
+
   private:
     friend class AutoSetForkJoinContext;
 

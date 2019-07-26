@@ -56,6 +56,8 @@ class CompileRuntime
     const void *addressOfInterruptPar();
 #endif
 
+    const void *addressOfThreadPool();
+
     const JitRuntime *jitRuntime();
 
     

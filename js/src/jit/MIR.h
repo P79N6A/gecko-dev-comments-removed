@@ -7490,6 +7490,33 @@ class MForkJoinContext
 };
 
 
+
+class MForkJoinGetSlice
+  : public MUnaryInstruction
+{
+    MForkJoinGetSlice(MDefinition *cx)
+      : MUnaryInstruction(cx)
+    {
+        setResultType(MIRType_Int32);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ForkJoinGetSlice);
+
+    static MForkJoinGetSlice *New(TempAllocator &alloc, MDefinition *cx) {
+        return new(alloc) MForkJoinGetSlice(cx);
+    }
+
+    MDefinition *forkJoinContext() {
+        return getOperand(0);
+    }
+
+    bool possiblyCalls() const {
+        return true;
+    }
+};
+
+
 class MStoreSlot
   : public MBinaryInstruction,
     public MixPolicy<ObjectPolicy<0>, NoFloatPolicy<1> >

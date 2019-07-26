@@ -9,7 +9,10 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 
+#include "jsmath.h"
+
 #include "jit/IonFrames.h"
+#include "jit/IonLinker.h"
 #include "jit/JitCompartment.h"
 #include "jit/RangeAnalysis.h"
 
@@ -1766,6 +1769,178 @@ CodeGeneratorX86Shared::visitNegF(LNegF *ins)
 
     masm.negateFloat(input);
     return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitForkJoinGetSlice(LForkJoinGetSlice *ins)
+{
+    MOZ_ASSERT(gen->info().executionMode() == ParallelExecution);
+    MOZ_ASSERT(ToRegister(ins->forkJoinContext()) == ForkJoinGetSliceReg_cx);
+    MOZ_ASSERT(ToRegister(ins->temp1()) == eax);
+    MOZ_ASSERT(ToRegister(ins->temp2()) == edx);
+    MOZ_ASSERT(ToRegister(ins->temp3()) == ForkJoinGetSliceReg_temp0);
+    MOZ_ASSERT(ToRegister(ins->temp4()) == ForkJoinGetSliceReg_temp1);
+    MOZ_ASSERT(ToRegister(ins->output()) == ForkJoinGetSliceReg_output);
+
+    masm.call(gen->jitRuntime()->forkJoinGetSliceStub());
+    return true;
+}
+
+JitCode *
+JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
+{
+#ifdef JS_THREADSAFE
+    MacroAssembler masm(cx);
+
+    
+    
+    Register cxReg = ForkJoinGetSliceReg_cx, worker = cxReg;
+    Register pool = ForkJoinGetSliceReg_temp0;
+    Register bounds = ForkJoinGetSliceReg_temp1;
+    Register output = ForkJoinGetSliceReg_output;
+
+    MOZ_ASSERT(worker != eax && worker != edx);
+    MOZ_ASSERT(pool != eax && pool != edx);
+    MOZ_ASSERT(bounds != eax && bounds != edx);
+    MOZ_ASSERT(output != eax && output != edx);
+
+    Label stealWork, noMoreWork, gotSlice;
+    Operand workerSliceBounds(Address(worker, ThreadPoolWorker::offsetOfSliceBounds()));
+
+    
+    masm.push(cxReg);
+    masm.loadPtr(Address(cxReg, ForkJoinContext::offsetOfWorker()), worker);
+
+    
+    masm.loadThreadPool(pool);
+
+    {
+        
+        Label getOwnSliceLoopHead;
+        masm.bind(&getOwnSliceLoopHead);
+
+        
+        masm.loadSliceBounds(worker, bounds);
+
+        
+        
+        
+        
+        masm.move32(bounds, output);
+        masm.shrl(Imm32(16), output);
+
+        
+        masm.branch16(Assembler::Equal, output, bounds, &stealWork);
+
+        
+        masm.move32(bounds, edx);
+        masm.add32(Imm32(0x10000), edx);
+        masm.move32(bounds, eax);
+        masm.atomic_cmpxchg32(edx, workerSliceBounds, eax);
+        masm.j(Assembler::NonZero, &getOwnSliceLoopHead);
+
+        
+        masm.jump(&gotSlice);
+    }
+
+    
+    masm.bind(&stealWork);
+
+    
+    
+    if (cx->runtime()->threadPool.workStealing()) {
+        Label stealWorkLoopHead;
+        masm.bind(&stealWorkLoopHead);
+
+        
+        masm.branch32(Assembler::Equal,
+                      Address(pool, ThreadPool::offsetOfPendingSlices()),
+                      Imm32(0), &noMoreWork);
+
+        
+        
+        {
+            
+            masm.loadPtr(Address(StackPointer, 0), cxReg);
+            masm.loadPtr(Address(cxReg, ForkJoinContext::offsetOfWorker()), worker);
+
+            
+            
+            Address rngState(worker, ThreadPoolWorker::offsetOfSchedulerRNGState());
+            masm.load32(rngState, eax);
+            masm.move32(eax, edx);
+            masm.shll(Imm32(ThreadPoolWorker::XORSHIFT_A), eax);
+            masm.xor32(edx, eax);
+            masm.move32(eax, edx);
+            masm.shrl(Imm32(ThreadPoolWorker::XORSHIFT_B), eax);
+            masm.xor32(edx, eax);
+            masm.move32(eax, edx);
+            masm.shll(Imm32(ThreadPoolWorker::XORSHIFT_C), eax);
+            masm.xor32(edx, eax);
+            masm.store32(eax, rngState);
+
+            
+            
+            masm.move32(Imm32(0), edx);
+            masm.move32(Imm32(cx->runtime()->threadPool.numWorkers()), output);
+            masm.udiv(output);
+        }
+
+        
+        masm.loadPtr(Address(pool, ThreadPool::offsetOfWorkers()), worker);
+        masm.loadPtr(BaseIndex(worker, edx, ScalePointer), worker);
+
+        
+        Label stealSliceFromWorkerLoopHead;
+        masm.bind(&stealSliceFromWorkerLoopHead);
+
+        
+        masm.loadSliceBounds(worker, bounds);
+        masm.move32(bounds, eax);
+        masm.shrl(Imm32(16), eax);
+
+        
+        masm.branch16(Assembler::Equal, eax, bounds, &stealWorkLoopHead);
+
+        
+        masm.move32(bounds, output);
+        masm.sub32(Imm32(1), output);
+        masm.move32(bounds, eax);
+        masm.atomic_cmpxchg32(output, workerSliceBounds, eax);
+        masm.j(Assembler::NonZero, &stealSliceFromWorkerLoopHead);
+
+        
+#ifdef DEBUG
+        masm.atomic_inc32(Operand(Address(pool, ThreadPool::offsetOfStolenSlices())));
+#endif
+        
+        masm.movzwl(output, output);
+    }
+
+    
+    
+    masm.bind(&gotSlice);
+    masm.atomic_dec32(Operand(Address(pool, ThreadPool::offsetOfPendingSlices())));
+    masm.pop(cxReg);
+    masm.ret();
+
+    
+    masm.bind(&noMoreWork);
+    masm.move32(Imm32(-1), output);
+    masm.pop(cxReg);
+    masm.ret();
+
+    Linker linker(masm);
+    JitCode *code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);
+
+#ifdef JS_ION_PERF
+    writePerfSpewerJitCodeProfile(code, "ForkJoinGetSliceStub");
+#endif
+
+    return code;
+#else
+    return nullptr;
+#endif 
 }
 
 } 

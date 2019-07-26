@@ -146,6 +146,8 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
     if (native == intrinsic_ShouldForceSequential ||
         native == intrinsic_InParallelSection)
         return inlineForceSequentialOrInParallelSection(callInfo);
+    if (native == intrinsic_ForkJoinGetSlice)
+        return inlineForkJoinGetSlice(callInfo);
 
     
     if (native == intrinsic_IsCallable)
@@ -1384,6 +1386,40 @@ IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
         current->push(ins);
         return InliningStatus_Inlined;
       }
+    }
+
+    MOZ_ASSUME_UNREACHABLE("Invalid execution mode");
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineForkJoinGetSlice(CallInfo &callInfo)
+{
+    if (info().executionMode() != ParallelExecution)
+        return InliningStatus_NotInlined;
+
+    
+    
+    MOZ_ASSERT(callInfo.argc() == 1 && !callInfo.constructing());
+    MOZ_ASSERT(callInfo.getArg(0)->type() == MIRType_Int32);
+    MOZ_ASSERT(getInlineReturnType() == MIRType_Int32);
+
+    callInfo.setImplicitlyUsedUnchecked();
+
+    switch (info().executionMode()) {
+      case SequentialExecution:
+      case DefinitePropertiesAnalysis:
+        
+        current->push(callInfo.getArg(0));
+        return InliningStatus_Inlined;
+      case ParallelExecution:
+        if (LIRGenerator::allowInlineForkJoinGetSlice()) {
+            MForkJoinGetSlice *getSlice = MForkJoinGetSlice::New(alloc(),
+                                                                 graph().forkJoinContext());
+            current->add(getSlice);
+            current->push(getSlice);
+            return InliningStatus_Inlined;
+        }
+        return InliningStatus_NotInlined;
     }
 
     MOZ_ASSUME_UNREACHABLE("Invalid execution mode");

@@ -190,6 +190,9 @@ class JitRuntime
     JitCode *debugTrapHandler_;
 
     
+    JitCode *forkJoinGetSliceStub_;
+
+    
     typedef WeakCache<const VMFunction *, JitCode *> VMWrapperMap;
     VMWrapperMap *functionWrappers_;
 
@@ -219,6 +222,7 @@ class JitRuntime
     JitCode *generateInvalidator(JSContext *cx);
     JitCode *generatePreBarrier(JSContext *cx, MIRType type);
     JitCode *generateDebugTrapHandler(JSContext *cx);
+    JitCode *generateForkJoinGetSliceStub(JSContext *cx);
     JitCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
 
     JSC::ExecutableAllocator *createIonAlloc(JSContext *cx);
@@ -320,6 +324,11 @@ class JitRuntime
 
     JitCode *shapePreBarrier() const {
         return shapePreBarrier_;
+    }
+
+    bool ensureForkJoinGetSliceStubExists(JSContext *cx);
+    JitCode *forkJoinGetSliceStub() const {
+        return forkJoinGetSliceStub_;
     }
 };
 

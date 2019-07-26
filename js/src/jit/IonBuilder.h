@@ -675,6 +675,9 @@ class IonBuilder : public MIRGenerator
     InliningStatus inlineUnsafeGetReservedSlot(CallInfo &callInfo);
 
     
+    InliningStatus inlineForkJoinGetSlice(CallInfo &callInfo);
+
+    
     InliningStatus inlineIsCallable(CallInfo &callInfo);
     InliningStatus inlineHaveSameClass(CallInfo &callInfo);
     InliningStatus inlineToObject(CallInfo &callInfo);
