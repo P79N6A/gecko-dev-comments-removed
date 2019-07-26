@@ -1836,9 +1836,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
         }
         
         if (!filename.match(/[\\\/]/)) {
-          let tempfile = yield Downloads.getPreferredDownloadsDirectory();
-          tempfile.append(filename);
-          filename = tempfile.path;
+          let preferredDir = yield Downloads.getPreferredDownloadsDirectory();
+          filename = OS.Path.join(preferredDir, filename);
         }
 
         try {
