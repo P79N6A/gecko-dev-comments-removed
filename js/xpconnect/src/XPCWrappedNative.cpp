@@ -2075,7 +2075,10 @@ XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
     
     
     
-    if (NeedsSOW()) {
+    
+    
+    
+    if (NeedsSOW() && xpc::AllowXBLScope(js::GetContextCompartment(cx))) {
         wrapper = xpc::WrapperFactory::WrapSOWObject(cx, flat);
         if (!wrapper)
             return NULL;

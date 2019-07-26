@@ -393,10 +393,12 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
 
     
     
+    
     } else if (IsComponentsObject(obj) && !AccessCheck::isChrome(target)) {
         wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                     ComponentsObjectPolicy>::singleton;
     } else if (AccessCheck::needsSystemOnlyWrapper(obj) &&
+               xpc::AllowXBLScope(target) &&
                !(targetIsChrome || (targetSubsumesOrigin && nsContentUtils::IsCallerXBL())))
     {
         wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
@@ -563,6 +565,11 @@ WrapperFactory::WrapSOWObject(JSContext *cx, JSObject *objArg)
 {
     RootedObject obj(cx, objArg);
     RootedObject proto(cx);
+
+    
+    
+    
+    MOZ_ASSERT(xpc::AllowXBLScope(js::GetContextCompartment(cx)));
     if (!JS_GetPrototype(cx, obj, proto.address()))
         return NULL;
     JSObject *wrapperObj =
