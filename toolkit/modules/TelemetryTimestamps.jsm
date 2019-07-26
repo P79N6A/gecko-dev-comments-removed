@@ -47,6 +47,6 @@ this.TelemetryTimestamps = {
 
   get: function TT_get() {
     
-    return JSON.parse(JSON.stringify(timeStamps));
+    return Cu.cloneInto(timeStamps, {});
   }
 };
