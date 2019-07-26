@@ -11,6 +11,7 @@
 #include "nsImageLoadingContent.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsITextControlElement.h"
+#include "nsITimer.h"
 #include "nsIPhonetic.h"
 #include "nsIDOMNSEditableElement.h"
 #include "nsCOMPtr.h"
@@ -82,6 +83,7 @@ class HTMLInputElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
                                    public nsITextControlElement,
                                    public nsIPhonetic,
                                    public nsIDOMNSEditableElement,
+                                   public nsITimerCallback,
                                    public nsIConstraintValidation
 {
 public:
@@ -224,6 +226,14 @@ public:
   static void DestroyUploadLastDir();
 
   void MaybeLoadImage();
+
+  
+  NS_DECL_NSITIMERCALLBACK
+
+  
+  
+  
+  using nsImageLoadingContent::Notify;
 
   
   bool     IsTooLong();
@@ -391,6 +401,17 @@ public:
   nsDOMFileList* GetFiles();
 
   void OpenDirectoryPicker(ErrorResult& aRv);
+
+  void ResetProgressCounters()
+  {
+    mFileListProgress = 0;
+    mLastFileListProgress = 0;
+  }
+  void StartProgressEventTimer();
+  void MaybeDispatchProgressEvent(bool aFinalProgress);
+  void DispatchProgressEvent(const nsAString& aType,
+                             bool aLengthComputable,
+                             uint64_t aLoaded, uint64_t aTotal);
 
   
   void SetFormAction(const nsAString& aValue, ErrorResult& aRv)
@@ -647,6 +668,13 @@ public:
   
 
   
+
+  void SetFileListProgress(uint32_t mFileCount)
+  {
+    MOZ_ASSERT(!NS_IsMainThread(),
+               "Why are we calling this on the main thread?");
+    mFileListProgress = mFileCount;
+  }
 
 protected:
   virtual JSObject* WrapNode(JSContext* aCx,
@@ -1145,6 +1173,13 @@ protected:
   Decimal mRangeThumbDragStartValue;
 
   
+
+
+
+
+  nsCOMPtr<nsITimer> mProgressTimer;
+
+  
   static const Decimal kStepScaleFactorDate;
   static const Decimal kStepScaleFactorNumberRange;
   static const Decimal kStepScaleFactorTime;
@@ -1158,6 +1193,19 @@ protected:
 
   
   static const Decimal kStepAny;
+
+  
+
+
+
+
+  mozilla::Atomic<uint32_t> mFileListProgress;
+
+  
+
+
+
+  uint32_t mLastFileListProgress;
 
   
 
@@ -1179,6 +1227,7 @@ protected:
   bool                     mCanShowInvalidUI    : 1;
   bool                     mHasRange            : 1;
   bool                     mIsDraggingRange     : 1;
+  bool                     mProgressTimerIsActive : 1;
 
 private:
 
