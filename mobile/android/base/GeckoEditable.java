@@ -82,8 +82,8 @@ final class GeckoEditable
     private GeckoEditableListener mListener;
     private int mSavedSelectionStart;
     private volatile int mGeckoUpdateSeqno;
-    private int mUIUpdateSeqno;
-    private int mLastUIUpdateSeqno;
+    private int mIcUpdateSeqno;
+    private int mLastIcUpdateSeqno;
     private boolean mUpdateGecko;
     private boolean mFocused;
 
@@ -171,7 +171,7 @@ final class GeckoEditable
 
         void offer(Action action) {
             if (DEBUG) {
-                GeckoApp.assertOnUiThread();
+                assertOnIcThread();
             }
             
 
@@ -204,7 +204,7 @@ final class GeckoEditable
                         GeckoEvent.IME_ACKNOWLEDGE_FOCUS));
                 break;
             }
-            ++mUIUpdateSeqno;
+            ++mIcUpdateSeqno;
         }
 
         void poll() {
@@ -237,7 +237,7 @@ final class GeckoEditable
 
         void syncWithGecko() {
             if (DEBUG) {
-                GeckoApp.assertOnUiThread();
+                assertOnIcThread();
             }
             if (mFocused && !mActions.isEmpty()) {
                 mActionsActive.acquireUninterruptibly();
@@ -267,8 +267,10 @@ final class GeckoEditable
         mListener = GeckoInputConnection.create(v, this);
     }
 
-    private static void geckoPostToUI(Runnable runnable) {
-        GeckoApp.mAppContext.mMainHandler.post(runnable);
+    private void assertOnIcThread() {
+    }
+
+    private void geckoPostToIc(Runnable runnable) {
     }
 
     private void geckoUpdateGecko(final boolean force) {
@@ -277,11 +279,11 @@ final class GeckoEditable
 
         final int seqnoWhenPosted = mGeckoUpdateSeqno;
 
-        geckoPostToUI(new Runnable() {
+        geckoPostToIc(new Runnable() {
             public void run() {
                 mActionQueue.syncWithGecko();
                 if (seqnoWhenPosted == mGeckoUpdateSeqno) {
-                    uiUpdateGecko(force);
+                    icUpdateGecko(force);
                 }
             }
         });
@@ -295,19 +297,19 @@ final class GeckoEditable
         }
     }
 
-    private void uiUpdateGecko(boolean force) {
+    private void icUpdateGecko(boolean force) {
 
-        if (!force && mUIUpdateSeqno == mLastUIUpdateSeqno) {
+        if (!force && mIcUpdateSeqno == mLastIcUpdateSeqno) {
             if (DEBUG) {
-                Log.d(LOGTAG, "uiUpdateGecko() skipped");
+                Log.d(LOGTAG, "icUpdateGecko() skipped");
             }
             return;
         }
-        mLastUIUpdateSeqno = mUIUpdateSeqno;
+        mLastIcUpdateSeqno = mIcUpdateSeqno;
         mActionQueue.syncWithGecko();
 
         if (DEBUG) {
-            Log.d(LOGTAG, "uiUpdateGecko()");
+            Log.d(LOGTAG, "icUpdateGecko()");
         }
 
         final int selStart = mText.getSpanStart(Selection.SELECTION_START);
@@ -430,7 +432,7 @@ final class GeckoEditable
     public void sendEvent(GeckoEvent event) {
         if (DEBUG) {
             
-            GeckoApp.assertOnUiThread();
+            assertOnIcThread();
         }
         
 
@@ -448,7 +450,7 @@ final class GeckoEditable
     public Editable getEditable() {
         if (DEBUG) {
             
-            GeckoApp.assertOnUiThread();
+            assertOnIcThread();
         }
         return mProxy;
     }
@@ -457,10 +459,10 @@ final class GeckoEditable
     public void setUpdateGecko(boolean update) {
         if (DEBUG) {
             
-            GeckoApp.assertOnUiThread();
+            assertOnIcThread();
         }
         if (update) {
-            uiUpdateGecko(false);
+            icUpdateGecko(false);
         }
         mUpdateGecko = update;
     }
@@ -488,7 +490,7 @@ final class GeckoEditable
                 Log.w(LOGTAG, "IME sync error: selection out of bounds");
             }
             Selection.setSelection(mText, selStart, selEnd);
-            geckoPostToUI(new Runnable() {
+            geckoPostToIc(new Runnable() {
                 public void run() {
                     mActionQueue.syncWithGecko();
                     final int start = Selection.getSelectionStart(mText);
@@ -530,7 +532,7 @@ final class GeckoEditable
             }
             return;
         }
-        geckoPostToUI(new Runnable() {
+        geckoPostToIc(new Runnable() {
             public void run() {
                 if (type == NOTIFY_IME_FOCUSCHANGE) {
                     if (state == IME_FOCUS_STATE_BLUR) {
@@ -555,7 +557,7 @@ final class GeckoEditable
                           final String modeHint, final String actionHint) {
         
         
-        geckoPostToUI(new Runnable() {
+        geckoPostToIc(new Runnable() {
             public void run() {
                 
                 mActionQueue.syncWithGecko();
@@ -592,7 +594,7 @@ final class GeckoEditable
             return;
         }
 
-        geckoPostToUI(new Runnable() {
+        geckoPostToIc(new Runnable() {
             public void run() {
                 mActionQueue.syncWithGecko();
                 
@@ -689,7 +691,7 @@ final class GeckoEditable
         } else {
             geckoReplaceText(start, oldEnd, mChangedText);
         }
-        geckoPostToUI(new Runnable() {
+        geckoPostToIc(new Runnable() {
             public void run() {
                 mListener.onTextChange(text, start, oldEnd, newEnd);
             }
@@ -723,7 +725,7 @@ final class GeckoEditable
         final Class<?> methodInterface = method.getDeclaringClass();
         if (DEBUG) {
             
-            GeckoApp.assertOnUiThread();
+            assertOnIcThread();
         }
         if (methodInterface == Editable.class ||
                 methodInterface == Appendable.class ||
