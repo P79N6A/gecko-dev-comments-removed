@@ -164,7 +164,7 @@ nsWindow::nsWindow() :
     mIMEComposing(false),
     mIMEMaskSelectionUpdate(false),
     mIMEMaskTextUpdate(false),
-    mIMEMaskEvents(true) 
+    mIMEMaskEventsCount(1) 
 {
 }
 
@@ -1883,10 +1883,11 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
     nsRefPtr<nsWindow> kungFuDeathGrip(this);
 
     if (ae->Action() == AndroidGeckoEvent::IME_ACKNOWLEDGE_FOCUS) {
-        mIMEMaskEvents = false;
+        MOZ_ASSERT(mIMEMaskEventsCount > 0);
+        mIMEMaskEventsCount--;
         return;
     }
-    if (mIMEMaskEvents) {
+    if (mIMEMaskEventsCount > 0) {
         
         if (ae->Action() == AndroidGeckoEvent::IME_SYNCHRONIZE ||
             ae->Action() == AndroidGeckoEvent::IME_REPLACE_TEXT) {
@@ -2184,7 +2185,7 @@ nsWindow::OnIMEFocusChange(bool aFocus)
         
         
         
-        mIMEMaskEvents = true;
+        mIMEMaskEventsCount++;
     }
 
     AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_FOCUSCHANGE,
