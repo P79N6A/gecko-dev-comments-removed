@@ -62,24 +62,64 @@ SessionStore.prototype = {
     this._loadState = STATE_STOPPED;
 
     try {
+      let shutdownWasUnclean = false;
+
       if (this._sessionFileBackup.exists()) {
-        this._shouldRestore = true;
         this._sessionFileBackup.remove(false);
+        shutdownWasUnclean = true;
       }
 
       if (this._sessionFile.exists()) {
-        
-        this._lastSessionTime = this._sessionFile.lastModifiedTime;
-        let delta = Date.now() - this._lastSessionTime;
-        let timeout = Services.prefs.getIntPref("browser.sessionstore.resume_from_crash_timeout");
-        if (delta > (timeout * 60000))
-          this._shouldRestore = false;
-
         this._sessionFile.copyTo(null, this._sessionFileBackup.leafName);
+
+        switch(Services.metro.previousExecutionState) {
+          
+          case 0:
+            
+            this._lastSessionTime = this._sessionFile.lastModifiedTime;
+            let delta = Date.now() - this._lastSessionTime;
+            let timeout =
+              Services.prefs.getIntPref(
+                  "browser.sessionstore.resume_from_crash_timeout");
+            this._shouldRestore = shutdownWasUnclean
+                                && (delta < (timeout * 60000));
+            break;
+          
+          case 1:
+            
+            Components.utils.reportError("SessionRestore.init called with "
+                                       + "previous execution state 'Running'");
+            this._shouldRestore = true;
+            break;
+          
+          case 2:
+            
+            Components.utils.reportError("SessionRestore.init called with "
+                                       + "previous execution state 'Suspended'");
+            this._shouldRestore = true;
+            break;
+          
+          case 3:
+            
+            
+            
+            
+            this._shouldRestore = true;
+            break;
+          
+          case 4:
+            
+            
+            
+            
+            this._shouldRestore = false;
+            break;
+        }
       }
 
-      if (!this._sessionCache.exists() || !this._sessionCache.isDirectory())
+      if (!this._sessionCache.exists() || !this._sessionCache.isDirectory()) {
         this._sessionCache.create(Ci.nsIFile.DIRECTORY_TYPE, 0700);
+      }
     } catch (ex) {
       Cu.reportError(ex); 
     }
