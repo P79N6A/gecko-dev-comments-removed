@@ -96,7 +96,7 @@ public:
 
 
   LibHandle(const char *path)
-  : directRefCnt(0), path(path ? strdup(path) : NULL), mappable(NULL) { }
+  : directRefCnt(0), path(path ? strdup(path) : nullptr), mappable(nullptr) { }
 
   
 
@@ -287,7 +287,7 @@ protected:
 
   void Forget()
   {
-    dlhandle = NULL;
+    dlhandle = nullptr;
   }
 
 private:
@@ -381,7 +381,7 @@ public:
 
 
   mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags,
-                                        LibHandle *parent = NULL);
+                                        LibHandle *parent = nullptr);
 
   
 
@@ -575,7 +575,7 @@ private:
 
       bool operator<(const iterator &other) const
       {
-        if (other.item == NULL)
+        if (other.item == nullptr)
           return item ? true : false;
         MOZ_CRASH("DebuggerHelper::iterator::operator< called with something else than DebuggerHelper::end()");
       }
@@ -589,12 +589,12 @@ private:
 
     iterator begin() const
     {
-      return iterator(dbg ? dbg->r_map : NULL);
+      return iterator(dbg ? dbg->r_map : nullptr);
     }
 
     iterator end() const
     {
-      return iterator(NULL);
+      return iterator(nullptr);
     }
 
   private:

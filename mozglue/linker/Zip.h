@@ -39,7 +39,7 @@ public:
 
 
   static mozilla::TemporaryRef<Zip> Create(void *buffer, size_t size) {
-    return Create(NULL, buffer, size);
+    return Create(nullptr, buffer, size);
   }
 
 private:
@@ -74,7 +74,7 @@ public:
     
 
 
-    Stream(): compressedBuf(NULL), compressedSize(0), uncompressedSize(0)
+    Stream(): compressedBuf(nullptr), compressedSize(0), uncompressedSize(0)
             , type(STORE) { }
 
     
@@ -178,7 +178,7 @@ public:
       const T *ret = static_cast<const T *>(buf);
       if (ret->signature == T::magic)
         return ret;
-      return NULL;
+      return nullptr;
     }
 
     SignedEntity(uint32_t magic): signature(magic) { }
