@@ -2441,10 +2441,6 @@ public:
       DispatchBluetoothReply(mRunnable, v, replyError);
       return NS_ERROR_FAILURE;
     }
-    
-    v = true;
-    DispatchBluetoothReply(mRunnable, v, replyError);
-
     return NS_OK;
   }
 
