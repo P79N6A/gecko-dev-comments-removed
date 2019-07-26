@@ -47,7 +47,7 @@ class SVGFilterElement;
 
 
 
-class NS_STACK_CLASS nsSVGFilterInstance
+class nsSVGFilterInstance
 {
 public:
   

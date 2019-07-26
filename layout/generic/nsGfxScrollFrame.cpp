@@ -160,7 +160,7 @@ nsHTMLScrollFrame::GetType() const
 
 
 
-struct ScrollReflowState {
+struct MOZ_STACK_CLASS ScrollReflowState {
   const nsHTMLReflowState& mReflowState;
   nsBoxLayoutState mBoxState;
   nsGfxScrollFrameInner::ScrollbarStyles mStyles;

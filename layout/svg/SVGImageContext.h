@@ -13,7 +13,7 @@ namespace mozilla {
 
 
 
-class NS_STACK_CLASS SVGImageContext
+class MOZ_STACK_CLASS SVGImageContext
 {
 public:
   SVGImageContext(SVGPreserveAspectRatio aPreserveAspectRatio)

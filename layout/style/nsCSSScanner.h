@@ -99,7 +99,7 @@ enum nsCSSTokenType {
 
 
 struct nsCSSToken {
-  nsAutoString    mIdent NS_OKONHEAP;
+  nsAutoString    mIdent;
   float           mNumber;
   int32_t         mInteger;
   int32_t         mInteger2;

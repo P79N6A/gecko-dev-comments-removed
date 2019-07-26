@@ -25,7 +25,7 @@ class Loader;
 
 
 
-class NS_STACK_CLASS ErrorReporter {
+class MOZ_STACK_CLASS ErrorReporter {
 public:
   ErrorReporter(const nsCSSScanner &aScanner,
                 const nsCSSStyleSheet *aSheet,

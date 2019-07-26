@@ -19,7 +19,7 @@
 
 
 
-class NS_STACK_CLASS ChildIterator
+class MOZ_STACK_CLASS ChildIterator
 {
 protected:
   nsIContent* mContent;

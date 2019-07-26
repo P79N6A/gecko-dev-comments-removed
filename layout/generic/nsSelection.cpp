@@ -132,7 +132,7 @@ struct CachedOffsetForFrame {
 static RangeData sEmptyData(nullptr);
 
 
-class NS_STACK_CLASS nsSelectionBatcher MOZ_FINAL
+class MOZ_STACK_CLASS nsSelectionBatcher MOZ_FINAL
 {
 private:
   nsCOMPtr<nsISelectionPrivate> mSelection;

@@ -162,7 +162,7 @@ MarginComponentForSide(nsMargin& aMargin, Side aSide)
 }
 
 
-NS_STACK_CLASS class FlexboxAxisTracker {
+class MOZ_STACK_CLASS FlexboxAxisTracker {
 public:
   FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame);
 
@@ -840,8 +840,7 @@ FlexItem::GetNumAutoMarginsInAxis(AxisOrientationType aAxis) const
 
 
 
-NS_STACK_CLASS
-class PositionTracker {
+class MOZ_STACK_CLASS PositionTracker {
 public:
   
   inline nscoord GetPosition() const { return mPosition; }
@@ -904,8 +903,7 @@ protected:
 };
 
 
-NS_STACK_CLASS
-class MainAxisPositionTracker : public PositionTracker {
+class MOZ_STACK_CLASS MainAxisPositionTracker : public PositionTracker {
 public:
   MainAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
                           const FlexboxAxisTracker& aAxisTracker,
@@ -936,8 +934,7 @@ private:
 
 
 class SingleLineCrossAxisPositionTracker;
-NS_STACK_CLASS
-class CrossAxisPositionTracker : public PositionTracker {
+class MOZ_STACK_CLASS CrossAxisPositionTracker : public PositionTracker {
 public:
   CrossAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
                            const FlexboxAxisTracker& aAxisTracker,
@@ -952,8 +949,7 @@ public:
 
 
 
-NS_STACK_CLASS
-class SingleLineCrossAxisPositionTracker : public PositionTracker {
+class MOZ_STACK_CLASS SingleLineCrossAxisPositionTracker : public PositionTracker {
 public:
   SingleLineCrossAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
                                      const FlexboxAxisTracker& aAxisTracker,

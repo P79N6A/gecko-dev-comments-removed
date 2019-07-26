@@ -20,7 +20,7 @@ class nsIPresShell;
 
 
 
-class NS_STACK_CLASS SpanningCellSorter {
+class MOZ_STACK_CLASS SpanningCellSorter {
 public:
     SpanningCellSorter();
     ~SpanningCellSorter();

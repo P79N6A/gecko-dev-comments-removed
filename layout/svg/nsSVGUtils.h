@@ -141,7 +141,7 @@ private:
 
 #undef CLIP_MASK
 
-class NS_STACK_CLASS SVGAutoRenderState
+class MOZ_STACK_CLASS SVGAutoRenderState
 {
 public:
   enum RenderMode {

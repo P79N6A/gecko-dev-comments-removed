@@ -1322,7 +1322,7 @@ public:
   
   
   
-  struct NS_STACK_CLASS ContentOffsets {
+  struct MOZ_STACK_CLASS ContentOffsets {
     nsCOMPtr<nsIContent> content;
     bool IsNull() { return !content; }
     int32_t offset;
@@ -1360,7 +1360,7 @@ public:
 
 
 
-  struct NS_STACK_CLASS Cursor {
+  struct MOZ_STACK_CLASS Cursor {
     nsCOMPtr<imgIContainer> mContainer;
     int32_t                 mCursor;
     bool                    mHaveHotspot;

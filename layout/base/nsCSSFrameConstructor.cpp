@@ -680,7 +680,7 @@ nsAbsoluteItems::AddChild(nsIFrame* aChild)
 
 
 
-class NS_STACK_CLASS nsFrameConstructorSaveState {
+class MOZ_STACK_CLASS nsFrameConstructorSaveState {
 public:
   typedef nsIFrame::ChildListID ChildListID;
   nsFrameConstructorSaveState();
@@ -722,7 +722,7 @@ struct PendingBinding : public LinkedListElement<PendingBinding>
 
 
 
-class NS_STACK_CLASS nsFrameConstructorState {
+class MOZ_STACK_CLASS nsFrameConstructorState {
 public:
   typedef nsIFrame::ChildListID ChildListID;
 
@@ -861,7 +861,7 @@ public:
 
   class PendingBindingAutoPusher;
   friend class PendingBindingAutoPusher;
-  class NS_STACK_CLASS PendingBindingAutoPusher {
+  class MOZ_STACK_CLASS PendingBindingAutoPusher {
   public:
     PendingBindingAutoPusher(nsFrameConstructorState& aState,
                              PendingBinding* aPendingBinding) :
