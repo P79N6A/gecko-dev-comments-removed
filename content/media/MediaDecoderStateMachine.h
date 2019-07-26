@@ -159,10 +159,6 @@ public:
 
   
   
-  void UpdateDuration(int64_t aDuration);
-
-  
-  
   bool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
