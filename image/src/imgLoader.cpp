@@ -1324,6 +1324,12 @@ bool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
                                 aCORSMode, aLoadingPrincipal))
     return false;
 
+  
+  nsAutoCString scheme;
+  aURI->GetScheme(scheme);
+  if (scheme.EqualsLiteral("data"))
+    return true;
+
   bool validateRequest = false;
 
   
