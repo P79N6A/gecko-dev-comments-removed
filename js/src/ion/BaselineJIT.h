@@ -276,6 +276,9 @@ struct BaselineBailoutInfo
     
     
     ICStub *monitorStub;
+
+    
+    uint32_t numFrames;
 };
 
 uint32_t

@@ -726,6 +726,14 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         }
 
         
+        loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)), temp);
+        load32(Address(temp, BaselineFrame::reverseOffsetOfFrameSize()), temp);
+        makeFrameDescriptor(temp, IonFrame_BaselineJS);
+        push(temp);
+        push(Imm32(0)); 
+        enterFakeExitFrame();
+
+        
         Label noMonitor;
         Label done;
         branchPtr(Assembler::Equal,
@@ -749,7 +757,8 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             
             setupUnalignedABICall(1, temp);
             passABIArg(bailoutInfo);
-            callWithABI(JS_FUNC_TO_DATA_PTR(void *, js_free));
+            callWithABI(JS_FUNC_TO_DATA_PTR(void *, FinishBailoutToBaseline));
+            branchTest32(Zero, ReturnReg, ReturnReg, &exception);
 
             
             GeneralRegisterSet enterMonRegs(GeneralRegisterSet::All());
@@ -763,6 +772,10 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             pop(BaselineTailCallReg);
             pop(BaselineFrameReg);
             popValue(R0);
+
+            
+            addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), StackPointer);
+
             loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), jitcodeReg);
 #if defined(JS_CPU_X86) || defined(JS_CPU_X64)
             push(BaselineTailCallReg);
@@ -786,7 +799,8 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             
             setupUnalignedABICall(1, temp);
             passABIArg(bailoutInfo);
-            callWithABI(JS_FUNC_TO_DATA_PTR(void *, js_free));
+            callWithABI(JS_FUNC_TO_DATA_PTR(void *, FinishBailoutToBaseline));
+            branchTest32(Zero, ReturnReg, ReturnReg, &exception);
 
             
             GeneralRegisterSet enterRegs(GeneralRegisterSet::All());
@@ -799,6 +813,10 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
             pop(BaselineFrameReg);
             popValue(R1);
             popValue(R0);
+
+            
+            addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), StackPointer);
+
             jump(jitcodeReg);
         }
     }

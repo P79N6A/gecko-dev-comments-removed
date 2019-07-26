@@ -66,7 +66,7 @@ class BaselineFrame
     uint32_t hiScratchValue_;
     uint32_t loReturnValue_;        
     uint32_t hiReturnValue_;
-    size_t frameSize_;
+    uint32_t frameSize_;
     JSObject *scopeChain_;          
     StaticBlockObject *blockChain_; 
     JSScript *evalScript_;          
@@ -82,13 +82,13 @@ class BaselineFrame
     
     static const uint32_t FramePointerOffset = sizeof(void *);
 
-    size_t frameSize() const {
+    uint32_t frameSize() const {
         return frameSize_;
     }
-    void setFrameSize(size_t frameSize) {
+    void setFrameSize(uint32_t frameSize) {
         frameSize_ = frameSize;
     }
-    inline size_t *addressOfFrameSize() {
+    inline uint32_t *addressOfFrameSize() {
         return &frameSize_;
     }
     UnrootedObject scopeChain() const {
@@ -160,7 +160,7 @@ class BaselineFrame
         return actuals()[i];
     }
 
-    Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing) const {
+    Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
 #ifdef DEBUG
         CheckLocalUnaliased(checkAliasing, script(), maybeBlockChain(), i);
 #endif

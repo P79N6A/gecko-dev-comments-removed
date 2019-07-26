@@ -87,7 +87,7 @@ EmitTailCallVM(IonCode *target, MacroAssembler &masm, uint32_t argSize)
 
     
     masm.ma_sub(r0, Imm32(argSize), r1);
-    masm.storePtr(r1, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+    masm.store32(r1, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
     
@@ -134,7 +134,7 @@ EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
     masm.ma_add(Imm32(BaselineFrame::FramePointerOffset), scratch);
     masm.ma_sub(BaselineStackReg, scratch);
 
-    masm.storePtr(scratch, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+    masm.store32(scratch, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
     

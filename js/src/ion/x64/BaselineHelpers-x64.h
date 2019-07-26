@@ -79,7 +79,7 @@ EmitTailCallVM(IonCode *target, MacroAssembler &masm, uint32_t argSize)
     
     masm.movq(ScratchReg, rdx);
     masm.subq(Imm32(argSize), rdx);
-    masm.storePtr(rdx, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+    masm.store32(rdx, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
     masm.makeFrameDescriptor(ScratchReg, IonFrame_BaselineJS);
@@ -122,7 +122,7 @@ EmitEnterStubFrame(MacroAssembler &masm, Register)
     masm.addq(Imm32(BaselineFrame::FramePointerOffset), ScratchReg);
     masm.subq(BaselineStackReg, ScratchReg);
 
-    masm.storePtr(ScratchReg, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+    masm.store32(ScratchReg, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
 
     
     
