@@ -403,7 +403,9 @@ Provider.prototype = Object.freeze({
 
 
 
-  constantOnly: false,
+
+
+  pullOnly: false,
 
   
 

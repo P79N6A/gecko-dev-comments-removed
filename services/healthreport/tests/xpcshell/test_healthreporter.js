@@ -172,8 +172,7 @@ add_task(function test_register_providers_from_category_manager() {
 });
 
 
-
-add_task(function test_constant_only_providers() {
+add_task(function test_pull_only_providers() {
   const category = "healthreporter-constant-only";
 
   let cm = Cc["@mozilla.org/categorymanager;1"]
@@ -194,9 +193,9 @@ add_task(function test_constant_only_providers() {
   do_check_neq(reporter.getProvider("DummyProvider"), null);
   do_check_null(reporter.getProvider("DummyConstantProvider"));
 
-  yield reporter.ensureConstantOnlyProvidersRegistered();
+  yield reporter.ensurePullOnlyProvidersRegistered();
   yield reporter.collectMeasurements();
-  yield reporter.ensureConstantOnlyProvidersUnregistered();
+  yield reporter.ensurePullOnlyProvidersUnregistered();
 
   do_check_eq(reporter._collector._providers.size, 1);
   do_check_true(reporter._storage.hasProvider("DummyConstantProvider"));
