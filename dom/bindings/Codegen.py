@@ -878,7 +878,15 @@ def UnionConversions(descriptors, dictionaries, callbacks, config):
                     if f.isSpiderMonkeyInterface():
                         headers.add("jsfriendapi.h")
                         headers.add("mozilla/dom/TypedArray.h")
-                    elif not f.inner.isExternal():
+                    elif f.inner.isExternal():
+                        providers = getRelevantProviders(descriptor, config)
+                        for p in providers:
+                            try:
+                                typeDesc = p.getDescriptor(f.inner.identifier.name)
+                            except NoSuchDescriptorError:
+                                continue
+                            headers.add(typeDesc.headerFile)
+                    else:
                         headers.add(CGHeaders.getDeclarationFilename(f.inner))
                     
                     
