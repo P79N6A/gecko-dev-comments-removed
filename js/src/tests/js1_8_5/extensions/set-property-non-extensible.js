@@ -2,6 +2,7 @@
 
 
 
+
 var BUGNUMBER = 600128;
 var summary =
   "Properly handle attempted addition of properties to non-extensible objects";

@@ -10,6 +10,8 @@ var actual = '';
 var expect = '';
 
 
+window.SpecialPowers = null;
+
 
 test();
 
