@@ -860,6 +860,9 @@ public:
 
 
 
+
+
+
   void SetFixedPositionMargins(const gfx::Margin& aMargins)
   {
     if (mMargins != aMargins) {

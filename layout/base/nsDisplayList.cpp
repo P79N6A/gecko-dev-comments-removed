@@ -2961,6 +2961,19 @@ nsDisplayFixedPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
                                            aContainerParameters.mYScale,
                                          NSAppUnitsToFloatPixels(fixedMargins.left, factor) *
                                            aContainerParameters.mXScale);
+
+  
+  
+  
+  if (position->mOffset.GetLeftUnit() == eStyleUnit_Auto &&
+      position->mOffset.GetRightUnit() == eStyleUnit_Auto) {
+    fixedLayerMargins.left = -1;
+  }
+  if (position->mOffset.GetTopUnit() == eStyleUnit_Auto &&
+      position->mOffset.GetBottomUnit() == eStyleUnit_Auto) {
+    fixedLayerMargins.top = -1;
+  }
+
   layer->SetFixedPositionMargins(fixedLayerMargins);
 
   return layer.forget();
