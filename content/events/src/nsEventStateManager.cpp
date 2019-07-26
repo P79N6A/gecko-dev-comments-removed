@@ -3131,8 +3131,38 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         if (mCurrentTarget) {
           mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(newFocus));
           const nsStyleUserInterface* ui = mCurrentTarget->StyleUserInterface();
-          suppressBlur = (ui->mUserFocus == NS_STYLE_USER_FOCUS_IGNORE);
           activeContent = mCurrentTarget->GetContent();
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          suppressBlur = (ui->mUserFocus == NS_STYLE_USER_FOCUS_IGNORE);
+
+          if (!suppressBlur) {
+            nsCOMPtr<Element> element = do_QueryInterface(aEvent->target);
+            suppressBlur = element &&
+                           element->State().HasState(NS_EVENT_STATE_DISABLED);
+          }
+
+          if (!suppressBlur) {
+            nsCOMPtr<nsIDOMXULControlElement> xulControl =
+              do_QueryInterface(aEvent->target);
+            if (xulControl) {
+              bool disabled;
+              xulControl->GetDisabled(&disabled);
+              suppressBlur = disabled;
+            }
+          }
         }
 
         nsIFrame* currFrame = mCurrentTarget;
