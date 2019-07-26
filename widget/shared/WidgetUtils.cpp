@@ -166,5 +166,76 @@ WidgetUtils::GetLatinCharCodeForKeyCode(uint32_t aKeyCode,
   }
 }
 
+
+KeyNameIndex
+WidgetUtils::GetDeadKeyNameIndex(PRUnichar aChar)
+{
+  switch (aChar) {
+    case '`':
+    case 0x02CB: 
+    case 0x0300: 
+      return KEY_NAME_INDEX_DeadGrave;
+    case '\'':
+    case 0x00B4: 
+    case 0x02B9: 
+    case 0x02CA: 
+    case 0x0301: 
+    case 0x0384: 
+      return KEY_NAME_INDEX_DeadAcute;
+    case '^':
+    case 0x02C6: 
+    case 0x0302: 
+      return KEY_NAME_INDEX_DeadCircumflex;
+    case '~':
+    case 0x02DC: 
+    case 0x0303: 
+      return KEY_NAME_INDEX_DeadTilde;
+    case 0x00AF: 
+    case 0x02C9: 
+    case 0x0304: 
+      return KEY_NAME_INDEX_DeadMacron;
+    case 0x02D8: 
+    case 0xA67C: 
+    case 0x0306: 
+      return KEY_NAME_INDEX_DeadBreve;
+    case 0x02D9: 
+    case 0x0307: 
+      return KEY_NAME_INDEX_DeadAboveDot;
+    case 0x00A8: 
+    case 0x0308: 
+      return KEY_NAME_INDEX_DeadUmlaut;
+    case 0x00B0: 
+    case 0x02DA: 
+    case 0x030A: 
+      return KEY_NAME_INDEX_DeadAboveRing;
+    case '"':
+    case 0x02BA: 
+    case 0x02DD: 
+    case 0x030B: 
+      return KEY_NAME_INDEX_DeadDoubleacute;
+    case 0x02C7: 
+    case 0x030C: 
+      return KEY_NAME_INDEX_DeadCaron;
+    case 0x00B8: 
+    case 0x0327: 
+      return KEY_NAME_INDEX_DeadCedilla;
+    case 0x02DB: 
+    case 0x0328: 
+      return KEY_NAME_INDEX_DeadOgonek;
+    case 0x0345: 
+    case 0x037A: 
+    case 0x0399: 
+      return KEY_NAME_INDEX_DeadIota;
+    case 0x3099: 
+    case 0x309B: 
+      return KEY_NAME_INDEX_DeadVoicedSound;
+    case 0x309A: 
+    case 0x309C: 
+      return KEY_NAME_INDEX_DeadSemivoicedSound;
+    default:
+      return KEY_NAME_INDEX_Unidentified;
+  }
+}
+
 } 
 } 

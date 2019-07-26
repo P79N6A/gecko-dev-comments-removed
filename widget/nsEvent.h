@@ -115,6 +115,18 @@ enum NotificationToIME {
   REQUEST_TO_CANCEL_COMPOSITION
 };
 
+#define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName) \
+  KEY_NAME_INDEX_##aCPPName,
+
+enum KeyNameIndex {
+#include "nsDOMKeyNameList.h"
+  
+  
+  NUMBER_OF_KEY_NAME_INDEX
+};
+
+#undef NS_DEFINE_KEYNAME
+
 } 
 } 
 

@@ -9,6 +9,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIWidget.h"
+#include "nsEvent.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMWindow.h"
 
@@ -50,6 +51,14 @@ public:
                                          bool aIsCapsLock,
                                          uint32_t* aUnshiftedCharCode,
                                          uint32_t* aShiftedCharCode);
+
+  
+
+
+
+
+
+  static KeyNameIndex GetDeadKeyNameIndex(PRUnichar aChar);
 };
 
 } 
