@@ -2,7 +2,7 @@
 
 
 
-const {Cc, Ci, Cu} = require("chrome");
+const {Cc, Ci, Cu, CC} = require("chrome");
 const protocol = require("devtools/server/protocol");
 const {method, RetVal} = protocol;
 const promise = require("sdk/core/promise");
@@ -148,7 +148,6 @@ let DeviceActor = protocol.ActorClass({
   getWallpaper: method(function() {
     let deferred = promise.defer();
     this._getSetting("wallpaper.image").then((blob) => {
-      let CC = Components.Constructor;
       let FileReader = CC("@mozilla.org/files/filereader;1");
       let reader = new FileReader();
       let conn = this.conn;
