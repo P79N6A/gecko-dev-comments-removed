@@ -440,13 +440,20 @@ def GenerateOutput(target_list, target_dicts, data, params):
                 swapslashes(top),
                 swapslashes(src),
                 swapslashes(relative_srcdir))
-  scriptname = topsrcdir_path(__file__)
-  if scriptname[-4:] in ('.pyc', '.pyo'):
-    scriptname = scriptname[:-1]
-
+  scriptname = "$(topsrcdir)/media/webrtc/trunk/tools/gyp/pylib/gyp/generator/mozmake.py"
   
+  
+  
+  
+  
+  forced_includes = ""
+  for option in options.defines:
+    if option[:20] == "FORCED_INCLUDE_FILE=":
+      forced_includes += "--include=%s" % option[20:]
+
   commandline = [topsrcdir_path(sys.argv[0]),
                  "--format=mozmake",
+                 forced_includes,
                  "--depth=%s" % topsrcdir_path(options.depth),
                  "--generator-output=%s" % objdir_path(options.generator_output),
                  "--toplevel-dir=$(topsrcdir)",
