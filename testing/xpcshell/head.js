@@ -738,6 +738,11 @@ function do_register_cleanup(aFunction)
 
 
 function do_get_profile() {
+  if (!runningInParent) {
+    _dump("TEST-INFO | (xpcshell/head.js) | Ignoring profile creation from child process.\n");
+    return null;
+  }
+
   if (!_profileInitialized) {
     
     
