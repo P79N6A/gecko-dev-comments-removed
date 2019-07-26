@@ -1620,7 +1620,7 @@ EmptyShape::insertInitialShape(ExclusiveContext *cx, HandleShape shape, HandleOb
 
     
     JSObject *metadata = shape->getObjectMetadata();
-    JS_ASSERT_IF(metadata, gc::IsInsideNursery(cx->compartment()->runtimeFromAnyThread(), metadata));
+    JS_ASSERT_IF(metadata, !gc::IsInsideNursery(cx->compartment()->runtimeFromAnyThread(), metadata));
 
     InitialShapeSet::Ptr p = cx->compartment()->initialShapes.lookup(lookup);
     JS_ASSERT(p);
