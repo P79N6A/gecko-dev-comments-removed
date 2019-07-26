@@ -369,16 +369,17 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
     
     aList.addView({
       onDownloadAdded: function (aDownload) {
-        aList.removeView(this);
+        aList.removeView(this).then(null, do_report_unexpected_exception);
 
         
         
-        aList.remove(aDownload);
+        let promise = aList.remove(aDownload);
 
         
-        deferred.resolve(aDownload);
+        promise.then(() => deferred.resolve(aDownload),
+                     do_report_unexpected_exception);
       },
-    });
+    }).then(null, do_report_unexpected_exception);
 
     let isPrivate = aOptions && aOptions.isPrivate;
 
@@ -421,16 +422,17 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
     
     aList.addView({
       onDownloadAdded: function (aDownload) {
-        aList.removeView(this);
+        aList.removeView(this).then(null, do_report_unexpected_exception);
 
         
         
-        aList.remove(aDownload);
+        let promise = aList.remove(aDownload);
 
         
-        deferred.resolve(aDownload);
+        promise.then(() => deferred.resolve(aDownload),
+                     do_report_unexpected_exception);
       },
-    });
+    }).then(null, do_report_unexpected_exception);
 
     let channel = NetUtil.newChannel(sourceURI);
 

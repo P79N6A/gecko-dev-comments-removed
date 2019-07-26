@@ -84,13 +84,23 @@ DownloadList.prototype = {
 
 
 
+
+
+
+
   add: function DL_add(aDownload) {
     this._downloads.push(aDownload);
     aDownload.onchange = this._change.bind(this, aDownload);
     this._notifyAllViews("onDownloadAdded", aDownload);
+
+    return Promise.resolve();
   },
 
   
+
+
+
+
 
 
 
@@ -109,6 +119,8 @@ DownloadList.prototype = {
       aDownload.onchange = null;
       this._notifyAllViews("onDownloadRemoved", aDownload);
     }
+
+    return Promise.resolve();
   },
 
   
@@ -163,6 +175,8 @@ DownloadList.prototype = {
         }
       }
     }
+
+    return Promise.resolve();
   },
 
   
@@ -172,9 +186,15 @@ DownloadList.prototype = {
 
 
 
+
+
+
+
   removeView: function DL_removeView(aView)
   {
     this._views.delete(aView);
+
+    return Promise.resolve();
   },
 
   
@@ -222,7 +242,7 @@ DownloadList.prototype = {
             (!aFilterFn || aFilterFn(download))) {
           
           
-          this.remove(download);
+          yield this.remove(download);
           
           
           
@@ -254,8 +274,8 @@ function DownloadCombinedList(aPublicList, aPrivateList)
   DownloadList.call(this);
   this._publicList = aPublicList;
   this._privateList = aPrivateList;
-  aPublicList.addView(this);
-  aPrivateList.addView(this);
+  aPublicList.addView(this).then(null, Cu.reportError);
+  aPrivateList.addView(this).then(null, Cu.reportError);
 }
 
 DownloadCombinedList.prototype = {
@@ -283,12 +303,16 @@ DownloadCombinedList.prototype = {
 
 
 
+
+
+
+
   add: function (aDownload)
   {
     if (aDownload.source.isPrivate) {
-      this._privateList.add(aDownload);
+      return this._privateList.add(aDownload);
     } else {
-      this._publicList.add(aDownload);
+      return this._publicList.add(aDownload);
     }
   },
 
@@ -304,12 +328,16 @@ DownloadCombinedList.prototype = {
 
 
 
+
+
+
+
   remove: function (aDownload)
   {
     if (aDownload.source.isPrivate) {
-      this._privateList.remove(aDownload);
+      return this._privateList.remove(aDownload);
     } else {
-      this._publicList.remove(aDownload);
+      return this._publicList.remove(aDownload);
     }
   },
 
@@ -369,18 +397,22 @@ DownloadSummary.prototype = {
 
 
 
+
+
+
+
   bindToList: function (aList)
   {
     if (this._list) {
       throw new Error("bindToList may be called only once.");
     }
 
-    aList.addView(this);
-
-    
-    
-    this._list = aList;
-    this._onListChanged();
+    return aList.addView(this).then(() => {
+      
+      
+      this._list = aList;
+      this._onListChanged();
+    });
   },
 
   
@@ -389,6 +421,11 @@ DownloadSummary.prototype = {
   _views: null,
 
   
+
+
+
+
+
 
 
 
@@ -411,6 +448,8 @@ DownloadSummary.prototype = {
         Cu.reportError(ex);
       }
     }
+
+    return Promise.resolve();
   },
 
   
@@ -420,9 +459,15 @@ DownloadSummary.prototype = {
 
 
 
+
+
+
+
   removeView: function (aView)
   {
     this._views.delete(aView);
+
+    return Promise.resolve();
   },
 
   
