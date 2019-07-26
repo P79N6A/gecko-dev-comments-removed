@@ -88,6 +88,56 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
         masm.movl(scratchReg, R0.payloadReg());
         break;
+      case JSOP_DIV:
+        
+        masm.branchTest32(Assembler::Zero, R1.payloadReg(), R1.payloadReg(), &failure);
+
+        
+        masm.branchTest32(Assembler::Zero, R0.payloadReg(), Imm32(0x7fffffff), &failure);
+
+        
+        JS_ASSERT(R1.typeReg() == eax);
+        masm.movl(R0.payloadReg(), eax);
+        
+        masm.movl(R0.payloadReg(), scratchReg);
+        
+        masm.cdq();
+        masm.idiv(R1.payloadReg());
+
+        
+        masm.branchTest32(Assembler::NonZero, edx, edx, &revertRegister);
+
+        masm.movl(eax, R0.payloadReg());
+        break;
+      case JSOP_MOD:
+      {
+        
+        masm.branchTest32(Assembler::Zero, R1.payloadReg(), R1.payloadReg(), &failure);
+
+        
+        masm.branchTest32(Assembler::Zero, R0.payloadReg(), Imm32(0x7fffffff), &failure);
+
+        
+        JS_ASSERT(R1.typeReg() == eax);
+        masm.movl(R0.payloadReg(), eax);
+        
+        masm.movl(R0.payloadReg(), scratchReg);
+        
+        masm.cdq();
+        masm.idiv(R1.payloadReg());
+
+        
+        Label done;
+        masm.branchTest32(Assembler::NonZero, edx, edx, &done);
+        masm.branchTest32(Assembler::Signed, scratchReg, scratchReg, &revertRegister);
+        masm.branchTest32(Assembler::Signed, R1.payloadReg(), R1.payloadReg(), &revertRegister);
+
+        masm.bind(&done);
+        
+        JS_ASSERT(R0.payloadReg() == edx);
+        JS_ASSERT(R0.tagReg() == ecx);
+        break;
+      }
       case JSOP_BITOR:
         
         
@@ -143,7 +193,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     
     EmitReturnFromIC(masm);
 
-    if (op_ == JSOP_MUL) {
+    switch(op_) {
+      case JSOP_MUL:
         masm.bind(&maybeNegZero);
 
         
@@ -154,14 +205,26 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         
         masm.xorl(R0.payloadReg(), R0.payloadReg());
         EmitReturnFromIC(masm);
+        break;
+      case JSOP_DIV:
+      case JSOP_MOD:
+        masm.bind(&revertRegister);
+        masm.movl(scratchReg, R0.payloadReg());
+        masm.movl(ImmType(JSVAL_TYPE_INT32), R1.typeReg());
+        break;
+      case JSOP_URSH:
+        
+        if (!allowDouble_) {
+            masm.bind(&revertRegister);
+            masm.tagValue(JSVAL_TYPE_INT32, scratchReg, R0);
+        }
+        break;
+      default:
+        
+        
+        break;
     }
 
-    
-    if (op_ == JSOP_URSH && !allowDouble_) {
-        masm.bind(&revertRegister);
-        masm.tagValue(JSVAL_TYPE_INT32, scratchReg, R0);
-        
-    }
     
     masm.bind(&failure);
     EmitStubGuardFailure(masm);

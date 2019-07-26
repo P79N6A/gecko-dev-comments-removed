@@ -77,11 +77,60 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.imull(R1.valueReg(), ExtractTemp0);
         masm.j(Assembler::Overflow, &failure);
 
-        masm.testl(ExtractTemp0, ExtractTemp0);
-        masm.j(Assembler::Zero, &maybeNegZero);
+        masm.branchTest32(Assembler::Zero, ExtractTemp0, ExtractTemp0, &maybeNegZero);
 
         masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
         break;
+      case JSOP_DIV:
+        JS_ASSERT(R2.scratchReg() == rax);
+        JS_ASSERT(R0.valueReg() != rdx);
+        JS_ASSERT(R1.valueReg() != rdx);
+        masm.unboxInt32(R0, eax);
+        masm.unboxInt32(R1, ExtractTemp0);
+
+        
+        masm.branchTest32(Assembler::Zero, ExtractTemp0, ExtractTemp0, &failure);
+
+        
+        masm.branchTest32(Assembler::Zero, eax, Imm32(0x7fffffff), &failure);
+
+        
+        masm.cdq();
+        masm.idiv(ExtractTemp0);
+
+        
+        masm.branchTest32(Assembler::NonZero, edx, edx, &failure);
+
+        masm.boxValue(JSVAL_TYPE_INT32, eax, R0.valueReg());
+        break;
+      case JSOP_MOD:
+      {
+        JS_ASSERT(R2.scratchReg() == rax);
+        JS_ASSERT(R0.valueReg() != rdx);
+        JS_ASSERT(R1.valueReg() != rdx);
+        masm.unboxInt32(R0, eax);
+        masm.unboxInt32(R1, ExtractTemp0);
+
+        
+        masm.branchTest32(Assembler::Zero, ExtractTemp0, ExtractTemp0, &failure);
+
+        
+        masm.branchTest32(Assembler::Zero, eax, Imm32(0x7fffffff), &failure);
+
+        
+        masm.cdq();
+        masm.idiv(ExtractTemp0);
+
+        
+        Label done;
+        masm.branchTest32(Assembler::NonZero, edx, edx, &done);
+        masm.orl(ExtractTemp0, eax);
+        masm.branchTest32(Assembler::Signed, eax, eax, &failure);
+
+        masm.bind(&done);
+        masm.boxValue(JSVAL_TYPE_INT32, edx, R0.valueReg());
+        break;
+      }
       case JSOP_BITOR:
         
         
