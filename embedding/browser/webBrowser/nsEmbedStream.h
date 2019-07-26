@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsEmbedStream_h__
+#define nsEmbedStream_h__
+
 #include "nsCOMPtr.h"
 #include "nsIOutputStream.h"
 #include "nsIURI.h"
@@ -27,5 +30,6 @@ class nsEmbedStream : public nsISupports
  private:
   nsIWebBrowser            *mOwner;
   nsCOMPtr<nsIOutputStream> mOutputStream;
-
 };
+
+#endif 
