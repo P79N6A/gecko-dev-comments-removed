@@ -44,9 +44,14 @@ namespace mozilla {
 static const char* const gMediaSourceTypes[6] = {
   "video/webm",
   "audio/webm",
+
+
+
+#if 0
   "video/mp4",
   "audio/mp4",
   "audio/mpeg",
+#endif
   nullptr
 };
 
