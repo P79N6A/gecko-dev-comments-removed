@@ -47,9 +47,6 @@ GetPNGDecoderAccountingLog()
 #endif
 
 
-#define MOZ_PNG_MAX_DIMENSION 1000000L
-
-
 #define WIDTH_OFFSET 16
 #define HEIGHT_OFFSET (WIDTH_OFFSET + 4)
 #define BYTES_NEEDED_FOR_DIMENSIONS (HEIGHT_OFFSET + 4)
