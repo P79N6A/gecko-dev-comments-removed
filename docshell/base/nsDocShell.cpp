@@ -7979,8 +7979,16 @@ nsDocShell::RestoreFromHistory()
         nsCOMPtr<nsIDocument> d = do_GetInterface(parent);
         if (d) {
             if (d->EventHandlingSuppressed()) {
-                document->SuppressEventHandling(d->EventHandlingSuppressed());
+                document->SuppressEventHandling(nsIDocument::eEvents,
+                                                d->EventHandlingSuppressed());
             }
+
+            
+            if (d->AnimationsPaused()) {
+                document->SuppressEventHandling(nsIDocument::eAnimationsOnly,
+                                                d->AnimationsPaused());
+            }
+
             nsCOMPtr<nsPIDOMWindow> parentWindow = d->GetWindow();
             if (parentWindow) {
                 parentSuspendCount = parentWindow->TimeoutSuspendCount();

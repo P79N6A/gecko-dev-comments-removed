@@ -1643,20 +1643,31 @@ public:
   
   virtual void SetImagesNeedAnimating(bool aAnimating) = 0;
 
+  enum SuppressionType {
+    eAnimationsOnly = 0x1,
+
+    
+    
+    eEvents = 0x3,
+  };
+
   
 
 
 
-  virtual void SuppressEventHandling(uint32_t aIncrease = 1) = 0;
+  virtual void SuppressEventHandling(SuppressionType aWhat,
+                                     uint32_t aIncrease = 1) = 0;
 
   
 
 
 
 
-  virtual void UnsuppressEventHandlingAndFireEvents(bool aFireEvents) = 0;
+  virtual void UnsuppressEventHandlingAndFireEvents(SuppressionType aWhat,
+                                                    bool aFireEvents) = 0;
 
   uint32_t EventHandlingSuppressed() const { return mEventsSuppressed; }
+  uint32_t AnimationsPaused() const { return mAnimationsPaused; }
 
   bool IsEventHandlingEnabled() {
     return !EventHandlingSuppressed() && mScriptGlobalObject;
@@ -2486,6 +2497,8 @@ protected:
   nsCOMPtr<nsIDocument> mDisplayDocument;
 
   uint32_t mEventsSuppressed;
+
+  uint32_t mAnimationsPaused;
 
   
 
