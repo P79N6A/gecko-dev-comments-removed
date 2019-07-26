@@ -9,6 +9,7 @@
 #include "mozilla/Telemetry.h"
 
 using namespace mozilla;
+using namespace mozilla::gl;
 
 
 
@@ -51,3 +52,71 @@ WebGL2Context::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
     return dom::WebGL2RenderingContextBinding::Wrap(cx, scope, this);
 }
 
+
+
+
+
+bool
+WebGLContext::InitWebGL2()
+{
+    MOZ_ASSERT(IsWebGL2(), "WebGLContext is not a WebGL 2 context!");
+
+    const WebGLExtensionID sExtensionNativelySupportedArr[] = {
+        ANGLE_instanced_arrays,
+        OES_vertex_array_object,
+        WEBGL_draw_buffers
+    };
+    const GLFeature::Enum sFeatureRequiredArr[] = {
+        GLFeature::blend_minmax,
+        GLFeature::transform_feedback
+    };
+
+    
+    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sExtensionNativelySupportedArr)); i++)
+    {
+        WebGLExtensionID extension = sExtensionNativelySupportedArr[i];
+
+        if (!IsExtensionSupported(extension)) {
+            GenerateWarning("WebGL 2 requires %s!", GetExtensionString(extension));
+            return false;
+        }
+    }
+
+    
+    if (!gl->IsExtensionSupported(GLContext::EXT_gpu_shader4)) {
+        GenerateWarning("WebGL 2 requires GL_EXT_gpu_shader4!");
+        return false;
+    }
+
+    
+    if (!gl->IsSupported(GLFeature::occlusion_query) &&
+        !gl->IsSupported(GLFeature::occlusion_query_boolean))
+    {
+        
+
+
+
+        GenerateWarning("WebGL 2 requires occlusion queries!");
+        return false;
+    }
+
+    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sFeatureRequiredArr)); i++)
+    {
+        if (!gl->IsSupported(sFeatureRequiredArr[i])) {
+            GenerateWarning("WebGL 2 requires GLFeature::%s!", GLContext::GetFeatureName(sFeatureRequiredArr[i]));
+            return false;
+        }
+    }
+
+    
+    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sExtensionNativelySupportedArr)); i++) {
+        EnableExtension(sExtensionNativelySupportedArr[i]);
+
+        MOZ_ASSERT(IsExtensionEnabled(sExtensionNativelySupportedArr[i]));
+    }
+
+    
+    gl->GetUIntegerv(LOCAL_GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &mGLMaxTransformFeedbackSeparateAttribs);
+
+    return true;
+}

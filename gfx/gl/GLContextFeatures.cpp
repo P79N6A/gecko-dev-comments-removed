@@ -38,6 +38,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "blend_minmax",
+        200, 
+        300, 
+        {
+            GLContext::EXT_blend_minmax,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "depth_texture",
         200, 
         300, 
