@@ -8,7 +8,19 @@
 
 #include "GLContextTypes.h"
 typedef realGLboolean GLboolean;
-#include <GL/glx.h>
+
+
+#include "X11/Xlib.h"
+typedef struct __GLXcontextRec *GLXContext;
+typedef XID GLXPixmap;
+typedef XID GLXDrawable;
+
+typedef struct __GLXFBConfigRec *GLXFBConfig;
+typedef XID GLXFBConfigID;
+typedef XID GLXContextID;
+typedef XID GLXWindow;
+typedef XID GLXPbuffer;
+
 
 struct PRLibrary;
 
