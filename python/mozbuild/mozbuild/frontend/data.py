@@ -24,7 +24,7 @@ from mozbuild.util import (
     shell_quote,
     StrictOrderingOnAppendList,
 )
-from .sandbox_symbols import FinalTargetValue
+from .sandbox_symbols import compute_final_target
 
 
 class TreeMetadata(object):
@@ -363,6 +363,10 @@ class TestManifest(SandboxDerived):
 
         
         
+        'pattern_installs',
+
+        
+        
         'install_prefix',
 
         
@@ -400,6 +404,7 @@ class TestManifest(SandboxDerived):
         self.manifest_relpath = relpath
         self.dupe_manifest = dupe_manifest
         self.installs = {}
+        self.pattern_installs = []
         self.tests = []
         self.external_installs = set()
 
@@ -499,6 +504,6 @@ class InstallationTarget(SandboxDerived):
         """Returns whether or not the target is not derived from the default
         given xpiname and subdir."""
 
-        return FinalTargetValue(dict(
+        return compute_final_target(dict(
             XPI_NAME=self.xpiname,
             DIST_SUBDIR=self.subdir)) == self.target
