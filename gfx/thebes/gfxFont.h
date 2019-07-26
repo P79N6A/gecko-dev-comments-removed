@@ -443,10 +443,6 @@ private:
 
 
 
-
-
-
-
     class FontTableHashEntry : public nsUint32HashKey
     {
     public:
@@ -476,10 +472,6 @@ private:
         hb_blob_t *
         ShareTableAndGetBlob(FallibleTArray<uint8_t>& aTable,
                              nsTHashtable<FontTableHashEntry> *aHashtable);
-
-        
-        
-        void SaveTable(FallibleTArray<uint8_t>& aTable);
 
         
         

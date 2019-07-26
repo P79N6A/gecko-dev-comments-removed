@@ -277,11 +277,8 @@ gfxFontEntry::TryGetSVGData()
 class gfxFontEntry::FontTableBlobData {
 public:
     
-    
-    
-    FontTableBlobData(FallibleTArray<uint8_t>& aBuffer,
-                      FontTableHashEntry *aHashEntry)
-        : mHashEntry(aHashEntry), mHashtable()
+    FontTableBlobData(FallibleTArray<uint8_t>& aBuffer)
+        : mHashtable(nullptr), mHashKey(0)
     {
         MOZ_COUNT_CTOR(FontTableBlobData);
         mTableData.SwapElements(aBuffer);
@@ -289,12 +286,8 @@ public:
 
     ~FontTableBlobData() {
         MOZ_COUNT_DTOR(FontTableBlobData);
-        if (mHashEntry) {
-            if (mHashtable) {
-                mHashtable->RemoveEntry(mHashEntry->GetKey());
-            } else {
-                mHashEntry->Clear();
-            }
+        if (mHashtable && mHashKey) {
+            mHashtable->RemoveEntry(mHashKey);
         }
     }
 
@@ -307,16 +300,19 @@ public:
 
     
     
-    void ManageHashEntry(nsTHashtable<FontTableHashEntry> *aHashtable)
+    void ManageHashEntry(nsTHashtable<FontTableHashEntry> *aHashtable,
+                         uint32_t aHashKey)
     {
         mHashtable = aHashtable;
+        mHashKey = aHashKey;
     }
 
     
     
     void ForgetHashEntry()
     {
-        mHashEntry = nullptr;
+        mHashtable = nullptr;
+        mHashKey = 0;
     }
 
     size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
@@ -329,25 +325,15 @@ public:
 private:
     
     FallibleTArray<uint8_t> mTableData;
+
     
-    FontTableHashEntry *mHashEntry;
     
     nsTHashtable<FontTableHashEntry> *mHashtable;
+    uint32_t                          mHashKey;
 
     
     FontTableBlobData(const FontTableBlobData&);
 };
-
-void
-gfxFontEntry::FontTableHashEntry::SaveTable(FallibleTArray<uint8_t>& aTable)
-{
-    Clear();
-    
-    FontTableBlobData *data = new FontTableBlobData(aTable, nullptr);
-    mBlob = hb_blob_create(data->GetTable(), data->GetTableLength(),
-                           HB_MEMORY_MODE_READONLY,
-                           data, DeleteFontTableBlobData);    
-}
 
 hb_blob_t *
 gfxFontEntry::FontTableHashEntry::
@@ -356,7 +342,7 @@ ShareTableAndGetBlob(FallibleTArray<uint8_t>& aTable,
 {
     Clear();
     
-    mSharedBlobData = new FontTableBlobData(aTable, this);
+    mSharedBlobData = new FontTableBlobData(aTable);
     mBlob = hb_blob_create(mSharedBlobData->GetTable(),
                            mSharedBlobData->GetTableLength(),
                            HB_MEMORY_MODE_READONLY,
@@ -370,7 +356,7 @@ ShareTableAndGetBlob(FallibleTArray<uint8_t>& aTable,
 
     
     
-    mSharedBlobData->ManageHashEntry(aHashtable);
+    mSharedBlobData->ManageHashEntry(aHashtable, GetKey());
     return mBlob;
 }
 
