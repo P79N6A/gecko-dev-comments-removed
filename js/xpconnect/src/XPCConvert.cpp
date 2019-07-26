@@ -1032,22 +1032,25 @@ XPCConvert::JSObject2NativeInterface(JSContext* cx,
         
         
         
-        JSObject* inner = nullptr;
-        if (XPCWrapper::IsSecurityWrapper(src)) {
-            inner = XPCWrapper::Unwrap(cx, src, false);
-            if (!inner) {
-                if (pErr)
-                    *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-                return false;
-            }
+        JSObject* inner = js::UnwrapObjectChecked(src,  false);
+
+        
+        
+        
+        
+        
+        if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(src)))
+            inner = js::UnwrapObject(src);
+        if (!inner) {
+            if (pErr)
+                *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+            return false;
         }
 
         
-        XPCWrappedNative* wrappedNative =
-                    XPCWrappedNative::GetWrappedNativeOfJSObject(cx,
-                                                                 inner
-                                                                 ? inner
-                                                                 : src);
+        XPCWrappedNative* wrappedNative = nullptr;
+        if (IS_WN_WRAPPER(inner))
+            wrappedNative = XPCWrappedNative::Get(inner);
         if (wrappedNative) {
             iface = wrappedNative->GetIdentityObject();
             return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));
