@@ -1579,15 +1579,9 @@ ContainerState::PopThebesLayerData()
       colorLayer->SetBaseTransform(data->mLayer->GetBaseTransform());
       colorLayer->SetPostScale(data->mLayer->GetPostXScale(), data->mLayer->GetPostYScale());
 
-      
-      
-      
-      
-      
-      
       nsIntRect visibleRect = data->mVisibleRegion.GetBounds();
-      visibleRect.MoveBy(mParameters.mOffset);
-      colorLayer->SetClipRect(&visibleRect);
+      visibleRect.MoveBy(-GetTranslationForThebesLayer(data->mLayer));
+      colorLayer->SetBounds(visibleRect);
 
       layer = colorLayer;
     }
