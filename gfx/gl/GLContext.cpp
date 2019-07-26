@@ -1183,11 +1183,9 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                                  0, nullptr,
                                  true);
         }
-    }
 
-    if (mInitialized)
         reporter.SetSuccessful();
-    else {
+    } else {
         
         mSymbols.Zero();
         NS_WARNING("InitWithPrefix failed!");
