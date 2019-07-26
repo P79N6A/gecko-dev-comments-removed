@@ -10,18 +10,13 @@ import org.mozilla.gecko.R;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.PathShape;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.ImageView.ScaleType;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 
 
@@ -36,12 +31,8 @@ public class TopBookmarkItemView extends RelativeLayout {
     private static final int[] STATE_EMPTY = { android.R.attr.state_empty };
 
     
-    private static Drawable sPinDrawable = null;
-
-    
     private final TextView mTitleView;
     private final ImageView mThumbnailView;
-    private final ImageView mPinView;
 
     
     private String mTitle;
@@ -68,7 +59,6 @@ public class TopBookmarkItemView extends RelativeLayout {
 
         mTitleView = (TextView) findViewById(R.id.title);
         mThumbnailView = (ImageView) findViewById(R.id.thumbnail);
-        mPinView = (ImageView) findViewById(R.id.pin);
     }
 
     
@@ -135,7 +125,7 @@ public class TopBookmarkItemView extends RelativeLayout {
 
     public void setPinned(boolean pinned) {
         mIsPinned = pinned;
-        mPinView.setBackgroundDrawable(pinned ? getPinDrawable() : null);
+        mTitleView.setCompoundDrawablesWithIntrinsicBounds(pinned ? R.drawable.pin : 0, 0, 0, 0);
     }
 
     
@@ -199,27 +189,5 @@ public class TopBookmarkItemView extends RelativeLayout {
 
         
         refreshDrawableState();
-    }
-
-    
-
-
-    private Drawable getPinDrawable() {
-        if (sPinDrawable == null) {
-            int size = getResources().getDimensionPixelSize(R.dimen.top_bookmark_pinsize);
-
-            
-            Path path = new Path();
-            path.moveTo(0, 0);
-            path.lineTo(size, 0);
-            path.lineTo(size, size);
-            path.close();
-
-            sPinDrawable = new ShapeDrawable(new PathShape(path, size, size));
-            Paint p = ((ShapeDrawable) sPinDrawable).getPaint();
-            p.setColor(getResources().getColor(R.color.top_bookmark_pin));
-        }
-
-        return sPinDrawable;
     }
 }
