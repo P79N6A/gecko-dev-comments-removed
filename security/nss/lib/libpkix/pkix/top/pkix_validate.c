@@ -1113,7 +1113,7 @@ PKIX_ValidateChain(
                         pVerifyTree,
                         plContext);
 
-                if (chainFailed || (reasonCode != 0)) {
+                if (chainFailed) {
 
                         
 
@@ -1128,6 +1128,10 @@ PKIX_ValidateChain(
                         }
 
                 } else {
+
+                        
+
+                        PORT_Assert(reasonCode == 0);
 
                         
                         PKIX_CHECK(pkix_ValidateResult_Create
@@ -1393,7 +1397,7 @@ PKIX_ValidateChain_NB(
                         goto cleanup;
                 }
 
-                if (chainFailed || (reasonCode != 0)) {
+                if (chainFailed) {
 
                         
 
@@ -1408,6 +1412,10 @@ PKIX_ValidateChain_NB(
                         }
 
                 } else {
+
+                        
+
+                        PORT_Assert(reasonCode == 0);
 
                         
                         PKIX_CHECK(pkix_ValidateResult_Create

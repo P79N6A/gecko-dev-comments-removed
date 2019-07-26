@@ -1348,9 +1348,8 @@ pkix_Build_ValidateEntireChain(
 
         ERROR_CHECK(PKIX_CHECKCHAINFAILED);
 
-        if (state->reasonCode != 0) {
-                PKIX_ERROR(PKIX_CHAINREJECTEDBYREVOCATIONCHECKER);
-        }
+        
+        PORT_Assert(state->reasonCode == 0);
 
         PKIX_CHECK(pkix_ValidateResult_Create
                 (subjPubKey, anchor, policyTree, &valResult, plContext),

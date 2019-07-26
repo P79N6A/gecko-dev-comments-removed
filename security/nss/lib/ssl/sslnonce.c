@@ -165,10 +165,8 @@ static void
 ssl_DestroySID(sslSessionID *sid)
 {
     SSL_TRC(8, ("SSL: destroy sid: sid=0x%x cached=%d", sid, sid->cached));
-    PORT_Assert((sid->references == 0));
-
-    if (sid->cached == in_client_cache)
-    	return;	
+    PORT_Assert(sid->references == 0);
+    PORT_Assert(sid->cached != in_client_cache);
 
     if (sid->version < SSL_LIBRARY_VERSION_3_0) {
 	SECITEM_ZfreeItem(&sid->u.ssl2.masterKey, PR_FALSE);
@@ -264,7 +262,7 @@ ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port, const char *peerID,
 
 	SSL_TRC(8, ("SSL: Lookup1: sid=0x%x", sid));
 
-	if (sid->expirationTime < now || !sid->references) {
+	if (sid->expirationTime < now) {
 	    
 
 
@@ -274,11 +272,7 @@ ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port, const char *peerID,
 
 	    *sidp = sid->next; 			
 	    sid->cached = invalid_cache;	
-	    if (!sid->references)
-	    	ssl_DestroySID(sid);
-	    else
-		ssl_FreeLockedSID(sid);		
-
+	    ssl_FreeLockedSID(sid);		
 	} else if (!memcmp(&sid->addr, addr, sizeof(PRIPv6Addr)) && 
 	           (sid->port == port) && 
 		   
