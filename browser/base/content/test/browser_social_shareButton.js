@@ -54,7 +54,7 @@ function testInitial(finishcb) {
 
   
   
-  waitForCondition(function() Social.provider.profile && SocialShareButton.promptImages != null, function() {
+  waitForCondition(function() Social.provider.profile && Social.provider.recommendInfo != null, function() {
     is(shareButton.hasAttribute("shared"), false, "Share button should not have 'shared' attribute before share button is clicked");
     
     let profile = Social.provider.profile;
