@@ -4630,11 +4630,8 @@ nsCanvasRenderingContext2DAzure::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                 CanvasLayer *aOldLayer,
                                                 LayerManager *aManager)
 {
-  
-  
-  
-  
-  if (!mTarget || !IsTargetValid()) {
+  EnsureTarget();
+  if (!IsTargetValid()) {
     
     
     MarkContextClean();
