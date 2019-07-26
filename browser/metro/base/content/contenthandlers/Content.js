@@ -438,22 +438,7 @@ let Content = {
     }
 
     this.formAssistant.focusSync = true;
-
-    
-    
-    
-    
-    
-    if (!this.formAssistant.open(element, aEvent)) {
-      if (gFocusManager.focusedElement &&
-          gFocusManager.focusedElement != element) {
-        gFocusManager.focusedElement.blur();
-      }
-      
-      gFocusManager.setFocus(element, Ci.nsIFocusManager.FLAG_NOSCROLL);
-      sendAsyncMessage("FindAssist:Hide", { });
-    }
-
+    this.formAssistant.open(element, aEvent);
     this._cancelTapHighlight();
     this.formAssistant.focusSync = false;
   },
