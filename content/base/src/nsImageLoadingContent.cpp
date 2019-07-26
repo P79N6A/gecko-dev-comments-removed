@@ -242,8 +242,8 @@ nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
     
     
     nsIFrame* f = GetOurPrimaryFrame();
-    if (!mFrameCreateCalled || !f ||
-        (f->GetStateBits() & NS_FRAME_FIRST_REFLOW) || mVisibleCount > 0) {
+    if (!mFrameCreateCalled || !f || (f->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
+        mVisibleCount > 0 || shell->AssumeAllImagesVisible()) {
       if (NS_SUCCEEDED(mCurrentRequest->StartDecoding())) {
         startedDecoding = true;
       }
