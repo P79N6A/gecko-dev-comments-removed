@@ -41,7 +41,6 @@ let CustomizationHandler = {
     CombinedStopReload.uninit();
     CombinedBackForward.uninit();
     PlacesToolbarHelper.customizeStart();
-    BookmarkingUI.customizeStart();
     DownloadsButton.customizeStart();
 
     
@@ -55,7 +54,6 @@ let CustomizationHandler = {
 
   _customizationChange: function() {
     gHomeButton.updatePersonalToolbarStyle();
-    BookmarkingUI.customizeChange();
     PlacesToolbarHelper.customizeChange();
   },
 
@@ -84,7 +82,6 @@ let CustomizationHandler = {
     }
 
     PlacesToolbarHelper.customizeDone();
-    BookmarkingUI.customizeDone();
     DownloadsButton.customizeDone();
 
     

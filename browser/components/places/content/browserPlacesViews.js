@@ -721,8 +721,16 @@ PlacesViewBase.prototype = {
 
     if (this._controller) {
       this._controller.terminate();
-      this._viewElt.controllers.removeController(this._controller);
-      this._controller = null;
+      
+      
+      
+      
+      try {
+        this._viewElt.controllers.removeController(this._controller);
+      } catch (ex) {
+      } finally {
+        this._controller = null;
+      }
     }
 
     delete this._viewElt._placesView;
