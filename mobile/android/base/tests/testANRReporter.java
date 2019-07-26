@@ -75,6 +75,24 @@ public class testANRReporter extends BaseTest {
 
     private boolean mDone;
 
+    private JSONObject readPingFile(final File pingFile) throws Exception {
+        final long fileSize = pingFile.length();
+        if (fileSize == 0 || fileSize > Integer.MAX_VALUE) {
+            throw new Exception("Invalid ping file size");
+        }
+        final char[] buffer = new char[(int) fileSize];
+        final FileReader reader = new FileReader(pingFile);
+        try {
+            final int readSize = reader.read(buffer);
+            if (readSize == 0 || readSize > buffer.length) {
+                throw new Exception("Invalid number of bytes read");
+            }
+        } finally {
+            reader.close();
+        }
+        return new JSONObject(new String(buffer));
+    }
+
     public void testANRReporter() throws Exception {
         blockForGeckoReady();
 
@@ -145,8 +163,20 @@ public class testANRReporter extends BaseTest {
         waitForCondition(new Condition() {
             @Override
             public boolean isSatisfied() {
-                final String[] newFiles = pingDir.list();
-                return newFiles != null && newFiles.length > 0;
+                final File[] newFiles = pingDir.listFiles();
+                if (newFiles == null || newFiles.length == 0) {
+                    
+                    return false;
+                }
+                
+                
+                
+                
+                try {
+                    return readPingFile(newFiles[0]).has("slug");
+                } catch (final Exception e) {
+                    return false;
+                }
             }
         }, WAIT_FOR_PING_TIMEOUT);
 
@@ -161,16 +191,8 @@ public class testANRReporter extends BaseTest {
         mAsserter.ok(newFiles[0].canRead(), "Ping is readable", null);
         mAsserter.info("Found ping file", newFiles[0].getPath());
 
-        final char[] buffer = new char[(int) newFiles[0].length()];
-        final FileReader reader = new FileReader(newFiles[0]);
-        try {
-            mAsserter.ok(reader.read(buffer) > 0, "Read from ping file", null);
-        } finally {
-            reader.close();
-        }
-
         
-        final JSONObject pingObject = new JSONObject(new String(buffer));
+        final JSONObject pingObject = readPingFile(newFiles[0]);
         mAsserter.ok(pingObject.has("slug"), "Ping has slug property", null);
         mAsserter.ok(pingObject.has("reason"), "Ping has reason property", null);
         mAsserter.ok(pingObject.has("payload"), "Ping has payload property", null);
