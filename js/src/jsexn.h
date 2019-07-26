@@ -14,11 +14,9 @@
 #include "jsapi.h"
 #include "NamespaceImports.h"
 
-
-
-
-extern JSObject *
-js_InitExceptionClasses(JSContext *cx, js::HandleObject obj);
+namespace js {
+class ErrorObject;
+}
 
 
 
@@ -67,14 +65,14 @@ js_GetLocalizedErrorMessage(js::ExclusiveContext *cx, void *userRef, const char 
 
 
 extern JSObject *
-js_CopyErrorObject(JSContext *cx, js::HandleObject errobj, js::HandleObject scope);
+js_CopyErrorObject(JSContext *cx, JS::Handle<js::ErrorObject*> errobj, js::HandleObject scope);
 
 static inline JSProtoKey
-GetExceptionProtoKey(int exn)
+GetExceptionProtoKey(JSExnType exn)
 {
     JS_ASSERT(JSEXN_ERR <= exn);
     JS_ASSERT(exn < JSEXN_LIMIT);
-    return JSProtoKey(JSProto_Error + exn);
+    return JSProtoKey(JSProto_Error + int(exn));
 }
 
 #endif 
