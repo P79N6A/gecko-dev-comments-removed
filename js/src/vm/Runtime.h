@@ -954,6 +954,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSZoneCallback destroyZoneCallback;
 
     
+    JSZoneCallback sweepZoneCallback;
+
+    
     JSCompartmentNameCallback compartmentNameCallback;
 
     js::ActivityCallback  activityCallback;
