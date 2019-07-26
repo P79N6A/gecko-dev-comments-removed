@@ -1155,6 +1155,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
       
       if (mContentConsumingTouch) {
         mWidget->ApzContentConsumingTouch();
+        DispatchTouchCancel(event);
       } else {
         mWidget->ApzContentIgnoringTouch();
       }
@@ -1200,7 +1201,6 @@ MetroInput::DispatchTouchCancel(WidgetTouchEvent* aEvent)
   
   
   
-  
   WidgetTouchEvent touchEvent(true, NS_TOUCH_CANCEL, mWidget.Get());
   nsTArray< nsRefPtr<dom::Touch> >& touches = aEvent->touches;
   for (uint32_t i = 0; i < touches.Length(); ++i) {
@@ -1218,9 +1218,13 @@ MetroInput::DispatchTouchCancel(WidgetTouchEvent* aEvent)
   if (!touchEvent.touches.Length()) {
     return;
   }
-
-  DUMP_TOUCH_IDS("DOM(4)", &touchEvent);
-  mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
+  if (mContentConsumingTouch) {
+    DUMP_TOUCH_IDS("APZC(3)", &touchEvent);
+    mWidget->ApzReceiveInputEvent(&touchEvent);
+  } else {
+    DUMP_TOUCH_IDS("DOM(5)", &touchEvent);
+    mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
+  }
 }
 
 void
