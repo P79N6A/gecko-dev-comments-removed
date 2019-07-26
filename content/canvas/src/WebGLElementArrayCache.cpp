@@ -604,4 +604,16 @@ WebGLElementArrayCache::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
           uint32TreeSize;
 }
 
+bool
+WebGLElementArrayCache::BeenUsedWithMultipleTypes() const
+{
+  
+  
+  
+  const int num_types_used = (mUint8Tree  != nullptr) +
+                             (mUint16Tree != nullptr) +
+                             (mUint32Tree != nullptr);
+  return num_types_used > 1;
+}
+
 } 

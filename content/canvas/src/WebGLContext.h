@@ -213,6 +213,14 @@ public:
     void ErrorOutOfMemory(const char *fmt = 0, ...);
 
     const char *ErrorName(GLenum error);
+
+    
+
+
+
+
+    static const char *EnumName(GLenum glenum);
+
     bool IsTextureFormatCompressed(GLenum format);
 
     void DummyFramebufferOperation(const char *info);
