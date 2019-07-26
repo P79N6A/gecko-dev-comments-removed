@@ -76,21 +76,6 @@ MacroAssemblerX86::loadConstantFloat32(float f, const FloatRegister &dest)
 }
 
 void
-MacroAssemblerX86::loadStaticDouble(const double *dp, const FloatRegister &dest) {
-    if (maybeInlineDouble(*dp, dest))
-        return;
-
-    
-    movsd(dp, dest);
-}
-
-void
-MacroAssemblerX86::loadStaticFloat32(const float *fp, const FloatRegister &dest) {
-    
-    movss(fp, dest);
-}
-
-void
 MacroAssemblerX86::finish()
 {
     if (doubles_.empty() && floats_.empty())

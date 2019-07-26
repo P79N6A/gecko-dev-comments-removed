@@ -1390,8 +1390,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
     Label negative, end;
 
     
-    static const double PointFive = 0.5;
-    masm.loadStaticDouble(&PointFive, temp);
+    masm.loadConstantDouble(0.5, temp);
 
     
     masm.xorpd(scratch, scratch);
