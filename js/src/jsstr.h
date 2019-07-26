@@ -194,6 +194,11 @@ CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32_t *result);
 extern bool
 StringEqualsAscii(JSLinearString *str, const char *asciiBytes);
 
+
+extern bool
+StringHasPattern(const jschar *text, uint32_t textlen,
+                 const jschar *pat, uint32_t patlen);
+
 } 
 
 extern size_t
