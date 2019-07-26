@@ -25,7 +25,6 @@
 #include "mozilla/TimeStamp.h"
 #include "nsContentListDeclarations.h"
 #include "nsMathUtils.h"
-#include "Units.h"
 
 class imgICache;
 class imgIContainer;
@@ -1246,28 +1245,6 @@ public:
 
   static void DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent);
 
-  
-
-
-
-
-
-
-  static void HoldJSObjects(void* aScriptObjectHolder,
-                            nsScriptObjectTracer* aTracer);
-
-  
-
-
-
-
-
-  static void DropJSObjects(void* aScriptObjectHolder);
-
-#ifdef DEBUG
-  static bool AreJSObjectsHeld(void* aScriptObjectHolder); 
-#endif
-
   static void DeferredFinalize(nsISupports* aSupports);
   static void DeferredFinalize(mozilla::DeferredFinalizeAppendFunction aAppendFunc,
                                mozilla::DeferredFinalizeFunction aFunc,
@@ -1531,7 +1508,8 @@ public:
 
 
   static nsViewportInfo GetViewportInfo(nsIDocument* aDocument,
-                                        const mozilla::ScreenIntSize& aDisplaySize);
+                                        uint32_t aDisplayWidth,
+                                        uint32_t aDisplayHeight);
 
   
   

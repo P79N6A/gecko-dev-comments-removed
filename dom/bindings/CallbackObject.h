@@ -19,6 +19,7 @@
 
 #include "nsISupports.h"
 #include "nsISupportsImpl.h"
+#include "nsCycleCollectionHoldDrop.h"
 #include "nsCycleCollectionParticipant.h"
 #include "jswrapper.h"
 #include "mozilla/Assertions.h"
@@ -94,7 +95,7 @@ private:
     
     
     mCallback = aCallback;
-    NS_HOLD_JS_OBJECTS(this, CallbackObject);
+    mozilla::HoldJSObjects(this);
   }
 
 protected:
@@ -102,7 +103,7 @@ protected:
   {
     if (mCallback) {
       mCallback = nullptr;
-      NS_DROP_JS_OBJECTS(this, CallbackObject);
+      mozilla::DropJSObjects(this);
     }
   }
 

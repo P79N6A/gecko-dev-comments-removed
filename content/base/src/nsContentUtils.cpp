@@ -4325,30 +4325,6 @@ nsContentUtils::DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent)
 
 
 void
-nsContentUtils::HoldJSObjects(void* aScriptObjectHolder,
-                              nsScriptObjectTracer* aTracer)
-{
-  cyclecollector::AddJSHolder(aScriptObjectHolder, aTracer);
-}
-
-
-void
-nsContentUtils::DropJSObjects(void* aScriptObjectHolder)
-{
-  cyclecollector::RemoveJSHolder(aScriptObjectHolder);
-}
-
-#ifdef DEBUG
-
-bool
-nsContentUtils::AreJSObjectsHeld(void* aScriptObjectHolder)
-{
-  return cyclecollector::IsJSHolder(aScriptObjectHolder);
-}
-#endif
-
-
-void
 nsContentUtils::NotifyInstalledMenuKeyboardListener(bool aInstalling)
 {
   nsIMEStateManager::OnInstalledMenuKeyboardListener(aInstalling);
@@ -4899,9 +4875,10 @@ static void ProcessViewportToken(nsIDocument *aDocument,
 
 nsViewportInfo
 nsContentUtils::GetViewportInfo(nsIDocument *aDocument,
-                                const ScreenIntSize& aDisplaySize)
+                                uint32_t aDisplayWidth,
+                                uint32_t aDisplayHeight)
 {
-  return aDocument->GetViewportInfo(aDisplaySize);
+  return aDocument->GetViewportInfo(aDisplayWidth, aDisplayHeight);
 }
 
 

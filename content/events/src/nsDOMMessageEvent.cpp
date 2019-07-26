@@ -4,7 +4,8 @@
 
 
 #include "nsDOMMessageEvent.h"
-#include "nsContentUtils.h" 
+
+#include "nsCycleCollectionHoldDrop.h"
 #include "jsapi.h"
 
 using namespace mozilla;
@@ -43,7 +44,7 @@ nsDOMMessageEvent::nsDOMMessageEvent(mozilla::dom::EventTarget* aOwner,
 nsDOMMessageEvent::~nsDOMMessageEvent()
 {
   mData = JSVAL_VOID;
-  NS_DROP_JS_OBJECTS(this, nsDOMMessageEvent);
+  mozilla::DropJSObjects(this);
 }
 
 NS_IMETHODIMP
@@ -98,7 +99,7 @@ nsDOMMessageEvent::InitMessageEvent(const nsAString& aType,
   NS_ENSURE_SUCCESS(rv, rv);
 
   mData = aData;
-  NS_HOLD_JS_OBJECTS(this, nsDOMMessageEvent);
+  mozilla::HoldJSObjects(this);
   mOrigin = aOrigin;
   mLastEventId = aLastEventId;
   mSource = aSource;

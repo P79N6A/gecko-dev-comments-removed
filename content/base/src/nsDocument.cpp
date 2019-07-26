@@ -1470,10 +1470,7 @@ nsDocument::~nsDocument()
 
   mCustomPrototypes.Clear();
 
-  nsISupports* supports;
-  QueryInterface(NS_GET_IID(nsCycleCollectionISupports), reinterpret_cast<void**>(&supports));
-  NS_ASSERTION(supports, "Failed to QI to nsCycleCollectionISupports?!");
-  nsContentUtils::DropJSObjects(supports);
+  mozilla::DropJSObjects(this);
 
   
   mObservers.Clear();
@@ -1986,14 +1983,7 @@ nsDocument::Init()
   mImageTracker.Init();
   mPlugins.Init();
 
-  nsXPCOMCycleCollectionParticipant* participant;
-  CallQueryInterface(this, &participant);
-  NS_ASSERTION(participant, "Failed to QI to nsXPCOMCycleCollectionParticipant!");
-
-  nsISupports* thisSupports;
-  QueryInterface(NS_GET_IID(nsCycleCollectionISupports), reinterpret_cast<void**>(&thisSupports));
-  NS_ASSERTION(thisSupports, "Failed to QI to nsCycleCollectionISupports!");
-  nsContentUtils::HoldJSObjects(thisSupports, participant);
+  mozilla::HoldJSObjects(this);
 
   return NS_OK;
 }
@@ -6792,11 +6782,12 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
 }
 
 nsViewportInfo
-nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
+nsDocument::GetViewportInfo(uint32_t aDisplayWidth,
+                            uint32_t aDisplayHeight)
 {
   switch (mViewportType) {
   case DisplayWidthHeight:
-    return nsViewportInfo(aDisplaySize);
+    return nsViewportInfo(aDisplayWidth, aDisplayHeight);
   case Unknown:
   {
     nsAutoString viewport;
@@ -6816,7 +6807,8 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
           {
             
             mViewportType = DisplayWidthHeight;
-            return nsViewportInfo(aDisplaySize);
+            nsViewportInfo ret(aDisplayWidth, aDisplayHeight);
+            return ret;
           }
         }
       }
@@ -6825,7 +6817,8 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
       GetHeaderData(nsGkAtoms::handheldFriendly, handheldFriendly);
       if (handheldFriendly.EqualsLiteral("true")) {
         mViewportType = DisplayWidthHeight;
-        return nsViewportInfo(aDisplaySize);
+        nsViewportInfo ret(aDisplayWidth, aDisplayHeight);
+        return ret;
       }
     }
 
@@ -6833,14 +6826,14 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
     GetHeaderData(nsGkAtoms::viewport_minimum_scale, minScaleStr);
 
     nsresult errorCode;
-    mScaleMinFloat = LayoutDeviceToScreenScale(minScaleStr.ToFloat(&errorCode));
+    mScaleMinFloat = minScaleStr.ToFloat(&errorCode);
 
     if (NS_FAILED(errorCode)) {
       mScaleMinFloat = kViewportMinScale;
     }
 
-    mScaleMinFloat = mozilla::clamped(
-        mScaleMinFloat, kViewportMinScale, kViewportMaxScale);
+    mScaleMinFloat = std::min((double)mScaleMinFloat, kViewportMaxScale);
+    mScaleMinFloat = std::max((double)mScaleMinFloat, kViewportMinScale);
 
     nsAutoString maxScaleStr;
     GetHeaderData(nsGkAtoms::viewport_maximum_scale, maxScaleStr);
@@ -6848,20 +6841,20 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
     
     
     nsresult scaleMaxErrorCode;
-    mScaleMaxFloat = LayoutDeviceToScreenScale(maxScaleStr.ToFloat(&scaleMaxErrorCode));
+    mScaleMaxFloat = maxScaleStr.ToFloat(&scaleMaxErrorCode);
 
     if (NS_FAILED(scaleMaxErrorCode)) {
       mScaleMaxFloat = kViewportMaxScale;
     }
 
-    mScaleMaxFloat = mozilla::clamped(
-        mScaleMaxFloat, kViewportMinScale, kViewportMaxScale);
+    mScaleMaxFloat = std::min((double)mScaleMaxFloat, kViewportMaxScale);
+    mScaleMaxFloat = std::max((double)mScaleMaxFloat, kViewportMinScale);
 
     nsAutoString scaleStr;
     GetHeaderData(nsGkAtoms::viewport_initial_scale, scaleStr);
 
     nsresult scaleErrorCode;
-    mScaleFloat = LayoutDeviceToScreenScale(scaleStr.ToFloat(&scaleErrorCode));
+    mScaleFloat = scaleStr.ToFloat(&scaleErrorCode);
 
     nsAutoString widthStr, heightStr;
 
@@ -6876,19 +6869,20 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
 
     if (widthStr.IsEmpty() &&
         (heightStr.EqualsLiteral("device-height") ||
-         (mScaleFloat.scale == 1.0)))
+         (mScaleFloat  == 1.0)))
     {
       mAutoSize = true;
     }
 
     nsresult widthErrorCode, heightErrorCode;
-    mViewportSize.width = widthStr.ToInteger(&widthErrorCode);
-    mViewportSize.height = heightStr.ToInteger(&heightErrorCode);
+    mViewportWidth = widthStr.ToInteger(&widthErrorCode);
+    mViewportHeight = heightStr.ToInteger(&heightErrorCode);
 
     
     
-    mValidWidth = (!widthStr.IsEmpty() && NS_SUCCEEDED(widthErrorCode) && mViewportSize.width > 0);
-    mValidHeight = (!heightStr.IsEmpty() && NS_SUCCEEDED(heightErrorCode) && mViewportSize.height > 0);
+    mValidWidth = (!widthStr.IsEmpty() && NS_SUCCEEDED(widthErrorCode) && mViewportWidth > 0);
+    mValidHeight = (!heightStr.IsEmpty() && NS_SUCCEEDED(heightErrorCode) && mViewportHeight > 0);
+
 
     mAllowZoom = true;
     nsAutoString userScalable;
@@ -6909,62 +6903,63 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
   }
   case Specified:
   default:
-    CSSIntSize size = mViewportSize;
+    uint32_t width = mViewportWidth, height = mViewportHeight;
 
     if (!mValidWidth) {
-      if (mValidHeight && !aDisplaySize.IsEmpty()) {
-        size.width = int32_t(size.height * aDisplaySize.width / aDisplaySize.height);
+      if (mValidHeight && aDisplayWidth > 0 && aDisplayHeight > 0) {
+        width = uint32_t((height * aDisplayWidth) / aDisplayHeight);
       } else {
-        size.width = Preferences::GetInt("browser.viewport.desktopWidth",
-                                         kViewportDefaultScreenWidth);
+        width = Preferences::GetInt("browser.viewport.desktopWidth",
+                                             kViewportDefaultScreenWidth);
       }
     }
 
     if (!mValidHeight) {
-      if (!aDisplaySize.IsEmpty()) {
-        size.height = int32_t(size.width * aDisplaySize.height / aDisplaySize.width);
+      if (aDisplayWidth > 0 && aDisplayHeight > 0) {
+        height = uint32_t((width * aDisplayHeight) / aDisplayWidth);
       } else {
-        size.height = size.width;
+        height = width;
       }
     }
     
     nsIWidget *widget = nsContentUtils::WidgetForDocument(this);
-    CSSToLayoutDeviceScale pixelRatio(widget ? widget->GetDefaultScale() : 1.0f);
-    CSSToScreenScale scaleFloat = mScaleFloat * pixelRatio;
-    CSSToScreenScale scaleMinFloat = mScaleMinFloat * pixelRatio;
-    CSSToScreenScale scaleMaxFloat = mScaleMaxFloat * pixelRatio;
+    double pixelRatio = widget ? widget->GetDefaultScale() : 1.0;
+    float scaleFloat = mScaleFloat * pixelRatio;
+    float scaleMinFloat= mScaleMinFloat * pixelRatio;
+    float scaleMaxFloat = mScaleMaxFloat * pixelRatio;
 
     if (mAutoSize) {
       
-      CSSToScreenScale defaultPixelScale = pixelRatio * LayoutDeviceToScreenScale(1.0f);
-      size = mozilla::gfx::RoundedToInt(ScreenSize(aDisplaySize) / defaultPixelScale);
+      
+      width = aDisplayWidth / pixelRatio;
+      height = aDisplayHeight / pixelRatio;
     }
 
-    size.width = clamped(size.width, kViewportMinSize.width, kViewportMaxSize.width);
+    width = std::min(width, kViewportMaxWidth);
+    width = std::max(width, kViewportMinWidth);
 
     
     
     if (mScaleStrEmpty && !mWidthStrEmpty) {
-      CSSToScreenScale defaultScale(float(aDisplaySize.width) / float(size.width));
-      scaleFloat = (scaleFloat > defaultScale) ? scaleFloat : defaultScale;
+      scaleFloat = std::max(scaleFloat, float(aDisplayWidth) / float(width));
     }
 
-    size.height = clamped(size.height, kViewportMinSize.height, kViewportMaxSize.height);
+    height = std::min(height, kViewportMaxHeight);
+    height = std::max(height, kViewportMinHeight);
 
     
     
     if (mValidScaleFloat) {
-      CSSIntSize displaySize = RoundedToInt(ScreenSize(aDisplaySize) / scaleFloat);
-      size.width = std::max(size.width, displaySize.width);
-      size.height = std::max(size.height, displaySize.height);
+      width = std::max(width, (uint32_t)(aDisplayWidth / scaleFloat));
+      height = std::max(height, (uint32_t)(aDisplayHeight / scaleFloat));
     } else if (mValidMaxScale) {
-      CSSIntSize displaySize = RoundedToInt(ScreenSize(aDisplaySize) / scaleMaxFloat);
-      size.width = std::max(size.width, displaySize.width);
-      size.height = std::max(size.height, displaySize.height);
+      width = std::max(width, (uint32_t)(aDisplayWidth / scaleMaxFloat));
+      height = std::max(height, (uint32_t)(aDisplayHeight / scaleMaxFloat));
     }
 
-    return nsViewportInfo(scaleFloat, scaleMinFloat, scaleMaxFloat, size,
-                          mAutoSize, mAllowZoom);
+    nsViewportInfo ret(scaleFloat, scaleMinFloat, scaleMaxFloat, width, height,
+                       mAutoSize, mAllowZoom);
+    return ret;
   }
 }
 
