@@ -42,6 +42,21 @@ TextureImage::UpdateFromDataSource(gfx::DataSourceSurface *aSurface,
     return DirectUpdate(thebesSurf, destRegion, thebesSrcPoint);
 }
 
+BasicTextureImage::BasicTextureImage(GLuint aTexture,
+                                     const nsIntSize& aSize,
+                                     GLenum aWrapMode,
+                                     ContentType aContentType,
+                                     GLContext* aContext,
+                                     TextureImage::Flags aFlags ,
+                                     TextureImage::ImageFormat aImageFormat )
+    : TextureImage(aSize, aWrapMode, aContentType, aFlags, aImageFormat)
+    , mTexture(aTexture)
+    , mTextureState(Created)
+    , mGLContext(aContext)
+    , mUpdateOffset(0, 0)
+{
+}
+
 BasicTextureImage::~BasicTextureImage()
 {
     GLContext *ctx = mGLContext;
