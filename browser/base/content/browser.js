@@ -115,10 +115,10 @@ XPCOMUtils.defineLazyGetter(this, "DeveloperToolbar", function() {
   return new tmp.DeveloperToolbar(window, document.getElementById("developer-toolbar"));
 });
 
-XPCOMUtils.defineLazyGetter(this, "BrowserDebuggerProcess", function() {
+XPCOMUtils.defineLazyGetter(this, "DebuggerUI", function() {
   let tmp = {};
-  Cu.import("resource:///modules/devtools/DebuggerProcess.jsm", tmp);
-  return tmp.BrowserDebuggerProcess;
+  Cu.import("resource:///modules/devtools/DebuggerUI.jsm", tmp);
+  return new tmp.DebuggerUI(window);
 });
 
 XPCOMUtils.defineLazyModuleGetter(this, "Social",
@@ -819,6 +819,10 @@ var gBrowserInit = {
 
     
     gBrowser.addEventListener("MozApplicationManifest",
+                              OfflineApps, false);
+    
+    let socialBrowser = document.getElementById("social-sidebar-browser");
+    socialBrowser.addEventListener("MozApplicationManifest",
                               OfflineApps, false);
 
     
@@ -5622,6 +5626,14 @@ var OfflineApps = {
       if (browser.contentWindow == aContentWindow)
         return browser;
     }
+    
+    let browser = aContentWindow
+                          .QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocShell)
+                          .chromeEventHandler;
+    if (browser.getAttribute("popupnotificationanchor"))
+      return browser;
     return null;
   },
 
@@ -5651,6 +5663,15 @@ var OfflineApps = {
     }
 
     var browsers = gBrowser.browsers;
+    for (let browser of browsers) {
+      uri = this._getManifestURI(browser.contentWindow);
+      if (uri && uri.equals(aCacheUpdate.manifestURI)) {
+        return browser;
+      }
+    }
+
+    
+    browsers = document.querySelectorAll("iframe[popupnotificationanchor] | browser[popupnotificationanchor]");
     for (let browser of browsers) {
       uri = this._getManifestURI(browser.contentWindow);
       if (uri && uri.equals(aCacheUpdate.manifestURI)) {
