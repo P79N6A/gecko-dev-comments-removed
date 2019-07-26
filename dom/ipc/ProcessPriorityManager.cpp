@@ -602,7 +602,7 @@ ParticularProcessPriorityManager::Init()
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
   if (os) {
     os->AddObserver(this, "audio-channel-process-changed",  true);
-    os->AddObserver(this, "remote-browser-frame-shown",  true);
+    os->AddObserver(this, "remote-browser-shown",  true);
     os->AddObserver(this, "ipc:browser-destroyed",  true);
     os->AddObserver(this, "frameloader-visible-changed",  true);
   }
@@ -674,7 +674,7 @@ ParticularProcessPriorityManager::Observe(nsISupports* aSubject,
 
   if (topic.EqualsLiteral("audio-channel-process-changed")) {
     OnAudioChannelProcessChanged(aSubject);
-  } else if (topic.EqualsLiteral("remote-browser-frame-shown")) {
+  } else if (topic.EqualsLiteral("remote-browser-shown")) {
     OnRemoteBrowserFrameShown(aSubject);
   } else if (topic.EqualsLiteral("ipc:browser-destroyed")) {
     OnTabParentDestroyed(aSubject);
@@ -746,6 +746,13 @@ ParticularProcessPriorityManager::OnRemoteBrowserFrameShown(nsISupports* aSubjec
 {
   nsCOMPtr<nsIFrameLoader> fl = do_QueryInterface(aSubject);
   NS_ENSURE_TRUE_VOID(fl);
+
+  
+  bool isBrowserOrApp;
+  fl->GetOwnerIsBrowserOrAppFrame(&isBrowserOrApp);
+  if (!isBrowserOrApp) {
+    return;
+  }
 
   nsCOMPtr<nsITabParent> tp;
   fl->GetTabParent(getter_AddRefs(tp));
