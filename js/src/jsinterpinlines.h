@@ -892,20 +892,28 @@ GetElementOperation(JSContext *cx, JSOp op, MutableHandleValue lref, HandleValue
 }
 
 static JS_ALWAYS_INLINE bool
-SetObjectElementOperation(JSContext *cx, Handle<JSObject*> obj, HandleId id, const Value &value, bool strict)
+SetObjectElementOperation(JSContext *cx, Handle<JSObject*> obj, HandleId id, const Value &value,
+                          bool strict, RawScript maybeScript = NULL, jsbytecode *pc = NULL)
 {
+    RootedScript script(cx, maybeScript);
     types::TypeScript::MonitorAssign(cx, obj, id);
 
     if (obj->isArray() && JSID_IS_INT(id)) {
         uint32_t length = obj->getDenseInitializedLength();
         int32_t i = JSID_TO_INT(id);
-        if ((uint32_t)i >= length && !cx->fp()->beginsIonActivation()) {
-            JSScript *script = NULL;
-            jsbytecode *pc;
-            types::TypeScript::GetPcScript(cx, &script, &pc);
+        if ((uint32_t)i >= length) {
+            
+            
+            
+            
+            if (script || !cx->fp()->beginsIonActivation()) {
+                JS_ASSERT(!!script == !!pc);
+                if (!script)
+                    types::TypeScript::GetPcScript(cx, script.address(), &pc);
 
-            if (script->hasAnalysis())
-                script->analysis()->getCode(pc).arrayWriteHole = true;
+                if (script->hasAnalysis())
+                    script->analysis()->getCode(pc).arrayWriteHole = true;
+            }
         }
     }
 
