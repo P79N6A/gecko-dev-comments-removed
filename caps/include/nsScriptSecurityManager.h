@@ -431,20 +431,6 @@ private:
     GetSubjectPrincipal(JSContext* cx, nsresult* rv);
 
     
-    
-    
-    static nsIPrincipal*
-    GetScriptPrincipal(JSScript* script, nsresult* rv);
-
-    
-    
-    
-    
-    
-    static nsIPrincipal*
-    GetFunctionObjectPrincipal(JSContext* cx, JS::Handle<JSObject*> obj, nsresult* rv);
-
-    
 
 
 

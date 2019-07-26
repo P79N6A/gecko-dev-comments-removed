@@ -1584,25 +1584,7 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
     
     nsresult rv;
     JS::Rooted<JSObject*> rootedFunObj(aCx, static_cast<JSObject*>(aFunObj));
-    nsIPrincipal* subject =
-        GetFunctionObjectPrincipal(aCx, rootedFunObj, &rv);
-
-    
-    if (NS_SUCCEEDED(rv) && !subject)
-    {
-#ifdef DEBUG
-        {
-            JS_ASSERT(JS_ObjectIsFunction(aCx, rootedFunObj));
-            JS::Rooted<JSFunction*> fun(aCx, JS_GetObjectFunction(rootedFunObj));
-            JSScript *script = JS_GetFunctionScript(aCx, fun);
-
-            NS_ASSERTION(!script, "Null principal for non-native function!");
-        }
-#endif
-
-        subject = doGetObjectPrincipal(rootedFunObj);
-    }
-
+    nsIPrincipal* subject = doGetObjectPrincipal(rootedFunObj);
     if (!subject)
         return NS_ERROR_FAILURE;
 
@@ -1927,77 +1909,6 @@ nsScriptSecurityManager::GetCodebasePrincipalInternal(nsIURI *aURI,
     NS_IF_ADDREF(*result = principal);
 
     return NS_OK;
-}
-
-
-nsIPrincipal*
-nsScriptSecurityManager::GetScriptPrincipal(JSScript *script,
-                                            nsresult* rv)
-{
-    NS_PRECONDITION(rv, "Null out param");
-    *rv = NS_OK;
-    if (!script)
-    {
-        return nullptr;
-    }
-    JSPrincipals *jsp = JS_GetScriptPrincipals(script);
-    if (!jsp) {
-        *rv = NS_ERROR_FAILURE;
-        NS_ERROR("Script compiled without principals!");
-        return nullptr;
-    }
-    return nsJSPrincipals::get(jsp);
-}
-
-
-nsIPrincipal*
-nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
-                                                    JS::Handle<JSObject*> obj,
-                                                    nsresult *rv)
-{
-    NS_PRECONDITION(rv, "Null out param");
-
-    *rv = NS_OK;
-
-    if (!JS_ObjectIsFunction(cx, obj))
-    {
-        
-        nsIPrincipal *result = doGetObjectPrincipal(obj);
-        if (!result)
-            *rv = NS_ERROR_FAILURE;
-        return result;
-    }
-
-    JS::Rooted<JSFunction*> fun(cx, JS_GetObjectFunction(obj));
-    JSScript *script = JS_GetFunctionScript(cx, fun);
-
-    if (!script)
-    {
-        
-        return nullptr;
-    }
-
-    if (!js::IsOriginalScriptFunction(fun))
-    {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        nsIPrincipal *result = doGetObjectPrincipal(obj);
-        if (!result)
-            *rv = NS_ERROR_FAILURE;
-        return result;
-    }
-
-    return GetScriptPrincipal(script, rv);
 }
 
 nsIPrincipal*
