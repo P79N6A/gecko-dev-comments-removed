@@ -345,10 +345,34 @@ CustomizeMode.prototype = {
 
       yield this._doTransition(false);
 
+      let browser = document.getElementById("browser");
+      if (this.browser.selectedBrowser.currentURI.spec == kAboutURI) {
+        let custBrowser = this.browser.selectedBrowser;
+        if (custBrowser.canGoBack) {
+          
+          
+          
+          try {
+            custBrowser.goBack();
+          } catch (ex) {
+            ERROR(ex);
+          }
+        } else {
+          
+          
+          
+          if (window.getTopWin(true) == window) {
+            let customizationTab = this.browser.selectedTab;
+            if (this.browser.browsers.length == 1) {
+              window.BrowserOpenTab();
+            }
+            this.browser.removeTab(customizationTab);
+          }
+        }
+      }
+      browser.parentNode.selectedPanel = browser;
       let customizer = document.getElementById("customization-container");
       customizer.hidden = true;
-      let browser = document.getElementById("browser");
-      browser.parentNode.selectedPanel = browser;
 
       window.gNavToolbox.removeEventListener("toolbarvisibilitychange", this);
 
@@ -401,31 +425,6 @@ CustomizeMode.prototype = {
       let mainView = window.PanelUI.mainView;
       if (this._mainViewContext) {
         mainView.setAttribute("context", this._mainViewContext);
-      }
-
-      if (this.browser.selectedBrowser.currentURI.spec == kAboutURI) {
-        let custBrowser = this.browser.selectedBrowser;
-        if (custBrowser.canGoBack) {
-          
-          
-          
-          try {
-            custBrowser.goBack();
-          } catch (ex) {
-            ERROR(ex);
-          }
-        } else {
-          
-          
-          
-          if (window.getTopWin(true) == window) {
-            let customizationTab = this.browser.selectedTab;
-            if (this.browser.browsers.length == 1) {
-              window.BrowserOpenTab();
-            }
-            this.browser.removeTab(customizationTab);
-          }
-        }
       }
 
       if (this.document.documentElement._lightweightTheme)
