@@ -197,6 +197,13 @@ class IonCompartment
     
     OptimizedICStubSpace optimizedStubSpace_;
 
+    
+    
+    
+    IonCode *stringConcatStub_;
+
+    IonCode *generateStringConcatStub(JSContext *cx);
+
   public:
     IonCode *getVMWrapper(const VMFunction &f);
 
@@ -282,6 +289,10 @@ class IonCompartment
 
     IonCode *debugTrapHandler(JSContext *cx) {
         return rt->debugTrapHandler(cx);
+    }
+
+    IonCode *stringConcatStub() {
+        return stringConcatStub_;
     }
 
     AutoFlushCache *flusher() {
