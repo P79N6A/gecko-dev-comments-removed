@@ -2742,12 +2742,10 @@ ComputeScriptLevelSize(const nsStyleFont* aFont, const nsStyleFont* aParentFont,
   
   
   *aUnconstrainedSize =
-    NSToCoordRound(std::min(aParentFont->mScriptUnconstrainedSize*scriptLevelScale,
-                          double(nscoord_MAX)));
+    NSToCoordRoundWithClamp(aParentFont->mScriptUnconstrainedSize*scriptLevelScale);
   
   nscoord scriptLevelSize =
-    NSToCoordRound(std::min(aParentFont->mSize*scriptLevelScale,
-                          double(nscoord_MAX)));
+    NSToCoordRoundWithClamp(aParentFont->mSize*scriptLevelScale);
   if (scriptLevelScale <= 1.0) {
     if (aParentFont->mSize <= minScriptSize) {
       
