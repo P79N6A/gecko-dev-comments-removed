@@ -429,14 +429,19 @@ PuppetWidget::OnIMEFocusChange(bool aFocus)
     return NS_ERROR_FAILURE;
 
   if (aFocus) {
-    if (!mIMEPreference.mWantUpdates && !mIMEPreference.mWantHints)
-      
-      return NS_ERROR_NOT_IMPLEMENTED;
-    OnIMESelectionChange(); 
+    if (mIMEPreference.mWantUpdates && mIMEPreference.mWantHints) {
+      OnIMESelectionChange(); 
+    }
   } else {
     mIMELastBlurSeqno = chromeSeqno;
   }
   return NS_OK;
+}
+
+nsIMEUpdatePreference
+PuppetWidget::GetIMEUpdatePreference()
+{
+  return mIMEPreference;
 }
 
 NS_IMETHODIMP
