@@ -1613,6 +1613,9 @@ nsXULPopupManager::UpdateMenuItems(nsIContent* aPopup)
   
  
   nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(aPopup->GetDocument()));
+  if (!domDoc)
+    return;
+
   for (nsCOMPtr<nsIContent> grandChild = aPopup->GetFirstChild();
        grandChild;
        grandChild = grandChild->GetNextSibling()) {
