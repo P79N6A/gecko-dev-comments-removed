@@ -715,12 +715,14 @@ private:
                                       int32_t aNameSpaceID,
                                       PendingBinding* aPendingBinding,
                                       already_AddRefed<nsStyleContext> aStyleContext,
-                                      bool aSuppressWhiteSpaceOptimizations)
+                                      bool aSuppressWhiteSpaceOptimizations,
+                                      nsTArray<nsIAnonymousContentCreator::ContentInfo>* aAnonChildren)
     {
       FrameConstructionItem* item =
         new FrameConstructionItem(aFCData, aContent, aTag, aNameSpaceID,
                                   aPendingBinding, aStyleContext,
-                                  aSuppressWhiteSpaceOptimizations);
+                                  aSuppressWhiteSpaceOptimizations,
+                                  aAnonChildren);
       PR_APPEND_LINK(item, &mItems);
       ++mItemCount;
       ++mDesiredParentCounts[item->DesiredParentType()];
@@ -898,7 +900,8 @@ private:
                           int32_t aNameSpaceID,
                           PendingBinding* aPendingBinding,
                           already_AddRefed<nsStyleContext> aStyleContext,
-                          bool aSuppressWhiteSpaceOptimizations) :
+                          bool aSuppressWhiteSpaceOptimizations,
+                          nsTArray<nsIAnonymousContentCreator::ContentInfo>* aAnonChildren) :
       mFCData(aFCData), mContent(aContent), mTag(aTag),
       mNameSpaceID(aNameSpaceID),
       mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
@@ -907,7 +910,19 @@ private:
       mIsRootPopupgroup(false), mIsAllInline(false), mIsBlock(false),
       mHasInlineEnds(false), mIsPopup(false),
       mIsLineParticipant(false), mIsForSVGAElement(false)
-    {}
+    {
+      if (aAnonChildren) {
+        NS_ASSERTION(!(mFCData->mBits & FCDATA_FUNC_IS_FULL_CTOR) ||
+                     mFCData->mFullConstructor ==
+                       &nsCSSFrameConstructor::ConstructInline,
+                     "This is going to fail");
+        NS_ASSERTION(!(mFCData->mBits & FCDATA_USE_CHILD_ITEMS),
+                     "nsIAnonymousContentCreator::CreateAnonymousContent "
+                     "implementations should not output a list where the "
+                     "items have children in this case");
+        mAnonChildren.SwapElements(*aAnonChildren);
+      }
+    }
     ~FrameConstructionItem() {
       if (mIsGeneratedContent) {
         mContent->UnbindFromTree();
@@ -987,6 +1002,22 @@ private:
 
     
     FrameConstructionItemList mChildItems;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsTArray<nsIAnonymousContentCreator::ContentInfo> mAnonChildren;
 
   private:
     FrameConstructionItem(const FrameConstructionItem& aOther) MOZ_DELETE; 
@@ -1143,6 +1174,7 @@ private:
                                          bool                     aSuppressWhiteSpaceOptimizations,
                                          nsStyleContext*          aStyleContext,
                                          uint32_t                 aFlags,
+                                         nsTArray<nsIAnonymousContentCreator::ContentInfo>* aAnonChildren,
                                          FrameConstructionItemList& aItems);
 
   
@@ -1290,6 +1322,18 @@ private:
                                         nsIFrame*                aParentFrame,
                                         const nsStyleDisplay*    aDisplay,
                                         nsFrameItems&            aFrameItems);
+
+  
+
+
+
+
+  void AddFCItemsForAnonymousContent(
+            nsFrameConstructorState& aState,
+            nsIFrame* aFrame,
+            nsTArray<nsIAnonymousContentCreator::ContentInfo>& aAnonymousItems,
+            FrameConstructionItemList& aItemsToConstruct,
+            uint32_t aExtraFlags = 0);
 
   
 
