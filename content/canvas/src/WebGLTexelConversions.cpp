@@ -75,7 +75,7 @@ class WebGLImageConverter
 
     template<MOZ_ENUM_CLASS_INTEGER_TYPE(WebGLTexelFormat) SrcFormat,
              MOZ_ENUM_CLASS_INTEGER_TYPE(WebGLTexelFormat) DstFormat,
-             WebGLTexelPremultiplicationOp PremultiplicationOp>
+             MOZ_ENUM_CLASS_INTEGER_TYPE(WebGLTexelPremultiplicationOp) PremultiplicationOp>
     void run()
     {
         
@@ -86,7 +86,7 @@ class WebGLImageConverter
         
 
         if (SrcFormat == DstFormat &&
-            PremultiplicationOp == NoPremultiplicationOp)
+            PremultiplicationOp == WebGLTexelPremultiplicationOp::None)
         {
             
             
@@ -111,7 +111,7 @@ class WebGLImageConverter
 
         
         if (!CanSrcFormatComeFromDOMElementOrImageData &&
-            PremultiplicationOp == Unpremultiply)
+            PremultiplicationOp == WebGLTexelPremultiplicationOp::Unpremultiply)
         {
             return;
         }
@@ -126,7 +126,7 @@ class WebGLImageConverter
             !HasColor(DstFormat))
         {
 
-            if (PremultiplicationOp != NoPremultiplicationOp)
+            if (PremultiplicationOp != WebGLTexelPremultiplicationOp::None)
             {
                 return;
             }
@@ -222,9 +222,9 @@ class WebGLImageConverter
                 return run<SrcFormat, DstFormat, PremultiplicationOp>();
 
         switch (premultiplicationOp) {
-            WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(NoPremultiplicationOp)
-            WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(Premultiply)
-            WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(Unpremultiply)
+            WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(WebGLTexelPremultiplicationOp::None)
+            WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(WebGLTexelPremultiplicationOp::Premultiply)
+            WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(WebGLTexelPremultiplicationOp::Unpremultiply)
             default:
                 MOZ_ASSERT(false, "unhandled case. Coding mistake?");
         }
@@ -366,10 +366,10 @@ WebGLContext::ConvertImage(size_t width, size_t height, size_t srcStride, size_t
     WebGLImageConverter converter(width, height, src, dstStart, srcStride, signedDstStride);
 
     const WebGLTexelPremultiplicationOp premultiplicationOp
-        = FormatsRequireNoPremultiplicationOp     ? NoPremultiplicationOp
-        : (!srcPremultiplied && dstPremultiplied) ? Premultiply
-        : (srcPremultiplied && !dstPremultiplied) ? Unpremultiply
-                                                  : NoPremultiplicationOp;
+        = FormatsRequireNoPremultiplicationOp     ? WebGLTexelPremultiplicationOp::None
+        : (!srcPremultiplied && dstPremultiplied) ? WebGLTexelPremultiplicationOp::Premultiply
+        : (srcPremultiplied && !dstPremultiplied) ? WebGLTexelPremultiplicationOp::Unpremultiply
+                                                  : WebGLTexelPremultiplicationOp::None;
 
     converter.run(srcFormat, dstFormat, premultiplicationOp);
 
