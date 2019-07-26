@@ -416,7 +416,7 @@ public:
 
   virtual TemporaryRef<DataSourceSurface> GetDataSurface();
 
-  DebugOnly<bool> mIsMapped;
+  bool mIsMapped;
 };
 
 
