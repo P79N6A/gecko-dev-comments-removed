@@ -12,7 +12,7 @@ module.metadata = {
   "stability": "unstable"
 };
 
-const { setTimeout } = require("../timers");
+const { setImmediate, setTimeout } = require("../timers");
 const { deprecateFunction } = require("../util/deprecate");
 
 
@@ -35,8 +35,7 @@ exports.method = method;
 
 
 function defer(f) {
-  return function deferred()
-    setTimeout(invoke, 0, f, arguments, this);
+  return function deferred() setImmediate(invoke, f, arguments, this);
 }
 exports.defer = defer;
 

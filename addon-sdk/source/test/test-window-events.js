@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { Loader } = require("sdk/test/loader");
@@ -53,4 +52,4 @@ if (require("sdk/system/xul-app").is("Fennec")) {
   }
 }
 
-require("test").run(exports);
+require("sdk/test").run(exports);

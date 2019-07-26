@@ -22,20 +22,7 @@ let consoleService = Cc['@mozilla.org/consoleservice;1'].getService().
 
 exports.dump = stdout.write;
 
-
-function forsakenConsoleDump(msg, level) {
-  stdout.write(msg);
-
-  if (level === 'error') {
-    let error = ScriptError();
-    msg = msg.replace(/^error: /, '');
-    error.init(msg, null, null, 0, 0, 0, 'Add-on SDK');
-    consoleService.logMessage(error);
-  }
-  else
-    consoleService.logStringMessage(msg);
-};
-exports.console = new PlainTextConsole(forsakenConsoleDump);
+exports.console = new PlainTextConsole();
 
 
 
