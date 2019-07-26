@@ -1851,6 +1851,12 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     }
 
     
+    if (!xpc::AllowXBLScope(js::GetContextCompartment(cx)))
+    {
+        return NS_OK;
+    }
+
+    
     
     nsCOMPtr<nsISecurityCheckedComponent> checkedComponent =
         do_QueryInterface(aObj);
