@@ -74,45 +74,6 @@ nsFontFace::GetName(nsAString & aName)
 NS_IMETHODIMP
 nsFontFace::GetCSSFamilyName(nsAString & aCSSFamilyName)
 {
-  if (mFontEntry->IsUserFont()) {
-    
-    nsUserFontSet* fontSet =
-      static_cast<nsUserFontSet*>(mFontGroup->GetUserFontSet());
-    if (fontSet) {
-      nsCSSFontFaceRule* rule = fontSet->FindRuleForEntry(mFontEntry);
-      if (rule) {
-        nsCOMPtr<nsIDOMCSSStyleDeclaration> style;
-        nsresult rv = rule->GetStyle(getter_AddRefs(style));
-        if (NS_SUCCEEDED(rv)) {
-          nsString familyName;
-          rv = style->GetPropertyValue(NS_LITERAL_STRING("font-family"),
-                                       aCSSFamilyName);
-          if (NS_SUCCEEDED(rv)) {
-            
-            
-            
-            if (aCSSFamilyName[0] == '"' &&
-                aCSSFamilyName[aCSSFamilyName.Length() - 1] == '"') {
-              aCSSFamilyName.Truncate(aCSSFamilyName.Length() - 1);
-              aCSSFamilyName.Cut(0, 1);
-            }
-            return NS_OK;
-          }
-        }
-      }
-    }
-  }
-
-  
-  uint32_t count = mFontGroup->FontListLength();
-  for (uint32_t i = 0; i < count; ++i) {
-    if (mFontGroup->GetFontAt(i)->GetFontEntry() == mFontEntry) {
-      aCSSFamilyName = mFontGroup->GetFamilyNameAt(i);
-      return NS_OK;
-    }
-  }
-
-  
   aCSSFamilyName = mFontEntry->FamilyName();
   return NS_OK;
 }

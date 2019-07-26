@@ -233,6 +233,9 @@ public:
     const nsString& Name() const { return mName; }
 
     
+    const nsString& FamilyName() const { return mFamilyName; }
+
+    
     
     
     
@@ -240,10 +243,6 @@ public:
     
     
     virtual nsString RealFaceName();
-
-    
-    
-    virtual nsString FamilyName();
 
     uint16_t Weight() const { return mWeight; }
     int16_t Stretch() const { return mStretch; }
@@ -335,6 +334,7 @@ public:
                                      FontListSizes*    aSizes) const;
 
     nsString         mName;
+    nsString         mFamilyName;
 
     bool             mItalic      : 1;
     bool             mFixedPitch  : 1;
@@ -561,6 +561,7 @@ public:
         {
             aFontEntry->mIgnoreGDEF = true;
         }
+        aFontEntry->mFamilyName = Name();
         mAvailableFonts.AppendElement(aFontEntry);
     }
 
@@ -3104,19 +3105,6 @@ public:
                      "Requesting a font index that doesn't exist");
 
         return mFonts[i].Font();
-    }
-
-    
-    
-    
-    virtual nsString GetFamilyNameAt(int32_t i) {
-        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
-                     "Whoever was caching this font group should have "
-                     "called UpdateFontList on it");
-        NS_ASSERTION(mFonts.Length() > uint32_t(i) && mFonts[i].Family(),
-                     "No fonts in the group!");
-
-        return mFonts[i].Family()->Name();
     }
 
     uint32_t FontListLength() const {
