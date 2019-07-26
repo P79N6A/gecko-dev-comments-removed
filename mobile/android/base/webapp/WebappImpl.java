@@ -185,6 +185,8 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     @Override
     protected void loadStartupTab(String uri) {
         
+        
+        super.loadStartupTab("about:blank");
     }
 
     private void showSplash() {
@@ -261,6 +263,15 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
             case LOCATION_CHANGE:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     final String urlString = tab.getURL();
+
+                    
+                    
+                    
+                    if (urlString != null && urlString.equals("about:blank")) {
+                        mTitlebar.setVisibility(View.GONE);
+                        return;
+                    }
+
                     final URL url;
 
                     try {
