@@ -172,12 +172,12 @@ let PromptUtils = {
 
     
     
-    
-    
     fireDialogEvent : function (domWin, eventName) {
         let event = domWin.document.createEvent("Events");
         event.initEvent(eventName, true, true);
-        domWin.dispatchEvent(event);
+        let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+        winUtils.dispatchEventToChromeOnly(domWin, event);
     },
 
     getAuthInfo : function (authInfo) {
