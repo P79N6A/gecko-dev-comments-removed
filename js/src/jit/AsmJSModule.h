@@ -458,8 +458,6 @@ class AsmJSModule
 
     ScriptSource *                        scriptSource_;
 
-    FunctionCountsVector                  functionCounts_;
-
     
     
     mutable bool                          codeIsProtected_;
@@ -596,9 +594,6 @@ class AsmJSModule
         *exitIndex = unsigned(exits_.length());
         return exits_.append(Exit(ffiIndex, globalDataOffset));
     }
-    bool addFunctionCounts(jit::IonScriptCounts *counts) {
-        return functionCounts_.append(counts);
-    }
 
     bool addExportedFunction(PropertyName *name, uint32_t line, uint32_t column,
                              uint32_t srcStart, uint32_t srcEnd,
@@ -686,12 +681,6 @@ class AsmJSModule
     uint8_t *ionExitTrampoline(const Exit &exit) const {
         JS_ASSERT(exit.ionCodeOffset_);
         return code_ + exit.ionCodeOffset_;
-    }
-    unsigned numFunctionCounts() const {
-        return functionCounts_.length();
-    }
-    jit::IonScriptCounts *functionCounts(unsigned i) {
-        return functionCounts_[i];
     }
 
     
