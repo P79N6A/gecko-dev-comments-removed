@@ -260,6 +260,7 @@ static_assert(NS_ARRAY_LENGTH(eastAsianDefaults) ==
 
 
 const gfxFontFeature ligDefaults[] = {
+  { TRUETYPE_TAG('l','i','g','a'), 0 },  
   { TRUETYPE_TAG('l','i','g','a'), 1 },
   { TRUETYPE_TAG('l','i','g','a'), 0 },
   { TRUETYPE_TAG('d','l','i','g'), 1 },
@@ -386,18 +387,30 @@ void nsFont::AddFontFeaturesToStyle(gfxFontStyle *aStyle) const
   
   if (variantLigatures) {
     AddFontFeaturesBitmask(variantLigatures,
-                           NS_FONT_VARIANT_LIGATURES_COMMON,
+                           NS_FONT_VARIANT_LIGATURES_NONE,
                            NS_FONT_VARIANT_LIGATURES_NO_CONTEXTUAL,
                            ligDefaults, aStyle->featureSettings);
 
-    
     if (variantLigatures & NS_FONT_VARIANT_LIGATURES_COMMON) {
+      
       setting.mTag = TRUETYPE_TAG('c','l','i','g');
       setting.mValue = 1;
       aStyle->featureSettings.AppendElement(setting);
     } else if (variantLigatures & NS_FONT_VARIANT_LIGATURES_NO_COMMON) {
+      
       setting.mTag = TRUETYPE_TAG('c','l','i','g');
       setting.mValue = 0;
+      aStyle->featureSettings.AppendElement(setting);
+    } else if (variantLigatures & NS_FONT_VARIANT_LIGATURES_NONE) {
+      
+      setting.mValue = 0;
+      setting.mTag = TRUETYPE_TAG('d','l','i','g');
+      aStyle->featureSettings.AppendElement(setting);
+      setting.mTag = TRUETYPE_TAG('h','l','i','g');
+      aStyle->featureSettings.AppendElement(setting);
+      setting.mTag = TRUETYPE_TAG('c','a','l','t');
+      aStyle->featureSettings.AppendElement(setting);
+      setting.mTag = TRUETYPE_TAG('c','l','i','g');
       aStyle->featureSettings.AppendElement(setting);
     }
   }
