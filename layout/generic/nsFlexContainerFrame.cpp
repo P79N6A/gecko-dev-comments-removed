@@ -2130,6 +2130,19 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   if (!shouldReflowChildren) {
     
     
+    
+    
+    for (uint32_t i = 0; i < items.Length(); ++i) {
+      if (items[i].HadMeasuringReflow()) {
+        shouldReflowChildren = true;
+        break;
+      }
+    }
+  }
+
+  if (!shouldReflowChildren) {
+    
+    
     frameCrossSize = mCachedContentBoxCrossSize +
       axisTracker.GetMarginSizeInCrossAxis(aReflowState.mComputedBorderPadding);
   } else {
