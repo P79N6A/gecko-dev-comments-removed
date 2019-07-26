@@ -1737,7 +1737,6 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *o
                                       const Value &idval)
 {
     JS_ASSERT(obj->isTypedArray());
-    JS_ASSERT(idval.isInt32());
 
     Label failures;
     MacroAssembler masm(cx);
@@ -1761,17 +1760,53 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *o
 
     
     Register indexReg = tmpReg;
-
     JS_ASSERT(!index().constant());
-    if (index().reg().hasValue()) {
-        ValueOperand val = index().reg().valueReg();
-        masm.branchTestInt32(Assembler::NotEqual, val, &failures);
+    if (idval.isString()) {
+        JS_ASSERT(GetIndexFromString(idval.toString()) != UINT32_MAX);
 
         
-        masm.unboxInt32(val, indexReg);
+        Register str;
+        if (index().reg().hasValue()) {
+            ValueOperand val = index().reg().valueReg();
+            masm.branchTestString(Assembler::NotEqual, val, &failures);
+
+            str = masm.extractString(val, indexReg);
+        } else {
+            JS_ASSERT(!index().reg().typedReg().isFloat());
+            str = index().reg().typedReg().gpr();
+        }
+
+        
+        RegisterSet regs = RegisterSet::Volatile();
+        masm.PushRegsInMask(regs);
+        regs.maybeTake(str);
+
+        Register temp = regs.takeGeneral();
+
+        masm.setupUnalignedABICall(1, temp);
+        masm.passABIArg(str);
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, GetIndexFromString));
+        masm.mov(ReturnReg, indexReg);
+
+        RegisterSet ignore = RegisterSet();
+        ignore.add(indexReg);
+        masm.PopRegsInMaskIgnore(RegisterSet::Volatile(), ignore);
+
+        masm.branch32(Assembler::Equal, indexReg, Imm32(UINT32_MAX), &failures);
+
     } else {
-        JS_ASSERT(!index().reg().typedReg().isFloat());
-        indexReg = index().reg().typedReg().gpr();
+        JS_ASSERT(idval.isInt32());
+
+        if (index().reg().hasValue()) {
+            ValueOperand val = index().reg().valueReg();
+            masm.branchTestInt32(Assembler::NotEqual, val, &failures);
+
+            
+            masm.unboxInt32(val, indexReg);
+        } else {
+            JS_ASSERT(!index().reg().typedReg().isFloat());
+            indexReg = index().reg().typedReg().gpr();
+        }
     }
 
     
@@ -1850,14 +1885,18 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
             if (!cache.attachDenseElement(cx, ion, obj, idval))
                 return false;
             attachedStub = true;
-        } else if (obj->isTypedArray() && idval.isInt32()) {
-            int arrayType = TypedArray::type(obj);
-            bool floatOutput = arrayType == TypedArray::TYPE_FLOAT32 ||
-                               arrayType == TypedArray::TYPE_FLOAT64;
-            if (!floatOutput || cache.output().hasValue()) {
-                if (!cache.attachTypedArrayElement(cx, ion, obj, idval))
-                    return false;
-                attachedStub = true;
+        } else if (obj->isTypedArray()) {
+            if ((idval.isInt32()) ||
+                (idval.isString() && GetIndexFromString(idval.toString()) != UINT32_MAX))
+            {
+                int arrayType = TypedArray::type(obj);
+                bool floatOutput = arrayType == TypedArray::TYPE_FLOAT32 ||
+                                   arrayType == TypedArray::TYPE_FLOAT64;
+                if (!floatOutput || cache.output().hasValue()) {
+                    if (!cache.attachTypedArrayElement(cx, ion, obj, idval))
+                        return false;
+                    attachedStub = true;
+                }
             }
         }
     }

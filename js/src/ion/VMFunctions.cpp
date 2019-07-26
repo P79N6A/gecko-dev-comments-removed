@@ -567,5 +567,24 @@ FilterArguments(JSContext *cx, JSString *str)
     return !StringHasPattern(chars, str->length(), arguments, mozilla::ArrayLength(arguments));
 }
 
+uint32_t
+GetIndexFromString(JSString *str)
+{
+    
+    
+    
+
+    if (!str->isAtom())
+        return UINT32_MAX;
+
+    uint32_t index;
+    JSAtom *atom = &str->asAtom();
+    if (!atom->isIndex(&index))
+        return UINT32_MAX;
+
+    return index;
+}
+
+
 } 
 } 
