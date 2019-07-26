@@ -45,10 +45,7 @@ public:
   NS_IMETHOD_(nsrefcnt) AddRef() = 0;
   NS_IMETHOD_(nsrefcnt) Release() = 0;
 
-  
-  virtual nsresult NotifyTransactionPreComplete(IDBTransaction* aTransaction) = 0;
-  
-  virtual nsresult NotifyTransactionPostComplete(IDBTransaction* aTransaction) = 0;
+  virtual nsresult NotifyTransactionComplete(IDBTransaction* aTransaction) = 0;
 };
 
 class IDBTransaction : public IDBWrapperCache,
@@ -125,11 +122,6 @@ public:
 
   bool IsOpen() const;
 
-  bool IsFinished() const
-  {
-    return mReadyState > LOADING;
-  }
-
   bool IsWriteAllowed() const
   {
     return mMode == READ_WRITE || mMode == VERSION_CHANGE;
@@ -193,10 +185,10 @@ public:
                       IDBObjectStore** _retval);
 
   nsresult
-  Abort(IDBRequest* aRequest);
+  AbortWithCode(nsresult aAbortCode);
 
   nsresult
-  Abort(nsresult aAbortCode);
+  Abort(IDBRequest* aRequest);
 
   nsresult
   GetAbortCode() const
@@ -205,9 +197,6 @@ public:
   }
 
 private:
-  nsresult
-  AbortInternal(nsresult aAbortCode, already_AddRefed<nsIDOMDOMError> aError);
-
   
   static already_AddRefed<IDBTransaction>
   CreateInternal(IDBDatabase* aDatabase,
@@ -227,7 +216,12 @@ private:
   nsTArray<nsString> mObjectStoreNames;
   ReadyState mReadyState;
   Mode mMode;
-  uint32_t mPendingRequests;
+  PRUint32 mPendingRequests;
+
+  
+  NS_DECL_EVENT_HANDLER(error)
+  NS_DECL_EVENT_HANDLER(complete)
+  NS_DECL_EVENT_HANDLER(abort)
 
   nsInterfaceHashtable<nsCStringHashKey, mozIStorageStatement>
     mCachedStatements;
@@ -238,10 +232,9 @@ private:
   nsCOMPtr<mozIStorageConnection> mConnection;
 
   
-  uint32_t mSavepointCount;
+  PRUint32 mSavepointCount;
 
   nsTArray<nsRefPtr<IDBObjectStore> > mCreatedObjectStores;
-  nsTArray<nsRefPtr<IDBObjectStore> > mDeletedObjectStores;
 
   nsRefPtr<UpdateRefcountFunction> mUpdateFileRefcountFunction;
   nsRefPtrHashtable<nsISupportsHashKey, FileInfo> mCreatedFileInfos;
@@ -278,7 +271,7 @@ public:
         NS_ERROR("Out of memory!");
         return false;
       }
-      aCOMPtr = nullptr;
+      aCOMPtr = nsnull;
     }
     return true;
   }
@@ -323,9 +316,19 @@ public:
     mFileInfoEntries.Clear();
   }
 
-  nsresult WillCommit(mozIStorageConnection* aConnection);
-  void DidCommit();
-  void DidAbort();
+  nsresult UpdateDatabase(mozIStorageConnection* aConnection)
+  {
+    DatabaseUpdateFunction function(aConnection);
+
+    mFileInfoEntries.EnumerateRead(DatabaseUpdateCallback, &function);
+
+    return function.ErrorCode();
+  }
+
+  void UpdateFileInfos()
+  {
+    mFileInfoEntries.EnumerateRead(FileInfoUpdateCallback, nsnull);
+  }
 
 private:
   class FileInfoEntry
@@ -339,7 +342,7 @@ private:
     { }
 
     nsRefPtr<FileInfo> mFileInfo;
-    int32_t mDelta;
+    PRInt32 mDelta;
   };
 
   enum UpdateType {
@@ -350,54 +353,42 @@ private:
   class DatabaseUpdateFunction
   {
   public:
-    DatabaseUpdateFunction(mozIStorageConnection* aConnection,
-                           UpdateRefcountFunction* aFunction)
-    : mConnection(aConnection), mFunction(aFunction), mErrorCode(NS_OK)
+    DatabaseUpdateFunction(mozIStorageConnection* aConnection)
+    : mConnection(aConnection), mErrorCode(NS_OK)
     { }
 
-    bool Update(int64_t aId, int32_t aDelta);
+    bool Update(PRInt64 aId, PRInt32 aDelta);
     nsresult ErrorCode()
     {
       return mErrorCode;
     }
 
   private:
-    nsresult UpdateInternal(int64_t aId, int32_t aDelta);
+    nsresult UpdateInternal(PRInt64 aId, PRInt32 aDelta);
 
     nsCOMPtr<mozIStorageConnection> mConnection;
     nsCOMPtr<mozIStorageStatement> mUpdateStatement;
-    nsCOMPtr<mozIStorageStatement> mSelectStatement;
     nsCOMPtr<mozIStorageStatement> mInsertStatement;
-
-    UpdateRefcountFunction* mFunction;
 
     nsresult mErrorCode;
   };
 
   nsresult ProcessValue(mozIStorageValueArray* aValues,
-                        int32_t aIndex,
+                        PRInt32 aIndex,
                         UpdateType aUpdateType);
 
-  nsresult CreateJournals();
-
-  nsresult RemoveJournals(const nsTArray<int64_t>& aJournals);
-
   static PLDHashOperator
-  DatabaseUpdateCallback(const uint64_t& aKey,
+  DatabaseUpdateCallback(const PRUint64& aKey,
                          FileInfoEntry* aValue,
                          void* aUserArg);
 
   static PLDHashOperator
-  FileInfoUpdateCallback(const uint64_t& aKey,
+  FileInfoUpdateCallback(const PRUint64& aKey,
                          FileInfoEntry* aValue,
                          void* aUserArg);
 
   FileManager* mFileManager;
   nsClassHashtable<nsUint64HashKey, FileInfoEntry> mFileInfoEntries;
-
-  nsTArray<int64_t> mJournalsToCreateBeforeCommit;
-  nsTArray<int64_t> mJournalsToRemoveAfterCommit;
-  nsTArray<int64_t> mJournalsToRemoveAfterAbort;
 };
 
 END_INDEXEDDB_NAMESPACE

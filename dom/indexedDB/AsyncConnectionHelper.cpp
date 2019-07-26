@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -43,8 +43,8 @@ private:
   IDBTransaction* mTransaction;
 };
 
-// This inline is just so that we always clear aBuffers appropriately even if
-// something fails.
+
+
 inline
 nsresult
 ConvertCloneReadInfosToArrayInternal(
@@ -85,7 +85,7 @@ ConvertCloneReadInfosToArrayInternal(
   return NS_OK;
 }
 
-} // anonymous namespace
+} 
 
 HelperBase::~HelperBase()
 {
@@ -190,8 +190,8 @@ AsyncConnectionHelper::Run()
   if (NS_IsMainThread()) {
     if (mTransaction &&
         mTransaction->IsAborted()) {
-      // Always fire a "error" event with ABORT_ERR if the transaction was
-      // aborted, even if the request succeeded or failed with another error.
+      
+      
       mResultCode = NS_ERROR_DOM_INDEXEDDB_ABORT_ERR;
     }
 
@@ -227,8 +227,8 @@ AsyncConnectionHelper::Run()
         }
       }
 
-      // Call OnError if the database had an error or if the OnSuccess handler
-      // has an error.
+      
+      
       if (NS_FAILED(mResultCode) ||
           NS_FAILED((mResultCode = OnSuccess()))) {
         OnError();
@@ -277,7 +277,7 @@ AsyncConnectionHelper::Run()
     if (mDatabase) {
       IndexedDatabaseManager::SetCurrentWindow(mDatabase->GetOwner());
 
-      // Make the first savepoint.
+      
       if (mTransaction) {
         if (!(hasSavepoint = mTransaction->StartSavepoint())) {
           NS_WARNING("Failed to make savepoint!");
@@ -290,7 +290,7 @@ AsyncConnectionHelper::Run()
     if (mDatabase) {
       IndexedDatabaseManager::SetCurrentWindow(nsnull);
 
-      // Release or roll back the savepoint depending on the error code.
+      
       if (hasSavepoint) {
         NS_ASSERTION(mTransaction, "Huh?!");
         if (NS_SUCCEEDED(mResultCode)) {
@@ -303,8 +303,8 @@ AsyncConnectionHelper::Run()
     }
   }
   else {
-    // NS_ERROR_NOT_AVAILABLE is our special code for "database is invalidated"
-    // and we should fail with RECOVERABLE_ERR.
+    
+    
     if (rv == NS_ERROR_NOT_AVAILABLE) {
       mResultCode = NS_ERROR_DOM_INDEXEDDB_RECOVERABLE_ERR;
     }
@@ -333,7 +333,7 @@ AsyncConnectionHelper::OnProgress(mozIStorageConnection* aConnection,
                                   bool* _retval)
 {
   if (mDatabase && mDatabase->IsInvalidated()) {
-    // Someone is trying to delete the database file. Exit lightningfast!
+    
     *_retval = true;
     return NS_OK;
   }
@@ -376,7 +376,7 @@ AsyncConnectionHelper::DispatchToTransactionPool()
   return Dispatch(&target);
 }
 
-// static
+
 void
 AsyncConnectionHelper::SetCurrentTransaction(IDBTransaction* aTransaction)
 {
@@ -387,7 +387,7 @@ AsyncConnectionHelper::SetCurrentTransaction(IDBTransaction* aTransaction)
   gCurrentTransaction = aTransaction;
 }
 
-// static
+
 IDBTransaction*
 AsyncConnectionHelper::GetCurrentTransaction()
 {
@@ -451,7 +451,7 @@ AsyncConnectionHelper::OnError()
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(mRequest, "Null request!");
 
-  // Make an error event and fire it at the target.
+  
   nsRefPtr<nsDOMEvent> event =
     CreateGenericEvent(NS_LITERAL_STRING(ERROR_EVT_STR), eDoesBubble,
                        eCancelable);
@@ -471,7 +471,7 @@ AsyncConnectionHelper::OnError()
     if (doDefault &&
         mTransaction &&
         mTransaction->IsOpen() &&
-        NS_FAILED(mTransaction->Abort())) {
+        NS_FAILED(mTransaction->Abort(mRequest))) {
       NS_WARNING("Failed to abort transaction!");
     }
   }
@@ -519,7 +519,7 @@ AsyncConnectionHelper::OnParentProcessRequestComplete(
   return Run();
 }
 
-// static
+
 nsresult
 AsyncConnectionHelper::ConvertCloneReadInfosToArray(
                                   JSContext* aCx,
