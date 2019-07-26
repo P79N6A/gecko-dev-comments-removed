@@ -1423,6 +1423,15 @@ let RIL = {
   
 
 
+  hangUpAll: function() {
+    for (let callIndex in this.currentCalls) {
+      this.hangUp({callIndex: callIndex});
+    }
+  },
+
+  
+
+
 
 
 

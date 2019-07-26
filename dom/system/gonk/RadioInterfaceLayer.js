@@ -620,6 +620,16 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
         
         
         
+        
+        
+        for (let i = 0, N = this.ril.numRadioInterfaces; i < N; ++i) {
+          let iface = this.ril.getRadioInterface(i);
+          iface.workerMessenger.send("hangUpAll");
+        }
+
+        
+        
+        
         this._deactivateDataCalls().then(() => {
           if (DEBUG) debug("setRadioEnabled: deactivation done");
           this._executeRequest();
