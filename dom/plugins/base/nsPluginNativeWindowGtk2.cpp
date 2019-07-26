@@ -134,15 +134,14 @@ nsresult nsPluginNativeWindowGtk2::CallSetWindow(nsRefPtr<nsNPAPIPluginInstance>
       }
 
       
+      SetAllocation();
       
       
       if (GTK_IS_XTBIN(mSocketWidget)) {
-        gtk_xtbin_resize(mSocketWidget, width, height);
         
         SetWindow(GTK_XTBIN(mSocketWidget)->xtwindow);
       }
       else { 
-        SetAllocation();
         SetWindow(gtk_socket_get_id(GTK_SOCKET(mSocketWidget)));
       }
 #ifdef DEBUG
