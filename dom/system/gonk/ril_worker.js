@@ -2377,7 +2377,21 @@ let RIL = {
       case MMI_SC_CF_ALL:
       case MMI_SC_CF_ALL_CONDITIONAL:
         
-        _sendMMIError("CALL_FORWARDING_NOT_SUPPORTED_VIA_MMI");
+        
+        
+        
+        options.action = MMI_PROC_TO_CF_ACTION[mmi.procedure];
+        options.rilMessageType = "sendMMI";
+        options.reason = MMI_SC_TO_CF_REASON[sc];
+        options.number = mmi.sia;
+        options.serviceClass = mmi.sib;
+        if (options.action == CALL_FORWARD_ACTION_QUERY_STATUS) {
+          _sendMMIError("CF_QUERY_STATUS_NOT_SUPPORTED");
+          return;
+        }
+
+        options.timeSeconds = mmi.sic;
+        this.setCallForward(options);
         return;
 
       
