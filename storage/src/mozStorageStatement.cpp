@@ -401,27 +401,19 @@ Statement::internalFinalize(bool aDestructing)
     
 
     char *msg = ::PR_smprintf("SQL statement (%x) should have been finalized"
-      " before garbage-collection. For more details on this statement, set"
-      " NSPR_LOG_MESSAGES=mozStorage:5 .",
+      "before garbage-collection. For more details on this statement, set"
+      "NSPR_LOG_MESSAGES=mozStorage:5 .",
       mDBStatement);
-
     
     
     
     
-    
-    
-
-#if 0
     
     
     NS_WARNING(msg);
-#endif 
-
-    PR_LOG(gStorageLog, PR_LOG_WARNING, msg);
-
     ::PR_smprintf_free(msg);
   }
+#endif 
 
   mDBStatement = nullptr;
 
