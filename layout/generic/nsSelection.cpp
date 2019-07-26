@@ -1503,7 +1503,7 @@ nsFrameSelection::TakeFocus(nsIContent *aNewFocus,
 #ifdef DEBUG_TABLE_SELECTION
 printf(" * TakeFocus - moving into new cell\n");
 #endif
-        nsMouseEvent event(false, 0, nullptr, nsMouseEvent::eReal);
+        WidgetMouseEvent event(false, 0, nullptr, WidgetMouseEvent::eReal);
 
         
         nsINode* parent = ParentOffset(mCellParent, &offset);
@@ -1972,10 +1972,10 @@ GetFirstSelectedContent(nsRange* aRange)
 
 
 nsresult
-nsFrameSelection::HandleTableSelection(nsINode *aParentContent,
+nsFrameSelection::HandleTableSelection(nsINode* aParentContent,
                                        int32_t aContentOffset,
                                        int32_t aTarget,
-                                       nsMouseEvent *aMouseEvent)
+                                       WidgetMouseEvent* aMouseEvent)
 {
   NS_ENSURE_TRUE(aParentContent, NS_ERROR_NULL_POINTER);
   NS_ENSURE_TRUE(aMouseEvent, NS_ERROR_NULL_POINTER);
@@ -2940,7 +2940,7 @@ nsFrameSelection::DeleteFromDocument()
 }
 
 void
-nsFrameSelection::SetDelayedCaretData(nsMouseEvent *aMouseEvent)
+nsFrameSelection::SetDelayedCaretData(WidgetMouseEvent* aMouseEvent)
 {
   if (aMouseEvent) {
     mDelayedMouseEventValid = true;

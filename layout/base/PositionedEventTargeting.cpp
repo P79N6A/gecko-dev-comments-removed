@@ -322,7 +322,7 @@ FindFrameTargetedByInputEvent(const WidgetGUIEvent* aEvent,
   
   if (aEvent->eventStructType == NS_MOUSE_EVENT &&
       prefs->mTouchOnly &&
-      static_cast<const nsMouseEvent*>(aEvent)->inputSource !=
+      static_cast<const WidgetMouseEvent*>(aEvent)->inputSource !=
           nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {
       return target;
   }

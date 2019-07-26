@@ -243,10 +243,10 @@ public:
 
 
   
-  nsresult HandleTableSelection(nsINode *aParentContent,
+  nsresult HandleTableSelection(nsINode* aParentContent,
                                 int32_t aContentOffset,
                                 int32_t aTarget,
-                                nsMouseEvent *aMouseEvent);
+                                mozilla::WidgetMouseEvent* aMouseEvent);
 
   
 
@@ -496,7 +496,7 @@ public:
 
 
 
-  void SetDelayedCaretData(nsMouseEvent *aMouseEvent);
+  void SetDelayedCaretData(mozilla::WidgetMouseEvent* aMouseEvent);
 
   
 

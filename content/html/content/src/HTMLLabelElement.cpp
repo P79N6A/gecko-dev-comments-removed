@@ -133,8 +133,8 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       case NS_MOUSE_BUTTON_DOWN:
         NS_ASSERTION(aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT,
                      "wrong event struct for event");
-        if (static_cast<nsMouseEvent*>(aVisitor.mEvent)->button ==
-            nsMouseEvent::eLeftButton) {
+        if (static_cast<WidgetMouseEvent*>(aVisitor.mEvent)->button ==
+              WidgetMouseEvent::eLeftButton) {
           
           
           LayoutDeviceIntPoint* curPoint =
@@ -147,8 +147,8 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
       case NS_MOUSE_CLICK:
         if (aVisitor.mEvent->IsLeftClickEvent()) {
-          const nsMouseEvent* event =
-            static_cast<const nsMouseEvent*>(aVisitor.mEvent);
+          const WidgetMouseEvent* event =
+            static_cast<const WidgetMouseEvent*>(aVisitor.mEvent);
           LayoutDeviceIntPoint* mouseDownPoint =
             static_cast<LayoutDeviceIntPoint*>(
               GetProperty(nsGkAtoms::labelMouseDownPtProperty));
@@ -236,8 +236,8 @@ HTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
       return;
 
     
-    nsMouseEvent event(aIsTrustedEvent, NS_MOUSE_CLICK,
-                       nullptr, nsMouseEvent::eReal);
+    WidgetMouseEvent event(aIsTrustedEvent, NS_MOUSE_CLICK,
+                           nullptr, WidgetMouseEvent::eReal);
     event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
 
     nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?

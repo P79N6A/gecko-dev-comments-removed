@@ -168,7 +168,7 @@ public:
   
   
   
-  MultiTouchInput(const nsMouseEvent& aMouseEvent);
+  MultiTouchInput(const WidgetMouseEvent& aMouseEvent);
 
   MultiTouchType mType;
   nsTArray<SingleTouchData> mTouches;

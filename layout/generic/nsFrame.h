@@ -618,10 +618,12 @@ protected:
   
   
   
-  NS_IMETHOD GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
-                                      nsIPresShell *aPresShell, nsMouseEvent *aMouseEvent, 
-                                      nsIContent **aParentContent, int32_t *aContentOffset, 
-                                      int32_t *aTarget);
+  NS_IMETHOD GetDataForTableSelection(const nsFrameSelection* aFrameSelection,
+                                      nsIPresShell* aPresShell,
+                                      mozilla::WidgetMouseEvent* aMouseEvent,
+                                      nsIContent** aParentContent,
+                                      int32_t* aContentOffset,
+                                      int32_t* aTarget);
 
   
   static void FillCursorInformationFromStyle(const nsStyleUserInterface* ui,

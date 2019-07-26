@@ -423,7 +423,4 @@ typedef WidgetWheelEvent                WheelEvent;
 
 } 
 
-
-typedef mozilla::WidgetMouseEvent       nsMouseEvent;
-
 #endif
