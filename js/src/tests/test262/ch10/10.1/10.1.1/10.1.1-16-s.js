@@ -1,0 +1,24 @@
+
+
+
+
+
+
+
+
+
+
+
+
+function testcase() {
+        "use strict";
+        return function () {
+            try {
+                eval("var public = 1;");
+                return false;
+            } catch (e) {
+                return e instanceof SyntaxError;
+            }
+        } ();
+    }
+runTestCase(testcase);

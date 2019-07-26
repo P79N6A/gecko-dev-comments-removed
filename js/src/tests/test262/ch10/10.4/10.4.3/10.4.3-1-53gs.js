@@ -1,0 +1,19 @@
+
+
+
+
+
+
+
+
+
+
+
+if (! ((function () {
+    return ((function () {
+        "use strict";
+        return typeof this;
+    })()==="undefined") && (this===fnGlobalObject());
+})())) {
+    throw "'this' had incorrect value!";
+}

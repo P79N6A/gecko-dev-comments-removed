@@ -1,0 +1,21 @@
+
+
+
+
+
+
+
+
+
+
+    
+function testcase() {
+var f1 = function () {
+    "use strict";
+    return ((function () {
+        return typeof this;
+    })()==="undefined") && ((typeof this)==="undefined");
+}
+return f1();
+}
+runTestCase(testcase);
