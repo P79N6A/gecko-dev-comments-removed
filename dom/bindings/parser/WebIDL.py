@@ -2388,14 +2388,26 @@ class IDLValue(IDLObject):
 
         
         
+        if type.isUnion():
+            for subtype in type.unroll().memberTypes:
+                try:
+                    coercedValue = self.coerceToType(subtype, location)
+                    
+                    
+                    
+                    
+                    return IDLValue(self.location, subtype, coercedValue.value)
+                except:
+                    pass
         
         
-        if type.nullable() and not type.isEnum():
+        
+        
+        elif type.nullable() and not type.isEnum():
             innerValue = self.coerceToType(type.inner, location)
             return IDLValue(self.location, type, innerValue.value)
 
-        
-        if self.type.isInteger() and type.isInteger():
+        elif self.type.isInteger() and type.isInteger():
             
 
             (min, max) = integerTypeSizes[type._typeTag]
@@ -2428,9 +2440,8 @@ class IDLValue(IDLObject):
                 raise WebIDLError("Trying to convert unrestricted value %s to non-unrestricted"
                                   % self.value, [location]);
             return self
-        else:
-            raise WebIDLError("Cannot coerce type %s to type %s." %
-                              (self.type, type), [location])
+        raise WebIDLError("Cannot coerce type %s to type %s." %
+                          (self.type, type), [location])
 
     def _getDependentObjects(self):
         return set()
