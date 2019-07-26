@@ -136,6 +136,9 @@ var ChromeSelectionHandler = {
     this._selectionMoveActive = false;
     
     
+    this._clearTimers();
+
+    
     this._updateSelectionUI("end", true, true);
   },
 
