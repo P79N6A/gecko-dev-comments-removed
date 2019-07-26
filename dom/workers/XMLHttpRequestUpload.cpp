@@ -7,29 +7,39 @@
 
 #include "XMLHttpRequest.h"
 
-#include "DOMBindingInlines.h"
+#include "mozilla/dom/XMLHttpRequestUploadBinding.h"
 
 USING_WORKERS_NAMESPACE
 
-
-XMLHttpRequestUpload*
-XMLHttpRequestUpload::Create(JSContext* aCx, XMLHttpRequest* aXHR)
+XMLHttpRequestUpload::XMLHttpRequestUpload(XMLHttpRequest* aXHR)
+: mXHR(aXHR)
 {
-  nsRefPtr<XMLHttpRequestUpload> upload = new XMLHttpRequestUpload(aCx, aXHR);
-  return Wrap(aCx, nullptr, upload) ? upload : nullptr;
+  SetIsDOMBinding();
 }
 
-void
-XMLHttpRequestUpload::_trace(JSTracer* aTrc)
+XMLHttpRequestUpload::~XMLHttpRequestUpload()
 {
-  if (mXHR) {
-    mXHR->TraceJSObject(aTrc, "mXHR");
-  }
-  XMLHttpRequestEventTarget::_trace(aTrc);
 }
 
-void
-XMLHttpRequestUpload::_finalize(JSFreeOp* aFop)
+NS_IMPL_ADDREF_INHERITED(XMLHttpRequestUpload, nsXHREventTarget)
+NS_IMPL_RELEASE_INHERITED(XMLHttpRequestUpload, nsXHREventTarget)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(XMLHttpRequestUpload)
+NS_INTERFACE_MAP_END_INHERITING(nsXHREventTarget)
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED_1(XMLHttpRequestUpload, nsXHREventTarget,
+                                     mXHR)
+
+JSObject*
+XMLHttpRequestUpload::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
-  XMLHttpRequestEventTarget::_finalize(aFop);
+  return XMLHttpRequestUploadBinding_workers::Wrap(aCx, aScope, this);
+}
+
+
+already_AddRefed<XMLHttpRequestUpload>
+XMLHttpRequestUpload::Create(XMLHttpRequest* aXHR)
+{
+  nsRefPtr<XMLHttpRequestUpload> upload = new XMLHttpRequestUpload(aXHR);
+  return upload.forget();
 }
