@@ -666,7 +666,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     bool resumeAfter = excInfo ? false : iter.resumeAfter();
 
     JSOp op = JSOp(*pc);
-    JS_ASSERT_IF(excInfo, op == JSOP_ENTERBLOCK);
 
     
     
