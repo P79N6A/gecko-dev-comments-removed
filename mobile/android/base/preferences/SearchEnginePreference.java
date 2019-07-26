@@ -135,31 +135,6 @@ public class SearchEnginePreference extends CustomListPreference {
         final String iconURI = geckoEngineJSON.getString("iconURI");
         
         try {
-
-            
-            
-
-            LoadFaviconResult result = FaviconDecoder.decodeDataURI(iconURI);
-            if (result == null) {
-                
-                Log.w(LOGTAG, "Unable to decode icon URI.");
-                return;
-            }
-
-            Iterator<Bitmap> bitmaps = result.getBitmaps();
-            if (!bitmaps.hasNext()) {
-                Log.w(LOGTAG, "No bitmaps in decoded icon.");
-                return;
-            }
-
-            mIconBitmap = bitmaps.next();
-
-            if (!bitmaps.hasNext()) {
-                
-                return;
-            }
-
-            
             final int desiredWidth;
             if (mFaviconView != null) {
                 desiredWidth = mFaviconView.getWidth();
@@ -174,15 +149,8 @@ public class SearchEnginePreference extends CustomListPreference {
                 }
             }
 
-            int currentWidth = mIconBitmap.getWidth();
-            while ((currentWidth < desiredWidth) &&
-                   bitmaps.hasNext()) {
-                Bitmap b = bitmaps.next();
-                if (b.getWidth() > currentWidth) {
-                    currentWidth = b.getWidth();
-                    mIconBitmap = b;
-                }
-            }
+            
+            mIconBitmap = FaviconDecoder.getMostSuitableBitmapFromDataURI(iconURI, desiredWidth);
 
         } catch (IllegalArgumentException e) {
             Log.e(LOGTAG, "IllegalArgumentException creating Bitmap. Most likely a zero-length bitmap.", e);

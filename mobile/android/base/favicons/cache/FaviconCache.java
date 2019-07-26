@@ -332,7 +332,8 @@ public class FaviconCache {
 
             FaviconCacheElement cacheElement;
 
-            int cacheElementIndex = container.getNextHighestIndex(targetSize);
+            
+            int cacheElementIndex = (targetSize == -1) ? -1 : container.getNextHighestIndex(targetSize);
 
             
             
@@ -362,10 +363,14 @@ public class FaviconCache {
             
             cacheElement = container.getNextPrimary(cacheElementIndex);
 
-
             if (cacheElement == null) {
                 
                 return null;
+            }
+
+            if (targetSize == -1) {
+                
+                return cacheElement.mFaviconPayload;
             }
 
             

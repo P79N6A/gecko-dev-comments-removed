@@ -6,6 +6,7 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
+import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.LayerView;
@@ -777,43 +778,59 @@ public class GeckoAppShell
     }
 
     
-    static void createShortcut(String aTitle, String aURI, String aUniqueURI, String aIconData, String aType) {
-        createShortcut(aTitle, aURI, aUniqueURI, BitmapUtils.getBitmapFromDataURI(aIconData), aType);
-    }
-
-    public static void createShortcut(final String aTitle, final String aURI, final String aUniqueURI,
-                                      final Bitmap aIcon, final String aType)
-    {
+    static void createShortcut(final String aTitle, final String aURI, final String aUniqueURI, final String aIconData, final String aType) {
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
                 
-                Intent shortcutIntent;
-                if (aType.equalsIgnoreCase(SHORTCUT_TYPE_WEBAPP)) {
-                    shortcutIntent = getWebAppIntent(aURI, aUniqueURI, aTitle, aIcon);
-                } else {
-                    shortcutIntent = new Intent();
-                    shortcutIntent.setAction(GeckoApp.ACTION_BOOKMARK);
-                    shortcutIntent.setData(Uri.parse(aURI));
-                    shortcutIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
-                                                AppConstants.BROWSER_INTENT_CLASS);
-                }
-        
-                Intent intent = new Intent();
-                intent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
-                if (aTitle != null)
-                    intent.putExtra(Intent.EXTRA_SHORTCUT_NAME, aTitle);
-                else
-                    intent.putExtra(Intent.EXTRA_SHORTCUT_NAME, aURI);
-                intent.putExtra(Intent.EXTRA_SHORTCUT_ICON, getLauncherIcon(aIcon, aType));
-
-                
-                intent.putExtra("duplicate", false);
-
-                intent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
-                getContext().sendBroadcast(intent);
+                Bitmap icon = FaviconDecoder.getMostSuitableBitmapFromDataURI(aIconData, getPreferredIconSize());
+                GeckoAppShell.doCreateShortcut(aTitle, aURI, aURI, icon, aType);
             }
         });
+    }
+
+    public static void createShortcut(final String aTitle, final String aURI, final String aUniqueURI,
+                                      final Bitmap aIcon, final String aType) {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                GeckoAppShell.doCreateShortcut(aTitle, aURI, aUniqueURI, aIcon, aType);
+            }
+        });
+    }
+
+    
+
+
+    private static void doCreateShortcut(final String aTitle, final String aURI, final String aUniqueURI,
+                                         final Bitmap aIcon, final String aType) {
+        
+        Intent shortcutIntent;
+        if (aType.equalsIgnoreCase(SHORTCUT_TYPE_WEBAPP)) {
+            shortcutIntent = getWebAppIntent(aURI, aUniqueURI, aTitle, aIcon);
+        } else {
+            shortcutIntent = new Intent();
+            shortcutIntent.setAction(GeckoApp.ACTION_BOOKMARK);
+            shortcutIntent.setData(Uri.parse(aURI));
+            shortcutIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
+                                        AppConstants.BROWSER_INTENT_CLASS);
+        }
+
+        Intent intent = new Intent();
+        intent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
+        intent.putExtra(Intent.EXTRA_SHORTCUT_ICON, getLauncherIcon(aIcon, aType));
+
+        if (aTitle != null) {
+            intent.putExtra(Intent.EXTRA_SHORTCUT_NAME, aTitle);
+        } else {
+            intent.putExtra(Intent.EXTRA_SHORTCUT_NAME, aURI);
+        }
+
+        
+        intent.putExtra("duplicate", false);
+
+        intent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
+        getContext().sendBroadcast(intent);
     }
 
     public static void removeShortcut(final String aTitle, final String aURI, final String aType) {

@@ -87,15 +87,6 @@ public class TopSitesPanel extends HomeFragment {
     private TopSitesGridView mGrid;
 
     
-    private HomeBanner mBanner;
-
-    
-    private float mListTouchY = -1;
-
-    
-    private boolean mSnapBannerToTop;
-
-    
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
     
@@ -206,15 +197,6 @@ public class TopSitesPanel extends HomeFragment {
 
         registerForContextMenu(mList);
         registerForContextMenu(mGrid);
-
-        mBanner = (HomeBanner) view.findViewById(R.id.home_banner);
-        mList.setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                TopSitesPanel.this.handleListTouchEvent(event);
-                return false;
-            }
-        });
     }
 
     @Override
@@ -382,7 +364,7 @@ public class TopSitesPanel extends HomeFragment {
             }
 
             
-            Favicons.getLargestFaviconForPage(info.url, new GeckoAppShell.CreateShortcutFaviconLoadedListener(info.url, info.getDisplayTitle()));
+            Favicons.getPreferredSizeFaviconForPage(info.url, new GeckoAppShell.CreateShortcutFaviconLoadedListener(info.url, info.getDisplayTitle()));
             return true;
         }
 
@@ -450,60 +432,6 @@ public class TopSitesPanel extends HomeFragment {
                     BrowserDB.pinSite(context.getContentResolver(), url, title, position);
                 }
             });
-        }
-    }
-
-    private void handleListTouchEvent(MotionEvent event) {
-        
-        if (mBanner.isDismissed()) {
-            return;
-        }
-
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN: {
-                mListTouchY = event.getRawY();
-                break;
-            }
-
-            case MotionEvent.ACTION_MOVE: {
-                
-                
-                if (mListTouchY == -1) {
-                    mListTouchY = event.getRawY();
-                    return;
-                }
-
-                final float curY = event.getRawY();
-                final float delta = mListTouchY - curY;
-                mSnapBannerToTop = (delta > 0.0f) ? false : true;
-
-                final float height = mBanner.getHeight();
-                float newTranslationY = ViewHelper.getTranslationY(mBanner) + delta;
-
-                
-                if (newTranslationY < 0.0f) {
-                    newTranslationY = 0.0f;
-                } else if (newTranslationY > height) {
-                    newTranslationY = height;
-                }
-
-                ViewHelper.setTranslationY(mBanner, newTranslationY);
-                mListTouchY = curY;
-                break;
-            }
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL: {
-                mListTouchY = -1;
-                final float y = ViewHelper.getTranslationY(mBanner);
-                final float height = mBanner.getHeight();
-                if (y > 0.0f && y < height) {
-                    final PropertyAnimator animator = new PropertyAnimator(100);
-                    animator.attach(mBanner, Property.TRANSLATION_Y, mSnapBannerToTop ? 0 : height);
-                    animator.start();
-                }
-                break;
-            }
         }
     }
 

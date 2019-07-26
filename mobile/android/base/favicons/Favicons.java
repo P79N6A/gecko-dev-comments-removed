@@ -7,6 +7,7 @@ package org.mozilla.gecko.favicons;
 
 import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
@@ -473,7 +474,11 @@ public class Favicons {
 
 
 
-    public static void getLargestFaviconForPage(String url, OnFaviconLoadedListener onFaviconLoadedListener) {
-        loadUncachedFavicon(url, null, 0, -1, onFaviconLoadedListener);
+
+
+
+    public static void getPreferredSizeFaviconForPage(String url, OnFaviconLoadedListener onFaviconLoadedListener) {
+        int preferredSize = GeckoAppShell.getPreferredIconSize();
+        loadUncachedFavicon(url, null, 0, preferredSize, onFaviconLoadedListener);
     }
 }
