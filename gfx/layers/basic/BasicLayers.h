@@ -194,7 +194,15 @@ protected:
   
   nsRefPtr<gfxContext> mTarget;
   
+  
+  
+  
+  
+  
+  
+  
   nsRefPtr<gfxContext> mShadowTarget;
+  nsRefPtr<gfxContext> mDummyTarget;
   
   nsRefPtr<ImageFactory> mFactory;
 

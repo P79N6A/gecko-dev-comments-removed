@@ -228,11 +228,6 @@ public:
   
 
 
-  bool ShadowDrawToTarget(gfxContext* aTarget);
-
-  
-
-
   void SetShadowManager(PLayersChild* aShadowManager)
   {
     mShadowManager = aShadowManager;

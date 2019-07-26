@@ -23,6 +23,7 @@
 #include "BasicLayersImpl.h"
 #include "BasicThebesLayer.h"
 #include "BasicContainerLayer.h"
+#include "CompositorChild.h"
 #include "mozilla/Preferences.h"
 #include "nsIWidget.h"
 
@@ -1103,13 +1104,14 @@ BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
     if (aTarget && (aTarget != mDefaultTarget) &&
         XRE_GetProcessType() == GeckoProcessType_Default) {
       mShadowTarget = aTarget;
-
       
       
-      nsRefPtr<gfxASurface> targetSurface = gfxPlatform::GetPlatform()->
-        CreateOffscreenSurface(aTarget->OriginalSurface()->GetSize(),
-                               aTarget->OriginalSurface()->GetContentType());
-      targetContext = new gfxContext(targetSurface);
+      nsRefPtr<gfxASurface> dummy =
+        gfxPlatform::GetPlatform()->CreateOffscreenSurface(
+          gfxIntSize(1, 1),
+          aTarget->OriginalSurface()->GetContentType());
+      mDummyTarget = new gfxContext(dummy);
+      aTarget = mDummyTarget;
     }
   }
   BasicLayerManager::BeginTransactionWithTarget(aTarget);
@@ -1128,9 +1130,30 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
     BasicLayerManager::BeginTransaction();
     BasicShadowLayerManager::EndTransaction(aCallback, aCallbackData, aFlags);
   } else if (mShadowTarget) {
-    
-    ShadowLayerForwarder::ShadowDrawToTarget(mShadowTarget);
+    if (mWidget) {
+      if (CompositorChild* remoteRenderer = mWidget->GetRemoteRenderer()) {
+        nsRefPtr<gfxASurface> target = mShadowTarget->OriginalSurface();
+        SurfaceDescriptor inSnapshot, snapshot;
+        if (AllocBuffer(target->GetSize(), target->GetContentType(),
+                        &inSnapshot) &&
+            
+            
+            
+            remoteRenderer->SendMakeSnapshot(inSnapshot, &snapshot)) {
+          AutoOpenSurface opener(OPEN_READ_ONLY, snapshot);
+          gfxASurface* source = opener.Get();
+
+          gfxContextAutoSaveRestore restore(mShadowTarget);
+          mShadowTarget->SetOperator(gfxContext::OPERATOR_OVER);
+          mShadowTarget->DrawSurface(source, source->GetSize());
+        }
+        if (IsSurfaceDescriptorValid(snapshot)) {
+          ShadowLayerForwarder::DestroySharedSurface(&snapshot);
+        }
+      }
+    }
     mShadowTarget = nullptr;
+    mDummyTarget = nullptr;
   }
 }
 
