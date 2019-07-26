@@ -177,7 +177,7 @@ namespace analyze {
 
 namespace types {
 
-class TypeZone;
+class TypeCompartment;
 class TypeSet;
 class TypeObjectKey;
 
@@ -288,6 +288,24 @@ inline Type GetValueType(const Value &val);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TypeConstraint
 {
 public:
@@ -316,12 +334,6 @@ public:
 
 
     virtual void newObjectState(JSContext *cx, TypeObject *object) {}
-
-    
-
-
-
-    virtual TypeConstraint *sweep(TypeZone &zone) = 0;
 };
 
 
@@ -381,6 +393,13 @@ enum {
 
     
     OBJECT_FLAG_ADDENDUM_CLEARED      = 0x2,
+
+    
+
+
+
+
+    OBJECT_FLAG_NEW_SCRIPT_REGENERATE = 0x4,
 
     
 
@@ -853,6 +872,12 @@ struct TypeTypedObject : public TypeObjectAddendum
 
 
 
+
+
+
+
+
+
 struct TypeObject : gc::BarrieredCell<TypeObject>
 {
     
@@ -1291,7 +1316,7 @@ class HeapTypeSetKey
 
     void freeze(CompilerConstraintList *constraints);
     JSValueType knownTypeTag(CompilerConstraintList *constraints);
-    bool configured(CompilerConstraintList *constraints);
+    bool configured(CompilerConstraintList *constraints, TypeObjectKey *type);
     bool isOwnProperty(CompilerConstraintList *constraints);
     bool knownSubset(CompilerConstraintList *constraints, const HeapTypeSetKey &other);
     JSObject *singleton(CompilerConstraintList *constraints);
@@ -1313,10 +1338,6 @@ class CompilerOutput
 
     
     bool pendingInvalidation_ : 1;
-
-    
-    
-    uint32_t sweepIndex_ : 29;
 
   public:
     CompilerOutput()
@@ -1345,15 +1366,6 @@ class CompilerOutput
     bool pendingInvalidation() {
         return pendingInvalidation_;
     }
-
-    void setSweepIndex(uint32_t index) {
-        if (index >= 1 << 29)
-            MOZ_CRASH();
-        sweepIndex_ = index;
-    }
-    uint32_t sweepIndex() {
-        return sweepIndex_;
-    }
 };
 
 class RecompileInfo
@@ -1368,9 +1380,8 @@ class RecompileInfo
     bool operator == (const RecompileInfo &o) const {
         return outputIndex == o.outputIndex;
     }
-    CompilerOutput *compilerOutput(TypeZone &types) const;
+    CompilerOutput *compilerOutput(TypeCompartment &types) const;
     CompilerOutput *compilerOutput(JSContext *cx) const;
-    bool shouldSweep(TypeZone &types);
 };
 
 
@@ -1379,7 +1390,30 @@ struct TypeCompartment
     
 
     
+
+
+
+    struct PendingWork
+    {
+        TypeConstraint *constraint;
+        ConstraintTypeSet *source;
+        Type type;
+    };
+    PendingWork *pendingArray;
+    unsigned pendingCount;
+    unsigned pendingCapacity;
+
+    
+    bool resolving;
+
+    
     unsigned scriptCount;
+
+    
+    Vector<CompilerOutput> *constrainedOutputs;
+
+    
+    Vector<RecompileInfo> *pendingRecompiles;
 
     
     AllocationSiteTable *allocationSiteTable;
@@ -1405,6 +1439,14 @@ struct TypeCompartment
     inline JSCompartment *compartment();
 
     
+    inline void addPending(JSContext *cx, TypeConstraint *constraint,
+                           ConstraintTypeSet *source, Type type);
+    bool growPendingArray(JSContext *cx);
+
+    
+    inline void resolvePending(JSContext *cx);
+
+    
     void print(JSContext *cx, bool force);
 
     
@@ -1419,16 +1461,26 @@ struct TypeCompartment
     
     TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
 
+    void processPendingRecompiles(FreeOp *fop);
+
     
     void setPendingNukeTypes(ExclusiveContext *cx);
+
+    
+    void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
+    void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
     void markSetsUnknown(JSContext *cx, TypeObject *obj);
 
     void sweep(FreeOp *fop);
+    void sweepShapes(FreeOp *fop);
+    void clearCompilerOutputs(FreeOp *fop);
+
     void finalizeObjects();
 
     void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
+                                size_t *pendingArrays,
                                 size_t *allocationSiteTables,
                                 size_t *arrayTypeTables,
                                 size_t *objectTypeTables);
@@ -1443,16 +1495,6 @@ struct TypeZone
     
     static const size_t TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 8 * 1024;
     js::LifoAlloc                typeLifoAlloc;
-
-    
-
-
-
-
-    Vector<CompilerOutput> *compilerOutputs;
-
-    
-    Vector<RecompileInfo> *pendingRecompiles;
 
     
 
@@ -1473,12 +1515,6 @@ struct TypeZone
 
     
     void setPendingNukeTypes();
-
-    
-    void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
-    void addPendingRecompile(JSContext *cx, JSScript *script);
-
-    void processPendingRecompiles(FreeOp *fop);
 
     void nukeTypes(FreeOp *fop);
 };
