@@ -1210,6 +1210,11 @@ this.PDU_FCS_UNSPECIFIED              = 0xFF;
 
 
 
+
+this.MOZ_FCS_WAIT_FOR_EXPLICIT_ACK    = 0x0F;
+
+
+
 this.PDU_ST_0_RECEIVED             = 0x00;
 this.PDU_ST_0_FORWARDED_NO_CONFIRM = 0x01;
 this.PDU_ST_0_REPLACED_BY_SC       = 0x02;
