@@ -24,7 +24,9 @@ struct ElementDependentRuleProcessorData;
 
 struct ElementPropertyTransition
 {
-  ElementPropertyTransition() {}
+  ElementPropertyTransition() 
+    : mIsRunningOnCompositor(false)
+  {}
 
   nsCSSProperty mProperty;
   nsStyleAnimation::Value mStartValue, mEndValue;
@@ -50,6 +52,10 @@ struct ElementPropertyTransition
   
   
   double mReversePortion;
+  
+  
+  
+  bool mIsRunningOnCompositor;
 
   
   
