@@ -64,9 +64,6 @@ function PlainTextConsole(print) {
   
   
   
-  
-  
-  
 
   console.__exposedProps__ = Object.keys(ConsoleAPI.prototype).reduce(function(exposed, prop) {
     exposed[prop] = "r";

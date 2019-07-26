@@ -280,10 +280,6 @@ const WorkerSandbox = EventEmitter.compose({
 
       
       
-      
-      
-      
-      
       let con = Cu.createObjectIn(win);
 
       let genPropDesc = function genPropDesc(fun) {
