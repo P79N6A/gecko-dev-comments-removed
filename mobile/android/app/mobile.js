@@ -825,3 +825,9 @@ pref("browser.snippets.syncPromo.enabled", false);
 
 pref("browser.webapps.apkFactoryUrl", "http://dapk.net/application.apk");
 #endif
+
+
+pref("home.sync.wifiOnly", false);
+
+
+pref("home.sync.checkIntervalSecs", 3600);

@@ -7,16 +7,31 @@
 
 this.EXPORTED_SYMBOLS = [ "HomeProvider" ];
 
-const { utils: Cu } = Components;
+const { utils: Cu, classes: Cc, interfaces: Ci } = Components;
 
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Sqlite.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const SCHEMA_VERSION = 1;
 
-const DB_PATH = OS.Path.join(OS.Constants.Path.profileDir, "home.sqlite");
+XPCOMUtils.defineLazyGetter(this, "DB_PATH", function() {
+  return OS.Path.join(OS.Constants.Path.profileDir, "home.sqlite");
+});
+
+const PREF_STORAGE_LAST_SYNC_TIME_PREFIX = "home.storage.lastSyncTime.";
+const PREF_SYNC_WIFI_ONLY = "home.sync.wifiOnly";
+const PREF_SYNC_CHECK_INTERVAL_SECS = "home.sync.checkIntervalSecs";
+
+XPCOMUtils.defineLazyGetter(this, "gSyncCheckIntervalSecs", function() {
+  return Services.prefs.getIntPref(PREF_SYNC_CHECK_INTERVAL_SECS);
+});
+
+XPCOMUtils.defineLazyServiceGetter(this,
+  "gUpdateTimerManager", "@mozilla.org/updates/timer-manager;1", "nsIUpdateTimerManager");
 
 
 
@@ -41,6 +56,53 @@ const SQL = {
     "DELETE FROM items WHERE dataset_id = :dataset_id"
 }
 
+
+
+
+
+function isUsingWifi() {
+  let network = Cc["@mozilla.org/network/network-link-service;1"].getService(Ci.nsINetworkLinkService);
+  return (network.linkType === Ci.nsINetworkLinkService.LINK_TYPE_WIFI || network.linkType === Ci.nsINetworkLinkService.LINK_TYPE_ETHERNET);
+}
+
+function getNowInSeconds() {
+  return Math.round(Date.now() / 1000);
+}
+
+function getLastSyncPrefName(datasetId) {
+  return PREF_STORAGE_LAST_SYNC_TIME_PREFIX + datasetId;
+}
+
+
+var gTimerRegistered = false;
+
+
+var gSyncCallbacks = {};
+
+
+
+
+
+
+function syncTimerCallback(timer) {
+  for (let datasetId in gSyncCallbacks) {
+    let lastSyncTime = 0;
+    try {
+      lastSyncTime = Services.prefs.getIntPref(getLastSyncPrefName(datasetId));
+    } catch(e) { }
+
+    let now = getNowInSeconds();
+    let { interval: interval, callback: callback } = gSyncCallbacks[datasetId];
+
+    if (lastSyncTime < now - interval) {
+      let success = HomeProvider.requestSync(datasetId, callback);
+      if (success) {
+        Services.prefs.setIntPref(getLastSyncPrefName(datasetId), now);
+      }
+    }
+  }
+}
+
 this.HomeProvider = Object.freeze({
   
 
@@ -52,6 +114,61 @@ this.HomeProvider = Object.freeze({
 
   getStorage: function(datasetId) {
     return new HomeStorage(datasetId);
+  },
+
+  
+
+
+
+
+
+
+
+  requestSync: function(datasetId, callback) {
+    
+    if (Services.prefs.getBoolPref(PREF_SYNC_WIFI_ONLY) && !isUsingWifi()) {
+      Cu.reportError("HomeProvider: Failed to sync because device is not on a local network");
+      return false;
+    }
+
+    callback(datasetId);
+    return true;
+  },
+
+  
+
+
+
+
+
+
+  addPeriodicSync: function(datasetId, interval, callback) {
+    
+    if (interval < gSyncCheckIntervalSecs) {
+      Cu.reportError("HomeProvider: Warning for dataset " + datasetId +
+        " : Sync notifications are throttled to " + gSyncCheckIntervalSecs + " seconds");
+    }
+
+    gSyncCallbacks[datasetId] = {
+      interval: interval,
+      callback: callback
+    };
+
+    if (!gTimerRegistered) {
+      gUpdateTimerManager.registerTimer("home-provider-sync-timer", syncTimerCallback, gSyncCheckIntervalSecs);
+      gTimerRegistered = true;
+    }
+  },
+
+  
+
+
+
+
+  removePeriodicSync: function(datasetId) {
+    delete gSyncCallbacks[datasetId];
+    Services.prefs.clearUserPref(getLastSyncPrefName(datasetId));
+    
   }
 });
 
