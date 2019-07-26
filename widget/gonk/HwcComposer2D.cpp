@@ -19,11 +19,13 @@
 
 #include "libdisplay/GonkDisplay.h"
 #include "Framebuffer.h"
+#include "GLContext.h"                  
 #include "HwcUtils.h"
 #include "HwcComposer2D.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/PLayerTransaction.h"
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
+#include "mozilla/layers/TextureHostOGL.h"  
 #include "mozilla/StaticPtr.h"
 #include "cutils/properties.h"
 #include "gfx2DGlue.h"
@@ -67,7 +69,10 @@ HwcComposer2D::HwcComposer2D()
     , mHwc(nullptr)
     , mColorFill(false)
     , mRBSwapSupport(false)
-    , mPrevRetireFence(-1)
+#if ANDROID_VERSION >= 18
+    , mPrevRetireFence(Fence::NO_FENCE)
+    , mPrevDisplayFence(Fence::NO_FENCE)
+#endif
     , mPrepared(false)
 {
 }
@@ -649,36 +654,29 @@ HwcComposer2D::Commit()
 
     int err = mHwc->set(mHwc, HWC_NUM_DISPLAY_TYPES, displays);
 
-    
-    
-    if (!mPrevReleaseFds.IsEmpty()) {
-        
-        
-        
-        
-        sp<Fence> fence = new Fence(mPrevRetireFence);
-        if (fence->wait(1000) == -ETIME) {
-            LOGE("Wait timed-out for retireFenceFd %d", mPrevRetireFence);
-        }
-        for (int i = 0; i < mPrevReleaseFds.Length(); i++) {
-            close(mPrevReleaseFds[i]);
-        }
-        close(mPrevRetireFence);
-        mPrevReleaseFds.Clear();
-    }
+    mPrevDisplayFence = mPrevRetireFence;
+    mPrevRetireFence = Fence::NO_FENCE;
 
     for (uint32_t j=0; j < (mList->numHwLayers - 1); j++) {
         if (mList->hwLayers[j].releaseFenceFd >= 0) {
-            mPrevReleaseFds.AppendElement(mList->hwLayers[j].releaseFenceFd);
-        }
-    }
+            int fd = mList->hwLayers[j].releaseFenceFd;
+            mList->hwLayers[j].releaseFenceFd = -1;
+            sp<Fence> fence = new Fence(fd);
+
+            LayerRenderState state = mHwcLayerMap[j]->GetLayer()->GetRenderState();
+            if (!state.mTexture) {
+                continue;
+            }
+            TextureHostOGL* texture = state.mTexture->AsHostOGL();
+            if (!texture) {
+                continue;
+            }
+            texture->SetReleaseFence(fence);
+       }
+   }
 
     if (mList->retireFenceFd >= 0) {
-        if (!mPrevReleaseFds.IsEmpty()) {
-            mPrevRetireFence = mList->retireFenceFd;
-        } else { 
-            close(mList->retireFenceFd);
-        }
+        mPrevRetireFence = new Fence(mList->retireFenceFd);
     }
 
     mPrepared = false;

@@ -36,6 +36,9 @@ CompositableHost::CompositableHost(const TextureInfo& aTextureInfo)
 CompositableHost::~CompositableHost()
 {
   MOZ_COUNT_DTOR(CompositableHost);
+  if (mBackendData) {
+    mBackendData->ClearData();
+  }
 }
 
 void
@@ -62,6 +65,8 @@ CompositableHost::UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
 void
 CompositableHost::RemoveTextureHost(TextureHost* aTexture)
 {
+  
+  aTexture->SetCompositableBackendSpecificData(nullptr);
 }
 
 void

@@ -17,10 +17,12 @@
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/FenceUtils.h"  
 #include "mozilla/ipc/Shmem.h"          
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/PTextureChild.h" 
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -230,6 +232,11 @@ public:
   static PTextureChild* CreateIPDLActor();
   static bool DestroyIPDLActor(PTextureChild* actor);
 
+  
+
+
+  static TextureClient* AsTextureClient(PTextureChild* actor);
+
   virtual bool IsAllocated() const = 0;
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
@@ -287,6 +294,13 @@ public:
 
   void ForceRemove();
 
+  virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle) {}
+
+  const FenceHandle& GetReleaseFenceHandle() const
+  {
+    return mReleaseFenceHandle;
+  }
+
 private:
   
 
@@ -325,6 +339,7 @@ protected:
   TextureFlags mFlags;
   bool mShared;
   bool mValid;
+  FenceHandle mReleaseFenceHandle;
 
   friend class TextureChild;
 };

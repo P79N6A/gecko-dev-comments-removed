@@ -204,6 +204,9 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
     return true;
   }
 
+  
+  ClearPrevFenceHandles();
+
   EditReplyVector replyv;
 
   {

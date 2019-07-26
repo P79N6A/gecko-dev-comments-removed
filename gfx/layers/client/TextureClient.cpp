@@ -20,7 +20,6 @@
 #include "mozilla/layers/ShadowLayers.h"  
 #include "mozilla/layers/SharedPlanarYCbCrImage.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "mozilla/layers/PTextureChild.h"
 #include "nsDebug.h"                    
 #include "nsTraceRefcnt.h"              
 #include "ImageContainer.h"             
@@ -157,6 +156,13 @@ TextureClient::DestroyIPDLActor(PTextureChild* actor)
 {
   static_cast<TextureChild*>(actor)->ReleaseIPDLReference();
   return true;
+}
+
+
+TextureClient*
+TextureClient::AsTextureClient(PTextureChild* actor)
+{
+  return actor? static_cast<TextureChild*>(actor)->mTextureClient : nullptr;
 }
 
 bool

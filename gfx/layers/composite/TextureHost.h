@@ -43,6 +43,7 @@ class CompositableHost;
 class CompositableBackendSpecificData;
 class SurfaceDescriptor;
 class ISurfaceAllocator;
+class TextureHostOGL;
 class TextureSourceOGL;
 class TextureSourceD3D9;
 class TextureSourceD3D11;
@@ -273,7 +274,6 @@ class TextureHost
   void Finalize();
 
   friend class AtomicRefCountedWithFinalize<TextureHost>;
-
 public:
   TextureHost(TextureFlags aFlags);
 
@@ -399,6 +399,14 @@ public:
 
 
 
+
+
+  PTextureParent* GetIPDLActor();
+
+  
+
+
+
   virtual LayerRenderState GetRenderState()
   {
     
@@ -418,9 +426,17 @@ public:
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
+  
+
+
+  virtual TextureHostOGL* AsHostOGL() { return nullptr; }
+
 protected:
+  PTextureParent* mActor;
   TextureFlags mFlags;
   RefPtr<CompositableBackendSpecificData> mCompositableBackendData;
+
+  friend class TextureParent;
 };
 
 
