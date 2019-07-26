@@ -20,12 +20,6 @@ function debugClipFlavors(aClip)
   }
 }
 
-
-function emptyClipboard() {
-  Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard)
-                                       .emptyClipboard(Ci.nsIClipboard.kGlobalClipboard);
-}
-
 function checkContextMenuPositionRange(aElement, aMinLeft, aMaxLeft, aMinTop, aMaxTop) {
   ok(aElement.left > aMinLeft && aElement.left < aMaxLeft,
     "Left position is " + aElement.left + ", expected between " + aMinLeft + " and " + aMaxLeft);
