@@ -167,7 +167,7 @@ public class Favicons {
             putFaviconInMemCache(pageUrl, image);
 
         
-        GeckoApp.mAppContext.runOnUiThread(new Runnable() {
+        GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
                 if (listener != null)
                     listener.onFaviconLoaded(pageUrl, image);
@@ -300,7 +300,7 @@ public class Favicons {
         
         private BitmapDrawable downloadFavicon(URL faviconUrl) {
             if (mFaviconUrl.startsWith("jar:jar:")) {
-                return GeckoJarReader.getBitmapDrawable(GeckoApp.mAppContext.getResources(), mFaviconUrl);
+                return GeckoJarReader.getBitmapDrawable(mContext.getResources(), mFaviconUrl);
             }
 
             URI uri;
