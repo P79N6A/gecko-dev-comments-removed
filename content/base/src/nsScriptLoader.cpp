@@ -843,6 +843,9 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
     return NS_ERROR_FAILURE;
   }
 
+  bool oldProcessingScriptTag = context->GetProcessingScriptTag();
+  context->SetProcessingScriptTag(true);
+
   
   nsCOMPtr<nsIScriptElement> oldCurrent = mCurrentScript;
   mCurrentScript = aRequest->mElement;
@@ -863,6 +866,10 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   
   mCurrentScript = oldCurrent;
 
+  JSContext *cx = nullptr; 
+  cx = context->GetNativeContext();
+  JSAutoRequest ar(cx);
+  context->SetProcessingScriptTag(oldProcessingScriptTag);
   return rv;
 }
 
