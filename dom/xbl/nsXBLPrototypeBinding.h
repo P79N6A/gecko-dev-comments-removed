@@ -283,7 +283,7 @@ protected:
   bool mKeyHandlersRegistered;
   bool mChromeOnlyContent;
 
-  nsXBLPrototypeResources* mResources; 
+  nsAutoPtr<nsXBLPrototypeResources> mResources; 
 
   nsXBLDocumentInfo* mXBLDocInfoWeak; 
 
