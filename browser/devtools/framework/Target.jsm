@@ -320,6 +320,7 @@ TabTarget.prototype = {
       let event = Object.create(null);
       event.url = aPacket.url;
       event.title = aPacket.title;
+      event.nativeConsoleAPI = aPacket.nativeConsoleAPI;
       
       
       if (aPacket.state == "start") {

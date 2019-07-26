@@ -4723,7 +4723,7 @@ WebConsoleConnectionProxy.prototype = {
 
 
 
-  _onTabNavigated: function WCCP__onTabNavigated(aType, aPacket)
+  _onTabNavigated: function WCCP__onTabNavigated(aEvent, aPacket)
   {
     if (!this.owner) {
       return;
@@ -4733,7 +4733,7 @@ WebConsoleConnectionProxy.prototype = {
       this.owner.onLocationChange(aPacket.url, aPacket.title);
     }
 
-    if (aType == "navigate" && !aPacket.nativeConsoleAPI) {
+    if (aEvent == "navigate" && !aPacket.nativeConsoleAPI) {
       this.owner.logWarningAboutReplacedAPI();
     }
   },
@@ -4775,7 +4775,8 @@ WebConsoleConnectionProxy.prototype = {
     this.client.removeListener("networkEvent", this._onNetworkEvent);
     this.client.removeListener("networkEventUpdate", this._onNetworkEventUpdate);
     this.client.removeListener("fileActivity", this._onFileActivity);
-    this.client.removeListener("tabNavigated", this._onTabNavigated);
+    this.target.off("will-navigate", this._onTabNavigated);
+    this.target.off("navigate", this._onTabNavigated);
 
     this.client = null;
     this.webConsoleClient = null;
