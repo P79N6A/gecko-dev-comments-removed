@@ -19,12 +19,6 @@ const TEST_ID = "0201";
 const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 
 
-const CHECK_TIMEOUT_MILLI = 1000;
-
-
-const MAX_TIMEOUT_RUNS = 300;
-
-
 
 const APP_TIMER_TIMEOUT = 120000;
 
@@ -230,7 +224,7 @@ function checkUpdateApplied() {
                "applied, current state is: " +
                gUpdateManager.activeUpdate.state);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateApplied);
     return;
   }
 
@@ -255,7 +249,7 @@ function checkUpdateApplied() {
   }
   log.append(FILE_LAST_LOG);
   if (!log.exists()) {
-    do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
+    do_timeout(TEST_CHECK_TIMEOUT, checkUpdateApplied);
     return;
   }
 
@@ -353,7 +347,7 @@ function checkUpdateApplied() {
   do_check_false(updatesDir.exists());
 
   
-  do_timeout(CHECK_TIMEOUT_MILLI, switchApp);
+  do_timeout(TEST_CHECK_TIMEOUT, switchApp);
 }
 
 
@@ -370,7 +364,7 @@ function checkUpdateFinished() {
         do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to " +
                  "change to succeeded, current status: " + status);
       else
-        do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+        do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
       return;
     }
   } catch (e) {
@@ -387,7 +381,7 @@ function checkUpdateFinished() {
       if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
         do_throw("Exceeded whilst waiting for file to be unlocked");
       else
-        do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+        do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
       return;
     } else {
       do_throw("getAppConsoleLogPath threw: " + e);
@@ -406,7 +400,7 @@ function checkUpdateFinished() {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
       do_throw("Exceeded whilst waiting for update dir to not exist");
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
     return;
   }
 

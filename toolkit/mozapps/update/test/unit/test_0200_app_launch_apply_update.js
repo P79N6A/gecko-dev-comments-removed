@@ -16,12 +16,6 @@ const TEST_ID = "0200";
 const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 
 
-const CHECK_TIMEOUT_MILLI = 1000;
-
-
-const MAX_TIMEOUT_RUNS = 300;
-
-
 
 const APP_TIMER_TIMEOUT = 120000;
 
@@ -235,7 +229,7 @@ function checkUpdateFinished() {
       do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for updates log to " +
                "be created at " + log.path);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
     return;
   }
 
@@ -246,7 +240,7 @@ function checkUpdateFinished() {
       do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for updates status " +
                "to not be pending or applying, current status is: " + status);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
     return;
   }
 
@@ -263,7 +257,7 @@ function checkUpdateFinished() {
                "rename " + FILE_UPDATE_LOG + " to " + FILE_UPDATE_LOG +
                ".bak. Path: " + log.path);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
     return;
   }
 
@@ -293,7 +287,7 @@ function restoreLogFile() {
                "rename " + FILE_UPDATE_LOG + ".bak back to " + FILE_UPDATE_LOG +
                ". Path: " + log.path);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, restoreLogFile);
+      do_timeout(TEST_CHECK_TIMEOUT, restoreLogFile);
     return;
   }
 
@@ -350,7 +344,7 @@ function checkLogRenameFinished() {
       do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update log to " +
                "be renamed to last-update.log at " + log.path);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkLogRenameFinished);
+      do_timeout(TEST_CHECK_TIMEOUT, checkLogRenameFinished);
     return;
   }
 

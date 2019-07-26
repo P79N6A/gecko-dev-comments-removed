@@ -25,12 +25,6 @@ const TEST_ID = "0203_svc";
 const FILE_UPDATER_INI_BAK = "updater.ini.bak";
 
 
-const CHECK_TIMEOUT_MILLI = 1000;
-
-
-const MAX_TIMEOUT_RUNS = 300;
-
-
 
 const APP_TIMER_TIMEOUT = 120000;
 
@@ -261,7 +255,7 @@ function checkUpdateApplied() {
       do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be " +
                "applied, current state is: " + gUpdateManager.activeUpdate.state);
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateApplied);
     return;
   }
 
@@ -280,7 +274,7 @@ function checkUpdateApplied() {
       do_throw("Exceeded MAX_TIMEOUT_RUNS whist waiting for update log to be " +
                "created");
     else
-      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
+      do_timeout(TEST_CHECK_TIMEOUT, checkUpdateApplied);
     return;
   }
 
@@ -359,7 +353,7 @@ function checkUpdateApplied() {
   do_check_false(updatesDir.exists());
 
   
-  do_timeout(CHECK_TIMEOUT_MILLI, switchApp);
+  do_timeout(TEST_CHECK_TIMEOUT, switchApp);
 }
 
 
@@ -376,7 +370,7 @@ function checkUpdateFinished() {
         do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to " +
                  "change to succeeded, current status: " + status);
       else
-        do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+        do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
       return;
     }
   } catch (e) {
@@ -394,7 +388,7 @@ function checkUpdateFinished() {
       else
         
         
-        do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+        do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
       return;
     } else {
       do_throw("getAppConsoleLogPath threw: " + e);
