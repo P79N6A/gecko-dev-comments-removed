@@ -386,11 +386,8 @@ function jsTestDriverBrowserInit()
     
     return;
   }
-  var suitepath = testpathparts.slice(0,testpathparts.length-2).join('/');
-  var subsuite = testpathparts[testpathparts.length - 2];
-  var test     = testpathparts[testpathparts.length - 1];
 
-  document.write('<title>' + suitepath + '/' + subsuite + '/' + test + '<\/title>');
+  document.write('<title>' + properties.test + '<\/title>');
 
   
   
@@ -398,19 +395,18 @@ function jsTestDriverBrowserInit()
 
   
   
-  
-  
-  if (suitepath.indexOf('/') !== -1) {
-    var base = suitepath.slice(0, suitepath.indexOf('/'));
-    outputscripttag(base + '/shell.js', properties);
-    outputscripttag(base + '/browser.js', properties);
+  var prepath = "";
+  var i = 0;
+  for (end = testpathparts.length - 1; i < end; i++) {
+    prepath += testpathparts[i] + "/";
+    outputscripttag(prepath + "shell.js", properties);
+    outputscripttag(prepath + "browser.js", properties);
   }
 
-  outputscripttag(suitepath + '/shell.js', properties);
-  outputscripttag(suitepath + '/browser.js', properties);
-  outputscripttag(suitepath + '/' + subsuite + '/shell.js', properties);
-  outputscripttag(suitepath + '/' + subsuite + '/browser.js', properties);
-  outputscripttag(suitepath + '/' + subsuite + '/' + test, properties);
+  
+  outputscripttag(prepath + testpathparts[i], properties);
+
+  
   outputscripttag('js-test-driver-end.js', properties);
   return;
 }
