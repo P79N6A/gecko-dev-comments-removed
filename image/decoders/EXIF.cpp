@@ -78,14 +78,11 @@ bool
 EXIFParser::ParseTIFFHeader(uint32_t& aIFD0OffsetOut)
 {
   
-  if (MatchString("MM", 2))
+  if (MatchString("MM\0*", 4))
     mByteOrder = ByteOrder::BigEndian;
-  else if (MatchString("II", 2))
+  else if (MatchString("II*\0", 4))
     mByteOrder = ByteOrder::LittleEndian;
   else
-    return false;
-
-  if (!MatchString("\0*", 2))
     return false;
 
   
