@@ -46,20 +46,4 @@ try {
 
 assertEq(actual, expect);
 
-
-s = "{let y, x;}";
-for (i = 0; i < 16; i++)
-    s += s;
-
-
-s += "var g; { let x = 42; g = function() { return x; }; x = x; }";
-
-try {
-    eval(s);
-    actual = g();
-} catch (e) {
-    actual = e;
-}
-assertEq(actual, 42);
-
 reportCompare(0, 0, "ok");
