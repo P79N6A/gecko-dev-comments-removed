@@ -106,8 +106,6 @@ public:
         default:
             throw std::runtime_error("unsupported architecture");
         }
-        if (!init)
-            file += "-noinit";
         file += ".o";
         std::ifstream inject(file.c_str(), std::ios::in|std::ios::binary);
         elf = new Elf(inject);
@@ -119,36 +117,24 @@ public:
         ElfSymtab_Section *symtab = NULL;
 
         
-        
-        
-        
-        
         for (ElfSection *section = elf->getSection(1); section != NULL;
              section = section->getNext()) {
-            if ((section->getType() == SHT_PROGBITS) &&
-                (section->getFlags() & SHF_EXECINSTR)) {
-                code.push_back(section);
-                
-                
-                if (shdr.sh_addralign < section->getAddrAlign())
-                    shdr.sh_addralign = section->getAddrAlign();
-            } else if (section->getType() == SHT_SYMTAB) {
+            if (section->getType() == SHT_SYMTAB)
                 symtab = (ElfSymtab_Section *) section;
-            }
         }
-        assert(code.size() != 0);
         if (symtab == NULL)
             throw std::runtime_error("Couldn't find a symbol table for the injected code");
 
         
         entry_point = -1;
-        int shndx = 0;
-        Elf_SymValue *sym = symtab->lookup("init");
-        if (sym) {
-            entry_point = sym->value.getValue();
-            shndx = sym->value.getSection()->getIndex();
-        } else
+        Elf_SymValue *sym = symtab->lookup(init ? "init" : "init_noinit");
+        if (!sym)
             throw std::runtime_error("Couldn't find an 'init' symbol in the injected code");
+
+        entry_point = sym->value.getValue();
+
+        
+        add_code_section(sym->value.getSection());
 
         
         std::vector<ElfSection *>::iterator c = code.begin();
@@ -158,6 +144,10 @@ public:
             if (addr & ((*c)->getAddrAlign() - 1))
                 addr = (addr | ((*c)->getAddrAlign() - 1)) + 1;
             (*c)->getShdr().sh_addr = addr;
+            
+            
+            if (shdr.sh_addralign < (*c)->getAddrAlign())
+                shdr.sh_addralign = (*c)->getAddrAlign();
         }
         shdr.sh_size = code.back()->getAddr() + code.back()->getSize();
         data = new char[shdr.sh_size];
@@ -165,8 +155,6 @@ public:
         for (c = code.begin(); c != code.end(); c++) {
             memcpy(buf, (*c)->getData(), (*c)->getSize());
             buf += (*c)->getSize();
-            if ((*c)->getIndex() < shndx)
-                entry_point += (*c)->getSize();
         }
         name = elfhack_text;
     }
@@ -182,14 +170,15 @@ public:
             (*c)->getShdr().sh_addr += getAddr();
 
         
-        for (ElfSection *rel = elf->getSection(1); rel != NULL; rel = rel->getNext())
-            if ((rel->getType() == SHT_REL) || (rel->getType() == SHT_RELA)) {
-                ElfSection *section = rel->getInfo().section;
-                if ((section->getType() == SHT_PROGBITS) && (section->getFlags() & SHF_EXECINSTR)) {
+        for (std::vector<ElfSection *>::iterator c = code.begin(); c != code.end(); c++) {
+            for (ElfSection *rel = elf->getSection(1); rel != NULL; rel = rel->getNext())
+                if (((rel->getType() == SHT_REL) ||
+                     (rel->getType() == SHT_RELA)) &&
+                    (rel->getInfo().section == *c)) {
                     if (rel->getType() == SHT_REL)
-                        apply_relocations((ElfRel_Section<Elf_Rel> *)rel, section);
+                        apply_relocations((ElfRel_Section<Elf_Rel> *)rel, *c);
                     else
-                        apply_relocations((ElfRel_Section<Elf_Rela> *)rel, section);
+                        apply_relocations((ElfRel_Section<Elf_Rela> *)rel, *c);
                 }
             }
 
@@ -204,6 +193,48 @@ public:
         return entry_point;
     }
 private:
+    void add_code_section(ElfSection *section)
+    {
+        if (section) {
+            code.push_back(section);
+            find_code(section);
+        }
+    }
+
+    
+
+    void find_code(ElfSection *section)
+    {
+        for (ElfSection *s = elf->getSection(1); s != NULL;
+             s = s->getNext()) {
+            if (((s->getType() == SHT_REL) ||
+                 (s->getType() == SHT_RELA)) &&
+                (s->getInfo().section == section)) {
+                if (s->getType() == SHT_REL)
+                    scan_relocs_for_code((ElfRel_Section<Elf_Rel> *)s);
+                else
+                    scan_relocs_for_code((ElfRel_Section<Elf_Rela> *)s);
+            }
+        }
+    }
+
+    template <typename Rel_Type>
+    void scan_relocs_for_code(ElfRel_Section<Rel_Type> *rel)
+    {
+        ElfSymtab_Section *symtab = (ElfSymtab_Section *)rel->getLink();
+        for (auto r = rel->rels.begin(); r != rel->rels.end(); r++) {
+            ElfSection *section = symtab->syms[ELF32_R_SYM(r->r_info)].value.getSection();
+            if (section) {
+                for (ElfSection *s = elf->getSection(1); s != NULL; s = s->getNext()) {
+                    if (section == s)
+                        section = NULL;
+                        break;
+                }
+            }
+            add_code_section(section);
+        }
+    }
+
     class pc32_relocation {
     public:
         Elf32_Addr operator()(unsigned int base_addr, Elf32_Off offset,
