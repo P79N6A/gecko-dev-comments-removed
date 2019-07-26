@@ -510,7 +510,9 @@ var SelectionHandler = {
       
       selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
       
-      selection.collapseToStart();
+      if (selection.rangeCount != 0) {
+        selection.collapseToStart();
+      }
     }
   },
 
