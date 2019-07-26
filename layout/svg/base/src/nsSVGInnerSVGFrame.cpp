@@ -104,27 +104,40 @@ nsSVGInnerSVGFrame::NotifySVGChanged(PRUint32 aFlags)
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 
+  bool updateBounds = false;
+
   if (aFlags & COORD_CONTEXT_CHANGED) {
 
     nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(mContent);
+
+    bool xOrYIsPercentage =
+      svg->mLengthAttributes[nsSVGSVGElement::X].IsPercentage() ||
+      svg->mLengthAttributes[nsSVGSVGElement::Y].IsPercentage();
+    bool widthOrHeightIsPercentage =
+      svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() ||
+      svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage();
+
+    if (xOrYIsPercentage || widthOrHeightIsPercentage) {
+      
+      
+      
+      
+      
+      
+      nsSVGUtils::ScheduleBoundsUpdate(this);
+    }
 
     
     
     
 
     if (!(aFlags & TRANSFORM_CHANGED) &&
-        (svg->mLengthAttributes[nsSVGSVGElement::X].IsPercentage() ||
-         svg->mLengthAttributes[nsSVGSVGElement::Y].IsPercentage() ||
-         (svg->HasViewBox() &&
-          (svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() ||
-           svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage())))) {
-    
+        (xOrYIsPercentage ||
+         (widthOrHeightIsPercentage && svg->HasViewBox()))) {
       aFlags |= TRANSFORM_CHANGED;
     }
 
-    if (svg->HasViewBox() ||
-        (!svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() &&
-         !svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage())) {
+    if (svg->HasViewBox() || !widthOrHeightIsPercentage) {
       
       
       
@@ -155,6 +168,7 @@ nsSVGInnerSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
+      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
 
       if (content->HasViewBoxOrSyntheticViewBox()) {
         
@@ -177,6 +191,8 @@ nsSVGInnerSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
                aAttribute == nsGkAtoms::y) {
       
       mCanvasTM = nsnull;
+
+      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
 
       nsSVGUtils::NotifyChildrenOfSVGChange(
           this, aAttribute == nsGkAtoms::viewBox ?

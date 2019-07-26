@@ -46,6 +46,7 @@ nsSVGTextPathFrame::Init(nsIContent* aContent,
   nsCOMPtr<nsIDOMSVGTextPathElement> textPath = do_QueryInterface(aContent);
   NS_ASSERTION(textPath, "Content is not an SVG textPath");
 
+
   return nsSVGTextPathFrameBase::Init(aContent, aParent, aPrevInFlow);
 }
 #endif 
@@ -75,7 +76,7 @@ nsSVGTextPathFrame::GetDxDy(SVGUserUnitList *aDx, SVGUserUnitList *aDy)
 const SVGNumberList*
 nsSVGTextPathFrame::GetRotate()
 {
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -92,7 +93,7 @@ nsSVGTextPathFrame::GetPathFrame()
     nsAutoString href;
     tp->mStringAttributes[nsSVGTextPathElement::HREF].GetAnimValue(href, tp);
     if (href.IsEmpty()) {
-      return nullptr; 
+      return nsnull; 
     }
 
     nsCOMPtr<nsIURI> targetURI;
@@ -103,10 +104,10 @@ nsSVGTextPathFrame::GetPathFrame()
     property =
       nsSVGEffects::GetTextPathProperty(targetURI, this, nsSVGEffects::HrefProperty());
     if (!property)
-      return nullptr;
+      return nsnull;
   }
 
-  return property->GetReferencedFrame(nsGkAtoms::svgPathGeometryFrame, nullptr);
+  return property->GetReferencedFrame(nsGkAtoms::svgPathGeometryFrame, nsnull);
 }
 
 already_AddRefed<gfxFlattenedPath>
@@ -120,7 +121,7 @@ nsSVGTextPathFrame::GetFlattenedPath()
 
     return element->GetFlattenedPath(element->PrependLocalTransformsTo(gfxMatrix()));
   }
-  return nullptr;
+  return nsnull;
 }
  
 gfxFloat
@@ -151,17 +152,17 @@ nsSVGTextPathFrame::GetOffsetScale()
 
 
 NS_IMETHODIMP
-nsSVGTextPathFrame::AttributeChanged(int32_t         aNameSpaceID,
+nsSVGTextPathFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                      nsIAtom*        aAttribute,
-                                     int32_t         aModType)
+                                     PRInt32         aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::startOffset) {
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
     NotifyGlyphMetricsChange();
   } else if (aNameSpaceID == kNameSpaceID_XLink &&
              aAttribute == nsGkAtoms::href) {
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
     
     Properties().Delete(nsSVGEffects::HrefProperty());
     NotifyGlyphMetricsChange();

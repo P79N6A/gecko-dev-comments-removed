@@ -80,6 +80,15 @@ public:
     COORD_CONTEXT_CHANGED = 0x04,
     FULL_ZOOM_CHANGED     = 0x08
   };
+  
+
+
+
+
+
+
+
+
   virtual void NotifySVGChanged(PRUint32 aFlags)=0;
 
   

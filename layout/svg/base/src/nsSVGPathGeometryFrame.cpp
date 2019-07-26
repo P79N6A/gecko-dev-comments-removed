@@ -265,9 +265,12 @@ nsSVGPathGeometryFrame::NotifySVGChanged(PRUint32 aFlags)
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 
-  if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
-  }
+  
+  
+  
+  
+  
+  nsSVGUtils::ScheduleBoundsUpdate(this);
 }
 
 SVGBBox
