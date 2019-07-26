@@ -57,6 +57,18 @@ function onSidebarLoad(callback) {
   }, true);
 }
 
+function ensureWorkerLoaded(provider, callback) {
+  
+  let port = provider.getWorkerPort();
+  port.onmessage = function(msg) {
+    if (msg.data.topic == "pong") {
+      port.close();
+      callback();
+    }
+  }
+  port.postMessage({topic: "ping"})
+}
+
 let manifest = { 
   name: "provider 1",
   origin: "https://example.com",
@@ -100,8 +112,12 @@ var tests = {
       sbrowser.contentDocument.getElementById("btnTryAgain").click();
     });
     
-    goOffline();
-    Services.prefs.setBoolPref("social.sidebar.open", true);
+    
+    ensureWorkerLoaded(Social.provider, function() {
+      
+      goOffline();
+      Services.prefs.setBoolPref("social.sidebar.open", true);
+  });
   },
 
   testFlyout: function(next) {
