@@ -867,7 +867,11 @@ function ElementEditor(aContainer, aNode)
         return;
       }
 
-      this._applyAttributes(aVal);
+      try {
+        this._applyAttributes(aVal);
+      } catch (x) {
+        return;
+      }
     }.bind(this)
   });
 
@@ -963,10 +967,15 @@ ElementEditor.prototype = {
 
           
           
-          this._removeAttribute(this.node, aAttr.name)
-          this._applyAttributes(aVal, attr);
-
-          this.undo.endBatch();
+          
+          this._removeAttribute(this.node, aAttr.name);
+          try {
+            this._applyAttributes(aVal, attr);
+            this.undo.endBatch();
+          } catch (e) {
+            this.undo.endBatch();
+            this.undo.undo();
+          }
         }.bind(this)
       });
 
@@ -988,6 +997,7 @@ ElementEditor.prototype = {
 
 
 
+
   _applyAttributes: function EE__applyAttributes(aValue, aAttrNode)
   {
     
@@ -996,6 +1006,7 @@ ElementEditor.prototype = {
     let parseTag = (this.node.namespaceURI.match(/svg/i) ? "svg" :
                    (this.node.namespaceURI.match(/mathml/i) ? "math" : "div"));
     let parseText = "<" + parseTag + " " + aValue + "/>";
+    
     dummyNode.innerHTML = parseText;
     let parsedNode = dummyNode.firstChild;
 
