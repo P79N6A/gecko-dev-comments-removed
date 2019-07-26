@@ -2,62 +2,49 @@
 
 
 MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
-
-
-
-let ifr = document.createElement("iframe");
-let connection;
-ifr.onload = function() {
-  connection = ifr.contentWindow.navigator.mozMobileConnections[0];
-
-  ok(connection instanceof ifr.contentWindow.MozMobileConnection,
-     "connection is instanceof " + connection.constructor);
-
-  setTimeout(testChangeCallBarringPasswordWithFailure, 0);
-};
-document.body.appendChild(ifr);
-
-function testChangeCallBarringPasswordWithFailure() {
+const TEST_DATA = [
   
-  let options = [
-    {pin: null, newPin: '0000'},
-    {pin: '0000', newPin: null},
-    {pin: null, newPin: null},
-    {pin: '000', newPin: '0000'},
-    {pin: '00000', newPin: '1111'},
-    {pin: 'abcd', newPin: 'efgh'},
-  ];
 
-  function do_test() {
-    for (let i = 0; i < options.length; i++) {
-      let request = connection.changeCallBarringPassword(options[i]);
+  
+  [null, "0000", "InvalidPassword"],
+  ["0000", null, "InvalidPassword"],
+  [null, null, "InvalidPassword"],
 
-      request.onsuccess = function() {
-        ok(false, 'Unexpected result.');
-        setTimeout(cleanUp , 0);
-      };
+  
+  ["000", "0000", "InvalidPassword"],
+  ["00000", "1111", "InvalidPassword"],
+  ["abcd", "efgh", "InvalidPassword"],
 
-      request.onerror = function() {
-        ok(request.error.name === 'InvalidPassword', 'InvalidPassword');
-        if (i >= options.length) {
-          setTimeout(testChangeCallBarringPasswordWithSuccess, 0);
-        }
-      };
-    }
+  
+  
+  
+  ["1234", "1234", "RequestNotSupported"]
+];
+
+function testChangeCallBarringPassword(aPin, aNewPin, aExpectedError) {
+  log("Test changing call barring password to " + aPin + "/" + aNewPin);
+
+  let options = {
+    pin: aPin,
+    newPin: aNewPin
+  };
+  return changeCallBarringPassword(options)
+    .then(function resolve() {
+      ok(!aExpectedError, "changeCallBarringPassword success");
+    }, function reject(aError) {
+      is(aError.name, aExpectedError, "failed to changeCallBarringPassword");
+    });
+}
+
+
+startTestCommon(function() {
+  let promise = Promise.resolve();
+  for (let i = 0; i < TEST_DATA.length; i++) {
+    let data = TEST_DATA[i];
+    promise =
+      promise.then(() => testChangeCallBarringPassword(data[0], data[1], data[2]));
   }
-
-  do_test();
-}
-
-function testChangeCallBarringPasswordWithSuccess() {
-  
-  
-  setTimeout(cleanUp , 0);
-}
-
-function cleanUp() {
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
-}
+  return promise;
+});
