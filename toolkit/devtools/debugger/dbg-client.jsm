@@ -1036,17 +1036,6 @@ ThreadClient.prototype = {
 
 
 
-  getScripts: function TC_getScripts(aOnResponse) {
-    let packet = { to: this._actor, type: "scripts" };
-    this._client.request(packet, aOnResponse);
-  },
-
-  
-
-
-
-
-
   getSources: function TC_getSources(aOnResponse) {
     
     
@@ -1058,7 +1047,10 @@ ThreadClient.prototype = {
     
     
     function getSourcesBackwardsCompat(aOnResponse) {
-      this.getScripts(function (aResponse) {
+      this._client.request({
+        to: this._actor,
+        type: "scripts"
+      }, function (aResponse) {
         if (aResponse.error) {
           aOnResponse(aResponse);
           return;
@@ -1101,27 +1093,6 @@ ThreadClient.prototype = {
       aAction();
       this.resume(function() {});
     }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-  fillScripts: function TC_fillScripts() {
-    let self = this;
-    this.getScripts(function(aResponse) {
-      for each (let script in aResponse.scripts) {
-        self._scriptCache[script.url] = script;
-      }
-      
-      if (aResponse.scripts && aResponse.scripts.length) {
-        self.notify("scriptsadded");
-      }
-    });
-    return true;
   },
 
   
