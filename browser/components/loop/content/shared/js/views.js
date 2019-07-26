@@ -269,6 +269,20 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
 
+
+
+    notifyL10n: function(messageId, level) {
+      this.notify({
+        message: l10n.get(messageId),
+        level: level
+      });
+    },
+
+    
+
+
+
+
     warn: function(message) {
       this.notify({level: "warning", message: message});
     },
@@ -278,8 +292,26 @@ loop.shared.views = (function(_, OT, l10n) {
 
 
 
+    warnL10n: function(messageId) {
+      this.warn(l10n.get(messageId));
+    },
+
+    
+
+
+
+
     error: function(message) {
       this.notify({level: "error", message: message});
+    },
+
+    
+
+
+
+
+    errorL10n: function(messageId) {
+      this.error(l10n.get(messageId));
     },
 
     
