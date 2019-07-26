@@ -24,20 +24,22 @@ public class testFindInPage extends PixelTest {
         width = mDriver.getGeckoWidth()/8;
 
         
-        Actions.RepeatedEventExpecter paintExpecter = mActions.expectPaint();
-        findText("Robocoop", 3); 
-        PaintedSurface painted = waitForPaint(paintExpecter);
-        paintExpecter.unregisterListener();
-        try {
-            mAsserter.ispixel(painted.getPixelAt(width,height), 255, 0, 0, "Pixel at " + String.valueOf(width) + "," + String.valueOf(height));
-        } finally {
-            painted.close();
-        }
+
+
+
+
+
+
+
+
+
+
+
 
         
-        paintExpecter = mActions.expectPaint();
+        Actions.RepeatedEventExpecter paintExpecter = mActions.expectPaint();
         findText("Robocop", 3);
-        painted = waitForPaint(paintExpecter);
+        PaintedSurface painted = waitForPaint(paintExpecter);
         paintExpecter.unregisterListener();
         try {
             mAsserter.isnotpixel(painted.getPixelAt(width,height), 255, 0, 0, "Pixel at " + String.valueOf(width) + "," + String.valueOf(height));
