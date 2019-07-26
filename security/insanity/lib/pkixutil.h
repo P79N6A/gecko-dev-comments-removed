@@ -109,7 +109,12 @@ public:
 
   BackCert* const childCert;
 
-  const CERTCertificate* GetNSSCert() const { return nssCert; }
+  
+  
+  
+  
+  
+   CERTCertificate* GetNSSCert() const { return nssCert; }
 
   
   

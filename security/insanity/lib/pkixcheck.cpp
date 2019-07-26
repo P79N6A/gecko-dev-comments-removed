@@ -318,16 +318,47 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
   return Success;
 }
 
-
-
 Result
-CheckExtensions(BackCert& cert,
-                EndEntityOrCA endEntityOrCA,
-                bool isTrustAnchor,
-                KeyUsages requiredKeyUsagesIfPresent,
-                SECOidTag requiredEKUIfPresent,
-                unsigned int subCACount)
+CheckIssuerIndependentProperties(TrustDomain& trustDomain,
+                                 BackCert& cert,
+                                 PRTime time,
+                                 EndEntityOrCA endEntityOrCA,
+                                 KeyUsages requiredKeyUsagesIfPresent,
+                                 SECOidTag requiredEKUIfPresent,
+                                 unsigned int subCACount,
+                 TrustDomain::TrustLevel* trustLevelOut)
 {
+  Result rv;
+
+  TrustDomain::TrustLevel trustLevel;
+  rv = MapSECStatus(trustDomain.GetCertTrust(endEntityOrCA,
+                                             cert.GetNSSCert(),
+                                             &trustLevel));
+  if (rv != Success) {
+    return rv;
+  }
+  if (trustLevel == TrustDomain::ActivelyDistrusted) {
+    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+    return RecoverableError;
+  }
+  if (trustLevel != TrustDomain::TrustAnchor &&
+      trustLevel != TrustDomain::InheritsTrust) {
+    
+    PORT_SetError(PR_INVALID_STATE_ERROR);
+    return FatalError;
+  }
+  if (trustLevelOut) {
+    *trustLevelOut = trustLevel;
+  }
+
+  bool isTrustAnchor = endEntityOrCA == MustBeCA &&
+                       trustLevel == TrustDomain::TrustAnchor;
+
+  rv = CheckTimes(cert.GetNSSCert(), time);
+  if (rv != Success) {
+    return rv;
+  }
+
   
   
 
@@ -335,8 +366,6 @@ CheckExtensions(BackCert& cert,
   if (!arena) {
     return FatalError;
   }
-
-  Result rv;
 
   
 

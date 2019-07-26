@@ -79,6 +79,14 @@ public:
   virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
                                      const CERTCertificate* cert) = 0;
 
+  
+  
+  virtual SECStatus CheckRevocation(EndEntityOrCA endEntityOrCA,
+                                    const CERTCertificate* cert,
+                           CERTCertificate* issuerCertToDup,
+                                    PRTime time,
+                        const SECItem* stapledOCSPresponse) = 0;
+
 protected:
   TrustDomain() { }
 
