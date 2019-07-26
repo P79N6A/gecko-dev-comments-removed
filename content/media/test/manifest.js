@@ -355,6 +355,9 @@ var gChainingTests = [
   
   
   { name:"chained-audio-video.ogg", type:"video/ogg", links: 4 },
+  
+  
+  { name:"variable-preskip.opus", type:"audio/ogg; codec=opus", links: 2 },
   { name:"bogus.duh", type:"bogus/duh" }
 ];
 
