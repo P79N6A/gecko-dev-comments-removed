@@ -279,6 +279,8 @@ public:
 
 protected:
 
+  virtual void WindowUsesOMTC() MOZ_OVERRIDE;
+
   
   
   enum { eFakeTrackPointScrollableID = 0x46545053 };
