@@ -1407,7 +1407,7 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot,
 #ifndef MOZ_ANDROID_OMTC
   
   
-  gfxPoint activeScrolledRootTopLeft = scaledOffset - matrix.GetTranslation();
+  gfxPoint activeScrolledRootTopLeft = scaledOffset - matrix.GetTranslation() + mParameters.mOffset;
   
   
   
