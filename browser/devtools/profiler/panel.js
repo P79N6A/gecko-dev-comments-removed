@@ -456,39 +456,37 @@ ProfilerPanel.prototype = {
 
 
 
-  displaySource: function PP_displaySource(data, onOpen=function() {}) {
-    let win = this.window;
-    let panelWin;
+  displaySource: function PP_displaySource(data) {
+    let { browserWindow: win, document: doc } = this;
+    let { uri, line, isChrome } = data;
+    let deferred = promise.defer();
 
-    function onSourceShown(event) {
-      if (event.detail.url !== data.uri) {
-        return;
-      }
-
-      panelWin.removeEventListener("Debugger:SourceShown", onSourceShown, false);
-      panelWin.editor.setCaretPosition(data.line - 1);
-      onOpen();
+    if (isChrome) {
+      return void win.gViewSourceUtils.viewSource(uri, null, doc, line);
     }
 
-    if (data.isChrome) {
-      return void this.browserWindow.gViewSourceUtils.
-        viewSource(data.uri, null, this.document, data.line);
+    let showSource = ({ DebuggerView }) => {
+      if (DebuggerView.Sources.containsValue(uri)) {
+        DebuggerView.setEditorLocation(uri, line).then(deferred.resolve);
+      }
+      
+      
     }
 
-    gDevTools.showToolbox(this.target, "jsdebugger").then(function (toolbox) {
-      let dbg = toolbox.getCurrentPanel();
-      panelWin = dbg.panelWin;
-
-      let view = dbg.panelWin.DebuggerView;
-      if (view.Sources.selectedValue === data.uri) {
-        view.editor.setCaretPosition(data.line - 1);
-        onOpen();
-        return;
+    
+    
+    
+    let toolbox = gDevTools.getToolbox(this.target);
+    let debuggerAlreadyOpen = toolbox.getPanel("jsdebugger");
+    toolbox.selectTool("jsdebugger").then(({ panelWin: dbg }) => {
+      if (debuggerAlreadyOpen) {
+        showSource(dbg);
+      } else {
+        dbg.once(dbg.EVENTS.SOURCES_ADDED, () => showSource(dbg));
       }
+    });
 
-      panelWin.addEventListener("Debugger:SourceShown", onSourceShown, false);
-      panelWin.DebuggerView.Sources.preferredSource = data.uri;
-    }.bind(this));
+    return deferred.promise;
   },
 
   
