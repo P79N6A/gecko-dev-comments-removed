@@ -486,7 +486,7 @@ StoreAllLiveRegs(MacroAssembler &masm, RegisterSet liveRegs)
     masm.loadJitActivation(scratch);
 
     Address checkRegs(scratch, JitActivation::offsetOfCheckRegs());
-    masm.store32(Imm32(1), checkRegs);
+    masm.add32(Imm32(1), checkRegs);
 
     StoreOp op(masm);
     HandleRegisterDump<StoreOp>(op, masm, liveRegs, scratch, allRegs.getAny());
@@ -538,6 +538,13 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
     Label failure, done;
     Address checkRegs(scratch, JitActivation::offsetOfCheckRegs());
     masm.branch32(Assembler::Equal, checkRegs, Imm32(0), &done);
+
+    
+    
+    
+    
+    
+    masm.branch32(Assembler::NotEqual, checkRegs, Imm32(1), &failure);
 
     
     
