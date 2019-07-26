@@ -1305,7 +1305,7 @@ MBinaryArithInstruction::infer(BaselineInspector *inspector,
         return inferFallback(inspector, pc);
 
     
-    if (overflowed)
+    if (inspector->expectedResultType(pc) == MIRType_Double)
         setResultType(MIRType_Double);
 
     
