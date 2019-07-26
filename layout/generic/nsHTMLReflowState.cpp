@@ -174,6 +174,7 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
   mFlags.mAssumingHScrollbar = mFlags.mAssumingVScrollbar = false;
   mFlags.mHasClearance = false;
   mFlags.mIsColumnBalancing = false;
+  mFlags.mIsFlexContainerMeasuringHeight = false;
   mFlags.mDummyParentReflowState = false;
 
   mDiscoveredClearance = nullptr;
@@ -2009,6 +2010,12 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
         computeSizeFlags |= nsIFrame::eShrinkWrap;
       }
 
+      
+      
+      if (mFlags.mIsFlexContainerMeasuringHeight) {
+        computeSizeFlags |= nsIFrame::eUseAutoHeight;
+      }
+
       nsSize size =
         frame->ComputeSize(rendContext,
                            nsSize(aContainingBlockWidth,
@@ -2489,6 +2496,9 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
   
   
   
+
+  
+  
   
   
   const nsStyleCoord &minHeight = mStylePosition->mMinHeight;
@@ -2496,7 +2506,8 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
       (NS_AUTOHEIGHT == aContainingBlockHeight &&
        minHeight.HasPercent()) ||
       (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
-       minHeight.IsCalcUnit())) {
+       minHeight.IsCalcUnit()) ||
+      mFlags.mIsFlexContainerMeasuringHeight) {
     mComputedMinHeight = 0;
   } else {
     mComputedMinHeight = ComputeHeightValue(aContainingBlockHeight, 
@@ -2513,10 +2524,13 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
     
     
     
+    
+    
     if ((NS_AUTOHEIGHT == aContainingBlockHeight && 
          maxHeight.HasPercent()) ||
         (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
-         maxHeight.IsCalcUnit())) {
+         maxHeight.IsCalcUnit()) ||
+        mFlags.mIsFlexContainerMeasuringHeight) {
       mComputedMaxHeight = NS_UNCONSTRAINEDSIZE;
     } else {
       mComputedMaxHeight = ComputeHeightValue(aContainingBlockHeight, 

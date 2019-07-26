@@ -1738,7 +1738,11 @@ public:
     
 
 
-    eShrinkWrap =        1 << 0
+    eShrinkWrap =        1 << 0,
+    
+
+
+    eUseAutoHeight =     1 << 1
   };
 
   

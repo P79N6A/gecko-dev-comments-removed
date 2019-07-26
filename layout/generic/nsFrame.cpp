@@ -4004,7 +4004,11 @@ nsFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   result.width = NS_MAX(minWidth, result.width);
 
   
-  if (!nsLayoutUtils::IsAutoHeight(*heightStyleCoord, aCBSize.height)) {
+  
+  
+  
+  if (!nsLayoutUtils::IsAutoHeight(*heightStyleCoord, aCBSize.height) &&
+      !(aFlags & nsIFrame::eUseAutoHeight)) {
     result.height =
       nsLayoutUtils::ComputeHeightValue(aCBSize.height, 
                                         boxSizingAdjust.height,
@@ -4770,16 +4774,9 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
   }
   nsSVGEffects::InvalidateDirectRenderingObservers(aFrame);
   nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aFrame);
-  bool needsSchedulePaint = false;
   while (parent && !parent->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
     if (aHasDisplayItem) {
       parent->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
-    }
-    
-    
-    
-    if (nsLayoutUtils::IsPopup(parent)) {
-      needsSchedulePaint = true;
     }
     nsSVGEffects::InvalidateDirectRenderingObservers(parent);
     parent = nsLayoutUtils::GetCrossDocParentFrame(parent);
@@ -4787,7 +4784,7 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
   if (!aHasDisplayItem) {
     return;
   }
-  if (!parent || needsSchedulePaint) {
+  if (!parent) {
     aFrame->SchedulePaint();
   }
   if (aFrame->HasAnyStateBits(NS_FRAME_HAS_INVALID_RECT)) {
@@ -4801,7 +4798,7 @@ nsIFrame::InvalidateFrameSubtree(uint32_t aDisplayItemKey)
 {
   bool hasDisplayItem = 
     !aDisplayItemKey || FrameLayerBuilder::HasRetainedDataFor(this, aDisplayItemKey);
-  InvalidateFrame(aDisplayItemKey);
+  InvalidateFrameInternal(this, hasDisplayItem);
 
   if (HasAnyStateBits(NS_FRAME_ALL_DESCENDANTS_NEED_PAINT) || !hasDisplayItem) {
     return;

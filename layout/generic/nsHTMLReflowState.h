@@ -349,6 +349,9 @@ public:
     uint16_t mHeightDependsOnAncestorCell:1;   
                                                
     uint16_t mIsColumnBalancing:1;   
+    uint16_t mIsFlexContainerMeasuringHeight:1; 
+                                                
+                                                
     uint16_t mDummyParentReflowState:1; 
                                         
                                         
