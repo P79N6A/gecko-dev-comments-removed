@@ -45,7 +45,10 @@ static const mozilla::Module::ContractIDEntry kJARContracts[] = {
 
 static void nsJarShutdown()
 {
-    NS_IF_RELEASE(gJarHandler);
+    
+    
+    nsJARProtocolHandler *handler = gJarHandler;
+    NS_IF_RELEASE(handler);
 }
 
 static const mozilla::Module kJARModule = {
