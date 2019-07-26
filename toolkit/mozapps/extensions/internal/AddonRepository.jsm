@@ -13,8 +13,6 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-                                  "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
@@ -25,6 +23,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository_SQLiteMigrator",
                                   "resource://gre/modules/addons/AddonRepository_SQLiteMigrator.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
+
 
 this.EXPORTED_SYMBOLS = [ "AddonRepository" ];
 
@@ -496,12 +497,6 @@ this.AddonRepository = {
   _pendingCallbacks: null,
 
   
-  _migrationInProgress: false,
-
-  
-  _postMigrationCallback: null,
-
-  
   _searching: false,
 
   
@@ -552,7 +547,7 @@ this.AddonRepository = {
 
 
 
-  getCachedAddonByID: function AddonRepo_getCachedAddonByID(aId, aCallback) {
+  getCachedAddonByID: Task.async(function* (aId, aCallback) {
     if (!aId || !this.cacheEnabled) {
       aCallback(null);
       return;
@@ -568,20 +563,20 @@ this.AddonRepository = {
         
         this._pendingCallbacks = [];
         this._pendingCallbacks.push(getAddon);
-        AddonDatabase.retrieveStoredData(function getCachedAddonByID_retrieveData(aAddons) {
-          let pendingCallbacks = self._pendingCallbacks;
 
-          
-          if (pendingCallbacks == null)
-            return;
+        let addons = yield AddonDatabase.retrieveStoredData();
+        let pendingCallbacks = self._pendingCallbacks;
 
-          
-          
-          self._pendingCallbacks = null;
-          self._addons = aAddons;
+        
+        if (pendingCallbacks == null)
+          return;
 
-          pendingCallbacks.forEach(function(aCallback) aCallback(aAddons));
-        });
+        
+        
+        self._pendingCallbacks = null;
+        self._addons = addons;
+
+        pendingCallbacks.forEach(function(aCallback) aCallback(addons));
 
         return;
       }
@@ -593,7 +588,7 @@ this.AddonRepository = {
 
     
     getAddon(this._addons);
-  },
+  }),
 
   
 
@@ -1527,10 +1522,9 @@ this.AddonRepository = {
 
 var AddonDatabase = {
   
-  initialized: false,
-  
   databaseOk: true,
 
+  connectionPromise: null,
   
   DB: BLANK_DB(),
 
@@ -1538,102 +1532,85 @@ var AddonDatabase = {
 
 
   get jsonFile() {
-    delete this.jsonFile;
-    return this.jsonFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
-  },
+    return OS.Path.join(OS.Constants.Path.profileDir, FILE_DATABASE);
+ },
 
   
 
 
+
+
   openConnection: function() {
-    this.DB = BLANK_DB();
-    this.initialized = true;
-    delete this.connection;
+    if (!this.connectionPromise) {
+     this.connectionPromise = Task.spawn(function*() {
+       this.DB = BLANK_DB();
 
-    let inputDB, fstream, cstream, schema;
+       let inputDB, schema;
 
-    try {
-     let data = "";
-     fstream = Cc["@mozilla.org/network/file-input-stream;1"]
-                 .createInstance(Ci.nsIFileInputStream);
-     cstream = Cc["@mozilla.org/intl/converter-input-stream;1"]
-                 .createInstance(Ci.nsIConverterInputStream);
+       try {
+         let data = yield OS.File.read(this.jsonFile, { encoding: "utf-8"})
+         inputDB = JSON.parse(data);
 
-     fstream.init(this.jsonFile, -1, 0, 0);
-     cstream.init(fstream, "UTF-8", 0, 0);
-     let (str = {}) {
-       let read = 0;
-       do {
-         read = cstream.readString(0xffffffff, str); 
-         data += str.value;
-       } while (read != 0);
-     }
+         if (!inputDB.hasOwnProperty("addons") ||
+             !Array.isArray(inputDB.addons)) {
+           throw new Error("No addons array.");
+         }
 
-     inputDB = JSON.parse(data);
+         if (!inputDB.hasOwnProperty("schema")) {
+           throw new Error("No schema specified.");
+         }
 
-     if (!inputDB.hasOwnProperty("addons") ||
-         !Array.isArray(inputDB.addons)) {
-       throw new Error("No addons array.");
-     }
+         schema = parseInt(inputDB.schema, 10);
 
-     if (!inputDB.hasOwnProperty("schema")) {
-       throw new Error("No schema specified.");
-     }
+         if (!Number.isInteger(schema) ||
+             schema < DB_MIN_JSON_SCHEMA) {
+           throw new Error("Invalid schema value.");
+         }
+       } catch (e if e instanceof OS.File.Error && e.becauseNoSuchFile) {
+         logger.debug("No " + FILE_DATABASE + " found.");
 
-     schema = parseInt(inputDB.schema, 10);
+         
+         this._saveDBToDisk();
 
-     if (!Number.isInteger(schema) ||
-         schema < DB_MIN_JSON_SCHEMA) {
-       throw new Error("Invalid schema value.");
-     }
+         let dbSchema = 0;
+         try {
+           dbSchema = Services.prefs.getIntPref(PREF_GETADDONS_DB_SCHEMA);
+         } catch (e) {}
 
-    } catch (e if e.result == Cr.NS_ERROR_FILE_NOT_FOUND) {
-      logger.debug("No " + FILE_DATABASE + " found.");
+         if (dbSchema < DB_MIN_JSON_SCHEMA) {
+           let results = yield new Promise((resolve, reject) => {
+             AddonRepository_SQLiteMigrator.migrate(resolve);
+           });
 
-      
-      this._saveDBToDisk();
+           if (results.length) {
+             yield this._insertAddons(results);
+           }
 
-      let dbSchema = 0;
-      try {
-        dbSchema = Services.prefs.getIntPref(PREF_GETADDONS_DB_SCHEMA);
-      } catch (e) {}
+           Services.prefs.setIntPref(PREF_GETADDONS_DB_SCHEMA, DB_SCHEMA);
+         }
 
-      if (dbSchema < DB_MIN_JSON_SCHEMA) {
-        this._migrationInProgress = AddonRepository_SQLiteMigrator.migrate((results) => {
-          if (results.length)
-            this.insertAddons(results);
+         return this.DB;
+       } catch (e) {
+         logger.error("Malformed " + FILE_DATABASE + ": " + e);
+         this.databaseOk = false;
 
-          if (this._postMigrationCallback) {
-            this._postMigrationCallback();
-            this._postMigrationCallback = null;
-          }
+         return this.DB;
+       }
 
-          this._migrationInProgress = false;
-        });
+       Services.prefs.setIntPref(PREF_GETADDONS_DB_SCHEMA, DB_SCHEMA);
 
-        Services.prefs.setIntPref(PREF_GETADDONS_DB_SCHEMA, DB_SCHEMA);
-      }
+       
+       
+       
+       for (let addon of inputDB.addons) {
+         this._insertAddon(addon);
+       }
 
-      return;
-
-    } catch (e) {
-      logger.error("Malformed " + FILE_DATABASE + ": " + e);
-      this.databaseOk = false;
-      return;
-
-    } finally {
-     cstream.close();
-     fstream.close();
+       return this.DB;
+     }.bind(this));
     }
 
-    Services.prefs.setIntPref(PREF_GETADDONS_DB_SCHEMA, DB_SCHEMA);
-
-    
-    
-    
-    for (let addon of inputDB.addons) {
-      this._insertAddon(addon);
-    }
+    return this.connectionPromise;
   },
 
   
@@ -1656,18 +1633,14 @@ var AddonDatabase = {
   shutdown: function AD_shutdown(aSkipFlush) {
     this.databaseOk = true;
 
-    if (!this.initialized) {
-      return Promise.resolve(0);
+    if (!this.connectionPromise) {
+      return Promise.resolve();
     }
 
-    this.initialized = false;
-
-    this.__defineGetter__("connection", function shutdown_connectionGetter() {
-      return this.openConnection();
-    });
+    this.connectionPromise = null;
 
     if (aSkipFlush) {
-      return Promise.resolve(0);
+      return Promise.resolve();
     } else {
       return this.Writer.flush();
     }
@@ -1687,9 +1660,9 @@ var AddonDatabase = {
       .then(null, () => {})
       
       .then(() => this.shutdown(true))
-      .then(() => OS.File.remove(this.jsonFile.path, {}))
+      .then(() => OS.File.remove(this.jsonFile, {}))
       .then(null, error => logger.error("Unable to delete Addon Repository file " +
-                                 this.jsonFile.path, error))
+                                 this.jsonFile, error))
       .then(() => this._deleting = null)
       .then(aCallback);
   },
@@ -1714,7 +1687,7 @@ var AddonDatabase = {
   get Writer() {
     delete this.Writer;
     this.Writer = new DeferredSave(
-      this.jsonFile.path,
+      this.jsonFile,
       () => { return JSON.stringify(this); },
       DB_BATCH_TIMEOUT_MS
     );
@@ -1741,23 +1714,16 @@ var AddonDatabase = {
 
 
 
-  retrieveStoredData: function AD_retrieveStoredData(aCallback) {
-    if (!this.initialized)
-      this.openConnection();
+  retrieveStoredData: Task.async(function* (){
+    let db = yield this.openConnection();
+    let result = {};
 
-    let gatherResults = () => {
-      let result = {};
-      for (let [key, value] of this.DB.addons)
-        result[key] = value;
+    for (let [key, value] of db.addons) {
+      result[key] = value;
+    }
 
-      executeSoon(function() aCallback(result));
-    };
-
-    if (this._migrationInProgress)
-      this._postMigrationCallback = gatherResults;
-    else
-      gatherResults();
-  },
+    return result;
+  }),
 
   
 
@@ -1781,19 +1747,19 @@ var AddonDatabase = {
 
 
 
-  insertAddons: function AD_insertAddons(aAddons, aCallback) {
-    if (!this.initialized)
-      this.openConnection();
+  insertAddons: Task.async(function* (aAddons, aCallback) {
+    yield this.openConnection();
+    yield this._insertAddons(aAddons, aCallback);
+  }),
 
+  _insertAddons: Task.async(function* (aAddons, aCallback) {
     for (let addon of aAddons) {
       this._insertAddon(addon);
     }
 
-    this._saveDBToDisk();
-
-    if (aCallback)
-      executeSoon(aCallback);
-  },
+    yield this._saveDBToDisk();
+    aCallback && aCallback();
+  }),
 
   
 
@@ -1997,7 +1963,3 @@ var AddonDatabase = {
                                                               appMaxVersion);
   },
 };
-
-function executeSoon(aCallback) {
-  Services.tm.mainThread.dispatch(aCallback, Ci.nsIThread.DISPATCH_NORMAL);
-}
