@@ -109,9 +109,26 @@ DownloadsUI.prototype = {
   
 
 
+
+
   _showDownloadManagerUI:
   function DUI_showDownloadManagerUI(aWindowContext, aID, aReason)
   {
+    
+    let usePlacesView = false;
+    try {
+      usePlacesView =
+        Services.prefs.getBoolPref("browser.library.useNewDownloadsView");
+    } catch(e) {}
+
+    if (!usePlacesView) {
+      
+      
+      
+      this._toolkitUI.show(aWindowContext, aID, aReason);
+      return;
+    }
+
     let organizer = Services.wm.getMostRecentWindow("Places:Organizer");
     if (!organizer) {
       let parentWindow = aWindowContext;
