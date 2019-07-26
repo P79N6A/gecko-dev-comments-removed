@@ -683,12 +683,12 @@ nsObjectLoadingContent::InstantiatePluginInstance()
   
   
   doc->FlushPendingNotifications(Flush_Layout);
-  
+
   if (!thisContent->GetPrimaryFrame()) {
     LOG(("OBJLC [%p]: Not instantiating plugin with no frame", this));
     return NS_OK;
   }
-  
+
   nsresult rv = NS_ERROR_FAILURE;
   nsRefPtr<nsPluginHost> pluginHost =
     already_AddRefed<nsPluginHost>(nsPluginHost::GetInst());
@@ -1344,6 +1344,12 @@ nsObjectLoadingContent::UpdateObjectParameters()
       stateInvalid = true;
     }
 
+    ObjectType typeHint = newMime.IsEmpty() ?
+                          eType_Null : GetTypeOfContent(newMime);
+
+    
+    
+    
     
     
     
@@ -1355,24 +1361,37 @@ nsObjectLoadingContent::UpdateObjectParameters()
     
     
 
-    ObjectType typeHint = newMime.IsEmpty() ? eType_Null : GetTypeOfContent(newMime);
+    bool overrideChannelType = false;
+    if (typeHint == eType_Plugin) {
+      LOG(("OBJLC [%p]: Using plugin type hint in favor of any channel type",
+           this));
+      overrideChannelType = true;
+    } else if ((caps & eAllowPluginSkipChannel) &&
+               IsPluginEnabledByExtension(newURI, newMime)) {
+      LOG(("OBJLC [%p]: Using extension as type hint for "
+           "eAllowPluginSkipChannel tag (%s)", this, newMime.get()));
+      overrideChannelType = true;
+    } else if (binaryChannelType &&
+               typeHint != eType_Null && typeHint != eType_Document) {
+      LOG(("OBJLC [%p]: Using type hint in favor of binary channel type",
+           this));
+      overrideChannelType = true;
+    } else if (binaryChannelType &&
+               IsPluginEnabledByExtension(newURI, newMime)) {
+      LOG(("OBJLC [%p]: Using extension as type hint for binary channel (%s)",
+           this, newMime.get()));
+      overrideChannelType = true;
+    }
 
-    bool caseOne = binaryChannelType
-                   && typeHint != eType_Null
-                   && typeHint != eType_Document;
-    bool caseTwo = typeHint == eType_Plugin;
-    if (caseOne || caseTwo) {
-        
-        
-        
-        nsAutoCString typeHint, dummy;
-        NS_ParseContentType(newMime, typeHint, dummy);
-        if (!typeHint.IsEmpty()) {
-          mChannel->SetContentType(typeHint);
-        }
-    } else if (binaryChannelType
-               && IsPluginEnabledByExtension(newURI, newMime)) {
-      mChannel->SetContentType(newMime);
+    if (overrideChannelType) {
+      
+      
+      
+      nsAutoCString parsedMime, dummy;
+      NS_ParseContentType(newMime, parsedMime, dummy);
+      if (!parsedMime.IsEmpty()) {
+        mChannel->SetContentType(parsedMime);
+      }
     } else {
       newMime = channelType;
       if (nsPluginHost::IsJavaMIMEType(newMime.get())) {
@@ -1407,15 +1426,6 @@ nsObjectLoadingContent::UpdateObjectParameters()
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
   if (stateInvalid) {
     newType = eType_Null;
@@ -1425,9 +1435,9 @@ nsObjectLoadingContent::UpdateObjectParameters()
       newType = GetTypeOfContent(newMime);
       LOG(("OBJLC [%p]: Using channel type", this));
   } else if (((caps & eAllowPluginSkipChannel) || !newURI) &&
-             (GetTypeOfContent(newMime) == eType_Plugin)) {
+             GetTypeOfContent(newMime) == eType_Plugin) {
     newType = eType_Plugin;
-    LOG(("OBJLC [%p]: Skipping loading channel, type plugin", this));
+    LOG(("OBJLC [%p]: Plugin type with no URI, skipping channel load", this));
   } else if (newURI) {
     
     
@@ -1639,7 +1649,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
            this));
       return NS_OK;
     }
-    
+
     
     if (!allowLoad) {
       LOG(("OBJLC [%p]: Load denied by policy", this));
@@ -1740,7 +1750,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
           CloseChannel();
           break;
         }
-        
+
         rv = pluginHost->NewEmbeddedPluginStreamListener(mURI, this, nullptr,
                                                          getter_AddRefs(finalListener));
         
@@ -1758,7 +1768,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         mType = eType_Null;
         break;
       }
-      
+
       mFrameLoader = nsFrameLoader::Create(thisContent->AsElement(),
                                            mNetworkCreated);
       if (!mFrameLoader) {
@@ -1766,7 +1776,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         mType = eType_Null;
         break;
       }
-      
+
       rv = mFrameLoader->CheckForRecursiveLoad(mURI);
       if (NS_FAILED(rv)) {
         LOG(("OBJLC [%p]: Aborting recursive load", this));
@@ -1849,6 +1859,9 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   NotifyStateChanged(oldType, oldState, false, aNotify);
 
+  
+  
+  
   
   
   

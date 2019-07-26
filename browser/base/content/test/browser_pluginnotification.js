@@ -992,10 +992,12 @@ function test23() {
 
   
   pluginNode.type = null;
-  pluginNode.src = pluginNode.src; 
+  
+  
+  pluginNode.parentNode.appendChild(pluginNode);
   is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_NULL, "Test 23, plugin should be unloaded");
   pluginNode.type = "application/x-test";
-  pluginNode.src = pluginNode.src;
+  pluginNode.parentNode.appendChild(pluginNode);
   is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_NULL, "Test 23, Plugin should not have activated");
   is(objLoadingContent.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY, "Test 23, Plugin should be click-to-play");
   ok(!pluginNode.activated, "Test 23, plugin node should not be activated");

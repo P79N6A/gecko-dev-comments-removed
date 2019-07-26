@@ -218,6 +218,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                         bool aNullParent = true);
 
   private:
+
     
     enum ParameterUpdateFlags {
       eParamNoChange           = 0,
