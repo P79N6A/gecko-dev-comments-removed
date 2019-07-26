@@ -93,10 +93,11 @@ if (this.Components) {
      
      self.postMessage({fail: exports.OS.File.Error.toMsg(exn), id:id, durationMs: durationMs});
    } else {
+     
+     
+     
      LOG("Sending back regular error", exn, exn.stack, "id is", id);
-     
-     
-     
+
      throw exn;
    }
   };
