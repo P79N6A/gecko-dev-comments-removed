@@ -352,7 +352,7 @@ ExclusiveContext::maybePause() const
 
 class AutoLockForExclusiveAccess
 {
-#ifdef JS_THREADSAFE
+#ifdef JS_WORKER_THREADS
     JSRuntime *runtime;
 
     void init(JSRuntime *rt) {
