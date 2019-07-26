@@ -179,6 +179,15 @@ DeprecatedTextureHost::SwapTextures(const SurfaceDescriptor& aImage,
     *aResult = *mBuffer;
   }
   *mBuffer = aImage;
+  
+  
+  
+  
+  
+  
+  
+  
+  SetBuffer(mBuffer, mDeAllocator);
 }
 
 #ifdef MOZ_LAYERS_HAVE_LOG

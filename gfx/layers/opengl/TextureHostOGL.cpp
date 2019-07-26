@@ -1077,10 +1077,6 @@ GrallocDeprecatedTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImag
 
   DeleteTextures();
 
-  
-  
-  
-  RegisterDeprecatedTextureHostAtGrallocBufferActor(this, aImage);
 }
 
 gl::GLContext*
