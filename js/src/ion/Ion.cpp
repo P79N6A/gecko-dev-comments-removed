@@ -1205,9 +1205,15 @@ OffThreadCompilationAvailable(JSContext *cx)
     
     
     
+    
+    
+    
+    
+    
     return OffThreadCompilationEnabled(cx)
         && cx->runtime->gcIncrementalState == gc::NO_INCREMENTAL
-        && !cx->runtime->profilingScripts;
+        && !cx->runtime->profilingScripts
+        && !cx->runtime->spsProfiler.enabled();
 }
 
 AbortReason
