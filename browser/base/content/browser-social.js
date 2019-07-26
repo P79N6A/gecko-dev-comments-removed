@@ -137,6 +137,11 @@ let SocialUI = {
     }
   },
 
+  nonBrowserWindowInit: function SocialUI_nonBrowserInit() {
+    
+    document.getElementById("menu_socialAmbientMenu").hidden = true;
+  },
+
   
   showProfile: function SocialUI_showProfile() {
     if (Social.haveLoggedInUser())
