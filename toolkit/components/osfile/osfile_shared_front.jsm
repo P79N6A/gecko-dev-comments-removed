@@ -341,29 +341,38 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
-
-
 AbstractFile.writeAtomic =
      function writeAtomic(path, buffer, options) {
   options = options || noOptions;
-
-  let tmpPath = options.tmpPath;
-  if (!tmpPath) {
-    throw new TypeError("Expected option tmpPath");
-  }
 
   let noOverwrite = options.noOverwrite;
   if (noOverwrite && OS.File.exists(path)) {
     throw OS.File.Error.exists("writeAtomic");
   }
 
+  if ("flush" in options && !options.flush) {
+    
+    let dest;
+    try {
+      dest = OS.File.open(path, {write: true, truncate: true});
+      return dest.write(buffer, options);
+    } finally {
+      dest.close();
+    }
+  }
+
+
+  let tmpPath = options.tmpPath;
+  if (!tmpPath) {
+    throw new TypeError("Expected option tmpPath");
+  }
+
+
   let tmpFile = OS.File.open(tmpPath, {write: true, truncate: true});
   let bytesWritten;
   try {
     bytesWritten = tmpFile.write(buffer, options);
-    if ("flush" in options && options.flush) {
-      tmpFile.flush();
-    }
+    tmpFile.flush();
   } catch (x) {
     OS.File.remove(tmpPath);
     throw x;
