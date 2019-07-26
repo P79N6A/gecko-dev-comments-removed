@@ -1855,6 +1855,13 @@ pref("plugins.click_to_play", false);
 
 pref("plugin.default.state", 2);
 
+
+
+pref("plugin.sessionPermissionNow.intervalInMinutes", 60);
+
+
+pref("plugin.persistentPermissionAlways.intervalInDays", 90);
+
 #ifndef DEBUG
 
 
