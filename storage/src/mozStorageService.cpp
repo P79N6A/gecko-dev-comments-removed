@@ -342,6 +342,9 @@ Service::getSingleton()
     ::PR_Abort();
   }
 
+  
+  
+  NS_ENSURE_TRUE(NS_IsMainThread(), nullptr);
   gService = new Service();
   if (gService) {
     NS_ADDREF(gService);
