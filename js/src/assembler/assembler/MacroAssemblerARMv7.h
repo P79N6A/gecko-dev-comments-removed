@@ -507,7 +507,7 @@ public:
 
     
 
-    bool supportsFloatingPoint() const { return true; }
+    static bool supportsFloatingPoint() { return true; }
     
     
     
@@ -519,9 +519,9 @@ public:
     
     
     
-    bool supportsFloatingPointTruncate() const { return false; }
+    static bool supportsFloatingPointTruncate() { return false; }
 
-    bool supportsFloatingPointSqrt() const
+    static bool supportsFloatingPointSqrt()
     {
         return false;
     }
