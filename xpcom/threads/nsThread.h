@@ -50,7 +50,12 @@ public:
   
   void ClearObservers() { mEventObservers.Clear(); }
 
+  static nsresult
+  SetMainThreadObserver(nsIThreadObserver* aObserver);
+
 private:
+  static nsIThreadObserver* sMainThreadObserver;
+
   friend class nsThreadShutdownEvent;
 
   ~nsThread();

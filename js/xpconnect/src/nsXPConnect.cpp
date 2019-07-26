@@ -39,6 +39,7 @@
 #include "nsWrapperCacheInlines.h"
 #include "nsDOMMutationObserver.h"
 #include "nsICycleCollectorListener.h"
+#include "nsThread.h"
 
 using namespace mozilla::dom;
 using namespace xpc;
@@ -162,8 +163,7 @@ nsXPConnect::GetXPConnect()
         
         
         MOZ_ASSERT(NS_IsMainThread());
-        nsCOMPtr<nsIThreadInternal> thread = do_QueryInterface(NS_GetCurrentThread());
-        if (NS_FAILED(thread->AddObserver(gSelf))) {
+        if (NS_FAILED(nsThread::SetMainThreadObserver(gSelf))) {
             NS_RELEASE(gSelf);
             
         }
@@ -186,14 +186,7 @@ nsXPConnect::ReleaseXPConnectSingleton()
 {
     nsXPConnect* xpc = gSelf;
     if (xpc) {
-
-        
-        
-        nsCOMPtr<nsIThreadInternal> thread = do_QueryInterface(NS_GetCurrentThread());
-        if (thread) {
-            MOZ_ASSERT(NS_IsMainThread());
-            thread->RemoveObserver(xpc);
-        }
+        nsThread::SetMainThreadObserver(nullptr);
 
 #ifdef DEBUG
         
