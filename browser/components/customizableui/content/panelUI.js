@@ -190,6 +190,9 @@ const PanelUI = {
       tempPanel.addEventListener("popuphidden", function panelRemover() {
         tempPanel.removeEventListener("popuphidden", panelRemover);
         tempPanel.removeEventListener("command", PanelUI._onWidgetPanelCommand);
+        let evt = new CustomEvent("ViewHiding", {detail: viewNode});
+        viewNode.dispatchEvent(evt);
+
         this.multiView.appendChild(viewNode);
         tempPanel.parentElement.removeChild(tempPanel);
       }.bind(this));
@@ -199,6 +202,16 @@ const PanelUI = {
                                                 "toolbarbutton-icon");
 
       tempPanel.openPopup(iconAnchor || aAnchor, "bottomcenter topright");
+    }
+  },
+
+  
+
+
+
+  onCommandHandler: function(aEvent) {
+    if (!aEvent.originalTarget.hasAttribute("noautoclose")) {
+      PanelUI.hide();
     }
   },
 
@@ -234,12 +247,6 @@ const PanelUI = {
     }
   },
 
-  _onHelpViewCommand: function(aEvent) {
-    if (!aEvent.originalTarget.hasAttribute("noautoclose")) {
-      PanelUI.hide();
-    }
-  },
-
   _onHelpViewShow: function(aEvent) {
     
     buildHelpMenu();
@@ -271,10 +278,10 @@ const PanelUI = {
     }
     items.appendChild(fragment);
 
-    this.addEventListener("command", PanelUI._onHelpViewCommand);
+    this.addEventListener("command", PanelUI.onCommandHandler);
   },
 
   _onHelpViewHide: function(aEvent) {
-    this.removeEventListener("command", PanelUI._onHelpViewCommand);
+    this.removeEventListener("command", PanelUI.onCommandHandler);
   }
 };
