@@ -169,13 +169,11 @@ public:
 
 
   static bool UncomputeValue(nsCSSProperty aProperty,
-                               nsPresContext* aPresContext,
-                               const Value& aComputedValue,
-                               nsCSSValue& aSpecifiedValue);
+                             const Value& aComputedValue,
+                             nsCSSValue& aSpecifiedValue);
   static bool UncomputeValue(nsCSSProperty aProperty,
-                               nsPresContext* aPresContext,
-                               const Value& aComputedValue,
-                               nsAString& aSpecifiedValue);
+                             const Value& aComputedValue,
+                             nsAString& aSpecifiedValue);
 
   
 
