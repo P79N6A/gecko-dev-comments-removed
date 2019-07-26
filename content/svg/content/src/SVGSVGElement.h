@@ -154,7 +154,7 @@ public:
 
 
 
-  bool HasViewBox() const;
+  bool HasViewBoxRect() const;
 
   
 
@@ -166,7 +166,7 @@ public:
   bool ShouldSynthesizeViewBox() const;
 
   bool HasViewBoxOrSyntheticViewBox() const {
-    return HasViewBox() || ShouldSynthesizeViewBox();
+    return HasViewBoxRect() || ShouldSynthesizeViewBox();
   }
 
   gfxMatrix GetViewBoxTransform() const;

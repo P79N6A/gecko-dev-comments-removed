@@ -849,10 +849,10 @@ SVGSVGElement::GetViewBoxWithSynthesis(
 {
   
   SVGViewElement* viewElement = GetCurrentViewElement();
-  if (viewElement && viewElement->mViewBox.IsExplicitlySet()) {
+  if (viewElement && viewElement->mViewBox.HasRect()) {
     return viewElement->mViewBox.GetAnimValue();
   }
-  if (mViewBox.IsExplicitlySet()) {
+  if (mViewBox.HasRect()) {
     return mViewBox.GetAnimValue();
   }
 
@@ -888,8 +888,8 @@ SVGSVGElement::GetPreserveAspectRatioWithOverride() const
   
   
   
-  if (!((viewElement && viewElement->mViewBox.IsExplicitlySet()) ||
-        mViewBox.IsExplicitlySet()) &&
+  if (!((viewElement && viewElement->mViewBox.HasRect()) ||
+        mViewBox.HasRect()) &&
       ShouldSynthesizeViewBox()) {
     
     return SVGPreserveAspectRatio(SVG_PRESERVEASPECTRATIO_NONE, SVG_MEETORSLICE_SLICE);
@@ -913,9 +913,9 @@ SVGSVGElement::GetLength(uint8_t aCtxType)
   const nsSVGViewBoxRect* viewbox = nullptr;
 
   
-  if (viewElement && viewElement->mViewBox.IsExplicitlySet()) {
+  if (viewElement && viewElement->mViewBox.HasRect()) {
     viewbox = &viewElement->mViewBox.GetAnimValue();
-  } else if (mViewBox.IsExplicitlySet()) {
+  } else if (mViewBox.HasRect()) {
     viewbox = &mViewBox.GetAnimValue();
   }
 
@@ -1029,19 +1029,19 @@ SVGSVGElement::GetPreserveAspectRatio()
 }
 
 bool
-SVGSVGElement::HasViewBox() const
+SVGSVGElement::HasViewBoxRect() const
 {
   SVGViewElement* viewElement = GetCurrentViewElement();
-  if (viewElement && viewElement->mViewBox.IsExplicitlySet()) {
+  if (viewElement && viewElement->mViewBox.HasRect()) {
     return true;
   }
-  return mViewBox.IsExplicitlySet();
+  return mViewBox.HasRect();
 }
 
 bool
 SVGSVGElement::ShouldSynthesizeViewBox() const
 {
-  NS_ABORT_IF_FALSE(!HasViewBox(),
+  NS_ABORT_IF_FALSE(!HasViewBoxRect(),
                     "Should only be called if we lack a viewBox");
 
   nsIDocument* doc = GetCurrentDoc();
@@ -1110,8 +1110,8 @@ SVGSVGElement::
                     "should only override preserveAspectRatio in images");
 #endif
 
-  bool hasViewBox = HasViewBox();
-  if (!hasViewBox && ShouldSynthesizeViewBox()) {
+  bool hasViewBoxRect = HasViewBoxRect();
+  if (!hasViewBoxRect && ShouldSynthesizeViewBox()) {
     
     
     
@@ -1119,7 +1119,7 @@ SVGSVGElement::
   }
   mIsPaintingSVGImageElement = true;
 
-  if (!hasViewBox) {
+  if (!hasViewBoxRect) {
     return; 
   }
 
@@ -1141,7 +1141,7 @@ SVGSVGElement::ClearImageOverridePreserveAspectRatio()
 #endif
 
   mIsPaintingSVGImageElement = false;
-  if (!HasViewBox() && ShouldSynthesizeViewBox()) {
+  if (!HasViewBoxRect() && ShouldSynthesizeViewBox()) {
     
     
     

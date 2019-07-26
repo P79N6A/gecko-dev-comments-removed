@@ -136,11 +136,11 @@ nsSVGInnerSVGFrame::NotifySVGChanged(uint32_t aFlags)
 
     if (!(aFlags & TRANSFORM_CHANGED) &&
         (xOrYIsPercentage ||
-         (widthOrHeightIsPercentage && svg->HasViewBox()))) {
+         (widthOrHeightIsPercentage && svg->HasViewBoxRect()))) {
       aFlags |= TRANSFORM_CHANGED;
     }
 
-    if (svg->HasViewBox() || !widthOrHeightIsPercentage) {
+    if (svg->HasViewBoxRect() || !widthOrHeightIsPercentage) {
       
       
       
