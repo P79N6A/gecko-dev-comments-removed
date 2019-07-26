@@ -733,25 +733,29 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     nsIntRegion drawRegionCopy = result.mRegionToDraw;
     gfxASurface *onBlack = mTexImage->BeginUpdate(drawRegionCopy);
     gfxASurface *onWhite = mTexImageOnWhite->BeginUpdate(result.mRegionToDraw);
-    NS_ASSERTION(result.mRegionToDraw == drawRegionCopy,
-                 "BeginUpdate should always modify the draw region in the same way!");
-    FillSurface(onBlack, result.mRegionToDraw, nsIntPoint(0,0), gfxRGBA(0.0, 0.0, 0.0, 1.0));
-    FillSurface(onWhite, result.mRegionToDraw, nsIntPoint(0,0), gfxRGBA(1.0, 1.0, 1.0, 1.0));
-    gfxASurface* surfaces[2] = { onBlack, onWhite };
-    nsRefPtr<gfxTeeSurface> surf = new gfxTeeSurface(surfaces, ArrayLength(surfaces));
+    if (onBlack && onWhite) {
+      NS_ASSERTION(result.mRegionToDraw == drawRegionCopy,
+          "BeginUpdate should always modify the draw region in the same way!");
+      FillSurface(onBlack, result.mRegionToDraw, nsIntPoint(0,0), gfxRGBA(0.0, 0.0, 0.0, 1.0));
+      FillSurface(onWhite, result.mRegionToDraw, nsIntPoint(0,0), gfxRGBA(1.0, 1.0, 1.0, 1.0));
+      gfxASurface* surfaces[2] = { onBlack, onWhite };
+      nsRefPtr<gfxTeeSurface> surf = new gfxTeeSurface(surfaces, ArrayLength(surfaces));
 
-    
-    
-    gfxPoint deviceOffset = onBlack->GetDeviceOffset();
-    onBlack->SetDeviceOffset(gfxPoint(0, 0));
-    onWhite->SetDeviceOffset(gfxPoint(0, 0));
-    surf->SetDeviceOffset(deviceOffset);
+      
+      
+      gfxPoint deviceOffset = onBlack->GetDeviceOffset();
+      onBlack->SetDeviceOffset(gfxPoint(0, 0));
+      onWhite->SetDeviceOffset(gfxPoint(0, 0));
+      surf->SetDeviceOffset(deviceOffset);
 
-    
-    
-    
-    surf->SetAllowUseAsSource(false);
-    result.mContext = new gfxContext(surf);
+      
+      
+      
+      surf->SetAllowUseAsSource(false);
+      result.mContext = new gfxContext(surf);
+    } else {
+      result.mContext = nullptr;
+    }
   } else {
     result.mContext = new gfxContext(mTexImage->BeginUpdate(result.mRegionToDraw));
     if (mTexImage->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA) {
