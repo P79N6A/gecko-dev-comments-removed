@@ -128,6 +128,22 @@ public class HomeConfigInvalidator implements GeckoEventListener {
     
 
 
+
+    private boolean replacePanelConfig(List<PanelConfig> panelConfigs, PanelConfig panelConfig) {
+        final int index = panelConfigs.indexOf(panelConfig);
+        if (index >= 0) {
+            panelConfigs.set(index, panelConfig);
+            Log.d(LOGTAG, "executePendingChanges: replaced position " + index + " with " + panelConfig.getId());
+
+            return true;
+        }
+
+        return false;
+    }
+
+    
+
+
     private List<PanelConfig> executePendingChanges(List<PanelConfig> panelConfigs) {
         while (!mPendingChanges.isEmpty()) {
             final ConfigChange pendingChange = mPendingChanges.poll();
@@ -143,11 +159,7 @@ public class HomeConfigInvalidator implements GeckoEventListener {
                     break;
 
                 case INSTALL:
-                    final int index = panelConfigs.indexOf(panelConfig);
-                    if (index >= 0) {
-                        panelConfigs.set(index, panelConfig);
-                        Log.d(LOGTAG, "executePendingChanges: replaced position " + index + " with " + id);
-                    } else {
+                    if (!replacePanelConfig(panelConfigs, panelConfig)) {
                         panelConfigs.add(panelConfig);
                         Log.d(LOGTAG, "executePendingChanges: added panel " + id);
                     }
