@@ -3,14 +3,13 @@
 
 
 
-#include "nsMediaPluginReader.h"
 #include "mozilla/TimeStamp.h"
 #include "nsTimeRanges.h"
 #include "MediaResource.h"
 #include "VideoUtils.h"
+#include "nsMediaPluginReader.h"
 #include "nsMediaPluginDecoder.h"
 #include "nsMediaPluginHost.h"
-#include "nsBuiltinDecoderStateMachine.h"
 
 using namespace mozilla;
 

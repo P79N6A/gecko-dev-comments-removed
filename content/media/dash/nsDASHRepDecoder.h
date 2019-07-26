@@ -53,12 +53,12 @@ public:
 
   
   
-  nsresult SetStateMachine(nsBuiltinDecoderStateMachine* aSM);
+  nsresult SetStateMachine(nsDecoderStateMachine* aSM);
 
 private:
   
   
-  nsBuiltinDecoderStateMachine* CreateStateMachine();
+  nsDecoderStateMachine* CreateStateMachine();
 
 public:
   
@@ -134,6 +134,10 @@ public:
 
   
   ReentrantMonitor& GetReentrantMonitor();
+
+  
+  
+  nsDecoderStateMachine::State GetDecodeState();
 
   
   ImageContainer* GetImageContainer();

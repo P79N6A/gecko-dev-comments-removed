@@ -175,6 +175,7 @@
 
 
 
+
 #if !defined(nsBuiltinDecoder_h_)
 #define nsBuiltinDecoder_h_
 
@@ -204,11 +205,128 @@ class Image;
 typedef mozilla::layers::Image Image;
 
 class nsAudioStream;
-class nsBuiltinDecoderStateMachine;
 
 static inline bool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
 }
+
+
+
+class nsDecoderStateMachine : public nsRunnable
+{
+public:
+  
+  enum State {
+    DECODER_STATE_DECODING_METADATA,
+    DECODER_STATE_DECODING,
+    DECODER_STATE_SEEKING,
+    DECODER_STATE_BUFFERING,
+    DECODER_STATE_COMPLETED,
+    DECODER_STATE_SHUTDOWN
+  };
+
+  
+  
+  virtual nsresult Init(nsDecoderStateMachine* aCloneDonor) = 0;
+
+  
+  
+  virtual State GetState() = 0;
+
+  
+  
+  virtual void SetVolume(double aVolume) = 0;
+  virtual void SetAudioCaptured(bool aCapture) = 0;
+
+  virtual void Shutdown() = 0;
+
+  
+  
+  virtual int64_t GetDuration() = 0;
+
+  
+  
+  
+  
+  
+  virtual void SetDuration(int64_t aDuration) = 0;
+
+  
+  
+  
+  virtual void SetEndTime(int64_t aEndTime) = 0;
+
+  
+  virtual void SetFragmentEndTime(int64_t aEndTime) = 0;
+
+  
+  
+  virtual bool OnDecodeThread() const = 0;
+
+  
+  virtual bool OnStateMachineThread() const = 0;
+
+  virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus() = 0;
+
+  
+  
+  
+  virtual void Play() = 0;
+
+  
+  virtual void Seek(double aTime) = 0;
+
+  
+  
+  
+  virtual double GetCurrentTime() const = 0;
+
+  
+  
+  
+  virtual void ClearPositionChangeFlag() = 0;
+
+  
+  
+  
+  virtual void SetSeekable(bool aSeekable) = 0;
+
+  
+  
+  
+  virtual bool IsSeekable() = 0;
+
+  
+  
+  
+  
+  
+  virtual void UpdatePlaybackPosition(int64_t aTime) = 0;
+
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
+
+  
+  virtual bool IsSeekableInBufferedRanges() = 0;
+
+  virtual int64_t VideoQueueMemoryInUse() = 0;
+  virtual int64_t AudioQueueMemoryInUse() = 0;
+
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) = 0;
+
+  
+  
+  
+  
+  virtual void StartBuffering() = 0;
+
+  
+  
+  virtual void SetFrameBufferLength(uint32_t aLength) = 0;
+
+  
+  
+  virtual void NotifyAudioAvailableListener() = 0;
+};
 
 class nsBuiltinDecoder : public nsMediaDecoder
 {
@@ -232,13 +350,13 @@ public:
 
   nsBuiltinDecoder();
   ~nsBuiltinDecoder();
-
+  
   virtual bool Init(nsHTMLMediaElement* aElement);
 
   
   
   virtual void Shutdown();
-
+  
   virtual double GetCurrentTime();
 
   virtual nsresult Load(MediaResource* aResource,
@@ -249,7 +367,7 @@ public:
   nsresult OpenResource(MediaResource* aResource,
                         nsIStreamListener** aStreamListener);
 
-  virtual nsBuiltinDecoderStateMachine* CreateStateMachine() = 0;
+  virtual nsDecoderStateMachine* CreateStateMachine() = 0;
 
   
   nsresult InitializeStateMachine(nsMediaDecoder* aCloneDonor);
@@ -440,21 +558,44 @@ public:
 
   virtual bool OnStateMachineThread() const;
 
-  virtual bool OnDecodeThread() const;
+  virtual bool OnDecodeThread() const {
+    return mDecoderStateMachine->OnDecodeThread();
+  }
 
   
   
-  virtual ReentrantMonitor& GetReentrantMonitor();
+  virtual ReentrantMonitor& GetReentrantMonitor() {
+    return mReentrantMonitor.GetReentrantMonitor();
+  }
 
   
   
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered) {
+    if (mDecoderStateMachine) {
+      return mDecoderStateMachine->GetBuffered(aBuffered);
+    }
+    return NS_ERROR_FAILURE;
+  }
 
-  virtual int64_t VideoQueueMemoryInUse();
+  virtual int64_t VideoQueueMemoryInUse() {
+    if (mDecoderStateMachine) {
+      return mDecoderStateMachine->VideoQueueMemoryInUse();
+    }
+    return 0;
+  }
 
-  virtual int64_t AudioQueueMemoryInUse();
+  virtual int64_t AudioQueueMemoryInUse() {
+    if (mDecoderStateMachine) {
+      return mDecoderStateMachine->AudioQueueMemoryInUse();
+    }
+    return 0;
+  }
 
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {
+    if (mDecoderStateMachine) {
+      mDecoderStateMachine->NotifyDataArrived(aBuffer, aLength, aOffset);
+    }
+  }
 
   
   
@@ -486,7 +627,11 @@ public:
   
   
   
-  void UpdatePlaybackPosition(int64_t aTime);
+  void UpdatePlaybackPosition(int64_t aTime)
+  {
+    mDecoderStateMachine->UpdatePlaybackPosition(aTime);
+  }
+
   
 
 
@@ -552,10 +697,14 @@ public:
   void UpdatePlaybackOffset(int64_t aOffset);
 
   
-  nsBuiltinDecoderStateMachine* GetStateMachine();
+  nsDecoderStateMachine* GetStateMachine() { return mDecoderStateMachine; }
 
   
-  virtual void ReleaseStateMachine();
+  
+  nsDecoderStateMachine::State GetDecodeState() { return mDecoderStateMachine->GetState(); }
+
+  
+  virtual void ReleaseStateMachine() { mDecoderStateMachine = nullptr; }
 
    
    
@@ -625,7 +774,7 @@ public:
   
   
   
-  nsCOMPtr<nsBuiltinDecoderStateMachine> mDecoderStateMachine;
+  nsCOMPtr<nsDecoderStateMachine> mDecoderStateMachine;
 
   
   nsAutoPtr<MediaResource> mResource;

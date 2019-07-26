@@ -274,14 +274,18 @@ nsDASHReader::FindStartTime(int64_t& aOutStartTime)
                                          mDecoder->GetReentrantMonitor());
   if (HasVideo()) {
     
-    videoData = mVideoReader->DecodeToFirstVideoData();
+    videoData
+       = mVideoReader->DecodeToFirstData(&nsBuiltinDecoderReader::DecodeVideoFrame,
+                                         VideoQueue());
     if (videoData) {
       videoStartTime = videoData->mTime;
     }
   }
   if (HasAudio()) {
     
-    AudioData* audioData = mAudioReader->DecodeToFirstAudioData();
+    AudioData* audioData
+        = mAudioReader->DecodeToFirstData(&nsBuiltinDecoderReader::DecodeAudioData,
+                                          AudioQueue());
     if (audioData) {
       audioStartTime = audioData->mTime;
     }
