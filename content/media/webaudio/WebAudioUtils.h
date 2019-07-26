@@ -8,6 +8,9 @@
 #define WebAudioUtils_h_
 
 #include <cmath>
+#include <limits>
+#include "mozilla/TypeTraits.h"
+#include "mozilla/Assertions.h"
 #include "AudioParamTimeline.h"
 #include "MediaSegment.h"
 
@@ -95,6 +98,100 @@ struct WebAudioUtils {
   static double StreamPositionToDestinationTime(TrackTicks aSourcePosition,
                                                 AudioNodeStream* aSource,
                                                 AudioNodeStream* aDestination);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  template <typename IntType, typename FloatType>
+  static IntType TruncateFloatToInt(FloatType f)
+  {
+    using namespace std;
+
+    MOZ_STATIC_ASSERT((mozilla::IsIntegral<IntType>::value == true),
+                      "IntType must be an integral type");
+    MOZ_STATIC_ASSERT((mozilla::IsFloatingPoint<FloatType>::value == true),
+                      "FloatType must be a floating point type");
+
+    if (f != f) {
+      
+      
+      NS_RUNTIMEABORT("We should never see a NaN here");
+    }
+
+    if (f > FloatType(numeric_limits<IntType>::max())) {
+      
+      
+      return numeric_limits<IntType>::max();
+    }
+
+    if (f < FloatType(numeric_limits<IntType>::min())) {
+      
+      
+      return numeric_limits<IntType>::min();
+    }
+
+    
+    return IntType(f);
+  }
 };
 
 }
