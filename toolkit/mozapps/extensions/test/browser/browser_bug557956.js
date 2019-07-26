@@ -110,7 +110,9 @@ function uninstall_test_addons(aCallback) {
   });
 }
 
-function open_compatibility_window(aInactiveAddonIds, aCallback) {
+
+
+function open_compatibility_window(aDisabledAddons, aCallback) {
   
   
   
@@ -118,7 +120,7 @@ function open_compatibility_window(aInactiveAddonIds, aCallback) {
 
   var variant = Cc["@mozilla.org/variant;1"].
                 createInstance(Ci.nsIWritableVariant);
-  variant.setFromVariant(aInactiveAddonIds);
+  variant.setFromVariant(aDisabledAddons);
 
   
   
@@ -193,14 +195,15 @@ function check_telemetry({disabled, metaenabled, metadisabled, upgraded, failed,
 
 
 
-add_test(function() {
+add_test(function basic_mismatch() {
   install_test_addons(function() {
     
-    var inactiveAddonIds = [
-      "addon2@tests.mozilla.org",
-      "addon4@tests.mozilla.org",
-      "addon5@tests.mozilla.org",
-      "addon10@tests.mozilla.org"
+    var disabledAddonIds = [
+      "addon3@tests.mozilla.org",
+      "addon6@tests.mozilla.org",
+      "addon7@tests.mozilla.org",
+      "addon8@tests.mozilla.org",
+      "addon9@tests.mozilla.org"
     ];
 
     AddonManager.getAddonsByIDs(["addon5@tests.mozilla.org",
@@ -210,7 +213,7 @@ add_test(function() {
       ok(!a5.isCompatible, "addon5 should not be compatible");
       ok(!a6.isCompatible, "addon6 should not be compatible");
 
-      open_compatibility_window(inactiveAddonIds, function(aWindow) {
+      open_compatibility_window(disabledAddonIds, function(aWindow) {
         var doc = aWindow.document;
         wait_for_page(aWindow, "mismatch", function(aWindow) {
           var items = get_list_names(doc.getElementById("mismatch.incompatible"));
@@ -221,7 +224,8 @@ add_test(function() {
           is(items[2], "Addon8 1.0", "Should have seen addon8 still incompatible");
           is(items[3], "Addon9 1.0", "Should have seen addon9 still incompatible");
 
-          ok(a5.isCompatible, "addon5 should be compatible");
+          
+          ok(!a5.isCompatible, "addon5 should not be compatible");
           ok(a6.isCompatible, "addon6 should be compatible");
 
           var button = doc.documentElement.getButton("next");
@@ -270,7 +274,7 @@ add_test(function() {
                   is(a8.version, "2.0", "addon8 should have updated");
                   is(a9.version, "2.0", "addon9 should have updated");
   
-                  check_telemetry({disabled: 4, metaenabled: 2, metadisabled: 0,
+                  check_telemetry({disabled: 5, metaenabled: 1, metadisabled: 0,
                                    upgraded: 2, failed: 0, declined: 1});
 
                   uninstall_test_addons(run_next_test);
@@ -286,19 +290,20 @@ add_test(function() {
 
 
 
-add_test(function() {
+add_test(function failure_page() {
   install_test_addons(function() {
     
-    var inactiveAddonIds = [
-      "addon2@tests.mozilla.org",
-      "addon4@tests.mozilla.org",
-      "addon5@tests.mozilla.org",
-      "addon10@tests.mozilla.org"
+    var disabledAddonIds = [
+      "addon3@tests.mozilla.org",
+      "addon6@tests.mozilla.org",
+      "addon7@tests.mozilla.org",
+      "addon8@tests.mozilla.org",
+      "addon9@tests.mozilla.org"
     ];
 
     Services.prefs.setBoolPref("xpinstall.enabled", false);
 
-    open_compatibility_window(inactiveAddonIds, function(aWindow) {
+    open_compatibility_window(disabledAddonIds, function(aWindow) {
       var doc = aWindow.document;
       wait_for_page(aWindow, "mismatch", function(aWindow) {
         var items = get_list_names(doc.getElementById("mismatch.incompatible"));
@@ -312,7 +317,7 @@ add_test(function() {
         AddonManager.getAddonsByIDs(["addon5@tests.mozilla.org",
                                      "addon6@tests.mozilla.org"],
                                      function([a5, a6]) {
-          ok(a5.isCompatible, "addon5 should be compatible");
+          ok(!a5.isCompatible, "addon5 should not be compatible");
           ok(a6.isCompatible, "addon6 should be compatible");
 
           var button = doc.documentElement.getButton("next");
@@ -356,7 +361,7 @@ add_test(function() {
                 uninstall_test_addons(run_next_test);
               });
 
-              check_telemetry({disabled: 4, metaenabled: 2, metadisabled: 0,
+              check_telemetry({disabled: 5, metaenabled: 1, metadisabled: 0,
                                upgraded: 0, failed: 1, declined: 2});
 
               EventUtils.synthesizeMouse(button, 2, 2, { }, aWindow);
@@ -369,7 +374,7 @@ add_test(function() {
 });
 
 
-add_test(function() {
+add_test(function all_disabled() {
   install_test_addons(function() {
     AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
                                  "addon2@tests.mozilla.org",
@@ -385,21 +390,7 @@ add_test(function() {
       for (let addon of aAddons)
         addon.userDisabled = true;
 
-      
-      var inactiveAddonIds = [
-        "addon1@tests.mozilla.org",
-        "addon2@tests.mozilla.org",
-        "addon3@tests.mozilla.org",
-        "addon4@tests.mozilla.org",
-        "addon5@tests.mozilla.org",
-        "addon6@tests.mozilla.org",
-        "addon7@tests.mozilla.org",
-        "addon8@tests.mozilla.org",
-        "addon9@tests.mozilla.org",
-        "addon10@tests.mozilla.org"
-      ];
-
-      open_compatibility_window(inactiveAddonIds, function(aWindow) {
+      open_compatibility_window([], function(aWindow) {
         
         wait_for_window_close(aWindow, function() {
           uninstall_test_addons(run_next_test);
@@ -410,7 +401,7 @@ add_test(function() {
 });
 
 
-add_test(function() {
+add_test(function no_updates() {
   install_test_addons(function() {
     AddonManager.getAddonsByIDs(["addon7@tests.mozilla.org",
                                  "addon8@tests.mozilla.org",
@@ -422,9 +413,9 @@ add_test(function() {
 
       
       var inactiveAddonIds = [
-        "addon2@tests.mozilla.org",
-        "addon4@tests.mozilla.org",
-        "addon5@tests.mozilla.org"
+        "addon3@tests.mozilla.org",
+        "addon5@tests.mozilla.org",
+        "addon6@tests.mozilla.org"
       ];
 
       open_compatibility_window(inactiveAddonIds, function(aWindow) {
@@ -456,7 +447,7 @@ add_test(function() {
 
 
 
-add_test(function() {
+add_test(function overrides_retrieved() {
   Services.prefs.setBoolPref(PREF_STRICT_COMPAT, false);
   Services.prefs.setCharPref(PREF_MIN_PLATFORM_COMPAT, "0");
   is(AddonManager.strictCompatibility, false, "Strict compatibility should be disabled");

@@ -92,12 +92,6 @@ function run_test() {
     restartManager();
     do_check_false(gCachePurged);
 
-    
-    
-    restartManager("2");
-    do_check_true(gCachePurged);
-    gCachePurged = false;
-
     do_test_finished();
   });  
 }

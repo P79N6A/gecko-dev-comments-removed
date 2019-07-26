@@ -14,12 +14,15 @@ const PREF_XPINSTALL_ENABLED                    = "xpinstall.enabled";
 
 const METADATA_TIMEOUT    = 30000;
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm");
-
-Components.utils.import("resource://gre/modules/Log.jsm");
-let logger = Log.repository.getLogger("addons.update-dialog");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate", "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services", "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository", "resource://gre/modules/addons/AddonRepository.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise", "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Log", "resource://gre/modules/Log.jsm");
+let logger = null;
 
 var gUpdateWizard = {
   
@@ -27,8 +30,7 @@ var gUpdateWizard = {
   
   addons: [],
   
-  
-  inactiveAddonIDs: [],
+  affectedAddonIDs: null,
   
   addonsToUpdate: [],
   shouldSuggestAutoChecking: false,
@@ -50,7 +52,9 @@ var gUpdateWizard = {
 
   init: function gUpdateWizard_init()
   {
-    this.inactiveAddonIDs = window.arguments[0];
+    logger = Log.repository.getLogger("addons.update-dialog");
+    
+    this.affectedAddonIDs = new Set(window.arguments[0]);
 
     try {
       this.shouldSuggestAutoChecking =
@@ -161,11 +165,11 @@ var gOfflinePage = {
 
 let listener = {
   onDisabled: function listener_onDisabled(aAddon) {
-    logger.debug("onDisabled for ${id}", aAddon);
+    gUpdateWizard.affectedAddonIDs.add(aAddon.id);
     gUpdateWizard.metadataDisabled++;
   },
   onEnabled: function listener_onEnabled(aAddon) {
-    logger.debug("onEnabled for ${id}", aAddon);
+    gUpdateWizard.affectedAddonIDs.delete(aAddon.id);
     gUpdateWizard.metadataEnabled++;
   }
 };
@@ -174,45 +178,49 @@ var gVersionInfoPage = {
   _completeCount: 0,
   _totalCount: 0,
   _versionInfoDone: false,
-  onPageShow: function gVersionInfoPage_onPageShow()
-  {
+  onPageShow: Task.async(function* gVersionInfoPage_onPageShow() {
     gUpdateWizard.setButtonLabels(null, true,
                                   "nextButtonText", true,
                                   "cancelButtonText", false);
 
+    gUpdateWizard.disabled = gUpdateWizard.affectedAddonIDs.size;
+
     
-    AddonManager.getAllAddons(aAddons => {
+    
+    AddonManager.addAddonListener(listener);
+    if (AddonRepository.isMetadataStale()) {
+      
+      yield AddonRepository.repopulateCache(METADATA_TIMEOUT);
       if (gUpdateWizard.shuttingDown) {
-        logger.debug("getAllAddons completed after dialog closed");
+        logger.debug("repopulateCache completed after dialog closed");
       }
+    }
+    
+    
+    let idlist = [id for (id of gUpdateWizard.affectedAddonIDs)
+                     if (id != AddonManager.hotfixID)];
+    if (idlist.length < 1) {
+      gVersionInfoPage.onAllUpdatesFinished();
+      return;
+    }
 
-      gUpdateWizard.addons = [a for (a of aAddons)
-                               if (a.type != "plugin" && a.id != AddonManager.hotfixID)];
+    logger.debug("Fetching affected addons " + idlist.toSource());
+    let fetchedAddons = yield new Promise((resolve, reject) =>
+      AddonManager.getAddonsByIDs(idlist, resolve));
+    
+    gUpdateWizard.addons = [a for (a of fetchedAddons) if (a)];
+    if (gUpdateWizard.addons.length < 1) {
+      gVersionInfoPage.onAllUpdatesFinished();
+      return;
+    }
 
-      gVersionInfoPage._totalCount = gUpdateWizard.addons.length;
+    gVersionInfoPage._totalCount = gUpdateWizard.addons.length;
 
-      
-      for (let addon of gUpdateWizard.addons) {
-        if (gUpdateWizard.inactiveAddonIDs.indexOf(addon.id) != -1) {
-          gUpdateWizard.disabled++;
-        }
-      }
-
-      
-      
-      AddonManager.addAddonListener(listener);
-      AddonRepository.repopulateCache(METADATA_TIMEOUT).then(() => {
-        if (gUpdateWizard.shuttingDown) {
-          logger.debug("repopulateCache completed after dialog closed");
-        }
-
-        for (let addon of gUpdateWizard.addons) {
-          logger.debug("VersionInfo Finding updates for " + addon.id);
-          addon.findUpdates(gVersionInfoPage, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
-        }
-      });
-    });
-  },
+    for (let addon of gUpdateWizard.addons) {
+      logger.debug("VersionInfo Finding updates for ${id}", addon);
+      addon.findUpdates(gVersionInfoPage, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
+    }
+  }),
 
   onAllUpdatesFinished: function gVersionInfoPage_onAllUpdatesFinished() {
     AddonManager.removeAddonListener(listener);
@@ -228,13 +236,11 @@ var gVersionInfoPage = {
     AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgradeFailed", 0);
     AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgradeDeclined", 0);
     
-    
-    logger.debug("VersionInfo updates finished: inactive " +
-         gUpdateWizard.inactiveAddonIDs.toSource() + " found " +
+    logger.debug("VersionInfo updates finished: found " +
          [addon.id + ":" + addon.appDisabled for (addon of gUpdateWizard.addons)].toSource());
     let filteredAddons = [];
     for (let a of gUpdateWizard.addons) {
-      if (a.appDisabled && gUpdateWizard.inactiveAddonIDs.indexOf(a.id) < 0) {
+      if (a.appDisabled) {
         logger.debug("Continuing with add-on " + a.id);
         filteredAddons.push(a);
       }
@@ -291,7 +297,7 @@ var gVersionInfoPage = {
       
       
       if (aAddon.active) {
-        AddonManagerPrivate.removeStartupChange("disabled", aAddon.id);
+        AddonManagerPrivate.removeStartupChange(AddonManager.STARTUP_CHANGE_DISABLED, aAddon.id);
         gUpdateWizard.metadataEnabled++;
       }
 

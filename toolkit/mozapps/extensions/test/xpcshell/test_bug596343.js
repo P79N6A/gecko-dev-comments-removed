@@ -54,23 +54,30 @@ function run_test() {
     targetApplications: [{
       id: "xpcshell@tests.mozilla.org",
       minVersion: "1",
-      maxVersion: "1"
+      maxVersion: "2"
     }],
     name: "Test Addon 1",
   }, profileDir);
 
+  
+  
+  gExpectedURL = URI_EXTENSION_SELECT_DIALOG;
   startupManager();
 
-  
   do_check_true(Services.prefs.getBoolPref(PREF_SHOWN_SELECTION_UI));
+  do_check_eq(gExpectedURL, URI_EXTENSION_SELECT_DIALOG);
+
+  
+  
   Services.prefs.clearUserPref(PREF_SHOWN_SELECTION_UI);
 
-  gExpectedURL = URI_EXTENSION_SELECT_DIALOG;
   restartManager("2");
 
   do_check_true(Services.prefs.getBoolPref(PREF_SHOWN_SELECTION_UI));
   do_check_eq(gExpectedURL, null);
 
+  
+  
   gExpectedURL = URI_EXTENSION_UPDATE_DIALOG;
 
   restartManager("3");

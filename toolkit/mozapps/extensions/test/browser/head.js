@@ -625,6 +625,7 @@ MockProvider.prototype = {
 
 
   register: function MP_register() {
+    info("Registering mock add-on provider");
     AddonManagerPrivate.registerProvider(this, this.types);
   },
 
@@ -632,6 +633,7 @@ MockProvider.prototype = {
 
 
   unregister: function MP_unregister() {
+    info("Unregistering mock add-on provider");
     AddonManagerPrivate.unregisterProvider(this);
   },
 
