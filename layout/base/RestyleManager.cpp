@@ -2848,13 +2848,10 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
   }
 
   nsIFrame* frame = aFrame;
+  nsIFrame* frame2 = aFrame;
 
   NS_ASSERTION(!frame->GetPrevContinuation(), "must start with the first in flow");
 
-  
-  
-  
-  
   
   
   
@@ -2869,36 +2866,39 @@ RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
     parent && parent->IsElement() ? parent->AsElement() : nullptr;
   treeMatchContext.InitAncestors(parentElement);
   nsTArray<nsIContent*> visibleKidsOfHiddenElement;
-  for (int ibSet = 0; ibSet < 2; ++ibSet) {
+  do {
     
-    ElementRestyler restyler(mPresContext, frame, aChangeList,
-                             aMinChange, aRestyleTracker,
-                             treeMatchContext,
-                             visibleKidsOfHiddenElement);
+    do {
+      
+      ElementRestyler restyler(mPresContext, frame, aChangeList,
+                               aMinChange, aRestyleTracker,
+                               treeMatchContext,
+                               visibleKidsOfHiddenElement);
 
-    restyler.Restyle(aRestyleDescendants ? eRestyle_Subtree : eRestyle_Self);
+      restyler.Restyle(aRestyleDescendants ? eRestyle_Subtree : eRestyle_Self);
 
-    if (restyler.HintsHandledForFrame() & nsChangeHint_ReconstructFrame) {
-      
-      
-      
-      NS_ASSERTION(!frame->GetPrevContinuation(),
-                   "continuing frame had more severe impact than first-in-flow");
-      return;
-    }
+      if (restyler.HintsHandledForFrame() & nsChangeHint_ReconstructFrame) {
+        
+        
+        
+        NS_ASSERTION(!frame->GetPrevContinuation(),
+                     "continuing frame had more severe impact than first-in-flow");
+        return;
+      }
+
+      frame = frame->GetNextContinuation();
+    } while (frame);
 
     
-    if (!(frame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+    if (!(frame2->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
       
       return;
     }
 
-    frame = static_cast<nsIFrame*>
-      (propTable->Get(frame, nsIFrame::IBSplitSpecialSibling()));
-    if (!frame) {
-      return;
-    }
-  }
+    frame2 = static_cast<nsIFrame*>
+      (propTable->Get(frame2, nsIFrame::IBSplitSpecialSibling()));
+    frame = frame2;
+  } while (frame2);
 }
 
 } 
