@@ -49,7 +49,7 @@ SetSourceMap(JSContext *cx, TokenStream &tokenStream, ScriptSource *ss, JSScript
 JSScript *
 frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *callerFrame,
                         const CompileOptions &options,
-                        const jschar *chars, size_t length,
+                        StableCharPtr chars, size_t length,
                         JSString *source_ ,
                         unsigned staticLevel )
 {
@@ -253,7 +253,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
 bool
 frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions options,
-                              const AutoNameVector &formals, const jschar *chars, size_t length)
+                              const AutoNameVector &formals, StableCharPtr chars, size_t length)
 {
     if (!CheckLength(cx, length))
         return false;
