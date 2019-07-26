@@ -699,7 +699,7 @@ test(function test_FrameAncestor_ignores_userpass_bug779918() {
       
       
       
-      function testPermits(aChildUri, aParentUri, aContext) {
+      function testPermits(aChildUri, aParentUri, aContentType) {
         let cspObj = Cc["@mozilla.org/contentsecuritypolicy;1"]
                        .createInstance(Ci.nsIContentSecurityPolicy);
         cspObj.refinePolicy(testPolicy, aChildUri, false);
@@ -940,8 +940,8 @@ test(
                      .createInstance(Ci.nsIContentSecurityPolicy);
       var selfURI = URI("http://self.com/");
 
-      function testPermits(aUri, aContext) {
-        return cspObj.shouldLoad(aContext, aUri, null, null, null, null)
+      function testPermits(aUri, aContentType) {
+        return cspObj.shouldLoad(aContentType, aUri, null, null, null, null)
                == Ci.nsIContentPolicy.ACCEPT;
       };
 
@@ -982,6 +982,57 @@ test(
                      Ci.nsIContentPolicy.TYPE_IMAGE));
     });
 
+test(
+    function test_bug764937_defaultSrcMissing() {
+      var cspObjSpecCompliant = Cc["@mozilla.org/contentsecuritypolicy;1"]
+                     .createInstance(Ci.nsIContentSecurityPolicy);
+      var cspObjOld = Cc["@mozilla.org/contentsecuritypolicy;1"]
+                     .createInstance(Ci.nsIContentSecurityPolicy);
+      var selfURI = URI("http://self.com/");
+
+      function testPermits(cspObj, aUri, aContentType) {
+        return cspObj.shouldLoad(aContentType, aUri, null, null, null, null)
+               == Ci.nsIContentPolicy.ACCEPT;
+      };
+
+      const policy = "script-src 'self'";
+      cspObjSpecCompliant.refinePolicy(policy, selfURI, true);
+
+      
+      
+      
+      do_check_true(testPermits(cspObjSpecCompliant,
+                                URI("http://bar.com/foo.png"),
+                                Ci.nsIContentPolicy.TYPE_IMAGE));
+      do_check_true(testPermits(cspObjSpecCompliant,
+                                URI("http://self.com/foo.png"),
+                                Ci.nsIContentPolicy.TYPE_IMAGE));
+      do_check_true(testPermits(cspObjSpecCompliant,
+                                URI("http://self.com/foo.js"),
+                                Ci.nsIContentPolicy.TYPE_SCRIPT));
+      do_check_false(testPermits(cspObjSpecCompliant,
+                                 URI("http://bar.com/foo.js"),
+                                 Ci.nsIContentPolicy.TYPE_SCRIPT));
+
+      cspObjOld.refinePolicy(policy, selfURI, false);
+
+      
+      
+      
+      do_check_false(testPermits(cspObjOld,
+                                URI("http://bar.com/foo.png"),
+                                Ci.nsIContentPolicy.TYPE_IMAGE));
+      do_check_false(testPermits(cspObjOld,
+                                URI("http://self.com/foo.png"),
+                                Ci.nsIContentPolicy.TYPE_IMAGE));
+      do_check_false(testPermits(cspObjOld,
+                                URI("http://self.com/foo.js"),
+                                Ci.nsIContentPolicy.TYPE_SCRIPT));
+      do_check_false(testPermits(cspObjOld,
+                                 URI("http://bar.com/foo.js"),
+                                 Ci.nsIContentPolicy.TYPE_SCRIPT));
+
+    });
 
 
 

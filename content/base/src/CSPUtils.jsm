@@ -838,16 +838,26 @@ CSPRep.prototype = {
   function cspsd_makeExplicit() {
     let SD = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
 
-    var defaultSrcDir = this._directives[SD.DEFAULT_SRC];
+    
+    
+    
+    
+    if (!this._directives[SD.DEFAULT_SRC]) {
+      if(!this._specCompliant) {
+        this.warn(CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
+        return false;
+      }
 
-    
-    
-    
-    
-    if (!defaultSrcDir && !this._specCompliant) {
-      this.log(WARN_FLAG, CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
-      return false;
+      
+      
+      
+      
+      this._directives[SD.DEFAULT_SRC]
+            = CSPSourceList.fromString("*", this, this._self, true);
+      this._directives[SD.DEFAULT_SRC]._isImplicit = true;
     }
+
+    var defaultSrcDir = this._directives[SD.DEFAULT_SRC];
 
     for (var dir in SD) {
       var dirv = SD[dir];
