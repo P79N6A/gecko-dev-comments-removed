@@ -1106,6 +1106,12 @@ MToDouble::computeRange()
 }
 
 void
+MToFloat32::computeRange()
+{
+    setRange(new Range(getOperand(0)));
+}
+
+void
 MTruncateToInt32::computeRange()
 {
     Range *output = new Range(getOperand(0));
@@ -1830,6 +1836,20 @@ MToDouble::truncate()
 }
 
 bool
+MToFloat32::truncate()
+{
+    JS_ASSERT(type() == MIRType_Float32);
+
+    
+    
+    setResultType(MIRType_Int32);
+    if (range())
+        range()->wrapAroundToInt32();
+
+    return true;
+}
+
+bool
 MLoadTypedArrayElementStatic::truncate()
 {
     setInfallible();
@@ -1874,6 +1894,14 @@ MMul::isOperandTruncated(size_t index) const
 
 bool
 MToDouble::isOperandTruncated(size_t index) const
+{
+    
+    
+    return type() == MIRType_Int32;
+}
+
+bool
+MToFloat32::isOperandTruncated(size_t index) const
 {
     
     

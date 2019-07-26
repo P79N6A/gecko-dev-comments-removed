@@ -181,6 +181,11 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     static bool allowStaticTypedArrayAccesses() {
         return false;
     }
+
+     
+    static bool allowFloat32Optimizations() {
+       return false;
+    }
 };
 
 } 

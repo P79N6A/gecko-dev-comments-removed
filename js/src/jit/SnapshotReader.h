@@ -57,6 +57,8 @@ class SnapshotReader
     {
         CONSTANT,           
         DOUBLE_REG,         
+        FLOAT32_REG,        
+        FLOAT32_STACK,      
         TYPED_REG,          
         TYPED_STACK,        
         UNTYPED,            
@@ -135,6 +137,18 @@ class SnapshotReader
         {
             fpu_ = reg.code();
         }
+        Slot(SlotMode mode, const FloatRegister &reg)
+          : mode_(mode)
+        {
+            JS_ASSERT(mode == FLOAT32_REG);
+            fpu_ = reg.code();
+        }
+        Slot(SlotMode mode, const Location &loc)
+          : mode_(mode)
+        {
+            JS_ASSERT(mode == FLOAT32_STACK);
+            known_type_.payload = loc;
+        }
         Slot(SlotMode mode)
           : mode_(mode)
         { }
@@ -166,11 +180,11 @@ class SnapshotReader
             return known_type_.payload.reg();
         }
         FloatRegister floatReg() const {
-            JS_ASSERT(mode() == DOUBLE_REG);
+            JS_ASSERT(mode() == DOUBLE_REG || mode() == FLOAT32_REG);
             return FloatRegister::FromCode(fpu_);
         }
         int32_t stackSlot() const {
-            JS_ASSERT(mode() == TYPED_STACK);
+            JS_ASSERT(mode() == TYPED_STACK || mode() == FLOAT32_STACK);
             return known_type_.payload.stackSlot();
         }
 #if defined(JS_NUNBOX32)
@@ -231,4 +245,4 @@ class SnapshotReader
 }
 }
 
-#endif 
+#endif
