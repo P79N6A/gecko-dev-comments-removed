@@ -1968,6 +1968,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       mPendingWakeDecoder = nullptr;
       {
         ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+        
+        mDecodeTaskQueue->AwaitIdle();
         mReader->ReleaseMediaResources();
       }
       return NS_OK;
