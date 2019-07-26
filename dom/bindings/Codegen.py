@@ -4839,6 +4839,18 @@ if (global.Failed()) {
         else:
             assert self.argCount == 0
 
+        if needsUnwrap:
+            
+            
+            
+            
+            cgThings.append(CGGeneric(
+                    "bool objIsXray = xpc::WrapperFactory::IsXrayWrapper(obj);"))
+            if needsUnwrappedVar:
+                cgThings.append(CGIfWrapper(
+                        CGGeneric("unwrappedObj.construct(cx, obj);"),
+                        "objIsXray"))
+
         cgThings.extend([CGArgumentConverter(arguments[i], i, self.descriptor,
                                              argDescription % { "index": i + 1 },
                                              invalidEnumValueFatal=not setter,
@@ -4849,10 +4861,6 @@ if (global.Failed()) {
         if needsUnwrap:
             
             xraySteps = []
-            if needsUnwrappedVar:
-                xraySteps.append(
-                    CGGeneric("unwrappedObj.construct(cx, obj);"))
-
             
             
             xraySteps.append(
@@ -4878,7 +4886,7 @@ if (!${obj}) {
 
             cgThings.append(
                 CGIfWrapper(CGList(xraySteps, "\n"),
-                            "xpc::WrapperFactory::IsXrayWrapper(obj)"))
+                            "objIsXray"))
 
         cgThings.append(CGCallGenerator(
                     self.getErrorReport() if self.isFallible() else None,
