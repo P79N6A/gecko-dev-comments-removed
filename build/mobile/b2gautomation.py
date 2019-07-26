@@ -294,9 +294,9 @@ class B2GRemoteAutomation(Automation):
             
             
             
-            cmd = [self.dm.adbPath]
-            if self.dm.deviceSerial:
-                cmd.extend(['-s', self.dm.deviceSerial])
+            cmd = [self.dm._adbPath]
+            if self.dm._deviceSerial:
+                cmd.extend(['-s', self.dm._deviceSerial])
             cmd.append('shell')
             cmd.append('/system/bin/b2g.sh')
             proc = threading.Thread(target=self._save_stdout_proc, args=(cmd, self.queue))
