@@ -2799,12 +2799,6 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
 
 
 
-.web-console-frame {
-  border-bottom: 1px solid #aaa;
-}
-
-
-
 #developer-toolbar-toolbox-button[error-count]:before {
   color: #FDF3DE;
   min-width: 16px;
