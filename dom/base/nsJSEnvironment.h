@@ -19,6 +19,7 @@ class nsICycleCollectorListener;
 class nsIXPConnectJSObjectHolder;
 class nsRootedJSValueArray;
 class nsScriptNameSpaceManager;
+class nsCycleCollectionNoteRootCallback;
 
 namespace mozilla {
 template <class> class Maybe;
@@ -32,6 +33,7 @@ namespace mozilla {
 namespace dom {
 
 void TraceOuterWindows(JSTracer *aTracer);
+void TraverseOuterWindows(nsCycleCollectionNoteRootCallback& aCb);
 
 } 
 } 
@@ -181,6 +183,7 @@ private:
 
   
   friend void mozilla::dom::TraceOuterWindows(JSTracer *aTracer);
+  friend void mozilla::dom::TraverseOuterWindows(nsCycleCollectionNoteRootCallback& aCb);
 
   
   
