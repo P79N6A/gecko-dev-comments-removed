@@ -15,11 +15,15 @@
 
 
 
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
   "DownloadList",
   "DownloadCombinedList",
+  "DownloadSummary",
 ];
 
 
@@ -330,5 +334,187 @@ DownloadCombinedList.prototype = {
       this._downloads.splice(index, 1);
     }
     this._notifyAllViews("onDownloadRemoved", aDownload);
+  },
+};
+
+
+
+
+
+
+
+function DownloadSummary() {
+  this._downloads = [];
+  this._views = new Set();
+}
+
+DownloadSummary.prototype = {
+  
+
+
+  _downloads: null,
+
+  
+
+
+  _list: null,
+
+  
+
+
+
+
+
+
+
+
+
+  bindToList: function (aList)
+  {
+    if (this._list) {
+      throw new Error("bindToList may be called only once.");
+    }
+
+    aList.addView(this);
+
+    
+    
+    this._list = aList;
+    this._onListChanged();
+  },
+
+  
+
+
+  _views: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  addView: function (aView)
+  {
+    this._views.add(aView);
+
+    if ("onSummaryChanged" in aView) {
+      try {
+        aView.onSummaryChanged();
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+  removeView: function (aView)
+  {
+    this._views.delete(aView);
+  },
+
+  
+
+
+  allHaveStopped: true,
+
+  
+
+
+
+
+
+
+
+
+  progressTotalBytes: 0,
+
+  
+
+
+
+
+
+  progressCurrentBytes: 0,
+
+  
+
+
+
+
+  _onListChanged: function () {
+    let allHaveStopped = true;
+    let progressTotalBytes = 0;
+    let progressCurrentBytes = 0;
+
+    
+    
+    for (let download of this._downloads) {
+      if (!download.stopped) {
+        allHaveStopped = false;
+        progressTotalBytes += download.hasProgress ? download.totalBytes
+                                                   : download.currentBytes;
+        progressCurrentBytes += download.currentBytes;
+      }
+    }
+
+    
+    if (this.allHaveStopped == allHaveStopped &&
+        this.progressTotalBytes == progressTotalBytes &&
+        this.progressCurrentBytes == progressCurrentBytes) {
+      return;
+    }
+
+    this.allHaveStopped = allHaveStopped;
+    this.progressTotalBytes = progressTotalBytes;
+    this.progressCurrentBytes = progressCurrentBytes;
+
+    
+    for (let view of this._views) {
+      try {
+        if ("onSummaryChanged" in view) {
+          view.onSummaryChanged();
+        }
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }
+  },
+
+  
+  
+
+  onDownloadAdded: function (aDownload)
+  {
+    this._downloads.push(aDownload);
+    if (this._list) {
+      this._onListChanged();
+    }
+  },
+
+  onDownloadChanged: function (aDownload)
+  {
+    this._onListChanged();
+  },
+
+  onDownloadRemoved: function (aDownload)
+  {
+    let index = this._downloads.indexOf(aDownload);
+    if (index != -1) {
+      this._downloads.splice(index, 1);
+    }
+    this._onListChanged();
   },
 };

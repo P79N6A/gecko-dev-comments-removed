@@ -473,21 +473,70 @@ function promiseStartExternalHelperAppServiceDownload(aSourceUrl) {
 
 
 
+
+function promiseDownloadMidway(aDownload) {
+  let deferred = Promise.defer();
+
+  
+  let onchange = function () {
+    if (!aDownload.stopped && !aDownload.canceled && aDownload.progress == 50) {
+      aDownload.onchange = null;
+      deferred.resolve();
+    }
+  };
+
+  
+  
+  aDownload.onchange = onchange;
+  onchange();
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseDownloadStopped(aDownload) {
+  if (!aDownload.stopped) {
+    
+    
+    return aDownload.start();
+  }
+
+  if (aDownload.succeeded) {
+    return Promise.resolve();
+  }
+
+  
+  return Promise.reject(aDownload.error || new Error("Download canceled."));
+}
+
+
+
+
+
+
+
+
+
+
+
 function promiseNewList(aIsPrivate)
 {
-  let type = aIsPrivate ? Downloads.PRIVATE : Downloads.PUBLIC;
-
   
-  if (type in Downloads._listPromises) {
-    delete Downloads._listPromises[type];
-  }
-
   
-  if (Downloads.ALL in Downloads._listPromises) {
-    delete Downloads._listPromises[Downloads.ALL];
-  }
+  Downloads._promiseListsInitialized = null;
+  Downloads._lists = {};
+  Downloads._summaries = {};
 
-  return Downloads.getList(type);
+  return Downloads.getList(aIsPrivate ? Downloads.PRIVATE : Downloads.PUBLIC);
 }
 
 
