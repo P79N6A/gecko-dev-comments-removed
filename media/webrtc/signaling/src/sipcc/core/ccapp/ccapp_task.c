@@ -157,6 +157,11 @@ void CCApp_task(void * arg)
     void * msg;
 
     
+    sll_lite_init(&sll_list);
+
+    CCAppInit();
+
+    
     
     
     if (ccAppReadyToStartCond) {
@@ -167,10 +172,6 @@ void CCApp_task(void * arg)
       PR_Unlock(ccAppReadyToStartLock);
     }
 
-    
-    sll_lite_init(&sll_list);
-
-    CCAppInit();
 
     while (1) {
         msg = cprGetMessage(ccapp_msgq, TRUE, (void **) &syshdr);
