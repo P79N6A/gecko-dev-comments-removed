@@ -593,14 +593,8 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
     
     
     addTextOffset = addTextOffset > 0;
-    }
-    else {
-      
-      
-      
-      addTextOffset =
-        (nsAccUtils::TextLength(descendantAcc) == addTextOffset) ? 1 : 0;
-    }
+    } else
+      addTextOffset = 0;
 
     descendantAcc = parentAcc;
   }
