@@ -4506,6 +4506,37 @@ IonBuilder::jsop_eval(uint32_t argc)
         current->pushSlot(info().thisSlot());
         MDefinition *thisValue = current->pop();
 
+        
+        
+        
+        if (string->isConcat() &&
+            string->getOperand(1)->isConstant() &&
+            string->getOperand(1)->toConstant()->value().isString())
+        {
+            JSString *str = string->getOperand(1)->toConstant()->value().toString();
+
+            JSBool match;
+            if (!JS_StringEqualsAscii(cx, str, "()", &match))
+                return false;
+            if (match) {
+                MDefinition *name = string->getOperand(0);
+                MInstruction *dynamicName = MGetDynamicName::New(scopeChain, name);
+                current->add(dynamicName);
+
+                MInstruction *thisv = MPassArg::New(thisValue);
+                current->add(thisv);
+
+                current->push(dynamicName);
+                current->push(thisv);
+
+                CallInfo evalCallInfo(cx,  false);
+                if (!evalCallInfo.init(current,  0))
+                    return false;
+
+                return makeCall(NullPtr(), evalCallInfo, NULL, false);
+            }
+        }
+
         MInstruction *ins = MCallDirectEval::New(scopeChain, string, thisValue);
         current->add(ins);
         current->push(ins);
