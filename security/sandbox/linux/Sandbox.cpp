@@ -73,7 +73,7 @@ SandboxLogJSStack(void)
   }
   nsCOMPtr<nsIStackFrame> frame = dom::GetCurrentJSStack();
   for (int i = 0; frame != nullptr; ++i) {
-    nsAutoCString fileName, funName;
+    nsAutoString fileName, funName;
     int32_t lineNumber;
 
     
@@ -86,8 +86,10 @@ SandboxLogJSStack(void)
 
     if (!funName.IsVoid() || !fileName.IsVoid()) {
       LOG_ERROR("JS frame %d: %s %s line %d", i,
-                funName.IsVoid() ? "(anonymous)" : funName.get(),
-                fileName.IsVoid() ? "(no file)" : fileName.get(),
+                funName.IsVoid() ?
+                  "(anonymous)" : NS_ConvertUTF16toUTF8(funName).get(),
+                fileName.IsVoid() ?
+                  "(no file)" : NS_ConvertUTF16toUTF8(fileName).get(),
                 lineNumber);
     }
 
