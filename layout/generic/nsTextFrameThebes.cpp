@@ -100,7 +100,6 @@ struct TabWidth {
   { }
 
   uint32_t mOffset; 
-                    
   float    mWidth;  
 };
 
@@ -115,10 +114,13 @@ struct TabWidthStore {
   void ApplySpacing(gfxTextRun::PropertyProvider::Spacing *aSpacing,
                     uint32_t aOffset, uint32_t aLength);
 
-  uint32_t           mLimit;  
-                              
-                              
-  nsTArray<TabWidth> mWidths; 
+  
+  
+  
+  uint32_t mLimit;
+  
+  
+  nsTArray<TabWidth> mWidths;
 };
 
 void
@@ -2802,6 +2804,7 @@ protected:
   TabWidthStore*        mTabWidths;
   
   
+  
   uint32_t              mTabWidthsAnalyzedLimit;
 
   int32_t               mLength; 
@@ -3023,7 +3026,8 @@ PropertyProvider::CalcTabWidths(uint32_t aStart, uint32_t aLength)
       
       for (uint32_t i = aStart + aLength; i > aStart; --i) {
         if (mTextRun->CharIsTab(i - 1)) {
-          NS_ASSERTION(mTabWidths && mTabWidths->mLimit >= i,
+          uint32_t startOffset = mStart.GetSkippedOffset();
+          NS_ASSERTION(mTabWidths && mTabWidths->mLimit + startOffset >= i,
                        "Precomputed tab widths are missing!");
           break;
         }
@@ -3034,9 +3038,10 @@ PropertyProvider::CalcTabWidths(uint32_t aStart, uint32_t aLength)
   }
 
   uint32_t startOffset = mStart.GetSkippedOffset();
-  uint32_t tabsEnd = mTabWidths ?
-    mTabWidths->mLimit : std::max(mTabWidthsAnalyzedLimit, startOffset);
-
+  MOZ_ASSERT(aStart >= startOffset, "wrong start offset");
+  MOZ_ASSERT(aStart + aLength <= startOffset + mLength, "beyond the end");
+  uint32_t tabsEnd =
+    (mTabWidths ? mTabWidths->mLimit : mTabWidthsAnalyzedLimit) + startOffset;
   if (tabsEnd < aStart + aLength) {
     NS_ASSERTION(mReflowing,
                  "We need precomputed tab widths, but don't have enough.");
@@ -3073,7 +3078,7 @@ PropertyProvider::CalcTabWidths(uint32_t aStart, uint32_t aLength)
     }
 
     if (mTabWidths) {
-      mTabWidths->mLimit = aStart + aLength;
+      mTabWidths->mLimit = aStart + aLength - startOffset;
     }
   }
 
@@ -3081,7 +3086,7 @@ PropertyProvider::CalcTabWidths(uint32_t aStart, uint32_t aLength)
     
     mFrame->Properties().Delete(TabWidthProperty());
     mTabWidthsAnalyzedLimit = std::max(mTabWidthsAnalyzedLimit,
-                                     aStart + aLength);
+                                       aStart + aLength - startOffset);
   }
 }
 
