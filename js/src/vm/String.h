@@ -273,8 +273,8 @@ class JSString : public js::gc::Cell
 
 
 
-    inline const jschar *maybeChars();
-    inline const jschar *maybeCharsZ();
+    inline const jschar *maybeChars() const;
+    inline const jschar *maybeCharsZ() const;
 
     
 
@@ -1056,7 +1056,7 @@ JSString::getCharsZ(JSContext *cx)
 }
 
 JS_ALWAYS_INLINE const jschar *
-JSString::maybeChars()
+JSString::maybeChars() const
 {
     if (isLinear())
         return asLinear().chars();
@@ -1064,7 +1064,7 @@ JSString::maybeChars()
 }
 
 JS_ALWAYS_INLINE const jschar *
-JSString::maybeCharsZ()
+JSString::maybeCharsZ() const
 {
     if (isFlat())
         return asFlat().chars();
