@@ -203,26 +203,11 @@ img[align=right] {
 
 
 
-
-
-
-*[_moz-rs-heading] {
-  font-size: inherit !important;
-}
-
-
-
-
-
-
-
-
-
 input:not([type=image]), textarea {
   box-sizing: border-box;
 }
 
 
-form{
- margin-bottom: 1em;
+form {
+  margin-bottom: 1em;
 }
