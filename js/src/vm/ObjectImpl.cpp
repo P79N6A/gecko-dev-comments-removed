@@ -282,6 +282,11 @@ js::ObjectImpl::slotInRange(uint32_t slot, SentinelAllowed sentinel) const
 }
 #endif 
 
+
+#if defined(_MSC_VER)
+# pragma optimize("g", off)
+#endif
+
 #if defined(_MSC_VER) && _MSC_VER >= 1500
 
 
@@ -297,6 +302,10 @@ js::ObjectImpl::nativeLookup(JSContext *cx, jsid id)
     Shape **spp;
     return Shape::search(cx, lastProperty(), id, &spp);
 }
+
+#if defined(_MSC_VER)
+# pragma optimize("", on)
+#endif
 
 void
 js::ObjectImpl::markChildren(JSTracer *trc)
