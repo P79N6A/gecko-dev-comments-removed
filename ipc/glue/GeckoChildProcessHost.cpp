@@ -79,8 +79,7 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
   : ChildProcessHost(RENDER_PROCESS), 
     mProcessType(aProcessType),
     mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),
-    mLaunched(false),
-    mChannelInitialized(false),
+    mProcessState(CREATING_CHANNEL),
     mDelegate(aDelegate),
     mChildProcessHandle(0)
 #if defined(MOZ_WIDGET_COCOA)
@@ -239,6 +238,20 @@ uint32 GeckoChildProcessHost::GetSupportedArchitecturesForProcessType(GeckoProce
   return base::GetCurrentProcessArchitecture();
 }
 
+void
+GeckoChildProcessHost::PrepareLaunch()
+{
+#ifdef MOZ_CRASHREPORTER
+  if (CrashReporter::GetEnabled()) {
+    CrashReporter::OOPInit();
+  }
+#endif
+
+#ifdef XP_WIN
+  InitWindowsGroupID();
+#endif
+}
+
 #ifdef XP_WIN
 void GeckoChildProcessHost::InitWindowsGroupID()
 {
@@ -263,15 +276,7 @@ void GeckoChildProcessHost::InitWindowsGroupID()
 bool
 GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTimeoutMs, base::ProcessArchitecture arch)
 {
-#ifdef MOZ_CRASHREPORTER
-  if (CrashReporter::GetEnabled()) {
-    CrashReporter::OOPInit();
-  }
-#endif
-
-#ifdef XP_WIN
-  InitWindowsGroupID();
-#endif
+  PrepareLaunch();
 
   PRIntervalTime timeoutTicks = (aTimeoutMs > 0) ? 
     PR_MillisecondsToInterval(aTimeoutMs) : PR_INTERVAL_NO_TIMEOUT;
@@ -290,7 +295,7 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTime
 
   
   
-  while (!mLaunched) {
+  while (mProcessState < PROCESS_CONNECTED) {
     lock.Wait(timeoutTicks);
 
     if (timeoutTicks != PR_INTERVAL_NO_TIMEOUT) {
@@ -304,21 +309,13 @@ GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts, int aTime
     }
   }
 
-  return mLaunched;
+  return mProcessState == PROCESS_CONNECTED;
 }
 
 bool
 GeckoChildProcessHost::AsyncLaunch(std::vector<std::string> aExtraOpts)
 {
-#ifdef MOZ_CRASHREPORTER
-  if (CrashReporter::GetEnabled()) {
-    CrashReporter::OOPInit();
-  }
-#endif
-
-#ifdef XP_WIN
-  InitWindowsGroupID();
-#endif
+  PrepareLaunch();
 
   MessageLoop* ioLoop = XRE_GetIOMessageLoop();
   ioLoop->PostTask(FROM_HERE,
@@ -329,11 +326,31 @@ GeckoChildProcessHost::AsyncLaunch(std::vector<std::string> aExtraOpts)
   
   
   MonitorAutoLock lock(mMonitor);
-  while (!mChannelInitialized) {
+  while (mProcessState < CHANNEL_INITIALIZED) {
     lock.Wait();
   }
 
   return true;
+}
+
+bool
+GeckoChildProcessHost::LaunchAndWaitForProcessHandle(StringVector aExtraOpts)
+{
+  PrepareLaunch();
+
+  MessageLoop* ioLoop = XRE_GetIOMessageLoop();
+  ioLoop->PostTask(FROM_HERE,
+                   NewRunnableMethod(this,
+                                     &GeckoChildProcessHost::PerformAsyncLaunch,
+                                     aExtraOpts, base::GetCurrentProcessArchitecture()));
+
+  MonitorAutoLock lock(mMonitor);
+  while (mProcessState < PROCESS_CREATED) {
+    lock.Wait();
+  }
+  MOZ_ASSERT(mProcessState == PROCESS_ERROR || mChildProcessHandle);
+
+  return mProcessState < PROCESS_ERROR;
 }
 
 void
@@ -342,7 +359,7 @@ GeckoChildProcessHost::InitializeChannel()
   CreateChannel();
 
   MonitorAutoLock lock(mMonitor);
-  mChannelInitialized = true;
+  mProcessState = CHANNEL_INITIALIZED;
   lock.Notify();
 }
 
@@ -395,8 +412,6 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, b
 bool
 GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExtraOpts, base::ProcessArchitecture arch)
 {
-  
-
   
   
   if (!GetChannel()) {
@@ -684,26 +699,50 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 #endif
 
   if (!process) {
+    MonitorAutoLock lock(mMonitor);
+    mProcessState = PROCESS_ERROR;
+    lock.Notify();
     return false;
   }
+  
+  
+  
   SetHandle(process);
 #if defined(MOZ_WIDGET_COCOA)
   mChildTask = child_task;
 #endif
 
+  OpenPrivilegedHandle(base::GetProcId(process));
+  {
+    MonitorAutoLock lock(mMonitor);
+    mProcessState = PROCESS_CREATED;
+    lock.Notify();
+  }
+
   return true;
+}
+
+void
+GeckoChildProcessHost::OpenPrivilegedHandle(base::ProcessId aPid)
+{
+  if (mChildProcessHandle) {
+    MOZ_ASSERT(aPid == base::GetProcId(mChildProcessHandle));
+    return;
+  }
+  if (!base::OpenPrivilegedProcessHandle(aPid, &mChildProcessHandle)) {
+    NS_RUNTIMEABORT("can't open handle to child process");
+  }
 }
 
 void
 GeckoChildProcessHost::OnChannelConnected(int32 peer_pid)
 {
-  MonitorAutoLock lock(mMonitor);
-  mLaunched = true;
-
-  if (!base::OpenPrivilegedProcessHandle(peer_pid, &mChildProcessHandle))
-      NS_RUNTIMEABORT("can't open handle to child process");
-
-  lock.Notify();
+  OpenPrivilegedHandle(peer_pid);
+  {
+    MonitorAutoLock lock(mMonitor);
+    mProcessState = PROCESS_CONNECTED;
+    lock.Notify();
+  }
 }
 
 void

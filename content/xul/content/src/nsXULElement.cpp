@@ -2497,14 +2497,12 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
     
 
     nsScriptObjectHolder<JSScript> newScriptObject(context);
-    uint32_t opts = JS_GetOptions(context->GetNativeContext());
-    if (!mOutOfLine) {
-        
-        
-        
-        opts &= ~JSOPTION_ONLY_CNG_SOURCE;
-        JS_SetOptions(context->GetNativeContext(), opts);
-    }
+
+    
+    
+    
+    bool saveSource = !mOutOfLine;
+
     rv = context->CompileScript(aText,
                                 aTextLength,
                                 
@@ -2517,8 +2515,8 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
                                 urlspec.get(),
                                 aLineNo,
                                 mLangVersion,
-                                newScriptObject);
-    JS_SetOptions(context->GetNativeContext(), opts);
+                                newScriptObject,
+                                saveSource);
     if (NS_FAILED(rv))
         return rv;
 

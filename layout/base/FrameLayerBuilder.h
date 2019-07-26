@@ -255,6 +255,12 @@ public:
 
 
 
+  static void InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(nsIFrame* aFrame);
+
+  
+
+
+
   static void InvalidateAllLayers(LayerManager* aManager);
 
   
@@ -281,7 +287,7 @@ public:
 
 
 
-  static void DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile = stdout);
+  static void DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile = stdout, bool aDumpHtml = false);
 #endif
 
   

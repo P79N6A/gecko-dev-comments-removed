@@ -3769,7 +3769,7 @@ nsHTMLEditor::CollapseAdjacentTextNodes(nsIDOMRange *aInRange)
 {
   NS_ENSURE_TRUE(aInRange, NS_ERROR_NULL_POINTER);
   nsAutoTxnsConserveSelection dontSpazMySelection(this);
-  nsTArray<nsIDOMNode*> textNodes;
+  nsTArray<nsCOMPtr<nsIDOMNode> > textNodes;
   
   
   

@@ -796,7 +796,7 @@ nsPresContext::InvalidateThebesLayers()
     
     
     
-    FrameLayerBuilder::InvalidateThebesLayersInSubtree(rootFrame);
+    FrameLayerBuilder::InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(rootFrame);
   }
 }
 

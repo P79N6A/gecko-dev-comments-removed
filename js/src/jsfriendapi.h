@@ -15,12 +15,6 @@
 
 JS_BEGIN_EXTERN_C
 
-
-
-
-
-#define JSOPTION_ONLY_CNG_SOURCE JS_BIT(20)
-
 extern JS_FRIEND_API(void)
 JS_SetGrayGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
@@ -165,6 +159,8 @@ struct JSFunctionSpecWithHelp {
 
 #define JS_FN_HELP(name,call,nargs,flags,usage,help)                          \
     {name, call, nargs, (flags) | JSPROP_ENUMERATE | JSFUN_STUB_GSOPS, usage, help}
+#define JS_FS_HELP_END                                                        \
+    {NULL, NULL, 0, 0, NULL, NULL}
 
 extern JS_FRIEND_API(bool)
 JS_DefineFunctionsWithHelp(JSContext *cx, JSObject *obj, const JSFunctionSpecWithHelp *fs);
@@ -327,6 +323,16 @@ struct Object {
             return fixedSlots()[slot];
         return slots[slot - nfixed];
     }
+};
+
+struct Function {
+    Object base;
+    uint16_t nargs;
+    uint16_t flags;
+    
+    Native native;
+    const JSJitInfo *jitinfo;
+    void *_1;
 };
 
 struct Atom {
@@ -741,6 +747,21 @@ SetGCSliceCallback(JSRuntime *rt, GCSliceCallback callback);
 
 extern JS_FRIEND_API(bool)
 WasIncrementalGC(JSRuntime *rt);
+
+typedef JSBool
+(* DOMInstanceClassMatchesProto)(JSHandleObject protoObject, uint32_t protoID,
+                                 uint32_t depth);
+
+struct JSDOMCallbacks {
+    DOMInstanceClassMatchesProto instanceClassMatchesProto;
+};
+typedef struct JSDOMCallbacks DOMCallbacks;
+
+extern JS_FRIEND_API(void)
+SetDOMCallbacks(JSRuntime *rt, const DOMCallbacks *callbacks);
+
+extern JS_FRIEND_API(const DOMCallbacks *)
+GetDOMCallbacks(JSRuntime *rt);
 
 
 
@@ -1297,5 +1318,43 @@ JS_GetDataViewByteLength(JSObject *obj, JSContext *cx);
 
 JS_FRIEND_API(void *)
 JS_GetDataViewData(JSObject *obj, JSContext *cx);
+
+#ifdef __cplusplus
+
+
+
+
+
+typedef bool
+(* JSJitPropertyOp)(JSContext *cx, JSHandleObject thisObj,
+                    void *specializedThis, JS::Value *vp);
+typedef bool
+(* JSJitMethodOp)(JSContext *cx, JSHandleObject thisObj,
+                  void *specializedThis, unsigned argc, JS::Value *vp);
+
+struct JSJitInfo {
+    JSJitPropertyOp op;
+    uint32_t protoID;
+    uint32_t depth;
+    bool isInfallible;    
+    bool isConstant;      
+};
+
+static JS_ALWAYS_INLINE const JSJitInfo *
+FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
+{
+    JS_ASSERT(js::GetObjectClass(&v.toObject()) == &js::FunctionClass);
+    return reinterpret_cast<js::shadow::Function *>(&v.toObject())->jitinfo;
+}
+
+static JS_ALWAYS_INLINE void
+SET_JITINFO(JSFunction * func, const JSJitInfo *info)
+{
+    js::shadow::Function *fun = reinterpret_cast<js::shadow::Function *>(func);
+    
+    JS_ASSERT(!(fun->flags & 0x4000));
+    fun->jitinfo = info;
+}
+#endif 
 
 #endif 

@@ -419,7 +419,7 @@ public:
 
 
 
-  void Dump(FILE* aFile=NULL, const char* aPrefix="");
+  void Dump(FILE* aFile=NULL, const char* aPrefix="", bool aDumpHtml=false);
   
 
 
@@ -880,7 +880,7 @@ public:
 
 
 
-  void Dump(FILE* aFile=NULL, const char* aPrefix="");
+  void Dump(FILE* aFile=NULL, const char* aPrefix="", bool aDumpHtml=false);
   
 
 

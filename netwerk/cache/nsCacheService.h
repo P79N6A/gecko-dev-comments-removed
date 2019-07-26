@@ -111,6 +111,11 @@ public:
     
 
 
+    static void      MarkStartingFresh();
+
+    
+
+
 
     nsresult GetOfflineDevice(nsOfflineCacheDevice ** aDevice);
 
@@ -184,6 +189,7 @@ private:
     friend class nsBlockOnCacheThreadEvent;
     friend class nsSetDiskSmartSizeCallback;
     friend class nsDoomEvent;
+    friend class nsDisableOldMaxSmartSizePrefEvent;
 
     
 

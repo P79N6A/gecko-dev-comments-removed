@@ -2425,16 +2425,23 @@ FrameLayerBuilder::InvalidateThebesLayerContents(nsIFrame* aFrame,
 
 
 static bool
-InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame)
+InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame, bool aTrustFrameGeometry)
 {
   if (!(aFrame->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT))
     return false;
 
   bool foundContainerLayer = false;
   if (aFrame->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
-    
-    
-    FrameLayerBuilder::InvalidateThebesLayerContents(aFrame, aFrame->GetVisualOverflowRectRelativeToSelf());
+    if (aTrustFrameGeometry) {
+      
+      
+      FrameLayerBuilder::InvalidateThebesLayerContents(aFrame,
+        aFrame->GetVisualOverflowRectRelativeToSelf());
+    } else {
+      
+      
+      aFrame->Properties().Delete(ThebesLayerInvalidRegionProperty());
+    }
     foundContainerLayer = true;
   }
 
@@ -2457,7 +2464,8 @@ InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame)
   for (; !lists.IsDone(); lists.Next()) {
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
-      if (InternalInvalidateThebesLayersInSubtree(childFrames.get())) {
+      if (InternalInvalidateThebesLayersInSubtree(childFrames.get(),
+                                                  aTrustFrameGeometry)) {
         foundContainerLayer = true;
       }
     }
@@ -2472,7 +2480,13 @@ InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame)
  void
 FrameLayerBuilder::InvalidateThebesLayersInSubtree(nsIFrame* aFrame)
 {
-  InternalInvalidateThebesLayersInSubtree(aFrame);
+  InternalInvalidateThebesLayersInSubtree(aFrame, true);
+}
+
+ void
+FrameLayerBuilder::InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(nsIFrame* aFrame)
+{
+  InternalInvalidateThebesLayersInSubtree(aFrame, false);
 }
 
  void
@@ -2813,9 +2827,9 @@ FrameLayerBuilder::CheckDOMModified()
 
 #ifdef MOZ_DUMP_PAINTING
  void
-FrameLayerBuilder::DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile)
+FrameLayerBuilder::DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile, bool aDumpHtml)
 {
-  aManager->Dump(aFile);
+  aManager->Dump(aFile, "", aDumpHtml);
 }
 #endif
 

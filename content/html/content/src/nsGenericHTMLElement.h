@@ -49,6 +49,8 @@ public:
   {
     NS_ASSERTION(mNodeInfo->NamespaceID() == kNameSpaceID_XHTML,
                  "Unexpected namespace");
+    AddStatesSilently(NS_EVENT_STATE_LTR);
+    SetFlags(NODE_HAS_DIRECTION_LTR);
   }
 
   
@@ -201,6 +203,8 @@ public:
   void Compact() { mAttrsAndChildren.Compact(); }
 
   virtual void UpdateEditableState(bool aNotify);
+
+  virtual nsEventStates IntrinsicState() const;
 
   
   void DoSetEditableFlag(bool aEditable, bool aNotify) {

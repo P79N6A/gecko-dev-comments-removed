@@ -3223,13 +3223,12 @@ JS_StringToVersion(const char *string);
                                                    without requiring
                                                    "use strict" annotations. */
 
-
-#define JSOPTION_ION            JS_BIT(21)      /* IonMonkey */
+#define JSOPTION_ION            JS_BIT(20)      /* IonMonkey */
 
 
 #define JSCOMPILEOPTION_MASK    (JSOPTION_ALLOW_XML | JSOPTION_MOAR_XML)
 
-#define JSRUNOPTION_MASK        (JS_BITMASK(22) & ~JSCOMPILEOPTION_MASK)
+#define JSRUNOPTION_MASK        (JS_BITMASK(21) & ~JSCOMPILEOPTION_MASK)
 #define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32_t)
@@ -4339,22 +4338,54 @@ struct JSConstDoubleSpec {
     uint8_t         spare[3];
 };
 
+typedef struct JSJitInfo JSJitInfo;
+
+
+
+
+
+
+typedef struct JSStrictPropertyOpWrapper {
+    JSStrictPropertyOp  op;
+    const JSJitInfo     *info;
+} JSStrictPropertyOpWrapper;
+
+typedef struct JSPropertyOpWrapper {
+    JSPropertyOp        op;
+    const JSJitInfo     *info;
+} JSPropertyOpWrapper;
+
+
+
+
+typedef struct JSNativeWrapper {
+    JSNative        op;
+    const JSJitInfo *info;
+} JSNativeWrapper;
+
+
+
+
+
+#define JSOP_WRAPPER(op) {op, NULL}
+#define JSOP_NULLWRAPPER JSOP_WRAPPER(NULL)
+
 
 
 
 
 
 struct JSPropertySpec {
-    const char            *name;
-    int8_t                tinyid;
-    uint8_t               flags;
-    JSPropertyOp          getter;
-    JSStrictPropertyOp    setter;
+    const char                  *name;
+    int8_t                      tinyid;
+    uint8_t                     flags;
+    JSPropertyOpWrapper         getter;
+    JSStrictPropertyOpWrapper   setter;
 };
 
 struct JSFunctionSpec {
     const char      *name;
-    JSNative        call;
+    JSNativeWrapper call;
     uint16_t        nargs;
     uint16_t        flags;
 };
@@ -4371,9 +4402,11 @@ struct JSFunctionSpec {
 
 
 #define JS_FS(name,call,nargs,flags)                                          \
-    {name, call, nargs, flags}
+    {name, JSOP_WRAPPER(call), nargs, flags}
 #define JS_FN(name,call,nargs,flags)                                          \
-    {name, call, nargs, (flags) | JSFUN_STUB_GSOPS}
+    {name, JSOP_WRAPPER(call), nargs, (flags) | JSFUN_STUB_GSOPS}
+#define JS_FNINFO(name,call,info,nargs,flags)                                 \
+    {name,{call,info},nargs,flags}
 
 extern JS_PUBLIC_API(JSObject *)
 JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
@@ -5084,6 +5117,11 @@ struct JS_PUBLIC_API(CompileOptions) {
     bool compileAndGo;
     bool noScriptRval;
     bool allowIntrinsicsCalls;
+    enum SourcePolicy {
+        NO_SOURCE,
+        LAZY_SOURCE,
+        SAVE_SOURCE
+    } sourcePolicy;
 
     CompileOptions(JSContext *cx);
     CompileOptions &setPrincipals(JSPrincipals *p) { principals = p; return *this; }
@@ -5096,6 +5134,7 @@ struct JS_PUBLIC_API(CompileOptions) {
     CompileOptions &setCompileAndGo(bool cng) { compileAndGo = cng; return *this; }
     CompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
     CompileOptions &setAllowIntrinsicsCalls(bool aic) { allowIntrinsicsCalls = aic; return *this; }
+    CompileOptions &setSourcePolicy(SourcePolicy sp) { sourcePolicy = sp; return *this; }
 };
 
 extern JS_PUBLIC_API(JSScript *)

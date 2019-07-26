@@ -508,15 +508,10 @@ class DeviceManagerSUT(DeviceManager):
       return None
 
     
-    timeslept = 0
-    while (timeslept <= 30):
-      process = self.processExist(appname)
-      if (process is not None):
-        break
-      time.sleep(3)
-      timeslept += 3
-
+    
+    process = self.processExist(appname)
     if (self.debug >= 4): print "got pid: %s for process: %s" % (process, appname)
+
     return process
 
   

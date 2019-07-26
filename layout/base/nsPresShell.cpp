@@ -476,6 +476,13 @@ public:
         mPresShell->FlushPendingNotifications(Flush_Layout);
       }
       nsIFrame* frame = mPresShell->GetCurrentEventFrame();
+      if (!frame &&
+          (aVisitor.mEvent->message == NS_MOUSE_BUTTON_UP ||
+           aVisitor.mEvent->message == NS_TOUCH_END)) {
+        
+        
+        frame = mPresShell->GetRootFrame();
+      }
       if (frame) {
         frame->HandleEvent(aVisitor.mPresContext,
                            (nsGUIEvent*) aVisitor.mEvent,

@@ -1082,21 +1082,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime)
 
   mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS | JSOPTION_ALLOW_XML;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mDefaultJSOptions |= JSOPTION_ONLY_CNG_SOURCE;
-
   mContext = ::JS_NewContext(aRuntime, gStackSize);
   if (mContext) {
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));
@@ -1563,7 +1548,8 @@ nsJSContext::CompileScript(const PRUnichar* aText,
                            const char *aURL,
                            PRUint32 aLineNo,
                            PRUint32 aVersion,
-                           nsScriptObjectHolder<JSScript>& aScriptObject)
+                           nsScriptObjectHolder<JSScript>& aScriptObject,
+                           bool aSaveSource )
 {
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
 
@@ -1590,15 +1576,20 @@ nsJSContext::CompileScript(const PRUnichar* aText,
   XPCAutoRequest ar(mContext);
 
 
-  JSScript* script =
-    ::JS_CompileUCScriptForPrincipalsVersion(mContext,
-                                             scopeObject,
-                                             nsJSPrincipals::get(aPrincipal),
-                                             static_cast<const jschar*>(aText),
-                                             aTextLength,
-                                             aURL,
-                                             aLineNo,
-                                             JSVersion(aVersion));
+  JS::CompileOptions options(mContext);
+  JS::CompileOptions::SourcePolicy sp = aSaveSource ?
+    JS::CompileOptions::SAVE_SOURCE :
+    JS::CompileOptions::LAZY_SOURCE;
+  options.setPrincipals(nsJSPrincipals::get(aPrincipal))
+         .setFileAndLine(aURL, aLineNo)
+         .setVersion(JSVersion(aVersion))
+         .setSourcePolicy(sp);
+  JS::RootedObject rootedScope(mContext, scopeObject);
+  JSScript* script = JS::Compile(mContext,
+                                 rootedScope,
+                                 options,
+                                 static_cast<const jschar*>(aText),
+                                 aTextLength);
   if (!script) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -2027,9 +2018,8 @@ nsJSContext::Serialize(nsIObjectOutputStream* aStream, JSScript* aScriptObject)
   if (!aScriptObject)
     return NS_ERROR_FAILURE;
 
-  return nsContentUtils::XPConnect()->WriteScript(aStream, mContext, aScriptObject);
-    xpc_UnmarkGrayScript(aScriptObject);
-
+  return nsContentUtils::XPConnect()->WriteScript(aStream, mContext,
+                                                  xpc_UnmarkGrayScript(aScriptObject));
 }
 
 nsresult
@@ -2630,14 +2620,14 @@ TraceMallocDumpAllocations(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static JSFunctionSpec TraceMallocFunctions[] = {
-    {"TraceMallocDisable",         TraceMallocDisable,         0, 0},
-    {"TraceMallocEnable",          TraceMallocEnable,          0, 0},
-    {"TraceMallocOpenLogFile",     TraceMallocOpenLogFile,     1, 0},
-    {"TraceMallocChangeLogFD",     TraceMallocChangeLogFD,     1, 0},
-    {"TraceMallocCloseLogFD",      TraceMallocCloseLogFD,      1, 0},
-    {"TraceMallocLogTimestamp",    TraceMallocLogTimestamp,    1, 0},
-    {"TraceMallocDumpAllocations", TraceMallocDumpAllocations, 1, 0},
-    {nullptr,                       nullptr,                     0, 0}
+    JS_FS("TraceMallocDisable",         TraceMallocDisable,         0, 0),
+    JS_FS("TraceMallocEnable",          TraceMallocEnable,          0, 0),
+    JS_FS("TraceMallocOpenLogFile",     TraceMallocOpenLogFile,     1, 0),
+    JS_FS("TraceMallocChangeLogFD",     TraceMallocChangeLogFD,     1, 0),
+    JS_FS("TraceMallocCloseLogFD",      TraceMallocCloseLogFD,      1, 0),
+    JS_FS("TraceMallocLogTimestamp",    TraceMallocLogTimestamp,    1, 0),
+    JS_FS("TraceMallocDumpAllocations", TraceMallocDumpAllocations, 1, 0),
+    JS_FS_END
 };
 
 #endif 
@@ -3954,7 +3944,6 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, PRUint
 
 
 
-
 static bool
 SourceHook(JSContext *cx, JSScript *script, jschar **src, uint32_t *length)
 {
@@ -3978,7 +3967,6 @@ SourceHook(JSContext *cx, JSScript *script, jschar **src, uint32_t *length)
 }
 
 
-
 nsresult
 nsJSRuntime::Init()
 {
@@ -4000,6 +3988,22 @@ nsJSRuntime::Init()
   rv = sRuntimeService->GetRuntime(&sRuntime);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   JS_SetSourceHook(sRuntime, SourceHook);
 
   
@@ -4014,6 +4018,11 @@ nsJSRuntime::Init()
     NS_DOMStructuredCloneError
   };
   JS_SetStructuredCloneCallbacks(sRuntime, &cloneCallbacks);
+
+  static js::DOMCallbacks DOMcallbacks = {
+    InstanceClassHasProtoAtDepth
+  };
+  SetDOMCallbacks(sRuntime, &DOMcallbacks);
 
   
   Preferences::RegisterCallback(MaxScriptRunTimePrefChangedCallback,

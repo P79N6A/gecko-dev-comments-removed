@@ -441,6 +441,26 @@ struct nsCSSRendering {
 
 
 
+  static void DecorationLineToPath(nsIFrame* aFrame,
+                                   gfxContext* aGfxContext,
+                                   const gfxRect& aDirtyRect,
+                                   const nscolor aColor,
+                                   const gfxPoint& aPt,
+                                   const gfxFloat aXInFrame,
+                                   const gfxSize& aLineSize,
+                                   const gfxFloat aAscent,
+                                   const gfxFloat aOffset,
+                                   const PRUint8 aDecoration,
+                                   const PRUint8 aStyle,
+                                   const gfxFloat aDescentLimit = -1.0);
+
+  
+
+
+
+
+
+
 
 
 

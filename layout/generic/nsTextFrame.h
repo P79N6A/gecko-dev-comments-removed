@@ -274,10 +274,86 @@ public:
                               PRUint32* aStartOffset, PRUint32* aMaxLength,
                               nscoord* aSnappedLeftEdge,
                               nscoord* aSnappedRightEdge);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  struct DrawPathCallbacks : gfxTextRun::DrawCallbacks
+  {
+    
+
+
+
+    virtual void NotifyBeforeText(nscolor aColor) { }
+
+    
+
+
+
+    virtual void NotifyAfterText() { }
+
+    
+
+
+
+    virtual void NotifyBeforeSelectionBackground(nscolor aColor) { }
+
+    
+
+
+
+    virtual void NotifySelectionBackgroundPathEmitted() { }
+
+    
+
+
+
+    virtual void NotifyBeforeDecorationLine(nscolor aColor) { }
+
+    
+
+
+
+    virtual void NotifyDecorationLinePathEmitted() { }
+
+    
+
+
+
+    virtual void NotifyBeforeSelectionDecorationLine(nscolor aColor) { }
+
+    
+
+
+
+    virtual void NotifySelectionDecorationLinePathEmitted() { }
+  };
+
+  
+  
   
   
   void PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
-                 const nsRect& aDirtyRect, const nsCharClipDisplayItem& aItem);
+                 const nsRect& aDirtyRect, const nsCharClipDisplayItem& aItem,
+                 DrawPathCallbacks* aCallbacks = nullptr);
   
   
   
@@ -289,7 +365,8 @@ public:
                               PRUint32 aContentOffset,
                               PRUint32 aContentLength,
                               nsTextPaintStyle& aTextPaintStyle,
-                              const nsCharClipDisplayItem::ClipEdges& aClipEdges);
+                              const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+                              DrawPathCallbacks* aCallbacks);
   
   
   
@@ -305,7 +382,8 @@ public:
                                     nsTextPaintStyle& aTextPaintStyle,
                                     SelectionDetails* aDetails,
                                     SelectionType* aAllTypes,
-                            const nsCharClipDisplayItem::ClipEdges& aClipEdges);
+                             const nsCharClipDisplayItem::ClipEdges& aClipEdges,
+                                    DrawPathCallbacks* aCallbacks);
   
   void PaintTextSelectionDecorations(gfxContext* aCtx,
                                      const gfxPoint& aFramePt,
@@ -316,7 +394,8 @@ public:
                                      PRUint32 aContentLength,
                                      nsTextPaintStyle& aTextPaintStyle,
                                      SelectionDetails* aDetails,
-                                     SelectionType aSelectionType);
+                                     SelectionType aSelectionType,
+                                     DrawPathCallbacks* aCallbacks);
 
   virtual nscolor GetCaretColorAt(PRInt32 aOffset);
 
@@ -518,7 +597,12 @@ protected:
       return !mStrikes.IsEmpty();
     }
   };
+  enum TextDecorationColorResolution {
+    eResolvedColors,
+    eUnresolvedColors
+  };
   void GetTextDecorations(nsPresContext* aPresContext,
+                          TextDecorationColorResolution aColorResolution,
                           TextDecorations& aDecorations);
 
   void DrawTextRun(gfxContext* const aCtx,
@@ -526,8 +610,10 @@ protected:
                    PRUint32 aOffset,
                    PRUint32 aLength,
                    PropertyProvider& aProvider,
+                   nscolor aTextColor,
                    gfxFloat& aAdvanceWidth,
-                   bool aDrawSoftHyphen);
+                   bool aDrawSoftHyphen,
+                   DrawPathCallbacks* aCallbacks);
 
   void DrawTextRunAndDecorations(gfxContext* const aCtx,
                                  const gfxRect& aDirtyRect,
@@ -537,11 +623,13 @@ protected:
                                  PRUint32 aLength,
                                  PropertyProvider& aProvider,
                                  const nsTextPaintStyle& aTextStyle,
+                                 nscolor aTextColor,
                              const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                                  gfxFloat& aAdvanceWidth,
                                  bool aDrawSoftHyphen,
                                  const TextDecorations& aDecorations,
-                                 const nscolor* const aDecorationOverrideColor);
+                                 const nscolor* const aDecorationOverrideColor,
+                                 DrawPathCallbacks* aCallbacks);
 
   void DrawText(gfxContext* const aCtx,
                 const gfxRect& aDirtyRect,
@@ -551,10 +639,12 @@ protected:
                 PRUint32 aLength,
                 PropertyProvider& aProvider,
                 const nsTextPaintStyle& aTextStyle,
+                nscolor aTextColor,
                 const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                 gfxFloat& aAdvanceWidth,
                 bool aDrawSoftHyphen,
-                const nscolor* const aDecorationOverrideColor = nullptr);
+                const nscolor* const aDecorationOverrideColor = nullptr,
+                DrawPathCallbacks* aCallbacks = nullptr);
 
   
   

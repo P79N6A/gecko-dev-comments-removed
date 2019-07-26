@@ -1335,27 +1335,6 @@ NS_UsePrivateBrowsing(nsIChannel *channel)
 
 
 inline bool
-NS_GetExtendedOrigin(nsIChannel *aChannel, nsACString &aResult)
-{
-    nsCOMPtr<nsILoadContext> loadContext;
-    NS_QueryNotificationCallbacks(aChannel, loadContext);
-    if (!loadContext) {
-        return false;
-    }
-    nsCOMPtr<nsIURI> uri;
-    nsresult rv = aChannel->GetURI(getter_AddRefs(uri));
-    NS_ENSURE_SUCCESS(rv, false);
-
-    rv = loadContext->GetExtendedOrigin(uri, aResult);
-    NS_ENSURE_SUCCESS(rv, false);
-    return true;
-}
-
-
-
-
-
-inline bool
 NS_GetAppInfo(nsIChannel *aChannel, PRUint32 *aAppID, bool *aIsInBrowserElement)
 {
     nsCOMPtr<nsILoadContext> loadContext;

@@ -2475,6 +2475,22 @@ public:
 
 
 
+    struct DrawCallbacks {
+
+        
+
+
+
+
+
+
+        virtual void NotifyGlyphPathEmitted() = 0;
+    };
+
+    
+
+
+
 
 
 
@@ -2496,7 +2512,8 @@ public:
               gfxFont::DrawMode aDrawMode,
               PRUint32 aStart, PRUint32 aLength,
               PropertyProvider *aProvider,
-              gfxFloat *aAdvanceWidth, gfxPattern *aStrokePattern);
+              gfxFloat *aAdvanceWidth, gfxPattern *aStrokePattern,
+              DrawCallbacks *aCallbacks = nullptr);
 
     
 
@@ -2918,7 +2935,8 @@ private:
                                          PropertyProvider *aProvider);
     void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx,
                              PRUint32 aStart, PRUint32 aEnd, gfxPoint *aPt,
-                             PropertyProvider *aProvider);
+                             PropertyProvider *aProvider,
+                             DrawCallbacks *aCallbacks);
     
     
     void ShrinkToLigatureBoundaries(PRUint32 *aStart, PRUint32 *aEnd);

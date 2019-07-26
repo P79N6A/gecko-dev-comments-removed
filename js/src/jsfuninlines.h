@@ -1,9 +1,9 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef jsfuninlines_h___
 #define jsfuninlines_h___
@@ -40,6 +40,28 @@ JSFunction::initEnvironment(JSObject *obj)
 {
     JS_ASSERT(isInterpreted());
     ((js::HeapPtrObject *)&u.i.env_)->init(obj);
+}
+
+inline void
+JSFunction::initNative(js::Native native, const JSJitInfo *data)
+{
+    JS_ASSERT(native);
+    u.n.native = native;
+    u.n.jitinfo = data;
+}
+
+inline const JSJitInfo *
+JSFunction::jitInfo() const
+{
+    JS_ASSERT(isNative());
+    return u.n.jitinfo;
+}
+
+inline void
+JSFunction::setJitInfo(const JSJitInfo *data)
+{
+    JS_ASSERT(isNative());
+    u.n.jitinfo = data;
 }
 
 inline void
@@ -104,14 +126,14 @@ IsNativeFunction(const js::Value &v, JSNative native)
     return IsFunctionObject(v, &fun) && fun->maybeNative() == native;
 }
 
-/*
- * When we have an object of a builtin class, we don't quite know what its
- * valueOf/toString methods are, since these methods may have been overwritten
- * or shadowed. However, we can still do better than the general case by
- * hard-coding the necessary properties for us to find the native we expect.
- *
- * TODO: a per-thread shape-based cache would be faster and simpler.
- */
+
+
+
+
+
+
+
+
 static JS_ALWAYS_INLINE bool
 ClassMethodIsNative(JSContext *cx, HandleObject obj, Class *clasp, HandleId methodid, JSNative native)
 {
@@ -135,7 +157,7 @@ SameTraceType(const Value &lhs, const Value &rhs)
             lhs.toObject().isFunction() == rhs.toObject().isFunction());
 }
 
-/* Valueified JS_IsConstructing. */
+
 static JS_ALWAYS_INLINE bool
 IsConstructing(const Value *vp)
 {
@@ -198,13 +220,13 @@ CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
 inline JSFunction *
 CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObject parent)
 {
-    /*
-     * For attempts to clone functions at a function definition opcode,
-     * don't perform the clone if the function has singleton type. This
-     * was called pessimistically, and we need to preserve the type's
-     * property that if it is singleton there is only a single object
-     * with its type in existence.
-     */
+    
+
+
+
+
+
+
     if (fun->hasSingletonType()) {
         Rooted<JSObject*> obj(cx, SkipScopeParent(parent));
         if (!JSObject::setParent(cx, fun, obj))
@@ -219,13 +241,13 @@ CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObjec
 inline JSFunction *
 CloneFunctionObject(JSContext *cx, HandleFunction fun)
 {
-    /*
-     * Variant which makes an exact clone of fun, preserving parent and proto.
-     * Calling the above version CloneFunctionObject(cx, fun, fun->getParent())
-     * is not equivalent: API clients, including XPConnect, can reparent
-     * objects so that fun->global() != fun->getProto()->global().
-     * See ReparentWrapperIfFound.
-     */
+    
+
+
+
+
+
+
     JS_ASSERT(fun->getParent() && fun->getProto());
 
     if (fun->hasSingletonType())
@@ -236,7 +258,7 @@ CloneFunctionObject(JSContext *cx, HandleFunction fun)
     return js_CloneFunctionObject(cx, fun, env, proto, JSFunction::ExtendedFinalizeKind);
 }
 
-} /* namespace js */
+} 
 
 inline void
 JSFunction::setScript(JSScript *script_)
@@ -252,4 +274,4 @@ JSFunction::initScript(JSScript *script_)
     mutableScript().init(script_);
 }
 
-#endif /* jsfuninlines_h___ */
+#endif 

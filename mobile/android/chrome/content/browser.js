@@ -1683,13 +1683,14 @@ var SelectionHandler = {
       selectionController.wordMove(!this._isRTL, true);
     } catch(e) {
       
-      Cu.reportError("Error selecting word: " + e);
+      this._cleanUp();
       return;
     }
 
     
     if (!selection.rangeCount || !selection.getRangeAt(0) || !selection.toString().trim().length) {
       selection.collapseToStart();
+      this._cleanUp();
       return;
     }
 
@@ -1805,7 +1806,7 @@ var SelectionHandler = {
   
   endSelection: function sh_endSelection(aX, aY) {
     if (!this._active)
-      return;
+      return "";
 
     this._active = false;
     this.hideHandles();
@@ -1838,13 +1839,17 @@ var SelectionHandler = {
       }
     }
 
+    this._cleanUp();
+
+    return selectedText;
+  },
+
+  _cleanUp: function sh_cleanUp() {
     this._view.removeEventListener("pagehide", this, false);
     this._view = null;
     this._target = null;
     this._isRTL = false;
     this.cache = null;
-
-    return selectedText;
   },
 
   _getViewOffset: function sh_getViewOffset() {
@@ -3127,6 +3132,19 @@ Tab.prototype = {
     
     let oldBrowserWidth = this.browserWidth;
     this.setBrowserSize(viewportW, viewportH);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!this.contentDocumentIsDisplayed) {
+      return;
+    }
+
     let minScale = 1.0;
     if (this.browser.contentDocument) {
       
@@ -3202,6 +3220,9 @@ Tab.prototype = {
         
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
+          BrowserApp.displayedDocumentChanged();
+          this.contentDocumentIsDisplayed = true;
+
           
           
           
@@ -3228,9 +3249,6 @@ Tab.prototype = {
             this.setResolution(fitZoom, false);
             this.sendViewportUpdate();
           }
-
-          BrowserApp.displayedDocumentChanged();
-          this.contentDocumentIsDisplayed = true;
         }
         break;
       case "nsPref:changed":
@@ -3375,7 +3393,7 @@ var BrowserEventHandler = {
 
           if (isClickable) {
             [data.x, data.y] = this._moveClickPoint(element, data.x, data.y);
-            element = ElementTouchHelper.anyElementFromPoint(element.ownerDocument.defaultView, data.x, data.y);
+            element = ElementTouchHelper.anyElementFromPoint(element.ownerDocument.defaultView.top, data.x, data.y);
             isClickable = ElementTouchHelper.isElementClickable(element);
           }
 
@@ -4462,7 +4480,7 @@ var ViewportHandler = {
         let document = target.ownerDocument;
         let browser = BrowserApp.getBrowserForDocument(document);
         let tab = BrowserApp.getTabForBrowser(browser);
-        if (tab && tab.contentDocumentIsDisplayed)
+        if (tab)
           this.updateMetadata(tab);
         break;
     }
@@ -4484,10 +4502,6 @@ var ViewportHandler = {
           tabs[i].updateViewportSize(oldScreenWidth);
         break;
     }
-  },
-
-  resetMetadata: function resetMetadata(tab) {
-    tab.updateViewportMetadata(null);
   },
 
   updateMetadata: function updateMetadata(tab) {

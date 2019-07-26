@@ -39,6 +39,10 @@
 
 #define JSFUN_EXPR_CLOSURE  0x1000  /* expression closure: function(x) x*x */
 #define JSFUN_EXTENDED      0x2000  /* structure is FunctionExtended */
+
+
+
+
 #define JSFUN_INTERPRETED   0x4000  /* use u.i if kind >= this value else u.native */
 
 namespace js { class FunctionExtended; }
@@ -49,7 +53,13 @@ struct JSFunction : public JSObject
 
     uint16_t        flags;        
     union U {
-        js::Native  native;       
+        class Native {
+            friend struct JSFunction;
+            js::Native          native;       
+            const JSJitInfo     *jitinfo;     
+
+
+        } n;
         struct Scripted {
             JSScript    *script_; 
 
@@ -120,16 +130,20 @@ struct JSFunction : public JSObject
 
     JSNative native() const {
         JS_ASSERT(isNative());
-        return u.native;
+        return u.n.native;
     }
 
     JSNative maybeNative() const {
         return isInterpreted() ? NULL : native();
     }
 
+    inline void initNative(js::Native native, const JSJitInfo *jitinfo);
+    inline const JSJitInfo *jitInfo() const;
+    inline void setJitInfo(const JSJitInfo *data);
+
     static unsigned offsetOfNativeOrScript() {
-        JS_STATIC_ASSERT(offsetof(U, native) == offsetof(U, i.script_));
-        JS_STATIC_ASSERT(offsetof(U, native) == offsetof(U, nativeOrScript));
+        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, i.script_));
+        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, nativeOrScript));
         return offsetof(JSFunction, u.nativeOrScript);
     }
 
@@ -173,6 +187,10 @@ struct JSFunction : public JSObject
     bool setTypeForScriptedFunction(JSContext *cx, bool singleton = false);
 
   private:
+    static void staticAsserts() {
+        MOZ_STATIC_ASSERT(sizeof(JSFunction) == sizeof(js::shadow::Function),
+                          "shadow interface must match actual interface");
+    }
     
 
 
