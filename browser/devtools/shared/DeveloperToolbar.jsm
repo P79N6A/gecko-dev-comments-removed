@@ -181,9 +181,13 @@ this.CommandUtils = CommandUtils;
 
 
 XPCOMUtils.defineLazyGetter(this, "isLinux", function () {
+  return OS == "Linux";
+});
+
+XPCOMUtils.defineLazyGetter(this, "OS", function () {
   let os = Components.classes["@mozilla.org/xre/app-info;1"]
            .getService(Components.interfaces.nsIXULRuntime).OS;
-  return os == "Linux";
+  return os;
 });
 
 
@@ -794,33 +798,6 @@ OutputPanel.prototype._onload = function OP_onload()
 
 
 
-
-
-Object.defineProperty(OutputPanel.prototype, 'scrollbarWidth', {
-  get: function() {
-    if (this.__scrollbarWidth) {
-      return this.__scrollbarWidth;
-    }
-
-    let hbox = this.document.createElementNS(XUL_NS, "hbox");
-    hbox.setAttribute("style", "height: 0%; overflow: hidden");
-
-    let scrollbar = this.document.createElementNS(XUL_NS, "scrollbar");
-    scrollbar.setAttribute("orient", "vertical");
-    hbox.appendChild(scrollbar);
-
-    this.document.documentElement.appendChild(hbox);
-    this.__scrollbarWidth = scrollbar.clientWidth;
-    this.document.documentElement.removeChild(hbox);
-
-    return this.__scrollbarWidth;
-  },
-  enumerable: true
-});
-
-
-
-
 OutputPanel.prototype._onpopuphiding = function OP_onpopuphiding(aEvent)
 {
   
@@ -863,13 +840,32 @@ OutputPanel.prototype._resize = function CLP_resize()
   
   
   let maxWidth = this._panel.ownerDocument.documentElement.clientWidth;
-  let width = Math.min(maxWidth, this.document.documentElement.scrollWidth);
 
   
-  width += this.scrollbarWidth;
+  
+  
+  
+  switch(OS) {
+    case "Linux":
+      maxWidth -= 5;
+      break;
+    case "Darwin":
+      maxWidth -= 25;
+      break;
+    case "WINNT":
+      maxWidth -= 5;
+      break;
+  }
+
+  this.document.body.style.width = "-moz-max-content";
+  let style = this._frame.contentWindow.getComputedStyle(this.document.body);
+  let frameWidth = parseInt(style.width, 10);
+  let width = Math.min(maxWidth, frameWidth);
+  this.document.body.style.width = width + "px";
 
   
   this._frame.style.minWidth = width + "px";
+  this._panel.style.maxWidth = maxWidth + "px";
 
   
   
