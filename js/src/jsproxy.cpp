@@ -2834,7 +2834,7 @@ proxy_TraceObject(JSTracer *trc, RawObject obj)
 
 
             Value key = ObjectValue(*referent);
-            WrapperMap::Ptr p = obj->compartment()->crossCompartmentWrappers.lookup(key);
+            WrapperMap::Ptr p = obj->compartment()->lookupWrapper(key);
             JS_ASSERT(*p->value.unsafeGet() == ObjectValue(*obj));
         }
     }

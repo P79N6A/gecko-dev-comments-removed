@@ -1571,7 +1571,6 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
     AutoMaybeTouchDeadCompartments agc(cx);
 
     JSCompartment *destination = target->compartment();
-    WrapperMap &map = destination->crossCompartmentWrappers;
     Value origv = ObjectValue(*origobj);
     JSObject *newIdentity;
 
@@ -1583,7 +1582,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         if (!origobj->swap(cx, target))
             MOZ_CRASH();
         newIdentity = origobj;
-    } else if (WrapperMap::Ptr p = map.lookup(origv)) {
+    } else if (WrapperMap::Ptr p = destination->lookupWrapper(origv)) {
         
         
         
@@ -1591,7 +1590,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
 
         
         
-        map.remove(p);
+        destination->removeWrapper(p);
         NukeCrossCompartmentWrapper(cx, newIdentity);
 
         if (!newIdentity->swap(cx, target))
@@ -1615,7 +1614,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         JS_ASSERT(Wrapper::wrappedObject(newIdentityWrapper) == newIdentity);
         if (!origobj->swap(cx, newIdentityWrapper))
             MOZ_CRASH();
-        origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity), origv);
+        origobj->compartment()->putWrapper(ObjectValue(*newIdentity), origv);
     }
 
     
@@ -1652,7 +1651,6 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 
     JSObject *newWrapper;
     JSCompartment *destination = targetobj->compartment();
-    WrapperMap &map = destination->crossCompartmentWrappers;
 
     
     
@@ -1660,14 +1658,14 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 
     
     
-    if (WrapperMap::Ptr p = map.lookup(origv)) {
+    if (WrapperMap::Ptr p = destination->lookupWrapper(origv)) {
         
         
         newWrapper = &p->value.toObject();
 
         
         
-        map.remove(p);
+        destination->removeWrapper(p);
         NukeCrossCompartmentWrapper(cx, newWrapper);
 
         if (!newWrapper->swap(cx, targetwrapper))
@@ -1707,8 +1705,8 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         JS_ASSERT(Wrapper::wrappedObject(wrapperGuts) == targetobj);
         if (!origwrapper->swap(cx, wrapperGuts))
             MOZ_CRASH();
-        origwrapper->compartment()->crossCompartmentWrappers.put(ObjectValue(*targetobj),
-                                                                 ObjectValue(*origwrapper));
+        origwrapper->compartment()->putWrapper(ObjectValue(*targetobj),
+                                               ObjectValue(*origwrapper));
     }
 
     return newWrapper;

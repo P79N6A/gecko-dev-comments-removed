@@ -1037,8 +1037,7 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
             continue;
 
         
-        WrapperMap &pmap = c->crossCompartmentWrappers;
-        for (WrapperMap::Enum e(pmap); !e.empty(); e.popFront()) {
+        for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
             
             
             const CrossCompartmentKey &k = e.front().key;
@@ -1075,17 +1074,18 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
     JS_ASSERT(origTarget);
     Value origv = ObjectValue(*origTarget);
     JSCompartment *wcompartment = wobj->compartment();
-    WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
 
     
     
     
-    JS_ASSERT_IF(origTarget != newTarget, !pmap.has(ObjectValue(*newTarget)));
+    JS_ASSERT_IF(origTarget != newTarget,
+                 !wcompartment->lookupWrapper(ObjectValue(*newTarget)));
 
     
     
-    JS_ASSERT(&pmap.lookup(origv)->value.unsafeGet()->toObject() == wobj);
-    pmap.remove(origv);
+    WrapperMap::Ptr p = wcompartment->lookupWrapper(origv);
+    JS_ASSERT(&p->value.unsafeGet()->toObject() == wobj);
+    wcompartment->removeWrapper(p);
 
     
     
@@ -1117,7 +1117,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
 
     
     
-    pmap.put(ObjectValue(*newTarget), ObjectValue(*wobj));
+    wcompartment->putWrapper(ObjectValue(*newTarget), ObjectValue(*wobj));
     return true;
 }
 
@@ -1134,8 +1134,7 @@ js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
         return false;
 
     for (CompartmentsIter c(cx->runtime); !c.done(); c.next()) {
-        WrapperMap &pmap = c->crossCompartmentWrappers;
-        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
+        if (WrapperMap::Ptr wp = c->lookupWrapper(origv)) {
             
             toTransplant.infallibleAppend(WrapperValue(wp));
         }
@@ -1165,8 +1164,7 @@ js::RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
             continue;
 
         
-        WrapperMap &pmap = c->crossCompartmentWrappers;
-        for (WrapperMap::Enum e(pmap); !e.empty(); e.popFront()) {
+        for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
             
             const CrossCompartmentKey &k = e.front().key;
             if (k.kind != CrossCompartmentKey::ObjectWrapper)
