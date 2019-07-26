@@ -18,6 +18,6 @@
     _(PowHalfD)                     \
     _(UInt32ToDouble)               \
     _(AsmJSLoadFuncPtr)             \
-    _(AsmJSDivOrMod)
+    _(UDivOrMod)
 
 #endif 

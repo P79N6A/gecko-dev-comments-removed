@@ -1545,6 +1545,26 @@ MustBeUInt32(MDefinition *def, MDefinition **pwrapped)
     return false;
 }
 
+bool
+MBinaryInstruction::tryUseUnsignedOperands()
+{
+    MDefinition *newlhs, *newrhs;
+    if (MustBeUInt32(getOperand(0), &newlhs) && MustBeUInt32(getOperand(1), &newrhs)) {
+        if (newlhs->type() != MIRType_Int32 || newrhs->type() != MIRType_Int32)
+            return false;
+        if (newlhs != getOperand(0)) {
+            getOperand(0)->setFoldedUnchecked();
+            replaceOperand(0, newlhs);
+        }
+        if (newrhs != getOperand(1)) {
+            getOperand(1)->setFoldedUnchecked();
+            replaceOperand(1, newrhs);
+        }
+        return true;
+    }
+    return false;
+}
+
 void
 MCompare::infer(JSContext *cx, BaselineInspector *inspector, jsbytecode *pc)
 {
@@ -1561,18 +1581,8 @@ MCompare::infer(JSContext *cx, BaselineInspector *inspector, jsbytecode *pc)
     bool relationalEq = !(looseEq || strictEq);
 
     
-    
-    
     MDefinition *newlhs, *newrhs;
-    if (MustBeUInt32(getOperand(0), &newlhs) && MustBeUInt32(getOperand(1), &newrhs)) {
-        if (newlhs != getOperand(0)) {
-            getOperand(0)->setFoldedUnchecked();
-            replaceOperand(0, newlhs);
-        }
-        if (newrhs != getOperand(1)) {
-            getOperand(1)->setFoldedUnchecked();
-            replaceOperand(1, newrhs);
-        }
+    if (tryUseUnsignedOperands()) {
         compareType_ = Compare_UInt32;
         return;
     }

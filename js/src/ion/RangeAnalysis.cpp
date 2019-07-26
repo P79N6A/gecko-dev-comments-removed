@@ -1587,6 +1587,13 @@ MDiv::truncate()
     setTruncated(true);
 
     
+    
+    if (specialization() == MIRType_Int32 && tryUseUnsignedOperands()) {
+        unsigned_ = true;
+        return true;
+    }
+
+    
     return false;
 }
 
@@ -1595,6 +1602,12 @@ MMod::truncate()
 {
     
     setTruncated(true);
+
+    
+    if (specialization() == MIRType_Int32 && tryUseUnsignedOperands()) {
+        unsigned_ = true;
+        return true;
+    }
 
     
     return false;
@@ -1759,7 +1772,14 @@ RangeAnalysis::truncate()
             
             
             const Range *r = iter->range();
-            if (!r || r->hasRoundingErrors())
+            bool hasRoundingErrors = !r || r->hasRoundingErrors();
+
+            
+            
+            if (iter->isDiv() && iter->toDiv()->specialization() == MIRType_Int32)
+                hasRoundingErrors = false;
+
+            if (hasRoundingErrors)
                 continue;
 
             
