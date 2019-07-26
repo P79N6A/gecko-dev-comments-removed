@@ -224,12 +224,15 @@ void CacheEntry::AsyncOpen(nsICacheEntryOpenCallback* aCallback, uint32_t aFlags
 
   mozilla::MutexAutoLock lock(mLock);
 
-  if (Load(truncate, priority) ||
-      PendingCallbacks() ||
-      !InvokeCallback(callback)) {
+  RememberCallback(callback);
+
+  
+  if (Load(truncate, priority)) {
     
-    RememberCallback(callback);
+    return;
   }
+
+  InvokeCallbacks();
 }
 
 bool CacheEntry::Load(bool aTruncate, bool aPriority)
@@ -248,44 +251,48 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
     return true;
   }
 
+  mState = LOADING;
+
   MOZ_ASSERT(!mFile);
 
   bool directLoad = aTruncate || !mUseDisk;
-  if (directLoad) {
-    
-    mState = EMPTY;
+  if (directLoad)
     mFileStatus = NS_OK;
-  }
-  else {
-    mState = LOADING;
+  else
     mLoadStart = TimeStamp::Now();
-  }
 
   mFile = new CacheFile();
 
   BackgroundOp(Ops::REGISTER);
 
-  mozilla::MutexAutoUnlock unlock(mLock);
+  {
+    mozilla::MutexAutoUnlock unlock(mLock);
 
-  nsresult rv;
+    nsresult rv;
 
-  nsAutoCString fileKey;
-  rv = HashingKeyWithStorage(fileKey);
+    nsAutoCString fileKey;
+    rv = HashingKeyWithStorage(fileKey);
 
-  LOG(("  performing load, file=%p", mFile.get()));
-  if (NS_SUCCEEDED(rv)) {
-    rv = mFile->Init(fileKey,
-                     aTruncate,
-                     !mUseDisk,
-                     aPriority,
-                     false ,
-                     directLoad ? nullptr : this);
+    LOG(("  performing load, file=%p", mFile.get()));
+    if (NS_SUCCEEDED(rv)) {
+      rv = mFile->Init(fileKey,
+                       aTruncate,
+                       !mUseDisk,
+                       aPriority,
+                       false ,
+                       directLoad ? nullptr : this);
+    }
+
+    if (NS_FAILED(rv)) {
+      mFileStatus = rv;
+      AsyncDoom(nullptr);
+      return false;
+    }
   }
 
-  if (NS_FAILED(rv)) {
-    mFileStatus = rv;
-    AsyncDoom(nullptr);
-    return false;
+  if (directLoad) {
+    
+    mState = EMPTY;
   }
 
   return mState == LOADING;
@@ -403,21 +410,11 @@ void CacheEntry::TransferCallbacks(CacheEntry & aFromEntry)
 
 void CacheEntry::RememberCallback(Callback const& aCallback)
 {
-  
-  if (!aCallback.mCallback)
-    return;
-
   LOG(("CacheEntry::RememberCallback [this=%p, cb=%p]", this, aCallback.mCallback.get()));
 
   mLock.AssertCurrentThreadOwns();
 
   mCallbacks.AppendElement(aCallback);
-}
-
-bool CacheEntry::PendingCallbacks()
-{
-  mLock.AssertCurrentThreadOwns();
-  return mCallbacks.Length();
 }
 
 void CacheEntry::InvokeCallbacksLock()
