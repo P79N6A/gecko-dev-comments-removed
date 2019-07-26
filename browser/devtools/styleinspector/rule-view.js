@@ -1125,32 +1125,27 @@ CssRuleView.prototype = {
 
 
   _buildTooltipContent: function(target) {
-    let property = target.textProperty, def = promise.defer(), hasTooltip = false;
-
-    
-    if (property && property.name === "transform") {
-      this.previewTooltip.setCssTransformContent(property.value, this.pageStyle,
-        this._viewedElement).then(def.resolve);
-      hasTooltip = true;
-    }
-
-    
     let isImageHref = target.classList.contains("theme-link") &&
       target.parentNode.classList.contains("ruleview-propertyvalue");
-    if (isImageHref) {
-      property = target.parentNode.textProperty;
-      this.previewTooltip.setCssBackgroundImageContent(property.value,
-        property.rule.domRule.href);
-      def.resolve();
-      hasTooltip = true;
+
+    
+    
+    if (!isImageHref) {
+      return false;
     }
 
-    if (hasTooltip) {
-      this.colorPicker.revert();
-      this.colorPicker.hide();
-    }
+    
+    let property = target.parentNode.textProperty;
+    let href = property.rule.domRule.href;
 
-    return def.promise;
+    
+    this.previewTooltip.setCssBackgroundImageContent(property.value, href);
+
+    
+    this.colorPicker.revert();
+    this.colorPicker.hide();
+
+    return true;
   },
 
   

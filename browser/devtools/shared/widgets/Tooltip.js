@@ -12,7 +12,6 @@ const {Spectrum} = require("devtools/shared/widgets/Spectrum");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {colorUtils} = require("devtools/css-color");
 const Heritage = require("sdk/core/heritage");
-const {CSSTransformPreviewer} = require("devtools/shared/widgets/CSSTransformPreviewer");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -101,6 +100,7 @@ let PanelFactory = {
     panel.setAttribute("hidden", true);
     panel.setAttribute("ignorekeys", true);
 
+    
     panel.setAttribute("consumeoutsideclicks", options.get("consumeOutsideClick"));
     panel.setAttribute("noautofocus", options.get("noAutoFocus"));
     panel.setAttribute("type", "arrow");
@@ -229,10 +229,6 @@ Tooltip.prototype = {
     return this.panel.state !== "closed" && this.panel.state !== "hiding";
   },
 
-  setSize: function(width, height) {
-    this.panel.sizeTo(width, height);
-  },
-
   
 
 
@@ -316,8 +312,7 @@ Tooltip.prototype = {
 
 
 
-
-  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay=this.defaultShowDelay) {
+  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay = this.defaultShowDelay) {
     if (this._basedNode) {
       this.stopTogglingOnHover();
     }
@@ -362,12 +357,7 @@ Tooltip.prototype = {
   },
 
   _showOnHover: function(target) {
-    let res = this._targetNodeCb(target, this);
-    if (res && res.then) {
-      res.then(() => {
-        this.show(target);
-      });
-    } else if (res) {
+    if (this._targetNodeCb(target, this)) {
       this.show(target);
     }
   },
@@ -537,8 +527,6 @@ Tooltip.prototype = {
       let w = options.naturalWidth || imgObj.naturalWidth;
       let h = options.naturalHeight || imgObj.naturalHeight;
       label.textContent = w + " x " + h;
-
-      this.setSize(vbox.width, vbox.height);
     }
   },
 
@@ -594,54 +582,6 @@ Tooltip.prototype = {
 
     
     this.content = iframe;
-
-    return def.promise;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setCssTransformContent: function(transform, pageStyle, node) {
-    let def = promise.defer();
-
-    if (transform) {
-      
-      
-      pageStyle.getComputed(node, {
-        filter: "user",
-        markMatched: false,
-        onlyMatched: false
-      }).then(styles => {
-        let origin = styles["transform-origin"].value;
-        let width = parseInt(styles["width"].value);
-        let height = parseInt(styles["height"].value);
-
-        let root = this.doc.createElementNS(XHTML_NS, "div");
-        let previewer = new CSSTransformPreviewer(root);
-        this.content = root;
-        if (!previewer.preview(transform, origin, width, height)) {
-          
-          def.reject();
-        } else {
-          
-          this.setSize(previewer.canvas.width, previewer.canvas.height);
-          def.resolve();
-        }
-      });
-    } else {
-      def.reject();
-    }
 
     return def.promise;
   }
