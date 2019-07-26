@@ -712,7 +712,8 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     
     
-    if (responseHead->Status() == 408) {
+    uint16_t responseStatus = responseHead->Status();
+    if (responseStatus == 408) {
         Close(NS_ERROR_NET_RESET);
         *reset = true;
         return NS_OK;
@@ -789,7 +790,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     
     if (mClassification == nsAHttpTransaction::CLASS_REVALIDATION &&
-        responseHead->Status() != 304) {
+        responseStatus != 304) {
         mClassification = nsAHttpTransaction::CLASS_GENERAL;
     }
     
@@ -842,7 +843,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         NS_ABORT_IF_FALSE(!mUsingSpdyVersion,
                           "SPDY NPN Complete while using proxy connect stream");
         mProxyConnectStream = 0;
-        if (responseHead->Status() == 200) {
+        if (responseStatus == 200) {
             LOG(("proxy CONNECT succeeded! ssl=%s\n",
                  mConnInfo->UsingSSL() ? "true" :"false"));
             *reset = true;
@@ -866,12 +867,14 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     }
     
     const char *upgradeReq = requestHead->PeekHeader(nsHttp::Upgrade);
-    if (upgradeReq) {
+    
+    
+    if (upgradeReq && responseStatus != 401 && responseStatus != 407) {
         LOG(("HTTP Upgrade in play - disable keepalive\n"));
         DontReuse();
     }
     
-    if (responseHead->Status() == 101) {
+    if (responseStatus == 101) {
         const char *upgradeResp = responseHead->PeekHeader(nsHttp::Upgrade);
         if (!upgradeReq || !upgradeResp ||
             !nsHttp::FindToken(upgradeResp, upgradeReq,
