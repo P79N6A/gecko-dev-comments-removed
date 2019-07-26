@@ -208,7 +208,12 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
         if (sm) {
           nsIntRect frameRect = GetScreenRect();
-          sm->ScreenForRect(frameRect.x, frameRect.y, 1, 1, getter_AddRefs(screen));
+          
+          double scale;
+          window->GetUnscaledDevicePixelsPerCSSPixel(&scale);
+          sm->ScreenForRect(NSToIntRound(frameRect.x / scale),
+                            NSToIntRound(frameRect.y / scale), 1, 1,
+                            getter_AddRefs(screen));
           if (screen) {
             nsIntRect screenRect;
             screen->GetRect(&screenRect.x, &screenRect.y,

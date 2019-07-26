@@ -22,6 +22,14 @@ public:
   
 
   
+  
+  
+  NS_IMETHOD GetRectDisplayPix(int32_t *outLeft,  int32_t *outTop,
+                               int32_t *outWidth, int32_t *outHeight);
+  NS_IMETHOD GetAvailRectDisplayPix(int32_t *outLeft,  int32_t *outTop,
+                                    int32_t *outWidth, int32_t *outHeight);
+
+  
 
 
 
