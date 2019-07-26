@@ -286,6 +286,12 @@ function resetValues() {
 
 
 
+function dumpLog(logline) {
+  dump(Date.now() + " Marionette: " + logline);
+}
+
+
+
 
 
 
@@ -594,8 +600,8 @@ function executeWithCallback(msg, useFinish) {
 
 
 function emitTouchEvent(type, touch) {
-  let loggingInfo = "Marionette: emitting Touch event of type " + type + " to element with id: " + touch.target.id + " and tag name: " + touch.target.tagName + " at coordinates (" + touch.clientX + ", " + touch.clientY + ") relative to the viewport";
-  dump(loggingInfo);
+  let loggingInfo = "emitting Touch event of type " + type + " to element with id: " + touch.target.id + " and tag name: " + touch.target.tagName + " at coordinates (" + touch.clientX + ", " + touch.clientY + ") relative to the viewport";
+  dumpLog(loggingInfo);
   
 
 
@@ -615,8 +621,8 @@ function emitTouchEvent(type, touch) {
 
 
 function emitMouseEvent(doc, type, elClientX, elClientY, detail, button) {
-  let loggingInfo = "Marionette: emitting Mouse event of type " + type + " at coordinates (" + elClientX + ", " + elClientY + ") relative to the viewport";
-  dump(loggingInfo);
+  let loggingInfo = "emitting Mouse event of type " + type + " at coordinates (" + elClientX + ", " + elClientY + ") relative to the viewport";
+  dumpLog(loggingInfo);
   
 
 
