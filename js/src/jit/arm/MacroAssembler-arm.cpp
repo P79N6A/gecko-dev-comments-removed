@@ -1528,10 +1528,19 @@ MacroAssemblerARM::ma_vimm_f32(float value, FloatRegister dest, Condition cc)
             return;
         }
 
-        VFPImm enc(DoubleHighWord(double(value)));
-        if (enc.isValid()) {
-            as_vimm(vd, enc, cc);
-            return;
+        
+        
+        
+        
+        
+        
+        double doubleValue = value;
+        if (DoubleLowWord(value) == 0) {
+            VFPImm enc(DoubleHighWord(doubleValue));
+            if (enc.isValid()) {
+                as_vimm(vd, enc, cc);
+                return;
+            }
         }
     }
     
