@@ -247,15 +247,24 @@ class Pickle {
   bool Resize(uint32_t new_capacity);
 
   
-  static uint32_t AlignInt(uint32_t i, int alignment) {
-    return i + (alignment - (i % alignment)) % alignment;
+  
+  template<uint32_t alignment> struct ConstantAligner {
+    static uint32_t align(int bytes) {
+      MOZ_STATIC_ASSERT((alignment & (alignment - 1)) == 0,
+			"alignment must be a power of two");
+      return (bytes + (alignment - 1)) & ~static_cast<uint32_t>(alignment - 1);
+    }
+  };
+
+  static uint32_t AlignInt(int bytes) {
+    return ConstantAligner<sizeof(uint32_t)>::align(bytes);
   }
 
   
   
   
   static void UpdateIter(void** iter, int bytes) {
-    *iter = static_cast<char*>(*iter) + AlignInt(bytes, sizeof(uint32_t));
+    *iter = static_cast<char*>(*iter) + AlignInt(bytes);
   }
 
   
