@@ -83,6 +83,14 @@ static mozilla::RefPtr<TransportFlow> vcmCreateTransportFlow(sipcc::PeerConnecti
     }         \
   } while(0)
 
+#define ENSURE_PC_NO_RET(pc, peerconnection) \
+  do { \
+    if (!pc.impl()) {                                                 \
+      CSFLogDebug(logTag, "%s: couldn't acquire peerconnection %s", __FUNCTION__, peerconnection); \
+      return; \
+    }         \
+  } while(0)
+
 VcmSIPCCBinding::VcmSIPCCBinding ()
   : streamObserver(NULL)
 {
@@ -2703,13 +2711,44 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
 
 
 
+
+
+static void vcmOnSdpParseError_m(nsAutoPtr<std::string> peerconnection, 
+                                 nsAutoPtr<std::string> message) {
+
+  sipcc::PeerConnectionWrapper pc(peerconnection->c_str());
+  ENSURE_PC_NO_RET(pc, peerconnection->c_str());
+
+  pc.impl()->OnSdpParseError(message->c_str());
+}
+
+
+
+
+
+
+
+
+
 int vcmOnSdpParseError(const char *peerconnection, const char *message) {
+  MOZ_ASSERT(peerconnection);
+  MOZ_ASSERT(message);
+  nsAutoPtr<std::string> peerconnectionDuped(new std::string(peerconnection));
+  nsAutoPtr<std::string> messageDuped(new std::string(message));
 
-  sipcc::PeerConnectionWrapper pc(peerconnection);
-  ENSURE_PC(pc, VCM_ERROR);
+  
+  nsresult rv = VcmSIPCCBinding::getMainThread()->Dispatch(
+      WrapRunnableNM(&vcmOnSdpParseError_m,
+                   peerconnectionDuped,
+                   messageDuped),
+      NS_DISPATCH_NORMAL);
 
-  pc.impl()->OnSdpParseError(message);
+  if (!NS_SUCCEEDED(rv)) {
+    CSFLogError( logTag, "%s(): Could not dispatch to main thread", __FUNCTION__);
+    return VCM_ERROR;
+  }
 
   return 0;
 }
+
 
