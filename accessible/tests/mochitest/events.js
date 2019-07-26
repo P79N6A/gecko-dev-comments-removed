@@ -1440,6 +1440,29 @@ function moveToLineEnd(aID, aCaretOffset)
 
 
 
+function moveToPrevLineEnd(aID, aCaretOffset)
+{
+  this.__proto__ = new synthAction(aID, new caretMoveChecker(aCaretOffset, aID));
+
+  this.invoke = function moveToPrevLineEnd_invoke()
+  {
+    synthesizeKey("VK_UP", { });
+
+    if (MAC)
+      synthesizeKey("VK_RIGHT", { metaKey: true });
+    else
+      synthesizeKey("VK_END", { });
+  }
+
+  this.getID = function moveToPrevLineEnd_getID()
+  {
+    return "move to previous line end in " + prettyName(aID);
+  }
+}
+
+
+
+
 function moveToLineStart(aID, aCaretOffset)
 {
   if (MAC) {
