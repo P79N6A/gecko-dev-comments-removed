@@ -3043,6 +3043,52 @@ nsSVGTextFrame2::GetType() const
   return nsGkAtoms::svgTextFrame2;
 }
 
+void
+nsSVGTextFrame2::DidSetStyleContext(nsStyleContext* aOldStyleContext)
+{
+  if (mState & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ReflowSVGNonDisplayText();
+  }
+}
+
+void
+nsSVGTextFrame2::ReflowSVGNonDisplayText()
+{
+  MOZ_ASSERT(mState & NS_STATE_SVG_NONDISPLAY_CHILD,
+             "only call ReflowSVGNonDisplayText if the frame is "
+             "NS_STATE_SVG_NONDISPLAY_CHILD");
+
+  
+  
+  AddStateBits(NS_FRAME_IS_DIRTY);
+
+  
+  
+  
+  
+  nsSVGEffects::InvalidateRenderingObservers(this);
+}
+
 NS_IMPL_ISUPPORTS1(nsSVGTextFrame2::MutationObserver, nsIMutationObserver)
 
 void

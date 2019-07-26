@@ -238,11 +238,14 @@ public:
   }
 #endif
 
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+
   
 
 
   virtual void FindCloserFrameForSelection(nsPoint aPoint,
                                           FrameWithDistance* aCurrentBestFrame) MOZ_OVERRIDE;
+
 
 
   
@@ -289,6 +292,15 @@ public:
 
 
   enum { ePositioningDirtyDueToMutation = 1 };
+
+  
+
+
+
+
+
+
+  void ReflowSVGNonDisplayText();
 
   
 

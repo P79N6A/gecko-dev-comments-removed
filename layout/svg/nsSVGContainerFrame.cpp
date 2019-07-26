@@ -12,6 +12,7 @@
 #include "nsSVGElement.h"
 #include "nsSVGUtils.h"
 #include "nsSVGAnimatedTransformList.h"
+#include "nsSVGTextFrame2.h"
 
 using namespace mozilla;
 
@@ -242,6 +243,50 @@ nsSVGDisplayContainerFrame::GetCoveredRegion()
   return nsSVGUtils::GetCoveredRegion(mFrames);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+ReflowSVGNonDisplayText(nsSVGContainerFrame* aContainer)
+{
+  NS_ASSERTION(aContainer->GetStateBits() & NS_FRAME_IS_DIRTY,
+               "expected aContainer to be NS_FRAME_IS_DIRTY");
+  NS_ASSERTION(aContainer->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD,
+               "it is wasteful to call ReflowSVGNonDisplayText on a container "
+               "frame that is not NS_STATE_SVG_NONDISPLAY_CHILD");
+  for (nsIFrame* kid = aContainer->GetFirstPrincipalChild(); kid;
+       kid = kid->GetNextSibling()) {
+    if (kid->GetType() == nsGkAtoms::svgTextFrame2) {
+      static_cast<nsSVGTextFrame2*>(kid)->ReflowSVGNonDisplayText();
+    } else {
+      nsSVGContainerFrame* kidContainer = do_QueryFrame(kid);
+      if (kidContainer && kidContainer->GetContent()->IsSVG()) {
+        ReflowSVGNonDisplayText(kidContainer);
+      }
+    }
+  }
+}
+
 void
 nsSVGDisplayContainerFrame::ReflowSVG()
 {
@@ -287,6 +332,18 @@ nsSVGDisplayContainerFrame::ReflowSVG()
       
       
       ConsiderChildOverflow(overflowRects, kid);
+    } else {
+      
+      
+      
+      NS_ASSERTION(kid->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD,
+                   "expected kid to be a NS_STATE_SVG_NONDISPLAY_CHILD frame");
+      if (kid->GetStateBits() & NS_FRAME_IS_DIRTY) {
+        nsSVGContainerFrame* container = do_QueryFrame(kid);
+        if (container && container->GetContent()->IsSVG()) {
+          ReflowSVGNonDisplayText(container);
+        }
+      }
     }
   }
 
