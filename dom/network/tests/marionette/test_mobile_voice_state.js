@@ -84,11 +84,6 @@ function testUnregistered() {
 }
 
 function testSearching() {
-  
-  
-  testDenied();
-  return;
-
   setEmulatorVoiceState("searching");
 
   connection.addEventListener("voicechange", function onvoicechange() {

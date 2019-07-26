@@ -84,13 +84,8 @@ function testOff() {
 function testSearching() {
   log("Test 4: Searching.");
   
-
   
-  
-
-  
-  log("* When Bug 819533 is fixed, change this test to expect 'searching' *");
-  changeDataStateAndVerify("searching", "registered", testDenied);
+  changeDataStateAndVerify("searching", "searching", testDenied);
 }
 
 function testDenied() {
