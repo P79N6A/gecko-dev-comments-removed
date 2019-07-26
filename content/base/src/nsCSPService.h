@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsCSPService_h___
+#define nsCSPService_h___
+
 #include "nsXPCOM.h"
 #include "nsIContentPolicy.h"
 #include "nsIChannel.h"
@@ -23,7 +26,9 @@ public:
   CSPService();
   virtual ~CSPService();
   static bool sCSPEnabled;
+  static bool sNewBackendEnabled;
 private:
   
   nsDataHashtable<nsCStringHashKey, uint16_t> mAppStatusCache;
 };
+#endif 

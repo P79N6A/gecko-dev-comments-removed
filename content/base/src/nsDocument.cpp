@@ -2803,7 +2803,25 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   }
 
   
-  csp = do_CreateInstance("@mozilla.org/contentsecuritypolicy;1", &rv);
+  
+  if (CSPService::sNewBackendEnabled) {
+    if (oldHeaderIsPresent && !newHeaderIsPresent) {
+      
+      
+      
+      
+#ifdef PR_LOGGING
+      PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("%s %s %s",
+           "This document has an old, x-content-security-policy",
+           "header and the new CSP implementation doesn't support the non-standard",
+           "CSP.  Skipping CSP initialization."));
+#endif
+      return NS_OK;
+    }
+    csp = do_CreateInstance("@mozilla.org/cspcontext;1", &rv);
+  } else {
+    csp = do_CreateInstance("@mozilla.org/contentsecuritypolicy;1", &rv);
+  }
 
   if (NS_FAILED(rv)) {
 #ifdef PR_LOGGING
