@@ -2371,7 +2371,8 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
 }
 
 static bool
-ArgumentsUseCanBeLazy(JSContext *cx, JSScript *script, MInstruction *ins, size_t index)
+ArgumentsUseCanBeLazy(JSContext *cx, JSScript *script, MInstruction *ins, size_t index,
+                      bool *argumentsContentsObserved)
 {
     
     if (ins->isCall()) {
@@ -2379,13 +2380,16 @@ ArgumentsUseCanBeLazy(JSContext *cx, JSScript *script, MInstruction *ins, size_t
             ins->toCall()->numActualArgs() == 2 &&
             index == MCall::IndexOfArgument(1))
         {
+            *argumentsContentsObserved = true;
             return true;
         }
     }
 
     
-    if (ins->isCallGetElement() && index == 0)
+    if (ins->isCallGetElement() && index == 0) {
+        *argumentsContentsObserved = true;
         return true;
+    }
 
     
     if (ins->isCallGetProperty() && index == 0 && ins->toCallGetProperty()->name() == cx->names().length)
@@ -2407,6 +2411,26 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
     
     
     script->setNeedsArgsObj(true);
+
+    
+    
+    
+    
+    if (cx->compartment()->debugMode() || script->isGenerator())
+        return true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (script->bindingsAccessedDynamically()) {
+        script->setNeedsArgsObj(false);
+        return true;
+    }
 
     if (!jit::IsIonEnabled(cx) || !script->compileAndGo())
         return true;
@@ -2470,6 +2494,8 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
 
     MDefinition *argumentsValue = graph.begin()->getSlot(info.argsObjSlot());
 
+    bool argumentsContentsObserved = false;
+
     for (MUseDefIterator uses(argumentsValue); uses; uses++) {
         MDefinition *use = uses.def();
 
@@ -2477,9 +2503,19 @@ jit::AnalyzeArgumentsUsage(JSContext *cx, JSScript *scriptArg)
         if (!use->isInstruction())
             return true;
 
-        if (!ArgumentsUseCanBeLazy(cx, script, use->toInstruction(), uses.index()))
+        if (!ArgumentsUseCanBeLazy(cx, script, use->toInstruction(), uses.index(),
+                                   &argumentsContentsObserved))
+        {
             return true;
+        }
     }
+
+    
+    
+    
+    
+    if (script->funHasAnyAliasedFormal() && argumentsContentsObserved)
+        return true;
 
     script->setNeedsArgsObj(false);
     return true;
