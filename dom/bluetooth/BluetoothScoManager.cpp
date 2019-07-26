@@ -171,7 +171,7 @@ BluetoothScoManager::Get()
 
 
 void
-BluetoothScoManager::ReceiveSocketData(mozilla::ipc::UnixSocketRawData* aMessage)
+BluetoothScoManager::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
 {
   
   MOZ_NOT_REACHED("This should never be called!");

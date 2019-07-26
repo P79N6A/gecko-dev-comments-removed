@@ -130,7 +130,7 @@ public:
 
 
 
-  virtual void ReceiveSocketData(UnixSocketRawData* aMessage) = 0;
+  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
 
   
 
