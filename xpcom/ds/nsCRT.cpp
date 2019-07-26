@@ -141,7 +141,7 @@ const char* nsCRT::memmem(const char* haystack, uint32_t haystackLen,
   
   
   
-  for (int32_t i = 0; i < haystackLen - needleLen; i++) {
+  for (uint32_t i = 0; i < haystackLen - needleLen; i++) {
     if (!memcmp(haystack + i, needle, needleLen))
       return haystack + i;
   }

@@ -236,7 +236,7 @@ CRITICAL_SECTION gDbgHelpCS;
 
 
 
-void PrintError(char *prefix)
+void PrintError(const char *prefix)
 {
     LPVOID lpMsgBuf;
     DWORD lastErr = GetLastError();

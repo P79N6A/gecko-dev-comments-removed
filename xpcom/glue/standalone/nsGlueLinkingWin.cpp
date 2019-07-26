@@ -75,23 +75,6 @@ ReadDependentCB(const char *aDependentLib, bool do_preload)
 }
 
 
-static char*
-ns_strrpbrk(char *string, const char *strCharSet)
-{
-    char *found = NULL;
-    for (; *string; ++string) {
-        for (const char *search = strCharSet; *search; ++search) {
-            if (*search == *string) {
-                found = string;
-                
-                
-            }
-        }
-    }
-
-    return found;
-}
-
 static wchar_t*
 ns_wcspbrk(wchar_t *string, const wchar_t *strCharSet)
 {

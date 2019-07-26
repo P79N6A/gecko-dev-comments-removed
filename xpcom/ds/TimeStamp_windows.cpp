@@ -286,7 +286,7 @@ private:
 
 
 
-class StandbyObserver : public nsIObserver
+class StandbyObserver MOZ_FINAL : public nsIObserver
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER

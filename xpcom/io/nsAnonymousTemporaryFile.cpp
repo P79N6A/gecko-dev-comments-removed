@@ -127,7 +127,7 @@ NS_OpenAnonymousTemporaryFile(PRFileDesc** aOutFileDesc)
 
 
 
-class nsAnonTempFileRemover : public nsIObserver {
+class nsAnonTempFileRemover MOZ_FINAL : public nsIObserver {
 public:
   NS_DECL_ISUPPORTS
 

@@ -4,6 +4,7 @@
 
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
 
 #include "nsISupports.h"
 #include "nsExceptionService.h"
@@ -136,7 +137,7 @@ nsExceptionService::nsExceptionService()
 #endif
   
   if (tlsIndex == BAD_TLS_INDEX) {
-    PRStatus status;
+    DebugOnly<PRStatus> status;
     status = PR_NewThreadPrivateIndex( &tlsIndex, ThreadDestruct );
     NS_ASSERTION(status==0, "ScriptErrorService could not allocate TLS storage.");
   }
