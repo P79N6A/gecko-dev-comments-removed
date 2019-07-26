@@ -25,7 +25,7 @@ public class AboutHomeComponent extends BaseComponent {
     private static final String LOGTAG = AboutHomeComponent.class.getSimpleName();
 
     
-    public enum PageType {
+    public enum PanelType {
         HISTORY,
         TOP_SITES,
         BOOKMARKS,
@@ -62,7 +62,7 @@ public class AboutHomeComponent extends BaseComponent {
         return (ViewPager) mSolo.getView(R.id.home_pager);
     }
 
-    public AboutHomeComponent assertCurrentPage(final PageType expectedPage) {
+    public AboutHomeComponent assertCurrentPage(final PanelType expectedPage) {
         assertVisible();
 
         final int expectedPageIndex = getPageIndexForDevice(expectedPage.ordinal());
@@ -135,7 +135,7 @@ public class AboutHomeComponent extends BaseComponent {
 
 
     private int getPageIndexForDevice(final int pageIndex) {
-        final String pageName = PageType.values()[pageIndex].name();
+        final String pageName = PanelType.values()[pageIndex].name();
         final Class devicePageEnum =
                 DeviceHelper.isTablet() ? TabletPage.class : PhonePage.class;
         return Enum.valueOf(devicePageEnum, pageName).ordinal();

@@ -36,9 +36,9 @@ import android.widget.TextView;
 
 
 
-public class LastTabsPage extends HomeFragment {
+public class LastTabsPanel extends HomeFragment {
     
-    private static final String LOGTAG = "GeckoLastTabsPage";
+    private static final String LOGTAG = "GeckoLastTabsPanel";
 
     
     private static final int LOADER_ID_LAST_TABS = 0;
@@ -64,11 +64,11 @@ public class LastTabsPage extends HomeFragment {
     
     private OnNewTabsListener mNewTabsListener;
 
-    public static LastTabsPage newInstance() {
-        return new LastTabsPage();
+    public static LastTabsPanel newInstance() {
+        return new LastTabsPanel();
     }
 
-    public LastTabsPage() {
+    public LastTabsPanel() {
         mNewTabsListener = null;
     }
 
@@ -93,7 +93,7 @@ public class LastTabsPage extends HomeFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.home_last_tabs_page, container, false);
+        return inflater.inflate(R.layout.home_last_tabs_panel, container, false);
     }
 
     @Override

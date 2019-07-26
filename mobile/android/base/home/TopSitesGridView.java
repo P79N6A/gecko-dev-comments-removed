@@ -106,7 +106,7 @@ public class TopSitesGridView extends GridView {
                 TopSitesGridItemView row = (TopSitesGridItemView) view;
 
                 
-                String url = TopSitesPage.decodeUserEnteredUrl(row.getUrl());
+                String url = TopSitesPanel.decodeUserEnteredUrl(row.getUrl());
 
                 
                 

@@ -8,9 +8,9 @@ package org.mozilla.gecko.home;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
-import org.mozilla.gecko.home.HomeAdapter.OnAddPageListener;
-import org.mozilla.gecko.home.HomeConfig.PageEntry;
-import org.mozilla.gecko.home.HomeConfig.PageType;
+import org.mozilla.gecko.home.HomeAdapter.OnAddPanelListener;
+import org.mozilla.gecko.home.HomeConfig.PanelConfig;
+import org.mozilla.gecko.home.HomeConfig.PanelType;
 import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
@@ -40,12 +40,12 @@ public class HomePager extends ViewPager {
     private Decor mDecor;
     private View mTabStrip;
 
-    private final OnAddPageListener mAddPageListener;
+    private final OnAddPanelListener mAddPanelListener;
 
     private final HomeConfig mConfig;
     private ConfigLoaderCallbacks mConfigLoaderCallbacks;
 
-    private String mInitialPageId;
+    private String mInitialPanelId;
 
     
     private boolean mRestartLoader;
@@ -88,7 +88,7 @@ public class HomePager extends ViewPager {
     }
 
     static final String CAN_LOAD_ARG = "canLoad";
-    static final String PAGE_ENTRY_ARG = "pageEntry";
+    static final String PANEL_CONFIG_ARG = "panelConfig";
 
     public HomePager(Context context) {
         this(context, null);
@@ -101,9 +101,9 @@ public class HomePager extends ViewPager {
         mConfig = HomeConfig.getDefault(mContext);
         mConfigLoaderCallbacks = new ConfigLoaderCallbacks();
 
-        mAddPageListener = new OnAddPageListener() {
+        mAddPanelListener = new OnAddPanelListener() {
             @Override
-            public void onAddPage(String title) {
+            public void onAddPanel(String title) {
                 if (mDecor != null) {
                     mDecor.onAddPagerView(title);
                 }
@@ -176,14 +176,14 @@ public class HomePager extends ViewPager {
         
         
         
-        final String currentPageId;
-        if (mInitialPageId != null) {
-            currentPageId = mInitialPageId;
+        final String currentPanelId;
+        if (mInitialPanelId != null) {
+            currentPanelId = mInitialPanelId;
         } else {
-            currentPageId = adapter.getPageIdAtPosition(getCurrentItem());
+            currentPanelId = adapter.getPanelIdAtPosition(getCurrentItem());
         }
 
-        show(lm, fm, currentPageId, null);
+        show(lm, fm, currentPanelId, null);
     }
 
     
@@ -191,15 +191,15 @@ public class HomePager extends ViewPager {
 
 
 
-    public void show(LoaderManager lm, FragmentManager fm, String pageId, PropertyAnimator animator) {
+    public void show(LoaderManager lm, FragmentManager fm, String panelId, PropertyAnimator animator) {
         mLoaded = true;
-        mInitialPageId = pageId;
+        mInitialPanelId = panelId;
 
         
         final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
 
         final HomeAdapter adapter = new HomeAdapter(mContext, fm);
-        adapter.setOnAddPageListener(mAddPageListener);
+        adapter.setOnAddPanelListener(mAddPanelListener);
         adapter.setCanLoadHint(!shouldAnimate);
         setAdapter(adapter);
 
@@ -279,7 +279,7 @@ public class HomePager extends ViewPager {
         return super.onInterceptTouchEvent(event);
     }
 
-    private void updateUiFromPageEntries(List<PageEntry> pageEntries) {
+    private void updateUiFromPanelConfigs(List<PanelConfig> panelConfigs) {
         
         
         if (!mLoaded) {
@@ -299,21 +299,21 @@ public class HomePager extends ViewPager {
         adapter.setCanLoadHint(false);
 
         
-        adapter.update(pageEntries);
+        adapter.update(panelConfigs);
 
-        final int count = (pageEntries != null ? pageEntries.size() : 0);
+        final int count = (panelConfigs != null ? panelConfigs.size() : 0);
         mTabStrip.setVisibility(count > 0 ? View.VISIBLE : View.INVISIBLE);
 
         
         
-        if (mInitialPageId != null) {
+        if (mInitialPanelId != null) {
             
-            setCurrentItem(adapter.getItemPosition(mInitialPageId), false);
-            mInitialPageId = null;
+            setCurrentItem(adapter.getItemPosition(mInitialPanelId), false);
+            mInitialPanelId = null;
         } else {
             for (int i = 0; i < count; i++) {
-                final PageEntry pageEntry = pageEntries.get(i);
-                if (pageEntry.isDefault()) {
+                final PanelConfig panelConfig = panelConfigs.get(i);
+                if (panelConfig.isDefault()) {
                     setCurrentItem(i, false);
                     break;
                 }
@@ -325,20 +325,20 @@ public class HomePager extends ViewPager {
         adapter.setCanLoadHint(originalCanLoadHint);
     }
 
-    private class ConfigLoaderCallbacks implements LoaderCallbacks<List<PageEntry>> {
+    private class ConfigLoaderCallbacks implements LoaderCallbacks<List<PanelConfig>> {
         @Override
-        public Loader<List<PageEntry>> onCreateLoader(int id, Bundle args) {
+        public Loader<List<PanelConfig>> onCreateLoader(int id, Bundle args) {
             return new HomeConfigLoader(mContext, mConfig);
         }
 
         @Override
-        public void onLoadFinished(Loader<List<PageEntry>> loader, List<PageEntry> pageEntries) {
-            updateUiFromPageEntries(pageEntries);
+        public void onLoadFinished(Loader<List<PanelConfig>> loader, List<PanelConfig> panelConfigs) {
+            updateUiFromPanelConfigs(panelConfigs);
         }
 
         @Override
-        public void onLoaderReset(Loader<List<PageEntry>> loader) {
-            updateUiFromPageEntries(null);
+        public void onLoaderReset(Loader<List<PanelConfig>> loader) {
+            updateUiFromPanelConfigs(null);
         }
     }
 }

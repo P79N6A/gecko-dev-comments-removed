@@ -35,9 +35,9 @@ import java.util.EnumSet;
 
 
 
-public class MostRecentPage extends HomeFragment {
+public class MostRecentPanel extends HomeFragment {
     
-    private static final String LOGTAG = "GeckoMostRecentPage";
+    private static final String LOGTAG = "GeckoMostRecentPanel";
 
     
     private static final int LOADER_ID_HISTORY = 0;
@@ -57,11 +57,11 @@ public class MostRecentPage extends HomeFragment {
     
     private OnUrlOpenListener mUrlOpenListener;
 
-    public static MostRecentPage newInstance() {
-        return new MostRecentPage();
+    public static MostRecentPanel newInstance() {
+        return new MostRecentPanel();
     }
 
-    public MostRecentPage() {
+    public MostRecentPanel() {
         mUrlOpenListener = null;
     }
 
@@ -85,7 +85,7 @@ public class MostRecentPage extends HomeFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.home_most_recent_page, container, false);
+        return inflater.inflate(R.layout.home_most_recent_panel, container, false);
     }
 
     @Override

@@ -111,7 +111,7 @@ class PinSiteDialog extends DialogFragment {
                 
                 
                 final String text = mSearch.getText().toString();
-                final String url = TopSitesPage.encodeUserEnteredUrl(text);
+                final String url = TopSitesPanel.encodeUserEnteredUrl(text);
                 mOnSiteSelectedListener.onSiteSelected(url, text);
 
                 dismiss();
