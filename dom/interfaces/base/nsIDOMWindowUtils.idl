@@ -40,7 +40,7 @@ interface nsIDOMTouch;
 interface nsIDOMClientRect;
 interface nsIURI;
 
-[scriptable, uuid(f5b9883b-2ab9-426c-8fc1-7296cb6bc1d2)]
+[scriptable, uuid(12167eee-ff9c-4c8e-a89d-b097b1825089)]
 interface nsIDOMWindowUtils : nsISupports {
 
   /**
@@ -1051,6 +1051,12 @@ interface nsIDOMWindowUtils : nsISupports {
   void stopFrameTimeRecording([optional] out unsigned long frameCount,
                               [retval, array, size_is(frameCount)] out float frameTime);
   /**
+   * Signals that we're begining to tab switch. This is used by painting code to
+   * determine total tab switch time.
+   */
+  void beginTabSwitch();
+
+  /**
    * The DPI of the display
    */
   readonly attribute float displayDPI;
@@ -1277,10 +1283,4 @@ interface nsIDOMWindowUtils : nsISupports {
    * This calls nsEventStateManager::IsHandlingUserInput().
    */
   readonly attribute boolean isHandlingUserInput;
-
-  /**
-   * After calling the method, the window for which this DOMWindowUtils
-   * was created can be closed using scripts.
-   */
-   void allowScriptsToClose();
 };
