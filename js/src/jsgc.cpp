@@ -4079,7 +4079,7 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
         AutoCopyFreeListToArenas copy(rt);
         for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
             if (c->isGCMarking()) {
-                c->setNeedsBarrier(false);
+                c->setNeedsBarrier(false, JSCompartment::DontUpdateIon);
                 c->setGCState(JSCompartment::NoGC);
                 wasMarking = true;
             }
@@ -4138,9 +4138,14 @@ AutoGCSlice::AutoGCSlice(JSRuntime *rt)
 
     for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
         
+
+
+
+
+
         if (c->isGCMarking()) {
             JS_ASSERT(c->needsBarrier());
-            c->setNeedsBarrier(false);
+            c->setNeedsBarrier(false, JSCompartment::DontUpdateIon);
         } else {
             JS_ASSERT(!c->needsBarrier());
         }
@@ -4151,11 +4156,11 @@ AutoGCSlice::~AutoGCSlice()
 {
     for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
         if (c->isGCMarking()) {
-            c->setNeedsBarrier(true);
+            c->setNeedsBarrier(true, JSCompartment::UpdateIon);
             c->arenas.prepareForIncrementalGC(runtime);
         } else {
             JS_ASSERT(c->isGCSweeping());
-            c->setNeedsBarrier(false);
+            c->setNeedsBarrier(false, JSCompartment::UpdateIon);
         }
     }
 }
@@ -4312,7 +4317,7 @@ IncrementalCollectSlice(JSRuntime *rt,
 
       default:
         JS_ASSERT(false);
-     }
+    }
 }
 
 class IncrementalSafety
@@ -5267,7 +5272,7 @@ StartVerifyPreBarriers(JSRuntime *rt)
     rt->gcMarker.start(rt);
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         PurgeJITCaches(c);
-        c->setNeedsBarrier(true);
+        c->setNeedsBarrier(true, JSCompartment::UpdateIon);
         c->arenas.purge();
     }
 
@@ -5350,7 +5355,7 @@ EndVerifyPreBarriers(JSRuntime *rt)
             compartmentCreated = true;
 
         PurgeJITCaches(c);
-        c->setNeedsBarrier(false);
+        c->setNeedsBarrier(false, JSCompartment::UpdateIon);
     }
 
     
