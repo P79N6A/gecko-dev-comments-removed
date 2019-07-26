@@ -741,7 +741,7 @@ function loadManifestFromRDF(aUri, aStream) {
   }
   else {
     
-    if (addon.type == "dictionary")
+    if (addon.type == "dictionary" || addon.type == "locale")
       addon.bootstrap = true;
 
     
@@ -3695,6 +3695,11 @@ var XPIProvider = {
       Components.manager.addBootstrappedManifestLocation(aFile);
 
     try {
+      
+      
+      if (aType == "locale")
+         return;
+
       
       if (!(aId in this.bootstrapScopes))
         this.loadBootstrapScope(aId, aFile, aVersion, aType);
