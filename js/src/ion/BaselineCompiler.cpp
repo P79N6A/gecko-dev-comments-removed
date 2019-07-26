@@ -196,6 +196,21 @@ BaselineCompiler::emit_JSOP_POP()
 }
 
 bool
+BaselineCompiler::emit_JSOP_DUP()
+{
+    
+    
+    
+    frame.popRegsAndSync(1);
+    masm.moveValue(R0, R1);
+
+    
+    frame.push(R1);
+    frame.push(R0);
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_GOTO()
 {
     frame.syncStack(0);
