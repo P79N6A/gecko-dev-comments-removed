@@ -4060,6 +4060,22 @@ pref("stagefright.disabled", false);
 pref("network.tcp.sendbuffer", 131072);
 #endif
 
+pref("network.tcp.keepalive.enabled", true);
+
+
+
+pref("network.tcp.keepalive.idle_time", 600); 
+
+
+#if defined(XP_UNIX) && !defined(XP_MACOSX) || defined(XP_WIN)
+pref("network.tcp.keepalive.retry_interval", 1); 
+#endif
+
+
+#ifdef XP_UNIX && !defined(XP_MACOSX)
+pref("network.tcp.keepalive.probe_count", 4);
+#endif
+
 
 pref("layers.acceleration.disabled", false);
 

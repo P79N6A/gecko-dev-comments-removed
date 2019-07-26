@@ -38,6 +38,25 @@ extern PRLogModuleInfo *gSocketTransportLog;
 
 
 
+namespace mozilla {
+namespace net {
+
+static const int32_t kMaxTCPKeepIdle  = 32767; 
+static const int32_t kMaxTCPKeepIntvl = 32767;
+static const int32_t kMaxTCPKeepCount   = 127;
+static const int32_t kDefaultTCPKeepCount =
+#if defined (XP_WIN)
+                                              10; 
+#elif defined (XP_MACOSX)
+                                              8;  
+#else
+                                              4;  // Specifiable in Linux.
+#endif
+}
+}
+
+
+
 class nsSocketTransportService : public nsPISocketTransportService
                                , public nsIEventTarget
                                , public nsIThreadObserver
@@ -79,6 +98,9 @@ public:
     void GetSocketConnections(nsTArray<mozilla::net::SocketInfo> *);
     uint64_t GetSentBytes() { return mSentBytesCount; }
     uint64_t GetReceivedBytes() { return mReceivedBytesCount; }
+
+    
+    bool IsKeepaliveEnabled() { return mKeepaliveEnabledPref; }
 protected:
 
     virtual ~nsSocketTransportService();
@@ -186,6 +208,17 @@ private:
     
     nsresult    UpdatePrefs();
     int32_t     mSendBufferSize;
+    
+    int32_t     mKeepaliveIdleTimeS;
+    
+    int32_t     mKeepaliveRetryIntervalS;
+    
+    int32_t     mKeepaliveProbeCount;
+    
+    bool        mKeepaliveEnabledPref;
+
+    void OnKeepaliveEnabledPrefChange();
+    void NotifyKeepaliveEnabledPrefChange(SocketContext *sock);
 
     
 #if defined(XP_WIN)

@@ -84,6 +84,11 @@ public:
     
     
     
+    virtual void OnKeepaliveEnabledPrefChange(bool aEnabled) { }
+
+    
+    
+    
     virtual uint64_t ByteCountSent() = 0;
     virtual uint64_t ByteCountReceived() = 0;
 };
