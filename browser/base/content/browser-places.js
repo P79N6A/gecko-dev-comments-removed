@@ -753,9 +753,7 @@ var PlacesMenuDNDHandler = {
       return;
 
     
-
-
-
+    
     if (this._closeTimer && this._closingTimerNode === event.currentTarget) {
       this._closeTimer.cancel();
       this._closingTimerNode = null;
