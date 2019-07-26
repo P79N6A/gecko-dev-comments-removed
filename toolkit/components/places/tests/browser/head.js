@@ -2,8 +2,6 @@
 
 const TRANSITION_LINK = Ci.nsINavHistoryService.TRANSITION_LINK;
 const TRANSITION_TYPED = Ci.nsINavHistoryService.TRANSITION_TYPED;
-const TRANSITION_LINK = Ci.nsINavHistoryService.TRANSITION_LINK;
-const TRANSITION_TYPED = Ci.nsINavHistoryService.TRANSITION_TYPED;
 
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
