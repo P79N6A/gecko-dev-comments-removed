@@ -659,6 +659,11 @@ CreateConfig(EGLConfig* aConfig)
         if (depth == 16) {
             return CreateConfig(aConfig, 24);
         }
+        
+        
+        if (depth == 24) {
+            return CreateConfig(aConfig, 16);
+        }
 #endif
         return false;
     } else {
