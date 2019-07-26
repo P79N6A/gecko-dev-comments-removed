@@ -1358,9 +1358,16 @@ StringToNumber(JSContext *cx, JSString *str, double *result)
     
     if (end - bp >= 2 && bp[0] == '0' && (bp[1] == 'x' || bp[1] == 'X')) {
         
+
+
+
+
         const jschar *endptr;
         double d;
-        if (!GetPrefixInteger(cx, bp + 2, end, 16, &endptr, &d) || SkipSpace(endptr, end) != end) {
+        if (!GetPrefixInteger(cx, bp + 2, end, 16, &endptr, &d) ||
+            endptr == bp + 2 ||
+            SkipSpace(endptr, end) != end)
+        {
             *result = js_NaN;
             return true;
         }
