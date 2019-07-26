@@ -421,8 +421,14 @@ public:
 
 
 
+
+
+  static nsIFrame* GetAnimatedGeometryRootFor(nsIFrame* aFrame,
+                                              const nsIFrame* aStopAtAncestor = nullptr);
+
   static nsIFrame* GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
                                               nsDisplayListBuilder* aBuilder);
+
 
   
 

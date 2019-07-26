@@ -2490,6 +2490,17 @@ public:
     return nullptr;
   }
 
+  
+
+
+
+
+  static LayerState RequiredLayerStateForChildren(nsDisplayListBuilder* aBuilder,
+                                                  LayerManager* aManager,
+                                                  const ContainerLayerParameters& aParameters,
+                                                  const nsDisplayList& aList,
+                                                  nsIFrame* aItemFrame);
+
 protected:
   nsDisplayWrapList() {}
 
