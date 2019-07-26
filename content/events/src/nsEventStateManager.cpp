@@ -4153,6 +4153,13 @@ nsEventStateManager::NotifyMouseOver(nsGUIEvent* aEvent, nsIContent* aContent)
 
 
 
+
+
+
+
+
+
+
 static nsIntPoint
 GetWindowInnerRectCenter(nsPIDOMWindow* aWindow,
                          nsIWidget* aWidget,
@@ -4162,11 +4169,11 @@ GetWindowInnerRectCenter(nsPIDOMWindow* aWindow,
 
   float cssInnerX = 0.0;
   aWindow->GetMozInnerScreenX(&cssInnerX);
-  int32_t innerX = int32_t(NS_round(aContext->CSSPixelsToDevPixels(cssInnerX)));
+  int32_t innerX = int32_t(NS_round(cssInnerX));
 
   float cssInnerY = 0.0;
   aWindow->GetMozInnerScreenY(&cssInnerY);
-  int32_t innerY = int32_t(NS_round(aContext->CSSPixelsToDevPixels(cssInnerY)));
+  int32_t innerY = int32_t(NS_round(cssInnerY));
  
   int32_t innerWidth = 0;
   aWindow->GetInnerWidth(&innerWidth);
@@ -4174,17 +4181,15 @@ GetWindowInnerRectCenter(nsPIDOMWindow* aWindow,
   int32_t innerHeight = 0;
   aWindow->GetInnerHeight(&innerHeight);
 
-  
-  
-  
-  innerWidth = int32_t(NS_round(aContext->CSSPixelsToDevPixels(innerWidth)));
-  innerHeight = int32_t(NS_round(aContext->CSSPixelsToDevPixels(innerHeight)));
-
   nsIntRect screen;
   aWidget->GetScreenBounds(screen);
 
-  return nsIntPoint(innerX - screen.x + innerWidth / 2,
-                    innerY - screen.y + innerHeight / 2);
+  int32_t cssScreenX = aContext->DevPixelsToIntCSSPixels(screen.x);
+  int32_t cssScreenY = aContext->DevPixelsToIntCSSPixels(screen.y);
+
+  return nsIntPoint(
+    aContext->CSSPixelsToDevPixels(innerX - cssScreenX + innerWidth / 2),
+    aContext->CSSPixelsToDevPixels(innerY - cssScreenY + innerHeight / 2));
 }
 
 void
