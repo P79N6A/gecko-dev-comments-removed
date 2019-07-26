@@ -37,6 +37,8 @@ class CompositableForwarder : public ISurfaceAllocator
   friend class AutoOpenSurface;
   friend class TextureClientShmem;
 public:
+  typedef gfxASurface::gfxContentType gfxContentType;
+
   CompositableForwarder()
   : mMaxTextureSize(0)
   , mCompositorBackend(layers::LAYERS_NONE)
@@ -74,6 +76,14 @@ public:
 
 
 
+  virtual void CreatedIncrementalBuffer(CompositableClient* aCompositable,
+                                        const TextureInfo& aTextureInfo,
+                                        const nsIntRect& aBufferRect) = 0;
+
+  
+
+
+
   virtual void DestroyThebesBuffer(CompositableClient* aCompositable) = 0;
 
   virtual void PaintedTiledLayerBuffer(CompositableClient* aCompositable,
@@ -101,6 +111,23 @@ public:
   virtual void UpdateTextureRegion(CompositableClient* aCompositable,
                                    const ThebesBufferData& aThebesBufferData,
                                    const nsIntRegion& aUpdatedRegion) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+  virtual void UpdateTextureIncremental(CompositableClient* aCompositable,
+                                        TextureIdentifier aTextureId,
+                                        SurfaceDescriptor& aDescriptor,
+                                        const nsIntRegion& aUpdatedRegion,
+                                        const nsIntRect& aBufferRect,
+                                        const nsIntPoint& aBufferRotation) = 0;
 
   
 
