@@ -127,6 +127,28 @@ struct IsPointer : FalseType {};
 template<typename T>
 struct IsPointer<T*> : TrueType {};
 
+namespace detail {
+
+
+template<typename T>
+struct IsEnumHelper
+  : IntegralConstant<bool, __is_enum(T)>
+{};
+
+} 
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsEnum
+  : detail::IsEnumHelper<typename RemoveCV<T>::Type>
+{};
+
 
 
 
