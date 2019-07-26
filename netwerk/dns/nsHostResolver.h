@@ -244,6 +244,12 @@ private:
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
     nsresult ConditionallyCreateThread(nsHostRecord *rec);
+
+    
+
+
+
+    nsresult ConditionallyRefreshRecord(nsHostRecord *rec, const char *host);
     
     static void  MoveQueue(nsHostRecord *aRec, PRCList &aDestQ);
     

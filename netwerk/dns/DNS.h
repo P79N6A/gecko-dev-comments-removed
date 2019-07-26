@@ -114,6 +114,7 @@ union NetAddr {
 class NetAddrElement : public LinkedListElement<NetAddrElement> {
 public:
   NetAddrElement(const PRNetAddr *prNetAddr);
+  NetAddrElement(const NetAddrElement& netAddr);
   ~NetAddrElement();
 
   NetAddr mAddress;
@@ -121,13 +122,23 @@ public:
 
 class AddrInfo {
 public:
+  
+  
   AddrInfo(const char *host, const PRAddrInfo *prAddrInfo, bool disableIPv4,
            const char *cname);
+
+  
+  AddrInfo(const char *host, const char *cname);
   ~AddrInfo();
+
+  void AddAddress(NetAddrElement *address);
 
   char *mHostName;
   char *mCanonicalName;
   LinkedList<NetAddrElement> mAddresses;
+
+private:
+  void Init(const char *host, const char *cname);
 };
 
 
