@@ -2,21 +2,12 @@
 
 
 
-
-import os
 from setuptools import setup
 
-PACKAGE_VERSION = '0.4'
+PACKAGE_VERSION = '0.5'
 
 
-try:
-    here = os.path.dirname(os.path.abspath(__file__))
-    description = file(os.path.join(here, 'README.md')).read()
-except (OSError, IOError):
-    description = ''
-
-
-deps = []
+deps = ['mozfile >= 0.6']
 try:
     import json
 except ImportError:
@@ -24,8 +15,8 @@ except ImportError:
 
 setup(name='mozinfo',
       version=PACKAGE_VERSION,
-      description="file for interface to transform introspected system information to a format pallatable to Mozilla",
-      long_description=description,
+      description="Library to get system information for use in Mozilla testing",
+      long_description="see http://mozbase.readthedocs.org",
       classifiers=[], 
       keywords='mozilla',
       author='Mozilla Automation and Testing Team',

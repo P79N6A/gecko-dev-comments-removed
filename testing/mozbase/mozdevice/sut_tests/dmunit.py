@@ -2,15 +2,18 @@
 
 
 
-from mozdevice import devicemanager
-from mozdevice import devicemanagerSUT
 import types
 import unittest
+
+import mozlog
+
+from mozdevice import devicemanager
+from mozdevice import devicemanagerSUT
 
 ip = ''
 port = 0
 heartbeat_port = 0
-
+log_level = mozlog.ERROR
 
 class DeviceManagerTestCase(unittest.TestCase):
     """DeviceManager tests should subclass this.
@@ -26,7 +29,8 @@ class DeviceManagerTestCase(unittest.TestCase):
         return
 
     def setUp(self):
-        self.dm = devicemanagerSUT.DeviceManagerSUT(host=ip, port=port)
+        self.dm = devicemanagerSUT.DeviceManagerSUT(host=ip, port=port,
+                                                    logLevel=log_level)
         self.dmerror = devicemanager.DMError
         self.nettools = devicemanager.NetworkTools
         self._setUp()
