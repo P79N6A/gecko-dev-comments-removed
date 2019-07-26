@@ -44,6 +44,7 @@ namespace mozilla {
 namespace sipcc {
 
 class PeerConnectionImpl;
+class PeerConnectionMedia;
 
 
 class Fake_AudioGenerator {
@@ -161,14 +162,18 @@ class Fake_VideoGenerator {
 };
 #endif
 
+
+
+
 class LocalSourceStreamInfo {
 public:
   typedef mozilla::DOMMediaStream DOMMediaStream;
 
-  LocalSourceStreamInfo(DOMMediaStream* aMediaStream)
-    : mMediaStream(aMediaStream) {
-      MOZ_ASSERT(aMediaStream);
-    }
+  LocalSourceStreamInfo(DOMMediaStream* aMediaStream, PeerConnectionMedia *aParent)
+      : mMediaStream(aMediaStream), mParent(aParent) {
+    MOZ_ASSERT(aMediaStream);
+  }
+
   ~LocalSourceStreamInfo() {
     mMediaStream = NULL;
   }
@@ -182,16 +187,8 @@ public:
   void ExpectVideo(const mozilla::TrackID);
   unsigned AudioTrackCount();
   unsigned VideoTrackCount();
-
-  void Detach() {
-    
-    for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
-           mPipelines.begin(); it != mPipelines.end();
-         ++it) {
-      it->second->Shutdown();
-    }
-    mMediaStream = NULL;
-  }
+  void DetachTransport_s();
+  void DetachMedia_m();
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LocalSourceStreamInfo)
 private:
@@ -199,15 +196,17 @@ private:
   nsRefPtr<DOMMediaStream> mMediaStream;
   nsTArray<mozilla::TrackID> mAudioTracks;
   nsTArray<mozilla::TrackID> mVideoTracks;
+  PeerConnectionMedia *mParent;
 };
 
 class RemoteSourceStreamInfo {
  public:
   typedef mozilla::DOMMediaStream DOMMediaStream;
 
-  RemoteSourceStreamInfo(DOMMediaStream* aMediaStream) :
-    mMediaStream(already_AddRefed<DOMMediaStream>(aMediaStream)),
-    mPipelines() {
+RemoteSourceStreamInfo(DOMMediaStream* aMediaStream, PeerConnectionMedia *aParent)
+    : mMediaStream(already_AddRefed<DOMMediaStream>(aMediaStream)),
+      mPipelines(),
+      mParent(aParent) {
       MOZ_ASSERT(aMediaStream);
     }
 
@@ -217,22 +216,15 @@ class RemoteSourceStreamInfo {
   void StorePipeline(int aTrack, bool aIsVideo,
                      mozilla::RefPtr<mozilla::MediaPipeline> aPipeline);
 
-  void Detach() {
-    
-    
-    for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
-           mPipelines.begin(); it != mPipelines.end();
-         ++it) {
-      it->second->Shutdown();
-    }
-    mMediaStream = NULL;
-  }
+  void DetachTransport_s();
+  void DetachMedia_m();
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteSourceStreamInfo)
  private:
   nsRefPtr<DOMMediaStream> mMediaStream;
   std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> > mPipelines;
   std::map<int, bool> mTypes;
+  PeerConnectionMedia *mParent;
 };
 
 class PeerConnectionMedia : public sigslot::has_slots<> {
@@ -283,6 +275,8 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   nsresult AddRemoteStream(nsRefPtr<RemoteSourceStreamInfo> aInfo, int *aIndex);
 
+  const nsCOMPtr<nsIThread>& GetMainThread() const { return mMainThread; }
+  const nsCOMPtr<nsIEventTarget>& GetSTSThread() const { return mSTSThread; }
 
   
   
@@ -326,18 +320,20 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   sigslot::signal1<mozilla::NrIceCtx *> SignalIceGatheringCompleted;  
   sigslot::signal1<mozilla::NrIceCtx *> SignalIceCompleted;  
+  sigslot::signal1<mozilla::NrIceCtx *> SignalIceFailed;  
 
  private:
   
-  
-  void DisconnectMediaStreams();
+  void ShutdownMediaTransport_s();
 
   
-  void ShutdownMediaTransport();
+  
+  void SelfDestruct_m();
 
   
   void IceGatheringCompleted(mozilla::NrIceCtx *aCtx);
   void IceCompleted(mozilla::NrIceCtx *aCtx);
+  void IceFailed(mozilla::NrIceCtx *aCtx);
   void IceStreamReady(mozilla::NrIceMediaStream *aStream);
 
   
@@ -363,6 +359,12 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   
   std::map<int, mozilla::RefPtr<mozilla::AudioSessionConduit> > mAudioConduits;
+
+  
+  nsCOMPtr<nsIThread> mMainThread;
+
+  
+  nsCOMPtr<nsIEventTarget> mSTSThread;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PeerConnectionMedia)
 };

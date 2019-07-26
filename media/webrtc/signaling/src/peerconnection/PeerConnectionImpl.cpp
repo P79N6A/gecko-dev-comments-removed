@@ -331,7 +331,7 @@ PeerConnectionImpl::CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo
   static_cast<mozilla::SourceMediaStream*>(comstream->GetStream())->SetPullEnabled(true);
 
   nsRefPtr<RemoteSourceStreamInfo> remote;
-  remote = new RemoteSourceStreamInfo(comstream);
+  remote = new RemoteSourceStreamInfo(comstream, mMedia);
   *aInfo = remote;
 
   return NS_OK;
@@ -498,6 +498,7 @@ PeerConnectionImpl::Initialize(IPeerConnectionObserver* aObserver,
   
   mMedia->SignalIceGatheringCompleted.connect(this, &PeerConnectionImpl::IceGatheringCompleted);
   mMedia->SignalIceCompleted.connect(this, &PeerConnectionImpl::IceCompleted);
+  mMedia->SignalIceFailed.connect(this, &PeerConnectionImpl::IceFailed);
 
   
   if (aRTCConfiguration) {
@@ -590,15 +591,7 @@ PeerConnectionImpl::CreateFakeMediaStream(uint32_t aHint, nsIDOMMediaStream** aR
     aHint &= ~MEDIA_STREAM_MUTE;
   }
 
-  nsresult res;
-  if (!mThread || NS_IsMainThread()) {
-    res = MakeMediaStream(mWindow, aHint, aRetval);
-  } else {
-    mThread->Dispatch(WrapRunnableNMRet(
-        &PeerConnectionImpl::MakeMediaStream, mWindow, aHint, aRetval, &res
-    ), NS_DISPATCH_SYNC);
-  }
-
+  nsresult res = MakeMediaStream(mWindow, aHint, aRetval);
   if (NS_FAILED(res)) {
     return res;
   }
@@ -1198,17 +1191,7 @@ PeerConnectionImpl::ShutdownMedia(bool aIsSynchronous)
 
   
   
-  
-  
-  
-  
-  
-
-  
-  
-  RUN_ON_THREAD(mThread, WrapRunnable(mMedia.forget().get(),
-                                      &PeerConnectionMedia::SelfDestruct),
-                aIsSynchronous ? NS_DISPATCH_SYNC : NS_DISPATCH_NORMAL);
+  mMedia.forget().get()->SelfDestruct();
 }
 
 #ifdef MOZILLA_INTERNAL_API
@@ -1327,32 +1310,9 @@ PeerConnectionImpl::IceGatheringCompleted(NrIceCtx *aCtx)
   nsRefPtr<PeerConnectionImpl> pc(this);
   RUN_ON_THREAD(mThread,
                 WrapRunnable(pc,
-                             &PeerConnectionImpl::IceGatheringCompleted_m),
+                             &PeerConnectionImpl::IceStateChange_m,
+                             kIceWaiting),
                 NS_DISPATCH_NORMAL);
-}
-
-nsresult
-PeerConnectionImpl::IceGatheringCompleted_m()
-{
-  PC_AUTO_ENTER_API_CALL(false);
-
-  CSFLogDebug(logTag, __FUNCTION__);
-
-  mIceState = kIceWaiting;
-
-#ifdef MOZILLA_INTERNAL_API
-  nsCOMPtr<IPeerConnectionObserver> pco = do_QueryReferent(mPCObserver);
-  if (!pco) {
-    return NS_OK;
-  }
-  RUN_ON_THREAD(mThread,
-                WrapRunnable(pco,
-                             &IPeerConnectionObserver::OnStateChange,
-                             
-                             static_cast<int>(IPeerConnectionObserver::kIceState)),
-                NS_DISPATCH_NORMAL);
-#endif
-  return NS_OK;
 }
 
 void
@@ -1363,18 +1323,32 @@ PeerConnectionImpl::IceCompleted(NrIceCtx *aCtx)
   nsRefPtr<PeerConnectionImpl> pc(this);
   RUN_ON_THREAD(mThread,
                 WrapRunnable(pc,
-                             &PeerConnectionImpl::IceCompleted_m),
+                             &PeerConnectionImpl::IceStateChange_m,
+                             kIceConnected),
+                NS_DISPATCH_NORMAL);
+}
+
+void
+PeerConnectionImpl::IceFailed(NrIceCtx *aCtx)
+{
+  (void) aCtx;
+  
+  nsRefPtr<PeerConnectionImpl> pc(this);
+  RUN_ON_THREAD(mThread,
+                WrapRunnable(pc,
+                             &PeerConnectionImpl::IceStateChange_m,
+                             kIceFailed),
                 NS_DISPATCH_NORMAL);
 }
 
 nsresult
-PeerConnectionImpl::IceCompleted_m()
+PeerConnectionImpl::IceStateChange_m(IceState aState)
 {
   PC_AUTO_ENTER_API_CALL(false);
 
   CSFLogDebug(logTag, __FUNCTION__);
 
-  mIceState = kIceConnected;
+  mIceState = aState;
 
 #ifdef MOZILLA_INTERNAL_API
   nsCOMPtr<IPeerConnectionObserver> pco = do_QueryReferent(mPCObserver);

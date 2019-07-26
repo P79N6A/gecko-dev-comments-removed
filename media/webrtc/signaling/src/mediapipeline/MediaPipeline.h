@@ -100,13 +100,19 @@ class MediaPipeline : public sigslot::has_slots<> {
     MOZ_ASSERT(!stream_);  
   }
 
-  void Shutdown() {
+
+
+  
+  
+  void ShutdownTransport_s();
+
+  
+  void ShutdownMedia_m() {
     ASSERT_ON_THREAD(main_thread_);
-    
-    
-    
-    
-    DetachTransport();
+
+    MOZ_ASSERT(!rtp_transport_);
+    MOZ_ASSERT(!rtcp_transport_);
+
     if (stream_) {
       DetachMediaStream();
     }
@@ -152,8 +158,8 @@ class MediaPipeline : public sigslot::has_slots<> {
   };
   friend class PipelineTransport;
 
-  virtual nsresult TransportReady(TransportFlow *flow); 
-  virtual nsresult TransportFailed(TransportFlow *flow);  
+  virtual nsresult TransportFailed_s(TransportFlow *flow);  
+  virtual nsresult TransportReady_s(TransportFlow *flow);   
 
   void increment_rtp_packets_sent();
   void increment_rtcp_packets_sent();
@@ -216,10 +222,6 @@ class MediaPipeline : public sigslot::has_slots<> {
 
  private:
   nsresult Init_s();
-  void DetachTransport();
-  void DetachTransport_s();
-
-  nsresult TransportReadyInt(TransportFlow *flow);
 
   bool IsRtp(const unsigned char *data, size_t len);
 };
@@ -268,7 +270,7 @@ class MediaPipelineTransmit : public MediaPipeline {
   }
 
   
-  virtual nsresult TransportReady(TransportFlow *flow);
+  virtual nsresult TransportReady_s(TransportFlow *flow);
 
   
   class PipelineListener : public MediaStreamListener {
@@ -507,7 +509,9 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
    private:
     SourceMediaStream *source_;
     TrackID track_id_;
+#ifdef MOZILLA_INTERNAL_API
     TrackTicks played_;  
+#endif
     int width_;
     int height_;
 #ifdef MOZILLA_INTERNAL_API

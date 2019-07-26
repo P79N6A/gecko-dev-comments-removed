@@ -178,6 +178,7 @@ public:
   
   void IceGatheringCompleted(NrIceCtx *aCtx);
   void IceCompleted(NrIceCtx *aCtx);
+  void IceFailed(NrIceCtx *aCtx);
   void IceStreamReady(NrIceMediaStream *aStream);
 
   static void ListenThread(void *aData);
@@ -269,8 +270,7 @@ private:
   void ShutdownMedia(bool isSynchronous);
 
   
-  nsresult IceGatheringCompleted_m();
-  nsresult IceCompleted_m();
+  nsresult IceStateChange_m(IceState aState);
 
   
   Role mRole;

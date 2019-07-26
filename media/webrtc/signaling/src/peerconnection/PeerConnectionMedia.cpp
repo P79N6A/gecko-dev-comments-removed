@@ -60,6 +60,55 @@ LocalSourceStreamInfo::VideoTrackCount()
   return mVideoTracks.Length();
 }
 
+void LocalSourceStreamInfo::DetachTransport_s()
+{
+  ASSERT_ON_THREAD(mParent->GetSTSThread());
+  
+  
+  for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
+           mPipelines.begin(); it != mPipelines.end();
+       ++it) {
+    it->second->ShutdownTransport_s();
+  }
+}
+
+void LocalSourceStreamInfo::DetachMedia_m()
+{
+  ASSERT_ON_THREAD(mParent->GetMainThread());
+  
+  
+  for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
+           mPipelines.begin(); it != mPipelines.end();
+       ++it) {
+    it->second->ShutdownMedia_m();
+  }
+}
+
+void RemoteSourceStreamInfo::DetachTransport_s()
+{
+  ASSERT_ON_THREAD(mParent->GetSTSThread());
+  
+  
+  for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
+           mPipelines.begin(); it != mPipelines.end();
+       ++it) {
+    it->second->ShutdownTransport_s();
+  }
+}
+
+void RemoteSourceStreamInfo::DetachMedia_m()
+{
+  ASSERT_ON_THREAD(mParent->GetMainThread());
+
+  
+  
+  for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
+           mPipelines.begin(); it != mPipelines.end();
+       ++it) {
+    it->second->ShutdownMedia_m();
+  }
+}
+
 PeerConnectionImpl* PeerConnectionImpl::CreatePeerConnection()
 {
   PeerConnectionImpl *pc = new PeerConnectionImpl();
@@ -72,6 +121,9 @@ PeerConnectionImpl* PeerConnectionImpl::CreatePeerConnection()
 
 nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_servers)
 {
+  mMainThread = mParent->GetMainThread();
+  mSTSThread = mParent->GetSTSThread();
+
   
   
   mIceCtx = NrIceCtx::Create("PC:" + mParent->GetHandle(), true);
@@ -96,6 +148,8 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
                                             &PeerConnectionMedia::IceGatheringCompleted);
   mIceCtx->SignalCompleted.connect(this,
                                    &PeerConnectionMedia::IceCompleted);
+  mIceCtx->SignalFailed.connect(this,
+                                &PeerConnectionMedia::IceFailed);
 
   
   
@@ -132,16 +186,9 @@ nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_serv
   }
 
   
-  nsresult res;
-  mIceCtx->thread()->Dispatch(WrapRunnableRet(
-    mIceCtx, &NrIceCtx::StartGathering, &res), NS_DISPATCH_SYNC
-  );
-
-  if (NS_FAILED(res)) {
-    CSFLogError(logTag, "%s: StartGathering failed: %u",
-      __FUNCTION__, static_cast<uint32_t>(res));
-    return res;
-  }
+  
+  RUN_ON_THREAD(mIceCtx->thread(),
+                WrapRunnable(mIceCtx, &NrIceCtx::StartGathering), NS_DISPATCH_NORMAL);
 
   return NS_OK;
 }
@@ -184,7 +231,7 @@ PeerConnectionMedia::AddStream(nsIDOMMediaStream* aMediaStream, uint32_t *stream
 
   
   nsRefPtr<LocalSourceStreamInfo> localSourceStream =
-    new LocalSourceStreamInfo(stream);
+      new LocalSourceStreamInfo(stream, this);
   *stream_id = mLocalSourceStreams.Length();
 
   if (hints & DOMMediaStream::HINT_CONTENTS_AUDIO) {
@@ -225,43 +272,63 @@ PeerConnectionMedia::RemoveStream(nsIDOMMediaStream* aMediaStream, uint32_t *str
 void
 PeerConnectionMedia::SelfDestruct()
 {
-   CSFLogDebug(logTag, "%s: Disconnecting media streams from PC", __FUNCTION__);
+  ASSERT_ON_THREAD(mMainThread);
 
-   DisconnectMediaStreams();
+  CSFLogDebug(logTag, "%s: ", __FUNCTION__);
 
-   CSFLogDebug(logTag, "%s: Disconnecting transport", __FUNCTION__);
-   
-   RUN_ON_THREAD(mParent->GetSTSThread(), WrapRunnable(
-       this, &PeerConnectionMedia::ShutdownMediaTransport), NS_DISPATCH_SYNC);
+  
+  RUN_ON_THREAD(mSTSThread, WrapRunnable(
+      this, &PeerConnectionMedia::ShutdownMediaTransport_s),
+                NS_DISPATCH_NORMAL);
 
   CSFLogDebug(logTag, "%s: Media shut down", __FUNCTION__);
+}
+
+void
+PeerConnectionMedia::SelfDestruct_m()
+{
+  ASSERT_ON_THREAD(mMainThread);
+
+  CSFLogDebug(logTag, "%s: ", __FUNCTION__);
+
+  
+  for (uint32_t i=0; i < mLocalSourceStreams.Length(); ++i) {
+    mLocalSourceStreams[i]->DetachMedia_m();
+  }
+
+  for (uint32_t i=0; i < mRemoteSourceStreams.Length(); ++i) {
+    mRemoteSourceStreams[i]->DetachMedia_m();
+  }
+
+  mLocalSourceStreams.Clear();
+  mRemoteSourceStreams.Clear();
 
   
   this->Release();
 }
 
 void
-PeerConnectionMedia::DisconnectMediaStreams()
+PeerConnectionMedia::ShutdownMediaTransport_s()
 {
+  ASSERT_ON_THREAD(mSTSThread);
+
+  CSFLogDebug(logTag, "%s: ", __FUNCTION__);
+
   for (uint32_t i=0; i < mLocalSourceStreams.Length(); ++i) {
-    mLocalSourceStreams[i]->Detach();
+    mLocalSourceStreams[i]->DetachTransport_s();
   }
 
   for (uint32_t i=0; i < mRemoteSourceStreams.Length(); ++i) {
-    mRemoteSourceStreams[i]->Detach();
+    mRemoteSourceStreams[i]->DetachTransport_s();
   }
 
-  mLocalSourceStreams.Clear();
-  mRemoteSourceStreams.Clear();
-}
-
-void
-PeerConnectionMedia::ShutdownMediaTransport()
-{
   disconnect_all();
   mTransportFlows.clear();
   mIceStreams.clear();
   mIceCtx = NULL;
+
+  mMainThread->Dispatch(WrapRunnable(this, &PeerConnectionMedia::SelfDestruct_m),
+                        NS_DISPATCH_NORMAL);
 }
 
 LocalSourceStreamInfo*
@@ -312,6 +379,13 @@ PeerConnectionMedia::IceCompleted(NrIceCtx *aCtx)
 {
   MOZ_ASSERT(aCtx);
   SignalIceCompleted(aCtx);
+}
+
+void
+PeerConnectionMedia::IceFailed(NrIceCtx *aCtx)
+{
+  MOZ_ASSERT(aCtx);
+  SignalIceFailed(aCtx);
 }
 
 void

@@ -198,8 +198,11 @@ class NrIceCtx {
 
   
   
+  
+  
   sigslot::signal1<NrIceCtx *> SignalGatheringCompleted;  
   sigslot::signal1<NrIceCtx *> SignalCompleted;  
+  sigslot::signal1<NrIceCtx *> SignalFailed;  
 
   
   nsCOMPtr<nsIEventTarget> thread() { return sts_target_; }
