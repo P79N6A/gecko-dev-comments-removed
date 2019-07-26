@@ -30,6 +30,17 @@ namespace mozilla {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 class CryptoTask : public nsRunnable,
                    public nsNSSShutDownObject
 {
@@ -46,6 +57,11 @@ public:
       rv = mThread->Dispatch(this, NS_DISPATCH_NORMAL);
     }
     return rv;
+  }
+
+  void Skip()
+  {
+    virtualDestroyNSSReference();
   }
 
 protected:
