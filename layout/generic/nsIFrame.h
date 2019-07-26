@@ -600,7 +600,7 @@ public:
 
 
 
-  virtual void SetParent(nsContainerFrame* aParent) = 0;
+  void SetParent(nsContainerFrame* aParent);
 
   
 
