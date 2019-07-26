@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 A clone of top / htop.
 

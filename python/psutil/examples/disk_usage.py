@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 List all mounted disk partitions a-la "df -h" command.
 """

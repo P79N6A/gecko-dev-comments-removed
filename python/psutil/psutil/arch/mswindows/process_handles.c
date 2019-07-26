@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -120,7 +118,7 @@ PVOID GetLibraryProcAddress(PSTR LibraryName, PSTR ProcName)
 
 
 PyObject*
-get_open_files(long pid, HANDLE processHandle)
+psutil_get_open_files(long pid, HANDLE processHandle)
 {
     _NtQuerySystemInformation NtQuerySystemInformation =
         GetLibraryProcAddress("ntdll.dll", "NtQuerySystemInformation");
@@ -139,9 +137,15 @@ get_open_files(long pid, HANDLE processHandle)
     PyObject                    *arg = NULL;
     PyObject                    *fileFromWchar = NULL;
 
-
+    if (filesList == NULL)
+        return NULL;
 
     handleInfo = (PSYSTEM_HANDLE_INFORMATION)malloc(handleInfoSize);
+    if (handleInfo == NULL) {
+        Py_DECREF(filesList);
+        PyErr_NoMemory();
+        return NULL;
+    }
 
     
 

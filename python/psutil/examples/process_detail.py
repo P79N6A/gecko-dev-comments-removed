@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 Print detailed information about a process.
 

@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 A clone of 'who' command; print information about users who are
 currently logged in.

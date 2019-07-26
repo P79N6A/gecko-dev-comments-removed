@@ -4,8 +4,6 @@
 
 
 
-
-
 """BSD specific tests.  These are implicitly run by test_psutil.py."""
 
 import unittest

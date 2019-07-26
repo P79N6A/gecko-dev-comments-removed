@@ -6,8 +6,6 @@
 
 
 
-
-
 #include <Python.h>
 
 static PyObject* linux_ioprio_get(PyObject* self, PyObject* args);

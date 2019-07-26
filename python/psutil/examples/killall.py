@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 Kill a process by name.
 """

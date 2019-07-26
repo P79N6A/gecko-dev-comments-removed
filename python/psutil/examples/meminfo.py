@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 Print system memory information.
 """

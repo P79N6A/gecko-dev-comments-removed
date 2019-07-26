@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 A clone of 'pmap' utility on Linux, 'vmmap' on OSX and 'procstat -v' on BSD.
 Report memory map of a process.

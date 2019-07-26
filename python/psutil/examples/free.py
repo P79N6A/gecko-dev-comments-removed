@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 A clone of 'free' cmdline utility.
 """

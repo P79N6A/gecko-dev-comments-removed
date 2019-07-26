@@ -4,8 +4,6 @@
 
 
 
-
-
 """Module which provides compatibility with older Python versions."""
 
 __all__ = ["PY3", "int", "long", "xrange", "exec_", "callable",

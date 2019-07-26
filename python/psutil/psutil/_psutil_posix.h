@@ -6,8 +6,6 @@
 
 
 
-
-
 #include <Python.h>
 
 static PyObject* posix_getpriority(PyObject* self, PyObject* args);

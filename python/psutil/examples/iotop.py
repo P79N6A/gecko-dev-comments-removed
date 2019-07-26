@@ -4,8 +4,6 @@
 
 
 
-
-
 """
 A clone of iotop (http://guichaz.free.fr/iotop/) showing real time
 disk I/O statistics.

@@ -4,8 +4,6 @@
 
 
 
-
-
 """Common objects shared by all _ps* modules."""
 
 from __future__ import division
@@ -169,7 +167,6 @@ del AF_INET, AF_INET6, AF_UNIX, SOCK_STREAM, SOCK_DGRAM, socket
 
 
 
-nt_sys_cputimes = namedtuple('cputimes', 'user nice system idle iowait irq softirq')
 nt_sysmeminfo = namedtuple('usage', 'total used free percent')
 
 nt_swapmeminfo = namedtuple('swap', 'total used free percent sin sout')

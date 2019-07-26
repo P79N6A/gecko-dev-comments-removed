@@ -7,8 +7,6 @@
 
 
 
-
-
 #include <Python.h>
 #include <assert.h>
 #include <errno.h>
@@ -28,7 +26,7 @@
 
 
 int
-pid_exists(long pid)
+psutil_pid_exists(long pid)
 {
     int kill_ret;
 
@@ -58,7 +56,7 @@ pid_exists(long pid)
 
 
 int
-get_proc_list(kinfo_proc **procList, size_t *procCount)
+psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
 {
     
 
@@ -125,7 +123,7 @@ get_proc_list(kinfo_proc **procList, size_t *procCount)
 
 
 int
-get_argmax()
+psutil_get_argmax()
 {
     int argmax;
     int mib[] = { CTL_KERN, KERN_ARGMAX };
@@ -140,7 +138,7 @@ get_argmax()
 
 
 PyObject*
-get_arg_list(long pid)
+psutil_get_arg_list(long pid)
 {
     int mib[3];
     int nargs;
@@ -159,7 +157,7 @@ get_arg_list(long pid)
     }
 
     
-    argmax = get_argmax();
+    argmax = psutil_get_argmax();
     if (! argmax) {
         PyErr_SetFromErrno(PyExc_OSError);
         goto error;
@@ -177,7 +175,7 @@ get_arg_list(long pid)
     mib[2] = pid;
     if (sysctl(mib, 3, procargs, &argmax, NULL, 0) < 0) {
         if (EINVAL == errno) { 
-            if ( pid_exists(pid) ) {
+            if ( psutil_pid_exists(pid) ) {
                 AccessDenied();
             } else {
                 NoSuchProcess();
@@ -238,7 +236,7 @@ error:
 
 
 int
-get_kinfo_proc(pid_t pid, struct kinfo_proc *kp)
+psutil_get_kinfo_proc(pid_t pid, struct kinfo_proc *kp)
 {
     int mib[4];
     size_t len;
@@ -276,7 +274,7 @@ psutil_proc_pidinfo(long pid, int flavor, void *pti, int size)
 {
     int ret = proc_pidinfo((int)pid, flavor, 0, pti, size);
     if (ret == 0) {
-        if (! pid_exists(pid)) {
+        if (! psutil_pid_exists(pid)) {
             NoSuchProcess();
             return 0;
         }
