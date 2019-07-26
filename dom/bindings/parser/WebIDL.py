@@ -1434,6 +1434,8 @@ class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
     def finish(self, parentScope):
         
         
+        
+        
         self.complete(parentScope)
 
     def validate(self):
