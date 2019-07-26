@@ -36,27 +36,34 @@ void
 ClientCanvasLayer::Initialize(const Data& aData)
 {
   CopyableCanvasLayer::Initialize(aData);
- 
+
   mCanvasClient = nullptr;
 
   if (mGLContext) {
     GLScreenBuffer* screen = mGLContext->Screen();
+
+    SurfaceCaps caps = screen->Caps();
+    if (mStream) {
+      
+      caps = GetContentFlags() & CONTENT_OPAQUE ? SurfaceCaps::ForRGB() : SurfaceCaps::ForRGBA();
+    }
+
     SurfaceStreamType streamType =
         SurfaceStream::ChooseGLStreamType(SurfaceStream::OffMainThread,
                                           screen->PreserveBuffer());
     SurfaceFactory_GL* factory = nullptr;
     if (!mForceReadback) {
-      if (ClientManager()->AsShadowForwarder()->GetCompositorBackendType() == mozilla::layers::LayersBackend::LAYERS_OPENGL) {
+      if (ClientManager()->AsShadowForwarder()->GetCompositorBackendType() == mozilla::layers::LAYERS_OPENGL) {
         if (mGLContext->GetContextType() == GLContextType::EGL) {
           bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
 
           if (!isCrossProcess) {
             
-            factory = SurfaceFactory_EGLImage::Create(mGLContext, screen->Caps());
+            factory = SurfaceFactory_EGLImage::Create(mGLContext, caps);
           } else {
             
 #ifdef MOZ_WIDGET_GONK
-            factory = new SurfaceFactory_Gralloc(mGLContext, screen->Caps(), ClientManager()->AsShadowForwarder());
+            factory = new SurfaceFactory_Gralloc(mGLContext, caps, ClientManager()->AsShadowForwarder());
 #else
             
             NS_NOTREACHED("isCrossProcess but not on native B2G!");
@@ -66,16 +73,34 @@ ClientCanvasLayer::Initialize(const Data& aData)
           
           
 #ifdef XP_MACOSX
-          factory = new SurfaceFactory_IOSurface(mGLContext, screen->Caps());
+          factory = new SurfaceFactory_IOSurface(mGLContext, caps);
 #else
-          factory = new SurfaceFactory_GLTexture(mGLContext, nullptr, screen->Caps());
+          factory = new SurfaceFactory_GLTexture(mGLContext, nullptr, caps);
 #endif
         }
       }
     }
 
     if (factory) {
-      screen->Morph(factory, streamType);
+      if (mStream) {
+        
+        mFactory = factory;
+
+        gfx::IntSize size = gfx::IntSize(aData.mSize.width, aData.mSize.height);
+        mTextureSurface = SharedSurface_GLTexture::Create(mGLContext, mGLContext,
+                                                          mGLContext->GetGLFormats(),
+                                                          size, caps.alpha, aData.mTexID);
+        SharedSurface* producer = mStream->SwapProducer(mFactory, size);
+        if (!producer) {
+          
+          delete mFactory;
+          mFactory = new SurfaceFactory_Basic(mGLContext, caps);
+          producer = mStream->SwapProducer(mFactory, size);
+          MOZ_ASSERT(producer, "Failed to create initial canvas surface with basic factory");
+        }
+      } else {
+        screen->Morph(factory, streamType);
+      }
     }
   }
 }

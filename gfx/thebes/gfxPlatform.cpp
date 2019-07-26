@@ -76,6 +76,11 @@
 #ifdef USE_SKIA
 #include "mozilla/Hal.h"
 #include "skia/SkGraphics.h"
+
+#ifdef USE_SKIA_GPU
+#include "SkiaGLGlue.h"
+#endif
+
 #endif
 
 #include "mozilla/Preferences.h"
@@ -231,6 +236,11 @@ MemoryPressureObserver::Observe(nsISupports *aSubject,
 {
     NS_ASSERTION(strcmp(aTopic, "memory-pressure") == 0, "unexpected event topic");
     Factory::PurgeAllCaches();
+
+#if USE_SKIA_GPU
+    gfxPlatform::GetPlatform()->PurgeSkiaCache();
+#endif
+
     return NS_OK;
 }
 
@@ -296,6 +306,10 @@ gfxPlatform::gfxPlatform()
         && !Preferences::GetBool("layers.prefer-opengl", false);
 #else
     mLayersUseDeprecated = false;
+#endif
+
+#ifdef USE_SKIA_GPU
+    mSkiaGlue = nullptr;
 #endif
 
     Preferences::AddBoolVarCache(&mDrawLayerBorders,
@@ -481,10 +495,6 @@ gfxPlatform::Init()
                                           false);
 
     CreateCMSOutputProfile();
-
-#ifdef USE_SKIA
-    gPlatform->InitializeSkiaCaches();
-#endif
 
     
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -892,38 +902,67 @@ gfxPlatform::UseAcceleratedSkiaCanvas()
          mPreferredCanvasBackend == BackendType::SKIA;
 }
 
-void
-gfxPlatform::InitializeSkiaCaches()
+static void
+InitializeSkiaCacheLimits(GrContext* context)
 {
 #ifdef USE_SKIA_GPU
-  if (UseAcceleratedSkiaCanvas()) {
-    bool usingDynamicCache = Preferences::GetBool("gfx.canvas.skiagl.dynamic-cache", false);
+  bool usingDynamicCache = Preferences::GetBool("gfx.canvas.skiagl.dynamic-cache", false);
 
-    int cacheItemLimit = Preferences::GetInt("gfx.canvas.skiagl.cache-items", 256);
-    int cacheSizeLimit = Preferences::GetInt("gfx.canvas.skiagl.cache-size", 96);
+  int cacheItemLimit = Preferences::GetInt("gfx.canvas.skiagl.cache-items", 256);
+  int cacheSizeLimit = Preferences::GetInt("gfx.canvas.skiagl.cache-size", 96);
 
-    
-    cacheSizeLimit *= 1024*1024;
+  
+  cacheSizeLimit *= 1024*1024;
 
-    if (usingDynamicCache) {
-      uint32_t totalMemory = mozilla::hal::GetTotalSystemMemory();
+  if (usingDynamicCache) {
+    uint32_t totalMemory = mozilla::hal::GetTotalSystemMemory();
 
-      if (totalMemory <= 256*1024*1024) {
-        
-        cacheSizeLimit = 2*1024*1024;
-      } else if (totalMemory > 0) {
-        cacheSizeLimit = totalMemory / 16;
-      }
+    if (totalMemory <= 256*1024*1024) {
+      
+      cacheSizeLimit = 2*1024*1024;
+    } else if (totalMemory > 0) {
+      cacheSizeLimit = totalMemory / 16;
     }
+  }
 
 #ifdef DEBUG
-    printf_stderr("Determined SkiaGL cache limits: Size %i, Items: %i\n", cacheSizeLimit, cacheItemLimit);
+  printf_stderr("Determined SkiaGL cache limits: Size %i, Items: %i\n", cacheSizeLimit, cacheItemLimit);
 #endif
 
-    Factory::SetGlobalSkiaCacheLimits(cacheItemLimit, cacheSizeLimit);
-  }
+  context->setTextureCacheLimits(cacheItemLimit, cacheSizeLimit);
 #endif
 }
+
+#ifdef USE_SKIA_GPU
+mozilla::gl::SkiaGLGlue*
+gfxPlatform::GetSkiaGLGlue()
+{
+  if (!mSkiaGlue) {
+    
+    
+    
+    mozilla::gfx::SurfaceCaps caps = mozilla::gfx::SurfaceCaps::ForRGBA();
+    nsRefPtr<mozilla::gl::GLContext> glContext = mozilla::gl::GLContextProvider::CreateOffscreen(gfxIntSize(16, 16), caps);
+    if (!glContext) {
+      printf_stderr("Failed to create GLContext for SkiaGL!\n");
+      return nullptr;
+    }
+    mSkiaGlue = new mozilla::gl::SkiaGLGlue(glContext);
+    InitializeSkiaCacheLimits(mSkiaGlue->GetGrContext());
+  }
+
+  return mSkiaGlue;
+}
+
+void
+gfxPlatform::PurgeSkiaCache()
+{
+  if (!mSkiaGlue)
+      return;
+
+  mSkiaGlue->GetGrContext()->freeGpuResources();
+}
+#endif
 
 already_AddRefed<gfxASurface>
 gfxPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
