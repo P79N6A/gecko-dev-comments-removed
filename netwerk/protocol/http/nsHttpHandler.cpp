@@ -382,7 +382,7 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request)
 
 nsresult
 nsHttpHandler::AddConnectionHeader(nsHttpHeaderArray *request,
-                                   uint8_t caps)
+                                   uint32_t caps)
 {
     
     
@@ -1492,7 +1492,7 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
         httpChannel = new nsHttpChannel();
     }
 
-    uint8_t caps = mCapabilities;
+    uint32_t caps = mCapabilities;
 
     if (https) {
         

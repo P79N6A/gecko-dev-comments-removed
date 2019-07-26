@@ -64,7 +64,7 @@ public:
     
     
     
-    nsresult Activate(nsAHttpTransaction *, uint8_t caps, int32_t pri);
+    nsresult Activate(nsAHttpTransaction *, uint32_t caps, int32_t pri);
 
     
     void Close(nsresult reason);
@@ -170,7 +170,7 @@ private:
     
     
     bool     EnsureNPNComplete();
-    void     SetupNPN(uint8_t caps);
+    void     SetupNPN(uint32_t caps);
 
     
     

@@ -69,7 +69,7 @@ public:
     
     
     
-    nsresult Init(uint8_t                caps,
+    nsresult Init(uint32_t               caps,
                   nsHttpConnectionInfo  *connInfo,
                   nsHttpRequestHead     *reqHeaders,
                   nsIInputStream        *reqBody,
@@ -180,7 +180,7 @@ private:
     int16_t                         mPriority;
 
     uint16_t                        mRestartCount;        
-    uint8_t                         mCaps;
+    uint32_t                        mCaps;
     enum Classifier                 mClassification;
     int32_t                         mPipelinePosition;
     int64_t                         mMaxPipelineObjectSize;
