@@ -47,8 +47,6 @@
 #include "ccapi.h"
 
 
-#define CCSIP_SDP_BUF_SIZE      SDP_MAX_LEN
-
 
 #define CCSIP_SRC_SDP_BIT       0x1
 #define CCSIP_DEST_SDP_BIT      0x2
@@ -92,7 +90,7 @@ PMH_EXTERN cc_sdp_t *sipsdp_create_from_buf(char *buf, uint32_t nbytes,
 
 #define SIPSDP_VERSION              0
 
-#define SIPSDP_ORIGIN_USERNAME      "Cisco-SIPUA"
+#define SIPSDP_ORIGIN_USERNAME      "Mozilla-SIPUA"
 #define SIPSDP_SESSION_NAME         "SIP Call"
 
 
