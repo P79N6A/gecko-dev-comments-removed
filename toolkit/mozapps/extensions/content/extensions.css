@@ -195,6 +195,9 @@ setting[type="menulist"] {
 .addon .relnotes {
   -moz-user-select: text;
 }
+#detail-name, #detail-desc, #detail-fulldesc {
+  -moz-user-select: text;
+}
 
 
 #view-port:not([selectedIndex="0"]) #discover-view .loading,
