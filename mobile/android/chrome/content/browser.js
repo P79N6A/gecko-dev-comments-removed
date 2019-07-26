@@ -1082,7 +1082,9 @@ var BrowserApp = {
       
       
       
+      
       switch (prefName) {
+        
         case "browser.chrome.titlebarMode":
         case "network.cookie.cookieBehavior":
         case "font.size.inflation.minTwips":
