@@ -23,6 +23,7 @@
 #include "nsLayoutUtils.h"
 #include "mozilla/Preferences.h"
 #include "nsFontInflationData.h"
+#include "StickyScrollContainer.h"
 #include <algorithm>
 
 #ifdef DEBUG
@@ -32,6 +33,7 @@
 #endif
 
 using namespace mozilla;
+using namespace mozilla::css;
 using namespace mozilla::layout;
 
 enum eNormalLineHeightControl {
@@ -842,6 +844,9 @@ nsHTMLReflowState::ApplyRelativePositioning(nsIFrame* aFrame,
   const nsStyleDisplay* display = aFrame->StyleDisplay();
   if (NS_STYLE_POSITION_RELATIVE == display->mPosition) {
     *aPosition += nsPoint(aComputedOffsets.left, aComputedOffsets.top);
+  } else if (NS_STYLE_POSITION_STICKY == display->mPosition) {
+    *aPosition = StickyScrollContainer::StickyScrollContainerForFrame(aFrame)->
+      ComputePosition(aFrame);
   }
 }
 
@@ -1941,7 +1946,10 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
     
     
     
-    if (mStyleDisplay->IsRelativelyPositioned(frame)) {
+    
+    
+    if (mStyleDisplay->IsRelativelyPositioned(frame) &&
+        NS_STYLE_POSITION_RELATIVE == mStyleDisplay->mPosition) {
       uint8_t direction = NS_STYLE_DIRECTION_LTR;
       if (cbrs && NS_STYLE_DIRECTION_RTL == cbrs->mStyleVisibility->mDirection) {
         direction = NS_STYLE_DIRECTION_RTL;

@@ -48,6 +48,7 @@
 #include "nsThemeConstants.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsIScrollPositionListener.h"
+#include "StickyScrollContainer.h"
 #include <algorithm>
 #include <cstdlib> 
 #include <cmath> 
@@ -827,6 +828,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
       state.mContentsOverflowAreas + mInner.mScrolledFrame->GetPosition());
   }
 
+  mInner.UpdateSticky();
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   if (!InInitialReflow() && !mInner.mHadNonInitialReflow) {
@@ -3544,6 +3546,8 @@ nsXULScrollFrame::Layout(nsBoxLayoutState& aState)
     mInner.mHadNonInitialReflow = true;
   }
 
+  mInner.UpdateSticky();
+
   
   
   nsIFrame* f = mInner.mScrolledFrame->GetContentInsertionFrame();
@@ -3711,6 +3715,17 @@ nsGfxScrollFrameInner::UpdateOverflow()
     return false;  
   }
   return mOuter->nsContainerFrame::UpdateOverflow();
+}
+
+void
+nsGfxScrollFrameInner::UpdateSticky()
+{
+  StickyScrollContainer* ssc = StickyScrollContainer::
+    GetStickyScrollContainerForScrollFrame(mOuter);
+  if (ssc) {
+    nsIScrollableFrame* scrollFrame = do_QueryFrame(mOuter);
+    ssc->UpdatePositions(scrollFrame->GetScrollPosition(), mOuter);
+  }
 }
 
 void

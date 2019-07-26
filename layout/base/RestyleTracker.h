@@ -29,6 +29,10 @@ class OverflowChangedTracker
 {
 public:
 
+  OverflowChangedTracker() :
+    mSubtreeRoot(nullptr)
+  {}
+
   ~OverflowChangedTracker()
   {
     NS_ASSERTION(mEntryList.empty(), "Need to flush before destroying!");
@@ -72,6 +76,15 @@ public:
 
 
 
+  void SetSubtreeRoot(const nsIFrame* aSubtreeRoot) {
+    mSubtreeRoot = aSubtreeRoot;
+  }
+
+  
+
+
+
+
 
   void Flush() {
     while (!mEntryList.empty()) {
@@ -100,7 +113,7 @@ public:
       }
       if (updateParent) {
         nsIFrame *parent = frame->GetParent();
-        if (parent) {
+        if (parent && parent != mSubtreeRoot) {
           if (!mEntryList.contains(Entry(parent, entry->mDepth - 1, false))) {
             mEntryList.insert(new Entry(parent, entry->mDepth - 1, false));
           }
@@ -165,6 +178,9 @@ private:
 
   
   SplayTree<Entry, Entry> mEntryList;
+
+  
+  const nsIFrame* mSubtreeRoot;
 };
 
 class RestyleTracker {

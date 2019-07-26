@@ -276,6 +276,8 @@ public:
 
   bool UpdateOverflow();
 
+  void UpdateSticky();
+
   
   
   
