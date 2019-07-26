@@ -257,7 +257,6 @@ TopSitesView.prototype = {
       case "MozAppbarDismissing":
         
         this._lastSelectedSites = null;
-        this._set.clearSelection();
     }
   },
 
