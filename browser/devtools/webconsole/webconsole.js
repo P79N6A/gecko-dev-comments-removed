@@ -2676,12 +2676,12 @@ WebConsoleFrame.prototype = {
       let mousedown = this._mousedown;
       this._mousedown = false;
 
+      aEvent.preventDefault();
+
       
       if (aEvent.detail != 1 || aEvent.button != 0) {
         return;
       }
-
-      aEvent.preventDefault();
 
       
       
