@@ -1822,7 +1822,11 @@ pref("layout.css.filters.enabled", false);
 pref("layout.css.flexbox.enabled", true);
 
 
+#ifdef RELEASE_BUILD
 pref("layout.css.sticky.enabled", false);
+#else
+pref("layout.css.sticky.enabled", true);
+#endif
 
 
 pref("layout.css.image-orientation.enabled", true);
