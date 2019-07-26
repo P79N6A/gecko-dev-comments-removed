@@ -159,14 +159,36 @@ public final class Distribution {
                 File applicationPackage = new File(context.getPackageResourcePath());
                 zip = new ZipFile(applicationPackage);
                 ZipEntry zipEntry = zip.getEntry("distribution/bookmarks.json");
-                if (zipEntry == null) {
-                    return null;
+                if (zipEntry != null) {
+                    inputStream = zip.getInputStream(zipEntry);
+                } else {
+                    
+                    
+                    zipEntry = zip.getEntry("distribution/preferences.json");
+                    if (zipEntry != null) {
+                        return null;
+                    }
+                    
+                    File systemFile = new File("/system/" + context.getPackageName() + "/distribution/bookmarks.json");
+                    if (!systemFile.exists()) {
+                        return null;
+                    }
+                    inputStream = new FileInputStream(systemFile);
                 }
-                inputStream = zip.getInputStream(zipEntry);
             } else {
                 
-                File dataDir = new File(context.getApplicationInfo().dataDir);
-                File file = new File(dataDir, "distribution/bookmarks.json");
+                
+                String pathKeyName = context.getPackageName() + ".distribution_path";
+                String distPath = settings.getString(pathKeyName, null);
+
+                File distDir = null;
+                if (distPath != null) {
+                    distDir = new File(distPath);
+                } else {
+                    distDir = new File(context.getApplicationInfo().dataDir, "distribution");
+                }
+
+                File file = new File(distDir, "bookmarks.json");
                 inputStream = new FileInputStream(file);
             }
 
