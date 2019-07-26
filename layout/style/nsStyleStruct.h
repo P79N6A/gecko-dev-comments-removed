@@ -40,27 +40,27 @@ class imgIContainer;
 
 
 
-#define NS_STYLE_INHERIT_MASK             0x007fffff
+#define NS_STYLE_INHERIT_MASK              0x000ffffff
 
 
 
-#define NS_STYLE_HAS_TEXT_DECORATION_LINES 0x00800000
+#define NS_STYLE_HAS_TEXT_DECORATION_LINES 0x001000000
 
-#define NS_STYLE_HAS_PSEUDO_ELEMENT_DATA  0x01000000
+#define NS_STYLE_HAS_PSEUDO_ELEMENT_DATA   0x002000000
 
-#define NS_STYLE_RELEVANT_LINK_VISITED    0x02000000
+#define NS_STYLE_RELEVANT_LINK_VISITED     0x004000000
 
-#define NS_STYLE_IS_STYLE_IF_VISITED      0x04000000
+#define NS_STYLE_IS_STYLE_IF_VISITED       0x008000000
 
-#define NS_STYLE_CONTEXT_TYPE_MASK        0xf8000000
-#define NS_STYLE_CONTEXT_TYPE_SHIFT       27
+#define NS_STYLE_CONTEXT_TYPE_MASK         0x1f0000000
+#define NS_STYLE_CONTEXT_TYPE_SHIFT        28
 
 
-#define NS_RULE_NODE_GC_MARK              0x02000000
-#define NS_RULE_NODE_USED_DIRECTLY        0x04000000
-#define NS_RULE_NODE_IS_IMPORTANT         0x08000000
-#define NS_RULE_NODE_LEVEL_MASK           0xf0000000
-#define NS_RULE_NODE_LEVEL_SHIFT          28
+#define NS_RULE_NODE_GC_MARK                0x02000000
+#define NS_RULE_NODE_USED_DIRECTLY          0x04000000
+#define NS_RULE_NODE_IS_IMPORTANT           0x08000000
+#define NS_RULE_NODE_LEVEL_MASK             0xf0000000
+#define NS_RULE_NODE_LEVEL_SHIFT            28
 
 
 
@@ -2500,6 +2500,25 @@ struct nsStyleSVGReset {
   uint8_t          mDominantBaseline; 
   uint8_t          mVectorEffect;     
   uint8_t          mMaskType;         
+};
+
+struct nsStyleVariables {
+  nsStyleVariables();
+  nsStyleVariables(const nsStyleVariables& aSource);
+  ~nsStyleVariables();
+
+  void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
+    return aContext->AllocateFromShell(sz);
+  }
+  void Destroy(nsPresContext* aContext) {
+    this->~nsStyleVariables();
+    aContext->FreeToShell(sizeof(nsStyleVariables), this);
+  }
+
+  nsChangeHint CalcDifference(const nsStyleVariables& aOther) const;
+  static nsChangeHint MaxDifference() {
+    return nsChangeHint(0);
+  }
 };
 
 #endif 

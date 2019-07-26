@@ -588,6 +588,13 @@ protected:
                         RuleDetail aRuleDetail,
                         const bool aCanStoreInRuleTree);
 
+  const void*
+    ComputeVariablesData(void* aStartStruct,
+                         const nsRuleData* aRuleData,
+                         nsStyleContext* aContext, nsRuleNode* aHighestNode,
+                         RuleDetail aRuleDetail,
+                         const bool aCanStoreInRuleTree);
+
   
   static void SetFontSize(nsPresContext* aPresContext,
                           const nsRuleData* aRuleData,

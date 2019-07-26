@@ -52,6 +52,7 @@ STYLE_STRUCTS = [("INHERITED",) + x for x in [
     ("UserInterface",  "nullptr"),
     ("TableBorder",    "nullptr"),
     ("SVG",            "nullptr"),
+    ("Variables",      "nullptr"),
 ]] + [("RESET",) + x for x in [
     
     ("Background",     "nullptr"),
