@@ -10,6 +10,9 @@
 
 #include <limits.h>
 
+#ifdef __ARM_PCS_VFP
+#define JS_CPU_ARM_HARDFP
+#endif
 namespace js {
 namespace ion {
 
@@ -196,7 +199,7 @@ class FloatRegisters
     static const uint32_t WrapperMask = VolatileMask;
 
     
-    static const uint32_t NonAllocatableMask = (1 << d0) | (1 << invalid_freg);
+    static const uint32_t NonAllocatableMask = (1 << d1) | (1 << invalid_freg);
 
     
     static const uint32_t TempMask = VolatileMask & ~NonAllocatableMask;

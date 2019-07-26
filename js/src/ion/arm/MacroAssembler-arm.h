@@ -334,6 +334,11 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     uint32_t passedArgs_;
 
+#ifdef JS_CPU_ARM_HARDFP
+    uint32_t usedIntSlots_;
+    uint32_t usedFloatSlots_;
+    uint32_t padding_;
+#else
     
     
     
@@ -341,6 +346,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     uint32_t usedSlots_;
+#endif
     bool dynamicAlignment_;
 
     bool enoughMemory_;
