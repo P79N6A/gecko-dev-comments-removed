@@ -22,7 +22,6 @@ namespace net {
 
 
 class RtspChannel : public nsBaseChannel
-                  , public nsIStreamListener
 {
 public:
   NS_DECL_ISUPPORTS
