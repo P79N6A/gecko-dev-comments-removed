@@ -46,9 +46,11 @@ function onDocumentReady2Translate(event) {
 
   try {
     
-    let winUtils = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                       .getInterface(Ci.nsIDOMWindowUtils);
-    winUtils.removeSheet(hideSheetUri, winUtils.USER_SHEET);
+    if (document.defaultView) {
+      let winUtils = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
+                                         .getInterface(Ci.nsIDOMWindowUtils);
+      winUtils.removeSheet(hideSheetUri, winUtils.USER_SHEET);
+    }
   }
   catch(e) {
     console.exception(e);
