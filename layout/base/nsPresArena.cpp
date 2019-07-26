@@ -340,6 +340,9 @@ struct nsPresArena::State {
     
     list->mEntriesEverAllocated++;
     PL_ARENA_ALLOCATE(result, &mPool, aSize);
+    if (!result) {
+      NS_RUNTIMEABORT("out of memory");
+    }
     return result;
   }
 
