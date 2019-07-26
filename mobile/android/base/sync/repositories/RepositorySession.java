@@ -99,6 +99,13 @@ public abstract class RepositorySession {
   
 
 
+  public boolean shouldSkip() {
+    return false;
+  }
+
+  
+
+
 
 
 
