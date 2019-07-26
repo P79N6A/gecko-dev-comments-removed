@@ -2702,7 +2702,7 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
 
 
-    for (AllFramesIter i(cx->stack.space()); !i.done(); ++i) {
+    for (AllFramesIter i(cx->runtime); !i.done(); ++i) {
         
 
 

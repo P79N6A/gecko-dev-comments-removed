@@ -801,7 +801,7 @@ JSCompartment::onTooMuchMalloc()
 bool
 JSCompartment::hasScriptsOnStack()
 {
-    for (AllFramesIter afi(rt->stackSpace); !afi.done(); ++afi) {
+    for (AllFramesIter afi(rt); !afi.done(); ++afi) {
 #ifdef JS_ION
         
         if (afi.isIon())

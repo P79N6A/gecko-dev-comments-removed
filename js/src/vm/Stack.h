@@ -2161,24 +2161,37 @@ class NonBuiltinScriptFrameIter : public StackIter
 
 
 
+
 class AllFramesIter
 {
   public:
-    AllFramesIter(StackSpace &space);
+    AllFramesIter(JSRuntime *rt);
 
-    bool done() const { return fp_ == NULL; }
+    bool done() const { return state_ == DONE; }
     AllFramesIter& operator++();
 
-    bool        isIon() const { return fp_->runningInIon(); }
-    StackFrame *interpFrame() const { return fp_; }
+    bool isIon() const { return state_ == ION; }
+    StackFrame *interpFrame() const { JS_ASSERT(state_ == SCRIPTED); return fp_; }
     StackSegment *seg() const { return seg_; }
 
     TaggedFramePtr taggedFramePtr() const;
 
   private:
-    void settle();
+    enum State { DONE, SCRIPTED, ION };
+
+#ifdef JS_ION
+    void popIonFrame();
+#endif
+    void settleOnNewState();
+
     StackSegment *seg_;
     StackFrame *fp_;
+    State state_;
+
+#ifdef JS_ION
+    ion::IonActivationIterator ionActivations_;
+    ion::IonFrameIterator ionFrames_;
+#endif
 };
 
 }  

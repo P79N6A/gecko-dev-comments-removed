@@ -1922,7 +1922,7 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 
 
 
-    for (AllFramesIter i(cx->runtime->stackSpace); !i.done(); ++i) {
+    for (AllFramesIter i(cx->runtime); !i.done(); ++i) {
         
 
 

@@ -1984,7 +1984,7 @@ Debugger::getNewestFrame(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-    for (AllFramesIter i(cx->stack.space()); !i.done(); ++i) {
+    for (AllFramesIter i(cx->runtime); !i.done(); ++i) {
         
 
 
