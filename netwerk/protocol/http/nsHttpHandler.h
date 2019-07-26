@@ -120,6 +120,33 @@ public:
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
 
+    
+
+    
+    bool TCPKeepaliveEnabledForShortLivedConns() {
+      return mTCPKeepaliveShortLivedEnabled;
+    }
+    
+    
+    int32_t GetTCPKeepaliveShortLivedTime() {
+      return mTCPKeepaliveShortLivedTimeS;
+    }
+    
+    
+    int32_t GetTCPKeepaliveShortLivedIdleTime() {
+      return mTCPKeepaliveShortLivedIdleTimeS;
+    }
+
+    
+    bool TCPKeepaliveEnabledForLongLivedConns() {
+      return mTCPKeepaliveLongLivedEnabled;
+    }
+    
+    
+    int32_t GetTCPKeepaliveLongLivedIdleTime() {
+      return mTCPKeepaliveLongLivedIdleTimeS;
+    }
+
     nsHttpAuthCache     *AuthCache(bool aPrivate) {
         return aPrivate ? &mPrivateAuthCache : &mAuthCache;
     }
@@ -463,6 +490,20 @@ private:
     
     
     TimeStamp      mCacheSkippedUntil;
+
+    
+
+    
+    bool mTCPKeepaliveShortLivedEnabled;
+    
+    int32_t mTCPKeepaliveShortLivedTimeS;
+    
+    int32_t mTCPKeepaliveShortLivedIdleTimeS;
+
+    
+    bool mTCPKeepaliveLongLivedEnabled;
+    
+    int32_t mTCPKeepaliveLongLivedIdleTimeS;
 
 private:
     

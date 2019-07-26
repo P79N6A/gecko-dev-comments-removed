@@ -1012,6 +1012,16 @@ pref("network.http.pacing.requests.hz", 100);
 pref("network.http.pacing.requests.burst", 32);
 
 
+pref("network.http.tcp_keepalive.short_lived_connections", true);
+
+pref("network.http.tcp_keepalive.short_lived_time", 60);
+
+pref("network.http.tcp_keepalive.short_lived_idle_time", 10);
+
+pref("network.http.tcp_keepalive.long_lived_connections", true);
+pref("network.http.tcp_keepalive.long_lived_idle_time", 600);
+
+
 
 
 

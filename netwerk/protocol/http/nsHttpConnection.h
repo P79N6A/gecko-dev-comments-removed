@@ -16,6 +16,7 @@
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsITimer.h"
 
 class nsISocketTransport;
 
@@ -148,6 +149,11 @@ public:
     
     uint32_t  ReadTimeoutTick(PRIntervalTime now);
 
+    
+    
+    
+    static void UpdateTCPKeepalive(nsITimer *aTimer, void *aClosure);
+
     nsAHttpTransaction::Classifier Classification() { return mClassification; }
     void Classify(nsAHttpTransaction::Classifier newclass)
     {
@@ -169,6 +175,13 @@ public:
     bool    IsExperienced() { return mExperienced; }
 
 private:
+    
+    enum TCPKeepaliveConfig {
+      kTCPKeepaliveDisabled = 0,
+      kTCPKeepaliveShortLivedConfig,
+      kTCPKeepaliveLongLivedConfig
+    };
+
     
     nsresult ProxyStartSSL();
 
@@ -196,7 +209,12 @@ private:
     
     void ReportDataUsage(bool);
 
-private:
+    
+    
+    nsresult StartShortLivedTCPKeepalives();
+    nsresult StartLongLivedTCPKeepalives();
+    nsresult DisableTCPKeepalives();
+
     nsCOMPtr<nsISocketTransport>    mSocketTransport;
     nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
     nsCOMPtr<nsIAsyncOutputStream>  mSocketOut;
@@ -280,8 +298,12 @@ private:
     uint32_t                        mTransactionCaps;
 
     bool                            mResponseTimeoutEnabled;
+
+    
+    uint32_t                        mTCPKeepaliveConfig;
+    nsCOMPtr<nsITimer>              mTCPKeepaliveTransitionTimer;
 };
 
 }} 
 
-#endif 
+#endif
