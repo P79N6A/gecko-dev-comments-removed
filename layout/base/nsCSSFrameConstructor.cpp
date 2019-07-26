@@ -3050,51 +3050,39 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
-  nsIFrame* fieldsetFrame = NS_NewFieldSetFrame(mPresShell, styleContext);
+  nsIFrame* newFrame = NS_NewFieldSetFrame(mPresShell, styleContext);
 
   
   InitAndRestoreFrame(aState, content,
                       aState.GetGeometricParent(aStyleDisplay, aParentFrame),
-                      fieldsetFrame);
+                      newFrame);
 
   
   nsRefPtr<nsStyleContext> fieldsetContentStyle;
   fieldsetContentStyle = mPresShell->StyleSet()->
     ResolveAnonymousBoxStyle(nsCSSAnonBoxes::fieldsetContent, styleContext);
 
-  const nsStyleDisplay* fieldsetContentDisplay = fieldsetContentStyle->StyleDisplay();
-  bool isScrollable = fieldsetContentDisplay->IsScrollableOverflow();
-  nsIFrame* scrollFrame = nullptr;
-  if (isScrollable) {
-    fieldsetContentStyle =
-      BeginBuildingScrollFrame(aState, content, fieldsetContentStyle,
-                               aState.GetGeometricParent(fieldsetContentDisplay, fieldsetFrame),
-                               nsCSSAnonBoxes::scrolledContent,
-                               false, scrollFrame);
-  }
-
   nsIFrame* blockFrame = NS_NewBlockFrame(mPresShell, fieldsetContentStyle,
                                           NS_BLOCK_FLOAT_MGR |
                                           NS_BLOCK_MARGIN_ROOT);
-  InitAndRestoreFrame(aState, content,
-    scrollFrame ? scrollFrame : fieldsetFrame, blockFrame);
+  InitAndRestoreFrame(aState, content, newFrame, blockFrame);
 
-  aState.AddChild(fieldsetFrame, aFrameItems, content, styleContext, aParentFrame);
+  aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame);
   
   
   nsFrameConstructorSaveState absoluteSaveState;
   nsFrameItems                childItems;
 
-  blockFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
-  if (fieldsetFrame->IsPositioned()) {
-    aState.PushAbsoluteContainingBlock(blockFrame, fieldsetFrame, absoluteSaveState);
+  newFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
+  if (newFrame->IsPositioned()) {
+    aState.PushAbsoluteContainingBlock(newFrame, newFrame, absoluteSaveState);
   }
 
   ProcessChildren(aState, content, styleContext, blockFrame, true,
                   childItems, true, aItem.mPendingBinding);
 
   nsFrameItems fieldsetKids;
-  fieldsetKids.AddChild(scrollFrame ? scrollFrame : blockFrame);
+  fieldsetKids.AddChild(blockFrame);
 
   for (nsFrameList::Enumerator e(childItems); !e.AtEnd(); e.Next()) {
     nsIFrame* child = e.get();
@@ -3106,25 +3094,21 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
       
       childItems.RemoveFrame(child);
       
-      fieldsetKids.InsertFrame(fieldsetFrame, nullptr, child);
+      fieldsetKids.InsertFrame(newFrame, nullptr, child);
       break;
     }
-  }
-
-  if (isScrollable) {
-    FinishBuildingScrollFrame(scrollFrame, blockFrame);
   }
 
   
   blockFrame->SetInitialChildList(kPrincipalList, childItems);
 
   
-  fieldsetFrame->SetInitialChildList(kPrincipalList, fieldsetKids);
+  newFrame->SetInitialChildList(kPrincipalList, fieldsetKids);
 
-  fieldsetFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
+  newFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
 
   
-  return fieldsetFrame; 
+  return newFrame; 
 }
 
 static nsIFrame*
@@ -3278,17 +3262,6 @@ nsCSSFrameConstructor::FindDataByTag(nsIAtom* aTag,
 #define COMPLEX_TAG_CREATE(_tag, _func)             \
   { &nsGkAtoms::_tag, FULL_CTOR_FCDATA(0, _func) }
 
-static bool
-IsFrameForFieldSet(nsIFrame* aFrame, nsIAtom* aFrameType)
-{
-  nsIAtom* pseudo = aFrame->StyleContext()->GetPseudo();
-  if (pseudo == nsCSSAnonBoxes::fieldsetContent ||
-      pseudo == nsCSSAnonBoxes::scrolledContent) {
-    return IsFrameForFieldSet(aFrame->GetParent(), aFrame->GetParent()->GetType());
-  }
-  return aFrameType == nsGkAtoms::fieldSetFrame;
-}
-
 
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindHTMLData(Element* aElement,
@@ -3311,7 +3284,9 @@ nsCSSFrameConstructor::FindHTMLData(Element* aElement,
                "Unexpected parent for fieldset content anon box");
   if (aTag == nsGkAtoms::legend &&
       (!aParentFrame ||
-       !IsFrameForFieldSet(aParentFrame, aParentFrame->GetType()) ||
+       (aParentFrame->GetType() != nsGkAtoms::fieldSetFrame &&
+        aParentFrame->StyleContext()->GetPseudo() !=
+          nsCSSAnonBoxes::fieldsetContent) ||
        !aElement->GetParent() ||
        !aElement->GetParent()->IsHTML(nsGkAtoms::fieldset) ||
        aStyleContext->StyleDisplay()->IsFloatingStyle() ||
@@ -5944,8 +5919,13 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
 {
   nsIFrame* parentFrame = aSibling->GetParent();
   nsIAtom* parentType = nullptr;
+  nsIAtom* grandparentType = nullptr;
   if (parentFrame) {
     parentType = parentFrame->GetType();
+    nsIFrame* grandparentFrame = parentFrame->GetParent();
+    if (grandparentFrame) {
+      grandparentType = grandparentFrame->GetType();
+    }
   }
 
   uint8_t siblingDisplay = aSibling->GetDisplay();
@@ -6004,7 +5984,9 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
 
     return true;
   }
-  else if (IsFrameForFieldSet(parentFrame, parentType)) {
+  else if (nsGkAtoms::fieldSetFrame == parentType ||
+           (nsGkAtoms::fieldSetFrame == grandparentType &&
+            nsGkAtoms::blockFrame == parentType)) {
     
     nsIAtom* sibType = aSibling->GetContentInsertionFrame()->GetType();
     bool legendContent = aContent->IsHTML(nsGkAtoms::legend);
@@ -7101,7 +7083,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   
   NS_ASSERTION(isSingleInsert || frameType != nsGkAtoms::fieldSetFrame,
                "Unexpected parent");
-  if (IsFrameForFieldSet(parentFrame, frameType) &&
+  if (frameType == nsGkAtoms::fieldSetFrame &&
       aStartChild->Tag() == nsGkAtoms::legend) {
     
     
