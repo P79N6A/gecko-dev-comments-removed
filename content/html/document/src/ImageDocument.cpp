@@ -344,6 +344,11 @@ ImageDocument::ShrinkToFit()
   
   ScrollImageTo(0, 0, false);
 
+  if (!mImageContent) {
+    
+    return;
+  }
+
   SetModeClass(eShrinkToFit);
   
   mImageIsResized = true;
@@ -375,7 +380,7 @@ ImageDocument::ScrollImageTo(int32_t aX, int32_t aY, bool restoreImage)
     FlushPendingNotifications(Flush_Layout);
   }
 
-  nsIPresShell *shell = GetShell();
+  nsCOMPtr<nsIPresShell> shell = GetShell();
   if (!shell)
     return;
 
