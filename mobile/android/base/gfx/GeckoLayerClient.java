@@ -887,7 +887,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
 
     @Override
-    public void onSubdocumentScrollBy(float dx, float dy) {
+    public void scrollMarginsBy(float dx, float dy) {
         ImmutableViewportMetrics newMarginsMetrics =
             mMarginsAnimator.scrollBy(mViewportMetrics, dx, dy);
         mViewportMetrics = mViewportMetrics.setMarginsFrom(newMarginsMetrics);

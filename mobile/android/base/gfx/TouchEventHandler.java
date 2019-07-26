@@ -78,7 +78,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     
     
     
-    private boolean mDispatchEvents;
+    private boolean mAllowDefaultAction;
 
     
     
@@ -128,7 +128,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         mGestureDetector = new GestureDetector(context, mPanZoomController);
         mScaleGestureDetector = new SimpleScaleGestureDetector(mPanZoomController);
         mListenerTimeoutProcessor = new ListenerTimeoutProcessor();
-        mDispatchEvents = true;
+        mAllowDefaultAction = true;
 
         mGestureDetector.setOnDoubleTapListener(mPanZoomController);
 
@@ -148,7 +148,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             
             
             
-            mDispatchEvents = true;
+            mAllowDefaultAction = true;
             if (mHoldInQueue) {
                 
                 
@@ -172,15 +172,10 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
 
         
         
-        
-        
-        
         if (mHoldInQueue) {
             mEventQueue.add(MotionEvent.obtain(event));
-        } else if (mDispatchEvents) {
-            dispatchEvent(event);
-        } else if (touchFinished(event)) {
-            mPanZoomController.preventedTouchFinished();
+        } else {
+            dispatchEvent(event, mAllowDefaultAction);
         }
 
         return false;
@@ -224,7 +219,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     
 
 
-    private void dispatchEvent(MotionEvent event) {
+    private void dispatchEvent(MotionEvent event, boolean allowDefaultAction) {
         if (mGestureDetector.onTouchEvent(event)) {
             return;
         }
@@ -232,7 +227,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         if (mScaleGestureDetector.isInProgress()) {
             return;
         }
-        mPanZoomController.handleEvent(event);
+        mPanZoomController.handleEvent(event, !allowDefaultAction);
     }
 
     
@@ -240,13 +235,6 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
 
 
     private void processEventBlock(boolean allowDefaultAction) {
-        if (!allowDefaultAction) {
-            
-            
-            long now = SystemClock.uptimeMillis();
-            dispatchEvent(MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0, 0, 0));
-        }
-
         if (mEventQueue.isEmpty()) {
             Log.e(LOGTAG, "Unexpected empty event queue in processEventBlock!", new Exception());
             return;
@@ -263,13 +251,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             
 
             if (event != null) {
-                
-                
-                if (allowDefaultAction) {
-                    dispatchEvent(event);
-                } else if (touchFinished(event)) {
-                    mPanZoomController.preventedTouchFinished();
-                }
+                dispatchEvent(event, allowDefaultAction);
             }
             if (mEventQueue.isEmpty()) {
                 
@@ -278,7 +260,7 @@ final class TouchEventHandler implements Tabs.OnTabsChangedListener {
                 
                 
                 mHoldInQueue = false;
-                mDispatchEvents = allowDefaultAction;
+                mAllowDefaultAction = allowDefaultAction;
                 break;
             }
             event = mEventQueue.peek();
