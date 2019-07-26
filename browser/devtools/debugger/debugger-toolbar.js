@@ -615,7 +615,7 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
       
       
-      for (let otherItem of this) {
+      for (let otherItem in this) {
         if (otherItem != stackframeItem) {
           otherItem.attachment.popup.menuitem.removeAttribute("checked");
         } else {
