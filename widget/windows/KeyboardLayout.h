@@ -271,7 +271,8 @@ public:
 class NativeKey {
 public:
   NativeKey() :
-    mDOMKeyCode(0), mVirtualKeyCode(0), mOriginalVirtualKeyCode(0),
+    mDOMKeyCode(0), mKeyNameIndex(KEY_NAME_INDEX_Unidentified),
+    mMessage(0), mVirtualKeyCode(0), mOriginalVirtualKeyCode(0),
     mScanCode(0), mIsExtended(false)
   {
   }
@@ -281,25 +282,48 @@ public:
             const MSG& aKeyOrCharMessage);
 
   uint32_t GetDOMKeyCode() const { return mDOMKeyCode; }
+  KeyNameIndex GetKeyNameIndex() const { return mKeyNameIndex; }
+  const UniCharsAndModifiers& GetCommittedCharsAndModifiers() const
+  {
+    return mCommittedCharsAndModifiers;
+  }
 
   
   uint32_t GetKeyLocation() const;
+  UINT GetMessage() const { return mMessage; }
+  bool IsKeyDownMessage() const
+  {
+    return (mMessage == WM_KEYDOWN || mMessage == WM_SYSKEYDOWN);
+  }
   WORD GetScanCode() const { return mScanCode; }
   uint8_t GetVirtualKeyCode() const { return mVirtualKeyCode; }
   uint8_t GetOriginalVirtualKeyCode() const { return mOriginalVirtualKeyCode; }
 
 private:
   uint32_t mDOMKeyCode;
+  KeyNameIndex mKeyNameIndex;
+
+  
+  UINT mMessage;
+
   
   uint8_t mVirtualKeyCode;
   
   
   
   uint8_t mOriginalVirtualKeyCode;
+
+  
+  
+  
+  UniCharsAndModifiers mCommittedCharsAndModifiers;
+
   WORD    mScanCode;
   bool    mIsExtended;
 
   UINT GetScanCodeWithExtendedFlag() const;
+
+  friend class KeyboardLayout;
 };
 
 class KeyboardLayout
@@ -361,8 +385,9 @@ public:
 
 
 
-  UniCharsAndModifiers OnKeyDown(uint8_t aVirtualKey,
-                                 const ModifierKeyState& aModKeyState);
+
+  void InitNativeKey(NativeKey& aNativeKey,
+                     const ModifierKeyState& aModKeyState);
 
   
 
@@ -371,6 +396,12 @@ public:
   void LoadLayout(HKL aLayout, bool aLoadLater = false);
 
   uint32_t ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const;
+
+  
+
+
+
+  KeyNameIndex ConvertNativeKeyCodeToKeyNameIndex(uint8_t aVirtualKey) const;
 
   HKL GetLayout() const
   {

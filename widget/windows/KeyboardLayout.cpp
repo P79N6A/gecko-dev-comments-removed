@@ -384,7 +384,8 @@ VirtualKey::FillKbdState(PBYTE aKbdState,
 NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
                      nsWindow* aWindow,
                      const MSG& aKeyOrCharMessage) :
-  mDOMKeyCode(0), mVirtualKeyCode(0), mOriginalVirtualKeyCode(0)
+  mDOMKeyCode(0), mMessage(aKeyOrCharMessage.message),
+  mVirtualKeyCode(0), mOriginalVirtualKeyCode(0)
 {
   mScanCode = WinUtils::GetScanCode(aKeyOrCharMessage.lParam);
   mIsExtended = WinUtils::IsExtendedScanCode(aKeyOrCharMessage.lParam);
@@ -392,7 +393,7 @@ NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
   
   bool canComputeVirtualKeyCodeFromScanCode =
     (!mIsExtended || WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION);
-  switch (aKeyOrCharMessage.message) {
+  switch (mMessage) {
     case WM_KEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYDOWN:
@@ -540,6 +541,8 @@ NativeKey::NativeKey(const KeyboardLayout& aKeyboardLayout,
 
   mDOMKeyCode =
     aKeyboardLayout.ConvertNativeKeyCodeToDOMKeyCode(mOriginalVirtualKeyCode);
+  mKeyNameIndex =
+    aKeyboardLayout.ConvertNativeKeyCodeToKeyNameIndex(mOriginalVirtualKeyCode);
 }
 
 UINT
@@ -659,48 +662,66 @@ KeyboardLayout::IsDeadKey(uint8_t aVirtualKey,
            VirtualKey::ModifiersToShiftState(aModKeyState.GetModifiers()));
 }
 
-UniCharsAndModifiers
-KeyboardLayout::OnKeyDown(uint8_t aVirtualKey,
-                          const ModifierKeyState& aModKeyState)
+void
+KeyboardLayout::InitNativeKey(NativeKey& aNativeKey,
+                              const ModifierKeyState& aModKeyState)
 {
   if (mPendingKeyboardLayout) {
     LoadLayout(mPendingKeyboardLayout);
   }
 
-  int32_t virtualKeyIndex = GetKeyIndex(aVirtualKey);
+  uint8_t virtualKey = aNativeKey.GetOriginalVirtualKeyCode();
+  int32_t virtualKeyIndex = GetKeyIndex(virtualKey);
 
   if (virtualKeyIndex < 0) {
     
     
-    return UniCharsAndModifiers();
+    return;
   }
 
+  bool isKeyDown = aNativeKey.IsKeyDownMessage();
   uint8_t shiftState =
     VirtualKey::ModifiersToShiftState(aModKeyState.GetModifiers());
 
   if (mVirtualKeys[virtualKeyIndex].IsDeadKey(shiftState)) {
-    if (mActiveDeadKey < 0) {
+    if ((isKeyDown && mActiveDeadKey < 0) ||
+        (!isKeyDown && mActiveDeadKey == virtualKey)) {
       
-      mActiveDeadKey = aVirtualKey;
-      mDeadKeyShiftState = shiftState;
-      return UniCharsAndModifiers();
+      if (isKeyDown) {
+        
+        mActiveDeadKey = virtualKey;
+        mDeadKeyShiftState = shiftState;
+      }
+      UniCharsAndModifiers deadChars =
+        mVirtualKeys[virtualKeyIndex].GetNativeUniChars(shiftState);
+      NS_ASSERTION(deadChars.mLength == 1,
+                   "dead key must generate only one character");
+      aNativeKey.mKeyNameIndex =
+        WidgetUtils::GetDeadKeyNameIndex(deadChars.mChars[0]);
+      return;
     }
 
     
     
     int32_t activeDeadKeyIndex = GetKeyIndex(mActiveDeadKey);
-    UniCharsAndModifiers result =
+    UniCharsAndModifiers prevDeadChars =
       mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState);
-    result += mVirtualKeys[virtualKeyIndex].GetUniChars(shiftState);
-    DeactivateDeadKeyState();
-    return result;
+    UniCharsAndModifiers newChars =
+      mVirtualKeys[virtualKeyIndex].GetUniChars(shiftState);
+    
+    aNativeKey.mCommittedCharsAndModifiers = prevDeadChars + newChars;
+    if (isKeyDown) {
+      DeactivateDeadKeyState();
+    }
+    return;
   }
 
   UniCharsAndModifiers baseChars =
     mVirtualKeys[virtualKeyIndex].GetUniChars(shiftState);
   if (mActiveDeadKey < 0) {
     
-    return baseChars;
+    aNativeKey.mCommittedCharsAndModifiers = baseChars;
+    return;
   }
 
   
@@ -712,20 +733,25 @@ KeyboardLayout::OnKeyDown(uint8_t aVirtualKey,
   if (compositeChar) {
     
     
-    UniCharsAndModifiers result;
-    result.Append(compositeChar, baseChars.mModifiers[0]);
-    DeactivateDeadKeyState();
-    return result;
+    aNativeKey.mCommittedCharsAndModifiers.Append(compositeChar,
+                                                  baseChars.mModifiers[0]);
+    if (isKeyDown) {
+      DeactivateDeadKeyState();
+    }
+    return;
   }
 
   
   
-  UniCharsAndModifiers result =
+  UniCharsAndModifiers deadChars =
     mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState);
-  result += baseChars;
-  DeactivateDeadKeyState();
+  
+  aNativeKey.mCommittedCharsAndModifiers = deadChars + baseChars;
+  if (isKeyDown) {
+    DeactivateDeadKeyState();
+  }
 
-  return result;
+  return;
 }
 
 UniCharsAndModifiers
@@ -1252,6 +1278,24 @@ KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(UINT aNativeKeyCode) const
   NS_WARNING("Unknown key code comes, please check latest MSDN document,"
              " there may be some new keycodes we have not known.");
   return 0;
+}
+
+KeyNameIndex
+KeyboardLayout::ConvertNativeKeyCodeToKeyNameIndex(uint8_t aVirtualKey) const
+{
+  switch (aVirtualKey) {
+
+#define NS_NATIVE_KEY_TO_DOM_KEY_NAME_INDEX(aNativeKey, aKeyNameIndex) \
+    case aNativeKey: return aKeyNameIndex;
+
+#include "NativeKeyToDOMKeyName.h"
+
+#undef NS_NATIVE_KEY_TO_DOM_KEY_NAME_INDEX
+
+    default:
+      return IsPrintableCharKey(aVirtualKey) ? KEY_NAME_INDEX_PrintableKey :
+                                               KEY_NAME_INDEX_Unidentified;
+  }
 }
 
 
