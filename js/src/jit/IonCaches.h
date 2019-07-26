@@ -499,6 +499,24 @@ class DispatchIonCache : public IonCache
 
 
 
+
+
+
+
+
+
+
+
+
+struct CacheLocation {
+    jsbytecode *pc;
+    JSScript *script;
+
+    CacheLocation(jsbytecode *pcin, JSScript *scriptin)
+        : pc(pcin), script(scriptin)
+    { }
+};
+
 class GetPropertyIC : public RepatchIonCache
 {
   protected:
@@ -509,6 +527,11 @@ class GetPropertyIC : public RepatchIonCache
     Register object_;
     PropertyName *name_;
     TypedOrValueRegister output_;
+
+    
+    size_t locationsIndex_;
+    size_t numLocations_;
+
     bool allowGetters_ : 1;
     bool hasTypedArrayLengthStub_ : 1;
     bool hasStrictArgumentsLengthStub_ : 1;
@@ -524,6 +547,8 @@ class GetPropertyIC : public RepatchIonCache
         object_(object),
         name_(name),
         output_(output),
+        locationsIndex_(0),
+        numLocations_(0),
         allowGetters_(allowGetters),
         hasTypedArrayLengthStub_(false),
         hasStrictArgumentsLengthStub_(false),
@@ -556,6 +581,14 @@ class GetPropertyIC : public RepatchIonCache
     }
     bool hasGenericProxyStub() const {
         return hasGenericProxyStub_;
+    }
+
+    void setLocationInfo(size_t locationsIndex, size_t numLocations) {
+        JS_ASSERT(idempotent());
+        JS_ASSERT(!numLocations_);
+        JS_ASSERT(numLocations);
+        locationsIndex_ = locationsIndex;
+        numLocations_ = numLocations;
     }
 
     enum NativeGetPropCacheability {
