@@ -3760,7 +3760,7 @@ let RIL = {
 
 
   sendDOMMessage: function sendDOMMessage(message) {
-    postMessage(message, "*");
+    postMessage(message);
   },
 
   
