@@ -291,6 +291,8 @@ public:
     
     void GetDPI(float* aDPI);
 
+    gfxSize GetZoom() { return mLastMetrics.mZoom; }
+
     void SetBackgroundColor(const nscolor& aColor);
 
     void NotifyPainted();
