@@ -4,6 +4,9 @@
 
 
 
+#ifndef nsLayoutDebuggingTools_h
+#define nsLayoutDebuggingTools_h
+
 #include "nsILayoutDebuggingTools.h"
 #include "nsIDocShell.h"
 #include "nsCOMPtr.h"
@@ -36,3 +39,5 @@ protected:
     bool mCrossingEventDumping;
     bool mReflowCounts;
 };
+
+#endif
