@@ -1364,4 +1364,4 @@ pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
 
 
 
-pref("browser.cache.use_new_backend", 1);
+pref("browser.cache.use_new_backend_temp", true);
