@@ -105,7 +105,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                              nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy)
 {
   ContainerLayer* container = aLayer->AsContainerLayer();
-  AsyncPanZoomController* controller = nullptr;
+  AsyncPanZoomController* apzc = nullptr;
   if (container) {
     if (container->GetFrameMetrics().IsScrollable()) {
       const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
@@ -114,65 +114,65 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
 
-        controller = container->GetAsyncPanZoomController();
+        apzc = container->GetAsyncPanZoomController();
 
-        bool newController = (controller == nullptr);
-        if (newController) {
-          controller = new AsyncPanZoomController(aLayersId, state->mController,
-                                                  AsyncPanZoomController::USE_GESTURE_DETECTOR);
-          controller->SetCompositorParent(aCompositor);
+        bool newApzc = (apzc == nullptr);
+        if (newApzc) {
+          apzc = new AsyncPanZoomController(aLayersId, state->mController,
+                                            AsyncPanZoomController::USE_GESTURE_DETECTOR);
+          apzc->SetCompositorParent(aCompositor);
         } else {
           
           
           
           
           
-          aApzcsToDestroy->RemoveElement(controller);
-          controller->SetPrevSibling(nullptr);
-          controller->SetLastChild(nullptr);
+          aApzcsToDestroy->RemoveElement(apzc);
+          apzc->SetPrevSibling(nullptr);
+          apzc->SetLastChild(nullptr);
         }
-        APZC_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", controller, aLayer, aLayersId, container->GetFrameMetrics().mScrollId);
+        APZC_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, container->GetFrameMetrics().mScrollId);
 
-        controller->NotifyLayersUpdated(container->GetFrameMetrics(),
+        apzc->NotifyLayersUpdated(container->GetFrameMetrics(),
                                         aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
         LayerRect visible = ScreenRect(container->GetFrameMetrics().mCompositionBounds) * ScreenToLayerScale(1.0);
-        controller->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
+        apzc->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
         APZC_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
                                                                               visible.width, visible.height,
-                                                                              controller);
+                                                                              apzc);
 
         
         if (aNextSibling) {
-          aNextSibling->SetPrevSibling(controller);
+          aNextSibling->SetPrevSibling(apzc);
         } else if (aParent) {
-          aParent->SetLastChild(controller);
+          aParent->SetLastChild(apzc);
         } else {
-          mRootApzc = controller;
+          mRootApzc = apzc;
         }
 
         
-        aParent = controller;
+        aParent = apzc;
 
-        if (newController && controller->IsRootForLayersId()) {
+        if (newApzc && apzc->IsRootForLayersId()) {
           
           
           
           bool allowZoom;
           CSSToScreenScale minZoom, maxZoom;
           if (state->mController->GetZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
-            controller->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
+            apzc->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
           }
         }
       }
     }
 
-    container->SetAsyncPanZoomController(controller);
+    container->SetAsyncPanZoomController(apzc);
   }
 
   
   
-  if (controller) {
+  if (apzc) {
     aTransform = gfx3DMatrix();
   } else {
     
@@ -190,8 +190,8 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   
   
   
-  if (controller) {
-    return controller;
+  if (apzc) {
+    return apzc;
   }
   if (next) {
     return next;
