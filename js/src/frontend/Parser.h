@@ -167,7 +167,7 @@ struct ParseContext : public GenericParseContext
 
 
 
-    bool define(TokenStream &ts, PropertyName *name, Node pn, Definition::Kind);
+    bool define(TokenStream &ts, HandlePropertyName name, Node pn, Definition::Kind);
 
     
 
