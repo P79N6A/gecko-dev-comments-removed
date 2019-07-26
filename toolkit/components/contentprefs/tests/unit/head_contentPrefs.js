@@ -82,22 +82,21 @@ var ContentPrefTest = {
   
 
 
-
   getProfileDir: function ContentPrefTest_getProfileDir() {
-    var profileDir;
-
-    try {
-      profileDir = this._dirSvc.get("ProfD", Ci.nsIFile);
+    
+    if (runningInParent) {
+      return do_get_profile();
     }
-    catch (e) {}
-
-    if (!profileDir) {
-      this._dirSvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(this);
-      profileDir = this._dirSvc.get("ProfD", Ci.nsIFile);
-      this._dirSvc.unregisterProvider(this);
-    }
-
-    return profileDir;
+    
+    
+    let env = Components.classes["@mozilla.org/process/environment;1"]
+                        .getService(Components.interfaces.nsIEnvironment);
+    
+    let profd = env.get("XPCSHELL_TEST_PROFILE_DIR");
+    let file = Components.classes["@mozilla.org/file/local;1"]
+                         .createInstance(Components.interfaces.nsILocalFile);
+    file.initWithPath(profd);
+    return file;
   },
 
   
