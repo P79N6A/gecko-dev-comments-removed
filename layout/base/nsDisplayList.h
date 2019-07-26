@@ -478,13 +478,7 @@ public:
 
 
   void* Allocate(size_t aSize);
-
   
-
-
-
-  DisplayItemClip* AllocateDisplayItemClip(const DisplayItemClip& aOriginal);
-
   
 
 
@@ -652,7 +646,6 @@ private:
   nsRegion                       mExcludedGlassRegion;
   
   nsDisplayItem*                 mGlassDisplayItem;
-  nsTArray<DisplayItemClip*>     mDisplayItemClipsToDestroy;
   Mode                           mMode;
   bool                           mBuildCaret;
   bool                           mIgnoreSuppression;
@@ -753,7 +746,12 @@ public:
 #endif
   {
   }
-  virtual ~nsDisplayItem() {}
+  virtual ~nsDisplayItem()
+  {
+    if (mClip) {
+      mClip->MaybeDestroy();
+    }
+  }
   
   void* operator new(size_t aSize,
                      nsDisplayListBuilder* aBuilder) CPP_THROW_NEW {
@@ -1195,11 +1193,17 @@ public:
   }
   void SetClip(nsDisplayListBuilder* aBuilder, const DisplayItemClip& aClip)
   {
+    if (mClip) {
+      mClip->MaybeDestroy();
+    }
     if (!aClip.HasClip()) {
       mClip = nullptr;
       return;
     }
-    mClip = aBuilder->AllocateDisplayItemClip(aClip);
+    void* mem = aBuilder->Allocate(sizeof(DisplayItemClip));
+    DisplayItemClip* clip = new (mem) DisplayItemClip();
+    *clip = aClip;
+    mClip = clip;
   }
 
 protected:

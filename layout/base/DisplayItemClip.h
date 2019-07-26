@@ -53,7 +53,15 @@ public:
   };
 
   
-  DisplayItemClip() : mHaveClipRect(false) {}
+  DisplayItemClip() : mHaveClipRect(false), mHasBeenDestroyed(false) {}
+  ~DisplayItemClip() { mHasBeenDestroyed = true; }
+
+  void MaybeDestroy() const
+  {
+    if (!mHasBeenDestroyed) {
+      this->~DisplayItemClip();
+    }
+  }
 
   void SetTo(const nsRect& aRect);
   void SetTo(const nsRect& aRect, const nscoord* aRadii);
@@ -168,6 +176,9 @@ private:
   
   
   bool mHaveClipRect;
+  
+  
+  bool mHasBeenDestroyed;
 };
 
 }
