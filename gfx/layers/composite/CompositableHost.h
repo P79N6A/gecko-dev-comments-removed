@@ -18,7 +18,6 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/PCompositableParent.h"
 #include "mozilla/layers/TextureHost.h" 
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
@@ -52,6 +51,7 @@ class ISurfaceAllocator;
 class ThebesBufferData;
 class TiledLayerComposer;
 class CompositableParentManager;
+class PCompositableParent;
 struct EffectChain;
 
 

@@ -22,7 +22,6 @@
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
-#include "mozilla/layers/PTextureChild.h" 
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   

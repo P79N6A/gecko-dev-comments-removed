@@ -16,6 +16,7 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "gfxPlatform.h"                
+#include "mozilla/layers/PCompositableParent.h"
 
 namespace mozilla {
 namespace layers {

@@ -14,7 +14,6 @@
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/PCompositableChild.h"  
 #include "nsISupportsImpl.h"            
 
 namespace mozilla {
@@ -28,7 +27,7 @@ class CompositableForwarder;
 class CompositableChild;
 class SurfaceDescriptor;
 class TextureClientData;
-
+class PCompositableChild;
 
 
 
