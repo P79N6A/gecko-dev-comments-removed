@@ -593,8 +593,7 @@ struct ParseNode {
         struct {                        
             ParseNode   *left;
             ParseNode   *right;
-            Value       *pval;          
-            unsigned       iflags;         
+            unsigned    iflags;         
         } binary;
         struct {                        
             ParseNode   *kid;

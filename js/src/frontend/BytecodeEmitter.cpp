@@ -2181,20 +2181,6 @@ EmitNumberOp(JSContext *cx, double dval, BytecodeEmitter *bce)
     return EmitIndex32(cx, JSOP_DOUBLE, bce->constList.length() - 1, bce);
 }
 
-
-
-
-
-
-
-
-
-static Value *
-AllocateSwitchConstant(JSContext *cx)
-{
-    return cx->tempLifoAlloc().new_<Value>();
-}
-
 static inline void
 SetJumpOffsetAt(BytecodeEmitter *bce, ptrdiff_t off)
 {
@@ -2213,7 +2199,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     bool hasDefault;
     ptrdiff_t top, off, defaultOffset;
     ParseNode *pn2, *pn3, *pn4;
-    int32_t i, low, high;
+    int32_t low, high;
     int noteIndex;
     size_t switchSize;
     jsbytecode *pc;
@@ -2303,48 +2289,23 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (switchOp == JSOP_CONDSWITCH)
                 continue;
 
+            JS_ASSERT(switchOp == JSOP_TABLESWITCH);
+
             pn4 = pn3->pn_left;
-            Value constVal;
-            switch (pn4->getKind()) {
-              case PNK_NUMBER:
-                constVal.setNumber(pn4->pn_dval);
-                break;
-              case PNK_STRING:
-                constVal.setString(pn4->pn_atom);
-                break;
-              case PNK_TRUE:
-                constVal.setBoolean(true);
-                break;
-              case PNK_FALSE:
-                constVal.setBoolean(false);
-                break;
-              case PNK_NULL:
-                constVal.setNull();
-                break;
-              case PNK_NAME:
-              default:
+
+            if (pn4->getKind() != PNK_NUMBER) {
                 switchOp = JSOP_CONDSWITCH;
                 continue;
             }
-            JS_ASSERT(constVal.isPrimitive());
 
-            pn3->pn_pval = AllocateSwitchConstant(cx);
-            if (!pn3->pn_pval) {
-                ok = false;
-                goto release;
-            }
-
-            *pn3->pn_pval = constVal;
-
-            if (switchOp != JSOP_TABLESWITCH)
-                continue;
-            if (!pn3->pn_pval->isInt32()) {
-                switchOp = JSOP_LOOKUPSWITCH;
+            int32_t i;
+            if (!MOZ_DOUBLE_IS_INT32(pn4->pn_dval, &i)) {
+                switchOp = JSOP_CONDSWITCH;
                 continue;
             }
-            i = pn3->pn_pval->toInt32();
+
             if ((unsigned)(i + (int)JS_BIT(15)) >= (unsigned)JS_BIT(16)) {
-                switchOp = JSOP_LOOKUPSWITCH;
+                switchOp = JSOP_CONDSWITCH;
                 continue;
             }
             if (i < low)
@@ -2376,13 +2337,12 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 memset(intmap, 0, intmap_bitlen >> JS_BITS_PER_BYTE_LOG2);
             }
             if (JS_TEST_BIT(intmap, i)) {
-                switchOp = JSOP_LOOKUPSWITCH;
+                switchOp = JSOP_CONDSWITCH;
                 continue;
             }
             JS_SET_BIT(intmap, i);
         }
 
-      release:
         if (intmap && intmap != intmap_space)
             js_free(intmap);
         if (!ok)
@@ -2395,15 +2355,6 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (switchOp == JSOP_TABLESWITCH) {
             tableLength = (uint32_t)(high - low + 1);
             if (tableLength >= JS_BIT(16) || tableLength > 2 * caseCount)
-                switchOp = JSOP_LOOKUPSWITCH;
-        } else if (switchOp == JSOP_LOOKUPSWITCH) {
-            
-
-
-
-
-
-            if (caseCount + bce->constList.length() > JS_BIT(16))
                 switchOp = JSOP_CONDSWITCH;
         }
     }
@@ -2421,19 +2372,11 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
         switchSize = 0;
-    } else if (switchOp == JSOP_TABLESWITCH) {
-        
-
-
-        switchSize = (size_t)(JUMP_OFFSET_LEN * (3 + tableLength));
     } else {
+        JS_ASSERT(switchOp == JSOP_TABLESWITCH);
+
         
-
-
-
-
-        switchSize = (size_t)(JUMP_OFFSET_LEN + UINT16_LEN +
-                              (UINT32_INDEX_LEN + JUMP_OFFSET_LEN) * caseCount);
+        switchSize = (size_t)(JUMP_OFFSET_LEN * (3 + tableLength));
     }
 
     
@@ -2498,38 +2441,39 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (defaultOffset < 0)
             return false;
     } else {
+        JS_ASSERT(switchOp == JSOP_TABLESWITCH);
         pc = bce->code(top + JUMP_OFFSET_LEN);
 
-        if (switchOp == JSOP_TABLESWITCH) {
-            
-            SET_JUMP_OFFSET(pc, low);
-            pc += JUMP_OFFSET_LEN;
-            SET_JUMP_OFFSET(pc, high);
-            pc += JUMP_OFFSET_LEN;
+        
+        SET_JUMP_OFFSET(pc, low);
+        pc += JUMP_OFFSET_LEN;
+        SET_JUMP_OFFSET(pc, high);
+        pc += JUMP_OFFSET_LEN;
 
-            
-
+        
 
 
-            if (tableLength != 0) {
-                table = cx->pod_calloc<ParseNode*>(tableLength);
-                if (!table)
-                    return false;
-                for (pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
-                    if (pn3->isKind(PNK_DEFAULT))
-                        continue;
-                    i = pn3->pn_pval->toInt32();
-                    i -= low;
-                    JS_ASSERT((uint32_t)i < tableLength);
-                    table[i] = pn3;
-                }
+
+        if (tableLength != 0) {
+            table = cx->pod_calloc<ParseNode*>(tableLength);
+            if (!table)
+                return false;
+            for (pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
+                if (pn3->isKind(PNK_DEFAULT))
+                    continue;
+
+                JS_ASSERT(pn3->isKind(PNK_CASE));
+
+                pn4 = pn3->pn_left;
+                JS_ASSERT(pn4->getKind() == PNK_NUMBER);
+
+                int32_t i = int32_t(pn4->pn_dval);
+                JS_ASSERT(double(i) == pn4->pn_dval);
+
+                i -= low;
+                JS_ASSERT(uint32_t(i) < tableLength);
+                table[i] = pn3;
             }
-        } else {
-            JS_ASSERT(switchOp == JSOP_LOOKUPSWITCH);
-
-            
-            SET_UINT16(pc, caseCount);
-            pc += UINT16_LEN;
         }
     }
 
@@ -2574,25 +2518,9 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         pc += 2 * JUMP_OFFSET_LEN;
 
         
-        for (i = 0; i < (int)tableLength; i++) {
+        for (uint32_t i = 0; i < tableLength; i++) {
             pn3 = table[i];
             off = pn3 ? pn3->pn_offset - top : 0;
-            SET_JUMP_OFFSET(pc, off);
-            pc += JUMP_OFFSET_LEN;
-        }
-    } else if (switchOp == JSOP_LOOKUPSWITCH) {
-        
-        pc += UINT16_LEN;
-
-        for (pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
-            if (pn3->isKind(PNK_DEFAULT))
-                continue;
-            if (!bce->constList.append(*pn3->pn_pval))
-                return false;
-            SET_UINT32_INDEX(pc, bce->constList.length() - 1);
-            pc += UINT32_INDEX_LEN;
-
-            off = pn3->pn_offset - top;
             SET_JUMP_OFFSET(pc, off);
             pc += JUMP_OFFSET_LEN;
         }
