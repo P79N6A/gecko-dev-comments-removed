@@ -346,15 +346,19 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
-        mLastMetrics.mZoom = gfxSize(1.0, 1.0);
+        mLastMetrics.mZoom = ScreenToScreenScale(1.0);
         mLastMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
         mLastMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
         CSSToScreenScale resolution =
           AsyncPanZoomController::CalculateResolution(mLastMetrics);
-        mLastMetrics.mResolution = gfxSize(resolution.scale, resolution.scale);
+        
+        
+        
+        mLastMetrics.mResolution =
+          resolution / mLastMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
         mLastMetrics.mScrollOffset = CSSPoint(0, 0);
-        utils->SetResolution(mLastMetrics.mResolution.width,
-                             mLastMetrics.mResolution.height);
+        utils->SetResolution(mLastMetrics.mResolution.scale,
+                             mLastMetrics.mResolution.scale);
 
         HandlePossibleViewportChange();
       }
@@ -597,13 +601,13 @@ TabChild::HandlePossibleViewportChange()
   nsresult rv = utils->GetIsFirstPaint(&isFirstPaint);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   if (NS_FAILED(rv) || isFirstPaint) {
-    gfxSize intrinsicScale =
+    CSSToScreenScale intrinsicScale =
         AsyncPanZoomController::CalculateIntrinsicScale(metrics);
     
     
     
     if (viewportInfo.GetDefaultZoom() < 0.01f) {
-      viewportInfo.SetDefaultZoom(intrinsicScale.width);
+      viewportInfo.SetDefaultZoom(intrinsicScale.scale);
     }
 
     double defaultZoom = viewportInfo.GetDefaultZoom();
@@ -611,8 +615,7 @@ TabChild::HandlePossibleViewportChange()
                defaultZoom <= viewportInfo.GetMaxZoom());
     
     
-    metrics.mZoom = gfxSize(defaultZoom / intrinsicScale.width,
-                            defaultZoom / intrinsicScale.height);
+    metrics.mZoom = ScreenToScreenScale(defaultZoom / intrinsicScale.scale);
   }
 
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
@@ -621,9 +624,8 @@ TabChild::HandlePossibleViewportChange()
     
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
   CSSToScreenScale resolution = AsyncPanZoomController::CalculateResolution(metrics);
-  metrics.mResolution = gfxSize(resolution.scale / metrics.mDevPixelsPerCSSPixel,
-                                resolution.scale / metrics.mDevPixelsPerCSSPixel);
-  utils->SetResolution(metrics.mResolution.width, metrics.mResolution.height);
+  metrics.mResolution = resolution / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+  utils->SetResolution(metrics.mResolution.scale, metrics.mResolution.scale);
 
   
   
