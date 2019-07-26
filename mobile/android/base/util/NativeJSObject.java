@@ -7,6 +7,8 @@ package org.mozilla.gecko.util;
 
 import org.mozilla.gecko.mozglue.JNITarget;
 
+import android.os.Bundle;
+
 
 
 
@@ -60,6 +62,40 @@ public class NativeJSObject
 
 
     public native boolean optBoolean(String name, boolean fallback);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native Bundle getBundle(String name);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public native Bundle optBundle(String name, Bundle fallback);
 
     
 
@@ -210,6 +246,18 @@ public class NativeJSObject
 
 
     public native boolean has(String name);
+
+    
+
+
+
+
+
+
+
+
+
+    public native Bundle toBundle();
 
     
 
