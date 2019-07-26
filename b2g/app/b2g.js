@@ -388,9 +388,6 @@ pref("dom.ipc.browser_frames.oop_by_default", false);
 
 
 pref("dom.sms.enabled", true);
-pref("dom.sms.strict7BitEncoding", false); 
-pref("dom.sms.requestStatusReport", true); 
-pref("dom.mms.requestStatusReport", true); 
 
 
 pref("network.gonk.ms-release-mms-connection", 30000);
@@ -434,7 +431,6 @@ pref("services.push.udp.wakeupEnabled", true);
 
 #ifdef MOZ_B2G_RIL
 pref("dom.mozNetworkStats.enabled", true);
-pref("ril.cellbroadcast.disabled", false);
 pref("dom.webapps.firstRunWithSIM", true);
 #endif
 
@@ -730,10 +726,6 @@ pref("font.size.inflation.disabledInMasterProcess", true);
 
 pref("memory.free_dirty_pages", true);
 
-
-pref("wap.UAProf.url", "");
-pref("wap.UAProf.tagname", "x-wap-profile");
-
 pref("layout.imagevisibility.enabled", false);
 pref("layout.imagevisibility.numscrollportwidths", 1);
 pref("layout.imagevisibility.numscrollportheights", 1);
@@ -823,6 +815,19 @@ pref("gfx.canvas.azure.accelerated", true);
 
 
 pref("dom.telephony.enabled", true);
+
+
+pref("dom.cellbroadcast.enabled", true);
+pref("ril.cellbroadcast.disabled", false);
+
+
+pref("dom.icc.enabled", true);
+
+
+pref("dom.mobileconnection.enabled", true);
+
+
+pref("dom.voicemail.enabled", true);
 
 
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");

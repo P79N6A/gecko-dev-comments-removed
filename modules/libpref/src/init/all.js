@@ -4281,6 +4281,7 @@ pref("dom.sms.enabled", false);
 
 pref("dom.sms.strict7BitEncoding", false);
 pref("dom.sms.requestStatusReport", true);
+pref("dom.mms.requestStatusReport", true);
 
 
 pref("dom.mozContacts.enabled", false);
@@ -4430,11 +4431,6 @@ pref("ui.touch_activation.delay_ms", 100);
 
 
 
-
-pref("ui.touch_activation.duration_ms", 100);
-
-
-
 pref("memory_info_dumper.watch_fifo", false);
 
 #ifdef MOZ_CAPTIVEDETECT
@@ -4457,6 +4453,18 @@ pref("dom.datastore.enabled", false);
 
 
 pref("dom.telephony.enabled", false);
+
+
+pref("dom.cellbroadcast.enabled", false);
+
+
+pref("dom.icc.enabled", false);
+
+
+pref("dom.mobileconnection.enabled", false);
+
+
+pref("dom.voicemail.enabled", false);
 
 
 pref("dom.inter-app-communication-api.enabled", false);
