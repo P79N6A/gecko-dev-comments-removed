@@ -2,7 +2,7 @@
 
 
 
-#include "mozilla/dom/MobileConnection.h"
+#include "mozilla/dom/network/MobileConnection.h"
 
 #include "GeneratedEvents.h"
 #include "mozilla/dom/CFStateChangeEvent.h"
@@ -23,7 +23,7 @@
 
 #define NS_RILCONTENTHELPER_CONTRACTID "@mozilla.org/ril/content-helper;1"
 
-using namespace mozilla::dom;
+using namespace mozilla::dom::network;
 
 class MobileConnection::Listener MOZ_FINAL : public nsIMobileConnectionListener
 {
