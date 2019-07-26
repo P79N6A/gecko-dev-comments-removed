@@ -1135,7 +1135,10 @@ SetProcessPriority(int aPid, ProcessPriority aPriority)
     priorityStr = "master";
     break;
   default:
-    MOZ_NOT_REACHED();
+    
+    
+    NS_ERROR("Invalid process priority!");
+    return;
   }
 
   

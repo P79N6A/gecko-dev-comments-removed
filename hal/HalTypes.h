@@ -76,7 +76,10 @@ enum SwitchState {
 
 typedef Observer<SwitchEvent> SwitchObserver;
 
+
+
 enum ProcessPriority {
+  PROCESS_PRIORITY_UNKNOWN = -1,
   PROCESS_PRIORITY_BACKGROUND,
   PROCESS_PRIORITY_BACKGROUND_HOMESCREEN,
   PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE,
@@ -261,7 +264,7 @@ struct ParamTraits<mozilla::hal::SwitchDevice>:
 template <>
 struct ParamTraits<mozilla::hal::ProcessPriority>:
   public EnumSerializer<mozilla::hal::ProcessPriority,
-                        mozilla::hal::PROCESS_PRIORITY_BACKGROUND,
+                        mozilla::hal::PROCESS_PRIORITY_UNKNOWN,
                         mozilla::hal::NUM_PROCESS_PRIORITY> {
 };
 
