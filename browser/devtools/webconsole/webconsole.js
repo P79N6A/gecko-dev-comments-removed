@@ -199,8 +199,6 @@ function WebConsoleFrame(aWebConsoleOwner)
 
   this._outputTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
   this._outputTimerInitialized = false;
-
-  EventEmitter.decorate(this);
 }
 
 WebConsoleFrame.prototype = {
@@ -884,12 +882,11 @@ WebConsoleFrame.prototype = {
 
 
 
-
   _filterRepeatedMessage: function WCF__filterRepeatedMessage(aNode)
   {
     let repeatNode = aNode.getElementsByClassName("webconsole-msg-repeat")[0];
     if (!repeatNode) {
-      return null;
+      return false;
     }
 
     let uid = repeatNode._uid;
@@ -908,7 +905,7 @@ WebConsoleFrame.prototype = {
               aNode.classList.contains("webconsole-msg-error"))) {
       let lastMessage = this.outputNode.lastChild;
       if (!lastMessage) {
-        return null;
+        return false;
       }
 
       let lastRepeatNode = lastMessage
@@ -920,10 +917,10 @@ WebConsoleFrame.prototype = {
 
     if (dupeNode) {
       this.mergeFilteredMessageNode(dupeNode, aNode);
-      return dupeNode;
+      return true;
     }
 
-    return null;
+    return false;
   },
 
   
@@ -1695,14 +1692,10 @@ WebConsoleFrame.prototype = {
     let hudIdSupportsString = WebConsoleUtils.supportsString(this.hudId);
 
     
-    let newOrUpdatedNodes = new Set();
     for (let item of batch) {
-      let result = this._outputMessageFromQueue(hudIdSupportsString, item);
-      if (result) {
-        newOrUpdatedNodes.add(result.isRepeated || result.node);
-        if (result.visible && result.node == this.outputNode.lastChild) {
-          lastVisibleNode = result.node;
-        }
+      let node = this._outputMessageFromQueue(hudIdSupportsString, item);
+      if (node) {
+        lastVisibleNode = node;
       }
     }
 
@@ -1742,8 +1735,6 @@ WebConsoleFrame.prototype = {
       
       scrollBox.scrollTop -= oldScrollHeight - scrollBox.scrollHeight;
     }
-
-    this.emit("messages-added", newOrUpdatedNodes);
 
     
     if (this._outputQueue.length > 0) {
@@ -1785,9 +1776,6 @@ WebConsoleFrame.prototype = {
 
 
 
-
-
-
   _outputMessageFromQueue:
   function WCF__outputMessageFromQueue(aHudIdSupportsString, aItem)
   {
@@ -1797,7 +1785,7 @@ WebConsoleFrame.prototype = {
                methodOrNode.apply(this, args || []) :
                methodOrNode;
     if (!node) {
-      return null;
+      return;
     }
 
     let afterNode = node._outputAfterNode;
@@ -1809,16 +1797,14 @@ WebConsoleFrame.prototype = {
 
     let isRepeated = this._filterRepeatedMessage(node);
 
-    let visible = !isRepeated && !isFiltered;
+    let lastVisible = !isRepeated && !isFiltered;
     if (!isRepeated) {
       this.outputNode.insertBefore(node,
                                    afterNode ? afterNode.nextSibling : null);
       this._pruneCategoriesQueue[node.category] = true;
-
-      let nodeID = node.getAttribute("id");
-      Services.obs.notifyObservers(aHudIdSupportsString,
-                                   "web-console-message-created", nodeID);
-
+      if (afterNode) {
+        lastVisible = this.outputNode.lastChild == node;
+      }
     }
 
     if (node._onOutput) {
@@ -1826,11 +1812,11 @@ WebConsoleFrame.prototype = {
       delete node._onOutput;
     }
 
-    return {
-      visible: visible,
-      node: node,
-      isRepeated: isRepeated,
-    };
+    let nodeID = node.getAttribute("id");
+    Services.obs.notifyObservers(aHudIdSupportsString,
+                                 "web-console-message-created", nodeID);
+
+    return lastVisible ? node : null;
   },
 
   
@@ -2635,13 +2621,6 @@ JSTerm.prototype = {
 
 
 
-  _splitter: null,
-
-  
-
-
-
-
   _variablesView: null,
 
   
@@ -2720,8 +2699,6 @@ JSTerm.prototype = {
     this.inputNode.addEventListener("keypress", this._keyPress, false);
     this.inputNode.addEventListener("input", this._inputEventHandler, false);
     this.inputNode.addEventListener("keyup", this._inputEventHandler, false);
-
-    this._splitter = doc.querySelector(".devtools-side-splitter");
 
     this.lastInputValue && this.setInputValue(this.lastInputValue);
   },
@@ -3039,7 +3016,6 @@ JSTerm.prototype = {
       this.sidebar = new ToolSidebar(tabbox, this);
     }
     this.sidebar.show();
-    this._splitter.setAttribute("state", "open");
   },
 
   
