@@ -98,57 +98,6 @@ var std_Set_iterator_next = Object.getPrototypeOf(Set()[std_iterator]()).next;
 
 
 
-#ifdef ENABLE_PARALLEL_JS
-
-
-#define TRY_PARALLEL(MODE) \
-  ((!MODE || MODE.mode !== "seq"))
-#define ASSERT_SEQUENTIAL_IS_OK(MODE) \
-  do { if (MODE) AssertSequentialIsOK(MODE) } while(false)
-
-
-
-
-
-#ifndef DEBUG
-#define ParallelSpew(args)
-#endif
-
-#define MAX_SLICE_SHIFT 6
-#define MAX_SLICE_SIZE 64
-#define MAX_SLICES_PER_WORKER 8
-
-
-
-
-
-#define SLICE_START(info, id) \
-    (id << info.shift)
-#define SLICE_END(info, start, length) \
-    std_Math_min(start + (1 << info.shift), length)
-#define SLICE_COUNT(info) \
-    info.statuses.length
-
-
-
-
-
-
-
-#define GET_SLICE(info, id) \
-    ((id = ForkJoinGetSlice(InParallelSection() ? -1 : NextSequentialSliceId(info, -1))) >= 0)
-
-#define SLICE_STATUS_DONE 1
-
-
-
-
-#define MARK_SLICE_DONE(info, id) \
-    UnsafePutElements(info.statuses, id, SLICE_STATUS_DONE)
-
-#endif 
-
-
 
 
 
