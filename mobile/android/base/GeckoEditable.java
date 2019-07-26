@@ -23,6 +23,7 @@ import android.util.Log;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -730,7 +731,30 @@ final class GeckoEditable
             mActionQueue.syncWithGecko();
             target = mText;
         }
-        Object ret = method.invoke(target, args);
+        Object ret;
+        try {
+            ret = method.invoke(target, args);
+        } catch (InvocationTargetException e) {
+            
+            
+            
+            
+            
+            if (!(e.getCause() instanceof IndexOutOfBoundsException)) {
+                
+                
+                throw e;
+            }
+            Log.w(LOGTAG, "Exception in GeckoEditable." + method.getName(), e.getCause());
+            Class<?> retClass = method.getReturnType();
+            if (retClass != Void.TYPE && retClass.isPrimitive()) {
+                ret = retClass.newInstance();
+            } else if (retClass == String.class) {
+                ret = "";
+            } else {
+                ret = null;
+            }
+        }
         if (DEBUG) {
             StringBuilder log = new StringBuilder(method.getName());
             log.append("(");
