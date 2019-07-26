@@ -3408,8 +3408,6 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
   gfxContext *gfx = aContext->ThebesContext();
   gfxMatrix initialMatrix = gfx->CurrentMatrix();
 
-  AutoCanvasTMForMarker autoCanvasTMFor(this, FOR_PAINTING);
-
   if (mState & NS_STATE_SVG_NONDISPLAY_CHILD) {
     
     
@@ -3530,8 +3528,6 @@ NS_IMETHODIMP_(nsIFrame*)
 nsSVGTextFrame2::GetFrameForPoint(const nsPoint& aPoint)
 {
   NS_ASSERTION(GetFirstPrincipalChild(), "must have a child frame");
-
-  AutoCanvasTMForMarker autoCanvasTMFor(this, FOR_HIT_TESTING);
 
   if (mState & NS_STATE_SVG_NONDISPLAY_CHILD) {
     
@@ -5073,7 +5069,7 @@ nsSVGTextFrame2::UpdateFontSizeScaleFactor()
   
   double contextScale = 1.0;
   if (!(mState & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-    gfxMatrix m(GetCanvasTM(mGetCanvasTMForFlag));
+    gfxMatrix m(GetCanvasTM(FOR_OUTERSVG_TM));
     if (!m.IsSingular()) {
       contextScale = GetContextScale(m);
     }

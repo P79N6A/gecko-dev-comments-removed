@@ -182,7 +182,6 @@ class nsSVGTextFrame2 : public nsSVGTextFrame2Base
   friend class mozilla::TextNodeCorrespondenceRecorder;
   friend struct mozilla::TextRenderedRun;
   friend class mozilla::TextRenderedRunIterator;
-  friend class AutoCanvasTMForMarker;
   friend class MutationObserver;
   friend class nsDisplaySVGText;
 
@@ -191,8 +190,7 @@ protected:
     : nsSVGTextFrame2Base(aContext),
       mFontSizeScaleFactor(1.0f),
       mLastContextScale(1.0f),
-      mLengthAdjustScaleFactor(1.0f),
-      mGetCanvasTMForFlag(FOR_OUTERSVG_TM)
+      mLengthAdjustScaleFactor(1.0f)
   {
     AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
   }
@@ -353,28 +351,6 @@ public:
                                           nsIFrame* aChildFrame);
 
 private:
-  
-
-
-
-
-  class AutoCanvasTMForMarker {
-  public:
-    AutoCanvasTMForMarker(nsSVGTextFrame2* aFrame, uint32_t aFor)
-      : mFrame(aFrame)
-    {
-      mOldFor = mFrame->mGetCanvasTMForFlag;
-      mFrame->mGetCanvasTMForFlag = aFor;
-    }
-    ~AutoCanvasTMForMarker()
-    {
-      mFrame->mGetCanvasTMForFlag = mOldFor;
-    }
-  private:
-    nsSVGTextFrame2* mFrame;
-    uint32_t mOldFor;
-  };
-
   
 
 
@@ -656,20 +632,6 @@ private:
 
 
   float mLengthAdjustScaleFactor;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  uint32_t mGetCanvasTMForFlag;
 };
 
 #endif
