@@ -127,11 +127,6 @@ abstract class HomeFragment extends Fragment {
         final Context context = getActivity();
 
         final int itemId = item.getItemId();
-
-        
-        
-        Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.CONTEXT_MENU, getResources().getResourceEntryName(itemId));
-
         if (itemId == R.id.home_share) {
             if (info.url == null) {
                 Log.e(LOGTAG, "Can't share because URL is null");
