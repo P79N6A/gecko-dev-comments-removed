@@ -158,6 +158,13 @@ public:
                                   uint32_t aOutputChannels,
                                   AudioDataValue* aOutput);
 
+  
+
+
+
+  static void DeInterleaveTrackData(AudioDataValue* aInput, int32_t aDuration,
+                                    int32_t aChannels, AudioDataValue* aOutput);
+
 protected:
   
 

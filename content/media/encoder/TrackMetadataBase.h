@@ -18,6 +18,7 @@ public:
   enum MetadataKind {
     METADATA_OPUS,    
     METADATA_VP8,
+    METADATA_VORBIS,
     METADATA_AVC,
     METADATA_AAC,
     METADATA_UNKNOWN  

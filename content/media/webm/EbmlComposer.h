@@ -1,0 +1,75 @@
+
+
+
+
+
+#ifndef EbmlComposer_h_
+#define EbmlComposer_h_
+#include "nsTArray.h"
+#include "ContainerWriter.h"
+
+namespace mozilla {
+
+
+
+
+class EbmlComposer {
+public:
+  EbmlComposer();
+  
+
+
+  void SetVideoConfig(uint32_t aWidth, uint32_t aHeight, float aFrameRate);
+
+  void SetAudioConfig(uint32_t aSampleFreq, uint32_t aChannels,
+                      uint32_t bitDepth);
+  
+
+
+  void SetAudioCodecPrivateData(nsTArray<uint8_t>& aBufs)
+  {
+    mCodecPrivateData.AppendElements(aBufs);
+  }
+  
+
+
+  void GenerateHeader();
+  
+
+
+
+  void WriteSimpleBlock(EncodedFrame* aFrame);
+  
+
+
+  void ExtractBuffer(nsTArray<nsTArray<uint8_t> >* aDestBufs,
+                     uint32_t aFlag = 0);
+private:
+  
+  void FinishCluster();
+  
+  nsTArray<nsTArray<uint8_t> > mClusterBuffs;
+  
+  nsTArray<nsTArray<uint8_t> > mClusterCanFlushBuffs;
+  
+  uint32_t mClusterHeaderIndex;
+  
+  uint64_t mClusterLengthLoc;
+  
+  nsTArray<uint8_t> mCodecPrivateData;
+
+  
+  uint64_t mClusterTimecode;
+
+  
+  int mWidth;
+  int mHeight;
+  float mFrameRate;
+  
+  float mSampleFreq;
+  int mBitDepth;
+  int mChannels;
+};
+
+}
+#endif
