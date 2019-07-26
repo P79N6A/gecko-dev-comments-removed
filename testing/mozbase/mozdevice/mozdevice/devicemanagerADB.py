@@ -218,7 +218,7 @@ class DeviceManagerADB(DeviceManager):
         if 'read-only file system' in result.lower():
             raise DMError("Error creating directory: read only file system")
 
-    def pushDir(self, localDir, remoteDir, retryLimit=None):
+    def pushDir(self, localDir, remoteDir, retryLimit=None, timeout=None):
         
         
         
@@ -248,7 +248,7 @@ class DeviceManagerADB(DeviceManager):
             
             tmpDirTarget = os.path.join(tmpDir, "tmp")
             shutil.copytree(localDir, tmpDirTarget)
-            self._checkCmd(["push", tmpDirTarget, remoteDir], retryLimit=retryLimit)
+            self._checkCmd(["push", tmpDirTarget, remoteDir], retryLimit=retryLimit, timeout=timeout)
             shutil.rmtree(tmpDir)
 
     def dirExists(self, remotePath):
