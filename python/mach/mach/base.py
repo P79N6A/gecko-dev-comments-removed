@@ -34,6 +34,9 @@ class MethodHandler(object):
         'method',
 
         
+        'parser',
+
+        
         
         'parser_args',
 

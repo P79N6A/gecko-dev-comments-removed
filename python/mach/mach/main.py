@@ -257,10 +257,9 @@ To see more help for a specific command, run:
                 parser.print_help()
                 return 0
 
-            
-            
-            
-            return self._run([args.subcommand, '--help'])
+            handler = Registrar.command_handlers[args.subcommand]
+            handler.parser.print_help()
+            return 0
 
         
         if args.logfile:
