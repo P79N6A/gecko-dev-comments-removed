@@ -420,6 +420,20 @@ GetJunkScope();
 
 nsIGlobalObject *
 GetJunkScopeGlobal();
+
+
+
+void
+SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
+
+
+
+
+
+NS_EXPORT_(void)
+SystemErrorReporterExternal(JSContext *cx, const char *message,
+                            JSErrorReport *rep);
+
 } 
 
 namespace mozilla {
