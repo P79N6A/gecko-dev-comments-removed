@@ -477,13 +477,13 @@ void TraceImpl::AddMessageToList(
       
       
       
-      for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE / 4; ++n) {
-        const int last_quarter_offset = (3 * WEBRTC_TRACE_MAX_QUEUE / 4);
+      for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE * 3 / 4; ++n) {
+        const int last_quarter_offset = (1 * WEBRTC_TRACE_MAX_QUEUE / 4);
         memcpy(message_queue_[active_queue_][n],
                message_queue_[active_queue_][n + last_quarter_offset],
                WEBRTC_TRACE_MAX_MESSAGE_SIZE);
       }
-      idx = next_free_idx_[active_queue_] = WEBRTC_TRACE_MAX_QUEUE / 4;
+      idx = next_free_idx_[active_queue_] = WEBRTC_TRACE_MAX_QUEUE * 3 / 4;
     } else {
       
       
