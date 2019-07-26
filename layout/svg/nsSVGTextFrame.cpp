@@ -249,20 +249,7 @@ nsSVGTextFrame::ReflowSVG()
   
   
   
-  
-  
-  bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
-    !(GetParent()->GetStateBits() &
-       (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
-
-  
-  
   nsSVGTextFrameBase::ReflowSVG();
-
-  if (invalidate) {
-    
-    nsSVGUtils::InvalidateBounds(this, true);
-  }
 }
 
 SVGBBox
