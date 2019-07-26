@@ -1170,11 +1170,13 @@ protected:
 
     
     
-    int32_t mMinInUseAttribArrayLength;
+    bool mMinInUseAttribArrayLengthCached;
+    uint32_t mMinInUseAttribArrayLength;
 
     inline void InvalidateCachedMinInUseAttribArrayLength()
     {
-        mMinInUseAttribArrayLength = -1;
+        mMinInUseAttribArrayLengthCached = false;
+        mMinInUseAttribArrayLength = 0;
     }
 
     
@@ -1220,7 +1222,7 @@ protected:
     nsTArray<WebGLenum> mCompressedTextureFormats;
 
     bool InitAndValidateGL();
-    bool ValidateBuffers(int32_t *maxAllowedCount, const char *info);
+    bool ValidateBuffers(uint32_t *maxAllowedCount, const char *info);
     bool ValidateCapabilityEnum(WebGLenum cap, const char *info);
     bool ValidateBlendEquationEnum(WebGLenum cap, const char *info);
     bool ValidateBlendFuncDstEnum(WebGLenum mode, const char *info);
