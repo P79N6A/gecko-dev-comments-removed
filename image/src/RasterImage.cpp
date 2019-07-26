@@ -3362,6 +3362,11 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
 
   
   
+  if (aImg->mPendingError)
+    return NS_OK;
+
+  
+  
   if (!aImg->mDecoder || aImg->mDecoded)
     return NS_OK;
 
