@@ -1,31 +1,31 @@
-/*
- * Copyright 2012, Mozilla Foundation and contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 let { require: require, define: define } = Cu.import("resource://gre/modules/devtools/Require.jsm", {});
 Cu.import("resource:///modules/devtools/gcli.jsm", {});
 
-// <INJECTED SOURCE:END>
+
 
 var mockCommands = {};
 
@@ -37,13 +37,13 @@ var SelectionType = require('gcli/types/selection').SelectionType;
 var DelegateType = require('gcli/types/basic').DelegateType;
 
 
-/**
- * Registration and de-registration.
- */
+
+
+
 mockCommands.setup = function(opts) {
-  // setup/shutdown needs to register/unregister types, however that means we
-  // need to re-initialize mockCommands.option1 and mockCommands.option2 with
-  // the actual types
+  
+  
+  
   mockCommands.option1.type = types.getType('string');
   mockCommands.option2.type = types.getType('number');
 
@@ -370,21 +370,18 @@ mockCommands.tsg = {
       ]
     },
     {
-      group: 'Second',
-      params: [
-        {
-          name: 'txt2',
-          type: 'string',
-          defaultValue: 'd',
-          description: 'txt2 param'
-        },
-        {
-          name: 'num',
-          type: { name: 'number', min: 40 },
-          defaultValue: 42,
-          description: 'num param'
-        }
-      ]
+      name: 'txt2',
+      type: 'string',
+      defaultValue: 'd',
+      description: 'txt2 param',
+      option: 'Second'
+    },
+    {
+      name: 'num',
+      type: { name: 'number', min: 40 },
+      defaultValue: 42,
+      description: 'num param',
+      option: 'Second'
     }
   ],
   exec: createExec('tsg')
@@ -493,4 +490,4 @@ mockCommands.tslong = {
 };
 
 
-// });
+

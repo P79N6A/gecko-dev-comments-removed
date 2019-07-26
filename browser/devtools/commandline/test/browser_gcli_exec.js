@@ -1,25 +1,25 @@
-/*
- * Copyright 2012, Mozilla Foundation and contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -31,13 +31,15 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var mockCommands = require('gclitest/mockCommands');
 var nodetype = require('gcli/types/node');
-// var helpers = require('gclitest/helpers');
+var canon = require('gcli/canon');
+
+
+
 
 
 exports.setup = function(options) {
@@ -69,6 +71,16 @@ var mockDoc = {
       };
     }
   }
+};
+
+exports.testParamGroup = function(options) {
+  var tsg = canon.getCommand('tsg');
+
+  assert.is(tsg.params[0].groupName, null, 'tsg param 0 group null');
+  assert.is(tsg.params[1].groupName, 'First', 'tsg param 1 group First');
+  assert.is(tsg.params[2].groupName, 'First', 'tsg param 2 group First');
+  assert.is(tsg.params[3].groupName, 'Second', 'tsg param 3 group Second');
+  assert.is(tsg.params[4].groupName, 'Second', 'tsg param 4 group Second');
 };
 
 exports.testWithHelpers = function(options) {
@@ -378,8 +390,8 @@ exports.testExecNumber = function(options) {
 exports.testExecScript = function(options) {
   return helpers.audit(options, [
     {
-      // Bug 704829 - Enable GCLI Javascript parameters
-      // The answer to this should be 2
+      
+      
       setup:    'tsj { 1 + 1 }',
       check: {
         input:  'tsj { 1 + 1 }',
@@ -527,7 +539,7 @@ exports.testExecArray = function(options) {
         args: {
           command: { name: 'tselarr' },
           num: { value: '1', arg: ' 1', status: 'VALID', message: '' },
-          arr: { /*value:,*/ arg: '{}', status: 'VALID', message: '' },
+          arr: {  arg: '{}', status: 'VALID', message: '' },
         }
       },
       exec: {
@@ -549,7 +561,7 @@ exports.testExecArray = function(options) {
         args: {
           command: { name: 'tselarr' },
           num: { value: '1', arg: ' 1', status: 'VALID', message: '' },
-          arr: { /*value:a,*/ arg: '{ a}', status: 'VALID', message: '' },
+          arr: {  arg: '{ a}', status: 'VALID', message: '' },
         }
       },
       exec: {
@@ -571,7 +583,7 @@ exports.testExecArray = function(options) {
         args: {
           command: { name: 'tselarr' },
           num: { value: '1', arg: ' 1', status: 'VALID', message: '' },
-          arr: { /*value:a,b,*/ arg: '{ a, b}', status: 'VALID', message: '' },
+          arr: {  arg: '{ a, b}', status: 'VALID', message: '' },
         }
       },
       exec: {
@@ -613,7 +625,7 @@ exports.testExecMultiple = function(options) {
 exports.testExecDefaults = function(options) {
   return helpers.audit(options, [
     {
-      // Bug 707009 - GCLI doesn't always fill in default parameters properly
+      
       setup:    'tsg aaa',
       check: {
         input:  'tsg aaa',
@@ -642,4 +654,4 @@ exports.testExecDefaults = function(options) {
 
 };
 
-// });
+
