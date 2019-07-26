@@ -25,7 +25,9 @@ pref("app.update.checkInstallTime.days", 2);
 
 
 pref("browser.search.param.yahoo-fr", "");
-pref("browser.search.param.yahoo-fr-metro", "");
 pref("browser.search.param.yahoo-fr-cjkt", ""); 
 pref("browser.search.param.yahoo-fr-ja", "");
 pref("browser.search.param.yahoo-f-CN", "");
+#ifdef MOZ_METRO
+pref("browser.search.param.yahoo-fr-metro", "");
+#endif
