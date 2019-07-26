@@ -22,7 +22,9 @@ public class testHomeBanner extends UITest {
 
         
         addBannerTest();
-        removeBannerTest();
+        
+        
+        
 
         
         
@@ -41,7 +43,8 @@ public class testHomeBanner extends UITest {
         
         Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageShown");
         NavigationHelper.enterAndLoadUrl("about:home");
-        eventExpecter.blockForEvent();
+        
+        
 
         
         mAboutHome.assertBannerText(TEXT);
@@ -54,10 +57,7 @@ public class testHomeBanner extends UITest {
         
         NavigationHelper.enterAndLoadUrl("about:firefox");
 
-        
-        
-        final View banner = getActivity().findViewById(R.id.home_banner);
-        assertTrue("The HomeBanner is not visible", banner == null || banner.getVisibility() != View.VISIBLE);
+        mAboutHome.assertBannerNotVisible();
     }
 
 
