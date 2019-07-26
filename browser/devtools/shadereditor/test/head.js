@@ -12,7 +12,7 @@ let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 let { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
-let { Promise: promise } = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
+let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 let { gDevTools } = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
@@ -124,19 +124,29 @@ function once(aTarget, aEventName, aUseCapture = false) {
   let deferred = promise.defer();
 
   for (let [add, remove] of [
+    ["on", "off"], 
     ["addEventListener", "removeEventListener"],
-    ["addListener", "removeListener"],
-    ["on", "off"]
+    ["addListener", "removeListener"]
   ]) {
     if ((add in aTarget) && (remove in aTarget)) {
       aTarget[add](aEventName, function onEvent(...aArgs) {
         aTarget[remove](aEventName, onEvent, aUseCapture);
-        deferred.resolve.apply(deferred, aArgs);
+        deferred.resolve(...aArgs);
       }, aUseCapture);
       break;
     }
   }
 
+  return deferred.promise;
+}
+
+
+
+
+
+function onceSpread(aTarget, aEvent) {
+  let deferred = promise.defer();
+  aTarget.once(aEvent, (...args) => deferred.resolve(args));
   return deferred.promise;
 }
 
@@ -272,4 +282,28 @@ function teardown(aPanel) {
     once(aPanel, "destroyed"),
     removeTab(aPanel.target.tab)
   ]);
+}
+
+
+
+
+
+
+
+
+
+function getPrograms(front, count, onAdd) {
+  let actors = [];
+  let deferred = promise.defer();
+  front.on("program-linked", function onLink (actor) {
+    if (actors.length !== count) {
+      actors.push(actor);
+      if (typeof onAdd === 'function') onAdd(actors)
+    }
+    if (actors.length === count) {
+      front.off("program-linked", onLink);
+      deferred.resolve(actors);
+    }
+  });
+  return deferred.promise;
 }
