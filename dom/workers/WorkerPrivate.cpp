@@ -1990,11 +1990,6 @@ private:
 
     mAlreadyMappedToAddon = true;
 
-    if (XRE_GetProcessType() != GeckoProcessType_Default) {
-      
-      return;
-    }
-
     nsAutoCString addonId;
     bool ok;
     nsCOMPtr<amIAddonManager> addonManager =

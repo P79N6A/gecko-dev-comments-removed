@@ -2366,11 +2366,8 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  nsIMemoryReporterCallback *cb,
                                  nsISupports *closure, size_t *rtTotalOut)
 {
-    nsCOMPtr<amIAddonManager> am;
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-        
-        am = do_GetService("@mozilla.org/addons/integration;1");
-    }
+    nsCOMPtr<amIAddonManager> am =
+      do_GetService("@mozilla.org/addons/integration;1");
     return ReportJSRuntimeExplicitTreeStats(rtStats, rtPath, am.get(), cb,
                                             closure, rtTotalOut);
 }
@@ -2607,11 +2604,8 @@ JSReporter::CollectReports(WindowPaths *windowPaths,
     
     
 
-    nsCOMPtr<amIAddonManager> addonManager;
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-        
-        addonManager = do_GetService("@mozilla.org/addons/integration;1");
-    }
+    nsCOMPtr<amIAddonManager> addonManager =
+      do_GetService("@mozilla.org/addons/integration;1");
     bool getLocations = !!addonManager;
     XPCJSRuntimeStats rtStats(windowPaths, topWindowPaths, getLocations);
     OrphanReporter orphanReporter(XPCConvert::GetISupportsFromJSObject);

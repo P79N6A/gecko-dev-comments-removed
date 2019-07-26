@@ -450,11 +450,8 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryReporterCallback* aCb,
 
   
   nsWindowSizes windowTotalSizes(NULL);
-  nsCOMPtr<amIAddonManager> addonManager;
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    
-    addonManager = do_GetService("@mozilla.org/addons/integration;1");
-  }
+  nsCOMPtr<amIAddonManager> addonManager =
+    do_GetService("@mozilla.org/addons/integration;1");
   for (uint32_t i = 0; i < windows.Length(); i++) {
     rv = CollectWindowReports(windows[i], addonManager,
                               &windowTotalSizes, &ghostWindows,
