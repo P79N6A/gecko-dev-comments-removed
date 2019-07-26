@@ -208,7 +208,33 @@ MediaSource::EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, Er
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
-  EndOfStreamInternal(aError, aRv);
+
+  SetReadyState(MediaSourceReadyState::Ended);
+  mSourceBuffers->Ended();
+  if (!aError.WasPassed()) {
+    
+    
+    
+    
+    
+    
+    
+    return;
+  }
+  switch (aError.Value()) {
+  case MediaSourceEndOfStreamError::Network:
+    
+    
+    
+    break;
+  case MediaSourceEndOfStreamError::Decode:
+    
+    
+    
+    break;
+  default:
+    aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
+  }
 }
 
  bool
@@ -322,37 +348,6 @@ MediaSource::DurationChange(double aNewDuration, ErrorResult& aRv)
   }
   
   
-}
-
-void
-MediaSource::EndOfStreamInternal(const Optional<MediaSourceEndOfStreamError>& aError, ErrorResult& aRv)
-{
-  SetReadyState(MediaSourceReadyState::Ended);
-  mSourceBuffers->Ended();
-  if (!aError.WasPassed()) {
-    
-    
-    
-    
-    
-    
-    
-    return;
-  }
-  switch (aError.Value()) {
-  case MediaSourceEndOfStreamError::Network:
-    
-    
-    
-    break;
-  case MediaSourceEndOfStreamError::Decode:
-    
-    
-    
-    break;
-  default:
-    aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
-  }
 }
 
 nsPIDOMWindow*
