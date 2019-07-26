@@ -440,6 +440,16 @@ MetroInput::InitTouchEventTouchList(WidgetTouchEvent* aEvent)
                       static_cast<void*>(&aEvent->touches));
 }
 
+bool
+MetroInput::ShouldDeliverInputToRecognizer()
+{
+  
+  if (mChromeHitTestCacheForTouch) {
+    return true;
+  }
+  return mRecognizerWantsEvents;
+}
+
 
 
 HRESULT
@@ -483,44 +493,26 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
     
     
     
-    mTouchStartDefaultPrevented = false;
-    mTouchMoveDefaultPrevented = false;
+    mContentConsumingTouch = false;
+    mRecognizerWantsEvents = true;
     mIsFirstTouchMove = true;
     mCancelable = true;
     mCanceledIds.Clear();
-    InitTouchEventTouchList(touchEvent);
-    DispatchAsyncTouchEventWithCallback(touchEvent, &MetroInput::OnPointerPressedCallback);
-  } else {
-    InitTouchEventTouchList(touchEvent);
-    DispatchAsyncTouchEventIgnoreStatus(touchEvent);
   }
 
-  if (!mTouchStartDefaultPrevented) {
+  InitTouchEventTouchList(touchEvent);
+  DispatchAsyncTouchEvent(touchEvent);
+
+  if (ShouldDeliverInputToRecognizer()) {
     mGestureRecognizer->ProcessDownEvent(currentPoint.Get());
   }
   return S_OK;
 }
 
 void
-MetroInput::OnPointerPressedCallback()
-{
-  nsEventStatus status = DeliverNextQueuedTouchEvent();
-  mTouchStartDefaultPrevented = (nsEventStatus_eConsumeNoDefault == status);
-  if (mTouchStartDefaultPrevented) {
-    
-    
-    mGestureRecognizer->CompleteGesture();
-    
-    mWidget->ApzContentConsumingTouch();
-  }
-}
-
-void
 MetroInput::AddPointerMoveDataToRecognizer(UI::Core::IPointerEventArgs* aArgs)
 {
-  
-  
-  if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented) {
+  if (ShouldDeliverInputToRecognizer()) {
     WRL::ComPtr<Foundation::Collections::IVector<UI::Input::PointerPoint*>>
         pointerPoints;
     aArgs->GetIntermediatePoints(pointerPoints.GetAddressOf());
@@ -586,7 +578,7 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
     WidgetTouchEvent* touchEvent =
       new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
     InitTouchEventTouchList(touchEvent);
-    DispatchAsyncTouchEventIgnoreStatus(touchEvent);
+    DispatchAsyncTouchEvent(touchEvent);
   }
 
   touch = CreateDOMTouch(currentPoint.Get());
@@ -598,34 +590,15 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
     new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
 
   
-  
-  
-  
   if (mIsFirstTouchMove) {
     InitTouchEventTouchList(touchEvent);
-    DispatchAsyncTouchEventWithCallback(touchEvent, &MetroInput::OnFirstPointerMoveCallback);
+    DispatchAsyncTouchEvent(touchEvent);
     mIsFirstTouchMove = false;
   }
 
   AddPointerMoveDataToRecognizer(aArgs);
 
   return S_OK;
-}
-
-void
-MetroInput::OnFirstPointerMoveCallback()
-{
-  nsEventStatus status = DeliverNextQueuedTouchEvent();
-  mCancelable = false;
-  mTouchMoveDefaultPrevented = (nsEventStatus_eConsumeNoDefault == status);
-  
-  if (mTouchMoveDefaultPrevented) {
-    mWidget->ApzContentConsumingTouch();
-    
-    mGestureRecognizer->CompleteGesture();
-  } else if (!mTouchMoveDefaultPrevented && !mTouchStartDefaultPrevented) {
-    mWidget->ApzContentIgnoringTouch();
-  }
 }
 
 
@@ -667,7 +640,7 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
     WidgetTouchEvent* touchEvent =
       new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
     InitTouchEventTouchList(touchEvent);
-    DispatchAsyncTouchEventIgnoreStatus(touchEvent);
+    DispatchAsyncTouchEvent(touchEvent);
   }
 
   
@@ -679,11 +652,9 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   WidgetTouchEvent* touchEvent =
     new WidgetTouchEvent(true, NS_TOUCH_END, mWidget.Get());
   touchEvent->touches.AppendElement(CreateDOMTouch(currentPoint.Get()));
-  DispatchAsyncTouchEventIgnoreStatus(touchEvent);
+  DispatchAsyncTouchEvent(touchEvent);
 
-  
-  
-  if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented) {
+  if (ShouldDeliverInputToRecognizer()) {
     mGestureRecognizer->ProcessUpEvent(currentPoint.Get());
   }
 
@@ -1179,7 +1150,7 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
 }
 
 void
-MetroInput::DispatchAsyncTouchEventIgnoreStatus(WidgetTouchEvent* aEvent)
+MetroInput::DispatchAsyncTouchEvent(WidgetTouchEvent* aEvent)
 {
   aEvent->time = ::GetMessageTime();
   mModifierKeyState.Update();
@@ -1190,7 +1161,7 @@ MetroInput::DispatchAsyncTouchEventIgnoreStatus(WidgetTouchEvent* aEvent)
   NS_DispatchToCurrentThread(runnable);
 }
 
-nsEventStatus
+void
 MetroInput::DeliverNextQueuedTouchEvent()
 {
   nsEventStatus status;
@@ -1221,12 +1192,10 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
 
 
-
-
   
   
   
-  if (event->message == NS_TOUCH_START) {
+  if (mCancelable && event->message == NS_TOUCH_START) {
     nsRefPtr<Touch> touch = event->touches[0];
     LayoutDeviceIntPoint pt = LayoutDeviceIntPoint::FromUntyped(touch->mRefPoint);
     bool apzIntersect = mWidget->HitTestAPZC(mozilla::ScreenPoint(pt.x, pt.y));
@@ -1235,30 +1204,59 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   
   
-  
-  if (mTouchStartDefaultPrevented || mTouchMoveDefaultPrevented) {
-    if (!mChromeHitTestCacheForTouch) {
-      
-      
-      mWidget->ApzReceiveInputEvent(event);
-    }
+  if (!mCancelable && mChromeHitTestCacheForTouch) {
     mWidget->DispatchEvent(event, status);
-    return status;
+    return;
   }
 
   
   
-  WidgetTouchEvent transformedEvent(*event);
-  status = mWidget->ApzReceiveInputEvent(event, &transformedEvent);
-  if (!mCancelable && status == nsEventStatus_eConsumeNoDefault) {
-    DispatchTouchCancel(event);
-    return status;
+  
+  if (mCancelable) {
+    WidgetTouchEvent transformedEvent(*event);
+    mWidget->ApzReceiveInputEvent(event, &transformedEvent);
+    mWidget->DispatchEvent(mChromeHitTestCacheForTouch ? event : &transformedEvent, status);
+    if (event->message == NS_TOUCH_START) {
+      mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
+      
+      
+      mRecognizerWantsEvents = !(nsEventStatus_eConsumeNoDefault == status);
+    } else if (event->message == NS_TOUCH_MOVE) {
+      mCancelable = false;
+      
+      if (!mContentConsumingTouch) {
+        mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
+      }
+      
+      
+      if (mContentConsumingTouch) {
+        mWidget->ApzContentConsumingTouch();
+      } else {
+        mWidget->ApzContentIgnoringTouch();
+        DispatchTouchCancel(&transformedEvent);
+      }
+    }
+    
+    
+    if (!ShouldDeliverInputToRecognizer()) {
+      mGestureRecognizer->CompleteGesture();
+    }
+    return;
   }
 
   
   
-  mWidget->DispatchEvent(!mChromeHitTestCacheForTouch ? &transformedEvent : event, status);
-  return status;
+  if (mContentConsumingTouch) {
+    
+    
+    
+    mWidget->ApzReceiveInputEvent(event);
+    mWidget->DispatchEvent(event, status);
+    return;
+  }
+
+  
+  mWidget->ApzReceiveInputEvent(event);
 }
 
 void
@@ -1288,19 +1286,6 @@ MetroInput::DispatchTouchCancel(WidgetTouchEvent* aEvent)
   }
 
   mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
-}
-
-void
-MetroInput::DispatchAsyncTouchEventWithCallback(WidgetTouchEvent* aEvent,
-                                                void (MetroInput::*Callback)())
-{
-  aEvent->time = ::GetMessageTime();
-  mModifierKeyState.Update();
-  mModifierKeyState.InitInputEvent(*aEvent);
-  mInputEventQueue.Push(aEvent);
-  nsCOMPtr<nsIRunnable> runnable =
-    NS_NewRunnableMethod(this, Callback);
-  NS_DispatchToCurrentThread(runnable);
 }
 
 void

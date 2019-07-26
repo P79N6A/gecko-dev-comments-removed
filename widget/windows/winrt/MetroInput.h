@@ -183,6 +183,7 @@ private:
                                 uint32_t aMagEventType,
                                 uint32_t aRotEventType);
   uint16_t ProcessInputTypeForGesture(IEdgeGestureEventArgs* aArgs);
+  bool ShouldDeliverInputToRecognizer();
 
   
   
@@ -207,10 +208,10 @@ private:
   
   
   
-  bool mTouchStartDefaultPrevented;
-  bool mTouchMoveDefaultPrevented;
+  bool mContentConsumingTouch;
   bool mIsFirstTouchMove;
   bool mCancelable;
+  bool mRecognizerWantsEvents;
   nsTArray<uint32_t> mCanceledIds;
 
   
@@ -273,17 +274,11 @@ private:
 
   
   void DispatchAsyncEventIgnoreStatus(WidgetInputEvent* aEvent);
-  void DispatchAsyncTouchEventIgnoreStatus(WidgetTouchEvent* aEvent);
-  void DispatchAsyncTouchEventWithCallback(WidgetTouchEvent* aEvent,
-                                           void (MetroInput::*Callback)());
+  void DispatchAsyncTouchEvent(WidgetTouchEvent* aEvent);
 
   
   void DeliverNextQueuedEventIgnoreStatus();
-  nsEventStatus DeliverNextQueuedTouchEvent();
-
-  
-  void OnPointerPressedCallback();
-  void OnFirstPointerMoveCallback();
+  void DeliverNextQueuedTouchEvent();
 
   
   void DispatchEventIgnoreStatus(WidgetGUIEvent* aEvent);
