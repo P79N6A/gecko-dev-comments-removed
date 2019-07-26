@@ -69,12 +69,13 @@ static bool
 HavePlatformMPEGDecoders()
 {
   return
+    Preferences::GetBool("media.fragmented-mp4.use-blank-decoder") ||
 #ifdef XP_WIN
     
     WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION ||
 #endif
-  
-  false;
+    
+    false;
 }
 
 

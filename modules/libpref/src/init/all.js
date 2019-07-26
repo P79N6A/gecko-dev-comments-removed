@@ -202,6 +202,10 @@ pref("media.fragmented-mp4.enabled", true);
 
 
 pref("media.fragmented-mp4.exposed", false);
+
+
+
+pref("media.fragmented-mp4.use-blank-decoder", false);
 #endif
 #ifdef MOZ_RAW
 pref("media.raw.enabled", true);
