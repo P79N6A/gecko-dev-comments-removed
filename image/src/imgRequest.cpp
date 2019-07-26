@@ -674,6 +674,11 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
 
     mGotData = true;
 
+    
+    
+    bool resniffMimeType = mResniffMimeType;
+    mResniffMimeType = false;
+
     mimetype_closure closure;
     nsAutoCString newType;
     closure.newType = &newType;
@@ -718,14 +723,12 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       
       
-      if (mResniffMimeType) {
+      if (resniffMimeType) {
         NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
 
         imgStatusTracker* freshTracker = new imgStatusTracker(nullptr);
         freshTracker->AdoptConsumers(&GetStatusTracker());
         mStatusTracker = freshTracker;
-
-        mResniffMimeType = false;
       }
 
       
