@@ -1574,9 +1574,6 @@ public:
     if (places.Count() == 0)
       return NS_OK;
 
-    
-    
-
     mozStorageTransaction transaction(mDBConn, false,
                                       mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
