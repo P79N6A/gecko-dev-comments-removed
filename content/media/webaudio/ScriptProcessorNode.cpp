@@ -234,7 +234,114 @@ private:
     }
   }
 
-  void SendBuffersToMainThread(AudioNodeStream* aStream);
+  void SendBuffersToMainThread(AudioNodeStream* aStream)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    
+    TrackTicks playbackTick = mSource->GetCurrentPosition();
+    
+    playbackTick += WEBAUDIO_BLOCK_SIZE;
+    
+    playbackTick += mSharedBuffers->DelaySoFar();
+    
+    double playbackTime =
+      WebAudioUtils::StreamPositionToDestinationTime(playbackTick,
+                                                     mSource,
+                                                     mDestination);
+
+    class Command : public nsRunnable
+    {
+    public:
+      Command(AudioNodeStream* aStream,
+              InputChannels& aInputChannels,
+              double aPlaybackTime,
+              bool aNullInput)
+        : mStream(aStream)
+        , mPlaybackTime(aPlaybackTime)
+        , mNullInput(aNullInput)
+      {
+        mInputChannels.SetLength(aInputChannels.Length());
+        if (!aNullInput) {
+          for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
+            mInputChannels[i] = aInputChannels[i].forget();
+          }
+        }
+      }
+
+      NS_IMETHODIMP Run()
+      {
+        
+        if (!nsContentUtils::IsSafeToRunScript()) {
+          nsContentUtils::AddScriptRunner(this);
+          return NS_OK;
+        }
+
+        nsRefPtr<ScriptProcessorNode> node;
+        {
+          
+          
+          
+          
+          MutexAutoLock lock(mStream->Engine()->NodeMutex());
+          node = static_cast<ScriptProcessorNode*>(mStream->Engine()->Node());
+        }
+        if (!node) {
+          return NS_OK;
+        }
+
+        AutoPushJSContext cx(node->Context()->GetJSContext());
+        if (cx) {
+          JSAutoRequest ar(cx);
+
+          
+          nsRefPtr<AudioBuffer> inputBuffer;
+          if (!mNullInput) {
+            inputBuffer = new AudioBuffer(node->Context(),
+                                          node->BufferSize(),
+                                          node->Context()->SampleRate());
+            if (!inputBuffer->InitializeBuffers(mInputChannels.Length(), cx)) {
+              return NS_OK;
+            }
+            
+            for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
+              inputBuffer->SetRawChannelContents(cx, i, mInputChannels[i]);
+            }
+          }
+
+          
+          
+          
+          
+          
+          nsRefPtr<AudioProcessingEvent> event = new AudioProcessingEvent(node, nullptr, nullptr);
+          event->InitEvent(inputBuffer,
+                           mInputChannels.Length(),
+                           mPlaybackTime);
+          node->DispatchTrustedEvent(event);
+
+          
+          nsRefPtr<ThreadSharedFloatArrayBufferList> output;
+          if (event->HasOutputBuffer()) {
+            output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx);
+          }
+
+          
+          node->GetSharedBuffers()->FinishProducingOutputBuffer(output, node->BufferSize());
+        }
+        return NS_OK;
+      }
+    private:
+      nsRefPtr<AudioNodeStream> mStream;
+      InputChannels mInputChannels;
+      double mPlaybackTime;
+      bool mNullInput;
+    };
+
+    NS_DispatchToMainThread(new Command(aStream, mInputChannels,
+                                        playbackTime,
+                                        !mSeenNonSilenceInput));
+  }
 
   friend class ScriptProcessorNode;
 
@@ -281,116 +388,6 @@ JSObject*
 ScriptProcessorNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
   return ScriptProcessorNodeBinding::Wrap(aCx, aScope, this);
-}
-
-class DispatchAudioProcessEventCommand : public nsRunnable
-{
-public:
-  DispatchAudioProcessEventCommand(AudioNodeStream* aStream,
-                                   ScriptProcessorNodeEngine::InputChannels& aInputChannels,
-                                   double aPlaybackTime,
-                                   bool aNullInput)
-    : mStream(aStream)
-    , mPlaybackTime(aPlaybackTime)
-    , mNullInput(aNullInput)
-  {
-    mInputChannels.SetLength(aInputChannels.Length());
-    if (!aNullInput) {
-      for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
-        mInputChannels[i] = aInputChannels[i].forget();
-      }
-    }
-  }
-
-  NS_IMETHODIMP Run()
-  {
-    
-    if (!nsContentUtils::IsSafeToRunScript()) {
-      nsContentUtils::AddScriptRunner(this);
-      return NS_OK;
-    }
-
-    nsRefPtr<ScriptProcessorNode> node;
-    {
-      
-      
-      
-      
-      MutexAutoLock lock(mStream->Engine()->NodeMutex());
-      node = static_cast<ScriptProcessorNode*>(mStream->Engine()->Node());
-    }
-    if (!node) {
-      return NS_OK;
-    }
-
-    AutoPushJSContext cx(node->Context()->GetJSContext());
-    if (cx) {
-      JSAutoRequest ar(cx);
-
-      
-      nsRefPtr<AudioBuffer> inputBuffer;
-      if (!mNullInput) {
-        inputBuffer = new AudioBuffer(node->Context(),
-                                      node->BufferSize(),
-                                      node->Context()->SampleRate());
-        if (!inputBuffer->InitializeBuffers(mInputChannels.Length(), cx)) {
-          return NS_OK;
-        }
-        
-        for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
-          inputBuffer->SetRawChannelContents(cx, i, mInputChannels[i]);
-        }
-      }
-
-      
-      
-      
-      
-      
-      nsRefPtr<AudioProcessingEvent> event = new AudioProcessingEvent(node, nullptr, nullptr);
-      event->InitEvent(inputBuffer,
-                       mInputChannels.Length(),
-                       mPlaybackTime);
-      node->DispatchTrustedEvent(event);
-
-      
-      nsRefPtr<ThreadSharedFloatArrayBufferList> output;
-      if (event->HasOutputBuffer()) {
-        output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx);
-      }
-
-      
-      node->GetSharedBuffers()->FinishProducingOutputBuffer(output, node->BufferSize());
-    }
-    return NS_OK;
-  }
-private:
-  nsRefPtr<AudioNodeStream> mStream;
-  ScriptProcessorNodeEngine::InputChannels mInputChannels;
-  double mPlaybackTime;
-  bool mNullInput;
-};
-
-void
-ScriptProcessorNodeEngine::SendBuffersToMainThread(AudioNodeStream* aStream)
-{
-  MOZ_ASSERT(!NS_IsMainThread());
-
-  
-  TrackTicks playbackTick = mSource->GetCurrentPosition();
-  
-  playbackTick += WEBAUDIO_BLOCK_SIZE;
-  
-  playbackTick += mSharedBuffers->DelaySoFar();
-  
-  double playbackTime =
-    WebAudioUtils::StreamPositionToDestinationTime(playbackTick,
-                                                   mSource,
-                                                   mDestination);
-
-  NS_DispatchToMainThread(new DispatchAudioProcessEventCommand(aStream, mInputChannels,
-                                                               playbackTime,
-                                                               !mSeenNonSilenceInput));
 }
 
 }
