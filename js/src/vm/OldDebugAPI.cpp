@@ -1029,11 +1029,19 @@ FormatValue(JSContext *cx, const Value &vArg, JSAutoByteString &bytes)
 {
     RootedValue v(cx, vArg);
 
-    mozilla::Maybe<AutoCompartment> ac;
-    if (v.isObject())
-        ac.construct(cx, &v.toObject());
+    
 
-    JSString *str = ToString<CanGC>(cx, v);
+
+
+
+    RootedString str(cx);
+    if (v.isObject()) {
+        AutoCompartment ac(cx, &v.toObject());
+        str = ToString<CanGC>(cx, v);
+    } else {
+        str = ToString<CanGC>(cx, v);
+    }
+
     if (!str)
         return nullptr;
     const char *buf = bytes.encodeLatin1(cx, str);
