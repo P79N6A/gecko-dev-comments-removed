@@ -344,7 +344,6 @@ CompositorOGL::ReadDrawFPSPref::Run()
 {
   
   Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
-  Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   return NS_OK;
 }
 
@@ -520,7 +519,6 @@ CompositorOGL::Initialize()
   if (NS_IsMainThread()) {
     
     Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
-    Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   } else {
     
     NS_DispatchToMainThread(new ReadDrawFPSPref());
@@ -738,34 +736,6 @@ GetFrameBufferInternalFormat(GLContext* gl,
 }
 
 bool CompositorOGL::sDrawFPS = false;
-bool CompositorOGL::sFrameCounter = false;
-
-static uint16_t sFrameCount = 0;
-void
-FPSState::DrawFrameCounter(GLContext* context)
-{
-  profiler_set_frame_number(sFrameCount);
-
-  context->fEnable(LOCAL_GL_SCISSOR_TEST);
-
-  uint16_t frameNumber = sFrameCount;
-  for (size_t i = 0; i < 16; i++) {
-    context->fScissor(3*i, 0, 3, 3);
-
-    
-    
-    if ((frameNumber >> i) & 0x1) {
-      context->fClearColor(0.0, 0.0, 0.0, 0.0);
-    } else {
-      context->fClearColor(1.0, 1.0, 1.0, 0.0);
-    }
-    context->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
-  }
-  
-  sFrameCount++;
-
-  context->fDisable(LOCAL_GL_SCISSOR_TEST);
-}
 
 
 
@@ -1299,8 +1269,6 @@ CompositorOGL::EndFrame()
 
   if (mFPS) {
     mFPS->DrawFPS(TimeStamp::Now(), mGLContext, GetProgram(Copy2DProgramType));
-  } else if (sFrameCounter) {
-    FPSState::DrawFrameCounter(mGLContext);
   }
 
   mGLContext->SwapBuffers();

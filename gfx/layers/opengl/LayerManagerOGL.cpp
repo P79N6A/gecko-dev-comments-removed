@@ -249,7 +249,6 @@ LayerManagerOGL::ReadDrawFPSPref::Run()
 {
   
   Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
-  Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   return NS_OK;
 }
 
@@ -440,7 +439,6 @@ LayerManagerOGL::Initialize(bool force)
   if (NS_IsMainThread()) {
     
     Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
-    Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   } else {
     
     NS_DispatchToMainThread(new ReadDrawFPSPref());
@@ -688,8 +686,6 @@ LayerManagerOGL::RootLayer() const
 }
 
 bool LayerManagerOGL::sDrawFPS = false;
-bool LayerManagerOGL::sFrameCounter = false;
-
 
 
 
@@ -896,8 +892,6 @@ LayerManagerOGL::Render()
 
   if (mFPS) {
     mFPS->DrawFPS(TimeStamp::Now(), mGLContext, GetProgram(Copy2DProgramType));
-  } else if (sFrameCounter) {
-    FPSState::DrawFrameCounter(mGLContext);
   }
 
   if (mGLContext->IsDoubleBuffered()) {

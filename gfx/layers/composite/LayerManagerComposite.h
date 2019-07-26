@@ -236,6 +236,11 @@ private:
 
   void Render();
 
+  
+
+
+  void RenderDebugOverlay(const gfx::Rect& aBounds);
+
   void WorldTransformRect(nsIntRect& aRect);
 
   
