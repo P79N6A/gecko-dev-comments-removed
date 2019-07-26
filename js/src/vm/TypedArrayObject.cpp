@@ -98,7 +98,7 @@ ValueIsLength(const Value &v, uint32_t *len)
 
 
 static bool
-ToClampedIndex(JSContext *cx, const Value &v, uint32_t length, uint32_t *out)
+ToClampedIndex(JSContext *cx, HandleValue v, uint32_t length, uint32_t *out)
 {
     int32_t result;
     if (!ToInt32(cx, v, &result))
