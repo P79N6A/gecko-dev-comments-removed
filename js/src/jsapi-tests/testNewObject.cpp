@@ -39,7 +39,7 @@ constructHook(JSContext *cx, unsigned argc, jsval *vp)
     
     JS::RootedValue value(cx, args[0]);
     JS::RootedObject callee(cx, &args.callee());
-    if (!JS_SetElement(cx, callee, 0, &value))
+    if (!JS_SetElement(cx, callee, 0, value))
         return false;
 
     args.rval().setObject(*obj);
