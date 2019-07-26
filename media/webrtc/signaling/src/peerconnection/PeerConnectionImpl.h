@@ -224,6 +224,9 @@ public:
   virtual const std::string& GetHandle();
 
   
+  virtual const std::string& GetName();
+
+  
   void IceConnectionStateChange(NrIceCtx* ctx,
                                 NrIceCtx::ConnectionState state);
   void IceGatheringStateChange(NrIceCtx* ctx,
@@ -541,31 +544,50 @@ private:
 
 #ifdef MOZILLA_INTERNAL_API
   
-  void GetStats_s(
-      mozilla::TrackID trackId,
+  
+  
+
+  
+  static void GetStats_s(
+      const std::string& pcHandle,
+      const std::string& pcName,
+      nsCOMPtr<nsIThread> callbackThread,
       bool internalStats,
-      nsAutoPtr<std::vector<mozilla::RefPtr<mozilla::MediaPipeline>>> pipelines,
+      const std::vector<mozilla::RefPtr<mozilla::MediaPipeline>> &pipelines,
+      const mozilla::RefPtr<NrIceCtx> &iceCtx,
+      const std::vector<mozilla::RefPtr<NrIceMediaStream>> &streams,
       DOMHighResTimeStamp now);
 
-  nsresult GetStatsImpl_s(
-      mozilla::TrackID trackId,
+  static nsresult GetStatsImpl_s(
       bool internalStats,
-      nsAutoPtr<std::vector<mozilla::RefPtr<mozilla::MediaPipeline>>> pipelines,
+      const std::vector<mozilla::RefPtr<mozilla::MediaPipeline>> &pipelines,
+      const mozilla::RefPtr<NrIceCtx> &iceCtx,
+      const std::vector<mozilla::RefPtr<NrIceMediaStream>> &streams,
       DOMHighResTimeStamp now,
       mozilla::dom::RTCStatsReportInternal *report);
 
+  static void FillStatsReport_s(
+      NrIceMediaStream& stream,
+      bool internalStats,
+      DOMHighResTimeStamp now,
+      mozilla::dom::RTCStatsReportInternal* stats);
+
   
-  void OnStatsReport_m(
+  static void OnStatsReport_m(
+      const std::string& pcHandle,
       nsresult result,
-      nsAutoPtr<std::vector<mozilla::RefPtr<mozilla::MediaPipeline>>> pipelines,
+      const std::vector<mozilla::RefPtr<mozilla::MediaPipeline>> &pipelines,
       nsAutoPtr<mozilla::dom::RTCStatsReportInternal> report);
 
   
-  void GetLogging_s(const std::string& pattern);
+  static void GetLogging_s(const std::string& pcHandle,
+                           nsCOMPtr<nsIThread> callbackThread,
+                           const std::string& pattern);
 
   
-  void OnGetLogging_m(const std::string& pattern,
-                      const std::deque<std::string>& logging);
+  static void OnGetLogging_m(const std::string& pcHandle,
+                             const std::string& pattern,
+                             nsAutoPtr<std::deque<std::string>> logging);
 #endif
 
   
@@ -604,6 +626,9 @@ private:
 
   
   std::string mHandle;
+
+  
+  std::string mName;
 
   
   nsCOMPtr<nsIEventTarget> mSTSThread;
