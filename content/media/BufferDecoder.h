@@ -23,7 +23,6 @@ public:
   
   
   explicit BufferDecoder(MediaResource* aResource);
-  virtual ~BufferDecoder();
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -75,6 +74,8 @@ public:
   virtual void NotifyWaitingForResourcesStatusChanged() MOZ_OVERRIDE;
 
 protected:
+  virtual ~BufferDecoder();
+
   
   
   

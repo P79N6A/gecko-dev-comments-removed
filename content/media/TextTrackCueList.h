@@ -55,6 +55,8 @@ public:
   void GetArray(nsTArray<nsRefPtr<TextTrackCue> >& aCues);
 
 private:
+  ~TextTrackCueList();
+
   nsCOMPtr<nsISupports> mParent;
 
   

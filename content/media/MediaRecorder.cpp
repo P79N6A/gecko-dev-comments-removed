@@ -238,13 +238,6 @@ public:
     mLastBlobTimeStamp = TimeStamp::Now();
   }
 
-  
-  virtual ~Session()
-  {
-    LOG(PR_LOG_DEBUG, ("Session.~Session (%p)", this));
-    CleanupStreams();
-  }
-
   void Start()
   {
     LOG(PR_LOG_DEBUG, ("Session.Start %p", this));
@@ -299,7 +292,12 @@ public:
   }
 
 private:
-
+  
+  virtual ~Session()
+  {
+    LOG(PR_LOG_DEBUG, ("Session.~Session (%p)", this));
+    CleanupStreams();
+  }
   
   
   

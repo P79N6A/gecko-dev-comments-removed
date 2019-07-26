@@ -37,7 +37,6 @@ class WebVTTListener MOZ_FINAL : public nsIWebVTTListener,
 
 public:
   WebVTTListener(HTMLTrackElement* aElement);
-  ~WebVTTListener();
 
   
 
@@ -46,6 +45,8 @@ public:
   nsresult LoadResource();
 
 private:
+  ~WebVTTListener();
+
   
   enum ErrorCodes {
     BadSignature = 0
@@ -61,4 +62,4 @@ private:
 } 
 } 
 
-#endif
+#endif 

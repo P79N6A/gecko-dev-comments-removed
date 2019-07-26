@@ -275,7 +275,6 @@ public:
   };
 
   MediaDecoder();
-  virtual ~MediaDecoder();
 
   
   
@@ -999,6 +998,8 @@ public:
   }
 
 protected:
+  virtual ~MediaDecoder();
+
   
 
 
