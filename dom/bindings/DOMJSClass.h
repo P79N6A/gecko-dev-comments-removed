@@ -168,7 +168,7 @@ struct DOMJSClass
   
   
   
-  const JSClass mBase;
+  const js::Class mBase;
 
   const DOMClass mClass;
 
@@ -181,7 +181,7 @@ struct DOMJSClass
     return FromJSClass(Jsvalify(base));
   }
 
-  const JSClass* ToJSClass() const { return &mBase; }
+  const JSClass* ToJSClass() const { return Jsvalify(&mBase); }
 };
 
 
