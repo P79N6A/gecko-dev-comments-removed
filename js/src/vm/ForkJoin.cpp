@@ -1482,9 +1482,7 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
 
     
     
-    IonContext icx(CompileRuntime::get(cx_->runtime()),
-                   CompileCompartment::get(cx_->compartment()),
-                   nullptr);
+    IonContext icx(cx_->runtime(), cx_->compartment(), nullptr);
 
     JS_ASSERT(slice.bailoutRecord->topScript == nullptr);
 
