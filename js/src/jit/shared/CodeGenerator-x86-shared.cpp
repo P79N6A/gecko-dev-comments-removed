@@ -933,7 +933,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     
     if (mir->canBeDivideByZero()) {
         masm.testl(rhs, rhs);
-        if (mir->isTruncated()) {
+        if (mir->canTruncateInfinities()) {
             
             if (!ool)
                 ool = new(alloc()) ReturnZero(output);
@@ -951,7 +951,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
         masm.cmpl(lhs, Imm32(INT32_MIN));
         masm.j(Assembler::NotEqual, &notmin);
         masm.cmpl(rhs, Imm32(-1));
-        if (mir->isTruncated()) {
+        if (mir->canTruncateOverflow()) {
             
             
             masm.j(Assembler::Equal, &done);
@@ -964,7 +964,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     }
 
     
-    if (!mir->isTruncated() && mir->canBeNegativeZero()) {
+    if (!mir->canTruncateNegativeZero() && mir->canBeNegativeZero()) {
         Label nonzero;
         masm.testl(lhs, lhs);
         masm.j(Assembler::NonZero, &nonzero);
@@ -980,7 +980,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     masm.cdq();
     masm.idiv(rhs);
 
-    if (!mir->isTruncated()) {
+    if (!mir->canTruncateRemainder()) {
         
         masm.testl(remainder, remainder);
         if (!bailoutIf(Assembler::NonZero, ins->snapshot()))

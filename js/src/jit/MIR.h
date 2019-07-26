@@ -4071,13 +4071,32 @@ class MDiv : public MBinaryArithInstruction
     bool canBeNegativeDividend_;
     bool unsigned_;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool isTruncatedIndirectly_;
+
     MDiv(MDefinition *left, MDefinition *right, MIRType type)
       : MBinaryArithInstruction(left, right),
         canBeNegativeZero_(true),
         canBeNegativeOverflow_(true),
         canBeDivideByZero_(true),
         canBeNegativeDividend_(true),
-        unsigned_(false)
+        unsigned_(false),
+        isTruncatedIndirectly_(false)
     {
         if (type != MIRType_Value)
             specialization_ = type;
@@ -4131,6 +4150,26 @@ class MDiv : public MBinaryArithInstruction
 
     bool isUnsigned() const {
         return unsigned_;
+    }
+
+    bool isTruncatedIndirectly() const {
+        return isTruncatedIndirectly_;
+    }
+    void setTruncatedIndirectly(bool truncate) {
+        isTruncatedIndirectly_ = truncate;
+    }
+
+    bool canTruncateInfinities() const {
+        return isTruncated();
+    }
+    bool canTruncateRemainder() const {
+        return isTruncated();
+    }
+    bool canTruncateOverflow() const {
+        return isTruncated() || isTruncatedIndirectly();
+    }
+    bool canTruncateNegativeZero() const {
+        return isTruncated() || isTruncatedIndirectly();
     }
 
     bool isFloat32Commutative() const { return true; }

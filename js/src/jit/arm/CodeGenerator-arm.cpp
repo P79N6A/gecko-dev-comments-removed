@@ -524,7 +524,7 @@ CodeGeneratorARM::divICommon(MDiv *mir, Register lhs, Register rhs, Register out
         
         masm.ma_cmp(lhs, Imm32(INT32_MIN)); 
         masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
-        if (mir->isTruncated()) {
+        if (mir->canTruncateOverflow()) {
             
             Label skip;
             masm.ma_b(&skip, Assembler::NotEqual);
@@ -539,22 +539,9 @@ CodeGeneratorARM::divICommon(MDiv *mir, Register lhs, Register rhs, Register out
     }
 
     
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mir->canBeDivideByZero() || mir->canBeNegativeZero()) {
+    if (mir->canBeDivideByZero()) {
         masm.ma_cmp(rhs, Imm32(0));
-        masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
-        if (mir->isTruncated()) {
+        if (mir->canTruncateInfinities()) {
             
             Label skip;
             masm.ma_b(&skip, Assembler::NotEqual);
@@ -566,6 +553,18 @@ CodeGeneratorARM::divICommon(MDiv *mir, Register lhs, Register rhs, Register out
             if (!bailoutIf(Assembler::Equal, snapshot))
                 return false;
         }
+    }
+
+    
+    if (!mir->canTruncateNegativeZero() && mir->canBeNegativeZero()) {
+        Label nonzero;
+        masm.ma_cmp(lhs, Imm32(0));
+        masm.ma_b(&nonzero, Assembler::NotEqual);
+        masm.ma_cmp(rhs, Imm32(0));
+        JS_ASSERT(mir->fallible());
+        if (!bailoutIf(Assembler::LessThan, snapshot))
+            return false;
+        masm.bind(&nonzero);
     }
 
     return true;
@@ -585,7 +584,7 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     if (!divICommon(mir, lhs, rhs, output, ins->snapshot(), done))
         return false;
 
-    if (mir->isTruncated()) {
+    if (mir->canTruncateRemainder()) {
         masm.ma_sdiv(lhs, rhs, output);
     } else {
         masm.ma_sdiv(lhs, rhs, ScratchRegister);
@@ -627,7 +626,7 @@ CodeGeneratorARM::visitSoftDivI(LSoftDivI *ins)
     else
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
     
-    if (!mir->isTruncated()) {
+    if (!mir->canTruncateRemainder()) {
         JS_ASSERT(mir->fallible());
         masm.ma_cmp(r1, Imm32(0));
         if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
