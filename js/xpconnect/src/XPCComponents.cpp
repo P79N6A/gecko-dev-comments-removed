@@ -3048,9 +3048,18 @@ xpc::CreateObjectIn(JSContext *cx, HandleValue vobj, CreateObjectInOptions &opti
 
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::CreateObjectIn(const Value &vobj, JSContext *cx, Value *rval)
+nsXPCComponents_Utils::CreateObjectIn(const Value &vobj, const Value &voptions,
+                                      JSContext *cx, Value *rval)
 {
-    CreateObjectInOptions options;
+    RootedObject optionsObject(cx, voptions.isObject() ? &voptions.toObject()
+                                                       : nullptr);
+    CreateObjectInOptions options(cx, optionsObject);
+    if (voptions.isObject() &&
+        !options.Parse())
+    {
+        return NS_ERROR_FAILURE;
+    }
+
     RootedValue rvobj(cx, vobj);
     RootedValue res(cx);
     if (!xpc::CreateObjectIn(cx, rvobj, options, &res))
