@@ -1409,6 +1409,14 @@ nsFrameLoader::OwnerIsBrowserOrAppFrame()
   return browserFrame ? browserFrame->GetReallyIsBrowserOrApp() : false;
 }
 
+
+NS_IMETHODIMP
+nsFrameLoader::GetOwnerIsBrowserOrAppFrame(bool* aResult)
+{
+  *aResult = OwnerIsBrowserOrAppFrame();
+  return NS_OK;
+}
+
 bool
 nsFrameLoader::OwnerIsAppFrame()
 {
