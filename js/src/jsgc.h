@@ -167,8 +167,8 @@ IsBackgroundFinalized(AllocKind kind)
         false,     
         true,      
         false,     
-        false,     
-        false,     
+        true,      
+        true,     
         false,     
         true,      
         true,      
@@ -253,6 +253,9 @@ struct ArenaLists {
     
     ArenaHeader *arenaListsToSweep[FINALIZE_LIMIT];
 
+    
+    ArenaHeader *gcShapeArenasToSweep;
+
   public:
     ArenaLists() {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
@@ -261,6 +264,7 @@ struct ArenaLists {
             backgroundFinalizeState[i] = BFS_DONE;
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
             arenaListsToSweep[i] = NULL;
+        gcShapeArenasToSweep = NULL;
     }
 
     ~ArenaLists() {

@@ -202,37 +202,42 @@ PropertyTree::getChild(JSContext *cx, Shape *parent_, uint32_t nfixed, const Sta
 }
 
 void
+Shape::sweep()
+{
+    if (inDictionary())
+        return;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (parent && parent->isMarked() && parent->compartment() == compartment())
+        parent->removeChild(this);
+}
+
+void
 Shape::finalize(FreeOp *fop)
 {
-    if (!inDictionary()) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if (parent && parent->isMarked() && parent->compartment() == compartment())
-            parent->removeChild(this);
-
-        if (kids.isHash())
-            fop->delete_(kids.toHash());
-    }
+    if (!inDictionary() && kids.isHash())
+        fop->delete_(kids.toHash());
 }
 
 #ifdef DEBUG
