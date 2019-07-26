@@ -320,7 +320,7 @@ class NullFramePtr : public AbstractFramePtr
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x20, 
-    INITIAL_LOWERED        =    0x80000  
+    INITIAL_LOWERED        =    0x40000  
 };
 
 enum ExecuteType {
@@ -361,27 +361,26 @@ class StackFrame
 
         
         HAS_HOOK_DATA      =     0x1000,  
-        HAS_ANNOTATION     =     0x2000,  
-        HAS_RVAL           =     0x4000,  
-        HAS_SCOPECHAIN     =     0x8000,  
-        HAS_PREVPC         =    0x10000,  
-        HAS_BLOCKCHAIN     =    0x20000,  
+        HAS_RVAL           =     0x2000,  
+        HAS_SCOPECHAIN     =     0x4000,  
+        HAS_PREVPC         =     0x8000,  
+        HAS_BLOCKCHAIN     =    0x10000,  
 
         
-        DOWN_FRAMES_EXPANDED =  0x40000,  
-        LOWERED_CALL_APPLY   =  0x80000,  
+        DOWN_FRAMES_EXPANDED =  0x20000,  
+        LOWERED_CALL_APPLY   =  0x40000,  
 
         
-        PREV_UP_TO_DATE    =   0x100000,  
+        PREV_UP_TO_DATE    =    0x80000,  
 
         
-        HAS_PUSHED_SPS_FRAME = 0x200000,  
+        HAS_PUSHED_SPS_FRAME = 0x100000,  
 
         
-        RUNNING_IN_ION       = 0x400000,  
-        CALLING_INTO_ION     = 0x800000,  
+        RUNNING_IN_ION       = 0x200000,  
+        CALLING_INTO_ION     = 0x400000,  
 
-        JIT_REVISED_STACK   = 0x1000000   
+        JIT_REVISED_STACK    = 0x800000   
     };
 
   private:
@@ -403,7 +402,6 @@ class StackFrame
     jsbytecode          *prevpc_;       
     InlinedSite         *prevInline_;   
     void                *hookData_;     
-    void                *annotation_;   
     FrameRejoinState    rejoin_;        
 
 
@@ -859,17 +857,6 @@ class StackFrame
 
 
     inline JSCompartment *compartment() const;
-
-    
-
-    void* annotation() const {
-        return (flags_ & HAS_ANNOTATION) ? annotation_ : NULL;
-    }
-
-    void setAnnotation(void *annot) {
-        flags_ |= HAS_ANNOTATION;
-        annotation_ = annot;
-    }
 
     
 

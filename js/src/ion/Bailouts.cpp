@@ -419,16 +419,6 @@ ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
         cx->regs().sp[-1] = cx->runtime->takeIonReturnOverride();
 
     if (retval != BAILOUT_RETURN_FATAL_ERROR) {
-        if (activation->entryfp()) {
-            if (void *annotation = activation->entryfp()->annotation()) {
-                
-                
-                
-                activation->entryfp()->setAnnotation(NULL);
-                cx->fp()->setAnnotation(annotation);
-            }
-        }
-
         
         
         
