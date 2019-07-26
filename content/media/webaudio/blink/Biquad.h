@@ -67,6 +67,10 @@ public:
     void setAllpassPole(const Complex& pole);
 
     
+    
+    bool hasTail() const { return m_y1 || m_y2 || m_x1 || m_x2; }
+
+    
     void reset();
 
     
