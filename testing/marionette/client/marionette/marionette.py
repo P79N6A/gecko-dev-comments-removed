@@ -142,6 +142,32 @@ class Marionette(object):
 
         self.client = MarionetteClient(self.host, self.port)
 
+        if emulator:
+            
+            
+            
+            
+            
+            
+            self.start_session()
+            self.set_context(self.CONTEXT_CHROME)
+            self.set_script_timeout(30000)
+            try:
+                self.execute_async_script("""
+    waitFor(
+        function() { marionetteScriptFinished(true); },
+        function() { return isSystemMessageListenerReady(); }
+    );
+                """)
+            except ScriptTimeoutException:
+                
+                
+                
+                
+                pass
+            self.set_context(self.CONTEXT_CONTENT)
+            self.delete_session()
+
     def __del__(self):
         if self.emulator:
             self.emulator.close()
