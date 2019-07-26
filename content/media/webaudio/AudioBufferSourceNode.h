@@ -33,6 +33,16 @@ public:
     return true;
   }
 
+  void JSBindingFinalized()
+  {
+    
+    
+    if (!mStartCalled) {
+      SetProduceOwnOutput(false);
+    }
+    AudioSourceNode::JSBindingFinalized();
+  }
+
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioBufferSourceNode, AudioSourceNode)
 
