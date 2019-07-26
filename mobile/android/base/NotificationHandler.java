@@ -102,11 +102,6 @@ public class NotificationHandler {
         if (mForegroundNotification == null && isOngoing(notification)) {
             setForegroundNotification(notificationID, notification);
         }
-
-        
-        if (aProgress == aProgressMax) {
-            remove(notificationID);
-        }
     }
 
     

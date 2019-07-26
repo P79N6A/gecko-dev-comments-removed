@@ -42,7 +42,7 @@ var Downloads = {
     let f = this._getLocalFile(fileUri);
     try {
       f.launch();
-    } catch (ex) { 
+    } catch (ex) {
       
       
       BrowserApp.addTab("about:downloads?id=" + guid);
