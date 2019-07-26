@@ -2940,16 +2940,10 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 
           
           mFrames.InsertFrame(nullptr, kidFrame, kidNextInFlow);
-
           
-          
-          
-          
+          rowGroups.InsertElementAt(childX + 1,
+                      static_cast <nsTableRowGroupFrame*>(kidNextInFlow));
         }
-
-        
-        rowGroups.InsertElementAt(childX + 1,
-                           static_cast <nsTableRowGroupFrame*>(kidNextInFlow));
 
         
         
@@ -2959,8 +2953,9 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
         else if (tfoot && tfoot->IsRepeatable()) {
           tfoot->SetRepeatable(false);
         }
+
         nsIFrame* nextSibling = kidFrame->GetNextSibling();
-        if (nullptr != nextSibling) {
+        if (nextSibling) {
           PushChildren(rowGroups, childX + 1);
         }
         break;
