@@ -6,6 +6,7 @@
 #define mozilla_dom_gamepad_Gamepad_h
 
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/GamepadButton.h"
 #include <stdint.h>
 #include "nsCOMPtr.h"
 #include "nsIVariant.h"
@@ -20,16 +21,6 @@ enum GamepadMappingType
 {
   NoMapping = 0,
   StandardMapping = 1
-};
-
-
-
-struct GamepadButton
-{
-  bool pressed;
-  double value;
-
-  GamepadButton(): pressed(false), value(0.0) {}
 };
 
 class Gamepad : public nsISupports,
@@ -119,8 +110,11 @@ protected:
   bool mConnected;
 
   
-  nsTArray<GamepadButton> mButtons;
+  nsTArray<nsRefPtr<GamepadButton>> mButtons;
   nsTArray<double> mAxes;
+
+  
+  nsCOMPtr<nsIVariant> mButtonsVariant;
 };
 
 } 
