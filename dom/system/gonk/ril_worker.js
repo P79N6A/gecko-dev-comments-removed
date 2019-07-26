@@ -3844,7 +3844,7 @@ let RIL = {
     };
     Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_WITH_STATUS, options);
 
-    Buf.seekIncoming(-1 * (Buf.currentParcelSize - Buf.readAvailable
+    Buf.seekIncoming(-1 * (Buf.getCurrentParcelSize() - Buf.getReadAvailable()
                            - 2 * UINT32_SIZE)); 
     let messageStringLength = Buf.readUint32(); 
     let smscLength = GsmPDUHelper.readHexOctet(); 
@@ -3953,7 +3953,7 @@ let RIL = {
     
     Buf.writeUint32(EFSMS_STATUS_FREE);
 
-    Buf.seekIncoming(-1 * (Buf.currentParcelSize - Buf.readAvailable
+    Buf.seekIncoming(-1 * (Buf.getCurrentParcelSize() - Buf.getReadAvailable()
                            - 2 * UINT32_SIZE)); 
     let messageStringLength = Buf.readUint32(); 
     let smscLength = GsmPDUHelper.readHexOctet(); 
@@ -3978,7 +3978,7 @@ let RIL = {
     GsmPDUHelper.writeHexOctet(smscLength);
     
     if (smscLength) {
-      Buf.seekIncoming(-1 * (Buf.currentParcelSize - Buf.readAvailable
+      Buf.seekIncoming(-1 * (Buf.getCurrentParcelSize() - Buf.getReadAvailable()
                              - 2 * UINT32_SIZE 
                              - 2 * PDU_HEX_OCTET_SIZE)); 
       Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * smscLength);
@@ -7334,7 +7334,7 @@ let GsmPDUHelper = {
     
     
     
-    if (Buf.readAvailable <= 4) {
+    if (Buf.getReadAvailable() <= 4) {
       return;
     }
 
