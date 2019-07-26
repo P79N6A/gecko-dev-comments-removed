@@ -361,16 +361,16 @@ IdlArray.prototype.assert_type_is = function(value, type)
     if (type.sequence)
     {
         assert_true(Array.isArray(value), "is not array");
-        if (!type.idlType.length)
+        if (!value.length)
         {
+            
             return;
         }
-        type = type.idlType[0];
+        this.assert_type_is(value[0], type.idlType.idlType);
+        return;
     }
-    else
-    {
-        type = type.idlType;
-    }
+
+    type = type.idlType;
 
     switch(type)
     {
@@ -563,8 +563,8 @@ IdlException.prototype.test_self = function()
         
         
         
-        assert_true(Function.prototype.isPrototypeOf(window[this.name]),
-                    "prototype of window's property " + format_value(this.name) + " is not Function.prototype");
+        assert_equals(Object.getPrototypeOf(window[this.name]), Function.prototype,
+                      "prototype of window's property " + format_value(this.name) + " is not Function.prototype");
         
         
         
@@ -577,8 +577,8 @@ IdlException.prototype.test_self = function()
         
         
         
-        assert_equals({}.toString.call(window[this.name]), "[object Function]",
-                      "{}.toString.call(" + this.name + ")");
+        assert_class_string(window[this.name], "Function",
+                            "class string of " + this.name);
 
         
         
@@ -619,18 +619,19 @@ IdlException.prototype.test_self = function()
                             'should inherit from ' + inherit_exception + ', but window has no such property');
         assert_own_property(window[inherit_exception], "prototype",
                             'should inherit from ' + inherit_exception + ', but that object has no "prototype" property');
-        assert_true(window[inherit_exception].prototype.isPrototypeOf(window[this.name].prototype),
-                    'prototype of ' + this.name + '.prototype is not ' + inherit_exception + '.prototype');
+        assert_equals(Object.getPrototypeOf(window[this.name].prototype),
+                      window[inherit_exception].prototype,
+                      'prototype of ' + this.name + '.prototype is not ' + inherit_exception + '.prototype');
 
         
         
         
         
         
-        assert_equals({}.toString.call(window[this.name].prototype), "[object " + this.name + "Prototype]",
-                      "{}.toString.call(" + this.name + ")");
+        assert_class_string(window[this.name].prototype, this.name + "Prototype",
+                            "class string of " + this.name + ".prototype");
         assert_equals(String(window[this.name].prototype), "[object " + this.name + "Prototype]",
-                      "String(" + this.name + ")");
+                      "String(" + this.name + ".prototype)");
     }.bind(this), this.name + " exception: existence and properties of exception interface prototype object");
 
     test(function()
@@ -824,13 +825,14 @@ IdlException.prototype.test_object = function(desc)
             
             
             
-            assert_true(window[this.name].prototype.isPrototypeOf(obj),
-                desc + "'s prototype is not " + this.name + ".prototype");
+            assert_equals(Object.getPrototypeOf(obj),
+                          window[this.name].prototype,
+                          desc + "'s prototype is not " + this.name + ".prototype");
         }
 
         
         
-        assert_equals({}.toString.call(obj), "[object " + this.name + "]", "{}.toString.call(" + desc + ")");
+        assert_class_string(obj, this.name, "class string of " + desc);
         
         
     }.bind(this), this.name + " must be represented by " + desc);
@@ -918,8 +920,8 @@ IdlInterface.prototype.test_self = function()
         
         
         
-        assert_true(Function.prototype.isPrototypeOf(window[this.name]),
-                    "prototype of window's property " + format_value(this.name) + " is not Function.prototype");
+        assert_equals(Object.getPrototypeOf(window[this.name]), Function.prototype,
+                      "prototype of window's property " + format_value(this.name) + " is not Function.prototype");
         
         
         
@@ -933,8 +935,7 @@ IdlInterface.prototype.test_self = function()
         
         
         
-        assert_equals({}.toString.call(window[this.name]), "[object Function]",
-                      "{}.toString.call(" + this.name + ")");
+        assert_class_string(window[this.name], "Function", "class string of " + this.name);
 
         if (!this.has_extended_attribute("Constructor"))
         {
@@ -973,8 +974,13 @@ IdlInterface.prototype.test_self = function()
             
             var expected_length = this.extAttrs
                 .filter(function(attr) { return attr.name == "Constructor" })
-                .map(function(attr) { return attr.arguments ? attr.arguments.length : 0 })
-                .reduce(function(m, n) { return Math.max(m, n) });
+                .map(function(attr) {
+                    return attr.arguments ? attr.arguments.filter(
+                        function(arg) {
+                            return !arg.optional;
+                        }).length : 0
+                })
+                .reduce(function(m, n) { return Math.min(m, n) });
             assert_own_property(window[this.name], "length");
             assert_equals(window[this.name].length, expected_length, "wrong value for " + this.name + ".length");
             var desc = Object.getOwnPropertyDescriptor(window[this.name], "length");
@@ -1037,16 +1043,17 @@ IdlInterface.prototype.test_self = function()
                             'should inherit from ' + inherit_interface + ', but window has no such property');
         assert_own_property(window[inherit_interface], "prototype",
                             'should inherit from ' + inherit_interface + ', but that object has no "prototype" property');
-        assert_true(window[inherit_interface].prototype.isPrototypeOf(window[this.name].prototype),
-                    'prototype of ' + this.name + '.prototype is not ' + inherit_interface + '.prototype');
+        assert_equals(Object.getPrototypeOf(window[this.name].prototype),
+                      window[inherit_interface].prototype,
+                      'prototype of ' + this.name + '.prototype is not ' + inherit_interface + '.prototype');
 
         
         
         
         
         
-        assert_equals({}.toString.call(window[this.name].prototype), "[object " + this.name + "Prototype]",
-                      "{}.toString.call(" + this.name + ".prototype)");
+        assert_class_string(window[this.name].prototype, this.name + "Prototype",
+                            "class string of " + this.name + ".prototype");
         assert_equals(String(window[this.name].prototype), "[object " + this.name + "Prototype]",
                       "String(" + this.name + ".prototype)");
     }.bind(this), this.name + " interface: existence and properties of interface prototype object");
@@ -1146,6 +1153,11 @@ IdlInterface.prototype.test_members = function()
                 assert_own_property(window[this.name], "prototype",
                                     'interface "' + this.name + '" does not have own property "prototype"');
 
+                
+                assert_throws(new TypeError(), function() {
+                    window[this.name].prototype[member.name];
+                }.bind(this), "getting property on prototype object must throw TypeError");
+
                 do_interface_attribute_asserts(window[this.name].prototype, member);
             }.bind(this), this.name + " interface: attribute " + member.name);
         }
@@ -1195,8 +1207,35 @@ IdlInterface.prototype.test_members = function()
                 
                 
                 
-                assert_equals(window[this.name].prototype[member.name].length, member.arguments.length,
+                assert_equals(window[this.name].prototype[member.name].length,
+                    member.arguments.filter(function(arg) {
+                        return !arg.optional;
+                    }).length,
                     "property has wrong .length");
+
+                
+                var args = member.arguments.map(function(arg) {
+                    return create_suitable_object(arg.type);
+                });
+
+                
+                
+                
+                
+                
+                
+                
+                assert_throws(new TypeError(), function() {
+                    window[this.name].prototype[member.name].apply(null, args);
+                }, "calling operation with this = null didn't throw TypeError");
+
+                
+                
+                
+                
+                assert_throws(new TypeError(), function() {
+                    window[this.name].prototype[member.name].apply({}, args);
+                }, "calling operation with this = {} didn't throw TypeError");
             }.bind(this), this.name + " interface: operation " + member.name +
             "(" + member.arguments.map(function(m) { return m.type.idlType; }) +
             ")");
@@ -1269,8 +1308,9 @@ IdlInterface.prototype.test_primary_interface_of = function(desc, obj, exception
             
             
             
-            assert_true(window[this.name].prototype.isPrototypeOf(obj),
-                desc + "'s prototype is not " + this.name + ".prototype");
+            assert_equals(Object.getPrototypeOf(obj),
+                          window[this.name].prototype,
+                          desc + "'s prototype is not " + this.name + ".prototype");
         }.bind(this), this.name + " must be primary interface of " + desc);
     }
 
@@ -1281,7 +1321,7 @@ IdlInterface.prototype.test_primary_interface_of = function(desc, obj, exception
     {
         assert_equals(exception, null, "Unexpected exception when evaluating object");
         assert_equals(typeof obj, expected_typeof, "wrong typeof object");
-        assert_equals({}.toString.call(obj), "[object " + this.name + "]", "{}.toString.call(" + desc + ")");
+        assert_class_string(obj, this.name, "class string of " + desc);
         if (!this.members.some(function(member) { return member.stringifier || member.type == "stringifier"}))
         {
             assert_equals(String(obj), "[object " + this.name + "]", "String(" + desc + ")");
@@ -1418,6 +1458,11 @@ function do_interface_attribute_asserts(obj, member)
     
     assert_equals(typeof desc.get, "function", "getter must be Function");
     assert_equals(desc.get.length, 0, "getter length must be 0");
+    
+    assert_throws(new TypeError(), function()
+    {
+        desc.get.call({});
+    }.bind(this), "calling getter on wrong object type must throw TypeError");
 
     
     
