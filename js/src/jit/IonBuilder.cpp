@@ -598,6 +598,14 @@ IonBuilder::build()
 
     
     
+    
+    
+    MCheckOverRecursed *check = new MCheckOverRecursed;
+    current->add(check);
+    check->setResumePoint(current->entryResumePoint());
+
+    
+    
     rewriteParameters();
 
     
@@ -606,11 +614,6 @@ IonBuilder::build()
 
     if (info().needsArgsObj() && !initArgumentsObject())
         return false;
-
-    
-    MCheckOverRecursed *check = new MCheckOverRecursed;
-    current->add(check);
-    check->setResumePoint(current->entryResumePoint());
 
     
     if (info().fun())
