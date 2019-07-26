@@ -31,6 +31,8 @@ class CompileRuntime
 
     bool onMainThread();
 
+    js::PerThreadData *mainThread();
+
     
     const void *addressOfIonTop();
 
