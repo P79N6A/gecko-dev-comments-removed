@@ -1114,9 +1114,45 @@ let RemoteDebugger = {
 
       
       
+
+      
+      
       let restrictPrivileges = Services.prefs.getBoolPref("devtools.debugger.forbid-certified-apps");
       DebuggerServer.addBrowserActors("navigator:browser", restrictPrivileges);
-      DebuggerServer.addActors('chrome://b2g/content/dbg-browser-actors.js');
+
+      
+
+
+
+
+
+
+
+
+      DebuggerServer.createRootActor = function createRootActor(connection)
+      {
+        let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
+        let parameters = {
+          
+          
+          
+          
+          tabList: {
+            getList: function() {
+              return promise.resolve([]);
+            }
+          },
+          
+          
+          globalActorFactories: restrictPrivileges ? {
+            webappsActor: DebuggerServer.globalActorFactories.webappsActor,
+            deviceActor: DebuggerServer.globalActorFactories.deviceActor
+          } : DebuggerServer.globalActorFactories
+        };
+        let root = new DebuggerServer.RootActor(connection, parameters);
+        root.applicationType = "operating-system";
+        return root;
+      };
 
 #ifdef MOZ_WIDGET_GONK
       DebuggerServer.onConnectionChange = function(what) {

@@ -341,6 +341,13 @@ var DebuggerServer = {
   
 
 
+
+
+
+
+
+
+
   addBrowserActors: function(aWindowType = "navigator:browser", restrictPrivileges = false) {
     this.chromeWindowType = aWindowType;
     this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
@@ -361,11 +368,14 @@ var DebuggerServer = {
     
     
     
-    if (!("BrowserTabActor" in this)) {
-      this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
+    if (!("WebConsoleActor" in this)) {
       this.addTabActors();
     }
-    if (!("ContentAppActor" in DebuggerServer)) {
+    
+    if (!("BrowserTabActor" in this)) {
+      this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
+    }
+    if (!("ContentAppActor" in this)) {
       this.addActors("resource://gre/modules/devtools/server/actors/childtab.js");
     }
   },

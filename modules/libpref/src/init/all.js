@@ -553,8 +553,6 @@ pref("devtools.debugger.force-local", true);
 
 pref("devtools.debugger.prompt-connection", true);
 
-pref("devtools.debugger.enable-content-actors", true);
-
 pref("devtools.debugger.forbid-certified-apps", true);
 
 
