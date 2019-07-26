@@ -2,6 +2,9 @@
 
 
 
+#ifndef mozilla_dom_MediaManager_h
+#define mozilla_dom_MediaManager_h
+
 #include "MediaEngine.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Services.h"
@@ -493,3 +496,5 @@ private:
 };
 
 } 
+
+#endif 
