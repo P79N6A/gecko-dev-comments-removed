@@ -169,10 +169,19 @@ SharedSurface_Gralloc::Fence()
         mSync = 0;
     }
 
+    bool disableSyncFence = false;
+    
+    
+    if (mGL->Renderer() == GLRenderer::AdrenoTM200) {
+        disableSyncFence = true;
+    }
+
     
     
     
-    if (mEGL->IsExtensionSupported(GLLibraryEGL::ANDROID_native_fence_sync)) {
+    if (!disableSyncFence &&
+        mEGL->IsExtensionSupported(GLLibraryEGL::ANDROID_native_fence_sync))
+    {
         mGL->MakeCurrent();
         EGLSync sync = mEGL->fCreateSync(mEGL->Display(),
                                          LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID,
@@ -196,7 +205,9 @@ SharedSurface_Gralloc::Fence()
         }
     }
 
-    if (mEGL->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync)) {
+    if (!disableSyncFence &&
+        mEGL->IsExtensionSupported(GLLibraryEGL::KHR_fence_sync))
+    {
         mGL->MakeCurrent();
         mSync = mEGL->fCreateSync(mEGL->Display(),
                                   LOCAL_EGL_SYNC_FENCE,
