@@ -1484,6 +1484,19 @@ Preferences::RegisterCallback(PrefChangedFunc aCallback,
 
 
 nsresult
+Preferences::RegisterCallbackAndCall(PrefChangedFunc aCallback,
+                                     const char* aPref,
+                                     void* aClosure)
+{
+  nsresult rv = RegisterCallback(aCallback, aPref, aClosure);
+  if (NS_SUCCEEDED(rv)) {
+    (*aCallback)(aPref, aClosure);
+  }
+  return rv;
+}
+
+
+nsresult
 Preferences::UnregisterCallback(PrefChangedFunc aCallback,
                                 const char* aPref,
                                 void* aClosure)

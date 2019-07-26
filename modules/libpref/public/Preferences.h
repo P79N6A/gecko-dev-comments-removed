@@ -254,6 +254,11 @@ public:
   static nsresult UnregisterCallback(PrefChangedFunc aCallback,
                                      const char* aPref,
                                      void* aClosure = nullptr);
+  
+  
+  static nsresult RegisterCallbackAndCall(PrefChangedFunc aCallback,
+                                          const char* aPref,
+                                          void* aClosure = nullptr);
 
   
 
