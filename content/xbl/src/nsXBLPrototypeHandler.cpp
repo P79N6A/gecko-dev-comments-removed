@@ -322,7 +322,7 @@ nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
   }
 
   nsRefPtr<EventHandlerNonNull> handlerCallback =
-    new EventHandlerNonNull(bound);
+    new EventHandlerNonNull(bound,  nullptr);
 
   nsEventHandler eventHandler(handlerCallback);
 
