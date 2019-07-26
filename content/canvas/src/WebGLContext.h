@@ -390,6 +390,7 @@ public:
     void DrawArrays(GLenum mode, WebGLint first, WebGLsizei count);
     void DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type,
                       WebGLintptr byteOffset);
+    void DrawBuffers(const dom::Sequence<GLenum>& buffers);
     void Enable(WebGLenum cap);
     void EnableVertexAttribArray(WebGLuint index);
     void Flush() {
@@ -895,10 +896,14 @@ protected:
     nsTArray<nsRefPtr<WebGLExtensionBase> > mExtensions;
 
     
+    void EnableExtension(WebGLExtensionID ext);
+
+    
     bool IsExtensionEnabled(WebGLExtensionID ext) const;
 
     
     bool IsExtensionSupported(JSContext *cx, WebGLExtensionID ext) const;
+    bool IsExtensionSupported(WebGLExtensionID ext) const;
 
     nsTArray<WebGLenum> mCompressedTextureFormats;
 
