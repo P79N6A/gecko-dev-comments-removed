@@ -53,6 +53,34 @@ NS_QUERYFRAME_HEAD(nsRangeFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 void
+nsRangeFrame::Init(nsIContent* aContent,
+                   nsIFrame*   aParent,
+                   nsIFrame*   aPrevInFlow)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIPresShell* presShell = PresContext()->GetPresShell();
+  if (presShell) {
+    nsIDocument* document = presShell->GetDocument();
+    if (document) {
+      nsPIDOMWindow* innerWin = document->GetInnerWindow();
+      if (innerWin) {
+        innerWin->SetHasTouchEventListeners();
+      }
+    }
+  }
+  return nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
+}
+
+void
 nsRangeFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   NS_ASSERTION(!GetPrevContinuation() && !GetNextContinuation(),
