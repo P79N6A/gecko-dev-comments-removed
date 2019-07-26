@@ -266,19 +266,6 @@ public:
 
 
 
-
-
-
-
-  static nsresult InternalIsSupported(nsISupports* aObject,
-                                      const nsAString& aFeature,
-                                      const nsAString& aVersion,
-                                      bool* aReturn);
-
-  
-
-
-
   static void FireNodeInserted(nsIDocument* aDoc,
                                nsINode* aParent,
                                nsTArray<nsCOMPtr<nsIContent> >& aNodes);
