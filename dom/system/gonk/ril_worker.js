@@ -3399,6 +3399,101 @@ let RIL = {
 
 
 
+
+
+
+
+
+
+
+
+  _processSignalLevel: function _processSignalLevel(signal, min, max) {
+    if (signal <= min) {
+      return 0;
+    }
+
+    if (signal >= max) {
+      return 100;
+    }
+
+    return Math.floor((signal - min) * 100 / (max - min));
+  },
+
+  _processSignalStrength: function _processSignalStrength(signal) {
+    let info = {
+      voice: {
+        signalStrength:    null,
+        relSignalStrength: null
+      },
+      data: {
+        signalStrength:    null,
+        relSignalStrength: null
+      }
+    };
+
+    if (this._isCdma) {
+      
+      
+      
+      
+      if (signal.cdmaDBM && signal.cdmaDBM > 0) {
+        let signalStrength = -1 * signal.cdmaDBM;
+        info.voice.signalStrength = signalStrength;
+
+        
+        
+        let signalLevel = this._processSignalLevel(signalStrength, -105, -70);
+        info.voice.relSignalStrength = signalLevel;
+      }
+
+      
+      
+      
+      
+      if (signal.evdoDBM && signal.evdoDBM > 0) {
+        let signalStrength = -1 * signal.evdoDBM;
+        info.data.signalStrength = signalStrength;
+
+        
+        
+        let signalLevel = this._processSignalLevel(signalStrength, -105, -70);
+        info.data.relSignalStrength = signalLevel;
+      }
+    } else {
+      
+      
+      
+      
+      
+      
+      if (signal.gsmSignalStrength &&
+          signal.gsmSignalStrength >= 0 &&
+          signal.gsmSignalStrength <= 31) {
+        let signalStrength = -113 + 2 * signal.gsmSignalStrength;
+        info.voice.signalStrength = info.data.signalStrength = signalStrength;
+
+        
+        
+        let signalLevel = this._processSignalLevel(signalStrength, -110, -85);
+        info.voice.relSignalStrength = info.data.relSignalStrength = signalLevel;
+      }
+    }
+
+    info.rilMessageType = "signalstrengthchange";
+    this.sendChromeMessage(info);
+
+    if (this.cachedDialRequest && info.voice.signalStrength) {
+      
+      this.cachedDialRequest.callback();
+      this.cachedDialRequest = null;
+    }
+  },
+
+  
+
+
+
+
   _processCREG: function _processCREG(curState, newState) {
     let changed = false;
 
@@ -4899,63 +4994,27 @@ RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options)
     return;
   }
 
-  let obj = {};
+  let signal = {
+    gsmSignalStrength: Buf.readUint32(),
+    gsmBitErrorRate:   Buf.readUint32(),
+    cdmaDBM:           Buf.readUint32(),
+    cdmaECIO:          Buf.readUint32(),
+    evdoDBM:           Buf.readUint32(),
+    evdoECIO:          Buf.readUint32(),
+    evdoSNR:           Buf.readUint32()
+  };
 
-  
-  
-  let gsmSignalStrength = Buf.readUint32();
-  obj.gsmSignalStrength = gsmSignalStrength & 0xff;
-  
-  obj.gsmBitErrorRate = Buf.readUint32();
-
-  obj.gsmDBM = null;
-  obj.gsmRelative = null;
-  if (obj.gsmSignalStrength >= 0 && obj.gsmSignalStrength <= 31) {
-    obj.gsmDBM = -113 + obj.gsmSignalStrength * 2;
-    obj.gsmRelative = Math.floor(obj.gsmSignalStrength * 100 / 31);
-  }
-
-  
-  
-  
-  
-  if (obj.gsmSignalStrength == 99) {
-    obj.gsmRelative = (gsmSignalStrength >> 8) * 25;
-  }
-
-  
-  obj.cdmaDBM = Buf.readUint32();
-  
-  obj.cdmaECIO = Buf.readUint32();
-  
-
-  
-  obj.evdoDBM = Buf.readUint32();
-  
-  obj.evdoECIO = Buf.readUint32();
-  
-  obj.evdoSNR = Buf.readUint32();
-
-  
   if (!RILQUIRKS_V5_LEGACY) {
-    
-    obj.lteSignalStrength = Buf.readUint32();
-    
-    
-    obj.lteRSRP = Buf.readUint32();
-    
-    
-    obj.lteRSRQ = Buf.readUint32();
-    
-    
-    obj.lteRSSNR = Buf.readUint32();
-    
-    obj.lteCQI = Buf.readUint32();
+    signal.lteSignalStrength = Buf.readUint32();
+    signal.lteRSRP =           Buf.readUint32();
+    signal.lteRSRQ =           Buf.readUint32();
+    signal.lteRSSNR =          Buf.readUint32();
+    signal.lteCQI =            Buf.readUint32();
   }
 
-  if (DEBUG) debug("Signal strength " + JSON.stringify(obj));
-  obj.rilMessageType = "signalstrengthchange";
-  this.sendChromeMessage(obj);
+  if (DEBUG) debug("signal strength: " + JSON.stringify(signal));
+
+  this._processSignalStrength(signal);
 };
 RIL[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_REGISTRATION_STATE(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_VOICE_REGISTRATION_STATE);
