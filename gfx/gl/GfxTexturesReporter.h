@@ -4,6 +4,9 @@
 
 
 
+#ifndef GFXTEXTURESREPORTER_H_
+#define GFXTEXTURESREPORTER_H_
+
 #include "nsIMemoryReporter.h"
 #include "GLTypes.h"
 
@@ -46,3 +49,5 @@ private:
 
 }
 }
+
+#endif 

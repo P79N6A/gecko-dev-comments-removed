@@ -4,6 +4,9 @@
 
 
 
+#ifndef TEXTUREGARBAGEBIN_H_
+#define TEXTUREGARBAGEBIN_H_
+
 #include <stack>
 
 #include "mozilla/Mutex.h"
@@ -35,3 +38,5 @@ public:
 
 }
 }
+
+#endif 
