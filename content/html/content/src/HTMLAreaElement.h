@@ -74,7 +74,7 @@ public:
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify);
 
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const;
 
   virtual nsEventStates IntrinsicState() const;
 
@@ -82,7 +82,82 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
+  
+
+  
+  void SetAlt(const nsAString& aAlt, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::alt, aAlt, aError);
+  }
+
+  
+  void SetCoords(const nsAString& aCoords, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::coords, aCoords, aError);
+  }
+
+  
+  void SetShape(const nsAString& aShape, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::shape, aShape, aError);
+  }
+
+  
+  
+
+  
+  void SetTarget(const nsAString& aTarget, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::target, aTarget, aError);
+  }
+
+  
+  void SetDownload(const nsAString& aDownload, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::download, aDownload, aError);
+  }
+
+  
+  void SetPing(const nsAString& aPing, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::ping, aPing, aError);
+  }
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  bool NoHref() const
+  {
+    return GetBoolAttr(nsGkAtoms::nohref);
+  }
+
+  void SetNoHref(bool aValue, ErrorResult& aError)
+  {
+    SetHTMLBoolAttr(nsGkAtoms::nohref, aValue, aError);
+  }
+
 protected:
+  virtual JSObject* WrapNode(JSContext* aCx, JSObject* aScope,
+                             bool* aTriedToWrap) MOZ_OVERRIDE;
+
   virtual void GetItemValueText(nsAString& text);
   virtual void SetItemValueText(const nsAString& text);
 };
