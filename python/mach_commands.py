@@ -24,33 +24,6 @@ from mach.decorators import (
 
 @CommandProvider
 class MachCommands(MachCommandBase):
-    '''
-    Easily run Python and Python unit tests.
-    '''
-    def __init__(self, context):
-        MachCommandBase.__init__(self, context)
-        self._python_executable = None
-
-    @property
-    def python_executable(self):
-        '''
-        Return path to Python executable, or print and sys.exit(1) if
-        executable does not exist.
-        '''
-        if self._python_executable:
-            return self._python_executable
-        if self._is_windows():
-            executable = '_virtualenv/Scripts/python.exe'
-        else:
-            executable = '_virtualenv/bin/python'
-        path = mozpack.path.join(self.topobjdir, executable)
-        if not os.path.exists(path):
-            print("Could not find Python executable at %s." % path,
-                  "Run |mach configure| or |mach build| to install it.")
-            sys.exit(1)
-        self._python_executable = path
-        return path
-
     @Command('python', category='devenv',
         allow_all_args=True,
         description='Run Python.')
@@ -58,7 +31,10 @@ class MachCommands(MachCommandBase):
     def python(self, args):
         
         self.log_manager.terminal_handler.setLevel(logging.CRITICAL)
-        return self.run_process([self.python_executable] + args,
+
+        self._activate_virtualenv()
+
+        return self.run_process([self.virtualenv_manager.python_path] + args,
             pass_thru=True, 
             ensure_exit_code=False, 
             
@@ -78,8 +54,7 @@ class MachCommands(MachCommandBase):
         metavar='TEST',
         help='Tests to run. Each test can be a single file or a directory.')
     def python_test(self, tests, verbose=False, stop=False):
-        
-        self.python_executable
+        self._activate_virtualenv()
 
         
         
@@ -102,14 +77,14 @@ class MachCommands(MachCommandBase):
                 if stop:
                     return 1
 
-        for file in files:
+        for f in files:
             file_displayed_test = [] 
             def _line_handler(line):
                 if not file_displayed_test and line.startswith('TEST-'):
                     file_displayed_test.append(True)
 
             inner_return_code = self.run_process(
-                [self.python_executable, file],
+                [self.virtualenv_manager.python_path, f],
                 ensure_exit_code=False, 
                 log_name='python-test',
                 
@@ -118,15 +93,15 @@ class MachCommands(MachCommandBase):
             return_code += inner_return_code
 
             if not file_displayed_test:
-                self.log(logging.WARN, 'python-test', {'file': file},
+                self.log(logging.WARN, 'python-test', {'file': f},
                          'TEST-UNEXPECTED-FAIL | No test output (missing mozunit.main() call?): {file}')
 
             if verbose:
                 if inner_return_code != 0:
-                    self.log(logging.INFO, 'python-test', {'file': file},
+                    self.log(logging.INFO, 'python-test', {'file': f},
                              'Test failed: {file}')
                 else:
-                    self.log(logging.INFO, 'python-test', {'file': file},
+                    self.log(logging.INFO, 'python-test', {'file': f},
                              'Test passed: {file}')
             if stop and return_code > 0:
                 return 1
