@@ -239,12 +239,13 @@ public:
 
   void SendAsyncScrollEvent();
 
-protected:
   
+
 
 
   nsEventStatus HandleInputEvent(const InputData& aEvent);
 
+protected:
   
 
 
