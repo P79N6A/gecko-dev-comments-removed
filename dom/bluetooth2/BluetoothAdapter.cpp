@@ -157,38 +157,6 @@ public:
   }
 };
 
-class EnableDisableAdapterTask : public BluetoothReplyRunnable
-{
-public:
-  EnableDisableAdapterTask(Promise* aPromise)
-    : BluetoothReplyRunnable(nullptr)
-    , mPromise(aPromise)
-  { }
-
-  bool
-  ParseSuccessfulReply(JS::MutableHandle<JS::Value> aValue)
-  {
-    
-
-
-
-
-    mPromise->MaybeResolve(true);
-    aValue.setUndefined();
-    return true;
-  }
-
-  void
-  ReleaseMembers()
-  {
-    BluetoothReplyRunnable::ReleaseMembers();
-    mPromise = nullptr;
-  }
-
-private:
-  nsRefPtr<Promise> mPromise;
-};
-
 static int kCreatePairedDeviceTimeout = 50000; 
 
 BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aWindow,
@@ -321,12 +289,8 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
     mJsDeviceAddresses = deviceAddresses;
     Root();
   } else {
-#ifdef DEBUG
-    nsCString warningMsg;
-    warningMsg.AssignLiteral("Not handling adapter property: ");
-    warningMsg.Append(NS_ConvertUTF16toUTF8(name));
-    BT_WARNING(warningMsg.get());
-#endif
+    BT_WARNING("Not handling adapter property: %s",
+               NS_ConvertUTF16toUTF8(name).get());
   }
 }
 
@@ -400,12 +364,8 @@ BluetoothAdapter::Notify(const BluetoothSignal& aData)
 
     DispatchTrustedEvent(event);
   } else {
-#ifdef DEBUG
-    nsCString warningMsg;
-    warningMsg.AssignLiteral("Not handling adapter signal: ");
-    warningMsg.Append(NS_ConvertUTF16toUTF8(aData.name()));
-    BT_WARNING(warningMsg.get());
-#endif
+    BT_WARNING("Not handling adapter signal: %s",
+               NS_ConvertUTF16toUTF8(aData.name()).get());
   }
 }
 
@@ -727,21 +687,24 @@ BluetoothAdapter::EnableDisable(bool aEnable)
   }
 
   if (aEnable) {
+    
     if (mState != BluetoothAdapterState::Disabled) {
       promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
       return promise.forget();
     }
     mState = BluetoothAdapterState::Enabling;
   } else {
+    
     if (mState != BluetoothAdapterState::Enabled) {
       promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
       return promise.forget();
     }
     mState = BluetoothAdapterState::Disabling;
   }
-
   
-  nsRefPtr<BluetoothReplyRunnable> result = new EnableDisableAdapterTask(promise);
+
+  nsRefPtr<BluetoothReplyRunnable> result =
+    new BluetoothVoidReplyRunnable(nullptr , promise);
 
   if(NS_FAILED(bs->EnableDisable(aEnable, result))) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
