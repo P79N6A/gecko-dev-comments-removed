@@ -10,6 +10,7 @@
 #include "mozilla/layers/ImageBridgeChild.h"
 
 namespace mozilla {
+class ReentrantMonitor;
 namespace layers {
 
 class ImageBridgeCopyAndSendTask;
@@ -115,8 +116,40 @@ public:
 
 
   void SetIdleNow();
+
   
+
+
+
+
+
+
+  void RecycleSharedImage(SharedImage* aImage);
+
+  
+
+
+  already_AddRefed<Image> CreateImage();
+
+  
+
+
+
+
+
+
+
+  bool AllocUnsafeShmemSync(size_t aBufSize,
+                            SharedMemory::SharedMemoryType aType,
+                            ipc::Shmem* aShmem);
+
+  
+
+
+  void DeallocShmemAsync(ipc::Shmem& aShmem);
+
 protected:
+
   virtual PGrallocBufferChild*
   AllocPGrallocBuffer(const gfxIntSize&, const gfxContentType&,
                       MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE
@@ -141,6 +174,11 @@ protected:
   {
     mImageContainerID = id;
   }
+
+  
+
+
+  void RecycleSharedImageNow(SharedImage* aImage);
 
   
 
@@ -186,6 +224,7 @@ protected:
   SharedImage* GetSharedImageFor(Image* aImage);
 
   
+
 
 
 
