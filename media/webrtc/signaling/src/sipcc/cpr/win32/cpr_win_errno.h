@@ -43,6 +43,17 @@
 #include <errno.h>
 
 
+#ifndef EWOULDBLOCK
+#define EWOULDBLOCK             WSAEWOULDBLOCK
+#endif
+#ifndef EINPROGRESS
+#define EINPROGRESS             WSAEINPROGRESS
+#endif
+#ifndef ENOTCONN
+#define ENOTCONN                WSAENOTCONN
+#endif
+
+
 
 
 #define cpr_errno cprTranslateErrno()
