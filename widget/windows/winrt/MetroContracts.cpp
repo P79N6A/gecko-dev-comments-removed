@@ -104,8 +104,8 @@ FrameworkView::LaunchActivated(ComPtr<ILaunchActivatedEventArgs>& aArgs, bool aS
   int argc;
   unsigned int length;
   LPWSTR* argv = CommandLineToArgvW(data.GetRawBuffer(&length), &argc);
-  if (aStartup && argc == 3 && !wcsicmp(argv[1], L"-url")) {
-    mActivationURI = argv[2];
+  if (aStartup && argc == 2 && !wcsicmp(argv[0], L"-url")) {
+    mActivationURI = argv[1];
   } else {
     
     
@@ -273,7 +273,11 @@ FrameworkView::PerformURILoad(HString& aURI)
   }
 
   nsAutoCString utf8data(NS_ConvertUTF16toUTF8(aURI.GetRawBuffer(&length)));
-  const char *argv[] = { "metrobrowser",
+
+  
+  
+  
+  const char *argv[] = { "", 
                          "-url",
                          utf8data.BeginReading() };
   nsresult rv = cmdLine->Init(ArrayLength(argv),
@@ -304,7 +308,10 @@ FrameworkView::PerformSearch(HString& aQuery)
   parameter.Append(NS_ConvertUTF16toUTF8(aQuery.GetRawBuffer(&length)));
   parameter.AppendLiteral("\"");
 
-  const char *argv[] = { "metrobrowser",
+  
+  
+  
+  const char *argv[] = { "", 
                          "-search",
                          parameter.BeginReading() };
   nsresult rv = cmdLine->Init(ArrayLength(argv),
