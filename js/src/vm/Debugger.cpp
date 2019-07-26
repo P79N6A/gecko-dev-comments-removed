@@ -2499,6 +2499,13 @@ Debugger::findAllGlobals(JSContext *cx, unsigned argc, Value *vp)
 
         GlobalObject *global = c->maybeGlobal();
         if (global) {
+            
+
+
+
+
+            ExposeGCThingToActiveJS(global, JSTRACE_OBJECT);
+
             Value globalValue(ObjectValue(*global));
             if (!dbg->wrapDebuggeeValue(cx, &globalValue))
                 return false;

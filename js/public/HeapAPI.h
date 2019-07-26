@@ -7,6 +7,8 @@
 #ifndef js_heap_api_h___
 #define js_heap_api_h___
 
+#include "jsfriendapi.h"
+
 
 namespace js {
 namespace gc {
@@ -69,6 +71,23 @@ static inline JSCompartment *
 GetObjectCompartment(JSObject *obj)
 {
     return GetGCThingCompartment(obj);
+}
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE void
+ExposeGCThingToActiveJS(void *thing, JSGCTraceKind kind)
+{
+    JS_ASSERT(kind != JSTRACE_SHAPE);
+
+    if (js::GCThingIsMarkedGray(thing))
+        js::UnmarkGrayGCThingRecursively(thing, kind);
+    else if (js::IsIncrementalBarrierNeededOnGCThing(thing, kind))
+        js::IncrementalReferenceBarrier(thing);
 }
 
 } 
