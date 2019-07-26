@@ -337,7 +337,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     this._registerLastRequestEnd(unixTime);
 
     
-    let requestItem = this.push([menuView, aId], {
+    let requestItem = this.push([menuView, aId, ""], {
       attachment: {
         startedDeltaMillis: unixTime - this._firstRequestStartedMillis,
         startedMillis: unixTime,
@@ -368,7 +368,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
     let menuView = this._createMenuView(selected.method, selected.url);
 
-    let newItem = this.push([menuView], {
+    let newItem = this.push([menuView,, ""], {
       attachment: Object.create(selected, {
         isCustom: { value: true }
       })

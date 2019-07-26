@@ -377,9 +377,13 @@ function Item(aOwnerView, aAttachment, aContents = []) {
   this.attachment = aAttachment;
 
   let [aLabel, aValue, aDescription] = aContents;
+  
   this._label = aLabel + "";
   this._value = aValue + "";
-  this._description = (aDescription || "") + "";
+  
+  if (aDescription !== undefined) {
+    this._description = aDescription + "";
+  }
 
   
   
@@ -499,7 +503,7 @@ Item.prototype = {
 
   _label: "",
   _value: "",
-  _description: "",
+  _description: undefined,
   _prebuiltTarget: null,
   _target: null,
   finalize: null,
@@ -663,9 +667,12 @@ this.WidgetMethods = {
     if (!selectedItem) {
       return false;
     }
+
+    let { _label: label, _value: value, _description: desc } = selectedItem;
     this._widget.removeAttribute("notice");
-    this._widget.setAttribute("label", selectedItem._label);
-    this._widget.setAttribute("tooltiptext", selectedItem._value);
+    this._widget.setAttribute("label", label);
+    this._widget.setAttribute("tooltiptext", desc !== undefined ? desc : value);
+
     return true;
   },
 
