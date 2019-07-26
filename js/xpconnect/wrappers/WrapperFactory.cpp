@@ -38,22 +38,6 @@ Wrapper XrayWaiver(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 
 WaiveXrayWrapper WaiveXrayWrapper::singleton(0);
 
-static JSObject *
-GetCurrentOuter(JSContext *cx, JSObject *obj)
-{
-    obj = JS_ObjectToOuterObject(cx, obj);
-    if (!obj)
-        return nullptr;
-
-    if (IsWrapper(obj) && !js::GetObjectClass(obj)->ext.innerObject) {
-        obj = UnwrapObject(obj);
-        NS_ASSERTION(js::GetObjectClass(obj)->ext.innerObject,
-                     "weird object, expecting an outer window proxy");
-    }
-
-    return obj;
-}
-
 JSObject *
 WrapperFactory::GetXrayWaiver(JSObject *obj)
 {
@@ -109,10 +93,7 @@ JSObject *
 WrapperFactory::WaiveXray(JSContext *cx, JSObject *obj)
 {
     obj = UnwrapObject(obj);
-
-    
-    
-    obj = GetCurrentOuter(cx, obj);
+    MOZ_ASSERT(!js::IsInnerObject(obj));
 
     JSObject *waiver = GetXrayWaiver(obj);
     if (waiver)
@@ -138,7 +119,21 @@ JSObject *
 WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj, unsigned flags)
 {
     
-    if (js::GetObjectClass(obj)->ext.innerObject)
+    
+    if (js::IsInnerObject(obj)) {
+        JSAutoCompartment ac(cx, obj);
+        obj = JS_ObjectToOuterObject(cx, obj);
+        NS_ENSURE_TRUE(obj, nullptr);
+        
+        
+        obj = js::UnwrapObject(obj);
+        MOZ_ASSERT(js::IsOuterObject(obj));
+    }
+
+    
+    
+    
+    if (js::IsOuterObject(obj))
         return DoubleWrap(cx, obj, flags);
 
     
@@ -149,14 +144,6 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     
     if (IS_SLIM_WRAPPER(obj) && !MorphSlimWrapper(cx, obj))
         return nullptr;
-
-    
-    obj = GetCurrentOuter(cx, obj);
-    if (!obj)
-        return nullptr;
-
-    if (js::GetObjectClass(obj)->ext.innerObject)
-        return DoubleWrap(cx, obj, flags);
 
     
     
@@ -352,6 +339,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
                js::GetObjectClass(obj)->ext.innerObject,
                "wrapped object passed to rewrap");
     MOZ_ASSERT(JS_GetClass(obj) != &XrayUtils::HolderClass, "trying to wrap a holder");
+    MOZ_ASSERT(!js::IsInnerObject(obj));
 
     
     JSCompartment *origin = js::GetObjectCompartment(obj);
@@ -518,7 +506,7 @@ WrapperFactory::WaiveXrayAndWrap(JSContext *cx, jsval *vp)
         return JS_WrapValue(cx, vp);
 
     JSObject *obj = js::UnwrapObject(JSVAL_TO_OBJECT(*vp));
-    obj = GetCurrentOuter(cx, obj);
+    MOZ_ASSERT(!js::IsInnerObject(obj));
     if (js::IsObjectInContextCompartment(obj, cx)) {
         *vp = OBJECT_TO_JSVAL(obj);
         return true;
