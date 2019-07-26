@@ -111,6 +111,9 @@ nsMathMLmsupFrame::PlaceSuperScript(nsPresContext*      aPresContext,
     supScriptFrame = baseFrame->GetNextSibling();
   if (!baseFrame || !supScriptFrame || supScriptFrame->GetNextSibling()) {
     
+    if (aPlaceOrigin) {
+      aFrame->ReportChildCountError();
+    }
     return aFrame->ReflowError(aRenderingContext, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);

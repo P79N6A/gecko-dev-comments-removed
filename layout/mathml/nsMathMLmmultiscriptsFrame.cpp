@@ -251,6 +251,9 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
       if (mprescriptsFrame) {
         
         
+        if (aPlaceOrigin) {
+          ReportErrorToConsole("DuplicateMprescripts");
+        }
         return ReflowError(aRenderingContext, aDesiredSize);
       }
       mprescriptsFrame = childFrame;
@@ -359,6 +362,13 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
   
   if ((0 != width) || !baseFrame || !subScriptFrame || !supScriptFrame) {
     
+    if (aPlaceOrigin) {
+      if (count <= 1 || (count == 2 && mprescriptsFrame)) {
+        ReportErrorToConsole("NoSubSup");
+      } else {
+        ReportErrorToConsole("SubSupMismatch");
+      }
+    }
     return ReflowError(aRenderingContext, aDesiredSize);
   }
 

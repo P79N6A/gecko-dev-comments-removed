@@ -243,6 +243,31 @@ public:
   nsresult
   ReflowError(nsRenderingContext& aRenderingContext,
               nsHTMLReflowMetrics& aDesiredSize);
+  
+
+
+
+
+
+  nsresult
+  ReportParseError(const PRUnichar*           aAttribute,
+                   const PRUnichar*           aValue);
+
+  
+
+
+
+  nsresult
+  ReportChildCountError();
+
+  
+
+
+
+  nsresult
+  ReportErrorToConsole(const char*       aErrorMsgId,
+                       const PRUnichar** aParams = nullptr,
+                       PRUint32          aParamCount = 0);
 
   
   

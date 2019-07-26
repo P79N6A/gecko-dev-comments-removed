@@ -210,6 +210,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   }
   if (2 != count) {
     
+    ReportChildCountError();
     rv = ReflowError(renderingContext, aDesiredSize);
     aStatus = NS_FRAME_COMPLETE;
     NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);

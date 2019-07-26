@@ -199,6 +199,9 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     frameDen = frameNum->GetNextSibling();
   if (!frameNum || !frameDen || frameDen->GetNextSibling()) {
     
+    if (aPlaceOrigin) {
+      ReportChildCountError();
+    }
     return ReflowError(aRenderingContext, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(frameNum, sizeNum, bmNum);

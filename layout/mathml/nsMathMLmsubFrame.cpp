@@ -110,6 +110,9 @@ nsMathMLmsubFrame::PlaceSubScript (nsPresContext*      aPresContext,
     subScriptFrame = baseFrame->GetNextSibling();
   if (!baseFrame || !subScriptFrame || subScriptFrame->GetNextSibling()) {
     
+    if (aPlaceOrigin) {
+      aFrame->ReportChildCountError();
+    }
     return aFrame->ReflowError(aRenderingContext, aDesiredSize);
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
