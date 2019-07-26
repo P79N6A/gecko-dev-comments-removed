@@ -294,6 +294,29 @@ add_task(function test_getKeys() {
 
 
 
+add_test(function test_getKeys_no_token() {
+  do_test_pending();
+
+  let fxa = new MockFxAccounts();
+  let user = getTestUser("lettuce.protheroe");
+  delete user.keyFetchToken
+
+  makeObserver("fxaccounts:onlogout", function() {
+    log.debug("test_getKeys_no_token observed logout");
+    fxa.internal.getUserAccountData().then(user => {
+      do_test_finished();
+      run_next_test();
+    });
+  });
+
+  fxa.setSignedInUser(user).then((user) => {
+    fxa.internal.getKeys();
+  });
+});
+
+
+
+
 
 
 add_test(function test_overlapping_signins() {
