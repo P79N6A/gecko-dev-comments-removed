@@ -130,21 +130,21 @@ get_arm_cpu_flags(void)
 
 
   fin = fopen ("/proc/cpuinfo","r");
-  if (fin != NULL)
+  if (fin != nullptr)
   {
     
 
     char buf[512];
-    while (fgets(buf, 511, fin) != NULL)
+    while (fgets(buf, 511, fin) != nullptr)
     {
       if (memcmp(buf, "Features", 8) == 0)
       {
         char *p;
         p = strstr(buf, " edsp");
-        if (p != NULL && (p[5] == ' ' || p[5] == '\n'))
+        if (p != nullptr && (p[5] == ' ' || p[5] == '\n'))
           flags |= MOZILLA_HAS_EDSP_FLAG;
         p = strstr(buf, " neon");
-        if( p != NULL && (p[5] == ' ' || p[5] == '\n'))
+        if( p != nullptr && (p[5] == ' ' || p[5] == '\n'))
           flags |= MOZILLA_HAS_NEON_FLAG;
       }
       if (memcmp(buf, "CPU architecture:", 17) == 0)
