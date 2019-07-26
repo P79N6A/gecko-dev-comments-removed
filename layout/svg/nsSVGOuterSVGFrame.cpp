@@ -480,12 +480,44 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  FinishAndStoreOverflow(&aDesiredSize);
+  anonKid->SetPosition(GetContentRectRelativeToSelf().TopLeft());
 
   
-  anonKid->SetPosition(GetContentRectRelativeToSelf().TopLeft());
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+  if (!mIsRootContent) {
+    aDesiredSize.mOverflowAreas.VisualOverflow().UnionRect(
+      aDesiredSize.mOverflowAreas.VisualOverflow(),
+      anonKid->GetVisualOverflowRect() + anonKid->GetPosition());
+  }
+  FinishAndStoreOverflow(&aDesiredSize);
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                   ("exit nsSVGOuterSVGFrame::Reflow: size=%d,%d",
@@ -507,6 +539,27 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
 
   return rv;
 }
+
+ bool
+nsSVGOuterSVGFrame::UpdateOverflow()
+{
+  
+
+  
+
+  nsRect rect(nsPoint(0, 0), GetSize());
+  nsOverflowAreas overflowAreas(rect, rect);
+
+  if (!mIsRootContent) {
+    nsIFrame *anonKid = GetFirstPrincipalChild();
+    overflowAreas.VisualOverflow().UnionRect(
+      overflowAreas.VisualOverflow(),
+      anonKid->GetVisualOverflowRect() + anonKid->GetPosition());
+  }
+
+  return FinishAndStoreOverflow(overflowAreas, GetSize());
+}
+
 
 
 
