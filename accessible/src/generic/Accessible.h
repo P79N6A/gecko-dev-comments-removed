@@ -399,7 +399,8 @@ public:
   
 
 
-  virtual int32_t GetIndexOf(Accessible* aChild);
+  int32_t GetIndexOf(const Accessible* aChild) const
+    { return (aChild->mParent != this) ? -1 : aChild->IndexInParent(); }
 
   
 

@@ -160,10 +160,8 @@ public:
   
 
 
-  uint32_t CharacterCount()
-  {
-    return GetChildOffset(ChildCount());
-  }
+  uint32_t CharacterCount() const
+    { return GetChildOffset(ChildCount()); }
 
   
 
@@ -247,7 +245,7 @@ public:
 
 
   int32_t GetChildOffset(Accessible* aChild,
-                         bool aInvalidateAfter = false)
+                         bool aInvalidateAfter = false) const
   {
     int32_t index = GetIndexOf(aChild);
     return index == -1 ? -1 : GetChildOffset(index, aInvalidateAfter);
@@ -257,21 +255,21 @@ public:
 
 
   int32_t GetChildOffset(uint32_t aChildIndex,
-                         bool aInvalidateAfter = false);
+                         bool aInvalidateAfter = false) const;
 
   
 
 
 
 
-  int32_t GetChildIndexAtOffset(uint32_t aOffset);
+  int32_t GetChildIndexAtOffset(uint32_t aOffset) const;
 
   
 
 
 
 
-  Accessible* GetChildAtOffset(uint32_t aOffset)
+  Accessible* GetChildAtOffset(uint32_t aOffset) const
   {
     return GetChildAt(GetChildIndexAtOffset(aOffset));
   }
@@ -518,7 +516,7 @@ private:
   
 
 
-  nsTArray<uint32_t> mOffsets;
+  mutable nsTArray<uint32_t> mOffsets;
 };
 
 
