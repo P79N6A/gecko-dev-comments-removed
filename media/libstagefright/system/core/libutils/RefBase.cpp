@@ -20,7 +20,14 @@
 #include <utils/RefBase.h>
 
 #include <utils/Atomic.h>
+#ifdef _MSC_VER
+class CallStack {
+public:
+    CallStack(int x) {}
+};
+#else
 #include <utils/CallStack.h>
+#endif
 #include <utils/Log.h>
 #include <utils/threads.h>
 
@@ -40,7 +47,7 @@
 #define DEBUG_REFS_ENABLED_BY_DEFAULT   0
 
 
-#define DEBUG_REFS_CALLSTACK_ENABLED    1
+#define DEBUG_REFS_CALLSTACK_ENABLED    0
 
 
 
