@@ -18,7 +18,7 @@ public:
 
   
   
-  nsresult Init();
+  nsresult Startup();
 
   
   
@@ -26,21 +26,22 @@ public:
 
   
   virtual MediaDataDecoder*
-  CreateH264Decoder(mozilla::layers::LayersBackend aLayersBackend,
+  CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
+                    mozilla::layers::LayersBackend aLayersBackend,
                     mozilla::layers::ImageContainer* aImageContainer) MOZ_OVERRIDE;
 
   
-  virtual MediaDataDecoder* CreateAACDecoder(uint32_t aChannelCount,
-                                             uint32_t aSampleRate,
-                                             uint16_t aBitsPerSample,
-                                             const uint8_t* aUserData,
-                                             uint32_t aUserDataLength) MOZ_OVERRIDE;
+  virtual MediaDataDecoder* CreateAACDecoder(
+    const mp4_demuxer::AudioDecoderConfig& aConfig) MOZ_OVERRIDE;
 
   
   virtual void OnDecodeThreadStart() MOZ_OVERRIDE;
   virtual void OnDecodeThreadFinish() MOZ_OVERRIDE;
+
+  static void Init();
 private:
-  const bool mDXVAEnabled;
+  static bool sIsWMFEnabled;
+  static bool sDXVAEnabled;
 };
 
 } 
