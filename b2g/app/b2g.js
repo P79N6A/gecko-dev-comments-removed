@@ -235,15 +235,22 @@ pref("ui.dragThresholdX", 25);
 pref("ui.dragThresholdY", 25);
 
 
-pref("layers.acceleration.disabled", false);
-#ifndef XP_WIN
 
+#ifndef MOZ_WIDGET_GONK
+pref("dom.ipc.tabs.disabled", true);
+pref("layers.offmainthreadcomposition.enabled", false);
+pref("layers.offmainthreadcomposition.animate-opacity", false);
+pref("layers.offmainthreadcomposition.animate-transform", false);
+pref("layers.async-video.enabled", false);
+#else
+pref("dom.ipc.tabs.disabled", false);
 pref("layers.offmainthreadcomposition.enabled", true);
-#endif
+pref("layers.acceleration.disabled", false);
 pref("layers.offmainthreadcomposition.animate-opacity", true);
 pref("layers.offmainthreadcomposition.animate-transform", true);
 pref("layers.async-video.enabled", true);
 pref("layers.async-pan-zoom.enabled", true);
+#endif
 
 
 pref("notification.feature.enabled", true);
@@ -379,7 +386,6 @@ pref("dom.mozBrowserFramesEnabled", true);
 
 pref("dom.ipc.processCount", 100000);
 
-pref("dom.ipc.tabs.disabled", false);
 pref("dom.ipc.browser_frames.oop_by_default", false);
 
 
