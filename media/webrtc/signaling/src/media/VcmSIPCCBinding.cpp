@@ -369,6 +369,7 @@ void vcmRxAllocPort(cc_mcapid_t mcap_id,
                     cc_uint16_t port_requested,
                     int *port_allocated)
 {
+    *port_allocated = -1;
     CSFLogDebug( logTag, "vcmRxAllocPort(): group_id=%d stream_id=%d call_handle=%d port_requested = %d",
         group_id, stream_id, call_handle, port_requested);
 
@@ -413,19 +414,22 @@ void vcmRxAllocPort(cc_mcapid_t mcap_id,
 
 
 
-static void vcmRxAllocICE_m(cc_mcapid_t mcap_id,
-                            cc_groupid_t group_id,
-			    cc_streamid_t stream_id,
-			    cc_call_handle_t  call_handle,
-			    const char *peerconnection,
-			    uint16_t level,
-			    char **default_addrp, 
-			    int *default_portp, 
-			    char ***candidatesp, 
-			    int *candidate_ctp 
+static short vcmRxAllocICE_m(cc_mcapid_t mcap_id,
+                             cc_groupid_t group_id,
+                             cc_streamid_t stream_id,
+                             cc_call_handle_t  call_handle,
+                             const char *peerconnection,
+                             uint16_t level,
+                             char **default_addrp, 
+                             int *default_portp, 
+                             char ***candidatesp, 
+                             int *candidate_ctp 
 )
 {
+  *default_addrp = NULL;
   *default_portp = -1;
+  *candidatesp = NULL;
+  *candidate_ctp = 0;
 
   CSFLogDebug( logTag, "%s: group_id=%d stream_id=%d call_handle=%d PC = %s",
     __FUNCTION__, group_id, stream_id, call_handle, peerconnection);
@@ -434,14 +438,14 @@ static void vcmRxAllocICE_m(cc_mcapid_t mcap_id,
   
   
   sipcc::PeerConnectionWrapper pc(peerconnection);
-  ENSURE_PC(pc, );
+  ENSURE_PC(pc, VCM_ERROR);
 
   CSFLogDebug( logTag, "%s: Getting stream %d", __FUNCTION__, level);
   mozilla::RefPtr<NrIceMediaStream> stream = pc.impl()->media()->
     ice_media_stream(level-1);
   MOZ_ASSERT(stream);
   if (!stream) {
-    return;
+    return VCM_ERROR;
   }
 
   std::vector<std::string> candidates = stream->GetCandidates();
@@ -453,7 +457,7 @@ static void vcmRxAllocICE_m(cc_mcapid_t mcap_id,
   nsresult res = stream->GetDefaultCandidate(1, &default_addr, &default_port);
   MOZ_ASSERT(NS_SUCCEEDED(res));
   if (!NS_SUCCEEDED(res)) {
-    return;
+    return VCM_ERROR;
   }
 
   CSFLogDebug( logTag, "%s: Got default candidates %s:%d", __FUNCTION__,
@@ -462,7 +466,7 @@ static void vcmRxAllocICE_m(cc_mcapid_t mcap_id,
   
   *candidatesp = (char **) cpr_malloc(candidates.size() * sizeof(char *));
   if (!(*candidatesp))
-    return;
+    return VCM_ERROR;
 
   for (size_t i=0; i<candidates.size(); i++) {
     (*candidatesp)[i] = (char *) cpr_malloc(candidates[i].size() + 1);
@@ -473,9 +477,10 @@ static void vcmRxAllocICE_m(cc_mcapid_t mcap_id,
   
   *default_addrp = (char *) cpr_malloc(default_addr.size() + 1);
   if (!*default_addrp)
-    return;
+    return VCM_ERROR;
   sstrncpy(*default_addrp, default_addr.c_str(), default_addr.size() + 1);
   *default_portp = default_port; 
+  return 0;
 }
 
 
@@ -496,7 +501,7 @@ static void vcmRxAllocICE_m(cc_mcapid_t mcap_id,
 
 
 
-void vcmRxAllocICE(cc_mcapid_t mcap_id,
+short vcmRxAllocICE(cc_mcapid_t mcap_id,
                    cc_groupid_t group_id,
                    cc_streamid_t stream_id,
                    cc_call_handle_t  call_handle,
@@ -508,19 +513,22 @@ void vcmRxAllocICE(cc_mcapid_t mcap_id,
                    int *candidate_ctp 
                    )
 {
+  int ret;
   VcmSIPCCBinding::getMainThread()->Dispatch(
-      WrapRunnableNM(&vcmRxAllocICE_m,
-                     mcap_id,
-                     group_id,
-                     stream_id,
-                     call_handle,
-                     peerconnection,
-                     level,
-                     default_addrp,
-                     default_portp,
-                     candidatesp,
-                     candidate_ctp),
-      NS_DISPATCH_SYNC);
+      WrapRunnableNMRet(&vcmRxAllocICE_m,
+                        mcap_id,
+                        group_id,
+                        stream_id,
+                        call_handle,
+                        peerconnection,
+                        level,
+                        default_addrp,
+                        default_portp,
+                        candidatesp,
+                        candidate_ctp,
+                        &ret),
+          NS_DISPATCH_SYNC);
+  return ret;
 }
 
 
@@ -530,9 +538,9 @@ void vcmRxAllocICE(cc_mcapid_t mcap_id,
 
 
 
-static void vcmGetIceParams_m(const char *peerconnection,
-                              char **ufragp,
-                              char **pwdp)
+static short vcmGetIceParams_m(const char *peerconnection,
+                               char **ufragp,
+                               char **pwdp)
 {
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
@@ -542,7 +550,7 @@ static void vcmGetIceParams_m(const char *peerconnection,
   
   
   sipcc::PeerConnectionWrapper pc(peerconnection);
-  ENSURE_PC(pc, );
+  ENSURE_PC(pc, VCM_ERROR);
 
   std::vector<std::string> attrs = pc.impl()->media()->
     ice_ctx()->GetGlobalAttributes();
@@ -556,7 +564,7 @@ static void vcmGetIceParams_m(const char *peerconnection,
       if (!ufrag) {
         ufrag = (char *) cpr_malloc(attrs[i].size() + 1);
         if (!ufrag)
-          return;
+          return VCM_ERROR;
         sstrncpy(ufrag, attrs[i].c_str(), attrs[i].size() + 1);
         ufrag[attrs[i].size()] = 0;
       }
@@ -565,7 +573,7 @@ static void vcmGetIceParams_m(const char *peerconnection,
     if (attrs[i].compare(0, strlen("ice-pwd:"), "ice-pwd:") == 0) {
       pwd = (char *) cpr_malloc(attrs[i].size() + 1);
       if (!pwd)
-        return;
+        return VCM_ERROR;
       sstrncpy(pwd, attrs[i].c_str(), attrs[i].size() + 1);
       pwd[attrs[i].size()] = 0;
     }
@@ -576,13 +584,13 @@ static void vcmGetIceParams_m(const char *peerconnection,
     cpr_free(ufrag);
     cpr_free(pwd);
     CSFLogDebug( logTag, "%s: no ufrag or password", __FUNCTION__);
-    return;
+    return VCM_ERROR;
   }
 
   *ufragp = ufrag;
   *pwdp = pwd;
 
-  return;
+  return 0;
 }
 
 
@@ -595,16 +603,19 @@ static void vcmGetIceParams_m(const char *peerconnection,
 
 
 
-void vcmGetIceParams(const char *peerconnection,
+short vcmGetIceParams(const char *peerconnection,
                      char **ufragp,
                      char **pwdp)
 {
+  int ret;
   VcmSIPCCBinding::getMainThread()->Dispatch(
-      WrapRunnableNM(&vcmGetIceParams_m,
-                     peerconnection,
-                     ufragp,
-                     pwdp),
+      WrapRunnableNMRet(&vcmGetIceParams_m,
+                        peerconnection,
+                        ufragp,
+                        pwdp,
+                        &ret),
       NS_DISPATCH_SYNC);
+  return ret;
 }
 
 
@@ -747,7 +758,7 @@ static short vcmStartIceChecks_m(const char *peerconnection, cc_boolean isContro
 {
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
-  sipcc::PeerConnectionWrapper pc(peerconnection);  
+  sipcc::PeerConnectionWrapper pc(peerconnection);
   ENSURE_PC(pc, VCM_ERROR);
 
   nsresult res;
@@ -898,6 +909,8 @@ static short vcmCreateRemoteStream_m(
   uint32_t hints = 0;
   nsresult res;
 
+  *pc_stream_id = -1;
+
   CSFLogDebug( logTag, "%s", __FUNCTION__);
   sipcc::PeerConnectionWrapper pc(peerconnection);
   ENSURE_PC(pc, VCM_ERROR);
@@ -988,6 +1001,10 @@ static short vcmGetDtlsIdentity_m(const char *peerconnection,
                                   size_t max_digest_alg_len,
                                   char *digestp,
                                   size_t max_digest_len) {
+
+  digest_algp[0]='\0';
+  digestp[0]='\0';
+
   sipcc::PeerConnectionWrapper pc(peerconnection);
   ENSURE_PC(pc, VCM_ERROR);
 
@@ -1098,6 +1115,7 @@ short vcmRxOpen(cc_mcapid_t mcap_id,
     char fname[] = "vcmRxOpen";
 
     char dottedIP[20] = "";
+    *port_allocated = -1;
     if(listen_ip)
     {
     	csf_sprintf(dottedIP, sizeof(dottedIP), "%u.%u.%u.%u",
@@ -1475,7 +1493,7 @@ int vcmRxStartICE(cc_mcapid_t mcap_id,
 
 
 
-void vcmRxClose(cc_mcapid_t mcap_id,
+short vcmRxClose(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle)
@@ -1487,7 +1505,7 @@ void vcmRxClose(cc_mcapid_t mcap_id,
     if (call_handle == CC_NO_CALL_ID) {
         CSFLogDebugS( logTag, "No CALL ID");
         
-        return;
+        return VCM_ERROR;
     }
     switch ( mcap_id )
     {
@@ -1504,6 +1522,7 @@ void vcmRxClose(cc_mcapid_t mcap_id,
     default:
         break;
     }
+    return 0;
 }
 
 
@@ -2084,7 +2103,7 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
                         attrs,
                         &ret),
       NS_DISPATCH_SYNC);
-  
+
   return ret;
 }
 
@@ -2100,7 +2119,7 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
 
 
 
-void vcmTxClose(cc_mcapid_t mcap_id,
+short vcmTxClose(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle)
@@ -2111,7 +2130,7 @@ void vcmTxClose(cc_mcapid_t mcap_id,
 
     if (call_handle == CC_NO_CALL_ID) {
         
-        return;
+        return VCM_ERROR;
     }
 
     switch ( mcap_id )
@@ -2129,6 +2148,7 @@ void vcmTxClose(cc_mcapid_t mcap_id,
     default:
         break;
     }
+    return 0;
 }
 
 #if 0
@@ -2287,6 +2307,8 @@ int vcmGetRtpStats(cc_mcapid_t mcap_id,
         char *rx_stats,
         char *tx_stats)
 {
+    rx_stats[0] = '\0';
+    tx_stats[0] = '\0';
     return 0;
 }
 

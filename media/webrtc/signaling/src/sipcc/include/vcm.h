@@ -416,7 +416,7 @@ void vcmRxAllocPort(cc_mcapid_t mcap_id,
         int *port_allocated);
 
 
-void vcmRxAllocICE(cc_mcapid_t mcap_id,
+short vcmRxAllocICE(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle,
@@ -437,7 +437,7 @@ void vcmRxAllocICE(cc_mcapid_t mcap_id,
 
 
 
-void vcmGetIceParams(const char *peerconnection, char **ufragp, char **pwdp);
+short vcmGetIceParams(const char *peerconnection, char **ufragp, char **pwdp);
 
 
 
@@ -689,7 +689,7 @@ int vcmTxStart(cc_mcapid_t mcap_id,
 
 
 
-void vcmRxClose(cc_mcapid_t mcap_id,
+short vcmRxClose(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle);
@@ -705,7 +705,7 @@ void vcmRxClose(cc_mcapid_t mcap_id,
 
 
 
-void vcmTxClose(cc_mcapid_t mcap_id,
+short vcmTxClose(cc_mcapid_t mcap_id,
         cc_groupid_t group_id,
         cc_streamid_t stream_id,
         cc_call_handle_t  call_handle);
