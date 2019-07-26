@@ -25,14 +25,17 @@ public:
  static bool DashMatchCompare(const nsAString& aAttributeValue,
                                 const nsAString& aSelectorValue,
                                 const nsStringComparator& aComparator);
-                                
-  
-  static void AppendEscapedCSSString(const nsString& aString,
-                                     nsAString& aResult);
+
   
   
+  static void AppendEscapedCSSString(const nsAString& aString,
+                                     nsAString& aResult,
+                                     PRUnichar quoteChar = '"');
+
   
-  static void AppendEscapedCSSIdent(const nsString& aIdent,
+  
+  
+  static void AppendEscapedCSSIdent(const nsAString& aIdent,
                                     nsAString& aResult);
 
   

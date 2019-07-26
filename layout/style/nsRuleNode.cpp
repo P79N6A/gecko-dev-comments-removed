@@ -372,8 +372,9 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
   }
   switch (aValue.GetUnit()) {
     case eCSSUnit_EM: {
-      return ScaleCoord(aValue, float(aFontSize));
       
+      
+      return ScaleCoord(aValue, float(aFontSize));
     }
     case eCSSUnit_XHeight: {
       nsRefPtr<nsFontMetrics> fm =
