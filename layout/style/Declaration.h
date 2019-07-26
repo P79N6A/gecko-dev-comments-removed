@@ -230,7 +230,7 @@ public:
   size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 private:
-  nsAutoTArray<uint8_t, 8> mOrder;
+  nsAutoTArray<uint16_t, 8> mOrder;
 
   
   

@@ -18,8 +18,8 @@ namespace css {
 
 
 
-MOZ_STATIC_ASSERT(eCSSProperty_COUNT_no_shorthands - 1 <= UINT8_MAX,
-                  "CSS longhand property numbers no longer fit in a uint8_t");
+MOZ_STATIC_ASSERT(eCSSProperty_COUNT_no_shorthands - 1 <= UINT16_MAX,
+                  "CSS longhand property numbers no longer fit in a uint16_t");
 
 Declaration::Declaration()
   : mImmutable(false)
