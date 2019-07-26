@@ -3877,7 +3877,13 @@ pref("layers.acceleration.disabled", false);
 #endif
 
 
+#ifdef ANDROID
+
+
+pref("layers.acceleration.force-enabled", true);
+#else
 pref("layers.acceleration.force-enabled", false);
+#endif
 
 pref("layers.acceleration.draw-fps", false);
 
