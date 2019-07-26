@@ -33,11 +33,6 @@
 #include "base/string_util.h"
 #include "base/time.h"
 
-
-#ifndef HAVE_STAT64
-#define stat64 stat
-#endif
-
 namespace file_util {
 
 #if defined(GOOGLE_CHROME_BUILD)
