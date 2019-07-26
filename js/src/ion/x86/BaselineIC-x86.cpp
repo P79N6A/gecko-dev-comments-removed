@@ -67,18 +67,34 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     
     Register scratchReg = BaselineTailCallReg;
 
-    Label revertRegister;
+    Label revertRegister, maybeNegZero;
     switch(op_) {
       case JSOP_ADD:
         
-        masm.movl(R1.payloadReg(), scratchReg);
-        masm.addl(R0.payloadReg(), scratchReg);
+        masm.movl(R0.payloadReg(), scratchReg);
+        masm.addl(R1.payloadReg(), scratchReg);
 
         
         
         masm.j(Assembler::Overflow, &failure);
 
         
+        masm.movl(scratchReg, R0.payloadReg());
+        break;
+      case JSOP_SUB:
+        masm.movl(R0.payloadReg(), scratchReg);
+        masm.subl(R1.payloadReg(), scratchReg);
+        masm.j(Assembler::Overflow, &failure);
+        masm.movl(scratchReg, R0.payloadReg());
+        break;
+      case JSOP_MUL:
+        masm.movl(R0.payloadReg(), scratchReg);
+        masm.imull(R1.payloadReg(), scratchReg);
+        masm.j(Assembler::Overflow, &failure);
+
+        masm.testl(scratchReg, scratchReg);
+        masm.j(Assembler::Zero, &maybeNegZero);
+
         masm.movl(scratchReg, R0.payloadReg());
         break;
       case JSOP_BITOR:
@@ -135,6 +151,19 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     EmitReturnFromIC(masm);
+
+    if (op_ == JSOP_MUL) {
+        masm.bind(&maybeNegZero);
+
+        
+        masm.movl(R0.payloadReg(), scratchReg);
+        masm.orl(R1.payloadReg(), scratchReg);
+        masm.j(Assembler::Signed, &failure);
+
+        
+        masm.xorl(R0.payloadReg(), R0.payloadReg());
+        EmitReturnFromIC(masm);
+    }
 
     
     if (op_ == JSOP_URSH && !allowDouble_) {
