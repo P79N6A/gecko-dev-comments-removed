@@ -1596,7 +1596,7 @@ var SelectionHandler = {
   
   
   cache: null,
-  _activeType: this.TYPE_NONE,
+  _activeType: 0, 
 
   
   get _view() {
