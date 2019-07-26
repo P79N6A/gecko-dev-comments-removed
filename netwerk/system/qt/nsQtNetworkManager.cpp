@@ -87,7 +87,7 @@ nsQtNetworkManager::openConnection(const QString& host)
         openSession();
     } else {
         
-        emit openConnectionSignal();
+        Q_EMIT openConnectionSignal();
     }
 
     

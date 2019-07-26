@@ -60,7 +60,7 @@ MozQOrientationSensorFilter::filter(QOrientationReading* reading)
         }
     }
 #else
-    emit orientationChanged();
+    Q_EMIT orientationChanged();
 #endif
 
     return true; 
