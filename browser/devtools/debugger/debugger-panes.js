@@ -1961,10 +1961,14 @@ VariableBubbleView.prototype = {
   
 
 
-  _onMouseMove: function({ clientX: x, clientY: y }) {
+  _onMouseMove: function({ clientX: x, clientY: y, buttons: btns }) {
     
     
-    if (gThreadClient && gThreadClient.state != "paused" || !this._tooltip.isHidden()) {
+    
+    if (gThreadClient && gThreadClient.state != "paused"
+        || !this._tooltip.isHidden()
+        || (DebuggerView.editor.somethingSelected()
+         && btns > 0)) {
       clearNamedTimeout("editor-mouse-move");
       return;
     }
