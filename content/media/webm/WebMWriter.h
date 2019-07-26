@@ -47,6 +47,8 @@ public:
   
   
   WebMWriter(uint32_t aTrackTypes);
+  virtual ~WebMWriter();
+
   
   nsresult WriteEncodedTrack(const EncodedFrameContainer &aData,
                              uint32_t aFlags = 0) MOZ_OVERRIDE;

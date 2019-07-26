@@ -152,7 +152,6 @@ TEST(WebMWriter, Cluster)
   EXPECT_TRUE(encodedBuf.Length() > 0);
   encodedBuf.Clear();
 
-  uint64_t timestamp = 0;
   
   writer.AppendDummyFrame(EncodedFrame::VP8_I_FRAME, FIXED_DURATION);
   
@@ -191,7 +190,6 @@ TEST(WebMWriter, FLUSH_NEEDED)
   writer.SetVP8Metadata(width, height, displayWidth,
                         displayHeight, aTrackRate);
 
-  uint64_t timestamp = 0;
   
   writer.AppendDummyFrame(EncodedFrame::VP8_I_FRAME, FIXED_DURATION);
 

@@ -14,6 +14,11 @@ WebMWriter::WebMWriter(uint32_t aTrackTypes) : ContainerWriter()
   mEbmlComposer = new EbmlComposer();
 }
 
+WebMWriter::~WebMWriter()
+{
+  
+}
+
 nsresult
 WebMWriter::WriteEncodedTrack(const EncodedFrameContainer& aData,
                               uint32_t aFlags)
