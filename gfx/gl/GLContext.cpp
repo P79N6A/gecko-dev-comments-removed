@@ -628,6 +628,12 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 MarkUnsupported(GLFeature::standard_derivatives);
             }
 
+            if (Vendor() == GLVendor::Imagination &&
+                Renderer() == GLRenderer::SGX540) {
+                
+                MarkExtensionUnsupported(OES_EGL_sync);
+            }
+
 #ifdef XP_MACOSX
             
             
