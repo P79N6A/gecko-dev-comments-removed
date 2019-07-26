@@ -1230,6 +1230,13 @@ DownloadsViewItemController.prototype = {
         
         this._openExternal(localFile);
       }
+
+      
+      
+      
+      
+      
+      DownloadsPanel.hidePanel();
     },
 
     downloadsCmd_show: function DVIC_downloadsCmd_show()
@@ -1254,6 +1261,13 @@ DownloadsViewItemController.prototype = {
           }
         }
       }
+
+      
+      
+      
+      
+      
+      DownloadsPanel.hidePanel();
     },
 
     downloadsCmd_pauseResume: function DVIC_downloadsCmd_pauseResume()
