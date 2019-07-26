@@ -304,6 +304,7 @@ enum ExpandoSlots {
     JSSLOT_EXPANDO_NEXT = 0,
     JSSLOT_EXPANDO_ORIGIN,
     JSSLOT_EXPANDO_EXCLUSIVE_GLOBAL,
+    JSSLOT_EXPANDO_PROTOTYPE,
     JSSLOT_EXPANDO_COUNT
 };
 
@@ -1790,6 +1791,56 @@ XrayWrapper<Base, Traits>::defaultValue(JSContext *cx, HandleObject wrapper,
     
     
     return js::DefaultValue(cx, wrapper, hint, vp);
+}
+
+template <typename Base, typename Traits>
+bool
+XrayWrapper<Base, Traits>::getPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
+                                          JS::MutableHandleObject protop)
+{
+    RootedObject target(cx, Traits::getTargetObject(wrapper));
+    RootedObject expando(cx, Traits::singleton.getExpandoObject(cx, target, wrapper));
+
+    
+    
+    
+    
+    
+    
+
+    if (!expando)
+        return Base::getPrototypeOf(cx, wrapper, protop);
+
+    RootedValue v(cx);
+    {
+        JSAutoCompartment ac(cx, expando);
+        v = JS_GetReservedSlot(expando, JSSLOT_EXPANDO_PROTOTYPE);
+    }
+
+    if (v.isUndefined())
+        return Base::getPrototypeOf(cx, wrapper, protop);
+
+    protop.set(v.toObjectOrNull());
+    return JS_WrapObject(cx, protop);
+}
+
+template <typename Base, typename Traits>
+bool
+XrayWrapper<Base, Traits>::setPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
+                                          JS::HandleObject proto, bool *bp)
+{
+    RootedObject target(cx, Traits::getTargetObject(wrapper));
+    RootedObject expando(cx, Traits::singleton.ensureExpandoObject(cx, wrapper, target));
+
+    
+    JSAutoCompartment ac(cx, target);
+
+    RootedValue v(cx, ObjectValue(*proto));
+    if (!JS_WrapValue(cx, &v))
+        return false;
+    JS_SetReservedSlot(expando, JSSLOT_EXPANDO_PROTOTYPE, v);
+    *bp = true;
+    return true;
 }
 
 

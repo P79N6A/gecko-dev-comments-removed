@@ -64,6 +64,7 @@ class WrapperFactory {
 
     
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleValue vp);
+    static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleObject object);
 
     
     static JSObject *WrapSOWObject(JSContext *cx, JSObject *obj);
