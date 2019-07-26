@@ -17,6 +17,7 @@
 #include "nsSMILKeySpline.h"
 #include "nsStyleStruct.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/FloatingPoint.h"
 #include "nsCSSPseudoElements.h"
 
 class nsPresContext;
@@ -311,8 +312,17 @@ struct ElementAnimation
   }
 
   
-  mozilla::TimeDuration ActiveDuration() const {
-    return mTiming.mIterationDuration.MultDouble(mTiming.mIterationCount);
+  static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming) {
+    if (aTiming.mIterationCount == mozilla::PositiveInfinity<float>()) {
+      
+      
+      
+      const TimeDuration zeroDuration;
+      return aTiming.mIterationDuration == zeroDuration
+             ? zeroDuration
+             : mozilla::TimeDuration::Forever();
+    }
+    return aTiming.mIterationDuration.MultDouble(aTiming.mIterationCount);
   }
 
   

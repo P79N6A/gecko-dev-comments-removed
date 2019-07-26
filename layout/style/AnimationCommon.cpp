@@ -364,7 +364,8 @@ ComputedTimingFunction::GetValue(double aPortion) const
 
 
 
-const double ComputedTiming::kNullTimeFraction = NS_IEEEPositiveInfinity();
+const double ComputedTiming::kNullTimeFraction =
+  mozilla::PositiveInfinity<double>();
 
 bool
 ElementAnimation::IsRunningAt(TimeStamp aTime) const

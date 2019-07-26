@@ -264,7 +264,8 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
         break;
 
       case ComputedTiming::AnimationPhase_After:
-        TimeDuration activeDuration = anim->ActiveDuration();
+        TimeDuration activeDuration =
+          ElementAnimation::ActiveDuration(anim->mTiming);
         
         
         if (anim->mLastNotification ==
