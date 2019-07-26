@@ -1395,7 +1395,6 @@ nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
 
   mInnerWindowHolder = nullptr;
   mArguments = nullptr;
-  mArgumentsLast = nullptr;
   mArgumentsOrigin = nullptr;
 
   CleanupCachedXBLHandlers(this);
@@ -1624,7 +1623,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindow)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mControllers)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mArguments)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mArgumentsLast)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPerformance)
 
@@ -1671,7 +1669,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mControllers)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mArguments)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mArgumentsLast)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPerformance)
 
@@ -2738,7 +2735,6 @@ nsGlobalWindow::DetachFromDocShell()
     
     
     mArguments = nullptr;
-    mArgumentsLast = nullptr;
     mArgumentsOrigin = nullptr;
   }
 
@@ -3155,9 +3151,7 @@ nsGlobalWindow::SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin)
 
   nsGlobalWindow *currentInner = GetCurrentInnerWindowInternal();
 
-  if (!mIsModalContentWindow) {
-    mArgumentsLast = aArguments;
-  } else if (currentInner) {
+  if (mIsModalContentWindow && currentInner) {
     
     
     
