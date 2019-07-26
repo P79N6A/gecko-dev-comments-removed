@@ -93,10 +93,10 @@ public:
     
     if (copy) {
       setStackAddress(reinterpret_cast<void*>(
-                        reinterpret_cast<uintptr_t>(sparg) & ~0x1));
+                        reinterpret_cast<uintptr_t>(sparg) & ~NoCopyBit));
     } else {
       setStackAddress(reinterpret_cast<void*>(
-                        reinterpret_cast<uintptr_t>(sparg) | 0x1));
+                        reinterpret_cast<uintptr_t>(sparg) | NoCopyBit));
     }
   }
 };
