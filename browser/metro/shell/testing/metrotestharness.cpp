@@ -28,6 +28,13 @@ static const WCHAR* kFirefoxExe = L"firefox.exe";
 static const WCHAR* kDefaultMetroBrowserIDPathKey = L"FirefoxURL";
 static const WCHAR* kDemoMetroBrowserIDPathKey = L"Mozilla.Firefox.URL";
 
+CString sAppParams;
+CString sFirefoxPath;
+
+
+
+#define kMetroTestFile "tests.ini"
+
 static void Log(const wchar_t *fmt, ...)
 {
   va_list a = NULL;
@@ -134,7 +141,20 @@ static bool GetDefaultBrowserAppModelID(WCHAR* aIDBuffer,
   return true;
 }
 
-CString sAppParams;
+
+class DeleteTestFileHelper
+{
+  CStringA mTestFile;
+public:
+  DeleteTestFileHelper(CStringA& aTestFile) :
+    mTestFile(aTestFile) {}
+  ~DeleteTestFileHelper() {
+    if (mTestFile.GetLength()) {
+      Log(L"Deleting %s", CStringW(mTestFile));
+      DeleteFileA(mTestFile);
+    }
+  }
+};
 
 static bool Launch()
 {
@@ -143,7 +163,7 @@ static bool Launch()
   DWORD processID;
 
   
-  IApplicationActivationManager* activateMgr = NULL;
+  CComPtr<IApplicationActivationManager> activateMgr;
   if (FAILED(CoCreateInstance(CLSID_ApplicationActivationManager, NULL,
                               CLSCTX_LOCAL_SERVER,
                               IID_IApplicationActivationManager,
@@ -157,7 +177,6 @@ static bool Launch()
   
   if (!GetDefaultBrowserAppModelID(appModelID, (sizeof(appModelID)/sizeof(WCHAR)))) {
     Fail(L"GetDefaultBrowserAppModelID failed.");
-    activateMgr->Release();
     return false;
   }
   Log(L"App model id='%s'", appModelID);
@@ -167,7 +186,6 @@ static bool Launch()
   hr = CoAllowSetForegroundWindow(activateMgr, NULL);
   if (FAILED(hr)) {
     Fail(L"CoAllowSetForegroundWindow result %X", hr);
-    activateMgr->Release();
     return false;
   }
 
@@ -175,34 +193,49 @@ static bool Launch()
 
   
   
-  char path[MAX_PATH];
-  if (!GetModuleFileNameA(NULL, path, MAX_PATH)) {
-    Fail(L"GetModuleFileNameA errorno=%d", GetLastError());
-    activateMgr->Release();
-    return false;
+  CStringA testFilePath;
+  if (sFirefoxPath.GetLength()) {
+    
+    int index = sFirefoxPath.ReverseFind('\\');
+    if (index == -1) {
+      Fail(L"Bad firefoxpath path");
+      return false;
+    }
+    testFilePath = sFirefoxPath.Mid(0, index);
+    testFilePath += "\\";
+    testFilePath += kMetroTestFile;
+  } else {
+    
+    char path[MAX_PATH];
+    if (!GetModuleFileNameA(NULL, path, MAX_PATH)) {
+      Fail(L"GetModuleFileNameA errorno=%d", GetLastError());
+      return false;
+    }
+    char* slash = strrchr(path, '\\');
+    if (!slash)
+      return false;
+    *slash = '\0'; 
+    testFilePath = path;
+    testFilePath += "\\";
+    testFilePath += kMetroTestFile;
   }
-  char* slash = strrchr(path, '\\');
-  if (!slash)
-    return false;
-  *slash = '\0'; 
-  CStringA testFilePath = path;
-  testFilePath += "\\tests.ini";
 
+  Log(L"Writing out tests.ini to: '%s'", CStringW(testFilePath));
   HANDLE hTestFile = CreateFileA(testFilePath, GENERIC_WRITE,
                                  0, NULL, CREATE_ALWAYS,
                                  FILE_ATTRIBUTE_NORMAL,
                                  NULL);
   if (hTestFile == INVALID_HANDLE_VALUE) {
     Fail(L"CreateFileA errorno=%d", GetLastError());
-    activateMgr->Release();
     return false;
   }
+
+  DeleteTestFileHelper dtf(testFilePath);
 
   CStringA asciiParams = sAppParams;
   if (!WriteFile(hTestFile, asciiParams, asciiParams.GetLength(), NULL, 0)) {
     CloseHandle(hTestFile);
     Fail(L"WriteFile errorno=%d", GetLastError());
-    activateMgr->Release();
     return false;
   }
   FlushFileBuffers(hTestFile);
@@ -212,7 +245,6 @@ static bool Launch()
   hr = activateMgr->ActivateApplication(appModelID, L"", AO_NOERRORUI, &processID);
   if (FAILED(hr)) {
     Fail(L"ActivateApplication result %X", hr);
-    activateMgr->Release();
     return false;
   }
 
@@ -221,7 +253,6 @@ static bool Launch()
   HANDLE child = OpenProcess(SYNCHRONIZE, FALSE, processID);
   if (!child) {
     Fail(L"Couldn't find child process. (%d)", GetLastError());
-    activateMgr->Release();
     return false;
   }
 
@@ -237,8 +268,6 @@ static bool Launch()
   }
 
   Log(L"Exiting.");
-  activateMgr->Release();
-  DeleteFileA(testFilePath);
   return true;
 }
 
@@ -247,11 +276,29 @@ int wmain(int argc, WCHAR* argv[])
   CoInitialize(NULL);
 
   int idx;
+  bool firefoxParam = false;
   for (idx = 1; idx < argc; idx++) {
+    CString param = argv[idx];
+    param.Trim();
+
+    
+    
+    if (param == "-firefoxpath") {
+      firefoxParam = true;
+      continue;
+    } else if (firefoxParam) {
+      firefoxParam = false;
+      sFirefoxPath = param;
+      continue;
+    }
+
     sAppParams.Append(argv[idx]);
     sAppParams.Append(L" ");
   }
   sAppParams.Trim();
+  if (sFirefoxPath.GetLength()) {
+    Log(L"firefoxpath: '%s'", sFirefoxPath);
+  }
   Log(L"args: '%s'", sAppParams);
   Launch();
 

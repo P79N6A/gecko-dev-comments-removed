@@ -735,6 +735,7 @@ class Mochitest(object):
       testURL = None
 
     if options.immersiveMode:
+      options.browserArgs.extend(('-firefoxpath', options.app))
       options.app = self.immersiveHelperPath
 
     
