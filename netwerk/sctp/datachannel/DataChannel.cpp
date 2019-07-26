@@ -715,7 +715,9 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
   } else {
     unsigned char *data = new unsigned char[length];
     memcpy(data, buffer, length);
-    res = -1;
+    
+    
+
     
     
     
