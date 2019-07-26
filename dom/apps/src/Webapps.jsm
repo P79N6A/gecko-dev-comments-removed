@@ -2244,8 +2244,7 @@ this.DOMApplicationRegistry = {
   queuedDownload: {},
   queuedPackageDownload: {},
 
-onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
-                                                  aDontNeedNetwork) {
+  onInstallSuccessAck: function(aManifestURL, aDontNeedNetwork) {
     
     if ((Services.io.offline) && !aDontNeedNetwork) {
       let onlineWrapper = {
@@ -2345,7 +2344,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
     let dir = this._getAppDir(aId).path;
     let manFile = OS.Path.join(dir, manifestName);
-    this._writeFile(manFile, JSON.stringify(aJsonManifest));
+    return this._writeFile(manFile, JSON.stringify(aJsonManifest));
   },
 
   
@@ -2418,7 +2417,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     });
   }),
 
-  confirmInstall: function(aData, aProfileDir, aInstallSuccessCallback) {
+  confirmInstall: Task.async(function*(aData, aProfileDir, aInstallSuccessCallback) {
     debug("confirmInstall");
 
     let origin = Services.io.newURI(aData.app.origin, null, null);
@@ -2443,7 +2442,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     let app = this._setupApp(aData, id);
 
     let jsonManifest = aData.isPackage ? app.updateManifest : app.manifest;
-    this._writeManifestFile(id, aData.isPackage, jsonManifest);
+    yield this._writeManifestFile(id, aData.isPackage, jsonManifest);
 
     debug("app.origin: " + app.origin);
     let manifest = new ManifestHelper(jsonManifest, app.origin);
@@ -2477,42 +2476,15 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       aData.app[prop] = appObject[prop];
     }
 
+    let dontNeedNetwork = false;
+
     if (manifest.appcache_path) {
       this.queuedDownload[app.manifestURL] = {
         manifest: manifest,
         app: appObject,
         profileDir: aProfileDir
       }
-    }
-
-    
-    
-    
-    this._saveApps().then(() => {
-      this.broadcastMessage("Webapps:AddApp", { id: id, app: appObject });
-      if (aData.isPackage && aData.autoInstall) {
-        
-        
-        
-        this.onInstallSuccessAck(app.manifestURL);
-      } else {
-        
-        
-        
-        this.broadcastMessage("Webapps:Install:Return:OK", aData);
-      }
-      if (!aData.isPackage) {
-        this.updateAppHandlers(null, app.manifest, app);
-        if (aInstallSuccessCallback) {
-          aInstallSuccessCallback(app.manifest);
-        }
-      }
-      Services.obs.notifyObservers(null, "webapps-installed",
-        JSON.stringify({ manifestURL: app.manifestURL }));
-    });
-
-    let dontNeedNetwork = false;
-    if (manifest.package_path) {
+    } else if (manifest.package_path) {
       
       
 #ifdef MOZ_ANDROID_SYNTHAPKS
@@ -2537,12 +2509,40 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       };
     }
 
+    
+    
+    
+    yield this._saveApps();
+
+    this.broadcastMessage("Webapps:AddApp", { id: id, app: appObject });
+    if (aData.isPackage && aData.autoInstall) {
+      
+      
+      
+      this.onInstallSuccessAck(app.manifestURL);
+    } else {
+      
+      
+      
+      this.broadcastMessage("Webapps:Install:Return:OK", aData);
+    }
+
+    if (!aData.isPackage) {
+      this.updateAppHandlers(null, app.manifest, app);
+      if (aInstallSuccessCallback) {
+        aInstallSuccessCallback(app.manifest);
+      }
+    }
+
+    Services.obs.notifyObservers(null, "webapps-installed",
+      JSON.stringify({ manifestURL: app.manifestURL }));
+
     if (aData.forceSuccessAck) {
       
       
       this.onInstallSuccessAck(app.manifestURL, dontNeedNetwork);
     }
-  },
+  }),
 
 
 
