@@ -114,7 +114,8 @@ public:
 
   virtual already_AddRefed<gfxASurface> CreateBuffer(ContentType aType,
                                                      const nsIntRect& aRect,
-                                                     uint32_t aFlags) MOZ_OVERRIDE;
+                                                     uint32_t aFlags,
+                                                     gfxASurface**) MOZ_OVERRIDE;
   virtual TemporaryRef<gfx::DrawTarget>
     CreateDTBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags);
 
@@ -185,7 +186,8 @@ public:
 
   virtual already_AddRefed<gfxASurface> CreateBuffer(ContentType aType,
                                                      const nsIntRect& aRect,
-                                                     uint32_t aFlags) MOZ_OVERRIDE;
+                                                     uint32_t aFlags,
+                                                     gfxASurface** aWhiteSurface) MOZ_OVERRIDE;
   virtual TemporaryRef<gfx::DrawTarget> CreateDTBuffer(ContentType aType,
                                                        const nsIntRect& aRect,
                                                        uint32_t aFlags) MOZ_OVERRIDE;
@@ -203,21 +205,14 @@ public:
   }
 
 protected:
-  
-
-
-  void SetBackingBuffer(gfxASurface* aBuffer,
-                        const nsIntRect& aRect,
-                        const nsIntPoint& aRotation);
-
   virtual nsIntRegion GetUpdatedRegion(const nsIntRegion& aRegionToDraw,
                                        const nsIntRegion& aVisibleRegion,
                                        bool aDidSelfCopy);
 
   
-  void BuildTextureClient(ContentType aType,
-                          const nsIntRect& aRect,
-                          uint32_t aFlags);
+  void BuildTextureClients(ContentType aType,
+                           const nsIntRect& aRect,
+                           uint32_t aFlags);
 
   
   
@@ -228,6 +223,7 @@ protected:
   virtual void LockFrontBuffer() {}
 
   RefPtr<TextureClient> mTextureClient;
+  RefPtr<TextureClient> mTextureClientOnWhite;
   
   
   nsTArray<RefPtr<TextureClient> > mOldTextures;
@@ -270,20 +266,11 @@ protected:
   virtual void LockFrontBuffer() MOZ_OVERRIDE;
 
 private:
-  
-  
-  ContentClientDoubleBuffered(gfxASurface* aBuffer,
-                              const nsIntRect& aRect,
-                              const nsIntPoint& aRotation)
-    : ContentClientRemote(nullptr)
-  {
-    SetBuffer(aBuffer, aRect, aRotation);
-  }
-
   void UpdateDestinationFrom(const RotatedBuffer& aSource,
                              const nsIntRegion& aUpdateRegion);
 
   RefPtr<TextureClient> mFrontClient;
+  RefPtr<TextureClient> mFrontClientOnWhite;
   nsIntRegion mFrontUpdatedRegion;
   nsIntRect mFrontBufferRect;
   nsIntPoint mFrontBufferRotation;

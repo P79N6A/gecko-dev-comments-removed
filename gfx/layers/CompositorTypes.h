@@ -35,6 +35,8 @@ const TextureFlags NewTile            = 0x10;
 
 const TextureFlags HostRelease        = 0x20;
 
+const TextureFlags ComponentAlpha     = 0x40;
+
 
 
 
