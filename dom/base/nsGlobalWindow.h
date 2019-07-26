@@ -123,6 +123,7 @@ namespace mozilla {
 namespace dom {
 class Navigator;
 class URL;
+class SpeechSynthesis;
 namespace indexedDB {
 class IDBFactory;
 } 
@@ -703,6 +704,10 @@ public:
 #undef ERROR_EVENT
 #undef EVENT
 
+#ifdef MOZ_WEBSPEECH
+  mozilla::dom::SpeechSynthesis* GetSpeechSynthesisInternal();
+#endif
+
 protected:
   
   nsTObserverArray<IdleObserverHolder> mIdleObservers;
@@ -1192,6 +1197,11 @@ protected:
   nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
 
   nsTArray<uint32_t> mEnabledSensors;
+
+#ifdef MOZ_WEBSPEECH
+  
+  nsRefPtr<mozilla::dom::SpeechSynthesis> mSpeechSynthesis;
+#endif
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
