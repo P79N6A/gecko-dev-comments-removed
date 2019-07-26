@@ -794,7 +794,6 @@ void
 js::UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs)
 {
     
-    AutoAssertNoGC nogc;
     for (TryNoteIter tni(cx, regs); !tni.done(); ++tni) {
         JSTryNote *tn = *tni;
         if (tn->kind == JSTRY_ITER) {

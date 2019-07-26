@@ -1777,7 +1777,6 @@ static inline void
 GenerateScopeChainGuard(MacroAssembler &masm, JSObject *scopeObj,
                         Register scopeObjReg, RawShape shape, Label *failures)
 {
-    AutoAssertNoGC nogc;
     if (scopeObj->isCall()) {
         
         
