@@ -52,7 +52,7 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& 
     float blitScaleY = float(aDstRect.height) / float(aSrcRect.height);
 
     
-    aDst->BeginTileIteration();
+    aDst->BeginBigImageIteration();
     do {
         
         nsIntRect dstSubRect;
@@ -73,7 +73,7 @@ GLBlitTextureImageHelper::BlitTextureImage(TextureImage *aSrc, const nsIntRect& 
         SetBlitFramebufferForDestTexture(aDst->GetTextureID());
         UseBlitProgram();
 
-        aSrc->BeginTileIteration();
+        aSrc->BeginBigImageIteration();
         
         do {
             

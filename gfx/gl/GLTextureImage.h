@@ -123,7 +123,7 @@ public:
 
 
 
-    virtual void BeginTileIteration() {
+    virtual void BeginBigImageIteration() {
     }
 
     virtual bool NextTile() {
@@ -133,12 +133,12 @@ public:
     
     
     
-    typedef bool (* TileIterationCallback)(TextureImage* aImage,
+    typedef bool (* BigImageIterationCallback)(TextureImage* aImage,
                                            int aTileNumber,
                                            void* aCallbackData);
 
     
-    virtual void SetIterationCallback(TileIterationCallback aCallback,
+    virtual void SetIterationCallback(BigImageIterationCallback aCallback,
                                       void* aCallbackData) {
     }
 
@@ -335,9 +335,9 @@ public:
     virtual void EndUpdate();
     virtual void Resize(const gfx::IntSize& aSize);
     virtual uint32_t GetTileCount();
-    virtual void BeginTileIteration();
+    virtual void BeginBigImageIteration();
     virtual bool NextTile();
-    virtual void SetIterationCallback(TileIterationCallback aCallback,
+    virtual void SetIterationCallback(BigImageIterationCallback aCallback,
                                       void* aCallbackData);
     virtual gfx::IntRect GetTileRect();
     virtual GLuint GetTextureID() {
@@ -351,7 +351,7 @@ protected:
     virtual gfx::IntRect GetSrcTileRect();
 
     unsigned int mCurrentImage;
-    TileIterationCallback mIterationCallback;
+    BigImageIterationCallback mIterationCallback;
     void* mIterationCallbackData;
     nsTArray< nsRefPtr<TextureImage> > mImages;
     bool mInUpdate;

@@ -192,7 +192,7 @@ protected:
 
 class TextureImageTextureSourceOGL : public DataTextureSource
                                    , public TextureSourceOGL
-                                   , public TileIterator
+                                   , public BigImageIterator
 {
 public:
   TextureImageTextureSourceOGL(gl::GLContext* aGL,
@@ -244,15 +244,15 @@ public:
 
   
 
-  virtual TileIterator* AsTileIterator() MOZ_OVERRIDE { return this; }
+  virtual BigImageIterator* AsBigImageIterator() MOZ_OVERRIDE { return this; }
 
-  virtual void BeginTileIteration() MOZ_OVERRIDE
+  virtual void BeginBigImageIteration() MOZ_OVERRIDE
   {
-    mTexImage->BeginTileIteration();
+    mTexImage->BeginBigImageIteration();
     mIterating = true;
   }
 
-  virtual void EndTileIteration() MOZ_OVERRIDE
+  virtual void EndBigImageIteration() MOZ_OVERRIDE
   {
     mIterating = false;
   }

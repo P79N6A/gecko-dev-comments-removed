@@ -109,9 +109,9 @@ ImageHost::Composite(EffectChain& aEffectChain,
   
   
   
-  TileIterator* it = source->AsTileIterator();
+  BigImageIterator* it = source->AsBigImageIterator();
   if (it) {
-    it->BeginTileIteration();
+    it->BeginBigImageIteration();
     do {
       nsIntRect tileRect = it->GetTileRect();
       gfx::Rect rect(tileRect.x, tileRect.y, tileRect.width, tileRect.height);
@@ -129,7 +129,7 @@ ImageHost::Composite(EffectChain& aEffectChain,
       GetCompositor()->DrawDiagnostics(DIAGNOSTIC_IMAGE|DIAGNOSTIC_BIGIMAGE,
                                        rect, aClipRect, aTransform, mFlashCounter);
     } while (it->NextTile());
-    it->EndTileIteration();
+    it->EndBigImageIteration();
     
     GetCompositor()->DrawDiagnostics(DIAGNOSTIC_IMAGE,
                                      gfxPictureRect, aClipRect,

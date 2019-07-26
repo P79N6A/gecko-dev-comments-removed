@@ -60,11 +60,11 @@ class TextureParent;
 
 
 
-class TileIterator
+class BigImageIterator
 {
 public:
-  virtual void BeginTileIteration() = 0;
-  virtual void EndTileIteration() {};
+  virtual void BeginBigImageIteration() = 0;
+  virtual void EndBigImageIteration() {};
   virtual nsIntRect GetTileRect() = 0;
   virtual size_t GetTileCount() = 0;
   virtual bool NextTile() = 0;
@@ -123,7 +123,7 @@ public:
 
 
 
-  virtual TileIterator* AsTileIterator() { return nullptr; }
+  virtual BigImageIterator* AsBigImageIterator() { return nullptr; }
 
   virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
 
