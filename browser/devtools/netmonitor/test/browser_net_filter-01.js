@@ -24,6 +24,7 @@ function test() {
       is(NetMonitorView.detailsPaneHidden, false,
         "The details pane should not be hidden after toggle button was pressed.");
 
+      
       testButtons("all");
       testContents([1, 1, 1, 1, 1, 1, 1, 1])
         .then(() => {
@@ -32,41 +33,84 @@ function test() {
           return testContents([1, 0, 0, 0, 0, 0, 0, 0]);
         })
         .then(() => {
+          
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-css-button"));
           testButtons("css");
           return testContents([0, 1, 0, 0, 0, 0, 0, 0]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-js-button"));
           testButtons("js");
           return testContents([0, 0, 1, 0, 0, 0, 0, 0]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-xhr-button"));
           testButtons("xhr");
           return testContents([1, 1, 1, 1, 1, 1, 1, 1]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-fonts-button"));
           testButtons("fonts");
           return testContents([0, 0, 0, 1, 0, 0, 0, 0]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-images-button"));
           testButtons("images");
           return testContents([0, 0, 0, 0, 1, 0, 0, 0]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-media-button"));
           testButtons("media");
           return testContents([0, 0, 0, 0, 0, 1, 1, 0]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-flash-button"));
           testButtons("flash");
           return testContents([0, 0, 0, 0, 0, 0, 0, 1]);
         })
         .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
+          testButtons("all");
+          return testContents([1, 1, 1, 1, 1, 1, 1, 1]);
+        })
+        
+        .then(() => {
+          
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-html-button"));
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-css-button"));
+          testButtonsCustom([0, 1, 1, 0, 0, 0, 0, 0, 0, 0]);
+          return testContents([1, 1, 0, 0, 0, 0, 0, 0]);
+        })
+        .then(() => {
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-flash-button"));
+          testButtonsCustom([0, 1, 1, 0, 0, 0, 0, 0, 1, 0]);
+          return testContents([1, 1, 0, 0, 0, 0, 0, 1]);
+        })
+        .then(() => {
+          
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-css-button"));
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-flash-button"));
+          testButtons("html");
+          return testContents([1, 0, 0, 0, 0, 0, 0, 0]);
+        })
+        .then(() => {
+          
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-html-button"));
+          testButtons("all");
+          return testContents([1, 1, 1, 1, 1, 1, 1, 1]);
+        })
+        .then(() => {
+          
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-html-button"));
+          EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-css-button"));
+          testButtonsCustom([0, 1, 1, 0, 0, 0, 0, 0, 0]);
           EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-all-button"));
           testButtons("all");
           return testContents([1, 1, 1, 1, 1, 1, 1, 1]);
@@ -77,18 +121,44 @@ function test() {
         .then(finish);
     });
 
+    
+
+
+
+
+
+
     function testButtons(aFilterType) {
       let doc = aMonitor.panelWin.document;
       let target = doc.querySelector("#requests-menu-filter-" + aFilterType + "-button");
       let buttons = doc.querySelectorAll(".requests-menu-footer-button");
 
-      for (let button of buttons) {
-        if (button != target) {
-          is(button.hasAttribute("checked"), false,
-            "The " + button.id + " button should not have a 'checked' attribute.");
-        } else {
+      
+      let checkStatus = [(button == target) ? 1 : 0 for (button of buttons)]
+
+      testButtonsCustom(checkStatus);
+    }
+
+    
+
+
+
+
+
+
+
+
+    function testButtonsCustom(aIsChecked) {
+      let doc = aMonitor.panelWin.document;
+      let buttons = doc.querySelectorAll(".requests-menu-footer-button");
+      for (let i = 0; i < aIsChecked.length; i++) {
+        let button = buttons[i];
+        if (aIsChecked[i]) {
           is(button.hasAttribute("checked"), true,
             "The " + button.id + " button should have a 'checked' attribute.");
+        } else {
+          is(button.hasAttribute("checked"), false,
+            "The " + button.id + " button should not have a 'checked' attribute.");
         }
       }
     }

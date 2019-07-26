@@ -560,53 +560,105 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   filterOn: function(aType = "all") {
-    let target = $("#requests-menu-filter-" + aType + "-button");
-    let buttons = document.querySelectorAll(".requests-menu-footer-button");
-
-    for (let button of buttons) {
-      if (button != target) {
-        button.removeAttribute("checked");
-      } else {
-        button.setAttribute("checked", "true");
+    if (aType === "all") {
+      
+      
+      
+      
+      if (this._activeFilters.indexOf("all") !== -1) {
+        return;
       }
+
+      
+      
+      
+      
+      this._activeFilters.slice().forEach(this._disableFilter, this);
+    }
+    else if (this._activeFilters.indexOf(aType) === -1) {
+      this._enableFilter(aType);
+    }
+    else {
+      this._disableFilter(aType);
     }
 
-    
-    switch (aType) {
-      case "all":
-        this.filterContents(() => true);
-        break;
-      case "html":
-        this.filterContents(e => this.isHtml(e));
-        break;
-      case "css":
-        this.filterContents(e => this.isCss(e));
-        break;
-      case "js":
-        this.filterContents(e => this.isJs(e));
-        break;
-      case "xhr":
-        this.filterContents(e => this.isXHR(e));
-        break;
-      case "fonts":
-        this.filterContents(e => this.isFont(e));
-        break;
-      case "images":
-        this.filterContents(e => this.isImage(e));
-        break;
-      case "media":
-        this.filterContents(e => this.isMedia(e));
-        break;
-      case "flash":
-        this.filterContents(e => this.isFlash(e));
-        break;
-      case "other":
-        this.filterContents(e => this.isOther(e));
-        break;
-    }
-
+    this.filterContents(this._filterPredicate);
     this.refreshSummary();
     this.refreshZebra();
+  },
+
+  
+
+
+
+
+
+
+
+  _disableFilter: function (aType) {
+    
+    this._activeFilters.splice(this._activeFilters.indexOf(aType), 1);
+
+    
+    let target = $("#requests-menu-filter-" + aType + "-button");
+    target.removeAttribute("checked");
+
+    
+    if (this._activeFilters.length === 0)
+      this._enableFilter("all");
+  },
+
+  
+
+
+
+
+
+
+
+  _enableFilter: function (aType) {
+    
+    this._activeFilters.push(aType);
+
+    
+    let target = $("#requests-menu-filter-" + aType + "-button");
+    target.setAttribute("checked", true);
+
+    
+    if (aType !== "all" && this._activeFilters.indexOf("all") !== -1) {
+      this._disableFilter("all");
+    }
+  },
+
+  
+
+
+
+  get _filterPredicate() {
+    let filterPredicates = {
+      "all": () => true,
+      "html": this.isHtml,
+      "css": this.isCss,
+      "js": this.isJs,
+      "xhr": this.isXHR,
+      "fonts": this.isFont,
+      "images": this.isImage,
+      "media": this.isMedia,
+      "flash": this.isFlash,
+      "other": this.isOther
+    };
+
+     if (this._activeFilters.length === 1) {
+       
+       return filterPredicates[this._activeFilters[0]].bind(this);
+     } else {
+       
+       return requestItem => {
+         return this._activeFilters.some(filterName => {
+           return filterPredicates[filterName].call(this, requestItem);
+         });
+       };
+     }
   },
 
   
@@ -1526,7 +1578,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   _lastRequestEndedMillis: -1,
   _updateQueue: [],
   _updateTimeout: null,
-  _resizeTimeout: null
+  _resizeTimeout: null,
+  _activeFilters: ["all"]
 });
 
 
