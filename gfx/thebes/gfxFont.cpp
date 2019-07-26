@@ -1360,7 +1360,7 @@ gfxFontFamily::AddSizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
 
 
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(FontCacheMallocSizeOf)
+MOZ_DEFINE_MALLOC_SIZE_OF(FontCacheMallocSizeOf)
 
 NS_IMETHODIMP
 gfxFontCache::MemoryReporter::CollectReports
