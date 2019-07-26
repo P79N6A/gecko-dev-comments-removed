@@ -895,7 +895,14 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert,
                                                stapledOCSPResponse,
                                                infoObject);
     if (rv != SECSuccess) {
-      return rv;
+      
+      
+      
+      
+      PRErrorCode ocspErrorCode = PR_GetError();
+      if (ocspErrorCode != SEC_ERROR_OCSP_OLD_RESPONSE) {
+        return rv;
+      }
     }
   }
 

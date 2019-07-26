@@ -8,10 +8,14 @@
 
 
 
+let gExpectOCSPRequest;
+
 function add_ocsp_test(aHost, aExpectedResult, aStaplingEnabled) {
   add_connection_test(aHost, aExpectedResult,
     function() {
+      gExpectOCSPRequest = !aStaplingEnabled;
       clearOCSPCache();
+      clearSessionCache();
       Services.prefs.setBoolPref("security.ssl.enable_ocsp_stapling",
                                  aStaplingEnabled);
     });
@@ -19,6 +23,13 @@ function add_ocsp_test(aHost, aExpectedResult, aStaplingEnabled) {
 
 function run_test() {
   do_get_profile();
+
+  let fakeOCSPResponder = new HttpServer();
+  fakeOCSPResponder.registerPrefixHandler("/", function(request, response) {
+    response.setStatusLine(request.httpVersion, 500, "Internal Server Error");
+    do_check_true(gExpectOCSPRequest);
+  });
+  fakeOCSPResponder.start(8080);
 
   add_tls_server_setup("OCSPStaplingServer");
 
@@ -80,13 +91,22 @@ function run_test() {
   add_ocsp_test("ocsp-stapling-good-other.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT), true);
   
-  add_ocsp_test("ocsp-stapling-none.example.com", Cr.NS_OK, true);
+  
+  
+  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
+    function() {
+      gExpectOCSPRequest = true;
+      clearOCSPCache();
+      clearSessionCache();
+      Services.prefs.setBoolPref("security.ssl.enable_ocsp_stapling", true);
+    }
+  );
   add_ocsp_test("ocsp-stapling-empty.example.com",
                 getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
-  add_ocsp_test("ocsp-stapling-expired.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE), true);
-  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE), true);
+  
+  
+  
 
+  add_test(function() { fakeOCSPResponder.stop(run_next_test); });
   run_next_test();
 }
