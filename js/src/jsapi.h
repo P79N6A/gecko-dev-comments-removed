@@ -808,7 +808,6 @@ typedef JS::MutableHandle<JSFunction*> JSMutableHandleFunction;
 typedef JS::MutableHandle<JSScript*>   JSMutableHandleScript;
 typedef JS::MutableHandle<JSString*>   JSMutableHandleString;
 typedef JS::MutableHandle<JS::Value>   JSMutableHandleValue;
-typedef JS::MutableHandle<jsid>        JSMutableHandleId;
 
 
 
@@ -882,7 +881,7 @@ typedef JSBool
 
 typedef JSBool
 (* JSNewEnumerateOp)(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
-                     JSMutableHandleValue statep, JSMutableHandleId idp);
+                     JSMutableHandleValue statep, JS::MutableHandleId idp);
 
 
 
