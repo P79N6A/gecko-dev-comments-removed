@@ -1155,5 +1155,14 @@ AssertValidValue(JSContext *cx, Value *v)
 }
 #endif
 
+
+JSObject *
+TypedObjectProto(JSObject *obj)
+{
+    JS_ASSERT(obj->is<TypedObject>());
+    TypedObject &typedObj = obj->as<TypedObject>();
+    return &typedObj.typedProto();
+}
+
 } 
 } 
