@@ -372,11 +372,6 @@ InplaceEditor.prototype = {
     this.input.setSelectionRange(newValue.start, newValue.end);
     this._doValidation();
 
-    
-    if (this.change) {
-      this.change(this.input.value.trim());
-    }
-
     return true;
   },
 
