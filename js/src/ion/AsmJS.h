@@ -26,11 +26,6 @@ namespace ion { class MIRGenerator; class LIRGraph; }
 
 
 
-extern JSBool
-IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp);
-
-
-
 
 
 
@@ -50,6 +45,11 @@ CompileAsmJS(JSContext *cx, frontend::TokenStream &ts, frontend::ParseNode *fn,
 
 extern JSBool
 LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp);
+
+
+
+extern JSBool
+CallAsmJS(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 
@@ -156,6 +156,23 @@ IsAsmJSModuleNative(js::Native native)
     return false;
 }
 #endif
+
+
+
+
+
+extern JSBool
+IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+extern JSBool
+IsAsmJSModule(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+extern JSBool
+IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp);
 
 } 
 
