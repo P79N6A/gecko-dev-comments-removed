@@ -1164,21 +1164,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   
   if (IsHTML()) {
-    if (aParent && aParent->NodeOrAncestorHasDirAuto()) {
-      SetAncestorHasDirAuto();
-      
-      
-      
-      if (GetFirstChild()) {
-        WalkAncestorsResetAutoDirection(this);
-      }
-    }
-
-    if (!HasDirAuto()) {
-      
-      
-      RecomputeDirectionality(this, false);
-    }
+    SetDirOnBind(this, aParent);
   }
 
   

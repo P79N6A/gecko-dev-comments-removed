@@ -626,6 +626,11 @@ SetDirectionalityOnDescendants(Element* aElement, Directionality aDir,
   }
 }
 
+
+
+
+
+
 void
 WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify)
 {
@@ -893,6 +898,31 @@ OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
     SetDirectionalityOnDescendants(aElement,
                                    RecomputeDirectionality(aElement, aNotify),
                                    aNotify);
+  }
+}
+
+void
+SetDirOnBind(mozilla::dom::Element* aElement, nsIContent* aParent)
+{
+  
+  
+  if (!DoesNotParticipateInAutoDirection(aElement) &&
+      !aElement->IsHTML(nsGkAtoms::bdi) &&
+      aParent && aParent->NodeOrAncestorHasDirAuto()) {
+    aElement->SetAncestorHasDirAuto();
+
+    
+    
+    
+    if (aElement->GetFirstChild()) {
+      WalkAncestorsResetAutoDirection(aElement, true);
+    }
+  }
+
+  if (!aElement->HasDirAuto()) {
+    
+    
+    RecomputeDirectionality(aElement, false);
   }
 }
 

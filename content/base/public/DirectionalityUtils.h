@@ -82,14 +82,6 @@ void WalkDescendantsClearAncestorDirAuto(mozilla::dom::Element* aElement);
 
 
 
-
-void WalkAncestorsResetAutoDirection(mozilla::dom::Element* aElement,
-                                     bool aNotify = true);
-
-
-
-
-
 void SetDirectionFromChangedTextNode(nsIContent* aTextNode, uint32_t aOffset,
                                      const PRUnichar* aBuffer, uint32_t aLength,
                                      bool aNotify);
@@ -126,6 +118,13 @@ void OnSetDirAttr(mozilla::dom::Element* aElement,
                   const nsAttrValue* aNewValue,
                   bool hadValidDir,
                   bool aNotify);
+
+
+
+
+
+
+void SetDirOnBind(mozilla::dom::Element* aElement, nsIContent* aParent);
 
 } 
 
