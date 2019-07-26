@@ -248,7 +248,7 @@ public class BookmarksPage extends HomeFragment {
             }
 
             MenuInflater inflater = new MenuInflater(view.getContext());
-            inflater.inflate(R.menu.awesomebar_contextmenu, menu);
+            inflater.inflate(R.menu.home_contextmenu, menu);
 
             
             boolean isPrivate = false;
