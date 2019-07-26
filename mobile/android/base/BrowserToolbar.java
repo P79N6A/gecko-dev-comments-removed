@@ -553,6 +553,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     }
 
     public void setProgressVisibility(boolean visible) {
+        
+        
+        
         if (visible) {
             mFavicon.setImageDrawable(mProgressSpinner);
             mProgressSpinner.start();
