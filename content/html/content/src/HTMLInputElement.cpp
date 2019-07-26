@@ -3236,6 +3236,14 @@ HTMLInputElement::StartRangeThumbDrag(WidgetGUIEvent* aEvent)
   nsIPresShell::SetCapturingContent(this, CAPTURE_IGNOREALLOWED |
                                           CAPTURE_RETARGETTOELEMENT);
   nsRangeFrame* rangeFrame = do_QueryFrame(GetPrimaryFrame());
+
+  
+  
+  
+  
+  
+  GetValueInternal(mFocusedValue);
+
   SetValueOfRangeForUserEvent(rangeFrame->GetValueAtEventPoint(aEvent));
 }
 
@@ -3383,7 +3391,8 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
       aVisitor.mEvent->message == NS_BLUR_CONTENT) {
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT &&
-        MayFireChangeOnBlur()) {
+        MayFireChangeOnBlur() &&
+        !mIsDraggingRange) { 
       GetValueInternal(mFocusedValue);
     }
 
