@@ -2,7 +2,7 @@
 
 
 
-Components.utils.import("resource://services-sync/service.js");
+Components.utils.import("resource://services-sync/main.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 const PAGE_NO_ACCOUNT = 0;
@@ -66,7 +66,7 @@ let gSyncPane = {
       this.needsUpdate();
     } else {
       this.page = PAGE_HAS_ACCOUNT;
-      document.getElementById("accountName").value = Weave.Identity.account;
+      document.getElementById("accountName").value = Weave.Service.identity.account;
       document.getElementById("syncComputerName").value = Weave.Service.clientsEngine.localName;
       document.getElementById("tosPP").hidden = this._usingCustomServer;
     }
