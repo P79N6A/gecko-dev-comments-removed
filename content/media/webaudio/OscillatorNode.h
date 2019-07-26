@@ -48,34 +48,6 @@ public:
   }
   void SetType(OscillatorType aType, ErrorResult& aRv)
   {
-    if (!Preferences::GetBool("media.webaudio.legacy.OscillatorNode")) {
-      
-      
-      switch (aType) {
-      case OscillatorType::_0:
-      case OscillatorType::_1:
-      case OscillatorType::_2:
-      case OscillatorType::_3:
-      case OscillatorType::_4:
-        
-        return;
-      default:
-        
-        break;
-      }
-    }
-
-    
-    switch (aType) {
-    case OscillatorType::_0: aType = OscillatorType::Sine; break;
-    case OscillatorType::_1: aType = OscillatorType::Square; break;
-    case OscillatorType::_2: aType = OscillatorType::Sawtooth; break;
-    case OscillatorType::_3: aType = OscillatorType::Triangle; break;
-    case OscillatorType::_4: aType = OscillatorType::Custom; break;
-    default:
-      
-      break;
-    }
     if (aType == OscillatorType::Custom) {
       
       
@@ -96,15 +68,7 @@ public:
   }
 
   void Start(double aWhen, ErrorResult& aRv);
-  void NoteOn(double aWhen, ErrorResult& aRv)
-  {
-    Start(aWhen, aRv);
-  }
   void Stop(double aWhen, ErrorResult& aRv);
-  void NoteOff(double aWhen, ErrorResult& aRv)
-  {
-    Stop(aWhen, aRv);
-  }
   void SetPeriodicWave(PeriodicWave& aPeriodicWave)
   {
     mPeriodicWave = &aPeriodicWave;
