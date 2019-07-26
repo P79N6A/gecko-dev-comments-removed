@@ -53,6 +53,9 @@ dump("### SelectionPrototype.js loaded\n");
 var SelectionPrototype = function() { }
 
 SelectionPrototype.prototype = {
+  _CARET_MODE: 1, 
+  _SELECTION_MODE: 2, 
+
   _debugEvents: false,
   _cache: {},
   _targetElement: null,
@@ -167,6 +170,28 @@ SelectionPrototype.prototype = {
   _onSelectionDebug: function _onSelectionDebug(aMsg) {
     this._debugOptions = aMsg;
     this._debugEvents = aMsg.dumpEvents;
+  },
+
+  
+
+
+
+  notifySelectionChanged: function notifySelectionChanged(aDocument, aSelection, aReason) {
+    
+    if ((typeof SelectionHelperUI != "undefined") && SelectionHelperUI.hasActiveDrag) {
+      return;
+    }
+
+    
+    if (!(aReason & Ci.nsISelectionListener.MOUSEUP_REASON) &&
+        (aReason != Ci.nsISelectionListener.NO_REASON)) {
+      return;
+    }
+
+    
+    if (this._mode == this._SELECTION_MODE && !aSelection.isCollapsed) {
+      this._updateSelectionUI("update", true, true);
+    }
   },
 
   
