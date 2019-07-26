@@ -3361,6 +3361,8 @@ types::AddClearDefiniteFunctionUsesInScript(JSContext *cx, TypeObject *type,
     
     
     
+    
+    
 
     TypeObjectKey *calleeKey = Type::ObjectType(calleeScript->functionNonDelazifying()).objectKey();
 
