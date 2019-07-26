@@ -78,6 +78,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "_privateBrowsingSvc",
                                    "@mozilla.org/privatebrowsing;1",
                                    "nsIPrivateBrowsingService");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+
 
 
 
@@ -142,11 +145,11 @@ var tasksCfg = [
     iconIndex:        4, 
     get open() {
       
-      return !_privateBrowsingSvc.autoStarted;
+      return !PrivateBrowsingUtils.permanentPrivateBrowsing;
     },
     get close() {
       
-      return !_privateBrowsingSvc.autoStarted;
+      return !PrivateBrowsingUtils.permanentPrivateBrowsing;
     },
   },
 ];
