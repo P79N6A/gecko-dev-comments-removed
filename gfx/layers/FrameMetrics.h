@@ -60,9 +60,10 @@ public:
     , mMayHaveTouchListeners(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
-    , mUpdateScrollOffset(false)
     , mDisableScrollingX(false)
     , mDisableScrollingY(false)
+    , mUpdateScrollOffset(false)
+    , mScrollGeneration(0)
   {}
 
   
@@ -298,10 +299,6 @@ public:
   
   bool mHasScrollgrab;
 
-  
-  
-  bool mUpdateScrollOffset;
-
 public:
   bool GetDisableScrollingX() const
   {
@@ -323,6 +320,22 @@ public:
     mDisableScrollingY = aDisableScrollingY;
   }
 
+  void SetScrollOffsetUpdated(uint32_t aScrollGeneration)
+  {
+    mUpdateScrollOffset = true;
+    mScrollGeneration = aScrollGeneration;
+  }
+
+  bool GetScrollOffsetUpdated() const
+  {
+    return mUpdateScrollOffset;
+  }
+
+  uint32_t GetScrollGeneration() const
+  {
+    return mScrollGeneration;
+  }
+
 private:
   
   
@@ -331,6 +344,12 @@ private:
   
   bool mDisableScrollingX;
   bool mDisableScrollingY;
+
+  
+  
+  bool mUpdateScrollOffset;
+  
+  uint32_t mScrollGeneration;
 };
 
 

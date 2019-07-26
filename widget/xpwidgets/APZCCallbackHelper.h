@@ -62,6 +62,11 @@ public:
     static bool GetScrollIdentifiers(const nsIContent* aContent,
                                      uint32_t* aPresShellIdOut,
                                      FrameMetrics::ViewID* aViewIdOut);
+
+    
+
+    static void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
+                                        const uint32_t& aScrollGeneration);
 };
 
 }

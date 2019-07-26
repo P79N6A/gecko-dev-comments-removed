@@ -302,7 +302,12 @@ public:
   void HandleScrollbarStyleSwitching();
 
   nsIAtom* OriginOfLastScroll() const { return mOriginOfLastScroll; }
-  void ResetOriginOfLastScroll() { mOriginOfLastScroll = nullptr; }
+  uint32_t CurrentScrollGeneration() const { return mScrollGeneration; }
+  void ResetOriginIfScrollAtGeneration(uint32_t aGeneration) {
+    if (aGeneration == mScrollGeneration) {
+      mOriginOfLastScroll = nullptr;
+    }
+  }
 
   
   nsCOMPtr<nsIContent> mHScrollbarContent;
@@ -323,6 +328,7 @@ public:
   nsRefPtr<ScrollbarActivity> mScrollbarActivity;
   nsTArray<nsIScrollPositionListener*> mListeners;
   nsIAtom* mOriginOfLastScroll;
+  uint32_t mScrollGeneration;
   nsRect mScrollPort;
   
   
@@ -649,8 +655,11 @@ public:
   virtual nsIAtom* OriginOfLastScroll() MOZ_OVERRIDE {
     return mHelper.OriginOfLastScroll();
   }
-  virtual void ResetOriginOfLastScroll() MOZ_OVERRIDE {
-    mHelper.ResetOriginOfLastScroll();
+  virtual uint32_t CurrentScrollGeneration() MOZ_OVERRIDE {
+    return mHelper.CurrentScrollGeneration();
+  }
+  virtual void ResetOriginIfScrollAtGeneration(uint32_t aGeneration) MOZ_OVERRIDE {
+    mHelper.ResetOriginIfScrollAtGeneration(aGeneration);
   }
 
   
@@ -950,8 +959,11 @@ public:
   virtual nsIAtom* OriginOfLastScroll() MOZ_OVERRIDE {
     return mHelper.OriginOfLastScroll();
   }
-  virtual void ResetOriginOfLastScroll() MOZ_OVERRIDE {
-    mHelper.ResetOriginOfLastScroll();
+  virtual uint32_t CurrentScrollGeneration() MOZ_OVERRIDE {
+    return mHelper.CurrentScrollGeneration();
+  }
+  virtual void ResetOriginIfScrollAtGeneration(uint32_t aGeneration) MOZ_OVERRIDE {
+    mHelper.ResetOriginIfScrollAtGeneration(aGeneration);
   }
 
   

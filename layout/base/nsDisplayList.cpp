@@ -642,8 +642,9 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     
     
     nsIAtom* originOfLastScroll = scrollableFrame->OriginOfLastScroll();
-    metrics.mUpdateScrollOffset = (originOfLastScroll && originOfLastScroll != nsGkAtoms::apz);
-    scrollableFrame->ResetOriginOfLastScroll();
+    if (originOfLastScroll && originOfLastScroll != nsGkAtoms::apz) {
+      metrics.SetScrollOffsetUpdated(scrollableFrame->CurrentScrollGeneration());
+    }
   }
   else {
     nsRect contentBounds = aForFrame->GetRect();

@@ -33,6 +33,14 @@ public:
 
 
 
+  virtual void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
+                                       const uint32_t& aScrollGeneration) = 0;
+
+  
+
+
+
+
 
   virtual void HandleDoubleTap(const CSSIntPoint& aPoint, int32_t aModifiers) = 0;
 

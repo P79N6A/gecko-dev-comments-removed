@@ -283,7 +283,14 @@ public:
   
 
 
-  virtual void ResetOriginOfLastScroll() = 0;
+
+  virtual uint32_t CurrentScrollGeneration() = 0;
+  
+
+
+
+
+  virtual void ResetOriginIfScrollAtGeneration(uint32_t aGeneration) = 0;
 };
 
 #endif

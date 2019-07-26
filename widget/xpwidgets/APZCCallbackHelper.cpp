@@ -97,12 +97,6 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint)
   
   
   
-  
-  
-  
-  
-  
-  
   if (!aFrame->IsProcessingAsyncScroll() &&
      (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz)) {
     aFrame->ScrollToCSSPixelsApproximate(aPoint, nsGkAtoms::apz);
@@ -240,6 +234,45 @@ APZCCallbackHelper::GetScrollIdentifiers(const nsIContent* aContent,
     }
     nsCOMPtr<nsIDOMWindowUtils> utils = GetDOMWindowUtils(aContent);
     return utils && (utils->GetPresShellId(aPresShellIdOut) == NS_OK);
+}
+
+class AcknowledgeScrollUpdateEvent : public nsRunnable
+{
+    typedef mozilla::layers::FrameMetrics::ViewID ViewID;
+
+public:
+    AcknowledgeScrollUpdateEvent(const ViewID& aScrollId, const uint32_t& aScrollGeneration)
+        : mScrollId(aScrollId)
+        , mScrollGeneration(aScrollGeneration)
+    {
+    }
+
+    NS_IMETHOD Run() {
+        MOZ_ASSERT(NS_IsMainThread());
+
+        nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(mScrollId);
+        if (sf) {
+            sf->ResetOriginIfScrollAtGeneration(mScrollGeneration);
+        }
+
+        return NS_OK;
+    }
+
+protected:
+    ViewID mScrollId;
+    uint32_t mScrollGeneration;
+};
+
+void
+APZCCallbackHelper::AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
+                                            const uint32_t& aScrollGeneration)
+{
+    nsCOMPtr<nsIRunnable> r1 = new AcknowledgeScrollUpdateEvent(aScrollId, aScrollGeneration);
+    if (!NS_IsMainThread()) {
+        NS_DispatchToMainThread(r1);
+    } else {
+        r1->Run();
+    }
 }
 
 }
