@@ -212,13 +212,36 @@ TopSitesView.prototype = {
           
         }
         this._lastSelectedSites = (this._lastSelectedSites || []).concat(sites);
+        
+        aEvent.preventDefault();
         nextContextActions.add('restore');
         TopSites.hideSites(sites);
         break;
       case "restore":
         
         if (this._lastSelectedSites) {
+          let selectedUrls = this._lastSelectedSites.map((site) => site.url);
+          
+          tileGroup.addEventListener("arranged", function _onArranged(aEvent){
+            for (let url of selectedUrls) {
+              let tileNode = tileGroup.querySelector("richgriditem[value='"+url+"']");
+              if (tileNode) {
+                tileNode.setAttribute("selected", true);
+              }
+            }
+            tileGroup.removeEventListener("arranged", _onArranged, false);
+            
+            
+            
+            let event = tileGroup.ownerDocument.createEvent("Events");
+            event.initEvent("selectionchange", true, true);
+            tileGroup.dispatchEvent(event);
+          }, false);
+
           TopSites.restoreSites(this._lastSelectedSites);
+          
+          
+          aEvent.preventDefault();
         }
         break;
       case "pin":
@@ -241,8 +264,6 @@ TopSitesView.prototype = {
     }
     if (nextContextActions.size) {
       
-      aEvent.preventDefault();
-      
       setTimeout(function(){
         
         let event = document.createEvent("Events");
@@ -254,6 +275,7 @@ TopSitesView.prototype = {
       },0);
     }
   },
+
   handleEvent: function(aEvent) {
     switch (aEvent.type){
       case "MozAppbarDismissing":
@@ -279,10 +301,7 @@ TopSitesView.prototype = {
         
       this.isUpdating = true;
       
-      let item;
-      while ((item = grid.firstChild)){
-        grid.removeChild(item);
-      }
+      grid.clearAll(true);
       this.populateGrid();
     }
   },
