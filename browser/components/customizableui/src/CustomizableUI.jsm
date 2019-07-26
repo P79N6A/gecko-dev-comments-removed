@@ -1641,6 +1641,24 @@ let CustomizableUIInternal = {
       }
 
       let currentPlacements = gPlacements.get(areaId);
+      
+      
+      
+      
+      
+      let buildAreaNodes = gBuildAreas.get(areaId);
+      if (buildAreaNodes && buildAreaNodes.size) {
+        let container = [...buildAreaNodes][0];
+        
+        currentPlacements = [...currentPlacements];
+        
+        let itemIndex = currentPlacements.length;
+        while (itemIndex--) {
+          if (!container.querySelector(idToSelector(currentPlacements[itemIndex]))) {
+            currentPlacements.splice(itemIndex, 1);
+          }
+        }
+      }
       LOG("Checking default state for " + areaId + ":\n" + currentPlacements.join("\n") +
           " vs. " + defaultPlacements.join("\n"));
 
