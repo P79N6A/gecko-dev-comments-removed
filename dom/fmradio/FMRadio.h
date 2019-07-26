@@ -34,7 +34,6 @@ public:
   FMRadio();
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
 
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
 
@@ -84,14 +83,19 @@ public:
   IMPL_EVENT_HANDLER(frequencychange);
 
   
+  NS_IMETHOD CanPlayChanged(int32_t aCanPlay);
+
+  
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
 private:
   ~FMRadio();
 
   void SetCanPlay(bool aCanPlay);
+  void EnableAudioChannelAgent();
 
   hal::SwitchState mHeadphoneState;
+  bool mAudioChannelAgentEnabled;
   bool mHasInternalAntenna;
   bool mIsShutdown;
 
