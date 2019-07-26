@@ -29,19 +29,24 @@
 static nsStringBuffer* sCachedBuffer = nullptr;
 static JSString* sCachedString = nullptr;
 
+
+
+
+void
+XPCStringConvert::ClearCache()
+{
+    sCachedBuffer = nullptr;
+    sCachedString = nullptr;
+}
+
 static void
 FinalizeDOMString(const JSStringFinalizer *fin, jschar *chars)
 {
     nsStringBuffer* buf = nsStringBuffer::FromData(chars);
-    if (buf == sCachedBuffer) {
-        sCachedBuffer = nullptr;
-        
-    }
     buf->Release();
 }
 
 static const JSStringFinalizer sDOMStringFinalizer = { FinalizeDOMString };
-
 
 
 
