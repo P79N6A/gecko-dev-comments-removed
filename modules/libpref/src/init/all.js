@@ -4173,7 +4173,6 @@ pref("dom.mozNetworkStats.enabled", false);
 
 
 pref("dom.mozSettings.enabled", false);
-pref("dom.navigator-property.disable.mozSettings", true);
 pref("dom.mozPermissionSettings.enabled", false);
 
 

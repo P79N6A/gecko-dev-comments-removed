@@ -122,7 +122,6 @@ user_pref("dom.global-constructor.disable.mozContact", false);
 
 
 user_pref("dom.mozSettings.enabled", true);
-user_pref("dom.navigator-property.disable.mozSettings", false);
 
 
 user_pref("network.http.bypass-cachelock-threshold", 200000);
