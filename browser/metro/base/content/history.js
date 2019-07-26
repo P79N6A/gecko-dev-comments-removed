@@ -20,7 +20,7 @@ function HistoryView(aSet, aLimit, aFilterUnpinned) {
   window.addEventListener('HistoryNeedsRefresh', this, false);
 }
 
-HistoryView.prototype = {
+HistoryView.prototype = Util.extend(Object.create(View.prototype), {
   _set: null,
   _toRemove: null,
 
@@ -97,8 +97,8 @@ HistoryView.prototype = {
 
   addItemToSet: function addItemToSet(aURI, aTitle, aIcon, aPos) {
     let item = this._set.insertItemAt(aPos || 0, aTitle, aURI, this._inBatch);
-    item.setAttribute("iconURI", aIcon);
     this._setContextActions(item);
+    this._updateFavicon(item, aURI);
   },
 
   _setContextActions: function bv__setContextActions(aItem) {
@@ -273,7 +273,7 @@ HistoryView.prototype = {
     }
     throw Cr.NS_ERROR_NO_INTERFACE;
   }
-};
+});
 
 let HistoryStartView = {
   _view: null,
