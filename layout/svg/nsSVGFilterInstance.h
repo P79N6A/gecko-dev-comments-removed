@@ -32,6 +32,38 @@ class SVGFilterElement;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsSVGFilterInstance
 {
   typedef mozilla::gfx::Point3D Point3D;
@@ -70,7 +102,7 @@ public:
 
 
 
-  gfxRect GetFilterRegion() const { return mFilterRegion; }
+  gfxRect GetFilterRegion() const { return mUserSpaceBounds; }
 
   
 
@@ -97,8 +129,7 @@ public:
   
 
 
-
-  gfxMatrix GetUserSpaceToFilterSpaceTransform() const;
+  gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpaceRect) const;
 
 private:
   
@@ -127,7 +158,11 @@ private:
 
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
-  gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
+  
+
+
+  gfxRect UserSpaceToIntermediateSpace(const gfxRect& aUserSpaceRect) const;
+  gfxRect IntermediateSpaceToUserSpace(const gfxRect& aIntermediateSpaceRect) const;
 
   
 
@@ -147,6 +182,17 @@ private:
                             const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
                             const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
                             nsTArray<int32_t>& aSourceIndices);
+
+  
+
+
+  nsresult ComputeUserSpaceToIntermediateSpaceScale();
+
+  
+
+
+
+  nsresult ComputeBounds();
 
   
 
@@ -176,8 +222,15 @@ private:
   
 
 
-  gfxRect                 mFilterRegion;
+  gfxRect                 mUserSpaceBounds;
+  nsIntRect               mIntermediateSpaceBounds;
   nsIntRect               mFilterSpaceBounds;
+
+  
+
+
+  gfxSize                 mUserSpaceToIntermediateSpaceScale;
+  gfxSize                 mIntermediateSpaceToUserSpaceScale;
 
   
 
