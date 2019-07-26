@@ -37,6 +37,8 @@ from mozbuild.util import (
     ReadOnlyDict,
 )
 
+from mozbuild.backend.configenvironment import ConfigEnvironment
+
 from .sandbox import (
     SandboxError,
     SandboxExecutionError,
@@ -143,6 +145,13 @@ class MozbuildSandbox(Sandbox):
                 
                 
                 topobjdir = os.path.dirname(topobjdir)
+
+                
+                
+                
+                config = ConfigEnvironment.from_config_status(
+                    os.path.join(topobjdir, 'config.status'))
+                self.config = config
                 break
 
         self.topsrcdir = topsrcdir
