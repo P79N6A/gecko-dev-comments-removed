@@ -17,11 +17,12 @@
        return; 
      }
 
-     let SharedAll = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
-     let SysAll = require("resource://gre/modules/osfile/osfile_unix_allthreads.jsm");
-     let LOG = SharedAll.LOG.bind(SharedAll, "Unix", "back");
-     let libc = SysAll.libc;
-     let Const = SharedAll.Constants.libc;
+     exports.OS = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm").OS;
+
+     exports.OS.Unix.File = {};
+
+     let LOG = exports.OS.Shared.LOG.bind(OS.Shared, "Unix", "back");
+     let libc = exports.OS.Shared.Unix.libc;
 
      
 
@@ -34,20 +35,27 @@
        if (aDeclareFFI) {
          declareFFI = aDeclareFFI.bind(null, libc);
        } else {
-         declareFFI = SysAll.declareFFI;
+         declareFFI = exports.OS.Shared.Unix.declareFFI;
        }
 
        
+       let OSUnix = exports.OS.Unix;
+       let UnixFile = exports.OS.Unix.File;
+       if (!exports.OS.Types) {
+         exports.OS.Types = {};
+       }
+       let Type = exports.OS.Shared.Type;
+       let Types = Type;
+
        
        
-       let Type = Object.create(SysAll.Type);
-       let SysFile = exports.OS.Unix.File = { Type: Type };
+       
 
        
 
 
-       Type.fd = Type.int.withName("fd");
-       Type.fd.importFromC = function importFromC(fd_int) {
+       Types.fd = Type.int.withName("fd");
+       Types.fd.importFromC = function importFromC(fd_int) {
          return ctypes.CDataFinalizer(fd_int, _close);
        };
 
@@ -56,8 +64,8 @@
 
 
 
-       Type.negativeone_or_fd = Type.fd.withName("negativeone_or_fd");
-       Type.negativeone_or_fd.importFromC =
+       Types.negativeone_or_fd = Types.fd.withName("negativeone_or_fd");
+       Types.negativeone_or_fd.importFromC =
          function importFromC(fd_int) {
            if (fd_int == -1) {
              return -1;
@@ -69,31 +77,31 @@
 
 
 
-       Type.negativeone_or_nothing =
-         Type.int.withName("negativeone_or_nothing");
+       Types.negativeone_or_nothing =
+         Types.int.withName("negativeone_or_nothing");
 
        
 
 
 
-       Type.negativeone_or_ssize_t =
-         Type.ssize_t.withName("negativeone_or_ssize_t");
+       Types.negativeone_or_ssize_t =
+         Types.ssize_t.withName("negativeone_or_ssize_t");
 
        
 
 
-       Type.mode_t =
-         Type.intn_t(Const.OSFILE_SIZEOF_MODE_T).withName("mode_t");
-       Type.uid_t =
-         Type.intn_t(Const.OSFILE_SIZEOF_UID_T).withName("uid_t");
-       Type.gid_t =
-         Type.intn_t(Const.OSFILE_SIZEOF_GID_T).withName("gid_t");
+       Types.mode_t =
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_MODE_T).withName("mode_t");
+       Types.uid_t =
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_UID_T).withName("uid_t");
+       Types.gid_t =
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_GID_T).withName("gid_t");
 
        
 
 
-       Type.time_t =
-         Type.intn_t(Const.OSFILE_SIZEOF_TIME_T).withName("time_t");
+       Types.time_t =
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_TIME_T).withName("time_t");
 
        
        
@@ -107,89 +115,90 @@
        
        {
          let d_name_extra_size = 0;
-         if (Const.OSFILE_SIZEOF_DIRENT_D_NAME < 8) {
+         if (OS.Constants.libc.OSFILE_SIZEOF_DIRENT_D_NAME < 8) {
            
            
            d_name_extra_size = 256;
          }
 
-         let dirent = new SharedAll.HollowStructure("dirent",
-           Const.OSFILE_SIZEOF_DIRENT + d_name_extra_size);
-         if (Const.OSFILE_OFFSETOF_DIRENT_D_TYPE != undefined) {
+         let dirent = new OS.Shared.HollowStructure("dirent",
+           OS.Constants.libc.OSFILE_SIZEOF_DIRENT + d_name_extra_size);
+         if (OS.Constants.libc.OSFILE_OFFSETOF_DIRENT_D_TYPE != undefined) {
            
-           dirent.add_field_at(Const.OSFILE_OFFSETOF_DIRENT_D_TYPE,
+           dirent.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_DIRENT_D_TYPE,
              "d_type", ctypes.uint8_t);
          }
-         dirent.add_field_at(Const.OSFILE_OFFSETOF_DIRENT_D_NAME,
+         dirent.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_DIRENT_D_NAME,
            "d_name", ctypes.ArrayType(ctypes.char,
-             Const.OSFILE_SIZEOF_DIRENT_D_NAME + d_name_extra_size));
+             OS.Constants.libc.OSFILE_SIZEOF_DIRENT_D_NAME + d_name_extra_size));
 
          
-         Type.dirent = dirent.getType();
+         Types.dirent = dirent.getType();
        }
-       Type.null_or_dirent_ptr =
-         Type.dirent.out_ptr.withName("null_or_dirent");
+       Types.null_or_dirent_ptr =
+         new Type("null_of_dirent",
+                  Types.dirent.out_ptr.implementation);
 
        
        
        {
-         let stat = new SharedAll.HollowStructure("stat",
-           Const.OSFILE_SIZEOF_STAT);
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_MODE,
-                        "st_mode", Type.mode_t.implementation);
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_UID,
-                          "st_uid", Type.uid_t.implementation);
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_GID,
-                          "st_gid", Type.gid_t.implementation);
+         let stat = new OS.Shared.HollowStructure("stat",
+           OS.Constants.libc.OSFILE_SIZEOF_STAT);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_MODE,
+                        "st_mode", Types.mode_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_UID,
+                          "st_uid", Types.uid_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_GID,
+                          "st_gid", Types.gid_t.implementation);
 
          
          
          
          
          
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_ATIME,
-                          "st_atime", Type.time_t.implementation);
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_MTIME,
-                          "st_mtime", Type.time_t.implementation);
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_CTIME,
-                          "st_ctime", Type.time_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_ATIME,
+                          "st_atime", Types.time_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_MTIME,
+                          "st_mtime", Types.time_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_CTIME,
+                          "st_ctime", Types.time_t.implementation);
 
          
-         if ("OSFILE_OFFSETOF_STAT_ST_BIRTHTIME" in Const) {
-           stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_BIRTHTIME,
-                             "st_birthtime", Type.time_t.implementation);
+         if ("OSFILE_OFFSETOF_STAT_ST_BIRTHTIME" in OS.Constants.libc) {
+           stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_BIRTHTIME,
+                             "st_birthtime", Types.time_t.implementation);
          }
 
-         stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_SIZE,
-                        "st_size", Type.size_t.implementation);
-         Type.stat = stat.getType();
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_SIZE,
+                        "st_size", Types.size_t.implementation);
+         Types.stat = stat.getType();
        }
 
        
-       if ("OSFILE_SIZEOF_DIR" in Const) {
+       if ("OSFILE_SIZEOF_DIR" in OS.Constants.libc) {
          
          
          
-         let DIR = new SharedAll.HollowStructure(
+         let DIR = new OS.Shared.HollowStructure(
            "DIR",
-           Const.OSFILE_SIZEOF_DIR);
+           OS.Constants.libc.OSFILE_SIZEOF_DIR);
 
          DIR.add_field_at(
-           Const.OSFILE_OFFSETOF_DIR_DD_FD,
+           OS.Constants.libc.OSFILE_OFFSETOF_DIR_DD_FD,
            "dd_fd",
-           Type.fd.implementation);
+           Types.fd.implementation);
 
-         Type.DIR = DIR.getType();
+         Types.DIR = DIR.getType();
        } else {
          
-         Type.DIR =
-           new SharedAll.Type("DIR",
+         Types.DIR =
+           new Type("DIR",
              ctypes.StructType("DIR"));
        }
 
-       Type.null_or_DIR_ptr =
-         Type.DIR.out_ptr.withName("null_or_DIR*");
-       Type.null_or_DIR_ptr.importFromC = function importFromC(dir) {
+       Types.null_or_DIR_ptr =
+         Types.DIR.out_ptr.withName("null_or_DIR*");
+       Types.null_or_DIR_ptr.importFromC = function importFromC(dir) {
          if (dir == null || dir.isNull()) {
            return null;
          }
@@ -199,12 +208,12 @@
        
 
        
-       let _close = SysFile._close =
+       let _close = UnixFile._close =
          libc.declare("close", ctypes.default_abi,
                         ctypes.int,
                              ctypes.int);
 
-       SysFile.close = function close(fd) {
+       UnixFile.close = function close(fd) {
          
          return fd.dispose();
        };
@@ -212,9 +221,9 @@
        let _close_dir =
          libc.declare("closedir", ctypes.default_abi,
                         ctypes.int,
-                           Type.DIR.in_ptr.implementation);
+                           Types.DIR.in_ptr.implementation);
 
-       SysFile.closedir = function closedir(fd) {
+       UnixFile.closedir = function closedir(fd) {
          
          return fd.dispose();
        };
@@ -229,7 +238,7 @@
            
            default_lib = ctypes.open("a.out");
 
-           SysFile.free =
+           UnixFile.free =
              default_lib.declare("free", ctypes.default_abi,
               ctypes.void_t,
                  ctypes.voidptr_t);
@@ -238,7 +247,7 @@
            
            
 
-           SysFile.free =
+           UnixFile.free =
              libc.declare("free", ctypes.default_abi,
               ctypes.void_t,
                  ctypes.voidptr_t);
@@ -247,257 +256,257 @@
 
 
        
-       SysFile.access =
+       UnixFile.access =
          declareFFI("access", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                       Type.int);
+                     Types.negativeone_or_nothing,
+                       Types.path,
+                       Types.int);
 
-       SysFile.chdir =
+       UnixFile.chdir =
          declareFFI("chdir", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path);
+                     Types.negativeone_or_nothing,
+                       Types.path);
 
-       SysFile.chmod =
+       UnixFile.chmod =
          declareFFI("chmod", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                       Type.mode_t);
+                     Types.negativeone_or_nothing,
+                       Types.path,
+                       Types.mode_t);
 
-       SysFile.chown =
+       UnixFile.chown =
          declareFFI("chown", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                        Type.uid_t,
-                        Type.gid_t);
+                     Types.negativeone_or_nothing,
+                       Types.path,
+                        Types.uid_t,
+                        Types.gid_t);
 
-       SysFile.copyfile =
+       UnixFile.copyfile =
          declareFFI("copyfile", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                     Type.path,
-                       Type.path,
-                      Type.void_t.in_ptr, 
-                      Type.uint32_t);
+                     Types.negativeone_or_nothing,
+                     Types.path,
+                       Types.path,
+                      Types.void_t.in_ptr, 
+                      Types.uint32_t);
 
-       SysFile.dup =
+       UnixFile.dup =
          declareFFI("dup", ctypes.default_abi,
-                     Type.negativeone_or_fd,
-                         Type.fd);
+                     Types.negativeone_or_fd,
+                         Types.fd);
 
        if ("OSFILE_SIZEOF_DIR" in OS.Constants.libc) {
          
-         SysFile.dirfd =
+         UnixFile.dirfd =
            function dirfd(DIRp) {
-             return Type.DIR.in_ptr.implementation(DIRp).contents.dd_fd;
+             return Types.DIR.in_ptr.implementation(DIRp).contents.dd_fd;
            };
        } else {
          
-         SysFile.dirfd =
+         UnixFile.dirfd =
            declareFFI("dirfd", ctypes.default_abi,
-                       Type.negativeone_or_fd,
-                          Type.DIR.in_ptr);
+                       Types.negativeone_or_fd,
+                          Types.DIR.in_ptr);
        }
 
-       SysFile.chdir =
+       UnixFile.chdir =
          declareFFI("chdir", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path);
+                     Types.negativeone_or_nothing,
+                       Types.path);
 
-       SysFile.fchdir =
+       UnixFile.fchdir =
          declareFFI("fchdir", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd);
+                     Types.negativeone_or_nothing,
+                         Types.fd);
 
-       SysFile.fchown =
+       UnixFile.fchown =
          declareFFI("fchown", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd,
-                      Type.uid_t,
-                      Type.gid_t);
+                     Types.negativeone_or_nothing,
+                         Types.fd,
+                      Types.uid_t,
+                      Types.gid_t);
 
-       SysFile.fsync =
+       UnixFile.fsync =
          declareFFI("fsync", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd);
+                     Types.negativeone_or_nothing,
+                         Types.fd);
 
-       SysFile.getcwd =
+       UnixFile.getcwd =
          declareFFI("getcwd", ctypes.default_abi,
-                     Type.out_path,
-                        Type.out_path,
-                       Type.size_t);
+                     Types.out_path,
+                        Types.out_path,
+                       Types.size_t);
 
-       SysFile.getwd =
+       UnixFile.getwd =
          declareFFI("getwd", ctypes.default_abi,
-                     Type.out_path,
-                        Type.out_path);
+                     Types.out_path,
+                        Types.out_path);
 
        
        
 
        
-       SysFile.get_current_dir_name =
+       UnixFile.get_current_dir_name =
          declareFFI("get_current_dir_name", ctypes.default_abi,
-                     Type.out_path.releaseWith(SysFile.free));
+                     Types.out_path.releaseWith(UnixFile.free));
 
        
-       SysFile.getwd_auto =
+       UnixFile.getwd_auto =
          declareFFI("getwd", ctypes.default_abi,
-                     Type.out_path.releaseWith(SysFile.free),
-                        Type.void_t.out_ptr);
+                     Types.out_path.releaseWith(UnixFile.free),
+                        Types.void_t.out_ptr);
 
-       SysFile.fdatasync =
+       UnixFile.fdatasync =
          declareFFI("fdatasync", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd); 
+                     Types.negativeone_or_nothing,
+                         Types.fd); 
 
-       SysFile.ftruncate =
+       UnixFile.ftruncate =
          declareFFI("ftruncate", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd,
-                     Type.off_t);
+                     Types.negativeone_or_nothing,
+                         Types.fd,
+                     Types.off_t);
 
        if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
-         SysFile.fstat =
+         UnixFile.fstat =
            declareFFI("fstat$INODE64", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.fd,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.fd,
+                          Types.stat.out_ptr
                      );
        } else {
-         SysFile.fstat =
+         UnixFile.fstat =
            declareFFI("fstat", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.fd,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.fd,
+                          Types.stat.out_ptr
                      );
        }
 
-       SysFile.lchown =
+       UnixFile.lchown =
          declareFFI("lchown", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                      Type.uid_t,
-                      Type.gid_t);
+                     Types.negativeone_or_nothing,
+                       Types.path,
+                      Types.uid_t,
+                      Types.gid_t);
 
-       SysFile.link =
+       UnixFile.link =
          declareFFI("link", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                     Type.path,
-                       Type.path);
+                     Types.negativeone_or_nothing,
+                     Types.path,
+                       Types.path);
 
-       SysFile.lseek =
+       UnixFile.lseek =
          declareFFI("lseek", ctypes.default_abi,
-                     Type.off_t,
-                         Type.fd,
-                     Type.off_t,
-                     Type.int);
+                     Types.off_t,
+                         Types.fd,
+                     Types.off_t,
+                     Types.int);
 
-       SysFile.mkdir =
+       UnixFile.mkdir =
          declareFFI("mkdir", ctypes.default_abi,
-                     Type.int,
-                     Type.path,
-                     Type.int);
+                     Types.int,
+                     Types.path,
+                     Types.int);
 
-       SysFile.mkstemp =
+       UnixFile.mkstemp =
          declareFFI("mkstemp", ctypes.default_abi,
-                     Type.fd,
-                    Type.out_path);
+                     Types.fd,
+                    Types.out_path);
 
-       SysFile.open =
+       UnixFile.open =
          declareFFI("open", ctypes.default_abi,
-                    Type.negativeone_or_fd,
-                      Type.path,
-                    Type.int,
-                      Type.int);
+                    Types.negativeone_or_fd,
+                      Types.path,
+                    Types.int,
+                      Types.int);
 
-       SysFile.opendir =
+       UnixFile.opendir =
          declareFFI("opendir", ctypes.default_abi,
-                     Type.null_or_DIR_ptr,
-                       Type.path);
+                     Types.null_or_DIR_ptr,
+                       Types.path);
 
-       SysFile.pread =
+       UnixFile.pread =
          declareFFI("pread", ctypes.default_abi,
-                     Type.negativeone_or_ssize_t,
-                         Type.fd,
-                        Type.void_t.out_ptr,
-                     Type.size_t,
-                     Type.off_t);
+                     Types.negativeone_or_ssize_t,
+                         Types.fd,
+                        Types.void_t.out_ptr,
+                     Types.size_t,
+                     Types.off_t);
 
-       SysFile.pwrite =
+       UnixFile.pwrite =
          declareFFI("pwrite", ctypes.default_abi,
-                     Type.negativeone_or_ssize_t,
-                         Type.fd,
-                        Type.void_t.in_ptr,
-                     Type.size_t,
-                     Type.off_t);
+                     Types.negativeone_or_ssize_t,
+                         Types.fd,
+                        Types.void_t.in_ptr,
+                     Types.size_t,
+                     Types.off_t);
 
-       SysFile.read =
+       UnixFile.read =
          declareFFI("read", ctypes.default_abi,
-                    Type.negativeone_or_ssize_t,
-                        Type.fd,
-                       Type.void_t.out_ptr,
-                    Type.size_t);
+                    Types.negativeone_or_ssize_t,
+                        Types.fd,
+                       Types.void_t.out_ptr,
+                    Types.size_t);
 
        if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
          
          
          
          
-         SysFile.readdir =
+         UnixFile.readdir =
            declareFFI("readdir$INODE64", ctypes.default_abi,
-                     Type.null_or_dirent_ptr,
-                         Type.DIR.in_ptr); 
+                     Types.null_or_dirent_ptr,
+                         Types.DIR.in_ptr); 
        } else {
-         SysFile.readdir =
+         UnixFile.readdir =
            declareFFI("readdir", ctypes.default_abi,
-                      Type.null_or_dirent_ptr,
-                         Type.DIR.in_ptr); 
+                      Types.null_or_dirent_ptr,
+                         Types.DIR.in_ptr); 
        }
 
-       SysFile.rename =
+       UnixFile.rename =
          declareFFI("rename", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                        Type.path,
-                        Type.path);
+                     Types.negativeone_or_nothing,
+                        Types.path,
+                        Types.path);
 
-       SysFile.rmdir =
+       UnixFile.rmdir =
          declareFFI("rmdir", ctypes.default_abi,
-                     Type.int,
-                       Type.path);
+                     Types.int,
+                       Types.path);
 
-       SysFile.splice =
+       UnixFile.splice =
          declareFFI("splice", ctypes.default_abi,
-                     Type.long,
-                      Type.fd,
-                     Type.off_t.in_ptr,
-                     Type.fd,
-                    Type.off_t.in_ptr,
-                        Type.size_t,
-                      Type.unsigned_int); 
+                     Types.long,
+                      Types.fd,
+                     Types.off_t.in_ptr,
+                     Types.fd,
+                    Types.off_t.in_ptr,
+                        Types.size_t,
+                      Types.unsigned_int); 
 
-       SysFile.symlink =
+       UnixFile.symlink =
          declareFFI("symlink", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                     Type.path,
-                       Type.path);
+                     Types.negativeone_or_nothing,
+                     Types.path,
+                       Types.path);
 
-       SysFile.truncate =
+       UnixFile.truncate =
          declareFFI("truncate", ctypes.default_abi,
-                    Type.negativeone_or_nothing,
-                      Type.path,
-                     Type.off_t);
+                    Types.negativeone_or_nothing,
+                      Types.path,
+                     Types.off_t);
 
-       SysFile.unlink =
+       UnixFile.unlink =
          declareFFI("unlink", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                     Type.path);
+                     Types.negativeone_or_nothing,
+                     Types.path);
 
-       SysFile.write =
+       UnixFile.write =
          declareFFI("write", ctypes.default_abi,
-                     Type.negativeone_or_ssize_t,
-                         Type.fd,
-                        Type.void_t.in_ptr,
-                     Type.size_t);
+                     Types.negativeone_or_ssize_t,
+                         Types.fd,
+                        Types.void_t.in_ptr,
+                     Types.size_t);
 
        
 
@@ -505,23 +514,23 @@
        
        if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
          
-         SysFile.stat =
+         UnixFile.stat =
            declareFFI("stat$INODE64", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.path,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.path,
+                          Types.stat.out_ptr
                      );
-         SysFile.lstat =
+         UnixFile.lstat =
            declareFFI("lstat$INODE64", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.path,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.path,
+                          Types.stat.out_ptr
                      );
-         SysFile.fstat =
+         UnixFile.fstat =
            declareFFI("fstat$INODE64", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.fd,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.fd,
+                          Types.stat.out_ptr
                      );
        } else if (OS.Constants.libc._STAT_VER != undefined) {
          const ver = OS.Constants.libc._STAT_VER;
@@ -540,51 +549,51 @@
 
          let xstat =
            declareFFI(xstat_name, ctypes.default_abi,
-                          Type.negativeone_or_nothing,
-                       Type.int,
-                            Type.path,
-                             Type.stat.out_ptr);
+                          Types.negativeone_or_nothing,
+                       Types.int,
+                            Types.path,
+                             Types.stat.out_ptr);
          let lxstat =
            declareFFI(lxstat_name, ctypes.default_abi,
-                          Type.negativeone_or_nothing,
-                       Type.int,
-                            Type.path,
-                             Type.stat.out_ptr);
+                          Types.negativeone_or_nothing,
+                       Types.int,
+                            Types.path,
+                             Types.stat.out_ptr);
          let fxstat =
            declareFFI(fxstat_name, ctypes.default_abi,
-                          Type.negativeone_or_nothing,
-                       Type.int,
-                              Type.fd,
-                             Type.stat.out_ptr);
+                          Types.negativeone_or_nothing,
+                       Types.int,
+                              Types.fd,
+                             Types.stat.out_ptr);
 
-         SysFile.stat = function stat(path, buf) {
+         UnixFile.stat = function stat(path, buf) {
            return xstat(ver, path, buf);
          };
-         SysFile.lstat = function stat(path, buf) {
+         UnixFile.lstat = function stat(path, buf) {
            return lxstat(ver, path, buf);
          };
-         SysFile.fstat = function stat(fd, buf) {
+         UnixFile.fstat = function stat(fd, buf) {
            return fxstat(ver, fd, buf);
          };
        } else {
          
-         SysFile.stat =
+         UnixFile.stat =
            declareFFI("stat", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.path,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.path,
+                          Types.stat.out_ptr
                      );
-         SysFile.lstat =
+         UnixFile.lstat =
            declareFFI("lstat", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                         Type.path,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                         Types.path,
+                          Types.stat.out_ptr
                      );
-         SysFile.fstat =
+         UnixFile.fstat =
            declareFFI("fstat", ctypes.default_abi,
-                       Type.negativeone_or_nothing,
-                           Type.fd,
-                          Type.stat.out_ptr
+                       Types.negativeone_or_nothing,
+                           Types.fd,
+                          Types.stat.out_ptr
                      );
        }
 
@@ -593,14 +602,14 @@
 
        let _pipe =
          declareFFI("pipe", ctypes.default_abi,
-            Type.negativeone_or_nothing,
-               new SharedAll.Type("two file descriptors",
+            Types.negativeone_or_nothing,
+               new Type("two file descriptors",
              ctypes.ArrayType(ctypes.int, 2)));
 
        
        let _pipebuf = new (ctypes.ArrayType(ctypes.int, 2))();
 
-       SysFile.pipe = function pipe(array) {
+       UnixFile.pipe = function pipe(array) {
          let result = _pipe(_pipebuf);
          if (result == -1) {
            return result;
@@ -610,11 +619,6 @@
          return result;
        };
      };
-
-     exports.OS.Unix = {
-       File: {
-         _init: init
-       }
-     };
+     exports.OS.Unix.File._init = init;
    })(this);
 }
