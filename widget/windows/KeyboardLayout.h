@@ -322,7 +322,8 @@ public:
 
 
 
-  bool HandleKeyDownMessage(bool* aEventDispatched = nullptr) const;
+  bool HandleKeyDownMessage(bool* aEventDispatched = nullptr,
+                            bool* aWasKeyDownDefaultPrevented = nullptr) const;
 
   
 
@@ -330,8 +331,7 @@ public:
 
 
   bool HandleCharMessage(const MSG& aCharMsg,
-                         bool* aEventDispatched = nullptr,
-                         const EventFlags* aExtraFlags = nullptr) const;
+                         bool* aEventDispatched = nullptr) const;
 
   
 
@@ -445,8 +445,7 @@ private:
 
 
 
-  bool DispatchKeyPressEventsWithKeyboardLayout(
-                        const EventFlags& aExtraFlags) const;
+  bool DispatchKeyPressEventsWithKeyboardLayout() const;
 
   
 
@@ -454,16 +453,14 @@ private:
 
 
 
-  bool DispatchKeyPressEventsAndDiscardsCharMessages(
-                        const EventFlags& aExtraFlags) const;
+  bool DispatchPluginEventsAndDiscardsCharMessages() const;
 
   
 
 
 
 
-  bool DispatchKeyPressEventForFollowingCharMessage(
-                        const EventFlags& aExtraFlags) const;
+  bool DispatchKeyPressEventForFollowingCharMessage() const;
 
   
 

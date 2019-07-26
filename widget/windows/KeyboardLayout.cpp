@@ -767,12 +767,16 @@ NativeKey::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
 }
 
 bool
-NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
+NativeKey::HandleKeyDownMessage(bool* aEventDispatched,
+                                bool* aWasKeyDownDefaultPrevented) const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
 
   if (aEventDispatched) {
     *aEventDispatched = false;
+  }
+  if (aWasKeyDownDefaultPrevented) {
+    *aWasKeyDownDefaultPrevented = false;
   }
 
   bool defaultPrevented = false;
@@ -795,6 +799,9 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
     if (mWidget->Destroyed()) {
       
       
+      if (aWasKeyDownDefaultPrevented) {
+        *aWasKeyDownDefaultPrevented = true;
+      }
       return true;
     }
 
@@ -830,6 +837,9 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
       
       
       
+      if (aWasKeyDownDefaultPrevented) {
+        *aWasKeyDownDefaultPrevented = true;
+      }
       return true;
     }
   } else {
@@ -841,6 +851,10 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
     }
   }
 
+  if (aWasKeyDownDefaultPrevented) {
+    *aWasKeyDownDefaultPrevented = defaultPrevented;
+  }
+
   RedirectedKeyDownMessageManager::Forget();
 
   
@@ -848,7 +862,6 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
     return defaultPrevented;
   }
 
-  
   
   switch (mDOMKeyCode) {
     case NS_VK_SHIFT:
@@ -861,15 +874,20 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
       return defaultPrevented;
   }
 
-  EventFlags extraFlags;
-  extraFlags.mDefaultPrevented = defaultPrevented;
+  if (defaultPrevented) {
+    DispatchPluginEventsAndDiscardsCharMessages();
+    return true;
+  }
 
+  
+  
   if (NeedsToHandleWithoutFollowingCharMessages()) {
-    return DispatchKeyPressEventsAndDiscardsCharMessages(extraFlags);
+    return (DispatchPluginEventsAndDiscardsCharMessages() ||
+            DispatchKeyPressEventsWithKeyboardLayout());
   }
 
   if (IsFollowedByCharMessage()) {
-    return DispatchKeyPressEventForFollowingCharMessage(extraFlags);
+    return DispatchKeyPressEventForFollowingCharMessage();
   }
 
   if (!mModKeyState.IsControl() && !mModKeyState.IsAlt() &&
@@ -877,20 +895,19 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
     
     
     
-    return mWidget->PluginHasFocus() && defaultPrevented;
+    return false;
   }
 
   if (mIsDeadKey) {
-    return mWidget->PluginHasFocus() && defaultPrevented;
+    return false;
   }
 
-  return DispatchKeyPressEventsWithKeyboardLayout(extraFlags);
+  return DispatchKeyPressEventsWithKeyboardLayout();
 }
 
 bool
 NativeKey::HandleCharMessage(const MSG& aCharMsg,
-                             bool* aEventDispatched,
-                             const EventFlags* aExtraFlags) const
+                             bool* aEventDispatched) const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN ||
              mMsg.message == WM_CHAR || mMsg.message == WM_SYSCHAR);
@@ -925,9 +942,6 @@ NativeKey::HandleCharMessage(const MSG& aCharMsg,
       (mOriginalVirtualKeyCode &&
        !KeyboardLayout::IsPrintableCharKey(mOriginalVirtualKeyCode))) {
     nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
-    if (aExtraFlags) {
-      keypressEvent.mFlags.Union(*aExtraFlags);
-    }
     if (aCharMsg.wParam >= U_SPACE) {
       keypressEvent.charCode = static_cast<uint32_t>(aCharMsg.wParam);
     } else {
@@ -993,9 +1007,6 @@ NativeKey::HandleCharMessage(const MSG& aCharMsg,
   }
 
   nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
-  if (aExtraFlags) {
-    keypressEvent.mFlags.Union(*aExtraFlags);
-  }
   keypressEvent.charCode = uniChar;
   if (!keypressEvent.charCode) {
     keypressEvent.keyCode = mDOMKeyCode;
@@ -1102,51 +1113,45 @@ NativeKey::RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg,
 }
 
 bool
-NativeKey::DispatchKeyPressEventsAndDiscardsCharMessages(
-                        const EventFlags& aExtraFlags) const
+NativeKey::DispatchPluginEventsAndDiscardsCharMessages() const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
 
-  
-  
-  
-  
-  bool anyCharMessagesRemoved = false;
-
   if (mIsFakeCharMsg) {
+    return RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST);
+  }
+
+  
+  
+  
+  
+  bool anyCharMessagesRemoved = true;
+  MSG msg;
+  bool gotMsg =
+    WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
+                          PM_NOREMOVE | PM_NOYIELD);
+  while (gotMsg &&
+         (msg.message == WM_CHAR || msg.message == WM_SYSCHAR ||
+          msg.message == WM_DEADCHAR)) {
     if (RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST)) {
       return true;
     }
     anyCharMessagesRemoved = true;
-  } else {
-    MSG msg;
-    bool gotMsg =
-      WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
-                            PM_NOREMOVE | PM_NOYIELD);
-    while (gotMsg && (msg.message == WM_CHAR || msg.message == WM_SYSCHAR)) {
-      if (RemoveMessageAndDispatchPluginEvent(WM_KEYFIRST, WM_KEYLAST)) {
-        return true;
-      }
-      anyCharMessagesRemoved = true;
-      gotMsg = WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
-                                     PM_NOREMOVE | PM_NOYIELD);
-    }
+    gotMsg = WinUtils::PeekMessage(&msg, mMsg.hwnd, WM_KEYFIRST, WM_KEYLAST,
+                                   PM_NOREMOVE | PM_NOYIELD);
   }
 
   if (!anyCharMessagesRemoved &&
-      mDOMKeyCode == NS_VK_BACK && IsIMEDoingKakuteiUndo()) {
-    MOZ_ASSERT(!mIsFakeCharMsg);
-    if (RemoveMessageAndDispatchPluginEvent(WM_CHAR, WM_CHAR)) {
-      return true;
-    }
+      mDOMKeyCode == NS_VK_BACK && IsIMEDoingKakuteiUndo() &&
+      RemoveMessageAndDispatchPluginEvent(WM_CHAR, WM_CHAR)) {
+    return true;
   }
 
-  return DispatchKeyPressEventsWithKeyboardLayout(aExtraFlags);
+  return false;
 }
 
 bool
-NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
-                        const EventFlags& aExtraFlags) const
+NativeKey::DispatchKeyPressEventsWithKeyboardLayout() const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
   MOZ_ASSERT(!mIsDeadKey);
@@ -1226,10 +1231,9 @@ NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
   if (inputtingChars.IsEmpty() &&
       shiftedChars.IsEmpty() && unshiftedChars.IsEmpty()) {
     nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
-    keypressEvent.mFlags.Union(aExtraFlags);
     keypressEvent.keyCode = mDOMKeyCode;
     InitKeyEvent(keypressEvent, mModKeyState);
-    return (DispatchKeyEvent(keypressEvent) || aExtraFlags.mDefaultPrevented);
+    return DispatchKeyEvent(keypressEvent);
   }
 
   uint32_t longestLength =
@@ -1239,7 +1243,7 @@ NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
   uint32_t skipShiftedChars = longestLength - shiftedChars.mLength;
   uint32_t skipUnshiftedChars = longestLength - unshiftedChars.mLength;
   UINT keyCode = !inputtingChars.mLength ? mDOMKeyCode : 0;
-  bool defaultPrevented = aExtraFlags.mDefaultPrevented;
+  bool defaultPrevented = false;
   for (uint32_t cnt = 0; cnt < longestLength; cnt++) {
     uint16_t uniChar, shiftedChar, unshiftedChar;
     uniChar = shiftedChar = unshiftedChar = 0;
@@ -1298,7 +1302,6 @@ NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
     }
 
     nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
-    keypressEvent.mFlags.Union(aExtraFlags);
     keypressEvent.charCode = uniChar;
     keypressEvent.alternativeCharCodes.AppendElements(altArray);
     InitKeyEvent(keypressEvent, modKeyState);
@@ -1312,15 +1315,14 @@ NativeKey::DispatchKeyPressEventsWithKeyboardLayout(
 }
 
 bool
-NativeKey::DispatchKeyPressEventForFollowingCharMessage(
-                        const EventFlags& aExtraFlags) const
+NativeKey::DispatchKeyPressEventForFollowingCharMessage() const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
 
   const MSG& msg = RemoveFollowingCharMessage();
   if (mIsFakeCharMsg) {
     if (msg.message == WM_DEADCHAR) {
-      return aExtraFlags.mDefaultPrevented;
+      return false;
     }
 #ifdef DEBUG
     if (mIsPrintableKey) {
@@ -1345,23 +1347,17 @@ NativeKey::DispatchKeyPressEventForFollowingCharMessage(
       }
     }
 #endif 
-    return HandleCharMessage(msg, nullptr, &aExtraFlags);
+    return HandleCharMessage(msg);
   }
 
-  
   if (msg.message == WM_DEADCHAR) {
-    bool defaultPrevented = aExtraFlags.mDefaultPrevented;
-    if (mWidget->PluginHasFocus()) {
-      
-      defaultPrevented =
-        (mWidget->DispatchPluginEvent(msg) || defaultPrevented ||
-         mWidget->Destroyed());
+    if (!mWidget->PluginHasFocus()) {
+      return false;
     }
-    return defaultPrevented;
+    return (mWidget->DispatchPluginEvent(msg) || mWidget->Destroyed());
   }
 
-  bool defaultPrevented = (HandleCharMessage(msg, nullptr, &aExtraFlags) ||
-                           aExtraFlags.mDefaultPrevented);
+  bool defaultPrevented = HandleCharMessage(msg);
   
   
   if (!defaultPrevented && msg.message == WM_SYSCHAR) {
@@ -2290,13 +2286,16 @@ KeyboardLayout::SynthesizeNativeKeyEvent(nsWindowBase* aWidget,
                                                      makeDeadCharMsg };
         NativeKey nativeKey(aWidget, keyDownMsg, modKeyState,
                             &fakeMsgForKeyDown);
-        nativeKey.HandleKeyDownMessage();
-        for (uint32_t j = 1; j < chars.Length(); j++) {
-          NativeKey::FakeCharMsg fakeMsgForChar = { chars.CharAt(j), scanCode,
-                                                    false };
-          MSG charMsg = fakeMsgForChar.GetCharMsg(aWidget->GetWindowHandle());
-          NativeKey nativeKey(aWidget, charMsg, modKeyState);
-          nativeKey.HandleCharMessage(charMsg);
+        bool dispatched, keyDownDefaultPrevented;
+        nativeKey.HandleKeyDownMessage(&dispatched, &keyDownDefaultPrevented);
+        if (!keyDownDefaultPrevented) {
+          for (uint32_t j = 1; j < chars.Length(); j++) {
+            NativeKey::FakeCharMsg fakeMsgForChar = { chars.CharAt(j), scanCode,
+                                                      false };
+            MSG charMsg = fakeMsgForChar.GetCharMsg(aWidget->GetWindowHandle());
+            NativeKey nativeKey(aWidget, charMsg, modKeyState);
+            nativeKey.HandleCharMessage(charMsg);
+          }
         }
       }
     } else {
