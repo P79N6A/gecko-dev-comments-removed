@@ -56,6 +56,9 @@ SandboxBroker::LaunchApp(const wchar_t *aPath,
   mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_UNTRUSTED);
 
   
+  mPolicy->SetAlternateDesktop(false);
+
+  
   PROCESS_INFORMATION targetInfo;
   sandbox::ResultCode result;
   result = sBrokerService->SpawnTarget(aPath, aArguments, mPolicy, &targetInfo);
