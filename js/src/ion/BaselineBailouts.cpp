@@ -1157,7 +1157,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    void *rectReturnAddr = cx->compartment()->ionCompartment()->getArgumentsRectifierReturnAddr();
+    void *rectReturnAddr = cx->runtime()->ionRuntime()->getArgumentsRectifierReturnAddr();
     JS_ASSERT(rectReturnAddr);
     if (!builder.writePtr(rectReturnAddr, "ReturnAddr"))
         return false;

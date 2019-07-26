@@ -445,8 +445,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
 #endif
 
     
-    IonCompartment *ion = GetIonContext()->compartment->ionCompartment();
-    IonCode *wrapper = ion->getVMWrapper(fun);
+    IonCode *wrapper = gen->ionRuntime()->getVMWrapper(fun);
     if (!wrapper)
         return false;
 

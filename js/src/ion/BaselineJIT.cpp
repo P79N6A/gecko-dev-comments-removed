@@ -85,7 +85,7 @@ EnterBaseline(JSContext *cx, EnterJitData &data)
     JS_ASSERT(ion::IsBaselineEnabled(cx));
     JS_ASSERT_IF(data.osrFrame, CheckFrame(data.osrFrame));
 
-    EnterIonCode enter = cx->compartment()->ionCompartment()->enterBaselineJIT();
+    EnterIonCode enter = cx->runtime()->ionRuntime()->enterBaseline();
 
     
     JS_ASSERT_IF(data.constructing, data.maxArgv[0].isObject());

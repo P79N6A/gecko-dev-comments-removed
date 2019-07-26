@@ -518,7 +518,7 @@ BaselineCompiler::emitDebugTrap()
     bool enabled = script->stepModeEnabled() || script->hasBreakpointsAt(pc);
 
     
-    IonCode *handler = cx->compartment()->ionCompartment()->debugTrapHandler(cx);
+    IonCode *handler = cx->runtime()->ionRuntime()->debugTrapHandler(cx);
     mozilla::DebugOnly<CodeOffsetLabel> offset = masm.toggledCall(handler, enabled);
 
 #ifdef DEBUG
