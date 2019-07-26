@@ -190,21 +190,6 @@ void SetCurrentProcessPrivileges(ChildPrivileges privs);
 bool LaunchApp(const CommandLine& cl,
                bool wait, bool start_hidden, ProcessHandle* process_handle);
 
-#if defined(OS_WIN)
-
-
-
-
-bool GetAppOutput(const std::wstring& cmd_line, std::string* output);
-#elif defined(OS_POSIX)
-
-
-
-
-
-bool GetAppOutput(const CommandLine& cl, std::string* output);
-#endif
-
 
 class ProcessFilter {
  public:
@@ -228,12 +213,6 @@ bool KillProcess(ProcessHandle process, int exit_code, bool wait);
 
 
 bool DidProcessCrash(bool* child_exited, ProcessHandle handle);
-
-
-
-
-
-bool WaitForExitCode(ProcessHandle handle, int* exit_code);
 
 
 

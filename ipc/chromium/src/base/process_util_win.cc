@@ -355,82 +355,6 @@ bool LaunchApp(const CommandLine& cl,
                    start_hidden, process_handle);
 }
 
-bool GetAppOutput(const std::wstring& cmd_line, std::string* output) {
-  if (!output) {
-    NOTREACHED();
-    return false;
-  }
-
-  HANDLE out_read = NULL;
-  HANDLE out_write = NULL;
-
-  SECURITY_ATTRIBUTES sa_attr;
-  
-  sa_attr.nLength = sizeof(SECURITY_ATTRIBUTES);
-  sa_attr.bInheritHandle = TRUE;
-  sa_attr.lpSecurityDescriptor = NULL;
-
-  
-  if (!CreatePipe(&out_read, &out_write, &sa_attr, 0)) {
-    NOTREACHED() << "Failed to create pipe";
-    return false;
-  }
-
-  
-  ScopedHandle scoped_out_read(out_read);
-  ScopedHandle scoped_out_write(out_write);
-
-  
-  if (!SetHandleInformation(out_read, HANDLE_FLAG_INHERIT, 0)) {
-    NOTREACHED() << "Failed to disabled pipe inheritance";
-    return false;
-  }
-
-  
-  PROCESS_INFORMATION proc_info = { 0 };
-  STARTUPINFO start_info = { 0 };
-
-  start_info.cb = sizeof(STARTUPINFO);
-  start_info.hStdOutput = out_write;
-  
-  start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-  start_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-  start_info.dwFlags |= STARTF_USESTDHANDLES;
-
-  
-  if (!CreateProcess(NULL, const_cast<wchar_t*>(cmd_line.c_str()), NULL, NULL,
-                     TRUE,  
-                     0, NULL, NULL, &start_info, &proc_info)) {
-    NOTREACHED() << "Failed to start process";
-    return false;
-  }
-
-  
-  CloseHandle(proc_info.hThread);
-
-  
-  
-  scoped_out_write.Close();
-
-  
-  const int kBufferSize = 1024;
-  char buffer[kBufferSize];
-
-  for (;;) {
-    DWORD bytes_read = 0;
-    BOOL success = ReadFile(out_read, buffer, kBufferSize, &bytes_read, NULL);
-    if (!success || bytes_read == 0)
-      break;
-    output->append(buffer, bytes_read);
-  }
-
-  
-  WaitForSingleObject(proc_info.hProcess, INFINITE);
-  CloseHandle(proc_info.hProcess);
-
-  return true;
-}
-
 bool KillProcess(ProcessHandle process, int exit_code, bool wait) {
   bool result = (TerminateProcess(process, exit_code) != FALSE);
   if (result && wait) {
@@ -471,19 +395,6 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
     return false;
   }
 
-  return true;
-}
-
-bool WaitForExitCode(ProcessHandle handle, int* exit_code) {
-  ScopedHandle closer(handle);  
-  if (::WaitForSingleObject(handle, INFINITE) != WAIT_OBJECT_0) {
-    NOTREACHED();
-    return false;
-  }
-  DWORD temp_code;  
-  if (!::GetExitCodeProcess(handle, &temp_code))
-    return false;
-  *exit_code = temp_code;
   return true;
 }
 

@@ -280,23 +280,6 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
   return false;
 }
 
-bool WaitForExitCode(ProcessHandle handle, int* exit_code) {
-  int status;
-  if (HANDLE_EINTR(waitpid(handle, &status, 0)) == -1) {
-    NOTREACHED();
-    return false;
-  }
-
-  if (WIFEXITED(status)) {
-    *exit_code = WEXITSTATUS(status);
-    return true;
-  }
-
-  
-  DCHECK(WIFSIGNALED(status));
-  return false;
-}
-
 namespace {
 
 int64_t TimeValToMicroseconds(const struct timeval& tv) {
@@ -342,88 +325,6 @@ int ProcessMetrics::GetCPUUsage() {
   last_time_ = time;
 
   return cpu;
-}
-
-bool GetAppOutput(const CommandLine& cl, std::string* output) {
-  int pipe_fd[2];
-  pid_t pid;
-
-  
-  InjectiveMultimap fd_shuffle1, fd_shuffle2;
-  fd_shuffle1.reserve(3);
-  fd_shuffle2.reserve(3);
-  const std::vector<std::string>& argv = cl.argv();
-  scoped_array<char*> argv_cstr(new char*[argv.size() + 1]);
-
-  if (pipe(pipe_fd) < 0)
-    return false;
-
-  switch (pid = fork()) {
-    case -1:  
-      close(pipe_fd[0]);
-      close(pipe_fd[1]);
-      return false;
-    case 0:  
-      {
-        
-        
-        
-        
-        
-        int dev_null = open("/dev/null", O_WRONLY);
-        if (dev_null < 0)
-          _exit(127);
-
-        fd_shuffle1.push_back(InjectionArc(pipe_fd[1], STDOUT_FILENO, true));
-        fd_shuffle1.push_back(InjectionArc(dev_null, STDERR_FILENO, true));
-        fd_shuffle1.push_back(InjectionArc(dev_null, STDIN_FILENO, true));
-        
-        
-
-        std::copy(fd_shuffle1.begin(), fd_shuffle1.end(),
-                  std::back_inserter(fd_shuffle2));
-
-        
-        if (!ShuffleFileDescriptors(&fd_shuffle1))
-          _exit(127);
-
-        CloseSuperfluousFds(fd_shuffle2);
-
-        for (size_t i = 0; i < argv.size(); i++)
-          argv_cstr[i] = const_cast<char*>(argv[i].c_str());
-        argv_cstr[argv.size()] = NULL;
-        execvp(argv_cstr[0], argv_cstr.get());
-        _exit(127);
-      }
-    default:  
-      {
-        
-        
-        
-        close(pipe_fd[1]);
-
-        int exit_code = EXIT_FAILURE;
-        bool success = WaitForExitCode(pid, &exit_code);
-        if (!success || exit_code != EXIT_SUCCESS) {
-          close(pipe_fd[0]);
-          return false;
-        }
-
-        char buffer[256];
-        std::string buf_output;
-
-        while (true) {
-          ssize_t bytes_read =
-              HANDLE_EINTR(read(pipe_fd[0], buffer, sizeof(buffer)));
-          if (bytes_read <= 0)
-            break;
-          buf_output.append(buffer, bytes_read);
-        }
-        output->swap(buf_output);
-        close(pipe_fd[0]);
-        return true;
-      }
-  }
 }
 
 }  
