@@ -230,6 +230,18 @@ ParseTask::~ParseTask()
 }
 
 bool
+js::OffThreadParsingMustWaitForGC(JSRuntime *rt)
+{
+    
+    
+    
+    
+    
+    
+    return rt->activeGCInAtomsZone();
+}
+
+bool
 js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &options,
                               const jschar *chars, size_t length, HandleObject scopeChain,
                               JS::OffThreadCompileCallback callback, void *callbackData)
@@ -299,13 +311,7 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
     WorkerThreadState &state = *cx->runtime()->workerThreadState;
     JS_ASSERT(state.numThreads);
 
-    
-    
-    
-    
-    
-    
-    if (cx->runtime()->activeGCInAtomsZone()) {
+    if (OffThreadParsingMustWaitForGC(cx->runtime())) {
         if (!state.parseWaitingOnGC.append(task.get()))
             return false;
     } else {
@@ -327,7 +333,7 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
 void
 js::EnqueuePendingParseTasksAfterGC(JSRuntime *rt)
 {
-    JS_ASSERT(!rt->activeGCInAtomsZone());
+    JS_ASSERT(!OffThreadParsingMustWaitForGC(rt));
 
     if (!rt->workerThreadState || rt->workerThreadState->parseWaitingOnGC.empty())
         return;
