@@ -905,6 +905,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         
         
         if (hasEnteredExitFrame()) {
+            exitCodePatch_.fixup(this);
             patchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch_),
                                     ImmPtr(code),
                                     ImmPtr((void*)-1));
