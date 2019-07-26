@@ -3570,9 +3570,10 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
   
 #ifdef MOZ_B2G
   bool playingThroughTheAudioChannel =
-     (mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
-      !mPaused &&
-      !IsPlaybackEnded());
+     (!mPaused &&
+      (HasAttr(kNameSpaceID_None, nsGkAtoms::loop) ||
+      mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
+      !IsPlaybackEnded()));
   if (playingThroughTheAudioChannel != mPlayingThroughTheAudioChannel) {
     mPlayingThroughTheAudioChannel = playingThroughTheAudioChannel;
 
