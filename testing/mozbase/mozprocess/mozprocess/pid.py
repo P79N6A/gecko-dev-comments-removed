@@ -49,7 +49,13 @@ def running_processes(name, psarg=psarg, defunct=True):
     """
     retval = []
     for process in ps(psarg):
-        command = process['COMMAND']
+        
+        
+        try:
+            command = process['COMMAND']
+        except KeyError:
+            command = process['CMD']
+
         command = shlex.split(command)
         if command[-1] == '<defunct>':
             command = command[:-1]
