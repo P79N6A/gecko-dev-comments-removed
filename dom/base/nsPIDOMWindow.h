@@ -48,8 +48,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x0c4d0b84, 0xb524, 0x4572, \
-  { 0x8e, 0xd1, 0x7f, 0x78, 0x14, 0x7c, 0x4d, 0xf1 } }
+{0x05995519, 0xde6e, 0x428c, \
+  {0x9e, 0x96, 0x61, 0xd6, 0x0f, 0x34, 0x45, 0x3e}}
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -608,19 +608,6 @@ public:
 
 
   virtual void RefreshCompartmentPrincipal() = 0;
-
-  
-
-
-
-
-  virtual bool IsPartOfApp() = 0;
-
-  
-
-
-
-  virtual bool IsInAppOrigin() = 0;
 
 protected:
   

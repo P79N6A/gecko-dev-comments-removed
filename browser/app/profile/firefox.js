@@ -1126,6 +1126,8 @@ pref("browser.panorama.animate_zoom", true);
 
 pref("browser.newtab.url", "about:newtab");
 
+pref("browser.newtab.preload", false);
+
 
 pref("browser.newtabpage.enabled", true);
 

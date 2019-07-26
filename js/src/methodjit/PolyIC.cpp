@@ -681,6 +681,14 @@ struct GetPropHelper {
             if (obj->getClass()->getProperty && obj->getClass()->getProperty != JS_PropertyStub)
                 return Lookup_Uncacheable;
 
+            
+
+
+
+
+            if (!obj->isNative())
+                return Lookup_Uncacheable;
+
 #if JS_HAS_NO_SUCH_METHOD
             
 

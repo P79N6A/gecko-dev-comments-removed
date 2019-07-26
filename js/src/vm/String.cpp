@@ -77,6 +77,8 @@ JSString::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf)
         return 0;
 
     
+    
+    
     JSFixedString &fixed = asFixed();
     return mallocSizeOf(fixed.chars());
 }

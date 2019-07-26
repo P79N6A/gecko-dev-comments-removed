@@ -1276,13 +1276,13 @@ public:
 
 
 
-  void RegisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
+  void RegisterPluginForGeometryUpdates(nsIContent* aPlugin);
   
 
 
 
 
-  void UnregisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
+  void UnregisterPluginForGeometryUpdates(nsIContent* aPlugin);
 
   
 
@@ -1386,7 +1386,7 @@ protected:
 
   nsCOMPtr<nsITimer> mNotifyDidPaintTimer;
   nsCOMPtr<nsITimer> mUpdatePluginGeometryTimer;
-  nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
+  nsTHashtable<nsRefPtrHashKey<nsIContent> > mRegisteredPlugins;
   
   
   

@@ -241,23 +241,12 @@ SafeInstallOperation.prototype = {
     }
     this._createdDirs.push(newDir);
 
-    let entries = aDirectory.directoryEntries
-                            .QueryInterface(Ci.nsIDirectoryEnumerator);
-    let cacheEntries = [];
-    try {
-      let entry;
-      while (entry = entries.nextFile)
-        cacheEntries.push(entry);
-    }
-    finally {
-      entries.close();
-    }
-
-    cacheEntries.sort(function(a, b) {
-      return a.path > b.path ? -1 : 1;
-    });
-
-    cacheEntries.forEach(function(aEntry) {
+    
+    
+    
+    
+    let entries = getDirectoryEntries(aDirectory, true);
+    entries.forEach(function(aEntry) {
       try {
         this._installDirEntry(aEntry, newDir, aCopy);
       }
@@ -1263,19 +1252,12 @@ function recursiveRemove(aFile) {
     }
   }
 
-  let entries = aFile.directoryEntries
-                     .QueryInterface(Ci.nsIDirectoryEnumerator);
-  let cacheEntries = [];
-  let entry;
-  while (entry = entries.nextFile)
-    cacheEntries.push(entry);
-  entries.close();
-
-  cacheEntries.sort(function(a, b) {
-    return a.path > b.path ? -1 : 1;
-  });
-
-  cacheEntries.forEach(recursiveRemove);
+  
+  
+  
+  
+  let entries = getDirectoryEntries(aFile, true);
+  entries.forEach(recursiveRemove);
 
   try {
     aFile.remove(true);
@@ -1312,6 +1294,39 @@ function recursiveLastModifiedTime(aFile) {
 
   
   return 0;
+}
+
+
+
+
+
+
+
+
+
+
+function getDirectoryEntries(aDir, aSortEntries) {
+  let dirEnum;
+  try {
+    dirEnum = aDir.directoryEntries.QueryInterface(Ci.nsIDirectoryEnumerator);
+    let entries = [];
+    while (dirEnum.hasMoreElements())
+      entries.push(dirEnum.nextFile);
+
+    if (aSortEntries) {
+      entries.sort(function sortDirEntries(a, b) {
+        return a.path > b.path ? -1 : 1;
+      });
+    }
+
+    return entries
+  }
+  catch (e) {
+    return null;
+  }
+  finally {
+    dirEnum.close();
+  }
 }
 
 
@@ -1925,13 +1940,26 @@ var XPIProvider = {
         return;
 
       let seenFiles = [];
-      let entries = stagingDir.directoryEntries
-                              .QueryInterface(Ci.nsIDirectoryEnumerator);
-      while (entries.hasMoreElements()) {
-        let stageDirEntry = entries.getNext().QueryInterface(Ci.nsILocalFile);
-
+      
+      
+      
+      
+      let stagingDirEntries = getDirectoryEntries(stagingDir, true);
+      for (let stageDirEntry of stagingDirEntries) {
         let id = stageDirEntry.leafName;
-        if (!stageDirEntry.isDirectory()) {
+
+        let isDir;
+        try {
+          isDir = stageDirEntry.isDirectory();
+        }
+        catch (e if e.result == Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST) {
+          
+          
+          
+          continue;
+        }
+
+        if (!isDir) {
           if (id.substring(id.length - 4).toLowerCase() == ".xpi") {
             id = id.substring(0, id.length - 4);
           }
@@ -1954,7 +1982,7 @@ var XPIProvider = {
 
         changed = true;
 
-        if (stageDirEntry.isDirectory()) {
+        if (isDir) {
           
           let manifest = stageDirEntry.clone();
           manifest.append(FILE_INSTALL_MANIFEST);
@@ -2073,7 +2101,6 @@ var XPIProvider = {
           continue;
         }
       }
-      entries.close();
 
       try {
         cleanStagingDir(stagingDir, seenFiles);
@@ -5186,6 +5213,12 @@ AddonInstall.createUpdate = function(aCallback, aAddon, aUpdate) {
 
 
 function AddonInstallWrapper(aInstall) {
+#ifdef MOZ_EM_DEBUG
+  this.__defineGetter__("__AddonInstallInternal__", function AIW_debugGetter() {
+    return aInstall;
+  });
+#endif
+
   ["name", "type", "version", "iconURL", "releaseNotesURI", "file", "state", "error",
    "progress", "maxProgress", "certificate", "certName"].forEach(function(aProp) {
     this.__defineGetter__(aProp, function() aInstall[aProp]);
@@ -5727,6 +5760,12 @@ function createWrapper(aAddon) {
 
 
 function AddonWrapper(aAddon) {
+#ifdef MOZ_EM_DEBUG
+  this.__defineGetter__("__AddonInternal__", function AW_debugGetter() {
+    return aAddon;
+  });
+#endif
+
   function chooseValue(aObj, aProp) {
     let repositoryAddon = aAddon._repositoryAddon;
     let objValue = aObj[aProp];
@@ -6272,14 +6311,11 @@ DirectoryInstallLocation.prototype = {
 
 
   _readAddons: function DirInstallLocation__readAddons() {
-    let entries = this._directory.directoryEntries
-                                 .QueryInterface(Ci.nsIDirectoryEnumerator);
-    let entry;
-    while (entry = entries.nextFile) {
-      
-      if (!(entry instanceof Ci.nsILocalFile))
-        continue;
-
+    
+    
+    
+    let entries = getDirectoryEntries(this._directory);
+    for (let entry of entries) {
       let id = entry.leafName;
 
       if (id == DIR_STAGE || id == DIR_XPI_STAGE || id == DIR_TRASH)
@@ -6319,7 +6355,6 @@ DirectoryInstallLocation.prototype = {
       this._IDToFileMap[id] = entry;
       this._FileToIDMap[entry.path] = id;
     }
-    entries.close();
   },
 
   

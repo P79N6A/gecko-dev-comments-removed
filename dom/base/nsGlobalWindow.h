@@ -74,11 +74,11 @@
 
 
 
-#define SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
+#define DEFAULT_SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
 
 
 
-#define MAX_DIALOG_COUNT 10
+#define MAX_SUCCESSIVE_DIALOG_COUNT 5
 
 
 #define MAX_IDLE_FUZZ_TIME_MS 90000
@@ -384,8 +384,6 @@ public:
   virtual NS_HIDDEN_(bool) DispatchCustomEvent(const char *aEventName);
   virtual NS_HIDDEN_(void) RefreshCompartmentPrincipal();
   virtual NS_HIDDEN_(nsresult) SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
-  virtual NS_HIDDEN_(bool) IsPartOfApp();
-  virtual NS_HIDDEN_(bool) IsInAppOrigin();
 
   
   NS_DECL_NSIDOMSTORAGEINDEXEDDB
@@ -442,20 +440,20 @@ public:
 
   
   
-  
-  bool DialogOpenAttempted();
-
-  
-  
-  bool AreDialogsBlocked();
+  bool DialogsAreBlocked(bool *aBeingAbused);
 
   
   
   
-  bool ConfirmDialogAllowed();
+  bool DialogsAreBeingAbused();
 
   
-  void PreventFurtherDialogs();
+  
+  
+  bool ConfirmDialogIfNeeded();
+
+  
+  void PreventFurtherDialogs(bool aPermanent);
 
   virtual void SetHasAudioAvailableEventListeners();
 
@@ -625,12 +623,6 @@ protected:
 
   friend class HashchangeCallback;
   friend class nsBarProp;
-
-  enum TriState {
-    TriState_Unknown = -1,
-    TriState_False,
-    TriState_True
-  };
 
   
   virtual ~nsGlobalWindow();
@@ -898,10 +890,6 @@ protected:
   nsresult CloneStorageEvent(const nsAString& aType,
                              nsCOMPtr<nsIDOMStorageEvent>& aEvent);
 
-  void SetIsApp(bool aValue);
-  nsresult SetApp(const nsAString& aManifestURL);
-  nsresult GetApp(mozIDOMApplication** aApplication);
-
   
   nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
 
@@ -976,14 +964,6 @@ protected:
 
   
   bool                   mNotifiedIDDestroyed : 1;
-
-  
-  
-  
-  TriState               mIsApp : 2;
-
-  
-  nsCOMPtr<nsIPrincipal>        mAppPrincipal;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
@@ -1064,25 +1044,31 @@ protected:
 
   
   
+  
+  
   PRUint32                      mDialogAbuseCount;
 
   
   
   
   
-  
   TimeStamp                     mLastDialogQuitTime;
-  bool                          mDialogDisabled;
+
+  
+  
+  
+  bool                          mStopAbuseDialogs;
+
+  
+  
+  
+  bool                          mDialogsPermanentlyDisabled;
 
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
   nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
 
   nsTArray<PRUint32> mEnabledSensors;
-
-  
-  
-  nsCOMPtr<mozIDOMApplication> mApp;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;

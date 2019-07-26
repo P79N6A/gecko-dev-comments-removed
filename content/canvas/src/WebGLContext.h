@@ -111,11 +111,14 @@ enum WebGLTexelFormat
     
     R8,
     A8,
+    D16, 
+    D32, 
     R32F, 
     A32F, 
     
     RA8,
     RA32F,
+    D24S8, 
     
     RGB8,
     BGRX8, 
@@ -461,6 +464,7 @@ class WebGLContext :
     friend class WebGLExtensionCompressedTextureS3TC;
     friend class WebGLContextUserData;
     friend class WebGLMemoryPressureObserver;
+    friend class WebGLExtensionDepthTexture;
 
 public:
     WebGLContext();
@@ -1147,6 +1151,7 @@ protected:
         EXT_texture_filter_anisotropic,
         WEBGL_lose_context,
         WEBGL_compressed_texture_s3tc,
+        WEBGL_depth_texture,
         WebGLExtensionID_number_of_extensions,
         WebGLExtensionID_unknown_extension
     };
@@ -2697,8 +2702,28 @@ public:
             !thisRect->Height())
             return false;
 
-        if (mTexturePtr)
-            return mAttachmentPoint == LOCAL_GL_COLOR_ATTACHMENT0;
+        if (mTexturePtr) {
+            if (!mTexturePtr->HasImageInfoAt(0, 0))
+                return false;
+
+            WebGLenum format = mTexturePtr->ImageInfoAt(0).Format();
+            switch (mAttachmentPoint)
+            {
+                case LOCAL_GL_COLOR_ATTACHMENT0:
+                    return format == LOCAL_GL_ALPHA ||
+                           format == LOCAL_GL_LUMINANCE ||
+                           format == LOCAL_GL_LUMINANCE_ALPHA ||
+                           format == LOCAL_GL_RGB ||
+                           format == LOCAL_GL_RGBA;
+                case LOCAL_GL_DEPTH_ATTACHMENT:
+                    return format == LOCAL_GL_DEPTH_COMPONENT;
+                case LOCAL_GL_DEPTH_STENCIL_ATTACHMENT:
+                    return format == LOCAL_GL_DEPTH_STENCIL;
+
+                default:
+                    MOZ_NOT_REACHED("Invalid WebGL texture format?");
+            }
+        } 
 
         if (mRenderbufferPtr) {
             WebGLenum format = mRenderbufferPtr->InternalFormat();
@@ -2943,6 +2968,9 @@ public:
         
         
         if (HasDepthStencilConflict())
+            return false;
+        
+        if (HasIncompleteAttachment())
             return false;
 
         if (!mColorAttachment.HasUninitializedRenderbuffer() &&
