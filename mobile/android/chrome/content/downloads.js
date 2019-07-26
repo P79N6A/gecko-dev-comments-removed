@@ -3,6 +3,8 @@
 
 
 
+"use strict";
+
 function dump(a) {
   Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
 }
@@ -100,7 +102,7 @@ var Downloads = {
     let alertsService = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
     let progressListener = alertsService.QueryInterface(Ci.nsIAlertsProgressListener);
     let download;
-    while (download = this._privateDownloads.pop()) {
+    while ((download = this._privateDownloads.pop())) {
       try {
         let notificationName = download.target.spec.replace("file:", "download:");
         progressListener.onCancel(notificationName);
