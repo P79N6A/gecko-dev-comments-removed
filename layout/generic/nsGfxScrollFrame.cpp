@@ -3944,6 +3944,12 @@ nsGfxScrollFrameInner::SaveState()
     return nullptr;
   }
 
+  
+  
+  if (!mHasBeenScrolled && !mDidHistoryRestore) {
+    return nullptr;
+  }
+
   nsPresState* state = new nsPresState();
   
   
