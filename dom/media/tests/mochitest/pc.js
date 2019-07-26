@@ -18,26 +18,31 @@ var PeerConnection = {
 
     function onCreateOfferSuccess(aOffer) {
       pc1_offer = aOffer;
+      info("Calling setLocalDescription on local peer connection");
       aPCLocal.setLocalDescription(aOffer, onSetLocalDescriptionSuccess1,
                                    unexpectedCallbackAndFinish);
     }
 
     function onSetLocalDescriptionSuccess1() {
+      info("Calling setRemoteDescription on remote peer connection");
       aPCRemote.setRemoteDescription(pc1_offer, onSetRemoteDescriptionSuccess1,
                                      unexpectedCallbackAndFinish);
     }
 
     function onSetRemoteDescriptionSuccess1() {
+      info("Calling createAnswer on remote peer connection");
       aPCRemote.createAnswer(onCreateAnswerSuccess, unexpectedCallbackAndFinish);
     }
 
     function onCreateAnswerSuccess(aAnswer) {
       pc2_answer = aAnswer;
+      info("Calling setLocalDescription on remote peer connection");
       aPCRemote.setLocalDescription(aAnswer, onSetLocalDescriptionSuccess2,
                                     unexpectedCallbackAndFinish);
     }
 
     function onSetLocalDescriptionSuccess2() {
+      info("Calling setRemoteDescription on local peer connection");
       aPCLocal.setRemoteDescription(pc2_answer, onSetRemoteDescriptionSuccess2,
                                     unexpectedCallbackAndFinish);
     }
@@ -46,6 +51,7 @@ var PeerConnection = {
       aSuccessCallback();
     }
 
+    info("Calling createOffer on local peer connection");
     aPCLocal.createOffer(onCreateOfferSuccess, unexpectedCallbackAndFinish);
   },
 
