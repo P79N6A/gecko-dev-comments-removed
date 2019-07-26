@@ -28,17 +28,15 @@ enum nsStyleUnit : uint8_t {
   eStyleUnit_Enumerated   = 32,     
 
   
-  
-  eStyleUnit_Calc         = 40      
+  eStyleUnit_Calc         = 40,     
                                     
+
+  eStyleUnit_MAX          = 40      
 };
 
 typedef union {
   int32_t     mInt;   
   float       mFloat;
-  
-  
-  
   
   
   void*       mPointer;
@@ -54,18 +52,34 @@ typedef union {
 
 class nsStyleCoord {
 public:
-  struct Calc {
+  
+  
+  struct CalcValue {
     
     nscoord mLength;
     float mPercent;
     bool mHasPercent; 
 
-    bool operator==(const Calc& aOther) const {
+    bool operator==(const CalcValue& aOther) const {
       return mLength == aOther.mLength &&
              mPercent == aOther.mPercent &&
              mHasPercent == aOther.mHasPercent;
     }
-    bool operator!=(const Calc& aOther) const { return !(*this == aOther); }
+    bool operator!=(const CalcValue& aOther) const {
+      return !(*this == aOther);
+    }
+  };
+
+  
+  
+  struct Calc MOZ_FINAL : public CalcValue {
+    NS_INLINE_DECL_REFCOUNTING(Calc)
+    Calc() {}
+
+  private:
+    Calc(const Calc&) MOZ_DELETE;
+    ~Calc() {}
+    Calc& operator=(const Calc&) MOZ_DELETE;
   };
 
   nsStyleCoord(nsStyleUnit aUnit = eStyleUnit_Null);
@@ -75,11 +89,13 @@ public:
   nsStyleCoord(float aValue, nsStyleUnit aUnit);
   inline nsStyleCoord(const nsStyleCoord& aCopy);
   inline nsStyleCoord(const nsStyleUnion& aValue, nsStyleUnit aUnit);
+  ~nsStyleCoord() { Reset(); }
 
   nsStyleCoord&  operator=(const nsStyleCoord& aOther)
   {
-    mUnit = aOther.mUnit;
-    mValue = aOther.mValue;
+    if (this != &aOther) {
+      SetValue(mUnit, mValue, aOther);
+    }
     return *this;
   }
   bool           operator==(const nsStyleCoord& aOther) const;
@@ -94,12 +110,20 @@ public:
     return eStyleUnit_Degree <= mUnit && mUnit <= eStyleUnit_Turn;
   }
 
+  static bool IsCalcUnit(nsStyleUnit aUnit) {
+    return aUnit == eStyleUnit_Calc;
+  }
+
+  static bool IsPointerUnit(nsStyleUnit aUnit) {
+    return IsCalcUnit(aUnit);
+  }
+
   bool IsCalcUnit() const {
-    return eStyleUnit_Calc == mUnit;
+    return IsCalcUnit(mUnit);
   }
 
   bool IsPointerValue() const {
-    return IsCalcUnit();
+    return IsPointerUnit(mUnit);
   }
 
   bool IsCoordPercentCalcUnit() const {
@@ -132,10 +156,12 @@ public:
   double      GetAngleValueInRadians() const;
   float       GetFlexFractionValue() const;
   Calc*       GetCalcValue() const;
-  void        GetUnionValue(nsStyleUnion& aValue) const;
   uint32_t    HashValue(uint32_t aHash) const;
 
-  void  Reset();  
+  
+  
+  void Reset();
+
   void  SetCoordValue(nscoord aValue);
   void  SetIntValue(int32_t aValue, nsStyleUnit aUnit);
   void  SetPercentValue(float aValue);
@@ -146,6 +172,20 @@ public:
   void  SetAutoValue();
   void  SetNoneValue();
   void  SetCalcValue(Calc* aValue);
+
+  
+  static inline void Reset(nsStyleUnit& aUnit, nsStyleUnion& aValue);
+
+  
+  
+  static inline void SetValue(nsStyleUnit& aUnit,
+                              nsStyleUnion& aValue,
+                              nsStyleUnit aOtherUnit,
+                              const nsStyleUnion& aOtherValue);
+
+  
+  static inline void SetValue(nsStyleUnit& aUnit, nsStyleUnion& aValue,
+                              const nsStyleCoord& aOther);
 
 private:
   nsStyleUnit   mUnit;
@@ -160,8 +200,10 @@ private:
 class nsStyleSides {
 public:
   nsStyleSides();
+  nsStyleSides(const nsStyleSides&);
+  ~nsStyleSides();
 
-
+  nsStyleSides&  operator=(const nsStyleSides& aCopy);
   bool           operator==(const nsStyleSides& aOther) const;
   bool           operator!=(const nsStyleSides& aOther) const;
 
@@ -177,7 +219,10 @@ public:
   inline nsStyleCoord GetRight() const;
   inline nsStyleCoord GetBottom() const;
 
-  void  Reset();
+  
+  
+  
+  void Reset();
 
   inline void Set(mozilla::css::Side aSide, const nsStyleCoord& aCoord);
   inline void SetLeft(const nsStyleCoord& aCoord);
@@ -198,9 +243,11 @@ protected:
 class nsStyleCorners {
 public:
   nsStyleCorners();
+  nsStyleCorners(const nsStyleCorners&);
+  ~nsStyleCorners();
 
   
-  
+  nsStyleCorners& operator=(const nsStyleCorners& aCopy);
   bool           operator==(const nsStyleCorners& aOther) const;
   bool           operator!=(const nsStyleCorners& aOther) const;
 
@@ -209,7 +256,10 @@ public:
 
   inline nsStyleCoord Get(uint8_t aHalfCorner) const;
 
-  void  Reset();
+  
+  
+  
+  void Reset();
 
   inline void Set(uint8_t aHalfCorner, const nsStyleCoord& aCoord);
 
@@ -228,26 +278,16 @@ inline nsStyleCoord::nsStyleCoord(nscoord aValue, CoordConstructorType)
   mValue.mInt = aValue;
 }
 
-
-
-
 inline nsStyleCoord::nsStyleCoord(const nsStyleCoord& aCopy)
-  : mUnit(aCopy.mUnit)
+  : mUnit(eStyleUnit_Null)
 {
-  if ((eStyleUnit_Percent <= mUnit) && (mUnit < eStyleUnit_Coord)) {
-    mValue.mFloat = aCopy.mValue.mFloat;
-  }
-  else if (IsPointerValue()) {
-    mValue.mPointer = aCopy.mValue.mPointer;
-  }
-  else {
-    mValue.mInt = aCopy.mValue.mInt;
-  }
+  SetValue(mUnit, mValue, aCopy);
 }
 
 inline nsStyleCoord::nsStyleCoord(const nsStyleUnion& aValue, nsStyleUnit aUnit)
-  : mUnit(aUnit), mValue(aValue)
+  : mUnit(eStyleUnit_Null)
 {
+  SetValue(mUnit, mValue, aUnit, aValue);
 }
 
 inline bool nsStyleCoord::operator!=(const nsStyleCoord& aOther) const
@@ -321,11 +361,51 @@ inline nsStyleCoord::Calc* nsStyleCoord::GetCalcValue() const
   return nullptr;
 }
 
-
-inline void nsStyleCoord::GetUnionValue(nsStyleUnion& aValue) const
+ inline void
+nsStyleCoord::Reset(nsStyleUnit& aUnit, nsStyleUnion& aValue)
 {
-  aValue = mValue;
+  MOZ_ASSERT(aUnit <= eStyleUnit_MAX,
+             "calling Reset on uninitialized nsStyleCoord?");
+
+  switch (aUnit) {
+    case eStyleUnit_Calc:
+      static_cast<Calc*>(aValue.mPointer)->Release();
+      break;
+    default:
+      MOZ_ASSERT(!IsPointerUnit(aUnit), "check pointer refcounting logic");
+  }
+
+  aUnit = eStyleUnit_Null;
+  aValue.mInt = 0;
 }
+
+ inline void
+nsStyleCoord::SetValue(nsStyleUnit& aUnit,
+                       nsStyleUnion& aValue,
+                       nsStyleUnit aOtherUnit,
+                       const nsStyleUnion& aOtherValue)
+{
+  Reset(aUnit, aValue);
+
+  aUnit = aOtherUnit;
+  aValue = aOtherValue;
+
+  switch (aUnit) {
+    case eStyleUnit_Calc:
+      static_cast<Calc*>(aValue.mPointer)->AddRef();
+      break;
+    default:
+      MOZ_ASSERT(!IsPointerUnit(aUnit), "check pointer refcounting logic");
+  }
+}
+
+ inline void
+nsStyleCoord::SetValue(nsStyleUnit& aUnit, nsStyleUnion& aValue,
+                       const nsStyleCoord& aOther)
+{
+  SetValue(aUnit, aValue, aOther.mUnit, aOther.mValue);
+}
+
 
 
 
@@ -387,8 +467,7 @@ inline nsStyleCoord nsStyleSides::GetBottom() const
 
 inline void nsStyleSides::Set(mozilla::css::Side aSide, const nsStyleCoord& aCoord)
 {
-  mUnits[aSide] = aCoord.GetUnit();
-  aCoord.GetUnionValue(mValues[aSide]);
+  nsStyleCoord::SetValue(mUnits[aSide], mValues[aSide], aCoord);
 }
 
 inline void nsStyleSides::SetLeft(const nsStyleCoord& aCoord)
@@ -431,8 +510,7 @@ inline nsStyleCoord nsStyleCorners::Get(uint8_t aCorner) const
 
 inline void nsStyleCorners::Set(uint8_t aCorner, const nsStyleCoord& aCoord)
 {
-  mUnits[aCorner] = aCoord.GetUnit();
-  aCoord.GetUnionValue(mValues[aCorner]);
+  nsStyleCoord::SetValue(mUnits[aCorner], mValues[aCorner], aCoord);
 }
 
 #endif 
