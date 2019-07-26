@@ -110,40 +110,48 @@ this.DOMApplicationRegistry = {
           this.webapps = aData;
           let appDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], false);
           for (let id in this.webapps) {
+            let app = this.webapps[id];
 
-            this.webapps[id].id = id;
-
-            
-            if (this.webapps[id].localId === undefined) {
-              this.webapps[id].localId = this._nextLocalId();
-            }
-
-            if (this.webapps[id].basePath === undefined) {
-              this.webapps[id].basePath = appDir.path;
-            }
+            app.id = id;
 
             
-            if (this.webapps[id].removable === undefined) {
-              this.webapps[id].removable = true;
+            if (app.localId === undefined) {
+              app.localId = this._nextLocalId();
+            }
+
+            if (app.basePath === undefined) {
+              app.basePath = appDir.path;
             }
 
             
-            if (this.webapps[id].appStatus === undefined) {
-              this.webapps[id].appStatus = Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+            if (app.removable === undefined) {
+              app.removable = true;
             }
 
             
-            if (this.webapps[id].installerAppId === undefined) {
-              this.webapps[id].installerAppId = Ci.nsIScriptSecurityManager.NO_APP_ID;
-            }
-            if (this.webapps[id].installerIsBrowser === undefined) {
-              this.webapps[id].installerIsBrowser = false;
+            if (app.appStatus === undefined) {
+              app.appStatus = Ci.nsIPrincipal.APP_STATUS_INSTALLED;
             }
 
             
-            if (this.webapps[id].installState === undefined) {
-              this.webapps[id].installState = "installed";
+            if (app.installerAppId === undefined) {
+              app.installerAppId = Ci.nsIScriptSecurityManager.NO_APP_ID;
             }
+            if (app.installerIsBrowser === undefined) {
+              app.installerIsBrowser = false;
+            }
+
+            
+            
+            if (app.installState === undefined ||
+                app.installState === "updating") {
+              app.installState = "installed";
+            }
+
+            
+            
+            app.downloading = false;
+            app.readyToApplyDownload = false;
           };
         }
         aNext();
