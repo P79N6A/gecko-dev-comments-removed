@@ -2304,8 +2304,10 @@ WifiWorker.prototype = {
       
       for (let net in networks) {
         let network = networks[net];
+        delete networks[net];
+
         if (!network.ssid) {
-          delete networks[net]; 
+          WifiManager.removeNetwork(network.netId, function() {});
           continue;
         }
 
@@ -2313,8 +2315,11 @@ WifiWorker.prototype = {
           this._highestPriority = network.priority;
 
         let networkKey = getNetworkKey(network);
+        
+        if (networks[networkKey]) {
+          WifiManager.removeNetwork(networks[networkKey].netId, function() {});
+        }
         networks[networkKey] = network;
-        delete networks[net];
       }
 
       this.configuredNetworks = networks;
