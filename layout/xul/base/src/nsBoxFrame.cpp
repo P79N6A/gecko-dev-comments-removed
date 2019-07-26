@@ -2080,8 +2080,8 @@ bool
 nsBoxFrame::GetEventPoint(WidgetGUIEvent* aEvent, nsIntPoint &aPoint) {
   NS_ENSURE_TRUE(aEvent, false);
 
-  if (aEvent->eventStructType == NS_TOUCH_EVENT) {
-    WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
+  WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent();
+  if (touchEvent) {
     
     
     if (touchEvent->touches.Length() != 1) {

@@ -1619,8 +1619,7 @@ nsEventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
     
     
     *aStatus = nsEventStatus_eConsumeNoDefault;
-    WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
-    return remote->SendRealTouchEvent(*touchEvent);
+    return remote->SendRealTouchEvent(*aEvent->AsTouchEvent());
   }
   default: {
     MOZ_CRASH("Attempt to send non-whitelisted event?");
@@ -1736,8 +1735,8 @@ nsEventStateManager::HandleCrossProcessEvent(WidgetEvent* aEvent,
     
     
     
-    WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
-    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
+    const nsTArray< nsRefPtr<Touch> >& touches =
+      aEvent->AsTouchEvent()->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       Touch* touch = touches[i];
       
