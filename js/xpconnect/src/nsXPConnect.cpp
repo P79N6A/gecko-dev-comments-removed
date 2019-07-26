@@ -96,10 +96,15 @@ nsXPConnect::nsXPConnect()
 nsXPConnect::~nsXPConnect()
 {
     mRuntime->DeleteJunkScope();
+    mRuntime->DestroyJSContextStack();
 
     
     
-    mRuntime->DestroyJSContextStack();
+    
+    
+    
+    
+    JS_GC(mRuntime->Runtime());
 
     mShuttingDown = true;
     XPCWrappedNativeScope::SystemIsBeingShutDown();
