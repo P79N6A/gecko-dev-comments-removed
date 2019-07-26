@@ -36,7 +36,7 @@ var FindHandler = {
     }
 
     if (findResult == Ci.nsITypeAheadFind.FIND_NOTFOUND) {
-      sendAsyncMessage("FindAssist:Show", { rect: null , result: findResult });
+      sendAsyncMessage("FindAssist:Show", { rect: null, result: findResult });
       return;
     }
 
@@ -57,30 +57,28 @@ var FindHandler = {
       }
     }
 
-    let scroll = ContentScroll.getScrollOffset(content);
+    
+    
+
+    let offset = ContentScroll.getScrollOffset(content);
     for (let frame = this._fastFind.currentWindow; frame != content; frame = frame.parent) {
       let rect = frame.frameElement.getBoundingClientRect();
       let left = frame.getComputedStyle(frame.frameElement, "").borderLeftWidth;
       let top = frame.getComputedStyle(frame.frameElement, "").borderTopWidth;
-      scroll.add(rect.left + parseInt(left), rect.top + parseInt(top));
+      offset.add(rect.left + parseInt(left), rect.top + parseInt(top));
     }
 
     let rangeRect = selection.getRangeAt(0).getBoundingClientRect();
-    let rect = new Rect(scroll.x + rangeRect.left, scroll.y + rangeRect.top, rangeRect.width, rangeRect.height);
-
-    let aNewViewHeight = content.innerHeight - Services.metro.keyboardHeight;
-
-    let position = Util.centerElementInView(aNewViewHeight, rangeRect);
-    if (position !== undefined) {
-      sendAsyncMessage("Content:RepositionInfoResponse", {
-        reposition: true,
-        raiseContent: position,
-      });
-    }
+    let rect = new Rect(offset.x + rangeRect.left, offset.y + rangeRect.top, 
+                        rangeRect.width, rangeRect.height);
 
     
     let timer = new Util.Timeout(function() {
-      sendAsyncMessage("FindAssist:Show", { rect: rect.isEmpty() ? null: rect , result: findResult });
+      sendAsyncMessage("FindAssist:Show", {
+        rect: rect.isEmpty() ? null: rect,
+        contentHeight: content.document.documentElement.scrollHeight,
+        result: findResult
+      });
     });
     timer.once(0);
   }

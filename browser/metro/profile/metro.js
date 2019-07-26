@@ -194,9 +194,6 @@ pref("browser.helperApps.deleteTempFileOnExit", false);
 pref("signon.rememberSignons", true);
 
 
-pref("findhelper.autozoom", true);
-
-
 
 
 

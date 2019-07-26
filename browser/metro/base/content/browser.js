@@ -782,33 +782,6 @@ var Browser = {
   },
 
   
-  _getZoomLevelForRect: function _getZoomLevelForRect(rect) {
-    const margin = 15;
-    return this.selectedTab.clampZoomLevel(ContentAreaObserver.width / (rect.width + margin * 2));
-  },
-
-  
-
-
-
-  _getZoomRectForPoint: function _getZoomRectForPoint(x, y, zoomLevel) {
-    let browser = getBrowser();
-    x = x * browser.scale;
-    y = y * browser.scale;
-
-    zoomLevel = Math.min(ZoomManager.MAX, zoomLevel);
-    let oldScale = browser.scale;
-    let zoomRatio = zoomLevel / oldScale;
-    let browserRect = browser.getBoundingClientRect();
-    let newVisW = browserRect.width / zoomRatio, newVisH = browserRect.height / zoomRatio;
-    let result = new Rect(x - newVisW / 2, y - newVisH / 2, newVisW, newVisH);
-
-    
-    return result.translateInside(new Rect(0, 0, browser.contentDocumentWidth * oldScale,
-                                                 browser.contentDocumentHeight * oldScale));
-  },
-
-  
 
 
 
@@ -1494,14 +1467,6 @@ Tab.prototype = {
 
       Elements.browsers.removeChild(notification);
     }
-  },
-
-  
-
-
-
-  clampZoomLevel: function clampZoomLevel(aScale) {
-    return Util.clamp(aScale, ZoomManager.MIN, ZoomManager.MAX);
   },
 
   updateThumbnail: function updateThumbnail() {
