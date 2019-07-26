@@ -883,7 +883,7 @@ let CustomizableUIInternal = {
     }
     let nextNode = null;
     if (aNextNodeId) {
-      nextNode = aAreaNode.customizationTarget.querySelector(idToSelector(aNextNodeId));
+      nextNode = aAreaNode.customizationTarget.getElementsByAttribute("id", aNextNodeId)[0];
     }
     return [aAreaNode.customizationTarget, nextNode];
   },
@@ -1004,7 +1004,7 @@ let CustomizableUIInternal = {
       if (toolbox.palette) {
         
         
-        let node = toolbox.palette.querySelector(idToSelector(aId));
+        let node = toolbox.palette.getElementsByAttribute("id", aId)[0];
         if (node) {
           
           
@@ -1881,7 +1881,7 @@ let CustomizableUIInternal = {
         windowCache.delete(aWidgetId);
       }
       let widgetNode = window.document.getElementById(aWidgetId) ||
-                       window.gNavToolbox.palette.querySelector(idToSelector(aWidgetId));
+                       window.gNavToolbox.palette.getElementsByAttribute("id", aWidgetId)[0];
       if (widgetNode) {
         widgetNode.remove();
       }
@@ -2014,7 +2014,7 @@ let CustomizableUIInternal = {
     if (!container.length) {
       return false;
     }
-    let existingNode = container[0].querySelector(idToSelector(aWidgetId));
+    let existingNode = container[0].getElementsByAttribute("id", aWidgetId)[0];
     if (existingNode) {
       return true;
     }
@@ -2058,7 +2058,7 @@ let CustomizableUIInternal = {
           
           currentPlacements = [...currentPlacements];
           currentPlacements = currentPlacements.filter((item) => {
-            let itemNode = container.querySelector(idToSelector(item));
+            let itemNode = container.getElementsByAttribute("id", item)[0];
             return itemNode && removableOrDefault(itemNode || item);
           });
         }
@@ -2972,7 +2972,7 @@ function XULWidgetGroupWrapper(aWidgetId) {
     if (!instance) {
       
       
-      instance = aWindow.gNavToolbox.palette.querySelector(idToSelector(aWidgetId));
+      instance = aWindow.gNavToolbox.palette.getElementsByAttribute("id", aWidgetId)[0];
     }
 
     let wrapper = new XULWidgetSingleWrapper(aWidgetId, instance);
@@ -3222,7 +3222,7 @@ OverflowableToolbar.prototype = {
       }
       let inserted = false;
       for (; beforeNodeIndex < placements.length; beforeNodeIndex++) {
-        let beforeNode = this._target.querySelector(idToSelector(placements[beforeNodeIndex]));
+        let beforeNode = this._target.getElementsByAttribute("id", placements[beforeNodeIndex])[0];
         if (beforeNode) {
           this._target.insertBefore(child, beforeNode);
           inserted = true;
@@ -3355,7 +3355,7 @@ OverflowableToolbar.prototype = {
       return [this._list, null];
     }
 
-    let nextNode = this._list.querySelector(idToSelector(aNextNodeId));
+    let nextNode = this._list.getElementsByAttribute("id", aNextNodeId)[0];
     
     
     
@@ -3372,10 +3372,5 @@ OverflowableToolbar.prototype = {
     return this._target;
   },
 };
-
-
-function idToSelector(aId) {
-  return "#" + aId.replace(/[ !"'#$%&\(\)*+\-,.\/:;<=>?@\[\\\]^`{|}~]/g, '\\$&');
-}
 
 CustomizableUIInternal.initialize();
