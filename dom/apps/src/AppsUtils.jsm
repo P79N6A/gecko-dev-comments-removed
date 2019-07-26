@@ -147,15 +147,8 @@ this.AppsUtils = {
 
 
 
-  checkManifest: function(aManifest, aInstallOrigin) {
+  checkManifest: function(aManifest) {
     if (aManifest.name == undefined)
-      return false;
-
-    function cbCheckAllowedOrigin(aOrigin) {
-      return aOrigin == "*" || aOrigin == aInstallOrigin;
-    }
-
-    if (aManifest.installs_allowed_from && !aManifest.installs_allowed_from.some(cbCheckAllowedOrigin))
       return false;
 
     function isAbsolute(uri) {
@@ -189,6 +182,24 @@ this.AppsUtils = {
     }
 
     return true;
+  },
+
+  
+
+
+
+
+
+  checkInstallAllowed: function checkInstallAllowed(aManifest, aInstallOrigin) {
+    if (!aManifest.installs_allowed_from) {
+      return true;
+    }
+
+    function cbCheckAllowedOrigin(aOrigin) {
+      return aOrigin == "*" || aOrigin == aInstallOrigin;
+    }
+
+    return aManifest.installs_allowed_from.some(cbCheckAllowedOrigin);
   },
 
   
