@@ -15,6 +15,17 @@ const SETTINGS_WIFI_ENABLED = "wifi.enabled";
 
 let gLoggingEnabled = false;
 
+
+
+
+
+
+
+
+
+
+
+
 let gLocationRequestTimeout = 5000;
 
 let gWifiScanningEnabled = true;
@@ -68,7 +79,7 @@ function WifiGeoPositionProvider() {
   } catch (e) {}
 
   this.wifiService = null;
-  this.timeoutTimer = null;
+  this.timer = null;
   this.started = false;
 }
 
@@ -94,6 +105,18 @@ WifiGeoPositionProvider.prototype = {
       }
     } catch (e) {
     }
+  },
+
+  resetTimer: function() {
+    if (this.timer) {
+      this.timer.cancel();
+      this.timer = null;
+    }
+    
+    this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this.timer.initWithCallback(this,
+                                gLocationRequestTimeout,
+                                this.timer.TYPE_REPEATING_SLACK);
   },
 
   startup:  function() {
@@ -141,12 +164,7 @@ WifiGeoPositionProvider.prototype = {
       this.wifiService.startWatching(this);
     }
 
-    if (!this.timeoutTimer) {
-      this.timeoutTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this.timeoutTimer.initWithCallback(this,
-                                         gLocationRequestTimeout,
-                                         this.timeoutTimer.TYPE_REPEATING_SLACK);
-    }
+    this.resetTimer();
     LOG("startup called.");
   },
 
@@ -160,9 +178,9 @@ WifiGeoPositionProvider.prototype = {
       return;
     }
 
-    if (this.timeoutTimer) {
-      this.timeoutTimer.cancel();
-      this.timeoutTimer = null;
+    if (this.timer) {
+      this.timer.cancel();
+      this.timer = null;
     }
 
     if(this.wifiService) {
@@ -180,6 +198,10 @@ WifiGeoPositionProvider.prototype = {
   },
 
   onChange: function(accessPoints) {
+
+    
+    this.resetTimer();
+
     function isPublic(ap) {
       let mask = "_nomap"
       let result = ap.ssid.indexOf(mask, ap.ssid.length - mask.length);
@@ -237,13 +259,8 @@ WifiGeoPositionProvider.prototype = {
     }
   },
 
-  notify: function (timeoutTimer) {
-    
-    
-    
-    if (gWifiScanningEnabled == false) {
-        this.sendLocationRequest(null);
-    }
+  notify: function (timer) {
+    this.sendLocationRequest(null);
   },
 
   sendLocationRequest: function (wifiData) {
