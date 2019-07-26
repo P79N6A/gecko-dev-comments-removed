@@ -2587,6 +2587,7 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
     
     Rooted<PropertyDescriptor> newDesc(cx);
     newDesc.value().set(vp);
+    newDesc.setAttributes(JSPROP_ENUMERATE);
     return handler->defineProperty(cx, receiver, id, &newDesc);
 }
 
