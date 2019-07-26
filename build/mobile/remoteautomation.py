@@ -15,7 +15,8 @@ import mozcrash
 
 
 fennecLogcatFilters = [ "The character encoding of the HTML document was not declared",
-                           "Use of Mutation Events is deprecated. Use MutationObserver instead." ]
+                        "Use of Mutation Events is deprecated. Use MutationObserver instead.",
+                        "Unexpected value from nativeGetEnabledTags: 0" ]
 
 class RemoteAutomation(Automation):
     _devicemanager = None
