@@ -139,6 +139,8 @@ nsGonkCameraControl::Initialize()
 
   
   mParams.Set(CAMERA_PARAM_PREVIEWFORMAT, NS_LITERAL_STRING("yuv420sp"));
+  
+  mParams.Set(CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE, false);
   PushParametersImpl();
 
   
