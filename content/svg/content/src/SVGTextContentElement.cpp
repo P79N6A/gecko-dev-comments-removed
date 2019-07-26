@@ -55,38 +55,16 @@ SVGTextContentElement::FrameIsSVGText()
   return frame && frame->IsSVGText();
 }
 
-nsSVGElement::EnumAttributesInfo
-SVGTextContentElement::GetEnumInfo()
-{
-  
-  
-  
-  
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
-                            ArrayLength(sEnumInfo));
-}
-
-nsSVGElement::LengthAttributesInfo
-SVGTextContentElement::GetLengthInfo()
-{
-  
-  
-  
-  
-  return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
-}
-
 already_AddRefed<SVGAnimatedLength>
 SVGTextContentElement::TextLength()
 {
-  return mLengthAttributes[TEXTLENGTH].ToDOMAnimatedLength(this);
+  return LengthAttributes()[TEXTLENGTH].ToDOMAnimatedLength(this);
 }
 
 already_AddRefed<SVGAnimatedEnumeration>
 SVGTextContentElement::LengthAdjust()
 {
-  return mEnumAttributes[LENGTHADJUST].ToDOMAnimatedEnum(this);
+  return EnumAttributes()[LENGTHADJUST].ToDOMAnimatedEnum(this);
 }
 
 

@@ -23,9 +23,12 @@ SVGTextPathElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
   return SVGTextPathElementBinding::Wrap(aCx, aScope, this);
 }
 
-nsSVGElement::LengthInfo SVGTextPathElement::sLengthInfo[1] =
+nsSVGElement::LengthInfo SVGTextPathElement::sLengthInfo[2] =
 {
-  { &nsGkAtoms::startOffset, 0, nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::X },
+  
+  { &nsGkAtoms::textLength, 0, nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::XY },
+  
+  { &nsGkAtoms::startOffset, 0, nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER, SVGContentUtils::X }
 };
 
 nsSVGEnumMapping SVGTextPathElement::sMethodMap[] = {
@@ -40,8 +43,14 @@ nsSVGEnumMapping SVGTextPathElement::sSpacingMap[] = {
   {nullptr, 0}
 };
 
-nsSVGElement::EnumInfo SVGTextPathElement::sEnumInfo[2] =
+nsSVGElement::EnumInfo SVGTextPathElement::sEnumInfo[3] =
 {
+  
+  { &nsGkAtoms::lengthAdjust,
+    sLengthAdjustMap,
+    SVG_LENGTHADJUST_SPACING
+  },
+  
   { &nsGkAtoms::method,
     sMethodMap,
     TEXTPATH_METHODTYPE_ALIGN
