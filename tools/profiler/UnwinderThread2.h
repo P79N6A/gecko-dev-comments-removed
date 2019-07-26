@@ -9,6 +9,11 @@
 #include "GeckoProfilerImpl.h"
 #include "ProfileEntry.h"
 
+#include "PlatformMacros.h"
+#if defined(SPS_OS_android) || defined(SPS_OS_linux)
+# include "LulMain.h"
+#endif
+
 
 
 
@@ -88,5 +93,12 @@ void utb__release_sync_buffer(LinkedUWTBuffer* utb);
 
 
 typedef void (*UTB_RELEASE_FUNC)(ThreadProfile*,UnwinderThreadBuffer*,void*);
+
+#if defined(SPS_OS_android) || defined(SPS_OS_linux)
+
+
+
+void read_procmaps(lul::LUL* aLUL);
+#endif
 
 #endif 

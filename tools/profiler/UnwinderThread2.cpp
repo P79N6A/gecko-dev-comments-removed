@@ -21,27 +21,28 @@
 # define VALGRIND_MAKE_MEM_UNDEFINED(_addr,_len) ((void)0)
 #endif
 
+#include "prenv.h"
 #include "mozilla/arm.h"
+#include "mozilla/DebugOnly.h"
 #include <stdint.h>
 #include "PlatformMacros.h"
 
 #include "platform.h"
 #include <ostream>
+#include <string>
 
 #include "ProfileEntry.h"
 #include "SyncProfile.h"
+#include "AutoObjectMapper.h"
 #include "UnwinderThread2.h"
 
 #if !defined(SPS_OS_windows)
-# include <sys/time.h>
-# include <unistd.h>
-# include <pthread.h>
-  
 # include <sys/mman.h>
 #endif
 
 #if defined(SPS_OS_android) || defined(SPS_OS_linux)
 # include <ucontext.h>
+# include "LulMain.h"
 #endif
 
 #include "shared-libraries.h"
@@ -59,7 +60,12 @@
 
 
 
-#if defined(SPS_OS_windows)
+
+#define MAX_NATIVE_FRAMES 256
+
+
+
+#if defined(SPS_OS_windows) || defined(SPS_OS_darwin)
 
 
 
@@ -148,7 +154,8 @@ static void thread_register_for_profiling ( void* stackTop );
 static void thread_unregister_for_profiling();
 
 
-static void do_breakpad_unwind_Buffer_free_singletons();
+
+static void empty_buffer_queue();
 
 
 static LinkedUWTBuffer* acquire_sync_buffer(void* stackTop);
@@ -183,6 +190,24 @@ static void utb_add_prof_ent(UnwinderThreadBuffer* utb, ProfileEntry ent);
 static void do_MBAR();
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+static pthread_mutex_t sLULmutex = PTHREAD_MUTEX_INITIALIZER;
+static lul::LUL*       sLUL      = nullptr;
+static int             sLULcount = 0;
+
+
 void uwt__init()
 {
   
@@ -204,7 +229,7 @@ void uwt__stop()
 
 void uwt__deinit()
 {
-  do_breakpad_unwind_Buffer_free_singletons();
+  empty_buffer_queue();
 }
 
 void uwt__register_thread_for_profiling(void* stackTop)
@@ -317,10 +342,6 @@ typedef  struct { uintptr_t val; }  SpinLock;
 
 
 
-#define N_STACK_BYTES 32768
-
-
-
 
 #define N_FIXED_PROF_ENTS 20
 
@@ -367,11 +388,9 @@ struct _UnwinderThreadBuffer {
   bool           haveNativeInfo;
   
 
-  ArchRegs       regs;
-  unsigned char  stackImg[N_STACK_BYTES];
-  unsigned int   stackImgUsed;
-  void*          stackImgAddr; 
-  void*          stackMaxSafe; 
+  lul::UnwindRegs startRegs;
+  lul::StackImage stackImg;
+  void* stackMaxSafe; 
 };
 
 
@@ -437,14 +456,14 @@ static uintptr_t g_stats_thrUnregd    = 0;
 
 
 
-
 typedef  struct { u_int64_t pc; u_int64_t sp; }  PCandSP;
 
+
 static
-void do_breakpad_unwind_Buffer(PCandSP** pairs,
-                               unsigned int* nPairs,
-                               UnwinderThreadBuffer* buff,
-                               int buffNo );
+void do_lul_unwind_Buffer(PCandSP** pairs,
+                          unsigned int* nPairs,
+                          UnwinderThreadBuffer* buff,
+                          int buffNo );
 
 static bool is_page_aligned(void* v)
 {
@@ -541,6 +560,27 @@ static void atomic_INC(uintptr_t* loc)
     if (ok) break;
   }
 }
+
+
+static void empty_buffer_queue()
+{
+  spinLock_acquire(&g_spinLock);
+
+  UnwinderThreadBuffer** tmp_g_buffers = g_buffers;
+  g_stackLimitsUsed = 0;
+  g_seqNo = 0;
+  g_buffers = nullptr;
+
+  spinLock_release(&g_spinLock);
+
+  
+  free(tmp_g_buffers);
+
+  
+  
+  
+}
+
 
 
 
@@ -721,12 +761,12 @@ static void show_registered_threads()
 static void init_empty_buffer(UnwinderThreadBuffer* buff, void* stackTop)
 {
   
-  buff->aProfile       = nullptr;
-  buff->entsUsed       = 0;
-  buff->haveNativeInfo = false;
-  buff->stackImgUsed   = 0;
-  buff->stackImgAddr   = 0;
-  buff->stackMaxSafe   = stackTop; 
+  buff->aProfile            = nullptr;
+  buff->entsUsed            = 0;
+  buff->haveNativeInfo      = false;
+  buff->stackImg.mLen       = 0;
+  buff->stackImg.mStartAvma = 0;
+  buff->stackMaxSafe        = stackTop; 
 
   for (size_t i = 0; i < N_PROF_ENT_PAGES; i++)
     buff->entsPages[i] = ProfEntsPage_INVALID;
@@ -869,9 +909,9 @@ static void fill_buffer(ThreadProfile* aProfile,
 #   if defined(SPS_PLAT_amd64_linux)
     ucontext_t* uc = (ucontext_t*)ucV;
     mcontext_t* mc = &(uc->uc_mcontext);
-    buff->regs.rip = mc->gregs[REG_RIP];
-    buff->regs.rsp = mc->gregs[REG_RSP];
-    buff->regs.rbp = mc->gregs[REG_RBP];
+    buff->startRegs.xip = lul::TaggedUWord(mc->gregs[REG_RIP]);
+    buff->startRegs.xsp = lul::TaggedUWord(mc->gregs[REG_RSP]);
+    buff->startRegs.xbp = lul::TaggedUWord(mc->gregs[REG_RBP]);
 #   elif defined(SPS_PLAT_amd64_darwin)
     ucontext_t* uc = (ucontext_t*)ucV;
     struct __darwin_mcontext64* mc = uc->uc_mcontext;
@@ -882,18 +922,18 @@ static void fill_buffer(ThreadProfile* aProfile,
 #   elif defined(SPS_PLAT_arm_android)
     ucontext_t* uc = (ucontext_t*)ucV;
     mcontext_t* mc = &(uc->uc_mcontext);
-    buff->regs.r15 = mc->arm_pc; 
-    buff->regs.r14 = mc->arm_lr; 
-    buff->regs.r13 = mc->arm_sp; 
-    buff->regs.r12 = mc->arm_ip; 
-    buff->regs.r11 = mc->arm_fp; 
-    buff->regs.r7  = mc->arm_r7; 
+    buff->startRegs.r15 = lul::TaggedUWord(mc->arm_pc);
+    buff->startRegs.r14 = lul::TaggedUWord(mc->arm_lr);
+    buff->startRegs.r13 = lul::TaggedUWord(mc->arm_sp);
+    buff->startRegs.r12 = lul::TaggedUWord(mc->arm_ip);
+    buff->startRegs.r11 = lul::TaggedUWord(mc->arm_fp);
+    buff->startRegs.r7  = lul::TaggedUWord(mc->arm_r7);
 #   elif defined(SPS_PLAT_x86_linux) || defined(SPS_PLAT_x86_android)
     ucontext_t* uc = (ucontext_t*)ucV;
     mcontext_t* mc = &(uc->uc_mcontext);
-    buff->regs.eip = mc->gregs[REG_EIP];
-    buff->regs.esp = mc->gregs[REG_ESP];
-    buff->regs.ebp = mc->gregs[REG_EBP];
+    buff->startRegs.xip = lul::TaggedUWord(mc->gregs[REG_EIP]);
+    buff->startRegs.xsp = lul::TaggedUWord(mc->gregs[REG_ESP]);
+    buff->startRegs.xbp = lul::TaggedUWord(mc->gregs[REG_EBP]);
 #   elif defined(SPS_PLAT_x86_darwin)
     ucontext_t* uc = (ucontext_t*)ucV;
     struct __darwin_mcontext32* mc = uc->uc_mcontext;
@@ -908,17 +948,19 @@ static void fill_buffer(ThreadProfile* aProfile,
     
 
 
+
+
     { 
 #     if defined(SPS_PLAT_amd64_linux) || defined(SPS_PLAT_amd64_darwin)
       uintptr_t rEDZONE_SIZE = 128;
-      uintptr_t start = buff->regs.rsp - rEDZONE_SIZE;
+      uintptr_t start = buff->startRegs.xsp.Value() - rEDZONE_SIZE;
 #     elif defined(SPS_PLAT_arm_android)
       uintptr_t rEDZONE_SIZE = 0;
-      uintptr_t start = buff->regs.r13 - rEDZONE_SIZE;
+      uintptr_t start = buff->startRegs.r13.Value() - rEDZONE_SIZE;
 #     elif defined(SPS_PLAT_x86_linux) || defined(SPS_PLAT_x86_darwin) \
            || defined(SPS_PLAT_x86_android)
       uintptr_t rEDZONE_SIZE = 0;
-      uintptr_t start = buff->regs.esp - rEDZONE_SIZE;
+      uintptr_t start = buff->startRegs.xsp.Value() - rEDZONE_SIZE;
 #     else
 #       error "Unknown plat"
 #     endif
@@ -929,15 +971,15 @@ static void fill_buffer(ThreadProfile* aProfile,
       uintptr_t nToCopy = 0;
       if (start < end) {
         nToCopy = end - start;
-        if (nToCopy > N_STACK_BYTES)
-          nToCopy = N_STACK_BYTES;
+        if (nToCopy > lul::N_STACK_BYTES)
+          nToCopy = lul::N_STACK_BYTES;
       }
-      MOZ_ASSERT(nToCopy <= N_STACK_BYTES);
-      buff->stackImgUsed = nToCopy;
-      buff->stackImgAddr = (void*)start;
+      MOZ_ASSERT(nToCopy <= lul::N_STACK_BYTES);
+      buff->stackImg.mLen       = nToCopy;
+      buff->stackImg.mStartAvma = start;
       if (nToCopy > 0) {
-        memcpy(&buff->stackImg[0], (void*)start, nToCopy);
-        (void)VALGRIND_MAKE_MEM_DEFINED(&buff->stackImg[0], nToCopy);
+        memcpy(&buff->stackImg.mContents[0], (void*)start, nToCopy);
+        (void)VALGRIND_MAKE_MEM_DEFINED(&buff->stackImg.mContents[0], nToCopy);
       }
     }
   } 
@@ -1142,7 +1184,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
         MOZ_ASSERT(buff->haveNativeInfo);
         PCandSP* pairs = nullptr;
         unsigned int nPairs = 0;
-        do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
+        do_lul_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
         buff->aProfile->addTag( ProfileEntry('s', "(root)") );
         for (unsigned int i = 0; i < nPairs; i++) {
           
@@ -1212,7 +1254,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
     
     PCandSP* pairs = nullptr;
     unsigned int n_pairs = 0;
-    do_breakpad_unwind_Buffer(&pairs, &n_pairs, buff, oldest_ix);
+    do_lul_unwind_Buffer(&pairs, &n_pairs, buff, oldest_ix);
 
     
     for (k = 0; k < ix_first_hP; k++) {
@@ -1365,7 +1407,7 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
       MOZ_ASSERT(buff->haveNativeInfo);
       PCandSP* pairs = nullptr;
       unsigned int nPairs = 0;
-      do_breakpad_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
+      do_lul_unwind_Buffer(&pairs, &nPairs, buff, oldest_ix);
       buff->aProfile->addTag( ProfileEntry('s', "(root)") );
       for (unsigned int i = 0; i < nPairs; i++) {
         buff->aProfile
@@ -1384,15 +1426,150 @@ static void process_buffer(UnwinderThreadBuffer* buff, int oldest_ix)
 }
 
 
+
+
+
+void
+read_procmaps(lul::LUL* aLUL)
+{
+  MOZ_ASSERT(aLUL->CountMappings() == 0);
+
+# if defined(SPS_OS_linux) || defined(SPS_OS_android) || defined(SPS_OS_darwin)
+  SharedLibraryInfo info = SharedLibraryInfo::GetInfoForSelf();
+
+  for (size_t i = 0; i < info.GetSize(); i++) {
+    const SharedLibrary& lib = info.GetEntry(i);
+
+#if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
+    
+    AutoObjectMapperFaultyLib mapper(aLUL->mLog);
+#else
+    
+    AutoObjectMapperPOSIX mapper(aLUL->mLog);
+#endif
+
+    
+    
+    void*  image = nullptr;
+    size_t size  = 0;
+    bool ok = mapper.Map(&image, &size, lib.GetName());
+    if (ok && image && size > 0) {
+      aLUL->NotifyAfterMap(lib.GetStart(), lib.GetEnd()-lib.GetStart(),
+                           lib.GetName().c_str(), image);
+    } else if (!ok && lib.GetName() == "") {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      aLUL->NotifyExecutableArea(lib.GetStart(), lib.GetEnd()-lib.GetStart());
+    }
+
+    
+    
+  }
+
+# else
+#  error "Unknown platform"
+# endif
+}
+
+
+static void
+logging_sink_for_LUL(const char* str) {
+  
+  size_t n = strlen(str);
+  if (n > 0 && str[n-1] == '\n') {
+    char* tmp = strdup(str);
+    tmp[n-1] = 0;
+    LOG(tmp);
+    free(tmp);
+  } else {
+    LOG(str);
+  }
+}
+
+
 static void* unwind_thr_fn(void* exit_nowV)
 {
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  LOG("unwind_thr_fn: START");
 
+  
+  
+  
+  
+  
+  bool doLulTest = false;
+
+  mozilla::DebugOnly<int> r = pthread_mutex_lock(&sLULmutex);
+  MOZ_ASSERT(!r);
+
+  if (!sLUL) {
+    
+    sLUL = new lul::LUL(logging_sink_for_LUL);
+    MOZ_ASSERT(sLUL);
+    MOZ_ASSERT(sLULcount == 0);
+    
+    sLUL->RegisterUnwinderThread();
+    
+    read_procmaps(sLUL);
+    
+    if (PR_GetEnv("MOZ_PROFILER_LUL_TEST")) {
+      doLulTest = true;
+    }
+  } else {
+    
+    
+    MOZ_ASSERT(sLULcount > 0);
+    
+    sLUL->RegisterUnwinderThread();
+  }
+
+  sLULcount++;
+
+  r = pthread_mutex_unlock(&sLULmutex);
+  MOZ_ASSERT(!r);
+
+  
+  
+  
+  
+  
+  if (doLulTest) {
+    int nTests = 0, nTestsPassed = 0;
+    RunLulUnitTests(&nTests, &nTestsPassed, sLUL);
+  }
+
+  
+  
+  
+  
+
+  
+  
+
+  
+  
   spinLock_acquire(&g_spinLock);
   if (g_buffers == nullptr) {
     
-
-
+    
+    
     spinLock_release(&g_spinLock);
     UnwinderThreadBuffer** buffers
       = (UnwinderThreadBuffer**)malloc(N_UNW_THR_BUFFERS
@@ -1519,7 +1696,8 @@ static void* unwind_thr_fn(void* exit_nowV)
       buff->entsPages[i] = ProfEntsPage_INVALID;
     }
 
-    (void)VALGRIND_MAKE_MEM_UNDEFINED(&buff->stackImg[0], N_STACK_BYTES);
+    (void)VALGRIND_MAKE_MEM_UNDEFINED(&buff->stackImg.mContents[0],
+                                      lul::N_STACK_BYTES);
     spinLock_acquire(&g_spinLock);
     MOZ_ASSERT(buff->state == S_EMPTYING);
     buff->state = S_EMPTY;
@@ -1527,6 +1705,28 @@ static void* unwind_thr_fn(void* exit_nowV)
     ms_to_sleep_if_empty = 1;
     show_sleep_message = true;
   }
+
+  
+  
+  r = pthread_mutex_lock(&sLULmutex);
+  MOZ_ASSERT(!r);
+
+  MOZ_ASSERT(sLULcount > 0);
+  if (sLULcount == 1) {
+    
+    
+    sLUL->NotifyBeforeUnmapAll();
+
+    delete sLUL;
+    sLUL = nullptr;
+  }
+
+  sLULcount--;
+
+  r = pthread_mutex_unlock(&sLULmutex);
+  MOZ_ASSERT(!r);
+
+  LOG("unwind_thr_fn: STOP");
   return nullptr;
 }
 
@@ -1560,580 +1760,115 @@ static void release_sync_buffer(LinkedUWTBuffer* buff)
 
 
 
-
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include <string>
-#include <vector>
-#include <fstream>
-#include <sstream>
-
-#include "google_breakpad/common/minidump_format.h"
-#include "google_breakpad/processor/call_stack.h"
-#include "google_breakpad/processor/stack_frame_cpu.h"
-#include "local_debug_info_symbolizer.h"
-#include "processor/stackwalker_amd64.h"
-#include "processor/stackwalker_arm.h"
-#include "processor/stackwalker_x86.h"
-#include "common/linux/dump_symbols.h"
-
-#include "google_breakpad/processor/memory_region.h"
-#include "google_breakpad/processor/code_modules.h"
-
-google_breakpad::MemoryRegion* foo = nullptr;
-
-using std::string;
-
-
-
-
-
-
-
-
-class BufferMemoryRegion : public google_breakpad::MemoryRegion {
- public:
-  
-  
-  BufferMemoryRegion(UnwinderThreadBuffer* buff) : buff_(buff) { }
-  ~BufferMemoryRegion() { }
-
-  u_int64_t GetBase() const { return (uintptr_t)buff_->stackImgAddr; }
-  u_int32_t GetSize() const { return (uintptr_t)buff_->stackImgUsed; }
-
-  bool GetMemoryAtAddress(u_int64_t address, u_int8_t*  value) const {
-      return GetMemoryAtAddressInternal(address, value); }
-  bool GetMemoryAtAddress(u_int64_t address, u_int16_t* value) const {
-      return GetMemoryAtAddressInternal(address, value); }
-  bool GetMemoryAtAddress(u_int64_t address, u_int32_t* value) const {
-      return GetMemoryAtAddressInternal(address, value); }
-  bool GetMemoryAtAddress(u_int64_t address, u_int64_t* value) const {
-      return GetMemoryAtAddressInternal(address, value); }
-
- private:
-  template<typename T> bool GetMemoryAtAddressInternal (
-                               u_int64_t address, T* value) const {
-    
-    if ( buff_->stackImgUsed >= sizeof(T)
-         && ((uintptr_t)address) >= ((uintptr_t)buff_->stackImgAddr)
-         && ((uintptr_t)address) <= ((uintptr_t)buff_->stackImgAddr)
-                                     + buff_->stackImgUsed
-                                     - sizeof(T) ) {
-      uintptr_t offset = (uintptr_t)address - (uintptr_t)buff_->stackImgAddr;
-      if (0) LOGF("GMAA %llx ok", (unsigned long long int)address);
-      *value = *reinterpret_cast<const T*>(&buff_->stackImg[offset]);
-      return true;
-    } else {
-      if (0) LOGF("GMAA %llx failed", (unsigned long long int)address);
-      return false;
-    }
-  }
-
-  
-  UnwinderThreadBuffer* buff_;
-};
-
-
-
-
-
-
-
-
-
-class MyCodeModule : public google_breakpad::CodeModule {
-public:
-  MyCodeModule(u_int64_t x_start, u_int64_t x_len, string filename)
-    : x_start_(x_start), x_len_(x_len), filename_(filename) {
-    MOZ_ASSERT(x_len > 0);
-  }
-
-  ~MyCodeModule() {}
-
-  
-  
-  u_int64_t base_address() const { return x_start_; }
-
-  
-  u_int64_t size() const { return x_len_; }
-
-  
-  
-  string code_file() const { return filename_; }
-
-  
-  
-  
-  
-  string code_identifier() const { MOZ_CRASH(); return ""; }
-
-  
-  
-  
-  
-  
-  
-  string debug_file() const { MOZ_CRASH(); return ""; }
-
-  
-  
-  
-  
-  
-  string debug_identifier() const { MOZ_CRASH(); return ""; }
-
-  
-  
-  string version() const { MOZ_CRASH(); return ""; }
-
-  
-  
-  
-  
-  const CodeModule* Copy() const { MOZ_CRASH(); return nullptr; }
-
-  friend void read_procmaps(std::vector<MyCodeModule*>& mods_);
-
- private:
-  
-  u_int64_t x_start_;
-  u_int64_t x_len_;    
-  string    filename_; 
-};
-
-
-
-static bool mcm_has_zero_length(MyCodeModule* cm) {
-  return cm->size() == 0;
-}
-
-static bool mcm_is_lessthan_by_start(MyCodeModule* cm1, MyCodeModule* cm2) {
-  return cm1->base_address() < cm2->base_address();
-}
-
-
-
-
-
-void read_procmaps(std::vector<MyCodeModule*>& mods_)
-{
-  MOZ_ASSERT(mods_.size() == 0);
-#if defined(SPS_OS_linux) || defined(SPS_OS_android) || defined(SPS_OS_darwin)
-  SharedLibraryInfo info = SharedLibraryInfo::GetInfoForSelf();
-  for (size_t i = 0; i < info.GetSize(); i++) {
-    const SharedLibrary& lib = info.GetEntry(i);
-    
-    
-    MyCodeModule* cm 
-      = new MyCodeModule( lib.GetStart(), lib.GetEnd()-lib.GetStart(),
-                          lib.GetName() );
-    mods_.push_back(cm);
-  }
-#else
-# error "Unknown platform"
-#endif
-  if (0) LOGF("got %d mappings\n", (int)mods_.size());
-
-  
-  
-  
-  
-  
-  std::sort(mods_.begin(), mods_.end(), mcm_is_lessthan_by_start);
-  if (mods_.size() >= 2) {
-    
-    for (std::vector<MyCodeModule*>::size_type i = 1; i < mods_.size(); i++) {
-      uint64_t prev_start = mods_[i-1]->x_start_;
-      uint64_t prev_len   = mods_[i-1]->x_len_;
-      uint64_t here_start = mods_[i]->x_start_;
-      MOZ_ASSERT(prev_start <= here_start);
-      if (prev_start + prev_len > here_start) {
-        
-        mods_[i-1]->x_len_ = here_start - prev_start;
-      }
-    }
-  }
-
-  
-  std::remove_if(mods_.begin(), mods_.end(), mcm_has_zero_length);
-  
-  if (mods_.size() >= 2) {
-    for (std::vector<MyCodeModule*>::size_type i = 1; i < mods_.size(); i++) {
-      uint64_t prev_start = mods_[i-1]->x_start_;
-      uint64_t prev_len   = mods_[i-1]->x_len_;
-      uint64_t here_start = mods_[i]->x_start_;
-      uint64_t here_len   = mods_[i]->x_len_;
-      MOZ_ASSERT(prev_len > 0 && here_len > 0);
-      MOZ_ASSERT(prev_start + prev_len <= here_start);
-      (void)prev_start;
-      (void)prev_len;
-      (void)here_start;
-      (void)here_len;
-    }
-  }
-}
-
-
-class MyCodeModules : public google_breakpad::CodeModules
-{
- public:
-  MyCodeModules() {
-    max_addr_ = 0;
-    min_addr_ = ~0;
-    read_procmaps(mods_);
-    if (mods_.size() > 0) {
-      MyCodeModule *first = mods_[0], *last = mods_[mods_.size()-1];
-      min_addr_ = first->base_address();
-      max_addr_ = last->base_address() + last->size() - 1;
-    }
-  }
-
-  ~MyCodeModules() {
-    std::vector<MyCodeModule*>::const_iterator it;
-    for (it = mods_.begin(); it < mods_.end(); it++) {
-      MyCodeModule* cm = *it;
-      delete cm;
-    }
-  }
-
- private:
-  
-  
-  
-  
-  
-  
-  
-  
-  mutable std::vector<MyCodeModule*> mods_;
-
-  
-  
-  
-  
-  uint64_t min_addr_, max_addr_;
-
-  unsigned int module_count() const { MOZ_CRASH(); return 1; }
-
-  const google_breakpad::CodeModule*
-                GetModuleForAddress(u_int64_t address) const
-  {
-    if (0) printf("GMFA %llx\n", (unsigned long long int)address);
-    std::vector<MyCodeModule*>::size_type nMods = mods_.size();
-
-    
-    
-    
-    if (nMods == 0 || address < min_addr_ || address > max_addr_) {
-      return nullptr;
-    }
-
-    
-    
-    long int lo = 0;
-    long int hi = nMods-1;
-    while (true) {
-      
-      if (lo > hi) {
-        
-        return nullptr;
-      }
-      long int mid = (lo + hi) / 2;
-      MyCodeModule* mid_mod = mods_[mid];
-      uint64_t mid_minAddr = mid_mod->base_address();
-      uint64_t mid_maxAddr = mid_minAddr + mid_mod->size() - 1;
-      if (address < mid_minAddr) { hi = mid-1; continue; }
-      if (address > mid_maxAddr) { lo = mid+1; continue; }
-      MOZ_ASSERT(mid_minAddr <= address && address <= mid_maxAddr);
-      return mid_mod;
-    }
-  }
-
-  const google_breakpad::CodeModule* GetMainModule() const {
-    MOZ_CRASH(); return nullptr; return nullptr;
-  }
-
-  const google_breakpad::CodeModule* GetModuleAtSequence(
-                unsigned int sequence) const {
-    MOZ_CRASH(); return nullptr;
-  }
-
-  const google_breakpad::CodeModule* GetModuleAtIndex(unsigned int index) const {
-    MOZ_CRASH(); return nullptr;
-  }
-
-  const CodeModules* Copy() const {
-    MOZ_CRASH(); return nullptr;
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-MyCodeModules* sModules = nullptr;
-google_breakpad::LocalDebugInfoSymbolizer* sSymbolizer = nullptr;
-
-
-
-static
-void do_breakpad_unwind_Buffer_free_singletons()
-{
-  if (sSymbolizer) {
-    delete sSymbolizer;
-    sSymbolizer = nullptr;
-  }
-  if (sModules) {
-    delete sModules;
-    sModules = nullptr;
-  }
-
-  g_stackLimitsUsed = 0;
-  g_seqNo = 0;
-  free(g_buffers);
-  g_buffers = nullptr;
-}
-
-static void stats_notify_frame(google_breakpad::StackFrame::FrameTrust tr)
+static void stats_notify_frame(int n_context, int n_cfi, int n_scanned)
 {
   
-  static int nf_NONE     = 0;
-  static int nf_SCAN     = 0;
-  static int nf_CFI_SCAN = 0;
-  static int nf_FP       = 0;
-  static int nf_CFI      = 0;
-  static int nf_CONTEXT  = 0;
-  static int nf_total    = 0; 
+  static unsigned int nf_total    = 0; 
+  static unsigned int nf_CONTEXT  = 0;
+  static unsigned int nf_CFI      = 0;
+  static unsigned int nf_SCANNED  = 0;
 
-  nf_total++;
-  switch (tr) {
-    case google_breakpad::StackFrame::FRAME_TRUST_NONE: nf_NONE++; break;
-    case google_breakpad::StackFrame::FRAME_TRUST_SCAN: nf_SCAN++; break;
-    case google_breakpad::StackFrame::FRAME_TRUST_CFI_SCAN:
-      nf_CFI_SCAN++; break;
-    case google_breakpad::StackFrame::FRAME_TRUST_FP: nf_FP++; break;
-    case google_breakpad::StackFrame::FRAME_TRUST_CFI: nf_CFI++; break;
-    case google_breakpad::StackFrame::FRAME_TRUST_CONTEXT: nf_CONTEXT++; break;
-    default: break;
-  }
+  nf_CONTEXT += n_context;
+  nf_CFI     += n_cfi;
+  nf_SCANNED += n_scanned;
+  nf_total   += (n_context + n_cfi + n_scanned);
+
   if (nf_total >= 5000) {
     LOGF("BPUnw frame stats: TOTAL %5u"
-         "    CTX %4u    CFI %4u    FP %4u    SCAN %4u    NONE %4u",
-         nf_total, nf_CONTEXT, nf_CFI, nf_FP, nf_CFI_SCAN+nf_SCAN, nf_NONE);
-    nf_NONE     = 0;
-    nf_SCAN     = 0;
-    nf_CFI_SCAN = 0;
-    nf_FP       = 0;
-    nf_CFI      = 0;
-    nf_CONTEXT  = 0;
+         "    CTX %4u    CFI %4u    SCAN %4u",
+         nf_total, nf_CONTEXT, nf_CFI, nf_SCANNED);
     nf_total    = 0;
+    nf_CONTEXT  = 0;
+    nf_CFI      = 0;
+    nf_SCANNED  = 0;
   }
 }
 
 static
-void do_breakpad_unwind_Buffer(PCandSP** pairs,
-                               unsigned int* nPairs,
-                               UnwinderThreadBuffer* buff,
-                               int buffNo )
+void do_lul_unwind_Buffer(PCandSP** pairs,
+                          unsigned int* nPairs,
+                          UnwinderThreadBuffer* buff,
+                          int buffNo )
 {
-# if defined(SPS_ARCH_amd64)
-  MDRawContextAMD64* context = new MDRawContextAMD64();
-  memset(context, 0, sizeof(*context));
-
-  context->rip = buff->regs.rip;
-  context->rbp = buff->regs.rbp;
-  context->rsp = buff->regs.rsp;
-
+# if defined(SPS_ARCH_amd64) || defined(SPS_ARCH_x86)
+  lul::UnwindRegs startRegs = buff->startRegs;
   if (0) {
-    LOGF("Initial RIP = 0x%llx", (unsigned long long int)context->rip);
-    LOGF("Initial RSP = 0x%llx", (unsigned long long int)context->rsp);
-    LOGF("Initial RBP = 0x%llx", (unsigned long long int)context->rbp);
+    LOGF("Initial RIP = 0x%llx", (unsigned long long int)startRegs.xip.Value());
+    LOGF("Initial RSP = 0x%llx", (unsigned long long int)startRegs.xsp.Value());
+    LOGF("Initial RBP = 0x%llx", (unsigned long long int)startRegs.xbp.Value());
   }
 
 # elif defined(SPS_ARCH_arm)
-  MDRawContextARM* context = new MDRawContextARM();
-  memset(context, 0, sizeof(*context));
-
-  context->iregs[7]                     = buff->regs.r7;
-  context->iregs[12]                    = buff->regs.r12;
-  context->iregs[MD_CONTEXT_ARM_REG_PC] = buff->regs.r15;
-  context->iregs[MD_CONTEXT_ARM_REG_LR] = buff->regs.r14;
-  context->iregs[MD_CONTEXT_ARM_REG_SP] = buff->regs.r13;
-  context->iregs[MD_CONTEXT_ARM_REG_FP] = buff->regs.r11;
-
+  lul::UnwindRegs startRegs = buff->startRegs;
   if (0) {
-    LOGF("Initial R15 = 0x%x",
-         context->iregs[MD_CONTEXT_ARM_REG_PC]);
-    LOGF("Initial R13 = 0x%x",
-         context->iregs[MD_CONTEXT_ARM_REG_SP]);
-  }
-
-# elif defined(SPS_ARCH_x86)
-  MDRawContextX86* context = new MDRawContextX86();
-  memset(context, 0, sizeof(*context));
-
-  context->eip = buff->regs.eip;
-  context->ebp = buff->regs.ebp;
-  context->esp = buff->regs.esp;
-
-  if (0) {
-    LOGF("Initial EIP = 0x%x", context->eip);
-    LOGF("Initial ESP = 0x%x", context->esp);
-    LOGF("Initial EBP = 0x%x", context->ebp);
+    LOGF("Initial R15 = 0x%llx", (unsigned long long int)startRegs.r15.Value());
+    LOGF("Initial R13 = 0x%llx", (unsigned long long int)startRegs.r13.Value());
   }
 
 # else
 #   error "Unknown plat"
 # endif
 
-  BufferMemoryRegion* memory = new BufferMemoryRegion(buff);
-
-  if (!sModules) {
-     sModules = new MyCodeModules();
-  }
-
-  if (!sSymbolizer) {
-    
-    std::vector<std::string> debug_dirs;
-#   if defined(SPS_OS_linux)
-    debug_dirs.push_back("/usr/lib/debug/lib");
-    debug_dirs.push_back("/usr/lib/debug/usr/lib");
-    debug_dirs.push_back("/usr/lib/debug/lib/x86_64-linux-gnu");
-    debug_dirs.push_back("/usr/lib/debug/usr/lib/x86_64-linux-gnu");
-#   elif defined(SPS_OS_android)
-    debug_dirs.push_back("/sdcard/symbols/system/lib");
-    debug_dirs.push_back("/sdcard/symbols/system/bin");
-#   elif defined(SPS_OS_darwin)
-    
-#   else
-#     error "Unknown plat"
-#   endif
-    sSymbolizer = new google_breakpad::LocalDebugInfoSymbolizer(debug_dirs);
-  }
-
-# if defined(SPS_ARCH_amd64)
-  google_breakpad::StackwalkerAMD64* sw
-   = new google_breakpad::StackwalkerAMD64(nullptr, context,
-                                           memory, sModules,
-                                           sSymbolizer);
-# elif defined(SPS_ARCH_arm)
-  google_breakpad::StackwalkerARM* sw
-   = new google_breakpad::StackwalkerARM(nullptr, context,
-                                         -1,
-                                         memory, sModules,
-                                         sSymbolizer);
-# elif defined(SPS_ARCH_x86)
-  google_breakpad::StackwalkerX86* sw
-   = new google_breakpad::StackwalkerX86(nullptr, context,
-                                         memory, sModules,
-                                         sSymbolizer);
+  
+  
+  
+# if defined(SPS_OS_linux)
+  
+  
+  
+  
+# elif defined(SPS_OS_android)
+  
+  
+# elif defined(SPS_OS_darwin)
+  
 # else
 #   error "Unknown plat"
 # endif
 
-  google_breakpad::CallStack* stack = new google_breakpad::CallStack();
-
-  std::vector<const google_breakpad::CodeModule*>* modules_without_symbols
-    = new std::vector<const google_breakpad::CodeModule*>();
+  
+  
+  size_t scannedFramesAllowed
+    = std::min(std::max(0, sUnwindStackScan), MAX_NATIVE_FRAMES);
 
   
   
-  
-  sw->set_max_frames(256);
+  uintptr_t framePCs[MAX_NATIVE_FRAMES];
+  uintptr_t frameSPs[MAX_NATIVE_FRAMES];
+  size_t framesAvail = mozilla::ArrayLength(framePCs);
+  size_t framesUsed  = 0;
+  size_t scannedFramesAcquired = 0;
+  sLUL->Unwind( &framePCs[0], &frameSPs[0], 
+                &framesUsed, &scannedFramesAcquired,
+                framesAvail, scannedFramesAllowed,
+                &startRegs, &buff->stackImg );
+
+  if (LOGLEVEL >= 2)
+    stats_notify_frame( 1,
+                        framesUsed - 1 - scannedFramesAcquired,
+                        scannedFramesAcquired);
 
   
   
-  sw->set_max_frames_scanned((sUnwindStackScan > 256) ? 256
-                             : (sUnwindStackScan < 0) ? 0
-                             : sUnwindStackScan);
-
-  bool b = sw->Walk(stack, modules_without_symbols);
-  (void)b;
-  delete modules_without_symbols;
-
-  unsigned int n_frames = stack->frames()->size();
-
-  *pairs  = (PCandSP*)calloc(n_frames, sizeof(PCandSP));
-  *nPairs = n_frames;
+  *pairs  = (PCandSP*)calloc(framesUsed, sizeof(PCandSP));
+  *nPairs = framesUsed;
   if (*pairs == nullptr) {
     *nPairs = 0;
     return;
   }
 
-  if (n_frames > 0) {
+  if (framesUsed > 0) {
     for (unsigned int frame_index = 0; 
-         frame_index < n_frames; ++frame_index) {
-      google_breakpad::StackFrame *frame = stack->frames()->at(frame_index);
-
-      if (LOGLEVEL >= 2)
-        stats_notify_frame(frame->trust);
-
-#     if defined(SPS_ARCH_amd64)
-      google_breakpad::StackFrameAMD64* frame_amd64
-        = reinterpret_cast<google_breakpad::StackFrameAMD64*>(frame);
-      if (LOGLEVEL >= 4) {
-        LOGF("frame %d   rip=0x%016llx rsp=0x%016llx    %s", 
-             frame_index,
-             (unsigned long long int)frame_amd64->context.rip, 
-             (unsigned long long int)frame_amd64->context.rsp, 
-             frame_amd64->trust_description().c_str());
-      }
-      (*pairs)[n_frames-1-frame_index].pc = frame_amd64->context.rip;
-      (*pairs)[n_frames-1-frame_index].sp = frame_amd64->context.rsp;
-
-#     elif defined(SPS_ARCH_arm)
-      google_breakpad::StackFrameARM* frame_arm
-        = reinterpret_cast<google_breakpad::StackFrameARM*>(frame);
-      if (LOGLEVEL >= 4) {
-        LOGF("frame %d   0x%08x   %s",
-             frame_index,
-             frame_arm->context.iregs[MD_CONTEXT_ARM_REG_PC],
-             frame_arm->trust_description().c_str());
-      }
-      (*pairs)[n_frames-1-frame_index].pc
-        = frame_arm->context.iregs[MD_CONTEXT_ARM_REG_PC];
-      (*pairs)[n_frames-1-frame_index].sp
-        = frame_arm->context.iregs[MD_CONTEXT_ARM_REG_SP];
-
-#     elif defined(SPS_ARCH_x86)
-      google_breakpad::StackFrameX86* frame_x86
-        = reinterpret_cast<google_breakpad::StackFrameX86*>(frame);
-      if (LOGLEVEL >= 4) {
-        LOGF("frame %d   eip=0x%08x rsp=0x%08x    %s", 
-             frame_index,
-             frame_x86->context.eip, frame_x86->context.esp, 
-             frame_x86->trust_description().c_str());
-      }
-      (*pairs)[n_frames-1-frame_index].pc = frame_x86->context.eip;
-      (*pairs)[n_frames-1-frame_index].sp = frame_x86->context.esp;
-
-#     else
-#       error "Unknown plat"
-#     endif
+         frame_index < framesUsed; ++frame_index) {
+      (*pairs)[framesUsed-1-frame_index].pc = framePCs[frame_index];
+      (*pairs)[framesUsed-1-frame_index].sp = frameSPs[frame_index];
     }
   }
 
   if (LOGLEVEL >= 3) {
     LOGF("BPUnw: unwinder: seqNo %llu, buf %d: got %u frames",
-         (unsigned long long int)buff->seqNo, buffNo, n_frames);
+         (unsigned long long int)buff->seqNo, buffNo,
+         (unsigned int)framesUsed);
   }
 
   if (LOGLEVEL >= 2) {
@@ -2144,11 +1879,6 @@ void do_breakpad_unwind_Buffer(PCandSP** pairs,
            (unsigned long long int)g_stats_noBuffAvail,
            (unsigned long long int)g_stats_thrUnregd);
   }
-
-  delete stack;
-  delete sw;
-  delete memory;
-  delete context;
 }
 
 #endif 
