@@ -61,14 +61,7 @@ CopyableCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
 
   if (mDrawTarget) {
     mDrawTarget->Flush();
-    if (mDrawTarget->GetType() == BACKEND_COREGRAPHICS_ACCELERATED) {
-      
-      
-      
-      
-      
-      mSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
-    }
+    mSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
   }
 
   if (!mGLContext && aDestSurface) {
