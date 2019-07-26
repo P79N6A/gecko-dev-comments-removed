@@ -182,6 +182,13 @@ static bool lastRunCrashID_checked = false;
 
 static nsString* lastRunCrashID = nullptr;
 
+#if defined(MOZ_WIDGET_ANDROID)
+
+
+
+static char* androidUserSerial = nullptr;
+#endif
+
 
 static const char kCrashTimeParameter[] = "CrashTime=";
 static const int kCrashTimeParameterLen = sizeof(kCrashTimeParameter)-1;
@@ -695,20 +702,31 @@ bool MinidumpCallback(
                  crashReporterPath, minidumpPath, (char*)0);
 #else
     
-    (void) execlp("/system/bin/am",
-                 "/system/bin/am",
-                 "start",
-                 "-a", "org.mozilla.gecko.reportCrash",
-                 "-n", crashReporterPath,
-                 "--es", "minidumpPath", minidumpPath,
-                 (char*)0);
+    if (androidUserSerial) {
+      (void) execlp("/system/bin/am",
+                    "/system/bin/am",
+                    "start",
+                    "--user", androidUserSerial,
+                    "-a", "org.mozilla.gecko.reportCrash",
+                    "-n", crashReporterPath,
+                    "--es", "minidumpPath", minidumpPath,
+                    (char*)0);
+    } else {
+      (void) execlp("/system/bin/am",
+                    "/system/bin/am",
+                    "start",
+                    "-a", "org.mozilla.gecko.reportCrash",
+                    "-n", crashReporterPath,
+                    "--es", "minidumpPath", minidumpPath,
+                    (char*)0);
+    }
 #endif
     _exit(1);
   }
 #endif 
 #endif 
 
- return returnValue;
+  return returnValue;
 }
 
 #ifdef XP_WIN
@@ -915,6 +933,10 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
     }
   }
 #endif 
+
+#ifdef MOZ_WIDGET_ANDROID
+  androidUserSerial = getenv("MOZ_ANDROID_USER_SERIAL_NUMBER");
+#endif
 
   
 #ifdef XP_LINUX

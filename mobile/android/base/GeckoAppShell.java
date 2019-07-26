@@ -448,6 +448,32 @@ public class GeckoAppShell
         f = context.getCacheDir();
         GeckoAppShell.putenv("CACHE_DIRECTORY=" + f.getPath());
 
+        
+
+
+
+
+
+
+
+
+
+
+
+        try {
+            Object userManager = context.getSystemService("user");
+            if (userManager != null) {
+                
+                
+                Object userHandle = android.os.Process.class.getMethod("myUserHandle", (Class[])null).invoke(null);
+                Object userSerial = userManager.getClass().getMethod("getSerialNumberForUser", userHandle.getClass()).invoke(userManager, userHandle);
+                GeckoAppShell.putenv("MOZ_ANDROID_USER_SERIAL_NUMBER=" + userSerial.toString());
+            }
+        } catch (Exception e) {
+            
+            Log.d(LOGTAG, "Unable to set the user serial number", e);
+        }
+
         putLocaleEnv();
     }
 
