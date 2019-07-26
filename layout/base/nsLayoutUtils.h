@@ -16,7 +16,6 @@ class nsRegion;
 class nsDisplayListBuilder;
 class nsDisplayItem;
 class nsFontMetrics;
-class nsClientRectList;
 class nsFontFaceList;
 class nsIImageLoadingContent;
 class nsStyleContext;
@@ -60,6 +59,7 @@ namespace mozilla {
 class SVGImageContext;
 struct IntrinsicSize;
 namespace dom {
+class DOMRectList;
 class Element;
 class HTMLImageElement;
 class HTMLCanvasElement;
@@ -75,6 +75,7 @@ class HTMLVideoElement;
 class nsLayoutUtils
 {
   typedef ::GraphicsFilter GraphicsFilter;
+  typedef mozilla::dom::DOMRectList DOMRectList;
 
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
@@ -459,8 +460,9 @@ public:
 
 
 
-  static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
-                                               nsIFrame* aFrame);
+  static nsPoint GetEventCoordinatesRelativeTo(
+                   const mozilla::WidgetEvent* aEvent,
+                   nsIFrame* aFrame);
 
   
 
@@ -472,9 +474,10 @@ public:
 
 
 
-  static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
-                                               const nsIntPoint aPoint,
-                                               nsIFrame* aFrame);
+  static nsPoint GetEventCoordinatesRelativeTo(
+                   const mozilla::WidgetEvent* aEvent,
+                   const nsIntPoint aPoint,
+                   nsIFrame* aFrame);
 
   
 
@@ -497,8 +500,9 @@ public:
 
 
 
-  static nsIFrame* GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
-                                                    const nsEvent* aEvent);
+  static nsIFrame* GetPopupFrameForEventCoordinates(
+                     nsPresContext* aPresContext,
+                     const mozilla::WidgetEvent* aEvent);
 
   
 
@@ -817,9 +821,9 @@ public:
   };
 
   struct RectListBuilder : public RectCallback {
-    nsClientRectList* mRectList;
+    DOMRectList* mRectList;
 
-    RectListBuilder(nsClientRectList* aList);
+    RectListBuilder(DOMRectList* aList);
     virtual void AddRect(const nsRect& aRect);
   };
 
