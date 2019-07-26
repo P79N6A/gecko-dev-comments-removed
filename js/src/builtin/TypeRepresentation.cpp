@@ -396,7 +396,7 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
     
     RootedObject ownerObject(cx);
     ownerObject = NewObjectWithGivenProto(cx, &class_, objectProto,
-                                          cx->global());
+                                          cx->global(), TenuredObject);
     if (!ownerObject) {
         comp->typeReprs.remove(this);
         js_free(this);

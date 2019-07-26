@@ -4639,6 +4639,10 @@ TypeObject::addTypedObjectAddendum(JSContext *cx, Handle<TypeDescr*> descr)
     if (!cx->typeInferenceEnabled())
         return true;
 
+    
+    
+    
+    JS_ASSERT(!IsInsideNursery(cx->runtime(), descr));
     JS_ASSERT(descr);
 
     if (flags() & OBJECT_FLAG_ADDENDUM_CLEARED)
