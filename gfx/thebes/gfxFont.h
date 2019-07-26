@@ -216,6 +216,7 @@ public:
         mIgnoreGSUB(false),
         mSVGInitialized(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
+        mHasSpaceFeaturesInitialized(false),
         mCheckedForGraphiteTables(false),
         mHasCmapTable(false),
         mUVSOffset(0), mUVSData(nullptr),
@@ -348,6 +349,9 @@ public:
     uint16_t         mWeight;
     int16_t          mStretch;
 
+    bool             mHasSpaceFeatures;
+    bool             mHasSpaceFeaturesInitialized;
+
     bool             mHasGraphiteTables;
     bool             mCheckedForGraphiteTables;
     bool             mHasCmapTable;
@@ -379,6 +383,7 @@ protected:
         mIgnoreGSUB(false),
         mSVGInitialized(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
+        mHasSpaceFeaturesInitialized(false),
         mCheckedForGraphiteTables(false),
         mHasCmapTable(false),
         mUVSOffset(0), mUVSData(nullptr),
@@ -1561,6 +1566,26 @@ public:
     { return gfxPlatform::GetPlatform()->GetScaledFontForFont(aTarget, this); }
 
 protected:
+    bool BypassShapedWordCache(uint32_t aRunFlags) {
+        
+        
+        
+        if (aRunFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED) {
+            return false;
+        }
+        
+        
+        
+        
+        
+        gfxFontEntry *fe = GetFontEntry();
+        if (!fe->mHasSpaceFeaturesInitialized) {
+            fe->mHasSpaceFeaturesInitialized = true;
+            fe->mHasSpaceFeatures = CheckForFeaturesInvolvingSpace();
+        }
+        return fe->mHasSpaceFeatures;
+    }
+
     
     bool ShapeText(gfxContext    *aContext,
                    const uint8_t *aText,
@@ -1616,6 +1641,8 @@ protected:
                                        uint32_t    aLength,
                                        int32_t     aScript,
                                        gfxTextRun *aTextRun);
+
+    bool CheckForFeaturesInvolvingSpace();
 
     nsRefPtr<gfxFontEntry> mFontEntry;
 
