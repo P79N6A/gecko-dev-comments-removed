@@ -498,6 +498,22 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     void clampDoubleToUint8(FloatRegister input, Register output);
 
+    using MacroAssemblerSpecific::ensureDouble;
+
+    void ensureDouble(const Address &source, FloatRegister dest, Label *failure) {
+        Label isDouble, done;
+        branchTestDouble(Assembler::Equal, source, &isDouble);
+        branchTestInt32(Assembler::NotEqual, source, failure);
+
+        convertInt32ToDouble(source, dest);
+        jump(&done);
+
+        bind(&isDouble);
+        unboxDouble(source, dest);
+
+        bind(&done);
+    }
+
     
     void newGCThing(const Register &result, JSObject *templateObject, Label *fail);
     void parNewGCThing(const Register &result,
