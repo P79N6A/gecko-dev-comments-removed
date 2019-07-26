@@ -1,13 +1,13 @@
-
-
-
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 function test() {
 
   let temp = {};
-  Cu.import("resource:///modules/source-editor.jsm", temp);
+  Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm", temp);
   let SourceEditor = temp.SourceEditor;
 
   waitForExplicitFinish();
@@ -55,7 +55,7 @@ function test() {
     editor.setMode(SourceEditor.MODES.JAVASCRIPT);
     editor.setText(JSText);
 
-    
+    // Setting caret at end of line 11 (function baz() {).
     editor.setCaretOffset(147);
     EventUtils.synthesizeKey("[", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 16,
@@ -80,7 +80,7 @@ function test() {
     editor.setMode(SourceEditor.MODES.CSS);
     editor.setText(CSSText);
 
-    
+    // Setting caret at Line 5 end (.class1 {).
     editor.setCaretOffset(57);
     EventUtils.synthesizeKey("[", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 10,

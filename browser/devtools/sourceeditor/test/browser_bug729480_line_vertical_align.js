@@ -1,11 +1,11 @@
-
-
-
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 let tempScope = {};
-Cu.import("resource:///modules/source-editor.jsm", tempScope);
+Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm", tempScope);
 let SourceEditor = tempScope.SourceEditor;
 
 let testWin;
@@ -42,7 +42,7 @@ function editorLoaded()
 {
   editor.focus();
 
-  
+  // setting 3 pages of lines containing the line number.
   let view = editor._view;
 
   let lineHeight = view.getLineHeight();
@@ -59,12 +59,12 @@ function editorLoaded()
   editor.setCaretOffset(0);
 
   let offset = Math.min(Math.round(linesPerPage/2), VERTICAL_OFFSET);
-  
-  
+  // Building the iterator array.
+  // [line, alignment, topIndex_check]
   let iterateOn = [
     [0, "TOP", 0],
     [25, "TOP", 25 - offset],
-    
+    // Case when the target line is already in view.
     [27, "TOP", 25 - offset],
     [0, "BOTTOM", 0],
     [5, "BOTTOM", 0],

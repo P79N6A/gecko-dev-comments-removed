@@ -1,11 +1,11 @@
-
-
-
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 let tempScope = {};
-Cu.import("resource:///modules/source-editor.jsm", tempScope);
+Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm", tempScope);
 let SourceEditor = tempScope.SourceEditor;
 
 let testWin;
@@ -56,7 +56,7 @@ function editorLoaded()
 
   is(editor.getMode(), SourceEditor.DEFAULTS.mode, "default editor mode");
 
-  
+  // Test general editing methods.
 
   ok(!editor.canUndo(), "canUndo() works (nothing to undo), just loaded");
 
@@ -111,7 +111,7 @@ function editorLoaded()
     editor.setText("code-editor");
   }
 
-  
+  // Test selection methods.
 
   editor.setSelection(0, 4);
 
@@ -128,7 +128,7 @@ function editorLoaded()
   editor.setCaretOffset(7);
   is(editor.getCaretOffset(), 7, "setCaretOffset() works");
 
-  
+  // Test grouped changes.
 
   editor.setText("foobar");
 
@@ -148,7 +148,7 @@ function editorLoaded()
   editor.redo();
   is(editor.getText(), "foo3", "compound change redo() works");
 
-  
+  // Minimal keyboard usage tests.
 
   ok(editor.hasFocus(), "editor has focus");
 
@@ -175,7 +175,7 @@ function editorLoaded()
 
   is(editor.getCaretOffset(), 14, "caret location is correct");
 
-  
+  // Test the Tab key.
 
   editor.setText("a\n  b\n c");
   editor.setCaretOffset(0);
@@ -183,8 +183,8 @@ function editorLoaded()
   EventUtils.synthesizeKey("VK_TAB", {}, testWin);
   is(editor.getText(), "       a\n  b\n c", "Tab works");
 
-  
-  
+  // Code editor specific tests. These are not applicable when the textarea
+  // fallback is used.
   let component = Services.prefs.getCharPref(SourceEditor.PREFS.COMPONENT);
   if (component != "textarea") {
     editor.setMode(SourceEditor.MODES.JAVASCRIPT);
@@ -203,7 +203,7 @@ function editorLoaded()
     testReturnKey();
   }
 
-  
+  // Test the read-only mode.
 
   editor.setText("foofoo");
 
@@ -230,7 +230,7 @@ function editorLoaded()
   EventUtils.synthesizeKey("-", {}, testWin);
   is(editor.getText(), "      foobar-", "editor is now editable again");
 
-  
+  // Test the Selection event.
 
   editor.setText("foobarbaz");
 
@@ -275,7 +275,7 @@ function editorLoaded()
 
   ok(!event, "selection event listener removed");
 
-  
+  // Test the TextChanged event.
 
   editor.addEventListener(SourceEditor.EVENTS.TEXT_CHANGED, eventHandler);
 
@@ -437,8 +437,8 @@ function testClipboardEvents()
 
 function testEclipseBug362107()
 {
-  
-  
+  // Test for Eclipse Bug 362107:
+  // https://bugs.eclipse.org/bugs/show_bug.cgi?id=362107
   let OS = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
   if (OS != "Linux") {
     return;
@@ -462,8 +462,8 @@ function testEclipseBug362107()
 
 function testBug687577()
 {
-  
-  
+  // Test for Mozilla Bug 687577:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=687577
   let OS = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
   if (OS != "Linux") {
     return;

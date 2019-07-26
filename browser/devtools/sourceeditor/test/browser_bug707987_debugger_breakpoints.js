@@ -1,13 +1,13 @@
-
-
-
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 function test() {
 
   let temp = {};
-  Cu.import("resource:///modules/source-editor.jsm", temp);
+  Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm", temp);
   let SourceEditor = temp.SourceEditor;
 
   let component = Services.prefs.getCharPref(SourceEditor.PREFS.COMPONENT);
@@ -52,7 +52,7 @@ function test() {
     };
     editor.addEventListener(SourceEditor.EVENTS.BREAKPOINT_CHANGE, eventHandler);
 
-    
+    // Add breakpoint at line 0
 
     editor.addBreakpoint(0);
 
@@ -67,7 +67,7 @@ function test() {
     is(event.added[0].line, 0, "event added[0].line is correct");
     ok(!event.added[0].condition, "event added[0].condition is correct");
 
-    
+    // Add breakpoint at line 3
 
     event = null;
     editor.addBreakpoint(3, "foo == 'bar'");
@@ -87,7 +87,7 @@ function test() {
     is(event.added[0].condition, "foo == 'bar'",
        "event added[0].condition is correct");
 
-    
+    // Try to add another breakpoint at line 0
 
     event = null;
     editor.addBreakpoint(0);
@@ -95,13 +95,13 @@ function test() {
     is(editor.getBreakpoints().length, 2, "no breakpoint added");
     is(event, null, "no breakpoint event fired");
 
-    
+    // Try to remove a breakpoint from line 1
 
     is(editor.removeBreakpoint(1), false, "removeBreakpoint(1) returns false");
     is(editor.getBreakpoints().length, 2, "no breakpoint removed");
     is(event, null, "no breakpoint event fired");
 
-    
+    // Remove the breakpoint from line 0
 
     is(editor.removeBreakpoint(0), true, "removeBreakpoint(0) returns true");
 
@@ -116,7 +116,7 @@ function test() {
     is(event.removed[0].line, 0, "event removed[0].line is correct");
     ok(!event.removed[0].condition, "event removed[0].condition is correct");
 
-    
+    // Remove the breakpoint from line 3
 
     event = null;
     is(editor.removeBreakpoint(3), true, "removeBreakpoint(3) returns true");
@@ -129,7 +129,7 @@ function test() {
     is(event.removed[0].condition, "foo == 'bar'",
        "event removed[0].condition is correct");
 
-    
+    // Add a breakpoint with the mouse
 
     event = null;
     EventUtils.synthesizeMouse(editor.editorElement, 10, 10, {}, testWin);
@@ -145,7 +145,7 @@ function test() {
     is(event.added[0].line, 0, "event added[0].line is correct");
     ok(!event.added[0].condition, "event added[0].condition is correct");
 
-    
+    // Remove a breakpoint with the mouse
 
     event = null;
     EventUtils.synthesizeMouse(editor.editorElement, 10, 10, {}, testWin);

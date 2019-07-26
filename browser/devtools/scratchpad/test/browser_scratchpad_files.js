@@ -55,7 +55,7 @@ function fileImported(aStatus, aFileContent)
 
   
   gFileContent += "// omg, saved!";
-  gScratchpad.setText(gFileContent);
+  gScratchpad.editor.setText(gFileContent);
 
   gScratchpad.exportToFile(gFile.QueryInterface(Ci.nsILocalFile), true, true,
                           fileExported);
@@ -70,7 +70,7 @@ function fileExported(aStatus)
 
   
   gFileContent += "// omg, saved twice!";
-  gScratchpad.setText(gFileContent);
+  gScratchpad.editor.setText(gFileContent);
 
   let oldConfirm = gScratchpadWindow.confirm;
   let askedConfirmation = false;

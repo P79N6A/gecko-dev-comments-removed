@@ -1,13 +1,13 @@
-
-
-
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 function test() {
 
   let temp = {};
-  Cu.import("resource:///modules/source-editor.jsm", temp);
+  Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm", temp);
   let SourceEditor = temp.SourceEditor;
 
   waitForExplicitFinish();
@@ -51,7 +51,7 @@ function test() {
     editor.setMode(SourceEditor.MODES.JAVASCRIPT);
     editor.setText(JSText);
 
-    
+    // Setting caret at Line 1 bracket start.
     editor.setCaretOffset(19);
     EventUtils.synthesizeKey("]", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 220,
@@ -61,7 +61,7 @@ function test() {
     is(editor.getCaretOffset(), 20,
        "JS : Jump to opening bracket of the code block when caret at block end");
 
-    
+    // Setting caret at Line 10 start.
     editor.setCaretOffset(161);
     EventUtils.synthesizeKey("[", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 20,
@@ -72,7 +72,7 @@ function test() {
     is(editor.getCaretOffset(), 220,
        "JS : Jump to closing bracket of code block when inside the function");
 
-    
+    // Setting caret at Line 6 start.
     editor.setCaretOffset(67);
     EventUtils.synthesizeKey("]", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 159,
@@ -91,7 +91,7 @@ function test() {
     editor.setMode(SourceEditor.MODES.CSS);
     editor.setText(CSSText);
 
-    
+    // Setting caret at Line 1 bracket start.
     editor.setCaretOffset(8);
     EventUtils.synthesizeKey("]", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 45,
@@ -101,7 +101,7 @@ function test() {
     is(editor.getCaretOffset(), 9,
        "CSS : Jump to opening bracket of the code block when caret at block end");
 
-    
+    // Setting caret at Line 3 start.
     editor.setCaretOffset(28);
     EventUtils.synthesizeKey("[", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 9,
@@ -122,13 +122,13 @@ function test() {
     editor.setMode(SourceEditor.MODES.HTML);
     editor.setText(HTMLText);
 
-    
+    // Setting caret at Line 1 end.
     editor.setCaretOffset(6);
     EventUtils.synthesizeKey("]", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 6,
        "HTML : Jump to block end : Nothing happens in html mode");
 
-    
+    // Setting caret at Line 4 end.
     editor.setCaretOffset(64);
     EventUtils.synthesizeKey("[", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 64,
@@ -142,13 +142,13 @@ function test() {
     editor.setMode(SourceEditor.MODES.TEXT);
     editor.setText(text);
 
-    
+    // Setting caret at Line 1 start.
     editor.setCaretOffset(0);
     EventUtils.synthesizeKey("]", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 0,
        "Text : Jump to block end : Nothing happens in text mode");
 
-    
+    // Setting caret at Line 4 end.
     editor.setCaretOffset(28);
     EventUtils.synthesizeKey("[", {accelKey: true, altKey: true}, testWin);
     is(editor.getCaretOffset(), 28,

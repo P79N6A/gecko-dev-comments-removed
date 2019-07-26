@@ -1,13 +1,13 @@
-
-
-
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
 function test() {
 
   let temp = {};
-  Cu.import("resource:///modules/source-editor.jsm", temp);
+  Cu.import("resource:///modules/devtools/sourceeditor/source-editor.jsm", temp);
   let SourceEditor = temp.SourceEditor;
 
   let component = Services.prefs.getCharPref(SourceEditor.PREFS.COMPONENT);
