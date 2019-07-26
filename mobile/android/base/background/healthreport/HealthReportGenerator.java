@@ -134,6 +134,7 @@ public class HealthReportGenerator {
             discrete.add(cursor.getLong(3));
           } else {
             
+            throw new IllegalStateException("Unknown field type: " + field.flags);
           }
         } else {
           if (field.isStringField()) {

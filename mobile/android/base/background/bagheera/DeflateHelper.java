@@ -54,7 +54,6 @@ public class DeflateHelper {
 
 
 
-  @SuppressWarnings("javadoc")
   public static HttpEntity deflateBytes(final byte[] bytes) {
     
     
