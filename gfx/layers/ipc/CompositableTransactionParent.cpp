@@ -243,7 +243,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       
       
       
-      tex->SetCompositableQuirks(compositable->GetCompositableQuirks());
       compositable->AddTextureHost(tex);
       MOZ_ASSERT(compositable->GetTextureHost(op.textureID()) == tex.get());
       break;
