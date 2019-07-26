@@ -107,19 +107,6 @@ public:
 
 
 
-
-
-
-  nsEventStatus ReceiveInputEvent(const nsInputEvent& aEvent,
-                                  nsInputEvent* aOutEvent);
-
-  
-
-
-
-
-
-
   void UpdateCompositionBounds(const ScreenIntRect& aCompositionBounds);
 
   
@@ -642,9 +629,15 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const LayerRect& aRect, const gfx3DMatrix& aTransform) {
+  void SetLayerHitTestData(const LayerRect& aRect, const gfx3DMatrix& aTransformToLayer,
+                           const gfx3DMatrix& aTransformForLayer) {
     mVisibleRect = aRect;
-    mCSSTransform = aTransform;
+    mAncestorTransform = aTransformToLayer;
+    mCSSTransform = aTransformForLayer;
+  }
+
+  gfx3DMatrix GetAncestorTransform() const {
+    return mAncestorTransform;
   }
 
   gfx3DMatrix GetCSSTransform() const {
@@ -663,6 +656,8 @@ private:
   LayerRect mVisibleRect;
   
 
+  gfx3DMatrix mAncestorTransform;
+  
   gfx3DMatrix mCSSTransform;
 };
 

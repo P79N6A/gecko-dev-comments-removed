@@ -87,9 +87,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                              bool aIsFirstPaint, uint64_t aFirstPaintLayersId,
                                              nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy)
 {
-  
-  aTransform = aTransform * aLayer->GetTransform();
-
   ContainerLayer* container = aLayer->AsContainerLayer();
   AsyncPanZoomController* controller = nullptr;
   if (container) {
@@ -121,9 +118,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                         aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
         LayerRect visible = container->GetFrameMetrics().mViewport * container->GetFrameMetrics().LayersPixelsPerCSSPixel();
-        controller->SetLayerHitTestData(visible, aTransform);
-        
-        aTransform = gfx3DMatrix();
+        controller->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
         APZC_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
                                                                               visible.width, visible.height,
                                                                               controller);
@@ -143,6 +138,15 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
     }
 
     container->SetAsyncPanZoomController(controller);
+  }
+
+  
+  
+  if (controller) {
+    aTransform = gfx3DMatrix();
+  } else {
+    
+    aTransform = aLayer->GetTransform() * aTransform;
   }
 
   uint64_t childLayersId = (aLayer->AsRefLayer() ? aLayer->AsRefLayer()->GetReferentId() : aLayersId);
@@ -165,30 +169,68 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   return aNextSibling;
 }
 
+ template<class T> void
+ApplyTransform(gfx::PointTyped<T>* aPoint, const gfx3DMatrix& aMatrix)
+{
+  gfxPoint result = aMatrix.Transform(gfxPoint(aPoint->x, aPoint->y));
+  aPoint->x = result.x;
+  aPoint->y = result.y;
+}
+
+ template<class T> void
+ApplyTransform(gfx::IntPointTyped<T>* aPoint, const gfx3DMatrix& aMatrix)
+{
+  gfxPoint result = aMatrix.Transform(gfxPoint(aPoint->x, aPoint->y));
+  aPoint->x = NS_lround(result.x);
+  aPoint->y = NS_lround(result.y);
+}
+
+ void
+ApplyTransform(nsIntPoint* aPoint, const gfx3DMatrix& aMatrix)
+{
+  gfxPoint result = aMatrix.Transform(gfxPoint(aPoint->x, aPoint->y));
+  aPoint->x = NS_lround(result.x);
+  aPoint->y = NS_lround(result.y);
+}
+
 nsEventStatus
 APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
 {
   nsRefPtr<AsyncPanZoomController> apzc;
+  gfx3DMatrix transformToApzc;
+  gfx3DMatrix transformToScreen;
   switch (aEvent.mInputType) {
     case MULTITOUCH_INPUT: {
       const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
-      apzc = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint));
+      apzc = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint),
+                           transformToApzc, transformToScreen);
+      if (apzc) {
+        MultiTouchInput inputForApzc(multiTouchInput);
+        for (int i = inputForApzc.mTouches.Length() - 1; i >= 0; i--) {
+          ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
+        }
+        apzc->ReceiveInputEvent(inputForApzc);
+      }
       break;
     } case PINCHGESTURE_INPUT: {
       const PinchGestureInput& pinchInput = aEvent.AsPinchGestureInput();
-      apzc = GetTargetAPZC(pinchInput.mFocusPoint);
+      apzc = GetTargetAPZC(pinchInput.mFocusPoint, transformToApzc, transformToScreen);
+      if (apzc) {
+        PinchGestureInput inputForApzc(pinchInput);
+        ApplyTransform(&(inputForApzc.mFocusPoint), transformToApzc);
+        apzc->ReceiveInputEvent(inputForApzc);
+      }
       break;
     } case TAPGESTURE_INPUT: {
       const TapGestureInput& tapInput = aEvent.AsTapGestureInput();
-      apzc = GetTargetAPZC(ScreenPoint(tapInput.mPoint));
-      break;
-    } default: {
-      
+      apzc = GetTargetAPZC(ScreenPoint(tapInput.mPoint), transformToApzc, transformToScreen);
+      if (apzc) {
+        TapGestureInput inputForApzc(tapInput);
+        ApplyTransform(&(inputForApzc.mPoint), transformToApzc);
+        apzc->ReceiveInputEvent(inputForApzc);
+      }
       break;
     }
-  }
-  if (apzc) {
-    return apzc->ReceiveInputEvent(aEvent);
   }
   return nsEventStatus_eIgnore;
 }
@@ -200,26 +242,50 @@ APZCTreeManager::ReceiveInputEvent(const nsInputEvent& aEvent,
   MOZ_ASSERT(NS_IsMainThread());
 
   nsRefPtr<AsyncPanZoomController> apzc;
+  gfx3DMatrix transformToApzc;
+  gfx3DMatrix transformToScreen;
   switch (aEvent.eventStructType) {
     case NS_TOUCH_EVENT: {
       const nsTouchEvent& touchEvent = static_cast<const nsTouchEvent&>(aEvent);
       if (touchEvent.touches.Length() > 0) {
         nsIntPoint point = touchEvent.touches[0]->mRefPoint;
-        apzc = GetTargetAPZC(ScreenPoint::FromUnknownPoint(gfx::Point(point.x, point.y)));
+        apzc = GetTargetAPZC(ScreenPoint::FromUnknownPoint(gfx::Point(point.x, point.y)),
+                             transformToApzc, transformToScreen);
+        if (apzc) {
+          MultiTouchInput inputForApzc(touchEvent);
+          for (int i = inputForApzc.mTouches.Length() - 1; i >= 0; i--) {
+            ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
+          }
+
+          gfx3DMatrix outTransform = transformToApzc * transformToScreen;
+          nsTouchEvent* outEvent = static_cast<nsTouchEvent*>(aOutEvent);
+          for (int i = outEvent->touches.Length() - 1; i >= 0; i--) {
+            ApplyTransform(&(outEvent->touches[i]->mRefPoint), outTransform);
+          }
+
+          return apzc->ReceiveInputEvent(inputForApzc);
+        }
       }
       break;
     } case NS_MOUSE_EVENT: {
       const nsMouseEvent& mouseEvent = static_cast<const nsMouseEvent&>(aEvent);
       apzc = GetTargetAPZC(ScreenPoint::FromUnknownPoint(gfx::Point(mouseEvent.refPoint.x,
-                                                                    mouseEvent.refPoint.y)));
+                                                                    mouseEvent.refPoint.y)),
+                           transformToApzc, transformToScreen);
+      if (apzc) {
+        MultiTouchInput inputForApzc(mouseEvent);
+        ApplyTransform(&(inputForApzc.mTouches[0].mScreenPoint), transformToApzc);
+
+        gfx3DMatrix outTransform = transformToApzc * transformToScreen;
+        ApplyTransform(&(static_cast<nsMouseEvent*>(aOutEvent)->refPoint), outTransform);
+
+        return apzc->ReceiveInputEvent(inputForApzc);
+      }
       break;
     } default: {
       
       break;
     }
-  }
-  if (apzc) {
-    return apzc->ReceiveInputEvent(aEvent, aOutEvent);
   }
   return nsEventStatus_eIgnore;
 }
@@ -334,15 +400,84 @@ APZCTreeManager::GetTargetAPZC(const ScrollableLayerGuid& aGuid)
   return target.forget();
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 already_AddRefed<AsyncPanZoomController>
-APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
+APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint,
+                               gfx3DMatrix& aTransformToApzcOut,
+                               gfx3DMatrix& aTransformToScreenOut)
 {
   MonitorAutoLock lock(mTreeLock);
   nsRefPtr<AsyncPanZoomController> target;
   
   gfxPoint point(aPoint.x, aPoint.y);
   for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
-    target = GetAPZCAtPoint(apzc, point);
+    target = GetAPZCAtPoint(apzc, point, aTransformToApzcOut, aTransformToScreenOut);
     if (target) {
       break;
     }
@@ -368,23 +503,52 @@ APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableL
 }
 
 AsyncPanZoomController*
-APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, gfxPoint aHitTestPoint)
+APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint,
+                                gfx3DMatrix& aTransformToApzcOut, gfx3DMatrix& aTransformToScreenOut)
 {
-  gfx3DMatrix transform = gfx3DMatrix(aApzc->GetCurrentAsyncTransform()) * aApzc->GetCSSTransform();
-  gfx3DMatrix untransform = transform.Inverse();
-  gfxPoint untransformed = untransform.ProjectPoint(aHitTestPoint);
+  
+  
+  
+  
+
+  
+  
+  gfx3DMatrix ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
+  
+  
+  gfx3DMatrix asyncUntransform = gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
+  
+  
+  gfx3DMatrix untransformSinceLastApzc = ancestorUntransform * asyncUntransform * aApzc->GetCSSTransform().Inverse();
+  
+  
+  gfxPoint untransformed = untransformSinceLastApzc.ProjectPoint(aHitTestPoint);
   APZC_LOG("Untransformed %f %f to %f %f for APZC %p\n", aHitTestPoint.x, aHitTestPoint.y, untransformed.x, untransformed.y, aApzc);
 
   
   
   for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
-    AsyncPanZoomController* match = GetAPZCAtPoint(child, untransformed);
+    AsyncPanZoomController* match = GetAPZCAtPoint(child, untransformed, aTransformToApzcOut, aTransformToScreenOut);
     if (match) {
+      
+      
+      
+      aTransformToApzcOut = untransformSinceLastApzc * aTransformToApzcOut;
+      
+      aTransformToScreenOut = aTransformToScreenOut * aApzc->GetCSSTransform() * aApzc->GetAncestorTransform();
+      
+      
+      
       return match;
     }
   }
   if (aApzc->VisibleRegionContains(LayerPoint(untransformed.x, untransformed.y))) {
     APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n", untransformed.x, untransformed.y, aApzc);
+    
+    
+    aTransformToApzcOut = ancestorUntransform;
+    
+    aTransformToScreenOut = asyncUntransform * aApzc->GetAncestorTransform();
     return aApzc;
   }
   return nullptr;
