@@ -165,6 +165,10 @@ class RefTest(object):
       prefs['reftest.shuffle'] = True
     prefs['reftest.focusFilterMode'] = options.focusFilterMode
 
+    
+    
+    prefs['toolkit.telemetry.enabled'] = False
+
     if options.e10s:
       prefs['browser.tabs.remote.autostart'] = True
 

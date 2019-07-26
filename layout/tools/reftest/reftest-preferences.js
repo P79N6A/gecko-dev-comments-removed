@@ -46,5 +46,3 @@
     
     
     branch.setBoolPref("layout.interruptible-reflow.enabled", false);
-    
-    branch.setBoolPref("toolkit.telemetry.enabled", false);
