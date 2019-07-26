@@ -4167,14 +4167,14 @@ gfxFontGroup::Copy(const gfxFontStyle *aStyle)
 bool 
 gfxFontGroup::IsInvalidChar(uint8_t ch)
 {
-    return ((ch & 0x7f) < 0x20);
+    return ((ch & 0x7f) < 0x20 || ch == 0x7f);
 }
 
 bool 
 gfxFontGroup::IsInvalidChar(PRUnichar ch)
 {
     
-    if (ch >= ' ' && ch < 0x80) {
+    if (ch >= ' ' && ch < 0x7f) {
         return false;
     }
     
