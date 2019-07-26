@@ -1648,7 +1648,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
 
 (function(module) {
   XPCOMUtils.defineLazyModuleGetter(this, "LayoutHelpers",
-                                    "resource:///modules/devtools/LayoutHelpers.jsm");
+                                    "resource://gre/modules/devtools/LayoutHelpers.jsm");
 
   
   
