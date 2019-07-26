@@ -1261,7 +1261,8 @@ Interpret(JSContext *cx, RunState &state)
 
     JS_ASSERT(!cx->compartment()->activeAnalysis);
 
-#define CHECK_PCCOUNT_INTERRUPTS() JS_ASSERT_IF(script->hasScriptCounts, switchMask == -1)
+#define CHECK_PCCOUNT_INTERRUPTS() \
+    JS_ASSERT_IF(script->hasScriptCounts, switchMask == EnableInterruptsPseudoOpcode)
 
     
 
@@ -1274,8 +1275,13 @@ Interpret(JSContext *cx, RunState &state)
 
 
 
-    register int switchMask = 0;
-    int switchOp;
+
+    static_assert(EnableInterruptsPseudoOpcode >= JSOP_LIMIT,
+                  "EnableInterruptsPseudoOpcode must be greater than any opcode");
+    static_assert(EnableInterruptsPseudoOpcode == jsbytecode(-1),
+                  "EnableInterruptsPseudoOpcode must be the maximum jsbytecode value");
+    jsbytecode switchMask = 0;
+    jsbytecode switchOp;
 
 #define DO_OP()            goto do_op
 
@@ -1315,7 +1321,7 @@ Interpret(JSContext *cx, RunState &state)
     JS_BEGIN_MACRO                                                            \
         script = (s);                                                         \
         if (script->hasAnyBreakpointsOrStepMode() || script->hasScriptCounts) \
-            switchMask = -1; /* Enable interrupts. */                         \
+            switchMask = EnableInterruptsPseudoOpcode; /* Enable interrupts. */ \
     JS_END_MACRO
 
     FrameRegs regs;
@@ -1414,7 +1420,7 @@ Interpret(JSContext *cx, RunState &state)
     len = 0;
 
     if (rt->profilingScripts || cx->runtime()->debugHooks.interruptHook)
-        switchMask = -1; 
+        switchMask = EnableInterruptsPseudoOpcode; 
 
   advanceAndDoOp:
     js::gc::MaybeVerifyBarriers(cx);
@@ -1423,14 +1429,12 @@ Interpret(JSContext *cx, RunState &state)
 
   do_op:
     CHECK_PCCOUNT_INTERRUPTS();
-    switchOp = int(op) | switchMask;
+    switchOp = jsbytecode(op) | switchMask;
   do_switch:
     switch (switchOp) {
 
-case -1:
+BEGIN_CASE(EnableInterruptsPseudoOpcode)
 {
-    JS_ASSERT(switchMask == -1);
-
     bool moreInterrupts = false;
 
     if (cx->runtime()->profilingScripts) {
@@ -1493,8 +1497,10 @@ case -1:
         JS_ASSERT(rval.isInt32() && rval.toInt32() == op);
     }
 
-    switchMask = moreInterrupts ? -1 : 0;
-    switchOp = int(op);
+    JS_ASSERT(switchMask == EnableInterruptsPseudoOpcode);
+    switchMask = moreInterrupts ? EnableInterruptsPseudoOpcode : 0;
+
+    switchOp = jsbytecode(op);
     goto do_switch;
 }
 

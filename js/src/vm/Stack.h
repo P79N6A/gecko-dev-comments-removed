@@ -1216,6 +1216,11 @@ class Activation
     void operator=(const Activation &other) MOZ_DELETE;
 };
 
+
+
+
+static const jsbytecode EnableInterruptsPseudoOpcode = -1;
+
 class InterpreterFrameIterator;
 
 class InterpreterActivation : public Activation
@@ -1224,7 +1229,7 @@ class InterpreterActivation : public Activation
 
     StackFrame *const entry_; 
     FrameRegs &regs_;
-    int *const switchMask_; 
+    jsbytecode *const switchMask_; 
 
 #ifdef DEBUG
     size_t oldFrameCount_;
@@ -1232,7 +1237,7 @@ class InterpreterActivation : public Activation
 
   public:
     inline InterpreterActivation(JSContext *cx, StackFrame *entry, FrameRegs &regs,
-                                 int *const switchMask);
+                                 jsbytecode *const switchMask);
     inline ~InterpreterActivation();
 
     inline bool pushInlineFrame(const CallArgs &args, HandleScript script,
@@ -1252,7 +1257,7 @@ class InterpreterActivation : public Activation
             enableInterruptsUnconditionally();
     }
     void enableInterruptsUnconditionally() {
-        *switchMask_ = -1;
+        *switchMask_ = EnableInterruptsPseudoOpcode;
     }
 };
 
