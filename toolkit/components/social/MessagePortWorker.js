@@ -19,7 +19,9 @@ WorkerPort.prototype = {
   },
 
   _onerror: function fw_WorkerPort_onerror(err) {
-    throw new Error("Port " + this + " handler failed: " + err);
+    
+    
+    throw {message: "Port " + this + " handler failed: " + err.message, __proto__: err};
   }
 }
 
