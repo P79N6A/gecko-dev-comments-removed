@@ -18,6 +18,7 @@
 class nsCocoaWindow;
 class nsChildView;
 class nsMenuBarX;
+@class ChildView;
 
 
 #define CUIDRAW_MAX_AREA 500000
@@ -176,6 +177,7 @@ typedef struct _nsCocoaWindowList {
   TitlebarAndBackgroundColor *mColor;
   float mUnifiedToolbarHeight;
   NSColor *mBackgroundColor;
+  NSView *mTitlebarView; 
 }
 
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
@@ -186,6 +188,7 @@ typedef struct _nsCocoaWindowList {
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect sync:(BOOL)aSync;
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect;
 - (void)setDrawsContentsIntoWindowFrame:(BOOL)aState;
+- (ChildView*)mainChildView;
 @end
 
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa
