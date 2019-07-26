@@ -53,7 +53,7 @@ SandboxBroker::LaunchApp(const wchar_t *aPath,
   mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
   mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
                          sandbox::USER_RESTRICTED_SAME_ACCESS);
-  mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_UNTRUSTED);
+  mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
 
   
   mPolicy->SetAlternateDesktop(false);
