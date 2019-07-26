@@ -36,7 +36,7 @@ nsAppShell::Init()
 {
   
   
-  if (WinQueryQueueInfo(HMQ_CURRENT, NULL, 0) == FALSE) {
+  if (WinQueryQueueInfo(HMQ_CURRENT, nullptr, 0) == FALSE) {
     
     PPIB ppib;
     PTIB ptib;
@@ -49,7 +49,8 @@ nsAppShell::Init()
 
   if (!sMsgId) {
     sMsgId = WinAddAtom( WinQuerySystemAtomTable(), "nsAppShell:EventID");
-    WinRegisterClass((HAB)0, "nsAppShell:EventWindowClass", EventWindowProc, NULL, 0);
+    WinRegisterClass((HAB)0, "nsAppShell:EventWindowClass", EventWindowProc,
+                     nullptr, 0);
   }
 
   mEventWnd = ::WinCreateWindow(HWND_DESKTOP,
@@ -83,10 +84,10 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     QMSG qmsg;
     
     
-    if (WinPeekMsg((HAB)0, &qmsg, NULL, WM_CHAR, WM_VIOCHAR, PM_REMOVE) ||
-        WinPeekMsg((HAB)0, &qmsg, NULL, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE) || 
-        WinPeekMsg((HAB)0, &qmsg, NULL, 0, WM_USER-1, PM_REMOVE) || 
-        WinPeekMsg((HAB)0, &qmsg, NULL, 0, 0, PM_REMOVE)) {
+    if (WinPeekMsg((HAB)0, &qmsg, nullptr, WM_CHAR, WM_VIOCHAR, PM_REMOVE) ||
+        WinPeekMsg((HAB)0, &qmsg, nullptr, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE) ||
+        WinPeekMsg((HAB)0, &qmsg, nullptr, 0, WM_USER-1, PM_REMOVE) ||
+        WinPeekMsg((HAB)0, &qmsg, nullptr, 0, 0, PM_REMOVE)) {
       gotMessage = true;
       ::WinDispatchMsg((HAB)0, &qmsg);
     } else if (mayWait) {
