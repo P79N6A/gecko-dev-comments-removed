@@ -238,7 +238,7 @@ function findChromeWindowForChats(preferredWindow) {
   
   
   
-  let first, best, enumerator;
+  let topMost, enumerator;
   
   
   
@@ -254,13 +254,10 @@ function findChromeWindowForChats(preferredWindow) {
   }
   while (enumerator.hasMoreElements()) {
     let win = enumerator.getNext();
-    if (win && isWindowGoodForChats(win)) {
-      first = win;
-      if (win.SocialChatBar.hasChats)
-        best = win;
-    }
+    if (win && isWindowGoodForChats(win))
+      topMost = win;
   }
-  return best || first;
+  return topMost;
 }
 
 this.openChatWindow =

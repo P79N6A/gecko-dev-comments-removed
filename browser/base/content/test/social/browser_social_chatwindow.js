@@ -463,10 +463,9 @@ var tests = {
         secondWindow.removeEventListener("load", loadListener);
         ok(!secondWindow.SocialChatBar.hasChats, "second window has no chats");
         openChat(function() {
-          ok(!secondWindow.SocialChatBar.hasChats, "second window still has no chats");
-          is(window.SocialChatBar.chatbar.childElementCount, 2, "first window now has 2 chats");
+          ok(secondWindow.SocialChatBar.hasChats, "second window now has chats");
+          is(window.SocialChatBar.chatbar.childElementCount, 1, "first window still has 1 chat");
           window.SocialChatBar.chatbar.removeAll();
-          
           
           openChat(function() {
             ok(!window.SocialChatBar.hasChats, "first window has no chats");
