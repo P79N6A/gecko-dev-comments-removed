@@ -26,7 +26,6 @@
 
 
 var minItemsTestingThreshold = 1024;
-var defaultStablizationAttempts = 5;
 
 
 
@@ -169,7 +168,29 @@ function assertEqParallelArray(a, b) {
 
 
 
-function stabilize(opFunction, cmpFunction, mode, attempts) {
+
+function assertParallelExecWillBail(opFunction) {
+  opFunction({mode:"compile"}); 
+  opFunction({mode:"bailout"}); 
+}
+
+
+
+
+
+function assertParallelExecWillRecover(opFunction) {
+  opFunction({mode:"compile"}); 
+  opFunction({mode:"recover"}); 
+}
+
+
+
+
+
+
+
+
+function assertParallelExecSucceeds(opFunction, cmpFunction) {
   var failures = 0;
   while (true) {
     print("Attempting compile #", failures);
@@ -178,57 +199,18 @@ function stabilize(opFunction, cmpFunction, mode, attempts) {
 
     try {
       print("Attempting parallel run #", failures);
-      var result = opFunction({mode:mode});
+      var result = opFunction({mode:"par"});
       cmpFunction(result);
       break;
     } catch (e) {
       failures++;
-      if (failures > attempts) {
+      if (failures > 5) {
         throw e; 
       } else {
         print(e);
       }
     }
   }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function assertParallelExecWillBail(opFunction) {
-  stabilize(opFunction, function() {}, "bailout", defaultStablizationAttempts);
-}
-
-
-
-
-
-function assertParallelExecWillRecover(opFunction) {
-  stabilize(opFunction, function() {}, "recover", defaultStablizationAttempts);
-}
-
-
-
-
-
-
-
-
-function assertParallelExecSucceeds(opFunction,
-                                    cmpFunction,
-                                    attempts) {
-  attempts = attempts || defaultStablizationAttempts;
-  stabilize(opFunction, cmpFunction, "par", attempts);
 
   print("Attempting sequential run");
   var result = opFunction({mode:"seq"});
@@ -285,7 +267,7 @@ function testScan(jsarray, func, cmpFunction) {
 
 
 
-function testScatter(opFunction, cmpFunction, attempts) {
+function testScatter(opFunction, cmpFunction) {
   var strategies = ["divide-scatter-version", "divide-output-range"];
   for (var i in strategies) {
     assertParallelExecSucceeds(
@@ -295,8 +277,7 @@ function testScatter(opFunction, cmpFunction, attempts) {
         print(JSON.stringify(m1));
         return opFunction(m1);
       },
-      cmpFunction,
-      attempts);
+      cmpFunction);
   }
 }
 
