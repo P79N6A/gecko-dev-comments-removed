@@ -1037,6 +1037,10 @@ public:
 
   
   
+  bool mIsExitingDormant;
+
+  
+  
   
   
   
