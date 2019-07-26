@@ -51,6 +51,27 @@ function isSubObjectOf(expectedObj, actualObj, name) {
   }
 }
 
+function getLocale() {
+  const localePref = "general.useragent.locale";
+  return getLocalizedPref(localePref, Services.prefs.getCharPref(localePref));
+}
+
+
+
+
+
+
+
+function getLocalizedPref(aPrefName, aDefault) {
+  try {
+    return Services.prefs.getComplexValue(aPrefName, Ci.nsIPrefLocalizedString).data;
+  } catch (ex) {
+    return aDefault;
+  }
+
+  return aDefault;
+}
+
 function waitForPopupShown(aPopupId, aCallback) {
   let popup = document.getElementById(aPopupId);
   info("waitForPopupShown: got popup: " + popup.id);
