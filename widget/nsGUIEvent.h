@@ -1883,6 +1883,13 @@ public:
   }
 
   int32_t detail;
+
+  void AssignUIEventData(const nsUIEvent& aEvent, bool aCopyTargets)
+  {
+    AssignGUIEventData(aEvent, aCopyTargets);
+
+    
+  }
 };
 
 class nsFocusEvent : public nsUIEvent
