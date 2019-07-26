@@ -2,14 +2,9 @@
 
 
 
-<html>
-<head>
-  <title>Indexed Database Clear Browser Data Test</title>
 
-  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 
-  <script type="text/javascript;version=1.7">
+
     "use strict";
 
     const appDomain = "example.org";
@@ -21,6 +16,26 @@
       const objectStoreName = "foo";
       const testKey = 1;
       const testValue = objectStoreName;
+
+      
+      
+      let remote_app, remote_browser;
+      if (window.location.href.indexOf("inproc_oop") != -1) {
+        remote_app = false;
+        remote_browser = true;
+      }
+      else if (window.location.href.indexOf("oop_inproc") != -1) {
+        remote_app = true;
+        remote_browser = false;
+      }
+      else if (window.location.href.indexOf("inproc_inproc") != -1) {
+        remote_app = false;
+        remote_browser = false;
+      }
+      else {
+        ok(false, "Bad test filename!");
+        return;
+      }
 
       let request = indexedDB.open(window.location.pathname, 1);
       request.onerror = errorHandler;
@@ -40,16 +55,23 @@
       request.onsuccess = grabEventAndContinueHandler;
       event = yield;
 
-      let srcURL =
-        location.protocol + "//" + appDomain +
-        location.pathname.replace("test_webapp_clearBrowserData.html",
-                                  "webapp_clearBrowserData_appFrame.html");
+      
+      
+      
+      
+      
+      
+      let srcURL = location.protocol + "//" + appDomain +
+        location.pathname.substring(0, location.pathname.lastIndexOf('/')) +
+        "/webapp_clearBrowserData_appFrame.html?" +
+        "remote_browser=" + remote_browser + "&" +
+        "remote_app=" + remote_app;
 
       let iframe = document.createElement("iframe");
       iframe.setAttribute("mozbrowser", "");
       iframe.setAttribute("mozapp", manifestURL);
       iframe.setAttribute("src", srcURL);
-      iframe.setAttribute("remote", "true");
+      iframe.setAttribute("remote", remote_app);
       iframe.addEventListener("mozbrowsershowmodalprompt", function(event) {
         let message = JSON.parse(event.detail.message);
         switch (message.type) {
@@ -127,11 +149,3 @@
         "set": [["dom.mozBrowserFramesEnabled", true]]
       }, runTest);
     }
-  </script>
-
-  <script type="text/javascript;version=1.7" src="helpers.js"></script>
-</head>
-
-<body onload="start();"></body>
-
-</html>
