@@ -497,7 +497,7 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, IsAcceptableThis test, Native
             
             
             if ((src == srcArgs.base() + 1) && dst->isObject()) {
-                JSObject *thisObj = &dst->toObject();
+                RootedObject thisObj(cx, &dst->toObject());
                 if (thisObj->isWrapper() &&
                     !Wrapper::wrapperHandler(thisObj)->isSafeToUnwrap())
                 {
