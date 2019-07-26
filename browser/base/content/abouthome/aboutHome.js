@@ -104,6 +104,7 @@ function onSearchSubmit(aEvent)
 {
   let searchTerms = document.getElementById("searchText").value;
   let searchURL = document.documentElement.getAttribute("searchEngineURL");
+
   if (searchURL && searchTerms.length > 0) {
     const SEARCH_TOKENS = {
       "_searchTerms_": encodeURIComponent(searchTerms)
@@ -111,6 +112,14 @@ function onSearchSubmit(aEvent)
     for (let key in SEARCH_TOKENS) {
       searchURL = searchURL.replace(key, SEARCH_TOKENS[key]);
     }
+
+    
+    
+    
+    let engineName = document.documentElement.getAttribute("searchEngineName");
+    let event = new CustomEvent("AboutHomeSearchEvent", {detail: engineName});
+    document.dispatchEvent(event);
+
     window.location.href = searchURL;
   }
 
