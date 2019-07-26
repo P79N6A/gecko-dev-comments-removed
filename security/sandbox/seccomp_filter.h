@@ -71,6 +71,15 @@
 #endif
 
 
+#ifdef MOZ_PROFILING
+#define PROFILING_WHITELIST_ADD \
+  ALLOW_SYSCALL(sigaction), \
+  ALLOW_SYSCALL(tgkill),
+#else
+#define PROFILING_WHITELIST_ADD
+#endif
+
+
 #if defined(__arm__)
 #define SECCOMP_WHITELIST_REMOVE_ARM \
   ALLOW_SYSCALL(fstat64), \
@@ -151,6 +160,7 @@
   ALLOW_SYSCALL(getpriority), \
   ALLOW_SYSCALL(setpriority), \
   ALLOW_SYSCALL(sched_setscheduler), \
+  PROFILING_WHITELIST_ADD \
    \
   SECCOMP_WHITELIST_ADD_ARM_LAST \
    \
