@@ -342,10 +342,10 @@ struct ParseTask
     
     
     
-    JSObject *scopeChain;
+    PersistentRootedObject scopeChain;
 
     
-    JSObject *exclusiveContextGlobal;
+    PersistentRootedObject exclusiveContextGlobal;
 
     
     JS::OffThreadCompileCallback callback;
