@@ -8723,7 +8723,6 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
                             bool barrier, types::TemporaryTypeSet *types)
 {
     JS_ASSERT(*emitted == false);
-    bool accessGetter = inspector->hasSeenAccessedGetter(pc);
 
     MDefinition *obj = current->peek(-1);
 
@@ -8735,7 +8734,9 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
             return true;
     }
 
-    if (accessGetter)
+    
+    
+    if (inspector->hasSeenAccessedGetter(pc))
         barrier = true;
 
     if (needsToMonitorMissingProperties(types))
@@ -8766,10 +8767,6 @@ IonBuilder::getPropTryCache(bool *emitted, PropertyName *name,
         if (!annotateGetPropertyCache(obj, load, obj->resultTypeSet(), types))
             return false;
     }
-
-    
-    if (accessGetter)
-        load->setAllowGetters();
 
     current->add(load);
     current->push(load);
