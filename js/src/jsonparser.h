@@ -16,19 +16,20 @@
 
 namespace js {
 
-class MOZ_STACK_CLASS JSONParser : private JS::AutoGCRooter
+
+
+
+class MOZ_STACK_CLASS JSONParserBase : private JS::AutoGCRooter
 {
   public:
     enum ErrorHandling { RaiseError, NoError };
 
   private:
     
-
-    JSContext * const cx;
-    JS::ConstTwoByteChars current;
-    const JS::ConstTwoByteChars begin, end;
-
     Value v;
+
+  protected:
+    JSContext * const cx;
 
     const ErrorHandling errorHandling;
 
@@ -105,17 +106,9 @@ class MOZ_STACK_CLASS JSONParser : private JS::AutoGCRooter
     Token lastToken;
 #endif
 
-  public:
-    
-
-    
-    JSONParser(JSContext *cx, JS::ConstTwoByteChars data, size_t length,
-               ErrorHandling errorHandling = RaiseError)
-      : AutoGCRooter(cx, JSONPARSER),
+    JSONParserBase(JSContext *cx, ErrorHandling errorHandling)
+      : JS::AutoGCRooter(cx, JSONPARSER),
         cx(cx),
-        current(data),
-        begin(data),
-        end((data + length).get(), data.get(), length),
         errorHandling(errorHandling),
         stack(cx),
         freeElements(cx),
@@ -123,25 +116,9 @@ class MOZ_STACK_CLASS JSONParser : private JS::AutoGCRooter
 #ifdef DEBUG
       , lastToken(Error)
 #endif
-    {
-        JS_ASSERT(current <= end);
-    }
+    {}
+    ~JSONParserBase();
 
-    ~JSONParser();
-
-    
-
-
-
-
-
-
-
-
-
-    bool parse(MutableHandleValue vp);
-
-  private:
     Value numberValue() const {
         JS_ASSERT(lastToken == Number);
         JS_ASSERT(v.isNumber());
@@ -185,6 +162,55 @@ class MOZ_STACK_CLASS JSONParser : private JS::AutoGCRooter
     }
 
     enum StringType { PropertyName, LiteralValue };
+
+    bool errorReturn();
+
+    bool finishObject(MutableHandleValue vp, PropertyVector &properties);
+    bool finishArray(MutableHandleValue vp, ElementVector &elements);
+
+  private:
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    void trace(JSTracer *trc);
+
+    JSObject *createFinishedObject(PropertyVector &properties);
+
+    JSONParserBase(const JSONParserBase &other) MOZ_DELETE;
+    void operator=(const JSONParserBase &other) MOZ_DELETE;
+};
+
+class MOZ_STACK_CLASS JSONParser : public JSONParserBase
+{
+  private:
+    JS::ConstTwoByteChars current;
+    const JS::ConstTwoByteChars begin, end;
+
+  public:
+    
+
+    
+    JSONParser(JSContext *cx, JS::ConstTwoByteChars data, size_t length,
+               ErrorHandling errorHandling = RaiseError)
+      : JSONParserBase(cx, errorHandling),
+        current(data),
+        begin(data),
+        end((data + length).get(), data.get(), length)
+    {
+        JS_ASSERT(current <= end);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    bool parse(MutableHandleValue vp);
+
+  private:
     template<StringType ST> Token readString();
 
     Token readNumber();
@@ -197,16 +223,8 @@ class MOZ_STACK_CLASS JSONParser : private JS::AutoGCRooter
     Token advanceAfterArrayElement();
 
     void error(const char *msg);
-    bool errorReturn();
-
-    JSObject *createFinishedObject(PropertyVector &properties);
-    bool finishObject(MutableHandleValue vp, PropertyVector &properties);
-    bool finishArray(MutableHandleValue vp, ElementVector &elements);
 
     void getTextPosition(uint32_t *column, uint32_t *line);
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    void trace(JSTracer *trc);
 
   private:
     JSONParser(const JSONParser &other) MOZ_DELETE;
