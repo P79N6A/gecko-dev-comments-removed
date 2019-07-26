@@ -94,16 +94,6 @@ private:
   
 
 
-  void RootResult();
-
-  
-
-
-  void UnrootResult();
-
-  
-
-
   void SetSuccess(nsIDOMMozSmsMessage* aMessage);
 
   
@@ -140,7 +130,6 @@ private:
   nsresult NotifyError(int32_t aError);
 
   JS::Value mResult;
-  bool      mResultRooted;
   bool      mDone;
   bool      mParentAlive;
   mobilemessage::SmsRequestParent* mParent;
