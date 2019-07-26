@@ -1221,9 +1221,3 @@ pref("dom.identity.enabled", false);
 
 
 pref("plain_text.wrap_long_lines", true);
-
-#ifndef RELEASE_BUILD
-
-pref("media.webaudio.enabled", true);
-#endif
-
