@@ -39,7 +39,7 @@ static const XPCOMFunctions kFrozenFunctions = {
 
     
     &NS_GetDebug,
-    &NS_GetTraceRefcnt,
+    nullptr,
 
     
     &NS_StringContainerInit,

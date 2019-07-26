@@ -40,7 +40,6 @@ typedef nsresult   (* NewLocalFileFunc)(const nsAString &path, bool followLinks,
 typedef nsresult   (* NewNativeLocalFileFunc)(const nsACString &path, bool followLinks, nsIFile* *result);
 
 typedef nsresult   (* GetDebugFunc)(nsIDebug* *result);
-typedef nsresult   (* GetTraceRefcntFunc)(nsITraceRefcnt* *result);
 
 typedef nsresult   (* StringContainerInitFunc)(nsStringContainer&);
 typedef nsresult   (* StringContainerInit2Func)(nsStringContainer&, const char16_t *, uint32_t, uint32_t);
@@ -115,7 +114,7 @@ typedef struct XPCOMFunctions{
 
     
     GetDebugFunc getDebug;
-    GetTraceRefcntFunc getTraceRefcnt;
+    void* getTraceRefcnt;
 
     
     StringContainerInitFunc stringContainerInit;
