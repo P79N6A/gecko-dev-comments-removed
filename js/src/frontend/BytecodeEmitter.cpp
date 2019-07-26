@@ -3358,10 +3358,19 @@ EmitAssignment(JSContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp op, Par
             break;
           }
           case PNK_ELEM:
-          case PNK_CALL:
             if (Emit1(cx, bce, JSOP_DUP2) < 0)
                 return false;
             if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
+                return false;
+            break;
+          case PNK_CALL:
+            
+
+
+
+
+            JS_ASSERT(lhs->pn_xflags & PNX_SETCALL);
+            if (Emit1(cx, bce, JSOP_NULL) < 0)
                 return false;
             break;
           default:;
