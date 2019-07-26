@@ -1474,8 +1474,20 @@ class Rule(object):
 
     def getcommands(self, target, makefile):
         assert isinstance(target, Target)
+        
+        
+        
+        prereqs = []
+        prereqs.extend(self.prerequisites)
 
-        return getcommandsforrule(self, target, makefile, self.prerequisites, stem=None)
+        if not self.doublecolon:
+            for rule in target.rules:
+                
+                
+                if rule != self:
+                    prereqs.extend(rule.prerequisites)
+
+        return getcommandsforrule(self, target, makefile, prereqs, stem=None)
         
 
 class PatternRuleInstance(object):
