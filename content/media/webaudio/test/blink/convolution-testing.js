@@ -66,7 +66,7 @@ function checkTriangularPulse(rendered, reference) {
     
     
     
-    var allowedDeviationDecibels = -133.5;
+    var allowedDeviationDecibels = -129.4;
     var maxDeviationDecibels = linearToDecibel(maxDelta / valueAtMaxDelta);
 
     if (maxDeviationDecibels <= allowedDeviationDecibels) {
