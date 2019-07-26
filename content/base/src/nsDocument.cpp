@@ -7619,7 +7619,7 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
 
   
   indexedDB::IndexedDatabaseManager* idbManager =
-    indexedDB::IndexedDatabaseManager::Get();
+    win ? indexedDB::IndexedDatabaseManager::Get() : nullptr;
   if (idbManager && idbManager->HasOpenTransactions(win)) {
     return false;
   }
