@@ -1050,6 +1050,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
         movl(dest, dest); 
     }
+    void branchTruncateFloat32(const FloatRegister &src, const Register &dest, Label *fail) {
+        cvttss2sq(src, dest);
+
+        
+        cmpq(dest, Imm32(1));
+        j(Assembler::Overflow, fail);
+
+        movl(dest, dest); 
+    }
 
     Condition testInt32Truthy(bool truthy, const ValueOperand &operand) {
         testl(operand.valueReg(), operand.valueReg());

@@ -2775,6 +2775,24 @@ class LTruncateDToInt32 : public LInstructionHelper<1, 1, 1>
 };
 
 
+
+
+class LTruncateFToInt32 : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(TruncateFToInt32)
+
+    LTruncateFToInt32(const LAllocation &in, const LDefinition &temp) {
+        setOperand(0, in);
+        setTemp(0, temp);
+    }
+
+    const LDefinition *tempFloat() {
+        return getTemp(0);
+    }
+};
+
+
 class LIntToString : public LInstructionHelper<1, 1, 0>
 {
   public:

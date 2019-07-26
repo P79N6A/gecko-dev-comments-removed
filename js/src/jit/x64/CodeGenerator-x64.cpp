@@ -568,3 +568,15 @@ CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
     
     return emitTruncateDouble(input, output);
 }
+
+bool
+CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32 *ins)
+{
+    FloatRegister input = ToFloatRegister(ins->input());
+    Register output = ToRegister(ins->output());
+
+    
+    
+    
+    return emitTruncateFloat32(input, output);
+}
