@@ -5,70 +5,27 @@
 
 
 
-#define TRY_PARALLEL(MODE) \
-  ((!MODE || MODE.mode === "par"))
-#define ASSERT_SEQUENTIAL_IS_OK(MODE) \
-  do { if (MODE) AssertSequentialIsOK(MODE) } while(false)
+#define PA_LENGTH(a) (a.shape[0])
+#define PA_GET(a, i) (a.get(i))
+#define PA_NEW(length, buffer, offset) \
+  (NewParallelArray(ParallelArrayView, [length], buffer, offset))
 
+#define PA_MAP_NAME     ParallelArrayMap
+#define PA_REDUCE_NAME  ParallelArrayReduce
+#define PA_SCAN_NAME    ParallelArrayScan
+#define PA_SCATTER_NAME ParallelArrayScatter
+#define PA_FILTER_NAME  ParallelArrayFilter
 
-#define SLICE_INFO(START, END) START, END, START, 0
-#define SLICE_START(ID) ((ID << 2) + 0)
-#define SLICE_END(ID)   ((ID << 2) + 1)
-#define SLICE_POS(ID)   ((ID << 2) + 2)
+#include "ParallelArrayCommonOps.js"
 
-
-
-
-#define CHUNK_SHIFT 5
-#define CHUNK_SIZE 32
-
-
-#define ARRAY_PUSH(ARRAY, ELEMENT) \
-  callFunction(std_Array_push, ARRAY, ELEMENT);
-#define ARRAY_SLICE(ARRAY, ELEMENT) \
-  callFunction(std_Array_slice, ARRAY, ELEMENT);
-
-
-
-
-
-function ComputeNumChunks(length) {
-  var chunks = length >>> CHUNK_SHIFT;
-  if (chunks << CHUNK_SHIFT === length)
-    return chunks;
-  return chunks + 1;
-}
-
-
-
-
-
-
-
-function ComputeSliceBounds(numItems, sliceIndex, numSlices) {
-  var sliceWidth = (numItems / numSlices) | 0;
-  var startIndex = sliceWidth * sliceIndex;
-  var endIndex = sliceIndex === numSlices - 1 ? numItems : sliceWidth * (sliceIndex + 1);
-  return [startIndex, endIndex];
-}
-
-
-
-
-
-
-
-
-
-function ComputeAllSliceBounds(numItems, numSlices) {
-  
-  var info = [];
-  for (var i = 0; i < numSlices; i++) {
-    var [start, end] = ComputeSliceBounds(numItems, i, numSlices);
-    ARRAY_PUSH(info, SLICE_INFO(start, end));
-  }
-  return info;
-}
+#undef PA_LENGTH
+#undef PA_GET
+#undef PA_NEW
+#undef PA_MAP_NAME
+#undef PA_REDUCE_NAME
+#undef PA_SCAN_NAME
+#undef PA_SCATTER_NAME
+#undef PA_FILTER_NAME
 
 
 
@@ -91,7 +48,6 @@ function ComputeProducts(shape) {
 
 
 function ComputeIndices(shape, index1d) {
-
   var products = ComputeProducts(shape);
   var l = shape.length;
 
@@ -102,7 +58,7 @@ function ComputeIndices(shape, index1d) {
     var stride = products[l - i - 1];
 
     
-    var index = (index1d / stride) | 0;
+    var index = TO_INT32(index1d / stride);
     ARRAY_PUSH(result, index);
 
     
@@ -143,7 +99,7 @@ function ParallelArrayConstructEmpty() {
 
 function ParallelArrayConstructFromArray(buffer) {
   var buffer = ToObject(buffer);
-  var length = buffer.length >>> 0;
+  var length = TO_UINT32(buffer.length);
   if (length !== buffer.length)
     ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
 
@@ -165,6 +121,11 @@ function ParallelArrayConstructFromArray(buffer) {
 
 
 function ParallelArrayConstructFromFunction(shape, func) {
+  
+  
+  
+  if (!IsCallable(func))
+    ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, func));
   return ParallelArrayConstructFromComprehension(this, shape, func, undefined);
 }
 
@@ -173,6 +134,9 @@ function ParallelArrayConstructFromFunction(shape, func) {
 
 
 function ParallelArrayConstructFromFunctionMode(shape, func, mode) {
+  
+  if (!IsCallable(func))
+    ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, func));
   return ParallelArrayConstructFromComprehension(this, shape, func, mode);
 }
 
@@ -188,10 +152,8 @@ function ParallelArrayConstructFromFunctionMode(shape, func, mode) {
 
 
 function ParallelArrayConstructFromComprehension(self, shape, func, mode) {
-  
-
   if (typeof shape === "number") {
-    var length = shape >>> 0;
+    var length = TO_UINT32(shape);
     if (length !== shape)
       ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
     ParallelArrayBuild(self, [length], func, mode);
@@ -201,7 +163,7 @@ function ParallelArrayConstructFromComprehension(self, shape, func, mode) {
     var shape1 = [];
     for (var i = 0, l = shape.length; i < l; i++) {
       var s0 = shape[i];
-      var s1 = s0 >>> 0;
+      var s1 = TO_UINT32(s0);
       if (s1 !== s0)
         ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
       ARRAY_PUSH(shape1, s1);
@@ -327,7 +289,7 @@ function ParallelArrayBuild(self, shape, func, mode) {
   }
 
   function fill2(indexStart, indexEnd) {
-    var x = (indexStart / yDimension) | 0;
+    var x = TO_INT32(indexStart / yDimension);
     var y = indexStart - x * yDimension;
     for (var i = indexStart; i < indexEnd; i++) {
       UnsafeSetElement(buffer, i, func(x, y));
@@ -339,9 +301,9 @@ function ParallelArrayBuild(self, shape, func, mode) {
   }
 
   function fill3(indexStart, indexEnd) {
-    var x = (indexStart / (yDimension * zDimension)) | 0;
+    var x = TO_INT32(indexStart / (yDimension * zDimension));
     var r = indexStart - x * yDimension * zDimension;
-    var y = (r / zDimension) | 0;
+    var y = TO_INT32(r / zDimension);
     var z = r - y * zDimension;
     for (var i = indexStart; i < indexEnd; i++) {
       UnsafeSetElement(buffer, i, func(x, y, z));
@@ -370,742 +332,14 @@ function ParallelArrayBuild(self, shape, func, mode) {
 
 
 
-function ParallelArrayMap(func, mode) {
-  
-  
-
-  var self = this;
-  var length = self.shape[0];
-  var buffer = NewDenseArray(length);
-
-  parallel: for (;;) { 
-    if (ShouldForceSequential())
-      break parallel;
-    if (!TRY_PARALLEL(mode))
-      break parallel;
-
-    var chunks = ComputeNumChunks(length);
-    var numSlices = ForkJoinSlices();
-    var info = ComputeAllSliceBounds(chunks, numSlices);
-    ForkJoin(mapSlice, CheckParallel(mode));
-    return NewParallelArray(ParallelArrayView, [length], buffer, 0);
-  }
-
-  
-  ASSERT_SEQUENTIAL_IS_OK(mode);
-  for (var i = 0; i < length; i++) {
-    
-    var v = func(self.get(i), i, self);
-    UnsafeSetElement(buffer, i, v);
-  }
-  return NewParallelArray(ParallelArrayView, [length], buffer, 0);
-
-  function mapSlice(sliceId, numSlices, warmup) {
-    var chunkPos = info[SLICE_POS(sliceId)];
-    var chunkEnd = info[SLICE_END(sliceId)];
-
-    if (warmup && chunkEnd > chunkPos + 1)
-      chunkEnd = chunkPos + 1;
-
-    while (chunkPos < chunkEnd) {
-      var indexStart = chunkPos << CHUNK_SHIFT;
-      var indexEnd = std_Math_min(indexStart + CHUNK_SIZE, length);
-
-      for (var i = indexStart; i < indexEnd; i++)
-        UnsafeSetElement(buffer, i, func(self.get(i), i, self));
-
-      UnsafeSetElement(info, SLICE_POS(sliceId), ++chunkPos);
-    }
-  }
-}
-
-
-
-
-
-function ParallelArrayReduce(func, mode) {
-  
-  
-
-  var self = this;
-  var length = self.shape[0];
-
-  if (length === 0)
-    ThrowError(JSMSG_PAR_ARRAY_REDUCE_EMPTY);
-
-  parallel: for (;;) { 
-    if (ShouldForceSequential())
-      break parallel;
-    if (!TRY_PARALLEL(mode))
-      break parallel;
-
-    var chunks = ComputeNumChunks(length);
-    var numSlices = ForkJoinSlices();
-    if (chunks < numSlices)
-      break parallel;
-
-    var info = ComputeAllSliceBounds(chunks, numSlices);
-    var subreductions = NewDenseArray(numSlices);
-    ForkJoin(reduceSlice, CheckParallel(mode));
-    var accumulator = subreductions[0];
-    for (var i = 1; i < numSlices; i++)
-      accumulator = func(accumulator, subreductions[i]);
-    return accumulator;
-  }
-
-  
-  ASSERT_SEQUENTIAL_IS_OK(mode);
-  var accumulator = self.get(0);
-  for (var i = 1; i < length; i++)
-    accumulator = func(accumulator, self.get(i));
-  return accumulator;
-
-  function reduceSlice(sliceId, numSlices, warmup) {
-    var chunkStart = info[SLICE_START(sliceId)];
-    var chunkPos = info[SLICE_POS(sliceId)];
-    var chunkEnd = info[SLICE_END(sliceId)];
-
-    
-    
-    
-    
-    
-    
-    
-
-    if (warmup && chunkEnd > chunkPos + 2)
-      chunkEnd = chunkPos + 2;
-
-    if (chunkStart === chunkPos) {
-      var indexPos = chunkStart << CHUNK_SHIFT;
-      var accumulator = reduceChunk(self.get(indexPos), indexPos + 1, indexPos + CHUNK_SIZE);
-
-      UnsafeSetElement(subreductions, sliceId, accumulator, 
-                       info, SLICE_POS(sliceId), ++chunkPos);
-    }
-
-    var accumulator = subreductions[sliceId]; 
-
-    while (chunkPos < chunkEnd) {
-      var indexPos = chunkPos << CHUNK_SHIFT;
-      accumulator = reduceChunk(accumulator, indexPos, indexPos + CHUNK_SIZE);
-      UnsafeSetElement(subreductions, sliceId, accumulator,
-                       info, SLICE_POS(sliceId), ++chunkPos);
-    }
-  }
-
-  function reduceChunk(accumulator, from, to) {
-    to = std_Math_min(to, length);
-    for (var i = from; i < to; i++)
-      accumulator = func(accumulator, self.get(i));
-    return accumulator;
-  }
-}
-
-
-
-
-
-
-
-function ParallelArrayScan(func, mode) {
-  
-  
-
-  var self = this;
-  var length = self.shape[0];
-
-  if (length === 0)
-    ThrowError(JSMSG_PAR_ARRAY_REDUCE_EMPTY);
-
-  var buffer = NewDenseArray(length);
-
-  parallel: for (;;) { 
-    if (ShouldForceSequential())
-      break parallel;
-    if (!TRY_PARALLEL(mode))
-      break parallel;
-
-    var chunks = ComputeNumChunks(length);
-    var numSlices = ForkJoinSlices();
-    if (chunks < numSlices)
-      break parallel;
-    var info = ComputeAllSliceBounds(chunks, numSlices);
-
-    
-    ForkJoin(phase1, CheckParallel(mode));
-
-    
-    var intermediates = [];
-    var accumulator = buffer[finalElement(0)];
-    ARRAY_PUSH(intermediates, accumulator);
-    for (var i = 1; i < numSlices - 1; i++) {
-      accumulator = func(accumulator, buffer[finalElement(i)]);
-      ARRAY_PUSH(intermediates, accumulator);
-    }
-
-    
-    
-    for (var i = 0; i < numSlices; i++) {
-      info[SLICE_POS(i)] = info[SLICE_START(i)] << CHUNK_SHIFT;
-      info[SLICE_END(i)] = info[SLICE_END(i)] << CHUNK_SHIFT;
-    }
-    info[SLICE_END(numSlices - 1)] = std_Math_min(info[SLICE_END(numSlices - 1)], length);
-
-    
-    ForkJoin(phase2, CheckParallel(mode));
-    return NewParallelArray(ParallelArrayView, [length], buffer, 0);
-  }
-
-  
-  ASSERT_SEQUENTIAL_IS_OK(mode);
-  scan(self.get(0), 0, length);
-  return NewParallelArray(ParallelArrayView, [length], buffer, 0);
-
-  function scan(accumulator, start, end) {
-    UnsafeSetElement(buffer, start, accumulator);
-    for (var i = start + 1; i < end; i++) {
-      accumulator = func(accumulator, self.get(i));
-      UnsafeSetElement(buffer, i, accumulator);
-    }
-    return accumulator;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  function phase1(sliceId, numSlices, warmup) {
-    var chunkStart = info[SLICE_START(sliceId)];
-    var chunkPos = info[SLICE_POS(sliceId)];
-    var chunkEnd = info[SLICE_END(sliceId)];
-
-    if (warmup && chunkEnd > chunkPos + 2)
-      chunkEnd = chunkPos + 2;
-
-    if (chunkPos == chunkStart) {
-      
-      
-      var indexStart = chunkPos << CHUNK_SHIFT;
-      var indexEnd = std_Math_min(indexStart + CHUNK_SIZE, length);
-      scan(self.get(indexStart), indexStart, indexEnd);
-      UnsafeSetElement(info, SLICE_POS(sliceId), ++chunkPos);
-    }
-
-    while (chunkPos < chunkEnd) {
-      
-      
-      
-      
-      
-      var indexStart = chunkPos << CHUNK_SHIFT;
-      var indexEnd = std_Math_min(indexStart + CHUNK_SIZE, length);
-      var accumulator = func(buffer[indexStart - 1], self.get(indexStart));
-      scan(accumulator, indexStart, indexEnd);
-      UnsafeSetElement(info, SLICE_POS(sliceId), ++chunkPos);
-    }
-  }
-
-  
-
-
-  function finalElement(sliceId) {
-    var chunkEnd = info[SLICE_END(sliceId)]; 
-    var indexStart = std_Math_min(chunkEnd << CHUNK_SHIFT, length);
-    return indexStart - 1;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  function phase2(sliceId, numSlices, warmup) {
-    if (sliceId == 0)
-      return; 
-
-    var indexPos = info[SLICE_POS(sliceId)];
-    var indexEnd = info[SLICE_END(sliceId)];
-
-    if (warmup)
-      indexEnd = std_Math_min(indexEnd, indexPos + CHUNK_SIZE);
-
-    var intermediate = intermediates[sliceId - 1];
-    for (; indexPos < indexEnd; indexPos++) {
-      UnsafeSetElement(buffer, indexPos, func(intermediate, buffer[indexPos]),
-                       info, SLICE_POS(sliceId), indexPos + 1);
-    }
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode) {
-  
-  
-  
-
-  var self = this;
-
-  if (length === undefined)
-    length = self.shape[0];
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (targets.length >>> 0 !== targets.length)
-    ThrowError(JSMSG_BAD_ARRAY_LENGTH, ".prototype.scatter");
-
-  var targetsLength = std_Math_min(targets.length, self.length);
-
-  if (length >>> 0 !== length)
-    ThrowError(JSMSG_BAD_ARRAY_LENGTH, ".prototype.scatter");
-
-  parallel: for (;;) { 
-    if (ShouldForceSequential())
-      break parallel;
-    if (!TRY_PARALLEL(mode))
-      break parallel;
-
-    if (forceDivideScatterVector())
-      return parDivideScatterVector();
-    else if (forceDivideOutputRange())
-      return parDivideOutputRange();
-    else if (conflictFunc === undefined && targetsLength < length)
-      return parDivideOutputRange();
-    return parDivideScatterVector();
-  }
-
-  
-  ASSERT_SEQUENTIAL_IS_OK(mode);
-  return seq();
-
-  function forceDivideScatterVector() {
-    return mode && mode.strategy && mode.strategy == "divide-scatter-vector";
-  }
-
-  function forceDivideOutputRange() {
-    return mode && mode.strategy && mode.strategy == "divide-output-range";
-  }
-
-  function collide(elem1, elem2) {
-    if (conflictFunc === undefined)
-      ThrowError(JSMSG_PAR_ARRAY_SCATTER_CONFLICT);
-
-    return conflictFunc(elem1, elem2);
-  }
-
-
-  function parDivideOutputRange() {
-    var chunks = ComputeNumChunks(targetsLength);
-    var numSlices = ForkJoinSlices();
-    var checkpoints = NewDenseArray(numSlices);
-    for (var i = 0; i < numSlices; i++)
-      UnsafeSetElement(checkpoints, i, 0);
-
-    var buffer = NewDenseArray(length);
-    var conflicts = NewDenseArray(length);
-
-    for (var i = 0; i < length; i++) {
-      UnsafeSetElement(buffer, i, defaultValue);
-      UnsafeSetElement(conflicts, i, false);
-    }
-
-    ForkJoin(fill, CheckParallel(mode));
-    return NewParallelArray(ParallelArrayView, [length], buffer, 0);
-
-    function fill(sliceId, numSlices, warmup) {
-      var indexPos = checkpoints[sliceId];
-      var indexEnd = targetsLength;
-      if (warmup)
-        indexEnd = std_Math_min(indexEnd, indexPos + CHUNK_SIZE);
-
-      
-      var [outputStart, outputEnd] = ComputeSliceBounds(length, sliceId, numSlices);
-
-      for (; indexPos < indexEnd; indexPos++) {
-        var x = self.get(indexPos);
-        var t = checkTarget(indexPos, targets[indexPos]);
-        if (t < outputStart || t >= outputEnd)
-          continue;
-        if (conflicts[t])
-          x = collide(x, buffer[t]);
-        UnsafeSetElement(buffer, t, x,
-                         conflicts, t, true,
-                         checkpoints, sliceId, indexPos + 1);
-      }
-    }
-  }
-
-  function parDivideScatterVector() {
-    
-    
-    
-    
-    
-    var numSlices = ForkJoinSlices();
-    var info = ComputeAllSliceBounds(targetsLength, numSlices);
-
-    
-    var localBuffers = NewDenseArray(numSlices);
-    for (var i = 0; i < numSlices; i++)
-      UnsafeSetElement(localBuffers, i, NewDenseArray(length));
-    var localConflicts = NewDenseArray(numSlices);
-    for (var i = 0; i < numSlices; i++) {
-      var conflicts_i = NewDenseArray(length);
-      for (var j = 0; j < length; j++)
-        UnsafeSetElement(conflicts_i, j, false);
-      UnsafeSetElement(localConflicts, i, conflicts_i);
-    }
-
-    
-    
-    
-    
-    var outputBuffer = localBuffers[0];
-    for (var i = 0; i < length; i++)
-      UnsafeSetElement(outputBuffer, i, defaultValue);
-
-    ForkJoin(fill, CheckParallel(mode));
-    mergeBuffers();
-    return NewParallelArray(ParallelArrayView, [length], outputBuffer, 0);
-
-    function fill(sliceId, numSlices, warmup) {
-      var indexPos = info[SLICE_POS(sliceId)];
-      var indexEnd = info[SLICE_END(sliceId)];
-      if (warmup)
-        indexEnd = std_Math_min(indexEnd, indexPos + CHUNK_SIZE);
-
-      var localbuffer = localBuffers[sliceId];
-      var conflicts = localConflicts[sliceId];
-      while (indexPos < indexEnd) {
-        var x = self.get(indexPos);
-        var t = checkTarget(indexPos, targets[indexPos]);
-        if (conflicts[t])
-          x = collide(x, localbuffer[t]);
-        UnsafeSetElement(localbuffer, t, x,
-                         conflicts, t, true,
-                         info, SLICE_POS(sliceId), ++indexPos);
-      }
-    }
-
-    
-
-
-
-
-    function mergeBuffers() {
-      var buffer = localBuffers[0];
-      var conflicts = localConflicts[0];
-      for (var i = 1; i < numSlices; i++) {
-        var otherbuffer = localBuffers[i];
-        var otherconflicts = localConflicts[i];
-        for (var j = 0; j < length; j++) {
-          if (otherconflicts[j]) {
-            if (conflicts[j]) {
-              buffer[j] = collide(otherbuffer[j], buffer[j]);
-            } else {
-              buffer[j] = otherbuffer[j];
-              conflicts[j] = true;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  function seq() {
-    var buffer = NewDenseArray(length);
-    var conflicts = NewDenseArray(length);
-
-    for (var i = 0; i < length; i++) {
-      UnsafeSetElement(buffer, i, defaultValue);
-      UnsafeSetElement(conflicts, i, false);
-    }
-
-    for (var i = 0; i < targetsLength; i++) {
-      var x = self.get(i);
-      var t = checkTarget(i, targets[i]);
-      if (conflicts[t])
-        x = collide(x, buffer[t]);
-
-      UnsafeSetElement(buffer, t, x,
-                       conflicts, t, true);
-    }
-
-    return NewParallelArray(ParallelArrayView, [length], buffer, 0);
-  }
-
-  function checkTarget(i, t) {
-    if (TO_INT32(t) !== t)
-      ThrowError(JSMSG_PAR_ARRAY_SCATTER_BAD_TARGET, i);
-
-    if (t < 0 || t >= length)
-      ThrowError(JSMSG_PAR_ARRAY_SCATTER_BOUNDS);
-
-    
-    return TO_INT32(t);
-  }
-}
-
-
-
-
-
-function ParallelArrayFilter(func, mode) {
-  
-  
-
-  var self = this;
-  var length = self.shape[0];
-
-  parallel: for (;;) { 
-    if (ShouldForceSequential())
-      break parallel;
-    if (!TRY_PARALLEL(mode))
-      break parallel;
-
-    var chunks = ComputeNumChunks(length);
-    var numSlices = ForkJoinSlices();
-    if (chunks < numSlices * 2)
-      break parallel;
-
-    var info = ComputeAllSliceBounds(chunks, numSlices);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    var counts = NewDenseArray(numSlices);
-    for (var i = 0; i < numSlices; i++)
-      UnsafeSetElement(counts, i, 0);
-    var survivors = NewDenseArray(chunks);
-    ForkJoin(findSurvivorsInSlice, CheckParallel(mode));
-
-    
-    var count = 0;
-    for (var i = 0; i < numSlices; i++)
-      count += counts[i];
-    var buffer = NewDenseArray(count);
-    if (count > 0)
-      ForkJoin(copySurvivorsInSlice, CheckParallel(mode));
-
-    return NewParallelArray(ParallelArrayView, [count], buffer, 0);
-  }
-
-  
-  ASSERT_SEQUENTIAL_IS_OK(mode);
-  var buffer = [];
-  for (var i = 0; i < length; i++) {
-    var elem = self.get(i);
-    if (func(elem, i, self))
-      ARRAY_PUSH(buffer, elem);
-  }
-  return NewParallelArray(ParallelArrayView, [buffer.length], buffer, 0);
-
-  
-
-
-
-
-
-  function findSurvivorsInSlice(sliceId, numSlices, warmup) {
-
-    var chunkPos = info[SLICE_POS(sliceId)];
-    var chunkEnd = info[SLICE_END(sliceId)];
-
-    if (warmup && chunkEnd > chunkPos)
-      chunkEnd = chunkPos + 1;
-
-    var count = counts[sliceId];
-    while (chunkPos < chunkEnd) {
-      var indexStart = chunkPos << CHUNK_SHIFT;
-      var indexEnd = std_Math_min(indexStart + CHUNK_SIZE, length);
-      var chunkBits = 0;
-
-      for (var bit = 0; indexStart + bit < indexEnd; bit++) {
-        var keep = !!func(self.get(indexStart + bit), indexStart + bit, self);
-        chunkBits |= keep << bit;
-        count += keep;
-      }
-
-      UnsafeSetElement(survivors, chunkPos, chunkBits,
-                       counts, sliceId, count,
-                       info, SLICE_POS(sliceId), ++chunkPos);
-    }
-  }
-
-  function copySurvivorsInSlice(sliceId, numSlices, warmup) {
-    
-    
-    
-    
-
-    
-    
-    
-    if (warmup && sliceId == 0 && numSlices != 1)
-      sliceId = 1;
-
-    
-    var count = 0;
-    if (sliceId > 0) { 
-      for (var i = 0; i < sliceId; i++)
-        count += counts[i];
-    }
-
-    
-    var total = count + counts[sliceId];
-    if (count == total)
-      return;
-
-    
-    
-    
-    
-    
-    var chunkStart = info[SLICE_START(sliceId)];
-    var chunkEnd = info[SLICE_END(sliceId)];
-    for (var chunk = chunkStart; chunk < chunkEnd; chunk++) {
-      var chunkBits = survivors[chunk];
-      if (!chunkBits)
-        continue;
-
-      var indexStart = chunk << CHUNK_SHIFT;
-      for (var i = 0; i < CHUNK_SIZE; i++) {
-        if (chunkBits & (1 << i)) {
-          UnsafeSetElement(buffer, count++, self.get(indexStart + i));
-          if (count == total)
-            break;
-        }
-      }
-    }
-  }
-}
-
-
-
-
-
-
 
 
 function ParallelArrayPartition(amount) {
-  if (amount >>> 0 !== amount)
+  if (!IS_UINT32(amount))
     ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
 
   var length = this.shape[0];
-  var partitions = (length / amount) | 0;
+  var partitions = TO_INT32(length / amount);
 
   if (partitions * amount !== length)
     ThrowError(JSMSG_PAR_ARRAY_BAD_PARTITION);
@@ -1246,43 +480,6 @@ function ParallelArrayToString() {
 
 
 
-function AssertSequentialIsOK(mode) {
-  if (mode && mode.mode && mode.mode !== "seq" && ParallelTestsShouldPass())
-    ThrowError(JSMSG_WRONG_VALUE, "parallel execution", "sequential was forced");
-}
-
-
-
-
-
-
-
-
-function CheckParallel(mode) {
-  if (!mode || !ParallelTestsShouldPass())
-    return null;
-
-  return function(result, bailouts, causes) {
-    if (!("expect" in mode) || mode.expect === "any") {
-      return; 
-    } else if (mode.expect === "mixed" && result !== "disqualified") {
-      return; 
-    } else if (result === mode.expect) {
-      return;
-    }
-
-    ThrowError(JSMSG_WRONG_VALUE, mode.expect,
-               result+":"+bailouts+":"+causes);
-  };
-}
-
-
-
-
-
-
-
-
 SetScriptHints(ParallelArrayConstructEmpty, { cloneAtCallsite: true });
 SetScriptHints(ParallelArrayConstructFromArray, { cloneAtCallsite: true });
 SetScriptHints(ParallelArrayConstructFromFunction, { cloneAtCallsite: true });
@@ -1290,11 +487,6 @@ SetScriptHints(ParallelArrayConstructFromFunctionMode, { cloneAtCallsite: true }
 SetScriptHints(ParallelArrayConstructFromComprehension, { cloneAtCallsite: true });
 SetScriptHints(ParallelArrayView,       { cloneAtCallsite: true });
 SetScriptHints(ParallelArrayBuild,      { cloneAtCallsite: true });
-SetScriptHints(ParallelArrayMap,        { cloneAtCallsite: true });
-SetScriptHints(ParallelArrayReduce,     { cloneAtCallsite: true });
-SetScriptHints(ParallelArrayScan,       { cloneAtCallsite: true });
-SetScriptHints(ParallelArrayScatter,    { cloneAtCallsite: true });
-SetScriptHints(ParallelArrayFilter,     { cloneAtCallsite: true });
 
 
 
