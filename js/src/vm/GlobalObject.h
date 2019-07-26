@@ -627,7 +627,9 @@ class GlobalObject : public JSObject
     
     
     static bool warnOnceAboutPrototypeMutation(JSContext *cx, HandleObject protoSetter) {
-        return warnOnceAbout(cx, protoSetter, WARNED_PROTO_SETTING_SLOW, JSMSG_PROTO_SETTING_SLOW);
+        
+        
+        return true;
     }
 
     static bool getOrCreateEval(JSContext *cx, Handle<GlobalObject*> global,
