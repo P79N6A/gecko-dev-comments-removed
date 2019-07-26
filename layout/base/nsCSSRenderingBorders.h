@@ -79,7 +79,6 @@ struct nsCSSBorderRenderer {
                       gfxCornerSizes& aBorderRadii,
                       const nscolor* aBorderColors,
                       nsBorderColors* const* aCompositeColors,
-                      int aSkipSides,
                       nscolor aBackgroundColor);
 
   gfxCornerSizes mBorderCornerDimensions;
@@ -106,7 +105,6 @@ struct nsCSSBorderRenderer {
   int32_t mAUPP;
 
   
-  int mSkipSides;
   nscolor mBackgroundColor;
 
   
