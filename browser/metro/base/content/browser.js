@@ -133,53 +133,6 @@ var Browser = {
     if (window.arguments && window.arguments[0])
       commandURL = window.arguments[0];
 
-    
-    let activationURI = this.getShortcutOrURI(MetroUtils.activationURI);
-
-    let self = this;
-    function loadStartupURI() {
-      let uri = activationURI || commandURL || Browser.getHomePage();
-      if (StartUI.isStartURI(uri)) {
-        self.addTab(uri, true);
-        StartUI.show(); 
-      } else if (activationURI) {
-        self.addTab(uri, true, null, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP });
-      } else {
-        self.addTab(uri, true);
-      }
-    }
-
-    
-    let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    if (ss.shouldRestore() || Services.prefs.getBoolPref("browser.startup.sessionRestore")) {
-      let bringFront = false;
-      
-      if (activationURI && !StartUI.isStartURI(activationURI)) {
-        this.addTab(activationURI, true, null, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP });
-      } else if (commandURL && !StartUI.isStartURI(commandURL)) {
-        this.addTab(commandURL, true);
-      } else {
-        bringFront = true;
-        
-        
-        
-        let dummy = this.addTab("about:blank", true);
-        let dummyCleanup = {
-          observe: function(aSubject, aTopic, aData) {
-            Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
-            if (aData == "fail")
-              loadStartupURI();
-            dummy.chromeTab.ignoreUndo = true;
-            Browser.closeTab(dummy, { forceClose: true });
-          }
-        };
-        Services.obs.addObserver(dummyCleanup, "sessionstore-windows-restored", false);
-      }
-      ss.restoreLastSession(bringFront);
-    } else {
-      loadStartupURI();
-    }
-
     messageManager.addMessageListener("DOMLinkAdded", this);
     messageManager.addMessageListener("MozScrolledAreaChanged", this);
     messageManager.addMessageListener("Browser:ViewportMetadata", this);
@@ -197,10 +150,59 @@ var Browser = {
     
     InputSourceHelper.fireUpdate();
 
-    
-    let event = document.createEvent("Events");
-    event.initEvent("UIReady", true, false);
-    window.dispatchEvent(event);
+    Task.spawn(function() {
+      
+      let activationURI = yield this.getShortcutOrURI(MetroUtils.activationURI);
+
+      let self = this;
+      function loadStartupURI() {
+        let uri = activationURI || commandURL || Browser.getHomePage();
+        if (StartUI.isStartURI(uri)) {
+          self.addTab(uri, true);
+          StartUI.show(); 
+        } else if (activationURI) {
+          self.addTab(uri, true, null, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP });
+        } else {
+          self.addTab(uri, true);
+        }
+      }
+
+      
+      let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+      if (ss.shouldRestore() || Services.prefs.getBoolPref("browser.startup.sessionRestore")) {
+        let bringFront = false;
+        
+        if (activationURI && !StartUI.isStartURI(activationURI)) {
+          this.addTab(activationURI, true, null, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP });
+        } else if (commandURL && !StartUI.isStartURI(commandURL)) {
+          this.addTab(commandURL, true);
+        } else {
+          bringFront = true;
+          
+          
+          
+          let dummy = this.addTab("about:blank", true);
+          let dummyCleanup = {
+            observe: function(aSubject, aTopic, aData) {
+              Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
+              if (aData == "fail")
+                loadStartupURI();
+              dummy.chromeTab.ignoreUndo = true;
+              Browser.closeTab(dummy, { forceClose: true });
+            }
+          };
+          Services.obs.addObserver(dummyCleanup, "sessionstore-windows-restored", false);
+        }
+        ss.restoreLastSession(bringFront);
+      } else {
+        loadStartupURI();
+      }
+
+      
+      let event = document.createEvent("Events");
+      event.initEvent("UIReady", true, false);
+      window.dispatchEvent(event);
+    }.bind(this));
   },
 
   quit: function quit() {
@@ -350,75 +352,78 @@ var Browser = {
 
 
 
+
   getShortcutOrURI: function getShortcutOrURI(aURL, aPostDataRef) {
-    if (!aURL)
-      return aURL;
+    return Task.spawn(function() {
+      if (!aURL)
+        throw new Task.Result(aURL);
 
-    let shortcutURL = null;
-    let keyword = aURL;
-    let param = "";
+      let shortcutURL = null;
+      let keyword = aURL;
+      let param = "";
 
-    let offset = aURL.indexOf(" ");
-    if (offset > 0) {
-      keyword = aURL.substr(0, offset);
-      param = aURL.substr(offset + 1);
-    }
-
-    if (!aPostDataRef)
-      aPostDataRef = {};
-
-    let engine = Services.search.getEngineByAlias(keyword);
-    if (engine) {
-      let submission = engine.getSubmission(param);
-      aPostDataRef.value = submission.postData;
-      return submission.uri.spec;
-    }
-
-    try {
-      [shortcutURL, aPostDataRef.value] = PlacesUtils.getURLAndPostDataForKeyword(keyword);
-    } catch (e) {}
-
-    if (!shortcutURL)
-      return aURL;
-
-    let postData = "";
-    if (aPostDataRef.value)
-      postData = unescape(aPostDataRef.value);
-
-    if (/%s/i.test(shortcutURL) || /%s/i.test(postData)) {
-      let charset = "";
-      const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
-      let matches = shortcutURL.match(re);
-      if (matches)
-        [, shortcutURL, charset] = matches;
-      else {
-        
-        try {
-          
-          
-          charset = PlacesUtils.history.getCharsetForURI(Util.makeURI(shortcutURL));
-        } catch (e) { dump("--- error " + e + "\n"); }
+      let offset = aURL.indexOf(" ");
+      if (offset > 0) {
+        keyword = aURL.substr(0, offset);
+        param = aURL.substr(offset + 1);
       }
 
-      let encodedParam = "";
-      if (charset)
-        encodedParam = escape(convertFromUnicode(charset, param));
-      else 
-        encodedParam = encodeURIComponent(param);
+      if (!aPostDataRef)
+        aPostDataRef = {};
 
-      shortcutURL = shortcutURL.replace(/%s/g, encodedParam).replace(/%S/g, param);
+      let engine = Services.search.getEngineByAlias(keyword);
+      if (engine) {
+        let submission = engine.getSubmission(param);
+        aPostDataRef.value = submission.postData;
+        throw new Task.Result(submission.uri.spec);
+      }
 
-      if (/%s/i.test(postData)) 
-        aPostDataRef.value = getPostDataStream(postData, param, encodedParam, "application/x-www-form-urlencoded");
-    } else if (param) {
-      
-      
-      aPostDataRef.value = null;
+      try {
+        [shortcutURL, aPostDataRef.value] = PlacesUtils.getURLAndPostDataForKeyword(keyword);
+      } catch (e) {}
 
-      return aURL;
-    }
+      if (!shortcutURL)
+        throw new Task.Result(aURL);
 
-    return shortcutURL;
+      let postData = "";
+      if (aPostDataRef.value)
+        postData = unescape(aPostDataRef.value);
+
+      if (/%s/i.test(shortcutURL) || /%s/i.test(postData)) {
+        let charset = "";
+        const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
+        let matches = shortcutURL.match(re);
+        if (matches)
+          [, shortcutURL, charset] = matches;
+        else {
+          
+          try {
+            
+            
+            charset = yield PlacesUtils.getCharsetForURI(Util.makeURI(shortcutURL));
+          } catch (e) { dump("--- error " + e + "\n"); }
+        }
+
+        let encodedParam = "";
+        if (charset)
+          encodedParam = escape(convertFromUnicode(charset, param));
+        else 
+          encodedParam = encodeURIComponent(param);
+
+        shortcutURL = shortcutURL.replace(/%s/g, encodedParam).replace(/%S/g, param);
+
+        if (/%s/i.test(postData)) 
+          aPostDataRef.value = getPostDataStream(postData, param, encodedParam, "application/x-www-form-urlencoded");
+      } else if (param) {
+        
+        
+        aPostDataRef.value = null;
+
+        throw new Task.Result(aURL);
+      }
+
+      throw new Task.Result(shortcutURL);
+    });
   },
 
   
