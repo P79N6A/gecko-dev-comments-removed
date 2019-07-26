@@ -4336,6 +4336,14 @@ let TabState = {
       return Promise.resolve(TabStateCache.get(tab));
     }
 
+    
+    
+    let browser = tab.linkedBrowser;
+    if (!browser.currentURI || (browser.__SS_data && browser.__SS_tabStillLoading)) {
+      let tabData = new TabData(this._collectBaseTabData(tab));
+      return Promise.resolve(tabData);
+    }
+
     let promise = Task.spawn(function task() {
       
       let history = yield Messenger.send(tab, "SessionStore:collectSessionHistory");
@@ -4356,14 +4364,14 @@ let TabState = {
       }
 
       
-      if (this._updateTextAndScrollDataForTab(tab, tabData)) {
-        
-        
-        
-        if (this._pendingCollections.get(tab) == promise) {
-          TabStateCache.set(tab, tabData);
-          this._pendingCollections.delete(tab);
-        }
+      this._updateTextAndScrollDataForTab(tab, tabData);
+
+      
+      
+      
+      if (this._pendingCollections.get(tab) == promise) {
+        TabStateCache.set(tab, tabData);
+        this._pendingCollections.delete(tab);
       }
 
       throw new Task.Result(tabData);
