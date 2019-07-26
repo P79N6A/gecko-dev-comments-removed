@@ -60,46 +60,6 @@ public final class TabsAccessor {
         public void onQueryTabsComplete(List<RemoteTab> tabs);
     }
 
-    public interface OnClientsAvailableListener {
-        public void areAvailable(boolean available);
-    }
-
-    
-    public static void areClientsAvailable(final Context context, final OnClientsAvailableListener listener) {
-        if (listener == null)
-            return;
-
-        (new GeckoAsyncTask<Void, Void, Boolean>(GeckoApp.mAppContext, GeckoAppShell.getHandler()) {
-            @Override
-            protected Boolean doInBackground(Void... unused) {
-                Uri uri = BrowserContract.Tabs.CONTENT_URI;
-                uri = uri.buildUpon()
-                         .appendQueryParameter(BrowserContract.PARAM_LIMIT, "1")
-                         .build();
-
-                Cursor cursor = context.getContentResolver().query(uri,
-                                                                   CLIENTS_AVAILABILITY_PROJECTION,
-                                                                   CLIENTS_SELECTION,
-                                                                   null,
-                                                                   null);
-                
-                if (cursor == null)
-                    return false;
-                
-                try {
-                    return cursor.moveToNext();
-                } finally {
-                    cursor.close();
-                }
-            }
-
-            @Override
-            protected void onPostExecute(Boolean availability) {
-                listener.areAvailable(availability);
-            }
-        }).setPriority(GeckoAsyncTask.Priority.HIGH).execute();
-    }
-
     
     
     public static void getTabs(final Context context, final OnQueryTabsCompleteListener listener) {
