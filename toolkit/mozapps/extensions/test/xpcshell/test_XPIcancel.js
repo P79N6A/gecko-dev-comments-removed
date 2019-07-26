@@ -4,7 +4,7 @@
 
 
 
-let scope = Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm");
+let scope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
 let XPIProvider = scope.XPIProvider;
 
 function run_test() {

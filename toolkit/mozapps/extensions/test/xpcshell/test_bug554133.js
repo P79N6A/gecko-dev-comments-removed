@@ -5,7 +5,7 @@
 
 
 
-Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm");
+Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 
 const PREF_GETADDONS_GETSEARCHRESULTS = "extensions.getAddons.search.url";
 

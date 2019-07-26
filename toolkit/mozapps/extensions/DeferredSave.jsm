@@ -44,7 +44,7 @@ const DEFAULT_SAVE_DELAY_MS = 50;
 this.DeferredSave = function (aPath, aDataProvider, aDelay) {
   
   let leafName = OS.Path.basename(aPath);
-  Cu.import("resource://gre/modules/addons/AddonLogging.jsm");
+  Cu.import("resource://gre/modules/AddonLogging.jsm");
   LogManager.getLogger("DeferredSave/" + leafName, this);
 
   
