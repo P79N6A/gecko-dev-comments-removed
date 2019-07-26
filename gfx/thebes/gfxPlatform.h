@@ -405,6 +405,10 @@ public:
     
     static bool UseProgressiveTilePainting();
 
+    
+    
+    static bool UseReusableTileStore();
+
     static bool OffMainThreadCompositingEnabled();
 
     
