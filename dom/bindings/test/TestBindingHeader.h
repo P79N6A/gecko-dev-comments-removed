@@ -422,6 +422,7 @@ public:
   void PassDictionaryOrLong(int32_t);
   void PassDictContainingDict(const DictContainingDict&);
   void PassDictContainingSequence(const DictContainingSequence&);
+  void ReceiveDictContainingSequence(DictContainingSequence&);
 
   
   void ExerciseTypedefInterfaces1(TestInterface&);
