@@ -430,6 +430,26 @@ JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, 
     }
 
     
+
+
+
+
+    if (obj->is<js::ArrayBufferObject>()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
+                             "Object", "__proto__ setter", "ArrayBuffer");
+        return false;
+    }
+
+    
+
+
+
+    if (!strcmp(obj->getClass()->name, "Location")) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL);
+        return false;
+    }
+
+    
     bool extensible;
     if (!JSObject::isExtensible(cx, obj, &extensible))
         return false;
