@@ -1055,7 +1055,7 @@ class Operand
 
 void
 PatchJump(CodeLocationJump &jump_, CodeLocationLabel label);
-
+class InstructionIterator;
 class Assembler;
 typedef js::ion::AssemblerBufferWithConstantPool<16, 4, Instruction, Assembler, 1> ARMBuffer;
 
@@ -1284,10 +1284,12 @@ class Assembler
     
     
     
-    static const uint32 * getCF32Target(Instruction *jump);
-
+    template <class Iter>
+    static const uint32 * getCF32Target(Iter *iter);
+    
     static uintptr_t getPointer(uint8 *);
-    static const uint32 * getPtr32Target(Instruction *load, Register *dest = NULL, RelocStyle *rs = NULL);
+    template <class Iter>
+    static const uint32 * getPtr32Target(Iter *iter, Register *dest = NULL, RelocStyle *rs = NULL);
 
     bool oom() const;
   private:
@@ -1751,6 +1753,7 @@ class Instruction
     
     
     const uint32 *raw() const { return &data; }
+    uint32 size() const { return 4; }
 }; 
 
 
@@ -1937,6 +1940,21 @@ class InstCMP : public InstALU
   public:
     static bool isTHIS (const Instruction &i);
     static InstCMP *asTHIS (const Instruction &i);
+};
+
+
+class InstructionIterator {
+  private:
+    Instruction *i;
+  public:
+    InstructionIterator(Instruction *i_) : i(i_) {}
+    Instruction *next() {
+        i = i->next();
+        return cur();
+    }
+    Instruction *cur() const {
+        return i;
+    }
 };
 
 static const uint32 NumArgRegs = 4;
