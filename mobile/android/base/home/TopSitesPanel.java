@@ -221,7 +221,12 @@ public class TopSitesPanel extends HomeFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+        
+        
+        mList.setOnItemClickListener(null);
         mList = null;
+
         mGrid = null;
         mListAdapter = null;
         mGridAdapter = null;
