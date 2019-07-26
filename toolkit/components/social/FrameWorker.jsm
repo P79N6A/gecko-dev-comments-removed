@@ -69,6 +69,7 @@ function FrameWorker(url, name) {
   this.ports = {};
   this.pendingPorts = [];
   this.loaded = false;
+  this.reloading = false;
 
   this.frame = makeHiddenFrame();
   this.load();
@@ -81,7 +82,7 @@ FrameWorker.prototype = {
       if (!doc.defaultView || doc.defaultView != self.frame.contentWindow) {
         return;
       }
-      Services.obs.removeObserver(injectController, "document-element-inserted", false);
+      Services.obs.removeObserver(injectController, "document-element-inserted");
       try {
         self.createSandbox();
       } catch (e) {
@@ -100,8 +101,12 @@ FrameWorker.prototype = {
       this.pendingPorts.push(port);
     }
     this.ports = {};
-    this.loaded = false;
-    this.load();
+    
+    
+    
+    
+    this.reloading = true;
+    this.frame.setAttribute("src", "about:blank");
   },
 
   createSandbox: function createSandbox() {
@@ -119,7 +124,11 @@ FrameWorker.prototype = {
     workerAPI.forEach(function(fn) {
       try {
         
-        sandbox[fn] = XPCNativeWrapper.unwrap(workerWindow)[fn];
+        
+        if (fn == "XMLHttpRequest" || fn == "WebSocket")
+          sandbox[fn] = XPCNativeWrapper.unwrap(workerWindow)[fn];
+        else
+          sandbox[fn] = workerWindow[fn];
       }
       catch(e) {
         Cu.reportError("FrameWorker: failed to import API "+fn+"\n"+e+"\n");
@@ -168,8 +177,9 @@ FrameWorker.prototype = {
       workerWindow.addEventListener(t, l, c)
     };
 
-    this.sandbox = sandbox;
-
+    
+    
+    
     let worker = this;
 
     workerWindow.addEventListener("load", function loadListener() {
@@ -219,23 +229,64 @@ FrameWorker.prototype = {
         }
       }
     });
+
+    
+    
+    
+    workerWindow.addEventListener("unload", function unloadListener() {
+      workerWindow.removeEventListener("unload", unloadListener);
+      delete workerCache[worker.url];
+      
+      for (let [portid, port] in Iterator(worker.ports)) {
+        
+        if (!port)
+          continue;
+        try {
+          port.close();
+        } catch (ex) {
+          Cu.reportError("FrameWorker: failed to close port. " + ex);
+        }
+      }
+      
+      worker.ports = [];
+      
+      
+      worker.loaded = false;
+      
+      
+      if (!worker.reloading) {
+        for (let port of worker.pendingPorts) {
+          try {
+            port.close();
+          } catch (ex) {
+            Cu.reportError("FrameWorker: failed to close pending port. " + ex);
+          }
+        }
+        worker.pendingPorts = [];
+      }
+
+      if (sandbox) {
+        Cu.nukeSandbox(sandbox);
+        sandbox = null;
+      }
+      if (worker.reloading) {
+        Services.tm.mainThread.dispatch(function doReload() {
+          worker.reloading = false;
+          worker.load();
+        }, Ci.nsIThread.DISPATCH_NORMAL);
+      }
+    });
   },
 
   terminate: function terminate() {
-    
-    for (let [portid, port] in Iterator(this.ports)) {
+    if (!(this.url in workerCache)) {
       
-      if (!port)
-        continue;
-      try {
-        port.close();
-      } catch (ex) {
-        Cu.reportError("FrameWorker: failed to close port. " + ex);
-      }
+      return;
     }
-
+    
+    
     delete workerCache[this.url];
-
+    
     
     Services.tm.mainThread.dispatch(function deleteWorkerFrame() {
       
