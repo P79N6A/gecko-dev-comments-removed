@@ -6224,22 +6224,6 @@ Parser<ParseHandler>::memberExpr(TokenKind tt, bool allowCallSyntax)
 
 template <typename ParseHandler>
 typename ParseHandler::Node
-Parser<ParseHandler>::bracketedExpr()
-{
-    
-
-
-
-
-    bool oldParsingForInit = pc->parsingForInit;
-    pc->parsingForInit = false;
-    Node pn = expr();
-    pc->parsingForInit = oldParsingForInit;
-    return pn;
-}
-
-template <typename ParseHandler>
-typename ParseHandler::Node
 Parser<ParseHandler>::newName(PropertyName *name)
 {
     return handler.newName(name, pc->inBlock(), pc->blockid(), pos());
@@ -6752,7 +6736,16 @@ Parser<ParseHandler>::parenExpr(bool *genexp)
 
     GenexpGuard<ParseHandler> guard(this);
 
-    Node pn = bracketedExpr();
+    
+
+
+
+
+    bool oldParsingForInit = pc->parsingForInit;
+    pc->parsingForInit = false;
+    Node pn = expr();
+    pc->parsingForInit = oldParsingForInit;
+
     if (!pn)
         return null();
     guard.endBody();
