@@ -51,6 +51,12 @@ using namespace js::analyze;
             return retval;                                      \
     JS_END_MACRO
 
+
+
+
+static const size_t HEURISTIC_SMALL_FUNCTION_LENGTH     = 100;
+static const size_t HEURISTIC_BIG_LOOP_COUNT            = 40;
+
 mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
                          unsigned chunkIndex, bool isConstructing)
   : BaseCompiler(cx),
@@ -476,6 +482,70 @@ mjit::Compiler::popActiveFrame()
     sps.leaveInlineFrame();
 }
 
+
+
+
+
+
+
+
+
+
+
+
+static bool
+IsSimpleScript(JSContext *cx, JSScript *script)
+{
+    JS_ASSERT(script->hasAnalysis());
+    ScriptAnalysis *analysis = script->analysis();
+
+    if (!analysis->hasFunctionCalls())
+        return true;
+
+    jsbytecode *cur = script->code;
+    jsbytecode *end = script->code + script->length;
+    while (cur < end) {
+        JSOp op = JSOp(*cur);
+
+        
+        if (op == JSOP_FUNCALL || op == JSOP_FUNAPPLY)
+            return false;
+
+        if (op != JSOP_CALL && op != JSOP_NEW) {
+            cur += GetBytecodeLength(cur);
+            continue;
+        }
+
+        uint32_t argc = GET_ARGC(cur);
+        types::TypeSet *typeSet = analysis->poppedTypes(cur, argc + 1);
+        JSObject *obj = typeSet->getSingleton(cx, false);
+        if (!obj || !obj->isFunction())
+            return false;
+
+        
+        if (obj->toFunction()->isNative()) {
+            cur += GetBytecodeLength(cur);
+            continue;
+        }
+
+        JSScript *callee = obj->toFunction()->script();
+        if (!callee->hasAnalysis())
+            return false;
+
+        
+        
+        if (callee->length > HEURISTIC_SMALL_FUNCTION_LENGTH ||
+            callee->getMaxLoopCount() >= HEURISTIC_BIG_LOOP_COUNT ||
+            callee->analysis()->hasFunctionCalls())
+        {
+            return false;
+        }
+
+        cur += GetBytecodeLength(cur);
+    }
+    return true;
+}
+
 #define CHECK_STATUS(expr)                                           \
     JS_BEGIN_MACRO                                                   \
         CompileStatus status_ = (expr);                              \
@@ -518,6 +588,15 @@ mjit::Compiler::performCompilation()
         }
 
         CHECK_STATUS(checkAnalysis(outerScript));
+
+        if (outerScript->length < HEURISTIC_SMALL_FUNCTION_LENGTH &&
+            IsSimpleScript(cx, outerScript))
+        {
+            JaegerSpew(JSpew_Inlining, "Early-inline small and simple script %s:%d\n",
+                        outerScript->filename, outerScript->lineno);
+            inlining_ = true;
+        }
+
         if (inlining())
             CHECK_STATUS(scanInlineCalls(CrossScriptSSA::OUTER_FRAME, 0));
         CHECK_STATUS(pushActiveFrame(outerScript, 0));
@@ -3953,7 +4032,7 @@ mjit::Compiler::interruptCheckHelper()
 }
 
 static bool
-MaybeIonCompileable(JSContext *cx, JSScript *script, bool *recompileCheckForIon)
+MaybeIonCompileable(JSContext *cx, JSScript *script, bool inlining, bool *recompileCheckForIon)
 {
 #ifdef JS_ION
     *recompileCheckForIon = true;
@@ -3966,8 +4045,11 @@ MaybeIonCompileable(JSContext *cx, JSScript *script, bool *recompileCheckForIon)
     
     
     
-    if (script->isShortRunning())
+    if (script->isShortRunning() ||
+        (inlining && script->getMaxLoopCount() < HEURISTIC_BIG_LOOP_COUNT))
+    {
         *recompileCheckForIon = false;
+    }
 
     return true;
 #endif
@@ -3982,7 +4064,7 @@ mjit::Compiler::ionCompileHelper()
         return;
 
     bool recompileCheckForIon = false;
-    if (!MaybeIonCompileable(cx, outerScript, &recompileCheckForIon))
+    if (!MaybeIonCompileable(cx, outerScript, inlining(), &recompileCheckForIon))
         return;
 
     uint32_t minUses = ion::UsesBeforeIonRecompile(outerScript, PC);
