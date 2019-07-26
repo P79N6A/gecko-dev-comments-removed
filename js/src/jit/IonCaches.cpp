@@ -1527,6 +1527,21 @@ GetPropertyIC::tryAttachProxy(JSContext *cx, IonScript *ion, HandleObject obj,
     return tryAttachGenericProxy(cx, ion, obj, name, returnAddr, emitted);
 }
 
+static void
+GenerateProxyClassGuards(MacroAssembler &masm, Register object, Register scratchReg,
+                         Label *failures, Label *success)
+{
+    
+    
+    
+    masm.branchTestObjClass(Assembler::Equal, object, scratchReg,
+                            ObjectProxyClassPtr, success);
+    masm.branchTestObjClass(Assembler::Equal, object, scratchReg,
+                            FunctionProxyClassPtr, success);
+    masm.branchTestObjClass(Assembler::NotEqual, object, scratchReg,
+                            OuterWindowProxyClassPtr, failures);
+}
+
 bool
 GetPropertyIC::tryAttachGenericProxy(JSContext *cx, IonScript *ion, HandleObject obj,
                                      HandlePropertyName name, void *returnAddr,
@@ -1542,7 +1557,6 @@ GetPropertyIC::tryAttachGenericProxy(JSContext *cx, IonScript *ion, HandleObject
     *emitted = true;
 
     Label failures;
-    Label classPass;
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
 
@@ -1550,18 +1564,10 @@ GetPropertyIC::tryAttachGenericProxy(JSContext *cx, IonScript *ion, HandleObject
 
     masm.setFramePushed(ion->frameSize());
 
-    
+    Label proxySuccess;
+    GenerateProxyClassGuards(masm, object(), scratchReg, &failures, &proxySuccess);
+    masm.bind(&proxySuccess);
 
-    
-    
-    masm.branchTestObjClass(Assembler::Equal, object(), scratchReg,
-                            ObjectProxyClassPtr, &classPass);
-    masm.branchTestObjClass(Assembler::Equal, object(), scratchReg,
-                            FunctionProxyClassPtr, &classPass);
-    masm.branchTestObjClass(Assembler::NotEqual, object(), scratchReg,
-                            OuterWindowProxyClassPtr, &failures);
-
-    masm.bind(&classPass);
     
     
     Address handlerAddr(object(), ProxyObject::offsetOfHandler());
@@ -1942,6 +1948,8 @@ bool
 SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion,
                                     HandleObject obj, HandleShape shape)
 {
+    JS_ASSERT(obj->isNative());
+
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
 
@@ -2018,6 +2026,9 @@ SetPropertyIC::attachNativeExisting(JSContext *cx, IonScript *ion,
 static bool
 IsCacheableSetPropCallNative(HandleObject obj, HandleObject holder, HandleShape shape)
 {
+    if (!obj->isNative())
+        return false;
+
     if (!shape || !IsCacheableProtoChain(obj, holder))
         return false;
 
@@ -2029,6 +2040,9 @@ static bool
 IsCacheableSetPropCallPropertyOp(HandleObject obj, HandleObject holder,
                                  HandleShape shape)
 {
+    if (!obj->isNative())
+        return false;
+
     if (!shape)
         return false;
 
@@ -2047,11 +2061,139 @@ IsCacheableSetPropCallPropertyOp(HandleObject obj, HandleObject holder,
     return true;
 }
 
+static bool
+EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
+                 HandleId propId, RegisterSet liveRegs, Register object,
+                 ConstantOrRegister value, void *returnAddr, bool strict)
+{
+    
+    masm.PushRegsInMask(liveRegs);
+
+    
+    
+    RegisterSet regSet(RegisterSet::All());
+    regSet.take(AnyRegister(object));
+
+    
+    
+    Register argJSContextReg = regSet.takeGeneral();
+    Register argProxyReg     = regSet.takeGeneral();
+    Register argIdReg        = regSet.takeGeneral();
+    Register argVpReg        = regSet.takeGeneral();
+    Register argStrictReg    = regSet.takeGeneral();
+
+    Register scratch         = regSet.takeGeneral();
+
+    DebugOnly<uint32_t> initialStack = masm.framePushed();
+
+    
+    attacher.pushStubCodePointer(masm);
+
+    
+    masm.Push(value);
+    masm.movePtr(StackPointer, argVpReg);
+
+    masm.Push(propId, scratch);
+    masm.movePtr(StackPointer, argIdReg);
+
+    
+    
+    masm.Push(object);
+    masm.Push(object);
+    masm.movePtr(StackPointer, argProxyReg);
+
+    masm.loadJSContext(argJSContextReg);
+    masm.move32(Imm32(strict? 1 : 0), argStrictReg);
+
+    if (!masm.buildOOLFakeExitFrame(returnAddr))
+        return false;
+    masm.enterFakeExitFrame(ION_FRAME_OOL_PROXY);
+
+    
+    masm.setupUnalignedABICall(6, scratch);
+    masm.passABIArg(argJSContextReg);
+    masm.passABIArg(argProxyReg);
+    masm.passABIArg(argProxyReg);
+    masm.passABIArg(argIdReg);
+    masm.passABIArg(argStrictReg);
+    masm.passABIArg(argVpReg);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Proxy::set));
+
+    
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+    
+    
+
+    
+    masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
+    JS_ASSERT(masm.framePushed() == initialStack);
+
+    
+    masm.PopRegsInMask(liveRegs);
+
+    return true;
+}
+
+bool
+SetPropertyIC::attachGenericProxy(JSContext *cx, IonScript *ion, void *returnAddr)
+{
+    JS_ASSERT(!hasGenericProxyStub());
+
+    MacroAssembler masm(cx);
+    RepatchStubAppender attacher(*this);
+
+    masm.setFramePushed(ion->frameSize());
+
+    Label failures;
+    {
+        Label proxyFailures;
+        Label proxySuccess;
+
+        RegisterSet regSet(RegisterSet::All());
+        regSet.take(AnyRegister(object()));
+        if (!value().constant())
+            regSet.maybeTake(value().reg());
+
+        Register scratch = regSet.takeGeneral();
+        masm.push(scratch);
+
+        GenerateProxyClassGuards(masm, object(), scratch, &proxyFailures, &proxySuccess);
+
+        masm.bind(&proxyFailures);
+        masm.pop(scratch);
+        
+        masm.jump(&failures);
+
+        masm.bind(&proxySuccess);
+        masm.pop(scratch);
+    }
+
+    RootedId propId(cx, AtomToId(name()));
+    if (!EmitCallProxySet(cx, masm, attacher, propId, liveRegs_, object(), value(),
+                          returnAddr, strict()))
+    {
+        return false;
+    }
+
+    attacher.jumpRejoin(masm);
+
+    masm.bind(&failures);
+    attacher.jumpNextStub(masm);
+
+    JS_ASSERT(!hasGenericProxyStub_);
+    hasGenericProxyStub_ = true;
+
+    return linkAndAttachStub(cx, masm, attacher, ion, "generic proxy set");
+}
+
 bool
 SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
                                 HandleObject obj, HandleObject holder, HandleShape shape,
                                 void *returnAddr)
 {
+    JS_ASSERT(obj->isNative());
+
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
 
@@ -2242,6 +2384,8 @@ SetPropertyIC::attachNativeAdding(JSContext *cx, IonScript *ion, JSObject *obj,
                                   HandleShape oldShape, HandleShape newShape,
                                   HandleShape propShape)
 {
+    JS_ASSERT(obj->isNative());
+
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
 
@@ -2307,21 +2451,12 @@ SetPropertyIC::attachNativeAdding(JSContext *cx, IonScript *ion, JSObject *obj,
 }
 
 static bool
-IsPropertyInlineable(JSObject *obj)
+IsPropertySetInlineable(JSContext *cx, const SetPropertyIC &cache, HandleObject obj,
+                        HandleId id, MutableHandleShape pshape)
 {
     if (!obj->isNative())
         return false;
 
-    if (obj->watched())
-        return false;
-
-    return true;
-}
-
-static bool
-IsPropertySetInlineable(JSContext *cx, const SetPropertyIC &cache, HandleObject obj,
-                        HandleId id, MutableHandleShape pshape)
-{
     Shape *shape = obj->nativeLookup(cx, id);
 
     if (!shape)
@@ -2358,6 +2493,9 @@ static bool
 IsPropertyAddInlineable(JSContext *cx, HandleObject obj, HandleId id, uint32_t oldSlots,
                         MutableHandleShape pShape)
 {
+    if (!obj->isNative())
+        return false;
+
     
     if (pShape.get())
         return false;
@@ -2424,15 +2562,22 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
 
     
     
-    bool inlinable = cache.canAttachStub() && IsPropertyInlineable(obj);
+    bool inlinable = cache.canAttachStub() && !obj->watched();
     bool addedSetterStub = false;
     if (inlinable) {
+        if (!addedSetterStub && obj->is<ProxyObject>() &&
+            !cache.hasGenericProxyStub())
+        {
+            if (!cache.attachGenericProxy(cx, ion, returnAddr))
+                return false;
+            addedSetterStub = true;
+        }
         RootedShape shape(cx);
-        if (IsPropertySetInlineable(cx, cache, obj, id, &shape)) {
+        if (!addedSetterStub && IsPropertySetInlineable(cx, cache, obj, id, &shape)) {
             if (!cache.attachNativeExisting(cx, ion, obj, shape))
                 return false;
             addedSetterStub = true;
-        } else {
+        } else if (!addedSetterStub) {
             RootedObject holder(cx);
             if (!JSObject::lookupProperty(cx, obj, name, &holder, &shape))
                 return false;
@@ -2465,6 +2610,13 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
     }
 
     return true;
+}
+
+void
+SetPropertyIC::reset()
+{
+    RepatchIonCache::reset();
+    hasGenericProxyStub_ = false;
 }
 
 const size_t GetElementIC::MAX_FAILED_UPDATES = 16;
