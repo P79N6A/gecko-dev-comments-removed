@@ -176,14 +176,8 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
         
 
 
-
-
         JSObject &caller = vp.toObject();
-        JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
-        bool punctureThrew = !UnwrapObjectChecked(cx, &caller);
-        JS_SetErrorReporter(cx, reporter);
-        if (punctureThrew) {
-            JS_ClearPendingException(cx);
+        if (caller.isWrapper() && !Wrapper::wrapperHandler(&caller)->isSafeToUnwrap()) {
             vp.setNull();
         } else if (caller.isFunction()) {
             JSFunction *callerFun = caller.toFunction();
@@ -1013,7 +1007,7 @@ JSFunction::initBoundFunction(JSContext *cx, HandleValue thisArg,
     if (!self->setFlag(cx, BaseShape::BOUND_FUNCTION))
         return false;
 
-    if (!self->setSlotSpan(cx, BOUND_FUNCTION_RESERVED_SLOTS + argslen))
+    if (!JSObject::setSlotSpan(cx, self, BOUND_FUNCTION_RESERVED_SLOTS + argslen))
         return false;
 
     self->setSlot(JSSLOT_BOUND_FUNCTION_THIS, thisArg);
