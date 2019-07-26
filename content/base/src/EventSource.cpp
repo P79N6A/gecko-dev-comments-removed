@@ -665,7 +665,7 @@ EventSource::GetInterface(const nsIID & aIID,
 
 
 bool
-EventSource::PrefEnabled()
+EventSource::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
 {
   return Preferences::GetBool("dom.server-events.enabled", false);
 }

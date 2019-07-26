@@ -114,6 +114,9 @@ pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 
 
+pref("dom.undo_manager.enabled", false);
+
+
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 

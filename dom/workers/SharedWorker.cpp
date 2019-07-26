@@ -23,12 +23,6 @@ using mozilla::dom::Sequence;
 
 USING_WORKERS_NAMESPACE
 
-namespace {
-
-const char kSharedWorkersEnabledPref[] = "dom.workers.sharedWorkers.enabled";
-
-} 
-
 SharedWorker::SharedWorker(nsPIDOMWindow* aWindow,
                            WorkerPrivate* aWorkerPrivate)
 : nsDOMEventTargetHelper(aWindow), mWorkerPrivate(aWorkerPrivate),
@@ -46,15 +40,6 @@ SharedWorker::~SharedWorker()
 {
   AssertIsOnMainThread();
   MOZ_ASSERT(!mWorkerPrivate);
-}
-
-
-bool
-SharedWorker::PrefEnabled()
-{
-  AssertIsOnMainThread();
-
-  return mozilla::Preferences::GetBool(kSharedWorkersEnabledPref, false);
 }
 
 

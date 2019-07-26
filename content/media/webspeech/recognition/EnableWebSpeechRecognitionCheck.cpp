@@ -18,7 +18,7 @@ namespace mozilla {
 namespace dom {
 
  bool
-EnableWebSpeechRecognitionCheck::PrefEnabled()
+EnableWebSpeechRecognitionCheck::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
 {
   if (!gPrefInitialized) {
     Preferences::AddBoolVarCache(&gWebSpeechEnabled, "media.webspeech.recognition.enable");
