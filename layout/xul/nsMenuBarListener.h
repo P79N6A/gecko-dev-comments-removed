@@ -6,6 +6,7 @@
 #define nsMenuBarListener_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/EventForwards.h"
 #include "nsIDOMEventListener.h"
 
 
@@ -47,7 +48,7 @@ public:
 protected:
   static void InitAccessKey();
 
-  static uint32_t GetModifiers(nsIDOMKeyEvent* event);
+  static mozilla::Modifiers GetModifiersForAccessKey(nsIDOMKeyEvent* event);
 
   
   
@@ -60,7 +61,7 @@ protected:
   bool mAccessKeyDownCanceled;
   static bool mAccessKeyFocuses; 
   static int32_t mAccessKey;     
-  static uint32_t mAccessKeyMask;
+  static mozilla::Modifiers mAccessKeyMask;
 };
 
 
