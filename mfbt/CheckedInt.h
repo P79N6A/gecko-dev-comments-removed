@@ -9,21 +9,9 @@
 #ifndef mozilla_CheckedInt_h
 #define mozilla_CheckedInt_h
 
-
-#define MOZ_CHECKEDINT_USE_MFBT
-
 #include <stdint.h>
-
-#ifdef MOZ_CHECKEDINT_USE_MFBT
-#  include "mozilla/Assertions.h"
-#else
-#  include <cassert>
-#  define MOZ_ASSERT(cond, reason) assert((cond) && reason)
-#  define MOZ_DELETE
-#endif
-
-#include <climits>
-#include <cstddef>
+#include "mozilla/Assertions.h"
+#include "mozilla/IntegerTypeTraits.h"
 
 namespace mozilla {
 
@@ -137,59 +125,12 @@ struct IsSupportedPass2<unsigned long long>
 
 
 
-template<size_t Size, bool Signedness>
-struct StdintTypeForSizeAndSignedness
-{};
 
-template<>
-struct StdintTypeForSizeAndSignedness<1, true>
-{ typedef int8_t   Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<1, false>
-{ typedef uint8_t  Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<2, true>
-{ typedef int16_t  Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<2, false>
-{ typedef uint16_t Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<4, true>
-{ typedef int32_t  Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<4, false>
-{ typedef uint32_t Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<8, true>
-{ typedef int64_t  Type; };
-
-template<>
-struct StdintTypeForSizeAndSignedness<8, false>
-{ typedef uint64_t Type; };
-
-template<typename IntegerType>
-struct UnsignedType
-{
-    typedef typename StdintTypeForSizeAndSignedness<sizeof(IntegerType),
-                                                    false>::Type Type;
-};
-
-template<typename IntegerType>
-struct IsSigned
-{
-    static const bool value = IntegerType(-1) <= IntegerType(0);
-};
 
 template<typename IntegerType, size_t Size = sizeof(IntegerType)>
 struct TwiceBiggerType
 {
-    typedef typename StdintTypeForSizeAndSignedness<
+    typedef typename detail::StdintTypeForSizeAndSignedness<
                        sizeof(IntegerType) * 2,
                        IsSigned<IntegerType>::value
                      >::Type Type;
@@ -201,47 +142,6 @@ struct TwiceBiggerType<IntegerType, 8>
     typedef UnsupportedType Type;
 };
 
-template<typename IntegerType>
-struct PositionOfSignBit
-{
-    static const size_t value = CHAR_BIT * sizeof(IntegerType) - 1;
-};
-
-template<typename IntegerType>
-struct MinValue
-{
-  private:
-    typedef typename UnsignedType<IntegerType>::Type UnsignedIntegerType;
-    static const size_t PosOfSignBit = PositionOfSignBit<IntegerType>::value;
-
-  public:
-    
-    
-    
-    
-    
-    
-    static const IntegerType value =
-        IsSigned<IntegerType>::value
-        ? IntegerType(UnsignedIntegerType(1) << PosOfSignBit)
-        : IntegerType(0);
-};
-
-template<typename IntegerType>
-struct MaxValue
-{
-    
-    
-    
-    static const IntegerType value = ~MinValue<IntegerType>::value;
-};
-
-
-
-
-
-
-
 template<typename T>
 inline bool
 HasSignBit(T x)
@@ -250,8 +150,7 @@ HasSignBit(T x)
   
   
   
-  return bool(typename UnsignedType<T>::Type(x)
-                >> PositionOfSignBit<T>::value);
+  return bool(typename MakeUnsigned<T>::Type(x) >> PositionOfSignBit<T>::value);
 }
 
 
@@ -360,9 +259,9 @@ IsAddValid(T x, T y)
   
   
 
-  typename UnsignedType<T>::Type ux = x;
-  typename UnsignedType<T>::Type uy = y;
-  typename UnsignedType<T>::Type result = ux + uy;
+  typename MakeUnsigned<T>::Type ux = x;
+  typename MakeUnsigned<T>::Type uy = y;
+  typename MakeUnsigned<T>::Type result = ux + uy;
   return IsSigned<T>::value
          ? HasSignBit(BinaryComplement(T((result ^ x) & (result ^ y))))
          : BinaryComplement(x) >= y;
@@ -375,9 +274,9 @@ IsSubValid(T x, T y)
   
   
   
-  typename UnsignedType<T>::Type ux = x;
-  typename UnsignedType<T>::Type uy = y;
-  typename UnsignedType<T>::Type result = ux - uy;
+  typename MakeUnsigned<T>::Type ux = x;
+  typename MakeUnsigned<T>::Type uy = y;
+  typename MakeUnsigned<T>::Type result = ux - uy;
 
   return IsSigned<T>::value
          ? HasSignBit(BinaryComplement(T((result ^ x) & (x ^ y))))
