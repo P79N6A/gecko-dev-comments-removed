@@ -1625,6 +1625,11 @@ public:
   
 
 
+  static bool CSSFiltersEnabled();
+
+  
+
+
 
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
