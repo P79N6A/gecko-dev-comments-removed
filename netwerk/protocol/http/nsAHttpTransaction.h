@@ -23,6 +23,7 @@ class nsHttpTransaction;
 class nsHttpPipeline;
 class nsHttpRequestHead;
 class nsHttpConnectionInfo;
+class SpdyConnectTransaction;
 
 
 
@@ -32,10 +33,16 @@ class nsHttpConnectionInfo;
 
 
 
+
+
+#define NS_AHTTPTRANSACTION_IID \
+{ 0x2af6d634, 0x13e3, 0x494c, {0x89, 0x03, 0xc9, 0xdc, 0xe5, 0xc2, 0x2f, 0xc0 }}
 
 class nsAHttpTransaction : public nsSupportsWeakReference
 {
 public:
+    NS_DECLARE_STATIC_IID_ACCESSOR(NS_AHTTPTRANSACTION_IID)
+
     
     virtual void SetConnection(nsAHttpConnection *) = 0;
 
@@ -132,6 +139,11 @@ public:
     virtual nsHttpTransaction *QueryHttpTransaction() { return nullptr; }
 
     
+    
+    
+    virtual SpdyConnectTransaction *QuerySpdyConnectTransaction() { return nullptr; }
+
+    
     virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
 
     
@@ -175,6 +187,8 @@ public:
         return NS_ERROR_NOT_IMPLEMENTED;
     }
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)
 
 #define NS_DECL_NSAHTTPTRANSACTION \
     void SetConnection(nsAHttpConnection *); \

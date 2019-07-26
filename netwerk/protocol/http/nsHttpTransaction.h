@@ -109,6 +109,7 @@ public:
     
     void SetDontRouteViaWildCard(bool var) { mDontRouteViaWildCard = var; }
     bool DontRouteViaWildCard() { return mDontRouteViaWildCard; }
+    void EnableKeepAlive() { mCaps |= NS_HTTP_ALLOW_KEEPALIVE; }
 
     
     void    SetPriority(int32_t priority) { mPriority = priority; }

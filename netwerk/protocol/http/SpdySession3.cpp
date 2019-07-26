@@ -2538,6 +2538,7 @@ SpdySession3::DispatchOnTunnel(nsAHttpTransaction *aHttpTransaction,
   
   
   
+  trans->EnableKeepAlive();
   gHttpHandler->InitiateTransaction(trans, trans->Priority());
 }
 

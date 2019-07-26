@@ -21,9 +21,15 @@ class nsHttpConnection;
 
 
 
+
+#define NS_AHTTPCONNECTION_IID \
+{ 0x5a66aed7, 0xeede, 0x468b, {0xac, 0x2b, 0xe5, 0xfb, 0x43, 0x1f, 0xcc, 0x5c }}
+
 class nsAHttpConnection : public nsISupports
 {
 public:
+    NS_DECLARE_STATIC_IID_ACCESSOR(NS_AHTTPCONNECTION_IID)
+
     
     
     
@@ -135,6 +141,8 @@ public:
     
     virtual void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks) = 0;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
 
 #define NS_DECL_NSAHTTPCONNECTION(fwdObject)                    \
     nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, bool *reset); \
