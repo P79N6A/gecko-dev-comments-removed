@@ -791,7 +791,6 @@ nsAppStartup::GetStartupInfo(JSContext* aCx, JS::Value* aRetval)
   PRTime ProcessCreationTimestamp = StartupTimeline::Get(StartupTimeline::PROCESS_CREATION);
 
   if (!ProcessCreationTimestamp) {
-    PRTime MainTimestamp = StartupTimeline::Get(StartupTimeline::MAIN);
     char *moz_app_restart = PR_GetEnv("MOZ_APP_RESTART");
     if (moz_app_restart) {
       ProcessCreationTimestamp = nsCRT::atoll(moz_app_restart) * PR_USEC_PER_MSEC;
@@ -799,9 +798,7 @@ nsAppStartup::GetStartupInfo(JSContext* aCx, JS::Value* aRetval)
       ProcessCreationTimestamp = CalculateProcessCreationTimestamp();
     }
     
-    if ((PR_Now() <= ProcessCreationTimestamp) ||
-        (ProcessCreationTimestamp > MainTimestamp))
-    {
+    if (PR_Now() <= ProcessCreationTimestamp) {
       ProcessCreationTimestamp = -1;
       Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS, StartupTimeline::PROCESS_CREATION);
     }
