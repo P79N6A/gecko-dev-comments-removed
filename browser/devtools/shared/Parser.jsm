@@ -436,8 +436,24 @@ let ParserHelpers = {
         loc.end.line = loc.start.line;
         loc.end.column = loc.start.column + aNode.name.length;
         return loc;
-    }
+      }
       if (parentType == "MemberExpression") {
+        
+        
+        let loc = JSON.parse(JSON.stringify(parentLocation));
+        loc.start.line = loc.end.line;
+        loc.start.column = loc.end.column - aNode.name.length;
+        return loc;
+      }
+      if (parentType == "LabeledStatement") {
+        
+        
+        let loc = JSON.parse(JSON.stringify(parentLocation));
+        loc.end.line = loc.start.line;
+        loc.end.column = loc.start.column + aNode.name.length;
+        return loc;
+      }
+      if (parentType == "ContinueStatement") {
         
         
         let loc = JSON.parse(JSON.stringify(parentLocation));
