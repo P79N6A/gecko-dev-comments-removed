@@ -4205,8 +4205,6 @@ JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
 
-    RootedObject ctor(cx);
-
     for (; fs->name; fs++) {
         RootedAtom atom(cx);
         
@@ -4228,11 +4226,12 @@ JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
 
         unsigned flags = fs->flags;
         if (flags & JSFUN_GENERIC_NATIVE) {
-            if (!ctor) {
-                ctor = JS_GetConstructor(cx, obj);
-                if (!ctor)
-                    return false;
-            }
+            
+            
+            
+            JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
+            JS_ASSERT(obj == &obj->global().getPrototype(key).toObject());
+            RootedObject ctor(cx, &obj->global().getConstructor(key).toObject());
 
             flags &= ~JSFUN_GENERIC_NATIVE;
             JSFunction *fun = DefineFunction(cx, ctor, id,

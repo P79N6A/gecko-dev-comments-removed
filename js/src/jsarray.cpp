@@ -3104,6 +3104,9 @@ js_InitArrayClass(JSContext *cx, HandleObject obj)
     if (!ctor)
         return nullptr;
 
+    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_Array, ctor, arrayProto))
+        return nullptr;
+
     
 
 
@@ -3121,9 +3124,6 @@ js_InitArrayClass(JSContext *cx, HandleObject obj)
     {
         return nullptr;
     }
-
-    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_Array, ctor, arrayProto))
-        return nullptr;
 
     return arrayProto;
 }
