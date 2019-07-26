@@ -87,6 +87,11 @@ NS_IMETHODIMP DiskSpaceWatcher::GetIsDiskFull(bool* aIsDiskFull)
 }
 
 
+
+#ifdef XP_WIN
+#undef GetFreeSpace
+#endif
+
 NS_IMETHODIMP DiskSpaceWatcher::GetFreeSpace(uint64_t* aFreeSpace)
 {
   *aFreeSpace = sFreeSpace;
