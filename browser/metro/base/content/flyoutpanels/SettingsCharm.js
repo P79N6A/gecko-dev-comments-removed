@@ -30,6 +30,14 @@ var SettingsCharm = {
         onselected: function() FlyoutPanelsUI.show('PrefsFlyoutPanel')
     });
 
+    
+    this.addEntry({
+        label: Strings.browser.GetStringFromName("searchCharm"),
+        onselected: function() FlyoutPanelsUI.show('SearchFlyoutPanel')
+    });
+
+
+
 
 
 
@@ -43,6 +51,7 @@ var SettingsCharm = {
         label: Strings.browser.GetStringFromName("aboutCharm1"),
         onselected: function() FlyoutPanelsUI.show('AboutFlyoutPanel')
     });
+
     
     this.addEntry({
         label: Strings.browser.GetStringFromName("helpOnlineCharm"),
