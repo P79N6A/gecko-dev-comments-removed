@@ -28,7 +28,7 @@
 #include "mozilla/layers/PCompositorChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/Preferences.h"
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_LINUX)
+#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_UNIX)
 #include "mozilla/Sandbox.h"
 #endif
 #include "mozilla/unused.h"
@@ -553,7 +553,7 @@ ContentChild::RecvSetProcessPrivileges(const ChildPrivileges& aPrivs)
                           aPrivs;
   
   SetCurrentProcessPrivileges(privs);
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_LINUX)
+#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_UNIX)
   
   
   
