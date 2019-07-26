@@ -41,13 +41,13 @@ protected:
 
   nsresult Init(int aChannels, int aSamplingRate) MOZ_OVERRIDE;
 
-private:
   
 
 
 
   int GetOutputSampleRate();
 
+private:
   
 
 

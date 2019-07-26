@@ -19,6 +19,11 @@ namespace mozilla {
 
 
 
+
+static const int MAX_SUPPORTED_AUDIO_CHANNELS = 8;
+
+
+
 static const int MAX_CHANNELS = 2;
 
 
@@ -143,14 +148,14 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   
   
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+
+  NS_ENSURE_TRUE((aChannels <= MAX_SUPPORTED_AUDIO_CHANNELS) && (aChannels > 0),
+                 NS_ERROR_FAILURE);
+
   
   
   
   mChannels = aChannels > MAX_CHANNELS ? MAX_CHANNELS : aChannels;
-
-  if (aChannels <= 0) {
-    return NS_ERROR_FAILURE;
-  }
 
   
   
@@ -171,6 +176,7 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
     }
   }
   mSamplingRate = aSamplingRate;
+  NS_ENSURE_TRUE(mSamplingRate > 0, NS_ERROR_FAILURE);
 
   int error = 0;
   mEncoder = opus_encoder_create(GetOutputSampleRate(), mChannels,
