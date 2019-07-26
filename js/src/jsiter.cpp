@@ -645,7 +645,6 @@ js::GetIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandleVa
 
 
             {
-                AutoAssertNoGC nogc;
                 RawObject pobj = obj;
                 do {
                     if (!pobj->isNative() ||
