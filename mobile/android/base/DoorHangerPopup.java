@@ -266,8 +266,13 @@ public class DoorHangerPopup extends PopupWindow
             return;
         }
 
+        int[] anchorLocation = new int[2];
+        if (mAnchor != null)
+            mAnchor.getLocationInWindow(anchorLocation);
+
         
-        if (mAnchor == null) {
+        
+        if (mAnchor == null || anchorLocation[1] < 0) {
             showAtLocation(mActivity.getView(), Gravity.TOP, 0, 0);
             return;
         }
