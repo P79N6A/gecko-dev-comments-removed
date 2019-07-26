@@ -487,9 +487,57 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
     0
   };
 
-  ucontext_t *ucontext = reinterpret_cast<ucontext_t *>(aSample->context);
-  array.count = EHABIStackWalk(ucontext->uc_mcontext, aProfile.GetStackTop(),
-                               sp_array, pc_array, array.size);
+  const mcontext_t *mcontext = &reinterpret_cast<ucontext_t *>(aSample->context)->uc_mcontext;
+  mcontext_t savedContext;
+  PseudoStack *pseudoStack = aProfile.GetPseudoStack();
+
+  array.count = 0;
+  
+  
+  
+  
+  for (uint32_t i = pseudoStack->stackSize(); i > 0; --i) {
+    
+    
+    volatile StackEntry &entry = pseudoStack->mStack[i - 1];
+    if (!entry.js() && strcmp(entry.label(), "EnterJIT") == 0) {
+      
+      
+      
+      
+      uint32_t *vSP = reinterpret_cast<uint32_t*>(entry.stackAddress());
+
+      array.count += EHABIStackWalk(*mcontext,
+                                     vSP,
+                                    sp_array + array.count,
+                                    pc_array + array.count,
+                                    array.size - array.count);
+
+      memset(&savedContext, 0, sizeof(savedContext));
+      
+      savedContext.arm_r4 = *vSP++;
+      savedContext.arm_r5 = *vSP++;
+      savedContext.arm_r6 = *vSP++;
+      savedContext.arm_r7 = *vSP++;
+      savedContext.arm_r8 = *vSP++;
+      savedContext.arm_r9 = *vSP++;
+      savedContext.arm_r10 = *vSP++;
+      savedContext.arm_fp = *vSP++;
+      savedContext.arm_lr = *vSP++;
+      savedContext.arm_sp = reinterpret_cast<uint32_t>(vSP);
+      savedContext.arm_pc = savedContext.arm_lr;
+      mcontext = &savedContext;
+    }
+  }
+
+  
+  
+  array.count += EHABIStackWalk(*mcontext,
+                                aProfile.GetStackTop(),
+                                sp_array + array.count,
+                                pc_array + array.count,
+                                array.size - array.count);
+
   mergeNativeBacktrace(aProfile, array);
 }
 
