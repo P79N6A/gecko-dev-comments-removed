@@ -241,6 +241,7 @@ class IonNativeExitFrameLayout
 
 class IonOOLNativeGetterExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
 
@@ -272,6 +273,7 @@ class IonOOLNativeGetterExitFrameLayout
 
 class IonOOLPropertyOpExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
 
