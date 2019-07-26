@@ -484,9 +484,6 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
     bool operator!=(const T &other) const { return *ptr != other; }
     bool operator==(const T &other) const { return *ptr == other; }
 
-    
-    void repoint(const Handle &rhs) { ptr = rhs.address(); }
-
   private:
     Handle() {}
 
