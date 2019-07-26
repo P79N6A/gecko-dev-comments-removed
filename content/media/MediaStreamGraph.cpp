@@ -962,7 +962,7 @@ MediaStreamGraphImpl::PrepareUpdatesToMainThreadState(bool aFinalUpdate)
 
   
   
-  if (ShouldUpdateMainThread()) {
+  if (aFinalUpdate || ShouldUpdateMainThread()) {
     mStreamUpdates.SetCapacity(mStreamUpdates.Length() + mStreams.Length());
     for (uint32_t i = 0; i < mStreams.Length(); ++i) {
       MediaStream* stream = mStreams[i];
