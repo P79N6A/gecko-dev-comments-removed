@@ -4433,7 +4433,7 @@ js::CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname)
         return true;
 
     
-    if (!script->strictModeCode && !cx->hasStrictOption())
+    if (!script->strict && !cx->hasStrictOption())
         return true;
 
     JSAutoByteString bytes(cx, propname);

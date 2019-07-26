@@ -4952,7 +4952,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
 
 
                     bool grouped = !fun->isExprClosure();
-                    bool strict = jp->script->strictModeCode;
+                    bool strict = jp->script->strict;
                     str = js_DecompileToString(cx, "lambda", fun, 0,
                                                false, grouped, strict,
                                                DecompileFunction);
@@ -5630,7 +5630,7 @@ static JSBool
 DecompileBody(JSPrinter *jp, JSScript *script, jsbytecode *pc)
 {
     
-    if (script->strictModeCode && !jp->strict) {
+    if (script->strict && !jp->strict) {
         if (jp->fun && jp->fun->isExprClosure()) {
             
 

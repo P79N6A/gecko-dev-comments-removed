@@ -1457,7 +1457,7 @@ stubs::DelName(VMFrame &f, PropertyName *name_)
         THROW();
 
     
-    JS_ASSERT(!f.script()->strictModeCode);
+    JS_ASSERT(!f.script()->strict);
 
     
     f.regs.sp++;

@@ -143,7 +143,7 @@ class SharedContext
 
     AnyContextFlags anyCxFlags;
 
-    bool strictMode;
+    bool strict;
 
     
     

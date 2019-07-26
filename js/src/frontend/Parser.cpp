@@ -82,7 +82,7 @@ using namespace js::frontend;
 bool
 StrictModeGetter::get() const
 {
-    return parser->pc->sc->strictMode;
+    return parser->pc->sc->strict;
 }
 
 bool
@@ -1586,7 +1586,7 @@ Parser::functionDef(HandlePropertyName funName, const TokenStream::Position &sta
             JS_ASSERT_IF(pc->sc->isFunction, !pn->pn_cookie.isFree());
             JS_ASSERT_IF(!pc->sc->isFunction, pn->pn_cookie.isFree());
         } else {
-            JS_ASSERT(!pc->sc->strictMode);
+            JS_ASSERT(!pc->sc->strict);
             JS_ASSERT(pn->pn_cookie.isFree());
             if (pc->sc->isFunction) {
                 FunctionBox *funbox = pc->sc->asFunbox();
@@ -1625,7 +1625,7 @@ Parser::functionDef(HandlePropertyName funName, const TokenStream::Position &sta
     
     
     pn->pn_body = NULL;
-    bool initiallyStrict = pc->sc->strictMode;
+    bool initiallyStrict = pc->sc->strict;
     bool becameStrict;
     if (!functionArgsAndBody(pn, fun, funName, type, kind, initiallyStrict, &becameStrict)) {
         if (initiallyStrict || !becameStrict || tokenStream.hadError())
@@ -1875,7 +1875,7 @@ Parser::maybeParseDirective(ParseNode *pn, bool *cont)
             
             
             pc->sc->setExplicitUseStrict();
-            if (!pc->sc->strictMode) {
+            if (!pc->sc->strict) {
                 if (pc->sc->isFunction) {
                     
                     pc->funBecameStrict = true;
@@ -1888,7 +1888,7 @@ Parser::maybeParseDirective(ParseNode *pn, bool *cont)
                         reportError(NULL, JSMSG_DEPRECATED_OCTAL);
                         return false;
                     }
-                    pc->sc->strictMode = true;
+                    pc->sc->strict = true;
                 }
             }
         }
@@ -3501,7 +3501,7 @@ Parser::withStatement()
     
     
     
-    if (pc->sc->strictMode && !reportStrictModeError(NULL, JSMSG_STRICT_CODE_WITH))
+    if (pc->sc->strict && !reportStrictModeError(NULL, JSMSG_STRICT_CODE_WITH))
         return NULL;
 
     ParseNode *pn = BinaryNode::create(PNK_WITH, this);
@@ -5322,7 +5322,7 @@ Parser::generatorExpr(ParseNode *kid)
             return NULL;
 
         
-        FunctionBox *genFunbox = newFunctionBox(fun, outerpc, outerpc->sc->strictMode);
+        FunctionBox *genFunbox = newFunctionBox(fun, outerpc, outerpc->sc->strict);
         if (!genFunbox)
             return NULL;
 
@@ -5664,7 +5664,7 @@ Parser::memberExpr(bool allowCallSyntax)
 
 
 
-                    if (pc->sc->isFunction && !pc->sc->strictMode)
+                    if (pc->sc->isFunction && !pc->sc->strict)
                         pc->sc->asFunbox()->setHasExtensibleScope();
                 }
             } else if (lhs->isOp(JSOP_GETPROP)) {

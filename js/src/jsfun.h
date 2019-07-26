@@ -111,7 +111,7 @@ struct JSFunction : public JSObject
     }
 
     
-    inline bool inStrictMode() const;
+    inline bool strict() const;
 
     
     void setArgCount(uint16_t nargs) {
