@@ -104,6 +104,8 @@ public:
     return result;
   }
 
+  void SetKEAKeyBits(uint32_t keaBits) { mKEAKeyBits = keaBits; }
+
   void SetSSLVersionUsed(int16_t version)
   {
     mSSLVersionUsed = version;
@@ -137,6 +139,7 @@ private:
   
   int16_t mKEAUsed;
   int16_t mKEAExpected;
+  uint32_t mKEAKeyBits;
   int16_t mSSLVersionUsed;
 
   uint32_t mProviderFlags;
