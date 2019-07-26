@@ -523,7 +523,7 @@ private:
     
 
 
-    bool MarkUnsupported(GLFeature::Enum feature);
+    void MarkUnsupported(GLFeature::Enum feature);
 
 
 
