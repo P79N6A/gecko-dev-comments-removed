@@ -152,7 +152,7 @@ public:
   
 
  
-  Nv3DVUtils *GetNv3DVUtils()  { return mDeviceManager ? mDeviceManager->GetNv3DVUtils() : NULL; } 
+  Nv3DVUtils *GetNv3DVUtils() { return mDeviceManager ? mDeviceManager->GetNv3DVUtils() : nullptr; } 
 
   static void OnDeviceManagerDestroy(DeviceManagerD3D9 *aDeviceManager) {
     if(aDeviceManager == mDefaultDeviceManager)
@@ -298,7 +298,7 @@ public:
   LockTextureRectD3D9(IDirect3DTexture9* aTexture) 
     : mTexture(aTexture)
   {
-    mLockResult = mTexture->LockRect(0, &mR, NULL, 0);
+    mLockResult = mTexture->LockRect(0, &mR, nullptr, 0);
   }
 
   ~LockTextureRectD3D9()

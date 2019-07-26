@@ -23,7 +23,7 @@ namespace layers {
 
 
 Nv3DVUtils::Nv3DVUtils()
-  : m3DVStreaming (NULL)
+  : m3DVStreaming (nullptr)
 {
 }
 
@@ -60,7 +60,7 @@ Nv3DVUtils::Initialize()
   
 
 
-  HRESULT hr = CoCreateInstance(CLSID_NV3DVStreaming, NULL, CLSCTX_INPROC_SERVER, IID_INV3DVStreaming, (void**)(getter_AddRefs(m3DVStreaming)));
+  HRESULT hr = CoCreateInstance(CLSID_NV3DVStreaming, nullptr, CLSCTX_INPROC_SERVER, IID_INV3DVStreaming, (void**)(getter_AddRefs(m3DVStreaming)));
   if (FAILED(hr) || !m3DVStreaming) {
     WARNING("Nv3DVStreaming CoCreateInstance failed (disabled).");
     return;
@@ -98,7 +98,7 @@ void
 Nv3DVUtils::SetDeviceInfo(IUnknown *devUnknown)
 {
   if (!devUnknown) {
-    WARNING("D3D Device Pointer (IUnknown) is NULL.\n");
+    WARNING("D3D Device Pointer (IUnknown) is nullptr.\n");
     return;
   }
 
