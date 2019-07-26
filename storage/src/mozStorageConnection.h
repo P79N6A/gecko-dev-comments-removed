@@ -25,6 +25,7 @@
 
 struct PRLock;
 class nsIFile;
+class nsIFileURL;
 class nsIEventTarget;
 class nsIThread;
 
@@ -65,16 +66,25 @@ public:
   
 
 
+  nsresult initialize();
+
+  
 
 
 
 
 
 
+  nsresult initialize(nsIFile *aDatabaseFile);
+
+  
 
 
-  nsresult initialize(nsIFile *aDatabaseFile,
-                      const char* aVFSName = NULL);
+
+
+
+
+  nsresult initialize(nsIFileURL *aFileURL);
 
   
   sqlite3 *GetNativeConnection() { return mDBConn; }
@@ -155,6 +165,8 @@ public:
 private:
   ~Connection();
 
+  nsresult initializeInternal(nsIFile *aDatabaseFile);
+
   
 
 
@@ -206,6 +218,7 @@ private:
   int progressHandler();
 
   sqlite3 *mDBConn;
+  nsCOMPtr<nsIFileURL> mFileURL;
   nsCOMPtr<nsIFile> mDatabaseFile;
 
   

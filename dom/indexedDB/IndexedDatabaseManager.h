@@ -23,7 +23,6 @@
 
 #define INDEXEDDB_MANAGER_CONTRACTID "@mozilla.org/dom/indexeddb/manager;1"
 
-class mozIStorageQuotaCallback;
 class nsIAtom;
 class nsIFile;
 class nsITimer;
@@ -134,6 +133,8 @@ public:
                                      FactoryPrivilege aPrivilege,
                                      nsIFile** aDirectory);
 
+  void UninitializeOriginsByPattern(const nsACString& aPattern);
+
   
   
   static inline bool
@@ -172,9 +173,7 @@ public:
                  const nsAString& aDatabaseName);
 
   void
-  AddFileManager(const nsACString& aOrigin,
-                 const nsAString& aDatabaseName,
-                 FileManager* aFileManager);
+  AddFileManager(FileManager* aFileManager);
 
   void InvalidateFileManagersForPattern(const nsACString& aPattern);
 
@@ -501,10 +500,6 @@ private:
 
   
   nsCOMPtr<nsITimer> mShutdownTimer;
-
-  
-  
-  nsCOMPtr<mozIStorageQuotaCallback> mQuotaCallbackSingleton;
 
   
   
