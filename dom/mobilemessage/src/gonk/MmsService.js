@@ -1464,7 +1464,7 @@ MmsService.prototype = {
 
   broadcastSentMessageEvent: function broadcastSentMessageEvent(aDomMessage) {
     
-    this.broadcastMmsSystemMessage("sms-sent", aDomMessage);
+    this.broadcastMmsSystemMessage(kSmsSentObserverTopic, aDomMessage);
 
     
     Services.obs.notifyObservers(aDomMessage, kSmsSentObserverTopic, null);
@@ -1479,7 +1479,7 @@ MmsService.prototype = {
 
   broadcastReceivedMessageEvent :function broadcastReceivedMessageEvent(aDomMessage) {
     
-    this.broadcastMmsSystemMessage("sms-received", aDomMessage);
+    this.broadcastMmsSystemMessage(kSmsReceivedObserverTopic, aDomMessage);
 
     
     Services.obs.notifyObservers(aDomMessage, kSmsReceivedObserverTopic, null);
@@ -1714,10 +1714,12 @@ MmsService.prototype = {
       let topic;
       if (mmsStatus === MMS.MMS_PDU_STATUS_RETRIEVED) {
         topic = kSmsDeliverySuccessObserverTopic;
+
+        
+        this.broadcastMmsSystemMessage(topic, aDomMessage);
       } else if (mmsStatus === MMS.MMS_PDU_STATUS_REJECTED) {
         topic = kSmsDeliveryErrorObserverTopic;
-      }
-      if (!topic) {
+      } else {
         if (DEBUG) debug("Needn't fire event for this MMS status. Returning.");
         return;
       }

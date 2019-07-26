@@ -1888,7 +1888,7 @@ RadioInterface.prototype = {
         return;
       }
 
-      this.broadcastSmsSystemMessage("sms-received", domMessage);
+      this.broadcastSmsSystemMessage(kSmsReceivedObserverTopic, domMessage);
       Services.obs.notifyObservers(domMessage, kSmsReceivedObserverTopic, null);
     }.bind(this);
 
@@ -3000,9 +3000,18 @@ RadioInterface.prototype = {
                                            null,
                                            function notifyResult(rv, domMessage) {
             
-            let topic = (response.deliveryStatus == RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS)
+
+            let topic = (response.deliveryStatus ==
+                         RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS)
                         ? kSmsDeliverySuccessObserverTopic
                         : kSmsDeliveryErrorObserverTopic;
+
+            
+            if (topic == kSmsDeliverySuccessObserverTopic) {
+              this.broadcastSmsSystemMessage(topic, domMessage);
+            }
+
+            
             Services.obs.notifyObservers(domMessage, topic, null);
           });
 
@@ -3039,12 +3048,12 @@ RadioInterface.prototype = {
                                          null,
                                          (function notifyResult(rv, domMessage) {
           
-          this.broadcastSmsSystemMessage("sms-sent", domMessage);
 
           if (context.requestStatusReport) {
             context.sms = domMessage;
           }
 
+          this.broadcastSmsSystemMessage(kSmsSentObserverTopic, domMessage);
           context.request.notifyMessageSent(domMessage);
           Services.obs.notifyObservers(domMessage, kSmsSentObserverTopic, null);
         }).bind(this));
