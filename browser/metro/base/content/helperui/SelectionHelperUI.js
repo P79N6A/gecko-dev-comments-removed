@@ -344,6 +344,21 @@ var SelectionHelperUI = {
     return false;
   },
 
+
+  
+
+
+
+  observe: function (aSubject, aTopic, aData) {
+  switch (aTopic) {
+    case "attach_edit_session_to_content":
+      let event = aSubject;
+      SelectionHelperUI.attachEditSession(Browser.selectedTab.browser,
+                                          event.clientX, event.clientY);
+      break;
+    }
+  },
+
   
 
 
@@ -494,6 +509,10 @@ var SelectionHelperUI = {
   
 
 
+
+  init: function () {
+    Services.obs.addObserver(this, "attach_edit_session_to_content", false);
+  },
 
   _init: function _init(aMsgTarget) {
     

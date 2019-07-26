@@ -184,6 +184,12 @@ let Content = {
         break;
 
       case "click":
+        
+        
+        
+        
+        SelectionHandler.onClickCoords(aEvent.clientX, aEvent.clientY);
+
         if (aEvent.eventPhase == aEvent.BUBBLING_PHASE)
           this._onClickBubble(aEvent);
         else

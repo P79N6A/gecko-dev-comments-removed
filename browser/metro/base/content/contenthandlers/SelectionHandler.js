@@ -8,6 +8,7 @@ var SelectionHandler = {
   init: function init() {
     this.type = kContentSelector;
     this.snap = true;
+    this.lastYPos = this.lastXPos = null;
     addMessageListener("Browser:SelectionStart", this);
     addMessageListener("Browser:SelectionAttach", this);
     addMessageListener("Browser:SelectionEnd", this);
@@ -340,6 +341,11 @@ var SelectionHandler = {
     this.sendAsync("Content:SelectionHandlerPong", { id: aId });
   },
 
+  onClickCoords: function (xPos, yPos) {
+    this.lastXPos = xPos;
+    this.lastYPos = yPos;
+  },
+
   
 
 
@@ -414,7 +420,10 @@ var SelectionHandler = {
     
     
     if (!this._cache || !this._cache.element) {
-      return Services.metro.keyboardHeight;
+      if (this.lastYPos != null && this.lastYPos > aNewViewHeight) {
+        return Services.metro.keyboardHeight;
+      }
+      return 0;
     }
 
     let position = Util.centerElementInView(aNewViewHeight, this._cache.element);
@@ -523,7 +532,12 @@ var SelectionHandler = {
         break;
 
       case "Browser:RepositionInfoRequest":
-        this._repositionInfoRequest(json);
+        
+        
+        
+        content.setTimeout (function () {
+          SelectionHandler._repositionInfoRequest(json);
+        }, 50);
         break;
 
       case "Browser:SelectionHandlerPing":
