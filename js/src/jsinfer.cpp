@@ -5219,42 +5219,6 @@ TypeDynamicResult(JSContext *cx, HandleScript script, jsbytecode *pc, Type type)
         return;
     }
 
-    
-
-
-
-
-
-    JSOp op = JSOp(*pc);
-    const JSCodeSpec *cs = &js_CodeSpec[op];
-    if (cs->format & (JOF_INC | JOF_DEC)) {
-        switch (op) {
-          case JSOP_INCLOCAL:
-          case JSOP_DECLOCAL:
-          case JSOP_LOCALINC:
-          case JSOP_LOCALDEC:
-          case JSOP_INCARG:
-          case JSOP_DECARG:
-          case JSOP_ARGINC:
-          case JSOP_ARGDEC: {
-            
-
-
-
-
-
-            uint32_t slot = GetBytecodeSlot(script, pc);
-            if (slot < TotalSlots(script)) {
-                TypeSet *types = TypeScript::SlotTypes(script, slot);
-                types->addType(cx, type);
-            }
-            break;
-          }
-
-          default:;
-        }
-    }
-
     if (script->hasAnalysis() && script->analysis()->ranInference()) {
         
 
