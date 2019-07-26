@@ -175,26 +175,58 @@ Telephony::Create(nsPIDOMWindow* aOwner, ErrorResult& aRv)
   return telephony.forget();
 }
 
+
+bool
+Telephony::IsValidNumber(const nsAString& aNumber)
+{
+  return !aNumber.IsEmpty();
+}
+
+
+bool
+Telephony::IsActiveState(uint16_t aCallState) {
+  return aCallState == nsITelephonyProvider::CALL_STATE_DIALING ||
+      aCallState == nsITelephonyProvider::CALL_STATE_ALERTING ||
+      aCallState == nsITelephonyProvider::CALL_STATE_CONNECTED;
+}
+
+bool
+Telephony::HasDialingCall()
+{
+  for (uint32_t i = 0; i < mCalls.Length(); i++) {
+    const nsRefPtr<TelephonyCall>& call = mCalls[i];
+    if (call->IsOutgoing() &&
+        call->CallState() > nsITelephonyProvider::CALL_STATE_UNKNOWN &&
+        call->CallState() < nsITelephonyProvider::CALL_STATE_CONNECTED) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+Telephony::MatchActiveCall(TelephonyCall* aCall)
+{
+  return (mActiveCall &&
+          mActiveCall->CallIndex() == aCall->CallIndex());
+}
+
 already_AddRefed<TelephonyCall>
 Telephony::DialInternal(bool isEmergency,
                         const nsAString& aNumber,
                         ErrorResult& aRv)
 {
-  if (aNumber.IsEmpty()) {
+  if (!IsValidNumber(aNumber)) {
     aRv.Throw(NS_ERROR_INVALID_ARG);
     return nullptr;
   }
 
-  for (uint32_t index = 0; index < mCalls.Length(); index++) {
-    const nsRefPtr<TelephonyCall>& tempCall = mCalls[index];
-    if (tempCall->IsOutgoing() &&
-        tempCall->CallState() < nsITelephonyProvider::CALL_STATE_CONNECTED) {
-      
-      
-      NS_WARNING("Only permitted to dial one call at a time!");
-      aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-      return nullptr;
-    }
+  
+  if (HasDialingCall()) {
+    NS_WARNING("Only permitted to dial one call at a time!");
+    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    return nullptr;
   }
 
   nsresult rv = mProvider->Dial(aNumber, isEmergency);
@@ -206,8 +238,8 @@ Telephony::DialInternal(bool isEmergency,
   nsRefPtr<TelephonyCall> call = CreateNewDialingCall(aNumber);
 
   
-  for (uint32_t index = 0; index < gTelephonyList->Length(); index++) {
-    Telephony*& telephony = gTelephonyList->ElementAt(index);
+  for (uint32_t i = 0; i < gTelephonyList->Length(); i++) {
+    Telephony*& telephony = gTelephonyList->ElementAt(i);
     if (telephony != this) {
       nsRefPtr<Telephony> kungFuDeathGrip = telephony;
       telephony->NoteDialedCallFromOtherInstance(aNumber);
@@ -244,16 +276,11 @@ Telephony::NotifyCallsChanged(TelephonyCall* aCall)
 }
 
 void
-Telephony::UpdateActiveCall(TelephonyCall* aCall, bool aIsAdding)
+Telephony::UpdateActiveCall(TelephonyCall* aCall, bool aIsActive)
 {
-  if (aIsAdding) {
-    if (aCall->CallState() == nsITelephonyProvider::CALL_STATE_DIALING ||
-        aCall->CallState() == nsITelephonyProvider::CALL_STATE_ALERTING ||
-        aCall->CallState() == nsITelephonyProvider::CALL_STATE_CONNECTED) {
-      NS_ASSERTION(!mActiveCall, "Already have an active call!");
-      mActiveCall = aCall;
-    }
-  } else if (mActiveCall && mActiveCall->CallIndex() == aCall->CallIndex()) {
+  if (aIsActive) {
+    mActiveCall = aCall;
+  } else if (MatchActiveCall(aCall)) {
     mActiveCall = nullptr;
   }
 }
@@ -274,32 +301,36 @@ Telephony::GetCall(uint32_t aCallIndex)
   return call.forget();
 }
 
-bool
-Telephony::MoveCall(uint32_t aCallIndex, bool aIsConference)
+already_AddRefed<TelephonyCall>
+Telephony::GetOutgoingCall()
 {
   nsRefPtr<TelephonyCall> call;
 
-  
-  if (aIsConference) {
-    call = GetCall(aCallIndex);
-    if (call) {
-      RemoveCall(call);
-      mGroup->AddCall(call);
-      return true;
+  for (uint32_t i = 0; i < mCalls.Length(); i++) {
+    nsRefPtr<TelephonyCall>& tempCall = mCalls[i];
+    if (tempCall->CallIndex() == kOutgoingPlaceholderCallIndex) {
+      NS_ASSERTION(!call, "More than one outgoing call not supported!");
+      NS_ASSERTION(tempCall->CallState() == nsITelephonyProvider::CALL_STATE_DIALING,
+                   "Something really wrong here!");
+
+      call = tempCall;
+      
     }
-
-    return false;
   }
 
-  
-  call = mGroup->GetCall(aCallIndex);
-  if (call) {
-    mGroup->RemoveCall(call);
-    AddCall(call);
-    return true;
+  return call.forget();
+}
+
+already_AddRefed<TelephonyCall>
+Telephony::GetCallFromEverywhere(uint32_t aCallIndex)
+{
+  nsRefPtr<TelephonyCall> call = GetCall(aCallIndex);
+
+  if (!call) {
+    call = mGroup->GetCall(aCallIndex);
   }
 
-  return false;
+  return call.forget();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(Telephony)
@@ -444,116 +475,70 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
   NS_ASSERTION(aCallIndex != kOutgoingPlaceholderCallIndex,
                "This should never happen!");
 
-  nsRefPtr<TelephonyCall> modifiedCall;
-  nsRefPtr<TelephonyCall> outgoingCall;
+  nsRefPtr<TelephonyCall> modifiedCall
+      = GetCallFromEverywhere(aCallIndex);
 
   
+  if (!modifiedCall) {
+    nsRefPtr<TelephonyCall> outgoingCall = GetOutgoingCall();
 
-  if (aIsConference) {
     
     
-    
-    
-    
-    
+    if (outgoingCall &&
+        aCallState != nsITelephonyProvider::CALL_STATE_INCOMING) {
+      outgoingCall->UpdateCallIndex(aCallIndex);
+      outgoingCall->UpdateEmergency(aIsEmergency);
+      modifiedCall.swap(outgoingCall);
+    }
+  }
 
-    modifiedCall = mGroup->GetCall(aCallIndex);
-    if (modifiedCall) {
-      modifiedCall->ChangeStateInternal(aCallState, false);
-      return NS_OK;
+  if (modifiedCall) {
+    if (!aIsConference) {
+      UpdateActiveCall(modifiedCall, aIsActive);
     }
 
-    
-    
-    modifiedCall = GetCall(aCallIndex);
-    if (modifiedCall) {
-      modifiedCall->ChangeStateInternal(aCallState, false);
+    if (modifiedCall->CallState() != aCallState) {
+      
+      
+      
+      
+      
+      bool fireEvent = !aIsConference;
+      modifiedCall->ChangeStateInternal(aCallState, fireEvent);
+    }
+
+    nsRefPtr<TelephonyCallGroup> group = modifiedCall->GetGroup();
+
+    if (!group && aIsConference) {
+      
+      NS_ASSERTION(mCalls.Contains(modifiedCall), "Should in mCalls");
       mGroup->AddCall(modifiedCall);
       RemoveCall(modifiedCall);
-      return NS_OK;
-    }
-
-    
-    nsRefPtr<TelephonyCall> call =
-      TelephonyCall::Create(this, aNumber, aCallState, aCallIndex,
-                            aIsEmergency, aIsConference);
-    NS_ASSERTION(call, "This should never fail!");
-
-    return NS_OK;
-  }
-
-  
-  modifiedCall = mGroup->GetCall(aCallIndex);
-  if (modifiedCall) {
-    if (aCallState != nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
-      if (modifiedCall->CallState() != aCallState) {
-        modifiedCall->ChangeState(aCallState);
-      }
+    } else if (group && !aIsConference) {
+      
+      NS_ASSERTION(mGroup->CallsArray().Contains(modifiedCall), "Should in mGroup");
       mGroup->RemoveCall(modifiedCall);
       AddCall(modifiedCall);
-    } else {
-      modifiedCall->ChangeState(aCallState);
     }
-    return NS_OK;
-  }
-
-  
-  for (uint32_t index = 0; index < mCalls.Length(); index++) {
-    nsRefPtr<TelephonyCall>& tempCall = mCalls[index];
-    if (tempCall->CallIndex() == kOutgoingPlaceholderCallIndex) {
-      NS_ASSERTION(!outgoingCall, "More than one outgoing call not supported!");
-      NS_ASSERTION(tempCall->CallState() ==
-                   nsITelephonyProvider::CALL_STATE_DIALING,
-                   "Something really wrong here!");
-      
-      
-      outgoingCall = tempCall;
-    } else if (tempCall->CallIndex() == aCallIndex) {
-      
-      modifiedCall = tempCall;
-      outgoingCall = nullptr;
-      break;
-    }
-  }
-
-  
-  
-  
-  if (!modifiedCall &&
-      aCallState != nsITelephonyProvider::CALL_STATE_INCOMING &&
-      outgoingCall) {
-    outgoingCall->UpdateCallIndex(aCallIndex);
-    outgoingCall->UpdateEmergency(aIsEmergency);
-    modifiedCall.swap(outgoingCall);
-  }
-
-  if (modifiedCall) {
-    
-    if (aIsActive) {
-        mActiveCall = modifiedCall;
-    } else if (mActiveCall && mActiveCall->CallIndex() == aCallIndex) {
-      mActiveCall = nullptr;
-    }
-
-    
-    modifiedCall->ChangeState(aCallState);
 
     return NS_OK;
   }
 
   
-
+  
   if (aCallState == nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
-    
-    
     return NS_OK;
   }
 
+  
   nsRefPtr<TelephonyCall> call =
-    TelephonyCall::Create(this, aNumber, aCallState, aCallIndex, aIsEmergency);
+      TelephonyCall::Create(this, aNumber, aCallState, aCallIndex,
+                            aIsEmergency, aIsConference);
   NS_ASSERTION(call, "This should never fail!");
 
-  NS_ASSERTION(mCalls.Contains(call), "Should have auto-added new call!");
+  NS_ASSERTION(aIsConference ? mGroup->CallsArray().Contains(call) :
+                               mCalls.Contains(call),
+               "Should have auto-added new call!");
 
   if (aCallState == nsITelephonyProvider::CALL_STATE_INCOMING) {
     nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("incoming"), call);
@@ -596,13 +581,8 @@ Telephony::EnumerateCallState(uint32_t aCallIndex, uint16_t aCallState,
   
   
   
-  call = aIsConference ? mGroup->GetCall(aCallIndex) : GetCall(aCallIndex);
+  call = GetCallFromEverywhere(aCallIndex);
   if (call) {
-    
-    return NS_OK;
-  }
-
-  if (MoveCall(aCallIndex, aIsConference)) {
     return NS_OK;
   }
 
@@ -649,28 +629,22 @@ NS_IMETHODIMP
 Telephony::NotifyError(int32_t aCallIndex,
                        const nsAString& aError)
 {
-  nsRefPtr<TelephonyCall> callToNotify;
-  if (!mCalls.IsEmpty()) {
-    
-    if (aCallIndex == -1) {
-      nsRefPtr<TelephonyCall>& lastCall = mCalls[mCalls.Length() - 1];
-      if (lastCall->CallIndex() == kOutgoingPlaceholderCallIndex) {
-        callToNotify = lastCall;
-      }
-    } else {
-      
-      callToNotify = GetCall(aCallIndex);
-    }
+  if (mCalls.IsEmpty()) {
+    NS_ERROR("No existing call!");
+    return NS_ERROR_UNEXPECTED;
   }
+
+  nsRefPtr<TelephonyCall> callToNotify;
+
+  callToNotify = (aCallIndex == -1) ? GetOutgoingCall()
+                                    : GetCall(aCallIndex);
 
   if (!callToNotify) {
     NS_ERROR("Don't call me with a bad call index!");
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (mActiveCall && mActiveCall->CallIndex() == callToNotify->CallIndex()) {
-    mActiveCall = nullptr;
-  }
+  UpdateActiveCall(callToNotify, false);
 
   
   callToNotify->NotifyError(aError);
