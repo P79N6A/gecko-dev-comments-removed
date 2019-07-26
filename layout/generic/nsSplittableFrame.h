@@ -83,14 +83,14 @@ protected:
 
 
 
-  nscoord GetConsumedHeight() const;
+  nscoord GetConsumedBSize() const;
 
   
 
 
 
-  nscoord GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState,
-                                     nscoord aConsumed = NS_INTRINSICSIZE) const;
+  nscoord GetEffectiveComputedBSize(const nsHTMLReflowState& aReflowState,
+                                    nscoord aConsumed = NS_INTRINSICSIZE) const;
 
   
 

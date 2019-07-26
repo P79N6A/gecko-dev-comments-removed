@@ -177,13 +177,13 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
     availContentWidth = aReflowState.ComputedWidth();
   }
 
-  nscoord consumedHeight = GetConsumedHeight();
+  nscoord consumedBSize = GetConsumedBSize();
 
   
   
   
-  nscoord computedHeight = GetEffectiveComputedHeight(aReflowState,
-                                                      consumedHeight);
+  nscoord computedBSize = GetEffectiveComputedBSize(aReflowState,
+                                                    consumedBSize);
   nscoord colHeight = GetAvailableContentHeight(aReflowState);
 
   if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
@@ -298,7 +298,7 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
 #endif
   ReflowConfig config = { numColumns, colWidth, expectedWidthLeftOver, colGap,
                           colHeight, isBalancing, knownFeasibleHeight,
-                          knownInfeasibleHeight, computedHeight, consumedHeight };
+                          knownInfeasibleHeight, computedBSize, consumedBSize };
   return config;
 }
 

@@ -17,10 +17,10 @@ class nsFrameList;
 class nsOverflowContinuationTracker;
 
   
-#define BRS_UNCONSTRAINEDHEIGHT   0x00000001
-#define BRS_ISTOPMARGINROOT       0x00000002  // Is this frame a root for top/bottom margin collapsing?
-#define BRS_ISBOTTOMMARGINROOT    0x00000004
-#define BRS_APPLYTOPMARGIN        0x00000008  // See ShouldApplyTopMargin
+#define BRS_UNCONSTRAINEDBSIZE    0x00000001
+#define BRS_ISBSTARTMARGINROOT    0x00000002  // Is this frame a root for block
+#define BRS_ISBENDMARGINROOT      0x00000004  //  direction start/end margin collapsing?
+#define BRS_APPLYBSTARTMARGIN     0x00000008  // See ShouldApplyTopMargin
 #define BRS_ISFIRSTINFLOW         0x00000010
 
 #define BRS_HAVELINEADJACENTTOTOP 0x00000020
@@ -39,9 +39,9 @@ public:
   nsBlockReflowState(const nsHTMLReflowState& aReflowState,
                      nsPresContext* aPresContext,
                      nsBlockFrame* aFrame,
-                     bool aTopMarginRoot, bool aBottomMarginRoot,
+                     bool aBStartMarginRoot, bool aBEndMarginRoot,
                      bool aBlockNeedsFloatManager,
-                     nscoord aConsumedHeight = NS_INTRINSICSIZE);
+                     nscoord aConsumedBSize = NS_INTRINSICSIZE);
 
   
 
@@ -53,15 +53,15 @@ public:
 
 
   nsFlowAreaRect GetFloatAvailableSpace() const
-    { return GetFloatAvailableSpace(mY); }
-  nsFlowAreaRect GetFloatAvailableSpace(nscoord aY) const
-    { return GetFloatAvailableSpaceWithState(aY, nullptr); }
+    { return GetFloatAvailableSpace(mBCoord); }
+  nsFlowAreaRect GetFloatAvailableSpace(nscoord aBCoord) const
+    { return GetFloatAvailableSpaceWithState(aBCoord, nullptr); }
   nsFlowAreaRect
-    GetFloatAvailableSpaceWithState(nscoord aY,
+    GetFloatAvailableSpaceWithState(nscoord aBCoord,
                                     nsFloatManager::SavedState *aState) const;
   nsFlowAreaRect
-    GetFloatAvailableSpaceForHeight(nscoord aY, nscoord aHeight,
-                                    nsFloatManager::SavedState *aState) const;
+    GetFloatAvailableSpaceForBSize(nscoord aBCoord, nscoord aBSize,
+                                   nsFloatManager::SavedState *aState) const;
 
   
 
@@ -71,11 +71,11 @@ public:
 
 
   bool AddFloat(nsLineLayout*       aLineLayout,
-                  nsIFrame*           aFloat,
-                  nscoord             aAvailableWidth);
+                nsIFrame*           aFloat,
+                nscoord             aAvailableISize);
 private:
-  bool CanPlaceFloat(nscoord aFloatWidth,
-                       const nsFlowAreaRect& aFloatAvailableSpace);
+  bool CanPlaceFloat(nscoord aFloatISize,
+                     const nsFlowAreaRect& aFloatAvailableSpace);
 public:
   bool FlowAndPlaceFloat(nsIFrame* aFloat);
 private:
@@ -87,28 +87,28 @@ public:
   
   
   
-  nscoord ClearFloats(nscoord aY, uint8_t aBreakType,
+  nscoord ClearFloats(nscoord aBCoord, uint8_t aBreakType,
                       nsIFrame *aReplacedBlock = nullptr,
                       uint32_t aFlags = 0);
 
   bool IsAdjacentWithTop() const {
-    return mY == mBorderPadding.top;
+    return mBCoord == mBorderPadding.BStart(mReflowState.GetWritingMode());
   }
 
   
 
 
-  const nsMargin& BorderPadding() const {
+  const mozilla::LogicalMargin& BorderPadding() const {
     return mBorderPadding;
   }
 
   
 
 
-  nscoord GetConsumedHeight();
+  nscoord GetConsumedBSize();
 
   
-  void ReconstructMarginAbove(nsLineList::iterator aLine);
+  void ReconstructMarginBefore(nsLineList::iterator aLine);
 
   
   
@@ -125,10 +125,10 @@ public:
                               nsRect& aResult);
 
 protected:
-  void RecoverFloats(nsLineList::iterator aLine, nscoord aDeltaY);
+  void RecoverFloats(nsLineList::iterator aLine, nscoord aDeltaBCoord);
 
 public:
-  void RecoverStateFrom(nsLineList::iterator aLine, nscoord aDeltaY);
+  void RecoverStateFrom(nsLineList::iterator aLine, nscoord aDeltaBCoord);
 
   void AdvanceToNextLine() {
     if (GetFlag(BRS_LINE_LAYOUT_EMPTY)) {
@@ -168,7 +168,7 @@ public:
   
   nsFloatManager::SavedState mFloatManagerStateBefore;
 
-  nscoord mBottomEdge;
+  nscoord mBEndEdge;
 
   
   
@@ -178,7 +178,26 @@ public:
   
   
   
-  nsRect mContentArea;
+  
+  mozilla::LogicalRect mContentArea;
+  nscoord ContentIStart() {
+    return mContentArea.IStart(mReflowState.GetWritingMode());
+  }
+  nscoord ContentISize() {
+    return mContentArea.ISize(mReflowState.GetWritingMode());
+  }
+  nscoord ContentIEnd() {
+    return mContentArea.IEnd(mReflowState.GetWritingMode());
+  }
+  nscoord ContentBStart() {
+    return mContentArea.BStart(mReflowState.GetWritingMode());
+  }
+  nscoord ContentBSize() {
+    return mContentArea.BSize(mReflowState.GetWritingMode());
+  }
+  nscoord ContentBEnd() {
+    return mContentArea.BEnd(mReflowState.GetWritingMode());
+  }
   nscoord mContainerWidth;
 
   
@@ -211,10 +230,10 @@ public:
   nsLineList::iterator mLineAdjacentToTop;
 
   
-  nscoord mY;
+  nscoord mBCoord;
 
   
-  nsMargin mBorderPadding;
+  mozilla::LogicalMargin mBorderPadding;
 
   
   nsOverflowAreas mFloatOverflowAreas;
@@ -226,7 +245,7 @@ public:
   nsIFrame* mPrevChild;
 
   
-  nsCollapsingMargin mPrevBottomMargin;
+  nsCollapsingMargin mPrevBEndMargin;
 
   
   
@@ -259,7 +278,7 @@ public:
   uint8_t mFloatBreakType;
 
   
-  nscoord mConsumedHeight;
+  nscoord mConsumedBSize;
 
   void SetFlag(uint32_t aFlag, bool aValue)
   {

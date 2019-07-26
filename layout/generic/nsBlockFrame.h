@@ -232,7 +232,7 @@ public:
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
 
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const MOZ_OVERRIDE;
-  
+
   virtual nsresult GetPrefWidthTightBounds(nsRenderingContext* aContext,
                                            nscoord* aX,
                                            nscoord* aXMost) MOZ_OVERRIDE;
@@ -254,14 +254,12 @@ public:
 
 
 
-
-
-  void ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus*          aStatus,
-                          nscoord                  aContentHeight,
-                          const nsMargin&          aBorderPadding,
-                          nsHTMLReflowMetrics&     aMetrics,
-                          nscoord                  aConsumed);
+  void ComputeFinalBSize(const nsHTMLReflowState&      aReflowState,
+                         nsReflowStatus*               aStatus,
+                         nscoord                       aContentBSize,
+                         const mozilla::LogicalMargin& aBorderPadding,
+                         mozilla::LogicalSize&         aFinalSize,
+                         nscoord                       aConsumed);
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
@@ -297,14 +295,14 @@ public:
 
 
 
-  bool CheckForCollapsedBottomMarginFromClearanceLine();
+  bool CheckForCollapsedBEndMarginFromClearanceLine();
 
   static nsresult GetCurrentLine(nsBlockReflowState *aState, nsLineBox **aOutCurrentLine);
 
   
 
 
-  void IsMarginRoot(bool* aTopMarginRoot, bool* aBottomMarginRoot);
+  void IsMarginRoot(bool* aBStartMarginRoot, bool* aBEndMarginRoot);
 
   static bool BlockNeedsFloatManager(nsIFrame* aBlock);
 
@@ -638,8 +636,8 @@ protected:
   
   
 
-  bool ShouldApplyTopMargin(nsBlockReflowState& aState,
-                              nsLineBox* aLine);
+  bool ShouldApplyBStartMargin(nsBlockReflowState& aState,
+                               nsLineBox* aLine);
 
   void ReflowBlockFrame(nsBlockReflowState& aState,
                         line_iterator aLine,

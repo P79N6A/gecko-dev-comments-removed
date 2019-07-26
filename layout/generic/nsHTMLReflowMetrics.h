@@ -242,6 +242,15 @@ public:
 
   
   
+  void SetSize(mozilla::WritingMode aWM, mozilla::LogicalSize aSize)
+  {
+    mozilla::LogicalSize convertedSize = aSize.ConvertTo(mWritingMode, aWM);
+    mBSize = convertedSize.BSize(mWritingMode);
+    mISize = convertedSize.ISize(mWritingMode);
+  }
+
+  
+  
   
   
   nscoord Width() const { return mWritingMode.IsVertical() ? mBSize : mISize; }

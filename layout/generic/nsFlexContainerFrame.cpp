@@ -2748,10 +2748,10 @@ nsFlexContainerFrame::GetMainSizeFromReflowState(
   if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
     
     
-    return aReflowState.ComputedWidth();
+    return aReflowState.ComputedISize();
   }
 
-  return GetEffectiveComputedHeight(aReflowState);
+  return GetEffectiveComputedBSize(aReflowState);
 }
 
 
@@ -2837,20 +2837,20 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
     
     
     *aIsDefinite = true;
-    return aReflowState.ComputedWidth();
+    return aReflowState.ComputedISize();
   }
 
-  nscoord effectiveComputedHeight = GetEffectiveComputedHeight(aReflowState);
-  if (effectiveComputedHeight != NS_INTRINSICSIZE) {
+  nscoord effectiveComputedBSize = GetEffectiveComputedBSize(aReflowState);
+  if (effectiveComputedBSize != NS_INTRINSICSIZE) {
     
     *aIsDefinite = true;
     if (aAvailableHeightForContent == NS_UNCONSTRAINEDSIZE ||
-        effectiveComputedHeight < aAvailableHeightForContent) {
+        effectiveComputedBSize < aAvailableHeightForContent) {
       
       
       
       
-      return effectiveComputedHeight;
+      return effectiveComputedBSize;
     }
 
     
@@ -2864,7 +2864,7 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
     if (aSumLineCrossSizes <= aAvailableHeightForContent) {
       return aAvailableHeightForContent;
     }
-    return std::min(effectiveComputedHeight, aSumLineCrossSizes);
+    return std::min(effectiveComputedBSize, aSumLineCrossSizes);
   }
 
   

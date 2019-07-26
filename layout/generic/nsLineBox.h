@@ -428,9 +428,9 @@ public:
   }
 
   
-  nsCollapsingMargin GetCarriedOutBottomMargin() const;
+  nsCollapsingMargin GetCarriedOutBEndMargin() const;
   
-  bool SetCarriedOutBottomMargin(nsCollapsingMargin aValue);
+  bool SetCarriedOutBEndMargin(nsCollapsingMargin aValue);
 
   
   bool HasFloats() const {
@@ -647,10 +647,10 @@ public:
   struct ExtraBlockData : public ExtraData {
     ExtraBlockData(const nsRect& aBounds)
       : ExtraData(aBounds),
-        mCarriedOutBottomMargin()
+        mCarriedOutBEndMargin()
     {
     }
-    nsCollapsingMargin mCarriedOutBottomMargin;
+    nsCollapsingMargin mCarriedOutBEndMargin;
   };
 
   struct ExtraInlineData : public ExtraData {
