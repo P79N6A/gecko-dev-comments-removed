@@ -70,6 +70,9 @@ enum DOM4ErrorTypeCodeMap {
 
   
   LockedFileInactiveError = 0,
+
+  
+  OperationError           = 0,
 };
 
 #define DOM4_MSG_DEF(name, message, nsresult) {(nsresult), name, #name, message},
@@ -484,7 +487,7 @@ Exception::GetMessageMoz(nsString& retval)
 {
   nsCString str;
 #ifdef DEBUG
-  DebugOnly<nsresult> rv = 
+  DebugOnly<nsresult> rv =
 #endif
   GetMessageMoz(str);
   MOZ_ASSERT(NS_SUCCEEDED(rv));

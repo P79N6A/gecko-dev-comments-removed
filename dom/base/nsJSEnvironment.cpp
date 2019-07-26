@@ -55,7 +55,9 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ImageData.h"
+#include "mozilla/dom/Key.h"
 #include "mozilla/dom/ImageDataBinding.h"
+#include "mozilla/dom/SubtleCryptoBinding.h"
 #include "nsAXPCNativeCallContext.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 
@@ -2820,6 +2822,18 @@ NS_DOMReadStructuredClone(JSContext* cx,
                                                   dataArray.toObject());
     
     return imageData->WrapObject(cx);
+  } else if (tag == SCTAG_DOM_WEBCRYPTO_KEY) {
+    nsIGlobalObject *global = xpc::GetNativeForGlobal(JS::CurrentGlobalOrNull(cx));
+    if (!global) {
+      return nullptr;
+    }
+
+    nsRefPtr<Key> key = new Key(global);
+    if (!key->ReadStructuredClone(reader)) {
+      return nullptr;
+    }
+
+    return key->WrapObject(cx);
   }
 
   
@@ -2833,25 +2847,32 @@ NS_DOMWriteStructuredClone(JSContext* cx,
                            JS::Handle<JSObject*> obj,
                            void *closure)
 {
+  
   ImageData* imageData;
-  nsresult rv = UNWRAP_OBJECT(ImageData, obj, imageData);
-  if (NS_FAILED(rv)) {
+  if (NS_SUCCEEDED(UNWRAP_OBJECT(ImageData, obj, imageData))) {
     
-    xpc::Throw(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
-    return false;
+    uint32_t width = imageData->Width();
+    uint32_t height = imageData->Height();
+    JS::Rooted<JSObject*> dataArray(cx, imageData->GetDataObject());
+
+    
+    JSAutoCompartment ac(cx, dataArray);
+    JS::Rooted<JS::Value> arrayValue(cx, JS::ObjectValue(*dataArray));
+    return JS_WriteUint32Pair(writer, SCTAG_DOM_IMAGEDATA, 0) &&
+           JS_WriteUint32Pair(writer, width, height) &&
+           JS_WriteTypedArray(writer, arrayValue);
   }
 
   
-  uint32_t width = imageData->Width();
-  uint32_t height = imageData->Height();
-  JS::Rooted<JSObject*> dataArray(cx, imageData->GetDataObject());
+  Key* key;
+  if (NS_SUCCEEDED(UNWRAP_OBJECT(Key, obj, key))) {
+    return JS_WriteUint32Pair(writer, SCTAG_DOM_WEBCRYPTO_KEY, 0) &&
+           key->WriteStructuredClone(writer);
+  }
 
   
-  JSAutoCompartment ac(cx, dataArray);
-  JS::Rooted<JS::Value> arrayValue(cx, JS::ObjectValue(*dataArray));
-  return JS_WriteUint32Pair(writer, SCTAG_DOM_IMAGEDATA, 0) &&
-         JS_WriteUint32Pair(writer, width, height) &&
-         JS_WriteTypedArray(writer, arrayValue);
+  xpc::Throw(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
+  return false;
 }
 
 void

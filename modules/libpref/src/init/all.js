@@ -122,6 +122,13 @@ pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
+pref("dom.webcrypto.enabled", false);
+#else
+pref("dom.webcrypto.enabled", true);
+#endif
+
+
 pref("dom.undo_manager.enabled", false);
 
 
