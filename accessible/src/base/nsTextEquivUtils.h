@@ -89,14 +89,6 @@ public:
   static nsresult AppendTextEquivFromTextContent(nsIContent *aContent,
                                                  nsAString *aString);
 
-  
-
-
-  static bool IsNameFromSubtreeAllowed(Accessible* aAccessible)
-  {
-    return GetRoleRule(aAccessible->Role()) == eFromSubtree;
-  }
-
 private:
   
 

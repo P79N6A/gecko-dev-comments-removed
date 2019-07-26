@@ -1254,8 +1254,8 @@ Accessible::NativeAttributes()
   }
 
   
-  if (!nsTextEquivUtils::IsNameFromSubtreeAllowed(this) ||
-      Name(unused) != eNameFromSubtree) {
+  nsAutoString name;
+  if (Name(name) != eNameFromSubtree && !name.IsVoid()) {
     attributes->SetStringProperty(NS_LITERAL_CSTRING("explicit-name"),
                                   NS_LITERAL_STRING("true"), unused);
   }

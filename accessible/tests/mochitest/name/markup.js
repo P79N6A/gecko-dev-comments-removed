@@ -58,6 +58,10 @@ var gTestIterator =
 
     this.ruleIdx++;
     if (this.ruleIdx == this.ruleElms.length) {
+      
+      testName(this.elm, null, "No name test. ");
+      testAbsentAttrs(this.elm, {"explicit-name" : "true"});
+
       this.markupIdx++;
       if (this.markupIdx == this.markupElms.length) {
         SimpleTest.finish();
