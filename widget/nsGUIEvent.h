@@ -468,7 +468,12 @@ enum nsWindowZ {
 
 namespace mozilla {
 namespace widget {
-struct EventFlags
+
+
+
+
+
+struct BaseEventFlags
 {
 public:
   
@@ -538,29 +543,22 @@ public:
   bool    mOnlyChromeDispatch : 1;
 
   
-  bool InTargetPhase() const
+  inline bool InTargetPhase() const
   {
     return (mInBubblingPhase && mInCapturePhase);
   }
 
-  EventFlags()
-  {
-    Clear();
-  }
   inline void Clear()
   {
     SetRawFlags(0);
   }
-  inline EventFlags operator|(const EventFlags& aOther) const
+  
+  
+  
+  inline void Union(const BaseEventFlags& aOther)
   {
-    EventFlags flags;
-    flags.SetRawFlags(GetRawFlags() | aOther.GetRawFlags());
-    return flags;
-  }
-  inline EventFlags& operator|=(const EventFlags& aOther)
-  {
-    SetRawFlags(GetRawFlags() | aOther.GetRawFlags());
-    return *this;
+    RawFlags rawFlags = GetRawFlags() | aOther.GetRawFlags();
+    SetRawFlags(rawFlags);
   }
 
 private:
@@ -568,17 +566,26 @@ private:
 
   inline void SetRawFlags(RawFlags aRawFlags)
   {
-    MOZ_STATIC_ASSERT(sizeof(EventFlags) <= sizeof(RawFlags),
+    MOZ_STATIC_ASSERT(sizeof(BaseEventFlags) <= sizeof(RawFlags),
       "mozilla::widget::EventFlags must not be bigger than the RawFlags");
-    memcpy(this, &aRawFlags, sizeof(EventFlags));
+    memcpy(this, &aRawFlags, sizeof(BaseEventFlags));
   }
   inline RawFlags GetRawFlags() const
   {
     RawFlags result = 0;
-    memcpy(&result, this, sizeof(EventFlags));
+    memcpy(&result, this, sizeof(BaseEventFlags));
     return result;
   }
 };
+
+struct EventFlags : public BaseEventFlags
+{
+  EventFlags()
+  {
+    Clear();
+  }
+};
+
 } 
 } 
 
@@ -598,6 +605,7 @@ protected:
       userType(0)
   {
     MOZ_COUNT_CTOR(nsEvent);
+    mFlags.Clear();
     mFlags.mIsTrusted = isTrusted;
     mFlags.mCancelable = true;
     mFlags.mBubbles = true;
@@ -618,6 +626,7 @@ public:
       userType(0)
   {
     MOZ_COUNT_CTOR(nsEvent);
+    mFlags.Clear();
     mFlags.mIsTrusted = isTrusted;
     mFlags.mCancelable = true;
     mFlags.mBubbles = true;
@@ -647,7 +656,7 @@ public:
   
   uint64_t    time;
   
-  mozilla::widget::EventFlags mFlags;
+  mozilla::widget::BaseEventFlags mFlags;
 
   
   nsCOMPtr<nsIAtom>     userType;
