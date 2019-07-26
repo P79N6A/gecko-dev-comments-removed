@@ -122,7 +122,7 @@ ICStub::trace(JSTracer *trc)
     switch (kind()) {
       case ICStub::Call_Scripted: {
         ICCall_Scripted *callStub = toCall_Scripted();
-        MarkObject(trc, &callStub->callee(), "baseline-callscripted-callee");
+        MarkScript(trc, &callStub->calleeScript(), "baseline-callscripted-callee");
         break;
       }
       case ICStub::Call_Native: {
@@ -4306,7 +4306,7 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, JSO
                 fun.get(), fun->nonLazyScript()->filename, fun->nonLazyScript()->lineno,
                 constructing ? "yes" : "no");
         ICCall_Scripted::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
-                                           fun, constructing);
+                                           calleeScript, constructing);
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
         if (!newStub)
             return false;
@@ -4524,17 +4524,15 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     Register callee = masm.extractObject(R1, ExtractTemp0);
-    Address expectedCallee(BaselineStubReg, ICCall_Scripted::offsetOfCallee());
-    masm.branchPtr(Assembler::NotEqual, expectedCallee, callee, &failure);
+    masm.branchTestObjClass(Assembler::NotEqual, callee, regs.getAny(), &FunctionClass, &failure);
 
     
-    
-    masm.loadPtr(Address(callee, offsetof(JSFunction, u.i.script_)), callee);
+    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
+    Address expectedScript(BaselineStubReg, ICCall_Scripted::offsetOfCalleeScript());
+    masm.branchPtr(Assembler::NotEqual, expectedScript, callee, &failure);
 
     
-    Register loadScratch = regs.takeAny();
-    masm.loadBaselineOrIonCode(callee, loadScratch, &failure);
-    regs.add(loadScratch);
+    masm.loadBaselineOrIonCode(callee, regs.getAny(), &failure);
 
     
     Register code;
@@ -4547,8 +4545,7 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
     regs.add(R1);
 
     
-    Register scratch = regs.takeAny();
-    enterStubFrame(masm, scratch);
+    enterStubFrame(masm, regs.getAny());
     if (canUseTailCallReg)
         regs.add(BaselineTailCallReg);
 
@@ -4558,8 +4555,12 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
         
         masm.push(argcReg);
 
-        masm.loadPtr(expectedCallee, callee);
-        masm.push(callee);
+        
+        
+        BaseIndex calleeSlot2(BaselineStackReg, argcReg, TimesEight,
+                               sizeof(Value) + STUB_FRAME_SIZE + sizeof(size_t));
+        masm.loadValue(calleeSlot2, R1);
+        masm.push(masm.extractObject(R1, ExtractTemp0));
         if (!callVM(CreateThisInfo, masm))
             return false;
 
@@ -4581,8 +4582,10 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
         
         
         callee = regs.takeAny();
-        masm.loadPtr(expectedCallee, callee);
-        masm.loadPtr(Address(callee, offsetof(JSFunction, u.i.script_)), callee);
+
+        
+        
+        masm.loadPtr(expectedScript, callee);
         Register loadScratch = ArgumentsRectifierReg;
         masm.loadBaselineOrIonCode(callee, loadScratch, &failureLeaveStubFrame);
         regs.add(callee);
@@ -4597,8 +4600,8 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
         masm.loadPtr(Address(callee, IonCode::offsetOfCode()), code);
         if (canUseTailCallReg)
             regs.addUnchecked(BaselineTailCallReg);
-        scratch = regs.takeAny();
     }
+    Register scratch = regs.takeAny();
 
     
     
