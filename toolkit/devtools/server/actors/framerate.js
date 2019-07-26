@@ -54,18 +54,22 @@ let FramerateActor = exports.FramerateActor = protocol.ActorClass({
   
 
 
-  stopRecording: method(function() {
+  stopRecording: method(function(beginAt = 0, endAt = Number.MAX_SAFE_INTEGER) {
     if (!this._recording) {
       return [];
     }
     this._recording = false;
 
     
-    let ticks = this._ticks;
+    let ticks = this._ticks.filter(e => e >= beginAt && e <= endAt);
     this._ticks = null;
     return ticks;
   }, {
-    response: { timeline: RetVal("array:number") }
+    request: {
+      beginAt: Arg(0, "nullable:number"),
+      endAt: Arg(1, "nullable:number")
+    },
+    response: { ticks: RetVal("array:number") }
   }),
 
   
