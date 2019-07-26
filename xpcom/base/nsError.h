@@ -115,7 +115,12 @@
 
 
 
-typedef enum tag_nsresult {
+typedef enum tag_nsresult
+#if defined(__cplusplus) && defined(_MSC_VER) && defined(_M_X64)
+  
+  : uint32_t
+#endif
+{ 
   
   NS_OK = 0,
 
