@@ -408,28 +408,22 @@ const WITH_EXTENSION_CACHE = [{
 
 
 
-function trigger_background_update(aCallback) {
-  Services.obs.addObserver({
-    observe: function(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(this, "addons-background-update-complete");
-      do_execute_soon(aCallback);
-    }
-  }, "addons-background-update-complete", false);
+function trigger_background_update() {
+  return new Promise((resolve, reject) => {
+    Services.obs.addObserver({
+      observe: function(aSubject, aTopic, aData) {
+        do_print("Observed " + aTopic);
+        Services.obs.removeObserver(this, "addons-background-update-complete");
+        resolve();
+      }
+    }, "addons-background-update-complete", false);
 
-  gInternalManager.notify(null);
+    gInternalManager.notify(null);
+  });
 }
 
-
-
-
-
-
-
-function check_database_exists(aExpectedExists) {
-  let file = gProfD.clone();
-  file.append(FILE_DATABASE);
-  do_check_eq(file.exists(), aExpectedExists);
-}
+let gDBFile = gProfD.clone();
+gDBFile.append(FILE_DATABASE);
 
 
 
@@ -474,28 +468,29 @@ function check_results(aActualAddons, aExpectedAddons, aFromRepository) {
 
 
 
-function check_cache(aExpectedToFind, aExpectedImmediately, aCallback) {
+function check_cache(aExpectedToFind, aExpectedImmediately) {
   do_check_eq(aExpectedToFind.length, REPOSITORY_ADDONS.length);
 
-  let pendingAddons = REPOSITORY_ADDONS.length;
-  let immediatelyFound = true;
+  let lookups = [];
 
-  for (let i = 0; i < REPOSITORY_ADDONS.length; i++) {
-    let expected = aExpectedToFind[i] ? REPOSITORY_ADDONS[i] : null;
-    AddonRepository.getCachedAddonByID(REPOSITORY_ADDONS[i].id, function(aAddon) {
-      do_check_eq(immediatelyFound, aExpectedImmediately);
-
-      if (expected == null)
-        do_check_eq(aAddon, null);
-      else
-        check_results([aAddon], [expected], true);
-
-      if (--pendingAddons == 0)
-        do_execute_soon(aCallback);
-    });
+  for (let i = 0 ; i < REPOSITORY_ADDONS.length ; i++) {
+    lookups.push(new Promise((resolve, reject) => {
+      let immediatelyFound = true;
+      let expected = aExpectedToFind[i] ? REPOSITORY_ADDONS[i] : null;
+      
+      
+      AddonRepository.getCachedAddonByID(REPOSITORY_ADDONS[i].id, function(aAddon) {
+        do_check_eq(immediatelyFound, aExpectedImmediately);
+        if (expected == null)
+          do_check_eq(aAddon, null);
+        else
+          check_results([aAddon], [expected], true);
+        resolve();
+      });
+      immediatelyFound = false;
+    }));
   }
-
-  immediatelyFound = false;
+  return Promise.all(lookups);
 }
 
 
@@ -507,266 +502,234 @@ function check_cache(aExpectedToFind, aExpectedImmediately, aCallback) {
 
 
 
+function* check_initialized_cache(aExpectedToFind) {
+  yield check_cache(aExpectedToFind, true);
+  yield promiseRestartManager();
 
-
-function check_initialized_cache(aExpectedToFind, aCallback) {
-  check_cache(aExpectedToFind, true, function restart_initialized_cache() {
-    restartManager();
-
-    
-    let cacheEnabled = Services.prefs.getBoolPref(PREF_GETADDONS_CACHE_ENABLED);
-    check_cache(aExpectedToFind, !cacheEnabled, aCallback);
-  });
-}
-
-
-
-function waitForFlushedData(aCallback) {
-  Services.obs.addObserver({
-    observe: function(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(this, "addon-repository-data-written");
-      aCallback(aData == "true");
-    }
-  }, "addon-repository-data-written", false);
+  
+  let cacheEnabled = Services.prefs.getBoolPref(PREF_GETADDONS_CACHE_ENABLED);
+  yield check_cache(aExpectedToFind, !cacheEnabled);
 }
 
 function run_test() {
+  run_next_test();
+}
+
+add_task(function* setup() {
   
-  do_test_pending("test_AddonRepository_cache");
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
 
   startupManager();
 
   
-  installAllFiles(ADDON_FILES, function first_installs() {
-    restartManager();
+  yield promiseInstallAllFiles(ADDON_FILES);
+  yield promiseRestartManager();
 
-    gServer = new HttpServer();
-    gServer.registerDirectory("/data/", do_get_file("data"));
-    gServer.start(PORT);
-
-    do_execute_soon(run_test_1);
-  });
-}
-
-function end_test() {
-  gServer.stop(function() {do_test_finished("test_AddonRepository_cache");});
-}
+  gServer = new HttpServer();
+  gServer.registerDirectory("/data/", do_get_file("data"));
+  gServer.start(PORT);
+});
 
 
-function run_test_1() {
+add_task(function* run_test_1() {
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
   do_check_false(AddonRepository.cacheEnabled);
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
   do_check_true(AddonRepository.cacheEnabled);
-
-  do_execute_soon(run_test_2);
-}
+});
 
 
-function run_test_2() {
-  check_database_exists(false);
-  check_cache([false, false, false], false, function(){});
-  waitForFlushedData(run_test_3);
-}
+add_task(function* run_test_2() {
+  do_check_false(gDBFile.exists());
+  yield check_cache([false, false, false], false);
+  yield AddonRepository.flush();
+});
 
 
-function run_test_3() {
-  check_database_exists(true);
+add_task(function* run_test_3() {
+  do_check_true(gDBFile.exists());
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_FAILED);
 
-  AddonRepository.repopulateCache(ADDON_IDS, function test_3_repopulated() {
-    check_initialized_cache([false, false, false], run_test_4);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.repopulateCache(ADDON_IDS, resolve));
+  yield check_initialized_cache([false, false, false]);
+});
 
 
-function run_test_4() {
+add_task(function* run_test_4() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_EMPTY);
 
-  AddonRepository.repopulateCache(ADDON_IDS, function() {
-    check_initialized_cache([false, false, false], run_test_5);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.repopulateCache(ADDON_IDS, resolve));
+  yield check_initialized_cache([false, false, false]);
+});
 
 
-function run_test_5() {
+add_task(function* run_test_5() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_RESULTS);
 
-  AddonRepository.repopulateCache(ADDON_IDS, function() {
-    check_initialized_cache([true, true, true], run_test_5_1);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.repopulateCache(ADDON_IDS, resolve));
+  yield check_initialized_cache([true, true, true]);
+});
 
 
-function run_test_5_1() {
+add_task(function* run_test_5_1() {
   Services.prefs.setBoolPref(PREF_ADDON0_CACHE_ENABLED, false);
 
-  AddonRepository.repopulateCache(ADDON_IDS, function() {
-    
-    Services.prefs.setBoolPref(PREF_ADDON0_CACHE_ENABLED, true);
-    check_initialized_cache([false, true, true], run_test_6);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.repopulateCache(ADDON_IDS, resolve));
+
+  
+  Services.prefs.setBoolPref(PREF_ADDON0_CACHE_ENABLED, true);
+
+  yield check_initialized_cache([false, true, true]);
+});
 
 
-function run_test_6() {
-  check_database_exists(true);
+add_task(function* run_test_6() {
+  do_check_true(gDBFile.exists());
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
 
-  AddonRepository.repopulateCache(ADDON_IDS, function() {
-    
-    check_database_exists(false);
+  yield new Promise((resolve, reject) =>
+    AddonRepository.repopulateCache(ADDON_IDS, resolve));
+  
+  do_check_false(gDBFile.exists());
 
-    Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
-    check_cache([false, false, false], false, function() {});
-
-    waitForFlushedData(run_test_7);
-  });
-}
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  yield check_cache([false, false, false], false);
+  yield AddonRepository.flush();
+});
 
 
-function run_test_7() {
-  check_database_exists(true);
+add_task(function* run_test_7() {
+  do_check_true(gDBFile.exists());
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_FAILED);
 
-  AddonRepository.cacheAddons(ADDON_IDS, function() {
-    check_initialized_cache([false, false, false], run_test_8);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.cacheAddons(ADDON_IDS, resolve));
+  yield check_initialized_cache([false, false, false]);
+});
 
 
-function run_test_8() {
+add_task(function* run_test_8() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_EMPTY);
 
-  AddonRepository.cacheAddons(ADDON_IDS, function() {
-    check_initialized_cache([false, false, false], run_test_9);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.cacheAddons(ADDON_IDS, resolve));
+  yield check_initialized_cache([false, false, false]);
+});
 
 
-function run_test_9() {
+add_task(function* run_test_9() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_RESULTS);
 
-  AddonRepository.cacheAddons([ADDON_IDS[0]], function() {
-    check_initialized_cache([true, false, false], run_test_9_1);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.cacheAddons([ADDON_IDS[0]], resolve));
+  yield check_initialized_cache([true, false, false]);
+});
 
 
-function run_test_9_1() {
+add_task(function* run_test_9_1() {
   Services.prefs.setBoolPref(PREF_ADDON1_CACHE_ENABLED, false);
 
-  AddonRepository.cacheAddons(ADDON_IDS, function() {
-    
-    Services.prefs.setBoolPref(PREF_ADDON1_CACHE_ENABLED, true);
-    check_initialized_cache([true, false, true], run_test_10);
-  });
-}
+  yield new Promise((resolve, reject) =>
+    AddonRepository.cacheAddons(ADDON_IDS, resolve));
+
+  
+  Services.prefs.setBoolPref(PREF_ADDON1_CACHE_ENABLED, true);
+
+  yield check_initialized_cache([true, false, true]);
+});
 
 
-function run_test_10() {
-  AddonRepository.cacheAddons(ADDON_IDS, function() {
-    check_initialized_cache([true, true, true], run_test_11);
-  });
-}
+add_task(function* run_test_10() {
+  yield new Promise((resolve, reject) =>
+    AddonRepository.cacheAddons(ADDON_IDS, resolve));
+  yield check_initialized_cache([true, true, true]);
+});
 
 
-function run_test_11() {
-  check_database_exists(true);
+add_task(function* run_test_11() {
+  do_check_true(gDBFile.exists());
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
 
-  AddonRepository.cacheAddons(ADDON_IDS, function() {
-    
-    check_database_exists(true);
+  yield new Promise((resolve, reject) =>
+    AddonRepository.cacheAddons(ADDON_IDS, resolve));
+  do_check_true(gDBFile.exists());
 
-    Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
-    check_initialized_cache([true, true, true], run_test_12);
-  });
-}
-
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  yield check_initialized_cache([true, true, true]);
+});
 
 
-function run_test_12() {
-  check_database_exists(true);
+
+add_task(function* run_test_12() {
+  do_check_true(gDBFile.exists());
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_RESULTS);
 
-  AddonManager.getAddonsByIDs(ADDON_IDS, function test_12_check(aAddons) {
-    check_results(aAddons, WITHOUT_CACHE);
-    do_execute_soon(run_test_13);
-  });
-}
+  let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
+  check_results(aAddons, WITHOUT_CACHE);
+});
 
 
 
-function run_test_13() {
-  check_database_exists(true);
+add_task(function* run_test_13() {
+  do_check_true(gDBFile.exists());
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERFORMANCE, GETADDONS_EMPTY);
 
-  trigger_background_update(function() {
-    
-    check_database_exists(false);
+  yield trigger_background_update();
+  
+  do_check_false(gDBFile.exists());
 
-    AddonManager.getAddonsByIDs(ADDON_IDS, function(aAddons) {
-      check_results(aAddons, WITHOUT_CACHE);
-      do_execute_soon(run_test_14);
-    });
-  });
-}
+  let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
+  check_results(aAddons, WITHOUT_CACHE);
+});
 
 
 
-function run_test_14() {
+add_task(function* run_test_14() {
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
 
-  waitForFlushedData(function() {
-    check_database_exists(true);
+  yield trigger_background_update();
+  yield AddonRepository.flush();
+  do_check_true(gDBFile.exists());
 
-    AddonManager.getAddonsByIDs(ADDON_IDS, function(aAddons) {
-      check_results(aAddons, WITHOUT_CACHE);
-      do_execute_soon(run_test_15);
-    });
-  });
-
-  trigger_background_update();
-}
+  let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
+  check_results(aAddons, WITHOUT_CACHE);
+});
 
 
 
-function run_test_15() {
+add_task(function* run_test_15() {
   Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERFORMANCE, GETADDONS_RESULTS);
 
-  trigger_background_update(function() {
-    AddonManager.getAddonsByIDs(ADDON_IDS, function(aAddons) {
-      check_results(aAddons, WITH_CACHE);
-      do_execute_soon(run_test_16);
-    });
-  });
-}
+  yield trigger_background_update();
+  let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
+  check_results(aAddons, WITH_CACHE);
+});
 
 
 
 
-function run_test_16() {
-  restartManager();
+add_task(function* run_test_16() {
+  yield promiseRestartManager();
 
-  AddonManager.getAddonsByIDs(ADDON_IDS, function(aAddons) {
-    check_results(aAddons, WITH_CACHE);
-    do_execute_soon(run_test_17);
-  });
-}
+  let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
+  check_results(aAddons, WITH_CACHE);
+});
 
 
-function run_test_17() {
+add_task(function* run_test_17() {
   Services.prefs.setCharPref(PREF_GETADDONS_CACHE_TYPES, "foo,bar,extension,baz");
 
-  trigger_background_update(function() {
-    AddonManager.getAddonsByIDs(ADDON_IDS, function(aAddons) {
-      check_results(aAddons, WITH_EXTENSION_CACHE);
-      end_test();
-    });
-  });
-}
+  yield trigger_background_update();
+  let aAddons = yield promiseAddonsByIDs(ADDON_IDS);
+  check_results(aAddons, WITH_EXTENSION_CACHE);
+});
 
+add_task(function* end_test() {
+  yield new Promise((resolve, reject) => gServer.stop(resolve));
+});

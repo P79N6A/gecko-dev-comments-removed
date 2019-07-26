@@ -401,57 +401,83 @@ function startupManager(aAppChanged) {
 
 
 
+function loopUntilPromise(aPromise) {
+  let done = false;
+  aPromise.then(
+    () => done = true,
+    err => {
+      do_report_unexpected_exception(err);
+      done = true;
+    });
+
+  let thr = Services.tm.mainThread;
+
+  while (!done) {
+    thr.processNextEvent(true);
+  }
+}
+
+
+
+
 
 
 
 
 
 function restartManager(aNewVersion) {
-  shutdownManager();
-  if (aNewVersion) {
-    gAppInfo.version = aNewVersion;
-    startupManager(true);
-  }
-  else {
-    startupManager(false);
-  }
+  loopUntilPromise(promiseRestartManager(aNewVersion));
+}
+
+function promiseRestartManager(aNewVersion) {
+  return promiseShutdownManager()
+    .then(null, err => do_report_unexpected_exception(err))
+    .then(() => {
+      if (aNewVersion) {
+        gAppInfo.version = aNewVersion;
+        startupManager(true);
+      }
+      else {
+        startupManager(false);
+      }
+    });
 }
 
 function shutdownManager() {
-  if (!gInternalManager)
-    return;
+  loopUntilPromise(promiseShutdownManager());
+}
 
-  let shutdownDone = false;
-
-  Services.obs.notifyObservers(null, "quit-application-granted", null);
-  MockAsyncShutdown.hook().then(
-    () => shutdownDone = true,
-    err => shutdownDone = true);
-
-  let thr = Services.tm.mainThread;
-
-  
-  while (!shutdownDone) {
-    thr.processNextEvent(true);
+function promiseShutdownManager() {
+  if (!gInternalManager) {
+    return Promise.resolve(false);
   }
 
-  gInternalManager = null;
+  let hookErr = null;
+  Services.obs.notifyObservers(null, "quit-application-granted", null);
+  return MockAsyncShutdown.hook()
+    .then(null, err => hookErr = err)
+    .then( () => {
+      gInternalManager = null;
 
-  
-  loadAddonsList();
+      
+      loadAddonsList();
 
-  
-  gAppInfo.annotations = {};
+      
+      gAppInfo.annotations = {};
 
-  
-  
-  let XPIscope = Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm");
-  
-  
-  gXPISaveError = XPIscope.XPIProvider._shutdownError;
-  do_print("gXPISaveError set to: " + gXPISaveError);
-  AddonManagerPrivate.unregisterProvider(XPIscope.XPIProvider);
-  Components.utils.unload("resource://gre/modules/addons/XPIProvider.jsm");
+      
+      
+      let XPIscope = Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm");
+      
+      
+      gXPISaveError = XPIscope.XPIProvider._shutdownError;
+      do_print("gXPISaveError set to: " + gXPISaveError);
+      AddonManagerPrivate.unregisterProvider(XPIscope.XPIProvider);
+      Components.utils.unload("resource://gre/modules/addons/XPIProvider.jsm");
+      if (hookErr) {
+        throw hookErr;
+      }
+    });
 }
 
 function loadAddonsList() {
