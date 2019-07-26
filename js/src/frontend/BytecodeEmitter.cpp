@@ -2688,7 +2688,7 @@ EmitDestructuringDecls(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, Parse
 
     if (pn->isKind(PNK_ARRAY)) {
         for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
-            if (pn2->isKind(PNK_COMMA))
+            if (pn2->isKind(PNK_ELISION))
                 continue;
             emitter = (pn2->isKind(PNK_NAME))
                       ? EmitDestructuringDecl
@@ -2909,7 +2909,7 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
         }
 
         
-        if (pn3->isKind(PNK_COMMA) && pn3->isArity(PN_NULLARY)) {
+        if (pn3->isKind(PNK_ELISION)) {
             JS_ASSERT(pn->isKind(PNK_ARRAY));
             JS_ASSERT(pn2 == pn3);
             if (Emit1(cx, bce, JSOP_POP) < 0)
@@ -2984,7 +2984,7 @@ EmitGroupAssignment(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp,
         }
 
         
-        JS_ASSERT(!(pn->isKind(PNK_COMMA) && pn->isArity(PN_NULLARY)));
+        JS_ASSERT(!pn->isKind(PNK_ELISION));
         if (!EmitTree(cx, bce, pn))
             return false;
         ++limit;
@@ -3001,7 +3001,7 @@ EmitGroupAssignment(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp,
         if (!EmitUnaliasedVarOp(cx, JSOP_GETLOCAL, slot, bce))
             return false;
 
-        if (pn->isKind(PNK_COMMA) && pn->isArity(PN_NULLARY)) {
+        if (pn->isKind(PNK_ELISION)) {
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
         } else {
@@ -5542,7 +5542,7 @@ EmitArray(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (nspread && !EmitNumberOp(cx, 0, bce))
         return false;
     for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
-        if (pn2->isKind(PNK_COMMA) && pn2->isArity(PN_NULLARY)) {
+        if (pn2->isKind(PNK_ELISION)) {
             if (Emit1(cx, bce, JSOP_HOLE) < 0)
                 return false;
         } else {

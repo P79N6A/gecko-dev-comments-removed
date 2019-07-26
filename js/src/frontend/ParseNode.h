@@ -75,6 +75,7 @@ class UpvarCookie
     F(DOT) \
     F(ELEM) \
     F(ARRAY) \
+    F(ELISION) \
     F(STATEMENTLIST) \
     F(LABEL) \
     F(OBJECT) \
@@ -728,11 +729,6 @@ struct ParseNode
     
     bool isDirectivePrologueMember() const { return pn_prologue; }
 
-#ifdef JS_HAS_DESTRUCTURING
-    
-    bool isArrayHole() const { return isKind(PNK_COMMA) && isArity(PN_NULLARY); }
-#endif
-
 #ifdef JS_HAS_GENERATOR_EXPRS
     ParseNode *generatorExpr() const {
         JS_ASSERT(isKind(PNK_GENEXP));
@@ -822,6 +818,9 @@ struct ParseNode
 
 struct NullaryNode : public ParseNode
 {
+    NullaryNode(ParseNodeKind kind, const TokenPos &pos)
+      : ParseNode(kind, JSOP_NOP, PN_NULLARY, pos) {}
+
     static inline NullaryNode *create(ParseNodeKind kind, FullParseHandler *handler) {
         return (NullaryNode *) ParseNode::create(kind, PN_NULLARY, handler);
     }
