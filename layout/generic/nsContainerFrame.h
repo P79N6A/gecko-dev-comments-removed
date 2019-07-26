@@ -359,16 +359,20 @@ public:
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   
+
+
+
   static void DestroyFrameList(void* aPropertyValue)
   {
-    if (aPropertyValue) {
-      static_cast<nsFrameList*>(aPropertyValue)->Destroy();
-    }
+    MOZ_ASSERT(false, "The owning frame should destroy its nsFrameList props");
   }
 
-  NS_DECLARE_FRAME_PROPERTY(OverflowProperty, DestroyFrameList)
-  NS_DECLARE_FRAME_PROPERTY(OverflowContainersProperty, DestroyFrameList)
-  NS_DECLARE_FRAME_PROPERTY(ExcessOverflowContainersProperty, DestroyFrameList)
+#define NS_DECLARE_FRAME_PROPERTY_FRAMELIST(prop)                     \
+  NS_DECLARE_FRAME_PROPERTY(prop, nsContainerFrame::DestroyFrameList)
+
+  NS_DECLARE_FRAME_PROPERTY_FRAMELIST(OverflowProperty)
+  NS_DECLARE_FRAME_PROPERTY_FRAMELIST(OverflowContainersProperty)
+  NS_DECLARE_FRAME_PROPERTY_FRAMELIST(ExcessOverflowContainersProperty)
 
 protected:
   nsContainerFrame(nsStyleContext* aContext) : nsSplittableFrame(aContext) {}
