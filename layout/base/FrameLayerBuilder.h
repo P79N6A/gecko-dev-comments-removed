@@ -297,7 +297,10 @@ public:
 
 
 
-  Layer* GetOldLayerFor(nsDisplayItem* aItem, nsDisplayItemGeometry** aOldGeometry = nullptr, Clip** aOldClip = nullptr);
+  Layer* GetOldLayerFor(nsDisplayItem* aItem, 
+                        nsDisplayItemGeometry** aOldGeometry = nullptr, 
+                        Clip** aOldClip = nullptr,
+                        nsTArray<nsIFrame*>* aChangedFrames = nullptr);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
@@ -499,7 +502,8 @@ protected:
 
 
     void AddFrame(nsIFrame* aFrame);
-    bool FrameListMatches(nsDisplayItem* aOther);
+    void RemoveFrame(nsIFrame* aFrame);
+    void GetFrameListChanges(nsDisplayItem* aOther, nsTArray<nsIFrame*>& aOut);
 
     
 
@@ -508,7 +512,8 @@ protected:
 
 
 
-    void UpdateContents(Layer* aLayer, LayerState aState, uint32_t aContainerLayerGeneration);
+    void UpdateContents(Layer* aLayer, LayerState aState,
+                        uint32_t aContainerLayerGeneration, nsDisplayItem* aItem = nullptr);
 
     LayerManagerData* mParent;
     nsRefPtr<Layer> mLayer;
