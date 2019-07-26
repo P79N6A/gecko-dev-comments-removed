@@ -184,6 +184,7 @@ Tester.prototype = {
                            : this.currentTest ? "Found an unexpected {elt} at the end of test run"
                                               : "Found an unexpected {elt}";
 
+    
     if (this.currentTest && window.gBrowser && gBrowser.tabs.length > 1) {
       while (gBrowser.tabs.length > 1) {
         let lastTab = gBrowser.tabContainer.lastChild;
@@ -194,6 +195,14 @@ Tester.prototype = {
       }
     }
 
+    
+    if (window.gBrowser) {
+      gBrowser.addTab("about:blank", { skipAnimation: true });
+      gBrowser.removeCurrentTab();
+      gBrowser.stop();
+    }
+
+    
     this.dumper.dump("TEST-INFO | checking window state\n");
     let windowsEnum = Services.wm.getEnumerator(null);
     while (windowsEnum.hasMoreElements()) {
@@ -435,16 +444,6 @@ Tester.prototype = {
     
     this.waitForWindowsState((function () {
       if (this.done) {
-        
-        
-        
-        
-        
-        if (window.gBrowser) {
-          gBrowser.addTab();
-          gBrowser.removeCurrentTab();
-        }
-
         
         
         
