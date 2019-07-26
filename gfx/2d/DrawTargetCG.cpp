@@ -1191,6 +1191,11 @@ DrawTargetCG::CopySurface(SourceSurface *aSurface,
     CGRect flippedRect = CGRectMake(aDestination.x, -(aDestination.y + aSourceRect.height),
                                     aSourceRect.width, aSourceRect.height);
 
+    
+    
+    if (mFormat == FORMAT_A8) {
+      CGContextClearRect(mCg, flippedRect);
+    }
     CGContextDrawImage(mCg, flippedRect, image);
 
     CGContextRestoreGState(mCg);
