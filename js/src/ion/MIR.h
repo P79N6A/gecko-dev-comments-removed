@@ -4914,6 +4914,54 @@ class MNewCallObject : public MUnaryInstruction
 };
 
 
+
+
+class MProfilingEnter : public MNullaryInstruction
+{
+    JSScript *script_;
+
+    MProfilingEnter(JSScript *script) : script_(script) {
+        JS_ASSERT(script != NULL);
+        setGuard();
+    }
+
+  public:
+    INSTRUCTION_HEADER(ProfilingEnter);
+
+    static MProfilingEnter *New(JSScript *script) {
+        return new MProfilingEnter(script);
+    }
+
+    JSScript *script() {
+        return script_;
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
+
+class MProfilingExit : public MNullaryInstruction
+{
+    MProfilingExit() {
+        setGuard();
+    }
+
+  public:
+    INSTRUCTION_HEADER(ProfilingExit);
+
+    static MProfilingExit *New() {
+        return new MProfilingExit();
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
 class MEnclosingScope : public MLoadFixedSlot
 {
     MEnclosingScope(MDefinition *obj)

@@ -3970,7 +3970,7 @@ mjit::Compiler::profilingPushHelper()
     
     RegisterID size = frame.allocReg();
     RegisterID base = frame.allocReg();
-    masm.load32(p->size(), size);
+    masm.load32(p->sizePointer(), size);
     Jump j = masm.branch32(Assembler::GreaterThanOrEqual, size,
                            Imm32(p->maxSize()));
 
@@ -3988,7 +3988,7 @@ mjit::Compiler::profilingPushHelper()
 
     
     j.linkTo(masm.label(), &masm);
-    masm.add32(Imm32(1), AbsoluteAddress(p->size()));
+    masm.add32(Imm32(1), AbsoluteAddress(p->sizePointer()));
 
     
     RegisterID reg = frame.allocReg();
@@ -4009,7 +4009,7 @@ mjit::Compiler::profilingPopHelper()
         prepareStubCall(Uses(0));
         INLINE_STUBCALL(stubs::ScriptProbeOnlyEpilogue, REJOIN_RESUME);
     } else if (cx->runtime->spsProfiler.enabled()) {
-        masm.sub32(Imm32(1), AbsoluteAddress(cx->runtime->spsProfiler.size()));
+        masm.sub32(Imm32(1), AbsoluteAddress(cx->runtime->spsProfiler.sizePointer()));
     }
 }
 

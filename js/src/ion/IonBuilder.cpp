@@ -279,6 +279,8 @@ IonBuilder::build()
 
     
     current->makeStart(MStart::New(MStart::StartType_Default));
+    if (instrumentedProfiling())
+        current->add(MProfilingEnter::New(script));
 
     
     
@@ -389,6 +391,10 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
         return false;
 
     current->setCallerResumePoint(callerResumePoint);
+
+    
+    if (instrumentedProfiling())
+        current->add(MProfilingEnter::New(script));
 
     
     MBasicBlock *predecessor = callerBuilder->current;
@@ -2534,6 +2540,8 @@ IonBuilder::processReturn(JSOp op)
         break;
     }
 
+    if (instrumentedProfiling())
+        current->add(MProfilingExit::New());
     MReturn *ret = MReturn::New(def);
     current->end(ret);
 

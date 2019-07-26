@@ -122,6 +122,12 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
         }
     }
 
+    
+    
+    
+    if (cx->runtime->spsProfiler.enabled())
+        setPushedSPSFrame();
+
     if (isFunctionFrame()) {
         Value thisv = iter.read();
         formals()[-1] = thisv;
@@ -293,8 +299,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         return BAILOUT_RETURN_OK;
       case Bailout_TypeBarrier:
         return BAILOUT_RETURN_TYPE_BARRIER;
-      case Bailout_ArgumentCheck:
-        return BAILOUT_RETURN_ARGUMENT_CHECK;
       case Bailout_Monitor:
         return BAILOUT_RETURN_MONITOR;
       case Bailout_RecompileCheck:
@@ -303,6 +307,15 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         return BAILOUT_RETURN_BOUNDS_CHECK;
       case Bailout_Invalidate:
         return BAILOUT_RETURN_INVALIDATE;
+
+      
+      
+      
+      
+      case Bailout_ArgumentCheck:
+        fp->unsetPushedSPSFrame();
+        Probes::enterScript(cx, fp->script(), fp->script()->function(), fp);
+        return BAILOUT_RETURN_ARGUMENT_CHECK;
     }
 
     JS_NOT_REACHED("bad bailout kind");

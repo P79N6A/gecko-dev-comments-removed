@@ -299,6 +299,12 @@ ion::HandleException(ResumeFromException *rfe)
             InlineFrameIterator frames(&iter);
             for (;;) {
                 CloseLiveIterators(cx, frames);
+
+                
+                
+                
+                JSScript *script = frames.script();
+                Probes::exitScript(cx, script, script->function(), NULL);
                 if (!frames.more())
                     break;
                 ++frames;
