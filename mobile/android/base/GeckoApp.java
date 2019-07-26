@@ -1284,6 +1284,9 @@ abstract public class GeckoApp
             @Override
             protected Boolean doInBackground(Void... params) {
                 WallpaperManager mgr = WallpaperManager.getInstance(mAppContext);
+                if (mgr == null) {
+                    return false;
+                }
 
                 
                 
@@ -1297,7 +1300,7 @@ abstract public class GeckoApp
                 
                 
 
-                if(idealWidth <= 0 || idealHeight <= 0) {
+                if (idealWidth <= 0 || idealHeight <= 0) {
                     int orientation;
                     Display defaultDisplay = getWindowManager().getDefaultDisplay();
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
