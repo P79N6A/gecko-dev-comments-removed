@@ -3,25 +3,23 @@
 
 
 
-#ifndef mozilla_dom_ValidityState_h
-#define mozilla_dom_ValidityState_h
+#ifndef nsDOMValidityState_h__
+#define nsDOMValidityState_h__
 
 #include "nsIDOMValidityState.h"
 #include "nsIConstraintValidation.h"
 
-namespace mozilla {
-namespace dom {
 
-class ValidityState MOZ_FINAL : public nsIDOMValidityState
+class nsDOMValidityState MOZ_FINAL : public nsIDOMValidityState
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMVALIDITYSTATE
 
-  friend class ::nsIConstraintValidation;
+  friend class nsIConstraintValidation;
 
 protected:
-  ValidityState(nsIConstraintValidation* aConstraintValidation);
+  nsDOMValidityState(nsIConstraintValidation* aConstraintValidation);
 
   
 
@@ -45,9 +43,6 @@ protected:
   
   nsIConstraintValidation*       mConstraintValidation;
 };
-
-} 
-} 
 
 #endif 
 
