@@ -56,7 +56,6 @@ ActivitiesDb.prototype = {
 
 
 
-
   upgradeSchema: function actdb_upgradeSchema(aTransaction, aDb, aOldVersion, aNewVersion) {
     debug("Upgrade schema " + aOldVersion + " -> " + aNewVersion);
     let objectStore = aDb.createObjectStore(STORE_NAME, { keyPath: "id" });
@@ -94,7 +93,6 @@ ActivitiesDb.prototype = {
         let object = {
           manifest: aObject.manifest,
           name: aObject.name,
-          title: aObject.title || "",
           icon: aObject.icon || "",
           description: aObject.description
         };
@@ -140,7 +138,6 @@ ActivitiesDb.prototype = {
 
           txn.result.options.push({
             manifest: result.manifest,
-            title: result.title,
             icon: result.icon,
             description: result.description
           });
