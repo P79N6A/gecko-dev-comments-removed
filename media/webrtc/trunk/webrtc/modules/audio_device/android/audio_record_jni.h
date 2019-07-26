@@ -23,14 +23,14 @@ class EventWrapper;
 class ThreadWrapper;
 class PlayoutDelayProvider;
 
-const uint32_t N_REC_SAMPLES_PER_SEC = 16000; 
-const uint32_t N_REC_CHANNELS = 1; 
-const uint32_t REC_BUF_SIZE_IN_SAMPLES = 480; 
-
 class AudioRecordJni {
  public:
   static int32_t SetAndroidAudioDeviceObjects(void* javaVM, void* env,
                                               void* context);
+
+  static int32_t SetAndroidAudioDeviceObjects(void* javaVM,
+                                              void* context);
+
   static void ClearAndroidAudioDeviceObjects();
 
   AudioRecordJni(const int32_t id, PlayoutDelayProvider* delay_provider);
@@ -109,6 +109,10 @@ class AudioRecordJni {
   void AttachAudioBuffer(AudioDeviceBuffer* audioBuffer);
 
   int32_t SetRecordingSampleRate(const uint32_t samplesPerSec);
+
+  static const uint32_t N_REC_SAMPLES_PER_SEC = 16000; 
+  static const uint32_t N_REC_CHANNELS = 1; 
+  static const uint32_t REC_BUF_SIZE_IN_SAMPLES = 480; 
 
  private:
   void Lock() EXCLUSIVE_LOCK_FUNCTION(_critSect) {
