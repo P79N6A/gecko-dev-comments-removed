@@ -169,18 +169,7 @@ TimeZoneSettingObserver::Observe(nsISupports *aSubject,
   
   
 
-  
-  nsCOMPtr<nsIThreadJSContextStack> stack =
-    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-  if (!stack) {
-    ERR("Failed to get JSContextStack");
-    return NS_OK;
-  }
-  JSContext *cx = stack->GetSafeJSContext();
-  if (!cx) {
-    ERR("Failed to GetSafeJSContext");
-    return NS_OK;
-  }
+  SafeAutoJSContext cx;
 
   
   nsDependentString dataStr(aData);

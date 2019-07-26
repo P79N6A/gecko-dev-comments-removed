@@ -106,7 +106,6 @@
 #include "nsThreadUtils.h"
 #include "nsEventStateManager.h"
 #include "nsIHttpProtocolHandler.h"
-#include "nsIJSContextStack.h"
 #include "nsIJSRuntimeService.h"
 #include "nsILoadContext.h"
 #include "nsIMarkupDocumentViewer.h"
@@ -7097,15 +7096,7 @@ nsGlobalWindow::FinalClose()
   
   mIsClosed = true;
 
-  nsCOMPtr<nsIJSContextStack> stack =
-    do_GetService(sJSStackContractID);
-
-  JSContext *cx = nullptr;
-
-  if (stack) {
-    stack->Peek(&cx);
-  }
-
+  JSContext *cx = nsContentUtils::GetCurrentJSContext();
   if (cx) {
     nsIScriptContext *currentCX = nsJSUtils::GetDynamicScriptContext(cx);
 
@@ -7426,8 +7417,7 @@ public:
       JSObject* obj = currentInner->FastGetGlobalJSObject();
       
       if (obj && !js::IsSystemCompartment(js::GetObjectCompartment(obj))) {
-        JSContext* cx =
-          nsContentUtils::ThreadJSContextStack()->GetSafeJSContext();
+        JSContext* cx = nsContentUtils::GetSafeJSContext();
 
         JSAutoRequest ar(cx);
         js::NukeCrossCompartmentWrappers(cx, 
@@ -9930,27 +9920,22 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       
       
       
-      nsCOMPtr<nsIJSContextStack> stack;
 
+      
+      
+      
+      
+      nsCxPusher pusher;
       if (!aContentModal) {
-        stack = do_GetService(sJSStackContractID);
+        pusher.PushNull();
       }
 
-      if (stack) {
-        rv = stack->Push(nullptr);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
 
       rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
                                  false,
                                 aDialog, aNavigate, aExtraArgument,
                                 getter_AddRefs(domReturn));
 
-      if (stack) {
-        JSContext* cx;
-        stack->Pop(&cx);
-        NS_ASSERTION(!cx, "Unexpected JSContext popped!");
-      }
     }
   }
 
@@ -10871,9 +10856,7 @@ nsGlobalWindow::BuildURIfromBase(const char *aURL, nsIURI **aBuiltURI,
     cx = scx->GetNativeContext();
   } else {
     
-    nsCOMPtr<nsIThreadJSContextStack> stack(do_GetService(sJSStackContractID));
-    if (stack)
-      stack->Peek(&cx);
+    cx = nsContentUtils::GetCurrentJSContext();
   }
 
   

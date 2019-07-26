@@ -36,7 +36,6 @@
 #include "nsIURI.h"
 #include "nsIPermissionManager.h"
 #include "nsIObserverService.h"
-#include "nsIJSContextStack.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -282,10 +281,8 @@ void
 PositionError::NotifyCallback(const GeoPositionErrorCallback& aCallback)
 {
   
-  nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1"));
-  if (!stack || NS_FAILED(stack->Push(nullptr))) {
-    return;
-  }
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   nsAutoMicroTask mt;
   if (aCallback.HasWebIDLCallback()) {
@@ -301,10 +298,6 @@ PositionError::NotifyCallback(const GeoPositionErrorCallback& aCallback)
       callback->HandleEvent(this);
     }
   }
-
-  
-  JSContext* cx;
-  stack->Pop(&cx);
 }
 
 
@@ -558,11 +551,8 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition, bool aCachePosi
   }
 
   
-  nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1"));
-  if (!stack || NS_FAILED(stack->Push(nullptr))) {
-    return; 
-  }
-
+  nsCxPusher pusher;
+  pusher.PushNull();
   nsAutoMicroTask mt;
   if (mCallback.HasWebIDLCallback()) {
     ErrorResult err;
@@ -576,10 +566,6 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition, bool aCachePosi
     MOZ_ASSERT(callback);
     callback->HandleEvent(aPosition);
   }
-
-  
-  JSContext* cx;
-  stack->Pop(&cx);
 
   if (mIsWatchPositionRequest) {
     SetTimeoutTimer();
@@ -788,15 +774,7 @@ nsGeolocationService::HandleMozsettingChanged(const PRUnichar* aData)
     
     
 
-    nsCOMPtr<nsIThreadJSContextStack> stack = do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-    if (!stack) {
-      return;
-    }
-
-    JSContext *cx = stack->GetSafeJSContext();
-    if (!cx) {
-      return;
-    }
+    SafeAutoJSContext cx;
 
     nsDependentString dataStr(aData);
     JS::Value val;

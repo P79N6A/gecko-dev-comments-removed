@@ -38,7 +38,6 @@
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsThreadUtils.h"
-#include "nsIJSContextStack.h"
 #include "nsIScriptChannel.h"
 #include "nsIDocument.h"
 #include "nsIObjectInputStream.h"
@@ -299,16 +298,8 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
         
         
-        
-        nsCOMPtr<nsIJSContextStack> stack =
-            do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
-        if (NS_SUCCEEDED(rv)) {
-            rv = stack->Push(cx);
-        }
-        if (NS_FAILED(rv)) {
-            return rv;
-        }
-
+        nsCxPusher pusher;
+        pusher.Push(cx);
         rv = xpc->EvalInSandboxObject(NS_ConvertUTF8toUTF16(script),
                                        nullptr, cx,
                                       sandboxObj, true, &v);
@@ -318,8 +309,6 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         if (JS_IsExceptionPending(cx)) {
             JS_ReportPendingException(cx);
         }
-
-        stack->Pop(nullptr);
     } else {
         
         
