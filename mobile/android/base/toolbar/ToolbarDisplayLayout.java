@@ -444,13 +444,13 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
 
         mSiteSecurityVisible = visible;
 
+        mTitle.clearAnimation();
+        mSiteSecurity.clearAnimation();
+
         if (flags.contains(UpdateFlags.DISABLE_ANIMATIONS)) {
             mSiteSecurity.setVisibility(visible ? View.VISIBLE : View.GONE);
             return;
         }
-
-        mTitle.clearAnimation();
-        mSiteSecurity.clearAnimation();
 
         
         
