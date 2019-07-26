@@ -35,6 +35,8 @@
 #include "nsTraceRefcnt.h"              
 #include "nsXULAppAPI.h"                
 #include "nscore.h"                     
+#include "VBOArena.h"                   
+
 class gfx3DMatrix;
 class nsIWidget;
 struct gfxMatrix;
@@ -233,6 +235,11 @@ private:
 
 
   GLuint mQuadVBO;
+
+  
+
+
+  gl::VBOArena mVBOs;
 
   bool mHasBGRA;
 
