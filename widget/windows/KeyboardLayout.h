@@ -288,10 +288,6 @@ public:
 
   uint32_t GetDOMKeyCode() const { return mDOMKeyCode; }
   KeyNameIndex GetKeyNameIndex() const { return mKeyNameIndex; }
-  const UniCharsAndModifiers& GetCommittedCharsAndModifiers() const
-  {
-    return mCommittedCharsAndModifiers;
-  }
 
   UINT GetMessage() const { return mMsg.message; }
   bool IsKeyDownMessage() const
@@ -353,7 +349,6 @@ public:
 
 
   bool DispatchKeyPressEventsWithKeyboardLayout(
-                        const UniCharsAndModifiers& aInputtingChars,
                         const EventFlags& aExtraFlags) const;
 
   
@@ -363,7 +358,6 @@ public:
 
 
   bool DispatchKeyPressEventsAndDiscardsCharMessages(
-                        const UniCharsAndModifiers& aInputtingChars,
                         const EventFlags& aExtraFlags) const;
 
   
@@ -372,7 +366,6 @@ public:
 
 
   bool DispatchKeyPressEventForFollowingCharMessage(
-                        const UniCharsAndModifiers& aInputtingChars,
                         const EventFlags& aExtraFlags) const;
 
   
