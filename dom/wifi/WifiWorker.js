@@ -198,15 +198,15 @@ var WifiManager = (function() {
       
       
       
-      callback(0);
       notify("supplicantlost", { success: true });
+      callback(0);
       return;
     }
 
     wifiCommand.unloadDriver(function(status) {
       driverLoaded = (status < 0);
-      callback(status);
       notify("supplicantlost", { success: true });
+      callback(status);
     });
   }
 
@@ -420,12 +420,6 @@ var WifiManager = (function() {
 
   function notifyStateChange(fields) {
     
-    if (manager.state === "DISABLING" ||
-        manager.state === "UNINITIALIZED") {
-      return false;
-    }
-
-    
     
     
     
@@ -446,12 +440,19 @@ var WifiManager = (function() {
          fields.state === "COMPLETED")) {
       setBackgroundScan("OFF", function() {});
     }
-    fields.prevState = manager.state;
-    manager.state = fields.state;
 
+    fields.prevState = manager.state;
     
     manager.supplicantLoopDetection(fields.prevState, fields.state);
     notify("statechange", fields);
+
+    
+    if (manager.state === "DISABLING" ||
+        manager.state === "UNINITIALIZED") {
+      return false;
+    }
+
+    manager.state = fields.state;
     return true;
   }
 
