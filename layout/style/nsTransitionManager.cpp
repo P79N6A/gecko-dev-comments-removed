@@ -693,6 +693,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   bool haveCurrentTransition = false;
   uint32_t currentIndex = nsTArray<ElementPropertyTransition>::NoIndex;
+  const ElementPropertyTransition *oldPT = nullptr;
   if (aElementTransitions) {
     nsTArray<ElementPropertyTransition> &pts =
       aElementTransitions->mPropertyTransitions;
@@ -700,6 +701,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       if (pts[i].mProperty == aProperty) {
         haveCurrentTransition = true;
         currentIndex = i;
+        oldPT = &aElementTransitions->mPropertyTransitions[currentIndex];
         break;
       }
     }
@@ -750,10 +752,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   
   
   if (haveCurrentTransition) {
-    const ElementPropertyTransition &oldPT =
-      aElementTransitions->mPropertyTransitions[currentIndex];
-
-    if (oldPT.mEndValue == pt.mEndValue) {
+    if (oldPT->mEndValue == pt.mEndValue) {
       
       
       
@@ -763,13 +762,13 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
     
     
-    if (!oldPT.IsRemovedSentinel() &&
-        oldPT.mStartForReversingTest == pt.mEndValue) {
+    if (!oldPT->IsRemovedSentinel() &&
+        oldPT->mStartForReversingTest == pt.mEndValue) {
       
       
       double valuePortion =
-        oldPT.ValuePortionFor(mostRecentRefresh) * oldPT.mReversePortion +
-        (1.0 - oldPT.mReversePortion);
+        oldPT->ValuePortionFor(mostRecentRefresh) * oldPT->mReversePortion +
+        (1.0 - oldPT->mReversePortion);
       
       
       
@@ -792,7 +791,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
       duration *= valuePortion;
 
-      pt.mStartForReversingTest = oldPT.mEndValue;
+      pt.mStartForReversingTest = oldPT->mEndValue;
       pt.mReversePortion = valuePortion;
     }
   }
