@@ -6,7 +6,10 @@
 #ifndef perf_jsperf_h
 #define perf_jsperf_h
 
-#include "jsapi.h"
+#include "jstypes.h"
+
+#include "js/TypeDecls.h"
+#include "js/Utility.h"
 
 namespace JS {
 
@@ -123,7 +126,7 @@ extern JS_FRIEND_API(JSObject*)
 
 
 extern JS_FRIEND_API(PerfMeasurement*)
-    ExtractPerfMeasurement(jsval wrapper);
+    ExtractPerfMeasurement(Value wrapper);
 
 } 
 
