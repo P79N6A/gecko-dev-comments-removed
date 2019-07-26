@@ -62,6 +62,8 @@ pref("browser.cache.check_doc_frequency",   3);
 
 pref("browser.cache.offline.enable",           true);
 
+pref("offline-apps.allow_by_default",          true);
+
 
 pref("browser.cache.offline.capacity",         512000);
 
