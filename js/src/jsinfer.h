@@ -105,7 +105,15 @@ namespace ion {
     struct IonScript;
 }
 
+namespace analyze {
+    class ScriptAnalysis;
+}
+
 namespace types {
+
+class TypeCallsite;
+class TypeCompartment;
+class TypeSet;
 
 
 struct TypeObjectKey {

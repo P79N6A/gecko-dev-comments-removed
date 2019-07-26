@@ -22,6 +22,11 @@ class JSScript;
 namespace js {
 namespace analyze {
 
+class LoopAnalysis;
+class SlotValue;
+class SSAValue;
+class SSAUseChain;
+
 
 
 

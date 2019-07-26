@@ -21,6 +21,8 @@ template <typename ParseHandler>
 struct ParseContext;
 
 class FullParseHandler;
+class FunctionBox;
+class ObjectBox;
 
 
 

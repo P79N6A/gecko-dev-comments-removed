@@ -20,10 +20,10 @@
 #include "vm/Unicode.h"
 
 class JSFlatString;
+class JSLinearString;
 class JSStableString;
 
 namespace js {
-
 
 class StringBuffer;
 

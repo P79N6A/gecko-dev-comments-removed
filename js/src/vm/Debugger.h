@@ -21,6 +21,8 @@
 
 namespace js {
 
+class Breakpoint;
+
 
 
 

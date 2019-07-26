@@ -18,9 +18,11 @@
 
 namespace js {
 
+class Class;
+class FreeOp;
+class PropertyId;
 class PropertyName;
 class SpecialId;
-class PropertyId;
 
 
 
