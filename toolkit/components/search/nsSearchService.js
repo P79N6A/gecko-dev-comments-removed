@@ -2996,16 +2996,6 @@ SearchService.prototype = {
       }
 
       if (fileExtension == SHERLOCK_FILE_EXT) {
-        if (isWritable) {
-          try {
-            this._convertSherlockFile(addedEngine, fileURL.fileBaseName);
-          } catch (ex) {
-            LOG("_loadEnginesFromDir: Failed to convert: " + fileURL.path + "\n" + ex + "\n" + ex.stack);
-            
-            addedEngine._readOnly = true;
-          }
-        }
-
         
         if (!addedEngine._iconURI) {
           var icon = this._findSherlockIcon(file, fileURL.fileBaseName);
@@ -3204,97 +3194,6 @@ SearchService.prototype = {
                                        return a.name.localeCompare(b.name);
                                      });
     return this.__sortedEngines = this.__sortedEngines.concat(alphaEngines);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _convertSherlockFile: function SRCH_SVC_convertSherlock(aEngine, aBaseName) {
-    ENSURE_WARN(aEngine._file, "can't convert an engine with no file",
-                Cr.NS_ERROR_UNEXPECTED);
-
-    var oldSherlockFile = aEngine._file;
-
-    
-    try {
-      var backupDir = oldSherlockFile.parent;
-      backupDir.append("searchplugins-backup");
-
-      if (!backupDir.exists())
-        backupDir.create(Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
-
-      oldSherlockFile.copyTo(backupDir, null);
-    } catch (ex) {
-      
-      
-      FAIL("_convertSherlockFile: Couldn't back up " + oldSherlockFile.path +
-           ":\n" + ex, Cr.NS_ERROR_FAILURE);
-    }
-
-    
-    var newXMLFile = oldSherlockFile.parent.clone();
-    newXMLFile.append(aBaseName + "." + XML_FILE_EXT);
-
-    if (newXMLFile.exists()) {
-      
-      newXMLFile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
-    }
-
-    
-    oldSherlockFile.moveTo(null, newXMLFile.leafName);
-
-    aEngine._file = newXMLFile;
-
-    
-    aEngine._serializeToFile();
-
-    
-    aEngine._type = SEARCH_TYPE_MOZSEARCH;
-
-    
-    try {
-      var icon = this._findSherlockIcon(aEngine._file, aBaseName);
-      if (icon && icon.fileSize < MAX_ICON_SIZE) {
-        
-        var bStream = Cc["@mozilla.org/binaryinputstream;1"].
-                        createInstance(Ci.nsIBinaryInputStream);
-        var fileInStream = Cc["@mozilla.org/network/file-input-stream;1"].
-                           createInstance(Ci.nsIFileInputStream);
-
-        fileInStream.init(icon, MODE_RDONLY, PERMS_FILE, 0);
-        bStream.setInputStream(fileInStream);
-
-        var bytes = [];
-        while (bStream.available() != 0)
-          bytes = bytes.concat(bStream.readByteArray(bStream.available()));
-        bStream.close();
-
-        
-        var str = btoa(String.fromCharCode.apply(null, bytes));
-
-        aEngine._iconURI = makeURI(ICON_DATAURL_PREFIX + str);
-        LOG("_importSherlockEngine: Set sherlock iconURI to: \"" +
-            aEngine._iconURL + "\"");
-
-        
-        aEngine._serializeToFile();
-
-        
-        icon.remove(false);
-      }
-    } catch (ex) { LOG("_convertSherlockFile: Error setting icon:\n" + ex); }
   },
 
   
