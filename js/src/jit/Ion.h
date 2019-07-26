@@ -87,6 +87,12 @@ struct IonOptions
     
     
     
+    bool checkThreadSafety;
+
+    
+    
+    
+    
     
     bool assertGraphConsistency;
 
@@ -221,6 +227,7 @@ struct IonOptions
         edgeCaseAnalysis(true),
         rangeAnalysis(true),
         checkRangeAnalysis(false),
+        checkThreadSafety(false),
         assertGraphConsistency(true),
         uce(true),
         eaa(true),

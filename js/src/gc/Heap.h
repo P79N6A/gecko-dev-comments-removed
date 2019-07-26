@@ -1114,6 +1114,32 @@ InFreeList(ArenaHeader *aheader, void *thing)
 }
 
 } 
+
+
+
+
+
+
+
+class AutoThreadSafeAccess
+{
+public:
+#if defined(DEBUG) && !defined(XP_WIN)
+    JSRuntime *runtime;
+    gc::ArenaHeader *arena;
+
+    AutoThreadSafeAccess(const gc::Cell *cell MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoThreadSafeAccess();
+#else
+    AutoThreadSafeAccess(const gc::Cell *cell MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    ~AutoThreadSafeAccess() {}
+#endif
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 } 
 
 #endif 
