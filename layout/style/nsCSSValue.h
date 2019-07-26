@@ -29,8 +29,6 @@ class nsIDocument;
 class nsIPrincipal;
 class nsPresContext;
 class nsIURI;
-template <class T>
-class nsPtrHashKey;
 
 
 #define NS_CSS_DELETE_LIST_MEMBER(type_, ptr_, member_)                        \
