@@ -23,6 +23,7 @@ typedef XID GLXPbuffer;
 
 
 struct PRLibrary;
+class gfxASurface;
 
 namespace mozilla {
 namespace gl {

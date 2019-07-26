@@ -213,16 +213,6 @@ public:
 
 
 
-
-  static already_AddRefed<gl::TextureImage>
-  OpenDescriptorForDirectTexturing(gl::GLContext* aContext,
-                                   const SurfaceDescriptor& aDescriptor,
-                                   GLenum aWrapMode);
-
-  
-
-
-
   static bool SupportsDirectTexturing();
 
   static void PlatformSyncBeforeReplyUpdate();

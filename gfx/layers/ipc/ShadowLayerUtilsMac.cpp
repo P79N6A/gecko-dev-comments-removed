@@ -106,14 +106,6 @@ ISurfaceAllocator::PlatformDestroySharedSurface(SurfaceDescriptor*)
   return false;
 }
 
- already_AddRefed<TextureImage>
-LayerManagerComposite::OpenDescriptorForDirectTexturing(GLContext*,
-                                                        const SurfaceDescriptor&,
-                                                        GLenum)
-{
-  return nullptr;
-}
-
  bool
 LayerManagerComposite::SupportsDirectTexturing()
 {
