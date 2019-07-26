@@ -165,8 +165,23 @@ class ArrayBufferObject : public JSObject
 
 
 
+struct BufferView {
+    static const size_t BYTEOFFSET_SLOT  = 0;
+    static const size_t BYTELENGTH_SLOT  = 1;
+    static const size_t BUFFER_SLOT      = 2;
+    static const size_t NEXT_VIEW_SLOT   = 3;
+    static const size_t NUM_SLOTS        = 4;
+};
 
-struct TypedArray {
+
+
+
+
+
+
+
+
+struct TypedArray : public BufferView {
     enum {
         TYPE_INT8 = 0,
         TYPE_UINT8,
@@ -186,23 +201,16 @@ struct TypedArray {
         TYPE_MAX
     };
 
-    enum {
-        
-        FIELD_LENGTH = 0,
-        FIELD_BYTEOFFSET,
-        FIELD_BYTELENGTH,
-        FIELD_TYPE,
-        FIELD_BUFFER,
-        FIELD_NEXT_VIEW,
-        FIELD_MAX,
-        NUM_FIXED_SLOTS = 7
-    };
-
     
+
+
+
+    static const size_t LENGTH_SLOT     = BufferView::NUM_SLOTS;
+    static const size_t TYPE_SLOT       = BufferView::NUM_SLOTS + 1;
+    static const size_t RESERVED_SLOTS  = BufferView::NUM_SLOTS + 2;
+    static const size_t DATA_SLOT       = 7; 
+
     static Class classes[TYPE_MAX];
-
-    
-    
     static Class protoClasses[TYPE_MAX];
 
     static JSBool obj_lookupGeneric(JSContext *cx, HandleObject obj, HandleId id,
@@ -277,13 +285,9 @@ IsTypedArrayProtoClass(const Class *clasp)
            clasp < &TypedArray::protoClasses[TypedArray::TYPE_MAX];
 }
 
-class DataViewObject : public JSObject
+class DataViewObject : public JSObject, public BufferView
 {
 public:
-    static const size_t BYTEOFFSET_SLOT = 0;
-    static const size_t BYTELENGTH_SLOT = 1;
-    static const size_t BUFFER_SLOT     = 2;
-    static const size_t NEXT_VIEW_SLOT  = 3;
 
 private:
     static Class protoClass;
@@ -303,9 +307,8 @@ private:
     defineGetter(JSContext *cx, PropertyName *name, HandleObject proto);
 
   public:
-    
-    
-    static const size_t RESERVED_SLOTS  = 7;
+    static const size_t RESERVED_SLOTS = BufferView::NUM_SLOTS;
+    static const size_t DATA_SLOT       = 7; 
 
     static inline Value bufferValue(DataViewObject &view);
     static inline Value byteOffsetValue(DataViewObject &view);
