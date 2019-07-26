@@ -205,10 +205,6 @@ public:
     nsRefPtr<GeckoContentController> mController;
     CompositorParent* mParent;
     LayerManagerComposite* mLayerManager;
-    
-    
-    
-    PCompositorParent* mCrossProcessParent;
     TargetConfig mTargetConfig;
   };
 

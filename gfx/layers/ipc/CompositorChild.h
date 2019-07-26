@@ -13,9 +13,7 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/PCompositorChild.h"
 #include "nsAutoPtr.h"                  
-#include "nsClassHashtable.h"           
 #include "nsCOMPtr.h"                   
-#include "nsHashKeys.h"                 
 #include "nsISupportsImpl.h"            
 
 class nsIObserver;
@@ -25,7 +23,6 @@ namespace layers {
 
 class ClientLayerManager;
 class CompositorParent;
-class FrameMetrics;
 
 class CompositorChild : public PCompositorChild
 {
@@ -41,17 +38,10 @@ public:
 
 
 
-  bool LookupCompositorFrameMetrics(const FrameMetrics::ViewID aId, FrameMetrics&);
-
-  
-
-
-
-
   static PCompositorChild*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
-  static CompositorChild* Get();
+  static PCompositorChild* Get();
 
   static bool ChildProcessHasCompositor() { return sCompositor != nullptr; }
 
@@ -68,43 +58,9 @@ protected:
 
   virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
-  virtual bool RecvSharedCompositorFrameMetrics(const mozilla::ipc::SharedMemoryBasic::Handle& metrics,
-                                                const CrossProcessMutexHandle& handle,
-                                                const uint32_t& aAPZCId) MOZ_OVERRIDE;
-
-  virtual bool RecvReleaseSharedCompositorFrameMetrics(const ViewID& aId,
-                                                       const uint32_t& aAPZCId) MOZ_OVERRIDE;
-
 private:
-  
-  class SharedFrameMetricsData {
-  public:
-    SharedFrameMetricsData(
-        const mozilla::ipc::SharedMemoryBasic::Handle& metrics,
-        const CrossProcessMutexHandle& handle,
-        const uint32_t& aAPZCId);
-
-    ~SharedFrameMetricsData();
-
-    void CopyFrameMetrics(FrameMetrics* aFrame);
-    FrameMetrics::ViewID GetViewID();
-    uint32_t GetAPZCId();
-
-  private:
-    
-    
-    mozilla::ipc::SharedMemoryBasic* mBuffer;
-    CrossProcessMutex* mMutex;
-    
-    uint32_t mAPZCId;
-  };
-
   nsRefPtr<ClientLayerManager> mLayerManager;
   nsCOMPtr<nsIObserver> mMemoryPressureObserver;
-
-  
-  
-  nsClassHashtable<nsUint64HashKey, SharedFrameMetricsData> mFrameMetricsTable;
 
   
   
