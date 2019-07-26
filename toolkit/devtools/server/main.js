@@ -50,6 +50,58 @@ const ServerSocket = CC("@mozilla.org/network/server-socket;1",
                         "nsIServerSocket",
                         "initSpecialConnection");
 
+var gRegisteredModules = Object.create(null);
+
+
+
+
+
+
+
+
+
+function ModuleAPI() {
+  let activeTabActors = new Set();
+  let activeGlobalActors = new Set();
+
+  return {
+    
+    addGlobalActor: function(factory, name) {
+      DebuggerServer.addGlobalActor(factory, name);
+      activeGlobalActors.add(factory);
+    },
+    
+    removeGlobalActor: function(factory) {
+      DebuggerServer.removeGlobalActor(factory);
+      activeGlobalActors.delete(factory);
+    },
+
+    
+    addTabActor: function(factory, name) {
+      DebuggerServer.addTabActor(factory, name);
+      activeTabActors.add(factory);
+    },
+    
+    removeTabActor: function(factory) {
+      DebuggerServer.removeTabActor(factory);
+      activeTabActors.delete(factory);
+    },
+
+    
+    
+    destroy: function() {
+      for (let factory of activeTabActors) {
+        DebuggerServer.removeTabActor(factory);
+      }
+      activeTabActors = null;
+      for (let factory of activeGlobalActors) {
+        DebuggerServer.removeGlobalActor(factory);
+      }
+      activeGlobalActors = null;
+    }
+  }
+};
+
 
 
 
@@ -159,6 +211,13 @@ var DebuggerServer = {
     for (let connID of Object.getOwnPropertyNames(this._connections)) {
       this._connections[connID].close();
     }
+
+    for (let id of Object.getOwnPropertyNames(gRegisteredModules)) {
+      let mod = gRegisteredModules[id];
+      mod.module.unregister(mod.api);
+    }
+    gRegisteredModules = {};
+
     this.closeListener();
     this.globalActorFactories = {};
     this.tabActorFactories = {};
@@ -178,6 +237,45 @@ var DebuggerServer = {
 
   addActors: function DS_addActors(aURL) {
     loadSubScript.call(this, aURL);
+  },
+
+  
+
+
+
+
+
+  registerModule: function(id) {
+    if (id in gRegisteredModules) {
+      throw new Error("Tried to register a module twice: " + id + "\n");
+    }
+
+    let moduleAPI = ModuleAPI();
+
+    let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+    let mod = devtools.require(id);
+    mod.register(moduleAPI);
+    gRegisteredModules[id] = { module: mod, api: moduleAPI };
+  },
+
+  
+
+
+  isModuleRegistered: function(id) {
+    return (id in gRegisteredModules);
+  },
+
+  
+
+
+  unregisterModule: function(id) {
+    let mod = gRegisteredModules[id];
+    if (!mod) {
+      throw new Error("Tried to unregister a module that was not previously registered.");
+    }
+    mod.module.unregister(mod.api);
+    mod.api.destroy();
+    delete gRegisteredModules[id];
   },
 
   
