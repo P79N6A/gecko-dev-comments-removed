@@ -44,10 +44,10 @@ public:
   
   
   bool                entryVerified;
-  
+
   
   int16_t             status;
-  
+
   
   nsCString           calculatedSectionDigest;
   nsCString           storedEntryDigest;
