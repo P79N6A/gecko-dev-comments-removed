@@ -68,7 +68,7 @@ function testInitial(finishcb) {
     is(shareButton.getAttribute("tooltiptext"), "Share this page", "check tooltip text is correct");
     is(shareStatusLabel.getAttribute("value"), "", "check status label text is blank");
     
-    is(shareButton.src, 'https://example.com/browser/browser/base/content/test/social_share_image.png', "check image url is correct");
+    is(shareButton.style.backgroundImage, 'url("https://example.com/browser/browser/base/content/test/social_share_image.png")', "check image url is correct");
 
     
     shareButton.addEventListener("click", function listener() {
@@ -77,7 +77,7 @@ function testInitial(finishcb) {
       is(shareButton.getAttribute("tooltiptext"), "Unshare this page", "check tooltip text is correct");
       is(shareStatusLabel.getAttribute("value"), "This page has been shared", "check status label text is correct");
       
-      is(shareButton.src, 'https://example.com/browser/browser/base/content/test/social_share_image.png', "check image url is correct");
+      is(shareButton.style.backgroundImage, 'url("https://example.com/browser/browser/base/content/test/social_share_image.png")', "check image url is correct");
       executeSoon(testSecondClick.bind(window, testPopupOKButton));
     });
     EventUtils.synthesizeMouseAtCenter(shareButton, {});
