@@ -1936,12 +1936,16 @@ class CallbackObjectUnwrapper:
                               "codeOnFailure" : CGIndenter(CGGeneric(codeOnFailure)).define() }
 
     def __str__(self):
+        checkObjectType = CGIfWrapper(
+            CGGeneric(self.substitution["codeOnFailure"]),
+            "!IsConvertibleToCallbackInterface(cx, %(source)s)" %
+            self.substitution).define() + "\n\n"
         if self.descriptor.workers:
-            return string.Template(
+            return checkObjectType + string.Template(
                 "${target} = ${source};"
                 ).substitute(self.substitution)
 
-        return string.Template(
+        return checkObjectType + string.Template(
             """nsresult rv;
 XPCCallContext ccx(JS_CALLER, cx);
 if (!ccx.IsValid()) {
@@ -2347,11 +2351,6 @@ for (uint32_t i = 0; i < length; ++i) {
             names.append(name)
         else:
             callbackObject = None
-
-        if callbackObject and callbackMemberTypes[0].isCallbackInterface():
-            callbackObject = CGWrapper(CGIndenter(callbackObject),
-                                       pre="if (!IsPlatformObject(cx, &argObj)) {\n",
-                                       post="\n}")
 
         dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
         if len(dictionaryMemberTypes) > 0:
@@ -4039,9 +4038,6 @@ class CGMethodCall(CGThing):
             
             
             
-            
-            
-            
 
             
             
@@ -4066,7 +4062,8 @@ class CGMethodCall(CGThing):
             objectSigs.extend(s for s in possibleSignatures
                               if (distinguishingType(s).isArray() or
                                   distinguishingType(s).isSequence() or
-                                  distinguishingType(s).isDictionary()))
+                                  distinguishingType(s).isDictionary() or
+                                  distinguishingType(s).isCallbackInterface()))
 
             
             
@@ -4091,11 +4088,6 @@ class CGMethodCall(CGThing):
                     caseBody.append(CGIndenter(CGGeneric("} while (0);")))
 
                 caseBody.append(CGGeneric("}"))
-
-            
-            pickFirstSignature("%s.isObject() && !IsPlatformObject(cx, &%s.toObject())" %
-                               (distinguishingArg, distinguishingArg),
-                               lambda s: distinguishingType(s).isCallbackInterface())
 
             
             
