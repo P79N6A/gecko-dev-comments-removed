@@ -5,6 +5,7 @@
 
 
 
+
 #include "xpcprivate.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionNoteRootCallback.h"
@@ -151,6 +152,19 @@ XPCWrappedNativeScope::GetComponentsJSObject()
     if (NS_WARN_IF(!JS_WrapObject(cx, &obj)))
         return nullptr;
     return obj;
+}
+
+void
+XPCWrappedNativeScope::ForcePrivilegedComponents()
+{
+    
+    
+    MOZ_RELEASE_ASSERT(Preferences::GetBool("security.turn_off_all_security_so_"
+                                            "that_viruses_can_take_over_this_"
+                                            "computer"));
+    nsCOMPtr<nsIXPCComponents> c = do_QueryInterface(mComponents);
+    if (!c)
+        mComponents = new nsXPCComponents(this);
 }
 
 bool

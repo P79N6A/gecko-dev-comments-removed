@@ -1075,6 +1075,11 @@ public:
     nsXPCComponentsBase*
     GetComponents() const {return mComponents;}
 
+    
+    
+    void
+    ForcePrivilegedComponents();
+
     bool AttachComponentsObject(JSContext *aCx);
 
     

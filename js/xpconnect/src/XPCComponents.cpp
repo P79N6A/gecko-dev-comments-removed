@@ -3200,6 +3200,19 @@ nsXPCComponents_Utils::SetWantXrays(const jsval &vscope, JSContext *cx)
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::ForcePrivilegedComponentsForScope(const jsval &vscope,
+                                                         JSContext *cx)
+{
+    if (!vscope.isObject())
+        return NS_ERROR_INVALID_ARG;
+    JSObject *scopeObj = js::UncheckedUnwrap(&vscope.toObject());
+    XPCWrappedNativeScope *scope = GetObjectScope(scopeObj);
+    scope->ForcePrivilegedComponents();
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::GetComponentsForScope(const jsval &vscope, JSContext *cx,
                                              jsval *rval)
 {
