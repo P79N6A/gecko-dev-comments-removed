@@ -1872,20 +1872,6 @@ this.DOMApplicationRegistry = {
             return;
           }
 
-          
-          
-          
-          try {
-            app.packageEtag = requestChannel.getResponseHeader("Etag");
-            debug("Package etag=" + app.packageEtag);
-          } catch (e) {
-            
-            
-            
-            app.packageEtag = null;
-            debug("Can't find an etag, this should not happen");
-          }
-
           if (!Components.isSuccessCode(aStatusCode)) {
             cleanup("NETWORK_ERROR");
             return;
@@ -1952,6 +1938,17 @@ this.DOMApplicationRegistry = {
                 throw "INVALID_SECURITY_LEVEL";
               }
               aApp.appStatus = AppsUtils.getAppManifestStatus(manifest);
+              
+              try {
+                app.packageEtag = requestChannel.getResponseHeader("Etag");
+                debug("Package etag=" + app.packageEtag);
+              } catch (e) {
+                
+                
+                
+                app.packageEtag = null;
+                debug("Can't find an etag, this should not happen");
+              }
 
               if (aOnSuccess) {
                 aOnSuccess(id, manifest);
