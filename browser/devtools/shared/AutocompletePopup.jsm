@@ -4,12 +4,17 @@
 
 
 const Cu = Components.utils;
+const Ci = Components.interfaces;
 
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "gDevTools", function() {
+  return Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
+});
 
 this.EXPORTED_SYMBOLS = ["AutocompletePopup"];
 
@@ -49,6 +54,14 @@ function AutocompletePopup(aDocument, aOptions = {})
 
   let id = aOptions.panelId || "devtools_autoCompletePopup";
   let theme = aOptions.theme || "dark";
+  
+  if (theme == "auto") {
+    theme = Services.prefs.getCharPref("devtools.theme");
+    this.autoThemeEnabled = true;
+    
+    this._handleThemeChange = this._handleThemeChange.bind(this);
+    gDevTools.on("pref-changed", this._handleThemeChange);
+  }
   
   this._panel = this._document.getElementById(id);
   if (!this._panel) {
@@ -171,6 +184,10 @@ AutocompletePopup.prototype = {
 
     if (this.onKeypress) {
       this._list.removeEventListener("keypress", this.onKeypress, false);
+    }
+
+    if (this.autoThemeEnabled) {
+      gDevTools.off("pref-changed", this._handleThemeChange);
     }
 
     this._document = null;
@@ -440,7 +457,7 @@ AutocompletePopup.prototype = {
       this.selectedIndex++;
     }
     else {
-      this.selectedIndex = -1;
+      this.selectedIndex = 0;
     }
 
     return this.selectedItem;
@@ -454,7 +471,7 @@ AutocompletePopup.prototype = {
 
   selectPreviousItem: function AP_selectPreviousItem()
   {
-    if (this.selectedIndex > -1) {
+    if (this.selectedIndex > 0) {
       this.selectedIndex--;
     }
     else {
@@ -496,5 +513,28 @@ AutocompletePopup.prototype = {
 
     return this.__scrollbarWidth;
   },
-};
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _handleThemeChange: function AP__handleThemeChange(aEvent, aData)
+  {
+    if (aData.pref == "devtools.theme") {
+      this._panel.classList.toggle(aData.oldValue + "-theme", false);
+      this._panel.classList.toggle(aData.newValue + "-theme", true);
+      this._list.classList.toggle(aData.oldValue + "-theme", false);
+      this._list.classList.toggle(aData.newValue + "-theme", true);
+    }
+  },
+};

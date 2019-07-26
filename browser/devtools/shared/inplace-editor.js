@@ -24,9 +24,16 @@
 
 "use strict";
 
-const {Ci, Cu} = require("chrome");
+const {Ci, Cu, Cc} = require("chrome");
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
+const CONTENT_TYPES = {
+  PLAIN_TEXT: 0,
+  CSS_VALUE: 1,
+  CSS_MIXED: 2,
+  CSS_PROPERTY: 3,
+};
+const MAX_POPUP_ENTRIES = 10;
 
 const FOCUS_FORWARD = Ci.nsIFocusManager.MOVEFOCUS_FORWARD;
 const FOCUS_BACKWARD = Ci.nsIFocusManager.MOVEFOCUS_BACKWARD;
@@ -160,6 +167,8 @@ function InplaceEditor(aOptions, aEvent)
   this.initial = aOptions.initial ? aOptions.initial : this.elt.textContent;
   this.multiline = aOptions.multiline || false;
   this.stopOnReturn = !!aOptions.stopOnReturn;
+  this.contentType = aOptions.contentType || CONTENT_TYPES.PLAIN_TEXT;
+  this.popup = aOptions.popup;
 
   this._onBlur = this._onBlur.bind(this);
   this._onKeyPress = this._onKeyPress.bind(this);
@@ -207,6 +216,8 @@ function InplaceEditor(aOptions, aEvent)
 }
 
 exports.InplaceEditor = InplaceEditor;
+
+InplaceEditor.CONTENT_TYPES = CONTENT_TYPES;
 
 InplaceEditor.prototype = {
   _createInput: function InplaceEditor_createEditor()
@@ -679,6 +690,10 @@ InplaceEditor.prototype = {
       return;
     }
 
+    if (this.popup) {
+      this.popup.hidePopup();
+    }
+
     this._applied = true;
 
     if (this.done) {
@@ -732,9 +747,31 @@ InplaceEditor.prototype = {
       increment *= smallIncrement;
     }
 
+    let cycling = false;
     if (increment && this._incrementValue(increment) ) {
       this._updateSize();
       prevent = true;
+    } else if (increment && this.popup && this.popup.isOpen) {
+      cycling = true;
+      prevent = true;
+      if (increment > 0) {
+        this.popup.selectPreviousItem();
+      } else {
+        this.popup.selectNextItem();
+      }
+      this.input.value = this.popup.selectedItem.label;
+      this._updateSize();
+    }
+
+    if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_BACK_SPACE ||
+        aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_DELETE ||
+        aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_LEFT ||
+        aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RIGHT) {
+      if (this.popup && this.popup.isOpen) {
+        this.popup.hidePopup();
+      }
+    } else if (!cycling) {
+      this._maybeSuggestCompletion();
     }
 
     if (this.multiline &&
@@ -756,6 +793,9 @@ InplaceEditor.prototype = {
         direction = null;
       }
 
+      
+      this._preventSuggestions = true;
+
       let input = this.input;
 
       this._apply();
@@ -775,6 +815,8 @@ InplaceEditor.prototype = {
       this._clear();
     } else if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE) {
       
+      
+      this._preventSuggestions = true;
       prevent = true;
       this.cancelled = true;
       this._apply();
@@ -821,6 +863,79 @@ InplaceEditor.prototype = {
     if (this.change) {
       this.change(this.input.value.trim());
     }
+  },
+
+  
+
+
+  _maybeSuggestCompletion: function() {
+    
+    
+    
+    this.doc.defaultView.setTimeout(() => {
+      if (this._preventSuggestions) {
+        this._preventSuggestions = false;
+        return;
+      }
+      if (this.contentType == CONTENT_TYPES.PLAIN_TEXT) {
+        return;
+      }
+
+      let input = this.input;
+      
+      if (!input) {
+        return;
+      }
+      let query = input.value.slice(0, input.selectionStart);
+      if (!query) {
+        return;
+      }
+
+      let list = [];
+      if (this.contentType == CONTENT_TYPES.CSS_PROPERTY) {
+        list = CSSPropertyList;
+      }
+
+      list.some(item => {
+        if (item.startsWith(query)) {
+          input.value = item;
+          input.setSelectionRange(query.length, item.length);
+          this._updateSize();
+          return true;
+        }
+      });
+
+      if (!this.popup) {
+        return;
+      }
+      let finalList = [];
+      let length = list.length;
+      for (let i = 0, count = 0; i < length && count < MAX_POPUP_ENTRIES; i++) {
+        if (list[i].startsWith(query)) {
+          count++;
+          finalList.push({
+            preLabel: query,
+            label: list[i]
+          });
+        }
+        else if (count > 0) {
+          
+          
+          break;
+        }
+        else if (list[i][0] > query[0]) {
+          
+          break;
+        }
+      }
+
+      if (finalList.length > 1) {
+        this.popup.setItems(finalList);
+        this.popup.openPopup(this.input);
+      } else {
+        this.popup.hidePopup();
+      }
+    }, 0);
   }
 };
 
@@ -848,4 +963,9 @@ function moveFocus(aWin, aDirection)
 
 XPCOMUtils.defineLazyGetter(this, "focusManager", function() {
   return Services.focus;
+});
+
+XPCOMUtils.defineLazyGetter(this, "CSSPropertyList", function() {
+  let domUtils = Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
+  return domUtils.getCSSPropertyNames(domUtils.INCLUDE_ALIASES).sort();
 });
