@@ -533,6 +533,19 @@ RESTRequest.prototype = {
   },
 
   
+
+
+
+
+  shouldCopyOnRedirect: function shouldCopyOnRedirect(oldChannel, newChannel, flags) {
+    let isInternal = !!(flags & Ci.nsIChannelEventSink.REDIRECT_INTERNAL);
+    let isSameURI  = newChannel.URI.equals(oldChannel.URI);
+    this._log.debug("Channel redirect: " + oldChannel.URI.spec + ", " +
+                    newChannel.URI.spec + ", internal = " + isInternal);
+    return isInternal && isSameURI;
+  },
+
+  
   asyncOnChannelRedirect:
     function asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
 
@@ -542,6 +555,18 @@ RESTRequest.prototype = {
       this._log.error("Unexpected error: channel not nsIHttpChannel!");
       callback.onRedirectVerifyCallback(Cr.NS_ERROR_NO_INTERFACE);
       return;
+    }
+
+    
+    try {
+      if (this.shouldCopyOnRedirect(oldChannel, newChannel, flags)) {
+        this._log.trace("Copying headers for safe internal redirect.");
+        for (let key in this._headers) {
+          newChannel.setRequestHeader(key, this._headers[key], false);
+        }
+      }
+    } catch (ex) {
+      this._log.error("Error copying headers: " + CommonUtils.exceptionStr(ex));
     }
 
     this.channel = newChannel;

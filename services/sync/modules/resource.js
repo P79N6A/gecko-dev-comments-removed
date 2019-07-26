@@ -20,6 +20,13 @@ Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/util.js");
 
+const DEFAULT_LOAD_FLAGS =
+  
+  Ci.nsIRequest.LOAD_BYPASS_CACHE |
+  Ci.nsIRequest.INHIBIT_CACHING |
+  
+  Ci.nsIRequest.LOAD_ANONYMOUS;
+
 
 
 
@@ -97,6 +104,9 @@ AsyncResource.prototype = {
   setHeader: function Res_setHeader(header, value) {
     this._headers[header.toLowerCase()] = value;
   },
+  get headerNames() {
+    return Object.keys(this.headers);
+  },
 
   
   
@@ -140,14 +150,11 @@ AsyncResource.prototype = {
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
 
-    
-    channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
-    channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
-    
-    channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS;
+    channel.loadFlags |= DEFAULT_LOAD_FLAGS;
 
     
-    channel.notificationCallbacks = new ChannelNotificationListener();
+    let listener = new ChannelNotificationListener(this.headerNames);
+    channel.notificationCallbacks = listener;
 
     
     if (Svc.Prefs.get("sendVersionInfo", true)) {
@@ -557,9 +564,19 @@ ChannelListener.prototype = {
 
 
 
-function ChannelNotificationListener() {
+
+
+
+
+function ChannelNotificationListener(headersToCopy) {
+  this._headersToCopy = headersToCopy;
+
+  this._log = Log4Moz.repository.getLogger(this._logName);
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.network.resources")];
 }
 ChannelNotificationListener.prototype = {
+  _logName: "Sync.Resource",
+
   getInterface: function(aIID) {
     return this.QueryInterface(aIID);
   },
@@ -584,6 +601,25 @@ ChannelNotificationListener.prototype = {
 
   asyncOnChannelRedirect:
     function asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
+
+    this._log.debug("Channel redirect: " + oldChannel.URI.spec + ", " +
+                    newChannel.URI.spec + ", " + flags);
+
+    
+    try {
+      if ((flags & Ci.nsIChannelEventSink.REDIRECT_INTERNAL) &&
+          newChannel.URI.equals(oldChannel.URI)) {
+        this._log.trace("Copying headers for safe internal redirect.");
+        for (let header of this._headersToCopy) {
+          let value = oldChannel.getRequestHeader(header);
+          if (value) {
+            newChannel.setRequestHeader(header, value);
+          }
+        }
+      }
+    } catch (ex) {
+      this._log.error("Error copying headers: " + CommonUtils.exceptionStr(ex));
+    }
 
     
     callback.onRedirectVerifyCallback(Cr.NS_OK);
