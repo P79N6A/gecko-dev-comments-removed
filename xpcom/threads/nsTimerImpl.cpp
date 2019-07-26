@@ -499,8 +499,8 @@ void nsTimerImpl::Fire()
 
   PROFILER_LABEL("Timer", "Fire");
 
-  TimeStamp now = TimeStamp::Now();
 #ifdef DEBUG_TIMERS
+  TimeStamp now = TimeStamp::Now();
   if (PR_LOG_TEST(GetTimerLog(), PR_LOG_DEBUG)) {
     TimeDuration   a = now - mStart; 
     TimeDuration   b = TimeDuration::FromMilliseconds(mDelay); 
