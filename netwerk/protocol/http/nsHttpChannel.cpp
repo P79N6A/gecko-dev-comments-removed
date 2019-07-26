@@ -4514,6 +4514,9 @@ nsHttpChannel::BeginConnect()
     
     gHttpHandler->AddConnectionHeader(&mRequestHead.Headers(), mCaps);
 
+    if (mLoadFlags & VALIDATE_ALWAYS || BYPASS_LOCAL_CACHE(mLoadFlags))
+        mCaps |= NS_HTTP_REFRESH_DNS;
+
     if (!mConnectionInfo->UsingHttpProxy()) {
         
         
@@ -4526,9 +4529,15 @@ nsHttpChannel::BeginConnect()
         
         
         
-        LOG(("nsHttpChannel::BeginConnect [this=%p] prefetching\n", this));
+        LOG(("nsHttpChannel::BeginConnect [this=%p] prefetching%s\n",
+             this, mCaps & NS_HTTP_REFRESH_DNS ? ", refresh requested" : ""));
         mDNSPrefetch = new nsDNSPrefetch(mURI, mTimingEnabled);
-        mDNSPrefetch->PrefetchHigh();
+        mDNSPrefetch->PrefetchHigh(mCaps & NS_HTTP_REFRESH_DNS);
+
+        if (mCaps & NS_HTTP_REFRESH_DNS) {
+            
+            mCaps &= ~NS_HTTP_REFRESH_DNS;
+        }
     }
 
     
@@ -4536,10 +4545,6 @@ nsHttpChannel::BeginConnect()
     
     if (mRequestHead.HasHeaderValue(nsHttp::Connection, "close"))
         mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE | NS_HTTP_ALLOW_PIPELINING);
-
-    if ((mLoadFlags & VALIDATE_ALWAYS) ||
-        (BYPASS_LOCAL_CACHE(mLoadFlags)))
-        mCaps |= NS_HTTP_REFRESH_DNS;
 
     if (gHttpHandler->CriticalRequestPrioritization()) {
         if (mLoadAsBlocking)
