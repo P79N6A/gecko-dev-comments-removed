@@ -614,6 +614,7 @@ TelemetryPing.prototype = {
       this.sendPingsFromIterator(server, reason, i);
     }
     function onError() {
+      this.savePing(data, true);
       
       finishPings(reason);
     }
