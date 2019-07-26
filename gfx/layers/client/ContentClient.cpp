@@ -128,10 +128,10 @@ ContentClientRemoteBuffer::BeginPaint()
   
   
   if (mTextureClient) {
-    SetNewBufferProvider(mTextureClient);
+    SetBufferProvider(mTextureClient);
   }
   if (mTextureClientOnWhite) {
-    SetNewBufferProviderOnWhite(mTextureClientOnWhite);
+    SetBufferProviderOnWhite(mTextureClientOnWhite);
   }
 }
 
@@ -140,8 +140,8 @@ ContentClientRemoteBuffer::EndPaint()
 {
   
   
-  SetNewBufferProvider(nullptr);
-  SetNewBufferProviderOnWhite(nullptr);
+  SetBufferProvider(nullptr);
+  SetBufferProviderOnWhite(nullptr);
   for (size_t i = 0; i < mOldTextures.Length(); ++i) {
     RemoveTextureClient(mOldTextures[i]);
   }
@@ -326,10 +326,10 @@ DeprecatedContentClientRemoteBuffer::BeginPaint()
   
   
   if (mDeprecatedTextureClient) {
-    SetBufferProvider(mDeprecatedTextureClient);
+    SetDeprecatedBufferProvider(mDeprecatedTextureClient);
   }
   if (mDeprecatedTextureClientOnWhite) {
-    SetBufferProviderOnWhite(mDeprecatedTextureClientOnWhite);
+    SetDeprecatedBufferProviderOnWhite(mDeprecatedTextureClientOnWhite);
   }
 }
 
@@ -338,8 +338,8 @@ DeprecatedContentClientRemoteBuffer::EndPaint()
 {
   
   
-  SetBufferProvider(nullptr);
-  SetBufferProviderOnWhite(nullptr);
+  SetDeprecatedBufferProvider(nullptr);
+  SetDeprecatedBufferProviderOnWhite(nullptr);
   mOldTextures.Clear();
 
   if (mDeprecatedTextureClient) {
