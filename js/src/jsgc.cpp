@@ -2773,6 +2773,15 @@ BeginMarkPhase(JSRuntime *rt)
     for (ThreadDataIter iter(rt); !iter.done(); iter.next())
         keepAtoms |= iter->gcKeepAtoms;
 
+    
+
+
+
+
+
+
+    keepAtoms |= rt->exclusiveThreadsPresent();
+
     if (atomsZone->isGCScheduled() && rt->gcIsFull && !keepAtoms) {
         JS_ASSERT(!atomsZone->isCollecting());
         atomsZone->setGCState(Zone::Mark);
@@ -4351,6 +4360,8 @@ gc::IsIncrementalGCSafe(JSRuntime *rt)
     bool keepAtoms = false;
     for (ThreadDataIter iter(rt); !iter.done(); iter.next())
         keepAtoms |= iter->gcKeepAtoms;
+
+    keepAtoms |= rt->exclusiveThreadsPresent();
 
     if (keepAtoms)
         return IncrementalSafety::Unsafe("gcKeepAtoms set");
