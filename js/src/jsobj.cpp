@@ -5040,3 +5040,40 @@ js_DumpBacktrace(JSContext *cx)
     fprintf(stdout, "%s", sprinter.string());
 }
 
+void
+JSObject::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, JS::ObjectsExtraSizes *sizes)
+{
+    if (hasDynamicSlots())
+        sizes->slots = mallocSizeOf(slots);
+
+    if (hasDynamicElements()) {
+        js::ObjectElements *elements = getElementsHeader();
+        if (JS_UNLIKELY(elements->isAsmJSArrayBuffer())) {
+#if defined (JS_CPU_X64)
+            
+            
+            sizes->elementsAsmJSNonHeap = asArrayBuffer().byteLength();
+#else
+            sizes->elementsAsmJSHeap = mallocSizeOf(elements);
+#endif
+        } else {
+            sizes->elementsNonAsmJS = mallocSizeOf(elements);
+        }
+    }
+
+    
+    
+    if (isArguments()) {
+        sizes->argumentsData = asArguments().sizeOfMisc(mallocSizeOf);
+    } else if (isRegExpStatics()) {
+        sizes->regExpStatics = js::SizeOfRegExpStaticsData(this, mallocSizeOf);
+    } else if (isPropertyIterator()) {
+        sizes->propertyIteratorData = asPropertyIterator().sizeOfMisc(mallocSizeOf);
+#ifdef JS_HAS_CTYPES
+    } else {
+        
+        sizes->ctypesData = js::SizeOfDataIfCDataObject(mallocSizeOf, const_cast<JSObject *>(this));
+#endif
+    }
+}
+

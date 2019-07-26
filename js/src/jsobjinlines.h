@@ -1077,42 +1077,6 @@ JSObject::hasShapeTable() const
     return lastProperty()->hasTable();
 }
 
-inline void
-JSObject::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, JS::ObjectsExtraSizes *sizes)
-{
-    if (hasDynamicSlots())
-        sizes->slots = mallocSizeOf(slots);
-
-    if (hasDynamicElements()) {
-        js::ObjectElements *elements = getElementsHeader();
-#if defined (JS_CPU_X64)
-        
-        
-        
-        
-        if (JS_LIKELY(!elements->isAsmJSArrayBuffer()))
-            sizes->elements = mallocSizeOf(elements);
-#else
-        sizes->elements = mallocSizeOf(elements);
-#endif
-    }
-
-    
-    
-    if (isArguments()) {
-        sizes->argumentsData = asArguments().sizeOfMisc(mallocSizeOf);
-    } else if (isRegExpStatics()) {
-        sizes->regExpStatics = js::SizeOfRegExpStaticsData(this, mallocSizeOf);
-    } else if (isPropertyIterator()) {
-        sizes->propertyIteratorData = asPropertyIterator().sizeOfMisc(mallocSizeOf);
-#ifdef JS_HAS_CTYPES
-    } else {
-        
-        sizes->ctypesData = js::SizeOfDataIfCDataObject(mallocSizeOf, const_cast<JSObject *>(this));
-#endif
-    }
-}
-
  inline JSBool
 JSObject::lookupGeneric(JSContext *cx, js::HandleObject obj, js::HandleId id,
                         js::MutableHandleObject objp, js::MutableHandleShape propp)
