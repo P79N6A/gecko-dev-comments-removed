@@ -4,12 +4,6 @@
 
 
 
-#downloadsPanel {
-  -moz-user-focus: normal;
-}
-
-
-
 richlistitem[type="download"] {
   -moz-binding: url('chrome://browser/content/downloads/download.xml#download');
 }

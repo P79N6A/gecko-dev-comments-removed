@@ -35,6 +35,33 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use strict";
 
 
@@ -209,6 +236,42 @@ const DownloadsPanel = {
   },
 
   
+
+
+  get keyFocusing()
+  {
+    return this.panel.hasAttribute("keyfocus");
+  },
+
+  
+
+
+
+
+  set keyFocusing(aValue)
+  {
+    if (aValue) {
+      this.panel.setAttribute("keyfocus", "true");
+      this.panel.addEventListener("mousemove", this);
+    } else {
+      this.panel.removeAttribute("keyfocus");
+      this.panel.removeEventListener("mousemove", this);
+    }
+    return aValue;
+  },
+
+  
+
+
+
+  handleEvent: function DP_handleEvent(aEvent)
+  {
+    if (aEvent.type == "mousemove") {
+      this.keyFocusing = false;
+    }
+  },
+
+  
   
 
   
@@ -257,6 +320,10 @@ const DownloadsPanel = {
     }
 
     
+    
+    this.keyFocusing = false;
+
+    
     DownloadsCommon.getIndicatorData(window).attentionSuppressed = false;
 
     
@@ -291,7 +358,11 @@ const DownloadsPanel = {
 
   _attachEventListeners: function DP__attachEventListeners()
   {
+    
     this.panel.addEventListener("keydown", this._onKeyDown.bind(this), false);
+    
+    
+    this.panel.addEventListener("keypress", this._onKeyPress.bind(this), false);
   },
 
   
@@ -302,14 +373,67 @@ const DownloadsPanel = {
   {
     this.panel.removeEventListener("keydown", this._onKeyDown.bind(this),
                                    false);
+    this.panel.removeEventListener("keypress", this._onKeyPress.bind(this),
+                                   false);
+  },
+
+  _onKeyPress: function DP__onKeyPress(aEvent)
+  {
+    
+    if (aEvent.altKey || aEvent.ctrlKey || aEvent.shiftKey || aEvent.metaKey) {
+      return;
+    }
+
+    let richListBox = DownloadsView.richListBox;
+
+    
+    
+    
+    
+    if ((aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_TAB ||
+        aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_UP ||
+        aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_DOWN) &&
+        !this.keyFocusing) {
+      this.keyFocusing = true;
+      aEvent.preventDefault();
+      return;
+    }
+
+    if (aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_DOWN) {
+      
+      
+      if (richListBox.selectedItem === richListBox.lastChild ||
+          document.activeElement.parentNode.id === "downloadsFooter") {
+        DownloadsFooter.focus();
+        aEvent.preventDefault();
+        return;
+      }
+    }
+
+    
+    if (document.activeElement === richListBox) {
+      DownloadsView.onDownloadKeyPress(aEvent);
+    }
   },
 
   
 
 
 
+
   _onKeyDown: function DP__onKeyDown(aEvent)
   {
+    
+    
+    if (aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_UP &&
+        document.activeElement.parentNode.id === "downloadsFooter" &&
+        DownloadsView.richListBox.firstChild) {
+      DownloadsView.richListBox.focus();
+      DownloadsView.richListBox.selectedItem = DownloadsView.richListBox.lastChild;
+      aEvent.preventDefault();
+      return;
+    }
+
     let pasting = aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_V &&
 #ifdef XP_MACOSX
                   aEvent.metaKey;
@@ -364,7 +488,7 @@ const DownloadsPanel = {
       if (DownloadsView.richListBox.itemCount > 0) {
         DownloadsView.richListBox.focus();
       } else {
-        this.panel.focus();
+        DownloadsFooter.focus();
       }
     }
   },
@@ -767,13 +891,11 @@ const DownloadsView = {
     }
   },
 
+  
+
+
   onDownloadKeyPress: function DV_onDownloadKeyPress(aEvent)
   {
-    
-    if (aEvent.altKey || aEvent.ctrlKey || aEvent.shiftKey || aEvent.metaKey) {
-      return;
-    }
-
     
     
     if (aEvent.originalTarget.hasAttribute("command") ||
@@ -786,17 +908,9 @@ const DownloadsView = {
       return;
     }
 
-    switch (aEvent.keyCode) {
-      case KeyEvent.DOM_VK_ENTER:
-      case KeyEvent.DOM_VK_RETURN:
-        goDoCommand("downloadsCmd_doDefault");
-        break;
-      case KeyEvent.DOM_VK_DOWN:
-        
-        if (this.richListBox.currentIndex == (this.richListBox.itemCount - 1)) {
-          DownloadsFooter.focus();
-        }
-        break;
+    if (aEvent.keyCode == KeyEvent.DOM_VK_ENTER ||
+        aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
+      goDoCommand("downloadsCmd_doDefault");
     }
   },
 
@@ -1436,7 +1550,7 @@ const DownloadsSummary = {
 
 
 
-  onKeyPress: function DS_onKeyPress(aEvent)
+  onKeyDown: function DS_onKeyDown(aEvent)
   {
     if (aEvent.charCode == " ".charCodeAt(0) ||
         aEvent.keyCode == KeyEvent.DOM_VK_ENTER ||
@@ -1527,27 +1641,14 @@ const DownloadsFooter = {
 
   focus: function DF_focus()
   {
-    if (DownloadsSummary.visible) {
+    if (this._showingSummary) {
       DownloadsSummary.focus();
     } else {
       DownloadsView.downloadsHistory.focus();
     }
   },
 
-  
-
-
-  onKeyPress: function DF_onKeyPress(aEvent)
-  {
-    
-    
-    if (aEvent.keyCode == KeyEvent.DOM_VK_UP &&
-        DownloadsView.richListBox.itemCount > 0) {
-      DownloadsView.richListBox.focus();
-      DownloadsView.richListBox.selectedIndex =
-        (DownloadsView.richListBox.itemCount - 1);
-    }
-  },
+  _showingSummary: false,
 
   
 
@@ -1561,6 +1662,7 @@ const DownloadsFooter = {
       } else {
         this._footerNode.removeAttribute("showingsummary");
       }
+      this._showingSummary = aValue;
     }
     return aValue;
   },
