@@ -754,6 +754,9 @@ protected:
   bool mUnsafeRulesEnabled : 1;
 
   
+  bool mViewportUnitsEnabled : 1;
+
+  
   
   bool mHTMLMediaMode : 1;
 
@@ -834,6 +837,7 @@ CSSParserImpl::CSSParserImpl()
     mNavQuirkMode(false),
     mHashlessColorQuirk(false),
     mUnitlessLengthQuirk(false),
+    mViewportUnitsEnabled(true),
     mUnsafeRulesEnabled(false),
     mHTMLMediaMode(false),
     mParsingCompoundProperty(false),
@@ -2399,9 +2403,16 @@ CSSParserImpl::ParsePageRule(RuleAppendFunc aAppendFunc, void* aData)
   
   uint32_t parseFlags = eParseDeclaration_InBraces |
                         eParseDeclaration_AllowImportant;
+
+  
+  NS_ABORT_IF_FALSE(mViewportUnitsEnabled,
+                    "Viewport units should be enabled outside of @page rules.");
+  mViewportUnitsEnabled = false;
   nsAutoPtr<css::Declaration> declaration(
                                 ParseDeclarationBlock(parseFlags,
                                                       eCSSContext_Page));
+  mViewportUnitsEnabled = true;
+
   if (!declaration) {
     return false;
   }
@@ -4674,6 +4685,16 @@ CSSParserImpl::TranslateDimension(nsCSSValue& aValue,
         type = UnitData[i].type;
         break;
       }
+    }
+
+    if (!mViewportUnitsEnabled &&
+        (eCSSUnit_ViewportWidth == units  ||
+         eCSSUnit_ViewportHeight == units ||
+         eCSSUnit_ViewportMin == units    ||
+         eCSSUnit_ViewportMax == units)) {
+      
+      
+      return false;
     }
 
     if (i == ArrayLength(UnitData)) {
