@@ -377,15 +377,25 @@ Imm16::Imm16(uint32 imm)
 Imm16::Imm16() : invalid(0xfff) {}
 
 void
-ion::PatchJump(CodeLocationJump jump_, CodeLocationLabel label)
+ion::PatchJump(CodeLocationJump &jump_, CodeLocationLabel label)
 {
     
     
     Instruction *jump = (Instruction*)jump_.raw();
     Assembler::Condition c;
     jump->extractCond(&c);
-    JS_ASSERT(jump->is<InstBranchImm>());
-    Assembler::retargetBranch(jump, label.raw() - jump_.raw());
+    JS_ASSERT(jump->is<InstBranchImm>() ||
+              jump->is<InstLDR>());
+    int jumpOffset = label.raw() - jump_.raw();
+    if (BOffImm::isInRange(jumpOffset)) {
+        
+        Assembler::retargetNearBranch(jump, jumpOffset, c);
+    } else {
+        
+        
+        uint8 **slot = reinterpret_cast<uint8**>(jump_.jumpTableEntry());
+        Assembler::retargetFarBranch(jump, slot, label.raw(), c);
+    }
 }
 
 void
@@ -429,6 +439,19 @@ uint32
 Assembler::actualOffset(uint32 off_) const
 {
     return off_ + m_buffer.poolSizeBefore(off_);
+}
+
+uint32
+Assembler::actualIndex(uint32 idx_) const
+{
+    ARMBuffer::PoolEntry pe(idx_);
+    return m_buffer.poolEntryOffset(pe);
+}
+
+uint8 *
+Assembler::PatchableJumpAddress(IonCode *code, uint32 pe_)
+{
+    return code->raw() + pe_;
 }
 
 BufferOffset
@@ -575,7 +598,6 @@ TraceDataRelocations(JSTracer *trc, uint8 *buffer, CompactBufferReader &reader)
     while (reader.more()) {
         size_t offset = reader.readUnsigned();
         const void *ptr = js::ion::Assembler::getPtr32Target((Instruction*)(buffer + offset));
-
         
         gc::MarkThingOrValueUnbarriered(trc, reinterpret_cast<uintptr_t *>(&ptr), "immgcptr");
     }
@@ -656,7 +678,8 @@ Assembler::processCodeLabels(IonCode *code)
 {
     for (size_t i = 0; i < codeLabels_.length(); i++) {
         CodeLabel *label = codeLabels_[i];
-        Bind(code, label->dest(), code->raw() + label->src()->offset());
+        
+        JS_NOT_REACHED("dead code?");
     }
 }
 
@@ -1305,10 +1328,10 @@ class PoolHintData {
     enum LoadType {
         
         
-        poolBOGUS = 0,
-        poolDTR   = 1,
-        poolEDTR  = 2,
-        poolVDTR  = 3
+        poolBOGUS  = 0,
+        poolDTR    = 1,
+        poolBranch = 2,
+        poolVDTR   = 3
     };
   private:
     uint32   index    : 17;
@@ -1356,7 +1379,20 @@ class PoolHintData {
     }
 
     LoadType getLoadType() {
+        
+        
+        
+        if (ONES != 0xf)
+            return PoolHintData::poolBranch;
         return loadType;
+    }
+
+    bool isValidPoolHint() {
+        
+        
+        
+        
+        return ONES == 0xf;
     }
 };
 
@@ -1416,21 +1452,41 @@ Assembler::as_dtm(LoadStore ls, Register rn, uint32 mask,
     return;
 }
 
-void
+ARMBuffer::PoolEntry
 Assembler::as_Imm32Pool(Register dest, uint32 value, Condition c)
 {
     PoolHintPun php;
     php.phd.init(0, c, PoolHintData::poolDTR, dest);
-    m_buffer.insertEntry(4, (uint8*)&php.raw, int32Pool, (uint8*)&value);
+    return m_buffer.insertEntry(4, (uint8*)&php.raw, int32Pool, (uint8*)&value);
 }
 
-void
+ARMBuffer::PoolEntry
+Assembler::as_BranchPool(uint32 value, RepatchLabel *label, Condition c)
+{
+    PoolHintPun php;
+    BufferOffset next = nextOffset();
+    php.phd.init(0, c, PoolHintData::poolBranch, pc);
+    m_buffer.markNextAsBranch();
+    ARMBuffer::PoolEntry ret = m_buffer.insertEntry(4, (uint8*)&php.raw, int32Pool, (uint8*)&value);
+    
+    
+    if (label->bound()) {
+        BufferOffset dest(label);
+        as_b(dest.diffB<BOffImm>(next), c, next);
+    } else {
+        label->use(next.getOffset());
+    }
+    return ret;
+}
+
+
+ARMBuffer::PoolEntry
 Assembler::as_FImm64Pool(VFPRegister dest, double value, Condition c)
 {
     JS_ASSERT(dest.isDouble());
     PoolHintPun php;
     php.phd.init(0, c, PoolHintData::poolVDTR, dest);
-    m_buffer.insertEntry(4, (uint8*)&php.raw, doublePool, (uint8*)&value);
+    return m_buffer.insertEntry(4, (uint8*)&php.raw, doublePool, (uint8*)&value);
 }
 
 uint32
@@ -1467,8 +1523,19 @@ Assembler::patchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
         dummy->as_dtr(IsLoad, 32, Offset, data.getReg(),
                       DTRAddr(pc, DtrOffImm(offset+4*data.getIndex() - 8)), data.getCond(), instAddr);
         break;
-      case PoolHintData::poolEDTR:
-        JS_NOT_REACHED("edtr is too small/NYI");
+      case PoolHintData::poolBranch:
+        
+        
+        
+        
+        
+        
+        
+        if (data.isValidPoolHint()) {
+            dummy->as_dtr(IsLoad, 32, Offset, pc,
+                          DTRAddr(pc, DtrOffImm(offset+4*data.getIndex() - 8)),
+                          data.getCond(), instAddr);
+        }
         break;
       case PoolHintData::poolVDTR:
         dummy->as_vdtr(IsLoad, data.getVFPReg(),
@@ -1919,6 +1986,30 @@ Assembler::bind(Label *label, BufferOffset boff)
 }
 
 void
+Assembler::bind(RepatchLabel *label)
+{
+    BufferOffset dest = nextOffset();
+    if (label->used()) {
+        
+        
+        BufferOffset branchOff(label->offset());
+        
+        
+        Instruction *branch = editSrc(branchOff);
+        PoolHintPun p;
+        p.raw = branch->encode();
+        Condition cond;
+        if (p.phd.isValidPoolHint()) {
+            cond = p.phd.getCond();
+        } else {
+            branch->extractCond(&cond);
+        }
+        as_b(dest.diffB<BOffImm>(branchOff), cond, branchOff);
+    }
+    label->bind(dest.getOffset());
+}
+
+void
 Assembler::retarget(Label *label, Label *target)
 {
     if (label->used()) {
@@ -1935,25 +2026,6 @@ Assembler::retarget(Label *label, Label *target)
 
 }
 
-
-void
-Assembler::Bind(IonCode *code, AbsoluteLabel *label, const void *address)
-{
-#if 0
-    uint8 *raw = code->raw();
-    if (label->used()) {
-        intptr_t src = label->offset();
-        do {
-            intptr_t next = reinterpret_cast<intptr_t>(JSC::ARMAssembler::getPointer(raw + src));
-            JSC::ARMAssembler::setPointer(raw + src, address);
-            src = next;
-        } while (src != AbsoluteLabel::INVALID_OFFSET);
-    }
-    JS_ASSERT(((uint8 *)address - raw) >= 0 && ((uint8 *)address - raw) < INT_MAX);
-    label->bind();
-#endif
-    JS_NOT_REACHED("Feature NYI");
-}
 
 void dbg_break() {}
 static int stopBKPT = -1;
@@ -2005,23 +2077,44 @@ Assembler::as_jumpPool(uint32 numCases)
 ptrdiff_t
 Assembler::getBranchOffset(const Instruction *i_)
 {
-    InstBranchImm *i = i_->as<InstBranchImm>();
-    BOffImm dest;
-    i->extractImm(&dest);
-    return dest.decode();
+    if(i_->is<InstBranchImm>()) {
+        InstBranchImm *i = i_->as<InstBranchImm>();
+        BOffImm dest;
+        i->extractImm(&dest);
+        return dest.decode();
+    }
+    return 0;
+}
+void
+Assembler::retargetNearBranch(Instruction *i, int offset)
+{
+    Assembler::Condition c;
+    i->extractCond(&c);
+    retargetNearBranch(i, offset, c);
 }
 
 void
-Assembler::retargetBranch(Instruction *i, int offset)
+Assembler::retargetNearBranch(Instruction *i, int offset, Condition cond)
 {
-    Condition cond;
-    i->extractCond(&cond);
-    if (i->is<InstBImm>())
-        new (i) InstBImm(BOffImm(offset), cond);
-    else
-        new (i) InstBLImm(BOffImm(offset), cond);
+    
+    JS_ASSERT_IF(i->is<InstBranchImm>(), i->is<InstBImm>());
+    new (i) InstBImm(BOffImm(offset), cond);
+    
     JSC::ExecutableAllocator::cacheFlush(i, 4);
 }
+
+void
+Assembler::retargetFarBranch(Instruction *i, uint8 **slot, uint8 *dest, Condition cond)
+{
+    int32 offset = reinterpret_cast<uint8*>(slot) - reinterpret_cast<uint8*>(i);
+    if (!i->is<InstLDR>()) {
+        new (i) InstLDR(Offset, pc, DTRAddr(pc, DtrOffImm(offset - 8)), cond);
+        JSC::ExecutableAllocator::cacheFlush(i, 4);
+    }
+    *slot = dest;
+
+}
+
 struct PoolHeader : Instruction {
     struct Header {
         

@@ -298,7 +298,6 @@ IonCode::copyFrom(MacroAssembler &masm)
     
     
     *(IonCode **)(code_ - sizeof(IonCode *)) = this;
-
     insnSize_ = masm.instructionsSize();
     masm.executableCopy(code_);
 
@@ -307,7 +306,6 @@ IonCode::copyFrom(MacroAssembler &masm)
 
     jumpRelocTableBytes_ = masm.jumpRelocationTableBytes();
     masm.copyJumpRelocationTable(code_ + jumpRelocTableOffset());
-
     dataRelocTableBytes_ = masm.dataRelocationTableBytes();
     masm.copyDataRelocationTable(code_ + dataRelocTableOffset());
 

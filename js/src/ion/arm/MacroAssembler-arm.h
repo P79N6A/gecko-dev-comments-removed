@@ -285,7 +285,6 @@ class MacroAssemblerARM : public Assembler
     
     void ma_bl(Label *dest, Condition c = Always);
 
-
     
     void ma_vadd(FloatRegister src1, FloatRegister src2, FloatRegister dst);
     void ma_vsub(FloatRegister src1, FloatRegister src2, FloatRegister dst);
@@ -699,20 +698,14 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
     void moveValue(const Value &val, Register type, Register data);
 
-    CodeOffsetJump jumpWithPatch(Label *label) {
-        CodeOffsetJump ret(nextOffset().getOffset());
-        jump(label);
-        return ret;
-    }
+    CodeOffsetJump jumpWithPatch(RepatchLabel *label, Condition cond = Always);
     template <typename T>
-    CodeOffsetJump branchPtrWithPatch(Condition cond, Register reg, T ptr, Label *label) {
+    CodeOffsetJump branchPtrWithPatch(Condition cond, Register reg, T ptr, RepatchLabel *label) {
         ma_cmp(reg, ptr);
-        CodeOffsetJump ret(nextOffset().getOffset());
-        ma_b(label, cond);
-        return ret;
+        return jumpWithPatch(label, cond);
     }
     template <typename T>
-    CodeOffsetJump branchPtrWithPatch(Condition cond, Address addr, T ptr, Label *label) {
+    CodeOffsetJump branchPtrWithPatch(Condition cond, Address addr, T ptr, RepatchLabel *label) {
         
         
         
@@ -724,9 +717,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         
         ma_ldr(addr, lr);
         ma_cmp(lr, ptr);
-        CodeOffsetJump ret(nextOffset().getOffset());
-        ma_b(label, cond);
-        return ret;
+        return jumpWithPatch(label, cond);
     }
     void branchPtr(Condition cond, Address addr, ImmGCPtr ptr, Label *label) {
         

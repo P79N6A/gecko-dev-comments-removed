@@ -60,6 +60,7 @@ struct Pool {
   public:
     const bool isBackref;
     const bool canDedup;
+    
     Pool *other;
     uint8 *poolData;
     uint32 numEntries;
@@ -216,7 +217,11 @@ struct Pool {
         start += immSize * numEntries;
         return start;
     }
+    uint32 getPoolSize() {
+        return immSize * numEntries;
+    }
 };
+
 
 template <int SliceSize, int InstBaseSize>
 struct BufferSliceTail : public BufferSlice<SliceSize> {
@@ -259,8 +264,43 @@ struct BufferSliceTail : public BufferSlice<SliceSize> {
 
 
 
-template <int SliceSize, int InstBaseSize, class Inst, class Asm>
+
+
+
+
+
+template <int SliceSize, int InstBaseSize, class Inst, class Asm, int poolKindBits>
 struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst> {
+  private:
+    int entryCount[1 << poolKindBits];
+    static const int offsetBits = 32 - poolKindBits;
+  public:
+    class PoolEntry {
+        template <int ss, int ibs, class i, class a, int pkb>
+        friend struct AssemblerBufferWithConstantPool;
+        uint32 offset_ : offsetBits;
+        uint32 kind_ : poolKindBits;
+        PoolEntry(int offset, int kind) : kind_(kind), offset_(offset) {
+        }
+      public:
+        uint32 encode() {
+            uint32 ret;
+            memcpy(&ret, this, sizeof(uint32));
+            return ret;
+        }
+        PoolEntry(uint32 bits) : offset_((1 << offsetBits) - 1 & bits),
+                                 kind_(bits >> offsetBits) {
+        }
+        PoolEntry() : offset_(-1), kind_(-1) {
+        }
+
+        uint32 poolKind() const {
+            return kind_;
+        }
+        uint32 offset() const {
+            return offset_;
+        }
+    };
   private:
     typedef BufferSliceTail<SliceSize, InstBaseSize> BufferSlice;
     typedef AssemblerBuffer<SliceSize, Inst> Parent;
@@ -285,6 +325,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         int offset; 
         int size;   
         int finalPos; 
+        BufferSlice *slice;
     };
     PoolInfo *poolInfo;
     
@@ -326,6 +367,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
           poolSize(0), canNotPlacePool(0), inBackref(false),
           perforatedNode(NULL)
     {
+        for (int idx = 0; idx < numPoolKinds; idx++) {
+            entryCount[idx] = 0;
+        }
     }
     const PoolInfo & getInfo(int x) const {
         static const PoolInfo nil = {0,0,0};
@@ -390,9 +434,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         }
     }
 
-    void insertEntry(uint32 instSize, uint8 *inst, Pool *p, uint8 *data) {
+    PoolEntry insertEntry(uint32 instSize, uint8 *inst, Pool *p, uint8 *data) {
         if (this->oom())
-            return;
+            return PoolEntry();
         int token;
         
         if (inBackref)
@@ -400,10 +444,19 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         else
             token = insertEntryForwards(instSize, inst, p, data);
         
-        if (p != NULL)
+        PoolEntry ret;
+        if (p != NULL) {
             Asm::insertTokenIntoTag(instSize, inst, token);
+            int poolId = p - pools;
+            JS_ASSERT(poolId < (1 << poolKindBits));
+            JS_ASSERT(poolId >= 0);
+            
+            ret = PoolEntry(entryCount[poolId], poolId);
+            entryCount[poolId]++;
+        }
         
         this->putBlob(instSize, inst);
+        return ret;
     }
 
     uint32 insertEntryBackwards(uint32 instSize, uint8 *inst, Pool *p, uint8 *data) {
@@ -564,6 +617,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         ret.offset = perfOffset;
         ret.size = finOffset - initOffset;
         ret.finalPos = finOffset;
+        ret.slice = perforatedNode;
         return ret;
     }
     void finishPool() {
@@ -739,6 +793,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     void patchBranch(Inst *i, int curpool, BufferOffset branch) {
         const Inst *ci = i;
         ptrdiff_t offset = Asm::getBranchOffset(ci);
+        
+        if (offset == 0)
+            return;
         int destOffset = branch.getOffset() + offset;
         if (offset > 0) {
             while (poolInfo[curpool].offset <= destOffset && curpool < numDumps) {
@@ -754,7 +811,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             }
             
         }
-        Asm::retargetBranch(i, offset);
+        Asm::retargetNearBranch(i, offset);
     }
 
     
@@ -778,7 +835,6 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     }
     void leaveNoPool() {
         canNotPlacePool--;
-
     }
     int size() const {
         return uncheckedSize();
@@ -813,6 +869,92 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             return 0;
         return poolInfo[cur-1].finalPos - poolInfo[cur-1].offset;
     }
+
+  private:
+    void getPEPool(PoolEntry pe, Pool **retP, int32 * retOffset, int32 *poolNum) const {
+        int poolKind = pe.poolKind();
+        Pool *p = NULL;
+        uint32 offset = pe.offset() * pools[poolKind].immSize;
+        int idx;
+        for (idx = 0; idx < numDumps; idx++) {
+            p = &poolInfo[idx].slice->data[poolKind];
+            if (p->getPoolSize() > offset)
+                break;
+            offset -= p->getPoolSize();
+            p = p->other;
+            if (p->getPoolSize() > offset)
+                break;
+            offset -= p->getPoolSize();
+            p = NULL;
+        }
+        if (poolNum != NULL)
+            *poolNum = idx;
+        
+        
+        
+        if (p == NULL) {
+            p = &pools[poolKind];
+            if (offset >= p->getPoolSize()) {
+                p = p->other;
+                offset -= p->getPoolSize();
+            }
+        }
+        JS_ASSERT(p != NULL);
+        JS_ASSERT(offset < p->getPoolSize());
+        *retP = p;
+        *retOffset = offset;
+    }
+    uint8 *getPoolEntry(PoolEntry pe) {
+        Pool *p;
+        int32 offset;
+        getPEPool(pe, &p, &offset, NULL);
+        return &p->poolData[offset];
+    }
+    size_t getPoolEntrySize(PoolEntry pe) {
+        int idx = pe.poolKind();
+        return pools[idx].immSize;
+    }
+
+  public:
+    uint32 poolEntryOffset(PoolEntry pe) const {
+        Pool *realPool;
+        
+        int32 offset;
+        int32 poolNum;
+        getPEPool(pe, &realPool, &offset, &poolNum);
+        PoolInfo *pi = &poolInfo[poolNum];
+        Pool *poolGroup = pi->slice->data;
+        uint32 start = pi->finalPos - pi->size + headerSize;
+        
+        
+        
+        
+        for (int idx = 0; idx < numPoolKinds; idx++) {
+            if (&poolGroup[idx] == realPool) {
+                return start + offset;
+            }
+            start = poolGroup[idx].addPoolSize(start);
+        }
+        for (int idx = numPoolKinds-1; idx >= 0; idx--) {
+            if (poolGroup[idx].other == realPool) {
+                return start + offset;
+            }
+            start = poolGroup[idx].other->addPoolSize(start);
+        }
+        JS_NOT_REACHED("Entry is not in a pool");
+        return -1;
+    }
+    void writePoolEntry(PoolEntry pe, uint8 *buff) {
+        size_t size = getPoolEntrySize(pe);
+        uint8 *entry = getPoolEntry(pe);
+        memcpy(entry, buff, size);
+    }
+    void readPoolEntry(PoolEntry pe, uint8 *buff) {
+        size_t size = getPoolEntrySize(pe);
+        uint8 *entry = getPoolEntry(pe);
+        memcpy(buff, entry, size);
+    }
+
 };
 } 
 } 
