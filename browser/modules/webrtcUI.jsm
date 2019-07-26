@@ -73,6 +73,12 @@ function handleRequest(aSubject, aTopic, aData) {
       prompt(browser, callID, params.audio, params.video, devices);
     },
     function (error) {
+      
+      
+      let msg = Cc["@mozilla.org/supports-string;1"].
+                createInstance(Ci.nsISupportsString);
+      msg.data = error;
+      Services.obs.notifyObservers(msg, "getUserMedia:response:deny", callID);
       Cu.reportError(error);
     }
   );
