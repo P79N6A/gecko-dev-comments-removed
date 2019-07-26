@@ -26,7 +26,13 @@ class nsPresContext;
 struct JSContext;
 class JSObject;
 
-class nsDOMEvent : public nsIDOMEvent,
+
+
+class nsDOMEventBase : public nsIDOMEvent
+{
+};
+
+class nsDOMEvent : public nsDOMEventBase,
                    public nsIJSNativeInitializer,
                    public nsWrapperCache
 {
