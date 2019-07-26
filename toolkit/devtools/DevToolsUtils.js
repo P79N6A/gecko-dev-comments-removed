@@ -295,7 +295,7 @@ exports.isSafeJSObject = function isSafeJSObject(aObj) {
     return true; 
   }
 
-  let principal = Services.scriptSecurityManager.getObjectPrincipal(aObj);
+  let principal = Cu.getObjectPrincipal(aObj);
   if (Services.scriptSecurityManager.isSystemPrincipal(principal)) {
     return true; 
   }
