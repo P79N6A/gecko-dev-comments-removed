@@ -149,9 +149,9 @@ add_task(function test_getSystemDownloadsDirectory()
 
 
 
-add_task(function test_getUserDownloadsDirectory()
+add_task(function test_getPreferredDownloadsDirectory()
 {
-  let downloadDir = yield Downloads.getUserDownloadsDirectory();
+  let downloadDir = yield Downloads.getPreferredDownloadsDirectory();
   do_check_true(downloadDir instanceof Ci.nsIFile);
 });
 

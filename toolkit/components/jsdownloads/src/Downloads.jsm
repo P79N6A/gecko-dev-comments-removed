@@ -273,8 +273,8 @@ this.Downloads = {
 
 
 
-  getUserDownloadsDirectory: function D_getUserDownloadsDirectory() {
-    return DownloadIntegration.getUserDownloadsDirectory();
+  getPreferredDownloadsDirectory: function D_getPreferredDownloadsDirectory() {
+    return DownloadIntegration.getPreferredDownloadsDirectory();
   },
 
   

@@ -119,7 +119,7 @@ add_task(function test_getSystemDownloadsDirectory()
 
 
 
-add_task(function test_getUserDownloadsDirectory()
+add_task(function test_getPreferredDownloadsDirectory()
 {
   let folderListPrefName = "browser.download.folderList";
   let dirPrefName = "browser.download.dir";
@@ -132,20 +132,20 @@ add_task(function test_getUserDownloadsDirectory()
   
   Services.prefs.setIntPref(folderListPrefName, 1);
   let systemDir = yield DownloadIntegration.getSystemDownloadsDirectory();
-  let downloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
+  let downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
   do_check_true(downloadDir instanceof Ci.nsIFile);
   do_check_eq(downloadDir.path, systemDir.path);
 
   
   Services.prefs.setIntPref(folderListPrefName, 0);
-  downloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
+  downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
   do_check_true(downloadDir instanceof Ci.nsIFile);
   do_check_eq(downloadDir.path, Services.dirsvc.get("Desk", Ci.nsIFile).path);
 
   
   
   Services.prefs.setIntPref(folderListPrefName, 2);
-  let downloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
+  let downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
   do_check_true(downloadDir instanceof Ci.nsIFile);
   do_check_eq(downloadDir.path, systemDir.path);
 
@@ -154,7 +154,7 @@ add_task(function test_getUserDownloadsDirectory()
   let tempDir = Services.dirsvc.get("TmpD", Ci.nsIFile);
   tempDir.append(time);
   Services.prefs.setComplexValue("browser.download.dir", Ci.nsIFile, tempDir);
-  downloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
+  downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
   do_check_true(downloadDir instanceof Ci.nsIFile);
   do_check_eq(downloadDir.path,  tempDir.path);
   do_check_true(yield OS.File.exists(downloadDir.path));
@@ -166,13 +166,13 @@ add_task(function test_getUserDownloadsDirectory()
   tempDir.append("dir_not_exist");
   tempDir.append(time);
   Services.prefs.setComplexValue("browser.download.dir", Ci.nsIFile, tempDir);
-  downloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
+  downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
   do_check_eq(downloadDir.path, systemDir.path);
 
   
   
   Services.prefs.setIntPref(folderListPrefName, 999);
-  let downloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
+  let downloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
   do_check_eq(downloadDir.path, systemDir.path);
 
   cleanup();
@@ -188,8 +188,8 @@ add_task(function test_getTemporaryDownloadsDirectory()
   do_check_true(downloadDir instanceof Ci.nsIFile);
 
   if ("nsILocalFileMac" in Ci) {
-    let userDownloadDir = yield DownloadIntegration.getUserDownloadsDirectory();
-    do_check_eq(downloadDir.path, userDownloadDir.path);
+    let preferredDownloadDir = yield DownloadIntegration.getPreferredDownloadsDirectory();
+    do_check_eq(downloadDir.path, preferredDownloadDir.path);
   } else {
     let tempDir = Services.dirsvc.get("TmpD", Ci.nsIFile);
     do_check_eq(downloadDir.path, tempDir.path);
