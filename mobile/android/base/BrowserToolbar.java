@@ -1279,6 +1279,41 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
 
 
+    private void updateChildrenForEditing() {
+        
+        if (!HardwareUtils.isTablet()) {
+            return;
+        }
+
+        
+        final boolean enabled = !mIsEditing;
+
+        
+        
+        final float alpha = (enabled ? 1.0f : 0.24f);
+
+        mTabs.setEnabled(enabled);
+        ViewHelper.setAlpha(mTabsCounter, alpha);
+        mMenu.setEnabled(enabled);
+        ViewHelper.setAlpha(mMenuIcon, alpha);
+
+        final int actionItemsCount = mActionItemBar.getChildCount();
+        for (int i = 0; i < actionItemsCount; i++) {
+            mActionItemBar.getChildAt(i).setEnabled(enabled);
+        }
+        ViewHelper.setAlpha(mActionItemBar, alpha);
+
+        final Tab tab = Tabs.getInstance().getSelectedTab();
+        if (tab != null) {
+            setButtonEnabled(mBack, enabled && tab.canDoBack());
+            setButtonEnabled(mForward, enabled && tab.canDoForward());
+        }
+    }
+
+    
+
+
+
     public boolean isEditing() {
         return mIsEditing;
     }
@@ -1290,6 +1325,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         mUrlEditText.setText(url != null ? url : "");
         mIsEditing = true;
+
+        updateChildrenForEditing();
 
         if (mStartEditingListener != null) {
             mStartEditingListener.onStartEditing();
@@ -1402,6 +1439,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
             return url;
         }
         mIsEditing = false;
+
+        updateChildrenForEditing();
 
         if (mStopEditingListener != null) {
             mStopEditingListener.onStopEditing();
@@ -1567,6 +1606,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
     public void setButtonEnabled(ImageButton button, boolean enabled) {
         final Drawable drawable = button.getDrawable();
         if (drawable != null) {
+            
+            
             drawable.setAlpha(enabled ? 255 : 61);
         }
 
@@ -1583,7 +1624,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         
         
-        mForward.setEnabled(enabled);
+        setButtonEnabled(mForward, enabled);
 
         if (mForward.getVisibility() != View.VISIBLE)
             return;
