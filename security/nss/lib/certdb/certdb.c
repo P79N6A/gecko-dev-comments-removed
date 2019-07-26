@@ -1392,12 +1392,15 @@ cert_TestHostName(char * cn, const char * hn)
 
 
 
+
 	if (wildcard && secondcndot && secondcndot[1] && firsthndot 
-	    && firstcndot  - wildcard  == 1
-	    && secondcndot - firstcndot > 1
-	    && PORT_Strrchr(cn, '*') == wildcard
+	    && firstcndot  - wildcard  == 1 
+	    && secondcndot - firstcndot > 1 
+	    && PORT_Strrchr(cn, '*') == wildcard 
 	    && !PORT_Strncasecmp(cn, hn, wildcard - cn)
-	    && !PORT_Strcasecmp(firstcndot, firsthndot)) {
+	    && !PORT_Strcasecmp(firstcndot, firsthndot)
+	       
+	    && (PORT_Strncasecmp(hn, "xn--", 4) || wildcard == cn)) {
 	    
 	    return SECSuccess;
 	}
