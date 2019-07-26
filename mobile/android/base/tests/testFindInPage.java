@@ -18,8 +18,10 @@ public class testFindInPage extends PixelTest {
         blockForGeckoReady();
         String url = getAbsoluteUrl("/robocop/robocop_text_page.html");
         loadAndPaint(url);
+
+        
         height = mDriver.getGeckoHeight()/8;
-        width = mDriver.getGeckoWidth()/2;
+        width = mDriver.getGeckoWidth()/8;
 
         
         Actions.RepeatedEventExpecter paintExpecter = mActions.expectPaint();
