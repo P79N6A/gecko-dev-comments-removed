@@ -52,56 +52,43 @@ function endTests() {
   finish();
 }
 
-function assertTooltipShownOn(tooltip, element, cb) {
-  
-  tooltip.panel.addEventListener("popupshown", function shown() {
-    tooltip.panel.removeEventListener("popupshown", shown, true);
-    cb();
-  }, true);
-  tooltip._showOnHover(element);
-}
-
 function testRuleView() {
-  info("Testing font-family tooltips in the rule view");
+  Task.spawn(function*() {
+    info("Testing font-family tooltips in the rule view");
 
-  let panel = ruleView.previewTooltip.panel;
+    let panel = ruleView.previewTooltip.panel;
 
-  
-  ok(ruleView.previewTooltip, "Tooltip instance exists");
-  ok(panel, "XUL panel exists");
+    
+    ok(ruleView.previewTooltip, "Tooltip instance exists");
+    ok(panel, "XUL panel exists");
 
-  
-  let {valueSpan} = getRuleViewProperty("font-family");
+    
+    let {valueSpan} = getRuleViewProperty("font-family");
 
-  
-  assertTooltipShownOn(ruleView.previewTooltip, valueSpan, () => {
+    
+    assertTooltipShownOn(ruleView.previewTooltip, valueSpan);
+
     let description = panel.getElementsByTagName("description")[0];
     is(description.style.fontFamily, "cursive", "Tooltips contains correct font-family style");
-
-    ruleView.previewTooltip.hide();
-
-    testComputedView();
-  });
+  }).then(testComputedView);
 }
 
 function testComputedView() {
-  info("Testing font-family tooltips in the computed view");
+  Task.spawn(function*() {
+    info("Testing font-family tooltips in the computed view");
 
-  inspector.sidebar.select("computedview");
-  computedView = inspector.sidebar.getWindowForTab("computedview").computedview.view;
-  let doc = computedView.styleDocument;
+    inspector.sidebar.select("computedview");
+    computedView = inspector.sidebar.getWindowForTab("computedview").computedview.view;
+    let doc = computedView.styleDocument;
 
-  let panel = computedView.tooltip.panel;
-  let {valueSpan} = getComputedViewProperty("font-family");
+    let panel = computedView.tooltip.panel;
+    let {valueSpan} = getComputedViewProperty("font-family");
 
-  assertTooltipShownOn(computedView.tooltip, valueSpan, () => {
+    assertTooltipShownOn(computedView.tooltip, valueSpan);
+
     let description = panel.getElementsByTagName("description")[0];
     is(description.style.fontFamily, "cursive", "Tooltips contains correct font-family style");
-
-    computedView.tooltip.hide();
-
-    endTests();
-  });
+  }).then(endTests);
 }
 
 function getRuleViewProperty(name) {
