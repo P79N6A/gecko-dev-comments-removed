@@ -1958,7 +1958,7 @@ ScratchpadTab.consoleFor = function consoleFor(aSubject)
   if (!scratchpadTargets.has(aSubject)) {
     scratchpadTargets.set(aSubject, new this(aSubject));
   }
-  return scratchpadTargets.get(aSubject).connect();
+  return scratchpadTargets.get(aSubject).connect(aSubject);
 };
 
 
@@ -1974,7 +1974,9 @@ ScratchpadTab.prototype = {
 
 
 
-  connect: function ST_connect()
+
+
+  connect: function ST_connect(aSubject)
   {
     if (this._connector) {
       return this._connector;
@@ -1992,7 +1994,7 @@ ScratchpadTab.prototype = {
 
     deferred.promise.then(() => clearTimeout(connectTimer));
 
-    this._attach().then(aTarget => {
+    this._attach(aSubject).then(aTarget => {
       let consoleActor = aTarget.form.consoleActor;
       let client = aTarget.client;
       client.attachConsole(consoleActor, [], (aResponse, aWebConsoleClient) => {
@@ -2018,9 +2020,16 @@ ScratchpadTab.prototype = {
 
 
 
-  _attach: function ST__attach()
+
+
+  _attach: function ST__attach(aSubject)
   {
     let target = TargetFactory.forTab(this._tab);
+    target.once("close", () => {
+      if (scratchpadTargets) {
+        scratchpadTargets.delete(aSubject);
+      }
+    });
     return target.makeRemote().then(() => target);
   },
 };
