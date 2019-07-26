@@ -1,0 +1,43 @@
+
+
+
+
+
+
+
+
+
+
+#ifndef _DBGUTIL_H
+#define _DBGUTIL_H
+
+#include "unicode/utypes.h"
+#include "udbgutil.h"
+#include "unicode/unistr.h"
+
+#if !UCONFIG_NO_FORMATTING
+
+U_TOOLUTIL_API const icu::UnicodeString& U_EXPORT2
+udbg_enumString(UDebugEnumType type, int32_t field);
+
+
+
+ 
+U_CAPI int32_t U_EXPORT2
+udbg_enumByString(UDebugEnumType type, const icu::UnicodeString& string);
+
+
+
+
+
+
+U_CAPI int32_t U_EXPORT2 udbg_stoi(const icu::UnicodeString &s);
+
+U_CAPI double U_EXPORT2 udbg_stod(const icu::UnicodeString &s);
+
+U_CAPI icu::UnicodeString * U_EXPORT2
+udbg_escape(const icu::UnicodeString &s, icu::UnicodeString *dst);
+
+#endif
+
+#endif
