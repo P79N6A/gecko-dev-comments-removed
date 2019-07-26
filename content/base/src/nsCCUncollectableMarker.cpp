@@ -94,6 +94,10 @@ MarkUserDataHandler(void* aNode, nsIAtom* aKey, void* aValue, void* aData)
 static void
 MarkMessageManagers()
 {
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    return;
+  }
   nsCOMPtr<nsIMessageBroadcaster> strongGlobalMM =
     do_GetService("@mozilla.org/globalmessagemanager;1");
   if (!strongGlobalMM) {
