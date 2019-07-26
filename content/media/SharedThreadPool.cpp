@@ -15,7 +15,7 @@
 
 #ifdef XP_WIN
 
-#include <Objbase.h>
+#include <objbase.h>
 #endif
 
 namespace mozilla {
