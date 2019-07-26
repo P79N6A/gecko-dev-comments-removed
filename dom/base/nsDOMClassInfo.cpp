@@ -5184,6 +5184,9 @@ static nsresult
 DefineComponentsShim(JSContext *cx, JS::HandleObject global)
 {
   
+  Telemetry::Accumulate(Telemetry::COMPONENTS_SHIM_ACCESSED_BY_CONTENT, true);
+
+  
   JSObject *components = JS_NewObject(cx, nullptr, nullptr, global);
   NS_ENSURE_TRUE(components, NS_ERROR_OUT_OF_MEMORY);
   bool ok = JS_DefineProperty(cx, global, "Components", JS::ObjectValue(*components),
