@@ -2738,18 +2738,26 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   min-height: @tabHeight@;
 }
 
-#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing])) #navigator-toolbox[inFullscreen]:not(:-moz-lwtheme)::before,
-#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing],[tabsintitlebar])) #navigator-toolbox:not(:-moz-lwtheme)::before {
-  
 
 
 
 
+
+
+
+
+#navigator-toolbox::before {
   content: '';
   display: block;
   -moz-appearance: toolbar;
   height: calc(@tabHeight@ + 1px);
   margin-bottom: calc(-1px - @tabHeight@);
+  visibility: hidden;
+}
+
+#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing])) #navigator-toolbox[inFullscreen]:not(:-moz-lwtheme)::before,
+#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing],[tabsintitlebar])) #navigator-toolbox:not(:-moz-lwtheme)::before {
+  visibility: visible;
 }
 
 #TabsToolbar {
@@ -2766,9 +2774,9 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
-#main-window:-moz-any([privatebrowsingmode=temporary],[sizemode="fullscreen"],[customize-entered]) #TabsToolbar::after,
-#main-window:not([tabsintitlebar]) #TabsToolbar::after,
-#TabsToolbar:-moz-lwtheme::after {
+
+
+#TabsToolbar::after {
   content: '';
   
 
@@ -2782,6 +2790,13 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   right: 0;
   z-index: 0;
   border-bottom: 1px solid hsla(0,0%,0%,.3);
+  visibility: hidden;
+}
+
+#main-window:-moz-any([privatebrowsingmode=temporary],[sizemode="fullscreen"],[customize-entered]) #TabsToolbar::after,
+#main-window:not([tabsintitlebar]) #TabsToolbar::after,
+#TabsToolbar:-moz-lwtheme::after {
+  visibility: visible;
 }
 
 #tabbrowser-tabs {
