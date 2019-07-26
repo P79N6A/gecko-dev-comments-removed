@@ -34,6 +34,7 @@
 #include "nsIExternalURLHandlerService.h"
 #include "nsIMIMEInfo.h"
 #include "nsIWidget.h"
+#include "nsWindowWatcher.h"
 #include "mozilla/BrowserElementParent.h"
 
 #include "nsIDOMDocument.h"
@@ -869,63 +870,14 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
     }
   }
 
-  
-  bool isFullScreen = false;
-  if (aParent) {
-    aParent->GetFullScreen(&isFullScreen);
-  }
+  int32_t openLocation =
+    nsWindowWatcher::GetWindowOpenLocation(aParent, aChromeFlags, aCalledFromJS,
+                                           aPositionSpecified, aSizeSpecified);
 
-  
-  int32_t containerPref;
-  if (NS_FAILED(Preferences::GetInt("browser.link.open_newwindow",
-                                    &containerPref))) {
-    return NS_OK;
-  }
-
-  bool isDisabledOpenNewWindow =
-    isFullScreen &&
-    Preferences::GetBool("browser.link.open_newwindow.disabled_in_fullscreen");
-
-  if (isDisabledOpenNewWindow && (containerPref == nsIBrowserDOMWindow::OPEN_NEWWINDOW)) {
-    containerPref = nsIBrowserDOMWindow::OPEN_NEWTAB;
-  }
-
-  if (containerPref != nsIBrowserDOMWindow::OPEN_NEWTAB &&
-      containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW) {
+  if (openLocation != nsIBrowserDOMWindow::OPEN_NEWTAB &&
+      openLocation != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW) {
     
     return NS_OK;
-  }
-
-  if (aCalledFromJS) {
-    
-
-
-
-
-
-    int32_t restrictionPref =
-      Preferences::GetInt("browser.link.open_newwindow.restriction", 2);
-    if (restrictionPref < 0 || restrictionPref > 2) {
-      restrictionPref = 2; 
-    }
-
-    if (isDisabledOpenNewWindow) {
-      
-      
-      restrictionPref = 0;
-    }
-
-    if (restrictionPref == 1) {
-      return NS_OK;
-    }
-
-    if (restrictionPref == 2 &&
-        
-        
-        (aChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
-         aPositionSpecified || aSizeSpecified)) {
-      return NS_OK;
-    }
   }
 
   nsCOMPtr<nsIDOMWindow> domWin;
@@ -936,21 +888,21 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
     NS_WARNING("nsXULWindow's DOMWindow is not a chrome window");
     return NS_OK;
   }
-  
+
   nsCOMPtr<nsIBrowserDOMWindow> browserDOMWin;
   chromeWin->GetBrowserDOMWindow(getter_AddRefs(browserDOMWin));
   if (!browserDOMWin) {
     return NS_OK;
   }
 
-  *aWindowIsNew = (containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW);
+  *aWindowIsNew = (openLocation != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW);
 
   {
     dom::AutoNoJSAPI nojsapi;
 
     
     
-    return browserDOMWin->OpenURI(nullptr, aParent, containerPref,
+    return browserDOMWin->OpenURI(nullptr, aParent, openLocation,
                                   nsIBrowserDOMWindow::OPEN_NEW, aReturn);
   }
 }

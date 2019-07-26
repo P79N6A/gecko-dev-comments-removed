@@ -15,6 +15,7 @@
 #include "plstr.h"
 
 #include "nsIBaseWindow.h"
+#include "nsIBrowserDOMWindow.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellLoadInfo.h"
 #include "nsIDocShellTreeItem.h"
@@ -438,7 +439,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
                                   windowNeedsName = false,
                                   windowIsModal = false,
                                   uriToLoadIsChrome = false,
-                                  windowIsModalContentDialog = false;
+                                  windowIsModalContentDialog = false,
+  
+  
+                                  openedFromRemoteTab = !!aOpeningTab;
   uint32_t                        chromeFlags;
   nsAutoString                    name;             
   nsAutoCString                   features;         
@@ -447,6 +451,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   nsCOMPtr<nsIDocShellTreeItem>   newDocShellItem;  
   nsCxPusher                      callerContextGuard;
 
+  MOZ_ASSERT_IF(openedFromRemoteTab, XRE_GetProcessType() == GeckoProcessType_Default);
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = 0;
 
@@ -477,8 +482,16 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   }
 
   
-  nsCOMPtr<nsIDOMWindow> foundWindow = SafeGetWindowByName(name, aParent);
-  GetWindowTreeItem(foundWindow, getter_AddRefs(newDocShellItem));
+  
+  
+  
+  
+  
+  if (!aOpeningTab) {
+    
+    nsCOMPtr<nsIDOMWindow> foundWindow = SafeGetWindowByName(name, aParent);
+    GetWindowTreeItem(foundWindow, getter_AddRefs(newDocShellItem));
+  }
 
   
   
@@ -504,7 +517,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     nsCOMPtr<nsIDOMDocument> domdoc;
     aParent->GetDocument(getter_AddRefs(domdoc));
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
-    hasChromeParent = doc && nsContentUtils::IsChromeDoc(doc);
+    hasChromeParent = doc && nsContentUtils::IsChromeDoc(doc) && !openedFromRemoteTab;
   }
 
   
@@ -513,7 +526,12 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   chromeFlags = CalculateChromeFlags(aParent, features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
-                                     hasChromeParent);
+                                     hasChromeParent, openedFromRemoteTab);
+
+  
+  
+  MOZ_ASSERT_IF(openedFromRemoteTab,
+                chromeFlags & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW);
 
   
   
@@ -537,7 +555,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   nsCOMPtr<nsIScriptSecurityManager>
     sm(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
 
-  bool isCallerChrome = nsContentUtils::IsCallerChrome();
+  bool isCallerChrome = nsContentUtils::IsCallerChrome() && !openedFromRemoteTab;
 
   JSContext *cx = GetJSContextFromWindow(aParent);
 
@@ -939,7 +957,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   }
 
   if (isNewToplevelWindow)
-    SizeOpenedDocShellItem(newDocShellItem, aParent, sizeSpec);
+    SizeOpenedDocShellItem(newDocShellItem, aParent, isCallerChrome, sizeSpec);
 
   
   if (windowIsModal || windowIsModalContentDialog) {
@@ -1403,7 +1421,8 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
                                                bool aFeaturesSpecified,
                                                bool aDialog,
                                                bool aChromeURL,
-                                               bool aHasChromeParent)
+                                               bool aHasChromeParent,
+                                               bool aOpenedFromRemoteTab)
 {
    if(!aFeaturesSpecified || !aFeatures) {
       if(aDialog)
@@ -1431,7 +1450,7 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
 
   
 
-  bool isCallerChrome = nsContentUtils::IsCallerChrome();
+  bool isCallerChrome = nsContentUtils::IsCallerChrome() && !aOpenedFromRemoteTab;
 
   
   if (isCallerChrome) {
@@ -1442,7 +1461,7 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   }
 
   
-  if (isCallerChrome) {
+  if (isCallerChrome || aOpenedFromRemoteTab) {
     bool remote;
     if (Preferences::GetBool("browser.tabs.remote.autostart")) {
       remote = !WinHasOption(aFeatures, "non-remote", 0, &presenceFlag);
@@ -1877,6 +1896,7 @@ nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
 void
 nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
                                         nsIDOMWindow *aParent,
+                                        bool aIsCallerChrome,
                                         const SizeSpec & aSizeSpec)
 {
   
@@ -1984,7 +2004,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
   
   bool enabled = false;
-  if (nsContentUtils::IsCallerChrome()) {
+  if (aIsCallerChrome) {
     
     
     nsCOMPtr<nsIDOMChromeWindow> chromeWin(do_QueryInterface(aParent));
@@ -2100,6 +2120,75 @@ nsWindowWatcher::GetWindowTreeOwner(nsIDOMWindow *inWindow,
   GetWindowTreeItem(inWindow, getter_AddRefs(treeItem));
   if (treeItem)
     treeItem->GetTreeOwner(outTreeOwner);
+}
+
+
+int32_t nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow *aParent,
+                                               uint32_t aChromeFlags,
+                                               bool aCalledFromJS,
+                                               bool aPositionSpecified,
+                                               bool aSizeSpecified)
+{
+  bool isFullScreen = false;
+  if (aParent) {
+    aParent->GetFullScreen(&isFullScreen);
+  }
+
+  
+  int32_t containerPref;
+  if (NS_FAILED(Preferences::GetInt("browser.link.open_newwindow",
+                                    &containerPref))) {
+    
+    return nsIBrowserDOMWindow::OPEN_NEWTAB;
+  }
+
+  bool isDisabledOpenNewWindow =
+    isFullScreen &&
+    Preferences::GetBool("browser.link.open_newwindow.disabled_in_fullscreen");
+
+  if (isDisabledOpenNewWindow && (containerPref == nsIBrowserDOMWindow::OPEN_NEWWINDOW)) {
+    containerPref = nsIBrowserDOMWindow::OPEN_NEWTAB;
+  }
+
+  if (containerPref != nsIBrowserDOMWindow::OPEN_NEWTAB &&
+      containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW) {
+    
+    return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+  }
+
+  if (aCalledFromJS) {
+    
+
+
+
+
+
+    int32_t restrictionPref =
+      Preferences::GetInt("browser.link.open_newwindow.restriction", 2);
+    if (restrictionPref < 0 || restrictionPref > 2) {
+      restrictionPref = 2; 
+    }
+
+    if (isDisabledOpenNewWindow) {
+      
+      
+      restrictionPref = 0;
+    }
+
+    if (restrictionPref == 1) {
+      return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+    }
+
+    if (restrictionPref == 2 &&
+        
+        
+        (aChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
+         aPositionSpecified || aSizeSpecified)) {
+      return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+    }
+  }
+
+  return containerPref;
 }
 
 JSContext *
