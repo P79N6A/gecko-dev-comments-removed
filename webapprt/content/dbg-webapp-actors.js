@@ -52,7 +52,7 @@ WebappTabList.prototype = Object.create(BrowserTabList.prototype);
 WebappTabList.prototype.constructor = WebappTabList;
 
 WebappTabList.prototype.getList = function() {
-  let topXULWindow = windowMediator.getMostRecentWindow(this._windowType);
+  let topXULWindow = Services.wm.getMostRecentWindow(this._windowType);
 
   
   
