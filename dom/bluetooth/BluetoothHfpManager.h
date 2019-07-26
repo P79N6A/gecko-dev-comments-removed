@@ -78,7 +78,9 @@ public:
 
 
   void HandleCallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
-                              const nsAString& aNumber, bool aSend);
+                              const nsAString& aNumber, const bool aIsOutgoing,
+                              bool aSend);
+
   bool IsConnected();
   void GetAddress(nsAString& aDeviceAddress);
 
