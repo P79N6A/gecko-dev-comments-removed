@@ -892,6 +892,7 @@ input[type="number"] {
   width: 149px; 
 }
 
+input[type=number] > div, 
 input[type=number]::-moz-number-wrapper {
   
   display: flex;
@@ -900,6 +901,7 @@ input[type=number]::-moz-number-wrapper {
   height: 100%;
 }
 
+input[type=number] > div > input, 
 input[type=number]::-moz-number-text {
   -moz-appearance: none;
   
@@ -917,6 +919,7 @@ input[type=number]::-moz-number-text {
   margin: 0;
 }
 
+input[type=number] > div > div, 
 input[type=number]::-moz-number-spin-box {
   display: flex;
   flex-direction: column;
@@ -931,6 +934,7 @@ input[type=number]::-moz-number-spin-box {
   justify-content: center;
 }
 
+input[type=number] > div > div > div:first-child, 
 input[type=number]::-moz-number-spin-up {
   -moz-appearance: spinner-upbutton;
   display: block; 
@@ -946,6 +950,7 @@ input[type=number]::-moz-number-spin-up {
   border-top-right-radius: 4px;
 }
 
+input[type=number] > div > div > div:not(:first-child), 
 input[type=number]::-moz-number-spin-down {
   -moz-appearance: spinner-downbutton;
   display: block; 
