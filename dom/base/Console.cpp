@@ -994,6 +994,18 @@ Console::ProcessCallData(ConsoleCallData* aData)
     event.mCounter = IncreaseCounter(cx, frame, aData->mArguments);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  JSAutoCompartment ac2(cx, xpc::GetJunkScope());
+
   JS::Rooted<JS::Value> eventValue(cx);
   if (!event.ToObject(cx, &eventValue)) {
     Throw(cx, NS_ERROR_FAILURE);
