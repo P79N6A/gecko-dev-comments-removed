@@ -129,11 +129,6 @@ public:
   
 
 
-  virtual void Init();
-
-  
-
-
   virtual void Description(nsString& aDescription);
 
   

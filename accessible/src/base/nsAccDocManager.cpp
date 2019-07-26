@@ -384,7 +384,6 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
   mDocAccessibleCache.Put(aDocument, docAcc);
 
   
-  docAcc->Init();
   docAcc->SetRoleMapEntry(aria::GetRoleMap(aDocument));
 
   

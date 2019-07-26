@@ -107,6 +107,49 @@ DocAccessible::
   
   mIsCursorable = (!(mDocument->GetParentDocument()) ||
                    nsCoreUtils::IsTabDocument(mDocument));
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eDocCreate))
+    logging::DocCreate("document initialize", mDocument, this);
+#endif
+
+  
+  mNotificationController = new NotificationController(this, mPresShell);
+
+  
+  
+  
+  if (mDocument->GetReadyStateEnum() == nsIDocument::READYSTATE_COMPLETE)
+    mLoadState |= eDOMLoaded;
+
+  nsCOMPtr<nsISupports> container = mDocument->GetContainer();
+  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(do_QueryInterface(container));
+
+  
+  
+  int32_t itemType;
+  docShellTreeItem->GetItemType(&itemType);
+
+  bool isContent = (itemType == nsIDocShellTreeItem::typeContent);
+  if (isContent) {
+    nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
+    if (commandManager)
+      commandManager->AddCommandObserver(this, "obs_documentCreated");
+  }
+
+  a11y::RootAccessible* rootAccessible = RootAccessible();
+
+  
+  
+  
+  
+  if (rootAccessible) {
+    nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
+    if (caretAccessible)
+      caretAccessible->AddDocSelectionListener(mPresShell);
+  }
+
+  
+  mDocument->AddObserver(this);
 }
 
 DocAccessible::~DocAccessible()
@@ -583,26 +626,6 @@ DocAccessible::GetAccessible(nsINode* aNode) const
 
 
 void
-DocAccessible::Init()
-{
-#ifdef A11Y_LOG
-  if (logging::IsEnabled(logging::eDocCreate))
-    logging::DocCreate("document initialize", mDocument, this);
-#endif
-
-  
-  mNotificationController = new NotificationController(this, mPresShell);
-
-  
-  
-  
-  if (mDocument->GetReadyStateEnum() == nsIDocument::READYSTATE_COMPLETE)
-    mLoadState |= eDOMLoaded;
-
-  AddEventListeners();
-}
-
-void
 DocAccessible::Shutdown()
 {
   if (!mPresShell) 
@@ -711,50 +734,6 @@ DocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
 
     document = parentDoc = document->GetParentDocument();
   }
-}
-
-
-nsresult
-DocAccessible::AddEventListeners()
-{
-  
-  
-
-  NS_ENSURE_TRUE(mPresShell, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsISupports> container = mDocument->GetContainer();
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(do_QueryInterface(container));
-  NS_ENSURE_TRUE(docShellTreeItem, NS_ERROR_FAILURE);
-
-  
-  
-  int32_t itemType;
-  docShellTreeItem->GetItemType(&itemType);
-
-  bool isContent = (itemType == nsIDocShellTreeItem::typeContent);
-
-  if (isContent) {
-    
-    nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
-    if (commandManager) {
-      commandManager->AddCommandObserver(this, "obs_documentCreated");
-    }
-  }
-
-  nsCOMPtr<nsIDocShellTreeItem> rootTreeItem;
-  docShellTreeItem->GetRootTreeItem(getter_AddRefs(rootTreeItem));
-  if (rootTreeItem) {
-    a11y::RootAccessible* rootAccessible = RootAccessible();
-    NS_ENSURE_TRUE(rootAccessible, NS_ERROR_FAILURE);
-    nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
-    if (caretAccessible) {
-      caretAccessible->AddDocSelectionListener(mPresShell);
-    }
-  }
-
-  
-  mDocument->AddObserver(this);
-  return NS_OK;
 }
 
 
@@ -1387,9 +1366,6 @@ DocAccessible::BindToDocument(Accessible* aAccessible,
 
   
   mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible);
-
-  
-  aAccessible->Init();
 
   aAccessible->SetRoleMapEntry(aRoleMapEntry);
   if (aAccessible->IsElement())
