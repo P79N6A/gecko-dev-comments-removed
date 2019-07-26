@@ -3086,7 +3086,7 @@ pref("font.single-face-list", "Osaka-Mono");
 
 
 
-pref("font.preload-names-list", "Hiragino Kaku Gothic Pro,Hiragino Mincho Pro,STSong");
+pref("font.preload-names-list", "Hiragino Kaku Gothic ProN,Hiragino Mincho ProN,STSong");
 
 
 
