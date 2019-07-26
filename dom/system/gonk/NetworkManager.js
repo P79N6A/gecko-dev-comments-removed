@@ -228,8 +228,6 @@ NetworkManager.prototype = {
               gNetworkService.addHostRoute(network);
             }
             
-            this.setExtraHostRoute(network);
-            
             
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN) {
               this.setSecondaryDefaultRoute(network);
@@ -240,6 +238,12 @@ NetworkManager.prototype = {
             gNetworkService.removeDefaultRoute(network);
             this.setAndConfigureActive();
 #ifdef MOZ_B2G_RIL
+            
+            
+            
+            
+            this.setExtraHostRoute(network);
+
             
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
               for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
@@ -684,7 +688,9 @@ NetworkManager.prototype = {
           retval.push(hostnameIps.getNextAddrAsString());
           debug("Found IP at: " + JSON.stringify(retval));
         }
-      } catch (e) {}
+      } catch (e) {
+        debug("Failed to resolve '" + hostname + "', exception: " + e);
+      }
     }
 
     return retval;
