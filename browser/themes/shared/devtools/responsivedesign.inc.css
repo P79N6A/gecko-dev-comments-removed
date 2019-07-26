@@ -17,6 +17,10 @@
 
 .devtools-responsiveui-toolbar {
   background: transparent;
+  
+
+
+  color: hsl(210,30%,85%);
   margin: 10px 0;
   padding: 0;
   box-shadow: none;
