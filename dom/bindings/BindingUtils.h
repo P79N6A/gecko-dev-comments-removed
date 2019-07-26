@@ -1417,6 +1417,8 @@ WantsQueryInterface<T, true>
 bool
 ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
 
+
+
 bool
 GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                        JS::Handle<jsid> id, bool* found,
@@ -1424,8 +1426,17 @@ GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
 
 bool
 HasPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
-                       DOMProxyHandler* handler,
                        JS::Handle<jsid> id);
+
+
+
+
+
+
+bool
+AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
+                       nsTArray<nsString>& names,
+                       bool shadowPrototypeProperties, JS::AutoIdVector& props);
 
 template<class T>
 class OwningNonNull

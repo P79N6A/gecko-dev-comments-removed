@@ -251,6 +251,7 @@ using mozilla::dom::workers::ResolveWorkerClasses;
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Likely.h"
+#include "WindowNamedPropertiesHandler.h"
 
 #ifdef MOZ_TIME_MANAGER
 #include "TimeManager.h"
@@ -2316,70 +2317,17 @@ nsWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   return SetParentToWindow(win, parentObj);
 }
 
-static JSClass sGlobalScopePolluterClass = {
-  "Global Scope Polluter",
-  JSCLASS_NEW_RESOLVE,
-  JS_PropertyStub,
-  JS_DeletePropertyStub,
-  nsWindowSH::GlobalScopePolluterGetProperty,
-  JS_StrictPropertyStub,
-  JS_EnumerateStub,
-  (JSResolveOp)nsWindowSH::GlobalScopePolluterNewResolve,
-  JS_ConvertStub,
-  nullptr
-};
-
-
-
-bool
-nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JS::Handle<JSObject*> obj,
-                                           JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp)
+NS_IMETHODIMP
+nsWindowSH::PostCreatePrototype(JSContext* aCx, JSObject* aProto)
 {
-  
-  
-
-  nsresult rv =
-    sSecMan->CheckPropertyAccess(cx, ::JS_GetGlobalForObject(cx, obj),
-                                 "Window", id,
-                                 nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
-
-  if (NS_FAILED(rv)) {
-    
-    
-
-    return false;
-  }
-
-  return true;
-}
-
-
-static bool
-ChildWindowGetter(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                  JS::MutableHandle<JS::Value> vp)
-{
-  MOZ_ASSERT(JSID_IS_STRING(id));
-  
-  vp.setUndefined();
-  nsCOMPtr<nsISupports> winSupports =
-    do_QueryInterface(nsDOMClassInfo::XPConnect()->GetNativeOfWrapper(cx, obj));
-  if (!winSupports)
-    return true;
-  nsGlobalWindow *win = nsGlobalWindow::FromSupports(winSupports);
+  nsresult rv = nsDOMClassInfo::PostCreatePrototype(aCx, aProto);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsDependentJSString name(id);
-  nsCOMPtr<nsIDOMWindow> child = win->GetChildWindow(name);
-  if (!child)
-    return true;
-
   
-  JS::Rooted<JS::Value> v(cx);
-  nsresult rv = WrapNative(cx, JS::CurrentGlobalOrNull(cx), child,
-                            true, v.address());
-  NS_ENSURE_SUCCESS(rv, false);
-  vp.set(v);
-  return true;
+  JS::Rooted<JSObject*> proto(aCx, aProto);
+  WindowNamedPropertiesHandler::Install(aCx, proto);
+  return NS_OK;
 }
 
 static nsHTMLDocument*
@@ -2388,177 +2336,6 @@ GetDocument(JSObject *obj)
   MOZ_ASSERT(js::GetObjectJSClass(obj) == &sHTMLDocumentAllClass);
   return static_cast<nsHTMLDocument*>(
     static_cast<nsINode*>(JS_GetPrivate(obj)));
-}
-
-
-bool
-nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JS::Handle<JSObject*> obj,
-                                          JS::Handle<jsid> id, unsigned flags,
-                                          JS::MutableHandle<JSObject*> objp)
-{
-  if (!JSID_IS_STRING(id)) {
-    
-    return true;
-  }
-
-  
-  
-  nsIXPConnect *xpc = XPConnect();
-  NS_ENSURE_TRUE(xpc, true);
-
-  
-  JSObject *global = JS_GetGlobalForObject(cx, obj);
-  nsISupports *globalNative = xpc->GetNativeOfWrapper(cx, global);
-  nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(globalNative);
-  MOZ_ASSERT(piWin);
-  nsGlobalWindow* win = static_cast<nsGlobalWindow*>(piWin.get());
-
-  if (win->GetLength() > 0) {
-    nsDependentJSString name(id);
-    nsCOMPtr<nsIDOMWindow> child_win = win->GetChildWindow(name);
-    if (child_win) {
-      
-      
-      
-      
-      if (!JS_DefinePropertyById(cx, obj, id, JS::UndefinedValue(),
-                                 ChildWindowGetter, JS_StrictPropertyStub,
-                                 JSPROP_SHARED | JSPROP_ENUMERATE))
-      {
-        return false;
-      }
-
-      objp.set(obj);
-      return true;
-    }
-  }
-
-  JS::Rooted<JSObject*> proto(cx);
-  if (!::JS_GetPrototype(cx, obj, &proto)) {
-    return false;
-  }
-  bool hasProp;
-
-  if (!proto || !::JS_HasPropertyById(cx, proto, id, &hasProp) ||
-      hasProp) {
-    
-    
-
-    return true;
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIHTMLDocument> htmlDoc =
-    do_QueryInterface(win->GetExtantDoc());
-  if (!htmlDoc)
-    return true;
-  nsHTMLDocument *document = static_cast<nsHTMLDocument*>(htmlDoc.get());
-
-  nsDependentJSString str(id);
-  nsCOMPtr<nsISupports> result;
-  nsWrapperCache *cache;
-  {
-    Element *element = document->GetElementById(str);
-    result = element;
-    cache = element;
-  }
-
-  if (!result) {
-    result = document->ResolveName(str, &cache);
-  }
-
-  if (result) {
-    JS::Rooted<JS::Value> v(cx);
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    nsresult rv = WrapNative(cx, obj, result, cache, true, v.address(),
-                             getter_AddRefs(holder));
-    NS_ENSURE_SUCCESS(rv, false);
-
-    if (!JS_WrapValue(cx, v.address()) ||
-        !JS_DefinePropertyById(cx, obj, id, v, JS_PropertyStub, JS_StrictPropertyStub, 0)) {
-      return false;
-    }
-
-    objp.set(obj);
-  }
-
-  return true;
-}
-
-
-bool
-nsWindowSH::InvalidateGlobalScopePolluter(JSContext *cx,
-                                          JS::Handle<JSObject*> aObj)
-{
-  JS::Rooted<JSObject*> proto(cx);
-  JS::Rooted<JSObject*> obj(cx, aObj);
-
-  for (;;) {
-    if (!::JS_GetPrototype(cx, obj, &proto)) {
-      return false;
-    }
-    if (!proto) {
-      break;
-    }
-
-    if (JS_GetClass(proto) == &sGlobalScopePolluterClass) {
-
-      JS::Rooted<JSObject*> proto_proto(cx);
-      if (!::JS_GetPrototype(cx, proto, &proto_proto)) {
-        return false;
-      }
-
-      
-      
-      ::JS_SplicePrototype(cx, obj, proto_proto);
-
-      break;
-    }
-
-    obj = proto;
-  }
-
-  return true;
-}
-
-
-nsresult
-nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JS::Handle<JSObject*> obj)
-{
-  JS::Rooted<JSObject*> gsp(cx, ::JS_NewObjectWithUniqueType(cx, &sGlobalScopePolluterClass, nullptr, obj));
-  if (!gsp) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  JS::Rooted<JSObject*> o(cx, obj), proto(cx);
-
-  
-  
-
-  for (;;) {
-    if (!::JS_GetPrototype(cx, o, &proto)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    if (!proto) {
-      break;
-    }
-    if (JS_GetClass(proto) == sObjectClass) {
-      
-      ::JS_SplicePrototype(cx, gsp, proto);
-
-      break;
-    }
-
-    o = proto;
-  }
-
-  
-  
-  ::JS_SplicePrototype(cx, o, gsp);
-
-  return NS_OK;
 }
 
 struct ResolveGlobalNameClosure
