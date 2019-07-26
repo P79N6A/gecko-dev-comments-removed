@@ -113,7 +113,7 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
           
           
           
-          tmpStr.AssignLiteral("url(about:invalid)");
+          tmpStr.AssignLiteral(MOZ_UTF16("url(about:invalid)"));
         }
         break;
       }
