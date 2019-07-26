@@ -240,6 +240,10 @@ public:
 
 
   
+  virtual JSObject*
+  WrapNode(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
+
+  
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
   virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
 
@@ -372,13 +376,6 @@ public:
   {
     return mOptions;
   }
-
-  static HTMLSelectElement* FromSupports(nsISupports* aSupports)
-  {
-    return static_cast<HTMLSelectElement*>(static_cast<nsINode*>(aSupports));
-  }
-
-  virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
