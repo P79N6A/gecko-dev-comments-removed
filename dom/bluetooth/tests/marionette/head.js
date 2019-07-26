@@ -35,6 +35,9 @@ const BDADDR_ANY   = "00:00:00:00:00:00";
 const BDADDR_ALL   = "ff:ff:ff:ff:ff:ff";
 const BDADDR_LOCAL = "ff:ff:ff:00:00:00";
 
+
+const REMOTE_DEVICE_NAME = "Remote BT Device";
+
 let Promise =
   SpecialPowers.Cu.import("resource://gre/modules/Promise.jsm").Promise;
 
@@ -95,6 +98,70 @@ function runEmulatorCmdSafe(aCommand) {
 
 
 
+function addEmulatorRemoteDevice(aProperties) {
+  let address;
+  let promise = runEmulatorCmdSafe("bt remote add")
+    .then(function(aResults) {
+      address = aResults[0].toUpperCase();
+    });
+
+  for (let key in aProperties) {
+    let value = aProperties[key];
+    let propertyName = key;
+    promise = promise.then(function() {
+      return setEmulatorDeviceProperty(address, propertyName, value);
+    });
+  }
+
+  return promise.then(function() {
+    return address;
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function removeEmulatorRemoteDevice(aAddress) {
+  let cmd = "bt remote remove " + aAddress;
+  return runEmulatorCmdSafe(cmd)
+    .then(function(aResults) {
+      
+      
+      return aResults.slice(0, -1);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function setEmulatorDeviceProperty(aAddress, aPropertyName, aValue) {
   let cmd = "bt property " + aAddress + " " + aPropertyName + " " + aValue;
@@ -124,6 +191,71 @@ function getEmulatorDeviceProperty(aAddress, aPropertyName) {
     .then(function(aResults) {
       return aResults[0];
     });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startDiscovery(aAdapter) {
+  let deferred = Promise.defer();
+
+  let request = aAdapter.startDiscovery();
+  request.onsuccess = function () {
+    log("  Start discovery - Success");
+    
+    
+    
+    
+    deferred.resolve();
+  }
+  request.onerror = function (aEvent) {
+    ok(false, "Start discovery - Fail");
+    deferred.reject(aEvent.target.error);
+  }
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function stopDiscovery(aAdapter) {
+  let deferred = Promise.defer();
+
+  let request = aAdapter.stopDiscovery();
+  request.onsuccess = function () {
+    log("  Stop discovery - Success");
+    
+    
+    
+    
+    deferred.resolve();
+  }
+  request.onerror = function (aEvent) {
+    ok(false, "Stop discovery - Fail");
+    deferred.reject(aEvent.target.error);
+  }
+  return deferred.promise;
 }
 
 
