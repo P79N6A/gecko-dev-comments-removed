@@ -498,34 +498,27 @@ bool
 TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned errorNumber,
                                         va_list args)
 {
-    bool strict = JSREPORT_IS_STRICT(flags);
     bool warning = JSREPORT_IS_WARNING(flags);
-
-    
-    
-    if (strict && warning && (!cx->hasStrictOption() || errorNumber == JSMSG_STRICT_CODE_WITH))
-        return true;
 
     if (warning && cx->hasWErrorOption()) {
         flags &= ~JSREPORT_WARNING;
         warning = false;
     }
 
-    CompileError normalError(cx);
-    CompileError *err = &normalError;
+    CompileError err(cx);
 
     const TokenPos *const tp = pn ? &pn->pn_pos : &currentToken().pos;
 
-    err->report.flags = flags;
-    err->report.errorNumber = errorNumber;
-    err->report.filename = filename;
-    err->report.originPrincipals = originPrincipals;
-    err->report.lineno = tp->begin.lineno;
+    err.report.flags = flags;
+    err.report.errorNumber = errorNumber;
+    err.report.filename = filename;
+    err.report.originPrincipals = originPrincipals;
+    err.report.lineno = tp->begin.lineno;
 
-    err->hasCharArgs = !(flags & JSREPORT_UC);
+    err.hasCharArgs = !(flags & JSREPORT_UC);
 
-    if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, NULL, errorNumber, &err->message, &err->report,
-                                 err->hasCharArgs, args)) {
+    if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, NULL, errorNumber, &err.message, &err.report,
+                                 err.hasCharArgs, args)) {
         return false;
     }
 
@@ -539,7 +532,7 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
 
 
 
-    if (err->report.lineno == lineno) {
+    if (err.report.lineno == lineno) {
         const jschar *tokptr = linebase + tp->begin.index;
 
         
@@ -568,23 +561,20 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
 
         
         
-        err->report.uclinebuf = windowBuf.extractWellSized();
-        if (!err->report.uclinebuf)
+        err.report.uclinebuf = windowBuf.extractWellSized();
+        if (!err.report.uclinebuf)
             return false;
-        err->report.linebuf = DeflateString(cx, err->report.uclinebuf, windowLength);
-        if (!err->report.linebuf)
+        err.report.linebuf = DeflateString(cx, err.report.uclinebuf, windowLength);
+        if (!err.report.linebuf)
             return false;
 
         
         JS_ASSERT(tp->begin.lineno == tp->end.lineno);
-        err->report.tokenptr = err->report.linebuf + windowIndex;
-        err->report.uctokenptr = err->report.uclinebuf + windowIndex;
+        err.report.tokenptr = err.report.linebuf + windowIndex;
+        err.report.uctokenptr = err.report.uclinebuf + windowIndex;
     }
 
-    if (err == &normalError)
-        err->throwError();
-    else
-        return true;
+    err.throwError();
 
     return warning;
 }

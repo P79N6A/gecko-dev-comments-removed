@@ -155,11 +155,6 @@ struct ParseContext
 
 
 
-    
-    
-    
-    CompileError    *queuedStrictModeError;
-
   private:
     ParseContext    **parserPC;     
 
@@ -207,8 +202,6 @@ struct ParseContext
     inline ~ParseContext();
 
     inline bool init();
-
-    inline void setQueuedStrictModeError(CompileError *e);
 
     unsigned blockid();
 
