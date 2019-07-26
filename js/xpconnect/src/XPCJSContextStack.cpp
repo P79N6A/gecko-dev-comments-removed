@@ -175,7 +175,6 @@ XPCJSContextStack::InitSafeJSContext()
     if (!mSafeJSContext)
         MOZ_CRASH();
     JSAutoRequest req(mSafeJSContext);
-    ContextOptionsRef(mSafeJSContext).setNoDefaultCompartmentObject(true);
 
     JS_SetErrorReporter(mSafeJSContext, xpc::SystemErrorReporter);
 
@@ -187,6 +186,10 @@ XPCJSContextStack::InitSafeJSContext()
     if (!mSafeJSContextGlobal)
         MOZ_CRASH();
     JS_AddNamedObjectRoot(mSafeJSContext, &mSafeJSContextGlobal, "SafeJSContext global");
+
+    
+    
+    js::SetDefaultObjectForContext(mSafeJSContext, mSafeJSContextGlobal);
 
     
     
