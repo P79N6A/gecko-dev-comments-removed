@@ -32,13 +32,33 @@ function checkContextUIMenuItemCount(aCount)
   is(visibleCount, aCount, "command list count");
 }
 
+function checkContextUIMenuItemVisibility(aVisibleList)
+{
+  let errors = 0;
+  for (let idx = 0; idx < ContextMenuUI._commands.childNodes.length; idx++) {
+    let item = ContextMenuUI._commands.childNodes[idx];
+    if (aVisibleList.indexOf(item.id) != -1 && item.hidden) {
+      
+      errors++;
+      info("should be visible:" + item.id);
+    } else if (aVisibleList.indexOf(item.id) == -1 && !item.hidden) {
+      
+      errors++;
+      info("should be hidden:" + item.id);
+    }
+  }
+  is(errors, 0, "context menu item list visibility");
+}
+
 
 
 
 
 function hideContextUI()
 {
+  purgeEventQueue();
   if (ContextUI.isVisible) {
+    info("is visible, waiting...");
     let promise = waitForEvent(Elements.tray, "transitionend");
     ContextUI.dismiss();
     return promise;
@@ -93,6 +113,7 @@ function addTab(aUrl) {
 
 
 function waitForEvent(aSubject, aEventName, aTimeoutMs) {
+  info("waitForEvent: on " + aSubject + " event: " + aEventName);
   let eventDeferred = Promise.defer();
   let timeoutMs = aTimeoutMs || kDefaultWait;
   let timerID = setTimeout(function wfe_canceller() {
@@ -187,6 +208,23 @@ function waitForCondition(aCondition, aTimeoutMs, aIntervalMs) {
 
   setTimeout(testCondition, 0);
   return deferred.promise;
+}
+
+
+
+
+
+
+
+
+function waitForImageLoad(aWindow, aImageId) {
+  let elem = aWindow.document.getElementById(aImageId);
+  return waitForCondition(function () {
+    let request = elem.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
+    if (request && (request.imageStatus & request.STATUS_SIZE_AVAILABLE))
+      return true;
+    return false;
+  }, 5000, 100);
 }
 
 
@@ -336,6 +374,14 @@ function sendContextMenuClick(aWindow, aX, aY) {
                       .getInterface(Components.interfaces.nsIDOMWindowUtils);
 
   utils.sendMouseEventToWindow("contextmenu", aX, aY, 2, 1, 0, true,
+                                1, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
+}
+
+function sendContextMenuClickToElement(aWindow, aElement, aX, aY) {
+  let utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+  let rect = aElement.getBoundingClientRect();
+  utils.sendMouseEventToWindow("contextmenu", rect.left + aX, rect.top + aY, 2, 1, 0, true,
                                 1, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
 }
 

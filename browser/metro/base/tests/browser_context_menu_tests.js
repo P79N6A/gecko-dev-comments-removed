@@ -21,6 +21,226 @@ function debugClipFlavors(aClip)
 }
 
 
+function emptyClipboard() {
+  Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard)
+                                       .emptyClipboard(Ci.nsIClipboard.kGlobalClipboard);
+}
+
+
+gTests.push({
+  desc: "text context menu",
+  run: function test() {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+    info(chromeRoot + "browser_context_menu_tests_02.html");
+    yield addTab(chromeRoot + "browser_context_menu_tests_02.html");
+
+    purgeEventQueue();
+
+    let win = Browser.selectedTab.browser.contentWindow;
+
+    yield hideContextUI();
+
+    
+    
+
+    
+    let span = win.document.getElementById("text1");
+    win.getSelection().selectAllChildren(span);
+
+    
+    let promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, span, 85, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    checkContextUIMenuItemVisibility(["context-copy",
+                                      "context-search"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+    win.getSelection().removeAllRanges();
+
+    
+    
+
+    
+    let link = win.document.getElementById("text2-link");
+    win.getSelection().selectAllChildren(link);
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, link, 40, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    checkContextUIMenuItemVisibility(["context-copy",
+                                      "context-search",
+                                      "context-open-in-new-tab",
+                                      "context-copy-link"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+    win.getSelection().removeAllRanges();
+
+    
+    
+
+    link = win.document.getElementById("text2-link");
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, link, 40, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    checkContextUIMenuItemVisibility(["context-open-in-new-tab",
+                                      "context-copy-link",
+                                      "context-bookmark-link"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    
+
+    emptyClipboard();
+
+    let input = win.document.getElementById("text3-input");
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, input, 20, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    checkContextUIMenuItemVisibility(["context-copy",
+                                      "context-select",
+                                      "context-select-all"]);
+
+    
+    let menuItem = document.getElementById("context-copy");
+    ok(menuItem, "menu item exists");
+    ok(!menuItem.hidden, "menu item visible");
+
+    let popupPromise = waitForEvent(document, "popuphidden");
+    EventUtils.synthesizeMouse(menuItem, 10, 10, {}, win);
+    yield popupPromise;
+    ok(popupPromise && !(popupPromise instanceof Error), "promise error");
+    let string = SpecialPowers.getClipboardData("text/unicode");
+    ok(string, "hello, I'm sorry but I must be going.", "copy all");
+
+    emptyClipboard();
+
+    
+    
+
+    input = win.document.getElementById("text3-input");
+    input.select();
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, input, 20, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    checkContextUIMenuItemVisibility(["context-copy",
+                                      "context-search"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    
+
+    SpecialPowers.clipboardCopyString("foo");
+    input = win.document.getElementById("text3-input");
+    input.select();
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, input, 20, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    checkContextUIMenuItemVisibility(["context-copy",
+                                      "context-search",
+                                      "context-paste"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    
+
+    SpecialPowers.clipboardCopyString("foo");
+    input = win.document.getElementById("text3-input");
+    input.value = "";
+
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(win, input, 20, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    checkContextUIMenuItemVisibility(["context-paste"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    
+
+    emptyClipboard();
+
+    input = win.document.getElementById("text3-input");
+    input.value = "";
+
+    promise = waitForEvent(Elements.tray, "transitionend");
+    sendContextMenuClickToElement(win, input, 20, 10);
+    yield promise;
+    ok(promise && !(promise instanceof Error), "promise error");
+
+    
+    ok(!ContextMenuUI._menuPopup._visible, "is visible");
+
+    
+    yield hideContextUI();
+
+    Browser.closeTab(Browser.selectedTab);
+    purgeEventQueue();
+  }
+});
+
+
 gTests.push({
   desc: "image context menu",
   run: function test() {
@@ -31,7 +251,13 @@ gTests.push({
 
     let win = Browser.selectedTab.browser.contentWindow;
 
+    purgeEventQueue();
+
     yield hideContextUI();
+
+    
+    
+    yield waitForImageLoad(win, "image01");
 
     
     
@@ -46,7 +272,10 @@ gTests.push({
 
     ok(ContextMenuUI._menuPopup._visible, "is visible");
 
-    checkContextUIMenuItemCount(4);
+    checkContextUIMenuItemVisibility(["context-save-image-lib",
+                                      "context-copy-image",
+                                      "context-copy-image-loc",
+                                      "context-open-image-tab"]);
 
     
     
@@ -85,7 +314,7 @@ gTests.push({
     
 
     let promise = waitForEvent(document, "popupshown");
-    sendContextMenuClick(win, 30, 30);
+    sendContextMenuClick(win, 20, 20);
     yield promise;
     ok(promise && !(promise instanceof Error), "promise error");
     ok(ContextMenuUI._menuPopup._visible, "is visible");
@@ -102,13 +331,13 @@ gTests.push({
 
     let clip = Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
     let flavors = ["image/png"];
-    ok(clip.hasDataMatchingFlavors(flavors, flavors.length, Ci.nsIClipboard.kGlobalClipboard), "clip has my flavor");
+    ok(clip.hasDataMatchingFlavors(flavors, flavors.length, Ci.nsIClipboard.kGlobalClipboard), "clip has my png flavor");
 
     
     
 
     promise = waitForEvent(document, "popupshown");
-    sendContextMenuClick(win, 60, 60);
+    sendContextMenuClick(win, 30, 30);
     yield promise;
     ok(promise && !(promise instanceof Error), "promise error");
     ok(ContextMenuUI._menuPopup._visible, "is visible");
@@ -125,7 +354,7 @@ gTests.push({
 
     let clip = Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
     let flavors = ["text/unicode"];
-    ok(clip.hasDataMatchingFlavors(flavors, flavors.length, Ci.nsIClipboard.kGlobalClipboard), "clip has my flavor");
+    ok(clip.hasDataMatchingFlavors(flavors, flavors.length, Ci.nsIClipboard.kGlobalClipboard), "clip has my text flavor");
 
     let xfer = Cc["@mozilla.org/widget/transferable;1"].
                createInstance(Ci.nsITransferable);
@@ -142,7 +371,7 @@ gTests.push({
     
 
     promise = waitForEvent(document, "popupshown");
-    sendContextMenuClick(win, 60, 60);
+    sendContextMenuClick(win, 40, 40);
     yield promise;
     ok(promise && !(promise instanceof Error), "promise error");
     ok(ContextMenuUI._menuPopup._visible, "is visible");
