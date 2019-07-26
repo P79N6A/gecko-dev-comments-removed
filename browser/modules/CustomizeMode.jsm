@@ -493,16 +493,6 @@ CustomizeMode.prototype = {
 
     
     
-    let placement = CustomizableUI.getPlacementOfWidget(targetNode.firstChild.id);
-    if (!placement) {
-      ERROR("Could not get a position for " + targetNode.firstChild.id);
-      return;
-    }
-
-    let position = placement.position;
-
-    
-    
     if (targetArea.id === kPaletteId) {
       if (originArea.id !== kPaletteId) {
         this._removeParentFlex(draggedWrapper);
@@ -519,6 +509,16 @@ CustomizeMode.prototype = {
       }
       return;
     }
+
+    
+    
+    let placement = CustomizableUI.getPlacementOfWidget(targetNode.firstChild.id);
+    if (!placement) {
+      ERROR("Could not get a position for " + targetNode.firstChild.id);
+      return;
+    }
+
+    let position = placement.position;
 
     
     
