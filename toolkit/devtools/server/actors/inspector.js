@@ -983,7 +983,7 @@ var WalkerActor = protocol.ActorClass({
     let node = actor.rawNode;
     
     
-    actor.observer = new actor.rawNode.defaultView.MutationObserver(this.onMutations);
+    actor.observer = actor.rawNode.defaultView.MutationObserver(this.onMutations);
     actor.observer.observe(node, {
       attributes: true,
       characterData: true,
@@ -2054,9 +2054,49 @@ var WalkerActor = protocol.ActorClass({
 
 
 
+
+
+  _isInDOMTree: function(rawNode) {
+    let walker = documentWalker(rawNode, this.rootWin);
+    let current = walker.currentNode;
+
+    
+    while (walker.parentNode()) {
+      current = walker.currentNode;
+    }
+
+    
+    
+    if (current.nodeType === Ci.nsIDOMNode.DOCUMENT_FRAGMENT_NODE ||
+        current !== this.rootDoc) {
+      return false;
+    }
+
+    
+    return true;
+  },
+
+  
+
+
+  isInDOMTree: method(function(node) {
+    return node ? this._isInDOMTree(node.rawNode) : false;
+  }, {
+    request: { node: Arg(0, "domnode") },
+    response: { attached: RetVal("boolean") }
+  }),
+
+  
+
+
+
   getNodeActorFromObjectActor: method(function(objectActorID) {
-    let debuggerObject = this.conn.poolFor(objectActorID).get(objectActorID).obj;
+    let debuggerObject = this.conn.getActor(objectActorID).obj;
     let rawNode = debuggerObject.unsafeDereference();
+
+    if (!this._isInDOMTree(rawNode)) {
+      return null;
+    }
 
     
     
@@ -2070,7 +2110,7 @@ var WalkerActor = protocol.ActorClass({
       objectActorID: Arg(0, "string")
     },
     response: {
-      nodeFront: RetVal("disconnectedNode")
+      nodeFront: RetVal("nullable:disconnectedNode")
     }
   }),
 });
@@ -2208,7 +2248,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
 
   getNodeActorFromObjectActor: protocol.custom(function(objectActorID) {
     return this._getNodeActorFromObjectActor(objectActorID).then(response => {
-      return response.node;
+      return response ? response.node : null;
     });
   }, {
     impl: "_getNodeActorFromObjectActor"
