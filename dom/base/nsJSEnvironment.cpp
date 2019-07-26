@@ -2923,6 +2923,21 @@ mozilla::dom::ShutdownJSEnvironment()
   sDidShutdown = true;
 }
 
+void
+mozilla::dom::TraceOuterWindows(JSTracer* aTracer)
+{
+  MOZ_ASSERT_IF(JS_IsGCMarkingTracer(aTracer), JS_IsMarkingGray(aTracer));
+  for (nsJSContext* cx = sContextList; cx; cx = cx->mNext) {
+    JSObject* outer;
+    if (cx->mContext &&
+        (outer = js::DefaultObjectForContextOrNull(cx->mContext)))
+    {
+      JS::AssertGCThingMustBeTenured(outer);
+      JS_CallObjectTracer(aTracer, &outer, "Outer Window");
+    }
+  }
+}
+
 
 
 
