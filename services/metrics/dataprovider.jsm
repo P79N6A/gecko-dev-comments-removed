@@ -508,23 +508,6 @@ Provider.prototype = Object.freeze({
     return m;
   },
 
-  
-
-
-
-
-
-
-
-
-  initPreferences: function (branchParent) {
-    if (!branchParent.endsWith(".")) {
-      throw new Error("branchParent must end with '.': " + branchParent);
-    }
-
-    this._prefs = new Preferences(branchParent + this.name + ".");
-  },
-
   init: function (storage) {
     if (this.storage !== null) {
       throw new Error("Provider() not called. Did the sub-type forget to call it?");
