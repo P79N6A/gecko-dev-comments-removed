@@ -57,8 +57,8 @@ public:
 
   
   
-  nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup,
-                mozilla::image::Image* aImage,
+  nsresult Init(imgStatusTracker* aStatusTracker,
+                nsILoadGroup *aLoadGroup,
                 nsIURI* aURI, imgIDecoderObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
@@ -191,6 +191,9 @@ private:
   
   
   nsRefPtr<imgRequest> mOwner;
+
+  
+  imgStatusTracker* mStatusTracker;
 
   
   nsCOMPtr<nsIURI> mURI;
