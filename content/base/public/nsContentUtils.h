@@ -2195,6 +2195,7 @@ typedef nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace>
 class NS_STACK_CLASS nsCxPusher
 {
 public:
+  enum PushBehavior { ALWAYS_PUSH, REQUIRE_SCRIPT_CONTEXT, ASSERT_SCRIPT_CONTEXT };
   nsCxPusher();
   ~nsCxPusher(); 
 
@@ -2205,7 +2206,7 @@ public:
   bool RePush(nsIDOMEventTarget *aCurrentTarget);
   
   
-  bool Push(JSContext *cx, bool aRequiresScriptContext = true);
+  bool Push(JSContext *cx, PushBehavior behavior);
   
   bool PushNull();
 

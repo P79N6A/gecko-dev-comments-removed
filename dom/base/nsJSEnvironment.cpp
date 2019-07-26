@@ -1260,7 +1260,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   nsCxPusher pusher;
-  if (!pusher.Push(mContext))
+  if (!pusher.Push(mContext, nsCxPusher::ASSERT_SCRIPT_CONTEXT))
     return NS_ERROR_FAILURE;
 
   xpc_UnmarkGrayObject(&aScopeObject);
@@ -1515,7 +1515,7 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
   
 
   nsCxPusher pusher;
-  if (!pusher.Push(mContext, true))
+  if (!pusher.Push(mContext, nsCxPusher::ASSERT_SCRIPT_CONTEXT))
     return NS_ERROR_FAILURE;
 
   
