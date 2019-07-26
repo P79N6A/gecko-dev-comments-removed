@@ -71,7 +71,7 @@ typedef size_t (*PLMallocSizeFn)(const void *ptr);
 
 
 PR_EXTERN(size_t) PL_SizeOfArenaPoolExcludingPool(
-    PLArenaPool *pool, PLMallocSizeFn mallocSizeOf);
+    const PLArenaPool *pool, PLMallocSizeFn mallocSizeOf);
 
 PR_END_EXTERN_C
 
