@@ -399,7 +399,7 @@ array_length_setter(JSContext *cx, HandleObject obj, HandleId id, bool strict, M
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
     MOZ_ASSERT(arr->lengthIsWritable(),
                "setter shouldn't be called if property is non-writable");
-    return ArraySetLength(cx, arr, id, JSPROP_PERMANENT, vp, strict);
+    return ArraySetLength<SequentialExecution>(cx, arr, id, JSPROP_PERMANENT, vp, strict);
 }
 
 struct ReverseIndexComparator
@@ -411,15 +411,30 @@ struct ReverseIndexComparator
     }
 };
 
+template <ExecutionMode mode>
 bool
-js::CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *newLen)
+js::CanonicalizeArrayLengthValue(typename ExecutionModeTraits<mode>::ContextType cx,
+                                 HandleValue v, uint32_t *newLen)
 {
-    if (!ToUint32(cx, v, newLen))
-        return false;
-
     double d;
-    if (!ToNumber(cx, v, &d))
-        return false;
+
+    if (mode == ParallelExecution) {
+        if (v.isObject())
+            return false;
+
+        if (!NonObjectToUint32(cx, v, newLen))
+            return false;
+
+        if (!NonObjectToNumber(cx, v, &d))
+            return false;
+    } else {
+        if (!ToUint32(cx->asJSContext(), v, newLen))
+            return false;
+
+        if (!ToNumber(cx->asJSContext(), v, &d))
+            return false;
+    }
+
     if (d == *newLen)
         return true;
 
@@ -429,18 +444,28 @@ js::CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *newLen)
     return false;
 }
 
+template bool
+js::CanonicalizeArrayLengthValue<SequentialExecution>(JSContext *cx,
+                                                      HandleValue v, uint32_t *newLen);
+template bool
+js::CanonicalizeArrayLengthValue<ParallelExecution>(ForkJoinSlice *slice,
+                                                    HandleValue v, uint32_t *newLen);
 
+
+template <ExecutionMode mode>
 bool
-js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigned attrs,
-                   HandleValue value, bool setterIsStrict)
+js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
+                   Handle<ArrayObject*> arr, HandleId id,
+                   unsigned attrs, HandleValue value, bool setterIsStrict)
 {
-    MOZ_ASSERT(id == NameToId(cx->names().length));
+    MOZ_ASSERT(cxArg->isThreadLocal(arr));
+    MOZ_ASSERT(id == NameToId(cxArg->names().length));
 
     
 
     
     uint32_t newLen;
-    if (!CanonicalizeArrayLengthValue(cx, value, &newLen))
+    if (!CanonicalizeArrayLengthValue<mode>(cxArg, value, &newLen))
         return false;
 
     
@@ -455,14 +480,18 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
     if (!(attrs & JSPROP_PERMANENT) || (attrs & JSPROP_ENUMERATE)) {
         if (!setterIsStrict)
             return true;
-        return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
+        
+        
+        if (mode == ParallelExecution)
+            return false;
+        return Throw(cxArg->asJSContext(), id, JSMSG_CANT_REDEFINE_PROP);
     }
 
     
     bool lengthIsWritable = arr->lengthIsWritable();
 #ifdef DEBUG
     {
-        RootedShape lengthShape(cx, arr->nativeLookup(cx, id));
+        RootedShape lengthShape(cxArg, arr->nativeLookupPure(id));
         MOZ_ASSERT(lengthShape);
         MOZ_ASSERT(lengthShape->writable() == lengthIsWritable);
     }
@@ -475,16 +504,17 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
         if (newLen == oldLen)
             return true;
 
-        if (!cx->isJSContext())
+        if (!cxArg->isJSContext())
             return false;
 
         if (setterIsStrict) {
-            return JS_ReportErrorFlagsAndNumber(cx->asJSContext(),
+            return JS_ReportErrorFlagsAndNumber(cxArg->asJSContext(),
                                                 JSREPORT_ERROR, js_GetErrorMessage, nullptr,
                                                 JSMSG_CANT_REDEFINE_ARRAY_LENGTH);
         }
 
-        return JSObject::reportReadOnly(cx->asJSContext(), id, JSREPORT_STRICT | JSREPORT_WARNING);
+        return JSObject::reportReadOnly(cxArg->asJSContext(), id,
+                                        JSREPORT_STRICT | JSREPORT_WARNING);
     }
 
     
@@ -512,13 +542,20 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
             if (oldInitializedLength > newLen)
                 arr->setDenseInitializedLength(newLen);
             if (oldCapacity > newLen)
-                arr->shrinkElements(cx, newLen);
+                arr->shrinkElements(cxArg, newLen);
 
             
             
             
             break;
         }
+
+        
+        
+        if (mode == ParallelExecution)
+            return false;
+
+        JSContext *cx = cxArg->asJSContext();
 
         
         
@@ -628,17 +665,29 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
     
     
     
-    RootedShape lengthShape(cx, arr->nativeLookup(cx, id));
-    if (!JSObject::changeProperty(cx, arr, lengthShape, attrs,
-                                  JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_SHARED,
-                                  array_length_getter, array_length_setter))
+    RootedShape lengthShape(cxArg, mode == ParallelExecution
+                            ? arr->nativeLookupPure(id)
+                            : arr->nativeLookup(cxArg->asJSContext(), id));
+    if (!JSObject::changeProperty<mode>(cxArg, arr, lengthShape, attrs,
+                                        JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_SHARED,
+                                        array_length_getter, array_length_setter))
     {
         return false;
     }
 
-    RootedValue v(cx, NumberValue(newLen));
-    AddTypePropertyId(cx, arr, id, v);
-    ArrayObject::setLength(cx, arr, newLen);
+    RootedValue v(cxArg, NumberValue(newLen));
+    if (mode == ParallelExecution) {
+        
+        
+        if (!HasTypePropertyId(arr, id, v) || newLen > INT32_MAX)
+            return false;
+        arr->setLengthInt32(newLen);
+    } else {
+        JSContext *cx = cxArg->asJSContext();
+        AddTypePropertyId(cx, arr, id, v);
+        ArrayObject::setLength(cx, arr, newLen);
+    }
+
 
     
     
@@ -659,12 +708,15 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
         
         
         if (arr->getDenseCapacity() > newLen) {
-            arr->shrinkElements(cx, newLen);
+            arr->shrinkElements(cxArg, newLen);
             arr->getElementsHeader()->capacity = newLen;
         }
     }
 
     if (setterIsStrict && !succeeded) {
+        
+        
+        JSContext *cx = cxArg->asJSContext();
         RootedId elementId(cx);
         if (!IndexToId(cx, newLen - 1, &elementId))
             return false;
@@ -673,6 +725,15 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
 
     return true;
 }
+
+template bool
+js::ArraySetLength<SequentialExecution>(JSContext *cx, Handle<ArrayObject*> arr,
+                                        HandleId id, unsigned attrs, HandleValue value,
+                                        bool setterIsStrict);
+template bool
+js::ArraySetLength<ParallelExecution>(ForkJoinSlice *slice, Handle<ArrayObject*> arr,
+                                      HandleId id, unsigned attrs, HandleValue value,
+                                      bool setterIsStrict);
 
 bool
 js::WouldDefinePastNonwritableLength(ThreadSafeContext *cx,

@@ -84,8 +84,12 @@ WouldDefinePastNonwritableLength(ThreadSafeContext *cx,
 
 
 
+
+
+template <ExecutionMode mode>
 extern bool
-CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *canonicalized);
+CanonicalizeArrayLengthValue(typename ExecutionModeTraits<mode>::ContextType cx,
+                             HandleValue v, uint32_t *canonicalized);
 
 extern bool
 GetLengthProperty(JSContext *cx, HandleObject obj, uint32_t *lengthp);

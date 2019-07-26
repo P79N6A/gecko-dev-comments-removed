@@ -676,9 +676,11 @@ class ArrayBufferObject;
 
 
 
+template <ExecutionMode mode>
 extern bool
-ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
-               HandleValue value, bool setterIsStrict);
+ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cx,
+               Handle<ArrayObject*> obj, HandleId id,
+               unsigned attrs, HandleValue value, bool setterIsStrict);
 
 
 
@@ -768,9 +770,11 @@ class ObjectElements
     friend class ArrayBufferObject;
     friend class Nursery;
 
+    template <ExecutionMode mode>
     friend bool
-    ArraySetLength(JSContext *cx, Handle<ArrayObject*> obj, HandleId id, unsigned attrs,
-                   HandleValue value, bool setterIsStrict);
+    ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cx,
+                   Handle<ArrayObject*> obj, HandleId id,
+                   unsigned attrs, HandleValue value, bool setterIsStrict);
 
     
     uint32_t flags;
