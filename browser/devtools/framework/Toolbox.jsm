@@ -18,7 +18,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "CommandUtils",
 
 
 
-Cu.import("resource:///modules/devtools/gcli.jsm");
+Cu.import("resource://gre/modules/devtools/gcli.jsm");
 Cu.import("resource://gre/modules/devtools/Require.jsm");
 
 let Requisition = require('gcli/cli').Requisition;
@@ -233,6 +233,10 @@ Toolbox.prototype = {
 
 
   _buildButtons: function TBOX_buildButtons(frame) {
+    if (this.target.isRemote) {
+      return;
+    }
+
     let toolbarSpec = CommandUtils.getCommandbarSpec("devtools.toolbox.toolbarSpec");
     let environment = { chromeDocument: frame.ownerDocument };
     let requisition = new Requisition(environment);
