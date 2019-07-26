@@ -346,7 +346,7 @@ js::ObjectImpl::numFixedSlotsForCompilation() const
 #ifdef JSGC_GENERATIONAL
     
     
-    if (!isTenured())
+    if (IsInsideNursery(GetGCThingRuntime(this), this))
         return numFixedSlots();
 #endif
     gc::AllocKind kind = tenuredGetAllocKind();
