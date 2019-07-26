@@ -21,7 +21,7 @@ namespace dom {
 
 
 JSObject*
-HTMLTableSectionElement::WrapNode(JSContext *aCx, JSObject *aScope)
+HTMLTableSectionElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
 {
   return HTMLTableSectionElementBinding::Wrap(aCx, aScope, this);
 }
