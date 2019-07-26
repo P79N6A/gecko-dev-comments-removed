@@ -15,7 +15,11 @@ loop.webapp = (function($, TB) {
 
 
 
-  var baseApiUrl = "http://localhost:5000";
+  var sharedModels = loop.shared.models,
+      sharedViews = loop.shared.views,
+      
+      
+      baseServerUrl = "http://localhost:5000";
 
   
 
@@ -32,7 +36,7 @@ loop.webapp = (function($, TB) {
   
 
 
-  var HomeView = loop.shared.views.BaseView.extend({
+  var HomeView = sharedViews.BaseView.extend({
     el: "#home"
   });
 
@@ -40,7 +44,7 @@ loop.webapp = (function($, TB) {
 
 
 
-  var ConversationFormView = loop.shared.views.BaseView.extend({
+  var ConversationFormView = sharedViews.BaseView.extend({
     el: "#conversation-form",
 
     events: {
@@ -57,7 +61,7 @@ loop.webapp = (function($, TB) {
 
     initiate: function(event) {
       event.preventDefault();
-      this.model.initiate(baseApiUrl);
+      this.model.initiate(baseServerUrl);
     }
   });
 
@@ -66,9 +70,9 @@ loop.webapp = (function($, TB) {
 
 
 
-  var Router = Backbone.Router.extend({
+
+  var WebappRouter = loop.shared.router.BaseRouter.extend({
     _conversation: undefined,
-    activeView: undefined,
 
     routes: {
       "": "home",
@@ -107,18 +111,6 @@ loop.webapp = (function($, TB) {
     
 
 
-
-
-    loadView : function(view) {
-      if (this.activeView) {
-        this.activeView.hide();
-      }
-      this.activeView = view.render().show();
-    },
-
-    
-
-
     home: function() {
       this.loadView(new HomeView());
     },
@@ -149,7 +141,10 @@ loop.webapp = (function($, TB) {
         }
       }
       this.loadView(
-        new loop.shared.views.ConversationView({model: this._conversation}));
+        new sharedViews.ConversationView({
+          sdk: TB,
+          model: this._conversation
+        }));
     }
   });
 
@@ -157,8 +152,8 @@ loop.webapp = (function($, TB) {
 
 
   function init() {
-    conversation = new loop.shared.models.ConversationModel();
-    router = new Router({conversation: conversation});
+    conversation = new sharedModels.ConversationModel();
+    router = new WebappRouter({conversation: conversation});
     Backbone.history.start();
   }
 
@@ -166,6 +161,6 @@ loop.webapp = (function($, TB) {
     ConversationFormView: ConversationFormView,
     HomeView: HomeView,
     init: init,
-    Router: Router
+    WebappRouter: WebappRouter
   };
 })(jQuery, window.TB);
