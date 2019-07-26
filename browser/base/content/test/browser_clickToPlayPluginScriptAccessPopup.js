@@ -23,11 +23,15 @@ function test() {
   gTestBrowser.addEventListener("load", pageLoad, true);
   gTestBrowser.addEventListener("PluginScripted", pluginScripted, true);
 
+  
   gNextTestList = [
-    { func: testExpectPopupPart1,
+    
+    { func: testExpectNoPopupPart1,
       url: gHttpTestRoot + "plugin_test_scriptedPopup1.html" },
-    { func: testExpectPopupPart1,
+    
+    { func: testExpectNoPopupPart1,
       url: gHttpTestRoot + "plugin_test_scriptedPopup2.html" },
+    
     { func: testExpectPopupPart1,
       url: gHttpTestRoot + "plugin_test_scriptedPopup3.html" },
     { func: testExpectNoPopupPart1,
