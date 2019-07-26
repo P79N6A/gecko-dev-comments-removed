@@ -4490,8 +4490,6 @@ var ErrorPageEventHandler = {
             errorDoc.location = "about:home";
           }
         } else if (/^about:blocked/.test(errorDoc.documentURI)) {
-          let secHistogram = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry).getHistogramById("SECURITY_UI");
-
           
           
           
@@ -4502,12 +4500,12 @@ var ErrorPageEventHandler = {
           let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
 
           if (target == errorDoc.getElementById("getMeOutButton")) {
-            secHistogram.add(nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]);
+            Telemetry.addData("SECURITY_UI", nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]);
             errorDoc.location = "about:home";
           } else if (target == errorDoc.getElementById("reportButton")) {
             
             
-            secHistogram.add(nsISecTel[bucketName + "WHY_BLOCKED"]);
+            Telemetry.addData("SECURITY_UI", nsISecTel[bucketName + "WHY_BLOCKED"]);
 
             
             
@@ -4531,7 +4529,7 @@ var ErrorPageEventHandler = {
               }
             }
           } else if (target == errorDoc.getElementById("ignoreWarningButton")) {
-            secHistogram.add(nsISecTel[bucketName + "IGNORE_WARNING"]);
+            Telemetry.addData("SECURITY_UI", nsISecTel[bucketName + "IGNORE_WARNING"]);
 
             
             let webNav = BrowserApp.selectedBrowser.docShell.QueryInterface(Ci.nsIWebNavigation);
@@ -7045,6 +7043,12 @@ var Telemetry = {
     Services.obs.removeObserver(this, "Telemetry:Prompt");
   },
 
+  addData: function addData(aHistogramId, aValue) {
+    let telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
+    let histogram = telemetry.getHistogramById(aHistogramId);
+    histogram.add(aValue);
+  },
+
   observe: function observe(aSubject, aTopic, aData) {
     if (aTopic == "Preferences:Set") {
       
@@ -7053,9 +7057,7 @@ var Telemetry = {
         Services.prefs.setIntPref(this._PREF_TELEMETRY_PROMPTED, this._TELEMETRY_PROMPT_REV);
     } else if (aTopic == "Telemetry:Add") {
       let json = JSON.parse(aData);
-      var telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
-      let histogram = telemetry.getHistogramById(json.name);
-      histogram.add(json.value);
+      this.addData(json.name, json.value);
     } else if (aTopic == "Telemetry:Prompt") {
 #ifdef MOZ_TELEMETRY_REPORTING
       this.prompt();
