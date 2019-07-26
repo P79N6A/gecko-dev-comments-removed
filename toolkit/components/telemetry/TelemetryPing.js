@@ -54,9 +54,9 @@ const TELEMETRY_DELAY = 60000;
 
 
 const MEM_HISTOGRAMS = {
-  "js-gc-heap": "MEMORY_JS_GC_HEAP",
-  "js-compartments/system": "MEMORY_JS_COMPARTMENTS_SYSTEM",
-  "js-compartments/user": "MEMORY_JS_COMPARTMENTS_USER",
+  "js-main-runtime-gc-heap": "MEMORY_JS_GC_HEAP",
+  "js-main-runtime-compartments-count/system": "MEMORY_JS_COMPARTMENTS_SYSTEM",
+  "js-main-runtime-compartments-count/user": "MEMORY_JS_COMPARTMENTS_USER",
   "js-main-runtime-temporary-peak": "MEMORY_JS_MAIN_RUNTIME_TEMPORARY_PEAK",
   "resident-fast": "MEMORY_RESIDENT",
   "vsize": "MEMORY_VSIZE",

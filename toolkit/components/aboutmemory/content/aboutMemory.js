@@ -14,14 +14,7 @@
 
 
 
-
-
-
-
-
 "use strict";
-
-
 
 
 
@@ -58,12 +51,6 @@ let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"]
 let gUnnamedProcessStr = "Main Process";
 
 let gIsDiff = false;
-
-{
-  let split = document.location.href.split('?');
-  
-  document.title = split[0].toLowerCase();
-}
 
 let gChildMemoryListener = undefined;
 
@@ -138,17 +125,6 @@ function addChildObserversAndUpdate(aUpdateFn)
   os.addObserver(gChildMemoryListener, "child-memory-reporter-update", false);
 
   gChildMemoryListener();
-}
-
-function onLoad()
-{
-  if (document.title === "about:memory") {
-    onLoadAboutMemory();
-  } else if (document.title === "about:compartments") {
-    onLoadAboutCompartments();
-  } else {
-    assert(false, "Unknown location: " + document.title);
-  }
 }
 
 function onUnload()
@@ -260,13 +236,11 @@ function updateMainAndFooter(aMsg, aFooterAction, aClassName)
     appendElementWithText(gMain, 'div', className, aMsg);
   }
 
-  if (gFooter !== undefined) {
-    switch (aFooterAction) {
-     case HIDE_FOOTER:   gFooter.classList.add('hidden');    break;
-     case SHOW_FOOTER:   gFooter.classList.remove('hidden'); break;
-     case IGNORE_FOOTER:                                     break;
-     default: assertInput(false, "bad footer action in updateMainAndFooter");
-    }
+  switch (aFooterAction) {
+   case HIDE_FOOTER:   gFooter.classList.add('hidden');    break;
+   case SHOW_FOOTER:   gFooter.classList.remove('hidden'); break;
+   case IGNORE_FOOTER:                                     break;
+   default: assertInput(false, "bad footer action in updateMainAndFooter");
   }
 }
 
@@ -296,8 +270,6 @@ function appendElementWithText(aP, aTagName, aClassName, aText)
   e.textContent = aText;
   return e;
 }
-
-
 
 
 
@@ -405,7 +377,7 @@ function appendHiddenFileInput(aP, aId, aChangeListener)
   return input;
 }
 
-function onLoadAboutMemory()
+function onLoad()
 {
   
 
@@ -438,7 +410,7 @@ function onLoadAboutMemory()
       delete this.filename1;
       updateAboutMemoryFromTwoFiles(filename1, file.mozFullPath);
     }
-  }); 
+  });
 
   const CuDesc = "Measure current memory reports and show.";
   const LdDesc = "Load memory reports from file and show.";
@@ -1056,16 +1028,12 @@ function getPCollsByProcess(aProcessReports, aForceShowSmaps)
   function ignoreReporter(aName)
   {
     return (aName === "smaps" && !gVerbose.checked && !aForceShowSmaps) ||
-           aName === "compartments" ||
-           aName === "ghost-windows" ||
            aName === "resident-fast";
   }
 
   function ignoreReport(aUnsafePath)
   {
     return (isSmapsPath(aUnsafePath) && !gVerbose.checked && !aForceShowSmaps) ||
-           aUnsafePath.startsWith("compartments/") ||
-           aUnsafePath.startsWith("ghost-windows/") ||
            aUnsafePath == "resident-fast";
   }
 
@@ -1089,7 +1057,7 @@ function getPCollsByProcess(aProcessReports, aForceShowSmaps)
                   "non-sentence other description");
     }
 
-    assert(aPresence === undefined || 
+    assert(aPresence === undefined ||
            aPresence == DReport.PRESENT_IN_FIRST_ONLY ||
            aPresence == DReport.PRESENT_IN_SECOND_ONLY);
 
@@ -2001,279 +1969,3 @@ function saveReportsToFile()
   };
   fp.open(fpCallback);
 }
-
-
-
-
-
-function onLoadAboutCompartments()
-{
-  
-  
-  gMain = appendElement(document.body, 'div', 'section');
-
-  
-  
-  
-  
-  
-  updateAboutCompartments();
-  gMgr.minimizeMemoryUsage(
-    function() { addChildObserversAndUpdate(updateAboutCompartments); });
-}
-
-
-
-
-function updateAboutCompartments()
-{
-  
-  
-  
-  updateMainAndFooter("", IGNORE_FOOTER);
-
-  try {
-    let compartmentsByProcess = getCompartmentsByProcess();
-    let ghostWindowsByProcess = getGhostWindowsByProcess();
-
-    
-    let processes = Object.keys(compartmentsByProcess);
-    processes.sort(function(aProcessA, aProcessB) {
-      assert(aProcessA != aProcessB,
-             "Elements of Object.keys() should be unique, but " +
-             "saw duplicate '" + aProcessA + "' elem.");
-
-      
-      if (aProcessA == gUnnamedProcessStr) {
-        return -1;
-      }
-      if (aProcessB == gUnnamedProcessStr) {
-        return 1;
-      }
-
-      
-      return 0;
-    });
-
-    
-    for (let i = 0; i < processes.length; i++) {
-      let process = processes[i];
-      appendProcessAboutCompartmentsElements(gMain, process,
-                                             compartmentsByProcess[process],
-                                             ghostWindowsByProcess[process]);
-    }
-
-  } catch (ex) {
-    handleException(ex);
-  }
-}
-
-
-
-function Compartment(aUnsafeName, aIsSystemCompartment)
-{
-  this._unsafeName          = aUnsafeName;
-  this._isSystemCompartment = aIsSystemCompartment;
-  
-}
-
-Compartment.prototype = {
-  merge: function(aR) {
-    this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
-  }
-};
-
-function getCompartmentsByProcess()
-{
-  
-  
-  
-
-  function ignoreReporter(aName)
-  {
-    return !(aName == "compartments" || aName == "content-child");
-  }
-
-  function ignoreReport(aUnsafePath)
-  {
-    return !aUnsafePath.startsWith("compartments/");
-  }
-
-  let compartmentsByProcess = {};
-
-  function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                        aDescription)
-  {
-    let process = aProcess === "" ? gUnnamedProcessStr : aProcess;
-    let unsafeNames = aUnsafePath.split('/');
-    let isSystemCompartment;
-    if (unsafeNames[0] === "compartments" && unsafeNames[1] == "system" &&
-        unsafeNames.length == 3)
-    {
-      isSystemCompartment = true;
-
-    } else if (unsafeNames[0] === "compartments" && unsafeNames[1] == "user" &&
-        unsafeNames.length == 3)
-    {
-      isSystemCompartment = false;
-      
-      
-      
-      if (unsafeNames[2].startsWith("moz-nullprincipal:{")) {
-        isSystemCompartment = true;
-      }
-
-    } else {
-      assertInput(false, "bad compartments path: " + aUnsafePath);
-    }
-    assertInput(aKind === KIND_OTHER,   "bad compartments kind");
-    assertInput(aUnits === UNITS_COUNT, "bad compartments units");
-    assertInput(aAmount === 1,          "bad compartments amount");
-    assertInput(aDescription === "",    "bad compartments description");
-
-    let c = new Compartment(unsafeNames[2], isSystemCompartment);
-
-    if (!compartmentsByProcess[process]) {
-      compartmentsByProcess[process] = {};
-    }
-    let compartments = compartmentsByProcess[process];
-    let cOld = compartments[c._unsafeName];
-    if (cOld) {
-      
-      
-      cOld.merge(c);
-    } else {
-      compartments[c._unsafeName] = c;
-    }
-  }
-
-  processMemoryReporters(ignoreReporter, ignoreReport, handleReport);
-
-  return compartmentsByProcess;
-}
-
-function GhostWindow(aUnsafeURL)
-{
-  
-  
-  this._unsafeName = aUnsafeURL;
-
-  
-}
-
-GhostWindow.prototype = {
-  merge: function(aR) {
-    this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
-  }
-};
-
-function getGhostWindowsByProcess()
-{
-  function ignoreReporter(aName)
-  {
-    return !(aName == "ghost-windows" || aName == "content-child");
-  }
-
-  function ignoreReport(aUnsafePath)
-  {
-    return !aUnsafePath.startsWith('ghost-windows/')
-  }
-
-  let ghostWindowsByProcess = {};
-
-  function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                        aDescription)
-  {
-    let unsafeSplit = aUnsafePath.split('/');
-    assertInput(unsafeSplit[0] === 'ghost-windows' && unsafeSplit.length === 2,
-           'Unexpected path in getGhostWindowsByProcess: ' + aUnsafePath);
-    assertInput(aKind === KIND_OTHER,   "bad ghost-windows kind");
-    assertInput(aUnits === UNITS_COUNT, "bad ghost-windows units");
-    assertInput(aAmount === 1,          "bad ghost-windows amount");
-    assertInput(aDescription === "",    "bad ghost-windows description");
-
-    let unsafeURL = unsafeSplit[1];
-    let ghostWindow = new GhostWindow(unsafeURL);
-
-    let process = aProcess === "" ? gUnnamedProcessStr : aProcess;
-    if (!ghostWindowsByProcess[process]) {
-      ghostWindowsByProcess[process] = {};
-    }
-
-    if (ghostWindowsByProcess[process][unsafeURL]) {
-      ghostWindowsByProcess[process][unsafeURL].merge(ghostWindow);
-    }
-    else {
-      ghostWindowsByProcess[process][unsafeURL] = ghostWindow;
-    }
-  }
-
-  processMemoryReporters(ignoreReporter, ignoreReport, handleReport);
-
-  return ghostWindowsByProcess;
-}
-
-
-
-function appendProcessAboutCompartmentsElementsHelper(aP, aEntries, aKindString)
-{
-  
-  
-  aEntries = aEntries ? aEntries : {};
-
-  appendElementWithText(aP, "h2", "", aKindString + "\n");
-
-  let uPre = appendElement(aP, "pre", "entries");
-
-  let lines = [];
-  for (let name in aEntries) {
-    let e = aEntries[name];
-    let line = flipBackslashes(e._unsafeName);
-    if (e._nMerged) {
-      line += ' [' + e._nMerged + ']';
-    }
-    line += '\n';
-    lines.push(line);
-  }
-  lines.sort();
-
-  for (let i = 0; i < lines.length; i++) {
-    appendElementWithText(uPre, "span", "", lines[i]);
-  }
-
-  appendTextNode(aP, "\n");   
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function appendProcessAboutCompartmentsElements(aP, aProcess, aCompartments, aGhostWindows)
-{
-  appendElementWithText(aP, "h1", "", aProcess + "\n\n");
-
-  let userCompartments = {};
-  let systemCompartments = {};
-  for (let name in aCompartments) {
-    let c = aCompartments[name];
-    if (c._isSystemCompartment) {
-      systemCompartments[name] = c;
-    }
-    else {
-      userCompartments[name] = c;
-    }
-  }
-
-  appendProcessAboutCompartmentsElementsHelper(aP, userCompartments, "User Compartments");
-  appendProcessAboutCompartmentsElementsHelper(aP, systemCompartments, "System Compartments");
-  appendProcessAboutCompartmentsElementsHelper(aP, aGhostWindows, "Ghost Windows");
-}
-
