@@ -1578,6 +1578,12 @@ class JSJitMethodCallArgs : protected JS::detail::CallArgsBase<JS::detail::NoUse
         return Base::hasDefined(i);
     }
 
+    JSObject &callee() const {
+        
+        
+        return argv_[-2].toObject();
+    }
+
     
 };
 
