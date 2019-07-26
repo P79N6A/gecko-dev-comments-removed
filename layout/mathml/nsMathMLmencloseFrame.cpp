@@ -29,6 +29,9 @@ static const PRUnichar kLongDivChar = ')';
 
 static const PRUnichar kRadicalChar = 0x221A;
 
+
+static const uint8_t kArrowHeadSize = 10;
+
 nsIFrame*
 NS_NewMathMLmencloseFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
@@ -115,6 +118,8 @@ nsresult nsMathMLmencloseFrame::AddNotation(const nsAString& aNotation)
     mNotationsToDraw |= NOTATION_BOTTOM;
   } else if (aNotation.EqualsLiteral("updiagonalstrike")) {
     mNotationsToDraw |= NOTATION_UPDIAGONALSTRIKE;
+  } else if (aNotation.EqualsLiteral("updiagonalarrow")) {
+    mNotationsToDraw |= NOTATION_UPDIAGONALARROW;
   } else if (aNotation.EqualsLiteral("downdiagonalstrike")) {
     mNotationsToDraw |= NOTATION_DOWNDIAGONALSTRIKE;
   } else if (aNotation.EqualsLiteral("verticalstrike")) {
@@ -146,6 +151,14 @@ void nsMathMLmencloseFrame::InitNotations()
 
     while (tokenizer.hasMoreTokens())
       AddNotation(tokenizer.nextToken());
+
+    if (IsToDraw(NOTATION_UPDIAGONALARROW)) {
+      
+      
+      
+      
+      mNotationsToDraw &= ~NOTATION_UPDIAGONALSTRIKE;
+    }
   } else {
     
     if (NS_FAILED(AllocateMathMLChar(NOTATION_LONGDIV)))
@@ -249,6 +262,11 @@ nsMathMLmencloseFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (IsToDraw(NOTATION_UPDIAGONALSTRIKE)) {
     DisplayNotation(aBuilder, this, mencloseRect, aLists,
                     mRuleThickness, NOTATION_UPDIAGONALSTRIKE);
+  }
+
+  if (IsToDraw(NOTATION_UPDIAGONALARROW)) {
+    DisplayNotation(aBuilder, this, mencloseRect, aLists,
+                    mRuleThickness, NOTATION_UPDIAGONALARROW);
   }
 
   if (IsToDraw(NOTATION_DOWNDIAGONALSTRIKE)) {
@@ -370,6 +388,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   if (IsToDraw(NOTATION_RIGHT) ||
       IsToDraw(NOTATION_LEFT) ||
       IsToDraw(NOTATION_UPDIAGONALSTRIKE) ||
+      IsToDraw(NOTATION_UPDIAGONALARROW) ||
       IsToDraw(NOTATION_DOWNDIAGONALSTRIKE) ||
       IsToDraw(NOTATION_VERTICALSTRIKE) ||
       IsToDraw(NOTATION_CIRCLE) ||
@@ -397,6 +416,21 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       IsToDraw(NOTATION_BOTTOM) ||
       IsToDraw(NOTATION_CIRCLE))
     mBoundingMetrics.descent += padding;
+
+  
+  
+  
+  if (IsToDraw(NOTATION_UPDIAGONALARROW)) {
+    
+    nscoord arrowHeadSize = kArrowHeadSize * mRuleThickness;
+
+    
+    
+    
+    
+    dx_right = std::max(dx_right, arrowHeadSize);
+    mBoundingMetrics.ascent = std::max(mBoundingMetrics.ascent, arrowHeadSize);
+  }
 
   
   
@@ -568,6 +602,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       IsToDraw(NOTATION_RIGHT) ||
       IsToDraw(NOTATION_LEFT) ||
       IsToDraw(NOTATION_UPDIAGONALSTRIKE) ||
+      IsToDraw(NOTATION_UPDIAGONALARROW) ||
       IsToDraw(NOTATION_DOWNDIAGONALSTRIKE) ||
       IsToDraw(NOTATION_VERTICALSTRIKE) ||
       IsToDraw(NOTATION_CIRCLE) ||
@@ -578,6 +613,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       IsToDraw(NOTATION_RIGHT) ||
       IsToDraw(NOTATION_LEFT) ||
       IsToDraw(NOTATION_UPDIAGONALSTRIKE) ||
+      IsToDraw(NOTATION_UPDIAGONALARROW) ||
       IsToDraw(NOTATION_DOWNDIAGONALSTRIKE) ||
       IsToDraw(NOTATION_VERTICALSTRIKE) ||
       IsToDraw(NOTATION_CIRCLE) ||
@@ -714,30 +750,63 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
 
   
   gfxContext *gfxCtx = aCtx->ThebesContext();
-  gfxFloat currentLineWidth = gfxCtx->CurrentLineWidth();
   gfxFloat e = presContext->AppUnitsToGfxUnits(mThickness);
+  gfxCtx->Save();
   gfxCtx->SetLineWidth(e);
 
   rect.Deflate(e / 2.0);
 
-  gfxCtx->NewPath();
-
   switch(mType)
     {
     case NOTATION_CIRCLE:
+      gfxCtx->NewPath();
       gfxCtx->Ellipse(rect.Center(), rect.Size());
+      gfxCtx->Stroke();
       break;
 
     case NOTATION_ROUNDEDBOX:
+      gfxCtx->NewPath();
       gfxCtx->RoundedRectangle(rect, gfxCornerSizes(3 * e), true);
+      gfxCtx->Stroke();
       break;
 
     case NOTATION_UPDIAGONALSTRIKE:
+      gfxCtx->NewPath();
       gfxCtx->Line(rect.BottomLeft(), rect.TopRight());
+      gfxCtx->Stroke();
       break;
 
     case NOTATION_DOWNDIAGONALSTRIKE:
+      gfxCtx->NewPath();
       gfxCtx->Line(rect.TopLeft(), rect.BottomRight());
+      gfxCtx->Stroke();
+      break;
+
+    case NOTATION_UPDIAGONALARROW: {
+      
+      
+      gfxFloat W = rect.Width(); gfxFloat H = rect.Height();
+      gfxFloat l = sqrt(W*W + H*H);
+      gfxFloat f = gfxFloat(kArrowHeadSize) * e / l;
+      gfxFloat w = W * f; gfxFloat h = H * f;
+
+      
+      gfxCtx->NewPath();
+      gfxCtx->Line(rect.BottomLeft(), rect.TopRight() + gfxPoint(-.7*w, .7*h));
+      gfxCtx->Stroke();
+
+      
+      gfxCtx->NewPath();
+      gfxPoint p[] = {
+        rect.TopRight(),
+        rect.TopRight() + gfxPoint(-w -.4*h, std::max(-e / 2.0, h - .4*w)),
+        rect.TopRight() + gfxPoint(-.7*w, .7*h),
+        rect.TopRight() + gfxPoint(std::min(e / 2.0, -w + .4*h), h + .4*w),
+        rect.TopRight()
+      };
+      gfxCtx->Polygon(p, sizeof(p));
+      gfxCtx->Fill();
+    }
       break;
 
     default:
@@ -745,10 +814,7 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
       break;
     }
 
-  gfxCtx->Stroke();
-
-  
-  gfxCtx->SetLineWidth(currentLineWidth);
+  gfxCtx->Restore();
 }
 
 void
