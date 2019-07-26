@@ -3592,7 +3592,7 @@ nsDocument::SetSubDocumentFor(Element* aElement, nsIDocument* aSubDoc)
     if (!mSubDocuments) {
       
 
-      static PLDHashTableOps hash_table_ops =
+      static const PLDHashTableOps hash_table_ops =
       {
         PL_DHashAllocTable,
         PL_DHashFreeTable,
