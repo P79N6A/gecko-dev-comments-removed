@@ -1180,47 +1180,52 @@ TryConvertFreeName(BytecodeEmitter *bce, ParseNode *pn)
     }
 
     
+    
+    if (!bce->script->compileAndGo || !bce->hasGlobalScope)
+        return false;
 
+    
+    if (pn->isDeoptimized())
+        return false;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (bce->script->compileAndGo &&
-        bce->hasGlobalScope &&
-        !(bce->sc->isFunctionBox() && bce->sc->asFunctionBox()->mightAliasLocals()) &&
-        !pn->isDeoptimized() &&
-        !(bce->sc->strict && bce->insideEval))
-    {
+    if (bce->sc->isFunctionBox()) {
         
         
-        JSOp op;
-        switch (pn->getOp()) {
-          case JSOP_NAME:     op = JSOP_GETGNAME; break;
-          case JSOP_SETNAME:  op = JSOP_SETGNAME; break;
-          case JSOP_SETCONST:
-            
+        
+        FunctionBox *funbox = bce->sc->asFunctionBox();
+        if (funbox->mightAliasLocals())
             return false;
-          default: MOZ_ASSUME_UNREACHABLE("gname");
-        }
-        pn->setOp(op);
-        return true;
     }
 
-    return false;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (bce->insideEval && bce->sc->strict)
+        return false;
+
+    
+    
+    JSOp op;
+    switch (pn->getOp()) {
+      case JSOP_NAME:     op = JSOP_GETGNAME; break;
+      case JSOP_SETNAME:  op = JSOP_SETGNAME; break;
+      case JSOP_SETCONST:
+        
+        return false;
+      default: MOZ_ASSUME_UNREACHABLE("gname");
+    }
+    pn->setOp(op);
+    return true;
 }
 
 
