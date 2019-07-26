@@ -125,10 +125,7 @@ public:
 
 
 
-  enum {
-    PAINT_IS_ALTERNATE = 1 << 0 
-  };
-  virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion, uint32_t aFlags) { return false; }
+  virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion) { return false; }
 
   
 
