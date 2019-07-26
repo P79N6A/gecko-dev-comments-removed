@@ -29,6 +29,7 @@ import android.view.SurfaceHolder.Callback;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoAppShell.AppStateListener;
+import org.mozilla.gecko.mozglue.WebRTCJNITarget;
 
 
 
@@ -61,6 +62,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
   
   private boolean mResumeCapture = false;
 
+  @WebRTCJNITarget
   public VideoCaptureAndroid(int id, long native_capturer) {
     this.id = id;
     this.native_capturer = native_capturer;
@@ -130,6 +132,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
   
   
   
+  @WebRTCJNITarget
   private synchronized boolean startCapture(
       int width, int height, int min_mfps, int max_mfps) {
     Log.d(TAG, "startCapture: " + width + "x" + height + "@" +
@@ -222,6 +225,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
   }
 
   
+  @WebRTCJNITarget
   private synchronized boolean stopCapture() {
     Log.d(TAG, "stopCapture");
     if (camera == null) {
@@ -256,9 +260,11 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
     return false;
   }
 
+  @WebRTCJNITarget
   private native void ProvideCameraFrame(
     byte[] data, int length, long captureObject, int rotation);
 
+  @WebRTCJNITarget
   public synchronized void onPreviewFrame(byte[] data, Camera camera) {
     if (data != null) {
       ProvideCameraFrame(data, data.length, native_capturer, mCaptureRotation);
@@ -266,12 +272,14 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
     }
   }
 
+  @WebRTCJNITarget
   public synchronized void surfaceChanged(
       SurfaceHolder holder, int format, int width, int height) {
     Log.d(TAG, "VideoCaptureAndroid::surfaceChanged ignored: " +
         format + ": " + width + "x" + height);
   }
 
+  @WebRTCJNITarget
   public synchronized void surfaceCreated(SurfaceHolder holder) {
     Log.d(TAG, "VideoCaptureAndroid::surfaceCreated");
     try {
@@ -283,6 +291,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
     }
   }
 
+  @WebRTCJNITarget
   public synchronized void surfaceDestroyed(SurfaceHolder holder) {
     Log.d(TAG, "VideoCaptureAndroid::surfaceDestroyed");
     try {
