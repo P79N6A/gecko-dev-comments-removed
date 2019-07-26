@@ -7,6 +7,10 @@
 
 
 
+const POPUP_HIDDEN_DELAY = 100; 
+
+
+
 
 
 function ToolbarView() {
@@ -236,6 +240,13 @@ OptionsView.prototype = {
   
 
 
+  _onPopupHidden: function() {
+    window.dispatchEvent(document, "Debugger:OptionsPopupHidden");
+  },
+
+  
+
+
   _togglePauseOnExceptions: function() {
     DebuggerController.activeThread.pauseOnExceptions(Prefs.pauseOnExceptions =
       this._pauseOnExceptionsItem.getAttribute("checked") == "true");
@@ -269,10 +280,19 @@ OptionsView.prototype = {
 
 
   _toggleShowOriginalSource: function() {
+    function reconfigure() {
+      window.removeEventListener("Debugger:OptionsPopupHidden", reconfigure, false);
+      
+      window.setTimeout(function() {
+        DebuggerController.reconfigureThread(pref);
+      }, POPUP_HIDDEN_DELAY);
+    }
+
     let pref = Prefs.sourceMapsEnabled =
       this._showOriginalSourceItem.getAttribute("checked") == "true";
 
-    DebuggerController.reconfigureThread(pref);
+    
+    window.addEventListener("Debugger:OptionsPopupHidden", reconfigure, false);
   },
 
   _button: null,

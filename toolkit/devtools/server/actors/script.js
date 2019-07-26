@@ -716,8 +716,30 @@ ThreadActor.prototype = {
 
 
   _discoverScriptsAndSources: function TA__discoverScriptsAndSources() {
-    return all([this._addScript(s)
-                for (s of this.dbg.findScripts())]);
+    let promises = [];
+    let foundSourceMaps = false;
+    let scripts = this.dbg.findScripts();
+    for (let s of scripts) {
+      if (s.sourceMapURL && !foundSourceMaps) {
+        foundSourceMaps = true;
+        break;
+      }
+    }
+    if (this._options.useSourceMaps && foundSourceMaps) {
+      for (let s of scripts) {
+        promises.push(this._addScript(s));
+      }
+      return all(promises);
+    }
+    
+    
+    
+    
+    
+    for (let s of scripts) {
+      this._addScriptSync(s);
+    }
+    return resolve(null);
   },
 
   onSources: function TA_onSources(aRequest) {
@@ -1244,6 +1266,40 @@ ThreadActor.prototype = {
     
     if (aSourceUrl.indexOf("about:") == 0) {
       return false;
+    }
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+  _addScriptSync: function TA__addScriptSync(aScript) {
+    if (!this._allowSource(aScript.url)) {
+      return false;
+    }
+
+    this.sources.source(aScript.url);
+    
+    let existing = this._breakpointStore[aScript.url];
+    if (existing) {
+      let endLine = aScript.startLine + aScript.lineCount - 1;
+      
+      
+      for (let line = existing.length - 1; line >= 0; line--) {
+        let bp = existing[line];
+        
+        
+        
+        if (bp && !bp.actor.scripts.length &&
+            line >= aScript.startLine && line <= endLine) {
+          this._setBreakpoint(bp);
+        }
+      }
     }
     return true;
   },
