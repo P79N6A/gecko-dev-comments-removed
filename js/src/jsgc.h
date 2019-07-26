@@ -1255,26 +1255,6 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 
 #endif
 
-
-
-
-
-
-
-class AutoSuppressGC
-{
-    int32_t &suppressGC_;
-
-  public:
-    AutoSuppressGC(JSContext *cx);
-    AutoSuppressGC(JSCompartment *comp);
-
-    ~AutoSuppressGC()
-    {
-        suppressGC_--;
-    }
-};
-
 } 
 
 void
