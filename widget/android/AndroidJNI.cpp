@@ -206,7 +206,8 @@ Java_org_mozilla_gecko_GeckoSmsManager_notifySmsReceived(JNIEnv* jenv, jclass,
       SmsMessageData mMessageData;
     };
 
-    SmsMessageData message(0, eDeliveryState_Received, eDeliveryStatus_Success,
+    
+    SmsMessageData message(0, 0, eDeliveryState_Received, eDeliveryStatus_Success,
                            nsJNIString(aSender, jenv), EmptyString(),
                            nsJNIString(aBody, jenv),
                            static_cast<MessageClass>(aMessageClass),
@@ -259,7 +260,8 @@ Java_org_mozilla_gecko_GeckoSmsManager_notifySmsSent(JNIEnv* jenv, jclass,
     };
 
     
-    SmsMessageData message(aId, eDeliveryState_Sent, eDeliveryStatus_Pending,
+    
+    SmsMessageData message(aId, 0, eDeliveryState_Sent, eDeliveryStatus_Pending,
                            EmptyString(), nsJNIString(aReceiver, jenv),
                            nsJNIString(aBody, jenv), eMessageClass_Normal,
                            aTimestamp, true);
@@ -302,7 +304,8 @@ Java_org_mozilla_gecko_GeckoSmsManager_notifySmsDelivery(JNIEnv* jenv, jclass,
     };
 
     
-    SmsMessageData message(aId, eDeliveryState_Sent,
+    
+    SmsMessageData message(aId, 0, eDeliveryState_Sent,
                            static_cast<DeliveryStatus>(aDeliveryStatus),
                            EmptyString(), nsJNIString(aReceiver, jenv),
                            nsJNIString(aBody, jenv), eMessageClass_Normal,
@@ -384,7 +387,8 @@ Java_org_mozilla_gecko_GeckoSmsManager_notifyGetSms(JNIEnv* jenv, jclass,
 
     
     
-    SmsMessageData message(aId, state,
+    
+    SmsMessageData message(aId, 0, state,
                            static_cast<DeliveryStatus>(aDeliveryStatus),
                            nsJNIString(aSender, jenv), receiver,
                            nsJNIString(aBody, jenv), eMessageClass_Normal,
@@ -565,7 +569,8 @@ Java_org_mozilla_gecko_GeckoSmsManager_notifyListCreated(JNIEnv* jenv, jclass,
 
     
     
-    SmsMessageData message(aMessageId, state,
+    
+    SmsMessageData message(aMessageId, 0, state,
                            static_cast<DeliveryStatus>(aDeliveryStatus),
                            nsJNIString(aSender, jenv), receiver,
                            nsJNIString(aBody, jenv), eMessageClass_Normal,
@@ -616,7 +621,8 @@ Java_org_mozilla_gecko_GeckoSmsManager_notifyGotNextMessage(JNIEnv* jenv, jclass
 
     
     
-    SmsMessageData message(aMessageId, state,
+    
+    SmsMessageData message(aMessageId, 0, state,
                            static_cast<DeliveryStatus>(aDeliveryStatus),
                            nsJNIString(aSender, jenv), receiver,
                            nsJNIString(aBody, jenv), eMessageClass_Normal,
