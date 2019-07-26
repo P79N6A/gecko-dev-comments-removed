@@ -713,6 +713,8 @@ pref("dom.sysmsg.enabled", false);
 
 pref("dom.webapps.useCurrentProfile", false);
 
+pref("dom.cycle_collector.incremental", false);
+
 
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
