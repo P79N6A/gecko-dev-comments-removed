@@ -72,6 +72,8 @@ MediaStreamGraphImpl::FinishStream(MediaStream* aStream)
   
   
   EnsureNextIteration();
+
+  SetStreamOrderDirty();
 }
 
 void
@@ -80,6 +82,8 @@ MediaStreamGraphImpl::AddStream(MediaStream* aStream)
   aStream->mBufferStartTime = mCurrentTime;
   *mStreams.AppendElement() = already_AddRefed<MediaStream>(aStream);
   STREAM_LOG(PR_LOG_DEBUG, ("Adding media stream %p to the graph", aStream));
+
+  SetStreamOrderDirty();
 }
 
 void
@@ -96,6 +100,8 @@ MediaStreamGraphImpl::RemoveStream(MediaStream* aStream)
       }
     }
   }
+
+  SetStreamOrderDirty();
 
   
   mStreams.RemoveElement(aStream);
@@ -430,6 +436,7 @@ MediaStreamGraphImpl::UpdateCurrentTime()
           stream->StreamTimeToGraphTime(stream->GetStreamBuffer().GetAllTracksEnd()))  {
       stream->mNotifiedFinished = true;
       stream->mLastPlayedVideoFrame.SetNull();
+      SetStreamOrderDirty();
       for (uint32_t j = 0; j < stream->mListeners.Length(); ++j) {
         MediaStreamListener* l = stream->mListeners[j];
         l->NotifyFinished(this);
@@ -1168,7 +1175,9 @@ MediaStreamGraphImpl::RunThread()
     }
     messageQueue.Clear();
 
-    UpdateStreamOrder();
+    if (mStreamOrderDirty) {
+      UpdateStreamOrder();
+    }
 
     
     TrackRate sampleRate = IdealAudioRate();
@@ -2279,6 +2288,8 @@ MediaInputPort::Disconnect()
   mSource = nullptr;
   mDest->RemoveInput(this);
   mDest = nullptr;
+
+  GraphImpl()->SetStreamOrderDirty();
 }
 
 MediaInputPort::InputInterval
@@ -2357,6 +2368,7 @@ ProcessedMediaStream::AllocateInputPort(MediaStream* aStream, uint32_t aFlags,
     {
       mPort->Init();
       
+      mPort->GraphImpl()->SetStreamOrderDirty();
       mPort.forget();
     }
     virtual void RunDuringShutdown()
@@ -2410,6 +2422,7 @@ ProcessedMediaStream::DestroyImpl()
     mInputs[i]->Disconnect();
   }
   MediaStream::DestroyImpl();
+  GraphImpl()->SetStreamOrderDirty();
 }
 
 
