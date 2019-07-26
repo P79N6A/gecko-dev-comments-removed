@@ -14,6 +14,13 @@ const Cr = Components.results;
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import('resource://gre/modules/Services.jsm');
 
+#ifdef MOZ_WIDGET_GONK
+XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
+  Cu.import("resource://gre/modules/systemlibs.js");
+  return libcutils;
+});
+#endif
+
 
 
 var SettingsListener = {
@@ -174,27 +181,10 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
   
   let hardware_info = null;
   let firmware_revision = null;
-  try {
-    let cutils = ctypes.open('libcutils.so');
-    let cbuf = ctypes.char.array(128)();
-    let c_property_get = cutils.declare('property_get', ctypes.default_abi,
-                                        ctypes.int,       
-                                        ctypes.char.ptr,  
-                                        ctypes.char.ptr,  
-                                        ctypes.char.ptr); 
-    let property_get = function (key, defaultValue) {
-      if (defaultValue === undefined) {
-        defaultValue = null;
-      }
-      c_property_get(key, cbuf, defaultValue);
-      return cbuf.readString();
-    }
-    hardware_info = property_get('ro.hardware');
-    firmware_revision = property_get('ro.firmware_revision');
-    cutils.close();
-  } catch(e) {
-    
-  }
+#ifdef MOZ_WIDGET_GONK
+    hardware_info = libcutils.property_get('ro.hardware');
+    firmware_revision = libcutils.property_get('ro.firmware_revision');
+#endif
   lock.set('deviceinfo.hardware', hardware_info, null, null);
   lock.set('deviceinfo.firmware_revision', firmware_revision, null, null);
 })();
@@ -205,6 +195,19 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
   
   Services.prefs.savePrefFile(null);
   value ? RemoteDebugger.start() : RemoteDebugger.stop();
+
+#ifdef MOZ_WIDGET_GONK
+  
+  try {
+    let current = libcutils.property_get("persist.sys.usb.config");
+    let prefix = current.replace(/,adb/, "");
+    libcutils.property_set("persist.sys.usb.config",
+                           prefix + (value ? ",adb" : ""));
+    current = libcutils.property_get("persist.sys.usb.config");
+  } catch(e) {
+    dump("Error configuring adb: " + e);
+  }
+#endif
 });
 
 SettingsListener.observe('debug.log-animations.enabled', false, function(value) {
