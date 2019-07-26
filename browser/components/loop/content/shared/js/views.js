@@ -9,6 +9,8 @@ loop.shared = loop.shared || {};
 loop.shared.views = (function(TB) {
   "use strict";
 
+  var sharedModels = loop.shared.models;
+
   
 
 
@@ -127,8 +129,37 @@ loop.shared.views = (function(TB) {
 
 
   var NotificationListView = Backbone.View.extend({
-    initialize: function() {
+    
+
+
+
+
+
+
+
+
+    initialize: function(options) {
+      options = options || {};
+      if (!options.collection) {
+        this.collection = new sharedModels.NotificationCollection();
+      }
       this.listenTo(this.collection, "reset add remove", this.render);
+    },
+
+    
+
+
+    clear: function() {
+      this.collection.reset();
+    },
+
+    
+
+
+
+
+    notify: function(notification) {
+      this.collection.add(notification);
     },
 
     render: function() {
