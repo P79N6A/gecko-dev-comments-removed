@@ -61,8 +61,10 @@ FrameAnimator::GetCurrentImgFrameEndTime() const
     
     
     
-    return TimeStamp() +
-           TimeDuration::FromMilliseconds(static_cast<double>(UINT64_MAX));
+    
+    
+    return TimeStamp::NowLoRes() +
+           TimeDuration::FromMilliseconds(31536000.0);
   }
 
   TimeDuration durationOfTimeout =
