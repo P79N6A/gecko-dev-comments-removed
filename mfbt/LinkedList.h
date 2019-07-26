@@ -46,6 +46,10 @@
 
 
 
+
+
+
+
 #ifndef mozilla_LinkedList_h_
 #define mozilla_LinkedList_h_
 
@@ -109,6 +113,11 @@ class LinkedListElement
         prev(thisDuringConstruction()),
         isSentinel(false)
     { }
+
+    ~LinkedListElement() {
+      if (!isSentinel && isInList())
+        remove();
+    }
 
     
 
@@ -184,8 +193,7 @@ class LinkedListElement
       : next(this),
         prev(this),
         isSentinel(nodeKind == NODE_KIND_SENTINEL)
-    {
-    }
+    { }
 
     
 
@@ -245,6 +253,10 @@ class LinkedList
 
   public:
     LinkedList() : sentinel(LinkedListElement<T>::NODE_KIND_SENTINEL) { }
+
+    ~LinkedList() {
+      MOZ_ASSERT(isEmpty());
+    }
 
     
 
