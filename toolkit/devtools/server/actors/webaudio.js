@@ -111,9 +111,6 @@ const NODE_PROPERTIES = {
 
 
 
-
-
-
 let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
   typeName: "audionode",
 
@@ -127,9 +124,15 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
   initialize: function (conn, node) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this.node = unwrap(node);
+
+    
+    
+    
+    this.nativeID = node.id;
+    this.node = Cu.getWeakReference(node);
+
     try {
-      this.type = getConstructorName(this.node);
+      this.type = getConstructorName(node);
     } catch (e) {
       this.type = "";
     }
@@ -165,11 +168,17 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
   setParam: method(function (param, value) {
+    let node = this.node.get();
+
+    if (node === null) {
+      return CollectedAudioNodeError();
+    }
+
     try {
-      if (isAudioParam(this.node, param))
-        this.node[param].value = value;
+      if (isAudioParam(node, param))
+        node[param].value = value;
       else
-        this.node[param] = value;
+        node[param] = value;
       return undefined;
     } catch (e) {
       return constructError(e);
@@ -189,9 +198,15 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
   getParam: method(function (param) {
+    let node = this.node.get();
+
+    if (node === null) {
+      return CollectedAudioNodeError();
+    }
+
     
     
-    let value = isAudioParam(this.node, param) ? this.node[param].value : this.node[param];
+    let value = isAudioParam(node, param) ? node[param].value : node[param];
 
     
     
@@ -262,7 +277,13 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
+
     this._onContentFunctionCall = this._onContentFunctionCall.bind(this);
+
+    
+    
+    
+    this._nativeToActorID = new Map();
   },
 
   destroy: function(conn) {
@@ -282,13 +303,15 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     
     this._firstNodeCreated = false;
 
+    
+    
+    this._nativeToActorID.clear();
+
     if (this._initialized) {
       return;
     }
-    this._initialized = true;
 
-    
-    this._nodeActors = new Map();
+    this._initialized = true;
 
     this._callWatcher = new CallWatcherActor(this.conn, this.tabActor);
     this._callWatcher.onCall = this._onContentFunctionCall;
@@ -321,9 +344,9 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
   _handleRoutingCall: function(functionCall) {
     let { caller, args, window, name } = functionCall.details;
-    let source = unwrap(caller);
-    let dest = unwrap(args[0]);
-    let isAudioParam = dest instanceof unwrap(window.AudioParam);
+    let source = caller;
+    let dest = args[0];
+    let isAudioParam = dest instanceof window.AudioParam;
 
     
     if (name === "connect" && isAudioParam) {
@@ -349,7 +372,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       
       
       this._onStartContext();
-      this._onCreateNode(unwrap(caller.destination));
+      this._onCreateNode(caller.destination);
       this._firstNodeCreated = true;
     }
     this._onCreateNode(result);
@@ -364,9 +387,10 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     if (!this._initialized) {
       return;
     }
+    this.tabActor = null;
     this._initialized = false;
+    this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
-
     this._callWatcher.finalize();
     this._callWatcher = null;
   }, {
@@ -412,9 +436,12 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
   _constructAudioNode: function (node) {
+    
+    node = new XPCNativeWrapper(node);
+
     let actor = new AudioNodeActor(this.conn, node);
     this.manage(actor);
-    this._nodeActors.set(node, actor);
+    this._nativeToActorID.set(node.id, actor.actorID);
     return actor;
   },
 
@@ -424,11 +451,13 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
 
-  _actorFor: function (node) {
-    let actor = this._nodeActors.get(node);
-    if (!actor) {
-      actor = this._constructAudioNode(node);
-    }
+  _getActorByNativeID: function (nativeID) {
+    
+    
+    nativeID = ~~nativeID;
+
+    let actorID = this._nativeToActorID.get(nativeID);
+    let actor = actorID != null ? this.conn.getActor(actorID) : null;
     return actor;
   },
 
@@ -436,16 +465,16 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
   _onStartContext: function () {
-    events.emit(this, "start-context");
+    emit(this, "start-context");
   },
 
   
 
 
   _onConnectNode: function (source, dest) {
-    let sourceActor = this._actorFor(source);
-    let destActor = this._actorFor(dest);
-    events.emit(this, "connect-node", {
+    let sourceActor = this._getActorByNativeID(source.id);
+    let destActor = this._getActorByNativeID(dest.id);
+    emit(this, "connect-node", {
       source: sourceActor,
       dest: destActor
     });
@@ -463,16 +492,16 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
   _onDisconnectNode: function (node) {
-    let actor = this._actorFor(node);
-    events.emit(this, "disconnect-node", actor);
+    let actor = this._getActorByNativeID(node.id);
+    emit(this, "disconnect-node", actor);
   },
 
   
 
 
   _onParamChange: function (node, param, value) {
-    let actor = this._actorFor(node);
-    events.emit(this, "param-change", {
+    let actor = this._getActorByNativeID(node.id);
+    emit(this, "param-change", {
       source: actor,
       param: param,
       value: value
@@ -484,7 +513,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
   _onCreateNode: function (node) {
     let actor = this._constructAudioNode(node);
-    events.emit(this, "create-node", actor);
+    emit(this, "create-node", actor);
   }
 });
 
@@ -535,8 +564,22 @@ function constructError (err) {
 
 
 
+function CollectedAudioNodeError () {
+  return {
+    message: "AudioNode has been garbage collected and can no longer be reached.",
+    type: "UnreachableAudioNode"
+  };
+}
+
+
+
+
+
+
+
+
 function getConstructorName (obj) {
-  return obj.toString().match(/\[object (.*)\]$/)[1];
+  return obj.toString().match(/\[object ([^\[\]]*)\]\]?$/)[1];
 }
 
 
@@ -553,7 +596,4 @@ function createObjectGrip (value) {
     },
     class: getConstructorName(value)
   };
-}
-function unwrap (obj) {
-  return XPCNativeWrapper.unwrap(obj);
 }
