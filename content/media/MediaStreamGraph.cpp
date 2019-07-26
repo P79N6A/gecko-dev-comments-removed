@@ -1092,11 +1092,17 @@ namespace {
 
 class MediaStreamGraphThreadRunnable : public nsRunnable {
 public:
+  explicit MediaStreamGraphThreadRunnable(MediaStreamGraphImpl* aGraph)
+    : mGraph(aGraph)
+  {
+  }
   NS_IMETHOD Run()
   {
-    gGraph->RunThread();
+    mGraph->RunThread();
     return NS_OK;
   }
+private:
+  MediaStreamGraphImpl* mGraph;
 };
 
 class MediaStreamGraphShutDownRunnable : public nsRunnable {
@@ -1200,7 +1206,7 @@ MediaStreamGraphImpl::RunInStableState()
       
       
       
-      nsCOMPtr<nsIRunnable> event = new MediaStreamGraphThreadRunnable();
+      nsCOMPtr<nsIRunnable> event = new MediaStreamGraphThreadRunnable(this);
       NS_NewThread(getter_AddRefs(mThread), event);
     }
 
@@ -1232,7 +1238,7 @@ MediaStreamGraphImpl::RunInStableState()
         
         
         
-        nsCOMPtr<nsIRunnable> event = new MediaStreamGraphThreadRunnable();
+        nsCOMPtr<nsIRunnable> event = new MediaStreamGraphThreadRunnable(this);
         mThread->Dispatch(event, 0);
       }
     }
