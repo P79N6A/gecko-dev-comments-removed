@@ -138,12 +138,13 @@ FrameInfo::assertValidState(jsbytecode *pc)
     }
 
     
-    for (; i < stackDepth(); i++) {
+    for (; i < stackDepth(); i++)
         JS_ASSERT(stack[i].kind() != StackValue::Stack);
-    }
 
     
-    bool usedR0 = false, usedR1 = false, usedR2 = false;
+    
+    
+    bool usedR0 = false, usedR1 = false;
 
     for (i = 0; i < stackDepth(); i++) {
         if (stack[i].kind() == StackValue::Register) {
@@ -154,9 +155,6 @@ FrameInfo::assertValidState(jsbytecode *pc)
             } else if (reg == R1) {
                 JS_ASSERT(!usedR1);
                 usedR1 = true;
-            } else if (reg == R2) {
-                JS_ASSERT(!usedR2);
-                usedR2 = true;
             } else {
                 JS_NOT_REACHED("Invalid register");
             }

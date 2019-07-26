@@ -516,6 +516,35 @@ BaselineCompiler::emit_JSOP_GETELEM()
 }
 
 bool
+BaselineCompiler::emit_JSOP_SETELEM()
+{
+    
+    ICSetElem_Fallback::Compiler stubCompiler(cx);
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    if (!entry)
+        return false;
+
+    
+    storeValue(frame.peek(-1), frame.addressOfScratchValue(), R2);
+    frame.pop();
+
+    
+    frame.popRegsAndSync(2);
+
+    
+    frame.pushScratchValue();
+
+    
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_GETLOCAL()
 {
     uint32_t local = GET_SLOTNO(pc);
