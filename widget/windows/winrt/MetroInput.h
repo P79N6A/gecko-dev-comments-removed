@@ -169,7 +169,7 @@ private:
   bool HitTestChrome(const LayoutDeviceIntPoint& pt);
 
   
-  void TransformRefPoint(const Point& aPosition,
+  bool TransformRefPoint(const Point& aPosition,
                          LayoutDeviceIntPoint& aRefPointOut);
   void TransformTouchEvent(WidgetTouchEvent* aEvent);
   void OnPointerNonTouch(IPointerPoint* aPoint);

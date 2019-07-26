@@ -663,7 +663,10 @@ MetroInput::HitTestChrome(const LayoutDeviceIntPoint& pt)
   return (status == nsEventStatus_eConsumeNoDefault);
 }
 
-void
+
+
+
+bool
 MetroInput::TransformRefPoint(const Foundation::Point& aPosition, LayoutDeviceIntPoint& aRefPointOut)
 {
   
@@ -675,10 +678,14 @@ MetroInput::TransformRefPoint(const Foundation::Point& aPosition, LayoutDeviceIn
   
   
   bool apzIntersect = mWidget->ApzHitTest(spt);
-  if (apzIntersect && HitTestChrome(aRefPointOut)) {
-    return;
+  if (!apzIntersect) {
+    return true;
+  }
+  if (HitTestChrome(aRefPointOut)) {
+    return true;
   }
   mWidget->ApzTransformGeckoCoordinate(spt, &aRefPointOut);
+  return false;
 }
 
 void
@@ -940,9 +947,13 @@ MetroInput::HandleTap(const Foundation::Point& aPoint, unsigned int aTapCount)
 #ifdef DEBUG_INPUT
   LogFunction();
 #endif
-  
+
   LayoutDeviceIntPoint refPoint;
-  TransformRefPoint(aPoint, refPoint);
+  bool hitTestChrome = TransformRefPoint(aPoint, refPoint);
+  if (!hitTestChrome) {
+    
+    return;
+  }
 
   
   WidgetMouseEvent* mouseEvent =

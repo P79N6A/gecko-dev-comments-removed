@@ -124,8 +124,6 @@ let Content = {
   },
 
   init: function init() {
-    this._isZoomedToElement = false;
-
     
     addMessageListener("Browser:Blur", this);
     addMessageListener("Browser:SaveAs", this);
@@ -133,10 +131,11 @@ let Content = {
     addMessageListener("Browser:SetCharset", this);
     addMessageListener("Browser:CanUnload", this);
     addMessageListener("Browser:PanBegin", this);
+    addMessageListener("Gesture:SingleTap", this);
+    addMessageListener("Gesture:DoubleTap", this);
 
     addEventListener("touchstart", this, false);
     addEventListener("click", this, true);
-    addEventListener("dblclick", this, true);
     addEventListener("keydown", this);
     addEventListener("keyup", this);
 
@@ -184,15 +183,6 @@ let Content = {
           this.formAssistant.open(aEvent.target, aEvent);
         break;
 
-      case "dblclick":
-        
-        if (aEvent.mozInputSource == Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH) {
-          let selection = content.getSelection();
-          selection.removeAllRanges();
-          this._onZoomToTappedContent(aEvent.target);
-        }
-        break;
-
       case "click":
         
         
@@ -221,8 +211,7 @@ let Content = {
         break;
 
       case "pagehide":
-        if (aEvent.target == content.document)
-          this._resetFontSize();          
+        this._isZoomedIn = false;
         break;
 
       case "touchstart":
@@ -271,6 +260,14 @@ let Content = {
 
       case "Browser:PanBegin":
         this._cancelTapHighlight();
+        break;
+
+      case "Gesture:SingleTap":
+        this._onSingleTap(json.x, json.y);
+        break;
+
+      case "Gesture:DoubleTap":
+        this._onDoubleTap(json.x, json.y);
         break;
     }
   },
@@ -376,20 +373,28 @@ let Content = {
     }
   },
 
-  _onZoomToTappedContent: function (aElement) {
-    if (!aElement || this._isZoomedIn) {
+  _onSingleTap: function (aX, aY) {
+    let utils = Util.getWindowUtils(content);
+    for (let type of ["mousemove", "mousedown", "mouseup"]) {
+      utils.sendMouseEventToWindow(type, aX, aY, 0, 1, 0, true, 1.0, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
+    }
+  },
+
+  _onDoubleTap: function (aX, aY) {
+    if (this._isZoomedIn) {
       this._zoomOut();
       return;
     }
 
-    while (aElement && !this._shouldZoomToElement(aElement)) {
-      aElement = aElement.parentNode;
+    let { element } = Content.getCurrentWindowAndOffset(aX, aY);
+    while (element && !this._shouldZoomToElement(element)) {
+      element = element.parentNode;
     }
 
-    if (!aElement) {
+    if (!element) {
       this._zoomOut();
     } else {
-      this._zoomToElement(aElement);
+      this._zoomToElement(element);
     }
   },
 
@@ -451,32 +456,61 @@ let Content = {
 
 
 
-  _getContentClientRects: function getContentClientRects(aElement) {
-    let offset = ContentScroll.getScrollOffset(content);
-    offset = new Point(offset.x, offset.y);
+  
 
-    let nativeRects = aElement.getClientRects();
+
+
+
+
+  getCurrentWindowAndOffset: function(x, y) {
     
-    for (let frame = aElement.ownerDocument.defaultView; frame != content;
-         frame = frame.parent) {
+    
+    
+    let utils = Util.getWindowUtils(content);
+    let element = utils.elementFromPoint(x, y, true, false);
+    let offset = { x:0, y:0 };
+
+    while (element && (element instanceof HTMLIFrameElement ||
+                       element instanceof HTMLFrameElement)) {
       
-      let rect = frame.frameElement.getBoundingClientRect();
-      let left = frame.getComputedStyle(frame.frameElement, "").borderLeftWidth;
-      let top = frame.getComputedStyle(frame.frameElement, "").borderTopWidth;
-      offset.add(rect.left + parseInt(left), rect.top + parseInt(top));
+      let rect = element.getBoundingClientRect();
+
+      
+      
+
+      
+      scrollOffset = ContentScroll.getScrollOffset(element.contentDocument.defaultView);
+      
+      x -= rect.left + scrollOffset.x;
+      y -= rect.top + scrollOffset.y;
+
+      
+
+      
+      offset.x += rect.left;
+      offset.y += rect.top;
+
+      
+      utils = element.contentDocument
+                     .defaultView
+                     .QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindowUtils);
+
+      
+      element = utils.elementFromPoint(x, y, true, false);
     }
 
-    let result = [];
-    for (let i = nativeRects.length - 1; i >= 0; i--) {
-      let r = nativeRects[i];
-      result.push({ left: r.left + offset.x,
-                    top: r.top + offset.y,
-                    width: r.width,
-                    height: r.height
-                  });
-    }
-    return result;
+    if (!element)
+      return {};
+
+    return {
+      element: element,
+      contentWindow: element.ownerDocument.defaultView,
+      offset: offset,
+      utils: utils
+    };
   },
+
 
   _maybeNotifyErrorPage: function _maybeNotifyErrorPage() {
     
@@ -484,11 +518,6 @@ let Content = {
     
     if (content.location.href !== content.document.documentURI)
       sendAsyncMessage("Browser:ErrorPage", null);
-  },
-
-  _resetFontSize: function _resetFontSize() {
-    this._isZoomedToElement = false;
-    this._setMinFontSize(0);
   },
 
   _highlightElement: null,
@@ -502,62 +531,6 @@ let Content = {
     gDOMUtils.setContentState(content.document.documentElement, kStateActive);
     this._highlightElement = null;
   },
-
-  
-
-
-
-
-
-  _sendMouseEvent: function _sendMouseEvent(aName, aElement, aX, aY, aButton) {
-    
-    
-    if (!(aElement instanceof HTMLHtmlElement)) {
-      let isTouchClick = true;
-      let rects = this._getContentClientRects(aElement);
-      for (let i = 0; i < rects.length; i++) {
-        let rect = rects[i];
-        
-        
-        
-        let inBounds = 
-          (aX > rect.left + 1 && aX < (rect.left + rect.width - 1)) &&
-          (aY > rect.top + 1 && aY < (rect.top + rect.height - 1));
-        if (inBounds) {
-          isTouchClick = false;
-          break;
-        }
-      }
-
-      if (isTouchClick) {
-        let rect = new Rect(rects[0].left, rects[0].top,
-                            rects[0].width, rects[0].height);
-        if (rect.isEmpty())
-          return;
-
-        let point = rect.center();
-        aX = point.x;
-        aY = point.y;
-      }
-    }
-
-    let button = aButton || 0;
-    let scrollOffset = ContentScroll.getScrollOffset(content);
-    let x = aX - scrollOffset.x;
-    let y = aY - scrollOffset.y;
-
-    
-    
-    let windowUtils = Util.getWindowUtils(content);
-    windowUtils.sendMouseEventToWindow(aName, x, y, button, 1, 0, true,
-                                       1.0, Ci.nsIDOMMouseEvent.MOZ_SOURCE_MOUSE);
-  },
-
-  _setMinFontSize: function _setMinFontSize(aSize) {
-    let viewer = docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
-    if (viewer)
-      viewer.minFontSize = aSize;
-  }
 };
 
 Content.init();
