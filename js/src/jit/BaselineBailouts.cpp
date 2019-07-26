@@ -975,6 +975,16 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             IonSpew(IonSpew_BaselineBailouts, "      Set resumeAddr=%p", opReturnAddr);
         }
 
+        if (cx->runtime()->spsProfiler.enabled() && blFrame->hasPushedSPSFrame()) {
+            
+            
+            
+            
+            
+            IonSpew(IonSpew_BaselineBailouts, "      Setting PCidx for last frame to 0");
+            cx->runtime()->spsProfiler.updatePC(script, script->code());
+        }
+
         return true;
     }
 

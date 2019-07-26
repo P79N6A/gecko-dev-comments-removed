@@ -172,6 +172,10 @@ class MacroAssembler : public MacroAssemblerSpecific
     bool enoughMemory_;
     bool embedsNurseryPointers_;
 
+    
+    mozilla::Maybe<IonInstrumentation> spsInstrumentation_;
+    jsbytecode *spsPc_;
+
   private:
     
     
@@ -212,7 +216,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    MacroAssembler(JSContext *cx, IonScript *ion = nullptr)
+    MacroAssembler(JSContext *cx, IonScript *ion = nullptr,
+                   JSScript *script = nullptr, jsbytecode *pc = nullptr)
       : enoughMemory_(true),
         embedsNurseryPointers_(false),
         sps_(nullptr)
@@ -225,8 +230,17 @@ class MacroAssembler : public MacroAssemblerSpecific
         initWithAllocator();
         m_buffer.id = GetIonContext()->getNextAssemblerId();
 #endif
-        if (ion)
+        if (ion) {
             setFramePushed(ion->frameSize());
+            if (pc && cx->runtime()->spsProfiler.enabled()) {
+                
+                
+                spsPc_ = pc;
+                spsInstrumentation_.construct(&cx->runtime()->spsProfiler, &spsPc_);
+                sps_ = spsInstrumentation_.addr();
+                sps_->setPushed(script);
+            }
+        }
     }
 
     

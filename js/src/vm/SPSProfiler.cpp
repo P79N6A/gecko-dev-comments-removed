@@ -130,8 +130,17 @@ SPSProfiler::enter(JSScript *script, JSFunction *maybeFun)
     if (str == nullptr)
         return false;
 
-    JS_ASSERT_IF(*size_ > 0 && *size_ - 1 < max_ && stack_[*size_ - 1].js(),
-                 stack_[*size_ - 1].pc() != nullptr);
+#ifdef DEBUG
+    
+    
+    
+    if (*size_ > 0 && *size_ - 1 < max_) {
+        size_t start = (*size_ > 4) ? *size_ - 4 : 0;
+        for (size_t i = start; i < *size_ - 1; i++)
+            MOZ_ASSERT_IF(stack_[i].js(), stack_[i].pc() != nullptr);
+    }
+#endif
+
     push(str, nullptr, script, script->code());
     return true;
 }
