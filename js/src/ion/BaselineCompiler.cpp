@@ -51,6 +51,11 @@ BaselineCompiler::compile()
         return Method_CantCompile;
     }
 
+    if (function() && function()->isHeavyweight()) {
+        IonSpew(IonSpew_BaselineAbort, "FIXME compile heavy weight functions");
+        return Method_CantCompile;
+    }
+
     
     analyze::AutoEnterAnalysis autoEnterAnalysis(cx);
 
@@ -183,6 +188,34 @@ BaselineCompiler::emitIC(ICStub *stub)
 }
 
 bool
+BaselineCompiler::initScopeChain()
+{
+    RootedFunction fun(cx, function());
+    if (fun) {
+        
+        
+        
+        Register callee = R0.scratchReg();
+        Register scope = R1.scratchReg();
+        masm.loadPtr(frame.addressOfCallee(), callee);
+        masm.loadPtr(Address(callee, JSFunction::offsetOfEnvironment()), scope);
+        masm.storePtr(scope, frame.addressOfScopeChain());
+
+        
+        
+        JS_ASSERT(!fun->isHeavyweight());
+    } else {
+        
+        JS_ASSERT(!script->isForEval());
+
+        
+        masm.storePtr(ImmGCPtr(&script->global()), frame.addressOfScopeChain());
+    }
+
+    return true;
+}
+
+bool
 BaselineCompiler::emitStackCheck()
 {
     Label skipIC;
@@ -232,6 +265,11 @@ MethodStatus
 BaselineCompiler::emitBody()
 {
     pc = script->code;
+
+    
+    
+    if (!initScopeChain())
+        return Method_Error;
 
     if (!emitStackCheck())
         return Method_Error;

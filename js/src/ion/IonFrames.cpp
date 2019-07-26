@@ -503,10 +503,16 @@ MarkBaselineJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     if (CalleeTokenIsFunction(layout->calleeToken()))
         MarkActualArguments(trc, frame);
 
+    uint8_t *base = frame.fp() - BaselineFrame::FramePointerOffset;
+
+    
+    JSObject **scope = reinterpret_cast<JSObject **>(base + BaselineFrame::reverseOffsetOfScopeChain());
+    gc::MarkObjectRoot(trc, scope, "baseline-scopechain");
+
+    
     size_t nvalues = frame.numBaselineStackValues();
     if (nvalues > 0) {
         
-        uint8_t *base = frame.fp() - BaselineFrame::FramePointerOffset;
         Value *last = reinterpret_cast<Value *>(base + BaselineFrame::reverseOffsetOfLocal(nvalues - 1));
         gc::MarkValueRootRange(trc, nvalues, last, "baseline-stack");
     }
