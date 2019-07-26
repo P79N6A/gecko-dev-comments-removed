@@ -3676,6 +3676,23 @@ Debugger::handleIonBailout(JSContext *cx, jit::RematerializedFrame *from, jit::B
     return replaceFrameGuts(cx, from, to, iter);
 }
 
+ void
+Debugger::propagateForcedReturn(JSContext *cx, AbstractFramePtr frame, HandleValue rval)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(!cx->isExceptionPending());
+    cx->setPropagatingForcedReturn();
+    frame.setReturnValue(rval);
+}
+
 static bool
 DebuggerScript_setBreakpoint(JSContext *cx, unsigned argc, Value *vp)
 {

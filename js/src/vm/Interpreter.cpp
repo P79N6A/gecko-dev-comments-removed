@@ -1054,6 +1054,14 @@ HandleError(JSContext *cx, InterpreterRegs &regs)
             }
         }
     } else {
+        
+        
+        if (MOZ_UNLIKELY(cx->isPropagatingForcedReturn())) {
+            cx->clearPropagatingForcedReturn();
+            ForcedReturn(cx, si, regs);
+            return SuccessfulReturnContinuation;
+        }
+
         UnwindForUncatchableException(cx, regs);
     }
 

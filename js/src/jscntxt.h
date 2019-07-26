@@ -422,6 +422,10 @@ struct JSContext : public js::ExclusiveContext,
     
     JS::ContextOptions  options_;
 
+    
+    
+    bool                propagatingForcedReturn_;
+
   public:
     int32_t             reportGranularity;  
 
@@ -569,6 +573,10 @@ struct JSContext : public js::ExclusiveContext,
         throwing = false;
         unwrappedException_.setUndefined();
     }
+
+    bool isPropagatingForcedReturn() const { return propagatingForcedReturn_; }
+    void setPropagatingForcedReturn() { propagatingForcedReturn_ = true; }
+    void clearPropagatingForcedReturn() { propagatingForcedReturn_ = false; }
 
 #ifdef DEBUG
     
