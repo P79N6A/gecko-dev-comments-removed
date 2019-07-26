@@ -28,10 +28,29 @@ function doTest(finishcb) {
        "toggle command should be " + (shouldBeShown ? "checked" : "unchecked"));
     is(sidebar.hidden, !shouldBeShown,
        "sidebar should be " + (shouldBeShown ? "visible" : "hidden"));
-    is(Services.prefs.getBoolPref("social.sidebar.open"), shouldBeShown,
-       "sidebar open pref should be " + shouldBeShown);
-    if (shouldBeShown)
+    
+    
+    if (Social.enabled)
+      is(Services.prefs.getBoolPref("social.sidebar.open"), shouldBeShown,
+         "sidebar open pref should be " + shouldBeShown);
+    if (shouldBeShown) {
       is(browser.getAttribute('src'), Social.provider.sidebarURL, "sidebar url should be set");
+      
+      
+      
+    }
+    else {
+      ok(!browser.docShellIsActive, "sidebar should have an inactive docshell");
+      
+      
+      if (SocialSidebar.canShow) {
+        
+        is(browser.getAttribute('src'), Social.provider.sidebarURL, "sidebar url should be set");
+      } else {
+        
+        is(browser.getAttribute('src'), "about:blank", "sidebar url should be blank");
+      }
+    }
   }
 
   
@@ -47,6 +66,18 @@ function doTest(finishcb) {
       browser.removeEventListener("socialFrameShow", sidebarshow);
 
       checkShown(true);
+
+      
+      Social.enabled = false;
+      checkShown(false);
+
+      Social.enabled = true;
+      checkShown(true);
+
+      
+      Social.provider = null;
+      Social.enabled = false;
+      checkShown(false);
 
       
       finishcb();
