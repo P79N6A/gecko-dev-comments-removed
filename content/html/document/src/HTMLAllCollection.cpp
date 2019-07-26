@@ -37,10 +37,11 @@ const JSClass sHTMLDocumentAllClass = {
   JS_DeletePropertyStub,                                   
   nsHTMLDocumentSH::DocumentAllGetProperty,                
   JS_StrictPropertyStub,                                   
-  JS_EnumerateStub,                                        
-  (JSResolveOp)nsHTMLDocumentSH::DocumentAllNewResolve,    
-  JS_ConvertStub,                                          
-  nsHTMLDocumentSH::ReleaseDocument                        
+  JS_EnumerateStub,
+  (JSResolveOp)nsHTMLDocumentSH::DocumentAllNewResolve,
+  JS_ConvertStub,
+  nsHTMLDocumentSH::ReleaseDocument,
+  nsHTMLDocumentSH::CallToGetPropMapper
 };
 
 namespace mozilla {
@@ -371,12 +372,14 @@ bool
 nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
 {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  
 
   if (args.length() != 1) {
     
     
     
     xpc::Throw(cx, NS_ERROR_INVALID_ARG);
+
     return false;
   }
 
@@ -386,9 +389,16 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
     return false;
   }
 
-  JS::Rooted<JSObject*> self(cx, JS_THIS_OBJECT(cx, vp));
-  if (!self) {
-    return false;
+  
+  
+  JS::Rooted<JSObject*> self(cx);
+  if (args.calleev().isObject() &&
+      JS_GetClass(&args.calleev().toObject()) == &sHTMLDocumentAllClass) {
+    self = &args.calleev().toObject();
+  } else {
+    self = JS_THIS_OBJECT(cx, vp);
+    if (!self)
+      return false;
   }
 
   size_t length;
