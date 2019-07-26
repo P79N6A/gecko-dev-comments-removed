@@ -111,23 +111,22 @@ public:
   
   
   static
-  already_AddRefed<TestInterface> Constructor(nsISupports*, ErrorResult&);
+  already_AddRefed<TestInterface>
+    Constructor(const GlobalObject&, ErrorResult&);
   static
-  already_AddRefed<TestInterface> Constructor(nsISupports*, const nsAString&,
-                                              ErrorResult&);
+  already_AddRefed<TestInterface>
+    Constructor(const GlobalObject&, const nsAString&, ErrorResult&);
   static
-  already_AddRefed<TestInterface> Constructor(nsISupports*, uint32_t,
-                                              const Nullable<bool>&,
-                                              ErrorResult&);
+  already_AddRefed<TestInterface>
+    Constructor(const GlobalObject&, uint32_t, const Nullable<bool>&,
+                ErrorResult&);
   static
-  already_AddRefed<TestInterface> Constructor(nsISupports*, TestInterface*,
-                                              ErrorResult&);
+  already_AddRefed<TestInterface>
+    Constructor(const GlobalObject&, TestInterface*, ErrorResult&);
   static
-  already_AddRefed<TestInterface> Constructor(nsISupports*,
-                                              TestNonCastableInterface&,
-                                              ErrorResult&);
+  already_AddRefed<TestInterface>
+    Constructor(const GlobalObject&, TestNonCastableInterface&, ErrorResult&);
   
-
 
 
 
@@ -464,9 +463,11 @@ public:
   void ExerciseTypedefInterfaces3(TestInterface&);
 
   
-  static void StaticMethod(nsISupports*, bool);
-  static bool StaticAttribute(nsISupports*);
-  static void SetStaticAttribute(nsISupports*, bool);
+  static void StaticMethod(const GlobalObject&, bool);
+  static void StaticMethodWithContext(const GlobalObject&, JSContext*,
+                                      JS::Value);
+  static bool StaticAttribute(const GlobalObject&);
+  static void SetStaticAttribute(const GlobalObject&, bool);
 
   
   bool Overload1(TestInterface&);
