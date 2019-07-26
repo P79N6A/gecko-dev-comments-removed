@@ -3556,6 +3556,10 @@ DefinePropertyOrElement(typename ExecutionModeTraits<mode>::ExclusiveContextType
     return true;
 }
 
+static bool
+NativeLookupOwnProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, unsigned flags,
+                        MutableHandle<Shape*> shapep);
+
 bool
 js::DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, HandleValue value,
                          PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
@@ -3581,11 +3585,9 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, Ha
 
 
 
-
-        RootedObject pobj(cx);
-        if (!baseops::LookupProperty<CanGC>(cx, obj, id, &pobj, &shape))
+        if (!NativeLookupOwnProperty(cx, obj, id, flags, &shape))
             return false;
-        if (shape && pobj == obj) {
+        if (shape) {
             if (IsImplicitDenseElement(shape)) {
                 if (!JSObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
                     return false;
@@ -3605,8 +3607,6 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, Ha
             } else {
                 shape = nullptr;
             }
-        } else {
-            shape = nullptr;
         }
     }
 
@@ -3797,6 +3797,20 @@ LookupOwnPropertyWithFlagsInline(ExclusiveContext *cx,
     }
 
     *donep = false;
+    return true;
+}
+
+static bool
+NativeLookupOwnProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, unsigned flags,
+                        MutableHandle<Shape*> shapep)
+{
+    RootedObject pobj(cx);
+    bool done;
+
+    if (!LookupOwnPropertyWithFlagsInline<CanGC>(cx, obj, id, flags, &pobj, shapep, &done))
+        return false;
+    if (!done || pobj != obj)
+        shapep.set(nullptr);
     return true;
 }
 
