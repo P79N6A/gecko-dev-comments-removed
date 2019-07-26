@@ -37,6 +37,8 @@ function ContentSecurityPolicy() {
   this._policy._allowEval = true;
 
   this._request = "";
+  this._requestOrigin = "";
+  this._requestPrincipal = "";
   this._referrer = "";
   this._docRequest = null;
   CSPdebug("CSP POLICY INITED TO 'default-src *'");
@@ -73,6 +75,8 @@ function ContentSecurityPolicy() {
   csp._MAPPINGS[cp.TYPE_XMLHTTPREQUEST]    = cspr_sd.XHR_SRC;
   csp._MAPPINGS[cp.TYPE_WEBSOCKET]         = cspr_sd.XHR_SRC;
 
+  
+  csp._MAPPINGS[cp.TYPE_CSP_REPORT]        = null;
 
   
   csp._MAPPINGS[cp.TYPE_XBL]               = cspr_sd.DEFAULT_SRC;
@@ -169,6 +173,11 @@ ContentSecurityPolicy.prototype = {
     let uri = aChannel.URI.cloneIgnoringRef();
     uri.userPass = '';
     this._request = uri.asciiSpec;
+    this._requestOrigin = uri;
+
+    
+    this._requestPrincipal = Components.classes["@mozilla.org/scriptsecuritymanager;1"].
+    getService(Components.interfaces.nsIScriptSecurityManager).getChannelPrincipal(aChannel);
 
     if (aChannel.referrer) {
       let referrer = aChannel.referrer.cloneIgnoringRef();
@@ -211,7 +220,7 @@ ContentSecurityPolicy.prototype = {
 
     
     var intersect = this._policy.intersectWith(newpolicy);
- 
+
     
     this._policy = intersect;
     this._isInitialized = true;
@@ -325,8 +334,9 @@ ContentSecurityPolicy.prototype = {
           try {
             var contentPolicy = Cc["@mozilla.org/layout/content-policy;1"]
                                   .getService(Ci.nsIContentPolicy);
-            if (contentPolicy.shouldLoad(Ci.nsIContentPolicy.TYPE_OTHER,
-                                         chan.URI, null, null, null, null)
+            if (contentPolicy.shouldLoad(Ci.nsIContentPolicy.TYPE_CSP_REPORT,
+                                         chan.URI, this._requestOrigin,
+                                         null, null, null, this._requestPrincipal)
                 != Ci.nsIContentPolicy.ACCEPT) {
               continue; 
             }
@@ -378,7 +388,7 @@ ContentSecurityPolicy.prototype = {
         CSPdebug(" found frame ancestor " + ancestor.asciiSpec);
         ancestors.push(ancestor);
       }
-    } 
+    }
 
     
     let cspContext = CSPRep.SRC_DIRECTIVES.FRAME_ANCESTORS;
@@ -406,11 +416,11 @@ ContentSecurityPolicy.prototype = {
 
 
   shouldLoad:
-  function csp_shouldLoad(aContentType, 
-                          aContentLocation, 
-                          aRequestOrigin, 
-                          aContext, 
-                          aMimeTypeGuess, 
+  function csp_shouldLoad(aContentType,
+                          aContentLocation,
+                          aRequestOrigin,
+                          aContext,
+                          aMimeTypeGuess,
                           aOriginalUri) {
 
     
@@ -432,13 +442,13 @@ ContentSecurityPolicy.prototype = {
     
     
     var res = this._policy.permits(aContentLocation, cspContext)
-              ? Ci.nsIContentPolicy.ACCEPT 
+              ? Ci.nsIContentPolicy.ACCEPT
               : Ci.nsIContentPolicy.REJECT_SERVER;
 
     
 
     
-    if (res != Ci.nsIContentPolicy.ACCEPT) { 
+    if (res != Ci.nsIContentPolicy.ACCEPT) {
       CSPdebug("blocking request for " + aContentLocation.asciiSpec);
       try {
         let directive = this._policy._directives[cspContext];
@@ -453,7 +463,7 @@ ContentSecurityPolicy.prototype = {
 
     return (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
   },
-  
+
   shouldProcess:
   function csp_shouldProcess(aContentType,
                              aContentLocation,
