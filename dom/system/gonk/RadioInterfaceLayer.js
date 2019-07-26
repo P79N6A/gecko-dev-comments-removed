@@ -1153,7 +1153,7 @@ DataConnectionHandler.prototype = {
 
     
     for (let [, apnSetting] in Iterator(this.apnSettings.byApn)) {
-      if (apnSetting.iface.name in gNetworkManager.networkInterfaces) {
+      if (apnSetting.iface.networkId in gNetworkManager.networkInterfaces) {
         gNetworkManager.unregisterNetworkInterface(apnSetting.iface);
       }
       this.unregisterDataCallCallback(apnSetting.iface);
@@ -1406,7 +1406,7 @@ DataConnectionHandler.prototype = {
     if (apnSetting.iface.connected) {
       
       
-      if (apnSetting.iface.name in gNetworkManager.networkInterfaces) {
+      if (apnSetting.iface.networkId in gNetworkManager.networkInterfaces) {
         gNetworkManager.unregisterNetworkInterface(apnSetting.iface);
       }
       gNetworkManager.registerNetworkInterface(apnSetting.iface);
@@ -1439,7 +1439,7 @@ DataConnectionHandler.prototype = {
     if (apnSetting.iface.connectedTypes.length && apnSetting.iface.connected) {
       
       
-      if (apnSetting.iface.name in gNetworkManager.networkInterfaces) {
+      if (apnSetting.iface.networkId in gNetworkManager.networkInterfaces) {
         gNetworkManager.unregisterNetworkInterface(apnSetting.iface);
       }
       gNetworkManager.registerNetworkInterface(apnSetting.iface);
@@ -4504,6 +4504,10 @@ RILNetworkInterface.prototype = {
       count.value = this.dnses.length;
     }
     return this.dnses.slice();
+  },
+
+  get networkId() {
+    return "ril" + this.serviceId + "-" + this.type;
   },
 
   debug: function(s) {
