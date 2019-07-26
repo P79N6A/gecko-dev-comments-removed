@@ -206,7 +206,7 @@ let NetMonitorView = {
     let requestsView = this.RequestsMenu;
     let statisticsView = this.PerformanceStatistics;
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       statisticsView.displayPlaceholderCharts();
       yield controller.triggerActivity(ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED);
 
@@ -1007,7 +1007,28 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             requestItem.attachment.requestCookies = value;
             break;
           case "requestPostData":
+            
+            
+            
+            
+            let currentItem = requestItem;
+            let currentStore = { headers: [], headersSize: 0 };
+            gNetwork.getString(value.postData.text).then(aPostData => {
+              for (let section of aPostData.split(/\r\n|\r|\n/)) {
+                
+                
+                
+                
+                let headerTuples = parseHeadersText(section);
+                currentStore.headersSize += headerTuples.length ? section.length : 0;
+                Array.prototype.push.apply(currentStore.headers, headerTuples);
+              }
+              
+              
+              refreshNetworkDetailsPaneIfNecessary(currentItem);
+            });
             requestItem.attachment.requestPostData = value;
+            requestItem.attachment.requestHeadersFromUploadStream = currentStore;
             break;
           case "responseHeaders":
             requestItem.attachment.responseHeaders = value;
@@ -1061,10 +1082,21 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             break;
         }
       }
-      
-      
-      let selectedItem = this.selectedItem;
-      if (selectedItem && selectedItem.value == id) {
+      refreshNetworkDetailsPaneIfNecessary(requestItem);
+    }
+
+    
+
+
+
+
+
+
+
+
+    function refreshNetworkDetailsPaneIfNecessary(aRequestItem) {
+      let selectedItem = NetMonitorView.RequestsMenu.selectedItem;
+      if (selectedItem == aRequestItem) {
         NetMonitorView.NetworkDetails.populate(selectedItem.attachment);
       }
     }
@@ -1814,7 +1846,7 @@ CustomRequestView.prototype = {
         break;
       case 'headers':
         let headersText = $("#custom-headers-value").value;
-        value = parseHeaderText(headersText);
+        value = parseHeadersText(headersText);
         selectedItem.attachment.requestHeaders = { headers: value };
         break;
     }
@@ -1900,6 +1932,7 @@ NetworkDetailsView.prototype = {
     this._paramsFormData = L10N.getStr("paramsFormData");
     this._paramsPostPayload = L10N.getStr("paramsPostPayload");
     this._requestHeaders = L10N.getStr("requestHeaders");
+    this._requestHeadersFromUpload = L10N.getStr("requestHeadersFromUpload");
     this._responseHeaders = L10N.getStr("responseHeaders");
     this._requestCookies = L10N.getStr("requestCookies");
     this._responseCookies = L10N.getStr("responseCookies");
@@ -1973,7 +2006,9 @@ NetworkDetailsView.prototype = {
         case 0: 
           yield view._setSummary(src);
           yield view._setResponseHeaders(src.responseHeaders);
-          yield view._setRequestHeaders(src.requestHeaders);
+          yield view._setRequestHeaders(
+            src.requestHeaders,
+            src.requestHeadersFromUploadStream);
           break;
         case 1: 
           yield view._setResponseCookies(src.responseCookies);
@@ -1981,7 +2016,10 @@ NetworkDetailsView.prototype = {
           break;
         case 2: 
           yield view._setRequestGetParams(src.url);
-          yield view._setRequestPostParams(src.requestHeaders, src.requestPostData);
+          yield view._setRequestPostParams(
+            src.requestHeaders,
+            src.requestHeadersFromUploadStream,
+            src.requestPostData);
           break;
         case 3: 
           yield view._setResponseBody(src.url, src.responseContent);
@@ -2046,11 +2084,21 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestHeaders: function(aResponse) {
-    if (aResponse && aResponse.headers.length) {
-      return this._addHeaders(this._requestHeaders, aResponse);
+
+
+  _setRequestHeaders: function(aHeadersResponse, aHeadersFromUploadStream) {
+    let outstanding = [];
+
+    if (aHeadersResponse && aHeadersResponse.headers.length) {
+      outstanding.push(
+        this._addHeaders(this._requestHeaders, aHeadersResponse));
     }
-    return promise.resolve();
+    if (aHeadersFromUploadStream && aHeadersFromUploadStream.headers.length) {
+      outstanding.push(
+        this._addHeaders(this._requestHeadersFromUpload, aHeadersFromUploadStream));
+    }
+
+    return promise.all(outstanding);
   },
 
   
@@ -2186,49 +2234,59 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestPostParams: function(aHeadersResponse, aPostDataResponse) {
-    if (!aHeadersResponse || !aPostDataResponse) {
+
+
+  _setRequestPostParams: function(aHeadersResponse, aHeadersFromUploadStream, aPostDataResponse) {
+    if (!aHeadersResponse || !aHeadersFromUploadStream || !aPostDataResponse) {
       return promise.resolve();
     }
-    return gNetwork.getString(aPostDataResponse.postData.text).then(aPostData => {
-      let contentTypeHeader = aHeadersResponse.headers.filter(({ name }) => name == "Content-Type")[0];
-      let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
+    let { headers: requestHeaders } = aHeadersResponse;
+    let { headers: payloadHeaders } = aHeadersFromUploadStream;
+    let allHeaders = [...payloadHeaders, ...requestHeaders];
 
-      return gNetwork.getString(contentTypeLongString).then(aContentType => {
-        let urlencoded = "x-www-form-urlencoded";
+    let contentTypeHeader = allHeaders.filter(e => e.name.toLowerCase() == "content-type")[0];
+    let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
+    let postDataLongString = aPostDataResponse.postData.text;
 
-        
-        if (aContentType.contains(urlencoded)) {
-          let formDataGroups = aPostData.split(/\r\n|\r|\n/);
-          for (let group of formDataGroups) {
-            this._addParams(this._paramsFormData, group);
+    return promise.all([
+      gNetwork.getString(postDataLongString),
+      gNetwork.getString(contentTypeLongString)
+    ])
+    .then(([aPostData, aContentType]) => {
+      
+      if (aContentType.contains("x-www-form-urlencoded")) {
+        for (let section of aPostData.split(/\r\n|\r|\n/)) {
+          
+          
+          if (payloadHeaders.every(header => !section.startsWith(header.name))) {
+            this._addParams(this._paramsFormData, section);
           }
         }
+      }
+      
+      else {
         
-        else {
-          
-          
-          
-          $("#request-params-box").removeAttribute("flex");
-          let paramsScope = this._params.addScope(this._paramsPostPayload);
-          paramsScope.expanded = true;
-          paramsScope.locked = true;
+        
+        
+        $("#request-params-box").removeAttribute("flex");
+        let paramsScope = this._params.addScope(this._paramsPostPayload);
+        paramsScope.expanded = true;
+        paramsScope.locked = true;
 
-          $("#request-post-data-textarea-box").hidden = false;
-          return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
-            
-            
-            try {
-              JSON.parse(aPostData);
-              aEditor.setMode(Editor.modes.js);
-            } catch (e) {
-              aEditor.setMode(Editor.modes.text);
-            } finally {
-              aEditor.setText(aPostData);
-            }
-          });
-        }
-      });
+        $("#request-post-data-textarea-box").hidden = false;
+        return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
+          
+          
+          try {
+            JSON.parse(aPostData);
+            aEditor.setMode(Editor.modes.js);
+          } catch (e) {
+            aEditor.setMode(Editor.modes.text);
+          } finally {
+            aEditor.setText(aPostData);
+          }
+        });
+      }
     }).then(() => window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED));
   },
 
@@ -2715,8 +2773,8 @@ function parseQueryString(aQueryString) {
 
 
 
-function parseHeaderText(aText) {
-  return parseRequestText(aText, ":");
+function parseHeadersText(aText) {
+  return parseRequestText(aText, "\\S+?", ":");
 }
 
 
@@ -2728,7 +2786,7 @@ function parseHeaderText(aText) {
 
 
 function parseQueryText(aText) {
-  return parseRequestText(aText, "=");
+  return parseRequestText(aText, ".+?", "=");
 }
 
 
@@ -2740,8 +2798,8 @@ function parseQueryText(aText) {
 
 
 
-function parseRequestText(aText, aDivider) {
-  let regex = new RegExp("(.+?)\\" + aDivider + "\\s*(.+)");
+function parseRequestText(aText, aName, aDivider) {
+  let regex = new RegExp("(" + aName + ")\\" + aDivider + "\\s*(.+)");
   let pairs = [];
   for (let line of aText.split("\n")) {
     let matches;
