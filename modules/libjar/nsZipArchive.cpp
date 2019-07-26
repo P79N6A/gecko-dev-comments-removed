@@ -765,7 +765,7 @@ nsZipHandle* nsZipArchive::GetFD()
 
 
 
-const uint8_t* nsZipArchive::GetData(nsZipItem* aItem)
+uint32_t nsZipArchive::GetDataOffset(nsZipItem* aItem)
 {
   PR_ASSERT (aItem);
 MOZ_WIN_MEM_TRY_BEGIN
@@ -775,12 +775,12 @@ MOZ_WIN_MEM_TRY_BEGIN
   const uint8_t* data = mFd->mFileData;
   uint32_t offset = aItem->LocalOffset();
   if (offset + ZIPLOCAL_SIZE > len)
-    return nullptr;
+    return 0;
 
   
   ZipLocal* Local = (ZipLocal*)(data + offset);
   if ((xtolong(Local->signature) != LOCALSIG))
-    return nullptr;
+    return 0;
 
   
   
@@ -789,11 +789,24 @@ MOZ_WIN_MEM_TRY_BEGIN
             xtoint(Local->filename_len) +
             xtoint(Local->extrafield_len);
 
+  return offset;
+MOZ_WIN_MEM_TRY_CATCH(return 0)
+}
+
+
+
+
+const uint8_t* nsZipArchive::GetData(nsZipItem* aItem)
+{
+  PR_ASSERT (aItem);
+MOZ_WIN_MEM_TRY_BEGIN
+  uint32_t offset = GetDataOffset(aItem);
+
   
-  if (offset + aItem->Size() > len)
+  if (!offset || offset + aItem->Size() > mFd->mLen)
     return nullptr;
 
-  return data + offset;
+  return mFd->mFileData + offset;
 MOZ_WIN_MEM_TRY_CATCH(return nullptr)
 }
 

@@ -183,6 +183,13 @@ public:
 
 
 
+  uint32_t GetDataOffset(nsZipItem* aItem);
+
+  
+
+
+
+
   const uint8_t* GetData(nsZipItem* aItem);
 
   bool GetComment(nsACString &aComment);
