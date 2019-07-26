@@ -50,6 +50,10 @@ XPCOMUtils.defineLazyGetter(this, "gEncoder", function () {
   return new TextEncoder();
 });
 
+XPCOMUtils.defineLazyGetter(this, "gDecoder", function () {
+  return new TextDecoder();
+});
+
 this._SessionFile = {
   
 
@@ -150,52 +154,109 @@ let SessionFileInternal = {
 
 
 
-
-  syncRead: function ssfi_syncRead() {
+  readAuxSync: function ssfi_readAuxSync(aPath) {
     let text;
-    let exn;
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_SYNC_READ_FILE_MS");
     try {
-      let file = new FileUtils.File(this.path);
+      let file = new FileUtils.File(aPath);
       let chan = NetUtil.newChannel(file);
       let stream = chan.open();
-      text = NetUtil.readInputStreamToString(stream, stream.available(), {charset: "utf-8"});
+      text = NetUtil.readInputStreamToString(stream, stream.available(),
+        {charset: "utf-8"});
     } catch (e if e.result == Components.results.NS_ERROR_FILE_NOT_FOUND) {
-      return "";
-    } catch(ex) {
-      exn = ex;
+      
+    } catch (ex) {
+      
+      Cu.reportError(ex);
     } finally {
-      TelemetryStopwatch.finish("FX_SESSION_RESTORE_SYNC_READ_FILE_MS");
+      return text;
     }
-    if (exn) {
-      Cu.reportError(exn);
-      return "";
-    }
-    return text;
   },
 
-  read: function ssfi_read() {
-    let refObj = {};
+  
+
+
+
+
+
+
+
+
+
+
+  syncRead: function ssfi_syncRead() {
+    
+    TelemetryStopwatch.start("FX_SESSION_RESTORE_SYNC_READ_FILE_MS");
+    
+    let text = this.readAuxSync(this.path);
+    if (typeof text === "undefined") {
+      
+      text = this.readAuxSync(this.backupPath);
+    }
+    
+    TelemetryStopwatch.finish("FX_SESSION_RESTORE_SYNC_READ_FILE_MS");
+    return text || "";
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  readAux: function ssfi_readAux(aPath, aReadOptions) {
     let self = this;
-    return TaskUtils.spawn(function task() {
-      TelemetryStopwatch.start("FX_SESSION_RESTORE_READ_FILE_MS", refObj);
+    return TaskUtils.spawn(function () {
       let text;
       try {
-        let bytes = yield OS.File.read(self.path);
-        text = new TextDecoder().decode(bytes);
-        TelemetryStopwatch.finish("FX_SESSION_RESTORE_READ_FILE_MS", refObj);
+        let bytes = yield OS.File.read(aPath, undefined, aReadOptions);
+        text = gDecoder.decode(bytes);
+        
+        
+        let histogram = Telemetry.getHistogramById(
+          "FX_SESSION_RESTORE_READ_FILE_MS");
+        histogram.add(aReadOptions.outExecutionDuration);
+      } catch (ex if self._isNoSuchFile(ex)) {
+        
       } catch (ex) {
-        if (self._isNoSuchFile(ex)) {
-          
-          TelemetryStopwatch.finish("FX_SESSION_RESTORE_READ_FILE_MS", refObj);
-        } else {
-          
-          TelemetryStopwatch.cancel("FX_SESSION_RESTORE_READ_FILE_MS", refObj);
-          Cu.reportError(ex);
-        }
-        text = "";
+        Cu.reportError(ex);
       }
       throw new Task.Result(text);
+    });
+  },
+
+  
+
+
+
+
+
+
+  read: function ssfi_read() {
+    let self = this;
+    return TaskUtils.spawn(function task() {
+      
+      
+      
+      
+      
+      
+      let readOptions = {
+        outExecutionDuration: null
+      };
+      
+      let text = yield self.readAux(self.path, readOptions);
+      if (typeof text === "undefined") {
+        
+        
+        text = yield self.readAux(self.backupPath, readOptions);
+      }
+      
+      
+      throw new Task.Result(text || "");
     });
   },
 
@@ -232,7 +293,7 @@ let SessionFileInternal = {
     let self = this;
     return TaskUtils.spawn(function task() {
       try {
-        yield OS.File.copy(self.path, self.backupPath, backupCopyOptions);
+        yield OS.File.move(self.path, self.backupPath, backupCopyOptions);
         Telemetry.getHistogramById("FX_SESSION_RESTORE_BACKUP_FILE_MS").add(
           backupCopyOptions.outExecutionDuration);
       } catch (ex if self._isNoSuchFile(ex)) {

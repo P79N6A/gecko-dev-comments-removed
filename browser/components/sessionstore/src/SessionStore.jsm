@@ -459,13 +459,10 @@ let SessionStoreInternal = {
       catch (ex) { debug("The session file is invalid: " + ex); }
     }
 
-    if (this._resume_from_crash) {
-      
-      
-      
-      
-      _SessionFile.createBackupCopy();
-    }
+    
+    XPCOMUtils.defineLazyGetter(this, "_backupSessionFileOnce", function () {
+      return _SessionFile.createBackupCopy();
+    });
 
     
     
@@ -3758,13 +3755,33 @@ let SessionStoreInternal = {
       return;
     }
 
-    let self = this;
-    _SessionFile.write(data).then(
-      function onSuccess() {
-        self._lastSaveTime = Date.now();
-        Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
-      }
-    );
+    let promise;
+    
+    
+    if (this._resume_from_crash) {
+      
+      
+      
+      
+      promise = this._backupSessionFileOnce;
+    } else {
+      promise = Promise.resolve();
+    }
+
+    
+    
+    promise = promise.then(function onSuccess() {
+      
+      return _SessionFile.write(data);
+    });
+
+    
+    
+    promise = promise.then(() => {
+      this._lastSaveTime = Date.now();
+      Services.obs.notifyObservers(null, "sessionstore-state-write-complete",
+        "");
+    });
   },
 
   
