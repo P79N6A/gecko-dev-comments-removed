@@ -168,13 +168,18 @@ PRThread* gCycleCollectorThread = nullptr;
 #endif
 
 
-const bool gAlwaysLogCCGraphs = false;
 
 
-const bool gLogShutdown = false;
 
 
-const bool gAllTracesAtShutdown = false;
+
+
+
+
+
+
+
+
 
 MOZ_NEVER_INLINE void
 CC_AbortIfNull(void *ptr)
@@ -188,8 +193,10 @@ CC_AbortIfNull(void *ptr)
 
 struct nsCycleCollectorParams
 {
+    bool mLogAll;
+    bool mLogShutdown;
+    bool mAllTracesAtShutdown;
     bool mDoNothing;
-    bool mLogGraphs;
 #ifdef DEBUG_CC
     bool mReportStats;
     bool mLogPointers;
@@ -197,17 +204,16 @@ struct nsCycleCollectorParams
 #endif
     
     nsCycleCollectorParams() :
+        mLogAll      (PR_GetEnv("XPCOM_CC_LOG_ALL") != NULL),
+        mLogShutdown (PR_GetEnv("XPCOM_CC_LOG_SHUTDOWN") != NULL),
+        mAllTracesAtShutdown (PR_GetEnv("XPCOM_CC_ALL_TRACES_AT_SHUTDOWN") != NULL),
 #ifdef DEBUG_CC
-        mDoNothing     (PR_GetEnv("XPCOM_CC_DO_NOTHING") != NULL),
-        mLogGraphs     (gAlwaysLogCCGraphs ||
-                        PR_GetEnv("XPCOM_CC_DRAW_GRAPHS") != NULL),
-        mReportStats   (PR_GetEnv("XPCOM_CC_REPORT_STATS") != NULL),
-        mLogPointers   (PR_GetEnv("XPCOM_CC_LOG_POINTERS") != NULL),
-
+        mDoNothing   (PR_GetEnv("XPCOM_CC_DO_NOTHING") != NULL),
+        mReportStats (PR_GetEnv("XPCOM_CC_REPORT_STATS") != NULL),
+        mLogPointers (PR_GetEnv("XPCOM_CC_LOG_POINTERS") != NULL),
         mShutdownCollections(DEFAULT_SHUTDOWN_COLLECTIONS)
 #else
-        mDoNothing     (false),
-        mLogGraphs     (gAlwaysLogCCGraphs)
+        mDoNothing   (false)
 #endif
     {
 #ifdef DEBUG_CC
@@ -2974,9 +2980,9 @@ nsCycleCollector::Shutdown()
 #endif
     {
         nsCOMPtr<nsCycleCollectorLogger> listener;
-        if (mParams.mLogGraphs || gLogShutdown) {
+        if (mParams.mLogAll || mParams.mLogShutdown) {
             listener = new nsCycleCollectorLogger();
-            if (gAllTracesAtShutdown) {
+            if (mParams.mAllTracesAtShutdown) {
                 listener->SetAllTraces();
             }
         }
@@ -3379,7 +3385,7 @@ nsCycleCollector_collect(bool aMergeCompartments,
     MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
     SAMPLE_LABEL("CC", "nsCycleCollector_collect");
     nsCOMPtr<nsICycleCollectorListener> listener(aListener);
-    if (!aListener && sCollector && sCollector->mParams.mLogGraphs) {
+    if (!aListener && sCollector && sCollector->mParams.mLogAll) {
         listener = new nsCycleCollectorLogger();
     }
 
