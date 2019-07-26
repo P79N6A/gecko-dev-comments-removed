@@ -586,6 +586,10 @@ DataChannelConnection::ProcessQueuedOpens()
 {
   
   
+  
+
+  
+  
   nsDeque temp;
   DataChannel *temp_channel; 
   while (nullptr != (temp_channel = static_cast<DataChannel *>(mPending.PopFront()))) {
@@ -593,11 +597,15 @@ DataChannelConnection::ProcessQueuedOpens()
   }
 
   nsRefPtr<DataChannel> channel;
+  
   while (nullptr != (channel = dont_AddRef(static_cast<DataChannel *>(temp.PopFront())))) {
     if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
       LOG(("Processing queued open for %p (%u)", channel.get(), channel->mStream));
       channel->mFlags &= ~DATA_CHANNEL_FLAGS_FINISH_OPEN;
-      OpenFinish(channel.forget()); 
+      
+      channel = OpenFinish(channel.forget()); 
+    } else {
+      NS_ASSERTION(false, "How did a DataChannel get queued without the FINISH_OPEN flag?");
     }
   }
 
@@ -1287,7 +1295,8 @@ DataChannelConnection::HandleMessage(const void *buffer, size_t length, uint32_t
 
   switch (ppid) {
     case DATA_CHANNEL_PPID_CONTROL:
-      NS_ENSURE_TRUE_VOID(length >= sizeof(*req));
+      
+      NS_ENSURE_TRUE_VOID(length >= sizeof(*req) - 1);
 
       req = static_cast<const struct rtcweb_datachannel_open_request *>(buffer);
       switch (req->msg_type) {
@@ -1859,7 +1868,9 @@ DataChannelConnection::Open(const nsACString& label, const nsACString& protocol,
 already_AddRefed<DataChannel>
 DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
 {
-  nsRefPtr<DataChannel> channel(aChannel);
+  nsRefPtr<DataChannel> channel(aChannel); 
+  
+  
   uint16_t stream = channel->mStream;
 
   mLock.AssertCurrentThreadOwns();
@@ -1889,7 +1900,7 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
     }
     if (stream != INVALID_STREAM) {
       
-      mStreams[stream] = channel;
+      mStreams[stream] = channel; 
       channel->mStream = stream;
     }
 
@@ -1908,6 +1919,7 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
   } else {
     
     mStreams[stream] = channel;
+    mStreams[stream] = channel; 
   }
 
 #ifdef TEST_QUEUED_DATA
