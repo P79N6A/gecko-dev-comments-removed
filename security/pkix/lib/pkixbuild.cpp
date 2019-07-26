@@ -68,6 +68,7 @@ BackCert::Init()
         case 32: out = &encodedCertificatePolicies; break;
         case 35: out = &dummyEncodedAuthorityKeyIdentifier; break; 
         case 37: out = &encodedExtendedKeyUsage; break;
+        case 54: out = &encodedInhibitAnyPolicy; break; 
       }
     } else if (ext->id.len == 9 &&
                ext->id.data[0] == 0x2b && ext->id.data[1] == 0x06 &&

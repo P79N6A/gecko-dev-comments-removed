@@ -121,6 +121,14 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   
   
   
+  if (cert.encodedInhibitAnyPolicy) {
+    PR_SetError(SEC_ERROR_POLICY_VALIDATION_FAILED, 0);
+    return RecoverableError;
+  }
+
+  
+  
+  
   
   if (isTrustAnchor && endEntityOrCA == MustBeCA) {
     return Success;
@@ -141,6 +149,11 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
   for (const CERTPolicyInfo* const* policyInfos = policies->policyInfos;
        *policyInfos; ++policyInfos) {
     if ((*policyInfos)->oid == requiredPolicy) {
+      return Success;
+    }
+    
+    if (endEntityOrCA == MustBeCA &&
+        (*policyInfos)->oid == SEC_OID_X509_ANY_POLICY) {
       return Success;
     }
   }
