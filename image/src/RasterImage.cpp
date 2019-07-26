@@ -144,8 +144,6 @@ namespace mozilla {
 namespace image {
 
  StaticRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
- nsRefPtr<RasterImage::ScaleWorker> RasterImage::ScaleWorker::sSingleton;
- nsRefPtr<RasterImage::DrawWorker> RasterImage::DrawWorker::sSingleton;
 static nsCOMPtr<nsIThread> sScaleWorkerThread = nullptr;
 
 #ifndef DEBUG
@@ -236,8 +234,6 @@ RasterImage::Initialize()
   
   
   DecodeWorker::Singleton();
-  DrawWorker::Singleton();
-  ScaleWorker::Singleton();
 }
 
 nsresult
@@ -2621,30 +2617,11 @@ RasterImage::SyncDecode()
   return mError ? NS_ERROR_FAILURE : NS_OK;
 }
 
- RasterImage::ScaleWorker*
-RasterImage::ScaleWorker::Singleton()
-{
-  if (!sSingleton) {
-    sSingleton = new ScaleWorker();
-    ClearOnShutdown(&sSingleton);
-  }
-
-  return sSingleton;
-}
-
 nsresult
-RasterImage::ScaleWorker::Run()
+RasterImage::ScaleRunner::Run()
 {
-  if (!mInitialized) {
-    PR_SetCurrentThreadName("Image Scaler");
-    mInitialized = true;
-  }
-
-  ScaleRequest* request;
-  {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    request = mScaleRequests.popFirst();
-  }
+  
+  ScaleRequest* request = mScaleRequest;
 
   request->done = mozilla::gfx::Scale(request->srcData, request->srcRect.width, request->srcRect.height, request->srcStride,
                                       request->dstData, request->dstSize.width, request->dstSize.height, request->dstStride,
@@ -2652,18 +2629,15 @@ RasterImage::ScaleWorker::Run()
 
   
   
-  DrawWorker::Singleton()->RequestDraw(request);
+  DrawRunner* runner = new DrawRunner(mScaleRequest.forget());
+  NS_DispatchToMainThread(runner, NS_DISPATCH_NORMAL);
 
   return NS_OK;
 }
 
-
-bool
-RasterImage::ScaleWorker::RequestScale(ScaleRequest* request,
-                                       RasterImage* image,
-                                       imgFrame* aSrcFrame)
+RasterImage::ScaleRunner::ScaleRunner(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
 {
-  mRequestsMutex.AssertCurrentThreadOwns();
+  nsAutoPtr<ScaleRequest> request(new ScaleRequest(aImage, aScale, aSrcFrame));
 
   
   
@@ -2672,82 +2646,48 @@ RasterImage::ScaleWorker::RequestScale(ScaleRequest* request,
                                         gfxASurface::ImageFormatARGB32);
 
   if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
-    return false;
+    return;
   }
 
-  mScaleRequests.insertBack(request);
+  aImage->SetResultPending(request);
 
-  if (!sScaleWorkerThread) {
-    NS_NewThread(getter_AddRefs(sScaleWorkerThread), this, NS_DISPATCH_NORMAL);
-    ClearOnShutdown(&sScaleWorkerThread);
-  }
-  else {
-    sScaleWorkerThread->Dispatch(this, NS_DISPATCH_NORMAL);
-  }
-
-  image->SetResultPending(request);
-
-  return true;
+  mScaleRequest = request;
 }
 
- RasterImage::DrawWorker*
-RasterImage::DrawWorker::Singleton()
-{
-  if (!sSingleton) {
-    sSingleton = new DrawWorker();
-    ClearOnShutdown(&sSingleton);
-  }
-
-  return sSingleton;
-}
+RasterImage::DrawRunner::DrawRunner(ScaleRequest* request)
+ : mScaleRequest(request)
+{}
 
 nsresult
-RasterImage::DrawWorker::Run()
+RasterImage::DrawRunner::Run()
 {
-  ScaleRequest* request;
-  {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    request = mDrawRequests.popFirst();
-  }
+  
+  mScaleRequest->ReleaseSurfaces();
 
   
-  request->ReleaseSurfaces();
-
-  
-  if (request->done) {
-    RasterImage* image = request->weakImage;
+  if (mScaleRequest->done) {
+    RasterImage* image = mScaleRequest->weakImage;
     if (image) {
       nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(image->mObserver));
       if (observer) {
-        imgFrame *scaledFrame = request->dstFrame.get();
+        imgFrame *scaledFrame = mScaleRequest->dstFrame.get();
         scaledFrame->ImageUpdated(scaledFrame->GetRect());
-        observer->FrameChanged(&request->srcRect);
+        observer->FrameChanged(&mScaleRequest->srcRect);
       }
 
-      image->SetScaleResult(request);
+      image->SetScaleResult(mScaleRequest);
     }
   }
 
   
   else {
-    RasterImage* image = request->weakImage;
+    RasterImage* image = mScaleRequest->weakImage;
     if (image) {
       image->SetScaleResult(nullptr);
     }
   }
 
-  
-  delete request;
-
   return NS_OK;
-}
-
-void
-RasterImage::DrawWorker::RequestDraw(ScaleRequest* request)
-{
-  MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-  mDrawRequests.insertBack(request);
-  NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
 }
 
 static inline bool
@@ -2818,7 +2758,6 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
   nsIntRect subimage = aSubimage;
 
   if (CanScale(aFilter, scale)) {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
     
     
     
@@ -2839,11 +2778,14 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
 
     
     else if (!(mScaleResult.status == SCALE_PENDING && mScaleResult.scale == scale)) {
-      ScaleRequest* request = new ScaleRequest(this, scale, frame);
+      nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, scale, frame);
+      if (runner->IsOK()) {
+        if (!sScaleWorkerThread) {
+          NS_NewNamedThread("Image Scaler", getter_AddRefs(sScaleWorkerThread));
+          ClearOnShutdown(&sScaleWorkerThread);
+        }
 
-      if (!ScaleWorker::Singleton()->RequestScale(request, this, frame)) {
-        
-        delete request;
+        sScaleWorkerThread->Dispatch(runner, NS_DISPATCH_NORMAL);
       }
     }
   }
