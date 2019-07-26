@@ -4296,12 +4296,20 @@ ICGetElemNativeCompiler::generateStubCode(MacroAssembler &masm)
             masm.branchTestUndefined(Assembler::NotEqual, valAddr, &skipNoSuchMethod);
 
             GeneralRegisterSet regs = availableGeneralRegs(0);
-            regs.takeUnchecked(objReg);
             regs.take(R1);
-            Register scratch = regs.takeAnyExcluding(BaselineTailCallReg);
+            regs.take(R0);
+            regs.takeUnchecked(objReg);
             if (popR1)
                 masm.pop(R1.scratchReg());
-            enterStubFrame(masm, scratch);
+
+            
+            masm.tagValue(JSVAL_TYPE_OBJECT, objReg, R0);
+            EmitStowICValues(masm, 2);
+
+            regs.add(R0);
+            regs.takeUnchecked(objReg);
+
+            enterStubFrame(masm, regs.getAnyExcluding(BaselineTailCallReg));
 
             masm.pushValue(R1);
             masm.push(objReg);
@@ -4309,6 +4317,10 @@ ICGetElemNativeCompiler::generateStubCode(MacroAssembler &masm)
                 return false;
 
             leaveStubFrame(masm);
+
+            
+            EmitUnstowICValues(masm, 2,  true);
+
             
             masm.jump(&afterNoSuchMethod);
             masm.bind(&skipNoSuchMethod);
@@ -4472,10 +4484,20 @@ ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
         regs = availableGeneralRegs(0);
         regs.takeUnchecked(obj);
         regs.takeUnchecked(key);
+        regs.takeUnchecked(BaselineTailCallReg);
         ValueOperand val = regs.takeValueOperand();
 
         masm.loadValue(element, val);
         masm.branchTestUndefined(Assembler::NotEqual, val, &skipNoSuchMethod);
+
+        
+        EmitRestoreTailCallReg(masm);
+        masm.tagValue(JSVAL_TYPE_OBJECT, obj, val);
+        masm.pushValue(val);
+        masm.tagValue(JSVAL_TYPE_INT32, key, val);
+        masm.pushValue(val);
+        EmitRepushTailCallReg(masm);
+
         regs.add(val);
 
         
@@ -4490,6 +4512,10 @@ ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
             return false;
 
         leaveStubFrame(masm);
+
+        
+        EmitUnstowICValues(masm, 2,  true);
+
         
         masm.jump(&afterNoSuchMethod);
         masm.bind(&skipNoSuchMethod);
@@ -4703,19 +4729,33 @@ ICGetElem_Arguments::Compiler::generateStubCode(MacroAssembler &masm)
 
         
         regs = availableGeneralRegs(0);
-        
         regs.takeUnchecked(objReg);
-        regs.take(R1);
-        masm.tagValue(JSVAL_TYPE_INT32, idxReg, R1);
-        scratchReg = regs.takeAnyExcluding(BaselineTailCallReg);
-        enterStubFrame(masm, scratchReg);
+        regs.takeUnchecked(idxReg);
+        regs.takeUnchecked(BaselineTailCallReg);
+        ValueOperand val = regs.takeValueOperand();
 
-        masm.pushValue(R1);
+        
+        EmitRestoreTailCallReg(masm);
+        masm.tagValue(JSVAL_TYPE_OBJECT, objReg, val);
+        masm.pushValue(val);
+        masm.tagValue(JSVAL_TYPE_INT32, idxReg, val);
+        masm.pushValue(val);
+        EmitRepushTailCallReg(masm);
+
+        regs.add(val);
+        enterStubFrame(masm, regs.getAnyExcluding(BaselineTailCallReg));
+        regs.take(val);
+
+        masm.pushValue(val);
         masm.push(objReg);
         if (!callVM(LookupNoSuchMethodHandlerInfo, masm))
             return false;
 
         leaveStubFrame(masm);
+
+        
+        EmitUnstowICValues(masm, 2,  true);
+
         
         masm.jump(&afterNoSuchMethod);
         masm.bind(&skipNoSuchMethod);
@@ -6533,16 +6573,33 @@ ICGetPropNativeCompiler::generateStubCode(MacroAssembler &masm)
         masm.branchTestUndefined(Assembler::NotEqual, R0, &skipNoSuchMethod);
 
         masm.pop(objReg);
-        enterStubFrame(masm, scratch);
 
-        masm.movePtr(ImmGCPtr(propName_.get()), R1.scratchReg());
-        masm.tagValue(JSVAL_TYPE_STRING, R1.scratchReg(), R1);
-        masm.pushValue(R1);
+        
+        regs = availableGeneralRegs(0);
+        regs.takeUnchecked(objReg);
+        regs.takeUnchecked(BaselineTailCallReg);
+        ValueOperand val = regs.takeValueOperand();
+
+        
+        EmitRestoreTailCallReg(masm);
+        masm.tagValue(JSVAL_TYPE_OBJECT, objReg, val);
+        masm.pushValue(val);
+        EmitRepushTailCallReg(masm);
+
+        enterStubFrame(masm, regs.getAnyExcluding(BaselineTailCallReg));
+
+        masm.movePtr(ImmGCPtr(propName_.get()), val.scratchReg());
+        masm.tagValue(JSVAL_TYPE_STRING, val.scratchReg(), val);
+        masm.pushValue(val);
         masm.push(objReg);
         if (!callVM(LookupNoSuchMethodHandlerInfo, masm))
             return false;
 
         leaveStubFrame(masm);
+
+        
+        EmitUnstowICValues(masm, 1,  true);
+
         masm.jump(&afterNoSuchMethod);
         masm.bind(&skipNoSuchMethod);
 
