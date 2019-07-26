@@ -398,6 +398,18 @@ NotifyAnimationActivity(RawObject obj);
 JS_FRIEND_API(bool)
 IsOriginalScriptFunction(JSFunction *fun);
 
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(JSScript *)
+GetOutermostEnclosingFunctionOfScriptedCaller(JSContext *cx);
+
 JS_FRIEND_API(JSFunction *)
 DefineFunctionWithReserved(JSContext *cx, JSObject *obj, const char *name, JSNative call,
                            unsigned nargs, unsigned attrs);
