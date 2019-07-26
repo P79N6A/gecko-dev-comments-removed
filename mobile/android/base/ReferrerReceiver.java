@@ -51,7 +51,7 @@ public class ReferrerReceiver
                     data.put("version", campaign);
 
                     
-                    GeckoEvent event = GeckoEvent.createBroadcastEvent("Distribution:Set", data.toString());
+                    GeckoEvent event = GeckoEvent.createBroadcastEvent("Campaign:Set", data.toString());
                     GeckoAppShell.sendEventToGecko(event);
                 } catch (JSONException e) {
                     Log.e(LOGTAG, "Error setting distribution", e);

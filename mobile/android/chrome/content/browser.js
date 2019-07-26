@@ -8136,9 +8136,7 @@ var Distribution = {
   init: function dc_init() {
     Services.obs.addObserver(this, "Distribution:Set", false);
     Services.obs.addObserver(this, "prefservice:after-app-defaults", false);
-
-    
-    Services.prefs.QueryInterface(Ci.nsIObserver).observe(null, "reload-default-prefs", null);
+    Services.obs.addObserver(this, "Campaign:Set", false);
 
     
     
@@ -8150,31 +8148,41 @@ var Distribution = {
   uninit: function dc_uninit() {
     Services.obs.removeObserver(this, "Distribution:Set");
     Services.obs.removeObserver(this, "prefservice:after-app-defaults");
+    Services.obs.removeObserver(this, "Campaign:Set");
   },
 
   observe: function dc_observe(aSubject, aTopic, aData) {
-    
-    if (aTopic == "Distribution:Set") {
-      
-      try {
-        this.update(JSON.parse(aData));
-      } catch (ex) {
-        Cu.reportError("Distribution: Could not parse JSON: " + ex);
-        return;
+    switch (aTopic) {
+      case "Distribution:Set":
+        
+        Services.prefs.QueryInterface(Ci.nsIObserver).observe(null, "reload-default-prefs", null);
+        break;
+
+      case "prefservice:after-app-defaults":
+        this.getPrefs();
+        break;
+
+      case "Campaign:Set": {
+        
+        try {
+          this.update(JSON.parse(aData));
+        } catch (ex) {
+          Cu.reportError("Distribution: Could not parse JSON: " + ex);
+          return;
+        }
+
+        
+        let ostream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
+        ostream.init(this._file, 0x02 | 0x08 | 0x20, parseInt("600", 8), ostream.DEFER_OPEN);
+
+        let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].createInstance(Ci.nsIScriptableUnicodeConverter);
+        converter.charset = "UTF-8";
+
+        
+        let istream = converter.convertToInputStream(aData);
+        NetUtil.asyncCopy(istream, ostream, function(rc) { });
+        break;
       }
-
-      
-      let ostream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
-      ostream.init(this._file, 0x02 | 0x08 | 0x20, parseInt("600", 8), ostream.DEFER_OPEN);
-
-      let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].createInstance(Ci.nsIScriptableUnicodeConverter);
-      converter.charset = "UTF-8";
-
-      
-      let istream = converter.convertToInputStream(aData);
-      NetUtil.asyncCopy(istream, ostream, function(rc) { });
-    } else if (aTopic == "prefservice:after-app-defaults") {
-      this.getPrefs();
     }
   },
 
