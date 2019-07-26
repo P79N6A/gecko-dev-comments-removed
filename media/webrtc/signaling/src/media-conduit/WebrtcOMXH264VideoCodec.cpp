@@ -708,7 +708,9 @@ WebrtcOMXH264VideoEncoder::WebrtcOMXH264VideoEncoder()
   , mWidth(0)
   , mHeight(0)
   , mFrameRate(0)
+  , mBitRateKbps(0)
   , mOMXConfigured(false)
+  , mOMXReconfigure(false)
 {
   CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p constructed", this);
 }
@@ -735,6 +737,8 @@ WebrtcOMXH264VideoEncoder::InitEncode(const webrtc::VideoCodec* aCodecSettings,
   mWidth = aCodecSettings->width;
   mHeight = aCodecSettings->height;
   mFrameRate = aCodecSettings->maxFramerate;
+  mBitRateKbps = aCodecSettings->startBitrate;
+  
 
   return WEBRTC_VIDEO_CODEC_OK;
 }
@@ -749,7 +753,26 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
 
-  if (!mOMXConfigured) {
+  
+  
+  
+  if (aInputImage.width() != mWidth ||
+      aInputImage.height() != mHeight) {
+    mWidth = aInputImage.width();
+    mHeight = aInputImage.height();
+    mOMXReconfigure = true;
+  }
+
+  if (!mOMXConfigured || mOMXReconfigure) {
+    if (mOMXConfigured) {
+      CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p reconfiguring encoder %dx%d @ %u fps",
+                 this, mWidth, mHeight, mFrameRate);
+      mOMXConfigured = false;
+    }
+    mOMXReconfigure = false;
+    
+    
+
     
     OMX_VIDEO_AVCLEVELTYPE level = OMX_VIDEO_AVCLevel3;
     
@@ -760,7 +783,7 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     
     format->setString("mime", MEDIA_MIMETYPE_VIDEO_AVC);
     
-    format->setInt32("bitrate", 300*1000);
+    
     
     format->setInt32("i-frame-interval", 2 );
     
@@ -770,20 +793,22 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     format->setInt32("level", level);
     format->setInt32("bitrate-mode", bitrateMode);
     format->setInt32("store-metadata-in-buffers", 0);
-    format->setInt32("prepend-sps-pps-to-idr-frames", 1); 
+    
+    format->setInt32("prepend-sps-pps-to-idr-frames", 1);
     
     format->setInt32("width", mWidth);
     format->setInt32("height", mHeight);
     format->setInt32("stride", mWidth);
     format->setInt32("slice-height", mHeight);
-    mFrameRate = 10; 
     format->setInt32("frame-rate", mFrameRate);
+    format->setInt32("bitrate", mBitRateKbps*1000);
 
     CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p configuring encoder %dx%d @ %d fps",
                this, mWidth, mHeight, mFrameRate);
     nsresult rv = mOMX->ConfigureDirect(format,
                                         OMXVideoEncoder::BlobFormat::AVC_NAL);
     if (NS_WARN_IF(NS_FAILED(rv))) {
+      CODEC_LOGE("WebrtcOMXH264VideoEncoder:%p FAILED configuring encoder %d", this, rv);
       return WEBRTC_VIDEO_CODEC_ERROR;
     }
     mOMXConfigured = true;
@@ -858,6 +883,7 @@ WebrtcOMXH264VideoEncoder::Release()
   }
   mOMXConfigured = false;
   mOMX = nullptr;
+  CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p released", this);
 
   return WEBRTC_VIDEO_CODEC_OK;
 }
@@ -887,14 +913,58 @@ WebrtcOMXH264VideoEncoder::SetChannelParameters(uint32_t aPacketLossRate,
 int32_t
 WebrtcOMXH264VideoEncoder::SetRates(uint32_t aBitRateKbps, uint32_t aFrameRate)
 {
-  CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p set bitrate:%u, frame rate:%u)",
-             this, aBitRateKbps, aFrameRate);
+  CODEC_LOGE("WebrtcOMXH264VideoEncoder:%p set bitrate:%u, frame rate:%u (%u))",
+             this, aBitRateKbps, aFrameRate, mFrameRate);
   MOZ_ASSERT(mOMX != nullptr);
   if (mOMX == nullptr) {
     return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
   }
 
-  nsresult rv = mOMX->SetBitrate(aBitRateKbps);
+  
+
+  
+  
+  
+  
+  
+  
+#if !defined(TEST_OMX_FRAMERATE_CHANGES)
+  if (aFrameRate > mFrameRate ||
+      aFrameRate < mFrameRate/2) {
+    uint32_t old_rate = mFrameRate;
+    if (aFrameRate >= 15) {
+      mFrameRate = 30;
+    } else if (aFrameRate >= 10) {
+      mFrameRate = 20;
+    } else if (aFrameRate >= 8) {
+      mFrameRate = 15;
+    } else  {
+      
+      mFrameRate = 10;
+    }
+    if (mFrameRate < aFrameRate) { 
+      mFrameRate = aFrameRate;
+    }
+    if (old_rate != mFrameRate) {
+      mOMXReconfigure = true;  
+    }
+  }
+#else
+  
+  if (aFrameRate != mFrameRate) {
+    mFrameRate = aFrameRate;
+    mOMXReconfigure = true;  
+  }
+#endif
+
+  
+  
+  
+  if (aBitRateKbps > 700) {
+    aBitRateKbps = 700;
+  }
+  mBitRateKbps = aBitRateKbps;
+  nsresult rv = mOMX->SetBitrate(mBitRateKbps);
   NS_WARN_IF(NS_FAILED(rv));
   return NS_FAILED(rv) ? WEBRTC_VIDEO_CODEC_OK : WEBRTC_VIDEO_CODEC_ERROR;
 }
