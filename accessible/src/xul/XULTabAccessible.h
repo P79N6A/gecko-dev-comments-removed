@@ -81,6 +81,9 @@ public:
 
 
 
+
+
+
 class XULTabpanelAccessible : public AccessibleWrap
 {
 public:
