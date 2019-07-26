@@ -18,13 +18,17 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.os.Build;
+import android.os.Looper;
+import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewParent;
 
-import java.net.URL;
 import java.io.InputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -34,15 +38,13 @@ public class LightweightTheme implements GeckoEventListener {
     private static final String LOGTAG = "GeckoLightweightTheme";
 
     private Application mApplication;
+    private Handler mHandler;
+
     private Bitmap mBitmap;
     private int mColor;
     private boolean mIsLight;
 
     public static interface OnChangeListener {
-        
-        
-        public boolean post(Runnable action);
-
         
         public void onLightweightThemeChanged();
 
@@ -54,8 +56,10 @@ public class LightweightTheme implements GeckoEventListener {
     
     public LightweightTheme(Application application) {
         mApplication = application;
+        mHandler = new Handler(Looper.getMainLooper());
         mListeners = new ArrayList<OnChangeListener>();
 
+        
         GeckoAppShell.getEventDispatcher().registerEventListener("LightweightTheme:Update", this);
         GeckoAppShell.getEventDispatcher().registerEventListener("LightweightTheme:Disable", this);
     }
@@ -70,76 +74,6 @@ public class LightweightTheme implements GeckoEventListener {
         mListeners.remove(listener);
     }
 
-    public void setLightweightTheme(String headerURL) {
-        try {
-            
-            URL url = new URL(headerURL);
-            InputStream stream = url.openStream();
-            mBitmap = BitmapFactory.decodeStream(stream);
-            stream.close();
-
-            
-            if (mBitmap == null || mBitmap.getWidth() == 0 || mBitmap.getHeight() == 0) {
-                mBitmap = null;
-                return;
-            }
-
-            
-            DisplayMetrics dm = mApplication.getResources().getDisplayMetrics();
-            int maxWidth = Math.max(dm.widthPixels, dm.heightPixels);
-            int height = (int) (mBitmap.getHeight() * 0.25);
-            Bitmap cropped = Bitmap.createBitmap(mBitmap, mBitmap.getWidth() - maxWidth,
-                                                          mBitmap.getHeight() - height, 
-                                                          maxWidth, height);
-            mColor = BitmapUtils.getDominantColor(cropped, false);
-
-            double luminance = (0.2125 * ((mColor & 0x00FF0000) >> 16)) + 
-                               (0.7154 * ((mColor & 0x0000FF00) >> 8)) + 
-                               (0.0721 * (mColor &0x000000FF));
-            mIsLight = (luminance > 110) ? true : false;
-
-            notifyListeners();
-        } catch(java.net.MalformedURLException e) {
-            mBitmap = null;
-        } catch(java.io.IOException e) {
-            mBitmap = null;
-        }
-    }
-
-    public void resetLightweightTheme() {
-        if (mBitmap != null) {
-            
-            mBitmap = null;
-
-            
-            for (OnChangeListener listener : mListeners) {
-                 final OnChangeListener oneListener = listener;
-                 oneListener.post(new Runnable() {
-                     @Override
-                     public void run() {
-                         oneListener.onLightweightThemeReset();
-                     }
-                 });
-            }
-        }
-    }
-
-    public void notifyListeners() {
-        if (mBitmap == null)
-            return;
-
-        
-        for (OnChangeListener listener : mListeners) {
-             final OnChangeListener oneListener = listener;
-             oneListener.post(new Runnable() {
-                 @Override
-                 public void run() {
-                     oneListener.onLightweightThemeChanged();
-                 }
-             });
-        }
-    }
-
     @Override
     public void handleMessage(String event, JSONObject message) {
         try {
@@ -149,15 +83,78 @@ public class LightweightTheme implements GeckoEventListener {
                 int mark = headerURL.indexOf('?');
                 if (mark != -1)
                     headerURL = headerURL.substring(0, mark);
-                setLightweightTheme(headerURL);
+                try {
+                    
+                    URL url = new URL(headerURL);
+                    InputStream stream = url.openStream();
+                    final Bitmap bitmap = BitmapFactory.decodeStream(stream);
+                    stream.close();
+                    mHandler.post(new Runnable() {
+                        public void run() {
+                            setLightweightTheme(bitmap);
+                        }
+                    });
+                } catch(MalformedURLException e) {
+                } catch(IOException e) {
+                }
             } else if (event.equals("LightweightTheme:Disable")) {
-                resetLightweightTheme();
+                mHandler.post(new Runnable() {
+                    public void run() {
+                        resetLightweightTheme();
+                    }
+                });
             }
         } catch (Exception e) {
             Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
         }
     }
 
+    
+
+
+
+
+
+
+    private void setLightweightTheme(Bitmap bitmap) {
+        mBitmap = bitmap;
+        if (mBitmap == null || mBitmap.getWidth() == 0 || mBitmap.getHeight() == 0) {
+            mBitmap = null;
+            return;
+        }
+
+        
+        DisplayMetrics dm = mApplication.getResources().getDisplayMetrics();
+        int maxWidth = Math.max(dm.widthPixels, dm.heightPixels);
+        int height = (int) (mBitmap.getHeight() * 0.25);
+        Bitmap cropped = Bitmap.createBitmap(mBitmap, mBitmap.getWidth() - maxWidth,
+                                                      mBitmap.getHeight() - height, 
+                                                      maxWidth, height);
+        mColor = BitmapUtils.getDominantColor(cropped, false);
+
+        double luminance = (0.2125 * ((mColor & 0x00FF0000) >> 16)) + 
+                           (0.7154 * ((mColor & 0x0000FF00) >> 8)) + 
+                           (0.0721 * (mColor &0x000000FF));
+        mIsLight = (luminance > 110) ? true : false;
+
+        for (OnChangeListener listener : mListeners)
+            listener.onLightweightThemeChanged();
+    }
+
+    
+
+
+
+
+    private void resetLightweightTheme() {
+        if (mBitmap != null) {
+            
+            mBitmap = null;
+
+            for (OnChangeListener listener : mListeners)
+                listener.onLightweightThemeReset();
+        }
+    }
 
     
 
