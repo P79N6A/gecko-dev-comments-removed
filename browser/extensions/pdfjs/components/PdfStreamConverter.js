@@ -541,10 +541,23 @@ var RangedChromeActions = (function RangedChromeActionsClosure() {
     };
     originalRequest.visitRequestHeaders(httpHeaderVisitor);
 
+    var self = this;
+    var xhr_onreadystatechange = function xhr_onreadystatechange() {
+      if (this.readyState === 1) { 
+        var netChannel = this.channel;
+        if ('nsIPrivateBrowsingChannel' in Ci &&
+            netChannel instanceof Ci.nsIPrivateBrowsingChannel) {
+          var docIsPrivate = self.isInPrivateBrowsing();
+          netChannel.setPrivate(docIsPrivate);
+        }
+      }
+    };
     var getXhr = function getXhr() {
       const XMLHttpRequest = Components.Constructor(
           '@mozilla.org/xmlextras/xmlhttprequest;1');
-      return new XMLHttpRequest();
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener('readystatechange', xhr_onreadystatechange);
+      return xhr;
     };
 
     this.networkManager = new NetworkManager(this.pdfUrl, {
@@ -552,7 +565,6 @@ var RangedChromeActions = (function RangedChromeActionsClosure() {
       getXhr: getXhr
     });
 
-    var self = this;
     
     
     domWindow.addEventListener('unload', function unload(e) {
