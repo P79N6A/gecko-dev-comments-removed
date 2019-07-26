@@ -117,7 +117,7 @@ public class testImportFromAndroid extends AboutHomeTest {
         
         ContentResolver resolver = getActivity().getContentResolver();
         Uri uri = Uri.parse("content://" + TestConstants.ANDROID_PACKAGE_NAME + ".db.browser/history");
-        uri = uri.buildUpon().appendQueryParameter("profile", "default")
+        uri = uri.buildUpon().appendQueryParameter("profile", GeckoProfile.DEFAULT_PROFILE)
                              .appendQueryParameter("sync", "true").build();
         for (String url:androidData) {
             
