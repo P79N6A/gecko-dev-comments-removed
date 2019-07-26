@@ -44,7 +44,13 @@ void reportError(JSContext *cx, const char *message, JSErrorReport *report)
 
 
 
-void breakpoint() {}
+void breakpoint() {
+    
+    
+    
+    
+    fprintf(stderr, "Called " __FILE__ ":breakpoint\n");
+}
 
 GDBFragment *GDBFragment::allFragments = NULL;
 
