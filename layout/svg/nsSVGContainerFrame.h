@@ -91,6 +91,13 @@ public:
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
 
   virtual bool UpdateOverflow() MOZ_OVERRIDE;
+
+protected:
+  
+
+
+
+  static void ReflowSVGNonDisplayText(nsIFrame* aContainer);
 };
 
 

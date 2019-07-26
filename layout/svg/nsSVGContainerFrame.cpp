@@ -82,6 +82,53 @@ nsSVGContainerFrame::UpdateOverflow()
   return nsSVGContainerFrameBase::UpdateOverflow();
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ void
+nsSVGContainerFrame::ReflowSVGNonDisplayText(nsIFrame* aContainer)
+{
+  NS_ASSERTION(aContainer->GetStateBits() & NS_FRAME_IS_DIRTY,
+               "expected aContainer to be NS_FRAME_IS_DIRTY");
+  NS_ASSERTION((aContainer->GetStateBits() & NS_FRAME_IS_NONDISPLAY) ||
+               !aContainer->IsFrameOfType(nsIFrame::eSVG),
+               "it is wasteful to call ReflowSVGNonDisplayText on a container "
+               "frame that is not NS_FRAME_IS_NONDISPLAY");
+  for (nsIFrame* kid = aContainer->GetFirstPrincipalChild(); kid;
+       kid = kid->GetNextSibling()) {
+    nsIAtom* type = kid->GetType();
+    if (type == nsGkAtoms::svgTextFrame2) {
+      static_cast<nsSVGTextFrame2*>(kid)->ReflowSVGNonDisplayText();
+    } else {
+      if (kid->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer) ||
+          type == nsGkAtoms::svgForeignObjectFrame ||
+          !kid->IsFrameOfType(nsIFrame::eSVG)) {
+        ReflowSVGNonDisplayText(kid);
+      }
+    }
+  }
+}
+
 void
 nsSVGDisplayContainerFrame::Init(nsIContent* aContent,
                                  nsIFrame* aParent,
@@ -240,53 +287,6 @@ NS_IMETHODIMP_(nsRect)
 nsSVGDisplayContainerFrame::GetCoveredRegion()
 {
   return nsSVGUtils::GetCoveredRegion(mFrames);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-ReflowSVGNonDisplayText(nsIFrame* aContainer)
-{
-  NS_ASSERTION(aContainer->GetStateBits() & NS_FRAME_IS_DIRTY,
-               "expected aContainer to be NS_FRAME_IS_DIRTY");
-  NS_ASSERTION((aContainer->GetStateBits() & NS_FRAME_IS_NONDISPLAY) ||
-               !aContainer->IsFrameOfType(nsIFrame::eSVG),
-               "it is wasteful to call ReflowSVGNonDisplayText on a container "
-               "frame that is not NS_FRAME_IS_NONDISPLAY");
-  for (nsIFrame* kid = aContainer->GetFirstPrincipalChild(); kid;
-       kid = kid->GetNextSibling()) {
-    nsIAtom* type = kid->GetType();
-    if (type == nsGkAtoms::svgTextFrame2) {
-      static_cast<nsSVGTextFrame2*>(kid)->ReflowSVGNonDisplayText();
-    } else {
-      if (kid->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer) ||
-          type == nsGkAtoms::svgForeignObjectFrame ||
-          !kid->IsFrameOfType(nsIFrame::eSVG)) {
-        ReflowSVGNonDisplayText(kid);
-      }
-    }
-  }
 }
 
 void

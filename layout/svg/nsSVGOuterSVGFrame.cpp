@@ -463,21 +463,21 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
   }
   mViewportInitialized = true;
 
-  if (!(GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
-    
-    
-
-    mCallingReflowSVG = true;
-
+  
+  
+  
+  mCallingReflowSVG = true;
+  if (GetStateBits() & NS_FRAME_IS_NONDISPLAY) {
+    ReflowSVGNonDisplayText(this);
+  } else {
     
     
     anonKid->AddStateBits(mState & NS_FRAME_IS_DIRTY);
     anonKid->ReflowSVG();
     NS_ABORT_IF_FALSE(!anonKid->GetNextSibling(),
       "We should have one anonymous child frame wrapping our real children");
-
-    mCallingReflowSVG = false;
   }
+  mCallingReflowSVG = false;
 
   
   anonKid->SetPosition(GetContentRectRelativeToSelf().TopLeft());
