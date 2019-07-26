@@ -9,10 +9,13 @@
 
 #include "gc/Nursery-inl.h"
 
+#include <inttypes.h>
+
 #include "jscompartment.h"
 #include "jsgc.h"
 #include "jsinfer.h"
 #include "jsutil.h"
+#include "prmjtime.h"
 
 #include "gc/GCInternals.h"
 #include "gc/Memory.h"
@@ -31,6 +34,15 @@
 using namespace js;
 using namespace gc;
 using namespace mozilla;
+
+
+
+#ifdef PROFILE_NURSERY
+
+
+
+static int64_t GCReportThreshold = INT64_MAX;
+#endif
 
 bool
 js::Nursery::init()
@@ -67,6 +79,12 @@ js::Nursery::init()
 #endif
     for (int i = 0; i < NumNurseryChunks; ++i)
         chunk(i).trailer.runtime = rt;
+
+#ifdef PROFILE_NURSERY
+    char *env = getenv("JS_MINORGC_TIME");
+    if (env)
+        GCReportThreshold = atoi(env);
+#endif
 
     JS_ASSERT(isEnabled());
     return true;
@@ -626,6 +644,16 @@ CheckHashTablesAfterMovingGC(JSRuntime *rt)
 #endif
 }
 
+#ifdef PROFILE_NURSERY
+#define TIME_START(name) int64_t timstampStart_##name = PRMJ_Now()
+#define TIME_END(name) int64_t timstampEnd_##name = PRMJ_Now()
+#define TIME_TOTAL(name) (timstampEnd_##name - timstampStart_##name)
+#else
+#define TIME_START(name)
+#define TIME_END(name)
+#define TIME_TOTAL(name)
+#endif
+
 void
 js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList *pretenureTypes)
 {
@@ -640,17 +668,36 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     if (isEmpty())
         return;
 
+    TIME_START(total);
+
     AutoStopVerifyingBarriers av(rt, false);
 
+    TIME_START(waitBgSweep);
     rt->gcHelperThread.waitBackgroundSweepEnd();
+    TIME_END(waitBgSweep);
 
     
     MinorCollectionTracer trc(rt, this);
+
+    TIME_START(markStoreBuffer);
     rt->gcStoreBuffer.mark(&trc); 
+    TIME_END(markStoreBuffer);
+
+    TIME_START(checkHashTables);
     CheckHashTablesAfterMovingGC(rt);
+    TIME_END(checkHashTables);
+
+    TIME_START(markRuntime);
     MarkRuntime(&trc);
+    TIME_END(markRuntime);
+
+    TIME_START(markDebugger);
     Debugger::markAll(&trc);
+    TIME_END(markDebugger);
+
+    TIME_START(clearNewObjectCache);
     rt->newObjectCache.clearNurseryObjects(rt);
+    TIME_END(clearNewObjectCache);
 
     
 
@@ -658,21 +705,28 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
 
 
 
+    TIME_START(collectToFP);
     TenureCountCache tenureCounts;
     collectToFixedPoint(&trc, tenureCounts);
+    TIME_END(collectToFP);
 
+    TIME_START(updateJitActivations);
 #ifdef JS_ION
     
     js::jit::UpdateJitActivationsForMinorGC(rt, &trc);
 #endif
+    TIME_END(updateJitActivations);
 
     
+    TIME_START(resize);
     double promotionRate = trc.tenuredSize / double(allocationEnd() - start());
     if (promotionRate > 0.05)
         growAllocableSpace();
     else if (promotionRate < 0.01)
         shrinkAllocableSpace();
+    TIME_END(resize);
 
+    TIME_START(pretenure);
     
     
     
@@ -684,10 +738,13 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
                 pretenureTypes->append(entry.type); 
         }
     }
+    TIME_END(pretenure);
 
     
+    TIME_START(sweep);
     sweep(rt);
     rt->gcStoreBuffer.clear();
+    TIME_END(sweep);
 
     
 
@@ -696,6 +753,37 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
 
     if (rt->gcBytes >= rt->gcMaxBytes)
         disable();
+
+    TIME_END(total);
+
+#ifdef PROFILE_NURSERY
+    uint64_t totalTime = TIME_TOTAL(total);
+
+    if (totalTime >= GCReportThreshold) {
+        static bool printedHeader = false;
+        if (!printedHeader) {
+            fprintf(stderr,
+                    "MinorGC time: Total   WaitBg  mkStrBf ckHshTb mkRuntm mkDbggr clrNOC  collect updtIon resize  pretnur sweep\n");
+            printedHeader = true;
+        }
+
+#define FMT " %7" PRIu64
+        fprintf(stderr, "MinorGC time:" FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT FMT "\n",
+                totalTime,
+                TIME_TOTAL(waitBgSweep),
+                TIME_TOTAL(markStoreBuffer),
+                TIME_TOTAL(checkHashTables),
+                TIME_TOTAL(markRuntime),
+                TIME_TOTAL(markDebugger),
+                TIME_TOTAL(clearNewObjectCache),
+                TIME_TOTAL(collectToFP),
+                TIME_TOTAL(updateJitActivations),
+                TIME_TOTAL(resize),
+                TIME_TOTAL(pretenure),
+                TIME_TOTAL(sweep));
+#undef FMT
+    }
+#endif
 }
 
 void
