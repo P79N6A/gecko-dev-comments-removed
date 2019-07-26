@@ -1759,6 +1759,22 @@ extern JS_FRIEND_API(JSBool)
 DefaultValue(JSContext *cx, JS::HandleObject obj, JSType hint, MutableHandleValue vp);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(bool)
+CheckDefineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
+                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+
 } 
 
 extern JS_FRIEND_API(JSBool)

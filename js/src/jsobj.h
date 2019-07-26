@@ -1553,23 +1553,6 @@ Throw(JSContext *cx, jsid id, unsigned errorNumber);
 extern bool
 Throw(JSContext *cx, JSObject *obj, unsigned errorNumber);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern bool
-CheckDefineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
-                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
-
 }  
 
 #endif 
