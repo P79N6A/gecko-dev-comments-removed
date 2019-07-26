@@ -8,7 +8,7 @@
 #define js_ProfilingStack_h
 
 #include "mozilla/NullPtr.h"
-
+ 
 #include "jsbytecode.h"
 #include "jstypes.h"
 
@@ -35,96 +35,66 @@ class ProfileEntry
     
     
     
-
     
-    const char * volatile string;
-
     
-    void * volatile spOrScript;
-
     
-    int32_t volatile lineOrPc;
-
     
-    uint32_t volatile flags;
+    const char * volatile string; 
+    void * volatile sp;           
+                                  
+                                  
+    JSScript * volatile script_;  
+                                  
+    int32_t volatile idx;         
 
   public:
-    ProfileEntry(void) : flags(0) {}
-
-    
-    enum Flags {
-        
-        
-        
-        IS_CPP_ENTRY = 0x01,
-
-        
-        
-        FRAME_LABEL_COPY = 0x02
-    };
+    static const uintptr_t SCRIPT_OPT_STACKPOINTER = 0x1;
 
     
     
     
     
 
-    bool isCpp() const volatile { return hasFlag(IS_CPP_ENTRY); }
-    bool isJs() const volatile { return !isCpp(); }
+    bool js() const volatile {
+        MOZ_ASSERT_IF(uintptr_t(sp) <= SCRIPT_OPT_STACKPOINTER, script_ != nullptr);
+        return uintptr_t(sp) <= SCRIPT_OPT_STACKPOINTER;
+    }
 
-    bool isCopyLabel() const volatile { return hasFlag(FRAME_LABEL_COPY); };
-
-    void setLabel(const char *aString) volatile { string = aString; }
+    uint32_t line() const volatile { MOZ_ASSERT(!js()); return idx; }
+    JSScript *script() const volatile { MOZ_ASSERT(js()); return script_; }
+    bool scriptIsOptimized() const volatile {
+        MOZ_ASSERT(js());
+        return uintptr_t(sp) <= SCRIPT_OPT_STACKPOINTER;
+    }
+    void *stackAddress() const volatile {
+        if (js())
+            return nullptr;
+        return sp;
+    }
     const char *label() const volatile { return string; }
 
-    void setJsFrame(JSScript *aScript, jsbytecode *aPc) volatile {
-        flags &= ~IS_CPP_ENTRY;
-        spOrScript = aScript;
-        setPC(aPc);
-    }
-    void setCppFrame(void *aSp, uint32_t aLine) volatile {
-        flags |= IS_CPP_ENTRY;
-        spOrScript = aSp;
-        lineOrPc = aLine;
-    }
-
-    void setFlag(Flags flag) volatile {
-        MOZ_ASSERT(flag != IS_CPP_ENTRY);
-        flags |= flag;
-    }
-    void unsetFlag(Flags flag) volatile {
-        MOZ_ASSERT(flag != IS_CPP_ENTRY);
-        flags &= ~flag;
-    }
-    bool hasFlag(Flags flag) const volatile {
-        return bool(flags & uint32_t(flag));
-    }
-
-    void *stackAddress() const volatile {
-        MOZ_ASSERT(!isJs());
-        return spOrScript;
-    }
-    JSScript *script() const volatile {
-        MOZ_ASSERT(isJs());
-        return (JSScript *)spOrScript;
-    }
-    uint32_t line() const volatile {
-        MOZ_ASSERT(!isJs());
-        return lineOrPc;
-    }
+    void setLine(uint32_t aLine) volatile { MOZ_ASSERT(!js()); idx = aLine; }
+    void setLabel(const char *aString) volatile { string = aString; }
+    void setStackAddress(void *aSp) volatile { sp = aSp; }
+    void setScript(JSScript *aScript) volatile { script_ = aScript; }
 
     
     JS_FRIEND_API(jsbytecode *) pc() const volatile;
     JS_FRIEND_API(void) setPC(jsbytecode *pc) volatile;
 
-    
-    
-    
-    static const int32_t NullPCOffset = -1;
+    static size_t offsetOfString() { return offsetof(ProfileEntry, string); }
+    static size_t offsetOfStackAddress() { return offsetof(ProfileEntry, sp); }
+    static size_t offsetOfPCIdx() { return offsetof(ProfileEntry, idx); }
+    static size_t offsetOfScript() { return offsetof(ProfileEntry, script_); }
 
-    static size_t offsetOfLabel() { return offsetof(ProfileEntry, string); }
-    static size_t offsetOfSpOrScript() { return offsetof(ProfileEntry, spOrScript); }
-    static size_t offsetOfLineOrPc() { return offsetof(ProfileEntry, lineOrPc); }
-    static size_t offsetOfFlags() { return offsetof(ProfileEntry, flags); }
+    
+    
+    
+    static const int32_t NullPCIndex = -1;
+
+    
+    
+    static const uintptr_t NoCopyBit = 1;
 };
 
 JS_FRIEND_API(void)

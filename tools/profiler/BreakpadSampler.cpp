@@ -97,7 +97,7 @@ void genProfileEntry(UnwinderThreadBuffer* utb,
       
       utb__addEntry( utb, ProfileEntry('d', *((void**)(&text[0]))) );
     }
-    if (entry.isJs()) {
+    if (entry.js()) {
       if (!entry.pc()) {
         
         MOZ_ASSERT(&entry == &stack->mStack[stack->stackSize() - 1]);
@@ -227,7 +227,7 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
       MOZ_CRASH();
   }
 
-  if (recordSample) {
+  if (recordSample) {    
     
     utb__addEntry( utb, ProfileEntry('h', 'F') );
   }
