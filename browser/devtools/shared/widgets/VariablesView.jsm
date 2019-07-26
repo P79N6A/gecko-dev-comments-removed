@@ -1651,7 +1651,8 @@ Scope.prototype = {
 
 
   _onClick: function(e) {
-    if (e.target == this._inputNode ||
+    if (e.button != 0 ||
+        e.target == this._inputNode ||
         e.target == this._editNode ||
         e.target == this._deleteNode) {
       return;
@@ -2778,6 +2779,10 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
   _onEdit: function(e) {
+    if (e.button != 0) {
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     this._activateValueInput();
@@ -2787,6 +2792,10 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
   _onDelete: function(e) {
+    if ("button" in e && e.button != 0) {
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
 
