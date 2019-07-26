@@ -61,8 +61,7 @@ DOMSVGTransform::DOMSVGTransform(DOMSVGTransformList *aList,
 {
   
   NS_ABORT_IF_FALSE(aList &&
-                    aListIndex <= MaxListIndex() &&
-                    aIsAnimValItem < (1 << 1), "bad arg");
+                    aListIndex <= MaxListIndex(), "bad arg");
 
   NS_ABORT_IF_FALSE(IndexIsValid(), "Bad index for DOMSVGNumber!");
 }

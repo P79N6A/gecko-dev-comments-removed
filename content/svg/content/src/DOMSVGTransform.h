@@ -30,7 +30,7 @@ struct gfxMatrix;
   { 0x0A799862, 0x9469, 0x41FE, \
     { 0xB4, 0xCD, 0x20, 0x19, 0xE6, 0x5D, 0x8D, 0xA6 } }
 
-#define MOZ_SVG_LIST_INDEX_BIT_COUNT 22 // supports > 4 million list items
+#define MOZ_SVG_LIST_INDEX_BIT_COUNT 31 // supports > 2 billion list items
 
 namespace mozilla {
 
@@ -182,7 +182,7 @@ private:
   
 
   uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  bool mIsAnimValItem:1;
+  uint32_t mIsAnimValItem:1;
 
   
   
