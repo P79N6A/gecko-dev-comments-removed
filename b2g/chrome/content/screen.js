@@ -128,8 +128,15 @@ window.addEventListener('ContentStart', function() {
   let scale = rescale ? hostDPI / dpi : 1;
 
   
+  
+  
+  let controls = document.getElementById('controls');
+  let controlsHeight = 0;
+  if (controls) {
+    controlsHeight = controls.getBoundingClientRect().height;
+  }
   let chromewidth = window.outerWidth - window.innerWidth;
-  let chromeheight = window.outerHeight - window.innerHeight;
+  let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
   window.resizeTo(Math.round(width * scale) + chromewidth,
                   Math.round(height * scale) + chromeheight);
 
