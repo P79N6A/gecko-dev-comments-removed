@@ -81,7 +81,8 @@ class FontSizePreference extends DialogPreference {
         setButtonState(mPreviewFontIndex);
         mDecreaseFontButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                updatePreviewFontSize(mFontTwipValues[--mPreviewFontIndex]);
+                mPreviewFontIndex = Math.max(mPreviewFontIndex - 1, 0);
+                updatePreviewFontSize(mFontTwipValues[mPreviewFontIndex]);
                 mIncreaseFontButton.setEnabled(true);
                 
                 if (mPreviewFontIndex == 0) {
@@ -91,7 +92,8 @@ class FontSizePreference extends DialogPreference {
         });
         mIncreaseFontButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                updatePreviewFontSize(mFontTwipValues[++mPreviewFontIndex]);
+                mPreviewFontIndex = Math.min(mPreviewFontIndex + 1, mFontTwipValues.length - 1);
+                updatePreviewFontSize(mFontTwipValues[mPreviewFontIndex]);
 
                 mDecreaseFontButton.setEnabled(true);
                 
