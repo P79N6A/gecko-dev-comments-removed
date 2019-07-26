@@ -3633,7 +3633,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
   if (aNode->IsInDoc()) {
     nsCOMPtr<EventTarget> piTarget(do_QueryInterface(window));
     if (piTarget) {
-      nsEventListenerManager* manager = piTarget->GetListenerManager(false);
+      nsEventListenerManager* manager = piTarget->GetExistingListenerManager();
       if (manager && manager->HasMutationListeners()) {
         return true;
       }
@@ -3644,7 +3644,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
   
   
   while (aNode) {
-    nsEventListenerManager* manager = aNode->GetListenerManager(false);
+    nsEventListenerManager* manager = aNode->GetExistingListenerManager();
     if (manager && manager->HasMutationListeners()) {
       return true;
     }
@@ -3766,28 +3766,12 @@ nsContentUtils::TraverseListenerManager(nsINode *aNode,
 }
 
 nsEventListenerManager*
-nsContentUtils::GetListenerManager(nsINode *aNode,
-                                   bool aCreateIfNotFound)
+nsContentUtils::GetListenerManagerForNode(nsINode *aNode)
 {
-  if (!aCreateIfNotFound && !aNode->HasFlag(NODE_HAS_LISTENERMANAGER)) {
-    return nullptr;
-  }
-  
   if (!sEventListenerManagersHash.ops) {
     
     
 
-    return nullptr;
-  }
-
-  if (!aCreateIfNotFound) {
-    EventListenerManagerMapEntry *entry =
-      static_cast<EventListenerManagerMapEntry *>
-                 (PL_DHashTableOperate(&sEventListenerManagersHash, aNode,
-                                          PL_DHASH_LOOKUP));
-    if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      return entry->mListenerManager;
-    }
     return nullptr;
   }
 
@@ -3807,6 +3791,31 @@ nsContentUtils::GetListenerManager(nsINode *aNode,
   }
 
   return entry->mListenerManager;
+}
+
+nsEventListenerManager*
+nsContentUtils::GetExistingListenerManagerForNode(const nsINode *aNode)
+{
+  if (!aNode->HasFlag(NODE_HAS_LISTENERMANAGER)) {
+    return nullptr;
+  }
+  
+  if (!sEventListenerManagersHash.ops) {
+    
+    
+
+    return nullptr;
+  }
+
+  EventListenerManagerMapEntry *entry =
+    static_cast<EventListenerManagerMapEntry *>
+               (PL_DHashTableOperate(&sEventListenerManagersHash, aNode,
+                                        PL_DHASH_LOOKUP));
+  if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
+    return entry->mListenerManager;
+  }
+
+  return nullptr;
 }
 
 
