@@ -129,6 +129,24 @@
 #define DEFINED_NON_IDL_EVENT
 #endif 
 
+#ifdef DEFINED_ERROR_EVENT
+#error "Don't define DEFINED_ERROR_EVENT"
+#endif 
+
+#ifndef ERROR_EVENT
+#define ERROR_EVENT FORWARDED_EVENT
+#define DEFINED_ERROR_EVENT
+#endif 
+
+#ifdef DEFINED_BEFOREUNLOAD_EVENT
+#error "Don't define DEFINED_BEFOREUNLOAD_EVENT"
+#endif 
+
+#ifndef BEFOREUNLOAD_EVENT
+#define BEFOREUNLOAD_EVENT WINDOW_EVENT
+#define DEFINED_BEFOREUNLOAD_EVENT
+#endif 
+
 EVENT(abort,
       NS_IMAGE_ABORT,
       (EventNameType_HTMLXUL | EventNameType_SVGSVG),
@@ -371,10 +389,10 @@ FORWARDED_EVENT(blur,
                 NS_BLUR_CONTENT,
                 EventNameType_HTMLXUL,
                 NS_FOCUS_EVENT)
-FORWARDED_EVENT(error,
-                NS_LOAD_ERROR,
-                (EventNameType_HTMLXUL | EventNameType_SVGSVG),
-                NS_EVENT)
+ERROR_EVENT(error,
+            NS_LOAD_ERROR,
+            (EventNameType_HTMLXUL | EventNameType_SVGSVG),
+            NS_EVENT)
 FORWARDED_EVENT(focus,
                 NS_FOCUS_CONTENT,
                 EventNameType_HTMLXUL,
@@ -396,10 +414,10 @@ WINDOW_EVENT(beforeprint,
              NS_BEFOREPRINT,
              EventNameType_HTMLXUL,
              NS_EVENT)
-WINDOW_EVENT(beforeunload,
-             NS_BEFORE_PAGE_UNLOAD,
-             EventNameType_HTMLXUL,
-             NS_EVENT)
+BEFOREUNLOAD_EVENT(beforeunload,
+                   NS_BEFORE_PAGE_UNLOAD,
+                   EventNameType_HTMLXUL,
+                   NS_EVENT)
 WINDOW_EVENT(hashchange,
              NS_HASHCHANGE,
              EventNameType_HTMLXUL,
@@ -818,6 +836,16 @@ NON_IDL_EVENT(animationiteration,
 #ifdef DEFINED_NON_IDL_EVENT
 #undef DEFINED_NON_IDL_EVENT
 #undef NON_IDL_EVENT
+#endif 
+
+#ifdef DEFINED_ERROR_EVENT
+#undef DEFINED_ERROR_EVENT
+#undef ERROR_EVENT
+#endif 
+
+#ifdef DEFINED_BEFOREUNLOAD_EVENT
+#undef DEFINED_BEFOREUNLOAD_EVENT
+#undef BEFOREUNLOAD_EVENT
 #endif 
 
 #ifdef ID_TO_EVENT
