@@ -934,7 +934,16 @@ public:
         
         return false;
     }
+
     
+    
+    static void ParseFontList(const nsAString& aFamilyList,
+                              nsTArray<nsString>& aFontList);
+
+    
+    static void AppendPrefsFontList(const char *aPrefName,
+                                    nsTArray<nsString>& aFontList);
+
     
     static void GetPrefsFontList(const char *aPrefName, 
                                  nsTArray<nsString>& aFontList);

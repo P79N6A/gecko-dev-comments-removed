@@ -9,6 +9,7 @@
 #include "gfxTypes.h"
 #include "nsString.h"
 #include "gfxPoint.h"
+#include "gfxFontFamilyList.h"
 #include "gfxFontUtils.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
@@ -3517,7 +3518,9 @@ public:
 
     static void Shutdown(); 
 
-    gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet = nullptr);
+    gfxFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
+                 const gfxFontStyle *aStyle,
+                 gfxUserFontSet *aUserFontSet = nullptr);
 
     virtual ~gfxFontGroup();
 
@@ -3604,23 +3607,8 @@ public:
     
 
 
-    typedef bool (*FontCreationCallback) (const nsAString& aName,
-                                            const nsACString& aGenericName,
-                                            bool aUseFontSet,
-                                            void *closure);
-    bool ForEachFont(const nsAString& aFamilies,
-                       nsIAtom *aLanguage,
-                       FontCreationCallback fc,
-                       void *closure);
-    bool ForEachFont(FontCreationCallback fc, void *closure);
-
-    
-
-
 
     bool HasFont(const gfxFontEntry *aFontEntry);
-
-    const nsString& GetFamilies() { return mFamilies; }
 
     
     
@@ -3685,8 +3673,14 @@ public:
     gfxTextRun* GetEllipsisTextRun(int32_t aAppUnitsPerDevPixel,
                                    LazyReferenceContextGetter& aRefContextGetter);
 
+    
+    static void
+    ResolveGenericFontNames(mozilla::FontFamilyType aGenericType,
+                            nsIAtom *aLanguage,
+                            nsTArray<nsString>& aGenericFamilies);
+
 protected:
-    nsString mFamilies;
+    mozilla::FontFamilyList mFamilyList;
     gfxFontStyle mStyle;
     nsTArray<FamilyFace> mFonts;
     gfxFloat mUnderlineOffset;
@@ -3748,35 +3742,25 @@ protected:
                        int32_t aRunScript);
 
     
-
-
-
-
-
-
-
-
-
-    bool ForEachFontInternal(const nsAString& aFamilies,
-                               nsIAtom *aLanguage,
-                               bool aResolveGeneric,
-                               bool aResolveFontName,
-                               bool aUseFontSet,
-                               FontCreationCallback fc,
-                               void *closure);
-
-    
     
     
     already_AddRefed<gfxFont> TryAllFamilyMembers(gfxFontFamily* aFamily,
                                                   uint32_t aCh);
 
-    static bool FontResolverProc(const nsAString& aName, void *aClosure);
+    
 
-    static bool FindPlatformFont(const nsAString& aName,
-                                   const nsACString& aGenericName,
-                                   bool aUseFontSet,
-                                   void *closure);
+    
+    void EnumerateFontList(nsIAtom *aLanguage, void *aClosure = nullptr);
+
+    
+    void FindGenericFonts(mozilla::FontFamilyType aGenericType,
+                          nsIAtom *aLanguage,
+                          void *aClosure);
+
+    
+    virtual void FindPlatformFont(const nsAString& aName,
+                                  bool aUseFontSet,
+                                  void *aClosure);
 
     static nsILanguageAtomService* gLangService;
 };

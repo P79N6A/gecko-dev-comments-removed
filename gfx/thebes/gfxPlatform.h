@@ -13,6 +13,7 @@
 #include "nsAutoPtr.h"
 
 #include "gfxTypes.h"
+#include "gfxFontFamilyList.h"
 #include "nsRect.h"
 
 #include "qcms.h"
@@ -291,27 +292,15 @@ public:
 
 
 
-
-
-    typedef bool (*FontResolverCallback) (const nsAString& aName,
-                                            void *aClosure);
-    virtual nsresult ResolveFontName(const nsAString& aFontName,
-                                     FontResolverCallback aCallback,
-                                     void *aClosure,
-                                     bool& aAborted) = 0;
-
-    
-
-
-
     virtual nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName) = 0;
 
     
 
 
-    virtual gfxFontGroup *CreateFontGroup(const nsAString& aFamilies,
-                                          const gfxFontStyle *aStyle,
-                                          gfxUserFontSet *aUserFontSet) = 0;
+    virtual gfxFontGroup
+    *CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
+                     const gfxFontStyle *aStyle,
+                     gfxUserFontSet *aUserFontSet) = 0;
                                           
                                           
     

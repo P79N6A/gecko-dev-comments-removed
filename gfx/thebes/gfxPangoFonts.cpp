@@ -1225,85 +1225,10 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
 
 
 
-struct FamilyCallbackData {
-    FamilyCallbackData(nsTArray<nsString> *aFcFamilyList,
-                       gfxUserFontSet *aUserFontSet)
-        : mFcFamilyList(aFcFamilyList), mUserFontSet(aUserFontSet)
-    {
-    }
-    nsTArray<nsString> *mFcFamilyList;
-    const gfxUserFontSet *mUserFontSet;
-};
-
-static int
-FFRECountHyphens (const nsAString &aFFREName)
-{
-    int h = 0;
-    int32_t hyphen = 0;
-    while ((hyphen = aFFREName.FindChar('-', hyphen)) >= 0) {
-        ++h;
-        ++hyphen;
-    }
-    return h;
-}
-
-static bool
-FamilyCallback (const nsAString& fontName, const nsACString& genericName,
-                bool aUseFontSet, void *closure)
-{
-    FamilyCallbackData *data = static_cast<FamilyCallbackData*>(closure);
-    nsTArray<nsString> *list = data->mFcFamilyList;
-
-    
-    if (genericName.Length() && FFRECountHyphens(fontName) >= 3)
-        return true;
-
-    if (!list->Contains(fontName)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        const gfxUserFontSet *userFontSet = data->mUserFontSet;
-        if (aUseFontSet && genericName.Length() == 0 &&
-            userFontSet && userFontSet->HasFamily(fontName)) {
-            nsAutoString userFontName =
-                NS_LITERAL_STRING(FONT_FACE_FAMILY_PREFIX) + fontName;
-            list->AppendElement(userFontName);
-        } else {
-            list->AppendElement(fontName);
-        }
-    }
-
-    return true;
-}
-
-gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
-                                      const gfxFontStyle *aStyle,
-                                      gfxUserFontSet *aUserFontSet)
-    : gfxFontGroup(families, aStyle, aUserFontSet),
+gfxPangoFontGroup::gfxPangoFontGroup(const FontFamilyList& aFontFamilyList,
+                                     const gfxFontStyle *aStyle,
+                                     gfxUserFontSet *aUserFontSet)
+    : gfxFontGroup(aFontFamilyList, aStyle, aUserFontSet),
       mPangoLanguage(GuessPangoLanguage(aStyle->language))
 {
     
@@ -1323,19 +1248,26 @@ gfxPangoFontGroup::~gfxPangoFontGroup()
 gfxFontGroup *
 gfxPangoFontGroup::Copy(const gfxFontStyle *aStyle)
 {
-    return new gfxPangoFontGroup(mFamilies, aStyle, mUserFontSet);
+    return new gfxPangoFontGroup(mFamilyList, aStyle, mUserFontSet);
 }
 
-
 void
-gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
-                                 nsIAtom *aLanguage)
+gfxPangoFontGroup::FindPlatformFont(const nsAString& fontName,
+                                    bool aUseFontSet,
+                                    void *aClosure)
 {
-    FamilyCallbackData data(aFcFamilyList, mUserFontSet);
-    
-    
-    ForEachFontInternal(mFamilies, aLanguage, true, false, true,
-                        FamilyCallback, &data);
+    nsTArray<nsString> *list = static_cast<nsTArray<nsString>*>(aClosure);
+
+    if (!list->Contains(fontName)) {
+        
+        if (aUseFontSet && mUserFontSet && mUserFontSet->HasFamily(fontName)) {
+            nsAutoString userFontName =
+                NS_LITERAL_STRING(FONT_FACE_FAMILY_PREFIX) + fontName;
+            list->AppendElement(userFontName);
+        } else {
+            list->AppendElement(fontName);
+        }
+    }
 }
 
 gfxFcFont *
@@ -1393,8 +1325,8 @@ gfxPangoFontGroup::MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
     }
 
     nsAutoTArray<nsString, 20> fcFamilyList;
-    GetFcFamilies(&fcFamilyList,
-                  langGroup ? langGroup.get() : mStyle.language.get());
+    EnumerateFontList(langGroup ? langGroup.get() : mStyle.language.get(),
+                      &fcFamilyList);
 
     
 
@@ -1692,7 +1624,7 @@ gfxPangoFontGroup::GetFTLibrary()
         
         gfxFontStyle style;
         nsRefPtr<gfxPangoFontGroup> fontGroup =
-            new gfxPangoFontGroup(NS_LITERAL_STRING("sans-serif"),
+            new gfxPangoFontGroup(FontFamilyList(eFamily_sans_serif),
                                   &style, nullptr);
 
         gfxFcFont *font = fontGroup->GetBaseFont();

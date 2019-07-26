@@ -9,6 +9,7 @@
 #include <stdint.h>                     
 #include <sys/types.h>                  
 #include "gfxCore.h"                    
+#include "gfxFontFamilyList.h"
 #include "gfxFontFeatures.h"
 #include "nsAutoPtr.h"                  
 #include "nsCoord.h"                    
@@ -40,8 +41,9 @@ const uint8_t kGenericFont_fantasy      = 0x20;
 
 
 struct NS_GFX nsFont {
+
   
-  nsString name;
+  mozilla::FontFamilyList fontlist;
 
   
   uint8_t style;
@@ -113,12 +115,12 @@ struct NS_GFX nsFont {
   nsString languageOverride;
 
   
-  nsFont(const char* aName, uint8_t aStyle, uint8_t aVariant,
-         uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
-         nscoord aSize);
+  nsFont(const mozilla::FontFamilyList& aFontlist, uint8_t aStyle,
+         uint8_t aVariant, uint16_t aWeight, int16_t aStretch,
+         uint8_t aDecoration, nscoord aSize);
 
   
-  nsFont(const nsSubstring& aName, uint8_t aStyle, uint8_t aVariant,
+  nsFont(mozilla::FontFamilyType aGenericType, uint8_t aStyle, uint8_t aVariant,
          uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
          nscoord aSize);
 
@@ -143,15 +145,8 @@ struct NS_GFX nsFont {
   
   void AddFontFeaturesToStyle(gfxFontStyle *aStyle) const;
 
-  
-  
-  
-  
-  bool EnumerateFamilies(nsFontFamilyEnumFunc aFunc, void* aData) const;
-  void GetFirstFamily(nsString& aFamily) const;
-
-  
-  static void GetGenericID(const nsString& aGeneric, uint8_t* aID);
+protected:
+  void Init(); 
 };
 
 #define NS_FONT_VARIANT_NORMAL            0

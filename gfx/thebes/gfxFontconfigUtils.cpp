@@ -777,38 +777,6 @@ gfxFontconfigUtils::GetStandardFamilyName(const nsAString& aFontName, nsAString&
     return rv;
 }
 
-nsresult
-gfxFontconfigUtils::ResolveFontName(const nsAString& aFontName,
-                                    gfxPlatform::FontResolverCallback aCallback,
-                                    void *aClosure,
-                                    bool& aAborted)
-{
-    aAborted = false;
-
-    nsresult rv = UpdateFontListInternal();
-    if (NS_FAILED(rv))
-        return rv;
-
-    NS_ConvertUTF16toUTF8 fontname(aFontName);
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (IsExistingFamily(fontname) ||
-        mAliasForMultiFonts.Contains(fontname, gfxIgnoreCaseCStringComparator()))
-        aAborted = !(*aCallback)(aFontName, aClosure);
-
-    return NS_OK;
-}
-
 bool
 gfxFontconfigUtils::IsExistingFamily(const nsCString& aFamilyName)
 {
