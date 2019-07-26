@@ -222,6 +222,18 @@ class MediaPipeline : public sigslot::has_slots<> {
 };
 
 
+class ConduitDeleteEvent: public nsRunnable
+{
+public:
+  ConduitDeleteEvent(TemporaryRef<MediaSessionConduit> aConduit) :
+    mConduit(aConduit) {}
+
+  
+  NS_IMETHOD Run() { return NS_OK; }
+private:
+  RefPtr<MediaSessionConduit> mConduit;
+};
+
 
 
 class MediaPipelineTransmit : public MediaPipeline {
@@ -262,6 +274,13 @@ class MediaPipelineTransmit : public MediaPipeline {
       : conduit_(conduit), active_(false), samples_10ms_buffer_(nullptr),
         buffer_current_(0), samplenum_10ms_(0){}
 
+    ~PipelineListener()
+    {
+      
+      NS_DispatchToMainThread(new ConduitDeleteEvent(conduit_.forget()), NS_DISPATCH_NORMAL);
+    }
+
+
     
     
     
@@ -272,8 +291,8 @@ class MediaPipelineTransmit : public MediaPipeline {
                                           TrackRate rate,
                                           TrackTicks offset,
                                           uint32_t events,
-                                          const MediaSegment& queued_media);
-    virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) {}
+                                          const MediaSegment& queued_media) MOZ_OVERRIDE;
+    virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) MOZ_OVERRIDE {}
 
    private:
     virtual void ProcessAudioChunk(AudioSessionConduit *conduit,
@@ -365,13 +384,19 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
     PipelineListener(SourceMediaStream * source, TrackID track_id,
                      const RefPtr<MediaSessionConduit>& conduit);
 
+    ~PipelineListener()
+    {
+      
+      NS_DispatchToMainThread(new ConduitDeleteEvent(conduit_.forget()), NS_DISPATCH_NORMAL);
+    }
+
     
     virtual void NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
                                           TrackRate rate,
                                           TrackTicks offset,
                                           uint32_t events,
-                                          const MediaSegment& queued_media) {}
-    virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime);
+                                          const MediaSegment& queued_media) MOZ_OVERRIDE {}
+    virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) MOZ_OVERRIDE;
 
    private:
     SourceMediaStream *source_;
