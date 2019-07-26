@@ -302,6 +302,10 @@ ICBinaryArith_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     return callVM(DoBinaryArithFallbackInfo, masm);
 }
 
+
+
+
+
 static bool
 DoGetElemFallback(JSContext *cx, ICGetElem_Fallback *stub, HandleValue lhs, HandleValue rhs, MutableHandleValue res)
 {
@@ -354,6 +358,10 @@ ICGetElem_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     return callVM(DoGetElemFallbackInfo, masm);
 }
 
+
+
+
+
 bool
 ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
 {
@@ -392,6 +400,10 @@ ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     EmitStubGuardFailure(masm);
     return true;
 }
+
+
+
+
 
 static bool
 DoSetElemFallback(JSContext *cx, ICSetElem_Fallback *stub, HandleValue rhs, HandleValue objv,
@@ -452,6 +464,10 @@ ICSetElem_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     return callVM(DoSetElemFallbackInfo, masm);
 }
+
+
+
+
 
 bool
 ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)

@@ -618,6 +618,9 @@ class ICBinaryArith_Int32 : public ICStub
     };
 };
 
+
+
+
 class ICGetElem_Fallback : public ICFallbackStub
 {
     ICGetElem_Fallback(IonCode *stubCode)
@@ -671,6 +674,9 @@ class ICGetElem_Dense : public ICStub
     };
 };
 
+
+
+
 class ICSetElem_Fallback : public ICFallbackStub
 {
     ICSetElem_Fallback(IonCode *stubCode)
@@ -723,6 +729,12 @@ class ICSetElem_Dense : public ICStub
         }
     };
 };
+
+
+
+
+
+
 
 class ICCallStubCompiler : public ICStubCompiler
 {
