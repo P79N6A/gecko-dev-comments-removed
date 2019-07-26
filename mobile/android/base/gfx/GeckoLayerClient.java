@@ -809,6 +809,12 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     }
 
     private void setViewportMetrics(ImmutableViewportMetrics metrics, boolean notifyGecko, boolean keepFixedMargins) {
+        
+        
+        
+        
+        metrics = metrics.setViewportSize(mViewportMetrics.getWidth(), mViewportMetrics.getHeight());
+
         if (keepFixedMargins) {
             mViewportMetrics = metrics.setFixedLayerMarginsFrom(mViewportMetrics);
         } else {
