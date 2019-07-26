@@ -299,7 +299,11 @@ function jsTestDriverBrowserInit()
     
     
     
-    if (properties.test.match(/^js1_7/))
+    if (properties.test.match(/^js1_6/))
+    {
+      properties.version = '1.6';
+    }
+    else if (properties.test.match(/^js1_7/))
     {
       properties.version = '1.7';
     }

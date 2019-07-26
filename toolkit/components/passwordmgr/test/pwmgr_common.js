@@ -146,7 +146,7 @@ function commonInit() {
     var disabledHosts = pwmgr.getAllDisabledHosts();
     if (disabledHosts.length) {
         
-        for each (var host in disabledHosts)
+        for (var host of disabledHosts)
             pwmgr.setLoginSavingEnabled(host, true);
     }
 
