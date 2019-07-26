@@ -45,7 +45,8 @@ public class DataReportingNotification {
             (DATA_REPORTING_VERSION != dataPrefs.getInt(PREFS_POLICY_VERSION, -1))) {
 
             
-            Intent prefIntent = new Intent(context, GeckoPreferences.class);
+            Intent prefIntent = new Intent(GeckoApp.ACTION_LAUNCH_SETTINGS);
+            prefIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS);
 
             
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
