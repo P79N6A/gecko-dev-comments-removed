@@ -781,8 +781,10 @@ nsGenericHTMLElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
 {
   if (aNamespaceID == kNameSpaceID_None &&
       aName == nsGkAtoms::dir &&
-      HasDirAuto()) {
-      
+      HasDirAuto() && !AncestorHasDirAuto()) {
+    
+    
+    
     WalkDescendantsClearAncestorDirAuto(this);
     SetHasDirAuto();
   }
