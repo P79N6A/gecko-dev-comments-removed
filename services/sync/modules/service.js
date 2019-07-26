@@ -690,7 +690,6 @@ Sync11Service.prototype = {
       
       if (this.clusterURL == "" && !this._clusterManager.setCluster()) {
         this.status.sync = NO_SYNC_NODE_FOUND;
-        Svc.Obs.notify("weave:service:sync:delayed");
         return true;
       }
 
