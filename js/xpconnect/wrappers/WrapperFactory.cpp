@@ -307,6 +307,41 @@ DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
 #define DEBUG_CheckUnwrapSafety(obj, handler, origin, target) {}
 #endif
 
+static Wrapper *
+SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
+              bool waiveXrays)
+{
+    
+    
+    if (waiveXrays) {
+        MOZ_ASSERT(!securityWrapper);
+        return &WaiveXrayWrapper::singleton;
+    }
+
+    
+    
+    if (!wantXrays || xrayType == NotXray) {
+        if (!securityWrapper)
+            return &CrossCompartmentWrapper::singleton;
+        return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
+    }
+
+    
+    
+    if (!securityWrapper) {
+        if (xrayType == XrayForWrappedNative)
+            return &PermissiveXrayXPCWN::singleton;
+        return &PermissiveXrayDOM::singleton;
+    }
+
+    
+    if (xrayType == XrayForWrappedNative)
+        return &FilteringWrapper<SecurityXrayXPCWN,
+                                 CrossOriginAccessiblePropertiesOnly>::singleton;
+    return &FilteringWrapper<SecurityXrayDOM,
+                             CrossOriginAccessiblePropertiesOnly>::singleton;
+}
+
 JSObject *
 WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
                        JSObject *wrappedProto, JSObject *parent,
@@ -367,65 +402,32 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
     
     
     
+    
+    
+    
+    else {
 
-    else if (targetIsChrome) {
-        if (originIsChrome) {
-            wrapper = &CrossCompartmentWrapper::singleton;
-        } else {
-            if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
-                
-                
-                wrapper = &WaiveXrayWrapper::singleton;
-            } else {
-                
-                if (xrayType == XrayForDOMObject) {
-                    wrapper = &PermissiveXrayDOM::singleton;
-                } else if (xrayType == XrayForWrappedNative) {
-                    wrapper = &PermissiveXrayXPCWN::singleton;
-                } else {
-                    wrapper = &CrossCompartmentWrapper::singleton;
-                }
-            }
-        }
-    } else if (originIsChrome) {
+        
+        
+        bool securityWrapper = !targetSubsumesOrigin;
 
-        if (xrayType == XrayForWrappedNative) {
-            wrapper = &FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>::singleton;
-        } else if (xrayType == XrayForDOMObject) {
-            wrapper = &FilteringWrapper<SecurityXrayDOM, CrossOriginAccessiblePropertiesOnly>::singleton;
-        } else {
-            MOZ_NOT_REACHED();
-        }
-    } else if (targetSubsumesOrigin) {
         
         
         
         
         
         
+        bool wantXrays = !(sameOrigin && !targetdata->wantXrays);
+
         
         
-        
-        if (!targetdata->wantXrays || xrayType == NotXray) {
-            wrapper = &CrossCompartmentWrapper::singleton;
-        } else if (xrayType == XrayForDOMObject) {
-            wrapper = &PermissiveXrayDOM::singleton;
-        } else {
-            wrapper = &PermissiveXrayXPCWN::singleton;
-        }
-    } else {
-        
-        
-        if (xrayType == NotXray) {
-            wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
-        } else if (xrayType == XrayForDOMObject) {
-            wrapper = &FilteringWrapper<SecurityXrayDOM,
-                                        CrossOriginAccessiblePropertiesOnly>::singleton;
-        } else {
-            wrapper = &FilteringWrapper<SecurityXrayXPCWN,
-                                        CrossOriginAccessiblePropertiesOnly>::singleton;
-        }
+        bool waiveXrays = wantXrays && !securityWrapper &&
+                          (flags & WAIVE_XRAY_WRAPPER_FLAG);
+
+        wrapper = SelectWrapper(securityWrapper, wantXrays, xrayType, waiveXrays);
     }
+
+
 
     
     
