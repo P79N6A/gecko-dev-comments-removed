@@ -741,12 +741,11 @@ let SessionStoreInternal = {
           Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
         } else {
           TelemetryTimestamps.add("sessionRestoreRestoring");
-          
-          aInitialState._firstTabs = true;
           this._restoreCount = aInitialState.windows ? aInitialState.windows.length : 0;
 
           let overwrite = this._isCmdLineEmpty(aWindow, aInitialState);
-          this.restoreWindow(aWindow, aInitialState, overwrite);
+          let options = {firstWindow: true, overwriteTabs: overwrite};
+          this.restoreWindow(aWindow, aInitialState, options);
 
           
           
@@ -764,8 +763,9 @@ let SessionStoreInternal = {
     }
     
     else if (!this._isWindowLoaded(aWindow)) {
-      let followUp = this._statesToRestore[aWindow.__SS_restoreID].windows.length == 1;
-      this.restoreWindow(aWindow, this._statesToRestore[aWindow.__SS_restoreID], true, followUp);
+      let state = this._statesToRestore[aWindow.__SS_restoreID];
+      let options = {overwriteTabs: true, isFollowUp: state.windows.length == 1};
+      this.restoreWindow(aWindow, state, options);
     }
     
     
@@ -773,10 +773,9 @@ let SessionStoreInternal = {
     else if (this._deferredInitialState && !isPrivateWindow &&
              aWindow.toolbar.visible) {
 
-      this._deferredInitialState._firstTabs = true;
       this._restoreCount = this._deferredInitialState.windows ?
         this._deferredInitialState.windows.length : 0;
-      this.restoreWindow(aWindow, this._deferredInitialState, false);
+      this.restoreWindow(aWindow, this._deferredInitialState, {firstWindow: true});
       this._deferredInitialState = null;
     }
     else if (this._restoreLastWindow && aWindow.toolbar.visible &&
@@ -837,7 +836,8 @@ let SessionStoreInternal = {
           
           this._restoreCount = 1;
           let state = { windows: [newWindowState] };
-          this.restoreWindow(aWindow, state, this._isCmdLineEmpty(aWindow, state));
+          let options = {overwriteTabs: this._isCmdLineEmpty(aWindow, state)};
+          this.restoreWindow(aWindow, state, options);
         }
       }
       
@@ -1399,7 +1399,7 @@ let SessionStoreInternal = {
     this._restoreCount = state.windows ? state.windows.length : 0;
 
     
-    this.restoreWindow(window, state, true);
+    this.restoreWindow(window, state, {overwriteTabs: true});
   },
 
   getWindowState: function ssi_getWindowState(aWindow) {
@@ -1419,7 +1419,7 @@ let SessionStoreInternal = {
     if (!aWindow.__SSi)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
 
-    this.restoreWindow(aWindow, aState, aOverwrite);
+    this.restoreWindow(aWindow, aState, {overwriteTabs: aOverwrite});
   },
 
   getTabState: function ssi_getTabState(aTab) {
@@ -1780,7 +1780,8 @@ let SessionStoreInternal = {
         
         
         
-        this.restoreWindow(windowToUse, { windows: [winState] }, canOverwriteTabs, true);
+        let options = {overwriteTabs: canOverwriteTabs, isFollowUp: true};
+        this.restoreWindow(windowToUse, { windows: [winState] }, options);
       }
       else {
         this._openWindowWithState({ windows: [winState] });
@@ -2618,8 +2619,14 @@ let SessionStoreInternal = {
 
 
 
-  restoreWindow: function ssi_restoreWindow(aWindow, aState, aOverwriteTabs, aFollowUp) {
-    if (!aFollowUp) {
+
+
+  restoreWindow: function ssi_restoreWindow(aWindow, aState, aOptions = {}) {
+    let overwriteTabs = aOptions && aOptions.overwriteTabs;
+    let isFollowUp = aOptions && aOptions.isFollowUp;
+    let firstWindow = aOptions && aOptions.firstWindow;
+
+    if (isFollowUp) {
       this.windowToFocus = aWindow;
     }
     
@@ -2670,13 +2677,13 @@ let SessionStoreInternal = {
     }
     
     
-    else if (root._firstTabs && !aOverwriteTabs && winData.tabs.length == 1 &&
+    else if (firstWindow && !overwriteTabs && winData.tabs.length == 1 &&
              (!winData.tabs[0].entries || winData.tabs[0].entries.length == 0)) {
       winData.tabs = [];
     }
 
     var tabbrowser = aWindow.gBrowser;
-    var openTabCount = aOverwriteTabs ? tabbrowser.browsers.length : -1;
+    var openTabCount = overwriteTabs ? tabbrowser.browsers.length : -1;
     var newTabCount = winData.tabs.length;
     var tabs = [];
 
@@ -2686,14 +2693,14 @@ let SessionStoreInternal = {
     tabstrip.smoothScroll = false;
 
     
-    if (aOverwriteTabs) {
+    if (overwriteTabs) {
       for (let t = tabbrowser._numPinnedTabs - 1; t > -1; t--)
         tabbrowser.unpinTab(tabbrowser.tabs[t]);
     }
 
     
     
-    if (aOverwriteTabs && tabbrowser.selectedTab._tPos >= newTabCount)
+    if (overwriteTabs && tabbrowser.selectedTab._tPos >= newTabCount)
       tabbrowser.moveTabTo(tabbrowser.selectedTab, newTabCount - 1);
 
     let numVisibleTabs = 0;
@@ -2703,7 +2710,7 @@ let SessionStoreInternal = {
                 tabbrowser.tabs[t] :
                 tabbrowser.addTab("about:blank", {skipAnimation: true}));
       
-      if (!aOverwriteTabs && root._firstTabs) {
+      if (!overwriteTabs && firstWindow) {
         tabbrowser.moveTabTo(tabs[t], t);
       }
 
@@ -2730,7 +2737,7 @@ let SessionStoreInternal = {
     
     
     
-    if (aOverwriteTabs) {
+    if (overwriteTabs) {
       for (let i = 0; i < tabbrowser.tabs.length; i++) {
         let tab = tabbrowser.tabs[i];
         TabStateCache.delete(tab);
@@ -2746,7 +2753,7 @@ let SessionStoreInternal = {
     
     if (!aWindow.__SS_tabsToRestore)
       aWindow.__SS_tabsToRestore = 0;
-    if (aOverwriteTabs)
+    if (overwriteTabs)
       aWindow.__SS_tabsToRestore = newTabCount;
     else
       aWindow.__SS_tabsToRestore += newTabCount;
@@ -2759,12 +2766,12 @@ let SessionStoreInternal = {
       aWindow.__SS_lastSessionWindowID = winData.__lastSessionWindowID;
 
     
-    if (aOverwriteTabs && newTabCount < openTabCount) {
+    if (overwriteTabs && newTabCount < openTabCount) {
       Array.slice(tabbrowser.tabs, newTabCount, openTabCount)
            .forEach(tabbrowser.removeTab, tabbrowser);
     }
 
-    if (aOverwriteTabs) {
+    if (overwriteTabs) {
       this.restoreWindowFeatures(aWindow, winData);
       delete this._windows[aWindow.__SSi].extData;
     }
@@ -2779,12 +2786,12 @@ let SessionStoreInternal = {
         this._windows[aWindow.__SSi].extData[key] = winData.extData[key];
       }
     }
-    if (aOverwriteTabs || root._firstTabs) {
+    if (overwriteTabs || firstWindow) {
       this._windows[aWindow.__SSi]._closedTabs = winData._closedTabs || [];
     }
 
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
-      (aOverwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
+      (overwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
 
     if (aState.scratchpads) {
       ScratchpadManager.restoreSession(aState.scratchpads);
