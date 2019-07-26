@@ -8,15 +8,16 @@
 #ifndef nsXBLService_h_
 #define nsXBLService_h_
 
+#include "mozilla/LinkedList.h"
 #include "nsString.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
 #include "jsapi.h"              
-#include "jsclist.h"            
 #include "nsTArray.h"
 
 class nsXBLBinding;
 class nsXBLDocumentInfo;
+class nsXBLJSClass;
 class nsIContent;
 class nsIDocument;
 class nsString;
@@ -124,7 +125,8 @@ public:
 
   static nsHashtable* gClassTable;           
 
-  static JSCList  gClassLRUList;             
+  static mozilla::LinkedList<nsXBLJSClass>* gClassLRUList;
+                                             
   static uint32_t gClassLRUListLength;       
   static uint32_t gClassLRUListQuota;        
   static bool     gAllowDataURIs;            
@@ -132,7 +134,8 @@ public:
                                              
 };
 
-class nsXBLJSClass : public JSCList, public JSClass
+class nsXBLJSClass : public mozilla::LinkedListElement<nsXBLJSClass>
+                   , public JSClass
 {
 private:
   nsrefcnt mRefCnt;
