@@ -129,6 +129,22 @@ bool
 FilteringWrapper<Base, Policy>::enter(JSContext *cx, JSObject *wrapper, jsid id,
                                       Wrapper::Action act, bool *bp)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (XrayUtils::IsXrayResolving(cx, wrapper, id)) {
+        *bp = true;
+        return true;
+    }
     if (!Policy::check(cx, wrapper, id, act)) {
         if (JS_IsExceptionPending(cx)) {
             *bp = false;
