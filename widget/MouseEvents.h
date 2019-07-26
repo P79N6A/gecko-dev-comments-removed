@@ -424,7 +424,6 @@ typedef WidgetWheelEvent                WheelEvent;
 } 
 
 
-typedef mozilla::WidgetMouseEventBase   nsMouseEvent_base;
 typedef mozilla::WidgetMouseEvent       nsMouseEvent;
 typedef mozilla::WidgetDragEvent        nsDragEvent;
 typedef mozilla::WidgetMouseScrollEvent nsMouseScrollEvent;
