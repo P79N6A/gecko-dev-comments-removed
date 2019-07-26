@@ -44,6 +44,7 @@
 
 #include "jstypes.h"
 #include "vm/Stack.h"
+#include "IonFrameIterator.h"
 #include "IonFrames.h"
 
 namespace js {
@@ -181,11 +182,38 @@ class BailoutStack;
 class InvalidationBailoutStack;
 
 
-FrameRecovery
-FrameRecoveryFromBailout(IonCompartment *ion, BailoutStack *sp);
 
-FrameRecovery
-FrameRecoveryFromInvalidation(IonCompartment *ion, InvalidationBailoutStack *sp);
+
+
+
+class IonBailoutIterator : public IonFrameIterator
+{
+    MachineState machine_;
+    uint32 snapshotOffset_;
+    size_t topFrameSize_;
+    IonScript *topIonScript_;
+
+  public:
+    IonBailoutIterator(const IonActivationIterator &activations, BailoutStack *sp);
+    IonBailoutIterator(const IonActivationIterator &activations, InvalidationBailoutStack *sp);
+
+    SnapshotOffset snapshotOffset() const {
+        JS_ASSERT(topIonScript_);
+        return snapshotOffset_;
+    }
+    const MachineState &machineState() const {
+        return machine_;
+    }
+    size_t topFrameSize() const {
+        JS_ASSERT(topIonScript_);
+        return topFrameSize_;
+    }
+    IonScript *ionScript() const {
+        if (topIonScript_)
+            return topIonScript_;
+        return IonFrameIterator::ionScript();
+    }
+};
 
 
 uint32 Bailout(BailoutStack *sp);
