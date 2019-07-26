@@ -235,11 +235,11 @@ public class LocaleManager {
 
         
         
-        updateLocale(localeCode);
+        final String resultant = updateLocale(localeCode);
 
         final long t2 = android.os.SystemClock.uptimeMillis();
         Log.i(LOG_TAG, "Locale read and update took: " + (t2 - t1) + "ms.");
-        return localeCode;
+        return resultant;
     }
 
     
