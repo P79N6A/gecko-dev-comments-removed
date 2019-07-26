@@ -761,6 +761,40 @@ nsHtml5TreeBuilder::getDocumentFragmentForTemplate(nsIContent** aTemplate)
   return fragHandle;
 }
 
+nsIContent**
+nsHtml5TreeBuilder::getFormPointerForContext(nsIContent** aContext)
+{
+  if (!aContext) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  nsIContent* contextNode = *aContext;
+  nsIContent* currentAncestor = contextNode;
+
+  
+  
+  nsIContent* nearestForm = nullptr;
+  while (currentAncestor) {
+    if (currentAncestor->IsHTML(nsGkAtoms::form)) {
+      nearestForm = currentAncestor;
+      break;
+    }
+    currentAncestor = currentAncestor->GetParent();
+  }
+
+  if (!nearestForm) {
+    return nullptr;
+  }
+
+  nsIContent** formPointer = AllocateContentHandle();
+  *formPointer = nearestForm;
+  return formPointer;
+}
+
 
 
 void
