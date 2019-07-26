@@ -31,6 +31,11 @@ this.TranslationDocument = function(document) {
 };
 
 this.TranslationDocument.prototype = {
+  translatedFrom: "",
+  translatedTo: "",
+  translationError: false,
+  originalShown: true,
+
   
 
 
@@ -185,6 +190,7 @@ this.TranslationDocument.prototype = {
 
 
   showTranslation: function() {
+    this.originalShown = false;
     this._swapDocumentContent("translation");
   },
 
@@ -193,6 +199,7 @@ this.TranslationDocument.prototype = {
 
 
   showOriginal: function() {
+    this.originalShown = true;
     this._swapDocumentContent("original");
   },
 
