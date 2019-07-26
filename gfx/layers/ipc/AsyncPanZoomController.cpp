@@ -1303,57 +1303,54 @@ void AsyncPanZoomController::ZoomToRect(const gfxRect& aRect) {
     ScreenIntRect compositionBounds = mFrameMetrics.mCompositionBounds;
     CSSRect cssPageRect = mFrameMetrics.mScrollableRect;
     CSSPoint scrollOffset = mFrameMetrics.mScrollOffset;
-    CSSToScreenScale resolution = CalculateResolution(mFrameMetrics);
     gfxSize currentZoom = mFrameMetrics.mZoom;
     float targetZoom;
-    gfxFloat targetResolution;
+    float intrinsicScale = CalculateIntrinsicScale(mFrameMetrics).width;
 
     
     
     
     
     
-    float localMinZoom;
-    CSSRect compositedRect = CalculateCompositedRectInCssPixels(mFrameMetrics);
-    localMinZoom =
-      std::max(currentZoom.width / (cssPageRect.width / compositedRect.width),
-               currentZoom.height / (cssPageRect.height / compositedRect.height));
-    localMinZoom = std::max(localMinZoom, mMinZoom);
+    float localMinZoom = std::max(mMinZoom,
+                         std::max(compositionBounds.width / cssPageRect.width,
+                                  compositionBounds.height / cssPageRect.height))
+                         / intrinsicScale;
+    float localMaxZoom = mMaxZoom / intrinsicScale;
 
     if (!zoomToRect.IsEmpty()) {
       
       zoomToRect = zoomToRect.Intersect(cssPageRect);
-      targetResolution =
+      float targetResolution =
         std::min(compositionBounds.width / zoomToRect.width,
                  compositionBounds.height / zoomToRect.height);
-      targetZoom = float(targetResolution / resolution.scale) * currentZoom.width;
+      targetZoom = targetResolution / intrinsicScale;
     }
     
     
     
     
     if (zoomToRect.IsEmpty() ||
-        (currentZoom.width == mMaxZoom && targetZoom >= mMaxZoom) ||
+        (currentZoom.width == localMaxZoom && targetZoom >= localMaxZoom) ||
         (currentZoom.width == localMinZoom && targetZoom <= localMinZoom)) {
-      CSSIntRect cssCompositionBounds = gfx::RoundedIn(compositionBounds / resolution);
-
+      CSSRect compositedRect = CalculateCompositedRectInCssPixels(mFrameMetrics);
       float y = scrollOffset.y;
       float newHeight =
-        cssCompositionBounds.height * cssPageRect.width / cssCompositionBounds.width;
-      float dh = cssCompositionBounds.height - newHeight;
+        cssPageRect.width * (compositedRect.height / compositedRect.width);
+      float dh = compositedRect.height - newHeight;
 
       zoomToRect = CSSRect(0.0f,
                            y + dh/2,
                            cssPageRect.width,
                            newHeight);
       zoomToRect = zoomToRect.Intersect(cssPageRect);
-      targetResolution =
+      float targetResolution =
         std::min(compositionBounds.width / zoomToRect.width,
                  compositionBounds.height / zoomToRect.height);
-      targetZoom = float(targetResolution / resolution.scale) * currentZoom.width;
+      targetZoom = targetResolution / intrinsicScale;
     }
 
-    targetZoom = clamped(targetZoom, localMinZoom, mMaxZoom);
+    targetZoom = clamped(targetZoom, localMinZoom, localMaxZoom);
     mEndZoomToMetrics.mZoom = gfxSize(targetZoom, targetZoom);
 
     
