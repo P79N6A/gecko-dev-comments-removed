@@ -112,7 +112,7 @@ public:
 
 
 
-  virtual void OnActorDestroy();
+  virtual void OnActorDestroy() = 0;
 
   
   virtual void SetCompositor(Compositor* aCompositor);
@@ -211,7 +211,7 @@ public:
   
 
 
-  virtual TextureHost* GetAsTextureHost() { return nullptr; }
+  virtual TextureHost* GetTextureHost() { return nullptr; }
 
   virtual LayerRenderState GetRenderState() = 0;
 
@@ -296,13 +296,7 @@ public:
 
   void AddTextureHost(TextureHost* aTexture);
   virtual void UseTextureHost(TextureHost* aTexture) {}
-  
-  
-  
-  
-  
-  
-  virtual void RemoveTextureHost(TextureHost* aTexture);
+  virtual void RemoveTextureHost(uint64_t aTextureID);
   TextureHost* GetTextureHost(uint64_t aTextureID);
 
 protected:
