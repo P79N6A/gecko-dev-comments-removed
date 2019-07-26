@@ -29,7 +29,7 @@ const TextureFlags UseNearestFilter           = 1 << 0;
 const TextureFlags NeedsYFlip                 = 1 << 1;
 
 
-const TextureFlags ForceSingleTile            = 1 << 2;
+const TextureFlags TEXTURE_DISALLOW_BIGIMAGE  = 1 << 2;
 
 const TextureFlags AllowRepeat                = 1 << 3;
 
