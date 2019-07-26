@@ -75,18 +75,28 @@ var tests = {
       onOpenWindow: function(xulwindow) {
         var domwindow = xulwindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                               .getInterface(Components.interfaces.nsIDOMWindow);
-        waitForFocus(function() {
-          let doc = domwindow.document
+        
+        domwindow.addEventListener("load", function _load() {
+          domwindow.removeEventListener("load", _load, false);
+          let doc = domwindow.document;
           is(doc.documentElement.getAttribute("windowtype"), "Social:Chat", "Social:Chat window opened");
           is(doc.location.href, "chrome://browser/content/chatWindow.xul", "Should have seen the right window open");
-          let chatbox = doc.getElementById("chatter");
-          let testdiv = chatbox.contentDocument.getElementById("testdiv");
-          is(testdiv.getAttribute("test"), "1", "docshell should have been swapped");
-          testdiv.setAttribute("test", "2");
           
-          let swap = doc.getAnonymousElementByAttribute(chatbox, "anonid", "swap");
-          swap.click();
-        }, domwindow);
+          
+          
+          let chatbox = doc.getElementById("chatter");
+          waitForCondition(function() {
+            return chatbox.contentDocument &&
+                   chatbox.contentDocument.readyState == "complete";
+          },function() {
+            let testdiv = chatbox.contentDocument.getElementById("testdiv");
+            is(testdiv.getAttribute("test"), "1", "docshell should have been swapped");
+            testdiv.setAttribute("test", "2");
+            
+            let swap = doc.getAnonymousElementByAttribute(chatbox, "anonid", "swap");
+            swap.click();
+          }, domwindow);
+        }, false);
       }
     });
 
