@@ -179,9 +179,6 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
       
       continue;
     }
-    if (!nsCSSProps::IsEnabled(*p)) {
-      continue;
-    }
     ++totalCount;
     const nsCSSValue *val = mData->ValueFor(*p);
     NS_ABORT_IF_FALSE(!val || !mImportantData || !mImportantData->ValueFor(*p),
