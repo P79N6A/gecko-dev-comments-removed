@@ -1861,7 +1861,7 @@ nsLayoutUtils::ChangeMatrixBasis(const gfxPoint3D &aOrigin,
 
 static void ConstrainToCoordValues(float& aStart, float& aSize)
 {
-  MOZ_ASSERT(aSize > 0);
+  MOZ_ASSERT(aSize >= 0);
 
   
   
