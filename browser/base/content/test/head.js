@@ -152,6 +152,9 @@ function runSocialTestWithProvider(manifest, callback) {
         registerCleanupFunction(function () {
           
           
+          Services.prefs.clearUserPref("social.enabled");
+          
+          
           
           
           manifests.forEach(function (m) {
@@ -159,7 +162,6 @@ function runSocialTestWithProvider(manifest, callback) {
               SocialService.removeProvider(m.origin, finish);
             } catch (ex) {}
           });
-          Services.prefs.clearUserPref("social.enabled");
         });
         function finishSocialTest() {
           SocialService.removeProvider(provider.origin, finish);
