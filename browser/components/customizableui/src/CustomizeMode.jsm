@@ -73,13 +73,8 @@ CustomizeMode.prototype = {
     return this.document.getElementById("PanelUI-contents");
   },
 
-  get _handler() {
-    return this.window.CustomizationHandler;
-  },
-
   toggle: function() {
-    if (this._handler.isEnteringCustomizeMode || this._handler.isExitingCustomizeMode) {
-      this._wantToBeInCustomizeMode = !this._wantToBeInCustomizeMode;
+    if (this._transitioning) {
       return;
     }
     if (this._customizing) {
@@ -90,19 +85,9 @@ CustomizeMode.prototype = {
   },
 
   enter: function() {
-    this._wantToBeInCustomizeMode = true;
-
-    if (this._customizing || this._handler.isEnteringCustomizeMode) {
+    if (this._customizing || this._transitioning) {
       return;
     }
-
-    
-    if (this._handler.isExitingCustomizeMode) {
-      LOG("Attempted to enter while we're in the middle of exiting. " +
-          "We'll exit after we've entered");
-      return;
-    }
-
 
     
     
@@ -113,8 +98,6 @@ CustomizeMode.prototype = {
 
     let window = this.window;
     let document = this.document;
-
-    this._handler.isEnteringCustomizeMode = true;
 
     Task.spawn(function() {
       
@@ -218,34 +201,18 @@ CustomizeMode.prototype = {
       
       this.visiblePalette.hidden = false;
 
-      this._handler.isEnteringCustomizeMode = false;
       this.dispatchToolboxEvent("customizationready");
-      if (!this._wantToBeInCustomizeMode) {
-        this.exit();
-      }
     }.bind(this)).then(null, function(e) {
       ERROR(e);
       
       window.PanelUI.endBatchUpdate();
-      this._handler.isEnteringCustomizeMode = false;
-    }.bind(this));
+    });
   },
 
   exit: function() {
-    this._wantToBeInCustomizeMode = false;
-
-    if (!this._customizing || this._handler.isExitingCustomizeMode) {
+    if (!this._customizing || this._transitioning) {
       return;
     }
-
-    
-    if (this._handler.isEnteringCustomizeMode) {
-      LOG("Attempted to exit while we're in the middle of entering. " +
-          "We'll exit after we've entered");
-      return;
-    }
-
-    this._handler.isExitingCustomizeMode = true;
 
     CustomizableUI.removeListener(this);
 
@@ -329,13 +296,7 @@ CustomizeMode.prototype = {
         let custBrowser = this.browser.selectedBrowser;
         if (custBrowser.canGoBack) {
           
-          
-          
-          try {
-            custBrowser.goBack();
-          } catch (ex) {
-            ERROR(ex);
-          }
+          custBrowser.goBack();
         } else {
           
           
@@ -360,19 +321,13 @@ CustomizeMode.prototype = {
       this.window.PanelUI.endBatchUpdate();
       this._changed = false;
       this._transitioning = false;
-      this._handler.isExitingCustomizeMode = false;
       this.dispatchToolboxEvent("aftercustomization");
       CustomizableUI.notifyEndCustomizing(this.window);
-
-      if (this._wantToBeInCustomizeMode) {
-        this.enter();
-      }
     }.bind(this)).then(null, function(e) {
       ERROR(e);
       
       window.PanelUI.endBatchUpdate();
-      this._handler.isExitingCustomizeMode = false;
-    }.bind(this));
+    });
   },
 
   

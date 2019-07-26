@@ -3710,11 +3710,11 @@ var XULBrowserWindow = {
       
       
       let customizingURI = "about:customizing";
-      if (location == customizingURI) {
+      if (location == customizingURI &&
+          !CustomizationHandler.isCustomizing()) {
         gCustomizeMode.enter();
       } else if (location != customizingURI &&
-                 (CustomizationHandler.isEnteringCustomizeMode ||
-                  CustomizationHandler.isCustomizing())) {
+                 CustomizationHandler.isCustomizing()) {
         gCustomizeMode.exit();
       }
     }
