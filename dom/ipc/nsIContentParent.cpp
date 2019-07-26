@@ -237,7 +237,7 @@ nsIContentParent::RecvSyncMessage(const nsString& aMsg,
   
   nsIPrincipal* principal = aPrincipal;
   ContentParent* parent = AsContentParent();
-  if (!Preferences::GetBool("dom.testing.ignore_ipc_principal", false) &&
+  if (!ContentParent::IgnoreIPCPrincipal() &&
       parent && principal && !AssertAppPrincipal(parent, principal)) {
     return false;
   }
@@ -263,7 +263,7 @@ nsIContentParent::AnswerRpcMessage(const nsString& aMsg,
   
   nsIPrincipal* principal = aPrincipal;
   ContentParent* parent = AsContentParent();
-  if (!Preferences::GetBool("dom.testing.ignore_ipc_principal", false) &&
+  if (!ContentParent::IgnoreIPCPrincipal() &&
       parent && principal && !AssertAppPrincipal(parent, principal)) {
     return false;
   }
@@ -287,7 +287,7 @@ nsIContentParent::RecvAsyncMessage(const nsString& aMsg,
   
   nsIPrincipal* principal = aPrincipal;
   ContentParent* parent = AsContentParent();
-  if (!Preferences::GetBool("dom.testing.ignore_ipc_principal", false) &&
+  if (!ContentParent::IgnoreIPCPrincipal() &&
       parent && principal && !AssertAppPrincipal(parent, principal)) {
     return false;
   }
