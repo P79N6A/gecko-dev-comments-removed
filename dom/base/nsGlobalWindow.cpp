@@ -3529,8 +3529,7 @@ nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
   }
 
   if (!primaryContent) {
-    nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-    GetTreeOwner(getter_AddRefs(treeOwner));
+    nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
     NS_ENSURE_TRUE(treeOwner, NS_ERROR_FAILURE);
 
     treeOwner->GetPrimaryContentShell(getter_AddRefs(primaryContent));
@@ -4124,8 +4123,7 @@ nsGlobalWindow::SetInnerHeight(int32_t aInnerHeight)
 nsresult
 nsGlobalWindow::GetOuterSize(nsIntSize* aSizeCSSPixels)
 {
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   nsGlobalWindow* rootWindow =
@@ -4181,8 +4179,7 @@ nsGlobalWindow::SetOuterSize(int32_t aLengthCSSPixels, bool aIsWidth)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   CheckSecurityWidthAndHeight(aIsWidth ? &aLengthCSSPixels : nullptr,
@@ -4221,8 +4218,7 @@ nsGlobalWindow::GetScreenX(int32_t* aScreenX)
 {
   FORWARD_TO_OUTER(GetScreenX, (aScreenX), NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   int32_t x, y;
@@ -4462,8 +4458,7 @@ nsGlobalWindow::SetScreenX(int32_t aScreenX)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   CheckSecurityLeftAndTop(&aScreenX, nullptr);
@@ -4485,8 +4480,7 @@ nsGlobalWindow::GetScreenY(int32_t* aScreenY)
 {
   FORWARD_TO_OUTER(GetScreenY, (aScreenY), NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   int32_t x, y;
@@ -4512,8 +4506,7 @@ nsGlobalWindow::SetScreenY(int32_t aScreenY)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   CheckSecurityLeftAndTop(nullptr, &aScreenY);
@@ -4609,8 +4602,7 @@ nsGlobalWindow::CheckSecurityLeftAndTop(int32_t* aLeft, int32_t* aTop)
       rootWindow->FlushPendingNotifications(Flush_Layout);
     }
 
-    nsCOMPtr<nsIBaseWindow> treeOwner;
-    GetTreeOwner(getter_AddRefs(treeOwner));
+    nsCOMPtr<nsIBaseWindow> treeOwner = GetTreeOwnerWindow();
 
     nsCOMPtr<nsIDOMScreen> screen;
     GetScreen(getter_AddRefs(screen));
@@ -4869,8 +4861,7 @@ nsGlobalWindow::WindowExists(const nsAString& aName,
 already_AddRefed<nsIWidget>
 nsGlobalWindow::GetMainWidget()
 {
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
 
   nsIWidget *widget = nullptr;
 
@@ -4945,8 +4936,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
 
   
   
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   nsCOMPtr<nsIXULWindow> xulWin(do_GetInterface(treeOwnerAsWin));
   if (aFullScreen && xulWin) {
     xulWin->SetIntrinsicallySized(false);
@@ -5208,8 +5198,7 @@ nsGlobalWindow::CanMoveResizeWindows()
     }
 
     
-    nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-    GetTreeOwner(getter_AddRefs(treeOwner));
+    nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
     if (treeOwner) {
       uint32_t itemCount;
       if (NS_SUCCEEDED(treeOwner->GetTargetableShellCount(&itemCount)) &&
@@ -5491,8 +5480,7 @@ nsGlobalWindow::Focus()
   nsCOMPtr<nsIDOMWindow> rootWin = do_GetInterface(rootItem);
   bool isActive = (rootWin == activeWindow);
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   if (treeOwnerAsWin && (canFocus || isActive)) {
     bool isEnabled = true;
     if (NS_SUCCEEDED(treeOwnerAsWin->GetEnabled(&isEnabled)) && !isEnabled) {
@@ -5575,8 +5563,7 @@ nsGlobalWindow::Blur()
   
   nsresult rv = NS_OK;
 
-  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  GetTreeOwner(getter_AddRefs(treeOwner));
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
   nsCOMPtr<nsIEmbeddingSiteWindow> siteWindow(do_GetInterface(treeOwner));
   if (siteWindow) {
     
@@ -5770,8 +5757,7 @@ nsGlobalWindow::MoveTo(int32_t aXPos, int32_t aYPos)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   CheckSecurityLeftAndTop(&aXPos, &aYPos);
@@ -5799,8 +5785,7 @@ nsGlobalWindow::MoveBy(int32_t aXDif, int32_t aYDif)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   
@@ -5841,8 +5826,7 @@ nsGlobalWindow::ResizeTo(int32_t aWidth, int32_t aHeight)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
   
   CheckSecurityWidthAndHeight(&aWidth, &aHeight);
@@ -5869,8 +5853,7 @@ nsGlobalWindow::ResizeBy(int32_t aWidthDif, int32_t aHeightDif)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
   NS_ENSURE_TRUE(treeOwnerAsWin, NS_ERROR_FAILURE);
 
   int32_t width, height;
@@ -5928,8 +5911,7 @@ nsGlobalWindow::SizeToContent()
 
   
   
-  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  GetTreeOwner(getter_AddRefs(treeOwner));
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
   NS_ENSURE_TRUE(treeOwner, NS_ERROR_FAILURE);
 
   nsIntSize cssSize(DevToCSSIntPixels(nsIntSize(width, height)));
@@ -7084,8 +7066,7 @@ nsGlobalWindow::ReallyCloseWindow()
   
   mHavePendingClose = true;
 
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
+  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin = GetTreeOwnerWindow();
 
   
 
@@ -10723,27 +10704,27 @@ nsGlobalWindow::TimerCallback(nsITimer *aTimer, void *aClosure)
 
 
 
-nsresult
-nsGlobalWindow::GetTreeOwner(nsIDocShellTreeOwner **aTreeOwner)
+already_AddRefed<nsIDocShellTreeOwner>
+nsGlobalWindow::GetTreeOwner()
 {
-  FORWARD_TO_OUTER(GetTreeOwner, (aTreeOwner), NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_OUTER(GetTreeOwner, (), nullptr);
 
   
   
 
   if (!mDocShell) {
-    *aTreeOwner = nullptr;
-
-    return NS_OK;
+    return nullptr;
   }
 
-  return mDocShell->GetTreeOwner(aTreeOwner);
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+  mDocShell->GetTreeOwner(getter_AddRefs(treeOwner));
+  return treeOwner.forget();
 }
 
-nsresult
-nsGlobalWindow::GetTreeOwner(nsIBaseWindow **aTreeOwner)
+already_AddRefed<nsIBaseWindow>
+nsGlobalWindow::GetTreeOwnerWindow()
 {
-  FORWARD_TO_OUTER(GetTreeOwner, (aTreeOwner), NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_OUTER(GetTreeOwnerWindow, (), nullptr);
 
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
 
@@ -10754,19 +10735,14 @@ nsGlobalWindow::GetTreeOwner(nsIBaseWindow **aTreeOwner)
     mDocShell->GetTreeOwner(getter_AddRefs(treeOwner));
   }
 
-  if (!treeOwner) {
-    *aTreeOwner = nullptr;
-    return NS_OK;
-  }
-
-  return CallQueryInterface(treeOwner, aTreeOwner);
+  nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(treeOwner);
+  return baseWindow.forget();
 }
 
 nsresult
 nsGlobalWindow::GetWebBrowserChrome(nsIWebBrowserChrome **aBrowserChrome)
 {
-  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  GetTreeOwner(getter_AddRefs(treeOwner));
+  nsCOMPtr<nsIDocShellTreeOwner> treeOwner = GetTreeOwner();
 
   nsCOMPtr<nsIWebBrowserChrome> browserChrome(do_GetInterface(treeOwner));
   NS_IF_ADDREF(*aBrowserChrome = browserChrome);
