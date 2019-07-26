@@ -139,6 +139,14 @@ public class LayerMarginsAnimator implements TouchEventInterceptor {
         mMarginsPinned = pin;
     }
 
+    public boolean areMarginsShown() {
+        final ImmutableViewportMetrics metrics = mTarget.getViewportMetrics();
+        return metrics.marginLeft != 0  ||
+               metrics.marginRight != 0 ||
+               metrics.marginTop != 0   ||
+               metrics.marginBottom != 0;
+    }
+
     
 
 

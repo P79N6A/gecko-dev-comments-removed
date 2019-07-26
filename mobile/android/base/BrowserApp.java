@@ -2539,9 +2539,17 @@ abstract public class BrowserApp extends GeckoApp
         if (mActionMode == null) {
             mViewFlipper.showNext();
             LayerMarginsAnimator margins = mLayerView.getLayerMarginsAnimator();
-            margins.setMaxMargins(0, mViewFlipper.getHeight(), 0, 0);
+
+            
+            if (isDynamicToolbarEnabled() && !margins.areMarginsShown()) {
+                margins.setMaxMargins(0, mViewFlipper.getHeight(), 0, 0);
+                margins.showMargins(false);
+            } else {
+                
+                mActionBar.animateIn();
+            }
+
             margins.setMarginsPinned(true);
-            margins.showMargins(false);
         } else {
             
             mActionMode.finish();
