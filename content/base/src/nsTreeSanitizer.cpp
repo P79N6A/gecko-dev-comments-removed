@@ -306,6 +306,7 @@ nsIAtom** const kElementsSVG[] = {
   &nsGkAtoms::feDiffuseLighting, 
   &nsGkAtoms::feDisplacementMap, 
   &nsGkAtoms::feDistantLight, 
+  &nsGkAtoms::feDropShadow, 
   &nsGkAtoms::feFlood, 
   &nsGkAtoms::feFuncA, 
   &nsGkAtoms::feFuncB, 
