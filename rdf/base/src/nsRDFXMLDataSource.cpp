@@ -427,13 +427,11 @@ RDFXMLDataSourceImpl::Init()
 
 RDFXMLDataSourceImpl::~RDFXMLDataSourceImpl(void)
 {
-    nsresult rv;
+    
+    (void) gRDFService->UnregisterDataSource(this);
 
     
-    rv = gRDFService->UnregisterDataSource(this);
-
-    
-    rv = Flush();
+    (void) Flush();
 
     
     mObservers.Clear();
