@@ -5727,6 +5727,13 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
     mResponseHead = nullptr;
 
     
+    if (mUploadStream) {
+        nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
+        if (seekable)
+            seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+    }
+
+    
     mCaps |=  NS_HTTP_STICKY_CONNECTION;
     mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
 
@@ -5737,13 +5744,6 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
     
     if (conn)
         mTransaction->SetConnection(conn);
-
-    
-    if (mUploadStream) {
-        nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
-        if (seekable)
-            seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
-    }
 
     rv = gHttpHandler->InitiateTransaction(mTransaction, mPriority);
     if (NS_FAILED(rv)) return rv;
