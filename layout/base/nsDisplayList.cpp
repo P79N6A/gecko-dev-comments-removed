@@ -3587,20 +3587,6 @@ nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame 
   mToReferenceFrame = aFrame->GetOffsetToCrossDoc(mReferenceFrame);
 }
 
-nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
-                                       nsDisplayItem *aItem, uint32_t aIndex) 
-  : nsDisplayItem(aBuilder, aFrame)
-  , mStoredList(aBuilder, aFrame, aItem)
-  , mTransformGetter(nullptr)
-  , mIndex(aIndex)
-{
-  MOZ_COUNT_CTOR(nsDisplayTransform);
-  NS_ABORT_IF_FALSE(aFrame, "Must have a frame!");
-  mReferenceFrame = 
-    aBuilder->FindReferenceFrameFor(GetTransformRootFrame(aFrame));
-  mToReferenceFrame = aFrame->GetOffsetToCrossDoc(mReferenceFrame);
-}
-
 
 
 
