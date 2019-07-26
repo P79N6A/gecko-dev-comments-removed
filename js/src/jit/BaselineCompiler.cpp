@@ -972,7 +972,7 @@ BaselineCompiler::emit_JSOP_THIS()
     frame.pushThis();
 
     
-    if (function() && (function()->strict() || function()->isSelfHostedBuiltin()))
+    if (script->strict || (function() && function()->isSelfHostedBuiltin()))
         return true;
 
     Label skipIC;
