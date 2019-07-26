@@ -155,8 +155,9 @@ WebGLObserver::UnregisterMemoryPressureEvent()
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
 
-    MOZ_ASSERT(observerService);
-
+    
+    
+    
     if (observerService) {
         observerService->RemoveObserver(this, "memory-pressure");
     }
