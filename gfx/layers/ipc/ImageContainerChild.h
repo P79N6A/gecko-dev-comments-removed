@@ -108,14 +108,7 @@ public:
   
 
 
-
-
-  void DispatchSetIdle();
-
-  
-
-
-  void SetIdleNow();
+  void SetIdle();
 
   
 
@@ -171,6 +164,18 @@ protected:
 
 
   void DestroyNow();
+  
+  
+
+
+
+
+  void SetIdleSync(Monitor* aBarrier, bool* aDone);
+
+  
+
+
+  void SetIdleNow();
 
   inline void SetID(uint64_t id)
   {
