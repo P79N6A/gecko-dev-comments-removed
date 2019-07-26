@@ -908,6 +908,15 @@ Http2Compressor::EncodeHeaderBlock(const nsCString &nvInput,
   mParsedContentLength = -1;
 
   
+  if (mBufferSizeChangeWaiting) {
+    if (mLowestBufferSizeWaiting < mMaxBufferSetting) {
+      EncodeTableSizeChange(mLowestBufferSizeWaiting);
+    }
+    EncodeTableSizeChange(mMaxBufferSetting);
+    mBufferSizeChangeWaiting = false;
+  }
+
+  
   ProcessHeader(nvPair(NS_LITERAL_CSTRING(":method"), method), false);
   ProcessHeader(nvPair(NS_LITERAL_CSTRING(":path"), path), false);
   ProcessHeader(nvPair(NS_LITERAL_CSTRING(":authority"), host), false);
@@ -1387,10 +1396,25 @@ Http2Compressor::ProcessHeader(const nvPair inputPair, bool neverIndex)
 }
 
 void
+Http2Compressor::EncodeTableSizeChange(uint32_t newMaxSize)
+{
+  uint32_t offset = mOutput->Length();
+  EncodeInteger(4, newMaxSize);
+  uint8_t *startByte = reinterpret_cast<uint8_t *>(mOutput->BeginWriting()) + offset;
+  *startByte = *startByte | 0x20;
+}
+
+void
 Http2Compressor::SetMaxBufferSize(uint32_t maxBufferSize)
 {
   mMaxBufferSetting = maxBufferSize;
   SetMaxBufferSizeInternal(maxBufferSize);
+  if (!mBufferSizeChangeWaiting) {
+    mBufferSizeChangeWaiting = true;
+    mLowestBufferSizeWaiting = maxBufferSize;
+  } else if (maxBufferSize < mLowestBufferSizeWaiting) {
+    mLowestBufferSizeWaiting = maxBufferSize;
+  }
 }
 
 nsresult
