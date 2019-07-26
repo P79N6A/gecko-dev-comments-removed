@@ -886,9 +886,8 @@ nsHostResolver::IssueLookup(nsHostRecord *rec)
 nsresult
 nsHostResolver::ConditionallyRefreshRecord(nsHostRecord *rec, const char *host)
 {
-    if ((((TimeStamp::NowLoRes() > rec->expiration) &&
-        rec->mBlacklistedItems.Length()) ||
-        rec->negative) && !rec->resolving) {
+    if (((TimeStamp::NowLoRes() > rec->expiration) || rec->negative) &&
+        !rec->resolving) {
         LOG(("  Using %s cache entry for host [%s] but starting async renewal.",
             rec->negative ? "negative" :"positive", host));
         IssueLookup(rec);
