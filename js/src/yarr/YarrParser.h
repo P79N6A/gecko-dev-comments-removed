@@ -612,12 +612,23 @@ private:
                     unsigned min;
                     if (!consumeNumber(min))
                         break;
+                    
+                    
+                    
+                    if (min > INT_MAX)
+                        min = INT_MAX;
 
                     unsigned max = min;
                     if (tryConsume(',')) {
                         if (peekIsDigit()) {
                             if (!consumeNumber(max))
                                 break;
+                            
+                            
+                            
+                            
+                            if (max > INT_MAX)
+                                max = INT_MAX;
                         } else {
                             max = quantifyInfinite;
                         }

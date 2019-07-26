@@ -10,3 +10,8 @@ reportCompare(["a", ""].toSource(), toSource(/((?:.)*?)a/.exec("a")));
 reportCompare(["a", ""].toSource(), toSource(/a((?:.)*)/.exec("a")));
 
 reportCompare(["B", "B"].toSource(), toSource(/([A-Z])/.exec("fooBar")));
+
+
+reportCompare(/x{2147483648}x/.test('1'), false);
+reportCompare(/x{2147483648,}x/.test('1'), false);
+reportCompare(/x{2147483647,2147483648}x/.test('1'), false);
