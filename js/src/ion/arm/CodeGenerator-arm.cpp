@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/MathAlgorithms.h"
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -25,6 +26,8 @@
 
 using namespace js;
 using namespace js::ion;
+
+using mozilla::FloorLog2;
 
 
 CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm)
@@ -406,8 +409,7 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
             if (!mul->canOverflow()) {
                 
                 Register src = ToRegister(lhs);
-                uint32_t shift;
-                JS_FLOOR_LOG2(shift, constant);
+                uint32_t shift = FloorLog2(constant);
                 uint32_t rest = constant - (1 << shift);
                 
                 if ((1 << shift) == constant) {
@@ -416,8 +418,7 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
                 } else {
                     
                     
-                    uint32_t shift_rest;
-                    JS_FLOOR_LOG2(shift_rest, rest);
+                    uint32_t shift_rest = FloorLog2(rest);
                     if ((1u << shift_rest) == rest) {
                         masm.as_add(ToRegister(dest), src, lsl(src, shift-shift_rest));
                         if (shift_rest != 0)
@@ -429,8 +430,7 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
                 
                 
 
-                uint32_t shift;
-                JS_FLOOR_LOG2(shift, constant);
+                uint32_t shift = FloorLog2(constant);
                 if ((1 << shift) == constant) {
                     
                     masm.ma_lsl(Imm32(shift), ToRegister(lhs), ToRegister(dest));

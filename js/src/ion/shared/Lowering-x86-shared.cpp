@@ -4,12 +4,17 @@
 
 
 
+#include "mozilla/MathAlgorithms.h"
+
 #include "ion/MIR.h"
 #include "ion/Lowering.h"
 #include "ion/shared/Lowering-x86-shared.h"
 #include "ion/shared/Lowering-shared-inl.h"
+
 using namespace js;
 using namespace js::ion;
+
+using mozilla::FloorLog2;
 
 LTableSwitch *
 LIRGeneratorX86Shared::newLTableSwitch(const LAllocation &in, const LDefinition &inputCopy,
@@ -138,8 +143,7 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
         
         
         
-        int32_t shift;
-        JS_FLOOR_LOG2(shift, rhs);
+        int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
             LDivPowTwoI *lir = new LDivPowTwoI(useRegisterAtStart(div->lhs()), useRegister(div->lhs()), shift);
             if (div->fallible() && !assignSnapshot(lir))
@@ -162,8 +166,7 @@ LIRGeneratorX86Shared::lowerModI(MMod *mod)
 
     if (mod->rhs()->isConstant()) {
         int32_t rhs = mod->rhs()->toConstant()->value().toInt32();
-        int32_t shift;
-        JS_FLOOR_LOG2(shift, rhs);
+        int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
             LModPowTwoI *lir = new LModPowTwoI(useRegisterAtStart(mod->lhs()), shift);
             if (mod->fallible() && !assignSnapshot(lir))

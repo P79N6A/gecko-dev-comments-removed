@@ -640,7 +640,7 @@ class Imm8 : public Operand2
         
         if (imm == 0)
             return datastore::Imm8mData(0, 0);
-        int left = js_bitscan_clz32(imm) & 30;
+        int left = mozilla::CountLeadingZeroes32(imm) & 30;
         
         
         
@@ -654,7 +654,7 @@ class Imm8 : public Operand2
             return  datastore::Imm8mData(imm >> (24 - left), ((8+left) >> 1));
         }
         
-        int right = 32 - (js_bitscan_clz32(no_imm)  & 30);
+        int right = 32 - (mozilla::CountLeadingZeroes32(no_imm) & 30);
         
         
         if (right >= 8)

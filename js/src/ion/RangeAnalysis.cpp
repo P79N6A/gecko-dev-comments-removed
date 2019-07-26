@@ -24,6 +24,7 @@ using namespace js;
 using namespace js::ion;
 
 using mozilla::Abs;
+using mozilla::CountLeadingZeroes32;
 using mozilla::ExponentComponent;
 using mozilla::IsInfinite;
 using mozilla::IsNaN;
@@ -496,17 +497,17 @@ Range::or_(const Range *lhs, const Range *rhs)
         
         lower = Max(lhs->lower_, rhs->lower_);
         
-        upper = UINT32_MAX >> Min(js_bitscan_clz32(lhs->upper_),
-                                  js_bitscan_clz32(rhs->upper_));
+        upper = UINT32_MAX >> Min(CountLeadingZeroes32(lhs->upper_),
+                                  CountLeadingZeroes32(rhs->upper_));
     } else {
         
         if (lhs->upper_ < 0) {
-            unsigned leadingOnes = js_bitscan_clz32(~lhs->lower_);
+            unsigned leadingOnes = CountLeadingZeroes32(~lhs->lower_);
             lower = Max(lower, int64_t(~int32_t(UINT32_MAX >> leadingOnes)));
             upper = -1;
         }
         if (rhs->upper_ < 0) {
-            unsigned leadingOnes = js_bitscan_clz32(~rhs->lower_);
+            unsigned leadingOnes = CountLeadingZeroes32(~rhs->lower_);
             lower = Max(lower, int64_t(~int32_t(UINT32_MAX >> leadingOnes)));
             upper = -1;
         }
@@ -560,8 +561,8 @@ Range::xor_(const Range *lhs, const Range *rhs)
         
         
         
-        unsigned lhsLeadingZeros = js_bitscan_clz32(lhsUpper);
-        unsigned rhsLeadingZeros = js_bitscan_clz32(rhsUpper);
+        unsigned lhsLeadingZeros = CountLeadingZeroes32(lhsUpper);
+        unsigned rhsLeadingZeros = CountLeadingZeroes32(rhsUpper);
         upper = Min(rhsUpper | int32_t(UINT32_MAX >> lhsLeadingZeros),
                     lhsUpper | int32_t(UINT32_MAX >> rhsLeadingZeros));
     }

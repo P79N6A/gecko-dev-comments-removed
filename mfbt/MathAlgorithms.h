@@ -144,4 +144,285 @@ Abs<long double>(const long double d)
 
 } 
 
+#if defined(_WIN32) && (_MSC_VER >= 1300) && (defined(_M_IX86) || defined(_M_AMD64) || defined(_M_X64))
+#  define MOZ_BITSCAN_WINDOWS
+
+  extern "C" {
+    unsigned char _BitScanForward(unsigned long* Index, unsigned long mask);
+    unsigned char _BitScanReverse(unsigned long* Index, unsigned long mask);
+#  pragma intrinsic(_BitScanForward, _BitScanReverse)
+
+#  if defined(_M_AMD64) || defined(_M_X64)
+#    define MOZ_BITSCAN_WINDOWS64
+    unsigned char _BitScanForward64(unsigned long* index, unsigned __int64 mask);
+    unsigned char _BitScanReverse64(unsigned long* index, unsigned __int64 mask);
+#   pragma intrinsic(_BitScanForward64, _BitScanReverse64)
+#  endif
+  } 
+
+#endif
+
+namespace mozilla {
+
+namespace detail {
+
+#if defined(MOZ_BITSCAN_WINDOWS)
+
+  inline uint_fast8_t
+  CountLeadingZeroes32(uint32_t u)
+  {
+    unsigned long index;
+    _BitScanReverse(&index, static_cast<unsigned long>(u));
+    return uint_fast8_t(31 - index);
+  }
+
+
+  inline uint_fast8_t
+  CountTrailingZeroes32(uint32_t u)
+  {
+    unsigned long index;
+    _BitScanForward(&index, static_cast<unsigned long>(u));
+    return uint_fast8_t(index);
+  }
+
+  inline uint_fast8_t
+  CountLeadingZeroes64(uint64_t u)
+  {
+#  if defined(MOZ_BITSCAN_WINDOWS64)
+    unsigned long index;
+    _BitScanReverse64(&index, static_cast<unsigned __int64>(u));
+    return uint_fast8_t(63 - index);
+#  else
+    uint32_t hi = uint32_t(u >> 32);
+    if (hi != 0)
+      return CountLeadingZeroes32(hi);
+    return 32 + CountLeadingZeroes32(uint32_t(u));
+#  endif
+  }
+
+  inline uint_fast8_t
+  CountTrailingZeroes64(uint64_t u)
+  {
+#  if defined(MOZ_BITSCAN_WINDOWS64)
+    unsigned long index;
+    _BitScanForward64(&idx, static_cast<unsigned __int64>(u));
+    return uint_fast8_t(index);
+#  else
+    uint32_t lo = uint32_t(u);
+    if (lo != 0)
+      return CountTrailingZeroes32(lo);
+    return 32 + CountTrailingZeroes32(uint32_t(u >> 32));
+#  endif
+  }
+
+#  ifdef MOZ_HAVE_BITSCAN64
+#    undef MOZ_HAVE_BITSCAN64
+#  endif
+
+#elif defined(__clang__) || defined(__GNUC__)
+
+#  if defined(__clang__)
+#    if !__has_builtin(__builtin_ctz) || !__has_builtin(__builtin_clz)
+#      error "A clang providing __builtin_c[lt]z is required to build"
+#    endif
+#  else
+     
+#  endif
+
+  inline uint_fast8_t
+  CountLeadingZeroes32(uint32_t u)
+  {
+    return __builtin_clz(u);
+  }
+
+  inline uint_fast8_t
+  CountTrailingZeroes32(uint32_t u)
+  {
+    return __builtin_ctz(u);
+  }
+
+  inline uint_fast8_t
+  CountLeadingZeroes64(uint64_t u)
+  {
+    return __builtin_clzll(u);
+  }
+
+  inline uint_fast8_t
+  CountTrailingZeroes64(uint64_t u)
+  {
+    return __builtin_ctzll(u);
+  }
+
+#else
+#  error "Implement these!"
+  inline uint_fast8_t CountLeadingZeroes32(uint32_t u) MOZ_DELETE;
+  inline uint_fast8_t CountTrailingZeroes32(uint32_t u) MOZ_DELETE;
+  inline uint_fast8_t CountLeadingZeroes64(uint64_t u) MOZ_DELETE;
+  inline uint_fast8_t CountTrailingZeroes64(uint64_t u) MOZ_DELETE;
+#endif
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+inline uint_fast8_t
+CountLeadingZeroes32(uint32_t u)
+{
+  MOZ_ASSERT(u != 0);
+  return detail::CountLeadingZeroes32(u);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+inline uint_fast8_t
+CountTrailingZeroes32(uint32_t u)
+{
+  MOZ_ASSERT(u != 0);
+  return detail::CountTrailingZeroes32(u);
+}
+
+
+inline uint_fast8_t
+CountLeadingZeroes64(uint64_t u)
+{
+  MOZ_ASSERT(u != 0);
+  return detail::CountLeadingZeroes64(u);
+}
+
+
+inline uint_fast8_t
+CountTrailingZeroes64(uint64_t u)
+{
+  MOZ_ASSERT(u != 0);
+  return detail::CountTrailingZeroes64(u);
+}
+
+namespace detail {
+
+template<typename T, size_t Size = sizeof(T)>
+class CeilingLog2;
+
+template<typename T>
+class CeilingLog2<T, 4>
+{
+  public:
+    static uint_fast8_t compute(const T t) {
+      
+      return t <= 1 ? 0 : 32 - CountLeadingZeroes32(t - 1);
+    }
+};
+
+template<typename T>
+class CeilingLog2<T, 8>
+{
+  public:
+    static uint_fast8_t compute(const T t) {
+      
+      return t <= 1 ? 0 : 64 - CountLeadingZeroes64(t - 1);
+    }
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+inline uint_fast8_t
+CeilingLog2(const T t)
+{
+  return detail::CeilingLog2<T>::compute(t);
+}
+
+
+inline uint_fast8_t
+CeilingLog2Size(size_t n)
+{
+  return CeilingLog2(n);
+}
+
+namespace detail {
+
+template<typename T, size_t Size = sizeof(T)>
+class FloorLog2;
+
+template<typename T>
+class FloorLog2<T, 4>
+{
+  public:
+    static uint_fast8_t compute(const T t) {
+      return 31 - CountLeadingZeroes32(t | 1);
+    }
+};
+
+template<typename T>
+class FloorLog2<T, 8>
+{
+  public:
+    static uint_fast8_t compute(const T t) {
+      return 63 - CountLeadingZeroes64(t | 1);
+    }
+};
+
+} 
+
+
+
+
+
+
+
+
+
+template<typename T>
+inline uint_fast8_t
+FloorLog2(const T t)
+{
+  return detail::FloorLog2<T>::compute(t);
+}
+
+
+inline uint_fast8_t
+FloorLog2Size(size_t n)
+{
+  return FloorLog2(n);
+}
+
+
+
+
+
+inline size_t
+RoundUpPow2(size_t x)
+{
+  MOZ_ASSERT(~x > x, "can't round up -- will overflow!");
+  return size_t(1) << CeilingLog2(x);
+}
+
+} 
+
 #endif  

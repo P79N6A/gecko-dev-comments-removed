@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/MathAlgorithms.h"
+
 #include "ion/MIR.h"
 #include "ion/Lowering.h"
 #include "ion/arm/Assembler-arm.h"
@@ -11,6 +13,8 @@
 
 using namespace js;
 using namespace js::ion;
+
+using mozilla::FloorLog2;
 
 bool
 LIRGeneratorARM::useBox(LInstruction *lir, size_t n, MDefinition *mir,
@@ -240,8 +244,7 @@ LIRGeneratorARM::lowerDivI(MDiv *div)
         
         
         
-        int32_t shift;
-        JS_FLOOR_LOG2(shift, rhs);
+        int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
             LDivPowTwoI *lir = new LDivPowTwoI(useRegisterAtStart(div->lhs()), shift);
             if (div->fallible() && !assignSnapshot(lir))
@@ -281,8 +284,7 @@ LIRGeneratorARM::lowerModI(MMod *mod)
 
     if (mod->rhs()->isConstant()) {
         int32_t rhs = mod->rhs()->toConstant()->value().toInt32();
-        int32_t shift;
-        JS_FLOOR_LOG2(shift, rhs);
+        int32_t shift = FloorLog2(rhs);
         if (rhs > 0 && 1 << shift == rhs) {
             LModPowTwoI *lir = new LModPowTwoI(useRegister(mod->lhs()), shift);
             if (mod->fallible() && !assignSnapshot(lir))

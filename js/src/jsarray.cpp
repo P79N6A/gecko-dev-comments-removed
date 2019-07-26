@@ -43,6 +43,7 @@ using namespace js::types;
 
 using mozilla::Abs;
 using mozilla::ArrayLength;
+using mozilla::CeilingLog2;
 using mozilla::DebugOnly;
 using mozilla::IsNaN;
 using mozilla::PointerRangeSize;
@@ -1301,9 +1302,8 @@ NumDigitsBase10(uint32_t n)
 
 
 
-    uint32_t log2, t;
-    JS_CEILING_LOG2(log2, n);
-    t = log2 * 1233 >> 12;
+    uint32_t log2 = CeilingLog2(n);
+    uint32_t t = log2 * 1233 >> 12;
     return t - (n < powersOf10[t]) + 1;
 }
 
