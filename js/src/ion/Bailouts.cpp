@@ -221,7 +221,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     SnapshotIterator iter(it);
 
     
-    it.ionScript()->forbidOsr();
+    
+    it.ionScript()->setBailoutExpected();
 
     
     

@@ -189,8 +189,7 @@ struct IonScript
     uint32 invalidateEpilogueDataOffset_;
 
     
-    
-    bool forbidOsr_;
+    bool bailoutExpected_;
 
     
     uint32 snapshots_;
@@ -320,11 +319,11 @@ struct IonScript
         JS_ASSERT(invalidateEpilogueDataOffset_);
         return invalidateEpilogueDataOffset_;
     }
-    void forbidOsr() {
-        forbidOsr_ = true;
+    void setBailoutExpected() {
+        bailoutExpected_ = true;
     }
-    bool isOsrForbidden() const {
-        return forbidOsr_;
+    bool bailoutExpected() const {
+        return bailoutExpected_;
     }
     const uint8 *snapshots() const {
         return reinterpret_cast<const uint8 *>(this) + snapshots_;

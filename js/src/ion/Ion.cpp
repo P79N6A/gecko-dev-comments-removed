@@ -390,7 +390,7 @@ IonScript::IonScript()
     osrEntryOffset_(0),
     invalidateEpilogueOffset_(0),
     invalidateEpilogueDataOffset_(0),
-    forbidOsr_(false),
+    bailoutExpected_(false),
     snapshots_(0),
     snapshotsSize_(0),
     bailoutTable_(0),
@@ -909,7 +909,7 @@ ion::CanEnterAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecod
         return Method_Skipped;
 
     
-    if (script->ion && script->ion->isOsrForbidden())
+    if (script->ion && script->ion->bailoutExpected())
         return Method_Skipped;
 
     
@@ -947,6 +947,10 @@ ion::CanEnter(JSContext *cx, JSScript *script, StackFrame *fp, bool newType)
         return Method_Skipped;
 
     
+    if (script->ion && script->ion->bailoutExpected())
+        return Method_Skipped;
+
+    
     
     
     if (fp->isConstructing() && fp->functionThis().isPrimitive()) {
@@ -981,6 +985,7 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
     JS_CHECK_RECURSION(cx, return IonExec_Error);
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT(CheckFrame(fp));
+    JS_ASSERT(!fp->script()->ion->bailoutExpected());
 
     EnterIonCode enter = cx->compartment->ionCompartment()->enterJITInfallible();
 
