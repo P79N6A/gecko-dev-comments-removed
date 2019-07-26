@@ -83,6 +83,8 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
   if (!((new RegExp('^' + value + '[^a-z-_] *[,;]?', 'i')).test(intl))) {
     Services.prefs.setCharPref(prefName, value + ', ' + intl);
   }
+
+  shell.start();
 });
 
 
@@ -153,10 +155,8 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
 })();
 
 
-SettingsListener.observe('devtools.debugger.remote-enabled', false, function(value) {
+SettingsListener.observe('devtools.debugger.remote-enabled', false, function(enabled) {
   Services.prefs.setBoolPref('devtools.debugger.remote-enabled', value);
-  
-  Services.prefs.savePrefFile(null);
 });
 
 SettingsListener.observe('devtools.debugger.log', false, function(value) {
