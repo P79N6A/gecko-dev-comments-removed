@@ -89,6 +89,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(__MINGW32__)
 #ifdef WIN32
 #include <crtdbg.h>
@@ -403,9 +434,13 @@ public:
           mParticipant(aParticipant),
           mColor(grey),
           mInternalRefs(0),
-          mRefCount(0),
+          mRefCount(UINT32_MAX - 1),
           mFirstChild()
     {
+        
+        
+        
+
         MOZ_ASSERT(aParticipant);
     }
 
@@ -662,6 +697,7 @@ public:
 
     PtrInfo* FindNode(void *aPtr);
     PtrToNodeEntry* AddNodeToMap(void *aPtr);
+    void RemoveNodeFromMap(void *aPtr);
 
     uint32_t MapCount() const
     {
@@ -699,6 +735,12 @@ GCGraph::AddNodeToMap(void *aPtr)
         return nullptr;
     }
     return e;
+}
+
+void
+GCGraph::RemoveNodeFromMap(void *aPtr)
+{
+    PL_DHashTableOperate(&mPtrToNodeMap, aPtr, PL_DHASH_REMOVE);
 }
 
 
@@ -1061,6 +1103,9 @@ public:
     uint32_t SuspectedCount();
     void ForgetSkippable(bool aRemoveChildlessNodes, bool aAsyncSnowWhiteFreeing);
     bool FreeSnowWhite(bool aUntilNoSWInPurpleBuffer);
+
+    
+    void RemoveObjectFromGraph(void *aPtr);
 
     bool Collect(ccType aCCType,
                  SliceBudget &aBudget,
@@ -2064,8 +2109,10 @@ struct SnowWhiteObject
 class SnowWhiteKiller
 {
 public:
-    SnowWhiteKiller(uint32_t aMaxCount)
+    SnowWhiteKiller(nsCycleCollector *aCollector, uint32_t aMaxCount)
+        : mCollector(aCollector)
     {
+        MOZ_ASSERT(mCollector, "Calling SnowWhiteKiller after nsCC went away");
         while (true) {
             if (mObjects.SetCapacity(aMaxCount)) {
                 break;
@@ -2082,6 +2129,7 @@ public:
         for (uint32_t i = 0; i < mObjects.Length(); ++i) {
             SnowWhiteObject& o = mObjects[i];
             if (!o.mRefCnt->get() && !o.mRefCnt->IsInPurpleBuffer()) {
+                mCollector->RemoveObjectFromGraph(o.mPointer);
                 o.mRefCnt->stabilizeForDeletion();
                 o.mParticipant->DeleteCycleCollectable(o.mPointer);
             }
@@ -2107,7 +2155,9 @@ public:
     {
       return mObjects.Length() > 0;
     }
+
 private:
+    nsCycleCollector *mCollector;
     FallibleTArray<SnowWhiteObject> mObjects;
 };
 
@@ -2118,7 +2168,7 @@ public:
                            uint32_t aMaxCount, bool aRemoveChildlessNodes,
                            bool aAsyncSnowWhiteFreeing,
                            CC_ForgetSkippableCallback aCb)
-        : SnowWhiteKiller(aAsyncSnowWhiteFreeing ? 0 : aMaxCount),
+        : SnowWhiteKiller(aCollector, aAsyncSnowWhiteFreeing ? 0 : aMaxCount),
           mRemoveChildlessNodes(aRemoveChildlessNodes),
           mAsyncSnowWhiteFreeing(aAsyncSnowWhiteFreeing),
           mDispatchedDeferredDeletion(false),
@@ -2186,7 +2236,7 @@ nsCycleCollector::FreeSnowWhite(bool aUntilNoSWInPurpleBuffer)
 
     bool hadSnowWhiteObjects = false;
     do {
-        SnowWhiteKiller visitor(mPurpleBuf.Count());
+        SnowWhiteKiller visitor(this, mPurpleBuf.Count());
         mPurpleBuf.VisitEntries(visitor);
         hadSnowWhiteObjects = hadSnowWhiteObjects ||
                               visitor.HasSnowWhiteObjects();
@@ -2939,6 +2989,21 @@ nsCycleCollector::Shutdown()
 }
 
 void
+nsCycleCollector::RemoveObjectFromGraph(void *aObj)
+{
+    if (mIncrementalPhase == IdlePhase) {
+        return;
+    }
+
+    if (PtrInfo *pinfo = mGraph.FindNode(aObj)) {
+        mGraph.RemoveNodeFromMap(aObj);
+
+        pinfo->mPointer = nullptr;
+        pinfo->mParticipant = nullptr;
+    }
+}
+
+void
 nsCycleCollector::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                       size_t *aObjectSize,
                                       size_t *aGraphNodesSize,
@@ -3123,6 +3188,7 @@ SuspectAfterShutdown(void* n, nsCycleCollectionParticipant* cp,
 {
     if (aRefCnt->get() == 0) {
         if (!aShouldDelete) {
+            
             CanonicalizeParticipant(&n, &cp);
             aRefCnt->stabilizeForDeletion();
             cp->DeleteCycleCollectable(n);
