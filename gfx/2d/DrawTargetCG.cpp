@@ -1199,12 +1199,27 @@ DrawTargetCG::Init(BackendType aType,
     mData = nullptr;
   }
 
+  mFormat = FORMAT_B8G8R8A8;
+
   if (!mCg || aType == BACKEND_COREGRAPHICS) {
     int bitsPerComponent = 8;
 
     CGBitmapInfo bitinfo;
-    bitinfo = kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst;
-
+    if (aFormat == FORMAT_A8) {
+      if (mColorSpace)
+        CGColorSpaceRelease(mColorSpace);
+      mColorSpace = nullptr;
+      bitinfo = kCGImageAlphaOnly;
+      mFormat = FORMAT_A8;
+    } else {
+      bitinfo = kCGBitmapByteOrder32Host;
+      if (aFormat == FORMAT_B8G8R8X8) {
+        bitinfo |= kCGImageAlphaNoneSkipFirst;
+        mFormat = aFormat;
+      } else {
+        bitinfo |= kCGImageAlphaPremultipliedFirst;
+      }
+    }
     
     mCg = CGBitmapContextCreate (aData,
                                  mSize.width,
@@ -1229,8 +1244,6 @@ DrawTargetCG::Init(BackendType aType,
   
   CGContextSetInterpolationQuality(mCg, kCGInterpolationLow);
 
-  
-  mFormat = FORMAT_B8G8R8A8;
 
   if (aType == BACKEND_COREGRAPHICS_ACCELERATED) {
     
@@ -1285,9 +1298,12 @@ DrawTargetCG::Init(CGContextRef cgContext, const IntSize &aSize)
   mFormat = FORMAT_B8G8R8A8;
   if (GetContextType(mCg) == CG_CONTEXT_TYPE_BITMAP) {
     CGColorSpaceRef colorspace;
+    CGBitmapInfo bitinfo = CGBitmapContextGetBitmapInfo(mCg);
     colorspace = CGBitmapContextGetColorSpace (mCg);
     if (CGColorSpaceGetNumberOfComponents(colorspace) == 1) {
-        mFormat = FORMAT_A8;
+      mFormat = FORMAT_A8;
+    } else if ((bitinfo & kCGBitmapAlphaInfoMask) == kCGImageAlphaNoneSkipFirst) {
+      mFormat = FORMAT_B8G8R8X8;
     }
   }
 
