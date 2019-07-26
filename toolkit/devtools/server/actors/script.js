@@ -2299,10 +2299,18 @@ PauseScopedActor.prototype = {
 
 
 
-function SourceActor(aUrl, aThreadActor, aSourceMap=null) {
+
+
+
+function SourceActor(aUrl, aThreadActor, aSourceMap=null, aGeneratedSource=null) {
   this._threadActor = aThreadActor;
   this._url = aUrl;
   this._sourceMap = aSourceMap;
+  this._generatedSource = aGeneratedSource;
+
+  this.onSource = this.onSource.bind(this);
+  this._invertSourceMap = this._invertSourceMap.bind(this);
+  this._saveMap = this._saveMap.bind(this);
 }
 
 SourceActor.prototype = {
@@ -2321,33 +2329,35 @@ SourceActor.prototype = {
     };
   },
 
-  disconnect: function LSA_disconnect() {
+  disconnect: function SA_disconnect() {
     if (this.registeredPool && this.registeredPool.sourceActors) {
       delete this.registeredPool.sourceActors[this.actorID];
     }
   },
 
-  
-
-
-  onSource: function SA_onSource(aRequest) {
+  _getSourceText: function SA__getSourceText() {
     let sourceContent = null;
     if (this._sourceMap) {
       sourceContent = this._sourceMap.sourceContentFor(this._url);
     }
 
     if (sourceContent) {
-      return {
-        from: this.actorID,
-        source: this.threadActor.createValueGrip(
-          sourceContent, this.threadActor.threadLifetimePool)
-      };
+      return resolve({
+        content: sourceContent
+      });
     }
 
     
     
     
-    return fetch(this._url, { loadFromCache: !this._sourceMap })
+    return fetch(this._url, { loadFromCache: !this._sourceMap });
+  },
+
+  
+
+
+  onSource: function SA_onSource(aRequest) {
+    return this._getSourceText()
       .then(({ content, contentType }) => {
         return {
           from: this.actorID,
@@ -2365,6 +2375,109 @@ SourceActor.prototype = {
             + safeErrorString(aError)
         };
       });
+  },
+
+  
+
+
+  onPrettyPrint: function ({ indent }) {
+    return this._getSourceText()
+      .then(this._parseAST)
+      .then(this._generatePrettyCodeAndMap(indent))
+      .then(this._invertSourceMap)
+      .then(this._saveMap)
+      .then(this.onSource)
+      .then(null, error => ({
+        from: this.actorID,
+        error: "prettyPrintError",
+        message: DevToolsUtils.safeErrorString(error)
+      }));
+  },
+
+  
+
+
+  _parseAST: function SA__parseAST({ content}) {
+    return Reflect.parse(content);
+  },
+
+  
+
+
+
+  _generatePrettyCodeAndMap: function SA__generatePrettyCodeAndMap(aNumSpaces) {
+    let indent = "";
+    for (let i = 0; i < aNumSpaces; i++) {
+      indent += " ";
+    }
+    return aAST => escodegen.generate(aAST, {
+      format: {
+        indent: {
+          style: indent
+        }
+      },
+      sourceMap: this._url,
+      sourceMapWithCode: true
+    });
+  },
+
+  
+
+
+
+
+
+  _invertSourceMap: function SA__invertSourceMap({ code, map }) {
+    const smc = new SourceMapConsumer(map.toJSON());
+    const invertedMap = new SourceMapGenerator({
+      file: this._url
+    });
+
+    smc.eachMapping(m => {
+      if (!m.originalLine || !m.originalColumn) {
+        return;
+      }
+      const invertedMapping = {
+        source: m.source,
+        name: m.name,
+        original: {
+          line: m.generatedLine,
+          column: m.generatedColumn
+        },
+        generated: {
+          line: m.originalLine,
+          column: m.originalColumn
+        }
+      };
+      invertedMap.addMapping(invertedMapping);
+    });
+
+    invertedMap.setSourceContent(this._url, code);
+
+    return {
+      code: code,
+      map: new SourceMapConsumer(invertedMap.toJSON())
+    };
+  },
+
+  
+
+
+
+
+
+  _saveMap: function SA__saveMap({ map }) {
+    if (this._sourceMap) {
+      
+      this._sourceMap = SourceMapGenerator.fromSourceMap(this._sourceMap);
+      this._sourceMap.applySourceMap(map, this._url);
+      this._sourceMap = new SourceMapConsumer(this._sourceMap.toJSON());
+      this._threadActor.sources.saveSourceMap(this._sourceMap,
+                                              this._generatedSource);
+    } else {
+      this._sourceMap = map;
+      this._threadActor.sources.saveSourceMap(this._sourceMap, this._url);
+    }
   },
 
   
@@ -2397,7 +2510,8 @@ SourceActor.prototype = {
 SourceActor.prototype.requestTypes = {
   "source": SourceActor.prototype.onSource,
   "blackbox": SourceActor.prototype.onBlackBox,
-  "unblackbox": SourceActor.prototype.onUnblackBox
+  "unblackbox": SourceActor.prototype.onUnblackBox,
+  "prettyPrint": SourceActor.prototype.onPrettyPrint
 };
 
 
@@ -3488,7 +3602,10 @@ ThreadSources.prototype = {
 
 
 
-  source: function TS_source(aURL, aSourceMap=null) {
+
+
+
+  source: function TS_source(aURL, aSourceMap=null, aGeneratedSource=null) {
     if (!this._allow(aURL)) {
       return null;
     }
@@ -3497,7 +3614,7 @@ ThreadSources.prototype = {
       return this._sourceActors[aURL];
     }
 
-    let actor = new SourceActor(aURL, this._thread, aSourceMap);
+    let actor = new SourceActor(aURL, this._thread, aSourceMap, aGeneratedSource);
     this._thread.threadLifetimePool.addActor(actor);
     this._sourceActors[aURL] = actor;
     try {
@@ -3524,7 +3641,7 @@ ThreadSources.prototype = {
     return this.sourceMap(aScript)
       .then((aSourceMap) => {
         return [
-          this.source(s, aSourceMap) for (s of aSourceMap.sources)
+          this.source(s, aSourceMap, aScript.url) for (s of aSourceMap.sources)
         ];
       })
       .then(null, (e) => {
@@ -3546,15 +3663,22 @@ ThreadSources.prototype = {
     dbg_assert(aScript.sourceMapURL, "Script should have a sourceMapURL");
     let sourceMapURL = this._normalize(aScript.sourceMapURL, aScript.url);
     let map = this._fetchSourceMap(sourceMapURL, aScript.url)
-      .then((aSourceMap) => {
-        for (let s of aSourceMap.sources) {
-          this._generatedUrlsByOriginalUrl[s] = aScript.url;
-          this._sourceMapsByOriginalSource[s] = resolve(aSourceMap);
-        }
-        return aSourceMap;
-      });
+      .then(aSourceMap => this.saveSourceMap(aSourceMap, aScript.url));
     this._sourceMapsByGeneratedSource[aScript.url] = map;
     return map;
+  },
+
+  
+
+
+
+  saveSourceMap: function TS_saveSourceMap(aSourceMap, aGeneratedSource) {
+    this._sourceMapsByGeneratedSource[aGeneratedSource] = resolve(aSourceMap);
+    for (let s of aSourceMap.sources) {
+      this._generatedUrlsByOriginalUrl[s] = aGeneratedSource;
+      this._sourceMapsByOriginalSource[s] = resolve(aSourceMap);
+    }
+    return aSourceMap;
   },
 
   
