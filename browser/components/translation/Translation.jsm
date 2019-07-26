@@ -4,13 +4,23 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["Translation"];
+this.EXPORTED_SYMBOLS = [
+  "Translation",
+  "TranslationProvider",
+];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 const TRANSLATION_PREF_SHOWUI = "browser.translation.ui.show";
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/Metrics.jsm", this);
+Cu.import("resource://gre/modules/Task.jsm", this);
+
+const DAILY_COUNTER_FIELD = {type: Metrics.Storage.FIELD_DAILY_COUNTER};
+const DAILY_LAST_TEXT_FIELD = {type: Metrics.Storage.FIELD_DAILY_LAST_TEXT};
+
 
 this.Translation = {
   supportedSourceLanguages: ["en", "zh", "ja", "es", "de", "fr", "ru", "ar", "ko", "pt"],
@@ -28,16 +38,20 @@ this.Translation = {
   },
 
   languageDetected: function(aBrowser, aDetectedLanguage) {
+    if (this.supportedSourceLanguages.indexOf(aDetectedLanguage) == -1 ||
+        aDetectedLanguage == this.defaultTargetLanguage)
+      return;
+
+    TranslationHealthReport.recordTranslationOpportunity(aDetectedLanguage);
+
     if (!Services.prefs.getBoolPref(TRANSLATION_PREF_SHOWUI))
       return;
 
-    if (this.supportedSourceLanguages.indexOf(aDetectedLanguage) != -1 &&
-        aDetectedLanguage != this.defaultTargetLanguage) {
-      if (!aBrowser.translationUI)
-        aBrowser.translationUI = new TranslationUI(aBrowser);
+    if (!aBrowser.translationUI)
+      aBrowser.translationUI = new TranslationUI(aBrowser);
 
-      aBrowser.translationUI.showTranslationUI(aDetectedLanguage);
-    }
+
+    aBrowser.translationUI.showTranslationUI(aDetectedLanguage);
   }
 };
 
@@ -187,3 +201,228 @@ TranslationUI.prototype = {
     }
   }
 };
+
+
+
+
+let TranslationHealthReport = {
+  
+
+
+
+
+  recordTranslationOpportunity: function (language) {
+    this._withProvider(provider => provider.recordTranslationOpportunity(language));
+   },
+
+   
+
+
+
+
+
+
+
+
+  recordTranslation: function (langFrom, langTo, numCharacters) {
+    this._withProvider(provider => provider.recordTranslation(langFrom, langTo, numCharacters));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  recordLanguageChange: function (beforeFirstTranslation) {
+    this._withProvider(provider => provider.recordLanguageChange(beforeFirstTranslation));
+  },
+
+  
+
+
+
+
+
+  _withProvider: function (callback) {
+    try {
+      let reporter = Cc["@mozilla.org/datareporting/service;1"]
+                        .getService().wrappedJSObject.healthReporter;
+
+      if (reporter) {
+        reporter.onInit().then(function () {
+          callback(reporter.getProvider("org.mozilla.translation"));
+        }, Cu.reportError);
+      } else {
+        callback(null);
+      }
+    } catch (ex) {
+      Cu.reportError(ex);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+function TranslationMeasurement1() {
+  Metrics.Measurement.call(this);
+
+  this._serializers[this.SERIALIZE_JSON].singular =
+    this._wrapJSONSerializer(this._serializers[this.SERIALIZE_JSON].singular);
+
+  this._serializers[this.SERIALIZE_JSON].daily =
+    this._wrapJSONSerializer(this._serializers[this.SERIALIZE_JSON].daily);
+}
+
+TranslationMeasurement1.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "translation",
+  version: 1,
+
+  fields: {
+    translationOpportunityCount: DAILY_COUNTER_FIELD,
+    pageTranslatedCount: DAILY_COUNTER_FIELD,
+    charactersTranslatedCount: DAILY_COUNTER_FIELD,
+    translationOpportunityCountsByLanguage: DAILY_LAST_TEXT_FIELD,
+    pageTranslatedCountsByLanguage: DAILY_LAST_TEXT_FIELD,
+    detectedLanguageChangedBefore: DAILY_COUNTER_FIELD,
+    detectedLanguageChangedAfter: DAILY_COUNTER_FIELD,
+  },
+
+  shouldIncludeField: function (field) {
+    if (!Services.prefs.getBoolPref("toolkit.telemetry.enabled")) {
+      
+      
+      return false;
+    }
+
+    return field in this._fields;
+  },
+
+  _getDailyLastTextFieldAsJSON: function(name, date) {
+    let id = this.fieldID(name);
+
+    return this.storage.getDailyLastTextFromFieldID(id, date).then((data) => {
+      if (data.hasDay(date)) {
+        data = JSON.parse(data.getDay(date));
+      } else {
+        data = {};
+      }
+
+      return data;
+    });
+},
+
+  _wrapJSONSerializer: function (serializer) {
+    let _parseInPlace = function(o, k) {
+      if (k in o) {
+        o[k] = JSON.parse(o[k]);
+      }
+    };
+
+    return function (data) {
+      let result = serializer(data);
+
+      
+      
+      _parseInPlace(result, "translationOpportunityCountsByLanguage");
+      _parseInPlace(result, "pageTranslatedCountsByLanguage");
+
+      return result;
+    }
+  }
+});
+
+this.TranslationProvider = function () {
+  Metrics.Provider.call(this);
+}
+
+TranslationProvider.prototype = Object.freeze({
+  __proto__: Metrics.Provider.prototype,
+
+  name: "org.mozilla.translation",
+
+  measurementTypes: [
+    TranslationMeasurement1,
+  ],
+
+  recordTranslationOpportunity: function (language, date=new Date()) {
+    let m = this.getMeasurement(TranslationMeasurement1.prototype.name,
+                                TranslationMeasurement1.prototype.version);
+
+    return this._enqueueTelemetryStorageTask(function* recordTask() {
+      yield m.incrementDailyCounter("translationOpportunityCount", date);
+
+      let langCounts = yield m._getDailyLastTextFieldAsJSON(
+        "translationOpportunityCountsByLanguage", date);
+
+      langCounts[language] = (langCounts[language] || 0) + 1;
+      langCounts = JSON.stringify(langCounts);
+
+      yield m.setDailyLastText("translationOpportunityCountsByLanguage",
+                               langCounts, date);
+
+    }.bind(this));
+  },
+
+  recordTranslation: function (langFrom, langTo, numCharacters, date=new Date()) {
+    let m = this.getMeasurement(TranslationMeasurement1.prototype.name,
+                                TranslationMeasurement1.prototype.version);
+
+    return this._enqueueTelemetryStorageTask(function* recordTask() {
+      yield m.incrementDailyCounter("pageTranslatedCount", date);
+      yield m.incrementDailyCounter("charactersTranslatedCount", date,
+                                    numCharacters);
+
+      let langCounts = yield m._getDailyLastTextFieldAsJSON(
+        "pageTranslatedCountsByLanguage", date);
+
+      let counts = langCounts[langFrom] || {};
+      counts["total"] = (counts["total"] || 0) + 1;
+      counts[langTo] = (counts[langTo] || 0) + 1;
+      langCounts[langFrom] = counts;
+      langCounts = JSON.stringify(langCounts);
+
+      yield m.setDailyLastText("pageTranslatedCountsByLanguage",
+                               langCounts, date);
+    }.bind(this));
+  },
+
+  recordLanguageChange: function (beforeFirstTranslation) {
+    let m = this.getMeasurement(TranslationMeasurement1.prototype.name,
+                                TranslationMeasurement1.prototype.version);
+
+    return this._enqueueTelemetryStorageTask(function* recordTask() {
+      if (beforeFirstTranslation) {
+          yield m.incrementDailyCounter("detectedLanguageChangedBefore");
+        } else {
+          yield m.incrementDailyCounter("detectedLanguageChangedAfter");
+        }
+    }.bind(this));
+  },
+
+  _enqueueTelemetryStorageTask: function (task) {
+    if (!Services.prefs.getBoolPref("toolkit.telemetry.enabled")) {
+      
+      
+      return Promise.resolve(null);
+    }
+
+    return this.enqueueStorageOperation(() => {
+      return Task.spawn(task);
+    });
+  }
+});

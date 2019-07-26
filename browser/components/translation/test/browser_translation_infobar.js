@@ -4,7 +4,9 @@
 
 
 
-Components.utils.import("resource:///modules/translation/Translation.jsm");
+let tmp = {};
+Cu.import("resource:///modules/translation/Translation.jsm", tmp);
+let {Translation} = tmp;
 
 const kShowUIPref = "browser.translation.ui.show";
 
