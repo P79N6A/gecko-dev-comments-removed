@@ -4835,7 +4835,7 @@ if (SpecialPowers.getBoolPref("layout.css.grid.enabled")) {
 			"40px (foo) (bar)",
 			"minmax()",
 			"minmax(20px)",
-			"mÄ°nmax(20px, 100px)",
+			"mİnmax(20px, 100px)",
 			"minmax(20px, 100px, 200px)",
 			"maxmin(100px, 20px)",
 			"minmax(min-content, auto)",
@@ -4849,6 +4849,27 @@ if (SpecialPowers.getBoolPref("layout.css.grid.enabled")) {
 		initial_values: gCSSProperties["grid-template-columns"].initial_values,
 		other_values: gCSSProperties["grid-template-columns"].other_values,
 		invalid_values: gCSSProperties["grid-template-columns"].invalid_values
+	};
+	gCSSProperties["grid-template-areas"] = {
+		domProp: "gridTemplateAreas",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "none" ],
+		other_values: [
+			"''",
+			"'' ''",
+			"'1a-é_ .' \"b .\"",
+			"' Z\t\\aZ' 'Z Z'",
+			" '. . a b'  '..a b' ",
+		],
+		invalid_values: [
+			"'a b' 'a/b'",
+			"'a . a'",
+			"'. a a' 'a a a'",
+			"'a a .' 'a a a'",
+			"'a a' 'a .'",
+			"'a a'\n'..'\n'a a'",
+		]
 	};
 }
 

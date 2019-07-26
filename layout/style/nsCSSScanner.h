@@ -353,4 +353,26 @@ protected:
   bool mSeenVariableReference;
 };
 
+
+
+struct MOZ_STACK_CLASS nsCSSGridTemplateAreaToken {
+  nsAutoString mName;  
+  bool isTrash;  
+};
+
+
+class nsCSSGridTemplateAreaScanner {
+public:
+  nsCSSGridTemplateAreaScanner(const nsAString& aBuffer);
+
+  
+  
+  bool Next(nsCSSGridTemplateAreaToken& aTokenResult);
+
+private:
+  const char16_t *mBuffer;
+  uint32_t mOffset;
+  uint32_t mCount;
+};
+
 #endif 

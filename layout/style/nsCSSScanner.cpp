@@ -1327,3 +1327,44 @@ nsCSSScanner::Next(nsCSSToken& aToken, bool aSkipWS)
   Advance();
   return true;
 }
+
+
+
+nsCSSGridTemplateAreaScanner::nsCSSGridTemplateAreaScanner(const nsAString& aBuffer)
+  : mBuffer(aBuffer.BeginReading())
+  , mOffset(0)
+  , mCount(aBuffer.Length())
+{
+}
+
+bool
+nsCSSGridTemplateAreaScanner::Next(nsCSSGridTemplateAreaToken& aTokenResult)
+{
+  int32_t ch;
+  
+  do {
+    if (mOffset >= mCount) {
+      return false;
+    }
+    ch = mBuffer[mOffset];
+    mOffset++;
+  } while (IsWhitespace(ch));
+
+  if (IsOpenCharClass(ch, IS_IDCHAR)) {
+    
+    uint32_t start = mOffset - 1;  
+    while (mOffset < mCount && IsOpenCharClass(mBuffer[mOffset], IS_IDCHAR)) {
+      mOffset++;
+    }
+    aTokenResult.mName.Assign(&mBuffer[start], mOffset - start);
+    aTokenResult.isTrash = false;
+  } else if (ch == '.') {
+    
+    aTokenResult.mName.Truncate();
+    aTokenResult.isTrash = false;
+  } else {
+    
+    aTokenResult.isTrash = true;
+  }
+  return true;
+}

@@ -1242,6 +1242,7 @@ nsStylePosition::nsStylePosition(void)
   
   
   
+  
 }
 
 nsStylePosition::~nsStylePosition(void)
@@ -1252,6 +1253,7 @@ nsStylePosition::~nsStylePosition(void)
 nsStylePosition::nsStylePosition(const nsStylePosition& aSource)
   : mGridTemplateColumns(aSource.mGridTemplateColumns)
   , mGridTemplateRows(aSource.mGridTemplateRows)
+  , mGridTemplateAreas(aSource.mGridTemplateAreas)
 {
   MOZ_COUNT_CTOR(nsStylePosition);
   
@@ -1262,7 +1264,9 @@ nsStylePosition::nsStylePosition(const nsStylePosition& aSource)
   
   static_assert(sizeof(nsStylePosition) ==
                 offsetof(nsStylePosition, mGridTemplateColumns) +
-                sizeof(mGridTemplateColumns) + sizeof(mGridTemplateRows),
+                sizeof(mGridTemplateColumns) +
+                sizeof(mGridTemplateRows) +
+                sizeof(mGridTemplateAreas),
                 "Unexpected size or offset in nsStylePosition");
   memcpy((nsStylePosition*) this,
          &aSource,
@@ -1318,7 +1322,8 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
 
   
   if (mGridTemplateColumns != aOther.mGridTemplateColumns ||
-      mGridTemplateRows != aOther.mGridTemplateRows) {
+      mGridTemplateRows != aOther.mGridTemplateRows ||
+      mGridTemplateAreas != aOther.mGridTemplateAreas) {
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
