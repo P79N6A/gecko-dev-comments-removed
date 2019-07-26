@@ -196,10 +196,11 @@ class AliasSet {
         DynamicSlot       = 1 << 2, 
         FixedSlot         = 1 << 3, 
         TypedArrayElement = 1 << 4, 
-        Last              = TypedArrayElement,
+        DOMProperty       = 1 << 5, 
+        Last              = DOMProperty,
         Any               = Last | (Last - 1),
 
-        NumCategories     = 5,
+        NumCategories     = 6,
 
         
         Store_            = 1 << 31
@@ -5394,7 +5395,7 @@ class MGetDOMProperty
         setOperand(1, guard);
 
         
-        if (jitinfo->isConstant)
+        if (jitinfo->isPure)
             setMovable();
 
         setResultType(MIRType_Value);
@@ -5422,6 +5423,9 @@ class MGetDOMProperty
     bool isDomConstant() const {
         return info_->isConstant;
     }
+    bool isDomPure() const {
+        return info_->isPure;
+    }
     MDefinition *object() {
         return getOperand(0);
     }
@@ -5431,7 +5435,7 @@ class MGetDOMProperty
     }
 
     bool congruentTo(MDefinition *const &ins) const {
-        if (!isDomConstant())
+        if (!isDomPure())
             return false;
 
         if (!ins->isGetDOMProperty())
@@ -5449,6 +5453,10 @@ class MGetDOMProperty
         
         if (isDomConstant())
             return AliasSet::None();
+        
+        
+        if (isDomPure())
+            return AliasSet::Load(AliasSet::DOMProperty);
         return AliasSet::Store(AliasSet::Any);
     }
 
