@@ -72,7 +72,7 @@ this.SessionSaver = Object.freeze({
 
 
   run: function () {
-    SessionSaverInternal.run();
+    return SessionSaverInternal.run();
   },
 
   
@@ -129,7 +129,7 @@ let SessionSaverInternal = {
 
 
   run: function () {
-    this._saveState(true );
+    return this._saveState(true );
   },
 
   
@@ -194,10 +194,22 @@ let SessionSaverInternal = {
 
     
     for (let i = state.windows.length - 1; i >= 0; i--) {
-      if (state.windows[i].isPrivate) {
-        state.windows.splice(i, 1);
-        if (state.selectedWindow >= i) {
-          state.selectedWindow--;
+      let win = state.windows[i];
+      if (win.isPrivate || false) { 
+         state.windows.splice(i, 1);
+         if (state.selectedWindow >= i) {
+           state.selectedWindow--;
+         }
+        continue;
+      }
+      
+      for (let j = win.tabs.length - 1; j >= 0 ; --j) {
+        let tab = win.tabs[j];
+        if (tab.isPrivate || false) {
+          win.tabs.splice(j, 1);
+          if (win.selected >= j) {
+            win.selected--;
+          }
         }
       }
     }
@@ -208,6 +220,10 @@ let SessionSaverInternal = {
         state._closedWindows.splice(i, 1);
       }
     }
+
+    
+    
+    
 
     
     
@@ -235,7 +251,7 @@ let SessionSaverInternal = {
 #endif
 
     stopWatchFinish("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
-    this._writeState(state);
+    return this._writeState(state);
   },
 
   
@@ -278,7 +294,7 @@ let SessionSaverInternal = {
 
     
     if (!data) {
-      return;
+      return Promise.resolve();
     }
 
     
@@ -290,7 +306,7 @@ let SessionSaverInternal = {
     
     
     
-    SessionFile.write(data).then(() => {
+    return SessionFile.write(data).then(() => {
       this.updateLastSaveTime();
       notify(null, "sessionstore-state-write-complete");
     }, Cu.reportError);

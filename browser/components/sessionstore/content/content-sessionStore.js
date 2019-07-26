@@ -315,6 +315,30 @@ let SessionStorageListener = {
 
 
 
+
+
+
+let PrivacyListener = {
+  init: function() {
+    docShell.addWeakPrivacyTransitionObserver(this);
+  },
+
+  
+  privateModeChanged: function(enabled) {
+    MessageQueue.push("isPrivate", () => enabled || null);
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIPrivacyTransitionObserver,
+                                         Ci.nsISupportsWeakReference])
+};
+
+
+
+
+
+
+
+
 let MessageQueue = {
   
 
@@ -466,3 +490,4 @@ ProgressListener.init();
 PageStyleListener.init();
 SessionStorageListener.init();
 DocShellCapabilitiesListener.init();
+PrivacyListener.init();
