@@ -14,6 +14,39 @@ const { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 addDebuggerToGlobal(this);
 
+const { setTimeout } = require("sdk/timers");
+
+
+
+
+
+const BUFFER_SEND_DELAY = 50;
+
+
+
+
+const MAX_ARGUMENTS = 5;
+
+
+
+
+const MAX_PROPERTIES = 5;
+
+
+
+
+const TRACE_TYPES = new Set([
+  "time",
+  "return",
+  "throw",
+  "yield",
+  "name",
+  "location",
+  "callsite",
+  "parameterNames",
+  "arguments"
+]);
+
 
 
 
@@ -24,11 +57,18 @@ function TraceActor(aConn, aParentActor)
   this._activeTraces = new MapStack();
   this._totalTraces = 0;
   this._startTime = 0;
+
+  
+  
+  
   this._requestsForTraceType = Object.create(null);
-  for (let type of TraceTypes.types) {
+  for (let type of TRACE_TYPES) {
     this._requestsForTraceType[type] = 0;
   }
+
   this._sequence = 0;
+  this._bufferSendTimer = null;
+  this._buffer = [];
 
   this.global = aParentActor.window.wrappedJSObject;
 }
@@ -43,22 +83,17 @@ TraceActor.prototype = {
   
 
 
-
-
-
-
-
-
-
-
-
-
-  _handleEvent: function(aEvent, aPacket, aArgs) {
-    let handlersForEvent = TraceTypes.handlers[aEvent];
-    for (let traceType in handlersForEvent) {
-      if (this._requestsForTraceType[traceType]) {
-        aPacket[traceType] = handlersForEvent[traceType].call(null, aArgs);
-      }
+  _send: function(aPacket) {
+    this._buffer.push(aPacket);
+    if (this._bufferSendTimer === null) {
+      this._bufferSendTimer = setTimeout(() => {
+        this.conn.send({
+          from: this.actorID,
+          type: "traces",
+          traces: this._buffer.splice(0, this._buffer.length)
+        });
+        this._bufferSendTimer = null;
+      }, BUFFER_SEND_DELAY);
     }
   },
 
@@ -151,7 +186,11 @@ TraceActor.prototype = {
 
     this._attached = true;
 
-    return { type: "attached", traceTypes: TraceTypes.types };
+    return {
+      type: "attached",
+      traceTypes: Object.keys(this._requestsForTraceType)
+        .filter(k => !!this._requestsForTraceType[k])
+    };
   },
 
   
@@ -168,7 +207,7 @@ TraceActor.prototype = {
     this.dbg = null;
 
     this._attached = false;
-    this.conn.send({ from: this.actorID, type: "detached" });
+    return { type: "detached" };
   },
 
   
@@ -179,7 +218,7 @@ TraceActor.prototype = {
 
   onStartTrace: function(aRequest) {
     for (let traceType of aRequest.trace) {
-      if (TraceTypes.types.indexOf(traceType) < 0) {
+      if (!TRACE_TYPES.has(traceType)) {
         return {
           error: "badParameterType",
           message: "No such trace type: " + traceType
@@ -190,7 +229,7 @@ TraceActor.prototype = {
     if (this.idle) {
       this.dbg.enabled = true;
       this._sequence = 0;
-      this._startTime = +new Date;
+      this._startTime = Date.now();
     }
 
     
@@ -257,19 +296,61 @@ TraceActor.prototype = {
   onEnterFrame: function(aFrame) {
     let callee = aFrame.callee;
     let packet = {
-      from: this.actorID,
       type: "enteredFrame",
       sequence: this._sequence++
     };
 
-    this._handleEvent(TraceTypes.Events.enterFrame, packet, {
-      frame: aFrame,
-      startTime: this._startTime
-    });
+    if (this._requestsForTraceType.name) {
+      packet.name = aFrame.callee
+        ? aFrame.callee.displayName || "(anonymous function)"
+        : "(" + aFrame.type + ")";
+    }
+
+    if (this._requestsForTraceType.location && aFrame.script) {
+      
+      
+      
+      
+      packet.location = {
+        url: aFrame.script.url,
+        line: aFrame.script.getOffsetLine(aFrame.offset),
+        column: getOffsetColumn(aFrame.offset, aFrame.script)
+      };
+    }
+
+    if (this._requestsForTraceType.callsite
+        && aFrame.older
+        && aFrame.older.script) {
+      let older = aFrame.older;
+      packet.callsite = {
+        url: older.script.url,
+        line: older.script.getOffsetLine(older.offset),
+        column: getOffsetColumn(older.offset, older.script)
+      };
+    }
+
+    if (this._requestsForTraceType.time) {
+      packet.time = Date.now() - this._startTime;
+    }
+
+    if (this._requestsForTraceType.parameterNames && aFrame.callee) {
+      packet.parameterNames = aFrame.callee.parameterNames;
+    }
+
+    if (this._requestsForTraceType.arguments && aFrame.arguments) {
+      packet.arguments = [];
+      let i = 0;
+      for (let arg of aFrame.arguments) {
+        if (i++ > MAX_ARGUMENTS) {
+          break;
+        }
+        packet.arguments.push(createValueGrip(arg, true));
+      }
+    }
 
     aFrame.onPop = this.onExitFrame.bind(this);
 
-    this.conn.send(packet);
+    this._send(packet);
   },
 
   
@@ -281,7 +362,6 @@ TraceActor.prototype = {
 
   onExitFrame: function(aCompletion) {
     let packet = {
-      from: this.actorID,
       type: "exitedFrame",
       sequence: this._sequence++,
     };
@@ -296,12 +376,25 @@ TraceActor.prototype = {
       packet.why = "throw";
     }
 
-    this._handleEvent(TraceTypes.Events.exitFrame, packet, {
-      value: aCompletion,
-      startTime: this._startTime
-    });
+    if (this._requestsForTraceType.time) {
+      packet.time = Date.now() - this._startTime;
+    }
 
-    this.conn.send(packet);
+    if (aCompletion) {
+      if (this._requestsForTraceType.return) {
+        packet.return = createValueGrip(aCompletion.return, true);
+      }
+
+      if (this._requestsForTraceType.throw) {
+        packet.throw = createValueGrip(aCompletion.throw, true);
+      }
+
+      if (this._requestsForTraceType.yield) {
+        packet.yield = createValueGrip(aCompletion.yield, true);
+      }
+    }
+
+    this._send(packet);
   }
 };
 
@@ -421,91 +514,6 @@ MapStack.prototype = {
 
 
 
-
-
-
-
-
-let TraceTypes = {
-  handlers: {},
-  types: [],
-
-  register: function(aType, aEvent, aHandler) {
-    if (!this.handlers[aEvent]) {
-      this.handlers[aEvent] = {};
-    }
-    this.handlers[aEvent][aType] = aHandler;
-    if (this.types.indexOf(aType) < 0) {
-      this.types.push(aType);
-    }
-  }
-};
-
-TraceTypes.Events = {
-  "enterFrame": "enterFrame",
-  "exitFrame": "exitFrame"
-};
-
-TraceTypes.register("name", TraceTypes.Events.enterFrame, function({ frame }) {
-  return frame.callee
-    ? frame.callee.displayName || "(anonymous function)"
-    : "(" + frame.type + ")";
-});
-
-TraceTypes.register("location", TraceTypes.Events.enterFrame, function({ frame }) {
-  if (!frame.script) {
-    return undefined;
-  }
-  
-  
-  
-  
-  return {
-    url: frame.script.url,
-    line: frame.script.getOffsetLine(frame.offset),
-    column: getOffsetColumn(frame.offset, frame.script)
-  };
-});
-
-TraceTypes.register("callsite", TraceTypes.Events.enterFrame, function({ frame }) {
-  let older = frame.older;
-  if (!older || !older.script) {
-    return undefined;
-  }
-  return {
-    url: older.script.url,
-    line: older.script.getOffsetLine(older.offset),
-    column: getOffsetColumn(older.offset, older.script)
-  };
-});
-
-TraceTypes.register("time", TraceTypes.Events.enterFrame, timeSinceTraceStarted);
-TraceTypes.register("time", TraceTypes.Events.exitFrame, timeSinceTraceStarted);
-
-TraceTypes.register("parameterNames", TraceTypes.Events.enterFrame, function({ frame }) {
-  return frame.callee ? frame.callee.parameterNames : undefined;
-});
-
-TraceTypes.register("arguments", TraceTypes.Events.enterFrame, function({ frame }) {
-  if (!frame.arguments) {
-    return undefined;
-  }
-  let args = Array.prototype.slice.call(frame.arguments);
-  return args.map(arg => createValueGrip(arg, true));
-});
-
-TraceTypes.register("return", TraceTypes.Events.exitFrame,
-                    serializeCompletionValue.bind(null, "return"));
-
-TraceTypes.register("throw", TraceTypes.Events.exitFrame,
-                    serializeCompletionValue.bind(null, "throw"));
-
-TraceTypes.register("yield", TraceTypes.Events.exitFrame,
-                    serializeCompletionValue.bind(null, "yield"));
-
-
-
-
 function getOffsetColumn(aOffset, aScript) {
   let bestOffsetMapping = null;
   for (let offsetMapping of aScript.getAllColumnOffsets()) {
@@ -528,27 +536,6 @@ function getOffsetColumn(aOffset, aScript) {
   }
 
   return bestOffsetMapping.columnNumber;
-}
-
-
-
-
-function timeSinceTraceStarted({ startTime }) {
-  return +new Date - startTime;
-}
-
-
-
-
-
-
-
-
-function serializeCompletionValue(aType, { value }) {
-  if (!Object.hasOwnProperty.call(value, aType)) {
-    return undefined;
-  }
-  return createValueGrip(value[aType], true);
 }
 
 
@@ -668,13 +655,19 @@ function objectDescriptor(aObject) {
     desc.safeGetterValues = Object.create(null);
     return desc;
   }
+
+  let i = 0;
   for (let name of names) {
-    ownProperties[name] = propertyDescriptor(name, aObject);
+    if (i++ > MAX_PROPERTIES) {
+      break;
+    }
+    let desc = propertyDescriptor(name, aObject);
+    if (desc) {
+      ownProperties[name] = desc;
+    }
   }
 
-  desc.prototype = createValueGrip(aObject.proto);
   desc.ownProperties = ownProperties;
-  desc.safeGetterValues = findSafeGetterValues(ownProperties, aObject);
 
   return desc;
 }
@@ -708,7 +701,8 @@ function propertyDescriptor(aName, aObject) {
     };
   }
 
-  if (!desc) {
+  
+  if (!desc || typeof desc.value == "object" && desc.value !== null) {
     return undefined;
   }
 
@@ -729,105 +723,4 @@ function propertyDescriptor(aName, aObject) {
     }
   }
   return retval;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function findSafeGetterValues(aOwnProperties, aObject) {
-  let safeGetterValues = Object.create(null);
-  let obj = aObject;
-  let level = 0;
-
-  while (obj) {
-    let getters = findSafeGetters(obj);
-    for (let name of getters) {
-      
-      
-      
-      if (name in safeGetterValues ||
-          (obj != aObject && name in aOwnProperties)) {
-        continue;
-      }
-
-      let desc = null, getter = null;
-      try {
-        desc = obj.getOwnPropertyDescriptor(name);
-        getter = desc.get;
-      } catch (ex) {
-        
-      }
-      if (!getter) {
-        continue;
-      }
-
-      let result = getter.call(aObject);
-      if (result && !("throw" in result)) {
-        let getterValue = undefined;
-        if ("return" in result) {
-          getterValue = result.return;
-        } else if ("yield" in result) {
-          getterValue = result.yield;
-        }
-        
-        
-        if (getterValue !== undefined) {
-          safeGetterValues[name] = {
-            getterValue: createValueGrip(getterValue),
-            getterPrototypeLevel: level,
-            enumerable: desc.enumerable,
-            writable: level == 0 ? desc.writable : true,
-          };
-        }
-      }
-    }
-
-    obj = obj.proto;
-    level++;
-  }
-
-  return safeGetterValues;
-}
-
-
-
-
-
-
-
-
-
-
-
-function findSafeGetters(aObject) {
-  let getters = new Set();
-  for (let name of aObject.getOwnPropertyNames()) {
-    let desc = null;
-    try {
-      desc = aObject.getOwnPropertyDescriptor(name);
-    } catch (e) {
-      
-      
-    }
-    if (!desc || desc.value !== undefined || !("get" in desc)) {
-      continue;
-    }
-
-    let fn = desc.get;
-    if (fn && fn.callable && fn.class == "Function" &&
-        fn.script === undefined) {
-      getters.add(name);
-    }
-  }
-
-  return getters;
 }
