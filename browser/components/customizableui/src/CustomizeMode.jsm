@@ -191,7 +191,7 @@ CustomizeMode.prototype = {
       
       
       
-      if (!window.PanelUI.isReady()) {
+      if (!window.PanelUI.isReady) {
         yield window.PanelUI.ensureReady(true);
       }
 
