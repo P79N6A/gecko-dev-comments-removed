@@ -603,11 +603,14 @@ StackFrames.prototype = {
     if (!aVariables) {
       return;
     }
-    
-    let sortedVariableNames = Object.keys(aVariables).sort();
+    let variableNames = Object.keys(aVariables);
 
     
-    for (let name of sortedVariableNames) {
+    if (Prefs.variablesSortingEnabled) {
+      variableNames.sort();
+    }
+    
+    for (let name of variableNames) {
       let paramVar = aScope.addVar(name, aVariables[name]);
       let paramVal = aVariables[name].value;
       this._addExpander(paramVar, paramVal);
@@ -1300,6 +1303,7 @@ Prefs.map("Int", "windowHeight", "devtools.debugger.ui.win-height");
 Prefs.map("Int", "stackframesWidth", "devtools.debugger.ui.stackframes-width");
 Prefs.map("Int", "variablesWidth", "devtools.debugger.ui.variables-width");
 Prefs.map("Bool", "panesVisibleOnStartup", "devtools.debugger.ui.panes-visible-on-startup");
+Prefs.map("Bool", "variablesSortingEnabled", "devtools.debugger.ui.variables-sorting-enabled");
 Prefs.map("Bool", "variablesNonEnumVisible", "devtools.debugger.ui.variables-non-enum-visible");
 Prefs.map("Bool", "variablesSearchboxVisible", "devtools.debugger.ui.variables-searchbox-visible");
 Prefs.map("Char", "remoteHost", "devtools.debugger.remote-host");
