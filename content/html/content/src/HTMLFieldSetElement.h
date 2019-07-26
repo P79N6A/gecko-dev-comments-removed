@@ -55,13 +55,9 @@ public:
 
   const nsIContent* GetFirstLegend() const { return mFirstLegend; }
 
-  void AddElement(nsGenericHTMLFormElement* aElement) {
-    mDependentElements.AppendElement(aElement);
-  }
+  void AddElement(nsGenericHTMLFormElement* aElement);
 
-  void RemoveElement(nsGenericHTMLFormElement* aElement) {
-    mDependentElements.RemoveElement(aElement);
-  }
+  void RemoveElement(nsGenericHTMLFormElement* aElement);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLFieldSetElement,
                                            nsGenericHTMLFormElement)
@@ -97,6 +93,21 @@ public:
 
   
 
+  virtual nsEventStates IntrinsicState() const;
+
+
+  
+
+
+
+
+
+
+
+
+
+  void UpdateValidity(bool aElementValidityState);
+
 protected:
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
@@ -120,10 +131,17 @@ private:
   nsTArray<nsGenericHTMLFormElement*> mDependentElements;
 
   nsIContent* mFirstLegend;
+
+  
+
+
+
+
+
+  int32_t mInvalidElementsCount;
 };
 
 } 
 } 
 
 #endif 
-

@@ -8,11 +8,15 @@
 #include "nsAString.h"
 #include "nsGenericHTMLElement.h"
 #include "mozilla/dom/HTMLFormElement.h"
+#include "mozilla/dom/HTMLFieldSetElement.h"
 #include "mozilla/dom/ValidityState.h"
 #include "nsIFormControl.h"
 #include "nsContentUtils.h"
 
 const uint16_t nsIConstraintValidation::sContentSpecifiedMaxLengthMessage = 256;
+
+using namespace mozilla;
+using namespace mozilla::dom;
 
 nsIConstraintValidation::nsIConstraintValidation()
   : mValidityBitField(0)
@@ -136,10 +140,14 @@ nsIConstraintValidation::SetValidityState(ValidityStateType aState,
     nsCOMPtr<nsIFormControl> formCtrl = do_QueryInterface(this);
     NS_ASSERTION(formCtrl, "This interface should be used by form elements!");
 
-    mozilla::dom::HTMLFormElement* form =
-      static_cast<mozilla::dom::HTMLFormElement*>(formCtrl->GetFormElement());
+    HTMLFormElement* form =
+      static_cast<HTMLFormElement*>(formCtrl->GetFormElement());
     if (form) {
       form->UpdateValidity(IsValid());
+    }
+    HTMLFieldSetElement* fieldSet = formCtrl->GetFieldSet();
+      if (fieldSet) {
+      fieldSet->UpdateValidity(IsValid());
     }
   }
 }
@@ -164,13 +172,17 @@ nsIConstraintValidation::SetBarredFromConstraintValidation(bool aBarred)
     nsCOMPtr<nsIFormControl> formCtrl = do_QueryInterface(this);
     NS_ASSERTION(formCtrl, "This interface should be used by form elements!");
 
-    mozilla::dom::HTMLFormElement* form =
-      static_cast<mozilla::dom::HTMLFormElement*>(formCtrl->GetFormElement());
+    
+    
+    
+    HTMLFormElement* form =
+      static_cast<HTMLFormElement*>(formCtrl->GetFormElement());
     if (form) {
-      
-      
-      
       form->UpdateValidity(aBarred);
+    }
+    HTMLFieldSetElement* fieldSet = formCtrl->GetFieldSet();
+    if (fieldSet) {
+      fieldSet->UpdateValidity(aBarred);
     }
   }
 }

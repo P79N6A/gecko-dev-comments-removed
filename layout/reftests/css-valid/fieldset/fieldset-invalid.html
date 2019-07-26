@@ -3,10 +3,11 @@
   
 
   <style>
-    fieldset { background-color: green; }
-    fieldset:valid { background-color: red; }
+    fieldset:invalid { display: none; }
   </style>
   <body onload="document.getElementById('f').setCustomValidity('foo'); document.documentElement.className='';">
-    <fieldset id='f'></fieldset>
+    <fieldset>
+      <input id='f'>
+    </fieldset>
   </body>
 </html>

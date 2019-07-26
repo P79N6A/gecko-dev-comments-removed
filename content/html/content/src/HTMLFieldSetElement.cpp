@@ -17,12 +17,13 @@ HTMLFieldSetElement::HTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo
   : nsGenericHTMLFormElement(aNodeInfo)
   , mElements(nullptr)
   , mFirstLegend(nullptr)
+  , mInvalidElementsCount(0)
 {
   
   SetBarredFromConstraintValidation(true);
 
   
-  AddStatesSilently(NS_EVENT_STATE_ENABLED);
+  AddStatesSilently(NS_EVENT_STATE_ENABLED | NS_EVENT_STATE_VALID);
 }
 
 HTMLFieldSetElement::~HTMLFieldSetElement()
@@ -211,6 +212,32 @@ HTMLFieldSetElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
 }
 
 void
+HTMLFieldSetElement::AddElement(nsGenericHTMLFormElement* aElement)
+{
+  mDependentElements.AppendElement(aElement);
+
+  
+  nsCOMPtr<nsIConstraintValidation> cvElmt = do_QueryObject(aElement);
+  if (cvElmt &&
+      cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
+    UpdateValidity(false);
+  }
+}
+
+void
+HTMLFieldSetElement::RemoveElement(nsGenericHTMLFormElement* aElement)
+{
+  mDependentElements.RemoveElement(aElement);
+
+  
+  nsCOMPtr<nsIConstraintValidation> cvElmt = do_QueryObject(aElement);
+  if (cvElmt &&
+      cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
+    UpdateValidity(true);
+  }
+}
+
+void
 HTMLFieldSetElement::NotifyElementsForFirstLegendChange(bool aNotify)
 {
   
@@ -229,6 +256,46 @@ HTMLFieldSetElement::NotifyElementsForFirstLegendChange(bool aNotify)
     static_cast<nsGenericHTMLFormElement*>(mElements->Item(i))
       ->FieldSetFirstLegendChanged(aNotify);
   }
+}
+
+void
+HTMLFieldSetElement::UpdateValidity(bool aElementValidity)
+{
+  if (aElementValidity) {
+    --mInvalidElementsCount;
+  } else {
+    ++mInvalidElementsCount;
+  }
+
+  MOZ_ASSERT(mInvalidElementsCount >= 0);
+
+  
+  
+  
+  if (!mInvalidElementsCount || (mInvalidElementsCount == 1 && !aElementValidity)) {
+    UpdateState(true);
+  }
+
+  
+  if (mFieldSet) {
+    mFieldSet->UpdateValidity(aElementValidity);
+  }
+
+  return;
+}
+
+nsEventStates
+HTMLFieldSetElement::IntrinsicState() const
+{
+  nsEventStates state = nsGenericHTMLFormElement::IntrinsicState();
+
+  if (mInvalidElementsCount) {
+    state |= NS_EVENT_STATE_INVALID;
+  } else {
+    state |= NS_EVENT_STATE_VALID;
+  }
+
+  return state;
 }
 
 JSObject*
