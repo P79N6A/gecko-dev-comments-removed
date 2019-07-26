@@ -6,8 +6,7 @@
 pref("startup.homepage_override_url","");
 pref("startup.homepage_welcome_url","");
 
-
-pref("app.update.interval", 28800);
+pref("app.update.interval", 28800); 
 
 
 pref("app.update.download.backgroundInterval", 60);

@@ -5,11 +5,10 @@
 pref("startup.homepage_override_url","http://www.mozilla.com/%LOCALE%/%APP%/%VERSION%/whatsnew/?oldversion=%OLD_VERSION%");
 pref("startup.homepage_welcome_url","http://www.mozilla.com/%LOCALE%/%APP%/%VERSION%/firstrun/");
 
+pref("app.update.interval", 43200); 
 
-pref("app.update.interval", 86400);
 
-
-pref("app.update.download.backgroundInterval", 600);
+pref("app.update.download.backgroundInterval", 60);
 
 pref("app.update.promptWaitTime", 86400);
 
