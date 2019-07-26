@@ -247,8 +247,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     }
 #endif
 
-    SnapshotIterator iter(it);
-
     
     
     it.ionScript()->setBailoutExpected();
@@ -295,6 +293,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 
     if (it.isConstructing())
         fp->setConstructing();
+
+    SnapshotIterator iter(it);
 
     while (true) {
         IonSpew(IonSpew_Bailouts, " restoring frame");

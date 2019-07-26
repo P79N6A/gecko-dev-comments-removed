@@ -1582,7 +1582,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         
         
         
-        if (!origobj->swap(cx, target))
+        if (!JSObject::swap(cx, origobj, target))
             MOZ_CRASH();
         newIdentity = origobj;
     } else if (WrapperMap::Ptr p = destination->lookupWrapper(origv)) {
@@ -1596,7 +1596,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         destination->removeWrapper(p);
         NukeCrossCompartmentWrapper(cx, newIdentity);
 
-        if (!newIdentity->swap(cx, target))
+        if (!JSObject::swap(cx, newIdentity, target))
             MOZ_CRASH();
     } else {
         
@@ -1615,7 +1615,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
         if (!JS_WrapObject(cx, newIdentityWrapper.address()))
             MOZ_CRASH();
         JS_ASSERT(Wrapper::wrappedObject(newIdentityWrapper) == newIdentity);
-        if (!origobj->swap(cx, newIdentityWrapper))
+        if (!JSObject::swap(cx, origobj, newIdentityWrapper))
             MOZ_CRASH();
         origobj->compartment()->putWrapper(ObjectValue(*newIdentity), origv);
     }
@@ -1671,7 +1671,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         destination->removeWrapper(p);
         NukeCrossCompartmentWrapper(cx, newWrapper);
 
-        if (!newWrapper->swap(cx, targetwrapper))
+        if (!JSObject::swap(cx, newWrapper, targetwrapper))
             MOZ_CRASH();
     } else {
         
@@ -1698,7 +1698,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         
         
         RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj)));
-        if (!reflectorGuts || !origobj->swap(cx, reflectorGuts))
+        if (!reflectorGuts || !JSObject::swap(cx, origobj, reflectorGuts))
             MOZ_CRASH();
 
         
@@ -1706,7 +1706,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         if (!JS_WrapObject(cx, wrapperGuts.address()))
             MOZ_CRASH();
         JS_ASSERT(Wrapper::wrappedObject(wrapperGuts) == targetobj);
-        if (!origwrapper->swap(cx, wrapperGuts))
+        if (!JSObject::swap(cx, origwrapper, wrapperGuts))
             MOZ_CRASH();
         origwrapper->compartment()->putWrapper(ObjectValue(*targetobj),
                                                ObjectValue(*origwrapper));
