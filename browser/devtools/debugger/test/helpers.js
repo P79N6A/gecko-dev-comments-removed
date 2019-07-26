@@ -1,21 +1,21 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-// Use as a JSM
-// ------------
-// helpers._createDebugCheck() can be useful at runtime. To use as a JSM, copy
-// commandline/test/helpers.js to shared/helpers.jsm, and then import to
-// DeveloperToolbar.jsm with:
-//   XPCOMUtils.defineLazyModuleGetter(this, "helpers",
-//                                 "resource:///modules/devtools/helpers.jsm");
-// At the bottom of DeveloperToolbar.prototype._onload add this:
-//   var options = { display: this.display };
-//   this._input.onkeypress = function(ev) {
-//     helpers.setup(options);
-//     dump(helpers._createDebugCheck() + '\n\n');
-//   };
-// Now GCLI will emit output on every keypress that both explains the state
-// of GCLI and can be run as a test case.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 this.EXPORTED_SYMBOLS = [ 'helpers' ];
 var helpers = {};
@@ -31,32 +31,34 @@ let assert = { ok: ok, is: is, log: info };
 
 var util = require('util/util');
 
-/**
- * Warning: For use with Firefox Mochitests only.
- *
- * Open a new tab at a URL and call a callback on load, and then tidy up when
- * the callback finishes.
- * The function will be passed a set of test options, and will usually return a
- * promise to indicate that the tab can be cleared up. (To be formal, we call
- * Promise.resolve() on the return value of the callback function)
- *
- * The options used by addTab include:
- * - chromeWindow: XUL window parent of created tab. a.k.a 'window' in mochitest
- * - tab: The new XUL tab element, as returned by gBrowser.addTab()
- * - target: The debug target as defined by the devtools framework
- * - browser: The XUL browser element for the given tab
- * - window: Content window for the created tab. a.k.a 'content' in mochitest
- * - isFirefox: Always true. Allows test sharing with GCLI
- *
- * Normally addTab will create an options object containing the values as
- * described above. However these options can be customized by the third
- * 'options' parameter. This has the ability to customize the value of
- * chromeWindow or isFirefox, and to add new properties.
- *
- * @param url The URL for the new tab
- * @param callback The function to call on page load
- * @param options An optional set of options to customize the way the tests run
- */
+var converters = require('gcli/converters');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 helpers.addTab = function(url, callback, options) {
   var deferred = Promise.defer();
 
@@ -106,13 +108,13 @@ helpers.addTab = function(url, callback, options) {
   return deferred.promise;
 };
 
-/**
- * Warning: For use with Firefox Mochitests only.
- *
- * As addTab, but that also opens the developer toolbar. In addition a new
- * 'display' property is added to the options object with the display from GCLI
- * in the developer toolbar
- */
+
+
+
+
+
+
+
 helpers.addTabWithToolbar = function(url, callback, options) {
   return helpers.addTab(url, function(innerOptions) {
     var win = innerOptions.chromeWindow;
@@ -137,18 +139,18 @@ helpers.addTabWithToolbar = function(url, callback, options) {
   }, options);
 };
 
-/**
- * Warning: For use with Firefox Mochitests only.
- *
- * Run a set of test functions stored in the values of the 'exports' object
- * functions stored under setup/shutdown will be run at the start/end of the
- * sequence of tests.
- * A test will be considered finished when its return value is resolved.
- * @param options An object to be passed to the test functions
- * @param tests An object containing named test functions
- * @return a promise which will be resolved when all tests have been run and
- * their return values resolved
- */
+
+
+
+
+
+
+
+
+
+
+
+
 helpers.runTests = function(options, tests) {
   var testNames = Object.keys(tests).filter(function(test) {
     return test != "setup" && test != "shutdown";
@@ -189,7 +191,7 @@ helpers.runTests = function(options, tests) {
   }, recover);
 };
 
-///////////////////////////////////////////////////////////////////////////////
+
 
 function checkOptions(options) {
   if (options == null) {
@@ -206,9 +208,9 @@ function checkOptions(options) {
   }
 }
 
-/**
- * Various functions to return the actual state of the command line
- */
+
+
+
 helpers._actual = {
   input: function(options) {
     return options.display.inputter.element.value;
@@ -380,36 +382,36 @@ helpers._createDebugCheck = function(options) {
     output += ']);';
 
     return output;
-  }.bind(this), console.error);
+  }.bind(this), util.errorHandler);
 };
 
-/**
- * Simulate focusing the input field
- */
+
+
+
 helpers.focusInput = function(options) {
   checkOptions(options);
   options.display.inputter.focus();
 };
 
-/**
- * Simulate pressing TAB in the input field
- */
+
+
+
 helpers.pressTab = function(options) {
   checkOptions(options);
-  return helpers.pressKey(options, 9 /*KeyEvent.DOM_VK_TAB*/);
+  return helpers.pressKey(options, 9 );
 };
 
-/**
- * Simulate pressing RETURN in the input field
- */
+
+
+
 helpers.pressReturn = function(options) {
   checkOptions(options);
-  return helpers.pressKey(options, 13 /*KeyEvent.DOM_VK_RETURN*/);
+  return helpers.pressKey(options, 13 );
 };
 
-/**
- * Simulate pressing a key by keyCode in the input field
- */
+
+
+
 helpers.pressKey = function(options, keyCode) {
   checkOptions(options);
   var fakeEvent = {
@@ -421,10 +423,10 @@ helpers.pressKey = function(options, keyCode) {
   return options.display.inputter.handleKeyUp(fakeEvent);
 };
 
-/**
- * A list of special key presses and how to to them, for the benefit of
- * helpers.setInput
- */
+
+
+
+
 var ACTIONS = {
   '<TAB>': function(options) {
     return helpers.pressTab(options);
@@ -433,46 +435,46 @@ var ACTIONS = {
     return helpers.pressReturn(options);
   },
   '<UP>': function(options) {
-    return helpers.pressKey(options, 38 /*KeyEvent.DOM_VK_UP*/);
+    return helpers.pressKey(options, 38 );
   },
   '<DOWN>': function(options) {
-    return helpers.pressKey(options, 40 /*KeyEvent.DOM_VK_DOWN*/);
+    return helpers.pressKey(options, 40 );
   }
 };
 
-/**
- * Used in helpers.setInput to cut an input string like "blah<TAB>foo<UP>" into
- * an array like [ "blah", "<TAB>", "foo", "<UP>" ].
- * When using this RegExp, you also need to filter out the blank strings.
- */
+
+
+
+
+
 var CHUNKER = /([^<]*)(<[A-Z]+>)/;
 
-/**
- * Alter the input to <code>typed</code> optionally leaving the cursor at
- * <code>cursor</code>.
- * @return A promise of the number of key-presses to respond
- */
+
+
+
+
+
 helpers.setInput = function(options, typed, cursor) {
   checkOptions(options);
   var promise = undefined;
   var inputter = options.display.inputter;
-  // We try to measure average keypress time, but setInput can simulate
-  // several, so we try to keep track of how many
+  
+  
   var chunkLen = 1;
 
-  // The easy case is a simple string without things like <TAB>
+  
   if (typed.indexOf('<') === -1) {
     promise = inputter.setInput(typed);
   }
   else {
-    // Cut the input up into input strings separated by '<KEY>' tokens. The
-    // CHUNKS RegExp leaves blanks so we filter them out.
+    
+    
     var chunks = typed.split(CHUNKER).filter(function(s) {
       return s != '';
     });
     chunkLen = chunks.length + 1;
 
-    // We're working on this in chunks so first clear the input
+    
     promise = inputter.setInput('').then(function() {
       return util.promiseEach(chunks, function(chunk) {
         if (chunk.charAt(0) === '<') {
@@ -495,8 +497,8 @@ helpers.setInput = function(options, typed, cursor) {
       options.display.inputter.setCursor({ start: cursor, end: cursor });
     }
     else {
-      // This is a hack because jsdom appears to not handle cursor updates
-      // in the same way as most browsers.
+      
+      
       if (options.isJsdom) {
         options.display.inputter.setCursor({
           start: typed.length,
@@ -507,7 +509,7 @@ helpers.setInput = function(options, typed, cursor) {
 
     options.display.focusManager.onInputChange();
 
-    // Firefox testing is noisy and distant, so logging helps
+    
     if (options.isFirefox) {
       var cursorStr = (cursor == null ? '' : ', ' + cursor);
       log('setInput("' + typed + '"' + cursorStr + ')');
@@ -517,13 +519,13 @@ helpers.setInput = function(options, typed, cursor) {
   });
 };
 
-/**
- * Helper for helpers.audit() to ensure that all the 'check' properties match.
- * See helpers.audit for more information.
- * @param name The name to use in error messages
- * @param checks See helpers.audit for a list of available checks
- * @return A promise which resolves to undefined when the checks are complete
- */
+
+
+
+
+
+
+
 helpers._check = function(options, name, checks) {
   if (checks == null) {
     return Promise.resolve();
@@ -685,18 +687,18 @@ helpers._check = function(options, name, checks) {
   }
 
   return util.all(outstanding).then(function() {
-    // Ensure the promise resolves to nothing
+    
     return undefined;
   });
 };
 
-/**
- * Helper for helpers.audit() to ensure that all the 'exec' properties work.
- * See helpers.audit for more information.
- * @param name The name to use in error messages
- * @param expected See helpers.audit for a list of available exec checks
- * @return A promise which resolves to undefined when the checks are complete
- */
+
+
+
+
+
+
+
 helpers._exec = function(options, name, expected) {
   if (expected == null) {
     return Promise.resolve();
@@ -723,32 +725,36 @@ helpers._exec = function(options, name, expected) {
 
   var checkOutput = function() {
     var div = options.window.document.createElement('div');
-    output.toDom(div);
-    var actualOutput = div.textContent.trim();
+    var nodePromise = converters.convert(output.data, output.type, 'dom',
+                                         options.display.requisition.context);
+    nodePromise.then(function(node) {
+      div.appendChild(node);
+      var actualOutput = div.textContent.trim();
 
-    var doTest = function(match, against) {
-      if (!match.test(against)) {
-        assert.ok(false, 'html output for ' + name + ' against ' + match.source);
-        log('Actual textContent');
-        log(against);
+      var doTest = function(match, against) {
+        if (!match.test(against)) {
+          assert.ok(false, 'html output for ' + name + ' against ' + match.source);
+          log('Actual textContent');
+          log(against);
+        }
+      };
+
+      if (typeof expected.output === 'string') {
+        assert.is(actualOutput,
+                  expected.output,
+                  'html output for ' + name);
       }
-    };
+      else if (Array.isArray(expected.output)) {
+        expected.output.forEach(function(match) {
+          doTest(match, actualOutput);
+        });
+      }
+      else {
+        doTest(expected.output, actualOutput);
+      }
 
-    if (typeof expected.output === 'string') {
-      assert.is(actualOutput,
-                expected.output,
-                'html output for ' + name);
-    }
-    else if (Array.isArray(expected.output)) {
-      expected.output.forEach(function(match) {
-        doTest(match, actualOutput);
-      });
-    }
-    else {
-      doTest(expected.output, actualOutput);
-    }
-
-    deferred.resolve();
+      deferred.resolve();
+    });
   };
 
   if (output.completed !== false) {
@@ -767,9 +773,9 @@ helpers._exec = function(options, name, expected) {
   return deferred.promise;
 };
 
-/**
- * Helper to setup the test
- */
+
+
+
 helpers._setup = function(options, name, action) {
   if (typeof action === 'string') {
     return helpers.setInput(options, action);
@@ -782,9 +788,9 @@ helpers._setup = function(options, name, action) {
   return Promise.reject('setup must be a string or a function');
 };
 
-/**
- * Helper to shutdown the test
- */
+
+
+
 helpers._post = function(name, action) {
   if (typeof action === 'function') {
     return Promise.resolve(action());
@@ -792,17 +798,17 @@ helpers._post = function(name, action) {
   return Promise.resolve(action);
 };
 
-/*
- * We do some basic response time stats so we can see if we're getting slow
- */
+
+
+
 var totalResponseTime = 0;
 var averageOver = 0;
 var maxResponseTime = 0;
 var maxResponseCulprit = undefined;
 
-/**
- * Restart the stats collection process
- */
+
+
+
 helpers.resetResponseTimes = function() {
   totalResponseTime = 0;
   averageOver = 0;
@@ -810,9 +816,9 @@ helpers.resetResponseTimes = function() {
   maxResponseCulprit = undefined;
 };
 
-/**
- * Expose an average response time in milliseconds
- */
+
+
+
 Object.defineProperty(helpers, 'averageResponseTime', {
   get: function() {
     return averageOver === 0 ?
@@ -822,67 +828,67 @@ Object.defineProperty(helpers, 'averageResponseTime', {
   enumerable: true
 });
 
-/**
- * Expose a maximum response time in milliseconds
- */
+
+
+
 Object.defineProperty(helpers, 'maxResponseTime', {
   get: function() { return Math.round(maxResponseTime * 100) / 100; },
   enumerable: true
 });
 
-/**
- * Expose the name of the test that provided the maximum response time
- */
+
+
+
 Object.defineProperty(helpers, 'maxResponseCulprit', {
   get: function() { return maxResponseCulprit; },
   enumerable: true
 });
 
-/**
- * A way of turning a set of tests into something more declarative, this helps
- * to allow tests to be asynchronous.
- * @param audits An array of objects each of which contains:
- * - setup: string/function to be called to set the test up.
- *     If audit is a string then it is passed to helpers.setInput().
- *     If audit is a function then it is executed. The tests will wait while
- *     tests that return promises complete.
- * - name: For debugging purposes. If name is undefined, and 'setup'
- *     is a string then the setup value will be used automatically
- * - skipIf: A function to define if the test should be skipped. Useful for
- *     excluding tests from certain environments (e.g. jsdom, firefox, etc).
- *     The name of the test will be used in log messages noting the skip
- *     See helpers.reason for pre-defined skip functions. The skip function must
- *     be synchronous, and will be passed the test options object.
- * - skipRemainingIf: A function to skip all the remaining audits in this set.
- *     See skipIf for details of how skip functions work.
- * - check: Check data. Available checks:
- *   - input: The text displayed in the input field
- *   - cursor: The position of the start of the cursor
- *   - status: One of "VALID", "ERROR", "INCOMPLETE"
- *   - hints: The hint text, i.e. a concatenation of the directTabText, the
- *       emptyParameters and the arrowTabText. The text as inserted into the UI
- *       will include NBSP and Unicode RARR characters, these should be
- *       represented using normal space and '->' for the arrow
- *   - markup: What state should the error markup be in. e.g. "VVVIIIEEE"
- *   - args: Maps of checks to make against the arguments:
- *     - value: i.e. assignment.value (which ignores defaultValue)
- *     - type: Argument/BlankArgument/MergedArgument/etc i.e. what's assigned
- *             Care should be taken with this since it's something of an
- *             implementation detail
- *     - arg: The toString value of the argument
- *     - status: i.e. assignment.getStatus
- *     - message: i.e. assignment.getMessage
- *     - name: For commands - checks assignment.value.name
- * - exec: Object to indicate we should execute the command and check the
- *     results. Available checks:
- *   - output: A string, RegExp or array of RegExps to compare with the output
- *       If typeof output is a string then the output should be exactly equal
- *       to the given string. If the type of output is a RegExp or array of
- *       RegExps then the output should match all RegExps
- *   - completed: A boolean which declares that we should check to see if the
- *       command completed synchronously
- * - post: Function to be called after the checks have been run
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 helpers.audit = function(options, audits) {
   checkOptions(options);
   var skipReason = null;
@@ -959,9 +965,9 @@ helpers.audit = function(options, audits) {
   });
 };
 
-/**
- * Compare 2 arrays.
- */
+
+
+
 helpers._arrayIs = function(actual, expected, message) {
   assert.ok(Array.isArray(actual), 'actual is not an array: ' + message);
   assert.ok(Array.isArray(expected), 'expected is not an array: ' + message);
@@ -977,9 +983,9 @@ helpers._arrayIs = function(actual, expected, message) {
   }
 };
 
-/**
- * A quick helper to log to the correct place
- */
+
+
+
 function log(message) {
   if (typeof info === 'function') {
     info(message);
@@ -989,4 +995,4 @@ function log(message) {
   }
 }
 
-//});
+
