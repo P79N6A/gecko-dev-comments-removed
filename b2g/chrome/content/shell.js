@@ -23,7 +23,10 @@ Cu.import('resource://gre/modules/NetworkStatsService.jsm');
 
 Cu.import('resource://gre/modules/SignInToWebsite.jsm');
 SignInToWebsiteController.init();
+
+#ifdef MOZ_SERVICES_FXACCOUNTS
 Cu.import('resource://gre/modules/FxAccountsMgmtService.jsm');
+#endif
 
 Cu.import('resource://gre/modules/DownloadsAPI.jsm');
 
