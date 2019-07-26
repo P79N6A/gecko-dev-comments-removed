@@ -19,7 +19,7 @@ namespace gc {
 
 
 
-#if (defined(SOLARIS) || defined(__FreeBSD__)) && \
+#if (defined(SOLARIS) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)) && \
     (defined(__sparc) || defined(__sparcv9) || defined(__ia64))
 const size_t PageShift = 13;
 const size_t ArenaShift = PageShift;
