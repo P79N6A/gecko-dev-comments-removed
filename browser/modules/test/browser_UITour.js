@@ -251,4 +251,10 @@ let tests = [
 
     gContentAPI.showInfo("urlbar", "urlbar title", "urlbar text");
   },
+
+  
+  function cleanupMenus(done) {
+    gContentAPI.showMenu("appMenu");
+    done();
+  },
 ];
