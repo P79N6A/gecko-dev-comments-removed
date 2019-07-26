@@ -340,15 +340,22 @@ nsGeolocationRequest::NotifyError(int16_t errorCode)
 NS_IMETHODIMP
 nsGeolocationRequest::Notify(nsITimer* aTimer)
 {
-  
-  
-  
+  if (mCleared) {
+    return NS_OK;
+  }
 
   
-  mLocator->RemoveRequest(this);
+  
+  if (!mIsWatchPositionRequest) {
+    mLocator->RemoveRequest(this);
+  }
+
   NotifyError(nsIDOMGeoPositionError::TIMEOUT);
 
-  mTimeoutTimer = nullptr;
+  if (mIsWatchPositionRequest) {
+    SetTimeoutTimer();
+  }
+
   return NS_OK;
 }
 
