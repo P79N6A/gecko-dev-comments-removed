@@ -52,13 +52,29 @@ AsmJSFrameIterator::AsmJSFrameIterator(const AsmJSActivation *activation)
     
     
     returnAddress_ = *(uint8_t**)(sp_ - sizeof(void*));
-#else
+#elif defined(JS_CODEGEN_ARM)
     
     
     
     
     
     returnAddress_ = *(uint8_t**)sp_;
+#elif defined(JS_CODEGEN_MIPS)
+    
+    
+    
+
+    
+    if (uint32_t(sp_) & 0x1) {
+        
+        sp_ -= 0x1;
+        returnAddress_ = *(uint8_t**)sp_;
+    } else {
+        
+        returnAddress_ = *(uint8_t**)(sp_ + ShadowStackSpace);
+    }
+#else
+# error "Unknown architecture!"
 #endif
 
     settle();

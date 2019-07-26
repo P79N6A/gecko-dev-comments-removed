@@ -1574,12 +1574,14 @@ class MOZ_STACK_CLASS ModuleCompiler
             
             while (labelOffset != LabelBase::INVALID_OFFSET) {
                 size_t patchAtOffset = masm_.labelOffsetToPatchOffset(labelOffset);
-                AsmJSModule::RelativeLink link;
+                AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::CodeLabel);
                 link.patchAtOffset = patchAtOffset;
                 link.targetOffset = targetOffset;
                 if (!module_->addRelativeLink(link))
                     return false;
-                labelOffset = *(uintptr_t *)(module_->codeBase() + patchAtOffset);
+
+                labelOffset = Assembler::extractCodeLabelOffset(module_->codeBase() +
+                                                                patchAtOffset);
             }
         }
 
@@ -1588,7 +1590,7 @@ class MOZ_STACK_CLASS ModuleCompiler
             FuncPtrTable &table = funcPtrTables_[tableIndex];
             unsigned tableBaseOffset = module_->offsetOfGlobalData() + table.globalDataOffset();
             for (unsigned elemIndex = 0; elemIndex < table.numElems(); elemIndex++) {
-                AsmJSModule::RelativeLink link;
+                AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::RawPointer);
                 link.patchAtOffset = tableBaseOffset + elemIndex * sizeof(uint8_t*);
                 link.targetOffset = masm_.actualOffset(table.elem(elemIndex).code()->offset());
                 if (!module_->addRelativeLink(link))
@@ -1602,7 +1604,7 @@ class MOZ_STACK_CLASS ModuleCompiler
         
         for (unsigned i = 0; i < masm_.numAsmJSGlobalAccesses(); i++) {
             AsmJSGlobalAccess a = masm_.asmJSGlobalAccess(i);
-            AsmJSModule::RelativeLink link;
+            AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::InstructionImmediate);
             link.patchAtOffset = masm_.labelOffsetToPatchOffset(a.patchAt.offset());
             link.targetOffset = module_->offsetOfGlobalData() + a.globalDataOffset;
             if (!module_->addRelativeLink(link))
@@ -1617,6 +1619,24 @@ class MOZ_STACK_CLASS ModuleCompiler
         for (unsigned i = 0; i < masm_.numAsmJSGlobalAccesses(); i++) {
             AsmJSGlobalAccess a = masm_.asmJSGlobalAccess(i);
             masm_.patchAsmJSGlobalAccess(a.patchAt, code, module_->globalData(), a.globalDataOffset);
+        }
+#endif
+
+#if defined(JS_CODEGEN_MIPS)
+        
+        
+        for (size_t i = 0; i < masm_.numLongJumps(); i++) {
+            uint32_t patchAtOffset = masm_.longJump(i);
+
+            AsmJSModule::RelativeLink link(AsmJSModule::RelativeLink::InstructionImmediate);
+            link.patchAtOffset = patchAtOffset;
+
+            InstImm *inst = (InstImm *)(module_->codeBase() + patchAtOffset);
+            link.targetOffset = Assembler::extractLuiOriValue(inst, inst->next()) -
+                                (uint32_t)module_->codeBase();
+
+            if (!module_->addRelativeLink(link))
+                return false;
         }
 #endif
 
@@ -6055,14 +6075,22 @@ StackDecrementForCall(MacroAssembler &masm, const VectorT &argTypes, unsigned ex
     return StackDecrementForCall(masm, StackArgBytes(argTypes) + extraBytes);
 }
 
+#if defined(JS_CODEGEN_MIPS)
+
+
+static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * sizeof(intptr_t) +
+                                             NonVolatileRegs.fpus().size() * sizeof(double) +
+                                             sizeof(double);
+#else
 static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * sizeof(intptr_t) +
                                              NonVolatileRegs.fpus().size() * sizeof(double);
+#endif
 
 
 
 
 
-#ifdef JS_CODEGEN_ARM
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
 static const unsigned MaybeRetAddr = sizeof(void*);
 #else
 static const unsigned MaybeRetAddr = 0;
@@ -6087,6 +6115,9 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     
     masm.push(lr);
 #endif 
+#if defined(JS_CODEGEN_MIPS)
+    masm.push(ra);
+#endif
 
     masm.PushRegsInMask(NonVolatileRegs);
     JS_ASSERT(masm.framePushed() == FramePushedAfterSave);
@@ -6102,14 +6133,14 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     
     
     
-#if defined(JS_CODEGEN_ARM)
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.movePtr(IntArgReg1, GlobalReg);
-    masm.ma_vimm(GenericNaN(), NANReg);
+    masm.loadConstantDouble(GenericNaN(), NANReg);
 #endif
 
     
     
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM)
+#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.loadPtr(Address(IntArgReg1, m.module().heapOffset()), HeapReg);
 #endif
 
@@ -6345,6 +6376,9 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     
     masm.push(lr);
 #endif
+#if defined(JS_CODEGEN_MIPS)
+    masm.push(ra);
+#endif
 
     MIRType typeArray[] = { MIRType_Pointer,   
                             MIRType_Pointer,   
@@ -6355,13 +6389,15 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
 
     
     
-    unsigned arraySize = Max<size_t>(1, exit.sig().args().length()) * sizeof(Value);
-    unsigned stackDec = StackDecrementForCall(masm, invokeArgTypes, arraySize + MaybeRetAddr);
+    
+    
+    unsigned offsetToArgv = AlignBytes(StackArgBytes(invokeArgTypes) + MaybeRetAddr, StackAlignment);
+    unsigned argvBytes = Max<size_t>(1, exit.sig().args().length()) * sizeof(Value);
+    unsigned stackDec = StackDecrementForCall(masm, offsetToArgv + argvBytes);
     masm.reserveStack(stackDec);
 
     
     unsigned offsetToCallerStackArgs = AlignmentAtAsmJSPrologue + masm.framePushed();
-    unsigned offsetToArgv = StackArgBytes(invokeArgTypes) + MaybeRetAddr;
     Register scratch = ABIArgGenerator::NonArgReturnVolatileReg0;
     FillArgumentArray(m, exit.sig().args(), offsetToArgv, offsetToCallerStackArgs, scratch);
 
@@ -6523,6 +6559,9 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     
     
     masm.PushRegsInMask(GeneralRegisterSet((1<<GlobalReg.code()) | (1<<HeapReg.code())));
+#elif defined(JS_CODEGEN_MIPS)
+    masm.push(ra);
+    masm.PushRegsInMask(GeneralRegisterSet((1<<GlobalReg.code()) | (1<<HeapReg.code())));
 #endif
 
     
@@ -6625,7 +6664,15 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
         LoadAsmJSActivationIntoRegister(masm, reg0);
 
         
+#if defined(JS_CODEGEN_MIPS)
+        
+        
+        
+        masm.ma_or(reg1, StackPointer, Imm32(0x1));
+        masm.storePtr(reg1, Address(reg0, AsmJSActivation::offsetOfExitSP()));
+#else
         masm.storePtr(StackPointer, Address(reg0, AsmJSActivation::offsetOfExitSP()));
+#endif
 
         
         
@@ -6719,8 +6766,8 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
 #if defined(JS_CODEGEN_X64)
     masm.Pop(HeapReg);
 #endif
-#if defined(JS_CODEGEN_ARM)
-    masm.ma_vimm(GenericNaN(), NANReg);
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
+    masm.loadConstantDouble(GenericNaN(), NANReg);
     masm.PopRegsInMask(GeneralRegisterSet((1<<GlobalReg.code()) | (1<<HeapReg.code())));
 #endif
     masm.ret();
@@ -6811,7 +6858,7 @@ GenerateInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.align(CodeAlignment);
     masm.bind(&m.interruptLabel());
 
-#ifndef JS_CODEGEN_ARM
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     
     
     
@@ -6857,7 +6904,47 @@ GenerateInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.PopRegsInMask(AllRegsExceptSP); 
     masm.popFlags();              
     masm.ret();                   
-#else
+#elif defined(JS_CODEGEN_MIPS)
+    
+    masm.subPtr(Imm32(sizeof(intptr_t)), StackPointer);
+    
+    masm.setFramePushed(0);
+    
+    masm.PushRegsInMask(AllRegsExceptSP);
+
+    
+    masm.movePtr(StackPointer, s0);
+    
+    masm.ma_and(StackPointer, StackPointer, Imm32(~(StackAlignment - 1)));
+
+    
+    LoadAsmJSActivationIntoRegister(masm, IntArgReg0);
+    masm.loadPtr(Address(IntArgReg0, AsmJSActivation::offsetOfResumePC()), IntArgReg1);
+    masm.storePtr(IntArgReg1, Address(s0, masm.framePushed()));
+
+    
+    masm.loadPtr(Address(IntArgReg0, AsmJSActivation::offsetOfContext()), IntArgReg0);
+
+    
+    masm.subPtr(Imm32(4 * sizeof(intptr_t)), StackPointer);
+
+    masm.call(AsmJSImm_HandleExecutionInterrupt);
+
+    masm.addPtr(Imm32(4 * sizeof(intptr_t)), StackPointer);
+
+    masm.branchIfFalseBool(ReturnReg, throwLabel);
+
+    
+    masm.movePtr(s0, StackPointer);
+    masm.PopRegsInMask(AllRegsExceptSP);
+
+    
+    
+    JS_ASSERT(Imm16::isInSignedRange(m.module().heapOffset()));
+    masm.pop(HeapReg);
+    masm.as_jr(HeapReg);
+    masm.loadPtr(Address(GlobalReg, m.module().heapOffset()), HeapReg);
+#elif defined(JS_CODEGEN_ARM)
     masm.setFramePushed(0);         
     masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)), FloatRegisterSet(uint32_t(0))));   
 
@@ -6905,6 +6992,8 @@ GenerateInterruptExit(ModuleCompiler &m, Label *throwLabel)
     masm.finishDataTransfer();
     masm.ret();
 
+#else
+# error "Unknown architecture!"
 #endif
 
     return !masm.oom();

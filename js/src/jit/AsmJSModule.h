@@ -370,6 +370,39 @@ class AsmJSModule
 
     struct RelativeLink
     {
+        enum Kind
+        {
+            RawPointer,
+            CodeLabel,
+            InstructionImmediate
+        };
+
+        RelativeLink()
+        { }
+
+        RelativeLink(Kind kind)
+        {
+#if defined(JS_CODEGEN_MIPS)
+            kind_ = kind;
+#elif defined(JS_CODEGEN_ARM)
+            
+            
+            JS_ASSERT(kind == CodeLabel || kind == RawPointer);
+#endif
+            
+        }
+
+        bool isRawPointerPatch() {
+#if defined(JS_CODEGEN_MIPS)
+            return kind_ == RawPointer;
+#else
+            return true;
+#endif
+        }
+
+#ifdef JS_CODEGEN_MIPS
+        Kind kind_;
+#endif
         uint32_t patchAtOffset;
         uint32_t targetOffset;
     };
@@ -732,6 +765,7 @@ class AsmJSModule
     
     
     
+    
     size_t offsetOfGlobalData() const {
         JS_ASSERT(code_);
         return pod.codeBytes_;
@@ -740,7 +774,7 @@ class AsmJSModule
         return code_ + offsetOfGlobalData();
     }
     size_t globalDataBytes() const {
-        return sizeof(void*) +
+        return sizeof(uint64_t) +
                pod.numGlobalVars_ * sizeof(uint64_t) +
                pod.funcPtrTableAndExitBytes_;
     }
@@ -752,7 +786,7 @@ class AsmJSModule
     }
     unsigned globalVarIndexToGlobalDataOffset(unsigned i) const {
         JS_ASSERT(i < pod.numGlobalVars_);
-        return sizeof(void*) +
+        return sizeof(uint64_t) +
                i * sizeof(uint64_t);
     }
     void *globalVarIndexToGlobalDatum(unsigned i) const {
@@ -954,6 +988,6 @@ class AsmJSModuleObject : public JSObject
 
 }  
 
-#endif
+#endif  
 
-#endif
+#endif 

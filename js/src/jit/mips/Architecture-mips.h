@@ -28,7 +28,7 @@ namespace js {
 namespace jit {
 
 
-static const uint32_t ShadowStackSpace = 0;
+static const uint32_t ShadowStackSpace = 4 * sizeof(uintptr_t);
 
 
 
