@@ -334,7 +334,6 @@ class StackFrame
     } u;
     mutable JSObject    *scopeChain_;   
     StackFrame          *prev_;         
-    void                *ncode_;        
     Value               rval_;          
     StaticBlockObject   *blockChain_;   
     ArgumentsObject     *argsObj_;      
@@ -386,9 +385,6 @@ class StackFrame
                        JSScript *script, uint32_t nactual, StackFrame::Flags flags);
 
     
-    void initFixupFrame(StackFrame *prev, StackFrame::Flags flags, void *ncode, unsigned nactual);
-
-    
     void initExecuteFrame(JSScript *script, StackFrame *prevLink, AbstractFramePtr prev,
                           FrameRegs *regs, const Value &thisv, JSObject &scopeChain,
                           ExecuteType type);
@@ -415,10 +411,6 @@ class StackFrame
 
     bool prologue(JSContext *cx);
     void epilogue(JSContext *cx);
-
-    
-    inline bool jitHeavyweightFunctionPrologue(JSContext *cx);
-    bool jitStrictEvalPrologue(JSContext *cx);
 
     
     void initFromBailout(JSContext *cx, ion::SnapshotIterator &iter);
@@ -559,8 +551,6 @@ class StackFrame
     template <class Op>
     inline bool forEachCanonicalActualArg(Op op, unsigned start = 0, unsigned count = unsigned(-1));
     template <class Op> inline bool forEachFormalArg(Op op);
-
-    void cleanupTornValues();
 
     
 
@@ -841,20 +831,6 @@ class StackFrame
     void clearReturnValue() {
         rval_.setUndefined();
         markReturnValue();
-    }
-
-    
-
-    void *nativeReturnAddress() const {
-        return ncode_;
-    }
-
-    void setNativeReturnAddress(void *addr) {
-        ncode_ = addr;
-    }
-
-    void **addressOfNativeReturnAddress() {
-        return &ncode_;
     }
 
     
@@ -1260,10 +1236,6 @@ class StackSegment
     void popInvokeArgsEnd(Value *prev) {
         invokeArgsEnd_ = prev;
     }
-
-    
-
-    static const size_t offsetOfRegs() { return offsetof(StackSegment, regs_); }
 };
 
 static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
@@ -1347,33 +1319,6 @@ class StackSpace
     inline Value *firstUnused() const { return seg_ ? seg_->end() : base_; }
 
     StackSegment &containingSegment(const StackFrame *target) const;
-
-    
-
-
-
-
-
-
-
-    static const size_t STACK_JIT_EXTRA = ( 8 + 18) * 10;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    inline Value *getStackLimit(JSContext *cx, MaybeReportError report);
-    bool tryBumpLimit(JSContext *cx, Value *from, unsigned nvals, Value **limit);
 
     
     void mark(JSTracer *trc);
@@ -1526,9 +1471,6 @@ class ContextStack
                          HandleFunction callee, HandleScript script,
                          InitialFrameFlags initial, Value **stackLimit);
     void popInlineFrame(FrameRegs &regs);
-
-    
-    void popFrameAfterOverflow();
 
     
 
