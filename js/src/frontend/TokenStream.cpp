@@ -1581,8 +1581,13 @@ TokenStream::getTokenInternal()
 
 
         if (matchChar('/')) {
-            if (matchChar('@') && !getAtSourceMappingURL(false))
-                goto error;
+            c = peekChar();
+            if (c == '@' || c == '#') {
+                if (getChar() == '@' && !reportWarning(JSMSG_DEPRECATED_SOURCE_MAP))
+                    goto error;
+                if (!getAtSourceMappingURL(false))
+                    goto error;
+            }
 
   skipline:
             
@@ -1607,8 +1612,12 @@ TokenStream::getTokenInternal()
             unsigned linenoBefore = lineno;
             while ((c = getChar()) != EOF &&
                    !(c == '*' && matchChar('/'))) {
-                if (c == '@' && !getAtSourceMappingURL(true))
-                   goto error;
+                if (c == '@' || c == '#') {
+                    if (c == '@' && !reportWarning(JSMSG_DEPRECATED_SOURCE_MAP))
+                        goto error;
+                    if (!getAtSourceMappingURL(true))
+                        goto error;
+                }
             }
             if (c == EOF) {
                 reportError(JSMSG_UNTERMINATED_COMMENT);
