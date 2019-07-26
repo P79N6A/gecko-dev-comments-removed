@@ -192,7 +192,17 @@ Zone::discardJitCode(FreeOp *fop)
 
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
-            jit::FinishInvalidation(fop, script);
+            jit::FinishInvalidation<SequentialExecution>(fop, script);
+
+            
+            
+            
+            if (script->hasParallelIonScript()) {
+                if (jit::ShouldPreserveParallelJITCode(runtimeFromMainThread(), script))
+                    script->baselineScript()->setActive();
+                else
+                    jit::FinishInvalidation<ParallelExecution>(fop, script);
+            }
 
             
 

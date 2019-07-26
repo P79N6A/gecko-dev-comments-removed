@@ -201,6 +201,11 @@ struct IonScript
     mozilla::Atomic<bool, mozilla::Relaxed> hasUncompiledCallTarget_;
 
     
+    
+    
+    bool isParallelEntryScript_;
+
+    
     bool hasSPSInstrumentation_;
 
     
@@ -261,6 +266,13 @@ struct IonScript
 
     
     uint32_t refcount_;
+
+    
+    
+    
+    
+    
+    uint32_t parallelAge_;
 
     
     types::RecompileInfo recompileInfo_;
@@ -436,6 +448,12 @@ struct IonScript
     bool hasUncompiledCallTarget() const {
         return hasUncompiledCallTarget_;
     }
+    void setIsParallelEntryScript() {
+        isParallelEntryScript_ = true;
+    }
+    bool isParallelEntryScript() const {
+        return isParallelEntryScript_;
+    }
     void setHasSPSInstrumentation() {
         hasSPSInstrumentation_ = true;
     }
@@ -566,6 +584,20 @@ struct IonScript
 
     void clearRecompiling() {
         recompiling_ = false;
+    }
+
+    static const uint32_t MAX_PARALLEL_AGE = 5;
+
+    void resetParallelAge() {
+        MOZ_ASSERT(isParallelEntryScript());
+        parallelAge_ = 0;
+    }
+    uint32_t parallelAge() const {
+        return parallelAge_;
+    }
+    uint32_t increaseParallelAge() {
+        MOZ_ASSERT(isParallelEntryScript());
+        return ++parallelAge_;
     }
 
     static void writeBarrierPre(Zone *zone, IonScript *ionScript);

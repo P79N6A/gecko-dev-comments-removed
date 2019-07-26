@@ -4332,17 +4332,24 @@ TypeZone::sweep(FreeOp *fop, bool releaseTypes)
                 types::TypeScript::Sweep(fop, script);
 
                 if (releaseTypes) {
-                    script->types->destroy();
-                    script->types = nullptr;
+                    if (script->hasParallelIonScript()) {
+                        
+                        
+                        
+                        MOZ_ASSERT(jit::ShouldPreserveParallelJITCode(rt, script));
+                        script->parallelIonScript()->recompileInfoRef().shouldSweep(*this);
+                    } else {
+                        script->types->destroy();
+                        script->types = nullptr;
 
-                    
+                        
 
 
 
-                    script->clearHasFreezeConstraints();
+                        script->clearHasFreezeConstraints();
+                    }
 
                     JS_ASSERT(!script->hasIonScript());
-                    JS_ASSERT(!script->hasParallelIonScript());
                 } else {
                     
                     if (script->hasIonScript())
