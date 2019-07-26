@@ -1342,21 +1342,26 @@ function recursiveRemove(aFile) {
 
 
 
+
 function recursiveLastModifiedTime(aFile) {
   try {
+    let modTime = aFile.lastModifiedTime;
+    let fileName = aFile.leafName;
     if (aFile.isFile())
-      return aFile.lastModifiedTime;
+      return [fileName, modTime];
 
     if (aFile.isDirectory()) {
       let entries = aFile.directoryEntries.QueryInterface(Ci.nsIDirectoryEnumerator);
-      let entry, time;
-      let maxTime = aFile.lastModifiedTime;
+      let entry;
       while ((entry = entries.nextFile)) {
-        time = recursiveLastModifiedTime(entry);
-        maxTime = Math.max(time, maxTime);
+        let [subName, subTime] = recursiveLastModifiedTime(entry);
+        if (subTime > modTime) {
+          modTime = subTime;
+          fileName = subName;
+        }
       }
       entries.close();
-      return maxTime;
+      return [fileName, modTime];
     }
   }
   catch (e) {
@@ -1364,7 +1369,7 @@ function recursiveLastModifiedTime(aFile) {
   }
 
   
-  return 0;
+  return ["", 0];
 }
 
 
@@ -1544,9 +1549,21 @@ var XPIProvider = {
   
   inactiveAddonIDs: [],
   
-  unpackedAddons: 0,
-  
   runPhase: XPI_STARTING,
+  
+  
+  _mostRecentlyModifiedFile: {},
+  
+  _telemetryDetails: {},
+
+  
+
+
+  setTelemetry: function XPI_setTelemetry(aId, aName, aValue) {
+    if (!this._telemetryDetails[aId])
+      this._telemetryDetails[aId] = {};
+    this._telemetryDetails[aId][aName] = aValue;
+  },
 
   
 
@@ -1689,6 +1706,11 @@ var XPIProvider = {
     this.installLocationsByName = {};
     
     this._shutdownError = null;
+    
+    this._telemetryDetails = {};
+    
+    AddonManagerPrivate.setTelemetryDetails("XPI", this._telemetryDetails);
+
 
     AddonManagerPrivate.recordTimestamp("XPI_startup_begin");
 
@@ -2033,18 +2055,22 @@ var XPIProvider = {
     let addonStates = {};
     aLocation.addonLocations.forEach(function(file) {
       let id = aLocation.getIDForLocation(file);
+      let unpacked = 0;
+      let [modFile, modTime] = recursiveLastModifiedTime(file);
       addonStates[id] = {
         descriptor: file.persistentDescriptor,
-        mtime: recursiveLastModifiedTime(file)
+        mtime: modTime
       };
       try {
         
         file.append(FILE_INSTALL_MANIFEST);
         let rdfTime = file.lastModifiedTime;
         addonStates[id].rdfTime = rdfTime;
-        this.unpackedAddons += 1;
+        unpacked = 1;
       }
       catch (e) { }
+      this._mostRecentlyModifiedFile[id] = modFile;
+      this.setTelemetry(id, "unpacked", unpacked);
     }, this);
 
     return addonStates;
@@ -2061,7 +2087,6 @@ var XPIProvider = {
 
   getInstallLocationStates: function XPI_getInstallLocationStates() {
     let states = [];
-    this.unpackedAddons = 0;
     this.installLocations.forEach(function(aLocation) {
       let addons = aLocation.addonLocations;
       if (addons.length == 0)
@@ -3007,11 +3032,6 @@ var XPIProvider = {
     let knownLocations = XPIDatabase.getInstallLocations();
 
     
-    let modifiedUnpacked = 0;
-    let modifiedExManifest = 0;
-    let modifiedXPI = 0;
-
-    
     
     
     aState.reverse().forEach(function(aSt) {
@@ -3046,14 +3066,21 @@ var XPIProvider = {
               XPIProvider.inactiveAddonIDs.push(aOldAddon.id);
 
             
-            
-            if ((addonState.rdfTime) && (aOldAddon.updateDate != addonState.mtime)) {
-              modifiedUnpacked += 1;
-              if (aOldAddon.updateDate >= addonState.rdfTime)
-                modifiedExManifest += 1;
-            }
-            else if (aOldAddon.updateDate != addonState.mtime) {
-              modifiedXPI += 1;
+            if (aOldAddon.updateDate != addonState.mtime) {
+              
+              if (addonState.rdfTime) {
+                
+                if (addonState.rdfTime > aOldAddon.updateDate) {
+                  this.setTelemetry(aOldAddon.id, "modifiedInstallRDF", 1);
+                }
+                else {
+                  this.setTelemetry(aOldAddon.id, "modifiedFile",
+                                    this._mostRecentlyModifiedFile[aOldAddon.id]);
+                }
+              }
+              else {
+                this.setTelemetry(aOldAddon.id, "modifiedXPI", 1);
+              }
             }
 
             
@@ -3106,12 +3133,6 @@ var XPIProvider = {
         changed = removeMetadata(aOldAddon) || changed;
       }, this);
     }
-
-    
-    AddonManagerPrivate.recordSimpleMeasure("modifiedUnpacked", modifiedUnpacked);
-    if (modifiedUnpacked > 0)
-      AddonManagerPrivate.recordSimpleMeasure("modifiedExceptInstallRDF", modifiedExManifest);
-    AddonManagerPrivate.recordSimpleMeasure("modifiedXPI", modifiedXPI);
 
     
     let cache = JSON.stringify(this.getInstallLocationStates());
@@ -3263,7 +3284,6 @@ var XPIProvider = {
           ERROR("Failed to process extension changes at startup", e);
         }
       }
-      AddonManagerPrivate.recordSimpleMeasure("installedUnpacked", this.unpackedAddons);
 
       if (aAppChanged) {
         
@@ -3973,6 +3993,7 @@ var XPIProvider = {
     if (Services.appinfo.inSafeMode)
       return;
 
+    let timeStart = new Date();
     if (aMethod == "startup") {
       LOG("Registering manifest for " + aFile.path);
       Components.manager.addBootstrappedManifestLocation(aFile);
@@ -4019,6 +4040,7 @@ var XPIProvider = {
         LOG("Removing manifest for " + aFile.path);
         Components.manager.removeBootstrappedManifestLocation(aFile);
       }
+      this.setTelemetry(aId, aMethod + "_MS", new Date() - timeStart);
     }
   },
 
@@ -5331,7 +5353,8 @@ AddonInstall.prototype = {
         
         this.addon._sourceBundle = file;
         this.addon._installLocation = this.installLocation;
-        this.addon.updateDate = recursiveLastModifiedTime(file); 
+        let [mFile, mTime] = recursiveLastModifiedTime(file);
+        this.addon.updateDate = mTime;
         this.addon.visible = true;
         if (isUpgrade) {
           this.addon =  XPIDatabase.updateAddonMetadata(this.existingAddon, this.addon,

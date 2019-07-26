@@ -396,6 +396,9 @@ var AddonManagerInternal = {
   providers: [],
   types: {},
   startupChanges: {},
+  
+  telemetryDetails: {},
+
 
   
   typesProxy: Proxy.create({
@@ -457,6 +460,10 @@ var AddonManagerInternal = {
       return;
 
     this.recordTimestamp("AMI_startup_begin");
+
+    
+    for (let provider in this.telemetryDetails)
+      delete this.telemetryDetails[provider];
 
     let appChanged = undefined;
 
@@ -2192,12 +2199,20 @@ this.AddonManagerPrivate = {
     return this._simpleMeasures;
   },
 
+  getTelemetryDetails: function AMP_getTelemetryDetails() {
+    return AddonManagerInternal.telemetryDetails;
+  },
+
+  setTelemetryDetails: function AMP_setTelemetryDetails(aProvider, aDetails) {
+    AddonManagerInternal.telemetryDetails[aProvider] = aDetails;
+  },
+
   
   
   simpleTimer: function(aName) {
     let startTime = Date.now();
     return {
-      done: () => AddonManagerPrivate.recordSimpleMeasure(aName, Date.now() - startTime)
+      done: () => this.recordSimpleMeasure(aName, Date.now() - startTime)
     };
   }
 };
