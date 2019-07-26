@@ -483,6 +483,20 @@ protected:
     
 
 
+
+
+
+    void StartObserving(nsIDocument* aDocument);
+
+    
+
+
+
+    void StopObserving();
+
+    
+
+
     nsIDocument* mObservedDocument;
 };
 
