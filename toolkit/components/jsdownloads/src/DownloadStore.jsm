@@ -92,6 +92,12 @@ DownloadStore.prototype = {
 
 
 
+  onsaveitem: () => true,
+
+  
+
+
+
 
 
 
@@ -111,7 +117,23 @@ DownloadStore.prototype = {
       
       for (let downloadData of storeData.list) {
         try {
-          this.list.add(yield Downloads.createDownload(downloadData));
+          let download = yield Downloads.createDownload(downloadData);
+          try {
+            if (("stopped" in downloadData) && !downloadData.stopped) {
+              
+              
+              download.start();
+            } else {
+              
+              
+              
+              yield download.refresh();
+            }
+          } finally {
+            
+            
+            this.list.add(download);
+          }
         } catch (ex) {
           
           Cu.reportError(ex);
@@ -139,6 +161,9 @@ DownloadStore.prototype = {
       let atLeastOneDownload = false;
       for (let download of downloads) {
         try {
+          if (!this.onsaveitem(download)) {
+            continue;
+          }
           storeData.list.push(download.toSerializable());
           atLeastOneDownload = true;
         } catch (ex) {

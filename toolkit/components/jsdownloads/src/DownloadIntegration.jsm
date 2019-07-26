@@ -64,6 +64,31 @@ XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
     createBundle("chrome://mozapps/locale/downloads/downloads.properties");
 });
 
+const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer",
+                                     "initWithCallback");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const kSaveDelayMs = 1500;
+
 
 
 
@@ -124,7 +149,39 @@ this.DownloadIntegration = {
     this._store = new DownloadStore(aList, OS.Path.join(
                                               OS.Constants.Path.profileDir,
                                               "downloads.json"));
-    return this._store.load();
+    this._store.onsaveitem = this.shouldPersistDownload.bind(this);
+
+    
+    
+    return this._store.load().then(null, Cu.reportError).then(() => {
+      new DownloadAutoSaveView(aList, this._store);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  shouldPersistDownload: function (aDownload)
+  {
+    
+    
+    
+    
+    return aDownload.hasPartialData || !aDownload.stopped;
   },
 
   
@@ -493,6 +550,10 @@ this.DownloadIntegration = {
 
 
   addListObservers: function DI_addListObservers(aList, aIsPrivate) {
+    if (this.dontLoad) {
+      return Promise.resolve();
+    }
+
     DownloadObserver.registerView(aList, aIsPrivate);
     if (!DownloadObserver.observersAdded) {
       DownloadObserver.observersAdded = true;
@@ -504,7 +565,10 @@ this.DownloadIntegration = {
   }
 };
 
-let DownloadObserver = {
+
+
+
+this.DownloadObserver = {
   
 
 
@@ -656,4 +720,135 @@ let DownloadObserver = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference])
+};
+
+
+
+
+
+
+
+
+
+
+
+function DownloadAutoSaveView(aList, aStore) {
+  this._store = aStore;
+  this._downloadsMap = new Map();
+
+  
+  
+  aList.addView(this);
+  this._initialized = true;
+}
+
+DownloadAutoSaveView.prototype = {
+  
+
+
+  _initialized: false,
+
+  
+
+
+  _store: null,
+
+  
+
+
+
+
+  _downloadsMap: null,
+
+  
+
+
+
+
+  _shouldSave: false,
+
+  
+
+
+
+
+
+
+
+  _timer: null,
+
+  
+
+
+  _save: function ()
+  {
+    Task.spawn(function () {
+      
+      this._shouldSave = false;
+
+      
+      try {
+        yield this._store.save();
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+
+      
+      this._timer = null;
+      if (this._shouldSave) {
+        this.saveSoon();
+      }
+    }.bind(this)).then(null, Cu.reportError);
+  },
+
+  
+
+
+
+  saveSoon: function ()
+  {
+    this._shouldSave = true;
+    if (!this._timer) {
+      this._timer = new Timer(this._save.bind(this), kSaveDelayMs,
+                              Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+  },
+
+  
+  
+
+  onDownloadAdded: function (aDownload)
+  {
+    if (DownloadIntegration.shouldPersistDownload(aDownload)) {
+      this._downloadsMap.set(aDownload, aDownload.getSerializationHash());
+      if (this._initialized) {
+        this.saveSoon();
+      }
+    }
+  },
+
+  onDownloadChanged: function (aDownload)
+  {
+    if (!DownloadIntegration.shouldPersistDownload(aDownload)) {
+      if (this._downloadsMap.has(aDownload)) {
+        this._downloadsMap.delete(aDownload);
+        this.saveSoon();
+      }
+      return;
+    }
+
+    let hash = aDownload.getSerializationHash();
+    if (this._downloadsMap.get(aDownload) != hash) {
+      this._downloadsMap.set(aDownload, hash);
+      this.saveSoon();
+    }
+  },
+
+  onDownloadRemoved: function (aDownload)
+  {
+    if (this._downloadsMap.has(aDownload)) {
+      this._downloadsMap.delete(aDownload);
+      this.saveSoon();
+    }
+  },
 };

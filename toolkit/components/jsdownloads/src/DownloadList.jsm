@@ -172,6 +172,11 @@ DownloadList.prototype = {
 
 
 
+
+
+
+
+
   addView: function DL_addView(aView)
   {
     this._views.add(aView);

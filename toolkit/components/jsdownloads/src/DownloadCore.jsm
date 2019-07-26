@@ -382,6 +382,7 @@ Download.prototype = {
         
         this.progress = 100;
         this.succeeded = true;
+        this.hasPartialData = false;
       } catch (ex) {
         
         
@@ -626,6 +627,47 @@ Download.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+  refresh: function ()
+  {
+    return Task.spawn(function () {
+      if (!this.stopped || this._finalized) {
+        return;
+      }
+
+      
+      if (this.hasPartialData && this.target.partFilePath) {
+        let stat = yield OS.File.stat(this.target.partFilePath);
+
+        
+        if (!this.stopped || this._finalized) {
+          return;
+        }
+
+        
+        this.currentBytes = stat.size;
+        if (this.totalBytes > 0) {
+          this.hasProgress = true;
+          this.progress = Math.floor(this.currentBytes /
+                                         this.totalBytes * 100);
+        }
+        this._notifyChange();
+      }
+    }.bind(this)).then(null, Cu.reportError);
+  },
+
+  
+
+
+
   _finalized: false,
 
   
@@ -761,19 +803,53 @@ Download.prototype = {
       serializable.saver = saver;
     }
 
-    if (this.launcherPath) {
-      serializable.launcherPath = this.launcherPath;
+    if (!this.stopped) {
+      serializable.stopped = false;
     }
 
-    if (this.launchWhenSucceeded) {
-      serializable.launchWhenSucceeded = true;
+    if (this.error && ("message" in this.error)) {
+      serializable.error = { message: this.error.message };
     }
 
-    if (this.contentType) {
-      serializable.contentType = this.contentType;
+    
+    let propertiesToSerialize = [
+      "succeeded",
+      "canceled",
+      "startTime",
+      "totalBytes",
+      "hasPartialData",
+      "tryToKeepPartialData",
+      "launcherPath",
+      "launchWhenSucceeded",
+      "contentType",
+    ];
+
+    for (let property of propertiesToSerialize) {
+      if (this[property]) {
+        serializable[property] = this[property];
+      }
     }
 
     return serializable;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getSerializationHash: function ()
+  {
+    
+    
+    
+    return this.stopped + "," + this.totalBytes + "," + this.hasPartialData +
+           "," + this.contentType;
   },
 };
 
@@ -816,16 +892,28 @@ Download.fromSerializable = function (aSerializable) {
   }
   download.saver.download = download;
 
-  if ("launchWhenSucceeded" in aSerializable) {
-    download.launchWhenSucceeded = !!aSerializable.launchWhenSucceeded;
+  let propertiesToDeserialize = [
+    "startTime",
+    "totalBytes",
+    "hasPartialData",
+    "tryToKeepPartialData",
+    "launcherPath",
+    "launchWhenSucceeded",
+    "contentType",
+  ];
+
+  
+  
+  if (!("stopped" in aSerializable) || aSerializable.stopped) {
+    propertiesToDeserialize.push("succeeded");
+    propertiesToDeserialize.push("canceled");
+    propertiesToDeserialize.push("error");
   }
 
-  if ("contentType" in aSerializable) {
-    download.contentType = aSerializable.contentType;
-  }
-
-  if ("launcherPath" in aSerializable) {
-    download.launcherPath = aSerializable.launcherPath;
+  for (let property of propertiesToDeserialize) {
+    if (property in aSerializable) {
+      download[property] = aSerializable[property];
+    }
   }
 
   return download;
@@ -1193,6 +1281,13 @@ DownloadCopySaver.prototype = {
   
 
 
+
+
+  entityID: null,
+
+  
+
+
   execute: function DCS_execute(aSetProgressBytesFn, aSetPropertiesFn)
   {
     let copySaver = this;
@@ -1429,7 +1524,12 @@ DownloadCopySaver.prototype = {
   toSerializable: function ()
   {
     
-    return "copy";
+    if (!this.entityID) {
+      return "copy";
+    }
+
+    return { type: "copy",
+             entityID: this.entityID };
   },
 };
 
@@ -1443,8 +1543,11 @@ DownloadCopySaver.prototype = {
 
 
 DownloadCopySaver.fromSerializable = function (aSerializable) {
-  
-  return new DownloadCopySaver();
+  let saver = new DownloadCopySaver();
+  if ("entityID" in aSerializable) {
+    saver.entityID = aSerializable.entityID;
+  }
+  return saver;
 };
 
 
@@ -1577,6 +1680,13 @@ DownloadLegacySaver.prototype = {
   
 
 
+
+
+  entityID: null,
+
+  
+
+
   execute: function DLS_execute(aSetProgressBytesFn)
   {
     
@@ -1674,7 +1784,7 @@ DownloadLegacySaver.prototype = {
     
     
     
-    return "copy";
+    return DownloadCopySaver.prototype.toSerializable.call(this);
   },
 };
 
