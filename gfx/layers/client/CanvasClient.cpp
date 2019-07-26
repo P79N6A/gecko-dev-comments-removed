@@ -71,18 +71,17 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
       flags |= TextureFlags::NEEDS_Y_FLIP;
     }
 
+    gfx::SurfaceFormat surfaceFormat = gfx::ImageFormatToSurfaceFormat(format);
     if (aLayer->IsGLLayer()) {
       
       
       
-      mBuffer = CreateBufferTextureClient(gfx::ImageFormatToSurfaceFormat(format),
-                                          flags,
-                                          BackendType::CAIRO);
+      mBuffer = CreateBufferTextureClient(surfaceFormat, flags, BackendType::CAIRO);
     } else {
-      mBuffer = CreateTextureClientForDrawing(gfx::ImageFormatToSurfaceFormat(format),
-        flags,
-        gfxPlatform::GetPlatform()->GetPreferredCanvasBackend(),
-        aSize);
+      
+      
+      mBuffer = CreateBufferTextureClient(surfaceFormat, flags,
+        gfxPlatform::GetPlatform()->GetPreferredCanvasBackend());
     }
     MOZ_ASSERT(mBuffer->CanExposeDrawTarget());
     mBuffer->AllocateForSurface(aSize);
