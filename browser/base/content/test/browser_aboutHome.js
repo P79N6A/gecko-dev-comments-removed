@@ -9,14 +9,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "AboutHomeUtils",
   "resource:///modules/AboutHomeUtils.jsm");
 
-let gRightsVersion = Services.prefs.getIntPref("browser.rights.version");
-
 registerCleanupFunction(function() {
   
-  Services.prefs.clearUserPref("network.cookies.cookieBehavior");
-  Services.prefs.clearUserPref("network.cookie.lifetimePolicy");
-  Services.prefs.clearUserPref("browser.rights.override");
-  Services.prefs.clearUserPref("browser.rights." + gRightsVersion + ".shown");
+  try {
+    Services.prefs.clearUserPref("network.cookies.cookieBehavior");
+  } catch (ex) {}
+  try {
+    Services.prefs.clearUserPref("network.cookie.lifetimePolicy");
+  } catch (ex) {}
 });
 
 let gTests = [
@@ -137,15 +137,16 @@ let gTests = [
         let provider = reporter.getProvider("org.mozilla.searches");
         ok(provider, "Searches provider is available.");
 
-        let engineName = doc.documentElement.getAttribute("searchEngineName").toLowerCase();
+        let engineName = doc.documentElement.getAttribute("searchEngineName");
+        let id = Services.search.getEngineByName(engineName).identifier;
 
-        let m = provider.getMeasurement("counts", 1);
+        let m = provider.getMeasurement("counts", 2);
         m.getValues().then(function onValues(data) {
           let now = new Date();
           ok(data.days.hasDay(now), "Have data for today.");
 
           let day = data.days.getDay(now);
-          let field = engineName + ".abouthome";
+          let field = id + ".abouthome";
           ok(day.has(field), "Have data for about home on this engine.");
 
           
@@ -200,50 +201,6 @@ let gTests = [
   }
 },
 
-{
-  desc: "Check if the 'Know Your Rights default snippet is shown when 'browser.rights.override' pref is set",
-  beforeRun: function ()
-  {
-    Services.prefs.setBoolPref("browser.rights.override", false);
-  },
-  setup: function () { },
-  run: function (aSnippetsMap)
-  {
-    let doc = gBrowser.selectedTab.linkedBrowser.contentDocument;
-    let showRights = AboutHomeUtils.showKnowYourRights;
-
-    ok(showRights, "AboutHomeUtils.showKnowYourRights should be TRUE");
-
-    let snippetsElt = doc.getElementById("snippets");
-    ok(snippetsElt, "Found snippets element");
-    is(snippetsElt.getElementsByTagName("a")[0].href, "about:rights", "Snippet link is present.");
-
-    Services.prefs.clearUserPref("browser.rights.override");
-  }
-},
-
-{
-  desc: "Check if the 'Know Your Rights default snippet is NOT shown when 'browser.rights.override' pref is NOT set",
-  beforeRun: function ()
-  {
-    Services.prefs.setBoolPref("browser.rights.override", true);
-  },
-  setup: function () { },
-  run: function (aSnippetsMap)
-  {
-    let doc = gBrowser.selectedTab.linkedBrowser.contentDocument;
-    let rightsData = AboutHomeUtils.knowYourRightsData;
-    
-    ok(!rightsData, "AboutHomeUtils.knowYourRightsData should be FALSE");
-
-    let snippetsElt = doc.getElementById("snippets");
-    ok(snippetsElt, "Found snippets element");
-    ok(snippetsElt.getElementsByTagName("a")[0].href != "about:rights", "Snippet link should not point to about:rights.");
-
-    Services.prefs.clearUserPref("browser.rights.override");
-  }
-}
-
 ];
 
 function test()
@@ -253,9 +210,6 @@ function test()
   Task.spawn(function () {
     for (let test of gTests) {
       info(test.desc);
-
-      if (test.beforeRun)
-        yield test.beforeRun();
 
       let tab = yield promiseNewTabLoadEvent("about:home", "DOMContentLoaded");
 
@@ -273,8 +227,7 @@ function test()
       info("Cleanup");
       gBrowser.removeCurrentTab();
     }
-  }).then(finish, ex => {
-    ok(false, "Unexpected Exception: " + ex);
+
     finish();
   });
 }
@@ -294,11 +247,6 @@ function promiseNewTabLoadEvent(aUrl, aEventType="load")
   let tab = gBrowser.selectedTab = gBrowser.addTab(aUrl);
   info("Wait tab event: " + aEventType);
   tab.linkedBrowser.addEventListener(aEventType, function load(event) {
-    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
-        event.target.location.href == "about:blank") {
-      info("skipping spurious load event");
-      return;
-    }
     tab.linkedBrowser.removeEventListener(aEventType, load, true);
     info("Tab event received: " + aEventType);
     deferred.resolve(tab);
