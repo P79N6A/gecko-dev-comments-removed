@@ -22,13 +22,6 @@ class ImageContainer;
 
 class ImageLayer : public Layer {
 public:
-  enum ScaleMode {
-    SCALE_NONE,
-    SCALE_STRETCH,
-    SCALE_SENTINEL
-  
-  };
-
   
 
 
@@ -100,4 +93,4 @@ protected:
 }
 }
 
-#endif
+#endif 
