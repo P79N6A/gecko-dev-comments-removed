@@ -3764,17 +3764,17 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
 bool
 IonBuilder::jsop_setgname(HandlePropertyName name)
 {
+    RootedVarObject globalObj(cx, script->global());
     RootedVarId id(cx, NameToId(name));
+
+    JS_ASSERT(globalObj->isNative());
 
     bool canSpecialize;
     types::TypeSet *propertyTypes = oracle->globalPropertyWrite(script, pc, id, &canSpecialize);
 
     
-    if (!canSpecialize)
+    if (!canSpecialize || globalObj->watched())
         return jsop_setprop(name);
-
-    JSObject *globalObj = script->global();
-    JS_ASSERT(globalObj->isNative());
 
     
     
@@ -4480,8 +4480,7 @@ IonBuilder::jsop_defvar(uint32 index)
     PropertyName *name = script->getName(index);
 
     
-    unsigned attrs = JSPROP_ENUMERATE;
-    
+    unsigned attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT;
     if (JSOp(*pc) == JSOP_DEFCONST)
         attrs |= JSPROP_READONLY;
 
