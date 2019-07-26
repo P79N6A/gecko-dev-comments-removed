@@ -1785,6 +1785,26 @@ Navigator::HasIccManagerSupport(JSContext* ,
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && CheckPermission(win, "mobileconnection");
 }
+
+
+bool
+Navigator::HasWifiManagerSupport(JSContext* ,
+                                 JSObject* aGlobal)
+{
+  
+  
+  
+
+  nsIPrincipal* principal = nsContentUtils::GetObjectPrincipal(aGlobal);
+
+  nsCOMPtr<nsIPermissionManager> permMgr =
+    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE(permMgr, false);
+
+  uint32_t permission = nsIPermissionManager::DENY_ACTION;
+  permMgr->TestPermissionFromPrincipal(principal, "wifi-manage", &permission);
+  return nsIPermissionManager::ALLOW_ACTION == permission;
+}
 #endif 
 
 #ifdef MOZ_B2G_BT
