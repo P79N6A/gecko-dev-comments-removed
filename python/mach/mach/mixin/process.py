@@ -123,3 +123,4 @@ class ProcessExecutionMixin(LoggingMixin):
         
         
         cline = subprocess.list2cmdline([prog] + args[1:])
+        return [_current_shell, '-c', cline]
