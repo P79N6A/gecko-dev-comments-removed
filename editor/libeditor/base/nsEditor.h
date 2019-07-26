@@ -791,45 +791,6 @@ public:
 
   virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode) { return nullptr; }
 
-  NS_STACK_CLASS class HandlingTrustedAction
-  {
-  public:
-    explicit HandlingTrustedAction(nsEditor* aSelf, bool aIsTrusted = true)
-    {
-      Init(aSelf, aIsTrusted);
-    }
-
-    HandlingTrustedAction(nsEditor* aSelf, nsIDOMEvent* aEvent);
-
-    ~HandlingTrustedAction()
-    {
-      mEditor->mHandlingTrustedAction = mWasHandlingTrustedAction;
-      mEditor->mHandlingActionCount--;
-    }
-
-  private:
-    nsRefPtr<nsEditor> mEditor;
-    bool mWasHandlingTrustedAction;
-
-    void Init(nsEditor* aSelf, bool aIsTrusted)
-    {
-      MOZ_ASSERT(aSelf);
-
-      mEditor = aSelf;
-      mWasHandlingTrustedAction = aSelf->mHandlingTrustedAction;
-      if (aIsTrusted) {
-        
-        
-        if (aSelf->mHandlingActionCount == 0) {
-          aSelf->mHandlingTrustedAction = true;
-        }
-      } else {
-        aSelf->mHandlingTrustedAction = false;
-      }
-      aSelf->mHandlingActionCount++;
-    }
-  };
-
 protected:
   enum Tristate {
     eTriUnset,
@@ -869,7 +830,6 @@ protected:
 
   int32_t           mPlaceHolderBatch;   
   EditAction        mAction;             
-  uint32_t          mHandlingActionCount;
 
   uint32_t          mIMETextOffset;    
   uint32_t          mIMEBufferLength;  
@@ -885,7 +845,6 @@ protected:
   bool mShouldTxnSetSelection;  
   bool mDidPreDestroy;    
   bool mDidPostCreate;    
-  bool mHandlingTrustedAction;
   bool mDispatchInputEvent;
 
   friend bool NSCanUnload(nsISupports* serviceMgr);

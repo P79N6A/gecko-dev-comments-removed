@@ -432,9 +432,6 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
   }
 
   
-  nsEditor::HandlingTrustedAction operation(mEditor, aKeyEvent);
-
-  
   
   
   
@@ -584,9 +581,6 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
   if (mEditor->IsReadonly() || mEditor->IsDisabled()) {
     return NS_OK;
   }
-
-  
-  nsEditor::HandlingTrustedAction operation(mEditor, aTextEvent);
 
   return mEditor->UpdateIMEComposition(composedText, textRangeList);
 }
@@ -825,9 +819,6 @@ nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
   if (!mEditor->IsAcceptableInputEvent(aCompositionEvent)) {
     return;
   }
-
-  
-  nsEditor::HandlingTrustedAction operation(mEditor, aCompositionEvent);
 
   mEditor->EndIMEComposition();
 }
