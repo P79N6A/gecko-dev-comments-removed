@@ -125,6 +125,7 @@ public:
     PAINTING,
     EVENT_DELIVERY,
     PLUGIN_GEOMETRY,
+    IMAGE_VISIBILITY,
     OTHER
   };
   nsDisplayListBuilder(nsIFrame* aReferenceFrame, Mode aMode, bool aBuildCaret);
@@ -158,6 +159,11 @@ public:
 
 
   bool IsForPainting() { return mMode == PAINTING; }
+  
+
+
+
+  bool IsForImageVisibility() { return mMode == IMAGE_VISIBILITY; }
   bool WillComputePluginGeometry() { return mWillComputePluginGeometry; }
   
 
