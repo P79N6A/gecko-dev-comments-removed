@@ -30,7 +30,7 @@ public class HomeListView extends ListView
     private HomeContextMenuInfo mContextMenuInfo;
 
     
-    private OnUrlOpenListener mUrlOpenListener;
+    protected OnUrlOpenListener mUrlOpenListener;
 
     
     private boolean mShowTopDivider;
