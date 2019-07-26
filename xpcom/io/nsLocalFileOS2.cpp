@@ -89,12 +89,12 @@ myLL_L2II(int64_t result, int32_t *hi, int32_t *lo )
 
     
     a64 = result >> 32;
-    LL_L2I(*hi, a64);
+    *hi = int32_t(a64);
 
     
     b64 = result << 32;
     a64 = b64 >> 32;
-    LL_L2I(*lo, a64);
+    *lo = int32_t(a64);
 }
 
 
