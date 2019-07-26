@@ -6497,80 +6497,6 @@ private:
   nsCOMPtr<nsIDocument> mOwnerDoc;
 };
 
-
-
-
-
-
-
-
-
-
-
-static nsresult
-GetContextAndScope(nsIDocument* aOldDocument, nsIDocument* aNewDocument,
-                   nsCxPusher& aPusher,
-                   JSContext** aCx, JSObject** aNewScope)
-{
-  MOZ_ASSERT(aOldDocument);
-  MOZ_ASSERT(aNewDocument);
-
-  *aCx = nullptr;
-  *aNewScope = nullptr;
-
-  JSObject* newScope = aNewDocument->GetWrapper();
-  JSObject* global;
-  if (!newScope) {
-    nsIGlobalObject *newSGO = aNewDocument->GetScopeObject();
-
-    if (!newSGO || !(global = newSGO->GetGlobalJSObject())) {
-      return NS_OK;
-    }
-  }
-
-  JSContext* cx = nsContentUtils::GetContextFromDocument(aOldDocument);
-  if (!cx) {
-    cx = nsContentUtils::GetContextFromDocument(aNewDocument);
-
-    if (!cx) {
-      
-      
-      
-
-      nsIThreadJSContextStack* stack = nsContentUtils::ThreadJSContextStack();
-      stack->Peek(&cx);
-
-      if (!cx) {
-        cx = stack->GetSafeJSContext();
-
-        if (!cx) {
-          
-          NS_WARNING("No context reachable in GetContextAndScopes()!");
-
-          return NS_ERROR_NOT_AVAILABLE;
-        }
-      }
-    }
-  }
-
-  if (cx) {
-    aPusher.Push(cx);
-  }
-  if (!newScope && cx) {
-    JS::Value v;
-    nsresult rv = nsContentUtils::WrapNative(cx, global, aNewDocument,
-                                             aNewDocument, &v);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    newScope = JSVAL_TO_OBJECT(v);
-  }
-
-  *aCx = cx;
-  *aNewScope = newScope;
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsDocument::AdoptNode(nsIDOMNode *aAdoptedNode, nsIDOMNode **aResult)
 {
@@ -6687,19 +6613,32 @@ nsIDocument::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv)
   nsCOMPtr<nsIDocument> oldDocument = adoptedNode->OwnerDoc();
   bool sameDocument = oldDocument == this;
 
-  JSContext *cx = nullptr;
+  AutoJSContext cx;
   JSObject *newScope = nullptr;
-  nsCxPusher pusher;
   if (!sameDocument) {
-    rv = GetContextAndScope(oldDocument, this, pusher, &cx, &newScope);
-    if (rv.Failed()) {
-      return nullptr;
+    newScope = GetWrapper();
+    if (!newScope && GetScopeObject() && GetScopeObject()->GetGlobalJSObject()) {
+      
+      
+      
+      
+      JSObject *global = GetScopeObject()->GetGlobalJSObject();
+
+      JS::Value v;
+      rv = nsContentUtils::WrapNative(cx, global, this, this, &v, nullptr,
+                                       false);
+      if (rv.Failed())
+        return nullptr;
+      newScope = &v.toObject();
     }
   }
 
   nsCOMArray<nsINode> nodesWithProperties;
   rv = nsNodeUtils::Adopt(adoptedNode, sameDocument ? nullptr : mNodeInfoManager,
-                          cx, newScope, nodesWithProperties);
+                          
+                          
+                          newScope ? (JSContext*) cx : nullptr,
+                          newScope, nodesWithProperties);
   if (rv.Failed()) {
     
     
