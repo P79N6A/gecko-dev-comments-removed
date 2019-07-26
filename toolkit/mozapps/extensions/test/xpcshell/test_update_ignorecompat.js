@@ -5,7 +5,6 @@
 
 
 
-const PREF_GETADDONS_BYIDS_PERFORMANCE = "extensions.getAddons.getWithPerformance.url";
 const PREF_GETADDONS_CACHE_ENABLED = "extensions.getAddons.cache.enabled";
 
 
