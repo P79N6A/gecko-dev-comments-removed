@@ -48,10 +48,6 @@ static long GetPageSize()
   GetSystemInfo(&si);
   return si.dwPageSize;
 }
-static void* valloc(size_t size)
-{
-  return VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-}
 #else
 #define PAGE_SIZE sysconf(_SC_PAGESIZE)
 #endif
@@ -2335,8 +2331,9 @@ RunTestMode(FILE* fp)
 
 
 
-  void* z = valloc(1);                  
-  UseItOrLoseIt(z);
+  
+
+
 
 
   
@@ -2352,7 +2349,7 @@ RunTestMode(FILE* fp)
   free(e3);
 
 
-  free(z);
+
 
   
   Dump(writer);
