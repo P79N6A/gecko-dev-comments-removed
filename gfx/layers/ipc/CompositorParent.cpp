@@ -233,7 +233,9 @@ CompositorParent::RecvWillStop()
   RemoveCompositor(mCompositorID);
 
   
-  mLayerManager->Destroy();
+  if (mLayerManager) {
+    mLayerManager->Destroy();
+  }
 
   return true;
 }
@@ -278,6 +280,18 @@ CompositorParent::RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
   *aOutSnapshot = aInSnapshot;
   return true;
 }
+
+void
+CompositorParent::ActorDestroy(ActorDestroyReason why)
+{
+  mPaused = true;
+  RemoveCompositor(mCompositorID);
+
+  if (mLayerManager) {
+    mLayerManager->Destroy();
+  }
+}
+
 
 void
 CompositorParent::ScheduleRenderOnCompositorThread()
