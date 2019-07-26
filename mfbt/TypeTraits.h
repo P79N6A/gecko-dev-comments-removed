@@ -130,6 +130,23 @@ struct IsPointer : FalseType {};
 template<typename T>
 struct IsPointer<T*> : TrueType {};
 
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsLvalueReference : FalseType {};
+
+template<typename T>
+struct IsLvalueReference<T&> : TrueType {};
+
 namespace detail {
 
 
@@ -423,16 +440,6 @@ template<typename From, typename To>
 struct IsConvertible
   : IntegralConstant<bool, detail::ConvertibleTester<From, To>::value>
 {};
-
-
-
-
-
-template<typename T>
-struct IsLvalueReference : FalseType {};
-
-template<typename T>
-struct IsLvalueReference<T&> : TrueType {};
 
 
 
