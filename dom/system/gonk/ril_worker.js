@@ -738,6 +738,11 @@ let RIL = {
   
 
 
+  currentConference: {state: null, participants: {}},
+
+  
+
+
   currentDataCalls: {},
 
   
@@ -2067,6 +2072,29 @@ let RIL = {
     if (call && call.state == CALL_STATE_HOLDING) {
       Buf.simpleRequest(REQUEST_SWITCH_HOLDING_AND_ACTIVE);
     }
+  },
+
+  
+  _hasConferenceRequest: false,
+
+  conferenceCall: function conferenceCall(options) {
+    this._hasConferenceRequest = true;
+    Buf.simpleRequest(REQUEST_CONFERENCE, options);
+  },
+
+  separateCall: function separateCall(options) {
+    Buf.newParcel(REQUEST_SEPARATE_CONNECTION, options);
+    Buf.writeUint32(1);
+    Buf.writeUint32(options.callIndex);
+    Buf.sendParcel();
+  },
+
+  holdConference: function holdConference() {
+    Buf.simpleRequest(REQUEST_SWITCH_HOLDING_AND_ACTIVE);
+  },
+
+  resumeConference: function resumeConference() {
+    Buf.simpleRequest(REQUEST_SWITCH_HOLDING_AND_ACTIVE);
   },
 
   
@@ -3881,6 +3909,9 @@ let RIL = {
 
 
   _processCalls: function _processCalls(newCalls) {
+    let conferenceChanged = false;
+    let clearConferenceRequest = false;
+
     
     
     
@@ -3894,13 +3925,26 @@ let RIL = {
       if (!newCall) {
         
         
-        delete this.currentCalls[currentCall.callIndex];
-        this.getFailCauseCode(currentCall);
+
+        if (this.currentConference.participants[currentCall.callIndex]) {
+          conferenceChanged = true;
+          currentCall.isConference = false;
+          delete this.currentConference.participants[currentCall.callIndex];
+          delete this.currentCalls[currentCall.callIndex];
+          
+          
+          
+          this._handleDisconnectedCall(currentCall);
+        } else {
+          delete this.currentCalls[currentCall.callIndex];
+          this.getFailCauseCode(currentCall);
+        }
         continue;
       }
 
       
-      if (newCall.state == currentCall.state) {
+      if (newCall.state == currentCall.state &&
+          newCall.isMpty == currentCall.isMpty) {
         continue;
       }
 
@@ -3916,8 +3960,71 @@ let RIL = {
       if (!currentCall.started && newCall.state == CALL_STATE_ACTIVE) {
         currentCall.started = new Date().getTime();
       }
-      currentCall.state = newCall.state;
-      this._handleChangedCallState(currentCall);
+
+      if (currentCall.isMpty == newCall.isMpty &&
+          newCall.state != currentCall.state) {
+        currentCall.state = newCall.state;
+        if (currentCall.isConference) {
+          conferenceChanged = true;
+        }
+        this._handleChangedCallState(currentCall);
+        continue;
+      }
+
+      
+      
+      
+
+      
+      if (!currentCall.isMpty && newCall.isMpty) {
+        if (this._hasConferenceRequest) {
+          conferenceChanged = true;
+          clearConferenceRequest = true;
+          currentCall.state = newCall.state;
+          currentCall.isMpty = newCall.isMpty;
+          currentCall.isConference = true;
+          this.currentConference.participants[currentCall.callIndex] = currentCall;
+          this._handleChangedCallState(currentCall);
+        } else if (currentCall.isConference) {
+          
+          conferenceChanged = true;
+          currentCall.state = newCall.state;
+          currentCall.isMpty = newCall.isMpty;
+          this.currentConference.participants[currentCall.callIndex] = currentCall;
+          this._handleChangedCallState(currentCall);
+        } else {
+          
+          
+          currentCall.state = newCall.state;
+          this._handleChangedCallState(currentCall);
+        }
+      } else if (currentCall.isMpty && !newCall.isMpty) {
+        if (!this.currentConference.participants[newCall.callIndex]) {
+          continue;
+        }
+
+        
+        
+        
+        
+        if (newCall.state != CALL_STATE_HOLDING) {
+          delete this.currentConference.participants[newCall.callIndex];
+          currentCall.state = newCall.state;
+          currentCall.isMpty = newCall.isMpty;
+          currentCall.isConference = false;
+          conferenceChanged = true;
+          this._handleChangedCallState(currentCall);
+          continue;
+        }
+
+        if (!this.currentConference.cache) {
+          this.currentConference.cache = {};
+        }
+        this.currentConference.cache[currentCall.callIndex] = newCall;
+        currentCall.state = newCall.state;
+        currentCall.isMpty = newCall.isMpty;
+        conferenceChanged = true;
+      }
     }
 
     
@@ -3944,14 +4051,67 @@ let RIL = {
         }
 
         
-        this.currentCalls[newCall.callIndex] = newCall;
+        if (newCall.isMpty) {
+          conferenceChanged = true;
+          newCall.isConference = true;
+          this.currentConference.participants[newCall.callIndex] = newCall;
+        } else {
+          newCall.isConference = false;
+        }
         this._handleChangedCallState(newCall);
+        this.currentCalls[newCall.callIndex] = newCall;
       }
+    }
+
+    if (clearConferenceRequest) {
+      this._hasConferenceRequest = false;
+    }
+    if (conferenceChanged) {
+      this._ensureConference();
     }
 
     
     
     this.muted = (Object.getOwnPropertyNames(this.currentCalls).length === 0);
+  },
+
+  _ensureConference: function _ensureConference() {
+    let oldState = this.currentConference.state;
+    let remaining = Object.keys(this.currentConference.participants);
+
+    if (remaining.length == 1) {
+      
+      let call = this.currentCalls[remaining[0]];
+      call.isConference = false;
+      this._handleChangedCallState(call);
+      delete this.currentConference.participants[call.callIndex];
+    } else if (remaining.length > 1) {
+      for each (let call in this.currentConference.cache) {
+        call.isConference = true;
+        this.currentConference.participants[call.callIndex] = call;
+        this.currentCalls[call.callIndex] = call;
+        this._handleChangedCallState(call);
+      }
+    }
+    delete this.currentConference.cache;
+
+    
+    let state = null;
+    for each (let call in this.currentConference.participants) {
+      if (state && state != call.state) {
+        
+        
+        state = null;
+        break;
+      }
+      state = call.state;
+    }
+    if (oldState != state) {
+      this.currentConference.state = state;
+      let message = {rilMessageType: "conferenceCallStateChanged",
+                     state: state};
+      this.sendChromeMessage(message);
+    }
   },
 
   _handleChangedCallState: function _handleChangedCallState(changedCall) {
@@ -5276,7 +5436,12 @@ RIL[REQUEST_SWITCH_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_HOLDING_AND_ACT
   
   this.getCurrentCalls();
 };
-RIL[REQUEST_CONFERENCE] = null;
+RIL[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
+  if (options.rilRequestError) {
+    this._hasConferenceRequest = false;
+    return;
+  }
+};
 RIL[REQUEST_UDUB] = null;
 RIL[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length, options) {
   let num = 0;
