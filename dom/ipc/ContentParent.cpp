@@ -1249,13 +1249,93 @@ ContentParent::ContentParent(mozIApplication* aApp,
 
     Open(mSubprocess->GetChannel(), mSubprocess->GetOwnedChildProcessHandle());
 
-    InitInternal(aInitialPriority,
-                 true, 
-                 true  );
+    
+    
+    
+    
+    
+    
+    ProcessPriorityManager::SetProcessPriority(this, aInitialPriority);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    bool useOffMainThreadCompositing = !!CompositorParent::CompositorLoop();
+    if (useOffMainThreadCompositing) {
+        DebugOnly<bool> opened = PCompositor::Open(this);
+        MOZ_ASSERT(opened);
+
+        if (Preferences::GetBool("layers.async-video.enabled",false)) {
+            opened = PImageBridge::Open(this);
+            MOZ_ASSERT(opened);
+        }
+    }
+
+    nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
+    nsChromeRegistryChrome* chromeRegistry =
+        static_cast<nsChromeRegistryChrome*>(registrySvc.get());
+    chromeRegistry->SendRegisteredChrome(this);
+    mMessageManager = nsFrameMessageManager::NewProcessMessageManager(this);
+
+    if (gAppData) {
+        nsCString version(gAppData->version);
+        nsCString buildID(gAppData->buildID);
+        nsCString name(gAppData->name);
+        nsCString UAName(gAppData->UAName);
+
+        
+        unused << SendAppInfo(version, buildID, name, UAName);
+    }
+
+    nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
+    if (sheetService) {
+        
+        
+
+        nsCOMArray<nsIStyleSheet>& agentSheets = *sheetService->AgentStyleSheets();
+        for (uint32_t i = 0; i < agentSheets.Length(); i++) {
+            URIParams uri;
+            SerializeURI(agentSheets[i]->GetSheetURI(), uri);
+            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AGENT_SHEET);
+        }
+
+        nsCOMArray<nsIStyleSheet>& userSheets = *sheetService->UserStyleSheets();
+        for (uint32_t i = 0; i < userSheets.Length(); i++) {
+            URIParams uri;
+            SerializeURI(userSheets[i]->GetSheetURI(), uri);
+            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::USER_SHEET);
+        }
+
+        nsCOMArray<nsIStyleSheet>& authorSheets = *sheetService->AuthorStyleSheets();
+        for (uint32_t i = 0; i < authorSheets.Length(); i++) {
+            URIParams uri;
+            SerializeURI(authorSheets[i]->GetSheetURI(), uri);
+            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AUTHOR_SHEET);
+        }
+    }
+
+#ifdef MOZ_CONTENT_SANDBOX
+    
+    
+    
+    
+    
+    
+    if (aOSPrivileges != base::PRIVILEGES_INHERIT) {
+        if (!SendSetProcessPrivileges(base::PRIVILEGES_INHERIT)) {
+            KillHard();
+        }
+    }
+#endif
 }
 
 #ifdef MOZ_NUWA_PROCESS
-static const mozilla::ipc::FileDescriptor*
+static const FileDescriptor*
 FindFdProtocolFdMapping(const nsTArray<ProtocolFdMapping>& aFds,
                         ProtocolId aProtoId)
 {
@@ -1321,9 +1401,8 @@ ContentParent::ContentParent(ContentParent* aTemplate,
         priority = PROCESS_PRIORITY_FOREGROUND;
     }
 
-    InitInternal(priority,
-                 false, 
-                 false  );
+    ProcessPriorityManager::SetProcessPriority(this, priority);
+    mMessageManager = nsFrameMessageManager::NewProcessMessageManager(this);
 }
 #endif  
 
@@ -1351,101 +1430,6 @@ ContentParent::~ContentParent()
         MOZ_ASSERT(!sAppContentParents ||
                    sAppContentParents->Get(mAppManifestURL) != this);
     }
-}
-
-void
-ContentParent::InitInternal(ProcessPriority aInitialPriority,
-                            bool aSetupOffMainThreadCompositing,
-                            bool aSendRegisteredChrome)
-{
-    
-    
-    
-    
-    
-    
-    ProcessPriorityManager::SetProcessPriority(this, aInitialPriority);
-
-    if (aSetupOffMainThreadCompositing) {
-        
-        
-        
-        
-        
-        
-        
-        
-        bool useOffMainThreadCompositing = !!CompositorParent::CompositorLoop();
-        if (useOffMainThreadCompositing) {
-            DebugOnly<bool> opened = PCompositor::Open(this);
-            MOZ_ASSERT(opened);
-
-            if (Preferences::GetBool("layers.async-video.enabled",false)) {
-                opened = PImageBridge::Open(this);
-                MOZ_ASSERT(opened);
-            }
-        }
-    }
-
-    if (aSendRegisteredChrome) {
-        nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
-        nsChromeRegistryChrome* chromeRegistry =
-            static_cast<nsChromeRegistryChrome*>(registrySvc.get());
-        chromeRegistry->SendRegisteredChrome(this);
-    }
-
-    mMessageManager = nsFrameMessageManager::NewProcessMessageManager(this);
-
-    if (gAppData) {
-        nsCString version(gAppData->version);
-        nsCString buildID(gAppData->buildID);
-        nsCString name(gAppData->name);
-        nsCString UAName(gAppData->UAName);
-
-        
-        unused << SendAppInfo(version, buildID, name, UAName);
-    }
-
-    nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
-    if (sheetService) {
-        
-        
-
-        nsCOMArray<nsIStyleSheet>& agentSheets = *sheetService->AgentStyleSheets();
-        for (uint32_t i = 0; i < agentSheets.Length(); i++) {
-            URIParams uri;
-            SerializeURI(agentSheets[i]->GetSheetURI(), uri);
-            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AGENT_SHEET);
-        }
-
-        nsCOMArray<nsIStyleSheet>& userSheets = *sheetService->UserStyleSheets();
-        for (uint32_t i = 0; i < userSheets.Length(); i++) {
-            URIParams uri;
-            SerializeURI(userSheets[i]->GetSheetURI(), uri);
-            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::USER_SHEET);
-        }
-
-        nsCOMArray<nsIStyleSheet>& authorSheets = *sheetService->AuthorStyleSheets();
-        for (uint32_t i = 0; i < authorSheets.Length(); i++) {
-            URIParams uri;
-            SerializeURI(authorSheets[i]->GetSheetURI(), uri);
-            unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AUTHOR_SHEET);
-        }
-    }
-
-#ifdef MOZ_CONTENT_SANDBOX
-    
-    
-    
-    
-    
-    
-    if (mOSPrivileges != base::PRIVILEGES_INHERIT) {
-        if (!SendSetProcessPrivileges(base::PRIVILEGES_INHERIT)) {
-            KillHard();
-        }
-    }
-#endif
 }
 
 bool
