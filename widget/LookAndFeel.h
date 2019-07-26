@@ -365,7 +365,14 @@ public:
 
 
 
-    eIntID_SwipeAnimationEnabled
+    eIntID_SwipeAnimationEnabled,
+
+    
+
+
+
+
+    eIntID_PhysicalHomeButton
   };
 
   
