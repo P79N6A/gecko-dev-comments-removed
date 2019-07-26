@@ -14,6 +14,8 @@
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "AudioContext.h"
+#include "AudioSegment.h"
+#include "AudioNodeEngine.h"
 
 struct JSContext;
 class JSObject;
@@ -24,13 +26,18 @@ class ErrorResult;
 
 namespace dom {
 
+
+
+
+
+
 class AudioBuffer MOZ_FINAL : public nsISupports,
                               public nsWrapperCache,
                               public EnableWebAudioCheck
 {
 public:
   AudioBuffer(AudioContext* aContext, uint32_t aLength,
-              uint32_t aSampleRate);
+              float aSampleRate);
   ~AudioBuffer();
 
   
@@ -54,7 +61,7 @@ public:
     return mSampleRate;
   }
 
-  uint32_t Length() const
+  int32_t Length() const
   {
     return mLength;
   }
@@ -66,16 +73,29 @@ public:
 
   uint32_t NumberOfChannels() const
   {
-    return mChannels.Length();
+    return mJSChannels.Length();
   }
 
+  
+
+
+
   JSObject* GetChannelData(JSContext* aJSContext, uint32_t aChannel,
-                           ErrorResult& aRv) const;
+                           ErrorResult& aRv);
+
   JSObject* GetChannelData(uint32_t aChannel) const {
     
-    MOZ_ASSERT(aChannel < mChannels.Length());
-    return mChannels[aChannel];
+    MOZ_ASSERT(aChannel < mJSChannels.Length());
+    return mJSChannels[aChannel];
   }
+
+  
+
+
+
+  ThreadSharedFloatArrayBufferList* GetThreadSharedChannelsForRate(JSContext* aContext,
+                                                                   uint32_t aRate,
+                                                                   uint32_t* aLength);
 
   
   
@@ -83,11 +103,24 @@ public:
                                              uint32_t aChannel,
                                              void* aContents);
 
-private:
+protected:
+  void RestoreJSChannelData(JSContext* aJSContext);
   void ClearJSChannels();
 
   nsRefPtr<AudioContext> mContext;
-  FallibleTArray<JSObject*> mChannels;
+  
+  nsAutoTArray<JSObject*,2> mJSChannels;
+
+  
+  
+  nsRefPtr<ThreadSharedFloatArrayBufferList> mSharedChannels;
+
+  
+  
+  nsRefPtr<ThreadSharedFloatArrayBufferList> mResampledChannels;
+  uint32_t mResampledChannelsRate;
+  uint32_t mResampledChannelsLength;
+
   uint32_t mLength;
   float mSampleRate;
 };
