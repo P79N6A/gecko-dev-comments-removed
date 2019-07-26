@@ -2532,10 +2532,15 @@ void
 Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled)
 {
     Instruction *inst = (Instruction *)inst_.raw();
-    JS_ASSERT(inst->is<InstMovW>());
+    JS_ASSERT(inst->is<InstMovW>() || inst->is<InstLDR>());
 
-    inst = inst->next();
-    JS_ASSERT(inst->is<InstMovT>());
+    if (inst->is<InstMovW>()) {
+        
+        
+        
+        inst = inst->next();
+        JS_ASSERT(inst->is<InstMovT>());
+    }
 
     inst = inst->next();
     JS_ASSERT(inst->is<InstNOP>() || inst->is<InstBLXReg>());

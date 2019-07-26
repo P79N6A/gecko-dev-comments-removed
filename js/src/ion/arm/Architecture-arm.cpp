@@ -48,7 +48,7 @@ uint32_t getFlags()
                 close(fd);
                 flags = aux.a_un.a_val;
                 isSet = true;
-#ifdef __ARM_ARCH_7__
+#if defined(__ARM_ARCH_7__) || defined (__ARM_ARCH_7A__)
                 
                 
                 
