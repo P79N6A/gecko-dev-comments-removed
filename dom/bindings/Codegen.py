@@ -647,13 +647,16 @@ class CGHeaders(CGWrapper):
             dictionary, if passed, to decide what to do with interface types.
             """
             assert not descriptor or not dictionary
+            
+            
+            if dictionary:
+                headerSet = declareIncludes
+            else:
+                headerSet = bindingHeaders
             if t.nullable():
-                if dictionary:
-                    
-                    
-                    declareIncludes.add("mozilla/dom/Nullable.h")
-                else:
-                    bindingHeaders.add("mozilla/dom/Nullable.h")
+                
+                
+                headerSet.add("mozilla/dom/Nullable.h")
             unrolled = t.unroll()
             if unrolled.isUnion():
                 
@@ -664,17 +667,12 @@ class CGHeaders(CGWrapper):
                     declareIncludes.add("mozilla/dom/UnionTypes.h")
             elif unrolled.isDate():
                 if dictionary or jsImplementedDescriptors:
-                    headerSet = declareIncludes
+                    declareIncludes.add("mozilla/dom/Date.h")
                 else:
-                    headerSet = bindingHeaders
-                headerSet.add("mozilla/dom/Date.h")
+                    bindingHeaders.add("mozilla/dom/Date.h")
             elif unrolled.isInterface():
                 if unrolled.isSpiderMonkeyInterface():
                     bindingHeaders.add("jsfriendapi.h")
-                    if dictionary:
-                        headerSet = declareIncludes
-                    else:
-                        headerSet = bindingHeaders
                     headerSet.add("mozilla/dom/TypedArray.h")
                 else:
                     providers = getRelevantProviders(descriptor, config)
@@ -683,40 +681,37 @@ class CGHeaders(CGWrapper):
                             typeDesc = p.getDescriptor(unrolled.inner.identifier.name)
                         except NoSuchDescriptorError:
                             continue
-                        if dictionary:
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            declareIncludes.add(typeDesc.headerFile)
-                        else:
-                            implementationIncludes.add(typeDesc.headerFile)
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        headerSet.add(typeDesc.headerFile)
             elif unrolled.isDictionary():
-                bindingHeaders.add(self.getDeclarationFilename(unrolled.inner))
+                headerSet.add(self.getDeclarationFilename(unrolled.inner))
             elif unrolled.isCallback():
                 
-                bindingHeaders.add(self.getDeclarationFilename(t.unroll()))
+                headerSet.add(self.getDeclarationFilename(t.unroll()))
             elif unrolled.isFloat() and not unrolled.isUnrestricted():
                 
                 bindingHeaders.add("mozilla/FloatingPoint.h")
                 bindingHeaders.add("mozilla/dom/PrimitiveConversions.h")
             elif unrolled.isEnum():
                 filename = self.getDeclarationFilename(unrolled.inner)
-                
-                
-                if filename != prefix + ".h":
-                    declareIncludes.add(filename)
+                declareIncludes.add(filename)
             elif unrolled.isPrimitive():
                 bindingHeaders.add("mozilla/dom/PrimitiveConversions.h")
 
         map(addHeadersForType,
             getAllTypes(descriptors + callbackDescriptors, dictionaries,
                         callbacks))
+
+        
+        declareIncludes.discard(prefix + ".h");
 
         
         
@@ -9867,7 +9862,8 @@ class CGExampleRoot(CGThing):
                                 "mozilla/Attributes.h",
                                 "mozilla/ErrorResult.h" ],
                               [ "%s.h" % interfaceName,
-                                "mozilla/dom/%sBinding.h" % interfaceName,
+                                ("mozilla/dom/%s" %
+                                 CGHeaders.getDeclarationFilename(descriptor.interface)),
                                 "nsContentUtils.h" ], "", self.root);
 
         
