@@ -1407,19 +1407,6 @@ BrowserGlue.prototype = {
       }
     }
 
-    if (currentUIVersion < 6) {
-      
-      let toolboxResource = this._rdf.GetResource(BROWSER_DOCURL + "navigator-toolbox");
-      let tabsOnTopResource = this._rdf.GetResource("tabsontop");
-      let tabsOnTopAttribute = this._getPersist(toolboxResource, tabsOnTopResource);
-      if (tabsOnTopAttribute)
-        Services.prefs.setBoolPref("browser.tabs.onTop", tabsOnTopAttribute == "true");
-    }
-
-    
-    
-    
-
     if (currentUIVersion < 8) {
       
       let uri = Services.prefs.getComplexValue("browser.startup.homepage",
@@ -1511,8 +1498,6 @@ BrowserGlue.prototype = {
                               "chromeappsstore.sqlite");
       OS.File.remove(path);
     }
-
-    
 
     if (currentUIVersion < 16) {
       let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
