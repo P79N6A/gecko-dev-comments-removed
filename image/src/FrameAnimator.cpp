@@ -88,44 +88,44 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
   
   
   
-  bool needToWait = !mDoneDecoding &&
-                    mFrameBlender.RawGetFrame(nextFrameIndex) &&
-                    !mFrameBlender.RawGetFrame(nextFrameIndex)->ImageComplete();
+  bool canDisplay = mDoneDecoding ||
+                    (mFrameBlender.RawGetFrame(nextFrameIndex) &&
+                     mFrameBlender.RawGetFrame(nextFrameIndex)->ImageComplete());
 
-  if (needToWait) {
+  if (!canDisplay) {
     
     
     return ret;
-  } else {
+  }
+
+  
+  
+  if (mFrameBlender.GetNumFrames() == nextFrameIndex) {
     
+
     
-    if (mFrameBlender.GetNumFrames() == nextFrameIndex) {
-      
-
-      
-      if (mLoopCounter < 0 && mFrameBlender.GetLoopCount() >= 0) {
-        mLoopCounter = mFrameBlender.GetLoopCount();
-      }
-
-      
-      if (mAnimationMode == imgIContainer::kLoopOnceAnimMode || mLoopCounter == 0) {
-        ret.animationFinished = true;
-      }
-
-      nextFrameIndex = 0;
-
-      if (mLoopCounter > 0) {
-        mLoopCounter--;
-      }
-
-      
-      if (ret.animationFinished) {
-        return ret;
-      }
+    if (mLoopCounter < 0 && mFrameBlender.GetLoopCount() >= 0) {
+      mLoopCounter = mFrameBlender.GetLoopCount();
     }
 
-    timeout = mFrameBlender.GetTimeoutForFrame(nextFrameIndex);
+    
+    if (mAnimationMode == imgIContainer::kLoopOnceAnimMode || mLoopCounter == 0) {
+      ret.animationFinished = true;
+    }
+
+    nextFrameIndex = 0;
+
+    if (mLoopCounter > 0) {
+      mLoopCounter--;
+    }
+
+    
+    if (ret.animationFinished) {
+      return ret;
+    }
   }
+
+  timeout = mFrameBlender.GetTimeoutForFrame(nextFrameIndex);
 
   
   if (timeout < 0) {
