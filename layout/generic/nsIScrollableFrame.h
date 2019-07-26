@@ -254,6 +254,11 @@ public:
 
 
 
+  virtual bool IsProcessingAsyncScroll() = 0;
+  
+
+
+
   virtual void ResetScrollPositionForLayerPixelAlignment() = 0;
   
 
