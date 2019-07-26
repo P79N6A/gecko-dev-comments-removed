@@ -85,7 +85,7 @@ class TypeDescrSet {
     
     
 
-    bool empty();
+    bool empty() const;
     bool allOfKind(TypeDescr::Kind kind);
 
     
@@ -102,10 +102,18 @@ class TypeDescrSet {
     
     bool allHaveSameSize(size_t *out);
 
+    types::TemporaryTypeSet *suitableTypeSet(IonBuilder &builder,
+                                             const Class *knownClass);
+
     
     
 
     TypeDescr::Kind kind();
+
+    
+    
+    
+    JSObject *knownPrototype() const;
 
     
     

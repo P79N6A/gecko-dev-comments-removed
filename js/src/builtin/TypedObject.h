@@ -135,6 +135,14 @@ static T ConvertScalar(double d)
 class TypeDescr : public JSObject
 {
   public:
+    
+    
+    
+    
+    
+    
+    static const Class class_;
+
     enum Kind {
         Scalar = JS_TYPEREPR_SCALAR_KIND,
         Reference = JS_TYPEREPR_REFERENCE_KIND,
@@ -271,8 +279,20 @@ class ReferenceTypeDescr : public SimpleTypeDescr
 
 
 
+class ComplexTypeDescr : public SizedTypeDescr
+{
+  public:
+    
+    
+    JSObject &instancePrototype() const {
+        return getReservedSlot(JS_DESCR_SLOT_PROTO).toObject();
+    }
+};
 
-class X4TypeDescr : public SizedTypeDescr
+
+
+
+class X4TypeDescr : public ComplexTypeDescr
 {
   public:
     enum Type {
@@ -347,6 +367,11 @@ class ArrayMetaTypeDescr : public JSObject
 
 
 
+
+
+
+
+
 class UnsizedArrayTypeDescr : public TypeDescr
 {
   public:
@@ -364,7 +389,7 @@ class UnsizedArrayTypeDescr : public TypeDescr
 
 
 
-class SizedArrayTypeDescr : public SizedTypeDescr
+class SizedArrayTypeDescr : public ComplexTypeDescr
 {
   public:
     static const Class class_;
@@ -413,7 +438,8 @@ class StructMetaTypeDescr : public JSObject
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
 };
 
-class StructTypeDescr : public SizedTypeDescr {
+class StructTypeDescr : public ComplexTypeDescr
+{
   public:
     static const Class class_;
 
@@ -874,12 +900,18 @@ IsSimpleTypeDescrClass(const Class* clasp)
 }
 
 inline bool
+IsComplexTypeDescrClass(const Class* clasp)
+{
+    return clasp == &StructTypeDescr::class_ ||
+           clasp == &SizedArrayTypeDescr::class_ ||
+           clasp == &X4TypeDescr::class_;
+}
+
+inline bool
 IsSizedTypeDescrClass(const Class* clasp)
 {
     return IsSimpleTypeDescrClass(clasp) ||
-           clasp == &StructTypeDescr::class_ ||
-           clasp == &SizedArrayTypeDescr::class_ ||
-           clasp == &X4TypeDescr::class_;
+           IsComplexTypeDescrClass(clasp);
 }
 
 inline bool
@@ -906,6 +938,13 @@ inline bool
 JSObject::is<js::SizedTypeDescr>() const
 {
     return IsSizedTypeDescrClass(getClass());
+}
+
+template <>
+inline bool
+JSObject::is<js::ComplexTypeDescr>() const
+{
+    return IsComplexTypeDescrClass(getClass());
 }
 
 template <>
