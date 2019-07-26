@@ -74,13 +74,16 @@ ContentHostBaseNew::DestroyTextureHostOnWhite()
 }
 
 void
-ContentHostBaseNew::RemoveTextureHostDeferred(TextureHost* aTexture)
+ContentHostBaseNew::RemoveTextureHost(TextureHost* aTexture)
 {
-  if (!(mTextureHost && mTextureHost == aTexture) &&
+  if ((aTexture->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED) &&
+      !(mTextureHost && mTextureHost == aTexture) &&
       !(mTextureHostOnWhite && mTextureHostOnWhite == aTexture)) {
-    MOZ_ASSERT(aTexture->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED);
+    MOZ_ASSERT(!(aTexture->GetFlags() & TEXTURE_DEALLOCATE_CLIENT));
     aTexture->DeallocateSharedData();
   }
+
+  CompositableHost::RemoveTextureHost(aTexture);
 }
 
 class MOZ_STACK_CLASS AutoLockTextureHost
