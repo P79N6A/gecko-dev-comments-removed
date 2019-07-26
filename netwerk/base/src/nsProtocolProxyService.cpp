@@ -1559,6 +1559,11 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
     }
 
     
+    
+    if (mProxyConfig != PROXYCONFIG_MANUAL)
+        return NS_OK;
+
+    
     const char *type = nullptr;
     const nsACString *host = nullptr;
     int32_t port = -1;
