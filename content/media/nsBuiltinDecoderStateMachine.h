@@ -78,7 +78,6 @@
 
 #include "nsThreadUtils.h"
 #include "nsBuiltinDecoder.h"
-#include "nsBuiltinDecoderReader.h"
 #include "nsAudioAvailableEventManager.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
@@ -87,6 +86,7 @@
 #include "VideoSegment.h"
 
 
+class nsBuiltinDecoderReader;
 
 
 
@@ -98,7 +98,9 @@
 
 
 
-class nsBuiltinDecoderStateMachine : public nsDecoderStateMachine
+
+
+class nsBuiltinDecoderStateMachine : public nsRunnable
 {
 public:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
@@ -114,29 +116,91 @@ public:
   ~nsBuiltinDecoderStateMachine();
 
   
-  virtual nsresult Init(nsDecoderStateMachine* aCloneDonor);
-  State GetState()
-  {
+  virtual nsresult Init(nsBuiltinDecoderStateMachine* aCloneDonor);
+
+  
+  enum State {
+    DECODER_STATE_DECODING_METADATA,
+    DECODER_STATE_DECODING,
+    DECODER_STATE_SEEKING,
+    DECODER_STATE_BUFFERING,
+    DECODER_STATE_COMPLETED,
+    DECODER_STATE_SHUTDOWN
+  };
+
+  State GetState() {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mState;
   }
+
+  
+  
   virtual void SetVolume(double aVolume);
   virtual void SetAudioCaptured(bool aCapture);
   virtual void Shutdown();
+
+  
+  
   virtual int64_t GetDuration();
+
+  
+  
+  
+  
+  
   virtual void SetDuration(int64_t aDuration);
+
+  
+  
+  
   void SetEndTime(int64_t aEndTime);
+
+  
+  
   virtual bool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
+  bool OnStateMachineThread() const;
+  bool OnAudioThread() const {
+    return IsCurrentThread(mAudioThread);
+  }
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
+
+  
+  
+  
   virtual void Play();
+
+  
   virtual void Seek(double aTime);
+
+  
+  
+  
   virtual double GetCurrentTime() const;
+
+  
+  
+  
   virtual void ClearPositionChangeFlag();
+
+  
+  
+  
   virtual void SetSeekable(bool aSeekable);
+
+  
+  
+  
+  
+  
   virtual void UpdatePlaybackPosition(int64_t aTime);
+
+  
+  
+  
+  
   virtual void StartBuffering();
 
   
@@ -163,24 +227,16 @@ public:
   bool IsBuffering() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
-    return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_BUFFERING;
+    return mState == DECODER_STATE_BUFFERING;
   }
 
   
   bool IsSeeking() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
-    return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_SEEKING;
+    return mState == DECODER_STATE_SEEKING;
   }
 
-  
-  
-  bool OnAudioThread() const {
-    return IsCurrentThread(mAudioThread);
-  }
-
-  bool OnStateMachineThread() const;
- 
   nsresult GetBuffered(nsTimeRanges* aBuffered);
 
   int64_t VideoQueueMemoryInUse() {
@@ -209,6 +265,7 @@ public:
     return mSeekable;
   }
 
+  
   bool IsSeekableInBufferedRanges() {
     if (mReader) {
       return mReader->IsSeekableInBufferedRanges();

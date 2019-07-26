@@ -50,7 +50,7 @@ public:
 
   
   
-  nsDecoderStateMachine* CreateStateMachine();
+  nsBuiltinDecoderStateMachine* CreateStateMachine();
 
   
   
