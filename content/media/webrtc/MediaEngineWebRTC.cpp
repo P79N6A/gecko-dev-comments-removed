@@ -29,6 +29,8 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
 {
   webrtc::ViEBase* ptrViEBase;
   webrtc::ViECapture* ptrViECapture;
+  
+  MutexAutoLock lock(mMutex);
 
   if (!mVideoEngine) {
     if (!(mVideoEngine = webrtc::VideoEngine::Create())) {
@@ -123,6 +125,8 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
 {
   webrtc::VoEBase* ptrVoEBase = NULL;
   webrtc::VoEHardware* ptrVoEHw = NULL;
+  
+  MutexAutoLock lock(mMutex);
 
   if (!mVoiceEngine) {
     mVoiceEngine = webrtc::VoiceEngine::Create();
@@ -181,6 +185,9 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
 void
 MediaEngineWebRTC::Shutdown()
 {
+  
+  MutexAutoLock lock(mMutex);
+
   if (mVideoEngine) {
     mVideoSources.Clear();
     webrtc::VideoEngine::Delete(mVideoEngine);
