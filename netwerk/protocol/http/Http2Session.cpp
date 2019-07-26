@@ -757,7 +757,7 @@ Http2Session::GenerateGoAway(uint32_t aStatusCode)
 
   
   uint32_t goAway = PR_htonl(mOutgoingGoAwayID);
-  memcpy (packet + 7, &goAway, 4);
+  memcpy(packet + 8, &goAway, 4);
 
   
   aStatusCode = PR_htonl(aStatusCode);
