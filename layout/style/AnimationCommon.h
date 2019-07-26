@@ -436,6 +436,9 @@ struct CommonElementAnimationData : public PRCList
     mElement->DeleteProperty(mElementProperty);
   }
 
+  static void PropertyDtor(void *aObject, nsIAtom *aPropertyName,
+                           void *aPropertyValue, void *aData);
+
   
   
   
