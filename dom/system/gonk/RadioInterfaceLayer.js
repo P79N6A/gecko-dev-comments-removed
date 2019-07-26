@@ -257,7 +257,8 @@ function RadioInterfaceLayer() {
   };
 
   try {
-    this.rilContext.voice.lastKnownMcc = Services.prefs.getCharPref("ril.lastKnownMcc");
+    this.rilContext.voice.lastKnownMcc =
+      Services.prefs.getCharPref("ril.lastKnownMcc");
   } catch (e) {}
 
   this.voicemailInfo = {
@@ -1084,6 +1085,14 @@ RadioInterfaceLayer.prototype = {
         }
       }
 
+      
+      if (message.mcc && message.mnc) {
+        try {
+          Services.prefs.setCharPref("ril.lastKnownNetwork",
+                                     message.mcc + "-" + message.mnc);
+        } catch (e) {}
+      }
+
       voice.network = message;
       if (!message.batch) {
         this._sendMobileConnectionMessage("RIL:VoiceInfoChanged", voice);
@@ -1787,6 +1796,14 @@ RadioInterfaceLayer.prototype = {
     
     
     this._sendMobileConnectionMessage("RIL:IccInfoChanged", message);
+
+    
+    if (message.mcc && message.mnc) {
+      try {
+        services.prefs.setCharPref("ril.lastKnownHomeNetwork",
+                                   message.mcc + "-" + message.mnc);
+      } catch (e) {}
+    }
 
     
     let oldSpn = oldIccInfo ? oldIccInfo.spn : null;
