@@ -590,13 +590,13 @@ var Browser = {
     if (tab)
       tab.active = true;
 
+    BrowserUI.update();
+
     if (isFirstTab) {
-      
       BrowserUI._titleChanged(browser);
     } else {
       
       BrowserUI.updateURI();
-      BrowserUI.update();
 
       let event = document.createEvent("Events");
       event.initEvent("TabSelect", true, false);
