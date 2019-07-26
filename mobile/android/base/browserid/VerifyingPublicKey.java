@@ -6,6 +6,8 @@ package org.mozilla.gecko.browserid;
 
 import java.security.GeneralSecurityException;
 
+import org.mozilla.gecko.sync.ExtendedJSONObject;
+
 
 public interface VerifyingPublicKey {
   
@@ -15,7 +17,7 @@ public interface VerifyingPublicKey {
 
 
 
-  public String serialize();
+  public ExtendedJSONObject toJSONObject();
 
   
 
