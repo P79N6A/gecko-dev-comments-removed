@@ -9,6 +9,7 @@ let chromeGlobal = this;
 
 
 (function () {
+  let Cu = Components.utils;
   let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
   const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
   const {DebuggerServer, ActorPool} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
