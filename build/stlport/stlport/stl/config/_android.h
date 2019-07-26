@@ -16,7 +16,7 @@
 #define _STLP_USE_UNIX_IO 1
 
 
-#undef _STLP_NO_RTTI
+#define _STLP_NO_RTTI 1
 
 
 #define _STLP_VENDOR_GLOBAL_CSTD 1
@@ -37,8 +37,8 @@
 #undef _STLP_NO_EXCEPTION_HEADER
 
 
-#undef _STLP_NO_EXCEPTIONS
-
+#define _STLP_NO_EXCEPTIONS 1
+#define _STLP_NO_EXCEPTION_HEADER 1
 
 
 #define _STLP_NO_OWN_NAMESPACE 1
@@ -55,25 +55,19 @@
 #define _STLP_NO_VENDOR_MATH_L 1
 
 
-#define _STLP_NATIVE_HEADER(header) <usr/include/header>
-#define _STLP_NATIVE_C_HEADER(header) <../include/header>
-#define _STLP_NATIVE_CPP_C_HEADER(header) <../../gabi++/include/header>
-#define _STLP_NATIVE_CPP_RUNTIME_HEADER(header) <../../gabi++/include/header>
-#define _STLP_NATIVE_OLD_STREAMS_HEADER(header) <usr/include/header>
-
-
 #include <stl/config/_gcc.h>
 
 
 #undef _STLP_USE_GLIBC
 
 
-#undef _STLP_NO_UNCAUGHT_EXCEPT_SUPPORT
-#undef _STLP_NO_UNEXPECTED_EXCEPT_SUPPORT
+#define _STLP_NO_UNCAUGHT_EXCEPT_SUPPORT 1
+#define _STLP_NO_UNEXPECTED_EXCEPT_SUPPORT 1
 
-#ifndef _ANDROID_NDK_BLAZE_
+#define _STLP_HAS_INCLUDE_NEXT 1
 
-#undef _STLP_HAS_INCLUDE_NEXT
-#endif
+
+#undef _STLP_USE_NEWALLOC
+#define _STLP_USE_NEWALLOC 1
 
 #endif 
