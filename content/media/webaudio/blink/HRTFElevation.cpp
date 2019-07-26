@@ -96,8 +96,12 @@ bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevati
 
     
     const size_t fftSize = HRTFPanner::fftSizeForSampleRate(sampleRate);
-    kernelL = HRTFKernel::create(leftEarImpulseResponse, fftSize, sampleRate);
-    kernelR = HRTFKernel::create(rightEarImpulseResponse, fftSize, sampleRate);
+    MOZ_ASSERT(responseLength >= fftSize / 2);
+    if (responseLength < fftSize / 2)
+        return false;
+
+    kernelL = HRTFKernel::create(leftEarImpulseResponse, fftSize / 2, sampleRate);
+    kernelR = HRTFKernel::create(rightEarImpulseResponse, fftSize / 2, sampleRate);
     
     return true;
 }

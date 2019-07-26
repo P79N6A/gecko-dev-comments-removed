@@ -26,106 +26,74 @@
 
 
 
-#include "config.h"
-
-#if ENABLE(WEB_AUDIO)
-
-#include "core/platform/audio/HRTFKernel.h"
-
-#include "core/platform/FloatConversion.h"
-#include "core/platform/PlatformMemoryInstrumentation.h"
-#include "core/platform/audio/AudioChannel.h"
-#include "core/platform/audio/FFTFrame.h"
-#include <wtf/MathExtras.h>
-
-using namespace std;
-
+#include "HRTFKernel.h"
 namespace WebCore {
 
 
 
 
 
-static float extractAverageGroupDelay(AudioChannel* channel, size_t analysisFFTSize)
+static float extractAverageGroupDelay(float* impulseP, size_t length)
 {
-    ASSERT(channel);
-        
-    float* impulseP = channel->mutableData();
     
-    bool isSizeGood = channel->length() >= analysisFFTSize;
-    ASSERT(isSizeGood);
-    if (!isSizeGood)
-        return 0;
-    
-    
-    ASSERT(1UL << static_cast<unsigned>(log2(analysisFFTSize)) == analysisFFTSize);
+    MOZ_ASSERT(length && (length & (length - 1)) == 0);
 
-    FFTFrame estimationFrame(analysisFFTSize);
-    estimationFrame.doFFT(impulseP);
+    FFTBlock estimationFrame(length);
+    estimationFrame.PerformFFT(impulseP);
 
-    float frameDelay = narrowPrecisionToFloat(estimationFrame.extractAverageGroupDelay());
-    estimationFrame.doInverseFFT(impulseP);
+    float frameDelay = static_cast<float>(estimationFrame.ExtractAverageGroupDelay());
+    estimationFrame.PerformInverseFFT(impulseP);
 
     return frameDelay;
 }
 
-HRTFKernel::HRTFKernel(AudioChannel* channel, size_t fftSize, float sampleRate)
+HRTFKernel::HRTFKernel(float* impulseResponse, size_t length, float sampleRate)
     : m_frameDelay(0)
     , m_sampleRate(sampleRate)
 {
-    ASSERT(channel);
+    
+    m_frameDelay = extractAverageGroupDelay(impulseResponse, length);
 
     
-    m_frameDelay = extractAverageGroupDelay(channel, fftSize / 2);
-
-    float* impulseResponse = channel->mutableData();
-    size_t responseLength = channel->length();
+    
+    unsigned fftSize = 2 * length;
 
     
-    size_t truncatedResponseLength = min(responseLength, fftSize / 2); 
-
     
     unsigned numberOfFadeOutFrames = static_cast<unsigned>(sampleRate / 4410); 
-    ASSERT(numberOfFadeOutFrames < truncatedResponseLength);
-    if (numberOfFadeOutFrames < truncatedResponseLength) {
-        for (unsigned i = truncatedResponseLength - numberOfFadeOutFrames; i < truncatedResponseLength; ++i) {
-            float x = 1.0f - static_cast<float>(i - (truncatedResponseLength - numberOfFadeOutFrames)) / numberOfFadeOutFrames;
+    MOZ_ASSERT(numberOfFadeOutFrames < length);
+    if (numberOfFadeOutFrames < length) {
+        for (unsigned i = length - numberOfFadeOutFrames; i < length; ++i) {
+            float x = 1.0f - static_cast<float>(i - (length - numberOfFadeOutFrames)) / numberOfFadeOutFrames;
             impulseResponse[i] *= x;
         }
     }
 
-    m_fftFrame = adoptPtr(new FFTFrame(fftSize));
-    m_fftFrame->doPaddedFFT(impulseResponse, truncatedResponseLength);
+    m_fftFrame = new FFTBlock(fftSize);
+    m_fftFrame->PerformPaddedFFT(impulseResponse, length);
 }
 
 
-PassRefPtr<HRTFKernel> HRTFKernel::createInterpolatedKernel(HRTFKernel* kernel1, HRTFKernel* kernel2, float x)
+nsReturnRef<HRTFKernel> HRTFKernel::createInterpolatedKernel(HRTFKernel* kernel1, HRTFKernel* kernel2, float x)
 {
-    ASSERT(kernel1 && kernel2);
+    MOZ_ASSERT(kernel1 && kernel2);
     if (!kernel1 || !kernel2)
-        return 0;
+        return nsReturnRef<HRTFKernel>();
  
-    ASSERT(x >= 0.0 && x < 1.0);
-    x = min(1.0f, max(0.0f, x));
+    MOZ_ASSERT(x >= 0.0 && x < 1.0);
+    x = mozilla::clamped(x, 0.0f, 1.0f);
     
     float sampleRate1 = kernel1->sampleRate();
     float sampleRate2 = kernel2->sampleRate();
-    ASSERT(sampleRate1 == sampleRate2);
+    MOZ_ASSERT(sampleRate1 == sampleRate2);
     if (sampleRate1 != sampleRate2)
-        return 0;
+        return nsReturnRef<HRTFKernel>();
     
     float frameDelay = (1 - x) * kernel1->frameDelay() + x * kernel2->frameDelay();
     
-    OwnPtr<FFTFrame> interpolatedFrame = FFTFrame::createInterpolatedFrame(*kernel1->fftFrame(), *kernel2->fftFrame(), x);
-    return HRTFKernel::create(interpolatedFrame.release(), frameDelay, sampleRate1);
-}
-
-void HRTFKernel::reportMemoryUsage(MemoryObjectInfo* memoryObjectInfo) const
-{
-    MemoryClassInfo info(memoryObjectInfo, this, PlatformMemoryTypes::AudioSharedData);
-    info.addMember(m_fftFrame, "fftFrame");
+    nsAutoPtr<FFTBlock> interpolatedFrame(
+        FFTBlock::CreateInterpolatedBlock(*kernel1->fftFrame(), *kernel2->fftFrame(), x));
+    return HRTFKernel::create(interpolatedFrame, frameDelay, sampleRate1);
 }
 
 } 
-
-#endif 

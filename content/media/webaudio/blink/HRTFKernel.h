@@ -29,69 +29,82 @@
 #ifndef HRTFKernel_h
 #define HRTFKernel_h
 
-#include "core/platform/audio/FFTFrame.h"
-#include <wtf/OwnPtr.h>
-#include <wtf/PassOwnPtr.h>
-#include <wtf/PassRefPtr.h>
-#include <wtf/RefCounted.h>
-#include <wtf/RefPtr.h>
-#include <wtf/Vector.h>
+#include "nsAutoPtr.h"
+#include "nsAutoRef.h"
+#include "nsTArray.h"
+#include "mozilla/FFTBlock.h"
 
 namespace WebCore {
 
-class AudioChannel;
-    
+using mozilla::FFTBlock;
 
 
 
 
 
 
-class HRTFKernel : public RefCounted<HRTFKernel> {
+
+class HRTFKernel {
 public:
     
     
-    static PassRefPtr<HRTFKernel> create(AudioChannel* channel, size_t fftSize, float sampleRate)
-    {
-        return adoptRef(new HRTFKernel(channel, fftSize, sampleRate));
-    }
+    
+    static nsReturnRef<HRTFKernel> create(float* impulseResponse, size_t length, float sampleRate);
 
-    static PassRefPtr<HRTFKernel> create(PassOwnPtr<FFTFrame> fftFrame, float frameDelay, float sampleRate)
-    {
-        return adoptRef(new HRTFKernel(fftFrame, frameDelay, sampleRate));
-    }
+    static nsReturnRef<HRTFKernel> create(nsAutoPtr<FFTBlock> fftFrame, float frameDelay, float sampleRate);
 
     
-    static PassRefPtr<HRTFKernel> createInterpolatedKernel(HRTFKernel* kernel1, HRTFKernel* kernel2, float x);
+    static nsReturnRef<HRTFKernel> createInterpolatedKernel(HRTFKernel* kernel1, HRTFKernel* kernel2, float x);
   
-    FFTFrame* fftFrame() { return m_fftFrame.get(); }
+    FFTBlock* fftFrame() { return m_fftFrame.get(); }
     
-    size_t fftSize() const { return m_fftFrame->fftSize(); }
+    size_t fftSize() const { return m_fftFrame->FFTSize(); }
     float frameDelay() const { return m_frameDelay; }
 
     float sampleRate() const { return m_sampleRate; }
     double nyquist() const { return 0.5 * sampleRate(); }
 
-    void reportMemoryUsage(MemoryObjectInfo*) const;
-
 private:
+    HRTFKernel(const HRTFKernel& other) MOZ_DELETE;
+    void operator=(const HRTFKernel& other) MOZ_DELETE;
+
     
-    HRTFKernel(AudioChannel*, size_t fftSize, float sampleRate);
+    HRTFKernel(float* impulseResponse, size_t fftSize, float sampleRate);
     
-    HRTFKernel(PassOwnPtr<FFTFrame> fftFrame, float frameDelay, float sampleRate)
+    HRTFKernel(nsAutoPtr<FFTBlock> fftFrame, float frameDelay, float sampleRate)
         : m_fftFrame(fftFrame)
         , m_frameDelay(frameDelay)
         , m_sampleRate(sampleRate)
     {
     }
     
-    OwnPtr<FFTFrame> m_fftFrame;
+    nsAutoPtr<FFTBlock> m_fftFrame;
     float m_frameDelay;
     float m_sampleRate;
 };
 
-typedef Vector<RefPtr<HRTFKernel> > HRTFKernelList;
+typedef nsTArray<nsAutoRef<HRTFKernel> > HRTFKernelList;
 
 } 
 
+template <>
+class nsAutoRefTraits<WebCore::HRTFKernel> :
+    public nsPointerRefTraits<WebCore::HRTFKernel> {
+public:
+    static void Release(WebCore::HRTFKernel* ptr) { delete(ptr); }
+};
+
+namespace WebCore {
+
+inline nsReturnRef<HRTFKernel> HRTFKernel::create(float* impulseResponse, size_t length, float sampleRate)
+{
+    return nsReturnRef<HRTFKernel>(new HRTFKernel(impulseResponse, length, sampleRate));
+}
+
+inline nsReturnRef<HRTFKernel> HRTFKernel::create(nsAutoPtr<FFTBlock> fftFrame, float frameDelay, float sampleRate)
+{
+    return nsReturnRef<HRTFKernel>(new HRTFKernel(fftFrame, frameDelay, sampleRate));
+}
+
+} 
 #endif 
