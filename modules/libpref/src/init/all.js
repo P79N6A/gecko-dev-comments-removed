@@ -4126,8 +4126,6 @@ pref("layers.offmainthreadcomposition.force-basic", false);
 
 pref("layers.offmainthreadcomposition.async-animations", false);
 
-pref("layers.prefer-memory-over-shmem", true);
-
 pref("layers.bufferrotation.enabled", true);
 
 pref("layers.componentalpha.enabled", true);
