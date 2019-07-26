@@ -19,12 +19,13 @@ ScopeObject::setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name
     JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
     JS_STATIC_ASSERT(CallObject::RESERVED_SLOTS == BlockObject::RESERVED_SLOTS);
 
-    
-    JS_ASSERT_IF(hasSingletonType(), name);
-
     setSlot(sc.slot, v);
-    if (hasSingletonType())
+
+    
+    if (hasSingletonType() && !hasLazyType()) {
+        JS_ASSERT(name);
         types::AddTypePropertyId(cx, this, NameToId(name), v);
+    }
 }
 
 inline void

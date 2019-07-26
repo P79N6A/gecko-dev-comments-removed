@@ -153,6 +153,7 @@ IonBuilder::clearForBackEnd()
     
     
     gsn.purge();
+    scopeCoordinateNameCache.purge();
 }
 
 bool
@@ -9371,7 +9372,7 @@ IonBuilder::jsop_getaliasedvar(ScopeCoordinate sc)
 {
     JSObject *call = nullptr;
     if (hasStaticScopeObject(sc, &call) && call) {
-        PropertyName *name = ScopeCoordinateName(script(), pc);
+        PropertyName *name = ScopeCoordinateName(scopeCoordinateNameCache, script(), pc);
         bool succeeded;
         if (!getStaticName(call, name, &succeeded))
             return false;
@@ -9411,7 +9412,7 @@ IonBuilder::jsop_setaliasedvar(ScopeCoordinate sc)
                 return false;
         }
         MDefinition *value = current->pop();
-        PropertyName *name = ScopeCoordinateName(script(), pc);
+        PropertyName *name = ScopeCoordinateName(scopeCoordinateNameCache, script(), pc);
 
         if (call) {
             

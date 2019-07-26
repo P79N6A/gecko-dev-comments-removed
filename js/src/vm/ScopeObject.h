@@ -123,7 +123,7 @@ ScopeCoordinateToStaticScopeShape(JSScript *script, jsbytecode *pc);
 
 
 extern PropertyName *
-ScopeCoordinateName(JSScript *script, jsbytecode *pc);
+ScopeCoordinateName(ScopeCoordinateNameCache &cache, JSScript *script, jsbytecode *pc);
 
 
 extern JSScript *
