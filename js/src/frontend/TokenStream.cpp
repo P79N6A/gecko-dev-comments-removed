@@ -857,10 +857,9 @@ CharsMatch(const jschar *p, const char *q) {
 }
 
 bool
-TokenStream::getAtSourceMappingURL(bool isMultiline)
+TokenStream::getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated)
 {
     
-
 
 
 
@@ -872,6 +871,10 @@ TokenStream::getAtSourceMappingURL(bool isMultiline)
     int32_t c;
 
     if (peekChars(18, peeked) && CharsMatch(peeked, " sourceMappingURL=")) {
+        if (shouldWarnDeprecated && !reportWarning(JSMSG_DEPRECATED_SOURCE_MAP)) {
+            return false;
+        }
+
         skipChars(18);
         tokenbuf.clear();
 
@@ -1600,8 +1603,11 @@ TokenStream::getTokenInternal()
 
 
         if (matchChar('/')) {
-            if (matchChar('@') && !getAtSourceMappingURL(false))
-                goto error;
+            c = peekChar();
+            if (c == '@' || c == '#') {
+                if (!getSourceMappingURL(false, getChar() == '@'))
+                    goto error;
+            }
 
   skipline:
             
@@ -1626,8 +1632,10 @@ TokenStream::getTokenInternal()
             unsigned linenoBefore = lineno;
             while ((c = getChar()) != EOF &&
                    !(c == '*' && matchChar('/'))) {
-                if (c == '@' && !getAtSourceMappingURL(true))
-                   goto error;
+                if (c == '@' || c == '#') {
+                    if (!getSourceMappingURL(true, c == '@'))
+                        goto error;
+                }
             }
             if (c == EOF) {
                 reportError(JSMSG_UNTERMINATED_COMMENT);
