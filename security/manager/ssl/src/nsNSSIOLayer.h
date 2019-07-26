@@ -125,8 +125,6 @@ private:
   bool mHasCleartextPhase;
   bool mRememberClientAuthCertificate;
   bool mPreliminaryHandshakeDone; 
-  PRIntervalTime mHandshakeStartTime;
-  bool mFirstServerHelloReceived;
 
   nsresult ActivateSSL();
 
