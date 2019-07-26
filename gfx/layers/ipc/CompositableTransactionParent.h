@@ -11,7 +11,7 @@
 #include <vector>                       
 #include "mozilla/Attributes.h"         
 #include "mozilla/layers/ISurfaceAllocator.h"  
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 
 namespace mozilla {
 namespace layers {

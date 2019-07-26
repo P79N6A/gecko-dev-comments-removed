@@ -27,7 +27,7 @@
 #include "mozilla/TimeStamp.h"          
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/GeckoContentController.h"
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/PCompositorParent.h"
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"

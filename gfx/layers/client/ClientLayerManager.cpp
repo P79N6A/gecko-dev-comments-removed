@@ -17,7 +17,7 @@
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/ContentClient.h"  
 #include "mozilla/layers/ISurfaceAllocator.h"
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/PLayerChild.h"  
 #include "mozilla/layers/PLayerTransactionChild.h"

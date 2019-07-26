@@ -12,7 +12,7 @@
 #include "Layers.h"                     
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    

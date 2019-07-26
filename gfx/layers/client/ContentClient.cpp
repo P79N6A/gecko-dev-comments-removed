@@ -20,7 +20,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Types.h"
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/LayersTypes.h"
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    

@@ -13,7 +13,7 @@
 #include "mozilla/Assertions.h"         
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Rect.h"           
-#include "mozilla/layers/LayerTransaction.h"
+#include "mozilla/layers/LayersMessages.h"
 #include "mozilla/mozalloc.h"           
 #include "nsRect.h"                     
 #include "nsTraceRefcnt.h"              

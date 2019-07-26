@@ -11,7 +11,7 @@
 #include "mozilla/gfx/BaseRect.h"       
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/Effects.h"     
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "nsAString.h"
 #include "nsPrintfCString.h"            
 #include "nsString.h"                   

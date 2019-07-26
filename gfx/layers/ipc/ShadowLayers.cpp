@@ -20,7 +20,7 @@
 #include "ipc/IPCMessageUtils.h"        
 #include "mozilla/Assertions.h"         
 #include "mozilla/layers/CompositableClient.h"  
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/PLayerTransactionChild.h"

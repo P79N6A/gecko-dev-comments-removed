@@ -14,7 +14,7 @@
 #include "mozilla/TimeStamp.h"          
 #include "mozilla/dom/ScreenOrientation.h"  
 #include "mozilla/gfx/BasePoint.h"      
-#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/LayersMessages.h"  
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"            
 #include "nsTraceRefcnt.h"              
