@@ -532,7 +532,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     
-    if (cx->runtime()->spsProfiler.enabled() && ionScript->hasSPSInstrumentation()) {
+    if (ionScript->hasSPSInstrumentation()) {
         IonSpew(IonSpew_BaselineBailouts, "      Setting SPS flag on frame!");
         flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
     }
