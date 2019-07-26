@@ -1950,6 +1950,90 @@ nsXULPopupManager::HandleKeyboardNavigationInPopup(nsMenuChainItem* item,
   return false;
 }
 
+bool
+nsXULPopupManager::HandleKeyboardEventWithKeyCode(
+                        nsIDOMKeyEvent* aKeyEvent,
+                        nsMenuChainItem* aTopVisibleMenuItem)
+{
+  uint32_t keyCode;
+  aKeyEvent->GetKeyCode(&keyCode);
+
+  
+  if (aTopVisibleMenuItem &&
+      aTopVisibleMenuItem->PopupType() != ePopupTypeMenu) {
+    if (keyCode == nsIDOMKeyEvent::DOM_VK_ESCAPE) {
+      HidePopup(aTopVisibleMenuItem->Content(), false, false, false);
+      aKeyEvent->StopPropagation();
+      aKeyEvent->PreventDefault();
+    }
+    return true;
+  }
+
+  bool consume = (mPopups || mActiveMenuBar);
+  switch (keyCode) {
+    case nsIDOMKeyEvent::DOM_VK_LEFT:
+    case nsIDOMKeyEvent::DOM_VK_RIGHT:
+    case nsIDOMKeyEvent::DOM_VK_UP:
+    case nsIDOMKeyEvent::DOM_VK_DOWN:
+    case nsIDOMKeyEvent::DOM_VK_HOME:
+    case nsIDOMKeyEvent::DOM_VK_END:
+      HandleKeyboardNavigation(keyCode);
+      break;
+
+    case nsIDOMKeyEvent::DOM_VK_ESCAPE:
+      
+      
+      
+      
+      if (aTopVisibleMenuItem) {
+        HidePopup(aTopVisibleMenuItem->Content(), false, false, false);
+      } else if (mActiveMenuBar) {
+        mActiveMenuBar->MenuClosed();
+      }
+      break;
+
+    case nsIDOMKeyEvent::DOM_VK_TAB:
+#ifndef XP_MACOSX
+    case nsIDOMKeyEvent::DOM_VK_F10:
+#endif
+      
+      if (aTopVisibleMenuItem) {
+        Rollup(0, nullptr);
+      } else if (mActiveMenuBar) {
+        mActiveMenuBar->MenuClosed();
+      }
+      break;
+
+    case nsIDOMKeyEvent::DOM_VK_ENTER:
+    case nsIDOMKeyEvent::DOM_VK_RETURN: {
+      
+      
+      
+      nsMenuFrame* menuToOpen = nullptr;
+      nsGUIEvent* GUIEvent = DOMKeyEventToGUIEvent(aKeyEvent);
+      if (aTopVisibleMenuItem) {
+        menuToOpen = aTopVisibleMenuItem->Frame()->Enter(GUIEvent);
+      } else if (mActiveMenuBar) {
+        menuToOpen = mActiveMenuBar->Enter(GUIEvent);
+      }
+      if (menuToOpen) {
+        nsCOMPtr<nsIContent> content = menuToOpen->GetContent();
+        ShowMenu(content, true, false);
+      }
+      break;
+    }
+
+    default:
+      return false;
+  }
+
+  if (consume) {
+    aKeyEvent->StopPropagation();
+    aKeyEvent->PreventDefault();
+  }
+  return true;
+}
+
 nsMenuFrame*
 nsXULPopupManager::GetNextMenuItem(nsIFrame* aParent,
                                    nsMenuFrame* aStart,
@@ -2067,6 +2151,13 @@ nsXULPopupManager::HandleEvent(nsIDOMEvent* aEvent)
   nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
   NS_ENSURE_TRUE(keyEvent, NS_ERROR_UNEXPECTED);
 
+  
+  bool trustedEvent = false;
+  aEvent->GetIsTrusted(&trustedEvent);
+  if (!trustedEvent) {
+    return NS_OK;
+  }
+
   nsAutoString eventType;
   keyEvent->GetType(eventType);
   if (eventType.EqualsLiteral("keyup")) {
@@ -2107,6 +2198,10 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
   if (item && item->Frame()->IsMenuLocked())
     return NS_OK;
 
+  if (HandleKeyboardEventWithKeyCode(aKeyEvent, item)) {
+    return NS_OK;
+  }
+
   
   if (!mActiveMenuBar && (!item || item->PopupType() != ePopupTypeMenu))
     return NS_OK;
@@ -2142,104 +2237,32 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
         else if (mActiveMenuBar)
           mActiveMenuBar->MenuClosed();
       }
+      aKeyEvent->PreventDefault();
     }
   }
 
   
   
   aKeyEvent->StopPropagation();
-  aKeyEvent->PreventDefault();
-  return NS_OK; 
+  return NS_OK;
 }
 
 nsresult
 nsXULPopupManager::KeyPress(nsIDOMKeyEvent* aKeyEvent)
 {
   
-  
-  
 
   nsMenuChainItem* item = GetTopVisibleMenu();
-  if (item && item->Frame()->IsMenuLocked())
+  if (item &&
+      (item->Frame()->IsMenuLocked() || item->PopupType() != ePopupTypeMenu)) {
     return NS_OK;
-
-  
-  bool trustedEvent = false;
-  if (aKeyEvent) {
-    aKeyEvent->GetIsTrusted(&trustedEvent);
   }
-
-  if (!trustedEvent)
-    return NS_OK;
 
   nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
   NS_ENSURE_TRUE(keyEvent, NS_ERROR_UNEXPECTED);
-  uint32_t theChar;
-  keyEvent->GetKeyCode(&theChar);
-
-  
-  if (item && item->PopupType() != ePopupTypeMenu) {
-    if (theChar == NS_VK_ESCAPE) {
-      HidePopup(item->Content(), false, false, false);
-      aKeyEvent->StopPropagation();
-      aKeyEvent->PreventDefault();
-    }
-    return NS_OK;
-  }
-
   
   bool consume = (mPopups || mActiveMenuBar);
-
-  if (theChar == NS_VK_LEFT ||
-      theChar == NS_VK_RIGHT ||
-      theChar == NS_VK_UP ||
-      theChar == NS_VK_DOWN ||
-      theChar == NS_VK_HOME ||
-      theChar == NS_VK_END) {
-    HandleKeyboardNavigation(theChar);
-  }
-  else if (theChar == NS_VK_ESCAPE) {
-    
-    
-    
-    
-    if (item)
-      HidePopup(item->Content(), false, false, false);
-    else if (mActiveMenuBar)
-      mActiveMenuBar->MenuClosed();
-  }
-  else if (theChar == NS_VK_TAB
-#ifndef XP_MACOSX
-           || theChar == NS_VK_F10
-#endif
-  ) {
-    
-    if (item)
-      Rollup(0, nullptr);
-    else if (mActiveMenuBar)
-      mActiveMenuBar->MenuClosed();
-  }
-  else if (theChar == NS_VK_ENTER ||
-           theChar == NS_VK_RETURN) {
-    
-    
-    
-    nsMenuFrame* menuToOpen = nullptr;
-    nsMenuChainItem* item = GetTopVisibleMenu();
-    nsGUIEvent* evt = DOMKeyEventToGUIEvent(aKeyEvent);
-    if (item)
-      menuToOpen = item->Frame()->Enter(evt);
-    else if (mActiveMenuBar)
-      menuToOpen = mActiveMenuBar->Enter(evt);
-    if (menuToOpen) {
-      nsCOMPtr<nsIContent> content = menuToOpen->GetContent();
-      ShowMenu(content, true, false);
-    }
-  }
-  else {
-    HandleShortcutNavigation(keyEvent, nullptr);
-  }
-
+  HandleShortcutNavigation(keyEvent, nullptr);
   if (consume) {
     aKeyEvent->StopPropagation();
     aKeyEvent->PreventDefault();

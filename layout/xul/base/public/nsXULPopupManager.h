@@ -592,6 +592,13 @@ public:
     return HandleKeyboardNavigationInPopup(nullptr, aFrame, aDir);
   }
 
+  
+
+
+
+  bool HandleKeyboardEventWithKeyCode(nsIDOMKeyEvent* aKeyEvent,
+                                      nsMenuChainItem* aTopVisibleMenuItem);
+
   nsresult KeyUp(nsIDOMKeyEvent* aKeyEvent);
   nsresult KeyDown(nsIDOMKeyEvent* aKeyEvent);
   nsresult KeyPress(nsIDOMKeyEvent* aKeyEvent);
