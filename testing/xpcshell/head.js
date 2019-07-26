@@ -1241,6 +1241,48 @@ function run_test_in_child(testFile, optionalCallback)
 
 
 
+function do_await_remote_message(name, callback)
+{
+  var listener = {
+    receiveMessage: function(message) {
+      if (message.name == name) {
+        mm.removeMessageListener(name, listener);
+        callback();
+        do_test_finished();
+      }
+    }
+  };
+
+  var mm;
+  if (runningInParent) {
+    mm = Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
+  } else {
+    mm = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
+  }
+  do_test_pending();
+  mm.addMessageListener(name, listener);
+}
+
+
+
+
+
+function do_send_remote_message(name) {
+  var mm;
+  var sender;
+  if (runningInParent) {
+    mm = Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIMessageBroadcaster);
+    sender = 'broadcastAsyncMessage';
+  } else {
+    mm = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
+    sender = 'sendAsyncMessage';
+  }
+  mm[sender](name);
+}
+
+
+
+
 
 
 
