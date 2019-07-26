@@ -1272,6 +1272,15 @@ nsNSSComponent::InitializeNSS()
                          Preferences::GetBool("security.ssl.enable_false_start",
                                               FALSE_START_ENABLED_DEFAULT));
 
+    
+
+
+
+    SSL_OptionSetDefault(SSL_ENABLE_NPN,
+                         Preferences::GetBool("security.ssl.enable_npn", true));
+    SSL_OptionSetDefault(SSL_ENABLE_ALPN,
+                         Preferences::GetBool("security.ssl.enable_alpn", false));
+
     if (NS_FAILED(InitializeCipherSuite())) {
       PR_LOG(gPIPNSSLog, PR_LOG_ERROR, ("Unable to initialize cipher suite settings\n"));
       return NS_ERROR_FAILURE;
