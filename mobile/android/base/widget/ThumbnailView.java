@@ -54,7 +54,7 @@ public class ThumbnailView extends ImageView {
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec)
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         
         
         
