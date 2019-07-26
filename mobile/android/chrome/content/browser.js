@@ -2283,16 +2283,46 @@ var NativeWindow = {
       return res;
     },
 
+    _findTarget: function(x, y) {
+      let isDescendant = function(parent, child) {
+        let node = child;
+        while (node) {
+          if (node === parent) {
+            return true;
+          }
+
+          node = node.parentNode;
+        }
+
+        return false;
+      };
+
+      let target = BrowserEventHandler._highlightElement;
+      let touchTarget = ElementTouchHelper.anyElementFromPoint(x, y);
+
+      
+      if (isDescendant(target, touchTarget)) {
+        target = touchTarget;
+      } else if (!target) {
+        
+        target = ElementTouchHelper.elementFromPoint(x, y);
+
+        
+        if (!target) {
+          target = touchTarget;
+        }
+      }
+
+      return target;
+    },
+
     
 
 
 
 
     _sendToContent: function(x, y) {
-      let target = BrowserEventHandler._highlightElement || ElementTouchHelper.elementFromPoint(x, y);
-      if (!target)
-        target = ElementTouchHelper.anyElementFromPoint(x, y);
-
+      let target = this._findTarget(x, y);
       if (!target)
         return;
 
