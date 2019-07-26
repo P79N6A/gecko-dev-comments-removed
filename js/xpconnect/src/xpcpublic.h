@@ -445,6 +445,13 @@ WindowOrNull(JSObject *aObj);
 
 
 
+JSObject *
+GetSafeJSContextGlobal();
+
+
+
+
+
 nsGlobalWindow*
 WindowGlobalOrNull(JSObject *aObj);
 
