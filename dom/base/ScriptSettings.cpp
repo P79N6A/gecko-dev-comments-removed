@@ -184,7 +184,7 @@ GetWebIDLCallerPrincipal()
   
   
   
-  if (!aes->mCxPusher.ref().IsStackTop()) {
+  if (!aes->CxPusherIsStackTop()) {
     return nullptr;
   }
 
@@ -206,28 +206,43 @@ FindJSContext(nsIGlobalObject* aGlobalObject)
   return cx;
 }
 
-AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
-                                 bool aIsMainThread,
-                                 JSContext* aCx)
-  : ScriptSettingsStackEntry(aGlobalObject,  true)
-  , mStack(ScriptSettingsStack::Ref())
-  , mCx(aCx)
+AutoJSAPI::AutoJSAPI()
+  : mCx(nsContentUtils::GetDefaultJSContextForThread())
 {
-  MOZ_ASSERT(aGlobalObject);
-  MOZ_ASSERT_IF(!mCx, aIsMainThread); 
-  MOZ_ASSERT_IF(mCx && aIsMainThread, mCx == FindJSContext(aGlobalObject));
-  if (!mCx) {
-    
-    
-    
-    
-    mCx = FindJSContext(aGlobalObject);
-    MOZ_ASSERT(mCx);
+  if (NS_IsMainThread()) {
+    mCxPusher.construct(mCx);
   }
+
+  
+  mNullAc.construct(mCx);
+}
+
+AutoJSAPI::AutoJSAPI(JSContext *aCx, bool aIsMainThread, bool aSkipNullAc)
+  : mCx(aCx)
+{
+  MOZ_ASSERT_IF(aIsMainThread, NS_IsMainThread());
   if (aIsMainThread) {
     mCxPusher.construct(mCx);
   }
-  mAc.construct(mCx, aGlobalObject->GetGlobalJSObject());
+
+  
+  
+  if (!aSkipNullAc) {
+    mNullAc.construct(mCx);
+  }
+}
+
+AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
+                                 bool aIsMainThread,
+                                 JSContext* aCx)
+  : AutoJSAPI(aCx ? aCx : FindJSContext(aGlobalObject), aIsMainThread,  true)
+  , ScriptSettingsStackEntry(aGlobalObject,  true)
+  , mAc(cx(), aGlobalObject->GetGlobalJSObject())
+  , mStack(ScriptSettingsStack::Ref())
+{
+  MOZ_ASSERT(aGlobalObject);
+  MOZ_ASSERT_IF(!aCx, aIsMainThread); 
+  MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
   mStack.Push(this);
 }
 

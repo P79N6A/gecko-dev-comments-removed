@@ -98,7 +98,61 @@ private:
 
 
 
-class AutoEntryScript : protected ScriptSettingsStackEntry {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AutoJSAPI {
+public:
+  
+  
+  
+  AutoJSAPI();
+  JSContext* cx() const { return mCx; }
+
+  bool CxPusherIsStackTop() { return mCxPusher.ref().IsStackTop(); }
+
+protected:
+  
+  
+  AutoJSAPI(JSContext *aCx, bool aIsMainThread, bool aSkipNullAC = false);
+
+private:
+  mozilla::Maybe<AutoCxPusher> mCxPusher;
+  mozilla::Maybe<JSAutoNullCompartment> mNullAc;
+  JSContext *mCx;
+};
+
+
+
+
+class AutoEntryScript : public AutoJSAPI,
+                        protected ScriptSettingsStackEntry {
 public:
   AutoEntryScript(nsIGlobalObject* aGlobalObject,
                   bool aIsMainThread = NS_IsMainThread(),
@@ -110,15 +164,10 @@ public:
     mWebIDLCallerPrincipal = aPrincipal;
   }
 
-  JSContext* cx() const { return mCx; }
-
 private:
+  JSAutoCompartment mAc;
   dom::ScriptSettingsStack& mStack;
   nsCOMPtr<nsIPrincipal> mWebIDLCallerPrincipal;
-  JSContext *mCx;
-  mozilla::Maybe<AutoCxPusher> mCxPusher;
-  mozilla::Maybe<JSAutoCompartment> mAc; 
-                                         
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
 };
 
