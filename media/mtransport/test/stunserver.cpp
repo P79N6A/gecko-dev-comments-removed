@@ -186,9 +186,11 @@ TestStunServer::~TestStunServer() {
   
 
   
-  NR_SOCKET fd;
-  if (!nr_socket_getfd(listen_sock_, &fd)) {
-    NR_ASYNC_CANCEL(fd, NR_ASYNC_WAIT_READ);
+  if (listen_sock_) {
+    NR_SOCKET fd;
+    if (!nr_socket_getfd(listen_sock_, &fd)) {
+      NR_ASYNC_CANCEL(fd, NR_ASYNC_WAIT_READ);
+    }
   }
 
   
