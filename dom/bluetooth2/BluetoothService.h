@@ -129,7 +129,7 @@ public:
 
 
   virtual nsresult
-  GetDefaultAdapterPathInternal(BluetoothReplyRunnable* aRunnable) = 0;
+  GetAdaptersInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
   
 

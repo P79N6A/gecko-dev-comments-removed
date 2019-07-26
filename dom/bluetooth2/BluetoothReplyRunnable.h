@@ -48,6 +48,10 @@ private:
   nsresult FireReply(JS::Handle<JS::Value> aVal);
   nsresult FireErrorString();
 
+  
+
+
+
   nsCOMPtr<nsIDOMDOMRequest> mDOMRequest;
   nsString mErrorString;
 };
