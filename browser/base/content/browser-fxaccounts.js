@@ -190,7 +190,7 @@ let gFxAccounts = {
     if (event.originalTarget.hasAttribute("signedin")) {
       this.openPreferences();
     } else {
-      this.openSignInPage();
+      this.openAccountsPage();
     }
 
     PanelUI.hide();
@@ -200,7 +200,12 @@ let gFxAccounts = {
     openPreferences("paneSync");
   },
 
-  openSignInPage: function () {
+  openAccountsPage: function () {
     switchToTabHavingURI("about:accounts", true);
+  },
+
+  openSignInAgainPage: function () {
+    
+    switchToTabHavingURI("about:accounts?signin=true", true);
   }
 };
