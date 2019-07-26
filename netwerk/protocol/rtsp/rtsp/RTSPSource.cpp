@@ -476,10 +476,15 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
 
 void RTSPSource::onConnected(bool isSeekable)
 {
-    CHECK(mAudioTrack == NULL);
-    CHECK(mVideoTrack == NULL);
     CHECK(mHandler != NULL);
     CHECK(mListener != NULL);
+
+    
+    
+    
+    mAudioTrack = NULL;
+    mVideoTrack = NULL;
+    mTracks.clear();
 
     size_t numTracks = mHandler->countTracks();
     for (size_t i = 0; i < numTracks; ++i) {
