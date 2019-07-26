@@ -426,14 +426,6 @@ InternNonIntElementId(JSContext *cx, JSObject *obj, const Value &idval, jsid *id
     return InternNonIntElementId(cx, obj, idval, idp, &dummy);
 }
 
-
-
-
-
-
-extern void
-InitAtomMap(JSContext *cx, AtomIndexMap *indices, HeapPtr<JSAtom> *atoms);
-
 template<XDRMode mode>
 bool
 XDRAtom(XDRState<mode> *xdr, JSAtom **atomp);

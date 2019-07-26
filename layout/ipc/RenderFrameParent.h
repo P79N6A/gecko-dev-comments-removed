@@ -8,12 +8,13 @@
 #ifndef mozilla_layout_RenderFrameParent_h
 #define mozilla_layout_RenderFrameParent_h
 
+#include <map>
+
+#include "LayersBackend.h"
 #include "mozilla/layout/PRenderFrameParent.h"
 #include "mozilla/layers/ShadowLayersManager.h"
-
-#include <map>
 #include "nsDisplayList.h"
-#include "LayersBackend.h"
+#include "RenderFrameUtils.h"
 
 class nsContentView;
 class nsFrameLoader;
@@ -21,11 +22,17 @@ class nsSubDocumentFrame;
 
 namespace mozilla {
 
+class InputEvent;
+
 namespace layers {
+class AsyncPanZoomController;
+class GestureEventListener;
 class ShadowLayersParent;
 }
 
 namespace layout {
+
+class RemoteContentController;
 
 class RenderFrameParent : public PRenderFrameParent,
                           public mozilla::layers::ShadowLayersManager
@@ -40,7 +47,13 @@ class RenderFrameParent : public PRenderFrameParent,
 public:
   typedef std::map<ViewID, nsRefPtr<nsContentView> > ViewMap;
 
+  
+
+
+
+
   RenderFrameParent(nsFrameLoader* aFrameLoader,
+                    ScrollingBehavior aScrollingBehavior,
                     mozilla::layers::LayersBackend* aBackendType,
                     int* aMaxTextureSize,
                     uint64_t* aId);
@@ -73,6 +86,11 @@ public:
 
   void SetBackgroundColor(nscolor aColor) { mBackgroundColor = gfxRGBA(aColor); };
 
+  void NotifyInputEvent(const nsInputEvent& aEvent,
+                        nsInputEvent* aOutEvent);
+
+  void NotifyDimensionsChanged(int width, int height);
+
 protected:
   void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
@@ -84,6 +102,7 @@ protected:
 private:
   void BuildViewMap();
   void TriggerRepaint();
+  void DispatchEventForPanZoomController(const InputEvent& aEvent);
 
   ShadowLayersParent* GetShadowLayers() const;
   uint64_t GetLayerTreeId() const;
@@ -96,6 +115,11 @@ private:
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
   nsRefPtr<ContainerLayer> mContainer;
+  
+  
+  
+  nsRefPtr<layers::AsyncPanZoomController> mPanZoomController;
+  nsRefPtr<RemoteContentController> mContentController;
 
   
   

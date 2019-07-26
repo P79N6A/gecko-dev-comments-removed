@@ -881,8 +881,6 @@ public:
               const nsIntRect& aRect, const nsIntPoint& aRotation,
               bool aDelayUpload, nsIntRegion& aPendingUploadRegion);
 
-  nsRefPtr<TextureImage> GetTextureImage() { return mTexImage; }
-
 protected:
   virtual nsIntPoint GetOriginOffset() {
     return mBufferRect.TopLeft() - mBufferRotation;
@@ -966,168 +964,6 @@ ShadowThebesLayerOGL::ShadowThebesLayerOGL(LayerManagerOGL *aManager)
 ShadowThebesLayerOGL::~ShadowThebesLayerOGL()
 {}
 
-bool
-ShadowThebesLayerOGL::ShouldDoubleBuffer()
-{
-#ifdef MOZ_JAVA_COMPOSITOR
-  
-
-
-
-
-
-
-
-
-
-
-  return gl()->WantsSmallTiles();
-#else
-  return false;
-#endif
-}
-
-void
-ShadowThebesLayerOGL::EnsureTextureUpdated()
-{
-  if (mRegionPendingUpload.IsEmpty() || !IsSurfaceDescriptorValid(mFrontBufferDescriptor))
-    return;
-
-  AutoOpenSurface frontSurface(OPEN_READ_ONLY, mFrontBuffer.Buffer());
-  mBuffer->DirectUpdate(frontSurface.Get(), mRegionPendingUpload);
-  mRegionPendingUpload.SetEmpty();
-}
-
-static bool
-EnsureTextureUpdatedCallback(gl::TextureImage* aImage, int aTileNumber,
-                             void *aData)
-{
-  
-  
-  
-  nsIntRegion* updateRegion = (nsIntRegion*)aData;
-  nsIntRect tileRect = aImage->GetTileRect();
-  if (updateRegion->Intersects(tileRect))
-    updateRegion->Or(*updateRegion, tileRect);
-  return true;
-}
-
-void
-ShadowThebesLayerOGL::EnsureTextureUpdated(nsIntRegion& aRegion)
-{
-  if (mRegionPendingUpload.IsEmpty() || !IsSurfaceDescriptorValid(mFrontBufferDescriptor))
-    return;
-
-  
-  nsIntRegion updateRegion;
-  nsIntRect bufferRect = mFrontBuffer.Rect();
-  for (int i = 0; i < 4; i++) {
-    switch(i) {
-      case 0:
-        
-        
-        aRegion.MoveBy(mFrontBuffer.Rotation());
-        break;
-      case 1:
-      case 3:
-        
-        
-        aRegion.MoveBy(-bufferRect.width, 0);
-        break;
-      case 2:
-        
-        
-        aRegion.MoveBy(bufferRect.width, -bufferRect.height);
-    }
-
-    
-    
-    updateRegion.And(aRegion, mRegionPendingUpload);
-
-    if (updateRegion.IsEmpty())
-      continue;
-
-    AutoOpenSurface surface(OPEN_READ_ONLY, mFrontBuffer.Buffer());
-    nsRefPtr<TextureImage> texImage;
-    if (!gl()->CanUploadSubTextures()) {
-      
-      
-      
-      
-      gfxIntSize size = surface.Size();
-      mBuffer->EnsureTexture(size, surface.ContentType());
-      texImage = mBuffer->GetTextureImage().get();
-      if (texImage->GetTileCount() > 1)
-        texImage->SetIterationCallback(EnsureTextureUpdatedCallback, (void *)&updateRegion);
-      else
-        updateRegion = nsIntRect(0, 0, size.width, size.height);
-    }
-
-    
-    mBuffer->DirectUpdate(surface.Get(), updateRegion);
-
-    if (!gl()->CanUploadSubTextures())
-      texImage->SetIterationCallback(nsnull, nsnull);
-
-    
-    mRegionPendingUpload.Sub(mRegionPendingUpload, updateRegion);
-  }
-}
-
-static bool
-ProgressiveUploadCallback(gl::TextureImage* aImage, int aTileNumber,
-                          void *aData)
-{
-  nsIntRegion* regionPendingUpload = (nsIntRegion*)aData;
-
-  
-  nsIntRect tileRect = aImage->GetTileRect();
-  if (!regionPendingUpload->Intersects(tileRect))
-    return true;
-
-  regionPendingUpload->Sub(*regionPendingUpload, tileRect);
-
-  
-  
-  
-  return false;
-}
-
-void
-ShadowThebesLayerOGL::ProgressiveUpload()
-{
-  
-  mUploadTask = nsnull;
-
-  if (mRegionPendingUpload.IsEmpty() || mBuffer == nsnull)
-    return;
-
-  
-  
-  AutoOpenSurface frontSurface(OPEN_READ_ONLY, mFrontBuffer.Buffer());
-  mBuffer->EnsureTexture(frontSurface.Size(),
-                         frontSurface.ContentType());
-  nsRefPtr<gl::TextureImage> tiledImage = mBuffer->GetTextureImage().get();
-  if (tiledImage->GetTileCount() > 1)
-    tiledImage->SetIterationCallback(ProgressiveUploadCallback, (void *)&mRegionPendingUpload);
-  else
-    mRegionPendingUpload.SetEmpty();
-
-  
-  mBuffer->DirectUpdate(frontSurface.Get(), mRegionPendingUpload);
-
-  
-  tiledImage->SetIterationCallback(nsnull, nsnull);
-
-  if (!mRegionPendingUpload.IsEmpty()) {
-    
-    mUploadTask = NewRunnableMethod(this, &ShadowThebesLayerOGL::ProgressiveUpload);
-    
-    
-    MessageLoop::current()->PostDelayedTask(FROM_HERE, mUploadTask, 5);
-  }
-}
-
 void
 ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            const nsIntRegion& aUpdatedRegion,
@@ -1136,75 +972,19 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            OptionalThebesBuffer* aReadOnlyFront,
                            nsIntRegion* aFrontUpdatedRegion)
 {
-  
-  if (ShouldDoubleBuffer()) {
-    AutoOpenSurface newFrontBuffer(OPEN_READ_ONLY, aNewFront.buffer());
-
-    if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
-      AutoOpenSurface currentFront(OPEN_READ_ONLY, mFrontBufferDescriptor);
-      if (currentFront.Size() != newFrontBuffer.Size()) {
-        
-        DestroyFrontBuffer();
-      }
-    }
-
+  if (mDestroyed) {
     
-    if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
-      *aNewBack = ThebesBuffer();
-      aNewBack->get_ThebesBuffer().buffer() = mFrontBufferDescriptor;
-    } else {
-      *aNewBack = null_t();
-    }
-
-    
-    
-    aNewBackValidRegion->Sub(mOldValidRegion, aUpdatedRegion);
-
-    SurfaceDescriptor unused;
-    nsIntRect backRect;
-    nsIntPoint backRotation;
-    mFrontBuffer.Swap(
-      aNewFront.buffer(), aNewFront.rect(), aNewFront.rotation(),
-      &unused, &backRect, &backRotation);
-
-    if (aNewBack->type() != OptionalThebesBuffer::Tnull_t) {
-      aNewBack->get_ThebesBuffer().rect() = backRect;
-      aNewBack->get_ThebesBuffer().rotation() = backRotation;
-    }
-
-    mFrontBufferDescriptor = aNewFront.buffer();
-
-    
-    if (!mDestroyed) {
-      if (!mBuffer) {
-        mBuffer = new ShadowBufferOGL(this);
-      }
-      AutoOpenSurface frontSurface(OPEN_READ_ONLY, mFrontBufferDescriptor);
-      mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), true, mRegionPendingUpload);
-
-      
-      if (!mUploadTask) {
-        mUploadTask = NewRunnableMethod(this, &ShadowThebesLayerOGL::ProgressiveUpload);
-        
-        MessageLoop::current()->PostDelayedTask(FROM_HERE, mUploadTask, 5);
-      }
-    }
-
-    *aReadOnlyFront = aNewFront;
-    *aFrontUpdatedRegion = aUpdatedRegion;
-
+    *aNewBack = aNewFront;
+    *aNewBackValidRegion = aNewFront.rect();
     return;
   }
 
-  
-  if (!mDestroyed) {
-    if (!mBuffer) {
-      mBuffer = new ShadowBufferOGL(this);
-    }
-    AutoOpenSurface frontSurface(OPEN_READ_ONLY, aNewFront.buffer());
-    mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), false, mRegionPendingUpload);
+  if (!mBuffer) {
+    mBuffer = new ShadowBufferOGL(this);
   }
-
+  AutoOpenSurface frontSurface(OPEN_READ_ONLY, aNewFront.buffer());
+  mBuffer->Upload(frontSurface.Get(), aUpdatedRegion, aNewFront.rect(), aNewFront.rotation(), false, mRegionPendingUpload);
+    
   *aNewBack = aNewFront;
   *aNewBackValidRegion = mValidRegion;
   *aReadOnlyFront = null_t();
@@ -1214,19 +994,11 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
 void
 ShadowThebesLayerOGL::DestroyFrontBuffer()
 {
-  if (ShouldDoubleBuffer()) {
-    
-    if (mUploadTask) {
-      mUploadTask->Cancel();
-      mUploadTask = nsnull;
-    }
+  mFrontBuffer.Clear();
+  mOldValidRegion.SetEmpty();
 
-    mFrontBuffer.Clear();
-    mOldValidRegion.SetEmpty();
-
-    if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
-      mAllocator->DestroySharedSurface(&mFrontBufferDescriptor);
-    }
+  if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
+    mAllocator->DestroySharedSurface(&mFrontBufferDescriptor);
   }
 
   mBuffer = nsnull;
@@ -1269,46 +1041,6 @@ ShadowThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
   NS_ABORT_IF_FALSE(mBuffer, "should have a buffer here");
 
   mOGLManager->MakeCurrent();
-
-  if (ShouldDoubleBuffer()) {
-    
-    gfxMatrix transform2d;
-    const gfx3DMatrix& transform = GetLayer()->GetEffectiveTransform();
-
-    if (transform.Is2D(&transform2d) && transform2d.PreservesAxisAlignedRectangles()) {
-      
-      
-      nsIntRect bufferRect = mFrontBuffer.Rect();
-      gfxRect layerRect = transform2d.Transform(gfxRect(bufferRect));
-      layerRect.MoveBy(gfxPoint(aOffset));
-
-      
-      
-      nsIntSize widgetSize = mOGLManager->GetWidgetSize();
-      gfxRect clippedLayerRect = layerRect.Intersect(gfxRect(0, 0, widgetSize.width, widgetSize.height));
-
-      
-      
-      gfxPoint scaleFactor = gfxPoint(bufferRect.width / (float)layerRect.width,
-                                      bufferRect.height / (float)layerRect.height);
-      float x1 = (clippedLayerRect.x - layerRect.x) * scaleFactor.x;
-      float y1 = (clippedLayerRect.y - layerRect.y) * scaleFactor.y;
-      float x2 = (clippedLayerRect.XMost() - layerRect.x) * scaleFactor.x;
-      float y2 = (clippedLayerRect.YMost() - layerRect.y) * scaleFactor.y;
-
-      
-      nsIntRect updateRect = nsIntRect(NS_MAX(0.0f, x1), NS_MAX(0.0f, y1),
-                                       NS_MAX(0.0f, x2 - x1), NS_MAX(0.0f, y2 - y1));
-
-      nsIntRegion updateRegion = updateRect;
-      EnsureTextureUpdated(updateRegion);
-    } else {
-      
-      
-      
-      EnsureTextureUpdated();
-    }
-  }
 
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
 

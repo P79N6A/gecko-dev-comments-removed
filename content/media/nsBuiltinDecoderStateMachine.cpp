@@ -221,7 +221,7 @@ public:
 private:
   
   
-  static StateMachineTracker* mInstance;
+  static StateMachineTracker* sInstance;
 
   
   
@@ -247,15 +247,15 @@ private:
   nsDeque mPending;
 };
 
-StateMachineTracker* StateMachineTracker::mInstance = nsnull;
+StateMachineTracker* StateMachineTracker::sInstance = nsnull;
 
 StateMachineTracker& StateMachineTracker::Instance()
 {
-  if (!mInstance) {
+  if (!sInstance) {
     NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-    mInstance = new StateMachineTracker();
+    sInstance = new StateMachineTracker();
   }
-  return *mInstance;
+  return *sInstance;
 }
 
 void StateMachineTracker::EnsureGlobalStateMachine() 
@@ -303,7 +303,7 @@ void StateMachineTracker::CleanupGlobalStateMachine()
       NS_DispatchToMainThread(event);
 
       NS_ASSERTION(mDecodeThreadCount == 0, "Decode thread count must be zero.");
-      mInstance = nsnull;
+      sInstance = nsnull;
     }
     delete this;
   }

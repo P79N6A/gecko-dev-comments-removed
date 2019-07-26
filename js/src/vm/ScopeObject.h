@@ -327,8 +327,8 @@ class StaticBlockObject : public BlockObject
 
 
 
-    void setDefinitionParseNode(unsigned i, Definition *def);
-    Definition *maybeDefinitionParseNode(unsigned i);
+    void setDefinitionParseNode(unsigned i, frontend::Definition *def);
+    frontend::Definition *maybeDefinitionParseNode(unsigned i);
 
     
 

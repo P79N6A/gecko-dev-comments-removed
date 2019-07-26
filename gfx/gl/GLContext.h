@@ -742,6 +742,7 @@ public:
     void ApplyFilterToBoundTexture(gfxPattern::GraphicsFilter aFilter);
 
     virtual bool BindExternalBuffer(GLuint texture, void* buffer) { return false; }
+    virtual bool UnbindExternalBuffer(GLuint texture) { return false; }
 
     
 
@@ -1534,6 +1535,7 @@ public:
         ARB_sync,
         OES_EGL_image,
         OES_EGL_sync,
+        OES_EGL_image_external,
         Extensions_Max
     };
 
@@ -3082,10 +3084,10 @@ public:
      }
 
      
-     void fImageTargetTexture2D(GLenum target, GLeglImage image)
+     void fEGLImageTargetTexture2D(GLenum target, GLeglImage image)
      {
          BEFORE_GL_CALL;
-         mSymbols.fImageTargetTexture2D(target, image);
+         mSymbols.fEGLImageTargetTexture2D(target, image);
          AFTER_GL_CALL;
      }
 

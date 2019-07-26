@@ -436,7 +436,12 @@ private:
                  SecurityLevel* result);
 
     nsresult
-    CreateCodebasePrincipal(nsIURI* aURI, nsIPrincipal** result);
+    GetCodebasePrincipalInternal(nsIURI* aURI, PRUint32 aAppId, bool aInMozBrowser,
+                         nsIPrincipal** result);
+
+    nsresult
+    CreateCodebasePrincipal(nsIURI* aURI, PRUint32 aAppId, bool aInMozBrowser,
+                            nsIPrincipal** result);
 
     
     
@@ -595,5 +600,14 @@ public:
 
     NS_IMETHOD InitializeNameSet(nsIScriptContext* aScriptContext);
 };
+
+namespace mozilla {
+
+void
+GetExtendedOrigin(nsIURI* aURI, PRUint32 aAppid,
+                  bool aInMozBrowser,
+                  nsACString& aExtendedOrigin);
+
+} 
 
 #endif 

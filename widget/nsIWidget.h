@@ -609,7 +609,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD IsVisible(bool & aState) = 0;
+    virtual bool IsVisible() const = 0;
 
     
 

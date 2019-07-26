@@ -585,9 +585,7 @@ NS_METHOD nsWindow::Show(bool aState)
       
       
       if (CheckDragStatus(ACTION_SHOW, 0)) {
-        bool isVisible;
-        IsVisible(isVisible);
-        if (!isVisible) {
+        if (!IsVisible()) {
           PlaceBehind(eZPlacementTop, 0, false);
         }
         WinShowWindow(mWnd, true);
@@ -602,10 +600,9 @@ NS_METHOD nsWindow::Show(bool aState)
 
 
 
-NS_METHOD nsWindow::IsVisible(bool& aState)
+bool nsWindow::IsVisible() const
 {
-  aState = WinIsWindowVisible(GetMainWindow()) ? true : false;
-  return NS_OK;
+  return WinIsWindowVisible(GetMainWindow());
 }
 
 

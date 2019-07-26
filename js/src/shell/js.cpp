@@ -3191,6 +3191,8 @@ Compile(JSContext *cx, unsigned argc, jsval *vp)
 static JSBool
 Parse(JSContext *cx, unsigned argc, jsval *vp)
 {
+    using namespace js::frontend;
+
     if (argc < 1) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_MORE_ARGS_NEEDED,
                              "compile", "0", "s");
@@ -3204,10 +3206,10 @@ Parse(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     JSString *scriptContents = JSVAL_TO_STRING(arg0);
-    js::Parser parser(cx,  NULL,  NULL,
-                      JS_GetStringCharsZ(cx, scriptContents), JS_GetStringLength(scriptContents),
-                      "<string>",  1, cx->findVersion(),
-                       true,  false);
+    Parser parser(cx,  NULL,  NULL,
+                  JS_GetStringCharsZ(cx, scriptContents), JS_GetStringLength(scriptContents),
+                  "<string>",  1, cx->findVersion(),
+                   true,  false);
     if (!parser.init())
         return false;
 

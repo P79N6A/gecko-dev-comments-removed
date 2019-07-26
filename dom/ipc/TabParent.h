@@ -29,6 +29,15 @@ class nsIDOMElement;
 class nsIURI;
 
 namespace mozilla {
+
+namespace layers {
+struct FrameMetrics;
+}
+
+namespace layout {
+class RenderFrameParent;
+}
+
 namespace dom {
 
 class ContentDialogParent : public PContentDialogParent {};
@@ -105,6 +114,7 @@ public:
     
     void Show(const nsIntSize& size);
     void UpdateDimensions(const nsRect& rect, const nsIntSize& size);
+    void UpdateFrame(const layers::FrameMetrics& aFrameMetrics);
     void Activate();
     void Deactivate();
 
@@ -203,7 +213,8 @@ protected:
     bool AllowContentIME();
 
     NS_OVERRIDE
-    virtual PRenderFrameParent* AllocPRenderFrame(LayersBackend* aBackend,
+    virtual PRenderFrameParent* AllocPRenderFrame(ScrollingBehavior* aScrolling,
+                                                  LayersBackend* aBackend,
                                                   int32_t* aMaxTextureSize,
                                                   uint64_t* aLayersId);
     NS_OVERRIDE
@@ -229,7 +240,20 @@ protected:
 private:
     already_AddRefed<nsFrameLoader> GetFrameLoader() const;
     already_AddRefed<nsIWidget> GetWidget() const;
+    layout::RenderFrameParent* GetRenderFrame();
     void TryCacheDPI();
+    
+    
+    bool IsForMozBrowser();
+    
+    
+    bool UseAsyncPanZoom();
+    
+    
+    
+    
+    void MaybeForwardEventToRenderFrame(const nsInputEvent& aEvent,
+                                        nsInputEvent* aOutEvent);
 };
 
 } 

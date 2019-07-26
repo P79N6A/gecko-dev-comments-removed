@@ -12,6 +12,7 @@
 #include "prtypes.h"                    
 
 class ChangeCSSInlineStyleTxn;
+class nsComputedDOMStyle;
 class nsIAtom;
 class nsIContent;
 class nsIDOMCSSStyleDeclaration;
@@ -24,9 +25,6 @@ namespace dom {
 class Element;
 }  
 }  
-
-#define SPECIFIED_STYLE_TYPE    1
-#define COMPUTED_STYLE_TYPE     2
 
 class nsHTMLEditor;
 class nsIDOMWindow;
@@ -63,6 +61,8 @@ public:
     eCSSEditableProperty_whitespace,
     eCSSEditableProperty_width
   };
+
+  enum StyleType { eSpecified, eComputed };
 
 
   struct CSSEquivTable {
@@ -178,15 +178,13 @@ public:
 
 
 
-
   nsresult    GetCSSEquivalentToHTMLInlineStyleSet(nsINode* aNode,
                                                    nsIAtom * aHTMLProperty,
                                                    const nsAString * aAttribute,
                                                    nsAString & aValueString,
-                                                   PRUint8 aStyleType);
+                                                   StyleType aStyleType);
 
   
-
 
 
 
@@ -202,14 +200,14 @@ public:
                                            nsIAtom* aProperty,
                                            const nsAString* aAttribute,
                                            const nsAString& aValue,
-                                           PRUint8 aStyleType);
+                                           StyleType aStyleType);
 
   nsresult    IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
                                                   nsIAtom * aHTMLProperty,
                                                   const nsAString * aAttribute,
                                                   bool & aIsSet,
                                                   nsAString & aValueString,
-                                                  PRUint8 aStyleType);
+                                                  StyleType aStyleType);
 
   
 
@@ -309,11 +307,10 @@ public:
   
 
 
-
-
-
-  nsresult GetDefaultViewCSS(nsINode* aNode, nsIDOMWindow** aWindow);
-  nsresult GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
+  already_AddRefed<nsComputedDOMStyle>
+    GetComputedStyle(nsIDOMElement* aElement);
+  already_AddRefed<nsComputedDOMStyle>
+    GetComputedStyle(mozilla::dom::Element* aElement);
 
 
 private:
@@ -385,14 +382,10 @@ private:
 
 
 
-
-
   nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, nsIDOMWindow* aWindow,
-                                    PRUint8 aStyleType);
+                                    nsAString& aValue, StyleType aStyleType);
   nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, nsIDOMWindow* aWindow,
-                                    PRUint8 aStyleType);
+                                    nsAString& aValue, StyleType aStyleType);
 
 
 private:
