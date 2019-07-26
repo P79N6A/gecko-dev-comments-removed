@@ -84,7 +84,7 @@ IonRuntime::generateEnterJIT(JSContext *cx)
     JS_ASSERT(OsrFrameReg == reg_frame);
 
     MacroAssembler masm(cx);
-    AutoFlushCache afc("GenerateEnterJIT", cx->compartment->ionCompartment());
+    AutoFlushCache afc("GenerateEnterJIT", cx->runtime->ionRuntime());
     Assembler *aasm = &masm;
 
     

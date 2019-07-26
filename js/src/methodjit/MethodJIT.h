@@ -942,12 +942,12 @@ DisableScriptCodeForIon(JSScript *script, jsbytecode *osrPC);
 
 
 void
-ExpandInlineFrames(JSCompartment *compartment);
+ExpandInlineFrames(JS::Zone *zone);
 
 
 
 void
-ClearAllFrames(JSCompartment *compartment);
+ClearAllFrames(JS::Zone *zone);
 
 
 struct InlineFrame

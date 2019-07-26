@@ -538,6 +538,7 @@ class JSObject : public js::ObjectImpl
     inline JSObject *enclosingScope();
 
     inline js::GlobalObject &global() const;
+    inline JSCompartment *compartment() const;
 
     
     static inline bool clearType(JSContext *cx, js::HandleObject obj);
