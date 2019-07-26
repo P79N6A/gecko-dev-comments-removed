@@ -2217,7 +2217,10 @@ History::VisitURI(nsIURI* aURI,
   else if (aFlags & IHistory::REDIRECT_PERMANENT) {
     transitionType = nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT;
   }
-  else if (recentFlags & nsNavHistory::RECENT_TYPED) {
+  else if ((recentFlags & nsNavHistory::RECENT_TYPED) &&
+           !(aFlags & IHistory::UNRECOVERABLE_ERROR)) {
+    
+    
     transitionType = nsINavHistoryService::TRANSITION_TYPED;
   }
   else if (recentFlags & nsNavHistory::RECENT_BOOKMARKED) {

@@ -51,26 +51,39 @@
 
 
 
+#define HOST_TO_REVHOST_PREDICATE \
+  "rev_host = get_unreversed_host(host || '.') || '.' " \
+  "OR rev_host = get_unreversed_host(host || '.') || '.www.'"
+
+
+
+
+
+
+
+
+
+
 
 
 
 #define HOSTS_PREFIX_PRIORITY_FRAGMENT \
   "SELECT CASE " \
-    "WHEN EXISTS( " \
-      "SELECT 1 FROM moz_places WHERE url BETWEEN 'https://www.' || host || '/' " \
-                                             "AND 'https://www.' || host || '/' || X'FFFF' " \
+    "WHEN 1 = ( " \
+      "SELECT min(substr(url,1,12) = 'https://www.') FROM moz_places h " \
+      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'https://www.' " \
-    "WHEN EXISTS( " \
-      "SELECT 1 FROM moz_places WHERE url BETWEEN 'https://' || host || '/' " \
-                                             "AND 'https://' || host || '/' || X'FFFF' " \
+    "WHEN 1 = ( " \
+      "SELECT min(substr(url,1,8) = 'https://') FROM moz_places h " \
+      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'https://' " \
-    "WHEN EXISTS( " \
-      "SELECT 1 FROM moz_places WHERE url BETWEEN 'ftp://' || host || '/' " \
-                                             "AND 'ftp://' || host || '/' || X'FFFF' " \
+    "WHEN 1 = ( " \
+      "SELECT min(substr(url,1,4) = 'ftp:') FROM moz_places h " \
+      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'ftp://' " \
-    "WHEN EXISTS( " \
-      "SELECT 1 FROM moz_places WHERE url BETWEEN 'http://www.' || host || '/' " \
-                                             "AND 'http://www.' || host || '/' || X'FFFF' " \
+    "WHEN 1 = ( " \
+      "SELECT min(substr(url,1,11) = 'http://www.') FROM moz_places h " \
+      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
     ") THEN 'www.' " \
   "END "
 
@@ -109,9 +122,7 @@
              "OR rev_host = get_unreversed_host(host || '.') || '.www.' " \
       "); " \
     "UPDATE moz_hosts " \
-    "SET prefix = (" \
-      HOSTS_PREFIX_PRIORITY_FRAGMENT \
-    ") " \
+    "SET prefix = (" HOSTS_PREFIX_PRIORITY_FRAGMENT ") " \
     "WHERE host = fixup_url(get_unreversed_host(OLD.rev_host)); " \
   "END" \
 )
