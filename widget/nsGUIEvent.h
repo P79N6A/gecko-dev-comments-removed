@@ -517,6 +517,17 @@ public:
   
   
   bool    mIsTrusted : 1;
+  
+  
+  bool    mInBubblingPhase : 1;
+  
+  bool    mInCapturePhase : 1;
+
+  
+  bool InTargetPhase() const
+  {
+    return (mInBubblingPhase && mInCapturePhase);
+  }
 
   EventFlags()
   {
