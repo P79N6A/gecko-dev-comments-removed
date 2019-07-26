@@ -457,8 +457,13 @@ class Range : public TempObject {
     }
 
     
+    bool contains(int32_t x) const {
+        return x >= lower_ && x <= upper_;
+    }
+
+    
     bool canBeZero() const {
-        return lower_ <= 0 && upper_ >= 0;
+        return contains(0);
     }
 
     

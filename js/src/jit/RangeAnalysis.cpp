@@ -2694,8 +2694,33 @@ void
 MDiv::collectRangeInfoPreTrunc()
 {
     Range lhsRange(lhs());
+    Range rhsRange(rhs());
+
+    
     if (lhsRange.isFiniteNonNegative())
         canBeNegativeDividend_ = false;
+
+    
+    if (!rhsRange.canBeZero())
+        canBeDivideByZero_ = false;
+
+    
+    
+    if (!lhsRange.contains(INT32_MIN))
+        canBeNegativeOverflow_ = false;
+
+    
+    if (!rhsRange.contains(-1))
+        canBeNegativeOverflow_ = false;
+
+    
+    
+    if (!lhsRange.canBeZero())
+        canBeNegativeZero_ = false;
+
+    
+    if (rhsRange.isFiniteNonNegative())
+        canBeNegativeZero_ = false;
 }
 
 void
