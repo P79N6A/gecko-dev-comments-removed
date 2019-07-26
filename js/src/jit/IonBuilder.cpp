@@ -7611,9 +7611,12 @@ IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyN
 
             
             
+            
             types::HeapTypeSetKey property = type->property(NameToId(name));
-            if (property.maybeTypes() && !property.maybeTypes()->empty())
-                return false;
+            if (types::TypeSet *types = property.maybeTypes()) {
+                if (!types->empty() || types->configuredProperty())
+                    return false;
+            }
             if (JSObject *obj = type->singleton()) {
                 if (types::CanHaveEmptyPropertyTypesForOwnProperty(obj))
                     return false;
