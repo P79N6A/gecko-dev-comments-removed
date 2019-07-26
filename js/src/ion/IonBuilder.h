@@ -17,6 +17,8 @@
 namespace js {
 namespace ion {
 
+class LIRGraph;
+
 class IonBuilder : public MIRGenerator
 {
     enum ControlStatus {
@@ -424,6 +426,12 @@ class IonBuilder : public MIRGenerator
   public:
     
     JSScript * const script;
+
+    
+    types::RecompileInfo const recompileInfo;
+
+    
+    LIRGraph *lir;
 
     void clearForBackEnd();
 

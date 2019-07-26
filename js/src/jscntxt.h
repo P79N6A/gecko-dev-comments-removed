@@ -77,6 +77,7 @@ class IonActivation;
 class WeakMapBase;
 class InterpreterFrames;
 class DebugScopes;
+class WorkerThreadState;
 
 
 
@@ -789,6 +790,8 @@ struct JSRuntime : js::RuntimeFriendFields
     js::GCHelperThread  gcHelperThread;
 
 #ifdef JS_THREADSAFE
+    js::WorkerThreadState *workerThreadState;
+
     js::SourceCompressorThread sourceCompressorThread;
 #endif
 
@@ -893,9 +896,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
     
     js::ion::IonActivation  *ionActivation;
-
-    
-    JS::CompilerRootNode *ionCompilerRootList;
 
   private:
     

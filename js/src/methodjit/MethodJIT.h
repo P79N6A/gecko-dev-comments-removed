@@ -795,13 +795,6 @@ struct JITScript
 
     uint32_t        ionCalls;
 
-    
-
-
-
-
-    bool mustDestroyEntryChunk;
-
 #ifdef JS_MONOIC
     
     JSC::CodeLocationLabel argsCheckStub;
@@ -908,6 +901,10 @@ ReleaseScriptCode(FreeOp *fop, JSScript *script)
 
     script->destroyMJITInfo(fop);
 }
+
+
+void
+ReleaseScriptCodeFromVM(JSContext *cx, JSScript *script);
 
 
 void

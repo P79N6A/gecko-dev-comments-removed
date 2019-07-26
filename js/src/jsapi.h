@@ -1064,7 +1064,8 @@ class JS_PUBLIC_API(AutoGCRooter) {
         REGEXPSTATICS=-25, 
         NAMEVECTOR =  -26, 
         HASHABLEVALUE=-27,
-        IONMASM =     -28  
+        IONMASM =     -28, 
+        IONALLOC =    -29  
     };
 
   private:
