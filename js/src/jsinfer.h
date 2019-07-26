@@ -494,6 +494,9 @@ class StackTypeSet : public TypeSet
     bool isMagicArguments() { return getKnownTypeTag() == JSVAL_TYPE_MAGIC; }
 
     
+    bool maybeObject() { return unknownObject() || baseObjectCount() > 0; }
+
+    
     bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
 
     
