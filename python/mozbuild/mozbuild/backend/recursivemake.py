@@ -349,6 +349,7 @@ class RecursiveMakeBackend(CommonBackend):
         elif isinstance(obj, VariablePassthru):
             unified_suffixes = dict(
                 UNIFIED_CSRCS='c',
+                UNIFIED_CMMSRCS='mm',
                 UNIFIED_CPPSRCS='cpp',
             )
             
