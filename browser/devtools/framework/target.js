@@ -352,6 +352,8 @@ TabTarget.prototype = {
 
 
   _setupRemoteListeners: function TabTarget__setupRemoteListeners() {
+    this.client.addListener("closed", this.destroy);
+
     this._onTabDetached = (aType, aPacket) => {
       
       if (aPacket.from == this._form.actor) {
@@ -384,6 +386,7 @@ TabTarget.prototype = {
 
 
   _teardownRemoteListeners: function TabTarget__teardownRemoteListeners() {
+    this.client.removeListener("closed", this.destroy);
     this.client.removeListener("tabNavigated", this._onTabNavigated);
     this.client.removeListener("tabDetached", this._onTabDetached);
   },
