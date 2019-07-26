@@ -250,6 +250,77 @@ BingRequest.prototype = {
 
 
 
+let BingTokenManager = {
+  _currentToken: null,
+  _currentExpiryTime: 0,
+  _pendingRequest: null,
+
+  
+
+
+
+
+
+
+
+  getToken: function() {
+    if (this._pendingRequest) {
+      return this._pendingRequest;
+    }
+
+    let remainingMs = this._currentExpiryTime - new Date();
+    
+    if (remainingMs > 60 * 1000) {
+      return Promise.resolve(this._currentToken);
+    }
+
+    return this._getNewToken();
+  },
+
+  
+
+
+
+
+
+  _getNewToken: function() {
+    let request = new RESTRequest("https://datamarket.accesscontrol.windows.net/v2/OAuth2-13");
+    request.setHeader("Content-type", "application/x-www-form-urlencoded");
+    let params = [
+      "grant_type=client_credentials",
+      "scope=" + encodeURIComponent("http://api.microsofttranslator.com"),
+      "client_id=",
+      "client_secret="
+    ];
+
+    let deferred = Promise.defer();
+    this._pendingRequest = deferred.promise;
+    request.post(params.join("&"), function(err) {
+      this._pendingRequest = null;
+
+      if (err) {
+        deferred.reject(err);
+      }
+
+      try {
+        let json = JSON.parse(this.response.body);
+        let token = json.access_token;
+        let expires_in = json.expires_in;
+        BingTokenManager._currentToken = token;
+        BingTokenManager._currentExpiryTime = new Date(Date.now() + expires_in * 1000);
+        deferred.resolve(token);
+      } catch (e) {
+        deferred.reject(e);
+      }
+    });
+
+    return deferred.promise;
+  }
+};
+
+
+
+
 function escapeXML(aStr) {
   return aStr.toString()
              .replace("&", "&amp;", "g")
