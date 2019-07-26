@@ -159,8 +159,14 @@ let gBrowserThumbnails = {
 
     if (httpChannel) {
       
-      if (Math.floor(httpChannel.responseStatus / 100) != 2)
+      try {
+        if (Math.floor(httpChannel.responseStatus / 100) != 2)
+          return false;
+      } catch (e) {
+        
+        
         return false;
+      }
 
       
       if (httpChannel.isNoStoreResponse())
