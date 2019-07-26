@@ -301,6 +301,8 @@ private:
 
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
+
+    nsIMemoryReporter* mGPUAdapterReporter;
 };
 
 #endif

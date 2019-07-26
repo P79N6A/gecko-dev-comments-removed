@@ -11,14 +11,14 @@
 #include "nsZipArchive.h"
 #include "nsIStartupCache.h"
 #include "nsITimer.h"
-#include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "nsIOutputStream.h"
 #include "nsIFile.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/StaticPtr.h"
+
+class nsIMemoryReporter;
 
 
 
@@ -67,10 +67,9 @@
 
 
 namespace mozilla {
-
 namespace scache {
 
-struct CacheEntry
+struct CacheEntry 
 {
   nsAutoArrayPtr<char> data;
   uint32_t size;
@@ -97,14 +96,13 @@ class StartupCacheListener MOZ_FINAL : public nsIObserver
   NS_DECL_NSIOBSERVER
 };
 
-class StartupCache : public mozilla::MemoryMultiReporter
+class StartupCache
 {
 
 friend class StartupCacheListener;
 friend class StartupCacheWrapper;
-
+                                
 public:
-  NS_DECL_ISUPPORTS
 
   
 
@@ -130,9 +128,6 @@ public:
   static StartupCache* GetSingleton();
   static void DeleteSingleton();
 
-  NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData);
-
   
   
   size_t HeapSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
@@ -141,7 +136,7 @@ public:
 
 private:
   StartupCache();
-  virtual ~StartupCache();
+  ~StartupCache();
 
   enum TelemetrifyAge {
     IGNORE_AGE = 0,
@@ -167,20 +162,23 @@ private:
   nsClassHashtable<nsCStringHashKey, CacheEntry> mTable;
   nsRefPtr<nsZipArchive> mArchive;
   nsCOMPtr<nsIFile> mFile;
-
+  
   nsCOMPtr<nsIObserverService> mObserverService;
   nsRefPtr<StartupCacheListener> mListener;
   nsCOMPtr<nsITimer> mTimer;
 
   bool mStartupWriteInitiated;
 
-  static StaticRefPtr<StartupCache> gStartupCache;
+  static StartupCache *gStartupCache;
   static bool gShutdownInitiated;
   static bool gIgnoreDiskCache;
   PRThread *mWriteThread;
 #ifdef DEBUG
   nsTHashtable<nsISupportsHashKey> mWriteObjectMap;
 #endif
+
+  nsCOMPtr<nsIMemoryReporter> mMappingReporter;
+  nsCOMPtr<nsIMemoryReporter> mDataReporter;
 };
 
 

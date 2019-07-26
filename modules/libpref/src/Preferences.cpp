@@ -341,7 +341,7 @@ class AddPreferencesMemoryReporterRunnable : public nsRunnable
 {
   NS_IMETHOD Run()
   {
-    return RegisterStrongMemoryReporter(new PreferenceServiceReporter());
+    return NS_RegisterMemoryReporter(new PreferenceServiceReporter());
   }
 };
 } 

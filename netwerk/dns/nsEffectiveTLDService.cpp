@@ -13,13 +13,13 @@
 
 #include "nsEffectiveTLDService.h"
 #include "nsIIDNService.h"
+#include "nsIMemoryReporter.h"
 #include "nsNetUtil.h"
 #include "prnetdb.h"
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsEffectiveTLDService, MemoryUniReporter,
-                             nsIEffectiveTLDService)
+NS_IMPL_ISUPPORTS1(nsEffectiveTLDService, nsIEffectiveTLDService)
 
 
 
@@ -61,15 +61,28 @@ nsDomainEntry::FuncForStaticAsserts(void)
 
 static nsEffectiveTLDService *gService = nullptr;
 
+class EffectiveTLDServiceReporter MOZ_FINAL : public MemoryUniReporter
+{
+public:
+  EffectiveTLDServiceReporter()
+    : MemoryUniReporter("explicit/xpcom/effective-TLD-service",
+                         KIND_HEAP, UNITS_BYTES,
+                         "Memory used by the effective TLD service.")
+  {}
+
+private:
+  int64_t Amount() MOZ_OVERRIDE
+  {
+    return gService ? gService->SizeOfIncludingThis(MallocSizeOf) : 0;
+  }
+};
+
 nsEffectiveTLDService::nsEffectiveTLDService()
   
   
   
   
-  : MemoryUniReporter("explicit/xpcom/effective-TLD-service",
-                       KIND_HEAP, UNITS_BYTES,
-                       "Memory used by the effective TLD service.")
-  , mHash(ArrayLength(nsDomainEntry::entries))
+  : mHash(ArrayLength(nsDomainEntry::entries))
 {
 }
 
@@ -99,29 +112,25 @@ nsEffectiveTLDService::Init()
 
   MOZ_ASSERT(!gService);
   gService = this;
-  RegisterWeakMemoryReporter(this);
+  mReporter = new EffectiveTLDServiceReporter();
+  NS_RegisterMemoryReporter(mReporter);
 
   return NS_OK;
 }
 
 nsEffectiveTLDService::~nsEffectiveTLDService()
 {
-  UnregisterWeakMemoryReporter(this);
+  NS_UnregisterMemoryReporter(mReporter);
   gService = nullptr;
 }
 
-int64_t
-nsEffectiveTLDService::Amount()
-{
-  return SizeOfIncludingThis(MallocSizeOf);
-}
-
 size_t
-nsEffectiveTLDService::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
+nsEffectiveTLDService::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 {
   size_t n = aMallocSizeOf(this);
   n += mHash.SizeOfExcludingThis(nullptr, aMallocSizeOf);
 
+  
   
   
   

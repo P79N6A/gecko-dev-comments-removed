@@ -33,6 +33,7 @@
 #endif
 
 #include "nsIPromptService.h"
+#include "nsIMemoryReporter.h"
 
 #ifdef MOZ_STORAGE_MEMORY
 #  include "mozmemory.h"
@@ -69,140 +70,156 @@ StorageSQLiteDistinguishedAmount()
   return ::sqlite3_memory_used();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-ReportConn(nsIHandleReportCallback *aHandleReport,
-           nsISupports *aData,
-           sqlite3 *aConn,
-           const nsACString &aPathHead,
-           const nsACString &aKind,
-           const nsACString &aDesc,
-           int aOption,
-           size_t *aTotal)
+class StorageSQLiteReporter MOZ_FINAL : public MemoryMultiReporter
 {
-  nsCString path(aPathHead);
-  path.Append(aKind);
-  path.AppendLiteral("-used");
+private:
+  Service *mService;    
+  nsCString mStmtDesc;
+  nsCString mCacheDesc;
+  nsCString mSchemaDesc;
 
-  int curr = 0, max = 0;
-  int rc = ::sqlite3_db_status(aConn, aOption, &curr, &max, 0);
-  nsresult rv = convertResultCode(rc);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = aHandleReport->Callback(EmptyCString(), path,
-                               nsIMemoryReporter::KIND_HEAP,
-                               nsIMemoryReporter::UNITS_BYTES, int64_t(curr),
-                               aDesc, aData);
-  NS_ENSURE_SUCCESS(rv, rv);
-  *aTotal += curr;
-
-  return NS_OK;
-}
-
-
-
-
-
-
-
-NS_IMETHODIMP
-Service::CollectReports(nsIHandleReportCallback *aHandleReport,
-                        nsISupports *aData)
-{
-  nsresult rv;
-  size_t totalConnSize = 0;
+public:
+  StorageSQLiteReporter(Service *aService)
+  : MemoryMultiReporter("storage-sqlite")
+  , mService(aService)
   {
-    nsTArray<nsRefPtr<Connection> > connections;
-    getConnections(connections);
+    mStmtDesc = NS_LITERAL_CSTRING(
+      "Memory (approximate) used by all prepared statements used by "
+      "connections to this database.");
 
-    for (uint32_t i = 0; i < connections.Length(); i++) {
-      nsRefPtr<Connection> &conn = connections[i];
+    mCacheDesc = NS_LITERAL_CSTRING(
+      "Memory (approximate) used by all pager caches used by connections "
+      "to this database.");
 
-      
-      bool isReady;
-      (void)conn->GetConnectionReady(&isReady);
-      if (!isReady) {
-          continue;
-      }
-
-      nsCString pathHead("explicit/storage/sqlite/");
-      pathHead.Append(conn->getFilename());
-      pathHead.AppendLiteral("/");
-
-      SQLiteMutexAutoLock lockedScope(conn->sharedDBMutex);
-
-      NS_NAMED_LITERAL_CSTRING(stmtDesc,
-        "Memory (approximate) used by all prepared statements used by "
-        "connections to this database.");
-      rv = ReportConn(aHandleReport, aData, *conn.get(), pathHead,
-                      NS_LITERAL_CSTRING("stmt"), stmtDesc,
-                      SQLITE_DBSTATUS_STMT_USED, &totalConnSize);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      NS_NAMED_LITERAL_CSTRING(cacheDesc,
-        "Memory (approximate) used by all pager caches used by connections "
-        "to this database.");
-      rv = ReportConn(aHandleReport, aData, *conn.get(), pathHead,
-                      NS_LITERAL_CSTRING("cache"), cacheDesc,
-                      SQLITE_DBSTATUS_CACHE_USED, &totalConnSize);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      NS_NAMED_LITERAL_CSTRING(schemaDesc,
-        "Memory (approximate) used to store the schema for all databases "
-        "associated with connections to this database.");
-      rv = ReportConn(aHandleReport, aData, *conn.get(), pathHead,
-                      NS_LITERAL_CSTRING("schema"), schemaDesc,
-                      SQLITE_DBSTATUS_SCHEMA_USED, &totalConnSize);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-#ifdef MOZ_DMD
-    if (::sqlite3_memory_used() != int64_t(gSqliteMemoryUsed)) {
-      NS_WARNING("memory consumption reported by SQLite doesn't match "
-                 "our measurements");
-    }
-#endif
+    mSchemaDesc = NS_LITERAL_CSTRING(
+      "Memory (approximate) used to store the schema for all databases "
+      "associated with connections to this database.");
   }
 
-  int64_t other = ::sqlite3_memory_used() - totalConnSize;
+  
+  
+  
+  
+  
+  
+  NS_IMETHOD CollectReports(nsIMemoryReporterCallback *aCb,
+                            nsISupports *aClosure)
+  {
+    nsresult rv;
+    size_t totalConnSize = 0;
+    {
+      nsTArray<nsRefPtr<Connection> > connections;
+      mService->getConnections(connections);
 
-  rv = aHandleReport->Callback(
-          EmptyCString(),
-          NS_LITERAL_CSTRING("explicit/storage/sqlite/other"),
-          KIND_HEAP, UNITS_BYTES, other,
-          NS_LITERAL_CSTRING("All unclassified sqlite memory."),
-          aData);
-  NS_ENSURE_SUCCESS(rv, rv);
+      for (uint32_t i = 0; i < connections.Length(); i++) {
+        nsRefPtr<Connection> &conn = connections[i];
 
-  return NS_OK;
-}
+        
+        bool isReady;
+        (void)conn->GetConnectionReady(&isReady);
+        if (!isReady) {
+            continue;
+        }
+
+        nsCString pathHead("explicit/storage/sqlite/");
+        pathHead.Append(conn->getFilename());
+        pathHead.AppendLiteral("/");
+
+        SQLiteMutexAutoLock lockedScope(conn->sharedDBMutex);
+
+        rv = reportConn(aCb, aClosure, *conn.get(), pathHead,
+                        NS_LITERAL_CSTRING("stmt"), mStmtDesc,
+                        SQLITE_DBSTATUS_STMT_USED, &totalConnSize);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        rv = reportConn(aCb, aClosure, *conn.get(), pathHead,
+                        NS_LITERAL_CSTRING("cache"), mCacheDesc,
+                        SQLITE_DBSTATUS_CACHE_USED, &totalConnSize);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        rv = reportConn(aCb, aClosure, *conn.get(), pathHead,
+                        NS_LITERAL_CSTRING("schema"), mSchemaDesc,
+                        SQLITE_DBSTATUS_SCHEMA_USED, &totalConnSize);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+#ifdef MOZ_DMD
+      if (::sqlite3_memory_used() != int64_t(gSqliteMemoryUsed)) {
+        NS_WARNING("memory consumption reported by SQLite doesn't match "
+                   "our measurements");
+      }
+#endif
+    }
+
+    int64_t other = ::sqlite3_memory_used() - totalConnSize;
+
+    rv = aCb->Callback(NS_LITERAL_CSTRING(""),
+                       NS_LITERAL_CSTRING("explicit/storage/sqlite/other"),
+                       nsIMemoryReporter::KIND_HEAP,
+                       nsIMemoryReporter::UNITS_BYTES, other,
+                       NS_LITERAL_CSTRING("All unclassified sqlite memory."),
+                       aClosure);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+private:
+  
 
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED2(
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult reportConn(nsIMemoryReporterCallback *aCb,
+                      nsISupports *aClosure,
+                      sqlite3 *aConn,
+                      const nsACString &aPathHead,
+                      const nsACString &aKind,
+                      const nsACString &aDesc,
+                      int aOption,
+                      size_t *aTotal)
+  {
+    nsCString path(aPathHead);
+    path.Append(aKind);
+    path.AppendLiteral("-used");
+
+    int curr = 0, max = 0;
+    int rc = ::sqlite3_db_status(aConn, aOption, &curr, &max, 0);
+    nsresult rv = convertResultCode(rc);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = aCb->Callback(NS_LITERAL_CSTRING(""), path,
+                       nsIMemoryReporter::KIND_HEAP,
+                       nsIMemoryReporter::UNITS_BYTES, int64_t(curr),
+                       aDesc, aClosure);
+    NS_ENSURE_SUCCESS(rv, rv);
+    *aTotal += curr;
+
+    return NS_OK;
+  }
+};
+
+
+
+
+NS_IMPL_ISUPPORTS2(
   Service,
-  MemoryMultiReporter,
   mozIStorageService,
   nsIObserver
 )
@@ -278,8 +295,7 @@ Service::getSynchronousPref()
 int32_t Service::sDefaultPageSize = PREF_TS_PAGESIZE_DEFAULT;
 
 Service::Service()
-: MemoryMultiReporter("storage-sqlite")
-, mMutex("Service::mMutex")
+: mMutex("Service::mMutex")
 , mSqliteVFS(nullptr)
 , mRegistrationMutex("Service::mRegistrationMutex")
 , mConnections()
@@ -288,7 +304,7 @@ Service::Service()
 
 Service::~Service()
 {
-  mozilla::UnregisterWeakMemoryReporter(this);
+  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteReporter);
   mozilla::UnregisterStorageSQLiteDistinguishedAmount();
 
   int rc = sqlite3_vfs_unregister(mSqliteVFS);
@@ -519,7 +535,11 @@ Service::initialize()
   sDefaultPageSize =
       Preferences::GetInt(PREF_TS_PAGESIZE, PREF_TS_PAGESIZE_DEFAULT);
 
-  mozilla::RegisterWeakMemoryReporter(this);
+  
+  
+  
+  mStorageSQLiteReporter = new StorageSQLiteReporter(this);
+  (void)::NS_RegisterMemoryReporter(mStorageSQLiteReporter);
   mozilla::RegisterStorageSQLiteDistinguishedAmount(StorageSQLiteDistinguishedAmount);
 
   return NS_OK;

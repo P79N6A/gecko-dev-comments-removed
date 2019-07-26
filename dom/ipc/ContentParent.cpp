@@ -337,8 +337,7 @@ ContentParent::StartUp()
         return;
     }
 
-    
-    RegisterStrongMemoryReporter(new ContentParentsMemoryReporter());
+    NS_RegisterMemoryReporter(new ContentParentsMemoryReporter());
 
     sCanLaunchSubprocesses = true;
 

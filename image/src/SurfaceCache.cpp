@@ -14,7 +14,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/StaticPtr.h"
 #include "mozilla/Util.h"  
 #include "gfxASurface.h"
 #include "gfxPattern.h"  
@@ -70,7 +69,7 @@ class SurfaceCacheImpl;
 
 
 
-static StaticRefPtr<SurfaceCacheImpl> sInstance;
+static SurfaceCacheImpl* sInstance = nullptr;
 
 
 
@@ -224,38 +223,32 @@ private:
 
 
 
-class SurfaceCacheImpl : public MemoryUniReporter
+class SurfaceCacheImpl
 {
 public:
-  NS_DECL_ISUPPORTS
-
   SurfaceCacheImpl(uint32_t aSurfaceCacheExpirationTimeMS,
                    uint32_t aSurfaceCacheSize)
-    : MemoryUniReporter("imagelib-surface-cache",
-                        KIND_OTHER, UNITS_BYTES,
-                        "Memory used by the imagelib temporary surface cache.")
-    , mExpirationTracker(MOZ_THIS_IN_INITIALIZER_LIST(),
+    : mExpirationTracker(MOZ_THIS_IN_INITIALIZER_LIST(),
                          aSurfaceCacheExpirationTimeMS)
+    , mReporter(new SurfaceCacheReporter)
     , mMemoryPressureObserver(new MemoryPressureObserver)
     , mMaxCost(aSurfaceCacheSize)
     , mAvailableCost(aSurfaceCacheSize)
   {
+    NS_RegisterMemoryReporter(mReporter);
+
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (os)
       os->AddObserver(mMemoryPressureObserver, "memory-pressure", false);
   }
 
-  virtual ~SurfaceCacheImpl()
+  ~SurfaceCacheImpl()
   {
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (os)
       os->RemoveObserver(mMemoryPressureObserver, "memory-pressure");
 
-    UnregisterWeakMemoryReporter(this);
-  }
-
-  void InitMemoryReporter() {
-    RegisterWeakMemoryReporter(this);
+    NS_UnregisterMemoryReporter(mReporter);
   }
 
   void Insert(DrawTarget*       aTarget,
@@ -389,18 +382,9 @@ public:
     return PL_DHASH_NEXT;
   }
 
-  int64_t Amount() MOZ_OVERRIDE
+  int64_t SizeOfSurfacesEstimate() const
   {
-    return SizeOfSurfacesEstimate();
-  }
-
-  
-  
-  
-  
-  Cost SizeOfSurfacesEstimate() const
-  {
-    return mMaxCost - mAvailableCost;
+    return int64_t(mMaxCost - mAvailableCost);
   }
 
 private:
@@ -430,6 +414,25 @@ private:
     SurfaceCacheImpl* const mCache;  
   };
 
+  
+  
+  
+  struct SurfaceCacheReporter : public MemoryUniReporter
+  {
+    SurfaceCacheReporter()
+      : MemoryUniReporter("imagelib-surface-cache",
+                          KIND_OTHER,
+                          UNITS_BYTES,
+                          "Memory used by the imagelib temporary surface cache.")
+    { }
+
+  protected:
+    int64_t Amount() MOZ_OVERRIDE
+    {
+      return sInstance ? sInstance->SizeOfSurfacesEstimate() : 0;
+    }
+  };
+
   struct MemoryPressureObserver : public nsIObserver
   {
     NS_DECL_ISUPPORTS
@@ -449,12 +452,12 @@ private:
   nsTArray<CostEntry>                                       mCosts;
   nsRefPtrHashtable<nsPtrHashKey<Image>, ImageSurfaceCache> mImageCaches;
   SurfaceTracker                                            mExpirationTracker;
+  nsRefPtr<SurfaceCacheReporter>                            mReporter;
   nsRefPtr<MemoryPressureObserver>                          mMemoryPressureObserver;
   const Cost                                                mMaxCost;
   Cost                                                      mAvailableCost;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED0(SurfaceCacheImpl, MemoryUniReporter)
 NS_IMPL_ISUPPORTS1(SurfaceCacheImpl::MemoryPressureObserver, nsIObserver)
 
 
@@ -499,13 +502,13 @@ SurfaceCache::Initialize()
   
   sInstance = new SurfaceCacheImpl(surfaceCacheExpirationTimeMS,
                                    surfaceCacheSizeBytes);
-  sInstance->InitMemoryReporter();
 }
 
  void
 SurfaceCache::Shutdown()
 {
   MOZ_ASSERT(sInstance, "No singleton - was Shutdown() called twice?");
+  delete sInstance;
   sInstance = nullptr;
 }
 

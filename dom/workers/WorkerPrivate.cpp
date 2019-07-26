@@ -4023,7 +4023,7 @@ WorkerPrivate::EnableMemoryReporter()
   
   mMemoryReporter = new MemoryReporter(this);
 
-  if (NS_FAILED(RegisterWeakMemoryReporter(mMemoryReporter))) {
+  if (NS_FAILED(NS_RegisterMemoryReporter(mMemoryReporter))) {
     NS_WARNING("Failed to register memory reporter!");
     
     
@@ -4078,7 +4078,7 @@ WorkerPrivate::DisableMemoryReporter()
   }
 
   
-  if (NS_FAILED(UnregisterWeakMemoryReporter(memoryReporter))) {
+  if (NS_FAILED(NS_UnregisterMemoryReporter(memoryReporter))) {
     NS_WARNING("Failed to unregister memory reporter!");
   }
 }

@@ -366,22 +366,26 @@ gfxWindowsPlatform::gfxWindowsPlatform()
     mScreenDC = GetDC(nullptr);
 
 #ifdef CAIRO_HAS_D2D_SURFACE
-    RegisterStrongMemoryReporter(new GfxD2DSurfaceCacheReporter());
-    RegisterStrongMemoryReporter(new GfxD2DSurfaceVramReporter());
+    NS_RegisterMemoryReporter(new GfxD2DSurfaceCacheReporter());
+    NS_RegisterMemoryReporter(new GfxD2DSurfaceVramReporter());
     mD2DDevice = nullptr;
 #endif
-    RegisterStrongMemoryReporter(new GfxD2DVramDrawTargetReporter());
-    RegisterStrongMemoryReporter(new GfxD2DVramSourceSurfaceReporter());
+    NS_RegisterMemoryReporter(new GfxD2DVramDrawTargetReporter());
+    NS_RegisterMemoryReporter(new GfxD2DVramSourceSurfaceReporter());
 
     UpdateRenderMode();
 
     
     
     
+    
+    mGPUAdapterReporter = nullptr;
 }
 
 gfxWindowsPlatform::~gfxWindowsPlatform()
 {
+    
+
     mDeviceManager = nullptr;
 
     ::ReleaseDC(nullptr, mScreenDC);
