@@ -429,27 +429,6 @@ void StackWalkCallback(void* aPC, void* aSP, void* aClosure)
 
 void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample)
 {
-#ifdef XP_WIN
-  
-
-
-
-
-  if (aSample->isSamplingCurrentThread) {
-    void* ptrs[100];
-    USHORT count = RtlCaptureStackBackTrace(0, 100, ptrs, nullptr);
-    aProfile.addTag(ProfileEntry('s', "(root)"));
-    if (count) {
-      USHORT i = count;
-      do {
-        --i;
-        aProfile.addTag(ProfileEntry('l', ptrs[i]));
-      } while (i != 0);
-    }
-    return;
-  }
-#endif
-
 #ifndef XP_MACOSX
   uintptr_t thread = GetThreadHandle(aSample->threadProfile->GetPlatformData());
   MOZ_ASSERT(thread);
@@ -480,6 +459,11 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
 #else
   void *platformData = nullptr;
 #ifdef XP_WIN
+  if (aSample->isSamplingCurrentThread) {
+    
+    
+    thread = 0;
+  }
   platformData = aSample->context;
 #endif 
 
