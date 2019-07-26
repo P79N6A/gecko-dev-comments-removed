@@ -6864,46 +6864,36 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
 
 
 
-void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
-                                 bool aFromOverflow, bool aCollectSiblings) {
+
+void
+nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
+                            bool aFromOverflow, bool aCollectSiblings)
+{
   while (aFrame) {
     
     if (!aFrame->IsFloatContainingBlock()) {
       nsIFrame *outOfFlowFrame =
         aFrame->GetType() == nsGkAtoms::placeholderFrame ?
           nsLayoutUtils::GetFloatFromPlaceholder(aFrame) : nullptr;
-      if (outOfFlowFrame) {
+      if (outOfFlowFrame && outOfFlowFrame->GetParent() == this) {
+        bool removed = false;
         if (outOfFlowFrame->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT) {
-          if (outOfFlowFrame->GetParent() == this) {
-            nsFrameList* list = GetPushedFloats();
-            if (!list || !list->RemoveFrameIfPresent(outOfFlowFrame)) {
-              if (aFromOverflow) {
-                nsAutoOOFFrameList oofs(this);
-                oofs.mList.RemoveFrame(outOfFlowFrame);
-              } else {
-                mFloats.RemoveFrame(outOfFlowFrame);
-              }
-            }
-            aList.AppendFrame(nullptr, outOfFlowFrame);
-          }
-          
-          
-          
-        } else {
-          
-          
-          
-          
-          NS_ASSERTION(outOfFlowFrame->GetParent() == this,
-                       "Out of flow frame doesn't have the expected parent");
+          nsFrameList* list = GetPushedFloats();
+          removed = list && list->RemoveFrameIfPresent(outOfFlowFrame);
+        }
+        if (!removed) {
           if (aFromOverflow) {
             nsAutoOOFFrameList oofs(this);
             oofs.mList.RemoveFrame(outOfFlowFrame);
           } else {
             mFloats.RemoveFrame(outOfFlowFrame);
           }
-          aList.AppendFrame(nullptr, outOfFlowFrame);
         }
+        aList.AppendFrame(nullptr, outOfFlowFrame);
+        
+        
+        
+        
       }
 
       CollectFloats(aFrame->GetFirstPrincipalChild(), 
