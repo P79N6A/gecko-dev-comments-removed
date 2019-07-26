@@ -1398,12 +1398,36 @@ EventListeners.prototype = {
 
   scheduleEventListenersFetch: function() {
     let getListeners = aCallback => gThreadClient.eventListeners(aResponse => {
-      this._onEventListeners(aResponse);
+      if (aResponse.error) {
+        let msg = "Error getting event listeners: " + aResponse.message;
+        DevToolsUtils.reportException("scheduleEventListenersFetch", msg);
+        return;
+      }
 
-      
-      
-      window.emit(EVENTS.EVENT_LISTENERS_FETCHED);
-      aCallback && aCallback();
+      promise.all(aResponse.listeners.map(listener => {
+        const deferred = promise.defer();
+
+        gThreadClient.pauseGrip(listener.function).getDefinitionSite(aResponse => {
+          if (aResponse.error) {
+            const msg = "Error getting function definition site: " + aResponse.message;
+            DevToolsUtils.reportException("scheduleEventListenersFetch", msg);
+            deferred.reject(msg);
+            return;
+          }
+
+          listener.function.url = aResponse.url;
+          deferred.resolve(listener);
+        });
+
+        return deferred.promise;
+      })).then(listeners => {
+        this._onEventListeners(listeners);
+
+        
+        
+        window.emit(EVENTS.EVENT_LISTENERS_FETCHED);
+        aCallback && aCallback();
+      });
     });
 
     
@@ -1420,16 +1444,9 @@ EventListeners.prototype = {
   
 
 
-  _onEventListeners: function(aResponse) {
-    if (aResponse.error) {
-      let msg = "Error getting event listeners: " + aResponse.message;
-      Cu.reportError(msg);
-      dumpn(msg);
-      return;
-    }
-
+  _onEventListeners: function(aListeners) {
     
-    for (let listener of aResponse.listeners) {
+    for (let listener of aListeners) {
       DebuggerView.EventListeners.addListener(listener, { staged: true });
     }
 
