@@ -1481,6 +1481,17 @@ PeerConnectionWrapper.prototype = {
 
 
 
+  isIceConnectionPending : function PCW_isIceConnectionPending() {
+    return (this.isIceChecking() || this.isIceNew());
+  },
+
+  
+
+
+
+
+
+
 
 
 
@@ -1494,7 +1505,7 @@ PeerConnectionWrapper.prototype = {
       if (self.isIceConnected()) {
         delete self.ice_connection_callbacks["waitForIceConnected"];
         mySuccess();
-      } else if (! (self.isIceChecking() || self.isIceNew())) {
+      } else if (! self.isIceConnectionPending()) {
         delete self.ice_connection_callbacks["waitForIceConnected"];
         myFailure();
       }
