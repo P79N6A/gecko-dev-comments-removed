@@ -13,6 +13,10 @@ var AlertsHelper = {
     }
     this._listener = aListener;
 
+    if (Services.metro.foreground) {
+      
+      return;
+    }
     Services.metro.showNativeToast(aTitle, aText, aImageURL, aCookie);
   },
 
