@@ -2267,6 +2267,18 @@ nsObjectLoadingContent::GetPrintFrame(nsIFrame** aFrame)
 }
 
 NS_IMETHODIMP
+nsObjectLoadingContent::PluginDestroyed()
+{
+  
+  
+  
+  TeardownProtoChain();
+  CloseChannel();
+  mInstanceOwner = nullptr;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
                                       const nsAString& pluginDumpID,
                                       const nsAString& browserDumpID,
@@ -2275,10 +2287,7 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   LOG(("OBJLC [%p]: Plugin Crashed, queuing crash event", this));
   NS_ASSERTION(mType == eType_Plugin, "PluginCrashed at non-plugin type");
 
-  
-  TeardownProtoChain();
-  mInstanceOwner = nullptr;
-  CloseChannel();
+  PluginDestroyed();
 
   
   LoadFallback(eFallbackCrashed, true);
