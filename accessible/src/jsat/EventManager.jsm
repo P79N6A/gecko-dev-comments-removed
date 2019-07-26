@@ -57,8 +57,6 @@ this.EventManager.prototype = {
            Ci.nsIWebProgress.NOTIFY_LOCATION));
         this.addEventListener('scroll', this, true);
         this.addEventListener('resize', this, true);
-        
-        this.addEventListener('DOMActivate', this, true);
       }
       this.present(Presentation.tabStateChanged(null, 'newtab'));
 
@@ -79,8 +77,6 @@ this.EventManager.prototype = {
       this.webProgress.removeProgressListener(this);
       this.removeEventListener('scroll', this, true);
       this.removeEventListener('resize', this, true);
-      
-      this.removeEventListener('DOMActivate', this, true);
     } catch (x) {
       
     } finally {
@@ -91,21 +87,6 @@ this.EventManager.prototype = {
   handleEvent: function handleEvent(aEvent) {
     try {
       switch (aEvent.type) {
-      case 'DOMActivate':
-      {
-        let activatedAcc =
-          Utils.AccRetrieval.getAccessibleFor(aEvent.originalTarget);
-        let [state, extState] = Utils.getStates(activatedAcc);
-
-        
-        
-        
-        if (state & Ci.nsIAccessibleStates.STATE_CHECKABLE)
-          return;
-
-        this.present(Presentation.actionInvoked(activatedAcc, 'click'));
-        break;
-      }
       case 'scroll':
       case 'resize':
       {

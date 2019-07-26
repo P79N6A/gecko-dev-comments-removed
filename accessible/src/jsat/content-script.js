@@ -203,6 +203,12 @@ function activateCurrent(aMessage) {
       dispatchMouseEvent('mousedown');
       dispatchMouseEvent('mouseup');
     }
+
+    if (aAccessible.role !== Roles.KEY) {
+      
+      sendAsyncMessage('AccessFu:Present',
+                       Presentation.actionInvoked(aAccessible, 'click'));
+    }
   }
 
   function moveCaretTo(aAccessible, aOffset) {
