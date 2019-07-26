@@ -62,14 +62,6 @@ public:
   
 
 
-  inline DocAccessible* GetDocAccessibleFromCache(nsIDocument* aDocument) const
-  {
-    return mDocAccessibleCache.GetWeak(aDocument);
-  }
-
-  
-
-
   inline void NotifyOfDocumentShutdown(nsIDocument* aDocument)
   {
     mDocAccessibleCache.Remove(aDocument);
@@ -153,6 +145,18 @@ private:
 
   DocAccessibleHashtable mDocAccessibleCache;
 };
+
+
+
+
+
+
+inline DocAccessible*
+GetExistingDocAccessible(const nsIDocument* aDocument)
+{
+  nsIPresShell* ps = aDocument->GetShell();
+  return ps ? ps->GetDocAccessible() : nullptr;
+}
 
 } 
 } 

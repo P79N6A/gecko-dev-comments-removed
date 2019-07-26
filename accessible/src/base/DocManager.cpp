@@ -49,7 +49,7 @@ DocManager::GetDocAccessible(nsIDocument* aDocument)
   
   ApplicationAcc()->EnsureChildren();
 
-  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
+  DocAccessible* docAcc = GetExistingDocAccessible(aDocument);
   if (docAcc)
     return docAcc;
 
@@ -181,7 +181,7 @@ DocManager::OnStateChange(nsIWebProgress* aWebProgress,
     logging::DocLoad("start document loading", aWebProgress, aRequest, aStateFlags);
 #endif
 
-  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
+  DocAccessible* docAcc = GetExistingDocAccessible(document);
   if (!docAcc)
     return NS_OK;
 
@@ -280,7 +280,7 @@ DocManager::HandleEvent(nsIDOMEvent* aEvent)
     
     
     
-    DocAccessible* docAccessible = mDocAccessibleCache.GetWeak(document);
+    DocAccessible* docAccessible = GetExistingDocAccessible(document);
     if (docAccessible)
       docAccessible->Shutdown();
 
@@ -312,7 +312,7 @@ DocManager::HandleDOMDocumentLoad(nsIDocument* aDocument,
 {
   
   
-  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
+  DocAccessible* docAcc = GetExistingDocAccessible(aDocument);
   if (!docAcc) {
     docAcc = CreateDocOrRootAccessible(aDocument);
     if (!docAcc)
