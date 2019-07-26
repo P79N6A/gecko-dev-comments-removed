@@ -486,13 +486,13 @@ function sendConsoleAPIMessage(aLevel, aFrame, aArgs, aOptions = {})
 
 
 
-
 this.console = {
   debug: createMultiLineDumper("debug"),
   log: createDumper("log"),
   info: createDumper("info"),
   warn: createDumper("warn"),
   error: createMultiLineDumper("error"),
+  exception: createMultiLineDumper("error"),
 
   trace: function Console_trace() {
     let args = Array.prototype.slice.call(arguments, 0);
