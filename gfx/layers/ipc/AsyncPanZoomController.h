@@ -333,7 +333,7 @@ protected:
   
 
 
-  void ScrollBy(const gfx::Point& aOffset);
+  void ScrollBy(const CSSPoint& aOffset);
 
   
 
