@@ -160,7 +160,7 @@ nsAboutCacheEntry::OpenCacheEntry(nsIURI *uri)
 
     if (!CacheObserver::UseNewCache() &&
         mLoadInfo->IsPrivate() &&
-        mStorageName == NS_LITERAL_CSTRING("disk")) {
+        mStorageName.EqualsLiteral("disk")) {
         
         
         mStorageName = NS_LITERAL_CSTRING("memory");
@@ -277,7 +277,7 @@ nsAboutCacheEntry::OnCacheEntryAvailable(nsICacheEntry *entry,
         rv = WriteCacheEntryDescription(entry);
     } else if (!CacheObserver::UseNewCache() &&
                !mLoadInfo->IsPrivate() &&
-               mStorageName == NS_LITERAL_CSTRING("memory")) {
+               mStorageName.EqualsLiteral("memory")) {
         
         
         

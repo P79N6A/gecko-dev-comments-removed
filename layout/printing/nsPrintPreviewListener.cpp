@@ -170,7 +170,7 @@ nsPrintPreviewListener::HandleEvent(nsIDOMEvent* aEvent)
       {
         nsAutoString eventString;
         aEvent->GetType(eventString);
-        if (eventString == NS_LITERAL_STRING("keydown")) {
+        if (eventString.EqualsLiteral("keydown")) {
           
           
           nsIDocument* doc = content->GetCurrentDoc();
