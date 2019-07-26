@@ -565,9 +565,11 @@ pref("hal.processPriorityManager.gonk.backgroundKillUnderMB", 8);
 pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 10);
 
 
-pref("hal.processPriorityManager.gonk.masterNice", -1);
-pref("hal.processPriorityManager.gonk.foregroundNice", 0);
-pref("hal.processPriorityManager.gonk.backgroundNice", 10);
+pref("hal.processPriorityManager.gonk.masterNice", 0);
+pref("hal.processPriorityManager.gonk.foregroundNice", 1);
+pref("hal.processPriorityManager.gonk.backgroundPerceivableNice", 10);
+pref("hal.processPriorityManager.gonk.backgroundHomescreenNice", 20);
+pref("hal.processPriorityManager.gonk.backgroundNice", 20);
 
 #ifndef DEBUG
 
