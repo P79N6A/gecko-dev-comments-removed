@@ -3468,15 +3468,14 @@ class CGArgumentConverter(CGThing):
         replacer["elemType"] = elementDeclType.define()
 
         
-        variadicConversion = string.Template("""const ${seqType} ${declName};
+        variadicConversion = string.Template("""${seqType} ${declName};
 if (${argc} > ${index}) {
-  ${seqType}& arr = const_cast< ${seqType}& >(${declName});
-  if (!arr.SetCapacity(${argc} - ${index})) {
+  if (!${declName}.SetCapacity(${argc} - ${index})) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
   for (uint32_t variadicArg = ${index}; variadicArg < ${argc}; ++variadicArg) {
-    ${elemType}& slot = *arr.AppendElement();
+    ${elemType}& slot = *${declName}.AppendElement();
 """).substitute(replacer)
 
         val = string.Template("${argv}[variadicArg]").substitute(replacer)
@@ -3972,6 +3971,7 @@ class CGCallGenerator(CGThing):
                 if a.type.isString():
                     return True
                 if a.optional and not a.defaultValue:
+                    
                     
                     
                     return True
