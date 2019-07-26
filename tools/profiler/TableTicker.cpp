@@ -283,13 +283,15 @@ void TableTicker::StreamJSObject(JSStreamWriter& b)
         }
       }
 
-      
-      
-      SubprocessClosure closure(&b);
-      nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-      if (os) {
-        nsRefPtr<ProfileSaveEvent> pse = new ProfileSaveEvent(SubProcessCallback, &closure);
-        os->NotifyObservers(pse, "profiler-subprocess", nullptr);
+      if (Sampler::CanNotifyObservers()) {
+        
+        
+        SubprocessClosure closure(&b);
+        nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+        if (os) {
+          nsRefPtr<ProfileSaveEvent> pse = new ProfileSaveEvent(SubProcessCallback, &closure);
+          os->NotifyObservers(pse, "profiler-subprocess", nullptr);
+        }
       }
 
   #if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
@@ -306,7 +308,6 @@ void TableTicker::StreamJSObject(JSStreamWriter& b)
     b.EndArray();
 
   b.EndObject();
-
 }
 
 
