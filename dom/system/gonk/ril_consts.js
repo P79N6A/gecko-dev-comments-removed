@@ -2763,7 +2763,14 @@ this.PDU_CDMA_MSG_USERDATA_MSG_ID = 0x00;
 this.PDU_CDMA_MSG_USERDATA_BODY = 0x01;             
 this.PDU_CDMA_MSG_USERDATA_TIMESTAMP = 0x03;        
 this.PDU_CDMA_REPLY_OPTION = 0x0A;                  
+this.PDU_CDMA_LANGUAGE_INDICATOR = 0x0D;            
 this.PDU_CDMA_MSG_USERDATA_CALLBACK_NUMBER = 0x0E;  
+
+
+
+this.CB_CDMA_LANG_GROUP = [
+  null, "en", "fr", "es", "ja", "ko", "zh", "he"
+];
 
 
 this.PDU_CDMA_MSG_CODING_IS_91_TYPE_VOICEMAIL_STATUS = 0x82;

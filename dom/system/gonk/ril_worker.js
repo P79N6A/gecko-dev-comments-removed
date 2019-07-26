@@ -4220,7 +4220,13 @@ let RIL = {
         
         message.result = PDU_FCS_RESERVED;
       }
-      message.rilMessageType = "sms-received";
+
+      if (message.messageType == PDU_CDMA_MSG_TYPE_BROADCAST) {
+        message.rilMessageType = "broadcastsms-received";
+      } else {
+        message.rilMessageType = "sms-received";
+      }
+
       this.sendChromeMessage(message);
 
       
@@ -8810,25 +8816,28 @@ let CdmaPDUHelper = {
 
     
     let msg = {
-      SMSC:           "",
-      mti:            0,
-      udhi:           0,
-      sender:         message.sender,
-      recipient:      null,
-      pid:            PDU_PID_DEFAULT,
-      epid:           PDU_PID_DEFAULT,
-      dcs:            0,
-      mwi:            null, 
-      replace:        false,
-      header:         message[PDU_CDMA_MSG_USERDATA_BODY].header,
-      body:           message[PDU_CDMA_MSG_USERDATA_BODY].body,
-      data:           null,
-      timestamp:      message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
-      status:         null,
-      scts:           null,
-      dt:             null,
-      encoding:       message[PDU_CDMA_MSG_USERDATA_BODY].encoding,
-      messageClass:   GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL]
+      SMSC:            "",
+      mti:             0,
+      udhi:            0,
+      sender:          message.sender,
+      recipient:       null,
+      pid:             PDU_PID_DEFAULT,
+      epid:            PDU_PID_DEFAULT,
+      dcs:             0,
+      mwi:             null, 
+      replace:         false,
+      header:          message[PDU_CDMA_MSG_USERDATA_BODY].header,
+      body:            message[PDU_CDMA_MSG_USERDATA_BODY].body,
+      data:            null,
+      timestamp:       message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
+      language:        message[PDU_CDMA_LANGUAGE_INDICATOR],
+      status:          null,
+      scts:            null,
+      dt:              null,
+      encoding:        message[PDU_CDMA_MSG_USERDATA_BODY].encoding,
+      messageClass:    GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL],
+      messageType:     message.messageType,
+      serviceCategory: message.service
     };
 
     return msg;
@@ -8929,6 +8938,9 @@ let CdmaPDUHelper = {
           break;
         case PDU_CDMA_REPLY_OPTION:
           message[id] = this.decodeUserDataReplyAction();
+          break;
+        case PDU_CDMA_LANGUAGE_INDICATOR:
+          message[id] = this.decodeLanguageIndicator();
           break;
         case PDU_CDMA_MSG_USERDATA_CALLBACK_NUMBER:
           message[id] = this.decodeUserDataCallbackNumber();
@@ -9307,6 +9319,17 @@ let CdmaPDUHelper = {
                    report: (replyAction & 0x1) ? true : false
                  };
 
+    return result;
+  },
+
+  
+
+
+
+
+  decodeLanguageIndicator: function cdma_decodeLanguageIndicator() {
+    let language = BitBufferHelper.readBits(8);
+    let result = CB_CDMA_LANG_GROUP[language];
     return result;
   },
 
