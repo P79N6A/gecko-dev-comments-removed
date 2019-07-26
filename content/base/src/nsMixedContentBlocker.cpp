@@ -213,6 +213,9 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   
   
   
+  
+  
+  
 
 
   MOZ_STATIC_ASSERT(TYPE_DATAREQUEST == TYPE_XMLHTTPREQUEST,
@@ -236,6 +239,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     
     case TYPE_IMAGE:
     case TYPE_MEDIA:
+    case TYPE_OBJECT_SUBREQUEST:
     case TYPE_PING:
       classification = eMixedDisplay;
       break;
@@ -247,7 +251,6 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     case TYPE_DTD:
     case TYPE_FONT:
     case TYPE_OBJECT:
-    case TYPE_OBJECT_SUBREQUEST:
     case TYPE_SCRIPT:
     case TYPE_STYLESHEET:
     case TYPE_SUBDOCUMENT:
