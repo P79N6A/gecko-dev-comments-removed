@@ -80,8 +80,8 @@ private:
 
     
     
-    WebGLuint mGLName;
-    WebGLenum mType;
+    GLuint mGLName;
+    GLenum mType;
 
     
     
