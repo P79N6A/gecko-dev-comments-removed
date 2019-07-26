@@ -139,14 +139,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-
   addBreakpoint: function(aBreakpointData, aOptions = {}) {
-    let { location, actor } = aBreakpointData;
+    let location = aBreakpointData.location;
 
     
     
     if (this.getBreakpoint(location)) {
-      this.enableBreakpoint(location, { id: actor });
+      this.enableBreakpoint(location);
       return;
     }
 
@@ -227,10 +226,11 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  getOtherBreakpoints: function(aId, aStore = []) {
+  getOtherBreakpoints: function(aLocation = {}, aStore = []) {
     for (let source in this) {
       for (let breakpointItem in source) {
-        if (breakpointItem.attachment.actor != aId) {
+        let { url, line } = breakpointItem.attachment;
+        if (url != aLocation.url || line != aLocation.line) {
           aStore.push(breakpointItem);
         }
       }
@@ -239,7 +239,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   },
 
   
-
 
 
 
@@ -265,15 +264,12 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     
     let prefix = "bp-cMenu-"; 
-    let enableSelfId = prefix + "enableSelf-" + attachment.actor + "-menuitem";
-    let disableSelfId = prefix + "disableSelf-" + attachment.actor + "-menuitem";
+    let identifier = DebuggerController.Breakpoints.getIdentifier(attachment);
+    let enableSelfId = prefix + "enableSelf-" + identifier + "-menuitem";
+    let disableSelfId = prefix + "disableSelf-" + identifier + "-menuitem";
     document.getElementById(enableSelfId).setAttribute("hidden", "true");
     document.getElementById(disableSelfId).removeAttribute("hidden");
 
-    
-    if (aOptions.id) {
-      attachment.view.container.id = "breakpoint-" + aOptions.id;
-    }
     
     if (!aOptions.silent) {
       attachment.view.checkbox.setAttribute("checked", "true");
@@ -312,8 +308,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     
     let prefix = "bp-cMenu-"; 
-    let enableSelfId = prefix + "enableSelf-" + attachment.actor + "-menuitem";
-    let disableSelfId = prefix + "disableSelf-" + attachment.actor + "-menuitem";
+    let identifier = DebuggerController.Breakpoints.getIdentifier(attachment);
+    let enableSelfId = prefix + "enableSelf-" + identifier + "-menuitem";
+    let disableSelfId = prefix + "disableSelf-" + identifier + "-menuitem";
     document.getElementById(enableSelfId).removeAttribute("hidden");
     document.getElementById(disableSelfId).setAttribute("hidden", "true");
 
@@ -453,27 +450,29 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-
   _createBreakpointView: function(aOptions) {
+    let { location, text } = aOptions;
+    let identifier = DebuggerController.Breakpoints.getIdentifier(location);
+
     let checkbox = document.createElement("checkbox");
     checkbox.setAttribute("checked", "true");
     checkbox.className = "dbg-breakpoint-checkbox";
 
     let lineNumberNode = document.createElement("label");
     lineNumberNode.className = "plain dbg-breakpoint-line";
-    lineNumberNode.setAttribute("value", aOptions.location.line);
+    lineNumberNode.setAttribute("value", location.line);
 
     let lineTextNode = document.createElement("label");
     lineTextNode.className = "plain dbg-breakpoint-text";
-    lineTextNode.setAttribute("value", aOptions.text);
+    lineTextNode.setAttribute("value", text);
     lineTextNode.setAttribute("crop", "end");
     lineTextNode.setAttribute("flex", "1");
 
-    let tooltip = aOptions.text.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH);
+    let tooltip = text.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH);
     lineTextNode.setAttribute("tooltiptext", tooltip);
 
     let container = document.createElement("hbox");
-    container.id = "breakpoint-" + aOptions.actor;
+    container.id = "breakpoint-" + identifier;
     container.className = "dbg-breakpoint side-menu-widget-item-other";
     container.classList.add("devtools-monospace");
     container.setAttribute("align", "center");
@@ -504,13 +503,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _createContextMenu: function(aOptions) {
-    let commandsetId = "bp-cSet-" + aOptions.actor;
-    let menupopupId = "bp-mPop-" + aOptions.actor;
+    let location = aOptions.location;
+    let identifier = DebuggerController.Breakpoints.getIdentifier(location);
 
     let commandset = document.createElement("commandset");
     let menupopup = document.createElement("menupopup");
-    commandset.id = commandsetId;
-    menupopup.id = menupopupId;
+    commandset.id = "bp-cSet-" + identifier;
+    menupopup.id = "bp-mPop-" + identifier;
 
     createMenuItem.call(this, "enableSelf", true);
     createMenuItem.call(this, "disableSelf");
@@ -531,8 +530,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     this._commandset.appendChild(commandset);
 
     return {
-      commandsetId: commandsetId,
-      menupopupId: menupopupId
+      commandsetId: commandset.id,
+      menupopupId: menupopup.id
     };
 
     
@@ -549,15 +548,15 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       let command = document.createElement("command");
 
       let prefix = "bp-cMenu-"; 
-      let commandId = prefix + aName + "-" + aOptions.actor + "-command";
-      let menuitemId = prefix + aName + "-" + aOptions.actor + "-menuitem";
+      let commandId = prefix + aName + "-" + identifier + "-command";
+      let menuitemId = prefix + aName + "-" + identifier + "-menuitem";
 
       let label = L10N.getStr("breakpointMenuItem." + aName);
       let func = "_on" + aName.charAt(0).toUpperCase() + aName.slice(1);
 
       command.id = commandId;
       command.setAttribute("label", label);
-      command.addEventListener("command", () => this[func](aOptions.actor), false);
+      command.addEventListener("command", () => this[func](location), false);
 
       menuitem.id = menuitemId;
       menuitem.setAttribute("command", commandId);
@@ -845,12 +844,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onSetConditional: function(aId) {
-    let targetBreakpoint = this.getItemForPredicate(aItem => aItem.attachment.actor == aId);
-    let attachment = targetBreakpoint.attachment;
-
+  _onSetConditional: function(aLocation) {
     
-    this.highlightBreakpoint(attachment, { openPopup: true });
+    this.highlightBreakpoint(aLocation, { openPopup: true });
   },
 
   
@@ -859,12 +855,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onEnableSelf: function(aId) {
-    let targetBreakpoint = this.getItemForPredicate(aItem => aItem.attachment.actor == aId);
-    let attachment = targetBreakpoint.attachment;
-
+  _onEnableSelf: function(aLocation) {
     
-    this.enableBreakpoint(attachment);
+    this.enableBreakpoint(aLocation);
   },
 
   
@@ -873,12 +866,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onDisableSelf: function(aId) {
-    let targetBreakpoint = this.getItemForPredicate(aItem => aItem.attachment.actor == aId);
-    let attachment = targetBreakpoint.attachment;
-
+  _onDisableSelf: function(aLocation) {
     
-    this.disableBreakpoint(attachment);
+    this.disableBreakpoint(aLocation);
   },
 
   
@@ -887,13 +877,10 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onDeleteSelf: function(aId) {
-    let targetBreakpoint = this.getItemForPredicate(aItem => aItem.attachment.actor == aId);
-    let attachment = targetBreakpoint.attachment;
-
+  _onDeleteSelf: function(aLocation) {
     
-    this.removeBreakpoint(attachment);
-    DebuggerController.Breakpoints.removeBreakpoint(attachment);
+    this.removeBreakpoint(aLocation);
+    DebuggerController.Breakpoints.removeBreakpoint(aLocation);
   },
 
   
@@ -902,9 +889,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onEnableOthers: function(aId) {
-    let enableOthers = (aCallback) => {
-      let other = this.getOtherBreakpoints(aId);
+  _onEnableOthers: function(aLocation) {
+    let enableOthers = aCallback => {
+      let other = this.getOtherBreakpoints(aLocation);
       let outstanding = other.map(e => this.enableBreakpoint(e.attachment));
       promise.all(outstanding).then(aCallback);
     }
@@ -925,9 +912,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onDisableOthers: function(aId) {
-    let other = this.getOtherBreakpoints(aId);
-    other.forEach(e => this._onDisableSelf(e.attachment.actor));
+  _onDisableOthers: function(aLocation) {
+    let other = this.getOtherBreakpoints(aLocation);
+    other.forEach(e => this._onDisableSelf(e.attachment));
   },
 
   
@@ -936,30 +923,30 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _onDeleteOthers: function(aId) {
-    let other = this.getOtherBreakpoints(aId);
-    other.forEach(e => this._onDeleteSelf(e.attachment.actor));
+  _onDeleteOthers: function(aLocation) {
+    let other = this.getOtherBreakpoints(aLocation);
+    other.forEach(e => this._onDeleteSelf(e.attachment));
   },
 
   
 
 
   _onEnableAll: function() {
-    this._onEnableOthers(null);
+    this._onEnableOthers(undefined);
   },
 
   
 
 
   _onDisableAll: function() {
-    this._onDisableOthers(null);
+    this._onDisableOthers(undefined);
   },
 
   
 
 
   _onDeleteAll: function() {
-    this._onDeleteOthers(null);
+    this._onDeleteOthers(undefined);
   },
 
   _commandset: null,

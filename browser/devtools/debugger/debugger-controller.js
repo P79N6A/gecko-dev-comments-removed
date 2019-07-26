@@ -1435,7 +1435,7 @@ Breakpoints.prototype = {
     let deferred = promise.defer();
 
     
-    let identifier = this._getIdentifier(aLocation);
+    let identifier = this.getIdentifier(aLocation);
     this._added.set(identifier, deferred.promise);
 
     
@@ -1445,7 +1445,7 @@ Breakpoints.prototype = {
       if (aResponse.actualLocation) {
         
         let oldIdentifier = identifier;
-        let newIdentifier = this._getIdentifier(aResponse.actualLocation);
+        let newIdentifier = this.getIdentifier(aResponse.actualLocation);
         this._added.delete(oldIdentifier);
         this._added.set(newIdentifier, deferred.promise);
 
@@ -1507,7 +1507,7 @@ Breakpoints.prototype = {
     let deferred = promise.defer();
 
     
-    let identifier = this._getIdentifier(aLocation);
+    let identifier = this.getIdentifier(aLocation);
     this._removing.set(identifier, deferred.promise);
 
     
@@ -1580,7 +1580,6 @@ Breakpoints.prototype = {
 
 
 
-
   _showBreakpoint: function(aBreakpointData, aOptions = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let location = aBreakpointData.location;
@@ -1633,7 +1632,7 @@ Breakpoints.prototype = {
 
 
   _getAdded: function(aLocation) {
-    return this._added.get(this._getIdentifier(aLocation));
+    return this._added.get(this.getIdentifier(aLocation));
   },
 
   
@@ -1647,7 +1646,7 @@ Breakpoints.prototype = {
 
 
   _getRemoving: function(aLocation) {
-    return this._removing.get(this._getIdentifier(aLocation));
+    return this._removing.get(this.getIdentifier(aLocation));
   },
 
   
@@ -1659,7 +1658,7 @@ Breakpoints.prototype = {
 
 
 
-  _getIdentifier: function(aLocation) {
+  getIdentifier: function(aLocation) {
     return aLocation.url + ":" + aLocation.line;
   }
 };
