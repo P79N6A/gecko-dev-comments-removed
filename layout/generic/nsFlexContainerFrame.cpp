@@ -698,7 +698,8 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
 
   
   if (mAlignSelf == NS_STYLE_ALIGN_SELF_AUTO) {
-    mAlignSelf = mFrame->GetParent()->GetStylePosition()->mAlignItems;
+    mAlignSelf =
+      mFrame->GetStyleContext()->GetParent()->GetStylePosition()->mAlignItems;
   }
 
   
