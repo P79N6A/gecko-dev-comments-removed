@@ -405,10 +405,10 @@ bool
 CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
-    FloatRegister output = ToFloatRegister(ins->output());
-    masm.xorpd(output, output);
-    masm.subsd(input, output); 
-    masm.andpd(input, output); 
+    JS_ASSERT(input == ToFloatRegister(ins->output()));
+    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
+    masm.subsd(input, ScratchFloatReg); 
+    masm.andpd(ScratchFloatReg, input); 
     return true;
 }
 
@@ -416,8 +416,8 @@ bool
 CodeGeneratorX86Shared::visitSqrtD(LSqrtD *ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
-    FloatRegister output = ToFloatRegister(ins->output());
-    masm.sqrtsd(input, output);
+    JS_ASSERT(input == ToFloatRegister(ins->output()));
+    masm.sqrtsd(input, input);
     return true;
 }
 
