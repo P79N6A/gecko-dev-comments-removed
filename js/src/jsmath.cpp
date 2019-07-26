@@ -29,6 +29,16 @@
 using namespace js;
 
 using mozilla::Abs;
+using mozilla::DoubleIsInt32;
+using mozilla::ExponentComponent;
+using mozilla::IsFinite;
+using mozilla::IsInfinite;
+using mozilla::IsNaN;
+using mozilla::IsNegative;
+using mozilla::IsNegativeZero;
+using mozilla::PositiveInfinity;
+using mozilla::NegativeInfinity;
+using mozilla::SpecificNaN;
 
 #ifndef M_E
 #define M_E             2.7182818284590452354
@@ -68,8 +78,8 @@ MathCache::MathCache() {
     memset(table, 0, sizeof(table));
 
     
-    JS_ASSERT(MOZ_DOUBLE_IS_NEGATIVE_ZERO(-0.0));
-    JS_ASSERT(!MOZ_DOUBLE_IS_NEGATIVE_ZERO(+0.0));
+    JS_ASSERT(IsNegativeZero(-0.0));
+    JS_ASSERT(!IsNegativeZero(+0.0));
     JS_ASSERT(hash(-0.0) != hash(+0.0));
 }
 
@@ -201,7 +211,7 @@ js::ecmaAtan2(double x, double y)
 
 
 
-    if (MOZ_DOUBLE_IS_INFINITE(x) && MOZ_DOUBLE_IS_INFINITE(y)) {
+    if (IsInfinite(x) && IsInfinite(y)) {
         double z = js_copysign(M_PI / 4, x);
         if (y < 0)
             z *= 3;
@@ -291,7 +301,7 @@ double
 js::math_exp_impl(MathCache *cache, double x)
 {
 #ifdef _WIN32
-    if (!MOZ_DOUBLE_IS_NaN(x)) {
+    if (!IsNaN(x)) {
         if (x == js_PositiveInfinity)
             return js_PositiveInfinity;
         if (x == js_NegativeInfinity)
@@ -395,12 +405,12 @@ js_math_max(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     double x;
-    double maxval = MOZ_DOUBLE_NEGATIVE_INFINITY();
+    double maxval = NegativeInfinity();
     for (unsigned i = 0; i < args.length(); i++) {
         if (!ToNumber(cx, args[i], &x))
             return false;
         
-        if (x > maxval || MOZ_DOUBLE_IS_NaN(x) || (x == maxval && MOZ_DOUBLE_IS_NEGATIVE(maxval)))
+        if (x > maxval || IsNaN(x) || (x == maxval && IsNegative(maxval)))
             maxval = x;
     }
     args.rval().setNumber(maxval);
@@ -413,12 +423,12 @@ js_math_min(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     double x;
-    double minval = MOZ_DOUBLE_POSITIVE_INFINITY();
+    double minval = PositiveInfinity();
     for (unsigned i = 0; i < args.length(); i++) {
         if (!ToNumber(cx, args[i], &x))
             return false;
         
-        if (x < minval || MOZ_DOUBLE_IS_NaN(x) || (x == minval && MOZ_DOUBLE_IS_NEGATIVE_ZERO(x)))
+        if (x < minval || IsNaN(x) || (x == minval && IsNegativeZero(x)))
             minval = x;
     }
     args.rval().setNumber(minval);
@@ -446,7 +456,7 @@ js::powi(double x, int y)
                 
 
                 double result = 1.0 / p;
-                return (result == 0 && MOZ_DOUBLE_IS_INFINITE(p))
+                return (result == 0 && IsInfinite(p))
                        ? pow(x, static_cast<double>(y))  
                        : result;
             }
@@ -478,7 +488,7 @@ js::ecmaPow(double x, double y)
 
 
 
-    if (!MOZ_DOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0))
+    if (!IsFinite(y) && (x == 1.0 || x == -1.0))
         return js_NaN;
     
     if (y == 0)
@@ -508,7 +518,7 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-    if (MOZ_DOUBLE_IS_FINITE(x) && x != 0.0) {
+    if (IsFinite(x) && x != 0.0) {
         if (y == 0.5) {
             vp->setNumber(sqrt(x));
             return JS_TRUE;
@@ -607,13 +617,13 @@ js_math_round(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     int32_t i;
-    if (MOZ_DOUBLE_IS_INT32(x, &i)) {
+    if (DoubleIsInt32(x, &i)) {
         args.rval().setInt32(i);
         return true;
     }
 
     
-    if (MOZ_DOUBLE_EXPONENT(x) >= 52) {
+    if (ExponentComponent(x) >= 52) {
         args.rval().setNumber(x);
         return true;
     }

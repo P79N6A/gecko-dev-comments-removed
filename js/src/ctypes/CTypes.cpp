@@ -1904,7 +1904,7 @@ jsvalToIntegerExplicit(jsval val, IntegerType* result)
   if (JSVAL_IS_DOUBLE(val)) {
     
     double d = JSVAL_TO_DOUBLE(val);
-    *result = MOZ_DOUBLE_IS_FINITE(d) ? IntegerType(d) : 0;
+    *result = mozilla::IsFinite(d) ? IntegerType(d) : 0;
     return true;
   }
   if (!JSVAL_IS_PRIMITIVE(val)) {

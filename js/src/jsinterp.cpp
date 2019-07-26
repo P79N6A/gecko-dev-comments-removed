@@ -727,13 +727,13 @@ js::StrictlyEqual(JSContext *cx, const Value &lref, const Value &rref, bool *equ
 static inline bool
 IsNegativeZero(const Value &v)
 {
-    return v.isDouble() && MOZ_DOUBLE_IS_NEGATIVE_ZERO(v.toDouble());
+    return v.isDouble() && mozilla::IsNegativeZero(v.toDouble());
 }
 
 static inline bool
 IsNaN(const Value &v)
 {
-    return v.isDouble() && MOZ_DOUBLE_IS_NaN(v.toDouble());
+    return v.isDouble() && mozilla::IsNaN(v.toDouble());
 }
 
 bool

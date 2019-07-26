@@ -102,10 +102,10 @@ class Range : public TempObject {
     
     
     
-    static const uint16_t MaxTruncatableExponent = MOZ_DOUBLE_EXPONENT_SHIFT;
+    static const uint16_t MaxTruncatableExponent = mozilla::DoubleExponentShift;
 
     
-    static const uint16_t MaxDoubleExponent = MOZ_DOUBLE_EXPONENT_BIAS;
+    static const uint16_t MaxDoubleExponent = mozilla::DoubleExponentBias;
 
   private:
     

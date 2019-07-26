@@ -40,8 +40,8 @@ js_fmod(double d, double d2)
 
 
 
-    if ((MOZ_DOUBLE_IS_FINITE(d) && MOZ_DOUBLE_IS_INFINITE(d2)) ||
-        (d == 0 && MOZ_DOUBLE_IS_FINITE(d2))) {
+    if ((mozilla::IsFinite(d) && mozilla::IsInfinite(d2)) ||
+        (d == 0 && mozilla::IsFinite(d2))) {
         return d;
     }
 #endif
@@ -54,14 +54,14 @@ inline double
 NumberDiv(double a, double b)
 {
     if (b == 0) {
-        if (a == 0 || MOZ_DOUBLE_IS_NaN(a)
+        if (a == 0 || mozilla::IsNaN(a)
 #ifdef XP_WIN
-            || MOZ_DOUBLE_IS_NaN(b) 
+            || mozilla::IsNaN(b) 
 #endif
         )
             return js_NaN;
 
-        if (MOZ_DOUBLE_IS_NEGATIVE(a) != MOZ_DOUBLE_IS_NEGATIVE(b))
+        if (mozilla::IsNegative(a) != mozilla::IsNegative(b))
             return js_NegativeInfinity;
         return js_PositiveInfinity;
     }

@@ -10,6 +10,8 @@
 
 #include "jsutil.h"
 
+using mozilla::UnspecifiedNaN;
+
 static bool
 ComputeLocalTime(time_t local, struct tm *ptm)
 {
@@ -162,7 +164,7 @@ js::DateTimeInfo::DateTimeInfo()
 {
     
     
-    localTZA_ = MOZ_DOUBLE_NaN();
+    localTZA_ = UnspecifiedNaN();
     updateTimeZoneAdjustment();
 }
 

@@ -49,7 +49,7 @@ bool NumberResult::booleanValue() {
   
   
   
-  return (bool)(value != 0.0 && !MOZ_DOUBLE_IS_NaN(value));
+  return (bool)(value != 0.0 && !mozilla::IsNaN(value));
   
 } 
 

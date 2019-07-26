@@ -135,7 +135,7 @@ ToIntWidth(double d)
 #else
     double twoWidth, twoWidthMin1;
 
-    if (!MOZ_DOUBLE_IS_FINITE(d))
+    if (!mozilla::IsFinite(d))
         return 0;
 
     
@@ -309,8 +309,8 @@ ToInteger(double d)
     if (d == 0)
         return d;
 
-    if (!MOZ_DOUBLE_IS_FINITE(d)) {
-        if (MOZ_DOUBLE_IS_NaN(d))
+    if (!mozilla::IsFinite(d)) {
+        if (mozilla::IsNaN(d))
             return 0;
         return d;
     }

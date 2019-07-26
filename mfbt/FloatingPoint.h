@@ -12,9 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/StandardInteger.h"
 
-
-
-
+namespace mozilla {
 
 
 
@@ -39,37 +37,28 @@
 
 MOZ_STATIC_ASSERT(sizeof(double) == sizeof(uint64_t), "double must be 64 bits");
 
+const unsigned DoubleExponentBias = 1023;
+const unsigned DoubleExponentShift = 52;
 
+namespace detail {
 
+const uint64_t DoubleSignBit         = 0x8000000000000000ULL;
+const uint64_t DoubleExponentBits    = 0x7ff0000000000000ULL;
+const uint64_t DoubleSignificandBits = 0x000fffffffffffffULL;
 
-
-#define MOZ_DOUBLE_SIGN_BIT          0x8000000000000000ULL
-#define MOZ_DOUBLE_EXPONENT_BITS     0x7ff0000000000000ULL
-#define MOZ_DOUBLE_SIGNIFICAND_BITS  0x000fffffffffffffULL
-
-#define MOZ_DOUBLE_EXPONENT_BIAS   1023
-#define MOZ_DOUBLE_EXPONENT_SHIFT  52
-
-MOZ_STATIC_ASSERT((MOZ_DOUBLE_SIGN_BIT & MOZ_DOUBLE_EXPONENT_BITS) == 0,
+MOZ_STATIC_ASSERT((DoubleSignBit & DoubleExponentBits) == 0,
                   "sign bit doesn't overlap exponent bits");
-MOZ_STATIC_ASSERT((MOZ_DOUBLE_SIGN_BIT & MOZ_DOUBLE_SIGNIFICAND_BITS) == 0,
+MOZ_STATIC_ASSERT((DoubleSignBit & DoubleSignificandBits) == 0,
                   "sign bit doesn't overlap significand bits");
-MOZ_STATIC_ASSERT((MOZ_DOUBLE_EXPONENT_BITS & MOZ_DOUBLE_SIGNIFICAND_BITS) == 0,
+MOZ_STATIC_ASSERT((DoubleExponentBits & DoubleSignificandBits) == 0,
                   "exponent bits don't overlap significand bits");
 
-MOZ_STATIC_ASSERT((MOZ_DOUBLE_SIGN_BIT | MOZ_DOUBLE_EXPONENT_BITS | MOZ_DOUBLE_SIGNIFICAND_BITS)
-                  == ~(uint64_t)0,
+MOZ_STATIC_ASSERT((DoubleSignBit | DoubleExponentBits | DoubleSignificandBits) ==
+                  ~uint64_t(0),
                   "all bits accounted for");
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-
-
-
-union MozDoublePun {
+union DoublePun
+{
     
 
 
@@ -80,165 +69,164 @@ union MozDoublePun {
     double d;
 };
 
+} 
 
-static MOZ_ALWAYS_INLINE int
-MOZ_DOUBLE_IS_NaN(double d)
+
+static MOZ_ALWAYS_INLINE bool
+IsNaN(double d)
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
   pun.d = d;
 
   
 
 
 
-  return (pun.u & MOZ_DOUBLE_EXPONENT_BITS) == MOZ_DOUBLE_EXPONENT_BITS &&
-         (pun.u & MOZ_DOUBLE_SIGNIFICAND_BITS) != 0;
+  return (pun.u & detail::DoubleExponentBits) == detail::DoubleExponentBits &&
+         (pun.u & detail::DoubleSignificandBits) != 0;
 }
 
 
-static MOZ_ALWAYS_INLINE int
-MOZ_DOUBLE_IS_INFINITE(double d)
+static MOZ_ALWAYS_INLINE bool
+IsInfinite(double d)
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
   pun.d = d;
 
   
-  return (pun.u & ~MOZ_DOUBLE_SIGN_BIT) == MOZ_DOUBLE_EXPONENT_BITS;
+  return (pun.u & ~detail::DoubleSignBit) == detail::DoubleExponentBits;
 }
 
 
-static MOZ_ALWAYS_INLINE int
-MOZ_DOUBLE_IS_FINITE(double d)
+static MOZ_ALWAYS_INLINE bool
+IsFinite(double d)
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
   pun.d = d;
 
   
 
 
 
-  return (pun.u & MOZ_DOUBLE_EXPONENT_BITS) != MOZ_DOUBLE_EXPONENT_BITS;
+  return (pun.u & detail::DoubleExponentBits) != detail::DoubleExponentBits;
 }
 
 
 
 
 
-static MOZ_ALWAYS_INLINE int
-MOZ_DOUBLE_IS_NEGATIVE(double d)
+static MOZ_ALWAYS_INLINE bool
+IsNegative(double d)
 {
-  union MozDoublePun pun;
+  MOZ_ASSERT(!IsNaN(d), "NaN does not have a sign");
+
+  union detail::DoublePun pun;
   pun.d = d;
 
-  MOZ_ASSERT(!MOZ_DOUBLE_IS_NaN(d), "NaN does not have a sign");
-
   
-  return (pun.u & MOZ_DOUBLE_SIGN_BIT) != 0;
+  return (pun.u & detail::DoubleSignBit) != 0;
 }
 
 
-static MOZ_ALWAYS_INLINE int
-MOZ_DOUBLE_IS_NEGATIVE_ZERO(double d)
+static MOZ_ALWAYS_INLINE bool
+IsNegativeZero(double d)
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
   pun.d = d;
 
   
-  return pun.u == MOZ_DOUBLE_SIGN_BIT;
+  return pun.u == detail::DoubleSignBit;
 }
 
 
 static MOZ_ALWAYS_INLINE int_fast16_t
-MOZ_DOUBLE_EXPONENT(double d)
+ExponentComponent(double d)
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
   pun.d = d;
 
   
 
 
 
-  return (int_fast16_t)((pun.u & MOZ_DOUBLE_EXPONENT_BITS) >> MOZ_DOUBLE_EXPONENT_SHIFT) -
-                        MOZ_DOUBLE_EXPONENT_BIAS;
+  return int_fast16_t((pun.u & detail::DoubleExponentBits) >> DoubleExponentShift) -
+         int_fast16_t(DoubleExponentBias);
 }
 
 
 static MOZ_ALWAYS_INLINE double
-MOZ_DOUBLE_POSITIVE_INFINITY()
+PositiveInfinity()
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
 
   
 
 
 
-  pun.u = MOZ_DOUBLE_EXPONENT_BITS;
+  pun.u = detail::DoubleExponentBits;
   return pun.d;
 }
 
 
 static MOZ_ALWAYS_INLINE double
-MOZ_DOUBLE_NEGATIVE_INFINITY()
+NegativeInfinity()
 {
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
 
   
 
 
 
-  pun.u = MOZ_DOUBLE_SIGN_BIT | MOZ_DOUBLE_EXPONENT_BITS;
+  pun.u = detail::DoubleSignBit | detail::DoubleExponentBits;
   return pun.d;
 }
 
 
 static MOZ_ALWAYS_INLINE double
-MOZ_DOUBLE_SPECIFIC_NaN(int signbit, uint64_t significand)
+SpecificNaN(int signbit, uint64_t significand)
 {
-  union MozDoublePun pun;
-
   MOZ_ASSERT(signbit == 0 || signbit == 1);
-  MOZ_ASSERT((significand & ~MOZ_DOUBLE_SIGNIFICAND_BITS) == 0);
-  MOZ_ASSERT(significand & MOZ_DOUBLE_SIGNIFICAND_BITS);
+  MOZ_ASSERT((significand & ~detail::DoubleSignificandBits) == 0);
+  MOZ_ASSERT(significand & detail::DoubleSignificandBits);
 
-  pun.u = (signbit ? MOZ_DOUBLE_SIGN_BIT : 0) |
-          MOZ_DOUBLE_EXPONENT_BITS |
+  union detail::DoublePun pun;
+  pun.u = (signbit ? detail::DoubleSignBit : 0) |
+          detail::DoubleExponentBits |
           significand;
-  MOZ_ASSERT(MOZ_DOUBLE_IS_NaN(pun.d));
+  MOZ_ASSERT(IsNaN(pun.d));
   return pun.d;
 }
 
 
-
-
-
 static MOZ_ALWAYS_INLINE double
-MOZ_DOUBLE_NaN()
+MinDoubleValue()
 {
-  return MOZ_DOUBLE_SPECIFIC_NaN(0, 0xfffffffffffffULL);
-}
-
-
-static MOZ_ALWAYS_INLINE double
-MOZ_DOUBLE_MIN_VALUE()
-{
-  union MozDoublePun pun;
+  union detail::DoublePun pun;
   pun.u = 1;
   return pun.d;
 }
 
-static MOZ_ALWAYS_INLINE int
-MOZ_DOUBLE_IS_INT32(double d, int32_t* i)
+static MOZ_ALWAYS_INLINE bool
+DoubleIsInt32(double d, int32_t* i)
 {
   
 
 
 
 
-  return !MOZ_DOUBLE_IS_NEGATIVE_ZERO(d) && d == (*i = (int32_t)d);
+  return !IsNegativeZero(d) && d == (*i = int32_t(d));
 }
 
-#ifdef __cplusplus
-} 
-#endif
 
-#endif
+
+
+
+static MOZ_ALWAYS_INLINE double
+UnspecifiedNaN()
+{
+  return mozilla::SpecificNaN(0, 0xfffffffffffffULL);
+}
+
+} 
+
+#endif  

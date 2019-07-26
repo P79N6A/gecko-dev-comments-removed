@@ -22,6 +22,10 @@ using namespace js;
 using namespace js::ion;
 
 using mozilla::Abs;
+using mozilla::ExponentComponent;
+using mozilla::IsInfinite;
+using mozilla::IsNaN;
+using mozilla::IsNegative;
 
 
 
@@ -579,14 +583,14 @@ MConstant::computeRange()
     int exp = Range::MaxDoubleExponent;
 
     
-    if (MOZ_DOUBLE_IS_NaN(d)) {
+    if (IsNaN(d)) {
         setRange(new Range(RANGE_INF_MIN, RANGE_INF_MAX, true, exp));
         return;
     }
 
     
-    if (MOZ_DOUBLE_IS_INFINITE(d)) {
-        if (MOZ_DOUBLE_IS_NEGATIVE(d))
+    if (IsInfinite(d)) {
+        if (IsNegative(d))
             setRange(new Range(RANGE_INF_MIN, RANGE_INF_MIN, false, exp));
         else
             setRange(new Range(RANGE_INF_MAX, RANGE_INF_MAX, false, exp));
@@ -594,10 +598,10 @@ MConstant::computeRange()
     }
 
     
-    exp = MOZ_DOUBLE_EXPONENT(d);
+    exp = ExponentComponent(d);
     if (exp < 0) {
         
-        if (MOZ_DOUBLE_IS_NEGATIVE(d))
+        if (IsNegative(d))
             setRange(new Range(-1, 0, true, 0));
         else
             setRange(new Range(0, 1, true, 0));
@@ -614,7 +618,7 @@ MConstant::computeRange()
     } else {
         
         
-        if (MOZ_DOUBLE_IS_NEGATIVE(d))
+        if (IsNegative(d))
             setRange(new Range(RANGE_INF_MIN, RANGE_INF_MIN, false, exp));
         else
             setRange(new Range(RANGE_INF_MAX, RANGE_INF_MAX, false, exp));

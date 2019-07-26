@@ -19,6 +19,9 @@
 
 using namespace js;
 
+using mozilla::DoubleIsInt32;
+using mozilla::IsNaN;
+
 
 
 
@@ -790,10 +793,10 @@ HashableValue::setValue(JSContext *cx, const Value &v)
     } else if (v.isDouble()) {
         double d = v.toDouble();
         int32_t i;
-        if (MOZ_DOUBLE_IS_INT32(d, &i)) {
+        if (DoubleIsInt32(d, &i)) {
             
             value = Int32Value(i);
-        } else if (MOZ_DOUBLE_IS_NaN(d)) {
+        } else if (IsNaN(d)) {
             
             value = DoubleValue(js_NaN);
         } else {
