@@ -2225,17 +2225,15 @@ GetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
 }
 
 bool
-GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *obj,
+GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, TypedArrayObject *tarr,
                                       const Value &idval)
 {
-    JS_ASSERT(obj->isTypedArray());
-
     Label failures;
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
 
     
-    int arrayType = TypedArrayObject::type(obj);
+    int arrayType = tarr->type();
 
     
     
@@ -2248,7 +2246,7 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *o
 
     
     
-    masm.branchTestObjClass(Assembler::NotEqual, object(), tmpReg, obj->getClass(), &failures);
+    masm.branchTestObjClass(Assembler::NotEqual, object(), tmpReg, tarr->getClass(), &failures);
 
     
     Register indexReg = tmpReg;
@@ -2503,11 +2501,12 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
             if ((idval.isInt32()) ||
                 (idval.isString() && GetIndexFromString(idval.toString()) != UINT32_MAX))
             {
-                int arrayType = TypedArrayObject::type(obj);
+                Rooted<TypedArrayObject*> tarr(cx, &obj->as<TypedArrayObject>());
+                int arrayType = tarr->type();
                 bool floatOutput = arrayType == TypedArrayObject::TYPE_FLOAT32 ||
                                    arrayType == TypedArrayObject::TYPE_FLOAT64;
                 if (!floatOutput || cache.output().hasValue()) {
-                    if (!cache.attachTypedArrayElement(cx, ion, obj, idval))
+                    if (!cache.attachTypedArrayElement(cx, ion, tarr, idval))
                         return false;
                     attachedStub = true;
                 }
