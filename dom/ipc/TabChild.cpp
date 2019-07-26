@@ -82,6 +82,7 @@
 #include "StructuredCloneUtils.h"
 #include "xpcpublic.h"
 #include "nsViewportInfo.h"
+#include "gfx2DGlue.h"
 
 #define BROWSER_ELEMENT_CHILD_SCRIPT \
     NS_LITERAL_STRING("chrome://global/content/BrowserElementChild.js")
@@ -345,12 +346,12 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
-        mLastMetrics.mZoom = gfxSize(1.0, 1.0);
+        mLastMetrics.mZoom = gfx::ZoomScale(1.0, 1.0);
         mLastMetrics.mViewport =
             gfx::Rect(0, 0,
                       kDefaultViewportSize.width, kDefaultViewportSize.height);
-        mLastMetrics.mCompositionBounds = nsIntRect(nsIntPoint(0, 0),
-                                                    mInnerSize);
+        mLastMetrics.mCompositionBounds = gfx::IntRect(gfx::IntPoint(0, 0),
+                                                       mInnerSize);
         mLastMetrics.mResolution =
           AsyncPanZoomController::CalculateResolution(mLastMetrics);
         mLastMetrics.mScrollOffset = gfx::Point(0, 0);
@@ -590,7 +591,7 @@ TabChild::HandlePossibleViewportChange()
   FrameMetrics metrics(mLastMetrics);
   metrics.mViewport = gfx::Rect(0.0f, 0.0f, viewportW, viewportH);
   metrics.mScrollableRect = gfx::Rect(0.0f, 0.0f, pageWidth, pageHeight);
-  metrics.mCompositionBounds = nsIntRect(0, 0, mInnerSize.width, mInnerSize.height);
+  metrics.mCompositionBounds = gfx::IntRect(0, 0, mInnerSize.width, mInnerSize.height);
 
   
   
@@ -598,7 +599,7 @@ TabChild::HandlePossibleViewportChange()
   nsresult rv = utils->GetIsFirstPaint(&isFirstPaint);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   if (NS_FAILED(rv) || isFirstPaint) {
-    gfxSize intrinsicScale =
+    gfx::ZoomScale intrinsicScale =
         AsyncPanZoomController::CalculateIntrinsicScale(metrics);
     
     
@@ -612,8 +613,8 @@ TabChild::HandlePossibleViewportChange()
                defaultZoom <= viewportInfo.GetMaxZoom());
     
     
-    metrics.mZoom = gfxSize(defaultZoom / intrinsicScale.width,
-                            defaultZoom / intrinsicScale.height);
+    metrics.mZoom = gfx::ZoomScale(defaultZoom / intrinsicScale.width,
+                                   defaultZoom / intrinsicScale.height);
   }
 
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
@@ -621,7 +622,7 @@ TabChild::HandlePossibleViewportChange()
     
     
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
-  gfxSize resolution = AsyncPanZoomController::CalculateResolution(metrics);
+  gfx::ZoomScale resolution = AsyncPanZoomController::CalculateResolution(metrics);
   
   
   gfxFloat hysteresis =
@@ -1371,7 +1372,9 @@ TabChild::RecvShow(const nsIntSize& size)
 }
 
 bool
-TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const ScreenOrientation& orientation)
+TabChild::RecvUpdateDimensions(const nsRect& rect,
+                               const nsIntSize& size,
+                               const ScreenOrientation& orientation)
 {
     if (!mRemoteFrame) {
         return true;
@@ -1383,7 +1386,7 @@ TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const 
     mOuterRect.height = rect.height;
 
     mOrientation = orientation;
-    mInnerSize = size;
+    mInnerSize = gfx::ToIntSize(size);
     mWidget->Resize(0, 0, size.width, size.height,
                     true);
 
@@ -1483,7 +1486,7 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
     utils->SetScrollPositionClampingScrollPortSize(
       cssCompositedRect.width, cssCompositedRect.height);
     ScrollWindowTo(window, aFrameMetrics.mScrollOffset);
-    gfxSize resolution = AsyncPanZoomController::CalculateResolution(
+    gfx::ZoomScale resolution = AsyncPanZoomController::CalculateResolution(
       aFrameMetrics);
     utils->SetResolution(resolution.width, resolution.height);
 

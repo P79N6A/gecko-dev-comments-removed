@@ -6,10 +6,12 @@
 #ifndef GFX_FRAMEMETRICS_H
 #define GFX_FRAMEMETRICS_H
 
-#include "gfxPoint.h"
-#include "gfxTypes.h"
-#include "nsRect.h"
+#include "mozilla/gfx/ZoomScale.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/Types.h"
+#include "nsRect.h"
+#include "gfxTypes.h"
 
 namespace mozilla {
 namespace layers {
@@ -80,18 +82,14 @@ public:
     return mScrollId != NULL_SCROLL_ID;
   }
 
-  gfxSize LayersPixelsPerCSSPixel() const
+  gfx::ZoomScale LayersPixelsPerCSSPixel() const
   {
     return mResolution * mDevPixelsPerCSSPixel;
   }
 
-  gfxPoint GetScrollOffsetInLayerPixels() const
+  gfx::Point GetScrollOffsetInLayerPixels() const
   {
-    return gfxPoint(
-      static_cast<gfx::Float>(
-        mScrollOffset.x * LayersPixelsPerCSSPixel().width),
-      static_cast<gfx::Float>(
-        mScrollOffset.y * LayersPixelsPerCSSPixel().height));
+    return mScrollOffset * LayersPixelsPerCSSPixel();
   }
 
   
@@ -114,7 +112,7 @@ public:
   
   
   
-  nsIntRect mCompositionBounds;
+  gfx::IntRect mCompositionBounds;
 
   
   
@@ -125,7 +123,7 @@ public:
   
   
   
-  nsIntRect mContentRect;
+  gfx::IntRect mContentRect;
 
   
   
@@ -216,7 +214,7 @@ public:
   
   
   
-  gfxSize mResolution;
+  gfx::ZoomScale mResolution;
 
   
   
@@ -231,7 +229,7 @@ public:
   
   
   
-  gfxSize mZoom;
+  gfx::ZoomScale mZoom;
 
   
   

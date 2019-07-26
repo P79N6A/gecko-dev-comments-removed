@@ -5,6 +5,7 @@
 #include "ReusableTileStoreOGL.h"
 
 #include "GLContext.h"
+#include "gfx2DGlue.h"
 
 namespace mozilla {
 namespace layers {
@@ -291,7 +292,7 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
         scrollableLayer = parent;
       if (!parentMetrics.mDisplayPort.IsEmpty() && scrollableLayer) {
           
-          compositionBounds = gfxRect(parentMetrics.mCompositionBounds);
+          compositionBounds = gfx::ThebesRect(parentMetrics.mCompositionBounds);
 
           
           
@@ -302,12 +303,12 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
 
           
           const FrameMetrics& metrics = scrollableLayer->GetFrameMetrics();
-          const nsIntSize& contentSize = metrics.mContentRect.Size();
+          const gfx::IntSize& contentSize = metrics.mContentRect.Size();
           gfx::Point scrollOffset =
             gfx::Point((metrics.mScrollOffset.x * metrics.LayersPixelsPerCSSPixel().width) / scaleX,
                        (metrics.mScrollOffset.y * metrics.LayersPixelsPerCSSPixel().height) / scaleY);
-          const nsIntPoint& contentOrigin = metrics.mContentRect.TopLeft() -
-            nsIntPoint(NS_lround(scrollOffset.x), NS_lround(scrollOffset.y));
+          const gfx::IntPoint& contentOrigin = metrics.mContentRect.TopLeft() -
+            gfx::IntPoint(NS_lround(scrollOffset.x), NS_lround(scrollOffset.y));
           gfxRect contentRect = gfxRect(contentOrigin.x, contentOrigin.y,
                                         contentSize.width, contentSize.height);
           gfxRect contentBounds = scrollableLayer->GetEffectiveTransform().
