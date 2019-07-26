@@ -577,16 +577,6 @@ protected:
   
 
 
-  void EnsureUnpremultiplyTable();
-
-  
-
-
-  void EnsurePremultiplyTable();
-
-  
-
-
   static void EnsureErrorTarget();
 
   
