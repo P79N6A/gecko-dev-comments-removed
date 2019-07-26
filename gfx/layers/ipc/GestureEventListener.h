@@ -85,7 +85,10 @@ protected:
     
     GESTURE_WAITING_SINGLE_TAP,
     
-    GESTURE_WAITING_DOUBLE_TAP
+    GESTURE_WAITING_DOUBLE_TAP,
+    
+    
+    GESTURE_LONG_TAP_UP
   };
 
   
@@ -119,6 +122,12 @@ protected:
 
 
   nsEventStatus HandleLongTapEvent(const MultiTouchInput& aEvent);
+
+  
+
+
+
+  nsEventStatus HandleLongTapUpEvent(const MultiTouchInput& aEvent);
 
   
 

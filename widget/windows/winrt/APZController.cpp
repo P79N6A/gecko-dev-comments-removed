@@ -301,6 +301,11 @@ APZController::HandleLongTap(const CSSIntPoint& aPoint, int32_t aModifiers)
 {
 }
 
+void
+APZController::HandleLongTapUp(const CSSIntPoint& aPoint, int32_t aModifiers)
+{
+}
+
 
 void
 APZController::SendAsyncScrollDOMEvent(bool aIsRoot,

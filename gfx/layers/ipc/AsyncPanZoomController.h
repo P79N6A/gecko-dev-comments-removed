@@ -352,13 +352,10 @@ protected:
   
 
 
-
-
   nsEventStatus OnLongPress(const TapGestureInput& aEvent);
+  nsEventStatus OnLongPressUp(const TapGestureInput& aEvent);
 
   
-
-
 
 
   nsEventStatus OnSingleTapUp(const TapGestureInput& aEvent);
@@ -366,13 +363,9 @@ protected:
   
 
 
-
-
   nsEventStatus OnSingleTapConfirmed(const TapGestureInput& aEvent);
 
   
-
-
 
 
   nsEventStatus OnDoubleTap(const TapGestureInput& aEvent);

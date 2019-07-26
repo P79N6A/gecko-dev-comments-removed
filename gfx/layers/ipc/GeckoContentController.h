@@ -54,6 +54,13 @@ public:
 
 
 
+  virtual void HandleLongTapUp(const CSSIntPoint& aPoint, int32_t aModifiers) = 0;
+
+  
+
+
+
+
   virtual void SendAsyncScrollDOMEvent(bool aIsRoot,
                                        const CSSRect &aContentRect,
                                        const CSSSize &aScrollableSize) = 0;
