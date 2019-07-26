@@ -863,7 +863,13 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
 
   if (fabs(overscroll.x) > EPSILON || fabs(overscroll.y) > EPSILON) {
     
-    mTreeManager->HandleOverscroll(this, aEndPoint + overscroll, aEndPoint);
+    
+    
+    APZCTreeManager* treeManagerLocal = mTreeManager;
+    if (treeManagerLocal) {
+      
+      treeManagerLocal->HandleOverscroll(this, aEndPoint + overscroll, aEndPoint);
+    }
   }
 }
 
@@ -1290,9 +1296,13 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       aLayerMetrics.mCompositionBounds.height == mFrameMetrics.mCompositionBounds.height) {
     
     
-    if (mFrameMetrics.mViewport.width != aLayerMetrics.mViewport.width)
-      needContentRepaint = true;
+    CSSToScreenScale previousResolution = mFrameMetrics.CalculateIntrinsicScale();
     mFrameMetrics.mViewport = aLayerMetrics.mViewport;
+    CSSToScreenScale newResolution = mFrameMetrics.CalculateIntrinsicScale();
+    if (previousResolution != newResolution) {
+      needContentRepaint = true;
+      mFrameMetrics.mZoom.scale *= newResolution.scale / previousResolution.scale;
+    }
   }
 
   if (aIsFirstPaint || isDefault) {
@@ -1541,7 +1551,9 @@ void AsyncPanZoomController::UpdateScrollOffset(const CSSPoint& aScrollOffset)
 
 bool AsyncPanZoomController::Matches(const ScrollableLayerGuid& aGuid)
 {
-  return aGuid == ScrollableLayerGuid(mLayersId, mFrameMetrics);
+  
+  
+  return aGuid.mLayersId == mLayersId && aGuid.mScrollId == mFrameMetrics.mScrollId;
 }
 
 void AsyncPanZoomController::GetGuid(ScrollableLayerGuid* aGuidOut)

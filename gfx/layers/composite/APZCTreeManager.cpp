@@ -125,22 +125,6 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         
-        
-        
-        if (apzc == nullptr) {
-          ScrollableLayerGuid target(aLayersId, container->GetFrameMetrics());
-          for (size_t i = 0; i < aApzcsToDestroy->Length(); i++) {
-            if (aApzcsToDestroy->ElementAt(i)->Matches(target)) {
-              apzc = aApzcsToDestroy->ElementAt(i);
-              break;
-            }
-          }
-        }
-
-        
-        
-        
-        
         bool newApzc = (apzc == nullptr || apzc->IsDestroyed());
         if (newApzc) {
           apzc = new AsyncPanZoomController(aLayersId, this, state->mController,
@@ -185,7 +169,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
           
           bool allowZoom;
           CSSToScreenScale minZoom, maxZoom;
-          if (state->mController->GetRootZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
+          if (state->mController->GetZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
             apzc->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
           }
         }
@@ -521,16 +505,12 @@ APZCTreeManager::ReceiveInputEvent(WidgetInputEvent& aEvent,
 }
 
 void
-APZCTreeManager::UpdateRootCompositionBounds(const uint64_t& aLayersId,
-                                             const ScreenIntRect& aCompositionBounds)
+APZCTreeManager::UpdateCompositionBounds(const ScrollableLayerGuid& aGuid,
+                                         const ScreenIntRect& aCompositionBounds)
 {
-  
-  
-  
-  nsTArray< nsRefPtr<AsyncPanZoomController> > rootApzcs;
-  GetRootAPZCsFor(aLayersId, &rootApzcs);
-  for (size_t i = 0; i < rootApzcs.Length(); i++) {
-    rootApzcs[i]->UpdateCompositionBounds(aCompositionBounds);
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid);
+  if (apzc) {
+    apzc->UpdateCompositionBounds(aCompositionBounds);
   }
 }
 
@@ -604,7 +584,15 @@ APZCTreeManager::ClearTree()
 void
 APZCTreeManager::HandleOverscroll(AsyncPanZoomController* aChild, ScreenPoint aStartPoint, ScreenPoint aEndPoint)
 {
-  AsyncPanZoomController* parent = aChild->GetParent();
+  nsRefPtr<AsyncPanZoomController> parent;
+  {
+    
+    
+    
+    
+    MonitorAutoLock lock(mTreeLock);
+    parent = aChild->GetParent();
+  }
   if (parent == nullptr)
     return;
 
@@ -617,7 +605,7 @@ APZCTreeManager::HandleOverscroll(AsyncPanZoomController* aChild, ScreenPoint aS
   ApplyTransform(&aEndPoint, transformToApzc.Inverse());
 
   
-  GetInputTransforms(parent, transformToApzc, transformToGecko);
+  GetInputTransforms(parent.get(), transformToApzc, transformToGecko);
   ApplyTransform(&aStartPoint, transformToApzc);
   ApplyTransform(&aEndPoint, transformToApzc);
 
@@ -671,20 +659,8 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
   return target.forget();
 }
 
-void
-APZCTreeManager::GetRootAPZCsFor(const uint64_t& aLayersId,
-                                 nsTArray< nsRefPtr<AsyncPanZoomController> >* aOutRootApzcs)
-{
-  MonitorAutoLock lock(mTreeLock);
-  
-  for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
-    FindRootAPZCs(apzc, aLayersId, aOutRootApzcs);
-  }
-}
-
 AsyncPanZoomController*
-APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid)
-{
+APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid) {
   mTreeLock.AssertCurrentThreadOwns();
 
   
@@ -756,25 +732,6 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
     return aApzc;
   }
   return nullptr;
-}
-
-void
-APZCTreeManager::FindRootAPZCs(AsyncPanZoomController* aApzc,
-                               const uint64_t& aLayersId,
-                               nsTArray< nsRefPtr<AsyncPanZoomController> >* aOutRootApzcs)
-{
-  mTreeLock.AssertCurrentThreadOwns();
-
-  if (aApzc->IsRootForLayersId(aLayersId)) {
-    aOutRootApzcs->AppendElement(aApzc);
-    
-    
-    return;
-  }
-
-  for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
-    FindRootAPZCs(child, aLayersId, aOutRootApzcs);
-  }
 }
 
 

@@ -13,6 +13,7 @@
 #include "mozilla/Monitor.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Atomics.h"
 #include "InputData.h"
 #include "Axis.h"
 #include "TaskThrottler.h"
@@ -642,17 +643,13 @@ public:
     return !mParent || (mParent->mLayersId != mLayersId);
   }
 
-  bool IsRootForLayersId(const uint64_t& aLayersId) const {
-    return (mLayersId == aLayersId) && IsRootForLayersId();
-  }
-
 private:
   
   
   
   
   
-  APZCTreeManager* mTreeManager;
+  Atomic<APZCTreeManager*> mTreeManager;
 
   nsRefPtr<AsyncPanZoomController> mLastChild;
   nsRefPtr<AsyncPanZoomController> mPrevSibling;
