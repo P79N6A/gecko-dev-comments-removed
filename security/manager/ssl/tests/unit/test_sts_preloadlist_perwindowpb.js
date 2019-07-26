@@ -163,13 +163,12 @@ function test_private_browsing1() {
   
   do_check_true(gSTSService.isStsHost("login.persona.org", IS_PRIVATE));
   var uri = Services.io.newURI("http://login.persona.org", null, null);
-  
-  
-  gSTSService.processStsHeader(uri, "max-age=-1000", IS_PRIVATE);
-  do_check_false(gSTSService.isStsHost("login.persona.org", IS_PRIVATE));
-
-  
-  Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+  gSTSService.processStsHeader(uri, "max-age=1", IS_PRIVATE);
+  do_timeout(1250, function() {
+    do_check_false(gSTSService.isStsHost("login.persona.org", IS_PRIVATE));
+    
+    Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+  });
 }
 
 function test_private_browsing2() {

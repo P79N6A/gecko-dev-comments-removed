@@ -17,6 +17,8 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsISocketProvider.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/LinkedList.h"
+#include "nsSecurityHeaderParser.h"
 
 
 
@@ -44,12 +46,6 @@ GetSTSLog()
 #endif
 
 #define STSLOG(args) PR_LOG(GetSTSLog(), 4, args)
-
-#define STS_PARSER_FAIL_IF(test,args) \
-  if (test) { \
-    STSLOG(args); \
-    return NS_ERROR_FAILURE; \
-  }
 
 
 
@@ -252,7 +248,7 @@ nsStrictTransportSecurityService::ProcessStsHeaderMutating(nsIURI* aSourceURI,
                                                            uint64_t *aMaxAge,
                                                            bool *aIncludeSubdomains)
 {
-  STSLOG(("STS: ProcessStrictTransportHeader(%s)\n", aHeader));
+  STSLOG(("STS: processing header '%s'", aHeader));
 
   
   
@@ -263,95 +259,100 @@ nsStrictTransportSecurityService::ProcessStsHeaderMutating(nsIURI* aSourceURI,
   
   
   
-
-  const char* directive;
+  
+  
+  
+  
+  
+  
+  
+  
 
   bool foundMaxAge = false;
-  bool foundUnrecognizedTokens = false;
-  bool includeSubdomains = false;
+  bool foundIncludeSubdomains = false;
+  bool foundUnrecognizedDirective = false;
   int64_t maxAge = 0;
 
   NS_NAMED_LITERAL_CSTRING(max_age_var, "max-age");
   NS_NAMED_LITERAL_CSTRING(include_subd_var, "includesubdomains");
 
-  while ((directive = NS_strtok(";", &aHeader))) {
-    
-    directive = NS_strspnp(" \t", directive);
-    STS_PARSER_FAIL_IF(!(*directive), ("error removing initial whitespace\n."));
 
-    if (!PL_strncasecmp(directive, max_age_var.get(), max_age_var.Length())) {
-      
-      directive += max_age_var.Length();
-      
-      directive = NS_strspnp(" \t", directive);
-      STS_PARSER_FAIL_IF(*directive != '=',
-                  ("No equal sign found in max-age directive\n"));
+  nsSecurityHeaderParser parser(aHeader);
+  nsresult rv = parser.Parse();
+  if (NS_FAILED(rv)) {
+    STSLOG(("STS: could not parse header"));
+    return rv;
+  }
+  mozilla::LinkedList<nsSecurityHeaderDirective> *directives = parser.GetDirectives();
 
-      
-      STS_PARSER_FAIL_IF(*(++directive) == '\0',
-                  ("No delta-seconds present\n"));
+  for (nsSecurityHeaderDirective *directive = directives->getFirst();
+       directive != nullptr; directive = directive->getNext()) {
+    if (directive->mName.Length() == max_age_var.Length() &&
+        directive->mName.EqualsIgnoreCase(max_age_var.get(),
+                                          max_age_var.Length())) {
+      if (foundMaxAge) {
+        STSLOG(("STS: found two max-age directives"));
+        return NS_ERROR_FAILURE;
+      }
 
-      
-      STS_PARSER_FAIL_IF(PR_sscanf(directive, "%lld", &maxAge) != 1,
-                  ("Could not convert delta-seconds\n"));
-      STSLOG(("STS: ProcessStrictTransportHeader() STS found maxage %lld\n", maxAge));
+      STSLOG(("STS: found max-age directive"));
       foundMaxAge = true;
 
-      
-      directive = NS_strspnp("0123456789 \t", directive);
-
-      
-      if (*directive != '\0') {
-        foundUnrecognizedTokens = true;
-        STSLOG(("Extra stuff in max-age after delta-seconds: %s \n", directive));
-      }
-    }
-    else if (!PL_strncasecmp(directive, include_subd_var.get(), include_subd_var.Length())) {
-      directive += include_subd_var.Length();
-
-      
-      
-      
-      if (*directive == '\0' || *directive =='\t' || *directive == ' ') {
-        includeSubdomains = true;
-        STSLOG(("STS: ProcessStrictTransportHeader: obtained subdomains status\n"));
-
-        
-        directive = NS_strspnp(" \t", directive);
-
-        if (*directive != '\0') {
-          foundUnrecognizedTokens = true;
-          STSLOG(("Extra stuff after includesubdomains: %s\n", directive));
+      size_t len = directive->mValue.Length();
+      for (size_t i = 0; i < len; i++) {
+        char chr = directive->mValue.CharAt(i);
+        if (chr < '0' || chr > '9') {
+          STSLOG(("STS: invalid value for max-age directive"));
+          return NS_ERROR_FAILURE;
         }
-      } else {
-        foundUnrecognizedTokens = true;
-        STSLOG(("Unrecognized directive in header: %s\n", directive));
       }
-    }
-    else {
-      
-      foundUnrecognizedTokens = true;
-      STSLOG(("Unrecognized directive in header: %s\n", directive));
+
+      if (PR_sscanf(directive->mValue.get(), "%lld", &maxAge) != 1) {
+        STSLOG(("STS: could not parse delta-seconds"));
+        return NS_ERROR_FAILURE;
+      }
+
+      STSLOG(("STS: parsed delta-seconds: %lld", maxAge));
+    } else if (directive->mName.Length() == include_subd_var.Length() &&
+               directive->mName.EqualsIgnoreCase(include_subd_var.get(),
+                                                 include_subd_var.Length())) {
+      if (foundIncludeSubdomains) {
+        STSLOG(("STS: found two includeSubdomains directives"));
+        return NS_ERROR_FAILURE;
+      }
+
+      STSLOG(("STS: found includeSubdomains directive"));
+      foundIncludeSubdomains = true;
+
+      if (directive->mValue.Length() != 0) {
+        STSLOG(("STS: includeSubdomains directive unexpectedly had value '%s'", directive->mValue.get()));
+        return NS_ERROR_FAILURE;
+      }
+    } else {
+      STSLOG(("STS: ignoring unrecognized directive '%s'", directive->mName.get()));
+      foundUnrecognizedDirective = true;
     }
   }
 
   
   
-  STS_PARSER_FAIL_IF(!foundMaxAge,
-              ("Parse ERROR: couldn't locate max-age token\n"));
+  if (!foundMaxAge) {
+    STSLOG(("STS: did not encounter required max-age directive"));
+    return NS_ERROR_FAILURE;
+  }
 
   
-  SetStsState(aSourceURI, maxAge, includeSubdomains, aFlags);
+  SetStsState(aSourceURI, maxAge, foundIncludeSubdomains, aFlags);
 
   if (aMaxAge != nullptr) {
     *aMaxAge = (uint64_t)maxAge;
   }
 
   if (aIncludeSubdomains != nullptr) {
-    *aIncludeSubdomains = includeSubdomains;
+    *aIncludeSubdomains = foundIncludeSubdomains;
   }
 
-  return foundUnrecognizedTokens ?
+  return foundUnrecognizedDirective ?
          NS_SUCCESS_LOSS_OF_INSIGNIFICANT_DATA :
          NS_OK;
 }
