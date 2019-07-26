@@ -668,7 +668,11 @@ MarkupView.prototype = {
     delete this._observer;
 
     if (this._rootNode) {
-      this._rootNode.removeEventListener("load", this, true);
+      try {
+        this._rootNode.removeEventListener("load", this, true);
+      } catch(e) {
+        
+      }
       delete this._rootNode;
     }
   },

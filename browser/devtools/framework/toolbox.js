@@ -755,7 +755,12 @@ Toolbox.prototype = {
     let outstanding = [];
 
     for (let [id, panel] of this._toolPanels) {
-      outstanding.push(panel.destroy());
+      try {
+        outstanding.push(panel.destroy());
+      } catch(e) {
+        
+        console.error(e);
+      }
     }
 
     let container = this.doc.getElementById("toolbox-buttons");
