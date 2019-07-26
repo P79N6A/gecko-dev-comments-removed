@@ -80,14 +80,14 @@ protected:
 
 
 
-  nsresult DoFlexLayout(nsPresContext*           aPresContext,
-                        nsHTMLReflowMetrics&     aDesiredSize,
-                        const nsHTMLReflowState& aReflowState,
-                        nsReflowStatus&          aStatus,
-                        nscoord aContentBoxMainSize,
-                        nscoord aAvailableHeightForContent,
-                        nsTArray<StrutInfo>& aStruts,
-                        const FlexboxAxisTracker& aAxisTracker);
+  void DoFlexLayout(nsPresContext*           aPresContext,
+                    nsHTMLReflowMetrics&     aDesiredSize,
+                    const nsHTMLReflowState& aReflowState,
+                    nsReflowStatus&          aStatus,
+                    nscoord aContentBoxMainSize,
+                    nscoord aAvailableHeightForContent,
+                    nsTArray<StrutInfo>& aStruts,
+                    const FlexboxAxisTracker& aAxisTracker);
 
   
 
@@ -113,25 +113,22 @@ protected:
                                      const nsHTMLReflowState& aParentReflowState,
                                      const FlexboxAxisTracker& aAxisTracker);
 
-  
-  
-  
-  nsresult ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
-                                           FlexItem& aFlexItem,
-                                           const nsHTMLReflowState& aParentReflowState,
-                                           const FlexboxAxisTracker& aAxisTracker);
+  void ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
+                                       FlexItem& aFlexItem,
+                                       const nsHTMLReflowState& aParentReflowState,
+                                       const FlexboxAxisTracker& aAxisTracker);
 
   
   
   
   
-  nsresult GenerateFlexLines(nsPresContext* aPresContext,
-                             const nsHTMLReflowState& aReflowState,
-                             nscoord aContentBoxMainSize,
-                             nscoord aAvailableHeightForContent,
-                             const nsTArray<StrutInfo>& aStruts,
-                             const FlexboxAxisTracker& aAxisTracker,
-                             mozilla::LinkedList<FlexLine>& aLines);
+  void GenerateFlexLines(nsPresContext* aPresContext,
+                         const nsHTMLReflowState& aReflowState,
+                         nscoord aContentBoxMainSize,
+                         nscoord aAvailableHeightForContent,
+                         const nsTArray<StrutInfo>& aStruts,
+                         const FlexboxAxisTracker& aAxisTracker,
+                         mozilla::LinkedList<FlexLine>& aLines);
 
   nscoord GetMainSizeFromReflowState(const nsHTMLReflowState& aReflowState,
                                      const FlexboxAxisTracker& aAxisTracker);
@@ -143,10 +140,10 @@ protected:
                            bool* aIsDefinite,
                            nsReflowStatus& aStatus);
 
-  nsresult SizeItemInCrossAxis(nsPresContext* aPresContext,
-                               const FlexboxAxisTracker& aAxisTracker,
-                               nsHTMLReflowState& aChildReflowState,
-                               FlexItem& aItem);
+  void SizeItemInCrossAxis(nsPresContext* aPresContext,
+                           const FlexboxAxisTracker& aAxisTracker,
+                           nsHTMLReflowState& aChildReflowState,
+                           FlexItem& aItem);
 
   bool mChildrenHaveBeenReordered; 
                                    
