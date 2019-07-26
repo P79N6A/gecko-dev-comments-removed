@@ -1902,6 +1902,9 @@ pref("layout.css.overflow-clip-box.enabled", false);
 pref("layout.css.grid.enabled", false);
 
 
+pref("layout.css.box-decoration-break.enabled", false);
+
+
 
 
 

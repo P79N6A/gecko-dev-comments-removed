@@ -6446,6 +6446,13 @@ nsRuleNode::ComputeBorderData(void* aStartStruct,
   COMPUTE_START_RESET(Border, (mPresContext), border, parentBorder)
 
   
+  SetDiscrete(*aRuleData->ValueForBoxDecorationBreak(),
+              border->mBoxDecorationBreak, canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentBorder->mBoxDecorationBreak,
+              NS_STYLE_BOX_DECORATION_BREAK_SLICE, 0, 0, 0, 0);
+
+  
   const nsCSSValue* boxShadowValue = aRuleData->ValueForBoxShadow();
   switch (boxShadowValue->GetUnit()) {
   case eCSSUnit_Null:

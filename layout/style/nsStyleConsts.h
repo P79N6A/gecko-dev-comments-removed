@@ -118,6 +118,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_BOX_PACK_JUSTIFY      3
 
 
+#define NS_STYLE_BOX_DECORATION_BREAK_SLICE  0
+#define NS_STYLE_BOX_DECORATION_BREAK_CLONE  1
+
+
 #define NS_STYLE_BOX_DIRECTION_NORMAL    0
 #define NS_STYLE_BOX_DIRECTION_REVERSE   1
 
