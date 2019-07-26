@@ -2287,6 +2287,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 }
 
 #TabsToolbar {
+  position: relative;
   -moz-appearance: none;
   background-repeat: repeat-x;
 }
@@ -2299,8 +2300,14 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
-#TabsToolbar[tabsontop="true"]:not(:-moz-lwtheme) {
-  background: linear-gradient(to top, hsla(0,0%,0%,.3), hsla(0,0%,0%,.3) 1px, transparent 1px);
+#TabsToolbar[tabsontop="true"]:not(:-moz-lwtheme)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  border-bottom: 1px solid hsla(0,0%,0%,.22);
 }
 
 
