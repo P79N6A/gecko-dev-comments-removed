@@ -396,7 +396,7 @@ struct PICInfo : public BasePolyIC {
     bool shapeRegHasBaseShape : 1;
 
     
-    bool usePropCache : 1;
+    bool hadUncacheable : 1;
 
     
     bool inlinePathPatched : 1;     
@@ -498,7 +498,7 @@ struct PICInfo : public BasePolyIC {
     }
 
     Shape *getSingleShape() {
-        if (disabled || stubsGenerated > 0)
+        if (disabled || hadUncacheable || stubsGenerated > 0)
             return NULL;
         return inlinePathShape_;
     }
@@ -510,6 +510,7 @@ struct PICInfo : public BasePolyIC {
         BasePolyIC::reset();
         inlinePathPatched = false;
         shapeRegHasBaseShape = true;
+        hadUncacheable = false;
         inlinePathShape_ = NULL;
     }
 };
