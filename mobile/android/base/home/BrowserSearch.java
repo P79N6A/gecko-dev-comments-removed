@@ -325,19 +325,64 @@ public class BrowserSearch extends HomeFragment
     }
 
     private void handleAutocomplete(String searchTerm, Cursor c) {
-        if (TextUtils.isEmpty(mSearchTerm) || c == null || mAutocompleteHandler == null) {
+        if (c == null ||
+            mAutocompleteHandler == null ||
+            TextUtils.isEmpty(mSearchTerm)) {
             return;
         }
 
         
         
-        final boolean searchPath = (searchTerm.indexOf("/") > 0);
+        final boolean searchPath = searchTerm.indexOf('/') > 0;
         final String autocompletion = findAutocompletion(searchTerm, c, searchPath);
 
-        if (autocompletion != null && mAutocompleteHandler != null) {
-            mAutocompleteHandler.onAutocomplete(autocompletion);
-            mAutocompleteHandler = null;
+        if (autocompletion == null || mAutocompleteHandler == null) {
+            return;
         }
+
+        mAutocompleteHandler.onAutocomplete(autocompletion);
+        mAutocompleteHandler = null;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private static String uriSubstringUpToMatchedPath(final String url, final int offset, final int begin) {
+        final int afterEnd = url.length();
+
+        
+        int chop = url.indexOf('/', begin);
+        if (chop != -1) {
+            ++chop;
+            if (chop < offset) {
+                
+                return url;
+            }
+        } else {
+            chop = url.indexOf('?', begin);
+            if (chop == -1) {
+                chop = url.indexOf('#', begin);
+            }
+            if (chop == -1) {
+                chop = afterEnd;
+            }
+        }
+
+        return url.substring(offset, chop);
     }
 
     private String findAutocompletion(String searchTerm, Cursor c, boolean searchPath) {
@@ -345,36 +390,57 @@ public class BrowserSearch extends HomeFragment
             return null;
         }
 
+        final int searchLength = searchTerm.length();
         final int urlIndex = c.getColumnIndexOrThrow(URLColumns.URL);
         int searchCount = 0;
 
         do {
-            final Uri url = Uri.parse(c.getString(urlIndex));
-            final String host = StringUtils.stripCommonSubdomains(url.getHost());
+            final String url = c.getString(urlIndex);
+
+            
+            
+            if (url.startsWith(searchTerm)) {
+                return uriSubstringUpToMatchedPath(url, 0, searchLength);
+            }
+
+            final Uri uri = Uri.parse(url);
+            final String host = uri.getHost();
 
             
             if (host == null) {
                 continue;
             }
 
-            final StringBuilder hostBuilder = new StringBuilder(host);
-            if (hostBuilder.indexOf(searchTerm) == 0) {
-                return hostBuilder.append("/").toString();
+            if (host.startsWith(searchTerm)) {
+                return host + "/";
             }
 
-            if (searchPath) {
-                final List<String> path = url.getPathSegments();
-
-                for (String s : path) {
-                    hostBuilder.append("/").append(s);
-
-                    if (hostBuilder.indexOf(searchTerm) == 0) {
-                        return hostBuilder.append("/").toString();
-                    }
-                }
+            final String strippedHost = StringUtils.stripCommonSubdomains(host);
+            if (strippedHost.startsWith(searchTerm)) {
+                return strippedHost + "/";
             }
 
-            searchCount++;
+            ++searchCount;
+
+            if (!searchPath) {
+                continue;
+            }
+
+            
+            final int hostOffset = url.indexOf(strippedHost);
+            if (hostOffset == -1) {
+                
+                
+                continue;
+            }
+
+            
+            
+            
+            if (url.startsWith(searchTerm, hostOffset)) {
+                
+                return uriSubstringUpToMatchedPath(url, hostOffset, hostOffset + searchLength);
+            }
         } while (searchCount < MAX_AUTOCOMPLETE_SEARCH && c.moveToNext());
 
         return null;
