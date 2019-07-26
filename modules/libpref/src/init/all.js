@@ -484,6 +484,9 @@ pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);
 
 
+pref("toolkit.asyncshutdown.timeout.crash", 60000);
+
+
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
