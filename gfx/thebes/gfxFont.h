@@ -714,6 +714,14 @@ public:
     virtual void ReadOtherFamilyNames(gfxPlatformFontList *aPlatformFontList);
 
     
+    
+    static void ReadOtherFamilyNamesForFace(const nsAString& aFamilyName,
+                                            const char *aNameData,
+                                            uint32_t aDataLength,
+                                            nsTArray<nsString>& aOtherFamilyNames,
+                                            bool useFullName);
+
+    
     void SetOtherFamilyNamesInitialized() {
         mOtherFamilyNamesInitialized = true;
     }
@@ -731,20 +739,7 @@ public:
     gfxFontEntry* FindFont(const nsAString& aPostscriptName);
 
     
-    void ReadAllCMAPs() {
-        uint32_t i, numFonts = mAvailableFonts.Length();
-        for (i = 0; i < numFonts; i++) {
-            gfxFontEntry *fe = mAvailableFonts[i];
-            
-            if (!fe || fe->mIsProxy) {
-                continue;
-            }
-            fe->ReadCMAP();
-            mFamilyCharacterMap.Union(*(fe->mCharacterMap));
-        }
-        mFamilyCharacterMap.Compact();
-        mFamilyCharacterMapInitialized = true;
-    }
+    void ReadAllCMAPs();
 
     bool TestCharacterMap(uint32_t aCh) {
         if (!mFamilyCharacterMapInitialized) {

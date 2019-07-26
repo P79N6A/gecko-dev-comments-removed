@@ -829,15 +829,19 @@ public:
     
     
     static nsresult
-    ReadNames(hb_blob_t *aNameTable, uint32_t aNameID, 
+    ReadNames(const char *aNameData, uint32_t aDataLen, uint32_t aNameID,
               int32_t aPlatformID, nsTArray<nsString>& aNames);
-      
+
     
     
     static nsresult
-    ReadCanonicalName(hb_blob_t *aNameTable, uint32_t aNameID, 
+    ReadCanonicalName(hb_blob_t *aNameTable, uint32_t aNameID,
                       nsString& aName);
-      
+
+    static nsresult
+    ReadCanonicalName(const char *aNameData, uint32_t aDataLen,
+                      uint32_t aNameID, nsString& aName);
+
     
     
     
@@ -916,7 +920,7 @@ public:
 
 protected:
     static nsresult
-    ReadNames(hb_blob_t *aNameTable, uint32_t aNameID, 
+    ReadNames(const char *aNameData, uint32_t aDataLen, uint32_t aNameID,
               int32_t aLangID, int32_t aPlatformID, nsTArray<nsString>& aNames);
 
     
