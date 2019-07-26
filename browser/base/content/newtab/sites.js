@@ -144,10 +144,20 @@ Site.prototype = {
     
     this._node.addEventListener("dragstart", this, false);
     this._node.addEventListener("dragend", this, false);
+    this._node.addEventListener("mouseenter", this, false);
 
     let controls = this.node.querySelectorAll(".newtab-control");
     for (let i = 0; i < controls.length; i++)
       controls[i].addEventListener("click", this, false);
+  },
+
+  
+
+
+  _speculativeConnect: function Site_speculativeConnect() {
+    let sc = Services.io.QueryInterface(Ci.nsISpeculativeConnect);
+    let uri = Services.io.newURI(this.url, null, null);
+    sc.speculativeConnect(uri, null);
   },
 
   
@@ -163,6 +173,9 @@ Site.prototype = {
           this.unpin();
         else
           this.pin();
+        break;
+      case "mouseenter":
+        this._speculativeConnect();
         break;
       case "dragstart":
         gDrag.start(this, aEvent);
