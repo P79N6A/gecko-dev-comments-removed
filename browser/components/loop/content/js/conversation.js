@@ -7,7 +7,7 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var loop = loop || {};
-loop.conversation = (function(TB, mozL10n) {
+loop.conversation = (function(OT, mozL10n) {
   "use strict";
 
   var sharedViews = loop.shared.views,
@@ -25,7 +25,19 @@ loop.conversation = (function(TB, mozL10n) {
 
 
 
-  var conversation;
+  var EndedCallView = sharedViews.BaseView.extend({
+    el: "#call-ended",
+
+    events: {
+      "click button": "closeWindow"
+    },
+
+    closeWindow: function(event) {
+      event.preventDefault();
+      
+      window.close();
+    }
+  });
 
   
 
@@ -34,78 +46,26 @@ loop.conversation = (function(TB, mozL10n) {
 
 
 
-  var ConversationRouter = loop.shared.router.BaseRouter.extend({
-    
 
 
-
-    _conversation: undefined,
-
-    
-
-
-
-    _notifier: undefined,
-
+  var ConversationRouter = loop.shared.router.BaseConversationRouter.extend({
     routes: {
       "start/:version": "start",
       "call/ongoing": "conversation",
       "call/ended": "ended"
     },
 
-    initialize: function(options) {
-      options = options || {};
-      if (!options.conversation) {
-        throw new Error("missing required conversation");
-      }
-      this._conversation = options.conversation;
-
-      if (!options.notifier) {
-        throw new Error("missing required notifier");
-      }
-      this._notifier = options.notifier;
-
-      this.listenTo(this._conversation, "session:ready", this._onSessionReady);
-      this.listenTo(this._conversation, "session:ended", this._onSessionEnded);
-      this.listenTo(this._conversation, "session:peer-hung", this._onPeerHung);
-      this.listenTo(this._conversation, "session:network-disconnected",
-                                        this._onNetworkDisconnected);
-    },
-
     
 
 
-    _onSessionReady: function() {
+    startCall: function() {
       this.navigate("call/ongoing", {trigger: true});
     },
 
     
 
 
-    _onSessionEnded: function() {
-      this.navigate("call/ended", {trigger: true});
-    },
-
-    
-
-
-
-
-
-
-
-
-    _onPeerHung: function(event) {
-      this._notifier.warn(__("peer_ended_conversation"));
-      this.navigate("call/ended", {trigger: true});
-    },
-
-    
-
-
-
-    _onNetworkDisconnected: function() {
-      this._notifier.warn(__("network_disconnected"));
+    endCall: function() {
       this.navigate("call/ended", {trigger: true});
     },
 
@@ -140,7 +100,7 @@ loop.conversation = (function(TB, mozL10n) {
 
       this.loadView(
         new loop.shared.views.ConversationView({
-          sdk: TB,
+          sdk: OT,
           model: this._conversation
       }));
     },
@@ -149,8 +109,7 @@ loop.conversation = (function(TB, mozL10n) {
 
 
     ended: function() {
-      
-      window.close();
+      this.loadView(new EndedCallView());
     }
   });
 
@@ -158,9 +117,8 @@ loop.conversation = (function(TB, mozL10n) {
 
 
   function init() {
-    conversation = new loop.shared.models.ConversationModel();
     router = new ConversationRouter({
-      conversation: conversation,
+      conversation: new loop.shared.models.ConversationModel(),
       notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();
@@ -168,6 +126,7 @@ loop.conversation = (function(TB, mozL10n) {
 
   return {
     ConversationRouter: ConversationRouter,
+    EndedCallView: EndedCallView,
     init: init
   };
-})(window.TB, document.mozL10n);
+})(window.OT, document.mozL10n);
