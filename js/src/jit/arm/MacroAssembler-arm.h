@@ -448,6 +448,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 #ifdef JS_CODEGEN_ARM_HARDFP
     uint32_t usedIntSlots_;
     uint32_t usedFloatSlots_;
+    bool usedFloat32_;
     uint32_t padding_;
 #else
     

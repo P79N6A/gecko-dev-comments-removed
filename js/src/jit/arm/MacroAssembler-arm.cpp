@@ -3493,6 +3493,7 @@ MacroAssemblerARMCompat::setupABICall(uint32_t args)
 #ifdef JS_CODEGEN_ARM_HARDFP
     usedIntSlots_ = 0;
     usedFloatSlots_ = 0;
+    usedFloat32_ = false;
     padding_ = 0;
 #else
     usedSlots_ = 0;
@@ -3535,17 +3536,33 @@ MacroAssemblerARMCompat::passABIArg(const MoveOperand &from, MoveOp::Type type)
     switch (type) {
       case MoveOp::FLOAT32:
       case MoveOp::DOUBLE: {
+        
+        
+        
+        
+        JS_ASSERT(!usedFloat32_);
+        if (type == MoveOp::FLOAT32)
+            usedFloat32_ = true;
         FloatRegister fr;
         if (GetFloatArgReg(usedIntSlots_, usedFloatSlots_, &fr)) {
             if (from.isFloatReg() && from.floatReg() == fr) {
                 
+                usedFloatSlots_++;
+                if (type == MoveOp::FLOAT32)
+                    passedArgTypes_ = (passedArgTypes_ << ArgType_Shift) | ArgType_Float32;
+                else
+                    passedArgTypes_ = (passedArgTypes_ << ArgType_Shift) | ArgType_Double;
                 return;
             }
             to = MoveOperand(fr);
         } else {
             
             
-            uint32_t disp = GetFloatArgStackDisp(usedIntSlots_, usedFloatSlots_, &padding_);
+            uint32_t disp = INT_MAX;
+            if (type == MoveOp::FLOAT32)
+                disp = GetFloat32ArgStackDisp(usedIntSlots_, usedFloatSlots_, &padding_);
+            else
+                disp = GetDoubleArgStackDisp(usedIntSlots_, usedFloatSlots_, &padding_);
             to = MoveOperand(sp, disp);
         }
         usedFloatSlots_++;
@@ -3560,6 +3577,8 @@ MacroAssemblerARMCompat::passABIArg(const MoveOperand &from, MoveOp::Type type)
         if (GetIntArgReg(usedIntSlots_, usedFloatSlots_, &r)) {
             if (from.isGeneralReg() && from.reg() == r) {
                 
+                usedIntSlots_++;
+                passedArgTypes_ = (passedArgTypes_ << ArgType_Shift) | ArgType_General;
                 return;
             }
             to = MoveOperand(r);
