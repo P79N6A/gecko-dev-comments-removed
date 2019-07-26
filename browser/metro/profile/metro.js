@@ -478,12 +478,6 @@ pref("browser.chrome.toolbar_tips", false);
 
 
 
-pref("widget.ime.android.landscape_fullscreen", -1);
-pref("widget.ime.android.fullscreen_threshold", 250); 
-
-
-
-
 pref("pdfjs.disabled", false);
 
 
