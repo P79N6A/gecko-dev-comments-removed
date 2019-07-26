@@ -6695,6 +6695,10 @@ IonBuilder::getElemTryCache(bool *emitted, MDefinition *obj, MDefinition *index)
     if (index->mightBeType(MIRType_String))
         barrier = true;
 
+    
+    if (needsToMonitorMissingProperties(types))
+        barrier = true;
+
     MInstruction *ins = MGetElementCache::New(obj, index, barrier);
 
     current->add(ins);
@@ -8237,15 +8241,8 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
     if (accessGetter)
         barrier = true;
 
-    
-    
-    
-    
-    if (info().executionMode() == ParallelExecution &&
-        !types->hasType(types::Type::UndefinedType()))
-    {
+    if (needsToMonitorMissingProperties(types))
         barrier = true;
-    }
 
     MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
     if (barrier || IsNullOrUndefined(rvalType))
@@ -8257,6 +8254,17 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
 
     *emitted = true;
     return true;
+}
+
+bool
+IonBuilder::needsToMonitorMissingProperties(types::StackTypeSet *types)
+{
+    
+    
+    
+    
+    return (info().executionMode() == ParallelExecution &&
+            !types->hasType(types::Type::UndefinedType()));
 }
 
 bool
