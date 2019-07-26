@@ -424,11 +424,14 @@ nsresult OggReader::DecodeOpus(ogg_packet* aPacket) {
   
   int32_t frames_number = opus_packet_get_nb_frames(aPacket->packet,
                                                     aPacket->bytes);
+  if (frames_number <= 0)
+    return NS_ERROR_FAILURE; 
   int32_t samples = opus_packet_get_samples_per_frame(aPacket->packet,
                                                       (opus_int32) mOpusState->mRate);
   int32_t frames = frames_number*samples;
 
-  if (frames <= 0)
+  
+  if (frames < 120 || frames > 5760)
     return NS_ERROR_FAILURE;
   uint32_t channels = mOpusState->mChannels;
   nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * channels]);
