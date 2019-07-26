@@ -308,11 +308,11 @@ struct MainThreadWorkerStructuredCloneCallbacks
 
         
         
-        JS::Value wrappedFile;
+        JS::Rooted<JS::Value> wrappedFile(aCx);
         JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
         nsresult rv =
           nsContentUtils::WrapNative(aCx, global, file,
-                                     &NS_GET_IID(nsIDOMFile), &wrappedFile);
+                                     &NS_GET_IID(nsIDOMFile), wrappedFile.address());
         if (NS_FAILED(rv)) {
           Error(aCx, DATA_CLONE_ERR);
           return nullptr;
@@ -342,11 +342,11 @@ struct MainThreadWorkerStructuredCloneCallbacks
 
         
         
-        JS::Value wrappedBlob;
+        JS::Rooted<JS::Value> wrappedBlob(aCx);
         JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForScopeChain(aCx));
         nsresult rv =
           nsContentUtils::WrapNative(aCx, global, blob,
-                                     &NS_GET_IID(nsIDOMBlob), &wrappedBlob);
+                                     &NS_GET_IID(nsIDOMBlob), wrappedBlob.address());
         if (NS_FAILED(rv)) {
           Error(aCx, DATA_CLONE_ERR);
           return nullptr;
