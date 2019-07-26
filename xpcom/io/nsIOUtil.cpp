@@ -13,7 +13,8 @@ NS_IMPL_ISUPPORTS1(nsIOUtil, nsIIOUtil)
 NS_IMETHODIMP
 nsIOUtil::InputStreamIsBuffered(nsIInputStream* aStream, bool* _retval)
 {
-  NS_ENSURE_ARG_POINTER(aStream);
+  if (NS_WARN_IF(!aStream))
+    return NS_ERROR_INVALID_ARG;
   *_retval = NS_InputStreamIsBuffered(aStream);
   return NS_OK;
 }
@@ -21,7 +22,8 @@ nsIOUtil::InputStreamIsBuffered(nsIInputStream* aStream, bool* _retval)
 NS_IMETHODIMP
 nsIOUtil::OutputStreamIsBuffered(nsIOutputStream* aStream, bool* _retval)
 {
-  NS_ENSURE_ARG_POINTER(aStream);
+  if (NS_WARN_IF(!aStream))
+    return NS_ERROR_INVALID_ARG;
   *_retval = NS_OutputStreamIsBuffered(aStream);
   return NS_OK;
 }

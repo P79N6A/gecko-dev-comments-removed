@@ -50,19 +50,23 @@ using namespace mozilla;
 static nsresult
 GetTempDir(nsIFile** aTempDir)
 {
-  NS_ENSURE_ARG(aTempDir);
+  if (NS_WARN_IF(!aTempDir))
+    return NS_ERROR_INVALID_ARG;
   nsCOMPtr<nsIFile> tmpFile;
   nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(tmpFile));
-  NS_ENSURE_SUCCESS(rv,rv);
+  if (NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
 
 #ifdef XP_WIN
   
   
   
   rv = tmpFile->AppendNative(nsDependentCString("mozilla-temp-files"));
-  NS_ENSURE_SUCCESS(rv,rv);    
+  if (NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
   rv = tmpFile->Create(nsIFile::DIRECTORY_TYPE, 0700);
-  NS_ENSURE_TRUE(rv == NS_ERROR_FILE_ALREADY_EXISTS || NS_SUCCEEDED(rv), rv);
+  if (rv != NS_ERROR_FILE_ALREADY_EXISTS && NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
 #endif
  
   tmpFile.forget(aTempDir);
@@ -73,12 +77,14 @@ GetTempDir(nsIFile** aTempDir)
 nsresult
 NS_OpenAnonymousTemporaryFile(PRFileDesc** aOutFileDesc)
 {
-  NS_ENSURE_ARG(aOutFileDesc);
+  if (NS_WARN_IF(!aOutFileDesc))
+    return NS_ERROR_INVALID_ARG;
   nsresult rv;
 
   nsCOMPtr<nsIFile> tmpFile;
   rv = GetTempDir(getter_AddRefs(tmpFile));
-  NS_ENSURE_SUCCESS(rv,rv);
+  if (NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
 
   
   
@@ -90,10 +96,12 @@ NS_OpenAnonymousTemporaryFile(PRFileDesc** aOutFileDesc)
   name.AppendInt(rand());
 
   rv = tmpFile->AppendNative(name);
-  NS_ENSURE_SUCCESS(rv,rv);
+  if (NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
 
   rv = tmpFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0700);
-  NS_ENSURE_SUCCESS(rv,rv);
+  if (NS_WARN_IF(NS_FAILED(rv)))
+    return rv;
 
   rv = tmpFile->OpenNSPRFileDesc(PR_RDWR | nsIFile::DELETE_ON_CLOSE,
                                  PR_IRWXU, aOutFileDesc);
@@ -146,16 +154,19 @@ public:
     
     
     mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
-    NS_ENSURE_TRUE(mTimer != nullptr, NS_ERROR_FAILURE);
+    if (NS_WARN_IF(!mTimer))
+      return NS_ERROR_FAILURE;
     nsresult rv = mTimer->Init(this,
                          SCHEDULE_TIMEOUT_MS,
                          nsITimer::TYPE_ONE_SHOT);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_WARN_IF(NS_FAILED(rv)))
+      return rv;
 
     
     
     nsCOMPtr<nsIObserverService> obsSrv = services::GetObserverService();
-    NS_ENSURE_TRUE(obsSrv != nullptr, NS_ERROR_FAILURE);
+    if (NS_WARN_IF(!obsSrv))
+      return NS_ERROR_FAILURE;
     return obsSrv->AddObserver(this, XPCOM_SHUTDOWN_TOPIC, false);
   }
 
@@ -211,7 +222,8 @@ public:
   void RemoveAnonTempFileFiles() {
     nsCOMPtr<nsIFile> tmpDir;
     nsresult rv = GetTempDir(getter_AddRefs(tmpDir));
-    NS_ENSURE_SUCCESS_VOID(rv);
+    if (NS_WARN_IF(NS_FAILED(rv)))
+      return;
 
     
     tmpDir->Remove(true);
