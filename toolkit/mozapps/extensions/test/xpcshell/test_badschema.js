@@ -256,9 +256,12 @@ function run_test_1() {
 function run_test_1_modified_db() {
     
     
-    shutdownManager();
-    changeXPIDBVersion(100);
-    startupManager();
+    restartManager();
+    var dbfile = gProfD.clone();
+    dbfile.append("extensions.sqlite");
+    var db = Services.storage.openDatabase(dbfile);
+    db.schemaVersion = 100;
+    db.close();
 
     
     
