@@ -104,30 +104,6 @@ static const PLDHashTableOps ObjectTableOps = {
 };
 
 
-static nsresult
-AddObjectEntry(PLDHashTable& table, nsISupports* aKey, nsISupports* aValue)
-{
-  NS_ASSERTION(aKey, "key must be non-null");
-  if (!aKey) return NS_ERROR_INVALID_ARG;
-
-  ObjectEntry *entry =
-    static_cast<ObjectEntry*>
-               (PL_DHashTableOperate(&table, aKey, PL_DHASH_ADD));
-
-  if (!entry)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  
-  if (!entry->GetKey())
-    entry->SetKey(aKey);
-
-  
-  
-  entry->SetValue(aValue);
-
-  return NS_OK;
-}
-
 
 
 static nsISupports*
@@ -161,7 +137,24 @@ SetOrRemoveObject(PLDHashTable& table, nsIContent* aKey, nsISupports* aValue)
                         sizeof(ObjectEntry), 16);
     }
     aKey->SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
-    return AddObjectEntry(table, aKey, aValue);
+
+    NS_ASSERTION(aKey, "key must be non-null");
+    if (!aKey) return NS_ERROR_INVALID_ARG;
+
+    ObjectEntry *entry = static_cast<ObjectEntry*>(PL_DHashTableOperate(&table, aKey, PL_DHASH_ADD));
+
+    if (!entry)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    
+    if (!entry->GetKey())
+      entry->SetKey(aKey);
+
+    
+    
+    entry->SetValue(aValue);
+
+    return NS_OK;
   }
 
   
