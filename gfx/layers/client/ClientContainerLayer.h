@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include "ClientLayerManager.h"         
 #include "Layers.h"                     
-#include "gfxMatrix.h"                  
 #include "gfxPlatform.h"                
 #include "nsDebug.h"                    
 #include "nsISupportsUtils.h"           

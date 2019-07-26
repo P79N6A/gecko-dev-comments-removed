@@ -34,7 +34,6 @@
 
 class gfx3DMatrix;
 class nsIWidget;
-struct gfxMatrix;
 
 namespace mozilla {
 class TimeStamp;
@@ -324,7 +323,7 @@ private:
 
 
 
-  void CopyToTarget(gfx::DrawTarget* aTarget, const gfxMatrix& aWorldMatrix);
+  void CopyToTarget(gfx::DrawTarget* aTarget, const gfx::Matrix& aWorldMatrix);
 
   
 

@@ -10,7 +10,6 @@
 #include "gfx3DMatrix.h"                
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 
-#include "gfxMatrix.h"                  
 #include "gfxRect.h"                    
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/BaseRect.h"       

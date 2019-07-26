@@ -15,7 +15,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
-#include "gfxMatrix.h"                  
 #include "nsRegion.h"                   
 
 using namespace mozilla::gfx;

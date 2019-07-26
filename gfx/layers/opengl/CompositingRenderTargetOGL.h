@@ -8,7 +8,6 @@
 
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
-#include "gfxMatrix.h"                  
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -85,7 +84,7 @@ public:
   static TemporaryRef<CompositingRenderTargetOGL>
   RenderTargetForWindow(CompositorOGL* aCompositor,
                         const gfx::IntSize& aSize,
-                        const gfxMatrix& aTransform)
+                        const gfx::Matrix& aTransform)
   {
     RefPtr<CompositingRenderTargetOGL> result
       = new CompositingRenderTargetOGL(aCompositor, gfx::IntPoint(0, 0), 0, 0);
@@ -150,7 +149,7 @@ public:
     return gfx::SurfaceFormat::UNKNOWN;
   }
 
-  const gfxMatrix& GetTransform() {
+  const gfx::Matrix& GetTransform() {
     return mTransform;
   }
 
@@ -166,7 +165,7 @@ private:
   void InitializeImpl();
 
   InitParams mInitParams;
-  gfxMatrix mTransform;
+  gfx::Matrix mTransform;
   CompositorOGL* mCompositor;
   GLContext* mGL;
   GLuint mTextureHandle;

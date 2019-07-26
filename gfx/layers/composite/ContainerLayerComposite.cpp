@@ -10,7 +10,6 @@
 #include "gfx2DGlue.h"                  
 #include "gfx3DMatrix.h"                
 #include "gfxImageSurface.h"            
-#include "gfxMatrix.h"                  
 #include "gfxPlatform.h"                
 #include "gfxUtils.h"                   
 #include "mozilla/Assertions.h"         
