@@ -23,9 +23,10 @@ BEGIN_WORKERS_NAMESPACE
 already_AddRefed<WorkerDataStoreCursor>
 WorkerDataStoreCursor::Constructor(GlobalObject& aGlobal, ErrorResult& aRv)
 {
-  MOZ_ASSERT(!NS_IsMainThread());
-  nsRefPtr<WorkerDataStoreCursor> workerCursor = new WorkerDataStoreCursor();
-  return workerCursor.forget();
+  
+  
+  NS_NOTREACHED("Cannot use the chrome constructor on the worker!");
+  return nullptr;
 }
 
 JSObject*
