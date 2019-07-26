@@ -82,21 +82,21 @@ void
 StreamBuffer::ForgetUpTo(StreamTime aTime)
 {
   
-  const MediaTime roundTo = MillisecondsToMediaTime(50);
-  StreamTime forget = (aTime/roundTo)*roundTo;
-  if (forget <= mForgottenTime) {
+  
+  const StreamTime minChunkSize = 2400;
+  if (aTime < mForgottenTime + minChunkSize) {
     return;
   }
-  mForgottenTime = forget;
+  mForgottenTime = aTime;
 
   for (uint32_t i = 0; i < mTracks.Length(); ++i) {
     Track* track = mTracks[i];
-    if (track->IsEnded() && track->GetEndTimeRoundDown() <= forget) {
+    if (track->IsEnded() && track->GetEndTimeRoundDown() <= aTime) {
       mTracks.RemoveElementAt(i);
       --i;
       continue;
     }
-    TrackTicks forgetTo = std::min(track->GetEnd() - 1, track->TimeToTicksRoundDown(forget));
+    TrackTicks forgetTo = std::min(track->GetEnd() - 1, track->TimeToTicksRoundDown(aTime));
     track->ForgetUpTo(forgetTo);
   }
 }
