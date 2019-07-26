@@ -127,9 +127,7 @@ nsAppShell::nsAppShell()
     : mQueueLock("nsAppShell.mQueueLock"),
       mCondLock("nsAppShell.mCondLock"),
       mQueueCond(mCondLock, "nsAppShell.mQueueCond"),
-      mQueuedDrawEvent(nullptr),
-      mQueuedViewportEvent(nullptr),
-      mAllowCoalescingNextDraw(false)
+      mQueuedViewportEvent(nullptr)
 {
     gAppShell = this;
 
@@ -673,9 +671,7 @@ nsAppShell::PopNextEvent()
     if (mEventQueue.Length()) {
         ae = mEventQueue[0];
         mEventQueue.RemoveElementAt(0);
-        if (mQueuedDrawEvent == ae) {
-            mQueuedDrawEvent = nullptr;
-        } else if (mQueuedViewportEvent == ae) {
+        if (mQueuedViewportEvent == ae) {
             mQueuedViewportEvent = nullptr;
         }
     }
@@ -724,50 +720,6 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
             }
             break;
 
-        case AndroidGeckoEvent::DRAW:
-            if (mQueuedDrawEvent) {
-#if defined(DEBUG) || defined(FORCE_ALOG)
-                
-                const nsIntRect& oldRect = mQueuedDrawEvent->Rect();
-                const nsIntRect& newRect = ae->Rect();
-                nsIntRect combinedRect = oldRect.Union(newRect);
-
-                
-                
-                
-                int combinedArea = (oldRect.width * oldRect.height) +
-                                   (newRect.width * newRect.height);
-                int boundsArea = combinedRect.width * combinedRect.height;
-                if (boundsArea > combinedArea * 8)
-                    ALOG("nsAppShell: Area of bounds greatly exceeds combined area: %d > %d",
-                         boundsArea, combinedArea);
-#endif
-
-                
-                
-                
-                ae->UnionRect(mQueuedDrawEvent->Rect());
-
-                EVLOG("nsAppShell: Coalescing previous DRAW event at %p into new DRAW event %p", mQueuedDrawEvent, ae);
-                mEventQueue.RemoveElement(mQueuedDrawEvent);
-                delete mQueuedDrawEvent;
-            }
-
-            if (!mAllowCoalescingNextDraw) {
-                
-                
-                
-                mAllowCoalescingNextDraw = true;
-                mQueuedDrawEvent = nullptr;
-            } else {
-                mQueuedDrawEvent = ae;
-            }
-
-            allowCoalescingNextViewport = true;
-
-            mEventQueue.AppendElement(ae);
-            break;
-
         case AndroidGeckoEvent::VIEWPORT:
             if (mQueuedViewportEvent) {
                 
@@ -776,9 +728,6 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
                 delete mQueuedViewportEvent;
             }
             mQueuedViewportEvent = ae;
-            
-            
-            mAllowCoalescingNextDraw = false;
             allowCoalescingNextViewport = true;
 
             mEventQueue.AppendElement(ae);
