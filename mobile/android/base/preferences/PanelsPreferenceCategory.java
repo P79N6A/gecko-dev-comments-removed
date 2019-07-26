@@ -11,6 +11,7 @@ import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 
 public class PanelsPreferenceCategory extends CustomListCategory {
@@ -47,13 +48,13 @@ public class PanelsPreferenceCategory extends CustomListCategory {
     public void onAttachedToActivity() {
         super.onAttachedToActivity();
 
-        loadHomeConfig();
+        loadHomeConfig(null);
     }
 
     
 
 
-    private void loadHomeConfig() {
+    private void loadHomeConfig(final String animatePanelId) {
         mLoadTask = new UiAsyncTask<Void, Void, HomeConfig.State>(ThreadUtils.getBackgroundHandler()) {
             @Override
             public HomeConfig.State doInBackground(Void... params) {
@@ -63,14 +64,17 @@ public class PanelsPreferenceCategory extends CustomListCategory {
             @Override
             public void onPostExecute(HomeConfig.State configState) {
                 mConfigEditor = configState.edit();
-                displayHomeConfig(configState);
+                displayHomeConfig(configState, animatePanelId);
             }
         };
         mLoadTask.execute();
     }
 
+    
+
+
     public void refresh() {
-        refresh(null);
+        refresh(null, null);
     }
 
     
@@ -78,7 +82,9 @@ public class PanelsPreferenceCategory extends CustomListCategory {
 
 
 
-    public void refresh(State state) {
+
+
+    public void refresh(State state, String animatePanelId) {
         
         
         int prefCount = getPreferenceCount();
@@ -88,19 +94,22 @@ public class PanelsPreferenceCategory extends CustomListCategory {
         }
 
         if (state == null) {
-            loadHomeConfig();
+            loadHomeConfig(animatePanelId);
         } else {
-            displayHomeConfig(state);
+            displayHomeConfig(state, animatePanelId);
         }
     }
 
-    private void displayHomeConfig(HomeConfig.State configState) {
+    private void displayHomeConfig(HomeConfig.State configState, String animatePanelId) {
         int index = 0;
         for (PanelConfig panelConfig : configState) {
             final boolean isRemovable = panelConfig.isDynamic();
 
             
-            final PanelsPreference pref = new PanelsPreference(getContext(), PanelsPreferenceCategory.this, isRemovable, index);
+            final String panelId = panelConfig.getId();
+            final boolean animate = TextUtils.equals(animatePanelId, panelId);
+
+            final PanelsPreference pref = new PanelsPreference(getContext(), PanelsPreferenceCategory.this, isRemovable, index, animate);
             pref.setTitle(panelConfig.getTitle());
             pref.setKey(panelConfig.getId());
             
@@ -181,18 +190,20 @@ public class PanelsPreferenceCategory extends CustomListCategory {
     public void moveUp(PanelsPreference pref) {
         final int panelIndex = pref.getIndex();
         if (panelIndex > 0) {
-            mConfigEditor.moveTo(pref.getKey(), panelIndex - 1);
+            final String panelKey = pref.getKey();
+            mConfigEditor.moveTo(panelKey, panelIndex - 1);
             final State state = mConfigEditor.apply();
-            refresh(state);
+            refresh(state, panelKey);
         }
     }
 
     public void moveDown(PanelsPreference pref) {
         final int panelIndex = pref.getIndex();
         if (panelIndex < getPreferenceCount() - 1) {
-            mConfigEditor.moveTo(pref.getKey(), panelIndex + 1);
+            final String panelKey = pref.getKey();
+            mConfigEditor.moveTo(panelKey, panelIndex + 1);
             final State state = mConfigEditor.apply();
-            refresh(state);
+            refresh(state, panelKey);
         }
     }
 
