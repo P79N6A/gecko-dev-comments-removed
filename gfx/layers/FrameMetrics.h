@@ -143,6 +143,7 @@ public:
   
   
   
+  
   ScreenIntRect mCompositionBounds;
 
   
