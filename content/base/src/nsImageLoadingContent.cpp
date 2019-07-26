@@ -169,6 +169,19 @@ nsresult
 nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
                                      nsresult aStatus)
 {
+  uint32_t oldStatus;
+  aRequest->GetImageStatus(&oldStatus);
+
+  
+  
+  
+  
+  
+  
+  
+  if (!(oldStatus & (imgIRequest::STATUS_ERROR | imgIRequest::STATUS_LOAD_COMPLETE)))
+    return NS_OK;
+
   
   AutoStateChanger changer(this, true);
 
