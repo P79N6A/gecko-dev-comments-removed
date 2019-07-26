@@ -620,6 +620,12 @@ nsOuterWindowProxy::finalize(JSFreeOp *fop, JSObject *proxy)
   nsGlobalWindow* global = GetWindow(proxy);
   if (global) {
     global->ClearWrapper();
+
+    
+    
+    
+    
+    global->PoisonOuterWindowProxy(proxy);
   }
 }
 
@@ -3020,6 +3026,15 @@ nsGlobalWindow::OnFinalize(JSObject* aObject)
 {
   if (aObject == mJSObject) {
     mJSObject = NULL;
+  }
+}
+
+void
+nsGlobalWindow::PoisonOuterWindowProxy(JSObject *aObject)
+{
+  MOZ_ASSERT(IsOuterWindow());
+  if (aObject == mJSObject) {
+    mJSObject = reinterpret_cast<JSObject*>(0x1);
   }
 }
 
