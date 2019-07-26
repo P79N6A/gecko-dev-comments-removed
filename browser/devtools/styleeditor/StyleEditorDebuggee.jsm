@@ -222,13 +222,11 @@ let StyleSheet = function(form, debuggee) {
 
   this._onSourceLoad = this._onSourceLoad.bind(this);
   this._onPropertyChange = this._onPropertyChange.bind(this);
-  this._onError = this._onError.bind(this);
   this._onStyleApplied = this._onStyleApplied.bind(this);
 
-  this._client.addListener("sourceLoad-" + this._actor, this._onSourceLoad);
-  this._client.addListener("propertyChange-" + this._actor, this._onPropertyChange);
-  this._client.addListener("error-" + this._actor, this._onError);
-  this._client.addListener("styleApplied-" + this._actor, this._onStyleApplied);
+  this._client.addListener("sourceLoad", this._onSourceLoad);
+  this._client.addListener("propertyChange", this._onPropertyChange);
+  this._client.addListener("styleApplied", this._onStyleApplied);
 
   
   for (let attr in form) {
@@ -274,7 +272,12 @@ StyleSheet.prototype = {
 
 
   _onSourceLoad: function(type, request) {
-    this.emit("source-load", request.source);
+    if (request.from == this._actor) {
+      if (request.error) {
+        return this.emit("error", request.error);
+      }
+      this.emit("source-load", request.source);
+    }
   },
 
   
@@ -286,27 +289,19 @@ StyleSheet.prototype = {
 
 
   _onPropertyChange: function(type, request) {
-    this[request.property] = request.value;
-    this.emit("property-change", request.property);
+    if (request.from == this._actor) {
+      this[request.property] = request.value;
+      this.emit("property-change", request.property);
+    }
   },
 
   
 
 
-
-
-
-
-
-  _onError: function(type, request) {
-    this.emit("error", request.errorMessage);
-  },
-
-  
-
-
-  _onStyleApplied: function() {
-    this.emit("style-applied");
+  _onStyleApplied: function(type, request) {
+    if (request.from == this._actor) {
+      this.emit("style-applied");
+    }
   },
 
   
@@ -326,9 +321,8 @@ StyleSheet.prototype = {
 
 
   destroy: function() {
-    this._client.removeListener("sourceLoad-" + this._actor, this._onSourceLoad);
-    this._client.removeListener("propertyChange-" + this._actor, this._onPropertyChange);
-    this._client.removeListener("error-" + this._actor, this._onError);
-    this._client.removeListener("styleApplied-" + this._actor, this._onStyleApplied);
+    this._client.removeListener("sourceLoad", this._onSourceLoad);
+    this._client.removeListener("propertyChange", this._onPropertyChange);
+    this._client.removeListener("styleApplied", this._onStyleApplied);
   }
 }
