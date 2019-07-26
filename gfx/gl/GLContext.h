@@ -32,8 +32,6 @@
 #include "nsRegion.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
-#include "GLContextTypes.h"
-#include "GLTextureImage.h"
 
 typedef char realGLboolean;
 
@@ -56,6 +54,391 @@ namespace gl {
 class GLContext;
 
 typedef uintptr_t SharedTextureHandle;
+
+enum ShaderProgramType {
+    RGBALayerProgramType,
+    RGBALayerExternalProgramType,
+    BGRALayerProgramType,
+    RGBXLayerProgramType,
+    BGRXLayerProgramType,
+    RGBARectLayerProgramType,
+    RGBAExternalLayerProgramType,
+    ColorLayerProgramType,
+    YCbCrLayerProgramType,
+    ComponentAlphaPass1ProgramType,
+    ComponentAlphaPass2ProgramType,
+    Copy2DProgramType,
+    Copy2DRectProgramType,
+    NumProgramTypes
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class TextureImage
+{
+    NS_INLINE_DECL_REFCOUNTING(TextureImage)
+public:
+    enum TextureState
+    {
+      Created, 
+      Allocated,  
+      Valid  
+    };
+
+    enum Flags {
+        NoFlags          = 0x0,
+        UseNearestFilter = 0x1,
+        NeedsYFlip       = 0x2,
+        ForceSingleTile  = 0x4
+    };
+
+    enum TextureShareType {
+        ThreadShared     = 0x0,
+        ProcessShared    = 0x1
+    };
+
+    typedef gfxASurface::gfxContentType ContentType;
+
+    virtual ~TextureImage() {}
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion) = 0;
+    
+
+
+
+
+
+
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion) {
+    }
+    
+
+
+
+
+
+
+    virtual void EndUpdate() = 0;
+
+    
+
+
+
+    virtual void BeginTileIteration() {
+    }
+
+    virtual bool NextTile() {
+        return false;
+    }
+
+    
+    
+    
+    typedef bool (* TileIterationCallback)(TextureImage* aImage,
+                                           int aTileNumber,
+                                           void* aCallbackData);
+
+    
+    virtual void SetIterationCallback(TileIterationCallback aCallback,
+                                      void* aCallbackData) {
+    }
+
+    virtual nsIntRect GetTileRect() {
+        return nsIntRect(nsIntPoint(0,0), mSize);
+    }
+
+    virtual GLuint GetTextureID() = 0;
+
+    virtual uint32_t GetTileCount() {
+        return 1;
+    }
+
+    
+
+
+
+
+
+
+
+    virtual void Resize(const nsIntSize& aSize) {
+        mSize = aSize;
+        nsIntRegion r(nsIntRect(0, 0, aSize.width, aSize.height));
+        BeginUpdate(r);
+        EndUpdate();
+    }
+
+    
+
+
+
+    virtual void MarkValid() {}
+
+    
+
+
+
+
+    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0)) = 0;
+
+    virtual void BindTexture(GLenum aTextureUnit) = 0;
+    virtual void ReleaseTexture() {}
+
+    void BindTextureAndApplyFilter(GLenum aTextureUnit) {
+        BindTexture(aTextureUnit);
+        ApplyFilter();
+    }
+
+    class ScopedBindTexture
+    {
+    public:
+        ScopedBindTexture(TextureImage *aTexture, GLenum aTextureUnit) :
+          mTexture(aTexture)
+        {
+            if (mTexture) {
+                mTexture->BindTexture(aTextureUnit);
+            }
+        }
+
+        ~ScopedBindTexture()
+        {
+            if (mTexture) {
+                mTexture->ReleaseTexture();
+            }       
+        }
+
+    protected:
+        TextureImage *mTexture;
+    };
+
+    class ScopedBindTextureAndApplyFilter
+        : public ScopedBindTexture
+    {
+    public:
+        ScopedBindTextureAndApplyFilter(TextureImage *aTexture, GLenum aTextureUnit) :
+          ScopedBindTexture(aTexture, aTextureUnit)
+        {
+            if (mTexture) {
+                mTexture->ApplyFilter();
+            }
+        }
+    };
+
+    
+
+
+
+
+    virtual ShaderProgramType GetShaderProgramType()
+    {
+         return mShaderType;
+    }
+
+    
+
+    
+
+
+
+    virtual already_AddRefed<gfxASurface> GetBackingSurface()
+    { return NULL; }
+
+    const nsIntSize& GetSize() const { return mSize; }
+    ContentType GetContentType() const { return mContentType; }
+    virtual bool InUpdate() const = 0;
+    GLenum GetWrapMode() const { return mWrapMode; }
+
+    void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
+
+    
+
+
+
+    virtual void ApplyFilter() = 0;
+
+protected:
+    friend class GLContext;
+
+    
+
+
+
+
+
+    TextureImage(const nsIntSize& aSize,
+                 GLenum aWrapMode, ContentType aContentType,
+                 Flags aFlags = NoFlags)
+        : mSize(aSize)
+        , mWrapMode(aWrapMode)
+        , mContentType(aContentType)
+        , mFilter(gfxPattern::FILTER_GOOD)
+        , mFlags(aFlags)
+    {}
+
+    virtual nsIntRect GetSrcTileRect() {
+        return nsIntRect(nsIntPoint(0,0), mSize);
+    }
+
+    nsIntSize mSize;
+    GLenum mWrapMode;
+    ContentType mContentType;
+    ShaderProgramType mShaderType;
+    gfxPattern::GraphicsFilter mFilter;
+    Flags mFlags;
+};
+
+
+
+
+
+
+
+
+
+
+class BasicTextureImage
+    : public TextureImage
+{
+public:
+    typedef gfxASurface::gfxImageFormat ImageFormat;
+    virtual ~BasicTextureImage();
+
+    BasicTextureImage(GLuint aTexture,
+                      const nsIntSize& aSize,
+                      GLenum aWrapMode,
+                      ContentType aContentType,
+                      GLContext* aContext,
+                      TextureImage::Flags aFlags = TextureImage::NoFlags)
+        : TextureImage(aSize, aWrapMode, aContentType, aFlags)
+        , mTexture(aTexture)
+        , mTextureState(Created)
+        , mGLContext(aContext)
+        , mUpdateOffset(0, 0)
+    {}
+
+    virtual void BindTexture(GLenum aTextureUnit);
+
+    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion);
+    virtual void EndUpdate();
+    virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
+    virtual GLuint GetTextureID() { return mTexture; }
+    
+    virtual already_AddRefed<gfxASurface>
+      GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
+
+    virtual void MarkValid() { mTextureState = Valid; }
+
+    
+    
+    
+    virtual bool FinishedSurfaceUpdate();
+
+    
+    virtual void FinishedSurfaceUpload();
+
+    virtual bool InUpdate() const { return !!mUpdateSurface; }
+
+    virtual void Resize(const nsIntSize& aSize);
+
+    virtual void ApplyFilter();
+protected:
+
+    GLuint mTexture;
+    TextureState mTextureState;
+    GLContext* mGLContext;
+    nsRefPtr<gfxASurface> mUpdateSurface;
+    nsIntRegion mUpdateRegion;
+
+    
+    nsIntPoint mUpdateOffset;
+};
+
+
+
+
+
+
+class TiledTextureImage
+    : public TextureImage
+{
+public:
+    TiledTextureImage(GLContext* aGL, nsIntSize aSize,
+        TextureImage::ContentType, TextureImage::Flags aFlags = TextureImage::NoFlags);
+    ~TiledTextureImage();
+    void DumpDiv();
+    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual void GetUpdateRegion(nsIntRegion& aForRegion);
+    virtual void EndUpdate();
+    virtual void Resize(const nsIntSize& aSize);
+    virtual uint32_t GetTileCount();
+    virtual void BeginTileIteration();
+    virtual bool NextTile();
+    virtual void SetIterationCallback(TileIterationCallback aCallback,
+                                      void* aCallbackData);
+    virtual nsIntRect GetTileRect();
+    virtual GLuint GetTextureID() {
+        return mImages[mCurrentImage]->GetTextureID();
+    }
+    virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
+    virtual bool InUpdate() const { return mInUpdate; }
+    virtual void BindTexture(GLenum);
+    virtual void ApplyFilter();
+
+protected:
+    virtual nsIntRect GetSrcTileRect();
+
+    unsigned int mCurrentImage;
+    TileIterationCallback mIterationCallback;
+    void* mIterationCallbackData;
+    nsTArray< nsRefPtr<TextureImage> > mImages;
+    bool mInUpdate;
+    nsIntSize mSize;
+    unsigned int mTileSize;
+    unsigned int mRows, mColumns;
+    GLContext* mGL;
+    
+    nsRefPtr<gfxASurface> mUpdateSurface;
+    
+    nsIntRegion mUpdateRegion;
+    TextureState mTextureState;
+};
 
 struct THEBES_API ContextFormat
 {
@@ -546,12 +929,6 @@ public:
         return IsExtensionSupported(EXT_framebuffer_blit) || IsExtensionSupported(ANGLE_framebuffer_blit);
     }
 
-
-    enum SharedTextureShareType {
-        SameProcess = 0,
-        CrossProcess
-    };
-
     enum SharedTextureBufferType {
         TextureID
 #ifdef MOZ_WIDGET_ANDROID
@@ -562,26 +939,23 @@ public:
     
 
 
-    virtual SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType)
-    { return 0; }
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return 0; }
     
 
 
 
 
 
-    virtual SharedTextureHandle CreateSharedHandle(SharedTextureShareType shareType,
-                                                   void* buffer,
-                                                   SharedTextureBufferType bufferType)
-    { return 0; }
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType,
+                                                   void* aBuffer,
+                                                   SharedTextureBufferType aBufferType) { return 0; }
     
 
 
 
 
-    virtual void UpdateSharedHandle(SharedTextureShareType shareType,
-                                    SharedTextureHandle sharedHandle)
-    { }
+    virtual void UpdateSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { }
     
 
 
@@ -595,9 +969,8 @@ public:
 
 
 
-    virtual void ReleaseSharedHandle(SharedTextureShareType shareType,
-                                     SharedTextureHandle sharedHandle)
-    { }
+    virtual void ReleaseSharedHandle(TextureImage::TextureShareType aType,
+                                     SharedTextureHandle aSharedHandle) { }
 
 
     typedef struct {
@@ -610,24 +983,21 @@ public:
 
 
 
-    virtual bool GetSharedHandleDetails(SharedTextureShareType shareType,
-                                        SharedTextureHandle sharedHandle,
-                                        SharedHandleDetails& details)
-    { return false; }
+    virtual bool GetSharedHandleDetails(TextureImage::TextureShareType aType,
+                                        SharedTextureHandle aSharedHandle,
+                                        SharedHandleDetails& aDetails) { return false; }
     
 
 
 
-    virtual bool AttachSharedHandle(SharedTextureShareType shareType,
-                                    SharedTextureHandle sharedHandle)
-    { return false; }
+    virtual bool AttachSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { return false; }
 
     
 
 
-    virtual void DetachSharedHandle(SharedTextureShareType shareType,
-                                    SharedTextureHandle sharedHandle)
-    { }
+    virtual void DetachSharedHandle(TextureImage::TextureShareType aType,
+                                    SharedTextureHandle aSharedHandle) { return; }
 
 private:
     GLuint mUserBoundDrawFBO;
@@ -1566,7 +1936,12 @@ protected:
                             GLenum aWrapMode,
                             TextureImage::ContentType aContentType,
                             GLContext* aContext,
-                            TextureImage::Flags aFlags = TextureImage::NoFlags);
+                            TextureImage::Flags aFlags = TextureImage::NoFlags)
+    {
+        nsRefPtr<BasicTextureImage> teximage(
+            new BasicTextureImage(aTexture, aSize, aWrapMode, aContentType, aContext, aFlags));
+        return teximage.forget();
+    }
 
     bool IsOffscreenSizeAllowed(const gfxIntSize& aSize) const {
         int32_t biggerDimension = NS_MAX(aSize.width, aSize.height);
