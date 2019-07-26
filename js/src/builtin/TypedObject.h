@@ -296,6 +296,7 @@ class X4TypeDescr : public SizedTypeDescr
     macro_(X4TypeDescr::TYPE_FLOAT32, float, float32)
 
 bool IsTypedObjectClass(const Class *clasp); 
+bool IsTypedObjectArray(JSObject& obj);
 
 bool InitializeCommonTypeDescriptorProperties(JSContext *cx,
                                               HandleTypeDescr obj,
