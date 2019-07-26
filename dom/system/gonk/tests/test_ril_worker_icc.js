@@ -32,6 +32,35 @@ function newUint8Worker() {
   return worker;
 }
 
+function newUint8WithOutgoingIndexWorker() {
+  let worker = newWorker();
+  let index = 4;          
+  let buf = [0, 0, 0, 0]; 
+
+  worker.Buf.writeUint8 = function (value) {
+    if (worker.Buf.outgoingIndex >= buf.length) {
+      buf.push(value);
+    } else {
+      buf[worker.Buf.outgoingIndex] = value;
+    }
+
+    worker.Buf.outgoingIndex++;
+  };
+
+  worker.Buf.readUint8 = function () {
+    return buf[index++];
+  };
+
+  worker.Buf.seekIncoming = function (offset) {
+    index += offset;
+  };
+
+  worker.debug = do_print;
+
+  return worker;
+}
+
+
 
 
 add_test(function test_read_icc_ucs2_string() {
