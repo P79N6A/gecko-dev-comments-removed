@@ -424,8 +424,7 @@ nsContextMenu.prototype = {
   setTarget: function (aNode, aRangeParent, aRangeOffset) {
     const xulNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
     if (aNode.namespaceURI == xulNS ||
-        aNode.nodeType == Node.DOCUMENT_NODE ||
-        this.isTargetAFormControl(aNode)) {
+        aNode.nodeType == Node.DOCUMENT_NODE) {
       this.shouldDisplay = false;
       return;
     }
@@ -1273,6 +1272,7 @@ nsContextMenu.prototype = {
            "contextMenu.hasBGImage = " + this.hasBGImage + "\n";
   },
 
+  
   
   
   isTargetAFormControl: function(aNode) {
