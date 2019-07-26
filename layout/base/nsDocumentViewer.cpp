@@ -1270,7 +1270,7 @@ nsDocumentViewer::PageHide(bool aIsUnload)
 
   if (aIsUnload) {
     
-    nsJSContext::PokeGC(js::gcreason::PAGE_HIDE, NS_GC_DELAY * 2);
+    nsJSContext::PokeGC(JS::gcreason::PAGE_HIDE, NS_GC_DELAY * 2);
 
     
     NS_ENSURE_STATE(mDocument);

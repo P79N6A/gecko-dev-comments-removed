@@ -176,8 +176,8 @@ struct ForkJoinSlice
     
     
     
-    void requestGC(gcreason::Reason reason);
-    void requestZoneGC(JS::Zone *zone, gcreason::Reason reason);
+    void requestGC(JS::gcreason::Reason reason);
+    void requestZoneGC(JS::Zone *zone, JS::gcreason::Reason reason);
 
     
     

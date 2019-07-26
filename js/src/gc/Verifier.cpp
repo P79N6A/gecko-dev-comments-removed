@@ -93,7 +93,7 @@ CheckStackRoot(JSRuntime *rt, uintptr_t *w, Rooter *begin, Rooter *end)
 
 
 
-    PoisonPtr(w);
+    JS::PoisonPtr(w);
 }
 
 static void

@@ -896,7 +896,7 @@ struct JSRuntime : js::RuntimeFriendFields,
     bool                gcIsFull;
 
     
-    js::gcreason::Reason gcTriggerReason;
+    JS::gcreason::Reason gcTriggerReason;
 
     
 
@@ -1062,7 +1062,7 @@ struct JSRuntime : js::RuntimeFriendFields,
     bool                gcFullCompartmentChecks;
 
     JSGCCallback        gcCallback;
-    js::GCSliceCallback gcSliceCallback;
+    JS::GCSliceCallback gcSliceCallback;
     JSFinalizeCallback  gcFinalizeCallback;
 
     js::AnalysisPurgeCallback analysisPurgeCallback;

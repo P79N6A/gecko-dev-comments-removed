@@ -31,12 +31,7 @@ namespace JS {}
 namespace mozilla {}
 
 
-namespace js {
-
-
-using namespace JS;
-
-}  
+namespace js {}
 
 
 

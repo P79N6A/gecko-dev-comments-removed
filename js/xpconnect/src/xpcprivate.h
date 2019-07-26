@@ -802,8 +802,8 @@ public:
 
     static void GCCallback(JSRuntime *rt, JSGCStatus status);
     static void GCSliceCallback(JSRuntime *rt,
-                                js::GCProgress progress,
-                                const js::GCDescription &desc);
+                                JS::GCProgress progress,
+                                const JS::GCDescription &desc);
     static void FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool isCompartmentGC);
 
     inline void AddVariantRoot(XPCTraceableVariant* variant);
@@ -957,7 +957,7 @@ private:
     bool mWatchdogHibernating;
     PRTime mLastActiveTime; 
     nsRefPtr<XPCIncrementalReleaseRunnable> mReleaseRunnable;
-    js::GCSliceCallback mPrevGCSliceCallback;
+    JS::GCSliceCallback mPrevGCSliceCallback;
 
     nsCOMPtr<nsIException>   mPendingException;
     nsCOMPtr<nsIExceptionManager> mExceptionManager;
@@ -1725,12 +1725,12 @@ private:
     
     
     
-    js::ObjectPtr                    mGlobalJSObject;
+    JS::ObjectPtr                    mGlobalJSObject;
 
     
     
     
-    js::ObjectPtr                    mXBLScope;
+    JS::ObjectPtr                    mXBLScope;
 
     
     JSObject*                        mPrototypeNoHelper;
@@ -2439,7 +2439,7 @@ public:
 
     void WriteBarrierPre(JSRuntime* rt)
     {
-        if (js::IsIncrementalBarrierNeeded(rt) && mJSProtoObject)
+        if (JS::IsIncrementalBarrierNeeded(rt) && mJSProtoObject)
             mJSProtoObject.writeBarrierPre(rt);
     }
 
@@ -2486,7 +2486,7 @@ private:
     }
 
     XPCWrappedNativeScope*   mScope;
-    js::ObjectPtr            mJSProtoObject;
+    JS::ObjectPtr            mJSProtoObject;
     nsCOMPtr<nsIClassInfo>   mClassInfo;
     uint32_t                 mClassInfoFlags;
     XPCNativeSet*            mSet;
@@ -2893,7 +2893,7 @@ public:
     }
     void SetWrapper(JSObject *obj)
     {
-        js::IncrementalObjectBarrier(GetWrapperPreserveColor());
+        JS::IncrementalObjectBarrier(GetWrapperPreserveColor());
         intptr_t newval = intptr_t(obj) | (mWrapperWord & FLAG_MASK);
         mWrapperWord = newval;
     }
