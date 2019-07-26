@@ -161,6 +161,11 @@ let gSyncUI = {
       this.updateUI();
       return;
     }
+    
+    if (Weave.Status.login == Weave.LOGIN_FAILED_NOT_READY) {
+      this.updateUI();
+      return;
+    }
 
     let title = this._stringBundle.GetStringFromName("error.login.title");
 
