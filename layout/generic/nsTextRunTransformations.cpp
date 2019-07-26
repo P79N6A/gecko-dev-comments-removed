@@ -276,6 +276,8 @@ nsCaseTransformTextRunFactory::TransformString(
 
   bool capitalizeDutchIJ = false;
   bool prevIsLetter = false;
+  bool ntPrefix = false; 
+                         
   uint32_t sigmaIndex = uint32_t(-1);
   nsIUGenCategory::nsUGenCategory cat;
 
@@ -331,25 +333,41 @@ nsCaseTransformTextRunFactory::TransformString(
         }
       }
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
       cat = mozilla::unicode::GetGenCategory(ch);
+
+      if (languageSpecificCasing == eLSCB_Irish &&
+          cat == nsIUGenCategory::kLetter) {
+        
+        if (!prevIsLetter && (ch == 'n' || ch == 't')) {
+          ntPrefix = true;
+        } else {
+          if (ntPrefix && mozilla::IrishCasing::IsUpperVowel(ch)) {
+            aConvertedString.Append('-');
+            ++extraChars;
+          }
+          ntPrefix = false;
+        }
+      } else {
+        ntPrefix = false;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
       
       
