@@ -76,6 +76,7 @@ public:
                           sockaddr_any& aAddr,
                           const char* aAddress);
   virtual bool SetUp(int aFd);
+  virtual bool SetUpListenSocket(int aFd);
   virtual void GetSocketAddr(const sockaddr_any& aAddr,
                              nsAString& aAddrStr);
 
@@ -147,6 +148,13 @@ RilConnector::CreateAddr(bool aIsServer,
 
 bool
 RilConnector::SetUp(int aFd)
+{
+    
+    return true;
+}
+
+bool
+RilConnector::SetUpListenSocket(int aFd)
 {
     
     return true;

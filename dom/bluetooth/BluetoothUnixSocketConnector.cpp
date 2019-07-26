@@ -166,6 +166,13 @@ BluetoothUnixSocketConnector::SetUp(int aFd)
   return true;
 }
 
+bool
+BluetoothUnixSocketConnector::SetUpListenSocket(int aFd)
+{
+  
+  return true;
+}
+
 int
 BluetoothUnixSocketConnector::Create()
 {

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set sw=4 ts=8 et ft=cpp: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include <fcntl.h>
 #include <limits.h>
@@ -20,7 +20,7 @@
 #endif
 
 #include "jsfriendapi.h"
-#include "nsThreadUtils.h" // For NS_IsMainThread.
+#include "nsThreadUtils.h" 
 #include "Nfc.h"
 
 USING_WORKERS_NAMESPACE
@@ -30,8 +30,8 @@ namespace {
 
 const char* NFC_SOCKET_NAME = "/dev/socket/nfcd";
 
-// Network port to connect to for adb forwarded sockets when doing
-// desktop development.
+
+
 const uint32_t NFCD_TEST_PORT = 6400;
 
 class DispatchNfcEvent : public WorkerTask
@@ -77,6 +77,7 @@ public:
                             sockaddr_any& aAddr,
                             const char* aAddress);
     virtual bool SetUp(int aFd);
+    virtual bool SetUpListenSocket(int aFd);
     virtual void GetSocketAddr(const sockaddr_any& aAddr,
                                nsAString& aAddrStr);
 };
@@ -91,7 +92,7 @@ NfcConnector::Create()
 #if defined(MOZ_WIDGET_GONK)
     fd = socket(AF_LOCAL, SOCK_STREAM, 0);
 #else
-    // If we can't hit a local loopback, fail later in connect.
+    
     fd = socket(AF_INET, SOCK_STREAM, 0);
 #endif
 
@@ -112,7 +113,7 @@ NfcConnector::CreateAddr(bool aIsServer,
                          sockaddr_any& aAddr,
                          const char* aAddress)
 {
-    // We never open nfc socket as server.
+    
     MOZ_ASSERT(!aIsServer);
     uint32_t af;
 #if defined(MOZ_WIDGET_GONK)
@@ -147,7 +148,14 @@ NfcConnector::CreateAddr(bool aIsServer,
 bool
 NfcConnector::SetUp(int aFd)
 {
-    // Nothing to do here.
+    
+    return true;
+}
+
+bool
+NfcConnector::SetUpListenSocket(int aFd)
+{
+    
     return true;
 }
 
@@ -158,7 +166,7 @@ NfcConnector::GetSocketAddr(const sockaddr_any& aAddr,
     MOZ_CRASH("This should never be called!");
 }
 
-} // anonymous namespace
+} 
 
 
 namespace mozilla {
@@ -192,7 +200,7 @@ NfcConsumer::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
 void
 NfcConsumer::OnConnectSuccess()
 {
-    // Nothing to do here.
+    
     LOG("Socket open for Nfc\n");
 }
 
@@ -216,5 +224,5 @@ NfcConsumer::OnDisconnect()
     }
 }
 
-} // namespace ipc
-} // namespace mozilla
+} 
+} 
