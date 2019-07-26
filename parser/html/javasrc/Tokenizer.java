@@ -6545,19 +6545,6 @@ public class Tokenizer implements Locator {
         return buf[pos];
     }
 
-    
-
-    
-
-
-
-
-    public boolean isAlreadyComplainedAboutNonAscii() {
-        return true;
-    }
-
-    
-
     public boolean internalEncodingDeclaration(String internalCharset)
             throws SAXException {
         if (encodingDeclarationHandler != null) {
