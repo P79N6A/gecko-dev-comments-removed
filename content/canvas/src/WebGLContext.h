@@ -71,7 +71,6 @@ class WebGLBuffer;
 class WebGLVertexAttribData;
 class WebGLShader;
 class WebGLProgram;
-class WebGLQuery;
 class WebGLUniformLocation;
 class WebGLFramebuffer;
 class WebGLRenderbuffer;
@@ -783,21 +782,6 @@ public:
 
 
 public:
-    already_AddRefed<WebGLQuery> CreateQuery();
-    void DeleteQuery(WebGLQuery *query);
-    void BeginQuery(WebGLenum target, WebGLQuery *query);
-    void EndQuery(WebGLenum target);
-    bool IsQuery(WebGLQuery *query);
-    already_AddRefed<WebGLQuery> GetQuery(WebGLenum target, WebGLenum pname);
-    JS::Value GetQueryObject(JSContext* cx, WebGLQuery *query, WebGLenum pname);
-
-private:
-    bool ValidateTargetParameter(WebGLenum target, const char* infos);
-    WebGLRefPtr<WebGLQuery>& GetActiveQueryByTarget(WebGLenum target);
-
-
-
-public:
     void DrawArrays(GLenum mode, WebGLint first, WebGLsizei count);
     void DrawArraysInstanced(GLenum mode, WebGLint first, WebGLsizei count, WebGLsizei primcount);
     void DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type, WebGLintptr byteOffset);
@@ -1090,12 +1074,10 @@ protected:
     WebGLRefPtr<WebGLFramebuffer> mBoundFramebuffer;
     WebGLRefPtr<WebGLRenderbuffer> mBoundRenderbuffer;
     WebGLRefPtr<WebGLVertexArray> mBoundVertexArray;
-    WebGLRefPtr<WebGLQuery> mActiveOcclusionQuery;
 
     LinkedList<WebGLTexture> mTextures;
     LinkedList<WebGLBuffer> mBuffers;
     LinkedList<WebGLProgram> mPrograms;
-    LinkedList<WebGLQuery> mQueries;
     LinkedList<WebGLShader> mShaders;
     LinkedList<WebGLRenderbuffer> mRenderbuffers;
     LinkedList<WebGLFramebuffer> mFramebuffers;
@@ -1184,7 +1166,6 @@ public:
     friend class WebGLFramebuffer;
     friend class WebGLRenderbuffer;
     friend class WebGLProgram;
-    friend class WebGLQuery;
     friend class WebGLBuffer;
     friend class WebGLShader;
     friend class WebGLUniformLocation;
