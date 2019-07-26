@@ -68,7 +68,6 @@ class GetUserMediaNotificationEvent: public nsRunnable
 typedef enum {
   MEDIA_START,
   MEDIA_STOP,
-  MEDIA_RELEASE
 } MediaOperation;
 
 
@@ -101,10 +100,19 @@ public:
     , mSourceStream(aStream)
     {}
 
+  ~MediaOperationRunnable()
+  {
+    
+    
+    if (mStream) {
+      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+      NS_ProxyRelease(mainThread,mStream,false);
+    }
+  }
+
   NS_IMETHOD
   Run()
   {
-    
     
     
     if (mStream) {
@@ -135,6 +143,7 @@ public:
           nsRefPtr<GetUserMediaNotificationEvent> event =
             new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STARTING);
 
+
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
         }
         break;
@@ -159,23 +168,15 @@ public:
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
         }
         break;
-      case MEDIA_RELEASE:
-        
-        break;
-    }
-    if (mType != MEDIA_RELEASE) {
-      
-      mType = MEDIA_RELEASE;
-      NS_DispatchToMainThread(this);
     }
     return NS_OK;
   }
 
 private:
   MediaOperation mType;
-  nsRefPtr<MediaEngineSource> mAudioSource;
-  nsRefPtr<MediaEngineSource> mVideoSource;
-  nsRefPtr<nsDOMMediaStream> mStream;
+  nsRefPtr<MediaEngineSource> mAudioSource; 
+  nsRefPtr<MediaEngineSource> mVideoSource; 
+  nsRefPtr<nsDOMMediaStream> mStream;       
   SourceMediaStream *mSourceStream;
 };
 
