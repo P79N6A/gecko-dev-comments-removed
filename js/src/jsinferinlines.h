@@ -759,15 +759,15 @@ struct AllocationSiteKey : public DefaultHasher<AllocationSiteKey> {
 
 
 js::NewObjectKind
-UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey key);
+UseNewTypeForInitializer(JSScript *script, jsbytecode *pc, JSProtoKey key);
 
 js::NewObjectKind
-UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc, const Class *clasp);
+UseNewTypeForInitializer(JSScript *script, jsbytecode *pc, const Class *clasp);
 
  inline TypeObject *
 TypeScript::InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey kind)
 {
-    JS_ASSERT(!UseNewTypeForInitializer(cx, script, pc, kind));
+    JS_ASSERT(!UseNewTypeForInitializer(script, pc, kind));
 
     
     uint32_t offset = pc - script->code;
@@ -799,7 +799,7 @@ SetInitializerObjectType(JSContext *cx, HandleScript script, jsbytecode *pc, Han
 
     JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
     JS_ASSERT(key != JSProto_Null);
-    JS_ASSERT(kind == UseNewTypeForInitializer(cx, script, pc, key));
+    JS_ASSERT(kind == UseNewTypeForInitializer(script, pc, key));
 
     if (kind == SingletonObject) {
         JS_ASSERT(obj->hasSingletonType());
