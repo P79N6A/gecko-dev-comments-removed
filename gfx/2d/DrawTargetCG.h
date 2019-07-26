@@ -3,6 +3,9 @@
 
 
 
+#ifndef mozilla_gfx_DrawTargetCG_h
+#define mozilla_gfx_DrawTargetCG_h
+
 #include <ApplicationServices/ApplicationServices.h>
 
 #include "2D.h"
@@ -176,3 +179,6 @@ private:
 
 }
 }
+
+#endif
+
