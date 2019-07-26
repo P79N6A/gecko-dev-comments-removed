@@ -145,6 +145,21 @@ let DOMApplicationRegistry = {
 #endif
   },
 
+  updatePermissionsForApp: function updatePermissionsForApp(aId) {
+    
+    
+    this._readManifests([{ id: aId }], (function(aResult) {
+      let data = aResult[0];
+      PermissionsInstaller.installPermissions({
+        manifest: data.manifest,
+        manifestURL: this.webapps[aId].manifestURL,
+        origin: this.webapps[aId].origin
+      }, true, function() {
+        debug("Error installing permissions for " + aId);
+      });
+    }).bind(this));
+  },
+
   
   
   
@@ -154,8 +169,7 @@ let DOMApplicationRegistry = {
   
   
   loadAndUpdateApps: function loadAndUpdateApps() {
-    let runUpdate = Services.prefs.getBoolPref("dom.mozApps.runUpdate");
-    Services.prefs.setBoolPref("dom.mozApps.runUpdate", false);
+    let runUpdate = AppsUtils.isFirstRun(Services.prefs);
 
     
     this.loadCurrentRegistry((function() {
@@ -179,10 +193,14 @@ let DOMApplicationRegistry = {
           for (let id in this.webapps) {
             if (id in aData || this.webapps[id].removable)
               continue;
-            let localId = this.webapps[id].localId;
             delete this.webapps[id];
             
-            
+            let localId = this.webapps[id].localId;
+            let permMgr = Cc["@mozilla.org/permissionmanager;1"]
+                            .getService(Ci.nsIPermissionManager);
+            permMgr.RemovePermissionsForApp(localId);
+            Services.cookies.removeCookiesForApp(localId, false);
+            this._clearPrivateData(localId, false);
           }
 
           let appDir = FileUtils.getDir("coreAppsDir", ["webapps"], false);
@@ -202,19 +220,28 @@ let DOMApplicationRegistry = {
                 this.webapps[id].removable = false;
               }
             }
-            
-            
-            
+
+            this.updatePermissionsForApp(id);
           }
           this.registerAppsHandlers();
         }).bind(this));
       } else {
+        
+        for (let id in this.webapps) {
+          this.updatePermissionsForApp(id);
+        }
         this.registerAppsHandlers();
       }
     } else {
       this.registerAppsHandlers();
     }
 #else
+    if (runUpdate) {
+      
+      for (let id in this.webapps) {
+        this.updatePermissionsForApp(id);
+      }
+    }
     this.registerAppsHandlers();
 #endif
     }).bind(this));
