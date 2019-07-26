@@ -63,39 +63,33 @@ public class HistoryTab extends AwesomeBarTab {
         return TAG;
     }
 
-    public TabContentFactory getFactory() {
-        return new TabContentFactory() {
-            public View createTabContent(String tag) {
-                final ExpandableListView list = (ExpandableListView)getListView();
-                list.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
-                    public boolean onChildClick(ExpandableListView parent, View view,
-                                                 int groupPosition, int childPosition, long id) {
-                        return handleItemClick(groupPosition, childPosition);
-                    }
-                });
-
-                
-                
-                
-                list.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
-                     public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
-                        return true;
-                    }
-                });
-                return list;
-            }
-       };
-    }
-
-    public ListView getListView() {
+    public ListView getView() {
         if (mView == null) {
-            mView = (ExpandableListView) (LayoutInflater.from(mContext).inflate(R.layout.awesomebar_expandable_list, null));
+            mView = LayoutInflater.from(mContext).inflate(R.layout.awesomebar_expandable_list, null);
             ((Activity)mContext).registerForContextMenu(mView);
             mView.setTag(TAG);
+
+            ExpandableListView list = (ExpandableListView)mView;
+            list.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+                public boolean onChildClick(ExpandableListView parent, View view,
+                                             int groupPosition, int childPosition, long id) {
+                    return handleItemClick(groupPosition, childPosition);
+                }
+            });
+
+            
+            
+            
+            list.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
+                 public boolean onGroupClick(ExpandableListView parent, View v, int groupPosition, long id) {
+                    return true;
+                }
+            });
+
             mView.setOnTouchListener(mListListener);
 
             
-            ((ExpandableListView)mView).setAdapter(getCursorAdapter());
+            list.setAdapter(getCursorAdapter());
             HistoryQueryTask task = new HistoryQueryTask();
             task.execute();
         }
@@ -111,7 +105,7 @@ public class HistoryTab extends AwesomeBarTab {
         
         
         
-        ListView view = getListView();
+        View view = getView();
         if (hideSoftInput(view))
             return true;
 
@@ -360,7 +354,7 @@ public class HistoryTab extends AwesomeBarTab {
                 BrowserDB.registerHistoryObserver(getContentResolver(), mContentObserver);
             }
 
-            final ExpandableListView historyList = (ExpandableListView)getListView();
+            final ExpandableListView historyList = (ExpandableListView)getView();
 
             
             GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
