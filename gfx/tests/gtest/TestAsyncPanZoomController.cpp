@@ -381,6 +381,17 @@ NudgeToIntegers(const gfxPoint& aPoint)
   return gfxPoint(x, y);
 }
 
+static already_AddRefed<AsyncPanZoomController>
+GetTargetAPZC(APZCTreeManager* manager, const ScreenPoint& aPoint,
+              gfx3DMatrix& aTransformToApzcOut, gfx3DMatrix& aTransformToScreenOut)
+{
+  nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(aPoint);
+  if (hit) {
+    manager->GetInputTransforms(hit.get(), aTransformToApzcOut, aTransformToScreenOut);
+  }
+  return hit.forget();
+}
+
 TEST(APZCTreeManager, GetAPZCAtPoint) {
   nsTArray<nsRefPtr<Layer> > layers;
   nsRefPtr<LayerManager> lm;
@@ -396,7 +407,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   gfx3DMatrix transformToScreen;
 
   
-  nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(20, 20), transformToApzc, transformToScreen);
+  nsRefPtr<AsyncPanZoomController> hit = GetTargetAPZC(manager, ScreenPoint(20, 20), transformToApzc, transformToScreen);
   AsyncPanZoomController* nullAPZC = nullptr;
   EXPECT_EQ(nullAPZC, hit.get());
   EXPECT_EQ(gfx3DMatrix(), transformToApzc);
@@ -405,7 +416,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   
   SetScrollableFrameMetrics(root, FrameMetrics::ROOT_SCROLL_ID, mcc);
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
-  hit = manager->GetTargetAPZC(ScreenPoint(15, 15), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(15, 15), transformToApzc, transformToScreen);
   EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(15, 15), transformToApzc.Transform(gfxPoint(15, 15)));
@@ -415,36 +426,36 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID, mcc);
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   EXPECT_NE(root->AsContainerLayer()->GetAsyncPanZoomController(), layers[3]->AsContainerLayer()->GetAsyncPanZoomController());
-  hit = manager->GetTargetAPZC(ScreenPoint(15, 15), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(15, 15), transformToApzc, transformToScreen);
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(15, 15), transformToApzc.Transform(gfxPoint(15, 15)));
   EXPECT_EQ(gfxPoint(15, 15), transformToScreen.Transform(gfxPoint(15, 15)));
 
   
-  hit = manager->GetTargetAPZC(ScreenPoint(15, 15), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(15, 15), transformToApzc, transformToScreen);
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   SetScrollableFrameMetrics(layers[4], FrameMetrics::START_SCROLL_ID + 1, mcc);
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
-  hit = manager->GetTargetAPZC(ScreenPoint(15, 15), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(15, 15), transformToApzc, transformToScreen);
   EXPECT_EQ(layers[4]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(15, 15), transformToApzc.Transform(gfxPoint(15, 15)));
   EXPECT_EQ(gfxPoint(15, 15), transformToScreen.Transform(gfxPoint(15, 15)));
 
   
-  hit = manager->GetTargetAPZC(ScreenPoint(90, 90), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(90, 90), transformToApzc, transformToScreen);
   EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(90, 90), transformToApzc.Transform(gfxPoint(90, 90)));
   EXPECT_EQ(gfxPoint(90, 90), transformToScreen.Transform(gfxPoint(90, 90)));
 
   
-  hit = manager->GetTargetAPZC(ScreenPoint(1000, 10), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(1000, 10), transformToApzc, transformToScreen);
   EXPECT_EQ(nullAPZC, hit.get());
   EXPECT_EQ(gfx3DMatrix(), transformToApzc);
   EXPECT_EQ(gfx3DMatrix(), transformToScreen);
-  hit = manager->GetTargetAPZC(ScreenPoint(-1000, 10), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(-1000, 10), transformToApzc, transformToScreen);
   EXPECT_EQ(nullAPZC, hit.get());
   EXPECT_EQ(gfx3DMatrix(), transformToApzc);
   EXPECT_EQ(gfx3DMatrix(), transformToScreen);
@@ -454,14 +465,14 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   transform.ScalePost(0.1, 0.1, 1);
   root->SetBaseTransform(transform);
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
-  hit = manager->GetTargetAPZC(ScreenPoint(50, 50), transformToApzc, transformToScreen); 
+  hit = GetTargetAPZC(manager, ScreenPoint(50, 50), transformToApzc, transformToScreen); 
   EXPECT_EQ(nullAPZC, hit.get());
   EXPECT_EQ(gfx3DMatrix(), transformToApzc);
   EXPECT_EQ(gfx3DMatrix(), transformToScreen);
 
   
   
-  hit = manager->GetTargetAPZC(ScreenPoint(2, 2), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(2, 2), transformToApzc, transformToScreen);
   EXPECT_EQ(layers[4]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(20, 20), NudgeToIntegers(transformToApzc.Transform(gfxPoint(2, 2))));
@@ -472,7 +483,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   
   
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
-  hit = manager->GetTargetAPZC(ScreenPoint(2, 2), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(2, 2), transformToApzc, transformToScreen);
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(20, 20), NudgeToIntegers(transformToApzc.Transform(gfxPoint(2, 2))));
@@ -495,7 +506,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
 
   manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   
-  hit = manager->GetTargetAPZC(ScreenPoint(1, 45), transformToApzc, transformToScreen);
+  hit = GetTargetAPZC(manager, ScreenPoint(1, 45), transformToApzc, transformToScreen);
   EXPECT_EQ(layers[7]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
   EXPECT_EQ(gfxPoint(20, 440), NudgeToIntegers(transformToApzc.Transform(gfxPoint(1, 45))));

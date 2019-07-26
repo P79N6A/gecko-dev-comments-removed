@@ -217,21 +217,18 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
     case MULTITOUCH_INPUT: {
       const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
       if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_START) {
-        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint),
-                                           transformToApzc, transformToScreen);
-      } else {
-        if (mApzcForInputBlock) {
-          APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
-          GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
-          
-          
-          if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
-              (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END && multiTouchInput.mTouches.Length() == 1)) {
-            mApzcForInputBlock = nullptr;
-          }
+        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint));
+      } else if (mApzcForInputBlock) {
+        APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
+        
+        
+        if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
+            (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END && multiTouchInput.mTouches.Length() == 1)) {
+          mApzcForInputBlock = nullptr;
         }
       }
       if (mApzcForInputBlock) {
+        GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
         MultiTouchInput inputForApzc(multiTouchInput);
         for (int i = inputForApzc.mTouches.Length() - 1; i >= 0; i--) {
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
@@ -241,8 +238,9 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
       break;
     } case PINCHGESTURE_INPUT: {
       const PinchGestureInput& pinchInput = aEvent.AsPinchGestureInput();
-      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(pinchInput.mFocusPoint, transformToApzc, transformToScreen);
+      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(pinchInput.mFocusPoint);
       if (apzc) {
+        GetInputTransforms(apzc, transformToApzc, transformToScreen);
         PinchGestureInput inputForApzc(pinchInput);
         ApplyTransform(&(inputForApzc.mFocusPoint), transformToApzc);
         apzc->ReceiveInputEvent(inputForApzc);
@@ -250,8 +248,9 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent)
       break;
     } case TAPGESTURE_INPUT: {
       const TapGestureInput& tapInput = aEvent.AsTapGestureInput();
-      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(tapInput.mPoint), transformToApzc, transformToScreen);
+      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(tapInput.mPoint));
       if (apzc) {
+        GetInputTransforms(apzc, transformToApzc, transformToScreen);
         TapGestureInput inputForApzc(tapInput);
         ApplyTransform(&(inputForApzc.mPoint), transformToApzc);
         apzc->ReceiveInputEvent(inputForApzc);
@@ -278,21 +277,18 @@ APZCTreeManager::ReceiveInputEvent(const nsInputEvent& aEvent,
       }
       if (touchEvent.message == NS_TOUCH_START) {
         nsIntPoint point = touchEvent.touches[0]->mRefPoint;
-        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(point.x, point.y),
-                                           transformToApzc, transformToScreen);
-      } else {
-        if (mApzcForInputBlock) {
-          APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
-          GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
-          
-          
-          if (touchEvent.message == NS_TOUCH_CANCEL ||
-              (touchEvent.message == NS_TOUCH_END && touchEvent.touches.Length() == 1)) {
-            mApzcForInputBlock = nullptr;
-          }
+        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(point.x, point.y));
+      } else if (mApzcForInputBlock) {
+        APZC_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
+        
+        
+        if (touchEvent.message == NS_TOUCH_CANCEL ||
+            (touchEvent.message == NS_TOUCH_END && touchEvent.touches.Length() == 1)) {
+          mApzcForInputBlock = nullptr;
         }
       }
       if (mApzcForInputBlock) {
+        GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToScreen);
         MultiTouchInput inputForApzc(touchEvent);
         for (int i = inputForApzc.mTouches.Length() - 1; i >= 0; i--) {
           ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
@@ -309,10 +305,9 @@ APZCTreeManager::ReceiveInputEvent(const nsInputEvent& aEvent,
       break;
     } case NS_MOUSE_EVENT: {
       const nsMouseEvent& mouseEvent = static_cast<const nsMouseEvent&>(aEvent);
-      nsRefPtr<AsyncPanZoomController> apzc =
-        GetTargetAPZC(ScreenPoint(mouseEvent.refPoint.x, mouseEvent.refPoint.y),
-                      transformToApzc, transformToScreen);
+      nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(mouseEvent.refPoint.x, mouseEvent.refPoint.y));
       if (apzc) {
+        GetInputTransforms(apzc, transformToApzc, transformToScreen);
         MultiTouchInput inputForApzc(mouseEvent);
         ApplyTransform(&(inputForApzc.mTouches[0].mScreenPoint), transformToApzc);
 
@@ -440,77 +435,8 @@ APZCTreeManager::GetTargetAPZC(const ScrollableLayerGuid& aGuid)
   return target.forget();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 already_AddRefed<AsyncPanZoomController>
-APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint,
-                               gfx3DMatrix& aTransformToApzcOut,
-                               gfx3DMatrix& aTransformToScreenOut)
+APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
 {
   MonitorAutoLock lock(mTreeLock);
   nsRefPtr<AsyncPanZoomController> target;
@@ -519,7 +445,6 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint,
   for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
     target = GetAPZCAtPoint(apzc, point);
     if (target) {
-      GetInputTransforms(target, aTransformToApzcOut, aTransformToScreenOut);
       break;
     }
   }
@@ -579,6 +504,67 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
   }
   return nullptr;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void
 APZCTreeManager::GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
