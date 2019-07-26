@@ -294,21 +294,20 @@ var ctrlTab = {
   },
 
   advanceFocus: function ctrlTab_advanceFocus(aForward) {
+    let selectedIndex = Array.indexOf(this.previews, this.selected);
+    do {
+      selectedIndex += aForward ? 1 : -1;
+      if (selectedIndex < 0)
+        selectedIndex = this.previews.length - 1;
+      else if (selectedIndex >= this.previews.length)
+        selectedIndex = 0;
+    } while (this.previews[selectedIndex].hidden);
+
     if (this._selectedIndex == -1) {
       
-      if (aForward)
-        document.commandDispatcher.advanceFocus();
-      else
-        document.commandDispatcher.rewindFocus();
+      this.previews[selectedIndex].focus();
     } else {
-      
-      do {
-        this._selectedIndex += aForward ? 1 : -1;
-        if (this._selectedIndex < 0)
-          this._selectedIndex = this.previews.length - 1;
-        else if (this._selectedIndex >= this.previews.length)
-          this._selectedIndex = 0;
-      } while (this.selected.hidden);
+      this._selectedIndex = selectedIndex;
     }
 
     if (this._timer) {
