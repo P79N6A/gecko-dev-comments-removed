@@ -140,10 +140,6 @@ public:
     bool IsAlive();
     bool IsForApp();
 
-    void SetChildMemoryReports(const InfallibleTArray<MemoryReport>&
-                               childReports);
-    void UnregisterChildMemoryReporter();
-
     GeckoChildProcessHost* Process() {
         return mSubprocess;
     }
@@ -340,7 +336,7 @@ private:
 
     virtual bool DeallocPIndexedDBParent(PIndexedDBParent* aActor);
 
-    virtual PMemoryReportRequestParent* AllocPMemoryReportRequestParent();
+    virtual PMemoryReportRequestParent* AllocPMemoryReportRequestParent(const uint32_t& generation);
     virtual bool DeallocPMemoryReportRequestParent(PMemoryReportRequestParent* actor);
 
     virtual PTestShellParent* AllocPTestShellParent();
@@ -499,14 +495,6 @@ private:
 
     uint64_t mChildID;
     int32_t mGeolocationWatchID;
-
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIMemoryReporter> mChildReporter;
 
     nsString mAppManifestURL;
 

@@ -48,11 +48,6 @@ XPCOMUtils.defineLazyGetter(this, "nsGzipConverter",
 let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"]
              .getService(Ci.nsIMemoryReporterManager);
 
-
-
-Services.obs.addObserver(updateAboutMemoryFromReporters,
-                         "child-memory-reporter-update", false);
-
 let gUnnamedProcessStr = "Main Process";
 
 let gIsDiff = false;
@@ -120,8 +115,6 @@ function debug(x)
 
 function onUnload()
 {
-  Services.obs.removeObserver(updateAboutMemoryFromReporters,
-                              "child-memory-reporter-update");
 }
 
 
@@ -388,11 +381,6 @@ function doMMU()
 
 function doMeasure()
 {
-  
-  
-  
-  
-  Services.obs.notifyObservers(null, "child-memory-reporter-request", null);
   updateAboutMemoryFromReporters();
 }
 
@@ -402,10 +390,7 @@ function doMeasure()
 
 function updateAboutMemoryFromReporters()
 {
-  
-  
-  
-  updateMainAndFooter("", SHOW_FOOTER);
+  updateMainAndFooter("Measuring...", HIDE_FOOTER);
 
   try {
     let processLiveMemoryReports =
@@ -416,12 +401,13 @@ function updateAboutMemoryFromReporters()
                       aDescription,  undefined);
       }
 
-      let e = gMgr.enumerateReporters();
-      while (e.hasMoreElements()) {
-        let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-        mr.collectReports(handleReport, null);
+      let displayReportsAndFooter = function() {
+        updateMainAndFooter("", SHOW_FOOTER);
+        aDisplayReports();
       }
-      aDisplayReports();
+
+      gMgr.getReports(handleReport, null,
+                      displayReportsAndFooter, null);
     }
 
     
@@ -1841,9 +1827,11 @@ function saveReportsToFile()
       let dumper = Cc["@mozilla.org/memory-info-dumper;1"]
                      .getService(Ci.nsIMemoryInfoDumper);
 
-      dumper.dumpMemoryReportsToNamedFile(fp.file.path);
+      let finishDumping = () => {
+        updateMainAndFooter("Saved reports to " + fp.file.path, HIDE_FOOTER);
+      }
 
-      updateMainAndFooter("Saved reports to " + fp.file.path, HIDE_FOOTER);
+      dumper.dumpMemoryReportsToNamedFile(fp.file.path, finishDumping, null);
     }
   };
   fp.open(fpCallback);

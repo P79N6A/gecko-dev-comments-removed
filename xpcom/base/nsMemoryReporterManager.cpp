@@ -11,6 +11,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsMemoryReporterManager.h"
 #include "nsISimpleEnumerator.h"
+#include "nsITimer.h"
 #include "nsThreadUtils.h"
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
@@ -23,6 +24,7 @@
 #include "mozilla/PodOperations.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/dom/PMemoryReportRequestParent.h" 
 
 #ifndef XP_WIN
 #include <unistd.h>
@@ -679,7 +681,7 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD CollectReports(nsIMemoryReporterCallback* aCallback,
+  NS_IMETHOD CollectReports(nsIHandleReport* aHandleReport,
                             nsISupports* aData)
   {
     dmd::Sizes sizes;
@@ -688,10 +690,10 @@ public:
 #define REPORT(_path, _amount, _desc)                                         \
     do {                                                                      \
       nsresult rv;                                                            \
-      rv = aCallback->Callback(EmptyCString(), NS_LITERAL_CSTRING(_path),     \
-                               nsIMemoryReporter::KIND_HEAP,                  \
-                               nsIMemoryReporter::UNITS_BYTES, _amount,       \
-                               NS_LITERAL_CSTRING(_desc), aData);             \
+      rv = aHandleReport->Callback(EmptyCString(), NS_LITERAL_CSTRING(_path), \
+                                   nsIMemoryReporter::KIND_HEAP,              \
+                                   nsIMemoryReporter::UNITS_BYTES, _amount,   \
+                                   NS_LITERAL_CSTRING(_desc), aData);         \
       NS_ENSURE_SUCCESS(rv, rv);                                              \
     } while (0)
 
@@ -845,10 +847,11 @@ HashtableEnumerator::GetNext(nsISupports** aNext)
 
 nsMemoryReporterManager::nsMemoryReporterManager()
   : mMutex("nsMemoryReporterManager::mMutex"),
-    mIsRegistrationBlocked(false)
+    mIsRegistrationBlocked(false),
+    mNumChildProcesses(0),
+    mNextGeneration(1),
+    mGetReportsState(nullptr)
 {
-    PodZero(&mAmountFns);
-    PodZero(&mSizeOfTabFns);
 }
 
 nsMemoryReporterManager::~nsMemoryReporterManager()
@@ -870,6 +873,220 @@ nsMemoryReporterManager::EnumerateReporters(nsISimpleEnumerator** aResult)
         new HashtableEnumerator(mReporters);
     enumerator.forget(aResult);
     return NS_OK;
+}
+
+
+
+#ifdef DEBUG_CHILD_PROCESS_MEMORY_REPORTING
+#define MEMORY_REPORTING_LOG(format, ...) \
+    fprintf(stderr, "++++ MEMORY REPORTING: " format, ##__VA_ARGS__);
+#else
+#define MEMORY_REPORTING_LOG(...)
+#endif
+
+void
+nsMemoryReporterManager::IncrementNumChildProcesses()
+{
+    if (!NS_IsMainThread()) {
+        MOZ_CRASH();
+    }
+    mNumChildProcesses++;
+    MEMORY_REPORTING_LOG("IncrementNumChildProcesses --> %d\n",
+                         mNumChildProcesses);
+}
+
+void
+nsMemoryReporterManager::DecrementNumChildProcesses()
+{
+    if (!NS_IsMainThread()) {
+        MOZ_CRASH();
+    }
+    MOZ_ASSERT(mNumChildProcesses > 0);
+    mNumChildProcesses--;
+    MEMORY_REPORTING_LOG("DecrementNumChildProcesses --> %d\n",
+                         mNumChildProcesses);
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::GetReports(
+    nsIHandleReportCallback* aHandleReport,
+    nsISupports* aHandleReportData,
+    nsIFinishReportingCallback* aFinishReporting,
+    nsISupports* aFinishReportingData)
+{
+    
+    
+    if (!NS_IsMainThread()) {
+        MOZ_CRASH();
+    }
+
+    uint32_t generation = mNextGeneration++;
+
+    if (mGetReportsState) {
+        
+        
+        MEMORY_REPORTING_LOG("GetReports (gen=%u, s->gen=%u): abort\n",
+                             generation, mGetReportsState->mGeneration);
+        return NS_OK;
+    }
+
+    MEMORY_REPORTING_LOG("GetReports (gen=%u, %d child(ren) present)\n",
+                         generation, mNumChildProcesses);
+
+    if (mNumChildProcesses > 0) {
+        
+        
+        
+        nsCOMPtr<nsIObserverService> obs =
+            do_GetService("@mozilla.org/observer-service;1");
+        NS_ENSURE_STATE(obs);
+
+        
+        
+        obs->NotifyObservers(nullptr, "child-memory-reporter-request",
+                             (const PRUnichar*)(uintptr_t)generation);
+
+        nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
+        NS_ENSURE_TRUE(timer, NS_ERROR_FAILURE);
+        nsresult rv = timer->InitWithFuncCallback(TimeoutCallback,
+                                                  this, kTimeoutLengthMS,
+                                                  nsITimer::TYPE_ONE_SHOT);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        mGetReportsState = new GetReportsState(generation,
+                                               timer,
+                                               mNumChildProcesses,
+                                               aHandleReport,
+                                               aHandleReportData,
+                                               aFinishReporting,
+                                               aFinishReportingData);
+    }
+
+    
+    nsRefPtr<HashtableEnumerator> e;
+    {
+        mozilla::MutexAutoLock autoLock(mMutex);
+        e = new HashtableEnumerator(mReporters);
+    }
+    bool more;
+    while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
+        nsCOMPtr<nsIMemoryReporter> r;
+        e->GetNext(getter_AddRefs(r));
+        r->CollectReports(aHandleReport, aHandleReportData);
+    }
+
+    
+    return (mNumChildProcesses == 0)
+         ? aFinishReporting->Callback(aFinishReportingData)
+         : NS_OK;
+}
+
+
+
+
+void
+nsMemoryReporterManager::HandleChildReports(
+    const uint32_t& aGeneration,
+    const InfallibleTArray<dom::MemoryReport>& aChildReports)
+{
+    
+    if (!NS_IsMainThread()) {
+        MOZ_CRASH();
+    }
+
+    GetReportsState* s = mGetReportsState;
+
+    if (!s) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        MEMORY_REPORTING_LOG(
+            "HandleChildReports: no request in flight (aGen=%u)\n",
+            aGeneration);
+        return;
+    }
+
+    if (aGeneration != s->mGeneration) {
+        
+        
+        
+        MOZ_ASSERT(aGeneration < s->mGeneration);
+        MEMORY_REPORTING_LOG(
+            "HandleChildReports: gen mismatch (aGen=%u, s->gen=%u)\n",
+            aGeneration, s->mGeneration);
+        return;
+    }
+
+    
+    for (uint32_t i = 0; i < aChildReports.Length(); i++) {
+        const dom::MemoryReport& r = aChildReports[i];
+
+        
+        MOZ_ASSERT(!r.process().IsEmpty());
+
+        
+        s->mHandleReport->Callback(r.process(), r.path(), r.kind(),
+                                   r.units(), r.amount(), r.desc(),
+                                   s->mHandleReportData);
+    }
+
+    
+    
+
+    s->mNumChildProcessesCompleted++;
+    MEMORY_REPORTING_LOG("HandleChildReports (aGen=%u): completed child %d\n",
+                         aGeneration, s->mNumChildProcessesCompleted);
+
+    if (s->mNumChildProcessesCompleted == s->mNumChildProcesses) {
+         s->mTimer->Cancel();
+         FinishReporting();
+    }
+}
+
+ void
+nsMemoryReporterManager::TimeoutCallback(nsITimer* aTimer, void* aData)
+{
+    nsMemoryReporterManager* mgr =
+        static_cast<nsMemoryReporterManager*>(aData);
+
+    MOZ_ASSERT(mgr->mGetReportsState);
+    MEMORY_REPORTING_LOG("TimeoutCallback (s->gen=%u)\n",
+                         mgr->mGetReportsState->mGeneration);
+
+    
+    
+
+    mgr->FinishReporting();
+}
+
+void
+nsMemoryReporterManager::FinishReporting()
+{
+    
+    if (!NS_IsMainThread()) {
+        MOZ_CRASH();
+    }
+
+    MOZ_ASSERT(mGetReportsState);
+    MEMORY_REPORTING_LOG("FinishReporting (s->gen=%u)\n",
+                         mGetReportsState->mGeneration);
+
+    
+    
+    
+    (void)mGetReportsState->mFinishReporting->Callback(
+        mGetReportsState->mFinishReportingData);
+
+    delete mGetReportsState;
+    mGetReportsState = nullptr;
 }
 
 static void
@@ -975,7 +1192,7 @@ public:
 };
 NS_IMPL_ISUPPORTS0(Int64Wrapper)
 
-class ExplicitCallback MOZ_FINAL : public nsIMemoryReporterCallback
+class ExplicitCallback MOZ_FINAL : public nsIHandleReportCallback
 {
 public:
     NS_DECL_ISUPPORTS
@@ -1002,7 +1219,7 @@ public:
         return NS_OK;
     }
 };
-NS_IMPL_ISUPPORTS1(ExplicitCallback, nsIMemoryReporterCallback)
+NS_IMPL_ISUPPORTS1(ExplicitCallback, nsIHandleReportCallback)
 
 NS_IMETHODIMP
 nsMemoryReporterManager::GetExplicit(int64_t* aAmount)
@@ -1020,7 +1237,7 @@ nsMemoryReporterManager::GetExplicit(int64_t* aAmount)
     
     
 
-    nsRefPtr<ExplicitCallback> cb = new ExplicitCallback();
+    nsRefPtr<ExplicitCallback> handleReport = new ExplicitCallback();
     nsRefPtr<Int64Wrapper> wrappedExplicitSize = new Int64Wrapper();
 
     nsCOMPtr<nsISimpleEnumerator> e;
@@ -1028,7 +1245,7 @@ nsMemoryReporterManager::GetExplicit(int64_t* aAmount)
     while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
         nsCOMPtr<nsIMemoryReporter> r;
         e->GetNext(getter_AddRefs(r));
-        r->CollectReports(cb, wrappedExplicitSize);
+        r->CollectReports(handleReport, wrappedExplicitSize);
     }
 
     *aAmount = wrappedExplicitSize->mValue;
@@ -1349,10 +1566,8 @@ NS_UnregisterMemoryReporter(nsIMemoryReporter* aReporter)
 namespace mozilla {
 
 #define GET_MEMORY_REPORTER_MANAGER(mgr)                                      \
-    nsCOMPtr<nsIMemoryReporterManager> imgr =                                 \
-        do_GetService("@mozilla.org/memory-reporter-manager;1");              \
     nsRefPtr<nsMemoryReporterManager> mgr =                                   \
-        static_cast<nsMemoryReporterManager*>(imgr.get());                    \
+        nsMemoryReporterManager::GetOrCreate();                               \
     if (!mgr) {                                                               \
         return NS_ERROR_FAILURE;                                              \
     }
@@ -1418,7 +1633,7 @@ DEFINE_REGISTER_SIZE_OF_TAB(NonJS);
 namespace mozilla {
 namespace dmd {
 
-class NullReporterCallback : public nsIMemoryReporterCallback
+class DoNothingCallback : public nsIHandleReportCallback
 {
 public:
     NS_DECL_ISUPPORTS
@@ -1433,8 +1648,8 @@ public:
     }
 };
 NS_IMPL_ISUPPORTS1(
-  NullReporterCallback
-, nsIMemoryReporterCallback
+  DoNothingCallback
+, nsIHandleReportCallback
 )
 
 void
@@ -1443,7 +1658,7 @@ RunReporters()
     nsCOMPtr<nsIMemoryReporterManager> mgr =
         do_GetService("@mozilla.org/memory-reporter-manager;1");
 
-    nsRefPtr<NullReporterCallback> cb = new NullReporterCallback();
+    nsRefPtr<DoNothingCallback> doNothing = new DoNothingCallback();
 
     bool more;
     nsCOMPtr<nsISimpleEnumerator> e;
@@ -1451,7 +1666,7 @@ RunReporters()
     while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
         nsCOMPtr<nsIMemoryReporter> r;
         e->GetNext(getter_AddRefs(r));
-        r->CollectReports(cb, nullptr);
+        r->CollectReports(doNothing, nullptr);
     }
 }
 
