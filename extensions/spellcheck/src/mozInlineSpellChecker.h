@@ -171,7 +171,7 @@ private:
 
   
   
-  nsRefPtr<InitEditorSpellCheckCallback> mPendingInitEditorSpellCheckCallback;
+  nsCOMPtr<InitEditorSpellCheckCallback> mPendingInitEditorSpellCheckCallback;
 
   
   

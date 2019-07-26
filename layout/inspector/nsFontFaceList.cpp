@@ -84,7 +84,7 @@ nsFontFaceList::AddFontsFromTextRun(gfxTextRun* aTextRun,
       existingFace->AddMatchType(iter.GetGlyphRun()->mMatchType);
     } else {
       
-      nsRefPtr<nsFontFace> ff =
+      nsCOMPtr<nsFontFace> ff =
         new nsFontFace(fe, aTextRun->GetFontGroup(),
                        iter.GetGlyphRun()->mMatchType);
       mFontFaces.Put(fe, ff);

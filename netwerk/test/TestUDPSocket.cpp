@@ -213,7 +213,7 @@ main(int32_t argc, char *argv[])
   NS_ENSURE_SUCCESS(rv, -1);
 
   
-  nsRefPtr<UDPServerListener> serverListener = new UDPServerListener();
+  nsCOMPtr<UDPServerListener> serverListener = new UDPServerListener();
 
   
   rv = server->Init(0, true);
@@ -223,7 +223,7 @@ main(int32_t argc, char *argv[])
   server->AsyncListen(serverListener);
 
   
-  nsRefPtr<UDPClientListener> clientListener = new UDPClientListener();
+  nsCOMPtr<UDPClientListener> clientListener = new UDPClientListener();
   client->Init(0, true);
   client->AsyncListen(clientListener);
 

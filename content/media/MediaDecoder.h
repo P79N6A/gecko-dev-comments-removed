@@ -1025,7 +1025,7 @@ protected:
   
   
   
-  nsRefPtr<MediaDecoderStateMachine> mDecoderStateMachine;
+  nsCOMPtr<MediaDecoderStateMachine> mDecoderStateMachine;
 
   
   nsRefPtr<MediaResource> mResource;

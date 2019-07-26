@@ -112,7 +112,7 @@ private:
 
   
   
-  nsRefPtr<MediaResourceServer> mServer;
+  nsCOMPtr<MediaResourceServer> mServer;
 
   
   
@@ -342,7 +342,7 @@ class ResourceSocketListener : public nsIServerSocketListener
 public:
   
   
-  nsRefPtr<MediaResourceServer> mServer;
+  nsCOMPtr<MediaResourceServer> mServer;
 
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -416,7 +416,7 @@ MediaResourceServer::Run()
 already_AddRefed<MediaResourceServer>
 MediaResourceServer::Start()
 {
-  nsRefPtr<MediaResourceServer> server = new MediaResourceServer();
+  nsCOMPtr<MediaResourceServer> server = new MediaResourceServer();
   NS_DispatchToMainThread(server, NS_DISPATCH_SYNC);
   return server.forget();
 }
