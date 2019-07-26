@@ -1459,7 +1459,7 @@ nsDragService::SourceDataGet(GtkWidget        *aWidget,
 
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("Type is %s\n", typeName));
     
-    mimeFlavor.Adopt(nsCRT::strdup(typeName));
+    mimeFlavor.Adopt(strdup(typeName));
     g_free(typeName);
     
     if (!mSourceDataItems) {

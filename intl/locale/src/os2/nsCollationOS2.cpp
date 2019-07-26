@@ -131,7 +131,7 @@ nsresult nsCollationOS2::AllocateRawSortKey(int32_t strength,
       if (uLen < iBufferLength) {
           
           
-          *key = (uint8_t *)nsCRT::strdup((PRUnichar*) pLocalBuffer);
+          *key = (uint8_t *)NS_strdup((PRUnichar*) pLocalBuffer);
           *outLen = uLen * 2 + 2;
           res = NS_OK;
       }
