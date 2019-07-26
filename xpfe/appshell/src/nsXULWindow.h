@@ -17,6 +17,7 @@
 #include "nsString.h"
 #include "nsWeakReference.h"
 #include "nsCOMArray.h"
+#include "nsRect.h"
 
 
 #include "nsIBaseWindow.h"
