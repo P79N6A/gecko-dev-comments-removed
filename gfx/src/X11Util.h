@@ -72,8 +72,8 @@ template <typename T>
 struct ScopedXFreePtrTraits
 {
   typedef T *type;
-  static T *empty() { return NULL; }
-  static void release(T *ptr) { if (ptr!=NULL) XFree(ptr); }
+  static T *empty() { return nullptr; }
+  static void release(T *ptr) { if (ptr != nullptr) XFree(ptr); }
 };
 SCOPED_TEMPLATE(ScopedXFree, ScopedXFreePtrTraits)
 
