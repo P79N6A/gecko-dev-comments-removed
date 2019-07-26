@@ -209,7 +209,7 @@ SandboxFilterImpl::Build() {
 
   
   
-  Allow(SYSCALL(tgkill));
+  Allow(SYSCALL_WITH_ARG(tgkill, 0, getpid()));
 
   
 #ifdef MOZ_WIDGET_GONK
