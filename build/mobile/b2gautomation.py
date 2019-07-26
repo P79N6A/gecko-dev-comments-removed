@@ -69,6 +69,11 @@ class B2GRemoteAutomation(Automation):
     def setRemoteLog(self, logfile):
         self._remoteLog = logfile
 
+    def installExtension(self, extensionSource, profileDir, extensionID=None):
+        
+        if extensionID != "special-powers@mozilla.org":
+            Automation.installExtension(self, extensionSource, profileDir, extensionID)
+
     
     def environment(self, env=None, xrePath=None, crashreporter=True):
         
