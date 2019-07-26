@@ -21,6 +21,14 @@ class nsIThread;
 extern NS_COM_GLUE NS_METHOD
 NS_GetMainThread(nsIThread **result);
 
+#ifdef MOZILLA_INTERNAL_API
+
+
+
+
+extern NS_COM_GLUE nsIThread *NS_GetCurrentThread();
+#endif
+
 #if defined(MOZILLA_INTERNAL_API) && defined(XP_WIN)
 bool NS_IsMainThread();
 #elif defined(MOZILLA_INTERNAL_API) && defined(NS_TLS)
