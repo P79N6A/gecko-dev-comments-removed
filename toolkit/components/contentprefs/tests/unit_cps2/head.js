@@ -44,9 +44,18 @@ function runAsyncTests(tests) {
     consoleError: function (scriptErr) {
       
       
-      let filename = scriptErr.sourceName || scriptErr.toString() || "";
-      if (/contentpref/i.test(filename))
-        do_throw(scriptErr);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      dump("AsyncRunner.jsm observed console error: " +  scriptErr + "\n");
     }
   });
 
