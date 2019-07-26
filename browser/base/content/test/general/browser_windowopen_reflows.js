@@ -25,7 +25,7 @@ const EXPECTED_REFLOWS = [
   "ssi_getWindowDimension@resource:///modules/sessionstore/SessionStore.jsm",
 ];
 
-if (Services.appinfo.OS == "Darwin") {
+if (Services.appinfo.OS == "WINNT" || Services.appinfo.OS == "Darwin") {
   
   
   
@@ -33,7 +33,9 @@ if (Services.appinfo.OS == "Darwin") {
                           "TabsInTitlebar._update@chrome://browser/content/browser.js|" +
                           "updateAppearance@chrome://browser/content/browser.js|" +
                           "handleEvent@chrome://browser/content/tabbrowser.xml|");
+}
 
+if (Services.appinfo.OS == "Darwin") {
   
   EXPECTED_REFLOWS.push("OverflowableToolbar.prototype._onOverflow@resource:///modules/CustomizableUI.jsm|" +
                         "OverflowableToolbar.prototype.init@resource:///modules/CustomizableUI.jsm|" +
