@@ -184,7 +184,6 @@ MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
         if (NS_SUCCEEDED(rv)) {
           
           reloop = false;
-          break;
         }
       } else {
         
@@ -219,7 +218,6 @@ MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
       if (NS_SUCCEEDED(rv)) {
         
         reloop = false;
-        break;
       }
 
       mState = (mAudioEncoder->IsEncodingComplete()) ? ENCODE_DONE : ENCODE_TRACK;
