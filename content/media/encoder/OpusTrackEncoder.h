@@ -6,6 +6,8 @@
 #ifndef OpusTrackEncoder_h_
 #define OpusTrackEncoder_h_
 
+#include <stdint.h>
+#include <speex/speex_resampler.h>
 #include "TrackEncoder.h"
 #include "nsCOMPtr.h"
 
@@ -38,6 +40,12 @@ private:
   
 
 
+
+  int GetOutputSampleRate();
+
+  
+
+
   OpusEncoder* mEncoder;
 
   
@@ -54,6 +62,12 @@ private:
 
 
   int mLookahead;
+
+  
+
+
+
+  SpeexResamplerState* mResampler;
 };
 
 }

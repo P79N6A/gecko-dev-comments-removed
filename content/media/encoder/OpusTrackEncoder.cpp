@@ -119,6 +119,7 @@ OpusTrackEncoder::OpusTrackEncoder()
   , mEncoder(nullptr)
   , mSourceSegment(new AudioSegment())
   , mLookahead(0)
+  , mResampler(nullptr)
 {
 }
 
@@ -147,16 +148,24 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   
   
   
+  
   if (!((aSamplingRate >= 8000) && (kOpusSamplingRate / aSamplingRate) *
          aSamplingRate == kOpusSamplingRate)) {
-    LOG("[Opus] Error! The source sample rate should be greater than 8000 and"
-        " divides 48000 evenly.");
-    return NS_ERROR_FAILURE;
+    int error;
+    mResampler = speex_resampler_init(mChannels,
+                                      aSamplingRate,
+                                      kOpusSamplingRate,
+                                      SPEEX_RESAMPLER_QUALITY_DEFAULT,
+                                      &error);
+
+    if (error != RESAMPLER_ERR_SUCCESS) {
+      return NS_ERROR_FAILURE;
+    }
   }
   mSamplingRate = aSamplingRate;
 
   int error = 0;
-  mEncoder = opus_encoder_create(mSamplingRate, mChannels,
+  mEncoder = opus_encoder_create(GetOutputSampleRate(), mChannels,
                                  OPUS_APPLICATION_AUDIO, &error);
 
   mInitialized = (error == OPUS_OK);
@@ -167,9 +176,15 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
 }
 
 int
+OpusTrackEncoder::GetOutputSampleRate()
+{
+  return mResampler ? kOpusSamplingRate : mSamplingRate;
+}
+
+int
 OpusTrackEncoder::GetPacketDuration()
 {
-  return mSamplingRate * kFrameDurationMs / 1000;
+  return GetOutputSampleRate() * kFrameDurationMs / 1000;
 }
 
 nsresult
@@ -282,8 +297,35 @@ OpusTrackEncoder::GetEncodedTrack(nsTArray<uint8_t>* aOutput,
     iter.Next();
   }
 
-  
-  aOutputDuration = frameCopied * (kOpusSamplingRate / mSamplingRate);
+  if (mResampler) {
+    nsAutoTArray<AudioDataValue, 9600> resamplingDest;
+    
+    
+    
+    uint32_t outframes = frameCopied * kOpusSamplingRate / mSamplingRate + 1;
+    uint32_t inframes = frameCopied;
+
+    resamplingDest.SetLength(outframes * mChannels);
+
+#if MOZ_SAMPLE_TYPE_S16
+    short* in = reinterpret_cast<short*>(pcm.Elements());
+    short* out = reinterpret_cast<short*>(resamplingDest.Elements());
+    speex_resampler_process_interleaved_int(mResampler, in, &inframes,
+                                                        out, &outframes);
+#else
+    float* in = reinterpret_cast<float*>(pcm.Elements());
+    float* out = reinterpret_cast<float*>(resamplingDest.Elements());
+    speex_resampler_process_interleaved_float(mResampler, in, &inframes,
+                                                          out, &outframes);
+#endif
+
+    pcm = resamplingDest;
+    
+    aOutputDuration = outframes;
+  } else {
+    
+    aOutputDuration = frameCopied * (kOpusSamplingRate / mSamplingRate);
+  }
 
   
   
@@ -294,6 +336,9 @@ OpusTrackEncoder::GetEncodedTrack(nsTArray<uint8_t>* aOutput,
   
   if (mSourceSegment->GetDuration() == 0 && mEndOfStream) {
     mDoneEncoding = true;
+    if (mResampler) {
+      speex_resampler_destroy(mResampler);
+    }
     LOG("[Opus] Done encoding.");
   }
 
