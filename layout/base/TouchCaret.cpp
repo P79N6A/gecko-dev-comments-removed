@@ -745,18 +745,26 @@ TouchCaret::HandleTouchDownEvent(WidgetTouchEvent* aEvent)
         
         status = nsEventStatus_eIgnore;
       } else {
-        nsPoint point = GetEventPosition(aEvent, 0);
-        if (IsOnTouchCaret(point)) {
-          
-          mActiveTouchId = aEvent->touches[0]->mIdentifier;
-          
-          mCaretCenterToDownPointOffsetY = GetCaretYCenterPosition() - point.y;
-          
-          SetState(TOUCHCARET_TOUCHDRAG_ACTIVE);
-          CancelExpirationTimer();
-          status = nsEventStatus_eConsumeNoDefault;
-        } else {
-          
+        
+        
+        for (size_t i = 0; i < aEvent->touches.Length(); ++i) {
+          int32_t touchId = aEvent->touches[i]->Identifier();
+          nsPoint point = GetEventPosition(aEvent, touchId);
+          if (IsOnTouchCaret(point)) {
+            
+            mActiveTouchId = touchId;
+            
+            mCaretCenterToDownPointOffsetY = GetCaretYCenterPosition() - point.y;
+            
+            SetState(TOUCHCARET_TOUCHDRAG_ACTIVE);
+            CancelExpirationTimer();
+            status = nsEventStatus_eConsumeNoDefault;
+            break;
+          }
+        }
+        
+        
+        if (mActiveTouchId == -1) {
           SetVisibility(false);
           status = nsEventStatus_eIgnore;
         }
