@@ -26,6 +26,13 @@ namespace ipc {
 
 void InitProcessPriorityManager();
 
+
+
+
+
+
+bool CurrentProcessIsForeground();
+
 } 
 } 
 } 
