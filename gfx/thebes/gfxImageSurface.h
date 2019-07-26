@@ -10,6 +10,7 @@
 #include "gfxASurface.h"
 #include "nsAutoPtr.h"
 #include "nsSize.h"
+#include "Units.h"
 
 
 
@@ -38,6 +39,8 @@ public:
 
 
     gfxImageSurface(unsigned char *aData, const gfxIntSize& aSize,
+                    long aStride, gfxImageFormat aFormat);
+    gfxImageSurface(unsigned char *aData, const mozilla::LayerIntSize& aSize,
                     long aStride, gfxImageFormat aFormat);
 
     
