@@ -1422,10 +1422,14 @@ public:
     
     if (mGraph->IsEmpty()) {
       
-      
-      
       delete mGraph;
     } else {
+      
+      
+      
+      
+      NS_ASSERTION(mGraph->mForceShutDown || !mGraph->mRealtime,
+                   "Not in forced shutdown?");
       for (uint32_t i = 0; i < mGraph->mStreams.Length(); ++i) {
         DOMMediaStream* s = mGraph->mStreams[i]->GetWrapper();
         if (s) {
@@ -1433,7 +1437,6 @@ public:
         }
       }
 
-      NS_ASSERTION(mGraph->mForceShutDown, "Not in forced shutdown?");
       mGraph->mLifecycleState =
         MediaStreamGraphImpl::LIFECYCLE_WAITING_FOR_STREAM_DESTRUCTION;
     }
@@ -1565,7 +1568,7 @@ MediaStreamGraphImpl::RunInStableState()
       }
     }
 
-    if (mForceShutDown &&
+    if ((mForceShutDown || !mRealtime) &&
         mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP) {
       
       for (uint32_t i = 0; i < mMessageQueue.Length(); ++i) {
@@ -1636,6 +1639,7 @@ MediaStreamGraphImpl::AppendMessage(ControlMessage* aMessage)
 
   if (mDetectedNotRunning &&
       mLifecycleState > LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP) {
+    
     
     
     

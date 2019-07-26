@@ -475,6 +475,7 @@ public:
 
 
 
+
   enum LifecycleState {
     
     LIFECYCLE_THREAD_NOT_STARTED,
@@ -490,6 +491,7 @@ public:
     
     
     LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN,
+    
     
     
     
