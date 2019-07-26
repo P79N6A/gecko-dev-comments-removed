@@ -53,34 +53,9 @@ using namespace mozilla::gfx;
 #include "nsMemory.h"
 #endif
 
-
-
-
-
-#undef MOZ_WINSDK_TARGETVER
-
-
-
-
-#if MOZ_WINSDK_TARGETVER > MOZ_NTDDI_WIN7
-#define ENABLE_GPU_MEM_REPORTER
-#endif
-
-#if defined CAIRO_HAS_D2D_SURFACE || defined ENABLE_GPU_MEM_REPORTER
 #include "nsIMemoryReporter.h"
-#endif
-
-#ifdef ENABLE_GPU_MEM_REPORTER
 #include <winternl.h>
-
-
-
-
-
-extern "C" {
-#include <d3dkmthk.h>
-}
-#endif
+#include "d3dkmtQueryStatistics.h"
 
 using namespace mozilla;
 
@@ -190,7 +165,6 @@ typedef HRESULT(WINAPI*CreateDXGIFactory1Func)(
 );
 #endif
 
-#ifdef ENABLE_GPU_MEM_REPORTER
 class GPUAdapterMultiReporter : public nsIMemoryMultiReporter {
 
     
@@ -212,6 +186,14 @@ class GPUAdapterMultiReporter : public nsIMemoryMultiReporter {
     
 public:
     NS_DECL_ISUPPORTS
+
+    
+    NS_IMETHOD
+    GetName(nsACString &aName)
+    {
+        aName.AssignLiteral("gpuadapter");
+        return NS_OK;
+    }
     
     
     NS_IMETHOD
@@ -227,7 +209,7 @@ public:
         IDXGIAdapter *DXGIAdapter;
         
         HMODULE gdi32Handle;
-        PFND3DKMT_QUERYSTATISTICS queryD3DKMTStatistics;
+        PFND3DKMTQS queryD3DKMTStatistics;
         
         winVers = gfxWindowsPlatform::WindowsOSVersion(&buildNum);
         
@@ -236,35 +218,35 @@ public:
             return NS_OK;
         
         if (gdi32Handle = LoadLibrary(TEXT("gdi32.dll")))
-            queryD3DKMTStatistics = (PFND3DKMT_QUERYSTATISTICS)GetProcAddress(gdi32Handle, "D3DKMTQueryStatistics");
+            queryD3DKMTStatistics = (PFND3DKMTQS)GetProcAddress(gdi32Handle, "D3DKMTQueryStatistics");
         
         if (queryD3DKMTStatistics && GetDXGIAdapter(&DXGIAdapter)) {
             
             
             DXGI_ADAPTER_DESC adapterDesc;
-            D3DKMT_QUERYSTATISTICS queryStatistics;
+            D3DKMTQS queryStatistics;
             
             DXGIAdapter->GetDesc(&adapterDesc);
             DXGIAdapter->Release();
             
-            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS;
+            memset(&queryStatistics, 0, sizeof(D3DKMTQS));
+            queryStatistics.Type = D3DKMTQS_PROCESS;
             queryStatistics.AdapterLuid = adapterDesc.AdapterLuid;
             queryStatistics.hProcess = ProcessHandle;
             if (NT_SUCCESS(queryD3DKMTStatistics(&queryStatistics))) {
-                committedBytesUsed = queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesAllocated;
+                committedBytesUsed = queryStatistics.QueryResult.ProcessInfo.SystemMemory.BytesAllocated;
             }
             
-            memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-            queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
+            memset(&queryStatistics, 0, sizeof(D3DKMTQS));
+            queryStatistics.Type = D3DKMTQS_ADAPTER;
             queryStatistics.AdapterLuid = adapterDesc.AdapterLuid;
             if (NT_SUCCESS(queryD3DKMTStatistics(&queryStatistics))) {
                 ULONG i;
-                ULONG segmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
+                ULONG segmentCount = queryStatistics.QueryResult.AdapterInfo.NbSegments;
                 
                 for (i = 0; i < segmentCount; i++) {
-                    memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-                    queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
+                    memset(&queryStatistics, 0, sizeof(D3DKMTQS));
+                    queryStatistics.Type = D3DKMTQS_SEGMENT;
                     queryStatistics.AdapterLuid = adapterDesc.AdapterLuid;
                     queryStatistics.QuerySegment.SegmentId = i;
                     
@@ -272,24 +254,24 @@ public:
                         bool aperture;
                         
                         
-                        if (winVers > gfxWindowsPlatform::kWindows7)
-                            aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
+                        if (winVers < gfxWindowsPlatform::kWindows8)
+                            aperture = queryStatistics.QueryResult.SegmentInfoWin7.Aperture;
                         else
-                            aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
+                            aperture = queryStatistics.QueryResult.SegmentInfoWin8.Aperture;
                         
-                        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-                        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;
+                        memset(&queryStatistics, 0, sizeof(D3DKMTQS));
+                        queryStatistics.Type = D3DKMTQS_PROCESS_SEGMENT;
                         queryStatistics.AdapterLuid = adapterDesc.AdapterLuid;
                         queryStatistics.hProcess = ProcessHandle;
                         queryStatistics.QueryProcessSegment.SegmentId = i;
                         if (NT_SUCCESS(queryD3DKMTStatistics(&queryStatistics))) {
                             if (aperture)
                                 sharedBytesUsed += queryStatistics.QueryResult
-                                                                  .ProcessSegmentInformation
+                                                                  .ProcessSegmentInfo
                                                                   .BytesCommitted;
                             else
                                 dedicatedBytesUsed += queryStatistics.QueryResult
-                                                                     .ProcessSegmentInformation
+                                                                     .ProcessSegmentInfo
                                                                      .BytesCommitted;
                         }
                     }
@@ -325,7 +307,6 @@ public:
     }
 };
 NS_IMPL_ISUPPORTS1(GPUAdapterMultiReporter, nsIMemoryMultiReporter)
-#endif 
 
 static __inline void
 BuildKeyNameFromFontName(nsAString &aName)
@@ -361,17 +342,13 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 
     UpdateRenderMode();
 
-#ifdef ENABLE_GPU_MEM_REPORTER
     mGPUAdapterMultiReporter = new GPUAdapterMultiReporter();
     NS_RegisterMemoryMultiReporter(mGPUAdapterMultiReporter);
-#endif
 }
 
 gfxWindowsPlatform::~gfxWindowsPlatform()
 {
-#ifdef ENABLE_GPU_MEM_REPORTER
     NS_UnregisterMemoryMultiReporter(mGPUAdapterMultiReporter);
-#endif
     
     ::ReleaseDC(NULL, mScreenDC);
     
