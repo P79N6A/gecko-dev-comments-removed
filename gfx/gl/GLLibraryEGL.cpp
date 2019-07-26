@@ -219,7 +219,7 @@ GLLibraryEGL::EnsureInitialized()
 
     GLLibraryLoader::LoadSymbols(mEGLLibrary, &optionalSymbols[0]);
 
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 18
     MOZ_RELEASE_ASSERT(mSymbols.fQueryStringImplementationANDROID,
                        "Couldn't find eglQueryStringImplementationANDROID");
 #endif
