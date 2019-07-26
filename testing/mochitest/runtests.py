@@ -466,8 +466,7 @@ class MochitestUtilsMixin(object):
         info[k] = v
 
       
-
-      tests = manifest.active_tests(disabled=True, **info)
+      tests = manifest.active_tests(disabled=True, options=options, **info)
       paths = []
       testPath = self.getTestPath(options)
 
@@ -1513,11 +1512,6 @@ def main():
   if options is None:
     
     sys.exit(1)
-
-  if options.subsuite:
-    print "INFO | terminating test run as subsuite is not fully supported yet"
-    print "INFO TEST-START | Shutdown"
-    return 0
 
   options.utilityPath = mochitest.getFullPath(options.utilityPath)
   options.certPath = mochitest.getFullPath(options.certPath)
