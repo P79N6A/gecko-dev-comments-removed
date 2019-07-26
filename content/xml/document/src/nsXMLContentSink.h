@@ -163,7 +163,7 @@ protected:
   nsresult HandleCharacterData(const PRUnichar *aData, uint32_t aLength,
                                bool aInterruptable);
 
-  nsIContent*      mDocElement;
+  nsCOMPtr<nsIContent> mDocElement;
   nsCOMPtr<nsIContent> mCurrentHead;  
   PRUnichar*       mText;
 

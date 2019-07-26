@@ -101,7 +101,6 @@ nsXMLContentSink::nsXMLContentSink()
 
 nsXMLContentSink::~nsXMLContentSink()
 {
-  NS_IF_RELEASE(mDocElement);
   if (mText) {
     PR_Free(mText);  
   }
@@ -144,7 +143,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsXMLContentSink)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXMLContentSink,
                                                   nsContentSink)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCurrentHead)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(mDocElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDocElement)
   for (uint32_t i = 0, count = tmp->mContentStack.Length(); i < count; i++) {
     const StackNode& node = tmp->mContentStack.ElementAt(i);
     cb.NoteXPCOMChild(node.mContent);
@@ -927,7 +926,6 @@ nsXMLContentSink::SetDocElement(int32_t aNameSpaceID,
   }
 
   mDocElement = aContent;
-  NS_ADDREF(mDocElement);
   nsresult rv = mDocument->AppendChildTo(mDocElement, NotifyForDocElement());
   if (NS_FAILED(rv)) {
     
@@ -1401,7 +1399,7 @@ nsXMLContentSink::ReportError(const PRUnichar* aErrorText,
       node->RemoveChild(child, getter_AddRefs(dummy));
     }
   }
-  NS_IF_RELEASE(mDocElement); 
+  mDocElement = nullptr;
 
   
   
