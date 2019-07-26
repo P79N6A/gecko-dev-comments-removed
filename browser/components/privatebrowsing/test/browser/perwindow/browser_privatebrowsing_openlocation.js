@@ -56,6 +56,7 @@ function test() {
     let win = OpenBrowserWindow(options);
     win.addEventListener("load", function onLoad() {
       win.removeEventListener("load", onLoad, false);
+      win.gBrowser.stop(); 
       windowsToClose.push(win);
       callback(win);
     }, false);
