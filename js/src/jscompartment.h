@@ -734,6 +734,8 @@ class CompartmentsIter {
     JSCompartment *operator->() const { return get(); }
 };
 
+typedef CompartmentsIter ZonesIter;
+
 
 
 
