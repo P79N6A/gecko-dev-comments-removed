@@ -3069,34 +3069,6 @@ nsXPCComponents_Utils::CreateArrayIn(HandleValue vobj, JSContext *cx,
 
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::CreateDateIn(HandleValue vobj, int64_t msec, JSContext *cx,
-                                    MutableHandleValue rval)
-{
-    if (!cx)
-        return NS_ERROR_FAILURE;
-
-    
-    if (!vobj.isObject())
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-    RootedObject obj(cx);
-    {
-        JSObject *scope = js::UncheckedUnwrap(&vobj.toObject());
-        JSAutoCompartment ac(cx, scope);
-        obj =  JS_NewDateObjectMsec(cx, msec);
-        if (!obj)
-            return NS_ERROR_FAILURE;
-    }
-
-    if (!JS_WrapObject(cx, &obj))
-        return NS_ERROR_FAILURE;
-
-    rval.setObject(*obj);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext *cx)
 {
     if (!cx)
