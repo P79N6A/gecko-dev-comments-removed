@@ -11,12 +11,6 @@ const kContextUITabsShowEvent = "MozContextUITabsShow";
 
 
 
-const kHideContextAndTrayDelayMsec = 3000;
-
-
-const kNewTabAnimationDelayMsec = 1000;
-
-
 
 
 
@@ -160,33 +154,22 @@ var ContextUI = {
   
 
 
-  peekTabs: function peekTabs() {
-    if (this.tabbarVisible) {
-      setTimeout(function () {
-        ContextUI.dismissTabsWithDelay(kNewTabAnimationDelayMsec);
-      }, 0);
-    } else {
-      BrowserUI.setOnTabAnimationEnd(function () {
-        ContextUI.dismissTabsWithDelay(kNewTabAnimationDelayMsec);
-      });
+  peekTabs: function peekTabs(aDelay) {
+    if (!this.tabbarVisible)
       this.displayTabs();
-    }
+
+    ContextUI.dismissTabsWithDelay(aDelay);
   },
 
   
 
 
   dismissTabsWithDelay: function (aDelay) {
-    aDelay = aDelay || kHideContextAndTrayDelayMsec;
+    aDelay = aDelay || kNewTabAnimationDelayMsec;
     this._clearDelayedTimeout();
     this._hidingId = setTimeout(function () {
         ContextUI.dismissTabs();
       }, aDelay);
-  },
-
-  
-  cancelDismiss: function cancelDismiss() {
-    this._clearDelayedTimeout();
   },
 
   
@@ -199,12 +182,6 @@ var ContextUI = {
   displayTabs: function () {
     this._clearDelayedTimeout();
     this._setIsExpanded(true);
-  },
-
-  
-  displayContextAppbar: function () {
-    this._clearDelayedTimeout();
-    Elements.contextappbar.show();
   },
 
   
@@ -312,15 +289,9 @@ var ContextUI = {
         if (aEvent.button == 0 && this.isVisible)
           this.dismiss();
         break;
-      case 'URLChanged':
-        this.dismissTabs();
-        break;
-      case 'TabSelect':
-        this.dismissTabs();
-        break;
 
-      case 'ToolPanelShown':
-      case 'ToolPanelHidden':
+      case "ToolPanelShown":
+      case "ToolPanelHidden":
       case "touchstart":
       case "AlertActive":
         this.dismiss();
