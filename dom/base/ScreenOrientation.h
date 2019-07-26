@@ -18,6 +18,9 @@ static const ScreenOrientation eScreenOrientation_PortraitSecondary  = 1u << 1;
 static const ScreenOrientation eScreenOrientation_LandscapePrimary   = 1u << 2;
 static const ScreenOrientation eScreenOrientation_LandscapeSecondary = 1u << 3;
 
+
+static const ScreenOrientation eScreenOrientation_Default            = 1u << 4;
+
 } 
 } 
 
