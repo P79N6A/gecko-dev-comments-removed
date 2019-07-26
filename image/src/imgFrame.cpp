@@ -773,13 +773,13 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
   
   
   NS_ABORT_IF_FALSE(
-    (aLocation == GFX_MEMORY_IN_PROCESS_HEAP &&  aMallocSizeOf) ||
-    (aLocation != GFX_MEMORY_IN_PROCESS_HEAP && !aMallocSizeOf),
+    (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP &&  aMallocSizeOf) ||
+    (aLocation != gfxMemoryLocation::IN_PROCESS_HEAP && !aMallocSizeOf),
     "mismatch between aLocation and aMallocSizeOf");
 
   size_t n = 0;
 
-  if (mPalettedImageData && aLocation == GFX_MEMORY_IN_PROCESS_HEAP) {
+  if (mPalettedImageData && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
     size_t n2 = aMallocSizeOf(mPalettedImageData);
     if (n2 == 0) {
       n2 = GetImageDataLength() + PaletteDataLength();
@@ -793,13 +793,13 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
   } else
 #endif
 #ifdef XP_MACOSX
-  if (mQuartzSurface && aLocation == GFX_MEMORY_IN_PROCESS_HEAP) {
+  if (mQuartzSurface && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
     n += mSize.width * mSize.height * 4;
   } else
 #endif
   if (mImageSurface && aLocation == mImageSurface->GetMemoryLocation()) {
     size_t n2 = 0;
-    if (aLocation == GFX_MEMORY_IN_PROCESS_HEAP) { 
+    if (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) { 
       n2 = mImageSurface->SizeOfIncludingThis(aMallocSizeOf);
     }
     if (n2 == 0) {  
@@ -810,7 +810,7 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {
     size_t n2 = 0;
-    if (aLocation == GFX_MEMORY_IN_PROCESS_HEAP &&
+    if (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP &&
         mOptSurface->SizeOfIsMeasured()) {
       
       n2 = mOptSurface->SizeOfIncludingThis(aMallocSizeOf);

@@ -94,15 +94,15 @@ MOZ_BEGIN_ENUM_CLASS(gfxContentType)
   SENTINEL    = 0xffff
 MOZ_END_ENUM_CLASS(gfxContentType)
 
-    
 
 
 
 
-    enum gfxMemoryLocation {
-      GFX_MEMORY_IN_PROCESS_HEAP,
-      GFX_MEMORY_IN_PROCESS_NONHEAP,
-      GFX_MEMORY_OUT_OF_PROCESS
-    };
+
+MOZ_BEGIN_ENUM_CLASS(gfxMemoryLocation)
+  IN_PROCESS_HEAP,
+  IN_PROCESS_NONHEAP,
+  OUT_OF_PROCESS
+MOZ_END_ENUM_CLASS(gfxMemoryLocation)
 
 #endif 
