@@ -777,6 +777,25 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
   bool accelerateByDefault = false;
 #endif
 
+#ifdef XP_MACOSX
+  
+  
+  
+  
+  
+  SInt32 major, minor, bugfix;
+  OSErr err1 = ::Gestalt(gestaltSystemVersionMajor, &major);
+  OSErr err2 = ::Gestalt(gestaltSystemVersionMinor, &minor);
+  OSErr err3 = ::Gestalt(gestaltSystemVersionBugFix, &bugfix);
+  if (err1 == noErr && err2 == noErr && err3 == noErr) {
+    if (major == 10 && minor == 6) {
+      if (bugfix <= 2) {
+        accelerateByDefault = false;
+      }
+    }
+  }
+#endif
+
   
   
   bool isSmallPopup = ((mWindowType == eWindowType_popup) &&
