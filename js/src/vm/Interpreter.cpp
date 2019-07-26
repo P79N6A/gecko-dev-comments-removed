@@ -59,6 +59,7 @@ using namespace js::types;
 using mozilla::DebugOnly;
 using mozilla::DoubleEqualsInt32;
 using mozilla::PodCopy;
+using JS::ForOfIterator;
 
 
 

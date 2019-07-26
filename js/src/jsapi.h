@@ -4846,14 +4846,14 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
 
 
 
-    JS_PUBLIC_API(bool) init(JS::HandleValue iterable,
-                             NonIterableBehavior nonIterableBehavior = ThrowOnNonIterable);
+    bool init(JS::HandleValue iterable,
+              NonIterableBehavior nonIterableBehavior = ThrowOnNonIterable);
 
     
 
 
 
-    JS_PUBLIC_API(bool) next(JS::MutableHandleValue val, bool *done);
+    bool next(JS::MutableHandleValue val, bool *done);
 
     
 
