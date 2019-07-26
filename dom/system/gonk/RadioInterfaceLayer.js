@@ -1147,7 +1147,7 @@ RadioInterfaceLayer.prototype = {
 
 
   handleCallRing: function handleCallRing() {
-    gSystemMessenger.broadcastMessage("telephony-new-call");
+    gSystemMessenger.broadcastMessage("telephony-new-call", {});
   },
 
   
@@ -1159,7 +1159,7 @@ RadioInterfaceLayer.prototype = {
     call.state = convertRILCallState(call.state);
 
     if (call.state == nsIRadioInterfaceLayer.CALL_STATE_DIALING) {
-      gSystemMessenger.broadcastMessage("telephony-new-call");
+      gSystemMessenger.broadcastMessage("telephony-new-call", {});
     }
 
     if (call.isActive) {
