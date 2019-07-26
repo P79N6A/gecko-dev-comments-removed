@@ -276,7 +276,7 @@ struct FreeSpan
         if (thing < last) {
             
             first = thing + thingSize;
-        } else if (JS_LIKELY(thing == last)) {
+        } else if (MOZ_LIKELY(thing == last)) {
             
 
 

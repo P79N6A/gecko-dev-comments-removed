@@ -4413,7 +4413,7 @@ js::NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg,
 
 
     if (shape->hasSlot() &&
-        (JS_LIKELY(cx->runtime()->propertyRemovals == sample) ||
+        (MOZ_LIKELY(cx->runtime()->propertyRemovals == sample) ||
          obj->nativeContains(cx, shape)))
     {
         obj->setSlot(shape->slot(), vp);
