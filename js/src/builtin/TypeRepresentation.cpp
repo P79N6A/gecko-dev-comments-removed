@@ -383,7 +383,7 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
         return nullptr;
 
     
-    if (!comp->typeReprs.add(p, this)) {
+    if (!comp->typeReprs.relookupOrAdd(p, this, this)) {
         js_ReportOutOfMemory(cx);
         js_free(this); 
         return nullptr;
