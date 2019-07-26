@@ -215,7 +215,7 @@ IsDefinitelyIndex(const Value &v, uint32_t *indexp)
 
 
 static inline bool
-ToInteger(JSContext *cx, const js::Value &v, double *dp)
+ToInteger(JSContext *cx, HandleValue v, double *dp)
 {
 #ifdef DEBUG
     {
