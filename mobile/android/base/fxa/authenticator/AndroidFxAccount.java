@@ -323,6 +323,9 @@ public class AndroidFxAccount {
     if (email == null) {
       throw new IllegalArgumentException("email must not be null");
     }
+    if (profile == null) {
+      throw new IllegalArgumentException("profile must not be null");
+    }
     if (idpServerURI == null) {
       throw new IllegalArgumentException("idpServerURI must not be null");
     }
@@ -366,6 +369,15 @@ public class AndroidFxAccount {
     boolean added = accountManager.addAccountExplicitly(account, null, userdata);
     if (!added) {
       return null;
+    }
+
+    
+    
+    
+    
+    
+    for (String key : userdata.keySet()) {
+      accountManager.setUserData(account, key, userdata.getString(key));
     }
 
     AndroidFxAccount fxAccount = new AndroidFxAccount(context, account);
