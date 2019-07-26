@@ -53,11 +53,18 @@ public:
   };
 
   
-  DisplayItemClip() : mHaveClipRect(false) {}
+  DisplayItemClip() : mHaveClipRect(false), mHasBeenDestroyed(false) {}
+  ~DisplayItemClip() { mHasBeenDestroyed = true; }
 
-  
-  DisplayItemClip(const DisplayItemClip& aOther, nsDisplayItem* aClipItem);
+  void MaybeDestroy() const
+  {
+    if (!mHasBeenDestroyed) {
+      this->~DisplayItemClip();
+    }
+  }
 
+  void SetTo(const nsRect& aRect);
+  void SetTo(const nsRect& aRect, const nscoord* aRadii);
   void IntersectWith(const DisplayItemClip& aOther);
 
   
@@ -83,7 +90,13 @@ public:
   
   
   
-  nsRect ApproximateIntersect(const nsRect& aRect) const;
+  
+  
+  bool MayIntersect(const nsRect& aRect) const;
+  
+  
+  
+  nsRect ApproximateIntersectInward(const nsRect& aRect) const;
 
   
 
@@ -138,6 +151,12 @@ public:
     return mClipRect;
   }
 
+  void MoveBy(nsPoint aPoint);
+
+#ifdef DEBUG
+  nsCString ToString() const;
+#endif
+
   
 
 
@@ -147,12 +166,19 @@ public:
   uint32_t GetRoundedRectCount() const { return mRoundedClipRects.Length(); }
   void AppendRoundedRects(nsTArray<RoundedRect>* aArray, uint32_t aCount) const;
 
+  static const DisplayItemClip& NoClip();
+
+  static void Shutdown();
+
 private:
   nsRect mClipRect;
   nsTArray<RoundedRect> mRoundedClipRects;
   
   
   bool mHaveClipRect;
+  
+  
+  bool mHasBeenDestroyed;
 };
 
 }
