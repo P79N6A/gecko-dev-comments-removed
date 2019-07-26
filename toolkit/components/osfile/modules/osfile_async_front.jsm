@@ -101,45 +101,7 @@ if (!("localProfileDir" in OS.Constants.Path)) {
 
 
 
-const noRefs = [];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let clone = function clone(object, refs = noRefs) {
-  let result = {};
-  
-  let refer = function refer(result, key, object) {
-    Object.defineProperty(result, key, {
-        enumerable: true,
-        get: function() {
-            return object[key];
-        },
-        set: function(value) {
-            object[key] = value;
-        }
-    });
-  };
-  for (let k in object) {
-    if (refs.indexOf(k) < 0) {
-      result[k] = object[k];
-    } else {
-      refer(result, k, object);
-    }
-  }
-  return result;
-};
+let clone = SharedAll.clone;
 
 let worker = new PromiseWorker(
   "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
@@ -421,8 +383,7 @@ File.prototype = {
     
     
     
-    if (isTypedArray(buffer) && (!options || !("bytes" in options))) {
-      
+    if (isTypedArray(buffer) && !("bytes" in options)) {
       
       options = clone(options, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
@@ -459,8 +420,7 @@ File.prototype = {
     
     
     
-    if (isTypedArray(buffer) && (!options || !("bytes" in options))) {
-      
+    if (isTypedArray(buffer)) {
       
       options = clone(options, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
@@ -485,10 +445,11 @@ File.prototype = {
 
 
 
-  read: function read(nbytes) {
+
+  read: function read(nbytes, options = {}) {
     let promise = Scheduler.post("File_prototype_read",
       [this._fdmsg,
-       nbytes]);
+       nbytes, options]);
     return promise.then(
       function onSuccess(data) {
         return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
@@ -685,6 +646,11 @@ File.makeDir = function makeDir(path, options) {
   return Scheduler.post("makeDir",
     [Type.path.toMsg(path), options], path);
 };
+
+
+
+
+
 
 
 

@@ -17,6 +17,7 @@ if (typeof Components != "undefined") {
 exports.OS = require("resource://gre/modules/osfile/osfile_shared_allthreads.jsm").OS;
 
 let LOG = exports.OS.Shared.LOG.bind(OS.Shared, "Shared front-end");
+let clone = exports.OS.Shared.clone;
 
 
 
@@ -48,13 +49,13 @@ AbstractFile.prototype = {
 
 
 
-  read: function read(bytes) {
-    if (bytes == null) {
-      bytes = this.stat().size;
-    }
-    let buffer = new Uint8Array(bytes);
-    let size = this.readTo(buffer, {bytes: bytes});
-    if (size == bytes) {
+
+  read: function read(bytes, options = {}) {
+    options = clone(options);
+    options.bytes = bytes == null ? this.stat().size : bytes;
+    let buffer = new Uint8Array(options.bytes);
+    let size = this.readTo(buffer, options);
+    if (size == options.bytes) {
       return buffer;
     } else {
       return buffer.subarray(0, size);
@@ -296,10 +297,11 @@ AbstractFile.normalizeOpenMode = function normalizeOpenMode(mode) {
 
 
 
-AbstractFile.read = function read(path, bytes) {
+
+AbstractFile.read = function read(path, bytes, options = {}) {
   let file = exports.OS.File.open(path);
   try {
-    return file.read(bytes);
+    return file.read(bytes, options);
   } finally {
     file.close();
   }
