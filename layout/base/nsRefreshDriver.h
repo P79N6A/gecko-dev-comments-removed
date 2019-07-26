@@ -26,15 +26,16 @@ class nsPresContext;
 class nsIPresShell;
 class nsIDocument;
 class imgIRequest;
-
-
-
-
-
+class nsIRunnable;
 
 namespace mozilla {
-    class RefreshDriverTimer;
+class RefreshDriverTimer;
 }
+
+
+
+
+
 
 class nsARefreshObserver {
 public:
@@ -48,6 +49,16 @@ public:
   NS_IMETHOD_(nsrefcnt) Release(void) = 0;
 
   virtual void WillRefresh(mozilla::TimeStamp aTime) = 0;
+};
+
+
+
+
+
+
+class nsAPostRefreshObserver {
+public:
+  virtual void DidRefresh() = 0;
 };
 
 class nsRefreshDriver MOZ_FINAL : public nsISupports {
@@ -102,10 +113,20 @@ public:
 
 
 
+
+
   bool AddRefreshObserver(nsARefreshObserver *aObserver,
-                            mozFlushType aFlushType);
+                          mozFlushType aFlushType);
   bool RemoveRefreshObserver(nsARefreshObserver *aObserver,
-                               mozFlushType aFlushType);
+                             mozFlushType aFlushType);
+
+  
+
+
+
+
+  void AddPostRefreshObserver(nsAPostRefreshObserver *aObserver);
+  void RemovePostRefreshObserver(nsAPostRefreshObserver *aObserver);
 
   
 
@@ -295,6 +316,7 @@ private:
   nsAutoTArray<nsIPresShell*, 16> mPresShellsToInvalidateIfHidden;
   
   nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
+  nsTArray<nsAPostRefreshObserver*> mPostRefreshObservers;
 
   
   struct ImageRequestParameters {
