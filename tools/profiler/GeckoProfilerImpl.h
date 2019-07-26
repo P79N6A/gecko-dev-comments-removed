@@ -152,6 +152,17 @@ void profiler_unregister_thread()
   mozilla_sampler_unregister_thread();
 }
 
+static inline
+void profiler_js_operation_callback()
+{
+  PseudoStack *stack = tlsPseudoStack.get();
+  if (!stack) {
+    return;
+  }
+
+  stack->jsOperationCallback();
+}
+
 
 
 
