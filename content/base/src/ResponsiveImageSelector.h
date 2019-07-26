@@ -68,6 +68,7 @@ public:
 
   
   void SetParameterAsDensity(double aDensity);
+  void SetParameterAsComputedWidth(int32_t aWidth);
 
   
   
@@ -85,6 +86,7 @@ public:
     
     
     eCandidateType_Default,
+    eCandidateType_ComputedFromWidth
   };
 
   eCandidateType Type() const { return mType; }
@@ -95,6 +97,7 @@ private:
   eCandidateType mType;
   union {
     double mDensity;
+    int32_t mWidth;
   } mValue;
 };
 
