@@ -5,15 +5,20 @@
 
 "use strict";
 
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const LAZY_EMPTY_DELAY = 150; 
 const LAZY_EXPAND_DELAY = 50; 
 const LAZY_APPEND_DELAY = 100; 
 const LAZY_APPEND_BATCH = 100; 
+const PAGE_SIZE_SCROLL_HEIGHT_RATIO = 100;
+const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 1000; 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this,
   "WebConsoleUtils", "resource://gre/modules/devtools/WebConsoleUtils.jsm");
@@ -40,6 +45,7 @@ const STR = Services.strings.createBundle(DBG_STRINGS_URI);
 
 this.VariablesView = function VariablesView(aParentNode) {
   this._store = new Map();
+  this._itemsByElement = new WeakMap();
   this._prevHierarchy = new Map();
   this._currHierarchy = new Map();
 
@@ -48,9 +54,12 @@ this.VariablesView = function VariablesView(aParentNode) {
 
   this._onSearchboxInput = this._onSearchboxInput.bind(this);
   this._onSearchboxKeyPress = this._onSearchboxKeyPress.bind(this);
+  this._onViewKeyPress = this._onViewKeyPress.bind(this);
 
   
-  this._list = this.document.createElement("vbox");
+  this._list = this.document.createElement("scrollbox");
+  this._list.setAttribute("orient", "vertical");
+  this._list.addEventListener("keypress", this._onViewKeyPress, false);
   this._parent.appendChild(this._list);
 };
 
@@ -82,6 +91,7 @@ VariablesView.prototype = {
     let scope = new Scope(this, aName);
     this._store.set(scope.id, scope);
     this._currHierarchy.set(aName, scope);
+    this._itemsByElement.set(scope._target, scope);
     scope.header = !!aName;
     return scope;
   },
@@ -112,6 +122,8 @@ VariablesView.prototype = {
     }
 
     this._store = new Map();
+    this._itemsByElement = new WeakMap();
+
     this._appendEmptyNotice();
     this._toggleSearchVisibility(false);
   },
@@ -133,11 +145,17 @@ VariablesView.prototype = {
 
   _emptySoon: function VV__emptySoon(aTimeout) {
     let prevList = this._list;
-    let currList = this._list = this.document.createElement("vbox");
+    let currList = this._list = this.document.createElement("scrollbox");
+
     this._store = new Map();
+    this._itemsByElement = new WeakMap();
 
     this._emptyTimeout = this.window.setTimeout(function() {
       this._emptyTimeout = null;
+
+      prevList.removeEventListener("keypress", this._onViewKeyPress, false);
+      currList.addEventListener("keypress", this._onViewKeyPress, false);
+      currList.setAttribute("orient", "vertical");
 
       this._parent.removeChild(prevList);
       this._parent.appendChild(currList);
@@ -468,12 +486,71 @@ VariablesView.prototype = {
 
   expandFirstSearchResults: function VV_expandFirstSearchResults() {
     for (let [, scope] of this._store) {
-      for (let [, variable] of scope._store) {
-        if (variable._isMatch) {
-          variable.expand();
-          break;
-        }
+      let match = scope._firstMatch;
+      if (match) {
+        match.expand();
       }
+    }
+  },
+
+  
+
+
+  focusFirstVisibleNode: function VV_focusFirstVisibleNode() {
+    let property, variable, scope;
+
+    for (let [, item] of this._currHierarchy) {
+      if (!item.focusable) {
+        continue;
+      }
+      if (item instanceof Property) {
+        property = item;
+        break;
+      } else if (item instanceof Variable) {
+        variable = item;
+        break;
+      } else if (item instanceof Scope) {
+        scope = item;
+        break;
+      }
+    }
+    if (scope) {
+      this._focusItem(scope);
+    } else if (variable) {
+      this._focusItem(variable);
+    } else if (property) {
+      this._focusItem(property);
+    }
+    this._parent.scrollTop = 0;
+    this._parent.scrollLeft = 0;
+  },
+
+  
+
+
+  focusLastVisibleNode: function VV_focusLastVisibleNode() {
+    let property, variable, scope;
+
+    for (let [, item] of this._currHierarchy) {
+      if (!item.focusable) {
+        continue;
+      }
+      if (item instanceof Property) {
+        property = item;
+      } else if (item instanceof Variable) {
+        variable = item;
+      } else if (item instanceof Scope) {
+        scope = item;
+      }
+    }
+    if (property && (!variable || property.isDescendantOf(variable))) {
+      this._focusItem(property);
+    } else if (variable && (!scope || variable.isDescendantOf(scope))) {
+      this._focusItem(variable);
+    } else if (scope) {
+      this._focusItem(scope);
+      this._parent.scrollTop = this._parent.scrollHeight;
+      this._parent.scrollLeft = 0;
     }
   },
 
@@ -486,10 +563,9 @@ VariablesView.prototype = {
 
 
   getScopeForNode: function VV_getScopeForNode(aNode) {
-    for (let [, scope] of this._store) {
-      if (scope._target == aNode) {
-        return scope;
-      }
+    let item = this._itemsByElement.get(aNode);
+    if (item && !(item instanceof Variable) && !(item instanceof Property)) {
+      return item;
     }
     return null;
   },
@@ -503,15 +579,233 @@ VariablesView.prototype = {
 
 
 
-  getVariableOrPropertyForNode: function VV_getVariableOrPropertyForNode(aNode) {
-    for (let [, scope] of this._store) {
-      let match = scope.find(aNode);
-      if (match) {
-        return match;
-      }
-    }
-    return null;
+  getItemForNode: function VV_getItemForNode(aNode) {
+    return this._itemsByElement.get(aNode);
   },
+
+  
+
+
+
+
+
+  getFocusedItem: function VV_getFocusedItem() {
+    let focused = this.document.commandDispatcher.focusedElement;
+    return this.getItemForNode(focused);
+  },
+
+  
+
+
+
+  focusNextItem: function VV_focusNextItem(aMaintainViewFocusedFlag)
+    this._focusChange("advanceFocus", aMaintainViewFocusedFlag),
+
+  
+
+
+
+  focusPrevItem: function VV_focusPrevItem(aMaintainViewFocusedFlag)
+    this._focusChange("rewindFocus", aMaintainViewFocusedFlag),
+
+  
+
+
+
+
+
+
+
+
+
+
+  _focusChange: function VV__changeFocus(aDirection, aMaintainViewFocusedFlag) {
+    let commandDispatcher = this.document.commandDispatcher;
+    let item;
+
+    do {
+      commandDispatcher[aDirection]();
+
+      
+      
+      if (!aMaintainViewFocusedFlag) {
+        return false;
+      }
+
+      
+      item = this.getFocusedItem();
+      if (!item) {
+        if (aDirection == "advanceFocus") {
+          this.focusLastVisibleNode();
+        } else {
+          this.focusFirstVisibleNode();
+        }
+        
+        
+        return true;
+      }
+    } while (!item.focusable);
+
+    
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _focusItem: function VV__focusItem(aItem, aCollapseFlag) {
+    if (!aItem.focusable) {
+      return false;
+    }
+    if (aCollapseFlag) {
+      aItem.collapse();
+    }
+    aItem._target.focus();
+
+    let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+    boxObject.ensureElementIsVisible(aItem._title);
+    boxObject.scrollBy(-this._list.clientWidth, 0);
+    return true;
+  },
+
+  
+
+
+  _onViewKeyPress: function VV__onViewKeyPress(e) {
+    let item = this.getFocusedItem();
+
+    switch (e.keyCode) {
+      case e.DOM_VK_UP:
+      case e.DOM_VK_DOWN:
+      case e.DOM_VK_LEFT:
+      case e.DOM_VK_RIGHT:
+      case e.DOM_VK_PAGE_UP:
+      case e.DOM_VK_PAGE_DOWN:
+      case e.DOM_VK_HOME:
+      case e.DOM_VK_END:
+        
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    switch (e.keyCode) {
+      case e.DOM_VK_UP:
+        
+        this.focusPrevItem(true);
+        return;
+
+      case e.DOM_VK_DOWN:
+        
+        if (!(item instanceof Variable) &&
+            !(item instanceof Property) &&
+            !item._isExpanded && item._isArrowVisible) {
+          item.expand();
+        } else {
+          this.focusNextItem(true);
+        }
+        return;
+
+      case e.DOM_VK_LEFT:
+        
+        
+        if (!item._isExpanded || !item._isArrowVisible) {
+          let ownerView = item.ownerView;
+          if ((ownerView instanceof Variable ||
+               ownerView instanceof Property) &&
+               ownerView._isExpanded && ownerView._isArrowVisible) {
+            if (this._focusItem(ownerView, true)) {
+              return;
+            }
+          }
+        }
+        
+        if (item._isExpanded && item._isArrowVisible) {
+          item.collapse();
+        } else {
+          this.focusPrevItem(true);
+        }
+        return;
+
+      case e.DOM_VK_RIGHT:
+        
+        if (!item._isExpanded && item._isArrowVisible) {
+          item.expand();
+        } else {
+          this.focusNextItem(true);
+        }
+        return;
+
+      case e.DOM_VK_PAGE_UP:
+        
+        var jumps = this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
+          PAGE_SIZE_SCROLL_HEIGHT_RATIO),
+          PAGE_SIZE_MAX_JUMPS);
+
+        while (jumps--) {
+          if (this.focusPrevItem(true)) {
+            return;
+          }
+        }
+        return;
+
+      case e.DOM_VK_PAGE_DOWN:
+        
+        var jumps = this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
+          PAGE_SIZE_SCROLL_HEIGHT_RATIO),
+          PAGE_SIZE_MAX_JUMPS);
+
+        while (jumps--) {
+          if (this.focusNextItem(true)) {
+            return;
+          }
+        }
+        return;
+
+      case e.DOM_VK_HOME:
+        this.focusFirstVisibleNode();
+        return;
+
+      case e.DOM_VK_END:
+        this.focusLastVisibleNode();
+        return;
+
+      case e.DOM_VK_RETURN:
+      case e.DOM_VK_ENTER:
+        
+        if (item instanceof Variable ||
+            item instanceof Property) {
+          if (e.metaKey || e.altKey || e.shiftKey) {
+            item._activateNameInput();
+          } else {
+            item._activateValueInput();
+          }
+        }
+        return;
+
+      case e.DOM_VK_DELETE:
+      case e.DOM_VK_BACK_SPACE:
+        
+        if (item instanceof Variable ||
+            item instanceof Property) {
+          item._onDelete(e);
+        }
+        return;
+    }
+  },
+
+  
+
+
+
+
+  pageSize: 0,
 
   
 
@@ -604,8 +898,7 @@ VariablesView.prototype = {
 function Scope(aView, aName, aFlags = {}) {
   this.ownerView = aView;
 
-  this.expand = this.expand.bind(this);
-  this.toggle = this.toggle.bind(this);
+  this._onClick = this._onClick.bind(this);
   this._openEnum = this._openEnum.bind(this);
   this._openNonEnum = this._openNonEnum.bind(this);
   this._batchAppend = this._batchAppend.bind(this);
@@ -656,6 +949,7 @@ Scope.prototype = {
     let variable = new Variable(this, aName, aDescriptor);
     this._store.set(aName, variable);
     this._variablesView._currHierarchy.set(variable._absoluteName, variable);
+    this._variablesView._itemsByElement.set(variable._target, variable);
     variable.header = !!aName;
     return variable;
   },
@@ -699,9 +993,42 @@ Scope.prototype = {
   
 
 
+
+
+
+
+
+
+  isChildOf: function S_isChildOf(aParent) {
+    return this.ownerView == aParent;
+  },
+
+  
+
+
+
+
+
+
+
+
+  isDescendantOf: function S_isDescendantOf(aParent) {
+    if (this.isChildOf(aParent)) {
+      return true;
+    }
+    if (this.ownerView instanceof Scope ||
+        this.ownerView instanceof Variable ||
+        this.ownerView instanceof Property) {
+      return this.ownerView.isDescendantOf(aParent);
+    }
+  },
+
+  
+
+
   show: function S_show() {
     this._target.hidden = false;
-    this._isShown = true;
+    this._isContentVisible = true;
 
     if (this.onshow) {
       this.onshow(this);
@@ -713,7 +1040,7 @@ Scope.prototype = {
 
   hide: function S_hide() {
     this._target.hidden = true;
-    this._isShown = false;
+    this._isContentVisible = false;
 
     if (this.onhide) {
       this.onhide(this);
@@ -738,7 +1065,7 @@ Scope.prototype = {
       
       
       this._startThrobber();
-      this.window.setTimeout(this.expand, LAZY_EXPAND_DELAY);
+      this.window.setTimeout(this.expand.bind(this), LAZY_EXPAND_DELAY);
       return;
     }
 
@@ -787,7 +1114,7 @@ Scope.prototype = {
     
     for (let [, variable] of this._store) {
       variable.header = true;
-      variable._match = true;
+      variable._matched = true;
     }
     if (this.ontoggle) {
       this.ontoggle(this);
@@ -844,7 +1171,7 @@ Scope.prototype = {
 
 
 
-  get visible() this._isShown,
+  get visible() this._isContentVisible,
 
   
 
@@ -863,6 +1190,12 @@ Scope.prototype = {
 
 
   get twisty() this._isArrowVisible,
+
+  
+
+
+
+  get locked() this._locked,
 
   
 
@@ -892,13 +1225,32 @@ Scope.prototype = {
 
 
 
-  get locked() this._locked,
+  set locked(aFlag) this._locked = aFlag,
 
   
 
 
 
-  set locked(aFlag) this._locked = aFlag,
+  get focusable() {
+    
+    if (!this._nameString ||
+        !this._isContentVisible ||
+        !this._isHeaderVisible ||
+        !this._isMatch) {
+      return false;
+    }
+    
+    let item = this;
+    while ((item = item.ownerView) &&  
+           (item instanceof Scope ||
+            item instanceof Variable ||
+            item instanceof Property)) {
+      if (!item._isExpanded) {
+        return false;
+      }
+    }
+    return true;
+  },
 
   
 
@@ -998,7 +1350,15 @@ Scope.prototype = {
 
 
   _addEventListeners: function S__addEventListeners() {
-    this._title.addEventListener("mousedown", this.toggle, false);
+    this._title.addEventListener("mousedown", this._onClick, false);
+  },
+
+  
+
+
+  _onClick: function S__onClick() {
+    this.toggle();
+    this._variablesView._focusItem(this);
   },
 
   
@@ -1157,11 +1517,11 @@ Scope.prototype = {
       
       if (!lowerCaseName.contains(aLowerCaseQuery) &&
           !lowerCaseValue.contains(aLowerCaseQuery)) {
-        variable._match = false;
+        variable._matched = false;
       }
       
       else {
-        variable._match = true;
+        variable._matched = true;
 
         
         
@@ -1184,7 +1544,7 @@ Scope.prototype = {
                 variable instanceof Property)) {
 
           
-          variable._match = true;
+          variable._matched = true;
           aLowerCaseQuery && variable.expand();
         }
       }
@@ -1202,7 +1562,7 @@ Scope.prototype = {
 
 
 
-  set _match(aStatus) {
+  set _matched(aStatus) {
     if (this._isMatch == aStatus) {
       return;
     }
@@ -1213,6 +1573,25 @@ Scope.prototype = {
       this._isMatch = false;
       this.target.setAttribute("non-match", "");
     }
+  },
+
+  
+
+
+
+  get _firstMatch() {
+    for (let [, variable] of this._store) {
+      let match;
+      if (variable._isMatch) {
+        match = variable;
+      } else {
+        match = variable._firstMatch;
+      }
+      if (match) {
+        return match;
+      }
+    }
+    return null;
   },
 
   
@@ -1269,10 +1648,10 @@ Scope.prototype = {
   _batchItems: null,
   _batchTimeout: null,
   _locked: false,
-  _isShown: true,
   _isExpanding: false,
   _isExpanded: false,
   _wasToggled: false,
+  _isContentVisible: true,
   _isHeaderVisible: true,
   _isArrowVisible: true,
   _isMatch: true,
@@ -1342,6 +1721,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     let property = new Property(this, aName, aDescriptor);
     this._store.set(aName, property);
     this._variablesView._currHierarchy.set(property._absoluteName, property);
+    this._variablesView._itemsByElement.set(property._target, property);
     property.header = !!aName;
     return property;
   },
@@ -1536,7 +1916,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
   _init: function V__init(aName, aDescriptor) {
     this._idString = generateId(this._nameString = aName);
-    this._displayScope(aName, "variable");
+    this._displayScope(aName, "variable variable-or-property");
 
     
     if (this._nameString) {
@@ -1694,10 +2074,9 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _addEventListeners: function V__addEventListeners() {
-    this._arrow.addEventListener("mousedown", this.toggle, false);
-    this._name.addEventListener("mousedown", this.toggle, false);
     this._name.addEventListener("dblclick", this._activateNameInput, false);
-    this._valueLabel.addEventListener("click", this._activateValueInput, false);
+    this._valueLabel.addEventListener("mousedown", this._activateValueInput, false);
+    this._title.addEventListener("mousedown", this._onClick, false);
   },
 
   
@@ -1774,6 +2153,11 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     if (!this.ownerView.switch) {
       return;
     }
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     this._activateInput(this._name, "element-name-input", {
       onKeypress: this._onNameInputKeyPress,
       onBlur: this._deactivateNameInput
@@ -1805,6 +2189,11 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     if (!this.ownerView.eval) {
       return;
     }
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     this._activateInput(this._valueLabel, "element-value-input", {
       onKeypress: this._onValueInputKeyPress,
       onBlur: this._deactivateValueInput
@@ -1867,13 +2256,17 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _onNameInputKeyPress: function V__onNameInputKeyPress(e) {
+    e.stopPropagation();
+
     switch(e.keyCode) {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
         this._saveNameInput(e);
+        this._variablesView._focusItem(this);
         return;
       case e.DOM_VK_ESCAPE:
         this._deactivateNameInput(e);
+        this._variablesView._focusItem(this);
         return;
     }
   },
@@ -1882,13 +2275,17 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
   _onValueInputKeyPress: function V__onValueInputKeyPress(e) {
+    e.stopPropagation();
+
     switch(e.keyCode) {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
         this._saveValueInput(e);
+        this._variablesView._focusItem(this);
         return;
       case e.DOM_VK_ESCAPE:
         this._deactivateValueInput(e);
+        this._variablesView._focusItem(this);
         return;
     }
   },
@@ -1896,11 +2293,13 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-  _onDelete: function V__onDelete() {
-    this.hide();
+  _onDelete: function V__onDelete(e) {
+    e.preventDefault();
+    e.stopPropagation();
 
     if (this.ownerView.delete) {
       this.ownerView.delete(this);
+      this.hide();
     }
   },
 
@@ -1946,7 +2345,7 @@ create({ constructor: Property, proto: Variable.prototype }, {
 
   _init: function P__init(aName, aDescriptor) {
     this._idString = generateId(this._nameString = aName);
-    this._displayScope(aName, "property");
+    this._displayScope(aName, "property variable-or-property");
 
     
     if (this._nameString) {

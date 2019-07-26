@@ -1018,6 +1018,14 @@ FilterView.prototype = {
     this._searchboxPanel.hidePopup();
   },
 
+  
+
+
+  _doVariablesFocus: function DVG__doVariablesFocus() {
+    DebuggerView.showPanesSoon();
+    DebuggerView.Variables.focusFirstVisibleNode();
+  },
+
   _searchbox: null,
   _searchboxPanel: null,
   _globalOperatorButton: null,
