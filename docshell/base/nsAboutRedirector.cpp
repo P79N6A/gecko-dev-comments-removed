@@ -65,6 +65,8 @@ static RedirEntry kRedirMap[] = {
       nsIAboutModule::ALLOW_SCRIPT },
     { "networking", "chrome://global/content/aboutNetworking.xhtml",
        nsIAboutModule::ALLOW_SCRIPT },
+    { "webrtc", "chrome://global/content/aboutWebrtc.xhtml",
+       nsIAboutModule::ALLOW_SCRIPT },
     
     
     { "srcdoc", "about:blank",
