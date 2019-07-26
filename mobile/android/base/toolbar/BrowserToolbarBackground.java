@@ -2,8 +2,11 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.toolbar;
 
+import org.mozilla.gecko.GeckoApplication;
+import org.mozilla.gecko.LightweightTheme;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.widget.GeckoLinearLayout;
 
 import android.content.Context;

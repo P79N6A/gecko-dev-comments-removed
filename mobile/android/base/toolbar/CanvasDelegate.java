@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.toolbar;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;

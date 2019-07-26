@@ -2,7 +2,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.toolbar;
+
+import org.mozilla.gecko.R;
 
 import android.content.Context;
 import android.graphics.Canvas;
