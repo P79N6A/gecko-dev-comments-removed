@@ -35,8 +35,8 @@ class Edit;
 class EditReply;
 class OptionalThebesBuffer;
 class PLayerChild;
-class PLayersChild;
-class PLayersParent;
+class PLayerTransactionChild;
+class PLayerTransactionParent;
 class ShadowableLayer;
 class ShadowThebesLayer;
 class ShadowContainerLayer;
@@ -268,7 +268,7 @@ public:
 
 
 
-  void AttachAsyncCompositable(PLayersChild* aLayer, uint64_t aID);
+  void AttachAsyncCompositable(PLayerTransactionChild* aLayer, uint64_t aID);
 
   
 
@@ -302,7 +302,7 @@ public:
   
 
 
-  void SetShadowManager(PLayersChild* aShadowManager)
+  void SetShadowManager(PLayerTransactionChild* aShadowManager)
   {
     mShadowManager = aShadowManager;
   }
@@ -311,7 +311,7 @@ public:
 
 
   bool HasShadowManager() const { return !!mShadowManager; }
-  PLayersChild* GetShadowManager() const { return mShadowManager; }
+  PLayerTransactionChild* GetShadowManager() const { return mShadowManager; }
 
   
 
@@ -374,7 +374,7 @@ public:
 protected:
   ShadowLayerForwarder();
 
-  PLayersChild* mShadowManager;
+  PLayerTransactionChild* mShadowManager;
 
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   virtual PGrallocBufferChild* AllocGrallocBuffer(const gfxIntSize& aSize,
