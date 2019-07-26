@@ -180,17 +180,25 @@ FixServicePath(SC_HANDLE service,
   
   
   
+  
+  
+  size_t currentServicePathLen = wcslen(currentServicePath);
   bool doesServiceHaveCorrectPath =
-    !wcsstr(currentServicePath, L"maintenanceservice_tmp.exe");
+    currentServicePathLen > 2 &&
+    !wcsstr(currentServicePath, L"maintenanceservice_tmp.exe") &&
+    currentServicePath[0] == L'\"' &&
+    currentServicePath[currentServicePathLen - 1] == L'\"';
+
   if (doesServiceHaveCorrectPath) {
     LOG(("The MozillaMaintenance service path is correct."));
     servicePathWasWrong = FALSE;
     return TRUE;
   }
   
-  LOG(("The MozillaMaintenance path is NOT correct."));
-  servicePathWasWrong = TRUE;
+  LOG(("The MozillaMaintenance path is NOT correct. It was: %ls",
+       currentServicePath));
 
+  servicePathWasWrong = TRUE;
   WCHAR fixedPath[MAX_PATH + 1] = { L'\0' };
   wcsncpy(fixedPath, currentServicePath, MAX_PATH);
   PathUnquoteSpacesW(fixedPath);
