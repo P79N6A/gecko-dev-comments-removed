@@ -114,8 +114,6 @@ public:
   
   
   
-  HRESULT OnPointerWheelChanged(ICoreWindow* aSender,
-                                IPointerEventArgs* aArgs);
   HRESULT OnPointerPressed(ICoreWindow* aSender,
                            IPointerEventArgs* aArgs);
   HRESULT OnPointerReleased(ICoreWindow* aSender,
@@ -243,7 +241,6 @@ private:
   EventRegistrationToken mTokenPointerMoved;
   EventRegistrationToken mTokenPointerEntered;
   EventRegistrationToken mTokenPointerExited;
-  EventRegistrationToken mTokenPointerWheelChanged;
 
   
   

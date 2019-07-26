@@ -1065,6 +1065,11 @@ MouseScrollHandler::Device::GetWorkaroundPref(const char* aPrefName,
 void
 MouseScrollHandler::Device::Init()
 {
+  
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
+    return;
+  }
+
   sFakeScrollableWindowNeeded =
     GetWorkaroundPref("ui.trackpoint_hack.enabled",
                       (TrackPoint::IsDriverInstalled() ||
