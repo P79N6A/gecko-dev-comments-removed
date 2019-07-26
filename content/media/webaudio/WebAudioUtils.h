@@ -8,8 +8,11 @@
 #define WebAudioUtils_h_
 
 #include <cmath>
+#include "AudioParamTimeline.h"
 
 namespace mozilla {
+
+class AudioNodeStream;
 
 namespace dom {
 
@@ -24,6 +27,19 @@ struct WebAudioUtils {
     using namespace std;
     return fabs(v1 - v2) < 1e-7;
   }
+
+  
+
+
+
+
+
+
+
+
+  static void ConvertAudioParamToTicks(AudioParamTimeline& aParam,
+                                       AudioNodeStream* aSource,
+                                       AudioNodeStream* aDest);
 };
 
 }
