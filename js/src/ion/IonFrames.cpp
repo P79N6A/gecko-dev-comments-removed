@@ -461,16 +461,18 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
         
         IonScript::Trace(trc, ionScript);
     } else if (CalleeTokenIsFunction(layout->calleeToken())) {
-        JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
+        ionScript = CalleeTokenToFunction(layout->calleeToken())->script()->ion;
+    } else {
+        ionScript = CalleeTokenToScript(layout->calleeToken())->ion;
+    }
+
+    if (CalleeTokenIsFunction(layout->calleeToken())) {
+        size_t nargs = CalleeTokenToFunction(layout->calleeToken())->nargs;
 
         
         Value *argv = layout->argv();
-        for (size_t i = 0; i < fun->nargs; i++)
+        for (size_t i = 0; i < nargs + 1; i++)
             gc::MarkValueRoot(trc, &argv[i], "ion-argv");
-
-        ionScript = fun->script()->ion;
-    } else {
-        ionScript = CalleeTokenToScript(layout->calleeToken())->ion;
     }
 
     const SafepointIndex *si = ionScript->getSafepointIndex(frame.returnAddressToFp());
