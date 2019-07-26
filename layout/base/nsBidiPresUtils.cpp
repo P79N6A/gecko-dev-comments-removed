@@ -805,10 +805,24 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
 
 
 
+
             nsIFrame* next = frame->GetNextInFlow();
             if (next) {
-              frame->SetNextContinuation(next);
-              next->SetPrevContinuation(frame);
+              nsIFrame* parent = frame;
+              nsIFrame* nextParent = next;
+              while (parent && nextParent) {
+                if (parent == nextParent ||
+                    nextParent != parent->GetNextInFlow() ||
+                    !parent->IsFrameOfType(nsIFrame::eLineParticipant) ||
+                    !nextParent->IsFrameOfType(nsIFrame::eLineParticipant)) {
+                  break;
+                }
+                parent->SetNextContinuation(nextParent);
+                nextParent->SetPrevContinuation(parent);
+
+                parent = parent->GetParent();
+                nextParent = nextParent->GetParent();
+              }
             }
           }
           frame->AdjustOffsetsForBidi(contentOffset, contentOffset + fragmentLength);
