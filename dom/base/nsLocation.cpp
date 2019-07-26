@@ -140,12 +140,12 @@ nsLocation::GetDocShell()
 
 
 static already_AddRefed<nsIDocument>
-GetFrameDocument(JSContext *cx, JSStackFrame *fp)
+GetScriptDocument(JSContext *cx, JSScript *script)
 {
-  if (!cx || !fp)
+  if (!cx || !script)
     return nullptr;
 
-  JSObject* scope = JS_GetGlobalForFrame(fp);
+  JSObject* scope = JS_GetGlobalFromScript(script);
   if (!scope)
     return nullptr;
 
@@ -208,18 +208,15 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 
     
     
-    JSStackFrame *fp;
-    nsIPrincipal* principal = secMan->GetCxSubjectPrincipalAndFrame(cx, &fp);
-    NS_ENSURE_TRUE(principal, NS_ERROR_FAILURE);
-
-    
-    
     
     
     
     
 
-    nsCOMPtr<nsIDocument> doc = GetFrameDocument(cx, fp);
+    JSScript* script = nullptr;
+    if (!JS_DescribeScriptedCaller(cx, &script, nullptr))
+      return NS_ERROR_FAILURE;
+    nsCOMPtr<nsIDocument> doc = GetScriptDocument(cx, script);
     nsCOMPtr<nsIURI> docOriginalURI, docCurrentURI, principalURI;
     if (doc) {
       docOriginalURI = doc->GetOriginalURI();
