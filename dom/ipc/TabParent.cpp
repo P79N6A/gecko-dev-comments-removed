@@ -207,6 +207,7 @@ TabParent::TabParent(ContentParent* aManager, const TabContext& aContext, uint32
   , mIMECompositionEnding(false)
   , mIMECompositionStart(0)
   , mIMESeqno(0)
+  , mIMECompositionRectOffset(0)
   , mEventCaptureDepth(0)
   , mRect(0, 0, 0, 0)
   , mDimensions(0, 0)
@@ -996,6 +997,10 @@ bool
 TabParent::RecvNotifyIMESelectedCompositionRect(const uint32_t& aOffset,
                                                 const nsIntRect& aRect)
 {
+  
+  mIMECompositionRectOffset = aOffset;
+  mIMECompositionRect = aRect;
+
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     return true;
@@ -1050,6 +1055,38 @@ TabParent::RecvRequestFocus(const bool& aCanRaise)
   fm->SetFocus(node, flags);
   return true;
 }
+
+nsIntPoint
+TabParent::GetChildProcessOffset()
+{
+  
+  
+
+  nsIntPoint offset(0, 0);
+  nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+  if (!frameLoader) {
+    return offset;
+  }
+  nsIFrame* targetFrame = frameLoader->GetPrimaryFrameOfOwningContent();
+  if (!targetFrame) {
+    return offset;
+  }
+
+  
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return offset;
+  }
+  nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(widget,
+                                                            nsIntPoint(0, 0),
+                                                            targetFrame);
+
+  return LayoutDeviceIntPoint::ToUntyped(LayoutDeviceIntPoint::FromAppUnitsToNearest(
+           pt, targetFrame->PresContext()->AppUnitsPerDevPixel()));
+}
+
+
+
 
 
 
@@ -1111,6 +1148,18 @@ TabParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent)
       aEvent.mReply.mString = Substring(mIMECacheText,
                                         inputOffset,
                                         inputEnd - inputOffset);
+      aEvent.mSucceeded = true;
+    }
+    break;
+  case NS_QUERY_TEXT_RECT:
+    {
+      if (aEvent.mInput.mOffset != mIMECompositionRectOffset ||
+          aEvent.mInput.mLength != 1) {
+        break;
+      }
+
+      aEvent.mReply.mOffset = mIMECompositionRectOffset;
+      aEvent.mReply.mRect = mIMECompositionRect - GetChildProcessOffset();
       aEvent.mSucceeded = true;
     }
     break;
