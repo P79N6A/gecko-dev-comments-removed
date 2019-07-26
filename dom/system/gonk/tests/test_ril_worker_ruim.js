@@ -10,32 +10,6 @@ function run_test() {
 
 
 
-function newUint8Worker() {
-  let worker = newWorker();
-  let context = worker.ContextPool._contexts[0];
-  let index = 0; 
-  let buf = [];
-
-  context.Buf.writeUint8 = function(value) {
-    buf.push(value);
-  };
-
-  context.Buf.readUint8 = function() {
-    return buf[index++];
-  };
-
-  context.Buf.seekIncoming = function(offset) {
-    index += offset;
-  };
-
-  worker.debug = do_print;
-
-  return worker;
-}
-
-
-
-
 add_test(function test_is_ruim_service_available() {
   let worker = newWorker();
   let context = worker.ContextPool._contexts[0];
