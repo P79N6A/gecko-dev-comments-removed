@@ -97,7 +97,8 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+      nsSVGUtils::InvalidateBounds(this, false);
+      nsSVGUtils::ScheduleReflowSVG(this);
       
       RequestReflow(nsIPresShell::eStyleChange);
     } else if (aAttribute == nsGkAtoms::x ||
@@ -105,7 +106,8 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
                aAttribute == nsGkAtoms::transform) {
       
       mCanvasTM = nullptr;
-      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+      nsSVGUtils::InvalidateBounds(this, false);
+      nsSVGUtils::ScheduleReflowSVG(this);
     } else if (aAttribute == nsGkAtoms::viewBox ||
                aAttribute == nsGkAtoms::preserveAspectRatio) {
       nsSVGUtils::InvalidateBounds(this);
@@ -127,7 +129,8 @@ nsSVGForeignObjectFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+    nsSVGUtils::InvalidateBounds(this, false);
+    nsSVGUtils::ScheduleReflowSVG(this);
   }
 }
 

@@ -7744,7 +7744,8 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
         if (aChange & nsChangeHint_UpdateEffects) {
           needInvalidatingPaint = true;
           
-          nsSVGUtils::InvalidateAndScheduleReflowSVG(aFrame);
+          nsSVGUtils::InvalidateBounds(aFrame, false);
+          nsSVGUtils::ScheduleReflowSVG(aFrame);
         } else {
           needInvalidatingPaint = true;
           

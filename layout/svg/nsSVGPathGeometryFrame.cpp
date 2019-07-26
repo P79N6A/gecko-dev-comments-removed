@@ -108,9 +108,10 @@ nsSVGPathGeometryFrame::AttributeChanged(int32_t         aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None &&
       (static_cast<nsSVGPathGeometryElement*>
                   (mContent)->AttributeDefinesGeometry(aAttribute) ||
-       aAttribute == nsGkAtoms::transform))
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
-
+       aAttribute == nsGkAtoms::transform)) {
+    nsSVGUtils::InvalidateBounds(this, false);
+    nsSVGUtils::ScheduleReflowSVG(this);
+  }
   return NS_OK;
 }
 
@@ -125,7 +126,8 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   
   
 
-  nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+  nsSVGUtils::InvalidateBounds(this, false);
+  nsSVGUtils::ScheduleReflowSVG(this);
 }
 
 nsIAtom *

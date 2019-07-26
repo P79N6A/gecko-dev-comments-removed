@@ -560,19 +560,6 @@ nsSVGUtils::ScheduleReflowSVG(nsIFrame *aFrame)
     outerSVGFrame, nsIPresShell::eResize, dirtyBit);
 }
 
-void
-nsSVGUtils::InvalidateAndScheduleReflowSVG(nsIFrame *aFrame)
-{
-  
-  
-  
-  NS_ASSERTION(!OuterSVGIsCallingReflowSVG(aFrame),
-               "Must not call under nsISVGChildFrame::ReflowSVG!");
-
-  InvalidateBounds(aFrame, false);
-  ScheduleReflowSVG(aFrame);
-}
-
 bool
 nsSVGUtils::NeedsReflowSVG(nsIFrame *aFrame)
 {

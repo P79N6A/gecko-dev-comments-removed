@@ -280,7 +280,9 @@ nsSVGMarkerProperty::DoUpdate()
   if (!(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
     
     
-    nsSVGUtils::InvalidateAndScheduleReflowSVG(mFrame);
+    nsSVGUtils::InvalidateBounds(mFrame, false);
+    
+    nsSVGUtils::ScheduleReflowSVG(mFrame);
   }
   mFramePresShell->FrameConstructor()->PostRestyleEvent(
     mFrame->GetContent()->AsElement(), nsRestyleHint(0), changeHint);

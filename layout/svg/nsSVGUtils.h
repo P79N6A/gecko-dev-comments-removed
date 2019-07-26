@@ -306,13 +306,6 @@ public:
 
 
 
-
-  static void InvalidateAndScheduleReflowSVG(nsIFrame *aFrame);
-
-  
-
-
-
   static bool NeedsReflowSVG(nsIFrame *aFrame);
 
   
