@@ -25,17 +25,22 @@ nsScriptElement::ScriptAvailable(nsresult aResult,
                                  int32_t aLineNo)
 {
   if (!aIsInline && NS_FAILED(aResult)) {
-    nsCOMPtr<nsIContent> cont =
-      do_QueryInterface((nsIScriptElement*) this);
-
-    return nsContentUtils::DispatchTrustedEvent(cont->OwnerDoc(),
-                                                cont,
-                                                NS_LITERAL_STRING("error"),
-                                                false ,
-                                                false );
+    return FireErrorEvent();
   }
-
   return NS_OK;
+}
+
+ nsresult
+nsScriptElement::FireErrorEvent()
+{
+  nsCOMPtr<nsIContent> cont =
+    do_QueryInterface((nsIScriptElement*) this);
+
+  return nsContentUtils::DispatchTrustedEvent(cont->OwnerDoc(),
+                                              cont,
+                                              NS_LITERAL_STRING("error"),
+                                              false ,
+                                              false );
 }
 
 NS_IMETHODIMP
