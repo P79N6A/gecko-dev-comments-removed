@@ -29,10 +29,13 @@ namespace js {
 
 
 
+
+
 class SystemAllocPolicy
 {
   public:
     void *malloc_(size_t bytes) { return js_malloc(bytes); }
+    void *calloc_(size_t bytes) { return js_calloc(bytes); }
     void *realloc_(void *p, size_t oldBytes, size_t bytes) { return js_realloc(p, bytes); }
     void free_(void *p) { js_free(p); }
     void reportAllocOverflow() const {}
@@ -66,6 +69,13 @@ class TempAllocPolicy
 
     void *malloc_(size_t bytes) {
         void *p = js_malloc(bytes);
+        if (JS_UNLIKELY(!p))
+            p = onOutOfMemory(NULL, bytes);
+        return p;
+    }
+
+    void *calloc_(size_t bytes) {
+        void *p = js_calloc(bytes);
         if (JS_UNLIKELY(!p))
             p = onOutOfMemory(NULL, bytes);
         return p;

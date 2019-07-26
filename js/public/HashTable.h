@@ -5,65 +5,243 @@
 
 
 
-#ifndef jshashtable_h_
-#define jshashtable_h_
+#ifndef js_HashTable_h__
+#define js_HashTable_h__
 
+#include "js/TemplateLib.h"
+#include "js/Utility.h"
 #include "mozilla/Attributes.h"
-
-#include "TemplateLib.h"
-#include "Utility.h"
 
 namespace js {
 
 class TempAllocPolicy;
-
-
-
+template <class> struct DefaultHasher;
+template <class, class> class HashMapEntry;
 namespace detail {
+    template <class T> class HashTableEntry;
+    template <class T, class HashPolicy, class AllocPolicy> class HashTable;
+}
 
-template <class T, class HashPolicy, class AllocPolicy>
-class HashTable;
 
-template <class T>
-class HashTableEntry {
-    HashNumber keyHash;
 
-    typedef typename tl::StripConst<T>::result NonConstT;
 
-    static const HashNumber sFreeKey = 0;
-    static const HashNumber sRemovedKey = 1;
-    static const HashNumber sCollisionBit = 1;
 
-    template <class, class, class> friend class HashTable;
 
-    static bool isLiveHash(HashNumber hash)
+
+
+
+
+
+
+
+
+
+
+
+
+template <class Key,
+          class Value,
+          class HashPolicy = DefaultHasher<Key>,
+          class AllocPolicy = TempAllocPolicy>
+class HashMap
+{
+    typedef HashMapEntry<Key, Value> TableEntry;
+
+    struct MapHashPolicy : HashPolicy
     {
-        return hash > sRemovedKey;
-    }
+        typedef Key KeyType;
+        static const Key &getKey(TableEntry &e) { return e.key; }
+        static void setKey(TableEntry &e, Key &k) { const_cast<Key &>(e.key) = k; }
+    };
+
+    typedef detail::HashTable<TableEntry, MapHashPolicy, AllocPolicy> Impl;
+    Impl impl;
 
   public:
-    HashTableEntry() : keyHash(0), t() {}
-    HashTableEntry(MoveRef<HashTableEntry> rhs) : keyHash(rhs->keyHash), t(Move(rhs->t)) { }
-    void operator=(const HashTableEntry &rhs) { keyHash = rhs.keyHash; t = rhs.t; }
-    void operator=(MoveRef<HashTableEntry> rhs) { keyHash = rhs->keyHash; t = Move(rhs->t); }
+    typedef typename HashPolicy::Lookup Lookup;
+    typedef TableEntry Entry;
 
-    NonConstT t;
+    
+    
+    HashMap(AllocPolicy a = AllocPolicy()) : impl(a)  {}
+    bool init(uint32_t len = 16)                      { return impl.init(len); }
+    bool initialized() const                          { return impl.initialized(); }
 
-    bool isFree() const           { return keyHash == sFreeKey; }
-    void setFree()                { keyHash = sFreeKey; t = T(); }
-    bool isRemoved() const        { return keyHash == sRemovedKey; }
-    void setRemoved()             { keyHash = sRemovedKey; t = T(); }
-    bool isLive() const           { return isLiveHash(keyHash); }
-    void setLive(HashNumber hn)   { JS_ASSERT(isLiveHash(hn)); keyHash = hn; }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::Ptr Ptr;
+    Ptr lookup(const Lookup &l) const                 { return impl.lookup(l); }
 
-    void setCollision()           { JS_ASSERT(isLive()); keyHash |= sCollisionBit; }
-    void setCollision(HashNumber collisionBit) {
-        JS_ASSERT(isLive()); keyHash |= collisionBit;
+    
+    void remove(Ptr p)                                { impl.remove(p); }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::AddPtr AddPtr;
+    AddPtr lookupForAdd(const Lookup &l) const {
+        return impl.lookupForAdd(l);
     }
-    void unsetCollision()         { keyHash &= ~sCollisionBit; }
-    bool hasCollision() const     { return keyHash & sCollisionBit; }
-    bool matchHash(HashNumber hn) { return (keyHash & ~sCollisionBit) == hn; }
-    HashNumber getKeyHash() const { JS_ASSERT(!hasCollision()); return keyHash; }
+
+    template<typename KeyInput, typename ValueInput>
+    bool add(AddPtr &p, const KeyInput &k, const ValueInput &v) {
+        Entry e(k, v);
+        return impl.add(p, Move(e));
+    }
+
+    bool add(AddPtr &p, const Key &k) {
+        Entry e(k, Value());
+        return impl.add(p, Move(e));
+    }
+
+    template<typename KeyInput, typename ValueInput>
+    bool relookupOrAdd(AddPtr &p, const KeyInput &k, const ValueInput &v) {
+        Entry e(k, v);
+        return impl.relookupOrAdd(p, k, Move(e));
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::Range Range;
+    Range all() const                                 { return impl.all(); }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::Enum Enum;
+
+    
+    
+    void clear()                                      { impl.clear(); }
+
+    
+    
+    void finish()                                     { impl.finish(); }
+
+    
+    bool empty() const                                { return impl.empty(); }
+
+    
+    uint32_t count() const                            { return impl.count(); }
+
+    
+    
+    size_t capacity() const                           { return impl.capacity(); }
+
+    
+    
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return impl.sizeOfExcludingThis(mallocSizeOf);
+    }
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return mallocSizeOf(this) + impl.sizeOfExcludingThis(mallocSizeOf);
+    }
+
+    
+    
+    unsigned generation() const                       { return impl.generation(); }
+
+    
+
+    bool has(const Lookup &l) const {
+        return impl.lookup(l) != NULL;
+    }
+
+    
+    template<typename KeyInput, typename ValueInput>
+    bool put(const KeyInput &k, const ValueInput &v) {
+        AddPtr p = lookupForAdd(k);
+        if (p) {
+            p->value = v;
+            return true;
+        }
+        return add(p, k, v);
+    }
+
+    
+    template<typename KeyInput, typename ValueInput>
+    bool putNew(const KeyInput &k, const ValueInput &v) {
+        Entry e(k, v);
+        return impl.putNew(k, Move(e));
+    }
+
+    
+    Ptr lookupWithDefault(const Key &k, const Value &defaultValue) {
+        AddPtr p = lookupForAdd(k);
+        if (p)
+            return p;
+        (void)add(p, k, defaultValue);  
+        return p;
+    }
+
+    
+    void remove(const Lookup &l) {
+        if (Ptr p = lookup(l))
+            remove(p);
+    }
+
+  private:
+    
+    HashMap(const HashMap &hm) MOZ_DELETE;
+    HashMap &operator=(const HashMap &hm) MOZ_DELETE;
+
+    friend class Impl::Enum;
+
+    typedef typename tl::StaticAssert<tl::IsRelocatableHeapType<Key>::result>::result keyAssert;
+    typedef typename tl::StaticAssert<tl::IsRelocatableHeapType<Value>::result>::result valAssert;
 };
 
 
@@ -72,6 +250,375 @@ class HashTableEntry {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+template <class T,
+          class HashPolicy = DefaultHasher<T>,
+          class AllocPolicy = TempAllocPolicy>
+class HashSet
+{
+    struct SetOps : HashPolicy
+    {
+        typedef T KeyType;
+        static const KeyType &getKey(const T &t) { return t; }
+        static void setKey(T &t, KeyType &k) { t = k; }
+    };
+
+    typedef detail::HashTable<const T, SetOps, AllocPolicy> Impl;
+    Impl impl;
+
+  public:
+    typedef typename HashPolicy::Lookup Lookup;
+    typedef T Entry;
+
+    
+    
+    HashSet(AllocPolicy a = AllocPolicy()) : impl(a)  {}
+    bool init(uint32_t len = 16)                      { return impl.init(len); }
+    bool initialized() const                          { return impl.initialized(); }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::Ptr Ptr;
+    Ptr lookup(const Lookup &l) const                 { return impl.lookup(l); }
+
+    
+    void remove(Ptr p)                                { impl.remove(p); }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::AddPtr AddPtr;
+    AddPtr lookupForAdd(const Lookup &l) const        { return impl.lookupForAdd(l); }
+
+    bool add(AddPtr &p, const T &t)                   { return impl.add(p, t); }
+
+    bool relookupOrAdd(AddPtr &p, const Lookup &l, const T &t) {
+        return impl.relookupOrAdd(p, l, t);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::Range Range;
+    Range all() const                                 { return impl.all(); }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef typename Impl::Enum Enum;
+
+    
+    
+    void clear()                                      { impl.clear(); }
+
+    
+    
+    void finish()                                     { impl.finish(); }
+
+    
+    bool empty() const                                { return impl.empty(); }
+
+    
+    uint32_t count() const                            { return impl.count(); }
+
+    
+    
+    size_t capacity() const                           { return impl.capacity(); }
+
+    
+    
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return impl.sizeOfExcludingThis(mallocSizeOf);
+    }
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return mallocSizeOf(this) + impl.sizeOfExcludingThis(mallocSizeOf);
+    }
+
+    
+    
+    unsigned generation() const                       { return impl.generation(); }
+
+    
+
+    bool has(const Lookup &l) const {
+        return impl.lookup(l) != NULL;
+    }
+
+    
+    bool put(const T &t) {
+        AddPtr p = lookupForAdd(t);
+        return p ? true : add(p, t);
+    }
+
+    
+    bool putNew(const T &t) {
+        return impl.putNew(t, t);
+    }
+
+    bool putNew(const Lookup &l, const T &t) {
+        return impl.putNew(l, t);
+    }
+
+    void remove(const Lookup &l) {
+        if (Ptr p = lookup(l))
+            remove(p);
+    }
+
+  private:
+    
+    HashSet(const HashSet &hs) MOZ_DELETE;
+    HashSet &operator=(const HashSet &hs) MOZ_DELETE;
+
+    friend class Impl::Enum;
+
+    typedef typename tl::StaticAssert<tl::IsRelocatableHeapType<T>::result>::result _;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename Key, size_t zeroBits>
+struct PointerHasher
+{
+    typedef Key Lookup;
+    static HashNumber hash(const Lookup &l) {
+        size_t word = reinterpret_cast<size_t>(l) >> zeroBits;
+        JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
+#if JS_BYTES_PER_WORD == 4
+        return HashNumber(word);
+#else
+        JS_STATIC_ASSERT(sizeof word == 8);
+        return HashNumber((word >> 32) ^ word);
+#endif
+    }
+    static bool match(const Key &k, const Lookup &l) {
+        return k == l;
+    }
+};
+
+
+
+
+
+template <class Key>
+struct DefaultHasher
+{
+    typedef Key Lookup;
+    static HashNumber hash(const Lookup &l) {
+        
+        return l;
+    }
+    static bool match(const Key &k, const Lookup &l) {
+        
+        return k == l;
+    }
+};
+
+
+
+template <class T>
+struct DefaultHasher<T *> : PointerHasher<T *, tl::FloorLog2<sizeof(void *)>::result>
+{};
+
+
+
+
+
+
+
+
+template <class Key, class Value>
+class HashMapEntry
+{
+    template <class, class, class> friend class detail::HashTable;
+    template <class> friend class detail::HashTableEntry;
+
+    HashMapEntry(const HashMapEntry &) MOZ_DELETE;
+    void operator=(const HashMapEntry &) MOZ_DELETE;
+
+  public:
+    template<typename KeyInput, typename ValueInput>
+    HashMapEntry(const KeyInput &k, const ValueInput &v) : key(k), value(v) {}
+
+    HashMapEntry(MoveRef<HashMapEntry> rhs)
+      : key(Move(rhs->key)), value(Move(rhs->value)) { }
+
+    const Key key;
+    Value value;
+};
+
+namespace tl {
+
+template <class T>
+struct IsPodType<detail::HashTableEntry<T> > {
+    static const bool result = IsPodType<T>::result;
+};
+
+template <class K, class V>
+struct IsPodType<HashMapEntry<K, V> >
+{
+    static const bool result = IsPodType<K>::result && IsPodType<V>::result;
+};
+
+} 
+
+namespace detail {
+
+template <class T, class HashPolicy, class AllocPolicy>
+class HashTable;
+
+template <class T>
+class HashTableEntry
+{
+    template <class, class, class> friend class HashTable;
+    typedef typename tl::StripConst<T>::result NonConstT;
+
+    HashNumber keyHash;
+    mozilla::AlignedStorage2<NonConstT> mem;
+
+    static const HashNumber sFreeKey = 0;
+    static const HashNumber sRemovedKey = 1;
+    static const HashNumber sCollisionBit = 1;
+
+    
+    JS_STATIC_ASSERT(sFreeKey == 0);
+
+    static bool isLiveHash(HashNumber hash)
+    {
+        return hash > sRemovedKey;
+    }
+
+    HashTableEntry(const HashTableEntry &) MOZ_DELETE;
+    void operator=(const HashTableEntry &) MOZ_DELETE;
+    ~HashTableEntry() MOZ_DELETE;
+
+  public:
+    
+
+    void destroyIfLive() {
+        if (isLive())
+            mem.addr()->~T();
+    }
+
+    void destroy() {
+        JS_ASSERT(isLive());
+        mem.addr()->~T();
+    }
+
+    void swap(HashTableEntry *other) {
+        Swap(keyHash, other->keyHash);
+        Swap(mem, other->mem);
+    }
+
+    T &get() { JS_ASSERT(isLive()); return *mem.addr(); }
+
+    bool isFree() const    { return keyHash == sFreeKey; }
+    void clearLive()       { JS_ASSERT(isLive()); keyHash = sFreeKey; mem.addr()->~T(); }
+    void clear()           { if (isLive()) mem.addr()->~T(); keyHash = sFreeKey; }
+    bool isRemoved() const { return keyHash == sRemovedKey; }
+    void removeLive()      { JS_ASSERT(isLive()); keyHash = sRemovedKey; mem.addr()->~T(); }
+    bool isLive() const    { return isLiveHash(keyHash); }
+    void setCollision()               { JS_ASSERT(isLive()); keyHash |= sCollisionBit; }
+    void setCollision(HashNumber bit) { JS_ASSERT(isLive()); keyHash |= bit; }
+    void unsetCollision()             { keyHash &= ~sCollisionBit; }
+    bool hasCollision() const         { return keyHash & sCollisionBit; }
+    bool matchHash(HashNumber hn)     { return (keyHash & ~sCollisionBit) == hn; }
+    HashNumber getKeyHash() const     { return keyHash & ~sCollisionBit; }
+
+    template <class U>
+    void setLive(HashNumber hn, const U &u)
+    {
+        JS_ASSERT(!isLive());
+        keyHash = hn;
+        new(mem.addr()) T(u);
+        JS_ASSERT(isLive());
+    }
+};
 
 template <class T, class HashPolicy, class AllocPolicy>
 class HashTable : private AllocPolicy
@@ -84,11 +631,9 @@ class HashTable : private AllocPolicy
     typedef HashTableEntry<T> Entry;
 
     
-
-
-
-
-
+    
+    
+    
     class Ptr
     {
         friend class HashTable;
@@ -113,8 +658,8 @@ class HashTable : private AllocPolicy
         bool operator==(const Ptr &rhs) const { JS_ASSERT(found() && rhs.found()); return entry == rhs.entry; }
         bool operator!=(const Ptr &rhs) const { return !(*this == rhs); }
 
-        T &operator*() const                  { return entry->t; }
-        T *operator->() const                 { return &entry->t; }
+        T &operator*() const                  { return entry->get(); }
+        T *operator->() const                 { return &entry->get(); }
     };
 
     
@@ -131,11 +676,9 @@ class HashTable : private AllocPolicy
     };
 
     
-
-
-
-
-
+    
+    
+    
     class Range
     {
       protected:
@@ -159,7 +702,7 @@ class HashTable : private AllocPolicy
         T &front() const {
             JS_ASSERT(validEntry);
             JS_ASSERT(!empty());
-            return cur->t;
+            return cur->get();
         }
 
         void popFront() {
@@ -171,14 +714,12 @@ class HashTable : private AllocPolicy
     };
 
     
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
     class Enum : public Range
     {
         friend class HashTable;
@@ -196,14 +737,12 @@ class HashTable : private AllocPolicy
         Enum(Map &map) : Range(map.all()), table(map.impl), rekeyed(false), removed(false) {}
 
         
-
-
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        
         void removeFront() {
             table.remove(*this->cur);
             removed = true;
@@ -211,15 +750,13 @@ class HashTable : private AllocPolicy
         }
 
         
-
-
-
-
+        
+        
         void rekeyFront(const Lookup &l, const Key &k) {
-            typename HashTableEntry<T>::NonConstT t = this->cur->t;
+            typename HashTableEntry<T>::NonConstT t(Move(this->cur->get()));
             HashPolicy::setKey(t, const_cast<Key &>(k));
             table.remove(*this->cur);
-            table.putNewInfallible(l, t);
+            table.putNewInfallible(l, Move(t));
             rekeyed = true;
             this->validEntry = false;
         }
@@ -244,12 +781,14 @@ class HashTable : private AllocPolicy
     uint32_t    removedCount;   
     Entry       *table;         
 
-    void setTableSizeLog2(unsigned sizeLog2) {
+    void setTableSizeLog2(unsigned sizeLog2)
+    {
         hashShift = sHashBits - sizeLog2;
     }
 
 #ifdef DEBUG
-    mutable struct Stats {
+    mutable struct Stats
+    {
         uint32_t        searches;       
         uint32_t        steps;          
         uint32_t        hits;           
@@ -274,10 +813,6 @@ class HashTable : private AllocPolicy
     
     static const unsigned sMinSizeLog2  = 2;
     static const unsigned sMinSize      = 1 << sMinSizeLog2;
-    static const unsigned sDefaultInitSizeLog2 = 4;
-  public:
-    static const unsigned sDefaultInitSize = 1 << sDefaultInitSizeLog2;
-  private:
     static const unsigned sMaxInit      = JS_BIT(23);
     static const unsigned sMaxCapacity  = JS_BIT(24);
     static const unsigned sHashBits     = tl::BitSize<HashNumber>::result;
@@ -313,18 +848,14 @@ class HashTable : private AllocPolicy
 
     static Entry *createTable(AllocPolicy &alloc, uint32_t capacity)
     {
-        Entry *newTable = (Entry *)alloc.malloc_(capacity * sizeof(Entry));
-        if (!newTable)
-            return NULL;
-        for (Entry *e = newTable, *end = e + capacity; e < end; ++e)
-            new(e) Entry();
-        return newTable;
+        
+        return (Entry *)alloc.calloc_(capacity * sizeof(Entry));
     }
 
     static void destroyTable(AllocPolicy &alloc, Entry *oldTable, uint32_t capacity)
     {
         for (Entry *e = oldTable, *end = e + capacity; e < end; ++e)
-            e->~Entry();
+            e->destroyIfLive();
         alloc.free_(oldTable);
     }
 
@@ -345,9 +876,7 @@ class HashTable : private AllocPolicy
         JS_ASSERT(!initialized());
 
         
-
-
-
+        
         if (length > sMaxInit) {
             this->reportAllocOverflow();
             return false;
@@ -388,16 +917,19 @@ class HashTable : private AllocPolicy
     }
 
   private:
-    HashNumber hash1(HashNumber hash0) const {
+    HashNumber hash1(HashNumber hash0) const
+    {
         return hash0 >> hashShift;
     }
 
-    struct DoubleHash {
+    struct DoubleHash
+    {
         HashNumber h2;
         HashNumber sizeMask;
     };
 
-    DoubleHash hash2(HashNumber curKeyHash) const {
+    DoubleHash hash2(HashNumber curKeyHash) const
+    {
         unsigned sizeLog2 = sHashBits - hashShift;
         DoubleHash dh = {
             ((curKeyHash << sizeLog2) >> hashShift) | 1,
@@ -406,22 +938,26 @@ class HashTable : private AllocPolicy
         return dh;
     }
 
-    static HashNumber applyDoubleHash(HashNumber h1, const DoubleHash &dh) {
+    static HashNumber applyDoubleHash(HashNumber h1, const DoubleHash &dh)
+    {
         return (h1 - dh.h2) & dh.sizeMask;
     }
 
-    bool overloaded() {
+    bool overloaded()
+    {
         return entryCount + removedCount >= ((sMaxAlphaFrac * capacity()) >> 8);
     }
 
-    bool underloaded() {
+    bool underloaded()
+    {
         uint32_t tableCapacity = capacity();
         return tableCapacity > sMinSize &&
                entryCount <= ((sMinAlphaFrac * tableCapacity) >> 8);
     }
 
-    static bool match(Entry &e, const Lookup &l) {
-        return HashPolicy::match(HashPolicy::getKey(e.t), l);
+    static bool match(Entry &e, const Lookup &l)
+    {
+        return HashPolicy::match(HashPolicy::getKey(e.get()), l);
     }
 
     Entry &lookup(const Lookup &l, HashNumber keyHash, unsigned collisionBit) const
@@ -479,13 +1015,11 @@ class HashTable : private AllocPolicy
     }
 
     
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
     Entry &findFreeEntry(HashNumber keyHash)
     {
         JS_ASSERT(!(keyHash & sCollisionBit));
@@ -549,12 +1083,14 @@ class HashTable : private AllocPolicy
         
         for (Entry *src = oldTable, *end = src + oldCap; src < end; ++src) {
             if (src->isLive()) {
-                src->unsetCollision();
-                findFreeEntry(src->getKeyHash()) = Move(*src);
+                HashNumber hn = src->getKeyHash();
+                findFreeEntry(hn).setLive(hn, Move(src->get()));
+                src->destroy();
             }
         }
 
-        destroyTable(*this, oldTable, oldCap);
+        
+        this->free_(oldTable);
         return Rehashed;
     }
 
@@ -592,11 +1128,11 @@ class HashTable : private AllocPolicy
         METER(stats.removes++);
 
         if (e.hasCollision()) {
-            e.setRemoved();
+            e.removeLive();
             removedCount++;
         } else {
             METER(stats.removeFrees++);
-            e.setFree();
+            e.clearLive();
         }
         entryCount--;
         mutationCount++;
@@ -611,12 +1147,10 @@ class HashTable : private AllocPolicy
     }
 
     
-
-
-
-
-
-
+    
+    
+    
+    
     void rehashTable()
     {
         removedCount = 0;
@@ -637,7 +1171,7 @@ class HashTable : private AllocPolicy
             Entry *tgt = &table[h1];
             while (true) {
                 if (!tgt->hasCollision()) {
-                    Swap(*src, *tgt);
+                    src->swap(tgt);
                     tgt->setCollision();
                     break;
                 }
@@ -648,12 +1182,10 @@ class HashTable : private AllocPolicy
         }
 
         
-
-
-
-
-
-
+        
+        
+        
+        
     }
 
   public:
@@ -664,7 +1196,7 @@ class HashTable : private AllocPolicy
         } else {
             uint32_t tableCapacity = capacity();
             for (Entry *e = table, *end = table + tableCapacity; e < end; ++e)
-                *e = Move(Entry());
+                e->clear();
         }
         removedCount = 0;
         entryCount = 0;
@@ -686,46 +1218,55 @@ class HashTable : private AllocPolicy
         mutationCount++;
     }
 
-    Range all() const {
+    Range all() const
+    {
         JS_ASSERT(table);
         return Range(table, table + capacity());
     }
 
-    bool empty() const {
+    bool empty() const
+    {
         JS_ASSERT(table);
         return !entryCount;
     }
 
-    uint32_t count() const {
+    uint32_t count() const
+    {
         JS_ASSERT(table);
         return entryCount;
     }
 
-    uint32_t capacity() const {
+    uint32_t capacity() const
+    {
         JS_ASSERT(table);
         return JS_BIT(sHashBits - hashShift);
     }
 
-    uint32_t generation() const {
+    uint32_t generation() const
+    {
         JS_ASSERT(table);
         return gen;
     }
 
-    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const
+    {
         return mallocSizeOf(table);
     }
 
-    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
+    {
         return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
     }
 
-    Ptr lookup(const Lookup &l) const {
+    Ptr lookup(const Lookup &l) const
+    {
         ReentrancyGuard g(*this);
         HashNumber keyHash = prepareHash(l);
         return Ptr(lookup(l, keyHash, 0));
     }
 
-    AddPtr lookupForAdd(const Lookup &l) const {
+    AddPtr lookupForAdd(const Lookup &l) const
+    {
         ReentrancyGuard g(*this);
         HashNumber keyHash = prepareHash(l);
         Entry &entry = lookup(l, keyHash, sCollisionBit);
@@ -734,7 +1275,8 @@ class HashTable : private AllocPolicy
         return p;
     }
 
-    bool add(AddPtr &p)
+    template <class U>
+    bool add(AddPtr &p, const U &rhs)
     {
         ReentrancyGuard g(*this);
         JS_ASSERT(mutationCount == p.mutationCount);
@@ -743,9 +1285,7 @@ class HashTable : private AllocPolicy
         JS_ASSERT(!(p.keyHash & sCollisionBit));
 
         
-
-
-
+        
         if (p.entry->isRemoved()) {
             METER(stats.addOverRemoved++);
             removedCount--;
@@ -759,34 +1299,14 @@ class HashTable : private AllocPolicy
                 p.entry = &findFreeEntry(p.keyHash);
         }
 
-        p.entry->setLive(p.keyHash);
+        p.entry->setLive(p.keyHash, rhs);
         entryCount++;
         mutationCount++;
         return true;
     }
 
-    
-
-
-
-
-    bool add(AddPtr &p, T** pentry)
-    {
-        if (!add(p))
-            return false;
-        *pentry = &p.entry->t;
-        return true;
-    }
-
-    bool add(AddPtr &p, const T &t)
-    {
-        if (!add(p))
-            return false;
-        p.entry->t = t;
-        return true;
-    }
-
-    void putNewInfallible(const Lookup &l, const T &t)
+    template <class U>
+    void putNewInfallible(const Lookup &l, const U &u)
     {
         JS_ASSERT(table);
 
@@ -799,29 +1319,30 @@ class HashTable : private AllocPolicy
             keyHash |= sCollisionBit;
         }
 
-        entry->t = t;
-        entry->setLive(keyHash);
+        entry->setLive(keyHash, u);
         entryCount++;
         mutationCount++;
     }
 
-    bool putNew(const Lookup &l, const T &t)
+    template <class U>
+    bool putNew(const Lookup &l, const U &u)
     {
         if (checkOverloaded() == RehashFailed)
             return false;
 
-        putNewInfallible(l, t);
+        putNewInfallible(l, u);
         return true;
     }
 
-    bool relookupOrAdd(AddPtr& p, const Lookup &l, const T& t)
+    template <class U>
+    bool relookupOrAdd(AddPtr& p, const Lookup &l, const U &u)
     {
         p.mutationCount = mutationCount;
         {
             ReentrancyGuard g(*this);
             p.entry = &lookup(l, p.keyHash, sCollisionBit);
         }
-        return p.found() || add(p, t);
+        return p.found() || add(p, u);
     }
 
     void remove(Ptr p)
@@ -837,592 +1358,7 @@ class HashTable : private AllocPolicy
 };
 
 }  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <class Key>
-struct DefaultHasher
-{
-    typedef Key Lookup;
-    static HashNumber hash(const Lookup &l) {
-        
-        return l;
-    }
-    static bool match(const Key &k, const Lookup &l) {
-        
-        return k == l;
-    }
-};
-
-
-
-
-
-template <typename Key, size_t zeroBits>
-struct PointerHasher
-{
-    typedef Key Lookup;
-    static HashNumber hash(const Lookup &l) {
-        size_t word = reinterpret_cast<size_t>(l) >> zeroBits;
-        JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
-#if JS_BYTES_PER_WORD == 4
-        return HashNumber(word);
-#else
-        JS_STATIC_ASSERT(sizeof word == 8);
-        return HashNumber((word >> 32) ^ word);
-#endif
-    }
-    static bool match(const Key &k, const Lookup &l) {
-        return k == l;
-    }
-};
-
-template <typename Key, size_t zeroBits>
-struct TaggedPointerHasher
-{
-    typedef Key Lookup;
-
-    static HashNumber hash(const Lookup &l) {
-        return PointerHasher<Key, zeroBits>::hash(l);
-    }
-
-    static const uintptr_t COMPARE_MASK = uintptr_t(-1) - 1;
-
-    static bool match(const Key &k, const Lookup &l) {
-        return (uintptr_t(k) & COMPARE_MASK) == uintptr_t(l);
-    }
-};
-
-
-
-
-
-template <class T>
-struct DefaultHasher<T *>: PointerHasher<T *, tl::FloorLog2<sizeof(void *)>::result> { };
-
-
-
-template <class Key, class Value>
-class HashMapEntry
-{
-    template <class, class, class> friend class detail::HashTable;
-    template <class> friend class detail::HashTableEntry;
-    void operator=(const HashMapEntry &rhs) {
-        const_cast<Key &>(key) = rhs.key;
-        value = rhs.value;
-    }
-
-  public:
-    HashMapEntry() : key(), value() {}
-
-    template<typename KeyInput, typename ValueInput>
-    HashMapEntry(const KeyInput &k, const ValueInput &v) : key(k), value(v) {}
-
-    HashMapEntry(MoveRef<HashMapEntry> rhs)
-      : key(Move(rhs->key)), value(Move(rhs->value)) { }
-    void operator=(MoveRef<HashMapEntry> rhs) {
-        const_cast<Key &>(key) = Move(rhs->key);
-        value = Move(rhs->value);
-    }
-
-    const Key key;
-    Value value;
-};
-
-namespace tl {
-
-template <class T>
-struct IsPodType<detail::HashTableEntry<T> > {
-    static const bool result = IsPodType<T>::result;
-};
-
-template <class K, class V>
-struct IsPodType<HashMapEntry<K, V> >
-{
-    static const bool result = IsPodType<K>::result && IsPodType<V>::result;
-};
-
-} 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <class Key,
-          class Value,
-          class HashPolicy = DefaultHasher<Key>,
-          class AllocPolicy = TempAllocPolicy>
-class HashMap
-{
-    typedef typename tl::StaticAssert<tl::IsRelocatableHeapType<Key>::result>::result keyAssert;
-    typedef typename tl::StaticAssert<tl::IsRelocatableHeapType<Value>::result>::result valAssert;
-
-  public:
-    typedef typename HashPolicy::Lookup Lookup;
-
-    typedef HashMapEntry<Key, Value> Entry;
-
-  private:
-    
-    struct MapHashPolicy : HashPolicy
-    {
-        typedef Key KeyType;
-        static const Key &getKey(Entry &e) { return e.key; }
-        static void setKey(Entry &e, Key &k) { const_cast<Key &>(e.key) = k; }
-    };
-    typedef detail::HashTable<Entry, MapHashPolicy, AllocPolicy> Impl;
-
-    friend class Impl::Enum;
-
-    Impl impl;
-
-  public:
-    const static unsigned sDefaultInitSize = Impl::sDefaultInitSize;
-
-    
-
-
-
-    HashMap(AllocPolicy a = AllocPolicy()) : impl(a)  {}
-    bool init(uint32_t len = sDefaultInitSize)        { return impl.init(len); }
-    bool initialized() const                          { return impl.initialized(); }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::Ptr Ptr;
-    Ptr lookup(const Lookup &l) const                 { return impl.lookup(l); }
-
-    
-    void remove(Ptr p)                                { impl.remove(p); }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::AddPtr AddPtr;
-    AddPtr lookupForAdd(const Lookup &l) const {
-        return impl.lookupForAdd(l);
-    }
-
-    template<typename KeyInput, typename ValueInput>
-    bool add(AddPtr &p, const KeyInput &k, const ValueInput &v) {
-        Entry *pentry;
-        if (!impl.add(p, &pentry))
-            return false;
-        const_cast<Key &>(pentry->key) = k;
-        pentry->value = v;
-        return true;
-    }
-
-    bool add(AddPtr &p, const Key &k, MoveRef<Value> v) {
-        Entry *pentry;
-        if (!impl.add(p, &pentry))
-            return false;
-        const_cast<Key &>(pentry->key) = k;
-        pentry->value = v;
-        return true;
-    }
-
-    bool add(AddPtr &p, const Key &k) {
-        Entry *pentry;
-        if (!impl.add(p, &pentry))
-            return false;
-        const_cast<Key &>(pentry->key) = k;
-        return true;
-    }
-
-    template<typename KeyInput, typename ValueInput>
-    bool relookupOrAdd(AddPtr &p, const KeyInput &k, const ValueInput &v) {
-        return impl.relookupOrAdd(p, k, Entry(k, v));
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::Range Range;
-    Range all() const                                 { return impl.all(); }
-    uint32_t count() const                            { return impl.count(); }
-    size_t capacity() const                           { return impl.capacity(); }
-    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return impl.sizeOfExcludingThis(mallocSizeOf);
-    }
-    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        
-
-
-
-        return mallocSizeOf(this) + impl.sizeOfExcludingThis(mallocSizeOf);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::Enum Enum;
-
-    
-
-
-
-    void clear()                                      { impl.clear(); }
-
-    
-
-
-
-    void finish()                                     { impl.finish(); }
-
-   
-    bool empty() const                                { return impl.empty(); }
-
-    
-
-
-
-    unsigned generation() const                       { return impl.generation(); }
-
-    
-
-    bool has(const Lookup &l) const {
-        return impl.lookup(l) != NULL;
-    }
-
-    
-    template<typename KeyInput, typename ValueInput>
-    bool put(const KeyInput &k, const ValueInput &v) {
-        AddPtr p = lookupForAdd(k);
-        if (p) {
-            p->value = v;
-            return true;
-        }
-        return add(p, k, v);
-    }
-
-    
-    bool putNew(const Key &k, const Value &v) {
-        return impl.putNew(k, Entry(k, v));
-    }
-
-    
-    Ptr lookupWithDefault(const Key &k, const Value &defaultValue) {
-        AddPtr p = lookupForAdd(k);
-        if (p)
-            return p;
-        (void)add(p, k, defaultValue);  
-        return p;
-    }
-
-    
-    void remove(const Lookup &l) {
-        if (Ptr p = lookup(l))
-            remove(p);
-    }
-
-  private:
-    
-    HashMap(const HashMap &hm) MOZ_DELETE;
-    HashMap &operator=(const HashMap &hm) MOZ_DELETE;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <class T, class HashPolicy = DefaultHasher<T>, class AllocPolicy = TempAllocPolicy>
-class HashSet
-{
-    typedef typename HashPolicy::Lookup Lookup;
-
-    
-    struct SetOps : HashPolicy {
-        typedef T KeyType;
-        static const KeyType &getKey(const T &t) { return t; }
-        static void setKey(T &t, KeyType &k) { t = k; }
-    };
-    typedef detail::HashTable<const T, SetOps, AllocPolicy> Impl;
-
-    friend class Impl::Enum;
-
-    Impl impl;
-
-  public:
-    const static unsigned sDefaultInitSize = Impl::sDefaultInitSize;
-
-    
-
-
-
-    HashSet(AllocPolicy a = AllocPolicy()) : impl(a)  {}
-    bool init(uint32_t len = sDefaultInitSize)        { return impl.init(len); }
-    bool initialized() const                          { return impl.initialized(); }
-
-    
-
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::Ptr Ptr;
-    Ptr lookup(const Lookup &l) const                 { return impl.lookup(l); }
-
-    
-    void remove(Ptr p)                                { impl.remove(p); }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::AddPtr AddPtr;
-    AddPtr lookupForAdd(const Lookup &l) const {
-        return impl.lookupForAdd(l);
-    }
-
-    bool add(AddPtr &p, const T &t) {
-        return impl.add(p, t);
-    }
-
-    bool relookupOrAdd(AddPtr &p, const Lookup &l, const T &t) {
-        return impl.relookupOrAdd(p, l, t);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::Range Range;
-    Range all() const                                 { return impl.all(); }
-    uint32_t count() const                            { return impl.count(); }
-    size_t capacity() const                           { return impl.capacity(); }
-    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return impl.sizeOfExcludingThis(mallocSizeOf);
-    }
-    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        
-
-
-
-        return mallocSizeOf(this) + impl.sizeOfExcludingThis(mallocSizeOf);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    typedef typename Impl::Enum Enum;
-
-    
-
-
-
-    void clear()                                      { impl.clear(); }
-
-    
-
-
-
-    void finish()                                     { impl.finish(); }
-
-    
-    bool empty() const                                { return impl.empty(); }
-
-    
-
-
-
-    unsigned generation() const                       { return impl.generation(); }
-
-    
-
-    bool has(const Lookup &l) const {
-        return impl.lookup(l) != NULL;
-    }
-
-    
-    bool put(const T &t) {
-        AddPtr p = lookupForAdd(t);
-        return p ? true : add(p, t);
-    }
-
-    
-    bool putNew(const T &t) {
-        return impl.putNew(t, t);
-    }
-
-    bool putNew(const Lookup &l, const T &t) {
-        return impl.putNew(l, t);
-    }
-
-    void remove(const Lookup &l) {
-        if (Ptr p = lookup(l))
-            remove(p);
-    }
-
-  private:
-    
-    HashSet(const HashSet &hs) MOZ_DELETE;
-    HashSet &operator=(const HashSet &hs) MOZ_DELETE;
-};
-
 }  
 
-#endif
+#endif  
+
