@@ -40,23 +40,19 @@ protected:
     GLLibraryEGL* const mEGL;
     const GLFormats mFormats;
     GLuint mProdTex;
-    RefPtr<gfx::DataSourceSurface> mPixels;
-    GLuint mProdTexForPipe; 
     EGLImage mImage;
     GLContext* mCurConsGL;
     GLuint mConsTex;
     nsRefPtr<TextureGarbageBin> mGarbageBin;
     EGLSync mSync;
-    bool mPipeFailed;   
-    bool mPipeComplete; 
-    bool mPipeActive;   
 
     SharedSurface_EGLImage(GLContext* gl,
                            GLLibraryEGL* egl,
                            const gfx::IntSize& size,
                            bool hasAlpha,
                            const GLFormats& formats,
-                           GLuint prodTex);
+                           GLuint prodTex,
+                           EGLImage image);
 
     EGLDisplay Display() const;
 
@@ -65,7 +61,7 @@ protected:
 public:
     virtual ~SharedSurface_EGLImage();
 
-    virtual void LockProdImpl();
+    virtual void LockProdImpl() {}
     virtual void UnlockProdImpl() {}
 
 
@@ -79,10 +75,7 @@ public:
 
     
     
-    GLuint AcquireConsumerTexture(GLContext* consGL);
-
-    
-    gfx::DataSourceSurface* GetPixels() const;
+    void AcquireConsumerTexture(GLContext* consGL, GLuint* out_texture, GLuint* out_target);
 };
 
 
