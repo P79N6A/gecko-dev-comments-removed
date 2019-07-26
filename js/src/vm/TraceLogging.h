@@ -385,16 +385,20 @@ class TraceLogger
 class TraceLogging
 {
 #ifdef JS_TRACE_LOGGING
+#ifdef JS_THREADSAFE
     typedef HashMap<PRThread *,
                     TraceLogger *,
                     PointerHasher<PRThread *, 3>,
                     SystemAllocPolicy> ThreadLoggerHashMap;
+#endif 
     typedef Vector<TraceLogger *, 1, js::SystemAllocPolicy > MainThreadLoggers;
 
     bool initialized;
     bool enabled;
     bool enabledTextIds[TraceLogger::LAST];
+#ifdef JS_THREADSAFE
     ThreadLoggerHashMap threadLoggers;
+#endif 
     MainThreadLoggers mainThreadLoggers;
     uint32_t loggerId;
     FILE *out;
@@ -403,14 +407,16 @@ class TraceLogging
     uint64_t startupTime;
 #ifdef JS_THREADSAFE
     PRLock *lock;
-#endif
+#endif 
 
     TraceLogging();
     ~TraceLogging();
 
     TraceLogger *forMainThread(JSRuntime *runtime);
     TraceLogger *forMainThread(jit::CompileRuntime *runtime);
+#ifdef JS_THREADSAFE
     TraceLogger *forThread(PRThread *thread);
+#endif 
 
     bool isTextIdEnabled(uint32_t textId) {
         if (textId < TraceLogger::LAST)
@@ -428,7 +434,7 @@ class TraceLogging
 #ifdef JS_TRACE_LOGGING
 TraceLogger *TraceLoggerForMainThread(JSRuntime *runtime);
 TraceLogger *TraceLoggerForMainThread(jit::CompileRuntime *runtime);
-TraceLogger *TraceLoggerForThread(PRThread *thread);
+TraceLogger *TraceLoggerForCurrentThread();
 #else
 inline TraceLogger *TraceLoggerForMainThread(JSRuntime *runtime) {
     return nullptr;
@@ -436,7 +442,7 @@ inline TraceLogger *TraceLoggerForMainThread(JSRuntime *runtime) {
 inline TraceLogger *TraceLoggerForMainThread(jit::CompileRuntime *runtime) {
     return nullptr;
 };
-inline TraceLogger *TraceLoggerForThread(PRThread *thread) {
+inline TraceLogger *TraceLoggerForCurrentThread() {
     return nullptr;
 };
 #endif
@@ -554,12 +560,12 @@ class AutoTraceLoggingLock
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 #ifdef JS_THREADSAFE
         PR_Lock(logging->lock);
-#endif
+#endif 
     }
     ~AutoTraceLoggingLock() {
 #ifdef JS_THREADSAFE
         PR_Unlock(logging->lock);
-#endif
+#endif 
     }
   private:
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
