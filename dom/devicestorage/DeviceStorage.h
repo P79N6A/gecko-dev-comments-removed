@@ -44,6 +44,19 @@ private:
   void AppendRelativePath();
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 class FileUpdateDispatcher MOZ_FINAL
   : public nsIObserver
 {
