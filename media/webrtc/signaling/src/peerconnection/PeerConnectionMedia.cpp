@@ -412,21 +412,59 @@ PeerConnectionMedia::SetUsingBundle_m(int level, bool decision)
   return false;
 }
 
+static void
+UpdateFilterFromRemoteDescription_s(
+  RefPtr<mozilla::MediaPipeline> receive,
+  RefPtr<mozilla::MediaPipeline> transmit,
+  nsAutoPtr<mozilla::MediaPipelineFilter> filter) {
+
+  
+  mozilla::MediaPipelineFilter *finalFilter(
+    receive->UpdateFilterFromRemoteDescription_s(filter));
+
+  if (finalFilter) {
+    filter = new mozilla::MediaPipelineFilter(*finalFilter);
+  }
+
+  
+  transmit->UpdateFilterFromRemoteDescription_s(filter);
+}
+
 bool
 PeerConnectionMedia::UpdateFilterFromRemoteDescription_m(
     int level,
     nsAutoPtr<mozilla::MediaPipelineFilter> filter)
 {
   ASSERT_ON_THREAD(mMainThread);
-  for (size_t i = 0; i < mRemoteSourceStreams.Length(); ++i) {
-    if (mRemoteSourceStreams[i]->UpdateFilterFromRemoteDescription_m(level,
-                                                                     filter)) {
-      
-      return true;
-    }
+
+  RefPtr<mozilla::MediaPipeline> receive;
+  for (size_t i = 0; !receive && i < mRemoteSourceStreams.Length(); ++i) {
+    receive = mRemoteSourceStreams[i]->GetPipelineByLevel_m(level);
   }
-  CSFLogWarn(logTag, "Could not locate level %d to update filter",
-                     static_cast<int>(level));
+
+  RefPtr<mozilla::MediaPipeline> transmit;
+  for (size_t i = 0; !transmit && i < mLocalSourceStreams.Length(); ++i) {
+    transmit = mLocalSourceStreams[i]->GetPipelineByLevel_m(level);
+  }
+
+  if (receive && transmit) {
+    
+    
+    
+    
+    RUN_ON_THREAD(GetSTSThread(),
+                  WrapRunnableNM(
+                      &UpdateFilterFromRemoteDescription_s,
+                      receive,
+                      transmit,
+                      filter
+                  ),
+                  NS_DISPATCH_NORMAL);
+    return true;
+  } else {
+    CSFLogWarn(logTag, "Could not locate level %d to update filter",
+        static_cast<int>(level));
+  }
   return false;
 }
 
@@ -537,54 +575,27 @@ RemoteSourceStreamInfo::StorePipeline(int aTrack,
   mTypes[aTrack] = aIsVideo;
 }
 
-RefPtr<MediaPipeline> RemoteSourceStreamInfo::GetPipelineByLevel_m(int level) {
+RefPtr<MediaPipeline> SourceStreamInfo::GetPipelineByLevel_m(int level) {
   ASSERT_ON_THREAD(mParent->GetMainThread());
-  for (auto p = mPipelines.begin(); p != mPipelines.end(); ++p) {
-    if (p->second->level() == level) {
-      return p->second;
+
+  
+  
+  
+  
+  
+  if (mMediaStream) {
+    for (auto p = mPipelines.begin(); p != mPipelines.end(); ++p) {
+      if (p->second->level() == level) {
+        return p->second;
+      }
     }
   }
+
   return nullptr;
-}
-
-bool RemoteSourceStreamInfo::UpdateFilterFromRemoteDescription_m(
-    int aLevel,
-    nsAutoPtr<mozilla::MediaPipelineFilter> aFilter) {
-  ASSERT_ON_THREAD(mParent->GetMainThread());
-
-  if (!mMediaStream) {
-    
-    
-    
-    
-    return false;
-  }
-
-  RefPtr<MediaPipeline> pipeline(GetPipelineByLevel_m(aLevel));
-
-  if (pipeline) {
-    RUN_ON_THREAD(mParent->GetSTSThread(),
-                  WrapRunnable(
-                      pipeline,
-                      &MediaPipeline::UpdateFilterFromRemoteDescription_s,
-                      aFilter
-                  ),
-                  NS_DISPATCH_NORMAL);
-    return true;
-  }
-  return false;
 }
 
 bool RemoteSourceStreamInfo::SetUsingBundle_m(int aLevel, bool decision) {
   ASSERT_ON_THREAD(mParent->GetMainThread());
-
-  if (!mMediaStream) {
-    
-    
-    
-    
-    return false;
-  }
 
   RefPtr<MediaPipeline> pipeline(GetPipelineByLevel_m(aLevel));
 

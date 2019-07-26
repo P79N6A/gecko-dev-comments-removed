@@ -246,32 +246,28 @@ nsresult MediaPipeline::TransportReady_s(TransportInfo &info) {
     return NS_ERROR_FAILURE;
   }
 
-  if (direction_ == RECEIVE) {
-    
-    
     MOZ_MTLOG(ML_INFO, "Listening for " << ToString(info.type_)
                        << " packets received on " <<
                        static_cast<void *>(dtls->downward()));
 
-    switch (info.type_) {
-      case RTP:
-        dtls->downward()->SignalPacketReceived.connect(
-            this,
-            &MediaPipeline::RtpPacketReceived);
-        break;
-      case RTCP:
-        dtls->downward()->SignalPacketReceived.connect(
-            this,
-            &MediaPipeline::RtcpPacketReceived);
-        break;
-      case MUX:
-        dtls->downward()->SignalPacketReceived.connect(
-            this,
-            &MediaPipeline::PacketReceived);
-        break;
-      default:
-        MOZ_CRASH();
-    }
+  switch (info.type_) {
+    case RTP:
+      dtls->downward()->SignalPacketReceived.connect(
+          this,
+          &MediaPipeline::RtpPacketReceived);
+      break;
+    case RTCP:
+      dtls->downward()->SignalPacketReceived.connect(
+          this,
+          &MediaPipeline::RtcpPacketReceived);
+      break;
+    case MUX:
+      dtls->downward()->SignalPacketReceived.connect(
+          this,
+          &MediaPipeline::PacketReceived);
+      break;
+    default:
+      MOZ_CRASH();
   }
 
   info.state_ = MP_OPEN;
@@ -773,7 +769,7 @@ void MediaPipeline::SetUsingBundle_s(bool decision) {
   }
 }
 
-void MediaPipeline::UpdateFilterFromRemoteDescription_s(
+MediaPipelineFilter* MediaPipeline::UpdateFilterFromRemoteDescription_s(
     nsAutoPtr<MediaPipelineFilter> filter) {
   ASSERT_ON_THREAD(sts_thread_);
   
@@ -785,6 +781,8 @@ void MediaPipeline::UpdateFilterFromRemoteDescription_s(
   } else {
     filter_->IncorporateRemoteDescription(*filter);
   }
+
+  return filter_.get();
 }
 
 nsresult MediaPipeline::PipelineTransport::SendRtpPacket(
