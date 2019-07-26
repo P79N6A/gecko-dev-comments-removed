@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_9 Your_png_h_is_not_version_1_6_9;
+typedef png_libpng_version_1_6_10 Your_png_h_is_not_version_1_6_10;
 
 
 
@@ -773,13 +773,13 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.9 - February 6, 2014" PNG_STRING_NEWLINE \
+     "libpng version 1.6.10 - March 6, 2014" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2014 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.9 - February 6, 2014\
+      return "libpng version 1.6.10 - March 6, 2014\
       Copyright (c) 1998-2014 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
@@ -1742,7 +1742,8 @@ is_ICC_signature_char(png_alloc_size_t it)
       (it >= 97 && it <= 122);
 }
 
-static int is_ICC_signature(png_alloc_size_t it)
+static int
+is_ICC_signature(png_alloc_size_t it)
 {
    return is_ICC_signature_char(it >> 24)  &&
       is_ICC_signature_char((it >> 16) & 0xff) &&
@@ -2295,15 +2296,16 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
             }
          }
 
-#        if PNG_sRGB_PROFILE_CHECKS > 0
-            
+# if PNG_sRGB_PROFILE_CHECKS > 0
+         
 
 
 
-            if (png_sRGB_checks[i].have_md5)
-               png_benign_error(png_ptr,
-                  "copyright violation: edited ICC profile ignored");
-#        endif
+         png_chunk_report(png_ptr,
+             "Not recognizing known sRGB profile that has been edited", 
+             PNG_CHUNK_WARNING);
+         break;
+# endif
       }
    }
 

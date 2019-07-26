@@ -1555,81 +1555,117 @@ png_write_png(png_structrp png_ptr, png_inforp info_ptr,
    if (png_ptr == NULL || info_ptr == NULL)
       return;
 
+   if ((info_ptr->valid & PNG_INFO_IDAT) == 0)
+   {
+      png_app_error(png_ptr, "no rows for png_write_image to write");
+      return;
+   }
+
    
    png_write_info(png_ptr, info_ptr);
 
    
 
-#ifdef PNG_WRITE_INVERT_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_INVERT_MONO)
+#ifdef PNG_WRITE_INVERT_SUPPORTED
       png_set_invert_mono(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_INVERT_MONO not supported");
 #endif
 
-#ifdef PNG_WRITE_SHIFT_SUPPORTED
    
 
 
-   if ((transforms & PNG_TRANSFORM_SHIFT)
-       && (info_ptr->valid & PNG_INFO_sBIT))
-      png_set_shift(png_ptr, &info_ptr->sig_bit);
+   if (transforms & PNG_TRANSFORM_SHIFT)
+#ifdef PNG_WRITE_SHIFT_SUPPORTED
+      if (info_ptr->valid & PNG_INFO_sBIT)
+         png_set_shift(png_ptr, &info_ptr->sig_bit);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_SHIFT not supported");
 #endif
 
-#ifdef PNG_WRITE_PACK_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_PACKING)
-       png_set_packing(png_ptr);
+#ifdef PNG_WRITE_PACK_SUPPORTED
+      png_set_packing(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_PACKING not supported");
 #endif
 
-#ifdef PNG_WRITE_SWAP_ALPHA_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_SWAP_ALPHA)
+#ifdef PNG_WRITE_SWAP_ALPHA_SUPPORTED
       png_set_swap_alpha(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_SWAP_ALPHA not supported");
 #endif
 
-#ifdef PNG_WRITE_FILLER_SUPPORTED
    
-   if (transforms & PNG_TRANSFORM_STRIP_FILLER_AFTER)
-      png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 
-   else if (transforms & PNG_TRANSFORM_STRIP_FILLER_BEFORE)
-      png_set_filler(png_ptr, 0, PNG_FILLER_BEFORE);
+
+
+   if (transforms &
+      (PNG_TRANSFORM_STRIP_FILLER_AFTER|PNG_TRANSFORM_STRIP_FILLER_BEFORE))
+   {
+#ifdef PNG_WRITE_FILLER_SUPPORTED
+      if (transforms & PNG_TRANSFORM_STRIP_FILLER_AFTER)
+      {
+         if (transforms & PNG_TRANSFORM_STRIP_FILLER_BEFORE)
+            png_app_error(png_ptr,
+               "PNG_TRANSFORM_STRIP_FILLER: BEFORE+AFTER not supported");
+
+         
+         png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
+      }
+
+      else if (transforms & PNG_TRANSFORM_STRIP_FILLER_BEFORE)
+         png_set_filler(png_ptr, 0, PNG_FILLER_BEFORE);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_STRIP_FILLER not supported");
 #endif
+   }
 
-#ifdef PNG_WRITE_BGR_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_BGR)
+#ifdef PNG_WRITE_BGR_SUPPORTED
       png_set_bgr(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_BGR not supported");
 #endif
 
-#ifdef PNG_WRITE_SWAP_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_SWAP_ENDIAN)
+#ifdef PNG_WRITE_SWAP_SUPPORTED
       png_set_swap(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_SWAP_ENDIAN not supported");
 #endif
 
-#ifdef PNG_WRITE_PACKSWAP_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_PACKSWAP)
+#ifdef PNG_WRITE_PACKSWAP_SUPPORTED
       png_set_packswap(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_PACKSWAP not supported");
 #endif
 
-#ifdef PNG_WRITE_INVERT_ALPHA_SUPPORTED
    
    if (transforms & PNG_TRANSFORM_INVERT_ALPHA)
+#ifdef PNG_WRITE_INVERT_ALPHA_SUPPORTED
       png_set_invert_alpha(png_ptr);
+#else
+      png_app_error(png_ptr, "PNG_TRANSFORM_INVERT_ALPHA not supported");
 #endif
 
    
 
    
-   if (info_ptr->valid & PNG_INFO_IDAT)
-       png_write_image(png_ptr, info_ptr->row_pointers);
+   png_write_image(png_ptr, info_ptr->row_pointers);
 
    
    png_write_end(png_ptr, info_ptr);
 
-   PNG_UNUSED(transforms)   
    PNG_UNUSED(params)
 }
 #endif

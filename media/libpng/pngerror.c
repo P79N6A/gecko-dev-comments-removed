@@ -876,8 +876,8 @@ png_set_strip_error_numbers(png_structrp png_ptr, png_uint_32 strip_mode)
 
 
 
-PNG_FUNCTION(void ,
-png_safe_error,(png_structp png_nonconst_ptr, png_const_charp error_message),
+PNG_FUNCTION(void , (PNGCBAPI
+png_safe_error),(png_structp png_nonconst_ptr, png_const_charp error_message),
    PNG_NORETURN)
 {
    const png_const_structrp png_ptr = png_nonconst_ptr;
@@ -912,7 +912,7 @@ png_safe_error,(png_structp png_nonconst_ptr, png_const_charp error_message),
 }
 
 #ifdef PNG_WARNINGS_SUPPORTED
-void 
+void  PNGCBAPI
 png_safe_warning(png_structp png_nonconst_ptr, png_const_charp warning_message)
 {
    const png_const_structrp png_ptr = png_nonconst_ptr;

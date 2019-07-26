@@ -235,7 +235,6 @@ png_push_read_chunk(png_structrp png_ptr, png_inforp info_ptr)
 
          png_push_crc_skip(png_ptr, png_ptr->push_length);
          png_ptr->mode &= ~PNG_HAVE_CHUNK_HEADER;
-         png_ptr->process_mode = PNG_READ_IDAT_MODE;
          return;
       }
       else if (chunk_name == png_fdAT)

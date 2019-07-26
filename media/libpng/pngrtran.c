@@ -4907,6 +4907,11 @@ png_do_read_transformations(png_structrp png_ptr, png_row_infop row_info)
       png_do_invert(row_info, png_ptr->row_buf + 1);
 #endif
 
+#ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
+   if (png_ptr->transformations & PNG_INVERT_ALPHA)
+      png_do_read_invert_alpha(row_info, png_ptr->row_buf + 1);
+#endif
+
 #ifdef PNG_READ_SHIFT_SUPPORTED
    if (png_ptr->transformations & PNG_SHIFT)
       png_do_unshift(row_info, png_ptr->row_buf + 1,
@@ -4939,11 +4944,6 @@ png_do_read_transformations(png_structrp png_ptr, png_row_infop row_info)
    if (png_ptr->transformations & PNG_FILLER)
       png_do_read_filler(row_info, png_ptr->row_buf + 1,
           (png_uint_32)png_ptr->filler, png_ptr->flags);
-#endif
-
-#ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
-   if (png_ptr->transformations & PNG_INVERT_ALPHA)
-      png_do_read_invert_alpha(row_info, png_ptr->row_buf + 1);
 #endif
 
 #ifdef PNG_READ_SWAP_ALPHA_SUPPORTED

@@ -376,9 +376,11 @@
 #      define PNG_DEPRECATED __attribute__((__deprecated__))
 #    endif
 #    if !defined(PNG_PRIVATE)
-#      if __has_extension(attribute_unavailable_with_message)
-#        define PNG_PRIVATE __attribute__((__unavailable__(\
-           "This function is not exported by libpng.")))
+#      ifdef __has_extension
+#        if __has_extension(attribute_unavailable_with_message)
+#          define PNG_PRIVATE __attribute__((__unavailable__(\
+             "This function is not exported by libpng.")))
+#        endif
 #      endif
 #    endif
 #    ifndef PNG_RESTRICT

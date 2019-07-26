@@ -19,131 +19,32 @@
 #ifdef PNG_READ_SUPPORTED
 #if PNG_ARM_NEON_OPT > 0
 #ifdef PNG_ARM_NEON_CHECK_SUPPORTED 
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef PNG_ARM_NEON_FILE
+#  ifdef __linux__
+#     define PNG_ARM_NEON_FILE "linux.c"
+#  endif
+#endif
+
+#ifdef PNG_ARM_NEON_FILE
+
 #include <signal.h> 
+static int png_have_neon(png_structp png_ptr);
+#include PNG_ARM_NEON_FILE
 
-#ifdef __ANDROID__
-
-
-
-
-
-
-#include "MOZ_PNG_cpu-features.h"
-
-static int
-png_have_neon(png_structp png_ptr)
-{
-   
-
-
-
-   PNG_UNUSED(png_ptr)
-   return android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM &&
-      (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0;
-}
-#elif defined(__linux__)
-
-
-
-#include <unistd.h> 
-#include <errno.h>  
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <elf.h>
-#include <asm/hwcap.h>
-
-
-
-
-
-static size_t
-safe_read(png_structp png_ptr, int fd, void *buffer_in, size_t nbytes)
-{
-   size_t ntotal = 0;
-   char *buffer = png_voidcast(char*, buffer_in);
-
-   while (nbytes > 0)
-   {
-      unsigned int nread;
-      int iread;
-
-      
-
-
-
-      if (nbytes > INT_MAX)
-         nread = INT_MAX;
-
-      else
-         nread = (unsigned int)nbytes;
-
-      iread = read(fd, buffer, nread);
-
-      if (iread == -1)
-      {
-         
-
-
-
-         if (errno != EINTR)
-         {
-            png_warning(png_ptr, "/proc read failed");
-            return 0; 
-         }
-      }
-
-      else if (iread < 0)
-      {
-         
-         png_warning(png_ptr, "OS /proc read bug");
-         return 0;
-      }
-
-      else if (iread > 0)
-      {
-         
-         buffer += iread;
-         nbytes -= (unsigned int)iread;
-         ntotal += (unsigned int)iread;
-      }
-
-      else
-         return ntotal;
-   }
-
-   return ntotal; 
-}
-
-static int
-png_have_neon(png_structp png_ptr)
-{
-   int fd = open("/proc/self/auxv", O_RDONLY);
-   Elf32_auxv_t aux;
-
-   
-   if (fd == -1)
-   {
-      png_warning(png_ptr, "/proc/self/auxv open failed");
-      return 0;
-   }
-
-   while (safe_read(png_ptr, fd, &aux, sizeof aux) == sizeof aux)
-   {
-      if (aux.a_type == AT_HWCAP && (aux.a_un.a_val & HWCAP_NEON) != 0)
-      {
-         close(fd);
-         return 1;
-      }
-   }
-
-   close(fd);
-   return 0;
-}
-#else
-   
-#  error "no support for run-time ARM NEON checks"
+#else  
+#  error "PNG_ARM_NEON_FILE undefined: no support for run-time ARM NEON checks"
 #endif 
 #endif 
 

@@ -388,6 +388,9 @@
 
 
 
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -401,9 +404,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.6.9"
+#define PNG_LIBPNG_VER_STRING "1.6.10"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.6.9 - February 6, 2014\n"
+     " libpng version 1.6.10 - March 6, 2014\n"
 
 #define PNG_LIBPNG_VER_SONUM   16
 #define PNG_LIBPNG_VER_DLLNUM  16
@@ -411,7 +414,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
-#define PNG_LIBPNG_VER_RELEASE 9
+#define PNG_LIBPNG_VER_RELEASE 10
 
 
 
@@ -442,11 +445,15 @@
 
 
 
-#define PNG_LIBPNG_VER 10609 /* 1.6.9 */
+#define PNG_LIBPNG_VER 10610 /* 1.6.10 */
 
 
 
 
+
+#define PNG_APNG_SUPPORTED
+#define PNG_READ_APNG_SUPPORTED
+#define PNG_WRITE_APNG_SUPPORTED
 
 #ifndef PNG_VERSION_INFO_ONLY
    
@@ -553,7 +560,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_6_9;
+typedef char* png_libpng_version_1_6_10;
 
 
 
@@ -1257,20 +1264,6 @@ PNG_EXPORT(35, void, png_build_grayscale_palette, (int bit_depth,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define PNG_ALPHA_PNG           0 /* according to the PNG standard */
 #define PNG_ALPHA_STANDARD      1 /* according to Porter/Duff */
 #define PNG_ALPHA_ASSOCIATED    1 /* as above; this is the normal practice */
@@ -1285,67 +1278,6 @@ PNG_FIXED_EXPORT(228, void, png_set_alpha_mode_fixed, (png_structrp png_ptr,
 #endif
 
 #if defined(PNG_GAMMA_SUPPORTED) || defined(PNG_READ_ALPHA_MODE_SUPPORTED)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1970,8 +1902,8 @@ PNG_EXPORT(98, void, png_free_data, (png_const_structrp png_ptr,
 
 
 
-PNG_EXPORTA(99, void, png_data_freer, (png_const_structrp png_ptr,
-    png_inforp info_ptr, int freer, png_uint_32 mask), PNG_DEPRECATED);
+PNG_EXPORT(99, void, png_data_freer, (png_const_structrp png_ptr,
+    png_inforp info_ptr, int freer, png_uint_32 mask));
 
 
 #define PNG_DESTROY_WILL_FREE_DATA 1
@@ -2538,10 +2470,14 @@ PNG_EXPORT(177, void, png_set_invalid, (png_const_structrp png_ptr,
 
 #ifdef PNG_INFO_IMAGE_SUPPORTED
 
+#ifdef PNG_SEQUENTIAL_READ_SUPPORTED
 PNG_EXPORT(178, void, png_read_png, (png_structrp png_ptr, png_inforp info_ptr,
     int transforms, png_voidp params));
+#endif
+#ifdef PNG_WRITE_SUPPORTED
 PNG_EXPORT(179, void, png_write_png, (png_structrp png_ptr, png_inforp info_ptr,
     int transforms, png_voidp params));
+#endif
 #endif
 
 PNG_EXPORT(180, png_const_charp, png_get_copyright,
