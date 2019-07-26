@@ -1001,14 +1001,14 @@ js_InvokeOperationCallback(JSContext *cx)
     JS_ASSERT_REQUEST_DEPTH(cx);
 
     JSRuntime *rt = cx->runtime();
-    JS_ASSERT(rt->interrupt != 0);
+    JS_ASSERT(rt->interrupt);
 
     
 
 
 
 
-    rt->interrupt = 0;
+    rt->interrupt = false;
 
     
 

@@ -683,11 +683,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-#ifdef JS_THREADSAFE
-    mozilla::Atomic<int32_t, mozilla::Relaxed> interrupt;
-#else
-    int32_t interrupt;
-#endif
+    mozilla::Atomic<bool, mozilla::Relaxed> interrupt;
 
 #if defined(JS_THREADSAFE) && defined(JS_ION)
     
@@ -1299,10 +1295,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-
-
-
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcMallocGCTriggered;
+    mozilla::Atomic<bool, mozilla::ReleaseAcquire> gcMallocGCTriggered;
 
 #ifdef JS_ARM_SIMULATOR
     js::jit::SimulatorRuntime *simulatorRuntime_;

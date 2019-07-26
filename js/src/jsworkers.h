@@ -69,7 +69,7 @@ class GlobalWorkerThreadState
   public:
     
     
-    mozilla::Atomic<uint32_t> asmJSCompilationInProgress;
+    mozilla::Atomic<bool> asmJSCompilationInProgress;
 
   private:
     
@@ -464,15 +464,11 @@ struct SourceCompressionTask
 
     
     
-#ifdef JS_THREADSAFE
-    mozilla::Atomic<int32_t, mozilla::Relaxed> abort_;
-#else
-    int32_t abort_;
-#endif
+    mozilla::Atomic<bool, mozilla::Relaxed> abort_;
 
   public:
     explicit SourceCompressionTask(ExclusiveContext *cx)
-      : cx(cx), ss(nullptr), chars(nullptr), oom(false), abort_(0)
+      : cx(cx), ss(nullptr), chars(nullptr), oom(false), abort_(false)
     {
 #ifdef JS_THREADSAFE
         workerThread = nullptr;
@@ -486,7 +482,7 @@ struct SourceCompressionTask
 
     bool work();
     bool complete();
-    void abort() { abort_ = 1; }
+    void abort() { abort_ = true; }
     bool active() const { return !!ss; }
     ScriptSource *source() { return ss; }
     const jschar *uncompressedChars() { return chars; }
