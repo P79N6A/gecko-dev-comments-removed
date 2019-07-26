@@ -1285,7 +1285,7 @@ JSContext::mark(JSTracer *trc)
     
 
     
-    if (defaultCompartmentObject_ && !hasOption(JSOPTION_UNROOTED_GLOBAL))
+    if (defaultCompartmentObject_)
         MarkObjectRoot(trc, &defaultCompartmentObject_, "default compartment object");
     if (isExceptionPending())
         MarkValueRoot(trc, &exception, "exception");
