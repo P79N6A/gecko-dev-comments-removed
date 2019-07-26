@@ -13908,7 +13908,7 @@ let ICCContactHelper = {
 
 Buf.init();
 
-function onRILMessage(data) {
+function onRILMessage(aClientId, data) {
   Buf.processIncoming(data);
 }
 
