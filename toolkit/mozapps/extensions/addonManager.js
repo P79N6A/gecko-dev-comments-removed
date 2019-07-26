@@ -183,13 +183,13 @@ amManager.prototype = {
           };
         }
         var window = null;
-        try {
-          
-          window = aMessage.target.contentWindow;
-        } catch (e) {
+        if (aMessage.target.getAttribute("remote") == "true") {
           
           
           window = aMessage.target.ownerDocument.defaultView;
+        } else {
+          
+          window = aMessage.target.contentWindow;
         }
         return this.installAddonsFromWebpage(payload.mimetype,
           window, referer, payload.uris, payload.hashes, payload.names,
