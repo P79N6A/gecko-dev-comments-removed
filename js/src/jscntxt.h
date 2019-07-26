@@ -1661,9 +1661,6 @@ struct JSContext : js::ContextFriendFields,
     }
 #endif
 
-    
-    js::PropertyIteratorObject *enumerators;
-
   private:
     
     JSGenerator *innermostGenerator_;

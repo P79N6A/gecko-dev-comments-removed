@@ -29,6 +29,8 @@ namespace ion {
     class IonCompartment;
 }
 
+struct NativeIterator;
+
 
 
 
@@ -530,6 +532,12 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     
     js::DebugScopes *debugScopes;
 
+    
+
+
+
+    js::NativeIterator *enumerators;
+
 #ifdef JS_ION
   private:
     js::ion::IonCompartment *ionCompartment_;
@@ -775,3 +783,4 @@ class AutoWrapperRooter : private AutoGCRooter {
 } 
 
 #endif
+

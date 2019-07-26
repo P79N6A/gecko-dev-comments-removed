@@ -6278,10 +6278,21 @@ mjit::Compiler::iter(unsigned flags)
     masm.store32(T1, flagsAddr);
 
     
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), T1);
-    masm.loadPtr(Address(T1, offsetof(JSContext, enumerators)), T2);
-    masm.storePtr(T2, Address(nireg, offsetof(NativeIterator, next)));
-    masm.storePtr(ioreg, Address(T1, offsetof(JSContext, enumerators)));
+    masm.move(ImmPtr(cx->compartment), T1);
+    masm.loadPtr(Address(T1, offsetof(JSCompartment, enumerators)), T1);
+
+    
+    masm.storePtr(T1, Address(nireg, NativeIterator::offsetOfNext()));
+
+    
+    masm.loadPtr(Address(T1, NativeIterator::offsetOfPrev()), T2);
+    masm.storePtr(T2, Address(nireg, NativeIterator::offsetOfPrev()));
+
+    
+    masm.storePtr(nireg, Address(T2, NativeIterator::offsetOfNext()));
+
+    
+    masm.storePtr(nireg, Address(T1, NativeIterator::offsetOfPrev()));
 
     frame.freeReg(nireg);
     frame.freeReg(T1);
@@ -6433,12 +6444,21 @@ mjit::Compiler::iterEnd()
     masm.storePtr(T2, Address(T1, offsetof(NativeIterator, props_cursor)));
 
     
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), T2);
-    masm.loadPtr(Address(T1, offsetof(NativeIterator, next)), T1);
-    masm.storePtr(T1, Address(T2, offsetof(JSContext, enumerators)));
+    RegisterID prev = T2;
+    RegisterID next = frame.allocReg();
+
+    masm.loadPtr(Address(T1, NativeIterator::offsetOfNext()), next);
+    masm.loadPtr(Address(T1, NativeIterator::offsetOfPrev()), prev);
+    masm.storePtr(prev, Address(next, NativeIterator::offsetOfPrev()));
+    masm.storePtr(next, Address(prev, NativeIterator::offsetOfNext()));
+#ifdef DEBUG
+    masm.storePtr(ImmPtr(NULL), Address(T1, NativeIterator::offsetOfNext()));
+    masm.storePtr(ImmPtr(NULL), Address(T1, NativeIterator::offsetOfPrev()));
+#endif
 
     frame.freeReg(T1);
     frame.freeReg(T2);
+    frame.freeReg(next);
 
     stubcc.leave();
     OOL_STUBCALL(stubs::EndIter, REJOIN_FALLTHROUGH);
