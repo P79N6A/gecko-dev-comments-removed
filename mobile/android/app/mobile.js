@@ -78,6 +78,7 @@ pref("browser.cache.compression_level", 0);
 
 
 pref("network.protocol-handler.warn-external.tel", false);
+pref("network.protocol-handler.warn-external.sms", false);
 pref("network.protocol-handler.warn-external.mailto", false);
 pref("network.protocol-handler.warn-external.vnd.youtube", false);
 

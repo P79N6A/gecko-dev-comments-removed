@@ -1189,6 +1189,20 @@ public class GeckoAppShell
         toast.show();
     }
 
+    static boolean isUriSafeForScheme(Uri aUri) {
+        
+        
+        
+        final String scheme = aUri.getScheme();
+        if ("tel".equals(scheme) || "sms".equals(scheme)) {
+            final String number = aUri.getSchemeSpecificPart();
+            if (number.contains("#") || number.contains("*") || aUri.getFragment() != null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     static boolean openUriExternal(String aUriSpec, String aMimeType, String aPackageName,
                                    String aClassName, String aAction, String aTitle) {
         Intent intent = getIntentForActionString(aAction);
@@ -1203,16 +1217,12 @@ public class GeckoAppShell
             intent.setDataAndType(Uri.parse(aUriSpec), aMimeType);
         } else {
             Uri uri = Uri.parse(aUriSpec);
+            if (isUriSafeForScheme(uri) == false) {
+                return false;
+            }
+            
             final String scheme = uri.getScheme();
-            if ("tel".equals(scheme)) {
-                
-                
-                
-                final String number = uri.getSchemeSpecificPart();
-                if (number.contains("#") || number.contains("*") || uri.getFragment() != null) {
-                    return false;
-                }
-            } else if ("sms".equals(scheme)) {
+            if ("sms".equals(scheme)) {
                 
                 
                 final String query = uri.getEncodedQuery();
@@ -1226,8 +1236,7 @@ public class GeckoAppShell
                             final String body = Uri.decode(field.substring(5));
                             intent.putExtra("sms_body", body);
                             foundBody = true;
-                        }
-                        else {
+                        } else {
                             resultQuery = resultQuery.concat(resultQuery.length() > 0 ? "&" + field : field);
                         }
                     }
