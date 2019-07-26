@@ -41,23 +41,36 @@ class ProfileEntry
     
     const char * volatile string; 
     void * volatile sp;           
+                                  
+                                  
     JSScript * volatile script_;  
+                                  
     int32_t volatile idx;         
 
   public:
+    static const uintptr_t SCRIPT_OPT_STACKPOINTER = 0x1;
+
     
     
     
     
 
     bool js() const volatile {
-        MOZ_ASSERT_IF(sp == nullptr, script_ != nullptr);
-        return sp == nullptr;
+        MOZ_ASSERT_IF(uintptr_t(sp) <= SCRIPT_OPT_STACKPOINTER, script_ != nullptr);
+        return uintptr_t(sp) <= SCRIPT_OPT_STACKPOINTER;
     }
 
     uint32_t line() const volatile { MOZ_ASSERT(!js()); return idx; }
     JSScript *script() const volatile { MOZ_ASSERT(js()); return script_; }
-    void *stackAddress() const volatile { return sp; }
+    bool scriptIsOptimized() const volatile {
+        MOZ_ASSERT(js());
+        return uintptr_t(sp) <= SCRIPT_OPT_STACKPOINTER;
+    }
+    void *stackAddress() const volatile {
+        if (js())
+            return nullptr;
+        return sp;
+    }
     const char *label() const volatile { return string; }
 
     void setLine(uint32_t aLine) volatile { MOZ_ASSERT(!js()); idx = aLine; }
