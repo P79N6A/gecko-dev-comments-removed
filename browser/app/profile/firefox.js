@@ -672,6 +672,9 @@ pref("plugin.default.state", 1);
 #endif
 
 
+pref("plugin.defaultXpi.state", 2);
+
+
 
 pref("plugin.state.flash", 2);
 pref("plugin.state.java", 1);
