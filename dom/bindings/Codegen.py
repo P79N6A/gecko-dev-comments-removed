@@ -2518,14 +2518,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         sequenceType = typeName.define()
         if nullable:
             typeName = CGTemplatedType("Nullable", typeName)
-            arrayRef = "const_cast<Nullable<" + sequenceType + " >& >(${declName}).SetValue()"
+            arrayRef = "${declName}.SetValue()"
         else:
             arrayRef = "${declName}"
-        
-        
-        mutableTypeName = typeName
-        if not (isOptional or isMember or isCallbackReturnValue):
-            typeName = CGWrapper(typeName, pre="const ")
 
         
         templateBody = ("""JSObject* seq = &${val}.toObject();\n
@@ -2537,7 +2532,7 @@ uint32_t length;
 if (!JS_GetArrayLength(cx, seq, &length)) {
 %s
 }
-%s &arr = const_cast< %s& >(%s);
+%s &arr = %s;
 if (!arr.SetCapacity(length)) {
   JS_ReportOutOfMemory(cx);
 %s
@@ -2550,7 +2545,6 @@ for (uint32_t i = 0; i < length; ++i) {
   %s& slot = *arr.AppendElement();
 """ % (CGIndenter(CGGeneric(notSequence)).define(),
        exceptionCodeIndented.define(),
-       sequenceType,
        sequenceType,
        arrayRef,
        exceptionCodeIndented.define(),
@@ -2572,7 +2566,7 @@ for (uint32_t i = 0; i < length; ++i) {
 
         templateBody += "\n}"
         templateBody = wrapObjectTemplate(templateBody, type,
-                                          "const_cast< %s & >(${declName}).SetNull()" % mutableTypeName.define())
+                                          "${declName}.SetNull()")
         return (templateBody, typeName, None, isOptional)
 
     if type.isUnion():
@@ -3990,6 +3984,8 @@ class CGCallGenerator(CGThing):
             
             def needsConst(a):
                 if a.type.isDictionary():
+                    return True
+                if a.type.isSequence():
                     return True
                 return False
             if needsConst(a):
