@@ -53,14 +53,7 @@ bool AutoScriptEvaluate::StartEvaluating(HandleObject scope, JSErrorReporter err
     
     
     
-    
-    
-    
-    
-    if (JS_IsExceptionPending(mJSContext)) {
-        mState = JS_SaveExceptionState(mJSContext);
-        JS_ClearPendingException(mJSContext);
-    }
+    mState.construct(mJSContext);
 
     return true;
 }
@@ -69,10 +62,7 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
 {
     if (!mJSContext || !mEvaluated)
         return;
-    if (mState)
-        JS_RestoreExceptionState(mJSContext, mState);
-    else
-        JS_ClearPendingException(mJSContext);
+    mState.ref().restore();
 
     JS_EndRequest(mJSContext);
 
