@@ -319,9 +319,34 @@ public:
   nsChangeHint HintsHandledForFrame() { return mHintsHandled; }
 
 private:
+  
+
+
+  void RestyleSelf(nsRestyleHint aRestyleHint);
+
+  
+
+
+
+
+  void RestyleChildren(nsRestyleHint aChildRestyleHint);
+
+  
+
+
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
                      nsChangeHint aChangeToAssume);
+
+  
+
+
+  void RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint);
+  void RestyleBeforePseudo();
+  void RestyleAfterPseudo();
+  void RestyleContentChildren(nsRestyleHint aChildRestyleHint);
+  void InitializeAccessibilityNotifications();
+  void SendAccessibilityNotifications();
 
   enum DesiredA11yNotifications {
     eSkipNotifications,

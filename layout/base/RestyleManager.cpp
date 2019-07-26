@@ -2048,6 +2048,32 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   NS_ASSERTION(mFrame->GetContent() || !mParentContent ||
                !mParentContent->GetParent(),
                "frame must have content (unless at the top of the tree)");
+
+  if (mContent && mContent->IsElement()) {
+    mContent->OwnerDoc()->FlushPendingLinkUpdates();
+    RestyleTracker::RestyleData restyleData;
+    if (mRestyleTracker.GetRestyleData(mContent->AsElement(), &restyleData)) {
+      if (NS_UpdateHint(mHintsHandled, restyleData.mChangeHint)) {
+        mChangeList->AppendChange(mFrame, mContent, restyleData.mChangeHint);
+      }
+      aRestyleHint = nsRestyleHint(aRestyleHint | restyleData.mRestyleHint);
+    }
+  }
+
+  nsRestyleHint childRestyleHint = aRestyleHint;
+
+  if (childRestyleHint == eRestyle_Self) {
+    childRestyleHint = nsRestyleHint(0);
+  }
+
+  RestyleSelf(aRestyleHint);
+
+  RestyleChildren(childRestyleHint);
+}
+
+void
+ElementRestyler::RestyleSelf(nsRestyleHint aRestyleHint)
+{
   
   
   
@@ -2067,23 +2093,6 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
 
     nsIAtom* const pseudoTag = oldContext->GetPseudo();
     const nsCSSPseudoElements::Type pseudoType = oldContext->GetPseudoType();
-
-    if (mContent && mContent->IsElement()) {
-      mContent->OwnerDoc()->FlushPendingLinkUpdates();
-      RestyleTracker::RestyleData restyleData;
-      if (mRestyleTracker.GetRestyleData(mContent->AsElement(), &restyleData)) {
-        if (NS_UpdateHint(mHintsHandled, restyleData.mChangeHint)) {
-          mChangeList->AppendChange(mFrame, mContent, restyleData.mChangeHint);
-        }
-        aRestyleHint = nsRestyleHint(aRestyleHint | restyleData.mRestyleHint);
-      }
-    }
-
-    nsRestyleHint childRestyleHint = aRestyleHint;
-
-    if (childRestyleHint == eRestyle_Self) {
-      childRestyleHint = nsRestyleHint(0);
-    }
 
     nsStyleContext* parentContext;
     
@@ -2334,9 +2343,53 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         break;
       }
     }
+}
+
+void
+ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
+{
+    RestyleUndisplayedChildren(aChildRestyleHint);
 
     
+    
+    
+    
+    
+    
+    
+    if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
+        aChildRestyleHint) {
+      RestyleBeforePseudo();
+    }
 
+    
+    
+    if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
+        aChildRestyleHint) {
+      RestyleAfterPseudo();
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
+      InitializeAccessibilityNotifications();
+
+      RestyleContentChildren(aChildRestyleHint);
+
+      SendAccessibilityNotifications();
+    }
+}
+
+void
+ElementRestyler::RestyleUndisplayedChildren(nsRestyleHint aChildRestyleHint)
+{
     
     
     
@@ -2383,7 +2436,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
                                mTreeMatchContext,
                                parent && parent->IsElement() ? parent->AsElement() : nullptr);
 
-        nsRestyleHint thisChildHint = childRestyleHint;
+        nsRestyleHint thisChildHint = aChildRestyleHint;
         RestyleTracker::RestyleData undisplayedRestyleData;
         if (mRestyleTracker.GetRestyleData(undisplayed->mContent->AsElement(),
                                            &undisplayedRestyleData)) {
@@ -2391,6 +2444,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
             nsRestyleHint(thisChildHint | undisplayedRestyleData.mRestyleHint);
         }
         nsRefPtr<nsStyleContext> undisplayedContext;
+        nsStyleSet* styleSet = mPresContext->StyleSet();
         if (thisChildHint) {
           undisplayedContext =
             styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(),
@@ -2418,16 +2472,11 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         }
       }
     }
+}
 
-    
-    
-    
-    
-    
-    
-    
-    if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-        childRestyleHint) {
+void
+ElementRestyler::RestyleBeforePseudo()
+{
       
       
       if (!mFrame->StyleContext()->GetPseudo() &&
@@ -2453,12 +2502,11 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
           }
         }
       }
-    }
+}
 
-    
-    
-    if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
-        childRestyleHint) {
+void
+ElementRestyler::RestyleAfterPseudo()
+{
       
       
       if (!mFrame->StyleContext()->GetPseudo() &&
@@ -2485,19 +2533,11 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
           }
         }
       }
-    }
+}
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
-
+void
+ElementRestyler::InitializeAccessibilityNotifications()
+{
 #ifdef ACCESSIBILITY
       
       
@@ -2533,8 +2573,11 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         }
       }
 #endif
+}
 
-      
+void
+ElementRestyler::RestyleContentChildren(nsRestyleHint aChildRestyleHint)
+{
       nsIFrame::ChildListIterator lists(mFrame);
       for (TreeMatchContext::AutoAncestorPusher
              pushAncestor(!lists.IsDone(),
@@ -2583,25 +2626,29 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
               do {
                 ElementRestyler oofRestyler(*this, outOfFlowFrame,
                                             FOR_OUT_OF_FLOW_CHILD);
-                oofRestyler.Restyle(childRestyleHint);
+                oofRestyler.Restyle(aChildRestyleHint);
               } while ((outOfFlowFrame = outOfFlowFrame->GetNextContinuation()));
 
               
               
               ElementRestyler phRestyler(*this, child, 0);
-              phRestyler.Restyle(childRestyleHint);
+              phRestyler.Restyle(aChildRestyleHint);
             }
             else {  
               if (child != mResolvedChild) {
                 ElementRestyler childRestyler(*this, child, 0);
-                childRestyler.Restyle(childRestyleHint);
+                childRestyler.Restyle(aChildRestyleHint);
               }
             }
           }
         }
       }
       
+}
 
+void
+ElementRestyler::SendAccessibilityNotifications()
+{
 #ifdef ACCESSIBILITY
       
       if (mOurA11yNotification == eNotifyShown) {
@@ -2633,7 +2680,6 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         }
       }
 #endif
-    }
 }
 
 void
