@@ -144,8 +144,8 @@ public class RedirOutputThread extends Thread
         catch (InterruptedException e) 
             {
             e.printStackTrace();
+            pProc.destroy();
             }
-        pProc.destroy();
         buffer = null;
         System.gc();
         }
