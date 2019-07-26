@@ -547,7 +547,7 @@ BluetoothService::SetEnabled(bool aEnabled)
 
 
   if (mEnabled == aEnabled) {
-    BT_WARNING("Bluetooth has already been enabled/disabled before"
+    BT_WARNING("Bluetooth has already been enabled/disabled before "
                "or the toggling is failed.");
   }
 
