@@ -53,6 +53,7 @@
 #include <sys/stat.h>   
 #include <fcntl.h>      
 #include <unistd.h>     
+#include <semaphore.h>
 #ifdef __GLIBC__
 #include <execinfo.h>   
 #endif  
@@ -62,6 +63,7 @@
 #include "platform.h"
 #include "GeckoProfilerImpl.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/Atomics.h"
 #include "ProfileEntry.h"
 #include "nsThreadUtils.h"
 #include "TableTicker.h"
@@ -140,7 +142,8 @@ struct SamplerRegistry {
 
 Sampler *SamplerRegistry::sampler = NULL;
 
-static ThreadProfile* sCurrentThreadProfile = NULL;
+static mozilla::Atomic<ThreadProfile*> sCurrentThreadProfile;
+static sem_t sSignalHandlingDone;
 
 static void ProfilerSaveSignalHandler(int signal, siginfo_t* info, void* context) {
   Sampler::GetActiveSampler()->RequestSave();
@@ -204,6 +207,7 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   Sampler::GetActiveSampler()->Tick(sample);
 
   sCurrentThreadProfile = NULL;
+  sem_post(&sSignalHandlingDone);
 }
 
 int tgkill(pid_t tgid, pid_t tid, int signalno) {
@@ -270,8 +274,7 @@ static void* SignalSender(void* arg) {
         }
 
         
-        while (sCurrentThreadProfile)
-          sched_yield();
+        sem_wait(&sSignalHandlingDone);
       }
     }
 
@@ -303,6 +306,13 @@ void Sampler::Start() {
   LOG("Sampler started");
 
   SamplerRegistry::AddActiveSampler(this);
+
+  
+  sCurrentThreadProfile = NULL;
+  if (sem_init(&sSignalHandlingDone,  0,  0) != 0) {
+    LOG("Error initializing semaphore");
+    return;
+  }
 
   
   LOG("Request signal");
