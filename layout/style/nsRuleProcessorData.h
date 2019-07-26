@@ -244,14 +244,23 @@ struct NS_STACK_CLASS TreeMatchContext {
 
   
 
+
+
+
+
+
+
   class NS_STACK_CLASS AutoFlexItemStyleFixupSkipper {
   public:
-    AutoFlexItemStyleFixupSkipper(TreeMatchContext& aTreeMatchContext
+    AutoFlexItemStyleFixupSkipper(TreeMatchContext& aTreeMatchContext,
+                                  bool aSkipFlexItemStyleFixup = true
                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : mAutoRestorer(aTreeMatchContext.mSkippingFlexItemStyleFixup)
     {
       MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-      aTreeMatchContext.mSkippingFlexItemStyleFixup = true;
+      if (aSkipFlexItemStyleFixup) {
+        aTreeMatchContext.mSkippingFlexItemStyleFixup = true;
+      }
     }
 
   private:

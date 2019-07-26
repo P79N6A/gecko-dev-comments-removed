@@ -1270,6 +1270,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       else {
         NS_ASSERTION(localContent,
                      "non pseudo-element frame without content node");
+        
+        TreeMatchContext::AutoFlexItemStyleFixupSkipper
+          flexFixupSkipper(aTreeMatchContext,
+                           element->IsRootOfNativeAnonymousSubtree());
         newContext = styleSet->ResolveStyleFor(element, parentContext,
                                                aTreeMatchContext);
       }
