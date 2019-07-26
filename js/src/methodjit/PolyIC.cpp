@@ -677,8 +677,20 @@ struct GetPropHelper {
 
     LookupStatus lookup() {
         RootedObject aobj(cx, obj);
-        if (IsCacheableListBase(obj))
+        if (IsCacheableListBase(obj)) {
+            Value expandoValue = obj->getFixedSlot(GetListBaseExpandoSlot());
+
+            
+            
+            
+            JS_ASSERT_IF(expandoValue.isObject(),
+                         expandoValue.toObject().isNative() && !expandoValue.toObject().getProto());
+
+            if (expandoValue.isObject() && expandoValue.toObject().nativeContains(cx, name))
+                return Lookup_Uncacheable;
+
             aobj = obj->getTaggedProto().toObjectOrNull();
+        }
 
         if (!aobj->isNative())
             return ic.disable(f, "non-native");
@@ -1293,14 +1305,11 @@ class GetPropCompiler : public PICStubCompiler
             Address expandoAddress(pic.objReg, JSObject::getFixedSlotOffset(GetListBaseExpandoSlot()));
 
             Value expandoValue = obj->getFixedSlot(GetListBaseExpandoSlot());
-            JSObject *expando = expandoValue.isObject() ? &expandoValue.toObject() : NULL;
+            if (expandoValue.isObject()) {
+                JS_ASSERT(!expandoValue.toObject().nativeContains(cx, name));
 
-            
-            
-            
-            JS_ASSERT_IF(expando, expando->isNative() && expando->getProto() == NULL);
-
-            if (expando && !expando->nativeContains(cx, name)) {
+                
+                
                 Jump expandoGuard = masm.testObject(Assembler::NotEqual, expandoAddress);
                 if (!shapeMismatches.append(expandoGuard))
                     return error();
@@ -1310,10 +1319,12 @@ class GetPropCompiler : public PICStubCompiler
 
                 Jump shapeGuard = masm.branchPtr(Assembler::NotEqual,
                                                  Address(pic.shapeReg, JSObject::offsetOfShape()),
-                                                 ImmPtr(expando->lastProperty()));
+                                                 ImmPtr(expandoValue.toObject().lastProperty()));
                 if (!shapeMismatches.append(shapeGuard))
                     return error();
             } else {
+                
+                
                 Jump expandoGuard = masm.testUndefined(Assembler::NotEqual, expandoAddress);
                 if (!shapeMismatches.append(expandoGuard))
                     return error();
