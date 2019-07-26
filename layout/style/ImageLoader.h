@@ -5,6 +5,9 @@
 
 
 
+#ifndef mozilla_css_ImageLoader_h___
+#define mozilla_css_ImageLoader_h___
+
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "nsCSSValue.h"
@@ -117,3 +120,5 @@ private:
 
 } 
 } 
+
+#endif 

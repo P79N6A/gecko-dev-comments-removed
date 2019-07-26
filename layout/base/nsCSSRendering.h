@@ -165,15 +165,28 @@ public:
 
 
   void Draw(nsPresContext*       aPresContext,
-            nsRenderingContext& aRenderingContext,
-            const nsRect&        aDest,
+            nsRenderingContext&  aRenderingContext,
+            const nsRect&        aDirtyRect,
             const nsRect&        aFill,
-            const nsPoint&       aAnchor,
-            const nsRect&        aDirty);
+            const nsRect&        aDest,
+            uint32_t             aFlags = imgIContainer::FLAG_NONE);
+  
+
+
+
+
+  void DrawBackground(nsPresContext*       aPresContext,
+                      nsRenderingContext&  aRenderingContext,
+                      const nsRect&        aDest,
+                      const nsRect&        aFill,
+                      const nsPoint&       aAnchor,
+                      const nsRect&        aDirty);
 
   bool IsRasterImage();
   bool IsAnimatedImage();
   already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager);
+
+  bool IsReady() { return mIsReady; }
 
 private:
   nsIFrame*                 mForFrame;

@@ -246,6 +246,12 @@ struct nsStyleImage {
 
 
 
+
+  bool IsLoaded() const;
+  
+
+
+
   bool IsEmpty() const {
     
     
