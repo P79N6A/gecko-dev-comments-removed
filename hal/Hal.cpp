@@ -746,12 +746,12 @@ SwitchState GetCurrentSwitchState(SwitchDevice aDevice)
 
 typedef mozilla::ObserverList<SwitchEvent> SwitchObserverList;
 
-static SwitchObserverList *sSwitchObserverLists = NULL;
+static SwitchObserverList *sSwitchObserverLists = nullptr;
 
 static SwitchObserverList&
 GetSwitchObserverList(SwitchDevice aDevice) {
   MOZ_ASSERT(0 <= aDevice && aDevice < NUM_SWITCH_DEVICE); 
-  if (sSwitchObserverLists == NULL) {
+  if (sSwitchObserverLists == nullptr) {
     sSwitchObserverLists = new SwitchObserverList[NUM_SWITCH_DEVICE];
   }
   return sSwitchObserverLists[aDevice];
@@ -766,7 +766,7 @@ ReleaseObserversIfNeeded() {
 
   
   delete [] sSwitchObserverLists;
-  sSwitchObserverLists = NULL;
+  sSwitchObserverLists = nullptr;
 }
 
 void
