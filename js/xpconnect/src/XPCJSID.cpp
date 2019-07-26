@@ -491,7 +491,7 @@ FindObjectForHasInstance(JSContext *cx, HandleObject objArg)
 
 NS_IMETHODIMP
 nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
-                     JSContext * cx, JSObject * obj,
+                     JSContext * cx, JSObject * ,
                      const jsval &val, bool *bp, bool *_retval)
 {
     *bp = false;
@@ -847,7 +847,7 @@ nsJSCID::Construct(nsIXPConnectWrappedNative *wrapper,
 
 NS_IMETHODIMP
 nsJSCID::HasInstance(nsIXPConnectWrappedNative *wrapper,
-                     JSContext * cx, JSObject * obj,
+                     JSContext * cx, JSObject * ,
                      const jsval &val, bool *bp, bool *_retval)
 {
     *bp = false;
