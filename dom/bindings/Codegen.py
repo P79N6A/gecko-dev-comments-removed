@@ -516,6 +516,19 @@ class CGHeaders(CGWrapper):
         callForEachType(descriptors + callbackDescriptors, dictionaries,
                         callbacks, addHeadersForType)
 
+        
+        
+        for desc in descriptors:
+            if desc.interface.isExternal():
+                continue
+            for m in desc.interface.members:
+                func = PropertyDefiner.getStringAttr(m, "Func")
+                
+                
+                if func is not None and "::" in func:
+                    
+                    bindingHeaders.add("/".join(func.split("::")[:-1]) + ".h")
+
         declareIncludes = set(declareIncludes)
         for d in dictionaries:
             if d.parent:
