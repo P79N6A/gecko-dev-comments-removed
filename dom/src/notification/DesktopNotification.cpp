@@ -1,19 +1,16 @@
 
 
 
-
 #include "mozilla/dom/DesktopNotification.h"
 #include "mozilla/dom/DesktopNotificationBinding.h"
-
 #include "nsContentPermissionHelper.h"
 #include "nsXULAppAPI.h"
-
 #include "mozilla/dom/PBrowserChild.h"
+#include "nsIDOMDesktopNotification.h"
 #include "TabChild.h"
 #include "mozilla/Preferences.h"
 #include "nsGlobalWindow.h"
 #include "nsIAppsService.h"
-
 namespace mozilla {
 namespace dom {
 
