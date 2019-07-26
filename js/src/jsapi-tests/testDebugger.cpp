@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "jscntxt.h"
 #include "jsdbgapi.h"
@@ -19,9 +19,9 @@ callCountHook(JSContext *cx, JSAbstractFramePtr frame, bool isConstructing, JSBo
     callCount[before]++;
 
     JS::RootedValue thisv(cx);
-    frame.getThisValue(cx, &thisv); // assert if fp is incomplete
+    frame.getThisValue(cx, &thisv); 
 
-    return cx;  // any non-null value causes the hook to be called again after
+    return cx;  
 }
 
 BEGIN_TEST(testDebugger_bug519719)
@@ -30,8 +30,8 @@ BEGIN_TEST(testDebugger_bug519719)
     JS_SetCallHook(rt, callCountHook, NULL);
     EXEC("function call(fn) { fn(0); }\n"
          "function f(g) { for (var i = 0; i < 9; i++) call(g); }\n"
-         "f(Math.sin);\n"    // record loop, starting in f
-         "f(Math.cos);\n");  // side exit in f -> call
+         "f(Math.sin);\n"    
+         "f(Math.cos);\n");  
     CHECK_EQUAL(callCount[0], 20);
     CHECK_EQUAL(callCount[1], 20);
     return true;
@@ -67,7 +67,7 @@ BEGIN_TEST(testDebugger_getThisNonStrict)
          "''.nonstrict();\n"
          "nonstrict.call(42);\n"
          "(42).nonstrict();\n"
-         // The below don't really get 'wrapped', but it's okay.
+         
          "nonstrict.call(undefined);\n"
          "nonstrict.call(null);\n"
          "nonstrict.call({});\n"
@@ -149,7 +149,7 @@ END_TEST(testDebugger_throwHook)
 BEGIN_TEST(testDebugger_debuggerObjectVsDebugMode)
 {
     CHECK(JS_DefineDebuggerObject(cx, global));
-    JS::RootedObject debuggee(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL));
+    JS::RootedObject debuggee(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL, JS::FireOnNewGlobalHook));
     CHECK(debuggee);
 
     {
@@ -187,9 +187,9 @@ END_TEST(testDebugger_debuggerObjectVsDebugMode)
 
 BEGIN_TEST(testDebugger_newScriptHook)
 {
-    // Test that top-level indirect eval fires the newScript hook.
+    
     CHECK(JS_DefineDebuggerObject(cx, global));
-    JS::RootedObject g(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL));
+    JS::RootedObject g(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL, JS::FireOnNewGlobalHook));
     CHECK(g);
     {
         JSAutoCompartment ae(cx, g);
@@ -207,12 +207,12 @@ BEGIN_TEST(testDebugger_newScriptHook)
          "    hits += Number(s instanceof Debugger.Script);\n"
          "};\n");
 
-    // Since g is a debuggee, g.eval should trigger newScript, regardless of
-    // what scope object we use to enter the compartment.
-    //
-    // Scripts are associated with the global where they're compiled, so we
-    // deliver them only to debuggers that are watching that particular global.
-    //
+    
+    
+    
+    
+    
+    
     return testIndirectEval(g, "Math.abs(0)");
 }
 

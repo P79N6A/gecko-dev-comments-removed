@@ -2907,6 +2907,7 @@ class AutoHoldZone
 
 JS_PUBLIC_API(JSObject *)
 JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
+                   JS::OnNewGlobalHookOption hookOption,
                    const JS::CompartmentOptions &options)
 {
     AssertHeapIsIdle(cx);
@@ -2944,14 +2945,21 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
     if (!global)
         return NULL;
 
-    
-    
-    
-    
-    
-    Debugger::onNewGlobalObject(cx, global);
+    if (hookOption == JS::FireOnNewGlobalHook)
+        JS_FireOnNewGlobalObject(cx, global);
 
     return global;
+}
+
+JS_PUBLIC_API(void)
+JS_FireOnNewGlobalObject(JSContext *cx, JS::HandleObject global)
+{
+    
+    
+    
+    
+    Rooted<js::GlobalObject*> globalObject(cx, &global->as<GlobalObject>());
+    Debugger::onNewGlobalObject(cx, globalObject);
 }
 
 JS_PUBLIC_API(JSObject *)

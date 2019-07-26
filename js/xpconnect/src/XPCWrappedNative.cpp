@@ -407,8 +407,12 @@ XPCWrappedNative::WrapNewGlobal(xpcObjectHelper &nativeHelper,
     
     
     
-    return FinishCreate(scope, iface, nativeHelper.GetWrapperCache(),
-                        wrapper, wrappedGlobal);
+    nsresult rv = FinishCreate(scope, iface, nativeHelper.GetWrapperCache(),
+                               wrapper, wrappedGlobal);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    JS_FireOnNewGlobalObject(cx, global);
+    return NS_OK;
 }
 
 

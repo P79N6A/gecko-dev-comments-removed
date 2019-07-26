@@ -3368,6 +3368,8 @@ xpc_CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandbo
     
     xpc::SetLocationForGlobal(sandbox, options.sandboxName);
 
+    JS_FireOnNewGlobalObject(cx, sandbox);
+
     return NS_OK;
 }
 

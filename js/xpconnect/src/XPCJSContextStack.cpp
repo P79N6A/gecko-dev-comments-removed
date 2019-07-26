@@ -177,6 +177,8 @@ XPCJSContextStack::GetSafeJSContext()
     if (NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
         MOZ_CRASH();
 
+    JS_FireOnNewGlobalObject(mSafeJSContext, glob);
+
     
     mOwnSafeJSContext = mSafeJSContext;
 

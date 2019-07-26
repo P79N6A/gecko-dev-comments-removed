@@ -44,7 +44,7 @@ CustomMethod(JSContext *cx, unsigned argc, Value *vp)
 BEGIN_TEST(test_CallNonGenericMethodOnProxy)
 {
   
-  JS::RootedObject globalA(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL));
+  JS::RootedObject globalA(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL, JS::FireOnNewGlobalHook));
   CHECK(globalA);
 
   JS::RootedObject customA(cx, JS_NewObject(cx, &CustomClass, NULL, NULL));
@@ -60,7 +60,7 @@ BEGIN_TEST(test_CallNonGenericMethodOnProxy)
 
   
   {
-    JS::RootedObject globalB(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL));
+    JS::RootedObject globalB(cx, JS_NewGlobalObject(cx, getGlobalClass(), NULL, JS::FireOnNewGlobalHook));
     CHECK(globalB);
 
     
