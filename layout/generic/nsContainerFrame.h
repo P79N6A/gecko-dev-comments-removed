@@ -25,6 +25,9 @@
 #define NS_FRAME_INVALIDATE_ON_MOVE   0x0010 
 
 class nsOverflowContinuationTracker;
+namespace mozilla {
+class FramePropertyTable;
+}
 
 
 
@@ -514,6 +517,16 @@ protected:
   nsresult SetPropTableFrames(nsPresContext*                 aPresContext,
                               nsFrameList*                   aFrameList,
                               const FramePropertyDescriptor* aProperty);
+
+  
+
+
+
+
+  void SafelyDestroyFrameListProp(nsIFrame* aDestructRoot,
+                                  mozilla::FramePropertyTable* aPropTable,
+                                  const FramePropertyDescriptor* aProp);
+
   
 
   nsFrameList mFrames;

@@ -618,6 +618,7 @@ protected:
   virtual void DestroyFrom(nsIFrame* aDestructRoot) = 0;
   friend class nsFrameList; 
   friend class nsLineBox;   
+  friend class nsContainerFrame; 
 public:
 
   

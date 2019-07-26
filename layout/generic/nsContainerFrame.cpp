@@ -217,6 +217,27 @@ nsContainerFrame::DestroyAbsoluteFrames(nsIFrame* aDestructRoot)
 }
 
 void
+nsContainerFrame::SafelyDestroyFrameListProp(nsIFrame* aDestructRoot,
+                                             FramePropertyTable* aPropTable,
+                                             const FramePropertyDescriptor* aProp)
+{
+  
+  
+  
+  while (nsFrameList* frameList =
+           static_cast<nsFrameList*>(aPropTable->Get(this, aProp))) {
+    nsIFrame* frame = frameList->RemoveFirstChild();
+    if (MOZ_LIKELY(frame)) {
+      frame->DestroyFrom(aDestructRoot);
+    } else {
+      aPropTable->Remove(this, aProp);
+      delete frameList;
+      return;
+    }
+  }
+}
+
+void
 nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
@@ -235,15 +256,11 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
   DestroyOverflowList(prescontext, aDestructRoot);
 
   if (IsFrameOfType(nsIFrame::eCanContainOverflowContainers)) {
-    nsFrameList* frameList =
-      RemovePropTableFrames(prescontext, OverflowContainersProperty());
-    if (frameList)
-      frameList->DestroyFrom(aDestructRoot);
-
-    frameList = RemovePropTableFrames(prescontext,
-                                      ExcessOverflowContainersProperty());
-    if (frameList)
-      frameList->DestroyFrom(aDestructRoot);
+    FramePropertyTable* props = prescontext->PropertyTable();
+    SafelyDestroyFrameListProp(aDestructRoot, props,
+                               OverflowContainersProperty());
+    SafelyDestroyFrameListProp(aDestructRoot, props,
+                               ExcessOverflowContainersProperty());
   }
 
   
