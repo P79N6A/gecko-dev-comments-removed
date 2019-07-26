@@ -825,9 +825,6 @@ pref("gfx.gralloc.fence-with-readpixels", true);
 pref("ril.cellbroadcast.disabled", false);
 
 
-pref("dom.voicemail.enabled", true);
-
-
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
 
 
