@@ -56,27 +56,6 @@ public:
   nsIThread* GMPThread();
 #endif
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  void SetOrigin(const nsAString& aOrigin);
-
-  
-  bool CanBeSharedCrossOrigin() const;
-
-  
-  
-  
-  bool CanBeUsedFrom(const nsAString& aOrigin) const;
-
 private:
   ~GMPParent();
   bool EnsureProcessLoaded();
@@ -101,9 +80,6 @@ private:
 #ifdef DEBUG
   nsCOMPtr<nsIThread> mGMPThread;
 #endif
-  
-  
-  nsAutoString mOrigin;
 };
 
 } 
