@@ -285,9 +285,10 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
         }
         NS_ABORT_IF_FALSE(segment->mFromKey < segment->mToKey,
                           "incorrect keys");
-        NS_ABORT_IF_FALSE(segment - prop.mSegments.Elements() <
+        NS_ABORT_IF_FALSE(segment >= prop.mSegments.Elements() &&
+                          size_t(segment - prop.mSegments.Elements()) <
                             prop.mSegments.Length(),
-                          "ran off end");
+                          "out of array bounds");
 
         if (!mStyleRule) {
           
