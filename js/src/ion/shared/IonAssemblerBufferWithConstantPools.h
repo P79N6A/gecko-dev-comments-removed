@@ -452,6 +452,18 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         if (p != NULL) {
             int poolId = p - pools;
             IonSpew(IonSpew_Pools, "Inserting entry (token %d) into pool %d", token, poolId);
+            IonSpewStart(IonSpew_Pools, "data is: 0x");
+            for (int idx = 0; idx < p->immSize; idx++) {
+#if IS_LITTLE_ENDIAN
+                static const int correction = 0x3;
+#else
+                static const int correction = 0;
+#endif
+                IonSpewCont(IonSpew_Pools, "%02x", data[idx ^ correction]);
+                if (((idx & 3) == 3) && (idx + 1 != p->immSize))
+                    IonSpewCont(IonSpew_Pools, "_");
+            }
+            IonSpewFin(IonSpew_Pools);
             Asm::insertTokenIntoTag(instSize, inst, token);
             JS_ASSERT(poolId < (1 << poolKindBits));
             JS_ASSERT(poolId >= 0);
@@ -658,7 +670,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         
         
         int poolOffset = perforation.getOffset();
-        int magicAlign = getInfo(numDumps-2).finalPos - getInfo(numDumps-2).offset;
+        int magicAlign = getInfo(numDumps-1).finalPos - getInfo(numDumps-1).offset;
         poolOffset += magicAlign;
         poolOffset += headerSize;
         for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
@@ -697,7 +709,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                  iter != p->loadOffsets.begin()-1; --iter, --idx)
             {
 
-                IonSpew(IonSpew_Pools, "Linking entry %d in pool %d", idx, poolIdx);
+                IonSpew(IonSpew_Pools, "Linking entry %d in pool %d", idx+ pools[poolIdx].numEntries, poolIdx);
                 JS_ASSERT(iter->getOffset() >= perforation.getOffset());
                 
                 Inst * inst = this->getInst(*iter);
@@ -725,7 +737,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                 }
             }
             
-            int idxDest;
+            int idxDest = 0;
             
             if (numSkips != 0) {
                 for (idx = 0; idx < p->numEntries; idx++) {
