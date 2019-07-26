@@ -552,6 +552,101 @@ CodeGenerator::visitCallNative(LCallNative *call)
 }
 
 bool
+CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
+{
+    JSFunction *target = call->func();
+    JS_ASSERT(target);
+    JS_ASSERT(target->isNative());
+    JS_ASSERT(target->jitInfo());
+    JS_ASSERT(call->mir()->isDOMFunction());
+
+    int callargslot = call->argslot();
+    int unusedStack = StackOffsetOfPassedArg(callargslot);
+
+    
+    const Register argJSContext = ToRegister(call->getArgJSContext());
+    const Register argObj       = ToRegister(call->getArgObj());
+    const Register argPrivate   = ToRegister(call->getArgPrivate());
+    const Register argArgc      = ToRegister(call->getArgArgc());
+    const Register argVp        = ToRegister(call->getArgVp());
+
+    DebugOnly<uint32> initialStack = masm.framePushed();
+
+    masm.checkStackAlignment();
+
+    
+    
+    
+    
+
+    
+    
+    masm.adjustStack(unusedStack);
+    masm.movePtr(StackPointer, argObj);
+
+    
+    
+    masm.Push(ObjectValue(*target));
+    masm.movePtr(StackPointer, argVp);
+
+    
+    Register obj = masm.extractObject(Address(argObj, 0), argArgc);
+    
+    masm.loadPrivate(Address(obj, JSObject::getFixedSlotOffset(0)), argPrivate);
+
+    
+    masm.move32(Imm32(call->numStackArgs()), argArgc);
+    
+    masm.Push(argArgc);
+
+    
+    uint32 safepointOffset;
+    if (!masm.buildFakeExitFrame(argJSContext, &safepointOffset))
+        return false;
+    masm.enterFakeExitFrame();
+
+    if (!markSafepointAt(safepointOffset, call))
+        return false;
+
+    
+    masm.setupUnalignedABICall(5, argJSContext);
+
+    masm.loadJSContext(argJSContext);
+
+    masm.passABIArg(argJSContext);
+    masm.passABIArg(argObj);
+    masm.passABIArg(argPrivate);
+    masm.passABIArg(argArgc);
+    masm.passABIArg(argVp);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->jitInfo()->op));
+
+    
+    Label success, exception;
+    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+
+    
+    masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), JSReturnOperand);
+    masm.jump(&success);
+
+    
+    {
+        masm.bind(&exception);
+        masm.handleException();
+    }
+    masm.bind(&success);
+
+    
+    
+
+    
+    masm.adjustStack(IonNativeExitFrameLayout::Size() - unusedStack);
+    JS_ASSERT(masm.framePushed() == initialStack);
+
+    return true;
+}
+
+
+bool
 CodeGenerator::emitCallInvokeFunction(LCallGeneric *call, uint32 unusedStack)
 {
     typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);

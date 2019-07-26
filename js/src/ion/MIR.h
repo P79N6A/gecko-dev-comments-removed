@@ -50,7 +50,8 @@ MIRType MIRTypeFromValue(const js::Value &vp)
     /* The instruction has been marked dead for lazy removal from resume
      * points.
      */                                                                         \
-    _(Unused)
+    _(Unused)                                                                   \
+    _(DOMFunction)   
 
 class MDefinition;
 class MInstruction;

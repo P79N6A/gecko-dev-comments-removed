@@ -3737,7 +3737,11 @@ IonBuilder::makeCallBarrier(HandleFunction target, uint32 argc,
 
     
     call->addArg(0, thisArg);
-    call->initFunction(current->pop());
+
+    MDefinition *fun = current->pop();
+    if (fun->isDOMFunction())
+        call->setDOMFunction();
+    call->initFunction(fun);
 
     current->add(call);
     current->push(call);
@@ -4342,28 +4346,45 @@ TestSingletonPropertyTypes(JSContext *cx, types::TypeSet *types,
         break;
 
       case JSVAL_TYPE_OBJECT:
-      case JSVAL_TYPE_UNKNOWN:
+      case JSVAL_TYPE_UNKNOWN: {
         
         
         
-        if (types->getObjectCount() == 1) {
-            types::TypeObject *object = types->getTypeObject(0);
-            if (!object)
-                return true;
-            if (object && object->proto) {
-                if (!TestSingletonProperty(cx, object->proto, id, isKnownConstant))
-                    return false;
-                if (*isKnownConstant) {
-                    types->addFreeze(cx);
+        bool thoughtConstant = true;
+        for (unsigned i = 0; i < types->getObjectCount(); i++) {
+            types::TypeObject *object = types->getTypeObject(i);
+            if (!object) {
+                
+                JSObject *curObj = types->getSingleObject(i);
+                
+                
+                if (!curObj)
+                    continue;
+                object = curObj->getType(cx);
+            }
 
-                    
-                    *testObject = (type != JSVAL_TYPE_OBJECT);
-                }
-                return true;
+            if (object->proto) {
+                
+                if (!TestSingletonProperty(cx, object->proto, id, &thoughtConstant))
+                    return false;
+                
+                if (!thoughtConstant)
+                    break;
+            } else {
+                
+                thoughtConstant = false;
+                break;
             }
         }
-        return true;
+        if (thoughtConstant) {
+                types->addFreeze(cx);
 
+                
+                *testObject = (type != JSVAL_TYPE_OBJECT);
+        }
+        *isKnownConstant = thoughtConstant;
+        return true;
+      }
       default:
         return true;
     }
@@ -5435,6 +5456,68 @@ TestShouldDOMCall(JSContext *cx, types::TypeSet *inTypes, HandleFunction func)
     return true;
 }
 
+static bool
+TestAreKnownDOMTypes(JSContext *cx, types::TypeSet *inTypes)
+{
+    if (inTypes->unknown())
+        return false;
+
+    
+    
+    for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
+        types::TypeObject *curType = inTypes->getTypeObject(i);
+
+        if (!curType) {
+            JSObject *curObj = inTypes->getSingleObject(i);
+
+            
+            if (!curObj)
+                continue;
+
+            curType = curObj->getType(cx);
+        }
+
+        if (curType->unknownProperties())
+            return false;
+
+        
+        
+        if (curType->hasAnyFlags(types::OBJECT_FLAG_NON_DOM))
+            return false;
+    }
+
+    
+    if (inTypes->getObjectCount() > 0)
+        return true;
+
+    return false;
+}
+
+static void
+FreezeDOMTypes(JSContext *cx, types::TypeSet *inTypes)
+{
+    for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
+        types::TypeObject *curType = inTypes->getTypeObject(i);
+
+        if (!curType) {
+            JSObject *curObj = inTypes->getSingleObject(i);
+
+            
+            if (!curObj)
+                continue;
+
+            curType = curObj->getType(cx);
+        }
+
+        
+        DebugOnly<bool> wasntDOM = types::TypeSet::HasObjectFlags(cx, curType,
+                                                                  types::OBJECT_FLAG_NON_DOM);
+        JS_ASSERT(!wasntDOM);
+    }
+
+    inTypes->addFreeze(cx);
+}
+
 bool
 IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetPropertyCache *getPropCache,
                                     types::TypeSet *objTypes, types::TypeSet *pushedTypes)
@@ -5641,7 +5724,19 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
                 MGuardObject *guard = MGuardObject::New(obj);
                 current->add(guard);
             }
-            return pushConstant(ObjectValue(*singleton));
+            MConstant *known = MConstant::New(ObjectValue(*singleton));
+            current->add(known);
+            current->push(known);
+            if (singleton->isFunction()) {
+                RootedFunction singletonFunc(cx, singleton->toFunction());
+                if (TestAreKnownDOMTypes(cx, unaryTypes.inTypes) &&
+                    TestShouldDOMCall(cx, unaryTypes.inTypes, singletonFunc))
+                {
+                    FreezeDOMTypes(cx, unaryTypes.inTypes);
+                    known->setDOMFunction();
+                }
+            }
+            return true;
         }
     }
 
