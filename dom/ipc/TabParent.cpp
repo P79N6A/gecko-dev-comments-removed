@@ -1158,6 +1158,14 @@ TabParent::RecvPIndexedDBConstructor(PIndexedDBParent* aActor,
   nsCOMPtr<nsPIDOMWindow> window = doc->GetInnerWindow();
   NS_ENSURE_TRUE(window, false);
 
+  
+  
+  nsCOMPtr<nsPIDOMWindow> outer = doc->GetWindow();
+  if (!outer || outer->GetCurrentInnerWindow() != window) {
+    *aAllowed = false;
+    return true;
+  }
+
   ContentParent* contentParent = static_cast<ContentParent*>(Manager());
   NS_ASSERTION(contentParent, "Null manager?!");
 

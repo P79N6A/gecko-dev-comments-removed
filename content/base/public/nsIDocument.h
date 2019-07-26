@@ -113,8 +113,8 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x8f33bc23, 0x5625, 0x448a, \
-  { 0xb3, 0x38, 0xfe, 0x88, 0x16, 0xe, 0xb3, 0xdb } }
+{ 0x4be4a58d, 0x7fce, 0x4315, \
+  { 0x9d, 0x6c, 0x8e, 0x9f, 0xc7, 0x2e, 0x51, 0xb } };
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -826,7 +826,7 @@ public:
 
   nsPIDOMWindow* GetInnerWindow()
   {
-    return mRemovedFromDocShell ? GetInnerWindowInternal() : mWindow;
+    return mRemovedFromDocShell ? nullptr : mWindow;
   }
 
   
@@ -2108,9 +2108,6 @@ protected:
 
   
   virtual nsPIDOMWindow *GetWindowInternal() const = 0;
-
-  
-  virtual nsPIDOMWindow *GetInnerWindowInternal() = 0;
 
   
   virtual nsIScriptGlobalObject* GetScriptHandlingObjectInternal() const = 0;

@@ -848,13 +848,8 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
     
     nsIDocument *document = OwnerDoc();
 
-    
-    
-    
-    
-    
     *aDefer = false;
-    if ((win = document->GetInnerWindow()) && win->IsInnerWindow()) {
+    if ((win = document->GetInnerWindow())) {
       nsCOMPtr<EventTarget> piTarget(do_QueryInterface(win));
 
       return piTarget->GetListenerManager(true);
@@ -867,11 +862,6 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
                                                                   aDefer);
 }
 
-
-
-
-
-
 #define EVENT(name_, id_, type_, struct_)
 #define FORWARDED_EVENT(name_, id_, type_, struct_)                           \
 EventHandlerNonNull*                                                          \
@@ -880,7 +870,7 @@ nsGenericHTMLElement::GetOn##name_()                                          \
   if (Tag() == nsGkAtoms::body || Tag() == nsGkAtoms::frameset) {             \
     /* XXXbz note to self: add tests for this! */                             \
     nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();                        \
-    if (win && win->IsInnerWindow()) {                                        \
+    if (win) {                                                                \
       nsCOMPtr<nsISupports> supports = do_QueryInterface(win);                \
       nsGlobalWindow* globalWin = nsGlobalWindow::FromSupports(supports);     \
       return globalWin->GetOn##name_();                                       \
@@ -896,7 +886,7 @@ nsGenericHTMLElement::SetOn##name_(EventHandlerNonNull* handler,              \
 {                                                                             \
   if (Tag() == nsGkAtoms::body || Tag() == nsGkAtoms::frameset) {             \
     nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();                        \
-    if (!win || !win->IsInnerWindow()) {                                      \
+    if (!win) {                                                               \
       return;                                                                 \
     }                                                                         \
                                                                               \
@@ -914,7 +904,7 @@ nsGenericHTMLElement::GetOn##name_()                                          \
   if (Tag() == nsGkAtoms::body || Tag() == nsGkAtoms::frameset) {             \
     /* XXXbz note to self: add tests for this! */                             \
     nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();                        \
-    if (win && win->IsInnerWindow()) {                                        \
+    if (win) {                                                                \
       nsCOMPtr<nsISupports> supports = do_QueryInterface(win);                \
       nsGlobalWindow* globalWin = nsGlobalWindow::FromSupports(supports);     \
       OnErrorEventHandlerNonNull* errorHandler = globalWin->GetOn##name_();   \
@@ -936,7 +926,7 @@ nsGenericHTMLElement::SetOn##name_(EventHandlerNonNull* handler,              \
 {                                                                             \
   if (Tag() == nsGkAtoms::body || Tag() == nsGkAtoms::frameset) {             \
     nsPIDOMWindow* win = OwnerDoc()->GetInnerWindow();                        \
-    if (!win || !win->IsInnerWindow()) {                                      \
+    if (!win) {                                                               \
       return;                                                                 \
     }                                                                         \
                                                                               \
