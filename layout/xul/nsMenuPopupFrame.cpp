@@ -111,9 +111,9 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
 
 
 void
-nsMenuPopupFrame::Init(nsIContent*       aContent,
-                       nsContainerFrame* aParent,
-                       nsIFrame*         aPrevInFlow)
+nsMenuPopupFrame::Init(nsIContent*      aContent,
+                       nsIFrame*        aParent,
+                       nsIFrame*        aPrevInFlow)
 {
   nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
@@ -406,7 +406,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
 
   
   if (mIsOpenChanged) {
-    nsIScrollableFrame *scrollframe = do_QueryFrame(nsBox::GetChildBox(this));
+    nsIScrollableFrame *scrollframe = do_QueryFrame(GetChildBox());
     if (scrollframe) {
       nsWeakFrame weakFrame(this);
       scrollframe->ScrollTo(nsPoint(0,0), nsIScrollableFrame::INSTANT);
@@ -1622,7 +1622,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   doAction = false;
 
   
-  nsContainerFrame* immediateParent = PresContext()->PresShell()->
+  nsIFrame* immediateParent = PresContext()->PresShell()->
     FrameConstructor()->GetInsertionPoint(GetContent(), nullptr);
   if (!immediateParent)
     immediateParent = this;
@@ -1682,13 +1682,13 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
 
   lastKeyTime = keyTime;
 
-  nsIFrame* currFrame;
   
   
   
   
   
-  currFrame = immediateParent->GetFirstPrincipalChild();
+  nsIFrame* firstMenuItem = nsXULPopupManager::GetNextMenuItem(immediateParent, nullptr, true);
+  nsIFrame* currFrame = firstMenuItem;
 
   int32_t menuAccessKey = -1;
   nsMenuBarListener::GetMenuAccessKey(&menuAccessKey);
@@ -1697,64 +1697,64 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   
   while (currFrame) {
     nsIContent* current = currFrame->GetContent();
-    
-    
-    if (nsXULPopupManager::IsValidMenuItem(PresContext(), current, true)) {
-      nsAutoString textKey;
-      if (menuAccessKey >= 0) {
+    nsAutoString textKey;
+    if (menuAccessKey >= 0) {
+      
+      current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
+    }
+    if (textKey.IsEmpty()) { 
+      isShortcut = false;
+      current->GetAttr(kNameSpaceID_None, nsGkAtoms::label, textKey);
+      if (textKey.IsEmpty()) 
+        current->GetAttr(kNameSpaceID_None, nsGkAtoms::value, textKey);
+    }
+    else
+      isShortcut = true;
+
+    if (StringBeginsWith(textKey, incrementalString,
+                         nsCaseInsensitiveStringComparator())) {
+      
+      nsMenuFrame* menu = do_QueryFrame(currFrame);
+      if (menu) {
         
-        current->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, textKey);
-      }
-      if (textKey.IsEmpty()) { 
-        isShortcut = false;
-        current->GetAttr(kNameSpaceID_None, nsGkAtoms::label, textKey);
-        if (textKey.IsEmpty()) 
-          current->GetAttr(kNameSpaceID_None, nsGkAtoms::value, textKey);
+        matchCount++;
+        if (isShortcut) {
+          
+          matchShortcutCount++;
+          
+          frameShortcut = menu;
+        }
+        if (!foundActive) {
+          
+          if (!frameBefore)
+            frameBefore = menu;
+        }
+        else {
+          
+          if (!frameAfter)
+            frameAfter = menu;
+        }
       }
       else
-        isShortcut = true;
+        return nullptr;
+    }
 
-      if (StringBeginsWith(textKey, incrementalString,
-                           nsCaseInsensitiveStringComparator())) {
+    
+    if (current->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
+                             nsGkAtoms::_true, eCaseMatters)) {
+      foundActive = true;
+      if (stringLength > 1) {
         
-        nsMenuFrame* menu = do_QueryFrame(currFrame);
-        if (menu) {
-          
-          matchCount++;
-          if (isShortcut) {
-            
-            matchShortcutCount++;
-            
-            frameShortcut = menu;
-          }
-          if (!foundActive) {
-            
-            if (!frameBefore)
-              frameBefore = menu;
-          }
-          else {
-            
-            if (!frameAfter)
-              frameAfter = menu;
-          }
-        }
-        else
-          return nullptr;
-      }
-
-      
-      if (current->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
-                               nsGkAtoms::_true, eCaseMatters)) {
-        foundActive = true;
-        if (stringLength > 1) {
-          
-          
-          if (currFrame == frameBefore)
-            return frameBefore;
-        }
+        
+        if (currFrame == frameBefore)
+          return frameBefore;
       }
     }
-    currFrame = currFrame->GetNextSibling();
+
+    nsMenuFrame* menu = do_QueryFrame(currFrame);
+    currFrame = nsXULPopupManager::GetNextMenuItem(immediateParent, menu, true);
+    if (currFrame == firstMenuItem)
+      break;
   }
 
   doAction = (isMenu && (matchCount == 1 || matchShortcutCount == 1));

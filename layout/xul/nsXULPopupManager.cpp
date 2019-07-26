@@ -1761,7 +1761,10 @@ nsXULPopupManager::UpdateMenuItems(nsIContent* aPopup)
   for (nsCOMPtr<nsIContent> grandChild = aPopup->GetFirstChild();
        grandChild;
        grandChild = grandChild->GetNextSibling()) {
-    if (grandChild->NodeInfo()->Equals(nsGkAtoms::menuitem, kNameSpaceID_XUL)) {
+    if (grandChild->IsXUL(nsGkAtoms::menugroup)) {
+      grandChild = grandChild->GetFirstChild();
+    }
+    if (grandChild->IsXUL(nsGkAtoms::menuitem)) {
       
       nsAutoString command;
       grandChild->GetAttr(kNameSpaceID_None, nsGkAtoms::command, command);
@@ -1793,6 +1796,10 @@ nsXULPopupManager::UpdateMenuItems(nsIContent* aPopup)
             grandChild->SetAttr(kNameSpaceID_None, nsGkAtoms::hidden, commandValue, true);
         }
       }
+    }
+    if (!grandChild->GetNextSibling() &&
+        grandChild->GetParent()->IsXUL(nsGkAtoms::menugroup)) {
+      grandChild = grandChild->GetParent();
     }
   }
 }
@@ -2144,28 +2151,39 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
 }
 
 nsMenuFrame*
-nsXULPopupManager::GetNextMenuItem(nsContainerFrame* aParent,
+nsXULPopupManager::GetNextMenuItem(nsIFrame* aParent,
                                    nsMenuFrame* aStart,
                                    bool aIsPopup)
 {
   nsPresContext* presContext = aParent->PresContext();
-  nsContainerFrame* immediateParent = presContext->PresShell()->
+  nsIFrame* immediateParent = presContext->PresShell()->
     FrameConstructor()->GetInsertionPoint(aParent->GetContent(), nullptr);
   if (!immediateParent)
     immediateParent = aParent;
 
   nsIFrame* currFrame = nullptr;
-  if (aStart)
-    currFrame = aStart->GetNextSibling();
-  else 
+  if (aStart) {
+    if (aStart->GetNextSibling())
+      currFrame = aStart->GetNextSibling();
+    else if (aStart->GetParent()->GetContent()->IsXUL(nsGkAtoms::menugroup))
+      currFrame = aStart->GetParent()->GetNextSibling();
+  }
+  else
     currFrame = immediateParent->GetFirstPrincipalChild();
-  
+
   while (currFrame) {
     
-    if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
+    nsIContent* currFrameContent = currFrame->GetContent();
+    if (IsValidMenuItem(presContext, currFrameContent, aIsPopup)) {
       return do_QueryFrame(currFrame);
     }
-    currFrame = currFrame->GetNextSibling();
+    if (currFrameContent->IsXUL(nsGkAtoms::menugroup))
+      currFrame = currFrame->GetFirstPrincipalChild();
+    else if (!currFrame->GetNextSibling() &&
+             currFrame->GetParent()->GetContent()->IsXUL(nsGkAtoms::menugroup))
+      currFrame = currFrame->GetParent()->GetNextSibling();
+    else
+      currFrame = currFrame->GetNextSibling();
   }
 
   currFrame = immediateParent->GetFirstPrincipalChild();
@@ -2173,11 +2191,17 @@ nsXULPopupManager::GetNextMenuItem(nsContainerFrame* aParent,
   
   while (currFrame && currFrame != aStart) {
     
-    if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
+    nsIContent* currFrameContent = currFrame->GetContent();
+    if (IsValidMenuItem(presContext, currFrameContent, aIsPopup)) {
       return do_QueryFrame(currFrame);
     }
-
-    currFrame = currFrame->GetNextSibling();
+    if (currFrameContent->IsXUL(nsGkAtoms::menugroup))
+      currFrame = currFrame->GetFirstPrincipalChild();
+    else if (!currFrame->GetNextSibling() &&
+             currFrame->GetParent()->GetContent()->IsXUL(nsGkAtoms::menugroup))
+      currFrame = currFrame->GetParent()->GetNextSibling();
+    else
+      currFrame = currFrame->GetNextSibling();
   }
 
   
@@ -2185,12 +2209,12 @@ nsXULPopupManager::GetNextMenuItem(nsContainerFrame* aParent,
 }
 
 nsMenuFrame*
-nsXULPopupManager::GetPreviousMenuItem(nsContainerFrame* aParent,
+nsXULPopupManager::GetPreviousMenuItem(nsIFrame* aParent,
                                        nsMenuFrame* aStart,
                                        bool aIsPopup)
 {
   nsPresContext* presContext = aParent->PresContext();
-  nsContainerFrame* immediateParent = presContext->PresShell()->
+  nsIFrame* immediateParent = presContext->PresShell()->
     FrameConstructor()->GetInsertionPoint(aParent->GetContent(), nullptr);
   if (!immediateParent)
     immediateParent = aParent;
@@ -2198,17 +2222,30 @@ nsXULPopupManager::GetPreviousMenuItem(nsContainerFrame* aParent,
   const nsFrameList& frames(immediateParent->PrincipalChildList());
 
   nsIFrame* currFrame = nullptr;
-  if (aStart)
-    currFrame = aStart->GetPrevSibling();
+  if (aStart) {
+    if (aStart->GetPrevSibling())
+      currFrame = aStart->GetPrevSibling();
+    else if (aStart->GetParent()->GetContent()->IsXUL(nsGkAtoms::menugroup))
+      currFrame = aStart->GetParent()->GetPrevSibling();
+  }
   else
     currFrame = frames.LastChild();
 
   while (currFrame) {
     
-    if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
+    nsIContent* currFrameContent = currFrame->GetContent();
+    if (IsValidMenuItem(presContext, currFrameContent, aIsPopup)) {
       return do_QueryFrame(currFrame);
     }
-    currFrame = currFrame->GetPrevSibling();
+    if (currFrameContent->IsXUL(nsGkAtoms::menugroup)) {
+      const nsFrameList& menugroupFrames(currFrame->PrincipalChildList());
+      currFrame = menugroupFrames.LastChild();
+    }
+    else if (!currFrame->GetPrevSibling() &&
+             currFrame->GetParent()->GetContent()->IsXUL(nsGkAtoms::menugroup))
+      currFrame = currFrame->GetParent()->GetPrevSibling();
+    else
+      currFrame = currFrame->GetPrevSibling();
   }
 
   currFrame = frames.LastChild();
@@ -2216,11 +2253,19 @@ nsXULPopupManager::GetPreviousMenuItem(nsContainerFrame* aParent,
   
   while (currFrame && currFrame != aStart) {
     
-    if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
+    nsIContent* currFrameContent = currFrame->GetContent();
+    if (IsValidMenuItem(presContext, currFrameContent, aIsPopup)) {
       return do_QueryFrame(currFrame);
     }
-
-    currFrame = currFrame->GetPrevSibling();
+    if (currFrameContent->IsXUL(nsGkAtoms::menugroup)) {
+      const nsFrameList& menugroupFrames(currFrame->PrincipalChildList());
+      currFrame = menugroupFrames.LastChild();
+    }
+    else if (!currFrame->GetPrevSibling() &&
+             currFrame->GetParent()->GetContent()->IsXUL(nsGkAtoms::menugroup))
+      currFrame = currFrame->GetParent()->GetPrevSibling();
+    else
+      currFrame = currFrame->GetPrevSibling();
   }
 
   
