@@ -312,7 +312,7 @@ var SyntheticGestures = (function() {
   
   
   function dbltap(target, then, x, y, interval) {
-    if (!SyntheticGestures.touchSupported) {
+    if (!SyntheticGestures.touchSupported || !target.ownerDocument.createTouch) {
       console.warn('dbltap: touch events not supported; using mouse instead');
       return mousedbltap(target, then, x, y, interval);
     }
@@ -347,7 +347,7 @@ var SyntheticGestures = (function() {
   
   
   function hold(target, holdtime, x1, y1, x2, y2, movetime, then) {
-    if (!SyntheticGestures.touchSupported) {
+    if (!SyntheticGestures.touchSupported || !target.ownerDocument.createTouch) {
       console.warn('hold: touch events not supported; using mouse instead');
       return mousehold(target, holdtime, x1, y1, x2, y2, movetime, then);
     }
