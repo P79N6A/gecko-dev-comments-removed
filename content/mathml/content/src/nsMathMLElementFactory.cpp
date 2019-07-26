@@ -7,9 +7,11 @@
 #include "nsGkAtoms.h"
 #include "nsMathMLElement.h"
 
+using namespace mozilla::dom;
+
 
 nsresult
-NS_NewMathMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo)
+NS_NewMathMLElement(Element** aResult, already_AddRefed<nsINodeInfo> aNodeInfo)
 {
   aNodeInfo.get()->SetIDAttributeAtom(nsGkAtoms::id);
 
