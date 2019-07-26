@@ -6828,7 +6828,13 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
         return true;
 
     RootedFunction fun(cx, obj->toFunction());
+
     if (fun->hasScript()) {
+        
+        
+        if (op == JSOP_FUNAPPLY)
+            return true;
+
         RootedScript calleeScript(cx, fun->nonLazyScript());
         if (!calleeScript->hasBaselineScript() && !calleeScript->hasIonScript())
             return true;
@@ -6880,27 +6886,31 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
         JS_ASSERT(!stub->nativeStubsAreGeneralized());
 
         
-        if (op == JSOP_FUNAPPLY && fun->maybeNative() == js_fun_apply) {
-            if (!TryAttachFunApplyStub(cx, stub, script, pc, thisv, argc, vp + 2))
-                return false;
-        } else {
-            if (stub->nativeStubCount() >= ICCall_Fallback::MAX_NATIVE_STUBS) {
-                IonSpew(IonSpew_BaselineIC,
-                        "  Too many Call_Native stubs. TODO: add Call_AnyNative!");
-                return true;
-            }
+        if (op == JSOP_FUNAPPLY) {
+            if (fun->maybeNative() == js_fun_apply)
+                return TryAttachFunApplyStub(cx, stub, script, pc, thisv, argc, vp + 2);
 
-            IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s)",
-                    fun.get(), constructing ? "yes" : "no");
-            ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
-                                             fun, constructing, pc - script->code);
-            ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
-            if (!newStub)
-                return false;
-
-            stub->addNewStub(newStub);
+            
+            
             return true;
         }
+
+        if (stub->nativeStubCount() >= ICCall_Fallback::MAX_NATIVE_STUBS) {
+            IonSpew(IonSpew_BaselineIC,
+                    "  Too many Call_Native stubs. TODO: add Call_AnyNative!");
+            return true;
+        }
+
+        IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s)",
+                fun.get(), constructing ? "yes" : "no");
+        ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
+                                         fun, constructing, pc - script->code);
+        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        return true;
     }
 
     return true;
