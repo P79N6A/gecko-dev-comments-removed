@@ -605,18 +605,29 @@ var AddonManagerInternal = {
       try {
         defaultProvidersEnabled = Services.prefs.getBoolPref(PREF_DEFAULT_PROVIDERS_ENABLED);
       } catch (e) {}
+      AddonManagerPrivate.recordSimpleMeasure("default_providers", defaultProvidersEnabled);
 
       
       if (defaultProvidersEnabled) {
-        DEFAULT_PROVIDERS.forEach(function(url) {
+        for (let url of DEFAULT_PROVIDERS) {
           try {
-            Components.utils.import(url, {});
+            let scope = {};
+            Components.utils.import(url, scope);
+            
+            
+            let syms = Object.keys(scope);
+            if ((syms.length < 1) ||
+                (typeof scope[syms[0]].startup != "function")) {
+              logger.warn("Provider " + url + " has no startup()");
+              AddonManagerPrivate.recordException("AMI", "provider " + url, "no startup()");
+            }
+            logger.debug("Loaded provider scope for " + url + ": " + Object.keys(scope).toSource());
           }
           catch (e) {
             AddonManagerPrivate.recordException("AMI", "provider " + url + " load failed", e);
             logger.error("Exception loading default provider \"" + url + "\"", e);
           }
-        });
+        };
       }
 
       
@@ -772,6 +783,7 @@ var AddonManagerInternal = {
           provider[aMethod].apply(provider, aArgs);
       }
       catch (e) {
+        AddonManagerPrivate.recordException("AMI", "provider " + aMethod, e);
         logger.error("Exception calling provider " + aMethod, e);
       }
     }
