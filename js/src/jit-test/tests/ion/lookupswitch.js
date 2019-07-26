@@ -8,6 +8,9 @@
 
 
 
+
+try{} catch (x) {};
+
 function ASSERT(cond, msg) {
     assertEq(cond, true, msg);
 }
