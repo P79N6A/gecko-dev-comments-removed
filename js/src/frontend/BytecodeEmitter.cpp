@@ -2994,12 +2994,6 @@ EmitDestructuringOpsHelper(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode
     JS_ASSERT(pn->isKind(PNK_ARRAY) || pn->isKind(PNK_OBJECT));
 #endif
 
-    if (pn->pn_count == 0) {
-        
-        if (Emit1(cx, bce, JSOP_DUP) < 0 || Emit1(cx, bce, JSOP_POP) < 0)
-            return false;
-    }
-
     index = 0;
     for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
         
@@ -3834,14 +3828,7 @@ EmitCatch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     }
 
     
-    if (!EmitTree(cx, bce, pn->pn_kid3))
-        return false;
-
-    
-
-
-
-    return NewSrcNote(cx, bce, SRC_CATCH) >= 0;
+    return EmitTree(cx, bce, pn->pn_kid3);
 }
 
 
@@ -3945,8 +3932,6 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 bce->stackDepth = depth + count + 1;
 
                 
-
-
 
 
 
@@ -4536,8 +4521,6 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
 
 
 
-
-
     if (Emit1(cx, bce, JSOP_ITERNEXT) < 0)
         return false;
     if (!EmitAssignment(cx, bce, forHead->pn_kid2, JSOP_NOP, nullptr))
@@ -4610,6 +4593,7 @@ EmitNormalFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff
     JSOp op = JSOP_POP;
     ParseNode *pn3 = forHead->pn_kid1;
     if (!pn3) {
+        
         
         op = JSOP_NOP;
     } else {
@@ -4939,11 +4923,6 @@ EmitDo(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (!EmitTree(cx, bce, pn->pn_right))
         return false;
 
-    
-
-
-
-
     ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFNE, top - bce->offset());
     if (beq < 0)
         return false;
@@ -4952,6 +4931,9 @@ EmitDo(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         return false;
 
     
+
+
+
 
 
 
