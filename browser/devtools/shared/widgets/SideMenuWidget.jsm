@@ -65,13 +65,21 @@ SideMenuWidget.prototype = {
   
 
 
+  sortedGroups: true,
+
+  
+
+
 
   maintainSelectionVisible: true,
 
   
 
 
-  sortedGroups: true,
+
+
+
+  autoscrollWithAppendedItems: false,
 
   
 
@@ -92,13 +100,23 @@ SideMenuWidget.prototype = {
     
     this.removeAttribute("notice");
 
-    if (this.maintainSelectionVisible) {
-      this.ensureSelectionIsVisible({ withGroup: true, delayed: true });
-    }
+    let maintainScrollAtBottom =
+      this.autoscrollWithAppendedItems &&
+      (aIndex < 0 || aIndex >= this._orderedMenuElementsArray.length) &&
+      (this._list.scrollTop + this._list.clientHeight >= this._list.scrollHeight);
 
     let group = this._getGroupForName(aGroup);
     let item = this._getItemForGroup(group, aContents, aTooltip);
-    return item.insertSelfAt(aIndex);
+    let element = item.insertSelfAt(aIndex);
+
+    if (this.maintainSelectionVisible) {
+      this.ensureSelectionIsVisible({ withGroup: true, delayed: true });
+    }
+    if (maintainScrollAtBottom) {
+      this._list.scrollTop = this._list.scrollHeight;
+    }
+
+    return element;
   },
 
   
