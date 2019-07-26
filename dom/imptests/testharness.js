@@ -1205,8 +1205,6 @@
                          this_obj.complete();
                      }
                  });
-
-        this.set_timeout();
     }
 
     Tests.prototype.setup = function(func, properties)
