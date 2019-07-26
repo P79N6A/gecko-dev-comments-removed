@@ -327,11 +327,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "AppCacheUtils",
           let name = representAddon(addon);
           let message = "";
 
-          if (addon.userDisabled) {
-            message = gcli.lookupFormat("addonAlreadyDisabled", [name]);
-          } else {
+          
+          
+          
+          if (!addon.userDisabled ||
+              addon.userDisabled === AddonManager.STATE_ASK_TO_ACTIVATE) {
             addon.userDisabled = true;
             message = gcli.lookupFormat("addonDisabled", [name]);
+          } else {
+            message = gcli.lookupFormat("addonAlreadyDisabled", [name]);
           }
           this.resolve(message);
         }
