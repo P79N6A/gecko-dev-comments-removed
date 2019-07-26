@@ -2065,7 +2065,7 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
       
       
       
-      const void* parentStruct = parentContext->GetStyleData(aSID);
+      const void* parentStruct = parentContext->StyleData(aSID);
       aContext->AddStyleBit(bit); 
       aContext->SetStyle(aSID, const_cast<void*>(parentStruct));
       return parentStruct;

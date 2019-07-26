@@ -747,7 +747,6 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   
   
   
-  
   if (mBidiUI)
   {
     

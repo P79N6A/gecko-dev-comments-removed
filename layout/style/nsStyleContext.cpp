@@ -213,7 +213,7 @@ const void* nsStyleContext::GetCachedStyleData(nsStyleStructID aSID)
   return cachedData;
 }
 
-const void* nsStyleContext::GetStyleData(nsStyleStructID aSID)
+const void* nsStyleContext::StyleData(nsStyleStructID aSID)
 {
   const void* cachedData = GetCachedStyleData(aSID);
   if (cachedData)
@@ -232,7 +232,7 @@ nsStyleContext::GetUniqueStyleData(const nsStyleStructID& aSID)
   
   
   
-  const void *current = GetStyleData(aSID);
+  const void *current = StyleData(aSID);
   if (!mChild && !mEmptyChild &&
       !(mBits & nsCachedStyleData::GetBitForSID(aSID)) &&
       GetCachedStyleData(aSID))

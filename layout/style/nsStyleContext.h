@@ -230,7 +230,7 @@ public:
 
 
 
-  const void* NS_FASTCALL GetStyleData(nsStyleStructID aSID);
+  const void* NS_FASTCALL StyleData(nsStyleStructID aSID);
 
   
 

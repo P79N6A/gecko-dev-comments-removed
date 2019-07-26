@@ -783,7 +783,7 @@ public:
 
 
 
-  virtual const void* GetStyleDataExternal(nsStyleStructID aSID) const = 0;
+  virtual const void* StyleDataExternal(nsStyleStructID aSID) const = 0;
 
   
 
@@ -803,7 +803,7 @@ public:
   #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                      \
     const nsStyle##name_ * Style##name_ () const {                            \
       return static_cast<const nsStyle##name_*>(                              \
-                            GetStyleDataExternal(eStyleStruct_##name_));      \
+                            StyleDataExternal(eStyleStruct_##name_));         \
     }
 #endif
   #include "nsStyleStructList.h"
