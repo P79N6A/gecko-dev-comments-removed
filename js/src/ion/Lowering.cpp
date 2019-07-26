@@ -858,7 +858,7 @@ ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
     
     
     
-    if (lhs->isConstant() || rhs->useCount() == 1) {
+    if (lhs->isConstant() || (!rhs->isConstant() && rhs->useCount() == 1)) {
         *rhsp = lhs;
         *lhsp = rhs;
     }
