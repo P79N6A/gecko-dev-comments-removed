@@ -314,23 +314,19 @@ nsAppStartup::Quit(uint32_t aMode)
 
   
   if (ferocity == eConsiderQuit) {
-#ifdef XP_MACOSX
-    nsCOMPtr<nsIAppShellService> appShell
-      (do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
-    bool hasHiddenPrivateWindow = false;
-    if (appShell) {
-      appShell->GetHasHiddenPrivateWindow(&hasHiddenPrivateWindow);
-    }
-    int32_t suspiciousCount = hasHiddenPrivateWindow ? 2 : 1;
-#endif
-
     if (mConsiderQuitStopper == 0) {
       
       ferocity = eAttemptQuit;
     }
 #ifdef XP_MACOSX
-    else if (mConsiderQuitStopper == suspiciousCount) {
-      
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+    else if (mConsiderQuitStopper == 2) {
+#else
+    else if (mConsiderQuitStopper == 1) {
+#endif
+
+      nsCOMPtr<nsIAppShellService> appShell
+        (do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
 
       
       if (!appShell)
@@ -341,15 +337,11 @@ nsAppStartup::Quit(uint32_t aMode)
       nsCOMPtr<nsIXULWindow> hiddenWindow;
       appShell->GetHiddenWindow(getter_AddRefs(hiddenWindow));
 #ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      
       nsCOMPtr<nsIXULWindow> hiddenPrivateWindow;
-      if (hasHiddenPrivateWindow) {
-        appShell->GetHiddenPrivateWindow(getter_AddRefs(hiddenPrivateWindow));
-        if ((!hiddenWindow && !hiddenPrivateWindow) || usefulHiddenWindow)
-          return NS_OK;
-      } else if (!hiddenWindow || usefulHiddenWindow) {
+      appShell->GetHiddenPrivateWindow(getter_AddRefs(hiddenPrivateWindow));
+      
+      if ((!hiddenWindow && !hiddenPrivateWindow) || usefulHiddenWindow)
         return NS_OK;
-      }
 #else
       
       if (!hiddenWindow || usefulHiddenWindow)
