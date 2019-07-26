@@ -1323,13 +1323,13 @@ public:
 
   virtual LayerRenderState GetRenderState() { return LayerRenderState(); }
 
-protected:
-  Layer(LayerManager* aManager, void* aImplData);
-
   void Mutated()
   {
     mManager->Mutated(this);
   }
+
+protected:
+  Layer(LayerManager* aManager, void* aImplData);
 
   
   
