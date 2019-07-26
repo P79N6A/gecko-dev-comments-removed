@@ -985,7 +985,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           
           
           
-          script->DeserializeOutOfLine(nullptr, mPrototype->GetScriptGlobalObject());
+          script->DeserializeOutOfLine(nullptr, mPrototype);
       }
 
       nsPrototypeArray* children = nullptr;
