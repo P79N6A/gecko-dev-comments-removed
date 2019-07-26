@@ -492,7 +492,7 @@ IOInterposer::Clear()
   
 
 
-#if defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING)
+#if defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING) || defined(MOZ_ASAN)
   UnregisterCurrentThread();
   sMasterList = nullptr;
 #endif
