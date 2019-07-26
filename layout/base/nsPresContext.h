@@ -110,6 +110,12 @@ public:
     uint32_t mFlags;
   };
 
+  void TakeFrom(nsInvalidateRequestList* aList)
+  {
+    mRequests.MoveElementsFrom(aList->mRequests);
+  }
+  bool IsEmpty() { return mRequests.IsEmpty(); }
+
   nsTArray<Request> mRequests;
 };
 
@@ -828,8 +834,9 @@ public:
   void NotifyInvalidation(const nsRect& aRect, uint32_t aFlags);
   
   void NotifyInvalidation(const nsIntRect& aRect, uint32_t aFlags);
-  void NotifyDidPaintForSubtree();
-  void FireDOMPaintEvent();
+  
+  void NotifyDidPaintForSubtree(uint32_t aFlags);
+  void FireDOMPaintEvent(nsInvalidateRequestList* aList);
 
   
   
@@ -837,7 +844,8 @@ public:
                                        const nsIntRegion& aRegion);
   bool IsDOMPaintEventPending();
   void ClearMozAfterPaintEvents() {
-    mInvalidateRequests.mRequests.Clear();
+    mInvalidateRequestsSinceLastPaint.mRequests.Clear();
+    mUndeliveredInvalidateRequestsBeforeLastPaint.mRequests.Clear();
     mAllInvalidated = false;
   }
 
@@ -1138,7 +1146,8 @@ protected:
 
   FramePropertyTable    mPropertyTable;
 
-  nsInvalidateRequestList mInvalidateRequests;
+  nsInvalidateRequestList mInvalidateRequestsSinceLastPaint;
+  nsInvalidateRequestList mUndeliveredInvalidateRequestsBeforeLastPaint;
 
   
   nsUserFontSet*        mUserFontSet;
@@ -1200,6 +1209,8 @@ protected:
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
   unsigned              mMayHaveFixedBackgroundFrames : 1;
+  
+  
   unsigned              mAllInvalidated : 1;
 
   
