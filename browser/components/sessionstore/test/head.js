@@ -5,6 +5,10 @@
 const TAB_STATE_NEEDS_RESTORE = 1;
 const TAB_STATE_RESTORING = 2;
 
+let tmp = {};
+Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
+let SessionStore = tmp.SessionStore;
+
 let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
 
 
@@ -284,4 +288,55 @@ function whenNewWindowLoaded(aIsPrivate, aCallback) {
     win.removeEventListener("load", onLoad, false);
     aCallback(win);
   }, false);
+}
+
+
+
+
+let TestRunner = {
+  _iter: null,
+
+  
+
+
+
+  backupState: {},
+
+  
+
+
+  run: function () {
+    waitForExplicitFinish();
+
+    SessionStore.promiseInitialized.then(function () {
+      executeSoon(function () {
+        this.backupState = JSON.parse(ss.getBrowserState());
+        this._iter = runTests();
+        this.next();
+      }.bind(this));
+    }.bind(this));
+  },
+
+  
+
+
+  next: function () {
+    try {
+      TestRunner._iter.next();
+    } catch (e if e instanceof StopIteration) {
+      TestRunner.finish();
+    }
+  },
+
+  
+
+
+  finish: function () {
+    closeAllButPrimaryWindow();
+    waitForBrowserState(this.backupState, finish);
+  }
+};
+
+function next() {
+  TestRunner.next();
 }

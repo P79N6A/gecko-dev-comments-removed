@@ -110,6 +110,10 @@ function debug(aMsg) {
 }
 
 this.SessionStore = {
+  get promiseInitialized() {
+    return SessionStoreInternal.promiseInitialized.promise;
+  },
+
   get canRestoreLastSession() {
     return SessionStoreInternal.canRestoreLastSession;
   },
@@ -311,6 +315,13 @@ let SessionStoreInternal = {
   
   
   _resume_session_once_on_shutdown: null,
+
+  
+
+
+  get promiseInitialized() {
+    return this._promiseInitialization;
+  },
 
   
   get canRestoreLastSession() {
