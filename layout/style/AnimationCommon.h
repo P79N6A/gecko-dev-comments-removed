@@ -387,6 +387,11 @@ public:
 
 typedef InfallibleTArray<nsRefPtr<ElementAnimation> > ElementAnimationPtrArray;
 
+enum EnsureStyleRuleFlags {
+  EnsureStyleRule_IsThrottled,
+  EnsureStyleRule_IsNotThrottled
+};
+
 namespace css {
 
 struct CommonElementAnimationData : public PRCList
@@ -425,7 +430,7 @@ struct CommonElementAnimationData : public PRCList
   
   
   
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
+  void EnsureStyleRuleFor(TimeStamp aRefreshTime, EnsureStyleRuleFlags aFlags);
 
   bool CanThrottleTransformChanges(mozilla::TimeStamp aTime);
 
