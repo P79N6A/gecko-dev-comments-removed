@@ -17,7 +17,6 @@
 
 static const int32_t kMinGrowArrayBy = 8;
 static const int32_t kMaxGrowArrayBy = 1024;
-static const int32_t kAutoClearCompactSizeFactor = 4;
 
 
 

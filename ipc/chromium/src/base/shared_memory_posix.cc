@@ -17,12 +17,6 @@
 
 namespace base {
 
-namespace {
-
-
-const char kSemaphoreSuffix[] = "-sem";
-}
-
 SharedMemory::SharedMemory()
     : mapped_file_(-1),
       inode_(0),
