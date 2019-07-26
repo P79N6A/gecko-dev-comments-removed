@@ -13,9 +13,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserNewTabPreloader",
-  "resource:///modules/BrowserNewTabPreloader.jsm", "BrowserNewTabPreloader");
-
 window.addEventListener("load", testOnLoad, false);
 
 function testOnLoad() {
@@ -197,7 +194,7 @@ Tester.prototype = {
       Services.console.unregisterListener(this);
       Services.obs.removeObserver(this, "chrome-document-global-created");
       Services.obs.removeObserver(this, "content-document-global-created");
-
+  
       this.dumper.dump("\nINFO TEST-START | Shutdown\n");
       if (this.tests.length) {
         this.dumper.dump("Browser Chrome Test Summary\n");
@@ -382,34 +379,6 @@ Tester.prototype = {
           gBrowser.addTab();
           gBrowser.removeCurrentTab();
         }
-
-        
-        
-        
-        
-        let sidebar = document.getElementById("sidebar");
-        sidebar.setAttribute("src", "data:text/html;charset=utf-8,");
-        sidebar.docShell.createAboutBlankContentViewer(null);
-        sidebar.setAttribute("src", "about:blank");
-
-        
-        let socialSidebar = document.getElementById("social-sidebar-browser");
-        socialSidebar.setAttribute("src", "data:text/html;charset=utf-8,");
-        socialSidebar.docShell.createAboutBlankContentViewer(null);
-        socialSidebar.setAttribute("src", "about:blank");
-
-        
-        let {BackgroundPageThumbs} =
-          Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", {});
-        BackgroundPageThumbs._destroy();
-
-        
-        
-        
-        BrowserNewTabPreloader.uninit();
-        SocialFlyout.unload();
-        SocialShare.uninit();
-        TabView.uninit();
 
         
         
