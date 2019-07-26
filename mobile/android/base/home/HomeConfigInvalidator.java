@@ -232,7 +232,12 @@ public class HomeConfigInvalidator implements GeckoEventListener {
             }
         }
 
-        if (shouldRefresh) {
+        
+        
+        
+        
+        
+        if (shouldRefresh && !editor.isDefault()) {
             executeRefresh(editor);
         }
     }
