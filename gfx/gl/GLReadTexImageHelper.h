@@ -60,11 +60,11 @@ public:
 
 
 
-    already_AddRefed<gfxImageSurface> ReadTexImage(GLuint aTextureId,
-                                                   GLenum aTextureTarget,
-                                                   const gfxIntSize& aSize,
-                            int aShaderProgram,
-                                                   bool aYInvert = false);
+    TemporaryRef<gfx::DataSourceSurface> ReadTexImage(GLuint aTextureId,
+                                                      GLenum aTextureTarget,
+                                                      const gfx::IntSize& aSize,
+                               int aShaderProgram,
+                                                      bool aYInvert = false);
 
 
 };
