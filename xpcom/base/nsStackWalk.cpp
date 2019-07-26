@@ -23,6 +23,12 @@ struct CriticalAddress {
 };
 static CriticalAddress gCriticalAddress;
 
+
+
+#if defined(HAVE__UNWIND_BACKTRACE) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #if defined(HAVE_DLOPEN) || defined(XP_MACOSX)
 #include <dlfcn.h>
 #endif
@@ -1222,9 +1228,6 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
 #elif defined(HAVE__UNWIND_BACKTRACE)
 
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 #include <unwind.h>
 
 struct unwind_info {
