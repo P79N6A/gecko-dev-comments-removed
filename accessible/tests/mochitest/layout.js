@@ -134,6 +134,35 @@ function testBounds(aID, aRect)
 
 
 
+function testTextBounds(aID, aStartOffset, aEndOffset, aRect, aCoordOrigin)
+{
+  var [expectedX, expectedY, expectedWidth, expectedHeight] = aRect;
+
+  var xObj = {}, yObj = {}, widthObj = {}, heightObj = {};
+  var hyperText = getAccessible(aID, [nsIAccessibleText]);
+  hyperText.getRangeExtents(0, -1, xObj, yObj, widthObj, heightObj, aCoordOrigin);
+  is(xObj.value, expectedX,
+     "Wrong x coordinate of text between offsets (" + aStartOffset + ", " +
+     aEndOffset + ") for " + prettyName(aID));
+  is(yObj.value, expectedY,
+     "Wrong y coordinate of text between offsets (" + aStartOffset + ", " +
+     aEndOffset + ") for " + prettyName(aID));
+
+  var msg = "Wrong width of text between offsets (" + aStartOffset + ", " +
+    aEndOffset + ") for " + prettyName(aID);
+  if (widthObj.value == expectedWidth)
+    ok(true, msg);
+  else
+    todo(false, msg); 
+
+  is(heightObj.value, expectedHeight,
+     "Wrong height of text between offsets (" + aStartOffset + ", " +
+     aEndOffset + ") for " + prettyName(aID));
+}
+
+
+
+
 function getPos(aID)
 {
   var accessible = getAccessible(aID);

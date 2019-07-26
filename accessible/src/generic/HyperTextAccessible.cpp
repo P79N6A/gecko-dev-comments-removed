@@ -143,19 +143,19 @@ nsIntRect
 HyperTextAccessible::GetBoundsForString(nsIFrame* aFrame, uint32_t aStartRenderedOffset,
                                         uint32_t aEndRenderedOffset)
 {
-  nsIntRect screenRect;
-  NS_ENSURE_TRUE(aFrame, screenRect);
+  nsPresContext* presContext = mDoc->PresContext();
   if (aFrame->GetType() != nsGkAtoms::textFrame) {
     
     
-    return aFrame->GetScreenRectExternal();
+    return aFrame->GetScreenRectInAppUnits().
+      ToNearestPixels(presContext->AppUnitsPerDevPixel());
   }
 
   int32_t startContentOffset, endContentOffset;
   nsresult rv = RenderedToContentOffset(aFrame, aStartRenderedOffset, &startContentOffset);
-  NS_ENSURE_SUCCESS(rv, screenRect);
+  NS_ENSURE_SUCCESS(rv, nsIntRect());
   rv = RenderedToContentOffset(aFrame, aEndRenderedOffset, &endContentOffset);
-  NS_ENSURE_SUCCESS(rv, screenRect);
+  NS_ENSURE_SUCCESS(rv, nsIntRect());
 
   nsIFrame *frame;
   int32_t startContentOffsetInFrame;
@@ -163,16 +163,15 @@ HyperTextAccessible::GetBoundsForString(nsIFrame* aFrame, uint32_t aStartRendere
   
   rv = aFrame->GetChildFrameContainingOffset(startContentOffset, false,
                                              &startContentOffsetInFrame, &frame);
-  NS_ENSURE_SUCCESS(rv, screenRect);
+  NS_ENSURE_SUCCESS(rv, nsIntRect());
 
-  nsPresContext* context = mDoc->PresContext();
-
+  nsRect screenRect;
   while (frame && startContentOffset < endContentOffset) {
     
     
     
     
-    nsIntRect frameScreenRect = frame->GetScreenRectExternal();
+    nsRect frameScreenRect = frame->GetScreenRectInAppUnits();
 
     
     int32_t startFrameTextOffset, endFrameTextOffset;
@@ -185,13 +184,13 @@ HyperTextAccessible::GetBoundsForString(nsIFrame* aFrame, uint32_t aStartRendere
     nsPoint frameTextStartPoint;
     rv = frame->GetPointFromOffset(startContentOffset, &frameTextStartPoint);
     NS_ENSURE_SUCCESS(rv, nsIntRect());
-    frameScreenRect.x += context->AppUnitsToDevPixels(frameTextStartPoint.x);
+    frameScreenRect.x += frameTextStartPoint.x;
 
     
     nsPoint frameTextEndPoint;
     rv = frame->GetPointFromOffset(startContentOffset + frameSubStringLength, &frameTextEndPoint);
     NS_ENSURE_SUCCESS(rv, nsIntRect());
-    frameScreenRect.width = context->AppUnitsToDevPixels(frameTextEndPoint.x - frameTextStartPoint.x);
+    frameScreenRect.width = frameTextEndPoint.x - frameTextStartPoint.x;
 
     screenRect.UnionRect(frameScreenRect, screenRect);
 
@@ -201,7 +200,7 @@ HyperTextAccessible::GetBoundsForString(nsIFrame* aFrame, uint32_t aStartRendere
     frame = frame->GetNextContinuation();
   }
 
-  return screenRect;
+  return screenRect.ToNearestPixels(presContext->AppUnitsPerDevPixel());
 }
 
 
@@ -376,8 +375,9 @@ HyperTextAccessible::GetPosAndText(int32_t& aStartOffset, int32_t& aEndOffset,
             }
           }
           if (aBoundsRect) {
-            aBoundsRect->UnionRect(*aBoundsRect,
-                                   frame->GetScreenRectExternal());
+            nsIntRect frameScreenRect = frame->GetScreenRectInAppUnits().
+              ToNearestPixels(frame->PresContext()->AppUnitsPerDevPixel());
+            aBoundsRect->UnionRect(*aBoundsRect, frameScreenRect);
           }
         }
         if (!startFrame) {
