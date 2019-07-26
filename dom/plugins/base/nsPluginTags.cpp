@@ -132,29 +132,19 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
   }
 
   for (uint32_t i = 0; i < aVariantCount; i++) {
-    if (!aMimeTypes[i]) {
-      continue;
-    }
-
-    nsAutoCString mimeType(aMimeTypes[i]);
-
-    
-    
-    ToLowerCase(mimeType);
-
-    if (!nsPluginHost::IsTypeWhitelisted(mimeType.get())) {
+    if (!aMimeTypes[i] || !nsPluginHost::IsTypeWhitelisted(aMimeTypes[i])) {
       continue;
     }
 
     
-    if (nsPluginHost::IsJavaMIMEType(mimeType.get())) {
+    if (nsPluginHost::IsJavaMIMEType(aMimeTypes[i])) {
       mIsJavaPlugin = true;
-    } else if (mimeType.EqualsLiteral("application/x-shockwave-flash")) {
+    } else if (strcmp(aMimeTypes[i], "application/x-shockwave-flash") == 0) {
       mIsFlashPlugin = true;
     }
 
     
-    mMimeTypes.AppendElement(mimeType);
+    mMimeTypes.AppendElement(nsCString(aMimeTypes[i]));
 
     
     if (aMimeDescriptions && aMimeDescriptions[i]) {
