@@ -4167,6 +4167,16 @@ DoIteratorMoreFallback(JSContext *cx, ICIteratorMore_Fallback *stub, HandleValue
     if (!IteratorMore(cx, &iterValue.toObject(), &cond, res))
         return false;
     res.setBoolean(cond);
+
+    if (iterValue.toObject().isPropertyIterator() && !stub->hasStub(ICStub::IteratorMore_Native)) {
+        RootedScript script(cx, GetTopIonJSScript(cx));
+        ICIteratorMore_Native::Compiler compiler(cx);
+        ICStub *newStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
+        if (!newStub)
+            return false;
+        stub->addNewStub(newStub);
+    }
+
     return true;
 }
 
@@ -4190,6 +4200,42 @@ ICIteratorMore_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 
+bool
+ICIteratorMore_Native::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+
+    Register obj = masm.extractObject(R0, ExtractTemp0);
+
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register nativeIterator = regs.takeAny();
+    Register scratch = regs.takeAny();
+
+    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch,
+                            &PropertyIteratorObject::class_, &failure);
+    masm.loadObjPrivate(obj, JSObject::ITER_CLASS_NFIXED_SLOTS, nativeIterator);
+
+    masm.branchTest32(Assembler::NonZero, Address(nativeIterator, offsetof(NativeIterator, flags)),
+                      Imm32(JSITER_FOREACH), &failure);
+
+    
+    masm.loadPtr(Address(nativeIterator, offsetof(NativeIterator, props_end)), scratch);
+    masm.cmpPtr(Address(nativeIterator, offsetof(NativeIterator, props_cursor)), scratch);
+    masm.emitSet(Assembler::LessThan, scratch);
+
+    masm.tagValue(JSVAL_TYPE_BOOLEAN, scratch, R0);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+
+
+
+
 static bool
 DoIteratorNextFallback(JSContext *cx, ICIteratorNext_Fallback *stub, HandleValue iterValue,
                        MutableHandleValue res)
@@ -4197,7 +4243,19 @@ DoIteratorNextFallback(JSContext *cx, ICIteratorNext_Fallback *stub, HandleValue
     FallbackICSpew(cx, stub, "IteratorNext");
 
     RootedObject iteratorObject(cx, &iterValue.toObject());
-    return IteratorNext(cx, iteratorObject, res);
+    if (!IteratorNext(cx, iteratorObject, res))
+        return false;
+
+    if (iteratorObject->isPropertyIterator() && !stub->hasStub(ICStub::IteratorNext_Native)) {
+        RootedScript script(cx, GetTopIonJSScript(cx));
+        ICIteratorNext_Native::Compiler compiler(cx);
+        ICStub *newStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
+        if (!newStub)
+            return false;
+        stub->addNewStub(newStub);
+    }
+
+    return true;
 }
 
 typedef bool (*DoIteratorNextFallbackFn)(JSContext *, ICIteratorNext_Fallback *,
@@ -4214,6 +4272,45 @@ ICIteratorNext_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     masm.push(BaselineStubReg);
 
     return tailCallVM(DoIteratorNextFallbackInfo, masm);
+}
+
+
+
+
+
+bool
+ICIteratorNext_Native::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+
+    Register obj = masm.extractObject(R0, ExtractTemp0);
+
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register nativeIterator = regs.takeAny();
+    Register scratch = regs.takeAny();
+
+    masm.branchTestObjClass(Assembler::NotEqual, obj, scratch,
+                            &PropertyIteratorObject::class_, &failure);
+    masm.loadObjPrivate(obj, JSObject::ITER_CLASS_NFIXED_SLOTS, nativeIterator);
+
+    masm.branchTest32(Assembler::NonZero, Address(nativeIterator, offsetof(NativeIterator, flags)),
+                      Imm32(JSITER_FOREACH), &failure);
+
+    
+    masm.loadPtr(Address(nativeIterator, offsetof(NativeIterator, props_cursor)), scratch);
+    masm.loadPtr(Address(scratch, 0), scratch);
+
+    
+    masm.addPtr(Imm32(sizeof(JSString *)),
+                Address(nativeIterator, offsetof(NativeIterator, props_cursor)));
+
+    masm.tagValue(JSVAL_TYPE_STRING, scratch, R0);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
 }
 
 
