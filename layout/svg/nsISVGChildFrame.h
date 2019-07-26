@@ -58,18 +58,18 @@ public:
   
   
   
-  NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
-                      const nsIntRect *aDirtyRect,
-                      nsIFrame* aTransformRoot = nullptr) = 0;
+  virtual nsresult PaintSVG(nsRenderingContext* aContext,
+                            const nsIntRect *aDirtyRect,
+                            nsIFrame* aTransformRoot = nullptr) = 0;
 
   
   
   
   
-  NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint)=0;
+  virtual nsIFrame* GetFrameForPoint(const nsPoint &aPoint)=0;
 
   
-  NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
+  virtual nsRect GetCoveredRegion()=0;
 
   
   
@@ -141,7 +141,7 @@ public:
                                       uint32_t aFlags) = 0;
 
   
-  NS_IMETHOD_(bool) IsDisplayContainer()=0;
+  virtual bool IsDisplayContainer()=0;
 };
 
 #endif 
