@@ -716,7 +716,7 @@ protected:
   bool IsChildOfDocShell(nsIDocument* aDoc, nsIDocShellTreeItem* aExpected);
 
   
-  nsCOMPtr<nsIDOMEventTarget> mKeyListener;
+  nsCOMPtr<mozilla::dom::EventTarget> mKeyListener;
 
   
   nsCOMPtr<nsIWidget> mWidget;

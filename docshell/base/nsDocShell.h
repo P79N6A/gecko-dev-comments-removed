@@ -751,7 +751,7 @@ protected:
     
 
     nsIDocShellTreeOwner *     mTreeOwner; 
-    nsIDOMEventTarget *        mChromeEventHandler; 
+    mozilla::dom::EventTarget* mChromeEventHandler; 
 
     eCharsetReloadState        mCharsetReloadState;
 
