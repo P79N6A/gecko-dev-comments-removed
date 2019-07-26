@@ -430,15 +430,8 @@ BluetoothService::SetEnabled(bool aEnabled)
 
 
   if (mEnabled == aEnabled) {
-    
-
-
-
-
-    NS_WARNING("Bluetooth has already been enabled/disabled before.\
-                Skip fire onenabled/ondisabled events here.");
-    gToggleInProgress = false;
-    return;
+    NS_WARNING("Bluetooth has already been enabled/disabled before\
+                or the toggling is failed.");
   }
 
   mEnabled = aEnabled;
