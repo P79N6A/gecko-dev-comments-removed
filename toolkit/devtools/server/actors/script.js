@@ -1562,18 +1562,17 @@ ThreadActor.prototype = {
   
 
 
-
-
-
   _discoverSources: function TA__discoverSources() {
     
-    let scriptsByUrl = {};
+    const sourcesToScripts = new Map();
     for (let s of this.dbg.findScripts()) {
-      scriptsByUrl[s.url] = s;
+      if (s.source) {
+        sourcesToScripts.set(s.source, s);
+      }
     }
 
-    return all([this.sources.sourcesForScript(scriptsByUrl[s])
-                for (s of Object.keys(scriptsByUrl))]);
+    return all([this.sources.sourcesForScript(script)
+                for (script of sourcesToScripts.values())]);
   },
 
   onSources: function TA_onSources(aRequest) {
