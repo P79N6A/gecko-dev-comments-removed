@@ -28,6 +28,7 @@
 #include "nsStyleChangeList.h"
 #include "nsStyleSet.h"
 #include "RestyleManager.h"
+#include "ActiveLayerTracker.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
@@ -197,10 +198,10 @@ ElementTransitions::CanPerformOnCompositorThread(CanAnimateFlags aFlags) const
   
   
   if (hasOpacity) {
-    frame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);
+    ActiveLayerTracker::NotifyAnimated(frame, eCSSProperty_opacity);
   }
   if (hasTransform) {
-    frame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+    ActiveLayerTracker::NotifyAnimated(frame, eCSSProperty_transform);
   }
   return true;
 }

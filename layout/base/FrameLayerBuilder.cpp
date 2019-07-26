@@ -20,6 +20,7 @@
 #include "LayerTreeInvalidation.h"
 #include "nsSVGIntegrationUtils.h"
 #include "ImageContainer.h"
+#include "ActiveLayerTracker.h"
 
 #include "GeckoProfiler.h"
 #include "mozilla/gfx/Tools.h"
@@ -2707,7 +2708,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
       
       
       gfxMatrix frameTransform;
-      if (aContainerFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
+      if (ActiveLayerTracker::IsStyleAnimated(aContainerFrame, eCSSProperty_transform) &&
           aTransform &&
           (!aTransform->Is2D(&frameTransform) || frameTransform.HasNonTranslationOrFlip())) {
         
@@ -2748,7 +2749,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     FrameLayerBuilder::ContainerParameters(scale.width, scale.height, -offset, aIncomingScale);
   if (aTransform) {
     aOutgoingScale.mInTransformedSubtree = true;
-    if (aContainerFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer)) {
+    if (ActiveLayerTracker::IsStyleAnimated(aContainerFrame, eCSSProperty_transform)) {
       aOutgoingScale.mInActiveTransformedSubtree = true;
     }
   }
