@@ -331,7 +331,7 @@ nsWinMetroUtils::LaunchInDesktop(const nsAString &aPath, const nsAString &aArgum
   
   
   sinfo.fMask        = SEE_MASK_FLAG_LOG_USAGE;
-  sinfo.hwnd         = NULL;
+  sinfo.hwnd         = nullptr;
   sinfo.lpFile       = aPath.BeginReading();
   sinfo.lpParameters = aArguments.BeginReading();
   sinfo.lpVerb       = L"open";
