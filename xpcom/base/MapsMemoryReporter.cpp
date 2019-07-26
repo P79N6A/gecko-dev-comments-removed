@@ -514,10 +514,55 @@ MapsReporter::ParseMapBody(
   return NS_OK;
 }
 
+static nsresult GetUSS(int64_t *n)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    *n = 0;
+
+    FILE *f = fopen("/proc/self/smaps", "r");
+    NS_ENSURE_STATE(f);
+
+    int64_t total = 0;
+    char line[256];
+    while(fgets(line, sizeof(line), f)) {
+        long long val = 0;
+        if(sscanf(line, "Private_Dirty: %lld kB", &val) == 1 ||
+           sscanf(line, "Private_Clean: %lld kB", &val) == 1) {
+            total += val * 1024; 
+        }
+    }
+    *n = total;
+
+    fclose(f);
+    return NS_OK;
+}
+
+NS_FALLIBLE_MEMORY_REPORTER_IMPLEMENT(USS,
+    "resident-unique",
+    KIND_OTHER,
+    UNITS_BYTES,
+    GetUSS,
+    "Memory mapped by the process that is present in physical memory and not "
+    "shared with any other processes.  This is also known as the process's "
+    "unique set size (USS).  This is the amount of RAM we'd expect to be freed "
+    "if we closed this process.")
+
 void Init()
 {
   nsCOMPtr<nsIMemoryMultiReporter> reporter = new MapsReporter();
   NS_RegisterMemoryMultiReporter(reporter);
+
+  NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(USS));
 }
 
 } 
