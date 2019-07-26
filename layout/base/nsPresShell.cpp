@@ -39,6 +39,7 @@
 #include "nsINameSpaceManager.h"  
 #include "nsIServiceManager.h"
 #include "nsFrame.h"
+#include "FrameLayerBuilder.h"
 #include "nsViewManager.h"
 #include "nsView.h"
 #include "nsCRTGlue.h"
@@ -2025,6 +2026,13 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
     }
   
     mFramesToDirty.RemoveEntry(aFrame);
+  } else {
+    
+    
+    
+    
+    mPresContext->PropertyTable()->
+      Delete(aFrame, FrameLayerBuilder::LayerManagerDataProperty());
   }
 }
 
