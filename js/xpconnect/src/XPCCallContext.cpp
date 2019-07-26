@@ -26,12 +26,12 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                unsigned argc       ,
                                jsval *argv         ,
                                jsval *rval         )
-    :   mState(INIT_FAILED),
+    :   mAr(cx),
+        mState(INIT_FAILED),
         mXPC(nsXPConnect::XPConnect()),
         mXPCContext(nullptr),
         mJSContext(cx),
         mContextPopRequired(false),
-        mDestroyJSContextInDestructor(false),
         mCallerLanguage(callerLanguage),
         mFlattenedJSObject(cx),
         mWrapper(nullptr),
@@ -39,7 +39,6 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mName(cx)
 {
     MOZ_ASSERT(cx);
-    bool callBeginRequest = callerLanguage == NATIVE_CALLER;
 
     NS_ASSERTION(mJSContext, "No JSContext supplied to XPCCallContext");
     if (!mXPC)
@@ -55,14 +54,6 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         }
         mContextPopRequired = true;
     }
-
-    
-    
-
-    NS_ASSERTION(!callBeginRequest || mCallerLanguage == NATIVE_CALLER,
-                 "Don't call JS_BeginRequest unless the caller is native.");
-    if (callBeginRequest)
-        JS_BeginRequest(mJSContext);
 
     mXPCContext = XPCContext::GetXPCContext(mJSContext);
     mPrevCallerLanguage = mXPCContext->SetCallingLangType(mCallerLanguage);
@@ -275,29 +266,12 @@ XPCCallContext::~XPCCallContext()
         shouldReleaseXPC = mPrevCallContext == nullptr;
     }
 
-    
-    if (mJSContext && mCallerLanguage == NATIVE_CALLER)
-        JS_EndRequest(mJSContext);
-
     if (mContextPopRequired) {
         XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
         NS_ASSERTION(stack, "bad!");
         if (stack) {
             DebugOnly<JSContext*> poppedCX = stack->Pop();
             NS_ASSERTION(poppedCX == mJSContext, "bad pop");
-        }
-    }
-
-    if (mJSContext) {
-        if (mDestroyJSContextInDestructor) {
-#ifdef DEBUG_xpc_hacker
-            printf("!xpc - doing deferred destruction of JSContext @ %p\n",
-                   mJSContext);
-#endif
-            NS_ASSERTION(!XPCJSRuntime::Get()->GetJSContextStack()->HasJSContext(mJSContext),
-                         "JSContext still in threadjscontextstack!");
-
-            JS_DestroyContext(mJSContext);
         }
     }
 
