@@ -43,6 +43,13 @@ public:
   {
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    
+    MOZ_CRASH("WidgetGestureNotifyEvent doesn't support Duplicate()");
+    return nullptr;
+  }
+
   enum ePanDirection
   {
     ePanNone,
@@ -53,16 +60,6 @@ public:
 
   ePanDirection panDirection;
   bool displayPanFeedback;
-
-  
-  void AssignGestureNotifyEventData(const WidgetGestureNotifyEvent& aEvent,
-                                    bool aCopyTargets)
-  {
-    AssignGUIEventData(aEvent, aCopyTargets);
-
-    panDirection = aEvent.panDirection;
-    displayPanFeedback = aEvent.displayPanFeedback;
-  }
 };
 
 
@@ -93,6 +90,18 @@ public:
     allowedDirections(aOther.allowedDirections), direction(aOther.direction),
     delta(aOther.delta), clickCount(0)
   {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_SIMPLE_GESTURE_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetSimpleGestureEvent* result =
+      new WidgetSimpleGestureEvent(false, message, nullptr, direction, delta);
+    result->AssignSimpleGestureEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
   }
 
   
@@ -140,7 +149,7 @@ public:
     MOZ_COUNT_CTOR(WidgetTouchEvent);
   }
 
-  WidgetTouchEvent(bool aIsTrusted, WidgetTouchEvent* aEvent) :
+  WidgetTouchEvent(bool aIsTrusted, const WidgetTouchEvent* aEvent) :
     WidgetInputEvent(aIsTrusted, aEvent->message, aEvent->widget,
                      NS_TOUCH_EVENT)
   {
@@ -159,6 +168,17 @@ public:
   virtual ~WidgetTouchEvent()
   {
     MOZ_COUNT_DTOR(WidgetTouchEvent);
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_TOUCH_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetTouchEvent* result = new WidgetTouchEvent(false, this);
+    result->AssignTouchEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
   }
 
   nsTArray<nsRefPtr<mozilla::dom::Touch>> touches;

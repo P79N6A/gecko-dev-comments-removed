@@ -89,6 +89,18 @@ public:
   {
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_KEY_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetKeyboardEvent* result =
+      new WidgetKeyboardEvent(false, message, nullptr);
+    result->AssignKeyEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
   
   
   uint32_t keyCode;
@@ -190,6 +202,17 @@ public:
   {
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_TEXT_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetTextEvent* result = new WidgetTextEvent(false, message, nullptr);
+    result->AssignTextEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
   
   nsString theText;
   
@@ -250,6 +273,18 @@ public:
     mFlags.mCancelable = false;
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_COMPOSITION_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetCompositionEvent* result =
+      new WidgetCompositionEvent(false, message, nullptr);
+    result->AssignCompositionEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
   
   
   
@@ -290,6 +325,13 @@ public:
     WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_QUERY_CONTENT_EVENT),
     mSucceeded(false), mWasAsync(false)
   {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    
+    MOZ_CRASH("WidgetQueryContentEvent doesn't support Duplicate()");
+    return nullptr;
   }
 
   void InitForQueryTextContent(uint32_t aOffset, uint32_t aLength)
@@ -414,6 +456,13 @@ public:
     , mExpandToClusterBoundary(true)
     , mSucceeded(false)
   {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    
+    MOZ_CRASH("WidgetSelectionEvent doesn't support Duplicate()");
+    return nullptr;
   }
 
   

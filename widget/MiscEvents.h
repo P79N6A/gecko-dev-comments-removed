@@ -35,6 +35,13 @@ public:
   {
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    
+    MOZ_CRASH("WidgetQueryContentEvent doesn't support Duplicate()");
+    return nullptr;
+  }
+
   
   nsCOMPtr<nsITransferable> mTransferable; 
 
@@ -99,6 +106,18 @@ public:
     userType = aEventType;
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_COMMAND_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetCommandEvent* result =
+      new WidgetCommandEvent(false, userType, command, nullptr);
+    result->AssignCommandEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
   nsCOMPtr<nsIAtom> command;
 
   
@@ -126,6 +145,13 @@ public:
     WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_PLUGIN_EVENT),
     retargetToFocusedDocument(false)
   {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    
+    MOZ_CRASH("WidgetQueryContentEvent doesn't support Duplicate()");
+    return nullptr;
   }
 
   

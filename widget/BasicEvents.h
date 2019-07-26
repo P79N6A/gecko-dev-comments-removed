@@ -650,6 +650,16 @@ public:
     *this = aOther;
   }
 
+  virtual WidgetEvent* Duplicate() const
+  {
+    MOZ_ASSERT(eventStructType == NS_EVENT,
+               "Duplicate() must be overridden by sub class");
+    WidgetEvent* result = new WidgetEvent(false, message);
+    result->AssignEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
   
   nsEventStructType eventStructType;
   
@@ -677,6 +687,10 @@ public:
 
   void AssignEventData(const WidgetEvent& aEvent, bool aCopyTargets)
   {
+    
+    
+    
+    eventStructType = aEvent.eventStructType;
     
     refPoint = aEvent.refPoint;
     
@@ -828,6 +842,18 @@ public:
   {
   }
 
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_GUI_EVENT ||
+                 eventStructType == NS_SVGZOOM_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetGUIEvent* result = new WidgetGUIEvent(false, message, nullptr);
+    result->AssignGUIEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
   
   nsCOMPtr<nsIWidget> widget;
 
@@ -915,6 +941,17 @@ public:
     WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_INPUT_EVENT),
     modifiers(0)
   {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_INPUT_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetInputEvent* result = new WidgetInputEvent(false, message, nullptr);
+    result->AssignInputEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
   }
 
   
@@ -1031,6 +1068,17 @@ public:
     WidgetGUIEvent(aIsTrusted, aMessage, nullptr, NS_UI_EVENT),
     detail(aDetail)
   {
+  }
+
+  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(eventStructType == NS_UI_EVENT ||
+                 eventStructType == NS_SMIL_TIME_EVENT,
+               "Duplicate() must be overridden by sub class");
+    InternalUIEvent* result = new InternalUIEvent(false, message, detail);
+    result->AssignUIEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
   }
 
   int32_t detail;
