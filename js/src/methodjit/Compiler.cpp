@@ -866,22 +866,6 @@ MakeJITScript(JSContext *cx, JSScript *script)
                     }
                 }
                 currentEdges.clear();
-
-                
-
-
-
-
-
-
-
-
-
-
-
-                jsbytecode *nextpc = script->code + nextOffset;
-                if (JSOp(*nextpc) == JSOP_LOOPHEAD)
-                    analysis->getCode(chunkStart).safePoint = true;
             }
         }
 
@@ -2048,6 +2032,9 @@ mjit::Compiler::generateMethod()
     SrcNoteLineScanner scanner(script_->notes(), script_->lineno);
 
     
+    bool fallthrough = true;
+
+    
     jsbytecode *lastPC = NULL;
 
     if (!outerJIT())
@@ -2094,9 +2081,6 @@ mjit::Compiler::generateMethod()
                 frame.pushSynced(JSVAL_TYPE_UNKNOWN);
         }
     }
-
-    
-    bool fallthrough = (chunkIndex == 0 || analysis->maybeCode(PC)->fallthrough);
 
     for (;;) {
         JSOp op = JSOp(*PC);
@@ -7114,18 +7098,6 @@ mjit::Compiler::finishLoop(jsbytecode *head)
 {
     if (!cx->typeInferenceEnabled() || !bytecodeInChunk(head))
         return true;
-
-    
-
-
-
-
-
-    if (!loop) {
-        JS_ASSERT(chunkIndex > 0);
-        JS_ASSERT(head - outerScript->code == outerChunk.begin);
-        return true;
-    }
 
     
 
