@@ -552,7 +552,7 @@ let PromptUtils = {
     let check = { value: false };
     let selectedLogin;
 
-    checkLabel = this.getLocaleString("rememberPassword", "passwdmgr");
+    checkLabel = this.getLocaleString("saveButton", "passwdmgr");
 
     
     
