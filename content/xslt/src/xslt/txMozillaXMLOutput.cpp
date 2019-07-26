@@ -791,19 +791,22 @@ void txMozillaXMLOutput::processHTTPEquiv(nsIAtom* aHeader, const nsString& aVal
 
 nsresult
 txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID,
-                                         nsIDOMDocument* aSourceDocument)
+                                         nsIDOMDocument* aSourceDocument,
+                                         bool aLoadedAsData)
 {
     nsresult rv;
 
     
     if (mOutputFormat.mMethod == eHTMLOutput) {
-        rv = NS_NewHTMLDocument(getter_AddRefs(mDocument));
+        rv = NS_NewHTMLDocument(getter_AddRefs(mDocument),
+                                aLoadedAsData);
         NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
         
         
-        rv = NS_NewXMLDocument(getter_AddRefs(mDocument));
+        rv = NS_NewXMLDocument(getter_AddRefs(mDocument),
+                               aLoadedAsData);
         NS_ENSURE_SUCCESS(rv, rv);
     }
     
