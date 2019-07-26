@@ -3933,6 +3933,10 @@ pref("image.multithreaded_decoding.enabled", true);
 pref("image.multithreaded_decoding.limit", -1);
 
 
+
+pref("canvas.image.cache.limit", 0);
+
+
 pref("gl.msaa-level", 2);
 pref("webgl.force-enabled", false);
 pref("webgl.disabled", false);
