@@ -128,26 +128,13 @@ IonBuilder::getInlineArgType(uint32 argc, uint32 arg)
 }
 
 IonBuilder::InliningStatus
-IonBuilder::inlineNanResult(int argc)
-{
-    MDefinitionVector argv;
-    if (!discardCall(argc, argv, current))
-        return InliningStatus_Error;
-    MConstant *nan = MConstant::New(GetIonContext()->cx->runtime->NaNValue);
-    current->add(nan);
-    current->push(nan);
-    return InliningStatus_Inlined;
-}
-
-IonBuilder::InliningStatus
 IonBuilder::inlineMathFunction(MMathFunction::Function function, uint32 argc, bool constructing)
 {
     if (constructing)
         return InliningStatus_NotInlined;
 
-    
-    if (argc == 0)
-        return inlineNanResult(argc);
+    if (argc != 1)
+        return InliningStatus_NotInlined;
 
     if (getInlineReturnType() != MIRType_Double)
         return InliningStatus_NotInlined;
@@ -317,9 +304,8 @@ IonBuilder::inlineMathAbs(uint32 argc, bool constructing)
     if (constructing)
         return InliningStatus_NotInlined;
 
-    
-    if (argc == 0)
-        return inlineNanResult(argc);
+    if (argc != 1)
+        return InliningStatus_NotInlined;
 
     MIRType returnType = getInlineReturnType();
     MIRType argType = getInlineArgType(argc, 1);
@@ -346,9 +332,8 @@ IonBuilder::inlineMathFloor(uint32 argc, bool constructing)
     if (constructing)
         return InliningStatus_NotInlined;
 
-    
-    if (argc == 0)
-        return inlineNanResult(argc);
+    if (argc != 1)
+        return InliningStatus_NotInlined;
 
     MIRType argType = getInlineArgType(argc, 1);
     if (getInlineReturnType() != MIRType_Int32)
@@ -382,9 +367,8 @@ IonBuilder::inlineMathRound(uint32 argc, bool constructing)
     if (constructing)
         return InliningStatus_NotInlined;
 
-    
-    if (argc == 0)
-        return inlineNanResult(argc);
+    if (argc != 1)
+        return InliningStatus_NotInlined;
 
     MIRType returnType = getInlineReturnType();
     MIRType argType = getInlineArgType(argc, 1);
@@ -417,9 +401,8 @@ IonBuilder::inlineMathSqrt(uint32 argc, bool constructing)
     if (constructing)
         return InliningStatus_NotInlined;
 
-    
-    if (argc == 0)
-        return inlineNanResult(argc);
+    if (argc != 1)
+        return InliningStatus_NotInlined;
 
     MIRType argType = getInlineArgType(argc, 1);
     if (getInlineReturnType() != MIRType_Double)
@@ -443,9 +426,8 @@ IonBuilder::inlineMathPow(uint32 argc, bool constructing)
     if (constructing)
         return InliningStatus_NotInlined;
 
-    
-    if (argc < 2)
-        return inlineNanResult(argc);
+    if (argc != 2)
+        return InliningStatus_NotInlined;
 
     
     if (getInlineReturnType() != MIRType_Double)
@@ -476,14 +458,6 @@ IonBuilder::inlineMathPow(uint32 argc, bool constructing)
         double pow;
         if (!ToNumber(GetIonContext()->cx, argv[2]->toConstant()->value(), &pow))
             return InliningStatus_Error;
-
-        
-        if (pow == 0.0) {
-            MConstant *nan = MConstant::New(GetIonContext()->cx->runtime->NaNValue);
-            current->add(nan);
-            current->push(nan);
-            return InliningStatus_Inlined;
-        }
 
         
         if (pow == 0.5) {
