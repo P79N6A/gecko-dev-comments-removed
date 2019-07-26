@@ -121,6 +121,11 @@ extern JSFlatString *
 NewStringCopyN(js::ThreadSafeContext *cx, const CharT *s, size_t n);
 
 
+template <js::AllowGC allowGC, typename CharT>
+extern JSFlatString *
+NewStringCopyNDontDeflate(js::ThreadSafeContext *cx, const CharT *s, size_t n);
+
+
 template <js::AllowGC allowGC>
 extern JSFlatString *
 NewStringCopyZ(js::ExclusiveContext *cx, const jschar *s);
