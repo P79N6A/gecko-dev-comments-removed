@@ -105,6 +105,23 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint, bool& aSuccess
     return aPoint;
   }
 
+  CSSPoint targetScrollPosition = aPoint;
+
+  
+  
+  
+  
+  
+  
+  
+  CSSPoint geckoScrollPosition = CSSPoint::FromAppUnits(aFrame->GetScrollPosition());
+  if (aFrame->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
+    targetScrollPosition.y = geckoScrollPosition.y;
+  }
+  if (aFrame->GetScrollbarStyles().mHorizontal == NS_STYLE_OVERFLOW_HIDDEN) {
+    targetScrollPosition.x = geckoScrollPosition.x;
+  }
+
   
   
   
@@ -112,13 +129,14 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint, bool& aSuccess
   
   if (!aFrame->IsProcessingAsyncScroll() &&
      (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz)) {
-    aFrame->ScrollToCSSPixelsApproximate(aPoint, nsGkAtoms::apz);
+    aFrame->ScrollToCSSPixelsApproximate(targetScrollPosition, nsGkAtoms::apz);
+    geckoScrollPosition = CSSPoint::FromAppUnits(aFrame->GetScrollPosition());
     aSuccessOut = true;
   }
   
   
   
-  return CSSPoint::FromAppUnits(aFrame->GetScrollPosition());
+  return geckoScrollPosition;
 }
 
 void
