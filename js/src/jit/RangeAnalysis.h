@@ -176,15 +176,34 @@ class Range : public TempObject {
     
     
     void assertInvariants() const {
+        
         JS_ASSERT(lower_ <= upper_);
+
+        
+        
+        
         JS_ASSERT_IF(!hasInt32LowerBound_, lower_ == JSVAL_INT_MIN);
         JS_ASSERT_IF(!hasInt32UpperBound_, upper_ == JSVAL_INT_MAX);
-        JS_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_, max_exponent_ >= MaxInt32Exponent);
+
+        
         JS_ASSERT(max_exponent_ <= MaxFiniteExponent ||
                   max_exponent_ == IncludesInfinity ||
                   max_exponent_ == IncludesInfinityAndNaN);
-        JS_ASSERT(max_exponent_ >= mozilla::FloorLog2(mozilla::Abs(upper_)));
-        JS_ASSERT(max_exponent_ >= mozilla::FloorLog2(mozilla::Abs(lower_)));
+
+        
+        
+        
+        
+        
+        
+        
+        
+        JS_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_,
+                     max_exponent_ + canHaveFractionalPart_ >= MaxInt32Exponent);
+        JS_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
+                  mozilla::FloorLog2(mozilla::Abs(upper_)));
+        JS_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
+                  mozilla::FloorLog2(mozilla::Abs(lower_)));
 
         
         
@@ -322,12 +341,13 @@ class Range : public TempObject {
         return new Range(l, h, false, MaxUInt32Exponent);
     }
 
-    static Range *NewDoubleRange(int64_t l, int64_t h, uint16_t e = IncludesInfinityAndNaN) {
-        return new Range(l, h, true, e);
-    }
+    static Range *NewDoubleRange(double l, double h) {
+        if (mozilla::IsNaN(l) && mozilla::IsNaN(h))
+            return nullptr;
 
-    static Range *NewSingleValueRange(int64_t v) {
-        return new Range(v, v, false, IncludesInfinityAndNaN);
+        Range *r = new Range();
+        r->setDouble(l, h);
+        return r;
     }
 
     void print(Sprinter &sp) const;
@@ -485,12 +505,11 @@ class Range : public TempObject {
         assertInvariants();
     }
 
-    void setUnknown() {
-        setDouble(NoInt32LowerBound, NoInt32UpperBound);
-    }
+    void setDouble(double l, double h);
 
-    void setDouble(int64_t l, int64_t h, uint16_t e = IncludesInfinityAndNaN) {
-        set(l, h, true, e);
+    void setUnknown() {
+        set(NoInt32LowerBound, NoInt32UpperBound, true, IncludesInfinityAndNaN);
+        JS_ASSERT(isUnknown());
     }
 
     void set(int64_t l, int64_t h, bool f, uint16_t e) {

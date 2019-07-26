@@ -29,7 +29,10 @@ using mozilla::IsInfinite;
 using mozilla::IsFinite;
 using mozilla::IsNaN;
 using mozilla::IsNegative;
+using mozilla::NegativeInfinity;
+using mozilla::PositiveInfinity;
 using mozilla::Swap;
+using JS::GenericNaN;
 
 
 
@@ -142,22 +145,19 @@ RangeAnalysis::addBetaNodes()
             continue;
 
         MCompare *compare = test->getOperand(0)->toCompare();
-
-        
-        if (compare->compareType() == MCompare::Compare_UInt32)
-            continue;
-
         MDefinition *left = compare->getOperand(0);
         MDefinition *right = compare->getOperand(1);
         double bound;
-        int16_t exponent = Range::IncludesInfinity;
+        double conservativeLower = NegativeInfinity();
+        double conservativeUpper = PositiveInfinity();
         MDefinition *val = nullptr;
 
         JSOp jsop = compare->jsop();
 
         if (branch_dir == FALSE_BRANCH) {
             jsop = analyze::NegateCompareOp(jsop);
-            exponent = Range::IncludesInfinityAndNaN;
+            conservativeLower = GenericNaN();
+            conservativeUpper = GenericNaN();
         }
 
         if (left->isConstant() && left->toConstant()->value().isNumber()) {
@@ -197,15 +197,10 @@ RangeAnalysis::addBetaNodes()
         
         JS_ASSERT(val);
 
-        
-        
-        if (!IsFinite(bound) || bound < INT32_MIN || bound > INT32_MAX)
-            continue;
-
         Range comp;
         switch (jsop) {
           case JSOP_LE:
-            comp.set(Range::NoInt32LowerBound, ceil(bound), true, exponent);
+            comp.setDouble(conservativeLower, bound);
             break;
           case JSOP_LT:
             
@@ -214,10 +209,10 @@ RangeAnalysis::addBetaNodes()
                 if (DoubleIsInt32(bound, &intbound) && SafeSub(intbound, 1, &intbound))
                     bound = intbound;
             }
-            comp.set(Range::NoInt32LowerBound, ceil(bound), true, exponent);
+            comp.setDouble(conservativeLower, bound);
             break;
           case JSOP_GE:
-            comp.set(floor(bound), Range::NoInt32UpperBound, true, exponent);
+            comp.setDouble(bound, conservativeUpper);
             break;
           case JSOP_GT:
             
@@ -226,10 +221,10 @@ RangeAnalysis::addBetaNodes()
                 if (DoubleIsInt32(bound, &intbound) && SafeAdd(intbound, 1, &intbound))
                     bound = intbound;
             }
-            comp.set(floor(bound), Range::NoInt32UpperBound, true, exponent);
+            comp.setDouble(bound, conservativeUpper);
             break;
           case JSOP_EQ:
-            comp.set(floor(bound), ceil(bound), true, exponent);
+            comp.setDouble(bound, bound);
             break;
           default:
             continue; 
@@ -377,6 +372,26 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *emptyRange)
     bool newFractional = lhs->canHaveFractionalPart_ && rhs->canHaveFractionalPart_;
     uint16_t newExponent = Min(lhs->max_exponent_, rhs->max_exponent_);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_ &&
+        newExponent < MaxInt32Exponent)
+    {
+        
+        int32_t limit = (uint32_t(1) << (newExponent + 1)) - 1;
+        if (limit != INT32_MIN) {
+            newUpper = Min(newUpper, limit);
+            newLower = Max(newLower, -limit);
+        }
+    }
+
     return new Range(newLower, newHasInt32LowerBound, newUpper, newHasInt32UpperBound,
                      newFractional, newExponent);
 }
@@ -445,6 +460,57 @@ Range::Range(const MDefinition *def)
         lower_ = INT32_MIN;
 
     assertInvariants();
+}
+
+static uint16_t
+ExponentImpliedByDouble(double d)
+{
+    
+    if (IsNaN(d))
+        return Range::IncludesInfinityAndNaN;
+    if (IsInfinite(d))
+        return Range::IncludesInfinity;
+
+    
+    
+    return uint16_t(Max(int_fast16_t(0), ExponentComponent(d)));
+}
+
+void
+Range::setDouble(double l, double h)
+{
+    
+    if (l >= INT32_MIN && l <= INT32_MAX) {
+        lower_ = int32_t(floor(l));
+        hasInt32LowerBound_ = true;
+    } else {
+        lower_ = INT32_MIN;
+        hasInt32LowerBound_ = false;
+    }
+    if (h >= INT32_MIN && h <= INT32_MAX) {
+        upper_ = int32_t(ceil(h));
+        hasInt32UpperBound_ = true;
+    } else {
+        upper_ = INT32_MAX;
+        hasInt32UpperBound_ = false;
+    }
+
+    
+    uint16_t lExp = ExponentImpliedByDouble(l);
+    uint16_t hExp = ExponentImpliedByDouble(h);
+    max_exponent_ = Max(lExp, hExp);
+
+    
+    
+    
+    
+    uint16_t minExp = Min(lExp, hExp);
+    bool includesNegative = IsNaN(l) || l < 0;
+    bool includesPositive = IsNaN(h) || h > 0;
+    bool crossesZero = includesNegative && includesPositive;
+    canHaveFractionalPart_ = crossesZero || minExp < MaxTruncatableExponent;
+
+    optimize();
 }
 
 static inline bool
@@ -901,68 +967,9 @@ MBeta::computeRange()
 void
 MConstant::computeRange()
 {
-    if (type() == MIRType_Int32) {
-        setRange(Range::NewSingleValueRange(value().toInt32()));
-        return;
-    }
-
-    if (type() != MIRType_Double)
-        return;
-
-    double d = value().toDouble();
-
-    
-    if (IsNaN(d))
-        return;
-
-    
-    if (IsInfinite(d)) {
-        if (IsNegative(d))
-            setRange(Range::NewDoubleRange(Range::NoInt32LowerBound,
-                                           Range::NoInt32LowerBound,
-                                           Range::IncludesInfinity));
-        else
-            setRange(Range::NewDoubleRange(Range::NoInt32UpperBound,
-                                           Range::NoInt32UpperBound,
-                                           Range::IncludesInfinity));
-        return;
-    }
-
-    
-    int exp = ExponentComponent(d);
-    if (exp < 0) {
-        
-        if (IsNegative(d))
-            setRange(Range::NewDoubleRange(-1, 0));
-        else
-            setRange(Range::NewDoubleRange(0, 1));
-    } else if (exp < Range::MaxTruncatableExponent) {
-        
-        int64_t integral = ToInt64(d);
-        
-        double rest = d - (double) integral;
-        
-        
-        int64_t l = integral - ((rest < 0) ? 1 : 0);
-        int64_t h = integral + ((rest > 0) ? 1 : 0);
-        
-        if ((rest < 0 && (l == INT64_MIN || IsPowerOfTwo(Abs(l)))) ||
-            (rest > 0 && (h == INT64_MIN || IsPowerOfTwo(Abs(h)))))
-        {
-            ++exp;
-        }
-        setRange(new Range(l, h, (rest != 0), exp));
-    } else {
-        
-        
-        if (IsNegative(d))
-            setRange(Range::NewDoubleRange(Range::NoInt32LowerBound,
-                                           Range::NoInt32LowerBound,
-                                           exp));
-        else
-            setRange(Range::NewDoubleRange(Range::NoInt32UpperBound,
-                                           Range::NoInt32UpperBound,
-                                           exp));
+    if (value().isNumber()) {
+        double d = value().toNumber();
+        setRange(Range::NewDoubleRange(d, d));
     }
 }
 
