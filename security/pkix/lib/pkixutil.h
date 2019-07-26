@@ -143,10 +143,6 @@ public:
   
   Result GetConstrainedNames( const CERTGeneralName** result);
 
-  
-  
-  Result PrependNSSCertToList(CERTCertList* results);
-
   PLArenaPool* GetArena();
 
 private:

@@ -231,38 +231,30 @@ BuildForward(TrustDomain& trustDomain,
   }
 
   if (trustLevel == TrustLevel::TrustAnchor) {
-    ScopedCERTCertList certChain(CERT_NewCertList());
-    if (!certChain) {
-      PR_SetError(SEC_ERROR_NO_MEMORY, 0);
+    
+
+    
+    results = CERT_NewCertList();
+    if (!results) {
       return MapSECStatus(SECFailure);
     }
-
-    rv = subject.PrependNSSCertToList(certChain.get());
-    if (rv != Success) {
-      return rv;
-    }
-    BackCert* child = subject.childCert;
-    while (child) {
-      rv = child->PrependNSSCertToList(certChain.get());
-      if (rv != Success) {
-        return rv;
+    for (BackCert* cert = &subject; cert; cert = cert->childCert) {
+      CERTCertificate* dup = CERT_DupCertificate(cert->GetNSSCert());
+      if (CERT_AddCertToListHead(results.get(), dup) != SECSuccess) {
+        CERT_DestroyCertificate(dup);
+        return MapSECStatus(SECFailure);
       }
-      child = child->childCert;
+      
     }
 
-    SECStatus srv = trustDomain.IsChainValid(certChain.get());
+    
+    
+    SECStatus srv = trustDomain.IsChainValid(results.get());
     if (srv != SECSuccess) {
       return MapSECStatus(srv);
     }
 
-    
-    
-    results = CERT_NewCertList();
-    if (!results) {
-      return FatalError;
-    }
-    rv = subject.PrependNSSCertToList(results.get());
-    return rv;
+    return Success;
   }
 
   if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
@@ -311,7 +303,8 @@ BuildForward(TrustDomain& trustDomain,
       }
 
       
-      return subject.PrependNSSCertToList(results.get());
+      
+      return Success;
     }
     if (rv != RecoverableError) {
       return rv;
@@ -391,20 +384,6 @@ BackCert::GetArena()
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
   }
   return arena.get();
-}
-
-Result
-BackCert::PrependNSSCertToList(CERTCertList* results)
-{
-  PORT_Assert(results);
-
-  CERTCertificate* dup = CERT_DupCertificate(nssCert.get());
-  if (CERT_AddCertToListHead(results, dup) != SECSuccess) { 
-    CERT_DestroyCertificate(dup);
-    return FatalError;
-  }
-
-  return Success;
 }
 
 } } 
