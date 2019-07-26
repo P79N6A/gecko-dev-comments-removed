@@ -271,12 +271,6 @@ pref("media.cache_size", 4096);
 pref("media.video-queue.default-size", 3);
 
 
-
-
-pref("widget.ime.android.landscape_fullscreen", -1);
-pref("widget.ime.android.fullscreen_threshold", 250); 
-
-
 pref("image.mem.decodeondraw", true);
 pref("content.image.allow_locking", true);
 pref("image.mem.min_discard_timeout_ms", 10000);
