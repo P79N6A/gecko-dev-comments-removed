@@ -4342,9 +4342,14 @@ nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
 {
   nsIntSize imageSize;
   if (aImage->GetType() == imgIContainer::TYPE_VECTOR) {
-    imageSize.width  = nsPresContext::AppUnitsToIntCSSPixels(aDest.width);
-    imageSize.height = nsPresContext::AppUnitsToIntCSSPixels(aDest.height);
+    
+    
+    
+    nscoord appUnitsPerDevPx = aRenderingContext->AppUnitsPerDevPixel();
+    imageSize.width = NSAppUnitsToIntPixels(aDest.width, appUnitsPerDevPx);
+    imageSize.height = NSAppUnitsToIntPixels(aDest.height, appUnitsPerDevPx);
   } else {
+    
     aImage->GetWidth(&imageSize.width);
     aImage->GetHeight(&imageSize.height);
   }
