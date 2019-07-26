@@ -49,17 +49,17 @@ private:
 
   
   
-  bool IsPredictedRotationAcceptable(long now);
+  bool IsPredictedRotationAcceptable(int64_t now);
 
   void ClearPredictedRotation();
-  void UpdatePredictedRotation(long now, int rotation);
+  void UpdatePredictedRotation(int64_t now, int rotation);
   bool IsAccelerating(float magnitude);
   void ClearTiltHistory();
-  void AddTiltHistoryEntry(long now, float tilt);
-  bool IsFlat(long now);
-  bool IsSwinging(long now, float tilt);
+  void AddTiltHistoryEntry(int64_t now, float tilt);
+  bool IsFlat(int64_t now);
+  bool IsSwinging(int64_t now, float tilt);
   int NextTiltHistoryIndex(int index);
-  float RemainingMS(long now, long until);
+  float RemainingMS(int64_t now, int64_t until);
 
   
   
@@ -74,7 +74,7 @@ private:
   static const int tiltTolerance[][4];
 
   
-  long mLastFilteredTimestampNanos;
+  int64_t mLastFilteredTimestampNanos;
   float mLastFilteredX, mLastFilteredY, mLastFilteredZ;
 
   
@@ -84,23 +84,23 @@ private:
   int mPredictedRotation;
 
   
-  long mPredictedRotationTimestampNanos;
+  int64_t mPredictedRotationTimestampNanos;
 
   
   
-  long mFlatTimestampNanos;
+  int64_t mFlatTimestampNanos;
 
   
-  long mSwingTimestampNanos;
+  int64_t mSwingTimestampNanos;
 
   
   
-  long mAccelerationTimestampNanos;
+  int64_t mAccelerationTimestampNanos;
 
   struct {
     struct {
       float tiltAngle;
-      long timestampNanos;
+      int64_t timestampNanos;
     } history[TILT_HISTORY_SIZE];
     int index;
   } mTiltHistory;
