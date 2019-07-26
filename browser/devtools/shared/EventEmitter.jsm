@@ -7,18 +7,22 @@ this.EXPORTED_SYMBOLS = ["EventEmitter"];
 
 
 
+this.EventEmitter = function EventEmitter() {};
 
 
 
 
-this.EventEmitter = function EventEmitter(aObjectToExtend) {
-  if (aObjectToExtend) {
-    aObjectToExtend.on = this.on.bind(this);
-    aObjectToExtend.off = this.off.bind(this);
-    aObjectToExtend.once = this.once.bind(this);
-    aObjectToExtend.emit = this.emit.bind(this);
-  }
-}
+
+
+
+
+EventEmitter.decorate = function EventEmitter_decorate (aObjectToDecorate) {
+  let emitter = new EventEmitter();
+  aObjectToDecorate.on = emitter.on.bind(emitter);
+  aObjectToDecorate.off = emitter.off.bind(emitter);
+  aObjectToDecorate.once = emitter.once.bind(emitter);
+  aObjectToDecorate.emit = emitter.emit.bind(emitter);
+};
 
 EventEmitter.prototype = {
   
@@ -103,5 +107,5 @@ EventEmitter.prototype = {
         }
       }
     }
-  },
-}
+  }
+};

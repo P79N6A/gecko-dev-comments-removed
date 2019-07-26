@@ -85,7 +85,7 @@ function finishUp() {
 
 
 function DevToolPanel(iframeWindow, toolbox) {
-  new EventEmitter(this);
+  EventEmitter.decorate(this);
 
   this._toolbox = toolbox;
 

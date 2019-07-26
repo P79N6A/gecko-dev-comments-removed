@@ -31,7 +31,7 @@ this.DevTools = function DevTools() {
   
   this.destroy = this.destroy.bind(this);
 
-  new EventEmitter(this);
+  EventEmitter.decorate(this);
 
   Services.obs.addObserver(this.destroy, "quit-application", false);
 
