@@ -255,7 +255,11 @@ class Vector : private AllocPolicy
     
 
     bool usingInlineStorage() const {
-        return mBegin == (T *)storage.addr();
+        return mBegin == inlineStorage();
+    }
+
+    T *inlineStorage() const {
+        return (T *)storage.addr();
     }
 
     T *beginNoCheck() const {
@@ -479,6 +483,8 @@ class Vector : private AllocPolicy
 
 
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const;
+
+    void swap(Vector &other);
 };
 
 
@@ -993,6 +999,33 @@ inline size_t
 Vector<T,N,AP>::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
 {
     return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
+}
+
+template <class T, size_t N, class AP>
+inline void
+Vector<T,N,AP>::swap(Vector &other)
+{
+    
+    JS_STATIC_ASSERT(N == 0);
+
+    
+    if (!usingInlineStorage() && other.usingInlineStorage()) {
+        other.mBegin = mBegin;
+        mBegin = inlineStorage();
+    } else if (usingInlineStorage() && !other.usingInlineStorage()) {
+        mBegin = other.mBegin;
+        other.mBegin = other.inlineStorage();
+    } else if (!usingInlineStorage() && !other.usingInlineStorage()) {
+        Swap(mBegin, other.mBegin);
+    } else {
+        
+    }
+
+    Swap(mLength, other.mLength);
+    Swap(mCapacity, other.mCapacity);
+#ifdef DEBUG
+    Swap(mReserved, other.mReserved);
+#endif
 }
 
 }  

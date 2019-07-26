@@ -23,10 +23,6 @@
 
 
 
-
-
-
-
 #include "YarrSyntaxChecker.h"
 
 #include "YarrParser.h"
@@ -53,7 +49,7 @@ public:
     void disjunction() {}
 };
 
-ErrorCode checkSyntax(const UString& pattern)
+ErrorCode checkSyntax(const String& pattern)
 {
     SyntaxChecker syntaxChecker;
     return parse(syntaxChecker, pattern);

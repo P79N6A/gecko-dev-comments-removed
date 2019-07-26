@@ -25,9 +25,6 @@
 
 
 
-
-
-
 #ifndef YarrPattern_h
 #define YarrPattern_h
 
@@ -36,23 +33,47 @@
 
 namespace JSC { namespace Yarr {
 
+struct PatternDisjunction;
+
 enum ErrorCode {
     NoError,
     PatternTooLarge,
     QuantifierOutOfOrder,
     QuantifierWithoutAtom,
+    QuantifierTooLarge,
     MissingParentheses,
     ParenthesesUnmatched,
     ParenthesesTypeInvalid,
     CharacterClassUnmatched,
-    CharacterClassInvalidRange,
     CharacterClassOutOfOrder,
+    CharacterClassInvalidRange,
     EscapeUnterminated,
-    QuantifierTooLarge,
     NumberOfErrorCodes
 };
 
-struct PatternDisjunction;
+static inline const char* errorMessage(ErrorCode code)
+{
+
+#define REGEXP_ERROR_PREFIX "Invalid regular expression: "
+   
+   static const char* errorMessages[NumberOfErrorCodes] = {
+       0, 
+       REGEXP_ERROR_PREFIX "regular expression too large",
+       REGEXP_ERROR_PREFIX "numbers out of order in {} quantifier",
+       REGEXP_ERROR_PREFIX "nothing to repeat",
+       REGEXP_ERROR_PREFIX "number too large in {} quantifier",
+       REGEXP_ERROR_PREFIX "missing )",
+       REGEXP_ERROR_PREFIX "unmatched parentheses",
+       REGEXP_ERROR_PREFIX "unrecognized character after (?",
+       REGEXP_ERROR_PREFIX "missing terminating ] for character class",
+       REGEXP_ERROR_PREFIX "character class out of order"
+       REGEXP_ERROR_PREFIX "range out of order in character class",
+       REGEXP_ERROR_PREFIX "\\ at end of pattern"
+   };
+#undef REGEXP_ERROR_PREFIX
+
+   return errorMessages[code];
+}
 
 struct CharacterRange {
     UChar begin;
@@ -81,7 +102,7 @@ struct CharacterClassTable : RefCounted<CharacterClassTable> {
 };
 
 struct CharacterClass {
-    WTF_MAKE_FAST_ALLOCATED
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     
     
@@ -117,7 +138,8 @@ struct PatternTerm {
         TypeBackReference,
         TypeForwardReference,
         TypeParenthesesSubpattern,
-        TypeParentheticalAssertion
+        TypeParentheticalAssertion,
+        TypeDotStarEnclosure
     } type;
     bool m_capture :1;
     bool m_invert :1;
@@ -132,22 +154,15 @@ struct PatternTerm {
             bool isCopy;
             bool isTerminal;
         } parentheses;
+        struct {
+            bool bolAnchor : 1;
+            bool eolAnchor : 1;
+        } anchors;
     };
     QuantifierType quantityType;
-    unsigned quantityCount;
+    Checked<unsigned> quantityCount;
     int inputPosition;
     unsigned frameLocation;
-
-    
-    PatternTerm()
-        : type(PatternTerm::TypePatternCharacter)
-        , m_capture(false)
-        , m_invert(false)
-    {
-        patternCharacter = 0;
-        quantityType = QuantifierFixedCount;
-        quantityCount = 1;
-    }
 
     PatternTerm(UChar ch)
         : type(PatternTerm::TypePatternCharacter)
@@ -201,6 +216,28 @@ struct PatternTerm {
         quantityCount = 1;
     }
 
+    PatternTerm(bool bolAnchor, bool eolAnchor)
+        : type(TypeDotStarEnclosure)
+        , m_capture(false)
+        , m_invert(false)
+    {
+        anchors.bolAnchor = bolAnchor;
+        anchors.eolAnchor = eolAnchor;
+        quantityType = QuantifierFixedCount;
+        quantityCount = 1;
+    }
+
+    
+    PatternTerm()
+        : type(PatternTerm::TypePatternCharacter)
+        , m_capture(false)
+        , m_invert(false)
+    {
+        patternCharacter = 0;
+        quantityType = QuantifierFixedCount;
+        quantityCount = 1;
+    }
+    
     static PatternTerm ForwardReference()
     {
         return PatternTerm(TypeForwardReference);
@@ -239,7 +276,7 @@ struct PatternTerm {
 };
 
 struct PatternAlternative {
-    WTF_MAKE_FAST_ALLOCATED
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     PatternAlternative(PatternDisjunction* disjunction)
         : m_parent(disjunction)
@@ -282,7 +319,7 @@ public:
 };
 
 struct PatternDisjunction {
-    WTF_MAKE_FAST_ALLOCATED
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     PatternDisjunction(PatternAlternative* parent = 0)
         : m_parent(parent)
@@ -331,7 +368,7 @@ struct TermChain {
 };
 
 struct YarrPattern {
-    YarrPattern(const UString& pattern, bool ignoreCase, bool multiline, ErrorCode* error);
+    YarrPattern(const String& pattern, bool ignoreCase, bool multiline, ErrorCode* error);
 
     ~YarrPattern()
     {
@@ -420,7 +457,7 @@ struct YarrPattern {
     Vector<CharacterClass*> m_userCharacterClasses;
 
 private:
-    ErrorCode compile(const UString& patternString);
+    ErrorCode compile(const String& patternString);
 
     CharacterClass* newlineCached;
     CharacterClass* digitsCached;

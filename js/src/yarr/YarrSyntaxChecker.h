@@ -23,10 +23,6 @@
 
 
 
-
-
-
-
 #ifndef YarrSyntaxChecker_h
 #define YarrSyntaxChecker_h
 
@@ -35,7 +31,7 @@
 
 namespace JSC { namespace Yarr {
 
-ErrorCode checkSyntax(const UString& pattern);
+ErrorCode checkSyntax(const String& pattern);
 
 }} 
 

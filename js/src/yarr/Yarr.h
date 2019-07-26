@@ -25,15 +25,10 @@
 
 
 
-
-
-
-
 #ifndef Yarr_h
 #define Yarr_h
 
 #include <limits.h>
-
 #include "YarrInterpreter.h"
 #include "YarrPattern.h"
 
@@ -49,6 +44,7 @@ namespace JSC { namespace Yarr {
 #define YarrStackSpaceForBackTrackInfoParentheses 2
 
 static const unsigned quantifyInfinite = UINT_MAX;
+static const unsigned offsetNoMatch = (unsigned)-1;
 
 
 
@@ -63,8 +59,10 @@ enum JSRegExpResult {
     JSRegExpErrorInternal = -4
 };
 
-PassOwnPtr<BytecodePattern> byteCompile(YarrPattern&, BumpPointerAllocator*);
-int interpret(BytecodePattern*, const UChar* input, unsigned start, unsigned length, int* output);
+enum YarrCharSize {
+    Char8,
+    Char16
+};
 
 } } 
 
