@@ -331,7 +331,7 @@ Compare2To1(const PRUnichar* aStr1,const char* aStr2,PRUint32 aCount,bool aIgnor
         PRUnichar c2 = PRUnichar((unsigned char)*s2++);
         
         if (c1 != c2) {
-#ifdef NS_DEBUG
+#ifdef DEBUG
           
           
           

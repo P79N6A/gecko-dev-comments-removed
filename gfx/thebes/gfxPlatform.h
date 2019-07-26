@@ -156,6 +156,17 @@ public:
     virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
                                                                  gfxASurface::gfxContentType contentType) = 0;
 
+    
+
+
+
+
+
+
+
+    virtual already_AddRefed<gfxASurface>
+      CreateOffscreenImageSurface(const gfxIntSize& aSize,
+                                  gfxASurface::gfxContentType aContentType);
 
     virtual already_AddRefed<gfxASurface> OptimizeImage(gfxImageSurface *aSurface,
                                                         gfxASurface::gfxImageFormat format);

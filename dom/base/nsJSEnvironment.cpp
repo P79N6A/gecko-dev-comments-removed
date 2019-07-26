@@ -1684,7 +1684,7 @@ nsJSContext::JSObjectFromInterface(nsISupports* aTarget, JSObject* aScope, JSObj
   nsresult rv = nsContentUtils::WrapNative(mContext, aScope, aTarget, &v);
   NS_ENSURE_SUCCESS(rv, rv);
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
   nsCOMPtr<nsISupports> targetSupp = do_QueryInterface(aTarget);
   nsCOMPtr<nsISupports> native =
     nsContentUtils::XPConnect()->GetNativeOfWrapper(mContext,
@@ -2224,7 +2224,7 @@ nsJSContext::ConvertSupportsTojsvals(nsISupports *aArgs,
         if (rv == NS_ERROR_NO_INTERFACE) {
           
           
-#ifdef NS_DEBUG
+#ifdef DEBUG
           
           
           nsCOMPtr<nsISupportsPrimitive> prim(do_QueryInterface(arg));

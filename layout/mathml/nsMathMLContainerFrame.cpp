@@ -520,7 +520,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
       }
       Stretch(aRenderingContext, NS_STRETCH_DIRECTION_DEFAULT, defaultSize,
               aDesiredSize);
-#ifdef NS_DEBUG
+#ifdef DEBUG
       {
         
         
@@ -639,7 +639,7 @@ nsMathMLContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                            DISPLAY_CHILD_INLINE);
   NS_ENSURE_SUCCESS(rv, rv);
 
-#if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)
+#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
   
   
   

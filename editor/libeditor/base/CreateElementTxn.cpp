@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "CreateElementTxn.h"
 #include "nsEditor.h"
@@ -13,7 +13,7 @@
 
 #include "mozilla/dom/Element.h"
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
 static bool gNoisy = false;
 #endif
 
@@ -60,7 +60,7 @@ NS_IMETHODIMP CreateElementTxn::Init(nsEditor      *aEditor,
 
 NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
 {
-#ifdef NS_DEBUG
+#ifdef DEBUG
   if (gNoisy)
   {
     char* nodename = ToNewCString(mTag);
@@ -75,23 +75,23 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
 
   nsCOMPtr<dom::Element> newContent;
  
-  //new call to use instead to get proper HTML element, bug# 39919
+  
   nsresult result = mEditor->CreateHTMLContent(mTag, getter_AddRefs(newContent));
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_STATE(newContent);
 
   mNewNode = newContent->AsDOMNode();
-  // Try to insert formatting whitespace for the new node:
+  
   mEditor->MarkNodeDirty(mNewNode);
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
   if (gNoisy)
   {
     printf("  newNode = %p\n", static_cast<void*>(mNewNode.get()));
   }
 #endif
 
-  // insert the new node
+  
   if (CreateElementTxn::eAppend == PRInt32(mOffsetInParent)) {
     nsCOMPtr<nsIDOMNode> resultNode;
     return mParent->AppendChild(mNewNode, getter_AddRefs(resultNode));
@@ -102,7 +102,7 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
 
   mOffsetInParent = NS_MIN(mOffsetInParent, parent->GetChildCount());
 
-  // note, it's ok for mRefNode to be null.  that means append
+  
   nsIContent* refNode = parent->GetChildAt(mOffsetInParent);
   mRefNode = refNode ? refNode->AsDOMNode() : nsnull;
 
@@ -110,11 +110,11 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
   result = mParent->InsertBefore(mNewNode, mRefNode, getter_AddRefs(resultNode));
   NS_ENSURE_SUCCESS(result, result); 
 
-  // only set selection to insertion point if editor gives permission
+  
   bool bAdjustSelection;
   mEditor->ShouldTxnSetSelection(&bAdjustSelection);
   if (!bAdjustSelection) {
-    // do nothing - dom range gravity will adjust selection
+    
     return NS_OK;
   }
 
@@ -134,7 +134,7 @@ NS_IMETHODIMP CreateElementTxn::DoTransaction(void)
 
 NS_IMETHODIMP CreateElementTxn::UndoTransaction(void)
 {
-#ifdef NS_DEBUG
+#ifdef DEBUG
   if (gNoisy)
   {
     printf("Undo Create Element, mParent = %p, node = %p\n",
@@ -152,21 +152,21 @@ NS_IMETHODIMP CreateElementTxn::UndoTransaction(void)
 
 NS_IMETHODIMP CreateElementTxn::RedoTransaction(void)
 {
-#ifdef NS_DEBUG
+#ifdef DEBUG
   if (gNoisy) { printf("Redo Create Element\n"); }
 #endif
 
   NS_ASSERTION(mEditor && mParent, "bad state");
   NS_ENSURE_TRUE(mEditor && mParent, NS_ERROR_NOT_INITIALIZED);
 
-  // first, reset mNewNode so it has no attributes or content
+  
   nsCOMPtr<nsIDOMCharacterData>nodeAsText = do_QueryInterface(mNewNode);
   if (nodeAsText)
   {
     nodeAsText->SetData(EmptyString());
   }
   
-  // now, reinsert mNewNode
+  
   nsCOMPtr<nsIDOMNode> resultNode;
   return mParent->InsertBefore(mNewNode, mRefNode, getter_AddRefs(resultNode));
 }

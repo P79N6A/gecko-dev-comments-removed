@@ -67,7 +67,7 @@
 #include "nsNetUtil.h"
 #include "nsEventStates.h"
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
 #include "nsIDOMCharacterData.h"
 #endif
 
@@ -799,38 +799,11 @@ Accessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
   if (!accessible)
     return fallbackAnswer;
 
-  if (accessible == this) {
-    
-    
-    
-    
-    
-    PRUint32 childCount = ChildCount();
-    for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
-      Accessible* child = GetChildAt(childIdx);
-
-      PRInt32 childX, childY, childWidth, childHeight;
-      child->GetBounds(&childX, &childY, &childWidth, &childHeight);
-      if (aX >= childX && aX < childX + childWidth &&
-          aY >= childY && aY < childY + childHeight &&
-          (child->State() & states::INVISIBLE) == 0) {
-
-        if (aWhichChild == eDeepestChild)
-          return child->ChildAtPoint(aX, aY, eDeepestChild);
-
-        return child;
-      }
-    }
-
-    
-    
-    return accessible;
-  }
-
+  
   
   
   Accessible* child = accessible;
-  while (true) {
+  while (child != this) {
     Accessible* parent = child->Parent();
     if (!parent) {
       
@@ -838,13 +811,37 @@ Accessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
       return fallbackAnswer;
     }
 
-    if (parent == this)
-      return aWhichChild == eDeepestChild ? accessible : child;
+    
+    
+    if (parent == this && aWhichChild == eDirectChild)
+        return child;
 
     child = parent;
   }
 
-  return nsnull;
+  
+  
+  
+  
+  
+  PRUint32 childCount = accessible->ChildCount();
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
+    Accessible* child = accessible->GetChildAt(childIdx);
+
+    PRInt32 childX, childY, childWidth, childHeight;
+    child->GetBounds(&childX, &childY, &childWidth, &childHeight);
+    if (aX >= childX && aX < childX + childWidth &&
+        aY >= childY && aY < childY + childHeight &&
+        (child->State() & states::INVISIBLE) == 0) {
+
+      if (aWhichChild == eDeepestChild)
+        return child->ChildAtPoint(aX, aY, eDeepestChild);
+
+      return child;
+    }
+  }
+
+  return accessible;
 }
 
 

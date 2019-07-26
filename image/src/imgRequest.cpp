@@ -909,7 +909,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     PRUint32 out;
     inStr->ReadSegments(sniff_mimetype_callback, this, count, &out);
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
     
 #endif
 

@@ -1282,8 +1282,36 @@ TypeObject::getProperty(JSContext *cx, jsid id, bool assign)
 
     TypeSet *types = &(*pprop)->types;
 
-    if (assign)
-        types->setOwnProperty(cx, false);
+    if (assign && !types->isOwnProperty(false)) {
+        
+
+
+
+
+
+
+        bool foundSetter = false;
+
+        JSObject *protoWalk = proto;
+        while (protoWalk) {
+            if (!protoWalk->isNative()) {
+                protoWalk = protoWalk->getProto();
+                continue;
+            }
+
+            const Shape *shape = protoWalk->nativeLookup(cx, id);
+
+            foundSetter = shape &&
+                          !shape->hasDefaultSetter();
+            if (foundSetter)
+                break;
+
+            protoWalk = protoWalk->getProto();
+        }
+
+        if (!foundSetter)
+            types->setOwnProperty(cx, false);
+    }
 
     return types;
 }

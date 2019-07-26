@@ -411,6 +411,15 @@ nsIdentifierMapEntry::RemoveNameElement(Element* aElement)
 }
 
 
+size_t
+nsIdentifierMapEntry::SizeOfExcludingThis(nsIdentifierMapEntry* aEntry,
+                                          nsMallocSizeOfFun aMallocSizeOf,
+                                          void*)
+{
+  return aEntry->GetKey().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+}
+
+
 
 class SubDocMapEntry : public PLDHashEntryHdr
 {
@@ -9682,7 +9691,8 @@ nsDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
     mStyledLinks.SizeOfExcludingThis(NULL, aWindowSizes->mMallocSizeOf);
 
   aWindowSizes->mDOMOther +=
-    mIdentifierMap.SizeOfExcludingThis(NULL, aWindowSizes->mMallocSizeOf);
+    mIdentifierMap.SizeOfExcludingThis(nsIdentifierMapEntry::SizeOfExcludingThis,
+                                       aWindowSizes->mMallocSizeOf);
 
   
   

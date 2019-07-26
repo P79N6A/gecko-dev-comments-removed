@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginInstance.h"
@@ -66,7 +66,7 @@ static void SearchForSoname(const char* name, char** soname)
     while ((dirEntry = PR_ReadDir(fdDir, PR_SKIP_BOTH))) {
         if (!PL_strncmp(dirEntry->name, name, n)) {
             if (dirEntry->name[n] == '.' && dirEntry->name[n+1] && !dirEntry->name[n+2]) {
-                // name.N, wild guess this is what we need
+                
                 char out[PLUGIN_MAX_LEN_OF_TMP_ARR] = DEFAULT_X11_PATH;
                 PL_strcat(out, dirEntry->name);
                 *soname = PL_strdup(out);
@@ -106,16 +106,16 @@ static bool LoadExtraSharedLib(const char *name, char **soname, bool tryToGetSon
 #else
 #define DEFAULT_EXTRA_LIBS_LIST "libXt" LOCAL_PLUGIN_DLL_SUFFIX ":libXext" LOCAL_PLUGIN_DLL_SUFFIX
 #endif
-/*
- this function looks for
- user_pref("plugin.soname.list", "/usr/X11R6/lib/libXt.so.6:libXext.so");
- in user's pref.js
- and loads all libs in specified order
-*/
+
+
+
+
+
+
 
 static void LoadExtraSharedLibs()
 {
-    // check out if user's prefs.js has libs name
+    
     nsresult res;
     nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &res));
     if (NS_SUCCEEDED(res) && (prefs != nsnull)) {
@@ -123,7 +123,7 @@ static void LoadExtraSharedLibs()
         bool prefSonameListIsSet = true;
         res = prefs->GetCharPref(PREF_PLUGINS_SONAME, &sonameList);
         if (!sonameList) {
-            // pref is not set, lets use hardcoded list
+            
             prefSonameListIsSet = false;
             sonameList = PL_strdup(DEFAULT_EXTRA_LIBS_LIST);
         }
@@ -137,12 +137,12 @@ static void LoadExtraSharedLibs()
                     arrayOfLibs[numOfLibs++] = p;
                     p = nsCRT::strtok(nextToken,":",&nextToken);
                 }
-            } else // there is just one lib
+            } else 
                 arrayOfLibs[numOfLibs++] = sonameList;
 
             char sonameListToSave[PLUGIN_MAX_LEN_OF_TMP_ARR] = "";
             for (int i=0; i<numOfLibs; i++) {
-                // trim out head/tail white spaces (just in case)
+                
                 bool head = true;
                 p = arrayOfLibs[i];
                 while (*p) {
@@ -158,21 +158,21 @@ static void LoadExtraSharedLibs()
                     }
                 }
                 if (!arrayOfLibs[i][0]) {
-                    continue; // null string
+                    continue; 
                 }
                 bool tryToGetSoname = true;
                 if (PL_strchr(arrayOfLibs[i], '/')) {
-                    //assuming it's real name, try to stat it
+                    
                     struct stat st;
                     if (stat((const char*) arrayOfLibs[i], &st)) {
-                        //get just a file name
+                        
                         arrayOfLibs[i] = PL_strrchr(arrayOfLibs[i], '/') + 1;
                     } else
                         tryToGetSoname = false;
                 }
                 char *soname = NULL;
                 if (LoadExtraSharedLib(arrayOfLibs[i], &soname, tryToGetSoname)) {
-                    //construct soname's list to save in prefs
+                    
                     p = soname ? soname : arrayOfLibs[i];
                     int n = PLUGIN_MAX_LEN_OF_TMP_ARR -
                         (PL_strlen(sonameListToSave) + PL_strlen(p));
@@ -181,31 +181,31 @@ static void LoadExtraSharedLibs()
                         PL_strcat(sonameListToSave,":");
                     }
                     if (soname) {
-                        PL_strfree(soname); // it's from strdup
+                        PL_strfree(soname); 
                     }
                     if (numOfLibs > 1)
-                        arrayOfLibs[i][PL_strlen(arrayOfLibs[i])] = ':'; //restore ":" in sonameList
+                        arrayOfLibs[i][PL_strlen(arrayOfLibs[i])] = ':'; 
                 }
             }
 
-            // Check whether sonameListToSave is a empty String, Bug: 329205
+            
             if (sonameListToSave[0]) 
                 for (p = &sonameListToSave[PL_strlen(sonameListToSave) - 1]; *p == ':'; p--)
-                    *p = 0; //delete tail ":" delimiters
+                    *p = 0; 
 
             if (!prefSonameListIsSet || PL_strcmp(sonameList, sonameListToSave)) {
-                // if user specified some bogus soname I overwrite it here,
-                // otherwise it'll decrease performance by calling popen() in SearchForSoname
-                // every time for each bogus name
+                
+                
+                
                 prefs->SetCharPref(PREF_PLUGINS_SONAME, (const char *)sonameListToSave);
             }
             PL_strfree(sonameList);
         }
     }
 }
-#endif //MOZ_WIDGET_GTK2
+#endif 
 
-/* nsPluginsDir implementation */
+
 
 bool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
@@ -214,10 +214,10 @@ bool nsPluginsDir::IsPluginFile(nsIFile* file)
         return false;
 
 #ifdef ANDROID
-    // It appears that if you load
-    // 'libstagefright_honeycomb.so' on froyo, or
-    // 'libstagefright_froyo.so' on honeycomb, we will abort.
-    // Since these are just helper libs, we can ignore.
+    
+    
+    
+    
     const char *cFile = filename.get();
     if (strstr(cFile, "libstagefright") != NULL)
         return false;
@@ -237,7 +237,7 @@ bool nsPluginsDir::IsPluginFile(nsIFile* file)
     return false;
 }
 
-/* nsPluginFile implementation */
+
 
 nsPluginFile::nsPluginFile(nsIFile* file)
 : mPlugin(file)
@@ -267,30 +267,30 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 
 #if defined(MOZ_WIDGET_GTK2)
 
-    // Normally, Mozilla isn't linked against libXt and libXext
-    // since it's a Gtk/Gdk application.  On the other hand,
-    // legacy plug-ins expect the libXt and libXext symbols
-    // to already exist in the global name space.  This plug-in
-    // wrapper is linked against libXt and libXext, but since
-    // we never call on any of these libraries, plug-ins still
-    // fail to resolve Xt symbols when trying to do a dlopen
-    // at runtime.  Explicitly opening Xt/Xext into the global
-    // namespace before attempting to load the plug-in seems to
-    // work fine.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 
 #if defined(SOLARIS) || defined(HPUX)
-    // Acrobat/libXm: Lazy resolving might cause crash later (bug 211587)
+    
     *outLibrary = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW);
     pLibrary = *outLibrary;
 #else
-    // Some dlopen() doesn't recover from a failed PR_LD_NOW (bug 223744)
+    
     *outLibrary = PR_LoadLibraryWithFlags(libSpec, 0);
     pLibrary = *outLibrary;
 #endif
     if (!pLibrary) {
         LoadExtraSharedLibs();
-        // try reload plugin once more
+        
         *outLibrary = PR_LoadLibraryWithFlags(libSpec, 0);
         pLibrary = *outLibrary;
         if (!pLibrary) {
@@ -301,9 +301,9 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 #else
     *outLibrary = PR_LoadLibraryWithFlags(libSpec, 0);
     pLibrary = *outLibrary;
-#endif  // MOZ_WIDGET_GTK2
+#endif  
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
     printf("LoadPlugin() %s returned %lx\n", 
            libSpec.value.pathname, (unsigned long)pLibrary);
 #endif
@@ -317,7 +317,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
     info.fVersion = nsnull;
 
-    // Sadly we have to load the library for this to work.
+    
     nsresult rv = LoadPlugin(outLibrary);
     if (NS_FAILED(rv))
         return rv;

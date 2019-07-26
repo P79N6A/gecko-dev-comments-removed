@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "frontend/BytecodeCompiler.h"
 
@@ -37,10 +37,10 @@ MarkInnerAndOuterFunctions(JSContext *cx, JSScript* script_)
         if (outer->hasObjects()) {
             ObjectArray *arr = outer->objects();
 
-            /*
-             * If this is an eval script, don't treat the saved caller function
-             * stored in the first object slot as an inner function.
-             */
+            
+
+
+
             size_t start = outer->savedCallerFun ? 1 : 0;
 
             for (size_t i = start; i < arr->length; i++) {
@@ -71,8 +71,8 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
                         bool compileAndGo, bool noScriptRval, bool needScriptGlobal,
                         const jschar *chars, size_t length,
                         const char *filename, unsigned lineno, JSVersion version,
-                        JSString *source /* = NULL */,
-                        unsigned staticLevel /* = 0 */)
+                        JSString *source ,
+                        unsigned staticLevel )
 {
     class ProbesManager
     {
@@ -87,19 +87,19 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     };
     ProbesManager probesManager(filename, lineno);
 
-    /*
-     * The scripted callerFrame can only be given for compile-and-go scripts
-     * and non-zero static level requires callerFrame.
-     */
+    
+
+
+
     JS_ASSERT_IF(callerFrame, compileAndGo);
     JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
     Parser parser(cx, principals, originPrincipals, chars, length, filename, lineno, version,
-                  /* foldConstants = */ true, compileAndGo);
+                   true, compileAndGo);
     if (!parser.init())
         return NULL;
 
-    SharedContext sc(cx, scopeChain, /* fun = */ NULL, /* funbox = */ NULL);
+    SharedContext sc(cx, scopeChain,  NULL,  NULL);
 
     TreeContext tc(&parser, &sc, staticLevel);
     if (!tc.init())
@@ -113,26 +113,26 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     if (!script)
         return NULL;
 
-    // We can specialize a bit for the given scope chain if that scope chain is the global object.
+    
     JSObject *globalScope = scopeChain && scopeChain == &scopeChain->global() ? scopeChain : NULL;
     JS_ASSERT_IF(globalScope, globalScope->isNative());
     JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
 
-    BytecodeEmitter bce(/* parent = */ NULL, &parser, &sc, script, callerFrame, !!globalScope,
+    BytecodeEmitter bce( NULL, &parser, &sc, script, callerFrame, !!globalScope,
                         lineno);
     if (!bce.init())
         return NULL;
 
-    /* If this is a direct call to eval, inherit the caller's strictness.  */
+    
     if (callerFrame && callerFrame->isScriptFrame() && callerFrame->script()->strictModeCode)
         sc.setInStrictMode();
 
     if (compileAndGo) {
         if (source) {
-            /*
-             * Save eval program source in script->atoms[0] for the
-             * eval cache (see EvalCacheLookup in jsobj.cpp).
-             */
+            
+
+
+
             JSAtom *atom = js_AtomizeString(cx, source);
             jsatomid _;
             if (!atom || !bce.makeAtomIndex(atom, &_))
@@ -140,11 +140,11 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         }
 
         if (callerFrame && callerFrame->isFunctionFrame()) {
-            /*
-             * An eval script in a caller frame needs to have its enclosing
-             * function captured in case it refers to an upvar, and someone
-             * wishes to decompile it while it's running.
-             */
+            
+
+
+
+
             ObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
             if (!funbox)
                 return NULL;
@@ -154,10 +154,10 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         }
     }
 
-    /*
-     * Inline this->statements to emit as we go to save AST space. We must
-     * generate our script-body blockid since we aren't calling Statements.
-     */
+    
+
+
+
     if (!GenerateBlockId(&sc, sc.bodyid))
         return NULL;
 
@@ -205,35 +205,35 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     }
 
 #if JS_HAS_XML_SUPPORT
-    /*
-     * Prevent XML data theft via <script src="http://victim.com/foo.xml">.
-     * For background, see:
-     *
-     * https://bugzilla.mozilla.org/show_bug.cgi?id=336551
-     */
+    
+
+
+
+
+
     if (pn && onlyXML && !callerFrame) {
-        parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_XML_WHOLE_PROGRAM);
+        parser.reportError(NULL, JSMSG_XML_WHOLE_PROGRAM);
         return NULL;
     }
 #endif
 
-    // It's an error to use |arguments| in a function that has a rest parameter.
+    
     if (callerFrame && callerFrame->isFunctionFrame() && callerFrame->fun()->hasRest()) {
         PropertyName *arguments = cx->runtime->atomState.argumentsAtom;
         for (AtomDefnRange r = tc.lexdeps->all(); !r.empty(); r.popFront()) {
             if (r.front().key() == arguments) {
-                parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_ARGUMENTS_AND_REST);
+                parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
                 return NULL;
             }
         }
-        // We're not in a function context, so we don't expect any bindings.
+        
         JS_ASSERT(sc.bindings.lookup(cx, arguments, NULL) == NONE);
     }
 
-    /*
-     * Nowadays the threaded interpreter needs a stop instruction, so we
-     * do have to emit that here.
-     */
+    
+
+
+
     if (Emit1(cx, &bce, JSOP_STOP) < 0)
         return NULL;
 
@@ -246,8 +246,8 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     return script;
 }
 
-// Compile a JS function body, which might appear as the value of an event
-// handler attribute in an HTML <INPUT> tag, or in a Function() constructor.
+
+
 bool
 frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
                               JSPrincipals *principals, JSPrincipals *originPrincipals,
@@ -255,12 +255,12 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
                               const char *filename, unsigned lineno, JSVersion version)
 {
     Parser parser(cx, principals, originPrincipals, chars, length, filename, lineno, version,
-                  /* foldConstants = */ true, /* compileAndGo = */ false);
+                   true,  false);
     if (!parser.init())
         return false;
 
     JS_ASSERT(fun);
-    SharedContext funsc(cx, /* scopeChain = */ NULL, fun, /* funbox = */ NULL);
+    SharedContext funsc(cx,  NULL, fun,  NULL);
 
     unsigned staticLevel = 0;
     TreeContext funtc(&parser, &funsc, staticLevel);
@@ -269,15 +269,15 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
 
     GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
     Rooted<JSScript*> script(cx);
-    script = JSScript::Create(cx, /* savedCallerFun = */ false, principals, originPrincipals,
-                              /* compileAndGo = */ false, /* noScriptRval = */ false,
+    script = JSScript::Create(cx,  false, principals, originPrincipals,
+                               false,  false,
                               globalObject, version, staticLevel);
     if (!script)
         return false;
 
     StackFrame *nullCallerFrame = NULL;
-    BytecodeEmitter funbce(/* parent = */ NULL, &parser, &funsc, script, nullCallerFrame,
-                           /* hasGlobalScope = */ false, lineno);
+    BytecodeEmitter funbce( NULL, &parser, &funsc, script, nullCallerFrame,
+                            false, lineno);
     if (!funbce.init())
         return false;
 
@@ -286,7 +286,7 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
     if (!GenerateBlockId(&funsc, funsc.bodyid))
         return false;
 
-    /* FIXME: make Function format the source for a function definition. */
+    
     ParseNode *fn = FunctionNode::create(PNK_NAME, &parser);
     if (!fn)
         return false;
@@ -303,10 +303,10 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
 
     unsigned nargs = fun->nargs;
     if (nargs) {
-        /*
-         * NB: do not use AutoLocalNameArray because it will release space
-         * allocated from cx->tempLifoAlloc by DefineArg.
-         */
+        
+
+
+
         BindingNames names(cx);
         if (!funsc.bindings.getLocalNameArray(cx, &names))
             return false;
@@ -317,17 +317,17 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
         }
     }
 
-    /*
-     * After we're done parsing, we must fold constants, analyze any nested
-     * functions, and generate code for this function, including a stop opcode
-     * at the end.
-     */
+    
+
+
+
+
     ParseNode *pn = parser.functionBody(Parser::StatementListBody);
     if (!pn) 
         return false;
 
     if (!parser.tokenStream.matchToken(TOK_EOF)) {
-        parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
+        parser.reportError(NULL, JSMSG_SYNTAX_ERROR);
         return false;
     }
 

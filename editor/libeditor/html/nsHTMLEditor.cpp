@@ -1720,9 +1720,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, bool aDeleteSele
         NS_ENSURE_SUCCESS(res, res);
       }
 
-      nsCOMPtr<nsIDOMNode> tempNode;
-      PRInt32 tempOffset;
-      nsresult result = DeleteSelectionAndPrepareToCreateNode(tempNode,tempOffset);
+      nsresult result = DeleteSelectionAndPrepareToCreateNode();
       NS_ENSURE_SUCCESS(result, result);
     }
 
@@ -3596,6 +3594,36 @@ bool
 nsHTMLEditor::IsModifiableNode(nsINode *aNode)
 {
   return !aNode || aNode->IsEditable();
+}
+
+NS_IMETHODIMP
+nsHTMLEditor::GetIsSelectionEditable(bool* aIsSelectionEditable)
+{
+  MOZ_ASSERT(aIsSelectionEditable);
+
+  nsRefPtr<Selection> selection = GetSelection();
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+
+  
+  
+  
+  *aIsSelectionEditable = selection->GetRangeCount() &&
+                          selection->GetAnchorNode()->IsEditable() &&
+                          selection->GetFocusNode()->IsEditable();
+
+  if (*aIsSelectionEditable) {
+    nsINode* commonAncestor =
+      selection->GetAnchorFocusRange()->GetCommonAncestor();
+    while (commonAncestor && !commonAncestor->IsEditable()) {
+      commonAncestor = commonAncestor->GetNodeParent();
+    }
+    if (!commonAncestor) {
+      
+      *aIsSelectionEditable = false;
+    }
+  }
+
+  return NS_OK;
 }
 
 static nsresult

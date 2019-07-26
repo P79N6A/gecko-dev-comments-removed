@@ -22,6 +22,34 @@ namespace JS {
 
 using namespace js;
 
+size_t
+CompartmentStats::gcHeapThingsSize()
+{
+    
+    size_t n = 0;
+    n += gcHeapObjectsNonFunction;
+    n += gcHeapObjectsFunction;
+    n += gcHeapStrings;
+    n += gcHeapShapesTree;
+    n += gcHeapShapesDict;
+    n += gcHeapShapesBase;
+    n += gcHeapScripts;
+    n += gcHeapTypeObjects;
+#if JS_HAS_XML_SUPPORT
+    n += gcHeapXML;
+#endif
+
+#ifdef DEBUG
+    size_t n2 = n;
+    n2 += gcHeapArenaAdmin;
+    n2 += gcHeapUnusedGcThings;
+    
+    JS_ASSERT(n2 % gc::ArenaSize == 0);
+#endif
+
+    return n;
+}
+
 static void
 StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
 {
@@ -44,12 +72,10 @@ StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
 static void
 StatsChunkCallback(JSRuntime *rt, void *data, gc::Chunk *chunk)
 {
-    
-    
     RuntimeStats *rtStats = static_cast<RuntimeStats *>(data);
     for (size_t i = 0; i < gc::ArenasPerChunk; i++)
         if (chunk->decommittedArenas.get(i))
-            rtStats->gcHeapChunkDirtyDecommitted += gc::ArenaSize;
+            rtStats->gcHeapDecommittedArenas += gc::ArenaSize;
 }
 
 static void
@@ -58,15 +84,17 @@ StatsArenaCallback(JSRuntime *rt, void *data, gc::Arena *arena,
 {
     RuntimeStats *rtStats = static_cast<RuntimeStats *>(data);
 
-    rtStats->currCompartmentStats->gcHeapArenaHeaders += sizeof(gc::ArenaHeader);
+    
+    
     size_t allocationSpace = arena->thingsSpan(thingSize);
-    rtStats->currCompartmentStats->gcHeapArenaPadding +=
-        gc::ArenaSize - allocationSpace - sizeof(gc::ArenaHeader);
+    rtStats->currCompartmentStats->gcHeapArenaAdmin +=
+        gc::ArenaSize - allocationSpace;
+
     
     
     
     
-    rtStats->currCompartmentStats->gcHeapArenaUnused += allocationSpace;
+    rtStats->currCompartmentStats->gcHeapUnusedGcThings += allocationSpace;
 }
 
 static void
@@ -152,7 +180,7 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
 #endif
     }
     
-    cStats->gcHeapArenaUnused -= thingSize;
+    cStats->gcHeapUnusedGcThings -= thingSize;
 }
 
 JS_PUBLIC_API(bool)
@@ -161,90 +189,46 @@ CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats)
     if (!rtStats->compartmentStatsVector.reserve(rt->compartments.length()))
         return false;
 
-    rtStats->gcHeapChunkCleanDecommitted =
-        rt->gcChunkPool.countCleanDecommittedArenas(rt) * gc::ArenaSize;
-    rtStats->gcHeapChunkCleanUnused =
-        size_t(JS_GetGCParameter(rt, JSGC_UNUSED_CHUNKS)) * gc::ChunkSize -
-        rtStats->gcHeapChunkCleanDecommitted;
     rtStats->gcHeapChunkTotal =
         size_t(JS_GetGCParameter(rt, JSGC_TOTAL_CHUNKS)) * gc::ChunkSize;
 
-    IterateCompartmentsArenasCells(rt, rtStats, StatsCompartmentCallback,
-                                   StatsArenaCallback, StatsCellCallback);
+    rtStats->gcHeapUnusedChunks =
+        size_t(JS_GetGCParameter(rt, JSGC_UNUSED_CHUNKS)) * gc::ChunkSize;
+
+    
     IterateChunks(rt, rtStats, StatsChunkCallback);
 
+    
+    IterateCompartmentsArenasCells(rt, rtStats, StatsCompartmentCallback,
+                                   StatsArenaCallback, StatsCellCallback);
+
+    
     rt->sizeOfIncludingThis(rtStats->mallocSizeOf, &rtStats->runtime);
 
-    
-    
-    rtStats->gcHeapChunkDirtyUnused = rtStats->gcHeapChunkTotal -
-                                      rtStats->gcHeapChunkCleanUnused -
-                                      rtStats->gcHeapChunkCleanDecommitted -
-                                      rtStats->gcHeapChunkDirtyDecommitted;
+    rtStats->gcHeapGcThings = 0;
+    for (size_t i = 0; i < rtStats->compartmentStatsVector.length(); i++) {
+        CompartmentStats &cStats = rtStats->compartmentStatsVector[i];
 
-    rtStats->totalMjit = rtStats->runtime.mjitCode;
-
-    for (size_t index = 0;
-         index < rtStats->compartmentStatsVector.length();
-         index++) {
-        CompartmentStats &cStats = rtStats->compartmentStatsVector[index];
-
-        size_t used = cStats.gcHeapArenaHeaders +
-                      cStats.gcHeapArenaPadding +
-                      cStats.gcHeapArenaUnused +
-                      cStats.gcHeapObjectsNonFunction +
-                      cStats.gcHeapObjectsFunction +
-                      cStats.gcHeapStrings +
-                      cStats.gcHeapShapesTree +
-                      cStats.gcHeapShapesDict +
-                      cStats.gcHeapShapesBase +
-                      cStats.gcHeapScripts +
-#if JS_HAS_XML_SUPPORT
-                      cStats.gcHeapXML +
-#endif
-                      cStats.gcHeapTypeObjects;
-
-        rtStats->gcHeapChunkDirtyUnused -= used;
-        rtStats->gcHeapArenaUnused += cStats.gcHeapArenaUnused;
-        rtStats->totalObjects += cStats.gcHeapObjectsNonFunction +
-                                 cStats.gcHeapObjectsFunction +
-                                 cStats.objectSlots +
-                                 cStats.objectElements +
-                                 cStats.objectMisc;
-        rtStats->totalShapes  += cStats.gcHeapShapesTree +
-                                 cStats.gcHeapShapesDict +
-                                 cStats.gcHeapShapesBase +
-                                 cStats.shapesExtraTreeTables +
-                                 cStats.shapesExtraDictTables +
-                                 cStats.shapesCompartmentTables;
-        rtStats->totalScripts += cStats.gcHeapScripts +
-                                 cStats.scriptData;
-        rtStats->totalStrings += cStats.gcHeapStrings +
-                                 cStats.stringChars;
-        rtStats->totalMjit    += cStats.mjitData;
-        rtStats->totalTypeInference += cStats.gcHeapTypeObjects +
-                                       cStats.typeInferenceSizes.objects +
-                                       cStats.typeInferenceSizes.scripts +
-                                       cStats.typeInferenceSizes.tables;
-        rtStats->totalAnalysisTemp  += cStats.typeInferenceSizes.temporary;
+        rtStats->totals.add(cStats);
+        rtStats->gcHeapGcThings += cStats.gcHeapThingsSize();
     }
 
-    size_t numDirtyChunks = (rtStats->gcHeapChunkTotal -
-                             rtStats->gcHeapChunkCleanUnused) /
-                            gc::ChunkSize;
+    size_t numDirtyChunks =
+        (rtStats->gcHeapChunkTotal - rtStats->gcHeapUnusedChunks) / gc::ChunkSize;
     size_t perChunkAdmin =
         sizeof(gc::Chunk) - (sizeof(gc::Arena) * gc::ArenasPerChunk);
     rtStats->gcHeapChunkAdmin = numDirtyChunks * perChunkAdmin;
-    rtStats->gcHeapChunkDirtyUnused -= rtStats->gcHeapChunkAdmin;
+    rtStats->gcHeapUnusedArenas -= rtStats->gcHeapChunkAdmin;
 
-    rtStats->gcHeapUnused = rtStats->gcHeapChunkDirtyUnused +
-                            rtStats->gcHeapChunkCleanUnused +
-                            rtStats->gcHeapArenaUnused;
-
-    rtStats->gcHeapCommitted = rtStats->gcHeapChunkTotal -
-                               rtStats->gcHeapChunkCleanDecommitted -
-                               rtStats->gcHeapChunkDirtyDecommitted;
-
+    
+    
+    rtStats->gcHeapUnusedArenas = rtStats->gcHeapChunkTotal -
+                                  rtStats->gcHeapDecommittedArenas -
+                                  rtStats->gcHeapUnusedChunks -
+                                  rtStats->totals.gcHeapUnusedGcThings -
+                                  rtStats->gcHeapChunkAdmin -
+                                  rtStats->totals.gcHeapArenaAdmin -
+                                  rtStats->gcHeapGcThings;
     return true;
 }
 

@@ -138,7 +138,7 @@ using namespace mozilla::dom;
 
 #ifdef PR_LOGGING
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
 
 
 
@@ -549,7 +549,7 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
 
   nsScriptSuppressor scriptSuppressor(this);
   if (!aIsPrintPreview) {
-#ifdef NS_DEBUG
+#ifdef DEBUG
     mPrt->mDebugFilePtr = mDebugFile;
 #endif
 
@@ -2222,7 +2222,7 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
 
     
     if (nsnull != mPrt->mDebugFilePtr) {
-#ifdef NS_DEBUG
+#ifdef DEBUG
       
       nsIFrame* root = poPresShell->FrameManager()->GetRootFrame();
       root->DumpRegressionData(poPresContext, mPrt->mDebugFilePtr, 0);

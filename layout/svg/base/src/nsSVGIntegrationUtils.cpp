@@ -260,8 +260,7 @@ nsRect
   overrideBBox.RoundOut();
 
   nsRect overflowRect =
-    filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox).
-                   ToAppUnits(aFrame->PresContext()->AppUnitsPerDevPixel());
+    filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox);
 
   
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
@@ -294,17 +293,13 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
   }
 
   
-  PRInt32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   nsPoint toUserSpace =
     aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
-  nsIntRect preEffectsRect =
-    (aInvalidRect + toUserSpace).ToOutsidePixels(appUnitsPerDevPixel);
-
-  nsIntRect postEffectsRect =
-    filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect);
+  nsRect preEffectsRect = aInvalidRect + toUserSpace;
 
   
-  return postEffectsRect.ToAppUnits(appUnitsPerDevPixel) - toUserSpace;
+  return filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect) -
+           toUserSpace;
 }
 
 nsRect
@@ -321,17 +316,13 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
     return aDirtyRect;
   
   
-  PRInt32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   nsPoint toUserSpace =
     aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
-  nsIntRect postEffectsRect =
-    (aDirtyRect + toUserSpace).ToOutsidePixels(appUnitsPerDevPixel);
-
-  nsIntRect preEffectsRect =
-    filterFrame->GetPreFilterNeededArea(firstFrame, postEffectsRect);
+  nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
   
-  return preEffectsRect.ToAppUnits(appUnitsPerDevPixel) - toUserSpace;
+  return filterFrame->GetPreFilterNeededArea(firstFrame, postEffectsRect) -
+           toUserSpace;
 }
 
 bool
@@ -453,8 +444,7 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   if (filterFrame) {
     RegularFramePaintCallback callback(aBuilder, aInnerList, aEffectsFrame,
                                        offset);
-    nsIntRect dirtyRect = (aDirtyRect - offset)
-                            .ToOutsidePixels(appUnitsPerDevPixel);
+    nsRect dirtyRect = aDirtyRect - offset;
     filterFrame->PaintFilteredFrame(aCtx, aEffectsFrame, &callback, &dirtyRect);
   } else {
     gfx->SetMatrix(matrixAutoSaveRestore.Matrix());

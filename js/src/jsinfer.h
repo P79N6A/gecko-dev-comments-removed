@@ -474,9 +474,6 @@ class TypeSet
     
     JSObject *getSingleton(JSContext *cx, bool freeze = true);
 
-    
-    bool hasGlobalObject(JSContext *cx, JSObject *global);
-
     inline void clearObjects();
 
     

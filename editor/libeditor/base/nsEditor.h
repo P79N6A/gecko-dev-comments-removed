@@ -314,8 +314,15 @@ protected:
                                   nsIDOMNode  *aRightNode,
                                   JoinElementTxn **aTxn);
 
-  NS_IMETHOD DeleteSelectionAndPrepareToCreateNode(nsCOMPtr<nsIDOMNode> &parentSelectedNode, 
-                                                   PRInt32& offsetOfNewNode);
+  
+
+
+
+
+
+
+  nsresult DeleteSelectionAndPrepareToCreateNode();
+
 
   
   NS_IMETHOD DoAfterDoTransaction(nsITransaction *aTxn);

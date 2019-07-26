@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "InsertElementTxn.h"
 #include "nsISelection.h"
@@ -9,7 +9,7 @@
 #include "nsIDOMNodeList.h"
 #include "nsReadableUtils.h"
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
 static bool gNoisy = false;
 #endif
 
@@ -55,7 +55,7 @@ NS_IMETHODIMP InsertElementTxn::Init(nsIDOMNode *aNode,
 
 NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
 {
-#ifdef NS_DEBUG
+#ifdef DEBUG
   if (gNoisy) 
   { 
     nsCOMPtr<nsIContent>nodeAsContent = do_QueryInterface(mNode);
@@ -80,12 +80,12 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
 
   PRUint32 count = parent->GetChildCount();
   if (mOffset > PRInt32(count) || mOffset == -1) {
-    // -1 is sentinel value meaning "append at end"
+    
     mOffset = count;
   }
 
   nsIContent* refContent = parent->GetChildAt(mOffset);
-  // note, it's ok for refNode to be null.  that means append
+  
   nsCOMPtr<nsIDOMNode> refNode = refContent ? refContent->AsDOMNode() : nsnull;
 
   mEditor->MarkNodeDirty(mNode);
@@ -95,7 +95,7 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(resultNode, NS_ERROR_NULL_POINTER);
 
-  // only set selection to insertion point if editor gives permission
+  
   bool bAdjustSelection;
   mEditor->ShouldTxnSetSelection(&bAdjustSelection);
   if (bAdjustSelection)
@@ -104,19 +104,19 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
     result = mEditor->GetSelection(getter_AddRefs(selection));
     NS_ENSURE_SUCCESS(result, result);
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-    // place the selection just after the inserted element
+    
     selection->Collapse(mParent, mOffset+1);
   }
   else
   {
-    // do nothing - dom range gravity will adjust selection
+    
   }
   return result;
 }
 
 NS_IMETHODIMP InsertElementTxn::UndoTransaction(void)
 {
-#ifdef NS_DEBUG
+#ifdef DEBUG
   if (gNoisy)
   {
     printf("%p Undo Insert Element of %p into parent %p at offset %d\n",
