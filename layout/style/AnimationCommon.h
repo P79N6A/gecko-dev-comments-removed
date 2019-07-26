@@ -303,6 +303,7 @@ struct ElementAnimation
 
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   bool IsRunningAt(mozilla::TimeStamp aTime) const;
+  bool IsCurrentAt(mozilla::TimeStamp aTime) const;
 
   
   
@@ -458,6 +459,10 @@ struct CommonElementAnimationData : public PRCList
   uint64_t mAnimationGeneration;
   
   void UpdateAnimationGeneration(nsPresContext* aPresContext);
+
+  
+  
+  bool HasCurrentAnimationsAt(mozilla::TimeStamp aTime);
 
   
   TimeStamp mStyleRuleRefreshTime;
