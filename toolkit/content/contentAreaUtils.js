@@ -3,9 +3,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
+                                  "resource://gre/modules/Downloads.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadLastDir",
+                                  "resource://gre/modules/DownloadLastDir.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 var ContentAreaUtils = {
 
   
@@ -311,15 +326,15 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     
     let relatedURI = aReferrer || sourceURI;
 
-    getTargetFile(fpParams, function(aDialogCancelled) {
-      if (aDialogCancelled)
+    promiseTargetFile(fpParams, aSkipPrompt, relatedURI).then(aDialogAccepted => {
+      if (!aDialogAccepted)
         return;
 
       saveAsType = fpParams.saveAsType;
       file = fpParams.file;
 
       continueSave();
-    }, aSkipPrompt, relatedURI);
+    }).then(null, Components.utils.reportError);
   }
 
   function continueSave() {
@@ -542,58 +557,55 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
 
 
 
-
-function getTargetFile(aFpP, aCallback,  aSkipPrompt,  aRelatedURI)
+function promiseTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
 {
-  if (!getTargetFile.DownloadLastDir)
-    Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", getTargetFile);
-  var gDownloadLastDir = new getTargetFile.DownloadLastDir(window);
+  return Task.spawn(function() {
+    let downloadLastDir = new DownloadLastDir(window);
+    let prefBranch = Services.prefs.getBranch("browser.download.");
+    let useDownloadDir = prefBranch.getBoolPref("useDownloadDir");
 
-  var prefs = Services.prefs.getBranch("browser.download.");
-  var useDownloadDir = prefs.getBoolPref("useDownloadDir");
-  const nsIFile = Components.interfaces.nsIFile;
+    if (!aSkipPrompt)
+      useDownloadDir = false;
 
-  if (!aSkipPrompt)
-    useDownloadDir = false;
-
-  
-  
-  var dir = Services.downloads.userDownloadsDirectory;
-  var dirExists = dir && dir.exists();
-
-  if (useDownloadDir && dirExists) {
-    dir.append(getNormalizedLeafName(aFpP.fileInfo.fileName,
-                                     aFpP.fileInfo.fileExt));
-    aFpP.file = uniqueFile(dir);
-    aCallback(false);
-    return;
-  }
-
-  
-  
-  if (useDownloadDir) {
     
-    Services.tm.mainThread.dispatch(function() {
-      displayPicker();
-    }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
-  } else {
-    gDownloadLastDir.getFileAsync(aRelatedURI, function getFileAsyncCB(aFile) {
-      if (aFile && aFile.exists()) {
-        dir = aFile;
-        dirExists = true;
-      }
-      displayPicker();
-    });
-  }
+    
+    let dirPath = yield Downloads.getPreferredDownloadsDirectory();
+    let dirExists = yield OS.File.exists(dirPath);
+    let dir = new FileUtils.File(dirPath);
 
-  function displayPicker() {
-    if (!dirExists) {
-      
-      dir = Services.dirsvc.get("Desk", nsIFile);
+    if (useDownloadDir && dirExists) {
+      dir.append(getNormalizedLeafName(aFpP.fileInfo.fileName,
+                                       aFpP.fileInfo.fileExt));
+      aFpP.file = uniqueFile(dir);
+      throw new Task.Result(true);
     }
 
-    var fp = makeFilePicker();
-    var titleKey = aFpP.fpTitleKey || "SaveLinkTitle";
+    
+    
+    let deferred = Promise.defer();
+    if (useDownloadDir) {
+      
+      Services.tm.mainThread.dispatch(function() {
+        deferred.resolve(null);
+      }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+    } else {
+      downloadLastDir.getFileAsync(aRelatedURI, function getFileAsyncCB(aFile) {
+        deferred.resolve(aFile);
+      });
+    }
+    let file = yield deferred.promise;
+    if (file && (yield OS.File.exists(file.path))) {
+      dir = file;
+      dirExists = true;
+    }
+
+    if (!dirExists) {
+      
+      dir = Services.dirsvc.get("Desk", Components.interfaces.nsIFile);
+    }
+
+    let fp = makeFilePicker();
+    let titleKey = aFpP.fpTitleKey || "SaveLinkTitle";
     fp.init(window, ContentAreaUtils.stringBundle.GetStringFromName(titleKey),
             Components.interfaces.nsIFilePicker.modeSave);
 
@@ -608,31 +620,35 @@ function getTargetFile(aFpP, aCallback,  aSkipPrompt,  aRelatedURI)
     
     if (aFpP.saveMode != SAVEMODE_FILEONLY) {
       try {
-        fp.filterIndex = prefs.getIntPref("save_converter_index");
+        fp.filterIndex = prefBranch.getIntPref("save_converter_index");
       }
       catch (e) {
       }
     }
 
-    if (fp.show() == Components.interfaces.nsIFilePicker.returnCancel || !fp.file) {
-      aCallback(true);
-      return;
+    let deferComplete = Promise.defer();
+    fp.open(function(aResult) {
+      deferComplete.resolve(aResult);
+    });
+    let result = yield deferComplete.promise;
+    if (result == Components.interfaces.nsIFilePicker.returnCancel || !fp.file) {
+      throw new Task.Result(false);
     }
 
     if (aFpP.saveMode != SAVEMODE_FILEONLY)
-      prefs.setIntPref("save_converter_index", fp.filterIndex);
+      prefBranch.setIntPref("save_converter_index", fp.filterIndex);
 
     
-    var directory = fp.file.parent.QueryInterface(nsIFile);
-    gDownloadLastDir.setFile(aRelatedURI, directory);
+    downloadLastDir.setFile(aRelatedURI, fp.file.parent);
 
     fp.file.leafName = validateFileName(fp.file.leafName);
 
     aFpP.saveAsType = fp.filterIndex;
     aFpP.file = fp.file;
     aFpP.fileURL = fp.fileURL;
-    aCallback(false);
-  }
+
+    throw new Task.Result(true);
+  });
 }
 
 
