@@ -250,6 +250,7 @@ let tests = [
     yield capture(url);
     let file = fileForURL(url);
     ok(file.exists(), "Thumbnail file should exist after capture.");
+    file.remove(false);
     
     
     let tab = gBrowser.loadOneTab(url, { inBackground: false });
