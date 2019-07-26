@@ -21,6 +21,7 @@ Cu.import("resource://gre/modules/OfflineCacheInstaller.jsm");
 Cu.import("resource://gre/modules/SystemMessagePermissionsChecker.jsm");
 Cu.import("resource://gre/modules/AppDownloadManager.jsm");
 Cu.import("resource://gre/modules/WebappOSUtils.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 
 #ifdef MOZ_WIDGET_GONK
 XPCOMUtils.defineLazyGetter(this, "libcutils", function() {
@@ -1201,7 +1202,7 @@ this.DOMApplicationRegistry = {
     }
 
     
-    this.getManifestFor(aManifestURL, (function(aOldManifest) {
+    this.getManifestFor(app.origin, (function(aOldManifest) {
       debug("Old manifest: " + JSON.stringify(aOldManifest));
       
       let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
@@ -1240,7 +1241,7 @@ this.DOMApplicationRegistry = {
       Services.obs.notifyObservers(zipFile, "flush-cache-entry", null);
 
       
-      this.getManifestFor(aManifestURL, (function(aData) {
+      this.getManifestFor(app.origin, (function(aData) {
         debug("New manifest: " + JSON.stringify(aData));
         app.downloading = false;
         app.downloadAvailable = false;
@@ -1327,7 +1328,6 @@ this.DOMApplicationRegistry = {
 
   
   computeFileHash: function computeFileHash(aFile, aCallback) {
-    Cu.import("resource://gre/modules/osfile.jsm");
     const CHUNK_SIZE = 16384;
 
     
@@ -1993,8 +1993,16 @@ this.DOMApplicationRegistry = {
     let app = aData.app;
     app.removable = true;
 
-    let id = this._appIdForManifestURL(app.manifestURL);
-    let localId = this.getAppLocalIdByManifestURL(app.manifestURL);
+    let origin = Services.io.newURI(app.origin, null, null);
+    let manifestURL = origin.resolve(app.manifestURL);
+
+    let id = this._appId(app.origin);
+    let localId = this.getAppLocalIdByManifestURL(manifestURL);
+
+    
+    if (localId && !id) {
+      id = this._appIdForManifestURL(manifestURL);
+    }
 
     
     if (id) {
@@ -2127,6 +2135,14 @@ this.DOMApplicationRegistry = {
     Services.prefs.setIntPref("dom.mozApps.maxLocalId", id);
     Services.prefs.savePrefFile(null);
     return id;
+  },
+
+  _appId: function(aURI) {
+    for (let id in this.webapps) {
+      if (this.webapps[id].origin == aURI)
+        return id;
+    }
+    return null;
   },
 
   _appIdForManifestURL: function(aURI) {
@@ -2920,11 +2936,11 @@ this.DOMApplicationRegistry = {
     }).bind(this));
   },
 
-  getManifestFor: function(aManifestURL, aCallback) {
+  getManifestFor: function(aOrigin, aCallback) {
     if (!aCallback)
       return;
 
-    let id = this._appIdForManifestURL(aManifestURL);
+    let id = this._appId(aOrigin);
     let app = this.webapps[id];
     if (!id || (app.installState == "pending" && !app.retryingDownload)) {
       aCallback(null);
