@@ -1780,8 +1780,21 @@ nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI)
     temp.swap(parentAsItem);
     temp->GetSameTypeParent(getter_AddRefs(parentAsItem));
   }
+
   
   
+  
+  
+  
+  nsAutoCString buffer;
+  rv = aURI->GetScheme(buffer);
+  if (NS_SUCCEEDED(rv) && buffer.EqualsLiteral("about")) {
+    rv = aURI->GetPath(buffer);
+    if (NS_SUCCEEDED(rv) && buffer.EqualsLiteral("srcdoc")) {
+      
+      return NS_OK;
+    }
+  }
   int32_t matchCount = 0;
   mDocShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
   while (parentAsItem) {
