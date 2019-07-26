@@ -8,7 +8,7 @@
 #define mozilla_dom_bluetooth_bluetoothprofilecontroller_h__
 
 #include "BluetoothUuid.h"
-#include "mozilla/RefPtr.h"
+#include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
 #include "nsITimer.h"
 
@@ -57,10 +57,12 @@ class BluetoothProfileManagerBase;
 class BluetoothReplyRunnable;
 typedef void (*BluetoothProfileControllerCallback)();
 
-class BluetoothProfileController : public RefCounted<BluetoothProfileController>
+class BluetoothProfileController MOZ_FINAL
 {
+  ~BluetoothProfileController();
+
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(BluetoothProfileController)
+  NS_INLINE_DECL_REFCOUNTING(BluetoothProfileController)
   
 
 
@@ -83,7 +85,6 @@ public:
                              BluetoothProfileControllerCallback aCallback,
                              uint16_t aServiceUuid,
                              uint32_t aCod = 0);
-  ~BluetoothProfileController();
 
   
 

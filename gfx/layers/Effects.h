@@ -37,15 +37,18 @@ namespace layers {
 
 
 
-struct Effect : public RefCounted<Effect>
+struct Effect
 {
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(Effect)
+  NS_INLINE_DECL_REFCOUNTING(Effect)
+
   Effect(EffectTypes aType) : mType(aType) {}
 
   EffectTypes mType;
 
+  virtual void PrintInfo(nsACString& aTo, const char* aPrefix) = 0;
+
+protected:
   virtual ~Effect() {}
-  virtual void PrintInfo(nsACString& aTo, const char* aPrefix) =0;
 };
 
 
