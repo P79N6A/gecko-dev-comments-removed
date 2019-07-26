@@ -43,6 +43,8 @@ importScripts("ril_consts.js", "systemlibs.js");
 
 let DEBUG = DEBUG_WORKER;
 
+let GLOBAL = this;
+
 const INT32_MAX   = 2147483647;
 const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
@@ -4147,6 +4149,7 @@ let RIL = {
 
   _mergeAllCellBroadcastConfigs: function _mergeAllCellBroadcastConfigs() {
     if (!("CBMI" in this.cellBroadcastConfigs)
+        || !("CBMID" in this.cellBroadcastConfigs)
         || !("CBMIR" in this.cellBroadcastConfigs)
         || !("MMI" in this.cellBroadcastConfigs)) {
       if (DEBUG) {
@@ -9741,6 +9744,7 @@ let ICCFileHelper = {
       case ICC_EF_SST:
       case ICC_EF_PHASE:
       case ICC_EF_CBMI:
+      case ICC_EF_CBMID:
       case ICC_EF_CBMIR:
       case ICC_EF_OPL:
       case ICC_EF_PNN:
@@ -9763,6 +9767,7 @@ let ICCFileHelper = {
       case ICC_EF_SPN:
       case ICC_EF_SPDI:
       case ICC_EF_CBMI:
+      case ICC_EF_CBMID:
       case ICC_EF_CBMIR:
       case ICC_EF_OPL:
       case ICC_EF_PNN:
@@ -10263,6 +10268,11 @@ let ICCRecordHelper = {
       } else {
         RIL.cellBroadcastConfigs.CBMI = null;
       }
+      if (ICCUtilsHelper.isICCServiceAvailable("DATA_DOWNLOAD_SMS_CB")) {
+        this.readCBMID();
+      } else {
+        RIL.cellBroadcastConfigs.CBMID = null;
+      }
       if (ICCUtilsHelper.isICCServiceAvailable("CBMIR")) {
         this.readCBMIR();
       } else {
@@ -10735,12 +10745,7 @@ let ICCRecordHelper = {
                                    callback: callback.bind(this)});
   },
 
-  
-
-
-
-
-  readCBMI: function readCBMI() {
+  _readCbmiHelper: function _readCbmiHelper(which) {
     function callback() {
       let strLength = Buf.readUint32();
 
@@ -10759,26 +10764,48 @@ let ICCRecordHelper = {
         }
       }
       if (DEBUG) {
-        debug("CBMI: " + JSON.stringify(list));
+        debug(which + ": " + JSON.stringify(list));
       }
 
       Buf.readStringDelimiter(strLength);
 
-      RIL.cellBroadcastConfigs.CBMI = list;
+      RIL.cellBroadcastConfigs[which] = list;
       RIL._mergeAllCellBroadcastConfigs();
     }
 
     function onerror() {
-      RIL.cellBroadcastConfigs.CBMI = null;
+      RIL.cellBroadcastConfigs[which] = null;
       RIL._mergeAllCellBroadcastConfigs();
     }
 
-    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_CBMI,
+    let fileId = GLOBAL["ICC_EF_" + which];
+    ICCIOHelper.loadTransparentEF({fileId: fileId,
                                    callback: callback.bind(this),
                                    onerror: onerror.bind(this)});
   },
 
   
+
+
+
+
+
+  readCBMI: function readCBMI() {
+    this._readCbmiHelper("CBMI");
+  },
+
+  
+
+
+
+
+
+  readCBMID: function readCBMID() {
+    this._readCbmiHelper("CBMID");
+  },
+
+  
+
 
 
 
