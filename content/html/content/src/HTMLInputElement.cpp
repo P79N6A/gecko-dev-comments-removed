@@ -1777,7 +1777,7 @@ HTMLInputElement::SetValue(const nsAString& aValue, ErrorResult& aRv)
       
       
       nsAutoString currentValue;
-      GetValueInternal(currentValue);
+      GetValue(currentValue);
 
       SetValueInternal(aValue, false, true);
 
@@ -1789,7 +1789,7 @@ HTMLInputElement::SetValue(const nsAString& aValue, ErrorResult& aRv)
       }
 
       if (mFocusedValue.Equals(currentValue)) {
-        GetValueInternal(mFocusedValue);
+        GetValue(mFocusedValue);
       }
     } else {
       SetValueInternal(aValue, false, true);
@@ -2564,8 +2564,8 @@ HTMLInputElement::AfterSetFiles(bool aSetValueChanged)
 void
 HTMLInputElement::FireChangeEventIfNeeded()
 {
-  nsString value;
-  GetValueInternal(value);
+  nsAutoString value;
+  GetValue(value);
 
   if (!MayFireChangeOnBlur() || mFocusedValue.Equals(value)) {
     return;
@@ -3507,7 +3507,7 @@ HTMLInputElement::StartRangeThumbDrag(WidgetGUIEvent* aEvent)
   
   
   
-  GetValueInternal(mFocusedValue);
+  GetValue(mFocusedValue);
 
   SetValueOfRangeForUserEvent(rangeFrame->GetValueAtEventPoint(aEvent));
 }
@@ -3721,7 +3721,7 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT &&
         MayFireChangeOnBlur() &&
         !mIsDraggingRange) { 
-      GetValueInternal(mFocusedValue);
+      GetValue(mFocusedValue);
     }
 
     if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
@@ -4436,7 +4436,7 @@ HTMLInputElement::HandleTypeChange(uint8_t aNewType)
   
   
   if (MayFireChangeOnBlur(mType) && !MayFireChangeOnBlur(oldType)) {
-    GetValueInternal(mFocusedValue);
+    GetValue(mFocusedValue);
   } else if (!IsSingleLineTextControl(mType, false) &&
              IsSingleLineTextControl(oldType, false)) {
     mFocusedValue.Truncate();
