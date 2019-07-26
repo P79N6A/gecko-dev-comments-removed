@@ -34,7 +34,6 @@
 #include "nsISystemMessagesInternal.h"
 #include "nsITimer.h"
 #include "nsServiceManagerUtils.h"
-#include "nsThreadUtils.h"
 #include "nsXPCOM.h"
 
 #if defined(MOZ_WIDGET_GONK)
@@ -132,59 +131,53 @@ GetAllBluetoothActors(InfallibleTArray<BluetoothParent*>& aActors)
 
 } 
 
-class BluetoothService::ToggleBtAck : public nsRunnable
+BluetoothService::ToggleBtAck::ToggleBtAck(bool aEnabled)
+  : mEnabled(aEnabled)
 {
-public:
-  ToggleBtAck(bool aEnabled)
-    : mEnabled(aEnabled)
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-  }
+  MOZ_ASSERT(!NS_IsMainThread());
+}
 
-  NS_IMETHOD Run()
-  {
-    MOZ_ASSERT(NS_IsMainThread());
+NS_METHOD
+BluetoothService::ToggleBtAck::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread());
 
-    
-    
-    
-    
-    
-    
-    
+  
+  
+  
+  
+  
+  
+  
 #if defined(MOZ_WIDGET_GONK)
-    if (property_set(PROP_BLUETOOTH_ENABLED, mEnabled ? "true" : "false") != 0) {
-      BT_WARNING("Failed to set bluetooth enabled property");
-    }
+  if (property_set(PROP_BLUETOOTH_ENABLED, mEnabled ? "true" : "false") != 0) {
+    BT_WARNING("Failed to set bluetooth enabled property");
+  }
 #endif
 
-    NS_ENSURE_TRUE(sBluetoothService, NS_OK);
+  NS_ENSURE_TRUE(sBluetoothService, NS_OK);
 
-    if (sInShutdown) {
-      sBluetoothService = nullptr;
-      return NS_OK;
-    }
-
-    
-    
-    sBluetoothService->SetEnabled(mEnabled);
-    sToggleInProgress = false;
-
-    nsAutoString signalName;
-    signalName = mEnabled ? NS_LITERAL_STRING("Enabled")
-                          : NS_LITERAL_STRING("Disabled");
-    BluetoothSignal signal(signalName, NS_LITERAL_STRING(KEY_MANAGER), true);
-    sBluetoothService->DistributeSignal(signal);
-
-    
-    sBluetoothService->TryFiringAdapterAdded();
-
+  if (sInShutdown) {
+    sBluetoothService = nullptr;
     return NS_OK;
   }
 
-private:
-  bool mEnabled;
-};
+  
+  
+  sBluetoothService->SetEnabled(mEnabled);
+  sToggleInProgress = false;
+
+  nsAutoString signalName;
+  signalName = mEnabled ? NS_LITERAL_STRING("Enabled")
+                        : NS_LITERAL_STRING("Disabled");
+  BluetoothSignal signal(signalName, NS_LITERAL_STRING(KEY_MANAGER), true);
+  sBluetoothService->DistributeSignal(signal);
+
+  
+  sBluetoothService->TryFiringAdapterAdded();
+
+  return NS_OK;
+}
 
 class BluetoothService::ToggleBtTask : public nsRunnable
 {
