@@ -211,9 +211,9 @@ enum TypeCode {
 
 struct FieldInfo
 {
-  JSObject* mType;    
-  size_t    mIndex;   
-  size_t    mOffset;  
+  JS::Heap<JSObject*> mType;    
+  size_t              mIndex;   
+  size_t              mOffset;  
 };
 
 
@@ -255,14 +255,14 @@ struct FunctionInfo
 
   
   
-  JSObject* mABI;
+  JS::Heap<JSObject*> mABI;
 
   
-  JSObject* mReturnType;
+  JS::Heap<JSObject*> mReturnType;
 
   
   
-  Array<JSObject*> mArgTypes; 
+  Array<JS::Heap<JSObject*> > mArgTypes;
 
   
   
@@ -277,15 +277,15 @@ struct FunctionInfo
 
 struct ClosureInfo
 {
-  JSContext* cx;         
-  JSRuntime* rt;         
-                         
-  JSObject* closureObj;  
-  JSObject* typeObj;     
-  JSObject* thisObj;     
-  JSObject* jsfnObj;     
-  void* errResult;       
-  ffi_closure* closure;  
+  JSContext* cx;                   
+  JSRuntime* rt;                   
+                                   
+  JS::Heap<JSObject*> closureObj;  
+  JS::Heap<JSObject*> typeObj;     
+  JS::Heap<JSObject*> thisObj;     
+  JS::Heap<JSObject*> jsfnObj;     
+  void* errResult;                 
+  ffi_closure* closure;            
 
   
   
