@@ -22,14 +22,25 @@ Cu.import("resource://gre/modules/services-common/log4moz.js");
 
 function MarionetteComponent() {
   this._loaded = false;
+  this.observerService = Services.obs;
+
   
   this.logger = Log4Moz.repository.getLogger("Marionette");
-  this.logger.level = Log4Moz.Level["INFO"];
+  this.logger.level = Log4Moz.Level["Info"];
   let logf = FileUtils.getFile('ProfD', ['marionette.log']);
-  
+
+  let dumper = false;
   let formatter = new Log4Moz.BasicFormatter();
   this.logger.addAppender(new Log4Moz.RotatingFileAppender(logf, formatter));
-  this.logger.addAppender(new Log4Moz.DumpAppender(formatter));
+#ifdef DEBUG
+  dumper = true;
+#endif
+#ifdef MOZ_B2G
+  dumper = true;
+#endif
+  if (dumper) {
+    this.logger.addAppender(new Log4Moz.DumpAppender(formatter));
+  }
   this.logger.info("MarionetteComponent loaded");
 }
 
@@ -37,10 +48,13 @@ MarionetteComponent.prototype = {
   classDescription: "Marionette component",
   classID: MARIONETTE_CID,
   contractID: MARIONETTE_CONTRACTID,
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
-  _xpcom_categories: [{category: "profile-after-change", service: true}],
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler, Ci.nsIObserver]),
+  _xpcom_categories: [{category: "command-line-handler", entry: "b-marionette"},
+                      {category: "profile-after-change", service: true}],
   original_forcelocal: null,
   appName: Services.appinfo.name,
+  enabled: false,
+  finalUiStartup: false,
 
   onSocketAccepted: function mc_onSocketAccepted(aSocket, aTransport) {
     this.logger.info("onSocketAccepted for Marionette dummy socket");
@@ -51,63 +65,75 @@ MarionetteComponent.prototype = {
     aSocket.close();
   },
 
+  
+  handle: function mc_handle(cmdLine) {
+    
+    if (cmdLine.handleFlag("marionette", false)) {
+      this.enabled = true;
+      this.logger.info("marionette enabled via command-line");
+      this.init();
+    }
+  },
+
   observe: function mc_observe(aSubject, aTopic, aData) {
-    let observerService = Services.obs;
     switch (aTopic) {
       case "profile-after-change":
-        let enabled = false;
+        
+        
+        this.observerService.addObserver(this, "final-ui-startup", false);
+#ifdef ENABLE_MARIONETTE
+        let enabledPref = false;
         try {
-          enabled = Services.prefs.getBoolPref(MARIONETTE_ENABLED_PREF);
+          enabledPref = Services.prefs.getBoolPref(MARIONETTE_ENABLED_PREF);
         } catch(e) {}
-        if (enabled) {
-          this.logger.info("marionette enabled");
-
-          
-          observerService.addObserver(this, "final-ui-startup", false);
-          observerService.addObserver(this, "xpcom-shutdown", false);
+        if (enabledPref) {
+          this.enabled = true;
+          this.logger.info("marionette enabled via build flag and pref");
         }
         else {
-          this.logger.info("marionette not enabled");
+          this.logger.info("marionette not enabled via pref");
         }
+#endif
         break;
       case "final-ui-startup":
-        this.logger.info("marionette initializing at " + aTopic);
-        observerService.removeObserver(this, aTopic);
-
-        try {
-          this.original_forcelocal = Services.prefs.getBoolPref(DEBUGGER_FORCELOCAL_PREF);
-        }
-        catch(e) {}
-
-        let marionette_forcelocal = this.appName == 'B2G' ? false : true;
-        try {
-          marionette_forcelocal = Services.prefs.getBoolPref(MARIONETTE_FORCELOCAL_PREF);
-        }
-        catch(e) {}
-        Services.prefs.setBoolPref(DEBUGGER_FORCELOCAL_PREF, marionette_forcelocal);
-
-        if (!marionette_forcelocal) {
-          
-          
-	  
-          
-          
-          let insaneSacrificialGoat = new ServerSocket(666, Ci.nsIServerSocket.KeepWhenOffline, 4);
-          insaneSacrificialGoat.asyncListen(this);
-        }
-
+        this.finalUiStartup = true;
+        this.observerService.removeObserver(this, aTopic);
+        this.observerService.addObserver(this, "xpcom-shutdown", false);
         this.init();
         break;
       case "xpcom-shutdown":
-        observerService.removeObserver(this, "xpcom-shutdown");
+        this.observerService.removeObserver(this, "xpcom-shutdown");
         this.uninit();
         break;
     }
   },
 
   init: function mc_init() {
-    if (!this._loaded) {
+    if (!this._loaded && this.enabled && this.finalUiStartup) {
       this._loaded = true;
+
+      try {
+        this.original_forcelocal = Services.prefs.getBoolPref(DEBUGGER_FORCELOCAL_PREF);
+      }
+      catch(e) {}
+
+      let marionette_forcelocal = this.appName == 'B2G' ? false : true;
+      try {
+        marionette_forcelocal = Services.prefs.getBoolPref(MARIONETTE_FORCELOCAL_PREF);
+      }
+      catch(e) {}
+      Services.prefs.setBoolPref(DEBUGGER_FORCELOCAL_PREF, marionette_forcelocal);
+
+      if (!marionette_forcelocal) {
+        
+        
+        
+        
+        
+        let insaneSacrificialGoat = new ServerSocket(666, Ci.nsIServerSocket.KeepWhenOffline, 4);
+        insaneSacrificialGoat.asyncListen(this);
+      }
+
       let port;
       try {
         port = Services.prefs.getIntPref('marionette.defaultPrefs.port');
