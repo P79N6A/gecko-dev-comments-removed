@@ -772,6 +772,13 @@ this.WidgetMethods = {
   
 
 
+  ensureSelectedItemIsVisible: function() {
+    this.ensureItemIsVisible(this.selectedItem);
+  },
+
+  
+
+
 
   set emptyText(aValue) {
     this._emptyText = aValue;
