@@ -160,7 +160,8 @@ static const uint32_t sScriptCodeToTag[] = {
   HB_TAG('P','l','r','d'),
   HB_TAG('S','h','r','d'),
   HB_TAG('S','o','r','a'),
-  HB_TAG('T','a','k','r')
+  HB_TAG('T','a','k','r'),
+  HB_TAG('Z','m','t','h')
 };
 
 static const int16_t sMirrorOffsets[] = {
