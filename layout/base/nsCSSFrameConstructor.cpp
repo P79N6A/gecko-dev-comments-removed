@@ -9792,6 +9792,18 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
   }
 }
 
+static nsIFrame*
+FindFirstLetterFrame(nsIFrame* aFrame, nsIFrame::ChildListID aListID)
+{
+  nsFrameList list = aFrame->GetChildList(aListID);
+  for (nsFrameList::Enumerator e(list); !e.AtEnd(); e.Next()) {
+    if (nsGkAtoms::letterFrame == e.get()->GetType()) {
+      return e.get();
+    }
+  }
+  return nullptr;
+}
+
 nsresult
 nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
   nsPresContext* aPresContext,
@@ -9800,17 +9812,14 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
   bool* aStopLooking)
 {
   
-  nsIFrame* floatFrame = aBlockFrame->GetFirstChild(nsIFrame::kFloatList);
-  while (floatFrame) {
-    
-    if (nsGkAtoms::letterFrame == floatFrame->GetType()) {
-      break;
-    }
-    floatFrame = floatFrame->GetNextSibling();
-  }
+  nsIFrame* floatFrame =
+    ::FindFirstLetterFrame(aBlockFrame, nsIFrame::kFloatList);
   if (!floatFrame) {
-    
-    return NS_OK;
+    floatFrame =
+      ::FindFirstLetterFrame(aBlockFrame, nsIFrame::kPushedFloatsList);
+    if (!floatFrame) {
+      return NS_OK;
+    }
   }
 
   
