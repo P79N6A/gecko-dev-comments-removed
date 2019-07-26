@@ -427,18 +427,6 @@ WeaveSvc.prototype = {
   },
 
   
-  
-  _updateCluster: function _updateCluster() {
-    this._log.info("Updating cluster.");
-    let cTime = Date.now();
-    let lastUp = parseFloat(Svc.Prefs.get("lastClusterUpdate"));
-    if (!lastUp || ((cTime - lastUp) >= CLUSTER_BACKOFF)) {
-      return this._clusterManager.setCluster();
-    }
-    return false;
-  },
-
-  
 
 
   _fetchInfo: function _fetchInfo(url) {
