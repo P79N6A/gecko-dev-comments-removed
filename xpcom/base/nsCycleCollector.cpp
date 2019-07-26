@@ -121,6 +121,7 @@
 #include "nsMemoryInfoDumper.h"
 #include "xpcpublic.h"
 #include "GeckoProfiler.h"
+#include "js/SliceBudget.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -1002,6 +1003,8 @@ enum ccType {
 
 
 
+typedef js::SliceBudget SliceBudget;
+
 class nsCycleCollector : public MemoryMultiReporter
 {
     NS_DECL_ISUPPORTS
@@ -1059,6 +1062,7 @@ public:
     bool FreeSnowWhite(bool aUntilNoSWInPurpleBuffer);
 
     bool Collect(ccType aCCType,
+                 SliceBudget &aBudget,
                  nsICycleCollectorListener *aManualListener);
     void Shutdown();
 
@@ -2709,9 +2713,10 @@ nsCycleCollector::CleanupAfterCollection()
 void
 nsCycleCollector::ShutdownCollect()
 {
+    SliceBudget unlimitedBudget;
     for (uint32_t i = 0; i < DEFAULT_SHUTDOWN_COLLECTIONS; ++i) {
         NS_ASSERTION(i < NORMAL_SHUTDOWN_COLLECTIONS, "Extra shutdown CC");
-        if (!Collect(ShutdownCC, nullptr)) {
+        if (!Collect(ShutdownCC, unlimitedBudget, nullptr)) {
             break;
         }
     }
@@ -2719,6 +2724,7 @@ nsCycleCollector::ShutdownCollect()
 
 bool
 nsCycleCollector::Collect(ccType aCCType,
+                          SliceBudget &aBudget,
                           nsICycleCollectorListener *aManualListener)
 {
     CheckThreadSafety();
@@ -2729,16 +2735,52 @@ nsCycleCollector::Collect(ccType aCCType,
     }
     mActivelyCollecting = true;
 
-    MOZ_ASSERT(mIncrementalPhase == IdlePhase);
+    bool startedIdle = (mIncrementalPhase == IdlePhase);
+    bool collectedAny = false;
 
-    BeginCollection(aCCType, aManualListener);
-    MarkRoots();
-    ScanRoots();
-    bool collectedAny = CollectWhite();
-    CleanupAfterCollection();
+    
+    
+    if (!startedIdle) {
+        FreeSnowWhite(true);
+    }
+
+    bool finished = false;
+    do {
+        switch (mIncrementalPhase) {
+        case IdlePhase:
+            BeginCollection(aCCType, aManualListener);
+            break;
+        case GraphBuildingPhase:
+            MarkRoots();
+            break;
+        case ScanAndCollectWhitePhase:
+            
+            
+            
+            
+            ScanRoots();
+            collectedAny = CollectWhite();
+            break;
+        case CleanupPhase:
+            CleanupAfterCollection();
+            finished = true;
+            break;
+        }
+    } while (!aBudget.checkOverBudget() && !finished);
+
     mActivelyCollecting = false;
 
-    MOZ_ASSERT(mIncrementalPhase == IdlePhase);
+    if (aCCType != ScheduledCC && !startedIdle) {
+        
+        
+        
+        MOZ_ASSERT(mIncrementalPhase == IdlePhase);
+        if (Collect(aCCType, aBudget, aManualListener)) {
+            collectedAny = true;
+        }
+    }
+
+    MOZ_ASSERT_IF(aCCType != ScheduledCC, mIncrementalPhase == IdlePhase);
 
     return collectedAny;
 }
@@ -3202,7 +3244,8 @@ nsCycleCollector_collect(nsICycleCollectorListener *aManualListener)
     MOZ_ASSERT(data->mCollector);
 
     PROFILER_LABEL("CC", "nsCycleCollector_collect");
-    data->mCollector->Collect(ManualCC, aManualListener);
+    SliceBudget unlimitedBudget;
+    data->mCollector->Collect(ManualCC, unlimitedBudget, aManualListener);
 }
 
 void
@@ -3215,7 +3258,8 @@ nsCycleCollector_scheduledCollect()
     MOZ_ASSERT(data->mCollector);
 
     PROFILER_LABEL("CC", "nsCycleCollector_scheduledCollect");
-    data->mCollector->Collect(ScheduledCC, nullptr);
+    SliceBudget unlimitedBudget;
+    data->mCollector->Collect(ScheduledCC, unlimitedBudget, nullptr);
 }
 
 void
