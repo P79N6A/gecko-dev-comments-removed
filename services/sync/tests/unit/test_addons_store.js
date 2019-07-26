@@ -420,3 +420,29 @@ add_test(function test_wipe() {
 
   run_next_test();
 });
+
+add_test(function test_wipe_and_install() {
+  _("Ensure wipe followed by install works.");
+
+  
+  
+  
+  let installed = installAddon("test_bootstrap1_1");
+
+  let record = createRecordForThisApp(installed.syncGUID, installed.id, true,
+                                      false);
+
+  Svc.Prefs.set("addons.ignoreRepositoryChecking", true);
+  store.wipe();
+
+  let deleted = getAddonFromAddonManagerByID(installed.id);
+  do_check_null(deleted);
+
+  store.applyIncoming(record);
+
+  let fetched = getAddonFromAddonManagerByID(record.addonID);
+  do_check_true(!!fetched);
+
+  Svc.Prefs.reset("addons.ignoreRepositoryChecking");
+  run_next_test();
+});
