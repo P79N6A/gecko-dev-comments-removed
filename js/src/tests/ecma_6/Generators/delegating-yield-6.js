@@ -47,7 +47,7 @@ outer.next();
 assertEq(log, "indndndndndndv");
 
 
-assertThrowsInstanceOf(outer.next.bind(outer), TypeError);
+assertDeepEq(outer.next(), {value: undefined, done: true});
 
 
 assertEq(log, "indndndndndndv");
