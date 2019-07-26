@@ -121,7 +121,15 @@ WebConsoleActor.prototype =
 
 
 
-  get window() this.parentActor.window,
+  get window() {
+    if (this.parentActor.isRootActor) {
+      
+      
+      let window = Services.wm.getMostRecentWindow("devtools:webconsole");
+      return window || this.parentActor.window;
+    }
+    return this.parentActor.window;
+  },
 
   
 

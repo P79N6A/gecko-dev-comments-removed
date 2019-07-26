@@ -185,8 +185,18 @@ function BrowserTabList(aConnection)
 BrowserTabList.prototype.constructor = BrowserTabList;
 
 
+
+
+
+
+
+
+
+
+
+
 BrowserTabList.prototype._getSelectedBrowser = function(aWindow) {
-  return aWindow.gBrowser.selectedBrowser;
+  return aWindow.gBrowser ? aWindow.gBrowser.selectedBrowser : null;
 };
 
 BrowserTabList.prototype._getChildren = function(aWindow) {
@@ -209,6 +219,9 @@ BrowserTabList.prototype.getList = function() {
   
   for (let win of allAppShellDOMWindows(DebuggerServer.chromeWindowType)) {
     let selectedBrowser = this._getSelectedBrowser(win);
+    if (!selectedBrowser) {
+      continue;
+    }
 
     
     
