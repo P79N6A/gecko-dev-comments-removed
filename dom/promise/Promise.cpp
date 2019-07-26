@@ -1129,34 +1129,5 @@ PromiseReportRejectFeature::Notify(JSContext* aCx, workers::Status aStatus)
   return true;
 }
 
-bool
-Promise::ArgumentToJSValue(const nsAString& aArgument,
-                           JSContext* aCx,
-                           JS::MutableHandle<JS::Value> aValue)
-{
-  
-  
-  nsStringBuffer* sharedBuffer;
-  if (!XPCStringConvert::ReadableToJSVal(aCx, aArgument, &sharedBuffer,
-                                         aValue)) {
-    return false;
-  }
-
-  if (sharedBuffer) {
-    NS_ADDREF(sharedBuffer);
-  }
-
-  return true;
-}
-
-bool
-Promise::ArgumentToJSValue(bool aArgument,
-                           JSContext* aCx,
-                           JS::MutableHandle<JS::Value> aValue)
-{
-  aValue.setBoolean(aArgument);
-  return true;
-}
-
 } 
 } 
