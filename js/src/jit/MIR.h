@@ -2594,7 +2594,9 @@ class MReturnFromCtor
 
 
 
-class MPassArg : public MUnaryInstruction
+class MPassArg
+  : public MUnaryInstruction,
+    public NoFloatPolicy<0>
 {
     int32_t argnum_;
 
@@ -2629,6 +2631,10 @@ class MPassArg : public MUnaryInstruction
         return AliasSet::None();
     }
     void printOpcode(FILE *fp) const;
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
 };
 
 

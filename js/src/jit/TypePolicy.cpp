@@ -556,18 +556,6 @@ CallPolicy::adjustInputs(MInstruction *ins)
 {
     MCall *call = ins->toCall();
 
-    
-    for (uint32_t i = 0, numArgs = call->numActualArgs(); i < numArgs; i++) {
-        MDefinition *arg = call->getArg(i+1); 
-        if (arg->type() == MIRType_Float32) {
-            JS_ASSERT(arg->isPassArg()); 
-            MPassArg *passArg = arg->toPassArg();
-            MInstruction *replace = MToDouble::New(passArg->getArgument());
-            passArg->replaceOperand(0, replace);
-            call->block()->insertBefore(passArg, replace);
-        }
-    }
-
     MDefinition *func = call->getFunction();
     if (func->type() == MIRType_Object)
         return true;
