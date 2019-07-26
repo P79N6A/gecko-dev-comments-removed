@@ -64,7 +64,7 @@ class GonkNativeWindow: public GonkConsumerBase
     
     
     
-    GonkNativeWindow();
+    GonkNativeWindow(int bufferCount = GonkBufferQueue::MIN_UNDEQUEUED_BUFFERS);
 
     virtual ~GonkNativeWindow();
 
