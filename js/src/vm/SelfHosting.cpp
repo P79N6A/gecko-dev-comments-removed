@@ -110,9 +110,9 @@ intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp)
 static JSBool
 intrinsic_AssertionFailed(JSContext *cx, unsigned argc, Value *vp)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
 #ifdef DEBUG
-    if (argc > 0) {
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() > 0) {
         
         JSString *str = ToString(cx, args[0]);
         if (str) {
