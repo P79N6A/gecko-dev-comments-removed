@@ -21,6 +21,9 @@ window.sizeToContent = function() {
   Cu.reportError("window.sizeToContent is not allowed in this window");
 }
 
+
+
+
 function getBrowser() {
   return Browser.selectedBrowser;
 }
@@ -128,10 +131,19 @@ var Browser = {
 
     
     
-    
     let commandURL = null;
-    if (window.arguments && window.arguments[0])
-      commandURL = window.arguments[0];
+    try {
+      let argsObj = window.arguments[0].wrappedJSObject;
+      if (argsObj && argsObj.pageloadURL) {
+        
+        commandURL = argsObj.pageloadURL;
+      } else if (window.arguments && window.arguments[0]) {
+        
+        commandURL = window.arguments[0];
+      }
+    } catch (ex) {
+      Util.dumpLn(ex);
+    }
 
     messageManager.addMessageListener("DOMLinkAdded", this);
     messageManager.addMessageListener("MozScrolledAreaChanged", this);
