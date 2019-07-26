@@ -1281,10 +1281,7 @@ double
 HTMLMediaElement::CurrentTime() const
 {
   if (mSrcStream) {
-    MediaStream* stream = GetSrcMediaStream();
-    if (stream) {
-      return MediaTimeToSeconds(stream->GetCurrentTime());
-    }
+    return MediaTimeToSeconds(GetSrcMediaStream()->GetCurrentTime());
   }
 
   if (mDecoder) {
@@ -1470,10 +1467,7 @@ HTMLMediaElement::Pause(ErrorResult& aRv)
 
   if (!oldPaused) {
     if (mSrcStream) {
-      MediaStream* stream = GetSrcMediaStream();
-      if (stream) {
-        stream->ChangeExplicitBlockerCount(1);
-      }
+      GetSrcMediaStream()->ChangeExplicitBlockerCount(1);
     }
     FireTimeUpdate(false);
     DispatchAsyncEvent(NS_LITERAL_STRING("pause"));
@@ -2641,28 +2635,21 @@ void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)
 
 void HTMLMediaElement::EndSrcMediaStreamPlayback()
 {
-  MediaStream* stream = GetSrcMediaStream();
-  if (stream) {
-    stream->RemoveListener(mSrcStreamListener);
-  }
+  GetSrcMediaStream()->RemoveListener(mSrcStreamListener);
   
   mSrcStreamListener->Forget();
   mSrcStreamListener = nullptr;
-  if (stream) {
-    stream->RemoveAudioOutput(this);
-  }
+  GetSrcMediaStream()->RemoveAudioOutput(this);
   VideoFrameContainer* container = GetVideoFrameContainer();
   if (container) {
-    if (stream) {
-      stream->RemoveVideoOutput(container);
-    }
+    GetSrcMediaStream()->RemoveVideoOutput(container);
     container->ClearCurrentFrame();
   }
-  if (mPaused && stream) {
-    stream->ChangeExplicitBlockerCount(-1);
+  if (mPaused) {
+    GetSrcMediaStream()->ChangeExplicitBlockerCount(-1);
   }
-  if (mPausedForInactiveDocumentOrChannel && stream) {
-    stream->ChangeExplicitBlockerCount(-1);
+  if (mPausedForInactiveDocumentOrChannel) {
+    GetSrcMediaStream()->ChangeExplicitBlockerCount(-1);
   }
   mSrcStream = nullptr;
 }

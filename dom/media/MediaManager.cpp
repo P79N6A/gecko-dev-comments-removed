@@ -326,41 +326,6 @@ public:
 
   ~GetUserMediaStreamRunnable() {}
 
-  class TracksAvailableCallback : public DOMMediaStream::OnTracksAvailableCallback
-  {
-  public:
-    TracksAvailableCallback(MediaManager* aManager,
-                            nsIDOMGetUserMediaSuccessCallback* aSuccess,
-                            uint64_t aWindowID,
-                            DOMMediaStream* aStream)
-      : mWindowID(aWindowID), mSuccess(aSuccess), mManager(aManager),
-        mStream(aStream) {}
-    virtual void NotifyTracksAvailable(DOMMediaStream* aStream) MOZ_OVERRIDE
-    {
-      
-      if (!(mManager->IsWindowStillActive(mWindowID))) {
-        return;
-      }
-
-      
-      
-      LOG(("Returning success for getUserMedia()"));
-      mSuccess->OnSuccess(aStream);
-    }
-    uint64_t mWindowID;
-    nsRefPtr<nsIDOMGetUserMediaSuccessCallback> mSuccess;
-    nsRefPtr<MediaManager> mManager;
-    
-    
-    
-    
-    
-    
-    
-    
-    nsRefPtr<DOMMediaStream> mStream;
-  };
-
   NS_IMETHOD
   Run()
   {
@@ -377,14 +342,13 @@ public:
     }
 
     
-    DOMMediaStream::TrackTypeHints hints =
-      (mAudioSource ? DOMMediaStream::HINT_CONTENTS_AUDIO : 0) |
-      (mVideoSource ? DOMMediaStream::HINT_CONTENTS_VIDEO : 0);
+    uint32_t hints = (mAudioSource ? DOMMediaStream::HINT_CONTENTS_AUDIO : 0);
+    hints |= (mVideoSource ? DOMMediaStream::HINT_CONTENTS_VIDEO : 0);
 
     nsRefPtr<nsDOMUserMediaStream> trackunion =
       nsDOMUserMediaStream::CreateTrackUnionStream(window, hints);
     if (!trackunion) {
-      nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error = mError.forget();
+      nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
       LOG(("Returning error for getUserMedia() - no stream"));
       error->OnError(NS_LITERAL_STRING("NO_STREAM"));
       return NS_OK;
@@ -408,17 +372,11 @@ public:
     
     mListener->Activate(stream.forget(), mAudioSource, mVideoSource);
 
-    TracksAvailableCallback* tracksAvailableCallback =
-      new TracksAvailableCallback(mManager, mSuccess, mWindowID, trackunion);
-
-    
-    
     
     
     nsIThread *mediaThread = MediaManager::GetThread();
     nsRefPtr<MediaOperationRunnable> runnable(
-      new MediaOperationRunnable(MEDIA_START, mListener, trackunion,
-                                 tracksAvailableCallback,
+      new MediaOperationRunnable(MEDIA_START, mListener,
                                  mAudioSource, mVideoSource, false));
     mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 
@@ -450,13 +408,23 @@ public:
 #endif
 
     
-    mError = nullptr;
+    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
+    nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
+
+    if (!(mManager->IsWindowStillActive(mWindowID))) {
+      return NS_OK;
+    }
+    
+    
+    LOG(("Returning success for getUserMedia()"));
+    success->OnSuccess(static_cast<nsIDOMLocalMediaStream*>(trackunion));
+
     return NS_OK;
   }
 
 private:
-  nsRefPtr<nsIDOMGetUserMediaSuccessCallback> mSuccess;
-  nsRefPtr<nsIDOMGetUserMediaErrorCallback> mError;
+  already_AddRefed<nsIDOMGetUserMediaSuccessCallback> mSuccess;
+  already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   uint64_t mWindowID;
@@ -1530,8 +1498,7 @@ GetUserMediaCallbackMediaStreamListener::Invalidate()
   
   
   runnable = new MediaOperationRunnable(MEDIA_STOP,
-                                        this, nullptr, nullptr,
-                                        mAudioSource, mVideoSource,
+                                        this, mAudioSource, mVideoSource,
                                         mFinished);
   mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
