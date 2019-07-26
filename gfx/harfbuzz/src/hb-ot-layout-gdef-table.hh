@@ -34,6 +34,8 @@
 #include "hb-font-private.hh"
 
 
+namespace OT {
+
 
 
 
@@ -420,6 +422,8 @@ struct GDEF
   DEFINE_SIZE_ARRAY (12, markGlyphSetsDef);
 };
 
+
+} 
 
 
 #endif 

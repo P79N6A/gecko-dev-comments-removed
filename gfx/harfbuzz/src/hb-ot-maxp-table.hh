@@ -30,6 +30,8 @@
 #include "hb-open-type-private.hh"
 
 
+namespace OT {
+
 
 
 
@@ -60,6 +62,8 @@ struct maxp
   DEFINE_SIZE_STATIC (6);
 };
 
+
+} 
 
 
 #endif 

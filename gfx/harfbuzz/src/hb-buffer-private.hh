@@ -92,6 +92,8 @@ struct hb_buffer_t {
 
   
 
+  hb_buffer_content_type_t content_type;
+
   bool in_error; 
   bool have_output; 
   bool have_positions; 
@@ -115,8 +117,17 @@ struct hb_buffer_t {
   inline hb_glyph_info_t prev (void) const { return info[out_len - 1]; }
 
   unsigned int serial;
+
+  
   uint8_t allocated_var_bytes[8];
   const char *allocated_var_owner[8];
+
+  
+
+
+  static const unsigned int CONTEXT_LENGTH = 5;
+  hb_codepoint_t context[2][CONTEXT_LENGTH];
+  unsigned int context_len[2];
 
 
   
@@ -129,6 +140,7 @@ struct hb_buffer_t {
 
   HB_INTERNAL void allocate_var (unsigned int byte_i, unsigned int count, const char *owner);
   HB_INTERNAL void deallocate_var (unsigned int byte_i, unsigned int count, const char *owner);
+  HB_INTERNAL void assert_var (unsigned int byte_i, unsigned int count, const char *owner);
   HB_INTERNAL void deallocate_var_all (void);
 
   HB_INTERNAL void add (hb_codepoint_t  codepoint,
@@ -151,11 +163,26 @@ struct hb_buffer_t {
   HB_INTERNAL void replace_glyph (hb_codepoint_t glyph_index);
   
   HB_INTERNAL void output_glyph (hb_codepoint_t glyph_index);
+  HB_INTERNAL void output_info (hb_glyph_info_t &glyph_info);
   
   HB_INTERNAL void copy_glyph (void);
   
 
-  HB_INTERNAL void next_glyph (void);
+  inline void
+  next_glyph (void)
+  {
+    if (have_output)
+    {
+      if (unlikely (out_info != info || out_len != idx)) {
+	if (unlikely (!make_room_for (1, 1))) return;
+	out_info[out_len] = info[idx];
+      }
+      out_len++;
+    }
+
+    idx++;
+  }
+
   
   inline void skip_glyph (void) { idx++; }
 
@@ -188,6 +215,8 @@ struct hb_buffer_t {
   HB_INTERNAL bool make_room_for (unsigned int num_in, unsigned int num_out);
 
   HB_INTERNAL void *get_scratch_buffer (unsigned int *size);
+
+  inline void clear_context (unsigned int side) { context_len[side] = 0; }
 };
 
 
@@ -198,6 +227,8 @@ struct hb_buffer_t {
 	HB_BUFFER_XALLOCATE_VAR (b, allocate_var, var (), #var)
 #define HB_BUFFER_DEALLOCATE_VAR(b, var) \
 	HB_BUFFER_XALLOCATE_VAR (b, deallocate_var, var (), #var)
+#define HB_BUFFER_ASSERT_VAR(b, var) \
+	HB_BUFFER_XALLOCATE_VAR (b, assert_var, var (), #var)
 
 
 #endif 

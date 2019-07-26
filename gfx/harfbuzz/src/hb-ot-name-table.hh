@@ -30,6 +30,8 @@
 #include "hb-open-type-private.hh"
 
 
+namespace OT {
+
 
 
 
@@ -123,6 +125,8 @@ struct name
   DEFINE_SIZE_ARRAY (6, nameRecord);
 };
 
+
+} 
 
 
 #endif 

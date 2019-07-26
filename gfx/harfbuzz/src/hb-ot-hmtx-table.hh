@@ -30,6 +30,8 @@
 #include "hb-open-type-private.hh"
 
 
+namespace OT {
+
 
 
 
@@ -82,5 +84,9 @@ struct hmtx
   public:
   DEFINE_SIZE_ARRAY2 (0, longHorMetric, leftSideBearingX);
 };
+
+
+} 
+
 
 #endif 

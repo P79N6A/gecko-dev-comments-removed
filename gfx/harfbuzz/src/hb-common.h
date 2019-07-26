@@ -100,6 +100,10 @@ hb_tag_t
 hb_tag_from_string (const char *str, int len);
 
 
+void
+hb_tag_to_string (hb_tag_t tag, char *buf);
+
+
 
 
 typedef enum {

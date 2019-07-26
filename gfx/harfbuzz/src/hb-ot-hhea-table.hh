@@ -30,6 +30,8 @@
 #include "hb-open-type-private.hh"
 
 
+namespace OT {
+
 
 
 
@@ -87,6 +89,9 @@ struct hhea
   public:
   DEFINE_SIZE_STATIC (36);
 };
+
+
+} 
 
 
 #endif 
