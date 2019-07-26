@@ -110,22 +110,27 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     A8,
     D16, 
     D32, 
+    R16F, 
+    A16F, 
     R32F, 
     A32F, 
     
     RA8,
-    RA32F,
+    RA16F, 
+    RA32F, 
     D24S8, 
     
     RGB8,
     BGRX8, 
     RGB565,
+    RGB16F, 
     RGB32F, 
     
     RGBA8,
     BGRA8, 
     RGBA5551,
     RGBA4444,
+    RGBA16F, 
     RGBA32F 
 MOZ_END_ENUM_CLASS(WebGLTexelFormat)
 
