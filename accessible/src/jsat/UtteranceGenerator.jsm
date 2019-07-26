@@ -247,6 +247,15 @@ this.UtteranceGenerator = {
         utterance.push(name);
 
       return utterance;
+    },
+
+    application: function application(aAccessible, aRoleStr, aStates, aFlags) {
+      
+      if (aAccessible.name != aAccessible.DOMNode.location)
+        return this.objectUtteranceFunctions.defaultFunc(
+          aAccessible, aRoleStr, aStates, aFlags);
+
+      return [];
     }
   },
 
