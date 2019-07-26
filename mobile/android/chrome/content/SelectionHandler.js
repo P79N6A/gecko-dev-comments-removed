@@ -12,6 +12,9 @@ var SelectionHandler = {
   TYPE_CURSOR: 1,
   TYPE_SELECTION: 2,
 
+  SELECT_ALL: 0,
+  SELECT_AT_POINT: 1,
+
   
   
   _cache: null,
@@ -222,7 +225,12 @@ var SelectionHandler = {
 
 
 
-  startSelection: function sh_startSelection(aElement, aX, aY) {
+
+
+
+
+
+  startSelection: function sh_startSelection(aElement, aOptions = { mode: SelectionHandler.SELECT_ALL }) {
     
     this._closeSelection();
 
@@ -231,15 +239,15 @@ var SelectionHandler = {
     
     this._contentWindow.getSelection().removeAllRanges();
 
-    
-    
-    if (aX == undefined || aY == undefined) {
-      let rect = this._targetElement.getBoundingClientRect();
-      aX = rect.left + 1;
-      aY = rect.top  + 1;
-    }
-
-    if (!this._domWinUtils.selectAtPoint(aX, aY, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
+    if (aOptions.mode == this.SELECT_ALL) {
+      this._getSelectionController().selectAll();
+    } else if (aOptions.mode == this.SELECT_AT_POINT) {
+      if (!this._domWinUtils.selectAtPoint(aOptions.x, aOptions.y, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
+        this._deactivate();
+        return false;
+      }
+    } else {
+      Services.console.logStringMessage("Invalid selection mode " + aOptions.mode);
       this._deactivate();
       return false;
     }
@@ -262,36 +270,40 @@ var SelectionHandler = {
     let scroll = this._getScrollPos();
     
     let positions = this._getHandlePositions(scroll);
-    let clickX = scroll.X + aX;
-    let clickY = scroll.Y + aY;
-    let distance = 0;
 
-    
-    if (positions[0].left < clickX && clickX < positions[1].left
-        && positions[0].top < clickY && clickY < positions[1].top) {
-      distance = 0;
-    } else {
-      
-      let selectposX = (positions[0].left + positions[1].left) / 2;
-      let selectposY = (positions[0].top + positions[1].top) / 2;
-
-      let dx = Math.abs(selectposX - clickX);
-      let dy = Math.abs(selectposY - clickY);
-      distance = dx + dy;
-    }
-
-    let maxSelectionDistance = Services.prefs.getIntPref("browser.ui.selection.distance");
-    
-    if (distance > maxSelectionDistance) {
-      this._closeSelection();
-      return false;
+    if (aOptions.mode == this.SELECT_AT_POINT && !this.selectionNearClick(scroll.X + aOptions.x,
+                                                                      scroll.Y + aOptions.y,
+                                                                      positions)) {
+        this._closeSelection();
+        return false;
     }
 
     this._positionHandles(positions);
-    this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END], aX, aY);
+    this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END], aOptions.x, aOptions.y);
     return true;
   },
 
+  
+  _selectionNearClick: function(aX, aY, aPositions) {
+      let distance = 0;
+
+      
+      if (aPositions[0].left < aX && aX < aPositions[1].left
+          && aPositions[0].top < aY && aY < aPositions[1].top) {
+        distance = 0;
+      } else {
+        
+        let selectposX = (aPositions[0].left + aPositions[1].left) / 2;
+        let selectposY = (aPositions[0].top + aPositions[1].top) / 2;
+
+        let dx = Math.abs(selectposX - aX);
+        let dy = Math.abs(selectposY - aY);
+        distance = dx + dy;
+      }
+
+      let maxSelectionDistance = Services.prefs.getIntPref("browser.ui.selection.distance");
+      return (distance < maxSelectionDistance);
+  },
 
   
 
@@ -489,14 +501,15 @@ var SelectionHandler = {
     return (this._activeType == this.TYPE_SELECTION);
   },
 
-  selectAll: function sh_selectAll(aElement, aX, aY) {
-    if (this._activeType != this.TYPE_SELECTION)
-      this.startSelection(aElement, aX, aY);
-
-    let selectionController = this._getSelectionController();
-    selectionController.selectAll();
-    this._updateCacheForSelection();
-    this._positionHandles();
+  selectAll: function sh_selectAll(aElement) {
+    if (this._activeType != this.TYPE_SELECTION) {
+      this.startSelection(aElement, { mode : this.SELECT_ALL });
+    } else {
+      let selectionController = this._getSelectionController();
+      selectionController.selectAll();
+      this._updateCacheForSelection();
+      this._positionHandles();
+    }
   },
 
   
