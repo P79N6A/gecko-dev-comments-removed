@@ -12,7 +12,6 @@
 #include "nsIDOMNode.h"                 
 #include "nsISupportsImpl.h"            
 #include "nscore.h"                     
-#include "prtypes.h"                    
 
 class nsEditor;
 

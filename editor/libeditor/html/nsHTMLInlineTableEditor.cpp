@@ -21,7 +21,6 @@
 #include "nsReadableUtils.h"
 #include "nsString.h"
 #include "nscore.h"
-#include "prtypes.h"
 
 
 

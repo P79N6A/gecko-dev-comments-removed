@@ -10,7 +10,6 @@
 #include "nsISupportsUtils.h"           
 #include "nsITransaction.h"             
 #include "nsString.h"                   
-#include "prtypes.h"                    
 
 EditAggregateTxn::EditAggregateTxn()
   : EditTxn()

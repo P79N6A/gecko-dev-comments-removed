@@ -20,7 +20,6 @@
 #include "nsString.h"                   
 #include "nsUnicharUtils.h"
 #include "nsXPCOM.h"                    
-#include "prtypes.h"                    
 
 class nsIEditor;
 

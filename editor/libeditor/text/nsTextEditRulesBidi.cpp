@@ -19,7 +19,6 @@
 #include "nsPresContext.h"
 #include "nsTextEditRules.h"
 #include "nscore.h"
-#include "prtypes.h"
 
 
 nsresult

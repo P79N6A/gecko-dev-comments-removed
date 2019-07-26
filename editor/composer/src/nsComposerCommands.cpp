@@ -26,7 +26,6 @@
 #include "nsReadableUtils.h"            
 #include "nsString.h"                   
 #include "nsStringFwd.h"                
-#include "prtypes.h"                    
 
 class nsISupports;
 

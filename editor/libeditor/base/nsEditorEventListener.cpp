@@ -48,7 +48,6 @@
 #include "nsLiteralString.h"            
 #include "nsServiceManagerUtils.h"      
 #include "nsString.h"                   
-#include "prtypes.h"                    
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
 #include "nsContentUtils.h"             
 #include "nsIBidiKeyboard.h"            

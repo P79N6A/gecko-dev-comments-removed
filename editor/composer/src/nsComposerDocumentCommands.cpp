@@ -27,7 +27,6 @@
 #include "nsIURI.h"                     
 #include "nsPresContext.h"              
 #include "nscore.h"                     
-#include "prtypes.h"                    
 
 class nsISupports;
 

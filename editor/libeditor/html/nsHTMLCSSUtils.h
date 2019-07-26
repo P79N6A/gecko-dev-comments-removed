@@ -9,7 +9,6 @@
 #include "nsCOMPtr.h"                   
 #include "nsTArray.h"                   
 #include "nscore.h"                     
-#include "prtypes.h"                    
 
 class ChangeCSSInlineStyleTxn;
 class nsComputedDOMStyle;

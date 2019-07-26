@@ -18,7 +18,6 @@
 #include "nsITransactionListener.h"     
 #include "nsIWeakReferenceUtils.h"      
 #include "nscore.h"                     
-#include "prtypes.h"                    
 
 class nsIDOMWindow;
 class nsITransaction;

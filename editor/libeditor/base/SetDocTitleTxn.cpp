@@ -19,7 +19,6 @@
 #include "nsIEditor.h"                  
 #include "nsIHTMLEditor.h"              
 #include "nsLiteralString.h"            
-#include "prtypes.h"                    
 
 using namespace mozilla;
 

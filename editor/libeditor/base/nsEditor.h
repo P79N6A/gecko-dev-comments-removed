@@ -24,7 +24,6 @@
 #include "nsString.h"                   
 #include "nsWeakReference.h"            
 #include "nscore.h"                     
-#include "prtypes.h"                    
 
 class AddStyleSheetTxn;
 class ChangeAttributeTxn;
