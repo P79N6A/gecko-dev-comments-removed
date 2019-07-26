@@ -106,6 +106,12 @@ public:
   
 
 
+
+  uint64_t RootLayerTreeId();
+
+  
+
+
   static CompositorParent* GetCompositor(uint64_t id);
 
   
@@ -124,11 +130,6 @@ public:
 
 
   static void ShutDown();
-
-  
-
-
-  static uint64_t ROOT_LAYER_TREE_ID;
 
   
 
@@ -287,6 +288,7 @@ private:
   mozilla::Monitor mResumeCompositionMonitor;
 
   uint64_t mCompositorID;
+  uint64_t mRootLayerTreeID;
 
   bool mOverrideComposeReadiness;
   CancelableTask* mForceCompositionTask;

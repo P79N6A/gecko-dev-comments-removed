@@ -373,7 +373,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   TimeStamp testStartTime = TimeStamp::Now();
   AsyncPanZoomController::SetFrameTime(testStartTime);
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  ScopedLayerTreeRegistration controller(CompositorParent::ROOT_LAYER_TREE_ID, root, mcc);
+  ScopedLayerTreeRegistration controller(0, root, mcc);
 
   nsRefPtr<APZCTreeManager> manager = new TestAPZCTreeManager();
 
@@ -384,14 +384,14 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
 
   
   SetScrollableFrameMetrics(root, FrameMetrics::ROOT_SCROLL_ID, mcc);
-  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
   EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
 
   
   SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID, mcc);
-  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   EXPECT_NE(root->AsContainerLayer()->GetAsyncPanZoomController(), layers[3]->AsContainerLayer()->GetAsyncPanZoomController());
   hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
@@ -401,7 +401,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   SetScrollableFrameMetrics(layers[4], FrameMetrics::START_SCROLL_ID + 1, mcc);
-  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
   EXPECT_EQ(layers[4]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
@@ -422,7 +422,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   transform.ScalePost(0.1, 0.1, 1);
   root->SetBaseTransform(transform);
   root->ComputeEffectiveTransforms(gfx3DMatrix());
-  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   hit = manager->GetTargetAPZC(ScreenPoint(50, 50)); 
   EXPECT_EQ(nullAPZC, hit.get());
 
@@ -435,7 +435,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   
   
   root->ComputeEffectiveTransforms(gfx3DMatrix());
-  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   hit = manager->GetTargetAPZC(ScreenPoint(2, 2));
   EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
   
@@ -456,7 +456,7 @@ TEST(APZCTreeManager, GetAPZCAtPoint) {
   layers[7]->SetBaseTransform(translateTransform3);
 
   root->ComputeEffectiveTransforms(gfx3DMatrix());
-  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  manager->UpdatePanZoomControllerTree(nullptr, root, 0, false);
   
   hit = manager->GetTargetAPZC(ScreenPoint(1, 45));
   EXPECT_EQ(layers[7]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
