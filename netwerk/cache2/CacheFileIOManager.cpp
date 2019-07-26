@@ -42,7 +42,9 @@ namespace net {
 
 #define kOpenHandlesLimit      64
 #define kMetadataWriteDelay    5000
+#define kEvictionLoopLimit     40      // in milliseconds
 #define kRemoveTrashStartDelay 60000   // in milliseconds
+#define kRemoveTrashLoopLimit  40      // in milliseconds
 
 bool
 CacheFileHandle::DispatchRelease()
@@ -2361,6 +2363,8 @@ CacheFileIOManager::OverLimitEvictionInternal()
     return NS_ERROR_NOT_INITIALIZED;
   }
 
+  TimeStamp start;
+
   while (true) {
     uint32_t cacheUsage;
     rv = CacheIndex::GetCacheSize(&cacheUsage);
@@ -2376,11 +2380,15 @@ CacheFileIOManager::OverLimitEvictionInternal()
     LOG(("CacheFileIOManager::OverLimitEvictionInternal() - Cache size over "
          "limit. [cacheSize=%u, limit=%u]", cacheUsage, cacheLimit));
 
-    if (CacheIOThread::YieldAndRerun()) {
-      LOG(("CacheFileIOManager::OverLimitEvictionInternal() - Breaking loop "
-           "for higher level events."));
-      mOverLimitEvicting = true;
-      return NS_OK;
+    if (start.IsNull()) {
+      start = TimeStamp::NowLoRes();
+    } else {
+      TimeDuration elapsed = TimeStamp::NowLoRes() - start;
+      if (elapsed.ToMilliseconds() >= kEvictionLoopLimit) {
+        LOG(("CacheFileIOManager::OverLimitEvictionInternal() - Breaking loop "
+             "after %u ms.", static_cast<uint32_t>(elapsed.ToMilliseconds())));
+        break;
+      }
     }
 
     SHA1Sum::Hash hash;
@@ -2435,7 +2443,14 @@ CacheFileIOManager::OverLimitEvictionInternal()
     }
   }
 
-  NS_NOTREACHED("We should never get here");
+  nsCOMPtr<nsIRunnable> ev;
+  ev = NS_NewRunnableMethod(this,
+                            &CacheFileIOManager::OverLimitEvictionInternal);
+
+  rv = mIOThread->Dispatch(ev, CacheIOThread::EVICT);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mOverLimitEvicting = true;
   return NS_OK;
 }
 
@@ -2613,12 +2628,20 @@ CacheFileIOManager::RemoveTrashInternal()
   
   mRemovingTrashDirs = false;
 
+  TimeStamp start;
+
   while (true) {
-    if (CacheIOThread::YieldAndRerun()) {
-      LOG(("CacheFileIOManager::RemoveTrashInternal() - Breaking loop for "
-           "higher level events."));
-      mRemovingTrashDirs = true;
-      return NS_OK;
+    if (start.IsNull()) {
+      start = TimeStamp::NowLoRes();
+    } else {
+      static TimeDuration const kLimit = TimeDuration::FromMilliseconds(
+                                           kRemoveTrashLoopLimit);
+      TimeDuration elapsed = TimeStamp::NowLoRes() - start;
+      if (elapsed >= kLimit) {
+        LOG(("CacheFileIOManager::RemoveTrashInternal() - Breaking loop after "
+             "%u ms.", static_cast<uint32_t>(elapsed.ToMilliseconds())));
+        break;
+      }
     }
 
     
@@ -2686,7 +2709,14 @@ CacheFileIOManager::RemoveTrashInternal()
     }
   }
 
-  NS_NOTREACHED("We should never get here");
+  nsCOMPtr<nsIRunnable> ev;
+  ev = NS_NewRunnableMethod(this,
+                            &CacheFileIOManager::RemoveTrashInternal);
+
+  rv = mIOThread->Dispatch(ev, CacheIOThread::EVICT);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mRemovingTrashDirs = true;
   return NS_OK;
 }
 
