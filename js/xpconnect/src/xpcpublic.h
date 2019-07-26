@@ -428,13 +428,6 @@ GetJunkScopeGlobal();
 
 
 
-JSObject *
-GetSafeJSContextGlobal();
-
-
-
-
-
 nsGlobalWindow*
 WindowGlobalOrNull(JSObject *aObj);
 
