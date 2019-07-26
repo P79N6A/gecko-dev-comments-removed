@@ -3048,6 +3048,10 @@ moz_gtk_widget_paint(GtkThemeWidgetType widget, cairo_t *cr,
                      GtkWidgetState* state, gint flags,
                      GtkTextDirection direction)
 {
+    
+
+    cairo_new_path(cr);
+
     switch (widget) {
     case MOZ_GTK_BUTTON:
         if (state->depressed) {
