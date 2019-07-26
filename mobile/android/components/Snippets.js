@@ -204,13 +204,13 @@ function updateBanner(messages) {
       onclick: function() {
         let parentId = gChromeWin.BrowserApp.selectedTab.id;
         gChromeWin.BrowserApp.addTab(message.url, { parentId: parentId });
-        UITelemetry.addEvent("action.1", "banner", null, id);
+        UITelemetry.addEvent("action.1", "banner", null, message.id);
       },
       ondismiss: function() {
         
         Home.banner.remove(id);
         removeSnippet(message.id);
-        UITelemetry.addEvent("cancel.1", "banner", null, id);
+        UITelemetry.addEvent("cancel.1", "banner", null, message.id);
       },
       onshown: function() {
         
@@ -360,14 +360,14 @@ function loadSyncPromoBanner() {
           Home.banner.remove(id);
           Accounts.launchSetup();
 
-          UITelemetry.addEvent("action.1", "banner", null, id);
+          UITelemetry.addEvent("action.1", "banner", null, "syncpromo");
         },
         ondismiss: function() {
           
           Home.banner.remove(id);
           Services.prefs.setBoolPref("browser.snippets.syncPromo.enabled", false);
 
-          UITelemetry.addEvent("cancel.1", "banner", null, id);
+          UITelemetry.addEvent("cancel.1", "banner", null, "syncpromo");
         }
       });
     },
