@@ -154,10 +154,6 @@ void nsGIFDecoder2::BeginGIF()
   mGIFOpen = true;
 
   PostSize(mGIFStruct.screen_width, mGIFStruct.screen_height);
-
-  
-  if (IsSizeDecode())
-    return;
 }
 
 

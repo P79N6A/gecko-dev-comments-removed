@@ -843,12 +843,6 @@ RasterImage::GetCurrentImgFrame()
   return GetImgFrame(GetCurrentImgFrameIndex());
 }
 
-imgFrame*
-RasterImage::GetCurrentDrawableImgFrame()
-{
-  return GetDrawableImgFrame(GetCurrentImgFrameIndex());
-}
-
 
 
 NS_IMETHODIMP_(bool)
