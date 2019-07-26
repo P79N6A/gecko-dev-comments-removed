@@ -734,11 +734,8 @@ public class GeckoMenu extends ListView
 
         @Override
         public boolean areAllItemsEnabled() {
-            for (GeckoMenuItem item : mItems) {
-                 if (!item.isEnabled())
-                     return false;
-            }
-
+            
+            
             return true;
         }
 
