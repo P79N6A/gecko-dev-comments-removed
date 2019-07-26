@@ -498,10 +498,9 @@ ReferenceFinder::addReferrer(jsval referrerArg, Path *path)
         return false;
 
     
-    RootedValue valRoot(context);
-    Value &v = valRoot.get();
+    RootedValue v(context);
 
-    if (!JS_GetProperty(context, result, pathName, &v))
+    if (!JS_GetProperty(context, result, pathName, v.address()))
         return false;
     if (v.isUndefined()) {
         
