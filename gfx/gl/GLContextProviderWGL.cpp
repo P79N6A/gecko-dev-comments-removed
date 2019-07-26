@@ -372,6 +372,12 @@ public:
 
     bool SetupLookupFunction()
     {
+        
+        
+        
+        MOZ_ASSERT(mLibrary == nullptr);
+
+        mLibrary = sWGLLib[mLibType].GetOGLLibrary();
         mLookupFunc = (PlatformLookupFunction)sWGLLib[mLibType].fGetProcAddress;
         return true;
     }
