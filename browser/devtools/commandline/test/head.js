@@ -67,5 +67,10 @@ registerCleanupFunction(function tearDown() {
     gBrowser.removeCurrentTab();
   }
 
-  console = undefined;
+  
+  
+  
+  window.QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindowUtils)
+      .garbageCollect();
 });
