@@ -1020,6 +1020,25 @@ public final class HomeConfig {
 
 
 
+
+
+        public boolean moveTo(String panelId, int destIndex) {
+            ThreadUtils.assertOnThread(mOriginalThread);
+
+            if (!mConfigOrder.contains(panelId)) {
+                return false;
+            }
+
+            mConfigOrder.remove(panelId);
+            mConfigOrder.add(destIndex, panelId);
+            return true;
+        }
+
+        
+
+
+
+
         public boolean update(PanelConfig panelConfig) {
             ThreadUtils.assertOnThread(mOriginalThread);
 
