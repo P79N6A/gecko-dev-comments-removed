@@ -638,6 +638,36 @@ ICStubCompiler::guardProfilingEnabled(MacroAssembler &masm, Register scratch, La
     masm.branch32(Assembler::Equal, AbsoluteAddress(enabledAddr), Imm32(0), skip);
 }
 
+#ifdef JSGC_GENERATIONAL
+inline bool
+ICStubCompiler::emitPostWriteBarrierSlot(MacroAssembler &masm, Register obj, Register scratch,
+                                         GeneralRegisterSet saveRegs)
+{
+    Nursery &nursery = cx->runtime->gcNursery;
+
+    Label skipBarrier;
+    Label isTenured;
+    masm.branchPtr(Assembler::Below, obj, ImmWord(nursery.start()), &isTenured);
+    masm.branchPtr(Assembler::Below, obj, ImmWord(nursery.end()), &skipBarrier);
+    masm.bind(&isTenured);
+
+    
+#ifdef JS_CPU_ARM
+    saveRegs.add(BaselineTailCallReg);
+#endif
+    masm.PushRegsInMask(saveRegs);
+    masm.setupUnalignedABICall(2, scratch);
+    masm.movePtr(ImmWord(cx->runtime), scratch);
+    masm.passABIArg(scratch);
+    masm.passABIArg(obj);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, PostWriteBarrier));
+    masm.PopRegsInMask(saveRegs);
+
+    masm.bind(&skipBarrier);
+    return true;
+}
+#endif 
+
 
 
 
@@ -4325,10 +4355,11 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     scratchReg = regs.takeAny();
 
     
-    masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
+    obj = masm.extractObject(R0, ExtractTemp0);
+    Register key = masm.extractInt32(R1, ExtractTemp1);
 
     
-    Register key = masm.extractInt32(R1, ExtractTemp1);
+    masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
 
     
     Address initLength(scratchReg, ObjectElements::offsetOfInitializedLength());
@@ -4339,6 +4370,12 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestMagic(Assembler::Equal, element, &failure);
 
     
+    regs.add(R0);
+    regs.add(R1);
+    regs.takeUnchecked(obj);
+    regs.takeUnchecked(key);
+
+    
     
     
     Label convertDoubles, convertDoublesDone;
@@ -4347,12 +4384,28 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
                       Imm32(ObjectElements::CONVERT_DOUBLE_ELEMENTS),
                       &convertDoubles);
     masm.bind(&convertDoublesDone);
+    
 
     
+    
     Address valueAddr(BaselineStackReg, ICStackValueOffset);
-    masm.loadValue(valueAddr, R0);
+    ValueOperand tmpVal = regs.takeAnyValue();
+    masm.loadValue(valueAddr, tmpVal);
     EmitPreBarrier(masm, element, MIRType_Value);
-    masm.storeValue(R0, element);
+    masm.storeValue(tmpVal, element);
+#ifdef JSGC_GENERATIONAL
+    Label skipBarrier;
+    masm.branchTestObject(Assembler::NotEqual, tmpVal, &skipBarrier);
+    regs.add(key);
+    regs.add(tmpVal);
+    {
+        Register r = regs.takeAny();
+        GeneralRegisterSet saveRegs;
+        emitPostWriteBarrierSlot(masm, obj, r, saveRegs);
+        regs.add(r);
+    }
+    masm.bind(&skipBarrier);
+#endif
     EmitReturnFromIC(masm);
 
     
@@ -4360,7 +4413,7 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     
     masm.bind(&convertDoubles);
     if (cx->runtime->jitSupportsFloatingPoint)
-        masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+        masm.convertInt32ValueToDouble(valueAddr, regs.getAny(), &convertDoublesDone);
     else
         masm.breakpoint();
     masm.jump(&convertDoublesDone);
@@ -4482,10 +4535,11 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     scratchReg = regs.takeAny();
 
     
-    masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
+    obj = masm.extractObject(R0, ExtractTemp0);
+    Register key = masm.extractInt32(R1, ExtractTemp1);
 
     
-    Register key = masm.extractInt32(R1, ExtractTemp1);
+    masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
 
     
     Address initLength(scratchReg, ObjectElements::offsetOfInitializedLength());
@@ -4494,6 +4548,12 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     
     Address capacity(scratchReg, ObjectElements::offsetOfCapacity());
     masm.branch32(Assembler::BelowOrEqual, capacity, key, &failure);
+
+    
+    regs.add(R0);
+    regs.add(R1);
+    regs.takeUnchecked(obj);
+    regs.takeUnchecked(key);
 
     
     masm.add32(Imm32(1), initLength);
@@ -4515,12 +4575,26 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
                       &convertDoubles);
     masm.bind(&convertDoublesDone);
 
-    
-    
-    BaseIndex element(scratchReg, key, TimesEight);
     Address valueAddr(BaselineStackReg, ICStackValueOffset);
-    masm.loadValue(valueAddr, R0);
-    masm.storeValue(R0, element);
+
+    
+    ValueOperand tmpVal = regs.takeAnyValue();
+    BaseIndex element(scratchReg, key, TimesEight);
+    masm.loadValue(valueAddr, tmpVal);
+    masm.storeValue(tmpVal, element);
+#ifdef JSGC_GENERATIONAL
+    Label skipBarrier;
+    masm.branchTestObject(Assembler::NotEqual, tmpVal, &skipBarrier);
+    regs.add(key);
+    regs.add(tmpVal);
+    {
+        Register r = regs.takeAny();
+        GeneralRegisterSet saveRegs;
+        emitPostWriteBarrierSlot(masm, obj, r, saveRegs);
+        regs.add(r);
+    }
+    masm.bind(&skipBarrier);
+#endif
     EmitReturnFromIC(masm);
 
     
@@ -4528,7 +4602,7 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     
     masm.bind(&convertDoubles);
     if (cx->runtime->jitSupportsFloatingPoint)
-        masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+        masm.convertInt32ValueToDouble(valueAddr, regs.getAny(), &convertDoublesDone);
     else
         masm.breakpoint();
     masm.jump(&convertDoublesDone);
@@ -6299,13 +6373,35 @@ ICSetProp_Native::Compiler::generateStubCode(MacroAssembler &masm)
     
     EmitUnstowICValues(masm, 2);
 
-    if (!isFixedSlot_)
-        masm.loadPtr(Address(objReg, JSObject::offsetOfSlots()), objReg);
+    regs.add(R0);
+    regs.takeUnchecked(objReg);
+
+    Register holderReg;
+    if (isFixedSlot_) {
+        holderReg = objReg;
+    } else {
+        holderReg = regs.takeAny();
+        masm.loadPtr(Address(objReg, JSObject::offsetOfSlots()), holderReg);
+    }
 
     
     masm.load32(Address(BaselineStubReg, ICSetProp_Native::offsetOfOffset()), scratch);
-    EmitPreBarrier(masm, BaseIndex(objReg, scratch, TimesOne), MIRType_Value);
-    masm.storeValue(R1, BaseIndex(objReg, scratch, TimesOne));
+    EmitPreBarrier(masm, BaseIndex(holderReg, scratch, TimesOne), MIRType_Value);
+    masm.storeValue(R1, BaseIndex(holderReg, scratch, TimesOne));
+    if (holderReg != objReg)
+        regs.add(holderReg);
+#ifdef JSGC_GENERATIONAL
+    Label skipBarrier;
+    masm.branchTestObject(Assembler::NotEqual, R1, &skipBarrier);
+    {
+        Register scr = regs.takeAny();
+        GeneralRegisterSet saveRegs;
+        saveRegs.add(R1);
+        emitPostWriteBarrierSlot(masm, objReg, scr, saveRegs);
+        regs.add(scr);
+    }
+    masm.bind(&skipBarrier);
+#endif
 
     
     masm.moveValue(R1, R0);
@@ -6400,13 +6496,35 @@ ICSetPropNativeAddCompiler::generateStubCode(MacroAssembler &masm)
     masm.loadPtr(Address(BaselineStubReg, ICSetProp_NativeAdd::offsetOfNewShape()), scratch);
     masm.storePtr(scratch, shapeAddr);
 
-    if (!isFixedSlot_)
-        masm.loadPtr(Address(objReg, JSObject::offsetOfSlots()), objReg);
+    Register holderReg;
+    regs.add(R0);
+    regs.takeUnchecked(objReg);
+    if (isFixedSlot_) {
+        holderReg = objReg;
+    } else {
+        holderReg = regs.takeAny();
+        masm.loadPtr(Address(objReg, JSObject::offsetOfSlots()), holderReg);
+    }
 
     
     
     masm.load32(Address(BaselineStubReg, ICSetProp_NativeAdd::offsetOfOffset()), scratch);
-    masm.storeValue(R1, BaseIndex(objReg, scratch, TimesOne));
+    masm.storeValue(R1, BaseIndex(holderReg, scratch, TimesOne));
+
+    if (holderReg != objReg)
+        regs.add(holderReg);
+
+#ifdef JSGC_GENERATIONAL
+    Label skipBarrier;
+    masm.branchTestObject(Assembler::NotEqual, R1, &skipBarrier);
+    {
+        Register scr = regs.takeAny();
+        GeneralRegisterSet saveRegs;
+        saveRegs.add(R1);
+        emitPostWriteBarrierSlot(masm, objReg, scr, saveRegs);
+    }
+    masm.bind(&skipBarrier);
+#endif
 
     
     masm.moveValue(R1, R0);
@@ -8219,7 +8337,8 @@ ICSetProp_Native::Compiler::getStub(ICStubSpace *space)
 
 ICSetProp_NativeAdd::ICSetProp_NativeAdd(IonCode *stubCode, HandleTypeObject type,
                                          size_t protoChainDepth,
-                                         HandleShape newShape, uint32_t offset)
+                                         HandleShape newShape,
+                                         uint32_t offset)
   : ICUpdatedStub(SetProp_NativeAdd, stubCode),
     type_(type),
     newShape_(newShape),
@@ -8244,7 +8363,8 @@ ICSetProp_NativeAddImpl<ProtoChainDepth>::ICSetProp_NativeAddImpl(IonCode *stubC
 
 ICSetPropNativeAddCompiler::ICSetPropNativeAddCompiler(JSContext *cx, HandleObject obj,
                                                        HandleShape oldShape,
-                                                       size_t protoChainDepth, bool isFixedSlot,
+                                                       size_t protoChainDepth,
+                                                       bool isFixedSlot,
                                                        uint32_t offset)
   : ICStubCompiler(cx, ICStub::SetProp_NativeAdd),
     obj_(cx, obj),
