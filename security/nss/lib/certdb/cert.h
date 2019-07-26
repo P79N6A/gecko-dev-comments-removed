@@ -83,13 +83,6 @@ extern SECStatus CERT_CopyRDN(PLArenaPool *arena, CERTRDN *dest, CERTRDN *src);
 
 
 
-extern void CERT_DestroyRDN(CERTRDN *rdn, PRBool freeit);
-
-
-
-
-
-
 extern SECStatus CERT_AddAVA(PLArenaPool *arena, CERTRDN *rdn, CERTAVA *ava);
 
 

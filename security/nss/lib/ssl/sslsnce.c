@@ -523,7 +523,6 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
 
 
 
-
 static sslSessionID *
 ConvertToSID(sidCacheEntry *    from,
              certCacheEntry *   pcce,
