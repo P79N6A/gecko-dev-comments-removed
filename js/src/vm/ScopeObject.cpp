@@ -567,7 +567,8 @@ const Class WithObject::class_ = {
         with_DeleteProperty,
         with_DeleteElement,
         with_DeleteSpecial,
-        nullptr, nullptr, 
+        nullptr, nullptr,    
+        nullptr,             
         with_Enumerate,
         with_ThisObject,
     }

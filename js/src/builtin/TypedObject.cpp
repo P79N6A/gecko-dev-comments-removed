@@ -2461,6 +2461,7 @@ const Class TypedObject::class_ = {
         TypedDatum::obj_deleteElement,
         TypedDatum::obj_deleteSpecial,
         nullptr, nullptr, 
+        nullptr, 
         TypedDatum::obj_enumerate,
         nullptr, 
     }
@@ -2552,6 +2553,7 @@ const Class TypedHandle::class_ = {
         TypedDatum::obj_deleteElement,
         TypedDatum::obj_deleteSpecial,
         nullptr, nullptr, 
+        nullptr, 
         TypedDatum::obj_enumerate,
         nullptr, 
     }
