@@ -354,13 +354,16 @@ public:
     
 
 
+    eIntID_OperatingSystemVersionIdentifier,
+    
+
+
 
     eIntID_ScrollbarButtonAutoRepeatBehavior,
     
 
 
     eIntID_TooltipDelay,
-
     
 
 
@@ -388,6 +391,17 @@ public:
     eWindowsTheme_Royale,
     eWindowsTheme_Zune,
     eWindowsTheme_AeroLite
+  };
+
+  
+
+
+  enum OperatingSystemVersion {
+    eOperatingSystemVersion_WindowsXP = 0,
+    eOperatingSystemVersion_WindowsVista,
+    eOperatingSystemVersion_Windows7,
+    eOperatingSystemVersion_Windows8,
+    eOperatingSystemVersion_Unknown
   };
 
   enum {
