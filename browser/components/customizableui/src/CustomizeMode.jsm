@@ -191,6 +191,11 @@ CustomizeMode.prototype = {
 
       
       
+      let panelContents = window.PanelUI.contents;
+      panelContents.setAttribute("customize-transitioning", "true");
+
+      
+      
       let mainView = window.PanelUI.mainView;
       let panelHolder = document.getElementById("customization-panelHolder");
       panelHolder.appendChild(mainView);
@@ -253,6 +258,8 @@ CustomizeMode.prototype = {
       this._updateEmptyPaletteNotice();
 
       this._handler.isEnteringCustomizeMode = false;
+      panelContents.removeAttribute("customize-transitioning");
+
       this.dispatchToolboxEvent("customizationready");
       if (!this._wantToBeInCustomizeMode) {
         this.exit();
@@ -299,6 +306,11 @@ CustomizeMode.prototype = {
     this.paletteSpacer.hidden = false;
     this.visiblePalette.hidden = true;
     this.paletteEmptyNotice.hidden = true;
+
+    
+    
+    let panelContents = window.PanelUI.contents;
+    panelContents.setAttribute("customize-transitioning", "true");
 
     this._transitioning = true;
 
@@ -352,6 +364,8 @@ CustomizeMode.prototype = {
       
       document.getElementById("PanelUI-help").removeAttribute("disabled");
       document.getElementById("PanelUI-quit").removeAttribute("disabled");
+
+      panelContents.removeAttribute("customize-transitioning");
 
       
       
