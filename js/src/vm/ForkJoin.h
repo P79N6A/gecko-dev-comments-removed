@@ -346,6 +346,7 @@ struct ForkJoinSlice : ThreadSafeContext
     
     JSContext *acquireContext();
     void releaseContext();
+    bool hasAcquiredContext() const;
 
     
     static inline ForkJoinSlice *Current();
@@ -364,6 +365,8 @@ struct ForkJoinSlice : ThreadSafeContext
 #endif
 
     ForkJoinShared *const shared;
+
+    bool acquiredContext_;
 };
 
 
@@ -412,6 +415,8 @@ InParallelSection()
     return false;
 #endif
 }
+
+bool InSequentialOrExclusiveParallelSection();
 
 bool ParallelTestsShouldPass(JSContext *cx);
 
