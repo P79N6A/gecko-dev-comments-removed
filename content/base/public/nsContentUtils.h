@@ -1195,34 +1195,6 @@ public:
 
 
 
-
-
-
-
-  static nsresult CreateDocument(const nsAString& aNamespaceURI, 
-                                 const nsAString& aQualifiedName, 
-                                 nsIDOMDocumentType* aDoctype,
-                                 nsIURI* aDocumentURI,
-                                 nsIURI* aBaseURI,
-                                 nsIPrincipal* aPrincipal,
-                                 nsIScriptGlobalObject* aScriptObject,
-                                 DocumentFlavor aFlavor,
-                                 nsIDOMDocument** aResult);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
   static nsresult SetNodeTextContent(nsIContent* aContent,
                                      const nsAString& aValue,
                                      bool aTryReuse);

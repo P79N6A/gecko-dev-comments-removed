@@ -501,10 +501,10 @@ nsDOMParser::SetUpDocument(DocumentFlavor aFlavor, nsIDOMDocument** aResult)
   
   
   
-  return nsContentUtils::CreateDocument(EmptyString(), EmptyString(), nullptr,
-                                        mDocumentURI, mBaseURI,
-                                        mOriginalPrincipal,
-                                        scriptHandlingObject,
-                                        aFlavor,
-                                        aResult);
+  return NS_NewDOMDocument(aResult, EmptyString(), EmptyString(), nullptr,
+                           mDocumentURI, mBaseURI,
+                           mOriginalPrincipal,
+                           true,
+                           scriptHandlingObject,
+                           aFlavor);
 }
