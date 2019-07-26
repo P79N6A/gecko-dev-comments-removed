@@ -784,7 +784,7 @@ nsProtocolProxyService::SecondsSinceSessionStart()
     
     PRTime ups;
     LL_I2L(ups, PR_USEC_PER_SEC);
-    LL_DIV(diff, diff, ups);
+    diff /= ups;
 
     
     uint32_t dsec;

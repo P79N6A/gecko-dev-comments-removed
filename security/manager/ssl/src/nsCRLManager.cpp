@@ -416,7 +416,7 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
   switch (autoUpdateType) {
   case TYPE_AUTOUPDATE_FREQ_BASED:
     diff = now - lastUpdate;                    
-    LL_DIV(cycleCnt, diff, microsecInDayCnt);   
+    cycleCnt = diff / microsecInDayCnt;       
     LL_MOD(temp, diff, microsecInDayCnt);
     if(temp != 0) {
       ++cycleCnt;            
