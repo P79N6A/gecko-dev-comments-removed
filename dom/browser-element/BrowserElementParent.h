@@ -9,6 +9,7 @@
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
 #include "Units.h"
+#include "mozilla/dom/Element.h"
 
 class nsIDOMWindow;
 class nsIURI;
@@ -33,6 +34,22 @@ class TabParent;
 class BrowserElementParent
 {
 public:
+
+  
+
+
+
+
+
+
+
+
+  enum OpenWindowResult {
+    OPEN_WINDOW_ADDED,
+    OPEN_WINDOW_IGNORED,
+    OPEN_WINDOW_CANCELLED
+  };
+
   
 
 
@@ -65,7 +82,7 @@ public:
 
 
 
-  static bool
+  static OpenWindowResult
   OpenWindowOOP(dom::TabParent* aOpenerTabParent,
                 dom::TabParent* aPopupTabParent,
                 const nsAString& aURL,
@@ -83,7 +100,7 @@ public:
 
 
 
-  static bool
+  static OpenWindowResult
   OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
                       nsIURI* aURI,
                       const nsAString& aName,
@@ -109,6 +126,14 @@ public:
   DispatchAsyncScrollEvent(dom::TabParent* aTabParent,
                            const CSSRect& aContentRect,
                            const CSSSize& aContentSize);
+
+private:
+  static OpenWindowResult
+  DispatchOpenWindowEvent(dom::Element* aOpenerFrameElement,
+                          dom::Element* aPopupFrameElement,
+                          const nsAString& aURL,
+                          const nsAString& aName,
+                          const nsAString& aFeatures);
 };
 
 } 

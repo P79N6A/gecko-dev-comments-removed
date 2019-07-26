@@ -21,6 +21,7 @@ function runTest() {
 
     
     
+    e.preventDefault();
   });
 
   iframe.addEventListener('mozbrowsershowmodalprompt', function(e) {

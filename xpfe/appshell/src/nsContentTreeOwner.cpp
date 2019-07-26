@@ -31,6 +31,9 @@
 #include "nsIURIFixup.h"
 #include "nsCDefaultURIFixup.h"
 #include "nsIWebNavigation.h"
+#include "nsDocShellCID.h"
+#include "nsIExternalURLHandlerService.h"
+#include "nsIMIMEInfo.h"
 #include "mozilla/BrowserElementParent.h"
 
 #include "nsIDOMDocument.h"
@@ -832,14 +835,36 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
       !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
                         nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
                         nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
-    *aWindowIsNew =
+
+    BrowserElementParent::OpenWindowResult opened =
       BrowserElementParent::OpenWindowInProcess(aParent, aURI, aName,
                                                 aFeatures, aReturn);
 
     
     
     
-    return *aWindowIsNew ? NS_OK : NS_ERROR_ABORT;
+    if (opened != BrowserElementParent::OPEN_WINDOW_IGNORED) {
+      *aWindowIsNew = opened == BrowserElementParent::OPEN_WINDOW_ADDED;
+      return *aWindowIsNew ? NS_OK : NS_ERROR_ABORT;
+    }
+
+    
+    if (aName.LowerCaseEqualsLiteral("_blank")) {
+      nsCOMPtr<nsIExternalURLHandlerService> exUrlServ(
+                        do_GetService(NS_EXTERNALURLHANDLERSERVICE_CONTRACTID));
+      if (exUrlServ) {
+
+        nsCOMPtr<nsIHandlerInfo> info;
+        bool found;
+        exUrlServ->GetURLHandlerInfoFromOS(aURI, &found, getter_AddRefs(info));
+  
+        if (info && found) {
+          info->LaunchWithURI(aURI, nullptr);
+          return NS_ERROR_ABORT;
+        }
+
+      }
+    }
   }
 
   
