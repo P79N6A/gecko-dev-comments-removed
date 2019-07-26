@@ -5,12 +5,16 @@
 
 
 let tests = [
+    
     ['http://example.com/browser/browser/base/content/test/dummy_page.html',
      'Dummy test page'],
-    ['data:text/html;charset=utf-8,<title>test data: url</title>',
+    
+    ['data:text/html;charset=utf-8,<title>test%20data:%20url</title>',
      'test data: url'],
-    ['http://unregistered-domain.example',
-     'http://unregistered-domain.example/'],
+    
+    ['data:application/vnd.mozilla.xul+xml,',
+     'data:application/vnd.mozilla.xul+xml,'],
+    
     ['https://untrusted.example.com/somepage.html',
      'https://untrusted.example.com/somepage.html']
 ];
@@ -18,14 +22,13 @@ let tests = [
 function generatorTest() {
     gBrowser.selectedTab = gBrowser.addTab();
     let browser = gBrowser.selectedBrowser;
+    browser.stop(); 
 
     browser.addEventListener("DOMContentLoaded", nextStep, true);
     registerCleanupFunction(function () {
         browser.removeEventListener("DOMContentLoaded", nextStep, true);
         gBrowser.removeCurrentTab();
     });
-
-    yield; 
 
     
     for (let i = 0; i < tests.length; ++i) {
@@ -64,12 +67,11 @@ function generatorTest() {
 
 function checkBookmark(uri, expected_title) {
     PlacesCommandHook.bookmarkCurrentPage(false);
-    
-    let id = PlacesUtils.getMostRecentBookmarkForURI(PlacesUtils._uri(uri));
-    let title = PlacesUtils.bookmarks.getItemTitle(id);
 
+    let id = PlacesUtils.getMostRecentBookmarkForURI(PlacesUtils._uri(uri));
+    ok(id > 0, "Found the expected bookmark");
+    let title = PlacesUtils.bookmarks.getItemTitle(id);
     is(title, expected_title, "Bookmark got a good default title.");
 
     PlacesUtils.bookmarks.removeItem(id);
 }
-
