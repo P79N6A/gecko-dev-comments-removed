@@ -14,17 +14,14 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/SignInToWebsite.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "AboutHome",
-                                  "resource:///modules/AboutHome.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ContentClick",
-                                  "resource:///modules/ContentClick.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "UserAgentOverrides",
+                                  "resource://gre/modules/UserAgentOverrides.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
@@ -53,11 +50,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "BrowserNewTabPreloader",
 XPCOMUtils.defineLazyModuleGetter(this, "PdfJs",
                                   "resource://pdf.js/PdfJs.jsm");
 
-#ifdef NIGHTLY_BUILD
-XPCOMUtils.defineLazyModuleGetter(this, "ShumwayUtils",
-                                  "resource://shumway/ShumwayUtils.jsm");
-#endif
-
 XPCOMUtils.defineLazyModuleGetter(this, "webrtcUI",
                                   "resource:///modules/webrtcUI.jsm");
 
@@ -73,18 +65,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
                                   "resource://gre/modules/PlacesBackups.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
-                                  "resource:///modules/sessionstore/SessionStore.jsm");
 
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
 
 
-const BOOKMARKS_BACKUP_IDLE_TIME = 10 * 60;
+const BOOKMARKS_BACKUP_IDLE_TIME = 15 * 60;
 
 const BOOKMARKS_BACKUP_INTERVAL = 86400 * 1000;
 
@@ -181,10 +168,10 @@ BrowserGlue.prototype = {
         this._onAppDefaults();
         break;
       case "final-ui-startup":
-        this._finalUIStartup();
+        this._onProfileStartup();
         break;
       case "browser-delayed-startup-finished":
-        this._onFirstWindowLoaded(subject);
+        this._onFirstWindowLoaded();
         Services.obs.removeObserver(this, "browser-delayed-startup-finished");
         break;
       case "sessionstore-windows-restored":
@@ -259,7 +246,8 @@ BrowserGlue.prototype = {
         this._onPlacesShutdown();
         break;
       case "idle":
-        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
+        if ((this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000) &&
+             this._shouldBackupBookmarks())
           this._backupBookmarks();
         break;
       case "distribution-customization-complete":
@@ -320,49 +308,15 @@ BrowserGlue.prototype = {
 
         reporter.onInit().then(function record() {
           try {
-            let engine = subject.QueryInterface(Ci.nsISearchEngine);
-            reporter.getProvider("org.mozilla.searches").recordSearch(engine, "urlbar");
+            let name = subject.QueryInterface(Ci.nsISearchEngine).name;
+            reporter.getProvider("org.mozilla.searches").recordSearch(name,
+                                                                      "urlbar");
           } catch (ex) {
             Cu.reportError(ex);
           }
         });
         break;
 #endif
-      case "browser-search-engine-modified":
-        if (data != "engine-default" && data != "engine-current") {
-          break;
-        }
-        
-        
-        
-        
-        
-        
-        
-        let ss = Services.search;
-        if (ss.currentEngine.name == ss.defaultEngine.name)
-          return;
-        if (data == "engine-current")
-          ss.defaultEngine = ss.currentEngine;
-        else
-          ss.currentEngine = ss.defaultEngine;
-        break;
-      case "browser-search-service":
-        if (data != "init-complete")
-          return;
-        Services.obs.removeObserver(this, "browser-search-service");
-        this._syncSearchEngines();
-        break;
-    }
-  },
-
-  _syncSearchEngines: function () {
-    
-    
-    
-    
-    if (Services.search.isInitialized) {
-      Services.search.defaultEngine = Services.search.currentEngine;
     }
   },
 
@@ -397,8 +351,6 @@ BrowserGlue.prototype = {
 #ifdef MOZ_SERVICES_HEALTHREPORT
     os.addObserver(this, "keyword-search", false);
 #endif
-    os.addObserver(this, "browser-search-engine-modified", false);
-    os.addObserver(this, "browser-search-service", false);
   },
 
   
@@ -432,11 +384,6 @@ BrowserGlue.prototype = {
 #ifdef MOZ_SERVICES_HEALTHREPORT
     os.removeObserver(this, "keyword-search");
 #endif
-    os.removeObserver(this, "browser-search-engine-modified");
-    try {
-      os.removeObserver(this, "browser-search-service");
-      
-    } catch (ex) {}
   },
 
   _onAppDefaults: function BG__onAppDefaults() {
@@ -446,8 +393,7 @@ BrowserGlue.prototype = {
   },
 
   
-  
-  _finalUIStartup: function BG__finalUIStartup() {
+  _onProfileStartup: function BG__onProfileStartup() {
     this._sanitizer.onStartup();
     
     if (Services.appinfo.inSafeMode) {
@@ -462,7 +408,7 @@ BrowserGlue.prototype = {
     
     this._migrateUI();
 
-    this._syncSearchEngines();
+    this._setUpUserAgentOverrides();
 
     webappsUI.init();
     PageThumbs.init();
@@ -470,40 +416,24 @@ BrowserGlue.prototype = {
     BrowserNewTabPreloader.init();
     SignInToWebsiteUX.init();
     PdfJs.init();
-#ifdef NIGHTLY_BUILD
-    ShumwayUtils.init();
-#endif
     webrtcUI.init();
-    AboutHome.init();
-    SessionStore.init();
-
-    if (Services.prefs.getBoolPref("browser.tabs.remote"))
-      ContentClick.init();
 
     Services.obs.notifyObservers(null, "browser-ui-startup-complete", "");
   },
 
-  _checkForOldBuildUpdates: function () {
-    
-    if (Services.prefs.getBoolPref("app.update.enabled") &&
-        Services.prefs.getBoolPref("app.update.checkInstallTime")) {
+  _setUpUserAgentOverrides: function BG__setUpUserAgentOverrides() {
+    UserAgentOverrides.init();
 
-      let buildID = Services.appinfo.appBuildID;
-      let today = new Date().getTime();
-      let buildDate = new Date(buildID.slice(0,4),     
-                               buildID.slice(4,6) - 1, 
-                               buildID.slice(6,8),     
-                               buildID.slice(8,10),    
-                               buildID.slice(10,12),   
-                               buildID.slice(12,14))   
-      .getTime();
-
-      const millisecondsIn24Hours = 86400000;
-      let acceptableAge = Services.prefs.getIntPref("app.update.checkInstallTime.days") * millisecondsIn24Hours;
-
-      if (buildDate + acceptableAge < today) {
-        Cc["@mozilla.org/updates/update-service;1"].getService(Ci.nsIApplicationUpdateService).checkForBackgroundUpdates();
-      }
+    if (Services.prefs.getBoolPref("general.useragent.complexOverride.moodle")) {
+      UserAgentOverrides.addComplexOverride(function (aHttpChannel, aOriginalUA) {
+        let cookies;
+        try {
+          cookies = aHttpChannel.getRequestHeader("Cookie");
+        } catch (e) {  }
+        if (cookies && cookies.indexOf("MoodleSession") > -1)
+          return aOriginalUA.replace(/Gecko\/[^ ]*/, "Gecko/20100101");
+        return null;
+      });
     }
   },
 
@@ -520,9 +450,7 @@ BrowserGlue.prototype = {
       samples = Services.prefs.getIntPref("browser.slowStartup.samples");
     } catch (e) { }
 
-    let totalTime = (averageTime * samples) + currentTime;
-    samples++;
-    averageTime = totalTime / samples;
+    averageTime = (averageTime * samples + currentTime) / ++samples;
 
     if (samples >= Services.prefs.getIntPref("browser.slowStartup.maxSamples")) {
       if (averageTime > Services.prefs.getIntPref("browser.slowStartup.timeThreshold"))
@@ -550,7 +478,7 @@ BrowserGlue.prototype = {
         label:     win.gNavigatorBundle.getString("slowStartup.helpButton.label"),
         accessKey: win.gNavigatorBundle.getString("slowStartup.helpButton.accesskey"),
         callback: function () {
-          win.openUILinkIn("https://support.mozilla.org/kb/reset-firefox-easily-fix-most-problems", "tab");
+          win.openUILinkIn("https://support.mozilla.org/kb/firefox-takes-long-time-start-up", "tab");
         }
       },
       {
@@ -569,64 +497,19 @@ BrowserGlue.prototype = {
   },
 
   
-
-
-  _resetUnusedProfileNotification: function () {
-    let win = this.getMostRecentBrowserWindow();
-    if (!win)
-      return;
-
-    Cu.import("resource://gre/modules/ResetProfile.jsm");
-    if (!ResetProfile.resetSupported())
-      return;
-
-    let productName = Services.strings
-                              .createBundle("chrome://branding/locale/brand.properties")
-                              .GetStringFromName("brandShortName");
-    let resetBundle = Services.strings
-                              .createBundle("chrome://global/locale/resetProfile.properties");
-
-    let message = resetBundle.formatStringFromName("resetUnusedProfile.message", [productName], 1);
-    let buttons = [
-      {
-        label:     resetBundle.formatStringFromName("resetProfile.resetButton.label", [productName], 1),
-        accessKey: resetBundle.GetStringFromName("resetProfile.resetButton.accesskey"),
-        callback: function () {
-          ResetProfile.openConfirmationDialog(win);
-        }
-      },
-    ];
-
-    let nb = win.document.getElementById("global-notificationbox");
-    nb.appendNotification(message, "reset-unused-profile",
-                          "chrome://global/skin/icons/question-16.png",
-                          nb.PRIORITY_INFO_LOW, buttons);
-  },
-
-  
-  _onFirstWindowLoaded: function BG__onFirstWindowLoaded(aWindow) {
+  _onFirstWindowLoaded: function BG__onFirstWindowLoaded() {
 #ifdef XP_WIN
     
     const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
     if (WINTASKBAR_CONTRACTID in Cc &&
         Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
       let temp = {};
-      Cu.import("resource:///modules/WindowsJumpLists.jsm", temp);
+      Cu.import("resource://gre/modules/WindowsJumpLists.jsm", temp);
       temp.WinTaskbarJumpList.startup();
     }
 #endif
 
     this._trackSlowStartup();
-
-    
-    const OFFER_PROFILE_RESET_INTERVAL_MS = 60 * 24 * 60 * 60 * 1000;
-    let lastUse = Services.appinfo.replacedLockTime;
-    if (lastUse &&
-        Date.now() - lastUse >= OFFER_PROFILE_RESET_INTERVAL_MS) {
-      this._resetUnusedProfileNotification();
-    }
-
-    this._checkForOldBuildUpdates();
   },
 
   
@@ -636,6 +519,7 @@ BrowserGlue.prototype = {
 
   _onProfileShutdown: function BG__onProfileShutdown() {
     BrowserNewTabPreloader.uninit();
+    UserAgentOverrides.uninit();
     webappsUI.uninit();
     SignInToWebsiteUX.uninit();
     webrtcUI.uninit();
@@ -695,17 +579,9 @@ BrowserGlue.prototype = {
           (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
       }
       catch (ex) {  }
-
-      let isDefault = shell.isDefaultBrowser(true, false); 
-      try {
-        
-        
-        Services.telemetry.getHistogramById("BROWSER_IS_USER_DEFAULT")
-                          .add(isDefault);
-      }
-      catch (ex) {  }
-
-      if (shouldCheck && !isDefault && !willRecoverSession) {
+      if (shouldCheck &&
+          !shell.isDefaultBrowser(true, false) &&
+          !willRecoverSession) {
         Services.tm.mainThread.dispatch(function() {
           var win = this.getMostRecentBrowserWindow();
           var brandBundle = win.document.getElementById("bundle_brand");
@@ -775,7 +651,6 @@ BrowserGlue.prototype = {
     var browserEnum = Services.wm.getEnumerator("navigator:browser");
     let allWindowsPrivate = true;
     while (browserEnum.hasMoreElements()) {
-      
       windowcount++;
 
       var browser = browserEnum.getNext();
@@ -813,8 +688,7 @@ BrowserGlue.prototype = {
         
         
         mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
-        let allTabs = mostRecentBrowserWindow.gBrowser.closingTabsEnum.ALL;
-        aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(allTabs)
+        aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(true);
       }
       return;
     }
@@ -1051,7 +925,8 @@ BrowserGlue.prototype = {
           Services.prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
         if (restoreDefaultBookmarks) {
           
-          yield this._backupBookmarks();
+          if (this._shouldBackupBookmarks())
+            yield this._backupBookmarks();
           importBookmarks = true;
         }
       } catch(ex) {}
@@ -1060,7 +935,7 @@ BrowserGlue.prototype = {
       
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         
-        var bookmarksBackupFile = yield PlacesBackups.getMostRecent("json");
+        var bookmarksBackupFile = PlacesBackups.getMostRecent("json");
         if (bookmarksBackupFile) {
           
           yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
@@ -1184,19 +1059,22 @@ BrowserGlue.prototype = {
     }
 
     let waitingForBackupToComplete = true;
-    this._backupBookmarks().then(
-      function onSuccess() {
-        waitingForBackupToComplete = false;
-      },
-      function onFailure() {
-        Cu.reportError("Unable to backup bookmarks.");
-        waitingForBackupToComplete = false;
-      }
-    );
+    if (this._shouldBackupBookmarks()) {
+      waitingForBackupToComplete = false;
+      this._backupBookmarks().then(
+        function onSuccess() {
+          waitingForBackupToComplete = true;
+        },
+        function onFailure() {
+          Cu.reportError("Unable to backup bookmarks.");
+          waitingForBackupToComplete = true;
+        }
+      );
+    }
 
     
     
-    let waitingForHTMLExportToComplete = false;
+    let waitingForHTMLExportToComplete = true;
     
     if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
       
@@ -1205,22 +1083,20 @@ BrowserGlue.prototype = {
       
       
       
-      waitingForHTMLExportToComplete = true;
-      BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile)).then(
+      waitingForHTMLExportToComplete = false;
+      BookmarkHTMLUtils.exportToFile(FileUtils.getFile("BMarks", [])).then(
         function onSuccess() {
-          waitingForHTMLExportToComplete = false;
+          waitingForHTMLExportToComplete = true;
         },
         function onFailure() {
           Cu.reportError("Unable to auto export html.");
-          waitingForHTMLExportToComplete = false;
+          waitingForHTMLExportToComplete = true;
         }
       );
     }
 
-    
-    
     let thread = Services.tm.currentThread;
-    while (waitingForBackupToComplete || waitingForHTMLExportToComplete) {
+    while (!waitingForBackupToComplete || !waitingForHTMLExportToComplete) {
       thread.processNextEvent(true);
     }
   },
@@ -1228,21 +1104,30 @@ BrowserGlue.prototype = {
   
 
 
+
+  _shouldBackupBookmarks: function BG__shouldBackupBookmarks() {
+    let lastBackupFile = PlacesBackups.getMostRecent();
+
+    
+    
+    return (!lastBackupFile ||
+            new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL);
+  },
+
+  
+
+
   _backupBookmarks: function BG__backupBookmarks() {
     return Task.spawn(function() {
-      let lastBackupFile = yield PlacesBackups.getMostRecentBackup();
       
       
-      if (!lastBackupFile ||
-          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
-        let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
-        try {
-          maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
-        }
-        catch(ex) {  }
-
-        yield PlacesBackups.create(maxBackups); 
+      let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
+      try {
+        maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
       }
+      catch(ex) {  }
+
+      yield PlacesBackups.create(maxBackups); 
     });
   },
 
@@ -1285,57 +1170,17 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 14;
+    const UI_VERSION = 13;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
-
-    let wasCustomizedAndOnAustralis = Services.prefs.prefHasUserValue("browser.uiCustomization.state");
     let currentUIVersion = 0;
     try {
       currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
     } catch(ex) {}
-    if (!wasCustomizedAndOnAustralis && currentUIVersion >= UI_VERSION)
+    if (currentUIVersion >= UI_VERSION)
       return;
 
     this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
     this._dataSource = this._rdf.GetDataSource("rdf:local-store");
-
-    
-    if (wasCustomizedAndOnAustralis) {
-      
-      
-      let currentsetResource = this._rdf.GetResource("currentset");
-      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
-      let currentset = this._getPersist(toolbarResource, currentsetResource);
-      let oldCurrentset = currentset;
-      if (currentset) {
-        if (currentset.indexOf("unified-back-forward-button") == -1) {
-          currentset = currentset.replace("urlbar-container",
-                                          "unified-back-forward-button,urlbar-container");
-        }
-        if (currentset.indexOf("reload-button") == -1) {
-          currentset = currentset.replace("urlbar-container", "urlbar-container,reload-button");
-        }
-        if (currentset.indexOf("stop-button") == -1) {
-          currentset = currentset.replace("reload-button", "reload-button,stop-button");
-        }
-      }
-      Services.prefs.clearUserPref("browser.uiCustomization.state");
-
-      if (oldCurrentset != currentset) {
-        this._setPersist(toolbarResource, currentsetResource, currentset);
-      }
-      
-      if (currentUIVersion >= UI_VERSION) {
-        if (this._dirty) {
-          this._dataSource.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
-        }
-        delete this._rdf;
-        delete this._dataSource;
-        return;
-      }
-    }
-
-
     this._dirty = false;
 
     if (currentUIVersion < 2) {
@@ -1463,6 +1308,9 @@ BrowserGlue.prototype = {
         }
         this._setPersist(toolbarResource, currentsetResource, currentset);
       }
+
+      Services.prefs.clearUserPref("browser.download.useToolkitUI");
+      Services.prefs.clearUserPref("browser.library.useNewDownloadsView");
     }
 
 #ifdef XP_WIN
@@ -1496,27 +1344,42 @@ BrowserGlue.prototype = {
       let currentset = this._getPersist(toolbarResource, currentsetResource);
       
       if (currentset) {
-        if (currentset.contains("bookmarks-menu-button-container")) {
-          currentset = currentset.replace(/(^|,)bookmarks-menu-button-container($|,)/,
-                                          "$1bookmarks-menu-button$2");
-          this._setPersist(toolbarResource, currentsetResource, currentset);
+        if (currentset.contains("bookmarks-menu-button-container"))
+          currentset = currentset.replace(/(^|,)bookmarks-menu-button-container($|,)/,"$2");
+
+        
+        if (currentset.contains("downloads-button")) {
+          currentset = currentset.replace(/(^|,)downloads-button($|,)/,
+                                          "$1bookmarks-menu-button,downloads-button$2");
+        } else if (currentset.contains("home-button")) {
+          currentset = currentset.replace(/(^|,)home-button($|,)/,
+                                          "$1bookmarks-menu-button,home-button$2");
+        } else {
+          
+          currentset = currentset.replace(/(^|,)window-controls($|,)/,
+                                          "$1bookmarks-menu-button,window-controls$2")
         }
+        this._setPersist(toolbarResource, currentsetResource, currentset);
       }
     }
 
     if (currentUIVersion < 13) {
-      try {
-        if (Services.prefs.getBoolPref("plugins.hide_infobar_for_missing_plugin"))
-          Services.prefs.setBoolPref("plugins.notifyMissingFlash", false);
-      }
-      catch (ex) {}
-    }
-
-    if (currentUIVersion < 14) {
       
-      let path = OS.Path.join(OS.Constants.Path.profileDir,
-                              "chromeappsstore.sqlite");
-      OS.File.remove(path);
+      let toolbarResources = [this._rdf.GetResource(BROWSER_DOCURL + "navigator-toolbox"),
+                              this._rdf.GetResource(BROWSER_DOCURL + "nav-bar"),
+                              this._rdf.GetResource(BROWSER_DOCURL + "PersonalToolbar"),
+                              this._rdf.GetResource(BROWSER_DOCURL + "addon-bar")];
+      let modeResource = this._rdf.GetResource("mode");
+      let iconsizeResource = this._rdf.GetResource("iconsize");
+      for (let toolbarResource of toolbarResources) {
+        let toolbarMode = this._getPersist(toolbarResource, modeResource);
+        if (toolbarMode != "icons") {
+          this._setPersist(toolbarResource, modeResource, "icons");
+          
+          
+          this._setPersist(toolbarResource, iconsizeResource, "large");
+        }
+      }
     }
 
     if (this._dirty)
@@ -1766,17 +1629,16 @@ ContentPermissionPrompt.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentPermissionPrompt]),
 
-  _getBrowserForRequest: function (aRequest) {
-    
-    let browser = aRequest.element;
-    if (!browser) {
-      
-      browser = aRequest.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                                  .getInterface(Ci.nsIWebNavigation)
-                                  .QueryInterface(Ci.nsIDocShell)
-                                  .chromeEventHandler;
-    }
-    return browser;
+  _getChromeWindow: function CPP_getChromeWindow(aWindow) {
+    var chromeWin = aWindow
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebNavigation)
+      .QueryInterface(Ci.nsIDocShellTreeItem)
+      .rootTreeItem
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindow)
+      .QueryInterface(Ci.nsIDOMChromeWindow);
+    return chromeWin;
   },
 
   
@@ -1801,8 +1663,9 @@ ContentPermissionPrompt.prototype = {
 
     var browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
 
-    var browser = this._getBrowserForRequest(aRequest);
-    var chromeWin = browser.ownerDocument.defaultView;
+    var requestingWindow = aRequest.window.top;
+    var chromeWin = this._getChromeWindow(requestingWindow).wrappedJSObject;
+    var browser = chromeWin.gBrowser.getBrowserForDocument(requestingWindow.document);
     var requestPrincipal = aRequest.principal;
 
     
@@ -1918,7 +1781,8 @@ ContentPermissionPrompt.prototype = {
       });
     }
 
-    var chromeWin = this._getBrowserForRequest(aRequest).ownerDocument.defaultView;
+    var requestingWindow = aRequest.window.top;
+    var chromeWin = this._getChromeWindow(requestingWindow).wrappedJSObject;
     var link = chromeWin.document.getElementById("geolocation-learnmore-link");
     link.value = browserBundle.GetStringFromName("geolocation.learnMore");
     link.href = Services.urlFormatter.formatURLPref("browser.geolocation.warning.infoURL");
@@ -2037,13 +1901,6 @@ ContentPermissionPrompt.prototype = {
         return;
       }
     }
-
-    var browser = this._getBrowserForRequest(request);
-    var chromeWin = browser.ownerDocument.defaultView;
-    if (!chromeWin.PopupNotifications)
-      
-      
-      return;
 
     
     switch (request.type) {
