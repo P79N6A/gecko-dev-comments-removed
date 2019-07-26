@@ -165,6 +165,14 @@ public:
     SetHTMLAttr(nsGkAtoms::border, aBorder, aError);
   }
 
+  int32_t X();
+  int32_t Y();
+  
+  void SetLowsrc(const nsAString& aLowsrc, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::lowsrc, aLowsrc, aError);
+  }
+
 protected:
   nsIntPoint GetXY();
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
