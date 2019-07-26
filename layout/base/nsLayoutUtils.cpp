@@ -5277,7 +5277,7 @@ ShouldInflateFontsForContainer(const nsIFrame *aFrame)
          !(aFrame->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT) &&
          
          
-         styleText->WhiteSpaceCanWrap();
+         styleText->WhiteSpaceCanWrap(aFrame);
 }
 
 nscoord
