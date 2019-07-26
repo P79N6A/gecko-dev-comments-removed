@@ -407,6 +407,13 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
         InitExtensions();
 
+        
+        if (WorkAroundDriverBugs()) {
+            if (Renderer() == RendererAdrenoTM320) {
+                MarkExtensionUnsupported(OES_standard_derivatives);
+            }
+        }
+
         NS_ASSERTION(!IsExtensionSupported(GLContext::ARB_pixel_buffer_object) ||
                      (mSymbols.fMapBuffer && mSymbols.fUnmapBuffer),
                      "ARB_pixel_buffer_object supported without glMapBuffer/UnmapBuffer being available!");
