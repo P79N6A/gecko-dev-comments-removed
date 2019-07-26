@@ -5,7 +5,6 @@
 
 #include "MetroApp.h"
 #include "MetroWidget.h"
-#include "mozilla/IOInterposer.h"
 #include "mozilla/widget/AudioSession.h"
 #include "nsIRunnable.h"
 #include "MetroUtils.h"
@@ -81,7 +80,6 @@ MetroApp::Run()
   char aLocal;
   PR_SetCurrentThreadName(gGeckoThreadName);
   profiler_register_thread(gGeckoThreadName, &aLocal);
-  IOInterposer::RegisterCurrentThread(true);
 
   HRESULT hr;
   hr = sCoreApp->add_Suspending(Callback<__FIEventHandler_1_Windows__CApplicationModel__CSuspendingEventArgs_t>(

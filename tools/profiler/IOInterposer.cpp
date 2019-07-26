@@ -9,12 +9,6 @@
 
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/ThreadLocal.h"
-#if !defined(XP_WIN)
-#include "NSPRInterposer.h"
-#endif 
-#include "nsXULAppAPI.h"
-#include "PoisonIOInterposer.h"
 
 using namespace mozilla;
 
@@ -76,7 +70,6 @@ public:
 
 
 static StaticAutoPtr<ObserverLists> sObserverLists;
-static ThreadLocal<bool> sIsMainThread;
 
 
 template<class T>
@@ -142,30 +135,6 @@ IOInterposeObserver::Operation IOInterposer::sObservedOperations =
   }
   sObserverLists = new ObserverLists();
   sObservedOperations = IOInterposeObserver::OpNone;
-  if (sIsMainThread.init()) {
-#if defined(XP_WIN)
-    bool isMainThread = XRE_GetWindowsEnvironment() !=
-                          WindowsEnvironmentType_Metro;
-#else
-    bool isMainThread = true;
-#endif
-    sIsMainThread.set(isMainThread);
-  }
-  
-#if defined(XP_WIN) || defined(XP_MACOSX)
-  InitPoisonIOInterposer();
-#endif
-  
-  
-#if !defined(XP_WIN)
-  InitNSPRIOInterposing();
-#endif
-}
-
- bool
-IOInterposeObserver::IsMainThread()
-{
-  return sIsMainThread.initialized() && sIsMainThread.get();
 }
 
  void IOInterposer::Clear()
@@ -258,6 +227,8 @@ IOInterposeObserver::IsMainThread()
                                          IOInterposeObserver* aObserver)
 {
   
+  MOZ_ASSERT(sObserverLists);
+  
   MOZ_ASSERT(aObserver);
   if (!sObserverLists || !aObserver) {
     return;
@@ -301,6 +272,8 @@ IOInterposeObserver::IsMainThread()
  void IOInterposer::Unregister(IOInterposeObserver::Operation aOp,
                                            IOInterposeObserver* aObserver)
 {
+  
+  MOZ_ASSERT(sObserverLists);
   if (!sObserverLists) {
     return;
   }
@@ -351,18 +324,3 @@ IOInterposeObserver::IsMainThread()
     }
   }
 }
-
- void
-IOInterposer::RegisterCurrentThread(bool aIsMainThread)
-{
-  
-  
-#if defined(XP_WIN)
-  if (XRE_GetWindowsEnvironment() != WindowsEnvironmentType_Metro ||
-      !sIsMainThread.initialized()) {
-    return;
-  }
-  sIsMainThread.set(aIsMainThread);
-#endif
-}
-

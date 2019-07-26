@@ -136,14 +136,6 @@ public:
   virtual ~IOInterposeObserver()
   {
   }
-
-protected:
-  
-
-
-
-
-  static bool IsMainThread();
 };
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
@@ -250,15 +242,6 @@ public:
 
   static void Unregister(IOInterposeObserver::Operation aOp,
                          IOInterposeObserver* aObserver);
-
-  
-
-
-
-
-
-  static void
-  RegisterCurrentThread(bool aIsMainThread = false);
 };
 
 #else 
@@ -277,22 +260,9 @@ public:
   static inline bool IsObservedOperation(IOInterposeObserver::Operation aOp) {
     return false;
   }
-  static inline void RegisterCurrentThread(bool)                          {}
 };
 
 #endif 
-
-class IOInterposerInit
-{
-public:
-  IOInterposerInit()
-  {
-    IOInterposer::Init();
-  }
-
-  
-  
-};
 
 } 
 

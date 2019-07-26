@@ -110,6 +110,8 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 
 #include "nsChromeRegistry.h"
 #include "nsChromeProtocolHandler.h"
+#include "mozilla/IOInterposer.h"
+#include "mozilla/PoisonIOInterposer.h"
 #include "mozilla/LateWriteChecks.h"
 
 #include "mozilla/scache/StartupCache.h"
@@ -967,6 +969,11 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     PROFILER_MARKER("Shutdown xpcom");
     
     if (gShutdownChecks != SCM_NOTHING) {
+        
+        
+        
+        mozilla::IOInterposer::Init();
+        mozilla::InitPoisonIOInterposer();
 #ifdef XP_MACOSX
         mozilla::OnlyReportDirtyWrites();
 #endif 

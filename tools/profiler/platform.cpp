@@ -7,6 +7,8 @@
 #include <sstream>
 #include <errno.h>
 
+#include "IOInterposer.h"
+#include "NSPRInterposer.h"
 #include "ProfilerIOInterposeObserver.h"
 #include "platform.h"
 #include "PlatformMacros.h"
@@ -480,6 +482,11 @@ void mozilla_sampler_init(void* stackTop)
   OS::Startup();
 
   
+  mozilla::IOInterposer::Init();
+  
+  mozilla::InitNSPRIOInterposing();
+
+  
   
   
   const char *val = PR_GetEnv("MOZ_PROFILER_STARTUP");
@@ -525,6 +532,16 @@ void mozilla_sampler_shutdown()
   }
 
   profiler_stop();
+
+  
+  mozilla::IOInterposer::Unregister(mozilla::IOInterposeObserver::OpAll,
+                                    sInterposeObserver);
+  
+  
+  
+  
+  mozilla::ClearNSPRIOInterposing();
+  sInterposeObserver = nullptr;
 
   Sampler::Shutdown();
 
@@ -724,7 +741,6 @@ void mozilla_sampler_stop()
 
   mozilla::IOInterposer::Unregister(mozilla::IOInterposeObserver::OpAll,
                                     sInterposeObserver);
-  sInterposeObserver = nullptr;
 
   sIsProfiling = false;
 

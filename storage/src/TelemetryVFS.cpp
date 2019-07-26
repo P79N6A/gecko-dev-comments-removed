@@ -107,10 +107,7 @@ public:
       Telemetry::AccumulateTimeDelta(static_cast<Telemetry::ID>(id + mainThread),
                                      start, end);
     }
-    
-    
-    
-#if defined(MOZ_ENABLE_PROFILER_SPS) && !defined(XP_WIN)
+#ifdef MOZ_ENABLE_PROFILER_SPS
     if (IOInterposer::IsObservedOperation(op)) {
       const char* main_ref  = "sqlite-mainthread";
       const char* other_ref = "sqlite-otherthread";
