@@ -880,6 +880,31 @@ function getMessageElementText(aElement)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function waitForMessages(aOptions)
 {
   gPendingOutputTest++;
