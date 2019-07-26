@@ -862,6 +862,10 @@ GenericNaN()
   return mozilla::SpecificNaN<double>(0, 0x8000000000000ULL);
 }
 
+
+#if defined(_MSC_VER)
+# pragma optimize("g", off)
+#endif
 static inline double
 CanonicalizeNaN(double d)
 {
@@ -869,6 +873,9 @@ CanonicalizeNaN(double d)
         return GenericNaN();
     return d;
 }
+#if defined(_MSC_VER)
+# pragma optimize("", on)
+#endif
 
 
 
