@@ -91,8 +91,8 @@ MacroAssemblerX86::getFloat(float f)
 void
 MacroAssemblerX86::loadConstantFloat32(float f, const FloatRegister &dest)
 {
-    
-    
+    if (maybeInlineFloat(f, dest))
+        return;
     Float *flt = getFloat(f);
     if (!flt)
         return;
