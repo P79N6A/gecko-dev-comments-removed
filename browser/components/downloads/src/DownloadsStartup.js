@@ -56,6 +56,16 @@ const kDownloadsUIContractId = "@mozilla.org/download-manager-ui;1";
 
 
 
+const kTransferCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
+
+
+
+
+const kTransferContractId = "@mozilla.org/transfer;1";
+
+
+
+
 function DownloadsStartup() { }
 
 DownloadsStartup.prototype = {
@@ -75,7 +85,7 @@ DownloadsStartup.prototype = {
   observe: function DS_observe(aSubject, aTopic, aData)
   {
     switch (aTopic) {
-      case "app-startup":
+      case "profile-after-change":
         kObservedTopics.forEach(
           function (topic) Services.obs.addObserver(this, topic, true),
           this);
@@ -86,6 +96,24 @@ DownloadsStartup.prototype = {
         Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
                           .registerFactory(kDownloadsUICid, "",
                                            kDownloadsUIContractId, null);
+
+        
+        
+        
+        
+        
+        let useJSTransfer = false;
+        try {
+          useJSTransfer =
+            Services.prefs.getBoolPref("browser.download.useJSTransfer");
+        } catch (ex) {
+          
+        }
+        if (useJSTransfer) {
+          Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
+                            .registerFactory(kTransferCid, "",
+                                             kTransferContractId, null);
+        }
         break;
 
       case "sessionstore-windows-restored":

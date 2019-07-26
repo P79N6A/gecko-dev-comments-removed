@@ -19,6 +19,8 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadPaths",
+                                  "resource://gre/modules/DownloadPaths.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
@@ -75,22 +77,38 @@ function run_test()
 
 
 
+let gFileCounter = Math.floor(Math.random() * 1000000);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function getTempFile(aLeafName)
 {
-  let file = FileUtils.getFile("TmpD", [aLeafName]);
-  function GTF_removeFile()
-  {
+  
+  let [base, ext] = DownloadPaths.splitBaseNameAndExtension(aLeafName);
+  let leafName = base + "-" + gFileCounter + ext;
+  gFileCounter++;
+
+  
+  let file = FileUtils.getFile("TmpD", [leafName]);
+  do_check_false(file.exists());
+
+  do_register_cleanup(function () {
     if (file.exists()) {
       file.remove(false);
     }
-  }
-
-  
-  GTF_removeFile();
-
-  
-  do_register_cleanup(GTF_removeFile);
+  });
 
   return file;
 }
@@ -108,7 +126,6 @@ function promiseExecuteSoon()
   do_execute_soon(deferred.resolve);
   return deferred.promise;
 }
-
 
 
 

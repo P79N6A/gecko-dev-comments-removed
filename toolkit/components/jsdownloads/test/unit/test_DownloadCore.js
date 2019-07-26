@@ -302,7 +302,9 @@ add_task(function test_download_cancel_immediately()
   
   
   
-  yield promiseExecuteSoon();
+  for (let i = 0; i < 5; i++) {
+    yield promiseExecuteSoon();
+  }
 });
 
 
@@ -389,7 +391,9 @@ add_task(function test_download_cancel_immediately_restart_immediately()
   
   
   
-  yield promiseExecuteSoon();
+  for (let i = 0; i < 5; i++) {
+    yield promiseExecuteSoon();
+  }
 
   
   
@@ -606,19 +610,26 @@ add_task(function test_download_error_target()
 
   
   download.target.file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0);
-
   try {
-    yield download.start();
-    do_throw("The download should have failed.");
-  } catch (ex if ex instanceof Downloads.Error && ex.becauseTargetFailed) {
-    
-  }
+    try {
+      yield download.start();
+      do_throw("The download should have failed.");
+    } catch (ex if ex instanceof Downloads.Error && ex.becauseTargetFailed) {
+      
+    }
 
-  do_check_true(download.stopped);
-  do_check_false(download.canceled);
-  do_check_true(download.error !== null);
-  do_check_true(download.error.becauseTargetFailed);
-  do_check_false(download.error.becauseSourceFailed);
+    do_check_true(download.stopped);
+    do_check_false(download.canceled);
+    do_check_true(download.error !== null);
+    do_check_true(download.error.becauseTargetFailed);
+    do_check_false(download.error.becauseSourceFailed);
+  } finally {
+    
+    if (download.target.file.exists()) {
+      download.target.file.permissions = FileUtils.PERMS_FILE;
+      download.target.file.remove(false);
+    }
+  }
 });
 
 
@@ -638,10 +649,18 @@ add_task(function test_download_error_restart()
     do_throw("The download should have failed.");
   } catch (ex if ex instanceof Downloads.Error && ex.becauseTargetFailed) {
     
-  }
+  } finally {
+    
+    if (download.target.file.exists()) {
+      download.target.file.permissions = FileUtils.PERMS_FILE;
 
-  if (download.target.file.exists()) {
-    download.target.file.remove(false);
+      
+      
+      
+      let fileToRemove = download.target.file.clone();
+      fileToRemove.moveTo(null, fileToRemove.leafName + ".delete.tmp");
+      fileToRemove.remove(false);
+    }
   }
 
   

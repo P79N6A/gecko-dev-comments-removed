@@ -33,7 +33,14 @@ function promiseStartLegacyDownload(aSourceURI, aOutPersist) {
 
   let persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
                   .createInstance(Ci.nsIWebBrowserPersist);
-  let transfer = Cc["@mozilla.org/transfer;1"].createInstance(Ci.nsITransfer);
+
+  
+  
+  
+  
+  let transfer =
+      Components.classesByID["{1b4c85df-cbdd-4bb6-b04e-613caece083c}"]
+                .createInstance(Ci.nsITransfer);
 
   if (aOutPersist) {
     aOutPersist.value = persist;
@@ -78,18 +85,20 @@ function promiseStartLegacyDownload(aSourceURI, aOutPersist) {
 
 add_task(function test_basic()
 {
-  let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
+  let tempDirectory = FileUtils.getDir("TmpD", []);
 
   let download = yield promiseStartLegacyDownload();
 
   
   do_check_true(download.source.uri.equals(TEST_SOURCE_URI));
-  do_check_true(download.target.file.equals(targetFile));
+  do_check_true(download.target.file.parent.equals(tempDirectory));
 
   
-  yield download.whenSucceeded();
+  if (!download.stopped) {
+    yield download.start();
+  }
 
-  yield promiseVerifyContents(targetFile, TEST_DATA_SHORT);
+  yield promiseVerifyContents(download.target.file, TEST_DATA_SHORT);
 });
 
 
@@ -100,7 +109,9 @@ add_task(function test_final_state()
   let download = yield promiseStartLegacyDownload();
 
   
-  yield download.whenSucceeded();
+  if (!download.stopped) {
+    yield download.start();
+  }
 
   do_check_true(download.stopped);
   do_check_true(download.succeeded);
@@ -135,7 +146,9 @@ add_task(function test_intermediate_progress()
   onchange();
 
   
-  yield download.whenSucceeded();
+  if (!download.stopped) {
+    yield download.start();
+  }
 
   do_check_true(download.stopped);
   do_check_eq(download.progress, 100);
@@ -151,7 +164,10 @@ add_task(function test_empty_progress()
 {
   let download = yield promiseStartLegacyDownload(TEST_EMPTY_URI);
 
-  yield download.whenSucceeded();
+  
+  if (!download.stopped) {
+    yield download.start();
+  }
 
   do_check_true(download.stopped);
   do_check_true(download.hasProgress);
@@ -185,8 +201,11 @@ add_task(function test_empty_noprogress()
   do_check_eq(download.totalBytes, 0);
 
   
+  
   deferResponse.resolve();
-  yield download.whenSucceeded();
+  if (!download.stopped) {
+    yield download.start();
+  }
 
   
   do_check_true(download.stopped);
