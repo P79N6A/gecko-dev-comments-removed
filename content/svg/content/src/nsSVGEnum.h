@@ -50,6 +50,10 @@ public:
 
   nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
                              nsSVGElement* aSVGElement);
+
+  already_AddRefed<nsIDOMSVGAnimatedEnumeration>
+  ToDOMAnimatedEnum(nsSVGElement* aSVGElement);
+
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
