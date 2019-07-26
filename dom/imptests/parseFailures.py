@@ -33,7 +33,7 @@ def dumpFailures(lines):
             continue
 
         
-        if '/editing/' in url:
+        if 'editing/' in url:
             sep = ':'
         else:
             sep = ': '
