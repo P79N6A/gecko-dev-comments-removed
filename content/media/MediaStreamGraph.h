@@ -459,7 +459,7 @@ public:
 
   StreamBuffer::Track* EnsureTrack(TrackID aTrack, TrackRate aSampleRate);
 
-  void ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment);
+  void ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment, MediaSegment* aRawSegment = nullptr);
 
   DOMMediaStream* GetWrapper()
   {
@@ -679,6 +679,11 @@ public:
       FinishWithLockHeld();
     }
 
+  
+  void SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled) {
+    MutexAutoLock lock(mMutex);
+    MediaStream::SetTrackEnabledImpl(aTrackID, aEnabled);
+  }
 
   
 

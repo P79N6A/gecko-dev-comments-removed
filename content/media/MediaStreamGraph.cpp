@@ -1912,29 +1912,15 @@ MediaStream::SetTrackEnabled(TrackID aTrackID, bool aEnabled)
 }
 
 void
-MediaStream::ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment)
+MediaStream::ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment, MediaSegment* aRawSegment)
 {
+  
   if (!mDisabledTrackIDs.Contains(aTrackID)) {
     return;
   }
-
-  switch (aSegment->GetType()) {
-  case MediaSegment::AUDIO: {
-    TrackTicks duration = aSegment->GetDuration();
-    aSegment->Clear();
-    aSegment->AppendNullData(duration);
-    break;
-  }
-  case MediaSegment::VIDEO: {
-    for (VideoSegment::ChunkIterator i(*static_cast<VideoSegment*>(aSegment));
-         !i.IsEnded(); i.Next()) {
-      VideoChunk& chunk = *i;
-      chunk.SetForceBlack(true);
-    }
-    break;
-  }
-  default:
-    MOZ_CRASH("Unknown track type");
+  aSegment->ReplaceWithDisabled();
+  if (aRawSegment) {
+    aRawSegment->ReplaceWithDisabled();
   }
 }
 
@@ -1989,6 +1975,10 @@ SourceMediaStream::AppendToTrack(TrackID aID, MediaSegment* aSegment, MediaSegme
       
       
       
+
+      
+      
+      ApplyTrackDisabling(aID, aSegment, aRawSegment);
 
       
       NotifyDirectConsumers(track, aRawSegment ? aRawSegment : aSegment);
