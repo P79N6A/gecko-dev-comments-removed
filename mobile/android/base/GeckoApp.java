@@ -696,6 +696,8 @@ public abstract class GeckoApp
                     message.optString("className"), message.optString("action"), message.optString("title"));
             } else if (event.equals("Locale:Set")) {
                 setLocale(message.getString("locale"));
+            } else if (event.equals("NativeApp:IsDebuggable")) {
+                mCurrentResponse = getIsDebuggable() ? "true" : "false";
             } else if (event.equals("SystemUI:Visibility")) {
                 setSystemUiVisible(message.getBoolean("visible"));
             }
@@ -1556,6 +1558,7 @@ public abstract class GeckoApp
         registerEventListener("Intent:Open");
         registerEventListener("Intent:GetHandlers");
         registerEventListener("Locale:Set");
+        registerEventListener("NativeApp:IsDebuggable");
         registerEventListener("SystemUI:Visibility");
         registerEventListener("WebApps:PreInstall");
 
@@ -2084,6 +2087,7 @@ public abstract class GeckoApp
         unregisterEventListener("Intent:Open");
         unregisterEventListener("Intent:GetHandlers");
         unregisterEventListener("Locale:Set");
+        unregisterEventListener("NativeApp:IsDebuggable");
         unregisterEventListener("SystemUI:Visibility");
         unregisterEventListener("WebApps:PreInstall");
 
@@ -2745,6 +2749,23 @@ public abstract class GeckoApp
             Log.wtf(LOGTAG, getPackageName() + " not found", e);
         }
         return versionCode;
+    }
+
+    protected boolean getIsDebuggable() {
+        
+        
+        
+        
+        return false;
+
+        
+        
+        
+        
+        
+        
+        
+        
     }
 
     

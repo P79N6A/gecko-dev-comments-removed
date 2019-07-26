@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/PermissionPromptHelper.jsm");
 Cu.import("resource://gre/modules/ContactService.jsm");
 #ifdef MOZ_ANDROID_SYNTHAPKS
 Cu.import("resource://gre/modules/AppsUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Notifications", "resource://gre/modules/Notifications.jsm");
 #endif
 
 function pref(name, value) {
@@ -62,6 +64,13 @@ let WebAppRT = {
         }
       });
     }
+
+#ifdef MOZ_ANDROID_SYNTHAPKS
+    
+    if (sendMessageToJava({ type: "NativeApp:IsDebuggable" })) {
+      this._enableRemoteDebugger(aUrl);
+    }
+#endif
 
     this.findManifestUrlFor(aUrl, aCallback);
   },
@@ -146,6 +155,40 @@ let WebAppRT = {
         break;
     }
   },
+
+#ifdef MOZ_ANDROID_SYNTHAPKS
+  _enableRemoteDebugger: function(aUrl) {
+    
+    Services.prefs.setBoolPref("devtools.debugger.prompt-connection", false);
+
+    
+    let serv = Cc['@mozilla.org/network/server-socket;1'].createInstance(Ci.nsIServerSocket);
+    serv.init(-1, true, -1);
+    let port = serv.port;
+    serv.close();
+    Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+
+    Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
+
+    
+    
+    DOMApplicationRegistry.registryReady.then(() => {
+      let name;
+      let app = DOMApplicationRegistry.getAppByManifestURL(aUrl);
+      if (app) {
+        name = app.name;
+      } else {
+        name = Strings.browser.GetStringFromName("remoteNotificationGenericName");
+      }
+
+      Notifications.create({
+        title: Strings.browser.formatStringFromName("remoteNotificationTitle", [name], 1),
+        message: Strings.browser.formatStringFromName("remoteNotificationMessage", [port], 1),
+        icon: "drawable://warning_doorhanger",
+      });
+    });
+  },
+#endif
 
   handleEvent: function(event) {
     let target = event.target;
