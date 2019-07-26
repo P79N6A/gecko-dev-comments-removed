@@ -8460,7 +8460,13 @@ if (""",
 
         methods.append(self.initMethod())
         methods.append(self.initFromJSONMethod())
-        methods.append(self.toObjectMethod())
+        try:
+            methods.append(self.toObjectMethod())
+        except MethodNotCreatorError:
+            
+            
+            
+            pass
         methods.append(self.traceDictionaryMethod())
 
         if CGDictionary.isDictionaryCopyConstructible(d):
