@@ -600,18 +600,17 @@ class LocationService
 
   struct Entry
   {
-    static const void* const kUnused;
-
-    const void* mPc;        
+    const void* mPc;
     char*       mFunction;  
     const char* mLibrary;   
                             
     ptrdiff_t   mLOffset;
     char*       mFileName;  
-    unsigned long mLineNo;
+    uint32_t    mLineNo:31;
+    uint32_t    mInUse:1;   
 
     Entry()
-      : mPc(kUnused), mFunction(nullptr), mLibrary(nullptr), mLOffset(0), mFileName(nullptr), mLineNo(0)
+      : mPc(0), mFunction(nullptr), mLibrary(nullptr), mLOffset(0), mFileName(nullptr), mLineNo(0), mInUse(0)
     {}
 
     ~Entry()
@@ -639,6 +638,8 @@ class LocationService
       mLibrary = aLibrary;
       mLOffset = aLOffset;
       mLineNo = aLineNo;
+
+      mInUse = 1;
     }
 
     size_t SizeOfExcludingThis() {
@@ -675,8 +676,7 @@ public:
     MOZ_ASSERT(index < kNumEntries);
     Entry& entry = mEntries[index];
 
-    MOZ_ASSERT(aPc != Entry::kUnused);
-    if (entry.mPc != aPc) {
+    if (!entry.mInUse || entry.mPc != aPc) {
       mNumCacheMisses++;
 
       
@@ -753,7 +753,7 @@ public:
   {
     size_t n = 0;
     for (size_t i = 0; i < kNumEntries; i++) {
-      if (mEntries[i].mPc != Entry::kUnused) {
+      if (mEntries[i].mInUse) {
         n++;
       }
     }
@@ -763,10 +763,6 @@ public:
   size_t NumCacheHits()   const { return mNumCacheHits; }
   size_t NumCacheMisses() const { return mNumCacheMisses; }
 };
-
-
-const void* const LocationService::Entry::kUnused =
-  reinterpret_cast<const void* const>(intptr_t(-1));
 
 
 
