@@ -1321,7 +1321,7 @@ js_PopulateObject(JSContext *cx, js::HandleObject newborn, js::HandleObject prop
 
 
 extern bool
-js_GetClassObject(js::ExclusiveContext *cx, JSObject *obj, JSProtoKey key,
+js_GetClassObject(js::ExclusiveContext *cx, JSProtoKey key,
                   js::MutableHandleObject objp);
 
 extern bool
@@ -1339,20 +1339,15 @@ js_IdentifyClassPrototype(JSObject *obj);
 
 
 
+
+
 bool
-js_FindClassObject(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleValue vp,
-                   const js::Class *clasp = nullptr);
-
-
-
-
-
-
-
+js_FindClassObject(js::ExclusiveContext *cx, js::MutableHandleObject protop,
+                   const js::Class *clasp);
 
 extern bool
-js_FindClassPrototype(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleObject protop,
-                      const js::Class *clasp = nullptr);
+js_FindClassPrototype(js::ExclusiveContext *cx, js::MutableHandleObject protop,
+                      const js::Class *clasp);
 
 
 namespace js {

@@ -281,19 +281,19 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
     
     
     
-    if (!js_GetClassObject(cx, cx->global(), JSProto_Function, &obj) ||
-        !js_GetClassObject(cx, cx->global(), JSProto_Array, &obj) ||
-        !js_GetClassObject(cx, cx->global(), JSProto_RegExp, &obj) ||
-        !js_GetClassObject(cx, cx->global(), JSProto_Iterator, &obj))
+    if (!js_GetClassObject(cx, JSProto_Function, &obj) ||
+        !js_GetClassObject(cx, JSProto_Array, &obj) ||
+        !js_GetClassObject(cx, JSProto_RegExp, &obj) ||
+        !js_GetClassObject(cx, JSProto_Iterator, &obj))
     {
         return false;
     }
     {
         AutoCompartment ac(cx, global);
-        if (!js_GetClassObject(cx, global, JSProto_Function, &obj) ||
-            !js_GetClassObject(cx, global, JSProto_Array, &obj) ||
-            !js_GetClassObject(cx, global, JSProto_RegExp, &obj) ||
-            !js_GetClassObject(cx, global, JSProto_Iterator, &obj))
+        if (!js_GetClassObject(cx, JSProto_Function, &obj) ||
+            !js_GetClassObject(cx, JSProto_Array, &obj) ||
+            !js_GetClassObject(cx, JSProto_RegExp, &obj) ||
+            !js_GetClassObject(cx, JSProto_Iterator, &obj))
         {
             return false;
         }
