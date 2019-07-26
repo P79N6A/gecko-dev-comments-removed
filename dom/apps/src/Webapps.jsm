@@ -1413,7 +1413,10 @@ this.DOMApplicationRegistry = {
 
       let download = self.downloads[aApp.manifestURL];
       app.downloading = false;
-      app.installState = download.previousState;
+      
+      
+      
+      app.installState = download ? download.previousState : "pending";
       self.broadcastMessage("Webapps:PackageEvent",
                             { type: "error",
                               manifestURL:  aApp.manifestURL,
