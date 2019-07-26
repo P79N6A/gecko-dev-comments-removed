@@ -209,6 +209,13 @@ class Nursery
     size_t moveSlotsToTenured(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
 
     
+    void setSlotsForwardingPointer(HeapSlot *oldSlots, HeapSlot *newSlots, uint32_t nslots);
+    void setElementsForwardingPointer(ObjectElements *oldHeader, ObjectElements *newHeader,
+                                      uint32_t nelems);
+    void forwardBufferPointer(HeapSlot **pSlotsElems);
+    void forwardMovedBuffers(JSRuntime *rt);
+
+    
     void markFallback(gc::Cell *cell);
     void moveFallbackToTenured(gc::MinorCollectionTracer *trc);
 
