@@ -614,13 +614,17 @@ public:
       }
 
       
+
+
+
+
+
+      
       for (uint32_t i = 0; i < count; i++) {
         nsRefPtr<MediaEngineVideoSource> vSource = videoSources[i];
-        if (vSource->IsAvailable()) {
-          found = true;
-          mVideoDevice = new MediaDevice(videoSources[i]);
-          break;
-        }
+        found = true;
+        mVideoDevice = new MediaDevice(videoSources[i]);
+        break;
       }
 
       if (!found) {
@@ -647,11 +651,9 @@ public:
 
       for (uint32_t i = 0; i < count; i++) {
         nsRefPtr<MediaEngineAudioSource> aSource = audioSources[i];
-        if (aSource->IsAvailable()) {
-          found = true;
-          mAudioDevice = new MediaDevice(audioSources[i]);
-          break;
-        }
+        found = true;
+        mAudioDevice = new MediaDevice(audioSources[i]);
+        break;
       }
 
       if (!found) {
