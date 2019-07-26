@@ -286,9 +286,9 @@ var SyntheticGestures = (function() {
   
   
   function tap(target, then, x, y, t, sendAll) {
-    if (!SyntheticGestures.touchSupported) {
+    if (!SyntheticGestures.touchSupported || !target.ownerDocument.createTouch) {
       console.warn('tap: touch events not supported; using mouse instead');
-      return mousetap(target, then, x, y, t);
+      return mousetap(target, then, x, y, t, true);
     }
 
     if (x == null)
