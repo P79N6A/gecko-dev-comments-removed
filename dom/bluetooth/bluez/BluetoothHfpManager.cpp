@@ -754,7 +754,15 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     }
 
     mCMER = atCommandValues[3].EqualsLiteral("1");
-    mSlcConnected = mCMER;
+
+    
+
+
+
+
+    if (mCMER) {
+      mSlcConnected = true;
+    }
 
     
     
