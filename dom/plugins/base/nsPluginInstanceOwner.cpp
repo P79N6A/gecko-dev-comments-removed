@@ -205,14 +205,14 @@ nsPluginInstanceOwner::GetImageContainer()
   return container.forget();
 #endif
 
-  
-  
   mInstance->GetImageContainer(getter_AddRefs(container));
   if (container) {
 #ifdef XP_MACOSX
     AutoLockImage autoLock(container);
     Image* image = autoLock.GetImage();
     if (image && image->GetFormat() == MAC_IO_SURFACE && mObjectFrame) {
+      
+      
       MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image);
       NS_ADDREF_THIS();
       oglImage->SetUpdateCallback(&DrawPlugin, this);
@@ -637,11 +637,14 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   if (!mObjectFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
 
+#if defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
+  
   
   
   
   nsRefPtr<ImageContainer> container;
   mInstance->GetImageContainer(getter_AddRefs(container));
+#endif
 
 #ifndef XP_MACOSX
   
