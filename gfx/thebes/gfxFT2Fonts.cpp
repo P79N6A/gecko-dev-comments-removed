@@ -39,15 +39,6 @@
 
 #include "mozilla/Preferences.h"
 
-static PRLogModuleInfo *
-GetFontLog()
-{
-    static PRLogModuleInfo *sLog;
-    if (!sLog)
-        sLog = PR_NewLogModule("ft2fonts");
-    return sLog;
-}
-
 
 
 
@@ -60,6 +51,15 @@ GetFontLog()
 
 
 
+
+static PRLogModuleInfo *
+GetFontLog()
+{
+    static PRLogModuleInfo *sLog;
+    if (!sLog)
+        sLog = PR_NewLogModule("ft2fonts");
+    return sLog;
+}
 
 bool
 gfxFT2FontGroup::FontCallback(const nsAString& fontName,

@@ -210,6 +210,7 @@ OptimalFillOperator()
 #endif
 }
 
+#ifndef MOZ_GFX_OPTIMIZE_MOBILE
 
 
 static already_AddRefed<gfxDrawable>
@@ -259,6 +260,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
         new gfxSurfaceDrawable(temp, size, gfxMatrix().Translate(-needed.TopLeft()));
     return drawable.forget();
 }
+#endif 
 
 
 
