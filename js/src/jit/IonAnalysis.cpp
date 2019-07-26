@@ -525,26 +525,7 @@ TypeAnalyzer::adjustPhiInputs(MPhi *phi)
 {
     MIRType phiType = phi->type();
 
-    if (phiType == MIRType_Double) {
-        
-        for (size_t i = 0, e = phi->numOperands(); i < e; i++) {
-            MDefinition *in = phi->getOperand(i);
-
-            if (in->type() == MIRType_Int32) {
-                MToDouble *toDouble = MToDouble::New(in);
-                in->block()->insertBefore(in->block()->lastIns(), toDouble);
-                phi->replaceOperand(i, toDouble);
-            } else if (in->type() == MIRType_Value) {
-                MUnbox *unbox = MUnbox::New(in, MIRType_Double, MUnbox::Fallible);
-                in->block()->insertBefore(in->block()->lastIns(), unbox);
-                phi->replaceOperand(i, unbox);
-            } else {
-                JS_ASSERT(in->type() == MIRType_Double);
-            }
-        }
-        return;
-    }
-
+    
     
     
     
@@ -557,20 +538,28 @@ TypeAnalyzer::adjustPhiInputs(MPhi *phi)
             if (in->isBox() && in->toBox()->input()->type() == phiType) {
                 phi->replaceOperand(i, in->toBox()->input());
             } else {
-                
-                
-                
-                if (in->type() != MIRType_Value) {
-                    MBox *box = MBox::New(in);
-                    in->block()->insertBefore(in->block()->lastIns(), box);
-                    in = box;
+                MInstruction *replacement;
+
+                if (phiType == MIRType_Double && in->type() == MIRType_Int32) {
+                    
+                    replacement = MToDouble::New(in);
+                } else {
+                    
+                    
+                    
+                    if (in->type() != MIRType_Value) {
+                        MBox *box = MBox::New(in);
+                        in->block()->insertBefore(in->block()->lastIns(), box);
+                        in = box;
+                    }
+
+                    
+                    
+                    replacement = MUnbox::New(in, phiType, MUnbox::Fallible);
                 }
 
-                
-                
-                MUnbox *unbox = MUnbox::New(in, phiType, MUnbox::Fallible);
-                in->block()->insertBefore(in->block()->lastIns(), unbox);
-                phi->replaceOperand(i, unbox);
+                in->block()->insertBefore(in->block()->lastIns(), replacement);
+                phi->replaceOperand(i, replacement);
             }
         }
 
