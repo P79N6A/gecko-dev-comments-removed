@@ -272,17 +272,30 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   bool changedSize = curBounds.Size() != newBounds.Size();
 
   
+
+  
+  
+  
+  
+  nsRefPtr<nsDeviceContext> dx;
+  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
+  double invScale = dx->UnscaledAppUnitsPerDevPixel() / 60.0;
+
   if (changedPos) {
     if (changedSize && !aMoveOnly) {
-      mWindow->ResizeClient(newBounds.x, newBounds.y,
-                            newBounds.width, newBounds.height,
+      mWindow->ResizeClient(NSToIntRound(newBounds.x * invScale),
+                            NSToIntRound(newBounds.y * invScale),
+                            NSToIntRound(newBounds.width * invScale),
+                            NSToIntRound(newBounds.height * invScale),
                             aInvalidateChangedSize);
     } else {
-      mWindow->MoveClient(newBounds.x, newBounds.y);
+      mWindow->MoveClient(NSToIntRound(newBounds.x * invScale),
+                          NSToIntRound(newBounds.y * invScale));
     }
   } else {
     if (changedSize && !aMoveOnly) {
-      mWindow->ResizeClient(newBounds.width, newBounds.height,
+      mWindow->ResizeClient(NSToIntRound(newBounds.width * invScale),
+                            NSToIntRound(newBounds.height * invScale),
                             aInvalidateChangedSize);
     } 
   }
