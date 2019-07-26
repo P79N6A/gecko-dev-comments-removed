@@ -270,7 +270,7 @@ public:
   
 
 
-  virtual bool DidHistoryRestore() = 0;
+  virtual bool DidHistoryRestore() const = 0;
   
 
 
