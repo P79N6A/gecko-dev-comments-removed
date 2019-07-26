@@ -782,9 +782,7 @@ nsProtocolProxyService::SecondsSinceSessionStart()
     int64_t diff = now - mSessionStart;
 
     
-    PRTime ups;
-    LL_I2L(ups, PR_USEC_PER_SEC);
-    diff /= ups;
+    diff /= PR_USEC_PER_SEC;
 
     
     return uint32_t(diff);
