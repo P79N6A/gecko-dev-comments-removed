@@ -133,6 +133,10 @@ function runSocialTestWithProvider(manifest, callback) {
     
     Services.prefs.setBoolPref("social.enabled", true);
 
+    
+    
+    SocialUI._providerReady();
+
     registerCleanupFunction(function () {
       
       
