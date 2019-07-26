@@ -2,41 +2,147 @@
 
 
 
+var EXPORTED_SYMBOLS = ['Assert', 'Expect'];
 
-var mozmillFrame = {};
-Cu.import('resource://mozmill/modules/frame.js', mozmillFrame);
+const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/Services.jsm");
 
-
-
-
-
-var assertions = exports;
-
+var broker = {}; Cu.import('resource://mozmill/driver/msgbroker.js', broker);
+var errors = {}; Cu.import('resource://mozmill/modules/errors.js', errors);
+var stack = {}; Cu.import('resource://mozmill/modules/stack.js', stack);
 
 
-var Expect = function() {}
 
-Expect.prototype = {
+
+
+
+
+
+
+
+
+
+var Assert = function () {}
+
+Assert.prototype = {
 
   
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
+  _deepEqual: function (actual, expected) {
+    
+    if (actual === expected) {
+      return true;
 
+    
+    
+    } else if (actual instanceof Date && expected instanceof Date) {
+      return actual.getTime() === expected.getTime();
 
+    
+    
+    } else if (typeof actual != 'object' && typeof expected != 'object') {
+      return actual == expected;
 
+    
+    
+    
+    
+    
+    
+    } else {
+      return this._objEquiv(actual, expected);
+    }
+  },
 
+  _objEquiv: function (a, b) {
+    if (a == null || a == undefined || b == null || b == undefined)
+      return false;
+    
+    if (a.prototype !== b.prototype) return false;
 
+    function isArguments(object) {
+      return Object.prototype.toString.call(object) == '[object Arguments]';
+    }
 
+    
+    
+    if (isArguments(a)) {
+      if (!isArguments(b)) {
+        return false;
+      }
+      a = pSlice.call(a);
+      b = pSlice.call(b);
+      return _deepEqual(a, b);
+    }
+    try {
+      var ka = Object.keys(a),
+          kb = Object.keys(b),
+          key, i;
+    } catch (e) {
+      return false;
+    }
+    
+    
+    if (ka.length != kb.length)
+      return false;
+    
+    ka.sort();
+    kb.sort();
+    
+    for (i = ka.length - 1; i >= 0; i--) {
+      if (ka[i] != kb[i])
+        return false;
+    }
+    
+    
+    for (i = ka.length - 1; i >= 0; i--) {
+      key = ka[i];
+      if (!this._deepEqual(a[key], b[key])) return false;
+    }
+    return true;
+  },
 
+  _expectedException : function Assert__expectedException(actual, expected) {
+    if (!actual || !expected) {
+      return false;
+    }
 
+    if (expected instanceof RegExp) {
+      return expected.test(actual);
+    } else if (actual instanceof expected) {
+      return true;
+    } else if (expected.call({}, actual) === true) {
+      return true;
+    } else if (actual.name === expected.name) {
+      return true;
+    }
 
-
-
-
-
-  _logFail: function Expect__logFail(aResult) {
-    mozmillFrame.events.fail({fail: aResult});
+    return false;
   },
 
   
@@ -55,8 +161,14 @@ Expect.prototype = {
 
 
 
-  _logPass: function Expect__logPass(aResult) {
-    mozmillFrame.events.pass({pass: aResult});
+
+
+  _logFail: function Assert__logFail(aResult) {
+    throw new errors.AssertionError(aResult.message,
+                                    aResult.fileName,
+                                    aResult.lineNumber,
+                                    aResult.functionName,
+                                    aResult.name);
   },
 
   
@@ -70,7 +182,29 @@ Expect.prototype = {
 
 
 
-  _test: function Expect__test(aCondition, aMessage, aDiagnosis) {
+
+
+
+
+
+  _logPass: function Assert__logPass(aResult) {
+    broker.pass({pass: aResult});
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _test: function Assert__test(aCondition, aMessage, aDiagnosis) {
     let diagnosis = aDiagnosis || "";
     let message = aMessage || "";
 
@@ -78,19 +212,23 @@ Expect.prototype = {
       message = aMessage ? message + " - " + diagnosis : diagnosis;
 
     
-    let frame = Components.stack;
+    let frame = stack.findCallerFrame(Components.stack);
+
     let result = {
-      'fileName'   : frame.filename.replace(/(.*)-> /, ""),
-      'function'   : frame.name,
-      'lineNumber' : frame.lineNumber,
-      'message'    : message
+      'fileName'     : frame.filename.replace(/(.*)-> /, ""),
+      'functionName' : frame.name,
+      'lineNumber'   : frame.lineNumber,
+      'message'      : message
     };
 
     
-    if (aCondition)
+    if (aCondition) {
       this._logPass(result);
-    else
+    }
+    else {
+      result.stack = Components.stack;
       this._logFail(result);
+    }
 
     return aCondition;
   },
@@ -102,7 +240,7 @@ Expect.prototype = {
 
 
 
-  pass: function Expect_pass(aMessage) {
+  pass: function Assert_pass(aMessage) {
     return this._test(true, aMessage, undefined);
   },
 
@@ -113,7 +251,9 @@ Expect.prototype = {
 
 
 
-  fail: function Expect_fail(aMessage) {
+
+
+  fail: function Assert_fail(aMessage) {
     return this._test(false, aMessage, undefined);
   },
 
@@ -126,14 +266,16 @@ Expect.prototype = {
 
 
 
-  ok: function Expect_ok(aValue, aMessage) {
+
+
+  ok: function Assert_ok(aValue, aMessage) {
     let condition = !!aValue;
     let diagnosis = "got '" + aValue + "'";
 
     return this._test(condition, aMessage, diagnosis);
   },
 
-  
+ 
 
 
 
@@ -144,14 +286,16 @@ Expect.prototype = {
 
 
 
-  equal: function Expect_equal(aValue, aExpected, aMessage) {
+
+
+  equal: function Assert_equal(aValue, aExpected, aMessage) {
     let condition = (aValue === aExpected);
-    let diagnosis = "got '" + aValue + "', expected '" + aExpected + "'";
+    let diagnosis = "'" + aValue + "' should equal '" + aExpected + "'";
 
     return this._test(condition, aMessage, diagnosis);
   },
 
-  
+ 
 
 
 
@@ -162,9 +306,11 @@ Expect.prototype = {
 
 
 
-  notEqual: function Expect_notEqual(aValue, aExpected, aMessage) {
+
+
+  notEqual: function Assert_notEqual(aValue, aExpected, aMessage) {
     let condition = (aValue !== aExpected);
-    let diagnosis = "got '" + aValue + "', not expected '" + aExpected + "'";
+    let diagnosis = "'" + aValue + "' should not equal '" + aExpected + "'";
 
     return this._test(condition, aMessage, diagnosis);
   },
@@ -180,7 +326,73 @@ Expect.prototype = {
 
 
 
-  match: function Expect_match(aString, aRegex, aMessage) {
+
+
+  deepEqual: function equal(aValue, aExpected, aMessage) {
+    let condition = this._deepEqual(aValue, aExpected);
+    try {
+      var aValueString = JSON.stringify(aValue);
+    } catch (e) {
+      var aValueString = String(aValue);
+    }
+    try {
+      var aExpectedString = JSON.stringify(aExpected);
+    } catch (e) {
+      var aExpectedString = String(aExpected);
+    }
+
+    let diagnosis = "'" + aValueString + "' should equal '" +
+                    aExpectedString + "'";
+
+    return this._test(condition, aMessage, diagnosis);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  notDeepEqual: function notEqual(aValue, aExpected, aMessage) {
+     let condition = !this._deepEqual(aValue, aExpected);
+     try {
+       var aValueString = JSON.stringify(aValue);
+     } catch (e) {
+       var aValueString = String(aValue);
+     }
+     try {
+       var aExpectedString = JSON.stringify(aExpected);
+     } catch (e) {
+       var aExpectedString = String(aExpected);
+     }
+
+     let diagnosis = "'" + aValueString + "' should not equal '" +
+                     aExpectedString + "'";
+
+     return this._test(condition, aMessage, diagnosis);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  match: function Assert_match(aString, aRegex, aMessage) {
     
     
     
@@ -190,8 +402,7 @@ Expect.prototype = {
 
       pattern = matches[1];
       flags = matches[2];
-    }
-    catch (ex) {
+    } catch (e) {
     }
 
     let regex = new RegExp(pattern, flags);
@@ -212,7 +423,9 @@ Expect.prototype = {
 
 
 
-  notMatch: function Expect_notMatch(aString, aRegex, aMessage) {
+
+
+  notMatch: function Assert_notMatch(aString, aRegex, aMessage) {
     
     
     
@@ -222,8 +435,7 @@ Expect.prototype = {
 
       pattern = matches[1];
       flags = matches[2];
-    }
-    catch (ex) {
+    } catch (e) {
     }
 
     let regex = new RegExp(pattern, flags);
@@ -245,7 +457,9 @@ Expect.prototype = {
 
 
 
-  throws : function Expect_throws(block, error, message) {
+
+
+  throws : function Assert_throws(block, error, message) {
     return this._throws.apply(this, [true].concat(Array.prototype.slice.call(arguments)));
   },
 
@@ -260,7 +474,9 @@ Expect.prototype = {
 
 
 
-  doesNotThrow : function Expect_doesNotThrow(block, error, message) {
+
+
+  doesNotThrow : function Assert_doesNotThrow(block, error, message) {
     return this._throws.apply(this, [false].concat(Array.prototype.slice.call(arguments)));
   },
 
@@ -270,7 +486,7 @@ Expect.prototype = {
 
 
 
-  _throws : function Expect__throws(shouldThrow, block, expected, message) {
+  _throws : function Assert__throws(shouldThrow, block, expected, message) {
     var actual;
 
     if (typeof expected === 'string') {
@@ -299,24 +515,126 @@ Expect.prototype = {
         !this._expectedException(actual, expected)) || (!shouldThrow && actual)) {
       throw actual;
     }
+
     return this._test(true, message);
   },
 
-  _expectedException : function Expect__expectedException(actual, expected) {
-    if (!actual || !expected) {
-      return false;
+  
+
+
+
+
+
+
+
+
+
+  contain: function Assert_contain(aString, aPattern, aMessage) {
+    let condition = (aString.indexOf(aPattern) !== -1);
+    let diagnosis = "'" + aString + "' should contain '" + aPattern + "'";
+
+    return this._test(condition, aMessage, diagnosis);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  notContain: function Assert_notContain(aString, aPattern, aMessage) {
+    let condition = (aString.indexOf(aPattern) === -1);
+    let diagnosis = "'" + aString + "' should not contain '" + aPattern + "'";
+
+    return this._test(condition, aMessage, diagnosis);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  waitFor: function Assert_waitFor(aCallback, aMessage, aTimeout, aInterval, aThisObject) {
+    var timeout = aTimeout || 5000;
+    var interval = aInterval || 100;
+
+    var self = {
+      timeIsUp: false,
+      result: aCallback.call(aThisObject)
+    };
+    var deadline = Date.now() + timeout;
+
+    function wait() {
+      if (self.result !== true) {
+        self.result = aCallback.call(aThisObject);
+        self.timeIsUp = Date.now() > deadline;
+      }
     }
 
-    if (expected instanceof RegExp) {
-      return expected.test(actual);
-    } else if (actual instanceof expected) {
-      return true;
-    } else if (expected.call({}, actual) === true) {
-      return true;
+    var hwindow = Services.appShell.hiddenDOMWindow;
+    var timeoutInterval = hwindow.setInterval(wait, interval);
+    var thread = Services.tm.currentThread;
+
+    while (self.result !== true && !self.timeIsUp) {
+      thread.processNextEvent(true);
+
+      let type = typeof(self.result);
+      if (type !== 'boolean')
+        throw TypeError("waitFor() callback has to return a boolean" +
+                        " instead of '" + type + "'");
     }
 
-    return false;
+    hwindow.clearInterval(timeoutInterval);
+
+    if (self.result !== true && self.timeIsUp) {
+      aMessage = aMessage || arguments.callee.name + ": Timeout exceeded for '" + aCallback + "'";
+      throw new errors.TimeoutError(aMessage);
+    }
+
+    broker.pass({'function':'assert.waitFor()'});
+    return true;
   }
+}
+
+
+var Expect = function () {}
+
+Expect.prototype = new Assert();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Expect.prototype._logFail = function Expect__logFail(aResult) {
+  broker.fail({fail: aResult});
 }
 
 
@@ -324,55 +642,26 @@ Expect.prototype = {
 
 
 
-function AssertionError(message, fileName, lineNumber) {
-  var err = new Error();
-  if (err.stack) {
-    this.stack = err.stack;
+
+
+
+
+
+
+
+
+
+Expect.prototype.waitFor = function Expect_waitFor(aCallback, aMessage, aTimeout, aInterval, aThisObject) {
+  let condition = true;
+  let message = aMessage;
+
+  try {
+    Assert.prototype.waitFor.apply(this, arguments);
   }
-  this.message = message === undefined ? err.message : message;
-  this.fileName = fileName === undefined ? err.fileName : fileName;
-  this.lineNumber = lineNumber === undefined ? err.lineNumber : lineNumber;
-};
-AssertionError.prototype = new Error();
-AssertionError.prototype.constructor = AssertionError;
-AssertionError.prototype.name = 'AssertionError';
+  catch (ex if ex instanceof errors.AssertionError) {
+    message = ex.message;
+    condition = false;
+  }
 
-
-var Assert = function() {}
-
-Assert.prototype = new Expect();
-
-Assert.prototype.AssertionError = AssertionError;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Assert.prototype._logFail = function Assert__logFail(aResult) {
-  throw new AssertionError(aResult);
+  return this._test(condition, message);
 }
-
-
-
-assertions.Expect = Expect;
-assertions.Assert = Assert;
