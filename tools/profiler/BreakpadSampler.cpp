@@ -158,6 +158,13 @@ void genPseudoBacktraceEntries(UnwinderThreadBuffer* utb,
 
 void BreakpadSampler::Tick(TickSample* sample)
 {
+  if (!sample->threadProfile) {
+    
+    sample->threadProfile = GetPrimaryThreadProfile();
+  }
+
+  ThreadProfile& currThreadProfile = *sample->threadProfile;
+
   
 
   UnwinderThreadBuffer* utb = uwt__acquire_empty_buffer();
@@ -172,7 +179,7 @@ void BreakpadSampler::Tick(TickSample* sample)
 
 
   
-  PseudoStack* stack = mPrimaryThreadProfile.GetPseudoStack();
+  PseudoStack* stack = currThreadProfile.GetPseudoStack();
   for (int i = 0; stack->getMarker(i) != NULL; i++) {
     utb__addEntry( utb, ProfileEntry('m', stack->getMarker(i)) );
   }
@@ -186,7 +193,7 @@ void BreakpadSampler::Tick(TickSample* sample)
       
       
       
-      mPrimaryThreadProfile.erase();
+      currThreadProfile.erase();
     }
     sLastSampledEventGeneration = sCurrentEventGeneration;
 
@@ -293,9 +300,9 @@ void BreakpadSampler::Tick(TickSample* sample)
 #   else
 #     error "Unsupported platform"
 #   endif
-    uwt__release_full_buffer(&mPrimaryThreadProfile, utb, ucV);
+    uwt__release_full_buffer(&currThreadProfile, utb, ucV);
   } else {
-    uwt__release_full_buffer(&mPrimaryThreadProfile, utb, NULL);
+    uwt__release_full_buffer(&currThreadProfile, utb, NULL);
   }
 }
 
