@@ -422,10 +422,10 @@ private:
   
   
   
-  nsresult ConstructFrame(nsFrameConstructorState& aState,
-                          nsIContent*              aContent,
-                          nsIFrame*                aParentFrame,
-                          nsFrameItems&            aFrameItems);
+  void ConstructFrame(nsFrameConstructorState& aState,
+                      nsIContent*              aContent,
+                      nsIFrame*                aParentFrame,
+                      nsFrameItems&            aFrameItems);
 
   
   
