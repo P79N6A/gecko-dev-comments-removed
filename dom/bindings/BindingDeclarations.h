@@ -629,34 +629,6 @@ struct ParentObject {
   nsWrapperCache* const mWrapperCache;
 };
 
-
-class Date {
-public:
-  
-  Date();
-  Date(double aMilliseconds) :
-    mMsecSinceEpoch(aMilliseconds)
-  {}
-
-  bool IsUndefined() const;
-  double TimeStamp() const
-  {
-    return mMsecSinceEpoch;
-  }
-  void SetTimeStamp(double aMilliseconds)
-  {
-    mMsecSinceEpoch = aMilliseconds;
-  }
-  
-  
-  bool SetTimeStamp(JSContext* cx, JSObject* obj);
-
-  bool ToDateObject(JSContext* cx, JS::MutableHandle<JS::Value> rval) const;
-
-private:
-  double mMsecSinceEpoch;
-};
-
 } 
 } 
 
