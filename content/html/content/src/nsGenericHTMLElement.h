@@ -12,6 +12,7 @@
 #include "nsIFormControl.h"
 #include "nsGkAtoms.h"
 #include "nsContentCreatorFunctions.h"
+#include "mozilla/ErrorResult.h"
 
 class nsIDOMAttr;
 class nsIDOMEventListener;
@@ -35,9 +36,6 @@ class nsIDOMHTMLMenuElement;
 class nsIDOMHTMLCollection;
 class nsDOMSettableTokenList;
 class nsIDOMHTMLPropertiesCollection;
-namespace mozilla {
-class ErrorResult;
-}
 
 typedef nsMappedAttributeElement nsGenericHTMLElementBase;
 
@@ -83,6 +81,20 @@ public:
                          const nsAString& aValue);
 
   
+  virtual int32_t TabIndexDefault()
+  {
+    return -1;
+  }
+  int32_t TabIndex()
+  {
+    return GetIntAttr(nsGkAtoms::tabindex, TabIndexDefault());
+  }
+  void SetTabIndex(int32_t aTabIndex, mozilla::ErrorResult& aError)
+  {
+    aError = SetIntAttr(nsGkAtoms::tabindex, aTabIndex);
+  }
+
+  
   
   
   nsresult GetId(nsAString& aId);
@@ -95,6 +107,19 @@ public:
   NS_IMETHOD SetDir(const nsAString& aDir);
   nsresult GetClassName(nsAString& aClassName);
   nsresult SetClassName(const nsAString& aClassName);
+
+  nsresult GetTabIndex(int32_t* aTabIndex)
+  {
+    *aTabIndex = TabIndex();
+    return NS_OK;
+  }
+  nsresult SetTabIndex(int32_t aTabIndex)
+  {
+    mozilla::ErrorResult rv;
+    SetTabIndex(aTabIndex, rv);
+    return rv.ErrorCode();
+  }
+
   nsresult GetOffsetTop(int32_t* aOffsetTop);
   nsresult GetOffsetLeft(int32_t* aOffsetLeft);
   nsresult GetOffsetWidth(int32_t* aOffsetWidth);
@@ -113,8 +138,6 @@ public:
   NS_IMETHOD Focus();
   NS_IMETHOD Blur();
   NS_IMETHOD Click();
-  NS_IMETHOD GetTabIndex(int32_t *aTabIndex);
-  NS_IMETHOD SetTabIndex(int32_t aTabIndex);
   NS_IMETHOD GetHidden(bool* aHidden);
   NS_IMETHOD SetHidden(bool aHidden);
   NS_IMETHOD GetSpellcheck(bool* aSpellcheck);
@@ -1360,8 +1383,6 @@ protected:
 
 
 
-
-
 #define NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(_to) \
   NS_IMETHOD GetId(nsAString& aId) { \
     return _to GetId(aId); \
@@ -1401,6 +1422,12 @@ protected:
   } \
   NS_IMETHOD SetHidden(bool aHidden) { \
     return _to SetHidden(aHidden); \
+  } \
+  NS_IMETHOD GetTabIndex(int32_t* aTabIndex) { \
+    return _to GetTabIndex(aTabIndex); \
+  } \
+  NS_IMETHOD SetTabIndex(int32_t aTabIndex) { \
+    return _to SetTabIndex(aTabIndex); \
   } \
   NS_IMETHOD Blur() { \
     return _to Blur(); \
