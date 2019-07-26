@@ -528,11 +528,7 @@ public class TopSitesPanel extends HomeFragment {
 
             
             if (type == TopSites.TYPE_BLANK) {
-                
-                if (mThumbnails != null) {
-                    view.blankOut();
-                }
-
+                view.blankOut();
                 return;
             }
 
