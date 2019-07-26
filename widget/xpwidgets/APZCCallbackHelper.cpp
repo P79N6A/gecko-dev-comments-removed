@@ -73,9 +73,12 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
   
   
   if (gfxPrefs::LayersTilesEnabled()) {
+    
+    
     displayPort =
       ExpandDisplayPortToTileBoundaries(displayPort + aActualScrollOffset,
-                                        aFrameMetrics.LayersPixelsPerCSSPixel())
+                                        aFrameMetrics.mZoom *
+                                        ScreenToLayerScale(1.0))
       - aActualScrollOffset;
   }
 
