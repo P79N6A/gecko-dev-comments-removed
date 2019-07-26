@@ -89,10 +89,13 @@ nsNSSSocketInfo::nsNSSSocketInfo(SharedSSLState& aState, uint32_t providerFlags)
     mForSTARTTLS(false),
     mHandshakePending(true),
     mHasCleartextPhase(false),
+    mHandshakeInProgress(false),
+    mAllowTLSIntoleranceTimeout(true),
     mRememberClientAuthCertificate(false),
     mPreliminaryHandshakeDone(false),
+    mHandshakeStartTime(0),
+    mFirstServerHelloReceived(false),
     mNPNCompleted(false),
-    mIsFullHandshake(false),
     mHandshakeCompleted(false),
     mJoined(false),
     mSentClientCert(false),
@@ -159,6 +162,20 @@ NS_IMETHODIMP
 nsNSSSocketInfo::SetSymmetricCipherExpected(int16_t aSymmetricCipher)
 {
   mSymmetricCipherExpected = aSymmetricCipher;
+  return NS_OK;
+}
+
+nsresult
+nsNSSSocketInfo::GetHandshakePending(bool *aHandshakePending)
+{
+  *aHandshakePending = mHandshakePending;
+  return NS_OK;
+}
+
+nsresult
+nsNSSSocketInfo::SetHandshakePending(bool aHandshakePending)
+{
+  mHandshakePending = aHandshakePending;
   return NS_OK;
 }
 
@@ -280,8 +297,6 @@ nsNSSSocketInfo::SetHandshakeCompleted(bool aResumedSession)
 
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("[%p] nsNSSSocketInfo::SetHandshakeCompleted\n", (void*)mFd));
-
-    mIsFullHandshake = false; 
   }
 }
 
@@ -540,9 +555,50 @@ nsNSSSocketInfo::SetCertVerificationResult(PRErrorCode errorCode,
   mCertVerificationState = after_cert_verification;
 }
 
+void nsNSSSocketInfo::SetHandshakeInProgress(bool aIsIn)
+{
+  mHandshakeInProgress = aIsIn;
+
+  if (mHandshakeInProgress && !mHandshakeStartTime)
+  {
+    mHandshakeStartTime = PR_IntervalNow();
+  }
+}
+
+void nsNSSSocketInfo::SetAllowTLSIntoleranceTimeout(bool aAllow)
+{
+  mAllowTLSIntoleranceTimeout = aAllow;
+}
+
 SharedSSLState& nsNSSSocketInfo::SharedState()
 {
   return mSharedState;
+}
+
+bool nsNSSSocketInfo::HandshakeTimeout()
+{
+  if (!mAllowTLSIntoleranceTimeout)
+    return false;
+
+  if (!mHandshakeInProgress)
+    return false; 
+
+  if (mFirstServerHelloReceived)
+    return false;
+
+  
+  
+  
+  
+  
+  
+
+  static const PRIntervalTime handshakeTimeoutInterval
+    = PR_SecondsToInterval(25);
+
+  PRIntervalTime now = PR_IntervalNow();
+  bool result = (now - mHandshakeStartTime) > handshakeTimeoutInterval;
+  return result;
 }
 
 void nsSSLIOLayerHelpers::Cleanup()
@@ -988,8 +1044,21 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
   
   
   
+  
+  
+  
+  
+  
+  
+  
 
-  bool handleHandshakeResultNow = socketInfo->IsHandshakePending();
+  
+  
+  
+  
+
+  bool handleHandshakeResultNow;
+  socketInfo->GetHandshakePending(&handleHandshakeResultNow);
 
   bool wantRetry = false;
 
@@ -998,6 +1067,7 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
 
     if (handleHandshakeResultNow) {
       if (PR_WOULD_BLOCK_ERROR == err) {
+        socketInfo->SetHandshakeInProgress(true);
         return bytesTransfered;
       }
 
@@ -1059,7 +1129,8 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
   
   
   if (handleHandshakeResultNow) {
-    socketInfo->SetHandshakeNotPending();
+    socketInfo->SetHandshakePending(false);
+    socketInfo->SetHandshakeInProgress(false);
   }
   
   return bytesTransfered;
@@ -1105,6 +1176,17 @@ nsSSLIOLayerPoll(PRFileDesc * fd, int16_t in_flags, int16_t *out_flags)
             ?  "[%p] polling SSL socket during certificate verification using lower %d\n"
             :  "[%p] poll SSL socket using lower %d\n",
          fd, (int) in_flags));
+
+  
+  if (socketInfo->HandshakeTimeout()) {
+    NS_WARNING("SSL handshake timed out");
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] handshake timed out\n", fd));
+    NS_ASSERTION(in_flags & PR_POLL_EXCEPT,
+                 "caller did not poll for EXCEPT (handshake timeout)");
+    *out_flags = in_flags | PR_POLL_EXCEPT;
+    socketInfo->SetCanceled(PR_CONNECT_RESET_ERROR, PlainErrorMessage);
+    return in_flags;
+  }
 
   
   
@@ -2569,6 +2651,12 @@ nsSSLIOLayerSetOptions(PRFileDesc *fd, bool forSTARTTLS,
   }
   infoObject->SetTLSVersionRange(range);
 
+  
+  
+  if (range.min == range.max) {
+    infoObject->SetAllowTLSIntoleranceTimeout(false);
+  }
+
   bool enabled = infoObject->SharedState().IsOCSPStaplingEnabled();
   if (SECSuccess != SSL_OptionSet(fd, SSL_ENABLE_OCSP_STAPLING, enabled)) {
     return NS_ERROR_FAILURE;
@@ -2682,7 +2770,7 @@ nsSSLIOLayerAddToSocket(int32_t family,
 
   
   if (forSTARTTLS || proxyHost) {
-    infoObject->SetHandshakeNotPending();
+    infoObject->SetHandshakePending(false);
   }
 
   infoObject->SharedState().NoteSocketCreated();
