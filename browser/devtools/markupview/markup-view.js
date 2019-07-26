@@ -166,6 +166,7 @@ MarkupView.prototype = {
 
   _onMouseLeave: function() {
     this._hideBoxModel();
+    this._hoveredNode = null;
   },
 
   _showBoxModel: function(nodeFront, options={}) {
@@ -258,10 +259,13 @@ MarkupView.prototype = {
 
 
 
+
+
   _shouldNewSelectionBeHighlighted: function() {
     let reason = this._inspector.selection.reason;
     let unwantedReasons = ["inspector-open", "navigateaway", "test"];
-    return reason && unwantedReasons.indexOf(reason) === -1;
+    let isHighlitNode = this._hoveredNode === this._inspector.selection.nodeFront;
+    return !isHighlitNode && reason && unwantedReasons.indexOf(reason) === -1;
   },
 
   

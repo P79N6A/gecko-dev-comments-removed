@@ -40,26 +40,88 @@ function openInspector() {
   gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
     let inspector = toolbox.getCurrentPanel();
     inspector.once("inspector-updated", () => {
-      deferred.resolve(inspector, toolbox);
+      deferred.resolve({toolbox: toolbox, inspector: inspector});
     });
   }).then(null, console.error);
 
   return deferred.promise;
 }
 
+function getNode(nodeOrSelector) {
+  let node = nodeOrSelector;
+
+  if (typeof nodeOrSelector === "string") {
+    node = content.document.querySelector(nodeOrSelector);
+    ok(node, "A node was found for selector " + nodeOrSelector);
+  }
+
+  return node;
+}
 
 
 
 
 
 
-function selectNode(selector, inspector) {
-  let deferred = promise.defer();
-  let node = content.document.querySelector(selector);
-  ok(node, "A node was found for selector " + selector + ". Selecting it now");
+
+function selectNode(nodeOrSelector, inspector) {
+  let node = getNode(nodeOrSelector);
+  let updated = inspector.once("inspector-updated");
   inspector.selection.setNode(node, "test");
-  inspector.once("inspector-updated", () => {
-    deferred.resolve(node);
-  });
+  return updated;
+}
+
+
+
+
+
+
+
+function hoverContainer(nodeOrSelector, inspector) {
+  let highlit = inspector.toolbox.once("node-highlight");
+  let container = getContainerForRawNode(inspector.markup, getNode(nodeOrSelector));
+  EventUtils.synthesizeMouse(container.tagLine, 2, 2, {type: "mousemove"},
+    inspector.markup.doc.defaultView);
+  return highlit;
+}
+
+
+
+
+
+
+function clickContainer(nodeOrSelector, inspector) {
+  let updated = inspector.once("inspector-updated");
+  let container = getContainerForRawNode(inspector.markup, getNode(nodeOrSelector));
+  EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousedown"},
+    inspector.markup.doc.defaultView);
+  EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mouseup"},
+    inspector.markup.doc.defaultView);
+  return updated;
+}
+
+
+
+
+function isHighlighterVisible() {
+  let outline = gBrowser.selectedBrowser.parentNode.querySelector(".highlighter-container .highlighter-outline");
+  return outline && !outline.hasAttribute("hidden");
+}
+
+
+
+
+
+function mouseLeaveMarkupView(inspector) {
+  let deferred = promise.defer();
+
+  
+  let btn = inspector.toolbox.doc.querySelector(".toolbox-dock-button");
+
+  EventUtils.synthesizeMouse(btn, 2, 2, {type: "mousemove"},
+    inspector.toolbox.doc.defaultView);
+  executeSoon(deferred.resolve);
+
   return deferred.promise;
 }
+
