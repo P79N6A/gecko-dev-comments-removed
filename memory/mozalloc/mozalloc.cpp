@@ -24,8 +24,6 @@
 #  define MOZALLOC_EXPORT __declspec(dllexport)
 #endif
 
-
-#define MOZALLOC_DONT_DEFINE_MACRO_WRAPPERS
 #include "mozilla/mozalloc.h"
 #include "mozilla/mozalloc_oom.h"  
 
