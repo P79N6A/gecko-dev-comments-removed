@@ -22,7 +22,8 @@ var parentRunner = null;
 
 
 
-var isPrimaryTestWindow = !!parent.TestRunner || (parent == window && !opener);
+var isSingleTestRun = (parent == window && !opener)
+var isPrimaryTestWindow = !!parent.TestRunner || isSingleTestRun;
 
 
 
@@ -320,6 +321,11 @@ SimpleTest._logResult = (function () {
         var isError = !test.result == !test.todo;
         var outputCoalescedMessage = numCoalescedMessages == coalesceThreshold;
 
+        var runningSingleTest = ((parentRunner &&
+                                  parentRunner._urls.length == 1)
+                                 || isSingleTestRun);
+        
+        
         
         
         
@@ -327,7 +333,8 @@ SimpleTest._logResult = (function () {
         
         var shouldLog = (isError ||
                          passString == "TEST-INFO" ||
-                         outputCoalescedMessage);
+                         outputCoalescedMessage ||
+                         runningSingleTest);
 
         if (!shouldLog) {
             ++numCoalescedMessages;
