@@ -368,7 +368,7 @@ class RemoteReftest(RefTest):
         prefs["extensions.getAddons.search.url"] = "http://127.0.0.1:8888/extensions-dummy/repositorySearchURL"
         
         prefs["plugins.update.url"] = "http://127.0.0.1:8888/plugins-dummy/updateCheckURL"
-        prefs["layout.css.devPixelsPerPx"] = "1.0";
+        prefs["layout.css.devPixelsPerPx"] = "1.0"
 
         
         prefs["gfx.canvas.azure.accelerated"] = False
