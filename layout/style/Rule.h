@@ -110,8 +110,8 @@ public:
 
   
   
-  virtual NS_MUST_OVERRIDE size_t
-    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const = 0;
+  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+    const MOZ_MUST_OVERRIDE = 0;
 
   
   static size_t SizeOfCOMArrayElementIncludingThis(css::Rule* aElement,

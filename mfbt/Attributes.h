@@ -319,6 +319,64 @@
 #  define MOZ_WARN_UNUSED_RESULT
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef MOZ_CLANG_PLUGIN
+# define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
+#else
+# define MOZ_MUST_OVERRIDE
+#endif 
+
 #endif 
 
 #endif  
