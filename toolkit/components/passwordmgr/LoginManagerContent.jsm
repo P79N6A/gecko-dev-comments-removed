@@ -404,6 +404,14 @@ var LoginManagerContent = {
             return;
         }
 
+        
+        
+        let topWin = win.top;
+        if (/^about:accounts($|\?)/i.test(topWin.document.documentURI)) {
+            log("(form submission ignored -- about:accounts)");
+            return;
+        }
+
         var formSubmitURL = LoginUtils._getActionOrigin(form)
         if (!Services.logins.getLoginSavingEnabled(hostname)) {
             log("(form submission ignored -- saving is disabled for:", hostname, ")");
