@@ -166,8 +166,9 @@ CallbackObject::CallSetup::~CallSetup()
   
   if (mCx) {
     bool dealtWithPendingException = false;
-    if (mExceptionHandling == eRethrowContentExceptions ||
-        mExceptionHandling == eRethrowExceptions) {
+    if (mCompartment &&
+        (mExceptionHandling == eRethrowContentExceptions ||
+         mExceptionHandling == eRethrowExceptions)) {
       
       JS::ContextOptionsRef(mCx) = mSavedJSContextOptions;
       mErrorResult.MightThrowJSException();
