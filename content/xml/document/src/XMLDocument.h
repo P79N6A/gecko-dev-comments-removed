@@ -51,6 +51,23 @@ public:
   virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
   
 
+
+  
+  bool Load(const nsAString& aUrl, mozilla::ErrorResult& aRv);
+  bool Async() const
+  {
+    return mAsync;
+  }
+  
+
+  
+  
+  
+  using nsIDocument::GetLocation;
+  
+  
+  using nsDocument::GetLocation;
+
 protected:
   
   
