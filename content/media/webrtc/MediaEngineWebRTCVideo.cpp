@@ -500,19 +500,21 @@ void
 MediaEngineWebRTCVideoSource::AllocImpl() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  mCameraControl = ICameraControl::Create(mCaptureIndex, nullptr);
-
-  
-  
-  
-  mCameraControl->AddListener(this);
+  mCameraControl = ICameraControl::Create(mCaptureIndex);
+  if (mCameraControl) {
+    mState = kAllocated;
+    
+    
+    
+    mCameraControl->AddListener(this);
+  }
+  mCallbackMonitor.Notify();
 }
 
 void
 MediaEngineWebRTCVideoSource::DeallocImpl() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  mCameraControl->ReleaseHardware();
   mCameraControl = nullptr;
 }
 
@@ -524,7 +526,7 @@ MediaEngineWebRTCVideoSource::StartImpl(webrtc::CaptureCapability aCapability) {
   config.mMode = ICameraControl::kPictureMode;
   config.mPreviewSize.width = aCapability.width;
   config.mPreviewSize.height = aCapability.height;
-  mCameraControl->SetConfiguration(config);
+  mCameraControl->Start(&config);
   mCameraControl->Set(CAMERA_PARAM_PICTURESIZE, config.mPreviewSize);
 }
 
@@ -532,7 +534,7 @@ void
 MediaEngineWebRTCVideoSource::StopImpl() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  mCameraControl->StopPreview();
+  mCameraControl->Stop();
 }
 
 void
@@ -545,24 +547,23 @@ void
 MediaEngineWebRTCVideoSource::OnHardwareStateChange(HardwareState aState)
 {
   ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-  if (aState == CameraControlListener::kHardwareOpen) {
-    mState = kAllocated;
+  if (aState == CameraControlListener::kHardwareClosed) {
+    
+    
+    
+    
+    if (mState != kAllocated) {
+      mState = kReleased;
+      mCallbackMonitor.Notify();
+    }
   } else {
-    mState = kReleased;
+    mState = kStarted;
+    mCallbackMonitor.Notify();
   }
-  mCallbackMonitor.Notify();
 }
 
 void
-MediaEngineWebRTCVideoSource::OnConfigurationChange(const CameraListenerConfiguration& aConfiguration)
-{
-  ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-  mState = kStarted;
-  mCallbackMonitor.Notify();
-}
-
-void
-MediaEngineWebRTCVideoSource::OnError(CameraErrorContext aContext, const nsACString& aError)
+MediaEngineWebRTCVideoSource::OnError(CameraErrorContext aContext, CameraError aError)
 {
   ReentrantMonitorAutoEnter sync(mCallbackMonitor);
   mCallbackMonitor.Notify();

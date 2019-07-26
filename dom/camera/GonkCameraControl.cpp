@@ -77,90 +77,50 @@ nsGonkCameraControl::nsGonkCameraControl(uint32_t aCameraId)
 }
 
 nsresult
-nsGonkCameraControl::Init(const Configuration* aInitialConfig)
+nsGonkCameraControl::StartImpl(const Configuration* aInitialConfig)
 {
-  class InitGonkCameraControl : public nsRunnable
-  {
-  public:
-    InitGonkCameraControl(nsGonkCameraControl* aCameraControl,
-                          const Configuration* aConfig)
-      : mCameraControl(aCameraControl)
-      , mHaveInitialConfig(false)
-    {
-      DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-      if (aConfig) {
-        mConfig = *aConfig;
-        mHaveInitialConfig = true;
-      }
-    }
-
-    ~InitGonkCameraControl()
-    {
-      DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    NS_IMETHODIMP
-    Run() MOZ_OVERRIDE
-    {
-      nsresult rv = mCameraControl->InitImpl();
-      if (NS_FAILED(rv)) {
-        mCameraControl->OnError(CameraControlListener::kInGetCamera,
-                                CameraControlListener::kErrorInitFailed);
-        
-        mCameraControl->ReleaseHardware();
-        return rv;
-      }
-
-      if (mHaveInitialConfig) {
-        rv = mCameraControl->SetConfigurationInternal(mConfig);
-        if (NS_FAILED(rv)) {
-          mCameraControl->OnError(CameraControlListener::kInGetCamera,
-                                  CameraControlListener::kErrorInvalidConfiguration);
-          
-          mCameraControl->ReleaseHardware();
-          return rv;
-        }
-      }
-
-      mCameraControl->OnHardwareStateChange(CameraControlListener::kHardwareOpen);
-      return mCameraControl->StartPreviewImpl();
-    }
-
-  protected:
-    nsRefPtr<nsGonkCameraControl> mCameraControl;
-    Configuration mConfig;
-    bool mHaveInitialConfig;
-  };
-
   
-  return mCameraThread->Dispatch(
-    new InitGonkCameraControl(this, aInitialConfig), NS_DISPATCH_NORMAL);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
+
+  nsresult rv = Initialize();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (aInitialConfig) {
+    rv = SetConfigurationInternal(*aInitialConfig);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      
+      StopImpl();
+      return rv;
+    }
+  }
+
+  OnHardwareStateChange(CameraControlListener::kHardwareOpen);
+  return StartPreviewImpl();
 }
 
 nsresult
-nsGonkCameraControl::InitImpl()
+nsGonkCameraControl::Initialize()
 {
-  MOZ_ASSERT(NS_GetCurrentThread() == mCameraThread);
-
   mCameraHw = GonkCameraHardware::Connect(this, mCameraId);
   if (!mCameraHw.get()) {
     DOM_CAMERA_LOGE("Failed to connect to camera %d (this=%p)\n", mCameraId, this);
@@ -211,7 +171,7 @@ nsGonkCameraControl::~nsGonkCameraControl()
 {
   DOM_CAMERA_LOGT("%s:%d : this=%p, mCameraHw = %p\n", __func__, __LINE__, this, mCameraHw.get());
 
-  ReleaseHardwareImpl();
+  StopImpl();
   DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
 }
 
@@ -892,7 +852,7 @@ nsGonkCameraControl::StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescri
     return NS_ERROR_FAILURE;
   }
 
-  OnRecorderStateChange(CameraControlListener::kRecorderStarted, -1, -1);
+  OnRecorderStateChange(CameraControlListener::kRecorderStarted);
   return NS_OK;
 }
 
@@ -929,7 +889,7 @@ nsGonkCameraControl::StopRecordingImpl()
 
   mRecorder->stop();
   mRecorder = nullptr;
-  OnRecorderStateChange(CameraControlListener::kRecorderStopped, -1, -1);
+  OnRecorderStateChange(CameraControlListener::kRecorderStopped);
 
   
   return NS_DispatchToMainThread(new RecordingComplete(mVideoFile), NS_DISPATCH_NORMAL);
@@ -1339,15 +1299,16 @@ nsGonkCameraControl::SetupRecording(int aFd, int aRotation, int64_t aMaxFileSize
 }
 
 nsresult
-nsGonkCameraControl::ReleaseHardwareImpl()
+nsGonkCameraControl::StopImpl()
 {
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
 
   
   if (mRecorder) {
-    DOM_CAMERA_LOGI("shutting down existing video recorder\n");
+    DOM_CAMERA_LOGI("Stopping existing video recorder\n");
     mRecorder->stop();
     mRecorder = nullptr;
+    OnRecorderStateChange(CameraControlListener::kRecorderStopped);
   }
 
   
