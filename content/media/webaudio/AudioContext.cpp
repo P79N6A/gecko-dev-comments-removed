@@ -115,8 +115,6 @@ AudioContext::CreateBuffer(JSContext* aJSContext, ArrayBuffer& aBuffer,
                           bool aMixToMono, ErrorResult& aRv)
 {
   
-
-  
   
   nsAutoCString contentType;
   NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr,
@@ -128,7 +126,11 @@ AudioContext::CreateBuffer(JSContext* aJSContext, ArrayBuffer& aBuffer,
   if (mDecoder.SyncDecodeMedia(contentType.get(),
                                job.mBuffer, job.mLength, job) &&
       job.mOutput) {
-    return job.mOutput.forget();
+    nsRefPtr<AudioBuffer> buffer = job.mOutput.forget();
+    if (aMixToMono) {
+      buffer->MixToMono(aJSContext);
+    }
+    return buffer.forget();
   }
 
   return nullptr;
