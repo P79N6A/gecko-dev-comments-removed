@@ -97,17 +97,6 @@ GetContentChildID()
 
 
 
-bool
-IsBackgroundPriority(ProcessPriority aPriority)
-{
-  return (aPriority == PROCESS_PRIORITY_BACKGROUND ||
-          aPriority == PROCESS_PRIORITY_BACKGROUND_HOMESCREEN ||
-          aPriority == PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE);
-}
-
-
-
-
 
 
 
@@ -168,15 +157,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
   void ResetPriority();
 
   
@@ -196,45 +176,25 @@ private:
   
 
 
-  ProcessPriority GetForegroundPriority();
-
-  
-
-
-  ProcessPriority GetBackgroundPriority();
-
-  
-
-
   bool ComputeIsInForeground();
 
+  
+
+
+
+  ProcessPriority ComputePriority();
+
+  
+
+
+  void SetPriorityNow(ProcessPriority aPriority);
 
   
 
 
 
 
-  void SetIsForeground();
-
-  
-
-
-
-  void SetIsForegroundNow();
-
-  
-
-
-
-  void SetIsBackgroundNow();
-
-  
-
-
-
-
-  void
-  ScheduleResetPriority(const char* aTimeoutPref);
+  void ScheduleResetPriority(const char* aTimeoutPref);
 
   
   bool mHoldsCPUWakeLock;
@@ -430,46 +390,6 @@ ProcessPriorityManager::IsCriticalProcessWithWakeLock()
   return false;
 }
 
-ProcessPriority
-ProcessPriorityManager::GetForegroundPriority()
-{
-  return IsCriticalProcessWithWakeLock() ? PROCESS_PRIORITY_FOREGROUND_HIGH :
-                                           PROCESS_PRIORITY_FOREGROUND;
-}
-
-
-
-
-ProcessPriority
-ProcessPriorityManager::GetBackgroundPriority()
-{
-  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
-  if (service->ContentOrNormalChannelIsActive()) {
-    return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
-  }
-
-  bool isHomescreen = false;
-
-  ContentChild* contentChild = ContentChild::GetSingleton();
-  if (contentChild) {
-    const InfallibleTArray<PBrowserChild*>& browsers =
-      contentChild->ManagedPBrowserChild();
-    for (uint32_t i = 0; i < browsers.Length(); i++) {
-      nsAutoString appType;
-      static_cast<TabChild*>(browsers[i])->GetAppType(appType);
-      if (appType.EqualsLiteral("homescreen")) {
-        isHomescreen = true;
-        break;
-      }
-    }
-  }
-
-  return isHomescreen ?
-         PROCESS_PRIORITY_BACKGROUND_HOMESCREEN :
-         PROCESS_PRIORITY_BACKGROUND;
-}
-
-
 void
 ProcessPriorityManager::ResetPriority()
 {
@@ -479,15 +399,14 @@ ProcessPriorityManager::ResetPriority()
     return;
   }
 
-  if (ComputeIsInForeground()) {
-    SetIsForeground();
-  } else if (IsBackgroundPriority(mProcessPriority)) {
-    
-    
-    SetIsBackgroundNow();
-  } else {
+  ProcessPriority processPriority = ComputePriority();
+  if (mProcessPriority == PROCESS_PRIORITY_UNKNOWN ||
+      mProcessPriority > processPriority) {
     ScheduleResetPriority("backgroundGracePeriodMS");
+    return;
   }
+
+  SetPriorityNow(processPriority);
 }
 
 void
@@ -499,11 +418,7 @@ ProcessPriorityManager::ResetPriorityNow()
     return;
   }
 
-  if (ComputeIsInForeground()) {
-    SetIsForegroundNow();
-  } else {
-    SetIsBackgroundNow();
-  }
+  SetPriorityNow(ComputePriority());
 }
 
 bool
@@ -559,69 +474,84 @@ ProcessPriorityManager::ComputeIsInForeground()
   return !allHidden;
 }
 
-void
-ProcessPriorityManager::SetIsForeground()
+ProcessPriority
+ProcessPriorityManager::ComputePriority()
 {
-  ProcessPriority foregroundPriority = GetForegroundPriority();
-
-  if (mProcessPriority == PROCESS_PRIORITY_UNKNOWN ||
-      foregroundPriority < mProcessPriority) {
-    LOG("Giving grace period to %s -> %s transition.",
-        ProcessPriorityToString(mProcessPriority),
-        ProcessPriorityToString(foregroundPriority));
-    ScheduleResetPriority("backgroundGracePeriodMS");
-  } else {
-    SetIsForegroundNow();
+  if (ComputeIsInForeground()) {
+    if (IsCriticalProcessWithWakeLock()) {
+      return PROCESS_PRIORITY_FOREGROUND_HIGH;
+    }
+    return PROCESS_PRIORITY_FOREGROUND;
   }
+
+  AudioChannelService* service = AudioChannelService::GetAudioChannelService();
+  if (service->ContentOrNormalChannelIsActive()) {
+    return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
+  }
+
+  bool isHomescreen = false;
+
+  ContentChild* contentChild = ContentChild::GetSingleton();
+  if (contentChild) {
+    const InfallibleTArray<PBrowserChild*>& browsers =
+      contentChild->ManagedPBrowserChild();
+    for (uint32_t i = 0; i < browsers.Length(); i++) {
+      nsAutoString appType;
+      static_cast<TabChild*>(browsers[i])->GetAppType(appType);
+      if (appType.EqualsLiteral("homescreen")) {
+        isHomescreen = true;
+        break;
+      }
+    }
+  }
+
+  return isHomescreen ?
+         PROCESS_PRIORITY_BACKGROUND_HOMESCREEN :
+         PROCESS_PRIORITY_BACKGROUND;
 }
 
 void
-ProcessPriorityManager::SetIsForegroundNow()
+ProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority)
 {
-  ProcessPriority foregroundPriority = GetForegroundPriority();
-  if (foregroundPriority == mProcessPriority) {
+  if (aPriority == PROCESS_PRIORITY_UNKNOWN) {
+    MOZ_ASSERT(false);
     return;
   }
 
-  
-  nsCOMPtr<nsICancelableRunnable> runnable =
-    do_QueryReferent(mMemoryMinimizerRunnable);
-  if (runnable) {
-    runnable->Cancel();
-  }
-
-  mProcessPriority = foregroundPriority;
-  LOG("Setting priority to %s.", ProcessPriorityToString(mProcessPriority));
-  hal::SetProcessPriority(getpid(), mProcessPriority);
-}
-
-void
-ProcessPriorityManager::SetIsBackgroundNow()
-{
-  ProcessPriority backgroundPriority = GetBackgroundPriority();
-  if (mProcessPriority == backgroundPriority) {
+  if (mProcessPriority == aPriority) {
     return;
   }
 
-  mProcessPriority = backgroundPriority;
-  LOG("Setting priority to %s", ProcessPriorityToString(mProcessPriority));
+  LOG("Changing priority from %s to %s.",
+      ProcessPriorityToString(mProcessPriority),
+      ProcessPriorityToString(aPriority));
+  mProcessPriority = aPriority;
   hal::SetProcessPriority(getpid(), mProcessPriority);
 
-  
-  nsCOMPtr<nsIMemoryReporterManager> mgr =
-    do_GetService("@mozilla.org/memory-reporter-manager;1");
-  if (mgr) {
+  if (aPriority >= PROCESS_PRIORITY_FOREGROUND) {
+    
     nsCOMPtr<nsICancelableRunnable> runnable =
       do_QueryReferent(mMemoryMinimizerRunnable);
-
-    
     if (runnable) {
       runnable->Cancel();
     }
+  } else {
+    
+    nsCOMPtr<nsIMemoryReporterManager> mgr =
+      do_GetService("@mozilla.org/memory-reporter-manager;1");
+    if (mgr) {
+      nsCOMPtr<nsICancelableRunnable> runnable =
+        do_QueryReferent(mMemoryMinimizerRunnable);
 
-    mgr->MinimizeMemoryUsage( nullptr,
-                             getter_AddRefs(runnable));
-    mMemoryMinimizerRunnable = do_GetWeakReference(runnable);
+      
+      if (runnable) {
+        runnable->Cancel();
+      }
+
+      mgr->MinimizeMemoryUsage( nullptr,
+                               getter_AddRefs(runnable));
+      mMemoryMinimizerRunnable = do_GetWeakReference(runnable);
+    }
   }
 }
 
