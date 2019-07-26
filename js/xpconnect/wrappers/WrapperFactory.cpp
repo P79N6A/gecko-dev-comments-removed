@@ -141,7 +141,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     
     
-    JS_ASSERT(!IsWrapper(obj));
+    MOZ_ASSERT(!IsWrapper(obj));
 
     
     
@@ -695,7 +695,7 @@ TransplantObjectWithWrapper(JSContext *cx,
         return newSameCompartmentWrapper;
 
     JSObject *newIdentity = Wrapper::wrappedObject(newSameCompartmentWrapper);
-    JS_ASSERT(js::IsWrapper(newIdentity));
+    MOZ_ASSERT(js::IsWrapper(newIdentity));
     if (!FixWaiverAfterTransplant(cx, oldWaiver, newIdentity))
         return NULL;
     return newSameCompartmentWrapper;
