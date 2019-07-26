@@ -4294,7 +4294,10 @@ nsXPCComponents_Utils::IsDeadWrapper(const jsval &obj, bool *out)
     if (JSVAL_IS_PRIMITIVE(obj))
         return NS_ERROR_INVALID_ARG;
 
-    *out = JS_IsDeadWrapper(JSVAL_TO_OBJECT(obj));
+    
+    
+    
+    *out = JS_IsDeadWrapper(js::CheckedUnwrap(JSVAL_TO_OBJECT(obj)));
     return NS_OK;
 }
 
