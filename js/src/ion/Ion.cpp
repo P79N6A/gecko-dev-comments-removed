@@ -1156,8 +1156,20 @@ ion::Invalidate(FreeOp *fop, const Vector<types::RecompileInfo> &invalid, bool r
     
     for (size_t i = 0; i < invalid.length(); i++) {
         if (invalid[i].script->hasIonScript()) {
-            invalid[i].script->ion->decref(fop);
-            invalid[i].script->ion = NULL;
+            JSScript *script = invalid[i].script;
+            IonScript *ionScript = script->ion;
+
+            JSCompartment *compartment = script->compartment();
+            if (compartment->needsBarrier()) {
+                
+                
+                
+                
+                IonScript::Trace(compartment->barrierTracer(), ionScript);
+            }
+
+            script->ion->decref(fop);
+            script->ion = NULL;
         }
     }
 
