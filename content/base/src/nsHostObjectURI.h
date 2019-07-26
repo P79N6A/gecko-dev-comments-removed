@@ -17,7 +17,6 @@
 
 
 
-
 class nsHostObjectURI : public nsSimpleURI,
                         public nsIURIWithPrincipal
 {
