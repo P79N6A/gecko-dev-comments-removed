@@ -563,6 +563,7 @@ public:
   
   void EnableDialogs();
   void DisableDialogs();
+  
   bool AreDialogsEnabled();
 
   nsIScriptContext *GetContextInternal()
