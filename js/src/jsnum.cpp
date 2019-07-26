@@ -1105,26 +1105,22 @@ static JSConstDoubleSpec number_constants[] = {
     {0,0,0,{0,0,0}}
 };
 
+
+
+
+
+void
+js::FIX_FPU()
+{
 #if (defined __GNUC__ && defined __i386__) || \
     (defined __SUNPRO_CC && defined __i386)
-
-
-
-
-
-static inline void FIX_FPU() {
     short control;
     asm("fstcw %0" : "=m" (control) : );
     control &= ~0x300; 
     control |= 0x2f3;  
     asm("fldcw %0" : : "m" (control) );
-}
-
-#else
-
-#define FIX_FPU() ((void)0)
-
 #endif
+}
 
 bool
 js::InitRuntimeNumberState(JSRuntime *rt)

@@ -9,6 +9,7 @@
 #include "mozilla/Atomics.h"
 
 #include "jslock.h"
+#include "jsnum.h" 
 
 #include "js/Utility.h"
 #include "vm/ForkJoin.h"
@@ -173,6 +174,10 @@ ThreadPoolWorker::HelperThreadMain(void *arg)
         NuwaMarkCurrentThread(nullptr, nullptr);
     }
 #endif
+
+    
+    
+    FIX_FPU();
 
     worker->helperLoop();
 }
