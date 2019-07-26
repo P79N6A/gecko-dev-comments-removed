@@ -172,7 +172,10 @@ function Panel(options) {
 
 let HomePanels = (function () {
   
-  let _panels = {};
+  
+  
+  
+  let _registeredPanels = {};
 
   let _panelToJSON = function(panel) {
     return {
@@ -188,8 +191,8 @@ let HomePanels = (function () {
     let ids = data.ids || null;
 
     let panels = [];
-    for (let id in _panels) {
-      let panel = _panels[id];
+    for (let id in _registeredPanels) {
+      let panel = _registeredPanels[id];
 
       
       if (ids == null || ids.indexOf(panel.id) >= 0) {
@@ -215,7 +218,7 @@ let HomePanels = (function () {
   };
 
   let _assertPanelExists = function(id) {
-    if (!(id in _panels)) {
+    if (!(id in _registeredPanels)) {
       throw "Home.panels: Panel doesn't exist: id = " + id;
     }
   };
@@ -248,7 +251,7 @@ let HomePanels = (function () {
       let panel = new Panel(options);
 
       
-      if (panel.id in _panels) {
+      if (panel.id in _registeredPanels) {
         throw "Home.panels: Panel already exists: id = " + panel.id;
       }
 
@@ -289,13 +292,13 @@ let HomePanels = (function () {
         }
       }
 
-      _panels[panel.id] = panel;
+      _registeredPanels[panel.id] = panel;
     },
 
     unregister: function(id) {
       _assertPanelExists(id);
 
-      delete _panels[id];
+      delete _registeredPanels[id];
     },
 
     install: function(id) {
@@ -303,7 +306,7 @@ let HomePanels = (function () {
 
       sendMessageToJava({
         type: "HomePanels:Install",
-        panel: _panelToJSON(_panels[id])
+        panel: _panelToJSON(_registeredPanels[id])
       });
     },
 
@@ -321,7 +324,7 @@ let HomePanels = (function () {
 
       sendMessageToJava({
         type: "HomePanels:Update",
-        panel: _panelToJSON(_panels[id])
+        panel: _panelToJSON(_registeredPanels[id])
       });
     }
   });
