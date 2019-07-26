@@ -93,51 +93,6 @@ frontend::FinishPopStatement(ContextT *ct)
     }
 }
 
-
-
-
-
-
-
-
-
-template <class ContextT>
-typename ContextT::StmtInfo *
-frontend::LexicalLookup(ContextT *ct, HandleAtom atom, int *slotp, typename ContextT::StmtInfo *stmt)
-{
-    RootedId id(ct->sc->context, AtomToId(atom));
-
-    if (!stmt)
-        stmt = ct->topScopeStmt;
-    for (; stmt; stmt = stmt->downScope) {
-        
-
-
-
-
-        if (stmt->type == STMT_WITH)
-            break;
-
-        
-        if (!stmt->isBlockScope)
-            continue;
-
-        StaticBlockObject &blockObj = *stmt->blockObj;
-        Shape *shape = blockObj.nativeLookup(ct->sc->context, id);
-        if (shape) {
-            JS_ASSERT(shape->hasShortID());
-
-            if (slotp)
-                *slotp = blockObj.stackDepth() + shape->shortid();
-            return stmt;
-        }
-    }
-
-    if (slotp)
-        *slotp = -1;
-    return stmt;
-}
-
 } 
 
 #endif 
