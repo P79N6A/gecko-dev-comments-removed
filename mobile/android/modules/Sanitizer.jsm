@@ -114,7 +114,7 @@ Sanitizer.prototype = {
         
         
         var hosts = Services.logins.getAllDisabledHosts({})
-        for each (var host in hosts) {
+        for (var host of hosts) {
           Services.logins.setLoginSavingEnabled(host, true);
         }
       },
