@@ -157,8 +157,10 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
   
 #filter attemptSubstitution
   let os_version = '@MOZ_B2G_VERSION@';
+  let os_name = '@MOZ_B2G_OS_NAME@';
 #unfilter attemptSubstitution
   lock.set('deviceinfo.os', os_version, null, null);
+  lock.set('deviceinfo.software', os_name + ' ' + os_version, null, null);
 
   let appInfo = Cc["@mozilla.org/xre/app-info;1"]
                   .getService(Ci.nsIXULAppInfo);
@@ -169,7 +171,8 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
   lock.set('deviceinfo.update_channel', update_channel, null, null);
 
   
-  let hardware_version = null;
+  let hardware_info = null;
+  let firmware_revision = null;
   try {
     let cutils = ctypes.open('libcutils.so');
     let cbuf = ctypes.char.array(128)();
@@ -185,12 +188,14 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
       c_property_get(key, cbuf, defaultValue);
       return cbuf.readString();
     }
-    hardware_version = property_get('ro.hardware');
+    hardware_info = property_get('ro.hardware');
+    firmware_revision = property_get('ro.firmware_revision');
     cutils.close();
   } catch(e) {
     
   }
-  lock.set('deviceinfo.hardware', hardware_version, null, null);
+  lock.set('deviceinfo.hardware', hardware_info, null, null);
+  lock.set('deviceinfo.firmware_revision', firmware_revision, null, null);
 })();
 
 
