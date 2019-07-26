@@ -274,7 +274,7 @@ private:
 
 
 
-  void CreateFBOWithTexture(const gfx::IntRect& aRect, SurfaceInitMode aInit,
+  void CreateFBOWithTexture(const gfx::IntRect& aRect, bool aCopyFromSource,
                             GLuint aSourceFrameBuffer,
                             GLuint *aFBO, GLuint *aTexture);
 
