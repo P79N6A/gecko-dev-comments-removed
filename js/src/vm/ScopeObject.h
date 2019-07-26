@@ -97,21 +97,33 @@ class StaticScopeIter
 
 
 
-
-
-
-struct ScopeCoordinate
+class ScopeCoordinate
 {
-    uint16_t hops;
-    uint16_t slot;
+    uint32_t hops_;
+    uint32_t slot_;
 
+    
+
+
+
+
+    static_assert(SCOPECOORD_HOPS_BITS <= 32, "We have enough bits below");
+    static_assert(SCOPECOORD_SLOT_BITS <= 32, "We have enough bits below");
+
+  public:
     inline ScopeCoordinate(jsbytecode *pc)
-      : hops(GET_UINT16(pc)), slot(GET_UINT16(pc + 2))
+      : hops_(GET_SCOPECOORD_HOPS(pc)), slot_(GET_SCOPECOORD_SLOT(pc + SCOPECOORD_HOPS_LEN))
     {
         JS_ASSERT(JOF_OPTYPE(*pc) == JOF_SCOPECOORD);
     }
 
     inline ScopeCoordinate() {}
+
+    void setHops(uint32_t hops) { JS_ASSERT(hops < SCOPECOORD_HOPS_LIMIT); hops_ = hops; }
+    void setSlot(uint32_t slot) { JS_ASSERT(slot < SCOPECOORD_SLOT_LIMIT); slot_ = slot; }
+
+    uint32_t hops() const { JS_ASSERT(hops_ < SCOPECOORD_HOPS_LIMIT); return hops_; }
+    uint32_t slot() const { JS_ASSERT(slot_ < SCOPECOORD_SLOT_LIMIT); return slot_; }
 };
 
 
@@ -459,8 +471,16 @@ class StaticBlockObject : public BlockObject
         setReservedSlot(SCOPE_CHAIN_SLOT, UndefinedValue());
     }
 
+    
+
+
+
+
+
+    static const unsigned VAR_INDEX_LIMIT = JS_BIT(16);
+
     static Shape *addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
-                         int index, bool *redeclared);
+                         unsigned index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject
@@ -832,7 +852,7 @@ inline const Value &
 ScopeObject::aliasedVar(ScopeCoordinate sc)
 {
     JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
-    return getSlot(sc.slot);
+    return getSlot(sc.slot());
 }
 
 inline StaticBlockObject *
