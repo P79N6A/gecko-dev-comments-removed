@@ -17,6 +17,9 @@
 namespace mozilla {
 namespace safebrowsing {
 
+
+
+
 class TableUpdate {
 public:
   TableUpdate(const nsACString& aTable)
@@ -34,6 +37,8 @@ public:
       mSubCompletes.Length() == 0;
   }
 
+  
+  
   void NewAddChunk(uint32_t aChunk) { mAddChunks.Set(aChunk); }
   void NewSubChunk(uint32_t aChunk) { mSubChunks.Set(aChunk); }
 
@@ -42,6 +47,7 @@ public:
 
   void NewAddPrefix(uint32_t aAddChunk, const Prefix& aPrefix);
   void NewSubPrefix(uint32_t aAddChunk, const Prefix& aPrefix, uint32_t aSubChunk);
+
   void NewAddComplete(uint32_t aChunk, const Completion& aCompletion);
   void NewSubComplete(uint32_t aAddChunk, const Completion& aCompletion,
                       uint32_t aSubChunk);
@@ -51,9 +57,11 @@ public:
   ChunkSet& AddChunks() { return mAddChunks; }
   ChunkSet& SubChunks() { return mSubChunks; }
 
+  
   ChunkSet& AddExpirations() { return mAddExpirations; }
   ChunkSet& SubExpirations() { return mSubExpirations; }
 
+  
   AddPrefixArray& AddPrefixes() { return mAddPrefixes; }
   SubPrefixArray& SubPrefixes() { return mSubPrefixes; }
   AddCompleteArray& AddCompletes() { return mAddCompletes; }
@@ -64,15 +72,21 @@ private:
   
   bool mLocalUpdate;
 
+  
   ChunkSet mAddChunks;
   ChunkSet mSubChunks;
   ChunkSet mAddExpirations;
   ChunkSet mSubExpirations;
+
+  
   AddPrefixArray mAddPrefixes;
   SubPrefixArray mSubPrefixes;
+
+  
   AddCompleteArray mAddCompletes;
   SubCompleteArray mSubCompletes;
 };
+
 
 class HashStore {
 public:
@@ -82,6 +96,11 @@ public:
   const nsCString& TableName() const { return mTableName; }
 
   nsresult Open();
+  
+  
+  
+  
+  
   nsresult AugmentAdds(const nsTArray<uint32_t>& aPrefixes);
 
   ChunkSet& AddChunks() { return mAddChunks; }
@@ -126,6 +145,7 @@ private:
 
   nsresult ReadChunkNumbers();
   nsresult ReadHashes();
+
   nsresult ReadAddPrefixes();
   nsresult ReadSubPrefixes();
 
@@ -134,6 +154,8 @@ private:
 
   nsresult ProcessSubs();
 
+ 
+ 
   struct Header {
     uint32_t magic;
     uint32_t version;
@@ -147,6 +169,8 @@ private:
 
   Header mHeader;
 
+  
+  
   nsCString mTableName;
   nsCOMPtr<nsIFile> mStoreDirectory;
 
@@ -154,19 +178,23 @@ private:
 
   nsCOMPtr<nsIInputStream> mInputStream;
 
+  
   ChunkSet mAddChunks;
   ChunkSet mSubChunks;
 
   ChunkSet mAddExpirations;
   ChunkSet mSubExpirations;
 
+  
   AddPrefixArray mAddPrefixes;
-  AddCompleteArray mAddCompletes;
   SubPrefixArray mSubPrefixes;
+
+  
+  
+  AddCompleteArray mAddCompletes;
   SubCompleteArray mSubCompletes;
 };
 
 }
 }
-
 #endif

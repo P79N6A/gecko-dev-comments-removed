@@ -59,6 +59,7 @@ private:
   nsresult ProcessForward(const nsCString& aLine);
   nsresult AddForward(const nsACString& aUrl, const nsACString& aMac);
   nsresult ProcessChunk(bool* done);
+  
   nsresult ProcessPlaintextChunk(const nsACString& aChunk);
   nsresult ProcessShaChunk(const nsACString& aChunk);
   nsresult ProcessHostAdd(const Prefix& aDomain, uint8_t aNumEntries,
@@ -69,6 +70,12 @@ private:
                                   uint32_t *aStart);
   nsresult ProcessHostSubComplete(uint8_t numEntries, const nsACString& aChunk,
                                   uint32_t* start);
+  
+  
+  
+  nsresult ProcessDigestChunk(const nsACString& aChunk);
+  nsresult ProcessDigestAdd(const nsACString& aChunk);
+  nsresult ProcessDigestSub(const nsACString& aChunk);
   bool NextLine(nsACString& aLine);
 
   void CleanupUpdates();
@@ -80,8 +87,13 @@ private:
   ParserState mState;
 
   enum ChunkType {
+    
     CHUNK_ADD,
-    CHUNK_SUB
+    CHUNK_SUB,
+    
+    
+    CHUNK_ADD_DIGEST,
+    CHUNK_SUB_DIGEST
   };
 
   struct ChunkState {
@@ -106,7 +118,9 @@ private:
   bool mRekeyRequested;
 
   nsTArray<ForwardedUpdate> mForwards;
+  
   nsTArray<TableUpdate*> mTableUpdates;
+  
   TableUpdate *mTableUpdate;
 };
 

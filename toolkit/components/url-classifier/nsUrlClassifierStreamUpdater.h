@@ -52,15 +52,18 @@ private:
 
   nsresult AddRequestBody(const nsACString &aRequestBody);
 
+  
   nsresult FetchUpdate(nsIURI *aURI,
                        const nsACString &aRequestBody,
                        const nsACString &aTable,
                        const nsACString &aServerMAC);
+  
   nsresult FetchUpdate(const nsACString &aURI,
                        const nsACString &aRequestBody,
                        const nsACString &aTable,
                        const nsACString &aServerMAC);
 
+  
   nsresult FetchNext();
 
   bool mIsUpdating;

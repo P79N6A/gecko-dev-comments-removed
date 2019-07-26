@@ -31,6 +31,8 @@ static const PRLogModuleInfo *gUrlClassifierStreamUpdaterLog = nullptr;
 
 
 
+
+
 nsUrlClassifierStreamUpdater::nsUrlClassifierStreamUpdater()
   : mIsUpdating(false), mInitialized(false), mDownloadError(false),
     mBeganStream(false), mUpdateUrl(nullptr), mChannel(nullptr)
@@ -107,11 +109,13 @@ nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
 
   mBeganStream = false;
 
+  
   if (!aRequestBody.IsEmpty()) {
     rv = AddRequestBody(aRequestBody);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  
   
   
   bool match;
@@ -216,6 +220,7 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
   LOG(("FetchUpdate: %s", urlSpec.get()));
   
 
+  LOG(("Calling into FetchUpdate"));
   return FetchUpdate(mUpdateUrl, aRequestBody, EmptyCString(), EmptyCString());
 }
 
@@ -238,6 +243,9 @@ nsUrlClassifierStreamUpdater::UpdateUrlRequested(const nsACString &aUrl,
       StringBeginsWith(aUrl, NS_LITERAL_CSTRING("file:"))) {
     update->mUrl = aUrl;
   } else {
+    
+    
+    
     update->mUrl = NS_LITERAL_CSTRING("http://") + aUrl;
   }
   update->mTable = aTable;
@@ -418,6 +426,7 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
 
         uint32_t requestStatus;
         rv = httpChannel->GetResponseStatus(&requestStatus);
+        LOG(("HTTP request returned failure code: %d.", requestStatus));
         NS_ENSURE_SUCCESS(rv, rv);
 
         strStatus.AppendInt(requestStatus);
@@ -462,7 +471,6 @@ nsUrlClassifierStreamUpdater::OnDataAvailable(nsIRequest *request,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-
   rv = mDBService->UpdateStream(chunk);
   NS_ENSURE_SUCCESS(rv, rv);
 

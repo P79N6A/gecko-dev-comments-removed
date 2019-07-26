@@ -19,6 +19,7 @@ namespace safebrowsing {
 
 
 
+
 class ChunkSet {
 public:
   ChunkSet() {}

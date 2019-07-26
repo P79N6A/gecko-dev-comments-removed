@@ -3,6 +3,10 @@
 
 
 
+
+
+
+
 #ifndef SBEntries_h__
 #define SBEntries_h__
 
@@ -20,6 +24,7 @@ namespace safebrowsing {
 
 #define PREFIX_SIZE   4
 #define COMPLETE_SIZE 32
+
 
 template <uint32_t S, class Comparator>
 struct SafebrowsingHash
@@ -82,6 +87,19 @@ struct SafebrowsingHash
     PL_Base64Encode((char*)buf, sHashSize, aStr.BeginWriting());
     aStr.BeginWriting()[len] = '\0';
   }
+
+  void ToHexString(nsACString& aStr) const {
+    static const char* const lut = "0123456789ABCDEF";
+    
+    size_t len = 32;
+
+    aStr.SetCapacity(2 * len);
+    for (size_t i = 0; i < len; ++i) {
+      const char c = static_cast<const char>(buf[i]);
+      aStr.Append(lut[(c >> 4) & 0x0F]);
+      aStr.Append(lut[c & 15]);
+    }
+  }
 #endif
   uint32_t ToUint32() const {
       return *((uint32_t*)buf);
@@ -105,6 +123,7 @@ public:
       }
   }
 };
+
 typedef SafebrowsingHash<PREFIX_SIZE, PrefixComparator> Prefix;
 typedef nsTArray<Prefix> PrefixArray;
 
@@ -114,15 +133,19 @@ public:
     return memcmp(a, b, COMPLETE_SIZE);
   }
 };
+
 typedef SafebrowsingHash<COMPLETE_SIZE, CompletionComparator> Completion;
 typedef nsTArray<Completion> CompletionArray;
 
 struct AddPrefix {
+  
   Prefix prefix;
+  
   uint32_t addChunk;
 
   AddPrefix() : addChunk(0) {}
 
+  
   uint32_t Chunk() const { return addChunk; }
   const Prefix &PrefixHash() const { return prefix; }
 
@@ -137,21 +160,20 @@ struct AddPrefix {
 };
 
 struct AddComplete {
-  union {
-    Prefix prefix;
-    Completion complete;
-  } hash;
+  Completion complete;
   uint32_t addChunk;
 
   AddComplete() : addChunk(0) {}
 
   uint32_t Chunk() const { return addChunk; }
-  const Prefix &PrefixHash() const { return hash.prefix; }
-  const Completion &CompleteHash() const { return hash.complete; }
+  
+  uint32_t ToUint32() const { return complete.ToUint32(); }
+  
+  const Completion &CompleteHash() const { return complete; }
 
   template<class T>
   int Compare(const T& other) const {
-    int cmp = hash.complete.Compare(other.CompleteHash());
+    int cmp = complete.Compare(other.CompleteHash());
     if (cmp != 0) {
       return cmp;
     }
@@ -160,8 +182,11 @@ struct AddComplete {
 };
 
 struct SubPrefix {
+  
   Prefix prefix;
+  
   uint32_t addChunk;
+  
   uint32_t subChunk;
 
   SubPrefix(): addChunk(0), subChunk(0) {}
@@ -171,6 +196,7 @@ struct SubPrefix {
   const Prefix &PrefixHash() const { return prefix; }
 
   template<class T>
+  
   int Compare(const T& aOther) const {
     int cmp = prefix.Compare(aOther.PrefixHash());
     if (cmp != 0)
@@ -182,7 +208,9 @@ struct SubPrefix {
 
   template<class T>
   int CompareAlt(const T& aOther) const {
-    int cmp = prefix.Compare(aOther.PrefixHash());
+    Prefix other;
+    other.FromUint32(aOther.ToUint32());
+    int cmp = prefix.Compare(other);
     if (cmp != 0)
       return cmp;
     return addChunk - aOther.addChunk;
@@ -190,10 +218,7 @@ struct SubPrefix {
 };
 
 struct SubComplete {
-  union {
-    Prefix prefix;
-    Completion complete;
-  } hash;
+  Completion complete;
   uint32_t addChunk;
   uint32_t subChunk;
 
@@ -201,11 +226,12 @@ struct SubComplete {
 
   uint32_t Chunk() const { return subChunk; }
   uint32_t AddChunk() const { return addChunk; }
-  const Prefix &PrefixHash() const { return hash.prefix; }
-  const Completion &CompleteHash() const { return hash.complete; }
+  const Completion &CompleteHash() const { return complete; }
+  
+  uint32_t ToUint32() const { return complete.ToUint32(); }
 
   int Compare(const SubComplete& aOther) const {
-    int cmp = hash.complete.Compare(aOther.hash.complete);
+    int cmp = complete.Compare(aOther.complete);
     if (cmp != 0)
       return cmp;
     if (addChunk != aOther.addChunk)

@@ -12,6 +12,7 @@
 
 
 
+
 function QueryAdapter(callback) {
   this.callback_ = callback;
 };

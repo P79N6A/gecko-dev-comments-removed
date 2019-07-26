@@ -70,7 +70,8 @@ private:
   
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
 
-  nsresult LookupURI(nsIPrincipal* aPrincipal, nsIUrlClassifierCallback* c,
+  nsresult LookupURI(nsIPrincipal* aPrincipal,
+                     nsIUrlClassifierCallback* c,
                      bool forceCheck, bool *didCheck);
 
   

@@ -146,7 +146,7 @@ TableUpdate::NewAddComplete(uint32_t aAddChunk, const Completion& aHash)
 {
   AddComplete *add = mAddCompletes.AppendElement();
   add->addChunk = aAddChunk;
-  add->hash.complete = aHash;
+  add->complete = aHash;
 }
 
 void
@@ -154,7 +154,7 @@ TableUpdate::NewSubComplete(uint32_t aAddChunk, const Completion& aHash, uint32_
 {
   SubComplete *sub = mSubCompletes.AppendElement();
   sub->addChunk = aAddChunk;
-  sub->hash.complete = aHash;
+  sub->complete = aHash;
   sub->subChunk = aSubChunk;
 }
 
@@ -323,6 +323,8 @@ HashStore::CalculateChecksum(nsAutoCString& aChecksum,
   
   const uint32_t CHECKSUM_SIZE = 16;
 
+  
+  
   rv = hash->Init(nsICryptoHash::MD5);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -362,9 +364,7 @@ HashStore::UpdateHeader()
 nsresult
 HashStore::ReadChunkNumbers()
 {
-  if (!mInputStream) {
-    return NS_OK;
-  }
+  NS_ENSURE_STATE(mInputStream);
 
   nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mInputStream);
   nsresult rv = seekable->Seek(nsISeekableStream::NS_SEEK_SET,
@@ -385,6 +385,8 @@ nsresult
 HashStore::ReadHashes()
 {
   if (!mInputStream) {
+    
+    
     return NS_OK;
   }
 
@@ -1002,7 +1004,7 @@ HashStore::ProcessSubs()
 
   
   
-  KnockoutSubs(&mSubPrefixes,  &mAddPrefixes);
+  KnockoutSubs(&mSubPrefixes, &mAddPrefixes);
   KnockoutSubs(&mSubCompletes, &mAddCompletes);
 
   
