@@ -52,8 +52,11 @@ public:
   void AddFrame(nsIFrame* aFrame) {
     uint32_t depth = aFrame->GetDepthInFrameTree();
     if (mEntryList.empty() ||
-        !mEntryList.find(Entry(aFrame, depth, true))) {
-      mEntryList.insert(new Entry(aFrame, depth, true));
+        !mEntryList.find(Entry(aFrame, depth))) {
+      
+      
+      
+      mEntryList.insert(new Entry(aFrame, depth, STYLE_CHANGED));
     }
   }
 
@@ -66,8 +69,8 @@ public:
     }
 
     uint32_t depth = aFrame->GetDepthInFrameTree();
-    if (mEntryList.find(Entry(aFrame, depth, false))) {
-      delete mEntryList.remove(Entry(aFrame, depth, false));
+    if (mEntryList.find(Entry(aFrame, depth))) {
+      delete mEntryList.remove(Entry(aFrame, depth));
     }
   }
 
@@ -89,33 +92,42 @@ public:
   void Flush() {
     while (!mEntryList.empty()) {
       Entry *entry = mEntryList.removeMin();
-
       nsIFrame *frame = entry->mFrame;
 
-      bool updateParent = false;
-      if (entry->mInitial) {
+      bool overflowChanged;
+      if (entry->mFlags & CHILDREN_CHANGED) {
+        
+        overflowChanged = frame->UpdateOverflow();
+      } else {
         nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
           (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
         if (pre) {
           
           
+          
+          
+          
           nsOverflowAreas overflowAreas = *pre;
           frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
           
-          updateParent = true;
+          overflowChanged = true;
+        } else {
+          
+          overflowChanged = frame->UpdateOverflow();
         }
       }
 
       
       
-      if (!updateParent) {
-        updateParent = frame->UpdateOverflow() || entry->mInitial;
-      }
-      if (updateParent) {
+      
+      if (overflowChanged || (entry->mFlags & STYLE_CHANGED)) {
         nsIFrame *parent = frame->GetParent();
         if (parent && parent != mSubtreeRoot) {
-          if (!mEntryList.find(Entry(parent, entry->mDepth - 1, false))) {
-            mEntryList.insert(new Entry(parent, entry->mDepth - 1, false));
+          Entry* parentEntry = mEntryList.find(Entry(parent, entry->mDepth - 1));
+          if (parentEntry) {
+            parentEntry->mFlags |= CHILDREN_CHANGED;
+          } else {
+            mEntryList.insert(new Entry(parent, entry->mDepth - 1, CHILDREN_CHANGED));
           }
         }
       }
@@ -124,18 +136,26 @@ public:
   }
   
 private:
+  enum {
+    
+
+
+
+    CHILDREN_CHANGED = 0x01,
+    
+
+
+
+
+
+    STYLE_CHANGED = 0x02
+  };
   struct Entry : SplayTreeNode<Entry>
   {
-    Entry(nsIFrame* aFrame, bool aInitial)
-      : mFrame(aFrame)
-      , mDepth(aFrame->GetDepthInFrameTree())
-      , mInitial(aInitial)
-    {}
-    
-    Entry(nsIFrame* aFrame, uint32_t aDepth, bool aInitial)
+    Entry(nsIFrame* aFrame, uint32_t aDepth, uint8_t aFlags = 0)
       : mFrame(aFrame)
       , mDepth(aDepth)
-      , mInitial(aInitial)
+      , mFlags(aFlags)
     {}
 
     bool operator==(const Entry& aOther) const
@@ -169,11 +189,7 @@ private:
     nsIFrame* mFrame;
     
     uint32_t mDepth;
-    
-
-
-
-    bool mInitial;
+    uint8_t mFlags;
   };
 
   
@@ -374,4 +390,4 @@ inline bool RestyleTracker::AddPendingRestyle(Element* aElement,
 
 } 
 
-#endif 
+#endif
