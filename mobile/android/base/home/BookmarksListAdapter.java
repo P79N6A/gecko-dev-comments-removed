@@ -61,12 +61,17 @@ class BookmarksListAdapter extends MultiTypeCursorAdapter {
     
 
 
-    public void moveToParentFolder() {
+
+
+    public boolean moveToParentFolder() {
         
-        if (mParentStack.size() != 1) {
-            mParentStack.removeFirst();
-            refreshCurrentFolder();
+        if (mParentStack.size() == 1) {
+            return false;
         }
+
+        mParentStack.removeFirst();
+        refreshCurrentFolder();
+        return true;
     }
 
     
