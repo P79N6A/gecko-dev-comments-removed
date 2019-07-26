@@ -169,7 +169,8 @@ public:
                                            const CSSToScreenScale& aMinZoom,
                                            const CSSToScreenScale& aMaxZoom);
     virtual bool RecvUpdateScrollOffset(const uint32_t& aPresShellId, const ViewID& aViewId, const CSSIntPoint& aScrollOffset);
-    virtual bool RecvContentReceivedTouch(const bool& aPreventDefault);
+    virtual bool RecvContentReceivedTouch(const ScrollableLayerGuid& aGuid,
+                                          const bool& aPreventDefault);
     virtual bool RecvRecordingDeviceEvents(const nsString& aRecordingStatus,
                                            const bool& aIsAudio,
                                            const bool& aIsVideo);
@@ -346,7 +347,10 @@ private:
     
     
     
+    
+    
     void MaybeForwardEventToRenderFrame(const WidgetInputEvent& aEvent,
+                                        ScrollableLayerGuid* aOutTargetGuid,
                                         WidgetInputEvent* aOutEvent);
     
     
