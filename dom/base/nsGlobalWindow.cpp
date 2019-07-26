@@ -652,7 +652,10 @@ bool
 nsOuterWindowProxy::defineProperty(JSContext* cx, JSObject* proxy,
                                    jsid id, JSPropertyDescriptor* desc)
 {
-  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+  int32_t index = GetArrayIndexFromId(cx, id);
+  if (IsArrayIndex(index)) {
+    
+    
     
     
     return true;
@@ -685,6 +688,13 @@ nsOuterWindowProxy::delete_(JSContext *cx, JSObject *proxy, jsid id,
     
     
     *bp = false;
+    return true;
+  }
+
+  int32_t index = GetArrayIndexFromId(cx, id);
+  if (IsArrayIndex(index)) {
+    
+    *bp = true;
     return true;
   }
 
@@ -755,7 +765,8 @@ bool
 nsOuterWindowProxy::set(JSContext *cx, JSObject *proxy, JSObject *receiver,
                         jsid id, bool strict, JS::Value *vp)
 {
-  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+  int32_t index = GetArrayIndexFromId(cx, id);
+  if (IsArrayIndex(index)) {
     
     if (strict) {
       
