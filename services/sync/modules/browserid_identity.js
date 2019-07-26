@@ -72,6 +72,14 @@ this.BrowserIDManager.prototype = {
     return this._shouldHaveSyncKeyBundle;
   },
 
+  get needsCustomization() {
+    try {
+      return Services.prefs.getBoolPref("services.sync.needsCustomization");
+    } catch (e) {
+      return false;
+    }
+  },
+
   initialize: function() {
     Services.obs.addObserver(this, fxAccountsCommon.ONVERIFIED_NOTIFICATION, false);
     Services.obs.addObserver(this, fxAccountsCommon.ONLOGOUT_NOTIFICATION, false);
@@ -93,6 +101,25 @@ this.BrowserIDManager.prototype = {
         this._account = null;
         return;
       }
+
+      if (this.needsCustomization) {
+        
+        
+        const url = "chrome://browser/content/sync/customize.xul";
+        const features = "centerscreen,chrome,modal,dialog,resizable=no";
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+
+        let data = {accepted: false};
+        win.openDialog(url, "_blank", features, data);
+
+        if (data.accepted) {
+          Services.prefs.clearUserPref("services.sync.needsCustomization");
+        } else {
+          
+          return fxAccounts.signOut();
+        }
+      }
+
       this._account = accountData.email;
       
       this._log.info("Starting background fetch for key bundle.");
