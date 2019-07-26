@@ -20,6 +20,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 #include "mozilla/NullPtr.h"
  
 #include "jstypes.h"
@@ -28,19 +29,34 @@
 #include "js/TypeDecls.h"
 #include "js/Utility.h"
 
-struct jsid
-{
-    size_t asBits;
-    bool operator==(jsid rhs) const { return asBits == rhs.asBits; }
-    bool operator!=(jsid rhs) const { return asBits != rhs.asBits; }
-};
-#define JSID_BITS(id) (id.asBits)
-
 #define JSID_TYPE_STRING                 0x0
 #define JSID_TYPE_INT                    0x1
 #define JSID_TYPE_VOID                   0x2
 #define JSID_TYPE_OBJECT                 0x4
 #define JSID_TYPE_MASK                   0x7
+
+struct jsid
+{
+    size_t asBits;
+
+    jsid() {}
+
+#if !defined(_MSC_VER) && !defined(__sparc)
+    
+    
+    
+  private:
+#endif
+    MOZ_CONSTEXPR jsid(size_t bits) : asBits(bits) {}
+
+  public:
+    static MOZ_CONSTEXPR jsid voidId() { return jsid(JSID_TYPE_VOID); }
+    static MOZ_CONSTEXPR jsid emptyId() { return jsid(JSID_TYPE_OBJECT); }
+
+    bool operator==(jsid rhs) const { return asBits == rhs.asBits; }
+    bool operator!=(jsid rhs) const { return asBits != rhs.asBits; }
+};
+#define JSID_BITS(id) (id.asBits)
 
 
 
@@ -148,9 +164,6 @@ JSID_IS_EMPTY(const jsid id)
 
 #undef id
 
-extern JS_PUBLIC_DATA(const jsid) JSID_VOID;
-extern JS_PUBLIC_DATA(const jsid) JSID_EMPTY;
-
 extern JS_PUBLIC_DATA(const JS::Handle<jsid>) JSID_VOIDHANDLE;
 extern JS_PUBLIC_DATA(const JS::Handle<jsid>) JSID_EMPTYHANDLE;
 
@@ -168,7 +181,7 @@ IsPoisonedId(jsid iden)
 
 template <> struct GCMethods<jsid>
 {
-    static jsid initial() { return JSID_VOID; }
+    static jsid initial() { return jsid::voidId(); }
     static ThingRootKind kind() { return THING_ROOT_ID; }
     static bool poisoned(jsid id) { return IsPoisonedId(id); }
     static bool needsPostBarrier(jsid id) { return false; }

@@ -1381,7 +1381,7 @@ class HeapTypeSetKey
 
   public:
     HeapTypeSetKey()
-      : object_(nullptr), id_(JSID_EMPTY), maybeTypes_(nullptr)
+      : object_(nullptr), id_(jsid::emptyId()), maybeTypes_(nullptr)
     {}
 
     TypeObjectKey *object() const { return object_; }

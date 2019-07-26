@@ -213,7 +213,7 @@ IonBuilder::inlineArray(CallInfo &callInfo)
 
         types::TypeObjectKey *type = types::TypeObjectKey::get(templateObject);
         if (!type->unknownProperties()) {
-            types::HeapTypeSetKey elemTypes = type->property(JSID_VOID);
+            types::HeapTypeSetKey elemTypes = type->property(jsid::voidId());
 
             for (uint32_t i = 0; i < initLength; i++) {
                 MDefinition *value = callInfo.getArg(i);
@@ -468,7 +468,7 @@ IonBuilder::inlineArrayConcat(CallInfo &callInfo)
     
     
     
-    types::HeapTypeSetKey thisElemTypes = thisType->property(JSID_VOID);
+    types::HeapTypeSetKey thisElemTypes = thisType->property(jsid::voidId());
 
     types::TemporaryTypeSet *resTypes = getInlineReturnTypeSet();
     if (!resTypes->hasType(types::Type::ObjectType(thisType)))
@@ -482,7 +482,7 @@ IonBuilder::inlineArrayConcat(CallInfo &callInfo)
         if (argType->unknownProperties())
             return InliningStatus_NotInlined;
 
-        types::HeapTypeSetKey elemTypes = argType->property(JSID_VOID);
+        types::HeapTypeSetKey elemTypes = argType->property(jsid::voidId());
         if (!elemTypes.knownSubset(constraints(), thisElemTypes))
             return InliningStatus_NotInlined;
     }
@@ -958,7 +958,7 @@ IonBuilder::inlineStringSplit(CallInfo &callInfo)
     if (retType->unknownProperties())
         return InliningStatus_NotInlined;
 
-    types::HeapTypeSetKey key = retType->property(JSID_VOID);
+    types::HeapTypeSetKey key = retType->property(jsid::voidId());
     if (!key.maybeTypes())
         return InliningStatus_NotInlined;
 

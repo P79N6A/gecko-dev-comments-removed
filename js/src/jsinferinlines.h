@@ -170,7 +170,7 @@ IdToTypeId(jsid id)
 
 
     if (JSID_IS_INT(id))
-        return JSID_VOID;
+        return jsid::voidId();
 
     
 
@@ -184,12 +184,12 @@ IdToTypeId(jsid id)
                 if (!JS7_ISDEC(cp[i]))
                     return id;
             }
-            return JSID_VOID;
+            return jsid::voidId();
         }
         return id;
     }
 
-    return JSID_VOID;
+    return jsid::voidId();
 }
 
 const char * TypeIdStringImpl(jsid id);
