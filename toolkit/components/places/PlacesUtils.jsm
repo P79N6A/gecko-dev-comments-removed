@@ -2131,9 +2131,7 @@ this.PlacesUtils = {
 
 
 
-
-
-  getCharsetForURI: function PU_getCharsetForURI(aURI, aCallback) {
+  getCharsetForURI: function PU_getCharsetForURI(aURI) {
     let deferred = Promise.defer();
 
     Services.tm.mainThread.dispatch(function() {
@@ -2144,11 +2142,7 @@ this.PlacesUtils = {
                                                             PlacesUtils.CHARSET_ANNO);
       } catch (ex) { }
 
-      if (aCallback) {
-        aCallback(charset);
-      }
       deferred.resolve(charset);
-
     }, Ci.nsIThread.DISPATCH_NORMAL);
 
     return deferred.promise;
