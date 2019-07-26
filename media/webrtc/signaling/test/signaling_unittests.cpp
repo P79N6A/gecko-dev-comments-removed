@@ -506,7 +506,7 @@ class SignalingAgent {
   void Close()
   {
     cout << "Close" << endl;
-    pc->Close();
+    pc->Close(false);
     
     
     
