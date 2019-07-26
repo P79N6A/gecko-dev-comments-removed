@@ -142,17 +142,11 @@ public class HomeBanner extends LinearLayout
             @Override
             public void onBitmapFound(final Drawable d) {
                 
-                ThreadUtils.postToUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        
-                        if (d == null) {
-                            mIconView.setVisibility(View.GONE);
-                        } else {
-                            mIconView.setImageDrawable(d);
-                        }
-                    }
-                });
+                if (d == null) {
+                    mIconView.setVisibility(View.GONE);
+                } else {
+                    mIconView.setImageDrawable(d);
+                }
             }
         });
     }
