@@ -600,8 +600,11 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
   *aId = 0;
 
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
-  *aBackendType = lm->GetBackendType();
-  *aMaxTextureSize = lm->GetMaxTextureSize();
+  
+  if (lm) {
+    *aBackendType = lm->GetBackendType();
+    *aMaxTextureSize = lm->GetMaxTextureSize();
+  }
 
   if (CompositorParent::CompositorLoop()) {
     

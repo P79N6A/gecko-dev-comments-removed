@@ -495,7 +495,11 @@ public:
   static PRLogModuleInfo* GetLog() { return sLog; }
 
   bool IsCompositingCheap(LayersBackend aBackend)
-  { return LAYERS_BASIC != aBackend; }
+  {
+    
+    
+    return LAYERS_BASIC != aBackend && LAYERS_NONE != aBackend;
+  }
 
   virtual bool IsCompositingCheap() { return true; }
 
