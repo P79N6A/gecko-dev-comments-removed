@@ -752,7 +752,10 @@ bool nsIDNService::isLabelSafe(const nsAString &label)
   int32_t lastScript = MOZ_SCRIPT_INVALID;
   uint32_t previousChar = 0;
   uint32_t savedNumberingSystem = 0;
+
+#if 0
   HanVariantType savedHanVariant = HVT_NotHan;
+#endif
 
   int32_t savedScript = -1;
 
@@ -764,17 +767,21 @@ bool nsIDNService::isLabelSafe(const nsAString &label)
       ch = SURROGATE_TO_UCS4(ch, *current++);
     }
 
-    
-    XidmodType xm = GetIdentifierModification(ch);
     int32_t script = GetScriptCode(ch);
-    if (xm > XIDMOD_RECOMMENDED &&
-        !(xm == XIDMOD_LIMITED_USE &&
-          (script == MOZ_SCRIPT_CANADIAN_ABORIGINAL ||
-           script == MOZ_SCRIPT_MIAO ||
-           script == MOZ_SCRIPT_MONGOLIAN ||
-           script == MOZ_SCRIPT_TIFINAGH ||
-           script == MOZ_SCRIPT_YI))) {
-      return false;
+
+    
+    if (ch != 0x30fb) {
+      
+      XidmodType xm = GetIdentifierModification(ch);
+      if (xm > XIDMOD_RECOMMENDED &&
+          !(xm == XIDMOD_LIMITED_USE &&
+            (script == MOZ_SCRIPT_CANADIAN_ABORIGINAL ||
+             script == MOZ_SCRIPT_MIAO ||
+             script == MOZ_SCRIPT_MONGOLIAN ||
+             script == MOZ_SCRIPT_TIFINAGH ||
+             script == MOZ_SCRIPT_YI))) {
+        return false;
+      }
     }
 
     
@@ -808,6 +815,9 @@ bool nsIDNService::isLabelSafe(const nsAString &label)
     }
 
     
+#if 0
+
+    
     HanVariantType hanVariant = GetHanVariant(ch);
     if (hanVariant == HVT_SimplifiedOnly || hanVariant == HVT_TraditionalOnly) {
       if (savedHanVariant == HVT_NotHan) {
@@ -816,6 +826,7 @@ bool nsIDNService::isLabelSafe(const nsAString &label)
         return false;
       }
     }
+#endif
 
     previousChar = ch;
   }
