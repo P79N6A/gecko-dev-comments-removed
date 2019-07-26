@@ -463,21 +463,6 @@ GetJunkScope();
 nsCycleCollectionParticipant *
 xpc_JSZoneParticipant();
 
-
-
-
-
-namespace xpc {
-namespace danger {
-
-NS_EXPORT_(bool) PushJSContext(JSContext *aCx);
-NS_EXPORT_(void) PopJSContext();
-
-bool IsJSContextOnStack(JSContext *aCx);
-
-} 
-} 
-
 namespace mozilla {
 namespace dom {
 
