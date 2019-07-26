@@ -234,6 +234,11 @@ protected:
 
 
 
+
+
+
+
+
 class nsNSSShutDownObject
 {
 public:
