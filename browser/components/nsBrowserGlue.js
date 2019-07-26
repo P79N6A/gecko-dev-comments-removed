@@ -82,20 +82,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUITelemetry",
                                   "resource:///modules/BrowserUITelemetry.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
-                                  "resource:///modules/AsyncShutdown.jsm");
-
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
 
-const BOOKMARKS_BACKUP_IDLE_TIME_SEC = 10 * 60;
 
+const BOOKMARKS_BACKUP_IDLE_TIME = 10 * 60;
 
-const BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS = 1;
+const BOOKMARKS_BACKUP_INTERVAL = 86400 * 1000;
 
-
-const BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS = 5;
+const BOOKMARKS_BACKUP_MAX_BACKUPS = 10;
 
 
 const BrowserGlueServiceFactory = {
@@ -138,6 +134,7 @@ function BrowserGlue() {
 
 BrowserGlue.prototype = {
   _saveSession: false,
+  _isIdleObserver: false,
   _isPlacesInitObserver: false,
   _isPlacesLockedObserver: false,
   _isPlacesShutdownObserver: false,
@@ -265,7 +262,8 @@ BrowserGlue.prototype = {
         this._onPlacesShutdown();
         break;
       case "idle":
-        this._backupBookmarks();
+        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
+          this._backupBookmarks();
         break;
       case "distribution-customization-complete":
         Services.obs.removeObserver(this, "distribution-customization-complete");
@@ -424,10 +422,8 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "weave:engine:clients:display-uri");
 #endif
     os.removeObserver(this, "session-save");
-    if (this._bookmarksBackupIdleTime) {
-      this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
-      delete this._bookmarksBackupIdleTime;
-    }
+    if (this._isIdleObserver)
+      this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
     if (this._isPlacesInitObserver)
       os.removeObserver(this, "places-init-complete");
     if (this._isPlacesLockedObserver)
@@ -1068,7 +1064,7 @@ BrowserGlue.prototype = {
       
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         
-        var bookmarksBackupFile = yield PlacesBackups.getMostRecentBackup("json");
+        var bookmarksBackupFile = yield PlacesBackups.getMostRecent("json");
         if (bookmarksBackupFile) {
           
           yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
@@ -1166,38 +1162,10 @@ BrowserGlue.prototype = {
       }
 
       
-      if (!this._bookmarksBackupIdleTime) {
-        this._bookmarksBackupIdleTime = BOOKMARKS_BACKUP_IDLE_TIME_SEC;
-
-        
-        
-        let lastBackupFile = yield PlacesBackups.getMostRecentBackup();
-        if (!lastBackupFile) {
-            this._bookmarksBackupIdleTime /= 2;
-        }
-        else {
-          let lastBackupTime = PlacesBackups.getDateForFile(lastBackupFile);
-          let profileLastUse = Services.appinfo.replacedLockTime || Date.now();
-
-          
-          
-          
-          if (profileLastUse > lastBackupTime) {
-            let backupAge = Math.round((profileLastUse - lastBackupTime) / 86400000);
-            
-            try {
-              Services.telemetry
-                      .getHistogramById("PLACES_BACKUPS_DAYSFROMLAST")
-                      .add(backupAge);
-            } catch (ex) {
-              Components.utils.reportError("Unable to report telemetry.");
-            }
-
-            if (backupAge > BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS)
-              this._bookmarksBackupIdleTime /= 2;
-          }
-        }
-        this._idleService.addIdleObserver(this, this._bookmarksBackupIdleTime);
+      
+      if (!this._isIdleObserver) {
+        this._idleService.addIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+        this._isIdleObserver = true;
       }
 
       Services.obs.notifyObservers(null, "places-browser-init-complete", "");
@@ -1209,27 +1177,56 @@ BrowserGlue.prototype = {
 
 
 
+
   _onPlacesShutdown: function BG__onPlacesShutdown() {
     this._sanitizer.onShutdown();
     PageThumbs.uninit();
 
-    if (this._bookmarksBackupIdleTime) {
-      this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
-      delete this._bookmarksBackupIdleTime;
+    if (this._isIdleObserver) {
+      this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
+      this._isIdleObserver = false;
+    }
+
+    let waitingForBackupToComplete = true;
+    this._backupBookmarks().then(
+      function onSuccess() {
+        waitingForBackupToComplete = false;
+      },
+      function onFailure() {
+        Cu.reportError("Unable to backup bookmarks.");
+        waitingForBackupToComplete = false;
+      }
+    );
+
+    
+    
+    let waitingForHTMLExportToComplete = false;
+    
+    if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
+      
+      
+      
+      
+      
+      
+      waitingForHTMLExportToComplete = true;
+      BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile)).then(
+        function onSuccess() {
+          waitingForHTMLExportToComplete = false;
+        },
+        function onFailure() {
+          Cu.reportError("Unable to auto export html.");
+          waitingForHTMLExportToComplete = false;
+        }
+      );
     }
 
     
-    try {
-      if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
-        
-        
-        AsyncShutdown.profileBeforeChange.addBlocker(
-          "Places: bookmarks.html",
-          () => BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile))
-                                 .then(null, Cu.reportError)
-        );
-      }
-    } catch (ex) {} 
+    
+    let thread = Services.tm.currentThread;
+    while (waitingForBackupToComplete || waitingForHTMLExportToComplete) {
+      thread.processNextEvent(true);
+    }
   },
 
   
@@ -1241,9 +1238,14 @@ BrowserGlue.prototype = {
       
       
       if (!lastBackupFile ||
-          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_MIN_INTERVAL_DAYS * 86400000) {
-        let maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
-        yield PlacesBackups.create(maxBackups);
+          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
+        let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
+        try {
+          maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
+        }
+        catch(ex) {  }
+
+        yield PlacesBackups.create(maxBackups); 
       }
     });
   },
