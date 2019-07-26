@@ -78,7 +78,11 @@ public:
 
     
     
+#if ANDROID_VERSION == 17
+    void setFrameAvailableListener(const sp<FrameAvailableListener>& listener);
+#else
     void setFrameAvailableListener(const wp<FrameAvailableListener>& listener);
+#endif
 
 private:
     GonkConsumerBase(const GonkConsumerBase&);
@@ -210,7 +214,11 @@ protected:
     
     
     
+#if ANDROID_VERSION == 17
+    sp<FrameAvailableListener> mFrameAvailableListener;
+#else
     wp<FrameAvailableListener> mFrameAvailableListener;
+#endif
 
     
     

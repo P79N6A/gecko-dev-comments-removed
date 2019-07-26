@@ -18,7 +18,11 @@
 #ifndef NATIVEWINDOW_GONKNATIVEWINDOWCLIENT_JB_H
 #define NATIVEWINDOW_GONKNATIVEWINDOWCLIENT_JB_H
 
+#if ANDROID_VERSION == 17
+#include <gui/ISurfaceTexture.h>
+#else
 #include <gui/IGraphicBufferProducer.h>
+#endif
 
 #include <ui/ANativeObjectBase.h>
 #include <ui/Region.h>
@@ -69,13 +73,19 @@ public:
 
 
 
+#if ANDROID_VERSION == 17
+    sp<IGraphicBufferProducer> getISurfaceTexture() const;
+#else
     sp<IGraphicBufferProducer> getIGraphicBufferProducer() const;
+#endif
 
     
 
+#if ANDROID_VERSION >= 18
     static bool isValid(const sp<GonkNativeWindowClient>& surface) {
         return surface != NULL && surface->getIGraphicBufferProducer() != NULL;
     }
+#endif
 
 protected:
     virtual ~GonkNativeWindowClient();
@@ -163,8 +173,7 @@ private:
     
     
     
-    
-    sp<IGraphicBufferProducer> mGraphicBufferProducer;
+    sp<IGraphicBufferProducer> mBufferProducer;
 
     
     

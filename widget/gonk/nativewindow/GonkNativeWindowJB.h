@@ -86,16 +86,19 @@ class GonkNativeWindow: public GonkConsumerBase
     
     
     
+#if ANDROID_VERSION >= 18
     status_t acquireBuffer(BufferItem *item, bool waitForFence = true);
-
+#endif
     
     
     
     
     
     
+#if ANDROID_VERSION >= 18
     status_t releaseBuffer(const BufferItem &item,
             const sp<Fence>& releaseFence = Fence::NO_FENCE);
+#endif
 
     sp<IGraphicBufferProducer> getProducerInterface() const { return getBufferQueue(); }
 
