@@ -59,6 +59,7 @@ typedef void (*BluetoothProfileControllerCallback)();
 class BluetoothProfileController : public RefCounted<BluetoothProfileController>
 {
 public:
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(BluetoothProfileController)
   
 
 

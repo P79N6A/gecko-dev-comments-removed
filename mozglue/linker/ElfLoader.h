@@ -91,6 +91,7 @@ template <> inline RefCounted<LibHandle, AtomicRefCount>::~RefCounted()
 class LibHandle: public mozilla::AtomicRefCounted<LibHandle>
 {
 public:
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(LibHandle)
   
 
 
