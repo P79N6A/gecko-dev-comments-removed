@@ -382,11 +382,6 @@ private:
     
     
     static nsIPrincipal* doGetObjectPrincipal(JS::Handle<JSObject*> obj);
-#ifdef DEBUG
-    static nsIPrincipal*
-    old_doGetObjectPrincipal(JS::Handle<JSObject*> obj,
-                             bool aAllowShortCircuit = true);
-#endif
 
     
     
