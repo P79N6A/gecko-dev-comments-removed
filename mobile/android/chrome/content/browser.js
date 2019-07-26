@@ -283,8 +283,18 @@ var BrowserApp = {
       this.restoreSession(false, null);
     }
 
-    if (updated)
-      this.onAppUpdated();
+    if (updated) {
+        
+        
+        let browser = BrowserApp.selectedTab.browser;
+        let updatedFun = function updatedFun() {
+            browser.removeEventListener("DOMContentLoaded", updatedFun, false);
+            
+            Services.obs.notifyObservers(null, "FormHistory:Init", "");
+            Services.obs.notifyObservers(null, "Passwords:Init", "");
+        }
+        browser.addEventListener("DOMContentLoaded", updatedFun, false);
+    }
 
     
     sendMessageToJava({
@@ -485,12 +495,6 @@ var BrowserApp = {
         ContentAreaUtils.internalSave(aTarget.currentURI.spec, null, null, contentDisposition, type, false, "SaveImageTitle", null,
                                       aTarget.ownerDocument.documentURIObject, aTarget.ownerDocument, true, null);
       });
-  },
-
-  onAppUpdated: function() {
-    
-    Services.obs.notifyObservers(null, "FormHistory:Init", "");
-    Services.obs.notifyObservers(null, "Passwords:Init", "");
   },
 
   shutdown: function shutdown() {
