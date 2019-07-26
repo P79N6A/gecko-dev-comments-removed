@@ -1355,8 +1355,8 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   
-  if (IsHTML() && !HasDirAuto()) {
-    RecomputeDirectionality(this, false);
+  if (IsHTML()) {
+    ResetDir(this);
   }
 
   if (aDeep) {

@@ -126,6 +126,12 @@ void OnSetDirAttr(mozilla::dom::Element* aElement,
 
 void SetDirOnBind(mozilla::dom::Element* aElement, nsIContent* aParent);
 
+
+
+
+
+
+void ResetDir(mozilla::dom::Element* aElement);
 } 
 
 #endif 
