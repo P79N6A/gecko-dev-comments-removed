@@ -95,12 +95,12 @@ class nsZipArchive
 {
   friend class nsZipFind;
 
+  
+  ~nsZipArchive();
+
 public:
   
   nsZipArchive();
-
-  
-  ~nsZipArchive();
 
   
 
