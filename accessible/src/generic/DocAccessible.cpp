@@ -1739,10 +1739,33 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
   if (child) {
     updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
   } else {
-    TreeWalker walker(aContainer, aChildNode, true);
+    if (aIsInsert) {
+      TreeWalker walker(aContainer, aChildNode, true);
 
-    while ((child = walker.NextChild()))
-      updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
+      while ((child = walker.NextChild()))
+        updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
+    } else {
+      
+      
+      
+      
+      
+      
+      
+      nsINode* containerNode = aContainer->GetNode();
+      for (uint32_t idx = 0; idx < aContainer->ContentChildCount();) {
+        Accessible* child = aContainer->ContentChildAt(idx);
+        nsINode* childNode = child->GetContent();
+        while (childNode != aChildNode && childNode != containerNode &&
+               (childNode = childNode->GetParentNode()));
+
+        if (childNode != containerNode) {
+          updateFlags |= UpdateTreeInternal(child, false, reorderEvent);
+        } else {
+          idx++;
+        }
+      }
+    }
   }
 
   
