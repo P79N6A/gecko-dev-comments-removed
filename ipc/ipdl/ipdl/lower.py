@@ -4042,6 +4042,8 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         
         
         
+        
+        
         adoptShmem = MethodDefn(MethodDecl(
             'AdoptShmem',
             params=[ Decl(_shmemType(const=1, ref=1), memvar.name),
@@ -4053,7 +4055,14 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         ifbad = StmtIf(ExprBinary(
             ExprNot(rawvar), '||',
             ExprCall(ExprVar('IsTrackingSharedMemory'), args=[ rawvar ])))
-        ifbad.addifstmt(_runtimeAbort('bad Shmem'))
+        badShmemActions = []
+        if (self.side == 'child'):
+            badShmemActions.append(_runtimeAbort('bad Shmem'));
+        else:
+            badShmemActions.append(_printWarningMessage('bad Shmem'));
+        badShmemActions.append(StmtReturn.FALSE);
+        ifbad.addifstmts(badShmemActions)
+
         adoptShmem.addstmt(ifbad)
 
         ifadoptfails = StmtIf(ExprNot(ExprCall(
@@ -4079,6 +4088,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         
         
         
+        
         deallocShmem = MethodDefn(MethodDecl(
             'DeallocShmem',
             params=[ Decl(_shmemType(ref=1), memvar.name) ],
@@ -4086,7 +4096,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         okvar = ExprVar('ok')
 
         ifbad = StmtIf(ExprNot(okvar))
-        ifbad.addifstmt(_runtimeAbort('bad Shmem'))
+        ifbad.addifstmts(badShmemActions)
 
         deallocShmem.addstmts([
             StmtDecl(Decl(Type.BOOL, okvar.name),
