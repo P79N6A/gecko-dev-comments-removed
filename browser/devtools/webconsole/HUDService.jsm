@@ -411,6 +411,40 @@ WebConsole.prototype = {
 
 
 
+
+
+
+
+
+
+  getDebuggerFrames: function WC_getDebuggerFrames()
+  {
+    let toolbox = gDevTools.getToolbox(this.target);
+    if (!toolbox) {
+      return null;
+    }
+    let panel = toolbox.getPanel("jsdebugger");
+    if (!panel) {
+      return null;
+    }
+    let framesController = panel.panelWin.gStackFrames;
+    let thread = framesController.activeThread;
+    if (thread && thread.paused) {
+      return {
+        frames: thread.cachedFrames,
+        selected: framesController.currentFrame,
+      };
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+
   destroy: function WC_destroy()
   {
     if (this._destroyer) {

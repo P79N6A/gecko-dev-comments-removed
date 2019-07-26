@@ -82,12 +82,34 @@ WebConsoleClient.prototype = {
 
 
 
-  evaluateJS: function WCC_evaluateJS(aString, aOnResponse)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  evaluateJS: function WCC_evaluateJS(aString, aOnResponse, aOptions = {})
   {
     let packet = {
       to: this._actor,
       type: "evaluateJS",
       text: aString,
+      bindObjectActor: aOptions.bindObjectActor,
+      frameActor: aOptions.frameActor,
     };
     this._client.request(packet, aOnResponse);
   },

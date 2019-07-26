@@ -900,7 +900,7 @@ ThreadActor.prototype = {
       return this.threadLifetimePool.objectActors.get(aValue).grip();
     }
 
-    let actor = new ObjectActor(aValue, this);
+    let actor = new PauseScopedObjectActor(aValue, this);
     aPool.addActor(actor);
     aPool.objectActors.set(aValue, actor);
     return actor.grip();
@@ -1515,10 +1515,7 @@ function ObjectActor(aObj, aThreadActor)
   this.threadActor = aThreadActor;
 }
 
-ObjectActor.prototype = Object.create(PauseScopedActor.prototype);
-
-update(ObjectActor.prototype, {
-  constructor: ObjectActor,
+ObjectActor.prototype = {
   actorPrefix: "obj",
 
   
@@ -1552,7 +1549,9 @@ update(ObjectActor.prototype, {
 
 
   release: function OA_release() {
-    this.registeredPool.objectActors.delete(this.obj);
+    if (this.registeredPool.objectActors) {
+      this.registeredPool.objectActors.delete(this.obj);
+    }
     this.registeredPool.removeActor(this);
     this.disconnect();
   },
@@ -1568,11 +1567,10 @@ update(ObjectActor.prototype, {
 
 
 
-  onOwnPropertyNames:
-  PauseScopedActor.withPaused(function OA_onOwnPropertyNames(aRequest) {
+  onOwnPropertyNames: function OA_onOwnPropertyNames(aRequest) {
     return { from: this.actorID,
              ownPropertyNames: this.obj.getOwnPropertyNames() };
-  }),
+  },
 
   
 
@@ -1581,8 +1579,7 @@ update(ObjectActor.prototype, {
 
 
 
-  onPrototypeAndProperties:
-  PauseScopedActor.withPaused(function OA_onPrototypeAndProperties(aRequest) {
+  onPrototypeAndProperties: function OA_onPrototypeAndProperties(aRequest) {
     if (this.obj.proto) {
       
       
@@ -1608,7 +1605,7 @@ update(ObjectActor.prototype, {
     return { from: this.actorID,
              prototype: this.threadActor.createValueGrip(this.obj.proto),
              ownProperties: ownProperties };
-  }),
+  },
 
   
 
@@ -1616,10 +1613,10 @@ update(ObjectActor.prototype, {
 
 
 
-  onPrototype: PauseScopedActor.withPaused(function OA_onPrototype(aRequest) {
+  onPrototype: function OA_onPrototype(aRequest) {
     return { from: this.actorID,
              prototype: this.threadActor.createValueGrip(this.obj.proto) };
-  }),
+  },
 
   
 
@@ -1628,7 +1625,7 @@ update(ObjectActor.prototype, {
 
 
 
-  onProperty: PauseScopedActor.withPaused(function OA_onProperty(aRequest) {
+  onProperty: function OA_onProperty(aRequest) {
     if (!aRequest.name) {
       return { error: "missingParameter",
                message: "no property name was specified" };
@@ -1636,7 +1633,7 @@ update(ObjectActor.prototype, {
 
     return { from: this.actorID,
              descriptor: this._propertyDescriptor(aRequest.name) };
-  }),
+  },
 
   
 
@@ -1724,7 +1721,7 @@ update(ObjectActor.prototype, {
 
 
 
-  onDecompile: PauseScopedActor.withPaused(function OA_onDecompile(aRequest) {
+  onDecompile: function OA_onDecompile(aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "decompile request is only valid for object grips " +
@@ -1733,7 +1730,75 @@ update(ObjectActor.prototype, {
 
     return { from: this.actorID,
              decompiledCode: this.obj.decompile(!!aRequest.pretty) };
-  }),
+  },
+
+  
+
+
+
+
+
+  onParameterNames: function OA_onParameterNames(aRequest) {
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
+               message: "'parameterNames' request is only valid for object " +
+                        "grips with a 'Function' class." };
+    }
+
+    return { parameterNames: this.obj.parameterNames };
+  },
+
+  
+
+
+
+
+
+  onRelease: function OA_onRelease(aRequest) {
+    this.release();
+    return {};
+  },
+};
+
+ObjectActor.prototype.requestTypes = {
+  "parameterNames": ObjectActor.prototype.onParameterNames,
+  "prototypeAndProperties": ObjectActor.prototype.onPrototypeAndProperties,
+  "prototype": ObjectActor.prototype.onPrototype,
+  "property": ObjectActor.prototype.onProperty,
+  "ownPropertyNames": ObjectActor.prototype.onOwnPropertyNames,
+  "decompile": ObjectActor.prototype.onDecompile,
+  "release": ObjectActor.prototype.onRelease,
+};
+
+
+
+
+
+
+function PauseScopedObjectActor()
+{
+  ObjectActor.apply(this, arguments);
+}
+
+PauseScopedObjectActor.prototype = Object.create(PauseScopedActor.prototype);
+
+update(PauseScopedObjectActor.prototype, ObjectActor.prototype);
+
+update(PauseScopedObjectActor.prototype, {
+  constructor: PauseScopedObjectActor,
+
+  onOwnPropertyNames:
+    PauseScopedActor.withPaused(ObjectActor.prototype.onOwnPropertyNames),
+
+  onPrototypeAndProperties:
+    PauseScopedActor.withPaused(ObjectActor.prototype.onPrototypeAndProperties),
+
+  onPrototype: PauseScopedActor.withPaused(ObjectActor.prototype.onPrototype),
+  onProperty: PauseScopedActor.withPaused(ObjectActor.prototype.onProperty),
+  onDecompile: PauseScopedActor.withPaused(ObjectActor.prototype.onDecompile),
+
+  onParameterNames:
+    PauseScopedActor.withPaused(ObjectActor.prototype.onParameterNames),
 
   
 
@@ -1756,22 +1821,6 @@ update(ObjectActor.prototype, {
     }
 
     return { from: this.actorID, scope: envActor.form() };
-  }),
-
-  
-
-
-
-
-
-  onParameterNames: PauseScopedActor.withPaused(function OA_onParameterNames(aRequest) {
-    if (this.obj.class !== "Function") {
-      return { error: "objectNotFunction",
-               message: "'parameterNames' request is only valid for object " +
-                        "grips with a 'Function' class." };
-    }
-
-    return { parameterNames: this.obj.parameterNames };
   }),
 
   
@@ -1803,17 +1852,10 @@ update(ObjectActor.prototype, {
   }),
 });
 
-ObjectActor.prototype.requestTypes = {
-  "parameterNames": ObjectActor.prototype.onParameterNames,
-  "prototypeAndProperties": ObjectActor.prototype.onPrototypeAndProperties,
-  "prototype": ObjectActor.prototype.onPrototype,
-  "property": ObjectActor.prototype.onProperty,
-  "ownPropertyNames": ObjectActor.prototype.onOwnPropertyNames,
-  "scope": ObjectActor.prototype.onScope,
-  "decompile": ObjectActor.prototype.onDecompile,
-  "threadGrip": ObjectActor.prototype.onThreadGrip,
-  "release": ObjectActor.prototype.onRelease,
-};
+update(PauseScopedObjectActor.prototype.requestTypes, {
+  "scope": PauseScopedObjectActor.prototype.onScope,
+  "threadGrip": PauseScopedObjectActor.prototype.onThreadGrip,
+});
 
 
 
