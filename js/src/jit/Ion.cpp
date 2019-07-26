@@ -52,6 +52,7 @@
 #include "jscompartmentinlines.h"
 #include "jsgcinlines.h"
 #include "jsinferinlines.h"
+#include "jsscriptinlines.h"
 
 #include "vm/Shape-inl.h"
 
@@ -711,6 +712,15 @@ IonScript::trace(JSTracer *trc)
     
     for (size_t i = 0; i < callTargetEntries(); i++)
         gc::MarkScriptUnbarriered(trc, &callTargetList()[i], "callTarget");
+}
+
+ void
+IonScript::writeBarrierPre(Zone *zone, IonScript *ionScript)
+{
+#ifdef JSGC_INCREMENTAL
+    if (zone->needsBarrier())
+        ionScript->trace(zone->barrierTracer());
+#endif
 }
 
 void
@@ -2190,18 +2200,9 @@ ion::Invalidate(types::TypeCompartment &types, FreeOp *fop,
         JSScript *script = co.script;
         IonScript *ionScript = GetIonScript(script, executionMode);
 
-        Zone *zone = script->zone();
-        if (zone->needsBarrier()) {
-            
-            
-            
-            
-            IonScript::Trace(zone->barrierTracer(), ionScript);
-        }
-
+        SetIonScript(script, executionMode, NULL);
         ionScript->detachDependentAsmJSModules(fop);
         ionScript->decref(fop);
-        SetIonScript(script, executionMode, NULL);
         co.invalidate();
 
         
@@ -2261,19 +2262,19 @@ FinishInvalidationOf(FreeOp *fop, JSScript *script, IonScript *ionScript, bool p
 {
     
     
+    if (parallel)
+        script->setParallelIonScript(NULL);
+    else
+        script->setIonScript(NULL);
+
+    
+    
     if (!ionScript->invalidated()) {
         types::TypeCompartment &types = script->compartment()->types;
         ionScript->recompileInfo().compilerOutput(types)->invalidate();
 
         ion::IonScript::Destroy(fop, ionScript);
     }
-
-    
-    
-    if (parallel)
-        script->setParallelIonScript(NULL);
-    else
-        script->setIonScript(NULL);
 }
 
 void
