@@ -681,7 +681,7 @@ nsRefreshDriver::ChooseTimer() const
 nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
   : mActiveTimer(nullptr),
     mPresContext(aPresContext),
-    mFrozen(false),
+    mFreezeCount(0),
     mThrottled(false),
     mTestControllingRefreshes(false),
     mViewManagerFlushIsPending(false),
@@ -826,7 +826,7 @@ nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
   if (mActiveTimer && !aAdjustingTimer)
     return;
 
-  if (mFrozen || !mPresContext) {
+  if (IsFrozen() || !mPresContext) {
     
     StopTimer();
     return;
@@ -999,7 +999,7 @@ NS_IMPL_ISUPPORTS1(nsRefreshDriver, nsISupports)
 void
 nsRefreshDriver::DoTick()
 {
-  NS_PRECONDITION(!mFrozen, "Why are we notified while frozen?");
+  NS_PRECONDITION(!IsFrozen(), "Why are we notified while frozen?");
   NS_PRECONDITION(mPresContext, "Why are we notified after disconnection?");
   NS_PRECONDITION(!nsContentUtils::GetCurrentJSContext(),
                   "Shouldn't have a JSContext on the stack");
@@ -1037,7 +1037,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
   
   
   
-  if (mFrozen || !mPresContext) {
+  if (IsFrozen() || !mPresContext) {
     return;
   }
 
@@ -1293,23 +1293,28 @@ nsRefreshDriver::StartTableRefresh(const uint32_t& aDelay,
 void
 nsRefreshDriver::Freeze()
 {
-  NS_ASSERTION(!mFrozen, "Freeze called on already-frozen refresh driver");
   StopTimer();
-  mFrozen = true;
+  mFreezeCount++;
 }
 
 void
 nsRefreshDriver::Thaw()
 {
-  NS_ASSERTION(mFrozen, "Thaw called on an unfrozen refresh driver");
-  mFrozen = false;
-  if (ObserverCount() || ImageRequestCount()) {
-    
-    
-    
-    
-    NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, &nsRefreshDriver::DoRefresh));
-    EnsureTimerStarted(false);
+  NS_ASSERTION(mFreezeCount > 0, "Thaw() called on an unfrozen refresh driver");
+
+  if (mFreezeCount > 0) {
+    mFreezeCount--;
+  }
+
+  if (mFreezeCount == 0) {
+    if (ObserverCount() || ImageRequestCount()) {
+      
+      
+      
+      
+      NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, &nsRefreshDriver::DoRefresh));
+      EnsureTimerStarted(false);
+    }
   }
 }
 
@@ -1330,7 +1335,7 @@ void
 nsRefreshDriver::DoRefresh()
 {
   
-  if (!mFrozen && mPresContext && mActiveTimer) {
+  if (!IsFrozen() && mPresContext && mActiveTimer) {
     DoTick();
   }
 }

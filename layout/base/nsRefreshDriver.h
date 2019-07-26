@@ -213,13 +213,18 @@ public:
     mPresContext = nullptr;
   }
 
+  bool IsFrozen() { return mFreezeCount > 0; }
+
   
+
+
 
 
 
   void Freeze();
 
   
+
 
 
 
@@ -299,7 +304,7 @@ private:
   nsPresContext *mPresContext; 
                                
 
-  bool mFrozen;
+  uint32_t mFreezeCount;
   bool mThrottled;
   bool mTestControllingRefreshes;
   bool mViewManagerFlushIsPending;
