@@ -448,6 +448,7 @@ public class Tabs implements GeckoEventListener {
                     
                     tab.setBackgroundColor(Color.WHITE);
                 }
+                tab.setErrorType(message.optString("errorType"));
                 notifyListeners(tab, Tabs.TabEvents.LOADED);
             } else if (event.equals("DOMTitleChanged")) {
                 tab.updateTitle(message.getString("title"));
