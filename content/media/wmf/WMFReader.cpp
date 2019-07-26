@@ -507,8 +507,7 @@ WMFReader::ReadMetadata(MediaInfo* aInfo,
   HRESULT hr;
 
   const bool triedToInitDXVA = mUseHwAccel;
-  hr = CreateSourceReader();
-  if (FAILED(hr)) {
+  if (FAILED(CreateSourceReader())) {
     mSourceReader = nullptr;
     if (triedToInitDXVA && !mUseHwAccel) {
       
@@ -517,13 +516,15 @@ WMFReader::ReadMetadata(MediaInfo* aInfo,
       
       
       
-      hr = CreateSourceReader();
-      if (FAILED(hr)) {
-        NS_WARNING("Failed to create IMFSourceReader");
+      if (FAILED(CreateSourceReader())) {
         mSourceReader = nullptr;
-        return NS_ERROR_FAILURE;
       }
     }
+  }
+
+  if (!mSourceReader) {
+    NS_WARNING("Failed to create IMFSourceReader");
+    return NS_ERROR_FAILURE;
   }
 
   if (mInfo.HasVideo()) {
