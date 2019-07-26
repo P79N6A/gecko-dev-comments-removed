@@ -70,10 +70,10 @@ AppProtocolHandler.prototype = {
     let uri;
     if (this._runningInParent || appInfo.isCoreApp) {
       
-      uri = "jar:file://" + appInfo.basePath + appId + "/application.zip!" + fileSpec;
+      uri = "jar:file://" + appInfo.path + "/application.zip!" + fileSpec;
     } else {
       
-      uri = "jar:remoteopenfile://" + appInfo.basePath + appId + "/application.zip!" + fileSpec;
+      uri = "jar:remoteopenfile://" + appInfo.path + "/application.zip!" + fileSpec;
     }
     let channel = Services.io.newChannel(uri, null, null);
     channel.QueryInterface(Ci.nsIJARChannel).setAppURI(aURI);
