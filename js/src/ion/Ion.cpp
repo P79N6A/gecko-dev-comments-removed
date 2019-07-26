@@ -179,21 +179,20 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
     
 
-    bool mustMarkEnterJIT = false;
+    bool runningIonCode = false;
     for (IonActivationIterator iter(trc->runtime); iter.more(); ++iter) {
         IonActivation *activation = iter.activation();
 
         if (activation->compartment() != compartment)
             continue;
 
-        
-        
-        mustMarkEnterJIT = true;
+        runningIonCode = true;
+        break;
     }
 
     
     
-    if (mustMarkEnterJIT)
+    if (runningIonCode && enterJIT_)
         MarkIonCodeRoot(trc, enterJIT_.unsafeGet(), "enterJIT");
 
     
