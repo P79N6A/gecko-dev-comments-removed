@@ -181,10 +181,8 @@
 
 
 
-#if ( defined(_Windows) || defined(_WINDOWS) || defined(WIN32) ||\
-      defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__) ) &&\
-    ( defined(_X86_) || defined(_X64_) || defined(_M_IX86) ||\
-      defined(_M_X64) || defined(_M_IA64) )
+#if defined(_Windows) || defined(_WINDOWS) || defined(WIN32) ||\
+    defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
   
 
 
@@ -202,6 +200,9 @@
 #  if defined(__GNUC__) || (defined (_MSC_VER) && (_MSC_VER >= 800))
 #    define PNGCAPI __cdecl
 #    if PNG_API_RULE == 1
+       
+
+
 #      define PNGAPI __stdcall
 #    endif
 #  else

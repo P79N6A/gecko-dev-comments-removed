@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_5_13 Your_png_h_is_not_version_1_5_13;
+typedef png_libpng_version_1_5_14 Your_png_h_is_not_version_1_5_14;
 
 
 
@@ -73,12 +73,15 @@ PNG_FUNCTION(voidpf ,
 png_zalloc,(voidpf png_ptr, uInt items, uInt size),PNG_ALLOCATED)
 {
    png_voidp ptr;
-   png_structp p=(png_structp)png_ptr;
-   png_uint_32 save_flags=p->flags;
+   png_structp p;
+   png_uint_32 save_flags;
    png_alloc_size_t num_bytes;
 
    if (png_ptr == NULL)
       return (NULL);
+
+   p=(png_structp)png_ptr;
+   save_flags=p->flags;
 
    if (items > PNG_UINT_32_MAX/size)
    {
@@ -655,14 +658,14 @@ png_get_copyright(png_const_structp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.5.13 - September 27, 2012" PNG_STRING_NEWLINE \
-     "Copyright (c) 1998-2012 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
+     "libpng version 1.5.14 - January 24, 2013" PNG_STRING_NEWLINE \
+     "Copyright (c) 1998-2013 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.5.13 - September 27, 2012\
-      Copyright (c) 1998-2012 Glenn Randers-Pehrson\
+      return "libpng version 1.5.14 - January 24, 2013\
+      Copyright (c) 1998-2013 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
 #  endif
@@ -1458,7 +1461,7 @@ png_check_fp_string(png_const_charp string, png_size_t size)
 }
 #endif 
 
-#ifdef PNG_READ_sCAL_SUPPORTED
+#ifdef PNG_sCAL_SUPPORTED
 #  ifdef PNG_FLOATING_POINT_SUPPORTED
 
 
@@ -2044,7 +2047,8 @@ png_muldiv_warn(png_structp png_ptr, png_fixed_point a, png_int_32 times,
 }
 #endif
 
-#ifdef PNG_READ_GAMMA_SUPPORTED 
+#if (defined PNG_READ_GAMMA_SUPPORTED) || (defined PNG_cHRM_SUPPORTED)
+
 
 png_fixed_point
 png_reciprocal(png_fixed_point a)
@@ -2064,6 +2068,7 @@ png_reciprocal(png_fixed_point a)
    return 0; 
 }
 
+#ifdef PNG_READ_GAMMA_SUPPORTED
 
 static png_fixed_point
 png_product2(png_fixed_point a, png_fixed_point b)
@@ -2085,6 +2090,7 @@ png_product2(png_fixed_point a, png_fixed_point b)
 
    return 0; 
 }
+#endif 
 
 
 png_fixed_point

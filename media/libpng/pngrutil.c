@@ -2457,7 +2457,7 @@ png_handle_iTXt(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    png_textp text_ptr;
    png_charp key, lang, text, lang_key;
    int comp_flag;
-   int comp_type = 0;
+   int comp_type;
    int ret;
    png_size_t slength, prefix_len, data_len;
 
@@ -2538,15 +2538,24 @@ png_handle_iTXt(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       return;
    }
 
-   else
+   comp_flag = *lang++;
+   comp_type = *lang++;
+
+   
+
+
+
+   if (comp_flag != 0 && comp_flag != 1)
    {
-      comp_flag = *lang++;
-      comp_type = *lang++;
+      png_warning(png_ptr, "invalid iTXt compression flag");
+      png_free(png_ptr, png_ptr->chunkdata);
+      png_ptr->chunkdata = NULL;
+      return;
    }
 
-   if (comp_type || (comp_flag && comp_flag != PNG_TEXT_COMPRESSION_zTXt))
+   if (comp_flag && comp_type != 0)
    {
-      png_warning(png_ptr, "Unknown iTXt compression type or method");
+      png_warning(png_ptr, "unknown iTXt compression type");
       png_free(png_ptr, png_ptr->chunkdata);
       png_ptr->chunkdata = NULL;
       return;
@@ -2600,7 +2609,8 @@ png_handle_iTXt(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       return;
    }
 
-   text_ptr->compression = (int)comp_flag + 1;
+   text_ptr->compression =
+      (comp_flag ? PNG_ITXT_COMPRESSION_zTXt : PNG_ITXT_COMPRESSION_NONE);
    text_ptr->lang_key = png_ptr->chunkdata + (lang_key - key);
    text_ptr->lang = png_ptr->chunkdata + (lang - key);
    text_ptr->itxt_length = data_len;
@@ -3838,66 +3848,6 @@ png_read_filter_row_paeth_multibyte_pixel(png_row_infop row_info, png_bytep row,
    }
 }
 
-#ifdef PNG_ARM_NEON
-
-#ifdef __linux__
-#include <stdio.h>
-#include <elf.h>
-#include <asm/hwcap.h>
-
-static int png_have_hwcap(unsigned cap)
-{
-   FILE *f = fopen("/proc/self/auxv", "r");
-   Elf32_auxv_t aux;
-   int have_cap = 0;
-
-   if (!f)
-      return 0;
-
-   while (fread(&aux, sizeof(aux), 1, f) > 0)
-   {
-      if (aux.a_type == AT_HWCAP &&
-          aux.a_un.a_val & cap)
-      {
-         have_cap = 1;
-         break;
-      }
-   }
-
-   fclose(f);
-
-   return have_cap;
-}
-#endif 
-
-static void
-png_init_filter_functions_neon(png_structp pp, unsigned int bpp)
-{
-#ifdef __linux__
-   if (!png_have_hwcap(HWCAP_NEON))
-      return;
-#endif
-
-   pp->read_filter[PNG_FILTER_VALUE_UP-1] = png_read_filter_row_up_neon;
-
-   if (bpp == 3)
-   {
-      pp->read_filter[PNG_FILTER_VALUE_SUB-1] = png_read_filter_row_sub3_neon;
-      pp->read_filter[PNG_FILTER_VALUE_AVG-1] = png_read_filter_row_avg3_neon;
-      pp->read_filter[PNG_FILTER_VALUE_PAETH-1] =
-         png_read_filter_row_paeth3_neon;
-   }
-
-   else if (bpp == 4)
-   {
-      pp->read_filter[PNG_FILTER_VALUE_SUB-1] = png_read_filter_row_sub4_neon;
-      pp->read_filter[PNG_FILTER_VALUE_AVG-1] = png_read_filter_row_avg4_neon;
-      pp->read_filter[PNG_FILTER_VALUE_PAETH-1] =
-          png_read_filter_row_paeth4_neon;
-   }
-}
-#endif 
-
 static void
 png_init_filter_functions(png_structp pp)
 {
@@ -3913,8 +3863,16 @@ png_init_filter_functions(png_structp pp)
       pp->read_filter[PNG_FILTER_VALUE_PAETH-1] =
          png_read_filter_row_paeth_multibyte_pixel;
 
-#ifdef PNG_ARM_NEON
-   png_init_filter_functions_neon(pp, bpp);
+#ifdef PNG_FILTER_OPTIMIZATIONS
+   
+
+
+
+
+
+
+
+   PNG_FILTER_OPTIMIZATIONS(pp, bpp);
 #endif
 }
 

@@ -314,7 +314,6 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
       png_benign_error(png_ptr, "Wrote palette index exceeding num_palette");
 #endif
 
-    
 #ifdef PNG_WRITE_APNG_SUPPORTED
    if (png_ptr->num_frames_written != png_ptr->num_frames_to_write)
       png_error(png_ptr, "Not enough frames written");
@@ -430,7 +429,6 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
 }
 
 #ifdef PNG_CONVERT_tIME_SUPPORTED
-
 void PNGAPI
 png_convert_from_struct_tm(png_timep ptime, PNG_CONST struct tm FAR * ttime)
 {
@@ -1052,6 +1050,7 @@ png_set_filter(png_structp png_ptr, int method, int filters)
          case 5:
          case 6:
          case 7: png_warning(png_ptr, "Unknown row filter for method 0");
+             
 #endif 
          case PNG_FILTER_VALUE_NONE:
             png_ptr->do_filter = PNG_FILTER_NONE; break;
