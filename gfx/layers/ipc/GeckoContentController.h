@@ -64,6 +64,16 @@ public:
 
   virtual void PostDelayedTask(Task* aTask, int aDelayMs) = 0;
 
+  
+
+
+
+  virtual bool GetZoomConstraints(bool* aOutAllowZoom,
+                                  CSSToScreenScale* aOutMinZoom,
+                                  CSSToScreenScale* aOutMaxZoom)
+  {
+    return false;
+  }
 
   
 

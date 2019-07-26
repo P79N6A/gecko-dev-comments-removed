@@ -115,7 +115,9 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
 
         controller = container->GetAsyncPanZoomController();
-        if (!controller) {
+
+        bool newController = (controller == nullptr);
+        if (newController) {
           controller = new AsyncPanZoomController(aLayersId, state->mController,
                                                   AsyncPanZoomController::USE_GESTURE_DETECTOR);
           controller->SetCompositorParent(aCompositor);
@@ -151,6 +153,17 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
         
         aParent = controller;
+
+        if (newController && controller->IsRootForLayersId()) {
+          
+          
+          
+          bool allowZoom;
+          CSSToScreenScale minZoom, maxZoom;
+          if (state->mController->GetZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
+            controller->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
+          }
+        }
       }
     }
 
