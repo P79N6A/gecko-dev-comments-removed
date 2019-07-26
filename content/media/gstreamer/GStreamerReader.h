@@ -154,7 +154,10 @@ private:
 
   
   static void EosCb(GstAppSink* aSink, gpointer aUserData);
-  void Eos();
+  
+
+
+  void Eos(GstAppSink* aSink = nullptr);
 
   
 
@@ -221,7 +224,8 @@ private:
   
 
 
-  bool mReachedEos;
+  bool mReachedAudioEos;
+  bool mReachedVideoEos;
 #if GST_VERSION_MAJOR >= 1
   bool mConfigureAlignment;
 #endif
