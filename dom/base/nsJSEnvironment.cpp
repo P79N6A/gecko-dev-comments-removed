@@ -125,6 +125,12 @@ static PRLogModuleInfo* gJSDiagnostics;
 static const int64_t kICCIntersliceDelay = 32; 
 
 
+static const int64_t kICCSliceBudget = 10; 
+
+
+static const uint32_t kMaxICCDuration = 2000; 
+
+
 
 #define NS_CC_FORCED                (2 * 60 * PR_USEC_PER_SEC) // 2 min
 #define NS_CC_FORCED_PURPLE_LIMIT   10
@@ -2019,6 +2025,22 @@ struct CycleCollectorStats
 
 CycleCollectorStats gCCStats;
 
+static int64_t
+ICCSliceTime()
+{
+  
+  if (!sIncrementalCC) {
+    return -1;
+  }
+
+  
+  if (gCCStats.mBeginTime != 0 &&
+      TimeBetween(gCCStats.mBeginTime, PR_Now()) >= kMaxICCDuration) {
+    return -1;
+  }
+
+  return kICCSliceBudget;
+}
 
 static void
 PrepareForCycleCollection(int32_t aExtraForgetSkippableCalls = 0)
@@ -2076,15 +2098,18 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
 
 void
-nsJSContext::ScheduledCycleCollectNow()
+nsJSContext::ScheduledCycleCollectNow(int64_t aSliceTime)
 {
   if (!NS_IsMainThread()) {
     return;
   }
 
   PROFILER_LABEL("CC", "ScheduledCycleCollectNow");
+
+  
+  
   PrepareForCycleCollection();
-  nsCycleCollector_scheduledCollect();
+  nsCycleCollector_scheduledCollect(aSliceTime);
 }
 
 static void
@@ -2108,7 +2133,7 @@ ICCTimerFired(nsITimer* aTimer, void* aClosure)
     }
   }
 
-  nsJSContext::ScheduledCycleCollectNow();
+  nsJSContext::ScheduledCycleCollectNow(ICCSliceTime());
 }
 
 
@@ -2359,7 +2384,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       
       
       
-      nsJSContext::ScheduledCycleCollectNow();
+      nsJSContext::ScheduledCycleCollectNow(ICCSliceTime());
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
       
