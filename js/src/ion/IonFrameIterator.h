@@ -24,7 +24,12 @@ enum FrameType
     
     IonFrame_OptimizedJS,
 
+    
     IonFrame_BaselineJS,
+
+    
+    
+    IonFrame_BaselineStub,
 
     
     
@@ -121,6 +126,9 @@ class IonFrameIterator
     }
     bool isOptimizedJS() const {
         return type_ == IonFrame_OptimizedJS;
+    }
+    bool isBaselineStub() const {
+        return type_ == IonFrame_BaselineStub;
     }
     bool isNative() const;
     bool isOOLNativeGetter() const;

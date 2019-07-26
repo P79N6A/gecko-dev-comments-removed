@@ -241,6 +241,40 @@ BaselineScript::New(JSContext *cx, size_t icEntries)
     return script;
 }
 
+static void
+TraceStub(JSTracer *trc, ICStub *stub)
+{
+    IonCode *stubIonCode = stub->ionCode();
+    MarkIonCodeUnbarriered(trc, &stubIonCode, "baseline-stub-ioncode");
+
+    
+    
+    
+    
+    if (stub->isMonitoredFallback()) {
+        ICTypeMonitor_Fallback *lastMonStub =
+            stub->toMonitoredFallbackStub()->fallbackMonitorStub();
+        for (ICStub *monStub = lastMonStub->firstMonitorStub();
+             monStub != NULL;
+             monStub = monStub->next())
+        {
+            JS_ASSERT_IF(monStub->next() == NULL, monStub == lastMonStub);
+            IonCode *monStubIonCode = monStub->ionCode();
+            MarkIonCodeUnbarriered(trc, &monStubIonCode, "baseline-monitor-stub-ioncode");
+        }
+    }
+
+    switch (stub->kind()) {
+      case ICStub::Call_Scripted: {
+        ICCall_Scripted *callStub = stub->toCall_Scripted();
+        MarkObject(trc, &callStub->callee(), "baseline-callstub-callee");
+        break;
+      }
+      default:
+        break;
+    }
+}
+
 void
 BaselineScript::trace(JSTracer *trc)
 {
@@ -249,27 +283,8 @@ BaselineScript::trace(JSTracer *trc)
     
     for (size_t i = 0; i < numICEntries(); i++) {
         ICEntry &ent = icEntry(i);
-        for (ICStub *stub = ent.firstStub(); stub; stub = stub->next()) {
-            IonCode *stubIonCode = stub->ionCode();
-            MarkIonCodeUnbarriered(trc, &stubIonCode, "baseline-stub-ioncode");
-
-            
-            
-            
-            
-            if (stub->isMonitoredFallback()) {
-                ICTypeMonitor_Fallback *lastMonStub =
-                    stub->toMonitoredFallbackStub()->fallbackMonitorStub();
-                for (ICStub *monStub = lastMonStub->firstMonitorStub();
-                     monStub != NULL;
-                     monStub = monStub->next())
-                {
-                    JS_ASSERT_IF(monStub->next() == NULL, monStub == lastMonStub);
-                    IonCode *monStubIonCode = monStub->ionCode();
-                    MarkIonCodeUnbarriered(trc, &monStubIonCode, "baseline-monitor-stub-ioncode");
-                }
-            }
-        }
+        for (ICStub *stub = ent.firstStub(); stub; stub = stub->next())
+            TraceStub(trc, stub);
     }
 }
 

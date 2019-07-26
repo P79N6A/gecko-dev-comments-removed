@@ -728,11 +728,7 @@ BaselineCompiler::emitCall()
         return false;
 
     
-    
-    masm.addPtr(Imm32((argc + 2) * sizeof(Value) * 2), BaselineStackReg);
-
-    
-    frame.popn(argc + 2, DontAdjustStack);
+    frame.popn(argc + 2);
     frame.push(R0);
     return true;
 }

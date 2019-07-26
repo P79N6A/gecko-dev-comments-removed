@@ -13,7 +13,6 @@
 #include "ion/Bailouts.h"
 #include "ion/VMFunctions.h"
 #include "ion/IonSpewer.h"
-#include "ion/ExecutionModeInlines.h"
 
 #include "jsscriptinlines.h"
 
@@ -177,7 +176,7 @@ IonRuntime::generateEnterJIT(JSContext *cx)
     masm.ret();
 
     Linker linker(masm);
-    return linker.newCode(cx, JSC::OTHER_CODE);
+    return linker.newCode(cx);
 }
 
 IonCode *
@@ -192,12 +191,12 @@ IonRuntime::generateInvalidator(JSContext *cx)
 
     
     masm.reserveStack(Registers::Total * sizeof(void *));
-    for (uint32_t i = 0; i < Registers::Total; i++)
+    for (uint32 i = 0; i < Registers::Total; i++)
         masm.movq(Register::FromCode(i), Operand(rsp, i * sizeof(void *)));
 
     
     masm.reserveStack(FloatRegisters::Total * sizeof(double));
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
+    for (uint32 i = 0; i < FloatRegisters::Total; i++)
         masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
 
     masm.movq(rsp, rbx); 
@@ -219,11 +218,11 @@ IonRuntime::generateInvalidator(JSContext *cx)
     masm.generateBailoutTail(rdx);
 
     Linker linker(masm);
-    return linker.newCode(cx, JSC::OTHER_CODE);
+    return linker.newCode(cx);
 }
 
 IonCode *
-IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode)
+IonRuntime::generateArgumentsRectifier(JSContext *cx)
 {
     
 
@@ -290,8 +289,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode)
     
     
     masm.movq(Operand(rax, offsetof(JSFunction, u.i.script_)), rax);
-    masm.movq(Operand(rax, OffsetOfIonInJSScript(mode)), rax);
-    masm.movq(Operand(rax, IonScript::offsetOfMethod()), rax);
+    masm.loadBaselineOrIonCode(rax);
     masm.movq(Operand(rax, IonCode::offsetOfCode()), rax);
     masm.call(rax);
 
@@ -305,20 +303,20 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode)
     masm.ret();
 
     Linker linker(masm);
-    return linker.newCode(cx, JSC::OTHER_CODE);
+    return linker.newCode(cx);
 }
 
 static void
-GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
+GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
 {
     
     masm.reserveStack(Registers::Total * sizeof(void *));
-    for (uint32_t i = 0; i < Registers::Total; i++)
+    for (uint32 i = 0; i < Registers::Total; i++)
         masm.movq(Register::FromCode(i), Operand(rsp, i * sizeof(void *)));
 
     
     masm.reserveStack(FloatRegisters::Total * sizeof(double));
-    for (uint32_t i = 0; i < FloatRegisters::Total; i++)
+    for (uint32 i = 0; i < FloatRegisters::Total; i++)
         masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
 
     
@@ -336,7 +334,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     
     
     
-    static const uint32_t BailoutDataSize = sizeof(void *) * Registers::Total +
+    static const uint32 BailoutDataSize = sizeof(void *) * Registers::Total +
                                           sizeof(double) * FloatRegisters::Total;
     masm.addq(Imm32(BailoutDataSize), rsp);
     masm.pop(rcx);
@@ -346,7 +344,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
 }
 
 IonCode *
-IonRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
+IonRuntime::generateBailoutTable(JSContext *cx, uint32 frameClass)
 {
     JS_NOT_REACHED("x64 does not use bailout tables");
     return NULL;
@@ -360,7 +358,7 @@ IonRuntime::generateBailoutHandler(JSContext *cx)
     GenerateBailoutThunk(cx, masm, NO_FRAME_SIZE_CLASS_ID);
 
     Linker linker(masm);
-    return linker.newCode(cx, JSC::OTHER_CODE);
+    return linker.newCode(cx);
 }
 
 IonCode *
@@ -419,7 +417,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
       case Type_Int32:
         outReg = regs.takeAny();
-        masm.reserveStack(sizeof(int32_t));
+        masm.reserveStack(sizeof(int32));
         masm.movq(esp, outReg);
         break;
 
@@ -440,7 +438,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     if (f.explicitArgs) {
-        for (uint32_t explicitArg = 0; explicitArg < f.explicitArgs; explicitArg++) {
+        for (uint32 explicitArg = 0; explicitArg < f.explicitArgs; explicitArg++) {
             MoveOperand from;
             switch (f.argProperties(explicitArg)) {
               case VMFunction::WordByValue:
@@ -491,7 +489,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
       case Type_Int32:
         masm.load32(Address(esp, 0), ReturnReg);
-        masm.freeStack(sizeof(int32_t));
+        masm.freeStack(sizeof(int32));
         break;
 
       default:
@@ -505,7 +503,7 @@ IonRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.handleException();
 
     Linker linker(masm);
-    IonCode *wrapper = linker.newCode(cx, JSC::OTHER_CODE);
+    IonCode *wrapper = linker.newCode(cx);
     if (!wrapper)
         return NULL;
 
@@ -543,6 +541,6 @@ IonRuntime::generatePreBarrier(JSContext *cx, MIRType type)
     masm.ret();
 
     Linker linker(masm);
-    return linker.newCode(cx, JSC::OTHER_CODE);
+    return linker.newCode(cx);
 }
 

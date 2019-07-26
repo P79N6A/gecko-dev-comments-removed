@@ -67,7 +67,7 @@ EmitReturnFromIC(MacroAssembler &masm)
 }
 
 inline void
-EmitTailCall(IonCode *target, MacroAssembler &masm, uint32_t argSize)
+EmitTailCallVM(IonCode *target, MacroAssembler &masm, uint32_t argSize)
 {
     
     masm.movq(BaselineFrameReg, ScratchReg);
@@ -84,6 +84,68 @@ EmitTailCall(IonCode *target, MacroAssembler &masm, uint32_t argSize)
     masm.push(ScratchReg);
     masm.push(BaselineTailCallReg);
     masm.jmp(target);
+}
+
+inline void
+EmitCreateStubFrameDescriptor(MacroAssembler &masm, Register reg)
+{
+    
+    
+    masm.movq(BaselineFrameReg, reg);
+    masm.addq(Imm32(sizeof(void *) * 2), reg);
+    masm.subq(BaselineStackReg, reg);
+
+    masm.makeFrameDescriptor(reg, IonFrame_BaselineStub);
+}
+
+inline void
+EmitCallVM(IonCode *target, MacroAssembler &masm)
+{
+    EmitCreateStubFrameDescriptor(masm, ScratchReg);
+    masm.push(ScratchReg);
+    masm.call(target);
+}
+
+inline void
+EmitEnterStubFrame(MacroAssembler &masm, Register)
+{
+    EmitRestoreTailCallReg(masm);
+
+    
+    masm.movq(BaselineFrameReg, ScratchReg);
+    masm.addq(Imm32(BaselineFrame::FramePointerOffset), ScratchReg);
+    masm.subq(BaselineStackReg, ScratchReg);
+
+    masm.storePtr(ScratchReg, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
+
+    
+    masm.makeFrameDescriptor(ScratchReg, IonFrame_BaselineJS);
+    masm.push(ScratchReg);
+    masm.push(BaselineTailCallReg);
+
+    
+    masm.push(BaselineStubReg);
+    masm.push(BaselineFrameReg);
+    masm.mov(BaselineStackReg, BaselineFrameReg);
+}
+
+inline void
+EmitLeaveStubFrame(MacroAssembler &masm)
+{
+    
+    masm.mov(BaselineFrameReg, BaselineStackReg);
+    masm.pop(BaselineFrameReg);
+    masm.pop(BaselineStubReg);
+
+    
+    masm.pop(BaselineTailCallReg);
+
+    
+    masm.pop(ScratchReg);
+
+    
+    
+    masm.push(BaselineTailCallReg);
 }
 
 inline void

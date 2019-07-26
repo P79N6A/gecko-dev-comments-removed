@@ -400,7 +400,15 @@ class IonOsrFrameLayout : public IonJSFrameLayout
     static inline size_t Size() {
         return sizeof(IonOsrFrameLayout);
     }
- };
+};
+
+class IonBaselineStubFrameLayout : public IonCommonFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(IonBaselineStubFrameLayout);
+    }
+};
 
 
 class InvalidationBailoutStack
