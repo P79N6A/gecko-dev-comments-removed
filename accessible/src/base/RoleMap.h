@@ -37,7 +37,7 @@ ROLE(SCROLLBAR,
      NSAccessibilityScrollBarRole,  
      ROLE_SYSTEM_SCROLLBAR,
      ROLE_SYSTEM_SCROLLBAR,
-     eNoNameRule)
+     eNameFromValueRule)
 
 ROLE(GRIP,
      "grip",
@@ -430,7 +430,7 @@ ROLE(SLIDER,
      NSAccessibilitySliderRole,
      ROLE_SYSTEM_SLIDER,
      ROLE_SYSTEM_SLIDER,
-     eNoNameRule)
+     eNameFromValueRule)
 
 ROLE(SPINBUTTON,
      "spinbutton",
@@ -438,7 +438,7 @@ ROLE(SPINBUTTON,
      NSAccessibilityIncrementorRole,  
      ROLE_SYSTEM_SPINBUTTON,
      ROLE_SYSTEM_SPINBUTTON,
-     eNoNameRule)
+     eNameFromValueRule)
 
 ROLE(DIAGRAM,
      "diagram",
