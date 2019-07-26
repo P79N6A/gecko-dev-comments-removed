@@ -378,122 +378,8 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
   gfx3DMatrix transformToGecko;
   switch (aEvent.mInputType) {
     case MULTITOUCH_INPUT: {
-      const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
-      if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_START) {
-        
-        
-        
-        
-        if (mApzcForInputBlock && mApzcForInputBlock->IsOverscrolled()) {
-          if (mRetainedTouchIdentifier == -1) {
-            mRetainedTouchIdentifier = mApzcForInputBlock->GetLastTouchIdentifier();
-          }
-          return nsEventStatus_eConsumeNoDefault;
-        }
-        
-        
-        mTouchCount = multiTouchInput.mTouches.Length();
-        mInOverscrolledApzc = false;
-        nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint),
-                                                                          &mInOverscrolledApzc);
-        for (size_t i = 1; i < multiTouchInput.mTouches.Length(); i++) {
-          nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[i].mScreenPoint),
-                                                                 &mInOverscrolledApzc);
-          apzc = CommonAncestor(mApzcForInputBlock.get(), apzc2.get());
-          APZCTM_LOG("Using APZC %p as the common ancestor\n", mApzcForInputBlock.get());
-          
-          
-          apzc = RootAPZCForLayersId(mApzcForInputBlock);
-          APZCTM_LOG("Using APZC %p as the root APZC for multi-touch\n", mApzcForInputBlock.get());
-        }
-        if (apzc != mApzcForInputBlock) {
-          
-          
-          
-          if (mApzcForInputBlock) {
-            MultiTouchInput cancel(MultiTouchInput::MULTITOUCH_CANCEL, 0, TimeStamp::Now(), 0);
-            mApzcForInputBlock->ReceiveInputEvent(cancel);
-          }
-          mApzcForInputBlock = apzc;
-        }
-
-        
-        BuildOverscrollHandoffChain(mApzcForInputBlock);
-
-        if (mApzcForInputBlock) {
-          
-          GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToGecko);
-          mCachedTransformToApzcForInputBlock = transformToApzc;
-        } else {
-          
-          mCachedTransformToApzcForInputBlock = gfx3DMatrix();
-        }
-      } else if (mApzcForInputBlock) {
-        APZCTM_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
-      }
-
-      
-      
-      if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL) {
-        mRetainedTouchIdentifier = -1;
-      }
-
-      if (mApzcForInputBlock) {
-        mApzcForInputBlock->GetGuid(aOutTargetGuid);
-        
-        
-        
-        transformToApzc = mCachedTransformToApzcForInputBlock;
-
-        
-        
-        MultiTouchInput inputForApzc(multiTouchInput);
-
-        
-        
-        if (mRetainedTouchIdentifier != -1) {
-          for (size_t j = 0; j < inputForApzc.mTouches.Length(); ++j) {
-            if (inputForApzc.mTouches[j].mIdentifier != mRetainedTouchIdentifier) {
-              
-              
-              
-              
-              
-              inputForApzc.mTouches.RemoveElementAt(j);
-              --j;
-            }
-          }
-          if (inputForApzc.mTouches.IsEmpty()) {
-            return nsEventStatus_eConsumeNoDefault;
-          }
-        }
-
-        for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
-          ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
-        }
-        mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
-      }
-      result = mInOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
-             : mApzcForInputBlock ? nsEventStatus_eConsumeDoDefault
-             : nsEventStatus_eIgnore;
-      if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
-          multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END) {
-        if (mTouchCount >= multiTouchInput.mTouches.Length()) {
-          
-          mTouchCount -= multiTouchInput.mTouches.Length();
-        } else {
-          NS_WARNING("Got an unexpected touchend/touchcancel");
-          mTouchCount = 0;
-        }
-        
-        
-        if (mTouchCount == 0) {
-          mApzcForInputBlock = nullptr;
-          mInOverscrolledApzc = false;
-          mRetainedTouchIdentifier = -1;
-          ClearOverscrollHandoffChain();
-        }
-      }
+      MultiTouchInput touchInput = aEvent.AsMultiTouchInput();
+      result = ProcessTouchInput(touchInput, aOutTargetGuid);
       break;
     } case PANGESTURE_INPUT: {
       const PanGestureInput& panInput = aEvent.AsPanGestureInput();
@@ -554,15 +440,17 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
 }
 
 already_AddRefed<AsyncPanZoomController>
-APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
+APZCTreeManager::GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
                                         bool* aOutInOverscrolledApzc)
 {
-  ScreenPoint point = ScreenPoint(aEvent.touches[0]->mRefPoint.x, aEvent.touches[0]->mRefPoint.y);
-  
-  nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(point, aOutInOverscrolledApzc);
-  for (size_t i = 1; i < aEvent.touches.Length(); i++) {
-    point = ScreenPoint(aEvent.touches[i]->mRefPoint.x, aEvent.touches[i]->mRefPoint.y);
-    nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(point, aOutInOverscrolledApzc);
+  nsRefPtr<AsyncPanZoomController> apzc;
+  if (aEvent.mTouches.Length() == 0) {
+    return apzc.forget();
+  }
+
+  apzc = GetTargetAPZC(aEvent.mTouches[0].mScreenPoint, aOutInOverscrolledApzc);
+  for (size_t i = 1; i < aEvent.mTouches.Length(); i++) {
+    nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(aEvent.mTouches[i].mScreenPoint, aOutInOverscrolledApzc);
     apzc = CommonAncestor(apzc.get(), apzc2.get());
     APZCTM_LOG("Using APZC %p as the common ancestor\n", apzc.get());
     
@@ -570,21 +458,18 @@ APZCTreeManager::GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent,
     apzc = RootAPZCForLayersId(apzc);
     APZCTM_LOG("Using APZC %p as the root APZC for multi-touch\n", apzc.get());
   }
+
   
   BuildOverscrollHandoffChain(apzc);
+
   return apzc.forget();
 }
 
 nsEventStatus
-APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
+APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
                                    ScrollableLayerGuid* aOutTargetGuid)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (!aEvent.touches.Length()) {
-    return nsEventStatus_eIgnore;
-  }
-  if (aEvent.message == NS_TOUCH_START) {
+  if (aInput.mType == MultiTouchInput::MULTITOUCH_START) {
     
     
     
@@ -595,12 +480,12 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
       }
       return nsEventStatus_eConsumeNoDefault;
     }
-    
-    
-    mTouchCount = aEvent.touches.Length();
-    mInOverscrolledApzc = false;
 
-    nsRefPtr<AsyncPanZoomController> apzc = GetTouchInputBlockAPZC(aEvent, &mInOverscrolledApzc);
+    
+    
+    mTouchCount = aInput.mTouches.Length();
+    mInOverscrolledApzc = false;
+    nsRefPtr<AsyncPanZoomController> apzc = GetTouchInputBlockAPZC(aInput, &mInOverscrolledApzc);
     if (apzc != mApzcForInputBlock) {
       
       
@@ -620,11 +505,13 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
       
       mCachedTransformToApzcForInputBlock = gfx3DMatrix();
     }
+  } else if (mApzcForInputBlock) {
+    APZCTM_LOG("Re-using APZC %p as continuation of event block\n", mApzcForInputBlock.get());
   }
 
   
   
-  if (aEvent.message == NS_TOUCH_CANCEL) {
+  if (aInput.mType == MultiTouchInput::MULTITOUCH_CANCEL) {
     mRetainedTouchIdentifier = -1;
   }
 
@@ -633,13 +520,13 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
   
   
   if (mRetainedTouchIdentifier != -1) {
-    for (size_t j = 0; j < aEvent.touches.Length(); ++j) {
-      if (aEvent.touches[j]->Identifier() != mRetainedTouchIdentifier) {
-        aEvent.touches.RemoveElementAt(j);
+    for (size_t j = 0; j < aInput.mTouches.Length(); ++j) {
+      if (aInput.mTouches[j].mIdentifier != mRetainedTouchIdentifier) {
+        aInput.mTouches.RemoveElementAt(j);
         --j;
       }
     }
-    if (aEvent.touches.IsEmpty()) {
+    if (aInput.mTouches.IsEmpty()) {
       return nsEventStatus_eConsumeNoDefault;
     }
   }
@@ -650,7 +537,7 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     
     
     gfx3DMatrix transformToApzc = mCachedTransformToApzcForInputBlock;
-    MultiTouchInput inputForApzc(aEvent);
+    MultiTouchInput inputForApzc(aInput);
     for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
       ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
     }
@@ -662,31 +549,36 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     gfx3DMatrix transformToGecko;
     GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToGecko);
     gfx3DMatrix outTransform = transformToApzc * transformToGecko;
-    for (size_t i = 0; i < aEvent.touches.Length(); i++) {
-      ApplyTransform(&(aEvent.touches[i]->mRefPoint), outTransform);
+    for (size_t i = 0; i < aInput.mTouches.Length(); i++) {
+      ApplyTransform(&(aInput.mTouches[i].mScreenPoint), outTransform);
     }
   }
+
   nsEventStatus result = mInOverscrolledApzc ? nsEventStatus_eConsumeNoDefault
                        : mApzcForInputBlock ? nsEventStatus_eConsumeDoDefault
                        : nsEventStatus_eIgnore;
-  
-  
-  if (aEvent.message == NS_TOUCH_CANCEL ||
-      aEvent.message == NS_TOUCH_END) {
-    if (mTouchCount >= aEvent.touches.Length()) {
+
+  if (aInput.mType == MultiTouchInput::MULTITOUCH_END) {
+    if (mTouchCount >= aInput.mTouches.Length()) {
       
-      mTouchCount -= aEvent.touches.Length();
+      mTouchCount -= aInput.mTouches.Length();
     } else {
       NS_WARNING("Got an unexpected touchend/touchcancel");
       mTouchCount = 0;
     }
-    if (mTouchCount == 0) {
-      mApzcForInputBlock = nullptr;
-      mInOverscrolledApzc = false;
-      mRetainedTouchIdentifier = -1;
-      ClearOverscrollHandoffChain();
-    }
+  } else if (aInput.mType == MultiTouchInput::MULTITOUCH_CANCEL) {
+    mTouchCount = 0;
   }
+
+  
+  
+  if (mTouchCount == 0) {
+    mApzcForInputBlock = nullptr;
+    mInOverscrolledApzc = false;
+    mRetainedTouchIdentifier = -1;
+    ClearOverscrollHandoffChain();
+  }
+
   return result;
 }
 
@@ -735,12 +627,27 @@ nsEventStatus
 APZCTreeManager::ReceiveInputEvent(WidgetInputEvent& aEvent,
                                    ScrollableLayerGuid* aOutTargetGuid)
 {
+  
+  
+  
+
   MOZ_ASSERT(NS_IsMainThread());
 
   switch (aEvent.eventStructType) {
     case NS_TOUCH_EVENT: {
       WidgetTouchEvent& touchEvent = *aEvent.AsTouchEvent();
-      return ProcessTouchEvent(touchEvent, aOutTargetGuid);
+      MultiTouchInput touchInput(touchEvent);
+      nsEventStatus result = ProcessTouchInput(touchInput, aOutTargetGuid);
+      
+      
+      
+      
+      touchEvent.touches.Clear();
+      touchEvent.touches.SetCapacity(touchInput.mTouches.Length());
+      for (size_t i = 0; i < touchInput.mTouches.Length(); i++) {
+        *touchEvent.touches.AppendElement() = touchInput.mTouches[i].ToNewDOMTouch();
+      }
+      return result;
     }
     default: {
       return ProcessEvent(aEvent, aOutTargetGuid);
