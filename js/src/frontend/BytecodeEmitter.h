@@ -113,10 +113,10 @@ struct BytecodeEmitter
     OwnedAtomIndexMapPtr atomIndices; 
     unsigned        firstLine;      
 
-    int             stackDepth;     
-    unsigned        maxStackDepth;  
+    int32_t         stackDepth;     
+    uint32_t        maxStackDepth;  
 
-    unsigned        arrayCompDepth; 
+    uint32_t        arrayCompDepth; 
 
     unsigned        emitLevel;      
 

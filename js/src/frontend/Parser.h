@@ -199,7 +199,8 @@ struct ParseContext : public GenericParseContext
 
 
 
-    bool generateFunctionBindings(ExclusiveContext *cx, LifoAlloc &alloc,
+    bool generateFunctionBindings(ExclusiveContext *cx, TokenStream &ts,
+                                  LifoAlloc &alloc,
                                   InternalHandle<Bindings*> bindings) const;
 
   private:
