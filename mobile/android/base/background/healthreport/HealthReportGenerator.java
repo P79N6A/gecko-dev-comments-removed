@@ -442,11 +442,24 @@ public class HealthReportGenerator {
 
 
 
+
+
+
+
+
+
+
+
+
   public static JSONObject diff(JSONObject from,
                                 JSONObject to,
                                 boolean includeNull) throws JSONException {
-    if (from == null || from == JSONObject.NULL) {
+    if (from == null) {
       return to;
+    }
+
+    if (to == null) {
+      return diff(from, new JSONObject(), includeNull);
     }
 
     JSONObject out = new JSONObject();
