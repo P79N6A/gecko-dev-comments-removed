@@ -18,17 +18,38 @@ class Common(object):
     
     handle = False
 
-    def __init__(self, value, cache):
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    def __init__(self, value, cache, content_printer=None):
         self.value = value
+        self.cache = cache
+        self.content_printer = content_printer
     def to_string(self):
         ptr = self.value[self.member]
         if self.handle:
             ptr = ptr.dereference()
-        
-        
-        
-        
-        return str(ptr)
+        if self.content_printer:
+            return self.content_printer(ptr, self.cache).to_string()
+        else:
+            
+            
+            
+            
+            return str(ptr)
 
 @template_pretty_printer("js::Rooted")
 class Rooted(Common):

@@ -10,6 +10,9 @@ FRAGMENT(Root, null) {
 
 void callee(JS::Handle<JSObject *> obj, JS::MutableHandle<JSObject *> mutableObj)
 {
+  
+  
+  fprintf(stderr, "Called " __FILE__ ":callee\n");
   breakpoint();
 }
 
