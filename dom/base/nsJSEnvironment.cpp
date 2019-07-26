@@ -79,6 +79,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/asmjscache/AsmJSCache.h"
 #include "mozilla/dom/CanvasRenderingContext2DBinding.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/ContentEvents.h"
@@ -2877,6 +2878,16 @@ nsJSContext::EnsureStatics()
     InstanceClassHasProtoAtDepth
   };
   SetDOMCallbacks(sRuntime, &DOMcallbacks);
+
+  
+  static JS::AsmJSCacheOps asmJSCacheOps = {
+    asmjscache::OpenEntryForRead,
+    asmjscache::CloseEntryForRead,
+    asmjscache::OpenEntryForWrite,
+    asmjscache::CloseEntryForWrite,
+    asmjscache::GetBuildId
+  };
+  JS::SetAsmJSCacheOps(sRuntime, &asmJSCacheOps);
 
   
   Preferences::RegisterCallbackAndCall(ReportAllJSExceptionsPrefChangedCallback,
