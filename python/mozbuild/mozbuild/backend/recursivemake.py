@@ -111,9 +111,9 @@ class BackendMakeFile(object):
             self.fh.write('NONRECURSIVE_TARGETS += export\n')
             self.fh.write('NONRECURSIVE_TARGETS_export += xpidl\n')
             self.fh.write('NONRECURSIVE_TARGETS_export_xpidl_DIRECTORY = '
-                '$(DEPTH)/config/makefiles/precompile\n')
+                '$(DEPTH)/xpcom/xpidl\n')
             self.fh.write('NONRECURSIVE_TARGETS_export_xpidl_TARGETS += '
-                'xpidl\n')
+                'export\n')
 
         return self.fh.close()
 
@@ -428,24 +428,16 @@ class RecursiveMakeBackend(CommonBackend):
                 subdirs.dirs + subdirs.tests + subdirs.tools
 
         
-        def other_filter(current, subdirs):
-            if current == 'subtiers/precompile':
-                return None, [], []
-            return parallel_filter(current, subdirs)
-
-        
         def libs_filter(current, subdirs):
-            if current == 'subtiers/precompile':
-                return None, [], []
             return current, subdirs.parallel, \
                 subdirs.static + subdirs.dirs + subdirs.tests
 
         
         filters = {
             'export': export_filter,
-            'compile': other_filter,
+            'compile': parallel_filter,
             'libs': libs_filter,
-            'tools': other_filter,
+            'tools': parallel_filter,
         }
 
         root_deps_mk = Makefile()
