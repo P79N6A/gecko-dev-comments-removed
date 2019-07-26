@@ -158,7 +158,8 @@ ion::CheckFrequentBailouts(JSContext *cx, JSScript *script)
     
 
     if (script->hasIonScript() &&
-        script->ionScript()->numBailouts() >= js_IonOptions.frequentBailoutThreshold)
+        script->ionScript()->numBailouts() >= js_IonOptions.frequentBailoutThreshold &&
+        !script->hadFrequentBailouts)
     {
         script->hadFrequentBailouts = true;
 
