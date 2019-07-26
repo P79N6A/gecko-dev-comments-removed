@@ -370,12 +370,11 @@ nsFileControlFrame::CaptureMouseListener::HandleEvent(nsIDOMEvent* aMouseEvent)
     
     
     
-   
+
     inputElement->SetFiles(newFiles, true);
-    
-    
-    
-    inputElement->FireChangeEventIfNeeded();
+    nsContentUtils::DispatchTrustedEvent(content->OwnerDoc(), content,
+                                         NS_LITERAL_STRING("change"), true,
+                                         false);
   }
 
   return NS_OK;
@@ -434,9 +433,10 @@ nsFileControlFrame::BrowseMouseListener::HandleEvent(nsIDOMEvent* aEvent)
     nsCOMPtr<nsIDOMFileList> fileList;
     dataTransfer->GetFiles(getter_AddRefs(fileList));
 
-    
     inputElement->SetFiles(fileList, true);
-    inputElement->FireChangeEventIfNeeded();
+    nsContentUtils::DispatchTrustedEvent(content->OwnerDoc(), content,
+                                         NS_LITERAL_STRING("change"), true,
+                                         false);
   }
 
   return NS_OK;
