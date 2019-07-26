@@ -9,6 +9,7 @@
 #include "nsEventShell.h"
 #include "DocAccessible.h"
 #include "nsAccessibilityService.h"
+#include "nsTextEquivUtils.h"
 #ifdef A11Y_LOG
 #include "Logging.h"
 #endif
@@ -36,6 +37,38 @@ EventQueue::PushEvent(AccEvent* aEvent)
 
   
   CoalesceEvents();
+
+  
+  
+  
+  Accessible* target = aEvent->mAccessible;
+  if (aEvent->mEventRule != AccEvent::eDoNotEmit &&
+      target->HasNameDependentParent() &&
+      (aEvent->mEventType == nsIAccessibleEvent::EVENT_NAME_CHANGE ||
+       aEvent->mEventType == nsIAccessibleEvent::EVENT_TEXT_REMOVED ||
+       aEvent->mEventType == nsIAccessibleEvent::EVENT_TEXT_INSERTED ||
+       aEvent->mEventType == nsIAccessibleEvent::EVENT_SHOW ||
+       aEvent->mEventType == nsIAccessibleEvent::EVENT_HIDE)) {
+    
+    
+    Accessible* parent = target->Parent();
+    while (parent &&
+           nsTextEquivUtils::HasNameRule(parent, eNameFromSubtreeIfReqRule)) {
+      
+      if (nsTextEquivUtils::HasNameRule(parent, eNameFromSubtreeRule)) {
+        nsAutoString name;
+        ENameValueFlag nameFlag = parent->Name(name);
+        
+        if (nameFlag == eNameFromSubtree) {
+          nsRefPtr<AccEvent> nameChangeEvent =
+            new AccEvent(nsIAccessibleEvent::EVENT_NAME_CHANGE, parent);
+          PushEvent(nameChangeEvent);
+        }
+        break;
+      }
+      parent = parent->Parent();
+    }
+  }
 
   
   

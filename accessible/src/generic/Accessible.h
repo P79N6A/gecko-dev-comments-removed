@@ -579,6 +579,8 @@ public:
   bool IsXULLabel() const { return mType == eXULLabelType; }
   XULLabelAccessible* AsXULLabel();
 
+  bool IsXULListItem() const { return mType == eXULListItemType; }
+
   bool IsXULTabpanels() const { return mType == eXULTabpanelsType; }
 
   bool IsXULTree() const { return mType == eXULTreeType; }
@@ -790,6 +792,13 @@ public:
   bool NeedsDOMUIEvent() const
     { return !(mStateFlags & eIgnoreDOMUIEvent); }
 
+  
+
+
+
+  bool HasNameDependentParent() const
+    { return mContextFlags & eHasNameDependentParent; }
+
 protected:
 
   
@@ -865,6 +874,15 @@ protected:
     eIgnoreDOMUIEvent = 1 << 6, 
 
     eLastStateFlag = eGroupInfoDirty
+  };
+
+  
+
+
+  enum ContextFlags {
+    eHasNameDependentParent = 1 << 0, 
+
+    eLastContextFlag = eHasNameDependentParent
   };
 
 protected:
@@ -970,6 +988,7 @@ protected:
 
   static const uint8_t kChildrenFlagsBits = 2;
   static const uint8_t kStateFlagsBits = 6;
+  static const uint8_t kContextFlagsBits = 1;
   static const uint8_t kTypeBits = 6;
   static const uint8_t kGenericTypesBits = 12;
 
@@ -978,6 +997,7 @@ protected:
 
   uint32_t mChildrenFlags : kChildrenFlagsBits;
   uint32_t mStateFlags : kStateFlagsBits;
+  uint32_t mContextFlags : kContextFlagsBits;
   uint32_t mType : kTypeBits;
   uint32_t mGenericTypes : kGenericTypesBits;
 

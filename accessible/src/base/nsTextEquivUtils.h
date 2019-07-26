@@ -49,6 +49,18 @@ public:
 
 
 
+
+  static inline bool HasNameRule(Accessible* aAccessible, ETextEquivRule aRule)
+  {
+    return (GetRoleRule(aAccessible->Role()) & aRule) == aRule;
+  }
+
+  
+
+
+
+
+
   static nsresult GetNameFromSubtree(Accessible* aAccessible,
                                      nsAString& aName);
 
