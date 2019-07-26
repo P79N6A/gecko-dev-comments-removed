@@ -20,7 +20,9 @@ namespace mozilla {
 
 MOZ_BEGIN_ENUM_CLASS(PixelCastJustification, uint8_t)
   
-  ScreenToParentLayerForRoot
+  ScreenToParentLayerForRoot,
+  
+  ParentLayerToLayerForRootComposition
 MOZ_END_ENUM_CLASS(PixelCastJustification)
 
 template <class TargetUnits, class SourceUnits>
@@ -42,6 +44,10 @@ gfx::PointTyped<TargetUnits> ViewAs(const gfxPoint& aPoint) {
 template <class TargetUnits>
 gfx::RectTyped<TargetUnits> ViewAs(const gfxRect& aRect) {
   return gfx::RectTyped<TargetUnits>(aRect.x, aRect.y, aRect.width, aRect.height);
+}
+template <class TargetUnits>
+gfx::IntSizeTyped<TargetUnits> ViewAs(const nsIntSize& aSize) {
+  return gfx::IntSizeTyped<TargetUnits>(aSize.width, aSize.height);
 }
 
 
