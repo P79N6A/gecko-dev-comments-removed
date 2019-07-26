@@ -252,11 +252,12 @@ SelectionPrototype.prototype = {
 
 
 
-  _handleSelectionPoint: function _handleSelectionPoint(aMarker, aClientPoint,
+  _handleSelectionPoint: function _handleSelectionPoint(aSelectionInfo,
                                                         aEndOfSelection) {
     let selection = this._getSelection();
 
-    let clientPoint = { xPos: aClientPoint.xPos, yPos: aClientPoint.yPos };
+    let markerToChange = aSelectionInfo.change == "start" ?
+        aSelectionInfo.start : aSelectionInfo.end;
 
     if (selection.rangeCount == 0) {
       this._onFail("selection.rangeCount == 0");
@@ -270,15 +271,76 @@ SelectionPrototype.prototype = {
 
     
     
-    let halfLineHeight = this._queryHalfLineHeight(aMarker, selection);
-    clientPoint.yPos -= halfLineHeight;
+    let halfLineHeight = this._queryHalfLineHeight(aSelectionInfo.start,
+        selection);
+    aSelectionInfo.start.yPos -= halfLineHeight;
+    aSelectionInfo.end.yPos -= halfLineHeight;
+
+    let isSwapNeeded = false;
+    if (this._isSelectionSwapNeeded(aSelectionInfo.start, aSelectionInfo.end,
+        halfLineHeight)) {
+      [aSelectionInfo.start, aSelectionInfo.end] =
+          [aSelectionInfo.end, aSelectionInfo.start];
+
+      isSwapNeeded = true;
+      this.sendAsync("Content:SelectionSwap");
+    }
 
     
     if (this._targetIsEditable && !Util.isEditableContent(this._targetElement)) {
-      this._adjustEditableSelection(aMarker, clientPoint, aEndOfSelection);
+      if (isSwapNeeded) {
+        this._adjustEditableSelection("start", aSelectionInfo.start,
+            aEndOfSelection);
+        this._adjustEditableSelection("end", aSelectionInfo.end,
+            aEndOfSelection);
+      } else {
+        this._adjustEditableSelection(aSelectionInfo.change, markerToChange,
+            aEndOfSelection);
+      }
     } else {
-      this._adjustSelectionAtPoint(aMarker, clientPoint, aEndOfSelection);
+      if (isSwapNeeded) {
+        this._adjustSelectionAtPoint("start", aSelectionInfo.start,
+            aEndOfSelection, true);
+        this._adjustSelectionAtPoint("end", aSelectionInfo.end,
+            aEndOfSelection, true);
+      } else {
+        this._adjustSelectionAtPoint(aSelectionInfo.change, markerToChange,
+            aEndOfSelection);
+      }
     }
+  },
+
+  
+
+
+
+
+
+
+
+  _isSelectionSwapNeeded: function(aStart, aEnd, aYThreshold) {
+    let isSwapNeededByX = aStart.xPos > aEnd.xPos;
+    let isSwapNeededByY = aStart.yPos - aEnd.yPos > aYThreshold;
+    let onTheSameLine = Math.abs(aStart.yPos - aEnd.yPos) <= aYThreshold;
+
+    if (this._targetIsEditable &&
+        !Util.isEditableContent(this._targetElement)) {
+
+      
+      
+      if (aStart.restrictedToBounds && aEnd.restrictedToBounds) {
+        return false;
+      }
+
+      
+      if (Util.isMultilineInput(this._targetElement)) {
+        return isSwapNeededByY || (isSwapNeededByX && onTheSameLine);
+      }
+
+      return isSwapNeededByX;
+    }
+
+    return isSwapNeededByY || (isSwapNeededByX && onTheSameLine);
   },
 
   
@@ -376,8 +438,11 @@ SelectionPrototype.prototype = {
 
 
 
-  _adjustSelectionAtPoint: function _adjustSelectionAtPoint(aMarker, aClientPoint,
-                                                            aEndOfSelection) {
+
+
+
+  _adjustSelectionAtPoint: function _adjustSelectionAtPoint(aMarker,
+      aClientPoint, aEndOfSelection, suppressSelectionUIUpdate) {
     
     this._backupRangeList();
 
@@ -397,10 +462,31 @@ SelectionPrototype.prototype = {
         Ci.nsIDOMWindowUtils.SELECT_CHARACTER);
 
       
-      selectResult = 
-        this._domWinUtils.selectAtPoint(framePoint.xPos,
-                                        framePoint.yPos,
-                                        type);
+      selectResult = this._domWinUtils.selectAtPoint(framePoint.xPos,
+          framePoint.yPos, type);
+
+      
+      
+      
+      
+      if (selectResult && shrunk && this._rangeBackup) {
+        let selection = this._getSelection();
+
+        let currentSelection = this._extractUIRects(
+            selection.getRangeAt(selection.rangeCount - 1)).selection;
+        let previousSelection = this._extractUIRects(
+            this._rangeBackup[0]).selection;
+
+        if (aMarker == "start" &&
+            currentSelection.right > previousSelection.right) {
+          selectResult = false;
+        }
+
+        if (aMarker == "end"  &&
+            currentSelection.left < previousSelection.left) {
+          selectResult = false;
+        }
+      }
     } catch (ex) {
     }
 
@@ -418,7 +504,9 @@ SelectionPrototype.prototype = {
     
     
     
-    this._updateSelectionUI("update", aMarker == "end", aMarker == "start");
+    this._updateSelectionUI("update",
+      aMarker == "end" && !suppressSelectionUIUpdate,
+      aMarker == "start" && !suppressSelectionUIUpdate);
   },
 
   
@@ -437,6 +525,10 @@ SelectionPrototype.prototype = {
   _restoreRangeList: function _restoreRangeList() {
     if (this._rangeBackup == null)
       return;
+
+    
+    this._getSelection().removeAllRanges();
+
     for (let idx = 0; idx < this._rangeBackup.length; idx++) {
       this._getSelection().addRange(this._rangeBackup[idx]);
     }
@@ -823,36 +915,45 @@ SelectionPrototype.prototype = {
 
 
 
+
+
+  _restrictPointToRectangle: function(aPoint, aRectangle) {
+    let restrictionWasRequired = false;
+
+    if (aPoint.xPos < aRectangle.left) {
+      aPoint.xPos = aRectangle.left;
+      restrictionWasRequired = true;
+    } else if (aPoint.xPos > aRectangle.right) {
+      aPoint.xPos = aRectangle.right;
+      restrictionWasRequired = true;
+    }
+
+    if (aPoint.yPos < aRectangle.top) {
+      aPoint.yPos = aRectangle.top;
+      restrictionWasRequired = true;
+    } else if (aPoint.yPos > aRectangle.bottom) {
+      aPoint.yPos = aRectangle.bottom;
+      restrictionWasRequired = true;
+    }
+
+    return restrictionWasRequired;
+  },
+
+  
+
+
+
+
   _restrictSelectionRectToEditBounds: function _restrictSelectionRectToEditBounds() {
     if (!this._targetIsEditable)
       return;
 
-    let bounds = this._getTargetBrowserRect();
-    if (this._cache.start.xPos < bounds.left)
-      this._cache.start.xPos = bounds.left;
-    if (this._cache.end.xPos < bounds.left)
-      this._cache.end.xPos = bounds.left;
-    if (this._cache.caret.xPos < bounds.left)
-      this._cache.caret.xPos = bounds.left;
-    if (this._cache.start.xPos > bounds.right)
-      this._cache.start.xPos = bounds.right;
-    if (this._cache.end.xPos > bounds.right)
-      this._cache.end.xPos = bounds.right;
-    if (this._cache.caret.xPos > bounds.right)
-      this._cache.caret.xPos = bounds.right;
-
-    if (this._cache.start.yPos < bounds.top)
-      this._cache.start.yPos = bounds.top;
-    if (this._cache.end.yPos < bounds.top)
-      this._cache.end.yPos = bounds.top;
-    if (this._cache.caret.yPos < bounds.top)
-      this._cache.caret.yPos = bounds.top;
-    if (this._cache.start.yPos > bounds.bottom)
-      this._cache.start.yPos = bounds.bottom;
-    if (this._cache.end.yPos > bounds.bottom)
-      this._cache.end.yPos = bounds.bottom;
-    if (this._cache.caret.yPos > bounds.bottom)
-      this._cache.caret.yPos = bounds.bottom;
+    let targetRectangle = this._getTargetBrowserRect();
+    this._cache.start.restrictedToBounds = this._restrictPointToRectangle(
+        this._cache.start, targetRectangle);
+    this._cache.end.restrictedToBounds = this._restrictPointToRectangle(
+        this._cache.end, targetRectangle);
+    this._restrictPointToRectangle(this._cache.caret, targetRectangle);
   },
 
   _restrictCoordinateToEditBounds: function _restrictCoordinateToEditBounds(aX, aY) {
