@@ -985,12 +985,7 @@ DownloadsDataCtor.prototype = {
 
     if (isNew && !dataItem.newDownloadNotified) {
       dataItem.newDownloadNotified = true;
-      this._notifyDownloadEvent("start");
-    }
-
-    
-    if (dataItem.done) {
-      this._notifyDownloadEvent("finish");
+      this._notifyNewDownload();
     }
   },
 
@@ -1050,10 +1045,7 @@ DownloadsDataCtor.prototype = {
 
 
 
-
-
-
-  _notifyDownloadEvent: function DD_notifyDownloadEvent(aType)
+  _notifyNewDownload: function DD_notifyNewDownload()
   {
     if (DownloadsCommon.useToolkitUI) {
       return;
@@ -1069,7 +1061,7 @@ DownloadsDataCtor.prototype = {
       
       
       
-      browserWin.DownloadsIndicatorView.showEventNotification(aType);
+      browserWin.DownloadsIndicatorView.showEventNotification();
       return;
     }
     this.panelHasShownBefore = true;
