@@ -92,9 +92,6 @@ public:
     
     bool UsingProxy();
 
-    
-    bool HostIsLocalIPLiteral() const;
-
 private:
     mozilla::ThreadSafeAutoRefCnt mRef;
     nsCString              mHashKey;
