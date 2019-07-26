@@ -48,11 +48,16 @@ import android.widget.AbsListView;
 
 
 
-public class SwipeRefreshLayout extends ViewGroup {
+
+
+
+
+public class GeckoSwipeRefreshLayout extends ViewGroup {
     private static final long RETURN_TO_ORIGINAL_POSITION_TIMEOUT = 300;
     private static final float ACCELERATE_INTERPOLATION_FACTOR = 1.5f;
     private static final float DECELERATE_INTERPOLATION_FACTOR = 2f;
-    private static final float PROGRESS_BAR_HEIGHT = 4;
+    
+    private static final float PROGRESS_BAR_HEIGHT = 3;
     private static final float MAX_SWIPE_DISTANCE_FACTOR = .6f;
     private static final int REFRESH_TRIGGER_DISTANCE = 120;
 
@@ -157,7 +162,7 @@ public class SwipeRefreshLayout extends ViewGroup {
 
 
 
-    public SwipeRefreshLayout(Context context) {
+    public GeckoSwipeRefreshLayout(Context context) {
         this(context, null);
     }
 
@@ -166,7 +171,7 @@ public class SwipeRefreshLayout extends ViewGroup {
 
 
 
-    public SwipeRefreshLayout(Context context, AttributeSet attrs) {
+    public GeckoSwipeRefreshLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
@@ -280,7 +285,7 @@ public class SwipeRefreshLayout extends ViewGroup {
         if (mTarget == null) {
             if (getChildCount() > 1 && !isInEditMode()) {
                 throw new IllegalStateException(
-                        "SwipeRefreshLayout can host only one direct child");
+                        "GeckoSwipeRefreshLayout can host only one direct child");
             }
             mTarget = getChildAt(0);
             mOriginalOffsetTop = mTarget.getTop() + getPaddingTop();
@@ -321,7 +326,7 @@ public class SwipeRefreshLayout extends ViewGroup {
     public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         if (getChildCount() > 1 && !isInEditMode()) {
-            throw new IllegalStateException("SwipeRefreshLayout can host only one direct child");
+            throw new IllegalStateException("GeckoSwipeRefreshLayout can host only one direct child");
         }
         if (getChildCount() > 0) {
             getChildAt(0).measure(
@@ -401,7 +406,8 @@ public class SwipeRefreshLayout extends ViewGroup {
                             if (mPrevY > eventY) {
                                 offsetTop = yDiff - mTouchSlop;
                             }
-                            updateContentOffsetTop((int) (offsetTop));
+                            
+                            
                             if (mPrevY > eventY && (mTarget.getTop() < mTouchSlop)) {
                                 
                                 
@@ -689,7 +695,10 @@ public class SwipeRefreshLayout extends ViewGroup {
 
         private void drawTrigger(Canvas canvas, int cx, int cy) {
             mPaint.setColor(mColor1);
-            canvas.drawCircle(cx, cy, cx * mTriggerPercentage, mPaint);
+            
+            
+            canvas.drawRect(cx - cx * mTriggerPercentage, 0, cx + cx * mTriggerPercentage,
+                mBounds.bottom, mPaint);
         }
 
         
