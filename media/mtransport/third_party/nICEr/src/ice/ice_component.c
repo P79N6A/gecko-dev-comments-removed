@@ -436,8 +436,14 @@ int nr_ice_component_initialize(struct nr_ice_ctx_ *ctx,nr_ice_component *compon
     return(_status);
   }
 
-
-
+static int nr_ice_any_peer_paired(nr_ice_candidate* cand) {
+  nr_ice_peer_ctx* pctx=STAILQ_FIRST(&cand->ctx->peers);
+  while(pctx && pctx->state == NR_ICE_PEER_STATE_UNPAIRED){
+    
+    pctx=STAILQ_NEXT(pctx,entry);
+  }
+  return pctx != NULL;
+}
 
 
 
@@ -468,7 +474,8 @@ int nr_ice_component_maybe_prune_candidate(nr_ice_ctx *ctx, nr_ice_component *co
 
 
 
-          if (c1->priority < c2->priority) {
+
+          if ((c1->priority <= c2->priority) || nr_ice_any_peer_paired(c2)) {
             tmp = c1;
             *was_pruned = 1;
           }
