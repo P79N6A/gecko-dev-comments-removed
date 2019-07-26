@@ -21,7 +21,7 @@ using namespace mozilla::layout;
 
 
 nsIFrame*
-NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, uint32_t aStateFlags)
+NS_NewColumnSetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aStateFlags)
 {
   nsColumnSetFrame* it = new (aPresShell) nsColumnSetFrame(aContext);
   it->AddStateBits(aStateFlags | NS_BLOCK_MARGIN_ROOT);

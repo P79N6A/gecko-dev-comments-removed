@@ -203,7 +203,7 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
 
   
   
-  nsFrameState frameState = 0;
+  nsFrameState frameState = nsFrameState(0);
   GetFrameState(aBox, frameState);
 
   
@@ -642,7 +642,7 @@ nsSprocketLayout::PopulateBoxSizes(nsIFrame* aBox, nsBoxLayoutState& aState, nsB
   nscoord biggestMinWidth = 0;
   nscoord smallestMaxWidth = NS_INTRINSICSIZE;
 
-  nsFrameState frameState = 0;
+  nsFrameState frameState = nsFrameState(0);
   GetFrameState(aBox, frameState);
 
   
@@ -888,7 +888,7 @@ nsSprocketLayout::ComputeChildsNextPosition(nsIFrame* aBox,
 {
   
   
-  nsFrameState frameState = 0;
+  nsFrameState frameState = nsFrameState(0);
   GetFrameState(aBox, frameState);
 
   if (IsHorizontal(aBox)) {
@@ -911,7 +911,7 @@ void
 nsSprocketLayout::AlignChildren(nsIFrame* aBox,
                                 nsBoxLayoutState& aState)
 {
-  nsFrameState frameState = 0;
+  nsFrameState frameState = nsFrameState(0);
   GetFrameState(aBox, frameState);
   bool isHorizontal = (frameState & NS_STATE_IS_HORIZONTAL) != 0;
   nsRect clientRect;
@@ -1306,7 +1306,7 @@ nsSprocketLayout::GetPrefSize(nsIFrame* aBox, nsBoxLayoutState& aState)
    
 
    nsIFrame* child = aBox->GetChildBox();
-   nsFrameState frameState = 0;
+   nsFrameState frameState = nsFrameState(0);
    GetFrameState(aBox, frameState);
    bool isEqual = !!(frameState & NS_STATE_EQUAL_SIZE);
    int32_t count = 0;
@@ -1363,7 +1363,7 @@ nsSprocketLayout::GetMinSize(nsIFrame* aBox, nsBoxLayoutState& aState)
    
 
    nsIFrame* child = aBox->GetChildBox();
-   nsFrameState frameState = 0;
+   nsFrameState frameState = nsFrameState(0);
    GetFrameState(aBox, frameState);
    bool isEqual = !!(frameState & NS_STATE_EQUAL_SIZE);
    int32_t count = 0;
@@ -1432,7 +1432,7 @@ nsSprocketLayout::GetMaxSize(nsIFrame* aBox, nsBoxLayoutState& aState)
    
 
    nsIFrame* child = aBox->GetChildBox();
-   nsFrameState frameState = 0;
+   nsFrameState frameState = nsFrameState(0);
    GetFrameState(aBox, frameState);
    bool isEqual = !!(frameState & NS_STATE_EQUAL_SIZE);
    int32_t count = 0;
