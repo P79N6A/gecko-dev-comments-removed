@@ -43,6 +43,11 @@ enum LayerState {
   LAYER_SVG_EFFECTS
 };
 
+extern uint8_t gLayerManagerSecondary;
+
+class LayerManagerSecondary : public layers::LayerUserData {
+};
+
 class RefCountedRegion : public RefCounted<RefCountedRegion> {
 public:
   RefCountedRegion() : mIsInfinite(false) {}
@@ -285,6 +290,47 @@ public:
 
 
 
+  static void SetWidgetLayerManager(LayerManager* aManager)
+  {
+    LayerManagerSecondary* secondary = 
+      static_cast<LayerManagerSecondary*>(aManager->GetUserData(&gLayerManagerSecondary));
+    sWidgetManagerSecondary = !!secondary;
+  }
+
+  
+
+
+
+  static const FramePropertyDescriptor* GetDescriptorForManager(LayerManager* aManager);
+
+  
+
+
+
+  static LayerManagerData* GetManagerData(nsIFrame* aFrame, LayerManager* aManager = nullptr);
+
+  
+
+
+
+  static void SetManagerData(nsIFrame* aFrame, LayerManagerData* aData);
+
+  
+
+
+
+  static void ClearManagerData(nsIFrame* aFrame);
+
+  
+
+
+
+  static void ClearManagerData(nsIFrame* aFrame, LayerManagerData* aData);
+
+  
+
+
+
 
   Layer* GetOldLayerFor(nsDisplayItem* aItem, nsDisplayItemGeometry** aOldGeometry = nullptr);
 
@@ -309,10 +355,7 @@ public:
 
 
 
-  static void DestroyDisplayItemDataFor(nsIFrame* aFrame)
-  {
-    aFrame->Properties().Delete(LayerManagerDataProperty());
-  }
+  static void DestroyDisplayItemDataFor(nsIFrame* aFrame);
 
   LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
 
@@ -440,6 +483,12 @@ public:
       return !(*this == aOther);
     }
   };
+  
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
+                                               RemoveFrameFromLayerManager)
+
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerSecondaryDataProperty,
+                                               RemoveFrameFromLayerManager)
 
 protected:
   
@@ -491,9 +540,6 @@ protected:
 
 
   DisplayItemData* GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey);
-
-  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
-                                               RemoveFrameFromLayerManager)
 
   
 
@@ -704,6 +750,12 @@ protected:
 
   uint32_t                            mContainerLayerGeneration;
   uint32_t                            mMaxContainerLayerGeneration;
+
+  
+
+
+
+  static bool                         sWidgetManagerSecondary;
 };
 
 }
