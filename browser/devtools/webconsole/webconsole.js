@@ -873,7 +873,7 @@ WebConsoleFrame.prototype = {
       let node = nodes[i];
 
       
-      let text = node.clipboardText;
+      let text = node.textContent;
 
       
       if (this.stringMatchesFilters(text, searchString)) {
