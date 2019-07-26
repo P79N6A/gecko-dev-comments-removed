@@ -1451,7 +1451,4 @@ typedef nsString nsAutoString;
 NS_HIDDEN_(bool) ParseString(const nsACString& aAstring, char aDelimiter, 
                                nsTArray<nsCString>& aArray);
 
-
-typedef nsAutoCString nsCAutoString;
-
 #endif 
