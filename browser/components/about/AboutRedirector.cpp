@@ -17,9 +17,7 @@ NS_IMPL_ISUPPORTS1(AboutRedirector, nsIAboutModule)
 struct RedirEntry {
   const char* id;
   const char* url;
-  uint32_t flags;  
-                   
-                   
+  uint32_t flags;
 };
 
 
@@ -127,28 +125,6 @@ AboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
       NS_ENSURE_SUCCESS(rv, rv);
 
       tempChannel->SetOriginalURI(aURI);
-
-      
-      if (kRedirMap[i].flags & nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT) {
-        if (path.EqualsLiteral("feeds")) {
-          nsCOMPtr<nsIScriptSecurityManager> securityManager =
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-          NS_ENSURE_SUCCESS(rv, rv);
-  
-          nsCOMPtr<nsIPrincipal> principal;
-          rv = securityManager->GetNoAppCodebasePrincipal(aURI, getter_AddRefs(principal));
-          NS_ENSURE_SUCCESS(rv, rv);
-  
-          rv = tempChannel->SetOwner(principal);
-        }
-        else {
-          
-          
-          
-          rv = tempChannel->SetOwner(nullptr);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-      }
 
       NS_ADDREF(*result = tempChannel);
       return rv;

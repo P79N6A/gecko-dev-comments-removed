@@ -15,9 +15,7 @@ NS_IMPL_ISUPPORTS1(nsAboutRedirector, nsIAboutModule)
 struct RedirEntry {
     const char* id;
     const char* url;
-    uint32_t flags;  
-                     
-                     
+    uint32_t flags;
 };
 
 
@@ -98,18 +96,6 @@ nsAboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
                 return rv;
 
             tempChannel->SetOriginalURI(aURI);
-
-            
-            if (kRedirMap[i].flags &
-                nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT)
-            {
-                
-                
-                
-                rv = tempChannel->SetOwner(nullptr);
-                if (NS_FAILED(rv))
-                    return rv;
-            }
 
             NS_ADDREF(*result = tempChannel);
             return rv;
