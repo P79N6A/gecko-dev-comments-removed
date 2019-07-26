@@ -229,6 +229,7 @@ AndroidBridge::Init(JNIEnv *jEnv,
 
     jclass nativePanZoomControllerClass = jEnv->FindClass("org/mozilla/gecko/gfx/NativePanZoomController");
     jRequestContentRepaint = jEnv->GetMethodID(nativePanZoomControllerClass, "requestContentRepaint", "(FFFFF)V");
+    jPostDelayedCallback = jEnv->GetMethodID(nativePanZoomControllerClass, "postDelayedCallback", "(J)V");
 
     jclass eglClass = jEnv->FindClass("com/google/android/gles_jni/EGLSurfaceImpl");
     if (eglClass) {
@@ -2771,7 +2772,58 @@ AndroidBridge::SendAsyncScrollDOMEvent(const gfx::Rect& aContentRect, const gfx:
 }
 
 void
-AndroidBridge::PostDelayedTask(Task* task, int delay_ms)
+AndroidBridge::PostDelayedTask(Task* aTask, int aDelayMs)
 {
+    JNIEnv* env = GetJNIForThread();
+    if (!env || !mNativePanZoomController) {
+        return;
+    }
+
     
+    
+    DelayedTask* newTask = new DelayedTask(aTask, aDelayMs);
+    uint32_t i = 0;
+    while (i < mDelayedTaskQueue.Length()) {
+        if (newTask->IsEarlierThan(mDelayedTaskQueue[i])) {
+            mDelayedTaskQueue.InsertElementAt(i, newTask);
+            break;
+        }
+        i++;
+    }
+    if (i == mDelayedTaskQueue.Length()) {
+        
+        mDelayedTaskQueue.AppendElement(newTask);
+    }
+    if (i == 0) {
+        
+        
+        
+        AutoLocalJNIFrame jniFrame(env, 0);
+        env->CallVoidMethod(mNativePanZoomController, jPostDelayedCallback, (int64_t)aDelayMs);
+    }
+}
+
+int64_t
+AndroidBridge::RunDelayedTasks()
+{
+    while (mDelayedTaskQueue.Length() > 0) {
+        DelayedTask* nextTask = mDelayedTaskQueue[0];
+        int64_t timeLeft = nextTask->MillisecondsToRunTime();
+        if (timeLeft > 0) {
+            
+            
+            
+            return timeLeft;
+        }
+
+        
+        
+
+        mDelayedTaskQueue.RemoveElementAt(0);
+        Task* task = nextTask->GetTask();
+        delete nextTask;
+
+        task->Run();
+    }
+    return -1;
 }

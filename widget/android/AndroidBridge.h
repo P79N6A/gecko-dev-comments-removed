@@ -30,6 +30,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/layers/GeckoContentController.h"
+#include "mozilla/TimeStamp.h"
 
 
 
@@ -92,6 +93,32 @@ public:
 protected:
     virtual ~nsFilePickerCallback() {}
 };
+
+class DelayedTask {
+public:
+    DelayedTask(Task* aTask, int aDelayMs) {
+        mTask = aTask;
+        mRunTime = TimeStamp::Now() + TimeDuration::FromMilliseconds(aDelayMs);
+    }
+
+    bool IsEarlierThan(DelayedTask *aOther) {
+        return mRunTime < aOther->mRunTime;
+    }
+
+    int64_t MillisecondsToRunTime() {
+        TimeDuration timeLeft = mRunTime - TimeStamp::Now();
+        return (int64_t)timeLeft.ToMilliseconds();
+    }
+
+    Task* GetTask() {
+        return mTask;
+    }
+
+private:
+    Task* mTask;
+    TimeStamp mRunTime;
+};
+
 
 class AndroidBridge : public mozilla::layers::GeckoContentController
 {
@@ -528,6 +555,7 @@ protected:
     jobject mGLControllerObj;
 
     jmethodID jRequestContentRepaint;
+    jmethodID jPostDelayedCallback;
 
     
     jclass jStringClass;
@@ -552,6 +580,11 @@ protected:
 
 private:
     jobject mNativePanZoomController;
+    
+    
+    
+    nsTArray<DelayedTask*> mDelayedTaskQueue;
+
 public:
     jobject SetNativePanZoomController(jobject obj);
     
@@ -560,7 +593,8 @@ public:
     void HandleSingleTap(const nsIntPoint& aPoint) MOZ_OVERRIDE;
     void HandleLongTap(const nsIntPoint& aPoint) MOZ_OVERRIDE;
     void SendAsyncScrollDOMEvent(const gfx::Rect& aContentRect, const gfx::Size& aScrollableSize) MOZ_OVERRIDE;
-    void PostDelayedTask(Task* task, int delay_ms) MOZ_OVERRIDE;
+    void PostDelayedTask(Task* aTask, int aDelayMs) MOZ_OVERRIDE;
+    int64_t RunDelayedTasks();
 };
 
 class AutoJObject {
