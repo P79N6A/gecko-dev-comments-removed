@@ -9,7 +9,7 @@
 #define xptiprivate_h___
 
 #include "nscore.h"
-#include NEW_H
+#include <new>
 #include "nsISupports.h"
 
 

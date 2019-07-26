@@ -26,7 +26,7 @@
 #endif
 
 
-#include NEW_H
+#include <new>
 #define ZIP_ARENABLOCKSIZE (1*1024)
 
 #ifdef XP_UNIX

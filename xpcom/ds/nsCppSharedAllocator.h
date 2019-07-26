@@ -6,7 +6,7 @@
 #define nsCppSharedAllocator_h__
 
 #include "nsMemory.h"     
-#include NEW_H					
+#include <new>					
 
 
   

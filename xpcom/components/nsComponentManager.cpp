@@ -68,7 +68,7 @@
 #include "nsStringEnumerator.h"
 #include "mozilla/FileUtils.h"
 
-#include NEW_H     
+#include <new>     
 
 #include "mozilla/Omnijar.h"
 

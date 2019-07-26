@@ -8,7 +8,7 @@
 #include "nsIClassInfo.h"
 #include "nsISupportsImpl.h"
 
-#include NEW_H
+#include <new>
 
 
 

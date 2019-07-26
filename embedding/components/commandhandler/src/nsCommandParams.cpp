@@ -4,7 +4,7 @@
 
 
 #include "xpcom-config.h"
-#include NEW_H    
+#include <new>    
 #include "nscore.h"
 #include "nsCRT.h"
 

@@ -21,7 +21,7 @@
 #include "nsReadableUtils.h"
 #endif
 
-#include NEW_H
+#include <new>
 
   
 #ifndef MOZ_STRING_WITH_OBSOLETE_API
