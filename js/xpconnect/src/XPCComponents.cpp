@@ -3514,6 +3514,46 @@ nsXPCComponents_Utils::GetIncumbentGlobal(const Value &aCallback,
     return NS_OK;
 }
 
+
+
+
+
+
+
+
+
+
+
+class WrappedJSHolder : public nsISupports
+{
+    NS_DECL_ISUPPORTS
+    WrappedJSHolder() {}
+    virtual ~WrappedJSHolder() {}
+
+    nsRefPtr<nsXPCWrappedJS> mWrappedJS;
+};
+NS_IMPL_ISUPPORTS0(WrappedJSHolder);
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::GenerateXPCWrappedJS(const Value &aObj, const Value &aScope,
+                                            JSContext *aCx, nsISupports **aOut)
+{
+    if (!aObj.isObject())
+        return NS_ERROR_INVALID_ARG;
+    RootedObject obj(aCx, &aObj.toObject());
+    RootedObject scope(aCx, aScope.isObject() ? js::UncheckedUnwrap(&aScope.toObject())
+                                              : CurrentGlobalOrNull(aCx));
+    JSAutoCompartment ac(aCx, scope);
+    if (!JS_WrapObject(aCx, &obj))
+        return NS_ERROR_FAILURE;
+
+    nsRefPtr<WrappedJSHolder> holder = new WrappedJSHolder();
+    nsresult rv = nsXPCWrappedJS::GetNewOrUsed(obj, NS_GET_IID(nsISupports),
+                                               getter_AddRefs(holder->mWrappedJS));
+    holder.forget(aOut);
+    return rv;
+}
+
 NS_IMETHODIMP
 nsXPCComponents_Utils::GetWatchdogTimestamp(const nsAString& aCategory, PRTime *aOut)
 {
