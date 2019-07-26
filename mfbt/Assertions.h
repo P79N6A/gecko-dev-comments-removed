@@ -140,6 +140,32 @@ extern "C" {
 
 
 
+static MOZ_ALWAYS_INLINE void
+MOZ_ReportAssertionFailure(const char* s, const char* file, int ln)
+{
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert",
+                      "Assertion failure: %s, at %s:%d\n", s, file, ln);
+#else
+  fprintf(stderr, "Assertion failure: %s, at %s:%d\n", s, file, ln);
+  fflush(stderr);
+#endif
+}
+
+static MOZ_ALWAYS_INLINE void
+MOZ_ReportCrash(const char* s, const char* file, int ln)
+{
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_FATAL, "MOZ_CRASH",
+                        "Hit MOZ_CRASH(%s) at %s:%d\n", s, file, ln);
+#else
+  fprintf(stderr, "Hit MOZ_CRASH(%s) at %s:%d\n", s, file, ln);
+  fflush(stderr);
+#endif
+}
+
+
+
 
 
 #if defined(_MSC_VER)
@@ -158,30 +184,42 @@ extern "C" {
 
 
 
+
+
+
+
+
+
+
+
+__declspec(noreturn) __inline void MOZ_NoReturn() {}
+
 #  ifdef __cplusplus
-#    define MOZ_CRASH() \
+#    define MOZ_REALLY_CRASH() \
        do { \
          __debugbreak(); \
          *((volatile int*) NULL) = 123; \
          ::TerminateProcess(::GetCurrentProcess(), 3); \
+         ::MOZ_NoReturn(); \
        } while (0)
 #  else
-#    define MOZ_CRASH() \
+#    define MOZ_REALLY_CRASH() \
        do { \
          __debugbreak(); \
          *((volatile int*) NULL) = 123; \
          TerminateProcess(GetCurrentProcess(), 3); \
+         MOZ_NoReturn(); \
        } while (0)
 #  endif
 #else
 #  ifdef __cplusplus
-#    define MOZ_CRASH() \
+#    define MOZ_REALLY_CRASH() \
        do { \
          *((volatile int*) NULL) = 123; \
          ::abort(); \
        } while (0)
 #  else
-#    define MOZ_CRASH() \
+#    define MOZ_REALLY_CRASH() \
        do { \
          *((volatile int*) NULL) = 123; \
          abort(); \
@@ -197,17 +235,28 @@ extern "C" {
 
 
 
-static MOZ_ALWAYS_INLINE void
-MOZ_ReportAssertionFailure(const char* s, const char* file, int ln)
-{
-#ifdef ANDROID
-  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert",
-                      "Assertion failure: %s, at %s:%d\n", s, file, ln);
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef DEBUG
+#  define MOZ_CRASH(...) MOZ_REALLY_CRASH()
 #else
-  fprintf(stderr, "Assertion failure: %s, at %s:%d\n", s, file, ln);
-  fflush(stderr);
+#  define MOZ_CRASH(...) \
+     do { \
+       MOZ_ReportCrash("" __VA_ARGS__, __FILE__, __LINE__); \
+       MOZ_REALLY_CRASH(); \
+     } while(0)
 #endif
-}
 
 #ifdef __cplusplus
 } 
@@ -251,7 +300,7 @@ MOZ_ReportAssertionFailure(const char* s, const char* file, int ln)
      do { \
        if (MOZ_UNLIKELY(!(expr))) { \
          MOZ_ReportAssertionFailure(#expr, __FILE__, __LINE__); \
-         MOZ_CRASH(); \
+         MOZ_REALLY_CRASH(); \
        } \
      } while (0)
    
@@ -259,7 +308,7 @@ MOZ_ReportAssertionFailure(const char* s, const char* file, int ln)
      do { \
        if (MOZ_UNLIKELY(!(expr))) { \
          MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
-         MOZ_CRASH(); \
+         MOZ_REALLY_CRASH(); \
        } \
      } while (0)
    
