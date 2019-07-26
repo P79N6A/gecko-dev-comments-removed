@@ -74,6 +74,15 @@ this.WindowsPrefSync = {
   
 
 
+  get prefRegistryPath() {
+    let profileService = Cc["@mozilla.org/toolkit/profile-service;1"].
+      createInstance(Ci.nsIToolkitProfileService);
+    return PREF_BASE_KEY + profileService.selectedProfile.name + "\\";
+  },
+
+  
+
+
 
 
 
@@ -112,8 +121,7 @@ this.WindowsPrefSync = {
 
       let prefValue = Services.prefs[prefFunc](aPrefName);
       registry.create(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-        PREF_BASE_KEY + prefType,
-        Ci.nsIWindowsRegKey.ACCESS_WRITE);
+        this.prefRegistryPath + prefType, Ci.nsIWindowsRegKey.ACCESS_WRITE);
       
       
       registry.writeStringValue(aPrefName, prefValue);
@@ -131,7 +139,7 @@ this.WindowsPrefSync = {
     function pullSharedPrefType(prefType, prefFunc) {
       try {
         registry.create(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-          PREF_BASE_KEY + prefType,
+          self.prefRegistryPath + prefType,
           Ci.nsIWindowsRegKey.ACCESS_ALL);
         for (let i = 0; i < registry.valueCount; i++) {
           let prefName = registry.getValueName(i);
