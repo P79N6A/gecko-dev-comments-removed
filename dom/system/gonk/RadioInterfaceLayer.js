@@ -2037,6 +2037,24 @@ RadioInterface.prototype = {
     }
   },
 
+  updateApnSettings: function(allApnSettings) {
+    let simApnSettings = allApnSettings[this.clientId];
+    if (!simApnSettings) {
+      return;
+    }
+
+    
+    for each (let apnSetting in this.apnSettings.byApn) {
+      for each (let type in apnSetting.types) {
+        if (this.getDataCallStateByType(type) ==
+            RIL.GECKO_NETWORK_STATE_CONNECTED) {
+          this.deactivateDataCallByType(type);
+        }
+      }
+    }
+    this.setupApnSettings(simApnSettings);
+  },
+
   
 
 
@@ -2046,21 +2064,13 @@ RadioInterface.prototype = {
 
 
 
-  updateApnSettings: function(allApnSettings) {
-    let simApnSettings = allApnSettings[this.clientId];
+  setupApnSettings: function(simApnSettings) {
     if (!simApnSettings) {
       return;
     }
 
     
     for each (let apnSetting in this.apnSettings.byApn) {
-      
-      for each (let type in apnSetting.types) {
-        if (this.getDataCallStateByType(type) ==
-            RIL.GECKO_NETWORK_STATE_CONNECTED) {
-          this.deactivateDataCallByType(type);
-        }
-      }
       if (apnSetting.iface.name in gNetworkManager.networkInterfaces) {
         gNetworkManager.unregisterNetworkInterface(apnSetting.iface);
       }
