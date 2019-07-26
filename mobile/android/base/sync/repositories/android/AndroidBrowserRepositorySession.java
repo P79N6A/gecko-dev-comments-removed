@@ -5,7 +5,6 @@
 package org.mozilla.gecko.sync.repositories.android;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.sync.repositories.InactiveSessionException;
@@ -30,6 +29,7 @@ import org.mozilla.gecko.sync.repositories.domain.Record;
 import android.content.ContentUris;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.SparseArray;
 
 
 
@@ -71,7 +71,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
-  protected HashMap<Integer, String> recordToGuid;
+  protected SparseArray<String> recordToGuid;
 
   public AndroidBrowserRepositorySession(Repository repository) {
     super(repository);
@@ -105,6 +105,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
+  @SuppressWarnings("static-method")
   public boolean shouldIgnore(Record record) {
     return false;
   }
@@ -115,6 +116,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
+  @SuppressWarnings("static-method")
   protected void fixupRecord(Record record) {
     return;
   }
@@ -134,6 +136,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
+  @SuppressWarnings("static-method")
   protected Record transformRecord(Record record) throws NullCursorException {
     return record;
   }
@@ -679,12 +682,12 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     if (recordToGuid == null) {
       createRecordToGuidMap();
     }
-    return recordToGuid.get(new Integer(recordString.hashCode()));
+    return recordToGuid.get(Integer.valueOf(recordString.hashCode()));
   }
 
   protected void createRecordToGuidMap() throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
     Logger.info(LOG_TAG, "BEGIN: creating record -> GUID map.");
-    recordToGuid = new HashMap<Integer, String>();
+    recordToGuid = new SparseArray<String>();
 
     
     
@@ -699,7 +702,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
         if (record != null) {
           final String recordString = buildRecordString(record);
           if (recordString != null) {
-            recordToGuid.put(new Integer(recordString.hashCode()), record.guid);
+            recordToGuid.put(Integer.valueOf(recordString.hashCode()), record.guid);
           }
         }
         cur.moveToNext();
@@ -757,7 +760,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     if (recordToGuid == null) {
       createRecordToGuidMap();
     }
-    recordToGuid.put(new Integer(recordString.hashCode()), guid);
+    recordToGuid.put(Integer.valueOf(recordString.hashCode()), guid);
   }
 
   protected abstract Record prepareRecord(Record record);
