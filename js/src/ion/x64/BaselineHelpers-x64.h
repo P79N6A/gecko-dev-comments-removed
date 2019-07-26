@@ -139,16 +139,16 @@ EmitEnterStubFrame(MacroAssembler &masm, Register)
 }
 
 inline void
-EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false, Register scratch = ScratchReg)
+EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
 {
     
     
     
     
     if (calledIntoIon) {
-        masm.pop(scratch);
-        masm.shrq(Imm32(FRAMESIZE_SHIFT), scratch);
-        masm.addq(scratch, BaselineStackReg);
+        masm.pop(ScratchReg);
+        masm.shrq(Imm32(FRAMESIZE_SHIFT), ScratchReg);
+        masm.addq(ScratchReg, BaselineStackReg);
     } else {
         masm.mov(BaselineFrameReg, BaselineStackReg);
     }
@@ -160,11 +160,8 @@ EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false, Register sc
     masm.pop(BaselineTailCallReg);
 
     
-    masm.pop(scratch);
-
     
-    
-    masm.push(BaselineTailCallReg);
+    masm.storePtr(BaselineTailCallReg, Address(BaselineStackReg, 0));
 }
 
 inline void
