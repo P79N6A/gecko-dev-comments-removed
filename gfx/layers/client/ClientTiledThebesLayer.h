@@ -84,29 +84,8 @@ private:
 
 
 
-  bool UseFastPath();
 
-  
-
-
-
-  bool RenderHighPrecision(nsIntRegion& aInvalidRegion,
-                           LayerManager::DrawThebesLayerCallback aCallback,
-                           void* aCallbackData);
-
-  
-
-
-
-  bool RenderLowPrecision(nsIntRegion& aInvalidRegion,
-                          LayerManager::DrawThebesLayerCallback aCallback,
-                          void* aCallbackData);
-
-  
-
-
-
-  void EndPaint();
+  void EndPaint(bool aFinish);
 
   RefPtr<TiledContentClient> mContentClient;
   nsIntRegion mLowPrecisionValidRegion;
