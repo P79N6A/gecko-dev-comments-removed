@@ -350,7 +350,9 @@ ContainerRender(ContainerT* aContainer,
   
   
   if (AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController()) {
-    if (apzc->IsOverscrolled()) {
+    
+    
+    if (apzc->IsOverscrolled() && !aContainer->GetVisibleRegion().IsEmpty()) {
       gfxRGBA color = aContainer->GetBackgroundColor();
       
       
