@@ -190,21 +190,39 @@ FTPChannelParent::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 {
   LOG(("FTPChannelParent::OnStartRequest [this=%p]\n", this));
 
-  nsFtpChannel* chan = static_cast<nsFtpChannel*>(aRequest);
+  nsCOMPtr<nsIChannel> chan = do_QueryInterface(aRequest);
+  MOZ_ASSERT(chan);
+  NS_ENSURE_TRUE(chan, NS_ERROR_UNEXPECTED);
+
   int64_t contentLength;
   chan->GetContentLength(&contentLength);
   nsCString contentType;
   chan->GetContentType(contentType);
-  nsCString entityID;
-  chan->GetEntityID(entityID);
-  PRTime lastModified;
-  chan->GetLastModifiedTime(&lastModified);
 
-  URIParams uri;
-  SerializeURI(chan->URI(), uri);
+  nsCString entityID;
+  nsCOMPtr<nsIResumableChannel> resChan = do_QueryInterface(aRequest);
+  MOZ_ASSERT(resChan); 
+  if (resChan) {
+    resChan->GetEntityID(entityID);
+  }
+
+  nsCOMPtr<nsIFTPChannel> ftpChan = do_QueryInterface(aRequest);
+  PRTime lastModified = 0;
+  if (ftpChan) {
+    ftpChan->GetLastModifiedTime(&lastModified);
+  } else {
+    
+    
+    aRequest->Cancel(NS_ERROR_NOT_IMPLEMENTED);
+  }
+
+  URIParams uriparam;
+  nsCOMPtr<nsIURI> uri;
+  chan->GetURI(getter_AddRefs(uri));
+  SerializeURI(uri, uriparam);
 
   if (mIPCClosed || !SendOnStartRequest(contentLength, contentType,
-                                       lastModified, entityID, uri)) {
+                                       lastModified, entityID, uriparam)) {
     return NS_ERROR_UNEXPECTED;
   }
 
