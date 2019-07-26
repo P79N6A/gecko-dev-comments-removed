@@ -72,6 +72,241 @@ function closeMobileMessageDB(aMmdb) {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function callMmdbMethod(aMmdb, aMethodName) {
+  let deferred = Promise.defer();
+
+  let args = Array.slice(arguments, 2);
+  args.push({
+    notify: function(aRv) {
+      if (!Components.isSuccessCode(aRv)) {
+        ok(true, aMethodName + " returns a unsuccessful code: " + aRv);
+        deferred.reject(Array.slice(arguments));
+      } else {
+        ok(true, aMethodName + " returns a successful code: " + aRv);
+        deferred.resolve(Array.slice(arguments));
+      }
+    }
+  });
+  aMmdb[aMethodName].apply(aMmdb, args);
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+function saveSendingMessage(aMmdb, aMessage) {
+  return callMmdbMethod(aMmdb, "saveSendingMessage", aMessage);
+}
+
+
+
+
+
+
+
+
+
+function saveReceivedMessage(aMmdb, aMessage) {
+  return callMmdbMethod(aMmdb, "saveReceivedMessage", aMessage);
+}
+
+
+
+
+
+
+
+
+
+function setMessageDeliveryByMessageId(aMmdb, aMessageId, aReceiver, aDelivery,
+                                       aDeliveryStatus, aEnvelopeId) {
+  return callMmdbMethod(aMmdb, "setMessageDeliveryByMessageId", aMessageId,
+                        aReceiver, aDelivery, aDeliveryStatus, aEnvelopeId);
+}
+
+
+
+
+
+
+
+
+
+
+function setMessageDeliveryStatusByEnvelopeId(aMmdb, aEnvelopeId, aReceiver,
+                                              aDeliveryStatus) {
+  return callMmdbMethod(aMmdb, "setMessageDeliveryStatusByEnvelopeId",
+                        aMmdb, aEnvelopeId, aReceiver, aDeliveryStatus);
+}
+
+
+
+
+
+
+
+
+
+
+function setMessageReadStatusByEnvelopeId(aMmdb, aEnvelopeId, aReceiver,
+                                          aReadStatus) {
+  return callMmdbMethod(aMmdb, "setMessageReadStatusByEnvelopeId",
+                        aEnvelopeId, aReceiver, aReadStatus);
+}
+
+
+
+
+
+
+
+
+
+
+function getMessageRecordByTransactionId(aMmdb, aTransactionId) {
+  return callMmdbMethod(aMmdb, "getMessageRecordByTransactionId",
+                        aTransactionId);
+}
+
+
+
+
+
+
+
+
+
+function getMessageRecordById(aMmdb, aMessageId) {
+  return callMmdbMethod(aMmdb, "getMessageRecordById", aMessageId);
+}
+
+
+
+
+
+
+
+
+
+function markMessageRead(aMmdb, aMessageId, aRead) {
+  let deferred = Promise.defer();
+
+  aMmdb.markMessageRead(aMessageId, aRead, false, {
+    notifyMarkMessageReadFailed: function(aRv) {
+      ok(true, "markMessageRead returns a unsuccessful code: " + aRv);
+      deferred.reject(aRv);
+    },
+
+    notifyMessageMarkedRead: function(aRead) {
+      ok(true, "markMessageRead returns a successful code: " + Cr.NS_OK);
+      deferred.resolve(Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR);
+    }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createMmdbCursor(aMmdb, aMethodName) {
+  let deferred = Promise.defer();
+
+  let cursor;
+  let results = [];
+  let args = Array.slice(arguments, 2);
+  args.push({
+    notifyCursorError: function(aRv) {
+      ok(true, "notifyCursorError: " + aRv);
+      deferred.reject([aRv, results]);
+    },
+
+    notifyCursorResult: function(aResult) {
+      ok(true, "notifyCursorResult: " + aResult.id);
+      results.push(aResult);
+      cursor.handleContinue();
+    },
+
+    notifyCursorDone: function() {
+      ok(true, "notifyCursorDone");
+      deferred.resolve([Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR, results]);
+    }
+  });
+
+  cursor = aMmdb[aMethodName].apply(aMmdb, args);
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+function createMessageCursor(aMmdb, aFilter, aReverse) {
+  return createMmdbCursor(aMmdb, "createMessageCursor", aFilter, aReverse);
+}
+
+
+
+
+
+
+
+
+
+function createThreadCursor(aMmdb) {
+  return createMmdbCursor(aMmdb, "createThreadCursor");
+}
+
+
 let _uuidGenerator;
 
 
