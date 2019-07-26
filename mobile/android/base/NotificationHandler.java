@@ -7,16 +7,20 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.gfx.BitmapUtils;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 public class NotificationHandler {
-    private final ConcurrentHashMap<Integer, AlertNotification>
-            mAlertNotifications = new ConcurrentHashMap<Integer, AlertNotification>();
+    private final ConcurrentHashMap<Integer, Notification>
+            mNotifications = new ConcurrentHashMap<Integer, Notification>();
     private final Context mContext;
+    private final NotificationManager mNotificationManager;
 
     
 
@@ -28,10 +32,11 @@ public class NotificationHandler {
 
 
 
-    private AlertNotification mForegroundNotification;
+    private Notification mForegroundNotification;
 
     public NotificationHandler(Context context) {
         mContext = context;
+        mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     }
 
     
@@ -56,8 +61,23 @@ public class NotificationHandler {
 
         notification.setLatestEventInfo(mContext, aAlertTitle, aAlertText, contentIntent);
 
-        notification.show();
-        mAlertNotifications.put(notification.getId(), notification);
+        mNotificationManager.notify(notificationID, notification);
+        mNotifications.put(notificationID, notification);
+    }
+
+    
+
+
+
+
+
+    public void add(int id, Notification notification) {
+        mNotificationManager.notify(id, notification);
+        mNotifications.put(id, notification);
+
+        if (mForegroundNotification == null && isOngoing(notification)) {
+            setForegroundNotification(id, notification);
+        }
     }
 
     
@@ -69,15 +89,18 @@ public class NotificationHandler {
 
 
     public void update(int notificationID, long aProgress, long aProgressMax, String aAlertText) {
-        final AlertNotification notification = mAlertNotifications.get(notificationID);
+        final Notification notification = mNotifications.get(notificationID);
         if (notification == null) {
             return;
         }
 
-        notification.updateProgress(aAlertText, aProgress, aProgressMax);
+        if (notification instanceof AlertNotification) {
+            AlertNotification alert = (AlertNotification)notification;
+            alert.updateProgress(aAlertText, aProgress, aProgressMax);
+        }
 
-        if (mForegroundNotification == null && notification.isProgressStyle()) {
-            setForegroundNotification(notification);
+        if (mForegroundNotification == null && isOngoing(notification)) {
+            setForegroundNotification(notificationID, notification);
         }
 
         
@@ -92,11 +115,11 @@ public class NotificationHandler {
 
 
     public void remove(int notificationID) {
-        final AlertNotification notification = mAlertNotifications.remove(notificationID);
+        final Notification notification = mNotifications.remove(notificationID);
         if (notification != null) {
-            updateForegroundNotification(notification);
-            notification.cancel();
+            updateForegroundNotification(notificationID, notification);
         }
+        mNotificationManager.cancel(notificationID);
     }
 
     
@@ -108,7 +131,7 @@ public class NotificationHandler {
 
 
     public boolean isDone() {
-        return mAlertNotifications.isEmpty();
+        return mNotifications.isEmpty();
     }
 
     
@@ -117,29 +140,56 @@ public class NotificationHandler {
 
 
 
-    public boolean isProgressStyle(int notificationID) {
-        final AlertNotification notification = mAlertNotifications.get(notificationID);
-        return notification != null && notification.isProgressStyle();
+    public boolean isOngoing(int notificationID) {
+        final Notification notification = mNotifications.get(notificationID);
+        return isOngoing(notification);
     }
 
-    protected void setForegroundNotification(AlertNotification notification) {
+    
+
+
+
+
+
+    public boolean isOngoing(Notification notification) {
+        if (notification != null && (isProgressStyle(notification) || ((notification.flags & Notification.FLAG_ONGOING_EVENT) > 0))) {
+            return true;
+        }
+        return false;
+    }
+
+    
+
+
+
+
+
+
+    private boolean isProgressStyle(Notification notification) {
+        if (notification != null && notification instanceof AlertNotification) {
+            return ((AlertNotification)notification).isProgressStyle();
+        }
+        return false;
+    }
+
+    protected void setForegroundNotification(int id, Notification notification) {
         mForegroundNotification = notification;
     }
 
-    private void updateForegroundNotification(AlertNotification oldNotification) {
+    private void updateForegroundNotification(int id, Notification oldNotification) {
         if (mForegroundNotification == oldNotification) {
             
             
             
-            AlertNotification foregroundNotification = null;
-            for (final AlertNotification notification : mAlertNotifications.values()) {
-                if (notification.isProgressStyle()) {
+            Notification foregroundNotification = null;
+            for (final Notification notification : mNotifications.values()) {
+                if (isOngoing(notification)) {
                     foregroundNotification = notification;
                     break;
                 }
             }
 
-            setForegroundNotification(foregroundNotification);
+            setForegroundNotification(id, foregroundNotification);
         }
     }
 }

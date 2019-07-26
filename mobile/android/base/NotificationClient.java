@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.text.TextUtils;
 import android.util.Log;
@@ -93,6 +94,25 @@ public abstract class NotificationClient {
 
 
 
+    public synchronized void add(final int notificationID, final Notification notification) {
+        mTaskQueue.add(new Runnable() {
+            @Override
+            public void run() {
+                mHandler.add(notificationID, notification);
+            }
+        });
+        notify();
+
+        if (!mReady) {
+            bind();
+        }
+    }
+
+    
+
+
+
+
     public void update(final int notificationID, final long aProgress, final long aProgressMax,
             final String aAlertText) {
         UpdateRunnable runnable = mUpdatesMap.get(notificationID);
@@ -141,9 +161,9 @@ public abstract class NotificationClient {
 
 
 
-    public boolean isProgressStyle(int notificationID) {
+    public boolean isOngoing(int notificationID) {
         final NotificationHandler handler = mHandler;
-        return handler != null && handler.isProgressStyle(notificationID);
+        return handler != null && handler.isOngoing(notificationID);
     }
 
     protected void bind() {
