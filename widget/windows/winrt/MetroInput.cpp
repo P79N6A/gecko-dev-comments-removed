@@ -1130,7 +1130,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
   
   
   
-  if (mCancelable && event->message == NS_TOUCH_START) {
+  if (mCancelable && event->message == NS_TOUCH_START && mTouches.Count() == 1) {
     nsRefPtr<Touch> touch = event->touches[0];
     LayoutDeviceIntPoint pt = LayoutDeviceIntPoint::FromUntyped(touch->mRefPoint);
     bool apzIntersect = mWidget->ApzHitTest(mozilla::ScreenIntPoint(pt.x, pt.y));
@@ -1139,7 +1139,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   
   
-  if (!mCancelable && mChromeHitTestCacheForTouch) {
+  if (mChromeHitTestCacheForTouch) {
     DUMP_TOUCH_IDS("DOM(1)", event);
     mWidget->DispatchEvent(event, status);
     return;
@@ -1153,7 +1153,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
     DUMP_TOUCH_IDS("APZC(1)", event);
     mWidget->ApzReceiveInputEvent(event, &mTargetAPZCGuid, &transformedEvent);
     DUMP_TOUCH_IDS("DOM(2)", event);
-    mWidget->DispatchEvent(mChromeHitTestCacheForTouch ? event : &transformedEvent, status);
+    mWidget->DispatchEvent(&transformedEvent, status);
     if (event->message == NS_TOUCH_START) {
       mContentConsumingTouch = (nsEventStatus_eConsumeNoDefault == status);
       
@@ -1196,9 +1196,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
   if (mContentConsumingTouch) {
     
     
-    if (!mChromeHitTestCacheForTouch) {
-      TransformTouchEvent(event);
-    }
+    TransformTouchEvent(event);
     DUMP_TOUCH_IDS("DOM(3)", event);
     mWidget->DispatchEvent(event, status);
     return;
@@ -1214,9 +1212,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
       DispatchTouchCancel(event);
       return;
     }
-    if (!mChromeHitTestCacheForTouch) {
-      TransformTouchEvent(event);
-    }
+    TransformTouchEvent(event);
     DUMP_TOUCH_IDS("DOM(4)", event);
     mWidget->DispatchEvent(event, status);
   }
