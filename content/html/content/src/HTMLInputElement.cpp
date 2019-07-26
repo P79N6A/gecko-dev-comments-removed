@@ -5695,7 +5695,8 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
 
   
   
-  if (length == 0 || value[0] == '@' || value[length-1] == '.') {
+  if (length == 0 || value[0] == '@' || value[length-1] == '.' ||
+      value[length-1] == '-') {
     return false;
   }
 
@@ -5714,13 +5715,12 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
   }
 
   
-  
   if (++i >= length) {
     return false;
   }
 
   
-  if (value[i] == '.') {
+  if (value[i] == '.' || value[i] == '-') {
     return false;
   }
 
@@ -5729,6 +5729,11 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
     PRUnichar c = value[i];
 
     if (c == '.') {
+      
+      if (value[i-1] == '.' || value[i-1] == '-') {
+        return false;
+      }
+    } else if (c == '-'){
       
       if (value[i-1] == '.') {
         return false;
