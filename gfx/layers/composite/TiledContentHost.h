@@ -1,13 +1,13 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef GFX_TILEDCONTENTHOST_H
 #define GFX_TILEDCONTENTHOST_H
 
 #include "ContentHost.h"
-#include "BasicTiledThebesLayer.h" // for BasicTiledLayerBuffer
+#include "BasicTiledThebesLayer.h" 
 
 namespace mozilla {
 namespace layers {
@@ -18,15 +18,15 @@ struct TexturedEffect;
 
 class TiledTexture {
 public:
-  // Constructs a placeholder TiledTexture. See the comments above
-  // TiledLayerBuffer for more information on what this is used for;
-  // essentially, this is a sentinel used to represent an invalid or blank
-  // tile.
+  
+  
+  
+  
   TiledTexture()
     : mTextureHost(nullptr)
   {}
 
-  // Constructs a TiledTexture from a TextureHost.
+  
   TiledTexture(TextureHost* aTextureHost)
     : mTextureHost(aTextureHost)
   {}
@@ -66,8 +66,8 @@ class TiledLayerBufferComposite
   friend class TiledLayerBuffer<TiledLayerBufferComposite, TiledTexture>;
 
 public:
-  TiledLayerBufferComposite(Compositor* aCompositor)
-    : mCompositor(aCompositor)
+  TiledLayerBufferComposite()
+    : mCompositor(nullptr)
   {}
 
   void Upload(const BasicTiledLayerBuffer* aMainMemoryTiledBuffer,
@@ -77,16 +77,21 @@ public:
 
   TiledTexture GetPlaceholderTile() const { return TiledTexture(); }
 
-  // Stores the absolute resolution of the containing frame, calculated
-  // by the sum of the resolutions of all parent layers' FrameMetrics.
+  
+  
   const gfxSize& GetFrameResolution() { return mFrameResolution; }
+
+  void SetCompositor(Compositor* aCompositor)
+  {
+    mCompositor = aCompositor;
+  }
 
 protected:
   TiledTexture ValidateTile(TiledTexture aTile,
                             const nsIntPoint& aTileRect,
                             const nsIntRegion& dirtyRect);
 
-  // do nothing, the desctructor in the texture host takes care of releasing resources
+  
   void ReleaseTile(TiledTexture aTile) {}
 
   void SwapTiles(TiledTexture& aTileA, TiledTexture& aTileB) {
@@ -101,35 +106,33 @@ private:
 
 class TiledThebesLayerComposite;
 
-/**
- * ContentHost for tiled Thebes layers. Since tiled layers are special snow
- * flakes, we don't call UpdateThebes or AddTextureHost, etc. We do call Composite
- * in the usual way though.
- *
- * There is no corresponding content client - on the client side we use a
- * BasicTiledLayerBuffer owned by a BasicTiledThebesLayer. On the host side, we
- * just use a regular ThebesLayerComposite, but with a tiled content host.
- *
- * TiledContentHost has a TiledLayerBufferComposite which keeps hold of the tiles.
- * Each tile has a reference to a texture host. During the layers transaction, we
- * receive a copy of the client-side tile buffer (PaintedTiledLayerBuffer). This is
- * copied into the main memory tile buffer and then deleted. Copying copies tiles,
- * but we only copy references to the underlying texture clients.
- *
- * When the content host is composited, we first upload any pending tiles
- * (Process*UploadQueue), then render (RenderLayerBuffer). The former calls Validate
- * on the tile (via ValidateTile and Update), that calls Update on the texture host,
- * which works as for regular texture hosts. Rendering takes us to RenderTile which
- * is similar to Composite for non-tiled ContentHosts.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TiledContentHost : public ContentHost,
                          public TiledLayerComposer
 {
 public:
-  TiledContentHost(const TextureInfo& aTextureInfo, Compositor* aCompositor)
-    : ContentHost(aTextureInfo, aCompositor)
-    , mVideoMemoryTiledBuffer(aCompositor)
-    , mLowPrecisionVideoMemoryTiledBuffer(aCompositor)
+  TiledContentHost(const TextureInfo& aTextureInfo)
+    : ContentHost(aTextureInfo)
     , mPendingUpload(false)
     , mPendingLowPrecisionUpload(false)
   {}
@@ -156,7 +159,7 @@ public:
 
   void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer);
 
-  // Renders a single given tile.
+  
   void RenderTile(const TiledTexture& aTile,
                   EffectChain& aEffectChain,
                   float aOpacity,
@@ -179,7 +182,7 @@ public:
 
   virtual CompositableType GetType() { return BUFFER_TILED; }
 
-  virtual TiledLayerComposer* AsTiledLayerComposer() { return this; }
+  virtual TiledLayerComposer* AsTiledLayerComposer() MOZ_OVERRIDE { return this; }
 
   virtual bool EnsureTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
@@ -189,6 +192,15 @@ public:
     MOZ_NOT_REACHED("Does nothing");
     return false;
   }
+
+  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE
+  {
+    CompositableHost::SetCompositor(aCompositor);
+    mVideoMemoryTiledBuffer.SetCompositor(aCompositor);
+    mLowPrecisionVideoMemoryTiledBuffer.SetCompositor(aCompositor);
+  }
+
+  virtual void Attach(Layer* aLayer, Compositor* aCompositor) MOZ_OVERRIDE;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);

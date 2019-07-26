@@ -20,6 +20,7 @@ class TextureFactoryIdentifier;
 class SurfaceDescriptor;
 class ThebesBufferData;
 class TextureClient;
+class BasicTiledLayerBuffer;
 
 
 
@@ -68,6 +69,9 @@ public:
 
 
   virtual void DestroyThebesBuffer(CompositableClient* aCompositable) = 0;
+
+  virtual void PaintedTiledLayerBuffer(CompositableClient* aCompositable,
+                                       BasicTiledLayerBuffer* aTiledLayerBuffer) = 0;
 
   
 

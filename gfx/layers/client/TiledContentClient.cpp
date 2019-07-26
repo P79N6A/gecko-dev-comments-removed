@@ -58,6 +58,43 @@ using namespace gfx;
 
 namespace layers {
 
+
+TiledContentClient::TiledContentClient(BasicTiledThebesLayer* aThebesLayer,
+                                       BasicShadowLayerManager* aManager)
+  : CompositableClient(aManager->AsShadowForwarder())
+  , mTiledBuffer(aThebesLayer, aManager)
+  , mLowPrecisionTiledBuffer(aThebesLayer, aManager)
+{
+  MOZ_COUNT_CTOR(TiledContentClient);
+
+  mLowPrecisionTiledBuffer.SetResolution(gfxPlatform::GetLowPrecisionResolution());
+}
+
+void
+TiledContentClient::LockCopyAndWrite(TiledBufferType aType)
+{
+  
+  
+  
+  
+  BasicTiledLayerBuffer* buffer = aType == LOW_PRECISION_TILED_BUFFER
+    ? &mLowPrecisionTiledBuffer
+    : &mTiledBuffer;
+
+  BasicTiledLayerBuffer* heapCopy = new BasicTiledLayerBuffer(buffer->DeepCopy());
+  buffer->ReadLock();
+  mForwarder->PaintedTiledLayerBuffer(this, heapCopy);
+  buffer->ClearPaintedRegion();
+}
+
+BasicTiledLayerBuffer::BasicTiledLayerBuffer(BasicTiledThebesLayer* aThebesLayer,
+                                             BasicShadowLayerManager* aManager)
+  : mThebesLayer(aThebesLayer)
+  , mManager(aManager)
+  , mLastPaintOpaque(false)
+{
+}
+
 bool
 BasicTiledLayerBuffer::HasFormatChanged() const
 {
@@ -75,18 +112,6 @@ BasicTiledLayerBuffer::GetContentType() const
   }
 }
 
-void
-BasicTiledLayerBuffer::LockCopyAndWrite()
-{
-  
-  
-  
-  
-  BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(this->DeepCopy());
-  ReadLock();
-  mManager->PaintedTiledLayerBuffer(mManager->Hold(mThebesLayer), heapCopy);
-  ClearPaintedRegion();
-}
 
 void
 BasicTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,

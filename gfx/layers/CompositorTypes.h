@@ -74,7 +74,7 @@ enum TextureHostFlags
 {
   TEXTURE_HOST_DEFAULT = 0,       
                                   
-  TEXTURE_HOST_TILED = 1 << 0,    
+  TEXTURE_HOST_TILED = 1 << 0     
 };
 
 
