@@ -160,6 +160,7 @@ public:
   void OnStartRequest();
   void OnDataAvailable();
   void OnStopRequest(bool aLastPart, nsresult aStatus);
+  void OnDiscard();
 
   
   

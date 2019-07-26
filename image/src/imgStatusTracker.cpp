@@ -850,6 +850,18 @@ imgStatusTracker::OnStopRequest(bool aLastPart,
 }
 
 void
+imgStatusTracker::OnDiscard()
+{
+  RecordDiscard();
+
+  
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mConsumers);
+  while (iter.HasMore()) {
+    SendDiscard(iter.GetNext());
+  }
+}
+
+void
 imgStatusTracker::OnDataAvailable()
 {
   
