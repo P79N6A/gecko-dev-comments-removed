@@ -626,20 +626,26 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     masm.passABIArg(argVp);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->jitInfo()->op));
 
-    
-    Label success, exception;
-    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+    if (target->jitinfo()->isInfallible) {
+        masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()),
+                       JSReturnOperand);
+    } else {
+        
+        Label success, exception;
+        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
-    
-    masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()), JSReturnOperand);
-    masm.jump(&success);
+        
+        masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()),
+                       JSReturnOperand);
+        masm.jump(&success);
 
-    
-    {
-        masm.bind(&exception);
-        masm.handleException();
+        
+        {
+            masm.bind(&exception);
+            masm.handleException();
+        }
+        masm.bind(&success);
     }
-    masm.bind(&success);
 
     
     
@@ -3958,7 +3964,7 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
         masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
         masm.loadValue(Address(StackPointer, IonDOMExitFrameLayout::offsetOfResult()),
-                    JSReturnOperand);
+                       JSReturnOperand);
         masm.jump(&success);
 
         {
