@@ -4,10 +4,6 @@
 
 
 
-
-
-
-
 #include "mach_override.h"
 
 #include <mach-o/dyld.h>
@@ -48,7 +44,10 @@ long kIslandTemplate[] = {
 
 #define kOriginalInstructionsSize 16
 
-char kIslandTemplate[] = {
+
+#define kMaxFixupSizeIncrease 5
+
+unsigned char kIslandTemplate[] = {
 	
 	
 	0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 
@@ -63,9 +62,11 @@ char kIslandTemplate[] = {
 
 #define kOriginalInstructionsSize 32
 
+#define kMaxFixupSizeIncrease 0
+
 #define kJumpAddress    kOriginalInstructionsSize + 6
 
-char kIslandTemplate[] = {
+unsigned char kIslandTemplate[] = {
 	
 	
 	0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 
@@ -100,7 +101,7 @@ typedef	struct	{
 #pragma mark	-
 #pragma mark	(Funky Protos)
 
-	mach_error_t
+static mach_error_t
 allocateBranchIsland(
 		BranchIsland	**island,
 		void *originalFunctionAddress);
@@ -139,8 +140,7 @@ eatKnownInstructions(
 
 	static void
 fixupInstructions(
-    void		*originalFunction,
-    void		*escapeIsland,
+    uint32_t		offset,
     void		*instructionsToFix,
 	int			instructionCount,
 	uint8_t		*instructionSizes );
@@ -215,7 +215,7 @@ mach_override_ptr(
 										&jumpRelativeInstruction, &eatenCount, 
 										originalInstructions, &originalInstructionCount, 
 										originalInstructionSizes );
-	if (eatenCount > kOriginalInstructionsSize) {
+	if (eatenCount + kMaxFixupSizeIncrease > kOriginalInstructionsSize) {
 		
 		overridePossible = false;
 	}
@@ -323,7 +323,8 @@ mach_override_ptr(
 	
 	
 	if ( !err ) {
-		fixupInstructions(originalFunctionPtr, reentryIsland, originalInstructions,
+		uint32_t offset = (uintptr_t)originalFunctionPtr - (uintptr_t)reentryIsland;
+		fixupInstructions(offset, originalInstructions,
 					originalInstructionCount, originalInstructionSizes );
 	
 		if( reentryIsland )
@@ -360,6 +361,11 @@ mach_override_ptr(
 #pragma mark	-
 #pragma mark	(Implementation)
 
+static bool jump_in_range(intptr_t from, intptr_t to) {
+  intptr_t field_value = to - from - 5;
+  int32_t field_value_32 = field_value;
+  return field_value == field_value_32;
+}
 
 
 
@@ -368,19 +374,19 @@ mach_override_ptr(
 
 
 
-	mach_error_t
-allocateBranchIsland(
+
+static mach_error_t
+allocateBranchIslandAux(
 		BranchIsland	**island,
-		void *originalFunctionAddress)
+		void *originalFunctionAddress,
+		bool forward)
 {
 	assert( island );
 	assert( sizeof( BranchIsland ) <= kPageSize );
 
 	vm_map_t task_self = mach_task_self();
 	vm_address_t original_address = (vm_address_t) originalFunctionAddress;
-	static vm_address_t last_allocated = 0;
-	vm_address_t address =
-		last_allocated ? last_allocated : original_address;
+	vm_address_t address = original_address;
 
 	for (;;) {
 		vm_size_t vmsize = 0;
@@ -401,17 +407,12 @@ allocateBranchIsland(
 #endif
 		if (kr != KERN_SUCCESS)
 			return kr;
-
-		
-		
 		assert((address & (kPageSize - 1)) == 0);
-		if (address == 0)
-			break;
 
 		
-		vm_address_t new_address = address - kPageSize;
+		vm_address_t new_address = forward ? address + vmsize : address - kPageSize;
 #if __WORDSIZE == 64
-		if(original_address - new_address - 5 > INT32_MAX)
+		if(!jump_in_range(original_address, new_address))
 			break;
 #endif
 		address = new_address;
@@ -420,7 +421,6 @@ allocateBranchIsland(
 		kr = vm_allocate(task_self, &address, kPageSize, 0);
 		if (kr == KERN_SUCCESS) {
 			*island = (BranchIsland*) address;
-			last_allocated = address;
 			return err_none;
 		}
 		if (kr != KERN_NO_SPACE)
@@ -429,6 +429,19 @@ allocateBranchIsland(
 
 	return KERN_NO_SPACE;
 }
+
+static mach_error_t
+allocateBranchIsland(
+		BranchIsland	**island,
+		void *originalFunctionAddress)
+{
+  mach_error_t err =
+    allocateBranchIslandAux(island, originalFunctionAddress, true);
+  if (!err)
+    return err;
+  return allocateBranchIslandAux(island, originalFunctionAddress, false);
+}
+
 
 
 
@@ -563,6 +576,7 @@ static AsmInstructionMatch possibleInstructions[] = {
 	{ 0x3, {0xFF, 0x4C, 0x00}, {0x8B, 0x40, 0x00} },  
 	{ 0x4, {0xFF, 0xFF, 0xFF, 0x00}, {0x8B, 0x4C, 0x24, 0x00} },  
 	{ 0x5, {0xFF, 0x00, 0x00, 0x00, 0x00}, {0xB8, 0x00, 0x00, 0x00, 0x00} },	
+	{ 0x6, {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, {0xE8, 0x00, 0x00, 0x00, 0x00, 0x58} },	
 	{ 0x0 }
 };
 #elif defined(__x86_64__)
@@ -573,12 +587,17 @@ static AsmInstructionMatch possibleInstructions[] = {
 	{ 0x3, {0xFF, 0xFF, 0xFF}, {0x48, 0x89, 0xE5} },				
 	{ 0x4, {0xFF, 0xFF, 0xFF, 0x00}, {0x48, 0x83, 0xEC, 0x00} },	                
 	{ 0x4, {0xFB, 0xFF, 0x00, 0x00}, {0x48, 0x89, 0x00, 0x00} },	                
+	{ 0x4, {0xFF, 0xFF, 0xFF, 0xFF}, {0x40, 0x0f, 0xbe, 0xce} },			
 	{ 0x2, {0xFF, 0x00}, {0x41, 0x00} },						
 	{ 0x2, {0xFF, 0x00}, {0x85, 0x00} },						
 	{ 0x5, {0xF8, 0x00, 0x00, 0x00, 0x00}, {0xB8, 0x00, 0x00, 0x00, 0x00} },   
 	{ 0x3, {0xFF, 0xFF, 0x00}, {0xFF, 0x77, 0x00} },  
 	{ 0x2, {0xFF, 0xFF}, {0x31, 0xC0} },						
-    { 0x2, {0xFF, 0xFF}, {0x89, 0xF8} },			
+	{ 0x2, {0xFF, 0xFF}, {0x89, 0xF8} },			
+
+	
+	{ 0x7, {0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00}, {0x48, 0x8d, 0x05, 0x00, 0x00, 0x00, 0x00} },
+
 	{ 0x0 }
 };
 #endif
@@ -677,24 +696,48 @@ eatKnownInstructions(
 
 	static void
 fixupInstructions(
-    void		*originalFunction,
-    void		*escapeIsland,
+	uint32_t	offset,
     void		*instructionsToFix,
 	int			instructionCount,
 	uint8_t		*instructionSizes )
 {
+	
+	static const uint8_t LeaqHeader[] = {0x48, 0x8d, 0x05};
+
 	int	index;
 	for (index = 0;index < instructionCount;index += 1)
 	{
 		if (*(uint8_t*)instructionsToFix == 0xE9) 
 		{
-			uint32_t offset = (uintptr_t)originalFunction - (uintptr_t)escapeIsland;
 			uint32_t *jumpOffsetPtr = (uint32_t*)((uintptr_t)instructionsToFix + 1);
 			*jumpOffsetPtr += offset;
 		}
+
 		
-		originalFunction = (void*)((uintptr_t)originalFunction + instructionSizes[index]);
-		escapeIsland = (void*)((uintptr_t)escapeIsland + instructionSizes[index]);
+		if (memcmp(instructionsToFix, LeaqHeader, 3) == 0) {
+			uint32_t *LeaqOffsetPtr = (uint32_t*)((uintptr_t)instructionsToFix + 3);
+			*LeaqOffsetPtr += offset;
+		}
+
+		
+		if (*(uint8_t*)instructionsToFix == 0xE8)
+		{
+			
+			
+			assert(index == (instructionCount - 1));
+			assert(instructionSizes[index] == 6);
+
+                        
+                        
+                        
+                        
+			uint8_t *op = instructionsToFix;
+			op += 6;
+			*op = 0x05; 
+			uint32_t *addImmPtr = (uint32_t*)(op + 1);
+			*addImmPtr = offset;
+		}
+
 		instructionsToFix = (void*)((uintptr_t)instructionsToFix + instructionSizes[index]);
     }
 }
