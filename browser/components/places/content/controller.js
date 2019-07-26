@@ -1614,11 +1614,9 @@ XPCOMUtils.defineLazyServiceGetter(PlacesControllerDragHelper, "dragService",
 function goUpdatePlacesCommands() {
   
   var placesController = doGetPlacesControllerForCommand("placesCmd_open");
-  if (!placesController)
-    return;
-
   function updatePlacesCommand(aCommand) {
-    goSetCommandEnabled(aCommand, placesController.isCommandEnabled(aCommand));
+    goSetCommandEnabled(aCommand, placesController &&
+                                  placesController.isCommandEnabled(aCommand));
   }
 
   updatePlacesCommand("placesCmd_open");
