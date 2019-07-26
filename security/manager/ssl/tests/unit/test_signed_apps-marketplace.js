@@ -16,23 +16,23 @@ function run_test() {
   run_next_test();
 }
 
+
+
+
+
+
+
+
+
+
+
+const NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER = 0x80000000 
+				        + (    (0x45 + 21) << 16)
+				        + (-(-0x2000 + 13)      );
+
 function check_open_result(name, expectedRv) {
   if (expectedRv == Cr.NS_OK && !isB2G) {
     
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    const NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER = 0x80000000 
-                                            + (    (0x45 + 21) << 16)
-                                            + (-(-0x2000 + 13)      );
     expectedRv = NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER;
   }
 
@@ -49,11 +49,15 @@ function original_app_path(test_name) {
   return do_get_file("test_signed_apps/" + test_name + ".zip", false);
 }
 
+
+
 add_test(function () {
   certdb.openSignedJARFileAsync(
     original_app_path("test-privileged-app-test-1.0"),
-    check_open_result("test-privileged-app-test-1.0", Cr.NS_OK));
+    check_open_result("test-privileged-app-test-1.0",
+                      NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER));
 });
+
 
 add_test(function () {
   certdb.openSignedJARFileAsync(
