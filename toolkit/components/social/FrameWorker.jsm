@@ -204,6 +204,10 @@ FrameWorker.prototype = {
 
       
       
+      workerWindow.document.body.textContent = "";
+
+      
+      
       try {
         Services.scriptloader.loadSubScript("resource://gre/modules/MessagePortBase.jsm", sandbox);
         Services.scriptloader.loadSubScript("resource://gre/modules/MessagePortWorker.js", sandbox);
@@ -316,6 +320,8 @@ function makeHiddenFrame() {
   iframe.setAttribute("mozframetype", "content");
   
   iframe.setAttribute("sandbox", "allow-same-origin");
+  
+  iframe.style.display = "none";
 
   hiddenDoc.documentElement.appendChild(iframe);
 
