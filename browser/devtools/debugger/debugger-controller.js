@@ -1698,7 +1698,13 @@ Breakpoints.prototype = {
       
       
       
-      this._disabled.delete(identifier);
+      let disabledPromise = this._disabled.get(identifier);
+      if (disabledPromise) {
+        disabledPromise.then(({ conditionalExpression: previousValue }) => {
+          aBreakpointClient.conditionalExpression = previousValue;
+        });
+        this._disabled.delete(identifier);
+      }
 
       
       
