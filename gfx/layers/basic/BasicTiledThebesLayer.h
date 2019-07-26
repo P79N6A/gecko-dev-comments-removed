@@ -12,8 +12,6 @@
 #include "BasicImplData.h"
 #include <algorithm>
 
-#define LOW_PRECISION_RESOLUTION 0.25
-
 namespace mozilla {
 namespace layers {
 
@@ -109,8 +107,8 @@ public:
     }
   }
 
-  const gfxSize& GetFrameResolution() { return mFrameResolution; }
-  void SetFrameResolution(const gfxSize& aResolution) { mFrameResolution = aResolution; }
+  const gfxSize& GetResolution() { return mResolution; }
+  void SetResolution(const gfxSize& aResolution) { mResolution = aResolution; }
 
   bool HasFormatChanged(BasicTiledThebesLayer* aThebesLayer) const;
 protected:
@@ -135,7 +133,7 @@ private:
   BasicTiledThebesLayer* mThebesLayer;
   LayerManager::DrawThebesLayerCallback mCallback;
   void* mCallbackData;
-  gfxSize mFrameResolution;
+  gfxSize mResolution;
   bool mLastPaintOpaque;
 
   
@@ -168,7 +166,6 @@ public:
     , mFirstPaint(true)
   {
     MOZ_COUNT_CTOR(BasicTiledThebesLayer);
-    mLowPrecisionTiledBuffer.SetResolution(LOW_PRECISION_RESOLUTION);
   }
 
   ~BasicTiledThebesLayer()
@@ -182,7 +179,6 @@ public:
   virtual void InvalidateRegion(const nsIntRegion& aRegion) {
     mInvalidRegion.Or(mInvalidRegion, aRegion);
     mValidRegion.Sub(mValidRegion, aRegion);
-    mLowPrecisionValidRegion.Sub(mLowPrecisionValidRegion, aRegion);
   }
 
   
@@ -238,37 +234,16 @@ private:
 
 
 
-
-
-  bool ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTiledBuffer,
-                                      const nsIntRegion& aInvalidRegion,
+  bool ComputeProgressiveUpdateRegion(const nsIntRegion& aInvalidRegion,
                                       const nsIntRegion& aOldValidRegion,
                                       nsIntRegion& aRegionToPaint,
                                       const gfx3DMatrix& aTransform,
-                                      const nsIntRect& aCompositionBounds,
                                       const gfx::Point& aScrollOffset,
                                       const gfxSize& aResolution,
                                       bool aIsRepeated);
 
   
-
-
-
-  bool ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
-                         nsIntRegion& aValidRegion,
-                         nsIntRegion& aInvalidRegion,
-                         const nsIntRegion& aOldValidRegion,
-                         const gfx3DMatrix& aTransform,
-                         const nsIntRect& aCompositionBounds,
-                         const gfx::Point& aScrollOffset,
-                         const gfxSize& aResolution,
-                         LayerManager::DrawThebesLayerCallback aCallback,
-                         void* aCallbackData);
-
-  
   BasicTiledLayerBuffer mTiledBuffer;
-  BasicTiledLayerBuffer mLowPrecisionTiledBuffer;
-  nsIntRegion mLowPrecisionValidRegion;
   gfx::Point mLastScrollOffset;
   bool mFirstPaint;
 };

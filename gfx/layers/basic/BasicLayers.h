@@ -276,7 +276,6 @@ public:
   virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
 
   void SetRepeatTransaction() { mRepeatTransaction = true; }
-  bool GetRepeatTransaction() { return mRepeatTransaction; }
 
   bool IsRepeatTransaction() { return mIsRepeatTransaction; }
 
@@ -290,12 +289,10 @@ public:
 
 
 
-
   bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
                                  gfx::Rect& aViewport,
                                  float& aScaleX,
-                                 float& aScaleY,
-                                 bool aDrawingCritical);
+                                 float& aScaleY);
 
 private:
   

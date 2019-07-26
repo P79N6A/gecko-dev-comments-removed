@@ -76,7 +76,6 @@ public class GeckoLayerClient
 
     
     private final ProgressiveUpdateData mProgressiveUpdateData;
-    private boolean mProgressiveUpdateIsCurrent;
 
     
     private volatile boolean mCompositorCreated;
@@ -360,35 +359,13 @@ public class GeckoLayerClient
     
     
     public ProgressiveUpdateData progressiveUpdateCallback(boolean aHasPendingNewThebesContent,
-                                                           float x, float y, float width, float height,
-                                                           float resolution, boolean lowPrecision) {
+                                                           float x, float y, float width, float height, float resolution) {
         
         
         DisplayPortMetrics displayPort = mDisplayPort;
         ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
         mProgressiveUpdateData.setViewport(viewportMetrics);
         mProgressiveUpdateData.abort = false;
-
-        
-        
-        
-        
-        
-
-        
-        
-        
-        
-        if (!lowPrecision) {
-            mProgressiveUpdateIsCurrent =
-              Math.abs(displayPort.getLeft() - x) <= 2 &&
-              Math.abs(displayPort.getTop() - y) <= 2 &&
-              Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
-              Math.abs(displayPort.getRight() - (x + width)) <= 2;
-        }
-        if (mProgressiveUpdateIsCurrent) {
-            return mProgressiveUpdateData;
-        }
 
         
         
@@ -403,11 +380,40 @@ public class GeckoLayerClient
         
         
         
+
+        
+        
+        
+        
+        if (Math.abs(displayPort.getLeft() - x) <= 2 &&
+            Math.abs(displayPort.getTop() - y) <= 2 &&
+            Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
+            Math.abs(displayPort.getRight() - (x + width)) <= 2) {
+            return mProgressiveUpdateData;
+        }
+
+        
+        
+        
+        
+        
         if (Math.max(viewportMetrics.viewportRectLeft, viewportMetrics.pageRectLeft) + 1 < x ||
             Math.max(viewportMetrics.viewportRectTop, viewportMetrics.pageRectTop) + 1 < y ||
             Math.min(viewportMetrics.viewportRectRight, viewportMetrics.pageRectRight) - 1 > x + width ||
             Math.min(viewportMetrics.viewportRectBottom, viewportMetrics.pageRectBottom) - 1 > y + height) {
             Log.d(LOGTAG, "Aborting update due to viewport not in display-port");
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
+        }
+
+        
+        
+        
+        
+        
+        
+        if (!aHasPendingNewThebesContent) {
+            Log.d(LOGTAG, "Aborting update due to more relevant display-port in event queue");
             mProgressiveUpdateData.abort = true;
             return mProgressiveUpdateData;
         }
