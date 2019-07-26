@@ -39,8 +39,6 @@ public:
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
 
   virtual nsIScrollableFrame* GetScrollTargetFrame() MOZ_OVERRIDE {
-    if (!IsScrollable())
-      return nullptr;
     return do_QueryFrame(GetFirstPrincipalChild());
   }
 
@@ -233,13 +231,6 @@ protected:
   };
 
   nsresult OffsetToDOMPoint(int32_t aOffset, nsIDOMNode** aResult, int32_t* aPosition);
-
-  
-
-
-
-
-  bool IsScrollable() const;
 
   
 
