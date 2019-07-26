@@ -101,7 +101,7 @@ grab_token(char **str, char **out)
     if (!tmp)
         ABORT(R_NO_MEMORY);
 
-    strncpy(tmp, *str, len);
+    memcpy(tmp, *str, len);
     tmp[len] = '\0';
 
     *str = c;
@@ -320,11 +320,14 @@ nr_ice_peer_candidate_from_attribute(nr_ice_ctx *ctx,char *orig,nr_ice_media_str
     skip_whitespace(&str);
 
     
+#if 0
+    
 
     if (strlen(str) != 0) {
       ABORT(R_BAD_DATA);
     }
-      
+#endif
+
     *candp=cand;
 
     _status=0;
@@ -377,9 +380,12 @@ nr_ice_peer_ctx_parse_media_stream_attribute(nr_ice_peer_ctx *pctx, nr_ice_media
     }
 
     skip_whitespace(&str);
+
     
 
-    assert(strlen(str) == 0);
+    if (str[0] != '\0') {
+      ABORT(R_BAD_DATA);
+    }
 
     _status=0;
   abort:
@@ -403,7 +409,7 @@ nr_ice_peer_ctx_parse_global_attributes(nr_ice_peer_ctx *pctx, char **attrs, int
     unsigned int port;
     in_addr_t addr;
     char *ice_option_tag = 0;
-    
+
     for(i=0;i<attr_ct;i++){
         orig = str = attrs[i];
 
@@ -517,9 +523,13 @@ nr_ice_peer_ctx_parse_global_attributes(nr_ice_peer_ctx *pctx, char **attrs, int
         }
 
         skip_whitespace(&str);
-        
 
-        assert(strlen(str) == 0);
+      
+
+
+      if (str[0] != '\0') {
+        ABORT(R_BAD_DATA);
+      }
     }
 
     _status=0;
