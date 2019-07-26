@@ -56,6 +56,25 @@ function test() {
   }
 
   
+  let testUndoCloseMultipleTabs = function (aWindow) {
+    aWindow.gBrowser.loadOneTab('http://mochi.test:8888/', {inBackground: true});
+    aWindow.gBrowser.loadOneTab('http://mochi.test:8888/', {inBackground: true});
+    aWindow.gBrowser.loadOneTab('http://mochi.test:8888/', {inBackground: true});
+    aWindow.gBrowser.loadOneTab('http://mochi.test:8888/', {inBackground: true});
+
+    afterAllTabsLoaded(function () {
+      assertNumberOfVisibleTabs(aWindow, 5);
+
+      aWindow.gBrowser.removeTabsToTheEndFrom(aWindow.gBrowser.tabs[0]);
+      assertNumberOfVisibleTabs(aWindow, 1);
+      restoreTab(function () {
+        assertNumberOfVisibleTabs(aWindow, 5);
+        next(aWindow);
+      }, undefined, aWindow);
+    }, aWindow);
+  }
+
+  
   let testDuplicateTab = function (aWindow) {
     aWindow.gBrowser.loadOneTab('http://mochi.test:8888/', {inBackground: true});
 
@@ -111,6 +130,9 @@ function test() {
 
   
   tests.push(testUndoCloseTabs);
+
+  
+  tests.push(testUndoCloseMultipleTabs);
 
   
   tests.push(testDuplicateTab);
