@@ -432,8 +432,6 @@ pref("services.push.requestTimeout", 10000);
 
 pref("services.push.udp.wakeupEnabled", true);
 
-pref("services.push.udp.port", 2442);
-
 
 #ifdef MOZ_B2G_RIL
 pref("dom.mozNetworkStats.enabled", true);
@@ -612,6 +610,10 @@ pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
 
 
 
+
+
+
+
 pref("hal.processPriorityManager.gonk.MASTER.OomScoreAdjust", 0);
 pref("hal.processPriorityManager.gonk.MASTER.KillUnderMB", 4);
 pref("hal.processPriorityManager.gonk.MASTER.Nice", 0);
@@ -623,6 +625,9 @@ pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.Nice", 0);
 pref("hal.processPriorityManager.gonk.FOREGROUND.OomScoreAdjust", 134);
 pref("hal.processPriorityManager.gonk.FOREGROUND.KillUnderMB", 6);
 pref("hal.processPriorityManager.gonk.FOREGROUND.Nice", 1);
+
+pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.OomScoreAdjust", 200);
+pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.Nice", 1);
 
 pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.OomScoreAdjust", 400);
 pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.KillUnderMB", 7);
