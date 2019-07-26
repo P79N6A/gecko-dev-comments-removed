@@ -657,6 +657,14 @@ public:
 
 
 
+  static nsRect TransformAncestorRectToFrame(nsIFrame* aFrame,
+                                             const nsRect& aRect,
+                                             const nsIFrame* aAncestor);
+
+  
+
+
+
 
 
   static nsRect TransformFrameRectToAncestor(nsIFrame* aFrame,
@@ -696,9 +704,6 @@ public:
   }
 
   
-
-
-
 
 
 

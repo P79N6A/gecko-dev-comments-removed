@@ -81,8 +81,6 @@ public:
   bool Is2D(gfxMatrix* aMatrix) const;
   bool Is2D() const;
 
-  bool IsProjective() const;
-
   
 
 
@@ -251,25 +249,6 @@ public:
 
   gfxPoint ProjectPoint(const gfxPoint& aPoint) const;
   gfxRect ProjectRectBounds(const gfxRect& aRect) const;
-
-  
-
-
-
-
-
-
-
-
-
-  bool UntransformPoint(const gfxPoint& aPoint, const gfxRect& aChildBounds, gfxPoint* aOut) const;
-
-
-  
-
-
-
-  gfxRect UntransformBounds(const gfxRect& aRect, const gfxRect& aChildBounds) const;
 
 
   
