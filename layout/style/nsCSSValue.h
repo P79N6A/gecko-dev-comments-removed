@@ -83,8 +83,10 @@ struct URLValue {
   URLValue(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
            nsIPrincipal* aOriginPrincipal);
 
+protected:
   ~URLValue();
 
+public:
   bool operator==(const URLValue& aOther) const;
 
   
@@ -124,8 +126,10 @@ struct ImageValue : public URLValue {
   
   ImageValue(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
              nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument);
+private:
   ~ImageValue();
 
+public:
   
 
   nsRefPtrHashtable<nsPtrHashKey<nsISupports>, imgRequestProxy> mRequests; 

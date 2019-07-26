@@ -282,6 +282,10 @@ struct ComputedTiming
 
 struct ElementAnimation
 {
+protected:
+  virtual ~ElementAnimation() { }
+
+public:
   ElementAnimation()
     : mIsRunningOnCompositor(false)
     , mLastNotification(LAST_NOTIFICATION_NONE)
@@ -291,7 +295,6 @@ struct ElementAnimation
   
   
   
-  virtual ~ElementAnimation() { }
   virtual ElementPropertyTransition* AsTransition() { return nullptr; }
   virtual const ElementPropertyTransition* AsTransition() const {
     return nullptr;
