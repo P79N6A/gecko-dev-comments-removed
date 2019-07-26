@@ -381,58 +381,29 @@ public:
   
 
   
-
-
-
-
-
-
-
-
-
-
+  
   nsHTMLReflowState(nsPresContext*           aPresContext,
                     nsIFrame*                aFrame,
-                    nsRenderingContext*      aRenderingContext,
+                    nsRenderingContext*     aRenderingContext,
                     const nsSize&            aAvailableSpace,
                     uint32_t                 aFlags = 0);
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+  
   nsHTMLReflowState(nsPresContext*           aPresContext,
                     const nsHTMLReflowState& aParentReflowState,
                     nsIFrame*                aFrame,
                     const nsSize&            aAvailableSpace,
+                    
+                    
                     nscoord                  aContainingBlockWidth = -1,
                     nscoord                  aContainingBlockHeight = -1,
-                    uint32_t                 aFlags = 0);
+                    bool                     aInit = true);
 
   
   enum {
-    
-    
-    DUMMY_PARENT_REFLOW_STATE = (1<<0),
-
-    
-    
-    CALLER_WILL_INIT = (1<<1)
+    DUMMY_PARENT_REFLOW_STATE = (1<<0)
   };
 
   

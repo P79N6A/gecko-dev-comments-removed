@@ -382,7 +382,7 @@ nsTableOuterFrame::GetChildMargin(nsPresContext*           aPresContext,
   
   nsHTMLReflowState childRS(aPresContext, aOuterRS, aChildFrame,
                             nsSize(aAvailWidth, aOuterRS.availableHeight),
-                            -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
+                            -1, -1, false);
   InitChildReflowState(*aPresContext, childRS);
 
   aMargin = childRS.mComputedMargin;
@@ -824,7 +824,7 @@ nsTableOuterFrame::OuterBeginReflowChild(nsPresContext*           aPresContext,
   
   nsHTMLReflowState &childRS = * new (aChildRSSpace)
     nsHTMLReflowState(aPresContext, aOuterRS, aChildFrame, availSize,
-                      -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
+                      -1, -1, false);
   InitChildReflowState(*aPresContext, childRS);
 
   
