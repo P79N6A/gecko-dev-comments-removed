@@ -64,7 +64,8 @@ SystemMessageManager.prototype = {
       }
     }
 
-    aHandler.handleMessage(wrapped ? aMessage : ObjectWrapper.wrap(aMessage, this._window));
+    aHandler.handleMessage(wrapped ? aMessage
+                                   : ObjectWrapper.wrap(aMessage, this._window));
   },
 
   mozSetMessageHandler: function sysMessMgr_setMessageHandler(aType, aHandler) {
@@ -114,7 +115,7 @@ SystemMessageManager.prototype = {
 
     
     
-    let messages = cpmm.sendSyncMessage("SystemMessageManager:GetPending",
+    let messages = cpmm.sendSyncMessage("SystemMessageManager:GetPendingMessages",
                                         { type: aType,
                                           uri: this._uri,
                                           manifest: this._manifest })[0];
@@ -155,6 +156,15 @@ SystemMessageManager.prototype = {
     let msg = aMessage.json;
     if (msg.manifest != this._manifest)
       return;
+
+    
+    
+    cpmm.sendAsyncMessage(
+      "SystemMessageManager:Message:Return:OK",
+      { type: msg.type,
+        manifest: msg.manifest,
+        uri: msg.uri,
+        msgID: msg.msgID });
 
     
     if (!(msg.type in this._handlers)) {
