@@ -10,6 +10,9 @@
 #include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
 
+
+#undef CreateEvent
+
 class nsEventTargetChainItem;
 class nsIDOMEvent;
 class nsIScriptGlobalObject;
