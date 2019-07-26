@@ -1443,6 +1443,7 @@ class StackSpace
     JS_FRIEND_API(size_t) sizeOfCommitted();
 
 #ifdef DEBUG
+    
     bool containsSlow(StackFrame *fp);
 #endif
 };
@@ -1532,9 +1533,6 @@ class ContextStack
 
     
     StackSpace &space() const { return *space_; }
-
-    
-    bool containsSlow(const StackFrame *target) const;
 
     
 
@@ -1750,6 +1748,8 @@ class StackIter
     bool operator==(const StackIter &rhs) const;
     bool operator!=(const StackIter &rhs) const { return !(*this == rhs); }
 
+    JSCompartment *compartment() const;
+
     bool isScript() const {
         JS_ASSERT(!done());
 #ifdef JS_ION
@@ -1777,13 +1777,28 @@ class StackIter
     bool isConstructing() const;
 
     
-    StackFrame *fp() const { JS_ASSERT(isScript()); return fp_; }
+
+
+
+
+
+    StackFrame *interpFrame() const { JS_ASSERT(isScript() && !isIon()); return fp_; }
+
     jsbytecode *pc() const { JS_ASSERT(isScript()); return pc_; }
     JSScript   *script() const { JS_ASSERT(isScript()); return script_; }
     JSFunction *callee() const;
     Value       calleev() const;
     unsigned    numActualArgs() const;
+
+    JSObject   *scopeChain() const;
+
+    
+    bool        computeThis() const;
     Value       thisv() const;
+
+    JSFunction *maybeCallee() const {
+        return isFunctionFrame() ? callee() : NULL;
+    }
 
     
     size_t      numFrameSlots() const;
@@ -1839,7 +1854,8 @@ class AllFramesIter
     bool done() const { return fp_ == NULL; }
     AllFramesIter& operator++();
 
-    StackFrame *fp() const { return fp_; }
+    bool        isIon() const { return fp_->runningInIon(); }
+    StackFrame *interpFrame() const { return fp_; }
 
   private:
     void settle();

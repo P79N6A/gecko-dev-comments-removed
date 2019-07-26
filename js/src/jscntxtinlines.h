@@ -585,16 +585,4 @@ JSContext::setDefaultCompartmentObjectIfUnset(JSObject *obj)
         setDefaultCompartmentObject(obj);
 }
 
-
-static inline js::StackFrame *
-js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
-{
-#ifdef JS_METHODJIT
-    if (expand)
-        js::mjit::ExpandInlineFrames(cx->compartment);
-#endif
-
-    return cx->maybefp();
-}
-
 #endif 

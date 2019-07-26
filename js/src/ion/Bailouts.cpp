@@ -609,8 +609,7 @@ ion::ThunkToInterpreter(Value *vp)
         StackFrame *fp = NULL;
         Rooted<JSScript*> script(cx, NULL);
         do {
-            JS_ASSERT(!iter.isIon());
-            fp = iter.fp();
+            fp = iter.interpFrame();
             script = iter.script();
             if (script->needsArgsObj()) {
                 

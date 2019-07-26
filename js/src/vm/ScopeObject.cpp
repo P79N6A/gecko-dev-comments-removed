@@ -1834,7 +1834,14 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 
 
     for (AllFramesIter i(cx->runtime->stackSpace); !i.done(); ++i) {
-        StackFrame *fp = i.fp();
+        
+
+
+
+        if (i.isIon())
+            continue;
+
+        StackFrame *fp = i.interpFrame();
         if (fp->scopeChain()->compartment() != cx->compartment)
             continue;
 
