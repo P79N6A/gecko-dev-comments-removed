@@ -34,11 +34,8 @@ void MakeRandomVector(nsTArray<uint8_t>& a, size_t size) {
   
   
   
-  enum { bitsToIgnore = 16 };
-  MOZ_STATIC_ASSERT((unsigned int)(RAND_MAX) >> (8 + bitsToIgnore),
-                    "Didn't expect RAND_MAX to be so low");
   for (size_t i = 0; i < size; i++)
-    a[i] = static_cast<uint8_t>((unsigned int)(rand()) >> bitsToIgnore);
+    a[i] = static_cast<uint8_t>((unsigned int)(rand()) >> 7);
 }
 
 template<typename T>

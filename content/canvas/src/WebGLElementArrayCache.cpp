@@ -146,7 +146,6 @@ public:
     , mLastInvalidatedLeaf(0)
   {
     ResizeToParentSize();
-    Invalidate(0, mParent.ByteSize() - 1);
   }
 
   T GlobalMaximum() const {
@@ -157,22 +156,22 @@ public:
   
   
   static size_t ParentNode(size_t treeIndex) {
-    MOZ_ASSERT(treeIndex);
+    MOZ_ASSERT(treeIndex > 1);
     return treeIndex >> 1;
   }
 
   static bool IsRightNode(size_t treeIndex) {
-    MOZ_ASSERT(treeIndex);
+    MOZ_ASSERT(treeIndex > 1);
     return treeIndex & 1;
   }
 
   static bool IsLeftNode(size_t treeIndex) {
-    MOZ_ASSERT(treeIndex);
+    MOZ_ASSERT(treeIndex > 1);
     return !IsRightNode(treeIndex);
   }
 
   static size_t SiblingNode(size_t treeIndex) {
-    MOZ_ASSERT(treeIndex);
+    MOZ_ASSERT(treeIndex > 1);
     return treeIndex ^ 1;
   }
 
@@ -187,12 +186,12 @@ public:
   }
 
   static size_t LeftNeighborNode(size_t treeIndex, size_t distance = 1) {
-    MOZ_ASSERT(treeIndex);
+    MOZ_ASSERT(treeIndex > 1);
     return treeIndex - distance;
   }
 
   static size_t RightNeighborNode(size_t treeIndex, size_t distance = 1) {
-    MOZ_ASSERT(treeIndex);
+    MOZ_ASSERT(treeIndex > 1);
     return treeIndex + distance;
   }
 
@@ -287,10 +286,18 @@ public:
     size_t numberOfElements = mParent.ByteSize() / sizeof(T);
     size_t requiredNumLeaves = (numberOfElements + sElementsPerLeaf - 1) / sElementsPerLeaf;
 
+    size_t oldNumLeaves = mNumLeaves;
     mNumLeaves = NextPowerOfTwo(requiredNumLeaves);
+    Invalidate(0, mParent.ByteSize() - 1);
 
     
-    return mTreeData.SetLength(2 * mNumLeaves);
+    if (!mTreeData.SetLength(2 * mNumLeaves)) {
+      return false;
+    }
+    if (mNumLeaves != oldNumLeaves) {
+      memset(mTreeData.Elements(), 0, mTreeData.Length() * sizeof(mTreeData[0]));
+    }
+    return true;
   }
 
   void Invalidate(size_t firstByte, size_t lastByte);
@@ -380,22 +387,17 @@ void WebGLElementArrayCacheTree<T>::Update()
 
   
   
-  while (true) {
-
-    
-    if (firstTreeIndex == lastTreeIndex) {
-      size_t firstTreeIndexParent = ParentNode(firstTreeIndex);
-      while (firstTreeIndexParent) {
-        mTreeData[firstTreeIndexParent] = NS_MAX(mTreeData[firstTreeIndex], mTreeData[SiblingNode(firstTreeIndex)]);
-        firstTreeIndex = firstTreeIndexParent;
-        firstTreeIndexParent = ParentNode(firstTreeIndex);
-      }
-      break;
-    }
+  while (firstTreeIndex > 1) {
 
     
     firstTreeIndex = ParentNode(firstTreeIndex);
     lastTreeIndex = ParentNode(lastTreeIndex);
+
+    
+    if (firstTreeIndex == lastTreeIndex) {
+      mTreeData[firstTreeIndex] = NS_MAX(mTreeData[LeftChildNode(firstTreeIndex)], mTreeData[RightChildNode(firstTreeIndex)]);
+      continue;
+    }
 
     
     size_t child = LeftChildNode(firstTreeIndex);
