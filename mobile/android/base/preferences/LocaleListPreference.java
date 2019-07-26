@@ -44,8 +44,27 @@ public class LocaleListPreference extends ListPreference {
         }
 
         public LocaleDescriptor(Locale locale, String tag) {
-            this.nativeName = locale.getDisplayName(locale);
             this.tag = tag;
+
+            final String displayName = locale.getDisplayName(locale);
+            if (TextUtils.isEmpty(displayName)) {
+                
+                Log.w(LOG_TAG, "Display name is empty. Using " + locale.toString());
+                this.nativeName = locale.toString();
+                return;
+            }
+
+            
+            
+            
+            final byte directionality = Character.getDirectionality(displayName.charAt(0));
+            if (directionality == Character.DIRECTIONALITY_LEFT_TO_RIGHT) {
+                this.nativeName = displayName.substring(0, 1).toUpperCase(locale) +
+                                  displayName.substring(1);
+                return;
+            }
+
+            this.nativeName = displayName;
         }
 
         public String getTag() {
