@@ -2,28 +2,7 @@
 
 
 
-@media (-moz-windows-glass) {
-  
-
-
-  #toolbar-menubar #downloads-button:not([attention]) > #downloads-indicator-anchor > #downloads-indicator-icon:not(:-moz-lwtheme),
-
-  
-
-
-
-  
-  #toolbar-menubar #downloads-button:not([counter]) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter {
-    background-image: -moz-image-rect(url("chrome://browser/skin/Toolbar-inverted.png"), 0, 198, 18, 180);
-  }
-
-  #toolbar-menubar #downloads-indicator-counter:not(:-moz-lwtheme) {
-    color: white;
-    text-shadow: 0 0 1px rgba(0,0,0,.7),
-                 0 1px 1.5px rgba(0,0,0,.5);
-  }
-}
-
 #downloads-indicator-counter {
+  
   margin-bottom: -1px;
 }
