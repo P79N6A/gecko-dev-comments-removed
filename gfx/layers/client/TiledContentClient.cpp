@@ -6,7 +6,7 @@
 #include "mozilla/layers/TiledContentClient.h"
 #include <math.h>                       
 #include "ClientTiledThebesLayer.h"     
-#include "GeckoProfilerImpl.h"          
+#include "GeckoProfiler.h"              
 #include "ClientLayerManager.h"         
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                

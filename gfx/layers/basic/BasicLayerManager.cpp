@@ -8,7 +8,7 @@
 #include <sys/types.h>                  
 #include "BasicContainerLayer.h"        
 #include "BasicLayersImpl.h"            
-#include "GeckoProfilerImpl.h"          
+#include "GeckoProfiler.h"              
 #include "ImageContainer.h"             
 #include "Layers.h"                     
 #include "ReadbackLayer.h"              

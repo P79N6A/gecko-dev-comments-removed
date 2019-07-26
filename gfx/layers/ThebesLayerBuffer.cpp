@@ -8,7 +8,7 @@
 #include <algorithm>                    
 #include "BasicImplData.h"              
 #include "BasicLayersImpl.h"            
-#include "GeckoProfilerImpl.h"          
+#include "GeckoProfiler.h"              
 #include "Layers.h"                     
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 

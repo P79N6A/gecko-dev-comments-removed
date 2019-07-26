@@ -9,7 +9,7 @@
 #include <set>                          
 #include <vector>                       
 #include "AutoOpenSurface.h"            
-#include "GeckoProfilerImpl.h"          
+#include "GeckoProfiler.h"              
 #include "ISurfaceAllocator.h"          
 #include "Layers.h"                     
 #include "RenderTrace.h"                

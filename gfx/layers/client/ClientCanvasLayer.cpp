@@ -6,7 +6,7 @@
 #include "ClientCanvasLayer.h"
 #include "GLContext.h"                  
 #include "GLScreenBuffer.h"             
-#include "GeckoProfilerImpl.h"          
+#include "GeckoProfiler.h"              
 #include "SharedSurfaceEGL.h"           
 #include "SharedSurfaceGL.h"            
 #include "SurfaceStream.h"              

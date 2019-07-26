@@ -6,7 +6,7 @@
 #include "ClientThebesLayer.h"
 #include "ClientTiledThebesLayer.h"     
 #include <stdint.h>                     
-#include "GeckoProfilerImpl.h"          
+#include "GeckoProfiler.h"              
 #include "client/ClientLayerManager.h"  
 #include "gfxASurface.h"                
 #include "gfxContext.h"                 
