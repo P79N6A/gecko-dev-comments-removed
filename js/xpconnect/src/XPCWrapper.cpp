@@ -65,7 +65,7 @@ XrayWrapperConstructor(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 bool
-AttachNewConstructorObject(JSContext *aCx, JSObject *aGlobalObject)
+AttachNewConstructorObject(JSContext *aCx, JS::HandleObject aGlobalObject)
 {
   
   

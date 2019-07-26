@@ -2735,7 +2735,7 @@ public:
 
 
     static nsresult
-    GetNewOrUsed(JSObject* aJSObj,
+    GetNewOrUsed(JS::HandleObject aJSObj,
                  REFNSIID aIID,
                  nsISupports* aOuter,
                  nsXPCWrappedJS** wrapper);
@@ -2873,7 +2873,6 @@ public:
 
 
 
-
     static JSBool NativeData2JS(jsval* d,
                                 const void* s, const nsXPTType& type,
                                 const nsID* iid, nsresult* pErr);
@@ -2884,7 +2883,6 @@ public:
                                 nsresult* pErr);
 
     
-
 
 
 
@@ -2931,7 +2929,7 @@ public:
                                  const nsXPTType& type, const nsID* iid,
                                  uint32_t count, nsresult* pErr);
 
-    static JSBool JSArray2Native(void** d, jsval s,
+    static JSBool JSArray2Native(void** d, JS::HandleValue s,
                                  uint32_t count, const nsXPTType& type,
                                  const nsID* iid, nsresult* pErr);
 
@@ -2946,11 +2944,11 @@ public:
                                           uint32_t count,
                                           nsresult* pErr);
 
-    static JSBool JSStringWithSize2Native(void* d, jsval s,
+    static JSBool JSStringWithSize2Native(void* d, JS::HandleValue s,
                                           uint32_t count, const nsXPTType& type,
                                           nsresult* pErr);
 
-    static nsresult JSValToXPCException(jsval s,
+    static nsresult JSValToXPCException(JS::MutableHandleValue s,
                                         const char* ifaceName,
                                         const char* methodName,
                                         nsIException** exception);
