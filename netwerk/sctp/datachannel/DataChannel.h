@@ -262,6 +262,7 @@ private:
 #endif
   uint16_t mLocalPort; 
   uint16_t mRemotePort;
+  bool mUsingDtls;
 
   
   nsCOMPtr<nsITimer> mDeferredTimer;
