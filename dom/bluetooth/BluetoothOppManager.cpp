@@ -23,6 +23,7 @@
 #include "nsIFile.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
+#include "nsLocalFile.h"
 #include "nsNetUtil.h"
 
 #define TARGET_FOLDER "/sdcard/downloads/bluetooth/"
@@ -279,11 +280,19 @@ BluetoothOppManager::SendFile(BlobParent* aActor)
 
 
 
+
   mBlob = aActor->GetBlob();
 
-  nsCOMPtr<nsIDOMFile> file = do_QueryInterface(mBlob);
-  if (file) {
-    file->GetName(sFileName);
+  nsCOMPtr<nsIDOMFile> domFile = do_QueryInterface(mBlob);
+  nsString fullPath;
+
+  if (domFile && NS_SUCCEEDED(domFile->GetMozFullPathInternal(fullPath))) {
+    nsCOMPtr<nsIFile> localFile = new nsLocalFile();
+    NS_NewLocalFile(fullPath, false, getter_AddRefs(localFile));
+
+    if (localFile) {
+      localFile->GetLeafName(sFileName);
+    }
   }
 
   if (sFileName.IsEmpty()) {
