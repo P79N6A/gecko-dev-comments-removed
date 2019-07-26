@@ -1100,7 +1100,7 @@ nsFlexContainerFrame::GetType() const
 
 
 int
-nsFlexContainerFrame::GetSkipSides() const
+nsFlexContainerFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
 {
   
   if (IS_TRUE_OVERFLOW_CONTAINER(this)) {
