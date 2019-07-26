@@ -40,6 +40,14 @@ var gUpdateWizard = {
   
   addonInstalls: new Map(),
   shuttingDown: false,
+  
+  
+  disabled: 0,
+  metadataEnabled: 0,
+  metadataDisabled: 0,
+  upgraded: 0,
+  upgradeFailed: 0,
+  upgradeDeclined: 0,
 
   init: function gUpdateWizard_init()
   {
@@ -151,6 +159,18 @@ var gOfflinePage = {
   }
 }
 
+
+let listener = {
+  onDisabled: function listener_onDisabled(aAddon) {
+    logger.debug("onDisabled for ${id}", aAddon);
+    gUpdateWizard.metadataDisabled++;
+  },
+  onEnabled: function listener_onEnabled(aAddon) {
+    logger.debug("onEnabled for ${id}", aAddon);
+    gUpdateWizard.metadataEnabled++;
+  }
+};
+
 var gVersionInfoPage = {
   _completeCount: 0,
   _totalCount: 0,
@@ -178,9 +198,18 @@ var gVersionInfoPage = {
       gVersionInfoPage._totalCount = gUpdateWizard.addons.length;
 
       
+      for (let addon of gUpdateWizard.addons) {
+        if (gUpdateWizard.inactiveAddonIDs.indexOf(addon.id) != -1) {
+          gUpdateWizard.disabled++;
+        }
+      }
+
+      
       
       let ids = [addon.id for (addon of gUpdateWizard.addons)];
 
+      
+      AddonManager.addAddonListener(listener);
       AddonRepository.repopulateCache(ids, function gVersionInfoPage_repopulateCache() {
 
         if (gUpdateWizard.shuttingDown) {
@@ -196,6 +225,18 @@ var gVersionInfoPage = {
   },
 
   onAllUpdatesFinished: function gVersionInfoPage_onAllUpdatesFinished() {
+    AddonManager.removeAddonListener(listener);
+    AddonManagerPrivate.recordSimpleMeasure("appUpdate_disabled",
+        gUpdateWizard.disabled);
+    AddonManagerPrivate.recordSimpleMeasure("appUpdate_metadata_enabled",
+        gUpdateWizard.metadataEnabled);
+    AddonManagerPrivate.recordSimpleMeasure("appUpdate_metadata_disabled",
+        gUpdateWizard.metadataDisabled);
+    
+    
+    AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgraded", 0);
+    AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgradeFailed", 0);
+    AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgradeDeclined", 0);
     
     
     logger.debug("VersionInfo updates finished: inactive " +
@@ -259,8 +300,10 @@ var gVersionInfoPage = {
     if (!gUpdateWizard.shuttingDown) {
       
       
-      if (aAddon.active)
+      if (aAddon.active) {
         AddonManagerPrivate.removeStartupChange("disabled", aAddon.id);
+        gUpdateWizard.metadataEnabled++;
+      }
 
       
       var updateStrings = document.getElementById("updateStrings");
@@ -461,6 +504,7 @@ var gInstallingPage = {
     for (let update of updates) {
       if (!update.checked) {
         logger.info("User chose to cancel update of " + update.label);
+        gUpdateWizard.upgradeDeclined++;
         update.install.cancel();
         continue;
       }
@@ -480,6 +524,12 @@ var gInstallingPage = {
 
     if (this._installs.length == this._currentInstall) {
       Services.obs.notifyObservers(null, "TEST:all-updates-done", null);
+      AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgraded",
+          gUpdateWizard.upgraded);
+      AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgradeFailed",
+          gUpdateWizard.upgradeFailed);
+      AddonManagerPrivate.recordSimpleMeasure("appUpdate_upgradeDeclined",
+          gUpdateWizard.upgradeDeclined);
       this._installing = false;
       if (gUpdateWizard.shuttingDown) {
         return;
@@ -494,6 +544,7 @@ var gInstallingPage = {
 
     if (gUpdateWizard.shuttingDown && !AddonManager.shouldAutoUpdate(install.existingAddon)) {
       logger.debug("Don't update " + install.existingAddon.id + " in background");
+      gUpdateWizard.upgradeDeclined++;
       install.cancel();
       this.startNextInstall();
       return;
@@ -528,6 +579,7 @@ var gInstallingPage = {
   onDownloadFailed: function gInstallingPage_onDownloadFailed(aInstall) {
     this._errors.push(aInstall);
 
+    gUpdateWizard.upgradeFailed++;
     this.startNextInstall();
   },
 
@@ -548,12 +600,14 @@ var gInstallingPage = {
                                            aAddon.id);
     }
 
+    gUpdateWizard.upgraded++;
     this.startNextInstall();
   },
 
   onInstallFailed: function gInstallingPage_onInstallFailed(aInstall) {
     this._errors.push(aInstall);
 
+    gUpdateWizard.upgradeFailed++;
     this.startNextInstall();
   }
 };
