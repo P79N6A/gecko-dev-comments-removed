@@ -36,6 +36,7 @@ typedef HashSet<JSAtom *> FuncStmtSet;
 class SharedContext;
 
 typedef Vector<Definition *, 16> DeclVector;
+typedef Vector<JSFunction *, 4> FunctionVector;
 
 struct GenericParseContext
 {
@@ -200,7 +201,7 @@ struct ParseContext : public GenericParseContext
 
 
     
-    AutoFunctionVector innerFunctions;
+    FunctionVector innerFunctions;
 
     
     
