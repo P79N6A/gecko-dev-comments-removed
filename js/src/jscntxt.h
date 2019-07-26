@@ -1695,6 +1695,7 @@ struct JSContext : js::ContextFriendFields,
 
 
 
+
     inline JSVersion findVersion() const;
 
     void setOptions(unsigned opts) {
