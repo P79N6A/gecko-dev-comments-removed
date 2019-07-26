@@ -591,17 +591,23 @@ CanvasRenderingContext2D::ParseColor(const nsAString& aString,
     return false;
   }
 
-  nsIPresShell* presShell = GetPresShell();
-  nsRefPtr<nsStyleContext> parentContext;
-  if (mCanvasElement && mCanvasElement->IsInDoc()) {
+  if (value.GetUnit() == nsCSSUnit::eCSSUnit_Color) {
     
-    parentContext = nsComputedDOMStyle::GetStyleContextForElement(
-      mCanvasElement, nullptr, presShell);
-  }
+    *aColor = value.GetColorValue();
+  } else {
+    
+    nsIPresShell* presShell = GetPresShell();
+    nsRefPtr<nsStyleContext> parentContext;
+    if (mCanvasElement && mCanvasElement->IsInDoc()) {
+      
+      parentContext = nsComputedDOMStyle::GetStyleContextForElement(
+        mCanvasElement, nullptr, presShell);
+    }
 
-  unused << nsRuleNode::ComputeColor(
-    value, presShell ? presShell->GetPresContext() : nullptr, parentContext,
-    *aColor);
+    unused << nsRuleNode::ComputeColor(
+      value, presShell ? presShell->GetPresContext() : nullptr, parentContext,
+      *aColor);
+  }
   return true;
 }
 
