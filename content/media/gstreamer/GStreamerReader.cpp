@@ -437,10 +437,29 @@ bool GStreamerReader::DecodeAudioData()
       return false;
     }
 
+    
     if (!mAudioSinkBufferCount) {
-      return true;
+      if(!mVideoSinkBufferCount) {
+        
+
+
+
+
+        mon.Wait();
+        if (!mAudioSinkBufferCount) {
+          
+
+
+
+          return true;
+        }
+      }
+      else {
+        return true;
+      }
     }
 
+    NotifyBytesConsumed();
     buffer = gst_app_sink_pull_buffer(mAudioAppSink);
     mAudioSinkBufferCount--;
   }
@@ -483,10 +502,29 @@ bool GStreamerReader::DecodeVideoFrame(bool &aKeyFrameSkip,
       return false;
     }
 
+    
     if (!mVideoSinkBufferCount) {
-      return true;
+      if (!mAudioSinkBufferCount) {
+        
+
+
+
+
+        mon.Wait();
+        if (!mVideoSinkBufferCount) {
+          
+
+
+
+          return true;
+        }
+      }
+      else {
+        return true;
+      }
     }
 
+    NotifyBytesConsumed();
     mDecoder->NotifyDecodedFrames(0, 1);
 
     buffer = gst_app_sink_pull_buffer(mVideoAppSink);
