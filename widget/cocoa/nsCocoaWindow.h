@@ -109,7 +109,9 @@ typedef struct _nsCocoaWindowList {
 
 
 
+
 - (void)setBottomCornerRounded:(BOOL)rounded;
+- (BOOL)bottomCornerRounded;
 
 @end
 
