@@ -640,12 +640,6 @@ tabmodalprompt:not([promptType="promptUserAndPass"]) .infoContainer {
 
 .meta {
   background-color: @panel_light_color@;
-  
-
-
-
-
-
 }
 
 
