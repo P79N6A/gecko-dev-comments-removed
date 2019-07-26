@@ -141,6 +141,11 @@ DOMRequestIpcHelper.prototype = {
 
 
   initDOMRequestHelper: function(aWindow, aMessages) {
+    
+    
+    this.QueryInterface(Ci.nsISupportsWeakReference);
+    this.QueryInterface(Ci.nsIObserver);
+
     if (aMessages) {
       this.addMessageListeners(aMessages);
     }
@@ -157,7 +162,8 @@ DOMRequestIpcHelper.prototype = {
 
     this._destroyed = false;
 
-    Services.obs.addObserver(this, "inner-window-destroyed", false);
+    Services.obs.addObserver(this, "inner-window-destroyed",
+                              true);
   },
 
   destroyDOMRequestHelper: function() {
