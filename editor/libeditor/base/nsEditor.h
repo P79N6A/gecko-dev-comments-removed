@@ -264,28 +264,28 @@ protected:
 
   
 
-  NS_IMETHOD CreateTxnForSetAttribute(mozilla::dom::Element *aElement,
+  NS_IMETHOD CreateTxnForSetAttribute(nsIDOMElement *aElement,
                                       const nsAString &  aAttribute,
                                       const nsAString &  aValue,
                                       ChangeAttributeTxn ** aTxn);
 
   
 
-  NS_IMETHOD CreateTxnForRemoveAttribute(mozilla::dom::Element *aElement,
+  NS_IMETHOD CreateTxnForRemoveAttribute(nsIDOMElement *aElement,
                                          const nsAString &  aAttribute,
                                          ChangeAttributeTxn ** aTxn);
 
   
 
   NS_IMETHOD CreateTxnForCreateElement(const nsAString & aTag,
-                                       nsINode         *aParent,
+                                       nsIDOMNode      *aParent,
                                        int32_t         aPosition,
                                        CreateElementTxn ** aTxn);
 
   
 
-  NS_IMETHOD CreateTxnForInsertElement(nsINode    * aNode,
-                                       nsINode    * aParent,
+  NS_IMETHOD CreateTxnForInsertElement(nsIDOMNode * aNode,
+                                       nsIDOMNode * aParent,
                                        int32_t      aOffset,
                                        InsertElementTxn ** aTxn);
 
@@ -350,12 +350,12 @@ protected:
                                        EDirection           aDirection,
                                        DeleteTextTxn**      aTxn);
 	
-  NS_IMETHOD CreateTxnForSplitNode(nsINode *aNode,
+  NS_IMETHOD CreateTxnForSplitNode(nsIDOMNode *aNode,
                                    uint32_t    aOffset,
                                    SplitElementTxn **aTxn);
 
-  NS_IMETHOD CreateTxnForJoinNode(nsINode  *aLeftNode,
-                                  nsINode  *aRightNode,
+  NS_IMETHOD CreateTxnForJoinNode(nsIDOMNode  *aLeftNode,
+                                  nsIDOMNode  *aRightNode,
                                   JoinElementTxn **aTxn);
 
   

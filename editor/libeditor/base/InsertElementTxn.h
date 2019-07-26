@@ -9,11 +9,11 @@
 #include "EditTxn.h"                    
 #include "nsCOMPtr.h"                   
 #include "nsCycleCollectionParticipant.h"
+#include "nsIDOMNode.h"                 
 #include "nsISupportsImpl.h"            
 #include "nscore.h"                     
 
-class nsEditor;
-class nsINode;
+class nsIEditor;
 
 
 
@@ -26,10 +26,10 @@ public:
 
 
 
-  NS_IMETHOD Init(nsINode *aNode,
-                  nsINode *aParent,
+  NS_IMETHOD Init(nsIDOMNode *aNode,
+                  nsIDOMNode *aParent,
                   int32_t     aOffset,
-                  nsEditor  *aEditor);
+                  nsIEditor  *aEditor);
 
   InsertElementTxn();
 
@@ -39,15 +39,15 @@ public:
   NS_DECL_EDITTXN
 
 protected:
+  
+  
+  nsCOMPtr<nsIDOMNode> mNode;
 
   
-  nsCOMPtr<nsINode> mNode;
+  nsCOMPtr<nsIDOMNode> mParent;
 
   
-  nsCOMPtr<nsINode> mParent;
-
-  
-  nsEditor*           mEditor;
+  nsIEditor*           mEditor;
 
   
   int32_t mOffset;

@@ -9,12 +9,12 @@
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIDOMNode.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 #include "nscore.h"
 
 class nsEditor;
-class nsINode;
 
 
 
@@ -33,7 +33,7 @@ public:
 
   NS_IMETHOD Init(nsEditor *aEditor,
                   const nsAString& aTag,
-                  nsINode *aParent,
+                  nsIDOMNode *aParent,
                   uint32_t aOffsetInParent);
 
   CreateElementTxn();
@@ -45,27 +45,27 @@ public:
 
   NS_IMETHOD RedoTransaction();
 
-  NS_IMETHOD GetNewNode(nsINode **aNewNode);
+  NS_IMETHOD GetNewNode(nsIDOMNode **aNewNode);
 
 protected:
-
+  
   
   nsEditor* mEditor;
-
+  
   
   nsString mTag;
 
   
-  nsCOMPtr<nsINode> mParent;
+  nsCOMPtr<nsIDOMNode> mParent;
 
   
   uint32_t mOffsetInParent;
 
   
-  nsCOMPtr<nsINode> mNewNode;
+  nsCOMPtr<nsIDOMNode> mNewNode;  
 
   
-  nsCOMPtr<nsINode> mRefNode;
+  nsCOMPtr<nsIDOMNode> mRefNode;
 };
 
 #endif
