@@ -1,47 +1,47 @@
+/*
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is the Extension Manager.
+#
+# The Initial Developer of the Original Code is
+# the Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#   Dave Townsend <dtownsend@oxymoronical.com>
+#   Blair McBride <bmcbride@mozilla.com>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+*/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * The AddonUpdateChecker is responsible for retrieving the update information
+ * from an add-on's remote update manifest.
+ */
 
 "use strict";
 
@@ -64,9 +64,18 @@ const PREF_UPDATE_REQUIREBUILTINCERTS = "extensions.update.requireBuiltInCerts";
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 
-Components.utils.import("resource://gre/modules/CertUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
+                                  "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
+                                  "resource://gre/modules/AddonRepository.jsm");
+
+// Shared code for suppressing bad cert dialogs.
+XPCOMUtils.defineLazyGetter(this, "CertUtils", function() {
+  let certUtils = {};
+  Components.utils.import("resource://gre/modules/CertUtils.jsm", certUtils);
+  return certUtils;
+});
 
 var gRDF = Cc["@mozilla.org/rdf/rdf-service;1"].
            getService(Ci.nsIRDFService);
@@ -80,20 +89,15 @@ var gRDF = Cc["@mozilla.org/rdf/rdf-service;1"].
   });
 }, this);
 
-XPCOMUtils.defineLazyGetter(this, "AddonManager", function() {
-  Cu.import("resource://gre/modules/AddonManager.jsm");
-  return AddonManager;
-});
 
-
-
-
-
-
-
-
-
-
+/**
+ * A serialisation method for RDF data that produces an identical string
+ * for matching RDF graphs.
+ * The serialisation is not complete, only assertions stemming from a given
+ * resource are included, multiple references to the same resource are not
+ * permitted, and the RDF prolog and epilog are not included.
+ * RDF Blob and Date literals are not supported.
+ */
 function RDFSerializer() {
   this.cUtils = Cc["@mozilla.org/rdf/container-utils;1"].
                 getService(Ci.nsIRDFContainerUtils);
@@ -101,17 +105,17 @@ function RDFSerializer() {
 }
 
 RDFSerializer.prototype = {
-  INDENT: "  ",      
-  resources: null,   
+  INDENT: "  ",      // The indent used for pretty-printing
+  resources: null,   // Array of the resources that have been found
 
-  
-
-
-
-
-
-
-
+  /**
+   * Escapes characters from a string that should not appear in XML.
+   *
+   * @param  aString
+   *         The string to be escaped
+   * @return a string with all characters invalid in XML character data
+   *         converted to entity references.
+   */
   escapeEntities: function RDFS_escapeEntities(aString) {
     aString = aString.replace(/&/g, "&amp;");
     aString = aString.replace(/</g, "&lt;");
@@ -119,17 +123,17 @@ RDFSerializer.prototype = {
     return aString.replace(/"/g, "&quot;");
   },
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Serializes all the elements of an RDF container.
+   *
+   * @param  aDs
+   *         The RDF datasource
+   * @param  aContainer
+   *         The RDF container to output the child elements of
+   * @param  aIndent
+   *         The current level of indent for pretty-printing
+   * @return a string containing the serialized elements.
+   */
   serializeContainerItems: function RDFS_serializeContainerItems(aDs, aContainer,
                                                                  aIndent) {
     var result = "";
@@ -143,20 +147,20 @@ RDFSerializer.prototype = {
     return result;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Serializes all em:* (see EM_NS) properties of an RDF resource except for
+   * the em:signature property. As this serialization is to be compared against
+   * the manifest signature it cannot contain the em:signature property itself.
+   *
+   * @param  aDs
+   *         The RDF datasource
+   * @param  aResource
+   *         The RDF resource that contains the properties to serialize
+   * @param  aIndent
+   *         The current level of indent for pretty-printing
+   * @return a string containing the serialized properties.
+   * @throws if the resource contains a property that cannot be serialized
+   */
   serializeResourceProperties: function RDFS_serializeResourceProperties(aDs,
                                                                          aResource,
                                                                          aIndent) {
@@ -198,24 +202,24 @@ RDFSerializer.prototype = {
     return result;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Recursively serializes an RDF resource and all resources it links to.
+   * This will only output EM_NS properties and will ignore any em:signature
+   * property.
+   *
+   * @param  aDs
+   *         The RDF datasource
+   * @param  aResource
+   *         The RDF resource to serialize
+   * @param  aIndent
+   *         The current level of indent for pretty-printing. If undefined no
+   *         indent will be added
+   * @return a string containing the serialized resource.
+   * @throws if the RDF data contains multiple references to the same resource.
+   */
   serializeResource: function RDFS_serializeResource(aDs, aResource, aIndent) {
     if (this.resources.indexOf(aResource) != -1 ) {
-      
+      // We cannot output multiple references to the same resource.
       throw new Error("Cannot serialize multiple references to " + aResource.Value);
     }
     if (aIndent === undefined)
@@ -252,20 +256,20 @@ RDFSerializer.prototype = {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Parses an RDF style update manifest into an array of update objects.
+ *
+ * @param  aId
+ *         The ID of the add-on being checked for updates
+ * @param  aType
+ *         The type of the add-on being checked for updates
+ * @param  aUpdateKey
+ *         An optional update key for the add-on
+ * @param  aRequest
+ *         The XMLHttpRequest that has retrieved the update manifest
+ * @return an array of update objects
+ * @throws if the update manifest is invalid in any way
+ */
 function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
   function EM_R(aProp) {
     return gRDF.GetResource(PREFIX_NS_EM + aProp);
@@ -312,7 +316,7 @@ function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
 
   let extensionRes  = gRDF.GetResource(item);
 
-  
+  // If we have an update key then the update manifest must be signed
   if (aUpdateKey) {
     let signature = getProperty(ds, extensionRes, "signature");
     if (!signature)
@@ -344,8 +348,8 @@ function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
 
   let updates = ds.GetTarget(extensionRes, EM_R("updates"), true);
 
-  
-  
+  // A missing updates property doesn't count as a failure, just as no avialable
+  // update information
   if (!updates) {
     WARN("Update manifest for " + aId + " did not contain an updates property");
     return [];
@@ -413,21 +417,21 @@ function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
   return results;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Starts downloading an update manifest and then passes it to an appropriate
+ * parser to convert to an array of update objects
+ *
+ * @param  aId
+ *         The ID of the add-on being checked for updates
+ * @param  aType
+ *         The type of add-on being checked for updates
+ * @param  aUpdateKey
+ *         An optional update key for the add-on
+ * @param  aUrl
+ *         The URL of the update manifest
+ * @param  aObserver
+ *         An observer to pass results to
+ */
 function UpdateParser(aId, aType, aUpdateKey, aUrl, aObserver) {
   this.id = aId;
   this.type = aType;
@@ -450,7 +454,7 @@ function UpdateParser(aId, aType, aUpdateKey, aUrl, aObserver) {
     this.request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
                    createInstance(Ci.nsIXMLHttpRequest);
     this.request.open("GET", aUrl, true);
-    this.request.channel.notificationCallbacks = new BadCertHandler(!requireBuiltIn);
+    this.request.channel.notificationCallbacks = new CertUtils.BadCertHandler(!requireBuiltIn);
     this.request.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
     this.request.overrideMimeType("text/xml");
     var self = this;
@@ -471,9 +475,9 @@ UpdateParser.prototype = {
   request: null,
   timer: null,
 
-  
-
-
+  /**
+   * Called when the manifest has been successfully loaded.
+   */
   onLoad: function UP_onLoad() {
     this.timer.cancel();
     this.timer = null;
@@ -488,7 +492,7 @@ UpdateParser.prototype = {
     }
 
     try {
-      checkCert(request.channel, !requireBuiltIn);
+      CertUtils.checkCert(request.channel, !requireBuiltIn);
     }
     catch (e) {
       this.notifyError(AddonUpdateChecker.ERROR_DOWNLOAD_ERROR);
@@ -515,7 +519,7 @@ UpdateParser.prototype = {
       return;
     }
 
-    
+    // We currently only know about RDF update manifests
     if (xml.documentElement.namespaceURI == PREFIX_NS_RDF) {
       let results = null;
 
@@ -536,9 +540,9 @@ UpdateParser.prototype = {
     this.notifyError(AddonUpdateChecker.ERROR_UNKNOWN_FORMAT);
   },
 
-  
-
-
+  /**
+   * Called when the manifest failed to load.
+   */
   onError: function UP_onError() {
     this.timer.cancel();
     this.timer = null;
@@ -566,17 +570,17 @@ UpdateParser.prototype = {
     this.notifyError(AddonUpdateChecker.ERROR_DOWNLOAD_ERROR);
   },
 
-  
-
-
+  /**
+   * Helper method to notify the observer that an error occured.
+   */
   notifyError: function UP_notifyError(aStatus) {
     if ("onUpdateCheckError" in this.observer)
       this.observer.onUpdateCheckError(aStatus);
   },
 
-  
-
-
+  /**
+   * Called when the request has timed out and should be canceled.
+   */
   notify: function UP_notify(aTimer) {
     this.timer = null;
     this.request.abort();
@@ -588,23 +592,23 @@ UpdateParser.prototype = {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Tests if an update matches a version of the application or platform
+ *
+ * @param  aUpdate
+ *         The available update
+ * @param  aAppVersion
+ *         The application version to use
+ * @param  aPlatformVersion
+ *         The platform version to use
+ * @param  aIgnoreMaxVersion
+ *         Ignore maxVersion when testing if an update matches. Optional.
+ * @param  aIgnoreStrictCompat
+ *         Ignore strictCompatibility when testing if an update matches. Optional.
+ * @param  aCompatOverrides
+ *         AddonCompatibilityOverride objects to match against. Optional.
+ * @return true if the update is compatible with the application/platform
+ */
 function matchesVersions(aUpdate, aAppVersion, aPlatformVersion,
                          aIgnoreMaxVersion, aIgnoreStrictCompat,
                          aCompatOverrides) {
@@ -636,39 +640,39 @@ function matchesVersions(aUpdate, aAppVersion, aPlatformVersion,
 }
 
 var AddonUpdateChecker = {
-  
-  
+  // These must be kept in sync with AddonManager
+  // The update check timed out
   ERROR_TIMEOUT: -1,
-  
+  // There was an error while downloading the update information.
   ERROR_DOWNLOAD_ERROR: -2,
-  
+  // The update information was malformed in some way.
   ERROR_PARSE_ERROR: -3,
-  
+  // The update information was not in any known format.
   ERROR_UNKNOWN_FORMAT: -4,
-  
+  // The update information was not correctly signed or there was an SSL error.
   ERROR_SECURITY_ERROR: -5,
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Retrieves the best matching compatibility update for the application from
+   * a list of available update objects.
+   *
+   * @param  aUpdates
+   *         An array of update objects
+   * @param  aVersion
+   *         The version of the add-on to get new compatibility information for
+   * @param  aIgnoreCompatibility
+   *         An optional parameter to get the first compatibility update that
+   *         is compatible with any version of the application or toolkit
+   * @param  aAppVersion
+   *         The version of the application or null to use the current version
+   * @param  aPlatformVersion
+   *         The version of the platform or null to use the current version
+   * @param  aIgnoreMaxVersion
+   *         Ignore maxVersion when testing if an update matches. Optional.
+   * @param  aIgnoreStrictCompat
+   *         Ignore strictCompatibility when testing if an update matches. Optional.
+   * @return an update object if one matches or null if not
+   */
   getCompatibilityUpdate: function AUC_getCompatibilityUpdate(aUpdates, aVersion,
                                                               aIgnoreCompatibility,
                                                               aAppVersion,
@@ -698,23 +702,23 @@ var AddonUpdateChecker = {
     return null;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Returns the newest available update from a list of update objects.
+   *
+   * @param  aUpdates
+   *         An array of update objects
+   * @param  aAppVersion
+   *         The version of the application or null to use the current version
+   * @param  aPlatformVersion
+   *         The version of the platform or null to use the current version
+   * @param  aIgnoreMaxVersion
+   *         When determining compatible updates, ignore maxVersion. Optional.
+   * @param  aIgnoreStrictCompat
+   *         When determining compatible updates, ignore strictCompatibility. Optional.
+   * @param  aCompatOverrides
+   *         Array of AddonCompatibilityOverride to take into account. Optional.
+   * @return an update object if one matches or null if not
+   */
   getNewestCompatibleUpdate: function AUC_getNewestCompatibleUpdate(aUpdates,
                                                                     aAppVersion,
                                                                     aPlatformVersion,
@@ -747,20 +751,20 @@ var AddonUpdateChecker = {
     return newest;
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Starts an update check.
+   *
+   * @param  aId
+   *         The ID of the add-on being checked for updates
+   * @param  aType
+   *         The type of add-on being checked for updates
+   * @param  aUpdateKey
+   *         An optional update key for the add-on
+   * @param  aUrl
+   *         The URL of the add-on's update manifest
+   * @param  aObserver
+   *         An observer to notify of results
+   */
   checkForUpdates: function AUC_checkForUpdates(aId, aType, aUpdateKey, aUrl,
                                                 aObserver) {
     new UpdateParser(aId, aType, aUpdateKey, aUrl, aObserver);

@@ -120,19 +120,6 @@ public:
   NS_IMETHOD RemoveFromRadioGroup(const nsAString& aName,
                                   nsIFormControl* aRadio) = 0;
 
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD GetPositionInGroup(nsIDOMHTMLInputElement *aRadio,
-                                PRInt32 *aPositionIndex,
-                                PRInt32 *aItemsInGroup) = 0;
-
   virtual PRUint32 GetRequiredRadioCount(const nsAString& aName) const = 0;
   virtual void RadioRequiredChanged(const nsAString& aName,
                                     nsIFormControl* aRadio) = 0;

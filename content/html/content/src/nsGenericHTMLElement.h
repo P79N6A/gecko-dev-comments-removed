@@ -698,19 +698,6 @@ protected:
 
 
 
-
-
-
-  NS_HIDDEN_(nsresult) GetDoubleAttr(nsIAtom* aAttr, double aDefault, double* aValue);
-
-  
-
-
-
-
-
-
-
   NS_HIDDEN_(nsresult) SetDoubleAttr(nsIAtom* aAttr, double aValue);
 
   
@@ -910,8 +897,6 @@ protected:
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue, bool aNotify);
 
-  void UpdateEditableFormControlState(bool aNotify);
-
   
 
 
@@ -1092,26 +1077,6 @@ PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
       return NS_ERROR_DOM_INDEX_SIZE_ERR;                                 \
     }                                                                     \
     return SetUnsignedIntAttr(nsGkAtoms::_atom, aValue);                  \
-  }
-
-
-
-
-
-
-#define NS_IMPL_DOUBLE_ATTR(_class, _method, _atom)                    \
-  NS_IMPL_DOUBLE_ATTR_DEFAULT_VALUE(_class, _method, _atom, 0.0)
-
-#define NS_IMPL_DOUBLE_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default) \
-  NS_IMETHODIMP                                                             \
-  _class::Get##_method(double* aValue)                                      \
-  {                                                                         \
-    return GetDoubleAttr(nsGkAtoms::_atom, _default, aValue);               \
-  }                                                                         \
-  NS_IMETHODIMP                                                             \
-  _class::Set##_method(double aValue)                                       \
-  {                                                                         \
-    return SetDoubleAttr(nsGkAtoms::_atom, aValue);                         \
   }
 
 

@@ -153,7 +153,8 @@ public:
   static void SetScrollbarEnabled(nsIContent* aContent, nscoord aMaxPos);
   static void SetCoordAttribute(nsIContent* aContent, nsIAtom* aAtom,
                                 nscoord aSize);
-  nscoord GetCoordAttribute(nsIBox* aFrame, nsIAtom* atom, nscoord defaultValue);
+  nscoord GetCoordAttribute(nsIBox* aFrame, nsIAtom* aAtom, nscoord aDefaultValue,
+                            nscoord* aRangeStart, nscoord* aRangeLength);
 
   
   void UpdateScrollbarPosition();
@@ -184,13 +185,17 @@ protected:
   nsRect GetScrollRangeForClamping() const;
 
 public:
-  nsPoint RestrictToDevPixels(const nsPoint& aPt, nsIntPoint* aPtDevPx, bool aShouldClamp) const;
-  nsPoint ClampScrollPosition(const nsPoint& aPt) const;
   static void AsyncScrollCallback(void* anInstance, mozilla::TimeStamp aTime);
-  void ScrollTo(nsPoint aScrollPosition, nsIScrollableFrame::ScrollMode aMode) {
-    ScrollToWithOrigin(aScrollPosition, aMode, nsGkAtoms::other);
-  };
-  void ScrollToImpl(nsPoint aScrollPosition);
+  
+
+
+
+
+  void ScrollTo(nsPoint aScrollPosition, nsIScrollableFrame::ScrollMode aMode,
+                const nsRect* aRange = nsnull) {
+    ScrollToWithOrigin(aScrollPosition, aMode, nsGkAtoms::other, aRange);
+  }
+  void ScrollToImpl(nsPoint aScrollPosition, const nsRect& aRange);
   void ScrollVisual(nsPoint aOldScrolledFramePosition);
   void ScrollBy(nsIntPoint aDelta, nsIScrollableFrame::ScrollUnit aUnit,
                 nsIScrollableFrame::ScrollMode aMode, nsIntPoint* aOverflow, nsIAtom *aOrigin = nsnull);
@@ -353,7 +358,8 @@ public:
 protected:
   void ScrollToWithOrigin(nsPoint aScrollPosition,
                           nsIScrollableFrame::ScrollMode aMode,
-                          nsIAtom *aOrigin); 
+                          nsIAtom *aOrigin, 
+                          const nsRect* aRange);
 };
 
 
@@ -495,8 +501,9 @@ public:
   virtual nsSize GetPageScrollAmount() const {
     return mInner.GetPageScrollAmount();
   }
-  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode) {
-    mInner.ScrollTo(aScrollPosition, aMode);
+  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
+                        const nsRect* aRange = nsnull) {
+    mInner.ScrollTo(aScrollPosition, aMode, aRange);
   }
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom *aOrigin = nsnull) {
@@ -736,8 +743,9 @@ public:
   virtual nsSize GetPageScrollAmount() const {
     return mInner.GetPageScrollAmount();
   }
-  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode) {
-    mInner.ScrollTo(aScrollPosition, aMode);
+  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
+                        const nsRect* aRange = nsnull) {
+    mInner.ScrollTo(aScrollPosition, aMode, aRange);
   }
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow, nsIAtom *aOrigin = nsnull) {
@@ -812,11 +820,8 @@ protected:
 
 
 
-
-
     if (!mInner.IsLTR()) {
-      aRect.x = PresContext()->RoundAppUnitsToNearestDevPixels(
-         mInner.mScrollPort.XMost() - aScrollPosition.x - aRect.width);
+      aRect.x = mInner.mScrollPort.XMost() - aScrollPosition.x - aRect.width;
     }
     mInner.mScrolledFrame->SetBounds(aState, aRect, aRemoveOverflowAreas);
   }

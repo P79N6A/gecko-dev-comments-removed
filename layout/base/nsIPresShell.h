@@ -149,8 +149,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  { 0xa0d9bae4, 0x2257, 0x4b0b, \
-    { 0xb0, 0x8a, 0x3d, 0x95, 0x12, 0x24, 0x19, 0xe2 } }
+  { 0xd2236911, 0x9b7c, 0x490a, \
+    { 0xa0, 0x8b, 0x25, 0x80, 0xd5, 0xf7, 0xa6, 0xde } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -227,8 +227,27 @@ public:
 
 
 
-  virtual void* AllocateFrame(nsQueryFrame::FrameIID aID, size_t aSize) = 0;
-  virtual void  FreeFrame(nsQueryFrame::FrameIID aID, void* aChunk) = 0;
+  void* AllocateFrame(nsQueryFrame::FrameIID aID, size_t aSize)
+  {
+#ifdef DEBUG
+    mPresArenaAllocCount++;
+#endif
+    void* result = mFrameArena.AllocateByFrameID(aID, aSize);
+  
+    if (result) {
+      memset(result, 0, aSize);
+    }
+    return result;
+  }
+
+  void FreeFrame(nsQueryFrame::FrameIID aID, void* aPtr)
+  {
+#ifdef DEBUG
+    mPresArenaAllocCount--;
+#endif
+    if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
+      mFrameArena.FreeByFrameID(aID, aPtr);
+  }
 
   
 
@@ -236,8 +255,27 @@ public:
 
 
 
-  virtual void* AllocateByObjectID(nsPresArena::ObjectID aID, size_t aSize) = 0;
-  virtual void  FreeByObjectID(nsPresArena::ObjectID aID, void* aPtr) = 0;
+  void* AllocateByObjectID(nsPresArena::ObjectID aID, size_t aSize)
+  {
+#ifdef DEBUG
+    mPresArenaAllocCount++;
+#endif
+    void* result = mFrameArena.AllocateByObjectID(aID, aSize);
+  
+    if (result) {
+      memset(result, 0, aSize);
+    }
+    return result;
+  }
+
+  void FreeByObjectID(nsPresArena::ObjectID aID, void* aPtr)
+  {
+#ifdef DEBUG
+    mPresArenaAllocCount--;
+#endif
+    if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
+      mFrameArena.FreeByObjectID(aID, aPtr);
+  }
 
   
 
@@ -248,8 +286,22 @@ public:
 
 
 
-  virtual void* AllocateMisc(size_t aSize) = 0;
-  virtual void  FreeMisc(size_t aSize, void* aChunk) = 0;
+  void* AllocateMisc(size_t aSize)
+  {
+#ifdef DEBUG
+    mPresArenaAllocCount++;
+#endif
+    return mFrameArena.AllocateBySize(aSize);
+  }
+
+  void FreeMisc(size_t aSize, void* aPtr)
+  {
+#ifdef DEBUG
+    mPresArenaAllocCount--;
+#endif
+    if (PRESARENA_MUST_FREE_DURING_DESTROY || !mIsDestroying)
+      mFrameArena.FreeBySize(aSize, aPtr);
+  }
 
   nsIDocument* GetDocument() const { return mDocument; }
 
@@ -1221,7 +1273,8 @@ public:
   virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                    size_t *aArenasSize,
                                    size_t *aStyleSetsSize,
-                                   size_t *aTextRunsSize) const = 0;
+                                   size_t *aTextRunsSize,
+                                   size_t *aPresContextSize) const = 0;
 
   
 
@@ -1287,6 +1340,7 @@ protected:
   nsStyleSet*               mStyleSet;      
   nsCSSFrameConstructor*    mFrameConstructor; 
   nsIViewManager*           mViewManager;   
+  nsPresArena               mFrameArena;
   nsFrameSelection*         mSelection;
   
   
@@ -1295,6 +1349,8 @@ protected:
 
 #ifdef NS_DEBUG
   nsIFrame*                 mDrawEventTargetFrame;
+  
+  PRUint32                  mPresArenaAllocCount;
 #endif
 
   

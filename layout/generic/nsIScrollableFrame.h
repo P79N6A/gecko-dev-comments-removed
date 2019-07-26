@@ -150,7 +150,12 @@ public:
 
 
 
-  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode) = 0;
+
+
+
+
+  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
+                        const nsRect* aRange = nsnull) = 0;
   
 
 

@@ -348,7 +348,7 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
 
 
     if (!newType) {
-        if (JITScript *jit = newscript->getJIT(regs.fp()->isConstructing())) {
+        if (JITScript *jit = newscript->getJIT(regs.fp()->isConstructing(), cx->compartment->needsBarrier())) {
             if (jit->invokeEntry) {
                 *pret = jit->invokeEntry;
 

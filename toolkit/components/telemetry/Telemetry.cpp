@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2011
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Taras Glek <tglek@mozilla.com>
+ *   Vladan Djeric <vdjeric@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "base/histogram.h"
 #include "base/pickle.h"
@@ -105,10 +105,10 @@ AutoHashtable<EntryType>::ReflectEntryStub(EntryType *entry, void *arg)
   return PL_DHASH_NEXT;
 }
 
-
-
-
-
+/**
+ * Reflect the individual entries of table into JS, usually by defining
+ * some property and value of obj.  entryFunc is called for each entry.
+ */
 template<typename EntryType>
 bool
 AutoHashtable<EntryType>::ReflectHashtable(ReflectEntryFunc entryFunc,
@@ -169,7 +169,7 @@ private:
                   bool includePrivateStrings);
   bool GetSQLStats(JSContext *cx, jsval *ret, bool includePrivateSql);
 
-  
+  // Like GetHistogramById, but returns the underlying C++ object, not the JS one.
   nsresult GetHistogramByName(const nsACString &name, Histogram **ret);
   bool ShouldReflectHistogram(Histogram *h);
   void IdentifyCorruptHistograms(StatisticsRecorder::Histograms &hs);
@@ -193,7 +193,7 @@ private:
                                       AddonHistogramInfo &info);
   AddonMapType mAddonMap;
 
-  
+  // This is used for speedy string->Telemetry::ID conversions
   typedef nsBaseHashtableET<nsCharPtrHashKey, Telemetry::ID> CharPtrEntryType;
   typedef AutoHashtable<CharPtrEntryType> HistogramMapType;
   HistogramMapType mHistogramMap;
@@ -201,8 +201,8 @@ private:
   static TelemetryImpl *sTelemetry;
   AutoHashtable<SlowSQLEntryType> mSlowSQLOnMainThread;
   AutoHashtable<SlowSQLEntryType> mSlowSQLOnOtherThread;
-  
-  
+  // This gets marked immutable in debug builds, so we can't use
+  // AutoHashtable here.
   nsTHashtable<nsCStringHashKey> mTrackedDBs;
   Mutex mHashMutex;
   nsTArray<HangReport> mHangReports;
@@ -211,10 +211,10 @@ private:
 
 TelemetryImpl*  TelemetryImpl::sTelemetry = NULL;
 
-
+// A initializer to initialize histogram collection
 StatisticsRecorder gStatisticsRecorder;
 
-
+// Hardcoded probes
 struct TelemetryHistogram {
   const char *id;
   PRUint32 min;
@@ -224,9 +224,9 @@ struct TelemetryHistogram {
   const char *comment;
 };
 
-
-
-
+// Perform the checks at the beginning of HistogramGet at compile time, so
+// that if people add incorrect histogram definitions, they get compiler
+// errors.
 #define HISTOGRAM(id, min, max, bucket_count, histogram_type, b) \
   MOZ_STATIC_ASSERT(nsITelemetry::HISTOGRAM_ ## histogram_type == nsITelemetry::HISTOGRAM_BOOLEAN || \
                     nsITelemetry::HISTOGRAM_ ## histogram_type == nsITelemetry::HISTOGRAM_FLAG || \
@@ -276,7 +276,7 @@ HistogramGet(const char *name, PRUint32 min, PRUint32 max, PRUint32 bucketCount,
 {
   if (histogramType != nsITelemetry::HISTOGRAM_BOOLEAN
       && histogramType != nsITelemetry::HISTOGRAM_FLAG) {
-    
+    // Sanity checks for histogram parameters.
     if (min >= max)
       return NS_ERROR_ILLEGAL_VALUE;
 
@@ -306,7 +306,7 @@ HistogramGet(const char *name, PRUint32 min, PRUint32 max, PRUint32 bucketCount,
   return NS_OK;
 }
 
-
+// O(1) histogram lookup by numeric id
 nsresult
 GetHistogramByEnumId(Telemetry::ID id, Histogram **ret)
 {
@@ -346,7 +346,7 @@ enum reflectStatus
 ReflectHistogramAndSamples(JSContext *cx, JSObject *obj, Histogram *h,
                            const Histogram::SampleSet &ss)
 {
-  
+  // We don't want to reflect corrupt histograms.
   if (h->FindCorruption(ss) != Histogram::NO_INCONSISTENCIES) {
     return REFLECT_CORRUPT;
   }
@@ -395,6 +395,15 @@ ReflectHistogramSnapshot(JSContext *cx, JSObject *obj, Histogram *h)
   Histogram::SampleSet ss;
   h->SnapshotSample(&ss);
   return ReflectHistogramAndSamples(cx, obj, h, ss);
+}
+
+bool
+IsEmpty(const Histogram *h)
+{
+  Histogram::SampleSet ss;
+  h->SnapshotSample(&ss);
+
+  return ss.counts(0) == 0 && ss.sum() == 0;
 }
 
 JSBool
@@ -461,12 +470,25 @@ JSHistogram_Snapshot(JSContext *cx, unsigned argc, jsval *vp)
   }
 }
 
+JSBool
+JSHistogram_Clear(JSContext *cx, unsigned argc, jsval *vp)
+{
+  JSObject *obj = JS_THIS_OBJECT(cx, vp);
+  if (!obj) {
+    return JS_FALSE;
+  }
+
+  Histogram *h = static_cast<Histogram*>(JS_GetPrivate(obj));
+  h->Clear();
+  return JS_TRUE;
+}
+
 nsresult 
 WrapAndReturnHistogram(Histogram *h, JSContext *cx, jsval *ret)
 {
   static JSClass JSHistogram_class = {
-    "JSHistogram",  
-    JSCLASS_HAS_PRIVATE, 
+    "JSHistogram",  /* name */
+    JSCLASS_HAS_PRIVATE, /* flags */
     JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
   };
@@ -475,8 +497,9 @@ WrapAndReturnHistogram(Histogram *h, JSContext *cx, jsval *ret)
   if (!obj)
     return NS_ERROR_FAILURE;
   JS::AutoObjectRooter root(cx, obj);
-  if (!(JS_DefineFunction (cx, obj, "add", JSHistogram_Add, 1, 0)
-        && JS_DefineFunction (cx, obj, "snapshot", JSHistogram_Snapshot, 1, 0))) {
+  if (!(JS_DefineFunction(cx, obj, "add", JSHistogram_Add, 1, 0)
+        && JS_DefineFunction(cx, obj, "snapshot", JSHistogram_Snapshot, 0, 0)
+        && JS_DefineFunction(cx, obj, "clear", JSHistogram_Clear, 0, 0))) {
     return NS_ERROR_FAILURE;
   }
   *ret = OBJECT_TO_JSVAL(obj);
@@ -490,7 +513,7 @@ mCanRecord(XRE_GetProcessType() == GeckoProcessType_Default),
 mHashMutex("Telemetry::mHashMutex"),
 mHangReportsMutex("Telemetry::mHangReportsMutex")
 {
-  
+  // A whitelist to prevent Telemetry reporting on Addon & Thunderbird DBs
   const char *trackedDBs[] = {
     "addons.sqlite", "chromeappsstore.sqlite", "content-prefs.sqlite",
     "cookies.sqlite", "downloads.sqlite", "extensions.sqlite",
@@ -504,7 +527,7 @@ mHangReportsMutex("Telemetry::mHangReportsMutex")
     mTrackedDBs.PutEntry(nsDependentCString(trackedDBs[i]));
 
 #ifdef DEBUG
-  
+  // Mark immutable to prevent asserts on simultaneous access from multiple threads
   mTrackedDBs.MarkImmutable();
 #endif
 }
@@ -592,8 +615,8 @@ TelemetryImpl::GetHistogramEnumId(const char *name, Telemetry::ID *id)
     return NS_ERROR_FAILURE;
   }
 
-  
-  
+  // Cache names
+  // Note the histogram names are statically allocated
   TelemetryImpl::HistogramMapType *map = &sTelemetry->mHistogramMap;
   if (!map->Count()) {
     for (PRUint32 i = 0; i < Telemetry::HistogramCount; i++) {
@@ -665,7 +688,7 @@ TelemetryImpl::IdentifyCorruptHistograms(StatisticsRecorder::Histograms &hs)
 
     Telemetry::ID id;
     nsresult rv = GetHistogramEnumId(h->histogram_name().c_str(), &id);
-    
+    // This histogram isn't a static histogram, just ignore it.
     if (NS_FAILED(rv)) {
       continue;
     }
@@ -704,12 +727,12 @@ TelemetryImpl::ShouldReflectHistogram(Histogram *h)
   Telemetry::ID id;
   nsresult rv = GetHistogramEnumId(name, &id);
   if (NS_FAILED(rv)) {
-    
-    
-    
-    
-    
-    
+    // GetHistogramEnumId generally should not fail.  But a lookup
+    // failure shouldn't prevent us from reflecting histograms into JS.
+    //
+    // However, these two histograms are created by Histogram itself for
+    // tracking corruption.  We have our own histograms for that, so
+    // ignore these two.
     if (strcmp(name, "Histogram.InconsistentCountHigh") == 0
         || strcmp(name, "Histogram.InconsistentCountLow") == 0) {
       return false;
@@ -720,10 +743,10 @@ TelemetryImpl::ShouldReflectHistogram(Histogram *h)
   }
 }
 
-
-
-
-
+// Compute the name to pass into Histogram for the addon histogram
+// 'name' from the addon 'id'.  We can't use 'name' directly because it
+// might conflict with other histograms in other addons or even with our
+// own.
 void
 AddonHistogramName(const nsACString &id, const nsACString &name,
                    nsACString &ret)
@@ -751,7 +774,7 @@ TelemetryImpl::RegisterAddonHistogram(const nsACString &id,
 
   AddonHistogramMapType *histogramMap = addonEntry->mData;
   AddonHistogramEntryType *histogramEntry = histogramMap->GetEntry(name);
-  
+  // Can't re-register the same histogram.
   if (histogramEntry) {
     return NS_ERROR_FAILURE;
   }
@@ -775,14 +798,14 @@ TelemetryImpl::GetAddonHistogram(const nsACString &id, const nsACString &name,
                                  JSContext *cx, jsval *ret)
 {
   AddonEntryType *addonEntry = mAddonMap.GetEntry(id);
-  
+  // The given id has not been registered.
   if (!addonEntry) {
     return NS_ERROR_INVALID_ARG;
   }
 
   AddonHistogramMapType *histogramMap = addonEntry->mData;
   AddonHistogramEntryType *histogramEntry = histogramMap->GetEntry(name);
-  
+  // The given histogram name has not been registered.
   if (!histogramEntry) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -803,10 +826,10 @@ TelemetryImpl::UnregisterAddonHistograms(const nsACString &id)
 {
   AddonEntryType *addonEntry = mAddonMap.GetEntry(id);
   if (addonEntry) {
-    
-    
-    
-    
+    // Histogram's destructor is private, so this is the best we can do.
+    // The histograms the addon created *will* stick around, but they
+    // will be deleted if and when the addon registers histograms with
+    // the same names.
     delete addonEntry->mData;
     mAddonMap.RemoveEntry(id);
   }
@@ -822,8 +845,8 @@ TelemetryImpl::GetHistogramSnapshots(JSContext *cx, jsval *ret)
     return NS_ERROR_FAILURE;
   *ret = OBJECT_TO_JSVAL(root_obj);
 
-  
-  
+  // Ensure that all the HISTOGRAM_FLAG histograms have been created, so
+  // that their values are snapshotted.
   for (size_t i = 0; i < Telemetry::HistogramCount; ++i) {
     if (gHistograms[i].histogramType == nsITelemetry::HISTOGRAM_FLAG) {
       Histogram *h;
@@ -835,18 +858,18 @@ TelemetryImpl::GetHistogramSnapshots(JSContext *cx, jsval *ret)
   StatisticsRecorder::Histograms hs;
   StatisticsRecorder::GetHistograms(&hs);
 
-  
-  
-  
-  
-  
-  
+  // We identify corrupt histograms first, rather than interspersing it
+  // in the loop below, to ensure that our corruption statistics don't
+  // depend on histogram enumeration order.
+  //
+  // Of course, we hope that all of these corruption-statistics
+  // histograms are not themselves corrupt...
   IdentifyCorruptHistograms(hs);
 
-  
+  // OK, now we can actually reflect things.
   for (HistogramIterator it = hs.begin(); it != hs.end(); ++it) {
     Histogram *h = *it;
-    if (!ShouldReflectHistogram(h)) {
+    if (!ShouldReflectHistogram(h) || IsEmpty(h)) {
       continue;
     }
 
@@ -857,9 +880,9 @@ TelemetryImpl::GetHistogramSnapshots(JSContext *cx, jsval *ret)
     JS::AutoObjectRooter root(cx, hobj);
     switch (ReflectHistogramSnapshot(cx, hobj, h)) {
     case REFLECT_CORRUPT:
-      
-      
-      
+      // We can still hit this case even if ShouldReflectHistograms
+      // returns true.  The histogram lies outside of our control
+      // somehow; just skip it.
       continue;
     case REFLECT_FAILURE:
       return NS_ERROR_FAILURE;
@@ -884,9 +907,9 @@ TelemetryImpl::CreateHistogramForAddon(const nsACString &name,
   if (NS_FAILED(rv)) {
     return false;
   }
-  
-  
-  
+  // Don't let this histogram be reported via the normal means
+  // (e.g. Telemetry.registeredHistograms); we'll make it available in
+  // other ways.
   h->ClearFlags(Histogram::kUmaTargetedHistogramFlag);
   info.h = h;
   return true;
@@ -898,9 +921,9 @@ TelemetryImpl::AddonHistogramReflector(AddonHistogramEntryType *entry,
 {
   AddonHistogramInfo &info = entry->mData;
 
-  
+  // Never even accessed the histogram.
   if (!info.h) {
-    
+    // Have to force creation of HISTOGRAM_FLAG histograms.
     if (info.histogramType != nsITelemetry::HISTOGRAM_FLAG) 
       return true;
 
@@ -909,9 +932,13 @@ TelemetryImpl::AddonHistogramReflector(AddonHistogramEntryType *entry,
     }
   }
 
+  if (IsEmpty(info.h)) {
+    return true;
+  }
+
   JSObject *snapshot = JS_NewObject(cx, NULL, NULL, NULL);
   if (!snapshot) {
-    
+    // Just consider this to be skippable.
     return true;
   }
   JS::AutoObjectRooter r(cx, snapshot);
@@ -980,10 +1007,10 @@ TelemetryImpl::GetSQLStats(JSContext *cx, jsval *ret, bool includePrivateSql)
   *ret = OBJECT_TO_JSVAL(root_obj);
 
   MutexAutoLock hashMutex(mHashMutex);
-  
+  // Add info about slow SQL queries on the main thread
   if (!AddSQLInfo(cx, root_obj, true, includePrivateSql))
     return false;
-  
+  // Add info about slow SQL queries on other threads
   if (!AddSQLInfo(cx, root_obj, false, includePrivateSql))
     return false;
   
@@ -1018,7 +1045,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
   }
   *ret = OBJECT_TO_JSVAL(reportArray);
 
-  
+  // Each hang report is an object in the 'chromeHangs' array
   for (size_t i = 0; i < mHangReports.Length(); ++i) {
     JSObject *reportObj = JS_NewObject(cx, NULL, NULL, NULL);
     if (!reportObj) {
@@ -1029,7 +1056,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
       return NS_ERROR_FAILURE;
     }
 
-    
+    // Record the hang duration (expressed in seconds)
     JSBool ok = JS_DefineProperty(cx, reportObj, "duration",
                                   INT_TO_JSVAL(mHangReports[i].duration),
                                   NULL, NULL, JSPROP_ENUMERATE);
@@ -1037,8 +1064,8 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
       return NS_ERROR_FAILURE;
     }
 
-    
-    
+    // Represent call stack PCs as strings
+    // (JS can't represent all 64-bit integer values)
     JSObject *pcArray = JS_NewArrayObject(cx, 0, nsnull);
     if (!pcArray) {
       return NS_ERROR_FAILURE;
@@ -1063,7 +1090,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
       }
     }
 
-    
+    // Record memory map info
     JSObject *moduleArray = JS_NewArrayObject(cx, 0, nsnull);
     if (!moduleArray) {
       return NS_ERROR_FAILURE;
@@ -1078,7 +1105,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
 #if defined(MOZ_ENABLE_PROFILER_SPS)
     const PRUint32 moduleCount = mHangReports[i].moduleMap.GetSize();
     for (size_t moduleIndex = 0; moduleIndex < moduleCount; ++moduleIndex) {
-      
+      // Current module
       const SharedLibrary &module =
         mHangReports[i].moduleMap.GetEntry(moduleIndex);
 
@@ -1091,7 +1118,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
         return NS_ERROR_FAILURE;
       }
 
-      
+      // Start address
       nsCAutoString addressString;
       addressString.AppendPrintf("0x%p", module.GetStart());
       JSString *str = JS_NewStringCopyZ(cx, addressString.get());
@@ -1103,7 +1130,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
         return NS_ERROR_FAILURE;
       }
 
-      
+      // Module name
       str = JS_NewStringCopyZ(cx, module.GetName());
       if (!str) {
         return NS_ERROR_FAILURE;
@@ -1113,13 +1140,13 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
         return NS_ERROR_FAILURE;
       }
 
-      
+      // Module size in memory
       val = INT_TO_JSVAL(int32_t(module.GetEnd() - module.GetStart()));
       if (!JS_SetElement(cx, moduleInfoArray, 2, &val)) {
         return NS_ERROR_FAILURE;
       }
 
-      
+      // "PDB Age" identifier
       val = INT_TO_JSVAL(0);
 #if defined(MOZ_PROFILING) && defined(XP_WIN)
       val = INT_TO_JSVAL(module.GetPdbAge());
@@ -1128,7 +1155,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
         return NS_ERROR_FAILURE;
       }
 
-      
+      // "PDB Signature" GUID
       char guidString[NSID_LENGTH] = { 0 };
 #if defined(MOZ_PROFILING) && defined(XP_WIN)
       module.GetPdbSignature().ToProvidedString(guidString);
@@ -1142,7 +1169,7 @@ TelemetryImpl::GetChromeHangs(JSContext *cx, jsval *ret)
         return NS_ERROR_FAILURE;
       }
 
-      
+      // Name of associated PDB file
       const char *pdbName = "";
 #if defined(MOZ_PROFILING) && defined(XP_WIN)
       pdbName = module.GetPdbName();
@@ -1219,8 +1246,8 @@ private:
   bool DeserializeHistogramData(Pickle &pickle, void **iter);
   static bool SerializeHistogramData(Pickle &pickle);
 
-  
-  
+  // The file format version.  Should be incremented whenever we change
+  // how individual SampleSets are stored in the file.
   static const unsigned int sVersion = 1;
 };
 
@@ -1246,14 +1273,14 @@ bool
 TelemetrySessionData::SampleReflector(EntryType *entry, JSContext *cx,
                                       JSObject *snapshots)
 {
-  
+  // Don't reflect histograms with no data associated with them.
   if (entry->mData.sum() == 0) {
     return true;
   }
 
-  
-  
-  
+  // This has the undesirable effect of creating a histogram for the
+  // current session with the given ID.  But there's no good way to
+  // compute the ranges and buckets from scratch.
   Histogram *h = nsnull;
   nsresult rv = GetHistogramByEnumId(Telemetry::ID(entry->GetKey()), &h);
   if (NS_FAILED(rv)) {
@@ -1272,7 +1299,7 @@ TelemetrySessionData::SampleReflector(EntryType *entry, JSContext *cx,
                              OBJECT_TO_JSVAL(snapshot), NULL, NULL,
                              JSPROP_ENUMERATE);
   case REFLECT_CORRUPT:
-    
+    // Just ignore this one.
     return true;
   case REFLECT_FAILURE:
     return false;
@@ -1317,10 +1344,10 @@ TelemetrySessionData::DeserializeHistogramData(Pickle &pickle, void **iter)
     Telemetry::ID id;
     nsresult rv = TelemetryImpl::GetHistogramEnumId(name, &id);
     if (NS_FAILED(rv)) {
-      
-      
-      
-      
+      // We serialized a non-static histogram or we serialized a
+      // histogram that is no longer defined in TelemetryHistograms.h.
+      // Just drop its data on the floor.  If we can't deserialize the
+      // data, though, we're in trouble.
       Histogram::SampleSet ss;
       if (!ss.Deserialize(iter, pickle)) {
         return false;
@@ -1358,8 +1385,8 @@ TelemetrySessionData::LoadFromDisk(nsIFile *file, TelemetrySessionData **ptr)
     return NS_ERROR_FAILURE;
   }
 
-  
-  
+  // If there's not even enough data to read the header for the pickle,
+  // don't bother.  Conveniently, this handles the error case as well.
   PRInt32 size = PR_Available(fd);
   if (size < static_cast<PRInt32>(sizeof(Pickle::Header))) {
     return NS_ERROR_FAILURE;
@@ -1374,8 +1401,8 @@ TelemetrySessionData::LoadFromDisk(nsIFile *file, TelemetrySessionData **ptr)
   Pickle pickle(data, size);
   void *iter = NULL;
 
-  
-  
+  // Make sure that how much data the pickle thinks it has corresponds
+  // with how much data we actually read.
   const Pickle::Header *header = pickle.headerT<Pickle::Header>();
   if (header->payload_size != static_cast<PRUint32>(amount) - sizeof(*header)) {
     return NS_ERROR_FAILURE;
@@ -1418,6 +1445,11 @@ TelemetrySessionData::SerializeHistogramData(Pickle &pickle)
     const Histogram *h = *it;
     const char *name = h->histogram_name().c_str();
 
+    // We don't check IsEmpty(h) here.  We discard no-data histograms on
+    // read-in, instead.  It's easier to write out the number of
+    // histograms required that way.  (The pickle interface doesn't make
+    // it easy to go back and overwrite previous data.)
+
     Histogram::SampleSet ss;
     h->SnapshotSample(&ss);
 
@@ -1450,7 +1482,7 @@ TelemetrySessionData::SaveToDisk(nsIFile *file, const nsACString &uuid)
     return NS_ERROR_FAILURE;
   }
 
-  
+  // Include the trailing NULL for the UUID to make reading easier.
   const char *data;
   size_t length = uuid.GetData(&data);
   if (!(pickle.WriteData(data, length+1)
@@ -1572,9 +1604,9 @@ TelemetryImpl::CreateTelemetryInstance()
 {
   NS_ABORT_IF_FALSE(sTelemetry == NULL, "CreateTelemetryInstance may only be called once, via GetService()");
   sTelemetry = new TelemetryImpl(); 
-  
+  // AddRef for the local reference
   NS_ADDREF(sTelemetry);
-  
+  // AddRef for the caller
   NS_ADDREF(sTelemetry);
   return sTelemetry;
 }
@@ -1625,14 +1657,14 @@ TelemetryImpl::RecordSlowStatement(const nsACString &sql, const nsACString &dbNa
   bool isTrackedDb = sTelemetry->mTrackedDBs.Contains(dbName);
   bool isPrivate = (!isTrackedDb) || isDynamicString;
   if (isPrivate) {
-    
-    
+    // Report aggregate DB-level statistics to Telemetry for potentially
+    // sensitive SQL strings
     nsCAutoString aggregate;
     aggregate.AppendPrintf("Untracked SQL for %s", dbName.BeginReading());
     StoreSlowSQL(aggregate, delay, isDynamicString, isTrackedDb, true);
   }
 
-  
+  // Record original SQL string
   nsCAutoString fullSql(sql);
   if (!isTrackedDb)
     fullSql.AppendPrintf(" -- Untracked DB %s", dbName.BeginReading());
@@ -1652,7 +1684,7 @@ TelemetryImpl::RecordChromeHang(PRUint32 duration,
 
   MutexAutoLock hangReportMutex(sTelemetry->mHangReportsMutex);
 
-  
+  // Only report the modules which changed since the first hang report
   if (sTelemetry->mHangReports.Length()) {
     SharedLibraryInfo &firstModuleMap =
       sTelemetry->mHangReports[0].moduleMap;
@@ -1696,7 +1728,7 @@ const Module kTelemetryModule = {
   TelemetryImpl::ShutdownTelemetry
 };
 
-} 
+} // anonymous namespace
 
 namespace mozilla {
 namespace Telemetry {
@@ -1745,7 +1777,7 @@ RecordSlowSQLStatement(const nsACString &statement,
 
 void Init()
 {
-  
+  // Make the service manager hold a long-lived reference to the service
   nsCOMPtr<nsITelemetry> telemetryService =
     do_GetService("@mozilla.org/base/telemetry;1");
   MOZ_ASSERT(telemetryService);
@@ -1760,15 +1792,15 @@ void RecordChromeHang(PRUint32 duration,
 }
 #endif
 
-} 
-} 
+} // namespace Telemetry
+} // namespace mozilla
 
 NSMODULE_DEFN(nsTelemetryModule) = &kTelemetryModule;
 
-
-
-
-
+/**
+ * The XRE_TelemetryAdd function is to be used by embedding applications
+ * that can't use mozilla::Telemetry::Accumulate() directly.
+ */
 void
 XRE_TelemetryAccumulate(int aID, PRUint32 aSample)
 {

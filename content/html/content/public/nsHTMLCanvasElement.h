@@ -97,11 +97,6 @@ public:
   
 
 
-  nsIFrame *GetPrimaryCanvasFrame();
-
-  
-
-
   nsIntSize GetSize();
 
   

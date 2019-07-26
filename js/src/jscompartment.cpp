@@ -54,6 +54,7 @@
 #include "methodjit/MethodJIT.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
+#include "methodjit/Retcon.h"
 #include "vm/Debugger.h"
 #include "yarr/BumpPointerAllocator.h"
 
@@ -75,12 +76,15 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     principals(NULL),
     needsBarrier_(false),
     gcState(NoGCScheduled),
+    gcPreserveCode(false),
     gcBytes(0),
     gcTriggerBytes(0),
     hold(false),
+    lastCodeRelease(0),
     typeLifoAlloc(TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
     data(NULL),
     active(false),
+    lastAnimationTime(0),
     regExps(rt),
     propertyTree(thisForCtor()),
     emptyTypeObject(NULL),
@@ -125,6 +129,16 @@ JSCompartment::init(JSContext *cx)
         return false;
 
     return debuggees.init();
+}
+
+void
+JSCompartment::setNeedsBarrier(bool needs)
+{
+#ifdef JS_METHODJIT
+    if (needsBarrier_ != needs)
+        mjit::ClearAllFrames(this);
+#endif
+    needsBarrier_ = needs;
 }
 
 #ifdef JS_ION
@@ -426,7 +440,7 @@ JSCompartment::markTypes(JSTracer *trc)
 
 
 
-    JS_ASSERT(activeAnalysis);
+    JS_ASSERT(activeAnalysis || gcPreserveCode);
 
     for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
@@ -456,7 +470,35 @@ JSCompartment::markTypes(JSTracer *trc)
 void
 JSCompartment::discardJitCode(FreeOp *fop)
 {
-    ReleaseAllJITCode(fop, this, true);
+#ifdef JS_METHODJIT
+
+    
+
+
+
+
+
+
+
+    mjit::ClearAllFrames(this);
+
+    if (gcPreserveCode) {
+        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+            JSScript *script = i.get<JSScript>();
+            for (int constructing = 0; constructing <= 1; constructing++) {
+                for (int barriers = 0; barriers <= 1; barriers++) {
+                    mjit::JITScript *jit = script->getJIT((bool) constructing, (bool) barriers);
+                    if (jit)
+                        jit->purgeCaches();
+                }
+            }
+        }
+		ReleaseAllJITCode(fop, this, true, true);
+    } else {
+        ReleaseAllJITCode(fop, this, true);
+    }
+
+#endif 
 }
 
 void
@@ -474,8 +516,6 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
     }
 
     
-
-    regExps.sweep(rt);
 
     sweepBaseShapeTable();
     sweepInitialShapeTable();
@@ -498,7 +538,10 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
         discardJitCode(fop);
     }
 
-    if (!activeAnalysis) {
+    
+    regExps.sweep(rt);
+
+    if (!activeAnalysis && !gcPreserveCode) {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_DISCARD_ANALYSIS);
 
         

@@ -80,7 +80,6 @@ struct Parser : private AutoGCRooter
     uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
 
-    
     TreeContext         *tc;            
 
     
@@ -243,7 +242,7 @@ struct Parser : private AutoGCRooter
 
 
     enum FunctionType { Getter, Setter, Normal };
-    bool functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **list);
+    bool functionArguments(ParseNode **list);
 
     ParseNode *functionDef(HandlePropertyName name, FunctionType type, FunctionSyntaxKind kind);
 
@@ -296,7 +295,7 @@ Parser::reportErrorNumber(ParseNode *pn, unsigned flags, unsigned errorNumber, .
 }
 
 bool
-DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, TreeContext *tc);
+DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser);
 
 } 
 

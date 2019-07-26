@@ -1,39 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifdef XP_BEOS
 #include <stdio.h>
@@ -156,7 +124,7 @@ static void Level_0_Thread(PRThreadScope scope1, PRThreadScope scope2)
     printf("My Stack Pointer = 0x%lx\n", PR_GetSP(me));
     PR_ResumeAll();
 
-    
+    /* Wait for all threads to exit */
     PR_EnterMonitor(mon);
     while (alive) {
         PR_Wait(mon, PR_INTERVAL_NO_TIMEOUT);
@@ -216,4 +184,4 @@ int main(int argc, char **argv)
     return 0;
 }
 
-#endif 
+#endif /* XP_BEOS */

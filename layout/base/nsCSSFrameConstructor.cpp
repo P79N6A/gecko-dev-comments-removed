@@ -3873,6 +3873,31 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
   return NS_OK;
 }
 
+static void
+SetFlagsOnSubtree(nsIContent *aNode, PtrBits aFlagsToSet)
+{
+#ifdef DEBUG
+  
+  {
+    nsIDocument *doc = aNode->OwnerDoc();
+    NS_ASSERTION(doc, "The node must be in a document");
+    NS_ASSERTION(!doc->BindingManager()->GetXBLChildNodesFor(aNode),
+                 "The node should not have any XBL children");
+  }
+#endif
+
+  
+  aNode->SetFlags(aFlagsToSet);
+
+  
+  PRUint32 count;
+  nsIContent * const *children = aNode->GetChildArray(&count);
+
+  for (PRUint32 index = 0; index < count; ++index) {
+    SetFlagsOnSubtree(children[index], aFlagsToSet);
+  }
+}
+
 nsresult
 nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
                                            nsIFrame* aParentFrame,
@@ -3900,7 +3925,17 @@ nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
       content->SetNativeAnonymous();
     }
 
+    bool anonContentIsEditable = content->HasFlag(NODE_IS_EDITABLE);
     rv = content->BindToTree(mDocument, aParent, aParent, true);
+    
+    
+    
+    
+    if (anonContentIsEditable) {
+      NS_ASSERTION(aParentFrame->GetType() == nsGkAtoms::textInputFrame,
+                   "We only expect this for anonymous content under a text control frame");
+      SetFlagsOnSubtree(content, NODE_IS_EDITABLE);
+    }
     if (NS_FAILED(rv)) {
       content->UnbindFromTree();
       return rv;
@@ -6110,25 +6145,6 @@ nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
 
 
 
-
-
-
-
-
-
-
-
-
-static inline bool
-IsActuallyEditable(nsIContent* aContainer, nsIContent* aChild)
-{
-  return (aChild->IsEditable() &&
-          (aContainer->IsEditable() ||
-           aChild->MayHaveContentEditableAttr()));
-}
-
-
-
 bool
 nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
                                             nsIContent* aContainer,
@@ -6141,7 +6157,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
 
   if (aOperation == CONTENTINSERT) {
     if (aChild->IsRootOfAnonymousSubtree() ||
-        aChild->IsXUL() || IsActuallyEditable(aContainer, aChild)) {
+        aChild->IsEditable() || aChild->IsXUL()) {
       return false;
     }
   } else { 
@@ -6150,7 +6166,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     for (nsIContent* child = aChild; child; child = child->GetNextSibling()) {
       NS_ASSERTION(!child->IsRootOfAnonymousSubtree(),
                    "Should be coming through the CONTENTAPPEND case");
-      if (child->IsXUL() || IsActuallyEditable(aContainer, child)) {
+      if (child->IsXUL() || child->IsEditable()) {
         return false;
       }
     }
@@ -8809,29 +8825,21 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIFrame*     aParentFrame,
 
 
 
-nsresult
+void
 nsCSSFrameConstructor::CaptureStateForFramesOf(nsIContent* aContent,
                                                nsILayoutHistoryState* aHistoryState)
 {
+  if (!aHistoryState) {
+    return;
+  }
   nsIFrame* frame = aContent->GetPrimaryFrame();
   if (frame == mRootElementFrame) {
     frame = mFixedContainingBlock;
   }
-  if (frame) {
-    CaptureStateFor(frame, aHistoryState);
+  for ( ; frame;
+        frame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(frame)) {
+    CaptureFrameState(frame, aHistoryState);
   }
-  return NS_OK;
-}
-
-
-nsresult
-nsCSSFrameConstructor::CaptureStateFor(nsIFrame* aFrame,
-                                       nsILayoutHistoryState* aHistoryState)
-{
-  if (aFrame && aHistoryState) {
-    CaptureFrameState(aFrame, aHistoryState);
-  }
-  return NS_OK;
 }
 
 nsresult

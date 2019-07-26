@@ -691,6 +691,9 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                profilingScripts;
 
     
+    bool                alwaysPreserveCode;
+
+    
     JSBool              hadOutOfMemory;
 
     

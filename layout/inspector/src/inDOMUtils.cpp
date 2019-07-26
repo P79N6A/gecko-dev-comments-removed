@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2001
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Joe Hewitt <hewitt@netscape.com> (original author)
+ *   Christopher A. Aillon <christopher@aillon.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "inDOMUtils.h"
 #include "inLayoutUtils.h"
@@ -62,7 +62,7 @@
 #include "mozilla/dom/Element.h"
 
 
-
+///////////////////////////////////////////////////////////////////////////////
 
 inDOMUtils::inDOMUtils()
 {
@@ -74,8 +74,8 @@ inDOMUtils::~inDOMUtils()
 
 NS_IMPL_ISUPPORTS1(inDOMUtils, inIDOMUtils)
 
-
-
+///////////////////////////////////////////////////////////////////////////////
+// inIDOMUtils
 
 NS_IMETHODIMP
 inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
@@ -94,12 +94,12 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
     return NS_OK;
   }
 
-  
-  
+  // Okay.  We have only white space.  Let's check the white-space
+  // property now and make sure that this isn't preformatted text...
 
   nsCOMPtr<nsIDOMWindow> win = inLayoutUtils::GetWindowFor(aDataNode);
   if (!win) {
-    
+    // Hmm.  Things are screwy if we have no window...
     NS_ERROR("No window!");
     return NS_OK;
   }
@@ -110,7 +110,7 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
     *aReturn = !text->WhiteSpaceIsSignificant();
   }
   else {
-    
+    // empty inter-tag text node without frame, e.g., in between <table>\n<tr>
     *aReturn = true;
   }
 
@@ -124,7 +124,7 @@ inDOMUtils::GetParentForNode(nsIDOMNode* aNode,
 {
   NS_ENSURE_ARG_POINTER(aNode);
 
-  
+  // First do the special cases -- document nodes and anonymous content
   nsCOMPtr<nsIDOMDocument> doc(do_QueryInterface(aNode));
   nsCOMPtr<nsIDOMNode> parent;
 
@@ -138,13 +138,13 @@ inDOMUtils::GetParentForNode(nsIDOMNode* aNode,
       if (bindingManager) {
         bparent = bindingManager->GetInsertionParent(content);
       }
-    
+
       parent = do_QueryInterface(bparent);
     }
   }
-  
+
   if (!parent) {
-    
+    // Ok, just get the normal DOM parent node
     aNode->GetParentNode(getter_AddRefs(parent));
   }
 
@@ -203,8 +203,8 @@ inDOMUtils::GetCSSStyleRules(nsIDOMElement *aElement,
   nsRefPtr<nsStyleContext> styleContext;
   GetRuleNodeForContent(content, pseudoElt, getter_AddRefs(styleContext), &ruleNode);
   if (!ruleNode) {
-    
-    
+    // This can fail for content nodes that are not in the document or
+    // if the document they're in doesn't have a presshell.  Bail out.
     return NS_OK;
   }
 
@@ -262,7 +262,7 @@ inDOMUtils::IsInheritedProperty(const nsAString &aPropertyName, bool *_retval)
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 inDOMUtils::GetBindingURLs(nsIDOMElement *aElement, nsIArray **_retval)
 {
   NS_ENSURE_ARG_POINTER(aElement);
@@ -292,15 +292,15 @@ NS_IMETHODIMP
 inDOMUtils::SetContentState(nsIDOMElement *aElement, nsEventStates::InternalType aState)
 {
   NS_ENSURE_ARG_POINTER(aElement);
-  
+
   nsRefPtr<nsEventStateManager> esm = inLayoutUtils::GetEventStateManagerFor(aElement);
   if (esm) {
     nsCOMPtr<nsIContent> content;
     content = do_QueryInterface(aElement);
-  
+
     return esm->SetContentState(content, nsEventStates(aState));
   }
-  
+
   return NS_ERROR_FAILURE;
 }
 
@@ -311,13 +311,13 @@ inDOMUtils::GetContentState(nsIDOMElement *aElement, nsEventStates::InternalType
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
   NS_ENSURE_ARG_POINTER(content);
 
-  
-  
+  // NOTE: if this method is removed,
+  // please remove GetInternalValue from nsEventStates
   *aState = content->AsElement()->State().GetInternalValue();
   return NS_OK;
 }
 
- nsresult
+/* static */ nsresult
 inDOMUtils::GetRuleNodeForContent(nsIContent* aContent,
                                   nsIAtom* aPseudo,
                                   nsStyleContext** aStyleContext,
@@ -361,8 +361,8 @@ inDOMUtils::GetUsedFontFaces(nsIDOMRange* aRange,
 static nsEventStates
 GetStatesForPseudoClass(const nsAString& aStatePseudo)
 {
-  
-  
+  // An array of the states that are relevant for various pseudoclasses.
+  // XXXbz this duplicates code in nsCSSRuleProcessor
   static const nsEventStates sPseudoClassStates[] = {
 #define CSS_PSEUDO_CLASS(_name, _value) \
     nsEventStates(),
@@ -372,8 +372,8 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
 #undef CSS_STATE_PSEUDO_CLASS
 #undef CSS_PSEUDO_CLASS
 
-    
-    
+    // Add more entries for our fake values to make sure we can't
+    // index out of bounds into this array no matter what.
     nsEventStates(),
     nsEventStates()
   };
@@ -383,14 +383,14 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
 
   nsCOMPtr<nsIAtom> atom = do_GetAtom(aStatePseudo);
 
-  
-  
+  // Ignore :moz-any-link so we don't give the element simultaneous
+  // visited and unvisited style state
   if (nsCSSPseudoClasses::GetPseudoType(atom) ==
       nsCSSPseudoClasses::ePseudoClass_mozAnyLink) {
     return nsEventStates();
   }
-  
-  
+  // Our array above is long enough that indexing into it with
+  // NotPseudoClass is ok.
   return sPseudoClassStates[nsCSSPseudoClasses::GetPseudoType(atom)];
 }
 
@@ -398,14 +398,14 @@ NS_IMETHODIMP
 inDOMUtils::AddPseudoClassLock(nsIDOMElement *aElement,
                                const nsAString &aPseudoClass)
 {
-  NS_ENSURE_ARG_POINTER(aElement);
-
   nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
   if (state.IsEmpty()) {
     return NS_OK;
   }
 
   nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(element);
+
   element->LockStyleStates(state);
 
   return NS_OK;
@@ -415,14 +415,14 @@ NS_IMETHODIMP
 inDOMUtils::RemovePseudoClassLock(nsIDOMElement *aElement,
                                   const nsAString &aPseudoClass)
 {
-  NS_ENSURE_ARG_POINTER(aElement);
-
   nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
   if (state.IsEmpty()) {
     return NS_OK;
   }
 
   nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(element);
+
   element->UnlockStyleStates(state);
 
   return NS_OK;
@@ -433,8 +433,6 @@ inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
                                const nsAString &aPseudoClass,
                                bool *_retval)
 {
-  NS_ENSURE_ARG_POINTER(aElement);
-
   nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
   if (state.IsEmpty()) {
     *_retval = false;
@@ -442,6 +440,8 @@ inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
   }
 
   nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(element);
+
   nsEventStates locks = element->LockedStyleStates();
 
   *_retval = locks.HasAllStates(state);
@@ -451,9 +451,9 @@ inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
 NS_IMETHODIMP
 inDOMUtils::ClearPseudoClassLocks(nsIDOMElement *aElement)
 {
-  NS_ENSURE_ARG_POINTER(aElement);
-
   nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(element);
+
   element->ClearStyleStateLocks();
 
   return NS_OK;

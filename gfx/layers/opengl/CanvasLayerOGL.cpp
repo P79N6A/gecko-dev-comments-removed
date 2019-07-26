@@ -1,39 +1,39 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Corporation code.
- *
- * The Initial Developer of the Original Code is Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/layers/PLayers.h"
 #include "mozilla/layers/ShadowLayers.h"
@@ -124,14 +124,14 @@ CanvasLayerOGL::Initialize(const Data& aData)
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
       
-  // Check the maximum texture size supported by GL. glTexImage2D supports
-  // images of up to 2 + GL_MAX_TEXTURE_SIZE
+  
+  
   GLint texSize = gl()->GetMaxTextureSize();
   if (mBounds.width > (2 + texSize) || mBounds.height > (2 + texSize)) {
     mDelayedUpdates = true;
     MakeTexture();
-    // This should only ever occur with 2d canvas, WebGL can't already have a texture
-    // of this size can it?
+    
+    
     NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget, 
                       "Invalid texture size when WebGL surface already exists at that size?");
   }
@@ -154,10 +154,10 @@ CanvasLayerOGL::MakeTexture()
   gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
 }
 
-/**
- * Following UpdateSurface(), mTexture on context this->gl() should contain the data we want,
- * unless mDelayedUpdates is true because of a too-large surface.
- */
+
+
+
+
 void
 CanvasLayerOGL::UpdateSurface()
 {
@@ -180,7 +180,7 @@ CanvasLayerOGL::UpdateSurface()
   {
     DiscardTempSurface();
 
-    // Can texture share, just make sure it's resolved first
+    
     mCanvasGLContext->MakeCurrent();
     mCanvasGLContext->GuaranteeResolve();
 
@@ -194,8 +194,8 @@ CanvasLayerOGL::UpdateSurface()
     nsRefPtr<gfxASurface> updatedAreaSurface;
 
     if (mDrawTarget) {
-      // TODO: This is suboptimal - We should have direct handling for the surface types instead of
-      // going via a gfxASurface.
+      
+      
       updatedAreaSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
     } else if (mCanvasSurface) {
       updatedAreaSurface = mCanvasSurface;
@@ -230,9 +230,9 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
 
   mOGLManager->MakeCurrent();
 
-  // XXX We're going to need a different program depending on if
-  // mGLBufferIsPremultiplied is TRUE or not.  The RGBLayerProgram
-  // assumes that it's true.
+  
+  
+  
 
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
 
@@ -339,10 +339,12 @@ ShadowCanvasLayerOGL::Init(const CanvasSurface& aNewFront, bool needYFlip)
 {
   nsRefPtr<gfxASurface> surf = ShadowLayerForwarder::OpenDescriptor(aNewFront);
 
+  mNeedsYFlip = needYFlip;
+
   mTexImage = gl()->CreateTextureImage(surf->GetSize(),
                                        surf->GetContentType(),
-                                       LOCAL_GL_CLAMP_TO_EDGE);
-  mNeedsYFlip = needYFlip;
+                                       LOCAL_GL_CLAMP_TO_EDGE,
+                                       mNeedsYFlip ? TextureImage::NeedsYFlip : TextureImage::NoFlags);
 }
 
 void
@@ -404,9 +406,9 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
   gfx3DMatrix effectiveTransform = GetEffectiveTransform();
 #ifdef ANDROID
-  // Bug 691354
-  // Using the LINEAR filter we get unexplained artifacts.
-  // Use NEAREST when no scaling is required.
+  
+  
+  
   gfxMatrix matrix;
   bool is2D = GetEffectiveTransform().Is2D(&matrix);
   if (is2D && !matrix.HasNonTranslationOrFlip()) {
@@ -431,17 +433,17 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     do {
       TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
       program->SetLayerQuadRect(mTexImage->GetTileRect());
-      mOGLManager->BindAndDrawQuad(program, mNeedsYFlip); // FIXME flip order of tiles?
+      mOGLManager->BindAndDrawQuad(program, mNeedsYFlip); 
     } while (mTexImage->NextTile());
   } else {
     do {
       TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
       program->SetLayerQuadRect(mTexImage->GetTileRect());
-      // We can't use BindAndDrawQuad because that always uploads the whole texture from 0.0f -> 1.0f
-      // in x and y. We use BindAndDrawQuadWithTextureRect to actually draw a subrect of the texture
-      // We need to reset the origin to 0,0 from the tile rect because the tile originates at 0,0 in the
-      // actual texture, even though its origin in the composed (tiled) texture is not 0,0
-      // FIXME: we need to handle mNeedsYFlip, Bug #728625
+      
+      
+      
+      
+      
       mOGLManager->BindAndDrawQuadWithTextureRect(program,
                                                   nsIntRect(0, 0, mTexImage->GetTileRect().width,
                                                                   mTexImage->GetTileRect().height),
