@@ -36,6 +36,19 @@ js::Nursery::init()
     fallbackBitmap.clear(false);
 
     void *heap = MapAlignedPages(NurserySize, Alignment);
+#ifdef JSGC_ROOT_ANALYSIS
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    while (IsPoisonedPtr(heap) || IsPoisonedPtr((void*)(uintptr_t(heap) + NurserySize)))
+        heap = MapAlignedPages(NurserySize, Alignment);
+#endif
     if (!heap)
         return false;
 
