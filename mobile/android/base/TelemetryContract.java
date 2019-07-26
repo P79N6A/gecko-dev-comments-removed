@@ -127,6 +127,9 @@ public interface TelemetryContract {
         INTENT("intent"),
 
         
+        HOMESCREEN("homescreen"),
+
+        
         LIST("list"),
 
         
