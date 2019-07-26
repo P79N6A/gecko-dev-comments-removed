@@ -59,6 +59,8 @@ typedef void (*EnterJitCode)(void *code, unsigned argc, Value *argv, StackFrame 
 
 class IonBuilder;
 
+typedef Vector<IonBuilder*, 0, SystemAllocPolicy> OffThreadCompilationVector;
+
 
 
 
@@ -331,6 +333,12 @@ class JitCompartment
     JitRuntime *rt;
 
     
+    
+    
+    
+    OffThreadCompilationVector finishedOffThreadCompilations_;
+
+    
     typedef WeakValueCache<uint32_t, ReadBarriered<JitCode> > ICStubCodeMap;
     ICStubCodeMap *stubCodes_;
 
@@ -353,6 +361,10 @@ class JitCompartment
     JitCode *generateStringConcatStub(JSContext *cx, ExecutionMode mode);
 
   public:
+    OffThreadCompilationVector &finishedOffThreadCompilations() {
+        return finishedOffThreadCompilations_;
+    }
+
     JitCode *getStubCode(uint32_t key) {
         ICStubCodeMap::AddPtr p = stubCodes_->lookupForAdd(key);
         if (p)

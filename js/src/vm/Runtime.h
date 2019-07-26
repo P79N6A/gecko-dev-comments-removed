@@ -84,6 +84,7 @@ class Activation;
 class ActivationIterator;
 class AsmJSActivation;
 class MathCache;
+class WorkerThreadState;
 
 namespace jit {
 class JitRuntime;
@@ -479,28 +480,12 @@ AtomStateOffsetToName(const JSAtomState &atomState, size_t offset)
 
 
 
-enum RuntimeLock {
-    ExclusiveAccessLock,
-    WorkerThreadStateLock,
-    CompilationLock,
-    OperationCallbackLock,
-    GCLock
-};
-
-#ifdef DEBUG
-void AssertCurrentThreadCanLock(RuntimeLock which);
-#else
-inline void AssertCurrentThreadCanLock(RuntimeLock which) {}
-#endif
 
 
 
 
-
-
-
-
-class PerThreadData : public PerThreadDataFriendFields
+class PerThreadData : public PerThreadDataFriendFields,
+                      public mozilla::LinkedListElement<PerThreadData>
 {
     
 
@@ -553,7 +538,6 @@ class PerThreadData : public PerThreadDataFriendFields
     friend class js::AsmJSActivation;
 #ifdef DEBUG
     friend bool js::CurrentThreadCanReadCompilationData();
-    friend void js::AssertCurrentThreadCanLock(RuntimeLock which);
 #endif
 
     
@@ -614,6 +598,8 @@ class PerThreadData : public PerThreadDataFriendFields
     ~PerThreadData();
 
     bool init();
+    void addToThreadList();
+    void removeFromThreadList();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
     inline JSRuntime *runtimeFromMainThread();
@@ -622,25 +608,6 @@ class PerThreadData : public PerThreadDataFriendFields
     inline bool exclusiveThreadsPresent();
     inline void addActiveCompilation();
     inline void removeActiveCompilation();
-
-    
-    
-    class AutoEnterRuntime
-    {
-        PerThreadData *pt;
-
-      public:
-        AutoEnterRuntime(PerThreadData *pt, JSRuntime *rt)
-          : pt(pt)
-        {
-            JS_ASSERT(!pt->runtime_);
-            pt->runtime_ = rt;
-        }
-
-        ~AutoEnterRuntime() {
-            pt->runtime_ = nullptr;
-        }
-    };
 
 #ifdef JS_ARM_SIMULATOR
     js::jit::Simulator *simulator() const;
@@ -683,6 +650,12 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
+    mozilla::LinkedList<js::PerThreadData> threadList;
+
+    
+
+
+
 #ifdef JS_THREADSAFE
     mozilla::Atomic<int32_t, mozilla::Relaxed> interrupt;
 #else
@@ -695,10 +668,20 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     JSOperationCallback operationCallback;
 
+    
+    
+    
+    enum RuntimeLock {
+        ExclusiveAccessLock,
+        WorkerThreadStateLock,
+        CompilationLock,
+        OperationCallbackLock,
+        GCLock
+    };
 #ifdef DEBUG
-    void assertCanLock(js::RuntimeLock which);
+    void assertCanLock(RuntimeLock which);
 #else
-    void assertCanLock(js::RuntimeLock which) {}
+    void assertCanLock(RuntimeLock which) {}
 #endif
 
   private:
@@ -719,7 +702,7 @@ struct JSRuntime : public JS::shadow::Runtime,
       public:
         AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
             MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-            rt->assertCanLock(js::OperationCallbackLock);
+            rt->assertCanLock(JSRuntime::OperationCallbackLock);
 #ifdef JS_THREADSAFE
             PR_Lock(rt->operationCallbackLock);
             rt->operationCallbackOwner = PR_GetCurrentThread();
@@ -749,6 +732,8 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
 
 #ifdef JS_THREADSAFE
+
+    js::WorkerThreadState *workerThreadState;
 
   private:
     
@@ -1399,7 +1384,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     void lockGC() {
 #ifdef JS_THREADSAFE
-        assertCanLock(js::GCLock);
+        assertCanLock(GCLock);
         PR_Lock(gcLock);
         JS_ASSERT(!gcLockOwner);
 #ifdef DEBUG
@@ -1732,6 +1717,7 @@ struct JSRuntime : public JS::shadow::Runtime,
   private:
 
     JSUseHelperThreads useHelperThreads_;
+    unsigned cpuCount_;
 
     
     bool parallelIonCompilationEnabled_;
@@ -1755,12 +1741,37 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     
+    void setFakeCPUCount(size_t count) {
+        cpuCount_ = count;
+    }
+
+    
+    
+    
+    unsigned cpuCount() const {
+        JS_ASSERT(cpuCount_ > 0);
+        return cpuCount_;
+    }
+
+    
+    
+    unsigned workerThreadCount() const {
+        if (!useHelperThreads())
+            return 0;
+        return js::Max(2u, cpuCount());
+    }
+
+    
+    
     void setParallelIonCompilationEnabled(bool value) {
         parallelIonCompilationEnabled_ = value;
     }
     bool canUseParallelIonCompilation() const {
+        
+        
         return useHelperThreads() &&
-               parallelIonCompilationEnabled_;
+               parallelIonCompilationEnabled_ &&
+               cpuCount_ > 1;
     }
     void setParallelParsingEnabled(bool value) {
         parallelParsingEnabled_ = value;

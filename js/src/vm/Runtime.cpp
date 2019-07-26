@@ -91,6 +91,9 @@ PerThreadData::~PerThreadData()
     if (dtoaState)
         js_DestroyDtoaState(dtoaState);
 
+    if (isInList())
+        removeFromThreadList();
+
 #ifdef JS_ARM_SIMULATOR
     js_delete(simulator_);
 #endif
@@ -104,6 +107,22 @@ PerThreadData::init()
         return false;
 
     return true;
+}
+
+void
+PerThreadData::addToThreadList()
+{
+    
+    
+    JS_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
+    runtime_->threadList.insertBack(this);
+}
+
+void
+PerThreadData::removeFromThreadList()
+{
+    JS_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
+    removeFrom(runtime_->threadList);
 }
 
 static const JSWrapObjectCallbacks DefaultWrapObjectCallbacks = {
@@ -125,6 +144,7 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
 #ifdef JS_THREADSAFE
     operationCallbackLock(nullptr),
     operationCallbackOwner(nullptr),
+    workerThreadState(nullptr),
     exclusiveAccessLock(nullptr),
     exclusiveAccessOwner(nullptr),
     mainThreadHasExclusiveAccess(false),
@@ -296,6 +316,11 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     parallelWarmup(0),
     ionReturnOverride_(MagicValue(JS_ARG_POISON)),
     useHelperThreads_(useHelperThreads),
+#ifdef JS_THREADSAFE
+    cpuCount_(GetCPUCount()),
+#else
+    cpuCount_(1),
+#endif
     parallelIonCompilationEnabled_(true),
     parallelParsingEnabled_(true),
     isWorkerRuntime_(false)
@@ -303,6 +328,8 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     , enteredPolicy(nullptr)
 #endif
 {
+    MOZ_ASSERT(cpuCount_ > 0, "GetCPUCount() seems broken");
+
     liveRuntimesCount++;
 
     setGCMode(JSGC_MODE_GLOBAL);
@@ -365,6 +392,7 @@ JSRuntime::init(uint32_t maxbytes)
         return false;
 
     js::TlsPerThreadData.set(&mainThread);
+    mainThread.addToThreadList();
 
     if (!threadPool.init())
         return false;
@@ -436,14 +464,14 @@ JSRuntime::~JSRuntime()
     sourceHook = nullptr;
 
     
-
-
-
-
-
     for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next())
         CancelOffThreadIonCompile(comp, nullptr);
-    CancelOffThreadParses(this);
+    WaitForOffThreadParsingToFinish(this);
+
+#ifdef JS_THREADSAFE
+    if (workerThreadState)
+        workerThreadState->cleanup();
+#endif
 
     
     FinishCommonNames(this);
@@ -476,7 +504,11 @@ JSRuntime::~JSRuntime()
 
     finishSelfHosting();
 
+    mainThread.removeFromThreadList();
+
 #ifdef JS_THREADSAFE
+    js_delete(workerThreadState);
+
     JS_ASSERT(!exclusiveAccessOwner);
     if (exclusiveAccessLock)
         PR_DestroyLock(exclusiveAccessLock);
@@ -978,7 +1010,7 @@ JSRuntime::assertCanLock(RuntimeLock which)
       case ExclusiveAccessLock:
         JS_ASSERT(exclusiveAccessOwner != PR_GetCurrentThread());
       case WorkerThreadStateLock:
-        JS_ASSERT(!WorkerThreadState().isLocked());
+        JS_ASSERT_IF(workerThreadState, !workerThreadState->isLocked());
       case CompilationLock:
         JS_ASSERT(compilationLockOwner != PR_GetCurrentThread());
       case OperationCallbackLock:
@@ -1047,16 +1079,6 @@ js::CurrentThreadCanReadCompilationData()
     return pt->runtime_->currentThreadHasCompilationLock();
 #else
     return true;
-#endif
-}
-
-void
-js::AssertCurrentThreadCanLock(RuntimeLock which)
-{
-#ifdef JS_THREADSAFE
-    PerThreadData *pt = TlsPerThreadData.get();
-    if (pt && pt->runtime_)
-        pt->runtime_->assertCanLock(which);
 #endif
 }
 
