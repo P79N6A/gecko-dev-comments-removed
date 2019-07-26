@@ -6,19 +6,22 @@
 
 #include "nsPACMan.h"
 #include "nsThreadUtils.h"
-#include "nsIDNSService.h"
-#include "nsIDNSListener.h"
-#include "nsICancelable.h"
 #include "nsIAuthPrompt.h"
 #include "nsIPromptFactory.h"
 #include "nsIHttpChannel.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsNetUtil.h"
-#include "nsAutoPtr.h"
 #include "nsCRT.h"
 #include "prmon.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
+#include "nsProxyRelease.h"
+
+
+using namespace mozilla;
+using namespace mozilla::net;
+
+
 
 
 
@@ -43,98 +46,204 @@ HttpRequestSucceeded(nsIStreamLoader *loader)
 
 
 
-class PendingPACQuery MOZ_FINAL : public PRCList,
-                                  public nsIDNSListener
+
+
+class ExecuteCallback MOZ_FINAL : public nsRunnable
 {
 public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIDNSLISTENER
-
-  PendingPACQuery(nsPACMan *pacMan, nsIURI *uri, nsPACManCallback *callback)
-    : mPACMan(pacMan)
-    , mURI(uri)
-    , mCallback(callback)
+  ExecuteCallback(nsPACManCallback *aCallback,
+                  nsresult status)
+    : mCallback(aCallback)
+    , mStatus(status)
   {
-    PR_INIT_CLIST(this);
   }
 
-  nsresult Start(uint32_t flags);
-  void     Complete(nsresult status, const nsCString &pacString);
+  void SetPACString(const nsCString &pacString)
+  {
+    mPACString = pacString;
+  }
+
+  void SetPACURL(const nsCString &pacURL)
+  {
+    mPACURL = pacURL;
+  }
+
+  NS_IMETHODIMP Run()
+  {
+    mCallback->OnQueryComplete(mStatus, mPACString, mPACURL);
+    mCallback = nullptr;
+    return NS_OK;
+  }
 
 private:
-  nsPACMan                  *mPACMan;  
-  nsCOMPtr<nsIURI>           mURI;
   nsRefPtr<nsPACManCallback> mCallback;
-  nsCOMPtr<nsICancelable>    mDNSRequest;
+  nsresult                   mStatus;
+  nsCString                  mPACString;
+  nsCString                  mPACURL;
 };
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(PendingPACQuery, nsIDNSListener)
 
-nsresult
-PendingPACQuery::Start(uint32_t flags)
+
+
+
+
+class ShutdownThread MOZ_FINAL : public nsRunnable
 {
-  if (mDNSRequest)
-    return NS_OK;  
-
-  nsresult rv;
-  nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("unable to get the DNS service");
-    return rv;
+public:
+  ShutdownThread(nsIThread *thread)
+    : mThread(thread)
+  {
   }
 
-  nsAutoCString host;
-  rv = mURI->GetAsciiHost(host);
-  if (NS_FAILED(rv))
-    return rv;
+  NS_IMETHODIMP Run()
+  {
+    NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+    mThread->Shutdown();
+    return NS_OK;
+  }
 
-  rv = dns->AsyncResolve(host, flags, this, NS_GetCurrentThread(),
-                         getter_AddRefs(mDNSRequest));
-  if (NS_FAILED(rv))
-    NS_WARNING("DNS AsyncResolve failed");
+private:
+  nsCOMPtr<nsIThread> mThread;
+};
 
-  return rv;
+
+
+
+
+
+
+class PACLoadComplete MOZ_FINAL : public nsRunnable
+{
+public:
+  PACLoadComplete(nsPACMan *aPACMan)
+    : mPACMan(aPACMan)
+  {
+  }
+
+  NS_IMETHODIMP Run()
+  {
+    NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+    mPACMan->mLoader = nullptr;
+    mPACMan->PostProcessPendingQ();
+    return NS_OK;
+  }
+
+private:
+    nsRefPtr<nsPACMan> mPACMan;
+};
+
+
+
+
+
+
+
+class ExecutePACThreadAction MOZ_FINAL : public nsRunnable
+{
+public:
+  
+  ExecutePACThreadAction(nsPACMan *aPACMan)
+    : mPACMan(aPACMan)
+    , mCancel(false)
+    , mSetupPAC(false)
+  { }
+
+  void CancelQueue (nsresult status)
+  {
+    mCancel = true;
+    mCancelStatus = status;
+  }
+
+  void SetupPAC (const char *text, uint32_t datalen, nsCString &pacURI)
+  {
+    mSetupPAC = true;
+    mSetupPACData.Assign(text, datalen);
+    mSetupPACURI = pacURI;
+  }
+
+  NS_IMETHODIMP Run()
+  {
+    NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
+    if (mCancel) {
+      mPACMan->CancelPendingQ(mCancelStatus);
+      mCancel = false;
+      return NS_OK;
+    }
+
+    if (mSetupPAC) {
+      mSetupPAC = false;
+
+      mPACMan->mPAC.Init(mSetupPACURI,
+                         mSetupPACData);
+
+      nsRefPtr<PACLoadComplete> runnable = new PACLoadComplete(mPACMan);
+      NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+      return NS_OK;
+    }
+
+    mPACMan->ProcessPendingQ();
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<nsPACMan> mPACMan;
+
+  bool      mCancel;
+  nsresult  mCancelStatus;
+
+  bool                 mSetupPAC;
+  nsCString            mSetupPACData;
+  nsCString            mSetupPACURI;
+};
+
+
+
+PendingPACQuery::PendingPACQuery(nsPACMan *pacMan, nsIURI *uri,
+                                 nsPACManCallback *callback,
+                                 bool mainThreadResponse)
+  : mPACMan(pacMan)
+  , mCallback(callback)
+  , mOnMainThreadOnly(mainThreadResponse)
+{
+  uri->GetAsciiSpec(mSpec);
+  uri->GetAsciiHost(mHost);
+  uri->GetScheme(mScheme);
+  uri->GetPort(&mPort);
 }
-
 
 void
 PendingPACQuery::Complete(nsresult status, const nsCString &pacString)
 {
   if (!mCallback)
     return;
+  nsRefPtr<ExecuteCallback> runnable = new ExecuteCallback(mCallback, status);
+  runnable->SetPACString(pacString);
+  if (mOnMainThreadOnly)
+    NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+  else
+    runnable->Run();
+}
 
-  mCallback->OnQueryComplete(status, pacString);
-  mCallback = nullptr;
+void
+PendingPACQuery::UseAlternatePACFile(const nsCString &pacURL)
+{
+  if (!mCallback)
+    return;
 
-  if (mDNSRequest) {
-    mDNSRequest->Cancel(NS_ERROR_ABORT);
-    mDNSRequest = nullptr;
-  }
+  nsRefPtr<ExecuteCallback> runnable = new ExecuteCallback(mCallback, NS_OK);
+  runnable->SetPACURL(pacURL);
+  if (mOnMainThreadOnly)
+    NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+  else
+    runnable->Run();
 }
 
 NS_IMETHODIMP
-PendingPACQuery::OnLookupComplete(nsICancelable *request,
-                                  nsIDNSRecord *record,
-                                  nsresult status)
+PendingPACQuery::Run()
 {
-  
-  
- 
-  mDNSRequest = nullptr;  
-
-  
-  if (!mCallback)
-    return NS_OK;
-
-  
-  PR_REMOVE_LINK(this);
-
-  nsAutoCString pacString;
-  status = mPACMan->GetProxyForURI(mURI, pacString);
-  Complete(status, pacString);
-
-  NS_RELEASE_THIS();
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
+  mPACMan->PostQuery(this);
   return NS_OK;
 }
 
@@ -143,87 +252,87 @@ PendingPACQuery::OnLookupComplete(nsICancelable *request,
 nsPACMan::nsPACMan()
   : mLoadPending(false)
   , mShutdown(false)
-  , mScheduledReload(LL_MAXINT)
   , mLoadFailureCount(0)
+  , mInProgress(false)
 {
-  PR_INIT_CLIST(&mPendingQ);
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "pacman must be created on main thread");
 }
 
 nsPACMan::~nsPACMan()
 {
+  if (mPACThread) {
+    if (NS_IsMainThread()) {
+      mPACThread->Shutdown();
+    }
+    else {
+      nsRefPtr<ShutdownThread> runnable = new ShutdownThread(mPACThread);
+      NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+    }
+  }
+  if (!NS_IsMainThread()) {
+    nsCOMPtr<nsIThread> mainThread;
+    NS_GetMainThread(getter_AddRefs(mainThread));
+
+    if (mPACURI) {
+      nsIURI *forgettable;
+      mPACURI.forget(&forgettable);
+      NS_ProxyRelease(mainThread, forgettable, false);
+    }
+  }
+
   NS_ASSERTION(mLoader == nullptr, "pac man not shutdown properly");
-  NS_ASSERTION(mPAC == nullptr, "pac man not shutdown properly");
-  NS_ASSERTION(PR_CLIST_IS_EMPTY(&mPendingQ), "pac man not shutdown properly");
+  NS_ASSERTION(mPendingQ.isEmpty(), "pac man not shutdown properly");
 }
 
 void
 nsPACMan::Shutdown()
 {
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "pacman must be shutdown on main thread");
   CancelExistingLoad();
-  ProcessPendingQ(NS_ERROR_ABORT);
-
-  mPAC = nullptr;
   mShutdown = true;
+  PostCancelPendingQ(NS_ERROR_ABORT);
 }
 
 nsresult
-nsPACMan::GetProxyForURI(nsIURI *uri, nsACString &result)
+nsPACMan::AsyncGetProxyForURI(nsIURI *uri, nsPACManCallback *callback,
+                              bool mainThreadResponse)
 {
-  NS_ENSURE_STATE(!mShutdown);
-
-  if (IsPACURI(uri)) {
-    result.Truncate();
-    return NS_OK;
-  }
-
-  MaybeReloadPAC();
-
-  if (IsLoading())
-    return NS_ERROR_IN_PROGRESS;
-  if (!mPAC)
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+  if (mShutdown)
     return NS_ERROR_NOT_AVAILABLE;
 
-  nsAutoCString spec, host;
-  uri->GetAsciiSpec(spec);
-  uri->GetAsciiHost(host);
+  
+  if (mPACURI && !mScheduledReload.IsNull() &&
+      TimeStamp::Now() > mScheduledReload)
+    LoadPACFromURI(nullptr);
 
-  return mPAC->GetProxyForURI(spec, host, result);
+  nsRefPtr<PendingPACQuery> query =
+    new PendingPACQuery(this, uri, callback, mainThreadResponse);
+
+  if (IsPACURI(uri)) {
+    
+    query->Complete(NS_OK, EmptyCString());
+    return NS_OK;
+  }
+
+  return mPACThread->Dispatch(query, nsIEventTarget::DISPATCH_NORMAL);
 }
 
 nsresult
-nsPACMan::AsyncGetProxyForURI(nsIURI *uri, nsPACManCallback *callback)
+nsPACMan::PostQuery(PendingPACQuery *query)
 {
-  NS_ENSURE_STATE(!mShutdown);
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
 
-  MaybeReloadPAC();
-
-  PendingPACQuery *query = new PendingPACQuery(this, uri, callback);
-  if (!query)
-    return NS_ERROR_OUT_OF_MEMORY;
-  NS_ADDREF(query);
-  PR_APPEND_LINK(query, &mPendingQ);
-
-  
-  
-  
-  
-  
-  int isPACURI = IsPACURI(uri);
-
-  if (IsLoading() && !isPACURI)
+  if (mShutdown) {
+    query->Complete(NS_ERROR_NOT_AVAILABLE, EmptyCString());
     return NS_OK;
-
-  nsresult rv = query->Start(isPACURI ? 0 : nsIDNSService::RESOLVE_SPECULATE);
-  if (rv == NS_ERROR_DNS_LOOKUP_QUEUE_FULL && !isPACURI) {
-    query->OnLookupComplete(NULL, NULL, NS_OK);
-    rv = NS_OK;
-  } else if (NS_FAILED(rv)) {
-    NS_WARNING("failed to start PAC query");
-    PR_REMOVE_LINK(query);
-    NS_RELEASE(query);
   }
 
-  return rv;
+  
+  nsRefPtr<PendingPACQuery> addref(query);
+  mPendingQ.insertBack(addref.forget().get());
+  ProcessPendingQ();
+  return NS_OK;
 }
 
 nsresult
@@ -256,21 +365,24 @@ nsPACMan::LoadPACFromURI(nsIURI *pacURI)
   mLoader = loader;
   if (pacURI) {
     mPACURI = pacURI;
+    mPACURI->GetSpec(mPACURISpec);
     mLoadFailureCount = 0;  
   }
-  mScheduledReload = LL_MAXINT;
-  mPAC = nullptr;
+
+  
+  mScheduledReload = TimeStamp();
   return NS_OK;
 }
 
 void
 nsPACMan::StartLoading()
 {
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
   mLoadPending = false;
 
   
   if (!mLoader) {
-    ProcessPendingQ(NS_ERROR_ABORT);
+    PostCancelPendingQ(NS_ERROR_ABORT);
     return;
   }
 
@@ -293,18 +405,9 @@ nsPACMan::StartLoading()
   }
 
   CancelExistingLoad();
-  ProcessPendingQ(NS_ERROR_UNEXPECTED);
+  PostCancelPendingQ(NS_ERROR_UNEXPECTED);
 }
 
-void
-nsPACMan::MaybeReloadPAC()
-{
-  if (!mPACURI)
-    return;
-
-  if (PR_Now() > mScheduledReload)
-    LoadPACFromURI(nullptr);
-}
 
 void
 nsPACMan::OnLoadFailure()
@@ -324,11 +427,11 @@ nsPACMan::OnLoadFailure()
   if (!interval || interval > maxInterval)
     interval = maxInterval;
 
-#ifdef DEBUG
-  printf("PAC load failure: will retry in %d seconds\n", interval);
-#endif
+  mScheduledReload = TimeStamp::Now() + TimeDuration::FromSeconds(interval);
 
-  mScheduledReload = PR_Now() + int64_t(interval) * PR_USEC_PER_SEC;
+  
+  
+  PostCancelPendingQ(NS_ERROR_NOT_AVAILABLE);
 }
 
 void
@@ -344,32 +447,110 @@ nsPACMan::CancelExistingLoad()
 }
 
 void
-nsPACMan::ProcessPendingQ(nsresult status)
+nsPACMan::PostProcessPendingQ()
 {
-  
-  PRCList *node = PR_LIST_HEAD(&mPendingQ);
-  while (node != &mPendingQ) {
-    PendingPACQuery *query = static_cast<PendingPACQuery *>(node);
-    node = PR_NEXT_LINK(node);
-    if (NS_SUCCEEDED(status)) {
-      
-      
-      status = query->Start(nsIDNSService::RESOLVE_SPECULATE);
-    }
-    if (status == NS_ERROR_DNS_LOOKUP_QUEUE_FULL) {
-      query->OnLookupComplete(NULL, NULL, NS_OK);
-      status = NS_OK;
-    } else if (NS_FAILED(status)) {
-      
-      PR_REMOVE_LINK(query);
-      query->Complete(status, EmptyCString());
-      NS_RELEASE(query);
-    }
-  }
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+  nsRefPtr<ExecutePACThreadAction> pending =
+    new ExecutePACThreadAction(this);
+  if (mPACThread)
+    mPACThread->Dispatch(pending, nsIEventTarget::DISPATCH_NORMAL);
 }
 
-NS_IMPL_ISUPPORTS3(nsPACMan, nsIStreamLoaderObserver, nsIInterfaceRequestor,
-                   nsIChannelEventSink)
+void
+nsPACMan::PostCancelPendingQ(nsresult status)
+{
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+  nsRefPtr<ExecutePACThreadAction> pending =
+    new ExecutePACThreadAction(this);
+  pending->CancelQueue(status);
+  if (mPACThread)
+    mPACThread->Dispatch(pending, nsIEventTarget::DISPATCH_NORMAL);
+}
+
+void
+nsPACMan::CancelPendingQ(nsresult status)
+{
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
+  nsRefPtr<PendingPACQuery> query;
+
+  while (!mPendingQ.isEmpty()) {
+    query = dont_AddRef(mPendingQ.popLast());
+    query->Complete(status, EmptyCString());
+  }
+
+  if (mShutdown)
+    mPAC.Shutdown();
+}
+
+void
+nsPACMan::ProcessPendingQ()
+{
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
+  while (ProcessPending());
+
+  
+  mPAC.GC();
+
+  if (mShutdown)
+    mPAC.Shutdown();
+}
+
+
+bool
+nsPACMan::ProcessPending()
+{
+  if (mPendingQ.isEmpty())
+    return false;
+
+  
+  
+  if (mInProgress || (IsLoading() && !mLoadFailureCount))
+    return false;
+
+  nsRefPtr<PendingPACQuery> query(dont_AddRef(mPendingQ.popFirst()));
+
+  if (mShutdown || IsLoading()) {
+    query->Complete(NS_ERROR_NOT_AVAILABLE, EmptyCString());
+    return true;
+  }
+
+  nsAutoCString pacString;
+  bool completed = false;
+  mInProgress = true;
+  nsAutoCString PACURI;
+
+  
+  if (mSystemProxySettings &&
+      NS_SUCCEEDED(mSystemProxySettings->GetPACURI(PACURI)) &&
+      !PACURI.IsEmpty() &&
+      !PACURI.Equals(mPACURISpec)) {
+    query->UseAlternatePACFile(PACURI);
+    completed = true;
+  }
+
+  
+  
+  if (!completed && mSystemProxySettings && PACURI.IsEmpty() &&
+      NS_SUCCEEDED(mSystemProxySettings->
+                   GetProxyForURI(query->mSpec, query->mScheme,
+                                  query->mHost, query->mPort,
+                                  pacString))) {
+    query->Complete(NS_OK, pacString);
+    completed = true;
+  }
+
+  
+  if (!completed) {
+    nsresult status = mPAC.GetProxyForURI(query->mSpec, query->mHost, pacString);
+    query->Complete(status, pacString);
+  }
+
+  mInProgress = false;
+  return true;
+}
+
+NS_IMPL_THREADSAFE_ISUPPORTS3(nsPACMan, nsIStreamLoaderObserver,
+                              nsIInterfaceRequestor, nsIChannelEventSink)
 
 NS_IMETHODIMP
 nsPACMan::OnStreamComplete(nsIStreamLoader *loader,
@@ -378,6 +559,7 @@ nsPACMan::OnStreamComplete(nsIStreamLoader *loader,
                            uint32_t dataLen,
                            const uint8_t *data)
 {
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
   if (mLoader != loader) {
     
     
@@ -386,8 +568,6 @@ nsPACMan::OnStreamComplete(nsIStreamLoader *loader,
     if (status == NS_ERROR_ABORT)
       return NS_OK;
   }
-
-  mLoader = nullptr;
 
   if (NS_SUCCEEDED(status) && HttpRequestSucceeded(loader)) {
     
@@ -404,18 +584,21 @@ nsPACMan::OnStreamComplete(nsIStreamLoader *loader,
       }
     }
 
-    if (!mPAC) {
-      mPAC = do_CreateInstance(NS_PROXYAUTOCONFIG_CONTRACTID, &status);
-      if (!mPAC)
-        NS_WARNING("failed to instantiate PAC component");
-    }
-    if (NS_SUCCEEDED(status)) {
-      
-      
-      
-      const char *text = (const char *) data;
-      status = mPAC->Init(pacURI, NS_ConvertASCIItoUTF16(text, dataLen));
-    }
+    
+    
+    
+    const char *text = (const char *) data;
+
+    
+    
+    
+    
+
+    nsRefPtr<ExecutePACThreadAction> pending =
+      new ExecutePACThreadAction(this);
+    pending->SetupPAC(text, dataLen, pacURI);
+    if (mPACThread)
+      mPACThread->Dispatch(pending, nsIEventTarget::DISPATCH_NORMAL);
 
     
     
@@ -426,11 +609,11 @@ nsPACMan::OnStreamComplete(nsIStreamLoader *loader,
     OnLoadFailure();
   }
 
-  
-  if (mPAC && NS_FAILED(status))
-    mPAC = nullptr;
+  if (NS_SUCCEEDED(status))
+    PostProcessPendingQ();
+  else
+    PostCancelPendingQ(status);
 
-  ProcessPendingQ(status);
   return NS_OK;
 }
 
@@ -464,5 +647,28 @@ nsPACMan::AsyncOnChannelRedirect(nsIChannel *oldChannel, nsIChannel *newChannel,
       return rv;
 
   callback->OnRedirectVerifyCallback(NS_OK);
+  return NS_OK;
+}
+
+void
+nsPACMan::NamePACThread()
+{
+  NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
+  PR_SetCurrentThreadName("Proxy Resolution");
+}
+
+nsresult
+nsPACMan::Init(nsISystemProxySettings *systemProxySettings)
+{
+  mSystemProxySettings = systemProxySettings;
+
+  nsresult rv = NS_NewThread(getter_AddRefs(mPACThread), nullptr);
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &nsPACMan::NamePACThread);
+  
+  mPACThread->Dispatch(event, nsIEventTarget::DISPATCH_NORMAL);
+
   return NS_OK;
 }
