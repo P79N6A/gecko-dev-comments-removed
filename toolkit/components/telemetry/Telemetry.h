@@ -166,6 +166,13 @@ void RecordChromeHang(uint32_t duration,
                       ProcessedStack &aStack);
 #endif
 
+
+
+
+
+
+void WriteFailedProfileLock(nsIFile* aProfileDir);
+
 } 
 } 
 #endif 
