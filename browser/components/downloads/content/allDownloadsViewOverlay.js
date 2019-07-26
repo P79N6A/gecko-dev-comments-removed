@@ -930,8 +930,14 @@ DownloadsPlacesView.prototype = {
     }
 
     if (shouldCreateShell) {
-      let shell = new DownloadElementShell(aDataItem, aPlacesNode,
-                                           this._getAnnotationsFor(downloadURI));
+      
+      
+      
+      
+      
+      
+      let cachedAnnotations = aPlacesNode ? this._getAnnotationsFor(downloadURI) : null;
+      let shell = new DownloadElementShell(aDataItem, aPlacesNode, cachedAnnotations);
       newOrUpdatedShell = shell;
       shellsForURI.add(shell);
       if (aDataItem)
