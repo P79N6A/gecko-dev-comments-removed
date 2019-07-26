@@ -6386,8 +6386,8 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
           
           
           
-          aEvent->flags |= (NS_EVENT_FLAG_NO_DEFAULT |
-                            NS_EVENT_FLAG_ONLY_CHROME_DISPATCH);
+          aEvent->mFlags.mDefaultPrevented = true;
+          aEvent->flags |= NS_EVENT_FLAG_ONLY_CHROME_DISPATCH;
 
           if (aEvent->message == NS_KEY_UP) {
              

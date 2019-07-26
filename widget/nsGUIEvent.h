@@ -111,7 +111,6 @@ enum nsEventStructType {
 #define NS_EVENT_FLAG_NONE                0x0000
 #define NS_EVENT_FLAG_BUBBLE              0x0002
 #define NS_EVENT_FLAG_CAPTURE             0x0004
-#define NS_EVENT_FLAG_NO_DEFAULT          0x0010
 #define NS_PRIV_EVENT_FLAG_SCRIPT         0x0080
 #define NS_EVENT_FLAG_NO_CONTENT_DISPATCH 0x0100
 #define NS_EVENT_FLAG_SYSTEM_EVENT        0x0200
@@ -126,9 +125,6 @@ enum nsEventStructType {
 
 
 #define NS_EVENT_FLAG_ONLY_CHROME_DISPATCH 0x2000
-
-
-#define NS_EVENT_FLAG_NO_DEFAULT_CALLED_IN_CONTENT 0x4000
 
 #define NS_PRIV_EVENT_UNTRUSTED_PERMITTED 0x8000
 
@@ -530,6 +526,14 @@ public:
   
   
   bool    mImmediatePropagationStopped : 1;
+  
+  
+  
+  bool    mDefaultPrevented : 1;
+  
+  
+  
+  bool    mDefaultPreventedByContent : 1;
 
   
   bool InTargetPhase() const

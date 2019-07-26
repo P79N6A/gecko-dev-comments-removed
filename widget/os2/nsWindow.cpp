@@ -2723,7 +2723,7 @@ bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
   
   pressEvent.message = NS_KEY_PRESS;
   if (rc) {
-    pressEvent.flags |= NS_EVENT_FLAG_NO_DEFAULT;
+    pressEvent.mFlags.mDefaultPrevented = true;
   }
 
   if (usChar) {

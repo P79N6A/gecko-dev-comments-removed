@@ -1686,7 +1686,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 
     
     if (setNoDefault) {
-        event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
+        event.mFlags.mDefaultPrevented = true;
     }
 
     
@@ -1871,7 +1871,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     event.keyCode = domCharCode ? 0 : domKeyCode;
 
     if (setNoDefault)
-        event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
+        event.mFlags.mDefaultPrevented = true;
 
     
     return DispatchEvent(&event);

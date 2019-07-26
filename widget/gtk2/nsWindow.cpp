@@ -3022,7 +3022,7 @@ nsWindow::OnKeyPressEvent(GdkEventKey *aEvent)
     KeymapWrapper::InitKeyEvent(event, aEvent);
     if (isKeyDownCancelled) {
       
-      event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
+      event.mFlags.mDefaultPrevented = true;
     }
 
     
