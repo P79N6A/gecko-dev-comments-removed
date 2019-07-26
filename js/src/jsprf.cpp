@@ -383,7 +383,7 @@ cvt_ws(SprintfState *ss, const jschar *ws, int width, int prec, int flags)
         result = cvt_s(ss, latin1, width, prec, flags);
         js_free(latin1);
     } else {
-        result = cvt_s(ss, NULL, width, prec, flags);
+        result = cvt_s(ss, nullptr, width, prec, flags);
     }
     return result;
 }
@@ -422,13 +422,13 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
                 if( c == '$' ){         
                     if( i > 0 ){
                         *rv = -1;
-                        return NULL;
+                        return nullptr;
                     }
                     number++;
                 } else {                
                     if( number > 0 ){
                         *rv = -1;
-                        return NULL;
+                        return nullptr;
                     }
                     i = 1;
                 }
@@ -440,7 +440,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
     }
 
     if( number == 0 ){
-        return NULL;
+        return nullptr;
     }
 
 
@@ -448,7 +448,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
         nas = (struct NumArgState*)malloc( number * sizeof( struct NumArgState ) );
         if( !nas ){
             *rv = -1;
-            return NULL;
+            return nullptr;
         }
     } else {
         nas = nasArray;
@@ -600,7 +600,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
     if( *rv < 0 ){
         if( nas != nasArray )
             js_free( nas );
-        return NULL;
+        return nullptr;
     }
 
     cn = 0;
@@ -638,7 +638,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
             if( nas != nasArray )
                 js_free( nas );
             *rv = -1;
-            return NULL;
+            return nullptr;
         }
 
         cn++;
@@ -671,10 +671,10 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
     static const char HEX[] = "0123456789ABCDEF";
     const char *hexp;
     int rv, i;
-    struct NumArgState *nas = NULL;
+    struct NumArgState *nas = nullptr;
     struct NumArgState nasArray[ NAS_DEFAULT_NUM ];
     char pattern[20];
-    const char *dolPt = NULL;  
+    const char *dolPt = nullptr;  
 
     
 
@@ -713,7 +713,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
             continue;
         }
 
-        if( nas != NULL ){
+        if( nas != nullptr ){
             
             i = 0;
             while( c && c != '$' ){         
@@ -885,7 +885,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
           case 'f':
           case 'g':
             u.d = va_arg(ap, double);
-            if( nas != NULL ){
+            if( nas != nullptr ){
                 i = fmt - dolPt;
                 if( i < (int)sizeof( pattern ) ){
                     pattern[0] = '%';
