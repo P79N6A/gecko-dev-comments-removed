@@ -26,6 +26,10 @@
 #include "SelfHostingDefines.h"
 
 
+Object.defineProperty = null; 
+
+
+
 var std_isFinite = isFinite;
 var std_isNaN = isNaN;
 var std_Array_indexOf = ArrayIndexOf;
@@ -51,7 +55,6 @@ var std_Math_log2 = Math.log2;
 var std_Number_valueOf = Number.prototype.valueOf;
 var std_Number_POSITIVE_INFINITY = Number.POSITIVE_INFINITY;
 var std_Object_create = Object.create;
-var std_Object_defineProperty = Object.defineProperty;
 var std_Object_getOwnPropertyNames = Object.getOwnPropertyNames;
 var std_Object_hasOwnProperty = Object.prototype.hasOwnProperty;
 var std_RegExp_test = RegExp.prototype.test;
