@@ -19,6 +19,7 @@
 #include "mozilla/dom/SVGMatrix.h"
 #include "DOMSVGPoint.h"
 #include "nsIFrame.h"
+#include "nsFrameSelection.h"
 #include "nsISVGSVGFrame.h" 
 #include "mozilla/dom/SVGRect.h"
 #include "nsError.h"
@@ -362,6 +363,16 @@ SVGSVGElement::SetCurrentTime(float seconds)
     FlushAnimations();
   }
   
+}
+
+void
+SVGSVGElement::DeselectAll()
+{
+  nsIFrame* frame = GetPrimaryFrame();
+  if (frame) {
+    nsRefPtr<nsFrameSelection> frameSelection = frame->GetFrameSelection();
+    frameSelection->ClearNormalSelection();
+  }
 }
 
 already_AddRefed<nsIDOMSVGNumber>
