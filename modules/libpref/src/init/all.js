@@ -208,6 +208,9 @@ pref("media.dash.enabled", false);
 #ifdef MOZ_GSTREAMER
 pref("media.gstreamer.enabled", true);
 #endif
+#ifdef MOZ_APPLEMEDIA
+pref("media.apple.mp3.enabled", false);
+#endif
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
 pref("media.navigator.video.default_width",640);
@@ -481,8 +484,6 @@ pref("devtools.debugger.force-local", true);
 pref("devtools.debugger.prompt-connection", true);
 
 pref("devtools.debugger.enable-content-actors", true);
-
-pref("devtools.debugger.forbid-certified-apps", true);
 
 
 pref("view_source.syntax_highlight", true);
