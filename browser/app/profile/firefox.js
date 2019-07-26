@@ -1206,6 +1206,9 @@ pref("devtools.styleeditor.autocompletion-enabled", true);
 pref("devtools.shadereditor.enabled", false);
 
 
+pref("devtools.canvasdebugger.enabled", false);
+
+
 pref("devtools.chrome.enabled", false);
 
 
