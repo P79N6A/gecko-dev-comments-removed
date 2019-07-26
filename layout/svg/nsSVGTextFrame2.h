@@ -188,10 +188,9 @@ protected:
   nsSVGTextFrame2(nsStyleContext* aContext)
     : nsSVGTextFrame2Base(aContext),
       mFontSizeScaleFactor(1.0f),
-      mGetCanvasTMForFlag(FOR_OUTERSVG_TM),
-      mPositioningDirty(true),
-      mPositioningMayUsePercentages(false)
+      mGetCanvasTMForFlag(FOR_OUTERSVG_TM)
   {
+    AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
   }
 
 public:
@@ -650,42 +649,6 @@ private:
 
 
   uint32_t mGetCanvasTMForFlag;
-
-  
-
-
-
-
-
-
-
-
-
-  bool mPositioningDirty;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool mPositioningMayUsePercentages;
 };
 
 #endif

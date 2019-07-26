@@ -64,10 +64,47 @@ class Element;
 #define NS_STATE_IS_OUTER_SVG                    NS_FRAME_STATE_BIT(20)
 
 
-#define NS_STATE_SVG_NONDISPLAY_CHILD            NS_FRAME_STATE_BIT(22)
+#define NS_STATE_SVG_NONDISPLAY_CHILD            NS_FRAME_STATE_BIT(21)
 
 
-#define NS_STATE_SVG_CLIPPATH_CHILD              NS_FRAME_STATE_BIT(23)
+#define NS_STATE_SVG_CLIPPATH_CHILD              NS_FRAME_STATE_BIT(22)
+
+
+
+
+
+
+
+
+
+
+
+#define NS_STATE_SVG_POSITIONING_DIRTY           NS_FRAME_STATE_BIT(23)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define NS_STATE_SVG_POSITIONING_MAY_USE_PERCENTAGES NS_FRAME_STATE_BIT(24)
 
 
 

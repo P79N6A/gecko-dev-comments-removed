@@ -238,14 +238,14 @@ nsSVGTextFrame::ReflowSVG()
                     "ReflowSVG mechanism not designed for this");
 
   if (!nsSVGUtils::NeedsReflowSVG(this)) {
-    NS_ASSERTION(!mPositioningDirty, "How did this happen?");
+    NS_ASSERTION(!(mState & NS_STATE_SVG_POSITIONING_DIRTY), "How did this happen?");
     return;
   }
 
   
   
   
-  mPositioningDirty = true;
+  AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
 
   UpdateGlyphPositioning(false);
 
@@ -326,7 +326,7 @@ nsSVGTextFrame::NotifyGlyphMetricsChange()
   nsSVGEffects::InvalidateRenderingObservers(this);
   nsSVGUtils::ScheduleReflowSVG(this);
 
-  mPositioningDirty = true;
+  AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
 }
 
 void
@@ -374,10 +374,10 @@ nsSVGTextFrame::SetWhitespaceHandling(nsSVGGlyphFrame *aFrame)
 void
 nsSVGTextFrame::UpdateGlyphPositioning(bool aForceGlobalTransform)
 {
-  if (!mPositioningDirty)
+  if (!(mState & NS_STATE_SVG_POSITIONING_DIRTY))
     return;
 
-  mPositioningDirty = false;
+  RemoveStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
 
   nsISVGGlyphFragmentNode* node = GetFirstGlyphFragmentChildNode();
   if (!node)
