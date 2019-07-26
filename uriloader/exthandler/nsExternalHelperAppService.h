@@ -143,13 +143,6 @@ protected:
   NS_HIDDEN_(bool) GetTypeFromExtras(const nsACString& aExtension,
                                        nsACString& aMIMEType);
 
-  
-
-
-
-
-  virtual void FixFilePermissions(nsIFile* aFile);
-
 #ifdef PR_LOGGING
   
 
@@ -161,7 +154,6 @@ protected:
 #endif
   
   friend class nsExternalAppHandler;
-  friend class nsExternalLoadRequest;
 
   
 
