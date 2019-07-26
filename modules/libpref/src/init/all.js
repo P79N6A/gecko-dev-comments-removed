@@ -1803,9 +1803,6 @@ pref("layout.css.sticky.enabled", true);
 pref("layout.css.will-change.enabled", false);
 
 
-pref("layout.css.DOMPoint.enabled", true);
-
-
 pref("layout.css.text-align-true-value.enabled", false);
 
 
