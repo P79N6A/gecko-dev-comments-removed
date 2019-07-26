@@ -42,6 +42,8 @@ extern const char js_isFinite_str[];
 extern const char js_parseFloat_str[];
 extern const char js_parseInt_str[];
 
+class JSAtom;
+
 
 
 
@@ -53,9 +55,17 @@ js_NumberToString(js::ThreadSafeContext *cx, double d);
 
 namespace js {
 
+template <js::AllowGC allowGC>
+extern JSAtom *
+NumberToAtom(js::ExclusiveContext *cx, double d);
+
 template <AllowGC allowGC>
 extern JSFlatString *
 Int32ToString(ThreadSafeContext *cx, int32_t i);
+
+template <AllowGC allowGC>
+extern JSAtom *
+Int32ToAtom(ExclusiveContext *cx, int32_t si);
 
 
 
