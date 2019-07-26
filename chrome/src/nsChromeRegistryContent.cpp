@@ -4,11 +4,10 @@
 
 
 #include "RegistryMessageUtils.h"
-#include "nsChromeRegistry.h"
 #include "nsChromeRegistryContent.h"
 #include "nsString.h"
 #include "nsNetUtil.h"
-#include "nsResProtocolHandler.h"
+#include "nsIResProtocolHandler.h"
 
 nsChromeRegistryContent::nsChromeRegistryContent()
 {

@@ -31,29 +31,21 @@ public:
 
 
 
-  FileLocation() { }
+  FileLocation();
+  ~FileLocation();
 
   
 
 
-  FileLocation(nsIFile *file)
-  {
-    Init(file);
-  }
+  FileLocation(nsIFile *file);
 
   
 
 
 
-  FileLocation(nsIFile *zip, const char *path)
-  {
-    Init(zip, path);
-  }
+  FileLocation(nsIFile *zip, const char *path);
 
-  FileLocation(nsZipArchive *zip, const char *path)
-  {
-    Init(zip, path);
-  }
+  FileLocation(nsZipArchive *zip, const char *path);
 
   
 
@@ -63,26 +55,11 @@ public:
   
 
 
-  void Init(nsIFile *file)
-  {
-    mBaseZip = NULL;
-    mBaseFile = file;
-    mPath.Truncate();
-  }
+  void Init(nsIFile *file);
 
-  void Init(nsIFile *zip, const char *path)
-  {
-    mBaseZip = NULL;
-    mBaseFile = zip;
-    mPath = path;
-  }
+  void Init(nsIFile *zip, const char *path);
 
-  void Init(nsZipArchive *zip, const char *path)
-  {
-    mBaseZip = zip;
-    mBaseFile = NULL;
-    mPath = path;
-  }
+  void Init(nsZipArchive *zip, const char *path);
 
   
 
