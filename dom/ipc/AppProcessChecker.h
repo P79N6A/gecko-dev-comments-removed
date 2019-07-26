@@ -39,6 +39,10 @@ AssertAppProcess(mozilla::dom::PBrowserParent* aActor,
                  AssertAppProcessType aType,
                  const char* aCapability);
 
+
+
+
+
 bool
 AssertAppStatus(mozilla::dom::PBrowserParent* aActor,
                 unsigned short aStatus);
@@ -52,6 +56,11 @@ bool
 AssertAppProcess(mozilla::dom::PContentParent* aActor,
                  AssertAppProcessType aType,
                  const char* aCapability);
+
+
+
+
+
 
 bool
 AssertAppStatus(mozilla::dom::PContentParent* aActor,
