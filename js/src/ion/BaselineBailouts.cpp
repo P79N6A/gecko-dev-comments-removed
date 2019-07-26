@@ -367,6 +367,25 @@ struct BaselineStackBuilder
     }
 };
 
+static inline bool
+IsInlinableFallback(ICFallbackStub *icEntry)
+{
+    return icEntry->isCall_Fallback() || icEntry->isGetProp_Fallback() ||
+           icEntry->isSetProp_Fallback();
+}
+
+static inline void*
+GetStubReturnAddress(JSContext *cx, jsbytecode *pc)
+{
+    if (IsGetterPC(pc))
+        return cx->compartment()->ionCompartment()->baselineGetPropReturnAddr();
+    if (IsSetterPC(pc))
+        return cx->compartment()->ionCompartment()->baselineSetPropReturnAddr();
+    
+    JS_ASSERT(js_CodeSpec[JSOp(*pc)].format & JOF_INVOKE);
+    return cx->compartment()->ionCompartment()->baselineCallReturnAddr();
+}
+
 
 
 
@@ -629,15 +648,17 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     uint32_t pushedSlots = 0;
-    AutoValueVector funapplyargs(cx);
-    if (iter.moreFrames() &&
-        (op == JSOP_FUNCALL || op == JSOP_FUNAPPLY))
+    AutoValueVector savedCallerArgs(cx);
+    bool needToSaveArgs = op == JSOP_FUNAPPLY || IsGetterPC(pc) || IsSetterPC(pc);
+    if (iter.moreFrames() && (op == JSOP_FUNCALL || needToSaveArgs))
     {
         uint32_t inlined_args = 0;
         if (op == JSOP_FUNCALL)
             inlined_args = 2 + GET_ARGC(pc) - 1;
-        else
+        else if (op == JSOP_FUNAPPLY)
             inlined_args = 2 + blFrame->numActualArgs();
+        else
+            inlined_args = 2 + IsSetterPC(pc);
 
         JS_ASSERT(exprStackSlots >= inlined_args);
         pushedSlots = exprStackSlots - inlined_args;
@@ -662,30 +683,48 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 return false;
         }
 
-        if (op == JSOP_FUNAPPLY) {
+        if (needToSaveArgs) {
             
             
             
-            
-            
-            
-            
-            IonSpew(IonSpew_BaselineBailouts, "      pushing 4x undefined to fixup funapply");
-            if (!builder.writeValue(UndefinedValue(), "StackValue"))
-                return false;
-            if (!builder.writeValue(UndefinedValue(), "StackValue"))
-                return false;
-            if (!builder.writeValue(UndefinedValue(), "StackValue"))
-                return false;
-            if (!builder.writeValue(UndefinedValue(), "StackValue"))
-                return false;
 
             
             
-            if (!funapplyargs.resize(inlined_args))
+            
+            
+            
+            
+            
+            if (op == JSOP_FUNAPPLY) {
+                IonSpew(IonSpew_BaselineBailouts, "      pushing 4x undefined to fixup funapply");
+                if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                    return false;
+                if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                    return false;
+                if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                    return false;
+                if (!builder.writeValue(UndefinedValue(), "StackValue"))
+                    return false;
+            }
+            
+            
+            if (!savedCallerArgs.resize(inlined_args))
                 return false;
             for (uint32_t i = 0; i < inlined_args; i++)
-                funapplyargs[i] = iter.read();
+                savedCallerArgs[i] = iter.read();
+
+            if (IsSetterPC(pc)) {
+                
+                
+                
+                
+                
+                
+                Value initialArg = savedCallerArgs[inlined_args - 1];
+                IonSpew(IonSpew_BaselineBailouts, "     pushing setter's initial argument");
+                if (!builder.writeValue(initialArg, "StackValue"))
+                    return false;
+            }
             pushedSlots = exprStackSlots;
         }
     }
@@ -742,6 +781,16 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             JS_ASSERT(expectedDepth - exprStackSlots <= 1);
+        } else if (iter.moreFrames() && (IsGetterPC(pc) || IsSetterPC(pc))) {
+            
+            
+            
+            
+            
+            
+            
+            
+            JS_ASSERT(exprStackSlots - expectedDepth == 1);
         } else {
             
             
@@ -915,7 +964,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     ICEntry &icEntry = baselineScript->icEntryFromPCOffset(pcOff);
-    JS_ASSERT(icEntry.firstStub()->getChainFallback()->isCall_Fallback());
+    JS_ASSERT(IsInlinableFallback(icEntry.firstStub()->getChainFallback()));
     if (!builder.writePtr(baselineScript->returnAddressForIC(icEntry), "ReturnAddr"))
         return false;
 
@@ -947,7 +996,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     size_t startOfBaselineStubFrame = builder.framePushed();
 
     
-    JS_ASSERT(icEntry.fallbackStub()->isCall_Fallback());
+    JS_ASSERT(IsInlinableFallback(icEntry.fallbackStub()));
     if (!builder.writePtr(icEntry.fallbackStub(), "StubPtr"))
         return false;
 
@@ -958,21 +1007,25 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    JS_ASSERT(isCall);
-    unsigned actualArgc = GET_ARGC(pc);
-    if (op == JSOP_FUNAPPLY) {
+    JS_ASSERT(isCall || IsGetterPC(pc) || IsSetterPC(pc));
+    unsigned actualArgc;
+    if (needToSaveArgs) {
         
         
-        actualArgc = blFrame->numActualArgs();
+        if (op == JSOP_FUNAPPLY)
+            actualArgc = blFrame->numActualArgs();
+        else
+            actualArgc = IsSetterPC(pc);
 
         JS_ASSERT(actualArgc + 2 <= exprStackSlots);
-        JS_ASSERT(funapplyargs.length() == actualArgc + 2);
+        JS_ASSERT(savedCallerArgs.length() == actualArgc + 2);
         for (unsigned i = 0; i < actualArgc + 1; i++) {
-            size_t arg = funapplyargs.length() - (i + 1);
-            if (!builder.writeValue(funapplyargs[arg], "ArgVal"))
+            size_t arg = savedCallerArgs.length() - (i + 1);
+            if (!builder.writeValue(savedCallerArgs[arg], "ArgVal"))
                 return false;
         }
     } else {
+        actualArgc = GET_ARGC(pc);
         if (op == JSOP_FUNCALL) {
             JS_ASSERT(actualArgc > 0);
             actualArgc--;
@@ -1001,10 +1054,10 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     Value callee;
-    if (op == JSOP_FUNAPPLY) {
+    if (needToSaveArgs) {
         
         
-        callee = funapplyargs[0];
+        callee = savedCallerArgs[0];
     } else {
         uint32_t calleeStackSlot = exprStackSlots - uint32_t(actualArgc + 2);
         size_t calleeOffset = (builder.framePushed() - endOfBaselineJSFrameStack)
@@ -1024,7 +1077,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         return false;
 
     
-    void *baselineCallReturnAddr = cx->compartment()->ionCompartment()->baselineCallReturnAddr();
+    void *baselineCallReturnAddr = GetStubReturnAddress(cx, pc);
     JS_ASSERT(baselineCallReturnAddr);
     if (!builder.writePtr(baselineCallReturnAddr, "ReturnAddr"))
         return false;

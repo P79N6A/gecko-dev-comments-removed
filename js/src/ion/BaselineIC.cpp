@@ -5509,7 +5509,36 @@ ICGetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     masm.push(BaselineStubReg);
     masm.pushBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
 
-    return tailCallVM(DoGetPropFallbackInfo, masm);
+    if (!tailCallVM(DoGetPropFallbackInfo, masm))
+        return false;
+
+    
+    
+    returnOffset_ = masm.currentOffset();
+
+    
+    
+    entersStubFrame_ = true;
+
+    leaveStubFrame(masm, true);
+
+    
+    
+    
+    masm.loadPtr(Address(BaselineStubReg, ICMonitoredFallbackStub::offsetOfFallbackMonitorStub()),
+                 BaselineStubReg);
+    EmitEnterTypeMonitorIC(masm, ICTypeMonitor_Fallback::offsetOfFirstMonitorStub());
+
+    return true;
+}
+
+bool
+ICGetProp_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<IonCode *> code)
+{
+    CodeOffsetLabel offset(returnOffset_);
+    offset.fixup(&masm);
+    cx->compartment()->ionCompartment()->initBaselineGetPropReturnAddr(code->raw() + offset.offset());
+    return true;
 }
 
 bool
@@ -6348,7 +6377,33 @@ ICSetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     masm.push(BaselineStubReg);
     masm.pushBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
 
-    return tailCallVM(DoSetPropFallbackInfo, masm);
+    if (!tailCallVM(DoSetPropFallbackInfo, masm))
+        return false;
+
+    
+    
+    returnOffset_ = masm.currentOffset();
+
+    
+    
+    entersStubFrame_ = true;
+
+    leaveStubFrame(masm, true);
+
+    
+    EmitUnstowICValues(masm, 1);
+    EmitReturnFromIC(masm);
+
+    return true;
+}
+
+bool
+ICSetProp_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<IonCode *> code)
+{
+    CodeOffsetLabel offset(returnOffset_);
+    offset.fixup(&masm);
+    cx->compartment()->ionCompartment()->initBaselineSetPropReturnAddr(code->raw() + offset.offset());
+    return true;
 }
 
 bool

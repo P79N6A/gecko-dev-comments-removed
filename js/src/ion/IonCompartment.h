@@ -227,6 +227,8 @@ class IonCompartment
     
     
     void *baselineCallReturnAddr_;
+    void *baselineGetPropReturnAddr_;
+    void *baselineSetPropReturnAddr_;
 
     
     OptimizedICStubSpace optimizedStubSpace_;
@@ -268,6 +270,22 @@ class IonCompartment
     void *baselineCallReturnAddr() {
         JS_ASSERT(baselineCallReturnAddr_ != NULL);
         return baselineCallReturnAddr_;
+    }
+    void initBaselineGetPropReturnAddr(void *addr) {
+        JS_ASSERT(baselineGetPropReturnAddr_ == NULL);
+        baselineGetPropReturnAddr_ = addr;
+    }
+    void *baselineGetPropReturnAddr() {
+        JS_ASSERT(baselineGetPropReturnAddr_ != NULL);
+        return baselineGetPropReturnAddr_;
+    }
+    void initBaselineSetPropReturnAddr(void *addr) {
+        JS_ASSERT(baselineSetPropReturnAddr_ == NULL);
+        baselineSetPropReturnAddr_ = addr;
+    }
+    void *baselineSetPropReturnAddr() {
+        JS_ASSERT(baselineSetPropReturnAddr_ != NULL);
+        return baselineSetPropReturnAddr_;
     }
 
     void toggleBaselineStubBarriers(bool enabled);
