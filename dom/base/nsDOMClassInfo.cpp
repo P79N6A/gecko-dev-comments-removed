@@ -3407,7 +3407,7 @@ NS_IMETHODIMP
 nsWindowSH::Enumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                       JSObject *obj, bool *_retval)
 {
-  if (!ObjectIsNativeWrapper(cx, obj)) {
+  if (!xpc::WrapperFactory::IsXrayWrapper(obj)) {
     *_retval = JS_EnumerateStandardClasses(cx, obj);
     if (!*_retval) {
       return NS_OK;
@@ -4505,7 +4505,7 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
       Maybe<JSAutoCompartment> ac;
       JSObject* global;
-      bool defineOnXray = ObjectIsNativeWrapper(cx, obj);
+      bool defineOnXray = xpc::WrapperFactory::IsXrayWrapper(obj);
       if (defineOnXray) {
         global = js::CheckedUnwrap(obj,  false);
         if (!global) {
@@ -4941,35 +4941,22 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   
   
-  
-  
-  
-  
-  if (!ObjectIsNativeWrapper(cx, obj)) {
+  if (!xpc::WrapperFactory::IsXrayWrapper(obj)) {
     JSBool did_resolve = JS_FALSE;
     JSBool ok = JS_TRUE;
     JS::Value exn = JSVAL_VOID;
 
     {
-      nsCxPusher pusher;
-      Maybe<JSAutoCompartment> ac;
-
-      JSContext* my_cx;
-      if (!my_context) {
-        my_cx = cx;
-      } else {
-        my_cx = my_context->GetNativeContext();
-
-        if (my_cx != cx) {
-          pusher.Push(my_cx);
-          ac.construct(my_cx, obj);
-        }
-      }
-
-      JSAutoRequest transfer(my_cx);
-
       
       
+      
+      
+      
+      
+      AutoPushJSContext my_cx(my_context ? my_context->GetNativeContext() : cx);
+      JSAutoRequest ar(my_cx);
+      JSAutoCompartment ac(my_cx, obj);
+
       ok = JS_ResolveStandardClass(my_cx, obj, id, &did_resolve);
 
       if (!ok) {
