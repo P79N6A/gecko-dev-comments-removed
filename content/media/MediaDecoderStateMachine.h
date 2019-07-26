@@ -307,7 +307,7 @@ public:
   nsresult ScheduleStateMachine(int64_t aUsecs = 0);
 
   
-  void TimeoutExpired();
+  nsresult TimeoutExpired(int aGeneration);
 
   
   void SetFragmentEndTime(int64_t aEndTime);
@@ -937,6 +937,9 @@ private:
   mozilla::MediaMetadataManager mMetadataManager;
 
   MediaDecoderOwner::NextFrameStatus mLastFrameStatus;
+
+  
+  int mTimerId;
 };
 
 } 
