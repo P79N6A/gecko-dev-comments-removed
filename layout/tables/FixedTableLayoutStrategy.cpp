@@ -51,11 +51,12 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     int32_t colCount = cellMap->GetColCount();
+    nscoord spacing = mTableFrame->GetCellSpacingX();
 
     nscoord result = 0;
 
     if (colCount > 0) {
-        result += mTableFrame->GetCellSpacingX(-1, colCount);
+        result += spacing * (colCount + 1);
     }
 
     for (int32_t col = 0; col < colCount; ++col) {
@@ -64,7 +65,6 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
             NS_ERROR("column frames out of sync with cell map");
             continue;
         }
-        nscoord spacing = mTableFrame->GetCellSpacingX(col);
         const nsStyleCoord *styleWidth =
             &colFrame->StylePosition()->mWidth;
         if (styleWidth->ConvertsToLength()) {
@@ -161,6 +161,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
 
     nsTableCellMap *cellMap = mTableFrame->GetCellMap();
     int32_t colCount = cellMap->GetColCount();
+    nscoord spacing = mTableFrame->GetCellSpacingX();
 
     if (colCount == 0) {
         
@@ -168,8 +169,8 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
     }
 
     
-    tableWidth -= mTableFrame->GetCellSpacingX(-1, colCount);
-
+    tableWidth -= spacing * (colCount + 1);
+    
     
     
     
@@ -280,7 +281,6 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                         
                         
                         
-                        nscoord spacing = mTableFrame->GetCellSpacingX(col);
                         colWidth = ((colWidth + spacing) / colSpan) - spacing;
                         if (colWidth < 0)
                             colWidth = 0;
