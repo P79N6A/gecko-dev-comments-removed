@@ -1403,47 +1403,42 @@ gfxContext::Mask(gfxPattern *pattern)
   if (mCairo) {
     cairo_mask(mCairo, pattern->CairoPattern());
   } else {
-    bool needsClip = false;
     if (pattern->Extend() == gfxPattern::EXTEND_NONE) {
       
       
       
-      Rect surfaceSourceRect;
-      if (!pattern->IsAzure() &&
-          pattern->GetType() == gfxPattern::PATTERN_SURFACE)
-      {
-        needsClip = true;
+      Point offset;
+      if (pattern->IsAzure()) {
+        
+        
+        
+        
+        
+        offset = Point(0.f, 0.f);
+      } else if (pattern->GetType() == gfxPattern::PATTERN_SURFACE) {
+        nsRefPtr<gfxASurface> asurf = pattern->GetSurface();
+        gfxPoint deviceOffset = asurf->GetDeviceOffset();
+        offset = Point(-deviceOffset.x, -deviceOffset.y);
 
-        nsRefPtr<gfxASurface> surf = pattern->GetSurface();
-        gfxPoint offset = surf->GetDeviceOffset();
-
-        surfaceSourceRect = Rect(-offset.x, -offset.y, surf->GetSize().width, surf->GetSize().height);
-      } else if (pattern->IsAzure()) {
         
-        
-        
-        
-        
-        needsClip = true;
-
-        RefPtr<SourceSurface> surf = pattern->GetAzureSurface();
-        surfaceSourceRect = Rect(0, 0, surf->GetSize().width, surf->GetSize().height);
+        pattern->GetPattern(mDT);
       }
 
-      if (needsClip) {
+      if (pattern->IsAzure() || pattern->GetType() == gfxPattern::PATTERN_SURFACE) {
+        RefPtr<SourceSurface> mask = pattern->GetAzureSurface();
         Matrix mat = ToMatrix(pattern->GetInverseMatrix());
+        Matrix old = GetDTTransform();
+        
+        
         mat = mat * GetDTTransform();
 
-        mDT->SetTransform(mat);
-        mDT->PushClipRect(surfaceSourceRect);
-        mDT->SetTransform(GetDTTransform());
+        ChangeTransform(mat);
+        mDT->MaskSurface(GeneralPattern(this), mask, offset, DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
+        ChangeTransform(old);
+        return;
       }
     }
     mDT->Mask(GeneralPattern(this), *pattern->GetPattern(mDT), DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
-
-    if (needsClip) {
-      mDT->PopClip();
-    }
   }
 }
 
