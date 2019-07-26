@@ -436,6 +436,28 @@ nsTransitionManager::UpdateAllThrottledStyles()
     FlushOverflowChangedTracker();
 }
 
+void
+nsTransitionManager::ElementDataRemoved()
+{
+  
+  
+  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+    mPresContext->RefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
+  }
+}
+
+void
+nsTransitionManager::AddElementData(CommonElementAnimationData* aData)
+{
+  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+    
+    nsRefreshDriver *rd = mPresContext->RefreshDriver();
+    rd->AddRefreshObserver(this, Flush_Style);
+  }
+
+  PR_INSERT_BEFORE(aData, &mElementData);
+}
+
 already_AddRefed<nsIStyleRule>
 nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                                          nsStyleContext *aOldStyleContext,
@@ -1119,9 +1141,6 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
       }
     }
   }
-
-  
-  ElementDataRemoved();
 
   if (didThrottle) {
     mPresContext->Document()->SetNeedStyleFlush();

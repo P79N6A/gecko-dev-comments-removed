@@ -145,6 +145,8 @@ struct ElementAnimations MOZ_FINAL
   
   
   
+  
+  
   static double GetPositionInIteration(TimeDuration aElapsedDuration,
                                        TimeDuration aIterationDuration,
                                        double aIterationCount,
@@ -187,12 +189,14 @@ struct ElementAnimations MOZ_FINAL
   InfallibleTArray<ElementAnimation> mAnimations;
 };
 
-class nsAnimationManager : public mozilla::css::CommonAnimationManager
+class nsAnimationManager MOZ_FINAL
+  : public mozilla::css::CommonAnimationManager
 {
 public:
   nsAnimationManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
     , mKeyframesListIsDirty(true)
+    , mObservingRefreshDriver(false)
   {
     mKeyframesRules.Init(16); 
   }
@@ -280,6 +284,18 @@ public:
                                           nsCSSPseudoElements::Type aPseudoType,
                                           bool aCreateIfNeeded);
 
+protected:
+  virtual void ElementDataRemoved() MOZ_OVERRIDE
+  {
+    CheckNeedsRefresh();
+  }
+  virtual void AddElementData(mozilla::css::CommonElementAnimationData* aData) MOZ_OVERRIDE;
+
+  
+
+
+  void CheckNeedsRefresh();
+
 private:
   void BuildAnimations(nsStyleContext* aStyleContext,
                        InfallibleTArray<ElementAnimation>& aAnimations);
@@ -300,6 +316,8 @@ private:
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRules;
 
   EventArray mPendingEvents;
+
+  bool mObservingRefreshDriver;
 };
 
 #endif 
