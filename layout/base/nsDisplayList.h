@@ -855,7 +855,17 @@ public:
       aInvalidRegion->Or(GetBounds(aBuilder, &snap), geometry->mBounds);
     }
   }
+
   
+
+
+
+
+
+
+
+  virtual void NotifyRenderingChanged() {}
+
   
 
 

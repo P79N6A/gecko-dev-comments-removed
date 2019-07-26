@@ -298,10 +298,6 @@ typedef uint64_t nsFrameState;
 
 
 
-#define NS_FRAME_HAS_CACHED_BACKGROUND              NS_FRAME_STATE_BIT(46)
-
-
-
 #define NS_FRAME_IS_SVG_TEXT                        NS_FRAME_STATE_BIT(47)
 
 
