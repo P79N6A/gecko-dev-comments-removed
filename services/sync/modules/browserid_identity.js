@@ -209,6 +209,9 @@ this.BrowserIDManager.prototype = {
           let data = this.offerSyncOptions();
           if (data.accepted) {
             Services.prefs.clearUserPref(PREF_SYNC_SHOW_CUSTOMIZATION);
+
+            
+            Weave.Service.engineManager.declineDisabled();
           } else {
             
             return this._fxaService.signOut();
