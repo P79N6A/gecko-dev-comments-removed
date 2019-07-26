@@ -340,26 +340,10 @@ NS_IMPL_ISUPPORTS(nsScriptSecurityManager,
 bool
 nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 {
-    
-    nsScriptSecurityManager *ssm =
-        nsScriptSecurityManager::GetScriptSecurityManager();
-
-    NS_ASSERTION(ssm, "Failed to get security manager service");
-    if (!ssm)
-        return false;
-
-    nsresult rv;
-    nsIPrincipal* subjectPrincipal = ssm->GetSubjectPrincipal(cx, &rv);
-
-    NS_ASSERTION(NS_SUCCEEDED(rv), "CSP: Failed to get nsIPrincipal from js context");
-    if (NS_FAILED(rv))
-        return false; 
-
-    if (!subjectPrincipal)
-        return true;
-
+    MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
+    nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
     nsCOMPtr<nsIContentSecurityPolicy> csp;
-    rv = subjectPrincipal->GetCsp(getter_AddRefs(csp));
+    nsresult rv = subjectPrincipal->GetCsp(getter_AddRefs(csp));
     NS_ASSERTION(NS_SUCCEEDED(rv), "CSP: Failed to get CSP from principal.");
 
     
@@ -410,27 +394,10 @@ NS_IMETHODIMP
 nsScriptSecurityManager::CheckSameOrigin(JSContext* cx,
                                          nsIURI* aTargetURI)
 {
-    nsresult rv;
+    MOZ_ASSERT_IF(cx, cx == nsContentUtils::GetCurrentJSContext());
 
     
-    if (!cx)
-    {
-        cx = GetCurrentJSContext();
-        if (!cx)
-            return NS_OK; 
-    }
-
-    
-    nsIPrincipal* sourcePrincipal = GetSubjectPrincipal(cx, &rv);
-    if (NS_FAILED(rv))
-        return rv;
-
-    if (!sourcePrincipal)
-    {
-        NS_WARNING("CheckSameOrigin called on script w/o principals; should this happen?");
-        return NS_OK;
-    }
-
+    nsIPrincipal* sourcePrincipal = nsContentUtils::GetSubjectPrincipal();
     if (sourcePrincipal == mSystemPrincipal)
     {
         
@@ -506,17 +473,10 @@ NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
 {
     
-    nsresult rv;
-    nsIPrincipal* principal = GetSubjectPrincipal(cx, &rv);
-    if (NS_FAILED(rv))
-        return rv;
-
-    
-    if (!principal)
-        return NS_OK;
-
-    rv = CheckLoadURIWithPrincipal(principal, aURI,
-                                   nsIScriptSecurityManager::STANDARD);
+    MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
+    nsIPrincipal* principal = nsContentUtils::GetSubjectPrincipal();
+    nsresult rv = CheckLoadURIWithPrincipal(principal, aURI,
+                                            nsIScriptSecurityManager::STANDARD);
     if (NS_SUCCEEDED(rv)) {
         
         return NS_OK;
@@ -965,19 +925,7 @@ nsScriptSecurityManager::SubjectPrincipalIsSystem(bool* aIsSystem)
     if (!mSystemPrincipal)
         return NS_OK;
 
-    nsCOMPtr<nsIPrincipal> subject;
-    nsresult rv = GetSubjectPrincipal(getter_AddRefs(subject));
-    if (NS_FAILED(rv))
-        return rv;
-
-    if(!subject)
-    {
-        
-        
-        *aIsSystem = true;
-        return NS_OK;
-    }
-
+    nsCOMPtr<nsIPrincipal> subject = nsContentUtils::GetSubjectPrincipal();
     return mSystemPrincipal->Equals(subject, aIsSystem);
 }
 
@@ -1144,11 +1092,8 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     
     NS_ConvertUTF8toUTF16 strName("CreateWrapperDenied");
     nsAutoCString origin;
-    nsresult rv2;
-    nsIPrincipal* subjectPrincipal = doGetSubjectPrincipal(&rv2);
-    if (NS_SUCCEEDED(rv2) && subjectPrincipal) {
-        GetPrincipalDomainOrigin(subjectPrincipal, origin);
-    }
+    nsIPrincipal* subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
+    GetPrincipalDomainOrigin(subjectPrincipal, origin);
     NS_ConvertUTF8toUTF16 originUnicode(origin);
     NS_ConvertUTF8toUTF16 classInfoName(objClassInfo.GetName());
     const char16_t* formatStrings[] = {
@@ -1162,14 +1107,11 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
         strName.AppendLiteral("ForOrigin");
     }
     nsXPIDLString errorMsg;
-    
-    
-    
-    rv2 = sStrBundle->FormatStringFromName(strName.get(),
-                                           formatStrings,
-                                           length,
-                                           getter_Copies(errorMsg));
-    NS_ENSURE_SUCCESS(rv2, rv2);
+    nsresult rv = sStrBundle->FormatStringFromName(strName.get(),
+                                                   formatStrings,
+                                                   length,
+                                                   getter_Copies(errorMsg));
+    NS_ENSURE_SUCCESS(rv, rv);
 
     SetPendingException(cx, errorMsg.get());
     return NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED;

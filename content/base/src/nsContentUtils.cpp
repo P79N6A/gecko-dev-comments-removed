@@ -1578,45 +1578,19 @@ nsContentUtils::CanCallerAccess(nsIDOMNode *aNode)
 bool
 nsContentUtils::CanCallerAccess(nsINode* aNode)
 {
-  
-  
-  
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  nsresult rv = sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  if (!subjectPrincipal) {
-    
-
-    return true;
-  }
-
-  return CanCallerAccess(subjectPrincipal, aNode->NodePrincipal());
+  return CanCallerAccess(GetSubjectPrincipal(), aNode->NodePrincipal());
 }
 
 
 bool
 nsContentUtils::CanCallerAccess(nsPIDOMWindow* aWindow)
 {
-  
-  
-  
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  nsresult rv = sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  if (!subjectPrincipal) {
-    
-
-    return true;
-  }
-
   nsCOMPtr<nsIScriptObjectPrincipal> scriptObject =
     do_QueryInterface(aWindow->IsOuterWindow() ?
                       aWindow->GetCurrentInnerWindow() : aWindow);
   NS_ENSURE_TRUE(scriptObject, false);
 
-  return CanCallerAccess(subjectPrincipal, scriptObject->GetPrincipal());
+  return CanCallerAccess(GetSubjectPrincipal(), scriptObject->GetPrincipal());
 }
 
 

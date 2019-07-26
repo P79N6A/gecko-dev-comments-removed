@@ -8645,7 +8645,7 @@ nsDocShell::CheckLoadingPermissions()
     
     
     
-    nsresult rv = NS_OK, sameOrigin = NS_OK;
+    nsresult rv = NS_OK;
 
     if (!gValidateOrigin || !IsFrame()) {
         
@@ -8654,16 +8654,10 @@ nsDocShell::CheckLoadingPermissions()
         return rv;
     }
 
-    nsCOMPtr<nsIScriptSecurityManager> securityManager =
-      do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
     
     
-    nsCOMPtr<nsIPrincipal> subjPrincipal;
-    rv = securityManager->GetSubjectPrincipal(getter_AddRefs(subjPrincipal));
-    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && subjPrincipal, rv);
+    NS_ENSURE_TRUE(nsContentUtils::GetCurrentJSContext(), NS_OK);
 
     
     
@@ -8677,17 +8671,9 @@ nsDocShell::CheckLoadingPermissions()
             return NS_ERROR_UNEXPECTED;
         }
 
-        
-        bool subsumes;
-        sameOrigin = subjPrincipal->Subsumes(p, &subsumes);
-        if (NS_SUCCEEDED(sameOrigin)) {
-            if (subsumes) {
-                
-
-                return sameOrigin;
-            }
-
-            sameOrigin = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+        if (nsContentUtils::GetSubjectPrincipal()->Subsumes(p)) {
+            
+            return NS_OK;
         }
 
         nsCOMPtr<nsIDocShellTreeItem> tmp;
@@ -8695,7 +8681,7 @@ nsDocShell::CheckLoadingPermissions()
         item.swap(tmp);
     } while (item);
 
-    return sameOrigin;
+    return NS_ERROR_DOM_PROP_ACCESS_DENIED;
 }
 
 

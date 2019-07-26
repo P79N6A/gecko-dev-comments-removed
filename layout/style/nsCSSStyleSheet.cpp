@@ -1615,47 +1615,30 @@ nsCSSStyleSheet::DidDirty()
 nsresult
 nsCSSStyleSheet::SubjectSubsumesInnerPrincipal()
 {
+  nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
+  if (subjectPrincipal->Subsumes(mInner->mPrincipal)) {
+    return NS_OK;
+  }
+
   
-  nsIScriptSecurityManager *securityManager =
-    nsContentUtils::GetSecurityManager();
-
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  nsresult rv = securityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!subjectPrincipal) {
+  if (GetCORSMode() == CORS_NONE) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  bool subsumes;
-  rv = subjectPrincipal->Subsumes(mInner->mPrincipal, &subsumes);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (subsumes) {
-    return NS_OK;
-  }
   
-  if (!nsContentUtils::IsCallerChrome()) {
-    
-    if (GetCORSMode() == CORS_NONE) {
-      return NS_ERROR_DOM_SECURITY_ERR;
-    }
-
-    
-    
-    
-    
-    
-    if (!mInner->mComplete) {
-      return NS_ERROR_DOM_INVALID_ACCESS_ERR;
-    }
-
-    WillDirty();
-
-    mInner->mPrincipal = subjectPrincipal;
-
-    DidDirty();
+  
+  
+  
+  
+  if (!mInner->mComplete) {
+    return NS_ERROR_DOM_INVALID_ACCESS_ERR;
   }
+
+  WillDirty();
+
+  mInner->mPrincipal = subjectPrincipal;
+
+  DidDirty();
 
   return NS_OK;
 }

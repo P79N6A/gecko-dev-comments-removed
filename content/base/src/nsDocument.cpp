@@ -6336,22 +6336,12 @@ nsIDocument::LoadBindingDocument(const nsAString& aURI, ErrorResult& rv)
   }
 
   
-  nsCOMPtr<nsIPrincipal> subject;
-  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  if (secMan) {
-    rv = secMan->GetSubjectPrincipal(getter_AddRefs(subject));
-    if (rv.Failed()) {
-      return;
-    }
-  }
-
-  if (!subject) {
-    
-    
-    subject = NodePrincipal();
-  }
-
-  BindingManager()->LoadBindingDocument(this, uri, subject);
+  
+  
+  nsCOMPtr<nsIPrincipal> subjectPrincipal =
+    nsContentUtils::GetCurrentJSContext() ? nsContentUtils::GetSubjectPrincipal()
+                                          : NodePrincipal();
+  BindingManager()->LoadBindingDocument(this, uri, subjectPrincipal);
 }
 
 NS_IMETHODIMP

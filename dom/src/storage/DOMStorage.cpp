@@ -241,17 +241,11 @@ DOMStorage::CanUseStorage(DOMStorage* aStorage)
   }
 
   
-  if (nsContentUtils::IsCallerChrome()) {
+  nsCOMPtr<nsIPrincipal> subjectPrincipal =
+    nsContentUtils::GetSubjectPrincipal();
+  if (nsContentUtils::IsSystemPrincipal(subjectPrincipal)) {
     return true;
   }
-
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  nsresult rv = nsContentUtils::GetSecurityManager()->
-                  GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  
-  
 
   nsCOMPtr<nsIPermissionManager> permissionManager =
     services::GetPermissionManager();

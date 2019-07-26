@@ -2014,9 +2014,6 @@ nsGlobalWindow::SetInitialPrincipalToSubject()
 
   
   nsCOMPtr<nsIPrincipal> newWindowPrincipal = nsContentUtils::GetSubjectPrincipal();
-  if (!newWindowPrincipal) {
-    newWindowPrincipal = nsContentUtils::GetSystemPrincipal();
-  }
 
   
   
@@ -6055,52 +6052,41 @@ nsGlobalWindow::MakeScriptDialogTitle(nsAString &aOutTitle)
   
   
 
-  nsresult rv = NS_OK;
-  NS_ASSERTION(nsContentUtils::GetSecurityManager(),
-    "Global Window has no security manager!");
-  if (nsContentUtils::GetSecurityManager()) {
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = nsContentUtils::GetSecurityManager()->
-      GetSubjectPrincipal(getter_AddRefs(principal));
+  nsCOMPtr<nsIPrincipal> principal = nsContentUtils::GetSubjectPrincipal();
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = principal->GetURI(getter_AddRefs(uri));
+  
+  
+  
+  if (NS_SUCCEEDED(rv) && uri && nsContentUtils::GetCurrentJSContext()) {
+    
 
-    if (NS_SUCCEEDED(rv) && principal) {
-      nsCOMPtr<nsIURI> uri;
-      rv = principal->GetURI(getter_AddRefs(uri));
+    nsCOMPtr<nsIURIFixup> fixup(do_GetService(NS_URIFIXUP_CONTRACTID));
+    if (fixup) {
+      nsCOMPtr<nsIURI> fixedURI;
+      rv = fixup->CreateExposableURI(uri, getter_AddRefs(fixedURI));
+      if (NS_SUCCEEDED(rv) && fixedURI) {
+        nsAutoCString host;
+        fixedURI->GetHost(host);
 
-      if (NS_SUCCEEDED(rv) && uri) {
-        
+        if (!host.IsEmpty()) {
+          
+          
+          
 
-        nsCOMPtr<nsIURIFixup> fixup(do_GetService(NS_URIFIXUP_CONTRACTID));
-        if (fixup) {
-          nsCOMPtr<nsIURI> fixedURI;
-          rv = fixup->CreateExposableURI(uri, getter_AddRefs(fixedURI));
-          if (NS_SUCCEEDED(rv) && fixedURI) {
-            nsAutoCString host;
-            fixedURI->GetHost(host);
+          nsAutoCString prepath;
+          fixedURI->GetPrePath(prepath);
 
-            if (!host.IsEmpty()) {
-              
-              
-              
-
-              nsAutoCString prepath;
-              fixedURI->GetPrePath(prepath);
-
-              NS_ConvertUTF8toUTF16 ucsPrePath(prepath);
-              const char16_t *formatStrings[] = { ucsPrePath.get() };
-              nsXPIDLString tempString;
-              nsContentUtils::FormatLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
-                                                    "ScriptDlgHeading",
-                                                    formatStrings,
-                                                    tempString);
-              aOutTitle = tempString;
-            }
-          }
+          NS_ConvertUTF8toUTF16 ucsPrePath(prepath);
+          const char16_t *formatStrings[] = { ucsPrePath.get() };
+          nsXPIDLString tempString;
+          nsContentUtils::FormatLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
+                                                "ScriptDlgHeading",
+                                                formatStrings,
+                                                tempString);
+          aOutTitle = tempString;
         }
       }
-    }
-    else { 
-      NS_WARNING("No script principal? Who is calling alert/confirm/prompt?!");
     }
   }
 
@@ -11693,28 +11679,14 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   
   
   
-
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  nsresult rv;
-  rv = nsContentUtils::GetSecurityManager()->
-    GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  bool subsumes = false;
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::GetSubjectPrincipal();
   nsCOMPtr<nsIPrincipal> ourPrincipal = GetPrincipal();
-
-  
-  
-  
-  
-  rv = ourPrincipal->Subsumes(subjectPrincipal, &subsumes);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (subsumes) {
+  if (ourPrincipal->Subsumes(subjectPrincipal)) {
     timeout->mPrincipal = subjectPrincipal;
   } else {
     timeout->mPrincipal = ourPrincipal;
@@ -11730,6 +11702,7 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
 
     timeout->mWhen = TimeStamp::Now() + delta;
 
+    nsresult rv;
     timeout->mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
     if (NS_FAILED(rv)) {
       return rv;

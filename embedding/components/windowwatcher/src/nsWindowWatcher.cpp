@@ -790,10 +790,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  if (NS_FAILED(sm->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal)))) {
-    subjectPrincipal = nullptr;
-  }
+  nsCOMPtr<nsIPrincipal> subjectPrincipal =
+    nsContentUtils::GetCurrentJSContext() ? nsContentUtils::GetSubjectPrincipal()
+                                          : nullptr;
 
   if (windowIsNew) {
     

@@ -220,9 +220,6 @@ public:
 protected:
 
   
-  nsIPrincipal* GetCurrentPrincipal(nsresult* rv);
-
-  
   
   void GetRealFormat(const nsAString& aInFormat, nsAString& aOutFormat);
 

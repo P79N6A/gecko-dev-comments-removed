@@ -19,6 +19,7 @@
 #include "nsIStringBundle.h"
 #include "nsReadableUtils.h"
 
+#include "nsContentUtils.h"
 #include "nsEscape.h"
 #include "nsPIDOMWindow.h"
 #include "nsIWebNavigation.h"
@@ -208,15 +209,8 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   
   
   
-  nsCOMPtr<nsIScriptSecurityManager> ssm =
-    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-  if (ssm) { 
-    nsCOMPtr<nsIPrincipal> principal;
-    ssm->GetSubjectPrincipal(getter_AddRefs(principal));
-    if (!principal) {
-      ssm->GetSystemPrincipal(getter_AddRefs(principal));
-    }
-    rv = mDocShell->CreateAboutBlankContentViewer(principal);
+  if (nsContentUtils::IsInitialized()) { 
+    rv = mDocShell->CreateAboutBlankContentViewer(nsContentUtils::GetSubjectPrincipal());
     NS_ENSURE_SUCCESS(rv, rv);
     nsCOMPtr<nsIDocument> doc = do_GetInterface(mDocShell);
     NS_ENSURE_TRUE(!!doc, NS_ERROR_FAILURE);
