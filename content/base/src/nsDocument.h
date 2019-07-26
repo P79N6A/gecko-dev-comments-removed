@@ -645,14 +645,6 @@ public:
 
 
 
-  virtual nsHTMLCSSStyleSheet* GetInlineStyleSheet() const MOZ_OVERRIDE {
-    return mStyleAttrStyleSheet;
-  }
-  
-  
-
-
-
 
   virtual nsIScriptGlobalObject* GetScriptGlobalObject() const MOZ_OVERRIDE;
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject) MOZ_OVERRIDE;
@@ -1308,7 +1300,6 @@ protected:
 
   
   nsCOMPtr<nsIChannel> mChannel;
-  nsRefPtr<nsHTMLCSSStyleSheet> mStyleAttrStyleSheet;
 
   
   

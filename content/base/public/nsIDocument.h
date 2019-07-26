@@ -766,7 +766,9 @@ public:
 
 
 
-  virtual nsHTMLCSSStyleSheet* GetInlineStyleSheet() const = 0;
+  nsHTMLCSSStyleSheet* GetInlineStyleSheet() const {
+    return mStyleAttrStyleSheet;
+  }
 
   
 
@@ -2178,6 +2180,7 @@ protected:
   nsRefPtr<mozilla::css::Loader> mCSSLoader;
   nsRefPtr<mozilla::css::ImageLoader> mStyleImageLoader;
   nsRefPtr<nsHTMLStyleSheet> mAttrStyleSheet;
+  nsRefPtr<nsHTMLCSSStyleSheet> mStyleAttrStyleSheet;
 
   
   
