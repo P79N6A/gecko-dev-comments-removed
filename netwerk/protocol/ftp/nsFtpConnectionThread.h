@@ -20,6 +20,7 @@
 
 #ifdef MOZ_WIDGET_GONK
 #include "nsINetworkManager.h"
+#include "nsProxyRelease.h"
 #endif
 
 
@@ -263,7 +264,7 @@ private:
 
     uint64_t                           mCountRecv;
 #ifdef MOZ_WIDGET_GONK
-    nsCOMPtr<nsINetworkInterface>      mActiveNetwork;
+    nsMainThreadPtrHandle<nsINetworkInterface> mActiveNetwork;
 #endif
     nsresult                           SaveNetworkStats(bool);
     void                               CountRecvBytes(uint64_t recvBytes)
