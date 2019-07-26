@@ -161,6 +161,49 @@ JS_Assert(const char *s, const char *file, int ln)
     MOZ_CRASH();
 }
 
+#ifdef __linux__
+
+#include <malloc.h>
+#include <stdlib.h>
+
+namespace js {
+
+
+
+
+extern void
+AllTheNonBasicVanillaNewAllocations()
+{
+    
+    
+    
+    
+
+    intptr_t p =
+        intptr_t(malloc(16)) +
+        intptr_t(calloc(1, 16)) +
+        intptr_t(realloc(nullptr, 16)) +
+        intptr_t(new char) +
+        intptr_t(new char) +
+        intptr_t(new char) +
+        intptr_t(new char[16]) +
+        intptr_t(memalign(16, 16)) +
+        
+        
+        intptr_t(valloc(4096)) +
+        intptr_t(strdup("dummy"));
+
+    printf("%u\n", uint32_t(p));  
+
+    free((int*)p);      
+
+    MOZ_CRASH();
+}
+
+} 
+
+#endif 
+
 #ifdef JS_BASIC_STATS
 
 #include <math.h>
