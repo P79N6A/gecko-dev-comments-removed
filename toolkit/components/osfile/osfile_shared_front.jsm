@@ -217,6 +217,28 @@ AbstractFile.AbstractIterator.prototype = {
     for (let entry in this) {
       cb(entry, index++, this);
     }
+  },
+  
+
+
+
+
+
+
+
+
+
+
+  nextBatch: function nextBatch(length) {
+    let array = [];
+    let i = 0;
+    for (let entry in this) {
+      array.push(entry);
+      if (++i >= length) {
+        return array;
+      }
+    }
+    return array;
   }
 };
 
