@@ -103,7 +103,10 @@ public:
   }
 
   
-  
+  void SetHref(const nsAString& aHref, ErrorResult& aError)
+  {
+    aError = SetHref(aHref);
+  }
 
   
   void SetTarget(const nsAString& aTarget, ErrorResult& aError)
