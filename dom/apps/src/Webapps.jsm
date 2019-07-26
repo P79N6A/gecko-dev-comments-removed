@@ -2520,6 +2520,11 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     app.downloadAvailable = false;
     this._saveApps().then(() => {
       this.updateAppHandlers(null, aManifest, aNewApp);
+      
+      if (aId in this._manifestCache) {
+        delete this._manifestCache[aId];
+      }
+
       this.broadcastMessage("Webapps:AddApp", { id: aId, app: aNewApp });
       Services.obs.notifyObservers(null, "webapps-installed",
         JSON.stringify({ manifestURL: aNewApp.manifestURL }));
