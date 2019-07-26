@@ -1100,17 +1100,15 @@ nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent
   } else {
     if (GetAxisLockMode() == FREE) {
       SetState(PANNING);
-    } else {
-      HandlePanning(angle);
+      return nsEventStatus_eConsumeNoDefault;
     }
+
+    HandlePanning(angle);
   }
 
-  if (IsPanningState(mState)) {
-    mGeckoContentController->NotifyAPZStateChange(GetGuid(), APZStateChange::StartPanning);
-    return nsEventStatus_eConsumeNoDefault;
-  }
   
-  return nsEventStatus_eIgnore;
+  return IsPanningState(mState) ? nsEventStatus_eConsumeNoDefault
+                                : nsEventStatus_eIgnore;
 }
 
 void AsyncPanZoomController::UpdateWithTouchAtDevicePoint(const MultiTouchInput& aEvent) {
