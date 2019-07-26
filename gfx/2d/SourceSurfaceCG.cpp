@@ -278,21 +278,8 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
   
   
   if (!mImage) {
-    void *info;
-    if (mCg) {
-      
-      
-      
-      info = nullptr;
-    } else {
-      
-      
-      info = mData;
-    }
-
     if (!mData) abort();
-
-    mImage = CreateCGImage(info, mData, mSize, mStride, mFormat);
+    mImage = CreateCGImage(nullptr, mData, mSize, mStride, mFormat);
   }
 }
 
@@ -310,8 +297,8 @@ SourceSurfaceCGBitmapContext::DrawTargetWillChange()
     size_t stride = CGBitmapContextGetBytesPerRow(mCg);
     size_t height = CGBitmapContextGetHeight(mCg);
 
-    
-    mData = malloc(stride * height);
+    mDataHolder.Realloc(stride * height);
+    mData = mDataHolder;
 
     
     
@@ -330,10 +317,6 @@ SourceSurfaceCGBitmapContext::DrawTargetWillChange()
 
 SourceSurfaceCGBitmapContext::~SourceSurfaceCGBitmapContext()
 {
-  if (!mImage && !mCg) {
-    
-    free(mData);
-  }
   if (mImage)
     CGImageRelease(mImage);
 }

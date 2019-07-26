@@ -94,6 +94,20 @@ public:
   virtual SurfaceType GetType() const { return SURFACE_COREGRAPHICS_CGCONTEXT; }
   virtual IntSize GetSize() const;
   virtual SurfaceFormat GetFormat() const { return mFormat; }
+  virtual TemporaryRef<DataSourceSurface> GetDataSurface()
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    DrawTargetWillChange();
+    return this;
+  }
 
   CGImageRef GetImage() { EnsureImage(); return mImage; }
 
@@ -118,6 +132,9 @@ private:
   
   
   void *mData;
+
+  
+  AlignedArray<uint8_t> mDataHolder;
 
   int32_t mStride;
   IntSize mSize;
