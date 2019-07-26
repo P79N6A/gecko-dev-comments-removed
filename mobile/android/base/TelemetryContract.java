@@ -29,13 +29,19 @@ public interface TelemetryContract {
 
         
         public static final String PANEL_SET_DEFAULT = "setdefault.1";
+
+        
+        public static final String SANITIZE = "sanitize.1";
     }
 
     
 
 
 
-    public interface Method {}
+    public interface Method {
+        
+        public static final String DIALOG = "dialog";
+    }
 
     
 
