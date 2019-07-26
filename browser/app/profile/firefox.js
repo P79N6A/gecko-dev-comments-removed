@@ -211,6 +211,9 @@ pref("lightweightThemes.update.enabled", true);
 
 pref("keyword.enabled", true);
 
+
+pref("keyword.URL", "");
+
 pref("general.useragent.locale", "@AB_CD@");
 pref("general.skins.selectedSkin", "classic/1.0");
 
@@ -536,8 +539,6 @@ pref("browser.gesture.twist.right", "cmd_gestureRotateRight");
 pref("browser.gesture.twist.left", "cmd_gestureRotateLeft");
 pref("browser.gesture.twist.end", "cmd_gestureRotateEnd");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
-
-pref("browser.snapshots.limit", 0);
 
 
 
@@ -1059,6 +1060,7 @@ pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-autoconnect", false);
 pref("devtools.debugger.remote-connection-retries", 3);
 pref("devtools.debugger.remote-timeout", 20000);
+pref("devtools.debugger.source-maps-enabled", false);
 
 
 pref("devtools.debugger.ui.win-x", 0);
