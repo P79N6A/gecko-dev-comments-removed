@@ -1,8 +1,10 @@
-if (!this.hasOwnProperty("Type"))
-  quit();
+
+
+if (!this.hasOwnProperty("TypedObject"))
+  throw new RangeError();
 
 function eval() {
     yield(undefined)
 }
-new(StructType)
-(eval())
+new TypedObject.StructType();
+eval();

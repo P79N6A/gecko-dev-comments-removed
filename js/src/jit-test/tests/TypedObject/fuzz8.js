@@ -1,6 +1,6 @@
 
 
-if (!this.hasOwnProperty("Type"))
+if (!this.hasOwnProperty("TypedObject"))
   throw new Error();
 
-new ArrayType(uint8, .0000000009);
+new TypedObject.ArrayType(TypedObject.uint8, .0000000009);

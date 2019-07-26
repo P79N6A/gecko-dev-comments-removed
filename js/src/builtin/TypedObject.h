@@ -14,6 +14,13 @@
 namespace js {
 
 
+
+
+
+
+extern const Class TypedObjectClass;
+
+
 enum TypeCommonSlots {
     
     SLOT_TYPE_REPR=0,
@@ -47,10 +54,6 @@ enum BlockCommonSlots {
     BLOCK_RESERVED_SLOTS
 };
 
-extern const Class DataClass;
-
-extern const Class TypeClass;
-
 template <ScalarTypeRepresentation::Type type, typename T>
 class NumericType
 {
@@ -61,6 +64,11 @@ class NumericType
     static bool reify(JSContext *cx, void *mem, MutableHandleValue vp);
     static bool call(JSContext *cx, unsigned argc, Value *vp);
 };
+
+
+
+
+
 
 extern const Class NumericTypeClasses[ScalarTypeRepresentation::TYPE_MAX];
 
@@ -73,12 +81,26 @@ class ArrayType : public JSObject
   public:
     static const Class class_;
 
+    
+    
+    static const JSPropertySpec typeObjectProperties[];
+    static const JSFunctionSpec typeObjectMethods[];
+
+    
+    
+    static const JSPropertySpec typedObjectProperties[];
+    static const JSFunctionSpec typedObjectMethods[];
+
+    
+    
+    static bool construct(JSContext *cx, unsigned argc, Value *vp);
+
     static JSObject *create(JSContext *cx, HandleObject arrayTypeGlobal,
                             HandleObject elementType, size_t length);
-    static bool construct(JSContext *cx, unsigned int argc, jsval *vp);
-    static bool repeat(JSContext *cx, unsigned int argc, jsval *vp);
+    static bool repeat(JSContext *cx, unsigned argc, Value *vp);
+    static bool subarray(JSContext *cx, unsigned argc, Value *vp);
 
-    static bool toSource(JSContext *cx, unsigned int argc, jsval *vp);
+    static bool toSource(JSContext *cx, unsigned argc, Value *vp);
 
     static JSObject *elementType(JSContext *cx, HandleObject obj);
 };
@@ -101,13 +123,25 @@ class StructType : public JSObject
   public:
     static const Class class_;
 
-    static bool toSource(JSContext *cx, unsigned int argc, jsval *vp);
+    
+    
+    static const JSPropertySpec typeObjectProperties[];
+    static const JSFunctionSpec typeObjectMethods[];
+
+    
+    
+    static const JSPropertySpec typedObjectProperties[];
+    static const JSFunctionSpec typedObjectMethods[];
+
+    
+    
+    static bool construct(JSContext *cx, unsigned argc, Value *vp);
+
+    static bool toSource(JSContext *cx, unsigned argc, Value *vp);
 
     static bool convertAndCopyTo(JSContext *cx,
                                  StructTypeRepresentation *typeRepr,
                                  HandleValue from, uint8_t *mem);
-
-    static bool construct(JSContext *cx, unsigned int argc, jsval *vp);
 };
 
 
@@ -213,7 +247,7 @@ class BinaryBlock
                                    HandleObject owner, size_t offset);
 
     
-    static bool construct(JSContext *cx, unsigned int argc, jsval *vp);
+    static bool construct(JSContext *cx, unsigned argc, Value *vp);
 };
 
 
