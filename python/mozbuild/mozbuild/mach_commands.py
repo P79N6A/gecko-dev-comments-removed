@@ -356,6 +356,16 @@ class Build(MachCommandBase):
                     target_pairs = new_pairs
 
                 
+                
+                
+                
+                
+                self._run_make(directory=self.topobjdir,
+                    target='backend.RecursiveMakeBackend',
+                    force_pymake=pymake, line_handler=output.on_line,
+                    log=False, print_directory=False)
+
+                
                 for make_dir, make_target in target_pairs:
                     
                     
@@ -492,6 +502,15 @@ class Build(MachCommandBase):
                     return 1
 
             raise
+
+    @Command('build-backend', category='build',
+        description='Generate a backend used to build the tree.')
+    def build_backend(self):
+        
+        
+        config_status = os.path.join(self.topobjdir, 'config.status')
+        return self._run_command_in_objdir(args=[config_status],
+            pass_thru=True, ensure_exit_code=False)
 
 
 @CommandProvider
