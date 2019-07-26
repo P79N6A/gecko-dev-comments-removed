@@ -242,11 +242,18 @@ public class SQLiteBridge {
 
     public static SQLiteBridge openDatabase(String path, SQLiteDatabase.CursorFactory factory, int flags)
         throws SQLiteException {
+        if (factory != null) {
+            throw new RuntimeException("factory not supported.");
+        }
+        if (flags != 0) {
+            throw new RuntimeException("flags not supported.");
+        }
+
         SQLiteBridge bridge = null;
         try {
             bridge = new SQLiteBridge(path);
             bridge.mDbPointer = SQLiteBridge.openDatabase(path);
-        } catch(SQLiteBridgeException ex) {
+        } catch (SQLiteBridgeException ex) {
             
             throw new SQLiteException(ex.getMessage());
         }
