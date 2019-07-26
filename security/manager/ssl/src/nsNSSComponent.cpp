@@ -129,6 +129,40 @@ bool nsPSMInitPanic::isPanic = false;
 
 
 
+bool EnsureNSSInitializedChromeOrContent()
+{
+  nsresult rv;
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    nsCOMPtr<nsISupports> nss = do_GetService(PSM_COMPONENT_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  if (!NS_IsMainThread()) {
+    return false;
+  }
+
+  if (NSS_IsInitialized()) {
+    return true;
+  }
+
+  if (NSS_NoDB_Init(nullptr) != SECSuccess) {
+    return false;
+  }
+
+  if (NS_FAILED(mozilla::psm::InitializeCipherSuite())) {
+    return false;
+  }
+
+  mozilla::psm::DisableMD5();
+  return true;
+}
+
+
+
 bool EnsureNSSInitialized(EnsureNSSOperator op)
 {
   if (nsPSMInitPanic::GetPanic())

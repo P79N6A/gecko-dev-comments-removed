@@ -50,14 +50,10 @@ public:
   {
     static_assert(LEN <= 15,
                   "Thread name must be no more than 15 characters");
-    
-    nsresult rv = NS_NewNamedThread(taskThreadName, getter_AddRefs(mThread));
-    if (NS_SUCCEEDED(rv)) {
-      
-      rv = mThread->Dispatch(this, NS_DISPATCH_NORMAL);
-    }
-    return rv;
+    return Dispatch(NS_LITERAL_CSTRING(taskThreadName));
   }
+
+  nsresult Dispatch(const nsACString& taskThreadName);
 
   void Skip()
   {
