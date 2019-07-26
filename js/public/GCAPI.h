@@ -311,6 +311,31 @@ ExposeObjectToActiveJS(JSObject *obj)
     ExposeGCThingToActiveJS(obj, JSTRACE_OBJECT);
 }
 
+
+
+
+static JS_ALWAYS_INLINE void
+MarkGCThingAsLive(JSRuntime *rt_, void *thing, JSGCTraceKind kind)
+{
+    shadow::Runtime *rt = shadow::Runtime::asShadowRuntime(rt_);
+#ifdef JSGC_GENERATIONAL
+    
+
+
+    if (js::gc::IsInsideNursery(rt, thing))
+        return;
+#endif
+    if (IsIncrementalBarrierNeededOnGCThing(rt, thing, kind))
+        IncrementalReferenceBarrier(thing, kind);
+}
+
+static JS_ALWAYS_INLINE void
+MarkStringAsLive(Zone *zone, JSString *string)
+{
+    JSRuntime *rt = JS::shadow::Zone::asShadowZone(zone)->runtimeFromMainThread();
+    MarkGCThingAsLive(rt, string, JSTRACE_STRING);
+}
+
 } 
 
 #endif 
