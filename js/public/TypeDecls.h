@@ -28,29 +28,7 @@ class JSObject;
 class JSScript;
 class JSString;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(JS_DEBUG) && !defined(JS_NO_JSVAL_JSID_STRUCT_TYPES)
-# define JS_USE_JSID_STRUCT_TYPES
-#endif
-
-#ifdef JS_USE_JSID_STRUCT_TYPES
 struct jsid;
-#else
-typedef ptrdiff_t jsid;
-#endif
 
 typedef char16_t jschar;
 
