@@ -12,8 +12,6 @@
 
 #include "prlock.h"
 #include "mozilla/RefPtr.h"
-#include "nsWeakPtr.h"
-#include "nsIWeakReferenceUtils.h" 
 #include "IPeerConnection.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPIDOMWindow.h"
@@ -232,9 +230,7 @@ private:
   IceState mIceState;
 
   nsCOMPtr<nsIThread> mThread;
-  
-  
-  nsWeakPtr mPCObserver;
+  nsCOMPtr<IPeerConnectionObserver> mPCObserver;
   nsCOMPtr<nsPIDOMWindow> mWindow;
 
   
