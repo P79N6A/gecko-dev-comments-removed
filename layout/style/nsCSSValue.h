@@ -165,6 +165,7 @@ enum nsCSSUnit {
   eCSSUnit_Function     = 25,     
                                   
                                   
+                                  
 
   
   
@@ -344,6 +345,12 @@ public:
                       mUnit == eCSSUnit_EnumColor,
                       "not an int value");
     return mValue.mInt;
+  }
+
+  nsCSSKeyword GetKeywordValue() const
+  {
+    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Enumerated, "not a keyword value");
+    return static_cast<nsCSSKeyword>(mValue.mInt);
   }
 
   float GetPercentValue() const
