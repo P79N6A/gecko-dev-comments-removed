@@ -2315,17 +2315,24 @@ nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
                                                                               \
   nsStyleContext* parentContext = aContext->GetParent();                      \
                                                                               \
-  nsStyle##type_* data_ = nullptr;                                             \
-  const nsStyle##type_* parentdata_ = nullptr;                                 \
-  bool canStoreInRuleTree = aCanStoreInRuleTree;                            \
+  nsStyle##type_* data_ = nullptr;                                            \
+  mozilla::Maybe<nsStyle##type_> maybeFakeParentData;                         \
+  const nsStyle##type_* parentdata_ = nullptr;                                \
+  bool canStoreInRuleTree = aCanStoreInRuleTree;                              \
                                                                               \
   /* If |canStoreInRuleTree| might be true by the time we're done, we */      \
   /* can't call parentContext->GetStyle##type_() since it could recur into */ \
   /* setting the same struct on the same rule node, causing a leak. */        \
-  if (parentContext && aRuleDetail != eRuleFullReset &&                       \
+  if (aRuleDetail != eRuleFullReset &&                                        \
       (!aStartStruct || (aRuleDetail != eRulePartialReset &&                  \
-                         aRuleDetail != eRuleNone)))                          \
-    parentdata_ = parentContext->GetStyle##type_();                           \
+                         aRuleDetail != eRuleNone))) {                        \
+    if (parentContext) {                                                      \
+      parentdata_ = parentContext->GetStyle##type_();                         \
+    } else {                                                                  \
+      maybeFakeParentData.construct ctorargs_;                                \
+      parentdata_ = maybeFakeParentData.addr();                               \
+    }                                                                         \
+  }                                                                           \
   if (aStartStruct)                                                           \
     /* We only need to compute the delta between this computed data and */    \
     /* our computed data. */                                                  \
@@ -2382,12 +2389,18 @@ nsRuleNode::AdjustLogicalBoxProp(nsStyleContext* aContext,
   /* If |canStoreInRuleTree| might be true by the time we're done, we */      \
   /* can't call parentContext->GetStyle##type_() since it could recur into */ \
   /* setting the same struct on the same rule node, causing a leak. */        \
+  mozilla::Maybe<nsStyle##type_> maybeFakeParentData;                         \
   const nsStyle##type_* parentdata_ = data_;                                  \
-  if (parentContext &&                                                        \
-      aRuleDetail != eRuleFullReset &&                                        \
+  if (aRuleDetail != eRuleFullReset &&                                        \
       aRuleDetail != eRulePartialReset &&                                     \
-      aRuleDetail != eRuleNone)                                               \
-    parentdata_ = parentContext->GetStyle##type_();                           \
+      aRuleDetail != eRuleNone) {                                             \
+    if (parentContext) {                                                      \
+      parentdata_ = parentContext->GetStyle##type_();                         \
+    } else {                                                                  \
+      maybeFakeParentData.construct ctorargs_;                                \
+      parentdata_ = maybeFakeParentData.addr();                               \
+    }                                                                         \
+  }                                                                           \
   bool canStoreInRuleTree = aCanStoreInRuleTree;
 
 
@@ -6506,18 +6519,14 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
     
     uint8_t inheritedAlignSelf = parentPos->mAlignSelf;
     if (inheritedAlignSelf == NS_STYLE_ALIGN_SELF_AUTO) {
-      if (parentPos == pos) {
-        
+      if (!parentContext) {
         
         
         inheritedAlignSelf = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
       } else {
         
         
-        NS_ABORT_IF_FALSE(aContext->GetParent(),
-                          "we've got a distinct parent style-struct already, "
-                          "so we should have a parent style-context");
-        nsStyleContext* grandparentContext = aContext->GetParent()->GetParent();
+        nsStyleContext* grandparentContext = parentContext->GetParent();
         if (!grandparentContext) {
           
           
