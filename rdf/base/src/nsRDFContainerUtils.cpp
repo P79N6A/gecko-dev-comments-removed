@@ -72,7 +72,7 @@ nsIRDFLiteral*  RDFContainerUtilsImpl::kOne;
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(RDFContainerUtilsImpl, nsIRDFContainerUtils)
+NS_IMPL_ISUPPORTS1(RDFContainerUtilsImpl, nsIRDFContainerUtils)
 
 
 
