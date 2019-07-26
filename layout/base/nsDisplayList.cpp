@@ -1633,16 +1633,11 @@ static nsStyleContext* GetBackgroundStyleContext(nsIFrame* aFrame)
   return sc;
 }
 
- nsresult
+ bool
 nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
                                                      nsIFrame* aFrame,
-                                                     nsDisplayList* aList,
-                                                     bool* aAppendedThemedBackground)
+                                                     nsDisplayList* aList)
 {
-  if (aAppendedThemedBackground) {
-    *aAppendedThemedBackground = false;
-  }
-
   nsStyleContext* bgSC = nullptr;
   const nsStyleBackground* bg = nullptr;
   nsPresContext* presContext = aFrame->PresContext();
@@ -1676,14 +1671,11 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
     nsDisplayThemedBackground* bgItem =
       new (aBuilder) nsDisplayThemedBackground(aBuilder, aFrame);
     aList->AppendNewToTop(bgItem);
-    if (aAppendedThemedBackground) {
-      *aAppendedThemedBackground = true;
-    }
-    return NS_OK;
+    return true;
   }
 
   if (!bg) {
-    return NS_OK;
+    return false;
   }
  
   
@@ -1697,7 +1689,7 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
     aList->AppendNewToTop(bgItem);
   }
 
-  return NS_OK;
+  return false;
 }
 
 
