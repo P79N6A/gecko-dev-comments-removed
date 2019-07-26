@@ -30,6 +30,11 @@ DEBUGGER_INFO = {
     "args": "-q --args"
   },
 
+  "lldb": {
+    "interactive": True,
+    "args": "--"
+  },
+
   
   
   "valgrind": {
