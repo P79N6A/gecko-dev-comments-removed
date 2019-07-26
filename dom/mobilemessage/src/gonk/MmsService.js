@@ -2214,6 +2214,26 @@ MmsService.prototype = {
       }
 
       
+      if (getRadioDisabledState()) {
+        if (DEBUG) debug("Error! Radio is disabled when sending MMS.");
+        sendTransactionCb(aDomMessage,
+                          Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR,
+                          null);
+        return;
+      }
+
+      
+      
+      
+      if (mmsConnection.serviceId != self.mmsDefaultServiceId) {
+        if (DEBUG) debug("RIL service is not active to send MMS.");
+        sendTransactionCb(aDomMessage,
+                          Ci.nsIMobileMessageCallback.NON_ACTIVE_SIM_CARD_ERROR,
+                          null);
+        return;
+      }
+
+      
       let sendTransaction;
       try {
         sendTransaction =
