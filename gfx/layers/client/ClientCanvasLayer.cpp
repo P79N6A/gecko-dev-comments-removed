@@ -19,13 +19,19 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsXULAppAPI.h"                
+#include "gfxPrefs.h"                   
+
+#ifdef XP_WIN
+#include "SharedSurfaceANGLE.h"         
+#endif
+
 #ifdef MOZ_WIDGET_GONK
 #include "SharedSurfaceGralloc.h"
 #endif
+
 #ifdef XP_MACOSX
 #include "SharedSurfaceIO.h"
 #endif
-#include "gfxPrefs.h"                   
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;
@@ -69,31 +75,45 @@ ClientCanvasLayer::Initialize(const Data& aData)
                                           screen->PreserveBuffer());
     SurfaceFactory_GL* factory = nullptr;
     if (!gfxPrefs::WebGLForceLayersReadback()) {
-      if (ClientManager()->AsShadowForwarder()->GetCompositorBackendType() == mozilla::layers::LayersBackend::LAYERS_OPENGL) {
-        if (mGLContext->GetContextType() == GLContextType::EGL) {
-          bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
+      switch (ClientManager()->AsShadowForwarder()->GetCompositorBackendType()) {
+        case mozilla::layers::LayersBackend::LAYERS_OPENGL: {
+          if (mGLContext->GetContextType() == GLContextType::EGL) {
+            bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
 
-          if (!isCrossProcess) {
-            
-            factory = SurfaceFactory_EGLImage::Create(mGLContext, caps);
+            if (!isCrossProcess) {
+              
+              factory = SurfaceFactory_EGLImage::Create(mGLContext, caps);
+            } else {
+              
+#ifdef MOZ_WIDGET_GONK
+              factory = new SurfaceFactory_Gralloc(mGLContext, caps, ClientManager()->AsShadowForwarder());
+#else
+              
+              NS_NOTREACHED("isCrossProcess but not on native B2G!");
+#endif
+            }
           } else {
             
-#ifdef MOZ_WIDGET_GONK
-            factory = new SurfaceFactory_Gralloc(mGLContext, caps, ClientManager()->AsShadowForwarder());
-#else
             
-            NS_NOTREACHED("isCrossProcess but not on native B2G!");
+#ifdef XP_MACOSX
+            factory = new SurfaceFactory_IOSurface(mGLContext, caps);
+#else
+            factory = new SurfaceFactory_GLTexture(mGLContext, nullptr, caps);
 #endif
           }
-        } else {
-          
-          
-#ifdef XP_MACOSX
-          factory = new SurfaceFactory_IOSurface(mGLContext, caps);
-#else
-          factory = new SurfaceFactory_GLTexture(mGLContext, nullptr, caps);
-#endif
+          break;
         }
+        case mozilla::layers::LayersBackend::LAYERS_D3D10:
+        case mozilla::layers::LayersBackend::LAYERS_D3D11: {
+#ifdef XP_WIN
+          if (mGLContext->IsANGLE()) {
+            factory = SurfaceFactory_ANGLEShareHandle::Create(mGLContext, caps);
+          }
+#endif
+          break;
+        }
+        default:
+          break;
       }
     }
 
@@ -151,8 +171,14 @@ ClientCanvasLayer::RenderLayer()
       
       flags |= TextureFlags::DEALLOCATE_CLIENT;
     }
+
+    if (!mIsAlphaPremultiplied) {
+      flags |= TextureFlags::NON_PREMULTIPLIED;
+    }
+
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCanvasClientType(),
-                                                     ClientManager()->AsShadowForwarder(), flags);
+                                                     ClientManager()->AsShadowForwarder(),
+                                                     flags);
     if (!mCanvasClient) {
       return;
     }
