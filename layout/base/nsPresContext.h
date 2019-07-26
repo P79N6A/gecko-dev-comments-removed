@@ -813,20 +813,8 @@ public:
                               mType == eContext_PrintPreview); }
 
   
-  bool IsChrome() const
-  {
-    return mIsChromeIsCached ? mIsChrome : IsChromeSlow();
-  }
-
-  virtual void InvalidateIsChromeCacheExternal();
-  void InvalidateIsChromeCacheInternal() { mIsChromeIsCached = false; }
-#ifdef MOZILLA_INTERNAL_API
-  void InvalidateIsChromeCache()
-  { InvalidateIsChromeCacheInternal(); }
-#else
-  void InvalidateIsChromeCache()
-  { InvalidateIsChromeCacheExternal(); }
-#endif
+  bool IsChrome() const { return mIsChrome; }
+  void UpdateIsChrome();
 
   
   virtual bool HasAuthorSpecifiedRules(nsIFrame *aFrame, uint32_t ruleTypeMask) const;
@@ -1314,11 +1302,7 @@ protected:
 
   unsigned              mFireAfterPaintEvents : 1;
 
-  
-  
-  
-  mutable unsigned      mIsChromeIsCached : 1;
-  mutable unsigned      mIsChrome : 1;
+  unsigned              mIsChrome : 1;
 
   
   
