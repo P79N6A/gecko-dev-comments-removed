@@ -1663,8 +1663,12 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 
     
     
+    
+    
     nsCOMPtr<nsILoadGroup> loadGroup =
         do_CreateInstance(NS_LOADGROUP_CONTRACTID);
+    if (loadGroup)
+      loadGroup->SetLoadGroup(aLoadGroup);
     newChannel->SetLoadGroup(loadGroup);
 
     request->Init(aURI, aURI, loadGroup, newChannel, entry, aCX,
