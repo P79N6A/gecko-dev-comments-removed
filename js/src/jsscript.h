@@ -474,6 +474,9 @@ struct JSScript : public js::gc::Cell
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
 #endif
+#ifdef JS_ION
+    bool            failedShapeGuard:1; 
+#endif
     bool            invalidatedIdempotentCache:1; 
     bool            isGenerator:1;    
     bool            isGeneratorExp:1; 

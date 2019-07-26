@@ -181,21 +181,20 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
     
 
-    bool mustMarkEnterJIT = false;
+    bool runningIonCode = false;
     for (IonActivationIterator iter(trc->runtime); iter.more(); ++iter) {
         IonActivation *activation = iter.activation();
 
         if (activation->compartment() != compartment)
             continue;
 
-        
-        
-        mustMarkEnterJIT = true;
+        runningIonCode = true;
+        break;
     }
 
     
     
-    if (mustMarkEnterJIT)
+    if (runningIonCode && enterJIT_)
         MarkIonCodeRoot(trc, enterJIT_.unsafeGet(), "enterJIT");
 
     
@@ -1273,7 +1272,7 @@ ion::CanEnterAtBranch(JSContext *cx, HandleScript script, StackFrame *fp, jsbyte
 
     
     JSFunction *fun = fp->isFunctionFrame() ? fp->fun() : NULL;
-    MethodStatus status = Compile(cx, script, fun, pc, false);
+    MethodStatus status = Compile(cx, script, fun, pc, fp->isConstructing());
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(cx, script);
@@ -1520,7 +1519,7 @@ ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
 }
 
 IonExecStatus
-ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args)
+ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgsList &args)
 {
     JS_CHECK_RECURSION(cx, return IonExec_Error);
 
@@ -1562,7 +1561,9 @@ ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args)
     Value result = Int32Value(fun->nargs);
 
     JSAutoResolveFlags rf(cx, RESOLVE_INFER);
+    args.setActive();
     enter(jitcode, args.length() + 1, &args[0] - 1, fp, calleeToken, &result);
+    args.setInactive();
 
     if (clearCallingIntoIon)
         fp->clearCallingIntoIon();
