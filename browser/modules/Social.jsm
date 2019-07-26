@@ -34,9 +34,8 @@ function prefObserver(subject, topic, data) {
   if (enable && !Social.provider) {
     
     SocialService.getOrderedProviderList(function(providers) {
-      Social._updateProviderCache(providers);
       Social.enabled = true;
-      Services.obs.notifyObservers(null, "social:providers-changed", null);
+      Social._updateProviderCache(providers);
     });
   } else if (!enable && Social.provider) {
     Social.provider = null;
@@ -168,7 +167,7 @@ this.Social = {
       
       SocialService.getOrderedProviderList(function (providers) {
         Social._updateProviderCache(providers);
-        Social._updateWorkerState(true);
+        Social._updateWorkerState(SocialService.enabled);
       });
     }
 
@@ -181,10 +180,16 @@ this.Social = {
         Services.obs.notifyObservers(null, "social:" + topic, origin);
         return;
       }
-      if (topic == "provider-enabled" || topic == "provider-disabled") {
+      if (topic == "provider-enabled") {
         Social._updateProviderCache(providers);
-        Social._updateWorkerState(true);
-        Services.obs.notifyObservers(null, "social:providers-changed", null);
+        Social._updateWorkerState(Social.enabled);
+        Services.obs.notifyObservers(null, "social:" + topic, origin);
+        return;
+      }
+      if (topic == "provider-disabled") {
+        
+        
+        Social._updateProviderCache(providers);
         Services.obs.notifyObservers(null, "social:" + topic, origin);
         return;
       }
@@ -194,7 +199,6 @@ this.Social = {
         Social._updateProviderCache(providers);
         let provider = Social._getProviderFromOrigin(origin);
         provider.reload();
-        Services.obs.notifyObservers(null, "social:providers-changed", null);
       }
     });
   },
@@ -210,6 +214,7 @@ this.Social = {
   
   _updateProviderCache: function (providers) {
     this.providers = providers;
+    Services.obs.notifyObservers(null, "social:providers-changed", null);
 
     
     
