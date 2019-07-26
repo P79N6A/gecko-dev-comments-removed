@@ -43,45 +43,6 @@ BaselineCompiler::init()
     return true;
 }
 
-static bool
-CanResumeAfter(JSOp op)
-{
-    switch(op) {
-      case JSOP_NOP:
-      case JSOP_LABEL:
-      case JSOP_NOTEARG:
-      case JSOP_DUP:
-      case JSOP_DUP2:
-      case JSOP_SWAP:
-      case JSOP_PICK:
-      case JSOP_GOTO:
-      case JSOP_VOID:
-      case JSOP_UNDEFINED:
-      case JSOP_HOLE:
-      case JSOP_NULL:
-      case JSOP_TRUE:
-      case JSOP_FALSE:
-      case JSOP_ZERO:
-      case JSOP_ONE:
-      case JSOP_INT8:
-      case JSOP_INT32:
-      case JSOP_UINT16:
-      case JSOP_UINT24:
-      case JSOP_DOUBLE:
-      case JSOP_STRING:
-      case JSOP_OBJECT:
-      case JSOP_GETLOCAL:
-      case JSOP_SETLOCAL:
-      case JSOP_GETARG:
-      case JSOP_SETARG:
-      case JSOP_RETURN:
-      case JSOP_STOP:
-        return false;
-      default:
-        return true;
-    }
-}
-
 MethodStatus
 BaselineCompiler::compile()
 {
@@ -114,12 +75,52 @@ BaselineCompiler::compile()
 
     JS_ASSERT(!script->hasBaselineScript());
 
+    
+    
+    Vector<PCMappingIndexEntry> pcMappingIndexEntries(cx);
+    CompactBufferWriter pcEntries;
+    uint32_t previousOffset = 0;
+
+    for (size_t i = 0; i < pcMappingEntries_.length(); i++) {
+        PCMappingEntry &entry = pcMappingEntries_[i];
+        entry.fixupNativeOffset(masm);
+
+        if (entry.addIndexEntry) {
+            PCMappingIndexEntry indexEntry;
+            indexEntry.pcOffset = entry.pcOffset;
+            indexEntry.nativeOffset = entry.nativeOffset;
+            indexEntry.bufferOffset = pcEntries.length();
+            if (!pcMappingIndexEntries.append(indexEntry))
+                return Method_Error;
+            previousOffset = entry.nativeOffset;
+        }
+
+        
+        
+        
+        JS_ASSERT((entry.slotInfo.toByte() & 0x80) == 0);
+
+        if (entry.nativeOffset == previousOffset) {
+            pcEntries.writeByte(entry.slotInfo.toByte());
+        } else {
+            JS_ASSERT(entry.nativeOffset > previousOffset);
+            pcEntries.writeByte(0x80 | entry.slotInfo.toByte());
+            pcEntries.writeUnsigned(entry.nativeOffset - previousOffset);
+        }
+
+        previousOffset = entry.nativeOffset;
+    }
+
+    if (pcEntries.oom())
+        return Method_Error;
+
     prologueOffset_.fixup(&masm);
     uint32_t prologueOffset = uint32_t(prologueOffset_.offset());
 
     BaselineScript *baselineScript = BaselineScript::New(cx, prologueOffset,
                                                          icEntries_.length(),
-                                                         pcMappingEntries_.length());
+                                                         pcMappingIndexEntries.length(),
+                                                         pcEntries.length());
     if (!baselineScript)
         return Method_Error;
     script->baseline = baselineScript;
@@ -130,8 +131,11 @@ BaselineCompiler::compile()
 
     script->baseline->setMethod(code);
 
-    if (pcMappingEntries_.length())
-        baselineScript->copyPCMappingEntries(&pcMappingEntries_[0], masm);
+    JS_ASSERT(pcMappingIndexEntries.length() > 0);
+    baselineScript->copyPCMappingIndexEntries(&pcMappingIndexEntries[0]);
+
+    JS_ASSERT(pcEntries.length() > 0);
+    baselineScript->copyPCMappingEntries(pcEntries);
 
     
     if (icEntries_.length())
@@ -480,10 +484,8 @@ BaselineCompiler::emitBody()
 {
     JS_ASSERT(pc == script->code);
 
-    
-    
-    
-    bool canResumeAfterPrevious = true;
+    bool lastOpUnreachable = false;
+    uint32_t emittedOps = 0;
 
     while (true) {
         SPEW_OPCODE();
@@ -498,6 +500,7 @@ BaselineCompiler::emitBody()
             if (op == JSOP_STOP)
                 break;
             pc += GetBytecodeLength(pc);
+            lastOpUnreachable = true;
             continue;
         }
 
@@ -523,18 +526,11 @@ BaselineCompiler::emitBody()
         
         
         
-        
-        
-        
-        
-        
-        if (code->jumpTarget || canResumeAfterPrevious ||
-            op == JSOP_ENTERBLOCK || op == JSOP_CALLPROP ||
-            debugMode_)
-        {
-            if (!addPCMappingEntry())
-                return Method_Error;
-        }
+        bool addIndexEntry = (pc == script->code || lastOpUnreachable || emittedOps > 100);
+        if (addIndexEntry)
+            emittedOps = 0;
+        if (!addPCMappingEntry(addIndexEntry))
+            return Method_Error;
 
         
         if (debugMode_ && !emitDebugTrap())
@@ -556,12 +552,13 @@ BaselineCompiler::emitBody()
 OPCODE_LIST(EMIT_OP)
 #undef EMIT_OP
         }
-        canResumeAfterPrevious = CanResumeAfter(op);
 
         if (op == JSOP_STOP)
             break;
 
         pc += GetBytecodeLength(pc);
+        emittedOps++;
+        lastOpUnreachable = false;
     }
 
     JS_ASSERT(JSOp(*pc) == JSOP_STOP);
