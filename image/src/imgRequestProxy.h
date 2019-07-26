@@ -133,17 +133,16 @@ protected:
 
   
   void OnStartDecode     ();
-  void OnStartContainer  (imgIContainer *aContainer);
-  void OnStartFrame      (uint32_t aFrame);
-  void OnDataAvailable   (bool aCurrentFrame, const nsIntRect * aRect);
-  void OnStopFrame       (uint32_t aFrame);
+  void OnStartContainer  ();
+  void OnStartFrame      ();
+  void OnDataAvailable   (const nsIntRect * aRect);
+  void OnStopFrame       ();
   void OnStopDecode      ();
   void OnDiscard         ();
   void OnImageIsAnimated ();
 
   
-  void FrameChanged(imgIContainer *aContainer,
-                    const nsIntRect *aDirtyRect);
+  void FrameChanged(const nsIntRect *aDirtyRect);
 
   
   void OnStartRequest();
@@ -256,7 +255,6 @@ protected:
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
 
-private:
   mozilla::image::Image* GetImage() const MOZ_OVERRIDE;
   using imgRequestProxy::GetImage;
 };
