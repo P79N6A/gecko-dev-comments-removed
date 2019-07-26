@@ -70,39 +70,37 @@ public:
 
   virtual nsPIDOMWindow* GetPrivateRoot() = 0;
 
+  
   virtual void ActivateOrDeactivate(bool aActivate) = 0;
 
   
   virtual already_AddRefed<nsPIWindowRoot> GetTopWindowRoot() = 0;
 
-  virtual void SetActive(bool aActive)
-  {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "active state is only maintained on outer windows");
-    mIsActive = aActive;
-  }
-
+  
   virtual nsresult RegisterIdleObserver(nsIIdleObserver* aIdleObserver) = 0;
   virtual nsresult UnregisterIdleObserver(nsIIdleObserver* aIdleObserver) = 0;
 
+  
+  virtual void SetActive(bool aActive)
+  {
+    MOZ_ASSERT(IsOuterWindow());
+    mIsActive = aActive;
+  }
   bool IsActive()
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "active state is only maintained on outer windows");
+    MOZ_ASSERT(IsOuterWindow());
     return mIsActive;
   }
 
+  
   virtual void SetIsBackground(bool aIsBackground)
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "background state is only maintained on outer windows");
+    MOZ_ASSERT(IsOuterWindow());
     mIsBackground = aIsBackground;
   }
-
   bool IsBackground()
   {
-    NS_PRECONDITION(IsOuterWindow(),
-                    "background state is only maintained on outer windows");
+    MOZ_ASSERT(IsOuterWindow());
     return mIsBackground;
   }
 
@@ -568,9 +566,15 @@ public:
   
 
 
+
+
+
   virtual void EnableDeviceSensor(uint32_t aType) = 0;
 
   
+
+
+
 
 
   virtual void DisableDeviceSensor(uint32_t aType) = 0;
@@ -583,9 +587,13 @@ public:
 
 
 
+
+
   virtual void EnableNetworkEvent(uint32_t aType) = 0;
 
   
+
+
 
 
 

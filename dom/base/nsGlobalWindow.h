@@ -411,9 +411,12 @@ public:
 
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();
+
+  
   virtual NS_HIDDEN_(void) ActivateOrDeactivate(bool aActivate);
   virtual NS_HIDDEN_(void) SetActive(bool aActive);
   virtual NS_HIDDEN_(void) SetIsBackground(bool aIsBackground);
+
   virtual NS_HIDDEN_(void) SetChromeEventHandler(mozilla::dom::EventTarget* aChromeEventHandler);
 
   virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject();
@@ -445,6 +448,7 @@ public:
   void DispatchDOMWindowCreated();
   virtual NS_HIDDEN_(void) SetOpenerWindow(nsIDOMWindow* aOpener,
                                            bool aOriginalOpener);
+
   
   virtual NS_HIDDEN_(void) EnsureSizeUpToDate();
 
@@ -520,7 +524,9 @@ public:
   
   
   
+  
   bool ShouldPromptToBlockDialogs();
+  
   bool DialogsAreBeingAbused();
 
   
@@ -534,6 +540,7 @@ public:
   void DisableDialogs();
   bool AreDialogsEnabled();
 
+  
   virtual void SetHasAudioAvailableEventListeners();
 
   nsIScriptContext *GetContextInternal()
@@ -588,6 +595,7 @@ public:
   nsresult Observe(nsISupports* aSubject, const char* aTopic,
                    const PRUnichar* aData);
 
+  
   void UnblockScriptedClosing();
 
   static void Init();
@@ -616,6 +624,7 @@ public:
   virtual nsresult DispatchAsyncHashchange(nsIURI *aOldURI, nsIURI *aNewURI);
   virtual nsresult DispatchSyncPopState();
 
+  
   virtual void EnableDeviceSensor(uint32_t aType);
   virtual void DisableDeviceSensor(uint32_t aType);
 
@@ -623,6 +632,7 @@ public:
   virtual void DisableTimeChangeNotifications();
 
 #ifdef MOZ_B2G
+  
   virtual void EnableNetworkEvent(uint32_t aType);
   virtual void DisableNetworkEvent(uint32_t aType);
 #endif 
@@ -1136,6 +1146,7 @@ protected:
                            const nsAString &aPopupWindowFeatures);
   void FireOfflineStatusEvent();
 
+  
   nsresult ScheduleNextIdleObserverCallback();
   uint32_t GetFuzzTimeMS();
   nsresult ScheduleActiveTimerCallback();
@@ -1145,13 +1156,17 @@ protected:
                                       int32_t* aRemoveElementIndex);
   virtual nsresult UnregisterIdleObserver(nsIIdleObserver* aIdleObserverPtr);
 
+  
   nsresult FireHashchange(const nsAString &aOldURL, const nsAString &aNewURL);
 
   void FlushPendingNotifications(mozFlushType aType);
+
+  
   void EnsureReflowFlushAndPaint();
   void CheckSecurityWidthAndHeight(int32_t* width, int32_t* height);
   void CheckSecurityLeftAndTop(int32_t* left, int32_t* top);
 
+  
   
   void SetCSSViewportWidthAndHeight(nscoord width, nscoord height);
   
@@ -1161,9 +1176,8 @@ protected:
 
   static void MakeScriptDialogTitle(nsAString &aOutTitle);
 
+  
   bool CanMoveResizeWindows();
-
-  bool     GetBlurSuppression();
 
   
   
@@ -1174,7 +1188,6 @@ protected:
 
   
   nsresult GetInnerSize(mozilla::CSSIntSize& aSize);
-
   nsIntSize GetOuterSize(mozilla::ErrorResult& aError);
   void SetOuterSize(int32_t aLengthCSSPixels, bool aIsWidth,
                     mozilla::ErrorResult& aError);
@@ -1187,6 +1200,7 @@ protected:
     return GetParentInternal() != nullptr;
   }
 
+  
   
   
   
@@ -1231,6 +1245,7 @@ protected:
   virtual void GetKeyboardIndicators(bool* aShowAccelerators,
                                      bool* aShowFocusRings);
 
+  
   void UpdateCanvasFocus(bool aFocusChanged, nsIContent* aNewContent);
 
 public:
@@ -1247,6 +1262,7 @@ protected:
 
   virtual void UpdateParentTarget();
 
+  
   bool GetIsTabModalPromptAllowed();
 
   inline int32_t DOMMinTimeoutValue() const;
@@ -1398,7 +1414,7 @@ protected:
   nsRefPtr<nsDOMWindowUtils>    mWindowUtils;
   nsString                      mStatus;
   nsString                      mDefaultStatus;
-  nsGlobalWindowObserver*       mObserver;
+  nsGlobalWindowObserver*       mObserver; 
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
 
   nsCOMPtr<nsIDOMStorage>      mLocalStorage;
