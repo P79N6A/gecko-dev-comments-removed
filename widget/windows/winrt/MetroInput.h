@@ -112,12 +112,6 @@ public:
   
   
   
-  HRESULT OnAcceleratorKeyActivated(ICoreDispatcher* aSender,
-                                    IAcceleratorKeyEventArgs* aArgs);
-
-  
-  
-  
   
   
   HRESULT OnPointerWheelChanged(ICoreWindow* aSender,
@@ -170,9 +164,6 @@ private:
   void UnregisterInputEvents();
 
   
-  void OnKeyDown(uint32_t aVKey);
-  void OnKeyUp(uint32_t aVKey);
-  void OnCharacterReceived(uint32_t aVKey);
   void OnPointerNonTouch(IPointerPoint* aPoint);
   void InitGeckoMouseEventFromPointerPoint(nsMouseEvent& aEvent,
                                            IPointerPoint* aPoint);
@@ -242,30 +233,12 @@ private:
   
   
   
-  
-  
-  static uint32_t sVirtualKeyMap[255];
-  static bool sIsVirtualKeyMapInitialized;
-  static void InitializeVirtualKeyMap();
-  static uint32_t GetMozKeyCode(uint32_t aKey);
-  
-  static KeyNameIndex GetDOMKeyNameIndex(uint32_t aVirtualKey);
-  
-  
-  
-  
   EventRegistrationToken mTokenPointerPressed;
   EventRegistrationToken mTokenPointerReleased;
   EventRegistrationToken mTokenPointerMoved;
   EventRegistrationToken mTokenPointerEntered;
   EventRegistrationToken mTokenPointerExited;
   EventRegistrationToken mTokenPointerWheelChanged;
-
-  
-  
-  
-  
-  EventRegistrationToken mTokenAcceleratorKeyActivated;
 
   
   

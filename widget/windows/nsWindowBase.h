@@ -34,6 +34,7 @@ public:
   
 
 
+
   virtual bool DispatchWindowEvent(nsGUIEvent* aEvent) = 0;
 
   
