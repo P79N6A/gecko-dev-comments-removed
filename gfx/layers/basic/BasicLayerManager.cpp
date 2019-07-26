@@ -24,6 +24,7 @@
 #include "gfxImageSurface.h"            
 #include "gfxMatrix.h"                  
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
@@ -542,7 +543,7 @@ static uint16_t sFrameCount = 0;
 void
 BasicLayerManager::RenderDebugOverlay()
 {
-  if (!gfxPlatform::DrawFrameCounter()) {
+  if (!gfxPrefs::DrawFrameCounter()) {
     return;
   }
 

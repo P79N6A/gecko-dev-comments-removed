@@ -8,6 +8,7 @@
 #include "ClientLayerManager.h"         
 #include "gfx3DMatrix.h"                
 #include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/Assertions.h"         
 #include "mozilla/gfx/BaseSize.h"       
@@ -176,8 +177,8 @@ ClientTiledThebesLayer::RenderLayer()
   
   
   const FrameMetrics& parentMetrics = GetParent()->GetFrameMetrics();
-  if ((!gfxPlatform::UseProgressiveTilePainting() &&
-       !gfxPlatform::UseLowPrecisionBuffer() &&
+  if ((!gfxPrefs::UseProgressiveTilePainting() &&
+       !gfxPrefs::UseLowPrecisionBuffer() &&
        parentMetrics.mCriticalDisplayPort.IsEmpty()) ||
        parentMetrics.mDisplayPort.IsEmpty()) {
     mValidRegion = mVisibleRegion;
@@ -212,7 +213,7 @@ ClientTiledThebesLayer::RenderLayer()
 
   nsIntRegion lowPrecisionInvalidRegion;
   if (!mPaintData.mLayoutCriticalDisplayPort.IsEmpty()) {
-    if (gfxPlatform::UseLowPrecisionBuffer()) {
+    if (gfxPrefs::UseLowPrecisionBuffer()) {
       
       lowPrecisionInvalidRegion.Sub(mVisibleRegion, mLowPrecisionValidRegion);
 
@@ -232,7 +233,7 @@ ClientTiledThebesLayer::RenderLayer()
   if (!invalidRegion.IsEmpty() && mPaintData.mLowPrecisionPaintCount == 0) {
     bool updatedBuffer = false;
     
-    if (gfxPlatform::UseProgressiveTilePainting() &&
+    if (gfxPrefs::UseProgressiveTilePainting() &&
         !ClientManager()->HasShadowTarget() &&
         mContentClient->mTiledBuffer.GetFrameResolution() == mPaintData.mResolution) {
       

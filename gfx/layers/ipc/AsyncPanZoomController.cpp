@@ -19,7 +19,7 @@
 #include "base/message_loop.h"          
 #include "base/task.h"                  
 #include "base/tracked.h"               
-#include "gfxPlatform.h"                
+#include "gfxPrefs.h"                   
 #include "gfxTypes.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/BasicEvents.h"        
@@ -290,11 +290,6 @@ static bool gAllowCheckerboarding = true;
 
 
 
-static bool gUseProgressiveTilePainting = false;
-
-
-
-
 
 
 static bool gEnlargeDisplayPortWhenOnlyScrollable = false;
@@ -424,7 +419,6 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddBoolVarCache(&gCrossSlideEnabled, "apz.cross_slide.enabled", gCrossSlideEnabled);
   Preferences::AddIntVarCache(&gAxisLockMode, "apz.axis_lock_mode", gAxisLockMode);
   Preferences::AddBoolVarCache(&gAllowCheckerboarding, "apz.allow-checkerboarding", gAllowCheckerboarding);
-  gUseProgressiveTilePainting = gfxPlatform::UseProgressiveTilePainting();
   Preferences::AddBoolVarCache(&gEnlargeDisplayPortWhenOnlyScrollable, "apz.enlarge_displayport_when_only_scrollable",
     gEnlargeDisplayPortWhenOnlyScrollable);
 
@@ -2055,7 +2049,7 @@ void AsyncPanZoomController::UpdateSharedCompositorFrameMetrics()
   FrameMetrics* frame = mSharedFrameMetricsBuffer ?
       static_cast<FrameMetrics*>(mSharedFrameMetricsBuffer->memory()) : nullptr;
 
-  if (gUseProgressiveTilePainting && frame && mSharedLock) {
+  if (frame && mSharedLock && gfxPrefs::UseProgressiveTilePainting()) {
     mSharedLock->Lock();
     *frame = mFrameMetrics;
     mSharedLock->Unlock();
@@ -2070,7 +2064,7 @@ void AsyncPanZoomController::ShareCompositorFrameMetrics() {
   
   
   
-  if (!mSharedFrameMetricsBuffer && gUseProgressiveTilePainting && compositor) {
+  if (!mSharedFrameMetricsBuffer && compositor && gfxPrefs::UseProgressiveTilePainting()) {
 
     
     mSharedFrameMetricsBuffer = new ipc::SharedMemoryBasic;

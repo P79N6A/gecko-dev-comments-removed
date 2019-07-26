@@ -486,13 +486,6 @@ public:
     }
 
     
-    static bool UseProgressiveTilePainting();
-
-    
-    
-    static bool UseLowPrecisionBuffer();
-
-    
     static float GetLowPrecisionResolution();
 
     static bool OffMainThreadCompositingEnabled();
@@ -506,10 +499,7 @@ public:
     static bool GetPrefLayersPreferOpenGL();
     static bool GetPrefLayersPreferD3D9();
     static bool CanUseDirect3D9();
-    static bool GetPrefLayersDump();
-    static bool GetPrefLayersScrollGraph();
     static bool GetPrefLayersEnableTiles();
-    static bool GetPrefLayersDrawFPS();
 
     static bool OffMainThreadCompositionRequired();
 
@@ -602,7 +592,6 @@ public:
 
     mozilla::layers::DiagnosticTypes GetLayerDiagnosticTypes();
 
-    static bool DrawFrameCounter();
     static nsIntRect FrameCounterBounds() {
       int bits = 16;
       int sizeOfBit = 3;
@@ -732,9 +721,6 @@ private:
     bool mWidgetUpdateFlashing;
     bool mLayersPreferMemoryOverShmem;
     bool mLayersUseDeprecated;
-    bool mDrawLayerBorders;
-    bool mDrawTileBorders;
-    bool mDrawBigImageBorders;
 };
 
 #endif 
