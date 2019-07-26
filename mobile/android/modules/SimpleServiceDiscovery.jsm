@@ -58,10 +58,9 @@ var SimpleServiceDiscovery = {
 
   _forceTrailingSlash: function(aURL) {
     
-    
-    if (!aURL.endsWith("/")) {
-      aURL += "/";
-    }
+    try {
+      aURL = Services.io.newURI(aURL, null, null).spec;
+    } catch(e) {}
     return aURL;
   },
 
