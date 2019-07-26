@@ -1620,6 +1620,7 @@ struct nsStyleDisplay {
   uint8_t mResize;              
   uint8_t mClipFlags;           
   uint8_t mOrient;              
+  uint8_t mMixBlendMode;        
 
   
   
