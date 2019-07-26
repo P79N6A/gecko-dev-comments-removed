@@ -4,6 +4,9 @@
 
 
 #include "mozilla/dom/HTMLSharedListElement.h"
+#include "mozilla/dom/HTMLDListElementBinding.h"
+#include "mozilla/dom/HTMLOListElementBinding.h"
+#include "mozilla/dom/HTMLUListElementBinding.h"
 
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -164,6 +167,24 @@ HTMLSharedListElement::GetAttributeMappingFunction() const
   }
 
   return nsGenericHTMLElement::GetAttributeMappingFunction();
+}
+
+JSObject*
+HTMLDListElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
+{
+  return HTMLDListElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
+}
+
+JSObject*
+HTMLOListElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
+{
+  return HTMLOListElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
+}
+
+JSObject*
+HTMLUListElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
+{
+  return HTMLUListElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
