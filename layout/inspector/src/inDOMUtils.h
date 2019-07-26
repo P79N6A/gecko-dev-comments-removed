@@ -10,7 +10,12 @@
 class nsRuleNode;
 class nsStyleContext;
 class nsIAtom;
-class nsIContent;
+
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
 
 class inDOMUtils : public inIDOMUtils
 {
@@ -23,7 +28,7 @@ public:
 
 private:
   
-  static nsresult GetRuleNodeForContent(nsIContent* aContent,
+  static nsresult GetRuleNodeForElement(mozilla::dom::Element* aElement,
                                         nsIAtom* aPseudo,
                                         nsStyleContext** aStyleContext,
                                         nsRuleNode** aRuleNode);
