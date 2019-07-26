@@ -12,10 +12,6 @@
 #include "mozilla/Types.h"
 #include "nscore.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if defined(__GNUC__) && defined(__i386__)
 #define PL_DHASH_FASTCALL __attribute__ ((regparm (3),stdcall))
 #elif defined(XP_WIN)
@@ -575,8 +571,4 @@ NS_COM_GLUE void
 PL_DHashTableDumpMeter(PLDHashTable *table, PLDHashEnumerator dump, FILE *fp);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif 
