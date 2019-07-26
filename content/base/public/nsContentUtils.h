@@ -1285,8 +1285,8 @@ public:
 
 
 
-  static nsresult HoldJSObjects(void* aScriptObjectHolder,
-                                nsScriptObjectTracer* aTracer);
+  static void HoldJSObjects(void* aScriptObjectHolder,
+                            nsScriptObjectTracer* aTracer);
 
   
 
@@ -1294,7 +1294,7 @@ public:
 
 
 
-  static nsresult DropJSObjects(void* aScriptObjectHolder);
+  static void DropJSObjects(void* aScriptObjectHolder);
 
 #ifdef DEBUG
   static bool AreJSObjectsHeld(void* aScriptObjectHolder); 
