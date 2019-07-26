@@ -15,6 +15,10 @@
 
 #include "jit/IonFrameIterator.h"
 
+#ifdef CHECK_OSIPOINT_REGISTERS
+#include "jit/Registers.h" 
+#endif
+
 struct JSContext;
 struct JSCompartment;
 struct JSGenerator;
