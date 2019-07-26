@@ -163,12 +163,15 @@ public:
   NS_IMETHOD OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex) MOZ_OVERRIDE;
 
   
-  nsresult MouseDown(nsIDOMEvent* aMouseEvent); 
-  nsresult MouseUp(nsIDOMEvent* aMouseEvent);   
+
+
+
+  nsresult MouseDown(nsIDOMEvent* aMouseEvent);
+  nsresult MouseUp(nsIDOMEvent* aMouseEvent);
   nsresult MouseMove(nsIDOMEvent* aMouseEvent);
   nsresult DragMove(nsIDOMEvent* aMouseEvent);
-  nsresult KeyDown(nsIDOMEvent* aKeyEvent);     
-  nsresult KeyPress(nsIDOMEvent* aKeyEvent);    
+  nsresult KeyDown(nsIDOMEvent* aKeyEvent);
+  nsresult KeyPress(nsIDOMEvent* aKeyEvent);
 
   
 
@@ -256,6 +259,7 @@ protected:
 
 
 
+
   bool       UpdateSelection();
 
   
@@ -273,7 +277,13 @@ protected:
   void       DropDownToggleKey(nsIDOMEvent* aKeyEvent);
 
   nsresult   IsOptionDisabled(int32_t anIndex, bool &aIsDisabled);
+  
+
+
   void ScrollToFrame(mozilla::dom::HTMLOptionElement& aOptElement);
+  
+
+
   void ScrollToIndex(int32_t anIndex);
 
   
@@ -342,11 +352,20 @@ protected:
                                        bool aValue,
                                        bool aClearAll);
   bool     ToggleOptionSelectedFromFrame(int32_t aIndex);
+  
+
+
   bool     SingleSelection(int32_t aClickedIndex, bool aDoToggle);
   bool     ExtendedSelection(int32_t aStartIndex, int32_t aEndIndex,
                              bool aClearAll);
+  
+
+
   bool     PerformSelection(int32_t aClickedIndex, bool aIsShift,
                             bool aIsControl);
+  
+
+
   bool     HandleListSelection(nsIDOMEvent * aDOMEvent, int32_t selectedIndex);
   void     InitSelectionRange(int32_t aClickedIndex);
   void     PostHandleKeyEvent(int32_t aNewIndex, uint32_t aCharCode,

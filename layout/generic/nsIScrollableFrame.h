@@ -161,6 +161,7 @@ public:
 
 
 
+
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
                         const nsRect* aRange = nullptr) = 0;
   
@@ -173,8 +174,10 @@ public:
 
 
 
+
   virtual void ScrollToCSSPixels(const CSSIntPoint& aScrollPosition) = 0;
   
+
 
 
 
@@ -202,9 +205,11 @@ public:
 
 
 
+
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow = nullptr, nsIAtom *aOrigin = nullptr) = 0;
   
+
 
 
 

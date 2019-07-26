@@ -376,6 +376,7 @@ nsTreeBodyFrame::EnsureView()
         
         
         ScrollToRow(rowIndex);
+        ENSURE_TRUE(weakFrame.IsAlive());
 
         
         
@@ -4134,9 +4135,12 @@ nsTreeBodyFrame::ScrollHorzInternal(const ScrollParts& aParts, int32_t aPosition
   Invalidate();
 
   
+  nsWeakFrame weakFrame(this);
   aParts.mColumnsScrollFrame->ScrollTo(nsPoint(mHorzPosition, 0),
                                        nsIScrollableFrame::INSTANT);
-
+  if (!weakFrame.IsAlive()) {
+    return NS_ERROR_FAILURE;
+  }
   
   PostScrollEvent();
   return NS_OK;
@@ -4153,7 +4157,8 @@ nsTreeBodyFrame::ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, int32_t aO
     else if (aNewIndex < aOldIndex)
       ScrollToRowInternal(parts, mTopRowIndex-1);
   } else {
-    ScrollHorzInternal(parts, aNewIndex);
+    nsresult rv = ScrollHorzInternal(parts, aNewIndex);
+    if (NS_FAILED(rv)) return rv;
   }
 
   UpdateScrollbars(parts);
@@ -4177,7 +4182,8 @@ nsTreeBodyFrame::PositionChanged(nsScrollbarFrame* aScrollbar, int32_t aOldIndex
     ScrollInternal(parts, newrow);
   
   } else if (parts.mHScrollbar == aScrollbar) {
-    ScrollHorzInternal(parts, aNewIndex);
+    nsresult rv = ScrollHorzInternal(parts, aNewIndex);
+    if (NS_FAILED(rv)) return rv;
   }
 
   UpdateScrollbars(parts);

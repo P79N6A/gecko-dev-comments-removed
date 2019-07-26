@@ -643,7 +643,11 @@ nsListControlFrame::SingleSelection(int32_t aClickedIndex, bool aDoToggle)
     wasChanged = SetOptionsSelectedFromFrame(aClickedIndex, aClickedIndex,
                                 true, true);
   }
+  nsWeakFrame weakFrame(this);
   ScrollToIndex(aClickedIndex);
+  if (!weakFrame.IsAlive()) {
+    return wasChanged;
+  }
 
 #ifdef ACCESSIBILITY
   bool isCurrentOptionChanged = mEndSelectionIndex != aClickedIndex;
@@ -775,7 +779,11 @@ nsListControlFrame::PerformSelection(int32_t aClickedIndex,
 
       
       wasChanged = ExtendedSelection(startIndex, endIndex, !aIsControl);
+      nsWeakFrame weakFrame(this);
       ScrollToIndex(aClickedIndex);
+      if (!weakFrame.IsAlive()) {
+        return wasChanged;
+      }
 
       if (mStartSelectionIndex == kNothingSelected) {
         mStartSelectionIndex = aClickedIndex;
@@ -792,12 +800,12 @@ nsListControlFrame::PerformSelection(int32_t aClickedIndex,
       }
 #endif
     } else if (aIsControl) {
-      wasChanged = SingleSelection(aClickedIndex, true);
+      wasChanged = SingleSelection(aClickedIndex, true); 
     } else {
-      wasChanged = SingleSelection(aClickedIndex, false);
+      wasChanged = SingleSelection(aClickedIndex, false); 
     }
   } else {
-    wasChanged = SingleSelection(aClickedIndex, false);
+    wasChanged = SingleSelection(aClickedIndex, false); 
   }
 
   return wasChanged;
@@ -817,7 +825,7 @@ nsListControlFrame::HandleListSelection(nsIDOMEvent* aEvent,
   mouseEvent->GetCtrlKey(&isControl);
 #endif
   mouseEvent->GetShiftKey(&isShift);
-  return PerformSelection(aClickedIndex, isShift, isControl);
+  return PerformSelection(aClickedIndex, isShift, isControl); 
 }
 
 
@@ -1018,7 +1026,11 @@ nsListControlFrame::ResetList(bool aAllowScrolling)
     NS_ASSERTION(selectElement, "No select element!");
     if (selectElement) {
       selectElement->GetSelectedIndex(&indexToSelect);
+      nsWeakFrame weakFrame(this);
       ScrollToIndex(indexToSelect);
+      if (!weakFrame.IsAlive()) {
+        return;
+      }
     }
   }
 
@@ -1290,12 +1302,13 @@ nsListControlFrame::ComboboxFinish(int32_t aIndex)
   gLastKeyTime = 0;
 
   if (mComboboxFrame) {
-    PerformSelection(aIndex, false, false);
+    nsWeakFrame weakFrame(this);
+    PerformSelection(aIndex, false, false);  
+    if (!weakFrame.IsAlive() || !mComboboxFrame) {
+      return;
+    }
 
     int32_t displayIndex = mComboboxFrame->GetIndexOfDisplayArea();
-
-    nsWeakFrame weakFrame(this);
-
     if (displayIndex != aIndex) {
       mComboboxFrame->RedisplaySelectedText(); 
     }
@@ -1336,7 +1349,11 @@ nsListControlFrame::OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex)
     mComboboxFrame->UpdateRecentIndex(NS_SKIP_NOTIFY_INDEX);
   }
 
+  nsWeakFrame weakFrame(this);
   ScrollToIndex(aNewIndex);
+  if (!weakFrame.IsAlive()) {
+    return NS_OK;
+  }
   mStartSelectionIndex = aNewIndex;
   mEndSelectionIndex = aNewIndex;
   InvalidateFocus();
@@ -1398,7 +1415,11 @@ nsListControlFrame::AboutToDropDown()
                      mLastDropdownBackstopColor);
 
   if (mIsAllContentHere && mIsAllFramesHere && mHasBeenInitialized) {
+    nsWeakFrame weakFrame(this);
     ScrollToIndex(GetSelectedIndex());
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
 #ifdef ACCESSIBILITY
     FireMenuItemActiveEvent(); 
 #endif
@@ -1785,7 +1806,13 @@ nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
     
     mButtonDown = true;
     CaptureMouseEvents(true);
-    mChangesSinceDragStart = HandleListSelection(aMouseEvent, selectedIndex);
+    nsWeakFrame weakFrame(this);
+    bool change =
+      HandleListSelection(aMouseEvent, selectedIndex); 
+    if (!weakFrame.IsAlive()) {
+      return NS_OK;
+    }
+    mChangesSinceDragStart = change;
   } else {
     
     if (mComboboxFrame) {
@@ -1827,12 +1854,12 @@ nsListControlFrame::MouseMove(nsIDOMEvent* aMouseEvent)
     if (mComboboxFrame->IsDroppedDown()) {
       int32_t selectedIndex;
       if (NS_SUCCEEDED(GetIndexFromDOMEvent(aMouseEvent, selectedIndex))) {
-        PerformSelection(selectedIndex, false, false);
+        PerformSelection(selectedIndex, false, false); 
       }
     }
   } else {
     if (mButtonDown) {
-      return DragMove(aMouseEvent);
+      return DragMove(aMouseEvent); 
     }
   }
   return NS_OK;
@@ -1860,9 +1887,13 @@ nsListControlFrame::DragMove(nsIDOMEvent* aMouseEvent)
 #else
       mouseEvent->GetCtrlKey(&isControl);
 #endif
+      nsWeakFrame weakFrame(this);
       
       bool wasChanged = PerformSelection(selectedIndex,
                                            !isControl, isControl);
+      if (!weakFrame.IsAlive()) {
+        return NS_OK;
+      }
       mChangesSinceDragStart = mChangesSinceDragStart || wasChanged;
     }
   }
@@ -2283,6 +2314,7 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
 
   uint32_t numOptions = options->Length();
 
+  nsWeakFrame weakFrame(this);
   for (uint32_t i = 0; i < numOptions; ++i) {
     uint32_t index = (i + startIndex) % numOptions;
     nsRefPtr<dom::HTMLOptionElement> optionElement =
@@ -2300,7 +2332,11 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
       continue;
     }
 
-    if (!PerformSelection(index, keyEvent->IsShift(), isControlOrMeta)) {
+    bool wasChanged = PerformSelection(index, keyEvent->IsShift(), isControlOrMeta);
+    if (!weakFrame.IsAlive()) {
+      return NS_OK;
+    }
+    if (!wasChanged) {
       break;
     }
 
@@ -2327,12 +2363,16 @@ nsListControlFrame::PostHandleKeyEvent(int32_t aNewIndex,
 
   
   
+  nsWeakFrame weakFrame(this);
   bool wasChanged = false;
   if (aIsControlOrMeta && !aIsShift && aCharCode != ' ') {
     mStartSelectionIndex = aNewIndex;
     mEndSelectionIndex = aNewIndex;
     InvalidateFocus();
     ScrollToIndex(aNewIndex);
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
 
 #ifdef ACCESSIBILITY
     FireMenuItemActiveEvent();
@@ -2342,7 +2382,7 @@ nsListControlFrame::PostHandleKeyEvent(int32_t aNewIndex,
   } else {
     wasChanged = PerformSelection(aNewIndex, aIsShift, aIsControlOrMeta);
   }
-  if (wasChanged) {
+  if (wasChanged && weakFrame.IsAlive()) {
     
     UpdateSelection();
   }
