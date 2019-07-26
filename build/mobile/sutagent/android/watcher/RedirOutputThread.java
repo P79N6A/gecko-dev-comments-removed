@@ -101,7 +101,6 @@ public class RedirOutputThread extends Thread
                 }
             catch (IOException e)
                 {
-
                 e.printStackTrace();
                 }
             }
