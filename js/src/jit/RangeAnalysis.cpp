@@ -230,6 +230,7 @@ RangeAnalysis::addBetaNodes()
             break;
           case JSOP_EQ:
             comp.set(floor(bound), ceil(bound), true, exponent);
+            break;
           default:
             continue; 
                       
