@@ -925,7 +925,11 @@ var SocialSidebar = {
 
   setSidebarVisibilityState: function(aEnabled) {
     let sbrowser = document.getElementById("social-sidebar-browser");
-    sbrowser.docShell.isActive = aEnabled;
+    
+    
+    if (aEnabled == sbrowser.docShellIsActive)
+      return;
+    sbrowser.docShellIsActive = aEnabled;
     let evt = sbrowser.contentDocument.createEvent("CustomEvent");
     evt.initCustomEvent(aEnabled ? "socialFrameShow" : "socialFrameHide", true, true, {});
     sbrowser.contentDocument.documentElement.dispatchEvent(evt);
