@@ -28,6 +28,7 @@ using mozilla::ExponentComponent;
 using mozilla::IsInfinite;
 using mozilla::IsNaN;
 using mozilla::IsNegative;
+using mozilla::Swap;
 
 
 
@@ -464,6 +465,30 @@ Range::and_(const Range *lhs, const Range *rhs)
 Range *
 Range::or_(const Range *lhs, const Range *rhs)
 {
+    
+    
+    
+    
+    if (lhs->lower_ == lhs->upper_) {
+        if (lhs->lower_ == 0)
+            return new Range(*rhs);
+        if (lhs->lower_ == -1)
+            return new Range(*lhs);;
+    }
+    if (rhs->lower_ == rhs->upper_) {
+        if (rhs->lower_ == 0)
+            return new Range(*lhs);
+        if (rhs->lower_ == -1)
+            return new Range(*rhs);;
+    }
+
+    
+    
+    JS_ASSERT_IF(lhs->lower_ >= 0, lhs->upper_ != 0);
+    JS_ASSERT_IF(rhs->lower_ >= 0, rhs->upper_ != 0);
+    JS_ASSERT_IF(lhs->upper_ < 0, lhs->lower_ != -1);
+    JS_ASSERT_IF(rhs->upper_ < 0, rhs->lower_ != -1);
+
     int64_t lower = INT32_MIN;
     int64_t upper = INT32_MAX;
 
@@ -475,13 +500,16 @@ Range::or_(const Range *lhs, const Range *rhs)
                                   js_bitscan_clz32(rhs->upper_));
     } else {
         
-        if (lhs->upper_ < 0)
-            lower = Max(lower, (int64_t)(int32_t)~(UINT32_MAX >> js_bitscan_clz32(~lhs->lower_)));
-        if (rhs->upper_ < 0)
-            lower = Max(lower, (int64_t)(int32_t)~(UINT32_MAX >> js_bitscan_clz32(~rhs->lower_)));
-        
-        if (lhs->upper_ < 0 && rhs->upper_ < 0)
+        if (lhs->upper_ < 0) {
+            unsigned leadingOnes = js_bitscan_clz32(~lhs->lower_);
+            lower = Max(lower, int64_t(~int32_t(UINT32_MAX >> leadingOnes)));
             upper = -1;
+        }
+        if (rhs->upper_ < 0) {
+            unsigned leadingOnes = js_bitscan_clz32(~rhs->lower_);
+            lower = Max(lower, int64_t(~int32_t(UINT32_MAX >> leadingOnes)));
+            upper = -1;
+        }
     }
 
     return new Range(lower, upper);
@@ -490,33 +518,60 @@ Range::or_(const Range *lhs, const Range *rhs)
 Range *
 Range::xor_(const Range *lhs, const Range *rhs)
 {
-    int64_t lower = INT32_MIN;
-    int64_t upper = INT32_MAX;
+    int32_t lhsLower = lhs->lower_;
+    int32_t lhsUpper = lhs->upper_;
+    int32_t rhsLower = rhs->lower_;
+    int32_t rhsUpper = rhs->upper_;
+    bool invertAfter = false;
 
-    if (lhs->lower_ >= 0 && rhs->lower_ >= 0) {
-        
+    
+    
+    
+    
+    if (lhsUpper < 0) {
+        lhsLower = ~lhsLower;
+        lhsUpper = ~lhsUpper;
+        Swap(lhsLower, lhsUpper);
+        invertAfter = !invertAfter;
+    }
+    if (rhsUpper < 0) {
+        rhsLower = ~rhsLower;
+        rhsUpper = ~rhsUpper;
+        Swap(rhsLower, rhsUpper);
+        invertAfter = !invertAfter;
+    }
+
+    
+    
+    
+    
+    int32_t lower = INT32_MIN;
+    int32_t upper = INT32_MAX;
+    if (lhsLower == 0 && lhsUpper == 0) {
+        upper = rhsUpper;
+        lower = rhsLower;
+    } else if (rhsLower == 0 && rhsUpper == 0) {
+        upper = lhsUpper;
+        lower = lhsLower;
+    } else if (lhsLower >= 0 && rhsLower >= 0) {
         
         lower = 0;
-        upper = UINT32_MAX >> Min(js_bitscan_clz32(lhs->upper_),
-                                  js_bitscan_clz32(rhs->upper_));
-    } else if (lhs->upper_ < 0 && rhs->upper_ < 0) {
-        
-        
-        lower = 0;
-        upper = UINT32_MAX >> Min(js_bitscan_clz32(~lhs->lower_),
-                                  js_bitscan_clz32(~rhs->lower_));
-    } else if (lhs->upper_ < 0 && rhs->lower_ >= 0) {
         
         
         
-        upper = -1;
-        lower = (int32_t)~(UINT32_MAX >> Min(js_bitscan_clz32(~lhs->lower_),
-                                             js_bitscan_clz32(rhs->upper_)));
-    } else if (lhs->lower_ >= 0 && rhs->upper_ < 0) {
         
-        upper = -1;
-        lower = (int32_t)~(UINT32_MAX >> Min(js_bitscan_clz32(lhs->upper_),
-                                             js_bitscan_clz32(~rhs->lower_)));
+        unsigned lhsLeadingZeros = js_bitscan_clz32(lhsUpper);
+        unsigned rhsLeadingZeros = js_bitscan_clz32(rhsUpper);
+        upper = Min(rhsUpper | int32_t(UINT32_MAX >> lhsLeadingZeros),
+                    lhsUpper | int32_t(UINT32_MAX >> rhsLeadingZeros));
+    }
+
+    
+    
+    if (invertAfter) {
+        lower = ~lower;
+        upper = ~upper;
+        Swap(lower, upper);
     }
 
     return new Range(lower, upper);
