@@ -2427,7 +2427,10 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     shouldBuildLayer =
       wantSubAPZC &&
       (wantLayerV || wantLayerH) &&
-      (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
+      
+      
+      
+      (!mIsRoot || aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext());
   }
 
   if (shouldBuildLayer) {
