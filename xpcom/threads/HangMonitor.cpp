@@ -229,7 +229,7 @@ Startup()
   if (GeckoProcessType_Default != XRE_GetProcessType())
     return;
 
-  NS_ASSERTION(!gMonitor, "Hang monitor already initialized");
+  MOZ_ASSERT(!gMonitor, "Hang monitor already initialized");
   gMonitor = new Monitor("HangMonitor");
 
   Preferences::RegisterCallback(PrefChanged, kHangMonitorPrefName, NULL);
@@ -261,7 +261,7 @@ Shutdown()
   if (GeckoProcessType_Default != XRE_GetProcessType())
     return;
 
-  NS_ASSERTION(gMonitor, "Hang monitor not started");
+  MOZ_ASSERT(gMonitor, "Hang monitor not started");
 
   { 
     MonitorAutoLock lock(*gMonitor);
@@ -302,8 +302,8 @@ IsUIMessageWaiting()
 void
 NotifyActivity(ActivityType activityType)
 {
-  NS_ASSERTION(NS_IsMainThread(),
-    "HangMonitor::Notify called from off the main thread.");
+  MOZ_ASSERT(NS_IsMainThread(),
+             "HangMonitor::Notify called from off the main thread.");
 
   
   if (activityType == kGeneralActivity) {
@@ -350,7 +350,8 @@ NotifyActivity(ActivityType activityType)
 void
 Suspend()
 {
-  NS_ASSERTION(NS_IsMainThread(), "HangMonitor::Suspend called from off the main thread.");
+  MOZ_ASSERT(NS_IsMainThread(),
+             "HangMonitor::Suspend called from off the main thread.");
 
   
   gTimestamp = PR_INTERVAL_NO_WAIT;

@@ -116,7 +116,7 @@ nsThreadPool::ShutdownThread(nsIThread *thread)
   
   
 
-  NS_ASSERTION(!NS_IsMainThread(), "wrong thread");
+  MOZ_ASSERT(!NS_IsMainThread(), "wrong thread");
 
   nsRefPtr<nsIRunnable> r = NS_NewRunnableMethod(thread, &nsIThread::Shutdown);
   NS_DispatchToMainThread(r);

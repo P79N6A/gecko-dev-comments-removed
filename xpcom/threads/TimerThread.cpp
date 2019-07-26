@@ -300,7 +300,7 @@ NS_IMETHODIMP TimerThread::Run()
               
               
               
-              NS_ASSERTION(rc != 0, "destroyed timer off its target thread!");
+              MOZ_ASSERT(rc != 0, "destroyed timer off its target thread!");
             }
             timer = nullptr;
           }
