@@ -243,9 +243,10 @@ do_register_cleanup(function() {
 
 function oldDownloadManagerDisabled() {
   try {
-    if (Services.prefs.getBoolPref("browser.download.useJSTransfer")) {
-      return true;
-    }
-  } catch (ex) { }
+    
+    Services.downloads.activeDownloadCount;
+  } catch (ex) {
+    return true;
+  }
   return false;
 }

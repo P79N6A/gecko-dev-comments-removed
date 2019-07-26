@@ -82,6 +82,10 @@ function makeGUID() {
 
 function run_test()
 {
+  if (oldDownloadManagerDisabled()) {
+    return;
+  }
+
   
   
   

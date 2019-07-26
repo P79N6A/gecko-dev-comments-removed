@@ -117,15 +117,6 @@ var DownloadTaskbarProgressUpdater =
     }
     this._initialized = true;
 
-    
-    
-    try {
-      if (Services.prefs.getBoolPref("browser.download.useJSTransfer")) {
-        DownloadTaskbarProgressUpdater = null;
-        return;
-      }
-    } catch (ex) { }
-
     if (kTaskbarIDWin in Cc) {
       this._taskbar = Cc[kTaskbarIDWin].getService(Ci.nsIWinTaskbar);
       if (!this._taskbar.available) {

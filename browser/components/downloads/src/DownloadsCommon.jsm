@@ -241,9 +241,6 @@ this.DownloadsCommon = {
 
   get useToolkitUI()
   {
-    try {
-      return Services.prefs.getBoolPref("browser.download.useToolkitUI");
-    } catch (ex) { }
     return false;
   },
 
@@ -574,13 +571,8 @@ XPCOMUtils.defineLazyGetter(DownloadsCommon, "isWinVistaOrHigher", function () {
 
 
 
-
-
 XPCOMUtils.defineLazyGetter(DownloadsCommon, "useJSTransfer", function () {
-  try {
-    return Services.prefs.getBoolPref("browser.download.useJSTransfer");
-  } catch (ex) { }
-  return false;
+  return true;
 });
 
 

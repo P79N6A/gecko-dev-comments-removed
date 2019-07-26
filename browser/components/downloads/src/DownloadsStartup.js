@@ -97,25 +97,9 @@ DownloadsStartup.prototype = {
         
         
         
-        
-        let useJSTransfer = false;
-        try {
-          
-          
-          useJSTransfer =
-            Services.prefs.getBoolPref("browser.download.useJSTransfer");
-        } catch (ex) { }
-        if (useJSTransfer) {
-          Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-                            .registerFactory(kTransferCid, "",
-                                             kTransferContractId, null);
-        } else {
-          
-          
-          for (let topic of kObservedTopics) {
-            Services.obs.addObserver(this, topic, true);
-          }
-        }
+        Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
+                          .registerFactory(kTransferCid, "",
+                                           kTransferContractId, null);
         break;
 
       case "sessionstore-windows-restored":

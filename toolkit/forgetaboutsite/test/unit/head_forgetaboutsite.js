@@ -30,3 +30,14 @@ function cleanUp()
   }
 }
 cleanUp();
+
+function oldDownloadManagerDisabled()
+{
+  try {
+    
+    Services.downloads.activeDownloadCount;
+  } catch (ex) {
+    return true;
+  }
+  return false;
+}

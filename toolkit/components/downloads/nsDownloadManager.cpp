@@ -40,6 +40,7 @@
 
 #ifdef XP_WIN
 #include <shlobj.h>
+#include "nsWindowsHelpers.h"
 #ifdef DOWNLOAD_SCANNER
 #include "nsDownloadScanner.h"
 #endif
@@ -937,7 +938,25 @@ nsDownloadManager::Init()
                                    getter_AddRefs(mBundle));
   NS_ENSURE_SUCCESS(rv, rv);
 
+#if defined(MOZ_JSDOWNLOADS) && !defined(XP_WIN)
+
+  
+  
+  mUseJSTransfer = true;
+
+#else
+
+#if defined(MOZ_JSDOWNLOADS) && defined(XP_WIN)
+  
+  
+  
+  mUseJSTransfer = !IsRunningInWindowsMetro();
+#else
+  
+  
   mUseJSTransfer = Preferences::GetBool(PREF_BD_USEJSTRANSFER, false);
+#endif
+
   if (mUseJSTransfer)
     return NS_OK;
 
@@ -1007,6 +1026,8 @@ nsDownloadManager::Init()
 
   if (history)
     (void)history->AddObserver(this, true);
+
+#endif 
 
   return NS_OK;
 }

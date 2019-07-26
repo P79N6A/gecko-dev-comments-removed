@@ -98,8 +98,11 @@ this.ForgetAboutSite = {
     
     let useJSTransfer = false;
     try {
-      useJSTransfer = Services.prefs.getBoolPref("browser.download.useJSTransfer");
-    } catch(ex) { }
+      
+      Services.downloads.activeDownloadCount;
+    } catch (ex) {
+      useJSTransfer = true;
+    }
 
     if (useJSTransfer) {
       Task.spawn(function() {
