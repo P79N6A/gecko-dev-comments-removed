@@ -18,7 +18,6 @@
 #include "jsapi.h"
 #include "jsprf.h"
 #include "nsJSUtils.h"
-#include "nsPrintfCString.h"
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/WindowBinding.h"
@@ -44,7 +43,6 @@ IsJSXraySupported(JSProtoKey key)
 {
     switch (key) {
       case JSProto_Date:
-      case JSProto_Object:
         return true;
       default:
         return false;
@@ -160,11 +158,6 @@ public:
                                     HandleObject wrapper, HandleObject holder,
                                     HandleId id, MutableHandle<JSPropertyDescriptor> desc);
 
-    bool delete_(JSContext *cx, HandleObject wrapper, HandleId id, bool *bp) {
-        *bp = true;
-        return true;
-    }
-
     virtual void preserveWrapper(JSObject *target) = 0;
 
     static bool set(JSContext *cx, HandleObject wrapper, HandleObject receiver, HandleId id,
@@ -215,9 +208,9 @@ public:
     virtual bool resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper, HandleObject wrapper,
                                     HandleObject holder, HandleId id,
                                     MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
-    bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
-                        MutableHandle<JSPropertyDescriptor> desc,
-                        Handle<JSPropertyDescriptor> existingDesc, bool *defined);
+    static bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
+                               MutableHandle<JSPropertyDescriptor> desc,
+                               Handle<JSPropertyDescriptor> existingDesc, bool *defined);
     virtual bool enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
                                 AutoIdVector &props);
     static bool call(JSContext *cx, HandleObject wrapper,
@@ -266,9 +259,9 @@ public:
     virtual bool resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper, HandleObject wrapper,
                                     HandleObject holder, HandleId id,
                                     MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
-    bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
-                        MutableHandle<JSPropertyDescriptor> desc,
-                        Handle<JSPropertyDescriptor> existingDesc, bool *defined);
+    static bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
+                               MutableHandle<JSPropertyDescriptor> desc,
+                               Handle<JSPropertyDescriptor> existingDesc, bool *defined);
     static bool set(JSContext *cx, HandleObject wrapper, HandleObject receiver, HandleId id,
                     bool strict, MutableHandleValue vp);
     virtual bool enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
@@ -311,11 +304,14 @@ public:
                                     HandleObject holder, HandleId id,
                                     MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
 
-    bool delete_(JSContext *cx, HandleObject wrapper, HandleId id, bool *bp);
-
-    bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
-                        MutableHandle<JSPropertyDescriptor> desc,
-                        Handle<JSPropertyDescriptor> existingDesc, bool *defined);
+    static bool defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
+                               MutableHandle<JSPropertyDescriptor> desc,
+                               Handle<JSPropertyDescriptor> existingDesc, bool *defined)
+    {
+        
+        *defined = false;
+        return true;
+    }
 
     virtual bool enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
                                 AutoIdVector &props);
@@ -350,15 +346,8 @@ public:
                                JS::MutableHandleObject protop)
     {
         RootedObject holder(cx, ensureHolder(cx, wrapper));
-        JSProtoKey key = getProtoKey(holder);
-        if (isPrototype(holder)) {
-            if (key == JSProto_Object) {
-                protop.set(nullptr);
-                return true;
-            }
-            key = JSProto_Object;
-        }
-
+        JSProtoKey key = isPrototype(holder) ? JSProto_Object
+                                             : getProtoKey(holder);
         {
             JSAutoCompartment ac(cx, target);
             if (!JS_GetClassPrototype(cx, key, protop))
@@ -390,12 +379,6 @@ public:
         return js::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
     }
 
-    static bool getOwnPropertyFromTargetIfSafe(JSContext *cx,
-                                               HandleObject target,
-                                               HandleObject wrapper,
-                                               HandleId id,
-                                               MutableHandle<JSPropertyDescriptor> desc);
-
     static const JSClass HolderClass;
     static JSXrayTraits singleton;
 };
@@ -406,101 +389,6 @@ const JSClass JSXrayTraits::HolderClass = {
     JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
 };
-
-inline bool
-SilentFailure(JSContext *cx, HandleId id, const char *reason)
-{
-#ifdef DEBUG
-    nsDependentJSString name(id);
-    AutoFilename filename;
-    unsigned line = 0;
-    DescribeScriptedCaller(cx, &filename, &line);
-    NS_WARNING(nsPrintfCString("Denied access to property |%s| on Xrayed Object: %s (@%s:%u)",
-                               NS_LossyConvertUTF16toASCII(name).get(), reason,
-                               filename.get(), line).get());
-#endif
-    return true;
-}
-
-bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
-                                                  HandleObject target,
-                                                  HandleObject wrapper,
-                                                  HandleId idArg,
-                                                  MutableHandle<JSPropertyDescriptor> outDesc)
-{
-    
-    
-    MOZ_ASSERT(getTargetObject(wrapper) == target);
-    MOZ_ASSERT(js::IsObjectInContextCompartment(target, cx));
-    MOZ_ASSERT(WrapperFactory::IsXrayWrapper(wrapper));
-    MOZ_ASSERT(outDesc.object() == nullptr);
-
-    RootedId id(cx, idArg);
-    if (!JS_WrapId(cx, &id))
-        return false;
-    Rooted<JSPropertyDescriptor> desc(cx);
-    if (!JS_GetOwnPropertyDescriptorById(cx, target, id, &desc))
-        return false;
-
-    
-    if (!desc.object())
-        return true;
-
-    
-    if (desc.hasGetterOrSetter())
-        return SilentFailure(cx, id, "Property has accessor");
-
-    
-    if (desc.value().isObject()) {
-        RootedObject propObj(cx, js::UncheckedUnwrap(&desc.value().toObject()));
-        JSAutoCompartment ac(cx, propObj);
-
-        
-        if (!AccessCheck::subsumes(target, propObj))
-            return SilentFailure(cx, id, "Value not same-origin with target");
-
-        
-        if (GetXrayType(propObj) == NotXray) {
-            
-            
-            
-            
-            
-            
-            
-            JSProtoKey key = IdentifyStandardInstanceOrPrototype(propObj);
-            if (key != JSProto_Array && key != JSProto_Uint8ClampedArray &&
-                key != JSProto_Int8Array && key != JSProto_Uint8Array &&
-                key != JSProto_Int16Array && key != JSProto_Uint16Array &&
-                key != JSProto_Int32Array && key != JSProto_Uint32Array &&
-                key != JSProto_Float32Array && key != JSProto_Float64Array)
-            {
-                return SilentFailure(cx, id, "Value not Xrayable");
-            }
-        }
-
-        
-        if (JS_ObjectIsCallable(cx, propObj))
-            return SilentFailure(cx, id, "Value is callable");
-    }
-
-    
-    
-    JSAutoCompartment ac2(cx, wrapper);
-    RootedObject proto(cx);
-    bool foundOnProto = false;
-    if (!JS_GetPrototype(cx, wrapper, &proto) ||
-        (proto && !JS_HasPropertyById(cx, proto, id, &foundOnProto)))
-    {
-        return false;
-    }
-    if (foundOnProto)
-        return SilentFailure(cx, id, "Value shadows a property on the standard prototype");
-
-    
-    outDesc.assign(desc.get());
-    return true;
-}
 
 bool
 JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
@@ -514,27 +402,9 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     if (!ok || desc.object())
         return ok;
 
-    RootedObject target(cx, getTargetObject(wrapper));
-    if (!isPrototype(holder)) {
-        
-        
-        switch (getProtoKey(holder)) {
-          case JSProto_Object:
-            {
-                JSAutoCompartment ac(cx, target);
-                if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, desc))
-                    return false;
-            }
-            return JS_WrapPropertyDescriptor(cx, desc);
-
-          default:
-            
-            break;
-        }
-
-        
+    
+    if (!isPrototype(holder))
         return true;
-    }
 
     
     
@@ -549,6 +419,7 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     }
 
     
+    RootedObject target(cx, getTargetObject(wrapper));
     const js::Class *clasp = js::GetObjectClass(target);
     JSProtoKey protoKey = JSCLASS_CACHED_PROTO_KEY(clasp);
     MOZ_ASSERT(protoKey == getProtoKey(holder));
@@ -659,126 +530,19 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
 }
 
 bool
-JSXrayTraits::delete_(JSContext *cx, HandleObject wrapper, HandleId id, bool *bp)
-{
-    RootedObject holder(cx, ensureHolder(cx, wrapper));
-
-    
-    
-    
-    bool isObjectInstance = getProtoKey(holder) == JSProto_Object && !isPrototype(holder);
-    if (isObjectInstance) {
-        RootedObject target(cx, getTargetObject(wrapper));
-        JSAutoCompartment ac(cx, target);
-        Rooted<JSPropertyDescriptor> desc(cx);
-        if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, &desc))
-            return false;
-        if (desc.object())
-            return JS_DeletePropertyById2(cx, target, id, bp);
-    }
-    *bp = true;
-    return true;
-}
-
-bool
-JSXrayTraits::defineProperty(JSContext *cx, HandleObject wrapper, HandleId id,
-                               MutableHandle<JSPropertyDescriptor> desc,
-                               Handle<JSPropertyDescriptor> existingDesc,
-                               bool *defined)
-{
-    *defined = false;
-    RootedObject holder(cx, ensureHolder(cx, wrapper));
-    if (!holder)
-        return false;
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool isObjectInstance = getProtoKey(holder) == JSProto_Object && !isPrototype(holder);
-    if (isObjectInstance) {
-        RootedObject target(cx, getTargetObject(wrapper));
-        if (desc.hasGetterOrSetter()) {
-            JS_ReportError(cx, "Not allowed to define accessor property on [Object] XrayWrapper");
-            return false;
-        }
-        if (desc.value().isObject() &&
-            !AccessCheck::subsumes(target, js::UncheckedUnwrap(&desc.value().toObject())))
-        {
-            JS_ReportError(cx, "Not allowed to define cross-origin object as property on [Object] XrayWrapper");
-            return false;
-        }
-        if (existingDesc.hasGetterOrSetter()) {
-            JS_ReportError(cx, "Not allowed to overwrite accessor property on [Object] XrayWrapper");
-            return false;
-        }
-        if (existingDesc.object() && existingDesc.object() != wrapper) {
-            JS_ReportError(cx, "Not allowed to shadow non-own Xray-resolved property on [Object] XrayWrapper");
-            return false;
-        }
-
-        JSAutoCompartment ac(cx, target);
-        if (!JS_WrapPropertyDescriptor(cx, desc) ||
-            !JS_DefinePropertyById(cx, target, id, desc.value(), desc.attributes(),
-                                   JS_PropertyStub, JS_StrictPropertyStub))
-        {
-            return false;
-        }
-        *defined = true;
-        return true;
-    }
-
-    return true;
-}
-
-bool
 JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
                              AutoIdVector &props)
 {
-    RootedObject target(cx, getTargetObject(wrapper));
     RootedObject holder(cx, ensureHolder(cx, wrapper));
     if (!holder)
         return false;
 
-    if (!isPrototype(holder)) {
-        
-        
-        switch (getProtoKey(holder)) {
-          case JSProto_Object:
-            MOZ_ASSERT(props.empty());
-            {
-                JSAutoCompartment ac(cx, target);
-                AutoIdVector targetProps(cx);
-                if (!js::GetPropertyNames(cx, target, flags | JSITER_OWNONLY, &targetProps))
-                    return false;
-                
-                
-                for (size_t i = 0; i < targetProps.length(); ++i) {
-                    Rooted<JSPropertyDescriptor> desc(cx);
-                    RootedId id(cx, targetProps[i]);
-                    if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, id, &desc))
-                        return false;
-                    if (desc.object())
-                        props.append(id);
-                }
-            }
-            return JS_WrapAutoIdVector(cx, props);
-          default:
-            
-            break;
-        }
-
-        
+    
+    if (!isPrototype(holder))
         return true;
-    }
 
     
+    RootedObject target(cx, getTargetObject(wrapper));
     const js::Class *clasp = js::GetObjectClass(target);
     MOZ_ASSERT(JSCLASS_CACHED_PROTO_KEY(clasp) == getProtoKey(holder));
     MOZ_ASSERT(clasp->spec.defined());
@@ -2278,20 +2042,14 @@ XrayWrapper<Base, Traits>::defineProperty(JSContext *cx, HandleObject wrapper,
     assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::SET);
 
     Rooted<JSPropertyDescriptor> existing_desc(cx);
-    if (!JS_GetPropertyDescriptorById(cx, wrapper, id, &existing_desc))
+    if (!getOwnPropertyDescriptor(cx, wrapper, id, &existing_desc))
         return false;
 
-    
-    
-    
-    
-    
-    
-    if (existing_desc.object() == wrapper && existing_desc.isPermanent())
+    if (existing_desc.object() && existing_desc.isPermanent())
         return true; 
 
     bool defined = false;
-    if (!Traits::singleton.defineProperty(cx, wrapper, id, desc, existing_desc, &defined))
+    if (!Traits::defineProperty(cx, wrapper, id, desc, existing_desc, &defined))
         return false;
     if (defined)
         return true;
@@ -2344,8 +2102,8 @@ XrayWrapper<Base, Traits>::delete_(JSContext *cx, HandleObject wrapper,
         JSAutoCompartment ac(cx, expando);
         return JS_DeletePropertyById2(cx, expando, id, bp);
     }
-
-    return Traits::singleton.delete_(cx, wrapper, id, bp);
+    *bp = true;
+    return true;
 }
 
 template <typename Base, typename Traits>

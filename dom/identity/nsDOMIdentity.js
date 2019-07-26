@@ -102,7 +102,6 @@ nsDOMIdentity.prototype = {
 
 
   watch: function nsDOMIdentity_watch(aOptions = {}) {
-    aOptions = Cu.waiveXrays(aOptions);
     if (this._rpWatcher) {
       
       
@@ -154,7 +153,6 @@ nsDOMIdentity.prototype = {
   },
 
   request: function nsDOMIdentity_request(aOptions = {}) {
-    aOptions = Cu.waiveXrays(aOptions);
     this._log("request: " + JSON.stringify(aOptions));
 
     
