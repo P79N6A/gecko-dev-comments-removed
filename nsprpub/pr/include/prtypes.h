@@ -212,6 +212,36 @@ PR_BEGIN_EXTERN_C
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__)
+#define PR_ALTERNATE_INT64_TYPEDEF
+#endif
+
+
+
+
+
+
+
+
 #if PR_BYTES_PER_BYTE == 1
 typedef unsigned char PRUint8;
 
@@ -331,12 +361,7 @@ typedef long PRInt32;
 
 #ifdef HAVE_LONG_LONG
 
-
-
-
-
-
-#if PR_BYTES_PER_LONG == 8 && !defined(__APPLE__)
+#if PR_BYTES_PER_LONG == 8 && !defined(PR_ALTERNATE_INT64_TYPEDEF)
 typedef long PRInt64;
 typedef unsigned long PRUint64;
 #define PR_INT64(x)  x ## L
