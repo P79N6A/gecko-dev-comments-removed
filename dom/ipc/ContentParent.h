@@ -86,7 +86,11 @@ public:
     
 
 
-    static TabParent* CreateBrowserOrApp(const TabContext& aContext);
+
+
+    static TabParent*
+    CreateBrowserOrApp(const TabContext& aContext,
+                       nsIDOMElement* aFrameElement);
 
     static void GetAll(nsTArray<ContentParent*>& aArray);
 
@@ -162,7 +166,10 @@ private:
     
     static already_AddRefed<ContentParent>
     MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
-                                    ChildPrivileges aPrivs);
+                                    ChildPrivileges aPrivs,
+                                    hal::ProcessPriority aInitialPriority);
+
+    static hal::ProcessPriority GetInitialProcessPriority(nsIDOMElement* aFrameElement);
 
     static void FirstIdle();
 
@@ -172,16 +179,28 @@ private:
     using PContentParent::SendPTestShellConstructor;
 
     ContentParent(const nsAString& aAppManifestURL, bool aIsForBrowser,
-                  base::ChildPrivileges aOSPrivileges = base::PRIVILEGES_DEFAULT);
+                  ChildPrivileges aOSPrivileges = base::PRIVILEGES_DEFAULT,
+                  hal::ProcessPriority aInitialPriority = hal::PROCESS_PRIORITY_FOREGROUND);
     virtual ~ContentParent();
 
     void Init();
 
     
     
+    void SetProcessInitialPriority(hal::ProcessPriority aInitialPriority);
+
+    
+    
+    
+    
+    void MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement);
+
+    
+    
     
     bool TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
-                                      ChildPrivileges aPrivs);
+                                      ChildPrivileges aPrivs,
+                                      hal::ProcessPriority aInitialPriority);
 
     
 
@@ -346,6 +365,8 @@ private:
     virtual bool RecvBroadcastVolume(const nsString& aVolumeName);
 
     virtual bool RecvRecordingDeviceEvents(const nsString& aRecordingStatus);
+
+    virtual bool RecvSystemMessageHandled() MOZ_OVERRIDE;
 
     virtual void ProcessingError(Result what) MOZ_OVERRIDE;
 
