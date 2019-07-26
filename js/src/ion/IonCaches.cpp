@@ -988,7 +988,7 @@ GetPropertyIC::update(JSContext *cx, size_t cacheIndex,
         
         
         IonSpew(IonSpew_InlineCaches, "Invalidating from idempotent cache %s:%d",
-                topScript->filename, topScript->lineno);
+                topScript->filename(), topScript->lineno);
 
         topScript->invalidatedIdempotentCache = true;
 

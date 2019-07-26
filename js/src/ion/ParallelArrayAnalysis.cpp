@@ -282,21 +282,21 @@ ParallelCompileContext::appendToWorklist(HandleFunction fun)
     
     if (!script->canParallelIonCompile()) {
         Spew(SpewCompile, "Skipping %p:%s:%u, canParallelIonCompile() is false",
-             fun.get(), script->filename, script->lineno);
+             fun.get(), script->filename(), script->lineno);
         return true;
     }
 
     
     if (script->parallelIon == ION_COMPILING_SCRIPT) {
         Spew(SpewCompile, "Skipping %p:%s:%u, off-main-thread compilation in progress",
-             fun.get(), script->filename, script->lineno);
+             fun.get(), script->filename(), script->lineno);
         return true;
     }
 
     
     if (script->parallelIon && script->parallelIon->bailoutExpected()) {
         Spew(SpewCompile, "Skipping %p:%s:%u, bailout expected",
-             fun.get(), script->filename, script->lineno);
+             fun.get(), script->filename(), script->lineno);
         return true;
     }
 
@@ -305,7 +305,7 @@ ParallelCompileContext::appendToWorklist(HandleFunction fun)
     
     if (script->getUseCount() < js_IonOptions.usesBeforeCompileParallel) {
         Spew(SpewCompile, "Skipping %p:%s:%u, use count %u < %u",
-             fun.get(), script->filename, script->lineno,
+             fun.get(), script->filename(), script->lineno,
              script->getUseCount(), js_IonOptions.usesBeforeCompileParallel);
         return true;
     }
