@@ -489,22 +489,9 @@ gfxPlatform::CreateDrawTargetForSurface(gfxASurface *aSurface, const IntSize& aS
 
 cairo_user_data_key_t kSourceSurface;
 
-
-
-
-
-
-
-
-struct SourceSurfaceUserData
+void SourceBufferDestroy(void *srcBuffer)
 {
-  RefPtr<SourceSurface> mSrcSurface;
-  BackendType mBackendType;
-};
-
-void SourceBufferDestroy(void *srcSurfUD)
-{
-  delete static_cast<SourceSurfaceUserData*>(srcSurfUD);
+  static_cast<SourceSurface*>(srcBuffer)->Release();
 }
 
 void SourceSnapshotDetached(cairo_surface_t *nullSurf)
@@ -521,10 +508,10 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
   void *userData = aSurface->GetData(&kSourceSurface);
 
   if (userData) {
-    SourceSurfaceUserData *surf = static_cast<SourceSurfaceUserData*>(userData);
+    SourceSurface *surf = static_cast<SourceSurface*>(userData);
 
-    if (surf->mSrcSurface->IsValid() && surf->mBackendType == aTarget->GetType()) {
-      return surf->mSrcSurface;
+    if (surf->IsValid()) {
+      return surf;
     }
     
     
@@ -637,11 +624,7 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
   }
 
   srcBuffer->AddRef();
-
-  SourceSurfaceUserData *srcSurfUD = new SourceSurfaceUserData;
-  srcSurfUD->mBackendType = aTarget->GetType();
-  srcSurfUD->mSrcSurface = srcBuffer;
-  aSurface->SetData(&kSourceSurface, srcSurfUD, SourceBufferDestroy);
+  aSurface->SetData(&kSourceSurface, srcBuffer, SourceBufferDestroy);
 
   return srcBuffer;
 }
