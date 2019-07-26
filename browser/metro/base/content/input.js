@@ -94,6 +94,7 @@ var TouchModule = {
     
     window.addEventListener("CancelTouchSequence", this, true);
     window.addEventListener("dblclick", this, true);
+    window.addEventListener("keydown", this, true);
 
     
     window.addEventListener("contextmenu", this, false);
@@ -156,8 +157,38 @@ var TouchModule = {
               }, 50);
             }
             break;
+          case "keydown":
+            this._handleKeyDown(aEvent);
+            break;
         }
       }
+    }
+  },
+
+  _handleKeyDown: function _handleKeyDown(aEvent) {
+    const TABKEY = 9;
+    if (aEvent.keyCode == TABKEY && !InputSourceHelper.isPrecise) {
+      if (Util.isEditable(aEvent.target) &&
+          aEvent.target.selectionStart != aEvent.target.selectionEnd) {
+        SelectionHelperUI.closeEditSession(false);
+      }
+      setTimeout(function() {
+        let element = Browser.selectedBrowser.contentDocument.activeElement;
+        
+        
+        
+        
+        if (Util.isEditable(element) &&
+            !SelectionHelperUI.isActive &&
+            element.selectionStart != element.selectionEnd &&
+            
+            aEvent.target != element) {
+              let rect = element.getBoundingClientRect();
+              SelectionHelperUI.attachEditSession(Browser.selectedBrowser,
+                                                  rect.left + rect.width / 2,
+                                                  rect.top + rect.height / 2);
+        }
+      }, 50);
     }
   },
 
