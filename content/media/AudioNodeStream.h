@@ -22,6 +22,7 @@ namespace mozilla {
 
 namespace dom {
 struct ThreeDPoint;
+class AudioParamTimeline;
 }
 
 class ThreadSharedFloatArrayBufferList;
@@ -49,7 +50,8 @@ public:
       mEngine(aEngine),
       mKind(aKind),
       mNumberOfInputChannels(2),
-      mMarkAsFinishedAfterThisBlock(false)
+      mMarkAsFinishedAfterThisBlock(false),
+      mAudioParamStream(false)
   {
     mMixingMode.mChannelCountMode = dom::ChannelCountMode::Max;
     mMixingMode.mChannelInterpretation = dom::ChannelInterpretation::Speakers;
@@ -74,6 +76,11 @@ public:
   void SetChannelMixingParameters(uint32_t aNumberOfChannels,
                                   dom::ChannelCountMode aChannelCountMoe,
                                   dom::ChannelInterpretation aChannelInterpretation);
+  void SetAudioParamHelperStream()
+  {
+    MOZ_ASSERT(!mAudioParamStream, "Can only do this once");
+    mAudioParamStream = true;
+  }
 
   virtual AudioNodeStream* AsAudioNodeStream() { return this; }
 
@@ -86,6 +93,10 @@ public:
   virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo);
   TrackTicks GetCurrentPosition();
   bool AllInputsFinished() const;
+  bool IsAudioParamStream() const
+  {
+    return mAudioParamStream;
+  }
 
   
   AudioNodeEngine* Engine() { return mEngine; }
@@ -112,6 +123,8 @@ protected:
   
   
   bool mMarkAsFinishedAfterThisBlock;
+  
+  bool mAudioParamStream;
 };
 
 }
