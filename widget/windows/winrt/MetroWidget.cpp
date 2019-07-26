@@ -997,16 +997,16 @@ void MetroWidget::UserActivity()
   }
 }
 
-
-
 void
 MetroWidget::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
 {
   if (!aPoint) {
     event.refPoint.x = event.refPoint.y = 0;
   } else {
-    event.refPoint.x = aPoint->x;
-    event.refPoint.y = aPoint->y;
+    CSSIntPoint cssPoint(aPoint->x, aPoint->y);
+    LayoutDeviceIntPoint layoutDeviceIntPoint = CSSIntPointToLayoutDeviceIntPoint(cssPoint);
+    event.refPoint.x = layoutDeviceIntPoint.x;
+    event.refPoint.y = layoutDeviceIntPoint.y;
   }
   event.time = ::GetMessageTime();
 }
@@ -1329,14 +1329,6 @@ MetroWidget::HasPendingInputEvent()
 }
 
 
-
-#include "nsIBrowserDOMWindow.h"
-#include "nsIWebNavigation.h"
-#include "nsIDocShellTreeItem.h"
-#include "nsIDOMWindow.h"
-#include "nsIDOMChromeWindow.h"
-#include "nsIWindowMediator.h"
-#include "nsIInterfaceRequestorUtils.h"
 
 class RequestContentRepaintEvent : public nsRunnable
 {
