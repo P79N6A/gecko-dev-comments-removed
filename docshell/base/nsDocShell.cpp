@@ -9214,18 +9214,23 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             SetDocCurrentStateObj(mOSHE);
 
             
-            if (mScriptGlobal) {
+            
+            
+            
+            
+            nsRefPtr<nsGlobalWindow> win = mScriptGlobal;
+            if (win) {
                 
                 bool doHashchange = sameExceptHashes && !curHash.Equals(newHash);
 
                 if (historyNavBetweenSameDoc || doHashchange) {
-                    mScriptGlobal->DispatchSyncPopState();
+                    win->DispatchSyncPopState();
                 }
 
                 if (doHashchange) {
                     
                     
-                    mScriptGlobal->DispatchAsyncHashchange(oldURI, aURI);
+                    win->DispatchAsyncHashchange(oldURI, aURI);
                 }
             }
 
