@@ -424,7 +424,7 @@ var gPluginHandler = {
   
   
   openPluginUpdatePage: function (aEvent) {
-    openUILinkIn(Services.urlFormatter.formatURLPref("plugins.update.url"), "tab");
+    openURL(Services.urlFormatter.formatURLPref("plugins.update.url"));
   },
 
 #ifdef MOZ_CRASHREPORTER
@@ -804,7 +804,9 @@ var gPluginHandler = {
     let contentDoc = aBrowser.contentDocument;
     let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindowUtils);
-    let plugins = cwu.plugins;
+    
+    let plugins = cwu.plugins.filter((plugin) =>
+      plugin.getContentTypeForMIMEType(plugin.actualType) == Ci.nsIObjectLoadingContent.TYPE_PLUGIN);
     if (plugins.length == 0) {
       if (notification) {
         PopupNotifications.remove(notification);
