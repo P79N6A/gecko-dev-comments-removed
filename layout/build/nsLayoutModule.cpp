@@ -352,35 +352,6 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsITelephonyProvider,
 
 
 
-
-
-
-
-
-
-class LayoutShutdownObserver MOZ_FINAL : public nsIObserver
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-};
-
-NS_IMPL_ISUPPORTS1(LayoutShutdownObserver, nsIObserver)
-
-NS_IMETHODIMP
-LayoutShutdownObserver::Observe(nsISupports *aSubject,
-                                const char *aTopic,
-                                const char16_t *someData)
-{
-  if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
-    Shutdown();
-    nsContentUtils::XPCOMShutdown();
-  }
-  return NS_OK;
-}
-
-
-
 static bool gInitialized = false;
 
 
@@ -409,24 +380,6 @@ Initialize()
   if (NS_FAILED(rv)) {
     Shutdown();
     return rv;
-  }
-
-  
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-
-  if (observerService) {
-    LayoutShutdownObserver* observer = new LayoutShutdownObserver();
-
-    if (!observer) {
-      Shutdown();
-
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    observerService->AddObserver(observer, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
-  } else {
-    NS_WARNING("Could not get an observer service.  We will leak on shutdown.");
   }
 
 #ifdef DEBUG
@@ -1293,6 +1246,8 @@ static const mozilla::Module::CategoryEntry kLayoutCategories[] = {
 static void
 LayoutModuleDtor()
 {
+  Shutdown();
+  nsContentUtils::XPCOMShutdown();
   nsScriptSecurityManager::Shutdown();
   xpcModuleDtor();
 }
