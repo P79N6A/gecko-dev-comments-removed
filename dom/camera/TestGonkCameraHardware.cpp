@@ -56,6 +56,33 @@ TestGonkCameraHardware::TestCase()
   return test;
 }
 
+const nsCString
+TestGonkCameraHardware::GetExtraParameters()
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const nsCString parameters = Preferences::GetCString("camera.control.test.hardware.gonk.parameters");
+  DOM_CAMERA_LOGA("TestGonkCameraHardware : extra-parameters '%s'\n",
+    parameters.get());
+  return parameters;
+}
+
 bool
 TestGonkCameraHardware::IsTestCaseInternal(const char* aTest, const char* aFile, int aLine)
 {
@@ -174,7 +201,14 @@ TestGonkCameraHardware::PullParameters(GonkCameraParameters& aParams)
     return static_cast<nsresult>(TestCaseError(UNKNOWN_ERROR));
   }
 
-  return GonkCameraHardware::PullParameters(aParams);
+  String8 s = mCamera->getParameters();
+  nsCString extra = GetExtraParameters();
+  if (!extra.IsEmpty()) {
+    s += ";";
+    s += extra.get();
+  }
+
+  return aParams.Unflatten(s);
 }
 
 int
