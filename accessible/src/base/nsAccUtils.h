@@ -25,7 +25,6 @@ struct nsRoleMapEntry;
 namespace mozilla {
 namespace a11y {
 
-class nsAccessNode;
 class Accessible;
 class HyperTextAccessible;
 class DocAccessible;
@@ -170,10 +169,9 @@ public:
 
 
 
-  static nsresult ConvertToScreenCoords(int32_t aX, int32_t aY,
-                                        uint32_t aCoordinateType,
-                                        nsAccessNode *aAccessNode,
-                                        nsIntPoint *aCoords);
+  static nsIntPoint ConvertToScreenCoords(int32_t aX, int32_t aY,
+                                          uint32_t aCoordinateType,
+                                          Accessible* aAccessible);
 
   
 
@@ -186,23 +184,16 @@ public:
 
 
 
-  static nsresult ConvertScreenCoordsTo(int32_t *aX, int32_t *aY,
-                                        uint32_t aCoordinateType,
-                                        nsAccessNode *aAccessNode);
+  static void ConvertScreenCoordsTo(int32_t* aX, int32_t* aY,
+                                    uint32_t aCoordinateType,
+                                    Accessible* aAccessible);
 
   
 
 
 
 
-  static nsIntPoint GetScreenCoordsForWindow(nsAccessNode *aAccessNode);
-
-  
-
-
-
-
-  static nsIntPoint GetScreenCoordsForParent(nsAccessNode *aAccessNode);
+  static nsIntPoint GetScreenCoordsForParent(Accessible* aAccessible);
 
   
 
