@@ -173,6 +173,11 @@ function activateCurrent(aMessage) {
     if (aAccessible.actionCount > 0) {
       aAccessible.doAction(0);
     } else {
+      let control = Utils.getEmbeddedControl(aAccessible);
+      if (control && control.actionCount > 0) {
+        control.doAction(0);
+      }
+
       
       
       
