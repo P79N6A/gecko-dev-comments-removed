@@ -418,6 +418,8 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(uint32_t aMaxbytes,
     MOZ_CRASH();
   }
 
+  JS_SetGrayGCRootsTracer(mJSRuntime, TraceGrayJS, this);
+
   mJSHolders.Init(512);
 }
 
@@ -652,6 +654,54 @@ CycleCollectedJSRuntime::TraverseNativeRoots(nsCycleCollectionNoteRootCallback& 
 
   Closure closure = { true, &aCb };
   mJSHolders.Enumerate(NoteJSHolder, &closure);
+}
+
+ void
+CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer, void* aData)
+{
+  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
+
+  
+  self->TraceNativeRoots(aTracer);
+}
+
+struct JsGcTracer : public TraceCallbacks
+{
+  virtual void Trace(JS::Heap<JS::Value> *p, const char *name, void *closure) const MOZ_OVERRIDE {
+    JS_CallHeapValueTracer(static_cast<JSTracer*>(closure), p, name);
+  }
+  virtual void Trace(JS::Heap<jsid> *p, const char *name, void *closure) const MOZ_OVERRIDE {
+    JS_CallHeapIdTracer(static_cast<JSTracer*>(closure), p, name);
+  }
+  virtual void Trace(JS::Heap<JSObject *> *p, const char *name, void *closure) const MOZ_OVERRIDE {
+    JS_CallHeapObjectTracer(static_cast<JSTracer*>(closure), p, name);
+  }
+  virtual void Trace(JS::Heap<JSString *> *p, const char *name, void *closure) const MOZ_OVERRIDE {
+    JS_CallHeapStringTracer(static_cast<JSTracer*>(closure), p, name);
+  }
+  virtual void Trace(JS::Heap<JSScript *> *p, const char *name, void *closure) const MOZ_OVERRIDE {
+    JS_CallHeapScriptTracer(static_cast<JSTracer*>(closure), p, name);
+  }
+};
+
+static PLDHashOperator
+TraceJSHolder(void* aHolder, nsScriptObjectTracer*& aTracer, void* aArg)
+{
+  aTracer->Trace(aHolder, JsGcTracer(), aArg);
+
+  return PL_DHASH_NEXT;
+}
+
+void
+CycleCollectedJSRuntime::TraceNativeRoots(JSTracer* aTracer)
+{
+  MaybeTraceGlobals(aTracer);
+
+  
+  
+  TraceAdditionalNativeRoots(aTracer);
+
+  mJSHolders.Enumerate(TraceJSHolder, aTracer);
 }
 
 void
