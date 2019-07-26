@@ -173,6 +173,9 @@ class nsNativeTheme : public nsITimerCallback
 
   bool IsRangeHorizontal(nsIFrame* aFrame);
 
+  
+  bool IsDarkBackground(nsIFrame* aFrame);
+
  private:
   uint32_t mAnimatedContentTimeout;
   nsCOMPtr<nsITimer> mAnimatedContentTimer;
