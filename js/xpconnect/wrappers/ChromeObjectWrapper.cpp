@@ -36,7 +36,7 @@ PropIsFromStandardPrototype(JSContext *cx, JS::MutableHandle<JSPropertyDescripto
     MOZ_ASSERT(desc.object());
     RootedObject unwrapped(cx, js::UncheckedUnwrap(desc.object()));
     JSAutoCompartment ac(cx, unwrapped);
-    return JS_IdentifyClassPrototype(cx, unwrapped) != JSProto_Null;
+    return JS_IdentifyClassPrototype(unwrapped) != JSProto_Null;
 }
 
 
