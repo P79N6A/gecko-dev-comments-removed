@@ -43,5 +43,8 @@ setDefaultPrefs();
 setPermissions(args[0], args[1]);
 
 
-Components.utils.import("chrome://reftest/content/reftest.jsm");
-OnRefTestLoad(win);
+
+let reftest = {}; Components.utils.import("chrome://reftest/content/reftest.jsm", reftest);
+
+
+reftest.OnRefTestLoad(win);
