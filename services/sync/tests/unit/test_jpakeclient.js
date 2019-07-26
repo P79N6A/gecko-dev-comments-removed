@@ -186,7 +186,6 @@ function run_test() {
 
   
   
-  ensureLegacyIdentityManager();
   setBasicCredentials("johndoe", "ilovejane");
 
   initTestLogging("Trace");

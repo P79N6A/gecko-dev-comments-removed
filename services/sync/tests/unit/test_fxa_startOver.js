@@ -15,9 +15,9 @@ add_task(function* test_startover() {
   let oldValue = Services.prefs.getBoolPref("services.sync-testing.startOverKeepIdentity", true);
   Services.prefs.setBoolPref("services.sync-testing.startOverKeepIdentity", false);
 
-  ensureLegacyIdentityManager();
   yield configureIdentity({username: "johndoe"});
-
+  
+  do_check_false(Services.prefs.getBoolPref("services.sync.fxaccounts.enabled"));
   
   let xps = Cc["@mozilla.org/weave/service;1"]
             .getService(Components.interfaces.nsISupports)
@@ -44,6 +44,8 @@ add_task(function* test_startover() {
   yield deferred.promise; 
 
   
+  do_check_true(Services.prefs.getBoolPref("services.sync.fxaccounts.enabled"));
+  
   do_check_true(xps.fxAccountsEnabled);
   
   do_check_true(Service.identity instanceof BrowserIDManager);
@@ -55,5 +57,6 @@ add_task(function* test_startover() {
   do_check_neq(oldClusterManager, Service._clusterManager);
 
   
+  Services.prefs.setBoolPref("services.sync.fxaccounts.enabled", false);
   Services.prefs.setBoolPref("services.sync-testing.startOverKeepIdentity", oldValue);
 });

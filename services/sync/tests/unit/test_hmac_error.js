@@ -21,7 +21,6 @@ function shared_setup() {
   hmacErrorCount = 0;
 
   
-  ensureLegacyIdentityManager();
   setBasicCredentials("foo", "foo", "aabcdeabcdeabcdeabcdeabcde");
 
   
