@@ -559,7 +559,9 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     mTiledBuffer.PaintThebes(this, mValidRegion, invalidRegion, aCallback, aCallbackData);
     mTiledBuffer.ReadLock();
 
-    static_cast<BasicImplData*>(aMaskLayer->ImplData())->Paint(aContext, nullptr);
+    if (aMaskLayer) {
+      static_cast<BasicImplData*>(aMaskLayer->ImplData())->Paint(aContext, nullptr);
+    }
 
     
     
