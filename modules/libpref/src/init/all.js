@@ -1273,6 +1273,8 @@ pref("network.seer.preconnect-min-confidence", 90);
 pref("network.seer.preresolve-min-confidence", 60);
 pref("network.seer.redirect-likely-confidence", 75);
 pref("network.seer.max-queue-size", 50);
+pref("network.seer.max-db-size", 157286400); 
+pref("network.seer.preserve", 80); 
 
 
 
