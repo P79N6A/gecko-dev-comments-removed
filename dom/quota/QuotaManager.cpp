@@ -1341,9 +1341,7 @@ QuotaManager::GetQuotaObject(PersistenceType aPersistenceType,
     fileSize = 0;
   }
 
-  
-  
-  QuotaObject* quotaObject;
+  nsRefPtr<QuotaObject> result;
   {
     MutexAutoLock lock(mQuotaMutex);
 
@@ -1364,16 +1362,26 @@ QuotaManager::GetQuotaObject(PersistenceType aPersistenceType,
       return nullptr;
     }
 
+    
+    
+    
+    QuotaObject* quotaObject;
     if (!originInfo->mQuotaObjects.Get(path, &quotaObject)) {
-      quotaObject = new QuotaObject(originInfo, path, fileSize);
-      originInfo->mQuotaObjects.Put(path, quotaObject);
       
+      quotaObject = new QuotaObject(originInfo, path, fileSize);
+
+      
+      
+      originInfo->mQuotaObjects.Put(path, quotaObject);
     }
+
+    
+    
+    result = quotaObject->LockedAddRef();
   }
 
   
   
-  nsRefPtr<QuotaObject> result = quotaObject;
   return result.forget();
 }
 
