@@ -47,7 +47,7 @@ if (OS.Constants.Win) {
 let Type = OS.Shared.Type;
 
 
-Components.utils.import("resource://gre/modules/commonjs/promise/core.js", this);
+Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", this);
 
 
 Components.utils.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
