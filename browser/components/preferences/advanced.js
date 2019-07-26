@@ -148,6 +148,15 @@ var gAdvancedPane = {
   
 
 
+  openTextLink: function (evt) {
+    let where = Services.prefs.getBoolPref("browser.preferences.instantApply") ? "tab" : "window";
+    openUILinkIn(evt.target.getAttribute("href"), where);
+    evt.preventDefault();
+  },
+
+  
+
+
   _setupLearnMoreLink: function (pref, element) {
     
     let url = Services.prefs.getCharPref(pref);
