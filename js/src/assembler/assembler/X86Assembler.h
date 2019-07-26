@@ -2650,6 +2650,11 @@ public:
     
     bool nextJump(const JmpSrc& from, JmpSrc* next)
     {
+        
+        
+        if (oom())
+            return false;
+
         char* code = reinterpret_cast<char*>(m_formatter.data());
         int32_t offset = getInt32(code + from.m_offset);
         if (offset == -1)
