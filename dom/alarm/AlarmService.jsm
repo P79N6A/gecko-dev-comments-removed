@@ -47,8 +47,7 @@ this.AlarmService = {
     
     const messages = ["AlarmsManager:GetAll",
                       "AlarmsManager:Add",
-                      "AlarmsManager:Remove",
-                      "SystemMessageManager:HandleMessageDone"];
+                      "AlarmsManager:Remove"];
     messages.forEach(function addMessage(msgName) {
         ppmm.addMessageListener(msgName, this);
     }.bind(this));
@@ -63,8 +62,6 @@ this.AlarmService = {
     this._alarmQueue = [];
 
     this._restoreAlarmsFromDb();
-
-    this._cpuWakeLocks = {};
   },
 
   
@@ -216,14 +213,6 @@ this.AlarmService = {
         );
         break;
 
-      case "SystemMessageManager:HandleMessageDone":
-        if (json.type != "alarm") {
-          return;
-        }
-        debug("Unlock the CPU wake lock after the alarm is handled for sure.");
-        this._unlockCpuWakeLock(json.message.id);
-        break;
-
       default:
         throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
         break;
@@ -285,22 +274,6 @@ this.AlarmService = {
   _fireSystemMessage: function _fireSystemMessage(aAlarm) {
     debug("Fire system message: " + JSON.stringify(aAlarm));
 
-    
-    
-    this._cpuWakeLocks[aAlarm.id] = {
-      wakeLock: powerManagerService.newWakeLock("cpu"),
-      timer: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer)
-    };
-
-    
-    
-    
-    
-    this._cpuWakeLocks[aAlarm.id].timer.initWithCallback(function timerCb() {
-      debug("Unlock the CPU wake lock if the alarm isn't properly handled.");
-      this._unlockCpuWakeLock(aAlarm.id);
-    }.bind(this), 30000, Ci.nsITimer.TYPE_ONE_SHOT);
-
     let manifestURI = Services.io.newURI(aAlarm.manifestURL, null, null);
     let pageURI = Services.io.newURI(aAlarm.pageURL, null, null);
 
@@ -312,15 +285,6 @@ this.AlarmService = {
                   "data":            aAlarm.data };
 
     messenger.sendMessage("alarm", alarm, pageURI, manifestURI);
-  },
-
-  _unlockCpuWakeLock: function _unlockCpuWakeLock(aAlarmId) {
-    let cpuWakeLock = this._cpuWakeLocks[aAlarmId];
-    if (cpuWakeLock) {
-      cpuWakeLock.wakeLock.unlock();
-      cpuWakeLock.timer.cancel();
-      delete this._cpuWakeLocks[aAlarmId];
-    }
   },
 
   _onAlarmFired: function _onAlarmFired() {
