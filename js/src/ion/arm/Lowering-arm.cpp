@@ -4,6 +4,7 @@
 
 
 
+
 #include "ion/MIR.h"
 #include "ion/Lowering.h"
 #include "Assembler-arm.h"
@@ -302,12 +303,12 @@ LIRGeneratorARM::newLGetPropertyCacheT(MGetPropertyCache *ins)
 }
 
 bool
-LIRGeneratorARM::visitGuardShape(MGuardShape *ins)
+LIRGeneratorARM::visitGuardShapeOrType(MGuardShapeOrType *ins)
 {
     JS_ASSERT(ins->obj()->type() == MIRType_Object);
 
     LDefinition tempObj = temp(LDefinition::OBJECT);
-    LGuardShape *guard = new LGuardShape(useRegister(ins->obj()), tempObj);
+    LGuardShapeOrType *guard = new LGuardShapeOrType(useRegister(ins->obj()), tempObj);
     if (!assignSnapshot(guard, ins->bailoutKind()))
         return false;
     if (!add(guard, ins))
@@ -436,15 +437,6 @@ bool
 LIRGeneratorARM::visitAsmJSLoadFuncPtr(MAsmJSLoadFuncPtr *ins)
 {
     return define(new LAsmJSLoadFuncPtr(useRegister(ins->index()), temp()), ins);
-}
-
-bool
-LIRGeneratorARM::lowerTruncateDToInt32(MTruncateToInt32 *ins)
-{
-    MDefinition *opd = ins->input();
-    JS_ASSERT(opd->type() == MIRType_Double);
-
-    return define(new LTruncateDToInt32(useRegister(opd), LDefinition::BogusTemp()), ins);
 }
 
 

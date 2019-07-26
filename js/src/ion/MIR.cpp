@@ -5,6 +5,7 @@
 
 
 
+#include "BaselineInspector.h"
 #include "IonBuilder.h"
 #include "LICM.h" 
 #include "MIR.h"
@@ -1382,8 +1383,16 @@ MCompare::inputType()
     }
 }
 
+
+
+static bool
+CanUseDoubleCompare(ICStub::Kind kind)
+{
+    return kind == ICStub::Compare_Double || kind == ICStub::Compare_NumberWithUndefined;
+}
+
 void
-MCompare::infer(JSContext *cx)
+MCompare::infer(JSContext *cx, BaselineInspector *inspector, jsbytecode *pc)
 {
     JS_ASSERT(operandMightEmulateUndefined());
 
@@ -1488,6 +1497,29 @@ MCompare::infer(JSContext *cx)
     if (!relationalEq && CanDoValueBitwiseCmp(cx, getOperand(0), getOperand(1), looseEq)) {
         compareType_ = Compare_Value;
         return;
+    }
+
+    
+    
+    
+    
+    
+
+    if (!strictEq) {
+        ICStub::Kind kind = inspector->monomorphicStubKind(pc);
+
+        if (CanUseDoubleCompare(kind)) {
+            compareType_ = Compare_Double;
+            return;
+        }
+
+        ICStub::Kind first, second;
+        if (inspector->dimorphicStubKind(pc, &first, &second)) {
+            if (CanUseDoubleCompare(first) && CanUseDoubleCompare(second)) {
+                compareType_ = Compare_Double;
+                return;
+            }
+        }
     }
 }
 

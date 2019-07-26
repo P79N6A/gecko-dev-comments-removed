@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_ion_lowering_arm_h__
 #define jsion_ion_lowering_arm_h__
 
@@ -42,8 +43,6 @@ class LIRGeneratorARM : public LIRGeneratorShared
     bool lowerForFPU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir,
                      MDefinition *lhs, MDefinition *rhs);
 
-    bool lowerTruncateDToInt32(MTruncateToInt32 *ins);
-
     bool lowerConstantDouble(double d, MInstruction *ins);
     bool lowerDivI(MDiv *div);
     bool lowerModI(MMod *mod);
@@ -64,7 +63,7 @@ class LIRGeneratorARM : public LIRGeneratorShared
     bool visitUnbox(MUnbox *unbox);
     bool visitReturn(MReturn *ret);
     bool lowerPhi(MPhi *phi);
-    bool visitGuardShape(MGuardShape *ins);
+    bool visitGuardShapeOrType(MGuardShapeOrType *ins);
     bool visitStoreTypedArrayElement(MStoreTypedArrayElement *ins);
     bool visitStoreTypedArrayElementHole(MStoreTypedArrayElementHole *ins);
     bool visitAsmJSUnsignedToDouble(MAsmJSUnsignedToDouble *ins);
