@@ -1997,9 +1997,6 @@ GK_ATOM(x_central_euro, "x-central-euro")
 GK_ATOM(x_symbol, "x-symbol")
 
 
-GK_ATOM(x_user_def, "x-user-def")
-
-
 GK_ATOM(az, "az")
 GK_ATOM(ba, "ba")
 GK_ATOM(crh, "crh")

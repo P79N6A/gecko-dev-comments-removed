@@ -509,13 +509,9 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
 
     
     
-    
-    
     nsString fontString;
     gfxPlatform::GetPlatform()->GetPrefFonts(nsGkAtoms::Unicode, fontString, false);
     ForEachFont(fontString, nsGkAtoms::Unicode, FontCallback, &familyArray);
-    gfxPlatform::GetPlatform()->GetPrefFonts(nsGkAtoms::x_user_def, fontString, false);
-    ForEachFont(fontString, nsGkAtoms::x_user_def, FontCallback, &familyArray);
 
     
     
