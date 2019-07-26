@@ -289,6 +289,11 @@ _cairo_create_in_error (cairo_status_t status)
     assert (status != CAIRO_STATUS_SUCCESS);
 
     
+    if (status < 0 || status > CAIRO_STATUS_LAST_STATUS) {
+      abort();
+    }
+
+    
     switch ((int) status) {
     case CAIRO_STATUS_NO_MEMORY:
 	return (cairo_t *) &_cairo_nil;
