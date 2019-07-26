@@ -3,7 +3,6 @@
 
 
 #include <string>
-#include <iostream>
 
 #include "vcm.h"
 #include "CSFLog.h"
