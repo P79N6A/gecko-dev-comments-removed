@@ -957,9 +957,9 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   if (picture) {
     
     NS_DispatchToMainThread(gUMRunnable);
+    return NS_OK;
   }
-  
-#else
+#endif
   
   if (aPrivileged || fake) {
     mMediaThread->Dispatch(gUMRunnable, NS_DISPATCH_NORMAL);
@@ -1001,7 +1001,6 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
     nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
     obs->NotifyObservers(aParams, "getUserMedia:request", data.get());
   }
-#endif
 
   return NS_OK;
 }
