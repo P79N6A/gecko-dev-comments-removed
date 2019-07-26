@@ -776,6 +776,14 @@ var gBrowserInit = {
 
     window.addEventListener("AppCommand", HandleAppCommandEvent, true);
 
+    
+    
+    
+    
+    DOMLinkHandler.init();
+    gPageStyleMenu.init();
+    LanguageDetectionListener.init();
+
     messageManager.loadFrameScript("chrome://browser/content/content.js", true);
 
     
@@ -793,9 +801,6 @@ var gBrowserInit = {
     
     gBrowser.addProgressListener(window.XULBrowserWindow);
     gBrowser.addTabsProgressListener(window.TabsProgressListener);
-
-    
-    DOMLinkHandler.init();
 
     
     gGestureSupport.init(true);
@@ -1022,8 +1027,6 @@ var gBrowserInit = {
     IndexedDBPromptHelper.init();
     gFormSubmitObserver.init();
     gRemoteTabsUI.init();
-    gPageStyleMenu.init();
-    LanguageDetectionListener.init();
 
     
     
