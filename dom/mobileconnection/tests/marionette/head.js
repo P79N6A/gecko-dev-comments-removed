@@ -398,6 +398,23 @@ function selectNetworkAutomaticallyAndWait() {
 
 
 
+function sendMMI(aMmi) {
+  let request = mobileConnection.sendMMI(aMmi);
+  return wrapDomRequestAsPromise(request)
+    .then(() => request.result, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
