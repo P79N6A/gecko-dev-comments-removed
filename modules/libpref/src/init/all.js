@@ -4386,6 +4386,9 @@ pref("dom.w3c_touch_events.enabled", 2);
 #endif
 
 
+pref("dom.w3c_pointer_events.enabled", false);
+
+
 pref("browser.dom.window.dump.enabled", false);
 
 
