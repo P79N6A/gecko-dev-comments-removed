@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #ifndef __NSTARRAYHELPERS_H__
 #define __NSTARRAYHELPERS_H__
@@ -32,7 +32,7 @@ nsTArrayToJSArray(JSContext* aCx, const nsTArray<T>& aSourceArray,
                                     nullptr, true);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!JS_SetElement(aCx, arrayObj, index, wrappedVal.address())) {
+    if (!JS_SetElement(aCx, arrayObj, index, &wrappedVal)) {
       NS_WARNING("JS_SetElement failed!");
       return NS_ERROR_FAILURE;
     }
@@ -73,7 +73,7 @@ nsTArrayToJSArray<nsString>(JSContext* aCx,
 
     JS::Rooted<JS::Value> wrappedVal(aCx, STRING_TO_JSVAL(s));
 
-    if (!JS_SetElement(aCx, arrayObj, index, wrappedVal.address())) {
+    if (!JS_SetElement(aCx, arrayObj, index, &wrappedVal)) {
       NS_WARNING("JS_SetElement failed!");
       return NS_ERROR_FAILURE;
     }
@@ -88,4 +88,4 @@ nsTArrayToJSArray<nsString>(JSContext* aCx,
   return NS_OK;
 }
 
-#endif /* __NSTARRAYHELPERS_H__ */
+#endif 
