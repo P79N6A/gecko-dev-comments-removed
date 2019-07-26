@@ -197,11 +197,10 @@ js::ToBooleanSlow(const Value &v)
 
 
 
-
 bool
 js::BooleanGetPrimitiveValueSlow(HandleObject wrappedBool, JSContext *cx)
 {
-    JS_ASSERT(wrappedBool->isCrossCompartmentWrapper());
+    JS_ASSERT(wrappedBool->isProxy());
     JSObject *obj = Wrapper::wrappedObject(wrappedBool);
     JS_ASSERT(obj);
     return obj->as<BooleanObject>().unbox();
