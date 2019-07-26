@@ -35,6 +35,14 @@ GonkPermissionService::checkPermission(const String16& permission, int32_t pid,
   if (0 == uid)
     return true;
 
+  String8 perm8(permission);
+
+
+  
+  if (uid == AID_RADIO &&
+      perm8 == "android.permission.MODIFY_AUDIO_SETTINGS")
+    return true;
+
   
   
   
@@ -44,8 +52,6 @@ GonkPermissionService::checkPermission(const String16& permission, int32_t pid,
       String8(permission).string(), pid, uid);
     return false;
   }
-
-  String8 perm8(permission);
 
   if (perm8 != "android.permission.CAMERA" &&
     perm8 != "android.permission.RECORD_AUDIO") {
