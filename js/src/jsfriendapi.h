@@ -1298,6 +1298,33 @@ JS_GetDataViewByteLength(JSObject *obj);
 JS_FRIEND_API(void *)
 JS_GetDataViewData(JSObject *obj);
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(bool)
+WatchGuts(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(bool)
+UnwatchGuts(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
+
+} 
+
 
 
 
