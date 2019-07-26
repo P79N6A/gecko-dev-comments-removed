@@ -3,7 +3,7 @@ var config = getBuildConfiguration();
 
 
 
-if (!(config.debug && config.asan)) {
+if (!config.debug && !config.asan) {
     let a = [];
     a.length = getMaxArgs() + 1;
 
