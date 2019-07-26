@@ -93,6 +93,9 @@ DebuggerPanel.prototype = {
 
   highlightWhenPaused: function() {
     this._toolbox.highlightTool("jsdebugger");
+    
+    
+    this._toolbox.raise();
   },
 
   unhighlightWhenResumed: function() {
