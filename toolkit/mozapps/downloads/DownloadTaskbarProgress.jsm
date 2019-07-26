@@ -14,13 +14,21 @@ this.EXPORTED_SYMBOLS = [
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const kTaskbarID = "@mozilla.org/windows-taskbar;1";
+const kTaskbarIDWin = "@mozilla.org/windows-taskbar;1";
+const kTaskbarIDMac = "@mozilla.org/widget/macdocksupport;1";
 
 
 
 
 this.DownloadTaskbarProgress =
 {
+  init: function DTP_init()
+  {
+    if (DownloadTaskbarProgressUpdater) {
+      DownloadTaskbarProgressUpdater._init();
+    }
+  },
+
   
 
 
@@ -31,6 +39,7 @@ this.DownloadTaskbarProgress =
 
   onBrowserWindowLoad: function DTP_onBrowserWindowLoad(aWindow)
   {
+    this.init();
     if (!DownloadTaskbarProgressUpdater) {
       return;
     }
@@ -84,6 +93,9 @@ this.DownloadTaskbarProgress =
 var DownloadTaskbarProgressUpdater =
 {
   
+  _initialized: false,
+
+  
   _taskbar: null,
 
   
@@ -94,18 +106,27 @@ var DownloadTaskbarProgressUpdater =
 
   _init: function DTPU_init()
   {
-    if (!(kTaskbarID in Cc)) {
-      
+    if (this._initialized) {
+      return; 
+    }
+    this._initialized = true;
+
+    if (kTaskbarIDWin in Cc) {
+      this._taskbar = Cc[kTaskbarIDWin].getService(Ci.nsIWinTaskbar);
+      if (!this._taskbar.available) {
+        
+        DownloadTaskbarProgressUpdater = null;
+        return;
+      }
+    } else if (kTaskbarIDMac in Cc) {
+      this._activeTaskbarProgress = Cc[kTaskbarIDMac].
+                                      getService(Ci.nsITaskbarProgress);
+    } else {
       DownloadTaskbarProgressUpdater = null;
       return;
     }
 
-    this._taskbar = Cc[kTaskbarID].getService(Ci.nsIWinTaskbar);
-    if (!this._taskbar.available) {
-      
-      DownloadTaskbarProgressUpdater = null;
-      return;
-    }
+    this._taskbarState = Ci.nsITaskbarProgress.STATE_NO_PROGRESS;
 
     this._dm = Cc["@mozilla.org/download-manager;1"].
                getService(Ci.nsIDownloadManager);
@@ -126,6 +147,8 @@ var DownloadTaskbarProgressUpdater =
   _uninit: function DTPU_uninit() {
     this._dm.removeListener(this);
     this._os.removeObserver(this, "quit-application-granted");
+    this._activeTaskbarProgress = null;
+    this._initialized = false;
   },
 
   
@@ -150,6 +173,7 @@ var DownloadTaskbarProgressUpdater =
 
   _setActiveWindow: function DTPU_setActiveWindow(aWindow, aIsDownloadWindow)
   {
+#ifdef XP_WIN
     
     
     this._clearTaskbar();
@@ -175,12 +199,26 @@ var DownloadTaskbarProgressUpdater =
     else {
       this._activeTaskbarProgress = null;
     }
+#endif
   },
 
   
-  _taskbarState: Ci.nsITaskbarProgress.STATE_NO_PROGRESS,
+  _taskbarState: null,
   _totalSize: 0,
   _totalTransferred: 0,
+
+  
+  
+  _shouldSetState: function DTPU_shouldSetState()
+  {
+#ifdef XP_WIN
+    return this._activeWindowIsDownloadWindow ||
+           (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL ||
+            this._taskbarState == Ci.nsITaskbarProgress.STATE_INDETERMINATE);
+#else
+    return true;
+#endif
+  },
 
   
 
@@ -198,11 +236,7 @@ var DownloadTaskbarProgressUpdater =
       return;
     }
 
-    
-    
-    if (this._activeWindowIsDownloadWindow ||
-        (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL ||
-         this._taskbarState == Ci.nsITaskbarProgress.STATE_INDETERMINATE)) {
+    if (this._shouldSetState()) {
       this._activeTaskbarProgress.setProgressState(this._taskbarState,
                                                    this._totalTransferred,
                                                    this._totalSize);
@@ -361,8 +395,3 @@ var DownloadTaskbarProgressUpdater =
     }
   }
 };
-
-
-
-
-DownloadTaskbarProgressUpdater._init();

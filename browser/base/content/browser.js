@@ -1486,14 +1486,9 @@ var gBrowserInit = {
     
     setTimeout(function() {
       Services.downloads;
-
-#ifdef XP_WIN
-      if (Win7Features) {
-        let DownloadTaskbarProgress =
-          Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", {}).DownloadTaskbarProgress;
-        DownloadTaskbarProgress.onBrowserWindowLoad(window);
-      }
-#endif
+      let DownloadTaskbarProgress =
+        Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", {}).DownloadTaskbarProgress;
+      DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }, 10000);
 
     
