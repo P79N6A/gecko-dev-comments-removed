@@ -413,7 +413,7 @@ ContainerRender(ContainerT* aContainer,
     LayerRect layerBounds = ParentLayerRect(frame.mCompositionBounds) * ParentLayerToLayerScale(1.0);
     gfx::Rect rect(layerBounds.x, layerBounds.y, layerBounds.width, layerBounds.height);
     gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
-    aManager->GetCompositor()->DrawDiagnostics(DIAGNOSTIC_CONTAINER,
+    aManager->GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTAINER,
                                                rect, clipRect,
                                                aContainer->GetEffectiveTransform());
   }
