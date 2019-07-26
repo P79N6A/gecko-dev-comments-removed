@@ -262,11 +262,12 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   
   
   bool useA11yPref = false;
+#ifdef XP_WIN
+  useA11yPref =  a11y::Compatibility::IsJAWS();
+#endif
 #endif
 
 #ifdef XP_WIN
-  useA11yPref =  a11y::Compatibility::IsJAWS();
-
   
   
   if (aPluginTag->mIsFlashPlugin && IsVistaOrLater()) {

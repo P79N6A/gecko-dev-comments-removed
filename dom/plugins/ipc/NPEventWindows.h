@@ -98,7 +98,7 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
 
             default:
                 
-                if (paramCopy.event.event >= 0xC000 && paramCopy.event.event <= 0xFFFF)
+                if (paramCopy.event.event >= 0xC000)
                     break;
 
                 
