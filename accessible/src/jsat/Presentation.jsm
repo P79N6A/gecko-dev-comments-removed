@@ -31,17 +31,6 @@ Presenter.prototype = {
 
 
 
-  attach: function attach(aWindow) {},
-
-  
-
-
-  detach: function detach() {},
-
-  
-
-
-
 
 
 
