@@ -566,7 +566,29 @@ protected:
 
 
 
+
+
+
+  bool ConvertStringToNumber(nsAString& aValue, double& aResultValue) const;
+
+  
+
+
+
+
+
   bool IsValidDate(nsAString& aValue) const;
+
+  
+
+
+
+
+
+  bool GetValueAsDate(nsAString& aValue,
+                      uint32_t& aYear,
+                      uint32_t& aMonth,
+                      uint32_t& aDay) const;
 
   
 
