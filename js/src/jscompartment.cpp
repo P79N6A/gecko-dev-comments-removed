@@ -223,19 +223,17 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
     if (!vp.isMarkable())
         return true;
 
+    
     if (vp.isString()) {
         JSString *str = vp.toString();
-
-        
-        if (str->zone() == zone())
-            return true;
-
-        
-        if (str->isAtom()) {
-            JS_ASSERT(cx->runtime()->isAtomsZone(str->zone()));
-            return true;
-        }
+        if (!wrap(cx, &str))
+            return false;
+        vp.setString(str);
+        return true;
     }
+
+    
+    MOZ_ASSERT(vp.isObject());
 
     
 
@@ -295,34 +293,6 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
         return true;
     }
 
-    if (vp.isString()) {
-        Rooted<JSLinearString *> str(cx, vp.toString()->ensureLinear(cx));
-        if (!str)
-            return false;
-
-        JSString *wrapped = js_NewStringCopyN<CanGC>(cx, str->chars(), str->length());
-        if (!wrapped)
-            return false;
-
-        vp.setString(wrapped);
-        if (!putWrapper(key, vp))
-            return false;
-
-        if (str->zone()->isGCMarking()) {
-            
-
-
-
-
-
-            JSString *tmp = str;
-            MarkStringUnbarriered(&rt->gcMarker, &tmp, "wrapped string");
-            JS_ASSERT(tmp == str);
-        }
-
-        return true;
-    }
-
     RootedObject proto(cx, Proxy::LazyProto);
     RootedObject obj(cx, &vp.toObject());
     RootedObject existing(cx, existingArg);
@@ -359,20 +329,58 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
 bool
 JSCompartment::wrap(JSContext *cx, JSString **strp)
 {
-    RootedValue value(cx, StringValue(*strp));
-    if (!wrap(cx, &value))
+    
+    JSString *str = *strp;
+    if (str->zone() == zone())
+        return true;
+
+    
+    if (str->isAtom()) {
+        JS_ASSERT(cx->runtime()->isAtomsZone(str->zone()));
+        return true;
+    }
+
+    
+    RootedValue key(cx, StringValue(str));
+    if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(key)) {
+        *strp = p->value.get().toString();
+        return true;
+    }
+
+    
+    Rooted<JSLinearString *> linear(cx, str->ensureLinear(cx));
+    if (!linear)
         return false;
-    *strp = value.get().toString();
+    JSString *copy = js_NewStringCopyN<CanGC>(cx, linear->chars(),
+                                              linear->length());
+    if (!copy)
+        return false;
+    if (!putWrapper(key, StringValue(copy)))
+        return false;
+
+    if (linear->zone()->isGCMarking()) {
+        
+
+
+
+
+
+        JSString *tmp = linear;
+        MarkStringUnbarriered(&cx->runtime()->gcMarker, &tmp, "wrapped string");
+        JS_ASSERT(tmp == linear);
+    }
+
+    *strp = copy;
     return true;
 }
 
 bool
 JSCompartment::wrap(JSContext *cx, HeapPtrString *strp)
 {
-    RootedValue value(cx, StringValue(*strp));
-    if (!wrap(cx, &value))
+    RootedString str(cx, *strp);
+    if (!wrap(cx, str.address()))
         return false;
-    *strp = value.get().toString();
+    *strp = str;
     return true;
 }
 
