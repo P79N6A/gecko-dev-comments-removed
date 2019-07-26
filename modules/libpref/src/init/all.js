@@ -2039,7 +2039,7 @@ pref("plugins.click_to_play", false);
 
 
 
-pref("plugins.enumerable_names", "*");
+pref("plugins.enumerable_names", "Java,QuickTime,Shockwave");
 
 
 pref("plugin.default.state", 2);
