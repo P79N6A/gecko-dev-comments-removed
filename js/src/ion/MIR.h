@@ -4823,11 +4823,11 @@ class MCallGetProperty
     public BoxInputsPolicy
 {
     CompilerRootPropertyName name_;
-    bool markEffectful_;
+    bool idempotent_;
 
     MCallGetProperty(MDefinition *value, HandlePropertyName name)
       : MUnaryInstruction(value), name_(name),
-        markEffectful_(true)
+        idempotent_(false)
     {
         setResultType(MIRType_Value);
     }
@@ -4851,11 +4851,11 @@ class MCallGetProperty
     
     
     
-    void markUneffectful() {
-        markEffectful_ = false;
+    void setIdempotent() {
+        idempotent_ = true;
     }
     AliasSet getAliasSet() const {
-        if (markEffectful_)
+        if (!idempotent_)
             return AliasSet::Store(AliasSet::Any);
         return AliasSet::None();
     }

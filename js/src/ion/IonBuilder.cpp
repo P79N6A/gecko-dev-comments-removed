@@ -3520,12 +3520,26 @@ IonBuilder::createThisScripted(MDefinition *callee)
     
     
     
-    MCallGetProperty *getProto = MCallGetProperty::New(callee, cx->names().classPrototype);
-
     
-    getProto->markUneffectful();
+    
+    
+    
+    
+    
+    
+    MInstruction *getProto;
+    if (!invalidatedIdempotentCache()) {
+        MGetPropertyCache *getPropCache = MGetPropertyCache::New(callee, cx->names().classPrototype);
+        getPropCache->setIdempotent();
+        getProto = getPropCache;
+    } else {
+        MCallGetProperty *callGetProp = MCallGetProperty::New(callee, cx->names().classPrototype);
+        callGetProp->setIdempotent();
+        getProto = callGetProp;
+    }
     current->add(getProto);
 
+    
     MCreateThis *createThis = MCreateThis::New(callee, getProto, NULL);
     current->add(createThis);
 
