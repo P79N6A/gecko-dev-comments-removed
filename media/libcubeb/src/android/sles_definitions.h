@@ -1,0 +1,67 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef OPENSL_ES_ANDROIDCONFIGURATION_H_
+#define OPENSL_ES_ANDROIDCONFIGURATION_H_
+
+
+
+
+
+
+
+#define SL_ANDROID_KEY_RECORDING_PRESET ((const SLchar*) "androidRecordingPreset")
+
+
+
+#define SL_ANDROID_RECORDING_PRESET_NONE              ((SLuint32) 0x00000000)
+
+#define SL_ANDROID_RECORDING_PRESET_GENERIC           ((SLuint32) 0x00000001)
+
+
+#define SL_ANDROID_RECORDING_PRESET_CAMCORDER         ((SLuint32) 0x00000002)
+
+#define SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION ((SLuint32) 0x00000003)
+
+
+
+
+
+
+
+#define SL_ANDROID_KEY_STREAM_TYPE ((const SLchar*) "androidPlaybackStreamType")
+
+
+
+#define SL_ANDROID_STREAM_VOICE        ((SLint32) 0x00000000)
+
+#define SL_ANDROID_STREAM_SYSTEM       ((SLint32) 0x00000001)
+
+#define SL_ANDROID_STREAM_RING         ((SLint32) 0x00000002)
+
+#define SL_ANDROID_STREAM_MEDIA        ((SLint32) 0x00000003)
+
+#define SL_ANDROID_STREAM_ALARM        ((SLint32) 0x00000004)
+
+#define SL_ANDROID_STREAM_NOTIFICATION ((SLint32) 0x00000005)
+
+#endif 
