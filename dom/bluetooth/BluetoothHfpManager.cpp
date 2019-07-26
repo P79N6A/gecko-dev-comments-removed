@@ -857,15 +857,6 @@ BluetoothHfpManager::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
     
     SendLine("ERROR");
     return;
-  } else if ((msg.Find("AT+XAPL=") != -1) ||
-             (msg.Find("AT+XEVENT=") != -1)) {
-    
-    
-    
-    
-    
-    SendLine("ERROR");
-    return;
   } else if (msg.Find("AT+CLCC") != -1) {
     SendCommand("+CLCC: ");
   } else if (msg.Find("ATD") != -1) {
@@ -925,9 +916,13 @@ BluetoothHfpManager::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
     }
   } else {
     nsCString warningMsg;
-    warningMsg.AssignLiteral("Not handling HFP message, reply ok: ");
+    warningMsg.Append(NS_LITERAL_CSTRING("Unsupported AT command: "));
     warningMsg.Append(msg);
+    warningMsg.Append(NS_LITERAL_CSTRING(", reply with ERROR"));
     NS_WARNING(warningMsg.get());
+
+    SendLine("ERROR");
+    return;
   }
 
 respond_with_ok:
