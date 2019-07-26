@@ -245,7 +245,7 @@ class JSObject : public js::ObjectImpl
                                    js::gc::InitialHeap heap,
                                    js::HandleShape shape,
                                    js::HandleTypeObject type,
-                                   js::HeapSlot *extantSlots = NULL);
+                                   js::HeapSlot *extantSlots = nullptr);
 
     
     static inline js::ArrayObject *createArray(js::ExclusiveContext *cx,
@@ -374,7 +374,7 @@ class JSObject : public js::ObjectImpl
     static void shrinkSlots(js::ExclusiveContext *cx, js::HandleObject obj, uint32_t oldCount,
                             uint32_t newCount);
 
-    bool hasDynamicSlots() const { return slots != NULL; }
+    bool hasDynamicSlots() const { return slots != nullptr; }
 
   protected:
     static inline bool updateSlotsForSpan(js::ExclusiveContext *cx,
@@ -1249,7 +1249,7 @@ js_IdentifyClassPrototype(JSObject *obj);
 
 bool
 js_FindClassObject(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleValue vp,
-                   const js::Class *clasp = NULL);
+                   const js::Class *clasp = nullptr);
 
 
 
@@ -1517,7 +1517,7 @@ js_InferFlags(JSContext *cx, unsigned defaultFlags);
 
 extern bool
 js_GetClassPrototype(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleObject protop,
-                     const js::Class *clasp = NULL);
+                     const js::Class *clasp = nullptr);
 
 namespace js {
 
