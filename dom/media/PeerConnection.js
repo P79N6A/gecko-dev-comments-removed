@@ -810,6 +810,15 @@ PeerConnectionObserver.prototype = {
         this._dompc._onSetLocalDescriptionSuccess.onCallback();
       } catch(e) {}
     }
+
+    
+    
+    
+    
+    
+    
+    this.foundIceCandidate(null);
+
     this._dompc._executeNext();
   },
 
