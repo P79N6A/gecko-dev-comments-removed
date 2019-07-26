@@ -178,9 +178,8 @@ static bool
 WrapForSameCompartment(JSContext *cx, MutableHandleObject obj)
 {
     JS_ASSERT(cx->compartment() == obj->compartment());
-    if (!cx->runtime()->sameCompartmentWrapObjectCallback) {
+    if (!cx->runtime()->sameCompartmentWrapObjectCallback)
         return true;
-    }
 
     RootedObject wrapped(cx);
     wrapped = cx->runtime()->sameCompartmentWrapObjectCallback(cx, obj);
@@ -356,7 +355,9 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
         return false;
 
     
-    
+
+
+
     JS_ASSERT(Wrapper::wrappedObject(obj) == &key.get().toObject());
 
     return putWrapper(key, ObjectValue(*obj));
@@ -365,7 +366,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
 bool
 JSCompartment::wrapId(JSContext *cx, jsid *idp)
 {
-    MOZ_ASSERT(*idp != JSID_VOID, "JSID_VOID is an out-of-band sentinel value");
+    JS_ASSERT(*idp != JSID_VOID, "JSID_VOID is an out-of-band sentinel value");
     if (JSID_IS_INT(*idp))
         return true;
     RootedValue value(cx, IdToValue(*idp));
