@@ -10,12 +10,16 @@
 #include "MediaDecoderReader.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "nsTArray.h"
+#include "mozilla/RefPtr.h"
+#include <queue>
 
 namespace mp4_demuxer {
 class VideoDecoderConfig;
 class AudioDecoderConfig;
 struct MP4Sample;
 }
+
+class nsIThreadPool;
 
 namespace mozilla {
 
@@ -24,7 +28,14 @@ class ImageContainer;
 }
 
 class MediaDataDecoder;
+class MediaDataDecoderCallback;
+class MediaInputQueue;
+class MediaTaskQueue;
 typedef int64_t Microseconds;
+
+
+
+
 
 
 
@@ -66,9 +77,17 @@ public:
   
   
   
+  
+  
+  
+  
+  
+  
   virtual MediaDataDecoder* CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
                                               layers::LayersBackend aLayersBackend,
-                                              layers::ImageContainer* aImageContainer) = 0;
+                                              layers::ImageContainer* aImageContainer,
+                                              MediaTaskQueue* aVideoTaskQueue,
+                                              MediaDataDecoderCallback* aCallback) = 0;
 
   
   
@@ -76,15 +95,16 @@ public:
   
   
   
-  virtual MediaDataDecoder* CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig) = 0;
-
   
-  virtual void OnDecodeThreadStart() {}
-
   
-  virtual void OnDecodeThreadFinish() {}
+  
+  
+  virtual MediaDataDecoder* CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
+                                             MediaTaskQueue* aAudioTaskQueue,
+                                             MediaDataDecoderCallback* aCallback) = 0;
 
   virtual ~PlatformDecoderModule() {}
+
 protected:
   PlatformDecoderModule() {}
   
@@ -92,11 +112,22 @@ protected:
 };
 
 
-enum DecoderStatus {
-  DECODE_STATUS_NOT_ACCEPTING, 
-  DECODE_STATUS_NEED_MORE_INPUT, 
-  DECODE_STATUS_OK,
-  DECODE_STATUS_ERROR
+
+class MediaDataDecoderCallback {
+public:
+  virtual ~MediaDataDecoderCallback() {}
+
+  
+  
+  virtual void Output(MediaData* aData) = 0;
+
+  
+  
+  virtual void Error() = 0;
+
+  
+  
+  virtual void InputExhausted() = 0;
 };
 
 
@@ -107,10 +138,15 @@ enum DecoderStatus {
 
 
 
-class MediaDataDecoder {
+
+
+
+
+class MediaDataDecoder : public AtomicRefCounted<MediaDataDecoder> {
 public:
   virtual ~MediaDataDecoder() {};
 
+  
   
   
   
@@ -122,33 +158,7 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual DecoderStatus Input(nsAutoPtr<mp4_demuxer::MP4Sample>& aSample) = 0;
+  virtual nsresult Input(mp4_demuxer::MP4Sample* aSample) = 0;
 
   
   
@@ -157,22 +167,19 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  virtual DecoderStatus Output(nsAutoPtr<MediaData>& aOutData) = 0;
+  virtual nsresult Flush() = 0;
 
   
   
   
   
   
-  virtual DecoderStatus Flush() = 0;
+  
+  virtual nsresult Drain() = 0;
 
+  
+  
+  
   
   
   
