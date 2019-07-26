@@ -175,6 +175,16 @@ class jsdContext : public jsdIContext
     jsdContext (const jsdContext&); 
 
     bool                   mValid;
+    
+    
+    
+    
+    
+    
+    
+    
+    uint64_t               mScriptDisabledForWindowWithID;
+    bool IsScriptEnabled() { return !mScriptDisabledForWindowWithID; }
     LiveEphemeral          mLiveListEntry;
     uint32_t               mTag;
     JSDContext            *mJSDCx;
