@@ -925,7 +925,7 @@ grippy {
 
 
 
-scrollbar {
+scrollbar[orient="horizontal"] {
   direction: ltr;
 }
 
