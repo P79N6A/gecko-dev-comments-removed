@@ -6,7 +6,6 @@
 #ifndef nsCoreUtils_h_
 #define nsCoreUtils_h_
 
-
 #include "nsIContent.h"
 #include "nsIBoxObject.h"
 #include "nsIPresShell.h"
@@ -294,6 +293,21 @@ public:
       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::scope);
   }
 
+  
+
+
+
+
+  static bool IsWhitespaceString(const nsSubstring& aString);
+
+  
+
+
+  static bool IsWhitespace(PRUnichar aChar)
+  {
+    return aChar == ' ' || aChar == '\n' ||
+      aChar == '\r' || aChar == '\t' || aChar == 0xa0;
+  }
 };
 
 

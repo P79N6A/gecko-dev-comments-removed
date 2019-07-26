@@ -140,18 +140,6 @@ private:
   
 
 
-
-
-  static bool IsWhitespaceString(const nsSubstring& aString);
-
-  
-
-
-  static bool IsWhitespace(PRUnichar aChar);
-
-  
-
-
   static uint32_t GetRoleRule(mozilla::a11y::roles::Role aRole);
 };
 

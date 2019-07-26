@@ -871,7 +871,10 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   if (content->IsNodeOfType(nsINode::eTEXT)) {
     nsAutoString text;
     frame->GetRenderedText(&text, nullptr, nullptr, 0, UINT32_MAX);
-    if (text.IsEmpty()) {
+    
+    
+    if (text.IsEmpty() ||
+        (aContext->IsTableRow() && nsCoreUtils::IsWhitespaceString(text))) {
       if (aIsSubtreeHidden)
         *aIsSubtreeHidden = true;
 
