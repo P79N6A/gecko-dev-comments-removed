@@ -68,6 +68,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   
   
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+  JSAutoRequest ar(context->GetNativeContext());
   JS::Rooted<JSObject*> targetClassObject(context->GetNativeContext(), nullptr);
   bool targetObjectIsNew = false;
   nsresult rv = InitTargetObjects(aPrototypeBinding, context,

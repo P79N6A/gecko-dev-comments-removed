@@ -922,6 +922,7 @@ CycleCollectedJSRuntime::UsefulToMergeZones() const
 {
   JSContext* iter = nullptr;
   JSContext* cx;
+  JSAutoRequest ar(nsContentUtils::GetSafeJSContext());
   while ((cx = JS_ContextIterator(mJSRuntime, &iter))) {
     
     
