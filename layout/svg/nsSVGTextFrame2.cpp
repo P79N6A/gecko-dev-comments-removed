@@ -4762,26 +4762,7 @@ nsSVGTextFrame2::DoGlyphPositioning()
     }
   }
 
-  
-  
-  
-  
-  
-  for (uint32_t i = mPositions.Length(); i < charPositions.Length(); i++) {
-    nscoord dx = charPositions[i].x - charPositions[i - 1].x;
-    nscoord dy = charPositions[i].y - charPositions[i - 1].y;
-
-    gfxPoint pt(mPositions[i - 1].mPosition.x +
-                  presContext->AppUnitsToGfxUnits(dx) * cssPxPerDevPx,
-                mPositions[i - 1].mPosition.y +
-                  presContext->AppUnitsToGfxUnits(dy) * cssPxPerDevPx);
-
-    mPositions.AppendElement(CharPosition(pt / mFontSizeScaleFactor,
-                                          mPositions[i - 1].mAngle));
-    if (i < deltas.Length()) {
-      mPositions[i].mPosition += deltas[i];
-    }
-  }
+  MOZ_ASSERT(mPositions.Length() == charPositions.Length());
 
   AdjustChunksForLineBreaks();
   AdjustPositionsForClusters();
