@@ -56,17 +56,6 @@ std::string SysWideToMultiByte(const std::wstring& wide, uint32_t code_page);
 
 
 
-
-CFStringRef SysUTF8ToCFStringRef(const std::string& utf8);
-CFStringRef SysUTF16ToCFStringRef(const string16& utf16);
-CFStringRef SysWideToCFStringRef(const std::wstring& wide);
-
-
-NSString* SysUTF8ToNSString(const std::string& utf8);
-NSString* SysUTF16ToNSString(const string16& utf16);
-NSString* SysWideToNSString(const std::wstring& wide);
-
-
 std::string SysCFStringRefToUTF8(CFStringRef ref);
 string16 SysCFStringRefToUTF16(CFStringRef ref);
 std::wstring SysCFStringRefToWide(CFStringRef ref);
