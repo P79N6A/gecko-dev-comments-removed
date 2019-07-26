@@ -61,7 +61,7 @@ add_task(function test_execute()
     var node = root.getChild(i);
     
     do_check_eq(node.uri, testURI.spec);
-    do_check_eq(node.type, options.RESULTS_AS_VISIT);
+    do_check_eq(node.type, Ci.nsINavHistoryResultNode.RESULT_TYPE_URI);
     
     
   }

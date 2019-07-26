@@ -721,6 +721,13 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       
 
+      if (currentSchemaVersion < 22) {
+        rv = MigrateV22Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+
       
 
       rv = UpdateBookmarkRootTitles();
@@ -1868,6 +1875,21 @@ Database::MigrateV21Up()
 
   nsCOMPtr<mozIStoragePendingStatement> ps;
   rv = updatePrefixesStmt->ExecuteAsync(nullptr, getter_AddRefs(ps));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV22Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  nsresult rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_historyvisits SET session = 0"
+  ));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

@@ -515,93 +515,6 @@ function test_nonnsIURI_referrerURI_ignored()
   yield promiseAsyncUpdates();
 }
 
-function test_invalid_sessionId_ignored()
-{
-  let place = {
-    uri: NetUtil.newURI(TEST_DOMAIN +
-                        "test_invalid_sessionId_ignored"),
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-  place.visits[0].sessionId = 0;
-  do_check_false(yield promiseIsURIVisited(place.uri));
-
-  let placesResult = yield promiseUpdatePlaces(place);
-  if (placesResult.errors.length > 0) {
-    do_throw("Unexpected error.");
-  }
-  let placeInfo = placesResult.results[0];
-  do_check_true(yield promiseIsURIVisited(placeInfo.uri));
-
-  
-  let visit = placeInfo.visits[0];
-  do_check_neq(visit.sessionId, place.visits[0].sessionId);
-
-  
-  let stmt = DBConn().createStatement(
-    "SELECT session " +
-    "FROM moz_historyvisits " +
-    "WHERE id = :visit_id"
-  );
-  stmt.params.visit_id = visit.visitId;
-  do_check_true(stmt.executeStep());
-  do_check_neq(stmt.row.session, place.visits[0].sessionId);
-  stmt.finalize();
-
-  yield promiseAsyncUpdates();
-}
-
-function test_unstored_sessionId_ignored()
-{
-  let place = {
-    uri: NetUtil.newURI(TEST_DOMAIN +
-                        "test_unstored_sessionId_ignored"),
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-
-  
-  let stmt = DBConn().createStatement(
-    "SELECT MAX(session) as max_session " +
-    "FROM moz_historyvisits"
-  );
-  do_check_true(stmt.executeStep());
-  let maxSessionId = stmt.row.max_session;
-  stmt.finalize();
-
-  
-  place.visits[0].sessionId = maxSessionId + 10;
-  do_check_false(yield promiseIsURIVisited(place.uri));
-
-  let placesResult = yield promiseUpdatePlaces(place);
-  if (placesResult.errors.length > 0) {
-    do_throw("Unexpected error.");
-  }
-  let placeInfo = placesResult.results[0];
-  do_check_true(yield promiseIsURIVisited(placeInfo.uri));
-
-  
-  let visit = placeInfo.visits[0];
-  do_check_neq(visit.sessionId, place.visits[0].sessionId);
-
-  
-  let stmt = DBConn().createStatement(
-    "SELECT MAX(session) as max_session " +
-    "FROM moz_historyvisits"
-  );
-  do_check_true(stmt.executeStep());
-
-  
-  
-  let newMaxSessionId = stmt.row.max_session;
-  do_check_eq(maxSessionId + 1, newMaxSessionId);
-  stmt.finalize();
-
-  yield promiseAsyncUpdates();
-}
-
 function test_old_referrer_ignored()
 {
   
@@ -791,7 +704,6 @@ function test_add_visit()
 
       
       do_check_eq(visit.visitId, 0);
-      do_check_eq(visit.sessionId, 0);
     }
     
     else {
@@ -801,7 +713,6 @@ function test_add_visit()
 
       
       do_check_true(visit.visitId > 0);
-      do_check_true(visit.sessionId > 0);
     }
 
     
@@ -879,21 +790,6 @@ function test_properties_saved()
     stmt = DBConn().createStatement(
       "SELECT COUNT(1) AS count " +
       "FROM moz_places h " +
-      "JOIN moz_historyvisits v " +
-      "ON h.id = v.place_id " +
-      "WHERE h.url = :page_url " +
-      "AND v.session = :session_id "
-    );
-    stmt.params.page_url = uri.spec;
-    stmt.params.session_id = visit.sessionId;
-    do_check_true(stmt.executeStep());
-    do_check_eq(stmt.row.count, EXPECTED_COUNT);
-    stmt.finalize();
-
-    
-    stmt = DBConn().createStatement(
-      "SELECT COUNT(1) AS count " +
-      "FROM moz_places h " +
       "WHERE h.url = :page_url " +
       "AND h.title = :title "
     );
@@ -953,7 +849,6 @@ function test_referrer_saved()
   do_check_false(yield promiseIsURIVisited(places[1].uri));
 
   let resultCount = 0;
-  let referrerSessionId;
   let placesResult = yield promiseUpdatePlaces(places);
   if (placesResult.errors.length > 0) {
     do_throw("Unexpected error.");
@@ -964,11 +859,8 @@ function test_referrer_saved()
     let visit = placeInfo.visits[0];
 
     
-    if (++resultCount != places.length) {
-      referrerSessionId = visit.sessionId;
-    } else {
+    if (++resultCount == places.length) {
       do_check_true(places[0].uri.equals(visit.referrerURI));
-      do_check_eq(visit.sessionId, referrerSessionId);
 
       let stmt = DBConn().createStatement(
         "SELECT COUNT(1) AS count " +
@@ -989,43 +881,6 @@ function test_referrer_saved()
       yield promiseAsyncUpdates();
     }
   }
-}
-
-function test_sessionId_saved()
-{
-  let place = {
-    uri: NetUtil.newURI(TEST_DOMAIN + "test_sessionId_saved"),
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-  place.visits[0].sessionId = 3;
-  do_check_false(yield promiseIsURIVisited(place.uri));
-
-  let placesResult = yield promiseUpdatePlaces(place);
-  if (placesResult.errors.length > 0) {
-    do_throw("Unexpected error.");
-  }
-  let placeInfo = placesResult.results[0];
-  let uri = placeInfo.uri;
-  do_check_true(yield promiseIsURIVisited(uri));
-
-  let visit = placeInfo.visits[0];
-  do_check_eq(visit.sessionId, place.visits[0].sessionId);
-
-  let stmt = DBConn().createStatement(
-    "SELECT COUNT(1) AS count " +
-    "FROM moz_historyvisits " +
-    "WHERE place_id = (SELECT id FROM moz_places WHERE url = :page_url) " +
-    "AND session = :session_id "
-  );
-  stmt.params.page_url = uri.spec;
-  stmt.params.session_id = visit.sessionId;
-  do_check_true(stmt.executeStep());
-  do_check_eq(stmt.row.count, 1);
-  stmt.finalize();
-
-  yield promiseAsyncUpdates();
 }
 
 function test_guid_change_saved()
@@ -1237,51 +1092,6 @@ function test_visit_notifies()
   yield promiseAsyncUpdates();
 }
 
-function test_referrer_sessionId_persists()
-{
-  
-  
-  let referrerPlace = {
-    uri: NetUtil.newURI(TEST_DOMAIN + "test_referrer_sessionId_persists_ref"),
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-
-  
-  
-  do_check_false(yield promiseIsURIVisited(referrerPlace.uri));
-  let placesResult = yield promiseUpdatePlaces(referrerPlace);
-  if (placesResult.errors.length > 0) {
-    do_throw("Unexpected error.");
-  }
-  let placeInfo = placesResult.results[0];
-  do_check_true(yield promiseIsURIVisited(referrerPlace.uri));
-
-  let sessionId = placeInfo.visits[0].sessionId;
-  do_check_neq(sessionId, null);
-
-  let place = {
-    uri: NetUtil.newURI(TEST_DOMAIN + "test_referrer_sessionId_persists"),
-    visits: [
-      new VisitInfo(),
-    ],
-  };
-  place.visits[0].referrerURI = referrerPlace.uri;
-
-  do_check_false(yield promiseIsURIVisited(place.uri));
-  placesResult = yield promiseUpdatePlaces(place);
-  if (placesResult.errors.length > 0) {
-    do_throw("Unexpected error.");
-  }
-  placeInfo = placesResult.results[0];
-  do_check_true(yield promiseIsURIVisited(place.uri));
-
-  do_check_eq(placeInfo.visits[0].sessionId, sessionId);
-
-  yield promiseAsyncUpdates();
-}
-
 
 function test_callbacks_not_supplied()
 {
@@ -1331,8 +1141,6 @@ function test_callbacks_not_supplied()
   test_duplicate_guid_errors,
   test_invalid_referrerURI_ignored,
   test_nonnsIURI_referrerURI_ignored,
-  test_invalid_sessionId_ignored,
-  test_unstored_sessionId_ignored,
   test_old_referrer_ignored,
   test_place_id_ignored,
   test_handleCompletion_called_when_complete,
@@ -1340,13 +1148,11 @@ function test_callbacks_not_supplied()
   test_properties_saved,
   test_guid_saved,
   test_referrer_saved,
-  test_sessionId_saved,
   test_guid_change_saved,
   test_title_change_saved,
   test_no_title_does_not_clear_title,
   test_title_change_notifies,
   test_visit_notifies,
-  test_referrer_sessionId_persists,
   test_callbacks_not_supplied,
 ].forEach(add_task);
 
