@@ -43,7 +43,10 @@ public:
 
   void PostTask(const tracked_objects::Location& aLocation,
                 CancelableTask* aTask);
-  void TaskComplete();
+  
+
+
+  bool TaskComplete();
 
 private:
   bool mOutstanding;
