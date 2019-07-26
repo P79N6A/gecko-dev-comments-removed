@@ -206,17 +206,19 @@ documenttab[selected] .documenttab-selection {
   visibility: collapse;
 }
 
-
-#start-container .meta-section {
+#start-scrollbox > .meta-section {
   
   min-width: @grid_double_column_width@;
+  
+  margin-bottom: 30px;
 }
-
+#start-scrollbox[input="precise"] > .meta-section {
+  margin-bottom: 5px;
+}
 #start-topsites {
   
   min-width: calc(3 * @grid_double_column_width@);
 }
-
 #start-scrollbox {
   -moz-box-orient: horizontal;
   
@@ -232,20 +234,17 @@ documenttab[selected] .documenttab-selection {
 #start-autocomplete[viewstate="snapped"] .richgrid-item-content {
   -moz-box-orient: horizontal;
 }
-
 #start-container,
 #start-autocomplete {
   padding-left: 0;
   padding-right: 0;
 }
-
-#start-container[viewstate="snapped"] .meta-section {
+#start-container[viewstate="snapped"] #start-scrollbox > .meta-section {
   margin: 0;
   min-width: @grid_double_column_width@;
   -moz-box-flex: 1;
   -moz-box-align: center;
 }
-
 #start-container[viewstate="snapped"] richgrid {
   visibility: collapse;
 }
