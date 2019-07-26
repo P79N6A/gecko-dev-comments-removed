@@ -371,13 +371,6 @@ public:
 
     virtual bool RequiresLinearZoom() { return false; }
 
-    bool UsesSubpixelAATextRendering() {
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-	return false;
-#endif
-	return true;
-    }
-
     
 
 
@@ -481,6 +474,9 @@ public:
 
     static bool BufferRotationEnabled();
     static void DisableBufferRotation();
+
+    static bool ComponentAlphaEnabled();
+
     
 
 
