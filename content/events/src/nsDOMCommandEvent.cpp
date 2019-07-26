@@ -3,7 +3,6 @@
 
 
 
-#include "nsDOMClassInfoID.h"
 #include "nsDOMCommandEvent.h"
 
 nsDOMCommandEvent::nsDOMCommandEvent(mozilla::dom::EventTarget* aOwner,
@@ -29,11 +28,8 @@ nsDOMCommandEvent::~nsDOMCommandEvent()
   }
 }
 
-DOMCI_DATA(CommandEvent, nsDOMCommandEvent)
-
 NS_INTERFACE_MAP_BEGIN(nsDOMCommandEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCommandEvent)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CommandEvent)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEvent)
 
 NS_IMPL_ADDREF_INHERITED(nsDOMCommandEvent, nsDOMEvent)

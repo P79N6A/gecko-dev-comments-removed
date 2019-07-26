@@ -7,8 +7,6 @@
 #include "nsContentUtils.h"
 #include "nsClientRect.h"
 #include "nsDOMDataTransfer.h"
-#include "DictionaryHelpers.h"
-#include "nsDOMClassInfoID.h"
 
 nsDOMClipboardEvent::nsDOMClipboardEvent(mozilla::dom::EventTarget* aOwner,
                                          nsPresContext* aPresContext,
@@ -33,11 +31,8 @@ nsDOMClipboardEvent::~nsDOMClipboardEvent()
   }
 }
 
-DOMCI_DATA(ClipboardEvent, nsDOMClipboardEvent)
-
 NS_INTERFACE_MAP_BEGIN(nsDOMClipboardEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMClipboardEvent)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(ClipboardEvent)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEvent)
 
 NS_IMPL_ADDREF_INHERITED(nsDOMClipboardEvent, nsDOMEvent)
@@ -52,33 +47,6 @@ nsDOMClipboardEvent::InitClipboardEvent(const nsAString & aType, bool aCanBubble
 
   nsClipboardEvent* event = static_cast<nsClipboardEvent*>(mEvent);
   event->clipboardData = clipboardData;
-
-  return NS_OK;
-}
-
-nsresult
-nsDOMClipboardEvent::InitFromCtor(const nsAString& aType,
-                                  JSContext* aCx, jsval* aVal)
-{
-  mozilla::idl::ClipboardEventInit d;
-  nsresult rv = d.Init(aCx, aVal);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsRefPtr<nsDOMDataTransfer> clipboardData;
-  if (mEventIsInternal) {
-    nsClipboardEvent* event = static_cast<nsClipboardEvent*>(mEvent);
-    if (event) {
-      
-      
-      
-      
-      clipboardData = new nsDOMDataTransfer(NS_COPY, false);
-      clipboardData->SetData(d.dataType, d.data);
-    }
-  }
-
-  rv = InitClipboardEvent(aType, d.bubbles, d.cancelable, clipboardData);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -98,7 +66,6 @@ nsDOMClipboardEvent::Constructor(const mozilla::dom::GlobalObject& aGlobal,
   if (e->mEventIsInternal) {
     nsClipboardEvent* event = static_cast<nsClipboardEvent*>(e->mEvent);
     if (event) {
-      
       
       
       

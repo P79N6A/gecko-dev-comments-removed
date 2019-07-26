@@ -31,9 +31,6 @@ public:
   
   NS_FORWARD_TO_NSDOMMOUSEEVENT
 
-  virtual nsresult InitFromCtor(const nsAString& aType,
-                                JSContext* aCx, JS::Value* aVal);
-
   static
   already_AddRefed<DOMWheelEvent> Constructor(const GlobalObject& aGlobal,
                                               const nsAString& aType,

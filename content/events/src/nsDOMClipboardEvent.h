@@ -26,9 +26,6 @@ public:
   
   NS_FORWARD_TO_NSDOMEVENT
 
-  nsresult InitFromCtor(const nsAString& aType,
-                        JSContext* aCx, jsval* aVal);
-
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
   {
