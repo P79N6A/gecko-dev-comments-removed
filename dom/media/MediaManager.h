@@ -275,6 +275,9 @@ public:
     if (!sSingleton) {
       sSingleton = new MediaManager();
 
+      NS_NewThread(getter_AddRefs(sSingleton->mMediaThread));
+      MM_LOG(("New Media thread for gum"));
+
       NS_ASSERTION(NS_IsMainThread(), "Only create MediaManager on main thread");
       nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
       obs->AddObserver(sSingleton, "xpcom-shutdown", false);
@@ -283,23 +286,19 @@ public:
     }
     return sSingleton;
   }
-  static Mutex& GetMutex() {
-    return Get()->mMutex;
-  }
   static nsIThread* GetThread() {
-    MutexAutoLock lock(Get()->mMutex); 
-    if (!sSingleton->mMediaThread) {
-      NS_NewThread(getter_AddRefs(sSingleton->mMediaThread));
-      MM_LOG(("New Media thread for gum"));
-    }
-    return sSingleton->mMediaThread;
+    return Get()->mMediaThread;
   }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
   MediaEngine* GetBackend();
-  WindowTable* GetActiveWindows();
+  bool IsWindowStillActive(uint64_t aWindowId) {
+    NS_ASSERTION(NS_IsMainThread(), "Only access windowlist on main thread");
+
+    return !!mActiveWindows.Get(aWindowId);
+  }
 
   nsresult GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
     nsIMediaStreamOptions* aParams,
@@ -311,11 +310,16 @@ public:
   void OnNavigation(uint64_t aWindowID);
 
 private:
+  WindowTable *GetActiveWindows() {
+    NS_ASSERTION(NS_IsMainThread(), "Only access windowlist on main thread");
+    return &mActiveWindows;
+  };
+
   
   MediaManager()
-  : mMutex("mozilla::MediaManager")
-  , mBackend(nullptr)
-  , mMediaThread(nullptr) {
+  : mMediaThread(nullptr)
+  , mMutex("mozilla::MediaManager")
+  , mBackend(nullptr) {
     mActiveWindows.Init();
     mActiveCallbacks.Init();
   };
@@ -324,12 +328,15 @@ private:
     delete mBackend;
   };
 
+  
+  WindowTable mActiveWindows;
+  nsRefPtrHashtable<nsStringHashKey, nsRunnable> mActiveCallbacks;
+  
+  nsCOMPtr<nsIThread> mMediaThread;
+
   Mutex mMutex;
   
   MediaEngine* mBackend;
-  nsCOMPtr<nsIThread> mMediaThread;
-  WindowTable mActiveWindows;
-  nsRefPtrHashtable<nsStringHashKey, nsRunnable> mActiveCallbacks;
 
   static nsRefPtr<MediaManager> sSingleton;
 };
