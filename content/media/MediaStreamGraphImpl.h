@@ -190,6 +190,11 @@ public:
 
 
 
+  bool AllFinishedStreamsNotified();
+  
+
+
+
 
   bool ShouldUpdateMainThread();
   
@@ -502,7 +507,7 @@ public:
   
 
 
-  uint32_t mNonRealtimeTicksToProcess;
+  GraphTime mEndTime;
   
 
 

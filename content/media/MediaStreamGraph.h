@@ -1056,7 +1056,7 @@ public:
   
 
 
-  void StartNonRealtimeProcessing(uint32_t aTicksToProcess);
+  void StartNonRealtimeProcessing(TrackRate aRate, uint32_t aTicksToProcess);
 
   
 
