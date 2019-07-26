@@ -1407,13 +1407,19 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const FontFamilyName& aFamily,
   StretchEnumContext* context = static_cast<StretchEnumContext*>(aData);
 
   
+  FontFamilyName unquotedFamilyName(aFamily);
+  if (unquotedFamilyName.mType == eFamily_named_quoted) {
+    unquotedFamilyName.mType = eFamily_named;
+  }
+
+  
   
   nsStyleContext *sc = context->mChar->mStyleContext;
   nsFont font = sc->StyleFont()->mFont;
   NormalizeDefaultFont(font);
   nsRefPtr<gfxFontGroup> fontGroup;
   FontFamilyList family;
-  family.Append(aFamily);
+  family.Append(unquotedFamilyName);
   if (!aGeneric && !context->mChar->SetFontFamily(context->mPresContext,
                                                   nullptr, kNullGlyph, family,
                                                   font, &fontGroup))
@@ -1434,7 +1440,7 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const FontFamilyName& aFamily,
       
       
       nsAutoString familyName;
-      aFamily.AppendToString(familyName);
+      unquotedFamilyName.AppendToString(familyName);
       glyphTable = gGlyphTableList->GetGlyphTableFor(familyName);
     }
   }
