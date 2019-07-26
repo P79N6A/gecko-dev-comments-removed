@@ -10,6 +10,7 @@
 #include "nscore.h"
 #include "prio.h"
 #include "prnetdb.h"
+#include "plstr.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -112,6 +113,8 @@ union NetAddr {
 #endif
   } local;
 #endif
+  
+  bool operator == (const NetAddr& other) const;
 };
 
 
