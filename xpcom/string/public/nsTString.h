@@ -257,6 +257,15 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
+      int64_t ToInteger64( nsresult* aErrorCode, uint32_t aRadix=kRadix10 ) const;
+
+
+        
+
+
+
+
+
 
 
 

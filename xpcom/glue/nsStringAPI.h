@@ -360,6 +360,14 @@ public:
 
   NS_HIDDEN_(int32_t) ToInteger(nsresult* aErrorCode,
                                 uint32_t aRadix = 10) const;
+  
+
+
+
+
+
+  NS_HIDDEN_(int64_t) ToInteger64(nsresult* aErrorCode,
+                                  uint32_t aRadix = 10) const;
 #endif 
 
 protected:
@@ -711,6 +719,14 @@ public:
 
   NS_HIDDEN_(int32_t) ToInteger(nsresult* aErrorCode,
                                 uint32_t aRadix = 10) const;
+  
+
+
+
+
+
+  NS_HIDDEN_(int64_t) ToInteger64(nsresult* aErrorCode,
+                                  uint32_t aRadix = 10) const;
 #endif 
 
 protected:
