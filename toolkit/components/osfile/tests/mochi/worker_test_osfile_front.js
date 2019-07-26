@@ -653,16 +653,26 @@ function test_info() {
   let startMs = start.getTime() - 1000;
   let stopMs  = stop.getTime() + 1000;
 
-  let birth = stat.creationDate;
-  ok(birth.getTime() <= stopMs,
-     "test_info: file was created before now - " + stop + ", " + birth);
-  
-  
-  
-  
-  
-  
-  
+  (function() {
+    let birth;
+    if ("winBirthDate" in info) {
+      birth = info.winBirthDate;
+    } else if ("macBirthDate" in info) {
+      birth = info.macBirthDate;
+    } else {
+      ok(true, "Skipping birthdate test");
+      return;
+    }
+    ok(birth.getTime() <= stopMs,
+    "test_info: file was created before now - " + stop + ", " + birth);
+    
+    
+    
+    
+    
+    
+    
+  });
 
   let change = stat.lastModificationDate;
   ok(change.getTime() >= startMs

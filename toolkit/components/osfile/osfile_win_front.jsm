@@ -750,14 +750,18 @@
          return exports.OS.Shared.Type.uint64_t.importFromC(value);
        },
        
-
-
-
-
        get creationDate() {
-         delete this.creationDate;
+         return this.winBirthDate;
+       },
+       
+
+
+
+
+       get winBirthDate() {
+         delete this.winBirthDate;
          let date = FILETIME_to_Date(this._ftCreationTime);
-         Object.defineProperty(this, "creationDate", { value: date });
+         Object.defineProperty(this, "winBirthDate", { value: date });
          return date;
        },
        

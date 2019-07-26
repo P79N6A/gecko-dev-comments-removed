@@ -735,6 +735,10 @@
        this._st_atime = stat.st_atime;
        this._st_mtime = stat.st_mtime;
        this._st_ctime = stat.st_ctime;
+       
+       if ("OSFILE_OFFSETOF_STAT_ST_BIRTHTIME" in OS.Constants.libc) {
+         this._st_birthtime = stat.st_birthtime;
+       }
        this._st_size = stat.st_size;
      };
      File.Info.prototype = {
@@ -762,15 +766,11 @@
          return exports.OS.Shared.Type.size_t.importFromC(this._st_size);
        },
        
-
-
-
-
        get creationDate() {
-         delete this.creationDate;
-         let date = new Date(this._st_ctime * 1000);
-         Object.defineProperty(this, "creationDate", { value: date });
-         return date;
+         
+         
+         
+         return this.macBirthDate || new Date(0);
        },
        
 
@@ -798,6 +798,17 @@
        
 
 
+
+
+       get unixLastStatusChangeDate() {
+         delete this.unixLastStatusChangeDate;
+         let date = new Date(this._st_ctime * 1000);
+         Object.defineProperty(this, "unixLastStatusChangeDate", {value: date});
+         return date;
+       },
+       
+
+
        get unixOwner() {
          return exports.OS.Shared.Type.uid_t.importFromC(this._st_uid);
        },
@@ -814,6 +825,32 @@
          return exports.OS.Shared.Type.mode_t.importFromC(this._st_mode & MODE_MASK);
        }
      };
+
+    
+
+
+
+
+
+
+
+
+     if ("OSFILE_OFFSETOF_STAT_ST_BIRTHTIME" in OS.Constants.libc) {
+       Object.defineProperty(
+         File.Info.prototype,
+         "macBirthDate",
+         {
+           get: function macBirthDate() {
+             delete this.macBirthDate;
+             let time;
+             time = this._st_birthtime;
+             let date = new Date(time * 1000);
+             Object.defineProperty(this, "macBirthDate", { value: date });
+             return date;
+           }
+         }
+       );
+     }
 
      
 
