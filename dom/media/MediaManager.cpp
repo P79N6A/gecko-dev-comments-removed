@@ -27,6 +27,13 @@
 namespace mozilla {
 
 
+enum {
+  kVideoTrack = 1,
+  kAudioTrack = 2
+};
+
+
+
 
 
 
@@ -219,7 +226,16 @@ public:
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
     
-    nsCOMPtr<nsDOMMediaStream> stream = nsDOMMediaStream::CreateInputStream();
+    nsCOMPtr<nsDOMMediaStream> stream;
+    if (mTrackID == kVideoTrack) {
+      stream = nsDOMMediaStream::CreateInputStream(
+        nsDOMMediaStream::HINT_CONTENTS_VIDEO
+      );
+    } else {
+      stream = nsDOMMediaStream::CreateInputStream(
+        nsDOMMediaStream::HINT_CONTENTS_AUDIO
+      );
+    }
 
     nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
       (nsGlobalWindow::GetInnerWindowWithId(mWindowID));
@@ -328,12 +344,6 @@ public:
       delete mBackend;
     }
   }
-
-  
-  enum {
-    kVideoTrack = 1,
-    kAudioTrack = 2
-  };
 
   NS_IMETHOD
   Run()

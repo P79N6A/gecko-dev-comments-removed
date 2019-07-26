@@ -26,7 +26,7 @@ class nsDOMMediaStream : public nsIDOMMediaStream
   typedef mozilla::MediaStream MediaStream;
 
 public:
-  nsDOMMediaStream() : mStream(nullptr) {}
+  nsDOMMediaStream() : mStream(nullptr), mHintContents(0) {}
   virtual ~nsDOMMediaStream();
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMMediaStream)
@@ -53,7 +53,16 @@ public:
   
 
 
-  static already_AddRefed<nsDOMMediaStream> CreateInputStream();
+  static already_AddRefed<nsDOMMediaStream> CreateInputStream(uint32_t aHintContents);
+
+  
+  
+  enum {
+    HINT_CONTENTS_AUDIO = 0x00000001U,
+    HINT_CONTENTS_VIDEO = 0x00000002U
+  };
+  uint32_t GetHintContents() const { return mHintContents; }
+  void SetHintContents(uint32_t aHintContents) { mHintContents = aHintContents; }
 
   
 
@@ -67,6 +76,10 @@ protected:
   
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
+
+  
+  
+  uint32_t mHintContents;
 };
 
 #endif 
