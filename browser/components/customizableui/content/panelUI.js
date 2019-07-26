@@ -330,9 +330,15 @@ const PanelUI = {
 
 
   onCommandHandler: function(aEvent) {
-    if (!aEvent.originalTarget.hasAttribute("noautoclose")) {
-      PanelUI.hide();
+    let closemenu = aEvent.originalTarget.getAttribute("closemenu");
+    if (closemenu == "none") {
+      return;
     }
+    if (closemenu == "single") {
+      this.showMainView();
+      return;
+    }
+    this.hide();
   },
 
   

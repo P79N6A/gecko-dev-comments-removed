@@ -1231,6 +1231,7 @@ let CustomizableUIInternal = {
       
       
       
+      
 
     } else if (aEvent.type != "command") { 
       if (aEvent.defaultPrevented || aEvent.button != 0) {
@@ -1243,7 +1244,7 @@ let CustomizableUIInternal = {
       }
     }
 
-    if (aEvent.target.getAttribute("noautoclose") == "true" ||
+    if (aEvent.target.getAttribute("closemenu") == "none" ||
         aEvent.target.getAttribute("widget-type") == "view") {
       return;
     }
