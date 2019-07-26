@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.8.1"
-#define SQLITE_VERSION_NUMBER 3008001
-#define SQLITE_SOURCE_ID      "2013-10-17 12:57:35 c78be6d786c19073b3a6730dfe3fb1be54f5657a"
+#define SQLITE_VERSION        "3.8.2"
+#define SQLITE_VERSION_NUMBER 3008002
+#define SQLITE_SOURCE_ID      "2013-12-06 14:53:30 27392118af4c38c5203a04b8013e1afdb1cebd0d"
 
 
 
@@ -501,6 +501,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_CONSTRAINT_TRIGGER      (SQLITE_CONSTRAINT | (7<<8))
 #define SQLITE_CONSTRAINT_UNIQUE       (SQLITE_CONSTRAINT | (8<<8))
 #define SQLITE_CONSTRAINT_VTAB         (SQLITE_CONSTRAINT | (9<<8))
+#define SQLITE_CONSTRAINT_ROWID        (SQLITE_CONSTRAINT |(10<<8))
 #define SQLITE_NOTICE_RECOVER_WAL      (SQLITE_NOTICE | (1<<8))
 #define SQLITE_NOTICE_RECOVER_ROLLBACK (SQLITE_NOTICE | (2<<8))
 #define SQLITE_WARNING_AUTOINDEX       (SQLITE_WARNING | (1<<8))
@@ -914,6 +915,14 @@ struct sqlite3_io_methods {
 
 
 
+
+
+
+
+
+
+
+
 #define SQLITE_FCNTL_LOCKSTATE               1
 #define SQLITE_GET_LOCKPROXYFILE             2
 #define SQLITE_SET_LOCKPROXYFILE             3
@@ -931,6 +940,7 @@ struct sqlite3_io_methods {
 #define SQLITE_FCNTL_BUSYHANDLER            15
 #define SQLITE_FCNTL_TEMPFILENAME           16
 #define SQLITE_FCNTL_MMAP_SIZE              18
+#define SQLITE_FCNTL_TRACE                  19
 
 
 
@@ -1679,6 +1689,13 @@ struct sqlite3_mem_methods {
 
 
 
+
+
+
+
+
+
+
 #define SQLITE_CONFIG_SINGLETHREAD  1  /* nil */
 #define SQLITE_CONFIG_MULTITHREAD   2  /* nil */
 #define SQLITE_CONFIG_SERIALIZED    3  /* nil */
@@ -1701,6 +1718,7 @@ struct sqlite3_mem_methods {
 #define SQLITE_CONFIG_COVERING_INDEX_SCAN 20  /* int */
 #define SQLITE_CONFIG_SQLLOG       21  /* xSqllog, void* */
 #define SQLITE_CONFIG_MMAP_SIZE    22  /* sqlite3_int64, sqlite3_int64 */
+#define SQLITE_CONFIG_WIN32_HEAPSIZE      23  /* int nByte */
 
 
 
@@ -1773,6 +1791,8 @@ struct sqlite3_mem_methods {
 
 
 SQLITE_API int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
 
 
 
@@ -3020,7 +3040,6 @@ SQLITE_API int sqlite3_limit(sqlite3*, int id, int newVal);
 #define SQLITE_LIMIT_LIKE_PATTERN_LENGTH       8
 #define SQLITE_LIMIT_VARIABLE_NUMBER           9
 #define SQLITE_LIMIT_TRIGGER_DEPTH            10
-
 
 
 
@@ -4847,6 +4866,8 @@ SQLITE_API void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
 
 
 
+
+
 SQLITE_API void *sqlite3_update_hook(
   sqlite3*, 
   void(*)(void *,int ,char const *,char const *,sqlite3_int64),
@@ -5286,6 +5307,18 @@ struct sqlite3_module {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 struct sqlite3_index_info {
   
   int nConstraint;           
@@ -5309,7 +5342,9 @@ struct sqlite3_index_info {
   char *idxStr;              
   int needToFreeIdxStr;      
   int orderByConsumed;       
-  double estimatedCost;      
+  double estimatedCost;           
+  
+  sqlite3_int64 estimatedRows;    
 };
 
 
@@ -5464,6 +5499,9 @@ SQLITE_API int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nA
 
 
 typedef struct sqlite3_blob sqlite3_blob;
+
+
+
 
 
 
@@ -6036,7 +6074,8 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_SCRATCHMALLOC           17
 #define SQLITE_TESTCTRL_LOCALTIME_FAULT         18
 #define SQLITE_TESTCTRL_EXPLAIN_STMT            19
-#define SQLITE_TESTCTRL_LAST                    19
+#define SQLITE_TESTCTRL_NEVER_CORRUPT           20
+#define SQLITE_TESTCTRL_LAST                    20
 
 
 
