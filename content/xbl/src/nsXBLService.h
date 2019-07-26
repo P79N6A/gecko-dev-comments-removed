@@ -15,6 +15,7 @@
 #include "js/Class.h"           
 #include "nsTArray.h"
 
+class nsCStringKey;
 class nsXBLBinding;
 class nsXBLDocumentInfo;
 class nsXBLJSClass;
@@ -132,6 +133,10 @@ public:
   static bool     gAllowDataURIs;            
                                              
                                              
+
+  
+  static nsXBLJSClass *getClass(const nsCString &key);
+  static nsXBLJSClass *getClass(nsCStringKey *key);
 };
 
 class nsXBLJSClass : public mozilla::LinkedListElement<nsXBLJSClass>
@@ -156,6 +161,15 @@ public:
   nsrefcnt Drop() { return --mRefCnt ? mRefCnt : Destroy(); }
   nsrefcnt AddRef() { return Hold(); }
   nsrefcnt Release() { return Drop(); }
+
+  
+  static nsXBLJSClass*
+  fromJSClass(JSClass* c)
+  {
+    nsXBLJSClass* x = static_cast<nsXBLJSClass*>(c);
+    MOZ_ASSERT(nsXBLService::getClass(x->mKey) == x);
+    return x;
+  }
 };
 
 #endif
