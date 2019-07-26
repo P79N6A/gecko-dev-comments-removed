@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 #include "jsapi.h"
+#include "jsscript.h"
 
 using namespace js;
 
@@ -153,11 +154,12 @@ TraceLogging::log(Type type, const char* file, unsigned int lineno)
 
     
     
+    
     loggingTime += rdtsc()-now;
 }
 
 void
-TraceLogging::log(Type type, const CompileOptions &options)
+TraceLogging::log(Type type, const JS::CompileOptions &options)
 {
     this->log(type, options.filename, options.lineno);
 }
