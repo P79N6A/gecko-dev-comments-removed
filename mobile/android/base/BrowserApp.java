@@ -84,7 +84,6 @@ abstract public class BrowserApp extends GeckoApp
                                             GeckoLayerClient.OnMetricsChangedListener,
                                             BrowserSearch.OnSearchListener,
                                             BrowserSearch.OnEditSuggestionListener,
-                                            BrowserSearch.OnUrlOpenListener,
                                             HomePager.OnUrlOpenListener {
     private static final String LOGTAG = "GeckoBrowserApp";
 
