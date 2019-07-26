@@ -79,6 +79,8 @@ public:
   double GetExposureCompensation(ErrorResult& aRv);
   int32_t SensorAngle();
   already_AddRefed<dom::CameraCapabilities> Capabilities();
+  void GetIsoMode(nsString& aMode, ErrorResult& aRv);
+  void SetIsoMode(const nsAString& aMode, ErrorResult& aRv);
 
   
   already_AddRefed<dom::CameraShutterCallback> GetOnShutter();

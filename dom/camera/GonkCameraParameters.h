@@ -95,6 +95,7 @@ protected:
   double mExposureCompensationMin;
   double mExposureCompensationStep;
   nsTArray<int> mZoomRatios;
+  nsTArray<nsString> mIsoModes;
 
   
   
@@ -176,6 +177,8 @@ protected:
   nsresult GetTranslated(uint32_t aKey, nsTArray<double>& aValues);
 
   template<class T> nsresult GetListAsArray(uint32_t aKey, nsTArray<T>& aArray);
+  nsresult MapIsoToGonk(const nsAString& aIso, nsACString& aIsoOut);
+  nsresult MapIsoFromGonk(const char* aIso, nsAString& aIsoOut);
 
   nsresult Initialize();
 };
