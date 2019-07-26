@@ -19,8 +19,10 @@
 #include "mozilla/LookAndFeel.h" 
 
 #include "nsString.h"
-#include "nsReadableUtils.h"
 #include "nsStaticNameTable.h"
+#include "nsStyleConsts.h"
+#include "gfxFontConstants.h"
+#include "nsStyleStruct.h"
 
 #include "mozilla/Preferences.h"
 
