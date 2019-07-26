@@ -15,6 +15,62 @@
 
 
 
+
+
+
+function getExpirablePRTime()
+{
+  let dateObj = new Date();
+  
+  dateObj.setHours(0);
+  dateObj.setMinutes(0);
+  dateObj.setSeconds(0);
+  dateObj.setMilliseconds(0);
+  dateObj = new Date(dateObj.getTime() - 8 * 86400000);
+  return dateObj.getTime() * 1000;
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseExpirableDownloadVisit(aSourceUrl)
+{
+  let deferred = Promise.defer();
+  PlacesUtils.asyncHistory.updatePlaces(
+    {
+      uri: NetUtil.newURI(aSourceUrl || httpUrl("source.txt")),
+      visits: [{
+        transitionType: Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
+        visitDate: getExpirablePRTime(),
+      }]
+    },
+    {
+      handleError: function handleError(aResultCode, aPlaceInfo) {
+        let ex = new Components.Exception("Unexpected error in adding visits.",
+                                          aResultCode);
+        deferred.reject(ex);
+      },
+      handleResult: function () {},
+      handleCompletion: function handleCompletion() {
+        deferred.resolve();
+      }
+    });
+  return deferred.promise;
+}
+
+
+
+
+
+
+
 add_task(function test_construction()
 {
   let downloadListOne = yield promiseNewDownloadList();
@@ -205,6 +261,8 @@ add_task(function test_notifications_this()
 
 add_task(function test_history_expiration()
 {
+  mustInterruptResponses();
+
   function cleanup() {
     Services.prefs.clearUserPref("places.history.expiration.max_pages");
   }
@@ -213,15 +271,9 @@ add_task(function test_history_expiration()
   
   Services.prefs.setIntPref("places.history.expiration.max_pages", 0);
 
-  
-  yield promiseAddDownloadToHistory();
-  yield promiseAddDownloadToHistory(httpUrl("interruptible.txt"));
-
   let list = yield promiseNewDownloadList();
   let downloadOne = yield promiseNewDownload();
   let downloadTwo = yield promiseNewDownload(httpUrl("interruptible.txt"));
-  list.add(downloadOne);
-  list.add(downloadTwo);
 
   let deferred = Promise.defer();
   let removeNotifications = 0;
@@ -236,16 +288,25 @@ add_task(function test_history_expiration()
 
   
   yield downloadOne.start();
-
-  
   downloadTwo.start();
   yield downloadTwo.cancel();
+
+  
+  
+  yield promiseClearHistory();
+  yield promiseExpirableDownloadVisit();
+  yield promiseExpirableDownloadVisit(httpUrl("interruptible.txt"));
+
+  
+  list.add(downloadOne);
+  list.add(downloadTwo);
 
   
   let expire = Cc["@mozilla.org/places/expiration;1"]
                  .getService(Ci.nsIObserver);
   expire.observe(null, "places-debug-start-expiration", -1);
 
+  
   yield deferred.promise;
 
   cleanup();
@@ -256,10 +317,6 @@ add_task(function test_history_expiration()
 
 add_task(function test_history_clear()
 {
-  
-  yield promiseAddDownloadToHistory();
-  yield promiseAddDownloadToHistory();
-
   let list = yield promiseNewDownloadList();
   let downloadOne = yield promiseNewDownload();
   let downloadTwo = yield promiseNewDownload();
@@ -280,8 +337,9 @@ add_task(function test_history_clear()
   yield downloadOne.start();
   yield downloadTwo.start();
 
-  PlacesUtils.history.removeAllPages();
+  yield promiseClearHistory();
 
+  
   yield deferred.promise;
 });
 

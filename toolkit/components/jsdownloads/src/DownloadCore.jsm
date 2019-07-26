@@ -67,6 +67,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gDownloadHistory",
+           "@mozilla.org/browser/download-history;1",
+           Ci.nsIDownloadHistory);
 XPCOMUtils.defineLazyServiceGetter(this, "gExternalHelperAppService",
            "@mozilla.org/uriloader/external-helper-app-service;1",
            Ci.nsIExternalHelperAppService);
@@ -1210,6 +1213,30 @@ DownloadSaver.prototype = {
 
 
 
+  addToHistory: function ()
+  {
+    if (this.download.source.isPrivate) {
+      return;
+    }
+
+    let sourceUri = NetUtil.newURI(this.download.source.url);
+    let referrer = this.download.source.referrer;
+    let referrerUri = referrer ? NetUtil.newURI(referrer) : null;
+    let targetUri = NetUtil.newURI(new FileUtils.File(
+                                       this.download.target.path));
+
+    
+    let startPRTime = this.download.startTime.getTime() * 1000;
+
+    gDownloadHistory.addDownload(sourceUri, referrerUri, startPRTime,
+                                 targetUri);
+  },
+
+  
+
+
+
+
   toSerializable: function ()
   {
     throw new Error("Not implemented.");
@@ -1269,6 +1296,11 @@ DownloadCopySaver.prototype = {
   
 
 
+  alreadyAddedToHistory: false,
+
+  
+
+
 
 
   entityID: null,
@@ -1288,6 +1320,16 @@ DownloadCopySaver.prototype = {
     let keepPartialData = download.tryToKeepPartialData;
 
     return Task.spawn(function task_DCS_execute() {
+      
+      
+      
+      
+      
+      if (!this.alreadyAddedToHistory) {
+        this.addToHistory();
+        this.alreadyAddedToHistory = true;
+      }
+
       
       
       
@@ -1634,7 +1676,13 @@ DownloadLegacySaver.prototype = {
 
 
 
-  onTransferStarted: function (aRequest)
+
+
+
+
+
+
+  onTransferStarted: function (aRequest, aAlreadyAddedToHistory)
   {
     
     if (this.download.tryToKeepPartialData &&
@@ -1644,6 +1692,15 @@ DownloadLegacySaver.prototype = {
         this.entityID = aRequest.entityID;
       } catch (ex if ex instanceof Components.Exception &&
                      ex.result == Cr.NS_ERROR_NOT_RESUMABLE) { }
+    }
+
+    
+    if (aRequest instanceof Ci.nsIHttpChannel && aRequest.referrer) {
+      this.download.source.referrer = aRequest.referrer.spec;
+    }
+
+    if (!aAlreadyAddedToHistory) {
+      this.addToHistory();
     }
   },
 
@@ -1702,6 +1759,7 @@ DownloadLegacySaver.prototype = {
         this.copySaver = new DownloadCopySaver();
         this.copySaver.download = this.download;
         this.copySaver.entityID = this.entityID;
+        this.copySaver.alreadyAddedToHistory = true;
       }
       return this.copySaver.execute.apply(this.copySaver, arguments);
     }
