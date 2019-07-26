@@ -329,7 +329,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     
     
-    if (!JS_WrapValue(cx, v.address())) {
+    if (!JS_WrapValue(cx, &v)) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
 

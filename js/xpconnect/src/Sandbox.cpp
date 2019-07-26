@@ -305,7 +305,7 @@ ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     
-    if (!JS_WrapValue(cx, args.rval().address()))
+    if (!JS_WrapValue(cx, args.rval()))
         return false;
 
     return true;
@@ -982,7 +982,8 @@ xpc::GlobalProperties::Define(JSContext *cx, JS::HandleObject obj)
 }
 
 nsresult
-xpc::CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, SandboxOptions& options)
+xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prinOrSop,
+                         SandboxOptions& options)
 {
     
     nsresult rv;
@@ -1042,7 +1043,7 @@ xpc::CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandb
 
             if (xpc::WrapperFactory::IsXrayWrapper(options.proto) && !options.wantXrays) {
                 RootedValue v(cx, ObjectValue(*options.proto));
-                if (!xpc::WrapperFactory::WaiveXrayAndWrap(cx, v.address()))
+                if (!xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v))
                     return NS_ERROR_FAILURE;
                 options.proto = &v.toObject();
             }
@@ -1094,16 +1095,15 @@ xpc::CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandb
             return NS_ERROR_XPC_UNEXPECTED;
     }
 
-    if (vp) {
-        
-        
-        
-        *vp = OBJECT_TO_JSVAL(sandbox);
-        if (options.wantXrays && !JS_WrapValue(cx, vp))
-            return NS_ERROR_UNEXPECTED;
-        if (!options.wantXrays && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp))
-            return NS_ERROR_UNEXPECTED;
-    }
+
+    
+    
+    
+    vp.setObject(*sandbox);
+    if (options.wantXrays && !JS_WrapValue(cx, vp))
+        return NS_ERROR_UNEXPECTED;
+    if (!options.wantXrays && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp))
+        return NS_ERROR_UNEXPECTED;
 
     
     
@@ -1509,7 +1509,7 @@ nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrappe
     if (NS_FAILED(AssembleSandboxMemoryReporterName(cx, options.sandboxName)))
         return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
 
-    rv = CreateSandboxObject(cx, args.rval().address(), prinOrSop, options);
+    rv = CreateSandboxObject(cx, args.rval(), prinOrSop, options);
 
     if (NS_FAILED(rv))
         return ThrowAndFail(rv, cx, _retval);
@@ -1647,7 +1647,7 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
     if (!ok) {
         
         
-        if (exn.isUndefined() || !JS_WrapValue(cx, exn.address()))
+        if (exn.isUndefined() || !JS_WrapValue(cx, &exn))
             return NS_ERROR_OUT_OF_MEMORY;
 
         
@@ -1657,9 +1657,9 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
 
     
     if (waiveXray) {
-        ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, v.address());
+        ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v);
     } else {
-        ok = JS_WrapValue(cx, v.address());
+        ok = JS_WrapValue(cx, &v);
     }
     NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
 
@@ -1710,12 +1710,13 @@ CloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
         RootedValue functionVal(cx);
         functionVal.setObject(*origFunObj);
 
-        if (!JS_CallFunctionValue(cx, nullptr, functionVal, args.length(), args.array(), vp))
+        if (!JS_CallFunctionValue(cx, nullptr, functionVal, args.length(), args.array(),
+                                  args.rval().address()))
             return false;
     }
 
     
-    return JS_WrapValue(cx, vp);
+    return JS_WrapValue(cx, args.rval());
 }
 
 bool
@@ -1748,7 +1749,7 @@ xpc::GetSandboxMetadata(JSContext *cx, HandleObject sandbox, MutableHandleValue 
       metadata = JS_GetReservedSlot(sandbox, XPCONNECT_SANDBOX_CLASS_METADATA_SLOT);
     }
 
-    if (!JS_WrapValue(cx, metadata.address()))
+    if (!JS_WrapValue(cx, &metadata))
         return NS_ERROR_UNEXPECTED;
 
     rval.set(metadata);

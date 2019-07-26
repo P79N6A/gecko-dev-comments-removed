@@ -511,7 +511,7 @@ MaybeWrapStringValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
   MOZ_ASSERT(rval.isString());
   JSString* str = rval.toString();
   if (JS::GetGCThingZone(str) != js::GetContextZone(cx)) {
-    return JS_WrapValue(cx, rval.address());
+    return JS_WrapValue(cx, rval);
   }
   return true;
 }
@@ -526,7 +526,7 @@ MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
 
   JSObject* obj = &rval.toObject();
   if (js::GetObjectCompartment(obj) != js::GetContextCompartment(cx)) {
-    return JS_WrapValue(cx, rval.address());
+    return JS_WrapValue(cx, rval);
   }
 
   
@@ -539,7 +539,7 @@ MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
 
   
   
-  return JS_WrapValue(cx, rval.address());
+  return JS_WrapValue(cx, rval);
 }
 
 
@@ -568,7 +568,7 @@ MaybeWrapNonDOMObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
   if (js::GetObjectCompartment(obj) == js::GetContextCompartment(cx)) {
     return true;
   }
-  return JS_WrapValue(cx, rval.address());
+  return JS_WrapValue(cx, rval);
 }
 
 
@@ -682,7 +682,7 @@ WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
   }
 
   rval.set(JS::ObjectValue(*obj));
-  return JS_WrapValue(cx, rval.address());
+  return JS_WrapValue(cx, rval);
 }
 
 
@@ -723,7 +723,7 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx,
   
   
   rval.set(JS::ObjectValue(*obj));
-  return JS_WrapValue(cx, rval.address());
+  return JS_WrapValue(cx, rval);
 }
 
 
@@ -774,7 +774,7 @@ WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx,
   
   
   rval.set(JS::ObjectValue(*obj));
-  return JS_WrapValue(cx, rval.address());
+  return JS_WrapValue(cx, rval);
 }
 
 
@@ -1943,7 +1943,8 @@ void SetXrayExpandoChain(JSObject *obj, JSObject *chain);
 bool
 NativeToString(JSContext* cx, JS::Handle<JSObject*> wrapper,
                JS::Handle<JSObject*> obj, const char* pre,
-               const char* post, JS::Value* v);
+               const char* post,
+               JS::MutableHandle<JS::Value> v);
 
 HAS_MEMBER(JSBindingFinalized)
 

@@ -3692,7 +3692,7 @@ CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
 
 
 nsresult
-CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop,
+CreateSandboxObject(JSContext *cx, JS::MutableHandleValue vp, nsISupports *prinOrSop,
                     xpc::SandboxOptions& options);
 
 
