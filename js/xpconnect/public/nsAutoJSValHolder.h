@@ -7,6 +7,7 @@
 #define __NSAUTOJSVALHOLDER_H__
 
 #include "nsDebug.h"
+#include "jsapi.h"
 
 
 
@@ -44,7 +45,7 @@ public:
       else {
         this->Release();
       }
-      *this = static_cast<jsval>(aOther);
+      *this = static_cast<JS::Value>(aOther);
     }
     return *this;
   }
@@ -78,8 +79,8 @@ public:
 
 
 
-  jsval Release() {
-    jsval oldval = mVal;
+  JS::Value Release() {
+    JS::Value oldval = mVal;
 
     if (mRt) {
       JS_RemoveValueRootRT(mRt, &mVal); 
@@ -107,20 +108,20 @@ public:
          : nullptr;
   }
 
-  jsval* ToJSValPtr() {
+  JS::Value* ToJSValPtr() {
     return &mVal;
   }
 
   
 
 
-  operator jsval() const { return mVal; }
+  operator JS::Value() const { return mVal; }
 
   nsAutoJSValHolder &operator=(JSObject* aOther) {
     return *this = OBJECT_TO_JSVAL(aOther);
   }
 
-  nsAutoJSValHolder &operator=(jsval aOther) {
+  nsAutoJSValHolder &operator=(JS::Value aOther) {
 #ifdef DEBUG
     if (JSVAL_IS_GCTHING(aOther) && !JSVAL_IS_NULL(aOther)) {
       MOZ_ASSERT(IsHeld(), "Not rooted!");
@@ -131,7 +132,7 @@ public:
   }
 
 private:
-  jsval mVal;
+  JS::Value mVal;
   JSRuntime* mRt;
 };
 
