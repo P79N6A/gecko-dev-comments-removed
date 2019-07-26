@@ -71,13 +71,12 @@ public:
 
 protected:
     
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(gfxContext     *aContext,
                            const char16_t *aText,
-                           uint32_t         aOffset,
-                           uint32_t         aLength,
-                           int32_t          aScript,
-                           gfxShapedText   *aShapedText,
-                           bool             aPreferPlatformShaping);
+                           uint32_t        aOffset,
+                           uint32_t        aLength,
+                           int32_t         aScript,
+                           gfxShapedText  *aShapedText);
 
     void Initialize(); 
 
