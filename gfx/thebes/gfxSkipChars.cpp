@@ -5,227 +5,136 @@
 
 #include "gfxSkipChars.h"
 
-#include <stdlib.h>
-#include <algorithm>
-
-#define SHORTCUT_FREQUENCY 256
-
-
-static bool
-IsKeepEntry(uint32_t aEntry)
-{
-    return !(aEntry & 1);
-}
-
 void
-gfxSkipChars::BuildShortcuts()
+gfxSkipCharsIterator::SetOriginalOffset(int32_t aOffset)
 {
-    if (!mList || mCharCount < SHORTCUT_FREQUENCY)
-        return;
-  
-    mShortcuts = new Shortcut[mCharCount/SHORTCUT_FREQUENCY];
-    if (!mShortcuts)
-        return;
-  
-    uint32_t i;
-    uint32_t nextShortcutIndex = 0;
-    uint32_t originalCharOffset = 0;
-    uint32_t skippedCharOffset = 0;
-    for (i = 0; i < mListLength; ++i) {
-        uint8_t len = mList[i];
-    
-        
-        
-        
-        
-        
-        
-        
-        while (originalCharOffset + len >= (nextShortcutIndex + 1)*SHORTCUT_FREQUENCY) {
-            mShortcuts[nextShortcutIndex] =
-                Shortcut(i, originalCharOffset, skippedCharOffset);
-            ++nextShortcutIndex;
-        }
-    
-        originalCharOffset += len;
-        if (IsKeepEntry(i)) {
-            skippedCharOffset += len;
-        }
-    }
-}
-
-void
-gfxSkipCharsIterator::SetOffsets(uint32_t aOffset, bool aInOriginalString)
-{
-    NS_ASSERTION(aOffset <= mSkipChars->mCharCount,
+    aOffset += mOriginalStringToSkipCharsOffset;
+    NS_ASSERTION(uint32_t(aOffset) <= mSkipChars->mCharCount,
                  "Invalid offset");
 
-    if (mSkipChars->mListLength == 0) {
-        mOriginalStringOffset = mSkippedStringOffset = aOffset;
+    mOriginalStringOffset = aOffset;
+
+    uint32_t rangeCount = mSkipChars->mRanges.Length();
+    if (rangeCount == 0) {
+        mSkippedStringOffset = aOffset;
         return;
     }
-  
+
+    
     if (aOffset == 0) {
-        
         mSkippedStringOffset = 0;
-        mOriginalStringOffset = 0;
-        mListPrefixLength = 0;
-        mListPrefixKeepCharCount = 0;
-        mListPrefixCharCount = 0;
-        if (aInOriginalString) {
-            
+        mCurrentRangeIndex =
+            rangeCount && mSkipChars->mRanges[0].Start() == 0 ? 0 : -1;
+        return;
+    }
+
+    
+    uint32_t lo = 0, hi = rangeCount;
+    const gfxSkipChars::SkippedRange* ranges = mSkipChars->mRanges.Elements();
+    while (lo < hi) {
+        uint32_t mid = (lo + hi) / 2;
+        if (uint32_t(aOffset) < ranges[mid].Start()) {
+            hi = mid;
+        } else {
+            lo = mid + 1;
+        }
+    }
+
+    if (lo == rangeCount) {
+        mCurrentRangeIndex = rangeCount - 1;
+    } else if (uint32_t(aOffset) < ranges[lo].Start()) {
+        mCurrentRangeIndex = lo - 1;
+        if (mCurrentRangeIndex == -1) {
+            mSkippedStringOffset = aOffset;
             return;
         }
+    } else {
+        mCurrentRangeIndex = lo;
     }
-  
-    if (aInOriginalString && mSkipChars->mShortcuts &&
-        abs(int32_t(aOffset) - int32_t(mListPrefixCharCount)) > SHORTCUT_FREQUENCY) {
-        
-        
-        uint32_t shortcutIndex = aOffset/SHORTCUT_FREQUENCY;
-        if (shortcutIndex == 0) {
-            mListPrefixLength = 0;
-            mListPrefixKeepCharCount = 0;
-            mListPrefixCharCount = 0;
+
+    const gfxSkipChars::SkippedRange& r = ranges[mCurrentRangeIndex];
+    if (uint32_t(aOffset) < r.End()) {
+        mSkippedStringOffset = r.SkippedOffset();
+        return;
+    }
+
+    mSkippedStringOffset = aOffset - r.NextDelta();
+}
+
+void
+gfxSkipCharsIterator::SetSkippedOffset(uint32_t aOffset)
+{
+    NS_ASSERTION((mSkipChars->mRanges.IsEmpty() &&
+                  aOffset <= mSkipChars->mCharCount) ||
+                 (aOffset <= mSkipChars->LastRange().SkippedOffset() +
+                                 mSkipChars->mCharCount -
+                                 mSkipChars->LastRange().End()),
+                 "Invalid skipped offset");
+    mSkippedStringOffset = aOffset;
+
+    uint32_t rangeCount = mSkipChars->mRanges.Length();
+    if (rangeCount == 0) {
+        mOriginalStringOffset = aOffset;
+        return;
+    }
+
+    uint32_t lo = 0, hi = rangeCount;
+    const gfxSkipChars::SkippedRange* ranges = mSkipChars->mRanges.Elements();
+    while (lo < hi) {
+        uint32_t mid = (lo + hi) / 2;
+        if (aOffset < ranges[mid].SkippedOffset()) {
+            hi = mid;
         } else {
-            const gfxSkipChars::Shortcut& shortcut = mSkipChars->mShortcuts[shortcutIndex - 1];
-            mListPrefixLength = shortcut.mListPrefixLength;
-            mListPrefixKeepCharCount = shortcut.mListPrefixKeepCharCount;
-            mListPrefixCharCount = shortcut.mListPrefixCharCount;
+            lo = mid + 1;
         }
     }
-  
-    int32_t currentRunLength = mSkipChars->mList[mListPrefixLength];
-    for (;;) {
-        
-        
-        uint32_t segmentOffset = aInOriginalString ? mListPrefixCharCount : mListPrefixKeepCharCount;
-        if ((aInOriginalString || IsKeepEntry(mListPrefixLength)) &&
-            aOffset >= segmentOffset && aOffset < segmentOffset + currentRunLength) {
-            int32_t offsetInSegment = aOffset - segmentOffset;
-            mOriginalStringOffset = mListPrefixCharCount + offsetInSegment;
-            mSkippedStringOffset = mListPrefixKeepCharCount;
-            if (IsKeepEntry(mListPrefixLength)) {
-                mSkippedStringOffset += offsetInSegment;
-            }
+
+    if (lo == rangeCount) {
+        mCurrentRangeIndex = rangeCount - 1;
+    } else if (aOffset < ranges[lo].SkippedOffset()) {
+        mCurrentRangeIndex = lo - 1;
+        if (mCurrentRangeIndex == -1) {
+            mOriginalStringOffset = aOffset;
             return;
         }
-        
-        if (aOffset < segmentOffset) {
-            
-            if (mListPrefixLength <= 0) {
-                
-                mOriginalStringOffset = mSkippedStringOffset = 0;
-                return;
-            }
-            
-            --mListPrefixLength;
-            currentRunLength = mSkipChars->mList[mListPrefixLength];
-            mListPrefixCharCount -= currentRunLength;
-            if (IsKeepEntry(mListPrefixLength)) {
-                mListPrefixKeepCharCount -= currentRunLength;
-            }
-        } else {
-            
-            if (mListPrefixLength >= mSkipChars->mListLength - 1) {
-                
-                mOriginalStringOffset = mListPrefixCharCount + currentRunLength;
-                mSkippedStringOffset = mListPrefixKeepCharCount;
-                if (IsKeepEntry(mListPrefixLength)) {
-                    mSkippedStringOffset += currentRunLength;
-                }
-                return;
-            }
-            
-            mListPrefixCharCount += currentRunLength;
-            if (IsKeepEntry(mListPrefixLength)) {
-                mListPrefixKeepCharCount += currentRunLength;
-            }
-            ++mListPrefixLength;
-            currentRunLength = mSkipChars->mList[mListPrefixLength];
-        }
+    } else {
+        mCurrentRangeIndex = lo;
     }
+
+    const gfxSkipChars::SkippedRange& r = ranges[mCurrentRangeIndex];
+    mOriginalStringOffset = r.End() + aOffset - r.SkippedOffset();
 }
 
 bool
 gfxSkipCharsIterator::IsOriginalCharSkipped(int32_t* aRunLength) const
 {
-    if (mSkipChars->mListLength == 0) {
+    if (mCurrentRangeIndex == -1) {
+        
         if (aRunLength) {
-            *aRunLength = mSkipChars->mCharCount - mOriginalStringOffset;
+            uint32_t end = mSkipChars->mRanges.IsEmpty() ?
+                mSkipChars->mCharCount : mSkipChars->mRanges[0].Start();
+            *aRunLength = end - mOriginalStringOffset;
         }
         return mSkipChars->mCharCount == uint32_t(mOriginalStringOffset);
     }
-  
-    uint32_t listPrefixLength = mListPrefixLength;
-    
-    uint32_t currentRunLength = mSkipChars->mList[listPrefixLength];
-    
-    
-    
-    while (currentRunLength == 0 && listPrefixLength < mSkipChars->mListLength - 1) {
-        ++listPrefixLength;
-        
-        
-        currentRunLength = mSkipChars->mList[listPrefixLength];
-    }
-    NS_ASSERTION(uint32_t(mOriginalStringOffset) >= mListPrefixCharCount,
-                 "Invariant violation");
-    uint32_t offsetIntoCurrentRun =
-      uint32_t(mOriginalStringOffset) - mListPrefixCharCount;
-    if (listPrefixLength >= mSkipChars->mListLength - 1 &&
-        offsetIntoCurrentRun >= currentRunLength) {
-        NS_ASSERTION(listPrefixLength == mSkipChars->mListLength - 1 &&
-                     offsetIntoCurrentRun == currentRunLength,
-                     "Overran end of string");
-        
+
+    const gfxSkipChars::SkippedRange& range =
+        mSkipChars->mRanges[mCurrentRangeIndex];
+
+    if (uint32_t(mOriginalStringOffset) < range.End()) {
         if (aRunLength) {
-            *aRunLength = 0;
+            *aRunLength = range.End() - mOriginalStringOffset;
         }
         return true;
     }
-  
-    bool isSkipped = !IsKeepEntry(listPrefixLength);
-    if (aRunLength) {
-        
-        
-        
-        uint32_t runLength = currentRunLength - offsetIntoCurrentRun;
-        for (uint32_t i = listPrefixLength + 2; i < mSkipChars->mListLength; i += 2) {
-            if (mSkipChars->mList[i - 1] != 0)
-                break;
-            runLength += mSkipChars->mList[i];
-        }
-        *aRunLength = runLength;
-    }
-    return isSkipped;
-}
 
-void
-gfxSkipCharsBuilder::FlushRun()
-{
-    NS_ASSERTION((mBuffer.Length() & 1) == mRunSkipped,
-                 "out of sync?");
-    
-    uint32_t charCount = mRunCharCount;
-    for (;;) {
-        uint32_t chars = std::min<uint32_t>(255, charCount);
-        if (!mBuffer.AppendElement(chars)) {
-            mInErrorState = true;
-            return;
-        }
-        charCount -= chars;
-        if (charCount == 0)
-            break;
-        if (!mBuffer.AppendElement(0)) {
-            mInErrorState = true;
-            return;
-        }
+    if (aRunLength) {
+        uint32_t end =
+            uint32_t(mCurrentRangeIndex) + 1 < mSkipChars->mRanges.Length() ?
+                mSkipChars->mRanges[mCurrentRangeIndex + 1].Start() :
+                mSkipChars->mCharCount;
+        *aRunLength = end - mOriginalStringOffset;
     }
-  
-    NS_ASSERTION(mCharCount + mRunCharCount >= mCharCount,
-                 "String length overflow");
-    mCharCount += mRunCharCount;
-    mRunCharCount = 0;
-    mRunSkipped = !mRunSkipped;
+
+    return mSkipChars->mCharCount == uint32_t(mOriginalStringOffset);
 }
