@@ -111,36 +111,35 @@ AccGroupInfo::AccGroupInfo(Accessible* aItem, role aRole) :
     mParent = parent;
 
   
-  
-  
-  
-  if (parentRole != roles::GROUPING || aRole != roles::OUTLINEITEM)
+  if (parentRole != roles::GROUPING)
     return;
 
-  Accessible* parentPrevSibling = parent->PrevSibling();
-  if (!parentPrevSibling)
-    return;
-
-  roles::Role parentPrevSiblingRole = parentPrevSibling->Role();
-  if (parentPrevSiblingRole == roles::TEXT_LEAF) {
-    
-    
-    
-    
-    parentPrevSibling = parentPrevSibling->PrevSibling();
-    if (parentPrevSibling)
-      parentPrevSiblingRole = parentPrevSibling->Role();
+  
+  
+  
+  
+  if (aRole == roles::OUTLINEITEM) {
+    Accessible* parentPrevSibling = parent->PrevSibling();
+    if (parentPrevSibling && parentPrevSibling->Role() == aRole) {
+      mParent = parentPrevSibling;
+      return;
+    }
   }
 
   
   
-  if (parentPrevSiblingRole == roles::OUTLINEITEM)
-    mParent = parentPrevSibling;
+  
+  if (aRole == roles::LISTITEM || aRole == roles::OUTLINEITEM) {
+    Accessible* grandParent = parent->Parent();
+    if (grandParent && grandParent->Role() == aRole)
+      mParent = grandParent;
+  }
 }
 
 Accessible*
 AccGroupInfo::FirstItemOf(Accessible* aContainer)
 {
+  
   
   a11y::role containerRole = aContainer->Role();
   Accessible* item = aContainer->NextSibling();
@@ -148,14 +147,32 @@ AccGroupInfo::FirstItemOf(Accessible* aContainer)
     if (containerRole == roles::OUTLINEITEM && item->Role() == roles::GROUPING)
       item = item->FirstChild();
 
-    AccGroupInfo* itemGroupInfo = item->GetGroupInfo();
-    if (itemGroupInfo && itemGroupInfo->ConceptualParent() == aContainer)
-      return item;
+    if (item) {
+      AccGroupInfo* itemGroupInfo = item->GetGroupInfo();
+      if (itemGroupInfo && itemGroupInfo->ConceptualParent() == aContainer)
+        return item;
+    }
+  }
+
+  
+  
+  item = aContainer->LastChild();
+  if (!item)
+    return nullptr;
+
+  if (item->Role() == roles::GROUPING &&
+      (containerRole == roles::LISTITEM || containerRole == roles::OUTLINEITEM)) {
+    item = item->FirstChild();
+    if (item) {
+      AccGroupInfo* itemGroupInfo = item->GetGroupInfo();
+      if (itemGroupInfo && itemGroupInfo->ConceptualParent() == aContainer)
+        return item;
+    }
   }
 
   
   item = aContainer->FirstChild();
-  if (item && IsConceptualParent(BaseRole(item->Role()), containerRole))
+  if (IsConceptualParent(BaseRole(item->Role()), containerRole))
     return item;
 
   return nullptr;

@@ -2024,7 +2024,8 @@ Accessible::RelationByType(uint32_t aType)
 
       
       
-      if (mRoleMapEntry && (mRoleMapEntry->role == roles::OUTLINEITEM || 
+      if (mRoleMapEntry && (mRoleMapEntry->role == roles::OUTLINEITEM ||
+                            mRoleMapEntry->role == roles::LISTITEM ||
                             mRoleMapEntry->role == roles::ROW)) {
         rel.AppendTarget(GetGroupInfo()->ConceptualParent());
       }
@@ -2055,8 +2056,10 @@ Accessible::RelationByType(uint32_t aType)
       
       if (mRoleMapEntry &&
           (mRoleMapEntry->role == roles::OUTLINEITEM ||
+           mRoleMapEntry->role == roles::LISTITEM ||
            mRoleMapEntry->role == roles::ROW ||
            mRoleMapEntry->role == roles::OUTLINE ||
+           mRoleMapEntry->role == roles::LIST ||
            mRoleMapEntry->role == roles::TREE_TABLE)) {
         rel.AppendIter(new ItemIterator(this));
       }
@@ -3260,6 +3263,7 @@ Accessible::GetLevelInternal()
     
     
     
+    
 
     
     level = 0;
@@ -3269,9 +3273,8 @@ Accessible::GetLevelInternal()
 
       if (parentRole == roles::LISTITEM)
         ++ level;
-      else if (parentRole != roles::LIST)
+      else if (parentRole != roles::LIST && parentRole != roles::GROUPING)
         break;
-
     }
 
     if (level == 0) {
@@ -3283,8 +3286,11 @@ Accessible::GetLevelInternal()
         Accessible* sibling = parent->GetChildAt(siblingIdx);
 
         Accessible* siblingChild = sibling->LastChild();
-        if (siblingChild && siblingChild->Role() == roles::LIST)
-          return 1;
+        if (siblingChild) {
+          roles::Role lastChildRole = siblingChild->Role();
+          if (lastChildRole == roles::LIST || lastChildRole == roles::GROUPING)
+            return 1;
+        }
       }
     } else {
       ++ level; 
