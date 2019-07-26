@@ -264,8 +264,22 @@ class AsmJSModule
         }
     };
 
+#if defined(MOZ_VTUNE)
     
-    
+    struct ProfiledFunction
+    {
+        JSAtom *name;
+        unsigned startCodeOffset;
+        unsigned endCodeOffset;
+
+        ProfiledFunction(JSAtom *name, unsigned start, unsigned end)
+          : name(name), startCodeOffset(start), endCodeOffset(end)
+        { }
+    };
+#endif
+
+
+
     struct PostLinkFailureInfo
     {
         CompileOptions      options_;
@@ -306,6 +320,9 @@ class AsmJSModule
     typedef Vector<ion::AsmJSBoundsCheck, 0, SystemAllocPolicy> BoundsCheckVector;
 #endif
     typedef Vector<ion::IonScriptCounts *, 0, SystemAllocPolicy> FunctionCountsVector;
+#if defined(MOZ_VTUNE)
+    typedef Vector<ProfiledFunction, 0, SystemAllocPolicy> ProfiledFunctionVector;
+#endif
 
     GlobalVector                          globals_;
     ExitVector                            exits_;
@@ -314,6 +331,10 @@ class AsmJSModule
 #if defined(JS_CPU_ARM)
     BoundsCheckVector                     boundsChecks_;
 #endif
+#if defined(MOZ_VTUNE)
+    ProfiledFunctionVector                profiledFunctions_;
+#endif
+
     uint32_t                              numGlobalVars_;
     uint32_t                              numFFIs_;
     uint32_t                              numFuncPtrTableElems_;
@@ -449,6 +470,18 @@ class AsmJSModule
     ExportedFunction &exportedFunction(unsigned i) {
         return exports_[i];
     }
+#ifdef MOZ_VTUNE
+    bool trackProfiledFunction(JSAtom *name, unsigned startCodeOffset, unsigned endCodeOffset) {
+        ProfiledFunction func(name, startCodeOffset, endCodeOffset);
+        return profiledFunctions_.append(func);
+    }
+    unsigned numProfiledFunctions() const {
+        return profiledFunctions_.length();
+    }
+    const ProfiledFunction &profiledFunction(unsigned i) const {
+        return profiledFunctions_[i];
+    }
+#endif
     bool hasArrayView() const {
         return hasArrayView_;
     }
@@ -686,5 +719,5 @@ SetAsmJSModuleObject(JSFunction *moduleFun, JSObject *moduleObj);
 
 }  
 
-#endif  
+#endif
 
