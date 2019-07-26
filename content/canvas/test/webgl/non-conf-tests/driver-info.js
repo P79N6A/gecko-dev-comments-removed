@@ -18,9 +18,15 @@ DriverInfo = (function() {
   
   
   
-  const Cc = SpecialPowers.Cc;
-  const Ci = SpecialPowers.Ci;
   function detectDriverInfo() {
+    try {
+      var cc = SpecialPowers.Cc;
+    } catch (e) {
+      throw 'No SpecialPowers!';
+    }
+
+    const Cc = SpecialPowers.Cc;
+    const Ci = SpecialPowers.Ci;
     var doc = Cc["@mozilla.org/xmlextras/domparser;1"].createInstance(Ci.nsIDOMParser).parseFromString("<html/>", "text/html");
 
     var canvas = doc.createElement("canvas");
@@ -46,6 +52,51 @@ DriverInfo = (function() {
     return [webglVendor, webglRenderer];
   }
 
+  function detectOSInfo() {
+    try {
+      var cc = SpecialPowers.Cc;
+    } catch (e) {
+      throw 'No SpecialPowers!';
+    }
+
+    const Cc = SpecialPowers.Cc;
+    const Ci = SpecialPowers.Ci;
+
+    
+    var runtime = Cc['@mozilla.org/xre/app-info;1'].getService(Ci.nsIXULRuntime);
+
+    var os = null;
+    var version = null;
+    if (navigator.platform.indexOf('Win') == 0) {
+      os = OS.WINDOWS;
+
+      
+      version = SpecialPowers.Services.sysinfo.getProperty('version');
+      version = parseFloat(version);
+      
+
+    } else if (navigator.platform.indexOf('Mac') == 0) {
+      os = OS.MAC;
+
+      var versionMatch = /Mac OS X (\d+.\d+)/.exec(navigator.userAgent);
+      version = versionMatch ? parseFloat(versionMatch[1]) : null;
+
+    } else if (runtime.widgetToolkit == 'gonk') {
+      os = OS.B2G;
+
+    } else if (navigator.appVersion.indexOf('Android') != -1) {
+      os = OS.ANDROID;
+      
+      version = SpecialPowers.Services.sysinfo.getProperty('version');
+
+    } else if (navigator.platform.indexOf('Linux') == 0) {
+      
+      os = OS.LINUX;
+    }
+
+    return [os, version];
+  }
+
   var OS = {
     WINDOWS: 'windows',
     MAC: 'mac',
@@ -65,34 +116,10 @@ DriverInfo = (function() {
   var kOSVersion = null;
   var kDriver = null;
 
-  
-  var runtime = Cc['@mozilla.org/xre/app-info;1'].getService(Ci.nsIXULRuntime);
-
-  if (navigator.platform.indexOf('Win') == 0) {
-    kOS = OS.WINDOWS;
-
+  try {
+    [kOS, kOSVersion] = detectOSInfo();
+  } catch (e) {
     
-    var version = SpecialPowers.Services.sysinfo.getProperty('version');
-    kOSVersion = parseFloat(version);
-    
-
-  } else if (navigator.platform.indexOf('Mac') == 0) {
-    kOS = OS.MAC;
-
-    var versionMatch = /Mac OS X (\d+.\d+)/.exec(navigator.userAgent);
-    kOSVersion = versionMatch ? parseFloat(versionMatch[1]) : null;
-
-  } else if (runtime.widgetToolkit == 'gonk') {
-    kOS = OS.B2G;
-
-  } else if (navigator.appVersion.indexOf('Android') != -1) {
-    kOS = OS.ANDROID;
-    
-    kOSVersion = SpecialPowers.Services.sysinfo.getProperty('version');
-
-  } else if (navigator.platform.indexOf('Linux') == 0) {
-    
-    kOS = OS.LINUX;
   }
 
   try {
