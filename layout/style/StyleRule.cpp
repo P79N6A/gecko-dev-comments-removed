@@ -1281,6 +1281,7 @@ StyleRule::StyleRule(nsCSSSelectorList* aSelector,
     mImportantRule(nullptr),
     mDOMRule(nullptr),
     mLineNumber(0),
+    mColumnNumber(0),
     mWasMatched(false)
 {
   NS_PRECONDITION(aDeclaration, "must have a declaration");
@@ -1294,6 +1295,7 @@ StyleRule::StyleRule(const StyleRule& aCopy)
     mImportantRule(nullptr),
     mDOMRule(nullptr),
     mLineNumber(aCopy.mLineNumber),
+    mColumnNumber(aCopy.mColumnNumber),
     mWasMatched(false)
 {
   
@@ -1308,6 +1310,7 @@ StyleRule::StyleRule(StyleRule& aCopy,
     mImportantRule(nullptr),
     mDOMRule(aCopy.mDOMRule),
     mLineNumber(aCopy.mLineNumber),
+    mColumnNumber(aCopy.mColumnNumber),
     mWasMatched(false)
 {
   

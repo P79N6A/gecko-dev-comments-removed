@@ -331,6 +331,7 @@ protected:
 
   bool GetToken(bool aSkipWS);
   void UngetToken();
+  bool GetNextTokenLocation(bool aSkipWS, uint32_t *linenum, uint32_t *colnum);
 
   bool ExpectSymbol(PRUnichar aSymbol, bool aSkipWS);
   bool ExpectEndProperty();
@@ -1434,6 +1435,21 @@ CSSParserImpl::UngetToken()
 {
   NS_PRECONDITION(!mHavePushBack, "double pushback");
   mHavePushBack = true;
+}
+
+bool
+CSSParserImpl::GetNextTokenLocation(bool aSkipWS, uint32_t *linenum, uint32_t *colnum)
+{
+  
+  if (!GetToken(aSkipWS)) {
+    return false;
+  }
+  UngetToken();
+  
+  
+  *linenum = mScanner->GetLineNumber();
+  *colnum = 1 + mScanner->GetColumnNumber();
+  return true;
 }
 
 bool
@@ -2888,8 +2904,9 @@ CSSParserImpl::ParseRuleSet(RuleAppendFunc aAppendFunc, void* aData,
 {
   
   nsCSSSelectorList* slist = nullptr;
-  uint32_t linenum = mScanner->GetLineNumber();
-  if (! ParseSelectorList(slist, PRUnichar('{'))) {
+  uint32_t linenum, colnum;
+  if (!GetNextTokenLocation(true, &linenum, &colnum) ||
+      !ParseSelectorList(slist, PRUnichar('{'))) {
     REPORT_UNEXPECTED(PEBadSelectorRSIgnored);
     OUTPUT_ERROR();
     SkipRuleSet(aInsideBraces);
@@ -2917,7 +2934,7 @@ CSSParserImpl::ParseRuleSet(RuleAppendFunc aAppendFunc, void* aData,
   
 
   nsRefPtr<css::StyleRule> rule = new css::StyleRule(slist, declaration);
-  rule->SetLineNumber(linenum);
+  rule->SetLineNumberAndColumnNumber(linenum, colnum);
   (*aAppendFunc)(rule, aData);
 
   return true;
