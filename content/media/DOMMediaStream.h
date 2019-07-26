@@ -120,7 +120,19 @@ public:
 
 
 
-  void SetPrincipal(nsIPrincipal* aPrincipal) { mPrincipal = aPrincipal; }
+  void SetPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
+
+  class PrincipalChangeObserver
+  {
+  public:
+    virtual void PrincipalChanged(DOMMediaStream* aMediaStream) = 0;
+  };
+  bool AddPrincipalChangeObserver(PrincipalChangeObserver* aObserver);
+  bool RemovePrincipalChangeObserver(PrincipalChangeObserver* aObserver);
 
   
 
@@ -216,12 +228,6 @@ protected:
   
   
   MediaStream* mStream;
-  
-  
-  nsCOMPtr<nsIPrincipal> mPrincipal;
-  
-  
-  nsAutoPtr<PeerIdentity> mPeerIdentity;
 
   nsAutoTArray<nsRefPtr<MediaStreamTrack>,2> mTracks;
   nsRefPtr<StreamListener> mListener;
@@ -236,6 +242,17 @@ protected:
   
   uint8_t mTrackTypesAvailable;
   bool mNotifiedOfMediaStreamGraphShutdown;
+
+private:
+  void NotifyPrincipalChanged();
+
+  
+  
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsTArray<PrincipalChangeObserver*> mPrincipalChangeObservers;
+  
+  
+  nsAutoPtr<PeerIdentity> mPeerIdentity;
 };
 
 class DOMLocalMediaStream : public DOMMediaStream,
