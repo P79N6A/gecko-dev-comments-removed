@@ -2097,6 +2097,8 @@ HTMLMediaElement::Play(ErrorResult& aRv)
     }
   }
 
+  SetPlaybackRate(mDefaultPlaybackRate);
+
   mPaused = false;
   mAutoplaying = false;
   
