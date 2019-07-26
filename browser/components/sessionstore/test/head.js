@@ -88,6 +88,12 @@ function provideWindow(aCallback, aURL, aFeatures) {
 
 
 function waitForBrowserState(aState, aSetStateCallback) {
+  if (typeof aState == "string") {
+    aState = JSON.parse(aState);
+  }
+  if (typeof aState != "object") {
+    throw new TypeError("Argument must be an object or a JSON representation of an object");
+  }
   let windows = [window];
   let tabsRestored = 0;
   let expectedTabsRestored = 0;
@@ -170,6 +176,10 @@ function waitForBrowserState(aState, aSetStateCallback) {
 
   
   ss.setBrowserState(JSON.stringify(aState));
+}
+
+function promiseBrowserState(aState) {
+  return new Promise(resolve => waitForBrowserState(aState, resolve));
 }
 
 
@@ -480,6 +490,9 @@ function whenDelayedStartupFinished(aWindow, aCallback) {
       executeSoon(aCallback);
     }
   }, "browser-delayed-startup-finished", false);
+}
+function promiseDelayedStartupFinished(aWindow) {
+  return new Promise((resolve) => whenDelayedStartupFinished(aWindow, resolve));
 }
 
 

@@ -36,6 +36,7 @@ const OBSERVING = [
   "quit-application", "browser:purge-session-history",
   "browser:purge-domain-data",
   "gather-telemetry",
+  "idle-daily",
 ];
 
 
@@ -569,6 +570,9 @@ let SessionStoreInternal = {
         break;
       case "gather-telemetry":
         this.onGatherTelemetry();
+        break;
+      case "idle-daily":
+        this.onIdleDaily();
         break;
     }
   },
@@ -1429,6 +1433,39 @@ let SessionStoreInternal = {
   },
 
   
+  
+  
+  onIdleDaily: function() {
+    
+    this._cleanupOldData([this._closedWindows]);
+
+    
+    this._cleanupOldData([winData._closedTabs for (winData of this._closedWindows)]);
+
+    
+    this._cleanupOldData([this._windows[key]._closedTabs for (key of Object.keys(this._windows))]);
+  },
+
+  
+  _cleanupOldData: function(targets) {
+    const TIME_TO_LIVE = this._prefBranch.getIntPref("sessionstore.cleanup.forget_closed_after");
+    const now = Date.now();
+
+    for (let array of targets) {
+      for (let i = array.length - 1; i >= 0; --i)  {
+        let data = array[i];
+        
+        
+        
+        data.closedAt = data.closedAt || now;
+        if (now - data.closedAt > TIME_TO_LIVE) {
+          array.splice(i, 1);
+        }
+      }
+    }
+  },
+
+  
 
   getBrowserState: function ssi_getBrowserState() {
     let state = this.getCurrentState();
@@ -1671,6 +1708,8 @@ let SessionStoreInternal = {
 
     
     let state = { windows: this._closedWindows.splice(aIndex, 1) };
+    delete state.windows[0].closedAt; 
+
     let window = this._openWindowWithState(state);
     this.windowToFocus = window;
     return window;
@@ -2472,6 +2511,7 @@ let SessionStoreInternal = {
       } else {
         delete tab.__SS_extdata;
       }
+      delete tabData.closedAt; 
 
       
       

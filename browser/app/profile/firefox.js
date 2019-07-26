@@ -1019,6 +1019,8 @@ pref("browser.sessionstore.upgradeBackup.latestBuildID", "");
 
 pref("browser.sessionstore.debug", false);
 
+pref("browser.sessionstore.cleanup.forget_closed_after", 1209600000);
+
 
 pref("accessibility.blockautorefresh", false);
 
