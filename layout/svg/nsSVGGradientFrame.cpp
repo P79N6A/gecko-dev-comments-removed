@@ -174,18 +174,9 @@ nsSVGGradientFrame::GetGradientTransform(nsIFrame *aSource,
   gfxMatrix bboxMatrix;
 
   uint16_t gradientUnits = GetGradientUnits();
-  if (gradientUnits == SVG_UNIT_TYPE_USERSPACEONUSE) {
-    
-    
-    
-    if (aSource->GetContent()->IsNodeOfType(nsINode::eTEXT))
-      mSource = aSource->GetParent();
-    else
-      mSource = aSource;
-  } else {
-    NS_ASSERTION(
-      gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
-      "Unknown gradientUnits type");
+  if (gradientUnits != SVG_UNIT_TYPE_USERSPACEONUSE) {
+    NS_ASSERTION(gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+                 "Unknown gradientUnits type");
     
 
     gfxRect bbox =
@@ -242,11 +233,16 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame *aSource,
                                           float aGraphicOpacity,
                                           const gfxRect *aOverrideBounds)
 {
-  
-  gfxMatrix patternMatrix = GetGradientTransform(aSource, aOverrideBounds);
-
-  if (patternMatrix.IsSingular())
-    return nullptr;
+  uint16_t gradientUnits = GetGradientUnits();
+  MOZ_ASSERT(gradientUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX ||
+             gradientUnits == SVG_UNIT_TYPE_USERSPACEONUSE);
+  if (gradientUnits == SVG_UNIT_TYPE_USERSPACEONUSE) {
+    
+    
+    
+    mSource = aSource->GetContent()->IsNodeOfType(nsINode::eTEXT) ?
+                aSource->GetParent() : aSource;
+  }
 
   uint32_t nStops = GetStopCount();
 
@@ -270,6 +266,15 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame *aSource,
                                    NS_GET_A(stopColor)/255.0 *
                                      stopOpacity * aGraphicOpacity));
     return pattern.forget();
+  }
+
+  
+  
+  
+  gfxMatrix patternMatrix = GetGradientTransform(aSource, aOverrideBounds);
+
+  if (patternMatrix.IsSingular()) {
+    return nullptr;
   }
 
   
