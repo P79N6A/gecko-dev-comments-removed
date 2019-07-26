@@ -2325,6 +2325,18 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 nsresult
 RasterImage::SyncDecode()
 {
+  MutexAutoLock imgLock(mDecodingMutex);
+
+  if (mDecodeRequest) {
+    
+    if (mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
+      nsresult rv = FinishedSomeDecoding();
+      CONTAINER_ENSURE_SUCCESS(rv);
+    }
+  }
+
+  nsresult rv;
+
   PROFILER_LABEL_PRINTF("RasterImage", "SyncDecode", "%s", GetURIString().get());;
 
   
@@ -2345,18 +2357,6 @@ RasterImage::SyncDecode()
       return NS_ERROR_NOT_AVAILABLE;
     }
   }
-
-  MutexAutoLock imgLock(mDecodingMutex);
-
-  if (mDecodeRequest) {
-    
-    if (mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      nsresult rv = FinishedSomeDecoding();
-      CONTAINER_ENSURE_SUCCESS(rv);
-    }
-  }
-
-  nsresult rv;
 
   
   
