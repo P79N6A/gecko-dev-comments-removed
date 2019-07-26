@@ -542,9 +542,10 @@ nsOpenTypeTable::MakeTextRun(gfxContext*        aThebesContext,
                        false);
   gfxTextRun::DetailedGlyph detailedGlyph;
   detailedGlyph.mGlyphID = aGlyph.glyphID;
-  
-  
-  detailedGlyph.mAdvance = 0;
+  detailedGlyph.mAdvance =
+    NSToCoordRound(aAppUnitsPerDevPixel *
+                   aFontGroup->GetFontAt(0)->
+                   GetGlyphHAdvance(aThebesContext, aGlyph.glyphID));
   detailedGlyph.mXOffset = detailedGlyph.mYOffset = 0;
   gfxShapedText::CompressedGlyph g;
   g.SetComplex(true, true, 1);
@@ -1153,11 +1154,6 @@ MeasureTextRun(gfxContext* aThebesContext, gfxTextRun* aTextRun)
   bm.ascent = NSToCoordCeil(-metrics.mBoundingBox.Y());
   bm.descent = NSToCoordCeil(metrics.mBoundingBox.YMost());
   bm.width = NSToCoordRound(metrics.mAdvanceWidth);
-  if (bm.width == 0) {
-    
-    
-    bm.width = bm.rightBearing;
-  }
 
   return bm;
 }
@@ -1296,6 +1292,8 @@ StretchEnumContext::TryVariants(nsGlyphTable* aGlyphTable,
     if (ch.IsGlyphID()) {
       gfxFont* mathFont = aFontGroup->get()->GetFontAt(0);
       if (mathFont->GetFontEntry()->TryGetMathTable(mathFont)) {
+        
+        
         
         
         

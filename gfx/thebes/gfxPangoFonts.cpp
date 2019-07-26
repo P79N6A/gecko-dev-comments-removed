@@ -1624,10 +1624,7 @@ gfxFcFont::ShapeText(gfxContext      *aContext,
 
     if (!ok) {
         if (!mHarfBuzzShaper) {
-            gfxFT2LockedFace face(this);
             mHarfBuzzShaper = new gfxHarfBuzzShaper(this);
-            
-            mFUnitsConvFactor = face.XScale();
         }
         ok = mHarfBuzzShaper->ShapeText(aContext, aText, aOffset, aLength,
                                         aScript, aShapedText);

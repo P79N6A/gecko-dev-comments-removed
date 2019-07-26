@@ -43,6 +43,8 @@ class gfxTextRun;
 class gfxFont;
 class gfxFontFamily;
 class gfxFontGroup;
+class gfxGraphiteShaper;
+class gfxHarfBuzzShaper;
 class gfxUserFontSet;
 class gfxUserFontData;
 class gfxShapedText;
@@ -1457,6 +1459,10 @@ protected:
 
 
 class gfxFont {
+
+    friend class gfxHarfBuzzShaper;
+    friend class gfxGraphiteShaper;
+
 public:
     nsrefcnt AddRef(void) {
         NS_PRECONDITION(int32_t(mRefCnt) >= 0, "illegal refcnt");
@@ -1584,19 +1590,8 @@ public:
     virtual uint32_t GetGlyph(uint32_t unicode, uint32_t variation_selector) {
         return 0;
     }
-
     
-    
-    
-    virtual bool ProvidesGlyphWidths() {
-        return false;
-    }
-
-    
-    
-    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID) {
-        return -1;
-    }
+    gfxFloat GetGlyphHAdvance(gfxContext *aCtx, uint16_t aGID);
 
     
     virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
@@ -1892,6 +1887,19 @@ public:
     }
 
 protected:
+    
+    
+    
+    virtual bool ProvidesGlyphWidths() {
+        return false;
+    }
+
+    
+    
+    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID) {
+        return -1;
+    }
+
     void AddGlyphChangeObserver(GlyphChangeObserver *aObserver);
     void RemoveGlyphChangeObserver(GlyphChangeObserver *aObserver);
 
