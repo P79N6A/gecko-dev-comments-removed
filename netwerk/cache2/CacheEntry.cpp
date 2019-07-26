@@ -371,8 +371,15 @@ NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew)
 
   mFileStatus = aResult;
 
-  if (mState == READY)
+  if (mState == READY) {
     mHasData = true;
+
+    uint32_t frecency;
+    mFile->GetFrecency(&frecency);
+    
+    
+    mFrecency = INT2FRECENCY(frecency);
+  }
 
   InvokeCallbacks();
   return NS_OK;
@@ -1460,7 +1467,7 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
     #endif
 
     
-    static double const half_life = 90.0 * (24 * 60 * 60);
+     static double half_life = CacheObserver::HalfLifeSeconds();
     
     static double const decay = (M_LN2 / half_life) / static_cast<double>(PR_USEC_PER_SEC);
 
@@ -1475,6 +1482,12 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
       mFrecency = log(exp(mFrecency - now_decay) + 1) + now_decay;
     }
     LOG(("CacheEntry FRECENCYUPDATE [this=%p, frecency=%1.10f]", this, mFrecency));
+
+    
+    
+    nsRefPtr<nsRunnableMethod<CacheEntry> > event =
+      NS_NewRunnableMethod(this, &CacheEntry::StoreFrecency);
+    NS_DispatchToMainThread(event);
   }
 
   if (aOperations & Ops::REGISTER) {
@@ -1495,6 +1508,14 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
     mozilla::MutexAutoLock lock(mLock);
     InvokeCallbacks();
   }
+}
+
+void CacheEntry::StoreFrecency()
+{
+  
+  
+  MOZ_ASSERT(NS_IsMainThread());
+  mFile->SetFrecency(FRECENCY2INT(mFrecency));
 }
 
 

@@ -13,6 +13,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "nsServiceManagerUtils.h"
+#include <time.h>
 
 namespace mozilla {
 namespace net {
@@ -24,6 +25,12 @@ uint32_t CacheObserver::sMemoryLimit = kDefaultMemoryLimit;
 
 static uint32_t const kDefaultUseNewCache = 0; 
 uint32_t CacheObserver::sUseNewCache = kDefaultUseNewCache;
+
+static int32_t const kDefaultHalfLifeExperiment = -1; 
+int32_t CacheObserver::sHalfLifeExperiment = kDefaultHalfLifeExperiment;
+
+static uint32_t const kDefaultHalfLifeHours = 6; 
+uint32_t CacheObserver::sHalfLifeHours = kDefaultHalfLifeHours;
 
 NS_IMPL_ISUPPORTS2(CacheObserver,
                    nsIObserver,
@@ -73,6 +80,41 @@ CacheObserver::AttachToPreferences()
     &sMemoryLimit, "browser.cache.memory_limit", kDefaultMemoryLimit);
   mozilla::Preferences::AddUintVarCache(
     &sUseNewCache, "browser.cache.use_new_backend", kDefaultUseNewCache);
+
+  sHalfLifeExperiment = mozilla::Preferences::GetInt(
+    "browser.cache.frecency_experiment", kDefaultHalfLifeExperiment);
+
+  if (sHalfLifeExperiment == 0) {
+    
+    
+    
+    srand(time(NULL));
+    sHalfLifeExperiment = (rand() % 4) + 1;
+    mozilla::Preferences::SetInt(
+      "browser.cache.frecency_experiment", sHalfLifeExperiment);
+  }
+
+  switch (sHalfLifeExperiment) {
+  case 1: 
+    sHalfLifeHours = 6;
+    break;
+  case 2:
+    sHalfLifeHours = 24;
+    break;
+  case 3:
+    sHalfLifeHours = 7 * 24;
+    break;
+  case 4:
+    sHalfLifeHours = 50 * 24;
+    break;
+
+  case -1:
+  default: 
+    sHalfLifeExperiment = -1;
+    sHalfLifeHours = std::max(1U, std::min(1440U, mozilla::Preferences::GetUint(
+      "browser.cache.frecency_half_life_hours", kDefaultHalfLifeHours)));
+    break;
+  }
 }
 
 

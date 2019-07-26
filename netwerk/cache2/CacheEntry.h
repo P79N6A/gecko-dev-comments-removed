@@ -219,6 +219,7 @@ private:
   
   
   void BackgroundOp(uint32_t aOperation, bool aForceAsync = false);
+  void StoreFrecency();
 
   already_AddRefed<CacheEntryHandle> ReopenTruncated(nsICacheEntryOpenCallback* aCallback);
   void TransferCallbacks(CacheEntry & aFromEntry);
