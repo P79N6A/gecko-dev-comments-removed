@@ -301,35 +301,6 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
   return config;
 }
 
-bool
-nsColumnSetFrame::ReflowColumns(nsHTMLReflowMetrics& aDesiredSize,
-                                const nsHTMLReflowState& aReflowState,
-                                nsReflowStatus& aReflowStatus,
-                                ReflowConfig& aConfig,
-                                bool aLastColumnUnbounded,
-                                nsCollapsingMargin* aCarriedOutBottomMargin,
-                                ColumnBalanceData& aColData)
-{
-  bool feasible = ReflowChildren(aDesiredSize, aReflowState,
-                                 aReflowStatus, aConfig, aLastColumnUnbounded,
-                                 aCarriedOutBottomMargin, aColData);
-
-  if (aColData.mHasExcessHeight) {
-    aConfig = ChooseColumnStrategy(aReflowState, true);
-    MOZ_ASSERT(aReflowState.ComputedHeight() != NS_INTRINSICSIZE,
-                 "computed height cannot be of intrinsic size if we have "
-                 "excess height from a previous reflow");
-
-    
-    
-    ReflowChildren(aDesiredSize, aReflowState, aReflowStatus,
-                   aConfig, aLastColumnUnbounded,
-                   aCarriedOutBottomMargin, aColData);
-  }
-
-  return feasible;
-}
-
 
 static void
 PlaceFrameView(nsIFrame* aFrame)
@@ -646,18 +617,14 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
         kidNextInFlow->RemoveStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
       }
 
-      
-      
-      
-      
-      if (contentBottom <= NS_INTRINSICSIZE &&
-          (contentBottom > aReflowState.mComputedMaxHeight ||
+
+      if ((contentBottom > aReflowState.mComputedMaxHeight ||
            contentBottom > aReflowState.ComputedHeight()) &&
            aConfig.mBalanceColCount < INT32_MAX) {
         
         
         
-        aColData.mHasExcessHeight = true;
+        aColData.mShouldRevertToAuto = true;
       }
 
       if (columnCount >= aConfig.mBalanceColCount) {
@@ -827,163 +794,170 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   bool unboundedLastColumn = config.mIsBalancing && !nextInFlow;
   nsCollapsingMargin carriedOutBottomMargin;
   ColumnBalanceData colData;
-  colData.mHasExcessHeight = false;
+  colData.mShouldRevertToAuto = false;
 
-  bool feasible = ReflowColumns(aDesiredSize, aReflowState, aStatus, config,
-                                unboundedLastColumn, &carriedOutBottomMargin,
-                                colData);
+  
+  
 
-  if (config.mIsBalancing && !aPresContext->HasPendingInterrupt()) {
-    nscoord availableContentHeight = GetAvailableContentHeight(aReflowState);
+  
+  
+  
+  do {
+    if (colData.mShouldRevertToAuto) {
+      config = ChooseColumnStrategy(aReflowState, true);
+      config.mIsBalancing = false;
+    }
 
-    
-    
-    
+    bool feasible = ReflowChildren(aDesiredSize, aReflowState,
+      aStatus, config, unboundedLastColumn, &carriedOutBottomMargin, colData);
 
-    
-    
-    
-    bool maybeContinuousBreakingDetected = false;
-
-    while (!aPresContext->HasPendingInterrupt()) {
-      nscoord lastKnownFeasibleHeight = config.mKnownFeasibleHeight;
+    if (config.mIsBalancing && !aPresContext->HasPendingInterrupt()) {
+      nscoord availableContentHeight = GetAvailableContentHeight(aReflowState);
 
       
-      if (feasible) {
-        
-        config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
-                                               colData.mMaxHeight);
-        config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
-                                               mLastBalanceHeight);
+      
+      
+
+      
+      
+      
+      bool maybeContinuousBreakingDetected = false;
+
+      while (!aPresContext->HasPendingInterrupt()) {
+        nscoord lastKnownFeasibleHeight = config.mKnownFeasibleHeight;
 
         
-        
-        
-        
-        if (mFrames.GetLength() == config.mBalanceColCount) {
-          config.mKnownInfeasibleHeight =
-            std::max(config.mKnownInfeasibleHeight, colData.mLastHeight - 1);
-        }
-      } else {
-        config.mKnownInfeasibleHeight =
-          std::max(config.mKnownInfeasibleHeight, mLastBalanceHeight);
-        
-        
-        
-        config.mKnownInfeasibleHeight =
-          std::max(config.mKnownInfeasibleHeight,
-                   colData.mMaxOverflowingHeight - 1);
-
-        if (unboundedLastColumn) {
-          
+        if (feasible) {
           
           config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
                                                  colData.mMaxHeight);
+          config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
+                                                 mLastBalanceHeight);
+
+          
+          
+          
+          
+          if (mFrames.GetLength() == config.mBalanceColCount) {
+            config.mKnownInfeasibleHeight =
+              std::max(config.mKnownInfeasibleHeight, colData.mLastHeight - 1);
+          }
+        } else {
+          config.mKnownInfeasibleHeight =
+            std::max(config.mKnownInfeasibleHeight, mLastBalanceHeight);
+          
+          
+          
+          config.mKnownInfeasibleHeight =
+            std::max(config.mKnownInfeasibleHeight,
+                     colData.mMaxOverflowingHeight - 1);
+
+          if (unboundedLastColumn) {
+            
+            
+            config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
+                                                   colData.mMaxHeight);
+          }
         }
-      }
 
 #ifdef DEBUG_roc
-      printf("*** nsColumnSetFrame::Reflow balancing knownInfeasible=%d knownFeasible=%d\n",
-             config.mKnownInfeasibleHeight, config.mKnownFeasibleHeight);
+        printf("*** nsColumnSetFrame::Reflow balancing knownInfeasible=%d knownFeasible=%d\n",
+               config.mKnownInfeasibleHeight, config.mKnownFeasibleHeight);
 #endif
 
 
-      if (config.mKnownInfeasibleHeight >= config.mKnownFeasibleHeight - 1) {
-        
-        break;
+        if (config.mKnownInfeasibleHeight >= config.mKnownFeasibleHeight - 1) {
+          
+          break;
 
-      }
-      if (config.mKnownInfeasibleHeight >= availableContentHeight) {
-        break;
-      }
+        }
+        if (config.mKnownInfeasibleHeight >= availableContentHeight) {
+          break;
+        }
 
-      if (lastKnownFeasibleHeight - config.mKnownFeasibleHeight == 1) {
-        
-        
-        
-        maybeContinuousBreakingDetected = true;
-      }
+        if (lastKnownFeasibleHeight - config.mKnownFeasibleHeight == 1) {
+          
+          
+          
+          maybeContinuousBreakingDetected = true;
+        }
 
-      nscoord nextGuess =
-        (config.mKnownFeasibleHeight + config.mKnownInfeasibleHeight)/2;
-      
-      if (config.mKnownFeasibleHeight - nextGuess < 600 &&
-          !maybeContinuousBreakingDetected) {
+        nscoord nextGuess =
+          (config.mKnownFeasibleHeight + config.mKnownInfeasibleHeight)/2;
         
+        if (config.mKnownFeasibleHeight - nextGuess < 600 &&
+            !maybeContinuousBreakingDetected) {
+          
+          
+          
+          nextGuess = config.mKnownFeasibleHeight - 1;
+        } else if (unboundedLastColumn) {
+          
+          
+          
+          nextGuess = colData.mSumHeight/config.mBalanceColCount + 600;
+          
+          nextGuess = clamped(nextGuess, config.mKnownInfeasibleHeight + 1,
+                                         config.mKnownFeasibleHeight - 1);
+        } else if (config.mKnownFeasibleHeight == NS_INTRINSICSIZE) {
+          
+          
+          
+          nextGuess = config.mKnownInfeasibleHeight*2 + 600;
+        }
         
-        
-        nextGuess = config.mKnownFeasibleHeight - 1;
-      } else if (unboundedLastColumn) {
-        
-        
-        
-        nextGuess = colData.mSumHeight/config.mBalanceColCount + 600;
-        
-        nextGuess = clamped(nextGuess, config.mKnownInfeasibleHeight + 1,
-                                       config.mKnownFeasibleHeight - 1);
-      } else if (config.mKnownFeasibleHeight == NS_INTRINSICSIZE) {
-        
-        
-        
-        nextGuess = config.mKnownInfeasibleHeight*2 + 600;
-      }
-      
-      nextGuess = std::min(availableContentHeight, nextGuess);
+        nextGuess = std::min(availableContentHeight, nextGuess);
 
 #ifdef DEBUG_roc
-      printf("*** nsColumnSetFrame::Reflow balancing choosing next guess=%d\n", nextGuess);
+        printf("*** nsColumnSetFrame::Reflow balancing choosing next guess=%d\n", nextGuess);
 #endif
 
-      config.mColMaxHeight = nextGuess;
+        config.mColMaxHeight = nextGuess;
 
-      unboundedLastColumn = false;
-      AddStateBits(NS_FRAME_IS_DIRTY);
-      feasible = ReflowColumns(aDesiredSize, aReflowState, aStatus, config, false,
-                               &carriedOutBottomMargin, colData);
-
-      if (!config.mIsBalancing) {
-        
-        
-        break;
-      }
-    }
-
-    if (config.mIsBalancing && !feasible &&
-        !aPresContext->HasPendingInterrupt()) {
-      
-      
-      bool skip = false;
-      if (config.mKnownInfeasibleHeight >= availableContentHeight) {
-          config.mColMaxHeight = availableContentHeight;
-        if (mLastBalanceHeight == availableContentHeight) {
-          skip = true;
-        }
-      } else {
-        config.mColMaxHeight = config.mKnownFeasibleHeight;
-      }
-      if (!skip) {
-        
-        
-        
-        
+        unboundedLastColumn = false;
         AddStateBits(NS_FRAME_IS_DIRTY);
-        ReflowColumns(aDesiredSize, aReflowState, aStatus, config,
-                      availableContentHeight == NS_UNCONSTRAINEDSIZE,
-                      &carriedOutBottomMargin, colData);
+        feasible = ReflowChildren(aDesiredSize, aReflowState,
+                                  aStatus, config, false,
+                                  &carriedOutBottomMargin, colData);
+      }
+
+      if (!feasible && !aPresContext->HasPendingInterrupt()) {
+        
+        
+        bool skip = false;
+        if (config.mKnownInfeasibleHeight >= availableContentHeight) {
+            config.mColMaxHeight = availableContentHeight;
+          if (mLastBalanceHeight == availableContentHeight) {
+            skip = true;
+          }
+        } else {
+          config.mColMaxHeight = config.mKnownFeasibleHeight;
+        }
+        if (!skip) {
+          
+          
+          
+          
+          AddStateBits(NS_FRAME_IS_DIRTY);
+          ReflowChildren(aDesiredSize, aReflowState, aStatus, config,
+                         availableContentHeight == NS_UNCONSTRAINEDSIZE,
+                         &carriedOutBottomMargin, colData);
+        }
       }
     }
-  }
 
-  if (aPresContext->HasPendingInterrupt() &&
-      aReflowState.availableHeight == NS_UNCONSTRAINEDSIZE) {
-    
-    
-    aStatus = NS_FRAME_COMPLETE;
-  }
+ } while (colData.mShouldRevertToAuto);
 
-  FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus, false);
+    if (aPresContext->HasPendingInterrupt() &&
+        aReflowState.availableHeight == NS_UNCONSTRAINEDSIZE) {
+      
+      
+      aStatus = NS_FRAME_COMPLETE;
+    }
 
-  aDesiredSize.mCarriedOutBottomMargin = carriedOutBottomMargin;
+    FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus, false);
+
+    aDesiredSize.mCarriedOutBottomMargin = carriedOutBottomMargin;
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
 

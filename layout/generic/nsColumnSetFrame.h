@@ -140,11 +140,10 @@ protected:
     
     
     
-    bool mHasExcessHeight;
-
+    bool mShouldRevertToAuto;
     void Reset() {
       mMaxHeight = mSumHeight = mLastHeight = mMaxOverflowingHeight = 0;
-      mHasExcessHeight = false;
+      mShouldRevertToAuto = false;
     }
   };
 
@@ -154,14 +153,6 @@ protected:
 
 
   void DrainOverflowColumns();
-
-  bool ReflowColumns(nsHTMLReflowMetrics& aDesiredSize,
-                     const nsHTMLReflowState& aReflowState,
-                     nsReflowStatus& aReflowStatus,
-                     ReflowConfig& aConfig,
-                     bool aLastColumnUnbounded,
-                     nsCollapsingMargin* aCarriedOutBottomMargin,
-                     ColumnBalanceData& aColData);
 
   
 
