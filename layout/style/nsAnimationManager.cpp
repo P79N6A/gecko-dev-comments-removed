@@ -69,6 +69,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       ElementAnimation* anim = mAnimations[animIdx];
 
       if (anim->mProperties.IsEmpty()) {
+        
         continue;
       }
 
@@ -112,11 +113,6 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     for (uint32_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
       ElementAnimation* anim = mAnimations[animIdx];
 
-      if (anim->mProperties.IsEmpty()) {
-        
-        continue;
-      }
-
       
       
       TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
@@ -131,8 +127,9 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction)
+      if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction) {
         continue;
+      }
 
       NS_ABORT_IF_FALSE(0.0 <= computedTiming.mTimeFraction &&
                         computedTiming.mTimeFraction <= 1.0,
@@ -215,12 +212,6 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
 {
   for (uint32_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
     ElementAnimation* anim = mAnimations[animIdx];
-
-    
-    if (anim->mProperties.IsEmpty()) {
-      
-      continue;
-    }
 
     TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
     ComputedTiming computedTiming =

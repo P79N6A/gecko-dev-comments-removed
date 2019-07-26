@@ -61,6 +61,19 @@ function is_approx(float1, float2, error, desc) {
      desc + ": " + float1 + " and " + float2 + " should be within " + error);
 }
 
+function findKeyframesRule(name) {
+  for (var i = 0; i < document.styleSheets.length; i++) {
+    var match = [].find.call(document.styleSheets[i].cssRules, function(rule) {
+      return rule.type == CSSRule.KEYFRAMES_RULE &&
+             rule.name == name;
+    });
+    if (match) {
+      return match;
+    }
+  }
+  return undefined;
+}
+
 
 
 
