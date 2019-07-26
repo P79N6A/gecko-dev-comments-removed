@@ -74,11 +74,11 @@ nsProxyInfo::SetFailoverProxy(nsIProxyInfo *proxy)
 
 
 namespace mozilla {
-  extern const char *kProxyType_HTTP;
-  extern const char *kProxyType_SOCKS;
-  extern const char *kProxyType_SOCKS4;
-  extern const char *kProxyType_SOCKS5;
-  extern const char *kProxyType_DIRECT;
+  extern const char kProxyType_HTTP[];
+  extern const char kProxyType_SOCKS[];
+  extern const char kProxyType_SOCKS4[];
+  extern const char kProxyType_SOCKS5[];
+  extern const char kProxyType_DIRECT[];
 }
 
 bool
