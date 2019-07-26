@@ -105,6 +105,8 @@
 #include "nsNSSShutDown.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/Telemetry.h"
 #include "nsIThreadPool.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsComponentManagerUtils.h"
@@ -133,6 +135,12 @@ NSSCleanupAutoPtrClass_WithParam(PLArenaPool, PORT_FreeArena, FalseParam, false)
 
 
 nsIThreadPool * gCertVerificationThreadPool = nullptr;
+
+
+
+
+Mutex *gSSLVerificationTelemetryMutex = nullptr;
+
 } 
 
 
@@ -148,6 +156,7 @@ nsIThreadPool * gCertVerificationThreadPool = nullptr;
 void
 InitializeSSLServerCertVerificationThreads()
 {
+  gSSLVerificationTelemetryMutex = new Mutex("SSLVerificationTelemetryMutex");
   
   
   
@@ -179,6 +188,10 @@ void StopSSLServerCertVerificationThreads()
   if (gCertVerificationThreadPool) {
     gCertVerificationThreadPool->Shutdown();
     NS_RELEASE(gCertVerificationThreadPool);
+  }
+  if (gSSLVerificationTelemetryMutex) {
+    delete gSSLVerificationTelemetryMutex;
+    gSSLVerificationTelemetryMutex = nullptr;
   }
 }
 
@@ -218,7 +231,9 @@ public:
 
   SSLServerCertVerificationResult(TransportSecurityInfo * infoObject,
                                   PRErrorCode errorCode,
-                                  SSLErrorMessageType errorMessageType = 
+                                  Telemetry::ID telemetryID = Telemetry::HistogramCount,
+                                  uint32_t telemetryValue = -1,
+                                  SSLErrorMessageType errorMessageType =
                                       PlainErrorMessage);
 
   void Dispatch();
@@ -227,6 +242,8 @@ private:
 public:
   const PRErrorCode mErrorCode;
   const SSLErrorMessageType mErrorMessageType;
+  const Telemetry::ID mTelemetryID;
+  const uint32_t mTelemetryValue;
 };
 
 class CertErrorRunnable : public SyncRunnableBase
@@ -393,6 +410,8 @@ CertErrorRunnable::CheckCertOverrides()
   SSLServerCertVerificationResult *result = 
     new SSLServerCertVerificationResult(mInfoObject, 
                                         errorCodeToReport,
+                                        Telemetry::HistogramCount,
+                                        -1,
                                         OverridableCertErrorMessage);
 
   LogInvalidCertError(mInfoObject,
@@ -627,6 +646,7 @@ private:
   const RefPtr<TransportSecurityInfo> mInfoObject;
   const ScopedCERTCertificate mCert;
   const uint32_t mProviderFlags;
+  const TimeStamp mJobStartTime;
 };
 
 SSLServerCertVerificationJob::SSLServerCertVerificationJob(
@@ -636,6 +656,7 @@ SSLServerCertVerificationJob::SSLServerCertVerificationJob(
   , mInfoObject(infoObject)
   , mCert(CERT_DupCertificate(cert))
   , mProviderFlags(providerFlags)
+  , mJobStartTime(TimeStamp::Now())
 {
 }
 
@@ -1050,13 +1071,38 @@ SSLServerCertVerificationJob::Run()
     PR_SetError(0, 0); 
     SECStatus rv = AuthCertificate(mInfoObject, mCert, mProviderFlags);
     if (rv == SECSuccess) {
+      uint32_t interval = (uint32_t) ((TimeStamp::Now() - mJobStartTime).ToMilliseconds());
+      Telemetry::ID telemetryID;
+      if(nsNSSComponent::globalConstFlagUsePKIXVerification){
+        telemetryID = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_LIBPKIX;
+      }
+      else{
+        telemetryID = Telemetry::SSL_SUCCESFUL_CERT_VALIDATION_TIME_CLASSIC;
+      }
       RefPtr<SSLServerCertVerificationResult> restart(
-        new SSLServerCertVerificationResult(mInfoObject, 0));
+        new SSLServerCertVerificationResult(mInfoObject, 0,
+                                            telemetryID, interval));
       restart->Dispatch();
       return NS_OK;
     }
 
+    
+    
     error = PR_GetError();
+    {
+      TimeStamp now = TimeStamp::Now();
+      Telemetry::ID telemetryID;
+      if(nsNSSComponent::globalConstFlagUsePKIXVerification){
+        telemetryID = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_LIBPKIX;
+      }
+      else{
+        telemetryID = Telemetry::SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_CLASSIC;
+      }
+      MutexAutoLock telemetryMutex(*gSSLVerificationTelemetryMutex);
+      Telemetry::AccumulateTimeDelta(telemetryID,
+                                     mJobStartTime,
+                                     now);
+    }
     if (error != 0) {
       RefPtr<CertErrorRunnable> runnable(CreateCertErrorRunnable(
         error, mInfoObject, mCert, mFdForLogging, mProviderFlags));
@@ -1274,11 +1320,19 @@ void EnsureServerVerificationInitialized()
 
 SSLServerCertVerificationResult::SSLServerCertVerificationResult(
         TransportSecurityInfo * infoObject, PRErrorCode errorCode,
+        Telemetry::ID telemetryID, uint32_t telemetryValue,
         SSLErrorMessageType errorMessageType)
   : mInfoObject(infoObject)
   , mErrorCode(errorCode)
   , mErrorMessageType(errorMessageType)
+  , mTelemetryID(telemetryID)
+  , mTelemetryValue(telemetryValue)
 {
+
+
+
+
+MOZ_ASSERT(telemetryID == Telemetry::HistogramCount || errorCode == 0);
 }
 
 void
@@ -1298,6 +1352,9 @@ NS_IMETHODIMP
 SSLServerCertVerificationResult::Run()
 {
   
+  if (mTelemetryID != Telemetry::HistogramCount) {
+     Telemetry::Accumulate(mTelemetryID, mTelemetryValue);
+  }
   
   ((nsNSSSocketInfo *) mInfoObject.get())
     ->SetCertVerificationResult(mErrorCode, mErrorMessageType);
