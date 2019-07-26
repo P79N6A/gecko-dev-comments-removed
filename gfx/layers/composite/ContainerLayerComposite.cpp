@@ -338,11 +338,12 @@ ContainerRender(ContainerT* aContainer,
       
       
       layerToRender->SetLayerComposited(false);
-      if (layerToRender->GetClearFB()) {
+      nsIntRect clearRect = layerToRender->GetClearRect();
+      if (!clearRect.IsEmpty()) {
         
-        gfx::Rect aRect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
-        compositor->clearFBRect(&aRect);
-        layerToRender->SetClearFB(false);
+        gfx::Rect fbRect(clearRect.x, clearRect.y, clearRect.width, clearRect.height);
+        compositor->clearFBRect(&fbRect);
+        layerToRender->SetClearRect(nsIntRect(0, 0, 0, 0));
       }
     } else {
       layerToRender->RenderLayer(clipRect);

@@ -547,7 +547,10 @@ HwcComposer2D::TryHwComposition()
                         
                         
                         
-                        mHwcLayerMap[k]->SetClearFB(true);
+                        hwc_rect_t r = mList->hwLayers[k].displayFrame;
+                        mHwcLayerMap[k]->SetClearRect(nsIntRect(r.left, r.top,
+                                                                r.right - r.left,
+                                                                r.bottom - r.top));
                     }
                     break;
                 default:
