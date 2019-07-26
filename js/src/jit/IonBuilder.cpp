@@ -7175,14 +7175,17 @@ IonBuilder::getTypedArrayElements(MDefinition *obj)
     if (obj->isConstant() && obj->toConstant()->value().isObject()) {
         TypedArrayObject *tarr = &obj->toConstant()->value().toObject().as<TypedArrayObject>();
         void *data = tarr->viewData();
-
         
         
-        types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
-        tarrType->watchStateChangeForTypedArrayBuffer(constraints());
+        if (!gc::IsInsideNursery(tarr->runtimeFromMainThread(), data)) {
+            
+            
+            types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
+            tarrType->watchStateChangeForTypedArrayBuffer(constraints());
 
-        obj->setImplicitlyUsedUnchecked();
-        return MConstantElements::New(alloc(), data);
+            obj->setImplicitlyUsedUnchecked();
+            return MConstantElements::New(alloc(), data);
+        }
     }
     return MTypedArrayElements::New(alloc(), obj);
 }
