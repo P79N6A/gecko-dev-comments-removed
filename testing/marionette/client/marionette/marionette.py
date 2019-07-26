@@ -517,7 +517,14 @@ class Marionette(object):
 
     def cleanup(self):
         if self.session:
-            self.delete_session()
+            try:
+                self.delete_session()
+            except (MarionetteException, socket.error):
+                
+                
+                
+                pass
+            self.session = None
         if self.emulator:
             self.emulator.close()
         if self.instance:
