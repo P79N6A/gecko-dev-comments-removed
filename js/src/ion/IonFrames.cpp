@@ -300,6 +300,10 @@ ion::HandleException(ResumeFromException *rfe)
 
     IonSpew(IonSpew_Invalidate, "handling exception");
 
+    
+    
+    cx->delete_(cx->runtime->ionActivation->maybeTakeBailout());
+
     IonFrameIterator iter(cx->runtime->ionTop);
     while (!iter.isEntry()) {
         if (iter.isScripted()) {
