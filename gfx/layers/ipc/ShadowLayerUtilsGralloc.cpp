@@ -252,15 +252,19 @@ NS_IMPL_ISUPPORTS1(GrallocReporter, nsIMemoryReporter)
 
 int64_t GrallocReporter::sAmount = 0;
 
-void InitGralloc() {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  RegisterStrongMemoryReporter(new GrallocReporter());
-}
-
 GrallocBufferActor::GrallocBufferActor()
 : mAllocBytes(0)
 , mTextureHost(nullptr)
 {
+  static bool registered;
+  if (!registered) {
+    
+    
+    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+
+    RegisterStrongMemoryReporter(new GrallocReporter());
+    registered = true;
+  }
 }
 
 GrallocBufferActor::~GrallocBufferActor()
@@ -406,13 +410,16 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize& aSize,
                                                   SurfaceDescriptor* aBuffer)
 {
 
-  
-  
-  
-  
-  if (aSize.width < 64) {
+  if (aSize.width <= 0 || aSize.height <= 0) {
     return false;
   }
+#if ANDROID_VERSION <= 15
+  
+  
+  if (aSize.width < 64 || aSize.height < 32) {
+    return false;
+  }
+#endif
   PROFILER_LABEL("ShadowLayerForwarder", "PlatformAllocSurfaceDescriptor");
   
   
