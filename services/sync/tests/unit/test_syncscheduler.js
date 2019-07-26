@@ -85,6 +85,13 @@ function run_test() {
   Log.repository.getLogger("Sync.Service").level = Log.Level.Trace;
   Log.repository.getLogger("Sync.scheduler").level = Log.Level.Trace;
 
+  
+  
+  
+  ensureLegacyIdentityManager();
+  setBasicCredentials("johndoe");
+  scheduler.setDefaults();
+
   run_next_test();
 }
 

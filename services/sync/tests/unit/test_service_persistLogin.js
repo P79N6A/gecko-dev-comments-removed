@@ -9,6 +9,7 @@ Cu.import("resource://testing-common/services/sync/utils.js");
 function run_test() {
   try {
     
+    ensureLegacyIdentityManager();
     Services.logins.removeAllLogins();
 
     setBasicCredentials("johndoe", "ilovejane", "abbbbbcccccdddddeeeeefffff");
