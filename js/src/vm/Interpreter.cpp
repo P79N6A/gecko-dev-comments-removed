@@ -503,11 +503,17 @@ js::Invoke(JSContext *cx, const Value &thisv, const Value &fval, unsigned argc, 
 
 
 
-        RootedObject thisObj(cx, &args.thisv().toObject());
-        JSObject *thisp = JSObject::thisObject(cx, thisObj);
-        if (!thisp)
-             return false;
-        args.setThis(ObjectValue(*thisp));
+        if (!fval.isObject() || !fval.toObject().is<JSFunction>() ||
+            !fval.toObject().as<JSFunction>().isNative() ||
+            !fval.toObject().as<JSFunction>().jitInfo() ||
+            !fval.toObject().as<JSFunction>().jitInfo()->isDOMJitInfo())
+        {
+            RootedObject thisObj(cx, &args.thisv().toObject());
+            JSObject *thisp = JSObject::thisObject(cx, thisObj);
+            if (!thisp)
+                return false;
+            args.setThis(ObjectValue(*thisp));
+        }
     }
 
     if (!Invoke(cx, args))

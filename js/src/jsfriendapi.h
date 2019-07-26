@@ -1496,6 +1496,11 @@ struct JSJitInfo {
         AliasEverything
     };
 
+    bool isDOMJitInfo() const
+    {
+        return type != OpType_None;
+    }
+
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
@@ -1504,6 +1509,9 @@ struct JSJitInfo {
 
     uint32_t protoID;
     uint32_t depth;
+    
+    
+    
     OpType type;
     bool isInfallible;      
     bool isMovable;         
