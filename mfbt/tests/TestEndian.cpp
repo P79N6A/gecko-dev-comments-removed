@@ -396,5 +396,10 @@ main()
   TestBulkInPlaceNoSwap(uint64_values);
   TestBulkInPlaceNoSwap(int64_values);
 
+  
+  uint64_t scratch = 0xdeadbeef;
+  NativeEndian::copyAndSwapFromLittleEndian(&scratch, &scratch, 0);
+  MOZ_ASSERT(scratch == 0xdeadbeef);
+
   return 0;
 }
