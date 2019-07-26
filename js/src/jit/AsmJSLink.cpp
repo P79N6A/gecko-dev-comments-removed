@@ -362,13 +362,8 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
         JitActivation jitActivation(cx,  false,  false);
 
         
-#ifdef JS_CPU_ARM
         if (!module.entryTrampoline(func)(coercedArgs.begin(), module.globalData()))
             return false;
-#else
-        if (!module.entryTrampoline(func)(coercedArgs.begin()))
-            return false;
-#endif
     }
 
     switch (func.returnType()) {
