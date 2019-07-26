@@ -85,7 +85,8 @@ SystemMessageManager.prototype = {
 
     if (this._isInBrowserElement) {
       debug("the app loaded in the browser cannot set message handler");
-      throw Cr.NS_ERROR_FAILURE;
+      
+      return;
     }
 
     if (!aType) {
@@ -116,7 +117,8 @@ SystemMessageManager.prototype = {
 
     if (this._isInBrowserElement) {
       debug("the app loaded in the browser cannot ask pending message");
-      throw Cr.NS_ERROR_FAILURE;
+      
+      return false;
     }
 
     
