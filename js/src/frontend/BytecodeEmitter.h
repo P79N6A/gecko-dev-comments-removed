@@ -127,9 +127,7 @@ struct BytecodeEmitter
     bool            lazyRunOnceLambda:1; 
 
 
-    bool isRunOnceLambda() {
-        return (parent && parent->emittingRunOnceLambda) || lazyRunOnceLambda;
-    }
+    bool isRunOnceLambda();
 
     bool            insideEval:1;       
 
