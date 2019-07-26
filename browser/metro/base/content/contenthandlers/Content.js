@@ -49,6 +49,8 @@ const kReferenceDpi = 240;
 
 const kStateActive = 0x00000001; 
 
+const kZoomToElementMargin = 16; 
+
 
 
 
@@ -402,8 +404,16 @@ let Content = {
 
   _zoomToElement: function(aElement) {
     let rect = getBoundingContentRect(aElement);
+    this._inflateRect(rect, kZoomToElementMargin);
     this._zoomToRect(rect);
     this._isZoomedIn = true;
+  },
+
+  _inflateRect: function(aRect, aMargin) {
+    aRect.left -= aMargin;
+    aRect.top -= aMargin;
+    aRect.bottom += aMargin;
+    aRect.right += aMargin;
   },
 
   _zoomToRect: function (aRect) {
