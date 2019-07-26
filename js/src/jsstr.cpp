@@ -1790,6 +1790,12 @@ class MOZ_STACK_CLASS StringRegExpGuard
 
         
         
+        if (obj_->is<RegExpObject>() && obj_->nativeLookup(cx, cx->names().lastIndex)->writable()) {
+            obj_->as<RegExpObject>().zeroLastIndex();
+            return true;
+        }
+
+        
         RootedValue zero(cx, Int32Value(0));
         return JSObject::setProperty(cx, obj_, obj_, cx->names().lastIndex, &zero, true);
     }
