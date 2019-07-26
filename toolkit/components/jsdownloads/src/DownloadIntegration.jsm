@@ -79,14 +79,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gApplicationReputationService",
            "@mozilla.org/downloads/application-reputation-service;1",
            Ci.nsIApplicationReputationService);
 
-
-
-
-
-XPCOMUtils.defineLazyGetter(this, "gInternetZoneIdentifier", function() {
-  return new TextEncoder().encode("[ZoneTransfer]\r\nZoneId=3\r\n");
-});
-
 XPCOMUtils.defineLazyServiceGetter(this, "volumeService",
                                    "@mozilla.org/telephony/volume-service;1",
                                    "nsIVolumeService");
@@ -583,13 +575,25 @@ this.DownloadIntegration = {
       
       
       if (this._shouldSaveZoneInformation()) {
+        let zone;
         try {
-          let streamPath = aDownload.target.path + ":Zone.Identifier";
-          let stream = yield OS.File.open(streamPath, { create: true });
-          try {
-            yield stream.write(gInternetZoneIdentifier);
-          } finally {
-            yield stream.close();
+          zone = gDownloadPlatform.mapUrlToZone(aDownload.source.url);
+        } catch (e) {
+          
+          
+          zone = Ci.mozIDownloadPlatform.ZONE_INTERNET;
+        }
+        try {
+          
+          
+          if (zone >= Ci.mozIDownloadPlatform.ZONE_INTERNET) {
+            let streamPath = aDownload.target.path + ":Zone.Identifier";
+            let stream = yield OS.File.open(streamPath, { create: true });
+            try {
+              yield stream.write(new TextEncoder().encode("[ZoneTransfer]\r\nZoneId=" + zone + "\r\n"));
+            } finally {
+              yield stream.close();
+            }
           }
         } catch (ex) {
           
