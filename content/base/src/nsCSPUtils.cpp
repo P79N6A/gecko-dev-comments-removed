@@ -636,8 +636,6 @@ CSP_DirectiveToContentType(enum CSPDirective aDir)
     case CSP_MEDIA_SRC:  return nsIContentPolicy::TYPE_MEDIA;
     case CSP_OBJECT_SRC: return nsIContentPolicy::TYPE_OBJECT;
     case CSP_FRAME_SRC:  return nsIContentPolicy::TYPE_SUBDOCUMENT;
-    
-    case CSP_FRAME_ANCESTORS: return nsIContentPolicy::TYPE_DOCUMENT;
 
     
     case CSP_DEFAULT_SRC:

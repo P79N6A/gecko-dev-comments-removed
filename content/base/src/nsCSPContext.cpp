@@ -26,7 +26,6 @@
 #include "nsIPrincipal.h"
 #include "nsIPropertyBag2.h"
 #include "nsIScriptError.h"
-#include "nsIWebNavigation.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsString.h"
 #include "prlog.h"
@@ -45,47 +44,6 @@ GetCspContextLog()
 #endif
 
 #define CSPCONTEXTLOG(args) PR_LOG(GetCspContextLog(), 4, args)
-
-static const uint32_t CSP_CACHE_URI_CUTOFF_SIZE = 512;
-
-
-
-
-
-nsresult
-CreateCacheKey_Internal(nsIURI* aContentLocation,
-                        nsContentPolicyType aContentType,
-                        nsACString& outCacheKey)
-{
-  if (!aContentLocation) {
-    return NS_ERROR_FAILURE;
-  }
-
-  bool isDataScheme = false;
-  nsresult rv = aContentLocation->SchemeIs("data", &isDataScheme);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  outCacheKey.Truncate();
-  if (aContentType != nsIContentPolicy::TYPE_SCRIPT && isDataScheme) {
-    
-    outCacheKey.Append(NS_LITERAL_CSTRING("data:"));
-    outCacheKey.AppendInt(aContentType);
-    return NS_OK;
-  }
-
-  nsAutoCString spec;
-  rv = aContentLocation->GetSpec(spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (spec.Length() <= CSP_CACHE_URI_CUTOFF_SIZE) {
-    outCacheKey.Append(spec);
-    outCacheKey.Append(NS_LITERAL_CSTRING("!"));
-    outCacheKey.AppendInt(aContentType);
-  }
-
-  return NS_OK;
-}
 
 
 
@@ -115,16 +73,6 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
   
   
   
-
-  nsAutoCString cacheKey;
-  rv = CreateCacheKey_Internal(aContentLocation, aContentType, cacheKey);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  bool isCached = mShouldLoadCache.Get(cacheKey, outDecision);
-  if (isCached && cacheKey.Length() > 0) {
-    
-    return NS_OK;
-  }
 
   
   *outDecision = nsIContentPolicy::ACCEPT;
@@ -189,11 +137,6 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
       
     }
   }
-  
-  if (cacheKey.Length() > 0 && !isPreload) {
-    mShouldLoadCache.Put(cacheKey, *outDecision);
-  }
-
 #ifdef PR_LOGGING
   {
   nsAutoCString spec;
@@ -240,7 +183,6 @@ nsCSPContext::~nsCSPContext()
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
     delete mPolicies[i];
   }
-  mShouldLoadCache.Clear();
 }
 
 NS_IMETHODIMP
@@ -273,8 +215,6 @@ nsCSPContext::RemovePolicy(uint32_t aIndex)
     return NS_ERROR_ILLEGAL_VALUE;
   }
   mPolicies.RemoveElementAt(aIndex);
-  
-  mShouldLoadCache.Clear();
   return NS_OK;
 }
 
@@ -297,8 +237,6 @@ nsCSPContext::AppendPolicy(const nsAString& aPolicyString,
   nsCSPPolicy* policy = nsCSPParser::parseContentSecurityPolicy(aPolicyString, mSelfURI, aReportOnly, 0);
   if (policy) {
     mPolicies.AppendElement(policy);
-    
-    mShouldLoadCache.Clear();
   }
   return NS_OK;
 }
@@ -440,118 +378,11 @@ nsCSPContext::SetRequestContext(nsIURI* aSelfURI,
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 NS_IMETHODIMP
 nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
 {
-  nsresult rv;
-
   
-  if (aDocShell == nullptr) {
-    return NS_ERROR_FAILURE;
-  }
-
   *outPermitsAncestry = true;
-
-  
-  nsCOMArray<nsIURI> ancestorsArray;
-
-  nsCOMPtr<nsIInterfaceRequestor> ir(do_QueryInterface(aDocShell));
-  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_GetInterface(ir));
-  nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
-  nsCOMPtr<nsIWebNavigation> webNav;
-  nsCOMPtr<nsIURI> currentURI;
-  nsCOMPtr<nsIURI> uriClone;
-
-  
-  while (NS_SUCCEEDED(treeItem->GetParent(getter_AddRefs(parentTreeItem))) &&
-         parentTreeItem != nullptr) {
-    ir     = do_QueryInterface(parentTreeItem);
-    NS_ASSERTION(ir, "Could not QI docShellTreeItem to nsIInterfaceRequestor");
-
-    webNav = do_GetInterface(ir);
-    NS_ENSURE_TRUE(webNav, NS_ERROR_FAILURE);
-
-    rv = webNav->GetCurrentURI(getter_AddRefs(currentURI));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (currentURI) {
-      
-      bool isChrome = false;
-      rv = currentURI->SchemeIs("chrome", &isChrome);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (isChrome) { break; }
-
-      
-      rv = currentURI->CloneIgnoringRef(getter_AddRefs(uriClone));
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = uriClone->SetUserPass(EmptyCString());
-      NS_ENSURE_SUCCESS(rv, rv);
-#ifdef PR_LOGGING
-      {
-      nsAutoCString spec;
-      uriClone->GetSpec(spec);
-      CSPCONTEXTLOG(("nsCSPContext::PermitsAncestry, found ancestor: %s", spec.get()));
-      }
-#endif
-      ancestorsArray.AppendElement(uriClone);
-    }
-
-    
-    treeItem = parentTreeItem;
-  }
-
-  nsAutoString violatedDirective;
-
-  
-  
-  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
-    for (uint32_t a = 0; a < ancestorsArray.Length(); a++) {
-      
-      
-      
-#ifdef PR_LOGGING
-      {
-      nsAutoCString spec;
-      ancestorsArray[a]->GetSpec(spec);
-      CSPCONTEXTLOG(("nsCSPContext::PermitsAncestry, checking ancestor: %s", spec.get()));
-      }
-#endif
-      if (!mPolicies[i]->permits(nsIContentPolicy::TYPE_DOCUMENT,
-                                 ancestorsArray[a],
-                                 EmptyString(), 
-                                 violatedDirective)) {
-        
-        nsCOMPtr<nsIObserverService> observerService =
-          mozilla::services::GetObserverService();
-        NS_ENSURE_TRUE(observerService, NS_ERROR_NOT_AVAILABLE);
-
-        observerService->NotifyObservers(ancestorsArray[a],
-                                         CSP_VIOLATION_TOPIC,
-                                         violatedDirective.get());
-        
-        
-        
-        *outPermitsAncestry = false;
-      }
-    }
-  }
   return NS_OK;
 }
 
