@@ -77,8 +77,6 @@ const CM_MAPPING = [
   "redo",
   "clearHistory",
   "openDialog",
-  "cursorCoords",
-  "markText",
   "refresh"
 ];
 
@@ -237,6 +235,7 @@ Editor.prototype = {
       }, false);
 
       cm.on("focus", () => this.emit("focus"));
+      cm.on("scroll", () => this.emit("scroll"));
       cm.on("change", () => this.emit("change"));
       cm.on("cursorActivity", (cm) => this.emit("cursorActivity"));
 
@@ -543,6 +542,17 @@ Editor.prototype = {
 
 
 
+  markText: function(from, to, className = "marked-text") {
+    let cm = editors.get(this);
+    let mark = cm.markText(from, to, { className: className });
+    return { clear: () => mark.clear() };
+  },
+
+  
+
+
+
+
 
 
 
@@ -567,9 +577,18 @@ Editor.prototype = {
 
 
 
-  getPositionFromCoords: function (left, top) {
+  getPositionFromCoords: function ({left, top}) {
     let cm = editors.get(this);
     return cm.coordsChar({ left: left, top: top });
+  },
+
+  
+
+
+
+  getCoordsFromPosition: function ({line, ch}) {
+    let cm = editors.get(this);
+    return cm.charCoords({ line: ~~line, ch: ~~ch });
   },
 
   

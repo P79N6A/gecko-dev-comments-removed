@@ -14,7 +14,16 @@ const {colorUtils} = require("devtools/css-color");
 const Heritage = require("sdk/core/heritage");
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "setNamedTimeout",
+  "resource:///modules/devtools/ViewHelpers.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "clearNamedTimeout",
+  "resource:///modules/devtools/ViewHelpers.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
+  "resource:///modules/devtools/VariablesView.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "VariablesViewController",
+  "resource:///modules/devtools/VariablesViewController.jsm");
 
 const GRADIENT_RE = /\b(repeating-)?(linear|radial)-gradient\(((rgb|hsl)a?\(.+?\)|[^\)])+\)/gi;
 const BORDERCOLOR_RE = /^border-[-a-z]*color$/ig;
@@ -24,7 +33,6 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
 const ENTER_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
-const SHOW_TIMEOUT = 50;
 
 
 
@@ -185,12 +193,11 @@ module.exports.Tooltip = Tooltip;
 
 Tooltip.prototype = {
   defaultPosition: "before_start",
-  defaultOffsetX: 0,
-  defaultOffsetY: 0,
+  defaultOffsetX: 0, 
+  defaultOffsetY: 0, 
+  defaultShowDelay: 50, 
 
   
-
-
 
 
 
@@ -234,6 +241,22 @@ Tooltip.prototype = {
   
 
 
+
+  isHidden: function() {
+    return this.panel.state == "closed" || this.panel.state == "hiding";
+  },
+
+  
+
+
+
+  isEmpty: function() {
+    return !this.panel.hasChildNodes();
+  },
+
+  
+
+
   destroy: function () {
     this.hide();
 
@@ -253,7 +276,7 @@ Tooltip.prototype = {
 
     this.doc = null;
 
-    this.panel.parentNode.removeChild(this.panel);
+    this.panel.remove();
     this.panel = null;
   },
 
@@ -289,7 +312,7 @@ Tooltip.prototype = {
 
 
 
-  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay=SHOW_TIMEOUT) {
+  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay = this.defaultShowDelay) {
     if (this._basedNode) {
       this.stopTogglingOnHover();
     }
@@ -353,7 +376,13 @@ Tooltip.prototype = {
 
 
   set content(content) {
+    if (this.content == content) {
+      return;
+    }
+
     this.empty();
+    this.panel.removeAttribute("clamped-dimensions");
+
     if (content) {
       this.panel.appendChild(content);
     }
@@ -369,20 +398,84 @@ Tooltip.prototype = {
 
 
 
-  setTextContent: function(...messages) {
+
+
+
+
+  setTextContent: function(messages,
+    messagesClass = "default-tooltip-simple-text-colors",
+    containerClass = "default-tooltip-simple-text-colors") {
+
     let vbox = this.doc.createElement("vbox");
-    vbox.className = "devtools-tooltip-simple-text-container";
+    vbox.className = "devtools-tooltip-simple-text-container " + containerClass;
     vbox.setAttribute("flex", "1");
 
     for (let text of messages) {
       let description = this.doc.createElement("description");
       description.setAttribute("flex", "1");
-      description.className = "devtools-tooltip-simple-text";
+      description.className = "devtools-tooltip-simple-text " + messagesClass;
       description.textContent = text;
       vbox.appendChild(description);
     }
 
     this.content = vbox;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setVariableContent: function(
+    objectActor,
+    viewOptions = {},
+    controllerOptions = {},
+    relayEvents = {},
+    reuseCachedWidget = true) {
+
+    if (reuseCachedWidget && this._cachedVariablesView) {
+      var [vbox, widget] = this._cachedVariablesView;
+    } else {
+      var vbox = this.doc.createElement("vbox");
+      vbox.className = "devtools-tooltip-variables-view-box";
+      vbox.setAttribute("flex", "1");
+
+      let innerbox = this.doc.createElement("vbox");
+      innerbox.className = "devtools-tooltip-variables-view-innerbox";
+      innerbox.setAttribute("flex", "1");
+      vbox.appendChild(innerbox);
+
+      var widget = new VariablesView(innerbox, viewOptions);
+      for (let e in relayEvents) widget.on(e, relayEvents[e]);
+      VariablesViewController.attach(widget, controllerOptions);
+
+      this._cachedVariablesView = [vbox, widget];
+    }
+
+    
+    widget.searchPlaceholder = viewOptions.searchPlaceholder;
+    widget.searchEnabled = viewOptions.searchEnabled;
+
+    
+    
+    widget.controller.setSingleVariable(
+      { objectActor: objectActor }, controllerOptions);
+
+    this.content = vbox;
+    this.panel.setAttribute("clamped-dimensions", "");
   },
 
   

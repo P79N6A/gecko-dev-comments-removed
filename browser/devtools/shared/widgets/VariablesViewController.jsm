@@ -57,20 +57,8 @@ this.EXPORTED_SYMBOLS = ["VariablesViewController", "StackFrameUtils"];
 function VariablesViewController(aView, aOptions = {}) {
   this.addExpander = this.addExpander.bind(this);
 
-  this._getObjectClient = aOptions.getObjectClient;
-  this._getLongStringClient = aOptions.getLongStringClient;
-  this._getEnvironmentClient = aOptions.getEnvironmentClient;
-  this._releaseActor = aOptions.releaseActor;
-
-  if (aOptions.overrideValueEvalMacro) {
-    this._overrideValueEvalMacro = aOptions.overrideValueEvalMacro;
-  }
-  if (aOptions.getterOrSetterEvalMacro) {
-    this._getterOrSetterEvalMacro = aOptions.getterOrSetterEvalMacro;
-  }
-  if (aOptions.simpleValueEvalMacro) {
-    this._simpleValueEvalMacro = aOptions.simpleValueEvalMacro;
-  }
+  this._setClientGetters(aOptions);
+  this._setEvaluationMacros(aOptions);
 
   this._actors = new Set();
   this.view = aView;
@@ -92,6 +80,52 @@ VariablesViewController.prototype = {
 
 
   _simpleValueEvalMacro: VariablesView.simpleValueEvalMacro,
+
+  
+
+
+
+
+
+
+
+
+
+  _setClientGetters: function(aOptions) {
+    if (aOptions.getObjectClient) {
+      this._getObjectClient = aOptions.getObjectClient;
+    }
+    if (aOptions.getLongStringClient) {
+      this._getLongStringClient = aOptions.getLongStringClient;
+    }
+    if (aOptions.getEnvironmentClient) {
+      this._getEnvironmentClient = aOptions.getEnvironmentClient;
+    }
+    if (aOptions.releaseActor) {
+      this._releaseActor = aOptions.releaseActor;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setEvaluationMacros: function(aOptions) {
+    if (aOptions.overrideValueEvalMacro) {
+      this._overrideValueEvalMacro = aOptions.overrideValueEvalMacro;
+    }
+    if (aOptions.getterOrSetterEvalMacro) {
+      this._getterOrSetterEvalMacro = aOptions.getterOrSetterEvalMacro;
+    }
+    if (aOptions.simpleValueEvalMacro) {
+      this._simpleValueEvalMacro = aOptions.simpleValueEvalMacro;
+    }
+  },
 
   
 
@@ -137,6 +171,7 @@ VariablesViewController.prototype = {
 
   _populateFromObject: function(aTarget, aGrip) {
     let deferred = promise.defer();
+
     
     let finish = variable => {
       variable._retrieved = true;
@@ -155,9 +190,9 @@ VariablesViewController.prototype = {
       
       for (let name of Object.keys(safeGetterValues)) {
         if (name in ownProperties) {
-          ownProperties[name].getterValue = safeGetterValues[name].getterValue;
-          ownProperties[name].getterPrototypeLevel = safeGetterValues[name]
-                                                     .getterPrototypeLevel;
+          let { getterValue, getterPrototypeLevel } = safeGetterValues[name];
+          ownProperties[name].getterValue = getterValue;
+          ownProperties[name].getterPrototypeLevel = getterPrototypeLevel;
         } else {
           ownProperties[name] = safeGetterValues[name];
         }
@@ -181,12 +216,15 @@ VariablesViewController.prototype = {
       }
 
       
+      
       if (aGrip.class == "Function") {
         objectClient.getScope(aResponse => {
           if (aResponse.error) {
-            console.error(aResponse.error + ": " + aResponse.message);
-            finish(aTarget);
-            return;
+            
+            
+            
+            console.warn(aResponse.error + ": " + aResponse.message);
+            return void finish(aTarget);
           }
           this._addVarScope(aTarget, aResponse.scope).then(() => finish(aTarget));
         });
@@ -347,13 +385,13 @@ VariablesViewController.prototype = {
     if (aTarget._fetched) {
       return aTarget._fetched;
     }
+    
+    if (!aSource) {
+      return promise.reject(new Error("No actor grip was given for the variable."));
+    }
 
     let deferred = promise.defer();
     aTarget._fetched = deferred.promise;
-
-    if (!aSource) {
-      throw new Error("No actor grip was given for the variable.");
-    }
 
     
     if (VariablesView.isVariable(aTarget)) {
@@ -456,10 +494,20 @@ VariablesViewController.prototype = {
 
 
 
-  setSingleVariable: function(aOptions) {
+
+
+
+
+
+
+
+  setSingleVariable: function(aOptions, aConfiguration = {}) {
+    this._setEvaluationMacros(aConfiguration);
+    this.view.empty();
+
     let scope = this.view.addScope(aOptions.label);
-    scope.expanded = true;
-    scope.locked = true;
+    scope.expanded = true; 
+    scope.locked = true; 
 
     let variable = scope.addItem("", { enumerable: true });
     let expanded;

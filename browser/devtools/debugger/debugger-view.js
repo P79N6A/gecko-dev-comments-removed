@@ -28,6 +28,10 @@ const SEARCH_FUNCTION_FLAG = "@";
 const SEARCH_TOKEN_FLAG = "#";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
+const EDITOR_VARIABLE_HOVER_DELAY = 350; 
+const EDITOR_VARIABLE_POPUP_OFFSET_X = 5; 
+const EDITOR_VARIABLE_POPUP_OFFSET_Y = 0; 
+const EDITOR_VARIABLE_POPUP_POSITION = "before_start";
 
 
 
@@ -56,6 +60,7 @@ let DebuggerView = {
     this.ChromeGlobals.initialize();
     this.StackFrames.initialize();
     this.Sources.initialize();
+    this.VariableBubble.initialize();
     this.WatchExpressions.initialize();
     this.EventListeners.initialize();
     this.GlobalSearch.initialize();
@@ -89,6 +94,7 @@ let DebuggerView = {
     this.ChromeGlobals.destroy();
     this.StackFrames.destroy();
     this.Sources.destroy();
+    this.VariableBubble.destroy();
     this.WatchExpressions.destroy();
     this.EventListeners.destroy();
     this.GlobalSearch.destroy();
@@ -301,6 +307,7 @@ let DebuggerView = {
   _setEditorText: function(aTextContent = "") {
     this.editor.setMode(Editor.modes.text);
     this.editor.setText(aTextContent);
+    this.editor.clearDebugLocation();
     this.editor.clearHistory();
   },
 
@@ -421,11 +428,14 @@ let DebuggerView = {
 
 
 
+
+
   setEditorLocation: function(aUrl, aLine = 0, aFlags = {}) {
     
     if (!this.Sources.containsValue(aUrl)) {
       return promise.reject(new Error("Unknown source for the specified URL."));
     }
+
     
     
     if (!aLine) {
@@ -442,31 +452,22 @@ let DebuggerView = {
 
     
     
-    
-    this.editor.clearDebugLocation();
-
-    
-    
     return this._setEditorSource(sourceForm, aFlags).then(() => {
       
       
       if (aLine < 1) {
         return;
       }
-
       if (aFlags.charOffset) {
         aLine += this.editor.getPosition(aFlags.charOffset).line;
       }
-
       if (aFlags.lineOffset) {
         aLine += aFlags.lineOffset;
       }
-
       if (!aFlags.noCaret) {
-        this.editor.setCursor({ line: aLine -1, ch: aFlags.columnOffset || 0 },
-                              aFlags.align);
+        let location = { line: aLine -1, ch: aFlags.columnOffset || 0 };
+        this.editor.setCursor(location, aFlags.align);
       }
-
       if (!aFlags.noDebug) {
         this.editor.setDebugLocation(aLine - 1);
       }
@@ -637,6 +638,7 @@ let DebuggerView = {
   StackFrames: null,
   Sources: null,
   Variables: null,
+  VariableBubble: null,
   WatchExpressions: null,
   EventListeners: null,
   editor: null,

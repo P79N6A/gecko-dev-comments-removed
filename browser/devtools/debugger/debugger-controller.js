@@ -34,6 +34,7 @@ const EVENTS = {
   FETCHED_SCOPES: "Debugger:FetchedScopes",
   FETCHED_VARIABLES: "Debugger:FetchedVariables",
   FETCHED_PROPERTIES: "Debugger:FetchedProperties",
+  FETCHED_BUBBLE_PROPERTIES: "Debugger:FetchedBubbleProperties",
   FETCHED_WATCH_EXPRESSIONS: "Debugger:FetchedWatchExpressions",
 
   
@@ -75,6 +76,14 @@ const EVENTS = {
   LAYOUT_CHANGED: "Debugger:LayoutChanged"
 };
 
+
+const FRAME_TYPE = {
+  NORMAL: 0,
+  CONDITIONAL_BREAKPOINT_EVAL: 1,
+  WATCH_EXPRESSIONS_EVAL: 2,
+  PUBLIC_CLIENT_EVAL: 3
+};
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
@@ -86,9 +95,10 @@ Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
-const Editor = require("devtools/sourceeditor/editor");
 const promise = require("sdk/core/promise");
+const Editor = require("devtools/sourceeditor/editor");
 const DebuggerEditor = require("devtools/sourceeditor/debugger.js");
+const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Parser",
   "resource:///modules/devtools/Parser.jsm");
@@ -521,8 +531,7 @@ function StackFrames() {
 StackFrames.prototype = {
   get activeThread() DebuggerController.activeThread,
   currentFrameDepth: -1,
-  _isWatchExpressionsEvaluation: false,
-  _isConditionalBreakpointEvaluation: false,
+  _currentFrameDescription: FRAME_TYPE.NORMAL,
   _syncedWatchExpressions: null,
   _currentWatchExpressions: null,
   _currentBreakpointLocation: null,
@@ -558,6 +567,7 @@ StackFrames.prototype = {
     this.activeThread.removeListener("framescleared", this._onFramesCleared);
     this.activeThread.removeListener("blackboxchange", this._onBlackBoxChange);
     this.activeThread.removeListener("prettyprintchange", this._onPrettyPrintChange);
+    clearNamedTimeout("frames-cleared");
   },
 
   
@@ -611,10 +621,8 @@ StackFrames.prototype = {
 
 
   _onResumed: function() {
-    DebuggerView.editor.clearDebugLocation();
-
     
-    if (!this._isWatchExpressionsEvaluation) {
+    if (this._currentFrameDescription != FRAME_TYPE.WATCH_EXPRESSIONS_EVAL) {
       this._currentWatchExpressions = this._syncedWatchExpressions;
     }
   },
@@ -640,16 +648,13 @@ StackFrames.prototype = {
       
       let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
       if (breakpointPromise) {
-        breakpointPromise.then(aBreakpointClient => {
-          if ("conditionalExpression" in aBreakpointClient) {
-            
-            
-            
-            this.evaluate(aBreakpointClient.conditionalExpression, 0);
-            this._isConditionalBreakpointEvaluation = true;
-            waitForNextPause = true;
-          }
-        });
+        breakpointPromise.then(({ conditionalExpression: e }) => { if (e) {
+          
+          
+          
+          this.evaluate(e, { depth: 0, meta: FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL });
+          waitForNextPause = true;
+        }});
       }
     }
     
@@ -657,8 +662,8 @@ StackFrames.prototype = {
     if (waitForNextPause) {
       return;
     }
-    if (this._isConditionalBreakpointEvaluation) {
-      this._isConditionalBreakpointEvaluation = false;
+    if (this._currentFrameDescription == FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL) {
+      this._currentFrameDescription = FRAME_TYPE.NORMAL;
       
       
       if (VariablesView.isFalsy({ value: this._currentEvaluation.return })) {
@@ -673,8 +678,7 @@ StackFrames.prototype = {
     if (watchExpressions) {
       
       
-      this.evaluate(watchExpressions, 0);
-      this._isWatchExpressionsEvaluation = true;
+      this.evaluate(watchExpressions, { depth: 0, meta: FRAME_TYPE.WATCH_EXPRESSIONS_EVAL });
       waitForNextPause = true;
     }
     
@@ -682,8 +686,8 @@ StackFrames.prototype = {
     if (waitForNextPause) {
       return;
     }
-    if (this._isWatchExpressionsEvaluation) {
-      this._isWatchExpressionsEvaluation = false;
+    if (this._currentFrameDescription == FRAME_TYPE.WATCH_EXPRESSIONS_EVAL) {
+      this._currentFrameDescription = FRAME_TYPE.NORMAL;
       
       
       
@@ -697,6 +701,11 @@ StackFrames.prototype = {
     
     DebuggerView.showInstrumentsPane();
     this._refillFrames();
+
+    
+    if (this._currentFrameDescription != FRAME_TYPE.NORMAL) {
+      this._currentFrameDescription = FRAME_TYPE.NORMAL;
+    }
   },
 
   
@@ -714,29 +723,34 @@ StackFrames.prototype = {
       let title = StackFrameUtils.getFrameTitle(frame);
       DebuggerView.StackFrames.addFrame(title, location, line, depth, isBlackBoxed);
     }
-    if (this.currentFrameDepth == -1) {
-      DebuggerView.StackFrames.selectedDepth = 0;
-    }
-    if (this.activeThread.moreFrames) {
-      DebuggerView.StackFrames.dirty = true;
-    }
+
+    DebuggerView.StackFrames.selectedDepth = Math.max(this.currentFrameDepth, 0);
+    DebuggerView.StackFrames.dirty = this.activeThread.moreFrames;
   },
 
   
 
 
   _onFramesCleared: function() {
-    this.currentFrameDepth = -1;
-    this._currentWatchExpressions = null;
-    this._currentBreakpointLocation = null;
-    this._currentEvaluation = null;
-    this._currentException = null;
-    this._currentReturnedValue = null;
+    switch (this._currentFrameDescription) {
+      case FRAME_TYPE.NORMAL:
+        this._currentEvaluation = null;
+        this._currentException = null;
+        this._currentReturnedValue = null;
+        break;
+      case FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL:
+        this._currentBreakpointLocation = null;
+        break;
+      case FRAME_TYPE.WATCH_EXPRESSIONS_EVAL:
+        this._currentWatchExpressions = null;
+        break;
+    }
+
     
     
     
     
-    window.setTimeout(this._afterFramesCleared, FRAME_STEP_CLEAR_DELAY);
+    setNamedTimeout("frames-cleared", FRAME_STEP_CLEAR_DELAY, this._afterFramesCleared);
   },
 
   
@@ -744,6 +758,8 @@ StackFrames.prototype = {
 
   _onBlackBoxChange: function() {
     if (this.activeThread.state == "paused") {
+      
+      this.currentFrameDepth = NaN;
       this._refillFrames();
     }
   },
@@ -765,6 +781,7 @@ StackFrames.prototype = {
     if (this.activeThread.cachedFrames.length) {
       return;
     }
+    DebuggerView.editor.clearDebugLocation();
     DebuggerView.StackFrames.empty();
     DebuggerView.Sources.unhighlightBreakpoint();
     DebuggerView.WatchExpressions.toggleContents(true);
@@ -780,9 +797,7 @@ StackFrames.prototype = {
 
 
 
-
-
-  selectFrame: function(aDepth, aDontSwitchSources) {
+  selectFrame: function(aDepth) {
     
     let frame = this.activeThread.cachedFrames[this.currentFrameDepth = aDepth];
     if (!frame) {
@@ -796,14 +811,21 @@ StackFrames.prototype = {
     }
 
     
-    DebuggerView.setEditorLocation(where.url, where.line);
     
-    DebuggerView.Sources.highlightBreakpoint(where, { noEditorUpdate: true });
+    
+    if (this._currentFrameDescription != FRAME_TYPE.PUBLIC_CLIENT_EVAL) {
+      
+      DebuggerView.setEditorLocation(where.url, where.line);
+      
+      DebuggerView.Sources.highlightBreakpoint(where, { noEditorUpdate: true });
+    }
+
     
     DebuggerView.WatchExpressions.toggleContents(false);
+
+    
     
     DebuggerView.Variables.createHierarchy();
-    
     DebuggerView.Variables.empty();
 
     
@@ -873,11 +895,39 @@ StackFrames.prototype = {
 
 
 
-  evaluate: function(aExpression, aFrame = this.currentFrameDepth) {
-    let frame = this.activeThread.cachedFrames[aFrame];
-    if (frame) {
-      this.activeThread.eval(frame.actor, aExpression);
+
+
+
+
+
+
+  evaluate: function(aExpression, aOptions = {}) {
+    let depth = "depth" in aOptions ? aOptions.depth : this.currentFrameDepth;
+    let frame = this.activeThread.cachedFrames[depth];
+    if (frame == null) {
+      return promise.reject(new Error("No stack frame available."));
     }
+
+    let deferred = promise.defer();
+
+    this.activeThread.addOneTimeListener("paused", (aEvent, aPacket) => {
+      let { type, frameFinished } = aPacket.why;
+      if (type == "clientEvaluated") {
+        if (!("terminated" in frameFinished)) {
+          deferred.resolve(frameFinished);
+        } else {
+          deferred.reject(new Error("The execution was abruptly terminated."));
+        }
+      } else {
+        deferred.reject(new Error("Active thread paused unexpectedly."));
+      }
+    });
+
+    let meta = "meta" in aOptions ? aOptions.meta : FRAME_TYPE.PUBLIC_CLIENT_EVAL;
+    this._currentFrameDescription = meta;
+    this.activeThread.eval(frame.actor, aExpression);
+
+    return deferred.promise;
   },
 
   
@@ -990,6 +1040,7 @@ StackFrames.prototype = {
       this._syncedWatchExpressions =
         this._currentWatchExpressions = null;
     }
+
     this.currentFrameDepth = -1;
     this._onFrames();
   }

@@ -13,13 +13,14 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this,
   "Reflect", "resource://gre/modules/reflect.jsm");
 
-this.EXPORTED_SYMBOLS = ["Parser"];
+this.EXPORTED_SYMBOLS = ["Parser", "ParserHelpers", "SyntaxTreeVisitor"];
 
 
 
 
 this.Parser = function Parser() {
   this._cache = new Map();
+  this.errors = [];
 };
 
 Parser.prototype = {
@@ -32,7 +33,7 @@ Parser.prototype = {
 
 
 
-  get: function(aUrl, aSource) {
+  get: function(aSource, aUrl = "") {
     
     if (this._cache.has(aUrl)) {
       return this._cache.get(aUrl);
@@ -63,6 +64,7 @@ Parser.prototype = {
         let length = aSource.length;
         syntaxTrees.push(new SyntaxTree(nodes, aUrl, length));
       } catch (e) {
+        this.errors.push(e);
         log(aUrl, e);
       }
     }
@@ -76,13 +78,21 @@ Parser.prototype = {
           let length = script.length;
           syntaxTrees.push(new SyntaxTree(nodes, aUrl, length, offset));
         } catch (e) {
+          this.errors.push(e);
           log(aUrl, e);
         }
       }
     }
 
     let pool = new SyntaxTreesPool(syntaxTrees);
-    this._cache.set(aUrl, pool);
+
+    
+    
+    
+    if (aUrl) {
+      this._cache.set(aUrl, pool);
+    }
+
     return pool;
   },
 
@@ -103,7 +113,8 @@ Parser.prototype = {
     this._cache.delete(aUrl);
   },
 
-  _cache: null
+  _cache: null,
+  errors: null
 };
 
 
@@ -121,8 +132,23 @@ SyntaxTreesPool.prototype = {
   
 
 
+  getIdentifierAt: function(aLine, aColumn) {
+    return this._first(this._call("getIdentifierAt", aLine, aColumn));
+  },
+
+  
+
+
   getNamedFunctionDefinitions: function(aSubstring) {
     return this._call("getNamedFunctionDefinitions", aSubstring);
+  },
+
+  
+
+
+
+  get scriptCount() {
+    return this._trees.length;
   },
 
   
@@ -137,10 +163,22 @@ SyntaxTreesPool.prototype = {
   getScriptInfo: function(aOffset) {
     for (let { offset, length } of this._trees) {
       if (offset <= aOffset &&  offset + length >= aOffset) {
-        return [offset, length];
+        return { start: offset, length: length };
       }
     }
-    return [-1, -1];
+    return { start: -1, length: -1 };
+  },
+
+  
+
+
+
+
+
+
+  _first: function(aSourceResults) {
+    let scriptResult = aSourceResults.filter(e => !!e.parseResults)[0];
+    return scriptResult ? scriptResult.parseResults : null;
   },
 
   
@@ -153,9 +191,9 @@ SyntaxTreesPool.prototype = {
 
 
 
-  _call: function(aFunction, aParams) {
+  _call: function(aFunction, ...aParams) {
     let results = [];
-    let requestId = aFunction + aParams; 
+    let requestId = aFunction + aParams.toSource(); 
 
     if (this._cache.has(requestId)) {
       return this._cache.get(requestId);
@@ -166,7 +204,7 @@ SyntaxTreesPool.prototype = {
           sourceUrl: syntaxTree.url,
           scriptLength: syntaxTree.length,
           scriptOffset: syntaxTree.offset,
-          parseResults: syntaxTree[aFunction](aParams)
+          parseResults: syntaxTree[aFunction].apply(syntaxTree, aParams)
         });
       } catch (e) {
         
@@ -214,6 +252,58 @@ SyntaxTree.prototype = {
 
 
 
+  getIdentifierAt: function(aLine, aColumn) {
+    let info = null;
+
+    SyntaxTreeVisitor.walk(this.AST, {
+      
+
+
+
+      onIdentifier: function(aNode) {
+        if (ParserHelpers.nodeContainsPoint(aNode, aLine, aColumn)) {
+          info = {
+            name: aNode.name,
+            location: ParserHelpers.getNodeLocation(aNode),
+            evalString: ParserHelpers.getIdentifierEvalString(aNode)
+          };
+
+          
+          SyntaxTreeVisitor.break = true;
+        }
+      },
+
+      
+
+
+
+      onLiteral: function(aNode) {
+        this.onIdentifier(aNode);
+      },
+
+      
+
+
+
+      onThisExpression: function(aNode) {
+        this.onIdentifier(aNode);
+      }
+    });
+
+    return info;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
   getNamedFunctionDefinitions: function(aSubstring) {
     let lowerCaseToken = aSubstring.toLowerCase();
     let store = [];
@@ -228,7 +318,7 @@ SyntaxTree.prototype = {
         if (functionName.toLowerCase().contains(lowerCaseToken)) {
           store.push({
             functionName: functionName,
-            functionLocation: aNode.loc
+            functionLocation: ParserHelpers.getNodeLocation(aNode)
           });
         }
       },
@@ -240,7 +330,7 @@ SyntaxTree.prototype = {
       onFunctionExpression: function(aNode) {
         
         let functionName = aNode.id ? aNode.id.name : "";
-        let functionLocation = aNode.loc || null;
+        let functionLocation = ParserHelpers.getNodeLocation(aNode);
 
         
         let inferredInfo = ParserHelpers.inferFunctionExpressionInfo(aNode);
@@ -314,12 +404,59 @@ let ParserHelpers = {
 
 
 
-  isWithinLines: function(aNode, aLine) {
-    
-    if (!aNode.loc) {
-      return this.isWithinLines(aNode._parent, aLine);
+  getNodeLocation: function(aNode) {
+    if (aNode.type != "Identifier") {
+      return aNode.loc;
     }
-    return aNode.loc.start.line <= aLine && aNode.loc.end.line >= aLine;
+    
+    
+    let { loc: parentLocation, type: parentType } = aNode._parent;
+    let { loc: nodeLocation } = aNode;
+    if (!nodeLocation) {
+      if (parentType == "FunctionDeclaration" ||
+          parentType == "FunctionExpression") {
+        
+        
+        let loc = JSON.parse(JSON.stringify(parentLocation));
+        loc.end.line = loc.start.line;
+        loc.end.column = loc.start.column + aNode.name.length;
+        return loc;
+    }
+      if (parentType == "MemberExpression") {
+        
+        
+        let loc = JSON.parse(JSON.stringify(parentLocation));
+        loc.start.line = loc.end.line;
+        loc.start.column = loc.end.column - aNode.name.length;
+        return loc;
+      }
+    } else {
+      if (parentType == "VariableDeclarator") {
+        
+        
+        
+        let loc = JSON.parse(JSON.stringify(nodeLocation));
+        loc.end.line = loc.start.line;
+        loc.end.column = loc.start.column + aNode.name.length;
+        return loc;
+      }
+    }
+    return aNode.loc;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  nodeContainsLine: function(aNode, aLine) {
+    let { start: s, end: e } = this.getNodeLocation(aNode);
+    return s.line <= aLine && e.line >= aLine;
   },
 
   
@@ -334,13 +471,10 @@ let ParserHelpers = {
 
 
 
-  isWithinBounds: function(aNode, aLine, aColumn) {
-    
-    if (!aNode.loc) {
-      return this.isWithinBounds(aNode._parent, aLine, aColumn);
-    }
-    return aNode.loc.start.line == aLine && aNode.loc.end.line == aLine &&
-           aNode.loc.start.column <= aColumn && aNode.loc.end.column >= aColumn;
+  nodeContainsPoint: function(aNode, aLine, aColumn) {
+    let { start: s, end: e } = this.getNodeLocation(aNode);
+    return s.line == aLine && e.line == aLine &&
+           s.column <= aColumn && e.column >= aColumn;
   },
 
   
@@ -364,7 +498,7 @@ let ParserHelpers = {
       return {
         name: parent.id.name,
         chain: null,
-        loc: parent.loc
+        loc: this.getNodeLocation(parent.id)
       };
     }
 
@@ -372,12 +506,12 @@ let ParserHelpers = {
     
     
     if (parent.type == "AssignmentExpression") {
-      let propertyChain = this.getMemberExpressionPropertyChain(parent.left);
+      let propertyChain = this._getMemberExpressionPropertyChain(parent.left);
       let propertyLeaf = propertyChain.pop();
       return {
         name: propertyLeaf,
         chain: propertyChain,
-        loc: parent.left.loc
+        loc: this.getNodeLocation(parent.left)
       };
     }
 
@@ -385,13 +519,13 @@ let ParserHelpers = {
     
     
     if (parent.type == "ObjectExpression") {
-      let propertyKey = this.getObjectExpressionPropertyKeyForValue(aNode);
-      let propertyChain = this.getObjectExpressionPropertyChain(parent);
+      let propertyKey = this._getObjectExpressionPropertyKeyForValue(aNode);
+      let propertyChain = this._getObjectExpressionPropertyChain(parent);
       let propertyLeaf = propertyKey.name;
       return {
         name: propertyLeaf,
         chain: propertyChain,
-        loc: propertyKey.loc
+        loc: this.getNodeLocation(propertyKey)
       };
     }
 
@@ -415,7 +549,10 @@ let ParserHelpers = {
 
 
 
-  getObjectExpressionPropertyKeyForValue: function(aNode) {
+
+
+
+  _getObjectExpressionPropertyKeyForValue: function(aNode) {
     let parent = aNode._parent;
     if (parent.type != "ObjectExpression") {
       return null;
@@ -442,11 +579,14 @@ let ParserHelpers = {
 
 
 
-  getObjectExpressionPropertyChain: function(aNode, aStore = []) {
+
+
+
+  _getObjectExpressionPropertyChain: function(aNode, aStore = []) {
     switch (aNode.type) {
       case "ObjectExpression":
-        this.getObjectExpressionPropertyChain(aNode._parent, aStore);
-        let propertyKey = this.getObjectExpressionPropertyKeyForValue(aNode);
+        this._getObjectExpressionPropertyChain(aNode._parent, aStore);
+        let propertyKey = this._getObjectExpressionPropertyKeyForValue(aNode);
         if (propertyKey) {
           aStore.push(propertyKey.name);
         }
@@ -459,14 +599,14 @@ let ParserHelpers = {
       
       
       case "AssignmentExpression":
-        this.getMemberExpressionPropertyChain(aNode.left, aStore);
+        this._getMemberExpressionPropertyChain(aNode.left, aStore);
         break;
       
       
       
       case "NewExpression":
       case "CallExpression":
-        this.getObjectExpressionPropertyChain(aNode._parent, aStore);
+        this._getObjectExpressionPropertyChain(aNode._parent, aStore);
         break;
     }
     return aStore;
@@ -487,22 +627,68 @@ let ParserHelpers = {
 
 
 
-  getMemberExpressionPropertyChain: function(aNode, aStore = []) {
+
+
+
+  _getMemberExpressionPropertyChain: function(aNode, aStore = []) {
     switch (aNode.type) {
       case "MemberExpression":
-        this.getMemberExpressionPropertyChain(aNode.object, aStore);
-        this.getMemberExpressionPropertyChain(aNode.property, aStore);
+        this._getMemberExpressionPropertyChain(aNode.object, aStore);
+        this._getMemberExpressionPropertyChain(aNode.property, aStore);
         break;
       case "ThisExpression":
-        
-        
-        
+        aStore.push("this");
         break;
       case "Identifier":
         aStore.push(aNode.name);
         break;
     }
     return aStore;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getIdentifierEvalString: function(aNode) {
+    switch (aNode._parent.type) {
+      case "ObjectExpression":
+        
+        
+        
+        if (!this._getObjectExpressionPropertyKeyForValue(aNode)) {
+          let propertyChain = this._getObjectExpressionPropertyChain(aNode._parent);
+          let propertyLeaf = aNode.name;
+          return [...propertyChain, propertyLeaf].join(".");
+        }
+        break;
+      case "MemberExpression":
+        
+        if (aNode._parent.property == aNode) {
+          return this._getMemberExpressionPropertyChain(aNode._parent).join(".");
+        }
+        break;
+    }
+    switch (aNode.type) {
+      case "ThisExpression":
+        return "this";
+      case "Identifier":
+        return aNode.name;
+      case "Literal":
+        if (typeof aNode.value == "string") {
+          return "\"" + aNode.value + "\"";
+        } else {
+          return aNode.value + "";
+        }
+      default:
+        return "";
+    }
   }
 };
 
@@ -527,7 +713,24 @@ let SyntaxTreeVisitor = {
 
 
   walk: function(aTree, aCallbacks) {
+    this.break = false;
     this[aTree.type](aTree, aCallbacks);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  filter: function(aTree, aPredicate) {
+    let store = [];
+    this.walk(aTree, { onNode: e => { if (aPredicate(e)) store.push(e); } });
+    return store;
   },
 
   
@@ -2121,4 +2324,4 @@ function log(aStr, aEx) {
   dump(msg + "\n");
 };
 
-XPCOMUtils.defineLazyGetter(Parser, "reflectionAPI", function() Reflect);
+XPCOMUtils.defineLazyGetter(Parser, "reflectionAPI", () => Reflect);
