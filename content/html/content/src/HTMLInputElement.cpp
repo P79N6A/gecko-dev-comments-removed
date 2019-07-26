@@ -529,6 +529,12 @@ private:
   nsTArray<nsCOMPtr<nsIDOMFile> > mFileList;
 };
 
+
+
+
+
+
+
 static already_AddRefed<nsIFile>
 DOMFileToLocalFile(nsIDOMFile* aDomFile)
 {
@@ -630,10 +636,12 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult)
 
   
   nsCOMPtr<nsIFile> file = DOMFileToLocalFile(newFiles[0]);
-  nsCOMPtr<nsIFile> lastUsedDir;
-  file->GetParent(getter_AddRefs(lastUsedDir));
-  HTMLInputElement::gUploadLastDir->StoreLastUsedDirectory(
-    mInput->OwnerDoc(), lastUsedDir);
+  if (file) {
+    nsCOMPtr<nsIFile> lastUsedDir;
+    file->GetParent(getter_AddRefs(lastUsedDir));
+    HTMLInputElement::gUploadLastDir->StoreLastUsedDirectory(
+      mInput->OwnerDoc(), lastUsedDir);
+  }
 
   
   
