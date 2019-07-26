@@ -2660,7 +2660,7 @@ public class BrowserApp extends GeckoApp
         String action = intent.getAction();
 
         final boolean isViewAction = Intent.ACTION_VIEW.equals(action);
-        final boolean isBookmarkAction = GeckoApp.ACTION_BOOKMARK.equals(action);
+        final boolean isBookmarkAction = GeckoApp.ACTION_HOMESCREEN_SHORTCUT.equals(action);
 
         if (mInitialized && (isViewAction || isBookmarkAction)) {
             
