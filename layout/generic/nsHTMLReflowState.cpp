@@ -1845,7 +1845,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
 
   
   
-  if (nullptr == parentReflowState) {
+  if (nullptr == parentReflowState || mFlags.mDummyParentReflowState) {
     
     InitOffsets(aContainingBlockWidth,
                 VerticalOffsetPercentBasis(frame, aContainingBlockWidth,
