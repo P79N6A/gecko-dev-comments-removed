@@ -12,6 +12,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGAnimTransformList.h"
 #include "nsSVGElement.h"
+#include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
 
 namespace mozilla {
@@ -35,13 +36,14 @@ class SVGAnimatedTransformList;
 
 
 
-class DOMSVGAnimatedTransformList MOZ_FINAL : public nsIDOMSVGAnimatedTransformList
+class DOMSVGAnimatedTransformList MOZ_FINAL : public nsIDOMSVGAnimatedTransformList,
+                                              public nsWrapperCache
 {
   friend class DOMSVGTransformList;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGAnimatedTransformList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedTransformList)
   NS_DECL_NSIDOMSVGANIMATEDTRANSFORMLIST
 
   
@@ -87,17 +89,26 @@ public:
 
   bool IsAnimating() const;
 
+  
+  nsSVGElement* GetParentObject() const { return mElement; }
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
+  
+  already_AddRefed<DOMSVGTransformList> BaseVal();
+  already_AddRefed<DOMSVGTransformList> AnimVal();
+
 private:
 
   
 
 
 
-  DOMSVGAnimatedTransformList(nsSVGElement *aElement)
+  explicit DOMSVGAnimatedTransformList(nsSVGElement *aElement)
     : mBaseVal(nullptr)
     , mAnimVal(nullptr)
     , mElement(aElement)
-  {}
+  {
+    SetIsDOMBinding();
+  }
 
   ~DOMSVGAnimatedTransformList();
 
