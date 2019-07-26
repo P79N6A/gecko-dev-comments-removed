@@ -75,16 +75,13 @@ imgRequestProxy::~imgRequestProxy()
   NullOutListener();
 
   if (mOwner) {
-    if (!mCanceled) {
-      mCanceled = true;
-
-      
+    
 
 
 
 
-      mOwner->RemoveProxy(this, NS_OK);
-    }
+    mCanceled = true;
+    mOwner->RemoveProxy(this, NS_OK);
   }
 }
 
@@ -122,6 +119,12 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
 {
   NS_PRECONDITION(mOwner, "Cannot ChangeOwner on a proxy without an owner!");
 
+  if (mCanceled) {
+    
+    
+    SyncNotifyListener();
+  }
+
   
   
   uint32_t oldLockCount = mLockCount;
@@ -132,23 +135,6 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   uint32_t oldAnimationConsumers = mAnimationConsumers;
   ClearAnimationConsumers();
 
-  nsRefPtr<imgRequest> oldOwner = mOwner;
-  mOwner = aNewOwner;
-  mOwnerHasImage = !!GetStatusTracker().GetImage();
-
-  
-  for (uint32_t i = 0; i < oldLockCount; i++)
-    LockImage();
-
-  if (mCanceled) {
-    
-    
-    for (uint32_t i = 0; i < oldAnimationConsumers; i++)
-      IncrementAnimationConsumers();
-
-    return NS_OK;
-  }
-
   
   bool wasDecoded = false;
   if (GetImage() &&
@@ -156,7 +142,14 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
     wasDecoded = true;
   }
 
-  oldOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER);
+  mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER);
+
+  mOwner = aNewOwner;
+  mOwnerHasImage = !!GetStatusTracker().GetImage();
+
+  
+  for (uint32_t i = 0; i < oldLockCount; i++)
+    LockImage();
 
   
   
