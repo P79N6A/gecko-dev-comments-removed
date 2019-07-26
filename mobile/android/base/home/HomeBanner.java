@@ -105,6 +105,10 @@ public class HomeBanner extends LinearLayout
             @Override
             public void onClick(View v) {
                 
+                
+                HomeBanner.this.setVisibility(View.GONE);
+
+                
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomeBanner:Click", (String) getTag()));
             }
         });

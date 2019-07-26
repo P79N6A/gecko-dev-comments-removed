@@ -351,6 +351,8 @@ function loadSyncPromoBanner() {
         text: text + "<a href=\"#\">" + link + "</a>",
         icon: "drawable://sync_promo",
         onclick: function() {
+          
+          Home.banner.remove(id);
           Accounts.launchSetup();
         },
         ondismiss: function() {
