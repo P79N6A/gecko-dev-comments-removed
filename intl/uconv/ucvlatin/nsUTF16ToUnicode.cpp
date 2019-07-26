@@ -10,11 +10,13 @@
 #include <string.h>
 #include "prtypes.h"
 
-#define STATE_NORMAL             0
-#define STATE_HALF_CODE_POINT    1
-#define STATE_FIRST_CALL         2
-#define STATE_FOUND_BOM          3
-#define STATE_ODD_SURROGATE_PAIR 4
+enum {
+  STATE_NORMAL = 0,
+  STATE_HALF_CODE_POINT = 1,
+  STATE_FIRST_CALL = 2,
+  STATE_SECOND_BYTE = STATE_FIRST_CALL | STATE_HALF_CODE_POINT,
+  STATE_ODD_SURROGATE_PAIR = 4
+};
 
 static nsresult
 UTF16ConvertToUnicode(uint8_t& aState, uint8_t& aOddByte,
@@ -31,25 +33,15 @@ UTF16ConvertToUnicode(uint8_t& aState, uint8_t& aOddByte,
   PRUnichar oddHighSurrogate;
 
   switch(aState) {
-    case STATE_FOUND_BOM:
+    case STATE_FIRST_CALL:
       NS_ASSERTION(*aSrcLength > 1, "buffer too short");
       src+=2;
       aState = STATE_NORMAL;
       break;
 
-    case STATE_FIRST_CALL: 
-      NS_ASSERTION(*aSrcLength > 1, "buffer too short");
-      
-      
-      
-      
-      if(0xFEFF == *((PRUnichar*)src)) {
-        src+=2;
-      } else if(0xFFFE == *((PRUnichar*)src)) {
-        *aSrcLength=0;
-        *aDestLength=0;
-        return NS_ERROR_ILLEGAL_INPUT;
-      }  
+    case STATE_SECOND_BYTE:
+      NS_ASSERTION(*aSrcLength > 0, "buffer too short");
+      src++;
       aState = STATE_NORMAL;
       break;
 
@@ -180,7 +172,7 @@ nsUTF16ToUnicodeBase::GetMaxLength(const char * aSrc, int32_t aSrcLength,
                                    int32_t * aDestLength)
 {
   
-  *aDestLength = (aSrcLength + ((STATE_HALF_CODE_POINT == mState) ? 1 : 0)) / 2;
+  *aDestLength = (aSrcLength + ((STATE_HALF_CODE_POINT & mState) ? 1 : 0)) / 2;
   if (mOddHighSurrogate)
     (*aDestLength)++;
   if (mOddLowSurrogate)
@@ -193,29 +185,44 @@ NS_IMETHODIMP
 nsUTF16BEToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
                             PRUnichar * aDest, int32_t * aDestLength)
 {
-    if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
-    {
-      nsresult res = (*aSrcLength == 0) ? NS_OK : NS_ERROR_ILLEGAL_INPUT;
-      *aSrcLength=0;
-      *aDestLength=0;
-      return res;
-    }
-#ifdef IS_LITTLE_ENDIAN
-    
-    
-    if(STATE_FIRST_CALL == mState) 
-    {
-      mState = STATE_NORMAL;
-      if(0xFFFE == *((PRUnichar*)aSrc)) {
-        
-        mState = STATE_FOUND_BOM;
-      } else if(0xFEFF == *((PRUnichar*)aSrc)) {
-        *aSrcLength=0;
-        *aDestLength=0;
-        return NS_ERROR_ILLEGAL_INPUT;
+  switch (mState) {
+    case STATE_FIRST_CALL:
+      if (*aSrcLength < 2) {
+        if (*aSrcLength < 1) {
+          *aDestLength = 0;
+          return NS_OK;
+        }
+        if (uint8_t(*aSrc) != 0xFE) {
+          mState = STATE_NORMAL;
+          break;
+        }
+        *aDestLength = 0;
+        mState = STATE_SECOND_BYTE;
+        return NS_OK_UDEC_MOREINPUT;
       }
-    }
+#ifdef IS_LITTLE_ENDIAN
+      
+      if (0xFFFE != *((PRUnichar*)aSrc)) {
+        mState = STATE_NORMAL;
+      }
+#else
+      if (0xFEFF != *((PRUnichar*)aSrc)) {
+        mState = STATE_NORMAL;
+      }
 #endif
+      break;
+
+    case STATE_SECOND_BYTE:
+      if (*aSrcLength < 1) {
+        *aDestLength = 0;
+        return NS_OK_UDEC_MOREINPUT;
+      }
+      if (uint8_t(*aSrc) != 0xFF) {
+        mOddByte = 0xFE;
+        mState = STATE_HALF_CODE_POINT;
+      }
+      break;
+  }
 
   nsresult rv = UTF16ConvertToUnicode(mState, mOddByte, mOddHighSurrogate,
                                       mOddLowSurrogate,
@@ -233,30 +240,45 @@ NS_IMETHODIMP
 nsUTF16LEToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
                             PRUnichar * aDest, int32_t * aDestLength)
 {
-    if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
-    {
-      nsresult res = (*aSrcLength == 0) ? NS_OK : NS_ERROR_ILLEGAL_INPUT;
-      *aSrcLength=0;
-      *aDestLength=0;
-      return res;
-    }
-#ifdef IS_BIG_ENDIAN
-    
-    
-    if(STATE_FIRST_CALL == mState) 
-    {
-      mState = STATE_NORMAL;
-      if(0xFFFE == *((PRUnichar*)aSrc)) {
-        
-        mState = STATE_FOUND_BOM;
-      } else if(0xFEFF == *((PRUnichar*)aSrc)) {
-        *aSrcLength=0;
-        *aDestLength=0;
-        return NS_ERROR_ILLEGAL_INPUT;
+  switch (mState) {
+    case STATE_FIRST_CALL:
+      if (*aSrcLength < 2) {
+        if (*aSrcLength < 1) {
+          *aDestLength = 0;
+          return NS_OK;
+        }
+        if (uint8_t(*aSrc) != 0xFF) {
+          mState = STATE_NORMAL;
+          break;
+        }
+        *aDestLength = 0;
+        mState = STATE_SECOND_BYTE;
+        return NS_OK_UDEC_MOREINPUT;
       }
-    }
+#ifdef IS_BIG_ENDIAN
+      
+      if (0xFFFE != *((PRUnichar*)aSrc)) {
+        mState = STATE_NORMAL;
+      }
+#else
+      if (0xFEFF != *((PRUnichar*)aSrc)) {
+        mState = STATE_NORMAL;
+      }
 #endif
-    
+      break;
+
+    case STATE_SECOND_BYTE:
+      if (*aSrcLength < 1) {
+        *aDestLength = 0;
+        return NS_OK_UDEC_MOREINPUT;
+      }
+      if (uint8_t(*aSrc) != 0xFE) {
+        mOddByte = 0xFF;
+        mState = STATE_HALF_CODE_POINT;
+      }
+      break;
+  }
+
   nsresult rv = UTF16ConvertToUnicode(mState, mOddByte, mOddHighSurrogate,
                                       mOddLowSurrogate,
                                       aSrc, aSrcLength, aDest, aDestLength,
@@ -290,16 +312,13 @@ nsUTF16ToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
     }
     if(STATE_FIRST_CALL == mState) 
     {
-      mState = STATE_NORMAL;
       
       
       if(0xFF == uint8_t(aSrc[0]) && 0xFE == uint8_t(aSrc[1])) {
-        mState = STATE_FOUND_BOM;
         mEndian = kLittleEndian;
         mFoundBOM = true;
       }
       else if(0xFE == uint8_t(aSrc[0]) && 0xFF == uint8_t(aSrc[1])) {
-        mState = STATE_FOUND_BOM;
         mEndian = kBigEndian;
         mFoundBOM = true;
       }
@@ -307,15 +326,18 @@ nsUTF16ToUnicode::Convert(const char * aSrc, int32_t * aSrcLength,
       
       
       else if(!aSrc[0] && aSrc[1]) {  
+        mState = STATE_NORMAL;
         mEndian = kBigEndian;
       }
       else if(aSrc[0] && !aSrc[1]) {  
+        mState = STATE_NORMAL;
         mEndian = kLittleEndian;
       }
       else { 
              
              
              
+        mState = STATE_NORMAL;
         mEndian = kBigEndian;
       }
     }
