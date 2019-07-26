@@ -435,6 +435,14 @@ pref("marionette.defaultPrefs.port", 2828);
 #endif
 
 #ifdef MOZ_UPDATER
+
+pref("b2g.update.apply-prompt-timeout", 60000); 
+
+pref("b2g.update.apply-wait-timeout", 1800000); 
+
+
+pref("b2g.update.self-destruct-timeout", 5000); 
+
 pref("app.update.enabled", true);
 pref("app.update.auto", true);
 pref("app.update.silent", true);
