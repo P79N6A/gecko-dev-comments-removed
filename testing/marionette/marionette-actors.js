@@ -45,15 +45,6 @@ logger.info('marionette-actors.js loaded');
 
 
 
-let systemMessageListenerReady = false;
-Services.obs.addObserver(function() {
-  systemMessageListenerReady = true;
-}, "system-message-listener-ready", false);
-
-
-
-
-
 function createRootActor(aConnection)
 {
   return new MarionetteRootActor(aConnection);
@@ -447,10 +438,7 @@ MarionetteDriverActor.prototype = {
     function waitForWindow() {
       let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       let win = this.getCurrentWindow();
-      if (!win ||
-          (appName == "Firefox" && !win.gBrowser) ||
-          (appName == "Fennec" && !win.BrowserApp) ||
-          (appName == "B2G" && !systemMessageListenerReady)) { 
+      if (!win || (appName == "Firefox" && !win.gBrowser) || (appName == "Fennec" && !win.BrowserApp)) { 
         checkTimer.initWithCallback(waitForWindow.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
       }
       else {
@@ -489,6 +477,31 @@ MarionetteDriverActor.prototype = {
           'rotatable': rotatable,
           'takesScreenshot': false,
           'version': Services.appinfo.version
+    };
+
+    this.sendResponse(value);
+  },
+
+  getStatus: function MDA_getStatus(){
+    let arch;
+    try {
+      arch = (Services.appinfo.XPCOMABI || 'unknown').split('-')[0]
+    }
+    catch (ignored) {
+      arch = 'unknown'
+    };
+
+    let value = {
+          'os': {
+            'arch': arch,
+            'name': Services.appinfo.OS,
+            'version': 'unknown'
+          },
+          'build': {
+            'revision': 'unknown',
+            'time': Services.appinfo.platformBuildID,
+            'version': Services.appinfo.version
+          }
     };
 
     this.sendResponse(value);
@@ -1632,6 +1645,7 @@ MarionetteDriverActor.prototype = {
 MarionetteDriverActor.prototype.requestTypes = {
   "newSession": MarionetteDriverActor.prototype.newSession,
   "getSessionCapabilities": MarionetteDriverActor.prototype.getSessionCapabilities,
+  "getStatus": MarionetteDriverActor.prototype.getStatus,
   "log": MarionetteDriverActor.prototype.log,
   "getLogs": MarionetteDriverActor.prototype.getLogs,
   "addPerfData": MarionetteDriverActor.prototype.addPerfData,
