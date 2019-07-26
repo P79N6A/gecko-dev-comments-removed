@@ -6,13 +6,7 @@
 #ifndef nsAutoPtr_h___
 #define nsAutoPtr_h___
 
-
-#ifndef nsCOMPtr_h___
-  
-  
-  
 #include "nsCOMPtr.h"
-#endif
 
 #include "nsCycleCollectionNoteChild.h"
 #include "mozilla/MemoryReporting.h"

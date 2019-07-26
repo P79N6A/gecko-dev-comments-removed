@@ -25,21 +25,9 @@
 #include "mozilla/NullPtr.h"
 #include "mozilla/Move.h"
 
-  
-#ifndef nsDebug_h___
-#include "nsDebug.h"
-  
-#endif
-
-#ifndef nsISupportsUtils_h__
-#include "nsISupportsUtils.h"
-  
-#endif
-
-#ifndef nscore_h___
-#include "nscore.h"
-  
-#endif
+#include "nsDebug.h" 
+#include "nsISupportsUtils.h" 
+#include "nscore.h" 
 
 #include "nsCycleCollectionNoteChild.h"
 

@@ -6,16 +6,10 @@
 #ifndef nsCharTraits_h___
 #define nsCharTraits_h___
 
-#include <ctype.h>
-  
+#include <ctype.h> 
+#include <string.h> 
 
-#include <string.h>
-  
-
-#ifndef nscore_h___
-#include "nscore.h"
-  
-#endif
+#include "nscore.h" 
 
 
 
@@ -26,10 +20,7 @@
 #define NS_ASSERTION(cond, msg)
 #define NS_ERROR(msg)
 #else
-#ifndef nsDebug_h__
-#include "nsDebug.h"
-  
-#endif
+#include "nsDebug.h"  
 #endif
 
 

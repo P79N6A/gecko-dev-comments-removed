@@ -12,9 +12,7 @@
 
 
 
-#ifndef nsAString_h___
 #include "nsAString.h"
-#endif
 
 #include "nsTArrayForwardDeclare.h"
 
