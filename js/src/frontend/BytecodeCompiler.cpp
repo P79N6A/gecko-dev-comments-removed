@@ -330,7 +330,6 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
             return false;
     }
 
-    options.setCompileAndGo(false);
     Parser<FullParseHandler> parser(cx, options, chars, length,  true);
     if (!parser.init())
         return false;
@@ -413,9 +412,17 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
 #endif
 
     if (generateBytecode) {
+        
+
+
+
+
+
+
         BytecodeEmitter funbce( NULL, &parser, funbox, script,
                                 NullPtr(),
-                                false, options.lineno);
+                               fun->environment() && fun->environment()->isGlobal(),
+                               options.lineno);
         if (!funbce.init())
             return false;
 
