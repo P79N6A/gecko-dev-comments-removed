@@ -1113,7 +1113,7 @@ Navigator::MozGetUserMediaDevices(nsIGetUserMediaDevicesSuccessCallback* aOnSucc
   }
 
   
-  if (!nsContentUtils::IsChromeDoc(win->GetExtantDoc())) {
+  if (!nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_FAILURE;
   }
 
