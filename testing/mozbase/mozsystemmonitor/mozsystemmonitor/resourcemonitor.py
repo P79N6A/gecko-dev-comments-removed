@@ -6,9 +6,10 @@ import multiprocessing
 import sys
 import time
 
+
 try:
     import psutil
-except ImportError:
+except (ImportError, NotImplementedError):
     psutil = None
 
 from collections import (
