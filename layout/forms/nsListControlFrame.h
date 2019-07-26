@@ -110,9 +110,6 @@ public:
 #endif
 
     
-  virtual int GetSkipSides() const MOZ_OVERRIDE;
-
-    
   virtual void SetComboboxFrame(nsIFrame* aComboboxFrame);
   virtual int32_t GetSelectedIndex() MOZ_OVERRIDE;
   virtual already_AddRefed<nsIContent> GetCurrentOption() MOZ_OVERRIDE;

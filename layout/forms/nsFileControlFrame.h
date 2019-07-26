@@ -144,8 +144,6 @@ protected:
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
-  virtual int GetSkipSides() const MOZ_OVERRIDE;
-
   
 
 

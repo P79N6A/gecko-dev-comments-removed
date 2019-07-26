@@ -120,8 +120,6 @@ protected:
   virtual nscoord GetIntrinsicWidth() MOZ_OVERRIDE;
   virtual nscoord GetIntrinsicHeight() MOZ_OVERRIDE;
 
-  virtual int GetSkipSides() const;
-
   
   
   
