@@ -5034,6 +5034,7 @@ nsEditor::DetermineCurrentDirection()
 {
   
   nsIContent* rootElement = GetExposedRoot();
+  NS_ENSURE_TRUE(rootElement, NS_ERROR_FAILURE);
 
   
   
