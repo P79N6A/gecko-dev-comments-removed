@@ -407,10 +407,19 @@ MmsConnection.prototype = {
           return;
         }
 
-        this.connected =
+        
+        
+        let connected =
           this.radioInterface.getDataCallStateByType("mms") ==
             Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
 
+        
+        
+        if (connected == this.connected) {
+          return;
+        }
+
+        this.connected = connected;
         if (!this.connected) {
           return;
         }
