@@ -1401,12 +1401,7 @@ this.DownloadSaver.prototype = {
   getSha256Hash: function ()
   {
     throw new Error("Not implemented.");
-  },
-
-  getSignatureInfo: function ()
-  {
-    throw new Error("Not implemented.");
-  },
+  }
 }; 
 
 
@@ -1464,13 +1459,6 @@ this.DownloadCopySaver.prototype = {
 
 
   _sha256Hash: null,
-
-  
-
-
-
-
-  _signatureInfo: null,
 
   
 
@@ -1548,7 +1536,6 @@ this.DownloadCopySaver.prototype = {
               if (Components.isSuccessCode(aStatus)) {
                 
                 this._sha256Hash = aSaver.sha256Hash;
-                this._signatureInfo = aSaver.signatureInfo;
                 deferSaveComplete.resolve();
               } else {
                 
@@ -1657,9 +1644,7 @@ this.DownloadCopySaver.prototype = {
               }
 
               
-              
               backgroundFileSaver.enableSha256();
-              backgroundFileSaver.enableSignatureInfo();
               if (partFilePath) {
                 
                 if (resumeAttempted) {
@@ -1785,14 +1770,6 @@ this.DownloadCopySaver.prototype = {
   getSha256Hash: function ()
   {
     return this._sha256Hash;
-  },
-
-  
-
-
-  getSignatureInfo: function ()
-  {
-    return this._signatureInfo;
   }
 };
 
@@ -1840,13 +1817,6 @@ this.DownloadLegacySaver.prototype = {
 
 
   _sha256Hash: null,
-
-  
-
-
-
-
-  _signatureInfo: null,
 
   
 
@@ -2117,25 +2087,6 @@ this.DownloadLegacySaver.prototype = {
   setSha256Hash: function (hash)
   {
     this._sha256Hash = hash;
-  },
-
-  
-
-
-  getSignatureInfo: function ()
-  {
-    if (this.copySaver) {
-      return this.copySaver.getSignatureInfo();
-    }
-    return this._signatureInfo;
-  },
-
-  
-
-
-  setSignatureInfo: function (signatureInfo)
-  {
-    this._signatureInfo = signatureInfo;
   },
 };
 

@@ -19,7 +19,6 @@ class nsIRequest;
 class nsIUrlClassifierDBService;
 class nsIScriptSecurityManager;
 class PendingLookup;
-class PRLogModuleInfo;
 
 class ApplicationReputationService MOZ_FINAL :
   public nsIApplicationReputationService {
@@ -31,15 +30,10 @@ public:
   static ApplicationReputationService* GetSingleton();
 
 private:
-  friend class PendingLookup;
   
 
 
   static ApplicationReputationService* gApplicationReputationService;
-  
-
-
-  static PRLogModuleInfo* prlog;
   
 
 

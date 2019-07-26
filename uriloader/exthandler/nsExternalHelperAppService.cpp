@@ -1495,10 +1495,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
 
   rv = mSaver->EnableSha256();
   NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mSaver->EnableSignatureInfo();
-  NS_ENSURE_SUCCESS(rv, rv);
-  LOG(("Enabled hashing and signature verification"));
+  LOG(("Enabled hashing"));
 
   rv = mSaver->SetTarget(mTempFile, false);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1938,7 +1935,6 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
   if (!mCanceled) {
     
     (void)mSaver->GetSha256Hash(mHash);
-    (void)mSaver->GetSignatureInfo(getter_AddRefs(mSignatureInfo));
     
     
     mSaver = nullptr;
@@ -1972,7 +1968,6 @@ void nsExternalAppHandler::NotifyTransfer(nsresult aStatus)
 
   if (NS_SUCCEEDED(aStatus)) {
     (void)mTransfer->SetSha256Hash(mHash);
-    (void)mTransfer->SetSignatureInfo(mSignatureInfo);
     (void)mTransfer->OnProgressChange64(nullptr, nullptr, mProgress,
       mContentLength, mProgress, mContentLength);
   }

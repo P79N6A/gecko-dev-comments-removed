@@ -13,7 +13,6 @@
 #define BackgroundFileSaver_h__
 
 #include "mozilla/Mutex.h"
-#include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "nsNSSShutDown.h"
 #include "nsIAsyncOutputStream.h"
@@ -24,8 +23,6 @@
 
 class nsIAsyncInputStream;
 class nsIThread;
-class nsIX509CertList;
-class PRLogModuleInfo;
 
 namespace mozilla {
 namespace net {
@@ -73,8 +70,6 @@ public:
 
 protected:
   virtual ~BackgroundFileSaver();
-
-  static PRLogModuleInfo *prlog;
 
   
 
@@ -217,17 +212,6 @@ private:
   bool mSha256Enabled;
 
   
-
-
-  nsCOMArray<nsIX509CertList> mSignatureInfo;
-
-  
-
-
-
-  bool mSignatureInfoEnabled;
-
-  
   
 
   
@@ -297,13 +281,6 @@ private:
 
 
   nsresult NotifySaveComplete();
-
-  
-
-
-
-
-  nsresult ExtractSignatureInfo(const nsAString& filePath);
 };
 
 

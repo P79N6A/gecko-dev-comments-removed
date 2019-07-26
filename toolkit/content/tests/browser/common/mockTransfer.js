@@ -53,8 +53,7 @@ MockTransfer.prototype = {
 
   
   init: function() {},
-  setSha256Hash: function() {},
-  setSignatureInfo: function() {}
+  setSha256Hash: function() {}
 };
 
 
