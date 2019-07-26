@@ -6,6 +6,7 @@
 package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.gfx.Layer.RenderContext;
@@ -49,7 +50,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
     private static final int FRAME_RATE_METER_HEIGHT = 32;
 
     private final LayerView mView;
-    private final SingleTileLayer mBackgroundLayer;
     private final NinePatchTileLayer mShadowLayer;
     private TextLayer mFrameRateLayer;
     private final ScrollbarLayer mHorizScrollLayer;
@@ -60,6 +60,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
     private RenderContext mLastPageContext;
     private int mMaxTextureSize;
     private int mBackgroundColor;
+    private int mOverscrollColor;
 
     private CopyOnWriteArrayList<Layer> mExtraLayers = new CopyOnWriteArrayList<Layer>();
 
@@ -128,9 +129,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
     public LayerRenderer(LayerView view) {
         mView = view;
-
-        CairoImage backgroundImage = new BufferedCairoImage(view.getBackgroundPattern());
-        mBackgroundLayer = new SingleTileLayer(true, backgroundImage);
+        mOverscrollColor = view.getContext().getResources().getColor(R.color.background_normal);
 
         CairoImage shadowImage = new BufferedCairoImage(view.getShadowPattern());
         mShadowLayer = new NinePatchTileLayer(shadowImage);
@@ -176,7 +175,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         DirectBufferAllocator.free(mCoordByteBuffer);
         mCoordByteBuffer = null;
         mCoordBuffer = null;
-        mBackgroundLayer.destroy();
         mShadowLayer.destroy();
         mHorizScrollLayer.destroy();
         mVertScrollLayer.destroy();
@@ -470,7 +468,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
             
             if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);  
-            mUpdated &= mBackgroundLayer.update(mScreenContext);    
             mUpdated &= mShadowLayer.update(mPageContext);  
             if (mFrameRateLayer != null) mUpdated &= mFrameRateLayer.update(mScreenContext); 
             mUpdated &= mVertScrollLayer.update(mPageContext);  
@@ -519,26 +516,31 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             return mask;
         }
 
+        private void clear(int color) {
+            GLES20.glClearColor(((color >> 16) & 0xFF) / 255.0f,
+                                ((color >> 8) & 0xFF) / 255.0f,
+                                (color & 0xFF) / 255.0f,
+                                0.0f);
+            
+            
+            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT |
+                           GLES20.GL_DEPTH_BUFFER_BIT);
+        }
+
         
         public void drawBackground() {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
+            clear(mOverscrollColor);
+
+            
             mBackgroundColor = mView.getBackgroundColor();
 
             
-
-
-            GLES20.glClearColor(((mBackgroundColor>>16)&0xFF) / 255.0f,
-                                ((mBackgroundColor>>8)&0xFF) / 255.0f,
-                                (mBackgroundColor&0xFF) / 255.0f,
-                                0.0f);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT |
-                           GLES20.GL_DEPTH_BUFFER_BIT);
-
-            
-            mBackgroundLayer.setMask(mPageRect);
-            mBackgroundLayer.draw(mScreenContext);
+            setScissorRect();
+            clear(mBackgroundColor);
+            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
             if (!new RectF(mAbsolutePageRect).contains(mFrameMetrics.getViewport()))
