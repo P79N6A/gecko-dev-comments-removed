@@ -5,6 +5,8 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
+                                  "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadLastDir",
@@ -35,42 +37,9 @@ var ContentAreaUtils = {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function urlSecurityCheck(aURL, aPrincipal, aFlags)
 {
-  var secMan = Services.scriptSecurityManager;
-  if (aFlags === undefined) {
-    aFlags = secMan.STANDARD;
-  }
-
-  try {
-    if (aURL instanceof Components.interfaces.nsIURI)
-      secMan.checkLoadURIWithPrincipal(aPrincipal, aURL, aFlags);
-    else
-      secMan.checkLoadURIStrWithPrincipal(aPrincipal, aURL, aFlags);
-  } catch (e) {
-    let principalStr = "";
-    try {
-      principalStr = " from " + aPrincipal.URI.spec;
-    }
-    catch(e2) { }
-
-    throw "Load of " + aURL + principalStr + " denied.";
-  }
+  return BrowserUtils.urlSecurityCheck(aURL, aPrincipal, aFlags);
 }
 
 
@@ -83,7 +52,6 @@ function isContentFrame(aFocusedWindow)
 
   return (aFocusedWindow.top == window.content);
 }
-
 
 
 
@@ -837,21 +805,14 @@ function makeWebBrowserPersist()
   return Components.classes[persistContractID].createInstance(persistIID);
 }
 
-
-
-
-
-
-
-
 function makeURI(aURL, aOriginCharset, aBaseURI)
 {
-  return Services.io.newURI(aURL, aOriginCharset, aBaseURI);
+  return BrowserUtils.makeURI(aURL, aOriginCharset, aBaseURI);
 }
 
 function makeFileURI(aFile)
 {
-  return Services.io.newFileURI(aFile);
+  return BrowserUtils.makeFileURI(aFile);
 }
 
 function makeFilePicker()
