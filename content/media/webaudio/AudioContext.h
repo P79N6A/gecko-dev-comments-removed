@@ -79,7 +79,7 @@ public:
     return GetOwner();
   }
 
-  void Shutdown();
+  void Shutdown(); 
   void Suspend();
   void Resume();
 

@@ -2352,9 +2352,12 @@ void
 MediaStreamGraph::DestroyNonRealtimeInstance(MediaStreamGraph* aGraph)
 {
   NS_ASSERTION(NS_IsMainThread(), "Main thread only");
-  MOZ_ASSERT(aGraph != gGraph, "Should not destroy the global graph here");
+  MOZ_ASSERT(aGraph->IsNonRealtime(), "Should not destroy the global graph here");
 
   MediaStreamGraphImpl* graph = static_cast<MediaStreamGraphImpl*>(aGraph);
+  if (graph->mForceShutDown)
+    return; 
+
   if (!graph->mNonRealtimeProcessing) {
     
     graph->StartNonRealtimeProcessing(0);
@@ -2419,6 +2422,12 @@ MediaStreamGraph::CreateAudioNodeStream(AudioNodeEngine* aEngine,
   }
   graph->AppendMessage(new CreateMessage(stream));
   return stream;
+}
+
+bool
+MediaStreamGraph::IsNonRealtime() const
+{
+  return this != gGraph;
 }
 
 void

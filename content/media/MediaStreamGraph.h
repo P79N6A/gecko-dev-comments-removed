@@ -975,6 +975,7 @@ public:
   
   static MediaStreamGraph* GetInstance();
   static MediaStreamGraph* CreateNonRealtimeInstance();
+  
   static void DestroyNonRealtimeInstance(MediaStreamGraph* aGraph);
 
   
@@ -1022,6 +1023,8 @@ public:
 
 
   int64_t GetCurrentGraphUpdateIndex() { return mGraphUpdatesSent; }
+
+  bool IsNonRealtime() const;
   
 
 
