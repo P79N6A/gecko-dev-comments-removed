@@ -354,24 +354,51 @@ BrowserTabActor.prototype = {
   
   actorPrefix: "tab",
 
-  grip: function BTA_grip() {
-    dbg_assert(!this.exited,
-               "grip() shouldn't be called on exited browser actor.");
-    dbg_assert(this.actorID,
-               "tab should have an actorID.");
+  
 
+
+
+
+  get title() {
     let title = this.browser.contentTitle;
     
     
     
     if (!title && this._tabbrowser) {
       title = this._tabbrowser
-                  ._getTabForContentWindow(this.browser.contentWindow).label;
+                  ._getTabForContentWindow(this.contentWindow).label;
     }
+    return title;
+  },
+
+  
+
+
+
+
+  get url() {
+    return this.browser.currentURI.spec;
+  },
+
+  
+
+
+
+
+  get contentWindow() {
+    return this.browser.contentWindow;
+  },
+
+  grip: function BTA_grip() {
+    dbg_assert(!this.exited,
+               "grip() shouldn't be called on exited browser actor.");
+    dbg_assert(this.actorID,
+               "tab should have an actorID.");
+
     let response = {
       actor: this.actorID,
-      title: title,
-      url: this.browser.currentURI.spec
+      title: this.title,
+      url: this.url,
     };
 
     
@@ -391,10 +418,6 @@ BrowserTabActor.prototype = {
 
   disconnect: function BTA_disconnect() {
     this._detach();
-
-    if (this._progressListener) {
-      this._progressListener.destroy();
-    }
     this._extraActors = null;
   },
 
@@ -412,9 +435,6 @@ BrowserTabActor.prototype = {
                        type: "tabDetached" });
     }
 
-    if (this._progressListener) {
-      this._progressListener.destroy();
-    }
     this._browser = null;
     this._tabbrowser = null;
   },
@@ -455,7 +475,7 @@ BrowserTabActor.prototype = {
     this._contextPool = new ActorPool(this.conn);
     this.conn.addActorPool(this._contextPool);
 
-    this.threadActor = new ThreadActor(this, this.browser.contentWindow.wrappedJSObject);
+    this.threadActor = new ThreadActor(this, this.contentWindow.wrappedJSObject);
     this._contextPool.addActor(this.threadActor);
   },
 
@@ -480,6 +500,10 @@ BrowserTabActor.prototype = {
       return;
     }
 
+    if (this._progressListener) {
+      this._progressListener.destroy();
+    }
+
     this.browser.removeEventListener("DOMWindowCreated", this._onWindowCreated, true);
     this.browser.removeEventListener("pageshow", this._onWindowCreated, true);
 
@@ -489,7 +513,7 @@ BrowserTabActor.prototype = {
     this.conn.removeActorPool(this._tabPool);
     this._tabPool = null;
     if (this._tabActorPool) {
-      this.conn.removeActorPool(this._tabActorPool);
+      this.conn.removeActorPool(this._tabActorPool, true);
       this._tabActorPool = null;
     }
 
@@ -515,10 +539,6 @@ BrowserTabActor.prototype = {
 
     this._detach();
 
-    if (this._progressListener) {
-      this._progressListener.destroy();
-    }
-
     return { type: "detached" };
   },
 
@@ -530,7 +550,7 @@ BrowserTabActor.prototype = {
       
       return;
     }
-    let windowUtils = this.browser.contentWindow
+    let windowUtils = this.contentWindow
                           .QueryInterface(Ci.nsIInterfaceRequestor)
                           .getInterface(Ci.nsIDOMWindowUtils);
     windowUtils.suppressEventHandling(true);
@@ -545,7 +565,7 @@ BrowserTabActor.prototype = {
       
       return;
     }
-    let windowUtils = this.browser.contentWindow
+    let windowUtils = this.contentWindow
                           .QueryInterface(Ci.nsIInterfaceRequestor)
                           .getInterface(Ci.nsIDOMWindowUtils);
     windowUtils.resumeTimeouts();
@@ -572,11 +592,6 @@ BrowserTabActor.prototype = {
         if (this.threadActor.dbg) {
           this.threadActor.dbg.enabled = true;
         }
-        if (this._progressListener) {
-          delete this._progressListener._needsTabNavigated;
-        }
-        this.conn.send({ from: this.actorID, type: "tabNavigated",
-                         url: this.browser.contentDocument.URL });
       }
     }
 
@@ -586,7 +601,26 @@ BrowserTabActor.prototype = {
         this.threadActor.findGlobals();
       }
     }
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+  hasNativeConsoleAPI: function BTA_hasNativeConsoleAPI(aWindow) {
+    let isNative = false;
+    try {
+      let console = aWindow.wrappedJSObject.console;
+      isNative = "__mozillaConsole__" in console;
+    }
+    catch (ex) { }
+    return isNative;
+  },
 };
 
 
@@ -622,33 +656,45 @@ DebuggerProgressListener.prototype = {
     let isWindow = aFlag & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
 
     
-    if (isStart && isDocument && isRequest && isNetwork) {
+    if (!isWindow || !isNetwork ||
+        aProgress.DOMWindow != this._tabActor.contentWindow) {
+      return;
+    }
+
+    if (isStart && aRequest instanceof Ci.nsIChannel) {
       
       
-      if (aProgress.DOMWindow != this._tabActor.browser.contentWindow) {
-        return;
-      }
 
       
-      if (this._tabActor.threadActor.state != "paused") {
-        return;
+      if (this._tabActor.threadActor.state == "paused") {
+        aRequest.suspend();
+        this._tabActor.threadActor.onResume();
+        this._tabActor.threadActor.dbg.enabled = false;
+        this._tabActor._pendingNavigation = aRequest;
       }
 
-      aRequest.suspend();
-      this._tabActor.threadActor.onResume();
-      this._tabActor.threadActor.dbg.enabled = false;
-      this._tabActor._pendingNavigation = aRequest;
-      this._needsTabNavigated = true;
-    } else if (isStop && isWindow && isNetwork && this._needsTabNavigated) {
-      delete this._needsTabNavigated;
-      this._tabActor.threadActor.dbg.enabled = true;
       this._tabActor.conn.send({
         from: this._tabActor.actorID,
         type: "tabNavigated",
-        url: this._tabActor.browser.contentDocument.URL
+        url: aRequest.URI.spec,
+        title: "",
+        nativeConsoleAPI: true,
+        state: "start",
       });
+    } else if (isStop) {
+      if (this._tabActor.threadActor.state == "running") {
+        this._tabActor.threadActor.dbg.enabled = true;
+      }
 
-      this.destroy();
+      let window = this._tabActor.contentWindow;
+      this._tabActor.conn.send({
+        from: this._tabActor.actorID,
+        type: "tabNavigated",
+        url: this._tabActor.url,
+        title: this._tabActor.title,
+        nativeConsoleAPI: this._tabActor.hasNativeConsoleAPI(window),
+        state: "stop",
+      });
     }
   },
 
@@ -657,7 +703,11 @@ DebuggerProgressListener.prototype = {
 
   destroy: function DPL_destroy() {
     if (this._tabActor._tabbrowser.removeProgressListener) {
-      this._tabActor._tabbrowser.removeProgressListener(this);
+      try {
+        this._tabActor._tabbrowser.removeProgressListener(this);
+      } catch (ex) {
+        
+      }
     }
     this._tabActor._progressListener = null;
     this._tabActor = null;

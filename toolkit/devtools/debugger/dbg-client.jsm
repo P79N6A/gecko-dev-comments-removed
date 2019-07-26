@@ -482,7 +482,8 @@ DebuggerClient.prototype = {
       
       
       
-      if (aPacket.type == UnsolicitedNotifications.tabNavigated &&
+      if (this.activeThread &&
+          aPacket.type == UnsolicitedNotifications.tabNavigated &&
           aPacket.from in this._tabClients) {
         let resumption = { from: this.activeThread._actor, type: "resumed" };
         this.activeThread._onThreadState(resumption);

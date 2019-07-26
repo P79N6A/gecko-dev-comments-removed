@@ -103,64 +103,26 @@ function DeviceTabActor(connection, browser) {
 
 DeviceTabActor.prototype = new BrowserTabActor();
 
-DeviceTabActor.prototype.grip = function DTA_grip() {
-  dbg_assert(!this.exited,
-             'grip() should not be called on exited browser actor.');
-  dbg_assert(this.actorID,
-             'tab should have an actorID.');
+Object.defineProperty(DeviceTabActor.prototype, "title", {
+  get: function() {
+    return this.browser.title;
+  },
+  enumerable: true,
+  configurable: false
+});
 
-  let response = {
-    'actor': this.actorID,
-    'title': this.browser.title,
-    'url': this.browser.document.documentURI
-  };
+Object.defineProperty(DeviceTabActor.prototype, "url", {
+  get: function() {
+    return this.browser.document.documentURI;
+  },
+  enumerable: true,
+  configurable: false
+});
 
-  
-  let actorPool = new ActorPool(this.conn);
-  this._createExtraActors(DebuggerServer.tabActorFactories, actorPool);
-  if (!actorPool.isEmpty()) {
-    this._tabActorPool = actorPool;
-    this.conn.addActorPool(this._tabActorPool);
-  }
-
-  this._appendExtraActors(response);
-  return response;
-};
-
-
-
-
-
-DeviceTabActor.prototype._pushContext = function DTA_pushContext() {
-  dbg_assert(!this._contextPool, "Can't push multiple contexts");
-
-  this._contextPool = new ActorPool(this.conn);
-  this.conn.addActorPool(this._contextPool);
-
-  this.threadActor = new ThreadActor(this, this.browser.wrappedJSObject);
-  this._contextPool.addActor(this.threadActor);
-};
-
-
-
-
-
-
-DeviceTabActor.prototype.preNest = function DTA_preNest() {
-  let windowUtils = this.browser
-                        .QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDOMWindowUtils);
-  windowUtils.suppressEventHandling(true);
-  windowUtils.suspendTimeouts();
-};
-
-
-
-
-DeviceTabActor.prototype.postNest = function DTA_postNest(aNestData) {
-  let windowUtils = this.browser
-                        .QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDOMWindowUtils);
-  windowUtils.resumeTimeouts();
-  windowUtils.suppressEventHandling(false);
-};
+Object.defineProperty(DeviceTabActor.prototype, "contentWindow", {
+  get: function() {
+    return this.browser;
+  },
+  enumerable: true,
+  configurable: false
+});
