@@ -69,6 +69,10 @@
   ALLOW_SYSCALL(munmap), \
   ALLOW_SYSCALL(mmap2), \
   ALLOW_SYSCALL(mprotect), \
+  ALLOW_SYSCALL(dup), \
+  ALLOW_SYSCALL(getuid32), \
+  ALLOW_SYSCALL(nanosleep), \
+   \
    \
    \
   ALLOW_SYSCALL(open), \
@@ -77,10 +81,12 @@
   ALLOW_SYSCALL(prctl), \
   ALLOW_SYSCALL(access), \
   ALLOW_SYSCALL(getdents64), \
+  ALLOW_SYSCALL(unlink), \
    \
   ALLOW_SYSCALL(getpriority), \
   ALLOW_SYSCALL(setpriority), \
   ALLOW_SYSCALL(sigprocmask), \
+  ALLOW_SYSCALL(sched_setscheduler), \
    \
   SECCOMP_WHITELIST_ADD \
    \
