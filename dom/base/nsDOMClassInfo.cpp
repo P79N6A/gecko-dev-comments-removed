@@ -9537,8 +9537,16 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  bool callerIsContentJS = (!xpc::AccessCheck::callerIsChrome() &&
-                            !xpc::AccessCheck::callerIsXBL(cx) &&
+  
+  
+  
+  
+  
+  MOZ_ASSERT_IF(nsContentUtils::GetCurrentJSContext(),
+                cx == nsContentUtils::GetCurrentJSContext());
+
+  bool callerIsContentJS = (!nsContentUtils::IsCallerChrome() &&
+                            !nsContentUtils::IsCallerXBL() &&
                             js::IsContextRunningJS(cx));
   return objlc->ScriptRequestPluginInstance(callerIsContentJS,
                                             _result);
