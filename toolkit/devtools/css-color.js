@@ -4,8 +4,10 @@
 
 "use strict";
 
-const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 const {Cc, Ci, Cu} = require("chrome");
+const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
+
+const COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 
 const REGEX_JUST_QUOTES  = /^""$/;
 const REGEX_RGB_3_TUPLE  = /^rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)$/i;
@@ -36,7 +38,6 @@ const SPECIALVALUES = new Set([
   "unset"
 ]);
 
-let {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
 
 
