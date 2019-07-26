@@ -75,6 +75,8 @@
 #include "mozilla/Likely.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Util.h" 
+#include <cstdlib> 
+#include <cmath> 
 
 #include "sampler.h"
 
@@ -5585,7 +5587,7 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
     if (type == aSelectionType) {
       pt.x = (aFramePt.x + xOffset -
              (mTextRun->IsRightToLeft() ? advance : 0)) / app;
-      gfxFloat width = NS_ABS(advance) / app;
+      gfxFloat width = std::abs(advance) / app;
       gfxFloat xInFrame = pt.x - (aFramePt.x / app);
       DrawSelectionDecorations(aCtx, dirtyRect, aSelectionType, this,
                                aTextPaintStyle, selectedStyle, pt, xInFrame,

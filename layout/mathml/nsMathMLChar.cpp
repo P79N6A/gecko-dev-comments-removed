@@ -30,6 +30,8 @@
 
 #include "nsMathMLOperators.h"
 #include "nsMathMLChar.h"
+#include <cstdlib> 
+#include <cmath> 
 
 using namespace mozilla;
 
@@ -744,7 +746,7 @@ IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, uint32_t aHint)
   
   bool isNormal =
     (aHint & NS_STRETCH_NORMAL)
-    && bool(float(NS_ABS(a - b))
+    && bool(float(std::abs(a - b))
               < (1.0f - NS_MATHML_DELIMITER_FACTOR) * float(b));
   
   
@@ -754,7 +756,7 @@ IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, uint32_t aHint)
     float c = NS_MAX(float(b) * NS_MATHML_DELIMITER_FACTOR,
                      float(b) - nsPresContext::
                      CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
-    isNearer = bool(float(NS_ABS(b - a)) <= (float(b) - c));
+    isNearer = bool(float(std::abs(b - a)) <= (float(b) - c));
   }
   
   
@@ -781,7 +783,7 @@ IsSizeBetter(nscoord a, nscoord olda, nscoord b, uint32_t aHint)
     return (a <= olda) ? (olda > b) : (a <= b);
 
   
-  return NS_ABS(a - b) < NS_ABS(olda - b);
+  return std::abs(a - b) < std::abs(olda - b);
 }
 
 

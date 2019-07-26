@@ -9,13 +9,15 @@
 #define __nsCSSColorUtils_h
 
 #include "nsColor.h"
+#include <cstdlib> 
+#include <cmath> 
 
 
 
 
 #define NS_SUFFICIENT_LUMINOSITY_DIFFERENCE 125000
 #define NS_LUMINOSITY_DIFFERENCE(a, b) \
-          NS_ABS(NS_GetLuminosity(a) - NS_GetLuminosity(b))
+          std::abs(NS_GetLuminosity(a) - NS_GetLuminosity(b))
 
 
 void NS_GetSpecial3DColors(nscolor aResult[2],

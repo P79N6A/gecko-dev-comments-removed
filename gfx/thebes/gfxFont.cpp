@@ -46,6 +46,8 @@
 #include "sampler.h"
 
 #include <algorithm>
+#include <cstdlib> 
+#include <cmath> 
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -2775,7 +2777,7 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
             
             SET_SIGNED(xHeight, os2->sxHeight);
             
-            aMetrics.xHeight = NS_ABS(aMetrics.xHeight);
+            aMetrics.xHeight = std::abs(aMetrics.xHeight);
         }
         
         if (os2data.Length() >= offsetof(OS2Table, yStrikeoutPosition) +

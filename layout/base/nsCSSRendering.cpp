@@ -51,6 +51,8 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/Types.h"
 #include <ctime>
+#include <cstdlib> 
+#include <cmath> 
 
 using namespace mozilla;
 using namespace mozilla::css;
@@ -1969,10 +1971,10 @@ ComputeRadialGradientLine(nsPresContext* aPresContext,
 
   
   double radiusX, radiusY;
-  double leftDistance = NS_ABS(aLineStart->x);
-  double rightDistance = NS_ABS(aBoxSize.width - aLineStart->x);
-  double topDistance = NS_ABS(aLineStart->y);
-  double bottomDistance = NS_ABS(aBoxSize.height - aLineStart->y);
+  double leftDistance = std::abs(aLineStart->x);
+  double rightDistance = std::abs(aBoxSize.width - aLineStart->x);
+  double topDistance = std::abs(aLineStart->y);
+  double bottomDistance = std::abs(aBoxSize.height - aLineStart->y);
   switch (aGradient->mSize) {
   case NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE:
     radiusX = NS_MIN(leftDistance, rightDistance);

@@ -118,6 +118,8 @@
 #include "WidgetUtils.h"
 #include "nsIWidgetListener.h"
 #include "nsDOMTouchEvent.h"
+#include <cstdlib> 
+#include <cmath> 
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -3433,7 +3435,7 @@ nsWindow::OverrideSystemMouseScrollSpeed(int32_t aOriginalDelta,
   
   const uint32_t kSystemDefaultScrollingSpeed = 3;
 
-  int32_t absOriginDelta = NS_ABS(aOriginalDelta);
+  int32_t absOriginDelta = std::abs(aOriginalDelta);
 
   
   int32_t absComputedOverriddenDelta;
@@ -6337,10 +6339,10 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 
     if (mDisplayPanFeedback) {
       mGesture.UpdatePanFeedbackX(mWnd,
-                                  NS_ABS(RoundDown(wheelEvent.overflowDeltaX)),
+                                  std::abs(RoundDown(wheelEvent.overflowDeltaX)),
                                   endFeedback);
       mGesture.UpdatePanFeedbackY(mWnd,
-                                  NS_ABS(RoundDown(wheelEvent.overflowDeltaY)),
+                                  std::abs(RoundDown(wheelEvent.overflowDeltaY)),
                                   endFeedback);
       mGesture.PanFeedbackFinalize(mWnd, endFeedback);
     }

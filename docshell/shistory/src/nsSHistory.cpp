@@ -34,7 +34,8 @@
 
 
 #include "nspr.h"
-#include <math.h>  
+#include <cstdlib> 
+#include <cmath> 
 
 using namespace mozilla;
 
@@ -310,7 +311,7 @@ nsSHistory::CalcMaxTotalViewers()
   
   
   uint32_t viewers = 0;
-  double x = log(kBytesD)/log(2.0) - 14;
+  double x = std::log(kBytesD)/std::log(2.0) - 14;
   if (x > 0) {
     viewers    = (uint32_t)(x * x - x + 2.001); 
     viewers   /= 4;
@@ -1088,7 +1089,7 @@ nsSHistory::GloballyEvictContentViewers()
           TransactionAndDistance &container = shTransactions[j];
           if (container.mViewer == contentViewer) {
             container.mDistance = NS_MIN(container.mDistance,
-                                         NS_ABS(i - shist->mIndex));
+                                         std::abs(i - shist->mIndex));
             found = true;
             break;
           }
@@ -1097,7 +1098,7 @@ nsSHistory::GloballyEvictContentViewers()
         
         
         if (!found) {
-          TransactionAndDistance container(trans, NS_ABS(i - shist->mIndex));
+          TransactionAndDistance container(trans, std::abs(i - shist->mIndex));
           shTransactions.AppendElement(container);
         }
       }
