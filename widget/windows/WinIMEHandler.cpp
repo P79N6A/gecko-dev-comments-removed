@@ -21,6 +21,7 @@ namespace widget {
 
 #ifdef NS_ENABLE_TSF
 bool IMEHandler::sIsInTSFMode = false;
+bool IMEHandler::sPluginHasFocus = false;
 #endif 
 
 
@@ -74,7 +75,7 @@ bool
 IMEHandler::CanOptimizeKeyAndIMEMessages()
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     return nsTextStore::CanOptimizeKeyAndIMEMessages();
   }
 #endif 
@@ -104,7 +105,7 @@ IMEHandler::ProcessMessage(nsWindow* aWindow, UINT aMessage,
                            LRESULT* aRetValue, bool& aEatMessage)
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     if (aMessage == WM_USER_TSF_TEXTCHANGE) {
       nsTextStore::OnTextChangeMsg();
       aEatMessage = true;
@@ -123,7 +124,7 @@ bool
 IMEHandler::IsComposing()
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     return nsTextStore::IsComposing();
   }
 #endif 
@@ -136,7 +137,7 @@ bool
 IMEHandler::IsComposingOn(nsWindow* aWindow)
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     return nsTextStore::IsComposingOn(aWindow);
   }
 #endif 
@@ -150,7 +151,7 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
                       NotificationToIME aNotification)
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     switch (aNotification) {
       case NOTIFY_IME_OF_SELECTION_CHANGE:
         return nsTextStore::OnSelectionChange();
@@ -183,6 +184,16 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
     case REQUEST_TO_CANCEL_COMPOSITION:
       nsIMM32Handler::CancelComposition(aWindow);
       return NS_OK;
+#ifdef NS_ENABLE_TSF
+    case NOTIFY_IME_OF_BLUR:
+      
+      
+      if (nsTextStore::ThinksHavingFocus()) {
+        return nsTextStore::OnFocusChange(false, aWindow,
+                 aWindow->GetInputContext().mIMEState.mEnabled);
+      }
+      return NS_ERROR_NOT_IMPLEMENTED;
+#endif 
     default:
       return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -195,7 +206,7 @@ IMEHandler::NotifyIMEOfTextChange(uint32_t aStart,
                                   uint32_t aNewEnd)
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     return nsTextStore::OnTextChange(aStart, aOldEnd, aNewEnd);
   }
 #endif 
@@ -208,7 +219,7 @@ nsIMEUpdatePreference
 IMEHandler::GetUpdatePreference()
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     return nsTextStore::GetIMEUpdatePreference();
   }
 #endif 
@@ -221,7 +232,7 @@ bool
 IMEHandler::GetOpenState(nsWindow* aWindow)
 {
 #ifdef NS_ENABLE_TSF
-  if (sIsInTSFMode) {
+  if (IsTSFAvailable()) {
     return nsTextStore::GetIMEOpenState();
   }
 #endif 
@@ -247,6 +258,9 @@ IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
   
   NotifyIME(aWindow, REQUEST_TO_COMMIT_COMPOSITION);
 
+  
+  sPluginHasFocus = (aInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
+
   bool enable = IsIMEEnabled(aInputContext);
   bool adjustOpenState = (enable &&
     aInputContext.mIMEState.mOpen != IMEState::DONT_CHANGE_OPEN_STATE);
@@ -256,9 +270,12 @@ IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
   aInputContext.mNativeIMEContext = nullptr;
 
 #ifdef NS_ENABLE_TSF
+  
   if (sIsInTSFMode) {
-    aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
     nsTextStore::SetInputContext(aInputContext);
+    if (IsTSFAvailable()) {
+      aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+    }
     
     
   }
@@ -282,7 +299,7 @@ IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext)
 
   if (adjustOpenState) {
 #ifdef NS_ENABLE_TSF
-    if (sIsInTSFMode) {
+    if (IsTSFAvailable()) {
       nsTextStore::SetIMEOpenState(open);
       return;
     }
