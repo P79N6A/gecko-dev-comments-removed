@@ -62,6 +62,11 @@ ICStub::trace(JSTracer *trc)
         MarkObject(trc, &callStub->callee(), "baseline-callstub-callee");
         break;
       }
+      case ICStub::Call_Native: {
+        ICCall_Native *callStub = toCall_Native();
+        MarkObject(trc, &callStub->callee(), "baseline-callstub-callee");
+        break;
+      }
       case ICStub::SetElem_Dense: {
         ICSetElem_Dense *setElemStub = toSetElem_Dense();
         MarkTypeObject(trc, &setElemStub->type(), "baseline-setelem-dense-stub-type");
@@ -1459,12 +1464,23 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, JSO
         return true;
 
     RootedFunction fun(cx, obj->toFunction());
-    if (obj->toFunction()->hasScript()) {
+    if (fun->hasScript()) {
         RootedScript calleeScript(cx, fun->nonLazyScript());
         if (!calleeScript->hasBaselineScript() && !calleeScript->hasIonScript())
             return true;
 
         ICCall_Scripted::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(), fun);
+        ICStub *newStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        *attachedStub = true;
+        return true;
+    }
+
+    if (fun->isNative()) {
+        ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(), fun);
         ICStub *newStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
         if (!newStub)
             return false;
@@ -1665,6 +1681,92 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     EmitEnterTypeMonitorIC(masm);
+
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+bool
+ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    GeneralRegisterSet regs(availableGeneralRegs(0));
+
+    Register argcReg = R0.scratchReg();
+    regs.take(argcReg);
+    regs.takeUnchecked(BaselineTailCallReg);
+
+    
+    BaseIndex calleeSlot(BaselineStackReg, argcReg, TimesEight, ICStackValueOffset + sizeof(Value));
+    masm.loadValue(calleeSlot, R1);
+    regs.take(R1);
+
+    masm.branchTestObject(Assembler::NotEqual, R1, &failure);
+
+    
+    Register callee = masm.extractObject(R1, ExtractTemp0);
+    Address expectedCallee(BaselineStubReg, ICCall_Native::offsetOfCallee());
+    masm.branchPtr(Assembler::NotEqual, expectedCallee, callee, &failure);
+
+    regs.add(R1);
+    regs.takeUnchecked(callee);
+
+    
+    
+    EmitEnterStubFrame(masm, regs.getAny());
+
+    
+    
+    
+    pushCallArguments(masm, regs, argcReg);
+
+    masm.checkStackAlignment();
+
+    
+    
+    
+    
+    
+    
+
+    
+    Register vpReg = regs.takeAny();
+    masm.movePtr(StackPointer, vpReg);
+
+    
+    masm.push(argcReg);
+
+    Register scratch = regs.takeAny();
+    EmitCreateStubFrameDescriptor(masm, scratch);
+    masm.push(scratch);
+    masm.push(BaselineTailCallReg);
+    masm.enterFakeExitFrame();
+
+    
+    masm.setupUnalignedABICall(3, scratch);
+    masm.loadJSContext(scratch);
+    masm.passABIArg(scratch);
+    masm.passABIArg(argcReg);
+    masm.passABIArg(vpReg);
+    masm.callWithABI(Address(callee, JSFunction::offsetOfNativeOrScript()));
+
+    
+    Label success, exception;
+    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+
+    
+    masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), R0);
+
+    EmitLeaveStubFrame(masm);
+
+    
+    EmitEnterTypeMonitorIC(masm);
+
+    
+    masm.bind(&exception);
+    masm.handleException();
+    masm.breakpoint();
 
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
