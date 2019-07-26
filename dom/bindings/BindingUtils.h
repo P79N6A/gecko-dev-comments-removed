@@ -1405,6 +1405,7 @@ WrapNativeParent(JSContext* cx, T* p, nsWrapperCache* cache,
 
   
   
+  
   if (xpc::IsInContentXBLScope(parent)) {
     return parent;
   }

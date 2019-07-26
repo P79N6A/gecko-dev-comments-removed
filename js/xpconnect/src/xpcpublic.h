@@ -99,6 +99,13 @@ GetXBLScopeOrGlobal(JSContext *cx, JSObject *obj)
 
 
 
+
+
+JSObject *
+GetScopeForXBLExecution(JSContext *cx, JS::HandleObject obj, JSAddonId *addonId);
+
+
+
 bool
 AllowContentXBLScope(JSCompartment *c);
 

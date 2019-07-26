@@ -925,6 +925,7 @@ GetOrCreateMapEntryForPrototype(JSContext *cx, JS::Handle<JSObject*> proto)
 
   
   
+  
   JS::Rooted<JSObject*> scope(cx, xpc::GetXBLScopeOrGlobal(cx, proto));
   JS::Rooted<JSObject*> wrappedProto(cx, proto);
   JSAutoCompartment ac(cx, scope);
@@ -980,6 +981,8 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
   
   
   JS::Rooted<JSObject*> global(cx, js::GetGlobalForObjectCrossCompartment(obj));
+
+  
   JS::Rooted<JSObject*> xblScope(cx, xpc::GetXBLScopeOrGlobal(cx, global));
 
   JS::Rooted<JSObject*> parent_proto(cx);
@@ -1117,8 +1120,12 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::Handle<jsid> aId,
   
   
   
+  
+  
+  
   JS::Rooted<JSObject*> boundScope(aCx,
     js::GetGlobalForObjectCrossCompartment(mBoundElement->GetWrapper()));
+  MOZ_RELEASE_ASSERT(!xpc::IsInAddonScope(boundScope));
   MOZ_RELEASE_ASSERT(!xpc::IsInContentXBLScope(boundScope));
   JS::Rooted<JSObject*> xblScope(aCx, xpc::GetXBLScope(aCx, boundScope));
   NS_ENSURE_TRUE(xblScope, false);
