@@ -11,6 +11,11 @@
 
 namespace mozilla {
 
+class CameraPreviewFrameCallback {
+public:
+  virtual void OnNewFrame(const gfxIntSize& aIntrinsicSize, layers::Image* aImage);
+};
+
 
 
 
@@ -42,11 +47,16 @@ public:
   
   void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage);
 
+  void SetFrameCallback(CameraPreviewFrameCallback* aCallback) {
+    mFrameCallback = aCallback;
+  }
+
 protected:
   
   
   
   Mutex mMutex;
+  CameraPreviewFrameCallback* mFrameCallback;
 };
 
 

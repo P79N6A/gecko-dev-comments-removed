@@ -18,7 +18,6 @@
 namespace mozilla {
 
 
-
 class nsDOMCameraControl : public nsICameraControl
 {
 public:
@@ -30,6 +29,7 @@ public:
                      nsICameraGetCameraCallback* onSuccess,
                      nsICameraErrorCallback* onError, uint64_t aWindowId);
   nsresult Result(nsresult aResult, nsICameraGetCameraCallback* onSuccess, nsICameraErrorCallback* onError, uint64_t aWindowId);
+  nsRefPtr<ICameraControl> GetNativeCameraControl();
 
   void Shutdown();
 
