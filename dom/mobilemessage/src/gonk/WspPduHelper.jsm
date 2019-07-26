@@ -215,7 +215,7 @@ this.Octet = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     if (data.offset >= data.array.length) {
       throw new RangeError();
     }
@@ -234,7 +234,7 @@ this.Octet = {
 
 
 
-  decodeMultiple: function decodeMultiple(data, end) {
+  decodeMultiple: function(data, end) {
     if ((end < data.offset) || (end > data.array.length)) {
       throw new RangeError();
     }
@@ -267,7 +267,7 @@ this.Octet = {
 
 
 
-  decodeEqualTo: function decodeEqualTo(data, expected) {
+  decodeEqualTo: function(data, expected) {
     if (this.decode(data) != expected) {
       throw new CodeError("Octet - decodeEqualTo: doesn't match " + expected);
     }
@@ -281,7 +281,7 @@ this.Octet = {
 
 
 
-  encode: function encode(data, octet) {
+  encode: function(data, octet) {
     if (data.offset >= data.array.length) {
       data.array.push(octet);
       data.offset++;
@@ -296,7 +296,7 @@ this.Octet = {
 
 
 
-  encodeMultiple: function encodeMultiple(data, array) {
+  encodeMultiple: function(data, array) {
     for (let i = 0; i < array.length; i++) {
       this.encode(data, array[i]);
     }
@@ -325,7 +325,7 @@ this.Text = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let code = Octet.decode(data);
     if ((code >= CTLS) && (code != DEL)) {
       return String.fromCharCode(code);
@@ -386,7 +386,7 @@ this.Text = {
 
 
 
-  encode: function encode(data, text) {
+  encode: function(data, text) {
     if (!text) {
       throw new CodeError("Text: empty string");
     }
@@ -408,7 +408,7 @@ this.NullTerminatedTexts = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let str = "";
     try {
       
@@ -426,7 +426,7 @@ this.NullTerminatedTexts = {
 
 
 
-  encode: function encode(data, str) {
+  encode: function(data, str) {
     if (str) {
       for (let i = 0; i < str.length; i++) {
         Text.encode(data, str.charAt(i));
@@ -453,7 +453,7 @@ this.Token = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let code = Octet.decode(data);
     if ((code < ASCIIS) && (code >= CTLS)) {
       if ((code == HT) || (code == SP)
@@ -483,7 +483,7 @@ this.Token = {
 
 
 
-  encode: function encode(data, token) {
+  encode: function(data, token) {
     if (!token) {
       throw new CodeError("Token: empty string");
     }
@@ -529,7 +529,7 @@ this.URIC = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let code = Octet.decode(data);
     if (code == NUL) {
       throw new NullCharError();
@@ -562,7 +562,7 @@ this.TextString = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     let firstCode = Octet.decode(data);
     if (firstCode == 127) {
@@ -591,7 +591,7 @@ this.TextString = {
 
 
 
-  encode: function encode(data, str) {
+  encode: function(data, str) {
     if (!str) {
       Octet.encode(data, 0);
       return;
@@ -618,7 +618,7 @@ this.TokenText = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let str = "";
     try {
       
@@ -636,7 +636,7 @@ this.TokenText = {
 
 
 
-  encode: function encode(data, str) {
+  encode: function(data, str) {
     if (str) {
       for (let i = 0; i < str.length; i++) {
         Token.encode(data, str.charAt(i));
@@ -663,7 +663,7 @@ this.QuotedString = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = Octet.decode(data);
     if (value != 34) {
       throw new CodeError("Quoted-string: not quote " + value);
@@ -678,7 +678,7 @@ this.QuotedString = {
 
 
 
-  encode: function encode(data, str) {
+  encode: function(data, str) {
     Octet.encode(data, 34);
     NullTerminatedTexts.encode(data, str);
   },
@@ -702,7 +702,7 @@ this.ShortInteger = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = Octet.decode(data);
     if (!(value & 0x80)) {
       throw new CodeError("Short-integer: invalid value " + value);
@@ -719,7 +719,7 @@ this.ShortInteger = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (value >= 0x80) {
       throw new CodeError("Short-integer: invalid value " + value);
     }
@@ -748,7 +748,7 @@ this.LongInteger = {
 
 
 
-  decodeMultiOctetInteger: function decodeMultiOctetInteger(data, length) {
+  decodeMultiOctetInteger: function(data, length) {
     if (length < 7) {
       
       
@@ -772,7 +772,7 @@ this.LongInteger = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = Octet.decode(data);
     if ((length < 1) || (length > 30)) {
       throw new CodeError("Long-integer: invalid length " + length);
@@ -788,7 +788,7 @@ this.LongInteger = {
 
 
 
-  encode: function encode(data, numOrArray) {
+  encode: function(data, numOrArray) {
     if (typeof numOrArray === "number") {
       let num = numOrArray;
       if (num >= 0x1000000000000) {
@@ -828,7 +828,7 @@ this.UintVar = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = Octet.decode(data);
     let result = value & 0x7F;
     while (value & 0x80) {
@@ -845,7 +845,7 @@ this.UintVar = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (value < 0) {
       throw new CodeError("UintVar: invalid value " + value);
     }
@@ -883,7 +883,7 @@ this.ConstrainedEncoding = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     return decodeAlternatives(data, null, TextString, ShortInteger);
   },
 
@@ -893,7 +893,7 @@ this.ConstrainedEncoding = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (typeof value == "number") {
       ShortInteger.encode(data, value);
     } else {
@@ -919,7 +919,7 @@ this.ValueLength = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = Octet.decode(data);
     if (value <= 30) {
       return value;
@@ -937,7 +937,7 @@ this.ValueLength = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (value <= 30) {
       Octet.encode(data, value);
     } else {
@@ -959,7 +959,7 @@ this.NoValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     Octet.decodeEqualTo(data, 0);
     return null;
   },
@@ -970,7 +970,7 @@ this.NoValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (value != null) {
       throw new CodeError("No-value: invalid value " + value);
     }
@@ -990,7 +990,7 @@ this.TextValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     return decodeAlternatives(data, null, NoValue, TokenText, QuotedString);
   },
 
@@ -1000,7 +1000,7 @@ this.TextValue = {
 
 
 
-  encode: function encode(data, text) {
+  encode: function(data, text) {
     encodeAlternatives(data, text, null, NoValue, TokenText, QuotedString);
   },
 };
@@ -1017,7 +1017,7 @@ this.IntegerValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     return decodeAlternatives(data, null, ShortInteger, LongInteger);
   },
 
@@ -1027,7 +1027,7 @@ this.IntegerValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (typeof value === "number") {
       encodeAlternatives(data, value, null, ShortInteger, LongInteger);
     } else if (Array.isArray(value) || (value instanceof Uint8Array)) {
@@ -1053,7 +1053,7 @@ this.DateValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let numOrArray = LongInteger.decode(data);
     let seconds;
     if (typeof numOrArray == "number") {
@@ -1074,7 +1074,7 @@ this.DateValue = {
 
 
 
-  encode: function encode(data, date) {
+  encode: function(data, date) {
     let seconds = date.getTime() / 1000;
     if (seconds < 0) {
       throw new CodeError("Date-value: negative seconds " + seconds);
@@ -1108,7 +1108,7 @@ this.QValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = UintVar.decode(data);
     if (value > 0) {
       if (value <= 100) {
@@ -1128,7 +1128,7 @@ this.QValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if ((value < 0) || (value >= 1)) {
       throw new CodeError("Q-value: invalid value " + value);
     }
@@ -1162,7 +1162,7 @@ this.VersionValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     let value;
     try {
@@ -1202,7 +1202,7 @@ this.VersionValue = {
 
 
 
-  encode: function encode(data, version) {
+  encode: function(data, version) {
     if ((version < 0x10) || (version >= 0x80)) {
       throw new CodeError("Version-value: invalid version " + version);
     }
@@ -1227,7 +1227,7 @@ this.UriValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let str = "";
     try {
       
@@ -1254,7 +1254,7 @@ this.TypeValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let numOrStr = ConstrainedEncoding.decode(data);
     if (typeof numOrStr == "string") {
       return numOrStr.toLowerCase();
@@ -1276,7 +1276,7 @@ this.TypeValue = {
 
 
 
-  encode: function encode(data, type) {
+  encode: function(data, type) {
     let entry = WSP_WELL_KNOWN_CONTENT_TYPES[type.toLowerCase()];
     if (entry) {
       ConstrainedEncoding.encode(data, entry.number);
@@ -1321,7 +1321,7 @@ this.Parameter = {
 
 
 
-  decodeTypedParameter: function decodeTypedParameter(data) {
+  decodeTypedParameter: function(data) {
     let numOrArray = IntegerValue.decode(data);
     
     if (typeof numOrArray != "number") {
@@ -1369,7 +1369,7 @@ this.Parameter = {
 
 
 
-  decodeUntypedParameter: function decodeUntypedParameter(data) {
+  decodeUntypedParameter: function(data) {
     let name = TokenText.decode(data);
 
     let begin = data.offset, value;
@@ -1400,7 +1400,7 @@ this.Parameter = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     try {
       return this.decodeTypedParameter(data);
@@ -1418,7 +1418,7 @@ this.Parameter = {
 
 
 
-  decodeMultiple: function decodeMultiple(data, end) {
+  decodeMultiple: function(data, end) {
     let params = null, param;
 
     while (data.offset < end) {
@@ -1444,7 +1444,7 @@ this.Parameter = {
 
 
 
-  encodeTypedParameter: function decodeTypedParameter(data, param) {
+  encodeTypedParameter: function(data, param) {
     let entry = WSP_WELL_KNOWN_PARAMS[param.name.toLowerCase()];
     if (!entry) {
       throw new NotWellKnownEncodingError(
@@ -1462,7 +1462,7 @@ this.Parameter = {
 
 
 
-  encodeUntypedParameter: function encodeUntypedParameter(data, param) {
+  encodeUntypedParameter: function(data, param) {
     TokenText.encode(data, param.name);
     encodeAlternatives(data, param.value, null, IntegerValue, TextValue);
   },
@@ -1473,7 +1473,7 @@ this.Parameter = {
 
 
 
-  encodeMultiple: function encodeMultiple(data, params) {
+  encodeMultiple: function(data, params) {
     for (let name in params) {
       this.encode(data, {name: name, value: params[name]});
     }
@@ -1485,7 +1485,7 @@ this.Parameter = {
 
 
 
-  encode: function encode(data, param) {
+  encode: function(data, param) {
     let begin = data.offset;
     try {
       this.encodeTypedParameter(data, param);
@@ -1512,7 +1512,7 @@ this.Header = {
 
 
 
-  decodeMessageHeader: function decodeMessageHeader(data) {
+  decodeMessageHeader: function(data) {
     return decodeAlternatives(data, null, WellKnownHeader, ApplicationHeader);
   },
 
@@ -1525,12 +1525,12 @@ this.Header = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     
     return this.decodeMessageHeader(data);
   },
 
-  encodeMessageHeader: function encodeMessageHeader(data, header) {
+  encodeMessageHeader: function(data, header) {
     encodeAlternatives(data, header, null, WellKnownHeader, ApplicationHeader);
   },
 
@@ -1541,7 +1541,7 @@ this.Header = {
 
 
 
-  encode: function encode(data, header) {
+  encode: function(data, header) {
     
     this.encodeMessageHeader(data, header);
   },
@@ -1566,7 +1566,7 @@ this.WellKnownHeader = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let index = ShortInteger.decode(data);
 
     let entry = WSP_HEADER_FIELDS[index];
@@ -1601,7 +1601,7 @@ this.WellKnownHeader = {
 
 
 
-  encode: function encode(data, header) {
+  encode: function(data, header) {
     let entry = WSP_HEADER_FIELDS[header.name.toLowerCase()];
     if (!entry) {
       throw new NotWellKnownEncodingError(
@@ -1629,7 +1629,7 @@ this.ApplicationHeader = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let name = TokenText.decode(data);
 
     let begin = data.offset, value;
@@ -1660,7 +1660,7 @@ this.ApplicationHeader = {
 
 
 
-  encode: function encode(data, header) {
+  encode: function(data, header) {
     if (!header.name) {
       throw new CodeError("Application-header: empty header name");
     }
@@ -1686,7 +1686,7 @@ this.FieldName = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     try {
       return TokenText.decode(data).toLowerCase();
@@ -1710,7 +1710,7 @@ this.FieldName = {
 
 
 
-  encode: function encode(data, name) {
+  encode: function(data, name) {
     let entry = WSP_HEADER_FIELDS[name.toLowerCase()];
     if (entry) {
       ShortInteger.encode(data, entry.number);
@@ -1735,7 +1735,7 @@ this.AcceptCharsetValue = {
 
 
 
-  decodeAnyCharset: function decodeAnyCharset(data) {
+  decodeAnyCharset: function(data) {
     Octet.decodeEqualTo(data, 128);
     return {charset: "*"};
   },
@@ -1750,7 +1750,7 @@ this.AcceptCharsetValue = {
 
 
 
-  decodeConstrainedCharset: function decodeConstrainedCharset(data) {
+  decodeConstrainedCharset: function(data) {
     let begin = data.offset;
     try {
       return this.decodeAnyCharset(data);
@@ -1780,7 +1780,7 @@ this.AcceptCharsetValue = {
 
 
 
-  decodeAcceptCharsetGeneralForm: function decodeAcceptCharsetGeneralForm(data) {
+  decodeAcceptCharsetGeneralForm: function(data) {
     let length = ValueLength.decode(data);
 
     let begin = data.offset;
@@ -1812,7 +1812,7 @@ this.AcceptCharsetValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     try {
       return this.decodeConstrainedCharset(data);
@@ -1828,7 +1828,7 @@ this.AcceptCharsetValue = {
 
 
 
-  encodeAnyCharset: function encodeAnyCharset(data, value) {
+  encodeAnyCharset: function(data, value) {
     if (!value || !value.charset || (value.charset === "*")) {
       Octet.encode(data, 128);
       return;
@@ -1854,7 +1854,7 @@ this.WellKnownCharset = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
 
     try {
@@ -1884,7 +1884,7 @@ this.WellKnownCharset = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     let begin = data.offset;
     try {
       AcceptCharsetValue.encodeAnyCharset(data, value);
@@ -1929,7 +1929,7 @@ this.ContentTypeValue = {
 
 
 
-  decodeConstrainedMedia: function decodeConstrainedMedia(data) {
+  decodeConstrainedMedia: function(data) {
     return {
       media: TypeValue.decode(data),
       params: null,
@@ -1946,7 +1946,7 @@ this.ContentTypeValue = {
 
 
 
-  decodeMedia: function decodeMedia(data) {
+  decodeMedia: function(data) {
     let begin = data.offset, number;
     try {
       number = IntegerValue.decode(data);
@@ -1979,7 +1979,7 @@ this.ContentTypeValue = {
 
 
 
-  decodeMediaType: function decodeMediaType(data, end) {
+  decodeMediaType: function(data, end) {
     let media = this.decodeMedia(data);
     let params = Parameter.decodeMultiple(data, end);
 
@@ -1998,7 +1998,7 @@ this.ContentTypeValue = {
 
 
 
-  decodeContentGeneralForm: function decodeContentGeneralForm(data) {
+  decodeContentGeneralForm: function(data) {
     let length = ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -2020,7 +2020,7 @@ this.ContentTypeValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
 
     try {
@@ -2037,7 +2037,7 @@ this.ContentTypeValue = {
 
 
 
-  encodeConstrainedMedia: function encodeConstrainedMedia(data, value) {
+  encodeConstrainedMedia: function(data, value) {
     if (value.params) {
       throw new CodeError("Constrained-media: should use general form instead");
     }
@@ -2051,7 +2051,7 @@ this.ContentTypeValue = {
 
 
 
-  encodeMediaType: function encodeMediaType(data, value) {
+  encodeMediaType: function(data, value) {
     let entry = WSP_WELL_KNOWN_CONTENT_TYPES[value.media.toLowerCase()];
     if (entry) {
       IntegerValue.encode(data, entry.number);
@@ -2068,7 +2068,7 @@ this.ContentTypeValue = {
 
 
 
-  encodeContentGeneralForm: function encodeContentGeneralForm(data, value) {
+  encodeContentGeneralForm: function(data, value) {
     let begin = data.offset;
     this.encodeMediaType(data, value);
 
@@ -2087,7 +2087,7 @@ this.ContentTypeValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     let begin = data.offset;
 
     try {
@@ -2116,7 +2116,7 @@ this.ApplicationIdValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     try {
       return UriValue.decode(data);
@@ -2150,7 +2150,7 @@ this.PduHelper = {
 
 
 
-  decodeStringContent: function decodeStringContent(data, charset) {
+  decodeStringContent: function(data, charset) {
       let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                  .createInstance(Ci.nsIScriptableUnicodeConverter);
 
@@ -2176,7 +2176,7 @@ this.PduHelper = {
 
 
 
-  encodeStringContent: function encodeStringContent(strContent, charset) {
+  encodeStringContent: function(strContent, charset) {
     let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                .createInstance(Ci.nsIScriptableUnicodeConverter);
 
@@ -2207,7 +2207,7 @@ this.PduHelper = {
 
 
 
-  parseHeaders: function parseHeaders(data, end, headers) {
+  parseHeaders: function(data, end, headers) {
     if (!headers) {
       headers = {};
     }
@@ -2241,7 +2241,7 @@ this.PduHelper = {
 
 
 
-  parsePushHeaders: function parsePushHeaders(data, msg) {
+  parsePushHeaders: function(data, msg) {
     if (!msg.headers) {
       msg.headers = {};
     }
@@ -2264,7 +2264,7 @@ this.PduHelper = {
 
 
 
-  parseMultiPart: function parseMultiPart(data) {
+  parseMultiPart: function(data) {
     let nEntries = UintVar.decode(data);
     if (!nEntries) {
       return null;
@@ -2355,7 +2355,7 @@ this.PduHelper = {
 
 
 
-  parse: function parse(data, isSessionless, msg) {
+  parse: function(data, isSessionless, msg) {
     if (!msg) {
       msg = {
         type: null,
@@ -2391,7 +2391,7 @@ this.PduHelper = {
 
 
 
-  appendArrayToMultiStream: function appendArrayToMultiStream(multiStream, array, length) {
+  appendArrayToMultiStream: function(multiStream, array, length) {
     let storageStream = Cc["@mozilla.org/storagestream;1"]
                         .createInstance(Ci.nsIStorageStream);
     storageStream.init(4096, length, null);
@@ -2413,7 +2413,7 @@ this.PduHelper = {
 
 
 
-  composeMultiPart: function composeMultiPart(multiStream, parts) {
+  composeMultiPart: function(multiStream, parts) {
     
     {
       let data = {array: [], offset: 0};

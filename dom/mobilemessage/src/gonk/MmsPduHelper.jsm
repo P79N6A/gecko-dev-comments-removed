@@ -63,7 +63,7 @@ RangedValue.prototype = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = WSP.Octet.decode(data);
     if ((value >= this.min) && (value <= this.max)) {
       return value;
@@ -78,7 +78,7 @@ RangedValue.prototype = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if ((value < this.min) || (value > this.max)) {
       throw new WSP.CodeError(this.name + ": invalid value " + value);
     }
@@ -103,7 +103,7 @@ this.BooleanValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = WSP.Octet.decode(data);
     if ((value != 128) && (value != 129)) {
       throw new WSP.CodeError("Boolean-value: invalid value " + value);
@@ -118,7 +118,7 @@ this.BooleanValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     WSP.Octet.encode(data, value ? 128 : 129);
   },
 };
@@ -137,7 +137,7 @@ this.Address = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let str = EncodedStringValue.decode(data);
 
     let result;
@@ -171,7 +171,7 @@ this.Address = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (!value || !value.type || !value.address) {
       throw new WSP.CodeError("Address: invalid value");
     }
@@ -229,7 +229,7 @@ this.Address = {
 
 
 
-  resolveType: function resolveType(address) {
+  resolveType: function(address) {
     if (address.match(this.REGEXP_EMAIL)) {
       return "email";
     }
@@ -284,7 +284,7 @@ this.HeaderField = {
 
 
 
-  decode: function decode(data, options) {
+  decode: function(data, options) {
     return WSP.decodeAlternatives(data, options,
                                   MmsHeader, WSP.ApplicationHeader);
   },
@@ -297,7 +297,7 @@ this.HeaderField = {
 
 
 
-  encode: function encode(data, value, options) {
+  encode: function(data, value, options) {
     WSP.encodeAlternatives(data, value, options,
                            MmsHeader, WSP.ApplicationHeader);
   },
@@ -324,7 +324,7 @@ this.MmsHeader = {
 
 
 
-  decode: function decode(data, options) {
+  decode: function(data, options) {
     let index = WSP.ShortInteger.decode(data);
 
     let entry = MMS_HEADER_FIELDS[index];
@@ -363,7 +363,7 @@ this.MmsHeader = {
 
 
 
-  encode: function encode(data, header) {
+  encode: function(data, header) {
     if (!header.name) {
       throw new WSP.CodeError("MMS-header: empty header name");
     }
@@ -417,7 +417,7 @@ this.ContentLocationValue = {
 
 
 
-  decode: function decode(data, options) {
+  decode: function(data, options) {
     let type = WSP.ensureHeader(options, "x-mms-message-type");
 
     let result = {};
@@ -454,7 +454,7 @@ this.ElementDescriptorValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -494,7 +494,7 @@ this.Parameter = {
 
 
 
-  decodeParameterName: function decodeParameterName(data) {
+  decodeParameterName: function(data) {
     let begin = data.offset;
     let number;
     try {
@@ -522,7 +522,7 @@ this.Parameter = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let name = this.decodeParameterName(data);
     let value = WSP.decodeAlternatives(data, null,
                                        WSP.ConstrainedEncoding, WSP.TextString);
@@ -540,7 +540,7 @@ this.Parameter = {
 
 
 
-  decodeMultiple: function decodeMultiple(data, end) {
+  decodeMultiple: function(data, end) {
     let params, param;
 
     while (data.offset < end) {
@@ -568,7 +568,7 @@ this.Parameter = {
 
 
 
-  encode: function encode(data, param, options) {
+  encode: function(data, param, options) {
     if (!param || !param.name) {
       throw new WSP.CodeError("Parameter-name: empty param name");
     }
@@ -605,7 +605,7 @@ this.EncodedStringValue = {
 
 
 
-  decodeCharsetEncodedString: function decodeCharsetEncodedString(data) {
+  decodeCharsetEncodedString: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -657,7 +657,7 @@ this.EncodedStringValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     try {
       return WSP.TextString.decode(data);
@@ -675,7 +675,7 @@ this.EncodedStringValue = {
 
 
 
-  encodeCharsetEncodedString: function encodeCharsetEncodedString(data, str) {
+  encodeCharsetEncodedString: function(data, str) {
     let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                .createInstance(Ci.nsIScriptableUnicodeConverter);
     
@@ -714,7 +714,7 @@ this.EncodedStringValue = {
 
 
 
-  encode: function encode(data, str) {
+  encode: function(data, str) {
     let begin = data.offset;
     try {
       WSP.TextString.encode(data, str);
@@ -741,7 +741,7 @@ this.ExpiryValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -770,7 +770,7 @@ this.ExpiryValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     let isDate, begin = data.offset;
     if (value instanceof Date) {
       isDate = true;
@@ -815,7 +815,7 @@ this.FromValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -842,7 +842,7 @@ this.FromValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if (!value) {
       WSP.ValueLength.encode(data, 1);
       WSP.Octet.encode(data, 129);
@@ -876,7 +876,7 @@ this.PreviouslySentByValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -906,7 +906,7 @@ this.PreviouslySentDateValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -943,7 +943,7 @@ this.MessageClassValue = {
 
 
 
-  decodeClassIdentifier: function decodeClassIdentifier(data) {
+  decodeClassIdentifier: function(data) {
     let value = WSP.Octet.decode(data);
     if ((value >= 128) && (value < (128 + this.WELL_KNOWN_CLASSES.length))) {
       return this.WELL_KNOWN_CLASSES[value - 128];
@@ -958,7 +958,7 @@ this.MessageClassValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let begin = data.offset;
     try {
       return this.decodeClassIdentifier(data);
@@ -973,7 +973,7 @@ this.MessageClassValue = {
 
 
 
-  encode: function encode(data, klass) {
+  encode: function(data, klass) {
     let index = this.WELL_KNOWN_CLASSES.indexOf(klass.toLowerCase());
     if (index >= 0) {
       WSP.Octet.encode(data, index + 128);
@@ -1008,7 +1008,7 @@ this.MmFlagsValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let length = WSP.ValueLength.decode(data);
     let end = data.offset + length;
 
@@ -1033,7 +1033,7 @@ this.MmFlagsValue = {
 
 
 
-  encode: function encode(data, value) {
+  encode: function(data, value) {
     if ((value.type < 128) || (value.type > 130)) {
       throw new WSP.CodeError("MM-flags-value: invalid type " + value.type);
     }
@@ -1093,7 +1093,7 @@ this.RecommendedRetrievalModeValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     return WSP.Octet.decodeEqualTo(data, 128);
   },
 };
@@ -1131,7 +1131,7 @@ this.ResponseText = {
 
 
 
-  decode: function decode(data, options) {
+  decode: function(data, options) {
     let type = WSP.ensureHeader(options, "x-mms-message-type");
 
     let result = {};
@@ -1180,7 +1180,7 @@ this.RetrieveStatusValue = {
 
 
 
-  decode: function decode(data) {
+  decode: function(data) {
     let value = WSP.Octet.decode(data);
     if (value == MMS_PDU_ERROR_OK) {
       return value;
@@ -1230,7 +1230,7 @@ this.PduHelper = {
 
 
 
-  parseHeaders: function parseHeaders(data, headers) {
+  parseHeaders: function(data, headers) {
     if (!headers) {
       headers = {};
     }
@@ -1269,7 +1269,7 @@ this.PduHelper = {
 
 
 
-  parseContent: function parseContent(data, msg) {
+  parseContent: function(data, msg) {
     let contentType = msg.headers["content-type"].media;
     if ((contentType == "application/vnd.wap.multipart.related")
         || (contentType == "application/vnd.wap.multipart.mixed")) {
@@ -1300,7 +1300,7 @@ this.PduHelper = {
 
 
 
-  checkMandatoryFields: function checkMandatoryFields(msg) {
+  checkMandatoryFields: function(msg) {
     let type = WSP.ensureHeader(msg.headers, "x-mms-message-type");
     let entry = MMS_PDU_TYPES[type];
     if (!entry) {
@@ -1326,7 +1326,7 @@ this.PduHelper = {
 
 
 
-  parse: function parse(data, msg) {
+  parse: function(data, msg) {
     if (!msg) {
       msg = {};
     }
@@ -1355,7 +1355,7 @@ this.PduHelper = {
 
 
 
-  encodeHeader: function encodeHeader(data, headers, name) {
+  encodeHeader: function(data, headers, name) {
     let value = headers[name];
     if (Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
@@ -1372,7 +1372,7 @@ this.PduHelper = {
 
 
 
-  encodeHeaderIfExists: function encodeHeaderIfExists(data, headers, name) {
+  encodeHeaderIfExists: function(data, headers, name) {
     
     if (headers[name] !== undefined) {
       this.encodeHeader(data, headers, name);
@@ -1387,7 +1387,7 @@ this.PduHelper = {
 
 
 
-  encodeHeaders: function encodeHeaders(data, headers) {
+  encodeHeaders: function(data, headers) {
     if (!data) {
       data = {array: [], offset: 0};
     }
@@ -1425,7 +1425,7 @@ this.PduHelper = {
 
 
 
-  compose: function compose(multiStream, msg) {
+  compose: function(multiStream, msg) {
     if (!multiStream) {
       multiStream = Cc["@mozilla.org/io/multiplex-input-stream;1"]
                     .createInstance(Ci.nsIMultiplexInputStream);

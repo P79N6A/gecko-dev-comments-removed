@@ -46,7 +46,7 @@ MobileMessageDatabaseService.prototype = {
   
 
 
-  observe: function observe() {},
+  observe: function() {},
 
   
 

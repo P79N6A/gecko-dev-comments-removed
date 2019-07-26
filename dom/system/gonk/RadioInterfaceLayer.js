@@ -220,7 +220,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
     targetMessageQueue: [],
     ready: false,
 
-    init: function init(ril) {
+    init: function(ril) {
       this.ril = ril;
 
       Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
@@ -228,14 +228,14 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       this._registerMessageListeners();
     },
 
-    _shutdown: function _shutdown() {
+    _shutdown: function() {
       this.ril = null;
 
       Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
       this._unregisterMessageListeners();
     },
 
-    _registerMessageListeners: function _registerMessageListeners() {
+    _registerMessageListeners: function() {
       ppmm.addMessageListener("child-process-shutdown", this);
       for (let msgname of RIL_IPC_MOBILECONNECTION_MSG_NAMES) {
         ppmm.addMessageListener(msgname, this);
@@ -254,7 +254,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       }
     },
 
-    _unregisterMessageListeners: function _unregisterMessageListeners() {
+    _unregisterMessageListeners: function() {
       ppmm.removeMessageListener("child-process-shutdown", this);
       for (let msgname of RIL_IPC_MOBILECONNECTION_MSG_NAMES) {
         ppmm.removeMessageListener(msgname, this);
@@ -274,7 +274,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       ppmm = null;
     },
 
-    _registerMessageTarget: function _registerMessageTarget(topic, target) {
+    _registerMessageTarget: function(topic, target) {
       let targets = this.targetsByTopic[topic];
       if (!targets) {
         targets = this.targetsByTopic[topic] = [];
@@ -293,7 +293,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       if (DEBUG) debug("Registered " + topic + " target: " + target);
     },
 
-    _unregisterMessageTarget: function _unregisterMessageTarget(topic, target) {
+    _unregisterMessageTarget: function(topic, target) {
       if (topic == null) {
         
         for (let type of this.topics) {
@@ -315,7 +315,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       }
     },
 
-    _enqueueTargetMessage: function _enqueueTargetMessage(topic, message, options) {
+    _enqueueTargetMessage: function(topic, message, options) {
       let msg = { topic : topic,
                   message : message,
                   options : options };
@@ -333,7 +333,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       messageQueue.push(msg);
     },
 
-    _sendTargetMessage: function _sendTargetMessage(topic, message, options) {
+    _sendTargetMessage: function(topic, message, options) {
       if (!this.ready) {
         this._enqueueTargetMessage(topic, message, options);
         return;
@@ -349,7 +349,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       }
     },
 
-    _resendQueuedTargetMessage: function _resendQueuedTargetMessage() {
+    _resendQueuedTargetMessage: function() {
       this.ready = true;
 
       
@@ -368,7 +368,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
 
 
 
-    receiveMessage: function receiveMessage(msg) {
+    receiveMessage: function(msg) {
       if (DEBUG) debug("Received '" + msg.name + "' message from content process");
       if (msg.name == "child-process-shutdown") {
         
@@ -457,7 +457,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
 
 
 
-    observe: function observe(subject, topic, data) {
+    observe: function(subject, topic, data) {
       switch (topic) {
         case kSysMsgListenerReadyObserverTopic:
           Services.obs.removeObserver(this, kSysMsgListenerReadyObserverTopic);
@@ -469,28 +469,28 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function() {
       }
     },
 
-    sendMobileConnectionMessage: function sendMobileConnectionMessage(message, clientId, data) {
+    sendMobileConnectionMessage: function(message, clientId, data) {
       this._sendTargetMessage("mobileconnection", message, {
         clientId: clientId,
         data: data
       });
     },
 
-    sendVoicemailMessage: function sendVoicemailMessage(message, clientId, data) {
+    sendVoicemailMessage: function(message, clientId, data) {
       this._sendTargetMessage("voicemail", message, {
         clientId: clientId,
         data: data
       });
     },
 
-    sendCellBroadcastMessage: function sendCellBroadcastMessage(message, clientId, data) {
+    sendCellBroadcastMessage: function(message, clientId, data) {
       this._sendTargetMessage("cellbroadcast", message, {
         clientId: clientId,
         data: data
       });
     },
 
-    sendIccMessage: function sendIccMessage(message, clientId, data) {
+    sendIccMessage: function(message, clientId, data) {
       this._sendTargetMessage("icc", message, {
         clientId: clientId,
         data: data
@@ -507,7 +507,7 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
     request: null,
     deactivatingDeferred: {},
 
-    init: function init(ril) {
+    init: function(ril) {
       this.ril = ril;
     },
 
@@ -757,7 +757,7 @@ RadioInterfaceLayer.prototype = {
 
 
 
-  observe: function observe(subject, topic, data) {
+  observe: function(subject, topic, data) {
     switch (topic) {
       case kMozSettingsChangedObserverTopic:
         let setting = JSON.parse(data);
@@ -793,7 +793,7 @@ RadioInterfaceLayer.prototype = {
 
   
 
-  handle: function handle(name, result) {
+  handle: function(name, result) {
     switch(name) {
       
       
@@ -827,13 +827,13 @@ RadioInterfaceLayer.prototype = {
     }
   },
 
-  handleError: function handleError(errorMessage) {
+  handleError: function(errorMessage) {
     if (DEBUG) {
       debug("There was an error while reading RIL settings: " + errorMessage);
     }
   },
 
-  handleDataClientIdChange: function handleDataClientIdChange() {
+  handleDataClientIdChange: function() {
     if (this._currentDataClientId == -1) {
       
       this._currentDataClientId = this._dataDefaultClientId;
@@ -907,11 +907,11 @@ RadioInterfaceLayer.prototype = {
 
 
 
-  getRadioInterface: function getRadioInterface(clientId) {
+  getRadioInterface: function(clientId) {
     return this.radioInterfaces[clientId];
   },
 
-  getClientIdByIccId: function getClientIdByIccId(iccId) {
+  getClientIdByIccId: function(iccId) {
     if (!iccId) {
       throw Cr.NS_ERROR_INVALID_ARG;
     }
@@ -926,7 +926,7 @@ RadioInterfaceLayer.prototype = {
     throw Cr.NS_ERROR_NOT_AVAILABLE;
   },
 
-  setMicrophoneMuted: function setMicrophoneMuted(muted) {
+  setMicrophoneMuted: function(muted) {
     for (let clientId = 0; clientId < this.numRadioInterfaces; clientId++) {
       let radioInterface = this.radioInterfaces[clientId];
       radioInterface.workerMessenger.send("setMute", { muted: muted });
@@ -970,7 +970,7 @@ WorkerMessenger.prototype = {
   
   tokenCallbackMap: null,
 
-  onerror: function onerror(event) {
+  onerror: function(event) {
     if (DEBUG) {
       this.debug("Got an error: " + event.filename + ":" +
                  event.lineno + ": " + event.message + "\n");
@@ -981,7 +981,7 @@ WorkerMessenger.prototype = {
   
 
 
-  onmessage: function onmessage(event) {
+  onmessage: function(event) {
     let message = event.data;
     if (DEBUG) {
       this.debug("Received message from worker: " + JSON.stringify(message));
@@ -1027,7 +1027,7 @@ WorkerMessenger.prototype = {
 
 
 
-  send: function send(rilMessageType, message, callback) {
+  send: function(rilMessageType, message, callback) {
     message = message || {};
 
     message.rilMessageToken = this.token;
@@ -1060,7 +1060,7 @@ WorkerMessenger.prototype = {
 
 
 
-  sendWithIPCMessage: function sendWithIPCMessage(msg, rilMessageType, ipcType) {
+  sendWithIPCMessage: function(msg, rilMessageType, ipcType) {
     this.send(rilMessageType, msg.json.data, (function(reply) {
       ipcType = ipcType || msg.name;
       msg.target.sendAsyncMessage(ipcType, {
@@ -1190,7 +1190,7 @@ RadioInterface.prototype = {
   
   workerMessenger: null,
 
-  debug: function debug(s) {
+  debug: function(s) {
     dump("-*- RadioInterface[" + this.clientId + "]: " + s + "\n");
   },
 
@@ -1198,7 +1198,7 @@ RadioInterface.prototype = {
 
 
 
-  updateInfo: function updateInfo(srcInfo, destInfo) {
+  updateInfo: function(srcInfo, destInfo) {
     for (let key in srcInfo) {
       if (key === "rilMessageType") {
         continue;
@@ -1211,7 +1211,7 @@ RadioInterface.prototype = {
 
 
 
-  isInfoChanged: function isInfoChanged(srcInfo, destInfo) {
+  isInfoChanged: function(srcInfo, destInfo) {
     if (!destInfo) {
       return true;
     }
@@ -1231,7 +1231,7 @@ RadioInterface.prototype = {
   
 
 
-  receiveMessage: function receiveMessage(msg) {
+  receiveMessage: function(msg) {
     switch (msg.name) {
       case "RIL:GetRilContext":
         
@@ -1358,7 +1358,7 @@ RadioInterface.prototype = {
     return null;
   },
 
-  handleUnsolicitedWorkerMessage: function handleUnsolicitedWorkerMessage(message) {
+  handleUnsolicitedWorkerMessage: function(message) {
     switch (message.rilMessageType) {
       case "callRing":
         gTelephonyProvider.notifyCallRing();
@@ -1490,7 +1490,7 @@ RadioInterface.prototype = {
 
 
 
-  getPhoneNumber: function getPhoneNumber() {
+  getPhoneNumber: function() {
     let iccInfo = this.rilContext.iccInfo;
 
     if (!iccInfo) {
@@ -1515,7 +1515,7 @@ RadioInterface.prototype = {
   
 
 
-  getIccId: function getIccId() {
+  getIccId: function() {
     let iccInfo = this.rilContext.iccInfo;
 
     if (!iccInfo || !(iccInfo instanceof GsmIccInfo)) {
@@ -1533,7 +1533,7 @@ RadioInterface.prototype = {
     return iccId;
   },
 
-  updateNetworkInfo: function updateNetworkInfo(message) {
+  updateNetworkInfo: function(message) {
     let voiceMessage = message[RIL.NETWORK_INFO_VOICE_REGISTRATION_STATE];
     let dataMessage = message[RIL.NETWORK_INFO_DATA_REGISTRATION_STATE];
     let operatorMessage = message[RIL.NETWORK_INFO_OPERATOR];
@@ -1584,7 +1584,7 @@ RadioInterface.prototype = {
 
 
 
-  checkRoamingBetweenOperators: function checkRoamingBetweenOperators(registration) {
+  checkRoamingBetweenOperators: function(registration) {
     let iccInfo = this.rilContext.iccInfo;
     if (!iccInfo || !registration.connected) {
       return;
@@ -1610,7 +1610,7 @@ RadioInterface.prototype = {
 
 
 
-  updateVoiceConnection: function updateVoiceConnection(newInfo, batch) {
+  updateVoiceConnection: function(newInfo, batch) {
     let voiceInfo = this.rilContext.voice;
     voiceInfo.state = newInfo.state;
     voiceInfo.connected = newInfo.connected;
@@ -1643,7 +1643,7 @@ RadioInterface.prototype = {
 
 
 
-  updateDataConnection: function updateDataConnection(newInfo, batch) {
+  updateDataConnection: function(newInfo, batch) {
     let dataInfo = this.rilContext.data;
     dataInfo.state = newInfo.state;
     dataInfo.roaming = newInfo.roaming;
@@ -1680,7 +1680,7 @@ RadioInterface.prototype = {
   
 
 
-  handleDataCallError: function handleDataCallError(message) {
+  handleDataCallError: function(message) {
     
     if (this.apnSettings.byType.default) {
       let apnSetting = this.apnSettings.byType.default;
@@ -1695,7 +1695,7 @@ RadioInterface.prototype = {
   },
 
   _preferredNetworkType: null,
-  getPreferredNetworkType: function getPreferredNetworkType(target, message) {
+  getPreferredNetworkType: function(target, message) {
     this.workerMessenger.send("getPreferredNetworkType", message, (function(response) {
       if (response.success) {
         this._preferredNetworkType = response.networkType;
@@ -1714,7 +1714,7 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  setPreferredNetworkType: function setPreferredNetworkType(target, message) {
+  setPreferredNetworkType: function(target, message) {
     if (DEBUG) this.debug("setPreferredNetworkType: " + JSON.stringify(message));
     let networkType = RIL.RIL_PREFERRED_NETWORK_TYPE_TO_GECKO.indexOf(message.type);
     if (networkType < 0) {
@@ -1746,7 +1746,7 @@ RadioInterface.prototype = {
 
   
   
-  setPreferredNetworkTypeBySetting: function setPreferredNetworkTypeBySetting(value) {
+  setPreferredNetworkTypeBySetting: function(value) {
     let networkType = RIL.RIL_PREFERRED_NETWORK_TYPE_TO_GECKO.indexOf(value);
     if (networkType < 0) {
       networkType = (this._preferredNetworkType != null)
@@ -1781,7 +1781,7 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  setCellBroadcastSearchList: function setCellBroadcastSearchList(newSearchListStr) {
+  setCellBroadcastSearchList: function(newSearchListStr) {
     if (newSearchListStr == this._cellBroadcastSearchListStr) {
       return;
     }
@@ -1808,7 +1808,7 @@ RadioInterface.prototype = {
 
 
 
-  handleSignalStrengthChange: function handleSignalStrengthChange(message, batch) {
+  handleSignalStrengthChange: function(message, batch) {
     let voiceInfo = this.rilContext.voice;
     
     if (voiceInfo.state === RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED &&
@@ -1839,7 +1839,7 @@ RadioInterface.prototype = {
 
 
 
-  handleOperatorChange: function handleOperatorChange(message, batch) {
+  handleOperatorChange: function(message, batch) {
     let operatorInfo = this.operatorInfo;
     let voice = this.rilContext.voice;
     let data = this.rilContext.data;
@@ -1867,7 +1867,7 @@ RadioInterface.prototype = {
     }
   },
 
-  handleOtaStatus: function handleOtaStatus(message) {
+  handleOtaStatus: function(message) {
     if (message.status < 0 ||
         RIL.CDMA_OTA_PROVISION_STATUS_TO_GECKO.length <= message.status) {
       return;
@@ -1879,7 +1879,7 @@ RadioInterface.prototype = {
                                                 this.clientId, status);
   },
 
-  _convertRadioState: function _converRadioState(state) {
+  _convertRadioState: function(state) {
     switch (state) {
       case RIL.GECKO_RADIOSTATE_OFF:
         return RIL.GECKO_DETAILED_RADIOSTATE_DISABLED;
@@ -1890,7 +1890,7 @@ RadioInterface.prototype = {
     }
   },
 
-  handleRadioStateChange: function handleRadioStateChange(message) {
+  handleRadioStateChange: function(message) {
     let newState = message.radioState;
     if (this.rilContext.radioState == newState) {
       return;
@@ -1901,7 +1901,7 @@ RadioInterface.prototype = {
     
   },
 
-  handleDetailedRadioStateChanged: function handleDetailedRadioStateChanged(state) {
+  handleDetailedRadioStateChanged: function(state) {
     if (this.rilContext.detailedRadioState == state) {
       return;
     }
@@ -1910,7 +1910,7 @@ RadioInterface.prototype = {
                                                 this.clientId, state);
   },
 
-  deactivateDataCalls: function deactivateDataCalls() {
+  deactivateDataCalls: function() {
     let dataDisconnecting = false;
     for each (let apnSetting in this.apnSettings.byApn) {
       for each (let type in apnSetting.types) {
@@ -1938,7 +1938,7 @@ RadioInterface.prototype = {
 
 
 
-  updateApnSettings: function updateApnSettings(allApnSettings) {
+  updateApnSettings: function(allApnSettings) {
     let simApnSettings = allApnSettings[this.clientId];
     if (!simApnSettings) {
       return;
@@ -1995,7 +1995,7 @@ RadioInterface.prototype = {
     }
   },
 
-  anyDataConnected: function anyDataConnected() {
+  anyDataConnected: function() {
     for each (let apnSetting in this.apnSettings.byApn) {
       for each (let type in apnSetting.types) {
         if (this.getDataCallStateByType(type) ==
@@ -2010,18 +2010,18 @@ RadioInterface.prototype = {
   
 
 
-  validateApnSetting: function validateApnSetting(apnSetting) {
+  validateApnSetting: function(apnSetting) {
     return (apnSetting &&
             apnSetting.apn &&
             apnSetting.types &&
             apnSetting.types.length);
   },
 
-  setDataRegistration: function setDataRegistration(attach) {
+  setDataRegistration: function(attach) {
     this.workerMessenger.send("setDataRegistration", {attach: attach});
   },
 
-  updateRILNetworkInterface: function updateRILNetworkInterface() {
+  updateRILNetworkInterface: function() {
     let apnSetting = this.apnSettings.byType.default;
     if (!this.validateApnSetting(apnSetting)) {
       if (DEBUG) {
@@ -2122,7 +2122,7 @@ RadioInterface.prototype = {
   
 
 
-  updateNetworkSelectionMode: function updateNetworkSelectionMode(message) {
+  updateNetworkSelectionMode: function(message) {
     if (DEBUG) this.debug("updateNetworkSelectionMode: " + JSON.stringify(message));
     this.rilContext.networkSelectionMode = message.mode;
     gMessageManager.sendMobileConnectionMessage("RIL:NetworkSelectionModeChanged",
@@ -2132,7 +2132,7 @@ RadioInterface.prototype = {
   
 
 
-  handleEmergencyCbModeChange: function handleEmergencyCbModeChange(message) {
+  handleEmergencyCbModeChange: function(message) {
     if (DEBUG) this.debug("handleEmergencyCbModeChange: " + JSON.stringify(message));
     gMessageManager.sendMobileConnectionMessage("RIL:EmergencyCbModeChanged",
                                                 this.clientId, message);
@@ -2145,7 +2145,7 @@ RadioInterface.prototype = {
 
 
 
-  handleSmsWdpPortPush: function handleSmsWdpPortPush(message) {
+  handleSmsWdpPortPush: function(message) {
     if (message.encoding != RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
       if (DEBUG) {
         this.debug("Got port addressed SMS but not encoded in 8-bit alphabet." +
@@ -2175,7 +2175,7 @@ RadioInterface.prototype = {
 
 
 
-  broadcastSmsSystemMessage: function broadcastSmsSystemMessage(aName, aDomMessage) {
+  broadcastSmsSystemMessage: function(aName, aDomMessage) {
     if (DEBUG) this.debug("Broadcasting the SMS system message: " + aName);
 
     
@@ -2204,7 +2204,7 @@ RadioInterface.prototype = {
   _smsHandledWakeLock: null,
   _smsHandledWakeLockTimer: null,
 
-  _releaseSmsHandledWakeLock: function _releaseSmsHandledWakeLock() {
+  _releaseSmsHandledWakeLock: function() {
     if (DEBUG) this.debug("Releasing the CPU wake lock for handling SMS.");
     if (this._smsHandledWakeLockTimer) {
       this._smsHandledWakeLockTimer.cancel();
@@ -2216,7 +2216,7 @@ RadioInterface.prototype = {
   },
 
   portAddressedSmsApps: null,
-  handleSmsReceived: function handleSmsReceived(message) {
+  handleSmsReceived: function(message) {
     if (DEBUG) this.debug("handleSmsReceived: " + JSON.stringify(message));
 
     
@@ -2366,7 +2366,7 @@ RadioInterface.prototype = {
   
 
 
-  handleDataCallState: function handleDataCallState(datacall) {
+  handleDataCallState: function(datacall) {
     let data = this.rilContext.data;
     let apnSetting = this.apnSettings.byType.default;
     let dataCallConnected =
@@ -2415,7 +2415,7 @@ RadioInterface.prototype = {
   
 
 
-  handleDataCallList: function handleDataCallList(message) {
+  handleDataCallList: function(message) {
     this._deliverDataCallCallback("receiveDataCallList",
                                   [message.datacalls, message.datacalls.length]);
   },
@@ -2423,7 +2423,7 @@ RadioInterface.prototype = {
   
 
 
-  setClockAutoUpdateAvailable: function setClockAutoUpdateAvailable(value) {
+  setClockAutoUpdateAvailable: function(value) {
     gSettingsService.createLock().set(kSettingsClockAutoUpdateAvailable, value, null,
                                       "fromInternalSetting");
   },
@@ -2431,7 +2431,7 @@ RadioInterface.prototype = {
   
 
 
-  setTimezoneAutoUpdateAvailable: function setTimezoneAutoUpdateAvailable(value) {
+  setTimezoneAutoUpdateAvailable: function(value) {
     gSettingsService.createLock().set(kSettingsTimezoneAutoUpdateAvailable, value, null,
                                       "fromInternalSetting");
   },
@@ -2439,7 +2439,7 @@ RadioInterface.prototype = {
   
 
 
-  setClockByNitz: function setClockByNitz(message) {
+  setClockByNitz: function(message) {
     
     
     gTimeService.set(
@@ -2449,7 +2449,7 @@ RadioInterface.prototype = {
   
 
 
-  setTimezoneByNitz: function setTimezoneByNitz(message) {
+  setTimezoneByNitz: function(message) {
     
     
     
@@ -2470,7 +2470,7 @@ RadioInterface.prototype = {
   
 
 
-  handleNitzTime: function handleNitzTime(message) {
+  handleNitzTime: function(message) {
     
     this.setClockAutoUpdateAvailable(true);
     this.setTimezoneAutoUpdateAvailable(true);
@@ -2491,7 +2491,7 @@ RadioInterface.prototype = {
   
 
 
-  setClockBySntp: function setClockBySntp(offset) {
+  setClockBySntp: function(offset) {
     
     this.setClockAutoUpdateAvailable(true);
     if (!this._clockAutoUpdateEnabled) {
@@ -2504,7 +2504,7 @@ RadioInterface.prototype = {
     gTimeService.set(Date.now() + offset);
   },
 
-  handleIccMbdn: function handleIccMbdn(message) {
+  handleIccMbdn: function(message) {
     let voicemailInfo = this.voicemailInfo;
 
     voicemailInfo.number = message.number;
@@ -2514,7 +2514,7 @@ RadioInterface.prototype = {
                                          this.clientId, voicemailInfo);
   },
 
-  handleIccInfoChange: function handleIccInfoChange(message) {
+  handleIccInfoChange: function(message) {
     let oldSpn = this.rilContext.iccInfo ? this.rilContext.iccInfo.spn : null;
 
     if (!message || !message.iccType) {
@@ -2575,14 +2575,14 @@ RadioInterface.prototype = {
     }
   },
 
-  handleUSSDReceived: function handleUSSDReceived(ussd) {
+  handleUSSDReceived: function(ussd) {
     if (DEBUG) this.debug("handleUSSDReceived " + JSON.stringify(ussd));
     gSystemMessenger.broadcastMessage("ussd-received", ussd);
     gMessageManager.sendMobileConnectionMessage("RIL:USSDReceived",
                                                 this.clientId, ussd);
   },
 
-  handleStkProactiveCommand: function handleStkProactiveCommand(message) {
+  handleStkProactiveCommand: function(message) {
     if (DEBUG) this.debug("handleStkProactiveCommand " + JSON.stringify(message));
     let iccId = this.rilContext.iccInfo && this.rilContext.iccInfo.iccid;
     if (iccId) {
@@ -2593,14 +2593,14 @@ RadioInterface.prototype = {
     gMessageManager.sendIccMessage("RIL:StkCommand", this.clientId, message);
   },
 
-  handleExitEmergencyCbMode: function handleExitEmergencyCbMode(message) {
+  handleExitEmergencyCbMode: function(message) {
     if (DEBUG) this.debug("handleExitEmergencyCbMode: " + JSON.stringify(message));
     gMessageManager.sendRequestResults("RIL:ExitEmergencyCbMode", message);
   },
 
   
 
-  observe: function observe(subject, topic, data) {
+  observe: function(subject, topic, data) {
     switch (topic) {
       case kSysMsgListenerReadyObserverTopic:
         this.setRadioEnabledInternal({enabled: true}, null);
@@ -2687,7 +2687,7 @@ RadioInterface.prototype = {
   
   _lastKnownHomeNetwork: null,
 
-  handleSettingsChange: function handleSettingsChange(aName, aResult, aMessage) {
+  handleSettingsChange: function(aName, aResult, aMessage) {
     
     
     if (aName === kSettingsClockAutoUpdateAvailable &&
@@ -2720,7 +2720,7 @@ RadioInterface.prototype = {
   },
 
   
-  handle: function handle(aName, aResult) {
+  handle: function(aName, aResult) {
     switch(aName) {
       
       
@@ -2779,7 +2779,7 @@ RadioInterface.prototype = {
     }
   },
 
-  handleError: function handleError(aErrorMessage) {
+  handleError: function(aErrorMessage) {
     if (DEBUG) this.debug("There was an error while reading RIL settings.");
 
     
@@ -2798,13 +2798,12 @@ RadioInterface.prototype = {
 
   
 
-  _sendCfStateChanged: function _sendCfStateChanged(message) {
+  _sendCfStateChanged: function(message) {
     gMessageManager.sendMobileConnectionMessage("RIL:CfStateChanged",
                                                 this.clientId, message);
   },
 
-  _updateCallingLineIdRestrictionPref:
-    function _updateCallingLineIdRestrictionPref(mode) {
+  _updateCallingLineIdRestrictionPref: function(mode) {
     try {
       Services.prefs.setIntPref(kPrefClirModePreference, mode);
       Services.prefs.savePrefFile(null);
@@ -2814,7 +2813,7 @@ RadioInterface.prototype = {
     } catch (e) {}
   },
 
-  sendMMI: function sendMMI(target, message) {
+  sendMMI: function(target, message) {
     if (DEBUG) this.debug("SendMMI " + JSON.stringify(message));
     this.workerMessenger.send("sendMMI", message, (function(response) {
       if (response.isSetCallForward) {
@@ -2831,7 +2830,7 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  setCallForwardingOptions: function setCallForwardingOptions(target, message) {
+  setCallForwardingOptions: function(target, message) {
     if (DEBUG) this.debug("setCallForwardingOptions: " + JSON.stringify(message));
     message.serviceClass = RIL.ICC_SERVICE_CLASS_VOICE;
     this.workerMessenger.send("setCallForward", message, (function(response) {
@@ -2844,7 +2843,7 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  setCallingLineIdRestriction: function setCallingLineIdRestriction(target,
+  setCallingLineIdRestriction: function(target,
                                                                     message) {
     if (DEBUG) {
       this.debug("setCallingLineIdRestriction: " + JSON.stringify(message));
@@ -2884,7 +2883,7 @@ RadioInterface.prototype = {
     });
   },
 
-  setRadioEnabled: function setRadioEnabled(target, message) {
+  setRadioEnabled: function(target, message) {
     if (DEBUG) {
       this.debug("setRadioEnabled: " + JSON.stringify(message));
     }
@@ -2913,7 +2912,7 @@ RadioInterface.prototype = {
     this.setRadioEnabledInternal(message, callback);
   },
 
-  setRadioEnabledInternal: function setRadioEnabledInternal(message, callback) {
+  setRadioEnabledInternal: function(message, callback) {
     let state = message.enabled ? RIL.GECKO_DETAILED_RADIOSTATE_ENABLING
                                 : RIL.GECKO_DETAILED_RADIOSTATE_DISABLING;
     this.handleDetailedRadioStateChanged(state);
@@ -2967,7 +2966,7 @@ RadioInterface.prototype = {
 
 
 
-  _countGsm7BitSeptets: function _countGsm7BitSeptets(message, langTable, langShiftTable, strict7BitEncoding) {
+  _countGsm7BitSeptets: function(message, langTable, langShiftTable, strict7BitEncoding) {
     let length = 0;
     for (let msgIndex = 0; msgIndex < message.length; msgIndex++) {
       let c = message.charAt(msgIndex);
@@ -3043,7 +3042,7 @@ RadioInterface.prototype = {
 
 
 
-  _calculateUserDataLength7Bit: function _calculateUserDataLength7Bit(message, strict7BitEncoding) {
+  _calculateUserDataLength7Bit: function(message, strict7BitEncoding) {
     let options = null;
     let minUserDataSeptets = Number.MAX_VALUE;
     for (let i = 0; i < this.enabledGsmTableTuples.length; i++) {
@@ -3110,7 +3109,7 @@ RadioInterface.prototype = {
 
 
 
-  _calculateUserDataLengthUCS2: function _calculateUserDataLengthUCS2(message) {
+  _calculateUserDataLengthUCS2: function(message) {
     let bodyChars = message.length;
     let headerLen = 0;
     let headerChars = Math.ceil((headerLen ? headerLen + 1 : 0) / 2);
@@ -3161,7 +3160,7 @@ RadioInterface.prototype = {
 
 
 
-  _calculateUserDataLength: function _calculateUserDataLength(message, strict7BitEncoding) {
+  _calculateUserDataLength: function(message, strict7BitEncoding) {
     let options = this._calculateUserDataLength7Bit(message, strict7BitEncoding);
     if (!options) {
       options = this._calculateUserDataLengthUCS2(message);
@@ -3188,7 +3187,7 @@ RadioInterface.prototype = {
 
 
 
-  _fragmentText7Bit: function _fragmentText7Bit(text, langTable, langShiftTable, segmentSeptets, strict7BitEncoding) {
+  _fragmentText7Bit: function(text, langTable, langShiftTable, segmentSeptets, strict7BitEncoding) {
     let ret = [];
     let body = "", len = 0;
     for (let i = 0, inc = 0; i < text.length; i++) {
@@ -3258,7 +3257,7 @@ RadioInterface.prototype = {
 
 
 
-  _fragmentTextUCS2: function _fragmentTextUCS2(text, segmentChars) {
+  _fragmentTextUCS2: function(text, segmentChars) {
     let ret = [];
     for (let offset = 0; offset < text.length; offset += segmentChars) {
       let str = text.substr(offset, segmentChars);
@@ -3289,7 +3288,7 @@ RadioInterface.prototype = {
 
 
 
-  _fragmentText: function _fragmentText(text, options, strict7BitEncoding) {
+  _fragmentText: function(text, options, strict7BitEncoding) {
     if (!options) {
       options = this._calculateUserDataLength(text, strict7BitEncoding);
     }
@@ -3312,7 +3311,7 @@ RadioInterface.prototype = {
     return options;
   },
 
-  getSegmentInfoForText: function getSegmentInfoForText(text, request) {
+  getSegmentInfoForText: function(text, request) {
     let strict7BitEncoding;
     try {
       strict7BitEncoding = Services.prefs.getBoolPref("dom.sms.strict7BitEncoding");
@@ -3340,7 +3339,7 @@ RadioInterface.prototype = {
     request.notifySegmentInfoForTextGot(result);
   },
 
-  getSmscAddress: function getSmscAddress(request) {
+  getSmscAddress: function(request) {
     this.workerMessenger.send("getSmscAddress",
                               null,
                               (function(response) {
@@ -3352,7 +3351,7 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  sendSMS: function sendSMS(number, message, silent, request) {
+  sendSMS: function(number, message, silent, request) {
     let strict7BitEncoding;
     try {
       strict7BitEncoding = Services.prefs.getBoolPref("dom.sms.strict7BitEncoding");
@@ -3569,7 +3568,7 @@ RadioInterface.prototype = {
       sendingMessage, notifyResult);
   },
 
-  registerDataCallCallback: function registerDataCallCallback(callback) {
+  registerDataCallCallback: function(callback) {
     if (this._datacall_callbacks) {
       if (this._datacall_callbacks.indexOf(callback) != -1) {
         throw new Error("Already registered this callback!");
@@ -3581,7 +3580,7 @@ RadioInterface.prototype = {
     if (DEBUG) this.debug("Registering callback: " + callback);
   },
 
-  unregisterDataCallCallback: function unregisterDataCallCallback(callback) {
+  unregisterDataCallCallback: function(callback) {
     if (!this._datacall_callbacks) {
       return;
     }
@@ -3592,7 +3591,7 @@ RadioInterface.prototype = {
     }
   },
 
-  _deliverDataCallCallback: function _deliverDataCallCallback(name, args) {
+  _deliverDataCallCallback: function(name, args) {
     
     
     
@@ -3621,7 +3620,7 @@ RadioInterface.prototype = {
     }
   },
 
-  setupDataCallByType: function setupDataCallByType(apntype) {
+  setupDataCallByType: function(apntype) {
     let apnSetting = this.apnSettings.byType[apntype];
     if (!apnSetting) {
       return;
@@ -3661,7 +3660,7 @@ RadioInterface.prototype = {
     }
   },
 
-  deactivateDataCallByType: function deactivateDataCallByType(apntype) {
+  deactivateDataCallByType: function(apntype) {
     let apnSetting = this.apnSettings.byType[apntype];
     if (!apnSetting) {
       return;
@@ -3695,7 +3694,7 @@ RadioInterface.prototype = {
     }
   },
 
-  getDataCallStateByType: function getDataCallStateByType(apntype) {
+  getDataCallStateByType: function(apntype) {
     let apnSetting = this.apnSettings.byType[apntype];
     if (!apnSetting) {
        return RIL.GECKO_NETWORK_STATE_UNKNOWN;
@@ -3706,7 +3705,7 @@ RadioInterface.prototype = {
     return apnSetting.iface.state;
   },
 
-  setupDataCall: function setupDataCall(radioTech, apn, user, passwd, chappap, pdptype) {
+  setupDataCall: function(radioTech, apn, user, passwd, chappap, pdptype) {
     this.workerMessenger.send("setupDataCall", { radioTech: radioTech,
                                                  apn: apn,
                                                  user: user,
@@ -3715,12 +3714,12 @@ RadioInterface.prototype = {
                                                  pdptype: pdptype });
   },
 
-  deactivateDataCall: function deactivateDataCall(cid, reason) {
+  deactivateDataCall: function(cid, reason) {
     this.workerMessenger.send("deactivateDataCall", { cid: cid,
                                                       reason: reason });
   },
 
-  sendWorkerMessage: function sendWorkerMessage(rilMessageType, message,
+  sendWorkerMessage: function(rilMessageType, message,
                                                 callback) {
     this.workerMessenger.send(rilMessageType, message, function(response) {
       return callback.handleResponse(response);
@@ -3880,14 +3879,14 @@ RILNetworkInterface.prototype = {
     return port;
   },
 
-  debug: function debug(s) {
+  debug: function(s) {
     dump("-*- RILNetworkInterface[" + this.radioInterface.clientId + ":" +
          this.type + "]: " + s + "\n");
   },
 
   
 
-  dataCallError: function dataCallError(message) {
+  dataCallError: function(message) {
     if (message.apn != this.apnSetting.apn) {
       return;
     }
@@ -3895,7 +3894,7 @@ RILNetworkInterface.prototype = {
     this.reset();
   },
 
-  dataCallStateChanged: function dataCallStateChanged(datacall) {
+  dataCallStateChanged: function(datacall) {
     if (this.cid && this.cid != datacall.cid) {
     
     
@@ -3987,7 +3986,7 @@ RILNetworkInterface.prototype = {
     }
   },
 
-  receiveDataCallList: function receiveDataCallList(dataCalls, length) {
+  receiveDataCallList: function(dataCalls, length) {
   },
 
   
@@ -4003,7 +4002,7 @@ RILNetworkInterface.prototype = {
 
   connectedTypes: null,
 
-  inConnectedTypes: function inConnectedTypes(type) {
+  inConnectedTypes: function(type) {
     return this.connectedTypes.indexOf(type) != -1;
   },
 
@@ -4011,7 +4010,7 @@ RILNetworkInterface.prototype = {
     return this.state == RIL.GECKO_NETWORK_STATE_CONNECTED;
   },
 
-  connect: function connect(apntype) {
+  connect: function(apntype) {
     if (apntype && !this.inConnectedTypes(apntype)) {
       this.connectedTypes.push(apntype);
     }
@@ -4060,7 +4059,7 @@ RILNetworkInterface.prototype = {
     this.connecting = true;
   },
 
-  reset: function reset() {
+  reset: function() {
     let apnRetryTimer;
     this.connecting = false;
     
@@ -4090,7 +4089,7 @@ RILNetworkInterface.prototype = {
                                 Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
-  disconnect: function disconnect(apntype) {
+  disconnect: function(apntype) {
     let index = this.connectedTypes.indexOf(apntype);
     if (index != -1) {
       this.connectedTypes.splice(index, 1);

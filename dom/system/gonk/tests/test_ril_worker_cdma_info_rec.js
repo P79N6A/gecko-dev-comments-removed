@@ -12,10 +12,10 @@ function run_test() {
 
 function newWorkerWithParcel(parcelBuf) {
   let worker = newWorker({
-    postRILMessage: function fakePostRILMessage(data) {
+    postRILMessage: function(data) {
       
     },
-    postMessage: function fakePostMessage(message) {
+    postMessage: function(message) {
       
     }
   });

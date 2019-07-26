@@ -39,7 +39,7 @@ let Buf = {
   outgoingIndex: 0,
   outgoingBufferCalSizeQueue: null,
 
-  _init: function _init() {
+  _init: function() {
     this.incomingBuffer = new ArrayBuffer(this.incomingBufferLength);
     this.outgoingBuffer = new ArrayBuffer(this.outgoingBufferLength);
 
@@ -79,7 +79,7 @@ let Buf = {
 
 
 
-  startCalOutgoingSize: function startCalOutgoingSize(writeFunction) {
+  startCalOutgoingSize: function(writeFunction) {
     let sizeInfo = {index: this.outgoingIndex,
                     write: writeFunction};
 
@@ -96,7 +96,7 @@ let Buf = {
   
 
 
-  stopCalOutgoingSize: function stopCalOutgoingSize() {
+  stopCalOutgoingSize: function() {
     let sizeInfo = this.outgoingBufferCalSizeQueue.pop();
 
     
@@ -120,7 +120,7 @@ let Buf = {
 
 
 
-  growIncomingBuffer: function growIncomingBuffer(min_size) {
+  growIncomingBuffer: function(min_size) {
     if (DEBUG) {
       debug("Current buffer of " + this.incomingBufferLength +
             " can't handle incoming " + min_size + " bytes.");
@@ -160,7 +160,7 @@ let Buf = {
 
 
 
-  growOutgoingBuffer: function growOutgoingBuffer(min_size) {
+  growOutgoingBuffer: function(min_size) {
     if (DEBUG) {
       debug("Current buffer of " + this.outgoingBufferLength +
             " is too small.");
@@ -189,7 +189,7 @@ let Buf = {
 
 
 
-  ensureIncomingAvailable: function ensureIncomingAvailable(index) {
+  ensureIncomingAvailable: function(index) {
     if (index >= this.currentParcelSize) {
       throw new Error("Trying to read data beyond the parcel end!");
     } else if (index < 0) {
@@ -203,7 +203,7 @@ let Buf = {
 
 
 
-  seekIncoming: function seekIncoming(offset) {
+  seekIncoming: function(offset) {
     
     let cur = this.currentParcelSize - this.readAvailable;
 
@@ -227,14 +227,14 @@ let Buf = {
     this.incomingReadIndex = newIndex;
   },
 
-  readUint8Unchecked: function readUint8Unchecked() {
+  readUint8Unchecked: function() {
     let value = this.incomingBytes[this.incomingReadIndex];
     this.incomingReadIndex = (this.incomingReadIndex + 1) %
                              this.incomingBufferLength;
     return value;
   },
 
-  readUint8: function readUint8() {
+  readUint8: function() {
     
     let cur = this.currentParcelSize - this.readAvailable;
     this.ensureIncomingAvailable(cur);
@@ -243,7 +243,7 @@ let Buf = {
     return this.readUint8Unchecked();
   },
 
-  readUint8Array: function readUint8Array(length) {
+  readUint8Array: function(length) {
     
     let last = this.currentParcelSize - this.readAvailable;
     last += (length - 1);
@@ -258,16 +258,16 @@ let Buf = {
     return array;
   },
 
-  readUint16: function readUint16() {
+  readUint16: function() {
     return this.readUint8() | this.readUint8() << 8;
   },
 
-  readInt32: function readInt32() {
+  readInt32: function() {
     return this.readUint8()       | this.readUint8() <<  8 |
            this.readUint8() << 16 | this.readUint8() << 24;
   },
 
-  readInt32List: function readInt32List() {
+  readInt32List: function() {
     let length = this.readInt32();
     let ints = [];
     for (let i = 0; i < length; i++) {
@@ -276,7 +276,7 @@ let Buf = {
     return ints;
   },
 
-  readString: function readString() {
+  readString: function() {
     let string_len = this.readInt32();
     if (string_len < 0 || string_len >= this.INT32_MAX) {
       return null;
@@ -292,7 +292,7 @@ let Buf = {
     return s;
   },
 
-  readStringList: function readStringList() {
+  readStringList: function() {
     let num_strings = this.readInt32();
     let strings = [];
     for (let i = 0; i < num_strings; i++) {
@@ -301,7 +301,7 @@ let Buf = {
     return strings;
   },
 
-  readStringDelimiter: function readStringDelimiter(length) {
+  readStringDelimiter: function(length) {
     let delimiter = this.readUint16();
     if (!(length & 1)) {
       delimiter |= this.readUint16();
@@ -313,7 +313,7 @@ let Buf = {
     }
   },
 
-  readParcelSize: function readParcelSize() {
+  readParcelSize: function() {
     return this.readUint8Unchecked() << 24 |
            this.readUint8Unchecked() << 16 |
            this.readUint8Unchecked() <<  8 |
@@ -331,32 +331,32 @@ let Buf = {
 
 
 
-  ensureOutgoingAvailable: function ensureOutgoingAvailable(index) {
+  ensureOutgoingAvailable: function(index) {
     if (index >= this.outgoingBufferLength) {
       this.growOutgoingBuffer(index + 1);
     }
   },
 
-  writeUint8: function writeUint8(value) {
+  writeUint8: function(value) {
     this.ensureOutgoingAvailable(this.outgoingIndex);
 
     this.outgoingBytes[this.outgoingIndex] = value;
     this.outgoingIndex++;
   },
 
-  writeUint16: function writeUint16(value) {
+  writeUint16: function(value) {
     this.writeUint8(value & 0xff);
     this.writeUint8((value >> 8) & 0xff);
   },
 
-  writeInt32: function writeInt32(value) {
+  writeInt32: function(value) {
     this.writeUint8(value & 0xff);
     this.writeUint8((value >> 8) & 0xff);
     this.writeUint8((value >> 16) & 0xff);
     this.writeUint8((value >> 24) & 0xff);
   },
 
-  writeString: function writeString(value) {
+  writeString: function(value) {
     if (value == null) {
       this.writeInt32(-1);
       return;
@@ -371,21 +371,21 @@ let Buf = {
     this.writeStringDelimiter(value.length);
   },
 
-  writeStringList: function writeStringList(strings) {
+  writeStringList: function(strings) {
     this.writeInt32(strings.length);
     for (let i = 0; i < strings.length; i++) {
       this.writeString(strings[i]);
     }
   },
 
-  writeStringDelimiter: function writeStringDelimiter(length) {
+  writeStringDelimiter: function(length) {
     this.writeUint16(0);
     if (!(length & 1)) {
       this.writeUint16(0);
     }
   },
 
-  writeParcelSize: function writeParcelSize(value) {
+  writeParcelSize: function(value) {
     
 
 
@@ -400,7 +400,7 @@ let Buf = {
     this.outgoingIndex = currentIndex;
   },
 
-  copyIncomingToOutgoing: function copyIncomingToOutgoing(length) {
+  copyIncomingToOutgoing: function(length) {
     if (!length || (length < 0)) {
       return;
     }
@@ -448,7 +448,7 @@ let Buf = {
 
 
 
-  writeToIncoming: function writeToIncoming(incoming) {
+  writeToIncoming: function(incoming) {
     
     
     
@@ -480,7 +480,7 @@ let Buf = {
 
 
 
-  processIncoming: function processIncoming(incoming) {
+  processIncoming: function(incoming) {
     if (DEBUG) {
       debug("Received " + incoming.length + " bytes.");
       debug("Already read " + this.readIncoming);
@@ -556,7 +556,7 @@ let Buf = {
   
 
 
-  sendParcel: function sendParcel() {
+  sendParcel: function() {
     
     
     
@@ -571,11 +571,11 @@ let Buf = {
     this.outgoingIndex = this.PARCEL_SIZE_SIZE;
   },
 
-  getCurrentParcelSize: function getCurrentParcelSize() {
+  getCurrentParcelSize: function() {
     return this.currentParcelSize;
   },
 
-  getReadAvailable: function getReadAvailable() {
+  getReadAvailable: function() {
     return this.readAvailable;
   }
 
