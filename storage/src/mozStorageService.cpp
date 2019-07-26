@@ -57,18 +57,18 @@ namespace storage {
 
 
 
-class StorageSQLiteUniReporter MOZ_FINAL : public MemoryUniReporter
+class StorageSQLiteReporter MOZ_FINAL : public MemoryReporterBase
 {
 public:
-  StorageSQLiteUniReporter()
-    : MemoryUniReporter("storage-sqlite", KIND_OTHER, UNITS_BYTES,
+  StorageSQLiteReporter()
+    : MemoryReporterBase("storage-sqlite", KIND_OTHER, UNITS_BYTES,
                          "Memory used by SQLite.")
   {}
 private:
   int64_t Amount() MOZ_OVERRIDE { return ::sqlite3_memory_used(); }
 };
 
-class StorageSQLiteMultiReporter MOZ_FINAL : public nsIMemoryReporter
+class StorageSQLiteMultiReporter MOZ_FINAL : public nsIMemoryMultiReporter
 {
 private:
   Service *mService;    
@@ -97,7 +97,7 @@ public:
 
   NS_IMETHOD GetName(nsACString &aName)
   {
-      aName.AssignLiteral("storage-sqlite-multi");
+      aName.AssignLiteral("storage-sqlite");
       return NS_OK;
   }
 
@@ -107,7 +107,7 @@ public:
   
   
   
-  NS_IMETHOD CollectReports(nsIMemoryReporterCallback *aCb,
+  NS_IMETHOD CollectReports(nsIMemoryMultiReporterCallback *aCb,
                             nsISupports *aClosure)
   {
     nsresult rv;
@@ -184,7 +184,8 @@ private:
 
 
 
-  nsresult reportConn(nsIMemoryReporterCallback *aCb,
+
+  nsresult reportConn(nsIMemoryMultiReporterCallback *aCb,
                       nsISupports *aClosure,
                       sqlite3 *aConn,
                       const nsACString &aPathHead,
@@ -215,7 +216,7 @@ private:
 
 NS_IMPL_ISUPPORTS1(
   StorageSQLiteMultiReporter,
-  nsIMemoryReporter
+  nsIMemoryMultiReporter
 )
 
 
@@ -307,8 +308,8 @@ Service::Service()
 
 Service::~Service()
 {
-  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteUniReporter);
-  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteMultiReporter);
+  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteReporter);
+  (void)::NS_UnregisterMemoryMultiReporter(mStorageSQLiteMultiReporter);
 
   int rc = sqlite3_vfs_unregister(mSqliteVFS);
   if (rc != SQLITE_OK)
@@ -540,10 +541,10 @@ Service::initialize()
 
   
   
-  mStorageSQLiteUniReporter = new StorageSQLiteUniReporter();
+  mStorageSQLiteReporter = new StorageSQLiteReporter();
   mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(this);
-  (void)::NS_RegisterMemoryReporter(mStorageSQLiteUniReporter);
-  (void)::NS_RegisterMemoryReporter(mStorageSQLiteMultiReporter);
+  (void)::NS_RegisterMemoryReporter(mStorageSQLiteReporter);
+  (void)::NS_RegisterMemoryMultiReporter(mStorageSQLiteMultiReporter);
 
   return NS_OK;
 }

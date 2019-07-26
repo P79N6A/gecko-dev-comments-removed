@@ -143,11 +143,11 @@ static int64_t gCanvasAzureMemoryUsed = 0;
 
 
 
-class Canvas2dPixelsReporter MOZ_FINAL : public MemoryUniReporter
+class Canvas2dPixelsReporter MOZ_FINAL : public MemoryReporterBase
 {
   public:
     Canvas2dPixelsReporter()
-      : MemoryUniReporter("canvas-2d-pixels", KIND_OTHER, UNITS_BYTES,
+      : MemoryReporterBase("canvas-2d-pixels", KIND_OTHER, UNITS_BYTES,
 "Memory used by 2D canvases. Each canvas requires (width * height * 4) bytes.")
     {}
 private:

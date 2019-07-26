@@ -8,7 +8,6 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/debug.js");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 #ifndef MOZ_WIDGET_GONK
@@ -459,7 +458,7 @@ TelemetryPing.prototype = {
     let e = mgr.enumerateReporters();
     while (e.hasMoreElements()) {
       let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-      let id = MEM_HISTOGRAMS[mr.name];
+      let id = MEM_HISTOGRAMS[mr.path];
       if (!id) {
         continue;
       }
@@ -467,24 +466,7 @@ TelemetryPing.prototype = {
       
       
       try {
-        
-        
-        let boundHandleMemoryReport = this.handleMemoryReport.bind(this);
-
-        
-        
-        let hasReported = false;
-
-        function h(process, path, kind, units, amount, desc) {
-          if (!hasReported) {
-            boundHandleMemoryReport(id, path, units, amount);
-            hasReported = true;
-          } else {
-            NS_ASSERT(false,
-                      "reporter " + mr.name + " has made more than one report");
-          }
-        }
-        mr.collectReports(h, null);
+        this.handleMemoryReport(id, mr.path, mr.units, mr.amount);
       }
       catch (e) {
       }
@@ -492,7 +474,11 @@ TelemetryPing.prototype = {
     histogram.add(new Date() - startTime);
   },
 
-  handleMemoryReport: function(id, path, units, amount) {
+  handleMemoryReport: function handleMemoryReport(id, path, units, amount) {
+    if (amount == -1) {
+      return;
+    }
+
     let val;
     if (units == Ci.nsIMemoryReporter.UNITS_BYTES) {
       val = Math.floor(amount / 1024);
