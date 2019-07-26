@@ -399,16 +399,11 @@ AudioNodeStream::UpMixDownMixChunk(const AudioChunk* aChunk,
 
 
 void
-AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
+AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
 {
-  if (mMarkAsFinishedAfterThisBlock) {
-    
-    
-    
-    FinishOutput();
-  }
-
   EnsureTrack(AUDIO_TRACK, mSampleRate);
+  
+  mBuffer.AdvanceKnownTracksTime(STREAM_TIME_MAX);
 
   uint16_t outputCount = std::max(uint16_t(1), mEngine->OutputCount());
   mLastChunks.SetLength(outputCount);
@@ -446,7 +441,16 @@ AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
     }
   }
 
-  AdvanceOutputSegment();
+  if (!IsFinishedOnGraphThread()) {
+    
+    AdvanceOutputSegment();
+    if (mMarkAsFinishedAfterThisBlock && (aFlags & ALLOW_FINISH)) {
+      
+      
+      
+      FinishOutput();
+    }
+  }
 }
 
 void

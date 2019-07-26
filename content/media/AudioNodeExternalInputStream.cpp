@@ -324,7 +324,8 @@ ConvertSegmentToAudioBlock(AudioSegment* aSegment, AudioChunk* aBlock)
 }
 
 void
-AudioNodeExternalInputStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
+AudioNodeExternalInputStream::ProduceOutput(GraphTime aFrom, GraphTime aTo,
+                                            uint32_t aFlags)
 {
   
   mLastChunks.SetLength(1);
