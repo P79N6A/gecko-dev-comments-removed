@@ -690,8 +690,7 @@ InspectorPanel.prototype = {
       this.markup.deleteNode(this.selection.nodeFront);
     } else {
       
-      let parent = this.selection.node.parentNode;
-      parent.removeChild(this.selection.node);
+      this.walker.removeNode(this.selection.nodeFront);
     }
   },
 
