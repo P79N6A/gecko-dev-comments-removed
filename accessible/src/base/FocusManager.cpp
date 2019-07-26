@@ -364,6 +364,11 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
     logging::FocusNotificationTarget("fire focus event", "Target", target);
 #endif
 
+  
+  
+  
+  SelectionMgr()->ResetCaretOffset();
+
   nsRefPtr<AccEvent> focusEvent =
     new AccEvent(nsIAccessibleEvent::EVENT_FOCUS, target, aEvent->FromUserInput());
   nsEventShell::FireEvent(focusEvent);

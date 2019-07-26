@@ -302,7 +302,7 @@ public:
 
 
   int32_t CaretOffset() const;
-  void SetCaretOffset(int32_t aOffset) { SetSelectionRange(aOffset, aOffset); }
+  void SetCaretOffset(int32_t aOffset);
 
   
 
@@ -406,6 +406,11 @@ public:
 
   virtual already_AddRefed<nsIEditor> GetEditor() const;
 
+  
+
+
+  dom::Selection* DOMSelection() const;
+
 protected:
   
   virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
@@ -489,7 +494,6 @@ protected:
 
 
   already_AddRefed<nsFrameSelection> FrameSelection() const;
-  dom::Selection* DOMSelection() const;
 
   
 

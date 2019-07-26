@@ -1163,6 +1163,22 @@ HyperTextAccessible::CaretOffset() const
   }
 
   
+  int32_t caretOffset = -1;
+  HyperTextAccessible* text = SelectionMgr()->AccessibleWithCaret(&caretOffset);
+
+  
+  if (caretOffset != -1) {
+    if (text == this)
+      return caretOffset;
+
+    nsINode* textNode = text->GetNode();
+    
+    if (nsCoreUtils::IsAncestorOf(GetNode(), textNode))
+      return TransformOffset(text,
+        textNode->IsNodeOfType(nsINode::eTEXT) ? caretOffset : 0, false);
+  }
+
+  
   
   FocusManager::FocusDisposition focusDisp =
     FocusMgr()->IsInOrContainsFocus(this);

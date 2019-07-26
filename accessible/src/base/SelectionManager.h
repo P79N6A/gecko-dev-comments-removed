@@ -20,6 +20,7 @@ class Element;
 namespace a11y {
 
 class AccEvent;
+class HyperTextAccessible;
 
 
 
@@ -81,7 +82,38 @@ public:
 
   void ProcessTextSelChangeEvent(AccEvent* aEvent);
 
+  
+
+
+
+
+  inline HyperTextAccessible* AccessibleWithCaret(int32_t* aCaret)
+  {
+    if (aCaret)
+      *aCaret = mCaretOffset;
+
+    return mAccWithCaret;
+  }
+
+  
+
+
+  inline void UpdateCaretOffset(HyperTextAccessible* aItem, int32_t aOffset)
+  {
+    mAccWithCaret = aItem;
+    mCaretOffset = aOffset;
+  }
+
+  inline void ResetCaretOffset()
+  {
+    mCaretOffset = -1;
+    mAccWithCaret = nullptr;
+  }
+
 protected:
+
+  SelectionManager();
+
   
 
 
@@ -90,6 +122,8 @@ protected:
 private:
   
   nsWeakFrame mCurrCtrlFrame;
+  int32_t mCaretOffset;
+  HyperTextAccessible* mAccWithCaret;
 };
 
 } 

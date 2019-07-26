@@ -32,6 +32,15 @@ HyperTextAccessible::IsValidRange(int32_t aStartOffset, int32_t aEndOffset)
     endOffset <= CharacterCount();
 }
 
+inline void
+HyperTextAccessible::SetCaretOffset(int32_t aOffset)
+{
+  SetSelectionRange(aOffset, aOffset);
+  
+  
+  SelectionMgr()->UpdateCaretOffset(this, aOffset);
+}
+
 inline bool
 HyperTextAccessible::AddToSelection(int32_t aStartOffset, int32_t aEndOffset)
 {
