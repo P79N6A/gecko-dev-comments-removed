@@ -12,7 +12,7 @@
 #include "nsSVGElement.h"
 #include "nsSVGUtils.h"
 #include "nsSVGAnimatedTransformList.h"
-#include "nsSVGTextFrame2.h"
+#include "SVGTextFrame.h"
 #include "RestyleManager.h"
 
 using namespace mozilla;
@@ -118,8 +118,8 @@ nsSVGContainerFrame::ReflowSVGNonDisplayText(nsIFrame* aContainer)
   for (nsIFrame* kid = aContainer->GetFirstPrincipalChild(); kid;
        kid = kid->GetNextSibling()) {
     nsIAtom* type = kid->GetType();
-    if (type == nsGkAtoms::svgTextFrame2) {
-      static_cast<nsSVGTextFrame2*>(kid)->ReflowSVGNonDisplayText();
+    if (type == nsGkAtoms::svgTextFrame) {
+      static_cast<SVGTextFrame*>(kid)->ReflowSVGNonDisplayText();
     } else {
       if (kid->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer) ||
           type == nsGkAtoms::svgForeignObjectFrame ||

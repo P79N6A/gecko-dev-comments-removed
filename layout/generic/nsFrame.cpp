@@ -67,7 +67,7 @@
 #include "nsChangeHint.h"
 #include "nsDeckFrame.h"
 #include "nsSubDocumentFrame.h"
-#include "nsSVGTextFrame2.h"
+#include "SVGTextFrame.h"
 
 #include "gfxContext.h"
 #include "nsRenderingContext.h"
@@ -710,8 +710,8 @@ nsFrame::GetOffsets(int32_t &aStart, int32_t &aEnd) const
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
   if (IsSVGText()) {
-    nsSVGTextFrame2* svgTextFrame = static_cast<nsSVGTextFrame2*>(
-        nsLayoutUtils::GetClosestFrameOfType(this, nsGkAtoms::svgTextFrame2));
+    SVGTextFrame* svgTextFrame = static_cast<SVGTextFrame*>(
+        nsLayoutUtils::GetClosestFrameOfType(this, nsGkAtoms::svgTextFrame));
     nsIFrame* anonBlock = svgTextFrame->GetFirstPrincipalChild();
     
     
@@ -7377,7 +7377,7 @@ nsIFrame::VerticalAlignEnum() const
     for (const nsIFrame* frame = this; frame; frame = frame->GetParent()) {
       dominantBaseline = frame->StyleSVGReset()->mDominantBaseline;
       if (dominantBaseline != NS_STYLE_DOMINANT_BASELINE_AUTO ||
-          frame->GetType() == nsGkAtoms::svgTextFrame2) {
+          frame->GetType() == nsGkAtoms::svgTextFrame) {
         break;
       }
     }

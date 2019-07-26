@@ -3,8 +3,8 @@
 
 
 
-#ifndef NS_SVGTEXTFRAME2_H
-#define NS_SVGTEXTFRAME2_H
+#ifndef MOZILLA_SVGTEXTFRAME_H
+#define MOZILLA_SVGTEXTFRAME_H
 
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
@@ -18,10 +18,10 @@
 
 class nsDisplaySVGText;
 class nsRenderingContext;
-class nsSVGTextFrame2;
+class SVGTextFrame;
 class nsTextFrame;
 
-typedef nsSVGDisplayContainerFrame nsSVGTextFrame2Base;
+typedef nsSVGDisplayContainerFrame SVGTextFrameBase;
 
 namespace mozilla {
 
@@ -130,11 +130,11 @@ private:
 class GlyphMetricsUpdater : public nsRunnable {
 public:
   NS_DECL_NSIRUNNABLE
-  GlyphMetricsUpdater(nsSVGTextFrame2* aFrame) : mFrame(aFrame) { }
-  static void Run(nsSVGTextFrame2* aFrame);
+  GlyphMetricsUpdater(SVGTextFrame* aFrame) : mFrame(aFrame) { }
+  static void Run(SVGTextFrame* aFrame);
   void Revoke() { mFrame = nullptr; }
 private:
-  nsSVGTextFrame2* mFrame;
+  SVGTextFrame* mFrame;
 };
 
 
@@ -238,10 +238,10 @@ struct SVGTextContextPaint : public gfxTextContextPaint {
 
 
 
-class nsSVGTextFrame2 : public nsSVGTextFrame2Base
+class SVGTextFrame : public SVGTextFrameBase
 {
   friend nsIFrame*
-  NS_NewSVGTextFrame2(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  NS_NewSVGTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   friend class mozilla::CharIterator;
   friend class mozilla::GlyphMetricsUpdater;
@@ -256,8 +256,8 @@ class nsSVGTextFrame2 : public nsSVGTextFrame2Base
   typedef mozilla::SVGTextContextPaint SVGTextContextPaint;
 
 protected:
-  nsSVGTextFrame2(nsStyleContext* aContext)
-    : nsSVGTextFrame2Base(aContext),
+  SVGTextFrame(nsStyleContext* aContext)
+    : SVGTextFrameBase(aContext),
       mFontSizeScaleFactor(1.0f),
       mLastContextScale(1.0f),
       mLengthAdjustScaleFactor(1.0f)
@@ -266,7 +266,7 @@ protected:
   }
 
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsSVGTextFrame2)
+  NS_DECL_QUERYFRAME_TARGET(SVGTextFrame)
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -298,7 +298,7 @@ public:
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
   {
-    return MakeFrameName(NS_LITERAL_STRING("SVGText2"), aResult);
+    return MakeFrameName(NS_LITERAL_STRING("SVGText"), aResult);
   }
 #endif
 
@@ -434,7 +434,7 @@ private:
     {
     }
 
-    void StartObserving(nsSVGTextFrame2* aFrame)
+    void StartObserving(SVGTextFrame* aFrame)
     {
       NS_ASSERTION(!mFrame, "should not be observing yet!");
       mFrame = aFrame;
@@ -459,7 +459,7 @@ private:
     NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
 
   private:
-    nsSVGTextFrame2* mFrame;
+    SVGTextFrame* mFrame;
   };
 
   
