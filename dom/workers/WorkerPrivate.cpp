@@ -5260,23 +5260,16 @@ WorkerPrivate::ConnectMessagePort(JSContext* aCx, uint64_t aMessagePortSerial)
     return false;
   }
 
-  nsRefPtr<nsDOMMessageEvent> event;
-  {
-    
-    
-    
-    
-    
-    MessageEventInit init;
-    init.mBubbles = false;
-    init.mCancelable = false;
-    init.mSource = &jsPort.toObject();
+  MessageEventInit init;
+  init.mBubbles = false;
+  init.mCancelable = false;
+  init.mSource = &jsPort.toObject();
 
-    ErrorResult rv;
-    event = nsDOMMessageEvent::Constructor(globalObject, aCx,
-                                           NS_LITERAL_STRING("connect"),
-                                           init, rv);
-  }
+  ErrorResult rv;
+
+  nsRefPtr<nsDOMMessageEvent> event =
+    nsDOMMessageEvent::Constructor(globalObject, aCx,
+                                   NS_LITERAL_STRING("connect"), init, rv);
 
   event->SetTrusted(true);
 
