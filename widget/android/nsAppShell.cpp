@@ -3,14 +3,15 @@
 
 
 
+#include "nsAppShell.h"
 
 #include "base/basictypes.h"
 #include "nspr/prtypes.h"
 #include "base/message_loop.h"
 #include "base/task.h"
-
 #include "mozilla/Hal.h"
-#include "nsAppShell.h"
+#include "nsIScreen.h"
+#include "nsIScreenManager.h"
 #include "nsWindow.h"
 #include "nsThreadUtils.h"
 #include "nsICommandLineRunner.h"
