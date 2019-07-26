@@ -508,6 +508,9 @@ PeerConnectionImpl::CreateDataChannel(const nsACString& aLabel,
 
   CSFLogDebugS(logTag, __FUNCTION__ << ": making DOMDataChannel");
 
+  
+  
+
   return NS_NewDOMDataChannel(dataChannel.forget(), mWindow, aRetval);
 #else
   return NS_OK;

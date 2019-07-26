@@ -3058,7 +3058,7 @@ fsmdef_ev_createanswer (sm_event_t *event) {
 
 
 
-    cause = gsmsdp_create_local_sdp(dcb, FALSE, has_audio, has_video, has_data, FALSE);
+    cause = gsmsdp_create_local_sdp(dcb, TRUE, has_audio, has_video, has_data, FALSE);
     if (cause != CC_CAUSE_OK) {
         ui_create_answer(evCreateAnswerError, line, call_id,
             dcb->caller_id.call_instance_id, strlib_empty());
@@ -3070,7 +3070,11 @@ fsmdef_ev_createanswer (sm_event_t *event) {
     
 
 
-    cause = gsmsdp_negotiate_media_lines(fcb, dcb->sdp, TRUE, TRUE, FALSE, TRUE);
+    cause = gsmsdp_negotiate_media_lines(fcb, dcb->sdp,
+                   TRUE,
+                           TRUE,
+             FALSE,
+                   TRUE);
 
     if (cause != CC_CAUSE_OK) {
         ui_create_answer(evCreateAnswerError, line, call_id,

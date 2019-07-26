@@ -976,16 +976,23 @@ lsm_rx_start (lsm_lcb_t *lcb, const char *fname, fsmdef_media_t *media)
                 }
 
                 
+
+
+
+
+
+
+
                 if ( media->cap_index == CC_VIDEO_1 ) {
                     attrs.video.opaque = media->video;
-                    pc_stream_id = 1;
+                    pc_stream_id = media->level - 1;
                 } else {
                     attrs.audio.packetization_period = media->packetization_period;
                     attrs.audio.max_packetization_period = media->max_packetization_period;
                     attrs.audio.avt_payload_type = media->avt_payload_type;
                     attrs.audio.mixing_mode = mix_mode;
                     attrs.audio.mixing_party = mix_party;
-                    pc_stream_id = 0;
+                    pc_stream_id = media->level - 1;
                 }
                 pc_track_id = 0;
                 dcb->cur_video_avail &= ~CC_ATTRIB_CAST;
