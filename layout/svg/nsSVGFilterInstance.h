@@ -142,6 +142,18 @@ private:
   
 
 
+
+
+
+
+  nsresult GetSourceIndices(nsSVGFE* aPrimitiveElement,
+                            const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
+                            const nsDataHashtable<nsStringHashKey, int32_t>& aImageTable,
+                            nsTArray<int32_t>& aSourceIndices);
+
+  
+
+
   const nsStyleFilter mFilter;
 
   
@@ -174,6 +186,13 @@ private:
 
 
   uint16_t                mPrimitiveUnits;
+
+  
+
+
+
+
+  int32_t mSourceGraphicIndex;
 
   bool                    mInitialized;
 };
