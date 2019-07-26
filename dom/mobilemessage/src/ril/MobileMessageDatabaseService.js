@@ -1167,15 +1167,14 @@ MobileMessageDatabaseService.prototype = {
 
     
     
-    aMessage.deliveryIndex = [DELIVERY_RECEIVED, timestamp];
     aMessage.readIndex = [FILTER_READ_UNREAD, timestamp];
+    aMessage.read = FILTER_READ_UNREAD;
 
     if (aMessage.type == "sms") {
-      aMessage.deliveryStatus = DELIVERY_STATUS_SUCCESS;
       aMessage.delivery = DELIVERY_RECEIVED;
+      aMessage.deliveryStatus = DELIVERY_STATUS_SUCCESS;
     }
-
-    aMessage.read = FILTER_READ_UNREAD;
+    aMessage.deliveryIndex = [aMessage.delivery, timestamp];
 
     return this.saveRecord(aMessage, threadParticipants, aCallback);
   },
