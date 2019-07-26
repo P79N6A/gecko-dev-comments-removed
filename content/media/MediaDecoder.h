@@ -893,7 +893,6 @@ public:
 
     FrameStatistics() :
         mReentrantMonitor("MediaDecoder::FrameStats"),
-        mTotalFrameDelay(0.0),
         mParsedFrames(0),
         mDecodedFrames(0),
         mPresentedFrames(0) {}
@@ -920,11 +919,6 @@ public:
       return mPresentedFrames;
     }
 
-    double GetTotalFrameDelay() {
-      ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-      return mTotalFrameDelay;
-    }
-
     
     
     void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) {
@@ -942,21 +936,10 @@ public:
       ++mPresentedFrames;
     }
 
-    
-    
-    void NotifyFrameDelay(double aFrameDelay) {
-      ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-      mTotalFrameDelay += aFrameDelay;
-    }
-
   private:
 
     
     ReentrantMonitor mReentrantMonitor;
-
-    
-    
-    double mTotalFrameDelay;
 
     
     
