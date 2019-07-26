@@ -82,10 +82,6 @@ public:
   
   
   
-  
-  
-  
-  
   nsresult Reflow(nsContainerFrame*        aDelegatingFrame,
                   nsPresContext*           aPresContext,
                   const nsHTMLReflowState& aReflowState,
