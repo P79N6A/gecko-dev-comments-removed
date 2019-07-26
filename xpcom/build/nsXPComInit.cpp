@@ -832,6 +832,20 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
         NS_WARNING("Component Manager was never created ...");
     }
 
+#ifdef MOZ_ENABLE_PROFILER_SPS
+    
+    
+    
+    
+    
+    
+    
+    
+    if (PseudoStack *stack = mozilla_get_pseudo_stack()) {
+        stack->sampleRuntime(nullptr);
+    }
+#endif
+
     
     JS_ShutDown();
 
