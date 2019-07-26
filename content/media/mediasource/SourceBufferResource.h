@@ -283,7 +283,7 @@ public:
 
 private:
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  const nsAutoCString mType;
+  const nsCString mType;
 
   
   
