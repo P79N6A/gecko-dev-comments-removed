@@ -633,6 +633,7 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
 
     
     
+    parseTask->cx->leaveCompartment(parseTask->cx->compartment());
     rt->clearUsedByExclusiveThread(parseTask->cx->zone());
     if (!maybecx) {
         return nullptr;
