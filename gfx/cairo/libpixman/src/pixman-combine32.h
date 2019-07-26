@@ -1,8 +1,3 @@
-
-
-
-#line 1 "pixman-combine.c.template"
-
 #define COMPONENT_SIZE 8
 #define MASK 0xff
 #define ONE_HALF 0x80

@@ -1,7 +1,26 @@
 
 
 
-#line 1 "pixman-combine.c.template"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -10,7 +29,6 @@
 #include <string.h>
 
 #include "pixman-private.h"
-
 #include "pixman-combine32.h"
 
 
@@ -100,10 +118,6 @@ combine_mask_alpha_ca (const uint32_t *src, uint32_t *mask)
 
 
 
-
-
-
-
 static force_inline uint32_t
 combine_mask (const uint32_t *src, const uint32_t *mask, int i)
 {
@@ -158,7 +172,9 @@ combine_src_u (pixman_implementation_t *imp,
     int i;
 
     if (!mask)
+    {
 	memcpy (dest, src, width * sizeof (uint32_t));
+    }
     else
     {
 	for (i = 0; i < width; ++i)
@@ -169,7 +185,6 @@ combine_src_u (pixman_implementation_t *imp,
 	}
     }
 }
-
 
 static void
 combine_over_u (pixman_implementation_t *imp,
@@ -192,7 +207,6 @@ combine_over_u (pixman_implementation_t *imp,
     }
 }
 
-
 static void
 combine_over_reverse_u (pixman_implementation_t *imp,
                         pixman_op_t              op,
@@ -213,7 +227,6 @@ combine_over_reverse_u (pixman_implementation_t *imp,
     }
 }
 
-
 static void
 combine_in_u (pixman_implementation_t *imp,
               pixman_op_t              op,
@@ -232,7 +245,6 @@ combine_in_u (pixman_implementation_t *imp,
 	*(dest + i) = s;
     }
 }
-
 
 static void
 combine_in_reverse_u (pixman_implementation_t *imp,
@@ -254,7 +266,6 @@ combine_in_reverse_u (pixman_implementation_t *imp,
     }
 }
 
-
 static void
 combine_out_u (pixman_implementation_t *imp,
                pixman_op_t              op,
@@ -273,7 +284,6 @@ combine_out_u (pixman_implementation_t *imp,
 	*(dest + i) = s;
     }
 }
-
 
 static void
 combine_out_reverse_u (pixman_implementation_t *imp,
@@ -294,9 +304,6 @@ combine_out_reverse_u (pixman_implementation_t *imp,
 	*(dest + i) = d;
     }
 }
-
-
-
 
 static void
 combine_atop_u (pixman_implementation_t *imp,
@@ -320,9 +327,6 @@ combine_atop_u (pixman_implementation_t *imp,
     }
 }
 
-
-
-
 static void
 combine_atop_reverse_u (pixman_implementation_t *imp,
                         pixman_op_t              op,
@@ -344,9 +348,6 @@ combine_atop_reverse_u (pixman_implementation_t *imp,
 	*(dest + i) = s;
     }
 }
-
-
-
 
 static void
 combine_xor_u (pixman_implementation_t *imp,
@@ -389,9 +390,6 @@ combine_add_u (pixman_implementation_t *imp,
     }
 }
 
-
-
-
 static void
 combine_saturate_u (pixman_implementation_t *imp,
                     pixman_op_t              op,
@@ -420,7 +418,6 @@ combine_saturate_u (pixman_implementation_t *imp,
 	*(dest + i) = d;
     }
 }
-
 
 
 
@@ -493,7 +490,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	uint32_t r = d;
 	uint32_t dest_ia = ALPHA_8 (~d);
 
-	combine_mask_value_ca (&s, &m);
+	combine_mask_ca (&s, &m);
 
 	UN8x4_MUL_UN8x4_ADD_UN8x4_MUL_UN8 (r, ~m, s, dest_ia);
 	UN8x4_MUL_UN8x4 (d, s);
@@ -550,7 +547,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    uint8_t ida = ~da;						\
 	    uint32_t result;						\
             								\
-	    combine_mask_value_ca (&s, &m);				\
+	    combine_mask_ca (&s, &m);					\
             								\
 	    result = d;							\
 	    UN8x4_MUL_UN8x4_ADD_UN8x4_MUL_UN8 (result, ~m, s, ida);     \
@@ -1586,7 +1583,6 @@ combine_conjoint_xor_u (pixman_implementation_t *imp,
 
 
 
-
 static void
 combine_clear_ca (pixman_implementation_t *imp,
                   pixman_op_t              op,
@@ -2462,4 +2458,3 @@ _pixman_setup_combiner_functions_32 (pixman_implementation_t *imp)
     imp->combine_32_ca[PIXMAN_OP_HSL_COLOR] = combine_dst;
     imp->combine_32_ca[PIXMAN_OP_HSL_LUMINOSITY] = combine_dst;
 }
-
