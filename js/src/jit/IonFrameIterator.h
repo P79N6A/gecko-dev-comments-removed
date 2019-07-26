@@ -246,8 +246,9 @@ class IonBailoutIterator;
 
 
 
-class SnapshotIterator : public SnapshotReader
+class SnapshotIterator
 {
+    SnapshotReader snapshot_;
     IonJSFrameLayout *fp_;
     MachineState machine_;
     IonScript *ionScript_;
@@ -279,16 +280,56 @@ class SnapshotIterator : public SnapshotReader
     void warnUnreadableAllocation();
 
   public:
+    
+    inline RValueAllocation readAllocation() {
+        return snapshot_.readAllocation();
+    }
+    Value skip() {
+        readAllocation();
+        return UndefinedValue();
+    }
+
+    inline uint32_t allocations() const {
+        return snapshot_.allocations();
+    }
+    inline bool moreAllocations() const {
+        return snapshot_.moreAllocations();
+    }
+
+  public:
+    
+    inline uint32_t pcOffset() const {
+        return snapshot_.pcOffset();
+    }
+    inline bool resumeAfter() const {
+        return snapshot_.resumeAfter();
+    }
+    inline BailoutKind bailoutKind() const {
+        return snapshot_.bailoutKind();
+    }
+
+  public:
+    
+    inline void nextFrame() {
+        snapshot_.nextFrame();
+    }
+    inline bool moreFrames() const {
+        return snapshot_.moreFrames();
+    }
+    inline uint32_t frameCount() const {
+        return snapshot_.frameCount();
+    }
+
+  public:
+    
+    
+
     SnapshotIterator(IonScript *ionScript, SnapshotOffset snapshotOffset,
                      IonJSFrameLayout *fp, const MachineState &machine);
     SnapshotIterator(const IonFrameIterator &iter);
     SnapshotIterator(const IonBailoutIterator &iter);
     SnapshotIterator();
 
-    Value skip() {
-        readAllocation();
-        return UndefinedValue();
-    }
     Value read() {
         return allocationValue(readAllocation());
     }
