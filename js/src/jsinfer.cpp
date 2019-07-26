@@ -551,8 +551,6 @@ static LifoAlloc *IonAlloc() {
 #endif
 }
 
-namespace {
-
 
 
 class CompilerConstraint
@@ -575,8 +573,6 @@ class CompilerConstraint
     
     virtual bool generateTypeConstraint(JSContext *cx, RecompileInfo recompileInfo) = 0;
 };
-
-} 
 
 class types::CompilerConstraintList
 {

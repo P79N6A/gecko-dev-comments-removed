@@ -1456,6 +1456,7 @@ GetBlockChainAtPC(JSContext *cx, JSScript *script, jsbytecode *pc)
     return blockChain;
 }
 
+namespace {
 
 
 
@@ -1764,6 +1765,8 @@ ExpressionDecompiler::getOutput(char **res)
     (*res)[len] = 0;
     return true;
 }
+
+}  
 
 static bool
 FindStartPC(JSContext *cx, ScriptFrameIter &iter, int spindex, int skipStackHits, Value v,
