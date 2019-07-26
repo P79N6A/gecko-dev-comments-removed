@@ -953,7 +953,7 @@ nsFlexContainerFrame::
              "should be complete");
 
   rv = FinishReflowChild(aFlexItem.Frame(), aPresContext,
-                         &childRSForMeasuringHeight, childDesiredSize,
+                         childDesiredSize, &childRSForMeasuringHeight,
                          0, 0, flags);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2526,7 +2526,7 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
   
   
   rv = FinishReflowChild(aItem.Frame(), aPresContext,
-                         &aChildReflowState, childDesiredSize, 0, 0, flags);
+                         childDesiredSize, &aChildReflowState, 0, 0, flags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2863,7 +2863,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
       childReflowState.ApplyRelativePositioning(&physicalPosn);
 
       rv = FinishReflowChild(curItem.Frame(), aPresContext,
-                             &childReflowState, childDesiredSize,
+                             childDesiredSize, &childReflowState,
                              physicalPosn.x, physicalPosn.y, 0);
       NS_ENSURE_SUCCESS(rv, rv);
 

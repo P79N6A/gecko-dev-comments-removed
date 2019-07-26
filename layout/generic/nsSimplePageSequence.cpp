@@ -223,7 +223,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, x, y, 0, status);
 
-    FinishReflowChild(kidFrame, aPresContext, nullptr, kidSize, x, y, 0);
+    FinishReflowChild(kidFrame, aPresContext, kidSize, nullptr, x, y, 0);
     y += kidSize.Height();
     y += pageCSSMargin.bottom;
 

@@ -392,8 +392,8 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
   aReflowState.ApplyRelativePositioning(&position);
   
   
-  nsContainerFrame::FinishReflowChild(mFrame, mPresContext, &aReflowState,
-                                      mMetrics, position.x, position.y, 0);
+  nsContainerFrame::FinishReflowChild(mFrame, mPresContext, mMetrics,
+                                      &aReflowState, position.x, position.y, 0);
 
   aOverflowAreas = mMetrics.mOverflowAreas + position;
 

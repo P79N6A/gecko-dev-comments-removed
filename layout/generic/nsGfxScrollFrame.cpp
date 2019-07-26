@@ -467,7 +467,7 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
   
   
   FinishReflowChild(mHelper.mScrolledFrame, presContext,
-                    &kidReflowState, *aMetrics, 0, 0,
+                    *aMetrics, &kidReflowState, 0, 0,
                     NS_FRAME_NO_MOVE_FRAME | NS_FRAME_NO_SIZE_VIEW);
 
   
