@@ -44,6 +44,7 @@ using mozilla::plugins::PluginInstanceParent;
 #ifdef MOZ_ENABLE_D3D10_LAYER
 #include "LayerManagerD3D10.h"
 #endif
+#include "mozilla/layers/CompositorParent.h"
 
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
@@ -210,6 +211,13 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 
     ValidateRect(mWnd, NULL);
     return true;
+  }
+
+  
+  
+  if (GetLayerManager()->GetBackendType() == LAYERS_CLIENT &&
+      mCompositorParent) {
+    mCompositorParent->ScheduleRenderOnCompositorThread();
   }
 
   nsIWidgetListener* listener = GetPaintListener();
