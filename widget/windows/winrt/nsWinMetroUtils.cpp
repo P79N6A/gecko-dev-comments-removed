@@ -1,0 +1,320 @@
+
+
+
+
+
+#include "nsWinMetroUtils.h"
+#include "MetroUtils.h"
+#include "nsXULAppAPI.h"
+#include "FrameworkView.h"
+#include "MetroApp.h"
+
+#include <shldisp.h>
+#include <shellapi.h>
+#include <windows.ui.viewmanagement.h>
+#include <windows.ui.startscreen.h>
+
+using namespace ABI::Windows::Foundation;
+using namespace ABI::Windows::UI::StartScreen;
+using namespace ABI::Windows::UI::ViewManagement;
+using namespace Microsoft::WRL;
+using namespace Microsoft::WRL::Wrappers;
+using namespace mozilla::widget::winrt;
+
+namespace mozilla {
+namespace widget {
+namespace winrt {
+extern ComPtr<MetroApp> sMetroApp;
+extern nsTArray<nsString>* sSettingsArray;
+} } }
+
+namespace mozilla {
+namespace widget {
+
+NS_IMPL_ISUPPORTS1(nsWinMetroUtils, nsIWinMetroUtils)
+
+nsWinMetroUtils::nsWinMetroUtils()
+{
+}
+
+nsWinMetroUtils::~nsWinMetroUtils()
+{
+}
+
+
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsWinMetroUtils::PinTileAsync(const nsAString &aTileID,
+                              const nsAString &aShortName,
+                              const nsAString &aDisplayName,
+                              const nsAString &aActivationArgs,
+                              const nsAString &aTileImage,
+                              const nsAString &aSmallTileImage)
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    NS_WARNING("PinTileAsync can't be called on the desktop.");
+    return NS_ERROR_FAILURE;
+  }
+  HRESULT hr;
+
+  HString logoStr, smallLogoStr, displayName, shortName;
+
+  logoStr.Set(aTileImage.BeginReading());
+  smallLogoStr.Set(aSmallTileImage.BeginReading());
+  displayName.Set(aDisplayName.BeginReading());
+  shortName.Set(aShortName.BeginReading());
+
+  ComPtr<IUriRuntimeClass> logo, smallLogo;
+  AssertRetHRESULT(MetroUtils::CreateUri(logoStr, logo), NS_ERROR_FAILURE);
+  AssertRetHRESULT(MetroUtils::CreateUri(smallLogoStr, smallLogo), NS_ERROR_FAILURE);
+
+  HString tileActivationArgumentsStr, tileIdStr;
+  tileActivationArgumentsStr.Set(aActivationArgs.BeginReading());
+  tileIdStr.Set(aTileID.BeginReading());
+
+  ComPtr<ISecondaryTileFactory> tileFactory;
+  ComPtr<ISecondaryTile> secondaryTile;
+  hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_UI_StartScreen_SecondaryTile).Get(),
+                            tileFactory.GetAddressOf());
+  AssertRetHRESULT(hr, NS_ERROR_FAILURE);
+  hr = tileFactory->CreateWithId(tileIdStr.Get(), secondaryTile.GetAddressOf());
+  AssertRetHRESULT(hr, NS_ERROR_FAILURE);
+
+  secondaryTile->put_Logo(logo.Get());
+  secondaryTile->put_SmallLogo(smallLogo.Get());
+  secondaryTile->put_DisplayName(displayName.Get());
+  secondaryTile->put_ShortName(shortName.Get());
+  secondaryTile->put_Arguments(tileActivationArgumentsStr.Get());
+  secondaryTile->put_TileOptions(TileOptions::TileOptions_ShowNameOnLogo);
+  secondaryTile->put_ForegroundText(ForegroundText::ForegroundText_Dark);
+
+  
+  ComPtr<IAsyncOperationCompletedHandler<bool>> callback(Callback<IAsyncOperationCompletedHandler<bool>>(
+    sMetroApp.Get(), &MetroApp::OnAsyncTileCreated));
+  ComPtr<IAsyncOperation<bool>> operation;
+  AssertRetHRESULT(secondaryTile->RequestCreateAsync(operation.GetAddressOf()), NS_ERROR_FAILURE);
+  operation->put_Completed(callback.Get());
+  return NS_OK;
+}
+
+
+
+
+
+
+NS_IMETHODIMP
+nsWinMetroUtils::UnpinTileAsync(const nsAString &aTileID)
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    NS_WARNING("UnpinTileAsync can't be called on the desktop.");
+    return NS_ERROR_FAILURE;
+  }
+  HRESULT hr;
+  HString tileIdStr;
+  tileIdStr.Set(aTileID.BeginReading());
+
+  ComPtr<ISecondaryTileFactory> tileFactory;
+  ComPtr<ISecondaryTile> secondaryTile;
+  hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_UI_StartScreen_SecondaryTile).Get(),
+                            tileFactory.GetAddressOf());
+  AssertRetHRESULT(hr, NS_ERROR_FAILURE);
+  hr = tileFactory->CreateWithId(tileIdStr.Get(), secondaryTile.GetAddressOf());
+  AssertRetHRESULT(hr, NS_ERROR_FAILURE);
+
+  
+  ComPtr<IAsyncOperationCompletedHandler<bool>> callback(Callback<IAsyncOperationCompletedHandler<bool>>(
+    sMetroApp.Get(), &MetroApp::OnAsyncTileCreated));
+  ComPtr<IAsyncOperation<bool>> operation;
+  AssertRetHRESULT(secondaryTile->RequestDeleteAsync(operation.GetAddressOf()), NS_ERROR_FAILURE);
+  operation->put_Completed(callback.Get());
+  return NS_OK;
+}
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsWinMetroUtils::IsTilePinned(const nsAString &aTileID, bool *aIsPinned)
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    NS_WARNING("IsTilePinned can't be called on the desktop.");
+    return NS_ERROR_FAILURE;
+  }
+  NS_ENSURE_ARG_POINTER(aIsPinned);
+
+  HRESULT hr;
+  HString tileIdStr;
+  tileIdStr.Set(aTileID.BeginReading());
+
+  ComPtr<ISecondaryTileStatics> tileStatics;
+  hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_UI_StartScreen_SecondaryTile).Get(),
+                            tileStatics.GetAddressOf());
+  AssertRetHRESULT(hr, NS_ERROR_FAILURE);
+  boolean result = false;
+  tileStatics->Exists(tileIdStr.Get(), &result);
+  *aIsPinned = result;
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsWinMetroUtils::LaunchInDesktop(const nsAString &aPath, const nsAString &aArguments)
+{
+  SHELLEXECUTEINFOW sinfo;
+  memset(&sinfo, 0, sizeof(SHELLEXECUTEINFOW));
+  sinfo.cbSize       = sizeof(SHELLEXECUTEINFOW);
+  
+  
+  
+  sinfo.fMask        = SEE_MASK_FLAG_LOG_USAGE;
+  sinfo.hwnd         = NULL;
+  sinfo.lpFile       = aPath.BeginReading();
+  sinfo.lpParameters = aArguments.BeginReading();
+  sinfo.lpVerb       = L"open";
+  sinfo.nShow        = SW_SHOWNORMAL;
+
+  if (!ShellExecuteEx(&sinfo)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetSnappedState(int32_t *aSnappedState)
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    NS_WARNING("GetSnappedState can't be called on the desktop.");
+    return NS_ERROR_FAILURE;
+  }
+  NS_ENSURE_ARG_POINTER(aSnappedState);
+  ApplicationViewState viewState;
+  AssertRetHRESULT(MetroUtils::GetViewState(viewState), NS_ERROR_UNEXPECTED);
+  *aSnappedState = (int32_t) viewState;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::Unsnap()
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    NS_WARNING("Unsnap can't be called on the desktop.");
+    return NS_ERROR_FAILURE;
+  }
+
+  HRESULT hr = MetroUtils::TryUnsnap();
+  return SUCCEEDED(hr) ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::ShowSettingsFlyout()
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    NS_WARNING("Settings flyout can't be shown on the desktop.");
+    return NS_ERROR_FAILURE;
+  }
+
+  HRESULT hr = MetroUtils::ShowSettingsFlyout();
+  return SUCCEEDED(hr) ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetImmersive(bool *aImersive)
+{
+  *aImersive = 
+    XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetHandPreference(int32_t *aHandPreference)
+{
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Desktop) {
+    *aHandPreference = nsIWinMetroUtils::handPreferenceRight;
+    return NS_OK;
+  }
+
+  ComPtr<IUISettings> uiSettings;
+  AssertRetHRESULT(ActivateGenericInstance(RuntimeClass_Windows_UI_ViewManagement_UISettings, uiSettings), NS_ERROR_UNEXPECTED);
+
+  HandPreference value;
+  uiSettings->get_HandPreference(&value);
+  if (value == HandPreference::HandPreference_LeftHanded) 
+    *aHandPreference = nsIWinMetroUtils::handPreferenceLeft;
+  else
+    *aHandPreference = nsIWinMetroUtils::handPreferenceRight;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetKeyboardVisible(bool *aImersive)
+{
+  *aImersive = mozilla::widget::winrt::FrameworkView::IsKeyboardVisible();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetKeyboardX(uint32_t *aX)
+{
+  *aX = (uint32_t)floor(mozilla::widget::winrt::FrameworkView::KeyboardVisibleRect().X);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetKeyboardY(uint32_t *aY)
+{
+  *aY = (uint32_t)floor(mozilla::widget::winrt::FrameworkView::KeyboardVisibleRect().Y);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetKeyboardWidth(uint32_t *aWidth)
+{
+  *aWidth = (uint32_t)ceil(mozilla::widget::winrt::FrameworkView::KeyboardVisibleRect().Width);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetKeyboardHeight(uint32_t *aHeight)
+{
+  *aHeight = (uint32_t)ceil(mozilla::widget::winrt::FrameworkView::KeyboardVisibleRect().Height);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::AddSettingsPanelEntry(const nsAString& aLabel, uint32_t *aId)
+{
+  NS_ENSURE_ARG_POINTER(aId);
+  if (!sSettingsArray)
+    return NS_ERROR_UNEXPECTED;
+
+  *aId = sSettingsArray->Length();
+  sSettingsArray->AppendElement(nsString(aLabel));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::SwapMouseButton(bool aValue, bool *aOriginalValue)
+{
+  *aOriginalValue = ::SwapMouseButton(aValue);
+  return NS_OK;
+}
+
+} 
+} 
