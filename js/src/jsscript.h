@@ -1208,15 +1208,8 @@ struct ScriptAndCounts
 
 } 
 
-
-
-
-
-
-#define js_GetSrcNote(script,pc) js_GetSrcNoteCached(cx, script, pc)
-
 extern jssrcnote *
-js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc);
+js_GetSrcNote(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 extern jsbytecode *
 js_LineNumberToPC(JSScript *script, unsigned lineno);
