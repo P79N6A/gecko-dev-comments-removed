@@ -791,8 +791,16 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
     return appliedTransform;
   }
 
+  AsyncPanZoomController* controller = nullptr;
+  
   if (LayerUserData* data = aLayer->GetUserData(&sPanZoomUserDataKey)) {
-    AsyncPanZoomController* controller = static_cast<PanZoomUserData*>(data)->mController;
+    controller = static_cast<PanZoomUserData*>(data)->mController;
+  } else {
+    
+    controller = GetDefaultPanZoomController();
+  }
+
+  if (controller) {
     ShadowLayer* shadow = aLayer->AsShadowLayer();
 
     gfx3DMatrix newTransform;
