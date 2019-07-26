@@ -241,20 +241,44 @@ function getPhase(topic) {
 
 
 
-
     addBlocker: function(name, condition, state = null) {
-      if (typeof name != "string") {
-        throw new TypeError("Expected a human-readable name as first argument");
+      spinner.addBlocker(name, condition, state);
+    },
+    
+
+
+
+
+
+
+
+
+
+
+
+    removeBlocker: function(condition) {
+      return spinner.removeBlocker(condition);
+    },
+    
+
+
+
+    get _trigger() {
+      let accepted = false;
+      try {
+        accepted = Services.prefs.getBoolPref("toolkit.asyncshutdown.testing");
+      } catch (ex) {
+        
       }
-      if (state && typeof state != "function") {
-        throw new TypeError("Expected nothing or a function as third argument");
+      if (accepted) {
+        return () => spinner.observe();
       }
-      spinner.addBlocker({name: name, condition: condition, state: state});
+      return undefined;
     }
   });
   gPhases.set(topic, phase);
   return phase;
-}
+};
 
 
 
@@ -263,8 +287,8 @@ function getPhase(topic) {
 
 
 function Spinner(topic) {
+  this._barrier = new Barrier(topic);
   this._topic = topic;
-  this._conditions = new Set(); 
   Services.obs.addObserver(this, topic, false);
 }
 
@@ -282,99 +306,292 @@ Spinner.prototype = {
 
 
 
-  addBlocker: function(condition) {
-    if (!this._conditions) {
-      throw new Error("Phase " + this._topic +
-                      " has already begun, it is too late to register" +
-                      " completion condition '" + condition.name + "'.");
-    }
-    this._conditions.add(condition);
+  addBlocker: function(name, condition, state) {
+    this._barrier.client.addBlocker(name, condition, state);
+  },
+  
+
+
+
+
+
+
+
+
+
+
+
+  removeBlocker: function(condition) {
+    return this._barrier.client.removeBlocker(condition);
   },
 
+  
   observe: function() {
     let topic = this._topic;
+    let barrier = this._barrier;
     Services.obs.removeObserver(this, topic);
 
+    let satisfied = false; 
+    let promise = this._barrier.wait({
+      warnAfterMS: DELAY_WARNING_MS,
+      crashAfterMS: DELAY_CRASH_MS
+    });
+
+    
+    promise.then(() => satisfied = true); 
+    let thread = Services.tm.mainThread;
+    while (!satisfied) {
+      thread.processNextEvent(true);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Barrier(name) {
+  
+
+
+
+
+
+  this._conditions = new Map();
+
+  
+
+
+
+
+
+
+  this._indirections = null;
+
+  
+
+
+  this._name = name;
+
+  
+
+
+  this._promise = null;
+
+  
+
+
+  this._monitors = null;
+
+  
+
+
+
+  this.client = {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    addBlocker: function(name, condition, state) {
+      if (typeof name != "string") {
+        throw new TypeError("Expected a human-readable name as first argument");
+      }
+      if (state && typeof state != "function") {
+        throw new TypeError("Expected nothing or a function as third argument");
+      }
+      if (!this._conditions) {
+	throw new Error("Phase " + this._name +
+			" has already begun, it is too late to register" +
+			" completion condition '" + name + "'.");
+      }
+      let set = this._conditions.get(condition);
+      if (!set) {
+        set = [];
+        this._conditions.set(condition, set);
+      }
+      set.push({name: name, state: state});
+    }.bind(this),
+
+    
+
+
+
+
+
+
+
+
+
+    removeBlocker: function(condition) {
+      if (this._conditions) {
+        
+        return this._conditions.delete(condition);
+      }
+
+      if (this._indirections) {
+        
+        let deferred = this._indirections.get(condition);
+        if (deferred) {
+          
+          deferred.resolve();
+        }
+        return this._indirections.delete(condition);
+      }
+
+      
+      return false;
+    }.bind(this),
+  };
+}
+Barrier.prototype = Object.freeze({
+  
+
+
+
+  get state() {
+    if (this._conditions) {
+      return "Not started";
+    }
+    if (!this._monitors) {
+      return "Complete";
+    }
+    let frozen = [];
+    for (let {name, isComplete, state} of this._monitors) {
+      if (!isComplete) {
+        frozen.push({name: name, state: safeGetState(state)});
+      }
+    }
+    return frozen;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  wait: function(options = {}) {
+    
+    if (this._promise) {
+      return this._promise;
+    }
+    return this._promise = this._wait(options);
+  },
+  _wait: function(options) {
+    let topic = this._name;
     let conditions = this._conditions;
     this._conditions = null; 
-
     if (conditions.size == 0) {
-      
-      return;
+      return Promise.resolve();
     }
 
+    this._indirections = new Map();
     
     let allPromises = [];
 
     
     
-    let allMonitors = [];
+    this._monitors = [];
 
-    for (let {condition, name, state} of conditions) {
-      
+    for (let _condition of conditions.keys()) {
+      for (let current of conditions.get(_condition)) {
+        let condition = _condition; 
+        let {name, state} = current;
 
-      try {
-        if (typeof condition == "function") {
-          
-          try {
-            condition = condition(topic);
-          } catch (ex) {
-            condition = Promise.reject(ex);
+        
+        
+        let indirection = Promise.defer();
+        this._indirections.set(condition, indirection);
+
+        
+
+        try {
+          if (typeof condition == "function") {
+            
+            try {
+              condition = condition(topic);
+            } catch (ex) {
+              condition = Promise.reject(ex);
+            }
           }
-        }
-        
-        
-        
-        
-        
-        condition = Promise.resolve(condition);
 
-        
-        
-        
-        
+          
+          
+          
+          
+          
+          condition = Promise.resolve(condition);
 
-        let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        timer.initWithCallback(function() {
-          let msg = "A phase completion condition is" +
-            " taking too long to complete." +
-            " Condition: " + monitor.name +
-            " Phase: " + topic +
-            " State: " + safeGetState(state);
-          warn(msg);
-        }, DELAY_WARNING_MS, Ci.nsITimer.TYPE_ONE_SHOT);
+          let monitor = {
+            isComplete: false,
+            name: name,
+            state: state
+          };
 
-        let monitor = {
-          isFrozen: true,
-          name: name,
-          state: state
-        };
-        condition = condition.then(function onSuccess() {
-            timer.cancel(); 
-                            
-            monitor.isFrozen = false;
-          }, function onError(error) {
-            timer.cancel();
+	  condition = condition.then(null, function onError(error) {
             let msg = "A completion condition encountered an error" +
-                " while we were spinning the event loop." +
-                " Condition: " + name +
-                " Phase: " + topic +
-                " State: " + safeGetState(state);
+              " while we were spinning the event loop." +
+	      " Condition: " + name +
+              " Phase: " + topic +
+              " State: " + safeGetState(state);
+	    warn(msg, error);
+	  });
+          condition.then(() => indirection.resolve());
+
+          indirection.promise.then(() => monitor.isComplete = true);
+          this._monitors.push(monitor);
+          allPromises.push(indirection.promise);
+
+        } catch (error) {
+            let msg = "A completion condition encountered an error" +
+                  " while we were initializing the phase." +
+                  " Condition: " + name +
+                  " Phase: " + topic +
+                  " State: " + safeGetState(state);
             warn(msg, error);
-            monitor.isFrozen = false;
-        });
-        allMonitors.push(monitor);
-        allPromises.push(condition);
+        }
 
-      } catch (error) {
-          let msg = "A completion condition encountered an error" +
-                " while we were initializing the phase." +
-                " Condition: " + name +
-                " Phase: " + topic +
-                " State: " + safeGetState(state);
-          warn(msg, error);
       }
-
     }
     conditions = null;
 
@@ -389,64 +606,104 @@ Spinner.prototype = {
       warn(msg, error);
     });
 
-    let satisfied = false; 
+    promise = promise.then(() => {
+      this._monitors = null;
+      this._indirections = null;
+    }); 
+
 
     
-    
-    
-    
-    
-    
-    let timeToCrash = looseTimer(DELAY_CRASH_MS);
-    timeToCrash.promise.then(
-      function onTimeout() {
+
+    let warnAfterMS = DELAY_WARNING_MS;
+    if (options && "warnAfterMS" in options) {
+      if (typeof options.warnAfterMS == "number"
+         || options.warnAfterMS == null) {
         
-        let frozen = [];
-        let states = [];
-        for (let {name, isFrozen, state} of allMonitors) {
-          if (isFrozen) {
-            frozen.push({name: name, state: safeGetState(state)});
-          }
-        }
+        warnAfterMS = options.warnAfterMS;
+      } else {
+        throw new TypeError("Wrong option value for warnAfterMS");
+      }
+    }
 
-        let msg = "At least one completion condition failed to complete" +
-              " within a reasonable amount of time. Causing a crash to" +
-              " ensure that we do not leave the user with an unresponsive" +
-              " process draining resources." +
-              " Conditions: " + JSON.stringify(frozen) +
-              " Phase: " + topic;
-        err(msg);
-        if (gCrashReporter && gCrashReporter.enabled) {
-          let data = {
-            phase: topic,
-            conditions: frozen
-          };
-          gCrashReporter.annotateCrashReport("AsyncShutdownTimeout",
-            JSON.stringify(data));
-        } else {
-          warn("No crash reporter available");
-        }
+    if (warnAfterMS && warnAfterMS > 0) {
+      
+      
+      let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      timer.initWithCallback(function() {
+        let msg = "At least one completion condition is taking too long to complete." +
+	  " Conditions: " + safeGetState(this.state) +
+	  " Barrier: " + topic;
+        warn(msg);
+      }.bind(this), warnAfterMS, Ci.nsITimer.TYPE_ONE_SHOT);
 
-        let error = new Error();
-        gDebug.abort(error.fileName, error.lineNumber + 1);
-      },
-      function onSatisfied() {
+      promise = promise.then(function onSuccess() {
+        timer.cancel();
         
         
       });
-
-    promise = promise.then(function() {
-      satisfied = true;
-      timeToCrash.reject();
-    });
-
-    
-    let thread = Services.tm.mainThread;
-    while(!satisfied) {
-      thread.processNextEvent(true);
     }
-  }
-};
+
+    let crashAfterMS = DELAY_CRASH_MS;
+    if (options && "crashAfterMS" in options) {
+      if (typeof options.crashAfterMS == "number"
+         || options.crashAfterMS == null) {
+        
+        crashAfterMS = options.crashAfterMS;
+      } else {
+        throw new TypeError("Wrong option value for crashAfterMS");
+      }
+    }
+
+    if (crashAfterMS  > 0) {
+      let timeToCrash = null;
+
+      
+      
+      
+      
+      
+      
+      timeToCrash = looseTimer(crashAfterMS);
+      timeToCrash.promise.then(
+        function onTimeout() {
+	  
+	  let state = this.state;
+
+	  let msg = "At least one completion condition failed to complete" +
+	    " within a reasonable amount of time. Causing a crash to" +
+	    " ensure that we do not leave the user with an unresponsive" +
+	    " process draining resources." +
+	    " Conditions: " + JSON.stringify(state) +
+	    " Barrier: " + topic;
+	  err(msg);
+	  if (gCrashReporter && gCrashReporter.enabled) {
+            let data = {
+              phase: topic,
+              conditions: state
+	    };
+            gCrashReporter.annotateCrashReport("AsyncShutdownTimeout",
+            JSON.stringify(data));
+	  } else {
+            warn("No crash reporter available");
+	  }
+
+	  let error = new Error();
+	  gDebug.abort(error.fileName, error.lineNumber + 1);
+        }.bind(this),
+	  function onSatisfied() {
+            
+            
+          });
+
+      promise = promise.then(function() {
+        timeToCrash.reject();
+      }.bind(this));
+    }
+
+    return promise;
+  },
+});
+
 
 
 
@@ -458,4 +715,7 @@ this.AsyncShutdown.profileChangeTeardown = getPhase("profile-change-teardown");
 this.AsyncShutdown.profileBeforeChange = getPhase("profile-before-change");
 this.AsyncShutdown.sendTelemetry = getPhase("profile-before-change2");
 this.AsyncShutdown.webWorkersShutdown = getPhase("web-workers-shutdown");
+
+this.AsyncShutdown.Barrier = Barrier;
+
 Object.freeze(this.AsyncShutdown);
