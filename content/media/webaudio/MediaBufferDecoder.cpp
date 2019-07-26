@@ -91,6 +91,8 @@ public:
 
   virtual void OnReadMetadataCompleted() MOZ_FINAL MOZ_OVERRIDE;
 
+  virtual MediaDecoderOwner* GetOwner() MOZ_FINAL MOZ_OVERRIDE;
+
 private:
   
   
@@ -252,6 +254,13 @@ void
 BufferDecoder::OnReadMetadataCompleted()
 {
   
+}
+
+MediaDecoderOwner*
+BufferDecoder::GetOwner()
+{
+  
+  return nullptr;
 }
 
 class ReportResultTask : public nsRunnable

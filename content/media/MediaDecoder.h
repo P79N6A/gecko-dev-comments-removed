@@ -736,6 +736,8 @@ public:
   
   virtual void DecodeError();
 
+  MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
+
 #ifdef MOZ_RAW
   static bool IsRawEnabled();
 #endif

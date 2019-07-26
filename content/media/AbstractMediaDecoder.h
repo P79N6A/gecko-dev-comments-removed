@@ -22,6 +22,7 @@ class MediaResource;
 class ReentrantMonitor;
 class VideoFrameContainer;
 class TimedMetadata;
+class MediaDecoderOwner;
 
 typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
 
@@ -100,6 +101,10 @@ public:
   
   
   virtual void OnReadMetadataCompleted() = 0;
+
+  
+  
+  virtual MediaDecoderOwner* GetOwner() = 0;
 
   
   
