@@ -447,22 +447,6 @@ protected:
 
 
 
-  static bool EnlargeDisplayPortAlongAxis(float aSkateSizeMultiplier,
-                                          double aEstimatedPaintDuration,
-                                          float aCompositionBounds,
-                                          float aVelocity,
-                                          float aAcceleration,
-                                          float* aDisplayPortOffset,
-                                          float* aDisplayPortLength);
-
-  
-
-
-
-
-
-
-
   void RequestContentRepaint();
 
   

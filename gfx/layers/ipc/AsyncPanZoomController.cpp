@@ -171,7 +171,7 @@ static int32_t gFlingRepaintInterval = 75;
 
 
 
-static float gMinSkateSpeed = 0.7f;
+static float gMinSkateSpeed = 1.0f;
 
 
 
@@ -213,16 +213,20 @@ static int gNumPaintDurationSamples = 3;
 
 
 
-static float gXSkateSizeMultiplier = 3.0f;
-static float gYSkateSizeMultiplier = 3.5f;
 
 
 
 
 
+static float gXSkateSizeMultiplier = 1.5f;
+static float gYSkateSizeMultiplier = 2.5f;
 
-static float gXStationarySizeMultiplier = 1.5f;
-static float gYStationarySizeMultiplier = 2.5f;
+
+
+
+
+static float gXStationarySizeMultiplier = 3.0f;
+static float gYStationarySizeMultiplier = 3.5f;
 
 
 
@@ -1159,39 +1163,30 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale,
   mFrameMetrics.mScrollOffset = (mFrameMetrics.mScrollOffset + aFocus) - (aFocus / aScale);
 }
 
-bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aSkateSizeMultiplier,
-                                                         double aEstimatedPaintDuration,
-                                                         float aCompositionBounds,
-                                                         float aVelocity,
-                                                         float aAcceleration,
-                                                         float* aDisplayPortOffset,
-                                                         float* aDisplayPortLength)
-{
-  if (fabsf(aVelocity) > gMinSkateSpeed) {
-    
-    *aDisplayPortLength = aCompositionBounds * aSkateSizeMultiplier;
-    
-    
-    *aDisplayPortOffset = aVelocity > 0 ? 0 : aCompositionBounds - *aDisplayPortLength;
 
-    
-    
-    if (aAcceleration > 1.01f) {
-      
-      
-      *aDisplayPortOffset +=
-        fabsf(aAcceleration) * aVelocity * aCompositionBounds * aEstimatedPaintDuration;
-      
-      
-      
-      
-      
-      *aDisplayPortOffset -= aVelocity < 0 ? aCompositionBounds : 0;
-    }
-    return true;
-  }
-  return false;
+
+
+
+
+
+static void
+EnlargeDisplayPortAlongAxis(float* aOutOffset, float* aOutLength,
+                            double aEstimatedPaintDurationMillis, float aVelocity,
+                            float aStationarySizeMultiplier, float aSkateSizeMultiplier)
+{
+  
+  
+  float multiplier = (fabsf(aVelocity) < gMinSkateSpeed
+                        ? aStationarySizeMultiplier
+                        : aSkateSizeMultiplier);
+  float newLength = (*aOutLength) * multiplier;
+  *aOutOffset -= (newLength - (*aOutLength)) / 2;
+  *aOutLength = newLength;
+
+  
+  *aOutOffset += (aVelocity * aEstimatedPaintDurationMillis);
 }
+
 
 const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   const FrameMetrics& aFrameMetrics,
@@ -1200,62 +1195,33 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   double aEstimatedPaintDuration)
 {
   
-  
-  
-  
-  
-  double estimatedPaintDuration =
-    aEstimatedPaintDuration > EPSILON ? aEstimatedPaintDuration : 1.0;
+  double estimatedPaintDurationMillis = aEstimatedPaintDuration * 1000;
 
-  CSSIntRect compositionBounds = gfx::RoundedIn(aFrameMetrics.mCompositionBounds / aFrameMetrics.mZoom);
+  CSSRect compositionBounds = aFrameMetrics.CalculateCompositedRectInCssPixels();
+  CSSPoint scrollOffset = aFrameMetrics.mScrollOffset;
+  CSSRect displayPort(scrollOffset, compositionBounds.Size());
+  CSSPoint velocity = aVelocity / aFrameMetrics.mZoom;
+
+  
+  
+  
+  EnlargeDisplayPortAlongAxis(&(displayPort.x), &(displayPort.width),
+    estimatedPaintDurationMillis, velocity.x,
+    gXStationarySizeMultiplier, gXSkateSizeMultiplier);
+  EnlargeDisplayPortAlongAxis(&(displayPort.y), &(displayPort.height),
+    estimatedPaintDurationMillis, velocity.y,
+    gYStationarySizeMultiplier, gYSkateSizeMultiplier);
 
   CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
-  CSSPoint scrollOffset = aFrameMetrics.mScrollOffset;
+  displayPort = displayPort.ForceInside(scrollableRect) - scrollOffset;
 
-  CSSRect displayPort = CSSRect(compositionBounds);
-  displayPort.MoveTo(0, 0);
-  displayPort.Scale(gXStationarySizeMultiplier, gYStationarySizeMultiplier);
+  APZC_LOG_FM(aFrameMetrics,
+    "Calculated displayport as (%f %f %f %f) from velocity (%f %f) acceleration (%f %f) paint time %f metrics",
+    displayPort.x, displayPort.y, displayPort.width, displayPort.height,
+    aVelocity.x, aVelocity.y, aAcceleration.x, aAcceleration.y,
+    (float)estimatedPaintDurationMillis);
 
-  
-  
-  
-  bool enlargedX = EnlargeDisplayPortAlongAxis(
-    gXSkateSizeMultiplier, estimatedPaintDuration,
-    compositionBounds.width, aVelocity.x, aAcceleration.x,
-    &displayPort.x, &displayPort.width);
-  bool enlargedY = EnlargeDisplayPortAlongAxis(
-    gYSkateSizeMultiplier, estimatedPaintDuration,
-    compositionBounds.height, aVelocity.y, aAcceleration.y,
-    &displayPort.y, &displayPort.height);
-
-  if (!enlargedX && !enlargedY) {
-    
-    displayPort.x = -(displayPort.width - compositionBounds.width) / 2;
-    displayPort.y = -(displayPort.height - compositionBounds.height) / 2;
-  } else if (!enlargedX) {
-    displayPort.width = compositionBounds.width;
-  } else if (!enlargedY) {
-    displayPort.height = compositionBounds.height;
-  }
-
-  
-  
-  
-  
-  
-  
-  if (scrollOffset.x + compositionBounds.width > scrollableRect.width) {
-    scrollOffset.x -= compositionBounds.width + scrollOffset.x - scrollableRect.width;
-  } else if (scrollOffset.x < scrollableRect.x) {
-    scrollOffset.x = scrollableRect.x;
-  }
-  if (scrollOffset.y + compositionBounds.height > scrollableRect.height) {
-    scrollOffset.y -= compositionBounds.height + scrollOffset.y - scrollableRect.height;
-  } else if (scrollOffset.y < scrollableRect.y) {
-    scrollOffset.y = scrollableRect.y;
-  }
-
-  return displayPort.ForceInside(scrollableRect - scrollOffset);
+  return displayPort;
 }
 
 void AsyncPanZoomController::ScheduleComposite() {
