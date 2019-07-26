@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef GLCONTEXT_TYPES_H_
 #define GLCONTEXT_TYPES_H_
@@ -15,26 +15,9 @@ typedef int GLsizei;
 namespace mozilla {
 namespace gl {
 
-enum ShaderProgramType {
-    RGBALayerProgramType,
-    RGBALayerExternalProgramType,
-    BGRALayerProgramType,
-    RGBXLayerProgramType,
-    BGRXLayerProgramType,
-    RGBARectLayerProgramType,
-    RGBAExternalLayerProgramType,
-    ColorLayerProgramType,
-    YCbCrLayerProgramType,
-    ComponentAlphaPass1ProgramType,
-    ComponentAlphaPass2ProgramType,
-    Copy2DProgramType,
-    Copy2DRectProgramType,
-    NumProgramTypes
-};
-
 struct GLFormats
 {
-    // Constructs a zeroed object:
+    
     GLFormats();
 
     GLenum color_texInternalFormat;
@@ -52,7 +35,7 @@ struct GLFormats
 
 struct PixelBufferFormat
 {
-    // Constructs a zeroed object:
+    
     PixelBufferFormat();
 
     int red, green, blue;
@@ -64,7 +47,7 @@ struct PixelBufferFormat
 };
 
 
-} /* namespace gl */
-} /* namespace mozilla */
+} 
+} 
 
-#endif /* GLCONTEXT_TYPES_H_ */
+#endif 
