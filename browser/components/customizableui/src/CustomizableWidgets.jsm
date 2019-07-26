@@ -906,7 +906,7 @@ if (Services.metro && Services.metro.supported) {
 #endif
 #endif
 
-#ifdef NIGHTLY_BUILD
+#ifdef E10S_TESTING_ONLY
 
 
 
