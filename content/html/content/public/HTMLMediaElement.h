@@ -842,7 +842,7 @@ protected:
   bool CheckAudioChannelPermissions(const nsAString& aType);
 
   
-  nsresult UpdateChannelMuteState(bool aCanPlay);
+  nsresult UpdateChannelMuteState(mozilla::dom::AudioChannelState aCanPlay);
 
   
   virtual void UpdateAudioChannelPlayingState();
@@ -1126,6 +1126,9 @@ protected:
 
   
   AudioChannelType mAudioChannelType;
+
+  
+  bool mAudioChannelFaded;
 
   
   bool mPlayingThroughTheAudioChannel;
