@@ -2524,9 +2524,7 @@ this.DOMApplicationRegistry = {
     yield this._saveApps();
 
     this.broadcastMessage("Webapps:AddApp", { id: id, app: appObject });
-
-    
-    if (aData.isPackage && !aData.requestID) {
+    if (aData.isPackage && aData.autoInstall) {
       
       
       
