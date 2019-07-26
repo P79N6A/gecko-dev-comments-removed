@@ -3996,7 +3996,8 @@ lsm_connected (lsm_lcb_t *lcb, cc_state_data_connected_t *data)
 
     
     if (start_ice) {
-      short res = vcmStartIceChecks(dcb->peerconnection);
+      short res = vcmStartIceChecks(dcb->peerconnection, !dcb->inbound);
+
       
       if (res)
         return CC_RC_SUCCESS;

@@ -477,7 +477,7 @@ short vcmSetIceMediaParams(const char *peerconnection, int level, char *ufrag, c
 
 
 
-short vcmStartIceChecks(const char *peerconnection);
+short vcmStartIceChecks(const char *peerconnection, cc_boolean isControlling);
 
 
 
