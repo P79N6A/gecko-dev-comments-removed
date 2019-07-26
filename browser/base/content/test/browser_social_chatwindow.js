@@ -412,6 +412,28 @@ var tests = {
     port.postMessage({topic: "test-init", data: { id: 1 }});
   },
 
+  testSecondTopLevelWindow: function(next) {
+    
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    let port = Social.provider.getWorkerPort();
+    let secondWindow;
+    port.onmessage = function(e) {
+      if (e.data.topic == "test-init-done") {
+        secondWindow = OpenBrowserWindow();
+        secondWindow.addEventListener("load", function loadListener() {
+          secondWindow.removeEventListener("load", loadListener);
+          port.postMessage({topic: "test-worker-chat", data: chatUrl});
+        });
+      } else if (e.data.topic == "got-chatbox-message") {
+        
+        is(secondWindow.SocialChatBar.chatbar.childElementCount, 1);
+        secondWindow.close();
+        next();
+      }
+    }
+    port.postMessage({topic: "test-init"});
+  },
+
   
   
   testCloseOnLogout: function(next) {
