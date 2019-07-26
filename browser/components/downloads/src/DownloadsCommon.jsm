@@ -56,10 +56,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
                                   "resource://gre/modules/DownloadUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
-                                  "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
-                                  "resource:///modules/RecentWindow.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -182,14 +178,15 @@ this.DownloadsCommon = {
 
 
 
+  get data() DownloadsData,
 
-  getData: function DC_getData(aWindow) {
-    if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
-      return PrivateDownloadsData;
-    } else {
-      return DownloadsData;
-    }
-  },
+  
+
+
+
+
+
+  get indicatorData() DownloadsIndicatorData,
 
   
 
@@ -199,73 +196,14 @@ this.DownloadsCommon = {
 
 
 
-
-
-  initializeAllDataLinks: function DC_initializeAllDataLinks(aDownloadManagerService) {
-    DownloadsData.initializeDataLink(aDownloadManagerService);
-    PrivateDownloadsData.initializeDataLink(aDownloadManagerService);
-  },
-
-  
-
-
-
-  terminateAllDataLinks: function DC_terminateAllDataLinks() {
-    DownloadsData.terminateDataLink();
-    PrivateDownloadsData.terminateDataLink();
-  },
-
-  
-
-
-
-
-
-
-  ensureAllPersistentDataLoaded:
-  function DC_ensureAllPersistentDataLoaded(aActiveOnly) {
-    DownloadsData.ensurePersistentDataLoaded(aActiveOnly);
-  },
-
-  
-
-
-
-
-  getIndicatorData: function DC_getIndicatorData(aWindow) {
-    if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
-      return PrivateDownloadsIndicatorData;
-    } else {
-      return DownloadsIndicatorData;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  getSummary: function DC_getSummary(aWindow, aNumToExclude)
-  {
-    if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
-      if (this._privateSummary) {
-        return this._privateSummary;
-      }
-      return this._privateSummary = new DownloadsSummaryData(true, aNumToExclude);
-    } else {
-      if (this._summary) {
-        return this._summary;
-      }
-      return this._summary = new DownloadsSummaryData(false, aNumToExclude);
-    }
-  },
   _summary: null,
-  _privateSummary: null,
+  getSummary: function DC_getSummary(aNumToExclude)
+  {
+    if (this._summary) {
+      return this._summary;
+    }
+    return this._summary = new DownloadsSummaryData(aNumToExclude);
+  },
 
   
 
@@ -417,32 +355,7 @@ XPCOMUtils.defineLazyGetter(DownloadsCommon, "isWinVistaOrHigher", function () {
 
 
 
-
-
-
-
-function DownloadsDataCtor(aPrivate) {
-  this._isPrivate = aPrivate;
-
-  
-  
-  
-  
-  
-  this.dataItems = {};
-
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  
-  
-  this._persistentDataItems = {};
-#endif
-
-  
-  
-  this._views = [];
-}
-
-DownloadsDataCtor.prototype = {
+const DownloadsData = {
   
 
 
@@ -455,12 +368,10 @@ DownloadsDataCtor.prototype = {
   initializeDataLink: function DD_initializeDataLink(aDownloadManagerService)
   {
     
-    aDownloadManagerService.addPrivacyAwareListener(this);
+    aDownloadManagerService.addListener(this);
     Services.obs.addObserver(this, "download-manager-remove-download-guid", false);
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
     Services.obs.addObserver(this, "download-manager-database-type-changed",
                              false);
-#endif
   },
 
   
@@ -471,15 +382,19 @@ DownloadsDataCtor.prototype = {
     this._terminateDataAccess();
 
     
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
     Services.obs.removeObserver(this, "download-manager-database-type-changed");
-#endif
     Services.obs.removeObserver(this, "download-manager-remove-download-guid");
     Services.downloads.removeListener(this);
   },
 
   
   
+
+  
+
+
+
+  _views: [],
 
   
 
@@ -538,6 +453,21 @@ DownloadsDataCtor.prototype = {
 
   
   
+
+  
+
+
+
+
+
+
+  dataItems: {},
+
+  
+
+
+
+  _persistentDataItems: {},
 
   
 
@@ -661,9 +591,7 @@ DownloadsDataCtor.prototype = {
 
         
         
-        let downloads = this._isPrivate ?
-                          Services.downloads.activePrivateDownloads :
-                          Services.downloads.activeDownloads;
+        let downloads = Services.downloads.activeDownloads;
         while (downloads.hasMoreElements()) {
           let download = downloads.getNext().QueryInterface(Ci.nsIDownload);
           this._getOrAddDataItem(download, true);
@@ -681,10 +609,7 @@ DownloadsDataCtor.prototype = {
         
         
         
-        let dbConnection = this._isPrivate ?
-                             Services.downloads.privateDBConnection :
-                             Services.downloads.DBConnection;
-        let statement = dbConnection.createAsyncStatement(
+        let statement = Services.downloads.DBConnection.createAsyncStatement(
           "SELECT guid, target, name, source, referrer, state, "
         +        "startTime, endTime, currBytes, maxBytes "
         + "FROM moz_downloads "
@@ -789,7 +714,6 @@ DownloadsDataCtor.prototype = {
         }
         break;
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
       case "download-manager-database-type-changed":
         let pbs = Cc["@mozilla.org/privatebrowsing;1"]
                   .getService(Ci.nsIPrivateBrowsingService);
@@ -807,7 +731,6 @@ DownloadsDataCtor.prototype = {
         
         this._views.forEach(this._updateView, this);
         break;
-#endif
     }
   },
 
@@ -816,12 +739,6 @@ DownloadsDataCtor.prototype = {
 
   onDownloadStateChange: function DD_onDownloadStateChange(aState, aDownload)
   {
-    if (aDownload.isPrivate != this._isPrivate) {
-      
-      
-      return;
-    }
-
     
     
     
@@ -867,12 +784,6 @@ DownloadsDataCtor.prototype = {
                                                   aCurTotalProgress,
                                                   aMaxTotalProgress, aDownload)
   {
-    if (aDownload.isPrivate != this._isPrivate) {
-      
-      
-      return;
-    }
-
     let dataItem = this._getOrAddDataItem(aDownload, false);
     if (!dataItem) {
       return;
@@ -922,7 +833,7 @@ DownloadsDataCtor.prototype = {
     }
 
     
-    let browserWin = RecentWindow.getMostRecentBrowserWindow({ private: this._isPrivate });
+    let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
     if (!browserWin) {
       return;
     }
@@ -938,14 +849,6 @@ DownloadsDataCtor.prototype = {
     browserWin.DownloadsPanel.showPanel();
   }
 };
-
-XPCOMUtils.defineLazyGetter(this, "PrivateDownloadsData", function() {
-  return new DownloadsDataCtor(true);
-});
-
-XPCOMUtils.defineLazyGetter(this, "DownloadsData", function() {
-  return new DownloadsDataCtor(false);
-});
 
 
 
@@ -1214,17 +1117,7 @@ const DownloadsViewPrototype = {
 
 
 
-
-
-  _views: null,
-
-  
-
-
-
-
-
-  _isPrivate: false,
+  _views: [],
 
   
 
@@ -1238,11 +1131,7 @@ const DownloadsViewPrototype = {
   {
     
     if (this._views.length == 0) {
-      if (this._isPrivate) {
-        PrivateDownloadsData.addView(this);
-      } else {
-        DownloadsData.addView(this);
-      }
+      DownloadsCommon.data.addView(this);
     }
 
     this._views.push(aView);
@@ -1278,11 +1167,7 @@ const DownloadsViewPrototype = {
 
     
     if (this._views.length == 0) {
-      if (this._isPrivate) {
-        PrivateDownloadsData.removeView(this);
-      } else {
-        DownloadsData.removeView(this);
-      }
+      DownloadsCommon.data.removeView(this);
     }
   },
 
@@ -1406,11 +1291,7 @@ const DownloadsViewPrototype = {
 
 
 
-function DownloadsIndicatorDataCtor(aPrivate) {
-  this._isPrivate = aPrivate;
-  this._views = [];
-}
-DownloadsIndicatorDataCtor.prototype = {
+const DownloadsIndicatorData = {
   __proto__: DownloadsViewPrototype,
 
   
@@ -1492,25 +1373,23 @@ DownloadsIndicatorDataCtor.prototype = {
 
   getViewItem: function DID_getViewItem(aDataItem)
   {
-    let data = this._isPrivate ? PrivateDownloadsIndicatorData
-                               : DownloadsIndicatorData;
     return Object.freeze({
       onStateChange: function DIVI_onStateChange()
       {
         if (aDataItem.state == nsIDM.DOWNLOAD_FINISHED ||
             aDataItem.state == nsIDM.DOWNLOAD_FAILED) {
-          data.attention = true;
+          DownloadsIndicatorData.attention = true;
         }
 
         
-        data._lastRawTimeLeft = -1;
-        data._lastTimeLeft = -1;
+        DownloadsIndicatorData._lastRawTimeLeft = -1;
+        DownloadsIndicatorData._lastTimeLeft = -1;
 
-        data._updateViews();
+        DownloadsIndicatorData._updateViews();
       },
       onProgressChange: function DIVI_onProgressChange()
       {
-        data._updateViews();
+        DownloadsIndicatorData._updateViews();
       }
     });
   },
@@ -1610,9 +1489,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
   _activeDataItems: function DID_activeDataItems()
   {
-    let dataItems = this._isPrivate ? PrivateDownloadsData.dataItems
-                                    : DownloadsData.dataItems;
-    for each (let dataItem in dataItems) {
+    for each (let dataItem in DownloadsCommon.data.dataItems) {
       if (dataItem && dataItem.inProgress) {
         yield dataItem;
       }
@@ -1652,15 +1529,7 @@ DownloadsIndicatorDataCtor.prototype = {
       this._counter = DownloadsCommon.formatTimeLeft(this._lastTimeLeft);
     }
   }
-};
-
-XPCOMUtils.defineLazyGetter(this, "PrivateDownloadsIndicatorData", function() {
-  return new DownloadsIndicatorDataCtor(true);
-});
-
-XPCOMUtils.defineLazyGetter(this, "DownloadsIndicatorData", function() {
-  return new DownloadsIndicatorDataCtor(false);
-});
+}
 
 
 
@@ -1676,14 +1545,12 @@ XPCOMUtils.defineLazyGetter(this, "DownloadsIndicatorData", function() {
 
 
 
-
-
-
-function DownloadsSummaryData(aIsPrivate, aNumToExclude) {
+function DownloadsSummaryData(aNumToExclude) {
   this._numToExclude = aNumToExclude;
   
   
   
+  this._views = [];
   this._loading = false;
 
   this._dataItems = [];
@@ -1707,9 +1574,6 @@ function DownloadsSummaryData(aIsPrivate, aNumToExclude) {
   this._description = "";
   this._numActive = 0;
   this._percentComplete = -1;
-
-  this._isPrivate = aIsPrivate;
-  this._views = [];
 }
 
 DownloadsSummaryData.prototype = {

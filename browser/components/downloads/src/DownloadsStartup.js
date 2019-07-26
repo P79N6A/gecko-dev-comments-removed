@@ -31,22 +31,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
 XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
                                    "@mozilla.org/browser/sessionstartup;1",
                                    "nsISessionStartup");
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
 XPCOMUtils.defineLazyServiceGetter(this, "gPrivateBrowsingService",
                                    "@mozilla.org/privatebrowsing;1",
                                    "nsIPrivateBrowsingService");
-#endif
 
 const kObservedTopics = [
   "sessionstore-windows-restored",
   "sessionstore-browser-state-restored",
   "download-manager-initialized",
   "download-manager-change-retention",
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  "last-pb-context-exited",
-#else
   "private-browsing-transition-complete",
-#endif
   "browser-lastwindow-close-granted",
   "quit-application",
   "profile-change-teardown",
@@ -119,8 +113,8 @@ DownloadsStartup.prototype = {
         
         
         
-        DownloadsCommon.initializeAllDataLinks(
-                        aSubject.QueryInterface(Ci.nsIDownloadManager));
+        DownloadsCommon.data.initializeDataLink(
+                             aSubject.QueryInterface(Ci.nsIDownloadManager));
 
         this._downloadsServiceInitialized = true;
 
@@ -145,13 +139,11 @@ DownloadsStartup.prototype = {
         }
         break;
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
       case "private-browsing-transition-complete":
         
         
         this._ensureDataLoaded();
         break;
-#endif
 
       case "browser-lastwindow-close-granted":
         
@@ -166,16 +158,6 @@ DownloadsStartup.prototype = {
         }
         break;
 
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      case "last-pb-context-exited":
-        
-        if (this._downloadsServiceInitialized &&
-            !DownloadsCommon.useToolkitUI) {
-          Services.downloads.cleanUpPrivate();
-        }
-        break;
-#endif
-
       case "quit-application":
         
         
@@ -187,7 +169,7 @@ DownloadsStartup.prototype = {
           break;
         }
 
-        DownloadsCommon.terminateAllDataLinks();
+        DownloadsCommon.data.terminateDataLink();
 
         
         
@@ -276,18 +258,15 @@ DownloadsStartup.prototype = {
 
   _ensureDataLoaded: function DS_ensureDataLoaded()
   {
-    if (!this._downloadsServiceInitialized
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-        || gPrivateBrowsingService.privateBrowsingEnabled
-#endif
-       ) {
+    if (!this._downloadsServiceInitialized ||
+        gPrivateBrowsingService.privateBrowsingEnabled) {
       return;
     }
 
     
     
     
-    DownloadsCommon.ensureAllPersistentDataLoaded(!this._recoverAllDownloads);
+    DownloadsCommon.data.ensurePersistentDataLoaded(!this._recoverAllDownloads);
   }
 };
 

@@ -12,32 +12,32 @@ function gen_test()
 {
   try {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_resetState()) yield;
 
     
     
-    DownloadsCommon.getData(window).panelHasShownBefore = false;
+    DownloadsCommon.data.panelHasShownBefore = false;
 
     prepareForPanelOpen();
-    DownloadsCommon.getData(window)._notifyNewDownload();
+    DownloadsCommon.data._notifyNewDownload();
     yield;
 
     
     DownloadsPanel.hidePanel();
 
-    ok(DownloadsCommon.getData(window).panelHasShownBefore,
+    ok(DownloadsCommon.data.panelHasShownBefore,
        "Should have recorded that the panel was opened on a download.")
 
     
     
     panelShouldNotOpen();
-    DownloadsCommon.getData(window)._notifyNewDownload();
+    DownloadsCommon.data._notifyNewDownload();
     yield waitFor(2);
   } catch(e) {
     ok(false, e);
   } finally {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_resetState()) yield;
   }
 }
 
