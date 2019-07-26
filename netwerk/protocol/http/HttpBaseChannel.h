@@ -185,9 +185,6 @@ public:
 
 public: 
 
-  bool ShouldRewriteRedirectToGET(uint32_t httpStatus, nsHttpAtom method);
-  bool IsSafeMethod(nsHttpAtom method);
-
 protected:
 
   

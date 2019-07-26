@@ -1480,40 +1480,6 @@ CopyProperties(const nsAString& aKey, nsIVariant *aData, void *aClosure)
   return PL_DHASH_NEXT;
 }
 
-
-
-
-bool
-HttpBaseChannel::ShouldRewriteRedirectToGET(uint32_t httpStatus,
-                                            nsHttpAtom method)
-{
-  
-  if (httpStatus == 301 || httpStatus == 302)
-    return method == nsHttp::Post;
-
-  
-  if (httpStatus == 303)
-    return method != nsHttp::Head;
-
-  
-  return false;
-}   
-
-
-bool
-HttpBaseChannel::IsSafeMethod(nsHttpAtom method)
-{
-  
-  
-  return method == nsHttp::Get ||
-         method == nsHttp::Head ||
-         method == nsHttp::Options ||
-         method == nsHttp::Propfind ||
-         method == nsHttp::Report ||
-         method == nsHttp::Search ||
-         method == nsHttp::Trace;
-}
-
 nsresult
 HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI, 
                                          nsIChannel   *newChannel,

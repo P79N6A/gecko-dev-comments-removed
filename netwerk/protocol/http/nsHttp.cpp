@@ -293,3 +293,32 @@ nsHttp::IsPermanentRedirect(PRUint32 httpStatus)
   return httpStatus == 301 || httpStatus == 308;
 }
 
+bool
+nsHttp::ShouldRewriteRedirectToGET(PRUint32 httpStatus, nsHttpAtom method)
+{
+  
+  if (httpStatus == 301 || httpStatus == 302)
+    return method == nsHttp::Post;
+
+  
+  if (httpStatus == 303)
+    return method != nsHttp::Head;
+
+  
+  return false;
+}
+
+bool
+nsHttp::IsSafeMethod(nsHttpAtom method)
+{
+  
+  
+  return method == nsHttp::Get ||
+         method == nsHttp::Head ||
+         method == nsHttp::Options ||
+         method == nsHttp::Propfind ||
+         method == nsHttp::Report ||
+         method == nsHttp::Search ||
+         method == nsHttp::Trace;
+}
+
