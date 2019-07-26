@@ -4715,7 +4715,8 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
           aValue.SetInheritValue();
           return true;
         }
-        else if (eCSSKeyword__moz_initial == keyword) { 
+        else if (eCSSKeyword__moz_initial == keyword ||
+                 eCSSKeyword_initial == keyword) { 
           aValue.SetInitialValue();
           return true;
         }
@@ -6484,7 +6485,8 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
       nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
       int32_t dummy;
       if (keyword == eCSSKeyword_inherit ||
-          keyword == eCSSKeyword__moz_initial) {
+          keyword == eCSSKeyword__moz_initial ||
+          keyword == eCSSKeyword_initial) {
         return false;
       } else if (keyword == eCSSKeyword_none) {
         if (haveImage)
@@ -7862,6 +7864,7 @@ CSSParserImpl::ParseRect(nsCSSProperty aPropID)
         }
         val.SetInheritValue();
         break;
+      case eCSSKeyword_initial:
       case eCSSKeyword__moz_initial:
         if (!ExpectEndProperty()) {
           return false;
@@ -8697,7 +8700,7 @@ CSSParserImpl::ParseFamily(nsCSSValue& aValue)
       aValue.SetInheritValue();
       return true;
     }
-    if (keyword == eCSSKeyword__moz_initial) {
+    if (keyword == eCSSKeyword__moz_initial || keyword == eCSSKeyword_initial) {
       aValue.SetInitialValue();
       return true;
     }
