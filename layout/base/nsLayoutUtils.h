@@ -6,6 +6,29 @@
 #ifndef nsLayoutUtils_h__
 #define nsLayoutUtils_h__
 
+#include "mozilla/MemoryReporting.h"
+#include "nsChangeHint.h"
+#include "nsAutoPtr.h"
+#include "nsFrameList.h"
+#include "nsThreadUtils.h"
+#include "nsIPrincipal.h"
+#include "GraphicsFilter.h"
+#include "nsCSSPseudoElements.h"
+#include "FrameMetrics.h"
+#include "gfx3DMatrix.h"
+#include "nsIWidget.h"
+#include "nsCSSProperty.h"
+#include "nsStyleCoord.h"
+#include "nsStyleConsts.h"
+#include "nsGkAtoms.h"
+#include "nsRuleNode.h"
+#include "imgIContainer.h"
+#include "mozilla/gfx/2D.h"
+#include "Units.h"
+
+#include <limits>
+#include <algorithm>
+
 class nsIFormControlFrame;
 class nsPresContext;
 class nsIContent;
@@ -30,31 +53,10 @@ class gfxContext;
 class nsPIDOMWindow;
 class imgIRequest;
 class nsIDocument;
+class gfxPoint;
 struct nsStyleFont;
 struct nsStyleImageOrientation;
 struct nsOverflowAreas;
-
-#include "mozilla/MemoryReporting.h"
-#include "nsChangeHint.h"
-#include "nsAutoPtr.h"
-#include "nsFrameList.h"
-#include "nsThreadUtils.h"
-#include "nsIPrincipal.h"
-#include "GraphicsFilter.h"
-#include "nsCSSPseudoElements.h"
-#include "FrameMetrics.h"
-#include "gfx3DMatrix.h"
-#include "nsIWidget.h"
-#include "nsCSSProperty.h"
-#include "nsStyleCoord.h"
-#include "nsStyleConsts.h"
-#include "nsGkAtoms.h"
-#include "nsRuleNode.h"
-#include "imgIContainer.h"
-#include "mozilla/gfx/2D.h"
-
-#include <limits>
-#include <algorithm>
 
 namespace mozilla {
 class SVGImageContext;
@@ -107,6 +109,7 @@ class nsLayoutUtils
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef FrameMetrics::ViewID ViewID;
+  typedef mozilla::CSSPoint CSSPoint;
 
   
 
@@ -689,6 +692,24 @@ public:
 
 
 
+
+
+
+
+  enum TransformResult {
+    TRANSFORM_SUCCEEDED,
+    NO_COMMON_ANCESTOR,
+    NONINVERTIBLE_TRANSFORM
+  };
+  static TransformResult TransformPoints(nsIFrame* aFromFrame, nsIFrame* aToFrame,
+                                         uint32_t aPointCount, CSSPoint* aPoints);
+
+  
+
+
+
+
+
   static bool GetLayerTransformForFrame(nsIFrame* aFrame,
                                         gfx3DMatrix* aTransform);
 
@@ -882,6 +903,12 @@ public:
 
 
   static void GetAllInFlowBoxes(nsIFrame* aFrame, BoxCallback* aCallback);
+
+  
+
+
+
+  static nsIFrame* GetFirstNonAnonymousFrame(nsIFrame* aFrame);
 
   class RectCallback {
   public:
