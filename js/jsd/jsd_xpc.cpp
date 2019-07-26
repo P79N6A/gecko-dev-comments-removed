@@ -31,6 +31,8 @@
 
 #include "nsIScriptContext.h"
 #include "nsIJSContextStack.h"
+#include "SandboxPrivate.h"
+#include "nsJSPrincipals.h"
 
 
 
@@ -3433,6 +3435,36 @@ static const mozilla::Module kJSDModule = {
 };
 
 NSMODULE_DEFN(JavaScript_Debugger) = &kJSDModule;
+
+void
+global_finalize(JSFreeOp *aFop, JSObject *aObj)
+{
+    nsIScriptObjectPrincipal *sop =
+        static_cast<nsIScriptObjectPrincipal *>(js::GetObjectPrivate(aObj));
+    MOZ_ASSERT(sop);
+    static_cast<SandboxPrivate *>(sop)->ForgetGlobalObject();
+    NS_IF_RELEASE(sop);
+}
+
+JSObject *
+CreateJSDGlobal(JSContext *aCx, JSClass *aClasp)
+{
+    nsresult rv;
+    nsCOMPtr<nsIPrincipal> nullPrin = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+
+    JSPrincipals *jsPrin = nsJSPrincipals::get(nullPrin);
+    JSObject *global = JS_NewGlobalObject(aCx, aClasp, jsPrin);
+    NS_ENSURE_TRUE(global, nullptr);
+
+    
+    
+    nsCOMPtr<nsIScriptObjectPrincipal> sbp =
+        new SandboxPrivate(nullPrin, global);
+    JS_SetPrivate(global, sbp.forget().get());
+
+    return global;
+}
 
 
 
