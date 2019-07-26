@@ -10,7 +10,7 @@
 
 class JSCustomObject;
 class JSCustomObjectBuilder;
-class JSContext;
+struct JSContext;
 class nsAString;
 
 
