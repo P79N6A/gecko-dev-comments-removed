@@ -429,7 +429,7 @@ Notification::Notification(const nsAString& aID, const nsAString& aTitle, const 
 
   
   
-  alertName.AppendLiteral("#");
+  alertName.Append('#');
   if (!mTag.IsEmpty()) {
     alertName.AppendLiteral("tag:");
     alertName.Append(mTag);

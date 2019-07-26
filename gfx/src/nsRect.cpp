@@ -23,7 +23,7 @@ FILE* operator<<(FILE* out, const nsRect& rect)
   nsAutoString tmp;
 
   
-  tmp.AppendLiteral("{");
+  tmp.Append('{');
   tmp.AppendFloat(NSAppUnitsToFloatPixels(rect.x,
                        nsDeviceContext::AppUnitsPerCSSPixel()));
   tmp.AppendLiteral(", ");
@@ -35,7 +35,7 @@ FILE* operator<<(FILE* out, const nsRect& rect)
   tmp.AppendLiteral(", ");
   tmp.AppendFloat(NSAppUnitsToFloatPixels(rect.height,
                        nsDeviceContext::AppUnitsPerCSSPixel()));
-  tmp.AppendLiteral("}");
+  tmp.Append('}');
   fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
   return out;
 }

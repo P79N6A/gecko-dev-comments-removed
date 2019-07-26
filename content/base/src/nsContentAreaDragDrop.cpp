@@ -728,7 +728,7 @@ DragDataProducer::AddStringsToDataTransfer(nsIContent* aDragNode,
   
   if (!mUrlString.IsEmpty() && mIsAnchor) {
     nsAutoString dragData(mUrlString);
-    dragData.AppendLiteral("\n");
+    dragData.Append('\n');
     
     
     

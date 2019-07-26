@@ -107,7 +107,7 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
           tmpStr.AssignLiteral("url(");
           nsStyleUtil::AppendEscapedCSSString(NS_ConvertUTF8toUTF16(specUTF8),
                                               tmpStr);
-          tmpStr.AppendLiteral(")");
+          tmpStr.Append(')');
         } else {
           
           
@@ -254,7 +254,7 @@ nsROCSSPrimitiveValue::GetCssText(nsAString& aCssText)
     case CSS_S :
       {
         nsStyleUtil::AppendCSSNumber(mValue.mFloat, tmpStr);
-        tmpStr.AppendLiteral("s");
+        tmpStr.Append('s');
         break;
       }
     case CSS_CM :

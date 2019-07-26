@@ -282,7 +282,7 @@ static void CleanupHandlerPath(nsString& aPath)
   if (lastCommaPos != kNotFound)
     aPath.Truncate(lastCommaPos);
 
-  aPath.AppendLiteral(" ");
+  aPath.Append(' ');
 
   
   uint32_t index = aPath.Find(".exe ", true);
