@@ -125,6 +125,7 @@
 @BINPATH@/components/composer.xpt
 @BINPATH@/components/content_base.xpt
 @BINPATH@/components/content_events.xpt
+@BINPATH@/components/content_canvas.xpt
 @BINPATH@/components/content_htmldoc.xpt
 @BINPATH@/components/content_html.xpt
 @BINPATH@/components/content_webrtc.xpt
@@ -418,6 +419,11 @@
 @BINPATH@/components/CaptivePortalDetectComponents.manifest
 @BINPATH@/components/captivedetect.js
 #endif
+
+; DevTools
+@BINPATH@/components/DevToolsComponents.manifest
+@BINPATH@/components/DevToolsAppStartup.js
+@BINPATH@/components/DebuggerServerController.js
 
 #ifdef MOZ_WEBSPEECH
 @BINPATH@/components/dom_webspeechsynth.xpt
