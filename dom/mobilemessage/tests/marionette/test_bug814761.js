@@ -6,7 +6,9 @@ MARIONETTE_TIMEOUT = 60000;
 SpecialPowers.setBoolPref("dom.sms.enabled", true);
 SpecialPowers.addPermission("sms", true, document);
 
-let sms = window.navigator.mozSms;
+let manager = window.navigator.mozMobileMessage;
+ok(manager instanceof MozMobileMessageManager,
+   "manager is instance of " + manager.constructor);
 
 
 
@@ -41,9 +43,9 @@ function simulateIncomingSms(nextFunction) {
   log("Simulating incoming multipart SMS (" + msgText.length
       + " chars total).");
 
-  sms.onreceived = function onreceived(event) {
-    log("Received 'onreceived' smsmanager event.");
-    sms.onreceived = null;
+  manager.onreceived = function onreceived(event) {
+    log("Received 'onreceived' event.");
+    manager.onreceived = null;
 
     let incomingSms = event.message;
     ok(incomingSms, "incoming sms");
