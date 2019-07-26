@@ -5,33 +5,113 @@
 'use strict';
  let prefs = Components.classes["@mozilla.org/preferences-service;1"].
       getService(Components.interfaces.nsIPrefBranch);
-
 Cu.import("resource://gre/modules/PageThumbs.jsm");
 
 
+
+
 let TopSites = {
-  pinSite: function(aId, aSlotIndex) {
-    Util.dumpLn("TopSites.pinSite: " + aId + ", (TODO)");
+  _initialized: false,
+
+  Site: Site,
+
+  prepareCache: function(aForce){
     
-    return true; 
+    
+
+    
+    if (this._promisedCache && !aForce) {
+      return this._promisedCache;
+    }
+    let deferred = Promise.defer();
+    this._promisedCache = deferred.promise;
+
+    NewTabUtils.links.populateCache(function () {
+      deferred.resolve();
+      this._promisedCache = null;
+      this._sites = null;  
+      this._sitesDirty.clear();
+    }.bind(this), true);
+    return this._promisedCache;
   },
-  unpinSite: function(aId) {
-    Util.dumpLn("TopSites.unpinSite: " + aId + ", (TODO)");
+
+  _sites: null,
+  _sitesDirty: new Set(),
+  getSites: function() {
+    if (this._sites) {
+      return this._sites;
+    }
+
+    let links = NewTabUtils.links.getLinks();
+    let sites = links.map(function(aLink){
+      let site = new Site(aLink);
+      return site;
+    });
+
     
-    return true; 
+    this._sites = sites;
+    this._sitesDirty.clear();
+    return this._sites;
   },
-  hideSite: function(aId) {
-    Util.dumpLn("TopSites.hideSite: " + aId + ", (TODO)");
+
+  
+
+
+
+  dirty: function() {
     
-    return true; 
+    for (let i=0; i<arguments.length; i++) {
+      this._sitesDirty.add(arguments[i]);
+    }
+    return this._sitesDirty;
   },
-  restoreSite: function(aId) {
-    Util.dumpLn("TopSites.restoreSite: " + aId + ", (TODO)");
+
+  
+
+
+  update: function() {
+    NewTabUtils.allPages.update();
     
-    return true; 
+    this._sitesDirty.clear();
+  },
+
+  pinSite: function(aSite, aSlotIndex) {
+    if (!(aSite && aSite.url)) {
+      throw Cr.NS_ERROR_INVALID_ARG
+    }
+    
+    NewTabUtils.pinnedLinks.pin(aSite, aSlotIndex);
+    this.dirty(aSite);
+    this.update();
+  },
+  unpinSite: function(aSite) {
+    if (!(aSite && aSite.url)) {
+      throw Cr.NS_ERROR_INVALID_ARG
+    }
+    
+    NewTabUtils.pinnedLinks.unpin(aSite);
+    this.dirty(aSite);
+    this.update();
+  },
+  hideSite: function(aSite) {
+    if (!(aSite && aSite.url)) {
+      throw Cr.NS_ERROR_INVALID_ARG
+    }
+    
+  },
+  restoreSite: function(aSite) {
+    if (!(aSite && aSite.url)) {
+      throw Cr.NS_ERROR_INVALID_ARG
+    }
+    
+  },
+  _linkFromNode: function _linkFromNode(aNode) {
+    return {
+      url: aNode.getAttribute("value"),
+      title: aNode.getAttribute("label")
+    };
   }
 };
-
 
 
 function TopSitesView(aGrid, aMaxSites, aUseThumbnails) {
@@ -50,11 +130,18 @@ function TopSitesView(aGrid, aMaxSites, aUseThumbnails) {
     PageThumbs.addExpirationFilter(this);
     Services.obs.addObserver(this, "Metro:RefreshTopsiteThumbnail", false);
   }
+
+  NewTabUtils.allPages.register(this);
+  TopSites.prepareCache().then(function(){
+    this.populateGrid();
+  }.bind(this));
 }
 
 TopSitesView.prototype = {
   _set:null,
   _topSitesMax: null,
+  
+  isUpdating: false,
 
   handleItemClick: function tabview_handleItemClick(aItem) {
     let url = aItem.getAttribute("value");
@@ -68,38 +155,34 @@ TopSitesView.prototype = {
     switch (aActionName){
       case "delete":
         Array.forEach(selectedTiles, function(aNode) {
-          let id = aNode.getAttribute("data-itemid");
+          let site = TopSites._linkFromNode(aNode);
           
-          if (TopSites.hideSite(id)) {
-            
+          TopSites.hideSite(site);
+          if (aNode.contextActions){
             aNode.contextActions.delete('delete');
             aNode.contextActions.add('restore');
           }
-          
         });
         break;
       case "pin":
         Array.forEach(selectedTiles, function(aNode) {
-          let id = aNode.getAttribute("data-itemid");
-          if (TopSites.pinSite(id)) {
-            
+          let site = TopSites._linkFromNode(aNode);
+          let index = Array.indexOf(aNode.control.children, aNode);
+          TopSites.pinSite(site, index);
+          if (aNode.contextActions) {
             aNode.contextActions.delete('pin');
             aNode.contextActions.add('unpin');
           }
-          
-          
         });
         break;
       case "unpin":
         Array.forEach(selectedTiles, function(aNode) {
-          let id = aNode.getAttribute("data-itemid");
-          if (TopSites.unpinSite(id)) {
-            
+          let site = TopSites._linkFromNode(aNode);
+          TopSites.unpinSite(site);
+          if (aNode.contextActions) {
             aNode.contextActions.delete('unpin');
             aNode.contextActions.add('pin');
           }
-          
-          
         });
         break;
       
@@ -114,56 +197,68 @@ TopSitesView.prototype = {
     }
   },
 
-  populateGrid: function populateGrid() {
-    let query = gHistSvc.getNewQuery();
-    let options = gHistSvc.getNewQueryOptions();
-    options.excludeQueries = true;
-    options.queryType = options.QUERY_TYPE_HISTORY;
-    options.maxResults = this._topSitesMax;
-    options.resultType = options.RESULTS_AS_URI;
-    options.sortingMode = options.SORT_BY_FRECENCY_DESCENDING;
-
-    let result = gHistSvc.executeQuery(query, options);
-    let rootNode = result.root;
-    rootNode.containerOpen = true;
-    let childCount = rootNode.childCount;
-
+  update: function() {
     
-    
-    let identifier = 'uri';
+    let grid = this._set,
+        dirtySites = TopSites.dirty();
 
-    function isPinned(aNode) {
+    if (dirtySites.size) {
       
-      
-      return (aNode.uri.indexOf('google') > -1);
-    }
-
-    for (let i = 0; i < childCount; i++) {
-      let node = rootNode.getChild(i);
-      let uri = node.uri;
-      let title = node.title || uri;
-
-      let supportedActions = ['delete'];
-      
-      if (isPinned(node)) {
-        supportedActions.push('unpin');
-      } else {
-        supportedActions.push('pin');
+      for (let site of dirtySites) {
+        let tileNode = grid.querySelector("[value='"+site.url+"']");
+        if (tileNode) {
+          this.updateTile(tileNode, new Site(site));
+        }
       }
-      let item = this._set.appendItem(title, uri);
-      item.setAttribute("iconURI", node.icon);
-      item.setAttribute("data-itemid", node[identifier]);
-      
-      item.setAttribute("data-contextactions", supportedActions.join(','));
-
-      if (this._useThumbs) {
-        let thumbnail = PageThumbs.getThumbnailURL(uri);
-        let cssthumbnail = 'url("'+thumbnail+'")';
+    } else {
         
-        item.setAttribute("customImage", cssthumbnail);
+      this.isUpdating = true;
+      
+      let item;
+      while ((item = grid.firstChild)){
+        grid.removeChild(item);
+      }
+      this.populateGrid();
+    }
+  },
+
+  updateTile: function(aTileNode, aSite, aArrangeGrid) {
+    if (this._useThumbs) {
+      aSite.backgroundImage = 'url("'+PageThumbs.getThumbnailURL(aSite.url)+'")';
+    } else {
+      delete aSite.backgroundImage;
+    }
+    aSite.applyToTileNode(aTileNode);
+    if (aArrangeGrid) {
+      this._set.arrangeItems();
+    }
+  },
+
+  populateGrid: function populateGrid() {
+    this.isUpdating = true;
+
+    let sites = TopSites.getSites();
+    let length = Math.min(sites.length, this._topSitesMax || Infinity);
+    let tileset = this._set;
+
+    
+    
+    while (tileset.children.length > length) {
+      tileset.removeChild(tileset.children[tileset.children.length -1]);
+    }
+
+    for (let idx=0; idx < length; idx++) {
+      let isNew = !tileset.children[idx],
+          item = tileset.children[idx] || document.createElement("richgriditem"),
+          site = sites[idx];
+
+      this.updateTile(item, site);
+      if (isNew) {
+        tileset.appendChild(item);
       }
     }
-    rootNode.containerOpen = false;
+    tileset.arrangeItems();
+    this.isUpdating = false;
   },
 
   forceReloadOfThumbnail: function forceReloadOfThumbnail(url) {
@@ -243,9 +338,7 @@ let TopSitesStartView = {
       let topsitesVbox = document.getElementById("start-topsites");
       topsitesVbox.setAttribute("hidden", "true");
     }
-    this._view.populateGrid();
   },
-
   uninit: function uninit() {
     this._view.destruct();
   },
@@ -268,9 +361,7 @@ let TopSitesSnappedView = {
       let topsitesVbox = document.getElementById("snapped-topsites");
       topsitesVbox.setAttribute("hidden", "true");
     }
-    this._view.populateGrid();
   },
-
   uninit: function uninit() {
     this._view.destruct();
   },
