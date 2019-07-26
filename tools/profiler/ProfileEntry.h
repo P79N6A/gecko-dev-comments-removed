@@ -127,6 +127,14 @@ private:
   int            mGeneration;
   int            mPendingGenerationFlush;
   void* const    mStackTop;
+
+  
+  
+  
+#ifdef XP_LINUX
+public:
+  int64_t        mRssMemory;
+#endif
 };
 
 std::ostream& operator<<(std::ostream& stream, const ThreadProfile& profile);

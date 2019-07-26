@@ -653,6 +653,11 @@ void TableTicker::InplaceTick(TickSample* sample)
     currThreadProfile.addTag(ProfileEntry('t', static_cast<float>(delta.ToMilliseconds())));
   }
 
+  
+  if (sample && sample->rssMemory != 0) {
+    currThreadProfile.addTag(ProfileEntry('R', static_cast<float>(sample->rssMemory)));
+  }
+
 #if defined(XP_WIN)
   if (powerSample) {
     currThreadProfile.addTag(ProfileEntry('p', static_cast<float>(mIntelPowerGadget->GetTotalPackagePowerInWatts())));

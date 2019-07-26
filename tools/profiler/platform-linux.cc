@@ -77,6 +77,9 @@
 #include "EHABIStackWalk.h"
 #endif
 
+
+#include "nsMemoryReporterManager.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <list>
@@ -223,11 +226,22 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
 #endif
   sample->threadProfile = sCurrentThreadProfile;
   sample->timestamp = mozilla::TimeStamp::Now();
+  sample->rssMemory = sample->threadProfile->mRssMemory;
 
   Sampler::GetActiveSampler()->Tick(sample);
 
   sCurrentThreadProfile = NULL;
   sem_post(&sSignalHandlingDone);
+}
+
+static void ProfilerSignalThread(ThreadProfile *profile,
+                                 bool isFirstProfiledThread)
+{
+  if (isFirstProfiledThread && Sampler::GetActiveSampler()->ProfileMemory()) {
+    profile->mRssMemory = nsMemoryReporterManager::ResidentFast();
+  } else {
+    profile->mRssMemory = 0;
+  }
 }
 
 
@@ -284,6 +298,7 @@ static void* SignalSender(void* arg) {
       std::vector<ThreadInfo*> threads =
         SamplerRegistry::sampler->GetRegisteredThreads();
 
+      bool isFirstProfiledThread = true;
       for (uint32_t i = 0; i < threads.size(); i++) {
         ThreadInfo* info = threads[i];
 
@@ -305,6 +320,14 @@ static void* SignalSender(void* arg) {
 
         int threadId = info->ThreadId();
 
+        
+        
+        
+        ProfilerSignalThread(sCurrentThreadProfile, isFirstProfiledThread);
+
+        
+        
+        
         if (tgkill(vm_tgid_, threadId, SIGPROF) != 0) {
           printf_stderr("profiler failed to signal tid=%d\n", threadId);
 #ifdef DEBUG
@@ -315,6 +338,7 @@ static void* SignalSender(void* arg) {
 
         
         sem_wait(&sSignalHandlingDone);
+        isFirstProfiledThread = false;
       }
     }
 

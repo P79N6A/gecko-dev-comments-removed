@@ -654,6 +654,8 @@ const char** mozilla_sampler_get_features()
     "privacy",
     
     "mainthreadio",
+    
+    "memory",
 #if defined(XP_WIN)
     
     "power",
