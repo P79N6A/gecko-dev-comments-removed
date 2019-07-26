@@ -917,10 +917,7 @@ public:
   friend class MediaStreamGraphImpl;
 
   
-  virtual void AddInput(MediaInputPort* aPort)
-  {
-    mInputs.AppendElement(aPort);
-  }
+  virtual void AddInput(MediaInputPort* aPort);
   virtual void RemoveInput(MediaInputPort* aPort)
   {
     mInputs.RemoveElement(aPort);
