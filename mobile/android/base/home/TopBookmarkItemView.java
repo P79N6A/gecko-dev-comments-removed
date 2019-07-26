@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.ImageView.ScaleType;
 
 
 
@@ -143,6 +144,7 @@ public class TopBookmarkItemView extends RelativeLayout {
 
 
     public void displayThumbnail(int resId) {
+        mThumbnailView.setScaleType(ScaleType.CENTER);
         mThumbnailView.setImageResource(resId);
         mThumbnailView.setBackgroundColor(0x0);
     }
@@ -175,6 +177,7 @@ public class TopBookmarkItemView extends RelativeLayout {
             return;
         }
 
+        mThumbnailView.setScaleType(ScaleType.CENTER);
         mThumbnailView.setImageBitmap(favicon);
         mThumbnailView.setBackgroundColor(Favicons.getInstance().getFaviconColor(favicon, mUrl));
     }
