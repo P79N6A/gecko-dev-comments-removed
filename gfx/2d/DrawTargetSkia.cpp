@@ -600,6 +600,16 @@ DrawTargetSkia::CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFor
   return target;
 }
 
+bool
+DrawTargetSkia::UsingSkiaGPU() const
+{
+#ifdef USE_SKIA_GPU
+  return !!mTexture;
+#else
+  return false;
+#endif
+}
+
 TemporaryRef<SourceSurface>
 DrawTargetSkia::OptimizeSourceSurface(SourceSurface *aSurface) const
 {
@@ -607,7 +617,28 @@ DrawTargetSkia::OptimizeSourceSurface(SourceSurface *aSurface) const
     return aSurface;
   }
 
-  return aSurface->GetDataSurface();
+  if (!UsingSkiaGPU()) {
+    
+    
+    
+    
+    return aSurface->GetDataSurface();
+  }
+
+  
+  
+  RefPtr<DataSourceSurface> dataSurf = aSurface->GetDataSurface();
+  DataSourceSurface::MappedSurface map;
+  if (!dataSurf->Map(DataSourceSurface::READ, &map)) {
+    return nullptr;
+  }
+
+  RefPtr<SourceSurface> result = CreateSourceSurfaceFromData(map.mData,
+                                                             dataSurf->GetSize(),
+                                                             map.mStride,
+                                                             dataSurf->GetFormat());
+  dataSurf->Unmap();
+  return result;
 }
 
 TemporaryRef<SourceSurface>
