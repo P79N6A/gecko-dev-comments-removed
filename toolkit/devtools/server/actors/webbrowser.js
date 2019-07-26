@@ -797,8 +797,12 @@ BrowserTabActor.prototype = {
   postNest: function BTA_postNest(aNestData) {
     if (!this.window) {
       
-      dbg_assert(this._nestedEventLoopDepth === 0,
-                 "window shouldn't be closed before all nested event loops have been popped");
+      
+      
+      
+      
+      this._nestedEventLoopDepth--;
+      this._pendingNavigation = null;
       return;
     }
     let windowUtils = this.window
