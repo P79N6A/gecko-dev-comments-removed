@@ -82,16 +82,16 @@ CustomizeMode.prototype = {
     customizer.parentNode.selectedPanel = customizer;
 
     window.PanelUI.hide();
+    
+    
+    let panelHolder = document.getElementById("customization-panelHolder");
+    panelHolder.appendChild(window.PanelUI.mainView);
+
 
     let self = this;
     let deck = document.getElementById("tab-view-deck");
     deck.addEventListener("transitionend", function customizeTransitionEnd() {
       deck.removeEventListener("transitionend", customizeTransitionEnd);
-
-      
-      
-      let panelHolder = document.getElementById("customization-panelHolder");
-      panelHolder.appendChild(window.PanelUI.mainView);
 
       
       self.areas = [];
