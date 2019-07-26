@@ -48,6 +48,7 @@ public:
 
     void Init(nsDeviceContext* aContext, gfxASurface* aThebesSurface);
     void Init(nsDeviceContext* aContext, gfxContext* aThebesContext);
+    void Init(nsDeviceContext* aContext, DrawTarget* aDrawTarget);
 
     
     gfxContext *ThebesContext() { return mThebes; }
