@@ -6,7 +6,6 @@
 #include "mozilla/Util.h"
 
 #include "nsGkAtoms.h"
-#include "nsIDOMSVGPathSeg.h"
 #include "DOMSVGPathSeg.h"
 #include "DOMSVGPathSegList.h"
 #include "nsCOMPtr.h"
@@ -112,99 +111,99 @@ nsSVGPathElement::GetPathSegAtLength(float distance, uint32_t *_retval)
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegClosePath(nsIDOMSVGPathSegClosePath **_retval)
+nsSVGPathElement::CreateSVGPathSegClosePath(nsISupports **_retval)
 {
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegClosePath();
+  nsISupports* seg = NS_NewSVGPathSegClosePath();
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegMovetoAbs(float x, float y, nsIDOMSVGPathSegMovetoAbs **_retval)
-{
-  NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegMovetoAbs(x, y);
-  NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
-  return CallQueryInterface(seg, _retval);
-}
-
-
-NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegMovetoRel(float x, float y, nsIDOMSVGPathSegMovetoRel **_retval)
+nsSVGPathElement::CreateSVGPathSegMovetoAbs(float x, float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegMovetoRel(x, y);
+  nsISupports* seg = NS_NewSVGPathSegMovetoAbs(x, y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegLinetoAbs(float x, float y, nsIDOMSVGPathSegLinetoAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegMovetoRel(float x, float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegLinetoAbs(x, y);
+  nsISupports* seg = NS_NewSVGPathSegMovetoRel(x, y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegLinetoRel(float x, float y, nsIDOMSVGPathSegLinetoRel **_retval)
+nsSVGPathElement::CreateSVGPathSegLinetoAbs(float x, float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegLinetoRel(x, y);
+  nsISupports* seg = NS_NewSVGPathSegLinetoAbs(x, y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoCubicAbs(float x, float y, float x1, float y1, float x2, float y2, nsIDOMSVGPathSegCurvetoCubicAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegLinetoRel(float x, float y, nsISupports **_retval)
+{
+  NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
+  nsISupports* seg = NS_NewSVGPathSegLinetoRel(x, y);
+  NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
+  return CallQueryInterface(seg, _retval);
+}
+
+
+NS_IMETHODIMP
+nsSVGPathElement::CreateSVGPathSegCurvetoCubicAbs(float x, float y, float x1, float y1, float x2, float y2, nsISupports **_retval)
 {
   NS_ENSURE_FINITE6(x, y, x1, y1, x2, y2, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoCubicAbs(x, y, x1, y1, x2, y2);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoCubicAbs(x, y, x1, y1, x2, y2);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoCubicRel(float x, float y, float x1, float y1, float x2, float y2, nsIDOMSVGPathSegCurvetoCubicRel **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoCubicRel(float x, float y, float x1, float y1, float x2, float y2, nsISupports **_retval)
 {
   NS_ENSURE_FINITE6(x, y, x1, y1, x2, y2, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoCubicRel(x, y, x1, y1, x2, y2);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoCubicRel(x, y, x1, y1, x2, y2);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticAbs(float x, float y, float x1, float y1, nsIDOMSVGPathSegCurvetoQuadraticAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticAbs(float x, float y, float x1, float y1, nsISupports **_retval)
 {
   NS_ENSURE_FINITE4(x, y, x1, y1, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoQuadraticAbs(x, y, x1, y1);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoQuadraticAbs(x, y, x1, y1);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticRel(float x, float y, float x1, float y1, nsIDOMSVGPathSegCurvetoQuadraticRel **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticRel(float x, float y, float x1, float y1, nsISupports **_retval)
 {
   NS_ENSURE_FINITE4(x, y, x1, y1, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoQuadraticRel(x, y, x1, y1);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoQuadraticRel(x, y, x1, y1);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegArcAbs(float x, float y, float r1, float r2, float angle, bool largeArcFlag, bool sweepFlag, nsIDOMSVGPathSegArcAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegArcAbs(float x, float y, float r1, float r2, float angle, bool largeArcFlag, bool sweepFlag, nsISupports **_retval)
 {
   NS_ENSURE_FINITE5(x, y, r1, r2, angle, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegArcAbs(x, y, r1, r2, angle,
+  nsISupports* seg = NS_NewSVGPathSegArcAbs(x, y, r1, r2, angle,
                                                  largeArcFlag, sweepFlag);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
@@ -212,10 +211,10 @@ nsSVGPathElement::CreateSVGPathSegArcAbs(float x, float y, float r1, float r2, f
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegArcRel(float x, float y, float r1, float r2, float angle, bool largeArcFlag, bool sweepFlag, nsIDOMSVGPathSegArcRel **_retval)
+nsSVGPathElement::CreateSVGPathSegArcRel(float x, float y, float r1, float r2, float angle, bool largeArcFlag, bool sweepFlag, nsISupports **_retval)
 {
   NS_ENSURE_FINITE5(x, y, r1, r2, angle, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegArcRel(x, y, r1, r2, angle,
+  nsISupports* seg = NS_NewSVGPathSegArcRel(x, y, r1, r2, angle,
                                                  largeArcFlag, sweepFlag);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
@@ -223,80 +222,80 @@ nsSVGPathElement::CreateSVGPathSegArcRel(float x, float y, float r1, float r2, f
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegLinetoHorizontalAbs(float x, nsIDOMSVGPathSegLinetoHorizontalAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegLinetoHorizontalAbs(float x, nsISupports **_retval)
 {
   NS_ENSURE_FINITE(x, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegLinetoHorizontalAbs(x);
+  nsISupports* seg = NS_NewSVGPathSegLinetoHorizontalAbs(x);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegLinetoHorizontalRel(float x, nsIDOMSVGPathSegLinetoHorizontalRel **_retval)
+nsSVGPathElement::CreateSVGPathSegLinetoHorizontalRel(float x, nsISupports **_retval)
 {
   NS_ENSURE_FINITE(x, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegLinetoHorizontalRel(x);
+  nsISupports* seg = NS_NewSVGPathSegLinetoHorizontalRel(x);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegLinetoVerticalAbs(float y, nsIDOMSVGPathSegLinetoVerticalAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegLinetoVerticalAbs(float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE(y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegLinetoVerticalAbs(y);
+  nsISupports* seg = NS_NewSVGPathSegLinetoVerticalAbs(y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegLinetoVerticalRel(float y, nsIDOMSVGPathSegLinetoVerticalRel **_retval)
+nsSVGPathElement::CreateSVGPathSegLinetoVerticalRel(float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE(y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegLinetoVerticalRel(y);
+  nsISupports* seg = NS_NewSVGPathSegLinetoVerticalRel(y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoCubicSmoothAbs(float x, float y, float x2, float y2, nsIDOMSVGPathSegCurvetoCubicSmoothAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoCubicSmoothAbs(float x, float y, float x2, float y2, nsISupports **_retval)
 {
   NS_ENSURE_FINITE4(x, y, x2, y2, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoCubicSmoothAbs(x, y, x2, y2);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoCubicSmoothAbs(x, y, x2, y2);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoCubicSmoothRel(float x, float y, float x2, float y2, nsIDOMSVGPathSegCurvetoCubicSmoothRel **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoCubicSmoothRel(float x, float y, float x2, float y2, nsISupports **_retval)
 {
   NS_ENSURE_FINITE4(x, y, x2, y2, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoCubicSmoothRel(x, y, x2, y2);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoCubicSmoothRel(x, y, x2, y2);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticSmoothAbs(float x, float y, nsIDOMSVGPathSegCurvetoQuadraticSmoothAbs **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticSmoothAbs(float x, float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoQuadraticSmoothAbs(x, y);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoQuadraticSmoothAbs(x, y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
 
 
 NS_IMETHODIMP
-nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticSmoothRel(float x, float y, nsIDOMSVGPathSegCurvetoQuadraticSmoothRel **_retval)
+nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticSmoothRel(float x, float y, nsISupports **_retval)
 {
   NS_ENSURE_FINITE2(x, y, NS_ERROR_ILLEGAL_VALUE);
-  nsIDOMSVGPathSeg* seg = NS_NewSVGPathSegCurvetoQuadraticSmoothRel(x, y);
+  nsISupports* seg = NS_NewSVGPathSegCurvetoQuadraticSmoothRel(x, y);
   NS_ENSURE_TRUE(seg, NS_ERROR_OUT_OF_MEMORY);
   return CallQueryInterface(seg, _retval);
 }
