@@ -69,6 +69,13 @@ pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/f
 
 
 
+pref("app.update.checkInstallTime", true);
+
+
+
+
+
+
 pref("app.update.timerMinimumDelay", 120);
 
 

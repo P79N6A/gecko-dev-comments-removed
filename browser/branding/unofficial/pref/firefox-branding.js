@@ -19,6 +19,11 @@ pref("app.update.url.manual", "https://nightly.mozilla.org");
 pref("app.update.url.details", "https://nightly.mozilla.org");
 
 
+
+
+pref("app.update.checkInstallTime.days", 2);
+
+
 pref("browser.search.param.yahoo-fr", "");
 pref("browser.search.param.yahoo-fr-cjkt", ""); 
 pref("browser.search.param.yahoo-fr-ja", "");

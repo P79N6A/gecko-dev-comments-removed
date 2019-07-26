@@ -22,6 +22,11 @@ pref("app.update.url.manual", "https://www.mozilla.org/firefox/aurora/");
 pref("app.update.url.details", "https://www.mozilla.org/firefox/aurora/");
 
 
+
+
+pref("app.update.checkInstallTime.days", 2);
+
+
 pref("browser.search.param.yahoo-fr", "");
 pref("browser.search.param.yahoo-fr-cjkt", ""); 
 pref("browser.search.param.yahoo-fr-ja", "");

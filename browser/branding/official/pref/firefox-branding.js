@@ -18,6 +18,11 @@ pref("app.update.url.manual", "https://www.mozilla.org/firefox/");
 
 pref("app.update.url.details", "https://www.mozilla.org/%LOCALE%/firefox/notes");
 
+
+
+
+pref("app.update.checkInstallTime.days", 63);
+
 pref("browser.search.param.ms-pc", "MOZI");
 pref("browser.search.param.yahoo-fr", "moz35");
 pref("browser.search.param.yahoo-fr-cjkt", "moz35"); 
