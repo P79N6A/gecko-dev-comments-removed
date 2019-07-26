@@ -820,6 +820,12 @@ public:
 
 
 
+  mozilla::dom::Element* GetParentElementCrossingShadowRoot() const;
+
+  
+
+
+
 
   nsINode* SubtreeRoot() const;
 
