@@ -372,6 +372,12 @@ private:
   bool mIsRenderingToEGLSurface;
 
   
+  class ReadDrawFPSPref MOZ_FINAL : public nsRunnable {
+  public:
+    NS_IMETHOD Run() MOZ_OVERRIDE;
+  };
+
+  
   LayerOGL *RootLayer() const;
 
   

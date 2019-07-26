@@ -486,6 +486,16 @@ LayerManagerOGL::AddPrograms(ShaderProgramType aType)
   }
 }
 
+
+NS_IMETHODIMP
+LayerManagerOGL::ReadDrawFPSPref::Run()
+{
+  
+  Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+  Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
+  return NS_OK;
+}
+
 bool
 LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 {
@@ -667,19 +677,11 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
   }
 
   if (NS_IsMainThread()) {
+    
     Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
     Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   } else {
     
-    class ReadDrawFPSPref : public nsRunnable {
-    public:
-      NS_IMETHOD Run()
-      {
-        Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
-        Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
-        return NS_OK;
-      }
-    };
     NS_DispatchToMainThread(new ReadDrawFPSPref());
   }
 
