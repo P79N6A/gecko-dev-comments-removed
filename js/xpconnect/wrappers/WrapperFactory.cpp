@@ -459,13 +459,13 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
         wrapper = SelectWrapper(securityWrapper, wantXrays, xrayType, waiveXrays);
     }
 
-    if (wrapper == &ChromeObjectWrapper::singleton) {
+    if (!targetSubsumesOrigin) {
         
         
         JSFunction *fun = JS_GetObjectFunction(obj);
         if (fun) {
             if (JS_IsBuiltinEvalFunction(fun) || JS_IsBuiltinFunctionConstructor(fun)) {
-                JS_ReportError(cx, "Not allowed to access chrome eval or Function from content");
+                JS_ReportError(cx, "Permission denied to expose eval or Function to non-subsuming content");
                 return nullptr;
             }
         }
