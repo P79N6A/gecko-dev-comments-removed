@@ -4078,12 +4078,16 @@ JSTerm.prototype = {
     
     if (!inputValue) {
       this.clearCompletion();
+      aCallback && aCallback(this);
+      this.emit("autocomplete-updated");
       return false;
     }
 
     
     if (inputNode.selectionStart != inputNode.selectionEnd) {
       this.clearCompletion();
+      aCallback && aCallback(this);
+      this.emit("autocomplete-updated");
       return false;
     }
 
@@ -4108,6 +4112,7 @@ JSTerm.prototype = {
     }
 
     aCallback && aCallback(this);
+    this.emit("autocomplete-updated");
     return accepted || popup.itemCount > 0;
   },
 
@@ -4206,7 +4211,6 @@ JSTerm.prototype = {
         aRequestId != this.lastCompletion.requestId) {
       return;
     }
-
     
     let cursor = inputNode.selectionStart;
     let inputUntilCursor = inputValue.substring(0, cursor);
@@ -4220,6 +4224,8 @@ JSTerm.prototype = {
     let lastPart = aMessage.matchProp;
     if (!matches.length) {
       this.clearCompletion();
+      aCallback && aCallback(this);
+      this.emit("autocomplete-updated");
       return;
     }
 
@@ -4264,8 +4270,8 @@ JSTerm.prototype = {
       popup.selectNextItem();
     }
 
-    this.emit("autocomplete-updated");
     aCallback && aCallback(this);
+    this.emit("autocomplete-updated");
   },
 
   onAutocompleteSelect: function JSTF_onAutocompleteSelect()
