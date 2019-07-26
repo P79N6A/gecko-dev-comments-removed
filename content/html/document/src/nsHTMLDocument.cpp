@@ -2295,39 +2295,6 @@ nsHTMLDocument::ResolveName(const nsAString& aName, nsWrapperCache **aCache)
   return nullptr;
 }
 
-already_AddRefed<nsISupports>
-nsHTMLDocument::ResolveName(const nsAString& aName,
-                            nsIContent *aForm,
-                            nsWrapperCache **aCache)
-{
-  nsISupports* result = ResolveName(aName, aCache);
-  if (!result) {
-    return nullptr;
-  }
-
-  nsCOMPtr<nsIContent> node = do_QueryInterface(result);
-  if (!node) {
-    
-    
-    nsRefPtr<nsBaseContentList> list =
-      new nsFormContentList(aForm, *static_cast<nsBaseContentList*>(result));
-    if (list->Length() > 1) {
-      *aCache = list;
-      return list.forget();
-    }
-
-    
-    
-    
-    node = list->Item(0);
-  } else if (!nsContentUtils::BelongsInForm(aForm, node)) {
-    node = nullptr;
-  }
-
-  *aCache = node;
-  return node.forget();
-}
-
 JSObject*
 nsHTMLDocument::NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
                             ErrorResult& rv)

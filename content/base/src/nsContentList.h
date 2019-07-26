@@ -127,16 +127,6 @@ private:
 
 
 
-class nsFormContentList : public nsSimpleContentList
-{
-public:
-  nsFormContentList(nsIContent *aForm,
-                    nsBaseContentList& aContentList);
-};
-
-
-
-
 
 struct nsContentListKey
 {
