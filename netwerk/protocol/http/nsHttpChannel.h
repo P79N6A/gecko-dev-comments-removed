@@ -395,6 +395,8 @@ private:
     uint32_t                          mConcurentCacheAccess : 1;
     
     uint32_t                          mIsPartialRequest : 1;
+    
+    uint32_t                          mHasAutoRedirectVetoNotifier : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
