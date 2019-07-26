@@ -75,23 +75,6 @@ WinUtils::GetWindowsVersion()
 
 
 bool
-WinUtils::GetWindowsServicePackVersion(UINT& aOutMajor, UINT& aOutMinor)
-{
-  OSVERSIONINFOEX osInfo;
-  osInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-  
-  if (!::GetVersionEx((OSVERSIONINFO*)&osInfo)) {
-    return false;
-  }
-  
-  aOutMajor = osInfo.wServicePackMajor;
-  aOutMinor = osInfo.wServicePackMinor;
-
-  return true;
-}
-
-
-bool
 WinUtils::PeekMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
                       UINT aLastMessage, UINT aOption)
 {

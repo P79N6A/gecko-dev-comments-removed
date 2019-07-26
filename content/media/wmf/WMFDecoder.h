@@ -42,10 +42,6 @@ public:
   
   
   static bool IsEnabled();
-
-  
-  
-  static bool IsMP3Supported();
 };
 
 } 
