@@ -4992,17 +4992,17 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, JSFunctionSpec *fs)
 
 
 
-
-        if (fs->selfHostedName && cx->runtime->isSelfHostingGlobal(cx->global()))
-            return JS_TRUE;
-
-        
-
-
-
-
-
         if (fs->selfHostedName) {
+            
+
+
+
+
+
+
+            if (cx->runtime->isSelfHostingGlobal(cx->global()))
+                continue;
+
             RootedFunction fun(cx, DefineFunction(cx, obj, id,  NULL, fs->nargs, 0,
                                                   JSFunction::ExtendedFinalizeKind, SingletonObject));
             if (!fun)
