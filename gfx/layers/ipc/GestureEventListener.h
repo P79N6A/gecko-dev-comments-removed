@@ -202,14 +202,20 @@ protected:
 
 
 
+
+
   CancelableTask *mDoubleTapTimeoutTask;
+  inline void CancelDoubleTapTimeoutTask();
 
   
 
 
 
 
+
+
   CancelableTask *mLongTapTimeoutTask;
+  inline void CancelLongTapTimeoutTask();
 
   
 

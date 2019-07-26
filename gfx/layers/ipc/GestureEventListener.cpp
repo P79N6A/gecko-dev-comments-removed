@@ -142,7 +142,7 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
           event.mTime - mLastTapEndTime > MAX_TAP_TIME) {
         
         
-        mDoubleTapTimeoutTask->Cancel();
+        CancelDoubleTapTimeoutTask();
         TimeoutDoubleTap();
 
         
@@ -150,14 +150,12 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
       }
 
       if (mState == GESTURE_WAITING_DOUBLE_TAP) {
-        mDoubleTapTimeoutTask->Cancel();
-
+        CancelDoubleTapTimeoutTask();
         
         HandleDoubleTap(event);
         mState = GESTURE_NONE;
       } else if (mState == GESTURE_WAITING_SINGLE_TAP) {
-        mLongTapTimeoutTask->Cancel();
-
+        CancelLongTapTimeoutTask();
         HandleSingleTapUpEvent(event);
 
         
@@ -299,7 +297,7 @@ nsEventStatus GestureEventListener::HandleTapCancel(const MultiTouchInput& aEven
   switch (mState)
   {
   case GESTURE_WAITING_SINGLE_TAP:
-    mLongTapTimeoutTask->Cancel();
+    CancelLongTapTimeoutTask();
     mState = GESTURE_NONE;
     break;
 
@@ -321,6 +319,7 @@ nsEventStatus GestureEventListener::HandleDoubleTap(const MultiTouchInput& aEven
 
 void GestureEventListener::TimeoutDoubleTap()
 {
+  mDoubleTapTimeoutTask = nullptr;
   
   
   if (mState == GESTURE_WAITING_DOUBLE_TAP) {
@@ -330,13 +329,28 @@ void GestureEventListener::TimeoutDoubleTap()
   }
 }
 
+void GestureEventListener::CancelDoubleTapTimeoutTask() {
+  if (mDoubleTapTimeoutTask) {
+    mDoubleTapTimeoutTask->Cancel();
+    mDoubleTapTimeoutTask = nullptr;
+  }
+}
+
 void GestureEventListener::TimeoutLongTap()
 {
+  mLongTapTimeoutTask = nullptr;
   
   if (mState == GESTURE_WAITING_SINGLE_TAP) {
     mState = GESTURE_NONE;
 
     HandleLongTapEvent(mLastTouchInput);
+  }
+}
+
+void GestureEventListener::CancelLongTapTimeoutTask() {
+  if (mLongTapTimeoutTask) {
+    mLongTapTimeoutTask->Cancel();
+    mLongTapTimeoutTask = nullptr;
   }
 }
 
