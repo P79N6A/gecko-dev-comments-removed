@@ -14,6 +14,8 @@ namespace xpc {
 
 ChromeObjectWrapper ChromeObjectWrapper::singleton;
 
+using js::assertEnteredPolicy;
+
 static bool
 AllowedByBase(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act)
 {
@@ -58,6 +60,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
                                            jsid id, js::PropertyDescriptor *desc,
                                            unsigned flags)
 {
+    assertEnteredPolicy(cx, wrapper, id);
     
     desc->obj = NULL;
     if (AllowedByBase(cx, wrapper, id, Wrapper::GET) &&
@@ -87,6 +90,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
 bool
 ChromeObjectWrapper::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
+    assertEnteredPolicy(cx, wrapper, id);
     
     if (AllowedByBase(cx, wrapper, id, js::Wrapper::GET) &&
         !ChromeObjectWrapperBase::has(cx, wrapper, id, bp))
@@ -114,6 +118,7 @@ bool
 ChromeObjectWrapper::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
                          jsid id, js::Value *vp)
 {
+    assertEnteredPolicy(cx, wrapper, id);
     vp->setUndefined();
     JSPropertyDescriptor desc;
     
@@ -155,7 +160,13 @@ ChromeObjectWrapper::enter(JSContext *cx, JSObject *wrapper, jsid id,
     
     
     *bp = (act == Wrapper::GET);
-    return *bp && PropIsFromStandardPrototype(cx, wrapper, id);
+    if (!*bp || id == JSID_VOID)
+        return false;
+
+    
+    
+    js::AutoWaivePolicy policy(cx, wrapper, id);
+    return PropIsFromStandardPrototype(cx, wrapper, id);
 }
 
 }
