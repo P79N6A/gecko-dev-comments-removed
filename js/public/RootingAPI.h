@@ -8,6 +8,7 @@
 #define js_RootingAPI_h
 
 #include "mozilla/GuardObjects.h"
+#include "mozilla/NullPtr.h"
 #include "mozilla/TypeTraits.h"
 
 #include "jspubtd.h"
@@ -595,7 +596,7 @@ struct RootKind<T *>
 template <typename T>
 struct GCMethods<T *>
 {
-    static T *initial() { return NULL; }
+    static T *initial() { return nullptr; }
     static ThingRootKind kind() { return RootKind<T *>::rootKind(); }
     static bool poisoned(T *v) { return JS::IsPoisonedPtr(v); }
     static bool needsPostBarrier(T *v) { return v; }
@@ -1045,7 +1046,7 @@ inline void MaybeCheckStackRoots(JSContext *cx)
 class CompilerRootNode
 {
   protected:
-    CompilerRootNode(js::gc::Cell *ptr) : next(NULL), ptr_(ptr) {}
+    CompilerRootNode(js::gc::Cell *ptr) : next(nullptr), ptr_(ptr) {}
 
   public:
     void **address() { return (void **)&ptr_; }

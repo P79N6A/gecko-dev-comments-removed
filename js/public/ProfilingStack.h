@@ -7,6 +7,8 @@
 #ifndef js_ProfilingStack_h
 #define js_ProfilingStack_h
 
+#include "mozilla/NullPtr.h"
+ 
 #include "jsbytecode.h"
 #include "jstypes.h"
 
@@ -49,8 +51,8 @@ class ProfileEntry
     
 
     bool js() volatile {
-        JS_ASSERT_IF(sp == NULL, script_ != NULL);
-        return sp == NULL;
+        JS_ASSERT_IF(sp == nullptr, script_ != nullptr);
+        return sp == nullptr;
     }
 
     uint32_t line() volatile { JS_ASSERT(!js()); return idx; }

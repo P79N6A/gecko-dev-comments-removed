@@ -7,6 +7,8 @@
 #ifndef js_StructuredClone_h
 #define js_StructuredClone_h
 
+#include "mozilla/NullPtr.h"
+
 #include <stdint.h>
 
 #include "jstypes.h"
@@ -86,7 +88,7 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
 
   public:
     JSAutoStructuredCloneBuffer()
-        : data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
+        : data_(nullptr), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
 
     ~JSAutoStructuredCloneBuffer() { clear(); }
 
@@ -106,16 +108,16 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     
     
     
-    void steal(uint64_t **datap, size_t *nbytesp, uint32_t *versionp=NULL);
+    void steal(uint64_t **datap, size_t *nbytesp, uint32_t *versionp=nullptr);
 
     bool read(JSContext *cx, JS::Value *vp,
-              const JSStructuredCloneCallbacks *optionalCallbacks=NULL, void *closure=NULL);
+              const JSStructuredCloneCallbacks *optionalCallbacks=nullptr, void *closure=nullptr);
 
     bool write(JSContext *cx, JS::Value v,
-               const JSStructuredCloneCallbacks *optionalCallbacks=NULL, void *closure=NULL);
+               const JSStructuredCloneCallbacks *optionalCallbacks=nullptr, void *closure=nullptr);
 
     bool write(JSContext *cx, JS::Value v, JS::Value transferable,
-               const JSStructuredCloneCallbacks *optionalCallbacks=NULL, void *closure=NULL);
+               const JSStructuredCloneCallbacks *optionalCallbacks=nullptr, void *closure=nullptr);
 
     
     void swap(JSAutoStructuredCloneBuffer &other);
