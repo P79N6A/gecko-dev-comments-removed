@@ -131,7 +131,7 @@ WebappsActor.prototype = {
           });
         } catch(e) {
           
-          self.sendError(e.toString());
+          self._sendError(e.toString(), aId);
         }
       }
     }
