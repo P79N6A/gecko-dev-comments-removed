@@ -9,6 +9,7 @@
 #include <stdlib.h>                     
 #include "FPSCounter.h"                 
 #include "GLContextProvider.h"          
+#include "LayerManagerOGL.h"            
 #include "Layers.h"                     
 #include "gfx2DGlue.h"                  
 #include "gfx3DMatrix.h"                
@@ -57,6 +58,51 @@ static inline IntSize ns2gfxSize(const nsIntSize& s) {
 }
 
 
+
+static void
+DrawWithVertexBuffer2(GLContext *aGLContext, VBOArena &aVBOs,
+                      GLenum aMode, GLsizei aElements,
+                      GLint aAttr1, GLfloat *aArray1,
+                      GLint aAttr2, GLfloat *aArray2)
+{
+  GLsizei bytes = aElements * 2 * sizeof(GLfloat);
+
+  aGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER,
+                          aVBOs.Allocate(aGLContext));
+  aGLContext->fBufferData(LOCAL_GL_ARRAY_BUFFER,
+                          2 * bytes,
+                          nullptr,
+                          LOCAL_GL_STREAM_DRAW);
+
+  aGLContext->fBufferSubData(LOCAL_GL_ARRAY_BUFFER,
+                             0,
+                             bytes,
+                             aArray1);
+  aGLContext->fBufferSubData(LOCAL_GL_ARRAY_BUFFER,
+                             bytes,
+                             bytes,
+                             aArray2);
+
+  aGLContext->fEnableVertexAttribArray(aAttr1);
+  aGLContext->fEnableVertexAttribArray(aAttr2);
+
+  aGLContext->fVertexAttribPointer(aAttr1,
+                                   2, LOCAL_GL_FLOAT,
+                                   LOCAL_GL_FALSE,
+                                   0, BUFFER_OFFSET(0));
+  aGLContext->fVertexAttribPointer(aAttr2,
+                                   2, LOCAL_GL_FLOAT,
+                                   LOCAL_GL_FALSE,
+                                   0, BUFFER_OFFSET(bytes));
+
+  aGLContext->fDrawArrays(aMode, 0, aElements);
+
+  aGLContext->fDisableVertexAttribArray(aAttr1);
+  aGLContext->fDisableVertexAttribArray(aAttr2);
+
+  aGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
+}
+
 void
 FPSState::DrawFPS(TimeStamp aNow,
                   GLContext* context, ShaderProgramOGL* copyprog)
@@ -97,6 +143,8 @@ FPSState::DrawFPS(TimeStamp aNow,
     context->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, 64, 8, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE, buf);
     free(buf);
   }
+
+  mVBOs.Reset();
 
   struct Vertex2D {
     float x,y;
@@ -192,43 +240,20 @@ FPSState::DrawFPS(TimeStamp aNow,
   copyprog->SetTextureUnit(0);
 
   
-  context->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
-
-  
   context->fBlendFuncSeparate(LOCAL_GL_ONE, LOCAL_GL_ZERO,
                               LOCAL_GL_ONE, LOCAL_GL_ZERO);
 
-  
-  
   GLint vcattr = copyprog->AttribLocation(ShaderProgramOGL::VertexCoordAttrib);
   GLint tcattr = copyprog->AttribLocation(ShaderProgramOGL::TexCoordAttrib);
 
-  context->fEnableVertexAttribArray(vcattr);
-  context->fEnableVertexAttribArray(tcattr);
-
-  context->fVertexAttribPointer(vcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, vertices);
-
-  context->fVertexAttribPointer(tcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, texCoords);
-
-  context->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 12);
-
-  context->fVertexAttribPointer(vcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, vertices2);
-
-  context->fVertexAttribPointer(tcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, texCoords2);
-
-  context->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 12);
+  DrawWithVertexBuffer2(context, mVBOs,
+                        LOCAL_GL_TRIANGLE_STRIP, 12,
+                        vcattr, (GLfloat *) vertices,
+                        tcattr, (GLfloat *) texCoords);
+  DrawWithVertexBuffer2(context, mVBOs,
+                        LOCAL_GL_TRIANGLE_STRIP, 12,
+                        vcattr, (GLfloat *) vertices2,
+                        tcattr, (GLfloat *) texCoords2);
 }
 
 #ifdef CHECK_CURRENT_PROGRAM
@@ -312,9 +337,17 @@ CompositorOGL::GetTemporaryTexture(GLenum aTextureUnit)
 void
 CompositorOGL::Destroy()
 {
-  if (gl() && mTextures.Length() > 0) {
+  if (gl()) {
     gl()->MakeCurrent();
-    gl()->fDeleteTextures(mTextures.Length(), &mTextures[0]);
+    if (mTextures.Length() > 0) {
+      gl()->fDeleteTextures(mTextures.Length(), &mTextures[0]);
+    }
+    mVBOs.Flush(gl());
+    if (mFPS) {
+      if (mFPS->mTexture > 0)
+        gl()->fDeleteTextures(1, &mFPS->mTexture);
+      mFPS->mVBOs.Flush(gl());
+    }
   }
   mTextures.SetLength(0);
   if (!mDestroyed) {
@@ -559,10 +592,6 @@ CompositorOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
 
   
   
-  mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
-
-  
-  
   
   
   
@@ -614,25 +643,10 @@ CompositorOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
                                               rects, flipped);
   }
 
-  mGLContext->fVertexAttribPointer(vertAttribIndex, 2,
-                                   LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                                   rects.vertexPointer());
-
-  mGLContext->fVertexAttribPointer(texCoordAttribIndex, 2,
-                                   LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                                   rects.texCoordPointer());
-
-  {
-    mGLContext->fEnableVertexAttribArray(texCoordAttribIndex);
-    {
-      mGLContext->fEnableVertexAttribArray(vertAttribIndex);
-
-      mGLContext->fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.elements());
-
-      mGLContext->fDisableVertexAttribArray(vertAttribIndex);
-    }
-    mGLContext->fDisableVertexAttribArray(texCoordAttribIndex);
-  }
+  DrawWithVertexBuffer2(mGLContext, mVBOs,
+                        LOCAL_GL_TRIANGLES, rects.elements(),
+                        vertAttribIndex, rects.vertexPointer(),
+                        texCoordAttribIndex, rects.texCoordPointer());
 }
 
 void
@@ -768,6 +782,8 @@ CompositorOGL::BeginFrame(const Rect *aClipRectIn, const gfxMatrix& aTransform,
                           Rect *aRenderBoundsOut)
 {
   MOZ_ASSERT(!mFrameInProgress, "frame still in progress (should have called EndFrame or AbortFrame");
+
+  mVBOs.Reset();
 
   mFrameInProgress = true;
   gfxRect rect;
