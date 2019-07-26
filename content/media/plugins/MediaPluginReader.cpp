@@ -324,7 +324,21 @@ nsresult MediaPluginReader::Seek(int64_t aTarget, int64_t aStartTime, int64_t aE
   mVideoQueue.Reset();
   mAudioQueue.Reset();
 
-  mAudioSeekTimeUs = mVideoSeekTimeUs = aTarget;
+  if (mHasAudio && mHasVideo) {
+    
+    
+    
+    
+    
+    
+    
+    
+    mVideoSeekTimeUs = aTarget;
+    const VideoData* v = DecodeToFirstVideoData();
+    mAudioSeekTimeUs = v ? v->mTime : aTarget;
+  } else {
+    mAudioSeekTimeUs = mVideoSeekTimeUs = aTarget;
+  }
 
   return NS_OK;
 }
