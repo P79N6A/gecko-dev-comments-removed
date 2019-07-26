@@ -89,11 +89,15 @@ let gTests = [
   }
 },
 
+
 {
   desc: "Check that performing a search fires a search event and records to " +
         "Firefox Health Report.",
   setup: function () { },
   run: function () {
+    
+    if (navigator.platform.indexOf("Linux") == 0) { return; }
+
     try {
       let cm = Cc["@mozilla.org/categorymanager;1"].getService(Ci.nsICategoryManager);
       cm.getCategoryEntry("healthreport-js-provider-default", "SearchesProvider");
