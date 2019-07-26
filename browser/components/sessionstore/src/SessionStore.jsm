@@ -494,23 +494,16 @@ let SessionStoreInternal = {
   },
 
   _initWindow: function ssi_initWindow(aWindow) {
-    if (!aWindow || this._loadState == STATE_RUNNING) {
-      
-      
-      if (aWindow && (!aWindow.__SSi || !this._windows[aWindow.__SSi]))
-        this.onLoad(aWindow);
+    if (aWindow) {
+      this.onLoad(aWindow);
+    } else if (this._loadState == STATE_STOPPED) {
       
       
       
       
       
-      if (!aWindow && this._loadState == STATE_STOPPED)
-        this._loadState = STATE_RUNNING;
-      return;
+      this._loadState = STATE_RUNNING;
     }
-
-    
-    this.onLoad(aWindow);
   },
 
   
