@@ -1734,52 +1734,57 @@ nsEditor::InsertContainerAbove(nsIContent* aNode,
 
 
 nsresult
-nsEditor::MoveNode(nsIContent* aNode, nsINode* aParent, int32_t aOffset)
+nsEditor::MoveNode(nsIDOMNode* aNode, nsIDOMNode* aParent, int32_t aOffset)
 {
-  MOZ_ASSERT(aNode && aParent);
-  MOZ_ASSERT(aOffset == -1 || (0 <= aOffset &&
-                               aOffset <= (int32_t)aParent->Length()));
-  nsresult res = MoveNode(aNode->AsDOMNode(), aParent->AsDOMNode(), aOffset);
-  NS_ASSERTION(NS_SUCCEEDED(res), "MoveNode failed");
-  NS_ENSURE_SUCCESS(res, res);
-  return NS_OK;
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_STATE(node);
+
+  nsCOMPtr<nsINode> parent = do_QueryInterface(aParent);
+  NS_ENSURE_STATE(parent);
+
+  return MoveNode(node, parent, aOffset);
 }
 
 nsresult
-nsEditor::MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t aOffset)
+nsEditor::MoveNode(nsINode* aNode, nsINode* aParent, int32_t aOffset)
 {
-  NS_ENSURE_TRUE(aNode && aParent, NS_ERROR_NULL_POINTER);
-  nsresult res;
+  MOZ_ASSERT(aNode);
+  MOZ_ASSERT(aParent);
+  MOZ_ASSERT(aOffset == -1 ||
+             (0 <= aOffset && SafeCast<uint32_t>(aOffset) <= aParent->Length()));
 
   int32_t oldOffset;
-  nsCOMPtr<nsIDOMNode> oldParent = GetNodeLocation(aNode, &oldOffset);
+  nsCOMPtr<nsINode> oldParent = GetNodeLocation(aNode, &oldOffset);
   
-  if (aOffset == -1)
-  {
-    uint32_t unsignedOffset;
+  if (aOffset == -1) {
     
-    res = GetLengthOfDOMNode(aParent, unsignedOffset);
-    NS_ENSURE_SUCCESS(res, res);
-    aOffset = (int32_t)unsignedOffset;
+    aOffset = SafeCast<int32_t>(aParent->Length());
   }
   
   
-  if ((aParent == oldParent.get()) && (oldOffset == aOffset)) return NS_OK;
+  if (aParent == oldParent && aOffset == oldOffset) {
+    return NS_OK;
+  }
   
   
-  nsAutoMoveNodeSelNotify selNotify(mRangeUpdater, oldParent, oldOffset, aParent, aOffset);
+  nsAutoMoveNodeSelNotify selNotify(mRangeUpdater, oldParent, oldOffset,
+                                    aParent, aOffset);
   
   
-  if ((aParent == oldParent.get()) && (oldOffset < aOffset)) 
-  {
-    aOffset--;  
+  
+  if (aParent == oldParent && oldOffset < aOffset) {
+    
+    
+    aOffset--;
   }
 
   
-  nsCOMPtr<nsIDOMNode> node = aNode;
-  res = DeleteNode(node);
-  NS_ENSURE_SUCCESS(res, res);
-  return InsertNode(node, aParent, aOffset);
+  nsCOMPtr<nsINode> kungFuDeathGrip = aNode;
+
+  nsresult rv = DeleteNode(aNode);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return InsertNode(aNode->AsDOMNode(), aParent->AsDOMNode(), aOffset);
 }
 
 
@@ -3071,6 +3076,22 @@ nsEditor::GetNodeLocation(nsIDOMNode* aChild, int32_t* outOffset)
   }
 
   return parent.forget();
+}
+
+nsINode*
+nsEditor::GetNodeLocation(nsINode* aChild, int32_t* aOffset)
+{
+  MOZ_ASSERT(aChild);
+  MOZ_ASSERT(aOffset);
+
+  nsINode* parent = aChild->GetParentNode();
+  if (parent) {
+    *aOffset = parent->IndexOf(aChild);
+    MOZ_ASSERT(*aOffset != -1);
+  } else {
+    *aOffset = -1;
+  }
+  return parent;
 }
 
 

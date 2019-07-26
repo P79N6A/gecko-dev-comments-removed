@@ -230,7 +230,7 @@ public:
                                 const nsAString *aAttribute = nullptr,
                                 const nsAString *aValue = nullptr);
   nsresult JoinNodes(nsINode* aNodeToKeep, nsIContent* aNodeToMove);
-  nsresult MoveNode(nsIContent* aNode, nsINode* aParent, int32_t aOffset);
+  nsresult MoveNode(nsINode* aNode, nsINode* aParent, int32_t aOffset);
   nsresult MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, int32_t aOffset);
 
   
@@ -471,6 +471,7 @@ public:
 
   static already_AddRefed<nsIDOMNode> GetNodeLocation(nsIDOMNode* aChild,
                                                       int32_t* outOffset);
+  static nsINode* GetNodeLocation(nsINode* aChild, int32_t* aOffset);
 
   
 
