@@ -4223,7 +4223,7 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
 
         aList->mWeight += selector->CalcWeight();
 
-        selector = aList->AddSelector('>');
+        selector = aList->AddSelector(':');
 
         selector->mLowercaseTag.swap(pseudoElement);
         selector->mClassList = pseudoElementArgs.forget();
