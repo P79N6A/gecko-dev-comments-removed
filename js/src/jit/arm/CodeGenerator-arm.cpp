@@ -722,7 +722,7 @@ CodeGeneratorARM::visitModI(LModI *ins)
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     Register output = ToRegister(ins->output());
-    Register callTemp = ToRegister(ins->getTemp(0));
+    Register callTemp = ToRegister(ins->callTemp());
     MMod *mir = ins->mir();
 
     
@@ -758,9 +758,10 @@ CodeGeneratorARM::visitSoftModI(LSoftModI *ins)
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     Register output = ToRegister(ins->output());
-    Register callTemp = ToRegister(ins->getTemp(2));
+    Register callTemp = ToRegister(ins->callTemp());
     MMod *mir = ins->mir();
     Label done;
+
     
     JS_ASSERT(callTemp.code() > r3.code() && callTemp.code() < r12.code());
     masm.ma_mov(lhs, callTemp);

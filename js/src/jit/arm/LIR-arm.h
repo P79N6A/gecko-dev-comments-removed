@@ -147,17 +147,19 @@ class LDivI : public LBinaryMath<1>
 
 
 
-class LSoftDivI : public LBinaryMath<2>
+
+class LSoftDivI : public LBinaryMath<3>
 {
   public:
     LIR_HEADER(SoftDivI);
 
     LSoftDivI(const LAllocation &lhs, const LAllocation &rhs,
-              const LDefinition &temp1, const LDefinition &temp2) {
+              const LDefinition &temp1, const LDefinition &temp2, const LDefinition &temp3) {
         setOperand(0, lhs);
         setOperand(1, rhs);
         setTemp(0, temp1);
         setTemp(1, temp2);
+        setTemp(2, temp3);
     }
 
     MDiv *mir() const {
@@ -204,25 +206,34 @@ class LModI : public LBinaryMath<1>
         setTemp(0, callTemp);
     }
 
+    const LDefinition *callTemp() {
+        return getTemp(0);
+    }
+
     MMod *mir() const {
         return mir_->toMod();
     }
 };
 
-class LSoftModI : public LBinaryMath<3>
+class LSoftModI : public LBinaryMath<4>
 {
   public:
     LIR_HEADER(SoftModI);
 
     LSoftModI(const LAllocation &lhs, const LAllocation &rhs,
-              const LDefinition &temp1, const LDefinition &temp2,
+              const LDefinition &temp1, const LDefinition &temp2, const LDefinition &temp3,
               const LDefinition &callTemp)
     {
         setOperand(0, lhs);
         setOperand(1, rhs);
         setTemp(0, temp1);
         setTemp(1, temp2);
-        setTemp(2, callTemp);
+        setTemp(2, temp3);
+        setTemp(3, callTemp);
+    }
+
+    const LDefinition *callTemp() {
+        return getTemp(3);
     }
 
     MMod *mir() const {
@@ -414,20 +425,18 @@ class LUMod : public LBinaryMath<0>
 
 
 
-class LSoftUDivOrMod : public LBinaryMath<2>
+class LSoftUDivOrMod : public LBinaryMath<3>
 {
   public:
     LIR_HEADER(SoftUDivOrMod);
 
-    LSoftUDivOrMod(const LAllocation &lhs, const LAllocation &rhs, const LDefinition &temp1, const LDefinition &temp2) {
+    LSoftUDivOrMod(const LAllocation &lhs, const LAllocation &rhs, const LDefinition &temp1,
+                   const LDefinition &temp2, const LDefinition &temp3) {
         setOperand(0, lhs);
         setOperand(1, rhs);
         setTemp(0, temp1);
         setTemp(1, temp2);
-    }
-    
-    const LDefinition *remainder() {
-        return getTemp(0);
+        setTemp(2, temp3);
     }
 };
 
