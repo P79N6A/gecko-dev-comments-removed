@@ -215,6 +215,7 @@ StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
 
     
     compartment->addSizeOfIncludingThis(rtStats->mallocSizeOf_,
+                                        &cStats.typeInferencePendingArrays,
                                         &cStats.typeInferenceAllocationSiteTables,
                                         &cStats.typeInferenceArrayTypeTables,
                                         &cStats.typeInferenceObjectTypeTables,
