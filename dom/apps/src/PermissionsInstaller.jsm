@@ -282,15 +282,12 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
     return [];
   }
 
-
-
-
-
-
-
-
-
-
+  if (!aAccess && tableEntry.access ||
+      aAccess && !tableEntry.access) {
+    Cu.reportError("PermissionsTable.jsm: expandPermissions: Invalid Manifest : " +
+                   aPermName + " " + aAccess + "\n");
+    throw new Error("PermissionsTable.jsm: expandPermissions: Invalid Manifest");
+  }
 
   let expandedPerms = [];
 
@@ -313,28 +310,16 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
     return [];
   }
 
-    
-    
-    
-    if (true) {
-      expandedPerms.push(aPermName);
-      if (tableEntry.additional) {
-        for each (let additional in tableEntry.additional) {
-          expandedPerms.push(additional);
-        }
-      }
-    }
-
   let permArr = mapSuffixes(aPermName, requestedSuffixes);
 
-    
-    if (tableEntry.additional) {
-      for each (let additional in tableEntry.additional) {
-        permArr = permArr.concat(mapSuffixes(additional, requestedSuffixes));
-      }
+  
+  if (tableEntry.additional) {
+    for each (let additional in tableEntry.additional) {
+      permArr = permArr.concat(mapSuffixes(additional, requestedSuffixes));
     }
+  }
 
-    
+  
   for (let idx in permArr) {
       let suffix = requestedSuffixes[idx % requestedSuffixes.length];
       if (tableEntry.access.indexOf(suffix) != -1) {
