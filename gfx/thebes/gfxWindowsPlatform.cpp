@@ -64,11 +64,13 @@
 #include <winternl.h>
 #include "d3dkmtQueryStatistics.h"
 
+#include "SurfaceCache.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace mozilla::widget;
+using namespace mozilla::image;
 
 #ifdef CAIRO_HAS_D2D_SURFACE
 
@@ -555,6 +557,10 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
             return;
         }
         mD2DDevice = nullptr;
+
+        
+        
+        SurfaceCache::DiscardAll();
     }
 
     mozilla::ScopedGfxFeatureReporter reporter("D2D", aAttemptForce);
