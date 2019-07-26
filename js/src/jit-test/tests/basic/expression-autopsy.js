@@ -47,14 +47,28 @@ function check(expr, expected=expr) {
             
             Function("var x = 4; switch (x) { case 4: let o, undef;" + statement + "\ncase 6: break;}"),
             
-            Function("var undef, o; for (let z in [1, 2]) { " + statement + " }"),
-            
             Function("let (x=4, y=5) { x + y; }\nlet (a, b, c) { a + b - c; }\nlet (o, undef) {" + statement + " }"),
             
             Function("o", "undef", "let ([] = 4) {} let (o, undef) { " + statement + " }"),
             
             Function("o", "undef", "try { let q = 4; try { let p = 4; } catch (e) {} } catch (e) {} let (o, undef) { " + statement + " }")
         ];
+
+        try {
+            
+            check_one(expected,
+                      Function("var undef, o; for (let z in [1, 2]) { " + statement + " }"),
+                      err);
+        } catch (ex) {
+            
+            if (expected == 'undef' && err == ' is undefined')
+                check_one(expected + end,
+                          Function("var undef, o; for (let z in [1, 2]) { " + statement + " }"),
+                          err);
+            else
+                throw ex;
+        }
+
         for (var f of cases) {
             check_one(expected, f, err);
         }
