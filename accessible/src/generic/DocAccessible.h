@@ -536,7 +536,13 @@ protected:
 
 
 
-  nsIAtom* mARIAAttrOldValue;
+  union {
+    
+    nsIAtom* mARIAAttrOldValue;
+
+    
+    bool mStateBitWasOn;
+  };
 
   nsTArray<nsRefPtr<DocAccessible> > mChildDocuments;
 

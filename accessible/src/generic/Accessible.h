@@ -247,6 +247,16 @@ public:
   
 
 
+  bool Unavailable() const
+  {
+    uint64_t state = NativelyUnavailable() ? states::UNAVAILABLE : 0;
+    ApplyARIAState(&state);
+    return state & states::UNAVAILABLE;
+  }
+
+  
+
+
 
   virtual uint64_t NativeState();
 

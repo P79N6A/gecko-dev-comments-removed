@@ -870,7 +870,12 @@ DocAccessible::AttributeWillChange(nsIDocument* aDocument,
       aAttribute == nsGkAtoms::aria_pressed) {
     mARIAAttrOldValue = (aModType != nsIDOMMutationEvent::ADDITION) ?
       nsAccUtils::GetARIAToken(aElement, aAttribute) : nullptr;
+    return;
   }
+
+  if (aAttribute == nsGkAtoms::aria_disabled ||
+      aAttribute == nsGkAtoms::disabled)
+    mStateBitWasOn = accessible->Unavailable();
 }
 
 void
@@ -938,22 +943,24 @@ DocAccessible::AttributeChangedImpl(Accessible* aAccessible,
 
   
   
+  
+  
+  
+  
+  
   if (aAttribute == nsGkAtoms::disabled ||
       aAttribute == nsGkAtoms::aria_disabled) {
-
     
     
-    
-
-    
-    
+    if (aAccessible->Unavailable() == mStateBitWasOn)
+      return;
 
     nsRefPtr<AccEvent> enabledChangeEvent =
-      new AccStateChangeEvent(aAccessible, states::ENABLED);
+      new AccStateChangeEvent(aAccessible, states::ENABLED, mStateBitWasOn);
     FireDelayedEvent(enabledChangeEvent);
 
     nsRefPtr<AccEvent> sensitiveChangeEvent =
-      new AccStateChangeEvent(aAccessible, states::SENSITIVE);
+      new AccStateChangeEvent(aAccessible, states::SENSITIVE, mStateBitWasOn);
     FireDelayedEvent(sensitiveChangeEvent);
     return;
   }
