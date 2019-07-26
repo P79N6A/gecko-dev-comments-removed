@@ -132,9 +132,6 @@
 #include <io.h>
 #include <process.h>
 #endif
-#ifdef ANDROID
-#include <sys/stat.h>
-#endif
 
 #ifdef XP_WIN
 #include <windows.h>
@@ -1409,11 +1406,21 @@ private:
 
         
         
+        
+        
         nsCOMPtr<nsIFile> logFile;
-        if (char* env = PR_GetEnv("MOZ_CC_LOG_DIRECTORY")) {
+        char* env;
+        if (env = PR_GetEnv("MOZ_CC_LOG_DIRECTORY")) {
             NS_NewNativeLocalFile(nsCString(env),  true,
                                   getter_AddRefs(logFile));
-        } else {
+        }
+#ifdef ANDROID
+        if (!logFile && (env = PR_GetEnv("DOWNLOADS_DIRECTORY"))) {
+            NS_NewNativeLocalFile(nsCString(env),  true,
+                                  getter_AddRefs(logFile));
+        }
+#endif
+        if (!logFile) {
             
             NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(logFile));
         }
@@ -1424,19 +1431,6 @@ private:
 
         rv = logFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
         NS_ENSURE_SUCCESS(rv, nullptr);
-#ifdef ANDROID
-        {
-            
-            
-            
-            
-            nsAutoCString path;
-            rv = logFile->GetNativePath(path);
-            if (NS_SUCCEEDED(rv)) {
-                chmod(path.get(), 0644);
-            }
-        }
-#endif
 
         return logFile.forget();
     }

@@ -739,8 +739,18 @@ MakeFilename(const char *aPrefix, const nsAString &aIdentifier,
 static nsresult
 OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
 {
-  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, aFile);
-  NS_ENSURE_SUCCESS(rv, rv);
+#ifdef ANDROID
+  
+  
+  if (char *env = PR_GetEnv("DOWNLOADS_DIRECTORY")) {
+    NS_NewNativeLocalFile(nsCString(env),  true, aFile);
+  }
+#endif
+  nsresult rv;
+  if (!*aFile) {
+    rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, aFile);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsIFile> file(*aFile);
 
@@ -749,19 +759,6 @@ OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
 
   rv = file->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0644);
   NS_ENSURE_SUCCESS(rv, rv);
-#ifdef ANDROID
-  {
-    
-    
-    
-    
-    nsAutoCString path;
-    rv = file->GetNativePath(path);
-    if (NS_SUCCEEDED(rv)) {
-      chmod(path.get(), 0644);
-    }
-  }
-#endif
   return NS_OK;
 }
 
