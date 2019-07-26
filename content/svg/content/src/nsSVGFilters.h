@@ -137,6 +137,8 @@ public:
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE = 0;
+
   virtual bool HasValidDimensions() const;
 
   bool IsNodeOfType(uint32_t aFlags) const
@@ -239,6 +241,8 @@ protected:
     : SVGFEUnstyledElementBase(aNodeInfo) {}
 
 public:
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE = 0;
+
   
   
   virtual bool AttributeAffectsRendering(
