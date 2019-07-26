@@ -112,7 +112,7 @@ function addPendingCrashreport(crD, date, extra) {
                       .getService(Ci.nsIUUIDGenerator);
   let uuid = uuidGenerator.generateUUID().toString();
   
-  uuid = uuid.substring(1, uuid.length - 2);
+  uuid = uuid.substring(1, uuid.length - 1);
   let dumpfile = pendingdir.clone();
   dumpfile.append(uuid + ".dmp");
   writeDataToFile(dumpfile, "MDMP"); 
