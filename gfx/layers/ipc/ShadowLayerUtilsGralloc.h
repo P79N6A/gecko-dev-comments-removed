@@ -11,9 +11,8 @@
 #include <unistd.h>
 #include <ui/GraphicBuffer.h>
 
+#include "base/process.h"
 #include "ipc/IPCMessageUtils.h"
-#include "mozilla/layers/PGrallocBufferChild.h"
-#include "mozilla/layers/PGrallocBufferParent.h"
 
 #define MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
 #define MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
@@ -22,8 +21,24 @@ namespace mozilla {
 namespace layers {
 
 class MaybeMagicGrallocBufferHandle;
+class SurfaceDescriptor;
 class TextureHost;
 
+struct GrallocBufferRef {
+  base::ProcessId mOwner;
+  int mKey;
+
+  GrallocBufferRef()
+    : mOwner(0)
+    , mKey(-1)
+  {
+
+  }
+
+  bool operator== (const GrallocBufferRef rhs) const{
+    return mOwner == rhs.mOwner && mKey == rhs.mKey;
+  }
+};
 
 
 
@@ -34,11 +49,9 @@ class TextureHost;
 
 struct MagicGrallocBufferHandle {
   typedef android::GraphicBuffer GraphicBuffer;
+  MagicGrallocBufferHandle() {}
 
-  MagicGrallocBufferHandle()
-  { }
-
-  MagicGrallocBufferHandle(const android::sp<GraphicBuffer>& aGraphicBuffer);
+  MagicGrallocBufferHandle(const android::sp<GraphicBuffer>& aGraphicBuffer, GrallocBufferRef ref);
 
   
 
@@ -47,58 +60,15 @@ struct MagicGrallocBufferHandle {
   }
 
   android::sp<GraphicBuffer> mGraphicBuffer;
+  GrallocBufferRef mRef;
 };
 
 
 
 
 
-
-class GrallocBufferActor : public PGrallocBufferChild
-                         , public PGrallocBufferParent
-{
-  friend class ShadowLayerForwarder;
-  friend class LayerManagerComposite;
-  friend class ImageBridgeChild;
-  typedef android::GraphicBuffer GraphicBuffer;
-
-public:
-  virtual ~GrallocBufferActor();
-
-  static PGrallocBufferParent*
-  Create(const gfx::IntSize& aSize,
-         const uint32_t& aFormat,
-         const uint32_t& aUsage,
-         MaybeMagicGrallocBufferHandle* aOutHandle);
-
-  static PGrallocBufferChild*
-  Create();
-
-  
-  
-  void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
-
-  void AddTextureHost(TextureHost* aTextureHost);
-  void RemoveTextureHost();
-
-  android::GraphicBuffer* GetGraphicBuffer();
-
-  void InitFromHandle(const MagicGrallocBufferHandle& aHandle);
-
-private:
-  GrallocBufferActor();
-
-  android::sp<GraphicBuffer> mGraphicBuffer;
-
-  
-  
-  size_t mAllocBytes;
-
-  
-  TextureHost* mTextureHost;
-
-  friend class ISurfaceAllocator;
-};
+android::sp<android::GraphicBuffer> GetGraphicBufferFrom(MaybeMagicGrallocBufferHandle aHandle);
+android::sp<android::GraphicBuffer> GetGraphicBufferFromDesc(SurfaceDescriptor aDesc);
 
 } 
 } 
@@ -112,6 +82,14 @@ struct ParamTraits<mozilla::layers::MagicGrallocBufferHandle> {
   static void Write(Message* aMsg, const paramType& aParam);
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult);
 };
+
+template<>
+struct ParamTraits<mozilla::layers::GrallocBufferRef> {
+  typedef mozilla::layers::GrallocBufferRef paramType;
+  static void Write(Message* aMsg, const paramType& aParam);
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult);
+};
+
 
 } 
 
