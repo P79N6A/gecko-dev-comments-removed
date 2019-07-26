@@ -348,7 +348,7 @@ NS_IMPL_RELEASE(WindowlessBrowserStub)
 
 
 NS_IMETHODIMP
-nsAppShellService::CreateWindowlessBrowser(nsIWebNavigation **aResult)
+nsAppShellService::CreateWindowlessBrowser(bool aIsChrome, nsIWebNavigation **aResult)
 {
   
 
@@ -374,7 +374,8 @@ nsAppShellService::CreateWindowlessBrowser(nsIWebNavigation **aResult)
   nsCOMPtr<nsIWebNavigation> navigation = do_QueryInterface(browser);
 
   nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(navigation);
-  item->SetItemType(nsIDocShellTreeItem::typeContentWrapper);
+  item->SetItemType(aIsChrome ? nsIDocShellTreeItem::typeChromeWrapper
+                              : nsIDocShellTreeItem::typeContentWrapper);
 
   
 
