@@ -30,12 +30,33 @@ public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate
     return accountGUID;
   }
 
+  
+
+
+
+
+  @Override
+  public synchronized void setClientName(String clientName, long now) {
+    sharedPreferences
+      .edit()
+      .putString(SyncConfiguration.PREF_CLIENT_NAME, clientName)
+      .putLong(SyncConfiguration.PREF_CLIENT_DATA_TIMESTAMP, now)
+      .commit();
+  }
+
+  @Override
+  public String getDefaultClientName() {
+    
+    return GlobalConstants.MOZ_APP_DISPLAYNAME + " on " + android.os.Build.MODEL;
+  }
+
   @Override
   public synchronized String getClientName() {
     String clientName = sharedPreferences.getString(SyncConfiguration.PREF_CLIENT_NAME, null);
     if (clientName == null) {
-      clientName = GlobalConstants.MOZ_APP_DISPLAYNAME + " on " + android.os.Build.MODEL;
-      sharedPreferences.edit().putString(SyncConfiguration.PREF_CLIENT_NAME, clientName).commit();
+      clientName = getDefaultClientName();
+      long now = System.currentTimeMillis();
+      setClientName(clientName, now);
     }
     return clientName;
   }
@@ -53,5 +74,10 @@ public class SharedPreferencesClientsDataDelegate implements ClientsDataDelegate
   @Override
   public synchronized int getClientsCount() {
     return (int) sharedPreferences.getLong(SyncConfiguration.PREF_NUM_CLIENTS, 0);
+  }
+
+  @Override
+  public long getLastModifiedTimestamp() {
+    return sharedPreferences.getLong(SyncConfiguration.PREF_CLIENT_DATA_TIMESTAMP, 0);
   }
 }

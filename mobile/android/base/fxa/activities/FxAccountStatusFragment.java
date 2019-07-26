@@ -18,6 +18,7 @@ import org.mozilla.gecko.fxa.login.Married;
 import org.mozilla.gecko.fxa.login.State;
 import org.mozilla.gecko.fxa.sync.FxAccountSyncStatusHelper;
 import org.mozilla.gecko.fxa.tasks.FxAccountCodeResender;
+import org.mozilla.gecko.sync.SharedPreferencesClientsDataDelegate;
 import org.mozilla.gecko.sync.SyncConfiguration;
 
 import android.accounts.Account;
@@ -28,10 +29,13 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.CheckBoxPreference;
+import android.preference.EditTextPreference;
 import android.preference.Preference;
+import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
+import android.text.TextUtils;
 
 
 
@@ -39,7 +43,9 @@ import android.preference.PreferenceScreen;
 
 
 
-public class FxAccountStatusFragment extends PreferenceFragment implements OnPreferenceClickListener {
+public class FxAccountStatusFragment
+    extends PreferenceFragment
+    implements OnPreferenceClickListener, OnPreferenceChangeListener {
   private static final String LOG_TAG = FxAccountStatusFragment.class.getSimpleName();
 
   
@@ -65,7 +71,12 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
   protected CheckBoxPreference tabsPreference;
   protected CheckBoxPreference passwordsPreference;
 
+  protected EditTextPreference deviceNamePreference;
+
   protected volatile AndroidFxAccount fxAccount;
+  
+  
+  protected volatile SharedPreferencesClientsDataDelegate clientsDataDelegate;
 
   
   protected Handler handler;
@@ -88,6 +99,10 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    addPreferences();
+  }
+
+  protected void addPreferences() {
     addPreferencesFromResource(R.xml.fxaccount_status_prefscreen);
 
     emailPreference = ensureFindPreference("email");
@@ -119,6 +134,9 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
     historyPreference.setOnPreferenceClickListener(this);
     tabsPreference.setOnPreferenceClickListener(this);
     passwordsPreference.setOnPreferenceClickListener(this);
+
+    deviceNamePreference = (EditTextPreference) ensureFindPreference("device_name");
+    deviceNamePreference.setOnPreferenceChangeListener(this);
   }
 
   
@@ -177,6 +195,8 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
     historyPreference.setEnabled(enabled);
     tabsPreference.setEnabled(enabled);
     passwordsPreference.setEnabled(enabled);
+    
+    deviceNamePreference.setEnabled(enabled);
   }
 
   
@@ -294,6 +314,14 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
       throw new IllegalArgumentException("fxAccount must not be null");
     }
     this.fxAccount = fxAccount;
+    try {
+      this.clientsDataDelegate = new SharedPreferencesClientsDataDelegate(fxAccount.getSyncPrefs());
+    } catch (Exception e) {
+      Logger.error(LOG_TAG, "Got exception fetching Sync prefs associated to Firefox Account; aborting.", e);
+      
+      
+      throw new IllegalStateException(e);
+    }
 
     handler = new Handler(); 
 
@@ -317,6 +345,17 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
   public void onPause() {
     super.onPause();
     FxAccountSyncStatusHelper.getInstance().stopObserving(syncStatusDelegate);
+  }
+
+  protected void hardRefresh() {
+    
+    
+    
+    final PreferenceScreen statusScreen = (PreferenceScreen) ensureFindPreference("status_screen");
+    statusScreen.removeAll();
+    addPreferences();
+
+    refresh();
   }
 
   protected void refresh() {
@@ -372,6 +411,10 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
       
       updateSelectedEngines();
     }
+
+    final String clientName = clientsDataDelegate.getClientName();
+    deviceNamePreference.setSummary(clientName);
+    deviceNamePreference.setText(clientName);
   }
 
   
@@ -570,5 +613,23 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
       button.setTitle(debugKey); 
       button.setOnPreferenceClickListener(listener);
     }
+  }
+
+  @Override
+  public boolean onPreferenceChange(Preference preference, Object newValue) {
+    if (preference == deviceNamePreference) {
+      String newClientName = (String) newValue;
+      if (TextUtils.isEmpty(newClientName)) {
+        newClientName = clientsDataDelegate.getDefaultClientName();
+      }
+      final long now = System.currentTimeMillis();
+      clientsDataDelegate.setClientName(newClientName, now);
+      requestDelayedSync(); 
+      hardRefresh(); 
+      return true;
+    }
+
+    
+    return true;
   }
 }

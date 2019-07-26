@@ -7,6 +7,7 @@ import org.json.simple.JSONArray;
 import org.mozilla.gecko.background.helpers.AndroidSyncTestCase;
 import org.mozilla.gecko.background.sync.helpers.ExpectFetchDelegate;
 import org.mozilla.gecko.background.sync.helpers.SessionTestHelper;
+import org.mozilla.gecko.background.testhelpers.MockClientsDataDelegate;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.sync.repositories.NoContentProviderException;
 import org.mozilla.gecko.sync.repositories.RepositorySession;
@@ -24,8 +25,9 @@ import android.database.Cursor;
 import android.os.RemoteException;
 
 public class TestFennecTabsRepositorySession extends AndroidSyncTestCase {
-  public static final String TEST_CLIENT_GUID = "test guid"; 
-  public static final String TEST_CLIENT_NAME = "test client name";
+  public static final MockClientsDataDelegate clientsDataDelegate = new MockClientsDataDelegate();
+  public static final String TEST_CLIENT_GUID = clientsDataDelegate.getAccountGUID();
+  public static final String TEST_CLIENT_NAME = clientsDataDelegate.getClientName();
 
   
   public static final String TEST_TABS_CLIENT_GUID_IS_LOCAL_SELECTION = BrowserContract.Tabs.CLIENT_GUID + " IS ?";
@@ -72,7 +74,7 @@ public class TestFennecTabsRepositorySession extends AndroidSyncTestCase {
 
 
 
-    return new FennecTabsRepository(TEST_CLIENT_NAME, TEST_CLIENT_GUID) {
+    return new FennecTabsRepository(clientsDataDelegate) {
       @Override
       public void createSession(RepositorySessionCreationDelegate delegate,
                                 Context context) {
@@ -198,7 +200,18 @@ public class TestFennecTabsRepositorySession extends AndroidSyncTestCase {
     performWait(fetchSinceRunnable(session, 1000, new Record[] { tabsRecord }));
 
     
-    performWait(fetchSinceRunnable(session, 4000, new Record[] { }));
+    performWait(fetchSinceRunnable(session, 4000, new Record[] { tabsRecord }));
+
+    
+    
+    
+    final long now = System.currentTimeMillis();
+    performWait(fetchSinceRunnable(session, now, new Record[] { }));
+
+    
+    
+    clientsDataDelegate.setClientName("new client name", System.currentTimeMillis());
+    performWait(fetchSinceRunnable(session, now, new Record[] { tabsRecord }));
 
     session.abort();
   }

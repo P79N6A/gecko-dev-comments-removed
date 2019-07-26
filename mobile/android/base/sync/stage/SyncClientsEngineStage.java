@@ -397,6 +397,11 @@ public class SyncClientsEngineStage extends AbstractSessionManagingSyncStage {
       return true;
     }
 
+    if (session.getClientsDelegate().getLastModifiedTimestamp() > lastUpload) {
+      
+      return true;
+    }
+
     
     
     
