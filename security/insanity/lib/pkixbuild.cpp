@@ -245,6 +245,7 @@ SECStatus
 BuildCertChain(TrustDomain& trustDomain,
                CERTCertificate* certToDup,
                PRTime time,
+               EndEntityOrCA endEntityOrCA,
                 KeyUsages requiredKeyUsagesIfPresent,
                 SECOidTag requiredEKUIfPresent,
                 ScopedCERTCertList& results)
@@ -259,13 +260,13 @@ BuildCertChain(TrustDomain& trustDomain,
   
   
 
-  BackCert ee(certToDup, nullptr);
-  Result rv = ee.Init();
+  BackCert cert(certToDup, nullptr);
+  Result rv = cert.Init();
   if (rv != Success) {
     return SECFailure;
   }
 
-  rv = BuildForward(trustDomain, ee, time, MustBeEndEntity,
+  rv = BuildForward(trustDomain, cert, time, endEntityOrCA,
                     requiredKeyUsagesIfPresent, requiredEKUIfPresent,
                     0, results);
   if (rv != Success) {
@@ -275,7 +276,7 @@ BuildCertChain(TrustDomain& trustDomain,
 
   
   
-  if (CheckTimes(ee.GetNSSCert(), time) != Success) {
+  if (CheckTimes(cert.GetNSSCert(), time) != Success) {
     PR_SetError(SEC_ERROR_EXPIRED_CERTIFICATE, 0);
     return SECFailure;
   }
