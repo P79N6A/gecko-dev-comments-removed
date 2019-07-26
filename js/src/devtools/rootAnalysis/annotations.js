@@ -51,6 +51,9 @@ var ignoreCallees = {
     "nsISupports.AddRef" : true,
     "nsISupports.Release" : true, 
     "nsAXPCNativeCallContext.GetJSContext" : true,
+    "js::ion::MDefinition.op" : true, 
+    "js::ion::LInstruction.getDef" : true, 
+    "js::ion::IonCache.kind" : true, 
 };
 
 function fieldCallCannotGC(csu, fullfield)
@@ -118,6 +121,7 @@ function ignoreGCFunction(fun)
 function isRootedTypeName(name)
 {
     if (name == "mozilla::ErrorResult" ||
+        name == "js::frontend::TokenStream" ||
         name == "js::frontend::TokenStream::Position")
     {
         return true;
@@ -133,6 +137,8 @@ function isRootedPointerTypeName(name)
         name = name.substr(6);
     if (name.startsWith('const '))
         name = name.substr(6);
+    if (name.startsWith('js::ctypes::'))
+        name = name.substr(12);
     if (name.startsWith('js::'))
         name = name.substr(4);
     if (name.startsWith('JS::'))
