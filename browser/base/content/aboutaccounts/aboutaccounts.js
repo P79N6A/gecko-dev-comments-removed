@@ -170,7 +170,7 @@ let wrapper = {
       
       
       if (accountData.verified) {
-        showManage();
+        show("stage", "manage");
       }
       this.injectData("message", { status: "login" });
       
@@ -270,8 +270,6 @@ function handleOldSync() {
 }
 
 function getStarted() {
-  hide("intro");
-  hide("stage");
   show("remote");
 }
 
@@ -289,7 +287,7 @@ function init() {
     if (window.location.href.contains("action=signin")) {
       if (user) {
         
-        showManage();
+        show("stage", "manage");
       } else {
         show("remote");
         wrapper.init(fxAccounts.getAccountsSignInURI());
@@ -297,7 +295,7 @@ function init() {
     } else if (window.location.href.contains("action=signup")) {
       if (user) {
         
-        showManage();
+        show("stage", "manage");
       } else {
         show("remote");
         wrapper.init();
@@ -314,12 +312,11 @@ function init() {
     } else {
       
       if (user) {
-        showManage();
+        show("stage", "manage");
         let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
         document.title = sb.GetStringFromName("manage.pageTitle");
       } else {
-        show("stage");
-        show("intro");
+        show("stage", "intro");
         
         wrapper.init();
       }
@@ -327,18 +324,30 @@ function init() {
   });
 }
 
-function show(id) {
-  document.getElementById(id).style.display = 'block';
-}
-function hide(id) {
-  document.getElementById(id).style.display = 'none';
-}
 
-function showManage() {
-  show("stage");
-  show("manage");
-  hide("remote");
-  hide("intro");
+
+
+function show(id, childId) {
+  
+  let allTop = document.querySelectorAll("body > div, iframe");
+  for (let elt of allTop) {
+    if (elt.getAttribute("id") == id) {
+      elt.style.display = 'block';
+    } else {
+      elt.style.display = 'none';
+    }
+  }
+  if (childId) {
+    
+    let allSecond = document.querySelectorAll("#" + id + " > div");
+    for (let elt of allSecond) {
+      if (elt.getAttribute("id") == childId) {
+        elt.style.display = 'block';
+      } else {
+        elt.style.display = 'none';
+      }
+    }
+  }
 }
 
 document.addEventListener("DOMContentLoaded", function onload() {
