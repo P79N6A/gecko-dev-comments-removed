@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.text.TextUtils;
 import android.util.Log;
+
 import org.mozilla.gecko.mozglue.RobocopTarget;
 
 import java.util.ArrayList;
@@ -26,8 +27,9 @@ public class SQLiteBridge {
 
     
     private String mDb;
+
     
-    protected long mDbPointer = 0;
+    protected volatile long mDbPointer = 0L;
 
     
     private long[] mQueryResults;
@@ -37,6 +39,12 @@ public class SQLiteBridge {
 
     private static final int RESULT_INSERT_ROW_ID = 0;
     private static final int RESULT_ROWS_CHANGED = 1;
+
+    
+    private static final int DEFAULT_PAGE_SIZE_BYTES = 32768;
+
+    
+    private static final int MAX_WAL_SIZE_BYTES = 524288;
 
     
     private static native MatrixBlobCursor sqliteCall(String aDb, String aQuery,
@@ -257,6 +265,9 @@ public class SQLiteBridge {
             
             throw new SQLiteException(ex.getMessage());
         }
+
+        prepareWAL(bridge);
+
         return bridge;
     }
 
@@ -264,11 +275,11 @@ public class SQLiteBridge {
         if (isOpen()) {
           closeDatabase(mDbPointer);
         }
-        mDbPointer = 0;
+        mDbPointer = 0L;
     }
 
     public boolean isOpen() {
-        return mDbPointer > 0;
+        return mDbPointer != 0;
     }
 
     public void beginTransaction() throws SQLiteBridgeException {
@@ -322,6 +333,52 @@ public class SQLiteBridge {
         if (isOpen()) {
             Log.e(LOGTAG, "Bridge finalized without closing the database");
             close();
+        }
+    }
+
+    private static void prepareWAL(final SQLiteBridge bridge) {
+        
+        
+        
+        final Cursor cursor = bridge.internalQuery("PRAGMA journal_mode=WAL", null);
+        try {
+            if (cursor.moveToFirst()) {
+                String journalMode = cursor.getString(0);
+                Log.d(LOGTAG, "Journal mode: " + journalMode);
+                if ("wal".equals(journalMode)) {
+                    
+                    final int pageSizeBytes = bridge.getPageSizeBytes();
+                    final int checkpointPageCount = MAX_WAL_SIZE_BYTES / pageSizeBytes;
+                    bridge.internalQuery("PRAGMA wal_autocheckpoint=" + checkpointPageCount, null).close();
+                } else {
+                    if (!"truncate".equals(journalMode)) {
+                        Log.w(LOGTAG, "Unable to activate WAL journal mode. Using truncate instead.");
+                        bridge.internalQuery("PRAGMA journal_mode=TRUNCATE", null).close();
+                    }
+                    Log.w(LOGTAG, "Not using WAL mode: using synchronous=FULL instead.");
+                    bridge.internalQuery("PRAGMA synchronous=FULL", null).close();
+                }
+            }
+        } finally {
+            cursor.close();
+        }
+    }
+
+    private int getPageSizeBytes() {
+        if (!isOpen()) {
+            throw new IllegalStateException("Database not open.");
+        }
+
+        final Cursor cursor = internalQuery("PRAGMA page_size", null);
+        try {
+            if (!cursor.moveToFirst()) {
+                Log.w(LOGTAG, "Unable to retrieve page size.");
+                return DEFAULT_PAGE_SIZE_BYTES;
+            }
+
+            return cursor.getInt(0);
+        } finally {
+            cursor.close();
         }
     }
 }
