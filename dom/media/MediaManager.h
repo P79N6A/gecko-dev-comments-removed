@@ -506,16 +506,12 @@ private:
 
   void GetPref(nsIPrefBranch *aBranch, const char *aPref,
                const char *aData, int32_t *aVal);
-  void GetPrefBool(nsIPrefBranch *aBranch, const char *aPref,
-                   const char *aData, bool *aVal);
   void GetPrefs(nsIPrefBranch *aBranch, const char *aData);
 
   
   MediaManager();
 
-  ~MediaManager() {
-    delete mBackend;
-  }
+  ~MediaManager() {}
 
   nsresult MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVideo,
                                            bool* aAudio);
@@ -530,11 +526,11 @@ private:
 
   Mutex mMutex;
   
-  MediaEngine* mBackend;
+  RefPtr<MediaEngine> mBackend;
 
   static StaticRefPtr<MediaManager> sSingleton;
 
-#ifdef MOZ_WIDGET_GONK
+#ifdef MOZ_B2G_CAMERA
   nsRefPtr<nsDOMCameraManager> mCameraManager;
 #endif
 };
