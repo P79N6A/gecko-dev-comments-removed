@@ -2282,96 +2282,81 @@ nsHTMLDocument::Plugins()
   return Embeds();
 }
 
-nsresult
-nsHTMLDocument::ResolveName(const nsAString& aName,
-                            nsIContent *aForm,
-                            nsISupports **aResult,
-                            nsWrapperCache **aCache)
+nsISupports*
+nsHTMLDocument::ResolveName(const nsAString& aName, nsWrapperCache **aCache)
 {
-  *aResult = nullptr;
-  *aCache = nullptr;
-
   nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aName);
   if (!entry) {
-    return NS_OK;
+    *aCache = nullptr;
+    return nullptr;
   }
 
-  uint32_t length = 0;
   nsBaseContentList *list = entry->GetNameContentList();
-  if (list) {
-    list->GetLength(&length);
-  }
+  uint32_t length = list ? list->Length() : 0;
 
   if (length > 0) {
     if (length == 1) {
       
       
-
       nsIContent *node = list->Item(0);
-      if (!aForm || nsContentUtils::BelongsInForm(aForm, node)) {
-        NS_ADDREF(*aResult = node);
-        *aCache = node;
-      }
-
-      return NS_OK;
+      *aCache = node;
+      return node;
     }
 
     
-    
-
-    if (aForm) {
-      
-      
-      
-
-      nsFormContentList *fc_list = new nsFormContentList(aForm, *list);
-      NS_ENSURE_TRUE(fc_list, NS_ERROR_OUT_OF_MEMORY);
-
-      uint32_t len;
-      fc_list->GetLength(&len);
-
-      if (len < 2) {
-        
-        
-        
-
-        nsIContent *node = fc_list->Item(0);
-
-        NS_IF_ADDREF(*aResult = node);
-        *aCache = node;
-
-        delete fc_list;
-
-        return NS_OK;
-      }
-
-      list = fc_list;
-    }
-
-    return CallQueryInterface(list, aResult);
+    *aCache = list;
+    return list;
   }
 
   
-  
-  
-  
-
   Element *e = entry->GetIdElement();
 
   if (e && e->IsHTML()) {
     nsIAtom *tag = e->Tag();
-
-    if ((tag == nsGkAtoms::embed  ||
-         tag == nsGkAtoms::img    ||
-         tag == nsGkAtoms::object ||
-         tag == nsGkAtoms::applet) &&
-        (!aForm || nsContentUtils::BelongsInForm(aForm, e))) {
-      NS_ADDREF(*aResult = e);
+    if (tag == nsGkAtoms::embed  ||
+        tag == nsGkAtoms::img    ||
+        tag == nsGkAtoms::object ||
+        tag == nsGkAtoms::applet) {
       *aCache = e;
+      return e;
     }
   }
 
-  return NS_OK;
+  *aCache = nullptr;
+  return nullptr;
+}
+
+already_AddRefed<nsISupports>
+nsHTMLDocument::ResolveName(const nsAString& aName,
+                            nsIContent *aForm,
+                            nsWrapperCache **aCache)
+{
+  nsISupports* result = ResolveName(aName, aCache);
+  if (!result) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIContent> node = do_QueryInterface(result);
+  if (!node) {
+    
+    
+    nsRefPtr<nsBaseContentList> list =
+      new nsFormContentList(aForm, *static_cast<nsBaseContentList*>(result));
+    if (list->Length() > 1) {
+      *aCache = list;
+      return list.forget();
+    }
+
+    
+    
+    
+    node = list->Item(0);
+  } else if (!nsContentUtils::BelongsInForm(aForm, node)) {
+    node = nullptr;
+  }
+
+  *aCache = node;
+  return node.forget();
 }
 
 
