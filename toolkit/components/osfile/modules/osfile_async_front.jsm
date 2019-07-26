@@ -378,7 +378,9 @@ File.prototype = {
     
     
     
-    if (isTypedArray(buffer) && !("bytes" in options)) {
+    
+    
+    if (isTypedArray(buffer) && !(options && "bytes" in options)) {
       
       options = clone(options, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
@@ -415,7 +417,9 @@ File.prototype = {
     
     
     
-    if (isTypedArray(buffer)) {
+    
+    
+    if (isTypedArray(buffer) && !(options && "bytes" in options)) {
       
       options = clone(options, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
