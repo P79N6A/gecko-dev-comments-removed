@@ -449,6 +449,12 @@ def environment(xrePath, env=None, crashreporter=True):
   asan = bool(mozinfo.info.get("asan"))
   if asan and (mozinfo.isLinux or mozinfo.isMac):
     try:
+      
+      llvmsym = os.path.join(xrePath, "llvm-symbolizer")
+      if os.path.isfile(llvmsym):
+        env["ASAN_SYMBOLIZER_PATH"] = llvmsym
+        log.info("ASan using symbolizer at %s", llvmsym)
+
       totalMemory = systemMemory()
 
       
