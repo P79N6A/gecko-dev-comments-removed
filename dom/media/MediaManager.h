@@ -469,7 +469,7 @@ private:
 
   static StaticRefPtr<MediaManager> sSingleton;
 
-#ifdef MOZ_WIDGET_GONK
+#ifdef MOZ_B2G_CAMERA
   nsRefPtr<nsDOMCameraManager> mCameraManager;
 #endif
 };
