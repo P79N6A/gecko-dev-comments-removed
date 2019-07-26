@@ -336,6 +336,8 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
+
+
 AbstractFile.writeAtomic =
      function writeAtomic(path, buffer, options = {}) {
 
@@ -354,7 +356,7 @@ AbstractFile.writeAtomic =
     buffer = new TextEncoder(encoding).encode(buffer);
   }
 
-  if ("flush" in options && !options.flush) {
+  if (!options.flush) {
     
     let dest;
     try {
