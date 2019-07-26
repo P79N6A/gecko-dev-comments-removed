@@ -215,6 +215,9 @@ public class HistoryPage extends HomeFragment {
             return;
         }
 
+        
+        mHistorySections.clear();
+
         final Date now = new Date();
         now.setHours(0);
         now.setMinutes(0);
