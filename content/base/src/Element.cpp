@@ -698,7 +698,7 @@ Element::GetClientRects(ErrorResult& aError)
 
 
 void
-Element::GetAttribute(const nsAString& aName, nsString& aReturn)
+Element::GetAttribute(const nsAString& aName, DOMString& aReturn)
 {
   const nsAttrValue* val =
     mAttrsAndChildren.GetAttr(aName,
@@ -710,9 +710,9 @@ Element::GetAttribute(const nsAString& aName, nsString& aReturn)
     if (IsXUL()) {
       
       
-      aReturn.Truncate();
+      
     } else {
-      SetDOMStringToNull(aReturn);
+      aReturn.SetNull();
     }
   }
 }
