@@ -407,6 +407,12 @@ class MacroAssemblerX86Shared : public Assembler
         return false;
     }
 
+    void convertBoolToInt32(Register source, Register dest) {
+        
+        
+        movzxbl(source, dest);
+    }
+
     void emitSet(Assembler::Condition cond, const Register &dest,
                  Assembler::NaNCond ifNaN = Assembler::NaN_HandledByCond) {
         if (GeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {

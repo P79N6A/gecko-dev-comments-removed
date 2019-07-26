@@ -219,6 +219,12 @@ class MacroAssembler : public MacroAssemblerSpecific
         branchTest32(Assembler::Zero, reg, Imm32(0xFF), label);
     }
 
+    
+    void branchIfTrueBool(const Register &reg, Label *label) {
+        
+        branchTest32(Assembler::NonZero, reg, Imm32(0xFF), label);
+    }
+
     void loadObjPrivate(Register obj, uint32_t nfixed, Register dest) {
         loadPtr(Address(obj, JSObject::getPrivateDataOffset(nfixed)), dest);
     }

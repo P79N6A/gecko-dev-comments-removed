@@ -47,7 +47,7 @@ class IonCode : public gc::Cell
     uint32_t jumpRelocTableBytes_;    
     uint32_t dataRelocTableBytes_;    
     uint32_t preBarrierTableBytes_;   
-    JSBool invalidated_;              
+    bool invalidated_;                
                                       
 
 #if JS_BITS_PER_WORD == 32

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "ion/ParallelFunctions.h"
 
@@ -22,16 +22,16 @@ using parallel::SpewOps;
 using parallel::SpewBailouts;
 using parallel::SpewBailoutIR;
 
-// Load the current thread context.
+
 ForkJoinSlice *
 ion::ForkJoinSlicePar()
 {
     return ForkJoinSlice::Current();
 }
 
-// NewGCThingPar() is called in place of NewGCThing() when executing
-// parallel code.  It uses the ArenaLists for the current thread and
-// allocates from there.
+
+
+
 JSObject *
 ion::NewGCThingPar(gc::AllocKind allocKind)
 {
@@ -40,8 +40,8 @@ ion::NewGCThingPar(gc::AllocKind allocKind)
     return gc::NewGCThing<JSObject, NoGC>(slice, allocKind, thingSize, gc::DefaultHeap);
 }
 
-// Check that the object was created by the current thread
-// (and hence is writable).
+
+
 bool
 ion::IsThreadLocalObject(ForkJoinSlice *slice, JSObject *object)
 {
@@ -70,18 +70,18 @@ ion::TraceLIR(uint32_t bblock, uint32_t lir, uint32_t execModeInt,
 #ifdef DEBUG
     static enum { NotSet, All, Bailouts } traceMode;
 
-    // If you set IONFLAGS=trace, this function will be invoked before every LIR.
-    //
-    // You can either modify it to do whatever you like, or use gdb scripting.
-    // For example:
-    //
-    // break TracePar
-    // commands
-    // continue
-    // exit
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     if (traceMode == NotSet) {
-        // Racy, but that's ok.
+        
         const char *env = getenv("IONFLAGS");
         if (strstr(env, "trace-all"))
             traceMode = All;
@@ -123,14 +123,14 @@ ion::CheckOverRecursedPar(ForkJoinSlice *slice)
     JS_ASSERT(ForkJoinSlice::Current() == slice);
     int stackDummy_;
 
-    // When an interrupt is triggered, the main thread stack limit is
-    // overwritten with a sentinel value that brings us here.
-    // Therefore, we must check whether this is really a stack overrun
-    // and, if not, check whether an interrupt is needed.
-    //
-    // When not on the main thread, we don't overwrite the stack
-    // limit, but we do still call into this routine if the interrupt
-    // flag is set, so we still need to double check.
+    
+    
+    
+    
+    
+    
+    
+    
 
     uintptr_t realStackLimit;
     if (slice->isMainThread())
@@ -153,11 +153,11 @@ ion::CheckInterruptPar(ForkJoinSlice *slice)
     JS_ASSERT(ForkJoinSlice::Current() == slice);
     bool result = slice->check();
     if (!result) {
-        // Do not set the cause here.  Either it was set by this
-        // thread already by some code that then triggered an abort,
-        // or else we are just picking up an abort from some other
-        // thread.  Either way we have nothing useful to contribute so
-        // we might as well leave our bailout case unset.
+        
+        
+        
+        
+        
         return false;
     }
     return true;
@@ -166,9 +166,9 @@ ion::CheckInterruptPar(ForkJoinSlice *slice)
 JSObject *
 ion::PushPar(PushParArgs *args)
 {
-    // It is awkward to have the MIR pass the current slice in, so
-    // just fetch it from TLS.  Extending the array is kind of the
-    // slow path anyhow as it reallocates the elements vector.
+    
+    
+    
     ForkJoinSlice *slice = js::ForkJoinSlice::Current();
     JSObject::EnsureDenseResult res =
         args->object->parExtendDenseElements(slice, &args->value, 1);
@@ -276,26 +276,26 @@ CompareMaybeStringsPar(ForkJoinSlice *slice, HandleValue v1, HandleValue v2, int
 
 template<bool Equal>
 ParallelResult
-LooselyEqualImplPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+LooselyEqualImplPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     PAR_RELATIONAL_OP(==, Equal);
 }
 
 ParallelResult
-js::ion::LooselyEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::LooselyEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     return LooselyEqualImplPar<true>(slice, lhs, rhs, res);
 }
 
 ParallelResult
-js::ion::LooselyUnequalPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::LooselyUnequalPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     return LooselyEqualImplPar<false>(slice, lhs, rhs, res);
 }
 
 template<bool Equal>
 ParallelResult
-StrictlyEqualImplPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+StrictlyEqualImplPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     if (lhs.isNumber()) {
         if (rhs.isNumber()) {
@@ -332,44 +332,44 @@ StrictlyEqualImplPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandle
 }
 
 ParallelResult
-js::ion::StrictlyEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::StrictlyEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     return StrictlyEqualImplPar<true>(slice, lhs, rhs, res);
 }
 
 ParallelResult
-js::ion::StrictlyUnequalPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::StrictlyUnequalPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     return StrictlyEqualImplPar<false>(slice, lhs, rhs, res);
 }
 
 ParallelResult
-js::ion::LessThanPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::LessThanPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     PAR_RELATIONAL_OP(<, true);
 }
 
 ParallelResult
-js::ion::LessThanOrEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::LessThanOrEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     PAR_RELATIONAL_OP(<=, true);
 }
 
 ParallelResult
-js::ion::GreaterThanPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::GreaterThanPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     PAR_RELATIONAL_OP(>, true);
 }
 
 ParallelResult
-js::ion::GreaterThanOrEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+js::ion::GreaterThanOrEqualPar(ForkJoinSlice *slice, MutableHandleValue lhs, MutableHandleValue rhs, bool *res)
 {
     PAR_RELATIONAL_OP(>=, true);
 }
 
 template<bool Equal>
 ParallelResult
-StringsEqualImplPar(ForkJoinSlice *slice, HandleString lhs, HandleString rhs, JSBool *res)
+StringsEqualImplPar(ForkJoinSlice *slice, HandleString lhs, HandleString rhs, bool *res)
 {
     int32_t vsZero;
     ParallelResult ret = CompareStringsPar(slice, lhs, rhs, &vsZero);
@@ -380,13 +380,13 @@ StringsEqualImplPar(ForkJoinSlice *slice, HandleString lhs, HandleString rhs, JS
 }
 
 ParallelResult
-js::ion::StringsEqualPar(ForkJoinSlice *slice, HandleString v1, HandleString v2, JSBool *res)
+js::ion::StringsEqualPar(ForkJoinSlice *slice, HandleString v1, HandleString v2, bool *res)
 {
     return StringsEqualImplPar<true>(slice, v1, v2, res);
 }
 
 ParallelResult
-js::ion::StringsUnequalPar(ForkJoinSlice *slice, HandleString v1, HandleString v2, JSBool *res)
+js::ion::StringsUnequalPar(ForkJoinSlice *slice, HandleString v1, HandleString v2, bool *res)
 {
     return StringsEqualImplPar<false>(slice, v1, v2, res);
 }
@@ -395,7 +395,7 @@ void
 ion::AbortPar(ParallelBailoutCause cause, JSScript *outermostScript, JSScript *currentScript,
               jsbytecode *bytecode)
 {
-    // Spew before asserts to help with diagnosing failures.
+    
     Spew(SpewBailouts,
          "Parallel abort with cause %d in %p:%s:%d "
          "(%p:%s:%d at line %d)",
@@ -477,9 +477,9 @@ ion::InitRestParameterPar(ForkJoinSlice *slice, uint32_t length, Value *rest,
                           HandleObject templateObj, HandleObject res,
                           MutableHandleObject out)
 {
-    // In parallel execution, we should always have succeeded in allocation
-    // before this point. We can do the allocation here like in the sequential
-    // path, but duplicating the initGCThing logic is too tedious.
+    
+    
+    
     JS_ASSERT(res);
     JS_ASSERT(res->is<ArrayObject>());
     JS_ASSERT(!res->getDenseInitializedLength());

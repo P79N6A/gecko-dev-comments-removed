@@ -31,6 +31,14 @@ isValueDTRDCandidate(ValueOperand &val)
 }
 
 void
+MacroAssemblerARM::convertBoolToInt32(Register source, Register dest)
+{
+    
+    
+    ma_and(Imm32(0xff), source, dest);
+}
+
+void
 MacroAssemblerARM::convertInt32ToDouble(const Register &src, const FloatRegister &dest_)
 {
     
