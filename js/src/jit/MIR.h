@@ -9204,13 +9204,16 @@ class MHaveSameClass
     }
 };
 
+
+
+
 class MRecompileCheck : public MNullaryInstruction
 {
     JSScript *script_;
     uint32_t recompileThreshold_;
 
-    MRecompileCheck(JSScript *script_, uint32_t recompileThreshold)
-      : script_(script_),
+    MRecompileCheck(JSScript *script, uint32_t recompileThreshold)
+      : script_(script),
         recompileThreshold_(recompileThreshold)
     {
         setGuard();
