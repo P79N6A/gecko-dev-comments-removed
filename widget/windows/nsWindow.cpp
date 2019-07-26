@@ -7404,7 +7404,7 @@ nsWindow::OnIMEFocusChange(bool aFocus)
   nsresult rv = nsTextStore::OnFocusChange(aFocus, this,
                                            mInputContext.mIMEState.mEnabled);
   if (rv == NS_ERROR_NOT_AVAILABLE)
-    rv = NS_ERROR_NOT_IMPLEMENTED; 
+    rv = NS_OK; 
   return rv;
 }
 
