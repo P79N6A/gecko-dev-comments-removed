@@ -164,8 +164,8 @@ protected:
 	public: 
 
     
-    nsresult GetDownloadDetails(nsIURI **aSourceURI,
-                                nsAString &aFilename);
+    HRESULT GetDownloadDetails(nsIURI **aSourceURI,
+                               nsAString &aFilename);
 
 	protected:
     
