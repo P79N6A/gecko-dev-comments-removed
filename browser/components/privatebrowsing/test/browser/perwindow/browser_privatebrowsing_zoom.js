@@ -25,27 +25,29 @@ function test() {
           let mozillaZoom = aWindow.ZoomManager.zoom;
 
           
-          aWindow.FullZoom.enlarge();
-          
-          isnot(aWindow.ZoomManager.zoom, mozillaZoom, "Zoom level can be changed");
-          mozillaZoom = aWindow.ZoomManager.zoom;
+          aWindow.FullZoom.enlarge(function () {
+            
+            isnot(aWindow.ZoomManager.zoom, mozillaZoom, "Zoom level can be changed");
+            mozillaZoom = aWindow.ZoomManager.zoom;
 
-          
-          aWindow.gBrowser.selectedTab = tabAbout;
+            
+            aWindow.gBrowser.selectedTab = tabAbout;
 
-          
-          aWindow.gBrowser.selectedTab = tabMozilla;
+            
+            aWindow.gBrowser.selectedTab = tabMozilla;
 
-          
-          is(aWindow.ZoomManager.zoom, mozillaZoom,
-            "Entering private browsing should not reset the zoom on a tab");
+            
+            is(aWindow.ZoomManager.zoom, mozillaZoom,
+              "Entering private browsing should not reset the zoom on a tab");
 
-          
-          aWindow.FullZoom.reset();
-          aWindow.gBrowser.removeTab(tabMozilla);
-          aWindow.gBrowser.removeTab(tabAbout);
-          aWindow.close();
-          aCallback();
+            
+            aWindow.FullZoom.reset(function () {
+              aWindow.gBrowser.removeTab(tabMozilla);
+              aWindow.gBrowser.removeTab(tabAbout);
+              aWindow.close();
+              aCallback();
+            });
+          });
         }, true);
         mozillaBrowser.contentWindow.location = "about:mozilla";
       }, true);
