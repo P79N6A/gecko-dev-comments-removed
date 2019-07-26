@@ -35,6 +35,7 @@ public class SyncAccountDeletedService extends IntentService {
     
     if (intent == null) {
       Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      return;
     }
 
     final Context context = this;

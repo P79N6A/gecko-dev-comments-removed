@@ -102,7 +102,8 @@ public class HealthReportBroadcastService extends BackgroundService {
 
     
     if (intent == null) {
-        Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      return;
     }
 
     

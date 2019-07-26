@@ -31,7 +31,8 @@ public class FxAccountDeletedService extends IntentService {
   protected void onHandleIntent(final Intent intent) {
     
     if (intent == null) {
-        Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      Logger.debug(LOG_TAG, "Short-circuiting on null intent.");
+      return;
     }
 
     final Context context = this;
