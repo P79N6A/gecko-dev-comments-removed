@@ -26,7 +26,6 @@
 #include "nsContentUtils.h" 
 #include "nsLayoutUtils.h"
 #include "Layers.h"
-#include "mozilla/layers/Compositor.h"
 
 
 
