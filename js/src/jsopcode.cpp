@@ -5782,24 +5782,21 @@ js_DecompileValueGenerator(JSContext *cx, int spindex, jsval v,
                 goto release_pcstack;
             pc = pcstack[pcdepth];
         } else {
-            
-            
-            if (frameIter.isIon())
-                goto release_pcstack;
+            size_t index = frameIter.numFrameSlots();
+            Value s;
 
             
 
 
 
 
-            Value *stackBase = cx->regs().spForStackDepth(0);
-            Value *sp = cx->regs().sp;
             do {
-                if (sp == stackBase) {
+                if (!index) {
                     pcdepth = -1;
                     goto release_pcstack;
                 }
-            } while (*--sp != v);
+                s = frameIter.frameSlotValue(--index);
+            } while(s != v);
 
             
 
@@ -5815,8 +5812,8 @@ js_DecompileValueGenerator(JSContext *cx, int spindex, jsval v,
 
 
 
-            if (sp < stackBase + pcdepth) {
-                pc = pcstack[sp - stackBase];
+            if (index < size_t(pcdepth)) {
+                pc = pcstack[index];
                 if (lastDecomposedPC) {
                     size_t len = GetDecomposeLength(lastDecomposedPC,
                                                     js_CodeSpec[*lastDecomposedPC].length);
@@ -6041,6 +6038,15 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
             if (lastDecomposedPC)
                 *lastDecomposedPC = pc;
             continue;
+        }
+
+        if (op == JSOP_GOTO) {
+            ptrdiff_t jmpoff = GET_JUMP_OFFSET(pc);
+            if (0 < jmpoff && pc + jmpoff < target) {
+                pc += jmpoff;
+                oplen = 0;
+                continue;
+            }
         }
 
         
