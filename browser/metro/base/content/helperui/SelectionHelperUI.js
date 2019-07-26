@@ -289,10 +289,13 @@ var SelectionHelperUI = {
 
 
 
-  openEditSession: function openEditSession(aContent, aClientX, aClientY) {
-    if (!aContent || this.isActive)
+
+
+
+  openEditSession: function openEditSession(aBrowser, aX, aY) {
+    if (!aBrowser || this.isActive)
       return;
-    this._init(aContent);
+    this._init(aBrowser);
     this._setupDebugOptions();
 
     
@@ -300,8 +303,8 @@ var SelectionHelperUI = {
     
     this._selectionHandlerActive = false;
     this._sendAsyncMessage("Browser:SelectionStart", {
-      xPos: aClientX,
-      yPos: aClientY
+      xPos: aX,
+      yPos: aY
     });
   },
 
@@ -310,10 +313,13 @@ var SelectionHelperUI = {
 
 
 
-  attachEditSession: function attachEditSession(aContent, aClientX, aClientY) {
-    if (!aContent || this.isActive)
+
+
+
+  attachEditSession: function attachEditSession(aBrowser, aX, aY) {
+    if (!aBrowser || this.isActive)
       return;
-    this._init(aContent);
+    this._init(aBrowser);
     this._setupDebugOptions();
 
     
@@ -321,8 +327,8 @@ var SelectionHelperUI = {
     
     this._selectionHandlerActive = false;
     this._sendAsyncMessage("Browser:SelectionAttach", {
-      xPos: aClientX,
-      yPos: aClientY
+      xPos: aX,
+      yPos: aY
     });
   },
 
@@ -340,17 +346,18 @@ var SelectionHelperUI = {
 
 
 
-  attachToCaret: function attachToCaret(aContent, aClientX, aClientY) {
-    if (!aContent)
+
+  attachToCaret: function attachToCaret(aBrowser, aX, aY) {
+    if (!aBrowser)
       return;
     if (!this.isActive)
-      this._init(aContent);
+      this._init(aBrowser);
     this._setupDebugOptions();
 
     this._selectionHandlerActive = false;
     this._sendAsyncMessage("Browser:CaretAttach", {
-      xPos: aClientX,
-      yPos: aClientY
+      xPos: aX,
+      yPos: aY
     });
   },
 
@@ -525,8 +532,8 @@ var SelectionHelperUI = {
     this._sendAsyncMessage("Browser:SelectionSwitchMode", {
       newMode: "selection",
       change: targetMark.tag,
-      xPos: targetMark.xPos,
-      yPos: targetMark.yPos,
+      xPos: this._msgTarget.xctob(targetMark.xPos, true),
+      yPos: this._msgTarget.yctob(targetMark.yPos, true),
     });
   },
 
@@ -535,7 +542,10 @@ var SelectionHelperUI = {
 
 
 
-  _transitionFromSelectionToCaret: function _transitionFromSelectionToCaret(aX, aY) {
+
+
+
+  _transitionFromSelectionToCaret: function _transitionFromSelectionToCaret(aClientX, aClientY) {
     
     this._sendAsyncMessage("Browser:SelectionClear", { clearFocus: false });
     this._sendAsyncMessage("Browser:SelectionClose");
@@ -549,15 +559,19 @@ var SelectionHelperUI = {
     this._setupMonocleIdArray();
 
     
+    let coords =
+      this._msgTarget.ptClientToBrowser(aClientX, aClientY, true);
+
+    
     
     
     this._sendAsyncMessage("Browser:CaretAttach", {
-      xPos: aX,
-      yPos: aY
+      xPos: coords.x,
+      yPos: coords.y
     });
 
     
-    this._setCaretPositionAtPoint(aX, aY);
+    this._setCaretPositionAtPoint(coords.x, coords.y);
   },
 
   
@@ -619,6 +633,11 @@ var SelectionHelperUI = {
     }
     return false;
   },
+
+  
+
+
+
 
   _setCaretPositionAtPoint: function _setCaretPositionAtPoint(aX, aY) {
     let json = this._getMarkerBaseMessage();
@@ -690,7 +709,11 @@ var SelectionHelperUI = {
     
     if (this.caretMark.visible && pointInTargetElement) {
       
-      this._setCaretPositionAtPoint(aEvent.clientX, aEvent.clientY);
+      let coords =
+        this._msgTarget.ptClientToBrowser(aEvent.clientX, aEvent.clientY,
+                                          true);
+      
+      this._setCaretPositionAtPoint(coords.x, coords.y);
       return;
     }
 
@@ -745,10 +768,14 @@ var SelectionHelperUI = {
       return;
     }
 
+    let coords =
+      this._msgTarget.ptClientToBrowser(aEvent.clientX, aEvent.clientY,
+                                        true);
+
     
     this._sendAsyncMessage("Browser:SelectionCopy", {
-      xPos: aEvent.clientX,
-      yPos: aEvent.clientY,
+      xPos: coords.x,
+      yPos: coords.y,
     });
 
     aEvent.stopPropagation();
@@ -762,11 +789,13 @@ var SelectionHelperUI = {
   _onSelectionRangeChange: function _onSelectionRangeChange(json) {
     
     if (json.updateStart) {
-      this.startMark.position(json.start.xPos, json.start.yPos);
+      this.startMark.position(this._msgTarget.xbtoc(json.start.xPos, true),
+                              this._msgTarget.ybtoc(json.start.yPos, true));
       this.startMark.show();
     }
     if (json.updateEnd) {
-      this.endMark.position(json.end.xPos, json.end.yPos);
+      this.endMark.position(this._msgTarget.xbtoc(json.end.xPos, true),
+                            this._msgTarget.ybtoc(json.end.yPos, true));
       this.endMark.show();
     }
     if (json.updateCaret) {
@@ -774,16 +803,20 @@ var SelectionHelperUI = {
       
       
       if (json.selectionRangeFound) {
-        this.caretMark.position(json.caret.xPos, json.caret.yPos);
+        this.caretMark.position(this._msgTarget.xbtoc(json.caret.xPos, true),
+                                this._msgTarget.ybtoc(json.caret.yPos, true));
         this.caretMark.show();
       } else {
         
         this.closeEditSession();
       }
     }
-    this._activeSelectionRect = json.selection;
-    this._targetElementRect = json.element;
+
     this._targetIsEditable = json.targetIsEditable;
+    this._activeSelectionRect =
+      this._msgTarget.rectBrowserToClient(json.selection, true);
+    this._targetElementRect =
+      this._msgTarget.rectBrowserToClient(json.element, true);
   },
 
   _onSelectionFail: function _onSelectionFail() {
@@ -907,9 +940,18 @@ var SelectionHelperUI = {
 
   _getMarkerBaseMessage: function _getMarkerBaseMessage() {
     return {
-      start: { xPos: this.startMark.xPos, yPos: this.startMark.yPos },
-      end: { xPos: this.endMark.xPos, yPos: this.endMark.yPos },
-      caret: { xPos: this.caretMark.xPos, yPos: this.caretMark.yPos },
+      start: {
+        xPos: this._msgTarget.xctob(this.startMark.xPos, true),
+        yPos: this._msgTarget.yctob(this.startMark.yPos, true)
+      },
+      end: {
+        xPos: this._msgTarget.xctob(this.endMark.xPos, true),
+        yPos: this._msgTarget.yctob(this.endMark.yPos, true)
+      },
+      caret: {
+        xPos: this._msgTarget.xctob(this.caretMark.xPos, true),
+        yPos: this._msgTarget.yctob(this.caretMark.yPos, true)
+      },
     };
   },
 
