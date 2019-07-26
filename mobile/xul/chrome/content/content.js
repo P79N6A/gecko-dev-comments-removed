@@ -292,7 +292,7 @@ let Content = {
     
     
     
-    addEventListener("click", this, false);
+    addEventListener("click", this, true);
 
     docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
   },
@@ -384,6 +384,10 @@ let Content = {
             
             
           }
+        } else if (/^about:neterror\?e=netOffline/.test(ownerDoc.documentURI)) {
+          let tryAgain = errorDoc.getElementById("errorTryAgain");
+          if (target == tryAgain)
+            sendSyncMessage("Browser:GoOnline", { });
         }
         break;
       }
