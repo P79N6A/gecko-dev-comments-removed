@@ -17,6 +17,7 @@
 #include "gfxUtils.h"                   
 #include "gfx2DGlue.h"                  
 #include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/gfx/Tools.h"
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
@@ -170,7 +171,9 @@ CopyableCanvasLayer::GetTempSurface(const IntSize& aSize,
       aSize != mCachedTempSurface->GetSize() ||
       aFormat != mCachedTempSurface->GetFormat())
   {
-    mCachedTempSurface = Factory::CreateDataSourceSurface(aSize, aFormat);
+    
+    uint32_t stride = GetAlignedStride<8>(aSize.width * BytesPerPixel(aFormat));
+    mCachedTempSurface = Factory::CreateDataSourceSurfaceWithStride(aSize, aFormat, stride);
   }
 
   return mCachedTempSurface;
