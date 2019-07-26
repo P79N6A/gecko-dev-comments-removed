@@ -21,6 +21,10 @@ class PropertyName;
 class SpecialId;
 class PropertyId;
 
+
+
+extern JS_FRIEND_DATA(js::Class*) FunctionClassPtr;
+
 static JS_ALWAYS_INLINE jsid
 SPECIALID_TO_JSID(const SpecialId &sid);
 
@@ -312,8 +316,9 @@ struct Class
         return flags & JSCLASS_EMULATES_UNDEFINED;
     }
 
-    
-    inline bool isCallable() const;
+    bool isCallable() const {
+        return this == js::FunctionClassPtr || call;
+    }
 
     static size_t offsetOfFlags() { return offsetof(Class, flags); }
 };

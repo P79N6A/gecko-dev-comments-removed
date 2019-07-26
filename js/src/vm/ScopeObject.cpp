@@ -911,6 +911,14 @@ js::CloneStaticBlockObject(JSContext *cx, HandleObject enclosingScope, Handle<St
 
 
 
+
+
+static inline JSAtom *
+CallObjectLambdaName(JSFunction &fun)
+{
+    return fun.isNamedLambda() ? fun.atom() : NULL;
+}
+
 ScopeIter::ScopeIter(JSContext *cx
                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
   : cx(cx),

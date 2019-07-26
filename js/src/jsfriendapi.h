@@ -381,10 +381,6 @@ struct Atom {
 
 } 
 
-
-
-extern JS_FRIEND_DATA(js::Class*) FunctionClassPtr;
-
 extern JS_FRIEND_DATA(js::Class) FunctionProxyClass;
 extern JS_FRIEND_DATA(js::Class) OuterWindowProxyClass;
 extern JS_FRIEND_DATA(js::Class) ObjectProxyClass;
