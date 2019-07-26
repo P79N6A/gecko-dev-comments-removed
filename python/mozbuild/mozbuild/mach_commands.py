@@ -528,13 +528,16 @@ class Build(MachCommandBase):
         description='Generate a backend used to build the tree.')
     @CommandArgument('-d', '--diff', action='store_true',
         help='Show a diff of changes.')
-    def build_backend(self, diff=False):
-        
-        
+    
+    
+    @CommandArgument('-b', '--backend',
+        choices=['RecursiveMake', 'AndroidEclipse'],
+        help='Which backend to build (default: RecursiveMake).')
+    def build_backend(self, backend='RecursiveMake', diff=False):
         python = self.virtualenv_manager.python_path
         config_status = os.path.join(self.topobjdir, 'config.status')
 
-        args = [python, config_status]
+        args = [python, config_status, '--backend=%s' % backend]
         if diff:
             args.append('--diff')
 
