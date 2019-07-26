@@ -2,12 +2,12 @@
 
 
 
-#include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "mozilla/net/Dashboard.h"
-#include "mozilla/net/HttpInfo.h"
-#include "mozilla/dom/NetDashboardBinding.h"
+
 #include "jsapi.h"
+#include "mozilla/dom/NetDashboardBinding.h"
+#include "mozilla/net/HttpInfo.h"
+#include "nsCxPusher.h"
 
 using mozilla::AutoSafeJSContext;
 namespace mozilla {

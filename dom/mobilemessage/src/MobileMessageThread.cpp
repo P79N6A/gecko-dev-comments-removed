@@ -8,7 +8,6 @@
 #include "jsapi.h"           
 #include "jsfriendapi.h"     
 #include "nsJSUtils.h"       
-#include "nsContentUtils.h"  
 #include "nsTArrayHelpers.h" 
 #include "Constants.h"       
 

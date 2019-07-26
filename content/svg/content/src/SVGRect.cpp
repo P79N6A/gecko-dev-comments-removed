@@ -4,7 +4,6 @@
 
 
 #include "mozilla/dom/SVGRect.h"
-#include "nsContentUtils.h"
 #include "nsSVGElement.h"
 
 namespace mozilla {

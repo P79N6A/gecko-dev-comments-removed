@@ -2,7 +2,6 @@
 
 
 
-#include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/Services.h"

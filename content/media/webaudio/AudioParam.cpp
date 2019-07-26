@@ -5,7 +5,6 @@
 
 
 #include "AudioParam.h"
-#include "nsContentUtils.h"
 #include "nsIDOMWindow.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/AudioParamBinding.h"

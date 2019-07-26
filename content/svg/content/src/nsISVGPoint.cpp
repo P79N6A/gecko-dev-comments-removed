@@ -8,7 +8,6 @@
 #include "SVGPoint.h"
 #include "nsSVGElement.h"
 #include "nsError.h"
-#include "nsContentUtils.h" 
 #include "mozilla/dom/SVGPointBinding.h"
 
 

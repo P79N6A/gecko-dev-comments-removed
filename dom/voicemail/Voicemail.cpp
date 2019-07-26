@@ -9,7 +9,6 @@
 #include "nsIDOMMozVoicemailEvent.h"
 
 #include "mozilla/Services.h"
-#include "nsContentUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsServiceManagerUtils.h"
 #include "GeneratedEvents.h"

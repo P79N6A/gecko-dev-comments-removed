@@ -12,7 +12,6 @@
 
 #include "nsIServiceManager.h"
 #include "nsAutoPtr.h"
-#include "nsContentUtils.h"
 #include "nsCxPusher.h"
 
 

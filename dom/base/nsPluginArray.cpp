@@ -4,7 +4,7 @@
 
 
 #include "nsPluginArray.h"
-#include "nsContentUtils.h"
+
 #include "mozilla/dom/PluginArrayBinding.h"
 #include "mozilla/dom/PluginBinding.h"
 #include "nsMimeTypeArray.h"

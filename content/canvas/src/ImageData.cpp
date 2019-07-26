@@ -6,8 +6,7 @@
 
 #include "mozilla/dom/ImageData.h"
 
-#include "nsDOMClassInfoID.h"
-#include "nsContentUtils.h"
+#include "nsContentUtils.h" 
 #include "mozilla/dom/ImageDataBinding.h"
 
 #include "jsapi.h"

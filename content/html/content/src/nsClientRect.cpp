@@ -4,8 +4,6 @@
 
 
 #include "nsClientRect.h"
-#include "nsContentUtils.h"
-#include "nsDOMClassInfoID.h"
 
 #include "nsPresContext.h"
 #include "mozilla/dom/ClientRectListBinding.h"

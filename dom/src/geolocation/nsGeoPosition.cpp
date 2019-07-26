@@ -4,9 +4,6 @@
 
 
 #include "nsGeoPosition.h"
-#include "nsDOMClassInfoID.h"
-#include "nsIClassInfo.h"
-#include "nsContentUtils.h"
 
 #include "mozilla/dom/PositionBinding.h"
 #include "mozilla/dom/CoordinatesBinding.h"

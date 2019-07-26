@@ -5,7 +5,6 @@
 
 
 #include "nsCOMPtr.h"
-#include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsGkAtoms.h"
 

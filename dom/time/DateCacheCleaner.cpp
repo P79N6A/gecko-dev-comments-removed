@@ -3,13 +3,13 @@
 
 
 
-#include "mozilla/Hal.h"
-#include "mozilla/ClearOnShutdown.h"
 #include "DateCacheCleaner.h"
 
-#include "nsContentUtils.h"
-#include "nsCxPusher.h"
+#include "jsapi.h"
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Hal.h"
 #include "mozilla/StaticPtr.h"
+#include "nsCxPusher.h"
 
 using namespace mozilla::hal;
 
