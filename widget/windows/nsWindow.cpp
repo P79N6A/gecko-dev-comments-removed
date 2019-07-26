@@ -125,6 +125,7 @@
 #include "nsIWidgetListener.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/WindowsVersion.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -481,9 +482,7 @@ nsWindow::Create(nsIWidget *aParent,
       parent = nullptr;
     }
 
-    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-        WinUtils::GetWindowsVersion() <= WinUtils::WIN7_VERSION &&
-        HasBogusPopupsDropShadowOnMultiMonitor()) {
+    if (IsVistaOrLater() && !IsWin8OrLater()) {
       extendedStyle |= WS_EX_COMPOSITED;
     }
 
@@ -606,7 +605,7 @@ nsWindow::Create(nsIWidget *aParent,
     
     sTrimOnMinimize =
       Preferences::GetBool("config.trim_on_minimize",
-        (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)) ? 1 : 0;
+        IsVistaOrLater() ? 1 : 0);
     sSwitchKeyboardLayout =
       Preferences::GetBool("intl.keyboard.per_window_layout", false);
   }
@@ -1226,8 +1225,7 @@ bool nsWindow::IsVisible() const
 
 void nsWindow::ClearThemeRegion()
 {
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-      !HasGlass() &&
+  if (IsVistaOrLater() && !HasGlass() &&
       (mWindowType == eWindowType_popup && !IsPopupWithTitleBar() &&
        (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel))) {
     SetWindowRgn(mWnd, nullptr, false);
@@ -1241,8 +1239,7 @@ void nsWindow::SetThemeRegion()
   
   
   
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
-      !HasGlass() &&
+  if (IsVistaOrLater() && !HasGlass() &&
       (mWindowType == eWindowType_popup && !IsPopupWithTitleBar() &&
        (mPopupType == ePopupTypeTooltip || mPopupType == ePopupTypePanel))) {
     HRGN hRgn = nullptr;
@@ -3495,7 +3492,7 @@ nsWindow::OverrideSystemMouseScrollSpeed(double aOriginalDeltaX,
 
   
   
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+  if (IsVistaOrLater()) {
     if (!::SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &systemSpeed, 0)) {
       return NS_ERROR_FAILURE;
     }

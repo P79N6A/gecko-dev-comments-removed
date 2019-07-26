@@ -3,8 +3,8 @@
 
 
 
-#include <windows.h>
 #include "nsNativeThemeWin.h"
+#include "mozilla/WindowsVersion.h"
 #include "nsRenderingContext.h"
 #include "nsRect.h"
 #include "nsSize.h"
@@ -24,7 +24,6 @@
 #include "nsWindow.h"
 #include "nsIComboboxControlFrame.h"
 #include "prinrval.h"
-#include "WinUtils.h"
 
 #include "gfxPlatform.h"
 #include "gfxContext.h"
@@ -37,7 +36,7 @@
 #include "nsUXThemeConstants.h"
 #include <algorithm>
 
-using namespace mozilla::widget;
+using mozilla::IsVistaOrLater;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gWindowsLog;
@@ -350,7 +349,7 @@ AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
   RECT offset;
   if (!IsAppThemed())
     offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
-  else if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION)
+  else if (!IsVistaOrLater())
     offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
   else
     offset = buttonData[CAPTION_BASIC].hotPadding[button];
@@ -365,7 +364,7 @@ OffsetBackgroundRect(RECT& rect, CaptionButton button) {
   RECT offset;
   if (!IsAppThemed())
     offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
-  else if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION)
+  else if (!IsVistaOrLater())
     offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
   else
     offset = buttonData[CAPTION_BASIC].hotPadding[button];
@@ -429,12 +428,12 @@ static int32_t
 GetProgressOverlayStyle(bool aIsVertical)
 { 
   if (aIsVertical) {
-    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+    if (IsVistaOrLater()) {
       return PP_MOVEOVERLAYVERT;
     }
     return PP_CHUNKVERT;
   } else {
-    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+    if (IsVistaOrLater()) {
       return PP_MOVEOVERLAY;
     }
     return PP_CHUNK;
@@ -449,7 +448,7 @@ GetProgressOverlayStyle(bool aIsVertical)
 static int32_t
 GetProgressOverlaySize(bool aIsVertical, bool aIsIndeterminate)
 {
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+  if (IsVistaOrLater()) {
     if (aIsVertical) {
       return aIsIndeterminate ? kProgressVerticalIndeterminateOverlaySize
                               : kProgressVerticalOverlaySize;
@@ -657,7 +656,7 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
   RECT adjWidgetRect, adjClipRect;
   adjWidgetRect = *aWidgetRect;
   adjClipRect = *aClipRect;
-  if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
+  if (!IsVistaOrLater()) {
     
     
     InflateRect(&adjWidgetRect, 1, 1);
@@ -677,7 +676,7 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
   bool indeterminate = IsIndeterminateProgress(parentFrame, eventStates);
   bool animate = indeterminate;
 
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+  if (IsVistaOrLater()) {
     
     
     DrawThemeBackground(aTheme, aHdc, aPart, aState,
@@ -698,7 +697,7 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
     RECT overlayRect =
       CalculateProgressOverlayRect(aFrame, &adjWidgetRect, vertical,
                                    indeterminate, false);
-    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+    if (IsVistaOrLater()) {
       DrawThemeBackground(aTheme, aHdc, overlayPart, aState, &overlayRect,
                           &adjClipRect);
     } else {
@@ -716,7 +715,7 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
 HANDLE
 nsNativeThemeWin::GetTheme(uint8_t aWidgetType)
 { 
-  if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
+  if (!IsVistaOrLater()) {
     
     
     
@@ -736,7 +735,7 @@ nsNativeThemeWin::GetTheme(uint8_t aWidgetType)
       return nsUXThemeData::GetTheme(eUXEdit);
     case NS_THEME_TOOLTIP:
       
-      return WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION ?
+      return !IsVistaOrLater() ?
         nullptr : nsUXThemeData::GetTheme(eUXTooltip);
     case NS_THEME_TOOLBOX:
       return nsUXThemeData::GetTheme(eUXRebar);
@@ -864,7 +863,7 @@ nsresult
 nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType, 
                                        int32_t& aPart, int32_t& aState)
 {
-  if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
+  if (!IsVistaOrLater()) {
     
     if (aWidgetType == NS_THEME_DROPDOWN)
       aWidgetType = NS_THEME_TEXTFIELD;
@@ -941,7 +940,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
     case NS_THEME_TEXTFIELD_MULTILINE: {
       nsEventStates eventState = GetContentState(aFrame, aWidgetType);
 
-      if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      if (IsVistaOrLater()) {
         
 
 
@@ -1011,10 +1010,10 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
       nsEventStates eventStates = GetContentState(parentFrame, aWidgetType);
       if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK_VERTICAL ||
           IsVerticalProgress(parentFrame)) {
-        aPart = WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION ?
+        aPart = IsVistaOrLater() ?
           PP_FILLVERT : PP_CHUNKVERT;
       } else {
-        aPart = WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION ?
+        aPart = IsVistaOrLater() ?
           PP_FILL : PP_CHUNK;
       }
 
@@ -1078,7 +1077,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
           aState += TS_ACTIVE;
         else if (eventState.HasState(NS_EVENT_STATE_HOVER))
           aState += TS_HOVER;
-        else if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
+        else if (IsVistaOrLater() &&
                  parentState.HasState(NS_EVENT_STATE_HOVER))
           aState = (aWidgetType - NS_THEME_SCROLLBAR_BUTTON_UP) + SP_BUTTON_IMPLICIT_HOVER_BASE;
         else
@@ -1182,7 +1181,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
     case NS_THEME_SCROLLBAR:
     case NS_THEME_SCROLLBAR_SMALL: {
       aState = 0;
-      if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      if (IsVistaOrLater()) {
         
         aPart = RP_BACKGROUND;
       } else {
@@ -1314,7 +1313,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
         aFrame = parentFrame;
 
       nsEventStates eventState = GetContentState(aFrame, aWidgetType);
-      aPart = WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION ?
+      aPart = IsVistaOrLater() ?
         CBP_DROPMARKER_VISTA : CBP_DROPMARKER;
 
       
@@ -1335,7 +1334,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, uint8_t aWidgetType,
       else
         isOpen = IsOpenButton(aFrame);
 
-      if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      if (IsVistaOrLater()) {
         if (isHTML || IsMenuListEditable(aFrame)) {
           if (isOpen) {
             
@@ -1838,7 +1837,7 @@ RENDER_AGAIN:
 
         
         
-        if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
+        if (IsVistaOrLater() &&
             aWidgetType == NS_THEME_CHECKBOX) {
           LOGBRUSH lb;
           lb.lbStyle = BS_SOLID;
@@ -2086,7 +2085,7 @@ nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
     return true;
   }
 
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+  if (IsVistaOrLater()) {
     if (aWidgetType == NS_THEME_TEXTFIELD ||
         aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
         aWidgetType == NS_THEME_DROPDOWN)
@@ -2179,7 +2178,7 @@ nsNativeThemeWin::GetWidgetOverflow(nsDeviceContext* aContext,
 
 
 #if 0
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+  if (IsVistaOrLater()) {
     
 
 
@@ -2303,7 +2302,7 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* a
       *aIsOverridable = false;
       
       
-      if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      if (IsVistaOrLater()) {
         if (aWidgetType == NS_THEME_SCALE_THUMB_HORIZONTAL ||
             (aWidgetType == NS_THEME_RANGE_THUMB && IsRangeHorizontal(aFrame))) {
           aResult->width = 12;
@@ -2353,7 +2352,7 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* a
       aResult->width = nsUXThemeData::sCommandButtons[CMDBUTTONIDX_RESTORE].cx;
       aResult->height = nsUXThemeData::sCommandButtons[CMDBUTTONIDX_RESTORE].cy;
       
-      if (WinUtils::GetWindowsVersion() == WinUtils::WINXP_VERSION) {
+      if (!IsVistaOrLater()) {
         aResult->width -= 4;
         aResult->height -= 4;
       }
@@ -2364,7 +2363,7 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* a
     case NS_THEME_WINDOW_BUTTON_MINIMIZE:
       aResult->width = nsUXThemeData::sCommandButtons[CMDBUTTONIDX_MINIMIZE].cx;
       aResult->height = nsUXThemeData::sCommandButtons[CMDBUTTONIDX_MINIMIZE].cy;
-      if (WinUtils::GetWindowsVersion() == WinUtils::WINXP_VERSION) {
+      if (!IsVistaOrLater()) {
         aResult->width -= 4;
         aResult->height -= 4;
       }
@@ -2375,7 +2374,7 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsRenderingContext* aContext, nsIFrame* a
     case NS_THEME_WINDOW_BUTTON_CLOSE:
       aResult->width = nsUXThemeData::sCommandButtons[CMDBUTTONIDX_CLOSE].cx;
       aResult->height = nsUXThemeData::sCommandButtons[CMDBUTTONIDX_CLOSE].cy;
-      if (WinUtils::GetWindowsVersion() == WinUtils::WINXP_VERSION) {
+      if (!IsVistaOrLater()) {
         aResult->width -= 4;
         aResult->height -= 4;
       }
@@ -2488,7 +2487,7 @@ nsNativeThemeWin::WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType,
   }
 
   
-  if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION &&
+  if (!IsVistaOrLater() &&
       (aWidgetType == NS_THEME_SCROLLBAR_TRACK_VERTICAL || 
       aWidgetType == NS_THEME_SCROLLBAR_TRACK_HORIZONTAL)) {
     *aShouldRepaint = false;
@@ -2497,7 +2496,7 @@ nsNativeThemeWin::WidgetStateChanged(nsIFrame* aFrame, uint8_t aWidgetType,
 
   
   
-  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
+  if (IsVistaOrLater() &&
       (aWidgetType == NS_THEME_DROPDOWN || aWidgetType == NS_THEME_DROPDOWN_BUTTON) &&
       IsHTMLContent(aFrame))
   {

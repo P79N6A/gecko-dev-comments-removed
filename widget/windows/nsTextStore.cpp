@@ -20,6 +20,7 @@
 #include "WinUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
+#include "mozilla/WindowsVersion.h"
 
 #define INPUTSCOPE_INIT_GUID
 #include "nsTextStore.h"
@@ -3602,7 +3603,7 @@ nsTextStore::CurrentKeyboardLayoutHasIME()
     
     
     
-    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+    if (IsVistaOrLater()) {
       PR_LOG(sTextStoreLog, PR_LOG_ERROR,
         ("TSF: nsTextStore::CurrentKeyboardLayoutHasIME() FAILED to query "
          "ITfInputProcessorProfileMgr"));

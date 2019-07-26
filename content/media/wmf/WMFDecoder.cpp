@@ -10,14 +10,12 @@
 #include "WMFUtils.h"
 #include "MediaDecoderStateMachine.h"
 #include "mozilla/Preferences.h"
-#include "WinUtils.h"
+#include "mozilla/WindowsVersion.h"
 #include "nsCharSeparatedTokenizer.h"
 
 #ifdef MOZ_DIRECTSHOW
 #include "DirectShowDecoder.h"
 #endif
-
-using namespace mozilla::widget;
 
 namespace mozilla {
 
@@ -38,21 +36,15 @@ WMFDecoder::IsMP3Supported()
     return false;
   }
 #endif
- if (!MediaDecoder::IsWMFEnabled()) {
+  if (!MediaDecoder::IsWMFEnabled()) {
     return false;
   }
-  if (WinUtils::GetWindowsVersion() != WinUtils::WIN7_VERSION) {
+  if (!IsWin7OrLater()) {
     return true;
   }
   
   
-  UINT spMajorVer = 0, spMinorVer = 0;
-  if (!WinUtils::GetWindowsServicePackVersion(spMajorVer, spMinorVer)) {
-    
-    
-    return false;
-  }
-  return spMajorVer != 0;
+  return IsWin7SP1OrLater();
 }
 
 static bool
@@ -163,7 +155,7 @@ bool
 WMFDecoder::IsEnabled()
 {
   
-  return WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
+  return IsVistaOrLater() &&
          Preferences::GetBool("media.windows-media-foundation.enabled");
 }
 

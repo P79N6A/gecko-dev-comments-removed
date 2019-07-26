@@ -6,6 +6,7 @@
 
 
 #include "mozilla/Util.h"
+#include "mozilla/WindowsVersion.h"
 
 #include "nsUXThemeData.h"
 #include "nsDebug.h"
@@ -144,7 +145,7 @@ nsUXThemeData::InitTitlebarInfo()
   
   
   sTitlebarInfoPopulatedAero = sTitlebarInfoPopulatedThemed =
-    (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION);
+    !IsVistaOrLater();
 }
 
 
@@ -281,8 +282,7 @@ void
 nsUXThemeData::UpdateNativeThemeInfo()
 {
   
-  sTitlebarInfoPopulatedThemed =
-    (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION);
+  sTitlebarInfoPopulatedThemed = !IsVistaOrLater();
 
   sIsDefaultWindowsTheme = false;
   sThemeId = LookAndFeel::eWindowsTheme_Generic;
