@@ -1007,10 +1007,21 @@ ContentEventHandler::GetFlatTextOffsetOfRange(nsIContent* aRootContent,
 
   nsCOMPtr<nsIDOMNode> startDOMNode(do_QueryInterface(aNode));
   NS_ASSERTION(startDOMNode, "startNode doesn't have nsIDOMNode");
-  prev->SetEnd(startDOMNode, aNodeOffset);
 
   nsCOMPtr<nsIContentIterator> iter = NS_NewContentIterator();
-  iter->Init(prev);
+
+  if (aNode->Length() >= aNodeOffset) {
+    
+    prev->SetEnd(startDOMNode, aNodeOffset);
+    iter->Init(prev);
+  } else if (aNode != static_cast<nsINode*>(aRootContent)) {
+    
+    prev->SetEndAfter(startDOMNode);
+    iter->Init(prev);
+  } else {
+    
+    iter->Init(aRootContent);
+  }
 
   nsCOMPtr<nsINode> startNode = do_QueryInterface(startDOMNode);
   nsINode* endNode = aNode;
