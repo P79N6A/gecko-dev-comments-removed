@@ -678,14 +678,20 @@ CodeGeneratorARM::visitBitOpI(LBitOpI *ins)
 }
 
 bool
-CodeGeneratorARM::visitShiftOp(LShiftOp *ins)
+CodeGeneratorARM::visitShiftI(LShiftI *ins)
 {
     const LAllocation *lhs = ins->getOperand(0);
     const LAllocation *rhs = ins->getOperand(1);
     const LDefinition *dest = ins->getDef(0);
+
     
     
     
+    if (!rhs->isConstant()) {
+        masm.ma_and(Imm32(0x1f), ToRegister(rhs), ToRegister(dest));
+        rhs = dest->output();
+    }
+
     switch (ins->bitop()) {
         case JSOP_LSH:
           if (rhs->isConstant()) {
@@ -737,6 +743,29 @@ CodeGeneratorARM::visitShiftOp(LShiftOp *ins)
             return false;
     }
 
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitUrshD(LUrshD *ins)
+{
+    Register lhs = ToRegister(ins->lhs());
+    Register temp = ToRegister(ins->temp());
+
+    const LAllocation *rhs = ins->rhs();
+    FloatRegister out = ToFloatRegister(ins->output());
+
+    if (rhs->isConstant()) {
+        if ((ToInt32(rhs) & 0x1f) != 0)
+            masm.ma_lsr(Imm32(ToInt32(rhs) & 0x1F), lhs, temp);
+        else
+            masm.ma_mov(lhs, temp);
+    } else {
+        masm.ma_and(Imm32(0x1f), ToRegister(rhs), temp);
+        masm.ma_lsr(temp, lhs, temp);
+    }
+
+    masm.convertUInt32ToDouble(temp, out);
     return true;
 }
 

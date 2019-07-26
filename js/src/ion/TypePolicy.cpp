@@ -201,10 +201,13 @@ BitwisePolicy::adjustInputs(MInstruction *ins)
     if (specialization_ == MIRType_None)
         return BoxInputsPolicy::adjustInputs(ins);
 
+    JS_ASSERT(ins->type() == specialization_);
+    JS_ASSERT(specialization_ == MIRType_Int32 || specialization_ == MIRType_Double);
+
     
     for (size_t i = 0; i < ins->numOperands(); i++) {
         MDefinition *in = ins->getOperand(i);
-        if (in->type() == ins->type())
+        if (in->type() == MIRType_Int32)
             continue;
 
         
