@@ -1102,7 +1102,7 @@ MediaStreamGraphImpl::ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
     for (uint32_t i = aStreamIndex; i < mStreams.Length(); ++i) {
       ProcessedMediaStream* ps = mStreams[i]->AsProcessedStream();
       if (ps) {
-        ps->ProduceOutput(t, next, (next == aTo) ? ProcessedMediaStream::ALLOW_FINISH : 0);
+        ps->ProcessInput(t, next, (next == aTo) ? ProcessedMediaStream::ALLOW_FINISH : 0);
       }
     }
     t = next;
@@ -1237,8 +1237,8 @@ MediaStreamGraphImpl::RunThread()
             ticksProcessed += TimeToTicksRoundDown(n->SampleRate(), mStateComputedTime - prevComputedTime);
             doneAllProducing = true;
           } else {
-            ps->ProduceOutput(prevComputedTime, mStateComputedTime,
-                              ProcessedMediaStream::ALLOW_FINISH);
+            ps->ProcessInput(prevComputedTime, mStateComputedTime,
+                             ProcessedMediaStream::ALLOW_FINISH);
             NS_WARN_IF_FALSE(stream->mBuffer.GetEnd() >=
                              GraphTimeToStreamTime(stream, mStateComputedTime),
                              "Stream did not produce enough data");

@@ -972,7 +972,7 @@ public:
   enum {
     ALLOW_FINISH = 0x01
   };
-  virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) = 0;
+  virtual void ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) = 0;
   void SetAutofinishImpl(bool aAutofinish) { mAutofinish = aAutofinish; }
 
   

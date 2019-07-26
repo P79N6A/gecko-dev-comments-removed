@@ -399,7 +399,7 @@ AudioNodeStream::UpMixDownMixChunk(const AudioChunk* aChunk,
 
 
 void
-AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
+AudioNodeStream::ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
 {
   EnsureTrack(AUDIO_TRACK, mSampleRate);
   
