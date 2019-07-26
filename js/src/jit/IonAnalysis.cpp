@@ -226,8 +226,12 @@ IsPhiObservable(MPhi *phi, Observability observe)
     
     
     
-    if (fun && info.hasArguments() && slot == info.scopeChainSlot())
+    
+    if (fun && info.hasArguments() &&
+        (slot == info.scopeChainSlot() || slot == info.argsObjSlot()))
+    {
         return true;
+    }
 
     
     
