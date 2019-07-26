@@ -317,6 +317,65 @@ public:
 
 
 
+template<>
+class Optional<JSObject*> : public Optional_base<JSObject*, JSObject*>
+{
+public:
+  Optional() :
+    Optional_base<JSObject*, JSObject*>()
+  {}
+
+  explicit Optional(JSObject* aValue) :
+    Optional_base<JSObject*, JSObject*>(aValue)
+  {}
+
+  
+  void Construct()
+  {
+    
+    
+    Optional_base<JSObject*, JSObject*>::Construct(
+      static_cast<JSObject*>(nullptr));
+  }
+
+  template <class T1>
+  void Construct(const T1& t1)
+  {
+    Optional_base<JSObject*, JSObject*>::Construct(t1);
+  }
+};
+
+
+
+
+template<>
+class Optional<JS::Value> : public Optional_base<JS::Value, JS::Value>
+{
+public:
+  Optional() :
+    Optional_base<JS::Value, JS::Value>()
+  {}
+
+  explicit Optional(JS::Value aValue) :
+    Optional_base<JS::Value, JS::Value>(aValue)
+  {}
+
+  
+  void Construct()
+  {
+    Optional_base<JS::Value, JS::Value>::Construct(JS::UndefinedValue());
+  }
+
+  template <class T1>
+  void Construct(const T1& t1)
+  {
+    Optional_base<JS::Value, JS::Value>::Construct(t1);
+  }
+};
+
+
+
+
 
 
 struct FakeDependentString;
