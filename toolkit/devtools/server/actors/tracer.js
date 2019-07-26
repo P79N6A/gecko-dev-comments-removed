@@ -464,11 +464,8 @@ TraceTypes.register("arguments", TraceTypes.Events.enterFrame, function({ frame 
   if (!frame.arguments) {
     return undefined;
   }
-  let objectPool = [];
-  let objToId = new Map();
   let args = Array.prototype.slice.call(frame.arguments);
-  let values = args.map(arg => createValueGrip(arg, objectPool, objToId));
-  return { values: values, objectPool: objectPool };
+  return args.map(arg => createValueGrip(arg, true));
 });
 
 TraceTypes.register("return", TraceTypes.Events.exitFrame,
@@ -525,10 +522,7 @@ function serializeCompletionValue(aType, { value }) {
   if (typeof value[aType] === "undefined") {
     return undefined;
   }
-  let objectPool = [];
-  let objToId = new Map();
-  let valueGrip = createValueGrip(value[aType], objectPool, objToId);
-  return { value: valueGrip, objectPool: objectPool };
+  return createValueGrip(value[aType], true);
 }
 
 
@@ -547,11 +541,7 @@ function serializeCompletionValue(aType, { value }) {
 
 
 
-
-
-
-
-function createValueGrip(aValue, aPool, aObjectToId) {
+function createValueGrip(aValue, aUseDescriptor) {
   let type = typeof aValue;
 
   if (type === "string" && aValue.length >= DebuggerServer.LONG_STRING_LENGTH) {
@@ -575,8 +565,7 @@ function createValueGrip(aValue, aPool, aObjectToId) {
   }
 
   if (typeof(aValue) === "object") {
-    createObjectDescriptor(aValue, aPool, aObjectToId);
-    return { type: "object", objectId: aObjectToId.get(aValue) };
+    return aUseDescriptor ? objectDescriptor(aValue) : objectGrip(aValue);
   }
 
   reportException("TraceActor",
@@ -590,65 +579,72 @@ function createValueGrip(aValue, aPool, aObjectToId) {
 
 
 
-
-
-
-
-
-
-
-function createObjectDescriptor(aObject, aPool, aObjectToId) {
-  if (aObjectToId.has(aObject)) {
-    return;
-  }
-
-  aObjectToId.set(aObject, aPool.length);
-  let desc = Object.create(null);
-  aPool.push(desc);
-
-  
-  desc.class = aObject.class;
-  desc.extensible = aObject.isExtensible();
-  desc.frozen = aObject.isFrozen();
-  desc.sealed = aObject.isSealed();
+function objectGrip(aObject) {
+  let g = {
+    "type": "object",
+    "class": aObject.class,
+    "extensible": aObject.isExtensible(),
+    "frozen": aObject.isFrozen(),
+    "sealed": aObject.isSealed()
+  };
 
   
   if (aObject.class === "Function") {
     if (aObject.name) {
-      desc.name = aObject.name;
+      g.name = aObject.name;
     }
     if (aObject.displayName) {
-      desc.displayName = aObject.displayName;
+      g.displayName = aObject.displayName;
     }
 
     
     
     let name = aObject.getOwnPropertyDescriptor("displayName");
     if (name && name.value && typeof name.value == "string") {
-      desc.userDisplayName = createValueGrip(name.value, aObject, aPool, aObjectToId);
+      g.userDisplayName = createValueGrip(name.value, aObject);
+    }
+
+    
+    if (aObject.script) {
+      g.url = aObject.script.url;
+      g.line = aObject.script.startLine;
     }
   }
 
+  return g;
+}
+
+
+
+
+
+
+
+
+
+function objectDescriptor(aObject) {
+  let desc = objectGrip(aObject);
   let ownProperties = Object.create(null);
-  let propNames;
+  let names;
   try {
-    propNames = aObject.getOwnPropertyNames();
+    names = aObject.getOwnPropertyNames();
   } catch(ex) {
     
     
     desc.prototype = createValueGrip(null);
     desc.ownProperties = ownProperties;
     desc.safeGetterValues = Object.create(null);
-    return;
+    return desc;
+  }
+  for (let name of names) {
+    ownProperties[name] = propertyDescriptor(name, aObject);
   }
 
-  for (let name of propNames) {
-    ownProperties[name] = createPropertyDescriptor(name, aObject, aPool, aObjectToId);
-  }
-
-  desc.prototype = createValueGrip(aObject.proto, aPool, aObjectToId);
+  desc.prototype = createValueGrip(aObject.proto);
   desc.ownProperties = ownProperties;
-  desc.safeGetterValues = findSafeGetterValues(ownProperties, aObject, aPool, aObjectToId);
+  desc.safeGetterValues = findSafeGetterValues(ownProperties, aObject);
+
+  return desc;
 }
 
 
@@ -664,13 +660,7 @@ function createObjectDescriptor(aObject, aPool, aObjectToId) {
 
 
 
-
-
-
-
-
-
-function createPropertyDescriptor(aName, aObject, aPool, aObjectToId) {
+function propertyDescriptor(aName, aObject) {
   let desc;
   try {
     desc = aObject.getOwnPropertyDescriptor(aName);
@@ -686,6 +676,10 @@ function createPropertyDescriptor(aName, aObject, aPool, aObjectToId) {
     };
   }
 
+  if (!desc) {
+    return undefined;
+  }
+
   let retval = {
     configurable: desc.configurable,
     enumerable: desc.enumerable
@@ -693,13 +687,13 @@ function createPropertyDescriptor(aName, aObject, aPool, aObjectToId) {
 
   if ("value" in desc) {
     retval.writable = desc.writable;
-    retval.value = createValueGrip(desc.value, aPool, aObjectToId);
+    retval.value = createValueGrip(desc.value);
   } else {
     if ("get" in desc) {
-      retval.get = createValueGrip(desc.get, aPool, aObjectToId);
+      retval.get = createValueGrip(desc.get);
     }
     if ("set" in desc) {
-      retval.set = createValueGrip(desc.set, aPool, aObjectToId);
+      retval.set = createValueGrip(desc.set);
     }
   }
   return retval;
@@ -717,13 +711,7 @@ function createPropertyDescriptor(aName, aObject, aPool, aObjectToId) {
 
 
 
-
-
-
-
-
-
-function findSafeGetterValues(aOwnProperties, aObject, aPool, aObjectToId) {
+function findSafeGetterValues(aOwnProperties, aObject) {
   let safeGetterValues = Object.create(null);
   let obj = aObject;
   let level = 0;
@@ -762,7 +750,7 @@ function findSafeGetterValues(aOwnProperties, aObject, aPool, aObjectToId) {
         
         if (getterValue !== undefined) {
           safeGetterValues[name] = {
-            getterValue: createValueGrip(getterValue, aPool, aObjectToId),
+            getterValue: createValueGrip(getterValue),
             getterPrototypeLevel: level,
             enumerable: desc.enumerable,
             writable: level == 0 ? desc.writable : true,
