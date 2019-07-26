@@ -10,6 +10,7 @@
 #include "PathCG.h"
 #include "SourceSurfaceCG.h"
 #include "GLDefs.h"
+#include "Tools.h"
 
 namespace mozilla {
 namespace gfx {
@@ -162,9 +163,7 @@ private:
 
 
 
-
-
-  void *mData;
+  AlignedArray<uint8_t> mData;
 
   RefPtr<SourceSurfaceCGContext> mSnapshot;
 };
