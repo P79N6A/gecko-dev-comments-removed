@@ -19,6 +19,10 @@ const EXPECTED_REFLOWS = [
 
   
   "gBrowserInit._delayedStartup@chrome://browser/content/browser.js|",
+
+  
+  
+  "ssi_getWindowDimension@resource:///modules/sessionstore/SessionStore.jsm",
 ];
 
 if (Services.appinfo.OS == "Darwin") {
