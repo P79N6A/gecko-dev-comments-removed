@@ -788,8 +788,8 @@ function DownloadsPlacesView(aRichListBox, aActive = true) {
   
   
   this._initiallySelectedElement = null;
-  let downloadsData = DownloadsCommon.getData(window.opener || window);
-  downloadsData.addView(this);
+  this._downloadsData = DownloadsCommon.getData(window.opener || window);
+  this._downloadsData.addView(this);
 
   
   
@@ -798,7 +798,7 @@ function DownloadsPlacesView(aRichListBox, aActive = true) {
   
   window.addEventListener("unload", function() {
     window.controllers.removeController(this);
-    downloadsData.removeView(this);
+    this._downloadsData.removeView(this);
     this.result = null;
   }.bind(this), true);
   
@@ -1448,11 +1448,7 @@ DownloadsPlacesView.prototype = {
         this._downloadURLFromClipboard();
         break;
       case "downloadsCmd_clearDownloads":
-        if (PrivateBrowsingUtils.isWindowPrivate(window)) {
-          Services.downloads.cleanUpPrivate();
-        } else {
-          Services.downloads.cleanUp();
-        }
+        this._downloadsData.removeFinished();
         if (this.result) {
           Cc["@mozilla.org/browser/download-history;1"]
             .getService(Ci.nsIDownloadHistory)
