@@ -45,8 +45,11 @@ const EVENTS = {
   BREAKPOINT_REMOVED: "Debugger:BreakpointRemoved",
 
   
-  BREAKPOINT_SHOWN: "Debugger:BreakpointShown",
-  BREAKPOINT_HIDDEN: "Debugger:BreakpointHidden",
+  
+  BREAKPOINT_SHOWN_IN_EDITOR: "Debugger:BreakpointShownInEditor",
+  BREAKPOINT_SHOWN_IN_PANE: "Debugger:BreakpointShownInPane",
+  BREAKPOINT_HIDDEN_IN_EDITOR: "Debugger:BreakpointHiddenInEditor",
+  BREAKPOINT_HIDDEN_IN_PANE: "Debugger:BreakpointHiddenInPane",
 
   
   CONDITIONAL_BREAKPOINT_POPUP_SHOWING: "Debugger:ConditionalBreakpointPopupShowing",
@@ -67,6 +70,9 @@ const EVENTS = {
   
   GLOBAL_SEARCH_MATCH_FOUND: "Debugger:GlobalSearch:MatchFound",
   GLOBAL_SEARCH_MATCH_NOT_FOUND: "Debugger:GlobalSearch:MatchNotFound",
+
+  
+  AFTER_FRAMES_REFILLED: "Debugger:AfterFramesRefilled",
 
   
   AFTER_FRAMES_CLEARED: "Debugger:AfterFramesCleared",
@@ -90,7 +96,6 @@ const FRAME_TYPE = {
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/devtools/SimpleListWidget.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
@@ -104,6 +109,9 @@ const Editor = require("devtools/sourceeditor/editor");
 const DebuggerEditor = require("devtools/sourceeditor/debugger.js");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const FastListWidget = require("devtools/shared/widgets/FastListWidget");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Parser",
   "resource:///modules/devtools/Parser.jsm");
@@ -147,13 +155,14 @@ let DebuggerController = {
 
 
 
-  startupDebugger: function() {
+  startupDebugger: Task.async(function*() {
     if (this._startup) {
-      return this._startup;
+      return;
     }
 
-    return this._startup = DebuggerView.initialize();
-  },
+    yield DebuggerView.initialize();
+    this._startup = true;
+  }),
 
   
 
@@ -161,20 +170,20 @@ let DebuggerController = {
 
 
 
-  shutdownDebugger: function() {
+  shutdownDebugger: Task.async(function*() {
     if (this._shutdown) {
-      return this._shutdown;
+      return;
     }
 
-    return this._shutdown = DebuggerView.destroy().then(() => {
-      DebuggerView.destroy();
-      this.SourceScripts.disconnect();
-      this.StackFrames.disconnect();
-      this.ThreadState.disconnect();
-      this.Tracer.disconnect();
-      this.disconnect();
-    });
-  },
+    yield DebuggerView.destroy();
+    this.SourceScripts.disconnect();
+    this.StackFrames.disconnect();
+    this.ThreadState.disconnect();
+    this.Tracer.disconnect();
+    this.disconnect();
+
+    this._shutdown = true;
+  }),
 
   
 
@@ -183,13 +192,10 @@ let DebuggerController = {
 
 
 
-  connect: function() {
-    if (this._connection) {
-      return this._connection;
+  connect: Task.async(function*() {
+    if (this._connected) {
+      return;
     }
-
-    let startedDebugging = promise.defer();
-    this._connection = startedDebugging.promise;
 
     let target = this._target;
     let { client, form: { chromeDebugger, traceActor, addonActor } } = target;
@@ -199,23 +205,17 @@ let DebuggerController = {
     this.client = client;
 
     if (addonActor) {
-      this._startAddonDebugging(addonActor, startedDebugging.resolve);
+      yield this._startAddonDebugging(addonActor);
     } else if (target.chrome) {
-      this._startChromeDebugging(chromeDebugger, startedDebugging.resolve);
+      yield this._startChromeDebugging(chromeDebugger);
     } else {
-      this._startDebuggingTab(startedDebugging.resolve);
-      const startedTracing = promise.defer();
+      yield this._startDebuggingTab();
+
       if (Prefs.tracerEnabled && traceActor) {
-        this._startTracingTab(traceActor, startedTracing.resolve);
-      } else {
-        startedTracing.resolve();
+        yield this._startTracingTab(traceActor);
       }
-
-      return promise.all([startedDebugging.promise, startedTracing.promise]);
     }
-
-    return startedDebugging.promise;
-  },
+  }),
 
   
 
@@ -226,7 +226,7 @@ let DebuggerController = {
       return;
     }
 
-    this._connection = null;
+    this._connected = false;
     this.client = null;
     this.activeThread = null;
   },
@@ -289,27 +289,30 @@ let DebuggerController = {
 
 
 
-  _startDebuggingTab: function(aCallback) {
-    this._target.activeTab.attachThread({
+  _startDebuggingTab: function() {
+    let deferred = promise.defer();
+    let threadOptions = {
       useSourceMaps: Prefs.sourceMapsEnabled
-    }, (aResponse, aThreadClient) => {
+    };
+
+    this._target.activeTab.attachThread(threadOptions, (aResponse, aThreadClient) => {
       if (!aThreadClient) {
-        Cu.reportError("Couldn't attach to thread: " + aResponse.error);
+        deferred.reject(new Error("Couldn't attach to thread: " + aResponse.error));
         return;
       }
       this.activeThread = aThreadClient;
-
       this.ThreadState.connect();
       this.StackFrames.connect();
       this.SourceScripts.connect();
+
       if (aThreadClient.paused) {
         aThreadClient.resume(this._ensureResumptionOrder);
       }
 
-      if (aCallback) {
-        aCallback();
-      }
+      deferred.resolve();
     });
+
+    return deferred.promise;
   },
 
   
@@ -320,10 +323,14 @@ let DebuggerController = {
 
 
 
-  _startAddonDebugging: function(aAddonActor, aCallback) {
-    this.client.attachAddon(aAddonActor, (aResponse) => {
-      return this._startChromeDebugging(aResponse.threadActor, aCallback);
+  _startAddonDebugging: function(aAddonActor) {
+    let deferred = promise.defer();
+
+    this.client.attachAddon(aAddonActor, aResponse => {
+      this._startChromeDebugging(aResponse.threadActor).then(deferred.resolve);
     });
+
+    return deferred.promise;
   },
 
   
@@ -334,25 +341,30 @@ let DebuggerController = {
 
 
 
-  _startChromeDebugging: function(aChromeDebugger, aCallback) {
+  _startChromeDebugging: function(aChromeDebugger) {
+    let deferred = promise.defer();
+    let threadOptions = {
+      useSourceMaps: Prefs.sourceMapsEnabled
+    };
+
     this.client.attachThread(aChromeDebugger, (aResponse, aThreadClient) => {
       if (!aThreadClient) {
-        Cu.reportError("Couldn't attach to thread: " + aResponse.error);
+        deferred.reject(new Error("Couldn't attach to thread: " + aResponse.error));
         return;
       }
       this.activeThread = aThreadClient;
-
       this.ThreadState.connect();
       this.StackFrames.connect();
       this.SourceScripts.connect();
+
       if (aThreadClient.paused) {
         aThreadClient.resume(this._ensureResumptionOrder);
       }
 
-      if (aCallback) {
-        aCallback();
-      }
-    }, { useSourceMaps: Prefs.sourceMapsEnabled });
+      deferred.resolve();
+    }, threadOptions);
+
+    return deferred.promise;
   },
 
   
@@ -363,21 +375,21 @@ let DebuggerController = {
 
 
 
-  _startTracingTab: function(aTraceActor, aCallback) {
+  _startTracingTab: function(aTraceActor) {
+    let deferred = promise.defer();
+
     this.client.attachTracer(aTraceActor, (response, traceClient) => {
       if (!traceClient) {
-        DevToolsUtils.reportException("DebuggerController._startTracingTab",
-                                      new Error("Failed to attach to tracing actor."));
+        deferred.reject(new Error("Failed to attach to tracing actor."));
         return;
       }
-
       this.traceClient = traceClient;
       this.Tracer.connect();
 
-      if (aCallback) {
-        aCallback();
-      }
+      deferred.resolve();
     });
+
+    return deferred.promise;
   },
 
   
@@ -405,9 +417,9 @@ let DebuggerController = {
     });
   },
 
-  _startup: null,
-  _shutdown: null,
-  _connection: null,
+  _startup: false,
+  _shutdown: false,
+  _connected: false,
   client: null,
   activeThread: null
 };
@@ -462,13 +474,6 @@ ThreadState.prototype = {
 
 
   _update: function(aEvent) {
-    
-    
-    
-    if (aEvent == "interrupted") {
-      return;
-    }
-
     DebuggerView.Toolbar.toggleResumeButtonState(this.activeThread.state);
 
     if (gTarget && (aEvent == "paused" || aEvent == "resumed")) {
@@ -575,11 +580,6 @@ StackFrames.prototype = {
           this._currentReturnedValue = aPacket.why.frameFinished.return;
         }
         break;
-      
-      
-      
-      case "interrupted":
-        return;
     }
 
     this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
@@ -599,79 +599,21 @@ StackFrames.prototype = {
   
 
 
-  _onFrames: function() {
+  _onFrames: Task.async(function*() {
     
     if (!this.activeThread || !this.activeThread.cachedFrames.length) {
       return;
     }
-
-    let waitForNextPause = false;
-    let breakLocation = this._currentBreakpointLocation;
-    let watchExpressions = this._currentWatchExpressions;
-    let client = DebuggerController.activeThread.client;
-
-    
-    
-    
-    
-    if (!client.mainRoot.traits.conditionalBreakpoints) {
-      
-      
-      
-      if (breakLocation) {
-        
-        let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
-        if (breakpointPromise) {
-          breakpointPromise.then(({ conditionalExpression: e }) => { if (e) {
-            
-            
-            
-            this.evaluate(e, { depth: 0, meta: FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL });
-            waitForNextPause = true;
-          }});
-        }
-      }
-      
-      
-      if (waitForNextPause) {
-        return;
-      }
-      if (this._currentFrameDescription == FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL) {
-        this._currentFrameDescription = FRAME_TYPE.NORMAL;
-        
-        
-        if (VariablesView.isFalsy({ value: this._currentEvaluation.return })) {
-          this.activeThread.resume(DebuggerController._ensureResumptionOrder);
-          return;
-        }
-      }
-    }
-
-    
-    
-    
-    if (watchExpressions) {
-      
-      
-      this.evaluate(watchExpressions, { depth: 0, meta: FRAME_TYPE.WATCH_EXPRESSIONS_EVAL });
-      waitForNextPause = true;
-    }
-    
-    
-    if (waitForNextPause) {
+    if (this._currentFrameDescription != FRAME_TYPE.NORMAL &&
+        this._currentFrameDescription != FRAME_TYPE.PUBLIC_CLIENT_EVAL) {
       return;
     }
-    if (this._currentFrameDescription == FRAME_TYPE.WATCH_EXPRESSIONS_EVAL) {
-      this._currentFrameDescription = FRAME_TYPE.NORMAL;
-      
-      
-      
-      if (this._currentEvaluation.throw) {
-        DebuggerView.WatchExpressions.removeAt(0);
-        DebuggerController.StackFrames.syncWatchExpressions();
-        return;
-      }
-    }
+
+    
+    yield this._handleConditionalBreakpoint();
+
+    
+    yield this._handleWatchExpressions();
 
     
     DebuggerView.showInstrumentsPane();
@@ -681,7 +623,7 @@ StackFrames.prototype = {
     if (this._currentFrameDescription != FRAME_TYPE.NORMAL) {
       this._currentFrameDescription = FRAME_TYPE.NORMAL;
     }
-  },
+  }),
 
   
 
@@ -690,7 +632,6 @@ StackFrames.prototype = {
   _refillFrames: function() {
     
     DebuggerView.StackFrames.empty();
-
     for (let frame of this.activeThread.cachedFrames) {
       let { depth, where: { url, line }, source } = frame;
       let isBlackBoxed = source ? this.activeThread.source(source).isBlackBoxed : false;
@@ -701,6 +642,8 @@ StackFrames.prototype = {
 
     DebuggerView.StackFrames.selectedDepth = Math.max(this.currentFrameDepth, 0);
     DebuggerView.StackFrames.dirty = this.activeThread.moreFrames;
+
+    window.emit(EVENTS.AFTER_FRAMES_REFILLED);
   },
 
   
@@ -743,14 +686,16 @@ StackFrames.prototype = {
 
 
   _onPrettyPrintChange: function() {
+    if (this.activeThread.state != "paused") {
+      return;
+    }
     
     
     const source = DebuggerView.Sources.selectedValue;
-    if (this.activeThread.state == "paused") {
-      this.activeThread.fillFrames(
-         CALL_STACK_PAGE_SIZE,
-         () => DebuggerView.Sources.selectedValue = source);
-    }
+
+    this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE, () => {
+      DebuggerView.Sources.selectedValue = source;
+    });
   },
 
   
@@ -946,6 +891,87 @@ StackFrames.prototype = {
 
 
 
+
+
+
+
+
+
+  _handleConditionalBreakpoint: Task.async(function*() {
+    if (gClient.mainRoot.traits.conditionalBreakpoints) {
+      return;
+    }
+    let breakLocation = this._currentBreakpointLocation;
+    if (!breakLocation) {
+      return;
+    }
+    let breakpointPromise = DebuggerController.Breakpoints._getAdded(breakLocation);
+    if (!breakpointPromise) {
+      return;
+    }
+    let breakpointClient = yield breakpointPromise;
+    let conditionalExpression = breakpointClient.conditionalExpression;
+    if (!conditionalExpression) {
+      return;
+    }
+
+    
+    
+    
+    let evaluationOptions = { depth: 0, meta: FRAME_TYPE.CONDITIONAL_BREAKPOINT_EVAL };
+    yield this.evaluate(conditionalExpression, evaluationOptions);
+    this._currentFrameDescription = FRAME_TYPE.NORMAL;
+
+    
+    
+    if (VariablesView.isFalsy({ value: this._currentEvaluation.return })) {
+      this.activeThread.resume(DebuggerController._ensureResumptionOrder);
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+  _handleWatchExpressions: Task.async(function*() {
+    
+    if (!this.activeThread || !this.activeThread.cachedFrames.length) {
+      return;
+    }
+
+    let watchExpressions = this._currentWatchExpressions;
+    if (!watchExpressions) {
+      return;
+    }
+
+    
+    
+    let evaluationOptions = { depth: 0, meta: FRAME_TYPE.WATCH_EXPRESSIONS_EVAL };
+    yield this.evaluate(watchExpressions, evaluationOptions);
+    this._currentFrameDescription = FRAME_TYPE.NORMAL;
+
+    
+    
+    
+    if (this._currentEvaluation.throw) {
+      DebuggerView.WatchExpressions.removeAt(0);
+      yield DebuggerController.StackFrames.syncWatchExpressions();
+    }
+  }),
+
+  
+
+
+
+
+
+
+
   _fetchWatchExpressions: function(aScope, aExp) {
     
     if (aScope._fetched) {
@@ -998,30 +1024,29 @@ StackFrames.prototype = {
       }
     });
 
-    if (sanitizedExpressions.length) {
-      this._syncedWatchExpressions =
-        this._currentWatchExpressions =
-          "[" +
-            sanitizedExpressions.map(aString =>
-              "eval(\"" +
-                "try {" +
-                  
-                  
-                  
-                  aString.replace(/"/g, "\\$&") + "\" + " + "'\\n'" + " + \"" +
-                "} catch (e) {" +
-                  "e.name + ': ' + e.message;" + 
-                "}" +
-              "\")"
-            ).join(",") +
-          "]";
+    if (!sanitizedExpressions.length) {
+      this._currentWatchExpressions = null;
+      this._syncedWatchExpressions = null;
     } else {
       this._syncedWatchExpressions =
-        this._currentWatchExpressions = null;
+      this._currentWatchExpressions = "[" +
+        sanitizedExpressions.map(aString =>
+          "eval(\"" +
+            "try {" +
+              
+              
+              
+              aString.replace(/"/g, "\\$&") + "\" + " + "'\\n'" + " + \"" +
+            "} catch (e) {" +
+              "e.name + ': ' + e.message;" + 
+            "}" +
+          "\")"
+        ).join(",") +
+      "]";
     }
 
     this.currentFrameDepth = -1;
-    this._onFrames();
+    return this._onFrames();
   }
 };
 
@@ -1322,13 +1347,12 @@ SourceScripts.prototype = {
     }
 
     
-    this.activeThread.source(aSource)
-        .source(({ error, message, source: text, contentType }) => {
+    this.activeThread.source(aSource).source(({ error, source: text, contentType }) => {
       if (aOnTimeout) {
         window.clearTimeout(fetchTimeout);
       }
       if (error) {
-        deferred.reject([aSource, message || error]);
+        deferred.reject([aSource, error]);
       } else {
         deferred.resolve([aSource, text, contentType]);
       }
@@ -1441,12 +1465,14 @@ Tracer.prototype = {
 
 
   startTracing: function(aCallback = () => {}) {
-    DebuggerView.Tracer.selectTab();
     if (this.tracing) {
       return;
     }
-    this._trace = "dbg.trace" + Math.random();
-    this.traceClient.startTrace([
+
+    DebuggerView.Tracer.selectTab();
+
+    let id = this._trace = "dbg.trace" + Math.random();
+    let fields = [
       "name",
       "location",
       "parameterNames",
@@ -1455,7 +1481,9 @@ Tracer.prototype = {
       "return",
       "throw",
       "yield"
-    ], this._trace, (aResponse) => {
+    ];
+
+    this.traceClient.startTrace(fields, id, aResponse => {
       const { error } = aResponse;
       if (error) {
         DevToolsUtils.reportException("Tracer.prototype.startTracing", error);
@@ -1487,11 +1515,11 @@ Tracer.prototype = {
   onTraces: function (aEvent, { traces }) {
     const tracesLength = traces.length;
     let tracesToShow;
+
     if (tracesLength > TracerView.MAX_TRACES) {
-      tracesToShow = traces.slice(tracesLength - TracerView.MAX_TRACES,
-                                  tracesLength);
-      DebuggerView.Tracer.empty();
+      tracesToShow = traces.slice(tracesLength - TracerView.MAX_TRACES, tracesLength);
       this._stack.splice(0, this._stack.length);
+      DebuggerView.Tracer.empty();
     } else {
       tracesToShow = traces;
     }
@@ -1614,7 +1642,6 @@ Tracer.prototype = {
 
 
 function EventListeners() {
-  this._onEventListeners = this._onEventListeners.bind(this);
 }
 
 EventListeners.prototype = {
@@ -1645,47 +1672,13 @@ EventListeners.prototype = {
 
 
   scheduleEventListenersFetch: function() {
-    let getListeners = aCallback => gThreadClient.eventListeners(aResponse => {
-      if (aResponse.error) {
-        let msg = "Error getting event listeners: " + aResponse.message;
-        DevToolsUtils.reportException("scheduleEventListenersFetch", msg);
-        return;
-      }
-
-      let outstandingListenersDefinitionSite = aResponse.listeners.map(aListener => {
-        const deferred = promise.defer();
-
-        gThreadClient.pauseGrip(aListener.function).getDefinitionSite(aResponse => {
-          if (aResponse.error) {
-            const msg = "Error getting function definition site: " + aResponse.message;
-            DevToolsUtils.reportException("scheduleEventListenersFetch", msg);
-          } else {
-            aListener.function.url = aResponse.url;
-          }
-
-          deferred.resolve(aListener);
-        });
-
-        return deferred.promise;
-      });
-
-      promise.all(outstandingListenersDefinitionSite).then(aListeners => {
-        this._onEventListeners(aListeners);
-
-        
-        
-        window.emit(EVENTS.EVENT_LISTENERS_FETCHED);
-        aCallback && aCallback();
-      });
-    });
-
     
     
     setNamedTimeout("event-listeners-fetch", FETCH_EVENT_LISTENERS_DELAY, () => {
       if (gThreadClient.state != "paused") {
-        gThreadClient.interrupt(() => getListeners(() => gThreadClient.resume()));
+        gThreadClient.interrupt(() => this._getListeners(() => gThreadClient.resume()));
       } else {
-        getListeners();
+        this._getListeners();
       }
     });
   },
@@ -1693,14 +1686,54 @@ EventListeners.prototype = {
   
 
 
-  _onEventListeners: function(aListeners) {
-    
-    for (let listener of aListeners) {
-      DebuggerView.EventListeners.addListener(listener, { staged: true });
-    }
 
-    
-    DebuggerView.EventListeners.commit();
+
+
+
+  _getListeners: function(aCallback) {
+    gThreadClient.eventListeners(Task.async(function*(aResponse) {
+      if (aResponse.error) {
+        throw "Error getting event listeners: " + aResponse.message;
+      }
+
+      
+      for (let listener of aResponse.listeners) {
+        let definitionSite = yield this._getDefinitionSite(listener.function);
+        listener.function.url = definitionSite;
+        DebuggerView.EventListeners.addListener(listener, { staged: true });
+      }
+
+      
+      DebuggerView.EventListeners.commit();
+
+      
+      
+      window.emit(EVENTS.EVENT_LISTENERS_FETCHED);
+      aCallback && aCallback();
+    }.bind(this)));
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getDefinitionSite: function(aFunction) {
+    let deferred = promise.defer();
+
+    gThreadClient.pauseGrip(aFunction).getDefinitionSite(aResponse => {
+      if (aResponse.error) {
+        deferred.reject("Error getting function definition site: " + aResponse.message);
+      } else {
+        deferred.resolve(aResponse.url);
+      }
+    });
+
+    return deferred.promise;
   }
 };
 
@@ -1756,9 +1789,10 @@ Breakpoints.prototype = {
 
 
 
-  _onEditorBreakpointAdd: function(_, aLine) {
+  _onEditorBreakpointAdd: Task.async(function*(_, aLine) {
     let url = DebuggerView.Sources.selectedValue;
     let location = { url: url, line: aLine + 1 };
+    let breakpointClient = yield this.addBreakpoint(location, { noEditorUpdate: true });
 
     
     
@@ -1766,16 +1800,16 @@ Breakpoints.prototype = {
       
       
       
-      if (aBreakpointClient.requestedLocation) {
+      if (breakpointClient.requestedLocation) {
         DebuggerView.editor.moveBreakpoint(
-          aBreakpointClient.requestedLocation.line - 1,
-          aBreakpointClient.location.line - 1
+          breakpointClient.requestedLocation.line - 1,
+          breakpointClient.location.line - 1
         );
       }
       
-      window.emit(EVENTS.BREAKPOINT_SHOWN);
+      window.emit(EVENTS.BREAKPOINT_SHOWN_IN_EDITOR);
     });
-  },
+  }),
 
   
 
@@ -1783,17 +1817,33 @@ Breakpoints.prototype = {
 
 
 
-  _onEditorBreakpointRemove: function(_, aLine) {
+  _onEditorBreakpointRemove: Task.async(function*(_, aLine) {
     let url = DebuggerView.Sources.selectedValue;
     let location = { url: url, line: aLine + 1 };
+    yield this.removeBreakpoint(location, { noEditorUpdate: true });
 
     
-    
-    this.removeBreakpoint(location, { noEditorUpdate: true }).then(() => {
+    window.emit(EVENTS.BREAKPOINT_HIDDEN_IN_EDITOR);
+  }),
+
+  
+
+
+
+
+
+  updateEditorBreakpoints: Task.async(function*() {
+    for (let breakpointPromise of this._addedOrDisabled) {
+      let breakpointClient = yield breakpointPromise;
+      let currentSourceUrl = DebuggerView.Sources.selectedValue;
+      let breakpointUrl = breakpointClient.location.url;
+
       
-      window.emit(EVENTS.BREAKPOINT_HIDDEN);
-    });
-  },
+      if (currentSourceUrl == breakpointUrl) {
+        this._showBreakpoint(breakpointClient, { noPaneUpdate: true });
+      }
+    }
+  }),
 
   
 
@@ -1801,39 +1851,18 @@ Breakpoints.prototype = {
 
 
 
-  updateEditorBreakpoints: function() {
+  updatePaneBreakpoints: Task.async(function*() {
     for (let breakpointPromise of this._addedOrDisabled) {
-      breakpointPromise.then(aBreakpointClient => {
-        let currentSourceUrl = DebuggerView.Sources.selectedValue;
-        let breakpointUrl = aBreakpointClient.location.url;
+      let breakpointClient = yield breakpointPromise;
+      let container = DebuggerView.Sources;
+      let breakpointUrl = breakpointClient.location.url;
 
-        
-        if (currentSourceUrl == breakpointUrl) {
-          this._showBreakpoint(aBreakpointClient, { noPaneUpdate: true });
-        }
-      });
+      
+      if (container.containsValue(breakpointUrl)) {
+        this._showBreakpoint(breakpointClient, { noEditorUpdate: true });
+      }
     }
-  },
-
-  
-
-
-
-
-
-  updatePaneBreakpoints: function() {
-    for (let breakpointPromise of this._addedOrDisabled) {
-      breakpointPromise.then(aBreakpointClient => {
-        let container = DebuggerView.Sources;
-        let breakpointUrl = aBreakpointClient.location.url;
-
-        
-        if (container.containsValue(breakpointUrl)) {
-          this._showBreakpoint(aBreakpointClient, { noEditorUpdate: true });
-        }
-      });
-    }
-  },
+  }),
 
   
 
@@ -2048,22 +2077,19 @@ Breakpoints.prototype = {
 
 
 
-  updateCondition: function(aLocation, aCondition) {
+  updateCondition: Task.async(function*(aLocation, aCondition) {
     let addedPromise = this._getAdded(aLocation);
     if (!addedPromise) {
-      return promise.reject(new Error('breakpoint does not exist ' +
-                                      'in specified location'));
+      throw new Error("Breakpoint does not exist at the specified location");
     }
-
-    var promise = addedPromise.then(aBreakpointClient => {
-      return aBreakpointClient.setCondition(gThreadClient, aCondition);
-    });
+    let breakpointClient = yield addedPromise;
+    let promise = breakpointClient.setCondition(gThreadClient, aCondition);
 
     
     
     this._added.set(this.getIdentifier(aLocation), promise);
     return promise;
-  },
+  }),
 
   
 

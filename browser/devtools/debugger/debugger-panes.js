@@ -3,11 +3,7 @@
 
 
 
-
 "use strict";
-
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 
 const SAMPLE_SIZE = 50; 
@@ -41,8 +37,6 @@ function SourcesView() {
   this._onConditionalPopupShown = this._onConditionalPopupShown.bind(this);
   this._onConditionalPopupHiding = this._onConditionalPopupHiding.bind(this);
   this._onConditionalTextboxKeyPress = this._onConditionalTextboxKeyPress.bind(this);
-
-  this.updateToolbarButtonsState = this.updateToolbarButtonsState.bind(this);
 }
 
 SourcesView.prototype = Heritage.extend(WidgetMethods, {
@@ -55,15 +49,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     this.widget = new SideMenuWidget(document.getElementById("sources"), {
       showArrows: true
     });
-
-    
-    this.widget.groupSortPredicate = function(a, b) {
-      if ((a in KNOWN_SOURCE_GROUPS) == (b in KNOWN_SOURCE_GROUPS)) {
-        return a.localeCompare(b);
-      }
-
-      return (a in KNOWN_SOURCE_GROUPS) ? 1 : -1;
-    };
 
     this.emptyText = L10N.getStr("noSourcesText");
     this._blackBoxCheckboxTooltip = L10N.getStr("blackBoxCheckboxTooltip");
@@ -98,6 +83,14 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       return +(aFirst.attachment.label.toLowerCase() >
                aSecond.attachment.label.toLowerCase());
     });
+
+    
+    this.widget.groupSortPredicate = function(a, b) {
+      if ((a in KNOWN_SOURCE_GROUPS) == (b in KNOWN_SOURCE_GROUPS)) {
+        return a.localeCompare(b);
+      }
+      return (a in KNOWN_SOURCE_GROUPS) ? 1 : -1;
+    };
   },
 
   
@@ -216,6 +209,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     if (aOptions.openPopup || !aOptions.noEditorUpdate) {
       this.highlightBreakpoint(location, aOptions);
     }
+
+    window.emit(EVENTS.BREAKPOINT_SHOWN_IN_PANE);
   },
 
   
@@ -239,6 +234,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     
     sourceItem.remove(breakpointItem);
+
+    window.emit(EVENTS.BREAKPOINT_HIDDEN_IN_PANE);
   },
 
   
@@ -429,8 +426,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   unhighlightBreakpoint: function() {
-    this._unselectBreakpoint();
     this._hideConditionalPopup();
+    this._unselectBreakpoint();
   },
 
   
@@ -459,7 +456,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  togglePrettyPrint: function() {
+  togglePrettyPrint: Task.async(function*() {
     if (this._prettyPrintButton.hasAttribute("disabled")) {
       return;
     }
@@ -486,21 +483,25 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       this._prettyPrintButton.removeAttribute("checked");
     }
 
-    DebuggerController.SourceScripts.togglePrettyPrint(source)
-      .then(resetEditor, printError)
-      .then(DebuggerView.showEditor)
-      .then(this.updateToolbarButtonsState);
-  },
+    try {
+      let resolution = yield DebuggerController.SourceScripts.togglePrettyPrint(source);
+      resetEditor(resolution);
+    } catch (rejection) {
+      printError(rejection);
+    }
+
+    DebuggerView.showEditor();
+    this.updateToolbarButtonsState();
+  }),
 
   
 
 
-  toggleBlackBoxing: function() {
+  toggleBlackBoxing: Task.async(function*() {
     const { source } = this.selectedItem.attachment;
     const sourceClient = gThreadClient.source(source);
     const shouldBlackBox = !sourceClient.isBlackBoxed;
 
-    
     
     
     
@@ -514,10 +515,14 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
       this._blackBoxButton.removeAttribute("checked");
     }
 
-    DebuggerController.SourceScripts.setBlackBoxing(source, shouldBlackBox)
-      .then(this.updateToolbarButtonsState,
-            this.updateToolbarButtonsState);
-  },
+    try {
+      yield DebuggerController.SourceScripts.setBlackBoxing(source, shouldBlackBox);
+    } catch (e) {
+      
+    }
+
+    this.updateToolbarButtonsState();
+  }),
 
   
 
@@ -806,7 +811,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  _onSourceSelect: function({ detail: sourceItem }) {
+  _onSourceSelect: Task.async(function*({ detail: sourceItem }) {
     if (!sourceItem) {
       return;
     }
@@ -816,12 +821,12 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     
     DebuggerView.setEditorLocation(sourceItem.value);
 
+    
     if (Prefs.autoPrettyPrint && !sourceClient.isPrettyPrinted) {
-      DebuggerController.SourceScripts.getText(source).then(([, aText]) => {
-        if (SourceUtils.isMinified(sourceClient, aText)) {
-          this.togglePrettyPrint();
-        }
-      }).then(null, e => DevToolsUtils.reportException("_onSourceSelect", e));
+      let isMinified = yield SourceUtils.isMinified(sourceClient);
+      if (isMinified) {
+        this.togglePrettyPrint();
+      }
     }
 
     
@@ -830,18 +835,22 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     DebuggerView.maybeShowBlackBoxMessage();
     this.updateToolbarButtonsState();
-  },
+  }),
 
   
 
 
-  _onStopBlackBoxing: function() {
+  _onStopBlackBoxing: Task.async(function*() {
     const { source } = this.selectedItem.attachment;
 
-    DebuggerController.SourceScripts.setBlackBoxing(source, false)
-      .then(this.updateToolbarButtonsState,
-            this.updateToolbarButtonsState);
-  },
+    try {
+      yield DebuggerController.SourceScripts.setBlackBoxing(source, false);
+    } catch (e) {
+      
+    }
+
+    this.updateToolbarButtonsState();
+  }),
 
   
 
@@ -913,6 +922,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
   _onConditionalPopupHiding: Task.async(function*() {
     this._conditionalPopupVisible = false; 
+
     let breakpointItem = this._selectedBreakpointItem;
     let attachment = breakpointItem.attachment;
 
@@ -920,11 +930,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     
     let breakpointPromise = DebuggerController.Breakpoints._getAdded(attachment);
     if (breakpointPromise) {
-      let breakpointClient = yield breakpointPromise;
-      yield DebuggerController.Breakpoints.updateCondition(
-        breakpointClient.location,
-        this._cbTextbox.value
-      );
+      let { location } = yield breakpointPromise;
+      let condition = this._cbTextbox.value;
+      yield DebuggerController.Breakpoints.updateCondition(location, condition);
     }
 
     window.emit(EVENTS.CONDITIONAL_BREAKPOINT_POPUP_HIDING);
@@ -1124,7 +1132,8 @@ function TracerView() {
     DevToolsUtils.makeInfallible(this._onSelect.bind(this));
   this._onMouseOver =
     DevToolsUtils.makeInfallible(this._onMouseOver.bind(this));
-  this._onSearch = DevToolsUtils.makeInfallible(this._onSearch.bind(this));
+  this._onSearch =
+    DevToolsUtils.makeInfallible(this._onSearch.bind(this));
 }
 
 TracerView.MAX_TRACES = 200;
@@ -1257,6 +1266,7 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
   _populateVariable: function(aName, aParent, aValue) {
     let item = aParent.addItem(aName, { value: aValue });
+
     if (aValue) {
       let wrappedValue = new DebuggerController.Tracer.WrappedObject(aValue);
       DebuggerView.Variables.controller.populate(item, wrappedValue);
@@ -1515,13 +1525,12 @@ let SourceUtils = {
 
 
 
-
-
-  isMinified: function(sourceClient, aText){
+  isMinified: Task.async(function*(sourceClient) {
     if (this._minifiedCache.has(sourceClient)) {
       return this._minifiedCache.get(sourceClient);
     }
 
+    let [, text] = yield DebuggerController.SourceScripts.getText(sourceClient);
     let isMinified;
     let lineEndIndex = 0;
     let lineStartIndex = 0;
@@ -1530,14 +1539,14 @@ let SourceUtils = {
     let overCharLimit = false;
 
     
-    aText = aText.replace(/\/\*[\S\s]*?\*\/|\/\/(.+|\n)/g, "");
+    text = text.replace(/\/\*[\S\s]*?\*\/|\/\/(.+|\n)/g, "");
 
     while (lines++ < SAMPLE_SIZE) {
-      lineEndIndex = aText.indexOf("\n", lineStartIndex);
+      lineEndIndex = text.indexOf("\n", lineStartIndex);
       if (lineEndIndex == -1) {
          break;
       }
-      if (/^\s+/.test(aText.slice(lineStartIndex, lineEndIndex))) {
+      if (/^\s+/.test(text.slice(lineStartIndex, lineEndIndex))) {
         indentCount++;
       }
       
@@ -1547,12 +1556,13 @@ let SourceUtils = {
       }
       lineStartIndex = lineEndIndex + 1;
     }
-    isMinified = ((indentCount / lines ) * 100) < INDENT_COUNT_THRESHOLD ||
-                 overCharLimit;
+
+    isMinified =
+      ((indentCount / lines) * 100) < INDENT_COUNT_THRESHOLD || overCharLimit;
 
     this._minifiedCache.set(sourceClient, isMinified);
     return isMinified;
-  },
+  }),
 
   
 
@@ -1590,6 +1600,7 @@ let SourceUtils = {
     if (!sourceLabel) {
       sourceLabel = this.trimUrl(aUrl);
     }
+
     let unicodeLabel = NetworkHelper.convertToUnicode(unescape(sourceLabel));
     this._labelsCache.set(aUrl, unicodeLabel);
     return unicodeLabel;
@@ -2328,12 +2339,11 @@ WatchExpressionsView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onKeyPress: function(e) {
-    switch(e.keyCode) {
+    switch (e.keyCode) {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ESCAPE:
         e.stopPropagation();
         DebuggerView.editor.focus();
-        return;
     }
   }
 });
@@ -2404,6 +2414,7 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
     let eventItem = this.getItemForPredicate(aItem =>
       aItem.attachment.url == url &&
       aItem.attachment.type == type);
+
     if (eventItem) {
       let { selectors, view: { targets } } = eventItem.attachment;
       if (selectors.indexOf(selector) == -1) {
