@@ -14,6 +14,7 @@
 #include "ImageLayers.h"
 #include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/WidgetUtils.h"
+#include "mozilla/dom/ScreenOrientation.h"
 
 class gfxSharedImageSurface;
 
@@ -116,7 +117,9 @@ public:
 
 
   void BeginTransaction(const nsIntRect& aTargetBounds,
-                        ScreenRotation aRotation);
+                        ScreenRotation aRotation,
+                        const nsIntRect& aClientBounds,
+                        mozilla::dom::ScreenOrientation aOrientation);
 
   
 

@@ -1037,10 +1037,14 @@ LayerManagerOGL::Render()
   if (mIsRenderingToEGLSurface) {
     rect = nsIntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
+    rect = mRenderBounds;
     
-    
-    
-    mWidget->GetClientBounds(rect);
+    if (rect.width == 0 || rect.height == 0) {
+      
+      
+      
+      mWidget->GetClientBounds(rect);
+    }
   }
   WorldTransformRect(rect);
 
@@ -1263,6 +1267,12 @@ LayerManagerOGL::WorldTransformRect(nsIntRect& aRect)
   gfxRect grect(aRect.x, aRect.y, aRect.width, aRect.height);
   grect = mWorldMatrix.TransformBounds(grect);
   aRect.SetRect(grect.X(), grect.Y(), grect.Width(), grect.Height());
+}
+
+void
+LayerManagerOGL::UpdateRenderBounds(const nsIntRect& aRect)
+{
+  mRenderBounds = aRect;
 }
 
 void
