@@ -4,6 +4,7 @@
 
 
 #include "nsCookie.h"
+#include "nsUTF8ConverterService.h"
 #include <stdlib.h>
 
 
@@ -78,7 +79,13 @@ nsCookie::Create(const nsACString &aName,
                  bool              aIsHttpOnly)
 {
   
-  const uint32_t stringLength = aName.Length() + aValue.Length() +
+  
+  nsUTF8ConverterService converter;
+  nsAutoCString aUTF8Value;
+  converter.ConvertStringToUTF8(aValue, "UTF-8", false, true, 1, aUTF8Value);
+
+  
+  const uint32_t stringLength = aName.Length() + aUTF8Value.Length() +
                                 aHost.Length() + aPath.Length() + 4;
 
   
@@ -90,7 +97,7 @@ nsCookie::Create(const nsACString &aName,
   
   char *name, *value, *host, *path, *end;
   name = static_cast<char *>(place) + sizeof(nsCookie);
-  StrBlockCopy(aName, aValue, aHost, aPath,
+  StrBlockCopy(aName, aUTF8Value, aHost, aPath,
                name, value, host, path, end);
 
   
