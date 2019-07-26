@@ -31,10 +31,6 @@ extern "C" {
 #endif
   int __wrap_dladdr(void *addr, Dl_info *info);
 
-  sighandler_t __wrap_signal(int signum, sighandler_t handler);
-  int __wrap_sigaction(int signum, const struct sigaction *act,
-                       struct sigaction *oldact);
-
   struct dl_phdr_info {
     Elf::Addr dlpi_addr;
     const char *dlpi_name;
@@ -294,17 +290,19 @@ private:
 
 
 
-
-
 class SEGVHandler
 {
+public:
+  bool hasRegisteredHandler() {
+    return registeredHandler;
+  }
+
 protected:
   SEGVHandler();
   ~SEGVHandler();
 
 private:
-  friend sighandler_t __wrap_signal(int signum, sighandler_t handler);
-  friend int __wrap_sigaction(int signum, const struct sigaction *act,
+  static int __wrap_sigaction(int signum, const struct sigaction *act,
                               struct sigaction *oldact);
 
   
@@ -333,6 +331,8 @@ private:
 
 
   MappedPtr stackPtr;
+
+  bool registeredHandler;
 };
 
 

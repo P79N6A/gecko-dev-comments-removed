@@ -308,11 +308,6 @@ CustomElf::GetSymbolPtrInDeps(const char *symbol) const
       return const_cast<CustomElf *>(this);
     if (strcmp(symbol + 2, "moz_linker_stats") == 0)
       return FunctionPtr(&ElfLoader::stats);
-  } else if (symbol[0] == 's' && symbol[1] == 'i') {
-    if (strcmp(symbol + 2, "gnal") == 0)
-      return FunctionPtr(__wrap_signal);
-    if (strcmp(symbol + 2, "gaction") == 0)
-      return FunctionPtr(__wrap_sigaction);
   }
 
   void *sym;
@@ -430,8 +425,10 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
 
   
 
+
   const char *ondemand = getenv("MOZ_LINKER_ONDEMAND");
-  if (ondemand && !strncmp(ondemand, "0", 2 )) {
+  if (!ElfLoader::Singleton.hasRegisteredHandler() ||
+      (ondemand && !strncmp(ondemand, "0", 2 ))) {
     for (Addr off = 0; off < pt_load->p_filesz; off += PAGE_SIZE) {
       mappable->ensure(reinterpret_cast<char *>(mapped) + off);
     }

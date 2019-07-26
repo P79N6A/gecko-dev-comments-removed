@@ -16,10 +16,11 @@
 #include "Logging.h"
 
 #if defined(ANDROID)
+#include <sys/syscall.h>
+
 #include <android/api-level.h>
 #if __ANDROID_API__ < 8
 
-#include <sys/syscall.h>
 
 extern "C" {
 
@@ -674,26 +675,38 @@ class EnsureWritable
 {
 public:
   template <typename T>
-  EnsureWritable(T *&ptr)
+  EnsureWritable(T *ptr, size_t length_ = sizeof(T))
   {
-    prot = getProt((uintptr_t) &ptr);
-    if (prot == -1)
-      MOZ_CRASH();
-    
+    MOZ_ASSERT(length_ < PAGE_SIZE);
+    prot = -1;
+    page = MAP_FAILED;
 
-    page = (void*)((uintptr_t) &ptr & PAGE_MASK);
-    if (!(prot & PROT_WRITE))
-      mprotect(page, PAGE_SIZE, prot | PROT_WRITE);
+    uintptr_t firstPage = reinterpret_cast<uintptr_t>(ptr) & PAGE_MASK;
+    length = (reinterpret_cast<uintptr_t>(ptr) + length_ - firstPage
+              + PAGE_SIZE - 1) & PAGE_MASK;
+
+    uintptr_t end;
+
+    prot = getProt(firstPage, &end);
+    if (prot == -1 || (firstPage + length) > end)
+      MOZ_CRASH();
+
+    if (prot & PROT_WRITE)
+      return;
+
+    page = reinterpret_cast<void *>(firstPage);
+    mprotect(page, length, prot | PROT_WRITE);
   }
 
   ~EnsureWritable()
   {
-    if (!(prot & PROT_WRITE))
-      mprotect(page, PAGE_SIZE, prot);
+    if (page != MAP_FAILED) {
+      mprotect(page, length, prot);
+}
   }
 
 private:
-  int getProt(uintptr_t addr)
+  int getProt(uintptr_t addr, uintptr_t *end)
   {
     
 
@@ -718,6 +731,7 @@ private:
         result |= PROT_EXEC;
       else if (perms[2] != '-')
         return -1;
+      *end = endAddr;
       return result;
     }
     return -1;
@@ -725,6 +739,7 @@ private:
 
   int prot;
   void *page;
+  size_t length;
 };
 
 
@@ -756,7 +771,7 @@ ElfLoader::DebuggerHelper::Add(ElfLoader::link_map *map)
     firstAdded = map;
     
 
-    EnsureWritable w(dbg->r_map->l_prev);
+    EnsureWritable w(&dbg->r_map->l_prev);
     dbg->r_map->l_prev = map;
   } else
     dbg->r_map->l_prev = map;
@@ -780,7 +795,7 @@ ElfLoader::DebuggerHelper::Remove(ElfLoader::link_map *map)
     firstAdded = map->l_prev;
     
 
-    EnsureWritable w(map->l_next->l_prev);
+    EnsureWritable w(&map->l_next->l_prev);
     map->l_next->l_prev = map->l_prev;
   } else
     map->l_next->l_prev = map->l_prev;
@@ -788,8 +803,102 @@ ElfLoader::DebuggerHelper::Remove(ElfLoader::link_map *map)
   dbg->r_brk();
 }
 
-SEGVHandler::SEGVHandler()
+#if defined(ANDROID)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern "C" int
+sigaction(int signum, const struct sigaction *act,
+          struct sigaction *oldact);
+
+
+
+
+int
+sys_sigaction(int signum, const struct sigaction *act,
+              struct sigaction *oldact)
 {
+  return syscall(__NR_sigaction, signum, act, oldact);
+}
+
+
+
+template <typename T>
+static bool
+Divert(T func, T new_func)
+{
+  void *ptr = FunctionPtr(func);
+  uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+
+#if defined(__i386__)
+  
+  EnsureWritable w(ptr, 5);
+  *reinterpret_cast<unsigned char *>(addr) = 0xe9; 
+  *reinterpret_cast<intptr_t *>(addr + 1) =
+    reinterpret_cast<uintptr_t>(new_func) - addr - 5; 
+  return true;
+#elif defined(__arm__)
+  const unsigned char trampoline[] = {
+                            
+    0x46, 0x04,             
+    0x78, 0x47,             
+    0x46, 0x04,             
+                            
+    0x04, 0xf0, 0x1f, 0xe5, 
+                            
+  };
+  const unsigned char *start;
+  if (addr & 0x01) {
+    
+
+    addr--;
+    
+    if (addr & 0x02)
+      start = trampoline;
+    else
+      start = trampoline + 2;
+  } else {
+    
+    start = trampoline + 6;
+  }
+
+  size_t len = sizeof(trampoline) - (start - trampoline);
+  EnsureWritable w(reinterpret_cast<void *>(addr), len + sizeof(void *));
+  memcpy(reinterpret_cast<void *>(addr), start, len);
+  *reinterpret_cast<void **>(addr + len) = FunctionPtr(new_func);
+  cacheflush(addr, addr + len + sizeof(void *), 0);
+  return true;
+#else
+  return false;
+#endif
+}
+#else
+#define sys_sigaction sigaction
+template <typename T>
+static bool
+Divert(T func, T new_func)
+{
+  return false;
+}
+#endif
+
+SEGVHandler::SEGVHandler()
+: registeredHandler(false)
+{
+  if (!Divert(sigaction, __wrap_sigaction))
+    return;
   
 
   if (sigaltstack(NULL, &oldStack) == -1 || !oldStack.ss_sp ||
@@ -809,7 +918,7 @@ SEGVHandler::SEGVHandler()
   sigemptyset(&action.sa_mask);
   action.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
   action.sa_restorer = NULL;
-  sigaction(SIGSEGV, &action, &this->action);
+  registeredHandler = !sys_sigaction(SIGSEGV, &action, &this->action);
 }
 
 SEGVHandler::~SEGVHandler()
@@ -817,7 +926,7 @@ SEGVHandler::~SEGVHandler()
   
   sigaltstack(&oldStack, NULL);
   
-  sigaction(SIGSEGV, &this->action, NULL);
+  sys_sigaction(SIGSEGV, &this->action, NULL);
 }
 
 
@@ -848,7 +957,7 @@ void SEGVHandler::handler(int signum, siginfo_t *info, void *context)
   } else if (that.action.sa_handler == SIG_DFL) {
     debug("Redispatching to default handler");
     
-    sigaction(signum, &that.action, NULL);
+    sys_sigaction(signum, &that.action, NULL);
     raise(signum);
   } else if (that.action.sa_handler != SIG_IGN) {
     debug("Redispatching to registered handler @%p",
@@ -858,40 +967,14 @@ void SEGVHandler::handler(int signum, siginfo_t *info, void *context)
     debug("Ignoring");
   }
 }
-  
-sighandler_t
-__wrap_signal(int signum, sighandler_t handler)
-{
-  
-  if (signum != SIGSEGV)
-    return signal(signum, handler);
-
-  SEGVHandler &that = ElfLoader::Singleton;
-  union {
-    sighandler_t signal;
-    void (*sigaction)(int, siginfo_t *, void *);
-  } oldHandler;
-
-  
-  if (that.action.sa_flags & SA_SIGINFO) {
-    oldHandler.sigaction = that.action.sa_sigaction;
-  } else {
-    oldHandler.signal = that.action.sa_handler;
-  }
-  
-  that.action.sa_handler = handler;
-  that.action.sa_flags = 0;
-
-  return oldHandler.signal;
-}
 
 int
-__wrap_sigaction(int signum, const struct sigaction *act,
-                 struct sigaction *oldact)
+SEGVHandler::__wrap_sigaction(int signum, const struct sigaction *act,
+                              struct sigaction *oldact)
 {
   
   if (signum != SIGSEGV)
-    return sigaction(signum, act, oldact);
+    return sys_sigaction(signum, act, oldact);
 
   SEGVHandler &that = ElfLoader::Singleton;
   if (oldact)
