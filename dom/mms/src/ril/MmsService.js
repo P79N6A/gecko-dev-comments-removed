@@ -39,6 +39,14 @@ const RETRIEVAL_MODE_MANUAL = "manual";
 const RETRIEVAL_MODE_AUTOMATIC = "automatic";
 const RETRIEVAL_MODE_NEVER = "never";
 
+
+
+const DELIVERY_RECEIVED = "received";
+const DELIVERY_NOT_DOWNLOADED = "not-downloaded";
+const DELIVERY_SENDING = "sending";
+const DELIVERY_SENT = "sent";
+const DELIVERY_ERROR = "error";
+
 const MAX_RETRY_COUNT = Services.prefs.getIntPref("dom.mms.retrievalRetryCount");
 const DELAY_TIME_TO_RETRY = Services.prefs.getIntPref("dom.mms.retrievalRetryInterval");
 
@@ -53,6 +61,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
 XPCOMUtils.defineLazyServiceGetter(this, "gRIL",
                                    "@mozilla.org/ril;1",
                                    "nsIRadioInterfaceLayer");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageDatabaseService",
+                                   "@mozilla.org/mobilemessage/rilmobilemessagedatabaseservice;1",
+                                   "nsIRilMobileMessageDatabaseService");
 
 XPCOMUtils.defineLazyGetter(this, "MMS", function () {
   let MMS = {};
@@ -819,6 +831,70 @@ MmsService.prototype = {
 
 
 
+  convertFromIntermediateToSavable: function convertFromIntermediateToSavable(intermediate) {
+    intermediate.type = "mms";
+    intermediate.delivery = DELIVERY_NOT_DOWNLOADED;
+    intermediate.timestamp = Date.now();
+    intermediate.sender = null;
+    if (intermediate.headers.from) {
+      intermediate.sender = intermediate.headers.from.address;
+    } else {
+      record.sender = "anonymous";
+    }
+    intermediate.receivers = [];
+    return intermediate;
+  },
+
+  
+
+
+
+
+
+
+
+  mergeRetrievalConfirmationIntoRecord: function mergeRetrievalConfirmationIntoRecord(intermediate, record) {
+    if (intermediate.headers["Date"]) {
+      record.timestamp = Date.parse(intermediate.headers["Date"]);
+    }
+    if (intermediate.headers.from) {
+      record.sender = intermediate.headers.from.address;
+    } else {
+      record.sender = "anonymous";
+    }
+    record.receivers = [];
+    
+    for each (let type in ["cc", "to"]) {
+      if (intermediate.headers[type]) {
+        if (intermediate.headers[type] instanceof Array) {
+          for (let index in intermediate.headers[type]) {
+            record.receivers.push(intermediate.headers[type][index].address)
+          }
+        } else {
+          record.receivers.push(intermediate.headers[type].address);
+        }
+      }
+    }
+
+    record.delivery = DELIVERY_RECEIVED;
+    for (let field in intermediate.headers) {
+      record.headers[field] = intermediate.headers[field];
+    }
+    if (intermediate.parts) {
+      record.parts = intermediate.parts;
+    }
+    if (intermediate.content) {
+      record.content = intermediate.content;
+    }
+    return record;
+  },
+
+  
+
+
+
+
+
 
   retrieveMessage: function retrieveMessage(contentLocation, callback) {
     
@@ -843,45 +919,92 @@ MmsService.prototype = {
     
     
 
-    let retrievalMode = RETRIEVAL_MODE_MANUAL;
-    try {
-      retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
-    } catch (e) {}
-
-    if (RETRIEVAL_MODE_AUTOMATIC === retrievalMode) {
-      this.retrieveMessage(url, (function responseNotify(mmsStatus, retrievedMsg) {
-        debug("retrievedMsg = " + JSON.stringify(retrievedMsg));
-        
-
-        let transactionId = notification.headers["x-mms-transaction-id"];
-
-        
-        let wish = notification.headers["x-mms-delivery-report"];
-        
-        
-        if ((wish == null) && retrievedMsg) {
-          wish = retrievedMsg.headers["x-mms-delivery-report"];
-        }
-        let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport, wish);
-
-        let transaction =
-          new NotifyResponseTransaction(transactionId, mmsStatus, reportAllowed);
-        transaction.run();
-      }).bind(this));
-      return;
-    }
-
     let transactionId = notification.headers["x-mms-transaction-id"];
-    let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode ?
-        MMS.MMS_PDU_STATUS_REJECTED : MMS.MMS_PDU_STATUS_DEFERRED;
     
     let wish = notification.headers["x-mms-delivery-report"];
-    let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport, wish);
 
-    let transaction = new NotifyResponseTransaction(transactionId,
-                                                    mmsStatus,
-                                                    reportAllowed);
-    transaction.run();
+    notification = this.convertFromIntermediateToSavable(notification);
+
+    gMobileMessageDatabaseService.saveReceivedMessage(notification,
+      (function (rv, messageRecord) {
+        
+        
+        let success = Components.isSuccessCode(rv);
+        if (!success) {
+          
+          
+          
+          debug("Could not store MMS " + JSON.stringify(notification) +
+                ", error code " + rv);
+          
+          
+          
+          return;
+        }
+
+        let retrievalMode = RETRIEVAL_MODE_MANUAL;
+        try {
+          retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
+        } catch (e) {}
+
+        if (RETRIEVAL_MODE_AUTOMATIC !== retrievalMode) {
+          let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode ?
+              MMS.MMS_PDU_STATUS_REJECTED : MMS.MMS_PDU_STATUS_DEFERRED;
+          
+          let reportAllowed = this.getReportAllowed(this.confSendDeliveryReport, wish);
+
+          let transaction = new NotifyResponseTransaction(transactionId,
+                                                          mmsStatus,
+                                                          reportAllowed);
+          transaction.run();
+        }
+
+        this.retrieveMessage(url, (function responseNotify(mmsStatus,
+                                                           retrievedMsg) {
+          
+          
+          
+          if ((wish == null) && retrievedMsg) {
+            wish = retrievedMsg.headers["x-mms-delivery-report"];
+          }
+          let reportAllowed = this.getReportAllowed(
+            this.confSendDeliveryReport, wish);
+
+          
+          debug("retrievedMsg = " + JSON.stringify(retrievedMsg));
+
+          
+          
+          if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
+            let transaction =
+              new NotifyResponseTransaction(transactionId, mmsStatus, reportAllowed);
+            transaction.run();
+          }
+
+          messageRecord = this.mergeRetrievalConfirmationIntoRecord(retrievedMsg, messageRecord);
+          gMobileMessageDatabaseService.saveReceivedMessage(messageRecord,
+            (function (rv, messageRecord) {
+              
+              
+              let success = Components.isSuccessCode(rv);
+              if (!success) {
+                
+                
+                
+                debug("Could not store MMS " + messageRecord.id +
+                      ", error code " + rv);
+
+                let transaction = new NotifyResponseTransaction(
+                  transactionId, MMS.MMS_PDU_STATUS_DEFERRED, reportAllowed);
+                transaction.run();
+                return;
+              }
+            }).bind(this)
+          );
+        }).bind(this));
+        return;
+      }).bind(this)
+    );
   },
 
   
