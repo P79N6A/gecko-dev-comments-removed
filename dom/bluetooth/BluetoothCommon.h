@@ -75,6 +75,12 @@ extern bool gBluetoothDebugFlag;
 #define PAIRED_STATUS_CHANGED_ID             "pairedstatuschanged"
 
 
+
+
+
+#define REQUEST_MEDIA_PLAYSTATUS_ID          "requestmediaplaystatus"
+
+
 #define BLUETOOTH_ADDRESS_LENGTH 17
 #define BLUETOOTH_ADDRESS_NONE   "00:00:00:00:00:00"
 
