@@ -863,7 +863,15 @@ nsCSSStyleSheet::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
   const nsCSSStyleSheet* s = this;
   while (s) {
     n += aMallocSizeOf(s);
-    n += s->mInner->SizeOfIncludingThis(aMallocSizeOf);
+
+    
+    
+    
+    
+    
+    if (s->mInner->mSheets[0] == s) {
+      n += s->mInner->SizeOfIncludingThis(aMallocSizeOf);
+    }
 
     
     
