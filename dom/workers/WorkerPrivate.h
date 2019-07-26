@@ -62,6 +62,13 @@ class WorkerGlobalScope;
 class WorkerPrivate;
 class WorkerRunnable;
 
+enum WorkerType
+{
+  WorkerTypeDedicated,
+  WorkerTypeShared,
+  WorkerTypeService
+};
+
 
 
 
@@ -192,12 +199,6 @@ public:
       mIsInPrivilegedApp = aOther.mIsInPrivilegedApp;
       mIsInCertifiedApp = aOther.mIsInCertifiedApp;
     }
-  };
-
-  enum WorkerType
-  {
-    WorkerTypeDedicated,
-    WorkerTypeShared
   };
 
 protected:
@@ -655,6 +656,12 @@ public:
   IsSharedWorker() const
   {
     return mWorkerType == WorkerTypeShared;
+  }
+
+  bool
+  IsServiceWorker() const
+  {
+    return mWorkerType == WorkerTypeService;
   }
 
   const nsCString&
