@@ -834,6 +834,12 @@ nsGlobalWindow::~nsGlobalWindow()
     nsAutoCString url;
     if (mLastOpenedURI) {
       mLastOpenedURI->GetSpec(url);
+
+      
+      const uint32_t maxURLLength = 1000;
+      if (url.Length() > maxURLLength) {
+        url.Truncate(maxURLLength);
+      }
     }
 
     printf("--DOMWINDOW == %d (%p) [serial = %d] [outer = %p] [url = %s]\n",
