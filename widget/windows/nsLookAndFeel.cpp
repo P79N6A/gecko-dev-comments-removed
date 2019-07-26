@@ -482,6 +482,10 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
     case eIntID_SwipeAnimationEnabled:
         aResult = 0;
         break;
+    case eIntID_ColorPickerAvailable:
+        
+        aResult = (XRE_GetWindowsEnvironment() != WindowsEnvironmentType_Metro);
+        break;
     case eIntID_UseOverlayScrollbars:
         aResult = (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro);
         break;

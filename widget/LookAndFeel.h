@@ -361,6 +361,15 @@ public:
 
 
 
+
+
+    eIntID_ColorPickerAvailable,
+
+    
+
+
+
+
      eIntID_PhysicalHomeButton,
  
      
