@@ -94,6 +94,9 @@ private:
                           nsString &aQName);
   nsString mPublicId;
   nsString mSystemId;
+
+  
+  bool mEnableNamespacePrefixes;
 };
 
 #endif 
