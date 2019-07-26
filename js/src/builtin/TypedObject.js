@@ -664,7 +664,7 @@ function X4ProtoString(type) {
   assert(false, "Unhandled type constant");
 }
 
-X4LaneStrings = ["x", "y", "z", "w"];
+var X4LaneStrings = ["x", "y", "z", "w"];
 
 
 
