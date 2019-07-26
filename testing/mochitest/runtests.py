@@ -152,7 +152,7 @@ class MochitestServer(object):
     
     
     
-    env["ASAN_OPTIONS"] = "quarantine_size=1:redzone=32"
+    env["ASAN_OPTIONS"] = "quarantine_size=1:redzone=32:malloc_context_size=5"
 
     if mozinfo.isWin:
       env["PATH"] = env["PATH"] + ";" + str(self._xrePath)
