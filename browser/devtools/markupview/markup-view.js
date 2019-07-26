@@ -55,10 +55,6 @@ loader.lazyGetter(this, "AutocompletePopup", () => {
 
 
 
-
-
-
-
 function MarkupView(aInspector, aFrame, aControllerWindow) {
   this._inspector = aInspector;
   this.walker = this._inspector.walker;
@@ -174,41 +170,11 @@ MarkupView.prototype = {
   },
 
   _showBoxModel: function(nodeFront, options={}) {
-    let toolbox = this._inspector.toolbox;
-
-    
-    if (toolbox.isRemoteHighlightable) {
-      toolbox.initInspector().then(() => {
-        toolbox.highlighter.showBoxModel(nodeFront, options).then(() => {
-          this.emit("node-highlight", nodeFront);
-        });
-      });
-    }
-    
-    
-    else {
-      this.walker.highlight(nodeFront).then(() => {
-        this.emit("node-highlight", nodeFront);
-      });
-    }
+    this._inspector.toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
   },
 
   _hideBoxModel: function() {
-    let deferred = promise.defer();
-    let toolbox = this._inspector.toolbox;
-
-    
-    if (toolbox.isRemoteHighlightable) {
-      toolbox.initInspector().then(() => {
-        toolbox.highlighter.hideBoxModel().then(deferred.resolve);
-      });
-    } else {
-      deferred.resolve();
-    }
-    
-    
-
-    return deferred.promise;
+    this._inspector.toolbox.highlighterUtils.unhighlight();
   },
 
   _briefBoxModelTimer: null,

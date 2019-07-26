@@ -34,6 +34,7 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
 const ENTER_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
+const POPUP_EVENTS = ["shown", "hidden", "showing", "hiding"];
 
 
 
@@ -152,6 +153,19 @@ let PanelFactory = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 function Tooltip(doc, options) {
   EventEmitter.decorate(this);
 
@@ -159,7 +173,8 @@ function Tooltip(doc, options) {
   this.options = new OptionsStore({
     consumeOutsideClick: false,
     closeOnKeys: [ESCAPE_KEYCODE],
-    noAutoFocus: true
+    noAutoFocus: true,
+    closeOnEvents: []
   }, options);
   this.panel = PanelFactory.get(doc, this.options);
 
@@ -167,7 +182,7 @@ function Tooltip(doc, options) {
   this.uid = "tooltip-" + Date.now();
 
   
-  for (let event of ["shown", "hidden", "showing", "hiding"]) {
+  for (let event of POPUP_EVENTS) {
     this["_onPopup" + event] = ((e) => {
       return () => this.emit(e);
     })(event);
@@ -187,6 +202,18 @@ function Tooltip(doc, options) {
     }
   };
   win.addEventListener("keypress", this._onKeyPress, false);
+
+  
+  this.hide = this.hide.bind(this);
+  let closeOnEvents = this.options.get("closeOnEvents");
+  for (let {emitter, event, useCapture} of closeOnEvents) {
+    for (let add of ["addEventListener", "on"]) {
+      if (add in emitter) {
+        emitter[add](event, this.hide, useCapture);
+        break;
+      }
+    }
+  }
 }
 
 module.exports.Tooltip = Tooltip;
@@ -264,13 +291,23 @@ Tooltip.prototype = {
   destroy: function () {
     this.hide();
 
-    for (let event of ["shown", "hidden", "showing", "hiding"]) {
+    for (let event of POPUP_EVENTS) {
       this.panel.removeEventListener("popup" + event,
         this["_onPopup" + event], false);
     }
 
     let win = this.doc.querySelector("window");
     win.removeEventListener("keypress", this._onKeyPress, false);
+
+    let closeOnEvents = this.options.get("closeOnEvents");
+    for (let {emitter, event, useCapture} of closeOnEvents) {
+      for (let remove of ["removeEventListener", "off"]) {
+        if (remove in emitter) {
+          emitter[remove](event, this.hide, useCapture);
+          break;
+        }
+      }
+    }
 
     this.content = null;
 
@@ -477,12 +514,16 @@ Tooltip.prototype = {
 
 
 
+
+
+
   setVariableContent: function(
     objectActor,
     viewOptions = {},
     controllerOptions = {},
     relayEvents = {},
-    extraButtons = []) {
+    extraButtons = [],
+    toolbox = null) {
 
     let vbox = this.doc.createElement("vbox");
     vbox.className = "devtools-tooltip-variables-view-box";
@@ -502,6 +543,11 @@ Tooltip.prototype = {
     }
 
     let widget = new VariablesView(innerbox, viewOptions);
+
+    
+    if (toolbox) {
+      widget.toolbox = toolbox;
+    }
 
     
     widget.commitHierarchy = () => {};

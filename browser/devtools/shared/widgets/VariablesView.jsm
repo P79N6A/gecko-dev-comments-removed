@@ -23,6 +23,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
+let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 
 XPCOMUtils.defineLazyModuleGetter(this, "devtools",
   "resource://gre/modules/devtools/Loader.jsm");
@@ -213,6 +215,12 @@ VariablesView.prototype = {
   
 
 
+
+  toolbox: null,
+
+  
+
+
   controller: null,
 
   
@@ -323,6 +331,15 @@ VariablesView.prototype = {
 
 
   editButtonTooltip: STR.GetStringFromName("variablesEditButtonTooltip"),
+
+  
+
+
+
+
+
+
+  domNodeValueTooltip: STR.GetStringFromName("variablesDomNodeValueTooltip"),
 
   
 
@@ -1209,6 +1226,7 @@ function Scope(aView, aName, aFlags = {}) {
   this.editableValueTooltip = aView.editableValueTooltip;
   this.editButtonTooltip = aView.editButtonTooltip;
   this.deleteButtonTooltip = aView.deleteButtonTooltip;
+  this.domNodeValueTooltip = aView.domNodeValueTooltip;
   this.contextMenuId = aView.contextMenuId;
   this.separatorStr = aView.separatorStr;
 
@@ -2069,6 +2087,7 @@ Scope.prototype = {
   editableValueTooltip: "",
   editButtonTooltip: "",
   deleteButtonTooltip: "",
+  domNodeValueTooltip: "",
   contextMenuId: "",
   separatorStr: "",
 
@@ -2119,6 +2138,9 @@ function Variable(aScope, aName, aDescriptor) {
   this._setTooltips = this._setTooltips.bind(this);
   this._activateNameInput = this._activateNameInput.bind(this);
   this._activateValueInput = this._activateValueInput.bind(this);
+  this.openNodeInInspector = this.openNodeInInspector.bind(this);
+  this.highlightDomNode = this.highlightDomNode.bind(this);
+  this.unhighlightDomNode = this.unhighlightDomNode.bind(this);
 
   
   if ("getterValue" in aDescriptor) {
@@ -2171,6 +2193,13 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
   remove: function() {
+    if (this._linkedToInspector) {
+      this.unhighlightDomNode();
+      this._valueLabel.removeEventListener("mouseover", this.highlightDomNode, false);
+      this._valueLabel.removeEventListener("mouseout", this.unhighlightDomNode, false);
+      this._openInspectorNode.removeEventListener("mousedown", this.openNodeInInspector, false);
+    }
+
     this.ownerView._store.delete(this._nameString);
     this._variablesView._itemsByElement.delete(this._target);
     this._variablesView._currHierarchy.delete(this._absoluteName);
@@ -2385,6 +2414,11 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     this._valueLabel.classList.add(this._valueClassName);
     this._valueLabel.setAttribute("value", this._valueString);
     this._separatorLabel.hidden = false;
+
+    
+    if (this._valueGrip.preview && this._valueGrip.preview.kind === "DOMNode") {
+      this._linkToInspector();
+    }
   },
 
   
@@ -2555,7 +2589,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     if (!descriptor.writable && !ownerView.getter && !ownerView.setter) {
       let nonWritableIcon = this.document.createElement("hbox");
-      nonWritableIcon.className = "variable-or-property-non-writable-icon";
+      nonWritableIcon.className = "plain variable-or-property-non-writable-icon";
       nonWritableIcon.setAttribute("optional-visibility", "");
       this._title.appendChild(nonWritableIcon);
     }
@@ -2623,6 +2657,9 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     if (this._editNode && ownerView.eval) {
       this._editNode.setAttribute("tooltiptext", ownerView.editButtonTooltip);
     }
+    if (this._openInspectorNode && this._linkedToInspector) {
+      this._openInspectorNode.setAttribute("tooltiptext", this.ownerView.domNodeValueTooltip);
+    }
     if (this._valueLabel && ownerView.eval) {
       this._valueLabel.setAttribute("tooltiptext", ownerView.editableValueTooltip);
     }
@@ -2631,6 +2668,110 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     }
     if (this._deleteNode && ownerView.delete) {
       this._deleteNode.setAttribute("tooltiptext", ownerView.deleteButtonTooltip);
+    }
+  },
+
+  
+
+
+  get toolbox() {
+    return this._variablesView.toolbox;
+  },
+
+  
+
+
+
+
+  _isLinkableToInspector: function() {
+    let isDomNode = this._valueGrip && this._valueGrip.preview.kind === "DOMNode";
+    let hasBeenLinked = this._linkedToInspector;
+    let hasToolbox = !!this.toolbox;
+
+    return isDomNode && !hasBeenLinked && hasToolbox;
+  },
+
+  
+
+
+
+  _linkToInspector: function() {
+    if (!this._isLinkableToInspector()) {
+      return;
+    }
+
+    
+    this._valueLabel.addEventListener("mouseover", this.highlightDomNode, false);
+    this._valueLabel.addEventListener("mouseout", this.unhighlightDomNode, false);
+
+    
+    this._openInspectorNode = this.document.createElement("toolbarbutton");
+    this._openInspectorNode.className = "plain variables-view-open-inspector";
+    this._openInspectorNode.addEventListener("mousedown", this.openNodeInInspector, false);
+    this._title.insertBefore(this._openInspectorNode, this._title.querySelector("toolbarbutton"));
+
+    this._linkedToInspector = true;
+  },
+
+  
+
+
+
+
+
+
+  openNodeInInspector: function(event) {
+    if (!this.toolbox) {
+      return promise.reject(new Error("Toolbox not available"));
+    }
+
+    event && event.stopPropagation();
+
+    return Task.spawn(function*() {
+      yield this.toolbox.initInspector();
+
+      let nodeFront = this._nodeFront;
+      if (!nodeFront) {
+        nodeFront = yield this.toolbox.walker.getNodeActorFromObjectActor(this._valueGrip.actor);
+      }
+
+      if (nodeFront) {
+        yield this.toolbox.selectTool("inspector");
+
+        let inspectorReady = promise.defer();
+        this.toolbox.getPanel("inspector").once("inspector-updated", inspectorReady.resolve);
+        yield this.toolbox.selection.setNodeFront(nodeFront, "variables-view");
+        yield inspectorReady.promise;
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+  highlightDomNode: function() {
+    if (this.toolbox) {
+      if (this._nodeFront) {
+        
+        
+        this.toolbox.highlighterUtils.highlightNodeFront(this._nodeFront);
+        return;
+      }
+
+      this.toolbox.highlighterUtils.highlightDomValueGrip(this._valueGrip).then(front => {
+        this._nodeFront = front;
+      });
+    }
+  },
+
+  
+
+
+
+  unhighlightDomNode: function() {
+    if (this.toolbox) {
+      this.toolbox.highlighterUtils.unhighlight();
     }
   },
 
@@ -2740,6 +2881,9 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   _activateValueInput: function(e) {
     EditableValue.create(this, {
       onSave: aString => {
+        if (this._linkedToInspector) {
+          this.unhighlightDomNode();
+        }
         if (!this._variablesView.preventDisableOnChange) {
           this._disable();
         }
@@ -3573,6 +3717,13 @@ VariablesView.stringifiers._getNMoreString = function(aNumber) {
 
 VariablesView.getClass = function(aGrip) {
   if (aGrip && typeof aGrip == "object") {
+    if (aGrip.preview) {
+      switch (aGrip.preview.kind) {
+        case "DOMNode":
+          return "token-domnode";
+      }
+    }
+
     switch (aGrip.type) {
       case "undefined":
         return "token-undefined";

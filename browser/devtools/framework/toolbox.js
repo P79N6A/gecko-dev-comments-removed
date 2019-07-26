@@ -73,7 +73,7 @@ function Toolbox(target, selectedTool, hostType, hostOptions) {
   this._refreshHostTitle = this._refreshHostTitle.bind(this);
   this._splitConsoleOnKeypress = this._splitConsoleOnKeypress.bind(this)
   this.destroy = this.destroy.bind(this);
-  this.stopPicker = this.stopPicker.bind(this);
+  this.highlighterUtils = new ToolboxHighlighterUtils(this);
 
   this._target.on("close", this.destroy);
 
@@ -192,7 +192,7 @@ Toolbox.prototype = {
 
 
   get highlighter() {
-    if (this.isRemoteHighlightable) {
+    if (this.highlighterUtils.isRemoteHighlightable) {
       return this._highlighter;
     } else {
       return null;
@@ -557,8 +557,8 @@ Toolbox.prototype = {
     let container = this.doc.querySelector("#toolbox-buttons");
     container.appendChild(this._pickerButton);
 
-    this.togglePicker = this.togglePicker.bind(this);
-    this._pickerButton.addEventListener("command", this.togglePicker, false);
+    this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
+    this._pickerButton.addEventListener("command", this._togglePicker, false);
   },
 
   
@@ -1036,7 +1036,7 @@ Toolbox.prototype = {
       this._inspector.getWalker().then(walker => {
         this._walker = walker;
         this._selection = new Selection(this._walker);
-        if (this.isRemoteHighlightable) {
+        if (this.highlighterUtils.isRemoteHighlightable) {
           this._inspector.getHighlighter().then(highlighter => {
             this._highlighter = highlighter;
             deferred.resolve();
@@ -1081,98 +1081,6 @@ Toolbox.prototype = {
     } else {
       deferred.resolve();
     }
-
-    return deferred.promise;
-  },
-
-  
-
-
-  togglePicker: function() {
-    if (this._isPicking) {
-      return this.stopPicker();
-    } else {
-      return this.startPicker();
-    }
-  },
-
-  get isRemoteHighlightable() {
-    return this._target.client.traits.highlightable;
-  },
-
-  
-
-
-
-
-
-
-
-  startPicker: function() {
-    let deferred = promise.defer();
-
-    let done = () => {
-      this.emit("picker-started");
-      this.on("select", this.stopPicker);
-      deferred.resolve();
-    };
-
-    promise.all([
-      this.initInspector(),
-      this.selectTool("inspector")
-    ]).then(() => {
-      this._isPicking = true;
-      this._pickerButton.setAttribute("checked", "true");
-
-      if (this.isRemoteHighlightable) {
-        this.highlighter.pick().then(done);
-
-        this._onPickerNodeHovered = res => {
-          this.emit("picker-node-hovered", res.node);
-        };
-        this.walker.on("picker-node-hovered", this._onPickerNodeHovered);
-
-        this._onPickerNodePicked = res => {
-          this.selection.setNodeFront(res.node, "picker-node-picked");
-          this.stopPicker();
-        };
-        this.walker.on("picker-node-picked", this._onPickerNodePicked);
-      } else {
-        this.walker.pick().then(node => {
-          this.selection.setNodeFront(node, "picker-node-picked");
-          this.stopPicker();
-        });
-        done();
-      }
-    });
-
-    return deferred.promise;
-  },
-
-  
-
-
-
-  stopPicker: function() {
-    let deferred = promise.defer();
-
-    let done = () => {
-      this.emit("picker-stopped");
-      this.off("select", this.stopPicker);
-      deferred.resolve();
-    };
-
-    this.initInspector().then(() => {
-      this._isPicking = false;
-      this._pickerButton.removeAttribute("checked");
-      if (this.isRemoteHighlightable) {
-        this.highlighter.cancelPick().then(done);
-        this.walker.off("picker-node-hovered", this._onPickerNodeHovered);
-        this.walker.off("picker-node-picked", this._onPickerNodePicked);
-      } else {
-        this.walker.cancelPick().then(done);
-      }
-    });
 
     return deferred.promise;
   },
@@ -1228,7 +1136,7 @@ Toolbox.prototype = {
     outstanding.push(this.destroyInspector());
 
     
-    this._pickerButton.removeEventListener("command", this.togglePicker, false);
+    this._pickerButton.removeEventListener("command", this._togglePicker, false);
     this._pickerButton = null;
     let container = this.doc.getElementById("toolbox-buttons");
     while (container.firstChild) {
@@ -1258,5 +1166,186 @@ Toolbox.prototype = {
       this._host = null;
       this._toolPanels.clear();
     }).then(null, console.error);
+  }
+};
+
+
+
+
+
+
+function ToolboxHighlighterUtils(toolbox) {
+  this.toolbox = toolbox;
+  this._onPickerNodeHovered = this._onPickerNodeHovered.bind(this);
+  this._onPickerNodePicked = this._onPickerNodePicked.bind(this);
+  this.stopPicker = this.stopPicker.bind(this);
+}
+
+ToolboxHighlighterUtils.prototype = {
+  
+
+
+  get isRemoteHighlightable() {
+    return this.toolbox._target.client.traits.highlightable;
+  },
+
+  
+
+
+  togglePicker: function() {
+    if (this._isPicking) {
+      return this.stopPicker();
+    } else {
+      return this.startPicker();
+    }
+  },
+
+  _onPickerNodeHovered: function(res) {
+    this.toolbox.emit("picker-node-hovered", res.node);
+  },
+
+  _onPickerNodePicked: function(res) {
+    this.toolbox.selection.setNodeFront(res.node, "picker-node-picked");
+    this.stopPicker();
+  },
+
+  
+
+
+
+
+
+
+
+  startPicker: function() {
+    let deferred = promise.defer();
+
+    let done = () => {
+      this.toolbox.emit("picker-started");
+      this.toolbox.on("select", this.stopPicker);
+      deferred.resolve();
+    };
+
+    promise.all([
+      this.toolbox.initInspector(),
+      this.toolbox.selectTool("inspector")
+    ]).then(() => {
+      this._isPicking = true;
+      this.toolbox._pickerButton.setAttribute("checked", "true");
+
+      if (this.isRemoteHighlightable) {
+        this.toolbox.highlighter.pick().then(done);
+
+        this.toolbox.walker.on("picker-node-hovered", this._onPickerNodeHovered);
+        this.toolbox.walker.on("picker-node-picked", this._onPickerNodePicked);
+      } else {
+        this.toolbox.walker.pick().then(node => {
+          this.toolbox.selection.setNodeFront(node, "picker-node-picked");
+          this.stopPicker();
+        });
+        done();
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+  stopPicker: function() {
+    let deferred = promise.defer();
+
+    let done = () => {
+      this.toolbox.emit("picker-stopped");
+      this.toolbox.off("select", this.stopPicker);
+      deferred.resolve();
+    };
+
+    this.toolbox.initInspector().then(() => {
+      this._isPicking = false;
+      this.toolbox._pickerButton.removeAttribute("checked");
+      if (this.isRemoteHighlightable) {
+        this.toolbox.highlighter.cancelPick().then(done);
+        this.toolbox.walker.off("picker-node-hovered", this._onPickerNodeHovered);
+        this.toolbox.walker.off("picker-node-picked", this._onPickerNodePicked);
+      } else {
+        this.toolbox.walker.cancelPick().then(done);
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+  highlightNodeFront: function(nodeFront, options={}) {
+    let deferred = promise.defer();
+
+    
+    if (this.isRemoteHighlightable) {
+      this.toolbox.initInspector().then(() => {
+        this.toolbox.highlighter.showBoxModel(nodeFront, options).then(() => {
+          this.toolbox.emit("node-highlight", nodeFront);
+          deferred.resolve(nodeFront);
+        });
+      });
+    }
+    
+    
+    else {
+      this.toolbox.walker.highlight(nodeFront).then(() => {
+        this.toolbox.emit("node-highlight", nodeFront);
+        deferred.resolve(nodeFront);
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  highlightDomValueGrip: function(valueGrip, options={}) {
+    return this._translateGripToNodeFront(valueGrip).then(nodeFront => {
+      if (nodeFront) {
+        return this.highlightNodeFront(nodeFront, options);
+      } else {
+        return promise.reject();
+      }
+    });
+  },
+
+  _translateGripToNodeFront: function(grip) {
+    return this.toolbox.initInspector().then(() => {
+      return this.toolbox.walker.getNodeActorFromObjectActor(grip.actor);
+    });
+  },
+
+  
+
+
+
+  unhighlight: function() {
+    if (this.isRemoteHighlightable) {
+      
+      return this.toolbox.initInspector().then(() => {
+        return this.toolbox.highlighter.hideBoxModel();
+      });
+    } else {
+      
+      
+      return promise.resolve();
+    }
   }
 };

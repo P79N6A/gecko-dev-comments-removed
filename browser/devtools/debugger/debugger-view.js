@@ -170,6 +170,10 @@ let DebuggerView = {
     });
 
     
+    
+    this.Variables.toolbox = DebuggerController._toolbox;
+
+    
     VariablesViewController.attach(this.Variables, {
       getEnvironmentClient: aObject => gThreadClient.environment(aObject),
       getObjectClient: aObject => {
