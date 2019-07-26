@@ -935,7 +935,8 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
 
     
     char windowBuffer[32];
-    PR_snprintf(windowBuffer, 32, "%llu", aWindow->GetOuterWindow()->WindowID());
+    PR_snprintf(windowBuffer, sizeof(windowBuffer), "%llu",
+                aWindow->GetOuterWindow()->WindowID());
     data.Append(NS_ConvertUTF8toUTF16(windowBuffer));
 
     data.Append(NS_LITERAL_STRING(", \"callID\":\""));
@@ -1031,6 +1032,7 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     obs->RemoveObserver(this, "xpcom-shutdown");
     obs->RemoveObserver(this, "getUserMedia:response:allow");
     obs->RemoveObserver(this, "getUserMedia:response:deny");
+    obs->RemoveObserver(this, "getUserMedia:revoke");
 
     
     {
@@ -1101,6 +1103,18 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     GetUserMediaRunnable* gUMRunnable =
       static_cast<GetUserMediaRunnable*>(runnable.get());
     gUMRunnable->Denied();
+    return NS_OK;
+  }
+
+  if (!strcmp(aTopic, "getUserMedia:revoke")) {
+    nsresult rv;
+    uint64_t windowID = nsString(aData).ToInteger64(&rv);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    if (NS_SUCCEEDED(rv)) {
+      LOG(("Revoking MediaCapture access for window %llu",windowID));
+      OnNavigation(windowID);
+    }
+
     return NS_OK;
   }
 
