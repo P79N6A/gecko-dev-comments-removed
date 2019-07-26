@@ -342,7 +342,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *objArg, JSObject **re
     ObjectValueMap *map = obj->as<WeakMapObject>().getMap();
     if (map) {
         
-        AutoSuppressGC suppress(cx);
+        gc::AutoSuppressGC suppress(cx);
         for (ObjectValueMap::Base::Range r = map->all(); !r.empty(); r.popFront()) {
             RootedObject key(cx, r.front().key);
             if (!JS_WrapObject(cx, key.address()))
