@@ -1306,6 +1306,7 @@ WebConsoleFrame.prototype = {
                                              msgNode, null, null, clipboardText);
 
     messageNode._connectionId = entry.connection;
+    messageNode.url = request.url;
 
     this.makeOutputMessageLink(messageNode, function WCF_net_message_link() {
       if (!messageNode._panelOpen) {
@@ -2304,6 +2305,20 @@ WebConsoleFrame.prototype = {
     }
 
     clipboardHelper.copyString(strings.join("\n"), this.document);
+  },
+
+  
+
+
+  openSelectedItemInTab: function WCF_openSelectedItemInTab()
+  {
+    let item = this.outputNode.selectedItem;
+
+    if (!item || !item.url) {
+      return;
+    }
+
+    this.owner.openLink(item.url);
   },
 
   
@@ -3441,6 +3456,14 @@ CommandController.prototype = {
     this.owner.outputNode.selectAll();
   },
 
+  
+
+
+  openURL: function CommandController_openURL()
+  {
+    this.owner.openSelectedItemInTab();
+  },
+
   supportsCommand: function CommandController_supportsCommand(aCommand)
   {
     return this.isCommandEnabled(aCommand);
@@ -3452,6 +3475,11 @@ CommandController.prototype = {
       case "cmd_copy":
         
         return this.owner.outputNode.selectedCount > 0;
+      case "consoleCmd_openURL": {
+        
+        let selectedItem = this.owner.outputNode.selectedItem;
+        return selectedItem && selectedItem.url;
+      }
       case "cmd_fontSizeEnlarge":
       case "cmd_fontSizeReduce":
       case "cmd_fontSizeReset":
@@ -3465,6 +3493,9 @@ CommandController.prototype = {
     switch (aCommand) {
       case "cmd_copy":
         this.copy();
+        break;
+      case "consoleCmd_openURL":
+        this.openURL();
         break;
       case "cmd_selectAll":
         this.selectAll();
@@ -3488,3 +3519,114 @@ function gSequenceId()
 }
 gSequenceId.n = 0;
 
+
+function goUpdateConsoleCommands() {
+  goUpdateCommand("consoleCmd_openURL");
+}
+
+
+
+
+
+
+
+const CONTEXTMENU_ID = "output-contextmenu";
+
+
+
+
+let ConsoleContextMenu = {
+  
+
+
+
+
+  build: function CCM_build(aEvent)
+  {
+    let popup = aEvent.target;
+    if (popup.id !== CONTEXTMENU_ID) {
+      return;
+    }
+
+    let view = document.querySelector(".hud-output-node");
+    let metadata = this.getSelectionMetadata(view);
+
+    for (let i = 0, l = popup.childNodes.length; i < l; ++i) {
+      let element = popup.childNodes[i];
+      element.hidden = this.shouldHideMenuItem(element, metadata);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  getSelectionMetadata: function CCM_getSelectionMetadata(aView)
+  {
+    let metadata = {
+      selectionType: "",
+      selection: new Set(),
+    };
+    let selectedItems = aView.selectedItems;
+
+    metadata.selectionType = (selectedItems > 1) ? "multiple" : "single";
+
+    let selection = metadata.selection;
+    for (let item of selectedItems) {
+      switch (item.category) {
+        case CATEGORY_NETWORK:
+          selection.add("network");
+          break;
+        case CATEGORY_CSS:
+          selection.add("css");
+          break;
+        case CATEGORY_JS:
+          selection.add("js");
+          break;
+        case CATEGORY_WEBDEV:
+          selection.add("webdev");
+          break;
+      }
+    }
+
+    return metadata;
+  },
+
+  
+
+
+
+
+
+
+
+  shouldHideMenuItem: function CCM_shouldHideMenuItem(aMenuItem, aMetadata)
+  {
+    let selectionType = aMenuItem.getAttribute("selectiontype");
+    if (selectionType && !aMetadata.selectionType == selectionType) {
+      return true;
+    }
+
+    let selection = aMenuItem.getAttribute("selection");
+    if (!selection) {
+      return false;
+    }
+
+    let shouldHide = true;
+    let itemData = selection.split("|");
+    for (let type of aMetadata.selection) {
+      
+      if (itemData.indexOf(type) !== -1) {
+        shouldHide = false;
+        break;
+      }
+    }
+
+    return shouldHide;
+  },
+};
