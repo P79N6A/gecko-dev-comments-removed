@@ -100,7 +100,7 @@ Decoder::Finish()
     nsCOMPtr<nsIScriptError> errorObject =
       do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
 
-    if (consoleService && errorObject && !HasDecoderError()) {
+    if (consoleService && errorObject && HasDataError() && !HasDecoderError()) {
       nsAutoString msg(NS_LITERAL_STRING("Image corrupt or truncated: ") +
                        NS_ConvertASCIItoUTF16(mImage.GetURIString()));
 
@@ -114,16 +114,22 @@ Decoder::Finish()
       }
     }
 
-    
-    bool salvage = !HasDecoderError() && mImage.GetNumFrames();
+    bool usable = true;
+    if (HasDataError() && !HasDecoderError()) {
+      
+      if (mImage.GetNumFrames() == 0) {
+        usable = false;
+      }
+    }
 
     
-    if (salvage)
-      mImage.DecodingComplete();
-
     
-    if (mObserver) {
-      mObserver->OnStopDecode(salvage ? NS_OK : NS_ERROR_FAILURE);
+    if (usable) {
+      PostDecodeDone();
+    } else {
+      if (mObserver) {
+        mObserver->OnStopDecode(NS_ERROR_FAILURE);
+      }
     }
   }
 }
