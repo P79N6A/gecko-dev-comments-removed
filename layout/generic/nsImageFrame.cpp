@@ -287,22 +287,23 @@ nsImageFrame::UpdateIntrinsicSize(imgIContainer* aImage)
     return false;
 
   nsIFrame::IntrinsicSize oldIntrinsicSize = mIntrinsicSize;
+  mIntrinsicSize = nsIFrame::IntrinsicSize();
 
-  nsIFrame* rootFrame = aImage->GetRootLayoutFrame();
-  if (rootFrame) {
+  
+  nsSize intrinsicSize;
+  if (NS_SUCCEEDED(aImage->GetIntrinsicSize(&intrinsicSize))) {
     
-    mIntrinsicSize = rootFrame->GetIntrinsicSize();
+    
+    
+    if (intrinsicSize.width != -1)
+      mIntrinsicSize.width.SetCoordValue(intrinsicSize.width);
+    if (intrinsicSize.height != -1)
+      mIntrinsicSize.height.SetCoordValue(intrinsicSize.height);
   } else {
     
-    nsIntSize imageSizeInPx;
-    if (NS_FAILED(aImage->GetWidth(&imageSizeInPx.width)) ||
-        NS_FAILED(aImage->GetHeight(&imageSizeInPx.height))) {
-      imageSizeInPx.SizeTo(0, 0);
-    }
-    mIntrinsicSize.width.SetCoordValue(
-      nsPresContext::CSSPixelsToAppUnits(imageSizeInPx.width));
-    mIntrinsicSize.height.SetCoordValue(
-      nsPresContext::CSSPixelsToAppUnits(imageSizeInPx.height));
+    
+    mIntrinsicSize.width.SetCoordValue(0);
+    mIntrinsicSize.height.SetCoordValue(0);
   }
 
   return mIntrinsicSize != oldIntrinsicSize;
@@ -318,18 +319,9 @@ nsImageFrame::UpdateIntrinsicRatio(imgIContainer* aImage)
 
   nsSize oldIntrinsicRatio = mIntrinsicRatio;
 
-  nsIFrame* rootFrame = aImage->GetRootLayoutFrame();
-  if (rootFrame) {
-    
-    mIntrinsicRatio = rootFrame->GetIntrinsicRatio();
-  } else {
-    NS_ABORT_IF_FALSE(mIntrinsicSize.width.GetUnit() == eStyleUnit_Coord &&
-                      mIntrinsicSize.height.GetUnit() == eStyleUnit_Coord,
-                      "since aImage doesn't have a rootFrame, our intrinsic "
-                      "dimensions must have coord units (not percent units)");
-    mIntrinsicRatio.width = mIntrinsicSize.width.GetCoordValue();
-    mIntrinsicRatio.height = mIntrinsicSize.height.GetCoordValue();
-  }
+  
+  if (NS_FAILED(aImage->GetIntrinsicRatio(&mIntrinsicRatio)))
+    mIntrinsicRatio.SizeTo(0, 0);
 
   return mIntrinsicRatio != oldIntrinsicRatio;
 }
