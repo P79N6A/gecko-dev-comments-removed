@@ -391,15 +391,19 @@ BaselineScript::pcMappingReader(size_t indexEntry)
 ICEntry &
 BaselineScript::icEntryFromReturnOffset(CodeOffsetLabel returnOffset)
 {
-    
-    for (size_t i = 0; i < numICEntries(); i++) {
-        ICEntry &entry = icEntry(i);
-        if (entry.returnOffset().offset() == returnOffset.offset())
-            return entry;
+    size_t bottom = 0;
+    size_t top = numICEntries();
+    size_t mid = (bottom + top) / 2;
+    while (mid < top) {
+        ICEntry &midEntry = icEntry(mid);
+        if (midEntry.returnOffset().offset() < returnOffset.offset())
+            bottom = mid + 1;
+        else 
+            top = mid;
+        mid = (bottom + top) / 2;
     }
-
-    JS_NOT_REACHED("No cache");
-    return icEntry(0);
+    JS_ASSERT(icEntry(mid).returnOffset().offset() == returnOffset.offset());
+    return icEntry(mid);
 }
 
 uint8_t *
@@ -412,18 +416,57 @@ ICEntry &
 BaselineScript::icEntryFromPCOffset(uint32_t pcOffset)
 {
     
-    for (size_t i = 0; i < numICEntries(); i++) {
-        ICEntry &entry = icEntry(i);
+    
+    size_t bottom = 0;
+    size_t top = numICEntries();
+    size_t mid = (bottom + top) / 2;
+    while (mid < top) {
+        ICEntry &midEntry = icEntry(mid);
+        if (midEntry.pcOffset() < pcOffset)
+            bottom = mid + 1;
+        else if (midEntry.pcOffset() > pcOffset)
+            top = mid;
+        else
+            break;
+        mid = (bottom + top) / 2;
+    }
+    
+    
+    
+    for (size_t i = mid; i < numICEntries() && icEntry(i).pcOffset() == pcOffset; i--) {
+        if (icEntry(i).isForOp())
+            return icEntry(i);
+    }
+    for (size_t i = mid+1; i < numICEntries() && icEntry(i).pcOffset() == pcOffset; i++) {
+        if (icEntry(i).isForOp())
+            return icEntry(i);
+    }
+    JS_NOT_REACHED("Invalid PC offset for IC entry.");
+    return icEntry(mid);
+}
 
-        if (!entry.isForOp())
-            continue;
-
-        if (entry.pcOffset() == pcOffset)
-            return entry;
+ICEntry &
+BaselineScript::icEntryFromPCOffset(uint32_t pcOffset, ICEntry *prevLookedUpEntry)
+{
+    
+    
+    if (prevLookedUpEntry && pcOffset >= prevLookedUpEntry->pcOffset() &&
+        (pcOffset - prevLookedUpEntry->pcOffset()) <= 10)
+    {
+        uint32_t diff = pcOffset - prevLookedUpEntry->pcOffset();
+        ICEntry *firstEntry = &icEntry(0);
+        ICEntry *lastEntry = &icEntry(numICEntries() - 1);
+        ICEntry *curEntry = prevLookedUpEntry;
+        while (curEntry >= firstEntry && curEntry <= lastEntry) {
+            if (curEntry->pcOffset() == pcOffset && curEntry->isForOp())
+                break;
+            curEntry++;
+        }
+        JS_ASSERT(curEntry->pcOffset() == pcOffset && curEntry->isForOp());
+        return *curEntry;
     }
 
-    JS_NOT_REACHED("No cache");
-    return icEntry(0);
+    return icEntryFromPCOffset(pcOffset);
 }
 
 ICEntry &
