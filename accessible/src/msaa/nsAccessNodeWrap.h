@@ -15,7 +15,9 @@
 
 
 
+#ifdef _MSC_VER
 #pragma warning( disable : 4509 )
+#endif
 
 #include "nsCOMPtr.h"
 #include "nsIAccessible.h"
@@ -24,8 +26,8 @@
 #include "nsIDOMElement.h"
 #include "nsIContent.h"
 #include "nsAccessNode.h"
-#include "OLEIDL.H"
-#include "OLEACC.H"
+#include "oleidl.h"
+#include "oleacc.h"
 #include <winuser.h>
 #ifdef MOZ_CRASHREPORTER
 #include "nsICrashReporter.h"
@@ -46,6 +48,13 @@ namespace mozilla {
 namespace a11y {
 
 class AccTextChangeEvent;
+
+#ifdef __GNUC__
+
+
+
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
 
 class nsAccessNodeWrap : public nsAccessNode,
                          public nsIWinAccessNode,
