@@ -188,8 +188,6 @@ void imgRequest::AddProxy(imgRequestProxy *proxy)
     mLoader->SetHasProxies(mURI);
   }
 
-  proxy->SetPrincipal(mPrincipal);
-
   GetStatusTracker().AddConsumer(proxy);
 }
 
@@ -830,12 +828,6 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
                                                 getter_AddRefs(mPrincipal));
       if (NS_FAILED(rv)) {
         return rv;
-      }
-
-      
-      nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(GetStatusTracker().GetConsumers());
-      while (iter.HasMore()) {
-        iter.GetNext()->SetPrincipal(mPrincipal);
       }
     }
   }

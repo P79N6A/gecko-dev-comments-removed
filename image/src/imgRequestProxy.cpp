@@ -41,7 +41,6 @@ imgRequestProxy::imgRequestProxy() :
   mOwner(nullptr),
   mURI(nullptr),
   mImage(nullptr),
-  mPrincipal(nullptr),
   mListener(nullptr),
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mLockCount(0),
@@ -509,8 +508,6 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgIDecoderObserver* aObserver,
   if (NS_FAILED(rv))
     return rv;
 
-  clone->SetPrincipal(mPrincipal);
-
   
   
   
@@ -526,11 +523,10 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgIDecoderObserver* aObserver,
 
 NS_IMETHODIMP imgRequestProxy::GetImagePrincipal(nsIPrincipal **aPrincipal)
 {
-  if (!mPrincipal)
+  if (!mOwner)
     return NS_ERROR_FAILURE;
 
-  NS_ADDREF(*aPrincipal = mPrincipal);
-
+  NS_ADDREF(*aPrincipal = mOwner->GetPrincipal());
   return NS_OK;
 }
 
@@ -852,18 +848,14 @@ imgRequestProxy::GetStaticRequest(imgIRequest** aReturn)
   nsRefPtr<Image> frame = static_cast<Image*>(currentFrame.get());
 
   
-  nsRefPtr<imgRequestProxy> req = new imgRequestProxy();
+  nsCOMPtr<nsIPrincipal> currentPrincipal;
+  GetImagePrincipal(getter_AddRefs(currentPrincipal));
+  nsRefPtr<imgRequestProxy> req = new imgRequestProxyStatic(currentPrincipal);
   req->Init(nullptr, nullptr, frame, mURI, nullptr);
-  req->SetPrincipal(mPrincipal);
 
   NS_ADDREF(*aReturn = req);
 
   return NS_OK;
-}
-
-void imgRequestProxy::SetPrincipal(nsIPrincipal *aPrincipal)
-{
-  mPrincipal = aPrincipal;
 }
 
 void imgRequestProxy::NotifyListener()
@@ -923,4 +915,16 @@ imgRequestProxy::GetStatusTracker()
   
   
   return mImage ? mImage->GetStatusTracker() : mOwner->GetStatusTracker();
+}
+
+
+
+NS_IMETHODIMP imgRequestProxyStatic::GetImagePrincipal(nsIPrincipal **aPrincipal)
+{
+  if (!mPrincipal)
+    return NS_ERROR_FAILURE;
+
+  NS_ADDREF(*aPrincipal = mPrincipal);
+
+  return NS_OK;
 }
