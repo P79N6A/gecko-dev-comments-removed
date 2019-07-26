@@ -1305,6 +1305,8 @@ class ObjectImpl : public gc::Cell
     bool toDictionaryMode(ExclusiveContext *cx);
 
   private:
+    friend class Nursery;
+
     
 
 
