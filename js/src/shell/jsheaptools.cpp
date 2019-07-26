@@ -506,7 +506,7 @@ ReferenceFinder::addReferrer(jsval referrerArg, Path *path)
     
     RootedValue v(context);
 
-    if (!JS_GetProperty(context, result, pathName, v.address()))
+    if (!JS_GetProperty(context, result, pathName, &v))
         return false;
     if (v.isUndefined()) {
         

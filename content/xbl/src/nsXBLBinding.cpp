@@ -1163,7 +1163,7 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
   
   
   JS::RootedValue classObject(aCx);
-  if (!JS_GetProperty(aCx, aXBLScope, mJSClass->name, classObject.address())) {
+  if (!JS_GetProperty(aCx, aXBLScope, mJSClass->name, &classObject)) {
     return false;
   }
 
