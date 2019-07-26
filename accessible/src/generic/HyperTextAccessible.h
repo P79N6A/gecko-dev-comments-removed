@@ -16,6 +16,8 @@
 namespace mozilla {
 namespace a11y {
 
+class TextRange;
+
 struct DOMPoint {
   DOMPoint() : node(nullptr), idx(0) { }
   DOMPoint(nsINode* aNode, int32_t aIdx) : node(aNode), idx(aIdx) { }
@@ -360,6 +362,34 @@ public:
                               int32_t aEndOffset,
                               uint32_t aCoordinateType,
                               int32_t aX, int32_t aY);
+
+  
+
+
+
+  void EnclosingRange(TextRange& aRange) const;
+
+  
+
+
+
+  void SelectionRanges(nsTArray<TextRange>* aRanges) const;
+
+  
+
+
+
+  void VisibleRanges(nsTArray<TextRange>* aRanges) const;
+
+  
+
+
+  void RangeByChild(Accessible* aChild, TextRange& aRange) const;
+
+  
+
+
+  void RangeAtPoint(int32_t aX, int32_t aY, TextRange& aRange) const;
 
   
   
