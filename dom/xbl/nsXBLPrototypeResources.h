@@ -38,6 +38,15 @@ public:
 
   typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
 
+  
+
+
+
+
+  void GatherRuleProcessor();
+
+  nsCSSRuleProcessor* GetRuleProcessor() const { return mRuleProcessor; }
+
 private:
   
   nsRefPtr<nsXBLResourceLoader> mLoader;
@@ -46,9 +55,9 @@ public:
   
   sheet_array_type mStyleSheetList;
 
+private:
   
   nsRefPtr<nsCSSRuleProcessor> mRuleProcessor;
 };
 
 #endif
-

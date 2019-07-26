@@ -180,10 +180,7 @@ nsXBLResourceLoader::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
   
   if (mPendingSheets == 0) {
     
-    mResources->mRuleProcessor =
-      new nsCSSRuleProcessor(mResources->mStyleSheetList, 
-                             nsStyleSet::eDocSheet,
-                             nullptr);
+    mResources->GatherRuleProcessor();
 
     
     if (!mInLoadResourcesFunc)
