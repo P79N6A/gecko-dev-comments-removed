@@ -356,8 +356,11 @@ NS_DebugBreak(uint32_t aSeverity, const char *aStr, const char *aExpr,
 #endif
 
    
-   fprintf(stderr, "%s\n", buf.buffer);
-   fflush(stderr);
+   
+   if (!(PR_GetEnv("MOZ_IGNORE_WARNINGS") && aSeverity == NS_DEBUG_WARNING)) {
+     fprintf(stderr, "%s\n", buf.buffer);
+     fflush(stderr);
+   }
 
    switch (aSeverity) {
    case NS_DEBUG_WARNING:
