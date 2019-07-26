@@ -349,8 +349,10 @@ public class GeckoAppShell
                 }
             });
 
+        if (!AppConstants.MOZILLA_OFFICIAL) {
+            Log.d(LOGTAG, "GeckoLoader.nativeRun " + combinedArgs);
+        }
         
-        Log.d(LOGTAG, "GeckoLoader.nativeRun " + combinedArgs);
         GeckoLoader.nativeRun(combinedArgs);
 
         
