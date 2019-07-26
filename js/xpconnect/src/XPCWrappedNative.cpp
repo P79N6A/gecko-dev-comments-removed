@@ -356,9 +356,6 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
     mozilla::Maybe<JSAutoCompartment> ac;
 
     if (sciWrapper.GetFlags().WantPreCreate()) {
-        
-        js::AutoMaybeTouchDeadZones agc(parent);
-
         RootedObject plannedParent(cx, parent);
         nsresult rv = sciWrapper.GetCallback()->PreCreate(identity, cx,
                                                           parent, parent.address());
@@ -1284,9 +1281,6 @@ RescueOrphans(HandleObject obj)
     if (!parentObj)
         return NS_OK; 
     parentObj = js::UncheckedUnwrap(parentObj,  false);
-
-    
-    js::AutoMaybeTouchDeadZones agc(parentObj);
 
     
     rv = RescueOrphans(parentObj);
