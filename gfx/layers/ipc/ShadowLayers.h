@@ -10,7 +10,7 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/WidgetUtils.h"        
@@ -24,6 +24,7 @@
  
 struct nsIntPoint;
 struct nsIntRect;
+class gfxASurface;
 
 namespace mozilla {
 namespace layers {

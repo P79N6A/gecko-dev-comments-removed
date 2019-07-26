@@ -8,7 +8,7 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "gfxPoint.h"                   
 #include "mozilla/ipc/SharedMemory.h"   
 
@@ -23,7 +23,6 @@
 #define MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
 #endif
 
-class gfxASurface;
 class gfxSharedImageSurface;
 
 namespace base {

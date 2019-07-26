@@ -8,7 +8,7 @@
 #define MOZILLA_LAYERS_COMPOSITABLEFORWARDER
 
 #include <stdint.h>                     
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "mozilla/Attributes.h"         
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ISurfaceAllocator.h"  

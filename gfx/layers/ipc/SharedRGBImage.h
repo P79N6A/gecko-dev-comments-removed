@@ -8,13 +8,15 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "ImageContainer.h"             
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Types.h"          
 #include "nsCOMPtr.h"                   
+
+class gfxASurface;
 
 namespace mozilla {
 namespace ipc {

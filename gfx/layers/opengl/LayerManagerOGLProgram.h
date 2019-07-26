@@ -8,7 +8,7 @@
 
 #include "GLDefs.h"                     
 #include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Matrix.h"         

@@ -8,7 +8,7 @@
 
 #include <stdint.h>                     
 #include "ThebesLayerBuffer.h"          
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "gfxPlatform.h"                
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
@@ -29,6 +29,7 @@
 
 class gfxContext;
 struct gfxMatrix;
+class gfxASurface;
 
 namespace mozilla {
 namespace gfx {

@@ -8,7 +8,7 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             

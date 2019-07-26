@@ -8,7 +8,7 @@
 
 #include <stdint.h>                     
 #include "Layers.h"                     
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "gfxCachedTempSurface.h"       
 #include "gfxContext.h"                 
 #include "mozilla/Attributes.h"         

@@ -13,7 +13,7 @@
 #include "Units.h"                      
 #include "gfx3DMatrix.h"                
 #include "gfxContext.h"                 
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "gfxColor.h"                   
 #include "gfxMatrix.h"                  
 #include "gfxPattern.h"                 
@@ -46,7 +46,7 @@
 #include "nscore.h"                     
 #include "prlog.h"                      
 
-
+class gfxASurface;
 class gfxContext;
 
 extern uint8_t gLayerManagerLayerBuilder;

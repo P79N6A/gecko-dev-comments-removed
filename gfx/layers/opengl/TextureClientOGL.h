@@ -7,7 +7,7 @@
 #define MOZILLA_GFX_TEXTURECLIENTOGL_H
 
 #include "GLContextTypes.h"             
-#include "gfxASurface.h"                
+#include "gfxTypes.h"
 #include "mozilla/Attributes.h"         
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositorTypes.h"

@@ -13,8 +13,7 @@
 #include "TiledLayerBuffer.h"           
 #include "Units.h"                      
 #include "gfx3DMatrix.h"                
-#include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
+#include "gfxTypes.h"
 #include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -30,6 +29,8 @@
 #include "nsTraceRefcnt.h"              
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "gfxReusableSurfaceWrapper.h"
+
+class gfxImageSurface;
 
 namespace mozilla {
 namespace layers {

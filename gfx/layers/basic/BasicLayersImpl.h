@@ -15,7 +15,6 @@
 #include "ipc/AutoOpenSurface.h"        
 #include "mozilla/Attributes.h"         
 #include "mozilla/Maybe.h"              
-#include "mozilla/layers/LayersSurfaces.h"  
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
@@ -25,6 +24,7 @@
 namespace mozilla {
 namespace layers {
 
+class AutoMaskData;
 class BasicContainerLayer;
 class Layer;
 
@@ -72,49 +72,6 @@ protected:
   {
     return static_cast<BasicLayerManager*>(mManager);
   }
-};
-
-
-
-
-
-
-
-
-
-
-
-class MOZ_STACK_CLASS AutoMaskData {
-public:
-  AutoMaskData() { }
-  ~AutoMaskData() { }
-
-  
-
-
-
-
-
-
-  void Construct(const gfxMatrix& aTransform,
-                 gfxASurface* aSurface);
-
-  void Construct(const gfxMatrix& aTransform,
-                 const SurfaceDescriptor& aSurface);
-
-  
-  gfxASurface* GetSurface();
-  const gfxMatrix& GetTransform();
-
-private:
-  bool IsConstructed();
-
-  gfxMatrix mTransform;
-  nsRefPtr<gfxASurface> mSurface;
-  Maybe<AutoOpenSurface> mSurfaceOpener;
-
-  AutoMaskData(const AutoMaskData&) MOZ_DELETE;
-  AutoMaskData& operator=(const AutoMaskData&) MOZ_DELETE;
 };
 
 

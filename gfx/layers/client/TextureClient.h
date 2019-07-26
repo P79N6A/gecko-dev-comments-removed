@@ -12,8 +12,6 @@
 #include "GLTextureImage.h"             
 #include "ImageContainer.h"             
 #include "ImageTypes.h"                 
-#include "gfxASurface.h"                
-#include "gfxImageSurface.h"            
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -29,6 +27,8 @@
 #include "nsISupportsImpl.h"            
 
 class gfxReusableSurfaceWrapper;
+class gfxASurface;
+class gfxImageSurface;
 
 namespace mozilla {
 namespace layers {
@@ -490,8 +490,7 @@ class DeprecatedTextureClientShmem : public DeprecatedTextureClient
 {
 public:
   DeprecatedTextureClientShmem(CompositableForwarder* aForwarder, const TextureInfo& aTextureInfo);
-  ~DeprecatedTextureClientShmem() { ReleaseResources(); }
-
+  ~DeprecatedTextureClientShmem();
   virtual bool SupportsType(DeprecatedTextureClientType aType) MOZ_OVERRIDE
   {
     return aType == TEXTURE_SHMEM || aType == TEXTURE_CONTENT || aType == TEXTURE_FALLBACK;
