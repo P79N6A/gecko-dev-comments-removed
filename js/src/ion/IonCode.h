@@ -46,8 +46,8 @@ class IonCode : public gc::Cell
     uint32_t jumpRelocTableBytes_;    
     uint32_t dataRelocTableBytes_;    
     uint32_t preBarrierTableBytes_;   
-    JSBool invalidated_;            
-                                    
+    JSBool invalidated_;              
+                                      
 
 #if JS_BITS_PER_WORD == 32
     
@@ -159,6 +159,9 @@ struct IonScript
 
     
     uint32_t osrEntryOffset_;
+
+    
+    uint32_t skipArgCheckEntryOffset_;
 
     
     
@@ -302,6 +305,9 @@ struct IonScript
     static inline size_t offsetOfOsrEntryOffset() {
         return offsetof(IonScript, osrEntryOffset_);
     }
+    static inline size_t offsetOfSkipArgCheckEntryOffset() {
+        return offsetof(IonScript, skipArgCheckEntryOffset_);
+    }
 
   public:
     IonCode *method() const {
@@ -326,6 +332,13 @@ struct IonScript
     }
     uint32_t osrEntryOffset() const {
         return osrEntryOffset_;
+    }
+    void setSkipArgCheckEntryOffset(uint32_t offset) {
+        JS_ASSERT(!skipArgCheckEntryOffset_);
+        skipArgCheckEntryOffset_ = offset;
+    }
+    uint32_t getSkipArgCheckEntryOffset() const {
+        return skipArgCheckEntryOffset_;
     }
     bool containsCodeAddress(uint8_t *addr) const {
         return method()->raw() <= addr && addr <= method()->raw() + method()->instructionsSize();

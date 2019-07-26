@@ -412,10 +412,7 @@ class JSScript : public js::gc::Cell
     uint32_t        useCount;   
 
 
-
-    uint32_t        maxLoopCount; 
-    uint32_t        loopCount;    
-
+    uint32_t        PADDING32;
 
 #ifdef DEBUG
     
@@ -429,7 +426,6 @@ class JSScript : public js::gc::Cell
 
   private:
     uint16_t        PADDING16;
-
     uint16_t        version;    
 
   public:
@@ -603,6 +599,7 @@ class JSScript : public js::gc::Cell
 
 
     uint8_t *baselineOrIonRaw;
+    uint8_t *baselineOrIonSkipArgCheck;
 
   public:
     bool hasIonScript() const {
@@ -682,6 +679,9 @@ class JSScript : public js::gc::Cell
     }
     static size_t offsetOfBaselineOrIonRaw() {
         return offsetof(JSScript, baselineOrIonRaw);
+    }
+    static size_t offsetOfBaselineOrIonSkipArgCheck() {
+        return offsetof(JSScript, baselineOrIonSkipArgCheck);
     }
 
     
@@ -808,22 +808,6 @@ class JSScript : public js::gc::Cell
     uint32_t *addressOfUseCount() { return &useCount; }
     static size_t offsetOfUseCount() { return offsetof(JSScript, useCount); }
     void resetUseCount() { useCount = 0; }
-
-    void resetLoopCount() {
-        if (loopCount > maxLoopCount)
-            maxLoopCount = loopCount;
-        loopCount = 0;
-    }
-
-    void incrLoopCount() {
-        ++loopCount;
-    }
-
-    uint32_t getMaxLoopCount() {
-        if (loopCount > maxLoopCount)
-            maxLoopCount = loopCount;
-        return maxLoopCount;
-    }
 
     
 
