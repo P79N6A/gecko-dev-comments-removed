@@ -14,7 +14,6 @@ function run_test() {
   
   let consoleListener = {
     observe: function (aMessage) {
-      ++messageCount;
       
       if (!(aMessage instanceof Components.interfaces.nsIConsoleMessage)) {
         return;
@@ -23,6 +22,7 @@ function run_test() {
         return;
       }
 
+      ++messageCount;
       if(messageCount == 1) {
        do_check_eq(aMessage.message, "TEST OS {\"name\":\"test\"}\n");
       }
