@@ -1010,7 +1010,7 @@ MetroWidget::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus)
 
 #ifdef ACCESSIBILITY
 mozilla::a11y::Accessible*
-MetroWidget::GetRootAccessible()
+MetroWidget::GetAccessible()
 {
   
   
@@ -1034,7 +1034,7 @@ MetroWidget::GetRootAccessible()
   if (accForceDisable)
       return nullptr;
 
-  return GetAccessible();
+  return GetRootAccessible();
 }
 #endif
 

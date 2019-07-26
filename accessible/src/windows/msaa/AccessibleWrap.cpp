@@ -1735,12 +1735,11 @@ AccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
       return AsDoc()->GetAccessibleByUniqueIDInSubtree(uniqueID);
 
     
-    if (ARIARole() == roles::DOCUMENT) {
+    if (ARIARole() == roles::DOCUMENT || IsMenuPopup()) {
       DocAccessible* document = Document();
       Accessible* child =
         document->GetAccessibleByUniqueIDInSubtree(uniqueID);
 
-      
       
       Accessible* parent = child ? child->Parent() : nullptr;
       while (parent && parent != document) {

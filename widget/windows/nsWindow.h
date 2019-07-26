@@ -204,7 +204,10 @@ public:
   void                    SuppressBlurEvents(bool aSuppress); 
   bool                    BlurEventsSuppressed();
 #ifdef ACCESSIBILITY
-  mozilla::a11y::Accessible* GetRootAccessible();
+  
+
+
+  mozilla::a11y::Accessible* GetAccessible();
 #endif 
 
   
