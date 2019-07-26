@@ -144,14 +144,14 @@ public:
   virtual void Init(nsIContent*      aContent,
                     nsIFrame*        aParent,
                     nsIFrame*        asPrevInFlow) MOZ_OVERRIDE;
-  NS_IMETHOD  SetInitialChildList(ChildListID        aListID,
+  virtual nsresult  SetInitialChildList(ChildListID        aListID,
                                   nsFrameList&       aChildList) MOZ_OVERRIDE;
-  NS_IMETHOD  AppendFrames(ChildListID     aListID,
+  virtual nsresult  AppendFrames(ChildListID     aListID,
                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  NS_IMETHOD  InsertFrames(ChildListID     aListID,
+  virtual nsresult  InsertFrames(ChildListID     aListID,
                            nsIFrame*       aPrevFrame,
                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  NS_IMETHOD  RemoveFrame(ChildListID     aListID,
+  virtual nsresult  RemoveFrame(ChildListID     aListID,
                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
   virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
   virtual nsStyleContext* GetAdditionalStyleContext(int32_t aIndex) const MOZ_OVERRIDE;
@@ -162,18 +162,18 @@ public:
   virtual const nsFrameList& GetChildList(ChildListID aListID) const MOZ_OVERRIDE;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const MOZ_OVERRIDE;
 
-  NS_IMETHOD  HandleEvent(nsPresContext* aPresContext, 
+  virtual nsresult  HandleEvent(nsPresContext* aPresContext, 
                           mozilla::WidgetGUIEvent* aEvent,
                           nsEventStatus* aEventStatus) MOZ_OVERRIDE;
-  NS_IMETHOD  GetContentForEvent(mozilla::WidgetEvent* aEvent,
+  virtual nsresult  GetContentForEvent(mozilla::WidgetEvent* aEvent,
                                  nsIContent** aContent) MOZ_OVERRIDE;
-  NS_IMETHOD  GetCursor(const nsPoint&    aPoint,
+  virtual nsresult  GetCursor(const nsPoint&    aPoint,
                         nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
 
-  NS_IMETHOD  GetPointFromOffset(int32_t                inOffset,
+  virtual nsresult  GetPointFromOffset(int32_t                inOffset,
                                  nsPoint*               outPoint) MOZ_OVERRIDE;
 
-  NS_IMETHOD  GetChildFrameContainingOffset(int32_t     inContentOffset,
+  virtual nsresult  GetChildFrameContainingOffset(int32_t     inContentOffset,
                                  bool                   inHint,
                                  int32_t*               outFrameContentOffset,
                                  nsIFrame*              *outChildFrame) MOZ_OVERRIDE;
@@ -185,8 +185,8 @@ public:
                                         int8_t aOutSideLimit
                                         );
 
-  NS_IMETHOD  CharacterDataChanged(CharacterDataChangeInfo* aInfo) MOZ_OVERRIDE;
-  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
+  virtual nsresult  CharacterDataChanged(CharacterDataChangeInfo* aInfo) MOZ_OVERRIDE;
+  virtual nsresult  AttributeChanged(int32_t         aNameSpaceID,
                                nsIAtom*        aAttribute,
                                int32_t         aModType) MOZ_OVERRIDE;
   virtual nsSplittableType GetSplittableType() const MOZ_OVERRIDE;
@@ -200,9 +200,9 @@ public:
   virtual void SetNextInFlow(nsIFrame*) MOZ_OVERRIDE;
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
-  NS_IMETHOD  IsSelectable(bool* aIsSelectable, uint8_t* aSelectStyle) const MOZ_OVERRIDE;
+  virtual nsresult  IsSelectable(bool* aIsSelectable, uint8_t* aSelectStyle) const MOZ_OVERRIDE;
 
-  NS_IMETHOD  GetSelectionController(nsPresContext *aPresContext, nsISelectionController **aSelCon) MOZ_OVERRIDE;
+  virtual nsresult  GetSelectionController(nsPresContext *aPresContext, nsISelectionController **aSelCon) MOZ_OVERRIDE;
 
   virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset) MOZ_OVERRIDE;
   virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
@@ -222,9 +222,9 @@ public:
                                      bool aPunctAfter, bool aWhitespaceAfter,
                                      bool aIsKeyboardSelect);
 
-  NS_IMETHOD  CheckVisibility(nsPresContext* aContext, int32_t aStartIndex, int32_t aEndIndex, bool aRecurse, bool *aFinished, bool *_retval) MOZ_OVERRIDE;
+  virtual nsresult  CheckVisibility(nsPresContext* aContext, int32_t aStartIndex, int32_t aEndIndex, bool aRecurse, bool *aFinished, bool *_retval) MOZ_OVERRIDE;
 
-  NS_IMETHOD  GetOffsets(int32_t &aStart, int32_t &aEnd) const MOZ_OVERRIDE;
+  virtual nsresult  GetOffsets(int32_t &aStart, int32_t &aEnd) const MOZ_OVERRIDE;
   virtual void ChildIsDirty(nsIFrame* aChild) MOZ_OVERRIDE;
 
 #ifdef ACCESSIBILITY
@@ -295,7 +295,7 @@ public:
   nscoord ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                            nscoord aWidthInCB);
 
-  NS_IMETHOD  WillReflow(nsPresContext* aPresContext) MOZ_OVERRIDE;
+  virtual nsresult  WillReflow(nsPresContext* aPresContext) MOZ_OVERRIDE;
   
 
 
@@ -318,11 +318,11 @@ public:
 
 
 
-  NS_IMETHOD  Reflow(nsPresContext*          aPresContext,
+  virtual nsresult  Reflow(nsPresContext*          aPresContext,
                      nsHTMLReflowMetrics&     aDesiredSize,
                      const nsHTMLReflowState& aReflowState,
                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
-  NS_IMETHOD  DidReflow(nsPresContext*           aPresContext,
+  virtual nsresult  DidReflow(nsPresContext*           aPresContext,
                         const nsHTMLReflowState*  aReflowState,
                         nsDidReflowStatus         aStatus) MOZ_OVERRIDE;
 
@@ -652,7 +652,7 @@ public:
 
 
 
-  NS_IMETHOD  GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult  GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
   nsresult MakeFrameName(const nsAString& aKind, nsAString& aResult) const;
   
   
@@ -665,7 +665,7 @@ public:
 
 
 
-  NS_IMETHOD_(nsFrameState)  GetDebugStateBits() const MOZ_OVERRIDE;
+  virtual nsFrameState  GetDebugStateBits() const MOZ_OVERRIDE;
   
 
 
@@ -674,7 +674,7 @@ public:
 
 
 
-  NS_IMETHOD  DumpRegressionData(nsPresContext* aPresContext,
+  virtual nsresult  DumpRegressionData(nsPresContext* aPresContext,
                                  FILE* out, int32_t aIndent) MOZ_OVERRIDE;
 
   

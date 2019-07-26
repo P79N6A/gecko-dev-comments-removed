@@ -33,7 +33,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsGridRowLeafFrame)
 
 
 
-NS_IMETHODIMP
+nsresult
 nsGridRowLeafFrame::GetBorderAndPadding(nsMargin& aBorderAndPadding)
 {
   

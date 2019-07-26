@@ -42,7 +42,7 @@ public:
   
 
 
-  NS_IMETHOD SetInitialChildList(ChildListID     aListID,
+  virtual nsresult SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList) MOZ_OVERRIDE;
 
   
@@ -82,12 +82,12 @@ public:
 
   
 
-  NS_IMETHOD AppendFrames(ChildListID     aListID,
+  virtual nsresult AppendFrames(ChildListID     aListID,
                           nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  NS_IMETHOD InsertFrames(ChildListID     aListID,
+  virtual nsresult InsertFrames(ChildListID     aListID,
                           nsIFrame*       aPrevFrame,
                           nsFrameList&    aFrameList) MOZ_OVERRIDE;
-  NS_IMETHOD RemoveFrame(ChildListID     aListID,
+  virtual nsresult RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
   
@@ -106,7 +106,7 @@ public:
 
 
 
-  NS_IMETHOD Reflow(nsPresContext*          aPresContext,
+  virtual nsresult Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus) MOZ_OVERRIDE;
@@ -137,7 +137,7 @@ public:
                           const nsFrameList::Slice& aCols);
 
 #ifdef DEBUG_FRAME_DUMP
-  NS_IMETHOD GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
   void Dump(int32_t aIndent);
 #endif
 
