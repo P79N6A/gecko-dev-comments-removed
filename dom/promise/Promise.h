@@ -229,9 +229,7 @@ private:
                     JSObject* aScope,
                     JS::MutableHandle<JS::Value> aValue)
   {
-    JS::Rooted<JSObject*> scope(aCx, aScope);
-
-    return WrapNewBindingObject(aCx, scope, aArgument, aValue);
+    return WrapNewBindingObject(aCx, aArgument, aValue);
   }
 
   

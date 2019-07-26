@@ -790,8 +790,7 @@ MaybeWrapValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
 
 template <class T>
 MOZ_ALWAYS_INLINE bool
-WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
-                     JS::MutableHandle<JS::Value> rval)
+WrapNewBindingObject(JSContext* cx, T* value, JS::MutableHandle<JS::Value> rval)
 {
   MOZ_ASSERT(value);
   JSObject* obj = value->GetWrapperPreserveColor();
@@ -805,7 +804,6 @@ WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
       return false;
     }
 
-    MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
     obj = value->WrapObject(cx);
     if (!obj) {
       
@@ -818,7 +816,6 @@ WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
 #ifdef DEBUG
   const DOMClass* clasp = GetDOMClass(obj);
   
-  
   if (clasp) {
     
     
@@ -830,13 +827,6 @@ WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
     MOZ_ASSERT_IF(clasp->mDOMObjectIsISupports, (IsBaseOf<nsISupports, T>::value));
     MOZ_ASSERT(CheckWrapperCacheCast<T>::Check());
   }
-
-  
-  
-  
-  
-  
-  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
 #endif
 
   rval.set(JS::ObjectValue(*obj));
@@ -1495,29 +1485,39 @@ WrapCallThisObject<JS::Rooted<JSObject*>>(JSContext* cx,
 template <class T, bool isSmartPtr=HasgetMember<T>::Value>
 struct WrapNewBindingObjectHelper
 {
-  static inline bool Wrap(JSContext* cx, JS::Handle<JSObject*> scope,
-                          const T& value, JS::MutableHandle<JS::Value> rval)
+  static inline bool Wrap(JSContext* cx, const T& value,
+                          JS::MutableHandle<JS::Value> rval)
   {
-    return WrapNewBindingObject(cx, scope, value.get(), rval);
+    return WrapNewBindingObject(cx, value.get(), rval);
   }
 };
 
 template <class T>
 struct WrapNewBindingObjectHelper<T, false>
 {
-  static inline bool Wrap(JSContext* cx, JS::Handle<JSObject*> scope, T& value,
+  static inline bool Wrap(JSContext* cx, T& value,
                           JS::MutableHandle<JS::Value> rval)
   {
-    return WrapNewBindingObject(cx, scope, &value, rval);
+    return WrapNewBindingObject(cx, &value, rval);
   }
 };
+
+template<class T>
+inline bool
+WrapNewBindingObject(JSContext* cx, T& value, JS::MutableHandle<JS::Value> rval)
+{
+  return WrapNewBindingObjectHelper<T>::Wrap(cx, value, rval);
+}
+
+
+
 
 template<class T>
 inline bool
 WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T& value,
                      JS::MutableHandle<JS::Value> rval)
 {
-  return WrapNewBindingObjectHelper<T>::Wrap(cx, scope, value, rval);
+  return WrapNewBindingObject(cx, value, rval);
 }
 
 template <class T>
