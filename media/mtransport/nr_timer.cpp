@@ -49,6 +49,8 @@
 
 
 
+#include <string>
+
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIEventTarget.h"
@@ -69,7 +71,10 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
 
-  nrappkitTimerCallback(NR_async_cb cb, void *cb_arg) : cb_(cb), cb_arg_(cb_arg) {}
+  nrappkitTimerCallback(NR_async_cb cb, void *cb_arg,
+                        const char *function, int line)
+    : cb_(cb), cb_arg_(cb_arg), function_(function), line_(line) {
+  }
 
 private:
   virtual ~nrappkitTimerCallback() {}
@@ -78,13 +83,17 @@ protected:
   
   NR_async_cb cb_;
   void *cb_arg_;
+  std::string function_;
+  int line_;
 };
 
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nrappkitTimerCallback, nsITimerCallback)
 
 NS_IMETHODIMP nrappkitTimerCallback::Notify(nsITimer *timer) {
-  r_log(LOG_GENERIC, LOG_DEBUG, "Timer callback fired");
+  r_log(LOG_GENERIC, LOG_DEBUG, "Timer callback fired (set in %s:%d)",
+        function_.c_str(), line_);
+
   cb_(0, 0, cb_arg_);
 
   
@@ -106,8 +115,8 @@ int NR_async_timer_set(int timeout, NR_async_cb cb, void *arg, char *func,
     return(R_FAILED);
   }
 
-  rv = timer->InitWithCallback(new nrappkitTimerCallback(cb, arg),
-                                        timeout, nsITimer::TYPE_ONE_SHOT);
+  rv = timer->InitWithCallback(new nrappkitTimerCallback(cb, arg, func, l),
+                               timeout, nsITimer::TYPE_ONE_SHOT);
   if (NS_FAILED(rv)) {
     return R_FAILED;
   }
