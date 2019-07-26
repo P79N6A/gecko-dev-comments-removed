@@ -552,27 +552,9 @@ SendBlocksToPerf(JSContext *cx, AsmJSModule &module)
 }
 #endif
 
-
-
-
-
-
-
 static bool
-LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp)
+SendModuleToAttachedProfiler(JSContext *cx, AsmJSModule &module)
 {
-    CallArgs args = CallArgsFromVp(argc, vp);
-    RootedFunction fun(cx, &args.callee().as<JSFunction>());
-    RootedObject moduleObj(cx,  &fun->getExtendedSlot(MODULE_FUN_SLOT).toObject());
-    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
-
-    
-    
-    if (!DynamicallyLinkModule(cx, args, module)) {
-        RootedPropertyName name(cx, fun->name());
-        return HandleDynamicLinkFailure(cx, args, module, name);
-    }
-
 #if defined(MOZ_VTUNE)
     if (IsVTuneProfilingActive() && !SendFunctionsToVTune(cx, module))
         return false;
@@ -585,36 +567,76 @@ LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp)
         return false;
 #endif
 
+    return true;
+}
+
+
+static JSObject *
+CreateExportObject(JSContext *cx, HandleObject moduleObj)
+{
+    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
+
     if (module.numExportedFunctions() == 1) {
         const AsmJSModule::ExportedFunction &func = module.exportedFunction(0);
-        if (!func.maybeFieldName()) {
-            RootedFunction fun(cx, NewExportedFunction(cx, func, moduleObj, 0));
-            if (!fun)
-                return false;
-
-            args.rval().set(ObjectValue(*fun));
-            return true;
-        }
+        if (!func.maybeFieldName())
+            return NewExportedFunction(cx, func, moduleObj, 0);
     }
 
     gc::AllocKind allocKind = gc::GetGCObjectKind(module.numExportedFunctions());
     RootedObject obj(cx, NewBuiltinClassInstance(cx, &JSObject::class_, allocKind));
     if (!obj)
-        return false;
+        return NULL;
 
     for (unsigned i = 0; i < module.numExportedFunctions(); i++) {
         const AsmJSModule::ExportedFunction &func = module.exportedFunction(i);
 
         RootedFunction fun(cx, NewExportedFunction(cx, func, moduleObj, i));
         if (!fun)
-            return false;
+            return NULL;
 
         JS_ASSERT(func.maybeFieldName() != NULL);
         RootedId id(cx, NameToId(func.maybeFieldName()));
         RootedValue val(cx, ObjectValue(*fun));
         if (!DefineNativeProperty(cx, obj, id, val, NULL, NULL, JSPROP_ENUMERATE, 0, 0))
-            return false;
+            return NULL;
     }
+
+    return obj;
+}
+
+
+static bool
+LinkAsmJS(JSContext *cx, unsigned argc, JS::Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    
+    RootedFunction fun(cx, &args.callee().as<JSFunction>());
+    RootedObject moduleObj(cx,  &fun->getExtendedSlot(MODULE_FUN_SLOT).toObject());
+    AsmJSModule &module = AsmJSModuleObjectToModule(moduleObj);
+
+    
+    
+    
+    
+    if (!DynamicallyLinkModule(cx, args, module)) {
+        
+        
+        RootedPropertyName name(cx, fun->name());
+        return HandleDynamicLinkFailure(cx, args, module, name);
+    }
+
+    
+    
+    if (!SendModuleToAttachedProfiler(cx, module))
+        return false;
+
+    
+    
+    JSObject *obj = CreateExportObject(cx, moduleObj);
+    if (!obj)
+        return false;
 
     args.rval().set(ObjectValue(*obj));
     return true;
