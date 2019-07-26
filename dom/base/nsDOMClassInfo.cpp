@@ -1630,8 +1630,8 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
                  const nsDOMClassInfoData *ci_data,
                  const nsGlobalNameStruct *name_struct,
                  nsScriptNameSpaceManager *nameSpaceManager,
-                 JSObject *dot_prototype, bool install, bool *did_resolve);
-
+                 JSObject *dot_prototype,
+                 JS::MutableHandle<JSPropertyDescriptor> ctorDesc);
 
 NS_IMETHODIMP
 nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * aProto)
@@ -1727,19 +1727,30 @@ nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * aProto)
   }
 
   
-  bool found;
+  bool contentDefinedProperty;
   if (!::JS_AlreadyHasOwnUCProperty(cx, global, reinterpret_cast<const jschar*>(mData->mNameUTF16),
-                                    NS_strlen(mData->mNameUTF16), &found)) {
+                                    NS_strlen(mData->mNameUTF16),
+                                    &contentDefinedProperty)) {
     return NS_ERROR_FAILURE;
   }
 
   nsScriptNameSpaceManager *nameSpaceManager = GetNameSpaceManager();
   NS_ENSURE_TRUE(nameSpaceManager, NS_OK);
 
-  bool unused;
-  return ResolvePrototype(sXPConnect, win, cx, global, mData->mNameUTF16,
-                          mData, nullptr, nameSpaceManager, proto, !found,
-                          &unused);
+  JS::Rooted<JSPropertyDescriptor> desc(cx);
+  nsresult rv = ResolvePrototype(sXPConnect, win, cx, global, mData->mNameUTF16,
+                                 mData, nullptr, nameSpaceManager, proto,
+                                 &desc);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!contentDefinedProperty && desc.object() && !desc.value().isUndefined() &&
+      !JS_DefineUCProperty(cx, global, mData->mNameUTF16,
+                           NS_strlen(mData->mNameUTF16),
+                           desc.value(), desc.getter(), desc.setter(),
+                           desc.attributes())) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return NS_OK;
 }
 
 
@@ -2181,20 +2192,6 @@ public:
                        JS::Handle<JSObject*> obj, const jsval &val, bool *bp,
                        bool *_retval);
 
-  nsresult Install(JSContext *cx, JS::Handle<JSObject*> target,
-                   JS::Handle<JS::Value> aThisAsVal)
-  {
-    JS::Rooted<JS::Value> thisAsVal(cx, aThisAsVal);
-    
-    bool ok = JS_WrapValue(cx, &thisAsVal) &&
-      ::JS_DefineUCProperty(cx, target,
-                            reinterpret_cast<const jschar *>(mClassName),
-                            NS_strlen(mClassName), thisAsVal, JS_PropertyStub,
-                            JS_StrictPropertyStub, 0);
-
-    return ok ? NS_OK : NS_ERROR_UNEXPECTED;
-  }
-
   nsresult ResolveInterfaceConstants(JSContext *cx, JS::Handle<JSObject*> obj);
 
 private:
@@ -2616,7 +2613,8 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
                  const nsDOMClassInfoData *ci_data,
                  const nsGlobalNameStruct *name_struct,
                  nsScriptNameSpaceManager *nameSpaceManager,
-                 JSObject* aDot_prototype, bool install, bool *did_resolve)
+                 JSObject* aDot_prototype,
+                 JS::MutableHandle<JSPropertyDescriptor> ctorDesc)
 {
   JS::Rooted<JSObject*> dot_prototype(cx, aDot_prototype);
   NS_ASSERTION(ci_data ||
@@ -2635,9 +2633,12 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
                   false, &v);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (install) {
-    rv = constructor->Install(cx, obj, v);
-    NS_ENSURE_SUCCESS(rv, rv);
+  FillPropertyDescriptor(ctorDesc, obj, 0, v);
+  
+  
+  
+  if (!JS_WrapValue(cx, ctorDesc.value())) {
+    return NS_ERROR_UNEXPECTED;
   }
 
   JS::Rooted<JSObject*> class_obj(cx, &v.toObject());
@@ -2766,8 +2767,6 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
     return NS_ERROR_UNEXPECTED;
   }
 
-  *did_resolve = true;
-
   return NS_OK;
 }
 
@@ -2801,20 +2800,19 @@ OldBindingConstructorEnabled(const nsGlobalNameStruct *aStruct,
 }
 
 static nsresult
-DefineComponentsShim(JSContext *cx, JS::Handle<JSObject*> global, nsPIDOMWindow *win);
+LookupComponentsShim(JSContext *cx, JS::Handle<JSObject*> global,
+                     nsPIDOMWindow *win,
+                     JS::MutableHandle<JSPropertyDescriptor> desc);
 
 
 nsresult
 nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
                           JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                          bool *did_resolve)
+                          JS::MutableHandle<JSPropertyDescriptor> desc)
 {
   if (id == XPCJSRuntime::Get()->GetStringID(XPCJSRuntime::IDX_COMPONENTS)) {
-    *did_resolve = true;
-    return DefineComponentsShim(cx, obj, aWin);
+    return LookupComponentsShim(cx, obj, aWin, desc);
   }
-
-  *did_resolve = false;
 
   nsScriptNameSpaceManager *nameSpaceManager = GetNameSpaceManager();
   NS_ENSURE_TRUE(nameSpaceManager, NS_ERROR_NOT_INITIALIZED);
@@ -2828,6 +2826,9 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
   if (!name_struct) {
     return NS_OK;
   }
+
+  
+  MOZ_ASSERT(name.Equals(class_name));
 
   NS_ENSURE_TRUE(class_name, NS_ERROR_UNEXPECTED);
 
@@ -2859,38 +2860,72 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
         return NS_OK;
       }
 
-      Maybe<JSAutoCompartment> ac;
-      JS::Rooted<JSObject*> global(cx);
-      bool isXray = xpc::WrapperFactory::IsXrayWrapper(obj);
-      if (isXray) {
-        global = js::CheckedUnwrap(obj,  false);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
+        JS::Rooted<JSObject*> global(cx,
+          js::CheckedUnwrap(obj,  false));
         if (!global) {
           return NS_ERROR_DOM_SECURITY_ERR;
         }
-        ac.construct(cx, global);
-      } else {
-        global = obj;
-      }
-
-      JS::Rooted<JSObject*> interfaceObject(cx,
-        getOrCreateInterfaceObject(cx, global, id, !isXray));
-      if (!interfaceObject) {
-        return NS_ERROR_FAILURE;
-      }
-
-      if (isXray) {
-        
-        ac.destroy();
-        if (!JS_WrapObject(cx, &interfaceObject) ||
-            !JS_DefinePropertyById(cx, obj, id,
-                                   JS::ObjectValue(*interfaceObject), JS_PropertyStub,
-                                   JS_StrictPropertyStub, 0)) {
+        JS::Rooted<JSObject*> interfaceObject(cx);
+        {
+          JSAutoCompartment ac(cx, global);
+          interfaceObject = getOrCreateInterfaceObject(cx, global, id, false);
+        }
+        if (NS_WARN_IF(!interfaceObject)) {
+          return NS_ERROR_FAILURE;
+        }
+        if (!JS_WrapObject(cx, &interfaceObject)) {
           return NS_ERROR_FAILURE;
         }
 
+        FillPropertyDescriptor(desc, obj, 0, JS::ObjectValue(*interfaceObject));
+      } else {
+        JS::Rooted<JSObject*> interfaceObject(cx,
+          getOrCreateInterfaceObject(cx, obj, id, true));
+        if (NS_WARN_IF(!interfaceObject)) {
+          return NS_ERROR_FAILURE;
+        }
+        
+        
+        
+        
+        
+        FillPropertyDescriptor(desc, obj, JS::UndefinedValue(), false);
       }
-
-      *did_resolve = true;
 
       return NS_OK;
     }
@@ -2912,20 +2947,22 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
                     false, &v);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = constructor->Install(cx, obj, v);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     JS::Rooted<JSObject*> class_obj(cx, &v.toObject());
 
     
     
 
-    JSAutoCompartment ac(cx, class_obj);
-    rv = DefineInterfaceConstants(cx, class_obj, &name_struct->mIID);
-    NS_ENSURE_SUCCESS(rv, rv);
+    {
+      JSAutoCompartment ac(cx, class_obj);
+      rv = DefineInterfaceConstants(cx, class_obj, &name_struct->mIID);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
-    *did_resolve = true;
+    if (!JS_WrapValue(cx, &v)) {
+      return NS_ERROR_UNEXPECTED;
+    }
 
+    FillPropertyDescriptor(desc, obj, 0, v);
     return NS_OK;
   }
 
@@ -2937,37 +2974,41 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
     
     
+    
     nsCOMPtr<nsIXPConnectJSObjectHolder> proto_holder;
     rv = GetXPCProto(sXPConnect, cx, aWin, name_struct,
                      getter_AddRefs(proto_holder));
-
-    if (NS_SUCCEEDED(rv) && obj != aWin->GetGlobalJSObject()) {
-      JS::Rooted<JSObject*> dot_prototype(cx, proto_holder->GetJSObject());
-      NS_ENSURE_STATE(dot_prototype);
-
-      const nsDOMClassInfoData *ci_data;
-      if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
-        ci_data = &sClassInfoData[name_struct->mDOMClassInfoID];
-      } else {
-        ci_data = name_struct->mData;
-      }
-
-      return ResolvePrototype(sXPConnect, aWin, cx, obj, class_name, ci_data,
-                              name_struct, nameSpaceManager, dot_prototype,
-                              true, did_resolve);
+    NS_ENSURE_SUCCESS(rv, rv);
+    bool isXray = xpc::WrapperFactory::IsXrayWrapper(obj);
+    MOZ_ASSERT_IF(obj != aWin->GetGlobalJSObject(), isXray);
+    if (!isXray) {
+      
+      FillPropertyDescriptor(desc, obj, JS::UndefinedValue(), false);
+      return NS_OK;
     }
 
-    *did_resolve = NS_SUCCEEDED(rv);
+    
+    
+    JS::Rooted<JSObject*> dot_prototype(cx, proto_holder->GetJSObject());
+    NS_ENSURE_STATE(dot_prototype);
 
-    return rv;
+    const nsDOMClassInfoData *ci_data;
+    if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
+      ci_data = &sClassInfoData[name_struct->mDOMClassInfoID];
+    } else {
+      ci_data = name_struct->mData;
+    }
+
+    return ResolvePrototype(sXPConnect, aWin, cx, obj, class_name, ci_data,
+                            name_struct, nameSpaceManager, dot_prototype,
+                            desc);
   }
 
   if (name_struct->mType == nsGlobalNameStruct::eTypeClassProto) {
     
     
     return ResolvePrototype(sXPConnect, aWin, cx, obj, class_name, nullptr,
-                            name_struct, nameSpaceManager, nullptr, true,
-                            did_resolve);
+                            name_struct, nameSpaceManager, nullptr, desc);
   }
 
   if (name_struct->mType == nsGlobalNameStruct::eTypeExternalConstructorAlias) {
@@ -2996,8 +3037,7 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     }
 
     return ResolvePrototype(sXPConnect, aWin, cx, obj, class_name, ci_data,
-                            name_struct, nameSpaceManager, nullptr, true,
-                            did_resolve);
+                            name_struct, nameSpaceManager, nullptr, desc);
   }
 
   if (name_struct->mType == nsGlobalNameStruct::eTypeExternalConstructor) {
@@ -3009,15 +3049,12 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
     JS::Rooted<JS::Value> val(cx);
     rv = WrapNative(cx, obj, constructor, &NS_GET_IID(nsIDOMDOMConstructor),
-                    false, &val);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = constructor->Install(cx, obj, val);
+                    true, &val);
     NS_ENSURE_SUCCESS(rv, rv);
 
     NS_ASSERTION(val.isObject(), "Why didn't we get a JSObject?");
 
-    *did_resolve = true;
+    FillPropertyDescriptor(desc, obj, 0, val);
 
     return NS_OK;
   }
@@ -3066,13 +3103,9 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       return NS_ERROR_UNEXPECTED;
     }
 
-    bool ok = ::JS_DefinePropertyById(cx, obj, id, prop_val,
-                                      JS_PropertyStub, JS_StrictPropertyStub,
-                                      JSPROP_ENUMERATE);
+    FillPropertyDescriptor(desc, obj, prop_val, false);
 
-    *did_resolve = true;
-
-    return ok ? NS_OK : NS_ERROR_FAILURE;
+    return NS_OK;
   }
 
   return rv;
@@ -3184,7 +3217,9 @@ const InterfaceShimEntry kInterfaceShimMap[] =
   { "nsIDOMXPathResult", "XPathResult" } };
 
 static nsresult
-DefineComponentsShim(JSContext *cx, JS::Handle<JSObject*> global, nsPIDOMWindow *win)
+LookupComponentsShim(JSContext *cx, JS::Handle<JSObject*> global,
+                     nsPIDOMWindow *win,
+                     JS::MutableHandle<JSPropertyDescriptor> desc)
 {
   
   Telemetry::Accumulate(Telemetry::COMPONENTS_SHIM_ACCESSED_BY_CONTENT, true);
@@ -3198,16 +3233,14 @@ DefineComponentsShim(JSContext *cx, JS::Handle<JSObject*> global, nsPIDOMWindow 
   
   JS::Rooted<JSObject*> components(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), global));
   NS_ENSURE_TRUE(components, NS_ERROR_OUT_OF_MEMORY);
-  bool ok = JS_DefineProperty(cx, global, "Components", JS::ObjectValue(*components),
-                              JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE);
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
 
   
   JS::Rooted<JSObject*> interfaces(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), global));
   NS_ENSURE_TRUE(interfaces, NS_ERROR_OUT_OF_MEMORY);
-  ok = JS_DefineProperty(cx, components, "interfaces", JS::ObjectValue(*interfaces),
-                         JS_PropertyStub, JS_StrictPropertyStub,
-                         JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY);
+  bool ok =
+    JS_DefineProperty(cx, components, "interfaces", JS::ObjectValue(*interfaces),
+                      JS_PropertyStub, JS_StrictPropertyStub,
+                      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY);
   NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
 
   
@@ -3233,6 +3266,8 @@ DefineComponentsShim(JSContext *cx, JS::Handle<JSObject*> global, nsPIDOMWindow 
                            JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY);
     NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   }
+
+  FillPropertyDescriptor(desc, global, JS::ObjectValue(*components), false);
 
   return NS_OK;
 }
@@ -3339,18 +3374,39 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     
-    bool ignored;
     JS::Rooted<JSObject*> global(cx,
       js::UncheckedUnwrap(obj,  false));
     JSAutoCompartment ac(cx, global);
-    nsresult rv = GlobalResolve(win, cx, global, id, &ignored);
+    JS::Rooted<JSPropertyDescriptor> desc(cx);
+    nsresult rv = GlobalResolve(win, cx, global, id, &desc);
     NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    
+    if (desc.object() && !desc.value().isUndefined() &&
+        !JS_DefinePropertyById(cx, global, id, desc.value(),
+                               desc.getter(), desc.setter(),
+                               desc.attributes())) {
+      return NS_ERROR_FAILURE;
+    }
   }
-  bool did_resolve = false;
-  nsresult rv = GlobalResolve(win, cx, obj, id, &did_resolve);
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  if (did_resolve) {
+  JS::Rooted<JSPropertyDescriptor> desc(cx);
+  nsresult rv = GlobalResolve(win, cx, obj, id, &desc);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (desc.object()) {
+    
+    
+    
+    
+    MOZ_ASSERT_IF(isXray, !desc.value().isUndefined());
+    if (!desc.value().isUndefined() &&
+        !JS_DefinePropertyById(cx, obj, id, desc.value(),
+                               desc.getter(), desc.setter(),
+                               desc.attributes())) {
+      return NS_ERROR_FAILURE;
+    }
+
     *objp = obj;
     return NS_OK;
   }
