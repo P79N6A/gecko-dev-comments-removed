@@ -2662,6 +2662,8 @@ BeginMarkPhase(JSRuntime *rt)
 
 
 
+
+
     
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
