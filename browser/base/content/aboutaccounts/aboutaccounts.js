@@ -59,9 +59,10 @@ let wrapper = {
         
         
         
-        setTimeout(function() {
-          window.location = "about:sync-progress";
-        }, 0);
+        
+        
+        
+        
       },
       (err) => this.injectData("message", { status: "error", error: err })
     );
