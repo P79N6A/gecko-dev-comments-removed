@@ -202,7 +202,11 @@ struct IonOptions
         rangeAnalysis(true),
         uce(true),
         eaa(true),
+#ifdef JS_THREADSAFE
+        parallelCompilation(true),
+#else
         parallelCompilation(false),
+#endif
         baselineUsesBeforeCompile(10),
         usesBeforeCompile(1000),
         usesBeforeCompileNoJaeger(40),
