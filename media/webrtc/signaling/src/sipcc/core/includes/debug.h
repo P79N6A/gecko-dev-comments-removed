@@ -128,26 +128,6 @@ typedef struct {
 #define MAX_CLEAR_NAME 50
 
 
-typedef struct {
-    cc_debug_category_e category;
-    char debugName[MAX_DEBUG_NAME];
-    cc_int32_t *key; 
-} debugStruct_t;
-
-typedef struct {
-    cc_debug_show_options_e category;
-    char showName[MAX_SHOW_NAME];
-    show_callback callbackFunc;  
-    boolean  showTech; 
-} debugShowStruct_t;
-
-typedef struct {
-    cc_debug_clear_options_e category;
-    char clearName[MAX_CLEAR_NAME];
-    clear_callback callbackFunc;  
-} debugClearStruct_t;
-
-
 
 
 void bind_test_keyword(const char *keyword, const char *abrv, boolean hidden,

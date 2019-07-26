@@ -226,9 +226,10 @@
 #define CCSIP_SIP_USER_AGENT    "CP9971"
 
 #define MAX_PHONE_LINES       8
-#define MAX_REG_LINES         8
+#define MAX_REG_LINES        51
 #define MAX_CALLS            51
 #define MAX_CALLS_PER_LINE   51
+
 
 
 
@@ -239,6 +240,6 @@
 
 
 
-#define MAX_CONFIG_LINES 36
+#define MAX_CONFIG_LINES 51
 
 #endif

@@ -41,6 +41,7 @@
 #define _CCAPI_CALL_INFO_H_
 
 #include "ccapi_types.h"
+#include "peer_connection_types.h"
 
 
 
@@ -314,5 +315,26 @@ cc_boolean CCAPI_CallInfo_isAudioMuted(cc_callinfo_ref_t handle);
 
         
 cc_boolean CCAPI_CallInfo_isVideoMuted(cc_callinfo_ref_t handle);
+
+
+
+
+
+
+cc_string_t CCAPI_CallInfo_getSDP(cc_callinfo_ref_t handle);
+
+
+
+
+
+
+cc_int32_t  CCAPI_CallInfo_getStatusCode(cc_callinfo_ref_t handle);
+
+
+
+
+
+
+MediaStreamTable* CCAPI_CallInfo_getMediaStreams(cc_callinfo_ref_t handle);
 
 #endif 

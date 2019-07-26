@@ -48,6 +48,7 @@ extern "C"
 
 #include "CC_Common.h"
 #include "CC_CallTypes.h"
+#include "peer_connection_types.h"
 
 namespace CSF
 {
@@ -74,6 +75,20 @@ namespace CSF
 
 
         virtual cc_call_state_t getCallState () = 0;
+
+        
+
+
+
+
+        virtual std::string callStateToString (cc_call_state_t state) = 0;
+
+        
+
+
+
+
+        virtual std::string callEventToString (ccapi_call_event_e callEvent) = 0;
 
         
 
@@ -330,5 +345,27 @@ namespace CSF
 
 
         virtual int getVolume() = 0;
+
+        
+
+
+
+
+        virtual std::string getSDP() = 0;
+
+        
+
+
+
+
+        virtual cc_int32_t getStatusCode() = 0;
+
+        
+
+
+
+
+
+        virtual MediaStreamTable* getMediaStreams() const = 0;
     };
 };

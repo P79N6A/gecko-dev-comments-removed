@@ -59,4 +59,29 @@ void platform_apply_config (char * configVersionStamp, char * dialplanVersionSta
 cpr_ip_mode_e platGetIpAddressMode(); 
 
 
+
+
+
+
+
+
+
+
+
+
+void *
+cprGetSysHeader (void *buffer);
+
+
+
+
+
+
+
+
+
+
+void
+cprReleaseSysHeader (void *syshdr);
+
 #endif

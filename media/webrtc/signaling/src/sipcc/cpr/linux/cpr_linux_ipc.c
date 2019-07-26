@@ -274,7 +274,7 @@ cprCreateMessageQueue (const char *name, uint16_t depth)
     
 
 
-    key = ftok("/tmp", key_id++);
+    key = ftok("/proc/self", key_id++);
     printf("key = %x\n", key);
     
     if (key == -1) {
@@ -396,7 +396,7 @@ cprDestroyMessageQueue (cprMsgQueue_t msgQueue)
     
     msg = cprGetMessage(msgQueue, FALSE, NULL);
     while (msg != NULL) {
-        cprReleaseBuffer(msg);
+        cpr_free(msg);
         msg = cprGetMessage(msgQueue, FALSE, NULL);
     }
 

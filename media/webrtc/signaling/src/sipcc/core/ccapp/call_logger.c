@@ -143,13 +143,13 @@ cc_boolean partyInfoPassedTheNumberFilter (cc_string_t partyString)
         
         
         
-        if (partyString[1] == 17 ||
-            partyString[1] == 91 ||
-
-            partyString[1] == 05 ||
-            partyString[1] == 18 ||
-            partyString[1] == 16 ||
-            partyString[1] == 52 ) {
+        if (partyString && strlen(partyString) > 1 &&
+            (partyString[1] == 17 ||
+             partyString[1] == 91 ||
+             partyString[1] == 05 ||
+             partyString[1] == 18 ||
+             partyString[1] == 16 ||
+             partyString[1] == 52 )) {
 
             CCLOG_DEBUG(DEB_F_PREFIX"Filtering out the partyName=%s\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname), partyString);
             return FALSE;
@@ -168,7 +168,8 @@ cc_boolean partyInfoPassedTheNameFilter(cc_string_t partyString) {
 
     CCLOG_DEBUG(DEB_F_PREFIX"Entering...\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname));
     
-    if (partyString[1] == 52 || partyString[1] == 53) {
+    if (partyString && strlen(partyString) > 1 && 
+        (partyString[1] == 52 || partyString[1] == 53)) {
         CCLOG_DEBUG(DEB_F_PREFIX"Filtering out the partyName=%s\n", DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname), partyString);
         return FALSE;
     }

@@ -49,9 +49,54 @@ __BEGIN_DECLS
 #include "../linux/cpr_linux_string.h"
 #elif defined SIP_OS_WINDOWS
 #include "../win32/cpr_win_string.h"
+#define cpr_strdup _strdup
 #elif defined SIP_OS_OSX
 #include "../darwin/cpr_darwin_string.h"
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+unsigned long
+sstrncpy(char *dst, const char *src, unsigned long max);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *
+sstrncat(char *s1, const char *s2, unsigned long max);
 
 __END_DECLS
 

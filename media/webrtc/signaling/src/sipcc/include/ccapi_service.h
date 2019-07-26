@@ -44,6 +44,17 @@
 
 
 
+extern int g_dev_hdl;
+#define G_DEV_NAME_SIZE 64
+extern char g_dev_name[G_DEV_NAME_SIZE];
+#define G_CFG_P_SIZE 256
+extern char g_cfg_p[G_CFG_P_SIZE];
+extern int g_compl_cfg;
+
+
+
+
+
 
 
 

@@ -1,0 +1,90 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef peerconnectionctx_h___h__
+#define peerconnectionctx_h___h__
+
+#include <string>
+
+#include "mozilla/Attributes.h"
+#include "CallControlManager.h"
+#include "CC_Device.h"
+#include "CC_Call.h"
+#include "CC_Observer.h"
+
+#include "PeerConnectionImpl.h"
+
+namespace sipcc {
+
+
+
+
+
+class PeerConnectionCtx : public CSF::CC_Observer {
+ public:
+  static PeerConnectionCtx* GetInstance();
+  static void Destroy();
+
+  
+  virtual void onDeviceEvent(ccapi_device_event_e deviceEvent, CSF::CC_DevicePtr device, CSF::CC_DeviceInfoPtr info);
+  virtual void onFeatureEvent(ccapi_device_event_e deviceEvent, CSF::CC_DevicePtr device, CSF::CC_FeatureInfoPtr feature_info) {}
+  virtual void onLineEvent(ccapi_line_event_e lineEvent, CSF::CC_LinePtr line, CSF::CC_LineInfoPtr info) {}
+  virtual void onCallEvent(ccapi_call_event_e callEvent, CSF::CC_CallPtr call, CSF::CC_CallInfoPtr info);
+
+  
+  CSF::CC_CallPtr createCall();
+
+  PeerConnectionImpl::SipccState sipcc_state() { return mSipccState; }
+
+ private:
+  PeerConnectionCtx() :  mSipccState(PeerConnectionImpl::kIdle),
+                         mCCM(NULL), mDevice(NULL) {}
+  
+  PeerConnectionCtx(const PeerConnectionCtx& other) MOZ_DELETE;
+  void operator=(const PeerConnectionCtx& other) MOZ_DELETE;
+  virtual ~PeerConnectionCtx() {};
+
+  nsresult Initialize();
+  nsresult Cleanup();
+
+  void ChangeSipccState(PeerConnectionImpl::SipccState aState) {
+    mSipccState = aState;
+  }
+
+  
+  PeerConnectionImpl::SipccState mSipccState;  
+  CSF::CallControlManagerPtr mCCM;
+  CSF::CC_DevicePtr mDevice;
+
+  static PeerConnectionCtx *instance;
+};
+
+}  
+
+#endif

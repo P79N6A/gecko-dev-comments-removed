@@ -44,7 +44,6 @@
 
 
 
-
 #define MAX_CALL_SERVERS 4
 
 
@@ -79,6 +78,7 @@ typedef unsigned short cc_callid_t;
 typedef unsigned short cc_streamid_t;
 typedef unsigned short cc_mcapid_t;
 typedef unsigned short cc_groupid_t;
+typedef unsigned short cc_level_t;
 
 
 
@@ -270,7 +270,6 @@ typedef enum {
 
 
 
-
 typedef enum {
 	CC_SIP_BLF_UNKNOWN,
 	CC_SIP_BLF_IDLE,
@@ -310,6 +309,15 @@ typedef enum {
 	WHISPER,
     PRESERVATION,
 	WAITINGFORDIGITS = 21,
+	CREATEOFFER,
+	CREATEANSWER,
+	CREATEOFFERERROR,
+	CREATEANSWERERROR,
+	SETLOCALDESC,
+	SETREMOTEDESC,	
+	SETLOCALDESCERROR,
+	SETREMOTEDESCERROR,
+	REMOTESTREAMADD,
     MAX_CALL_STATES
 } cc_call_state_t;
 
@@ -362,7 +370,6 @@ typedef enum {
 	CC_SECURITY_NOT_AUTHENTICATED,
 	CC_SECURITY_ENCRYPTED
 } cc_call_security_t;
-
 
 
 
@@ -493,7 +500,9 @@ typedef enum {
 	CC_CAUSE_XFER_COMPLETE,
 	CC_CAUSE_RESP_TIMEOUT,
 	CC_CAUSE_SERV_ERR_UNAVAIL,
-        CC_CAUSE_REMOTE_DISCONN_REQ_PLAYTONE,
+    CC_CAUSE_REMOTE_DISCONN_REQ_PLAYTONE,
+    CC_CAUSE_OUT_OF_MEM,
+    CC_CAUSE_VALUE_NOT_FOUND,
 	CC_CAUSE_MAX
 } cc_cause_t;
 
@@ -536,6 +545,9 @@ typedef enum {
 } cc_sis_feature_id_e;
   
 
+
+  
+
 typedef enum {
    CCAPI_CONFPARTICIPANT_UNKNOWN,
    CCAPI_CONFPARTICIPANT_DIALING_OUT,
@@ -544,6 +556,31 @@ typedef enum {
    CCAPI_CONFPARTICIPANT_ON_HOLD,
    CCAPI_CONFPARTICIPANT_DISCONNECTED
 } cc_conf_participant_status_t;  
+
+
+typedef enum {
+  JSEP_NO_ACTION = -1,
+  JSEP_OFFER,
+  JSEP_ANSWER,
+  JSEP_PRANSWER
+} cc_jsep_action_t;
+
+
+typedef cc_string_t cc_peerconnection_t;
+
+typedef unsigned int cc_media_stream_id_t;
+
+typedef unsigned int cc_media_track_id_t;
+
+
+typedef enum {
+  NO_STREAM = -1,
+  AUDIO,
+  VIDEO,
+  TYPE_MAX
+} cc_media_type_t;
+
+
 
 #endif 
 

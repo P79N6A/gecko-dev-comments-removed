@@ -375,29 +375,6 @@ int vcmGetVideoCodecList(int request_type)
 
 
 
-int vcmGetVideoMaxSupportedPacketizationMode()
-{
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-int vcmGetRtpStats(cc_mcapid_t mcap_id, cc_groupid_t group_id,
-                      cc_streamid_t stream_id, cc_call_handle_t call_handle,
-                      char *rx_stats, char *tx_stats)
-{
-    return 0;
-}
 
 
 
@@ -413,23 +390,6 @@ int vcmGetRtpStats(cc_mcapid_t mcap_id, cc_groupid_t group_id,
 
 
 
-boolean vcmAllocateBandwidth(cc_call_handle_t call_handle, int sessions)
-{
-    return TRUE;
-}
-
-
-
-
-
-
-
-
-
-void vcmRemoveBandwidth(cc_call_handle_t call_handle)
-{
-    return;
-}
 
 
 
@@ -440,10 +400,59 @@ void vcmRemoveBandwidth(cc_call_handle_t call_handle)
 
 
 
-void vcmActivateWlan(boolean is_active)
-{
-    return;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -468,10 +477,6 @@ void vcmFreeMediaPtr(void *ptr)
 
 
 
-void vcmMediaControl(cc_call_handle_t call_handle, vcm_media_control_to_encoder_t to_encoder)
-{
-    return;
-}
 
 
 
@@ -482,10 +487,18 @@ void vcmMediaControl(cc_call_handle_t call_handle, vcm_media_control_to_encoder_
 
 
 
-void vcmSetRtcpDscp(cc_groupid_t group_id, int dscp)
-{
-    return;
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -543,13 +556,17 @@ void vcmPopulateAttribs(void *sdp_p, int level, uint32_t media_type,
 
 
 
-int vcmDtmfBurst(int digit, int duration, int direction)
-{
-    return 0;
-}
 
-int vcmGetILBCMode()
-{
-    return SIPSDP_ILBC_MODE20;
-}
+
+
+
+
+
+
+
+
+
+
+
+
 

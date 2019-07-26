@@ -690,14 +690,6 @@ void platGetMacAddr(char *addr);
 
 
 
-void platGetDefaultGW(char *addr);
-
-
-
-
-
-
-
 
 
 
@@ -712,81 +704,6 @@ int platGetFeatureAllowed(cc_sis_feature_id_e featureId);
 
 
 void platSetStatusMessage(char *msg);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void debugSet(cc_debug_category_e category, cc_debug_flag_e flag, ...);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int debugShow(cc_debug_show_options_e category, ...);
-
-
-
-
-
-
-
-
-
-
-void debugShowTech(void);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int debugClear(cc_debug_clear_options_e category, ...);
 
 
 

@@ -36,9 +36,6 @@
 
 
 
-
-#include <libxml/parser.h>
-#include <libxml/tree.h>
  
 #include "capability_set.h"
 #include "CCProvider.h"
@@ -295,140 +292,7 @@ static void fcp_init()
    capset_init();
    
    
-   strcpy (g_fp_version_stamp, "");
-}
-
-
-
-
-
-
-static void config_parse_fcp_feature (char* featureName, xmlNode* fcp_node, xmlDocPtr doc)
-{
-    xmlChar*     xmlValue;
-    xmlNode*     cur_node;
-    
-    
-    if ((fcp_index+1) >= FCP_FEATURE_MAX) 
-    {
-        CONFIG_ERROR(CFG_F_PREFIX "Received more than the maximum supported features [%d] in FCP \n", "config_parse_fcp_feature", FCP_FEATURE_MAX);                    
-        return;
-    }
-    fcp_index++;
-    
-    
-    strcpy (cc_feat_control_policy[fcp_index].featureName, "");
-    cc_feat_control_policy[fcp_index].featureEnabled = FALSE;
-    cc_feat_control_policy[fcp_index].featureId       = 0;
-    
-    
-    strncpy (cc_feat_control_policy[fcp_index].featureName, featureName, FCP_FEATURE_NAME_MAX);
-
-    
-    for (cur_node = fcp_node; cur_node; cur_node = cur_node->next) 
-    {
-        if (cur_node->type == XML_ELEMENT_NODE) 
-        {
-            xmlValue = xmlNodeListGetString(doc, cur_node->xmlChildrenNode, 1);
-            if (xmlValue != NULL)
-            {
-            
-                if (!xmlStrcmp(cur_node->name, (const xmlChar *) "id")) 
-                {        
-                    unsigned int featureId = atoi((char*)xmlValue);
-                    if (featureId > FCP_FEATURE_MAX)
-                    {
-                        CONFIG_ERROR(CFG_F_PREFIX "Feature Id [%d] in FCP file Out Of Range [%d] \n", "config_parse_fcp_feature", featureId, FCP_FEATURE_MAX);                    
-                        featureId = 0;
-                    }
-            
-                    cc_feat_control_policy[fcp_index].featureId = featureId;
-                                                            
-                } else if (!xmlStrcmp(cur_node->name, (const xmlChar *) "enable")) 
-                {
-                    cc_feat_control_policy[fcp_index].featureEnabled = (cc_boolean)(strcmp((char*)xmlValue, "true") == 0);                
-                }
-                
-                xmlFree(xmlValue); 
-            }        
-        }
-    }
-}
-
-
-
-
-
-
-
-static void config_parse_fcp_element (xmlNode* fcp_node, char* value, xmlDocPtr doc )
-{    
-   int versionStampSize = 0;
-    
-    if (!xmlStrcmp(fcp_node->name, (const xmlChar *) "versionStamp")) 
-    {
-        versionStampSize = strlen(value);
-    
-        
-        if (versionStampSize > MAX_FP_VERSION_STAMP_LEN) {
-            CONFIG_ERROR(CFG_F_PREFIX "FCP Version Length [%d] is crazy large!\n", "config_parse_fcp_element", versionStampSize);
-            return;
-        }
-
-        
-        sstrncpy(g_fp_version_stamp, value, MAX_FP_VERSION_STAMP_LEN);        
-
-    } else if (!xmlStrcmp(fcp_node->name, (const xmlChar *) "featureDef")) 
-    {
-        xmlChar* featureName = NULL;
-            
-        featureName = xmlGetProp(fcp_node, (const xmlChar *) "name");
-        if (featureName == NULL)
-        {
-            CONFIG_ERROR(CFG_F_PREFIX "FCP Couldnt get feature name element!\n", "config_parse_fcp_element");
-            return;
-        }
-        
-        
-        CONFIG_DEBUG(CFG_F_PREFIX "FCP Parsing FeatureName=[%s] \n", "config_parse_fcp_element", (char*)featureName);
-        config_parse_fcp_feature ((char*)featureName, fcp_node->children, doc);        
-        
-        xmlFree(featureName); 
-    }     
-}
-
-
-
-
-
-
-
-
-
-
-
-
-static int fcp_parse_and_set (xmlNode* a_node, xmlDocPtr doc)
-{    
-    xmlNode*  cur_node = NULL;
-    xmlChar*  data;
-
-    for (cur_node = a_node; cur_node; cur_node = cur_node->next) 
-    {
-        if (cur_node->type == XML_ELEMENT_NODE) 
-        {
-            data = xmlNodeListGetString(doc, cur_node->xmlChildrenNode, 1);
-            if (data != NULL) 
-            {
-                config_parse_fcp_element(cur_node, (char *)data, doc);
-                xmlFree(data);
-            }
-        }
-        
-        fcp_parse_and_set(cur_node->children, doc);
-    }
-
-    return (0);
+   g_fp_version_stamp[0] = '\0';
 }
 
 
@@ -437,42 +301,12 @@ static int fcp_parse_and_set (xmlNode* a_node, xmlDocPtr doc)
 
 int fcp_init_template (const char* fcp_plan_string)
 {
-    static const char fname[] = "fcp_init_template";
- 
-    xmlNode*  fcp_xml_root_element;
-    xmlDocPtr fcp_xml_doc;
-        
     fcp_init();    
         
     if (fcp_plan_string == NULL)
     {   
        return (0);  
     }
-
-    fcp_xml_doc = xmlReadFile(fcp_plan_string, NULL, 0);
-    if (fcp_xml_doc == NULL)
-    {    
-        CONFIG_ERROR(CFG_F_PREFIX "FCP - Unable to xmlReadFile = [%s]", fname, fcp_plan_string);
-        return (-1);    
-    }
-
-    
-    fcp_xml_root_element = xmlDocGetRootElement(fcp_xml_doc);
-    if (fcp_xml_root_element == NULL)
-    {    
-        CONFIG_ERROR(CFG_F_PREFIX "FCP - Unable to get root element for FCP file = [%s]", fname, fcp_plan_string);
-        xmlFreeDoc(fcp_xml_doc);
-
-        return (-1);   
-    }
-
-    fcp_parse_and_set (fcp_xml_root_element, fcp_xml_doc);
-
-    
-    xmlFreeDoc(fcp_xml_doc);
-
-    
-    CONFIG_DEBUG(DEB_F_PREFIX"FCP Post FCP Parse Setting Capabilities\n", DEB_F_PREFIX_ARGS(JNI, "fcp_display"));
 
     
     fcp_set_capabilities();

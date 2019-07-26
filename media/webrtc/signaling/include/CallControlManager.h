@@ -69,7 +69,7 @@
 
 namespace CSF
 {
-	DECLARE_PTR(CallControlManager);
+	DECLARE_PTR(CallControlManager)
 	
 
 
@@ -117,10 +117,8 @@ namespace CSF
         virtual void setSecureCachePath(const std::string &secureCachePath) = 0;
 
         
-
-
-
-        virtual void setLocalIpAddressAndGateway(const std::string& localIpAddress, const std::string& defaultGW) = 0;
+        virtual void setAudioCodecs(int codecMask) = 0;
+        virtual void setVideoCodecs(int codecMask) = 0;
 
         virtual bool registerUser(const std::string& deviceName, const std::string& user, const std::string& password, const std::string& domain) = 0;
         virtual bool disconnect() = 0;
@@ -131,9 +129,9 @@ namespace CSF
 
         
         virtual bool startP2PMode(const std::string& user) = 0;
-
         
-        virtual bool startROAPProxy( const std::string& deviceName, const std::string& user, const std::string& password, const std::string& domain ) = 0;
+        
+        virtual bool startSDPMode() = 0;        
 
         
 
@@ -162,6 +160,4 @@ namespace CSF
         CallControlManager(const CallControlManager&);
         CallControlManager& operator=(const CallControlManager&);
     };
-
-
-};
+} 

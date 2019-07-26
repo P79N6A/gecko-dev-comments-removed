@@ -123,7 +123,7 @@ cprCreateThread (const char *name,
 
 
 
-        threadPtr->u.handleInt = (long) threadId;
+        threadPtr->u.handleInt = (uint64_t)threadId;
         threadPtr->threadId = ++id;
         return (cprThread_t)threadPtr;
     }
@@ -161,7 +161,7 @@ cprDestroyThread (cprThread_t thread)
         
 
 
-        if ((pthread_t)(long) cprThreadPtr->u.handleInt == pthread_self()) {
+        if (cprThreadPtr->u.handlePtr == (void*) pthread_self()) {
             cprThreadPtr->threadId = 0;
             cpr_free(cprThreadPtr);
             pthread_exit(NULL);

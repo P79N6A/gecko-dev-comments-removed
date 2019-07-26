@@ -187,7 +187,19 @@ const sdp_attrarray_t sdp_attr[SDP_MAX_ATTR_TYPES] =
     {"label", sizeof("label"),
       sdp_parse_attr_simple_string, sdp_build_attr_simple_string },
     {"framerate", sizeof("framerate"),
-      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 }       
+      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32 },
+    {"candidate", sizeof("candidate"),
+      sdp_parse_attr_ice_attr, sdp_build_attr_ice_attr },
+    {"ice-ufrag", sizeof("ice-ufrag"),
+      sdp_parse_attr_ice_attr, sdp_build_attr_ice_attr },
+    {"ice-pwd", sizeof("ice-pwd"),
+      sdp_parse_attr_ice_attr, sdp_build_attr_ice_attr},
+    {"rtcp-mux", sizeof("rtcp-mux"),
+      sdp_parse_attr_rtcp_mux_attr, sdp_build_attr_rtcp_mux_attr},
+    {"fingerprint", sizeof("fingerprint"),
+      sdp_parse_attr_fingerprint_attr, sdp_build_attr_simple_string},
+    {"maxptime", sizeof("maxptime"),
+      sdp_parse_attr_simple_u32, sdp_build_attr_simple_u32}
 };
 
 
@@ -245,7 +257,9 @@ const sdp_namearray_t sdp_transport[SDP_MAX_TRANSPORT_TYPES] =
     {"AAL1/AVP",     sizeof("AAL1/AVP")},
     {"udpsprt",      sizeof("udpsprt")},
     {"RTP/SAVP",     sizeof("RTP/SAVP")},
-    {"tcp",          sizeof("tcp")}
+    {"tcp",          sizeof("tcp")},
+    {"RTP/SAVPF",    sizeof("RTP/SAVPF")},
+    {"SCTP/DTLS",    sizeof("SCTP/DTLS")}
 };
 
 
@@ -404,7 +418,15 @@ const sdp_namearray_t sdp_fmtp_codec_param[SDP_MAX_FMTP_PARAM] =
      {"P", sizeof("P")}, 
 
      {"mode",                sizeof("mode")},  
-    {"level-asymmetry-allowed",         sizeof("level-asymmetry-allowed")} 
+    {"level-asymmetry-allowed",         sizeof("level-asymmetry-allowed")}, 
+    {"maxaveragebitrate",               sizeof("maxaveragebitrate")}, 
+    {"usedtx",                          sizeof("usedtx")}, 
+    {"stereo",                          sizeof("stereo")}, 
+    {"useinbandfec",                    sizeof("useinbandfec")}, 
+    {"maxcodedaudiobandwidth",          sizeof("maxcodedaudiobandwidth")}, 
+    {"cbr",                             sizeof("cbr")}, 
+    {"streams",                         sizeof("streams")}, 
+    {"protocol",                        sizeof("protocol")} 
    
 } ;
 
@@ -1155,6 +1177,7 @@ sdp_result_e sdp_build (void *sdp_ptr, char **bufp, u16 len)
     for (i=0; ((i < SDP_TOKEN_M) &&
                (result == SDP_SUCCESS) && (endbuf_p - ptr > 0)); i++) {
         result = sdp_token[i].build_func(sdp_p, SDP_SESSION_LEVEL, &ptr, (u16)(endbuf_p - ptr));
+        
     }
     
     if ((result == SDP_SUCCESS) && (endbuf_p - ptr > 0)) {
@@ -1162,6 +1185,7 @@ sdp_result_e sdp_build (void *sdp_ptr, char **bufp, u16 len)
                    (result == SDP_SUCCESS) && (endbuf_p - ptr > 0)); i++) {
             result = sdp_token[SDP_TOKEN_M].build_func(sdp_p, (u16)i, &ptr, (u16)(endbuf_p - ptr));
 
+            
             for (j=SDP_TOKEN_I;
                  ((j < SDP_TOKEN_M) && (result == SDP_SUCCESS) && (endbuf_p - ptr > 0));
                  j++) {
@@ -1172,6 +1196,7 @@ sdp_result_e sdp_build (void *sdp_ptr, char **bufp, u16 len)
                     continue;
                 }
                 result = sdp_token[j].build_func(sdp_p, (u16)i, &ptr, (u16)(endbuf_p - ptr));
+                
             }
         }
     }

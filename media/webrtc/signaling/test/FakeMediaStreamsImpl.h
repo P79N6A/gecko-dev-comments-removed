@@ -1,0 +1,200 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef FAKE_MEDIA_STREAMIMPL_H_
+#define FAKE_MEDIA_STREAMIMPL_H_
+
+#include "FakeMediaStreams.h"
+
+#include "nspr.h"
+#include "nsError.h"
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(Fake_nsDOMMediaStream, nsIDOMMediaStream)
+
+
+NS_IMETHODIMP
+Fake_nsDOMMediaStream::GetCurrentTime(double *aCurrentTime)
+{
+  PR_ASSERT(PR_FALSE);
+
+  *aCurrentTime = 0;
+  return NS_OK;
+}
+
+
+nsresult Fake_SourceMediaStream::Start() {
+  mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  if (!mTimer) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mTimer->InitWithCallback(mPeriodic, 100, nsITimer::TYPE_REPEATING_SLACK);
+
+  return NS_OK;
+}
+
+nsresult Fake_SourceMediaStream::Stop() {
+  if (mTimer)
+    mTimer->Cancel();
+  mPeriodic->Detach();
+  return NS_OK;
+}
+
+void Fake_SourceMediaStream::Periodic() {
+  if (mPullEnabled) {
+    for (std::set<Fake_MediaStreamListener *>::iterator it =
+             mListeners.begin(); it != mListeners.end(); ++it) {
+      (*it)->NotifyPull(NULL, mozilla::MillisecondsToMediaTime(10));
+    }
+  }
+}
+
+
+
+nsresult Fake_MediaStreamBase::Start() {
+  mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  if (!mTimer) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mTimer->InitWithCallback(mPeriodic, 100, nsITimer::TYPE_REPEATING_SLACK);
+
+  return NS_OK;
+}
+
+nsresult Fake_MediaStreamBase::Stop() {
+  mTimer->Cancel();
+
+  return NS_OK;
+}
+
+
+void Fake_AudioStreamSource::Periodic() {
+  mozilla::AudioSegment segment;
+  segment.Init(1);
+  segment.InsertNullDataAtStart(160);
+
+  for (std::set<Fake_MediaStreamListener *>::iterator it = mListeners.begin();
+       it != mListeners.end(); ++it) {
+    (*it)->NotifyQueuedTrackChanges(NULL, 
+                                    0, 
+                                    16000, 
+                                    0, 
+                                    0, 
+                                    segment);
+  }
+}
+
+
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(Fake_MediaPeriodic, nsITimerCallback)
+
+NS_IMETHODIMP
+Fake_MediaPeriodic::Notify(nsITimer *timer) {
+  if (mStream)
+    mStream->Periodic();
+  ++mCount;
+  return NS_OK;
+}
+
+
+#if 0
+#define WIDTH 320
+#define HEIGHT 240
+#define RATE USECS_PER_S
+#define USECS_PER_S 1000000
+#define FPS 10
+
+NS_IMETHODIMP
+Fake_VideoStreamSource::Notify(nsITimer* aTimer)
+{
+#if 0
+  mozilla::layers::BufferRecycleBin bin;
+
+  nsRefPtr<mozilla::layers::PlanarYCbCrImage> image = new
+    mozilla::layers::PlanarYCbCrImage(&bin);
+
+  const PRUint8 lumaBpp = 8;
+  const PRUint8 chromaBpp = 4;
+
+  int len = ((WIDTH * HEIGHT) * 3 / 2);
+  PRUint8* frame = (PRUint8*) PR_Malloc(len);
+  memset(frame, 0x80, len); 
+
+  mozilla::layers::PlanarYCbCrImage::Data data;
+  data.mYChannel = frame;
+  data.mYSize = gfxIntSize(WIDTH, HEIGHT);
+  data.mYStride = WIDTH * lumaBpp / 8.0;
+  data.mCbCrStride = WIDTH * chromaBpp / 8.0;
+  data.mCbChannel = frame + HEIGHT * data.mYStride;
+  data.mCrChannel = data.mCbChannel + HEIGHT * data.mCbCrStride / 2;
+  data.mCbCrSize = gfxIntSize(WIDTH / 2, HEIGHT / 2);
+  data.mPicX = 0;
+  data.mPicY = 0;
+  data.mPicSize = gfxIntSize(WIDTH, HEIGHT);
+  data.mStereoMode = mozilla::layers::STEREO_MODE_MONO;
+
+  mozilla::VideoSegment segment;
+  segment.AppendFrame(image.forget(), USECS_PER_S / FPS, gfxIntSize(WIDTH, HEIGHT));
+
+  
+#endif
+
+  return NS_OK;
+}
+
+
+#if 0
+
+mozilla::layers::BufferRecycleBin::BufferRecycleBin() : 
+ mLock("mozilla.layers.BufferRecycleBin.mLock") {
+}
+
+void mozilla::layers::BufferRecycleBin::RecycleBuffer(PRUint8* buffer, PRUint32 size) {
+  PR_Free(buffer);
+}
+
+PRUint8 *mozilla::layers::BufferRecycleBin::GetBuffer(PRUint32 size) {
+  return (PRUint8 *)PR_MALLOC(size);
+}
+
+
+mozilla::layers::PlanarYCbCrImage::PlanarYCbCrImage(BufferRecycleBin *aRecycleBin)
+  : Image(nsnull, PLANAR_YCBCR)
+  , mBufferSize(0)
+  , mRecycleBin(aRecycleBin)
+{
+}
+
+
+#endif
+#endif
+
+
+#endif

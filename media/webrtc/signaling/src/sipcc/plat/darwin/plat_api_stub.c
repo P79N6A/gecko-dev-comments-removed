@@ -468,16 +468,6 @@ int platGetAudioDeviceStatus(plat_audio_device_t device_type)
 
 
 
-
-
-
-
-
-
-
-
-
-
 cc_ulong_t platGetDefaultgw(){
 	return 0;
 }

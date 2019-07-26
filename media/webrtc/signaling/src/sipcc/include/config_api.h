@@ -76,59 +76,7 @@ void configParserError(void);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-void CCAPI_Config_response (int device_handle, const char *device_name, 
-                             const char *cfg, int from_memory);
-
-
-
-
-
 void CCAPI_Start_response(int device_handle, const char *device_name, const char *sipUser, const char *sipPassword, const char *sipDomain);
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-cc_boolean CCAPI_Config_checkValidity (int device_handle, const char *cfg_file_name, int from_memory);
-
-
-
-
-
-
-
-
-
-
-
-
- 
-int CCAPI_Config_compareProperties (int device_handle, const char *cfg_file_name, int from_memory);
-
 
 
 
@@ -201,8 +149,7 @@ int CCAPI_Config_get_local_voip_port();
 int CCAPI_Config_get_remote_voip_port();
 const char* CCAPI_Config_get_version();
 cc_boolean CCAPI_Config_set_p2p_mode(const cc_boolean is_p2p);
-cc_boolean CCAPI_Config_set_roap_proxy_mode(const cc_boolean is_roap_proxy);
-cc_boolean CCAPI_Config_set_roap_client_mode(const cc_boolean is_roap_client);
-
+cc_boolean CCAPI_Config_set_sdp_mode(const cc_boolean is_sdp);
+cc_boolean CCAPI_Config_set_avp_mode(const cc_boolean is_rtpsavpf);
 
 #endif  

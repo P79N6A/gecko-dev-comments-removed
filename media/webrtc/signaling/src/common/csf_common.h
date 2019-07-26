@@ -67,7 +67,6 @@
 
 
 
-
 #ifdef WIN32
     #if !defined(_countof)
         #if !defined(__cplusplus)
@@ -87,18 +86,6 @@
 
 
 #define csf_countof(anArray) _countof(anArray)
-
-
-
-#ifdef _WIN32
-  #define csf_strcpy( pDestination,  sizeOfBufferInCharsInclNullTerm,  pSource)\
-    strcpy_s(pDestination, sizeOfBufferInCharsInclNullTerm, pSource)
-#else
-  #define csf_strcpy( pDestination,  sizeOfBufferInCharsInclNullTerm,  pSource)\
-    strncpy(pDestination, pSource, sizeOfBufferInCharsInclNullTerm);\
-    pDestination[sizeOfBufferInCharsInclNullTerm-1] = '\0'
-#endif
-
 
 
 

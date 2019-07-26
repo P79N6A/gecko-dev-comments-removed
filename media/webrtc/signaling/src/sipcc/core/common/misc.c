@@ -41,14 +41,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <errno.h>
+
 #include "cpr.h"
 #include "phone_debug.h"
 #include "cc_debug.h"
 #include "phone.h"
 #include "cpr_socket.h"
-
 #include "prot_configmgr.h"
 #include "debug.h"
+#include "cpr_string.h"
+#include "cpr_stdlib.h"
+ 
 
 
 
@@ -69,116 +73,6 @@ static const char *month_ar[MAX_NTP_MONTH_ARRAY_SIZE] = {
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
-
-extern boolean ccsip_get_ccm_date(char *date_value);
-
-
-
-
-
-
-debugStruct_t debugBindTable[] = {
-    {CC_DEBUG_CCAPP, "ccapp", &g_CCAppDebug},
-    {CC_DEBUG_CONFIG_CACHE, "config-cache", &ConfigDebug},
-    {CC_DEBUG_SIP_ADAPTER, "sip-adapter", &TNPDebug},
-    {CC_DEBUG_CCAPI, "cc", &CCDebug},
-    {CC_DEBUG_CC_MSG, "cc-msg", &CCDebugMsg},
-    {CC_DEBUG_FIM, "fim", &FIMDebug},
-    {CC_DEBUG_FSM, "fsm", &FSMDebugSM},
-    {CC_DEBUG_AUTH, "auth", &AuthDebug},
-    {CC_DEBUG_GSM, "gsm", &GSMDebug},
-    {CC_DEBUG_LSM, "lsm", &LSMDebug},
-    {CC_DEBUG_FSM_CAC, "fsm-cac", &g_cacDebug},
-    {CC_DEBUG_DCSM, "dcsm", &g_dcsmDebug},
-    {CC_DEBUG_SIP_TASK, "sip-task",      &SipDebugTask},
-    {CC_DEBUG_SIP_STATE, "sip-state",     &SipDebugState},
-    {CC_DEBUG_SIP_MSG, "sip-messages",  &SipDebugMessage},
-    {CC_DEBUG_SIP_REG_STATE, "sip-reg-state", &SipDebugRegState},
-    {CC_DEBUG_SIP_TRX, "sip-trx",       &SipDebugTrx},
-    {CC_DEBUG_TIMERS, "timers",        &TMRDebug},
-    {CC_DEBUG_CCDEFAULT, "ccdefault",     &g_DEFDebug},
-    {CC_DEBUG_DIALPLAN, "dialplan", &DpintDebug},
-    {CC_DEBUG_KPML, "kpml", &KpmlDebug},
-    {CC_DEBUG_SIP_PRESENCE, "sip-presence",  &g_blfDebug},
-    {CC_DEBUG_CONFIG_APP, "config-app", &g_configappDebug},
-    {CC_DEBUG_CALL_EVENT, "call-event", &CCEVENTDebug},
-    {CC_DEBUG_PLAT, "plat", &PLATDebug},
-    {CC_DEBUG_NOTIFY, "cc-notify", NULL},
-    {CC_DEBUG_CPR_MEMORY, "cpr-memory", NULL}, 
-    {CC_DEBUG_MAX, "not-used", NULL} 
-};
-
-
-
-
-
-extern cc_int32_t fsmcnf_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t fsmdef_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t fsmxfr_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t fsmb2bcnf_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t dcsm_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t fim_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t fsm_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t lsm_show_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t show_kpmlmap_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t show_config_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t show_subsmanager_stats(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t show_publish_stats(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t show_register_cmd(cc_int32_t argc, const char *argv[]);
-extern cc_int32_t show_dialplan_cmd(cc_int32_t argc, const char *argv[]);
-
-extern int32_t cpr_show_memory(int32_t argc, const char *argv[]);
-extern int32_t cpr_clear_memory (int32_t argc, const char *argv[]);
-extern void debugCprMem(cc_debug_cpr_mem_options_e category, cc_debug_flag_e flag);
-extern void debugClearCprMem(cc_debug_clear_cpr_options_e category);
-void debugShowCprMem(cc_debug_show_cpr_options_e category);
-
-
-
-
-
-
-
-
-debugShowStruct_t debugShowTable[] = {
-    {CC_DEBUG_SHOW_FSMCNF, "fsmcnf", fsmcnf_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_FSMDEF, "fsmdef", fsmdef_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_FSMXFR, "fsmxfr", fsmxfr_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_FSMB2BCNF, "fsmb2bcnf", fsmb2bcnf_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_DCSM, "dcsm", dcsm_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_FIM, "fim", fim_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_FSM, "fsm", fsm_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_LSM, "lsm", lsm_show_cmd, FALSE},
-    {CC_DEBUG_SHOW_KPML, "kpml", show_kpmlmap_cmd, FALSE},
-    {CC_DEBUG_SHOW_CONFIG_CACHE, "config-cache", show_config_cmd, TRUE},
-    {CC_DEBUG_SHOW_SUBS_STATS, "sip-subscription-statistics", show_subsmanager_stats, TRUE},
-    {CC_DEBUG_SHOW_PUBLISH_STATS, "sip-publish-statistics", show_publish_stats, TRUE},
-    {CC_DEBUG_SHOW_REGISTER, "register", show_register_cmd, TRUE},
-    {CC_DEBUG_SHOW_DIALPLAN, "dialplan", show_dialplan_cmd, TRUE},
-    {CC_DEBUG_SHOW_CPR_MEMORY, "cpr-memory", cpr_show_memory, FALSE},
-    {CC_DEBUG_SHOW_MAX, "not-used", NULL, FALSE} 
-};
-
-
-
-
-
-debugClearStruct_t debugClearTable[] = {
-    {CC_DEBUG_CLEAR_CPR_MEMORY, "cpr-memory", cpr_clear_memory},
-    {CC_DEBUG_CLEAR_MAX, "not-used", NULL} 
-};
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -211,7 +105,7 @@ set_month_from_str (char *month_str)
         if (strncmp(month_str, last_month_str, 3) != 0) {
             for (i = 0; i < 12; i++) {
                 if (strncmp(month_str, month_ar[i], 3) == 0) {
-                    strncpy(last_month_str, month_str, 3);
+                    sstrncpy(last_month_str, month_str, sizeof(last_month_str));
                     last_month = i;
                     ret_val = TRUE;
                     break;
@@ -226,109 +120,6 @@ set_month_from_str (char *month_str)
     return (ret_val);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-SipNtpUpdateClockFromCCM (void)
-{
-    const char *fname = "SipNtpUpdateClockFromCCM";
-    struct tm tm_s, *tm_tmp_ptr;
-    time_t epoch = 0;
-    time_t epoch_tmp = 0;
-    time_t tz_diff_sec = 0;
-    char   date_hdr_str[MAX_NTP_DATE_HDR_STR_LEN];
-    char  *token[MAX_NTP_TOKEN_BUF_LEN];
-    char  *curr_token;
-    int    count = 0;
-#ifndef _WIN32
-    char  *last;
-#endif
-
-    if (ccsip_get_ccm_date(date_hdr_str) == TRUE) {
-
-        
-
-
-#ifndef _WIN32
-        curr_token = (char *) strtok_r(date_hdr_str, " ,:\t\r\n", &last);
-#else
-        curr_token = (char *) strtok(date_hdr_str, " ,:\t\r\n");
-#endif
-
-        while (curr_token) {
-            token[count++] = curr_token;
-            if (count > 8) {
-                break;
-            }
-
-            
-
-
-#ifndef _WIN32
-            curr_token = (char *) strtok_r(NULL, " ,:\t\r\n", &last);
-#else
-            curr_token = (char *) strtok(NULL, " ,:\t\r\n");
-#endif
-
-        }
-        
-        if ((count == 8) && (strcmp(token[7], "GMT") == 0)) {
-            if (set_month_from_str(token[2])) {
-                tm_s.tm_mon = last_month;
-                (void) sscanf(token[6], "%d", &tm_s.tm_sec);
-                (void) sscanf(token[5], "%d", &tm_s.tm_min);
-                (void) sscanf(token[4], "%d", &tm_s.tm_hour);
-                (void) sscanf(token[1], "%d", &tm_s.tm_mday);
-                (void) sscanf(token[3], "%d", &tm_s.tm_year);
-
-                
-                tm_s.tm_year = tm_s.tm_year - 1900;
-
-                
-                tm_s.tm_isdst = -1;
-
-                
-                epoch = (time_t) mktime(&tm_s);
-                if (epoch == (time_t) - 1) {
-                    TNP_DEBUG(DEB_F_PREFIX "mktime() returned -1... Not Good\n", DEB_F_PREFIX_ARGS(PLAT_API, fname));
-                } else {
-                    
-                    
-                    tm_tmp_ptr = gmtime(&epoch);
-                    tm_tmp_ptr->tm_isdst = -1;
-
-                    
-                    
-                    
-                    epoch_tmp = (time_t) mktime(tm_tmp_ptr);
-                    if (epoch == (time_t) - 1) {
-                        TNP_DEBUG(DEB_F_PREFIX "mktime() returned -1... Not Good\n",
-                                  DEB_F_PREFIX_ARGS(PLAT_API, fname));
-                    } else {
-                        
-                        tz_diff_sec = epoch_tmp - epoch;
-                        
-                        epoch -= tz_diff_sec;
-
-                        
-                        platform_set_time((long) (epoch));
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 
@@ -497,6 +288,8 @@ IPNameCk (char *name, char *addr_error)
     int i = 0;
     uint32_t temp, ip_addr = 0;
     char ip_addr_out[MAX_IPADDR_STR_LEN];
+    unsigned long strtoul_result;
+    char *strtoul_end;
 
     
     if (cpr_inet_pton(AF_INET6, name, ip_addr_out)) {
@@ -515,8 +308,16 @@ IPNameCk (char *name, char *addr_error)
                     return (0);
                 namePtr++;
                 x = 0;
-                if ((temp = atoi(string)) > 255)
-                    return (0);
+
+                errno = 0;
+                strtoul_result = strtoul(string, &strtoul_end, 10);
+
+                if (errno || string == strtoul_end || strtoul_result > 255) {
+                    return 0;
+                }
+
+                temp = (uint32_t) strtoul_result;
+
                 ip_addr |= temp << (24 - (i * 8));
                 string[0] = 0;
                 string[1] = 0;
@@ -528,8 +329,15 @@ IPNameCk (char *name, char *addr_error)
     }
 
     if (i == 3) {
-        if ((temp = atoi(string)) > 255)
-            return (0);
+        errno = 0;
+        strtoul_result = strtoul(string, &strtoul_end, 10);
+
+        if (errno || string == strtoul_end || strtoul_result > 255) {
+            return 0;
+        }
+
+        temp = (uint32_t) strtoul_result;
+
         ip_addr |= temp;
         *addr_error = FALSE;
         return (ntohl(ip_addr));
@@ -548,172 +356,69 @@ IPNameCk (char *name, char *addr_error)
 
 
 
-void debugSet (cc_debug_category_e category, cc_debug_flag_e flag, ...)
+
+void *
+cprGetSysHeader (void *buffer)
 {
-    int i = 0; 
-    va_list ap;
-    int32_t data = -1;
+    phn_syshdr_t *syshdr;
 
-    va_start(ap, flag);
+    
 
-    while (debugBindTable[i].category != CC_DEBUG_MAX) {
-        if (debugBindTable[i].category == category) {
-            if (debugBindTable[i].category == CC_DEBUG_CPR_MEMORY) {
-                data = va_arg(ap, int32_t);
-                if (data != -1) {
-                    
-                    switch(data) {
-                        case CC_DEBUG_CPR_MEM_TRACKING:
-                        case CC_DEBUG_CPR_MEM_POISON:
-                            debugCprMem(data, flag);
-                            break;
-                        default:
-                            debugif_printf("Error: Unknown CPR debug sub-category passed in\n");
-                    }
-                } else {
-                    debugif_printf("Error: CPR debug sub-category NOT passed in\n");
-                }
-            } else {
-                *(debugBindTable[i].key) = flag;
-            }
-            va_end(ap);
-            return;
-        }
-        i++;
+
+
+    syshdr = cpr_calloc(1, sizeof(phn_syshdr_t));
+    if (syshdr) {
+        syshdr->Data = buffer;
     }
-    debugif_printf("Error: Unknown debug category passed in\n");
-    va_end(ap);
+    return (void *)syshdr;
+}
+
+
+
+
+
+
+
+
+
+
+void
+cprReleaseSysHeader (void *syshdr)
+{
+    if (syshdr == NULL) {
+        CPR_ERROR("cprReleaseSysHeader: Sys header pointer is NULL\n");
+        return;
+    }
+
+    cpr_free(syshdr);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+fillInSysHeader (void *buffer, uint16_t cmd, uint16_t len, void *timerMsg)
+{
+    phn_syshdr_t *syshdr;
+
+    syshdr = (phn_syshdr_t *) buffer;
+    syshdr->Cmd = cmd;
+    syshdr->Len = len;
+    syshdr->Usr.UsrPtr = timerMsg;
     return;
 }
 
-
-
-
-
-
-
-
-
-
-
-int debugShow(cc_debug_show_options_e category, ...)
-{
-    const char *showArgc[NUM_OF_SHOW_ARGUMENTS];
-    int i = 0, returnCode = 0;
-    va_list ap;
-    int32_t data = -1;
-
-    va_start(ap, category);
-
-    while (debugShowTable[i].category != CC_DEBUG_SHOW_MAX) {
-        if (debugShowTable[i].category == category) {
-            if (category == CC_DEBUG_SHOW_FSMDEF) {
-                
-                showArgc[0] = "all";
-                returnCode = debugShowTable[i].callbackFunc(NUM_OF_SHOW_ARGUMENTS-1, showArgc);
-            } else if (category == CC_DEBUG_SHOW_CPR_MEMORY) {
-                data = va_arg(ap, int32_t);
-                if (data != -1) {
-                    switch (data) {
-                        case CC_DEBUG_SHOW_CPR_CONFIG:
-                        case CC_DEBUG_SHOW_CPR_HEAP_GUARD:
-                        case CC_DEBUG_SHOW_CPR_STATISTICS:
-                        case CC_DEBUG_SHOW_CPR_TRACKING:
-                            debugShowCprMem((cc_debug_show_cpr_options_e) data);
-                            break;
-
-                        default:
-                            debugif_printf("Error: Unknown CPR show sub-category passed in\n");
-                    }
-                } else {
-                            debugif_printf("Error: CPR show sub-category NOT passed in\n");
-                }
-            } else {
-                showArgc[0] = "show";
-                showArgc[1] = debugShowTable[i].showName;
-                returnCode = debugShowTable[i].callbackFunc(NUM_OF_SHOW_ARGUMENTS, showArgc);
-            }
-            debugif_printf("\n<EOT>\n");
-            va_end(ap);
-            return returnCode;
-        }
-        i++;
-    }
-    debugif_printf("Error: Unknown show category passed in\n");
-
-    va_end(ap);
-    return -1;
-}
-
-
-
-
-
-
-
-
-void debugShowTech()
-{
-    const char *showArgc[NUM_OF_SHOW_ARGUMENTS];
-    int i = 0;
-
-    showArgc[0] = "show";
-
-    while (debugShowTable[i].category != CC_DEBUG_SHOW_MAX) {
-        if (debugShowTable[i].showTech == TRUE) {
-            showArgc[0] = debugShowTable[i].showName;
-            debugShowTable[i].callbackFunc(NUM_OF_SHOW_ARGUMENTS, showArgc);
-        }
-        i++;
-    }
-    debugif_printf("\n<EOT>\n");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int debugClear(cc_debug_clear_options_e category, ...)
-{
-    int i = 0, returnCode = 0 ;
-    va_list ap;
-    int32_t data = -1;
-
-    va_start(ap, category);
-
-    
-    if (debugClearTable[i].category == category) {
-        data = va_arg(ap, int32_t);
-        if (data != -1) {
-            switch (data) {
-                case CC_DEBUG_CLEAR_CPR_TRACKING:
-                case CC_DEBUG_CLEAR_CPR_STATISTICS:
-                    debugClearCprMem((cc_debug_clear_cpr_options_e) data);
-                    break;
-                default:
-                    debugif_printf("Error: Unknown CPR clear sub-category passed in\n");
-            }
-            debugif_printf("\n<EOT>\n");
-        } else {
-            debugif_printf("Error: CPR clear sub-category NOT passed in\n");
-        }
-    } else {
-        debugif_printf("Error: Unknown show category passed in\n");
-        returnCode = -1;
-    }
-
-    va_end(ap);
-    return returnCode;
-}

@@ -189,65 +189,6 @@ typedef enum {
 
 
 
-#define skNewCall CC_FEATURE_NEW_CALL
-#define skConfrn CC_FEATURE_CONF
-
-
-
-#ifdef __CC_FEATURE_STRINGS__
-static const char *cc_feature_names[] = {
-    "NONE",
-    "HOLD",
-    "RESUME",
-    "OFFHOOK",
-    "NEW_CALL",
-    "REDIAL",
-    "ONHOOK",
-    "KEYPRESS",
-    "DIAL",
-    "XFER",
-    "CFWD_ALL",  
-    "END_CALL",
-    "ANSWER",
-    "INFO",
-    "CONF",
-    "JOIN",
-    "DIR_XFER",
-    "SELECT",
-    "SPEEDDIAL",
-    "SWAP",
-    "SDBLF",  
-    "BLIND_XFER_WITH_DIALSTRING",
-    "BSPACE",
-    "CANCEL",
-    "DIALSTR",
-    "UPD_SESSION_MEDIA_CAP",
-    "NEW_MEDIA",
-    "UPDATE",
-    "CALLINFO",
-    "BLIND_XFER",
-    "NOTIFY",
-    "SUBSCRIBE",
-    "B2BCONF",
-    "B2BJOIN",
-    "HOLD_REVERSION", 
-    "BLF_ALERT_TONE",
-    "REQPENDTMREXP",
-    "NUMBER",
-    "URL",
-    "REDIRECT", 
-    "RINGBACKDELAYTMREXP",
-    "CALL_PRESERVATION",
-    "UPD_MEDIA_CAP",
-    "CAC PASSED",
-    "CAC FAILED",
-    "FAST_PIC_UPD",
-    "UNDEFINED",
-    "MAX"
-};
-#endif
-
-
 typedef enum {
     DEVICE_FEATURE_CFWD = 1L,
     DEVICE_FEATURE_MWI,
@@ -309,7 +250,12 @@ typedef enum {
     CALL_CALLREF,
     MEDIA_INTERFACE_UPDATE_BEGIN,
     MEDIA_INTERFACE_UPDATE_SUCCESSFUL,
-    MEDIA_INTERFACE_UPDATE_FAIL
+    MEDIA_INTERFACE_UPDATE_FAIL,
+    CREATE_OFFER,
+    CREATE_ANSWER,
+    SET_LOCAL_DESC,
+    SET_REMOTE_DESC,
+    REMOTE_STREAM_ADD
 } group_call_event_t;
 
 
