@@ -235,9 +235,11 @@ Measurement.prototype = Object.freeze({
 
 
 
-  incrementDailyCounter: function (field, date=new Date()) {
+
+
+  incrementDailyCounter: function (field, date=new Date(), by=1) {
     return this.storage.incrementDailyCounterFromFieldID(this.fieldID(field),
-                                                         date);
+                                                         date, by);
   },
 
   

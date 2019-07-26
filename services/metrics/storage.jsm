@@ -491,7 +491,7 @@ const SQL = {
           "field_id = :field_id AND day = :days " +
         "), " +
         "0" +
-      ") + 1)",
+      ") + :by)",
 
   deleteLastNumericFromFieldID:
     "DELETE FROM last_numeric WHERE field_id = :field_id",
@@ -1615,12 +1615,15 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
 
 
 
-  incrementDailyCounterFromFieldID: function (id, date=new Date()) {
+
+
+  incrementDailyCounterFromFieldID: function (id, date=new Date(), by=1) {
     this._ensureFieldType(id, this.FIELD_DAILY_COUNTER);
 
     let params = {
       field_id: id,
       days: dateToDays(date),
+      by: by,
     };
 
     return this._connection.executeCached(SQL.incrementDailyCounterFromFieldID,
