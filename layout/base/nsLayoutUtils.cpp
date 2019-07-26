@@ -73,6 +73,7 @@
 #include "ActiveLayerTracker.h"
 #include "mozilla/gfx/2D.h"
 #include "gfx2DGlue.h"
+#include "mozilla/LookAndFeel.h"
 
 #include "mozilla/Preferences.h"
 
@@ -5957,6 +5958,122 @@ nsLayoutUtils::UpdateImageVisibilityForFrame(nsIFrame* aImageFrame)
   } else {
     presShell->RemoveImageFromVisibleList(content);
   }
+}
+
+ nsSize
+nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
+{
+  nsSize size(aFrame->GetSize());
+
+  nsPresContext* presContext = aFrame->PresContext();
+  nsIPresShell* presShell = presContext->PresShell();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  bool isRootContentDocRootScrollFrame = presContext->IsRootContentDocument()
+                                      && aFrame == presShell->GetRootScrollFrame();
+  if (isRootContentDocRootScrollFrame) {
+    if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
+      if (nsView* view = rootFrame->GetView()) {
+        nsIWidget* widget = view->GetWidget();
+#ifdef MOZ_WIDGET_ANDROID
+        
+        
+        if (!widget) {
+          widget = rootFrame->GetNearestWidget();
+        }
+#endif
+        if (widget) {
+          nsIntRect bounds;
+          widget->GetBounds(bounds);
+          int32_t auPerDevPixel = presContext->AppUnitsPerDevPixel();
+          size = nsSize(bounds.width * auPerDevPixel,
+                        bounds.height * auPerDevPixel);
+        } else {
+          nsRect viewBounds = view->GetBounds();
+          size = nsSize(viewBounds.width, viewBounds.height);
+        }
+      }
+    }
+  }
+
+  
+  nsIScrollableFrame* scrollableFrame = aFrame->GetScrollTargetFrame();
+  if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+    nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
+    size.width -= margins.LeftRight();
+    size.height -= margins.TopBottom();
+  }
+
+  return size;
+}
+
+ nsRect
+nsLayoutUtils::CalculateScrollableRectForFrame(nsIScrollableFrame* aScrollableFrame, nsIFrame* aRootFrame)
+{
+  nsRect contentBounds;
+  if (aScrollableFrame) {
+    contentBounds = aScrollableFrame->GetScrollRange();
+
+    
+    
+    
+    
+    
+#ifndef MOZ_WIDGET_ANDROID
+    nsPoint scrollPosition = aScrollableFrame->GetScrollPosition();
+    if (aScrollableFrame->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
+      contentBounds.y = scrollPosition.y;
+      contentBounds.height = 0;
+    }
+    if (aScrollableFrame->GetScrollbarStyles().mHorizontal == NS_STYLE_OVERFLOW_HIDDEN) {
+      contentBounds.x = scrollPosition.x;
+      contentBounds.width = 0;
+    }
+#endif
+
+    contentBounds.width += aScrollableFrame->GetScrollPortRect().width;
+    contentBounds.height += aScrollableFrame->GetScrollPortRect().height;
+  } else {
+    contentBounds = aRootFrame->GetRect();
+  }
+  return contentBounds;
+}
+
+ nsRect
+nsLayoutUtils::CalculateExpandedScrollableRect(nsIFrame* aFrame)
+{
+  nsRect scrollableRect =
+    CalculateScrollableRectForFrame(aFrame->GetScrollTargetFrame(),
+                                    aFrame->PresContext()->PresShell()->GetRootFrame());
+  nsSize compSize = CalculateCompositionSizeForFrame(aFrame);
+
+  if (aFrame == aFrame->PresContext()->PresShell()->GetRootScrollFrame()) {
+    
+    
+    gfxSize res = aFrame->PresContext()->PresShell()->GetResolution();
+    compSize.width = NSToCoordRound(compSize.width / ((float) res.width));
+    compSize.height = NSToCoordRound(compSize.height / ((float) res.height));
+  }
+
+  if (scrollableRect.width < compSize.width) {
+    scrollableRect.x = std::max(0,
+                                scrollableRect.x - (compSize.width - scrollableRect.width));
+    scrollableRect.width = compSize.width;
+  }
+
+  if (scrollableRect.height < compSize.height) {
+    scrollableRect.y = std::max(0,
+                                scrollableRect.y - (compSize.height - scrollableRect.height));
+    scrollableRect.height = compSize.height;
+  }
+  return scrollableRect;
 }
 
 nsLayoutUtils::SurfaceFromElementResult::SurfaceFromElementResult()

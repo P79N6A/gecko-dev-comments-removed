@@ -2054,6 +2054,29 @@ public:
   static void
   UpdateImageVisibilityForFrame(nsIFrame* aImageFrame);
 
+ 
+
+
+
+  static nsSize
+  CalculateCompositionSizeForFrame(nsIFrame* aFrame);
+
+ 
+
+
+
+
+
+  static nsRect
+  CalculateScrollableRectForFrame(nsIScrollableFrame* aScrollableFrame, nsIFrame* aRootFrame);
+
+ 
+
+
+
+  static nsRect
+  CalculateExpandedScrollableRect(nsIFrame* aFrame);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
