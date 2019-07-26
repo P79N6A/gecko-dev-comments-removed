@@ -18,7 +18,6 @@
 #define mozilla_imagelib_RasterImage_h_
 
 #include "Image.h"
-#include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 #include "imgIContainer.h"
 #include "nsIProperties.h"
@@ -28,18 +27,20 @@
 #include "imgFrame.h"
 #include "nsThreadUtils.h"
 #include "DiscardTracker.h"
+#include "nsISupportsImpl.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/RefPtr.h"
+#include "mozilla/Mutex.h"
 #include "gfx2DGlue.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
 #endif
 
 class nsIInputStream;
+class nsIThreadPool;
 
 #define NS_RASTERIMAGE_CID \
 { /* 376ff2c1-9bf6-418a-b143-3340c00112f7 */         \
@@ -390,21 +391,19 @@ private:
 
 
 
-
-
-
-  struct DecodeRequest : public LinkedListElement<DecodeRequest>,
-                         public RefCounted<DecodeRequest>
+  struct DecodeRequest
   {
     DecodeRequest(RasterImage* aImage)
       : mImage(aImage)
       , mBytesToDecode(0)
+      , mRequestStatus(REQUEST_INACTIVE)
       , mChunkCount(0)
       , mAllocatedNewFrame(false)
-      , mIsASAP(false)
     {
       mStatusTracker = aImage->mStatusTracker->CloneForRecording();
     }
+
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DecodeRequest)
 
     
     
@@ -413,6 +412,15 @@ private:
     RasterImage* mImage;
 
     uint32_t mBytesToDecode;
+
+    enum DecodeRequestStatus
+    {
+      REQUEST_INACTIVE,
+      REQUEST_PENDING,
+      REQUEST_ACTIVE,
+      REQUEST_WORK_DONE,
+      REQUEST_STOPPED
+    } mRequestStatus;
 
     
 
@@ -424,9 +432,6 @@ private:
     
 
     bool mAllocatedNewFrame;
-
-    
-    bool mIsASAP;
   };
 
   
@@ -442,14 +447,13 @@ private:
 
 
 
-
-
-
-
-  class DecodeWorker : public nsRunnable
+  class DecodePool : public nsIObserver
   {
   public:
-    static DecodeWorker* Singleton();
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+
+    static DecodePool* Singleton();
 
     
 
@@ -469,17 +473,7 @@ private:
 
 
 
-
-    void MarkAsASAP(RasterImage* aImg);
-
-    
-
-
-
-
-
-
-    void StopDecoding(RasterImage* aImg);
+    static void StopDecoding(RasterImage* aImg);
 
     
 
@@ -491,49 +485,49 @@ private:
 
     nsresult DecodeUntilSizeAvailable(RasterImage* aImg);
 
-    NS_IMETHOD Run();
-
-    virtual ~DecodeWorker();
+    virtual ~DecodePool();
 
   private: 
-    static StaticRefPtr<DecodeWorker> sSingleton;
+    static StaticRefPtr<DecodePool> sSingleton;
 
   private: 
-    DecodeWorker()
-      : mPendingInEventLoop(false)
-    {}
-
-    
-    void EnsurePendingInEventLoop();
-
-    
-
-    void AddDecodeRequest(DecodeRequest* aRequest, uint32_t bytesToDecode);
+    DecodePool();
 
     enum DecodeType {
-      DECODE_TYPE_NORMAL,
-      DECODE_TYPE_UNTIL_SIZE
+      DECODE_TYPE_UNTIL_TIME,
+      DECODE_TYPE_UNTIL_SIZE,
+      DECODE_TYPE_UNTIL_DONE_BYTES
     };
 
     
 
 
+
+
     nsresult DecodeSomeOfImage(RasterImage* aImg,
-                               DecodeType aDecodeType = DECODE_TYPE_NORMAL,
+                               DecodeType aDecodeType = DECODE_TYPE_UNTIL_TIME,
                                uint32_t bytesToDecode = 0);
 
     
 
-    void CreateRequestForImage(RasterImage* aImg);
+    class DecodeJob : public nsRunnable
+    {
+    public:
+      DecodeJob(DecodeRequest* aRequest, RasterImage* aImg)
+        : mRequest(aRequest)
+        , mImage(aImg)
+      {}
+
+      NS_IMETHOD Run();
+
+    private:
+      nsRefPtr<DecodeRequest> mRequest;
+      nsRefPtr<RasterImage> mImage;
+    };
 
   private: 
 
-    LinkedList<DecodeRequest> mASAPDecodeRequests;
-    LinkedList<DecodeRequest> mNormalDecodeRequests;
-
-    
-
-    bool mPendingInEventLoop;
+    nsCOMPtr<nsIThreadPool> mThreadPool;
   };
 
   class DecodeDoneWorker : public nsRunnable
@@ -754,15 +748,9 @@ private:
   DiscardTracker::Node       mDiscardTrackerNode;
 
   
-  FallibleTArray<char>       mSourceData;
   nsCString                  mSourceDataMimeType;
 
   friend class DiscardTracker;
-
-  
-  nsRefPtr<Decoder>              mDecoder;
-  nsRefPtr<DecodeRequest>        mDecodeRequest;
-  uint32_t                       mBytesDecoded;
 
   
   
@@ -779,6 +767,22 @@ private:
 #endif
 
   
+  
+
+  
+  mozilla::Mutex             mDecodingMutex;
+
+  FallibleTArray<char>       mSourceData;
+
+  
+  nsRefPtr<Decoder>          mDecoder;
+  nsRefPtr<DecodeRequest>    mDecodeRequest;
+  uint32_t                   mBytesDecoded;
+  
+
+  bool                       mInDecoder;
+
+  
   bool                       mHasSize:1;       
   bool                       mDecodeOnDraw:1;  
   bool                       mMultipart:1;     
@@ -789,7 +793,6 @@ private:
   bool                       mDecoded:1;
   bool                       mHasBeenDecoded:1;
 
-  bool                       mInDecoder:1;
 
   
   
