@@ -582,6 +582,7 @@ JSFunction::trace(JSTracer *trc)
             
             
             
+            
             if (IS_GC_MARKING_TRACER(trc) && !compartment()->hasBeenEntered() &&
                 !compartment()->debugMode() && !compartment()->isSelfHosting &&
                 u.i.s.script_->isRelazifiable() && (!isSelfHostedBuiltin() || isExtended()))
