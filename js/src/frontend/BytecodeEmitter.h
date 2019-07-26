@@ -250,39 +250,51 @@ EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
 
 
-
-
-
-
-
-
 enum SrcNoteType {
     SRC_NULL        = 0,        
+
     SRC_IF          = 1,        
-    SRC_BREAK       = 1,        
     SRC_IF_ELSE     = 2,        
-    SRC_FOR_IN      = 2,        
+    SRC_COND        = 3,        
 
-    SRC_FOR         = 3,        
-    SRC_WHILE       = 4,        
+    SRC_FOR         = 4,        
 
-
-    SRC_CONTINUE    = 5,        
-    SRC_PCDELTA     = 7,        
+    SRC_WHILE       = 5,        
 
 
-    SRC_ASSIGNOP    = 8,        
-    SRC_COND        = 9,        
-    SRC_HIDDEN      = 11,       
-    SRC_BREAK2LABEL = 16,       
-    SRC_CONT2LABEL  = 17,       
-    SRC_SWITCH      = 18,       
+    SRC_FOR_IN      = 6,        
 
-    SRC_SWITCHBREAK = 18,       
-    SRC_CATCH       = 20,       
-    SRC_COLSPAN     = 21,       
-    SRC_NEWLINE     = 22,       
-    SRC_SETLINE     = 23,       
+    SRC_CONTINUE    = 7,        
+    SRC_CONT2LABEL  = 8,        
+    SRC_BREAK       = 9,        
+    SRC_BREAK2LABEL = 10,       
+    SRC_SWITCHBREAK = 11,       
+
+    SRC_SWITCH      = 12,       
+
+
+    SRC_PCDELTA     = 13,       
+
+
+
+    SRC_ASSIGNOP    = 14,       
+
+    SRC_HIDDEN      = 15,       
+
+    SRC_CATCH       = 16,       
+
+    
+    SRC_LAST_GETTABLE = SRC_CATCH,
+
+    SRC_COLSPAN     = 17,       
+    SRC_NEWLINE     = 18,       
+    SRC_SETLINE     = 19,       
+
+    SRC_UNUSED20    = 20,
+    SRC_UNUSED21    = 21,
+    SRC_UNUSED22    = 22,
+    SRC_UNUSED23    = 23,
+
     SRC_XDELTA      = 24        
 };
 
@@ -305,7 +317,7 @@ enum SrcNoteType {
                                                    ? SRC_XDELTA               \
                                                    : *(sn) >> SN_DELTA_BITS))
 #define SN_SET_TYPE(sn,type)    SN_MAKE_NOTE(sn, type, SN_DELTA(sn))
-#define SN_IS_GETTABLE(sn)      (SN_TYPE(sn) < SRC_COLSPAN)
+#define SN_IS_GETTABLE(sn)      (SN_TYPE(sn) <= SRC_LAST_GETTABLE)
 
 #define SN_DELTA(sn)            ((ptrdiff_t)(SN_IS_XDELTA(sn)                 \
                                              ? *(sn) & SN_XDELTA_MASK         \

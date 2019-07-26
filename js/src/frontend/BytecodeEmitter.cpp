@@ -6379,31 +6379,43 @@ CGConstList::finish(ConstArray *array)
 
 
 JS_FRIEND_DATA(JSSrcNoteSpec) js_SrcNoteSpec[] = {
-    {"null",            0},
-    {"if",              0},
-    {"if-else",         2},
-    {"for",             3},
-    {"while",           1},
-    {"continue",        0},
-    {"decl",            1},
-    {"pcdelta",         1},
-    {"assignop",        0},
-    {"cond",            1},
-    {"brace",           1},
-    {"hidden",          0},
-    {"pcbase",          1},
-    {"label",           1},
-    {"labelbrace",      1},
-    {"endbrace",        0},
-    {"break2label",     1},
-    {"cont2label",      1},
-    {"switch",          2},
-    {"funcdef",         1},
-    {"catch",           1},
-    {"colspan",         1},
-    {"newline",         0},
-    {"setline",         1},
-    {"xdelta",          0},
+ {"null",           0},
+
+ {"if",             0},
+ {"if-else",        2},
+ {"cond",           1},
+
+ {"for",            3},
+
+ {"while",          1},
+
+ {"for-in",         2},
+ {"continue",       0},
+ {"cont2label",     1},
+ {"break",          0},
+ {"break2label",    1},
+ {"switchbreak",    2},
+
+ {"switch",         2},
+
+ {"pcdelta",        1},
+
+ {"assignop",       0},
+
+ {"hidden",         0},
+
+ {"catch",          1},
+
+ {"colspan",        1},
+ {"newline",        0},
+ {"setline",        1},
+
+ {"unused20",       0},
+ {"unused21",       0},
+ {"unused22",       0},
+ {"unused23",       0},
+
+ {"xdelta",         0},
 };
 
 JS_FRIEND_API(unsigned)
