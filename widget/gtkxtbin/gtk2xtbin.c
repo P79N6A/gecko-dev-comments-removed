@@ -464,7 +464,8 @@ xt_client_xloop_create(void)
   
 
   if (0 == num_widgets) {
-    int           cnumber;
+    int cnumber;
+    GSource* gs;
 
     
     if (!xtdisplay) {
@@ -475,11 +476,11 @@ xt_client_xloop_create(void)
 
 
     
-    GSource* gs = g_source_new(&xt_event_funcs, sizeof(GSource));
-      if (!gs) {
-       return;
-      }
-    
+    gs = g_source_new(&xt_event_funcs, sizeof(GSource));
+    if (!gs) {
+      return;
+    }
+
     g_source_set_priority(gs, GDK_PRIORITY_EVENTS);
     g_source_set_can_recurse(gs, TRUE);
     tag = g_source_attach(gs, (GMainContext*)NULL);
