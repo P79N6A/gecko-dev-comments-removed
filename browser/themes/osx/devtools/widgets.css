@@ -567,6 +567,20 @@
 
 
 
+.variables-view-container[aligned-values] .title > .separator {
+  -moz-box-flex: 1;
+}
+
+.variables-view-container[aligned-values] .title > .value {
+  width: 70vw;
+}
+
+.variables-view-container[aligned-values] .title > .element-value-input {
+  width: calc(70vw - 10px);
+}
+
+
+
 .variable-or-property > tooltip > label {
   margin: 0 2px 0 2px;
 }
@@ -598,10 +612,6 @@
 
 .variables-view-delete:active {
   -moz-image-region: rect(0,48px,16px,32px);
-}
-
-*:not(:hover) .variables-view-delete {
-  display: none;
 }
 
 .variables-view-delete > .toolbarbutton-text {
