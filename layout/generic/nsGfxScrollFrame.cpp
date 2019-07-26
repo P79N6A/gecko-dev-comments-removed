@@ -2128,13 +2128,17 @@ AppendToTop(nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists,
                                      aFlags, aScrollTargetId) :
     new (aBuilder) nsDisplayWrapList(aBuilder, aSourceFrame, aSource);
 
-  nsDisplayList* positionedDescendants = aLists.PositionedDescendants();
-  if (aPositioned && !positionedDescendants->IsEmpty()) {
+  if (aPositioned) {
     
     
     
-    newItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
-    positionedDescendants->AppendNewToTop(newItem);
+    nsDisplayList* positionedDescendants = aLists.PositionedDescendants();
+    if (!positionedDescendants->IsEmpty()) {
+      newItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
+      positionedDescendants->AppendNewToTop(newItem);
+    } else {
+      aLists.Outlines()->AppendNewToTop(newItem);
+    }
   } else {
     aLists.BorderBackground()->AppendNewToTop(newItem);
   }
