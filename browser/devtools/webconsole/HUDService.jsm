@@ -116,7 +116,14 @@ HUD_SERVICE.prototype =
 
 
 
-  activateHUDForContext: function HS_activateHUDForContext(aTab, aAnimated)
+
+
+
+
+
+
+  activateHUDForContext:
+  function HS_activateHUDForContext(aTab, aAnimated, aOptions)
   {
     let hudId = "hud_" + aTab.linkedPanel;
     if (hudId in this.hudReferences) {
@@ -132,7 +139,7 @@ HUD_SERVICE.prototype =
     gBrowser.tabContainer.addEventListener("TabSelect", this.onTabSelect, false);
     window.addEventListener("unload", this.onWindowUnload, false);
 
-    let hud = new WebConsole(aTab);
+    let hud = new WebConsole(aTab, aOptions);
     this.hudReferences[hudId] = hud;
 
     if (!aAnimated || hud.consolePanel) {
@@ -494,12 +501,18 @@ HUD_SERVICE.prototype =
 
 
 
-function WebConsole(aTab)
+
+
+function WebConsole(aTab, aOptions = {})
 {
   this.tab = aTab;
   this.chromeDocument = this.tab.ownerDocument;
   this.chromeWindow = this.chromeDocument.defaultView;
   this.hudId = "hud_" + this.tab.linkedPanel;
+
+  this.remoteHost = aOptions.host;
+  this.remotePort = aOptions.port;
+
   this._onIframeLoad = this._onIframeLoad.bind(this);
   this._initUI();
 }
@@ -1017,7 +1030,8 @@ var HeadsUpDisplayUICommands = {
     }
   },
 
-  toggleHUD: function UIC_toggleHUD() {
+  toggleHUD: function UIC_toggleHUD(aOptions)
+  {
     var window = HUDService.currentContext();
     var gBrowser = window.gBrowser;
     var linkedBrowser = gBrowser.selectedTab.linkedBrowser;
@@ -1046,9 +1060,50 @@ var HeadsUpDisplayUICommands = {
       }
     }
     else {
-      HUDService.activateHUDForContext(gBrowser.selectedTab, true);
+      HUDService.activateHUDForContext(gBrowser.selectedTab, true, aOptions);
       HUDService.animate(hudId, ANIMATE_IN);
     }
+  },
+
+  toggleRemoteHUD: function UIC_toggleRemoteHUD()
+  {
+    if (this.getOpenHUD()) {
+      this.toggleHUD();
+      return;
+    }
+
+    let host = Services.prefs.getCharPref("devtools.debugger.remote-host");
+    let port = Services.prefs.getIntPref("devtools.debugger.remote-port");
+
+    let check = { value: false };
+    let input = { value: host + ":" + port };
+
+    let result = Services.prompt.prompt(null,
+      l10n.getStr("remoteWebConsolePromptTitle"),
+      l10n.getStr("remoteWebConsolePromptMessage"),
+      input, null, check);
+
+    if (!result) {
+      return;
+    }
+
+    let parts = input.value.split(":");
+    if (parts.length != 2) {
+      return;
+    }
+
+    [host, port] = parts;
+    if (!host.length || !port.length) {
+      return;
+    }
+
+    Services.prefs.setCharPref("devtools.debugger.remote-host", host);
+    Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+
+    this.toggleHUD({
+      host: host,
+      port: port,
+    });
   },
 
   
