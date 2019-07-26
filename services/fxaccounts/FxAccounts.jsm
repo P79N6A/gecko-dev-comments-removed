@@ -499,29 +499,45 @@ FxAccountsInternal.prototype = {
     this.currentAccountState = new AccountState(this);
   },
 
-  signOut: function signOut() {
+  signOut: function signOut(localOnly) {
     let currentState = this.currentAccountState;
-    let fxAccountsClient = this.fxAccountsClient;
     let sessionToken;
     return currentState.getUserAccountData().then(data => {
       
       sessionToken = data && data.sessionToken;
-      this.abortExistingFlow();
-      this.currentAccountState.signedInUser = null; 
-      return this.signedInUserStorage.set(null);
+      return this._signOutLocal();
     }).then(() => {
       
       
-      Promise.resolve().then(() => {
+      if (!localOnly) {
         
         
-        
-        return fxAccountsClient.signOut(sessionToken);
-      }).then(null, err => {
-        log.error("Error during remote sign out of Firefox Accounts: " + err);
-      });
+        Promise.resolve().then(() => {
+          
+          
+          
+          return this._signOutServer(sessionToken);
+        }).then(null, err => {
+          log.error("Error during remote sign out of Firefox Accounts: " + err);
+        });
+      }
+    }).then(() => {
       this.notifyObservers(ONLOGOUT_NOTIFICATION);
     });
+  },
+
+  
+
+
+
+  _signOutLocal: function signOutLocal() {
+    this.abortExistingFlow();
+    this.currentAccountState.signedInUser = null; 
+    return this.signedInUserStorage.set(null);
+  },
+
+  _signOutServer: function signOutServer(sessionToken) {
+    return this.fxAccountsClient.signOut(sessionToken);
   },
 
   

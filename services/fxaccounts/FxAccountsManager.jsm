@@ -163,7 +163,7 @@ this.FxAccountsManager = {
     
     let sessionToken = this._activeSession.sessionToken;
 
-    return this._fxAccounts.signOut(sessionToken).then(
+    return this._fxAccounts.signOut(true).then(
       () => {
         
 
