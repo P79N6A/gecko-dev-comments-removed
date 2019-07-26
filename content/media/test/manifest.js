@@ -366,8 +366,8 @@ var gUnseekableTests = [
 ];
 
 
-if (navigator.userAgent.indexOf("Windows") == -1 ||
-    IsWindows8OrLater()) {
+
+if (navigator.userAgent.indexOf("Windows") != -1 && IsWindows8OrLater()) {
   gUnseekableTests = gUnseekableTests.concat([
     { name:"big-buck-bunny-unseekable.mp4", type:"video/mp4" }
   ]);

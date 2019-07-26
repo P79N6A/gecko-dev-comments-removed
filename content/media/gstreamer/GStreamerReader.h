@@ -22,16 +22,13 @@
 
 #include "MediaDecoderReader.h"
 #include "MP3FrameParser.h"
+#include "ImageContainer.h"
 #include "nsRect.h"
 
 namespace mozilla {
 
 namespace dom {
 class TimeRanges;
-}
-
-namespace layers {
-class PlanarYCbCrImage;
 }
 
 class AbstractMediaDecoder;
@@ -69,10 +66,20 @@ public:
     return mInfo.HasVideo();
   }
 
+  layers::ImageContainer* GetImageContainer() { return mDecoder->GetImageContainer(); }
+
 private:
 
   void ReadAndPushData(guint aLength);
   int64_t QueryDuration();
+  nsRefPtr<layers::PlanarYCbCrImage> GetImageFromBuffer(GstBuffer* aBuffer);
+  void CopyIntoImageBuffer(GstBuffer *aBuffer, GstBuffer** aOutBuffer, nsRefPtr<layers::PlanarYCbCrImage> &image);
+  GstCaps* BuildAudioSinkCaps();
+  void InstallPadCallbacks();
+
+#if GST_VERSION_MAJOR >= 1
+  void ImageDataFromVideoFrame(GstVideoFrame *aFrame, layers::PlanarYCbCrImage::Data *aData);
+#endif
 
   
 
@@ -107,20 +114,31 @@ private:
   gboolean SeekData(GstAppSrc* aSrc, guint64 aOffset);
 
   
+#if GST_VERSION_MAJOR == 1
+  static GstPadProbeReturn EventProbeCb(GstPad *aPad, GstPadProbeInfo *aInfo, gpointer aUserData);
+  GstPadProbeReturn EventProbe(GstPad *aPad, GstEvent *aEvent);
+#else
   static gboolean EventProbeCb(GstPad* aPad, GstEvent* aEvent, gpointer aUserData);
   gboolean EventProbe(GstPad* aPad, GstEvent* aEvent);
+#endif
 
   
 
 
 
 
+#if GST_VERSION_MAJOR == 1
+  static GstPadProbeReturn QueryProbeCb(GstPad *aPad, GstPadProbeInfo *aInfo, gpointer aUserData);
+  GstPadProbeReturn QueryProbe(GstPad *aPad, GstPadProbeInfo *aInfo, gpointer aUserData);
+#else
   static GstFlowReturn AllocateVideoBufferCb(GstPad* aPad, guint64 aOffset, guint aSize,
                                              GstCaps* aCaps, GstBuffer** aBuf);
   GstFlowReturn AllocateVideoBufferFull(GstPad* aPad, guint64 aOffset, guint aSize,
                                      GstCaps* aCaps, GstBuffer** aBuf, nsRefPtr<layers::PlanarYCbCrImage>& aImage);
   GstFlowReturn AllocateVideoBuffer(GstPad* aPad, guint64 aOffset, guint aSize,
                                      GstCaps* aCaps, GstBuffer** aBuf);
+#endif
+
 
   
 
@@ -169,6 +187,11 @@ private:
   bool mUseParserDuration;
   int64_t mLastParserDuration;
 
+#if GST_VERSION_MAJOR >= 1
+  GstAllocator *mAllocator;
+  GstBufferPool *mBufferPool;
+  GstVideoInfo mVideoInfo;
+#endif
   GstElement* mPlayBin;
   GstBus* mBus;
   GstAppSrc* mSource;
@@ -199,6 +222,9 @@ private:
 
 
   bool mReachedEos;
+#if GST_VERSION_MAJOR >= 1
+  bool mConfigureAlignment;
+#endif
   int fpsNum;
   int fpsDen;
 };
