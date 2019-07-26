@@ -1619,11 +1619,6 @@ MediaStreamGraphImpl::AppendMessage(ControlMessage* aMessage)
         gGraph = nullptr;
       }
       delete this;
-    } else if (!mRealtime) {
-      
-      
-      
-      mNonRealtimeProcessing = false;
     }
     return;
   }
