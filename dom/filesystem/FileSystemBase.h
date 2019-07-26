@@ -10,10 +10,13 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 
+class nsIDOMFile;
 class nsPIDOMWindow;
 
 namespace mozilla {
 namespace dom {
+
+class Directory;
 
 class FileSystemBase
 {
@@ -60,6 +63,17 @@ public:
 
   virtual bool
   IsSafeFile(nsIFile* aFile) const;
+
+  virtual bool
+  IsSafeDirectory(Directory* aDir) const;
+
+  
+
+
+
+
+  virtual bool
+  GetRealPath(nsIDOMFile* aFile, nsAString& aRealPath) const = 0;
 
   
 
