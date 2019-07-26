@@ -126,3 +126,6 @@ user_pref("dom.navigator-property.disable.mozSettings", false);
 
 
 user_pref("network.http.bypass-cachelock-threshold", 200000);
+
+
+user_pref("dom.gamepad.enabled", true);

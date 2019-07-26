@@ -71,6 +71,8 @@ class GamepadService : public nsIObserver
                            bool aConnected);
 
   
+  bool mEnabled;
+  
   bool mStarted;
   
   bool mShuttingDown;

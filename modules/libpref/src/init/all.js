@@ -90,6 +90,13 @@ pref("dom.workers.maxPerDomain", 20);
 pref("dom.enable_performance", true);
 
 
+#ifdef RELEASE_BUILD
+pref("dom.gamepad.enabled", false);
+#else
+pref("dom.gamepad.enabled", true);
+#endif
+
+
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 
