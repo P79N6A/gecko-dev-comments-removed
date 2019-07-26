@@ -13,6 +13,20 @@ let Sync = {
   _progressValue: 0,
   _progressMax: null,
 
+  get _isSetup() {
+    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
+      return false;
+    }
+    
+    
+    
+    return (Weave.Status.login != Weave.LOGIN_FAILED_NO_USERNAME &&
+            Weave.Status.login != Weave.LOGIN_FAILED_NO_PASSWORD &&
+            Weave.Status.login != Weave.LOGIN_FAILED_NO_PASSPHRASE &&
+            Weave.Status.login != Weave.LOGIN_FAILED_INVALID_PASSPHRASE &&
+            Weave.Status.login != Weave.LOGIN_FAILED_LOGIN_REJECTED);
+  },
+
   init: function init() {
     if (this._bundle) {
       return;
@@ -70,16 +84,12 @@ let Sync = {
 
     this.setupData = { account: "", password: "" , synckey: "", serverURL: "" };
 
-    if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-      
-      this._elements.connect.firstChild.disabled = true;
-
-      try {
-        this._elements.device.value = Services.prefs.getCharPref("services.sync.client.name");
-      } catch(e) {}
-    } else if (Weave.Status.login != Weave.LOGIN_FAILED_NO_USERNAME) {
+    if (this._isSetup) {
       this.loadSetupData();
     }
+
+    
+    this._updateUI();
 
     this._boundOnEngineSync = this.onEngineSync.bind(this);
     this._boundOnServiceSync = this.onServiceSync.bind(this);
@@ -403,18 +413,14 @@ let Sync = {
 
   get _elements() {
     
-    let syncButton = document.getElementById("sync-syncButton");
-    if (syncButton == null)
-      return null;
-
-    
     let elements = {};
     let setupids = ["account", "password", "synckey", "usecustomserver", "customserver"];
     setupids.forEach(function(id) {
       elements[id] = document.getElementById("syncsetup-" + id);
     });
 
-    let settingids = ["device", "connect", "connected", "disconnect", "sync", "pairdevice"];
+    let settingids = ["device", "connect", "connected", "disconnect", "lastsync", "pairdevice",
+                      "errordescription"];
     settingids.forEach(function(id) {
       elements[id] = document.getElementById("sync-" + id);
     });
@@ -422,6 +428,66 @@ let Sync = {
     
     delete this._elements;
     return this._elements = elements;
+  },
+
+  _updateUI: function _updateUI() {
+    if (this._elements == null)
+      return;
+
+    let connect = this._elements.connect;
+    let connected = this._elements.connected;
+    let device = this._elements.device;
+    let disconnect = this._elements.disconnect;
+    let lastsync = this._elements.lastsync;
+    let pairdevice = this._elements.pairdevice;
+
+    
+    this._elements.errordescription.collapsed = true;
+
+    let isConfigured = (!this._loginError && this._isSetup);
+
+    connect.collapsed = isConfigured;
+    connected.collapsed = !isConfigured;
+    lastsync.collapsed = !isConfigured;
+    device.collapsed = !isConfigured;
+    disconnect.collapsed = !isConfigured;
+
+    
+    
+    try {
+      device.value = Services.prefs.getCharPref("services.sync.client.name");
+    } catch(ex) {
+      device.value = Weave.Service.clientsEngine.localName || "";
+    }
+
+    try {
+      let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Service.identity.account], 1);
+      disconnect.setAttribute("title", accountStr);
+    } catch (ex) {}
+
+    
+    if (Weave.Service.locked && isConfigured) {
+      connect.firstChild.disabled = true;
+    }
+
+    
+    let lastSync = Weave.Svc.Prefs.get("lastSync");
+    lastsync.textContent = "";
+    if (lastSync != null) {
+      let syncDate = new Date(lastSync).toLocaleFormat("%A %I:%M %p");
+      let dateStr = this._bundle.formatStringFromName("lastSync2.label", [syncDate], 1);
+      lastsync.textContent = dateStr;
+    }
+
+    
+    setTimeout(function(self) {
+      
+      if (Weave.Service.locked) {
+        connect.firstChild.disabled = true;
+      } else {
+        connect.firstChild.disabled = false;
+      }
+    }, 100, this);
   },
 
   observe: function observe(aSubject, aTopic, aData) {
@@ -439,19 +505,15 @@ let Sync = {
       return;
 
     
-    let connect = this._elements.connect;
-    let connected = this._elements.connected;
-    let device = this._elements.device;
-    let disconnect = this._elements.disconnect;
-    let sync = this._elements.sync;
-    let pairdevice = this._elements.pairdevice;
+    this._updateUI();
+
+    let errormsg = this._elements.errordescription;
 
     
     if (aTopic == "weave:ui:login:error") {
       this._loginError = true;
-      connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
-    } else {
-      connect.removeAttribute("desc");
+      errormsg.textContent = Weave.Utils.getErrorString(Weave.Status.login);
+      errormsg.collapsed = false;
     }
 
     if (aTopic == "weave:service:login:finish") {
@@ -461,51 +523,11 @@ let Sync = {
         this.loadSetupData();
     }
 
-    let isConfigured = (!this._loginError && Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED);
-
-    connect.collapsed = isConfigured;
-    connected.collapsed = !isConfigured;
-
-    if (!isConfigured) {
-      connect.firstChild.disabled = false;
-    }
-
-    sync.collapsed = !isConfigured;
-    device.collapsed = !isConfigured;
-    disconnect.collapsed = !isConfigured;
-
-    
-    setTimeout(function(self) {
-      
-      if (Weave.Service.locked) {
-        connect.firstChild.disabled = true;
-        sync.firstChild.disabled = true;
-
-        if (aTopic == "weave:service:login:start")
-          connect.setAttribute("title", self._bundle.GetStringFromName("connecting.label"));
-
-        if (aTopic == "weave:service:sync:start")
-          sync.setAttribute("title", self._bundle.GetStringFromName("lastSyncInProgress2.label"));
-      } else {
-        connect.firstChild.disabled = false;
-        sync.firstChild.disabled = false;
-      }
-    }, 0, this);
-
-    
-    let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Service.identity.account], 1);
-    disconnect.setAttribute("title", accountStr);
-
-    
-    let lastSync = Weave.Svc.Prefs.get("lastSync");
-    if (lastSync != null) {
-      let syncDate = new Date(lastSync).toLocaleFormat("%a %H:%M");
-      let dateStr = this._bundle.formatStringFromName("lastSync2.label", [syncDate], 1);
-      sync.setAttribute("title", dateStr);
-    }
-
     
     if (aTopic =="weave:service:sync:error") {
+      errormsg.textContent = Weave.Utils.getErrorString(Weave.Status.sync);
+      errormsg.collapsed = false;
+
       let clientOutdated = false, remoteOutdated = false;
       if (Weave.Status.sync == Weave.VERSION_OUT_OF_DATE) {
         clientOutdated = true;
@@ -538,8 +560,6 @@ let Sync = {
           Browser.addTab("https://services.mozilla.com/update/", true, Browser.selectedTab);
       }
     }
-
-    device.value = Weave.Service.clientsEngine.localName || "";
   },
 
   changeName: function changeName(aInput) {
