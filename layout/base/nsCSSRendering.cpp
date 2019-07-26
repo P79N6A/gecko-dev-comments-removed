@@ -2497,7 +2497,6 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       
       gfxRect fillRect =
         forceRepeatToCoverTiles ? areaToFill : tileRect.Intersect(areaToFill);
-      ctx->NewPath();
       
       
       gfxPoint snappedFillRectTopLeft = fillRect.TopLeft();
@@ -2523,6 +2522,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
             snappedFillRectBottomRight);
         ctx->SetMatrix(transform);
       }
+      ctx->NewPath();
       ctx->Rectangle(fillRect);
       ctx->Translate(tileRect.TopLeft());
       ctx->SetPattern(gradientPattern);
