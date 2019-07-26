@@ -89,13 +89,17 @@ function doTest(finishcb) {
   });
 
   
-  waitForCondition(function () {
-    return document.getElementById("social-sidebar-browser").docShellIsActive;
-  }, function () {
-    
-    info("Toggling sidebar off");
-    Social.toggleSidebar();
-  });
+  
+  let port = Social.provider.getWorkerPort();
+  port.postMessage({topic: "test-init"});
+  port.onmessage = function (e) {
+    let topic = e.data.topic;
+    switch (topic) {
+      case "got-sidebar-message":
+        ok(true, "sidebar is loaded and ready");
+        Social.toggleSidebar();
+    }
+  };
 }
 
 

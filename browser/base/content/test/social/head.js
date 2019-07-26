@@ -96,7 +96,6 @@ function runSocialTestWithProvider(manifest, callback) {
 
   manifests.forEach(function (m) {
     SocialService.addProvider(m, function(provider) {
-      provider.active = true;
 
       providersAdded++;
       info("runSocialTestWithProvider: provider added");
@@ -111,7 +110,6 @@ function runSocialTestWithProvider(manifest, callback) {
       if (providersAdded == manifests.length) {
         
         Social.provider = firstProvider;
-        Social.enabled = true;
 
         function finishSocialTest(cleanup) {
           

@@ -16,6 +16,22 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SocialService",
   "resource://gre/modules/SocialService.jsm");
 
+
+function prefObserver(subject, topic, data) {
+  let enable = Services.prefs.getBoolPref("social.enabled");
+  if (enable && !Social.provider) {
+    Social.provider = Social.defaultProvider;
+  } else if (!enable && Social.provider) {
+    Social.provider = null;
+  }
+}
+
+Services.prefs.addObserver("social.enabled", prefObserver, false);
+Services.obs.addObserver(function xpcomShutdown() {
+  Services.obs.removeObserver(xpcomShutdown, "xpcom-shutdown");
+  Services.prefs.removeObserver("social.enabled", prefObserver);
+}, "xpcom-shutdown", false);
+
 this.Social = {
   lastEventReceived: 0,
   providers: null,
@@ -51,9 +67,6 @@ this.Social = {
     if (this._provider == provider)
       return;
 
-    if (provider && !provider.active)
-      throw new Error("Social.provider cannot be set to an inactive provider.");
-
     
     
     if (this._provider)
@@ -62,11 +75,13 @@ this.Social = {
     this._provider = provider;
 
     if (this._provider) {
-      if (this.enabled)
-        this._provider.enabled = true;
+      this._provider.enabled = true;
       this._currentProviderPref = this._provider.origin;
-    } else {
-      Services.prefs.clearUserPref("social.provider.current");
+    }
+    let enabled = !!provider;
+    if (enabled != SocialService.enabled) {
+      SocialService.enabled = enabled;
+      Services.prefs.setBoolPref("social.enabled", enabled);
     }
 
     if (notify) {
@@ -75,17 +90,19 @@ this.Social = {
     }
   },
 
+  get defaultProvider() {
+    if (this.providers.length == 0)
+      return null;
+    let provider = this._getProviderFromOrigin(this._currentProviderPref);
+    return provider || this.providers[0];
+  },
+
   init: function Social_init(callback) {
     this._disabledForSafeMode = Services.appinfo.inSafeMode && this.enabled;
 
     if (this.providers) {
       schedule(callback);
       return;
-    }
-
-    if (!this._addedObservers) {
-      Services.obs.addObserver(this, "social:pref-changed", false);
-      this._addedObservers = true;
     }
 
     
@@ -99,8 +116,10 @@ this.Social = {
     
     SocialService.registerProviderListener(function providerListener(topic, data) {
       
-      if (topic == "provider-added" || topic == "provider-removed")
+      if (topic == "provider-added" || topic == "provider-removed") {
         this._updateProviderCache(data, true);
+        Services.obs.notifyObservers(null, "social:providers-changed", null);
+      }
     }.bind(this));
   },
 
@@ -109,43 +128,24 @@ this.Social = {
     this.providers = providers;
 
     
-    let currentProviderPref = this._currentProviderPref;
-    let currentProvider;
-    if (this._currentProviderPref) {
-      currentProvider = this._getProviderFromOrigin(this._currentProviderPref);
-    } else {
-      
-      
-      
-      try {
-        let active = Services.prefs.getBoolPref("social.active");
-        if (active) {
-          currentProvider = providers[0];
-          currentProvider.active = true;
-        }
-      } catch(ex) {}
-    }
-    this._setProvider(currentProvider, notifyProviderChange);
-  },
-
-  observe: function(aSubject, aTopic, aData) {
-    if (aTopic == "social:pref-changed") {
-      
-      
-      if (this.provider)
-        this.provider.enabled = this.enabled;
-    }
+    if (!SocialService.enabled)
+      return;
+    
+    this._setProvider(this.defaultProvider, notifyProviderChange);
   },
 
   set enabled(val) {
-    SocialService.enabled = val;
+    
+    
+    if (val) {
+      if (!this.provider)
+        this.provider = this.defaultProvider;
+    } else {
+      this.provider = null;
+    }
   },
   get enabled() {
-    return SocialService.enabled;
-  },
-
-  get active() {
-    return this.provider && this.providers.some(function (p) p.active);
+    return this.provider != null;
   },
 
   toggle: function Social_toggle() {
@@ -181,32 +181,34 @@ this.Social = {
   },
 
   
-  activateFromOrigin: function (origin) {
-    let provider = this._getProviderFromOrigin(origin);
-    if (provider) {
-      
-      if (provider == this.provider && provider.active)
-        return null;
-
-      provider.active = true;
-      this.provider = provider;
-      Social.enabled = true;
-    }
-    return provider;
+  activateFromOrigin: function (origin, callback) {
+    
+    
+    SocialService.addBuiltinProvider(origin, function(provider) {
+      if (provider) {
+        
+        if (provider == this.provider)
+          return;
+        this.provider = provider;
+      }
+      if (callback)
+        callback(provider);
+    }.bind(this));
   },
 
   deactivateFromOrigin: function (origin, oldOrigin) {
+    
     let provider = this._getProviderFromOrigin(origin);
-    if (provider && provider == this.provider) {
-      this.provider.active = false;
-      
-      
-      this.provider = this._getProviderFromOrigin(oldOrigin);
-      if (!this.provider)
-        this.provider = this.providers.filter(function (p) p.active)[0];
-      if (!this.provider) 
-        this.enabled = false;
-    }
+    let oldProvider = this._getProviderFromOrigin(oldOrigin);
+    if (!oldProvider && this.providers.length)
+      oldProvider = this.providers[0];
+    this.provider = oldProvider;
+    if (provider)
+      SocialService.removeProvider(origin);
+  },
+
+  canActivateOrigin: function (origin) {
+    return SocialService.canActivateOrigin(origin);
   },
 
   
