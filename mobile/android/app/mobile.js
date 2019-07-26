@@ -148,11 +148,8 @@ pref("signon.SignonFileName", "signons.txt");
 pref("signon.debug", false);
 
 
-
-pref("formhelper.mode", 2);
+pref("formhelper.mode", 2);  
 pref("formhelper.autozoom", true);
-pref("formhelper.autozoom.caret", true);
-pref("formhelper.restore", false);
 
 
 pref("findhelper.autozoom", true);
