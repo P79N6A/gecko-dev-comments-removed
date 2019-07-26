@@ -898,7 +898,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    uint32 buildFakeExitFrame(const Register &scratch);
+    bool buildFakeExitFrame(const Register &scratch, uint32 *offset);
 
     void callWithExitFrame(IonCode *target);
 

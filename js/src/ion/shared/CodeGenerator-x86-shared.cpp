@@ -888,7 +888,7 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
     DeferredJumpTable *d = new DeferredJumpTable(ins);
     if (!masm.addDeferredData(d, (1 << ScalePointer) * cases))
         return false;
-   
+
     
     const LAllocation *base = ins->tempPointer();
     masm.mov(d->label(), ToRegister(base));

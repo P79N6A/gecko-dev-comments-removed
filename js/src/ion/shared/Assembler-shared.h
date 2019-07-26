@@ -339,7 +339,7 @@ class CodeLabel : public TempObject
 {
     
     AbsoluteLabel dest_;
-    
+
     
     
     Label src_;
