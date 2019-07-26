@@ -3076,6 +3076,8 @@ nsCxPusher::DoPush(JSContext* cx)
   mPushedSomething = true;
 #ifdef DEBUG
   mPushedContext = cx;
+  if (cx)
+    mCompartmentDepthOnEntry = js::GetEnterCompartmentDepth(cx);
 #endif
   return true;
 }
@@ -3099,6 +3101,14 @@ nsCxPusher::Pop()
 
     return;
   }
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT_IF(mPushedContext, mCompartmentDepthOnEntry ==
+                                js::GetEnterCompartmentDepth(mPushedContext));
 
   JSContext *unused;
   stack->Pop(&unused);
