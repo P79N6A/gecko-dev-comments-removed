@@ -942,6 +942,11 @@ public:
   virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo) = 0;
   void SetAutofinishImpl(bool aAutofinish) { mAutofinish = aAutofinish; }
 
+  
+
+
+  virtual void ForwardTrackEnabled(TrackID aOutputID, bool aEnabled) {};
+
 protected:
   
 

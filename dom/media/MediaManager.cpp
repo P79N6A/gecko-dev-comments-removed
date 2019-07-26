@@ -313,6 +313,17 @@ public:
   }
 
   
+  virtual void SetTrackEnabled(TrackID aID, bool aEnabled) MOZ_OVERRIDE
+  {
+    
+    
+
+    
+    
+    GetStream()->AsProcessedStream()->ForwardTrackEnabled(aID, aEnabled);
+  }
+
+  
   
   nsRefPtr<SourceMediaStream> mSourceStream;
   nsRefPtr<MediaInputPort> mPort;
