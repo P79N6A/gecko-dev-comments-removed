@@ -335,6 +335,19 @@ MapsReporter::ParseMapping(
   return NS_OK;
 }
 
+static bool
+IsAnonymous(const nsACString &aName)
+{
+  
+  
+  
+  
+  
+  
+  return aName.IsEmpty() ||
+         StringBeginsWith(aName, NS_LITERAL_CSTRING("[stack:"));
+}
+
 void
 MapsReporter::GetReporterNameAndDescription(
   const char *aPath,
@@ -376,7 +389,7 @@ MapsReporter::GetReporterNameAndDescription(
                  "perform some privileged actions without the overhead of a "
                  "syscall.");
   }
-  else if (!basename.IsEmpty()) {
+  else if (!IsAnonymous(basename)) {
     nsAutoCString dirname;
     GetDirname(absPath, dirname);
 
