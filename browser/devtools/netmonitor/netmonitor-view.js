@@ -1383,14 +1383,18 @@ SidebarView.prototype = {
 
 
 
+
+
   populate: function(aData) {
-    if (aData.isCustom) {
-      NetMonitorView.CustomRequest.populate(aData);
-      $("#details-pane").selectedIndex = 0;
-    } else {
-      NetMonitorView.NetworkDetails.populate(aData);
-      $("#details-pane").selectedIndex = 1;
-    }
+    let isCustom = aData.isCustom;
+    let view = isCustom ?
+      NetMonitorView.CustomRequest :
+      NetMonitorView.NetworkDetails;
+
+    return view.populate(aData).then(() => {
+      $("#details-pane").selectedIndex = isCustom ? 0 : 1
+      window.emit(EVENTS.SIDEBAR_POPULATED)
+    });
   },
 
   
@@ -1415,21 +1419,30 @@ CustomRequestView.prototype = {
 
 
 
+
+
   populate: function(aData) {
     $("#custom-url-value").value = aData.url;
     $("#custom-method-value").value = aData.method;
     $("#custom-headers-value").value =
        writeHeaderText(aData.requestHeaders.headers);
 
+    let view = this;
+    let postDataPromise = null;
+
     if (aData.requestPostData) {
       let body = aData.requestPostData.postData.text;
 
-      gNetwork.getString(body).then(aString => {
+      postDataPromise = gNetwork.getString(body).then(aString => {
         $("#custom-postdata-value").value =  aString;
       });
+    } else {
+      postDataPromise = promise.resolve();
     }
 
-    this.updateCustomQuery(aData.url);
+    return postDataPromise
+      .then(() => view.updateCustomQuery(aData.url))
+      .then(() => window.emit(EVENTS.CUSTOMREQUESTVIEW_POPULATED));
   },
 
   
@@ -1585,6 +1598,8 @@ NetworkDetailsView.prototype = {
 
 
 
+
+
   populate: function(aData) {
     $("#request-params-box").setAttribute("flex", "1");
     $("#request-params-box").hidden = false;
@@ -1601,6 +1616,9 @@ NetworkDetailsView.prototype = {
 
     this._dataSrc = { src: aData, populated: [] };
     this._onTabSelect();
+    window.emit(EVENTS.NETWORKDETAILSVIEW_POPULATED);
+
+    return promise.resolve();
   },
 
   
@@ -1609,35 +1627,38 @@ NetworkDetailsView.prototype = {
   _onTabSelect: function() {
     let { src, populated } = this._dataSrc || {};
     let tab = this.widget.selectedIndex;
+    let view = this;
 
     
     if (!src || populated[tab]) {
       return;
     }
 
-    switch (tab) {
-      case 0: 
-        this._setSummary(src);
-        this._setResponseHeaders(src.responseHeaders);
-        this._setRequestHeaders(src.requestHeaders);
-        break;
-      case 1: 
-        this._setResponseCookies(src.responseCookies);
-        this._setRequestCookies(src.requestCookies);
-        break;
-      case 2: 
-        this._setRequestGetParams(src.url);
-        this._setRequestPostParams(src.requestHeaders, src.requestPostData);
-        break;
-      case 3: 
-        this._setResponseBody(src.url, src.responseContent);
-        break;
-      case 4: 
-        this._setTimingsInformation(src.eventTimings);
-        break;
-    }
-
-    populated[tab] = true;
+    Task.spawn(function*() {
+      switch (tab) {
+        case 0: 
+          yield view._setSummary(src);
+          yield view._setResponseHeaders(src.responseHeaders);
+          yield view._setRequestHeaders(src.requestHeaders);
+          break;
+        case 1: 
+          yield view._setResponseCookies(src.responseCookies);
+          yield view._setRequestCookies(src.requestCookies);
+          break;
+        case 2: 
+          yield view._setRequestGetParams(src.url);
+          yield view._setRequestPostParams(src.requestHeaders, src.requestPostData);
+          break;
+        case 3: 
+          yield view._setResponseBody(src.url, src.responseContent);
+          break;
+        case 4: 
+          yield view._setTimingsInformation(src.eventTimings);
+          break;
+      }
+      populated[tab] = true;
+      window.emit(EVENTS.TAB_UPDATED);
+    });
   },
 
   
@@ -1685,13 +1706,18 @@ NetworkDetailsView.prototype = {
 
 
 
+
+
   _setRequestHeaders: function(aResponse) {
     if (aResponse && aResponse.headers.length) {
-      this._addHeaders(this._requestHeaders, aResponse);
+      return this._addHeaders(this._requestHeaders, aResponse);
     }
+    return promise.resolve();
   },
 
   
+
+
 
 
 
@@ -1700,11 +1726,14 @@ NetworkDetailsView.prototype = {
   _setResponseHeaders: function(aResponse) {
     if (aResponse && aResponse.headers.length) {
       aResponse.headers.sort((a, b) => a.name > b.name);
-      this._addHeaders(this._responseHeaders, aResponse);
+      return this._addHeaders(this._responseHeaders, aResponse);
     }
+    return promise.resolve();
   },
 
   
+
+
 
 
 
@@ -1719,13 +1748,16 @@ NetworkDetailsView.prototype = {
     let headersScope = this._headers.addScope(aName + " (" + text + ")");
     headersScope.expanded = true;
 
-    for (let header of aResponse.headers) {
+    return promise.all(aResponse.headers.map(header => {
       let headerVar = headersScope.addItem(header.name, {}, true);
-      gNetwork.getString(header.value).then(aString => headerVar.setGrip(aString));
-    }
+      return gNetwork.getString(header.value)
+             .then(aString => headerVar.setGrip(aString));
+    }));
   },
 
   
+
+
 
 
 
@@ -1734,11 +1766,14 @@ NetworkDetailsView.prototype = {
   _setRequestCookies: function(aResponse) {
     if (aResponse && aResponse.cookies.length) {
       aResponse.cookies.sort((a, b) => a.name > b.name);
-      this._addCookies(this._requestCookies, aResponse);
+      return this._addCookies(this._requestCookies, aResponse);
     }
+    return promise.resolve();
   },
 
   
+
+
 
 
 
@@ -1746,11 +1781,14 @@ NetworkDetailsView.prototype = {
 
   _setResponseCookies: function(aResponse) {
     if (aResponse && aResponse.cookies.length) {
-      this._addCookies(this._responseCookies, aResponse);
+      return this._addCookies(this._responseCookies, aResponse);
     }
+    return promise.resolve();
   },
 
   
+
+
 
 
 
@@ -1762,28 +1800,30 @@ NetworkDetailsView.prototype = {
     let cookiesScope = this._cookies.addScope(aName);
     cookiesScope.expanded = true;
 
-    for (let cookie of aResponse.cookies) {
+    return promise.all(aResponse.cookies.map(cookie => {
       let cookieVar = cookiesScope.addItem(cookie.name, {}, true);
-      gNetwork.getString(cookie.value).then(aString => cookieVar.setGrip(aString));
+      return gNetwork.getString(cookie.value).then(aString => {
+        cookieVar.setGrip(aString);
 
-      
-      
-      let cookieProps = Object.keys(cookie);
-      if (cookieProps.length == 2) {
-        continue;
-      }
+        
+        
+        let cookieProps = Object.keys(cookie);
+        if (cookieProps.length == 2) {
+          return;
+        }
 
-      
-      
-      let rawObject = Object.create(null);
-      let otherProps = cookieProps.filter(e => e != "name" && e != "value");
-      for (let prop of otherProps) {
-        rawObject[prop] = cookie[prop];
-      }
-      cookieVar.populate(rawObject);
-      cookieVar.twisty = true;
-      cookieVar.expanded = true;
-    }
+        
+        
+        let rawObject = Object.create(null);
+        let otherProps = cookieProps.filter(e => e != "name" && e != "value");
+        for (let prop of otherProps) {
+          rawObject[prop] = cookie[prop];
+        }
+        cookieVar.populate(rawObject);
+        cookieVar.twisty = true;
+        cookieVar.expanded = true;
+      });
+    }));
   },
 
   
@@ -1807,11 +1847,13 @@ NetworkDetailsView.prototype = {
 
 
 
+
+
   _setRequestPostParams: function(aHeadersResponse, aPostDataResponse) {
     if (!aHeadersResponse || !aPostDataResponse) {
-      return;
+      return promise.resolve();
     }
-    gNetwork.getString(aPostDataResponse.postData.text).then(aString => {
+    return gNetwork.getString(aPostDataResponse.postData.text).then(aString => {
       
       let cType = aHeadersResponse.headers.filter(({ name }) => name == "Content-Type")[0];
       let cString = cType ? cType.value : "";
@@ -1833,12 +1875,11 @@ NetworkDetailsView.prototype = {
         paramsScope.locked = true;
 
         $("#request-post-data-textarea-box").hidden = false;
-        NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
+        return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
           aEditor.setText(aString);
         });
       }
-      window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED);
-    });
+    }).then(() => window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED));
   },
 
   
@@ -1871,13 +1912,15 @@ NetworkDetailsView.prototype = {
 
 
 
+
+
   _setResponseBody: function(aUrl, aResponse) {
     if (!aResponse) {
-      return;
+      return promise.resolve();
     }
     let { mimeType, text, encoding } = aResponse.content;
 
-    gNetwork.getString(text).then(aString => {
+    return gNetwork.getString(text).then(aString => {
       
       
       
@@ -1903,22 +1946,22 @@ NetworkDetailsView.prototype = {
             ? L10N.getFormatStr("jsonpScopeName", callbackPadding[0].slice(0, -1))
             : L10N.getStr("jsonScopeName");
 
-          this._json.controller.setSingleVariable({
+          return this._json.controller.setSingleVariable({
             label: jsonScopeName,
             rawObject: jsonObject,
-          });
+          }).expanded;
         }
         
         else {
           $("#response-content-textarea-box").hidden = false;
-          NetMonitorView.editor("#response-content-textarea").then(aEditor => {
-            aEditor.setMode(Editor.modes.js);
-            aEditor.setText(aString);
-          });
           let infoHeader = $("#response-content-info-header");
           infoHeader.setAttribute("value", parsingError);
           infoHeader.setAttribute("tooltiptext", parsingError);
           infoHeader.hidden = false;
+          return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
+            aEditor.setMode(Editor.modes.js);
+            aEditor.setText(aString);
+          });
         }
       }
       
@@ -1948,7 +1991,7 @@ NetworkDetailsView.prototype = {
       
       else {
         $("#response-content-textarea-box").hidden = false;
-        NetMonitorView.editor("#response-content-textarea").then(aEditor => {
+        return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
           aEditor.setMode(Editor.modes.text);
           aEditor.setText(aString);
 
@@ -1964,8 +2007,7 @@ NetworkDetailsView.prototype = {
           }
         });
       }
-      window.emit(EVENTS.RESPONSE_BODY_DISPLAYED);
-    });
+    }).then(() => window.emit(EVENTS.RESPONSE_BODY_DISPLAYED));
   },
 
   

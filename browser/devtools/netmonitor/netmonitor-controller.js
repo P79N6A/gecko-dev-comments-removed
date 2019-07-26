@@ -55,17 +55,30 @@ const EVENTS = {
   REQUEST_POST_PARAMS_DISPLAYED: "NetMonitor:RequestPostParamsAvailable",
 
   
-  RESPONSE_BODY_DISPLAYED: "NetMonitor:ResponseBodyAvailable"
-}
+  RESPONSE_BODY_DISPLAYED: "NetMonitor:ResponseBodyAvailable",
+
+  
+  TAB_UPDATED: "NetMonitor:TabUpdated",
+
+  
+  SIDEBAR_POPULATED: "NetMonitor:SidebarPopulated",
+
+  
+  NETWORKDETAILSVIEW_POPULATED: "NetMonitor:NetworkDetailsViewPopulated",
+
+  
+  CUSTOMREQUESTVIEW_POPULATED: "NetMonitor:CustomRequestViewPopulated"
+};
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const Editor = require("devtools/sourceeditor/editor");
