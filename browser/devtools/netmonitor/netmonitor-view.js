@@ -443,11 +443,16 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     }
 
     
-    if (!target || !direction) {
-      this.sortContents(this._byTiming);
-    }
     
-    else switch (aType) {
+    if (!target || !direction) {
+      aType = "waterfall";
+      target = $("#requests-menu-waterfall-button");
+      target.setAttribute("sorted", direction = "ascending");
+      target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedAsc"));
+    }
+
+    
+    switch (aType) {
       case "status":
         if (direction == "ascending") {
           this.sortContents(this._byStatus);
@@ -488,6 +493,13 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
           this.sortContents(this._bySize);
         } else {
           this.sortContents((a, b) => !this._bySize(a, b));
+        }
+        break;
+      case "waterfall":
+        if (direction == "ascending") {
+          this.sortContents(this._byTiming);
+        } else {
+          this.sortContents((a, b) => !this._byTiming(a, b));
         }
         break;
     }
@@ -924,7 +936,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
   _showWaterfallDivisionLabels: function(aScale) {
-    let container = $("#requests-menu-waterfall-header-box");
+    let container = $("#requests-menu-waterfall-button");
     let availableWidth = this._waterfallWidth - REQUESTS_WATERFALL_SAFE_BOUNDS;
 
     
