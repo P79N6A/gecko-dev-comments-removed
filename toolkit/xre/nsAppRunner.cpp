@@ -2919,17 +2919,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
 #ifdef MOZ_ACCESSIBILITY_ATK
   
   
-  const char* gtkModules = PR_GetEnv("GTK_MODULES");
-  if (gtkModules && *gtkModules) {
-    nsCString gtkModulesStr(gtkModules);
-    gtkModulesStr.ReplaceSubstring("atk-bridge", "");
-    char* expr = PR_smprintf("GTK_MODULES=%s", gtkModulesStr.get());
-    if (expr)
-      PR_SetEnv(expr);
-    
-  }
-
-  
   SaveToEnv("NO_AT_BRIDGE=1");
 #endif
 
