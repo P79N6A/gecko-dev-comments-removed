@@ -509,6 +509,44 @@ add_test(function test_send_stk_terminal_profile() {
 
 
 
+add_test(function test_icc_get_card_lock_fdn() {
+  let worker = newUint8Worker();
+  let ril = worker.RIL;
+  let buf = worker.Buf;
+
+  buf.sendParcel = function () {
+    
+    do_check_eq(this.readUint32(), REQUEST_QUERY_FACILITY_LOCK)
+
+    
+    this.readUint32();
+
+    
+    do_check_eq(this.readUint32(), 4);
+
+    
+    do_check_eq(this.readString(), ICC_CB_FACILITY_FDN);
+
+    
+    do_check_eq(this.readString(), "");
+
+    
+    do_check_eq(this.readString(), (ICC_SERVICE_CLASS_VOICE |
+                                    ICC_SERVICE_CLASS_DATA  |
+                                    ICC_SERVICE_CLASS_FAX).toString());
+
+    
+    this.readUint32();
+
+    run_next_test();
+  };
+
+  ril.iccGetCardLock({lockType: "fdn"});
+});
+
+
+
+
 add_test(function test_write_location_info_tlv() {
   let worker = newUint8Worker();
   let pduHelper = worker.GsmPDUHelper;
