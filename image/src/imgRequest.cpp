@@ -108,6 +108,9 @@ imgRequest::imgRequest(imgLoader* aLoader)
 
 imgRequest::~imgRequest()
 {
+  
+  GetStatusTracker().ClearRequest();
+
   if (mURI) {
     nsAutoCString spec;
     mURI->GetSpec(spec);

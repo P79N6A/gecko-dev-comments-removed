@@ -187,6 +187,9 @@ public:
   void MaybeUnblockOnload();
 
   
+  void ClearRequest();
+
+  
   inline mozilla::image::Image* GetImage() const { return mImage; };
   inline imgRequest* GetRequest() const { return mRequest; };
 
