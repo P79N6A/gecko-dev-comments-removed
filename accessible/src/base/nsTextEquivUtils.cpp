@@ -329,14 +329,18 @@ bool
 nsTextEquivUtils::AppendString(nsAString *aString,
                                const nsAString& aTextEquivalent)
 {
-  
   if (aTextEquivalent.IsEmpty())
     return false;
 
-  if (!aString->IsEmpty())
+  
+  if (!aString->IsEmpty() && !IsWhitespace(aString->Last()))
     aString->Append(PRUnichar(' '));
 
   aString->Append(aTextEquivalent);
+
+  if (!IsWhitespace(aString->Last()))
+    aString->Append(PRUnichar(' '));
+
   return true;
 }
 
