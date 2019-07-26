@@ -1227,7 +1227,20 @@ ScriptSource::setSourceCopy(ExclusiveContext *cx, const jschar *src, uint32_t le
     
     
     
-    if (task && cx->cpuCount() > 1 && cx->workerThreadCount() >= 2) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const size_t HUGE_SCRIPT = 5 * 1024 * 1024;
+    if (length < HUGE_SCRIPT &&
+        cx->cpuCount() > 1 &&
+        cx->workerThreadCount() >= 2)
+    {
         task->ss = this;
         task->chars = src;
         ready_ = false;
