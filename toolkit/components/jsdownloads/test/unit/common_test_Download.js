@@ -164,6 +164,7 @@ add_task(function test_basic_tryToKeepPartialData()
   yield promiseVerifyContents(download.target.path,
                               TEST_DATA_SHORT + TEST_DATA_SHORT);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_eq(32, download.saver.getSha256Hash().length);
 });
 
 
@@ -350,6 +351,7 @@ add_task(function test_empty_progress_tryToKeepPartialData()
   
   do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_eq(32, download.saver.getSha256Hash().length);
 });
 
 
@@ -1417,6 +1419,59 @@ add_task(function test_blocked_parental_controls_httpstatus450()
 
 
 
+
+
+add_task(function test_getSha256Hash()
+{
+  if (!gUseLegacySaver) {
+    let download = yield promiseStartDownload(httpUrl("source.txt"));
+    yield promiseDownloadStopped(download);
+    do_check_true(download.stopped);
+    do_check_eq(32, download.saver.getSha256Hash().length);
+  }
+});
+
+
+
+
+
+add_task(function test_blocked_applicationReputation()
+{
+  function cleanup() {
+    DownloadIntegration.shouldBlockInTestForApplicationReputation = false;
+  }
+  do_register_cleanup(cleanup);
+  DownloadIntegration.shouldBlockInTestForApplicationReputation = true;
+
+  let download;
+  try {
+    if (!gUseLegacySaver) {
+      
+      
+      download = yield promiseNewDownload();
+      yield download.start();
+    } else {
+      
+      
+      
+      
+      download = yield promiseStartLegacyDownload();
+      yield promiseDownloadStopped(download);
+    }
+    do_throw("The download should have blocked.");
+  } catch (ex if ex instanceof Downloads.Error && ex.becauseBlocked) {
+    do_check_true(ex.becauseBlockedByReputationCheck);
+    do_check_true(download.error.becauseBlockedByReputationCheck);
+  }
+
+  
+  do_check_false(yield OS.File.exists(download.target.path));
+  cleanup();
+});
+
+
+
+
 add_task(function test_showContainingDirectory() {
   DownloadIntegration._deferTestShowDir = Promise.defer();
 
@@ -1770,4 +1825,3 @@ add_task(function test_launchWhenSucceeded_deleteTempFileOnExit() {
   do_check_false(yield OS.File.exists(autoDeleteTargetPathTwo));
   do_check_true(yield OS.File.exists(noAutoDeleteTargetPath));
 });
-

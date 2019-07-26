@@ -103,27 +103,30 @@ function run_test() {
   run_next_test();
 }
 
-add_test(function test_shouldBlock() {
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://evil.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    do_check_true(aShouldBlock);
-    do_check_eq(Cr.NS_OK, aStatus);
-    run_next_test();
-  });
-});
 
-add_test(function test_shouldNotBlock() {
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://mozilla.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    do_check_eq(Cr.NS_OK, aStatus);
-    do_check_false(aShouldBlock);
-    run_next_test();
-  });
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 add_test(function test_nullSourceURI() {
   gAppRep.queryReputation({
@@ -161,19 +164,22 @@ add_test(function test_disabled() {
   });
 });
 
-add_test(function test_garbage() {
-  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
-                             "http://localhost:4444/download");
-  gAppRep.queryReputation({
-    sourceURI: createURI("http://whitelisted.com"),
-    fileSize: 12,
-  }, function onComplete(aShouldBlock, aStatus) {
-    
-    do_check_eq(Cr.NS_ERROR_CANNOT_CONVERT_DATA, aStatus);
-    do_check_false(aShouldBlock);
-    run_next_test();
-  });
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 add_test(function test_local_list() {

@@ -417,7 +417,18 @@ Download.prototype = {
         
         yield this.saver.execute(DS_setProgressBytes.bind(this),
                                  DS_setProperties.bind(this));
-
+        
+        
+        if (yield DownloadIntegration.shouldBlockForReputationCheck(this)) {
+          
+          
+          try {
+            yield OS.File.remove(this.target.path);
+          } catch (ex) {
+            Cu.reportError(ex);
+          }
+          throw new DownloadError({ becauseBlockedByReputationCheck: true });
+        }
         
         this.progress = 100;
         this.succeeded = true;
@@ -456,6 +467,7 @@ Download.prototype = {
           this.speed = 0;
           this._notifyChange();
           if (this.succeeded) {
+            dump("we're good\n");
             yield DownloadIntegration.downloadDone(this);
 
             this._deferSucceeded.resolve();
@@ -1185,7 +1197,8 @@ function DownloadError(aProperties)
   if (aProperties.message) {
     this.message = aProperties.message;
   } else if (aProperties.becauseBlocked ||
-             aProperties.becauseBlockedByParentalControls) {
+             aProperties.becauseBlockedByParentalControls ||
+             aProperties.becauseBlockedByReputationCheck) {
     this.message = "Download blocked.";
   } else {
     let exception = new Components.Exception("", this.result);
@@ -1209,8 +1222,10 @@ function DownloadError(aProperties)
   if (aProperties.becauseBlockedByParentalControls) {
     this.becauseBlocked = true;
     this.becauseBlockedByParentalControls = true;
-  }
-  else if (aProperties.becauseBlocked) {
+  } else if (aProperties.becauseBlockedByReputationCheck) {
+    this.becauseBlocked = true;
+    this.becauseBlockedByReputationCheck = true;
+  } else if (aProperties.becauseBlocked) {
     this.becauseBlocked = true;
   }
 
@@ -1246,6 +1261,12 @@ DownloadError.prototype = {
 
 
   becauseBlockedByParentalControls: false,
+
+  
+
+
+
+  becauseBlockedByReputationCheck: false,
 };
 
 
@@ -1374,7 +1395,15 @@ DownloadSaver.prototype = {
   {
     throw new Error("Not implemented.");
   },
-};
+
+  
+
+
+  getSha256Hash: function ()
+  {
+    throw new Error("Not implemented.");
+  }
+}; 
 
 
 
@@ -1425,6 +1454,12 @@ DownloadCopySaver.prototype = {
 
 
   _canceled: false,
+
+  
+
+
+
+  _sha256Hash: null,
 
   
 
@@ -1497,14 +1532,11 @@ DownloadCopySaver.prototype = {
           
           backgroundFileSaver.observer = {
             onTargetChange: function () { },
-            onSaveComplete: function DCSE_onSaveComplete(aSaver, aStatus)
-            {
-              
-              backgroundFileSaver.observer = null;
-              this._backgroundFileSaver = null;
-
+            onSaveComplete: (aSaver, aStatus) => {
               
               if (Components.isSuccessCode(aStatus)) {
+                
+                this._sha256Hash = aSaver.sha256Hash;
                 deferSaveComplete.resolve();
               } else {
                 
@@ -1512,6 +1544,9 @@ DownloadCopySaver.prototype = {
                 let properties = { result: aStatus, inferCause: true };
                 deferSaveComplete.reject(new DownloadError(properties));
               }
+              
+              backgroundFileSaver.observer = null;
+              this._backgroundFileSaver = null;
             },
           };
 
@@ -1609,6 +1644,8 @@ DownloadCopySaver.prototype = {
                 }
               }
 
+              
+              backgroundFileSaver.enableSha256();
               if (partFilePath) {
                 
                 if (resumeAttempted) {
@@ -1727,6 +1764,14 @@ DownloadCopySaver.prototype = {
     serializeUnknownProperties(this, serializable);
     return serializable;
   },
+
+  
+
+
+  getSha256Hash: function ()
+  {
+    return this._sha256Hash;
+  }
 };
 
 
@@ -1766,6 +1811,13 @@ function DownloadLegacySaver()
 
 DownloadLegacySaver.prototype = {
   __proto__: DownloadSaver.prototype,
+
+  
+
+
+
+
+  _sha256Hash: null,
 
   
 
@@ -2017,6 +2069,25 @@ DownloadLegacySaver.prototype = {
     
     
     return DownloadCopySaver.prototype.toSerializable.call(this);
+  },
+
+  
+
+
+  getSha256Hash: function ()
+  {
+    if (this.copySaver) {
+      return this.copySaver.getSha256Hash();
+    }
+    return this._sha256Hash;
+  },
+
+  
+
+
+  setSha256Hash: function (hash)
+  {
+    this._sha256Hash = hash;
   },
 };
 

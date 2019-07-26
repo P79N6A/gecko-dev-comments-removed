@@ -117,6 +117,11 @@ DownloadLegacyTransfer.prototype = {
       
       
       this._deferDownload.promise.then(download => {
+	
+	
+	if (Components.isSuccessCode(aStatus)) {
+          download.saver.setSha256Hash(this._sha256Hash);
+        }
         download.saver.onTransferFinished(aRequest, aStatus);
       }).then(null, Cu.reportError);
 
@@ -231,7 +236,10 @@ DownloadLegacyTransfer.prototype = {
     }.bind(this)).then(null, Cu.reportError);
   },
 
-  setSha256Hash: function () { },
+  setSha256Hash: function (hash)
+  {
+    this._sha256Hash = hash;
+  },
 
   
   
@@ -254,6 +262,11 @@ DownloadLegacyTransfer.prototype = {
 
 
   _componentFailed: false,
+
+  
+
+
+  _sha256Hash: null,
 };
 
 

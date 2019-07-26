@@ -71,6 +71,10 @@ XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
   return null;
 });
 
+XPCOMUtils.defineLazyServiceGetter(this, "gApplicationReputationService",
+           "@mozilla.org/downloads/application-reputation-service;1",
+           Ci.nsIApplicationReputationService);
+
 
 
 
@@ -125,6 +129,8 @@ this.DownloadIntegration = {
   dontLoadObservers: false,
   dontCheckParentalControls: false,
   shouldBlockInTest: false,
+  dontCheckApplicationReputation: false,
+  shouldBlockInTestForApplicationReputation: false,
   dontOpenFileAndFolder: false,
   downloadDoneCalled: false,
   _deferTestOpenFile: null,
@@ -399,6 +405,41 @@ this.DownloadIntegration = {
     }
 
     return Promise.resolve(shouldBlock);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  shouldBlockForReputationCheck: function (aDownload) {
+    if (this.dontCheckApplicationReputation) {
+      return Promise.resolve(this.shouldBlockInTestForApplicationReputation);
+    }
+    let hash;
+    try {
+      hash = aDownload.saver.getSha256Hash();
+    } catch (ex) {
+      
+      return Promise.resolve(false);
+    }
+    if (!hash) {
+      return Promise.resolve(false);
+    }
+    let deferred = Promise.defer();
+    gApplicationReputationService.queryReputation({
+      sourceURI: NetUtil.newURI(aDownload.source.url),
+      fileSize: aDownload.currentBytes,
+      sha256Hash: hash },
+      function onComplete(aShouldBlock, aRv) {
+        deferred.resolve(aShouldBlock);
+      });
+    return deferred.promise;
   },
 
   

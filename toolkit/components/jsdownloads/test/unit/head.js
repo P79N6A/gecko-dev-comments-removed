@@ -811,6 +811,8 @@ add_task(function test_common_initialize()
   
   DownloadIntegration.dontCheckParentalControls = true;
   
+  DownloadIntegration.dontCheckApplicationReputation = true;
+  
   DownloadIntegration.dontOpenFileAndFolder = true;
   DownloadIntegration._deferTestOpenFile = Promise.defer();
   DownloadIntegration._deferTestShowDir = Promise.defer();
