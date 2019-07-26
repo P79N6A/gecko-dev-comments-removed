@@ -11,12 +11,6 @@
 #include "nsIThread.h"
 #include "nsAutoPtr.h"
 
-#ifdef MOZ_SAMPLE_TYPE_S16
-typedef short SampleType;
-#else
-typedef float SampleType;
-#endif
-
 
 
 
