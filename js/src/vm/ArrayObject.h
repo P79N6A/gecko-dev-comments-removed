@@ -27,7 +27,7 @@ class ArrayObject : public JSObject
         return getElementsHeader()->length;
     }
 
-    static inline void setLength(ExclusiveContext *cx, Handle<ArrayObject*> arr, uint32_t length);
+    inline void setLength(ExclusiveContext *cx, uint32_t length);
 
     
     void setLengthInt32(uint32_t length) {

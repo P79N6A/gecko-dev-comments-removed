@@ -525,6 +525,43 @@ AllocateNonObject(ThreadSafeContext *cx)
     return t;
 }
 
+
+
+
+
+
+
+
+template <AllowGC allowGC>
+inline JSObject *
+AllocateObjectForCacheHit(JSContext *cx, AllocKind kind, InitialHeap heap)
+{
+#ifdef JSGC_GENERATIONAL
+    if (ShouldNurseryAllocate(cx->nursery(), kind, heap)) {
+        size_t thingSize = Arena::thingSize(kind);
+
+        JS_ASSERT(thingSize == Arena::thingSize(kind));
+        if (!CheckAllocatorState<NoGC>(cx, kind))
+            return nullptr;
+
+        JSObject *obj = TryNewNurseryObject<NoGC>(cx, thingSize, 0);
+        if (!obj && allowGC) {
+            MinorGC(cx, JS::gcreason::OUT_OF_NURSERY);
+            return nullptr;
+        }
+        return obj;
+    }
+#endif
+
+    JSObject *obj = AllocateObject<NoGC>(cx, kind, 0, heap);
+    if (!obj && allowGC) {
+        MaybeGC(cx);
+        return nullptr;
+    }
+
+    return obj;
+}
+
 } 
 
 template <js::AllowGC allowGC>
