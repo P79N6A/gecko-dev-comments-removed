@@ -85,7 +85,7 @@ public:
 protected:
   MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
   
-  nsresult CreateAndDispatchBlobEvent(Session *session);
+  nsresult CreateAndDispatchBlobEvent(const already_AddRefed<nsIDOMBlob> &aBlob);
   
   void DispatchSimpleEvent(const nsAString & aStr);
   
