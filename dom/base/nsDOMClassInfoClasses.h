@@ -446,9 +446,6 @@ DOMCI_CLASS(SimpleGestureEvent)
 
 DOMCI_CLASS(MathMLElement)
 
-
-DOMCI_CLASS(WebGLActiveInfo)
-
 DOMCI_CLASS(PaintRequest)
 DOMCI_CLASS(PaintRequestList)
 

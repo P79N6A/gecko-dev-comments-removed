@@ -1420,43 +1420,6 @@ WebGLShaderPrecisionFormat::WrapObject(JSContext *cx, JSObject *scope)
     return dom::WebGLShaderPrecisionFormatBinding::Wrap(cx, scope, this);
 }
 
-
-
-NS_IMPL_ADDREF(WebGLActiveInfo)
-NS_IMPL_RELEASE(WebGLActiveInfo)
-
-DOMCI_DATA(WebGLActiveInfo, WebGLActiveInfo)
-
-NS_INTERFACE_MAP_BEGIN(WebGLActiveInfo)
-  NS_INTERFACE_MAP_ENTRY(nsIWebGLActiveInfo)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(WebGLActiveInfo)
-NS_INTERFACE_MAP_END
-
-
-NS_IMETHODIMP
-WebGLActiveInfo::GetSize(WebGLint *aSize)
-{
-    *aSize = mSize;
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
-WebGLActiveInfo::GetType(WebGLenum *aType)
-{
-    *aType = mType;
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
-WebGLActiveInfo::GetName(nsAString & aName)
-{
-    aName = mName;
-    return NS_OK;
-}
-
 void
 WebGLContext::GetSupportedExtensions(Nullable< nsTArray<nsString> > &retval)
 {
