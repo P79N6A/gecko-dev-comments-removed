@@ -7233,7 +7233,13 @@ IonBuilder::setElemTryCache(bool *emitted, MDefinition *object,
     }
 
     
-    MInstruction *ins = MSetElementCache::New(object, index, value, script()->strict);
+    
+    
+    
+    bool guardHoles = ElementAccessHasExtraIndexedProperty(constraints(), object);
+
+    
+    MInstruction *ins = MSetElementCache::New(object, index, value, script()->strict, guardHoles);
     current->add(ins);
     current->push(value);
 

@@ -3466,14 +3466,17 @@ IsTypedArrayElementSetInlineable(JSObject *obj, const Value &idval, const Value 
 
 static bool
 GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
-                        JSObject *obj, const Value &idval, Register object, ValueOperand indexVal,
-                        ConstantOrRegister value, Register tempToUnboxIndex, Register temp)
+                        JSObject *obj, const Value &idval, bool guardHoles, Register object,
+                        ValueOperand indexVal, ConstantOrRegister value, Register tempToUnboxIndex,
+                        Register temp)
 {
     JS_ASSERT(obj->isNative());
     JS_ASSERT(idval.isInt32());
 
     Label failures;
     Label outOfBounds; 
+
+    Label markElem, postBarrier; 
 
     
     Shape *shape = obj->lastProperty();
@@ -3496,48 +3499,57 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
         BaseIndex target(elements, index, TimesEight);
 
         
-        Address capacity(elements, ObjectElements::offsetOfCapacity());
-        masm.branch32(Assembler::BelowOrEqual, capacity, index, &outOfBounds);
-
         
-        Address initLength(elements, ObjectElements::offsetOfInitializedLength());
-        masm.branch32(Assembler::Below, initLength, index, &outOfBounds);
-
         
-        Label markElem, postBarrier;
-        masm.branch32(Assembler::NotEqual, initLength, index, &markElem);
-        {
+        
+        if (guardHoles) {
+            Address initLength(elements, ObjectElements::offsetOfInitializedLength());
+            masm.branch32(Assembler::BelowOrEqual, initLength, index, &outOfBounds);
+        } else {
             
-            Int32Key newLength(index);
-            masm.bumpKey(&newLength, 1);
-            masm.storeKey(newLength, initLength);
+            Address capacity(elements, ObjectElements::offsetOfCapacity());
+            masm.branch32(Assembler::BelowOrEqual, capacity, index, &outOfBounds);
 
             
-            Label bumpedLength;
-            Address length(elements, ObjectElements::offsetOfLength());
-            masm.branch32(Assembler::AboveOrEqual, length, index, &bumpedLength);
-            masm.storeKey(newLength, length);
-            masm.bind(&bumpedLength);
+            Address initLength(elements, ObjectElements::offsetOfInitializedLength());
+            masm.branch32(Assembler::Below, initLength, index, &outOfBounds);
 
             
-            masm.bumpKey(&newLength, -1);
-            masm.jump(&postBarrier);
-        }
-        
-        {
+            masm.branch32(Assembler::NotEqual, initLength, index, &markElem);
+            {
+                
+                Int32Key newLength(index);
+                masm.bumpKey(&newLength, 1);
+                masm.storeKey(newLength, initLength);
+
+                
+                Label bumpedLength;
+                Address length(elements, ObjectElements::offsetOfLength());
+                masm.branch32(Assembler::AboveOrEqual, length, index, &bumpedLength);
+                masm.storeKey(newLength, length);
+                masm.bind(&bumpedLength);
+
+                
+                masm.bumpKey(&newLength, -1);
+                masm.jump(&postBarrier);
+            }
             
             masm.bind(&markElem);
-            if (cx->zone()->needsBarrier())
-                masm.callPreBarrier(target, MIRType_Value);
         }
 
+        if (cx->zone()->needsBarrier())
+            masm.callPreBarrier(target, MIRType_Value);
+
         
-        masm.bind(&postBarrier);
+        if (!guardHoles)
+            masm.bind(&postBarrier);
         Register postBarrierScratch = elements;
         if (masm.maybeCallPostBarrier(object, value, postBarrierScratch))
             masm.loadPtr(Address(object, JSObject::offsetOfElements()), elements);
 
         
+        if (guardHoles)
+            masm.branchTestMagic(Assembler::Equal, target, &failures);
         masm.storeConstantOrRegister(value, target);
     }
     attacher.jumpRejoin(masm);
@@ -3556,14 +3568,18 @@ SetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
     if (!GenerateSetDenseElement(cx, masm, attacher, obj, idval,
-                                 object(), index(), value(),
-                                 tempToUnboxIndex(), temp()))
+                                 guardHoles(), object(), index(),
+                                 value(), tempToUnboxIndex(),
+                                 temp()))
     {
         return false;
     }
 
     setHasDenseStub();
-    return linkAndAttachStub(cx, masm, attacher, ion, "dense array");
+    const char *message = guardHoles()            ?
+                            "dense array (holes)" :
+                            "dense array";
+    return linkAndAttachStub(cx, masm, attacher, ion, message);
 }
 
 static bool
@@ -3704,13 +3720,18 @@ SetElementParIC::attachDenseElement(LockedJSContext &cx, IonScript *ion, JSObjec
     MacroAssembler masm(cx);
     DispatchStubPrepender attacher(*this);
     if (!GenerateSetDenseElement(cx, masm, attacher, obj, idval,
-                                 object(), index(), value(),
-                                 tempToUnboxIndex(), temp()))
+                                 guardHoles(), object(), index(),
+                                 value(), tempToUnboxIndex(),
+                                 temp()))
     {
         return false;
     }
 
-    return linkAndAttachStub(cx, masm, attacher, ion, "parallel dense array");
+    const char *message = guardHoles()                     ?
+                            "parallel dense array (holes)" :
+                            "parallel dense array";
+
+    return linkAndAttachStub(cx, masm, attacher, ion, message);
 }
 
 bool
