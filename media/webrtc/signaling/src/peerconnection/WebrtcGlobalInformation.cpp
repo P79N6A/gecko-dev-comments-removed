@@ -17,6 +17,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Vector.h"
 #include "nsProxyRelease.h"
+#include "mozilla/Telemetry.h"
 
 #include "rlogringbuffer.h"
 #include "runnable_utils.h"
@@ -210,6 +211,160 @@ WebrtcGlobalInformation::GetLogging(
 
   aRv = rv;
 }
+
+struct StreamResult {
+  StreamResult() : candidateTypeBitpattern(0), streamSucceeded(false) {}
+  uint8_t candidateTypeBitpattern;
+  bool streamSucceeded;
+};
+
+static void StoreLongTermICEStatisticsImpl_m(
+    nsresult result,
+    nsAutoPtr<RTCStatsQuery> query) {
+
+  if (NS_FAILED(result) ||
+      !query->error.empty() ||
+      !query->report.mIceCandidateStats.WasPassed()) {
+    return;
+  }
+
+  
+  enum {
+    REMOTE_GATHERED_SERVER_REFLEXIVE = 1,
+    REMOTE_GATHERED_TURN = 1 << 1,
+    LOCAL_GATHERED_SERVER_REFLEXIVE = 1 << 2,
+    LOCAL_GATHERED_TURN_UDP = 1 << 3,
+    LOCAL_GATHERED_TURN_TCP = 1 << 4,
+    LOCAL_GATHERED_TURN_TLS = 1 << 5,
+    LOCAL_GATHERED_TURN_HTTPS = 1 << 6,
+  };
+
+  
+  
+  
+  
+  
+
+  std::map<std::string, StreamResult> streamResults;
+
+  
+  for (size_t i = 0;
+       i < query->report.mIceCandidatePairStats.Value().Length();
+       ++i) {
+    const RTCIceCandidatePairStats &pair =
+      query->report.mIceCandidatePairStats.Value()[i];
+
+    if (!pair.mState.WasPassed() || !pair.mComponentId.WasPassed()) {
+      MOZ_CRASH();
+      continue;
+    }
+
+    
+    
+    
+    std::string streamId(
+      NS_ConvertUTF16toUTF8(pair.mComponentId.Value()).get());
+
+    streamResults[streamId].streamSucceeded |=
+      pair.mState.Value() == RTCStatsIceCandidatePairState::Succeeded;
+  }
+
+  for (size_t i = 0;
+       i < query->report.mIceCandidateStats.Value().Length();
+       ++i) {
+    const RTCIceCandidateStats &cand =
+      query->report.mIceCandidateStats.Value()[i];
+
+    if (!cand.mType.WasPassed() ||
+        !cand.mCandidateType.WasPassed() ||
+        !cand.mComponentId.WasPassed()) {
+      
+      MOZ_CRASH();
+      continue;
+    }
+
+    
+    
+    
+    std::string streamId(
+      NS_ConvertUTF16toUTF8(cand.mComponentId.Value()).get());
+
+    if (cand.mCandidateType.Value() == RTCStatsIceCandidateType::Relayed) {
+      if (cand.mType.Value() == RTCStatsType::Localcandidate) {
+        NS_ConvertUTF16toUTF8 transport(cand.mMozLocalTransport.Value());
+        if (transport == kNrIceTransportUdp) {
+          streamResults[streamId].candidateTypeBitpattern |=
+            LOCAL_GATHERED_TURN_UDP;
+        } else if (transport == kNrIceTransportTcp) {
+          streamResults[streamId].candidateTypeBitpattern |=
+            LOCAL_GATHERED_TURN_TCP;
+        }
+      } else {
+        streamResults[streamId].candidateTypeBitpattern |= REMOTE_GATHERED_TURN;
+      }
+    } else if (cand.mCandidateType.Value() ==
+               RTCStatsIceCandidateType::Serverreflexive) {
+      if (cand.mType.Value() == RTCStatsType::Localcandidate) {
+        streamResults[streamId].candidateTypeBitpattern |=
+          LOCAL_GATHERED_SERVER_REFLEXIVE;
+      } else {
+        streamResults[streamId].candidateTypeBitpattern |=
+          REMOTE_GATHERED_SERVER_REFLEXIVE;
+      }
+    }
+  }
+
+  for (auto i = streamResults.begin(); i != streamResults.end(); ++i) {
+    if (i->second.streamSucceeded) {
+      Telemetry::Accumulate(Telemetry::WEBRTC_CANDIDATE_TYPES_GIVEN_SUCCESS,
+                            i->second.candidateTypeBitpattern);
+    } else {
+      Telemetry::Accumulate(Telemetry::WEBRTC_CANDIDATE_TYPES_GIVEN_FAILURE,
+                            i->second.candidateTypeBitpattern);
+    }
+  }
+}
+
+static void GetStatsForLongTermStorage_s(
+    nsAutoPtr<RTCStatsQuery> query) {
+
+  MOZ_ASSERT(query);
+
+  nsresult rv = PeerConnectionImpl::ExecuteStatsQuery_s(query.get());
+
+  
+  
+  NS_DispatchToMainThread(
+      WrapRunnableNM(
+          &StoreLongTermICEStatisticsImpl_m,
+          rv,
+          query),
+      NS_DISPATCH_NORMAL);
+}
+
+void WebrtcGlobalInformation::StoreLongTermICEStatistics(
+    sipcc::PeerConnectionImpl& aPc) {
+  Telemetry::Accumulate(Telemetry::WEBRTC_ICE_FINAL_CONNECTION_STATE,
+                        static_cast<uint32_t>(aPc.IceConnectionState()));
+
+  if (aPc.IceConnectionState() == PCImplIceConnectionState::New) {
+    
+    
+    return;
+  }
+
+  nsAutoPtr<RTCStatsQuery> query(new RTCStatsQuery(true));
+
+  nsresult rv = aPc.BuildStatsQuery_m(nullptr, query.get());
+
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  RUN_ON_THREAD(aPc.GetSTSThread(),
+                WrapRunnableNM(&GetStatsForLongTermStorage_s,
+                               query),
+                NS_DISPATCH_NORMAL);
+}
+
 
 } 
 } 

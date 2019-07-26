@@ -590,6 +590,13 @@ private:
   
   
   
+  
+  
+  void RecordLongtermICEStatistics();
+
+  
+  
+  
   Timecard *mTimeCard;
 
   
@@ -641,6 +648,8 @@ private:
   nsRefPtr<PeerConnectionMedia> mMedia;
 
 #ifdef MOZILLA_INTERNAL_API
+  
+  mozilla::TimeStamp mIceStartTime;
   
   mozilla::TimeStamp mStartTime;
 #endif
