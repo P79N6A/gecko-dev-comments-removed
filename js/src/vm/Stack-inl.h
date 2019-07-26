@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef vm_Stack_inl_h
 #define vm_Stack_inl_h
@@ -24,11 +24,11 @@
 
 namespace js {
 
-/*
- * We cache name lookup results only for the global object or for native
- * non-global objects without prototype or with prototype that never mutates,
- * see bug 462734 and bug 487039.
- */
+
+
+
+
+
 static inline bool
 IsCacheableNonGlobalScope(JSObject *obj)
 {
@@ -78,7 +78,7 @@ StackFrame::initCallFrame(JSContext *cx, StackFrame *prev, jsbytecode *prevpc, V
     JS_ASSERT((flagsArg & ~CONSTRUCTING) == 0);
     JS_ASSERT(callee.nonLazyScript() == script);
 
-    /* Initialize stack frame members. */
+    
     flags_ = FUNCTION | HAS_SCOPECHAIN | HAS_BLOCKCHAIN | flagsArg;
     argv_ = argv;
     exec.fun = &callee;
@@ -220,7 +220,7 @@ StackFrame::callObj() const
     return pobj->as<CallObject>();
 }
 
-/*****************************************************************************/
+
 
 inline void
 InterpreterStack::purge(JSRuntime *rt)
@@ -260,10 +260,10 @@ InterpreterStack::getCallFrame(JSContext *cx, const CallArgs &args, HandleScript
         return reinterpret_cast<StackFrame *>(buffer);
     }
 
-    // Pad any missing arguments with |undefined|.
+    
     JS_ASSERT(args.length() < nformal);
 
-    nvals += nformal + 2; // Include callee, |this|.
+    nvals += nformal + 2; 
     uint8_t *buffer = allocateFrame(cx, sizeof(StackFrame) + nvals * sizeof(Value));
     if (!buffer)
         return NULL;
@@ -301,7 +301,7 @@ InterpreterStack::pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs
 
     fp->mark_ = mark;
 
-    /* Initialize frame, locals, regs. */
+    
     fp->initCallFrame(cx, prev, prevpc, prevsp, *callee, script, argv, args.length(), flags);
 
     regs.prepareToRun(*fp, script);
@@ -835,7 +835,6 @@ Activation::~Activation()
 {
     JS_ASSERT(cx_->mainThread().activation_ == this);
     cx_->mainThread().activation_ = prev_;
-    cx_->maybeMigrateVersionOverride();
 }
 
 InterpreterActivation::InterpreterActivation(JSContext *cx, StackFrame *entry, FrameRegs &regs)
@@ -850,7 +849,7 @@ InterpreterActivation::InterpreterActivation(JSContext *cx, StackFrame *entry, F
 
 InterpreterActivation::~InterpreterActivation()
 {
-    // Pop all inline frames.
+    
     while (current_ != entry_)
         popInlineFrame(current_);
 
@@ -881,6 +880,6 @@ InterpreterActivation::popInlineFrame(StackFrame *frame)
     cx_->runtime()->interpreterStack().popInlineFrame(regs_);
 }
 
-} /* namespace js */
+} 
 
-#endif /* vm_Stack_inl_h */
+#endif 

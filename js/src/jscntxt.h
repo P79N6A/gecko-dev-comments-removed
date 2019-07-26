@@ -1657,8 +1657,6 @@ struct JSContext : js::ThreadSafeContext,
   private:
     
     JSVersion           defaultVersion;      
-    JSVersion           versionOverride;     
-    bool                hasVersionOverride;
 
     
     bool                throwing;            
@@ -1759,47 +1757,13 @@ struct JSContext : js::ThreadSafeContext,
 
   public:
     
-
-
-
-    inline bool canSetDefaultVersion() const;
-
-    
-    inline void overrideVersion(JSVersion newVersion);
-
-    
     void setDefaultVersion(JSVersion version) {
         defaultVersion = version;
     }
 
-    void clearVersionOverride() { hasVersionOverride = false; }
     JSVersion getDefaultVersion() const { return defaultVersion; }
-    bool isVersionOverridden() const { return hasVersionOverride; }
-
-    JSVersion getVersionOverride() const {
-        JS_ASSERT(isVersionOverridden());
-        return versionOverride;
-    }
 
     
-
-
-
-    inline bool maybeOverrideVersion(JSVersion newVersion);
-
-    
-
-
-
-    void maybeMigrateVersionOverride() {
-        if (JS_UNLIKELY(isVersionOverridden()) && !currentlyRunning()) {
-            defaultVersion = versionOverride;
-            clearVersionOverride();
-        }
-    }
-
-    
-
 
 
 

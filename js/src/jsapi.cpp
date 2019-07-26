@@ -128,35 +128,23 @@ JS::detail::CallMethodIfWrapped(JSContext *cx, IsAcceptableThis test, NativeImpl
 
 
 
-
-
-
 class AutoVersionAPI
 {
     JSContext   * const cx;
     JSVersion   oldDefaultVersion;
-    bool        oldHasVersionOverride;
-    JSVersion   oldVersionOverride;
     JSVersion   newVersion;
 
   public:
     AutoVersionAPI(JSContext *cx, JSVersion newVersion)
       : cx(cx),
-        oldDefaultVersion(cx->getDefaultVersion()),
-        oldHasVersionOverride(cx->isVersionOverridden()),
-        oldVersionOverride(oldHasVersionOverride ? cx->findVersion() : JSVERSION_UNKNOWN)
+        oldDefaultVersion(cx->getDefaultVersion())
     {
         this->newVersion = newVersion;
-        cx->clearVersionOverride();
         cx->setDefaultVersion(newVersion);
     }
 
     ~AutoVersionAPI() {
         cx->setDefaultVersion(oldDefaultVersion);
-        if (oldHasVersionOverride)
-            cx->overrideVersion(oldVersionOverride);
-        else
-            cx->clearVersionOverride();
     }
 
     
@@ -1343,23 +1331,6 @@ JS_PUBLIC_API(JSVersion)
 JS_GetVersion(JSContext *cx)
 {
     return VersionNumber(cx->findVersion());
-}
-
-JS_PUBLIC_API(JSVersion)
-JS_SetVersion(JSContext *cx, JSVersion newVersion)
-{
-    JS_ASSERT(VersionIsKnown(newVersion));
-    JS_ASSERT(!VersionHasFlags(newVersion));
-    JSVersion newVersionNumber = newVersion;
-
-    JSVersion oldVersion = cx->findVersion();
-    JSVersion oldVersionNumber = VersionNumber(oldVersion);
-    if (oldVersionNumber == newVersionNumber)
-        return oldVersionNumber; 
-
-    VersionCopyFlags(&newVersion, oldVersion);
-    cx->maybeOverrideVersion(newVersion);
-    return oldVersionNumber;
 }
 
 JS_PUBLIC_API(void)

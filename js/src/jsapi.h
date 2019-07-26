@@ -1895,9 +1895,6 @@ JS_ContextIterator(JSRuntime *rt, JSContext **iterp);
 extern JS_PUBLIC_API(JSVersion)
 JS_GetVersion(JSContext *cx);
 
-extern JS_PUBLIC_API(JSVersion)
-JS_SetVersion(JSContext *cx, JSVersion version);
-
 
 
 
