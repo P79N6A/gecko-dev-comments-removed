@@ -423,6 +423,20 @@ public:
 
 
 
+
+
+
+  static nsPoint GetEventCoordinatesRelativeTo(nsIWidget* aWidget,
+                                               const nsIntPoint aPoint,
+                                               nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
   static nsIFrame* GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
                                                     const nsEvent* aEvent);
 

@@ -687,43 +687,37 @@ nsObjectLoadingContent::~nsObjectLoadingContent()
 nsresult
 nsObjectLoadingContent::InstantiatePluginInstance()
 {
-  if (mType != eType_Plugin || mIsLoading) {
-    LOG(("OBJLC [%p]: Not instantiating loading or non-plugin object, type %u",
-         this, mType));
+  if (mInstanceOwner || mType != eType_Plugin || mIsLoading || mInstantiating) {
     return NS_OK;
   }
-
   
-  if (mInstanceOwner) {
-    return NS_OK;
-  }
-
-  
-  if (mInstantiating) {
-    return NS_OK;
-  }
   mInstantiating = true;
   AutoSetInstantiatingToFalse autoInstantiating(this);
+
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent *>(this));
+
+  nsIDocument* doc = thisContent->GetCurrentDoc();
+  if (!doc || !InActiveDocument(thisContent)) {
+    NS_ERROR("Shouldn't be calling "
+             "InstantiatePluginInstance without an active document");
+    return NS_ERROR_FAILURE;
+  }
 
   
   
   
   nsCOMPtr<nsIObjectLoadingContent> kungFuDeathGrip = this;
 
-  nsCOMPtr<nsIContent> thisContent =
-    do_QueryInterface(static_cast<nsIImageLoadingContent *>(this));
   
-  nsIDocument* doc = thisContent->GetCurrentDoc();
-  if (!doc) {
-    return NS_ERROR_FAILURE;
-  }
-  if (!InActiveDocument(thisContent)) {
-    NS_ERROR("Shouldn't be calling "
-             "InstantiatePluginInstance in an inactive document");
-    return NS_ERROR_FAILURE;
-  }
+  
   doc->FlushPendingNotifications(Flush_Layout);
-
+  
+  if (!thisContent->GetPrimaryFrame()) {
+    LOG(("OBJLC [%p]: Not instantiating plugin with no frame", this));
+    return NS_OK;
+  }
+  
   nsresult rv = NS_ERROR_FAILURE;
   nsRefPtr<nsPluginHost> pluginHost =
     already_AddRefed<nsPluginHost>(nsPluginHost::GetInst());
@@ -1729,6 +1723,14 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         oldType = mType;
         oldState = ObjectState();
 
+        if (!thisContent->GetPrimaryFrame()) {
+          
+          
+          LOG(("OBJLC [%p]: Aborting load - plugin-type, but no frame", this));
+          CloseChannel();
+          break;
+        }
+        
         rv = pluginHost->NewEmbeddedPluginStreamListener(mURI, this, nullptr,
                                                          getter_AddRefs(mFinalListener));
         if (NS_SUCCEEDED(rv)) {

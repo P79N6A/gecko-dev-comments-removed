@@ -60,6 +60,8 @@ bool GetExtraFileForID(const nsAString& id, nsIFile** extraFile);
 bool GetExtraFileForMinidump(nsIFile* minidump, nsIFile** extraFile);
 bool AppendExtraData(const nsAString& id, const AnnotationTable& data);
 bool AppendExtraData(nsIFile* extraFile, const AnnotationTable& data);
+void RenameAdditionalHangMinidump(nsIFile* minidump, nsIFile* childMinidump,
+                                  const nsACString& name);
 
 #ifdef XP_WIN32
   nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo);
@@ -110,11 +112,12 @@ ThreadId CurrentThreadId();
 
 
 
+
+
+
 bool CreatePairedMinidumps(ProcessHandle childPid,
                            ThreadId childBlamedThread,
-                           nsAString* pairGUID,
-                           nsIFile** childDump,
-                           nsIFile** parentDump);
+                           nsIFile** childDump);
 
 #  if defined(XP_WIN32) || defined(XP_MACOSX)
 

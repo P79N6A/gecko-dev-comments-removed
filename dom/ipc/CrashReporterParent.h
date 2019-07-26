@@ -38,16 +38,15 @@ public:
 
 
 
+  template<class Toplevel>
   bool
-  GenerateHangCrashReport(const AnnotationTable* processNotes);
+  GenerateCrashReport(Toplevel* t, const AnnotationTable* processNotes);
 
   
 
 
-
-  template<class Toplevel>
   bool
-  GenerateCrashReport(Toplevel* t, const AnnotationTable* processNotes);
+  GenerateChildData(const AnnotationTable* processNotes);
 
   bool
   GenerateCrashReportForMinidump(nsIFile* minidump,
@@ -66,21 +65,12 @@ public:
   
 
 
-  const nsString& HangID() {
-    return mHangID;
-  }
-  
-
-
-  const nsString& ParentDumpID() {
-    return mParentDumpID;
-  }
-  
-
-
   const nsString& ChildDumpID() {
     return mChildDumpID;
   }
+
+  void
+  AnnotateCrashReport(const nsCString& key, const nsCString& data);
 
  protected:
   virtual void ActorDestroy(ActorDestroyReason why);
@@ -88,20 +78,18 @@ public:
   virtual bool
     RecvAddLibraryMappings(const InfallibleTArray<Mapping>& m);
   virtual bool
-    RecvAnnotateCrashReport(const nsCString& key, const nsCString& data);
+    RecvAnnotateCrashReport(const nsCString& key, const nsCString& data) {
+    AnnotateCrashReport(key, data);
+    return true;
+  }
   virtual bool
     RecvAppendAppNotes(const nsCString& data);
 
 #ifdef MOZ_CRASHREPORTER
-  bool
-  GenerateChildData(const AnnotationTable* processNotes);
-
   AnnotationTable mNotes;
 #endif
   nsCString mAppNotes;
-  nsString mHangID;
   nsString mChildDumpID;
-  nsString mParentDumpID;
   NativeThreadId mMainThread;
   time_t mStartTime;
   uint32_t mProcessType;
@@ -120,14 +108,10 @@ CrashReporterParent::GeneratePairedMinidump(Toplevel* t)
   child = t->OtherProcess();
 #endif
   nsCOMPtr<nsIFile> childDump;
-  nsCOMPtr<nsIFile> parentDump;
   if (CrashReporter::CreatePairedMinidumps(child,
                                            mMainThread,
-                                           &mHangID,
-                                           getter_AddRefs(childDump),
-                                           getter_AddRefs(parentDump)) &&
-      CrashReporter::GetIDFromMinidump(childDump, mChildDumpID) &&
-      CrashReporter::GetIDFromMinidump(parentDump, mParentDumpID)) {
+                                           getter_AddRefs(childDump)) &&
+      CrashReporter::GetIDFromMinidump(childDump, mChildDumpID)) {
     return true;
   }
   return false;

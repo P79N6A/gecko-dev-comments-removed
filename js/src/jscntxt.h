@@ -655,13 +655,12 @@ struct JSRuntime : js::RuntimeFriendFields
         SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
     };
     js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
+
+    bool                gcRelaxRootChecks;
+    int                 gcAssertNoGCDepth;
 #endif
 
     bool                gcPoke;
-
-#ifdef DEBUG
-    bool                relaxRootChecks;
-#endif
 
     enum HeapState {
         Idle,       
@@ -1241,10 +1240,6 @@ struct JSContext : js::ContextFriendFields
 
     
     bool                generatingError;
-
-#ifdef DEBUG
-    bool                rootingUnnecessary;
-#endif
 
     
     JSCompartment       *compartment;

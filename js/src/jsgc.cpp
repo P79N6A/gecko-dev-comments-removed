@@ -112,6 +112,8 @@ using namespace mozilla;
 using namespace js;
 using namespace js::gc;
 
+void * const JS::InternalHandleBase::zeroPointer = NULL;
+
 namespace js {
 namespace gc {
 
@@ -2448,12 +2450,6 @@ AutoGCRooter::trace(JSTracer *trc)
         return;
       }
 
-      case BINDINGS: {
-        Bindings::AutoRooter *rooter = static_cast<Bindings::AutoRooter *>(this);
-        rooter->trace(trc);
-        return;
-      }
-
       case GETTERSETTER: {
         AutoRooterGetterSetter::Inner *rooter = static_cast<AutoRooterGetterSetter::Inner *>(this);
         if ((rooter->attrs & JSPROP_GETTER) && *rooter->pgetter)
@@ -2511,12 +2507,6 @@ Shape::Range::AutoRooter::trace(JSTracer *trc)
 {
     if (r->cursor)
         MarkShapeRoot(trc, const_cast<Shape**>(&r->cursor), "Shape::Range::AutoRooter");
-}
-
-void
-Bindings::AutoRooter::trace(JSTracer *trc)
-{
-    bindings->trace(trc);
 }
 
 void
@@ -4977,7 +4967,7 @@ JS::CheckStackRoots(JSContext *cx)
     
     
     
-    JS_ASSERT(!cx->rootingUnnecessary);
+    JS_ASSERT(!InNoGCScope());
 
     
     if (cx->compartment->activeAnalysis)

@@ -52,6 +52,16 @@ AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
     return subsumes;
 }
 
+
+bool
+AccessCheck::wrapperSubsumes(JSObject *wrapper)
+{
+    MOZ_ASSERT(js::IsWrapper(wrapper));
+    JSObject *wrapped = js::UnwrapObject(wrapper);
+    return AccessCheck::subsumes(js::GetObjectCompartment(wrapper),
+                                 js::GetObjectCompartment(wrapped));
+}
+
 bool
 AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
 {
@@ -89,6 +99,12 @@ AccessCheck::isChrome(JSCompartment *compartment)
     bool privileged;
     nsIPrincipal *principal = GetCompartmentPrincipal(compartment);
     return NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &privileged)) && privileged;
+}
+
+bool
+AccessCheck::isChrome(JSObject *obj)
+{
+    return isChrome(js::GetObjectCompartment(obj));
 }
 
 bool
@@ -205,7 +221,7 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid
 
     
     if (act == Wrapper::PUNCTURE) {
-        return nsContentUtils::CallerHasUniversalXPConnect();
+        return false;
     }
 
     const char *name;
@@ -270,7 +286,7 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
         return true;
     }
 
-    return NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) && privileged;
+    return false;
 }
 
 bool
@@ -295,18 +311,7 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
     if (flags & WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG) {
         if (flags & WrapperFactory::SOW_FLAG)
             return !isSystemOnlyAccessPermitted(cx);
-
-        if (flags & WrapperFactory::PARTIALLY_TRANSPARENT)
-            return !XrayUtils::IsTransparent(cx, wrapper);
-
-        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
-        if (!ssm)
-            return true;
-
-        
-        bool privileged;
-        return !NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) ||
-               !privileged;
+        return true;
     }
 
     
@@ -356,33 +361,6 @@ Deny(JSContext *cx, jsid id, Wrapper::Action act)
     return false;
 }
 
-bool
-PermitIfUniversalXPConnect(JSContext *cx, jsid id, Wrapper::Action act,
-                           ExposedPropertiesOnly::Permission &perm)
-{
-    
-    
-    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
-    if (!ssm) {
-        return false;
-    }
-
-    
-    
-    
-    NS_ASSERTION(!AccessCheck::callerIsChrome(), "About to do a meaningless security check!");
-
-    bool privileged;
-    if (NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) &&
-        privileged) {
-        perm = ExposedPropertiesOnly::PermitPropertyAccess;
-        return true; 
-    }
-
-    
-    return Deny(cx, id, act);
-}
-
 static bool
 IsInSandbox(JSContext *cx, JSObject *obj)
 {
@@ -404,7 +382,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     perm = DenyAccess;
     if (act == Wrapper::PUNCTURE)
-        return PermitIfUniversalXPConnect(cx, id, act, perm); 
+        return Deny(cx, id, act);
 
     jsid exposedPropsId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_EXPOSEDPROPS);
 
@@ -451,7 +429,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
             perm = PermitPropertyAccess;
             return true;
         }
-        return PermitIfUniversalXPConnect(cx, id, act, perm); 
+        return Deny(cx, id, act);
     }
 
     if (id == JSID_VOID) {
@@ -466,7 +444,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     if (exposedProps.isNullOrUndefined()) {
         JSAutoCompartment wrapperAC(cx, wrapper);
-        return PermitIfUniversalXPConnect(cx, id, act, perm); 
+        return Deny(cx, id, act);
     }
 
     if (!exposedProps.isObject()) {
@@ -485,7 +463,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     }
     if (desc.obj == NULL || !(desc.attrs & JSPROP_ENUMERATE)) {
         JSAutoCompartment wrapperAC(cx, wrapper);
-        return PermitIfUniversalXPConnect(cx, id, act, perm); 
+        return Deny(cx, id, act);
     }
 
     if (!JSVAL_IS_STRING(desc.value)) {
@@ -531,7 +509,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     if ((act == Wrapper::SET && !(access & WRITE)) ||
         (act != Wrapper::SET && !(access & READ))) {
         JSAutoCompartment wrapperAC(cx, wrapper);
-        return PermitIfUniversalXPConnect(cx, id, act, perm); 
+        return Deny(cx, id, act);
     }
 
     perm = PermitPropertyAccess;
@@ -558,7 +536,15 @@ ComponentsObjectPolicy::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper
         }
     }
 
-    return PermitIfUniversalXPConnect(cx, id, act, perm);  
+    
+    
+    
+    if (xpc::IsUniversalXPConnectEnabled(cx)) {
+        perm = PermitPropertyAccess;
+        return true;
+    }
+
+    return Deny(cx, id, act);
 }
 
 }
