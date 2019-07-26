@@ -131,6 +131,7 @@ public:
 
     bool UsingSpdy() { return !!mUsingSpdyVersion; }
     bool EverUsedSpdy() { return mEverUsedSpdy; }
+    PRIntervalTime Rtt() { return mRtt; }
 
     
     

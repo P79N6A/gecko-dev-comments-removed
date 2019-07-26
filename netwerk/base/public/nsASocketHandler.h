@@ -67,6 +67,13 @@ public:
     
     
     virtual void IsLocal(bool *aIsLocal) = 0;
+
+
+    
+    
+    
+    virtual uint64_t ByteCountSent() = 0;
+    virtual uint64_t ByteCountReceived() = 0;
 };
 
 #endif 

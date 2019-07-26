@@ -24,6 +24,8 @@ public:
   virtual void OnSocketDetached(PRFileDesc *fd);
   virtual void IsLocal(bool *aIsLocal);
 
+  virtual uint64_t ByteCountSent() { return 0; }
+  virtual uint64_t ByteCountReceived() { return 0; }
   nsServerSocket();
 
   
