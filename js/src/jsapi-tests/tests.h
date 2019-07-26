@@ -10,12 +10,12 @@
 #include "mozilla/Util.h"
 
 #include "jsapi.h"
+#include "jscntxt.h"
 #include "jsprvtd.h"
 #include "jsalloc.h"
 
 
 #include "jsgc.h"
-#include "jsgcinlines.h"
 
 #include "js/Vector.h"
 
