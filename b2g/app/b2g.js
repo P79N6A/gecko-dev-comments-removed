@@ -747,7 +747,8 @@ pref("disk_space_watcher.enabled", true);
 
 pref("dom.promise.enabled", false);
 
-pref("dom.datastore.enabled", true);
+
+pref("dom.datastore.enabled", false);
 
 
 
