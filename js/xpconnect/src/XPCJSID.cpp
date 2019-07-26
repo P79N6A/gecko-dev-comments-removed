@@ -12,6 +12,8 @@
 #include "mozilla/Attributes.h"
 #include "XPCWrapper.h"
 
+using namespace mozilla::dom;
+
 
 
 
@@ -470,8 +472,7 @@ nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
 static JSObject *
 FindObjectForHasInstance(JSContext *cx, JSObject *obj)
 {
-    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) &&
-           !mozilla::dom::IsDOMObject(obj))
+    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && !IsDOMObject(obj))
     {
         if (js::IsWrapper(obj))
             obj = js::UnwrapObjectChecked(obj,  false);
@@ -520,7 +521,11 @@ nsJSIID::HasInstance(nsIXPConnectWrappedNative *wrapper,
 #endif
             if (!MorphSlimWrapper(cx, obj))
                 return NS_ERROR_FAILURE;
-        } else if (mozilla::dom::UnwrapDOMObjectToISupports(obj, identity)) {
+        } else if (IsDOMObject(obj)) {
+              
+              
+              if (!UnwrapDOMObjectToISupports(obj, identity))
+                  return NS_OK;;
               nsCOMPtr<nsISupports> supp;
               identity->QueryInterface(*iid, getter_AddRefs(supp));
               *bp = supp;
