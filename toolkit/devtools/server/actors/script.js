@@ -20,6 +20,8 @@ let OBJECT_PREVIEW_MAX_ITEMS = 10;
 
 
 function BreakpointStore() {
+  this._size = 0;
+
   
   
   
@@ -44,6 +46,8 @@ function BreakpointStore() {
 }
 
 BreakpointStore.prototype = {
+  _size: null,
+  get size() { return this._size; },
 
   
 
@@ -75,6 +79,8 @@ BreakpointStore.prototype = {
       }
       this._wholeLineBreakpoints[url][line] = aBreakpoint;
     }
+
+    this._size++;
   },
 
   
@@ -91,23 +97,29 @@ BreakpointStore.prototype = {
     if (column != null) {
       if (this._breakpoints[url]) {
         if (this._breakpoints[url][line]) {
-          delete this._breakpoints[url][line][column];
+          if (this._breakpoints[url][line][column]) {
+            delete this._breakpoints[url][line][column];
+            this._size--;
 
-          
-          
-          
-          
-          
-          
-          
-          if (Object.keys(this._breakpoints[url][line]).length === 0) {
-            delete this._breakpoints[url][line];
+            
+            
+            
+            
+            
+            
+            
+            if (Object.keys(this._breakpoints[url][line]).length === 0) {
+              delete this._breakpoints[url][line];
+            }
           }
         }
       }
     } else {
       if (this._wholeLineBreakpoints[url]) {
-        delete this._wholeLineBreakpoints[url][line];
+        if (this._wholeLineBreakpoints[url][line]) {
+          delete this._wholeLineBreakpoints[url][line];
+          this._size--;
+        }
       }
     }
   },
@@ -2220,6 +2232,10 @@ ThreadActor.prototype = {
 
 
   _restoreBreakpoints: function () {
+    if (this.breakpointStore.size === 0) {
+      return;
+    }
+
     for (let s of this.dbg.findScripts()) {
       this._addScript(s);
     }
