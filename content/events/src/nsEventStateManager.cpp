@@ -1525,29 +1525,32 @@ nsEventStateManager::IsRemoteTarget(nsIContent* target) {
   return false;
 }
 
- void
-nsEventStateManager::MapEventCoordinatesForChildProcess(nsFrameLoader* aFrameLoader,
-                                                        nsEvent* aEvent)
+ nsIntPoint
+nsEventStateManager::GetChildProcessOffset(nsFrameLoader* aFrameLoader,
+                                           const nsEvent& aEvent)
 {
   
   
   nsIFrame* targetFrame = aFrameLoader->GetPrimaryFrameOfOwningContent();
   if (!targetFrame) {
-    return;
+    return nsIntPoint();
   }
   nsPresContext* presContext = targetFrame->PresContext();
 
+  
+  nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(&aEvent,
+                                                            targetFrame);
+  return pt.ToNearestPixels(presContext->AppUnitsPerDevPixel());
+}
+
+ void
+nsEventStateManager::MapEventCoordinatesForChildProcess(
+  const nsIntPoint& aOffset, nsEvent* aEvent)
+{
   if (aEvent->eventStructType != NS_TOUCH_EVENT) {
-    nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
-                                                              targetFrame);
-    aEvent->refPoint = pt.ToNearestPixels(presContext->AppUnitsPerDevPixel());
+    aEvent->refPoint = aOffset;
   } else {
     aEvent->refPoint = nsIntPoint();
-    
-    nsPoint offset =
-      nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, targetFrame);
-    nsIntPoint intOffset =
-      offset.ToNearestPixels(presContext->AppUnitsPerDevPixel());
     nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
     
     
@@ -1555,10 +1558,18 @@ nsEventStateManager::MapEventCoordinatesForChildProcess(nsFrameLoader* aFrameLoa
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       nsIDOMTouch* touch = touches[i];
       if (touch) {
-        touch->mRefPoint += intOffset;
+        touch->mRefPoint += aOffset;
       }
     }
   }
+}
+
+ void
+nsEventStateManager::MapEventCoordinatesForChildProcess(nsFrameLoader* aFrameLoader,
+                                                        nsEvent* aEvent)
+{
+  nsIntPoint offset = GetChildProcessOffset(aFrameLoader, *aEvent);
+  MapEventCoordinatesForChildProcess(offset, aEvent);
 }
 
 bool

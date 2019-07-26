@@ -636,6 +636,18 @@ bool TabParent::SendRealTouchEvent(nsTouchEvent& event)
     return false;
   }
   if (event.message == NS_TOUCH_START) {
+    
+    nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+    if (!frameLoader) {
+      
+      sEventCapturer = nullptr;
+      return false;
+    }
+
+    mChildProcessOffsetAtTouchStart =
+        nsEventStateManager::GetChildProcessOffset(frameLoader,
+                                                   event);
+
     MOZ_ASSERT((!sEventCapturer && mEventCaptureDepth == 0) ||
                (sEventCapturer == this && mEventCaptureDepth > 0));
     
@@ -693,16 +705,8 @@ TabParent::TryCapture(const nsGUIEvent& aEvent)
     return false;
   }
 
-  
-  nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-
-  if (!frameLoader) {
-    
-    sEventCapturer = nullptr;
-    return false;
-  }
-
-  nsEventStateManager::MapEventCoordinatesForChildProcess(frameLoader, &event);
+  nsEventStateManager::MapEventCoordinatesForChildProcess(
+    mChildProcessOffsetAtTouchStart, &event);
 
   SendRealTouchEvent(event);
   return true;

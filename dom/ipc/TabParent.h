@@ -315,6 +315,11 @@ private:
                                         nsInputEvent* aOutEvent);
     
     
+    
+    
+    nsIntPoint mChildProcessOffsetAtTouchStart;
+    
+    
     bool mMarkedDestroying;
     
     
