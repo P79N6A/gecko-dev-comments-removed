@@ -2018,6 +2018,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   return rv;
 }
 
+static bool
+IsRootScrollFrameActive(nsIPresShell* aPresShell)
+{
+  nsIScrollableFrame* sf = aPresShell->GetRootScrollFrameAsScrollable();
+  return sf && sf->IsScrollingActive();
+}
+
 nsresult
 nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
                                    nsIFrame*               aChild,
@@ -2152,8 +2159,11 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   
   
-  bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED
-    && !child->GetParent()->GetParent() && !isSVG && !aBuilder->IsInFixedPosition();
+  
+  
+  bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED &&
+    !child->GetParent()->GetParent() && !aBuilder->IsInFixedPosition() &&
+    IsRootScrollFrameActive(PresContext()->PresShell()) && !isSVG;
 
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
