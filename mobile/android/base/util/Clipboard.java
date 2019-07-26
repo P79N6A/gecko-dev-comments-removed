@@ -79,25 +79,6 @@ public final class Clipboard {
         });
     }
 
-    
-
-
-
-
-    @WrapElementForJNI
-    public static boolean hasText() {
-        String text = getText();
-        return text != null;
-    }
-
-    
-
-
-    @WrapElementForJNI
-    public static void clearText() {
-        setText(null);
-    }
-
     private static android.content.ClipboardManager getClipboardManager11(Context context) {
         
         
