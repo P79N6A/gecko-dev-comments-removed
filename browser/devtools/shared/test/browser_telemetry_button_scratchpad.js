@@ -19,6 +19,10 @@ function init() {
   Telemetry.prototype.telemetryInfo = {};
   Telemetry.prototype._oldlog = Telemetry.prototype.log;
   Telemetry.prototype.log = function(histogramId, value) {
+    if (!this.telemetryInfo) {
+      
+      return;
+    }
     if (histogramId) {
       if (!this.telemetryInfo[histogramId]) {
         this.telemetryInfo[histogramId] = [];
