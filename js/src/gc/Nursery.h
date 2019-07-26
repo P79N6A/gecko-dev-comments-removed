@@ -222,12 +222,6 @@ class Nursery
                                       uint32_t nelems);
 
     
-    void markFallback(gc::Cell *cell);
-    void moveFallbackToTenured(gc::MinorCollectionTracer *trc);
-
-    void markStoreBuffer(gc::MinorCollectionTracer *trc);
-
-    
 
 
 
@@ -239,8 +233,6 @@ class Nursery
     void shrinkAllocableSpace();
 
     static void MinorGCCallback(JSTracer *trc, void **thingp, JSGCTraceKind kind);
-    static void MinorFallbackMarkingCallback(JSTracer *trc, void **thingp, JSGCTraceKind kind);
-    static void MinorFallbackFixupCallback(JSTracer *trc, void **thingp, JSGCTraceKind kind);
 
     friend class gc::MinorCollectionTracer;
     friend class ion::CodeGenerator;

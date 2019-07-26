@@ -90,6 +90,9 @@ class BumpChunk
 
     size_t used() const { return bump - bumpBase(); }
 
+    void *start() const { return bumpBase(); }
+    void *end() const { return limit; }
+
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
         return mallocSizeOf(this);
     }
@@ -348,6 +351,19 @@ class LifoAlloc
     }
 
     
+    bool isEmpty() const {
+        return !latest || !latest->used();
+    }
+
+    
+    
+    size_t availableInCurrentChunk() const {
+        if (!latest)
+            return 0;
+        return latest->unused();
+    }
+
+    
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         size_t n = 0;
         for (BumpChunk *chunk = first; chunk; chunk = chunk->next())
@@ -372,6 +388,76 @@ class LifoAlloc
     }
 
     JS_DECLARE_NEW_METHODS(new_, alloc, JS_ALWAYS_INLINE)
+
+    
+    class Enum
+    {
+        friend class LifoAlloc;
+        friend class detail::BumpChunk;
+
+        LifoAlloc *alloc_;  
+        BumpChunk *chunk_;  
+        char *position_;    
+
+        
+        
+        void ensureSpaceAndAlignment(size_t size) {
+            JS_ASSERT(!empty());
+            char *aligned = detail::AlignPtr(position_);
+            if (aligned + size > chunk_->end()) {
+                chunk_ = chunk_->next();
+                position_ = static_cast<char *>(chunk_->start());
+            } else {
+                position_ = aligned;
+            }
+            JS_ASSERT(uintptr_t(position_) + size <= uintptr_t(chunk_->end()));
+        }
+
+      public:
+        Enum(LifoAlloc &alloc)
+          : alloc_(&alloc),
+            chunk_(alloc.first),
+            position_(static_cast<char *>(alloc.first ? alloc.first->start() : NULL))
+        {}
+
+        
+        bool empty() {
+            return !chunk_ || (chunk_ == alloc_->latest && position_ >= chunk_->mark());
+        }
+
+        
+        template <typename T>
+        void popFront() {
+            popFront(sizeof(T));
+        }
+
+        
+        void popFront(size_t size) {
+            ensureSpaceAndAlignment(size);
+            position_ = detail::AlignPtr(position_ + size);
+        }
+
+        
+        template <typename T>
+        void updateFront(const T &t) {
+            ensureSpaceAndAlignment(sizeof(T));
+            memmove(position_, &t, sizeof(T));
+        }
+
+        
+        
+        template <typename T>
+        T *get(size_t size = sizeof(T)) {
+            ensureSpaceAndAlignment(size);
+            return reinterpret_cast<T *>(position_);
+        }
+
+        
+        Mark mark() {
+            alloc_->markCount++;
+            return Mark(chunk_, position_);
+        }
+    };
 };
 
 class LifoAllocScope
@@ -409,4 +495,4 @@ class LifoAllocScope
 
 } 
 
-#endif
+#endif 
