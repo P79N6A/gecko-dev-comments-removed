@@ -115,9 +115,13 @@ public:
   
 
 
+
+
   virtual void WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint) { }
 
   
+
+
 
 
 
@@ -129,6 +133,8 @@ public:
   virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion, uint32_t aFlags) { return false; }
 
   
+
+
 
 
   virtual void DidPaintWindow() { }
