@@ -23,16 +23,6 @@ TextDecoder::Init(const nsAString& aEncoding,
 
   
   
-  if (label.LowerCaseEqualsLiteral("utf-16")) {
-    mUseBOM = true;
-    mIsUTF16Family = true;
-    mEncoding = "utf-16le";
-    
-    return;
-  }
-
-  
-  
   if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
     aRv.ThrowTypeError(MSG_ENCODING_NOT_SUPPORTED, &label);
     return;
@@ -46,12 +36,6 @@ TextDecoder::Init(const nsAString& aEncoding,
   
   mFatal = aFatal.fatal;
 
-  CreateDecoder(aRv);
-}
-
-void
-TextDecoder::CreateDecoder(ErrorResult& aRv)
-{
   
   nsCOMPtr<nsICharsetConverterManager> ccm =
     do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID);
@@ -72,12 +56,10 @@ TextDecoder::CreateDecoder(ErrorResult& aRv)
 }
 
 void
-TextDecoder::ResetDecoder(bool aResetOffset)
+TextDecoder::ResetDecoder()
 {
   mDecoder->Reset();
-  if (aResetOffset) {
-    mOffset = 0;
-  }
+  mOffset = 0;
 }
 
 void
@@ -191,22 +173,7 @@ TextDecoder::HandleBOM(const char*& aData, uint32_t& aLength,
       strcmp(encoding, mEncoding)) {
     
     
-    if (!mUseBOM) {
-      FeedBytes(!strcmp(mEncoding, "utf-16le") ? "\xFF\xFE" : "\xFE\xFF");
-    }
-  }
-  if (mUseBOM) {
-    
-    if (!*encoding) {
-      encoding = "utf-16le";
-    }
-    
-    if (mDecoder && !strcmp(encoding, mEncoding)) {
-      ResetDecoder(false);
-    } else {
-      mEncoding = encoding;
-      CreateDecoder(aRv);
-    }
+    FeedBytes(!strcmp(mEncoding, "utf-16le") ? "\xFF\xFE" : "\xFE\xFF");
   }
   FeedBytes(mInitialBytes, &aOutString);
 }
@@ -234,7 +201,7 @@ TextDecoder::GetEncoding(nsAString& aEncoding)
   
   
   
-  if (mUseBOM || !strcmp(mEncoding, "utf-16le")) {
+  if (!strcmp(mEncoding, "utf-16le")) {
     aEncoding.AssignLiteral("utf-16");
     return;
   }
