@@ -10,6 +10,7 @@ Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/osfile.jsm")
 Cu.import("resource://services-common/log4moz.js");
 
 this.CommonUtils = {
@@ -327,6 +328,33 @@ this.CommonUtils = {
     let len = b64.length;
     let over = len % 4;
     return over ? atob(b64.substr(0, len - over)) : atob(b64);
+  },
+
+  
+
+
+
+
+
+  readJSON: function(path) {
+    let decoder = new TextDecoder();
+    let promise = OS.File.read(path);
+    return promise.then(function onSuccess(array) {
+      return JSON.parse(decoder.decode(array));
+    });
+  },
+
+  
+
+
+
+
+
+
+  writeJSON: function(contents, path) {
+    let encoder = new TextEncoder();
+    let array = encoder.encode(JSON.stringify(contents));
+    return OS.File.writeAtomic(path, array, {tmpPath: path + ".tmp"});
   },
 
   
