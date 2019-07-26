@@ -6,6 +6,7 @@ package org.mozilla.gecko.background.healthreport;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.healthreport.HealthReportStorage.Field;
 
 import android.database.Cursor;
@@ -13,6 +14,8 @@ import android.util.SparseArray;
 
 public class HealthReportGenerator {
   private static final int PAYLOAD_VERSION = 3;
+
+  private static final String LOG_TAG = "GeckoHealthGen";
 
   private final HealthReportStorage storage;
 
@@ -28,6 +31,23 @@ public class HealthReportGenerator {
   
 
 
+  public JSONObject generateDocument(long since, long lastPingTime, String profilePath) {
+    Logger.info(LOG_TAG, "Generating FHR document from " + since + "; last ping " + lastPingTime + ", for profile " + profilePath);
+    ProfileInformationCache cache = new ProfileInformationCache(profilePath);
+    if (!cache.restoreUnlessInitialized()) {
+      Logger.warn(LOG_TAG, "Not enough profile information to compute current environment.");
+      return null;
+    }
+    Environment current = EnvironmentBuilder.getCurrentEnvironment(cache);
+    return generateDocument(since, lastPingTime, current);
+  }
+
+  
+
+
+
+
+
 
 
 
@@ -36,6 +56,8 @@ public class HealthReportGenerator {
 
   @SuppressWarnings("unchecked")
   public JSONObject generateDocument(long since, long lastPingTime, Environment currentEnvironment) {
+    Logger.debug(LOG_TAG, "Current environment hash: " + currentEnvironment.getHash());
+
     
     SparseArray<Environment> envs = storage.getEnvironmentRecordsByID();
 
