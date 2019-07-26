@@ -216,20 +216,13 @@ SocialUI = {
       
       let provider = Social.provider || Social.defaultProvider;
       
-      let label;
-      if (Social.providers.length == 1) {
-        label = gNavigatorBundle.getFormattedString(Social.provider
-                                                    ? "social.turnOff.label"
-                                                    : "social.turnOn.label",
-                                                    [provider.name]);
-      } else {
-        label = gNavigatorBundle.getString(Social.provider
-                                           ? "social.turnOffAll.label"
-                                           : "social.turnOnAll.label");
-      }
-      let accesskey = gNavigatorBundle.getString(Social.provider
-                                                 ? "social.turnOff.accesskey"
-                                                 : "social.turnOn.accesskey");
+      let label = gNavigatorBundle.getFormattedString(Social.provider ?
+                                                        "social.turnOff.label" :
+                                                        "social.turnOn.label",
+                                                      [provider.name]);
+      let accesskey = gNavigatorBundle.getString(Social.provider ?
+                                                   "social.turnOff.accesskey" :
+                                                   "social.turnOn.accesskey");
       toggleCommand.setAttribute("label", label);
       toggleCommand.setAttribute("accesskey", accesskey);
     }
