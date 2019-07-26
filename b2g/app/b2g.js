@@ -912,9 +912,6 @@ pref("gfx.canvas.max-size-for-skia-gl", -1);
 pref("gfx.gralloc.fence-with-readpixels", true);
 
 
-pref("ril.cellbroadcast.disabled", false);
-
-
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
 
 
