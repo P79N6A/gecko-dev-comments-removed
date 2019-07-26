@@ -631,7 +631,7 @@ MenuContainer.prototype = {
     }
     
     if (!("index" in aOptions)) {
-      return this._insertItemAt(this._findExpectedIndex(item), item, aOptions);
+      return this._insertItemAt(this._findExpectedIndexFor(item), item, aOptions);
     }
     
     
@@ -669,14 +669,13 @@ MenuContainer.prototype = {
 
 
   refresh: function() {
-    let selectedValue = this.selectedValue;
-    if (!selectedValue) {
+    let selectedItem = this.selectedItem;
+    if (!selectedItem) {
       return false;
     }
-    let entangledLabel = this.getItemByValue(selectedValue)._label;
     this._container.removeAttribute("notice");
-    this._container.setAttribute("label", entangledLabel);
-    this._container.setAttribute("tooltiptext", selectedValue);
+    this._container.setAttribute("label", selectedItem._label);
+    this._container.setAttribute("tooltiptext", selectedItem._value);
     return true;
   },
 
@@ -947,6 +946,12 @@ MenuContainer.prototype = {
     let prevElement = this._container.selectedItem;
 
     
+    if (this.autoFocusOnSelection && targetElement) {
+      targetElement.focus();
+    }
+
+    
+    
     if (targetElement == prevElement) {
       return;
     }
@@ -980,6 +985,42 @@ MenuContainer.prototype = {
 
   set selectedValue(aValue)
     this.selectedItem = this._itemsByValue.get(aValue),
+
+  
+
+
+
+
+
+
+  autoFocusOnFirstItem: true,
+
+  
+
+
+
+
+
+
+
+
+
+  autoFocusOnSelection: true,
+
+  
+
+
+
+
+
+  autoFocusOnInput: true,
+
+  
+
+
+
+
+  pageSize: 0,
 
   
 
@@ -1323,7 +1364,7 @@ MenuContainer.prototype = {
 
 
 
-  _findExpectedIndex: function(aItem) {
+  _findExpectedIndexFor: function(aItem) {
     let itemCount = this.itemCount;
 
     for (let i = 0; i < itemCount; i++) {
@@ -1366,6 +1407,9 @@ MenuContainer.prototype = {
     
     if (!this._currentFilterPredicate(aItem)) {
       aItem._target.hidden = true;
+    }
+    if (this.autoFocusOnFirstItem && this._itemsByElement.size == 1) {
+      aItem._target.focus();
     }
     if (aOptions.attributes) {
       aItem.setAttributes(aOptions.attributes, aItem._target);
@@ -1429,22 +1473,17 @@ MenuContainer.prototype = {
 
 
 
-  pageSize: 0,
-
-  
-
-
-
-
   _onWidgetKeyPress: function(aName, aEvent) {
     
     ViewHelpers.preventScrolling(aEvent);
 
     switch (aEvent.keyCode) {
       case aEvent.DOM_VK_UP:
+      case aEvent.DOM_VK_LEFT:
         this.focusPrevItem();
         return;
       case aEvent.DOM_VK_DOWN:
+      case aEvent.DOM_VK_RIGHT:
         this.focusNextItem();
         return;
       case aEvent.DOM_VK_PAGE_UP:
@@ -1472,10 +1511,13 @@ MenuContainer.prototype = {
       
       return;
     }
+
     let item = this.getItemForElement(aEvent.target);
     if (item) {
       
       this.selectedItem = item;
+      
+      this.autoFocusOnInput && item._target.focus();
     }
   },
 

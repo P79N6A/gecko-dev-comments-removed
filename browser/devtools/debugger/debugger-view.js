@@ -354,9 +354,7 @@ let DebuggerView = {
     }
     
     else if (this.Sources.containsValue(aUrl) && !aFlags.noSwitch) {
-      this.Sources.node.preventFocusOnSelection = true;
       this.Sources.selectedValue = aUrl;
-      this.Sources.node.preventFocusOnSelection = false;
       set(aLine);
     }
     

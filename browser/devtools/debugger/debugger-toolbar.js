@@ -348,10 +348,9 @@ function StackFramesView() {
 
   this._framesCache = new Map(); 
   this._onStackframeRemoved = this._onStackframeRemoved.bind(this);
-  this._onClick = this._onClick.bind(this);
+  this._onSelect = this._onSelect.bind(this);
   this._onScroll = this._onScroll.bind(this);
   this._afterScroll = this._afterScroll.bind(this);
-  this._selectFrame = this._selectFrame.bind(this);
 }
 
 create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
@@ -370,9 +369,12 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
     document.getElementById("debuggerCommands").appendChild(commandset);
 
     this.node = new BreadcrumbsWidget(document.getElementById("stackframes"));
-    this.node.addEventListener("mousedown", this._onClick, false);
+    this.node.addEventListener("select", this._onSelect, false);
     this.node.addEventListener("scroll", this._onScroll, true);
     window.addEventListener("resize", this._onScroll, true);
+
+    this.autoFocusOnFirstItem = false;
+    this.autoFocusOnSelection = false;
   },
 
   
@@ -381,7 +383,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   destroy: function() {
     dumpn("Destroying the StackFramesView");
 
-    this.node.removeEventListener("mousedown", this._onClick, false);
+    this.node.removeEventListener("select", this._onSelect, false);
     this.node.removeEventListener("scroll", this._onScroll, true);
     window.removeEventListener("resize", this._onScroll, true);
   },
@@ -426,18 +428,8 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-
-
-  highlightFrame: function(aDepth) {
-    let selectedItem = this.selectedItem = this._framesCache.get(aDepth);
-
-    for (let item in this) {
-      if (item != selectedItem) {
-        item.attachment.popup.menuitem.removeAttribute("checked");
-      } else {
-        item.attachment.popup.menuitem.setAttribute("checked", "");
-      }
-    }
+  set selectedDepth(aDepth) {
+    this.selectedItem = this._framesCache.get(aDepth);
   },
 
   
@@ -511,7 +503,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
     let command = document.createElement("command");
     command.id = commandId;
-    command.addEventListener("command", this._selectFrame.bind(this, aDepth), false);
+    command.addEventListener("command", () => this.selectedDepth = aDepth, false);
 
     let menuitem = document.createElement("menuitem");
     menuitem.id = menuitemId;
@@ -574,15 +566,19 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
   
 
 
-  _onClick: function(e) {
-    if (e && e.button != 0) {
+  _onSelect: function(e) {
+    let stackframeItem = this.selectedItem;
+    if (stackframeItem) {
       
-      return;
-    }
-    let item = this.getItemForElement(e.target);
-    if (item) {
-      
-      this._selectFrame(item.attachment.depth);
+      gStackFrames.selectFrame(stackframeItem.attachment.depth);
+
+      for (let otherItem in this) {
+        if (otherItem != stackframeItem) {
+          otherItem.attachment.popup.menuitem.removeAttribute("checked");
+        } else {
+          otherItem.attachment.popup.menuitem.setAttribute("checked", "");
+        }
+      }
     }
   },
 
@@ -615,16 +611,6 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
       
       DebuggerController.StackFrames.addMoreFrames();
     }
-  },
-
-  
-
-
-
-
-
-  _selectFrame: function(aDepth) {
-    DebuggerController.StackFrames.selectFrame(aDepth);
   },
 
   _framesCache: null,

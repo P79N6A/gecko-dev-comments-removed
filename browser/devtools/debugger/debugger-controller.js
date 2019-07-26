@@ -579,7 +579,7 @@ StackFrames.prototype = {
       this._addFrame(frame);
     }
     if (this.currentFrame == null) {
-      this.selectFrame(0);
+      DebuggerView.StackFrames.selectedDepth = 0;
     }
     if (this.activeThread.moreFrames) {
       DebuggerView.StackFrames.dirty = true;
@@ -639,8 +639,6 @@ StackFrames.prototype = {
 
     
     DebuggerView.updateEditor(url, line);
-    
-    DebuggerView.StackFrames.highlightFrame(aDepth);
     
     DebuggerView.Sources.highlightBreakpoint(url, line);
     
