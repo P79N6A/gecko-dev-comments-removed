@@ -4737,6 +4737,7 @@ var TabsProgressListener = {
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         Components.isSuccessCode(aStatus) &&
         doc.documentURI.startsWith("about:") &&
+        !doc.documentURI.toLowerCase().startsWith("about:blank") &&
         !doc.documentElement.hasAttribute("hasBrowserHandlers")) {
       
       
