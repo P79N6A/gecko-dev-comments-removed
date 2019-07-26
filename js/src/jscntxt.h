@@ -499,9 +499,6 @@ struct JSContext : public js::ExclusiveContext,
 #endif
 
     
-    unsigned               resolveFlags;
-
-    
     js::Value           iterValue;
 
     bool jitIsBroken;
@@ -639,29 +636,6 @@ struct AutoResolving {
     AutoResolving       *const link;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
-
-} 
-
-class JSAutoResolveFlags
-{
-  public:
-    JSAutoResolveFlags(JSContext *cx, unsigned flags
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mContext(cx), mSaved(cx->resolveFlags)
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->resolveFlags = flags;
-    }
-
-    ~JSAutoResolveFlags() { mContext->resolveFlags = mSaved; }
-
-  private:
-    JSContext *mContext;
-    unsigned mSaved;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-namespace js {
 
 
 
