@@ -1810,6 +1810,8 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
 
     
+
+    
     RootedObject target(cx, proxy->as<ProxyObject>().target());
 
     
@@ -1835,21 +1837,23 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, HandleObject proxy, HandleId 
 
     
     if (ToBoolean(trapResult)) {
+        
         Rooted<PropertyDescriptor> desc(cx);
         if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
             return false;
 
+        
         if (desc.object() && desc.isPermanent()) {
             RootedValue v(cx, IdToValue(id));
             js_ReportValueError(cx, JSMSG_CANT_DELETE, JSDVG_IGNORE_STACK, v, js::NullPtr());
             return false;
         }
 
+        
         *bp = true;
         return true;
     }
 
-    
     
     *bp = false;
     return true;
