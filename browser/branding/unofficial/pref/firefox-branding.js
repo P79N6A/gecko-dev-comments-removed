@@ -13,10 +13,10 @@ pref("app.update.download.backgroundInterval", 60);
 pref("app.update.promptWaitTime", 86400);
 
 
-pref("app.update.url.manual", "http://www.mozilla.org/products/firefox/");
+pref("app.update.url.manual", "https://nightly.mozilla.org");
 
 
-pref("app.update.url.details", "http://www.mozilla.org/projects/firefox/");
+pref("app.update.url.details", "https://nightly.mozilla.org");
 
 
 pref("app.releaseNotesURL", "http://www.mozilla.org/projects/firefox/%VERSION%/releasenotes/");
