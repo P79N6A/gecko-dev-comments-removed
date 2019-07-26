@@ -13,15 +13,41 @@
 
 namespace mozilla {
 
-TimeStamp TimeStamp::sFirstTimeStamp;
-TimeStamp TimeStamp::sProcessCreation;
+
+
+
+struct TimeStampInitialization {
+  
+
+
+
+  TimeStamp mFirstTimeStamp;
+
+  
+
+
+
+
+  TimeStamp mProcessCreation;
+
+  TimeStampInitialization() {
+    TimeStamp::Startup();
+    mFirstTimeStamp = TimeStamp::Now();
+  };
+
+  ~TimeStampInitialization() {
+    TimeStamp::Shutdown();
+  };
+};
+
+static TimeStampInitialization sInitOnce;
 
 TimeStamp
 TimeStamp::ProcessCreation(bool& aIsInconsistent)
 {
   aIsInconsistent = false;
 
-  if (sProcessCreation.IsNull()) {
+  if (sInitOnce.mProcessCreation.IsNull()) {
     char *mozAppRestart = PR_GetEnv("MOZ_APP_RESTART");
     TimeStamp ts;
 
@@ -31,32 +57,32 @@ TimeStamp::ProcessCreation(bool& aIsInconsistent)
     if (mozAppRestart && (strcmp(mozAppRestart, "") != 0)) {
       
 
-      ts = sFirstTimeStamp;
+      ts = sInitOnce.mFirstTimeStamp;
     } else {
       TimeStamp now = Now();
       uint64_t uptime = ComputeProcessUptime();
 
       ts = now - TimeDuration::FromMicroseconds(uptime);
 
-      if ((ts > sFirstTimeStamp) || (uptime == 0)) {
+      if ((ts > sInitOnce.mFirstTimeStamp) || (uptime == 0)) {
         
 
 
         aIsInconsistent = true;
-        ts = sFirstTimeStamp;
+        ts = sInitOnce.mFirstTimeStamp;
       }
     }
 
-    sProcessCreation = ts;
+    sInitOnce.mProcessCreation = ts;
   }
 
-  return sProcessCreation;
+  return sInitOnce.mProcessCreation;
 }
 
 void
 TimeStamp::RecordProcessRestart()
 {
-  sProcessCreation = TimeStamp();
+  sInitOnce.mProcessCreation = TimeStamp();
 }
 
 } 

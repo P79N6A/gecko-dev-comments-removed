@@ -366,19 +366,6 @@ private:
 
 
   TimeStampValue mValue;
-
-  
-
-
-
-  static TimeStamp sFirstTimeStamp;
-
-  
-
-
-
-
-  static TimeStamp sProcessCreation;
 };
 
 }
