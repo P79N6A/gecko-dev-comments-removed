@@ -570,11 +570,7 @@ PL_DHashTableOperate(PLDHashTable *table, const void *key, PLDHashOperator op)
             }
 
             
-
-
-
-            if (!ChangeTable(table, deltaLog2) &&
-                table->entryCount + table->removedCount == size - 1) {
+            if (!ChangeTable(table, deltaLog2)) {
                 METER(table->stats.addFailures++);
                 entry = nullptr;
                 break;
