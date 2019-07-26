@@ -735,7 +735,6 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
       return;
     if (restart) {
       
-      
       rv = parentDir2->GetNativePath(applyToDir);
     } else {
       if (!GetFile(parentDir2, NS_LITERAL_CSTRING("Updated.app"), updatedDir))
@@ -745,7 +744,6 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   }
 #else
   if (restart) {
-    
     
     updatedDir = do_QueryInterface(appDir);
   } else if (!GetFile(appDir, NS_LITERAL_CSTRING("updated"), updatedDir)) {
@@ -810,7 +808,6 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   
   nsAutoCString pid;
   if (!restart) {
-    
     
     pid.AssignASCII("-1");
   } else {
@@ -957,30 +954,8 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
   const char *processingUpdates = PR_GetEnv("MOZ_PROCESS_UPDATES");
   if (processingUpdates && *processingUpdates) {
     
-    const char *updRootOverride = PR_GetEnv("MOZ_UPDATE_ROOT_OVERRIDE");
-    if (updRootOverride && *updRootOverride) {
-      nsCOMPtr<nsIFile> overrideDir;
-      nsAutoCString path(updRootOverride);
-      rv = NS_NewNativeLocalFile(path, false, getter_AddRefs(overrideDir));
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
-      updatesDir = do_QueryInterface(overrideDir);
-    }
-    
-    const char *appDirOverride = PR_GetEnv("MOZ_UPDATE_APPDIR_OVERRIDE");
-    if (appDirOverride && *appDirOverride) {
-      nsCOMPtr<nsIFile> overrideDir;
-      nsAutoCString path(appDirOverride);
-      rv = NS_NewNativeLocalFile(path, false, getter_AddRefs(overrideDir));
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
-      NS_ADDREF(appDir = overrideDir);
-    }
-    
-    const char *backgroundUpdate = PR_GetEnv("MOZ_UPDATE_BACKGROUND");
-    if (backgroundUpdate && *backgroundUpdate) {
+    const char *stagingUpdate = PR_GetEnv("MOZ_UPDATE_STAGING");
+    if (stagingUpdate && *stagingUpdate) {
       restart = false;
       pid = &dummyPID;
     }
@@ -1164,13 +1139,13 @@ nsUpdateProcessor::ProcessUpdate(nsIUpdate* aUpdate)
 
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
   return NS_NewThread(getter_AddRefs(mProcessWatcher),
-                      NS_NewRunnableMethod(this, &nsUpdateProcessor::StartBackgroundUpdate));
+                      NS_NewRunnableMethod(this, &nsUpdateProcessor::StartStagedUpdate));
 }
 
 
 
 void
-nsUpdateProcessor::StartBackgroundUpdate()
+nsUpdateProcessor::StartStagedUpdate()
 {
   NS_ABORT_IF_FALSE(!NS_IsMainThread(), "main thread");
 
