@@ -48,8 +48,6 @@ public:
   }
 #endif
 
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
-
   
 
 
@@ -74,13 +72,6 @@ NS_NewSVGFEImageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(SVGFEImageFrame)
-
- void
-SVGFEImageFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
-{
-  SVGFEImageFrameBase::DidSetStyleContext(aOldStyleContext);
-  nsSVGEffects::InvalidateRenderingObservers(this);
-}
 
  void
 SVGFEImageFrame::DestroyFrom(nsIFrame* aDestructRoot)

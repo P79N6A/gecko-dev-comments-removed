@@ -120,21 +120,6 @@ nsSVGPathGeometryFrame::AttributeChanged(int32_t         aNameSpaceID,
   return NS_OK;
 }
 
- void
-nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
-{
-  nsSVGPathGeometryFrameBase::DidSetStyleContext(aOldStyleContext);
-
-  
-  
-  
-  
-  
-
-  nsSVGEffects::InvalidateRenderingObservers(this);
-  nsSVGUtils::ScheduleReflowSVG(this);
-}
-
 nsIAtom *
 nsSVGPathGeometryFrame::GetType() const
 {
