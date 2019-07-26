@@ -1142,25 +1142,21 @@ JS_InitStandardClasses(JSContext *cx, HandleObject obj)
 #define EAGER_ATOM(name)            NAME_OFFSET(name)
 #define EAGER_CLASS_ATOM(name)      NAME_OFFSET(name)
 
-static JSObject *
-DummyInit(JSContext *cx, HandleObject obj)
-{
-    MOZ_ASSUME_UNREACHABLE();
-    return nullptr;
-}
+static js::Class DummyClass;
+static js::Class SentinelClass;
 
 typedef struct JSStdName {
-    ClassInitializerOp init;
     size_t      atomOffset;     
     const Class *clasp;
-    bool isDummy() const { return init == DummyInit; };
+    bool isDummy() const { return clasp == &DummyClass; };
+    bool isSentinel() const { return clasp == &SentinelClass; };
 } JSStdName;
 
 static const JSStdName*
 LookupStdName(JSRuntime *rt, HandleString name, const JSStdName *table)
 {
     MOZ_ASSERT(name->isAtom());
-    for (unsigned i = 0; table[i].init; i++) {
+    for (unsigned i = 0; !table[i].isSentinel(); i++) {
         if (table[i].isDummy())
             continue;
         JSAtom *atom = AtomStateOffsetToName(rt->atomState, table[i].atomOffset);
@@ -1177,11 +1173,11 @@ LookupStdName(JSRuntime *rt, HandleString name, const JSStdName *table)
 
 
 
-#define STD_NAME_ENTRY(name, code, init, clasp) { init, EAGER_CLASS_ATOM(name), clasp },
-#define STD_DUMMY_ENTRY(name, code, init, dummy) { DummyInit, 0, nullptr },
+#define STD_NAME_ENTRY(name, code, init, clasp) { EAGER_CLASS_ATOM(name), clasp },
+#define STD_DUMMY_ENTRY(name, code, init, dummy) { 0, &DummyClass },
 static const JSStdName standard_class_names[] = {
   JS_FOR_PROTOTYPES(STD_NAME_ENTRY, STD_DUMMY_ENTRY)
-  { nullptr, 0, nullptr }
+  { 0, &SentinelClass }
 };
 
 
@@ -1189,58 +1185,58 @@ static const JSStdName standard_class_names[] = {
 
 
 static const JSStdName builtin_property_names[] = {
-    {js_InitObjectClass,        EAGER_ATOM(eval), &JSObject::class_},
+    { EAGER_ATOM(eval), &JSObject::class_ },
 
     
-    {js_InitNumberClass,        EAGER_ATOM(NaN), OCLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(Infinity), OCLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(isNaN), OCLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(isFinite), OCLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(parseFloat), OCLASP(Number)},
-    {js_InitNumberClass,        EAGER_ATOM(parseInt), OCLASP(Number)},
+    { EAGER_ATOM(NaN), OCLASP(Number) },
+    { EAGER_ATOM(Infinity), OCLASP(Number) },
+    { EAGER_ATOM(isNaN), OCLASP(Number) },
+    { EAGER_ATOM(isFinite), OCLASP(Number) },
+    { EAGER_ATOM(parseFloat), OCLASP(Number) },
+    { EAGER_ATOM(parseInt), OCLASP(Number) },
 
     
-    {js_InitStringClass,        EAGER_ATOM(escape), OCLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(unescape), OCLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(decodeURI), OCLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(encodeURI), OCLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(decodeURIComponent), OCLASP(String)},
-    {js_InitStringClass,        EAGER_ATOM(encodeURIComponent), OCLASP(String)},
+    { EAGER_ATOM(escape), OCLASP(String) },
+    { EAGER_ATOM(unescape), OCLASP(String) },
+    { EAGER_ATOM(decodeURI), OCLASP(String) },
+    { EAGER_ATOM(encodeURI), OCLASP(String) },
+    { EAGER_ATOM(decodeURIComponent), OCLASP(String) },
+    { EAGER_ATOM(encodeURIComponent), OCLASP(String) },
 #if JS_HAS_UNEVAL
-    {js_InitStringClass,        EAGER_ATOM(uneval), OCLASP(String)},
+    { EAGER_ATOM(uneval), OCLASP(String) },
 #endif
 #ifdef ENABLE_BINARYDATA
-    {js_InitSIMDClass,          EAGER_ATOM(SIMD), OCLASP(SIMD)},
-    {js_InitTypedObjectModuleObject, EAGER_ATOM(TypedObject), OCLASP(TypedObjectModule)},
+    { EAGER_ATOM(SIMD), OCLASP(SIMD) },
+    { EAGER_ATOM(TypedObject), OCLASP(TypedObjectModule) },
 #endif
 
-    {nullptr,                     0, nullptr}
+    { 0, &SentinelClass }
 };
 
 static const JSStdName object_prototype_names[] = {
     
-    {js_InitObjectClass,        EAGER_ATOM(proto), &JSObject::class_},
+    { EAGER_ATOM(proto), &JSObject::class_ },
 #if JS_HAS_TOSOURCE
-    {js_InitObjectClass,        EAGER_ATOM(toSource), &JSObject::class_},
+    { EAGER_ATOM(toSource), &JSObject::class_ },
 #endif
-    {js_InitObjectClass,        EAGER_ATOM(toString), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(toLocaleString), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(valueOf), &JSObject::class_},
+    { EAGER_ATOM(toString), &JSObject::class_ },
+    { EAGER_ATOM(toLocaleString), &JSObject::class_ },
+    { EAGER_ATOM(valueOf), &JSObject::class_ },
 #if JS_HAS_OBJ_WATCHPOINT
-    {js_InitObjectClass,        EAGER_ATOM(watch), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(unwatch), &JSObject::class_},
+    { EAGER_ATOM(watch), &JSObject::class_ },
+    { EAGER_ATOM(unwatch), &JSObject::class_ },
 #endif
-    {js_InitObjectClass,        EAGER_ATOM(hasOwnProperty), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(isPrototypeOf), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(propertyIsEnumerable), &JSObject::class_},
+    { EAGER_ATOM(hasOwnProperty), &JSObject::class_ },
+    { EAGER_ATOM(isPrototypeOf), &JSObject::class_ },
+    { EAGER_ATOM(propertyIsEnumerable), &JSObject::class_ },
 #if JS_OLD_GETTER_SETTER_METHODS
-    {js_InitObjectClass,        EAGER_ATOM(defineGetter), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(defineSetter), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(lookupGetter), &JSObject::class_},
-    {js_InitObjectClass,        EAGER_ATOM(lookupSetter), &JSObject::class_},
+    { EAGER_ATOM(defineGetter), &JSObject::class_ },
+    { EAGER_ATOM(defineSetter), &JSObject::class_ },
+    { EAGER_ATOM(lookupGetter), &JSObject::class_ },
+    { EAGER_ATOM(lookupSetter), &JSObject::class_ },
 #endif
 
-    {nullptr,                   0, nullptr}
+    { 0, &SentinelClass }
 };
 
 #undef CLASP
@@ -1306,11 +1302,9 @@ JS_ResolveStandardClass(JSContext *cx, HandleObject obj, HandleId id, bool *reso
         if (stdnm->clasp->flags & JSCLASS_IS_ANONYMOUS)
             return true;
 
-        if (obj->as<GlobalObject>().isStandardClassResolved(stdnm->clasp))
-            return true;
-
-        if (!stdnm->init(cx, obj))
+        if (!obj->as<GlobalObject>().ensureConstructor(cx, JSCLASS_CACHED_PROTO_KEY(stdnm->clasp)))
             return false;
+
         *resolved = true;
     }
     return true;
@@ -1323,37 +1317,8 @@ JS_EnumerateStandardClasses(JSContext *cx, HandleObject obj)
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
     MOZ_ASSERT(obj->is<GlobalObject>());
-
-    
-
-
-
-    HandlePropertyName undefinedName = cx->names().undefined;
-    RootedValue undefinedValue(cx, UndefinedValue());
-    if (!obj->nativeContains(cx, undefinedName) &&
-        !JSObject::defineProperty(cx, obj, undefinedName, undefinedValue,
-                                  JS_PropertyStub, JS_StrictPropertyStub,
-                                  JSPROP_PERMANENT | JSPROP_READONLY)) {
-        return false;
-    }
-
-    
-
-
-
-
-
-
-    for (unsigned i = 0; standard_class_names[i].init; i++) {
-        const JSStdName &stdnm = standard_class_names[i];
-        
-        if (!stdnm.isDummy() && !obj->as<GlobalObject>().isStandardClassResolved(stdnm.clasp)) {
-            if (!stdnm.init(cx, obj))
-                return false;
-        }
-    }
-
-    return true;
+    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
+    return GlobalObject::initStandardClasses(cx, global);
 }
 
 JS_PUBLIC_API(bool)
