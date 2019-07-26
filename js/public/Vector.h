@@ -33,6 +33,19 @@ class Vector;
 
 
 
+
+
+template <typename T>
+static bool CapacityHasExcessSpace(size_t cap)
+{
+    size_t size = cap * sizeof(T);
+    return RoundUpPow2(size) - size >= sizeof(T);
+}
+
+
+
+
+
 template <class T, size_t N, class AP, bool IsPod>
 struct VectorImpl
 {
@@ -84,9 +97,10 @@ struct VectorImpl
 
 
 
-    static inline bool growTo(Vector<T,N,AP> &v, size_t newcap) {
+    static inline bool growTo(Vector<T,N,AP> &v, size_t newCap) {
         JS_ASSERT(!v.usingInlineStorage());
-        T *newbuf = reinterpret_cast<T *>(v.malloc_(newcap * sizeof(T)));
+        JS_ASSERT(!CapacityHasExcessSpace<T>(newCap));
+        T *newbuf = reinterpret_cast<T *>(v.malloc_(newCap * sizeof(T)));
         if (!newbuf)
             return false;
         for (T *dst = newbuf, *src = v.beginNoCheck(); src != v.endNoCheck(); ++dst, ++src)
@@ -95,7 +109,7 @@ struct VectorImpl
         v.free_(v.mBegin);
         v.mBegin = newbuf;
         
-        v.mCapacity = newcap;
+        v.mCapacity = newCap;
         return true;
     }
 };
@@ -146,16 +160,17 @@ struct VectorImpl<T, N, AP, true>
             *p = t;
     }
 
-    static inline bool growTo(Vector<T,N,AP> &v, size_t newcap) {
+    static inline bool growTo(Vector<T,N,AP> &v, size_t newCap) {
         JS_ASSERT(!v.usingInlineStorage());
-        size_t bytes = sizeof(T) * newcap;
-        size_t oldBytes = sizeof(T) * v.mCapacity;
-        T *newbuf = reinterpret_cast<T *>(v.realloc_(v.mBegin, oldBytes, bytes));
+        JS_ASSERT(!CapacityHasExcessSpace<T>(newCap));
+        size_t oldSize = sizeof(T) * v.mCapacity;
+        size_t newSize = sizeof(T) * newCap;
+        T *newbuf = reinterpret_cast<T *>(v.realloc_(v.mBegin, oldSize, newSize));
         if (!newbuf)
             return false;
         v.mBegin = newbuf;
         
-        v.mCapacity = newcap;
+        v.mCapacity = newCap;
         return true;
     }
 };
@@ -189,10 +204,8 @@ class Vector : private AllocPolicy
     typedef VectorImpl<T, N, AllocPolicy, sElemIsPod> Impl;
     friend struct VectorImpl<T, N, AllocPolicy, sElemIsPod>;
 
-    bool calculateNewCapacity(size_t curLength, size_t lengthInc, size_t &newCap);
-    bool growStorageBy(size_t lengthInc);
-    bool growHeapStorageBy(size_t lengthInc);
-    bool convertToHeapStorage(size_t lengthInc);
+    bool growStorageBy(size_t incr);
+    bool convertToHeapStorage(size_t newCap);
 
     template <bool InitNewElems> inline bool growByImpl(size_t inc);
 
@@ -574,72 +587,15 @@ Vector<T,N,AP>::~Vector()
 
 
 
-template <class T, size_t N, class AP>
-STATIC_POSTCONDITION(!return || newCap >= curLength + lengthInc)
-#ifdef DEBUG
-
-JS_NEVER_INLINE bool
-#else
-inline bool
-#endif
-Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
-                                     size_t &newCap)
-{
-    size_t newMinCap = curLength + lengthInc;
-
-    
-
-
-
-    if (newMinCap < curLength ||
-        newMinCap & tl::MulOverflowMask<2 * sizeof(T)>::result) {
-        this->reportAllocOverflow();
-        return false;
-    }
-
-    
-    newCap = RoundUpPow2(newMinCap);
-
-    
-
-
-
-    if (newCap & tl::UnsafeRangeSizeMask<T>::result) {
-        this->reportAllocOverflow();
-        return false;
-    }
-    return true;
-}
-
-
-
-
-
-template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE bool
-Vector<T,N,AP>::growHeapStorageBy(size_t lengthInc)
-{
-    JS_ASSERT(!usingInlineStorage());
-    size_t newCap;
-    return calculateNewCapacity(mLength, lengthInc, newCap) &&
-           Impl::growTo(*this, newCap);
-}
-
-
-
-
-
 
 template <class T, size_t N, class AP>
 inline bool
-Vector<T,N,AP>::convertToHeapStorage(size_t lengthInc)
+Vector<T,N,AP>::convertToHeapStorage(size_t newCap)
 {
     JS_ASSERT(usingInlineStorage());
-    size_t newCap;
-    if (!calculateNewCapacity(mLength, lengthInc, newCap))
-        return false;
 
     
+    JS_ASSERT(!CapacityHasExcessSpace<T>(newCap));
     T *newBuf = reinterpret_cast<T *>(this->malloc_(newCap * sizeof(T)));
     if (!newBuf)
         return false;
@@ -660,9 +616,78 @@ JS_NEVER_INLINE bool
 Vector<T,N,AP>::growStorageBy(size_t incr)
 {
     JS_ASSERT(mLength + incr > mCapacity);
-    return usingInlineStorage()
-         ? convertToHeapStorage(incr)
-         : growHeapStorageBy(incr);
+    JS_ASSERT_IF(!usingInlineStorage(), !CapacityHasExcessSpace<T>(mCapacity));
+
+    
+
+
+
+
+
+
+
+    size_t newCap;
+
+    if (incr == 1) {
+        if (usingInlineStorage()) {
+            
+            size_t newSize = tl::RoundUpPow2<(sInlineCapacity + 1) * sizeof(T)>::result;
+            newCap = newSize / sizeof(T);
+            goto convert;
+        }
+
+        if (mLength == 0) {
+            
+            newCap = 1;
+            goto grow;
+        }
+
+        
+
+        
+
+
+
+
+
+        if (mLength & tl::MulOverflowMask<4 * sizeof(T)>::result) {
+            this->reportAllocOverflow();
+            return false;
+        }
+
+        
+
+
+
+
+        newCap = mLength * 2;
+        if (CapacityHasExcessSpace<T>(newCap))
+            newCap += 1;
+
+    } else {
+        
+        size_t newMinCap = mLength + incr;
+
+        
+        if (newMinCap < mLength ||
+            newMinCap & tl::MulOverflowMask<2 * sizeof(T)>::result)
+        {
+            this->reportAllocOverflow();
+            return false;
+        }
+
+        size_t newMinSize = newMinCap * sizeof(T);
+        size_t newSize = RoundUpPow2(newMinSize);
+        newCap = newSize / sizeof(T);
+    }
+
+    if (usingInlineStorage()) {
+      convert:
+        return convertToHeapStorage(newCap);
+    }
+
+  grow:
+    return Impl::growTo(*this, newCap);
 }
 
 template <class T, size_t N, class AP>
