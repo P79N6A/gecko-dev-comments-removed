@@ -16,6 +16,7 @@ import android.content.res.Configuration;
 import android.util.Log;
 
 public class GeckoApplication extends Application {
+    private static final String LOG_TAG = "GeckoApplication";
 
     private boolean mInited;
     private boolean mInBackground;
@@ -29,8 +30,8 @@ public class GeckoApplication extends Application {
 
     @Override
     public void onConfigurationChanged(Configuration config) {
-        Log.d("GeckoApplication", "onConfigurationChanged: " + config.locale +
-                                  ", background: " + mInBackground);
+        Log.d(LOG_TAG, "onConfigurationChanged: " + config.locale +
+                       ", background: " + mInBackground);
 
         
         
@@ -41,7 +42,13 @@ public class GeckoApplication extends Application {
 
         
         
-        LocaleManager.correctLocale(getResources(), config);
+        try {
+            LocaleManager.correctLocale(getResources(), config);
+        } catch (IllegalStateException ex) {
+            
+            Log.w(LOG_TAG, "Couldn't correct locale.", ex);
+        }
+
         super.onConfigurationChanged(config);
     }
 
