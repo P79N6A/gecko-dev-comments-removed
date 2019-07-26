@@ -124,10 +124,13 @@ void MediaOmxDecoder::ResumeStateMachine()
 void MediaOmxDecoder::AudioOffloadTearDown()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  PlaybackPositionChanged();
   DECODER_LOG(PR_LOG_DEBUG, ("%s", __PRETTY_FUNCTION__));
-  {
+
+  
+  
+  if (mAudioOffloadPlayer) {
     
+    PlaybackPositionChanged();
     ResumeStateMachine();
   }
 }
@@ -136,10 +139,10 @@ void MediaOmxDecoder::AddOutputStream(ProcessedMediaStream* aStream,
                                       bool aFinishWhenEnded)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  PlaybackPositionChanged();
 
   if (mAudioOffloadPlayer) {
     
+    PlaybackPositionChanged();
     ResumeStateMachine();
   }
 
@@ -149,11 +152,11 @@ void MediaOmxDecoder::AddOutputStream(ProcessedMediaStream* aStream,
 void MediaOmxDecoder::SetPlaybackRate(double aPlaybackRate)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  PlaybackPositionChanged();
 
   if (mAudioOffloadPlayer &&
       ((aPlaybackRate != 0.0) || (aPlaybackRate != 1.0))) {
     
+    PlaybackPositionChanged();
     ResumeStateMachine();
   }
 
