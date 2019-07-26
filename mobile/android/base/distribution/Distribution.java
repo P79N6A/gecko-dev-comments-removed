@@ -3,11 +3,13 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.distribution;
 
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.ThreadUtils;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
