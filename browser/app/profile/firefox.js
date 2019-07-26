@@ -1249,3 +1249,6 @@ pref("media.webaudio.enabled", true);
 
 
 pref("dom.debug.propagate_gesture_events_through_content", false);
+
+
+pref("browser.uiCustomization.debug", true);
