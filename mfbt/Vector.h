@@ -546,6 +546,12 @@ class VectorBase : private AllocPolicy
     
 
 
+
+    void erase(T* b, T *e);
+
+    
+
+
     size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const;
 
     
@@ -974,10 +980,22 @@ VectorBase<T, N, AP, TV>::erase(T* it)
   MOZ_ASSERT(begin() <= it);
   MOZ_ASSERT(it < end());
   while (it + 1 < end()) {
-    *it = *(it + 1);
+    *it = Move(*(it + 1));
     ++it;
   }
-    popBack();
+  popBack();
+}
+
+template<typename T, size_t N, class AP, class TV>
+inline void
+VectorBase<T, N, AP, TV>::erase(T* b, T *e)
+{
+  MOZ_ASSERT(begin() <= b);
+  MOZ_ASSERT(b <= e);
+  MOZ_ASSERT(e <= end());
+  while (e < end())
+    *b++ = Move(*e++);
+  shrinkBy(e - b);
 }
 
 template<typename T, size_t N, class AP, class TV>
