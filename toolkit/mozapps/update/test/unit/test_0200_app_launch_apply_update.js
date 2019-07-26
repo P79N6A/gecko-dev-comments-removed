@@ -101,21 +101,21 @@ function run_test() {
   mar.copyTo(updatesPatchDir, FILE_UPDATE_ARCHIVE);
 
   
+  
   let updaterIni = processDir.clone();
   updaterIni.append(FILE_UPDATER_INI);
-  updaterIni.moveTo(processDir, FILE_UPDATER_INI_BAK);
-  
-  
-  let updaterIniContents = "[Strings]\n" +
-                           "Title=Update Test\n" +
-                           "Info=Application Update XPCShell Test - " +
-                           "test_0200_general.js\n";
-  updaterIni = processDir.clone();
-  updaterIni.append(FILE_UPDATER_INI);
-  writeFile(updaterIni, updaterIniContents);
+  if (updaterIni.exists()) {
+    updaterIni.moveTo(processDir, FILE_UPDATER_INI_BAK);
+  }
 
+  
   let updateSettingsIni = processDir.clone();
-  updateSettingsIni.append(UPDATE_SETTINGS_INI_FILE);
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
+  if (updateSettingsIni.exists()) {
+    updateSettingsIni.moveTo(processDir, FILE_UPDATE_SETTINGS_INI_BAK);
+  }
+  updateSettingsIni = processDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
 
   let launchBin = getLaunchBin();
@@ -155,7 +155,16 @@ function end_test() {
   
   let updaterIni = processDir.clone();
   updaterIni.append(FILE_UPDATER_INI_BAK);
-  updaterIni.moveTo(processDir, FILE_UPDATER_INI);
+  if (updaterIni.exists()) {
+    updaterIni.moveTo(processDir, FILE_UPDATER_INI);
+  }
+
+  
+  let updateSettingsIni = processDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI_BAK);
+  if (updateSettingsIni.exists()) {
+    updateSettingsIni.moveTo(processDir, FILE_UPDATE_SETTINGS_INI);
+  }
 
   if (IS_WIN) {
     

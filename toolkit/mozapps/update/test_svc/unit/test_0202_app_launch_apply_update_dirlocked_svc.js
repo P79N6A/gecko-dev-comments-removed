@@ -174,8 +174,14 @@ function run_test() {
     updaterIni.moveTo(processDir, FILE_UPDATER_INI_BAK);
   }
 
+  
   let updateSettingsIni = processDir.clone();
-  updateSettingsIni.append(UPDATE_SETTINGS_INI_FILE);
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
+  if (updateSettingsIni.exists()) {
+    updateSettingsIni.moveTo(processDir, FILE_UPDATE_SETTINGS_INI_BAK);
+  }
+  updateSettingsIni = processDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
 
   reloadUpdateManagerData();
@@ -203,6 +209,13 @@ function end_test() {
   updaterIni.append(FILE_UPDATER_INI_BAK);
   if (updaterIni.exists()) {
     updaterIni.moveTo(processDir, FILE_UPDATER_INI);
+  }
+
+  
+  let updateSettingsIni = processDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI_BAK);
+  if (updateSettingsIni.exists()) {
+    updateSettingsIni.moveTo(processDir, FILE_UPDATE_SETTINGS_INI);
   }
 
   

@@ -111,6 +111,9 @@
 
 
 
+
+
+
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
 
@@ -155,7 +158,7 @@ const TEST_ADDONS = [ "appdisabled_1", "appdisabled_2",
                       "userdisabled_1", "userdisabled_2", "hotfix" ];
 
 
-const TEST_TIMEOUT = 25000; 
+var gTestTimeout = 45000; 
 var gTimeoutTimer;
 
 
@@ -167,11 +170,13 @@ var gCloseWindowTimeoutCounter = 0;
 
 
 
-var gAppUpdateEnabled;      
-var gAppUpdateMetroEnabled; 
-var gAppUpdateURLDefault;   
-var gAppUpdateURL;          
-var gExtUpdateURL;          
+var gAppUpdateEnabled;            
+var gAppUpdateMetroEnabled;       
+var gAppUpdateServiceEnabled;     
+var gAppUpdateStagingEnabled;     
+var gAppUpdateURLDefault;         
+var gAppUpdateURL;                
+var gExtUpdateURL;                
 
 var gTestCounter = -1;
 var gWin;
@@ -290,6 +295,7 @@ function runTestDefaultWaitForWindowClosed() {
 
     gCloseWindowTimeoutCounter = 0;
 
+    setupFiles();
     setupPrefs();
     removeUpdateDirsAndFiles();
     reloadUpdateManagerData();
@@ -319,6 +325,7 @@ function finishTestDefault() {
   verifyTestsRan();
 
   resetPrefs();
+  resetFiles();
   removeUpdateDirsAndFiles();
   reloadUpdateManagerData();
 
@@ -339,7 +346,7 @@ function finishTestDefault() {
 
 
 function finishTestTimeout(aTimer) {
-  ok(false, "Test timed out. Maximum time allowed is " + (TEST_TIMEOUT / 1000) +
+  ok(false, "Test timed out. Maximum time allowed is " + (gTestTimeout / 1000) +
      " seconds");
 
   try {
@@ -442,6 +449,11 @@ function defaultCallback(aEvent) {
 function delayedDefaultCallback() {
   if (!gTimeoutTimer) {
     debugDump("gTimeoutTimer is null... returning early");
+    return;
+  }
+
+  if (!gTest) {
+    debugDump("gTest is null... returning early");
     return;
   }
 
@@ -795,10 +807,28 @@ function verifyTestsRan() {
 
 
 
+function setupFiles() {
+  
+  let baseAppDir = getAppBaseDir();
+  let updateSettingsIni = baseAppDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
+  if (updateSettingsIni.exists()) {
+    updateSettingsIni.moveTo(baseAppDir, FILE_UPDATE_SETTINGS_INI_BAK);
+  }
+  updateSettingsIni = baseAppDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
+  writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
+}
+
+
+
+
+
+
 
 function setupPrefs() {
   if (DEBUG_AUS_TEST) {
-    Services.prefs.setBoolPref(PREF_APP_UPDATE_LOG, true)
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_LOG, true);
   }
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE)) {
@@ -808,12 +838,22 @@ function setupPrefs() {
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_ENABLED)) {
     gAppUpdateEnabled = Services.prefs.getBoolPref(PREF_APP_UPDATE_ENABLED);
   }
-  Services.prefs.setBoolPref(PREF_APP_UPDATE_ENABLED, true)
+  Services.prefs.setBoolPref(PREF_APP_UPDATE_ENABLED, true);
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_METRO_ENABLED)) {
     gAppUpdateMetroEnabled = Services.prefs.getBoolPref(PREF_APP_UPDATE_METRO_ENABLED);
   }
-  Services.prefs.setBoolPref(PREF_APP_UPDATE_METRO_ENABLED, true)
+  Services.prefs.setBoolPref(PREF_APP_UPDATE_METRO_ENABLED, true);
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_SERVICE_ENABLED)) {
+    gAppUpdateServiceEnabled = Services.prefs.getBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED);
+  }
+  Services.prefs.setBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED, false);
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_STAGING_ENABLED)) {
+    gAppUpdateStagingEnabled = Services.prefs.getBoolPref(PREF_APP_UPDATE_STAGING_ENABLED);
+  }
+  Services.prefs.setBoolPref(PREF_APP_UPDATE_STAGING_ENABLED, false);
 
   if (Services.prefs.prefHasUserValue(PREF_EXTENSIONS_UPDATE_URL)) {
     gExtUpdateURL = Services.prefs.getCharPref(PREF_EXTENSIONS_UPDATE_URL);
@@ -821,12 +861,39 @@ function setupPrefs() {
   let extUpdateUrl = URL_UPDATE + "?addonID=%ITEM_ID%&platformVersion=" +
                      getNewerPlatformVersion();
   Services.prefs.setCharPref(PREF_EXTENSIONS_UPDATE_URL, extUpdateUrl);
-  debugDump("extensions.update.url: " + extUpdateUrl);
 
   Services.prefs.setIntPref(PREF_APP_UPDATE_IDLETIME, 0);
   Services.prefs.setIntPref(PREF_APP_UPDATE_PROMPTWAITTIME, 0);
   Services.prefs.setBoolPref(PREF_EXTENSIONS_STRICT_COMPAT, true);
   Services.prefs.setCharPref(PREF_EM_HOTFIX_ID, "hotfix" + ADDON_ID_SUFFIX);
+}
+
+
+
+
+function resetFiles() {
+  
+  let baseAppDir = getAppBaseDir();
+  let updateSettingsIni = baseAppDir.clone();
+  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI_BAK);
+  if (updateSettingsIni.exists()) {
+    updateSettingsIni.moveTo(baseAppDir, FILE_UPDATE_SETTINGS_INI);
+  }
+
+  
+  
+  
+  let updatedDir = getUpdatedDir();
+  if (updatedDir.exists()) {
+    try {
+      removeDirRecursive(updatedDir);
+    }
+    catch (e) {
+      dump("Unable to remove directory\n" +
+           "path: " + updatedDir.path + "\n" +
+           "Exception: " + e + "\n");
+    }
+  }
 }
 
 
@@ -856,6 +923,20 @@ function resetPrefs() {
   }
   else if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_METRO_ENABLED)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_METRO_ENABLED);
+  }
+
+  if (gAppUpdateServiceEnabled !== undefined) {
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED, gAppUpdateServiceEnabled);
+  }
+  else if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_SERVICE_ENABLED)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_SERVICE_ENABLED);
+  }
+
+  if (gAppUpdateStagingEnabled !== undefined) {
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_STAGING_ENABLED, gAppUpdateStagingEnabled);
+  }
+  else if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_STAGING_ENABLED)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_STAGING_ENABLED);
   }
 
   if (gExtUpdateURL !== undefined) {
@@ -937,6 +1018,18 @@ function resetPrefs() {
   }
 }
 
+function setupTimer(aTestTimeout) {
+  gTestTimeout = aTestTimeout;
+  if (gTimeoutTimer) {
+    gTimeoutTimer.cancel();
+    gTimeoutTimer = null;
+  }
+  gTimeoutTimer = AUS_Cc["@mozilla.org/timer;1"].
+                  createInstance(AUS_Ci.nsITimer);
+  gTimeoutTimer.initWithCallback(finishTestTimeout, gTestTimeout,
+                                 AUS_Ci.nsITimer.TYPE_ONE_SHOT);
+}
+
 
 
 
@@ -972,10 +1065,7 @@ function setupAddons(aCallback) {
       });
       
       
-      gTimeoutTimer = AUS_Cc["@mozilla.org/timer;1"].
-                      createInstance(AUS_Ci.nsITimer);
-      gTimeoutTimer.initWithCallback(finishTestTimeout, TEST_TIMEOUT,
-                                     AUS_Ci.nsITimer.TYPE_ONE_SHOT);
+      setupTimer(gTestTimeout);
       aCallback();
     });
   }
