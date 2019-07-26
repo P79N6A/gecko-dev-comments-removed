@@ -522,14 +522,16 @@ BrowserElementChild.prototype = {
     ctx.drawWindow(content, 0, 0, content.innerWidth, content.innerHeight,
                    "rgb(255,255,255)");
 
-    sendAsyncMsg('got-screenshot', {
-      id: domRequestID,
-      
-      
-      
-      
-      successRv: canvas.toDataURL("image/jpeg")
-    });
+    
+    
+    
+    
+    canvas.toBlob(function(blob) {
+      sendAsyncMsg('got-screenshot', {
+        id: domRequestID,
+        successRv: blob
+      });
+    }, 'image/jpeg');
   },
 
   _recvFireCtxCallback: function(data) {
@@ -539,7 +541,7 @@ BrowserElementChild.prototype = {
       this._ctxHandlers[data.json.menuitem].click();
       this._ctxHandlers = {};
     } else {
-      debug("Ignored invalid contextmenu invokation");
+      debug("Ignored invalid contextmenu invocation");
     }
   },
 
