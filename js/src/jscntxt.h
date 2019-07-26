@@ -367,7 +367,7 @@ class ExclusiveContext : public ThreadSafeContext
 
     
     types::TypeObject *getNewType(const Class *clasp, TaggedProto proto, JSFunction *fun = nullptr);
-    types::TypeObject *getLazyType(const Class *clasp, TaggedProto proto);
+    types::TypeObject *getSingletonType(const Class *clasp, TaggedProto proto);
     inline js::LifoAlloc &typeLifoAlloc();
 
     
