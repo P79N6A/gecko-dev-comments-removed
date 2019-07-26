@@ -345,10 +345,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-
-
-    nsresult SetupDecodingFromBom(const char* aCharsetName,
-                                  const char* aDecoderCharsetName);
+    nsresult SetupDecodingFromBom(const char* aDecoderCharsetName);
 
     
 
