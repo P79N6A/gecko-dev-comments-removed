@@ -452,6 +452,7 @@ var PageStyleActor = protocol.ActorClass({
     
     let style = node.rawNode.ownerDocument.defaultView.getComputedStyle(node.rawNode);
     for (let prop of [
+      "position",
       "margin-top",
       "margin-right",
       "margin-bottom",

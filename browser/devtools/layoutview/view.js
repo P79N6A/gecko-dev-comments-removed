@@ -46,6 +46,9 @@ LayoutView.prototype = {
     
     
     this.map = {
+      position: {selector: "#element-position",
+                 property: "position",
+                 value: undefined},
       marginTop: {selector: ".margin.top > span",
                   property: "margin-top",
                   value: undefined},
@@ -201,7 +204,19 @@ LayoutView.prototype = {
 
       for (let i in this.map) {
         let property = this.map[i].property;
-        this.map[i].value = parseInt(layout[property]);
+        if (!(property in layout)) {
+          
+          
+          continue;
+        }
+        let parsedValue = parseInt(layout[property]);
+        if (Number.isNaN(parsedValue)) {
+          
+          
+          this.map[i].value = layout[property];
+        } else {
+          this.map[i].value = parsedValue;
+        }
       }
 
       let margins = layout.autoMargins;
