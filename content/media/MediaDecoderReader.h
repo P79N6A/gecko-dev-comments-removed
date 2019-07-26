@@ -31,11 +31,8 @@ class TimeRanges;
 class VideoInfo {
 public:
   VideoInfo()
-    : mAudioRate(44100),
-      mAudioChannels(2),
-      mDisplay(0,0),
+    : mDisplay(0,0),
       mStereoMode(STEREO_MODE_MONO),
-      mHasAudio(false),
       mHasVideo(false)
   {}
 
@@ -48,12 +45,6 @@ public:
                                   const nsIntSize& aDisplay);
 
   
-  uint32_t mAudioRate;
-
-  
-  uint32_t mAudioChannels;
-
-  
   
   nsIntSize mDisplay;
 
@@ -61,10 +52,46 @@ public:
   StereoMode mStereoMode;
 
   
-  bool mHasAudio;
+  bool mHasVideo;
+};
+
+class AudioInfo {
+public:
+  AudioInfo()
+    : mRate(44100),
+      mChannels(2),
+      mHasAudio(false)
+  {}
 
   
-  bool mHasVideo;
+  uint32_t mRate;
+
+  
+  uint32_t mChannels;
+
+  
+  bool mHasAudio;
+};
+
+class MediaInfo {
+public:
+  bool HasVideo() const
+  {
+    return mVideo.mHasVideo;
+  }
+
+  bool HasAudio() const
+  {
+    return mAudio.mHasAudio;
+  }
+
+  bool HasValidMedia() const
+  {
+    return HasVideo() || HasAudio();
+  }
+
+  VideoInfo mVideo;
+  AudioInfo mAudio;
 };
 
 
@@ -448,7 +475,7 @@ public:
   
   
   
-  virtual nsresult ReadMetadata(VideoInfo* aInfo,
+  virtual nsresult ReadMetadata(MediaInfo* aInfo,
                                 MetadataTags** aTags) = 0;
 
   
@@ -558,7 +585,7 @@ protected:
   AbstractMediaDecoder* mDecoder;
 
   
-  VideoInfo mInfo;
+  MediaInfo mInfo;
 
   
   

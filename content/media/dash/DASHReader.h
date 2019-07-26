@@ -38,7 +38,7 @@ public:
 
   
   
-  nsresult ReadMetadata(VideoInfo* aInfo,
+  nsresult ReadMetadata(MediaInfo* aInfo,
                         MetadataTags** aTags) MOZ_OVERRIDE;
 
   

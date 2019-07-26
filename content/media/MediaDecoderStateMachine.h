@@ -228,14 +228,14 @@ public:
   
   bool HasAudio() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-    return mInfo.mHasAudio;
+    return mInfo.HasAudio();
   }
 
   
   
   bool HasVideo() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-    return mInfo.mHasVideo;
+    return mInfo.HasVideo();
   }
 
   
@@ -810,7 +810,7 @@ private:
 
   
   
-  VideoInfo mInfo;
+  MediaInfo mInfo;
 
   mozilla::MediaMetadataManager mMetadataManager;
 

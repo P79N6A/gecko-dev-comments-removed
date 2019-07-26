@@ -172,7 +172,7 @@ DASHReader::DecodeAudioData()
 }
 
 nsresult
-DASHReader::ReadMetadata(VideoInfo* aInfo,
+DASHReader::ReadMetadata(MediaInfo* aInfo,
                          MetadataTags** aTags)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
@@ -191,7 +191,7 @@ DASHReader::ReadMetadata(VideoInfo* aInfo,
   *aTags = nullptr;
 
   
-  VideoInfo audioInfo, videoInfo;
+  MediaInfo audioInfo, videoInfo;
 
   
   for (uint i = 0; i < mVideoReaders.Length(); i++) {
@@ -201,8 +201,7 @@ DASHReader::ReadMetadata(VideoInfo* aInfo,
     NS_ENSURE_SUCCESS(rv, rv);
     
     if (mVideoReaders[i] == mVideoReader) {
-      mInfo.mHasVideo      = videoInfo.mHasVideo;
-      mInfo.mDisplay       = videoInfo.mDisplay;
+      mInfo.mVideo = videoInfo.mVideo;
     }
   }
   
@@ -211,10 +210,7 @@ DASHReader::ReadMetadata(VideoInfo* aInfo,
   if (mAudioReader) {
     rv = mAudioReader->ReadMetadata(&audioInfo, aTags);
     NS_ENSURE_SUCCESS(rv, rv);
-    mInfo.mHasAudio      = audioInfo.mHasAudio;
-    mInfo.mAudioRate     = audioInfo.mAudioRate;
-    mInfo.mAudioChannels = audioInfo.mAudioChannels;
-    mInfo.mStereoMode    = audioInfo.mStereoMode;
+    mInfo.mAudio = audioInfo.mAudio;
   }
 
   *aInfo = mInfo;
