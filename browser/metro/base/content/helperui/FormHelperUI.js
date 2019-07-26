@@ -8,9 +8,6 @@
 
 
 
-const kBrowserFormZoomLevelMin = 0.8;
-const kBrowserFormZoomLevelMax = 2.0;
-
 var FormHelperUI = {
   _debugEvents: false,
   _currentBrowser: null,

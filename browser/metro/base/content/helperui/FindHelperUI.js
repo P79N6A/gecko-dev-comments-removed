@@ -3,6 +3,10 @@
 
 
 
+
+const kBrowserFindZoomLevelMin = 1;
+const kBrowserFindZoomLevelMax = 1;
+
 var FindHelperUI = {
   type: "find",
   commands: {
@@ -175,8 +179,8 @@ var FindHelperUI = {
 
       
       let defaultZoomLevel = Browser.selectedTab.getDefaultZoomLevel();
-      zoomLevel = Util.clamp(zoomLevel, (defaultZoomLevel * kBrowserFormZoomLevelMin),
-                                        (defaultZoomLevel * kBrowserFormZoomLevelMax));
+      zoomLevel = Util.clamp(zoomLevel, (defaultZoomLevel * kBrowserFindZoomLevelMin),
+                                        (defaultZoomLevel * kBrowserFindZoomLevelMax));
       zoomLevel = Browser.selectedTab.clampZoomLevel(zoomLevel);
 
       let zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
