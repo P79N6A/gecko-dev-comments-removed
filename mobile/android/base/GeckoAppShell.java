@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -37,7 +38,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
@@ -56,7 +56,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
@@ -71,7 +70,6 @@ import android.view.ContextThemeWrapper;
 import android.view.HapticFeedbackConstants;
 import android.view.Surface;
 import android.view.SurfaceView;
-import android.view.TextureView;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
@@ -104,6 +102,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.concurrent.SynchronousQueue;
 
 public class GeckoAppShell
 {
@@ -136,7 +135,6 @@ public class GeckoAppShell
     static private final boolean LOGGING = false;
 
     static private int sDensityDpi = 0;
-    static private int sScreenDepth = 0;
 
     private static final EventDispatcher sEventDispatcher = new EventDispatcher();
 
@@ -175,12 +173,10 @@ public class GeckoAppShell
     
     public static native void setLayerClient(GeckoLayerClient client);
     public static native void onResume();
-    public static void callObserver(String observerKey, String topic, String data) {
-        sendEventToGecko(GeckoEvent.createCallObserverEvent(observerKey, topic, data));
-    }
-    public static void removeObserver(String observerKey) {
-        sendEventToGecko(GeckoEvent.createRemoveObserverEvent(observerKey));
-    }
+    public static native void onLowMemory();
+    public static native void callObserver(String observerKey, String topic, String data);
+    public static native void removeObserver(String observerKey);
+    public static native void onChangeNetworkLinkStatus(String status);
     public static native Message getNextMessageFromQueue(MessageQueue queue);
     public static native void onSurfaceTextureFrameAvailable(Object surfaceTexture, int id);
 
@@ -198,14 +194,6 @@ public class GeckoAppShell
                 try {
                     Log.e(LOGTAG, ">>> REPORTING UNCAUGHT EXCEPTION FROM THREAD "
                                   + thread.getId() + " (\"" + thread.getName() + "\")", e);
-
-                    Thread mainThread = ThreadUtils.getUiThread();
-                    if (mainThread != null && thread != mainThread) {
-                        Log.e(LOGTAG, "Main thread stack:");
-                        for (StackTraceElement ste : mainThread.getStackTrace()) {
-                            Log.e(LOGTAG, ste.toString());
-                        }
-                    }
 
                     if (e instanceof OutOfMemoryError) {
                         SharedPreferences prefs =
@@ -294,25 +282,17 @@ public class GeckoAppShell
     }
 
     public static void runGecko(String apkPath, String args, String url, String type) {
-        
-        MessageQueue.IdleHandler idleHandler = new MessageQueue.IdleHandler() {
-            @Override public boolean queueIdle() {
-                final Handler geckoHandler = ThreadUtils.sGeckoHandler;
-                Message idleMsg = Message.obtain(geckoHandler);
-                
-                idleMsg.obj = geckoHandler;
-                geckoHandler.sendMessageAtFrontOfQueue(idleMsg);
-                
-                return true;
-            }
-        };
-        Looper.myQueue().addIdleHandler(idleHandler);
+        Looper.prepare();
 
         
         GeckoAppShell.nativeInit();
 
+        
+        if (getGeckoInterface() != null)
+           sLayerView  = getGeckoInterface().getLayerView();
         if (sLayerView != null)
             GeckoAppShell.setLayerClient(sLayerView.getLayerClient());
+
 
         
         String combinedArgs = apkPath + " -greomni " + apkPath;
@@ -335,9 +315,6 @@ public class GeckoAppShell
 
         
         GeckoLoader.nativeRun(combinedArgs);
-
-        
-        Looper.myQueue().removeIdleHandler(idleHandler);
     }
 
     
@@ -414,7 +391,7 @@ public class GeckoAppShell
             sWaitingForEventAck = true;
             while (true) {
                 try {
-                    sEventAckLock.wait(1000);
+                    sEventAckLock.wait(100);
                 } catch (InterruptedException ie) {
                 }
                 if (!sWaitingForEventAck) {
@@ -423,6 +400,11 @@ public class GeckoAppShell
                 }
                 long waited = SystemClock.uptimeMillis() - time;
                 Log.d(LOGTAG, "Gecko event sync taking too long: " + waited + "ms");
+                if (isUiThread && waited >= 4000) {
+                    Log.w(LOGTAG, "Gecko event sync took too long, aborting!", new Exception());
+                    sWaitingForEventAck = false;
+                    break;
+                }
             }
         }
     }
@@ -651,26 +633,26 @@ public class GeckoAppShell
         gRestartScheduled = true;
     }
 
-    public static File preInstallWebApp(String aTitle, String aURI, String aOrigin) {
-        int index = WebAppAllocator.getInstance(getContext()).findAndAllocateIndex(aOrigin, aTitle, (String) null);
+    public static File preInstallWebApp(String aTitle, String aURI, String aUniqueURI) {
+        int index = WebAppAllocator.getInstance(getContext()).findAndAllocateIndex(aUniqueURI, aTitle, (String) null);
         GeckoProfile profile = GeckoProfile.get(getContext(), "webapp" + index);
         return profile.getDir();
     }
 
-    public static void postInstallWebApp(String aTitle, String aURI, String aOrigin, String aIconURL, String aOriginalOrigin) {
+    public static void postInstallWebApp(String aTitle, String aURI, String aUniqueURI, String aIconURL) {
     	WebAppAllocator allocator = WebAppAllocator.getInstance(getContext());
-		int index = allocator.getIndexForApp(aOriginalOrigin);
+		int index = allocator.getIndexForApp(aUniqueURI);
     	assert index != -1 && aIconURL != null;
-    	allocator.updateAppAllocation(aOrigin, index, BitmapUtils.getBitmapFromDataURI(aIconURL));
-    	createShortcut(aTitle, aURI, aOrigin, aIconURL, "webapp");
+    	allocator.updateAppAllocation(aUniqueURI, index, BitmapUtils.getBitmapFromDataURI(aIconURL));
+    	createShortcut(aTitle, aURI, aUniqueURI, aIconURL, "webapp");
     }
 
-    public static Intent getWebAppIntent(String aURI, String aOrigin, String aTitle, Bitmap aIcon) {
+    public static Intent getWebAppIntent(String aURI, String aUniqueURI, String aTitle, Bitmap aIcon) {
         int index;
         if (aIcon != null && !TextUtils.isEmpty(aTitle))
-            index = WebAppAllocator.getInstance(getContext()).findAndAllocateIndex(aOrigin, aTitle, aIcon);
+            index = WebAppAllocator.getInstance(getContext()).findAndAllocateIndex(aUniqueURI, aTitle, aIcon);
         else
-            index = WebAppAllocator.getInstance(getContext()).getIndexForApp(aOrigin);
+            index = WebAppAllocator.getInstance(getContext()).getIndexForApp(aUniqueURI);
 
         if (index == -1)
             return null;
@@ -698,7 +680,7 @@ public class GeckoAppShell
     }
 
     
-    static void createShortcut(String aTitle, String aURI, Bitmap aBitmap, String aType) {
+    public static void createShortcut(String aTitle, String aURI, Bitmap aBitmap, String aType) {
         createShortcut(aTitle, aURI, aURI, aBitmap, aType);
     }
 
@@ -838,6 +820,11 @@ public class GeckoAppShell
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
+        if (aType.equalsIgnoreCase(SHORTCUT_TYPE_WEBAPP)) {
+            Rect iconBounds = new Rect(0, 0, size, size);
+            canvas.drawBitmap(aSource, null, iconBounds, null);
+            return bitmap;
+        }
 
         
         Paint paint = new Paint();
@@ -845,11 +832,6 @@ public class GeckoAppShell
             
             paint.setColor(Color.HSVToColor(DEFAULT_LAUNCHER_ICON_HSV));
             canvas.drawRoundRect(new RectF(kOffset, kOffset, size - kOffset, size - kOffset), kRadius, kRadius, paint);
-        } else if (aType.equalsIgnoreCase(SHORTCUT_TYPE_WEBAPP) || aSource.getWidth() >= insetSize || aSource.getHeight() >= insetSize) {
-            
-            Rect iconBounds = new Rect(0, 0, size, size);
-            canvas.drawBitmap(aSource, null, iconBounds, null);
-            return bitmap;
         } else {
             
             int color = BitmapUtils.getDominantColor(aSource);
@@ -870,6 +852,13 @@ public class GeckoAppShell
         
         int sWidth = insetSize / 2;
         int sHeight = sWidth;
+
+        if (aSource.getWidth() > insetSize || aSource.getHeight() > insetSize) {
+            
+            
+            sWidth = Math.min(size / 3, aSource.getWidth() / 2);
+            sHeight = Math.min(size / 3, aSource.getHeight() / 2);
+        }
 
         int halfSize = size / 2;
         canvas.drawBitmap(aSource,
@@ -1069,12 +1058,12 @@ public class GeckoAppShell
 
 
 
-    static boolean openUriExternal(String targetURI,
-                                   String mimeType,
-                                   String packageName,
-                                   String className,
-                                   String action,
-                                   String title) {
+    public static boolean openUriExternal(String targetURI,
+                                          String mimeType,
+                                          String packageName,
+                                          String className,
+                                          String action,
+                                          String title) {
         final Context context = getContext();
         final Intent intent = getOpenURIIntent(context, targetURI,
                                                mimeType, action, title);
@@ -1127,38 +1116,6 @@ public class GeckoAppShell
 
 
 
-    static Intent getShareIntent(final Context context,
-                                 final String targetURI,
-                                 final String mimeType,
-                                 final String title) {
-        Intent shareIntent = getIntentForActionString(Intent.ACTION_SEND);
-        shareIntent.putExtra(Intent.EXTRA_TEXT, targetURI);
-        shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
-
-        
-        
-        
-        shareIntent.putExtra(Intent.EXTRA_TITLE, title);
-
-        if (mimeType != null && mimeType.length() > 0) {
-            shareIntent.setType(mimeType);
-        }
-
-        return shareIntent;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
 
 
     static Intent getOpenURIIntent(final Context context,
@@ -1168,7 +1125,19 @@ public class GeckoAppShell
                                    final String title) {
 
         if (action.equalsIgnoreCase(Intent.ACTION_SEND)) {
-            Intent shareIntent = getShareIntent(context, targetURI, mimeType, title);
+            Intent shareIntent = getIntentForActionString(action);
+            shareIntent.putExtra(Intent.EXTRA_TEXT, targetURI);
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+
+            
+            
+            
+            shareIntent.putExtra(Intent.EXTRA_TITLE, title);
+
+            if (mimeType != null && mimeType.length() > 0) {
+                shareIntent.setType(mimeType);
+            }
+
             return Intent.createChooser(shareIntent,
                                         context.getResources().getString(R.string.share_title)); 
         }
@@ -1246,6 +1215,85 @@ public class GeckoAppShell
         return intent;
     }
 
+    
+
+
+    private static String getClipboardTextImpl() {
+        Context context = getContext();
+        if (android.os.Build.VERSION.SDK_INT >= 11) {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm.hasPrimaryClip()) {
+                ClipData clip = cm.getPrimaryClip();
+                if (clip != null) {
+                    ClipData.Item item = clip.getItemAt(0);
+                    return item.coerceToText(context).toString();
+                }
+            }
+        } else {
+            android.text.ClipboardManager cm = (android.text.ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm.hasText()) {
+                return cm.getText().toString();
+            }
+        }
+        return null;
+    }
+
+    private static SynchronousQueue<String> sClipboardQueue = new SynchronousQueue<String>();
+
+    static String getClipboardText() {
+        
+        
+        
+
+        if (ThreadUtils.isOnUiThread() || ThreadUtils.isOnBackgroundThread()) {
+            return getClipboardTextImpl();
+        }
+
+        ThreadUtils.postToBackgroundThread(new Runnable() { 
+            @Override
+            public void run() {
+                String text = getClipboardTextImpl();
+                try {
+                    sClipboardQueue.put(text != null ? text : "");
+                } catch (InterruptedException ie) {}
+            }
+        });
+        try {
+            return sClipboardQueue.take();
+        } catch (InterruptedException ie) {
+            return "";
+        }
+    }
+
+    static void setClipboardText(String copiedText) {
+        
+        
+        final String text = (copiedText != null) ? copiedText : "";
+
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                Context context = getContext();
+                if (android.os.Build.VERSION.SDK_INT >= 11) {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                        context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("Text", text);
+                    try {
+                        cm.setPrimaryClip(clip);
+                    } catch (NullPointerException e) {
+                        
+                        
+                        
+                    }
+                } else {
+                    android.text.ClipboardManager cm = (android.text.ClipboardManager)
+                        context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    cm.setText(text);
+                }
+            }
+        });
+    }
+
     public static void setNotificationClient(NotificationClient client) {
         if (sNotificationClient == null) {
             sNotificationClient = client;
@@ -1256,6 +1304,13 @@ public class GeckoAppShell
 
     public static void showAlertNotification(String aImageUrl, String aAlertTitle, String aAlertText,
                                              String aAlertCookie, String aAlertName) {
+        Log.d(LOGTAG, "GeckoAppShell.showAlertNotification\n" +
+            "- image = '" + aImageUrl + "'\n" +
+            "- title = '" + aAlertTitle + "'\n" +
+            "- text = '" + aAlertText +"'\n" +
+            "- cookie = '" + aAlertCookie +"'\n" +
+            "- name = '" + aAlertName + "'");
+
         
         String app = getContext().getClass().getName();
         Intent notificationIntent = new Intent(GeckoApp.ACTION_ALERT_CALLBACK);
@@ -1283,6 +1338,11 @@ public class GeckoAppShell
     public static void alertsProgressListener_OnProgress(String aAlertName, long aProgress, long aProgressMax, String aAlertText) {
         int notificationID = aAlertName.hashCode();
         sNotificationClient.update(notificationID, aProgress, aProgressMax, aAlertText);
+
+        if (aProgress == aProgressMax) {
+            
+            removeObserver(aAlertName);
+        }
     }
 
     public static void closeNotification(String aAlertName) {
@@ -1304,7 +1364,7 @@ public class GeckoAppShell
         if (GeckoApp.ACTION_ALERT_CALLBACK.equals(aAction)) {
             callObserver(aAlertName, "alertclickcallback", aAlertCookie);
 
-            if (sNotificationClient.isOngoing(notificationID)) {
+            if (sNotificationClient.isProgressStyle(notificationID)) {
                 
                 return;
             }
@@ -1324,58 +1384,6 @@ public class GeckoAppShell
         }
 
         return sDensityDpi;
-    }
-
-    private static boolean isHighMemoryDevice() {
-        BufferedReader br = null;
-        FileReader fr = null;
-        try {
-            fr = new FileReader("/proc/meminfo");
-            if (fr == null)
-                return false;
-            br = new BufferedReader(fr);
-            String line = br.readLine();
-            while (line != null && !line.startsWith("MemTotal")) {
-                line = br.readLine();
-            }
-            String[] tokens = line.split("\\s+");
-            if (tokens.length >= 2 && Long.parseLong(tokens[1]) >= 786432 ) {
-                return true;
-            }
-        } catch (Exception ex) {
-        } finally {
-            try {
-                if (fr != null)
-                    fr.close();
-            } catch (IOException ioe) {}
-        }
-        return false;
-    }
-
-    
-
-
-
-    public static synchronized int getScreenDepth() {
-        if (sScreenDepth == 0) {
-            sScreenDepth = 16;
-            PixelFormat info = new PixelFormat();
-            PixelFormat.getPixelFormatInfo(getGeckoInterface().getActivity().getWindowManager().getDefaultDisplay().getPixelFormat(), info);
-            if (info.bitsPerPixel >= 24 && isHighMemoryDevice()) {
-                sScreenDepth = 24;
-            }
-        }
-
-        return sScreenDepth;
-    }
-
-    public static synchronized void setScreenDepthOverride(int aScreenDepth) {
-        if (sScreenDepth != 0) {
-            Log.e(LOGTAG, "Tried to override screen depth after it's already been set");
-            return;
-        }
-
-        sScreenDepth = aScreenDepth;
     }
 
     public static void setFullScreen(boolean fullscreen) {
@@ -1775,11 +1783,11 @@ public class GeckoAppShell
     }
 
     public static void addPluginView(View view,
-                                     float x, float y,
-                                     float w, float h,
+                                     int x, int y,
+                                     int w, int h,
                                      boolean isFullScreen) {
         if (getGeckoInterface() != null)
-             getGeckoInterface().addPluginView(view, new RectF(x, y, x + w, y + h), isFullScreen);
+             getGeckoInterface().addPluginView(view, new Rect(x, y, x + w, y + h), isFullScreen);
     }
 
     public static void removePluginView(View view, boolean isFullScreen) {
@@ -2013,14 +2021,9 @@ public class GeckoAppShell
         sContextGetter = cg;
     }
 
-    public interface AppStateListener {
-        public void onPause();
-        public void onResume();
-        public void onOrientationChanged();
-    }
-
     public interface GeckoInterface {
         public GeckoProfile getProfile();
+        public LayerView getLayerView();
         public PromptService getPromptService();
         public Activity getActivity();
         public String getDefaultUAString();
@@ -2028,13 +2031,11 @@ public class GeckoAppShell
         public SensorEventListener getSensorEventListener();
         public void doRestart();
         public void setFullScreen(boolean fullscreen);
-        public void addPluginView(View view, final RectF rect, final boolean isFullScreen);
+        public void addPluginView(View view, final Rect rect, final boolean isFullScreen);
         public void removePluginView(final View view, final boolean isFullScreen);
         public void enableCameraView();
         public void disableCameraView();
-        public void addAppStateListener(AppStateListener listener);
-        public void removeAppStateListener(AppStateListener listener);
-        public View getCameraView();
+        public SurfaceView getCameraView();
         public void notifyWakeLockChanged(String topic, String state);
         public FormAssistPopup getFormAssistPopup();
         public boolean areTabsShown();
@@ -2123,18 +2124,12 @@ public class GeckoAppShell
             }
 
             try {
-                if (getGeckoInterface() != null) {
-                    View cameraView = getGeckoInterface().getCameraView();
-                    if (cameraView instanceof SurfaceView) {
-                        sCamera.setPreviewDisplay(((SurfaceView)cameraView).getHolder());
-                    } else if (cameraView instanceof TextureView) {
-                        sCamera.setPreviewTexture(((TextureView)cameraView).getSurfaceTexture());
-                    }
-                }
+                if (getGeckoInterface() != null)
+                    sCamera.setPreviewDisplay(getGeckoInterface().getCameraView().getHolder());
             } catch(IOException e) {
-                Log.w(LOGTAG, "Error setPreviewXXX:", e);
+                Log.w(LOGTAG, "Error setPreviewDisplay:", e);
             } catch(RuntimeException e) {
-                Log.w(LOGTAG, "Error setPreviewXXX:", e);
+                Log.w(LOGTAG, "Error setPreviewDisplay:", e);
             }
 
             sCamera.setParameters(params);
@@ -2460,16 +2455,10 @@ public class GeckoAppShell
     }
 
     public static boolean pumpMessageLoop() {
-        Handler geckoHandler = ThreadUtils.sGeckoHandler;
-        Message msg = getNextMessageFromQueue(ThreadUtils.sGeckoQueue);
-
+        MessageQueue mq = Looper.myQueue();
+        Message msg = getNextMessageFromQueue(mq); 
         if (msg == null)
             return false;
-        if (msg.obj == geckoHandler && msg.getTarget() == geckoHandler) {
-            
-            msg.recycle();
-            return false;
-        }
         if (msg.getTarget() == null) 
             Looper.myLooper().quit();
         else
