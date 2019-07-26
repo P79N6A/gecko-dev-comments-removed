@@ -279,21 +279,15 @@ protected:
 
     
     LONG mStart;
-    LONG mLength;
 
     bool IsComposing() const
     {
       return (mView != nullptr);
     }
 
-    LONG StringEndOffset() const
-    {
-      return mStart + static_cast<LONG>(mString.Length());
-    }
-
     LONG EndOffset() const
     {
-      return mStart + mLength;
+      return mStart + static_cast<LONG>(mString.Length());
     }
 
     
