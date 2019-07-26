@@ -442,12 +442,27 @@ void NetworkUtils::stopAccessPointDriver(CommandChain* aChain,
 
 
 
+
+
+
+
+
+
+
+
+
 void NetworkUtils::setAccessPoint(CommandChain* aChain,
                                   CommandCallback aCallback,
                                   NetworkResultOptions& aResult)
 {
   char command[MAX_COMMAND_SIZE];
-  if (SDK_VERSION >= 16) {
+  if (SDK_VERSION >= 19) {
+    snprintf(command, MAX_COMMAND_SIZE - 1, "softap set %s \"%s\" broadcast 6 %s \"%s\"",
+                     GET_CHAR(mIfname),
+                     GET_CHAR(mSsid),
+                     GET_CHAR(mSecurity),
+                     GET_CHAR(mKey));
+  } else if (SDK_VERSION >= 16) {
     snprintf(command, MAX_COMMAND_SIZE - 1, "softap set %s \"%s\" %s \"%s\"",
                      GET_CHAR(mIfname),
                      GET_CHAR(mSsid),
