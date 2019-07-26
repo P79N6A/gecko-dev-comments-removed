@@ -288,7 +288,7 @@ nsresult OggReader::ReadMetadata(MediaInfo* aInfo,
 
     nsIntSize frameSize(mTheoraState->mInfo.frame_width,
                         mTheoraState->mInfo.frame_height);
-    if (VideoInfo::ValidateVideoRegion(frameSize, picture, displaySize)) {
+    if (IsValidVideoRegion(frameSize, picture, displaySize)) {
       
       mInfo.mVideo.mHasVideo = true;
       mInfo.mVideo.mDisplay = displaySize;

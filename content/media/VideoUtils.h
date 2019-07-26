@@ -26,6 +26,7 @@ using mozilla::CheckedInt32;
 using mozilla::CheckedUint32;
 
 struct nsIntSize;
+struct nsIntRect;
 
 
 
@@ -156,6 +157,13 @@ int DownmixAudioToStereo(mozilla::AudioDataValue* buffer,
                          uint32_t frames);
 
 bool IsVideoContentType(const nsCString& aContentType);
+
+
+
+
+
+bool IsValidVideoRegion(const nsIntSize& aFrame, const nsIntRect& aPicture,
+                        const nsIntSize& aDisplay);
 
 } 
 

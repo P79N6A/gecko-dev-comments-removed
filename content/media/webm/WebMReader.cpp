@@ -329,7 +329,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
       
       nsIntSize displaySize(params.display_width, params.display_height);
       nsIntSize frameSize(params.width, params.height);
-      if (!VideoInfo::ValidateVideoRegion(frameSize, pictureRect, displaySize)) {
+      if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
         
         continue;
       }

@@ -73,7 +73,7 @@ nsresult MediaPluginReader::ReadMetadata(MediaInfo* aInfo,
     
     nsIntSize displaySize(width, height);
     nsIntSize frameSize(width, height);
-    if (!VideoInfo::ValidateVideoRegion(frameSize, pictureRect, displaySize)) {
+    if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
       return NS_ERROR_FAILURE;
     }
 
