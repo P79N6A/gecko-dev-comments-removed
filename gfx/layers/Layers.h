@@ -831,7 +831,7 @@ public:
       Mutated();
     }
   }
-  
+
   void DeprecatedSetMixBlendMode(gfxContext::GraphicsOperator aMixBlendMode)
   {
     SetMixBlendMode(gfx::CompositionOpForOp(aMixBlendMode));
@@ -845,7 +845,7 @@ public:
       Mutated();
     }
   }
-  
+
   bool GetForceIsolatedGroup() const
   {
     return mForceIsolatedGroup;
@@ -1249,13 +1249,13 @@ public:
 
 
   float GetEffectiveOpacity();
-  
+
   
 
 
   gfx::CompositionOp GetEffectiveMixBlendMode();
   gfxContext::GraphicsOperator DeprecatedGetEffectiveMixBlendMode();
-  
+
   
 
 
