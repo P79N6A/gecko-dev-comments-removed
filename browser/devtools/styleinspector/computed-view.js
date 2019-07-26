@@ -139,11 +139,15 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this.getRTLAttr = chromeReg.isLocaleRTL("global") ? "rtl" : "ltr";
 
   
-  this.siFocusWindow = this.focusWindow.bind(this);
-  this.siBoundCopy = this.computedViewCopy.bind(this);
+  this.focusWindow = this.focusWindow.bind(this);
+  this._onContextMenu = this._onContextMenu.bind(this);
+  this._contextMenuUpdate = this._contextMenuUpdate.bind(this);
+  this._onSelectAll = this._onSelectAll.bind(this);
+  this._onCopy = this._onCopy.bind(this);
 
-  this.styleDocument.addEventListener("copy", this.siBoundCopy);
-  this.styleDocument.addEventListener("mousedown", this.siFocusWindow);
+  this.styleDocument.addEventListener("copy", this._onCopy);
+  this.styleDocument.addEventListener("mousedown", this.focusWindow);
+  this.styleDocument.addEventListener("contextmenu", this._onContextMenu);
 
   
   this.root = this.styleDocument.getElementById("root");
@@ -161,6 +165,8 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
 
   
   this.viewedElement = null;
+
+  this._buildContextMenu();
   this.createStyleViews();
 }
 
@@ -466,7 +472,7 @@ CssHtmlTree.prototype = {
 
 
 
-  focusWindow: function si_focusWindow(aEvent)
+  focusWindow: function(aEvent)
   {
     let win = this.styleDocument.defaultView;
     win.focus();
@@ -475,23 +481,119 @@ CssHtmlTree.prototype = {
   
 
 
+  _buildContextMenu: function()
+  {
+    let doc = this.styleDocument.defaultView.parent.document;
+
+    this._contextmenu = this.styleDocument.createElementNS(XUL_NS, "menupopup");
+    this._contextmenu.addEventListener("popupshowing", this._contextMenuUpdate);
+    this._contextmenu.id = "computed-view-context-menu";
+
+    
+    this.menuitemSelectAll = createMenuItem(this._contextmenu, {
+      label: "computedView.contextmenu.selectAll",
+      accesskey: "computedView.contextmenu.selectAll.accessKey",
+      command: this._onSelectAll
+    });
+
+    
+    this.menuitemCopy = createMenuItem(this._contextmenu, {
+      label: "computedView.contextmenu.copy",
+      accesskey: "computedView.contextmenu.copy.accessKey",
+      command: this._onCopy
+    });
+
+    let popupset = doc.documentElement.querySelector("popupset");
+    if (!popupset) {
+      popupset = doc.createElementNS(XUL_NS, "popupset");
+      doc.documentElement.appendChild(popupset);
+    }
+    popupset.appendChild(this._contextmenu);
+  },
+
+  
 
 
-  computedViewCopy: function si_computedViewCopy(aEvent)
+
+  _contextMenuUpdate: function()
   {
     let win = this.styleDocument.defaultView;
-    let text = win.getSelection().toString();
+    let disable = win.getSelection().isCollapsed;
+    this.menuitemCopy.disabled = disable;
+  },
 
-    
-    
-    text = text.replace(/(.+)\r\n(.+)/g, "$1: $2;");
-    text = text.replace(/(.+)\n(.+)/g, "$1: $2;");
+  
 
-    let outerDoc = this.styleInspector.outerIFrame.ownerDocument;
-    clipboardHelper.copyString(text, outerDoc);
 
-    if (aEvent) {
-      aEvent.preventDefault();
+  _onContextMenu: function(event) {
+    try {
+      this.styleDocument.defaultView.focus();
+
+      this._contextmenu.openPopup(
+          event.target.ownerDocument.documentElement,
+          "overlap", event.clientX, event.clientY, true, false, null);
+    } catch(e) {
+      console.error(e);
+    }
+  },
+
+  
+
+
+  _onSelectAll: function()
+  {
+    try {
+      let win = this.styleDocument.defaultView;
+      let selection = win.getSelection();
+
+      selection.selectAllChildren(this.styleDocument.documentElement);
+    } catch(e) {
+      console.error(e);
+    }
+  },
+
+  
+
+
+
+
+  _onCopy: function(event)
+  {
+    try {
+      let win = this.styleDocument.defaultView;
+      let text = win.getSelection().toString().trim();
+
+      
+      
+      let textArray = text.split(/[\r\n]+/);
+      let result = "";
+
+      
+      if (textArray.length > 1) {
+        for (let prop of textArray) {
+          if (CssHtmlTree.propertyNames.indexOf(prop) !== -1) {
+            
+            result += prop;
+          } else {
+            
+            result += ": " + prop;
+            if (result.length > 0) {
+              result += ";\n";
+            }
+          }
+        }
+      } else {
+        
+        result = textArray[0];
+      }
+
+      clipboardHelper.copyString(result, this.styleDocument);
+
+      if (event) {
+        event.preventDefault();
+      }
+    } catch(e) {
+      console.error(e);
     }
   },
 
@@ -517,32 +619,25 @@ CssHtmlTree.prototype = {
     }
 
     
-    let outerDoc = this.styleInspector.outerIFrame.ownerDocument;
-    let menu = outerDoc.querySelector("#computed-view-context-menu");
-    if (menu) {
+    if (this._contextmenu) {
       
-      let menuitem = outerDoc.querySelector("#computed-view-copy");
-      menuitem.removeEventListener("command", this.siBoundCopy);
+      this.menuitemCopy.removeEventListener("command", this._onCopy);
+      this.menuitemCopy = null;
 
       
-      menuitem = outerDoc.querySelector("#computed-view-copy-declaration");
-      menuitem.removeEventListener("command", this.siBoundCopyDeclaration);
+      this.menuitemSelectAll.removeEventListener("command", this._onSelectAll);
+      this.menuitemSelectAll = null;
 
       
-      menuitem = outerDoc.querySelector("#computed-view-copy-property");
-      menuitem.removeEventListener("command", this.siBoundCopyProperty);
-
-      
-      menuitem = outerDoc.querySelector("#computed-view-copy-property-value");
-      menuitem.removeEventListener("command", this.siBoundCopyPropertyValue);
-
-      menu.removeEventListener("popupshowing", this.siBoundMenuUpdate);
-      menu.parentNode.removeChild(menu);
+      this._contextmenu.removeEventListener("popupshowing", this._contextMenuUpdate);
+      this._contextmenu.parentNode.removeChild(this._contextmenu);
+      this._contextmenu = null;
     }
 
     
-    this.styleDocument.removeEventListener("copy", this.siBoundCopy);
-    this.styleDocument.removeEventListener("mousedown", this.siFocusWindow);
+    this.styleDocument.removeEventListener("contextmenu", this._onContextMenu);
+    this.styleDocument.removeEventListener("copy", this._onCopy);
+    this.styleDocument.removeEventListener("mousedown", this.focusWindow);
 
     
     delete this.root;
@@ -572,6 +667,19 @@ PropertyInfo.prototype = {
     }
   }
 };
+
+function createMenuItem(aMenu, aAttributes)
+{
+  let item = aMenu.ownerDocument.createElementNS(XUL_NS, "menuitem");
+
+  item.setAttribute("label", CssHtmlTree.l10n(aAttributes.label));
+  item.setAttribute("accesskey", CssHtmlTree.l10n(aAttributes.accesskey));
+  item.addEventListener("command", aAttributes.command);
+
+  aMenu.appendChild(item);
+
+  return item;
+}
 
 
 
