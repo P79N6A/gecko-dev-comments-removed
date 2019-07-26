@@ -322,6 +322,9 @@ public:
   
   bool IsShutdown();
 
+protected:
+  virtual uint32_t GetAmpleVideoFrames() { return mAmpleVideoFrames; }
+
 private:
   class WakeDecoderRunnable : public nsRunnable {
   public:
