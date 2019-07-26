@@ -49,6 +49,17 @@ var EXPECTED;
 
 
 
+
+
+function testPassesUnlessItThrows() {
+  print(PASSED);
+}
+
+
+
+
+
+
 function AddTestCase( description, expect, actual ) {
   new TestCase( SECTION, description, expect, actual );
 }
@@ -132,7 +143,7 @@ function reportFailure (msg)
   var l;
   var funcName = currentFunc();
   var prefix = (funcName) ? "[reported from " + funcName + "] ": "";
-   
+
   for (var i=0; i<lines.length; i++)
     print (FAILED + prefix + lines[i]);
 }
@@ -376,7 +387,7 @@ function enterFunc (funcName)
 function exitFunc (funcName)
 {
   var lastFunc = callStack.pop();
-   
+
   if (funcName)
   {
     if (!funcName.match(/\(\)$/))
@@ -486,7 +497,7 @@ function BigO(data)
     {
       var Ydiff = Y[i] - this.Yavg;
       var Xdiff = X[i] - this.Xavg;
-       
+
       SUM_Ydiff2 += Ydiff * Ydiff;
       SUM_Xdiff2 += Xdiff * Xdiff;
       SUM_XdiffYdiff += Xdiff * Ydiff;
@@ -522,7 +533,7 @@ function BigO(data)
     {
       deriv.X[i] = (X[i] + X[i+1])/2;
       deriv.Y[i] = (Y[i+1] - Y[i])/(X[i+1] - X[i]);
-    } 
+    }
     return deriv;
   }
 
@@ -598,7 +609,7 @@ function optionsInit() {
 }
 
 function optionsClear() {
-       
+
   
   
   var optionNames = options().split(',');
@@ -843,6 +854,4 @@ function OptLevel( i ) {
   var cx = GetContext();
   cx.setOptimizationLevel(i);
 }
-
-
 

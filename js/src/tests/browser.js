@@ -2,8 +2,41 @@
 
 
 
+
 var gPageCompleted;
 var GLOBAL = this + '';
+
+
+var jstestsTestPassesUnlessItThrows = false;
+var jstestsRestoreFunction;
+var jstestsOptions;
+
+
+
+
+
+
+
+function testPassesUnlessItThrows() {
+  jstestsTestPassesUnlessItThrows = true;
+}
+
+
+
+
+
+function include(file) {
+  outputscripttag(file, {language: "type", mimetype: "text/javascript"});
+}
+
+
+
+
+
+
+function setRestoreFunction(restore) {
+  jstestsRestoreFunction = restore;
+}
 
 function htmlesc(str) {
   if (str == '<')
@@ -83,6 +116,16 @@ function writeFormattedResult( expect, actual, string, passed ) {
 
 window.onerror = function (msg, page, line)
 {
+  jstestsTestPassesUnlessItThrows = false;
+
+  
+  options = jstestsOptions;
+
+  
+  if (typeof jstestsRestoreFunction === "function") {
+    jstestsRestoreFunction();
+  }
+
   optionsPush();
 
   if (typeof DESCRIPTION == 'undefined')
@@ -178,10 +221,15 @@ function options(aOptionName)
 
     Components.utils[aOptionName] =
       options.currvalues.hasOwnProperty(aOptionName);
-  }  
+  }
 
   return value;
 }
+
+
+
+
+jstestsOptions = options;
 
 function optionsInit() {
 
@@ -350,6 +398,16 @@ function jsTestDriverBrowserInit()
   
   document.write('<script></script>');
 
+  
+  
+  
+  
+  if (suitepath.indexOf('/') !== -1) {
+    var base = suitepath.slice(0, suitepath.indexOf('/'));
+    outputscripttag(base + '/shell.js', properties);
+    outputscripttag(base + '/browser.js', properties);
+  }
+
   outputscripttag(suitepath + '/shell.js', properties);
   outputscripttag(suitepath + '/browser.js', properties);
   outputscripttag(suitepath + '/' + subsuite + '/shell.js', properties);
@@ -405,6 +463,20 @@ function jsTestDriverEnd()
   }
 
   window.onerror = null;
+
+  
+  options = jstestsOptions;
+
+  
+  if (typeof jstestsRestoreFunction === "function") {
+    jstestsRestoreFunction();
+  }
+
+  if (jstestsTestPassesUnlessItThrows) {
+    var testcase = new TestCase("unknown-test-name", "", true, true);
+    print(PASSED);
+    jstestsTestPassesUnlessItThrows = false;
+  }
 
   try
   {
@@ -493,7 +565,7 @@ function closeDialog()
 
   while ( (subject = gDialogCloserSubjects.pop()) != null)
   {
-    if (subject.document instanceof XULDocument && 
+    if (subject.document instanceof XULDocument &&
         subject.document.documentURI == 'chrome://global/content/commonDialog.xul')
     {
       subject.close();

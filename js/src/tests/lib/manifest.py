@@ -276,10 +276,68 @@ def _parse_test_header(fullpath, testcase, xul_tester):
 
     _parse_one(testcase, xul_tester)
 
+def _parse_external_manifest(filename, relpath):
+    """
+    Reads an external manifest file for test suites whose individual test cases
+    can't be decorated with reftest comments.
+    filename - str: name of the manifest file
+    relpath - str: relative path of the directory containing the manifest
+                   within the test suite
+    """
+    entries = []
+
+    with open(filename, 'r') as fp:
+        manifest_re = re.compile(r'^\s*(.*)\s+(include|script)\s+(\S+)$')
+        for line in fp:
+            line, _, comment = line.partition('#')
+            line = line.strip()
+            if not line:
+                continue
+            matches = manifest_re.match(line)
+            if not matches:
+                print('warning: unrecognized line in jstests.list: {0}'.format(line))
+                continue
+
+            path = os.path.normpath(os.path.join(relpath, matches.group(3)))
+            if matches.group(2) == 'include':
+                
+                
+                
+                
+                assert(path.endswith('jstests.list'))
+                path = path[:-len('jstests.list')]
+
+            entries.append({'path': path, 'terms': matches.group(1), 'comment': comment.strip()})
+
+    
+    entries.sort(key=lambda x: x["path"])
+    return entries
+
+def _apply_external_manifests(filename, testcase, entries, xul_tester):
+    for entry in entries:
+        if filename.startswith(entry["path"]):
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            testcase.terms = entry["terms"]
+            testcase.comment = entry["comment"]
+            _parse_one(testcase, xul_tester)
+
 def load(location, xul_tester, reldir = ''):
     """
     Locates all tests by walking the filesystem starting at |location|.
     Uses xul_tester to evaluate any test conditions in the test header.
+    Failure type and comment for a test case can come from
+    - an external manifest entry for the test case,
+    - an external manifest entry for a containing directory,
+    - most commonly: the header of the test case itself.
     """
     
     tests = []
@@ -287,6 +345,9 @@ def load(location, xul_tester, reldir = ''):
     
     EXCLUDED = set(('browser.js', 'shell.js', 'jsref.js', 'template.js',
                     'user.js', 'js-test-driver-begin.js', 'js-test-driver-end.js'))
+
+    manifestFile = os.path.join(location, 'jstests.list')
+    externalManifestEntries = _parse_external_manifest(manifestFile, '')
 
     for root, basename in _find_all_js_files(location, location):
         
@@ -306,9 +367,8 @@ def load(location, xul_tester, reldir = ''):
         if statbuf.st_size == 0:
             continue
 
-        
         testcase = TestCase(os.path.join(reldir, filename))
+        _apply_external_manifests(filename, testcase, externalManifestEntries, xul_tester)
         _parse_test_header(fullpath, testcase, xul_tester)
         tests.append(testcase)
     return tests
-
