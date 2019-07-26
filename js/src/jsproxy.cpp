@@ -638,12 +638,12 @@ static bool
 GetDerivedTrap(JSContext *cx, HandleObject handler, HandlePropertyName name,
                MutableHandleValue fvalp)
 {
-    JS_ASSERT(name == ATOM(has) ||
-              name == ATOM(hasOwn) ||
-              name == ATOM(get) ||
-              name == ATOM(set) ||
-              name == ATOM(keys) ||
-              name == ATOM(iterate));
+    JS_ASSERT(name == cx->names().has ||
+              name == cx->names().hasOwn ||
+              name == cx->names().get ||
+              name == cx->names().set ||
+              name == cx->names().keys ||
+              name == cx->names().iterate);
 
     return JSObject::getProperty(cx, handler, handler, name, fvalp);
 }
@@ -816,10 +816,10 @@ ScriptedIndirectProxyHandler::getPropertyDescriptor(JSContext *cx, JSObject *pro
     RootedObject proxy(cx, proxy_);
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
-    return GetFundamentalTrap(cx, handler, ATOM(getPropertyDescriptor), &fval) &&
+    return GetFundamentalTrap(cx, handler, cx->names().getPropertyDescriptor, &fval) &&
            Trap1(cx, handler, fval, id, value.address()) &&
            ((value.get().isUndefined() && IndicatePropertyNotFound(cx, desc)) ||
-            (ReturnedValueMustNotBePrimitive(cx, proxy, ATOM(getPropertyDescriptor), value) &&
+            (ReturnedValueMustNotBePrimitive(cx, proxy, cx->names().getPropertyDescriptor, value) &&
              ParsePropertyDescriptorObject(cx, proxy, value, desc)));
 }
 
@@ -831,10 +831,10 @@ ScriptedIndirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, JSObject *
     RootedObject proxy(cx, proxy_);
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
-    return GetFundamentalTrap(cx, handler, ATOM(getOwnPropertyDescriptor), &fval) &&
+    return GetFundamentalTrap(cx, handler, cx->names().getOwnPropertyDescriptor, &fval) &&
            Trap1(cx, handler, fval, id, value.address()) &&
            ((value.get().isUndefined() && IndicatePropertyNotFound(cx, desc)) ||
-            (ReturnedValueMustNotBePrimitive(cx, proxy, ATOM(getPropertyDescriptor), value) &&
+            (ReturnedValueMustNotBePrimitive(cx, proxy, cx->names().getPropertyDescriptor, value) &&
              ParsePropertyDescriptorObject(cx, proxy, value, desc)));
 }
 
@@ -845,7 +845,7 @@ ScriptedIndirectProxyHandler::defineProperty(JSContext *cx, JSObject *proxy, jsi
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
     RootedId id(cx, id_);
-    return GetFundamentalTrap(cx, handler, ATOM(defineProperty), &fval) &&
+    return GetFundamentalTrap(cx, handler, cx->names().defineProperty, &fval) &&
            NewPropertyDescriptorObject(cx, desc, value.address()) &&
            Trap2(cx, handler, fval, id, value, value.address());
 }
@@ -856,7 +856,7 @@ ScriptedIndirectProxyHandler::getOwnPropertyNames(JSContext *cx, JSObject *proxy
 {
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
-    return GetFundamentalTrap(cx, handler, ATOM(getOwnPropertyNames), &fval) &&
+    return GetFundamentalTrap(cx, handler, cx->names().getOwnPropertyNames, &fval) &&
            Trap(cx, handler, fval, 0, NULL, value.address()) &&
            ArrayToIdVector(cx, value, props);
 }
@@ -867,7 +867,7 @@ ScriptedIndirectProxyHandler::delete_(JSContext *cx, JSObject *proxy, jsid id_, 
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedId id(cx, id_);
     RootedValue fval(cx), value(cx);
-    return GetFundamentalTrap(cx, handler, ATOM(delete_), &fval) &&
+    return GetFundamentalTrap(cx, handler, cx->names().delete_, &fval) &&
            Trap1(cx, handler, fval, id, value.address()) &&
            ValueToBool(cx, value, bp);
 }
@@ -877,7 +877,7 @@ ScriptedIndirectProxyHandler::enumerate(JSContext *cx, JSObject *proxy, AutoIdVe
 {
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
-    return GetFundamentalTrap(cx, handler, ATOM(enumerate), &fval) &&
+    return GetFundamentalTrap(cx, handler, cx->names().enumerate, &fval) &&
            Trap(cx, handler, fval, 0, NULL, value.address()) &&
            ArrayToIdVector(cx, value, props);
 }
@@ -889,7 +889,7 @@ ScriptedIndirectProxyHandler::has(JSContext *cx, JSObject *proxy_, jsid id_, boo
     RootedId id(cx, id_);
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
-    if (!GetDerivedTrap(cx, handler, ATOM(has), &fval))
+    if (!GetDerivedTrap(cx, handler, cx->names().has, &fval))
         return false;
     if (!js_IsCallable(fval))
         return BaseProxyHandler::has(cx, proxy, id, bp);
@@ -904,7 +904,7 @@ ScriptedIndirectProxyHandler::hasOwn(JSContext *cx, JSObject *proxy_, jsid id_, 
     RootedId id(cx, id_);
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue fval(cx), value(cx);
-    if (!GetDerivedTrap(cx, handler, ATOM(hasOwn), &fval))
+    if (!GetDerivedTrap(cx, handler, cx->names().hasOwn, &fval))
         return false;
     if (!js_IsCallable(fval))
         return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
@@ -926,7 +926,7 @@ ScriptedIndirectProxyHandler::get(JSContext *cx, JSObject *proxy_, JSObject *rec
     Value argv[] = { ObjectOrNullValue(receiver), value };
     AutoValueArray ava(cx, argv, 2);
     RootedValue fval(cx);
-    if (!GetDerivedTrap(cx, handler, ATOM(get), &fval))
+    if (!GetDerivedTrap(cx, handler, cx->names().get, &fval))
         return false;
     if (!js_IsCallable(fval))
         return BaseProxyHandler::get(cx, proxy, receiver, id, vp);
@@ -947,7 +947,7 @@ ScriptedIndirectProxyHandler::set(JSContext *cx, JSObject *proxy_, JSObject *rec
     Value argv[] = { ObjectOrNullValue(receiver), value, *vp };
     AutoValueArray ava(cx, argv, 3);
     RootedValue fval(cx);
-    if (!GetDerivedTrap(cx, handler, ATOM(set), &fval))
+    if (!GetDerivedTrap(cx, handler, cx->names().set, &fval))
         return false;
     if (!js_IsCallable(fval))
         return BaseProxyHandler::set(cx, proxy, receiver, id, strict, vp);
@@ -960,7 +960,7 @@ ScriptedIndirectProxyHandler::keys(JSContext *cx, JSObject *proxy_, AutoIdVector
     RootedObject proxy(cx, proxy_);
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue value(cx);
-    if (!GetDerivedTrap(cx, handler, ATOM(keys), &value))
+    if (!GetDerivedTrap(cx, handler, cx->names().keys, &value))
         return false;
     if (!js_IsCallable(value))
         return BaseProxyHandler::keys(cx, proxy, props);
@@ -974,12 +974,12 @@ ScriptedIndirectProxyHandler::iterate(JSContext *cx, JSObject *proxy_, unsigned 
     RootedObject proxy(cx, proxy_);
     RootedObject handler(cx, GetIndirectProxyHandlerObject(cx, proxy));
     RootedValue value(cx);
-    if (!GetDerivedTrap(cx, handler, ATOM(iterate), &value))
+    if (!GetDerivedTrap(cx, handler, cx->names().iterate, &value))
         return false;
     if (!js_IsCallable(value))
         return BaseProxyHandler::iterate(cx, proxy, flags, vp);
     return Trap(cx, handler, value, 0, NULL, vp) &&
-           ReturnedValueMustNotBePrimitive(cx, proxy, ATOM(iterate), *vp);
+           ReturnedValueMustNotBePrimitive(cx, proxy, cx->names().iterate, *vp);
 }
 
 bool
@@ -1121,9 +1121,9 @@ NormalizePropertyDescriptor(JSContext *cx, MutableHandleValue vp, bool complete 
         if (JSID_IS_ATOM(id)) {
             JSAtom *atom = JSID_TO_ATOM(id);
             const JSAtomState &atomState = cx->runtime->atomState;
-            if (atom == atomState.valueAtom || atom == atomState.writableAtom ||
-                atom == atomState.getAtom || atom == atomState.setAtom ||
-                atom == atomState.enumerableAtom || atom == atomState.configurableAtom)
+            if (atom == atomState.value || atom == atomState.writable ||
+                atom == atomState.get || atom == atomState.set ||
+                atom == atomState.enumerable || atom == atomState.configurable)
             {
                 continue;
             }
@@ -1306,7 +1306,7 @@ TrapGetOwnProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHandle
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(getOwnPropertyDescriptor), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().getOwnPropertyDescriptor, &trap))
         return false;
 
     
@@ -1408,7 +1408,7 @@ TrapDefineOwnProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHan
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(defineProperty), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().defineProperty, &trap))
         return false;
 
     
@@ -1667,7 +1667,7 @@ ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, JSObject *proxy_,
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(getOwnPropertyNames), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().getOwnPropertyNames, &trap))
         return false;
 
     
@@ -1684,13 +1684,13 @@ ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, JSObject *proxy_,
 
     
     if (trapResult.isPrimitive()) {
-        ReportInvalidTrapResult(cx, proxy, ATOM(getOwnPropertyNames));
+        ReportInvalidTrapResult(cx, proxy, cx->names().getOwnPropertyNames);
         return false;
     }
 
     
     return ArrayToIdVector(cx, proxy, target, trapResult, props, JSITER_OWNONLY | JSITER_HIDDEN,
-                           ATOM(getOwnPropertyNames));
+                           cx->names().getOwnPropertyNames);
 }
 
 
@@ -1708,7 +1708,7 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, JSObject *proxy_, jsid id_, b
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(deleteProperty), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().deleteProperty, &trap))
         return false;
 
     
@@ -1762,7 +1762,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, JSObject *proxy_, AutoIdVec
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(enumerate), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().enumerate, &trap))
         return false;
 
     
@@ -1780,7 +1780,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, JSObject *proxy_, AutoIdVec
     
     if (trapResult.isPrimitive()) {
         JSAutoByteString bytes;
-        if (!js_AtomToPrintableString(cx, ATOM(enumerate), &bytes))
+        if (!js_AtomToPrintableString(cx, cx->names().enumerate, &bytes))
             return false;
         RootedValue v(cx, ObjectOrNullValue(proxy));
         js_ReportValueError2(cx, JSMSG_INVALID_TRAP_RESULT, JSDVG_SEARCH_STACK,
@@ -1790,7 +1790,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, JSObject *proxy_, AutoIdVec
 
     
     
-    return ArrayToIdVector(cx, proxy, target, trapResult, props, 0, ATOM(enumerate));
+    return ArrayToIdVector(cx, proxy, target, trapResult, props, 0, cx->names().enumerate);
 }
 
 
@@ -1808,7 +1808,7 @@ ScriptedDirectProxyHandler::has(JSContext *cx, JSObject *proxy_, jsid id_, bool 
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(has), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().has, &trap))
         return false;
 
     
@@ -1871,7 +1871,7 @@ ScriptedDirectProxyHandler::hasOwn(JSContext *cx, JSObject *proxy_, jsid id_, bo
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(hasOwn), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().hasOwn, &trap))
         return false;
 
     
@@ -1944,7 +1944,7 @@ ScriptedDirectProxyHandler::get(JSContext *cx, JSObject *proxy_, JSObject *recei
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(get), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().get, &trap))
         return false;
 
     
@@ -2017,7 +2017,7 @@ ScriptedDirectProxyHandler::set(JSContext *cx, JSObject *proxy_, JSObject *recei
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(set), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().set, &trap))
         return false;
 
     
@@ -2087,7 +2087,7 @@ ScriptedDirectProxyHandler::keys(JSContext *cx, JSObject *proxy_, AutoIdVector &
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(keys), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().keys, &trap))
         return false;
 
     
@@ -2105,7 +2105,7 @@ ScriptedDirectProxyHandler::keys(JSContext *cx, JSObject *proxy_, AutoIdVector &
     
     if (trapResult.isPrimitive()) {
         JSAutoByteString bytes;
-        if (!js_AtomToPrintableString(cx, ATOM(keys), &bytes))
+        if (!js_AtomToPrintableString(cx, cx->names().keys, &bytes))
             return false;
         RootedValue v(cx, ObjectOrNullValue(proxy));
         js_ReportValueError2(cx, JSMSG_INVALID_TRAP_RESULT, JSDVG_IGNORE_STACK,
@@ -2114,7 +2114,7 @@ ScriptedDirectProxyHandler::keys(JSContext *cx, JSObject *proxy_, AutoIdVector &
     }
 
     
-    return ArrayToIdVector(cx, proxy, target, trapResult, props, JSITER_OWNONLY, ATOM(keys));
+    return ArrayToIdVector(cx, proxy, target, trapResult, props, JSITER_OWNONLY, cx->names().keys);
 }
 
 bool
@@ -2147,7 +2147,7 @@ ScriptedDirectProxyHandler::call(JSContext *cx, JSObject *proxy_, unsigned argc,
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(apply), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().apply, &trap))
         return false;
 
     
@@ -2188,7 +2188,7 @@ ScriptedDirectProxyHandler::construct(JSContext *cx, JSObject *proxy_, unsigned 
 
     
     RootedValue trap(cx);
-    if (!JSObject::getProperty(cx, handler, handler, ATOM(construct), &trap))
+    if (!JSObject::getProperty(cx, handler, handler, cx->names().construct, &trap))
         return false;
 
     

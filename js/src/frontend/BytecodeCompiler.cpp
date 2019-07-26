@@ -224,7 +224,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
     
     if (callerFrame && callerFrame->isFunctionFrame() && callerFrame->fun()->hasRest()) {
-        PropertyName *arguments = cx->runtime->atomState.argumentsAtom;
+        HandlePropertyName arguments = cx->names().arguments;
         for (AtomDefnRange r = pc.lexdeps->all(); !r.empty(); r.popFront()) {
             if (r.front().key() == arguments) {
                 parser.reportError(NULL, JSMSG_ARGUMENTS_AND_REST);
