@@ -94,7 +94,6 @@ private:
 
 
 class CSSRuleListImpl;
-struct ChildSheetListBuilder;
 
 
 

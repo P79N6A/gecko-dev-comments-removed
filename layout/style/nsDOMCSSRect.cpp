@@ -6,11 +6,9 @@
 
 
 #include "mozilla/dom/RectBinding.h"
-#include "nsISupports.h"
-#include "nsCOMPtr.h"
 #include "nsROCSSPrimitiveValue.h"
-#include "nsDOMCSSRect.h"
 #include "nsContentUtils.h"
+#include "nsDOMCSSRect.h"
 #include "nsDOMClassInfoID.h"
 
 using namespace mozilla;

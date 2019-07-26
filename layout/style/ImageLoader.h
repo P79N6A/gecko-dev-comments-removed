@@ -5,10 +5,8 @@
 
 
 
-#include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
-#include "nsInterfaceHashtable.h"
 #include "nsCSSValue.h"
 #include "imgIRequest.h"
 #include "imgIOnloadBlocker.h"

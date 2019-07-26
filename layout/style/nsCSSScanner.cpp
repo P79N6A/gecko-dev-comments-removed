@@ -6,8 +6,6 @@
 
 
 
-#include <math.h> 
-
 #include "nsCSSScanner.h"
 #include "nsStyleUtil.h"
 #include "mozilla/css/ErrorReporter.h"

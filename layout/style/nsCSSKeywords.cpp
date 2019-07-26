@@ -9,7 +9,6 @@
 #include "nsString.h"
 #include "nsStaticNameTable.h"
 #include "nsReadableUtils.h"
-#include "nsStyleConsts.h"
 
 
 extern const char* const kCSSRawKeywords[];
