@@ -191,6 +191,12 @@ struct IonOptions
     
     
     
+    
+    uint32_t inlineUseCountRatio;
+
+    
+    
+    
     bool eagerCompilation;
 
     
@@ -240,6 +246,7 @@ struct IonOptions
         smallFunctionMaxBytecodeLength(100),
         polyInlineMax(4),
         inlineMaxTotalBytecodeLength(1000),
+        inlineUseCountRatio(128),
         eagerCompilation(false),
         usesBeforeCompilePar(1),
         inliningMaxCallerBytecodeLength(10000)

@@ -4055,11 +4055,20 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 
         
         
-        
-        if (targetScript->getUseCount() < js_IonOptions.usesBeforeInlining() &&
+        uint32_t callerUses = script()->getUseCount();
+        if (callerUses < js_IonOptions.usesBeforeInlining() &&
             info().executionMode() != DefinitePropertiesAnalysis)
         {
-            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee is insufficiently hot.",
+            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: caller is insufficiently hot.",
+                    targetScript->filename(), targetScript->lineno);
+            return false;
+        }
+
+        
+        if (targetScript->getUseCount() * js_IonOptions.inlineUseCountRatio < callerUses &&
+            info().executionMode() != DefinitePropertiesAnalysis)
+        {
+            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee is not hot.",
                     targetScript->filename(), targetScript->lineno);
             return false;
         }
