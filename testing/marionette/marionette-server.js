@@ -535,36 +535,56 @@ MarionetteServerConnection.prototype = {
     this.switchToGlobalMessageManager();
   },
 
-  getSessionCapabilities: function MDA_getSessionCapabilities(){
+  
+
+
+
+
+
+
+
+
+
+
+  getSessionCapabilities: function MDA_getSessionCapabilities() {
     this.command_id = this.getCommandId();
 
-    let rotatable = appName == "B2G" ? true : false;
+    let isB2G = appName == "B2G";
+    let platformName = Services.appinfo.OS.toUpperCase();
 
-    let value = {
-      'appBuildId' : Services.appinfo.appBuildID,
-      'XULappId' : Services.appinfo.ID,
-      'cssSelectorsEnabled': true,
-      'browserName': appName,
-      'handlesAlerts': false,
-      'javascriptEnabled': true,
-      'nativeEvents': false,
-      'platform': Services.appinfo.OS,
-      'platformName': Services.appinfo.OS,
-      'platformVersion': Services.appinfo.platformVersion,
-      'secureSsl': false,
-      'device': qemu == "1" ? "qemu" : (!device ? "desktop" : device),
-      'rotatable': rotatable,
-      'takesScreenshot': true,
-      'takesElementScreenshot': true,
-      'version': Services.appinfo.version
+    let caps = {
+      
+      "browserName": appName,
+      "platformName": platformName,
+      "platformVersion": Services.appinfo.platformVersion,
+
+      
+      "cssSelectorsEnabled": true,
+      "handlesAlerts": false,
+      "javascriptEnabled": true,
+      "nativeEvents": false,
+      "rotatable": isB2G,
+      "secureSsl": false,
+      "takesElementScreenshot": true,
+      "takesScreenshot": true,
+
+      
+      "platform": platformName,
+
+      
+      "XULappId" : Services.appinfo.ID,
+      "appBuildId" : Services.appinfo.appBuildID,
+      "device": qemu == "1" ? "qemu" : (!device ? "desktop" : device),
+      "version": Services.appinfo.version
     };
 
     
     
-    if (appName == "B2G")
-      value.b2g = true;
+    
+    if (isB2G)
+      caps.b2g = true;
 
-    this.sendResponse(value, this.command_id);
+    this.sendResponse(caps, this.command_id);
   },
 
   getStatus: function MDA_getStatus(){
