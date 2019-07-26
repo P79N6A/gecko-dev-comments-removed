@@ -37,7 +37,10 @@ add_test(function test_notification() {
   }
 
   Call.prototype = {
-    state: CALL_STATE_DIALING,
+    
+    
+    
+    state: CALL_STATE_ACTIVE,
     
     toa: 0,
     isMpty: false,
@@ -114,4 +117,3 @@ add_test(function test_notification() {
 
   run_next_test();
 });
-
