@@ -90,7 +90,10 @@ function run_test() {
     do_check_eq(uri, OS.Path.toFileURI(path));
 
     
-    uris.push(uri)
+    
+    if (path != "C:\\") {
+      uris.push(uri);
+    }
   }
 
   for (let uri of uris) {
