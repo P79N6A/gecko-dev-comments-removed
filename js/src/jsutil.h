@@ -285,9 +285,6 @@ ClearAllBitArrayElements(size_t *array, size_t length)
 #endif
 
 
-#define JS_EXTRA_POISON(p, val, size) ((void) 0)
-
-
 #ifdef DEBUG
 # define JS_BASIC_STATS 1
 #endif
