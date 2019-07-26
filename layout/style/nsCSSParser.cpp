@@ -47,6 +47,7 @@
 #include "nsRuleData.h"
 #include "mozilla/CSSVariableValues.h"
 #include "mozilla/dom/URL.h"
+#include "gfxFontFamilyList.h"
 
 using namespace mozilla;
 
@@ -159,6 +160,11 @@ public:
                          css::Declaration* aDeclaration,
                          bool* aChanged,
                          bool aIsImportant);
+
+  bool ParseFontFamilyListString(const nsSubstring& aBuffer,
+                                 nsIURI* aURL, 
+                                 uint32_t aLineNumber, 
+                                 nsCSSValue& aValue);
 
   bool ParseColorString(const nsSubstring& aBuffer,
                         nsIURI* aURL, 
@@ -717,7 +723,7 @@ protected:
   bool ParseFontVariantLigatures(nsCSSValue& aValue);
   bool ParseFontVariantNumeric(nsCSSValue& aValue);
   bool ParseFontWeight(nsCSSValue& aValue);
-  bool ParseOneFamily(nsAString& aFamily, bool& aOneKeyword);
+  bool ParseOneFamily(nsAString& aFamily, bool& aOneKeyword, bool& aQuoted);
   bool ParseFamily(nsCSSValue& aValue);
   bool ParseFontFeatureSettings(nsCSSValue& aValue);
   bool ParseFontSrc(nsCSSValue& aValue);
@@ -1585,6 +1591,23 @@ CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
   OUTPUT_ERROR();
   ReleaseScanner();
   return colorParsed;
+}
+
+bool
+CSSParserImpl::ParseFontFamilyListString(const nsSubstring& aBuffer,
+                                         nsIURI* aURI, 
+                                         uint32_t aLineNumber, 
+                                         nsCSSValue& aValue)
+{
+  nsCSSScanner scanner(aBuffer, aLineNumber);
+  css::ErrorReporter reporter(scanner, mSheet, mChildLoader, aURI);
+  InitScanner(scanner, reporter, aURI, aURI, nullptr);
+
+  
+  bool familyParsed = ParseFamily(aValue) && !GetToken(true);
+  OUTPUT_ERROR();
+  ReleaseScanner();
+  return familyParsed;
 }
 
 nsresult
@@ -3307,26 +3330,25 @@ CSSParserImpl::ParseFontFeatureValuesRule(RuleAppendFunc aAppendFunc,
                valuesRule(new nsCSSFontFeatureValuesRule());
 
   
-  nsCSSValue familyValue;
+  nsCSSValue fontlistValue;
 
-  if (!ParseFamily(familyValue) ||
-      familyValue.GetUnit() != eCSSUnit_Families)
+  if (!ParseFamily(fontlistValue) ||
+      fontlistValue.GetUnit() != eCSSUnit_FontFamilyList)
   {
     REPORT_UNEXPECTED_TOKEN(PEFFVNoFamily);
     return false;
   }
 
   
-  nsAutoString familyList;
-  bool hasGeneric;
-  familyValue.GetStringValue(familyList);
-  valuesRule->SetFamilyList(familyList, hasGeneric);
+  const FontFamilyList* fontlist = fontlistValue.GetFontFamilyListValue();
 
   
-  if (hasGeneric) {
+  if (fontlist->HasGeneric()) {
     REPORT_UNEXPECTED_TOKEN(PEFFVGenericInFamilyList);
     return false;
   }
+
+  valuesRule->SetFamilyList(*fontlist);
 
   
   if (!ExpectSymbol('{', true)) {
@@ -9324,28 +9346,6 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
 }
 
 
-struct MOZ_STACK_CLASS ExtractFirstFamilyData {
-  nsAutoString mFamilyName;
-  bool mGood;
-  ExtractFirstFamilyData() : mFamilyName(), mGood(false) {}
-};
-
-static bool
-ExtractFirstFamily(const nsString& aFamily,
-                   bool aGeneric,
-                   void* aData)
-{
-  ExtractFirstFamilyData* realData = (ExtractFirstFamilyData*) aData;
-  if (aGeneric || realData->mFamilyName.Length() > 0) {
-    realData->mGood = false;
-    return false;
-  }
-  realData->mFamilyName.Assign(aFamily);
-  realData->mGood = true;
-  return true;
-}
-
-
 
 bool
 CSSParserImpl::ParseFontDescriptorValue(nsCSSFontDesc aDescID,
@@ -9355,22 +9355,20 @@ CSSParserImpl::ParseFontDescriptorValue(nsCSSFontDesc aDescID,
     
     
   case eCSSFontDesc_Family: {
-    if (!ParseFamily(aValue) ||
-        aValue.GetUnit() != eCSSUnit_Families)
+    nsCSSValue value;
+    if (!ParseFamily(value) ||
+        value.GetUnit() != eCSSUnit_FontFamilyList)
       return false;
 
     
-    
-    nsAutoString valueStr;
-    aValue.GetStringValue(valueStr);
-    nsFont font(valueStr, 0, 0, 0, 0, 0, 0);
-    ExtractFirstFamilyData dat;
+    const FontFamilyList* f = value.GetFontFamilyListValue();
+    const nsTArray<FontFamilyName>& fontlist = f->GetFontlist();
 
-    font.EnumerateFamilies(ExtractFirstFamily, (void*) &dat);
-    if (!dat.mGood)
+    if (fontlist.Length() != 1 || !fontlist[0].IsNamed()) {
       return false;
+    }
 
-    aValue.SetStringValue(dat.mFamilyName, eCSSUnit_String);
+    aValue.SetStringValue(fontlist[0].mName, eCSSUnit_String);
     return true;
   }
 
@@ -11584,7 +11582,9 @@ CSSParserImpl::ParseFontWeight(nsCSSValue& aValue)
 }
 
 bool
-CSSParserImpl::ParseOneFamily(nsAString& aFamily, bool& aOneKeyword)
+CSSParserImpl::ParseOneFamily(nsAString& aFamily,
+                              bool& aOneKeyword,
+                              bool& aQuoted)
 {
   if (!GetToken(true))
     return false;
@@ -11592,6 +11592,7 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily, bool& aOneKeyword)
   nsCSSToken* tk = &mToken;
 
   aOneKeyword = false;
+  aQuoted = false;
   if (eCSSToken_Ident == tk->mType) {
     aOneKeyword = true;
     aFamily.Append(tk->mIdent);
@@ -11618,9 +11619,8 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily, bool& aOneKeyword)
     return true;
 
   } else if (eCSSToken_String == tk->mType) {
-    aFamily.Append(tk->mSymbol); 
+    aQuoted = true;
     aFamily.Append(tk->mIdent); 
-    aFamily.Append(tk->mSymbol);
     return true;
 
   } else {
@@ -11629,56 +11629,95 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily, bool& aOneKeyword)
   }
 }
 
+
+static bool
+AppendGeneric(nsCSSKeyword aKeyword, FontFamilyList *aFamilyList)
+{
+  switch (aKeyword) {
+    case eCSSKeyword_serif:
+      aFamilyList->Append(FontFamilyName(eFamily_serif));
+      return true;
+    case eCSSKeyword_sans_serif:
+      aFamilyList->Append(FontFamilyName(eFamily_sans_serif));
+      return true;
+    case eCSSKeyword_monospace:
+      aFamilyList->Append(FontFamilyName(eFamily_monospace));
+      return true;
+    case eCSSKeyword_cursive:
+      aFamilyList->Append(FontFamilyName(eFamily_cursive));
+      return true;
+    case eCSSKeyword_fantasy:
+      aFamilyList->Append(FontFamilyName(eFamily_fantasy));
+      return true;
+    case eCSSKeyword__moz_fixed:
+      aFamilyList->Append(FontFamilyName(eFamily_moz_fixed));
+      return true;
+    default:
+      break;
+  }
+
+  return false;
+}
+
 bool
 CSSParserImpl::ParseFamily(nsCSSValue& aValue)
 {
+  nsRefPtr<FontFamilyList> familyList = new FontFamilyList();
   nsAutoString family;
-  bool single;
+  bool single, quoted;
 
   
-  if (!ParseOneFamily(family, single))
+  if (!ParseOneFamily(family, single, quoted))
     return false;
 
   
   
+  bool foundGeneric = false;
   if (single) {
     nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(family);
-    if (keyword == eCSSKeyword_inherit) {
-      aValue.SetInheritValue();
-      return true;
+    switch (keyword) {
+      case eCSSKeyword_inherit:
+        aValue.SetInheritValue();
+        return true;
+      case eCSSKeyword_default:
+        
+        return false;
+      case eCSSKeyword_initial:
+        aValue.SetInitialValue();
+        return true;
+      case eCSSKeyword_unset:
+        if (nsLayoutUtils::UnsetValueEnabled()) {
+          aValue.SetUnsetValue();
+          return true;
+        }
+        break;
+      case eCSSKeyword__moz_use_system_font:
+        if (!IsParsingCompoundProperty()) {
+          aValue.SetSystemFontValue();
+          return true;
+        }
+        break;
+      default:
+        foundGeneric = AppendGeneric(keyword, familyList);
     }
-    
-    if (keyword == eCSSKeyword_default) {
-      return false;
-    }
-    if (keyword == eCSSKeyword_initial) {
-      aValue.SetInitialValue();
-      return true;
-    }
-    if (keyword == eCSSKeyword_unset &&
-        nsLayoutUtils::UnsetValueEnabled()) {
-      aValue.SetUnsetValue();
-      return true;
-    }
-    if (keyword == eCSSKeyword__moz_use_system_font &&
-        !IsParsingCompoundProperty()) {
-      aValue.SetSystemFontValue();
-      return true;
-    }
+  }
+
+  if (!foundGeneric) {
+    familyList->Append(
+      FontFamilyName(family, (quoted ? eQuotedName : eUnquotedName)));
   }
 
   for (;;) {
     if (!ExpectSymbol(',', true))
       break;
 
-    family.Append(char16_t(','));
-
     nsAutoString nextFamily;
-    if (!ParseOneFamily(nextFamily, single))
+    if (!ParseOneFamily(nextFamily, single, quoted))
       return false;
 
     
     
+    foundGeneric = false;
     if (single) {
       nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(nextFamily);
       switch (keyword) {
@@ -11691,19 +11730,24 @@ CSSParserImpl::ParseFamily(nsCSSValue& aValue)
           if (nsLayoutUtils::UnsetValueEnabled()) {
             return false;
           }
-          
+          break;
         default:
+          foundGeneric = AppendGeneric(keyword, familyList);
           break;
       }
     }
 
-    family.Append(nextFamily);
+    if (!foundGeneric) {
+      familyList->Append(
+        FontFamilyName(nextFamily, (quoted ? eQuotedName : eUnquotedName)));
+    }
   }
 
-  if (family.IsEmpty()) {
+  if (familyList->IsEmpty()) {
     return false;
   }
-  aValue.SetStringValue(family, eCSSUnit_Families);
+
+  aValue.SetFontFamilyListValue(familyList);
   return true;
 }
 
@@ -11736,8 +11780,8 @@ CSSParserImpl::ParseFontSrc(nsCSSValue& aValue)
       
 
       nsAutoString family;
-      bool single;
-      if (!ParseOneFamily(family, single)) {
+      bool single, quoted;
+      if (!ParseOneFamily(family, single, quoted)) {
         SkipUntil(')');
         return false;
       }
@@ -11747,15 +11791,22 @@ CSSParserImpl::ParseFontSrc(nsCSSValue& aValue)
       }
 
       
-      
-      nsFont font(family, 0, 0, 0, 0, 0, 0);
-      ExtractFirstFamilyData dat;
+      if (single) {
+        nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(family);
+        switch (keyword) {
+          case eCSSKeyword_serif:
+          case eCSSKeyword_sans_serif:
+          case eCSSKeyword_monospace:
+          case eCSSKeyword_cursive:
+          case eCSSKeyword_fantasy:
+          case eCSSKeyword__moz_fixed:
+            return false;
+          default:
+            break;
+        }
+      }
 
-      font.EnumerateFamilies(ExtractFirstFamily, (void*) &dat);
-      if (!dat.mGood)
-        return false;
-
-      cur.SetStringValue(dat.mFamilyName, eCSSUnit_Local_Font);
+      cur.SetStringValue(family, eCSSUnit_Local_Font);
       values.AppendElement(cur);
     } else {
       
@@ -14193,6 +14244,16 @@ nsCSSParser::ParseMediaList(const nsSubstring& aBuffer,
 {
   static_cast<CSSParserImpl*>(mImpl)->
     ParseMediaList(aBuffer, aURI, aLineNumber, aMediaList, aHTMLMode);
+}
+
+bool
+nsCSSParser::ParseFontFamilyListString(const nsSubstring& aBuffer,
+                                       nsIURI*            aURI,
+                                       uint32_t           aLineNumber,
+                                       nsCSSValue&        aValue)
+{
+  return static_cast<CSSParserImpl*>(mImpl)->
+    ParseFontFamilyListString(aBuffer, aURI, aLineNumber, aValue);
 }
 
 bool

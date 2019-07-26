@@ -23,6 +23,7 @@
 #include "nsStringBuffer.h"
 #include "nsTArray.h"
 #include "nsStyleConsts.h"
+#include "gfxFontFamilyList.h"
 
 class imgRequestProxy;
 class nsCSSStyleSheet;
@@ -212,7 +213,6 @@ enum nsCSSUnit {
 
   eCSSUnit_String       = 11,     
   eCSSUnit_Ident        = 12,     
-  eCSSUnit_Families     = 13,     
   eCSSUnit_Attr         = 14,     
   eCSSUnit_Local_Font   = 15,     
   eCSSUnit_Font_Format  = 16,     
@@ -263,6 +263,8 @@ enum nsCSSUnit {
   eCSSUnit_PairList     = 56,     
   eCSSUnit_PairListDep  = 57,     
                                   
+
+  eCSSUnit_FontFamilyList = 58,   
 
   eCSSUnit_Integer      = 70,     
   eCSSUnit_Enumerated   = 71,     
@@ -362,6 +364,7 @@ public:
   explicit nsCSSValue(nsCSSValueGradient* aValue);
   explicit nsCSSValue(nsCSSValueTokenStream* aValue);
   explicit nsCSSValue(mozilla::css::GridTemplateAreasValue* aValue);
+  explicit nsCSSValue(mozilla::FontFamilyList* aValue);
   nsCSSValue(const nsCSSValue& aCopy);
   ~nsCSSValue() { Reset(); }
 
@@ -540,6 +543,13 @@ public:
     return mValue.mSharedList;
   }
 
+  mozilla::FontFamilyList* GetFontFamilyListValue() const
+  {
+    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_FontFamilyList,
+                      "not a font family list value");
+    return mValue.mFontFamilyList;
+  }
+
   
   inline nsCSSValuePair& GetPairValue();
   inline const nsCSSValuePair& GetPairValue() const;
@@ -620,6 +630,7 @@ public:
   void SetGradientValue(nsCSSValueGradient* aGradient);
   void SetTokenStreamValue(nsCSSValueTokenStream* aTokenStream);
   void SetGridTemplateAreas(mozilla::css::GridTemplateAreasValue* aValue);
+  void SetFontFamilyListValue(mozilla::FontFamilyList* aFontListValue);
   void SetPairValue(const nsCSSValuePair* aPair);
   void SetPairValue(const nsCSSValue& xValue, const nsCSSValue& yValue);
   void SetSharedListValue(nsCSSValueSharedList* aList);
@@ -687,6 +698,7 @@ protected:
     nsCSSValuePairList_heap* mPairList;
     nsCSSValuePairList* mPairListDependent;
     nsCSSValueFloatColor* mFloatColor;
+    mozilla::FontFamilyList* mFontFamilyList;
   } mValue;
 };
 

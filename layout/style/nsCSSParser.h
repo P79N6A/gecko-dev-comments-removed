@@ -156,6 +156,15 @@ public:
 
 
 
+  bool ParseFontFamilyListString(const nsSubstring& aBuffer,
+                                 nsIURI*            aURL,
+                                 uint32_t           aLineNumber,
+                                 nsCSSValue&        aValue);
+
+  
+
+
+
 
 
   bool ParseColorString(const nsSubstring& aBuffer,

@@ -3340,7 +3340,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   const nsCSSValue* familyValue = aRuleData->ValueForFontFamily();
   NS_ASSERTION(eCSSUnit_Enumerated != familyValue->GetUnit(),
                "system fonts should not be in mFamily anymore");
-  if (eCSSUnit_Families == familyValue->GetUnit()) {
+  if (eCSSUnit_FontFamilyList == familyValue->GetUnit()) {
     
     
     if (aGenericFontID == kGenericFont_NONE) {
@@ -3865,18 +3865,6 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
   }
 }
 
-static bool ExtractGeneric(const nsString& aFamily, bool aGeneric,
-                             void *aData)
-{
-  nsAutoString *data = static_cast<nsAutoString*>(aData);
-
-  if (aGeneric) {
-    *data = aFamily;
-    return false; 
-  }
-  return true;
-}
-
 const void*
 nsRuleNode::ComputeFontData(void* aStartStruct,
                             const nsRuleData* aRuleData,
@@ -3915,32 +3903,57 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
   
   
   const nsCSSValue* familyValue = aRuleData->ValueForFontFamily();
-  if (eCSSUnit_Families == familyValue->GetUnit()) {
-    familyValue->GetStringValue(font->mFont.name);
+  if (eCSSUnit_FontFamilyList == familyValue->GetUnit()) {
+    font->mFont.name.Truncate();
+    const FontFamilyList* fontlist = familyValue->GetFontFamilyListValue();
+    nsStyleUtil::AppendEscapedCSSFontFamilyList(*fontlist, font->mFont.name);
+
     
+    FontFamilyType fontType = fontlist->FirstGeneric();
+
     
-    nsFont::GetGenericID(font->mFont.name, &generic);
+    if (fontlist->Length() == 1) {
+      switch (fontType) {
+        case eFamily_serif:
+          generic = kGenericFont_serif;
+          break;
+        case eFamily_sans_serif:
+          generic = kGenericFont_sans_serif;
+          break;
+        case eFamily_monospace:
+          generic = kGenericFont_monospace;
+          break;
+        case eFamily_cursive:
+          generic = kGenericFont_cursive;
+          break;
+        case eFamily_fantasy:
+          generic = kGenericFont_fantasy;
+          break;
+        case eFamily_moz_fixed:
+          generic = kGenericFont_moz_fixed;
+          break;
+        default:
+          break;
+      }
+    }
 
     
     
     if (!useDocumentFonts) {
-      
-      nsAutoString genericName;
-      if (!font->mFont.EnumerateFamilies(ExtractGeneric, &genericName)) {
-        
-        font->mFont.name = genericName;
-        nsFont::GetGenericID(genericName, &generic);
 
-        
-        if (generic != kGenericFont_moz_fixed &&
-            generic != kGenericFont_monospace) {
+      switch (fontType) {
+        case eFamily_monospace:
+          font->mFont.name.AssignLiteral("monospace");
+          generic = kGenericFont_monospace;
+          break;
+        case eFamily_moz_fixed:
+          font->mFont.name.AssignLiteral("-moz-fixed");
+          generic = kGenericFont_moz_fixed;
+          break;
+        default:
           font->mFont.name.Truncate();
           generic = kGenericFont_NONE;
-        }
-      } else {
-        
-        font->mFont.name.Truncate();
-        generic = kGenericFont_NONE;
+          break;
       }
     }
   }
