@@ -2,8 +2,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 const CC = Components.Constructor;
 
 var counter = 0;

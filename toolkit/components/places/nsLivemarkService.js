@@ -965,7 +965,7 @@ LivemarkLoadListener.prototype = {
       
       let channel = aRequest.QueryInterface(Ci.nsICachingChannel);
       if (channel) {
-        let entryInfo = channel.cacheToken.QueryInterface(Ci.nsICacheEntryInfo);
+        let entryInfo = channel.cacheToken.QueryInterface(Ci.nsICacheEntry);
         if (entryInfo) {
           
           let expireTime = entryInfo.expirationTime * 1000;

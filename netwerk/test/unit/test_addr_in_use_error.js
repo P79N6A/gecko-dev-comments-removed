@@ -2,7 +2,7 @@
 
 
 
-const { classes: Cc, interfaces: Ci, results: Cr, Constructor: CC } = Components;
+const CC = Components.Constructor;
 
 const ServerSocket = CC("@mozilla.org/network/server-socket;1",
                         "nsIServerSocket",

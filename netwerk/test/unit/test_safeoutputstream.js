@@ -3,10 +3,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-
 function write(file, str) {
     var stream = Cc["@mozilla.org/network/safe-file-output-stream;1"]
                    .createInstance(Ci.nsIFileOutputStream);

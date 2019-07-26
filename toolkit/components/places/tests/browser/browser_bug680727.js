@@ -24,9 +24,9 @@ function test() {
   Services.prefs.setIntPref("network.proxy.type", 0);
 
   
-  Components.classes["@mozilla.org/network/cache-service;1"]
-            .getService(Components.interfaces.nsICacheService)
-            .evictEntries(Components.interfaces.nsICache.STORE_ANYWHERE);
+  Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
+            .getService(Components.interfaces.nsICacheStorageService)
+            .clear();
 
   
   Services.io.offline = true;

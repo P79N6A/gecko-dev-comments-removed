@@ -1,6 +1,8 @@
 
 var Cc = SpecialPowers.Cc;
 var Ci = SpecialPowers.Ci;
+var Cu = SpecialPowers.Cu;
+var LoadContextInfo = Cu.import("resource://gre/modules/LoadContextInfo.jsm", {}).LoadContextInfo;
 
 const kNetBase = 2152398848; 
 var NS_ERROR_CACHE_KEY_NOT_FOUND = kNetBase + 61;
@@ -335,13 +337,18 @@ loadContext: function()
                                    .getInterface(SpecialPowers.Ci.nsILoadContext);
 },
 
+loadContextInfo: function()
+{
+  return LoadContextInfo.fromLoadContext(this.loadContext(), false);
+},
+
 getActiveCache: function(overload)
 {
   
   
   var serv = Cc["@mozilla.org/network/application-cache-service;1"]
              .getService(Ci.nsIApplicationCacheService);
-  var groupID = serv.buildGroupID(this.manifestURL(overload), this.loadContext());
+  var groupID = serv.buildGroupID(this.manifestURL(overload), this.loadContextInfo());
   return serv.getActiveCache(groupID);
 },
 

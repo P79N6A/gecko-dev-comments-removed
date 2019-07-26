@@ -1,10 +1,8 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
+
+
+
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 
 function makeChan(uri, isPrivate) {
   var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
@@ -15,7 +13,7 @@ function makeChan(uri, isPrivate) {
 }
 
 function run_test() {
-  // Allow all cookies.
+  
   Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
   
   let publicNotifications = 0;

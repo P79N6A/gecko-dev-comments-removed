@@ -1,7 +1,3 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-
 function gen_1MiB()
 {
   var i;
@@ -33,10 +29,8 @@ function write_datafile(status, entry)
   entry.close();
 
   
-  asyncOpenCacheEntry("data",
-                      "HTTP",
-                      Ci.nsICache.STORE_ON_DISK,
-                      Ci.nsICache.ACCESS_READ_WRITE,
+  asyncOpenCacheEntry("http://data/",
+                      "disk", Ci.nsICacheStorage.OPEN_NORMALLY, null,
                       open_for_readwrite);
 }
 
@@ -61,10 +55,8 @@ function run_test() {
   
   evict_cache_entries();
 
-  asyncOpenCacheEntry("data",
-                      "HTTP",
-                      Ci.nsICache.STORE_ON_DISK,
-                      Ci.nsICache.ACCESS_WRITE,
+  asyncOpenCacheEntry("http://data/",
+                      "disk", Ci.nsICacheStorage.OPEN_NORMALLY, null,
                       write_datafile);
 
   do_test_pending();

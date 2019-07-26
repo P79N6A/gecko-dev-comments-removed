@@ -38,6 +38,13 @@ pref("general.warnOnAboutConfig", true);
 
 pref("browser.bookmarks.max_backups",       5);
 
+
+
+
+
+
+pref("browser.cache.use_new_backend",       0);
+
 pref("browser.cache.disk.enable",           true);
 
 pref("browser.cache.disk.smart_size.first_run", true);
@@ -59,6 +66,9 @@ pref("browser.cache.memory.max_entry_size",  5120);
 pref("browser.cache.disk_cache_ssl",        true);
 
 pref("browser.cache.check_doc_frequency",   3);
+
+
+pref("browser.cache.memory_limit", 51200); 
 
 pref("browser.cache.offline.enable",           true);
 
@@ -486,9 +496,6 @@ pref("devtools.debugger.prompt-connection", true);
 pref("devtools.debugger.enable-content-actors", true);
 
 pref("devtools.debugger.forbid-certified-apps", true);
-
-
-pref("devtools.defaultColorUnit", "hex");
 
 
 pref("view_source.syntax_highlight", true);
@@ -4126,7 +4133,7 @@ pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.use-deprecated-textures", false);
 #else
 #ifdef MOZ_WIDGET_GONK
-pref("layers.use-deprecated-textures", false);
+pref("layers.use-deprecated-textures", true);
 #else
 pref("layers.offmainthreadcomposition.enabled", false);
 pref("layers.use-deprecated-textures", true);

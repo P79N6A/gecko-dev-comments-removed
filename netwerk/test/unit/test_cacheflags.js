@@ -1,8 +1,3 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
-
 Cu.import("resource://testing-common/httpd.js");
 
 var httpserver = new HttpServer();
@@ -205,10 +200,16 @@ var gTests = [
            false,  
            false,  
            false), 
-  new Test(httpBase + nocachePath, Ci.nsIRequest.LOAD_FROM_CACHE,
-           true,   
-           true,   
-           false), 
+
+  
+  
+  
+
+
+
+
+
+
   
   
   new Test(httpBase + nocachePath,
@@ -222,6 +223,7 @@ var gTests = [
   
   
   
+
 
 
 

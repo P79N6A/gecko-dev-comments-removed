@@ -7,15 +7,10 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
-
 Cu.import("resource://testing-common/httpd.js");
 
 var httpserv;
- 
+
 function addCreds(scheme, host)
 {
   var authMgr = Components.classes['@mozilla.org/network/http-auth-manager;1']
@@ -72,7 +67,7 @@ var handlers = [
     response.bodyOutputStream.write(body, body.length);
     clearCreds();
   },
-  
+
   
   function(metadata, response) {
     do_check_eq(metadata.hasHeader("Authorization"), false);
@@ -88,7 +83,7 @@ var handlers = [
     response.setHeader("ETag", '"two"', false);
     clearCreds();
   },
-  
+
   
   function(metadata, response) {
     do_check_eq(metadata.hasHeader("Authorization"), false);
@@ -107,8 +102,8 @@ var handlers = [
     var body = "Response body 3";
     response.bodyOutputStream.write(body, body.length);
     clearCreds();
-  }, 
-  
+  },
+
   
   function(metadata, response) {
     do_check_eq(metadata.hasHeader("Proxy-Authorization"), false);
@@ -127,9 +122,9 @@ var handlers = [
   }
 ];
 
-function handler(metadata, response) 
+function handler(metadata, response)
 {
-  handlers.shift()(metadata, response); 
+  handlers.shift()(metadata, response);
 }
 
 
@@ -159,7 +154,7 @@ var tests = [
       sync_and_run_next_test();
     }, null, CL_NOT_FROM_CACHE), null);
   },
-  
+
   
   function() {
     var ch = makeChan();
@@ -168,7 +163,7 @@ var tests = [
       sync_and_run_next_test();
     }, null, CL_FROM_CACHE), null);
   },
-  
+
   
   function() {
     var ch = makeChan();
@@ -177,7 +172,7 @@ var tests = [
       sync_and_run_next_test();
     }, null, CL_NOT_FROM_CACHE), null);
   },
-  
+
   
   function() {
     var ch = makeChan();
@@ -196,7 +191,7 @@ var tests = [
 function run_test()
 {
   do_get_profile();
-  
+
   httpserv = new HttpServer();
   httpserv.registerPathHandler("/", handler);
   httpserv.start(-1);

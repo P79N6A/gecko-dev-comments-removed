@@ -2,8 +2,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 const PR_RDONLY = 0x1;
 
 function new_file_input_stream(file) {

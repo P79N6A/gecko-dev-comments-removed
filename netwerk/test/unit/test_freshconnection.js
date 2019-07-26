@@ -2,9 +2,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
 var listener = {
   onStartRequest: function test_onStartR(request, ctx) {
   },

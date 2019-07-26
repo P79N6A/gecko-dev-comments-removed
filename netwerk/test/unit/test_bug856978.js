@@ -9,10 +9,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-
 Components.utils.import("resource://testing-common/httpd.js");
 
 var notification = "http-on-modify-request";

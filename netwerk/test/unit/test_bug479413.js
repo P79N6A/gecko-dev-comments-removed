@@ -2,8 +2,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 var idnService;
 
 function expected_pass(inputIDN)

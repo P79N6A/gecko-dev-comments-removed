@@ -23,11 +23,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
-
 Cu.import("resource://testing-common/httpd.js");
 
 
@@ -157,7 +152,7 @@ Redirector.prototype = {
       if (channel.URI.spec == baitURI)  target = redirectedURI;
       if (channel.URI.spec == bait2URI) target = redirected2URI;
       if (channel.URI.spec == bait4URI) target = baitURI;
-Â      
+       
       if (target) {
         var tURI = ioservice.newURI(target, null, null);
         try {

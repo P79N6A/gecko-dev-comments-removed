@@ -1,8 +1,5 @@
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
 const PR_RDONLY = 0x1;  
 
 const special_type = "application/x-our-special-type";

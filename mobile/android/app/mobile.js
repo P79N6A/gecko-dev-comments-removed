@@ -64,6 +64,8 @@ pref("browser.cache.memory.enable", true);
 #endif
 pref("browser.cache.memory.capacity", 1024); 
 
+pref("browser.cache.memory_limit", 5120); 
+
 
 pref("image.cache.size", 1048576); 
 pref("image.high_quality_downscaling.enabled", false);

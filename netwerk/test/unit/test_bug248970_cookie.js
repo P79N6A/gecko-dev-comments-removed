@@ -2,10 +2,6 @@
 
 
 
-const Cu = Components.utils;
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/Services.jsm");
 

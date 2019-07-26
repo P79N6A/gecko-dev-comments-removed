@@ -59,7 +59,7 @@ function generatorTest() {
     });
 
     
-    Services.cache.evictEntries(Services.cache.STORE_ANYWHERE);
+    Services.cache2.clear();
 
     let [uri, title] = tests[0];
     content.location = uri;

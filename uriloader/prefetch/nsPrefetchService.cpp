@@ -3,8 +3,7 @@
 
 
 #include "nsPrefetchService.h"
-#include "nsICacheSession.h"
-#include "nsICacheService.h"
+#include "nsICacheEntry.h"
 #include "nsIServiceManager.h"
 #include "nsICategoryManager.h"
 #include "nsIObserverService.h"
@@ -264,7 +263,7 @@ nsPrefetchNode::OnStartRequest(nsIRequest *aRequest,
     if (!cacheToken)
         return NS_ERROR_ABORT; 
 
-    nsCOMPtr<nsICacheEntryInfo> entryInfo =
+    nsCOMPtr<nsICacheEntry> entryInfo =
         do_QueryInterface(cacheToken, &rv);
     if (NS_FAILED(rv)) return rv;
 

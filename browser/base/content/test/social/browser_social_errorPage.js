@@ -20,7 +20,7 @@ function goOffline() {
     BrowserOffline.toggleOfflineStatus();
   Services.prefs.setIntPref('network.proxy.type', 0);
   
-  Services.cache.evictEntries(Components.interfaces.nsICache.STORE_ANYWHERE);
+  Services.cache2.clear();
 }
 
 function goOnline(callback) {
