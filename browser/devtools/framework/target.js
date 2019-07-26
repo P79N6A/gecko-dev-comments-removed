@@ -15,8 +15,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
 XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
   "resource://gre/modules/devtools/dbg-client.jsm");
 
-loader.lazyGetter(this, "InspectorFront", () => require("devtools/server/actors/inspector").InspectorFront);
-
 const targets = new WeakMap();
 const promiseTargets = new WeakMap();
 
@@ -253,17 +251,6 @@ TabTarget.prototype = {
     return !!this._isThreadPaused;
   },
 
-  get inspector() {
-    if (!this.form) {
-      throw new Error("Target.inspector requires an initialized remote actor.");
-    }
-    if (this._inspector) {
-      return this._inspector;
-    }
-    this._inspector = InspectorFront(this.client, this.form);
-    return this._inspector;
-  },
-
   
 
 
@@ -440,11 +427,6 @@ TabTarget.prototype = {
 
     
     this.emit("close");
-
-    if (this._inspector) {
-      this._inspector.destroy();
-      this._inspector = null;
-    }
 
     
     
