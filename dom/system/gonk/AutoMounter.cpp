@@ -177,17 +177,10 @@ public:
     VolumeManager::RegisterStateObserver(&mVolumeManagerStateObserver);
     Volume::RegisterObserver(&mVolumeEventObserver);
 
-    VolumeManager::VolumeArray::size_type numVolumes = VolumeManager::NumVolumes();
-    VolumeManager::VolumeArray::index_type i;
-    for (i = 0; i < numVolumes; i++) {
-      RefPtr<Volume> vol = VolumeManager::GetVolume(i);
-      if (vol) {
-        vol->RegisterObserver(&mVolumeEventObserver);
-        
-        
-        AutoMounterSetting::CheckVolumeSettings(vol->Name());
-      }
-    }
+    
+    
+    
+    CheckVolumeSettings();
 
     DBG("Calling UpdateState from constructor");
     UpdateState();
@@ -205,6 +198,35 @@ public:
     }
     Volume::UnregisterObserver(&mVolumeEventObserver);
     VolumeManager::UnregisterStateObserver(&mVolumeManagerStateObserver);
+  }
+
+  void CheckVolumeSettings()
+  {
+    if (VolumeManager::State() != VolumeManager::VOLUMES_READY) {
+      DBG("CheckVolumeSettings: VolumeManager is NOT READY yet");
+      return;
+    }
+    DBG("CheckVolumeSettings: VolumeManager is READY");
+
+    
+    
+    
+
+    VolumeManager::VolumeArray::size_type numVolumes = VolumeManager::NumVolumes();
+    VolumeManager::VolumeArray::index_type i;
+    for (i = 0; i < numVolumes; i++) {
+      RefPtr<Volume> vol = VolumeManager::GetVolume(i);
+      if (vol) {
+        vol->RegisterObserver(&mVolumeEventObserver);
+        
+        
+        AutoMounterSetting::CheckVolumeSettings(vol->Name());
+
+        
+        
+        
+      }
+    }
   }
 
   void UpdateState();
@@ -262,7 +284,7 @@ public:
     vol->SetUnmountRequested(false);
     vol->SetMountRequested(false);
     vol->SetSharingEnabled(aAllowSharing);
-    DBG("Calling UpdateState due to volume %s shareing set to %d",
+    DBG("Calling UpdateState due to volume %s sharing set to %d",
         vol->NameStr(), (int)aAllowSharing);
     UpdateState();
   }
@@ -336,6 +358,13 @@ AutoVolumeManagerStateObserver::Notify(const VolumeManager::StateChangedEvent &)
   if (!sAutoMounter) {
     return;
   }
+
+  
+  
+  
+  
+  sAutoMounter->CheckVolumeSettings();
+
   DBG("Calling UpdateState due to VolumeManagerStateObserver");
   sAutoMounter->UpdateState();
 }
