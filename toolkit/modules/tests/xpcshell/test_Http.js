@@ -142,6 +142,18 @@ add_test(function test_GetData() {
   httpRequest(kGetUrl, options);
 });
 
+add_test(function test_OptionalParameters() {
+  let options = {
+    onLoad: null,
+    onError: null,
+    logger: null
+  };
+  
+  
+  httpRequest(kGetUrl, options);
+  run_next_test();
+});
+
 function run_test() {
   
   server = new HttpServer();
