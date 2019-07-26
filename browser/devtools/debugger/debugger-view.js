@@ -37,6 +37,9 @@ const DEFAULT_EDITOR_CONFIG = {
 };
 
 
+Cu.import("resource://gre/modules/Services.jsm")
+
+
 
 
 let DebuggerView = {
@@ -276,6 +279,13 @@ let DebuggerView = {
     if (this._editorSource.url == aSource.url && !aFlags.force) {
       return this._editorSource.promise;
     }
+    let transportType = DebuggerController.client.localTransport
+      ? "_LOCAL"
+      : "_REMOTE";
+    
+    let histogramId = "DEVTOOLS_DEBUGGER_DISPLAY_SOURCE" + transportType + "_MS";
+    let histogram = Services.telemetry.getHistogramById(histogramId);
+    let startTime = +new Date();
 
     let deferred = promise.defer();
 
@@ -295,6 +305,8 @@ let DebuggerView = {
       
       DebuggerView.Sources.selectedValue = aSource.url;
       DebuggerController.Breakpoints.updateEditorBreakpoints();
+
+      histogram.add(+new Date() - startTime);
 
       
       window.emit(EVENTS.SOURCE_SHOWN, aSource);
