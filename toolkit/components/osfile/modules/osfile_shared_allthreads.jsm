@@ -41,6 +41,8 @@ let EXPORTED_SYMBOLS = [
   "HollowStructure",
   "OSError",
   "declareFFI",
+  "declareLazy",
+  "declareLazyFFI",
   "projectValue",
   "isTypedArray",
   "defineLazyGetter",
@@ -891,8 +893,6 @@ exports.HollowStructure = HollowStructure;
 
 
 
-   
-   
 let declareFFI = function declareFFI(lib, symbol, abi,
                                      returnType ) {
   LOG("Attempting to declare FFI ", symbol);
@@ -940,6 +940,62 @@ let declareFFI = function declareFFI(lib, symbol, abi,
   }
 };
 exports.declareFFI = declareFFI;
+
+
+
+
+
+
+
+
+
+
+
+
+
+function declareLazyFFI(object, field, ...declareFFIArgs) {
+  Object.defineProperty(object, field, {
+    get: function() {
+      delete this[field];
+      let ffi = declareFFI(...declareFFIArgs);
+      if (ffi) {
+        return this[field] = ffi;
+      }
+      return undefined;
+    },
+    configurable: true
+  });
+}
+exports.declareLazyFFI = declareLazyFFI;
+
+
+
+
+
+
+
+
+
+
+
+
+
+function declareLazy(object, field, lib, ...declareArgs) {
+  Object.defineProperty(object, field, {
+    get: function() {
+      delete this[field];
+      try {
+        let ffi = lib.declare(...declareArgs);
+        return this[field] = ffi;
+      } catch (ex) {
+        
+        return undefined;
+      }
+    },
+    configurable: true
+  });
+}
+exports.declareLazy = declareLazy;
 
 
 let gOffsetByType;

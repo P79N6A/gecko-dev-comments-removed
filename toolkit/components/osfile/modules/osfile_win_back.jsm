@@ -54,6 +54,7 @@
        } else {
          declareFFI = SysAll.declareFFI;
        }
+       let declareLazyFFI = SharedAll.declareLazyFFI;
 
        
        
@@ -87,14 +88,14 @@
        SharedAll.defineLazyGetter(Type.file_HANDLE,
          "finalizeHANDLE",
          function() {
-           return _CloseHandle;
+           return SysFile._CloseHandle;
          });
 
        Type.find_HANDLE = Type.HANDLE.withName("find HANDLE");
        SharedAll.defineLazyGetter(Type.find_HANDLE,
          "finalizeHANDLE",
          function() {
-           return _FindClose;
+           return SysFile._FindClose;
          });
 
        Type.DWORD = Type.int32_t.withName("DWORD");
@@ -173,8 +174,8 @@
 
        
        
-       let _CloseHandle = SysFile._CloseHandle =
-         libc.declare("CloseHandle", ctypes.winapi_abi,
+       SharedAll.declareLazy(SysFile, "_CloseHandle", libc,
+                      "CloseHandle", ctypes.winapi_abi,
                         ctypes.bool,
                          ctypes.voidptr_t);
 
@@ -186,8 +187,8 @@
          }
        };
 
-       let _FindClose =
-         libc.declare("FindClose", ctypes.winapi_abi,
+       SharedAll.declareLazy(SysFile, "_FindClose", libc,
+                      "FindClose", ctypes.winapi_abi,
                         ctypes.bool,
                          ctypes.voidptr_t);
 
@@ -201,21 +202,21 @@
 
        
 
-       SysFile.CopyFile =
-         declareFFI("CopyFileW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "CopyFile", libc,
+         "CopyFileW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                      Type.path,
                        Type.path,
                     Type.bool);
 
-       SysFile.CreateDirectory =
-         declareFFI("CreateDirectoryW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "CreateDirectory", libc,
+         "CreateDirectoryW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.jschar.in_ptr,
                     Type.SECURITY_ATTRIBUTES.in_ptr);
 
-       SysFile.CreateFile =
-         declareFFI("CreateFileW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "CreateFile", libc,
+         "CreateFileW", ctypes.winapi_abi,
                       Type.file_HANDLE,
                         Type.path,
                       Type.DWORD,
@@ -225,31 +226,31 @@
                        Type.DWORD,
                     Type.HANDLE);
 
-       SysFile.DeleteFile =
-         declareFFI("DeleteFileW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "DeleteFile", libc,
+         "DeleteFileW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.path);
 
-       SysFile.FileTimeToSystemTime =
-         declareFFI("FileTimeToSystemTime", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "FileTimeToSystemTime", libc,
+         "FileTimeToSystemTime", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                     Type.FILETIME.in_ptr,
                      Type.SystemTime.out_ptr);
 
-       SysFile.FindFirstFile =
-         declareFFI("FindFirstFileW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "FindFirstFile", libc,
+         "FindFirstFileW", ctypes.winapi_abi,
                      Type.find_HANDLE,
                     Type.path,
                        Type.FindData.out_ptr);
 
-       SysFile.FindNextFile =
-         declareFFI("FindNextFileW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "FindNextFile", libc,
+         "FindNextFileW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.find_HANDLE,
                        Type.FindData.out_ptr);
 
-       SysFile.FormatMessage =
-         declareFFI("FormatMessageW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "FormatMessage", libc,
+         "FormatMessageW", ctypes.winapi_abi,
                      Type.DWORD,
                       Type.DWORD,
                      Type.void_t.in_ptr,
@@ -260,29 +261,29 @@
                     Type.void_t.in_ptr
                    );
 
-       SysFile.GetCurrentDirectory =
-         declareFFI("GetCurrentDirectoryW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "GetCurrentDirectory", libc,
+         "GetCurrentDirectoryW", ctypes.winapi_abi,
                      Type.zero_or_DWORD,
                      Type.DWORD,
                         Type.out_path
                    );
 
-       SysFile.GetFileInformationByHandle =
-         declareFFI("GetFileInformationByHandle", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "GetFileInformationByHandle", libc,
+         "GetFileInformationByHandle", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                      Type.HANDLE,
                        Type.FILE_INFORMATION.out_ptr);
 
-       SysFile.MoveFileEx =
-         declareFFI("MoveFileExW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "MoveFileEx", libc,
+         "MoveFileExW", ctypes.winapi_abi,
                        Type.zero_or_nothing,
                      Type.path,
                      Type.path,
                         Type.DWORD
                    );
 
-       SysFile.ReadFile =
-         declareFFI("ReadFile", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "ReadFile", libc,
+         "ReadFile", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.HANDLE,
                      Type.voidptr_t,
@@ -291,32 +292,32 @@
                     Type.void_t.inout_ptr 
          );
 
-       SysFile.RemoveDirectory =
-         declareFFI("RemoveDirectoryW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "RemoveDirectory", libc,
+         "RemoveDirectoryW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.path);
 
-       SysFile.SetCurrentDirectory =
-         declareFFI("SetCurrentDirectoryW", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "SetCurrentDirectory", libc,
+         "SetCurrentDirectoryW", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.path
                    );
 
-       SysFile.SetEndOfFile =
-         declareFFI("SetEndOfFile", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "SetEndOfFile", libc,
+         "SetEndOfFile", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.HANDLE);
 
-       SysFile.SetFilePointer =
-         declareFFI("SetFilePointer", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "SetFilePointer", libc,
+         "SetFilePointer", ctypes.winapi_abi,
                      Type.negative_or_DWORD,
                        Type.HANDLE,
                     Type.long,
                      Type.long.in_ptr,
                      Type.DWORD);
 
-       SysFile.WriteFile =
-         declareFFI("WriteFile", ctypes.winapi_abi,
+       declareLazyFFI(SysFile, "WriteFile", libc,
+         "WriteFile", ctypes.winapi_abi,
                      Type.zero_or_nothing,
                        Type.HANDLE,
                      Type.voidptr_t,
@@ -325,8 +326,8 @@
                     Type.void_t.inout_ptr 
          );
 
-        SysFile.FlushFileBuffers =
-          declareFFI("FlushFileBuffers", ctypes.winapi_abi,
+        declareLazyFFI(SysFile, "FlushFileBuffers", libc,
+          "FlushFileBuffers", ctypes.winapi_abi,
                       Type.zero_or_nothing,
                         Type.HANDLE);
      };

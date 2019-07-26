@@ -53,8 +53,11 @@ exports.libc = libc;
 let declareFFI = SharedAll.declareFFI.bind(null, libc);
 exports.declareFFI = declareFFI;
 
+let Scope = {};
 
-let FormatMessage = libc.declare("FormatMessageW", ctypes.winapi_abi,
+
+SharedAll.declareLazy(Scope, "FormatMessage", libc,
+  "FormatMessageW", ctypes.winapi_abi,
    ctypes.uint32_t,
     ctypes.uint32_t,
    ctypes.voidptr_t,
@@ -96,7 +99,7 @@ let OSError = function OSError(operation, lastError) {
 OSError.prototype = Object.create(SharedAll.OSError.prototype);
 OSError.prototype.toString = function toString() {
   let buf = new (ctypes.ArrayType(ctypes.jschar, 1024))();
-  let result = FormatMessage(
+  let result = Scope.FormatMessage(
     Const.FORMAT_MESSAGE_FROM_SYSTEM |
     Const.FORMAT_MESSAGE_IGNORE_INSERTS,
     null,
