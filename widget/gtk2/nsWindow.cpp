@@ -4814,9 +4814,7 @@ nsWindow::CheckForRollup(gdouble aMouseX, gdouble aMouseY,
 
             
             if (rollup && rollupListener->Rollup(popupsToRollup, nullptr)) {
-                if (popupsToRollup == UINT32_MAX) {
-                    retVal = true;
-                }
+                retVal = true;
             }
         }
     } else {
