@@ -578,7 +578,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
     
     
-    mUseAcceleratedRendering = GetShouldAccelerate();
+    mUseLayersAcceleration = ComputeShouldAccelerate(mUseLayersAcceleration);
     nsWindow *topWindow = sTopWindows[0];
 
     if (!topWindow) {
@@ -592,7 +592,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
             return mLayerManager;
     }
 
-    if (mUseAcceleratedRendering) {
+    if (mUseLayersAcceleration) {
         DebugOnly<nsIntRect> fbBounds = gScreenBounds;
         if (!sGLContext) {
             sGLContext = GLContextProvider::CreateForWindow(this);
@@ -623,7 +623,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     }
 
     mLayerManager = new BasicShadowLayerManager(this);
-    mUseAcceleratedRendering = false;
+    mUseLayersAcceleration = false;
 
     return mLayerManager;
 }

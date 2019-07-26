@@ -1499,7 +1499,7 @@ class nsIWidget : public nsISupports {
     
 
 
-    NS_IMETHOD SetAcceleratedRendering(bool aEnabled) = 0;
+    NS_IMETHOD SetLayersAcceleration(bool aEnabled) = 0;
 
     
 
