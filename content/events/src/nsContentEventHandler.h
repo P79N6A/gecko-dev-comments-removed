@@ -30,23 +30,24 @@ public:
   nsContentEventHandler(nsPresContext *aPresContext);
 
   
-  nsresult OnQuerySelectedText(nsQueryContentEvent* aEvent);
+  nsresult OnQuerySelectedText(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryTextContent(nsQueryContentEvent* aEvent);
+  nsresult OnQueryTextContent(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryCaretRect(nsQueryContentEvent* aEvent);
+  nsresult OnQueryCaretRect(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryTextRect(nsQueryContentEvent* aEvent);
+  nsresult OnQueryTextRect(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryEditorRect(nsQueryContentEvent* aEvent);
+  nsresult OnQueryEditorRect(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryContentState(nsQueryContentEvent* aEvent);
+  nsresult OnQueryContentState(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQuerySelectionAsTransferable(nsQueryContentEvent* aEvent);
+  nsresult OnQuerySelectionAsTransferable(
+             mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryCharacterAtPoint(nsQueryContentEvent* aEvent);
+  nsresult OnQueryCharacterAtPoint(mozilla::WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryDOMWidgetHittest(nsQueryContentEvent* aEvent);
+  nsresult OnQueryDOMWidgetHittest(mozilla::WidgetQueryContentEvent* aEvent);
 
   
   nsresult OnSelectionEvent(nsSelectionEvent* aEvent);
@@ -58,7 +59,7 @@ protected:
   nsRefPtr<nsRange> mFirstSelectedRange;
   nsCOMPtr<nsIContent> mRootContent;
 
-  nsresult Init(nsQueryContentEvent* aEvent);
+  nsresult Init(mozilla::WidgetQueryContentEvent* aEvent);
   nsresult Init(nsSelectionEvent* aEvent);
 
   

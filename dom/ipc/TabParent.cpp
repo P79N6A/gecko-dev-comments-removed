@@ -932,7 +932,7 @@ TabParent::RecvRequestFocus(const bool& aCanRaise)
 
 
 bool
-TabParent::HandleQueryContentEvent(nsQueryContentEvent& aEvent)
+TabParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent)
 {
   aEvent.mSucceeded = false;
   aEvent.mWasAsync = false;
