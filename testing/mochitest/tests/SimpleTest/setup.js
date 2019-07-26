@@ -108,6 +108,11 @@ if (params.failureFile) {
 }
 
 
+if (params.debugOnFailure) {
+  TestRunner.debugOnFailure = true;
+}
+
+
 if (params.logFile) {
   var spl = new SpecialPowersLogger(params.logFile);
   TestRunner.logger.addListener("mozLogger", fileLevel + "", spl.getLogCallback());

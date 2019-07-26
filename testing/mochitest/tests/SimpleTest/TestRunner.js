@@ -213,6 +213,12 @@ TestRunner.error = function(msg) {
     } else {
         dump(msg + "\n");
     }
+
+    if (TestRunner.debugOnFailure) {
+      
+      
+      debugger;
+    }
 };
 
 
