@@ -24,6 +24,8 @@
 
 
 
+#define TO_UINT32(x) (x >>> 0)
+
 
 var std_isFinite = isFinite;
 var std_isNaN = isNaN;
@@ -138,4 +140,3 @@ function assert(b, info) {
     if (!b)
         AssertionFailed(info);
 }
-

@@ -5,6 +5,30 @@
 
 
 
+#define TRY_PARALLEL(MODE) \
+  ((!MODE || MODE.mode === "par"))
+#define ASSERT_SEQUENTIAL_IS_OK(MODE) \
+  do { if (MODE) AssertSequentialIsOK(MODE) } while(false)
+
+
+#define SLICE_INFO(START, END) START, END, START, 0
+#define SLICE_START(ID) ((ID << 2) + 0)
+#define SLICE_END(ID)   ((ID << 2) + 1)
+#define SLICE_POS(ID)   ((ID << 2) + 2)
+
+
+
+
+#define CHUNK_SHIFT 5
+#define CHUNK_SIZE 32
+
+
+#define ARRAY_PUSH(ARRAY, ELEMENT) \
+  callFunction(std_Array_push, ARRAY, ELEMENT);
+#define ARRAY_SLICE(ARRAY, ELEMENT) \
+  callFunction(std_Array_slice, ARRAY, ELEMENT);
+
+
 
 
 
