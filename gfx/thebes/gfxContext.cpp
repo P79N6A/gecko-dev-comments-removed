@@ -1614,8 +1614,9 @@ gfxContext::PointInStroke(const gfxPoint& pt)
   if (mCairo) {
     return cairo_in_stroke(mCairo, pt.x, pt.y);
   } else {
-    
-    return false;
+    return mPath->StrokeContainsPoint(CurrentState().strokeOptions,
+                                      ToPoint(pt),
+                                      mTransform);
   }
 }
 

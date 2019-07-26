@@ -198,6 +198,34 @@ ScratchContext()
   return cg;
 }
 
+bool
+PathCG::StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
+                            const Point &aPoint,
+                            const Matrix &aTransform) const
+{
+  Matrix inverse = aTransform;
+  inverse.Invert();
+  Point transformedPoint = inverse*aPoint;
+  
+  CGPoint point = {transformedPoint.x, transformedPoint.y};
+
+  CGContextRef cg = ScratchContext();
+
+  CGContextSaveGState(cg);
+
+  CGContextBeginPath(cg);
+  CGContextAddPath(cg, mPath);
+
+  SetStrokeOptions(cg, aStrokeOptions);
+
+  CGContextReplacePathWithStrokedPath(cg);
+  CGContextRestoreGState(cg);
+
+  CGPathRef sPath = CGContextCopyPath(cg);
+
+  return CGPathContainsPoint(sPath, nullptr, point, false);
+}
+
 
 
 Rect

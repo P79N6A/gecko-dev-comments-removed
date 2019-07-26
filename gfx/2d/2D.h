@@ -398,6 +398,15 @@ public:
 
   virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const = 0;
 
+
+  
+
+
+
+  virtual bool StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
+                                   const Point &aPoint,
+                                   const Matrix &aTransform) const = 0;
+
   
 
 
