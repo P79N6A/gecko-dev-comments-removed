@@ -72,6 +72,9 @@ class WorkerThreadState
     Vector<ParseTask*, 0, SystemAllocPolicy> parseWorklist, parseFinishedList;
 
     
+    Vector<ParseTask*, 0, SystemAllocPolicy> parseWaitingOnGC;
+
+    
     Vector<SourceCompressionTask *, 0, SystemAllocPolicy> compressionWorklist;
 
     WorkerThreadState(JSRuntime *rt) {
@@ -231,6 +234,13 @@ StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &options,
                           JS::OffThreadCompileCallback callback, void *callbackData);
 
 
+
+
+
+void
+EnqueuePendingParseTasksAfterGC(JSRuntime *rt);
+
+
 void
 WaitForOffThreadParsingToFinish(JSRuntime *rt);
 
@@ -330,6 +340,9 @@ struct ParseTask
     JSObject *scopeChain;
 
     
+    JSObject *exclusiveContextGlobal;
+
+    
     JS::OffThreadCompileCallback callback;
     void *callbackData;
 
@@ -343,10 +356,12 @@ struct ParseTask
     Vector<frontend::CompileError *> errors;
     bool overRecursed;
 
-    ParseTask(ExclusiveContext *cx, JSContext *initCx,
+    ParseTask(ExclusiveContext *cx, JSObject *exclusiveContextGlobal, JSContext *initCx,
               const jschar *chars, size_t length, JSObject *scopeChain,
               JS::OffThreadCompileCallback callback, void *callbackData);
     bool init(JSContext *cx, const ReadOnlyCompileOptions &options);
+
+    void activate(JSRuntime *rt);
 
     ~ParseTask();
 };

@@ -4501,17 +4501,7 @@ JS::Compile(JSContext *cx, HandleObject obj, const ReadOnlyCompileOptions &optio
 JS_PUBLIC_API(bool)
 JS::CanCompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options)
 {
-    if (!cx->runtime()->canUseParallelParsing())
-        return false;
-
-    
-    
-    
-    
-    if (cx->runtime()->activeGCInAtomsZone())
-        return false;
-
-    return true;
+    return cx->runtime()->canUseParallelParsing();
 }
 
 JS_PUBLIC_API(bool)
