@@ -386,9 +386,6 @@ TraceKind(JSScript *script)
 void
 TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
-void
-CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
-
 } 
 
 #endif 
