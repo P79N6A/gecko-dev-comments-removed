@@ -8,10 +8,11 @@
 this.EXPORTED_SYMBOLS = [
   "_",
   "assert",
+  "attr", 
+  "getCurrentBrowserTabContentWindow", 
   "log",
   "text",
-  "wire",
-  "showFilePicker"
+  "wire"
 ];
 
 const Cc = Components.classes;
@@ -161,63 +162,3 @@ this.wire = function wire(aRoot, aSelectorOrElement, aDescriptor)
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.showFilePicker = function showFilePicker(path, toSave, parentWindow, callback)
-{
-  if (typeof(path) == "string") {
-    try {
-      if (Services.io.extractScheme(path) == "file") {
-        let uri = Services.io.newURI(path, null, null);
-        let file = uri.QueryInterface(Ci.nsIFileURL).file;
-        callback(file);
-        return;
-      }
-    } catch (ex) {
-      callback(null);
-      return;
-    }
-    try {
-      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-      file.initWithPath(path);
-      callback(file);
-      return;
-    } catch (ex) {
-      callback(null);
-      return;
-    }
-  }
-  if (path) { 
-    callback(path);
-    return;
-  }
-
-  let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-  let mode = toSave ? fp.modeSave : fp.modeOpen;
-  let key = toSave ? "saveStyleSheet" : "importStyleSheet";
-  let fpCallback = function(result) {
-    if (result == Ci.nsIFilePicker.returnCancel) {
-      callback(null);
-    } else {
-      callback(fp.file);
-    }
-  };
-
-  fp.init(parentWindow, _(key + ".title"), mode);
-  fp.appendFilters(_(key + ".filter"), "*.css");
-  fp.appendFilters(fp.filterAll);
-  fp.open(fpCallback);
-  return;
-}
