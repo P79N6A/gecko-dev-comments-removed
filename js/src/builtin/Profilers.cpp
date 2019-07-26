@@ -15,8 +15,8 @@
 #endif
 
 #ifdef __APPLE__
-#include "devtools/sharkctl.h"
 #include "devtools/Instruments.h"
+#include "devtools/sharkctl.h"
 #endif
 
 #include "jscntxtinlines.h"
@@ -445,9 +445,9 @@ js_DumpCallgrind(const char *outfile)
 
 
 
+#include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <signal.h>
 
 static bool perfInitialized = false;
 static pid_t perfPid = 0;

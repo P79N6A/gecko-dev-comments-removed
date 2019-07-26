@@ -4,10 +4,10 @@
 
 
 
+#include "builtin/ParallelArray.h"
+
 #include "jsapi.h"
 #include "jsobj.h"
-
-#include "builtin/ParallelArray.h"
 
 #include "vm/GlobalObject.h"
 #include "vm/String.h"
