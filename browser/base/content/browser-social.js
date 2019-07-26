@@ -731,7 +731,7 @@ var SocialSidebar = {
   get chromeless() {
     let docElem = document.documentElement;
     return docElem.getAttribute('disablechrome') ||
-           docElem.getAttribute('chromehidden').indexOf("extrachrome") >= 0;
+           docElem.getAttribute('chromehidden').contains("toolbar");
   },
 
   
