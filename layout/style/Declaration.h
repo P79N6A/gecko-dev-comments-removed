@@ -318,7 +318,7 @@ public:
     MOZ_ASSERT(mOrder[aIndex] >= eCSSProperty_COUNT);
     uint32_t variableIndex = mOrder[aIndex] - eCSSProperty_COUNT;
     aResult.Truncate();
-    aResult.AppendLiteral("var-");
+    aResult.AppendLiteral("--");
     aResult.Append(mVariableOrder[variableIndex]);
   }
 

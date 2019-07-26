@@ -61,9 +61,6 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 };
 
 
-#define VAR_PREFIX_LENGTH 4
-
-
 
 
 
@@ -1511,7 +1508,7 @@ CSSParserImpl::ParseVariable(const nsAString& aVariableName,
   }
 
   if (!parsedOK) {
-    REPORT_UNEXPECTED_P(PEValueParsingError, NS_LITERAL_STRING("var-") +
+    REPORT_UNEXPECTED_P(PEValueParsingError, NS_LITERAL_STRING("--") +
                                              aVariableName);
     REPORT_UNEXPECTED(PEDeclDropped);
     OUTPUT_ERROR();
@@ -1693,10 +1690,10 @@ CSSParserImpl::EvaluateSupportsDeclaration(const nsAString& aProperty,
   bool parsedOK;
 
   if (propID == eCSSPropertyExtra_variable) {
-    MOZ_ASSERT(Substring(aProperty,
-                         0, VAR_PREFIX_LENGTH).EqualsLiteral("var-"));
+    MOZ_ASSERT(Substring(aProperty, 0,
+                         CSS_CUSTOM_NAME_PREFIX_LENGTH).EqualsLiteral("--"));
     const nsDependentSubstring varName =
-      Substring(aProperty, VAR_PREFIX_LENGTH);  
+      Substring(aProperty, CSS_CUSTOM_NAME_PREFIX_LENGTH);  
     CSSVariableDeclarations::Type variableType;
     nsString variableValue;
     parsedOK = ParseVariableDeclaration(&variableType, variableValue) &&
@@ -2029,16 +2026,25 @@ CSSParserImpl::ResolveValueWithVariableReferencesRec(
           recLastToken = eCSSTokenSerialization_Nothing;
 
           if (!GetToken(true) ||
-              mToken.mType != eCSSToken_Ident) {
+              mToken.mType != eCSSToken_Ident ||
+              !nsCSSProps::IsCustomPropertyName(mToken.mIdent)) {
+            
             
             return false;
           }
 
           
           
+          MOZ_ASSERT(Substring(mToken.mIdent, 0,
+                               CSS_CUSTOM_NAME_PREFIX_LENGTH).
+                       EqualsLiteral("--"));
+          nsDependentString variableName(mToken.mIdent,
+                                         CSS_CUSTOM_NAME_PREFIX_LENGTH);
+
           
           
-          const nsString& variableName = mToken.mIdent;
+          
+          
           nsString variableValue;
           nsCSSTokenSerializationType varFirstToken, varLastToken;
           bool valid = aVariables->Get(variableName, variableValue,
@@ -5929,9 +5935,10 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
   }
 
   if (customProperty) {
-    MOZ_ASSERT(Substring(propertyName,
-                         0, VAR_PREFIX_LENGTH).EqualsLiteral("var-"));
-    nsDependentString varName(propertyName, VAR_PREFIX_LENGTH); 
+    MOZ_ASSERT(Substring(propertyName, 0,
+                         CSS_CUSTOM_NAME_PREFIX_LENGTH).EqualsLiteral("--"));
+    
+    nsDependentString varName(propertyName, CSS_CUSTOM_NAME_PREFIX_LENGTH);
     aDeclaration->AddVariableDeclaration(varName, variableType, variableValue,
                                          status == ePriority_Important, false);
   } else {
@@ -13959,7 +13966,9 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
             REPORT_UNEXPECTED_EOF(PEExpectedVariableNameEOF);
             return false;
           }
-          if (mToken.mType != eCSSToken_Ident) {
+          if (mToken.mType != eCSSToken_Ident ||
+              !nsCSSProps::IsCustomPropertyName(mToken.mIdent)) {
+            
             
             UngetToken();
             REPORT_UNEXPECTED_TOKEN(PEExpectedVariableName);
@@ -13968,7 +13977,13 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
             return false;
           }
           if (aFunc) {
-            aFunc(mToken.mIdent, aData);
+            MOZ_ASSERT(Substring(mToken.mIdent, 0,
+                                 CSS_CUSTOM_NAME_PREFIX_LENGTH).
+                         EqualsLiteral("--"));
+            
+            const nsDependentSubstring varName =
+              Substring(mToken.mIdent, CSS_CUSTOM_NAME_PREFIX_LENGTH);
+            aFunc(varName, aData);
           }
           if (!GetToken(true)) {
             

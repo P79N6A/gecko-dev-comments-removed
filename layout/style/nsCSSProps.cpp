@@ -348,9 +348,6 @@ nsCSSProps::ReleaseTable(void)
   }
 }
 
-
-#define VAR_PREFIX_LENGTH 4
-
  bool
 nsCSSProps::IsInherited(nsCSSProperty aProperty)
 {
@@ -364,15 +361,15 @@ nsCSSProps::IsInherited(nsCSSProperty aProperty)
 nsCSSProps::IsCustomPropertyName(const nsACString& aProperty)
 {
   
-  return aProperty.Length() >= (VAR_PREFIX_LENGTH + 1) &&
-         StringBeginsWith(aProperty, NS_LITERAL_CSTRING("var-"));
+  return aProperty.Length() >= CSS_CUSTOM_NAME_PREFIX_LENGTH &&
+         StringBeginsWith(aProperty, NS_LITERAL_CSTRING("--"));
 }
 
  bool
 nsCSSProps::IsCustomPropertyName(const nsAString& aProperty)
 {
-  return aProperty.Length() >= (VAR_PREFIX_LENGTH + 1) &&
-         StringBeginsWith(aProperty, NS_LITERAL_STRING("var-"));
+  return aProperty.Length() >= CSS_CUSTOM_NAME_PREFIX_LENGTH &&
+         StringBeginsWith(aProperty, NS_LITERAL_STRING("--"));
 }
 
 nsCSSProperty

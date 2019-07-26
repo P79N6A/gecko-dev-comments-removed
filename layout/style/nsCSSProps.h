@@ -17,6 +17,10 @@
 #include "nsCSSKeywords.h"
 
 
+
+#define CSS_CUSTOM_NAME_PREFIX_LENGTH 2
+
+
 #define VARIANT_KEYWORD         0x000001  // K
 #define VARIANT_LENGTH          0x000002  // L
 #define VARIANT_PERCENT         0x000004  // P
@@ -288,7 +292,6 @@ public:
                                       EnabledState aEnabled);
   static nsCSSProperty LookupProperty(const nsACString& aProperty,
                                       EnabledState aEnabled);
-  
   
   
   static bool IsCustomPropertyName(const nsAString& aProperty);
