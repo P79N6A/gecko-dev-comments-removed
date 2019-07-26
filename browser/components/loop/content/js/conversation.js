@@ -4,14 +4,11 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-
 var loop = loop || {};
 loop.conversation = (function(OT, mozL10n) {
   "use strict";
 
   var sharedViews = loop.shared.views,
-      baseServerUrl = Services.prefs.getCharPref("loop.server"),
       
       __ = mozL10n.get;
 
@@ -54,7 +51,7 @@ loop.conversation = (function(OT, mozL10n) {
 
 
 
-  var ConversationRouter = loop.shared.router.BaseConversationRouter.extend({
+  var ConversationRouter = loop.desktopRouter.DesktopConversationRouter.extend({
     routes: {
       "start/:version": "start",
       "call/ongoing": "conversation",
@@ -87,7 +84,7 @@ loop.conversation = (function(OT, mozL10n) {
       
       this._conversation.set({loopVersion: loopVersion});
       this._conversation.initiate({
-        baseServerUrl: baseServerUrl,
+        baseServerUrl: window.navigator.mozLoop.serverUrl,
         outgoing: false
       });
     },
@@ -123,6 +120,10 @@ loop.conversation = (function(OT, mozL10n) {
 
 
   function init() {
+    
+    
+    mozL10n.initialize(window.navigator.mozLoop);
+
     router = new ConversationRouter({
       conversation: new loop.shared.models.ConversationModel({}, {sdk: OT}),
       notifier: new sharedViews.NotificationListView({el: "#messages"})

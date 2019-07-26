@@ -30,11 +30,10 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    loopServer: {
+    serverUrl: {
       enumerable: true,
       configurable: true,
-      writable: false,
-      value: function() {
+      get: function() {
         return Services.prefs.getCharPref("loop.server");
       }
     },
@@ -44,11 +43,10 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    getLocale: {
+    locale: {
       enumerable: true,
       configurable: true,
-      writable: false,
-      value: function() {
+      get: function() {
         return MozLoopService.locale;
       }
     },
@@ -64,7 +62,7 @@ function injectLoopAPI(targetWindow) {
     getStrings: {
       enumerable: true,
       configurable: true,
-      writable: false,
+      writable: true,
       value: function(key) {
         return MozLoopService.getStrings(key);
       }

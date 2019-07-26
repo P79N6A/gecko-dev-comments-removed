@@ -1,16 +1,20 @@
 
 
 
-
 'use strict';
 
 
+
+
+
+
 (function(window) {
+  var gL10nDetails;
   var gLanguage = '';
 
   
   function getL10nData(key) {
-    var response = FirefoxCom.requestSync('getStrings', key);
+    var response = gL10nDetails.getStrings(key);
     var data = JSON.parse(response);
     if (!data)
       console.warn('[l10n] #' + key + ' missing for [' + gLanguage + ']');
@@ -79,20 +83,22 @@
       translateElement(element);
   }
 
-  window.addEventListener('DOMContentLoaded', function() {
-    gLanguage = FirefoxCom.requestSync('getLocale', null);
-
-    translateFragment();
-
-    
-    var evtObject = document.createEvent('Event');
-    evtObject.initEvent('localized', false, false);
-    evtObject.language = gLanguage;
-    window.dispatchEvent(evtObject);
-  });
-
   
   document.mozL10n = {
+    
+
+
+
+
+
+
+    initialize: function(l10nDetails) {
+      gL10nDetails = l10nDetails;
+      gLanguage = gL10nDetails.locale;
+
+      translateFragment();
+    },
+
     
     get: translateString,
 
@@ -111,4 +117,3 @@
     translate: translateFragment
   };
 })(this);
-

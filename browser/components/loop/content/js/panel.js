@@ -4,14 +4,11 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-
 var loop = loop || {};
 loop.panel = (function(_, mozL10n) {
   "use strict";
 
-  var baseServerUrl = Services.prefs.getCharPref("loop.server"),
-      sharedViews = loop.shared.views,
+  var sharedViews = loop.shared.views,
       
       __ = mozL10n.get;
 
@@ -57,7 +54,7 @@ loop.panel = (function(_, mozL10n) {
       }
       this.notifier = options.notifier;
       this.client = new loop.shared.Client({
-        baseServerUrl: baseServerUrl
+        baseServerUrl: window.navigator.mozLoop.serverUrl
       });
     },
 
@@ -109,7 +106,7 @@ loop.panel = (function(_, mozL10n) {
     }
   });
 
-  var PanelRouter = loop.shared.router.BaseRouter.extend({
+  var PanelRouter = loop.desktopRouter.DesktopRouter.extend({
     
 
 
@@ -170,11 +167,20 @@ loop.panel = (function(_, mozL10n) {
 
 
   function init() {
+    
+    
+    mozL10n.initialize(window.navigator.mozLoop);
+
     router = new PanelRouter({
       document: document,
       notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();
+
+    
+    var evtObject = document.createEvent('Event');
+    evtObject.initEvent('loopPanelInitialized', true, false);
+    window.dispatchEvent(evtObject);
   }
 
   return {
