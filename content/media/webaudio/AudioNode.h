@@ -7,7 +7,6 @@
 #ifndef AudioNode_h_
 #define AudioNode_h_
 
-#include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
 #include "EnableWebAudioCheck.h"
@@ -24,15 +23,14 @@ class ErrorResult;
 namespace dom {
 
 class AudioNode : public nsISupports,
-                  public nsWrapperCache,
                   public EnableWebAudioCheck
 {
 public:
   explicit AudioNode(AudioContext* aContext);
-  virtual ~AudioNode() {}
+  virtual ~AudioNode();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AudioNode)
+  NS_DECL_CYCLE_COLLECTION_CLASS(AudioNode)
 
   AudioContext* GetParentObject() const
   {
@@ -49,71 +47,33 @@ public:
 
   void Disconnect(uint32_t aOutput, ErrorResult& aRv);
 
-  uint32_t NumberOfInputs() const
-  {
-    return mInputs.Length();
-  }
-  uint32_t NumberOfOutputs() const
-  {
-    return mOutputs.Length();
-  }
-
   
   
-  virtual uint32_t MaxNumberOfInputs() const = 0;
-  virtual uint32_t MaxNumberOfOutputs() const = 0;
+  
+  virtual uint32_t NumberOfInputs() const { return 1; }
+  virtual uint32_t NumberOfOutputs() const { return 1; }
 
-  struct Output {
-    enum { InvalidIndex = 0xffffffff };
-    Output()
-      : mInput(InvalidIndex)
-    {
-    }
-    Output(AudioNode* aDestination, uint32_t aInput)
-      : mDestination(aDestination),
-        mInput(aInput)
-    {
-    }
-
-    
-    typedef void**** ConvertibleToBool;
-    operator ConvertibleToBool() const {
-      return ConvertibleToBool(mDestination && mInput != InvalidIndex);
-    }
-
-    nsRefPtr<AudioNode> mDestination;
+  struct InputNode {
     
     
-    const uint32_t mInput;
-  };
-  struct Input {
-    enum { InvalidIndex = 0xffffffff };
-    Input()
-      : mOutput(InvalidIndex)
-    {
-    }
-    Input(AudioNode* aSource, uint32_t aOutput)
-      : mSource(aSource),
-        mOutput(aOutput)
-    {
-    }
-
+    nsRefPtr<AudioNode> mInputNode;
     
-    typedef void**** ConvertibleToBool;
-    operator ConvertibleToBool() const {
-      return ConvertibleToBool(mSource && mOutput != InvalidIndex);
-    }
-
-    nsRefPtr<AudioNode> mSource;
+    uint32_t mInputPort;
     
-    
-    const uint32_t mOutput;
+    uint32_t mOutputPort;
   };
 
 private:
   nsRefPtr<AudioContext> mContext;
-  nsTArray<Input> mInputs;
-  nsTArray<Output> mOutputs;
+
+  
+  
+  nsTArray<InputNode> mInputNodes;
+  
+  
+  
+  
+  nsTArray<nsRefPtr<AudioNode> > mOutputNodes;
 };
 
 }
