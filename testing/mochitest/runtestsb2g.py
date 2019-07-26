@@ -566,6 +566,8 @@ def run_remote_mochitests(automation, parser, options):
             kwargs['logcat_dir'] = options.logcat_dir
         if options.busybox:
             kwargs['busybox'] = options.busybox
+        if options.symbolsPath:
+            kwargs['symbols_path'] = options.symbolsPath
     
     if options.sdcard:
         kwargs['sdcard'] = options.sdcard
