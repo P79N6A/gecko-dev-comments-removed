@@ -29,15 +29,19 @@
 #ifndef DynamicsCompressor_h
 #define DynamicsCompressor_h
 
-#include "AudioArray.h"
 #include "DynamicsCompressorKernel.h"
 #include "ZeroPole.h"
 
-#include <wtf/OwnArrayPtr.h>
+#include "nsTArray.h"
+#include "nsAutoPtr.h"
+
+namespace mozilla {
+struct AudioChunk;
+}
 
 namespace WebCore {
 
-class AudioBus;
+using mozilla::AudioChunk;
 
 
 
@@ -68,7 +72,7 @@ public:
 
     DynamicsCompressor(float sampleRate, unsigned numberOfChannels);
 
-    void process(const AudioBus* sourceBus, AudioBus* destinationBus, unsigned framesToProcess);
+    void process(const AudioChunk* sourceChunk, AudioChunk* destinationChunk, unsigned framesToProcess);
     void reset();
     void setNumberOfChannels(unsigned);
 
@@ -100,11 +104,11 @@ protected:
     } ZeroPoleFilterPack4;
 
     
-    Vector<OwnPtr<ZeroPoleFilterPack4> > m_preFilterPacks;
-    Vector<OwnPtr<ZeroPoleFilterPack4> > m_postFilterPacks;
+    nsTArray<nsAutoPtr<ZeroPoleFilterPack4> > m_preFilterPacks;
+    nsTArray<nsAutoPtr<ZeroPoleFilterPack4> > m_postFilterPacks;
 
-    OwnArrayPtr<const float*> m_sourceChannels;
-    OwnArrayPtr<float*> m_destinationChannels;
+    nsAutoArrayPtr<const float*> m_sourceChannels;
+    nsAutoArrayPtr<float*> m_destinationChannels;
 
     void setEmphasisStageParameters(unsigned stageIndex, float gain, float normalizedFrequency );
     void setEmphasisParameters(float gain, float anchorFreq, float filterStageRatio);

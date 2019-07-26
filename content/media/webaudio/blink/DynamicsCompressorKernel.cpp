@@ -26,22 +26,20 @@
 
 
 
-#include "config.h"
-
-#if ENABLE(WEB_AUDIO)
-
 #include "DynamicsCompressorKernel.h"
 
-#include "AudioUtilities.h"
 #include "DenormalDisabler.h"
 #include <algorithm>
-#include <wtf/MathExtras.h>
+
+#include "mozilla/FloatingPoint.h"
+#include "WebAudioUtils.h"
 
 using namespace std;
 
+using mozilla::dom::WebAudioUtils;
+
 namespace WebCore {
 
-using namespace AudioUtilities;
 
 
 const float meteringReleaseTimeConstant = 0.325f;
@@ -68,17 +66,18 @@ DynamicsCompressorKernel::DynamicsCompressorKernel(float sampleRate, unsigned nu
     
     reset();
 
-    m_meteringReleaseK = static_cast<float>(discreteTimeConstantForSampleRate(meteringReleaseTimeConstant, sampleRate));
+    m_meteringReleaseK =
+        static_cast<float>(WebAudioUtils::DiscreteTimeConstantForSampleRate(meteringReleaseTimeConstant, sampleRate));
 }
 
 void DynamicsCompressorKernel::setNumberOfChannels(unsigned numberOfChannels)
 {
-    if (m_preDelayBuffers.size() == numberOfChannels)
+    if (m_preDelayBuffers.Length() == numberOfChannels)
         return;
 
-    m_preDelayBuffers.clear();
+    m_preDelayBuffers.Clear();
     for (unsigned i = 0; i < numberOfChannels; ++i)
-        m_preDelayBuffers.append(adoptPtr(new AudioFloatArray(MaxPreDelayFrames)));
+        m_preDelayBuffers.AppendElement(new float[MaxPreDelayFrames]);
 }
 
 void DynamicsCompressorKernel::setPreDelayTime(float preDelayTime)
@@ -90,8 +89,8 @@ void DynamicsCompressorKernel::setPreDelayTime(float preDelayTime)
 
     if (m_lastPreDelayFrames != preDelayFrames) {
         m_lastPreDelayFrames = preDelayFrames;
-        for (unsigned i = 0; i < m_preDelayBuffers.size(); ++i)
-            m_preDelayBuffers[i]->zero();
+        for (unsigned i = 0; i < m_preDelayBuffers.Length(); ++i)
+            memset(m_preDelayBuffers[i], 0, sizeof(float) * MaxPreDelayFrames);
 
         m_preDelayReadIndex = 0;
         m_preDelayWriteIndex = preDelayFrames;
@@ -118,10 +117,10 @@ float DynamicsCompressorKernel::saturate(float x, float k)
         y = kneeCurve(x, k);
     else {
         
-        float xDb = linearToDecibels(x);
+        float xDb = WebAudioUtils::ConvertLinearToDecibels(x, -1000.0f);
         float yDb = m_ykneeThresholdDb + m_slope * (xDb - m_kneeThresholdDb);
 
-        y = decibelsToLinear(yDb);
+        y = WebAudioUtils::ConvertDecibelsToLinear(yDb);
     }
 
     return y;
@@ -137,11 +136,11 @@ float DynamicsCompressorKernel::slopeAt(float x, float k)
 
     float x2 = x * 1.001;
 
-    float xDb = linearToDecibels(x);
-    float x2Db = linearToDecibels(x2);
+    float xDb = WebAudioUtils::ConvertLinearToDecibels(x, -1000.0f);
+    float x2Db = WebAudioUtils::ConvertLinearToDecibels(x2, -1000.0f);
 
-    float yDb = linearToDecibels(kneeCurve(x, k));
-    float y2Db = linearToDecibels(kneeCurve(x2, k));
+    float yDb = WebAudioUtils::ConvertLinearToDecibels(kneeCurve(x, k), -1000.0f);
+    float y2Db = WebAudioUtils::ConvertLinearToDecibels(kneeCurve(x2, k), -1000.0f);
 
     float m = (y2Db - yDb) / (x2Db - xDb);
 
@@ -151,7 +150,7 @@ float DynamicsCompressorKernel::slopeAt(float x, float k)
 float DynamicsCompressorKernel::kAtSlope(float desiredSlope)
 {
     float xDb = m_dbThreshold + m_dbKnee;
-    float x = decibelsToLinear(xDb);
+    float x = WebAudioUtils::ConvertDecibelsToLinear(xDb);
 
     
     float minK = 0.1;
@@ -182,7 +181,7 @@ float DynamicsCompressorKernel::updateStaticCurveParameters(float dbThreshold, f
     if (dbThreshold != m_dbThreshold || dbKnee != m_dbKnee || ratio != m_ratio) {
         
         m_dbThreshold = dbThreshold;
-        m_linearThreshold = decibelsToLinear(dbThreshold);
+        m_linearThreshold = WebAudioUtils::ConvertDecibelsToLinear(dbThreshold);
         m_dbKnee = dbKnee;
 
         
@@ -192,9 +191,9 @@ float DynamicsCompressorKernel::updateStaticCurveParameters(float dbThreshold, f
         float k = kAtSlope(1 / m_ratio);
 
         m_kneeThresholdDb = dbThreshold + dbKnee;
-        m_kneeThreshold = decibelsToLinear(m_kneeThresholdDb);
+        m_kneeThreshold = WebAudioUtils::ConvertDecibelsToLinear(m_kneeThresholdDb);
 
-        m_ykneeThresholdDb = linearToDecibels(kneeCurve(m_kneeThreshold, k));
+        m_ykneeThresholdDb = WebAudioUtils::ConvertLinearToDecibels(kneeCurve(m_kneeThreshold, k), -1000.0f);
 
         m_K = k;
     }
@@ -221,7 +220,7 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
                                        float releaseZone4
                                        )
 {
-    ASSERT(m_preDelayBuffers.size() == numberOfChannels);
+    MOZ_ASSERT(m_preDelayBuffers.Length() == numberOfChannels);
 
     float sampleRate = this->sampleRate();
 
@@ -237,7 +236,7 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
     
     fullRangeMakeupGain = powf(fullRangeMakeupGain, 0.6f);
 
-    float masterLinearGain = decibelsToLinear(dbPostGain) * fullRangeMakeupGain;
+    float masterLinearGain = WebAudioUtils::ConvertDecibelsToLinear(dbPostGain) * fullRangeMakeupGain;
 
     
     attackTime = max(0.001f, attackTime);
@@ -286,15 +285,15 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
         
 
         
-        if (std::isnan(m_detectorAverage))
+        if (MOZ_DOUBLE_IS_NaN(m_detectorAverage))
             m_detectorAverage = 1;
-        if (std::isinf(m_detectorAverage))
+        if (MOZ_DOUBLE_IS_INFINITE(m_detectorAverage))
             m_detectorAverage = 1;
 
         float desiredGain = m_detectorAverage;
 
         
-        float scaledDesiredGain = asinf(desiredGain) / (0.5f * piFloat);
+        float scaledDesiredGain = asinf(desiredGain) / (0.5f * M_PI);
 
         
         
@@ -307,16 +306,16 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
         bool isReleasing = scaledDesiredGain > m_compressorGain;
 
         
-        float compressionDiffDb = linearToDecibels(m_compressorGain / scaledDesiredGain);
+        float compressionDiffDb = WebAudioUtils::ConvertLinearToDecibels(m_compressorGain / scaledDesiredGain, -1000.0f);
 
         if (isReleasing) {
             
             m_maxAttackCompressionDiffDb = -1;
 
             
-            if (std::isnan(compressionDiffDb))
+            if (MOZ_DOUBLE_IS_NaN(compressionDiffDb))
                 compressionDiffDb = -1;
-            if (std::isinf(compressionDiffDb))
+            if (MOZ_DOUBLE_IS_INFINITE(compressionDiffDb))
                 compressionDiffDb = -1;
 
             
@@ -337,14 +336,14 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
 #define kSpacingDb 5
             float dbPerFrame = kSpacingDb / releaseFrames;
 
-            envelopeRate = decibelsToLinear(dbPerFrame);
+            envelopeRate = WebAudioUtils::ConvertDecibelsToLinear(dbPerFrame);
         } else {
             
 
             
-            if (std::isnan(compressionDiffDb))
+            if (MOZ_DOUBLE_IS_NaN(compressionDiffDb))
                 compressionDiffDb = 1;
-            if (std::isinf(compressionDiffDb))
+            if (MOZ_DOUBLE_IS_INFINITE(compressionDiffDb))
                 compressionDiffDb = 1;
 
             
@@ -374,7 +373,7 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
 
                 
                 for (unsigned i = 0; i < numberOfChannels; ++i) {
-                    float* delayBuffer = m_preDelayBuffers[i]->data();
+                    float* delayBuffer = m_preDelayBuffers[i];
                     float undelayedSource = sourceChannels[i][frameIndex];
                     delayBuffer[preDelayWriteIndex] = undelayedSource;
 
@@ -396,12 +395,12 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
 
                 float attenuation = absInput <= 0.0001f ? 1 : shapedInput / absInput;
 
-                float attenuationDb = -linearToDecibels(attenuation);
+                float attenuationDb = -WebAudioUtils::ConvertLinearToDecibels(attenuation, -1000.0f);
                 attenuationDb = max(2.0f, attenuationDb);
 
                 float dbPerFrame = attenuationDb / satReleaseFrames;
 
-                float satReleaseRate = decibelsToLinear(dbPerFrame) - 1;
+                float satReleaseRate = WebAudioUtils::ConvertDecibelsToLinear(dbPerFrame) - 1;
 
                 bool isRelease = (attenuation > detectorAverage);
                 float rate = isRelease ? satReleaseRate : 1;
@@ -410,9 +409,9 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
                 detectorAverage = min(1.0f, detectorAverage);
 
                 
-                if (std::isnan(detectorAverage))
+                if (MOZ_DOUBLE_IS_NaN(detectorAverage))
                     detectorAverage = 1;
-                if (std::isinf(detectorAverage))
+                if (MOZ_DOUBLE_IS_INFINITE(detectorAverage))
                     detectorAverage = 1;
 
                 
@@ -426,7 +425,7 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
                 }
 
                 
-                float postWarpCompressorGain = sinf(0.5f * piFloat * compressorGain);
+                float postWarpCompressorGain = sinf(0.5f * M_PI * compressorGain);
 
                 
                 float totalGain = dryMix + wetMix * masterLinearGain * postWarpCompressorGain;
@@ -440,7 +439,7 @@ void DynamicsCompressorKernel::process(float* sourceChannels[],
 
                 
                 for (unsigned i = 0; i < numberOfChannels; ++i) {
-                    float* delayBuffer = m_preDelayBuffers[i]->data();
+                    float* delayBuffer = m_preDelayBuffers[i];
                     destinationChannels[i][frameIndex] = delayBuffer[preDelayReadIndex] * totalGain;
                 }
 
@@ -465,8 +464,8 @@ void DynamicsCompressorKernel::reset()
     m_meteringGain = 1;
 
     
-    for (unsigned i = 0; i < m_preDelayBuffers.size(); ++i)
-        m_preDelayBuffers[i]->zero();
+    for (unsigned i = 0; i < m_preDelayBuffers.Length(); ++i)
+        memset(m_preDelayBuffers[i], 0, sizeof(float) * MaxPreDelayFrames);
 
     m_preDelayReadIndex = 0;
     m_preDelayWriteIndex = DefaultPreDelayFrames;
@@ -475,5 +474,3 @@ void DynamicsCompressorKernel::reset()
 }
 
 } 
-
-#endif 

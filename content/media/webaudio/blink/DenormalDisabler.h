@@ -25,14 +25,16 @@
 #ifndef DenormalDisabler_h
 #define DenormalDisabler_h
 
-#include <wtf/MathExtras.h>
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 namespace WebCore {
 
 
 
 
-#if OS(WINDOWS) && COMPILER(MSVC)
+#if defined(XP_WIN) && defined(_MSC_VER)
+#include <float.h>
 #define HAVE_DENORMAL
 #endif
 
@@ -46,7 +48,7 @@ public:
     DenormalDisabler()
             : m_savedCSR(0)
     {
-#if OS(WINDOWS) && COMPILER(MSVC)
+#if defined(XP_WIN) && defined(_MSC_VER)
         
         
         
@@ -61,7 +63,7 @@ public:
 
     ~DenormalDisabler()
     {
-#if OS(WINDOWS) && COMPILER(MSVC)
+#if defined(XP_WIN) && defined(_MSC_VER)
         unsigned int unused;
         _controlfp_s(&unused, m_savedCSR, _MCW_DN);
 #else
@@ -72,7 +74,7 @@ public:
     
     static inline float flushDenormalFloatToZero(float f)
     {
-#if OS(WINDOWS) && COMPILER(MSVC) && (!_M_IX86_FP)
+#if defined(XP_WIN) && defined(_MSC_VER) && _M_IX86_FP
         
         
         
