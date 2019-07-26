@@ -242,8 +242,6 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
 
   
   
-  nsRect dimBounds = mDimBounds;
-  nsViewVisibility vis = mVis;
   nsIntRect newBounds;
   nsRefPtr<nsDeviceContext> dx;
   mViewManager->GetDeviceContext(*getter_AddRefs(dx));
@@ -253,10 +251,11 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
 
   nsIntRect curBounds;
   widget->GetClientBounds(curBounds);
+  bool invisiblePopup = type == eWindowType_popup &&
+                        ((curBounds.IsEmpty() && mDimBounds.IsEmpty()) ||
+                         mVis == nsViewVisibility_kHide);
 
-  if (type == eWindowType_popup &&
-      ((curBounds.IsEmpty() && dimBounds.IsEmpty()) ||
-       vis == nsViewVisibility_kHide)) {
+  if (invisiblePopup) {
     
   } else {
     newBounds = CalcWidgetBounds(type);
@@ -268,9 +267,7 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
     widget->Show(false);
   }
 
-  if (type == eWindowType_popup &&
-      ((curBounds.IsEmpty() && dimBounds.IsEmpty()) ||
-       vis == nsViewVisibility_kHide)) {
+  if (invisiblePopup) {
     
     
     
