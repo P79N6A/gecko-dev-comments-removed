@@ -2372,16 +2372,6 @@ nsHTMLInputElement::SelectAll(nsPresContext* aPresContext)
   }
 }
 
-void
-nsHTMLInputElement::Click()
-{
-  if (mType == NS_FORM_INPUT_FILE) {
-    FireAsyncClickHandler();
-  }
-
-  nsGenericHTMLElement::Click();
-}
-
 NS_IMETHODIMP
 nsHTMLInputElement::FireAsyncClickHandler()
 {
@@ -2652,6 +2642,32 @@ IsLTR(Element* aElement)
   return aElement->GetDirectionality() == eDir_LTR;
 }
 
+bool
+nsHTMLInputElement::ShouldPreventDOMActivateDispatch(nsIDOMEventTarget* aOriginalTarget)
+{
+  
+
+
+
+
+
+
+
+  if (mType != NS_FORM_INPUT_FILE) {
+    return false;
+  }
+
+  nsCOMPtr<nsIContent> target = do_QueryInterface(aOriginalTarget);
+  if (!target) {
+    return false;
+  }
+
+  return target->GetParent() == this &&
+         target->IsRootOfNativeAnonymousSubtree() &&
+         target->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                             nsGkAtoms::button, eCaseMatters);
+}
+
 nsresult
 nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {
@@ -2676,27 +2692,13 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     UpdateState(true);
   }
 
-  
-  
-  if (mType == NS_FORM_INPUT_FILE) {
-    nsCOMPtr<nsIContent> maybeButton =
-      do_QueryInterface(aVisitor.mEvent->originalTarget);
-    if (maybeButton &&
-      maybeButton->IsRootOfNativeAnonymousSubtree() &&
-      maybeButton->AttrValueIs(kNameSpaceID_None,
-                               nsGkAtoms::type,
-                               nsGkAtoms::button,
-                               eCaseMatters)) {
-        return NS_OK;
-    }
-  }
-
   nsresult rv = NS_OK;
   bool outerActivateEvent = !!(aVisitor.mItemFlags & NS_OUTER_ACTIVATE_EVENT);
   bool originalCheckedValue =
     !!(aVisitor.mItemFlags & NS_ORIGINAL_CHECKED_VALUE);
   bool noContentDispatch = !!(aVisitor.mItemFlags & NS_NO_CONTENT_DISPATCH);
   uint8_t oldType = NS_CONTROL_TYPE(aVisitor.mItemFlags);
+
   
   
   
@@ -2706,7 +2708,8 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   
   if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
       !IsSingleLineTextControl(true) &&
-      NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
+      NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
+      !ShouldPreventDOMActivateDispatch(aVisitor.mEvent->originalTarget)) {
     nsUIEvent actEvent(aVisitor.mEvent->mFlags.mIsTrusted, NS_UI_ACTIVATE, 1);
 
     nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
@@ -3072,6 +3075,17 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
   if (NS_SUCCEEDED(rv) && mType == NS_FORM_INPUT_RANGE) {
     PostHandleEventForRangeThumb(aVisitor);
+  }
+
+  
+  
+  
+  
+  
+  
+  if (mType == NS_FORM_INPUT_FILE && NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
+      !aVisitor.mEvent->mFlags.mDefaultPrevented) {
+    return FireAsyncClickHandler();
   }
 
   return rv;

@@ -108,9 +108,9 @@ protected:
     nsWeakFrame mFrame;
   };
 
-  class BrowseMouseListener: public MouseListener {
+  class DnDListener: public MouseListener {
   public:
-    BrowseMouseListener(nsFileControlFrame* aFrame)
+    DnDListener(nsFileControlFrame* aFrame)
       : MouseListener(aFrame)
     {}
 
@@ -139,7 +139,8 @@ protected:
   
 
 
-  nsRefPtr<BrowseMouseListener> mMouseListener;
+
+  nsRefPtr<DnDListener> mMouseListener;
 
 protected:
   

@@ -78,8 +78,6 @@ public:
 
   
   NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
-  virtual void Click() MOZ_OVERRIDE;
   virtual int32_t TabIndexDefault() MOZ_OVERRIDE;
   virtual void Focus(mozilla::ErrorResult& aError) MOZ_OVERRIDE;
 
@@ -730,6 +728,13 @@ protected:
     return aType == NS_FORM_INPUT_NUMBER || aType == NS_FORM_INPUT_DATE ||
            aType == NS_FORM_INPUT_TIME;
   }
+
+  
+
+
+
+
+  bool ShouldPreventDOMActivateDispatch(nsIDOMEventTarget* aOriginalTarget);
 
   nsCOMPtr<nsIControllers> mControllers;
 
