@@ -153,39 +153,48 @@ public class EventListener implements GeckoEventListener {
         allocator.putOrigin(index, aOrigin);
     }
 
-    public static void uninstallWebapp(final String uniqueURI) {
+    public static void uninstallWebapp(final String packageName) {
         
         
         
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                int index;
-                index = Allocator.getInstance(GeckoAppShell.getContext()).releaseIndexForApp(uniqueURI);
+                int index = Allocator.getInstance(GeckoAppShell.getContext()).releaseIndexForApp(packageName);
 
                 
                 if (index == -1)
                     return;
 
-                
-                String targetProcessName = GeckoAppShell.getContext().getPackageName();
-                targetProcessName = targetProcessName + ":" + targetProcessName + ".Webapp" + index;
-
-                ActivityManager am = (ActivityManager) GeckoAppShell.getContext().getSystemService(Context.ACTIVITY_SERVICE);
-                List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
-                if (procs != null) {
-                    for (ActivityManager.RunningAppProcessInfo proc : procs) {
-                        if (proc.processName.equals(targetProcessName)) {
-                            android.os.Process.killProcess(proc.pid);
-                            break;
-                        }
-                    }
-                }
+                killWebappSlot(GeckoAppShell.getContext(), index);
 
                 
                 GeckoProfile.removeProfile(GeckoAppShell.getContext(), "webapp" + index);
             }
         });
+    }
+
+    
+
+
+
+
+
+    public static void killWebappSlot(Context context, int slot) {
+        
+        String targetProcessName = context.getPackageName();
+        targetProcessName = targetProcessName + ":" + targetProcessName + ".Webapp" + slot;
+
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+        if (procs != null) {
+            for (ActivityManager.RunningAppProcessInfo proc : procs) {
+                if (proc.processName.equals(targetProcessName)) {
+                    android.os.Process.killProcess(proc.pid);
+                    break;
+                }
+            }
+        }
     }
 
     public static void installApk(final Activity context, String filePath, String data) {
