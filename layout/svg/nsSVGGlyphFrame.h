@@ -22,7 +22,7 @@ class nsRenderingContext;
 class nsSVGGlyphFrame;
 class nsSVGTextFrame;
 class nsSVGTextPathFrame;
-class gfxTextObjectPaint;
+class gfxTextContextPaint;
 
 struct CharacterPosition;
 
@@ -33,7 +33,7 @@ class SVGIRect;
 }
 
 
-struct SVGTextObjectPaint : public gfxTextObjectPaint {
+struct SVGTextContextPaint : public gfxTextContextPaint {
   already_AddRefed<gfxPattern> GetFillPattern(float aOpacity,
                                               const gfxMatrix& aCTM) MOZ_OVERRIDE;
   already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity,
@@ -61,18 +61,18 @@ struct SVGTextObjectPaint : public gfxTextObjectPaint {
       mPaintDefinition.mColor = aColor;
     }
 
-    void SetObjectPaint(gfxTextObjectPaint *aObjectPaint,
-                        nsStyleSVGPaintType aPaintType) {
+    void SetContextPaint(gfxTextContextPaint *aContextPaint,
+                         nsStyleSVGPaintType aPaintType) {
       NS_ASSERTION(aPaintType == eStyleSVGPaintType_ObjectFill ||
                    aPaintType == eStyleSVGPaintType_ObjectStroke,
-                   "Invalid object paint type");
+                   "Invalid context paint type");
       mPaintType = aPaintType;
-      mPaintDefinition.mObjectPaint = aObjectPaint;
+      mPaintDefinition.mContextPaint = aContextPaint;
     }
 
     union {
       nsSVGPaintServerFrame *mPaintServerFrame;
-      gfxTextObjectPaint *mObjectPaint;
+      gfxTextContextPaint *mContextPaint;
       nscolor mColor;
     } mPaintDefinition;
 
@@ -312,7 +312,7 @@ private:
   void DrawCharacters(CharacterIterator *aIter,
                       gfxContext *aContext,
                       DrawMode aDrawMode,
-                      gfxTextObjectPaint *aObjectPaint = nullptr);
+                      gfxTextContextPaint *aContextPaint = nullptr);
 
   void NotifyGlyphMetricsChange();
   void SetupGlobalTransform(gfxContext *aContext, uint32_t aFor,
@@ -340,34 +340,34 @@ private:
 
 private:
   DrawMode SetupCairoState(gfxContext *aContext,
-                           gfxTextObjectPaint *aOuterObjectPaint,
-                           gfxTextObjectPaint **aThisObjectPaint);
+                           gfxTextContextPaint *aOuterContextPaint,
+                           gfxTextContextPaint **aThisContextPaint);
 
   
 
 
 
   bool SetupCairoStroke(gfxContext *aContext,
-                        gfxTextObjectPaint *aOuterObjectPaint,
-                        SVGTextObjectPaint *aThisObjectPaint);
+                        gfxTextContextPaint *aOuterContextPaint,
+                        SVGTextContextPaint *aThisContextPaint);
 
   
 
 
 
   bool SetupCairoFill(gfxContext *aContext,
-                      gfxTextObjectPaint *aOuterObjectPaint,
-                      SVGTextObjectPaint *aThisObjectPaint);
+                      gfxTextContextPaint *aOuterContextPaint,
+                      SVGTextContextPaint *aThisContextPaint);
 
   
 
 
 
 
-  bool SetupObjectPaint(gfxContext *aContext,
+  bool SetupContextPaint(gfxContext *aContext,
                         nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                         float& aOpacity,
-                        gfxTextObjectPaint *aObjectPaint);
+                        gfxTextContextPaint *aContextPaint);
 
   
 
@@ -381,8 +381,8 @@ private:
 
   void SetupInheritablePaint(gfxContext *aContext,
                              float& aOpacity,
-                             gfxTextObjectPaint *aOuterObjectPaint,
-                             SVGTextObjectPaint::Paint& aTargetPaint,
+                             gfxTextContextPaint *aOuterContextPaint,
+                             SVGTextContextPaint::Paint& aTargetPaint,
                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                              const FramePropertyDescriptor *aProperty);
 

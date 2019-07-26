@@ -118,7 +118,7 @@ public:
 
 
     bool RenderGlyph(gfxContext *aContext, uint32_t aGlyphId, DrawMode aDrawMode,
-                     gfxTextObjectPaint *aObjectPaint);
+                     gfxTextContextPaint *aContextPaint);
 
     
 
@@ -161,11 +161,10 @@ private:
 
 
 
-
-class gfxTextObjectPaint
+class gfxTextContextPaint
 {
 protected:
-    gfxTextObjectPaint() { }
+    gfxTextContextPaint() { }
 
 public:
     static mozilla::gfx::UserDataKey sUserDataKey;
@@ -206,7 +205,7 @@ public:
         return GetStrokePattern(GetStrokeOpacity(), aCTM);
     }
 
-    virtual ~gfxTextObjectPaint() { }
+    virtual ~gfxTextContextPaint() { }
 
 private:
     FallibleTArray<gfxFloat> mDashes;
@@ -218,7 +217,7 @@ private:
 
 
 
-class SimpleTextObjectPaint : public gfxTextObjectPaint
+class SimpleTextContextPaint : public gfxTextContextPaint
 {
 private:
     static const gfxRGBA sZero;
@@ -235,7 +234,7 @@ public:
         return deviceToUser * aPattern->GetMatrix();
     }
 
-    SimpleTextObjectPaint(gfxPattern *aFillPattern, gfxPattern *aStrokePattern,
+    SimpleTextContextPaint(gfxPattern *aFillPattern, gfxPattern *aStrokePattern,
                           const gfxMatrix& aCTM) :
         mFillPattern(aFillPattern ? aFillPattern : new gfxPattern(sZero)),
         mStrokePattern(aStrokePattern ? aStrokePattern : new gfxPattern(sZero))
