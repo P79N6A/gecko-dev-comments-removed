@@ -379,8 +379,18 @@ static bool
 IsOffsetParent(nsIFrame* aFrame)
 {
   nsIAtom* frameType = aFrame->GetType();
-  return (IS_TABLE_CELL(frameType) ||
-          frameType == nsGkAtoms::tableFrame);
+  
+  if (IS_TABLE_CELL(frameType) || frameType == nsGkAtoms::tableFrame) {
+    
+    
+    
+    
+    nsIContent* content = aFrame->GetContent();
+
+    return content->IsHTML(nsGkAtoms::table) || content->IsHTML(nsGkAtoms::td)
+      || content->IsHTML(nsGkAtoms::th);
+  }
+  return false;
 }
 
 Element*
