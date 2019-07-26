@@ -177,7 +177,7 @@ ShadowLayerForwarder::PlatformSyncBeforeUpdate()
     
     
     
-    XSync(DefaultXDisplay(), False);
+    FinishX(DefaultXDisplay());
   }
 }
 
