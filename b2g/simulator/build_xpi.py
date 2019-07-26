@@ -48,10 +48,12 @@ def process_package_overload(src, dst, version, app_buildid):
     
     
     
+    
+    
     defines = {
         "NUM_VERSION": version,
         "SLASH_VERSION": version.replace(".", "_"),
-        "FULL_VERSION": ("%s.%s" % (version, app_buildid))
+        "FULL_VERSION": ("%s.%s" % (version, app_buildid[:8]))
     }
     pp = Preprocessor(defines=defines)
     pp.do_filter("substitution")
