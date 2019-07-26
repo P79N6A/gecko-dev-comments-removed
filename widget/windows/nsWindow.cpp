@@ -284,6 +284,9 @@ static const int32_t kGlassMarginAdjustment = 2;
 static const int32_t kResizableBorderMinSize = 3;
 
 
+static bool gIsPointerEventsEnabled = false;
+
+
 
 
 
@@ -382,6 +385,10 @@ nsWindow::nsWindow() : nsWindowBase()
     
     nsUXThemeData::UpdateNativeThemeInfo();
     RedirectedKeyDownMessageManager::Forget();
+
+    Preferences::AddBoolVarCache(&gIsPointerEventsEnabled,
+                                 "dom.w3c_pointer_events.enabled",
+                                 gIsPointerEventsEnabled);
   } 
 
   mIdleService = nullptr;
@@ -1271,7 +1278,8 @@ void nsWindow::SetThemeRegion()
 
 
 NS_METHOD nsWindow::RegisterTouchWindow() {
-  if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0)) {
+  if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0) ||
+      gIsPointerEventsEnabled) {
     mTouchWindow = true;
     mGesture.RegisterTouchWindow(mWnd);
     ::EnumChildWindows(mWnd, nsWindow::RegisterTouchForDescendants, 0);
@@ -3792,6 +3800,10 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   modifierKeyState.InitInputEvent(event);
   event.button    = aButton;
   event.inputSource = aInputSource;
+  
+  event.convertToPointer =
+    aInputSource == nsIDOMMouseEvent::MOZ_SOURCE_PEN ||
+    !(WinUtils::GetIsMouseFromTouch(aEventType) && mTouchWindow);
 
   nsIntPoint mpScreen = eventPoint + WidgetToScreenOffset();
 
@@ -5231,6 +5243,11 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         
         
         
+        if (gIsPointerEventsEnabled) {
+          result = false;
+          break;
+        }
+
         GESTURENOTIFYSTRUCT * gestureinfo = (GESTURENOTIFYSTRUCT*)lParam;
         nsPointWin touchPoint;
         touchPoint = gestureinfo->ptsLocation;
@@ -6093,6 +6110,10 @@ static int32_t RoundDown(double aDouble)
 
 bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 {
+  if (gIsPointerEventsEnabled) {
+    return false;
+  }
+
   
   if (mGesture.IsPanEvent(lParam)) {
     if ( !mGesture.ProcessPanMessage(mWnd, wParam, lParam) )
