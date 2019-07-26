@@ -20,6 +20,8 @@ class HTMLTableRowElement : public nsGenericHTMLElement,
 public:
   HTMLTableRowElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLTableRowElement, nsGkAtoms::tr)
+
   
   NS_DECL_ISUPPORTS_INHERITED
 
