@@ -35,9 +35,16 @@ function ArrayIndexOf(searchElement) {
     }
 
     
-    for (; k < len; k++) {
-        if (k in O && O[k] === searchElement)
-            return k;
+    if (IsPackedArray(O)) {
+        for (; k < len; k++) {
+            if (O[k] === searchElement)
+                return k;
+        }
+    } else {
+        for (; k < len; k++) {
+            if (k in O && O[k] === searchElement)
+                return k;
+        }
     }
 
     
@@ -76,9 +83,16 @@ function ArrayLastIndexOf(searchElement) {
         k = n;
 
     
-    for (; k >= 0; k--) {
-        if (k in O && O[k] === searchElement)
-            return k;
+    if (IsPackedArray(O)) {
+        for (; k >= 0; k--) {
+            if (O[k] === searchElement)
+                return k;
+        }
+    } else {
+        for (; k >= 0; k--) {
+            if (k in O && O[k] === searchElement)
+                return k;
+        }
     }
 
     
@@ -118,12 +132,21 @@ function ArrayEvery(callbackfn) {
 
     
     
-    for (var k = 0; k < len; k++) {
-        
-        if (k in O) {
+    if (IsPackedArray(O)) {
+        for (var k = 0; k < len; k++) {
+            
             
             if (!callFunction(callbackfn, T, O[k], k, O))
                 return false;
+        }
+    } else {
+        for (var k = 0; k < len; k++) {
+            
+            if (k in O) {
+                
+                if (!callFunction(callbackfn, T, O[k], k, O))
+                    return false;
+            }
         }
     }
 
@@ -159,12 +182,21 @@ function ArraySome(callbackfn) {
 
     
     
-    for (var k = 0; k < len; k++) {
-        
-        if (k in O) {
+    if (IsPackedArray(O)) {
+        for (var k = 0; k < len; k++) {
+            
             
             if (callFunction(callbackfn, T, O[k], k, O))
                 return true;
+        }
+    } else {
+        for (var k = 0; k < len; k++) {
+            
+            if (k in O) {
+                
+                if (callFunction(callbackfn, T, O[k], k, O))
+                    return true;
+            }
         }
     }
 
@@ -200,11 +232,19 @@ function ArrayForEach(callbackfn) {
 
     
     
-    for (var k = 0; k < len; k++) {
-        
-        if (k in O) {
+    if (IsPackedArray(O)) {
+        for (var k = 0; k < len; k++) {
+            
             
             callFunction(callbackfn, T, O[k], k, O);
+        }
+    } else {
+        for (var k = 0; k < len; k++) {
+            
+            if (k in O) {
+                
+                callFunction(callbackfn, T, O[k], k, O);
+            }
         }
     }
 
@@ -234,13 +274,23 @@ function ArrayMap(callbackfn) {
 
     
     
-    for (var k = 0; k < len; k++) {
-        
-        if (k in O) {
+    if (IsPackedArray(O)) {
+        for (var k = 0; k < len; k++) {
+            
             
             var mappedValue = callFunction(callbackfn, T, O[k], k, O);
             
             UnsafePutElements(A, k, mappedValue);
+        }
+    } else {
+        for (var k = 0; k < len; k++) {
+            
+            if (k in O) {
+                
+                var mappedValue = callFunction(callbackfn, T, O[k], k, O);
+                
+                UnsafePutElements(A, k, mappedValue);
+            }
         }
     }
 
@@ -283,6 +333,8 @@ function ArrayReduce(callbackfn) {
     
     var k = 0;
 
+    var isPacked = IsPackedArray(O);
+
     
     var accumulator;
     if (arguments.length > 1) {
@@ -291,26 +343,38 @@ function ArrayReduce(callbackfn) {
         
         if (len === 0)
             ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
-        var kPresent = false;
-        for (; k < len; k++) {
-            if (k in O) {
-                accumulator = O[k];
-                kPresent = true;
-                k++;
-                break;
+        if (isPacked) {
+            accumulator = O[k++];
+        } else {
+            var kPresent = false;
+            for (; k < len; k++) {
+                if (k in O) {
+                    accumulator = O[k];
+                    kPresent = true;
+                    k++;
+                    break;
+                }
             }
+            if (!kPresent)
+              ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
         }
-        if (!kPresent)
-            ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
     }
 
     
     
-    for (; k < len; k++) {
-        
-        if (k in O) {
+    if (isPacked) {
+        for (; k < len; k++) {
+            
             
             accumulator = callbackfn(accumulator, O[k], k, O);
+        }
+    } else {
+        for (; k < len; k++) {
+            
+            if (k in O) {
+                
+                accumulator = callbackfn(accumulator, O[k], k, O);
+            }
         }
     }
 
@@ -346,6 +410,8 @@ function ArrayReduceRight(callbackfn) {
     
     var k = len - 1;
 
+    var isPacked = IsPackedArray(O);
+
     
     var accumulator;
     if (arguments.length > 1) {
@@ -354,26 +420,38 @@ function ArrayReduceRight(callbackfn) {
         
         if (len === 0)
             ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
-        var kPresent = false;
-        for (; k >= 0; k--) {
-            if (k in O) {
-                accumulator = O[k];
-                kPresent = true;
-                k--;
-                break;
+        if (isPacked) {
+            accumulator = O[k--];
+        } else {
+            var kPresent = false;
+            for (; k >= 0; k--) {
+                if (k in O) {
+                    accumulator = O[k];
+                    kPresent = true;
+                    k--;
+                    break;
+                }
             }
+            if (!kPresent)
+                ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
         }
-        if (!kPresent)
-            ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
     }
 
     
     
-    for (; k >= 0; k--) {
-        
-        if (k in O) {
+    if (isPacked) {
+        for (; k >= 0; k--) {
+            
             
             accumulator = callbackfn(accumulator, O[k], k, O);
+        }
+    } else {
+        for (; k >= 0; k--) {
+            
+            if (k in O) {
+                
+                accumulator = callbackfn(accumulator, O[k], k, O);
+            }
         }
     }
 
@@ -416,13 +494,24 @@ function ArrayFind(predicate) {
 
 
 
-    for (var k = 0; k < len; k++) {
-        
-        if (k in O) {
+    var k;
+    if (IsPackedArray(O)) {
+        for (k = 0; k < len; k++) {
+            
             
             var kValue = O[k];
             if (callFunction(predicate, T, kValue, k, O))
                 return kValue;
+        }
+    } else {
+        for (k = 0; k < len; k++) {
+            
+            if (k in O) {
+                
+                var kValue = O[k];
+                if (callFunction(predicate, T, kValue, k, O))
+                    return kValue;
+            }
         }
     }
 
@@ -454,12 +543,22 @@ function ArrayFindIndex(predicate) {
 
 
 
-    for (var k = 0; k < len; k++) {
-        
-        if (k in O) {
+    var k;
+    if (IsPackedArray(O)) {
+        for (k = 0; k < len; k++) {
+            
             
             if (callFunction(predicate, T, O[k], k, O))
                 return k;
+        }
+    } else {
+        for (k = 0; k < len; k++) {
+            
+            if (k in O) {
+                
+                if (callFunction(predicate, T, O[k], k, O))
+                    return k;
+            }
         }
     }
 
