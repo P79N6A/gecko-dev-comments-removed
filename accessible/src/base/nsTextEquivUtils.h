@@ -20,19 +20,19 @@
 enum ETextEquivRule
 {
   
-  eNoRule = 0x00,
+  eNoNameRule = 0x00,
 
   
   
-  eFromSubtreeIfRec = 0x01,
+  eNameFromSubtreeIfReqRule = 0x01,
 
   
-  eFromSubtree = 0x03,
+  eNameFromSubtreeRule = 0x03,
 
   
   
   
-  eFromValue = 0x04
+  eNameFromValueRule = 0x04
 };
 
 
