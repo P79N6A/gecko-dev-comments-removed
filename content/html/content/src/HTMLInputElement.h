@@ -56,8 +56,7 @@ public:
 
 
 
-
-  nsresult StoreLastUsedDirectory(nsIDocument* aDoc, nsIDOMFile* aDomFile);
+  nsresult StoreLastUsedDirectory(nsIDocument* aDoc, nsIFile* aDir);
 
   class ContentPrefCallback MOZ_FINAL : public nsIContentPrefCallback2
   {
@@ -392,6 +391,8 @@ public:
   
 
   nsDOMFileList* GetFiles();
+
+  void OpenDirectoryPicker(ErrorResult& aRv);
 
   
   void SetFormAction(const nsAString& aValue, ErrorResult& aRv)
@@ -1080,7 +1081,11 @@ protected:
 
   nsresult MaybeInitPickers(nsEventChainPostVisitor& aVisitor);
 
-  nsresult InitFilePicker();
+  enum FilePickerType {
+    FILE_PICKER_FILE,
+    FILE_PICKER_DIRECTORY
+  };
+  nsresult InitFilePicker(FilePickerType aType);
   nsresult InitColorPicker();
 
   
