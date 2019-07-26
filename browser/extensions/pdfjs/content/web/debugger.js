@@ -15,6 +15,7 @@
 
 
 
+
 'use strict';
 
 var FontInspector = (function FontInspectorClosure() {
@@ -271,7 +272,7 @@ var Stepper = (function StepperClosure() {
             else
               self.breakPoints.splice(self.breakPoints.indexOf(x), 1);
             StepperManager.saveBreakPoints(self.pageIndex, self.breakPoints);
-          }
+          };
         })(i);
 
         breakCell.appendChild(cbox);
@@ -376,7 +377,7 @@ var Stats = (function Stats() {
       wrapper.appendChild(title);
       wrapper.appendChild(statsDiv);
       stats.push({ pageNumber: pageNumber, div: wrapper });
-      stats.sort(function(a, b) { return a.pageNumber - b.pageNumber});
+      stats.sort(function(a, b) { return a.pageNumber - b.pageNumber; });
       clear(this.panel);
       for (var i = 0, ii = stats.length; i < ii; ++i)
         this.panel.appendChild(stats[i].div);

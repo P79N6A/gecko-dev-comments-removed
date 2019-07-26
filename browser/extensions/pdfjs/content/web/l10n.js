@@ -1,6 +1,7 @@
 
 
 
+
 'use strict';
 
 
@@ -42,7 +43,8 @@
       return;
 
     
-    var data = getL10nData(element.dataset.l10nId);
+    var key = element.dataset.l10nId;
+    var data = getL10nData(key);
     if (!data)
       return;
 
