@@ -162,6 +162,25 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_CBC_RANDOM_IV 23
 #define SSL_ENABLE_OCSP_STAPLING       24 /* Request OCSP stapling (client) */
 
+
+
+
+
+
+
+#define SSL_ENABLE_NPN 25
+
+
+
+
+
+
+
+
+
+
+#define SSL_ENABLE_ALPN 26
+
 #ifdef SSL_DEPRECATED_FUNCTION 
 
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);
@@ -208,6 +227,16 @@ SSL_IMPORT SECStatus SSL_SetNextProtoCallback(PRFileDesc *fd,
 
 
 
+
+
+
+
+
+
+
+
+
+
 SSL_IMPORT SECStatus SSL_SetNextProtoNego(PRFileDesc *fd,
 					  const unsigned char *data,
 					  unsigned int length);
@@ -215,7 +244,8 @@ SSL_IMPORT SECStatus SSL_SetNextProtoNego(PRFileDesc *fd,
 typedef enum SSLNextProtoState { 
   SSL_NEXT_PROTO_NO_SUPPORT = 0, 
   SSL_NEXT_PROTO_NEGOTIATED = 1, 
-  SSL_NEXT_PROTO_NO_OVERLAP = 2  
+  SSL_NEXT_PROTO_NO_OVERLAP = 2, 
+  SSL_NEXT_PROTO_SELECTED   = 3  
 } SSLNextProtoState;
 
 

@@ -142,6 +142,8 @@ pkix_pl_AIAMgr_RegisterSelf(void *plContext)
 
 
 
+
+
 static PKIX_Error *
 pkix_pl_AiaMgr_FindLDAPClient(
         PKIX_PL_AIAMgr *aiaMgr,
@@ -154,6 +156,17 @@ pkix_pl_AiaMgr_FindLDAPClient(
 
         PKIX_ENTER(AIAMGR, "pkix_pl_AiaMgr_FindLDAPClient");
         PKIX_NULLCHECK_THREE(aiaMgr, domainName, pClient);
+
+        
+
+
+
+
+
+        if (*domainName == '\0') {
+                
+                PKIX_ERROR(PKIX_LDAPDEFAULTCLIENTCREATEBYNAMEFAILED);
+        }
 
         
         PKIX_CHECK(PKIX_PL_String_Create
