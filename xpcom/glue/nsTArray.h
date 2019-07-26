@@ -658,14 +658,18 @@ struct nsTArray_CopyWithConstructors
 
 
 template <class E>
-struct nsTArray_CopyElements : public nsTArray_CopyWithMemutils {};
+struct nsTArray_CopyChooser {
+  typedef nsTArray_CopyWithMemutils Type;
+};
 
 
 
 
 
 template <class E>
-struct nsTArray_CopyElements<JS::Heap<E> > : public nsTArray_CopyWithConstructors<E> {};
+struct nsTArray_CopyChooser<JS::Heap<E> > {
+  typedef nsTArray_CopyWithConstructors<E> Type;
+};
 
 
 
@@ -717,11 +721,11 @@ struct nsTArray_TypedBase<JS::Heap<E>, Derived>
 
 
 template<class E, class Alloc>
-class nsTArray_Impl : public nsTArray_base<Alloc, nsTArray_CopyElements<E> >,
+class nsTArray_Impl : public nsTArray_base<Alloc, typename nsTArray_CopyChooser<E>::Type>,
                       public nsTArray_TypedBase<E, nsTArray_Impl<E, Alloc> >
 {
 public:
-  typedef nsTArray_CopyElements<E>                   copy_type;
+  typedef typename nsTArray_CopyChooser<E>::Type     copy_type;
   typedef nsTArray_base<Alloc, copy_type>            base_type;
   typedef typename base_type::size_type              size_type;
   typedef typename base_type::index_type             index_type;
