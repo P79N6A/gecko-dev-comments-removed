@@ -324,7 +324,13 @@ RESTRequest.prototype = {
     channel.contentCharset = this.charset;
 
     
-    channel.asyncOpen(this, null);
+    try {
+      channel.asyncOpen(this, null);
+    } catch (ex) {
+      
+      this._log.warn("Caught an error in asyncOpen: " + CommonUtils.exceptionStr(ex));
+      CommonUtils.nextTick(onComplete.bind(this, ex));
+    }
     this.status = this.SENT;
     this.delayTimeout();
     return this;
