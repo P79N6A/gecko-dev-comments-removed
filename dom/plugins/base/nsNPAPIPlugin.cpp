@@ -250,6 +250,11 @@ nsNPAPIPlugin::PluginCrashed(const nsAString& pluginDumpID,
 bool
 nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 {
+#if (MOZ_WIDGET_GTK == 3)
+  
+  
+  return true;
+#else
   if (PR_GetEnv("MOZ_DISABLE_OOP_PLUGINS")) {
     return false;
   }
@@ -376,6 +381,7 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   }
 
   return oopPluginsEnabled;
+#endif
 }
 
 inline PluginLibrary*
