@@ -4,12 +4,12 @@
 
 
 
-#ifndef   NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79
-#define   NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79
+#if !defined(NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79)
+#define NESTEGG_671cac2a_365d_ed69_d7a3_4491d3538d79
 
 #include <nestegg/nestegg-stdint.h>
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -334,7 +334,7 @@ int nestegg_has_cues(nestegg * context);
 
 int nestegg_sniff(unsigned char const * buffer, size_t length);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 
