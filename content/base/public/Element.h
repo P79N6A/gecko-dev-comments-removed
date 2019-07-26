@@ -338,6 +338,8 @@ public:
             (HasValidDir() || IsHTML(nsGkAtoms::bdi)));
   }
 
+  Directionality GetComputedDirectionality() const;
+
 protected:
   
 
