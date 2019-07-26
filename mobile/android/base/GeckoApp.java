@@ -1571,10 +1571,8 @@ abstract public class GeckoApp
 
         initializeChrome(passedUri, isExternalURL);
 
-        
         if (mRestoreMode == RESTORE_NONE) {
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
-            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Telemetry:Prompt", null));
         }
 
         Telemetry.HistogramAdd("FENNEC_STARTUP_GECKOAPP_ACTION", startupAction.ordinal());

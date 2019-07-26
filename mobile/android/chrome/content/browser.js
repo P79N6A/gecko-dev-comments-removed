@@ -984,7 +984,7 @@ var BrowserApp = {
           prefs.push(pref);
           continue;
         
-        case "privacy.donottrackheader": {
+        case "privacy.donottrackheader":
           pref.type = "string";
 
           let enableDNT = Services.prefs.getBoolPref("privacy.donottrackheader.enabled");
@@ -998,7 +998,28 @@ var BrowserApp = {
 
           prefs.push(pref);
           continue;
-        }
+#ifdef MOZ_CRASHREPORTER
+        
+        case "datareporting.crashreporter.submitEnabled":
+          pref.type = "bool";
+          pref.value = CrashReporter.submitReports;
+          prefs.push(pref);
+          continue;
+#endif
+      }
+
+      
+      switch (prefName) {
+#ifdef MOZ_TELEMETRY_REPORTING
+        
+        case Telemetry.SHARED_PREF_TELEMETRY_ENABLED:
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+          prefName = "toolkit.telemetry.enabledPreRelease";
+#else
+          prefName = "toolkit.telemetry.enabled";
+#endif
+          break;
+#endif
       }
 
       try {
@@ -1114,6 +1135,12 @@ var BrowserApp = {
         Services.prefs.setBoolPref(SearchEngines.PREF_SUGGEST_PROMPTED, true);
         break;
 
+#ifdef MOZ_CRASHREPORTER
+      
+      case "datareporting.crashreporter.submitEnabled":
+        CrashReporter.submitReports = json.value;
+        return;
+#endif
       
       
       
@@ -1122,6 +1149,20 @@ var BrowserApp = {
         json.type = "int";
         json.value = parseInt(json.value);
         break;
+    }
+
+    
+    switch (json.name) {
+#ifdef MOZ_TELEMETRY_REPORTING
+      
+      case Telemetry.SHARED_PREF_TELEMETRY_ENABLED:
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+        json.name = "toolkit.telemetry.enabledPreRelease";
+#else
+        json.name = "toolkit.telemetry.enabled";
+#endif
+        break;
+#endif
     }
 
     switch (json.type) {
@@ -3055,25 +3096,12 @@ Tab.prototype = {
       
       
       
-      let hasHorizontalMargins = gViewportMargins.left > 0 || gViewportMargins.right > 0;
-      let hasVerticalMargins = gViewportMargins.top > 0 || gViewportMargins.bottom > 0;
-      let pageHeightGreaterThanScreenHeight, pageWidthGreaterThanScreenWidth;
-
-      if (hasHorizontalMargins) {
-        pageWidthGreaterThanScreenWidth =
-            Math.round(viewport.pageRight - viewport.pageLeft)
-            > gScreenWidth + gViewportMargins.left + gViewportMargins.right;
-      }
-      if (hasVerticalMargins) {
-        pageHeightGreaterThanScreenHeight =
-            Math.round(viewport.pageBottom - viewport.pageTop)
-            > gScreenHeight + gViewportMargins.top + gViewportMargins.bottom;
-      }
-
-      if ((hasHorizontalMargins
-           && (pageWidthGreaterThanScreenWidth != this.viewportExcludesHorizontalMargins)) ||
-          (hasVerticalMargins
-           && (pageHeightGreaterThanScreenHeight != this.viewportExcludesVerticalMargins))) {
+      if (((Math.round(viewport.pageBottom - viewport.pageTop)
+              <= gScreenHeight + gViewportMargins.top + gViewportMargins.bottom)
+             != this.viewportExcludesVerticalMargins) ||
+          ((Math.round(viewport.pageRight - viewport.pageLeft)
+              <= gScreenWidth + gViewportMargins.left + gViewportMargins.right)
+             != this.viewportExcludesHorizontalMargins)) {
         if (!this.viewportMeasureCallback) {
           this.viewportMeasureCallback = setTimeout(function() {
             this.viewportMeasureCallback = null;
@@ -3087,12 +3115,6 @@ Tab.prototype = {
             }
           }.bind(this), kViewportRemeasureThrottle);
         }
-      } else if (this.viewportMeasureCallback) {
-        
-        
-        
-        clearTimeout(this.viewportMeasureCallback);
-        this.viewportMeasureCallback = null;
       }
     }
   },
@@ -4686,7 +4708,7 @@ var FormAssistant = {
 
           if (this._showValidationMessage(focused))
             break;
-          this._showAutoCompleteSuggestions(focused, function () {});
+          this._showAutoCompleteSuggestions(focused);
         } else {
           
           this._hideFormAssistPopup();
@@ -4756,14 +4778,8 @@ var FormAssistant = {
         
         if (this._showValidationMessage(currentElement))
           break;
-
-        let checkResultsClick = hasResults => {
-          if (!hasResults) {
-            this._hideFormAssistPopup();
-          }
-        };
-
-        this._showAutoCompleteSuggestions(currentElement, checkResultsClick);
+        if (!this._showAutoCompleteSuggestions(currentElement))
+          this._hideFormAssistPopup();
         break;
 
       case "input":
@@ -4771,18 +4787,13 @@ var FormAssistant = {
 
         
         
-        let checkResultsInput = hasResults => {
-          if (hasResults)
-            return;
+        if (this._showAutoCompleteSuggestions(currentElement))
+          break;
+        if (this._showValidationMessage(currentElement))
+          break;
 
-          if (!this._showValidationMessage(currentElement))
-            return;
-
-          
-          this._hideFormAssistPopup();
-        };
-
-        this._showAutoCompleteSuggestions(currentElement, checkResultsInput);
+        
+        this._hideFormAssistPopup();
         break;
 
       
@@ -4806,31 +4817,27 @@ var FormAssistant = {
   },
 
   
-  
-  _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement, aCallback) {
+  _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement) {
     
     if (!this._formAutoCompleteService)
       this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].
                                       getService(Ci.nsIFormAutoComplete);
 
-    let resultsAvailable = function (results) {
-      let suggestions = [];
-      for (let i = 0; i < results.matchCount; i++) {
-        let value = results.getValueAt(i);
+    let results = this._formAutoCompleteService.autoCompleteSearch(aElement.name || aElement.id,
+                                                                   aSearchString, aElement, null);
+    let suggestions = [];
+    for (let i = 0; i < results.matchCount; i++) {
+      let value = results.getValueAt(i);
 
-        
-        if (value == aSearchString)
-          continue;
+      
+      if (value == aSearchString)
+        continue;
 
-        
-        suggestions.push({ label: value, value: value });
-        aCallback(suggestions);
-      }
-    };
+      
+      suggestions.push({ label: value, value: value });
+    }
 
-    this._formAutoCompleteService.autoCompleteSearchAsync(aElement.name || aElement.id,
-                                                          aSearchString, aElement, null,
-                                                          resultsAvailable);
+    return suggestions;
   },
 
   
@@ -4869,45 +4876,38 @@ var FormAssistant = {
   
   
   
-  
-  _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement, aCallback) {
-    if (!this._isAutoComplete(aElement)) {
-      aCallback(false);
-      return;
-    }
+  _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement) {
+    if (!this._isAutoComplete(aElement))
+      return false;
 
     
     
     if (this._isBlocklisted && aElement.value.length > 0) {
-      aCallback(false);
-      return;
+      return false;
     }
 
-    let resultsAvailable = autoCompleteSuggestions => {
-      
-      
-      let listSuggestions = this._getListSuggestions(aElement);
-      let suggestions = autoCompleteSuggestions.concat(listSuggestions);
+    let autoCompleteSuggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
+    let listSuggestions = this._getListSuggestions(aElement);
 
-      
-      if (!suggestions.length) {
-        aCallback(false);
-        return;
-      }
+    
+    
+    let suggestions = autoCompleteSuggestions.concat(listSuggestions);
 
-      sendMessageToJava({
-        type:  "FormAssist:AutoComplete",
-        suggestions: suggestions,
-        rect: ElementTouchHelper.getBoundingContentRect(aElement)
-      });
+    
+    if (!suggestions.length)
+      return false;
 
-      
-      
-      this._currentInputElement = aElement;
-      aCallback(true);
-    };
+    sendMessageToJava({
+      type:  "FormAssist:AutoComplete",
+      suggestions: suggestions,
+      rect: ElementTouchHelper.getBoundingContentRect(aElement)
+    });
 
-    this._getAutoCompleteSuggestions(aElement.value, aElement, resultsAvailable);
+    
+    
+    this._currentInputElement = aElement;
+
+    return true;
   },
 
   
@@ -6476,30 +6476,14 @@ var RemoteDebugger = {
 };
 
 var Telemetry = {
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-  _PREF_TELEMETRY_ENABLED: "toolkit.telemetry.enabledPreRelease",
-  _PREF_TELEMETRY_DISPLAYED: "toolkit.telemetry.notifiedOptOut",
-#else
-  _PREF_TELEMETRY_ENABLED: "toolkit.telemetry.enabled",
-  _PREF_TELEMETRY_DISPLAYED: "toolkit.telemetry.prompted",
-#endif
-  _PREF_TELEMETRY_REJECTED: "toolkit.telemetry.rejected",
-  _PREF_TELEMETRY_SERVER_OWNER: "toolkit.telemetry.server_owner",
-
-  
-  
-  _TELEMETRY_DISPLAY_REV: @MOZ_TELEMETRY_DISPLAY_REV@,
+  SHARED_PREF_TELEMETRY_ENABLED: "datareporting.telemetry.enabled",
 
   init: function init() {
-    Services.obs.addObserver(this, "Preferences:Set", false);
     Services.obs.addObserver(this, "Telemetry:Add", false);
-    Services.obs.addObserver(this, "Telemetry:Prompt", false);
   },
 
   uninit: function uninit() {
-    Services.obs.removeObserver(this, "Preferences:Set");
     Services.obs.removeObserver(this, "Telemetry:Add");
-    Services.obs.removeObserver(this, "Telemetry:Prompt");
   },
 
   addData: function addData(aHistogramId, aValue) {
@@ -6509,131 +6493,10 @@ var Telemetry = {
   },
 
   observe: function observe(aSubject, aTopic, aData) {
-    if (aTopic == "Preferences:Set") {
-      
-      let pref = JSON.parse(aData);
-      if (pref.name == this._PREF_TELEMETRY_ENABLED) {
-        Services.prefs.setIntPref(this._PREF_TELEMETRY_DISPLAYED, this._TELEMETRY_DISPLAY_REV);
-        Services.prefs.setBoolPref(this._PREF_TELEMETRY_REJECTED, !pref.value);
-      }
-    } else if (aTopic == "Telemetry:Add") {
+    if (aTopic == "Telemetry:Add") {
       let json = JSON.parse(aData);
       this.addData(json.name, json.value);
-    } else if (aTopic == "Telemetry:Prompt") {
-#ifdef MOZ_TELEMETRY_REPORTING
-      this.prompt();
-#endif
     }
-  },
-
-  prompt: function prompt() {
-    let brandShortName = Strings.brand.GetStringFromName("brandShortName");
-    let serverOwner = Services.prefs.getCharPref(this._PREF_TELEMETRY_SERVER_OWNER);
-    let telemetryEnabled = Services.prefs.getBoolPref(this._PREF_TELEMETRY_ENABLED);
-    let message;
-    let buttons;
-    let self = this;
-
-    
-
-
-
-
-
-
-
-
-
-    let telemetryDisplayed;
-    try {
-      telemetryDisplayed = Services.prefs.getIntPref(self._PREF_TELEMETRY_DISPLAYED);
-    } catch(e) {}
-    if (telemetryDisplayed >= self._TELEMETRY_DISPLAY_REV)
-      return;
-
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-    
-
-
-
-
-
-
-
-
-    let telemetryEnabled = Services.prefs.getBoolPref(self._PREF_TELEMETRY_ENABLED);
-    if (!telemetryEnabled)
-      return;
-
-    
-    
-    let telemetryRejected = false;
-    try {
-      telemetryRejected = Services.prefs.getBoolPref(self._PREF_TELEMETRY_REJECTED);
-    } catch(e) {}
-    if (telemetryRejected) {
-      Services.prefs.setBoolPref(self._PREF_TELEMETRY_ENABLED, false);
-      Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
-      return;
-    }
-
-    
-    
-    let optInTelemetryEnabled = false;
-    try {
-      optInTelemetryEnabled = Services.prefs.getBoolPref("toolkit.telemetry.enabled");
-    } catch(e) {}
-    if (optInTelemetryEnabled && telemetryDisplayed === undefined) {
-      Services.prefs.setBoolPref(self._PREF_TELEMETRY_REJECTED, false);
-      Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
-      return;
-    }
-
-    message = Strings.browser.formatStringFromName("telemetry.optout.message2",
-                                                    [brandShortName, serverOwner, brandShortName], 3);
-    buttons = [
-      {
-        label: Strings.browser.GetStringFromName("telemetry.optout.ok"),
-        callback: function () {
-          Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
-        }
-      }
-    ];
-#else
-    
-    Services.prefs.clearUserPref(self._PREF_TELEMETRY_DISPLAYED);
-    Services.prefs.clearUserPref(self._PREF_TELEMETRY_ENABLED);
-    Services.prefs.clearUserPref(self._PREF_TELEMETRY_REJECTED);
-
-    message = Strings.browser.formatStringFromName("telemetry.optin.message2",
-                                                  [serverOwner, brandShortName], 2);
-    buttons = [
-      {
-        label: Strings.browser.GetStringFromName("telemetry.optin.send"),
-        callback: function () {
-          Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
-          Services.prefs.setBoolPref(self._PREF_TELEMETRY_ENABLED, true);
-        }
-      },
-      {
-        label: Strings.browser.GetStringFromName("telemetry.optin.dontSend"),
-        callback: function () {
-          Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
-          Services.prefs.setBoolPref(self._PREF_TELEMETRY_REJECTED, true);
-        }
-      }
-    ];
-#endif
-    let learnMoreLabel = Strings.browser.GetStringFromName("telemetry.optin.learnMore");
-    let learnMoreUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
-    learnMoreUrl += "how-can-i-help-submitting-performance-data";
-    let options = {
-      link: {
-        label: learnMoreLabel,
-        url: learnMoreUrl
-      }
-    };
-    NativeWindow.doorhanger.show(message, "telemetry-prompt", buttons, BrowserApp.selectedTab.id, options);
   },
 };
 
