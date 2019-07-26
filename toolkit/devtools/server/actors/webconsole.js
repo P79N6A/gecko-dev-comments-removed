@@ -214,6 +214,33 @@ WebConsoleActor.prototype =
 
 
 
+
+
+
+
+
+  createEnvironmentActor: function WCA_createEnvironmentActor(aEnvironment) {
+    if (!aEnvironment) {
+      return undefined;
+    }
+
+    if (aEnvironment.actor) {
+      return aEnvironment.actor;
+    }
+
+    let actor = new EnvironmentActor(aEnvironment, this);
+    this._actorPool.addActor(actor);
+    aEnvironment.actor = actor;
+
+    return actor;
+  },
+
+  
+
+
+
+
+
   createValueGrip: function WCA_createValueGrip(aValue)
   {
     return this._createValueGrip(aValue, this._actorPool);

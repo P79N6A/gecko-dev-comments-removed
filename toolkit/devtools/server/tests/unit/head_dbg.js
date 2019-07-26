@@ -37,6 +37,7 @@ function testExceptionHook(ex) {
   } catch(ex) {
     return {throw: ex}
   }
+  return undefined;
 }
 
 

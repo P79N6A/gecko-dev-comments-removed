@@ -28,9 +28,14 @@ XPCOMUtils.defineLazyGetter(this, "VARIABLES_SORTING_ENABLED", () =>
   Services.prefs.getBoolPref("devtools.debugger.ui.variables-sorting-enabled")
 );
 
-const MAX_LONG_STRING_LENGTH = 200000;
+XPCOMUtils.defineLazyModuleGetter(this, "console",
+  "resource://gre/modules/devtools/Console.jsm");
 
-this.EXPORTED_SYMBOLS = ["VariablesViewController"];
+const MAX_LONG_STRING_LENGTH = 200000;
+const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
+
+this.EXPORTED_SYMBOLS = ["VariablesViewController", "StackFrameUtils"];
+
 
 
 
@@ -54,6 +59,7 @@ function VariablesViewController(aView, aOptions) {
 
   this._getObjectClient = aOptions.getObjectClient;
   this._getLongStringClient = aOptions.getLongStringClient;
+  this._getEnvironmentClient = aOptions.getEnvironmentClient;
   this._releaseActor = aOptions.releaseActor;
 
   if (aOptions.overrideValueEvalMacro) {
@@ -131,8 +137,15 @@ VariablesViewController.prototype = {
 
   _populateFromObject: function(aTarget, aGrip) {
     let deferred = promise.defer();
+    
+    let finish = variable => {
+      variable._retrieved = true;
+      this.view.commitHierarchy();
+      deferred.resolve();
+    };
 
-    this._getObjectClient(aGrip).getPrototypeAndProperties(aResponse => {
+    let objectClient = this._getObjectClient(aGrip);
+    objectClient.getPrototypeAndProperties(aResponse => {
       let { ownProperties, prototype } = aResponse;
       
       let safeGetterValues = aResponse.safeGetterValues || {};
@@ -168,12 +181,100 @@ VariablesViewController.prototype = {
       }
 
       
-      aTarget._retrieved = true;
-      this.view.commitHierarchy();
-      deferred.resolve();
+      if (aGrip.class == "Function") {
+        objectClient.getScope(aResponse => {
+          if (aResponse.error) {
+            console.error(aResponse.error + ": " + aResponse.message);
+            finish(aTarget);
+            return;
+          }
+          this._addVarScope(aTarget, aResponse.scope).then(() => finish(aTarget));
+        });
+      } else {
+        finish(aTarget);
+      }
     });
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _addVarScope: function(aTarget, aScope) {
+    let objectScopes = [];
+    let environment = aScope;
+    let funcScope = aTarget.addItem("<Closure>");
+    funcScope._target.setAttribute("scope", "");
+    funcScope._fetched = true;
+    funcScope.showArrow();
+    do {
+      
+      let label = StackFrameUtils.getScopeLabel(environment);
+      
+      let closure = funcScope.addItem(label, undefined, true);
+      closure._target.setAttribute("scope", "");
+      closure._fetched = environment.class == "Function";
+      closure.showArrow();
+      
+      if (environment.bindings) {
+        this._addBindings(closure, environment.bindings);
+        funcScope._retrieved = true;
+        closure._retrieved = true;
+      } else {
+        let deferred = Promise.defer();
+        objectScopes.push(deferred.promise);
+        this._getEnvironmentClient(environment).getBindings(response => {
+          this._addBindings(closure, response.bindings);
+          funcScope._retrieved = true;
+          closure._retrieved = true;
+          deferred.resolve();
+        });
+      }
+    } while ((environment = environment.parent));
+    aTarget.expand();
+
+    return Promise.all(objectScopes).then(() => {
+      
+      this.view.emit("fetched", "scopes", funcScope);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  _addBindings: function(closure, bindings) {
+    for (let argument of bindings.arguments) {
+      let name = Object.getOwnPropertyNames(argument)[0];
+      let argRef = closure.addItem(name, argument[name]);
+      let argVal = argument[name].value;
+      this.addExpander(argRef, argVal);
+    }
+
+    let aVariables = bindings.variables;
+    let variableNames = Object.keys(aVariables);
+
+    
+    if (VARIABLES_SORTING_ENABLED) {
+      variableNames.sort();
+    }
+    
+    for (let name of variableNames) {
+      let varRef = closure.addItem(name, aVariables[name]);
+      let varVal = aVariables[name].value;
+      this.addExpander(varRef, varVal);
+    }
   },
 
   
@@ -360,3 +461,64 @@ VariablesViewController.attach = function(aView, aOptions) {
   }
   return new VariablesViewController(aView, aOptions);
 };
+
+
+
+
+let StackFrameUtils = {
+  
+
+
+
+
+
+
+  getFrameTitle: function(aFrame) {
+    if (aFrame.type == "call") {
+      let c = aFrame.callee;
+      return (c.name || c.userDisplayName || c.displayName || "(anonymous)");
+    }
+    return "(" + aFrame.type + ")";
+  },
+
+  
+
+
+
+
+
+
+
+  getScopeLabel: function(aEnv) {
+    let name = "";
+
+    
+    if (!aEnv.parent) {
+      name = L10N.getStr("globalScopeLabel");
+    }
+    
+    else {
+      name = aEnv.type.charAt(0).toUpperCase() + aEnv.type.slice(1);
+    }
+
+    let label = L10N.getFormatStr("scopeLabel", name);
+    switch (aEnv.type) {
+      case "with":
+      case "object":
+        label += " [" + aEnv.object.class + "]";
+        break;
+      case "function":
+        let f = aEnv.function;
+        label += " [" +
+          (f.name || f.userDisplayName || f.displayName || "(anonymous)") +
+        "]";
+        break;
+    }
+    return label;
+  }
+};
+
+
+
+
+let L10N = new ViewHelpers.L10N(DBG_STRINGS_URI);

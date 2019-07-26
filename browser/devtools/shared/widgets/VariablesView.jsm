@@ -1150,6 +1150,7 @@ Scope.prototype = {
 
 
 
+
   addItem: function(aName = "", aDescriptor = {}, aRelaxed = false) {
     if (this._store.has(aName) && !aRelaxed) {
       return null;
@@ -2304,6 +2305,11 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
       this.hideArrow();
     }
 
+    
+    if (!descriptor.get && !descriptor.set && !descriptor.value) {
+      separatorLabel.hidden = true;
+    }
+
     if (descriptor.get || descriptor.set) {
       separatorLabel.hidden = true;
       valueLabel.hidden = true;
@@ -2443,6 +2449,7 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
 
 
+
   _setAttributes: function() {
     let ownerView = this.ownerView;
     if (ownerView.preventDescriptorModifiers) {
@@ -2485,7 +2492,6 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     if (name == "this") {
       target.setAttribute("self", "");
     }
-
     else if (name == "<exception>") {
       target.setAttribute("exception", "");
     }

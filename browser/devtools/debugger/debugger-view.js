@@ -148,6 +148,7 @@ let DebuggerView = {
 
     
     VariablesViewController.attach(this.Variables, {
+      getEnvironmentClient: aObject => gThreadClient.environment(aObject),
       getObjectClient: aObject => gThreadClient.pauseGrip(aObject)
     });
 

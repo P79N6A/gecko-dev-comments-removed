@@ -15,6 +15,7 @@ this.EXPORTED_SYMBOLS = ["DebuggerTransport",
                          "RootClient",
                          "debuggerSocketConnect",
                          "LongStringClient",
+                         "EnvironmentClient",
                          "ObjectClient"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1644,6 +1645,13 @@ ThreadClient.prototype = {
   
 
 
+  environment: function(aForm) {
+    return new EnvironmentClient(this._client, aForm);
+  },
+
+  
+
+
   source: function TC_source(aForm) {
     if (aForm.actor in this._threadGrips) {
       return this._threadGrips[aForm.actor];
@@ -1893,6 +1901,23 @@ ObjectClient.prototype = {
   }, {
     telemetry: "DISPLAYSTRING"
   }),
+
+  
+
+
+
+
+  getScope: DebuggerClient.requester({
+    type: "scope"
+  }, {
+    before: function (aPacket) {
+      if (this._grip.class !== "Function") {
+        throw new Error("scope is only valid for function grips.");
+      }
+      return aPacket;
+    },
+    telemetry: "SCOPE"
+  })
 };
 
 
@@ -2091,6 +2116,49 @@ BreakpointClient.prototype = {
 };
 
 eventSource(BreakpointClient.prototype);
+
+
+
+
+
+
+
+
+
+function EnvironmentClient(aClient, aForm) {
+  this._client = aClient;
+  this._form = aForm;
+  this.request = this._client.request;
+}
+
+EnvironmentClient.prototype = {
+
+  get actor() this._form.actor,
+  get _transport() { return this._client._transport; },
+
+  
+
+
+  getBindings: DebuggerClient.requester({
+    type: "bindings"
+  }, {
+    telemetry: "BINDINGS"
+  }),
+
+  
+
+
+
+  assign: DebuggerClient.requester({
+    type: "assign",
+    name: args(0),
+    value: args(1)
+  }, {
+    telemetry: "ASSIGN"
+  })
+};
+
+eventSource(EnvironmentClient.prototype);
 
 
 

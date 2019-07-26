@@ -666,62 +666,6 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-let StackFrameUtils = {
-  
-
-
-
-
-
-
-  getFrameTitle: function(aFrame) {
-    if (aFrame.type == "call") {
-      let c = aFrame.callee;
-      return (c.userDisplayName || c.displayName || c.name || "(anonymous)");
-    }
-    return "(" + aFrame.type + ")";
-  },
-
-  
-
-
-
-
-
-
-
-  getScopeLabel: function(aEnv) {
-    let name = "";
-
-    
-    if (!aEnv.parent) {
-      name = L10N.getStr("globalScopeLabel");
-    }
-    
-    else {
-      name = aEnv.type.charAt(0).toUpperCase() + aEnv.type.slice(1);
-    }
-
-    let label = L10N.getFormatStr("scopeLabel", name);
-    switch (aEnv.type) {
-      case "with":
-      case "object":
-        label += " [" + aEnv.object.class + "]";
-        break;
-      case "function":
-        let f = aEnv.function;
-        label += " [" +
-          (f.userDisplayName || f.displayName || f.name || "(anonymous)") +
-        "]";
-        break;
-    }
-    return label;
-  }
-};
-
-
-
-
 function FilterView() {
   dumpn("FilterView was instantiated");
 
