@@ -18,6 +18,10 @@ const PREF_GETADDONS_BYIDS_PERFORMANCE   = "extensions.getAddons.getWithPerforma
 
 const TIMEOUT_MS = 900000;
 
+
+
+const gProfD = do_get_profile();
+
 Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -1246,9 +1250,6 @@ if ("nsIWindowsRegKey" in AM_Ci) {
                             "Mock Windows Registry Implementation",
                             "@mozilla.org/windows-registry-key;1", WinRegFactory);
 }
-
-
-const gProfD = do_get_profile();
 
 const EXTENSIONS_DB = "extensions.json";
 let gExtensionsJSON = gProfD.clone();

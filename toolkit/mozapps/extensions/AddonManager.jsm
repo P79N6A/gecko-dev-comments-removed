@@ -98,6 +98,23 @@ parentLogger.addAppender(new Log.ConsoleAppender(formatter));
 parentLogger.addAppender(new Log.DumpAppender(formatter));
 
 
+Cu.import("resource://gre/modules/FileUtils.jsm");
+const KEY_PROFILEDIR = "ProfD";
+const FILE_EXTENSIONS_LOG = "extensions.log";
+let logfile = null;
+let parentFileAppender = null;
+try {
+  logfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_EXTENSIONS_LOG]);
+  parentFileAppender = new Log.FileAppender(logfile.path, formatter);
+  parentLogger.addAppender(parentFileAppender);
+}
+catch (e) {
+  let message = "Error appending to "+ FILE_EXTENSIONS_LOG +": " + e.message;
+  dump(message + "\n");
+  Services.console.logStringMessage(message);
+}
+
+
 
 const LOGGER_ID = "addons.manager";
 let logger = Log.repository.getLogger(LOGGER_ID);
@@ -872,7 +889,15 @@ var AddonManagerInternal = {
           delete this.startupChanges[type];
         gStarted = false;
         gStartupComplete = false;
-      });
+      })
+      .then(() => {
+        if (parentFileAppender !== null) {
+          return parentFileAppender.reset();
+        } else {
+          return null;
+        }
+      })
+      .then(null, err => logger.error("Failure during FileAppender log file closure", err));
     return shuttingDown;
   },
 
