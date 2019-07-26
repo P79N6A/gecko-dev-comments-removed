@@ -107,10 +107,12 @@ class Selection;
 namespace dom {
 class BarProp;
 class Console;
+class External;
 class Function;
 class Gamepad;
 class MediaQueryList;
 class Navigator;
+class OwningExternalOrWindowProxy;
 class SpeechSynthesis;
 class WakeLock;
 namespace indexedDB {
@@ -823,6 +825,10 @@ public:
 
   mozilla::dom::Console* GetConsole(mozilla::ErrorResult& aRv);
 
+  void GetSidebar(mozilla::dom::OwningExternalOrWindowProxy& aResult,
+                  mozilla::ErrorResult& aRv);
+  already_AddRefed<mozilla::dom::External> GetExternal(mozilla::ErrorResult& aRv);
+
 protected:
   bool AlertOrConfirm(bool aAlert, const nsAString& aMessage,
                       mozilla::ErrorResult& aError);
@@ -1455,6 +1461,11 @@ protected:
   nsGlobalWindowObserver*       mObserver; 
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
   nsRefPtr<mozilla::dom::Console> mConsole;
+  
+  
+  
+  
+  nsCOMPtr<nsISupports>         mExternal;
 
   nsCOMPtr<nsIDOMStorage>      mLocalStorage;
   nsCOMPtr<nsIDOMStorage>      mSessionStorage;

@@ -94,7 +94,6 @@ Sidebar.prototype = {
   
   
   
-  
   AddSearchProvider: function AddSearchProvider(aDescriptionURL) {
     if (!this._validateSearchEngine(aDescriptionURL, ""))
       return;
@@ -122,16 +121,7 @@ Sidebar.prototype = {
   },
 
   
-  classInfo: XPCOMUtils.generateCI({classID: SIDEBAR_CID,
-                                    contractID: SIDEBAR_CONTRACTID,
-                                    interfaces: [Ci.nsISidebar,
-                                                 Ci.nsISidebarExternal],
-                                    flags: Ci.nsIClassInfo.DOM_OBJECT,
-                                    classDescription: "Sidebar"}),
-
-  
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsISidebar,
-                                         Ci.nsISidebarExternal]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports]),
 
   
   classID: SIDEBAR_CID,

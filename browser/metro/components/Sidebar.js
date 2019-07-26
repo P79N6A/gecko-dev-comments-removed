@@ -71,7 +71,6 @@ Sidebar.prototype = {
 
   
   
-  
   addSearchEngine: function addSearchEngine(engineURL, iconURL, suggestedTitle,
                                             suggestedCategory) {
     if (!this._validateSearchEngine(engineURL, iconURL))
@@ -92,7 +91,6 @@ Sidebar.prototype = {
     Services.search.addEngine(engineURL, dataType, iconURL, true);
   },
 
-  
   
   
   
@@ -123,16 +121,7 @@ Sidebar.prototype = {
   },
 
   
-  classInfo: XPCOMUtils.generateCI({classID: SIDEBAR_CID,
-                                    contractID: SIDEBAR_CONTRACTID,
-                                    interfaces: [Ci.nsISidebar,
-                                                 Ci.nsISidebarExternal],
-                                    flags: Ci.nsIClassInfo.DOM_OBJECT,
-                                    classDescription: "Sidebar"}),
-
-  
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsISidebar,
-                                         Ci.nsISidebarExternal]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports]),
 
   
   classID: SIDEBAR_CID,

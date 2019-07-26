@@ -1988,6 +1988,20 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
     return nullptr;
   }
 
+  ConstructJSImplementation(aCx, aContractId, window, aObject, aRv);
+
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+  return window.forget();
+}
+
+void
+ConstructJSImplementation(JSContext* aCx, const char* aContractId,
+                          nsPIDOMWindow* aWindow,
+                          JS::MutableHandle<JSObject*> aObject,
+                          ErrorResult& aRv)
+{
   
   
   
@@ -1999,17 +2013,17 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
     if (!implISupports) {
       NS_WARNING("Failed to get JS implementation for contract");
       aRv.Throw(NS_ERROR_FAILURE);
-      return nullptr;
+      return;
     }
     
     nsCOMPtr<nsIDOMGlobalPropertyInitializer> gpi =
       do_QueryInterface(implISupports);
     if (gpi) {
       JS::Rooted<JS::Value> initReturn(aCx);
-      nsresult rv = gpi->Init(window, &initReturn);
+      nsresult rv = gpi->Init(aWindow, &initReturn);
       if (NS_FAILED(rv)) {
         aRv.Throw(rv);
-        return nullptr;
+        return;
       }
       
       
@@ -2025,16 +2039,13 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
     MOZ_ASSERT(implWrapped, "Failed to get wrapped JS from XPCOM component.");
     if (!implWrapped) {
       aRv.Throw(NS_ERROR_FAILURE);
-      return nullptr;
+      return;
     }
     aObject.set(implWrapped->GetJSObject());
     if (!aObject) {
       aRv.Throw(NS_ERROR_FAILURE);
-      return nullptr;
     }
   }
-
-  return window.forget();
 }
 
 bool
