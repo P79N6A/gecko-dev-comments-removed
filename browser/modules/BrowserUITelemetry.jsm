@@ -17,6 +17,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
   "resource:///modules/RecentWindow.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
   "resource:///modules/CustomizableUI.jsm");
+XPCOMUtils.defineLazyGetter(this, "Timer", function() {
+  let timer = {};
+  Cu.import("resource://gre/modules/Timer.jsm", timer);
+  return timer;
+});
+
+const MS_SECOND = 1000;
+const MS_MINUTE = MS_SECOND * 60;
+const MS_HOUR = MS_MINUTE * 60;
 
 XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
   let result = {
@@ -149,6 +158,14 @@ const MOUSEDOWN_MONITORED_ITEMS = [
 
 const WINDOW_DURATION_MAP = new WeakMap();
 
+
+const BUCKET_DEFAULT = "__DEFAULT__";
+
+const BUCKET_PREFIX = "bucket_";
+
+
+const BUCKET_SEPARATOR = "|";
+
 this.BrowserUITelemetry = {
   init: function() {
     UITelemetry.addSimpleMeasureFunction("toolbars",
@@ -204,6 +221,7 @@ this.BrowserUITelemetry = {
   _ensureObjectChain: function(aKeys, aEndWith) {
     let current = this._countableEvents;
     let parent = null;
+    aKeys.unshift(this._bucket);
     for (let [i, key] of Iterator(aKeys)) {
       if (!(key in current)) {
         if (i == aKeys.length - 1) {
@@ -538,16 +556,152 @@ this.BrowserUITelemetry = {
       durationMap = {};
       WINDOW_DURATION_MAP.set(aWindow, durationMap);
     }
-    durationMap.customization = aWindow.performance.now();
+
+    durationMap.customization = {
+      start: aWindow.performance.now(),
+      bucket: this._bucket,
+    };
   },
 
   onCustomizeEnd: function(aWindow) {
     let durationMap = WINDOW_DURATION_MAP.get(aWindow);
     if (durationMap && "customization" in durationMap) {
-      let duration = aWindow.performance.now() - durationMap.customization;
-      this._durations.customization.push(duration);
+      let duration = aWindow.performance.now() - durationMap.customization.start;
+      this._durations.customization.push({
+        duration: duration,
+        bucket: durationMap.customization.bucket,
+      });
       delete durationMap.customization;
     }
+  },
+
+  _bucket: BUCKET_DEFAULT,
+  _bucketTimer: null,
+
+  
+
+
+  get BUCKET_DEFAULT() BUCKET_DEFAULT,
+
+  
+
+
+  get BUCKET_PREFIX() BUCKET_PREFIX,
+
+  
+
+
+
+  get BUCKET_SEPARATOR() BUCKET_SEPARATOR,
+
+  get currentBucket() {
+    return this._bucket;
+  },
+
+  
+
+
+
+
+
+  setBucket: function(aName) {
+    if (this._bucketTimer) {
+      Timer.clearTimeout(this._bucketTimer);
+      this._bucketTimer = null;
+    }
+
+    if (aName)
+      this._bucket = BUCKET_PREFIX + aName;
+    else
+      this._bucket = BUCKET_DEFAULT;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setExpiringBucket: function(aName, aTimeSteps, aTimeOffset = 0) {
+    if (aTimeSteps.length === 0) {
+      this.setBucket(null);
+      return;
+    }
+
+    if (this._bucketTimer) {
+      Timer.clearTimeout(this._bucketTimer);
+      this._bucketTimer = null;
+    }
+
+    
+    
+    let steps = [...aTimeSteps];
+    let msec = steps.shift();
+    let postfix = this._toTimeStr(msec);
+    this.setBucket(aName + BUCKET_SEPARATOR + postfix);
+
+    this._bucketTimer = Timer.setTimeout(() => {
+      this._bucketTimer = null;
+      this.setExpiringBucket(aName, steps, aTimeOffset + msec);
+    }, msec - aTimeOffset);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _toTimeStr: function(aTimeMS) {
+    let timeStr = "";
+
+    function reduce(aUnitLength, aSymbol) {
+      if (aTimeMS >= aUnitLength) {
+        let units = Math.floor(aTimeMS / aUnitLength);
+        aTimeMS = aTimeMS - (units * aUnitLength)
+        timeStr += units + aSymbol;
+      }
+    }
+
+    reduce(MS_HOUR, "h");
+    reduce(MS_MINUTE, "m");
+    reduce(MS_SECOND, "s");
+    reduce(1, "ms");
+
+    return timeStr;
   },
 };
 
