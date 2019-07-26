@@ -34,19 +34,23 @@
 typedef uint32_t be32;
 typedef uint16_t be16;
 
-#if 0
-not used yet
-
-
-static be32 cpu_to_be32(int32_t v)
+static be32 cpu_to_be32(uint32_t v)
 {
 #ifdef IS_LITTLE_ENDIAN
 	return ((v & 0xff) << 24) | ((v & 0xff00) << 8) | ((v & 0xff0000) >> 8) | ((v & 0xff000000) >> 24);
-	
+#else
 	return v;
 #endif
 }
+
+static be16 cpu_to_be16(uint16_t v)
+{
+#ifdef IS_LITTLE_ENDIAN
+	return ((v & 0xff) << 8) | ((v & 0xff00) >> 8);
+#else
+	return v;
 #endif
+}
 
 static uint32_t be32_to_cpu(be32 v)
 {
@@ -133,6 +137,16 @@ static uInt8Number read_uInt8Number(struct mem_source *mem, size_t offset)
 static uInt16Number read_uInt16Number(struct mem_source *mem, size_t offset)
 {
 	return read_u16(mem, offset);
+}
+
+static void write_u32(void *mem, size_t offset, uint32_t value)
+{
+    *((uint32_t *)((unsigned char*)mem + offset)) = cpu_to_be32(value);
+}
+
+static void write_u16(void *mem, size_t offset, uint16_t value)
+{
+    *((uint16_t *)((unsigned char*)mem + offset)) = cpu_to_be16(value);
 }
 
 #define BAD_VALUE_PROFILE NULL
@@ -848,10 +862,9 @@ static struct curveType *curve_from_gamma(float gamma)
 		return NULL;
 	curve->count = num_entries;
 	curve->data[0] = float_to_u8Fixed8Number(gamma);
-  curve->type = CURVE_TYPE;
+  	curve->type = CURVE_TYPE;
 	return curve;
 }
-
 
 
 
@@ -1152,25 +1165,27 @@ void qcms_profile_release(qcms_profile *profile)
 
 
 #include <stdio.h>
-qcms_profile* qcms_profile_from_file(FILE *file)
+static void qcms_data_from_file(FILE *file, void **mem, size_t *size)
 {
 	uint32_t length, remaining_length;
-	qcms_profile *profile;
 	size_t read_length;
 	be32 length_be;
 	void *data;
 
+	*mem = NULL;
+	*size = 0;
+
 	if (fread(&length_be, 1, sizeof(length_be), file) != sizeof(length_be))
-		return BAD_VALUE_PROFILE;
+		return;
 
 	length = be32_to_cpu(length_be);
 	if (length > MAX_PROFILE_SIZE || length < sizeof(length_be))
-		return BAD_VALUE_PROFILE;
+		return;
 
 	
 	data = malloc(length);
 	if (!data)
-		return NO_MEM_PROFILE;
+		return;
 
 	
 	*((be32*)data) = length_be;
@@ -1180,8 +1195,23 @@ qcms_profile* qcms_profile_from_file(FILE *file)
 	read_length = fread((unsigned char*)data + sizeof(length_be), 1, remaining_length, file);
 	if (read_length != remaining_length) {
 		free(data);
-		return INVALID_PROFILE;
+		return;
 	}
+
+	
+	*mem = data;
+	*size = length;
+}
+
+qcms_profile* qcms_profile_from_file(FILE *file)
+{
+	uint32_t length;
+	qcms_profile *profile;
+	void *data;
+
+	qcms_data_from_file(file, &data, &length);
+	if ((data == NULL) || (length == 0))
+		return INVALID_PROFILE;
 
 	profile = qcms_profile_from_memory(data, length);
 	free(data);
@@ -1199,6 +1229,19 @@ qcms_profile* qcms_profile_from_path(const char *path)
 	return profile;
 }
 
+void qcms_data_from_path(const char *path, void **mem, size_t *size)
+{
+	FILE *file = NULL;
+	*mem = NULL;
+	*size  = 0;
+	
+	file = fopen(path, "rb");
+	if (file) {
+		qcms_data_from_file(file, mem, size);
+		fclose(file);
+	}
+}
+
 #ifdef _WIN32
 
 qcms_profile* qcms_profile_from_unicode_path(const wchar_t *path)
@@ -1211,4 +1254,128 @@ qcms_profile* qcms_profile_from_unicode_path(const wchar_t *path)
 	}
 	return profile;
 }
+
+void qcms_data_from_unicode_path(const wchar_t *path, void **mem, size_t *size)
+{
+	FILE *file = NULL;
+	*mem = NULL;
+	*size  = 0;
+	
+	file = _wfopen(path, L"rb");
+	if (file) {
+		qcms_data_from_file(file, mem, size);
+		fclose(file);
+	}
+}
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define ICC_PROFILE_HEADER_LENGTH 128
+void qcms_data_create_rgb_with_gamma(qcms_CIE_xyY white_point, qcms_CIE_xyYTRIPLE primaries, float gamma, void **mem, size_t *size)
+{
+	uint32_t length, offset, index, xyz_count, trc_count;
+	size_t tag_table_offset, tag_data_offset;
+	void *data;
+	struct matrix colorants;
+
+	uint32_t TAG_XYZ[3] = {TAG_rXYZ, TAG_gXYZ, TAG_bXYZ};
+	uint32_t TAG_TRC[3] = {TAG_rTRC, TAG_gTRC, TAG_bTRC};
+
+	if ((mem == NULL) || (size == NULL))
+		return;
+
+	*mem = NULL;
+	*size = 0;
+
+	
+
+
+
+
+	xyz_count = 3; 
+	trc_count = 3; 
+	length =  ICC_PROFILE_HEADER_LENGTH + 4 + (12 * (xyz_count + trc_count)) + (xyz_count * 20) + (trc_count * 16);
+	
+	
+	data = malloc(length);
+	if (!data)
+		return;
+	memset(data, 0, length);
+
+	
+	if (!get_rgb_colorants(&colorants, white_point, primaries)) {
+		free(data);
+		return;
+	}
+
+	 
+	tag_table_offset = ICC_PROFILE_HEADER_LENGTH + 4;
+	tag_data_offset = ICC_PROFILE_HEADER_LENGTH + 4 +
+	   (12 * (xyz_count + trc_count)); 
+
+	for (index = 0; index < xyz_count; ++index) {
+		
+		write_u32(data, tag_table_offset, TAG_XYZ[index]);
+		write_u32(data, tag_table_offset+4, tag_data_offset);
+		write_u32(data, tag_table_offset+8, 20); 
+
+		
+		write_u32(data, tag_data_offset, XYZ_TYPE);
+		
+		write_u32(data, tag_data_offset+8, double_to_s15Fixed16Number(colorants.m[0][index]));
+		write_u32(data, tag_data_offset+12, double_to_s15Fixed16Number(colorants.m[1][index]));
+		write_u32(data, tag_data_offset+16, double_to_s15Fixed16Number(colorants.m[2][index]));
+
+		tag_table_offset += 12;
+		tag_data_offset += 20;
+	}
+
+	
+	for (index = 0; index < trc_count; ++index) {
+		
+		write_u32(data, tag_table_offset, TAG_TRC[index]);
+		write_u32(data, tag_table_offset+4, tag_data_offset);
+		write_u32(data, tag_table_offset+8, 14); 
+
+		
+		write_u32(data, tag_data_offset, CURVE_TYPE);
+		
+		write_u32(data, tag_data_offset+8, 1); 
+		write_u16(data, tag_data_offset+12, float_to_u8Fixed8Number(gamma));
+
+		tag_table_offset += 12;
+		tag_data_offset += 16;
+	}
+
+	
+
+
+
+
+
+	write_u32(data, 0, length); 
+	write_u32(data, 12, DISPLAY_DEVICE_PROFILE); 
+	write_u32(data, 16, RGB_SIGNATURE); 
+	write_u32(data, 20, XYZ_SIGNATURE); 
+	write_u32(data, 64, QCMS_INTENT_PERCEPTUAL); 
+
+	write_u32(data, ICC_PROFILE_HEADER_LENGTH, 6); 
+
+	
+	*mem = data;
+	*size = length;
+}
