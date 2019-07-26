@@ -14,8 +14,6 @@
 
 
 
-namespace mozilla {
-
 
 namespace {
 
@@ -34,6 +32,8 @@ void UpdateListIndicesFromIndex(FallibleTArray<DOMSVGNumber*>& aItemsArray,
 }
 
 } 
+
+namespace mozilla {
 
 
 
