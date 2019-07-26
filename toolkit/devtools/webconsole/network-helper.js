@@ -420,7 +420,11 @@ let NetworkHelper = {
       return true;
     }
 
-    if (/^application\/[a-z-]+\+xml$/.test(aMimeType)) {
+    
+    
+    
+    
+    if (/^application\/[a-z-]+\b(xml|json)/.test(aMimeType)) {
       return true;
     }
 

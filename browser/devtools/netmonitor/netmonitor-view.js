@@ -1865,7 +1865,10 @@ NetworkDetailsView.prototype = {
 
     gNetwork.getString(text).then(aString => {
       
-      if (mimeType.contains("/json")) {
+      
+      
+      
+      if (/\bjson/.test(mimeType)) {
         let jsonpRegex = /^[a-zA-Z0-9_$]+\(|\)$/g; 
         let sanitizedJSON = aString.replace(jsonpRegex, "");
         let callbackPadding = aString.match(jsonpRegex);
