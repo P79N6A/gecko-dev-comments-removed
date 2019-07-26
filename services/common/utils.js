@@ -13,6 +13,62 @@ Cu.import("resource://gre/modules/osfile.jsm")
 Cu.import("resource://gre/modules/Log.jsm");
 
 this.CommonUtils = {
+  
+
+
+
+
+  
+
+
+  union: function (a, b) {
+    let out = new Set(a);
+    for (let x of b) {
+      out.add(x);
+    }
+    return out;
+  },
+
+  
+
+
+  difference: function (a, b) {
+    let out = new Set(a);
+    for (let x of b) {
+      out.delete(x);
+    }
+    return out;
+  },
+
+  
+
+
+  intersection: function (a, b) {
+    let out = new Set();
+    for (let x of a) {
+      if (b.has(x)) {
+        out.add(x);
+      }
+    }
+    return out;
+  },
+
+  
+
+
+
+  setEqual: function (a, b) {
+    if (a.size != b.size) {
+      return false;
+    }
+    for (let x of a) {
+      if (!b.has(x)) {
+        return false;
+      }
+    }
+    return true;
+  },
+
   exceptionStr: function exceptionStr(e) {
     if (!e) {
       return "" + e;
