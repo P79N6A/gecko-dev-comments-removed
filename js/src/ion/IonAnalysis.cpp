@@ -586,6 +586,34 @@ ion::BuildDominatorTree(MIRGraph &graph)
     if (!graph.osrBlock())
         JS_ASSERT(graph.begin()->numDominated() == graph.numBlocks() - 1);
 #endif
+    
+    
+    
+    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist;
+
+    
+    size_t index = 0;
+
+    
+    
+    for (MBasicBlockIterator i(graph.begin()); i != graph.end(); i++) {
+        MBasicBlock *block = *i;
+        if (block->immediateDominator() == block) {
+            if (!worklist.append(block))
+                return false;
+        }
+    }
+    
+    while (!worklist.empty()) {
+        MBasicBlock *block = worklist.popCopy();
+        block->setDomIndex(index);
+
+        for (size_t i = 0; i < block->numImmediatelyDominatedBlocks(); i++) {
+            if (!worklist.append(block->getImmediatelyDominatedBlock(i)))
+                return false;
+        }
+        index++;
+    }
 
     return true;
 }
