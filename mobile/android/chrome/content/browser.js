@@ -356,7 +356,7 @@ var BrowserApp = {
 
 #ifdef MOZ_SAFE_BROWSING
     
-    setTimeout(function() { SafeBrowsing.init(); }, 2000);
+    setTimeout(function() { SafeBrowsing.init(); }, 5000);
 #endif
   },
 
