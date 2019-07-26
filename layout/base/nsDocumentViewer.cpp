@@ -1899,8 +1899,10 @@ DocumentViewerImpl::SetBounds(const nsIntRect& aBounds)
   
   
   
-  if (mPreviousViewer)
-    mPreviousViewer->SetBounds(aBounds);
+  if (mPreviousViewer) {
+    nsCOMPtr<nsIContentViewer> previousViewer = mPreviousViewer;
+    previousViewer->SetBounds(aBounds);
+  }
 
   return NS_OK;
 }
