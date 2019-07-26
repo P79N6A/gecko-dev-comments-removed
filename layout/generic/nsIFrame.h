@@ -1820,7 +1820,7 @@ public:
 
 
 
-  virtual nsresult  WillReflow(nsPresContext* aPresContext) = 0;
+  virtual void WillReflow(nsPresContext* aPresContext) = 0;
 
   
 

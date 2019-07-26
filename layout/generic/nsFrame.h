@@ -295,7 +295,7 @@ public:
   nscoord ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                            nscoord aWidthInCB);
 
-  virtual nsresult  WillReflow(nsPresContext* aPresContext) MOZ_OVERRIDE;
+  virtual void WillReflow(nsPresContext* aPresContext) MOZ_OVERRIDE;
   
 
 
