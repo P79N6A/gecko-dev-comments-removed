@@ -7,6 +7,9 @@ let provider;
 function test() {
   waitForExplicitFinish();
 
+  replaceAlertsService();
+  registerCleanupFunction(restoreAlertsService);
+
   let manifest = {
     origin: 'http://example.com',
     name: "Example Provider",
@@ -144,5 +147,62 @@ let tests = {
       }
     }
     port.postMessage({topic: "test-initialization"});
-  }
+  },
+
+  testNotificationLinks: function(next) {
+    let port = provider.getWorkerPort();
+    let data = {
+      id: 'an id',
+      body: 'the text',
+      action: 'link',
+      actionArgs: {} 
+    }
+    let testArgs = [
+      
+      ["http://example.com",      "http://example.com/", "tab"],
+      
+      ["https://example.com",     "http://example.com/", "tab"],
+      
+      ["https://mochitest:8888/", null,                 null]
+    ];
+
+    
+    let oldopenUILinkIn = window.openUILinkIn;
+    registerCleanupFunction(function () {
+      
+      window.openUILinkIn = oldopenUILinkIn;
+    });
+    let openLocation;
+    let openWhere;
+    window.openUILinkIn = function(location, where) {
+      openLocation = location;
+      openWhere = where;
+    }
+
+    
+    let toURL, expectedLocation, expectedWhere;
+    function nextTest() {
+      if (testArgs.length == 0) {
+        port.close();
+        next(); 
+        return;
+      }
+      openLocation = openWhere = null;
+      [toURL, expectedLocation, expectedWhere] = testArgs.shift();
+      data.actionArgs.toURL = toURL;
+      port.postMessage({topic: 'test-notification-create', data: data});
+    };
+
+    port.onmessage = function(evt) {
+      if (evt.data.topic == "did-notification-create") {
+        is(openLocation, expectedLocation, "url actually opened was " + openLocation);
+        is(openWhere, expectedWhere, "the url was opened in a " + expectedWhere);
+        nextTest();
+      }
+    }
+    
+    port.postMessage({topic: "test-initialization"});
+    nextTest();
+  },
+
 };
