@@ -23,7 +23,7 @@ struct ElementDependentRuleProcessorData;
 
 
 
-struct ElementPropertyTransition : public mozilla::css::ElementAnimation
+struct ElementPropertyTransition : public mozilla::StyleAnimation
 {
   
   
