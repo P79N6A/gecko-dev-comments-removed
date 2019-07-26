@@ -188,23 +188,29 @@ IonRuntime::generateInvalidator(JSContext *cx)
     for (uint32_t i = 0; i < FloatRegisters::Total; i++)
         masm.movsd(FloatRegister::FromCode(i), Operand(esp, i * sizeof(double)));
 
-    masm.movl(esp, ebx); 
+    masm.movl(esp, eax); 
 
     
     masm.reserveStack(sizeof(size_t));
+    masm.movl(esp, ebx);
+
+    
+    masm.reserveStack(sizeof(void *));
     masm.movl(esp, ecx);
 
-    masm.setupUnalignedABICall(2, edx);
+    masm.setupUnalignedABICall(3, edx);
+    masm.passABIArg(eax);
     masm.passABIArg(ebx);
     masm.passABIArg(ecx);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
 
+    masm.pop(ecx); 
     masm.pop(ebx); 
 
     
     masm.lea(Operand(esp, ebx, TimesOne, sizeof(InvalidationBailoutStack)), esp);
 
-    masm.generateBailoutTail(edx);
+    masm.generateBailoutTail(edx, ecx);
 
     Linker linker(masm);
     IonCode *code = linker.newCode(cx);
@@ -213,7 +219,7 @@ IonRuntime::generateInvalidator(JSContext *cx)
 }
 
 IonCode *
-IonRuntime::generateArgumentsRectifier(JSContext *cx)
+IonRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
 {
     MacroAssembler masm(cx);
 
@@ -231,6 +237,10 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx)
 
     masm.moveValue(UndefinedValue(), ebx, edi);
 
+    
+    
+    
+    
     masm.push(FramePointer);
     masm.movl(esp, FramePointer); 
 
@@ -287,6 +297,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx)
     masm.loadBaselineOrIonCode(eax, NULL);
     masm.movl(Operand(eax, IonCode::offsetOfCode()), eax);
     masm.call(eax);
+    uint32_t returnOffset = masm.currentOffset();
 
     
     masm.pop(ebx);            
@@ -302,7 +313,12 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx)
     masm.ret();
 
     Linker linker(masm);
-    return linker.newCode(cx);
+    IonCode *code = linker.newCode(cx);
+
+    CodeOffsetLabel returnLabel(returnOffset);
+    returnLabel.fixup(&masm);
+    *returnAddrOut = (void *) (code->raw() + returnLabel.offset());
+    return code;
 }
 
 static void
@@ -325,9 +341,16 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.movl(esp, eax);
 
     
-    masm.setupUnalignedABICall(1, ecx);
+    masm.reserveStack(sizeof(void *));
+    masm.movl(esp, ebx);
+
+    
+    masm.setupUnalignedABICall(2, ecx);
     masm.passABIArg(eax);
+    masm.passABIArg(ebx);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
+
+    masm.pop(ebx); 
 
     
     const uint32_t BailoutDataSize = sizeof(void *) + 
@@ -354,7 +377,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
         masm.addl(Imm32(BailoutDataSize + sizeof(void *) + frameSize), esp);
     }
 
-    masm.generateBailoutTail(edx);
+    masm.generateBailoutTail(edx, ebx);
 }
 
 IonCode *

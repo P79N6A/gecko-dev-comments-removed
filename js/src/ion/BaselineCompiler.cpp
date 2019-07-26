@@ -206,9 +206,11 @@ BaselineCompiler::emitPrologue()
     masm.store32(Imm32(0), frame.addressOfFlags());
 
     
-    masm.moveValue(UndefinedValue(), R0);
-    for (size_t i = 0; i < frame.nlocals(); i++)
-        masm.pushValue(R0);
+    if (frame.nlocals() > 0) {
+        masm.moveValue(UndefinedValue(), R0);
+        for (size_t i = 0; i < frame.nlocals(); i++)
+            masm.pushValue(R0);
+    }
 
     
     
@@ -414,7 +416,8 @@ BaselineCompiler::emitBody()
 
     
     
-    bool canResumeAfterPrevious = false;
+    
+    bool canResumeAfterPrevious = true;
 
     while (true) {
         SPEW_OPCODE();
@@ -442,6 +445,7 @@ BaselineCompiler::emitBody()
 
         masm.bind(labelOf(pc));
 
+        
         
         
         

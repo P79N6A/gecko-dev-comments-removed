@@ -104,10 +104,12 @@ static const uint32_t BAILOUT_RETURN_FATAL_ERROR = 1;
 static const uint32_t BAILOUT_RETURN_ARGUMENT_CHECK = 2;
 static const uint32_t BAILOUT_RETURN_TYPE_BARRIER = 3;
 static const uint32_t BAILOUT_RETURN_MONITOR = 4;
-static const uint32_t BAILOUT_RETURN_BOUNDS_CHECK = 5;
-static const uint32_t BAILOUT_RETURN_SHAPE_GUARD = 6;
-static const uint32_t BAILOUT_RETURN_OVERRECURSED = 7;
-static const uint32_t BAILOUT_RETURN_CACHED_SHAPE_GUARD = 8;
+static const uint32_t BAILOUT_RETURN_RECOMPILE_CHECK = 5;
+static const uint32_t BAILOUT_RETURN_BOUNDS_CHECK = 6;
+static const uint32_t BAILOUT_RETURN_SHAPE_GUARD = 7;
+static const uint32_t BAILOUT_RETURN_OVERRECURSED = 8;
+static const uint32_t BAILOUT_RETURN_CACHED_SHAPE_GUARD = 9;
+static const uint32_t BAILOUT_RETURN_BASELINE = 10;
 
 
 
@@ -205,17 +207,22 @@ class IonBailoutIterator : public IonFrameIterator
 
 bool EnsureHasScopeObjects(JSContext *cx, StackFrame *fp);
 
+struct BaselineBailoutInfo;
 
-uint32_t Bailout(BailoutStack *sp);
+
+uint32_t Bailout(BailoutStack *sp, BaselineBailoutInfo **info);
 
 
-uint32_t InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut);
+uint32_t InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
+                             BaselineBailoutInfo **info);
 
 
 
 uint32_t ThunkToInterpreter(Value *vp);
 
 uint32_t ReflowTypeInfo(uint32_t bailoutResult);
+
+uint32_t RecompileForInlining();
 
 uint32_t BoundsCheckFailure();
 

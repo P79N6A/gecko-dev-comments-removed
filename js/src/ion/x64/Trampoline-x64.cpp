@@ -200,30 +200,36 @@ IonRuntime::generateInvalidator(JSContext *cx)
     for (uint32_t i = 0; i < FloatRegisters::Total; i++)
         masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
 
-    masm.movq(rsp, rbx); 
+    masm.movq(rsp, rax); 
 
     
     masm.reserveStack(sizeof(size_t));
-    masm.movq(rsp, rcx);
+    masm.movq(rsp, rbx);
 
-    masm.setupUnalignedABICall(2, rdx);
+    
+    masm.reserveStack(sizeof(void *));
+    masm.movq(rsp, r9);
+
+    masm.setupUnalignedABICall(3, rdx);
+    masm.passABIArg(rax);
     masm.passABIArg(rbx);
-    masm.passABIArg(rcx);
+    masm.passABIArg(r9);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
 
+    masm.pop(r9); 
     masm.pop(rbx); 
 
     
     masm.lea(Operand(rsp, rbx, TimesOne, sizeof(InvalidationBailoutStack)), rsp);
 
-    masm.generateBailoutTail(rdx);
+    masm.generateBailoutTail(rdx, r9);
 
     Linker linker(masm);
     return linker.newCode(cx);
 }
 
 IonCode *
-IonRuntime::generateArgumentsRectifier(JSContext *cx)
+IonRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
 {
     
 
@@ -293,6 +299,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx)
     masm.loadBaselineOrIonCode(rax, NULL);
     masm.movq(Operand(rax, IonCode::offsetOfCode()), rax);
     masm.call(rax);
+    uint32_t returnOffset = masm.currentOffset();
 
     
     masm.pop(r9);             
@@ -324,9 +331,16 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.movq(rsp, r8);
 
     
-    masm.setupUnalignedABICall(1, rax);
+    masm.reserveStack(sizeof(void *));
+    masm.movq(rsp, r9);
+
+    
+    masm.setupUnalignedABICall(2, rax);
     masm.passABIArg(r8);
+    masm.passABIArg(r9);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
+
+    masm.pop(r9); 
 
     
     
@@ -341,7 +355,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.pop(rcx);
     masm.lea(Operand(rsp, rcx, TimesOne, sizeof(void *)), rsp);
 
-    masm.generateBailoutTail(rdx);
+    masm.generateBailoutTail(rdx, r9);
 }
 
 IonCode *

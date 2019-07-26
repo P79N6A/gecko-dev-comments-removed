@@ -51,6 +51,9 @@ extern JS_FRIEND_API(uint32_t)
 JS_ObjectCountDynamicSlots(JSHandleObject obj);
 
 extern JS_FRIEND_API(size_t)
+JS_GetE4XObjectsCreated(JSContext *cx);
+
+extern JS_FRIEND_API(size_t)
 JS_SetProtoCalled(JSContext *cx);
 
 extern JS_FRIEND_API(size_t)
@@ -195,15 +198,6 @@ GetContextCompartment(const JSContext *cx)
     return ContextFriendFields::get(cx)->compartment;
 }
 
-inline JS::Zone *
-GetContextZone(const JSContext *cx)
-{
-    return ContextFriendFields::get(cx)->zone_;
-}
-
-extern JS_FRIEND_API(JS::Zone *)
-GetCompartmentZone(JSCompartment *comp);
-
 typedef bool
 (* PreserveWrapperCallback)(JSContext *cx, JSObject *obj);
 
@@ -233,13 +227,10 @@ JS_FRIEND_API(JSBool) obj_defineSetter(JSContext *cx, unsigned argc, js::Value *
 #endif
 
 extern JS_FRIEND_API(bool)
-IsSystemCompartment(JSCompartment *comp);
+IsSystemCompartment(const JSCompartment *compartment);
 
 extern JS_FRIEND_API(bool)
-IsSystemZone(JS::Zone *zone);
-
-extern JS_FRIEND_API(bool)
-IsAtomsCompartment(JSCompartment *comp);
+IsAtomsCompartment(const JSCompartment *c);
 
 
 
@@ -282,7 +273,7 @@ typedef void
 (*GCThingCallback)(void *closure, void *gcthing);
 
 extern JS_FRIEND_API(void)
-VisitGrayWrapperTargets(JS::Zone *zone, GCThingCallback callback, void *closure);
+VisitGrayWrapperTargets(JSCompartment *comp, GCThingCallback callback, void *closure);
 
 extern JS_FRIEND_API(JSObject *)
 GetWeakmapKeyDelegate(JSObject *key);
@@ -294,15 +285,12 @@ GCThingTraceKind(void *thing);
 
 
 extern JS_FRIEND_API(void)
-IterateGrayObjects(JS::Zone *zone, GCThingCallback cellCallback, void *data);
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback cellCallback, void *data);
 
 #ifdef JS_HAS_CTYPES
 extern JS_FRIEND_API(size_t)
 SizeOfDataIfCDataObject(JSMallocSizeOfFun mallocSizeOf, JSObject *obj);
 #endif
-
-extern JS_FRIEND_API(JSCompartment *)
-GetAnyCompartmentInZone(JS::Zone *zone);
 
 
 
@@ -320,7 +308,6 @@ struct TypeObject {
 struct BaseShape {
     js::Class   *clasp;
     JSObject    *parent;
-    JSCompartment *compartment;
 };
 
 class Shape {
@@ -368,12 +355,17 @@ struct Atom {
 
 } 
 
+extern JS_FRIEND_DATA(js::Class) AnyNameClass;
+extern JS_FRIEND_DATA(js::Class) AttributeNameClass;
 extern JS_FRIEND_DATA(js::Class) CallClass;
 extern JS_FRIEND_DATA(js::Class) DeclEnvClass;
 extern JS_FRIEND_DATA(js::Class) FunctionClass;
 extern JS_FRIEND_DATA(js::Class) FunctionProxyClass;
+extern JS_FRIEND_DATA(js::Class) NamespaceClass;
 extern JS_FRIEND_DATA(js::Class) OuterWindowProxyClass;
 extern JS_FRIEND_DATA(js::Class) ObjectProxyClass;
+extern JS_FRIEND_DATA(js::Class) QNameClass;
+extern JS_FRIEND_DATA(js::Class) XMLClass;
 extern JS_FRIEND_DATA(js::Class) ObjectClass;
 
 inline js::Class *
@@ -388,16 +380,6 @@ GetObjectJSClass(RawObject obj)
     return js::Jsvalify(GetObjectClass(obj));
 }
 
-inline bool
-IsInnerObject(JSObject *obj) {
-    return !!GetObjectClass(obj)->ext.outerObject;
-}
-
-inline bool
-IsOuterObject(JSObject *obj) {
-    return !!GetObjectClass(obj)->ext.innerObject;
-}
-
 JS_FRIEND_API(bool)
 IsScopeObject(RawObject obj);
 
@@ -406,12 +388,6 @@ GetObjectParent(RawObject obj)
 {
     JS_ASSERT(!IsScopeObject(obj));
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->parent;
-}
-
-static JS_ALWAYS_INLINE JSCompartment *
-GetObjectCompartment(JSObject *obj)
-{
-    return reinterpret_cast<shadow::Object*>(obj)->shape->base->compartment;
 }
 
 JS_FRIEND_API(JSObject *)
@@ -601,6 +577,17 @@ GetNativeStackLimit(const JSRuntime *rt)
         }                                                                       \
     JS_END_MACRO
 
+#define JS_CHECK_RECURSION_WITH_EXTRA(cx, extra, onerror)             \
+    JS_BEGIN_MACRO                                                              \
+        uint8_t stackDummy_;                                                    \
+        if (!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(js::GetRuntime(cx)),   \
+                                 &stackDummy_ - (extra)))                       \
+        {                                                                       \
+            js_ReportOverRecursed(cx);                                          \
+            onerror;                                                            \
+        }                                                                       \
+    JS_END_MACRO
+
 #define JS_CHECK_CHROME_RECURSION(cx, onerror)                                  \
     JS_BEGIN_MACRO                                                              \
         int stackDummy_;                                                        \
@@ -677,10 +664,10 @@ class ProfileEntry
     void *stackAddress() volatile { return sp; }
     const char *label() volatile { return string; }
 
-    void setLine(uint32_t aLine) volatile { JS_ASSERT(!js()); idx = aLine; }
-    void setLabel(const char *aString) volatile { string = aString; }
-    void setStackAddress(void *aSp) volatile { sp = aSp; }
-    void setScript(JSScript *aScript) volatile { script_ = aScript; }
+    void setLine(uint32_t line) volatile { JS_ASSERT(!js()); idx = line; }
+    void setLabel(const char *string) volatile { this->string = string; }
+    void setStackAddress(void *sp) volatile { this->sp = sp; }
+    void setScript(JSScript *script) volatile { script_ = script; }
 
     
     JS_FRIEND_API(jsbytecode *) pc() volatile;
@@ -705,6 +692,8 @@ SetRuntimeProfilingStack(JSRuntime *rt, ProfileEntry *stack, uint32_t *size,
 
 JS_FRIEND_API(void)
 EnableRuntimeProfilingStack(JSRuntime *rt, bool enabled);
+
+
 
 JS_FRIEND_API(jsbytecode*)
 ProfilingGetPC(JSRuntime *rt, RawScript script, void *ip);
@@ -734,6 +723,9 @@ SetActivityCallback(JSRuntime *rt, ActivityCallback cb, void *arg);
 extern JS_FRIEND_API(const JSStructuredCloneCallbacks *)
 GetContextStructuredCloneCallbacks(JSContext *cx);
 
+extern JS_FRIEND_API(JSVersion)
+VersionSetMoarXML(JSVersion version, bool enable);
+
 extern JS_FRIEND_API(bool)
 CanCallContextDebugHandler(JSContext *cx);
 
@@ -742,6 +734,11 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 
 extern JS_FRIEND_API(bool)
 IsContextRunningJS(JSContext *cx);
+
+class SystemAllocPolicy;
+typedef Vector<JSCompartment*, 0, SystemAllocPolicy> CompartmentVector;
+extern JS_FRIEND_API(const CompartmentVector&)
+GetRuntimeCompartments(JSRuntime *rt);
 
 typedef void
 (* AnalysisPurgeCallback)(JSRuntime *rt, JSFlatString *desc);
@@ -1277,9 +1274,6 @@ struct JSJitInfo {
     OpType type;
     bool isInfallible;      
     bool isConstant;        
-    bool isPure;            
-
-
     JSValueType returnType; 
 };
 
@@ -1376,7 +1370,7 @@ IdToValue(jsid id)
         return Int32Value(JSID_TO_INT(id));
     if (JS_LIKELY(JSID_IS_OBJECT(id)))
         return ObjectValue(*JSID_TO_OBJECT(id));
-    JS_ASSERT(JSID_IS_VOID(id));
+    JS_ASSERT(JSID_IS_DEFAULT_XML_NAMESPACE(id) || JSID_IS_VOID(id));
     return UndefinedValue();
 }
 
@@ -1413,6 +1407,7 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
   private:
     JSContext *cx;
     CTypesActivityCallback callback;
+    CTypesActivityType beginType;
     CTypesActivityType endType;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
@@ -1431,17 +1426,6 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
     }
 };
 
-#ifdef DEBUG
-extern JS_FRIEND_API(void)
-assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id);
-#else
-inline void assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id) {};
-#endif
-
 } 
-
-extern JS_FRIEND_API(JSBool)
-js_DefineOwnProperty(JSContext *cx, JSObject *objArg, jsid idArg,
-                     const js::PropertyDescriptor& descriptor, JSBool *bp);
 
 #endif 

@@ -13,6 +13,7 @@
 
 #include "IonCode.h"
 #include "IonMacroAssembler.h"
+#include "Bailouts.h"
 
 #include "ds/LifoAlloc.h"
 
@@ -21,6 +22,7 @@ namespace ion {
 
 class StackValue;
 struct ICEntry;
+class ICStub;
 
 
 struct ICStubSpace
@@ -84,8 +86,8 @@ struct PCMappingEntry
                                        | (static_cast<uint8_t>(nextSlotLoc) << 4);
     }
 
-    inline static int SlotInfoNumUnsynced(uint8_t slotInfo) {
-        return static_cast<int>(slotInfo & 0x3);
+    inline static unsigned SlotInfoNumUnsynced(uint8_t slotInfo) {
+        return static_cast<unsigned>(slotInfo & 0x3);
     }
     inline static SlotLocation SlotInfoTopSlotLocation(uint8_t slotInfo) {
         return static_cast<SlotLocation>((slotInfo >> 2) & 0x3);
@@ -149,6 +151,9 @@ struct BaselineScript
     uint32_t prologueOffset() const {
         return prologueOffset_;
     }
+    uint8_t *prologueEntryAddr() const {
+        return method_->raw() + prologueOffset_;
+    }
 
     ICEntry *icEntryList() {
         return (ICEntry *)(reinterpret_cast<uint8_t *>(this) + icEntriesOffset_);
@@ -175,7 +180,9 @@ struct BaselineScript
 
     ICEntry &icEntry(size_t index);
     ICEntry &icEntryFromReturnOffset(CodeOffsetLabel returnOffset);
+    ICEntry &icEntryFromPCOffset(uint32_t pcOffset);
     ICEntry &icEntryFromReturnAddress(uint8_t *returnAddr);
+    uint8_t *returnAddressForIC(const ICEntry &ent);
 
     size_t numICEntries() const {
         return icEntries_;
@@ -191,6 +198,7 @@ struct BaselineScript
     PCMappingEntry &pcMappingEntry(size_t index);
     void copyPCMappingEntries(const PCMappingEntry *entries, MacroAssembler &masm);
     uint8_t *nativeCodeForPC(HandleScript script, jsbytecode *pc);
+    uint8_t slotInfoForPC(HandleScript script, jsbytecode *pc);
 
     
     
@@ -211,6 +219,43 @@ EnterBaselineMethod(JSContext *cx, StackFrame *fp);
 
 void
 FinishDiscardBaselineScript(FreeOp *fop, UnrootedScript script);
+
+struct BaselineBailoutInfo
+{
+    
+    void *incomingStack;
+
+    
+    
+    uint8_t *copyStackTop;
+    uint8_t *copyStackBottom;
+
+    
+    
+    
+    uint32_t setR0;
+    Value valueR0;
+    uint32_t setR1;
+    Value valueR1;
+
+    
+    void *resumeFramePtr;
+
+    
+    void *resumeAddr;
+
+    
+    
+    
+    
+    
+    
+    ICStub *monitorStub;
+};
+
+uint32_t
+BailoutIonToBaseline(JSContext *cx, IonActivation *activation, IonBailoutIterator &iter,
+                     bool invalidate, BaselineBailoutInfo **bailoutInfo);
 
 } 
 } 

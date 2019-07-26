@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifdef DEBUG
 
@@ -21,7 +21,7 @@
 using namespace js;
 using namespace js::ion;
 
-
+// IonSpewer singleton.
 static IonSpewer ionspewer;
 
 static bool LoggingChecked = false;
@@ -40,7 +40,7 @@ FilterContainsLocation(const char *filename, const size_t line = size_t(-1))
 {
     static const char *filter = getenv("IONFILTER");
 
-    
+    // If there is no filter we accept all outputs.
     if (!filter || !filter[0])
         return true;
 
@@ -134,7 +134,7 @@ IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
 
     if (!FilterContainsLocation(function->filename, function->lineno)) {
         JS_ASSERT(!this->graph);
-        
+        // filter out logs during the compilation.
         filteredOutCompilations++;
         return;
     }
@@ -244,11 +244,12 @@ ion::CheckLogging()
             "  bl-ic      Baseline inline-cache messages\n"
             "  bl-ic-fb   Baseline IC fallback stub messages\n"
             "  bl-osr     Baseline IC OSR messages\n"
+            "  bl-bails   Baseline bailouts\n"
             "  bl-all     All baseline spew\n"
             "\n"
         );
         exit(0);
-        
+        /*NOTREACHED*/
     }
     if (ContainsFlag(env, "aborts"))
         EnableChannel(IonSpew_Abort);
@@ -301,6 +302,8 @@ ion::CheckLogging()
         EnableChannel(IonSpew_BaselineICFallback);
     if (ContainsFlag(env, "bl-osr"))
         EnableChannel(IonSpew_BaselineOSR);
+    if (ContainsFlag(env, "bl-bails"))
+        EnableChannel(IonSpew_BaselineBailouts);
     if (ContainsFlag(env, "bl-all")) {
         EnableChannel(IonSpew_BaselineAbort);
         EnableChannel(IonSpew_BaselineScripts);
@@ -308,6 +311,7 @@ ion::CheckLogging()
         EnableChannel(IonSpew_BaselineIC);
         EnableChannel(IonSpew_BaselineICFallback);
         EnableChannel(IonSpew_BaselineOSR);
+        EnableChannel(IonSpew_BaselineBailouts);
     }
 
     if (LoggingBits != 0)
@@ -407,5 +411,5 @@ ion::DisableChannel(IonSpewChannel channel)
     LoggingBits &= ~(1 << uint32_t(channel));
 }
 
-#endif 
+#endif /* DEBUG */
 
