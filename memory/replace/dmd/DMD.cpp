@@ -73,13 +73,6 @@ static const malloc_table_t* gMallocTable = nullptr;
 
 static bool gIsDMDRunning = false;
 
-enum Mode {
-  Normal,   
-  Test,     
-  Stress    
-};
-static Mode gMode = Normal;
-
 
 
 
@@ -275,6 +268,59 @@ static char gBuf3[kBufLen];
 static char gBuf4[kBufLen];
 
 static const size_t kNoSize = size_t(-1);
+
+
+
+
+
+class Options
+{
+  template <typename T>
+  struct NumOption
+  {
+    const T mDefault;
+    const T mMax;
+    T       mActual;
+    NumOption(T aDefault, T aMax)
+      : mDefault(aDefault), mMax(aMax), mActual(aDefault)
+    {}
+  };
+
+  enum Mode {
+    Normal,   
+    Test,     
+    Stress    
+  };
+
+  char* mDMDEnvVar;   
+
+  NumOption<size_t>   mSampleBelowSize;
+  NumOption<uint32_t> mMaxFrames;
+  NumOption<uint32_t> mMaxRecords;
+  Mode mMode;
+
+  void BadArg(const char* aArg);
+  static const char* ValueIfMatch(const char* aArg, const char* aOptionName);
+  static bool GetLong(const char* aArg, const char* aOptionName,
+                      long aMin, long aMax, long* aN);
+
+public:
+  Options(const char* aDMDEnvVar);
+
+  const char* DMDEnvVar() const { return mDMDEnvVar; }
+
+  size_t SampleBelowSize() const { return mSampleBelowSize.mActual; }
+  size_t MaxFrames()       const { return mMaxFrames.mActual; }
+  size_t MaxRecords()      const { return mMaxRecords.mActual; }
+
+  void SetSampleBelowSize(size_t aN) { mSampleBelowSize.mActual = aN; }
+
+  bool IsTestMode()   const { return mMode == Test; }
+  bool IsStressMode() const { return mMode == Stress; }
+};
+
+static Options *gOptions;
+
 
 
 
@@ -703,10 +749,14 @@ public:
 
 class StackTrace
 {
+public:
   static const uint32_t MaxFrames = 24;
 
-  uint32_t mLength;             
-  void* mPcs[MaxFrames];        
+private:
+  uint32_t mLength;         
+  void* mPcs[MaxFrames];    
+                            
+                            
 
 public:
   StackTrace() : mLength(0) {}
@@ -800,8 +850,8 @@ StackTrace::Get(Thread* aT)
   {
     AutoUnlockState unlock;
     uint32_t skipFrames = 2;
-    rv = NS_StackWalk(StackWalkCallback, skipFrames, MaxFrames, &tmp, 0,
-                      nullptr);
+    rv = NS_StackWalk(StackWalkCallback, skipFrames,
+                      gOptions->MaxFrames(), &tmp, 0, nullptr);
   }
 
   if (rv == NS_OK) {
@@ -1075,7 +1125,6 @@ GCStackTraces()
 
 
 
-static size_t gSampleBelowSize = 0;
 static size_t gSmallBlockActualSizeCounter = 0;
 
 static void
@@ -1091,17 +1140,18 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
   AutoBlockIntercepts block(aT);
 
   size_t actualSize = gMallocTable->malloc_usable_size(aPtr);
+  size_t sampleBelowSize = gOptions->SampleBelowSize();
 
-  if (actualSize < gSampleBelowSize) {
+  if (actualSize < sampleBelowSize) {
     
     
     
     
     gSmallBlockActualSizeCounter += actualSize;
-    if (gSmallBlockActualSizeCounter >= gSampleBelowSize) {
-      gSmallBlockActualSizeCounter -= gSampleBelowSize;
+    if (gSmallBlockActualSizeCounter >= sampleBelowSize) {
+      gSmallBlockActualSizeCounter -= sampleBelowSize;
 
-      Block b(aPtr, gSampleBelowSize, StackTrace::Get(aT),  true);
+      Block b(aPtr, sampleBelowSize, StackTrace::Get(aT),  true);
       (void)gBlockTable->putNew(aPtr, b);
     }
   } else {
@@ -1558,16 +1608,11 @@ FrameRecord::Print(const Writer& aWriter, LocationService* aLocService,
 
 
 
-static void RunTestMode(FILE* fp);
-static void RunStressMode(FILE* fp);
-
-static const char* gDMDEnvVar = nullptr;
 
 
 
-
-static const char*
-OptionValueIfMatch(const char* aArg, const char* aOptionName)
+const char*
+Options::ValueIfMatch(const char* aArg, const char* aOptionName)
 {
   MOZ_ASSERT(!isspace(*aArg));  
   size_t optionLen = strlen(aOptionName);
@@ -1580,11 +1625,11 @@ OptionValueIfMatch(const char* aArg, const char* aOptionName)
 
 
 
-static bool
-OptionLong(const char* aArg, const char* aOptionName, long aMin, long aMax,
-           long* aN)
+bool
+Options::GetLong(const char* aArg, const char* aOptionName,
+                 long aMin, long aMax, long* aN)
 {
-  if (const char* optionValue = OptionValueIfMatch(aArg, aOptionName)) {
+  if (const char* optionValue = ValueIfMatch(aArg, aOptionName)) {
     char* endPtr;
     *aN = strtol(optionValue, &endPtr,  10);
     if (!*endPtr && aMin <= *aN && *aN <= aMax &&
@@ -1595,7 +1640,6 @@ OptionLong(const char* aArg, const char* aOptionName, long aMin, long aMax,
   return false;
 }
 
-static const size_t gMaxSampleBelowSize = 100 * 1000 * 1000;    
 
 
 
@@ -1604,86 +1648,14 @@ static const size_t gMaxSampleBelowSize = 100 * 1000 * 1000;
 
 
 
-
-
-
-
-
-
-
-static const size_t gDefaultSampleBelowSize = 4093;
-
-static void
-BadArg(const char* aArg)
+Options::Options(const char* aDMDEnvVar)
+  : mDMDEnvVar(InfallibleAllocPolicy::strdup_(aDMDEnvVar)),
+    mSampleBelowSize(4093, 100 * 100 * 1000),
+    mMaxFrames(StackTrace::MaxFrames, StackTrace::MaxFrames),
+    mMaxRecords(1000, 1000000),
+    mMode(Normal)
 {
-  StatusMsg("\n");
-  StatusMsg("Bad entry in the $DMD environment variable: '%s'.\n", aArg);
-  StatusMsg("\n");
-  StatusMsg("Valid values of $DMD are:\n");
-  StatusMsg("- undefined or \"\" or \"0\", which disables DMD, or\n");
-  StatusMsg("- \"1\", which enables it with the default options, or\n");
-  StatusMsg("- a whitespace-separated list of |--option=val| entries, which\n");
-  StatusMsg("  enables it with non-default options.\n");
-  StatusMsg("\n");
-  StatusMsg("The following options are allowed;  defaults are shown in [].\n");
-  StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [%d]\n"
-            "                         (prime numbers recommended).\n",
-            int(gMaxSampleBelowSize), int(gDefaultSampleBelowSize));
-  StatusMsg("  --mode=<normal|test|stress>   Which mode to run in? [normal]\n");
-  StatusMsg("\n");
-  exit(1);
-}
-
-#ifdef XP_MACOSX
-static void
-NopStackWalkCallback(void* aPc, void* aSp, void* aClosure)
-{
-}
-#endif
-
-
-static FILE*
-OpenOutputFile(const char* aFilename)
-{
-  FILE* fp = fopen(aFilename, "w");
-  if (!fp) {
-    StatusMsg("can't create %s file: %s\n", aFilename, strerror(errno));
-    exit(1);
-  }
-  return fp;
-}
-
-
-
-
-
-static void
-Init(const malloc_table_t* aMallocTable)
-{
-  MOZ_ASSERT(!gIsDMDRunning);
-
-  gMallocTable = aMallocTable;
-
-  
-  gMode = Normal;
-  gSampleBelowSize = gDefaultSampleBelowSize;
-
-  
-  
-  
-
-  char* e = getenv("DMD");
-
-  StatusMsg("$DMD = '%s'\n", e);
-
-  if (!e || strcmp(e, "") == 0 || strcmp(e, "0") == 0) {
-    StatusMsg("DMD is not enabled\n");
-    return;
-  }
-
-  
-  gDMDEnvVar = e = InfallibleAllocPolicy::strdup_(e);
-
+  char* e = mDMDEnvVar;
   if (strcmp(e, "1") != 0) {
     bool isEnd = false;
     while (!isEnd) {
@@ -1706,15 +1678,21 @@ Init(const malloc_table_t* aMallocTable)
 
       
       long myLong;
-      if (OptionLong(arg, "--sample-below", 1, gMaxSampleBelowSize, &myLong)) {
-        gSampleBelowSize = myLong;
+      if (GetLong(arg, "--sample-below", 1, mSampleBelowSize.mMax, &myLong)) {
+        mSampleBelowSize.mActual = myLong;
+
+      } else if (GetLong(arg, "--max-frames", 1, mMaxFrames.mMax, &myLong)) {
+        mMaxFrames.mActual = myLong;
+
+      } else if (GetLong(arg, "--max-records", 1, mMaxRecords.mMax, &myLong)) {
+        mMaxRecords.mActual = myLong;
 
       } else if (strcmp(arg, "--mode=normal") == 0) {
-        gMode = Normal;
+        mMode = Options::Normal;
       } else if (strcmp(arg, "--mode=test")   == 0) {
-        gMode = Test;
+        mMode = Options::Test;
       } else if (strcmp(arg, "--mode=stress") == 0) {
-        gMode = Stress;
+        mMode = Options::Stress;
 
       } else if (strcmp(arg, "") == 0) {
         
@@ -1728,8 +1706,87 @@ Init(const malloc_table_t* aMallocTable)
       *e = replacedChar;
     }
   }
+}
+
+void
+Options::BadArg(const char* aArg)
+{
+  StatusMsg("\n");
+  StatusMsg("Bad entry in the $DMD environment variable: '%s'.\n", aArg);
+  StatusMsg("\n");
+  StatusMsg("Valid values of $DMD are:\n");
+  StatusMsg("- undefined or \"\" or \"0\", which disables DMD, or\n");
+  StatusMsg("- \"1\", which enables it with the default options, or\n");
+  StatusMsg("- a whitespace-separated list of |--option=val| entries, which\n");
+  StatusMsg("  enables it with non-default options.\n");
+  StatusMsg("\n");
+  StatusMsg("The following options are allowed;  defaults are shown in [].\n");
+  StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [%d]\n",
+            int(mSampleBelowSize.mMax),
+            int(mSampleBelowSize.mDefault));
+  StatusMsg("                               (prime numbers are recommended)\n");
+  StatusMsg("  --max-frames=<1..%d>         Max. depth of stack traces [%d]\n",
+            int(mMaxFrames.mMax),
+            int(mMaxFrames.mDefault));
+  StatusMsg("  --max-records=<1..%u>   Max. number of records printed [%u]\n",
+            mMaxRecords.mMax,
+            mMaxRecords.mDefault);
+  StatusMsg("  --mode=<normal|test|stress>  Mode of operation [normal]\n");
+  StatusMsg("\n");
+  exit(1);
+}
+
+
+
+
+
+#ifdef XP_MACOSX
+static void
+NopStackWalkCallback(void* aPc, void* aSp, void* aClosure)
+{
+}
+#endif
+
+
+static FILE*
+OpenOutputFile(const char* aFilename)
+{
+  FILE* fp = fopen(aFilename, "w");
+  if (!fp) {
+    StatusMsg("can't create %s file: %s\n", aFilename, strerror(errno));
+    exit(1);
+  }
+  return fp;
+}
+
+static void RunTestMode(FILE* fp);
+static void RunStressMode(FILE* fp);
+
+
+
+
+
+static void
+Init(const malloc_table_t* aMallocTable)
+{
+  MOZ_ASSERT(!gIsDMDRunning);
+
+  gMallocTable = aMallocTable;
 
   
+  
+  
+
+  char* e = getenv("DMD");
+  StatusMsg("$DMD = '%s'\n", e);
+
+  if (!e || strcmp(e, "") == 0 || strcmp(e, "0") == 0) {
+    StatusMsg("DMD is not enabled\n");
+    return;
+  }
+
+  
+  gOptions = InfallibleAllocPolicy::new_<Options>(e);
 
   StatusMsg("DMD is enabled\n");
 
@@ -1756,7 +1813,7 @@ Init(const malloc_table_t* aMallocTable)
   gBlockTable = InfallibleAllocPolicy::new_<BlockTable>();
   gBlockTable->init(8192);
 
-  if (gMode == Test) {
+  if (gOptions->IsTestMode()) {
     
     
     
@@ -1770,7 +1827,7 @@ Init(const malloc_table_t* aMallocTable)
     exit(0);
   }
 
-  if (gMode == Stress) {
+  if (gOptions->IsStressMode()) {
     FILE* fp = OpenOutputFile("stress.dmd");
     gIsDMDRunning = true;
 
@@ -1857,23 +1914,23 @@ PrintSortedRecords(const Writer& aWriter, LocationService* aLocService,
     return;
   }
 
-  
-  
-  
-  static const uint32_t MaxRecords = 1000;
-  uint32_t numRecords = recordArray.length();
-
   StatusMsg("  printing %s stack %s record array...\n", astr, kind);
   size_t cumulativeUsableSize = 0;
+
+  
+  
+  
+  uint32_t numRecords = recordArray.length();
+  uint32_t maxRecords = gOptions->MaxRecords();
   for (uint32_t i = 0; i < numRecords; i++) {
     const Record* r = recordArray[i];
     cumulativeUsableSize += r->GetRecordSize().Usable();
-    if (i < MaxRecords) {
+    if (i < maxRecords) {
       r->Print(aWriter, aLocService, i+1, numRecords, aStr, astr,
                aCategoryUsableSize, cumulativeUsableSize, aTotalUsableSize);
-    } else if (i == MaxRecords) {
+    } else if (i == maxRecords) {
       W("%s: stopping after %s stack %s records\n\n", aStr,
-        Show(MaxRecords, gBuf1, kBufLen), kind);
+        Show(maxRecords, gBuf1, kBufLen), kind);
     }
   }
 
@@ -2060,8 +2117,9 @@ Dump(Writer aWriter)
     unreportedNumBlocks + onceReportedNumBlocks + twiceReportedNumBlocks;
 
   WriteTitle("Invocation\n");
-  W("$DMD = '%s'\n", gDMDEnvVar);
-  W("Sample-below size = %lld\n\n", (long long)(gSampleBelowSize));
+  W("$DMD = '%s'\n", gOptions->DMDEnvVar());
+  W("Sample-below size = %lld\n\n",
+    (long long)(gOptions->SampleBelowSize()));
 
   
   LocationService* locService = InfallibleAllocPolicy::new_<LocationService>();
@@ -2110,7 +2168,7 @@ Dump(Writer aWriter)
   W("\n");
 
   
-  if (gMode != Test) {
+  if (!gOptions->IsTestMode()) {
     Sizes sizes;
     SizeOfInternal(&sizes);
 
@@ -2221,7 +2279,7 @@ RunTestMode(FILE* fp)
   Writer writer(FpWrite, fp);
 
   
-  gSampleBelowSize = 1;
+  gOptions->SetSampleBelowSize(1);
 
   
   Dump(writer);
@@ -2359,10 +2417,7 @@ RunTestMode(FILE* fp)
   
   gBlockTable->clear();
 
-  
-  
-  gSmallBlockActualSizeCounter = 0;
-  gSampleBelowSize = 128;
+  gOptions->SetSampleBelowSize(128);
 
   char* s;
 
@@ -2480,7 +2535,7 @@ RunStressMode(FILE* fp)
   Writer writer(FpWrite, fp);
 
   
-  gSampleBelowSize = 1;
+  gOptions->SetSampleBelowSize(1);
 
   stress1(); stress1(); stress1(); stress1(); stress1();
   stress1(); stress1(); stress1(); stress1(); stress1();
