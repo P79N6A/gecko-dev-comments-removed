@@ -553,6 +553,8 @@ pref("devtools.debugger.force-local", true);
 
 pref("devtools.debugger.prompt-connection", true);
 
+pref("devtools.debugger.enable-content-actors", true);
+
 pref("devtools.debugger.forbid-certified-apps", true);
 
 
@@ -3973,6 +3975,9 @@ pref("layers.offmainthreadcomposition.force-basic", false);
 
 
 pref("layers.offmainthreadcomposition.async-animations", false);
+
+
+pref("layers.offmainthreadcomposition.log-animations", false);
 
 pref("layers.bufferrotation.enabled", true);
 
