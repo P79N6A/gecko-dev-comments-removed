@@ -197,7 +197,7 @@ class AudioDeviceAPITest: public testing::Test {
     
     EXPECT_TRUE((audio_device_ = AudioDeviceModuleImpl::Create(
                 kId, AudioDeviceModule::kPlatformDefaultAudio)) != NULL);
-#elif defined(WEBRTC_LINUX)
+#elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)
     EXPECT_TRUE((audio_device_ = AudioDeviceModuleImpl::Create(
                 kId, AudioDeviceModule::kWindowsWaveAudio)) == NULL);
     EXPECT_TRUE((audio_device_ = AudioDeviceModuleImpl::Create(
@@ -1690,7 +1690,7 @@ TEST_F(AudioDeviceAPITest, CPULoad) {
 
 
 
-#if !defined(_WIN32) && !defined(WEBRTC_LINUX)
+#if !defined(_WIN32) && !defined(WEBRTC_LINUX) && !defined(WEBRTC_BSD)
 TEST_F(AudioDeviceAPITest, StartAndStopRawOutputFileRecording) {
   
   CheckInitialPlayoutStates();
