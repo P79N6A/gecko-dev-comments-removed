@@ -43,7 +43,8 @@ let loaderGlobals = {
 };
 
 
-var BuiltinProvider = {
+function BuiltinProvider() {}
+BuiltinProvider.prototype = {
   load: function() {
     this.loader = new loader.Loader({
       modules: {
@@ -72,7 +73,8 @@ var BuiltinProvider = {
         
         "xpcshell-test": "resource://test"
       },
-      globals: loaderGlobals
+      globals: loaderGlobals,
+      invisibleToDebugger: this.invisibleToDebugger
     });
 
     return promise.resolve(undefined);
@@ -87,7 +89,8 @@ var BuiltinProvider = {
 
 
 
-var SrcdirProvider = {
+function SrcdirProvider() {}
+SrcdirProvider.prototype = {
   fileURI: function(path) {
     let file = new FileUtils.File(path);
     return Services.io.newFileURI(file).spec;
@@ -134,7 +137,8 @@ var SrcdirProvider = {
         "acorn": acornURI,
         "acorn_loose": acornLoosseURI
       },
-      globals: loaderGlobals
+      globals: loaderGlobals,
+      invisibleToDebugger: this.invisibleToDebugger
     });
 
     return this._writeManifest(devtoolsDir).then(null, Cu.reportError);
@@ -217,12 +221,27 @@ var SrcdirProvider = {
 
 
 
-this.DevToolsLoader = function DevToolsLoader() {
-  this._chooseProvider();
-};
+this.DevToolsLoader = function DevToolsLoader() {};
 
 DevToolsLoader.prototype = {
+  get provider() {
+    if (!this._provider) {
+      this._chooseProvider();
+    }
+    return this._provider;
+  },
+
   _provider: null,
+
+  
+
+
+
+
+  require: function() {
+    this._chooseProvider();
+    return this.require.apply(this, arguments);
+  },
 
   
 
@@ -234,7 +253,7 @@ DevToolsLoader.prototype = {
 
   loadURI: function(id, uri) {
     let module = loader.Module(id, uri);
-    return loader.load(this._provider.loader, module).exports;
+    return loader.load(this.provider.loader, module).exports;
   },
 
   
@@ -248,7 +267,7 @@ DevToolsLoader.prototype = {
 
   main: function(id) {
     this._mainid = id;
-    this._main = loader.main(this._provider.loader, id);
+    this._main = loader.main(this.provider.loader, id);
 
     
     Object.getOwnPropertyNames(this._main).forEach(key => {
@@ -271,6 +290,7 @@ DevToolsLoader.prototype = {
       this._provider.unload("newprovider");
     }
     this._provider = provider;
+    this._provider.invisibleToDebugger = this.invisibleToDebugger;
     this._provider.load();
     this.require = loader.Require(this._provider.loader, { id: "devtools" });
 
@@ -284,9 +304,9 @@ DevToolsLoader.prototype = {
 
   _chooseProvider: function() {
     if (Services.prefs.prefHasUserValue("devtools.loader.srcdir")) {
-      this.setProvider(SrcdirProvider);
+      this.setProvider(new SrcdirProvider());
     } else {
-      this.setProvider(BuiltinProvider);
+      this.setProvider(new BuiltinProvider());
     }
   },
 
@@ -302,6 +322,17 @@ DevToolsLoader.prototype = {
     delete this._provider;
     this._chooseProvider();
   },
+
+  
+
+
+
+
+
+
+
+
+  invisibleToDebugger: Services.appinfo.name !== "Firefox"
 };
 
 
