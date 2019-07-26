@@ -13,6 +13,7 @@
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothSocketObserver;
+class DroidSocketImpl;
 
 class BluetoothSocket : public mozilla::ipc::UnixSocketConsumer
 {
@@ -22,11 +23,35 @@ public:
                   bool aAuth,
                   bool aEncrypt);
 
-  bool Connect(const nsACString& aDeviceAddress, int aChannel);
+  
+
+
+
+
+
+
+
+
+  bool Connect(const nsAString& aDeviceAddress, int aChannel);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
   bool Listen(int aChannel);
+
   inline void Disconnect()
   {
-    CloseSocket();
+    CloseDroidSocket();
   }
 
   virtual void OnConnectSuccess() MOZ_OVERRIDE;
@@ -37,14 +62,24 @@ public:
 
   inline void GetAddress(nsAString& aDeviceAddress)
   {
-    GetSocketAddr(aDeviceAddress);
+    aDeviceAddress = mDeviceAddress;
   }
+
+  void CloseDroidSocket();
+  bool IsWaitingForClientFd();
+  bool SendDroidSocketData(mozilla::ipc::UnixSocketRawData* aData);
 
 private:
   BluetoothSocketObserver* mObserver;
-  BluetoothSocketType mType;
+  DroidSocketImpl* mImpl;
+  nsString mDeviceAddress;
   bool mAuth;
   bool mEncrypt;
+  bool mIsServer;
+  int mReceivedSocketInfoLength;
+
+  bool CreateDroidSocket(int aFd);
+  bool ReceiveSocketInfo(nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage);
 };
 
 END_BLUETOOTH_NAMESPACE
