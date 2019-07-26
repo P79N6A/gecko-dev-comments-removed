@@ -706,6 +706,9 @@ private:
   void PassDictionaryOrLong(JSContext*, Dict&) MOZ_DELETE;
   void PassDictContainingDict(JSContext*, DictContainingDict&) MOZ_DELETE;
   void PassDictContainingSequence(DictContainingSequence&) MOZ_DELETE;
+
+  
+  void PassNullableEnum(Nullable<TestEnum>&) MOZ_DELETE;
 };
 
 class TestIndexedGetterInterface : public nsISupports,
