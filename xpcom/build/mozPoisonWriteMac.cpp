@@ -22,6 +22,7 @@
 #include "nsDirectoryServiceUtils.h"
 #include "mozilla/SHA1.h"
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include <vector>
 #include <algorithm>
 #include <string.h>
@@ -284,6 +285,26 @@ public:
 
 bool PoisoningDisabled = true;
 
+
+
+bool IsIPCWrite(int fd, const struct stat &buf) {
+    if ((buf.st_mode & S_IFMT) == S_IFIFO) {
+        return true;
+    }
+
+    if ((buf.st_mode & S_IFMT) != S_IFSOCK) {
+        return false;
+    }
+
+    sockaddr_storage address;
+    socklen_t len = sizeof(address);
+    if (getsockname(fd, (sockaddr*) &address, &len) != 0) {
+        return true; 
+    }
+
+    return address.ss_family == AF_UNIX;
+}
+
 void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
     if (PoisoningDisabled)
         return;
@@ -301,8 +322,7 @@ void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
     if (!ValidWriteAssert(rv == 0))
         return;
 
-    
-    if ((buf.st_mode & S_IFMT) == S_IFIFO)
+    if (IsIPCWrite(fd, buf))
         return;
 
     {
