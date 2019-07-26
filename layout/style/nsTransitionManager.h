@@ -87,6 +87,20 @@ struct ElementTransitions MOZ_FINAL
   void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
 
   virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
 
   
