@@ -55,14 +55,13 @@ public:
 
 
 
-
-  void UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta);
+  void UpdateWithTouchAtDevicePoint(int32_t aPos, uint32_t aTimestampMs);
 
   
 
 
 
-  void StartTouch(int32_t aPos);
+  void StartTouch(int32_t aPos, uint32_t aTimestampMs);
 
   
 
@@ -211,6 +210,7 @@ public:
 
 protected:
   int32_t mPos;
+  uint32_t mPosTimeMs;
   int32_t mStartPos;
   float mVelocity;
   bool mAxisLocked;     

@@ -727,8 +727,6 @@ private:
   
   
   TimeStamp mLastSampleTime;
-  
-  uint32_t mLastEventTime;
 
   
   

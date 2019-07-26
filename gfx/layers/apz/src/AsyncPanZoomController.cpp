@@ -686,7 +686,6 @@ nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent) 
   default: NS_WARNING("Unhandled input event"); break;
   }
 
-  mLastEventTime = aEvent.mTime;
   return rv;
 }
 
@@ -721,7 +720,6 @@ nsEventStatus AsyncPanZoomController::HandleGestureEvent(const InputData& aEvent
   default: NS_WARNING("Unhandled input event"); break;
   }
 
-  mLastEventTime = aEvent.mTime;
   return rv;
 }
 
@@ -745,8 +743,8 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
       CancelAnimation();
       
     case NOTHING: {
-      mX.StartTouch(point.x);
-      mY.StartTouch(point.y);
+      mX.StartTouch(point.x, aEvent.mTime);
+      mY.StartTouch(point.y, aEvent.mTime);
       APZCTreeManager* treeManagerLocal = mTreeManager;
       nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
       if (treeManagerLocal && controller) {
@@ -1238,9 +1236,8 @@ nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent
 
   
   
-  mX.StartTouch(point.x);
-  mY.StartTouch(point.y);
-  mLastEventTime = aEvent.mTime;
+  mX.StartTouch(point.x, aEvent.mTime);
+  mY.StartTouch(point.y, aEvent.mTime);
 
   double angle = atan2(dy, dx); 
   angle = fabs(angle); 
@@ -1267,15 +1264,8 @@ nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent
 
 void AsyncPanZoomController::UpdateWithTouchAtDevicePoint(const MultiTouchInput& aEvent) {
   ScreenIntPoint point = GetFirstTouchScreenPoint(aEvent);
-  TimeDuration timeDelta = TimeDuration().FromMilliseconds(aEvent.mTime - mLastEventTime);
-
-  
-  if (timeDelta.ToMilliseconds() <= EPSILON) {
-    return;
-  }
-
-  mX.UpdateWithTouchAtDevicePoint(point.x, timeDelta);
-  mY.UpdateWithTouchAtDevicePoint(point.y, timeDelta);
+  mX.UpdateWithTouchAtDevicePoint(point.x, aEvent.mTime);
+  mY.UpdateWithTouchAtDevicePoint(point.y, aEvent.mTime);
 }
 
 bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
@@ -1413,12 +1403,6 @@ bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, 
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
   ScreenIntPoint prevTouchPoint(mX.GetPos(), mY.GetPos());
   ScreenIntPoint touchPoint = GetFirstTouchScreenPoint(aEvent);
-  TimeDuration timeDelta = TimeDuration().FromMilliseconds(aEvent.mTime - mLastEventTime);
-
-  
-  if (timeDelta.ToMilliseconds() <= EPSILON) {
-    return;
-  }
 
   
   if (GetAxisLockMode() == STICKY && !mPanDirRestricted) {
@@ -1448,7 +1432,9 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
 
   UpdateWithTouchAtDevicePoint(aEvent);
 
-  CallDispatchScroll(prevTouchPoint, touchPoint, 0);
+  if (prevTouchPoint != touchPoint) {
+    CallDispatchScroll(prevTouchPoint, touchPoint, 0);
+  }
 }
 
 ScreenIntPoint& AsyncPanZoomController::GetFirstTouchScreenPoint(const MultiTouchInput& aEvent) {
