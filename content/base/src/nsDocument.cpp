@@ -2592,14 +2592,15 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   }
 
   
-  if (!cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty()) {
-    mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
+  
+  
+  bool oldHeaderIsPresent = !cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty();
+  bool newHeaderIsPresent = !cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty();
 
-    
-    
-    if (!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty()) {
-      mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
-    }
+  if (oldHeaderIsPresent && newHeaderIsPresent) {
+    mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
+  } else if (oldHeaderIsPresent) {
+    mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
   }
 
   
