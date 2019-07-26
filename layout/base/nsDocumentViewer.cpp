@@ -2582,17 +2582,6 @@ nsDocumentViewer::Print(bool              aSilent,
 }
 
 
-NS_IMETHODIMP 
-nsDocumentViewer::PrintWithParent(nsIDOMWindow*, nsIPrintSettings *aThePrintSettings, nsIWebProgressListener *aWPListener)
-{
-#ifdef NS_PRINTING
-  return Print(aThePrintSettings, aWPListener);
-#else
-  return NS_ERROR_FAILURE;
-#endif
-}
-
-
 NS_IMETHODIMP
 nsDocumentViewer::GetPrintable(bool *aPrintable)
 {
