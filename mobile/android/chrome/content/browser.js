@@ -4622,8 +4622,9 @@ var BrowserEventHandler = {
       if (this._scrollableElement != null) {
         
         let doc = BrowserApp.selectedBrowser.contentDocument;
-        if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
+        if (this._scrollableElement != doc.documentElement) {
           sendMessageToJava({ type: "Panning:Override" });
+        }
       }
     }
 
@@ -4711,7 +4712,6 @@ var BrowserEventHandler = {
 
           let doc = BrowserApp.selectedBrowser.contentDocument;
           if (this._scrollableElement == null ||
-              this._scrollableElement == doc.body ||
               this._scrollableElement == doc.documentElement) {
             sendMessageToJava({ type: "Panning:CancelOverride" });
             return;
@@ -4952,8 +4952,10 @@ var BrowserEventHandler = {
     var computedStyle = win.getComputedStyle(elem);
     if (!computedStyle)
       return false;
-    return computedStyle.overflowX == 'auto' || computedStyle.overflowX == 'scroll'
-        || computedStyle.overflowY == 'auto' || computedStyle.overflowY == 'scroll';
+    
+    
+    
+    return !(computedStyle.overflowX == 'hidden' && computedStyle.overflowY == 'hidden');
   },
 
   _findScrollableElement: function(elem, checkElem) {
@@ -4966,11 +4968,10 @@ var BrowserEventHandler = {
 
 
 
-
       if (checkElem) {
         if ((elem.scrollTopMax > 0 || elem.scrollLeftMax > 0) &&
             (this._hasScrollableOverflow(elem) ||
-             elem.mozMatchesSelector("html, body, textarea")) ||
+             elem.mozMatchesSelector("html, textarea")) ||
             (elem instanceof HTMLInputElement && elem.mozIsTextField(false)) ||
             (elem instanceof HTMLSelectElement && (elem.size > 1 || elem.multiple))) {
           scrollable = true;
