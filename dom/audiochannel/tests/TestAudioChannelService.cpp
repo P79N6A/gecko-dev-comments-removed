@@ -278,6 +278,69 @@ TestPriorities()
   NS_ENSURE_SUCCESS(rv, rv);
   TEST_ENSURE_BASE(!playing, "Test4: A ringer channel unvisible agent should not be playing when a public notification is playing");
 
+  
+  rv = normalAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = normalAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A normal channel visible agent should be playing");
+
+  
+  rv = contentAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = contentAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A content channel visible agent should be playing");
+
+  
+  rv = notificationAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = notificationAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A notification channel visible agent should be playing");
+
+  
+  rv = alarmAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = alarmAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A alarm channel visible agent should be playing");
+
+  
+  rv = telephonyAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = telephonyAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A telephony channel visible agent should be playing");
+
+  
+  rv = ringerAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = ringerAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A ringer channel visible agent should be playing");
+
+  
+  rv = pNotificationAgent.mAgent->SetVisibilityState(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = pNotificationAgent.StartPlaying(&playing);
+  NS_ENSURE_SUCCESS(rv, rv);
+  TEST_ENSURE_BASE(playing, "Test4: A pNotification channel visible agent should be playing");
+
   return rv;
 }
 
