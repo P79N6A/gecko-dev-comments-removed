@@ -72,22 +72,6 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
 
     JS_EndRequest(mJSContext);
 
-    
-    
-    
-    
-    
-    
-    
-
-    if (JS_GetOptions(mJSContext) & JSOPTION_PRIVATE_IS_NSISUPPORTS) {
-        nsCOMPtr<nsIXPCScriptNotify> scriptNotify =
-            do_QueryInterface(static_cast<nsISupports*>
-                                         (JS_GetContextPrivate(mJSContext)));
-        if (scriptNotify)
-            scriptNotify->ScriptExecuted();
-    }
-
     if (mErrorReporterSet)
         JS_SetErrorReporter(mJSContext, NULL);
 }
