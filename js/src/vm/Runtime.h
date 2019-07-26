@@ -1775,6 +1775,19 @@ namespace js {
 
 
 
+static inline JSContext *
+GetJSContextFromJitCode()
+{
+    JSContext *cx = TlsPerThreadData.get()->ionJSContext;
+    JS_ASSERT(cx);
+    return cx;
+}
+
+
+
+
+
+
 
 
 

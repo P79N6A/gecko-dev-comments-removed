@@ -426,7 +426,6 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
         
         
         
-        jit::IonContext ictx(cx, nullptr);
         JitActivation jitActivation(cx,  false,  false);
 
         

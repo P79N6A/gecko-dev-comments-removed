@@ -1416,7 +1416,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 {
     
     
-    JSContext *cx = GetIonContext()->cx;
+    JSContext *cx = GetJSContextFromJitCode();
     js::gc::AutoSuppressGC suppressGC(cx);
 
     IonSpew(IonSpew_BaselineBailouts, "  Done restoring frames");
