@@ -2052,6 +2052,60 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
                        aReflowState.mComputedMaxHeight);
 }
 
+nscoord
+nsFlexContainerFrame::ComputeFlexContainerCrossSize(
+  const nsHTMLReflowState& aReflowState,
+  const FlexboxAxisTracker& aAxisTracker,
+  nscoord aLineCrossSize,
+  nscoord aAvailableHeightForContent,
+  bool* aIsDefinite,
+  nsReflowStatus& aStatus)
+{
+  MOZ_ASSERT(aIsDefinite, "outparam pointer must be non-null"); 
+
+  if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
+    
+    
+    *aIsDefinite = true;
+    return aReflowState.ComputedWidth();
+  }
+
+  nscoord effectiveComputedHeight = GetEffectiveComputedHeight(aReflowState);
+  if (effectiveComputedHeight != NS_INTRINSICSIZE) {
+    
+    *aIsDefinite = true;
+    if (aAvailableHeightForContent == NS_UNCONSTRAINEDSIZE ||
+        effectiveComputedHeight < aAvailableHeightForContent) {
+      
+      
+      
+      
+      return effectiveComputedHeight;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    NS_FRAME_SET_INCOMPLETE(aStatus);
+    if (aLineCrossSize <= aAvailableHeightForContent) {
+      return aAvailableHeightForContent;
+    }
+    return std::min(effectiveComputedHeight, aLineCrossSize);
+  }
+
+  
+  
+  
+  *aIsDefinite = false;
+  return NS_CSS_MINMAX(aLineCrossSize,
+                       aReflowState.mComputedMinHeight,
+                       aReflowState.mComputedMaxHeight);
+}
+
 void
 nsFlexContainerFrame::PositionItemInMainAxis(
   MainAxisPositionTracker& aMainAxisPosnTracker,
@@ -2326,28 +2380,14 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
+  bool isCrossSizeDefinite;
+  const nscoord contentBoxCrossSize =
+    ComputeFlexContainerCrossSize(aReflowState, axisTracker,
+                                  lineCrossAxisPosnTracker.GetLineCrossSize(),
+                                  availableHeightForContent,
+                                  &isCrossSizeDefinite, aStatus);
 
-  
-  nscoord contentBoxCrossSize =
-    GET_CROSS_COMPONENT(axisTracker,
-                        aReflowState.ComputedWidth(),
-                        aReflowState.ComputedHeight());
-
-  if (contentBoxCrossSize == NS_AUTOHEIGHT) {
-    
-    
-    nscoord minCrossSize = GET_CROSS_COMPONENT(axisTracker,
-                                               aReflowState.mComputedMinWidth,
-                                               aReflowState.mComputedMinHeight);
-    nscoord maxCrossSize = GET_CROSS_COMPONENT(axisTracker,
-                                               aReflowState.mComputedMaxWidth,
-                                               aReflowState.mComputedMaxHeight);
-    contentBoxCrossSize =
-      NS_CSS_MINMAX(lineCrossAxisPosnTracker.GetLineCrossSize(),
-                    minCrossSize, maxCrossSize);
-  }
-  if (lineCrossAxisPosnTracker.GetLineCrossSize() !=
-      contentBoxCrossSize) {
+  if (isCrossSizeDefinite) {
     
     
     
