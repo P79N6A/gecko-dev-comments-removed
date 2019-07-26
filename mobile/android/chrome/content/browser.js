@@ -989,7 +989,7 @@ var BrowserApp = {
     });
   },
 
-  scrollToFocusedInput: function(aBrowser) {
+  scrollToFocusedInput: function(aBrowser, aAllowZoom = true) {
     let doc = aBrowser.contentDocument;
     if (!doc)
       return;
@@ -1011,52 +1011,8 @@ var BrowserApp = {
         focused = focused.ownerDocument.defaultView.frameElement;
       }
 
-      let tab = BrowserApp.getTabForBrowser(aBrowser);
-      let win = aBrowser.contentWindow;
-
       
-      
-      focused.scrollIntoView(false);
-
-      
-      
-      let focusedRect = focused.getBoundingClientRect();
-      let visibleContentWidth = gScreenWidth / tab._zoom;
-      let visibleContentHeight = gScreenHeight / tab._zoom;
-
-      let positionChanged = false;
-      let scrollX = win.scrollX;
-      let scrollY = win.scrollY;
-
-      if (focusedRect.right >= visibleContentWidth && focusedRect.left > 0) {
-        
-        scrollX += Math.min(focusedRect.left, focusedRect.right - visibleContentWidth);
-        positionChanged = true;
-      } else if (focusedRect.left < 0) {
-        
-        scrollX += focusedRect.left;
-        positionChanged = true;
-      }
-      if (focusedRect.bottom >= visibleContentHeight && focusedRect.top > 0) {
-        
-        scrollY += Math.min(focusedRect.top, focusedRect.bottom - visibleContentHeight);
-        positionChanged = true;
-      } else if (focusedRect.top < 0) {
-        
-        scrollY += focusedRect.top;
-        positionChanged = true;
-      }
-
-      if (positionChanged)
-        win.scrollTo(scrollX, scrollY);
-
-      
-      
-      tab.userScrollPos.x = win.scrollX;
-      tab.userScrollPos.y = win.scrollY;
-
-      
-      tab.sendViewportUpdate();
+      BrowserEventHandler._zoomToElement(focused, -1, false, aAllowZoom);
     }
   },
 
@@ -1149,7 +1105,9 @@ var BrowserApp = {
         break;
 
       case "ScrollTo:FocusedInput":
-        this.scrollToFocusedInput(browser);
+        
+        
+        this.scrollToFocusedInput(browser, false);
         break;
 
       case "Sanitize:ClearData":
@@ -4089,6 +4047,9 @@ var BrowserEventHandler = {
             if ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
                 (element instanceof HTMLTextAreaElement))
                SelectionHandler.showThumb(element);
+
+            
+            BrowserApp.scrollToFocusedInput(BrowserApp.selectedBrowser);
           } catch(e) {
             Cu.reportError(e);
           }
@@ -4133,12 +4094,6 @@ var BrowserEventHandler = {
     const maxDifference = 20;
     const maxZoomAllowed = 4; 
 
-    if (Math.abs(aViewport.zoom - maxZoomAllowed) < 1e-6) {
-      
-      
-      return true;
-    }
-
     let vRect = new Rect(aViewport.cssX, aViewport.cssY, aViewport.cssWidth, aViewport.cssHeight);
     let overlap = vRect.intersect(aRect);
     let overlapArea = overlap.width * overlap.height;
@@ -4146,6 +4101,12 @@ var BrowserEventHandler = {
     let showing = overlapArea / (aRect.width * availHeight);
     let dw = (aRect.width - vRect.width);
     let dx = (aRect.x - vRect.x);
+
+    if (Math.abs(aViewport.zoom - maxZoomAllowed) < 1e-6 && overlap.width / aRect.width > 0.9) {
+      
+      
+      return true;
+    }
 
     return (showing > 0.9 &&
             dx > minDifference && dx < maxDifference &&
@@ -4175,14 +4136,14 @@ var BrowserEventHandler = {
   
 
 
-  _zoomToElement: function(aElement, aClickY = -1) {
+  _zoomToElement: function(aElement, aClickY = -1, aCanZoomOut = true, aCanZoomIn = true) {
     const margin = 15;
     let rect = ElementTouchHelper.getBoundingContentRect(aElement);
 
     let viewport = BrowserApp.selectedTab.getViewport();
-    let bRect = new Rect(Math.max(viewport.cssPageLeft, rect.x - margin),
+    let bRect = new Rect(aCanZoomIn ? Math.max(viewport.cssPageLeft, rect.x - margin) : viewport.cssLeft,
                          rect.y,
-                         rect.w + 2 * margin,
+                         aCanZoomIn ? rect.w + 2 * margin : viewport.cssWidth,
                          rect.h);
     
     bRect.width = Math.min(bRect.width, viewport.cssPageRight - bRect.x);
@@ -4190,7 +4151,8 @@ var BrowserEventHandler = {
     
     
     if (this._isRectZoomedIn(bRect, viewport)) {
-      this._zoomOut();
+      if (aCanZoomOut)
+        this._zoomOut();
       return;
     }
 
