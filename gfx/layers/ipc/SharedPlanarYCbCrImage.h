@@ -8,27 +8,27 @@
 #include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
 
-#ifndef MOZILLA_LAYERS_SHAREDPLANARYCBCRIMAGE_H
-#define MOZILLA_LAYERS_SHAREDPLANARYCBCRIMAGE_H
+#ifndef MOZILLA_LAYERS_DeprecatedSharedPlanarYCbCrImage_H
+#define MOZILLA_LAYERS_DeprecatedSharedPlanarYCbCrImage_H
 
 namespace mozilla {
 namespace layers {
 
 class ImageClient;
 
-class SharedPlanarYCbCrImage : public PlanarYCbCrImage
+class DeprecatedSharedPlanarYCbCrImage : public PlanarYCbCrImage
 {
 public:
-  SharedPlanarYCbCrImage(ISurfaceAllocator* aAllocator)
+  DeprecatedSharedPlanarYCbCrImage(ISurfaceAllocator* aAllocator)
   : PlanarYCbCrImage(nullptr)
   , mSurfaceAllocator(aAllocator), mAllocated(false)
   {
-    MOZ_COUNT_CTOR(SharedPlanarYCbCrImage);
+    MOZ_COUNT_CTOR(DeprecatedSharedPlanarYCbCrImage);
   }
 
-  ~SharedPlanarYCbCrImage();
+  ~DeprecatedSharedPlanarYCbCrImage();
 
-  virtual SharedPlanarYCbCrImage* AsSharedPlanarYCbCrImage() MOZ_OVERRIDE
+  virtual DeprecatedSharedPlanarYCbCrImage* AsDeprecatedSharedPlanarYCbCrImage() MOZ_OVERRIDE
   {
     return this;
   }
@@ -74,7 +74,7 @@ public:
 
 
 
-  static SharedPlanarYCbCrImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDesc);
+  static DeprecatedSharedPlanarYCbCrImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDesc);
 
 private:
   ipc::Shmem mShmem;
