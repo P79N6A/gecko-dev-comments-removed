@@ -163,9 +163,6 @@ var WifiManager = (function() {
   }
 
   var driverLoaded = false;
-
-  manager.getDriverLoaded = function() { return driverLoaded; }
-
   function loadDriver(callback) {
     if (driverLoaded) {
       callback(0);
@@ -2843,7 +2840,6 @@ WifiWorker.prototype = {
 
     
     let state = this._stateRequests[0].enabled;
-    let driverLoaded = WifiManager.getDriverLoaded();
 
     
     
@@ -2854,10 +2850,7 @@ WifiWorker.prototype = {
 
     
     
-    
-    
-    
-    if (!success || (newState === driverLoaded && state === newState)) {
+    if (!success || state === newState) {
       do {
         if (!("callback" in this._stateRequests[0])) {
           this._stateRequests.shift();
@@ -2871,27 +2864,16 @@ WifiWorker.prototype = {
     
     if (this._stateRequests.length > 0) {
       let self = this;
-      let callback = null;
       this._callbackTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      if (newState === driverLoaded) {
-        
-        callback = function(timer) {
-          if ("callback" in self._stateRequests[0]) {
-            self._stateRequests[0].callback.call(self, self._stateRequests[0].enabled);
-          } else {
-            WifiManager.setWifiEnabled(self._stateRequests[0].enabled,
-                                       self._setWifiEnabledCallback.bind(this));
-          }
-          timer = null;
-        };
-      } else {
-        
-        callback = function(timer) {
-          self._notifyAfterStateChange(success, newState);
-          timer = null;
-        };
-      }
-      this._callbackTimer.initWithCallback(callback, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
+      this._callbackTimer.initWithCallback(function(timer) {
+        if ("callback" in self._stateRequests[0]) {
+          self._stateRequests[0].callback.call(self, self._stateRequests[0].enabled);
+        } else {
+          WifiManager.setWifiEnabled(self._stateRequests[0].enabled,
+                                     self._setWifiEnabledCallback.bind(self));
+        }
+        timer = null;
+      }, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
     }
   },
 
