@@ -3629,6 +3629,10 @@ pref("webgl.prefer-16bpp", false);
 pref("webgl.default-no-alpha", false);
 pref("webgl.force-layers-readback", false);
 
+
+pref("stagefright.force-enabled", false);
+pref("stagefright.disabled", false);
+
 #ifdef XP_WIN
 
 pref("network.tcp.sendbuffer", 131072);
