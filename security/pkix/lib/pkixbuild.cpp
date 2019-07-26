@@ -52,18 +52,31 @@ BackCert::Init(const SECItem& certDER)
     return MapSECStatus(SECFailure);
   }
 
+  if (nssCert->version.len == 1 &&
+      nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v3)) {
+    version = der::Version::v3;
+  } else if (nssCert->version.len == 1 &&
+             nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v2)) {
+    version = der::Version::v2;
+  } else if (nssCert->version.len == 0) {
+    version = der::Version::v1;
+  } else {
+    
+    
+    return Fail(RecoverableError, SEC_ERROR_BAD_DER);
+  }
+
   const CERTCertExtension* const* exts = nssCert->extensions;
   if (!exts) {
     return Success;
   }
+
   
   
   
   
   
-  
-  if (! (nssCert->version.len == 1 &&
-      nssCert->version.data[0] == mozilla::pkix::der::Version::v3)) {
+  if (version != der::Version::v3) {
     return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
   }
 
@@ -127,7 +140,6 @@ BackCert::Init(const SECItem& certDER)
 
   return Success;
 }
-
 
 Result
 BackCert::VerifyOwnSignatureWithKey(TrustDomain& trustDomain,
