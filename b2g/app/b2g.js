@@ -451,7 +451,7 @@ pref("shutdown.watchdog.timeoutSecs", 5);
 
 pref("b2g.update.apply-prompt-timeout", 60000); 
 
-pref("b2g.update.apply-wait-timeout", 1800000); 
+pref("b2g.update.apply-idle-timeout", 600000); 
 
 
 pref("b2g.update.self-destruct-timeout", 5000); 
