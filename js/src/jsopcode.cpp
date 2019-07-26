@@ -5641,19 +5641,8 @@ js_DecompileFunction(JSPrinter *jp)
             
             
             
+            
             MOZ_CRASH();
-
-            jsbytecode *defpc;
-            LOCAL_ASSERT_RV(defpc < endpc, JS_FALSE);
-            defpc += GetBytecodeLength(defpc);
-            LOCAL_ASSERT_RV(*defpc == JSOP_TABLESWITCH, JS_FALSE);
-            defbegin = defpc;
-            deflen = GET_JUMP_OFFSET(defpc);
-            defpc += JUMP_OFFSET_LEN;
-            defstart = GET_JUMP_OFFSET(defpc);
-            defpc += JUMP_OFFSET_LEN;
-            defpc += JUMP_OFFSET_LEN; 
-            deftable = defpc;
         }
 
         for (unsigned i = 0; i < fun->nargs; i++) {

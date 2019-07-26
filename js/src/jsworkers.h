@@ -28,8 +28,9 @@ namespace ion {
 struct WorkerThread;
 
 
-struct WorkerThreadState
+class WorkerThreadState
 {
+  public:
     
     WorkerThread *threads;
     size_t numThreads;
