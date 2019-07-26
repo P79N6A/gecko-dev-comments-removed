@@ -770,6 +770,13 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   rv = pluginHost->InstantiatePluginInstance(mContentType.get(),
                                              mURI.get(), this,
                                              getter_AddRefs(mInstanceOwner));
+  
+  
+  
+  nsIFrame* frame = thisContent->GetPrimaryFrame();
+  if (frame && mInstanceOwner) {
+    mInstanceOwner->SetFrame(static_cast<nsObjectFrame*>(frame));
+  }
 
   if (appShell) {
     appShell->ResumeNative();
@@ -1011,15 +1018,9 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
   }
 
   
-  mInstanceOwner->SetFrame(nullptr);
-
   
   nsObjectFrame *objFrame = static_cast<nsObjectFrame*>(aFrame);
   mInstanceOwner->SetFrame(objFrame);
-
-  
-  objFrame->FixupWindow(objFrame->GetContentRectRelativeToSelf().Size());
-  objFrame->InvalidateFrame();
 
   return NS_OK;
 }
@@ -2294,7 +2295,6 @@ nsObjectLoadingContent::PluginDestroyed()
   
   
   TeardownProtoChain();
-  mInstanceOwner->SetFrame(nullptr);
   mInstanceOwner->Destroy();
   mInstanceOwner = nullptr;
   return NS_OK;
@@ -2578,6 +2578,8 @@ nsObjectLoadingContent::StopPluginInstance()
     CloseChannel();
   }
 
+  
+  
   mInstanceOwner->SetFrame(nullptr);
 
   bool delayedStop = false;
