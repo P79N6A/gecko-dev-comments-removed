@@ -481,7 +481,7 @@ class TreeMetadataEmitter(LoggingMixin):
             if filter_inactive:
                 
                 
-                filtered = m.active_tests(exists=False, disabled=True,
+                filtered = m.active_tests(exists=False, disabled=False,
                     **self.info)
 
                 missing = [t['name'] for t in filtered if not os.path.exists(t['path'])]
