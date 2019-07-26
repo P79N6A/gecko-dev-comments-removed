@@ -911,22 +911,22 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,
     case POPUPALIGNMENT_LEFTCENTER:
       pnt = nsPoint(anchorRect.x, anchorRect.y + anchorRect.height / 2);
       anchorRect.y = pnt.y;
-      anchorRect.height = 1;
+      anchorRect.height = 0;
       break;
     case POPUPALIGNMENT_RIGHTCENTER:
       pnt = nsPoint(anchorRect.XMost(), anchorRect.y + anchorRect.height / 2);
       anchorRect.y = pnt.y;
-      anchorRect.height = 1;
+      anchorRect.height = 0;
       break;
     case POPUPALIGNMENT_TOPCENTER:
       pnt = nsPoint(anchorRect.x + anchorRect.width / 2, anchorRect.y);
       anchorRect.x = pnt.x;
-      anchorRect.width = 1;
+      anchorRect.width = 0;
       break;
     case POPUPALIGNMENT_BOTTOMCENTER:
       pnt = nsPoint(anchorRect.x + anchorRect.width / 2, anchorRect.YMost());
       anchorRect.x = pnt.x;
-      anchorRect.width = 1;
+      anchorRect.width = 0;
       break;
     case POPUPALIGNMENT_TOPRIGHT:
       pnt = anchorRect.TopRight();
@@ -1282,18 +1282,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
     nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
 
     
-    if (!anchorRect.IntersectRect(anchorRect, screenRect)) {
-      anchorRect.width = anchorRect.height = 0;
-      
-      if (anchorRect.x < screenRect.x)
-        anchorRect.x = screenRect.x;
-      if (anchorRect.XMost() > screenRect.XMost())
-        anchorRect.x = screenRect.XMost();
-      if (anchorRect.y < screenRect.y)
-        anchorRect.y = screenRect.y;
-      if (anchorRect.YMost() > screenRect.YMost())
-        anchorRect.y = screenRect.YMost();
-    }
+    anchorRect = anchorRect.Intersect(screenRect);
 
     
     if (mRect.width > screenRect.width)
