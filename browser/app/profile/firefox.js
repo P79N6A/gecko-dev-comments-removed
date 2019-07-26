@@ -1283,3 +1283,6 @@ pref("media.webaudio.enabled", true);
 
 
 pref("dom.debug.propagate_gesture_events_through_content", false);
+
+
+pref("geo.wifi.uri", "https://www.googleapis.com/geolocation/v1/geolocate?key=%GOOGLE_API_KEY%");
