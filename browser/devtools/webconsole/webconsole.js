@@ -1085,10 +1085,22 @@ WebConsoleFrame.prototype = {
         let functionName = aMessage.functionName ||
                            l10n.getStr("stacktrace.anonymousFunction");
 
-        body = l10n.getFormatStr("stacktrace.outputMessage",
-                                 [filename, functionName, sourceLine]);
+        body = this.document.createElementNS(XHTML_NS, "a");
+        body.setAttribute("aria-haspopup", true);
+        body.href = "#";
+        body.draggable = false;
+        body.textContent = l10n.getFormatStr("stacktrace.outputMessage",
+                                             [filename, functionName,
+                                              sourceLine]);
 
-        clipboardText = body + "\n";
+        this._addMessageLinkCallback(body, () => {
+          this.jsterm.openVariablesView({
+            rawObject: aMessage.stacktrace,
+            autofocus: true,
+          });
+        });
+
+        clipboardText = body.textContent + "\n";
 
         aMessage.stacktrace.forEach(function(aFrame) {
           clipboardText += aFrame.filename + " :: " +
@@ -1175,16 +1187,8 @@ WebConsoleFrame.prototype = {
       repeatNode._uid += [...objectActors].join("-");
     }
 
-    
-    
     if (level == "trace") {
       node._stacktrace = aMessage.stacktrace;
-
-      this.makeOutputMessageLink(node, () =>
-        this.jsterm.openVariablesView({
-          rawObject: node._stacktrace,
-          autofocus: true,
-        }));
     }
 
     return node;
@@ -1375,7 +1379,9 @@ WebConsoleFrame.prototype = {
     let urlNode = this.document.createElementNS(XHTML_NS, "a");
     urlNode.classList.add("webconsole-msg-url");
     urlNode.setAttribute("title", request.url);
+    urlNode.href = request.url;
     urlNode.textContent = displayUrl;
+    urlNode.draggable = false;
     body.appendChild(urlNode);
     body.appendChild(this.document.createTextNode(" "));
 
@@ -1388,11 +1394,14 @@ WebConsoleFrame.prototype = {
     statusNode.classList.add("webconsole-msg-status");
     body.appendChild(statusNode);
 
-    this.makeOutputMessageLink(messageNode, function WCF_net_message_link() {
+    let onClick = () => {
       if (!messageNode._panelOpen) {
         this.openNetworkPanel(messageNode, networkInfo);
       }
-    }.bind(this));
+    };
+
+    this._addMessageLinkCallback(urlNode, onClick);
+    this._addMessageLinkCallback(statusNode, onClick);
 
     networkInfo.node = messageNode;
 
@@ -1414,16 +1423,17 @@ WebConsoleFrame.prototype = {
     
     let mixedContentWarningNode = this.document.createElementNS(XHTML_NS, "a");
     mixedContentWarningNode.title = MIXED_CONTENT_LEARN_MORE;
+    mixedContentWarningNode.href = MIXED_CONTENT_LEARN_MORE;
     mixedContentWarningNode.classList.add("webconsole-mixed-content-link");
     mixedContentWarningNode.textContent = mixedContentWarning;
+    mixedContentWarningNode.draggable = false;
 
     aLinkNode.appendChild(mixedContentWarningNode);
 
-    mixedContentWarningNode.addEventListener("click", function(aEvent) {
-      this.owner.openLink(MIXED_CONTENT_LEARN_MORE);
-      aEvent.preventDefault();
+    this._addMessageLinkCallback(mixedContentWarningNode, (aNode, aEvent) => {
       aEvent.stopPropagation();
-    }.bind(this));
+      this.owner.openLink(MIXED_CONTENT_LEARN_MORE);
+    });
   },
 
   
@@ -1476,14 +1486,15 @@ WebConsoleFrame.prototype = {
 
     let warningNode = this.document.createElementNS(XHTML_NS, "a");
     warningNode.title = aURL;
+    warningNode.href = aURL;
+    warningNode.draggable = false;
     warningNode.textContent = moreInfoLabel;
     warningNode.classList.add("webconsole-learn-more-link");
 
-    warningNode.addEventListener("click", function(aEvent) {
-      this.owner.openLink(aURL);
-      aEvent.preventDefault();
+    this._addMessageLinkCallback(warningNode, (aNode, aEvent) => {
       aEvent.stopPropagation();
-    }.bind(this));
+      this.owner.openLink(aURL);
+    });
 
     aNode.appendChild(warningNode);
   },
@@ -1502,13 +1513,15 @@ WebConsoleFrame.prototype = {
     urlNode.setAttribute("title", aFileURI);
     urlNode.classList.add("webconsole-msg-url");
     urlNode.textContent = aFileURI;
+    urlNode.draggable = false;
+    urlNode.href = aFileURI;
 
     let outputNode = this.createMessageNode(CATEGORY_NETWORK, SEVERITY_LOG,
                                             urlNode, null, null, aFileURI);
 
-    this.makeOutputMessageLink(outputNode, function WCF__onFileClick() {
+    this._addMessageLinkCallback(urlNode, () => {
       this.owner.viewSource(aFileURI);
-    }.bind(this));
+    });
 
     return outputNode;
   },
@@ -2446,6 +2459,8 @@ WebConsoleFrame.prototype = {
           let ellipsis = this.document.createElementNS(XHTML_NS, "a");
           ellipsis.classList.add("longStringEllipsis");
           ellipsis.textContent = l10n.getStr("longStringEllipsis");
+          ellipsis.href = "#";
+          ellipsis.draggable = false;
 
           let formatter = function(s) '"' + s + '"';
 
@@ -2461,6 +2476,8 @@ WebConsoleFrame.prototype = {
       let elem = this.document.createElementNS(XHTML_NS, "a");
       elem.setAttribute("aria-haspopup", "true");
       elem.textContent = text;
+      elem.href = "#";
+      elem.draggable = false;
 
       this._addMessageLinkCallback(elem,
         this._consoleLogClick.bind(this, elem, aItem));
@@ -2485,13 +2502,9 @@ WebConsoleFrame.prototype = {
 
 
 
-
-
   _longStringClick:
-  function WCF__longStringClick(aMessage, aActor, aFormatter, aEllipsis, aEvent)
+  function WCF__longStringClick(aMessage, aActor, aFormatter, aEllipsis)
   {
-    aEvent.preventDefault();
-
     if (!aFormatter) {
       aFormatter = function(s) s;
     }
@@ -2543,10 +2556,12 @@ WebConsoleFrame.prototype = {
     
     let displayLocation;
     let fullURL;
+    let isScratchpad = false;
 
     if (/^Scratchpad\/\d+$/.test(aSourceURL)) {
       displayLocation = aSourceURL;
       fullURL = aSourceURL;
+      isScratchpad = true;
     }
     else {
       fullURL = aSourceURL.split(" -> ").pop();
@@ -2559,13 +2574,15 @@ WebConsoleFrame.prototype = {
     }
 
     locationNode.textContent = " " + displayLocation;
+    locationNode.href = isScratchpad ? "#" : fullURL;
+    locationNode.draggable = false;
     locationNode.setAttribute("title", aSourceURL);
     locationNode.classList.add("webconsole-location");
     locationNode.classList.add("devtools-monospace");
 
     
-    locationNode.addEventListener("click", () => {
-      if (/^Scratchpad\/\d+$/.test(aSourceURL)) {
+    this._addMessageLinkCallback(locationNode, () => {
+      if (isScratchpad) {
         let wins = Services.wm.getEnumerator("devtools:scratchpad");
 
         while (wins.hasMoreElements()) {
@@ -2587,7 +2604,7 @@ WebConsoleFrame.prototype = {
       else {
         this.owner.viewSource(fullURL, aSourceLine);
       }
-    }, true);
+    });
 
     return locationNode;
   },
@@ -2639,42 +2656,29 @@ WebConsoleFrame.prototype = {
 
 
 
-  makeOutputMessageLink: function WCF_makeOutputMessageLink(aNode, aCallback)
-  {
-    let linkNode;
-    if (aNode.category === CATEGORY_NETWORK) {
-      linkNode = aNode.querySelector(".webconsole-msg-link, .webconsole-msg-url");
-    }
-    else {
-      linkNode = aNode.querySelector(".webconsole-msg-body");
-      linkNode.classList.add("hud-clickable");
-    }
-
-    linkNode.setAttribute("aria-haspopup", "true");
-
-    this._addMessageLinkCallback(aNode, aCallback);
-  },
-
-  
-
-
-
-
-
-
-
-
   _addMessageLinkCallback: function WCF__addMessageLinkCallback(aNode, aCallback)
   {
     aNode.addEventListener("mousedown", function(aEvent) {
+      this._mousedown = true;
       this._startX = aEvent.clientX;
       this._startY = aEvent.clientY;
     }, false);
 
     aNode.addEventListener("click", function(aEvent) {
-      if (aEvent.detail != 1 || aEvent.button != 0 ||
-          (this._startX != aEvent.clientX &&
-           this._startY != aEvent.clientY)) {
+      let mousedown = this._mousedown;
+      this._mousedown = false;
+
+      
+      if (aEvent.detail != 1 || aEvent.button != 0) {
+        return;
+      }
+
+      aEvent.preventDefault();
+
+      
+      
+      if (mousedown && this._startX != aEvent.clientX &&
+          this._startY != aEvent.clientY) {
         return;
       }
 
@@ -3142,10 +3146,12 @@ JSTerm.prototype = {
         
         
 
-        let body = node.querySelector(".webconsole-msg-body");
+        let body = node.getElementsByClassName("webconsole-msg-body")[0];
         let ellipsis = this.hud.document.createElementNS(XHTML_NS, "a");
         ellipsis.classList.add("longStringEllipsis");
         ellipsis.textContent = l10n.getStr("longStringEllipsis");
+        ellipsis.href = "#";
+        ellipsis.draggable = false;
 
         let formatter = function(s) '"' + s + '"';
         let onclick = this.hud._longStringClick.bind(this.hud, node, result,
@@ -3665,12 +3671,18 @@ JSTerm.prototype = {
   writeOutputJS:
   function JST_writeOutputJS(aOutputMessage, aCallback, aNodeAfter, aTimestamp)
   {
-    let node = this.writeOutput(aOutputMessage, CATEGORY_OUTPUT, SEVERITY_LOG,
-                                aNodeAfter, aTimestamp);
+    let link = null;
     if (aCallback) {
-      this.hud.makeOutputMessageLink(node, aCallback);
+      link = this.hud.document.createElementNS(XHTML_NS, "a");
+      link.setAttribute("aria-haspopup", true);
+      link.textContent = aOutputMessage;
+      link.href = "#";
+      link.draggable = false;
+      this.hud._addMessageLinkCallback(link, aCallback);
     }
-    return node;
+
+    return this.writeOutput(link || aOutputMessage, CATEGORY_OUTPUT,
+                            SEVERITY_LOG, aNodeAfter, aTimestamp);
   },
 
   

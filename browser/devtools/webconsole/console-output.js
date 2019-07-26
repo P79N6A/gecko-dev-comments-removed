@@ -391,6 +391,17 @@ Messages.NavigationMarker.prototype = Heritage.extend(Messages.BaseMessage.proto
     urlnode.className = "url";
     urlnode.textContent = url;
     urlnode.title = this._url;
+    urlnode.href = this._url;
+    urlnode.draggable = false;
+
+    
+    
+    
+    
+    
+    this.output.owner._addMessageLinkCallback(urlnode, () => {
+      this.output.owner.owner.openLink(this._url);
+    });
 
     let render = Messages.BaseMessage.prototype.render.bind(this);
     render().element.appendChild(urlnode);
