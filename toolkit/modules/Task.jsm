@@ -241,6 +241,9 @@ function createAsyncFunction(aTask) {
 
 
 function TaskImpl(iterator) {
+  if (Task.Debugging.maintainStack) {
+    this._stack = (new Error()).stack;
+  }
   this.deferred = Promise.defer();
   this._iterator = iterator;
   this._isStarGenerator = !("send" in iterator);
@@ -346,23 +349,74 @@ TaskImpl.prototype = {
 
 
   _handleException: function TaskImpl_handleException(aException) {
-    if (aException && typeof aException == "object" && "name" in aException &&
-        ERRORS_TO_REPORT.indexOf(aException.name) != -1) {
+    if (aException && typeof aException == "object" && "stack" in aException) {
 
-      
-      
-      
-      
-      
+      let stack = aException.stack;
 
-      let stack = ("stack" in aException) ? aException.stack : "not available";
-      dump("*************************\n");
-      dump("A coding exception was thrown and uncaught in a Task.\n\n");
-      dump("Full message: " + aException + "\n");
-      dump("Full stack: " + stack + "\n");
-      dump("*************************\n");
+      if (Task.Debugging.maintainStack &&
+          aException._capturedTaskStack != this._stack &&
+          typeof stack == "string") {
+
+        
+
+        let bottomStack = this._stack;
+        let topStack = aException.stack;
+
+        
+        let reLine = /([^\r\n])+/g;
+        let match;
+        let lines = [];
+        while ((match = reLine.exec(topStack))) {
+          let line = match[0];
+          if (line.indexOf("/Task.jsm:") != -1) {
+            break;
+          }
+          lines.push(line);
+        }
+
+        
+        reLine = /([^\r\n])+/g;
+        while ((match = reLine.exec(bottomStack))) {
+          let line = match[0];
+          if (line.indexOf("/Task.jsm:") == -1) {
+            let tail = bottomStack.substring(match.index);
+            lines.push(tail);
+            break;
+          }
+        }
+
+        stack = lines.join("\n");
+
+        aException.stack = stack;
+
+        
+        
+        aException._capturedTaskStack = bottomStack;
+      } else if (!stack) {
+        stack = "Not available";
+      }
+
+      if ("name" in aException &&
+          ERRORS_TO_REPORT.indexOf(aException.name) != -1) {
+
+        
+        
+        
+        
+        
+
+        dump("*************************\n");
+        dump("A coding exception was thrown and uncaught in a Task.\n\n");
+        dump("Full message: " + aException + "\n");
+        dump("Full stack: " + aException.stack + "\n");
+        dump("*************************\n");
+      }
     }
 
     this.deferred.reject(aException);
   }
+};
+
+Task.Debugging = {
+  maintainStack: false
 };
