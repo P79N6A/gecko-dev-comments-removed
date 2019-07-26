@@ -2320,10 +2320,16 @@ static bool SelectorMatchesTree(Element* aPrevElement,
         
         
         
+        Element* styleScope = aTreeMatchContext.mCurrentStyleScope;
         if (SelectorMatchesTree(element, selector, aTreeMatchContext,
                                 aLookForRelevantLink)) {
           return true;
         }
+        
+        
+        
+        
+        aTreeMatchContext.mCurrentStyleScope = styleScope;
       }
       selector = selector->mNext;
     }
@@ -2462,6 +2468,10 @@ static inline nsRestyleHint RestyleHintForOp(PRUnichar oper)
 nsRestyleHint
 nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
 {
+  MOZ_ASSERT(!aData->mTreeMatchContext.mForScopedStyle,
+             "mCurrentStyleScope will need to be saved and restored after the "
+             "SelectorMatchesTree call");
+
   RuleCascadeData* cascade = GetRuleCascade(aData->mPresContext);
 
   
@@ -3333,6 +3343,10 @@ nsCSSRuleProcessor::SelectorListMatches(Element* aElement,
                                         TreeMatchContext& aTreeMatchContext,
                                         nsCSSSelectorList* aSelectorList)
 {
+  MOZ_ASSERT(!aTreeMatchContext.mForScopedStyle,
+             "mCurrentStyleScope will need to be saved and restored after the "
+             "SelectorMatchesTree call");
+
   while (aSelectorList) {
     nsCSSSelector* sel = aSelectorList->mSelectors;
     NS_ASSERTION(sel, "Should have *some* selectors");
