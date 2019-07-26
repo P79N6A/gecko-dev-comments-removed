@@ -206,12 +206,12 @@ function DOMDownloadImpl() {
   this.currentBytes = 0;
   this.url = null;
   this.path = null;
-  this.state = "stopped";
   this.contentType = null;
 
   
   this._error = null;
   this._startTime = new Date();
+  this._state = "stopped";
 
   
   this.id = null;
@@ -267,6 +267,25 @@ DOMDownloadImpl.prototype = {
     }
     else {
       this._startTime = new Date(aStartTime);
+    }
+  },
+
+  get state() {
+    return this._state;
+  },
+
+  
+  
+  
+  
+  set state(aState) {
+    
+    
+    if (["downloading",
+         "stopped",
+         "succeeded",
+         "finalized"].indexOf(aState) != -1) {
+      this._state = aState;
     }
   },
 

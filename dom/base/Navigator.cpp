@@ -1917,6 +1917,27 @@ Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
 }
 
 
+bool
+Navigator::HasDownloadsSupport(JSContext* aCx, JSObject* aGlobal)
+{
+  
+  
+  JS::Rooted<JSObject*> global(aCx, aGlobal);
+
+  
+  
+  if (ThreadsafeCheckIsChrome(aCx, global)) {
+    return true;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(global);
+
+  return win &&
+         CheckPermission(win, "downloads")  &&
+         Preferences::GetBool("dom.mozDownloads.enabled");
+}
+
+
 already_AddRefed<nsPIDOMWindow>
 Navigator::GetWindowFromGlobal(JSObject* aGlobal)
 {
