@@ -35,14 +35,11 @@ def run_one_test(prog, env, symbols_path=None):
         proc = mozprocess.ProcessHandler([prog],
                                          cwd=tempdir,
                                          env=env)
-        proc.run()
         timeout = 300
-        proc.processOutput(timeout=timeout)
-        if proc.timedOut:
-            log.testFail("%s | timed out after %d seconds",
-                         basename, timeout)
-            return False
-        proc.waitForFinish(timeout=timeout)
+        
+        
+        proc.run(timeout=timeout)
+        proc.wait()
         if proc.timedOut:
             log.testFail("%s | timed out after %d seconds",
                          basename, timeout)
