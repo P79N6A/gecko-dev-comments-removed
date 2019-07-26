@@ -2359,6 +2359,38 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
   return node.forget();
 }
 
+JSObject*
+nsHTMLDocument::NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
+                            ErrorResult& rv)
+{
+  nsWrapperCache* cache;
+  nsISupports* supp = ResolveName(aName, &cache);
+  if (!supp) {
+    aFound = false;
+    return nullptr;
+  }
+
+  JS::Value val;
+  { 
+    JSObject* wrapper = GetWrapper();
+    JSAutoCompartment ac(cx, wrapper);
+    
+    
+    if (!dom::WrapObject(cx, wrapper, supp, cache, nullptr, &val)) {
+      rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+      return nullptr;
+    }
+  }
+  aFound = true;
+  return &val.toObject();
+}
+
+void
+nsHTMLDocument::GetSupportedNames(nsTArray<nsString>& aNames)
+{
+  
+}
+
 
 
 
