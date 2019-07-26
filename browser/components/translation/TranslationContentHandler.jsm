@@ -85,8 +85,15 @@ TranslationContentHandler.prototype = {
       return;
 
     LanguageDetector.detectLanguage(string).then(result => {
-      if (!result.confident)
+      
+      if (!result.confident) {
         return;
+      }
+
+      
+      if (Cu.isDeadWrapper(content)) {
+        return;
+      }
 
       content.detectedLanguage = result.language;
 
