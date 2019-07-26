@@ -9,7 +9,7 @@ import time
 
 try:
     import psutil
-except (ImportError, NotImplementedError):
+except Exception:
     psutil = None
 
 from collections import (

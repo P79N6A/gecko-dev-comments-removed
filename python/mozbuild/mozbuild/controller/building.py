@@ -16,13 +16,9 @@ from collections import (
     OrderedDict,
 )
 
-
-if sys.platform.startswith("freebsd") or sys.platform.startswith("darwin") or sys.platform.startswith("win32") or sys.platform.startswith("linux"):
-    try:
-        import psutil
-    except ImportError:
-        psutil = None
-else:
+try:
+    import psutil
+except Exception:
     psutil = None
 
 from mozsystemmonitor.resourcemonitor import SystemResourceMonitor
