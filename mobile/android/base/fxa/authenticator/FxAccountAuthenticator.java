@@ -117,24 +117,4 @@ public class FxAccountAuthenticator extends AbstractAccountAuthenticator {
 
     return null;
   }
-
-  
-
-
-
-
-
-  public static Account[] getFirefoxAccounts(final Context context) {
-    return AccountManager.get(context).getAccountsByType(FxAccountConstants.ACCOUNT_TYPE);
-  }
-
-  
-
-
-
-
-
-  public static boolean firefoxAccountsExist(final Context context) {
-    return getFirefoxAccounts(context).length > 0;
-  }
 }
