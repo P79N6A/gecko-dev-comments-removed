@@ -2793,15 +2793,16 @@ HTMLInputElement::SetValueInternal(const nsAString& aValue,
         if (aSetValueChanged) {
           SetValueChanged(true);
         }
-        OnValueChanged(!mParserCreating);
-
         if (mType == NS_FORM_INPUT_NUMBER) {
+          
+          
           nsNumberControlFrame* numberControlFrame =
             do_QueryFrame(GetPrimaryFrame());
           if (numberControlFrame) {
             numberControlFrame->SetValueOfAnonTextControl(value);
           }
         }
+        OnValueChanged(!mParserCreating);
       }
 
       
@@ -3633,6 +3634,20 @@ HTMLInputElement::StopNumberControlSpinnerSpin()
 void
 HTMLInputElement::StepNumberControlForUserEvent(int32_t aDirection)
 {
+  if (!IsValid()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    UpdateValidityUIBits(true);
+    UpdateState(true);
+    return;
+  }
+
   Decimal newValue = Decimal::nan(); 
 
   nsresult rv = GetValueIfStepped(aDirection, CALLED_FOR_USER_EVENT, &newValue);
