@@ -3,6 +3,12 @@
 
 
 function test() {
+  try {
+    if (Services.prefs.getBoolPref("browser.download.useJSTransfer")) {
+      return;
+    }
+  } catch (ex) { }
+
   waitForExplicitFinish();
 
   let privateWin = null;
