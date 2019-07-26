@@ -38,7 +38,11 @@ class Breakpoint;
 
 
 
-template <class Key, class Value>
+
+
+
+
+template <class Key, class Value, bool InvisibleKeysOk=false>
 class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
 {
   private:
@@ -78,7 +82,7 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
     template<typename KeyInput, typename ValueInput>
     bool relookupOrAdd(AddPtr &p, const KeyInput &k, const ValueInput &v) {
         JS_ASSERT(v->compartment() == Base::compartment);
-        JS_ASSERT(!k->compartment()->options_.invisibleToDebugger());
+        JS_ASSERT_IF(!InvisibleKeysOk, !k->compartment()->options_.invisibleToDebugger());
         JS_ASSERT(!Base::has(k));
         if (!incZoneCount(k->zone()))
             return false;
@@ -218,7 +222,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     ScriptWeakMap scripts;
 
     
-    typedef DebuggerWeakMap<EncapsulatedPtrObject, RelocatablePtrObject> SourceWeakMap;
+    typedef DebuggerWeakMap<EncapsulatedPtrObject, RelocatablePtrObject, true> SourceWeakMap;
     SourceWeakMap sources;
 
     
