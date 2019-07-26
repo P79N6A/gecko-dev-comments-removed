@@ -264,6 +264,34 @@ SyntaxTree.prototype = {
             inferredLocation: inferredLocation
           });
         }
+      },
+
+      
+
+
+
+      onArrowExpression: function STW_onArrowExpression(aNode) {
+        let parent = aNode._parent;
+        let inferredName, inferredChain, inferredLocation;
+
+        
+        let inferredInfo = ParserHelpers.inferFunctionExpressionInfo(aNode);
+        inferredName = inferredInfo.name;
+        inferredChain = inferredInfo.chain;
+        inferredLocation = inferredInfo.loc;
+
+        
+        if (parent.type == "AssignmentExpression") {
+          this.onFunctionExpression(parent);
+        }
+
+        if (inferredName && inferredName.toLowerCase().contains(lowerCaseToken)) {
+          store.push({
+            inferredName: inferredName,
+            inferredChain: inferredChain,
+            inferredLocation: inferredLocation
+          });
+        }
       }
     });
 
@@ -1515,6 +1543,45 @@ let SyntaxTreeVisitor = {
     }
     if (aNode.id) {
       this[aNode.id.type](aNode.id, aNode, aCallbacks);
+    }
+    for (let param of aNode.params) {
+      this[param.type](param, aNode, aCallbacks);
+    }
+    for (let _default of aNode.defaults) {
+      this[_default.type](_default, aNode, aCallbacks);
+    }
+    if (aNode.rest) {
+      this[aNode.rest.type](aNode.rest, aNode, aCallbacks);
+    }
+    this[aNode.body.type](aNode.body, aNode, aCallbacks);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  ArrowExpression: function STV_ArrowExpression(aNode, aParent, aCallbacks) {
+    aNode._parent = aParent;
+
+    if (this.break) {
+      return;
+    }
+    if (aCallbacks.onNode) {
+      if (aCallbacks.onNode(aNode, aParent) === false) {
+        return;
+      }
+    }
+    if (aCallbacks.onArrowExpression) {
+      aCallbacks.onArrowExpression(aNode);
     }
     for (let param of aNode.params) {
       this[param.type](param, aNode, aCallbacks);
