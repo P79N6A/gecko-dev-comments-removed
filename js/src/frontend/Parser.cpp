@@ -6624,6 +6624,8 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
 
 
 
+                if (!abortIfSyntaxParser())
+                    return null();
                 tokenStream.ungetToken();
                 if (!tokenStream.checkForKeyword(atom->charsZ(), atom->length(), NULL, NULL))
                     return null();
