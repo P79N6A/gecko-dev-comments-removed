@@ -72,14 +72,6 @@ public:
 
 
 
-  void LockPanning();
-
-  
-
-
-
-
-
 
 
 
@@ -192,7 +184,6 @@ protected:
   
   int32_t mAcceleration;
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
-  bool mLockPanning;
 };
 
 class AxisX : public Axis {
