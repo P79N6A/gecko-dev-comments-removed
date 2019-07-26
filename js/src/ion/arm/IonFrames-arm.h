@@ -446,8 +446,11 @@ class InvalidationBailoutStack
 
 class BaselineFrame
 {
+    
+    
+    uint32_t loScratchValue;
+    uint32_t hiScratchValue;
     size_t frameSize;
-    js::Value scratchValue;
 
   public:
     
@@ -468,11 +471,14 @@ class BaselineFrame
         return -(sizeof(BaselineFrame) - offsetof(BaselineFrame, frameSize));
     }
     static inline size_t reverseOffsetOfScratchValue() {
-        return -(sizeof(BaselineFrame) - offsetof(BaselineFrame, scratchValue));
+        return -(sizeof(BaselineFrame) - offsetof(BaselineFrame, loScratchValue));
     }
     static inline size_t reverseOffsetOfLocal(size_t index) {
         return -(sizeof(BaselineFrame) + index * sizeof(js::Value)) - sizeof(js::Value);
     }
 };
+
+
+JS_STATIC_ASSERT(((sizeof(BaselineFrame) + BaselineFrame::FramePointerOffset) % 8) == 0);
 
 #endif 
