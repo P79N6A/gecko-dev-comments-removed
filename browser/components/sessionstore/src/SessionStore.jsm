@@ -580,6 +580,11 @@ let SessionStoreInternal = {
   receiveMessage: function ssi_receiveMessage(aMessage) {
     var browser = aMessage.target;
     var win = browser.ownerDocument.defaultView;
+    let tab = this._getTabForBrowser(browser);
+    if (!tab) {
+      
+      return;
+    }
 
     switch (aMessage.name) {
       case "SessionStore:setupSyncHandler":
@@ -593,7 +598,6 @@ let SessionStoreInternal = {
       case "SessionStore:restoreHistoryComplete":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
           
-          let tab = this._getTabForBrowser(browser);
           let tabData = browser.__SS_data;
 
           
@@ -644,7 +648,6 @@ let SessionStoreInternal = {
             Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
           }
 
-          let tab = this._getTabForBrowser(browser);
           if (tab) {
             SessionStoreInternal._resetLocalTabRestoringState(tab);
             SessionStoreInternal.restoreNextTab();
@@ -666,7 +669,6 @@ let SessionStoreInternal = {
         break;
       case "SessionStore:reloadPendingTab":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          let tab = this._getTabForBrowser(browser);
           if (tab && browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
             this.restoreTabContent(tab);
           }
@@ -759,6 +761,12 @@ let SessionStoreInternal = {
     
     
     aWindow.__SSi = this._generateWindowID();
+
+    let mm = aWindow.messageManager;
+    MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
+
+    
+    mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", true);
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
@@ -1082,6 +1090,9 @@ let SessionStoreInternal = {
     
     DyingWindowCache.set(aWindow, winData);
 
+    let mm = aWindow.messageManager;
+    MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
+
     delete aWindow.__SSi;
   },
 
@@ -1280,12 +1291,6 @@ let SessionStoreInternal = {
 
 
   onTabAdd: function ssi_onTabAdd(aWindow, aTab, aNoNotification) {
-    let mm = aTab.linkedBrowser.messageManager;
-    MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
-
-    
-    mm.loadFrameScript("chrome://browser/content/content-sessionStore.js", false);
-
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
     }
@@ -1302,9 +1307,6 @@ let SessionStoreInternal = {
 
   onTabRemove: function ssi_onTabRemove(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
-    let mm = browser.messageManager;
-    MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
-
     delete browser.__SS_data;
 
     
