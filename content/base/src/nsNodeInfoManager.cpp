@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * A class for handing out nodeinfos and ensuring sharing of them as needed.
- */
+
+
+
+
+
+
+
 
 #include "nsNodeInfoManager.h"
 #include "nsNodeInfo.h"
@@ -27,7 +27,7 @@
 using namespace mozilla;
 
 #ifdef MOZ_LOGGING
-// so we can get logging even in release builds
+
 #define FORCE_PR_LOG 1
 #endif
 #include "prlog.h"
@@ -45,9 +45,9 @@ nsNodeInfoManager::GetNodeInfoInnerHashValue(const void *key)
     reinterpret_cast<const nsINodeInfo::nsNodeInfoInner *>(key);
 
   if (node->mName) {
-    // Ideally, we'd return node->mName->hash() here.  But that doesn't work at
-    // the moment because node->mName->hash() is not the same as
-    // HashString(*(node->mNameString)).  See bug 732815.
+    
+    
+    
     return HashString(nsDependentAtomString(node->mName));
   }
   return HashString(*(node->mNameString));
@@ -115,7 +115,7 @@ nsNodeInfoManager::~nsNodeInfoManager()
   if (mNodeInfoHash)
     PL_HashTableDestroy(mNodeInfoHash);
 
-  // Note: mPrincipal may be null here if we never got inited correctly
+  
   NS_IF_RELEASE(mPrincipal);
 
   NS_IF_RELEASE(mBindingManager);
@@ -132,7 +132,7 @@ nsNodeInfoManager::~nsNodeInfoManager()
 
 NS_IMPL_CYCLE_COLLECTION_NATIVE_CLASS(nsNodeInfoManager)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_NATIVE_0(nsNodeInfoManager)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_BEGIN(nsNodeInfoManager)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsNodeInfoManager)
   if (tmp->mDocument &&
       nsCCUncollectableMarker::InGeneration(cb,
                                             tmp->mDocument->GetMarkedCCGeneration())) {
@@ -178,7 +178,7 @@ nsNodeInfoManager::Init(nsIDocument *aDocument)
   return NS_OK;
 }
 
-// static
+
 int
 nsNodeInfoManager::DropNodeInfoDocument(PLHashEntry *he, int hashIndex, void *arg)
 {
@@ -193,7 +193,7 @@ nsNodeInfoManager::DropDocumentReference()
     mBindingManager->DropDocumentReference();
   }
 
-  // This is probably not needed anymore.
+  
   PL_HashTableEnumerateEntries(mNodeInfoHash, DropNodeInfoDocument, nullptr);
 
   NS_ASSERTION(!mNonDocumentNodeInfos, "Shouldn't have non-document nodeinfos!");
@@ -204,7 +204,7 @@ nsNodeInfoManager::DropDocumentReference()
 already_AddRefed<nsINodeInfo>
 nsNodeInfoManager::GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
                                int32_t aNamespaceID, uint16_t aNodeType,
-                               nsIAtom* aExtraName /* = nullptr */)
+                               nsIAtom* aExtraName )
 {
   CheckValidNodeInfo(aNodeType, aName, aNamespaceID, aExtraName);
 
@@ -230,8 +230,8 @@ nsNodeInfoManager::GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
   he = PL_HashTableAdd(mNodeInfoHash, &newNodeInfo->mInner, newNodeInfo);
   NS_ENSURE_TRUE(he, nullptr);
 
-  // Have to do the swap thing, because already_AddRefed<nsNodeInfo>
-  // doesn't cast to already_AddRefed<nsINodeInfo>
+  
+  
   ++mNonDocumentNodeInfos;
   if (mNonDocumentNodeInfos == 1) {
     NS_IF_ADDREF(mDocument);
@@ -349,7 +349,7 @@ nsNodeInfoManager::GetDocumentNodeInfo()
                                     nsIDOMNode::DOCUMENT_NODE, nullptr).get();
     --mNonDocumentNodeInfos;
     if (!mNonDocumentNodeInfos) {
-      mDocument->Release(); // Don't set mDocument to null!
+      mDocument->Release(); 
     }
   }
   else {
@@ -383,12 +383,12 @@ nsNodeInfoManager::RemoveNodeInfo(nsNodeInfo *aNodeInfo)
   } else {
     if (--mNonDocumentNodeInfos == 0) {
       if (mDocument) {
-        // Note, whoever calls this method should keep NodeInfoManager alive,
-        // even if mDocument gets deleted.
+        
+        
         mDocument->Release();
       }
     }
-    // Drop weak reference if needed
+    
     if (aNodeInfo == mTextNodeInfo) {
       mTextNodeInfo = nullptr;
     }
