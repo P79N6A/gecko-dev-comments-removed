@@ -23,6 +23,7 @@ const MAX_ORDINAL = 99;
 
 
 
+
 this.DevTools = function DevTools() {
   this._tools = new Map();     
   this._toolboxes = new Map(); 
@@ -383,6 +384,11 @@ let gDevToolsBrowser = {
     gDevToolsBrowser._trackedBrowserWindows.add(win);
     gDevToolsBrowser._addAllToolsToMenu(win.document);
 
+    if (this._isFirebugInstalled()) {
+      let broadcaster = win.document.getElementById("devtoolsMenuBroadcaster_DevToolbox");
+      broadcaster.removeAttribute("key");
+    }
+
     let tabContainer = win.document.getElementById("tabbrowser-tabs")
     tabContainer.addEventListener("TabSelect",
                                   gDevToolsBrowser._updateMenuCheckbox, false);
@@ -401,6 +407,7 @@ let gDevToolsBrowser = {
 
   attachKeybindingsToBrowser: function DT_attachKeybindingsToBrowser(doc, keys) {
     let devtoolsKeyset = doc.getElementById("devtoolsKeyset");
+
     if (!devtoolsKeyset) {
       devtoolsKeyset = doc.createElement("keyset");
       devtoolsKeyset.setAttribute("id", "devtoolsKeyset");
@@ -408,6 +415,17 @@ let gDevToolsBrowser = {
     devtoolsKeyset.appendChild(keys);
     let mainKeyset = doc.getElementById("mainKeyset");
     mainKeyset.parentNode.insertBefore(devtoolsKeyset, mainKeyset);
+  },
+
+
+  
+
+
+
+
+  _isFirebugInstalled: function DT_isFirebugInstalled() {
+    let bootstrappedAddons = Services.prefs.getCharPref("extensions.bootstrappedAddons");
+    return bootstrappedAddons.indexOf("firebug@software.joehewitt.com") != -1;
   },
 
   
@@ -734,6 +752,7 @@ let gDevToolsBrowser = {
     Services.obs.removeObserver(gDevToolsBrowser.destroy, "quit-application");
   },
 }
+
 this.gDevToolsBrowser = gDevToolsBrowser;
 
 gDevTools.on("tool-registered", function(ev, toolId) {
