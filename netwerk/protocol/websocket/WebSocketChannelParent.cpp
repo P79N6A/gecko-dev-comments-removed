@@ -67,6 +67,11 @@ WebSocketChannelParent::RecvAsyncOpen(const URIParams& aURI,
 
   if (loadContext.IsNotNull())
     mLoadContext = new LoadContext(loadContext);
+#ifdef DEBUG
+  else
+    
+    MOZ_ASSERT(!loadContext.IsPrivateBitValid());
+#endif
 
   rv = mChannel->SetNotificationCallbacks(this);
   if (NS_FAILED(rv))
