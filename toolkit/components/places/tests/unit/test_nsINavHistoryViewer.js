@@ -39,10 +39,6 @@ var resultObserver = {
     this.newAccessCount = updatedVisitCount;
   },
 
-  replacedNode: null,
-  nodeReplaced: function(parent, oldNode, newNode, index) {
-    this.replacedNode = node;
-  },
   movedNode: null,
   nodeMoved: function(node, oldParent, oldIndex, newParent, newIndex) {
     this.movedNode = node;
@@ -124,9 +120,6 @@ add_test(function check_history_query() {
         do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
 
         
-        
-
-        
         bhist.removePagesFromHost("mozilla.com", false);
         do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
 
@@ -200,9 +193,6 @@ add_test(function check_bookmarks_query() {
   
   bmsvc.removeItem(testBookmark2);
   do_check_eq(testBookmark2, resultObserver.removedNode.itemId);
-
-  
-  
 
   
 

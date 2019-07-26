@@ -763,24 +763,6 @@ PlacesTreeView.prototype = {
     }
   },
 
-  
-
-
-
-  nodeReplaced:
-  function PTV_nodeReplaced(aParentNode, aOldNode, aNewNode, aIndexDoNotUse) {
-    NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree || !this._result)
-      return;
-
-    
-    let row = this._getRowForNode(aOldNode);
-    if (row != -1) {
-      this._rows[row] = aNewNode;
-      this._tree.invalidateRow(row);
-    }
-  },
-
   _invalidateCellValue: function PTV__invalidateCellValue(aNode,
                                                           aColumnType) {
     NS_ASSERT(this._result, "Got a notification but have no result!");

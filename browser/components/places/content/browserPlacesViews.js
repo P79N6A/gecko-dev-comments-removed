@@ -546,26 +546,6 @@ PlacesViewBase.prototype = {
     }
   },
 
-  nodeReplaced:
-  function PVB_nodeReplaced(aParentPlacesNode, aOldPlacesNode, aNewPlacesNode, aIndex) {
-    let parentElt = this._getDOMNodeForPlacesNode(aParentPlacesNode);
-    if (parentElt._built) {
-      let elt = this._getDOMNodeForPlacesNode(aOldPlacesNode);
-
-      
-      if (elt.localName == "menupopup")
-        elt = elt.parentNode;
-
-      parentElt.removeChild(elt);
-
-      
-      
-      
-      let nextElt = elt.nextSibling;
-      this._insertNewItemToPopup(aNewPlacesNode, parentElt, nextElt);
-    }
-  },
-
   nodeHistoryDetailsChanged:
   function PVB_nodeHistoryDetailsChanged(aPlacesNode, aTime, aCount) {
     if (aPlacesNode.parent &&
@@ -1279,31 +1259,6 @@ PlacesToolbar.prototype = {
       
       this.updateChevron();
     }
-  },
-
-  nodeReplaced:
-  function PT_nodeReplaced(aParentPlacesNode,
-                           aOldPlacesNode, aNewPlacesNode, aIndex) {
-    let parentElt = this._getDOMNodeForPlacesNode(aParentPlacesNode);
-    if (parentElt == this._rootElt) {
-      let elt = this._getDOMNodeForPlacesNode(aOldPlacesNode);
-
-      
-      if (elt.localName == "menupopup")
-        elt = elt.parentNode;
-
-      this._removeChild(elt);
-
-      
-      
-      
-      let next = elt.nextSibling;
-      this._insertNewItem(aNewPlacesNode, next);
-      this.updateChevron();
-      return;
-    }
-
-    PlacesViewBase.prototype.nodeReplaced.apply(this, arguments);
   },
 
   invalidateContainer: function PT_invalidateContainer(aPlacesNode) {
