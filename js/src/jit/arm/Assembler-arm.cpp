@@ -1861,7 +1861,7 @@ Assembler::as_b(Label *l, Condition c, bool isPatchable)
         
         
         if (!BOffImm::isInRange(old)) {
-            m_buffer.bail();
+            m_buffer.fail_bail();
             return ret;
         }
         ret = as_b(BOffImm(old), c, isPatchable);
@@ -1923,7 +1923,7 @@ Assembler::as_bl(Label *l, Condition c)
         
         old = l->offset();
         if (!BOffImm::isInRange(old)) {
-            m_buffer.bail();
+            m_buffer.fail_bail();
             return ret;
         }
         ret = as_bl(BOffImm(old), c);
