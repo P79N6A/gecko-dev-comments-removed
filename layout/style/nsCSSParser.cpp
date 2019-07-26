@@ -9005,19 +9005,16 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily, bool& aOneKeyword)
 
       if (eCSSToken_Ident == tk->mType) {
         aOneKeyword = false;
+        
+        
+        
+        
+        
+        
+        
+        aFamily.Append(PRUnichar(' '));
         aFamily.Append(tk->mIdent);
-      } else if (eCSSToken_Whitespace == tk->mType) {
-        
-        
-        if (!GetToken(true))
-          break;
-
-        UngetToken();
-        if (eCSSToken_Ident == tk->mType)
-          aFamily.Append(PRUnichar(' '));
-        else
-          break;
-      } else {
+      } else if (eCSSToken_Whitespace != tk->mType) {
         UngetToken();
         break;
       }
