@@ -72,6 +72,14 @@ ChromePowers.prototype.quit = function() {
   SpecialPowers._sendSyncMessage("SpecialPowers.Quit", {});
 };
 
+ChromePowers.prototype.focus = function(aWindow) {
+  
+  
+  
+  if (aWindow)
+    aWindow.focus();
+};
+
 ChromePowers.prototype.executeAfterFlushingMessageQueue = function(aCallback) {
   aCallback();
 };
