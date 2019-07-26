@@ -1,45 +1,7 @@
 # -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http:
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is mozilla.org code.
-#
-# The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1998-2004
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#   smorrison@gte.com
-#   Terry Hayes <thayes@netscape.com>
-#   Daniel Brooks <db48x@yahoo.com>
-#   Florian QUEZE <f.qu@queze.net>
-#   Erik Fabert <jerfa@yahoo.com>
-#   Tanner M. Young <mozilla@alyoung.com>
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either the GNU General Public License Version 2 or later (the "GPL"), or
-# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http:
 
 
 function pageInfoTreeView(treeid, copycol)
@@ -328,6 +290,8 @@ var onFinished = [ ];
 var onUnloadRegistry = [ ];
 
 
+var onImagePreviewShown = [ ];
+
 
 
 
@@ -502,6 +466,23 @@ function toggleGroupbox(id)
   }
 }
 
+function openCacheEntry(key, cb)
+{
+  var tries = 0;
+  var checkCacheListener = {
+    onCacheEntryAvailable: function(entry, access, status) {
+      if (entry || tries == 1) {
+        cb(entry);
+      }
+      else {
+        tries++;
+        ftpCacheSession.asyncOpenCacheEntry(key, ACCESS_READ, this, true);
+      }
+    }
+  };
+  httpCacheSession.asyncOpenCacheEntry(key, ACCESS_READ, checkCacheListener, true);
+}
+
 function makeGeneralTab()
 {
   var title = (gDocument.title) ? gBundle.getFormattedString("pageTitle", [gDocument.title]) : gBundle.getString("noPageTitle");
@@ -552,23 +533,15 @@ function makeGeneralTab()
 
   
   var cacheKey = url.replace(/#.*$/, "");
-  try {
-    var cacheEntryDescriptor = httpCacheSession.openCacheEntry(cacheKey, ACCESS_READ, false);
-  }
-  catch(ex) {
-    try {
-      cacheEntryDescriptor = ftpCacheSession.openCacheEntry(cacheKey, ACCESS_READ, false);
+  openCacheEntry(cacheKey, function(cacheEntry) {
+    var sizeText;
+    if (cacheEntry) {
+      var pageSize = cacheEntry.dataSize;
+      var kbSize = formatNumber(Math.round(pageSize / 1024 * 100) / 100);
+      sizeText = gBundle.getFormattedString("generalSize", [kbSize, formatNumber(pageSize)]);
     }
-    catch(ex2) { }
-  }
-
-  var sizeText;
-  if (cacheEntryDescriptor) {
-    var pageSize = cacheEntryDescriptor.dataSize;
-    var kbSize = formatNumber(Math.round(pageSize / 1024 * 100) / 100);
-    sizeText = gBundle.getFormattedString("generalSize", [kbSize, formatNumber(pageSize)]);
-  }
-  setItemValue("sizetext", sizeText);
+    setItemValue("sizetext", sizeText);
+  });
 
   securityOnLoad();
 }
@@ -633,20 +606,18 @@ function addImage(url, type, alt, elem, isBg)
     gImageHash[url][type] = { };
   if (!gImageHash[url][type].hasOwnProperty(alt)) {
     gImageHash[url][type][alt] = gImageView.data.length;
-    try {
-      
-      var cacheEntryDescriptor = httpCacheSession.openCacheEntry(url, ACCESS_READ, false);
-    }
-    catch(ex) {
-      try {
-        
-        cacheEntryDescriptor = ftpCacheSession.openCacheEntry(url, ACCESS_READ, false);
-      }
-      catch(ex2) { }
-    }
+    var row = [url, type, -1, alt, 1, elem, isBg];
+    gImageView.addRow(row);
 
-    var dataSize = (cacheEntryDescriptor) ? cacheEntryDescriptor.dataSize : -1;
-    gImageView.addRow([url, type, dataSize, alt, 1, elem, isBg]);
+    
+    openCacheEntry(url, function(cacheEntry) {
+      
+      if (cacheEntry) {
+        row[2] = cacheEntry.dataSize;
+        
+        gImageView.tree.invalidateRow(gImageView.data.indexOf(row));
+      }
+    });
 
     
     if (gImageView.data.length == 1) {
@@ -691,8 +662,7 @@ function grabAll(elem)
     };
 
     addImgFunc(gStrings.mediaBGImg, computedStyle.getPropertyCSSValue("background-image"));
-    addImgFunc(gStrings.mediaBorderImg, computedStyle.getPropertyCSSValue("-moz-border-image-source"));
-    
+    addImgFunc(gStrings.mediaBorderImg, computedStyle.getPropertyCSSValue("border-image-source"));
     addImgFunc(gStrings.mediaListImg, computedStyle.getPropertyCSSValue("list-style-image"));
     addImgFunc(gStrings.mediaCursor, computedStyle.getPropertyCSSValue("cursor"));
   }
@@ -769,18 +739,26 @@ function onBeginLinkDrag(event,urlField,descField)
 }
 
 
-function getSelectedImage(tree)
+function getSelectedRows(tree)
 {
-  if (!gImageView.rowCount)
-    return null;
+  var start = { };
+  var end   = { };
+  var numRanges = tree.view.selection.getRangeCount();
 
-  
-  var clickedRow = tree.view.selection.currentIndex;
-  if (clickedRow == -1)
-    return null;
+  var rowArray = [ ];
+  for (var t = 0; t < numRanges; t++) {
+    tree.view.selection.getRangeAt(t, start, end);
+    for (var v = start.value; v <= end.value; v++)
+      rowArray.push(v);
+  }
 
-  
-  return gImageView.data[clickedRow][COL_IMAGE_NODE];
+  return rowArray;
+}
+
+function getSelectedRow(tree)
+{
+  var rows = getSelectedRows(tree);
+  return (rows.length == 1) ? rows[0] : -1;
 }
 
 function selectSaveFolder()
@@ -794,7 +772,7 @@ function selectSaveFolder()
   fp.init(window, titleText, nsIFilePicker.modeGetFolder);
   try {
     var prefs = Components.classes[PREFERENCES_CONTRACTID]
-                          .getService(Components.interfaces.nsIPrefBranch2);
+                          .getService(Components.interfaces.nsIPrefBranch);
 
     var initialDir = prefs.getComplexValue("browser.download.dir", nsILocalFile);
     if (initialDir)
@@ -813,26 +791,25 @@ function selectSaveFolder()
 function saveMedia()
 {
   var tree = document.getElementById("imagetree");
-  var count = tree.view.selection.count;
-  if (count == 1) {
-    var item = getSelectedImage(tree);
-    var url = gImageView.data[tree.currentIndex][COL_IMAGE_ADDRESS];
+  var rowArray = getSelectedRows(tree);
+  if (rowArray.length == 1) {
+    var row = rowArray[0];
+    var item = gImageView.data[row][COL_IMAGE_NODE];
+    var url = gImageView.data[row][COL_IMAGE_ADDRESS];
 
-    if (url)
-      saveURL(url, null, "SaveImageTitle", false, false, makeURI(item.baseURI));
+    if (url) {
+      var titleKey = "SaveImageTitle";
+
+      if (item instanceof HTMLVideoElement)
+        titleKey = "SaveVideoTitle";
+      else if (item instanceof HTMLAudioElement)
+        titleKey = "SaveAudioTitle";
+
+      saveURL(url, null, titleKey, false, false, makeURI(item.baseURI));
+    }
   }
   else {
     var odir  = selectSaveFolder();
-    var start = { };
-    var end   = { };
-    var numRanges = tree.view.selection.getRangeCount();
-
-    var rowArray = [ ];
-    for (var t = 0; t < numRanges; t++) {
-      tree.view.selection.getRangeAt(t, start, end);
-      for (var v = start.value; v <= end.value; v++)
-        rowArray.push(v);
-    }
 
     var saveAnImage = function(aURIString, aChosenData, aBaseURI) {
       internalSave(aURIString, null, null, null, null, false, "SaveImageTitle",
@@ -901,14 +878,14 @@ function onImageSelect()
     splitter.collapsed     = false;
     previewBox.collapsed   = false;
     tree.flex = 0;
-    makePreview(tree.view.selection.currentIndex);
+    makePreview(getSelectedRows(tree)[0]);
   }
 }
 
 function makePreview(row)
 {
   var imageTree = document.getElementById("imagetree");
-  var item = getSelectedImage(imageTree);
+  var item = gImageView.data[row][COL_IMAGE_NODE];
   var url = gImageView.data[row][COL_IMAGE_ADDRESS];
   var isBG = gImageView.data[row][COL_IMAGE_BG];
   var isAudio = false;
@@ -930,173 +907,166 @@ function makePreview(row)
 
   
   var cacheKey = url.replace(/#.*$/, "");
-  try {
+  openCacheEntry(cacheKey, function(cacheEntry) {
     
-    var cacheEntryDescriptor = httpCacheSession.openCacheEntry(cacheKey, ACCESS_READ, false);
-  }
-  catch(ex) {
-    try {
+    var sizeText;
+    if (cacheEntry) {
+      var imageSize = cacheEntry.dataSize;
+      var kbSize = Math.round(imageSize / 1024 * 100) / 100;
+      sizeText = gBundle.getFormattedString("generalSize",
+                                            [formatNumber(kbSize), formatNumber(imageSize)]);
+    }
+    else
+      sizeText = gBundle.getString("mediaUnknownNotCached");
+    setItemValue("imagesizetext", sizeText);
+
+    var mimeType;
+    var numFrames = 1;
+    if (item instanceof HTMLObjectElement ||
+        item instanceof HTMLEmbedElement ||
+        item instanceof HTMLLinkElement)
+      mimeType = item.type;
+
+    if (!mimeType && !isBG && item instanceof nsIImageLoadingContent) {
+      var imageRequest = item.getRequest(nsIImageLoadingContent.CURRENT_REQUEST);
+      if (imageRequest) {
+        mimeType = imageRequest.mimeType;
+        var image = imageRequest.image;
+        if (image)
+          numFrames = image.numFrames;
+      }
+    }
+    
+    if (!mimeType)
+      mimeType = getContentTypeFromHeaders(cacheEntry);
+
+    
+    if (!mimeType && /^data:/.test(url)) {
+      let dataMimeType = /^data:(image\/[^;,]+)/i.exec(url);
+      if (dataMimeType)
+        mimeType = dataMimeType[1].toLowerCase();
+    }
+
+    var imageType;
+    if (mimeType) {
       
-      cacheEntryDescriptor = ftpCacheSession.openCacheEntry(cacheKey, ACCESS_READ, false);
-    }
-    catch(ex2) { }
-  }
-
-  
-  var sizeText;
-  if (cacheEntryDescriptor) {
-    var imageSize = cacheEntryDescriptor.dataSize;
-    var kbSize = Math.round(imageSize / 1024 * 100) / 100;
-    sizeText = gBundle.getFormattedString("generalSize",
-                                          [formatNumber(kbSize), formatNumber(imageSize)]);
-  }
-  else
-    sizeText = gBundle.getString("mediaUnknownNotCached");
-  setItemValue("imagesizetext", sizeText);
-
-  var mimeType;
-  var numFrames = 1;
-  if (item instanceof HTMLObjectElement ||
-      item instanceof HTMLEmbedElement ||
-      item instanceof HTMLLinkElement)
-    mimeType = item.type;
-
-  if (!mimeType && !isBG && item instanceof nsIImageLoadingContent) {
-    var imageRequest = item.getRequest(nsIImageLoadingContent.CURRENT_REQUEST);
-    if (imageRequest) {
-      mimeType = imageRequest.mimeType;
-      var image = imageRequest.image;
-      if (image)
-        numFrames = image.numFrames;
-    }
-  }
-  if (!mimeType)
-    mimeType = getContentTypeFromHeaders(cacheEntryDescriptor);
-
-  
-  if (!mimeType && /^data:/.test(url)) {
-    let dataMimeType = /^data:(image\/[^;,]+)/i.exec(url);
-    if (dataMimeType)
-      mimeType = dataMimeType[1].toLowerCase();
-  }
-
-  var imageType;
-  if (mimeType) {
-    
-    let imageMimeType = /^image\/(.*)/i.exec(mimeType);
-    if (imageMimeType) {
-      imageType = imageMimeType[1].toUpperCase();
-      if (numFrames > 1)
-        imageType = gBundle.getFormattedString("mediaAnimatedImageType",
-                                               [imageType, numFrames]);
-      else
-        imageType = gBundle.getFormattedString("mediaImageType", [imageType]);
+      let imageMimeType = /^image\/(.*)/i.exec(mimeType);
+      if (imageMimeType) {
+        imageType = imageMimeType[1].toUpperCase();
+        if (numFrames > 1)
+          imageType = gBundle.getFormattedString("mediaAnimatedImageType",
+                                                 [imageType, numFrames]);
+        else
+          imageType = gBundle.getFormattedString("mediaImageType", [imageType]);
+      }
+      else {
+        
+        imageType = mimeType;
+      }
     }
     else {
       
-      imageType = mimeType;
+      imageType = gImageView.data[row][COL_IMAGE_TYPE];
     }
-  }
-  else {
-    
-    imageType = gImageView.data[row][COL_IMAGE_TYPE];
-  }
-  setItemValue("imagetypetext", imageType);
+    setItemValue("imagetypetext", imageType);
 
-  var imageContainer = document.getElementById("theimagecontainer");
-  var oldImage = document.getElementById("thepreviewimage");
+    var imageContainer = document.getElementById("theimagecontainer");
+    var oldImage = document.getElementById("thepreviewimage");
 
-  var isProtocolAllowed = checkProtocol(gImageView.data[row]);
+    var isProtocolAllowed = checkProtocol(gImageView.data[row]);
 
-  var newImage = new Image;
-  newImage.id = "thepreviewimage";
-  var physWidth = 0, physHeight = 0;
-  var width = 0, height = 0;
+    var newImage = new Image;
+    newImage.id = "thepreviewimage";
+    var physWidth = 0, physHeight = 0;
+    var width = 0, height = 0;
 
-  if ((item instanceof HTMLLinkElement || item instanceof HTMLInputElement ||
-       item instanceof HTMLImageElement ||
-       item instanceof SVGImageElement ||
-      (item instanceof HTMLObjectElement && /^image\//.test(mimeType)) || isBG) && isProtocolAllowed) {
-    newImage.setAttribute("src", url);
-    physWidth = newImage.width || 0;
-    physHeight = newImage.height || 0;
+    if ((item instanceof HTMLLinkElement || item instanceof HTMLInputElement ||
+         item instanceof HTMLImageElement ||
+         item instanceof SVGImageElement ||
+        (item instanceof HTMLObjectElement && /^image\//.test(mimeType)) || isBG) && isProtocolAllowed) {
+      newImage.setAttribute("src", url);
+      physWidth = newImage.width || 0;
+      physHeight = newImage.height || 0;
 
-    
-    
-    
-    if (!isBG) {
-      newImage.width = ("width" in item && item.width) || newImage.naturalWidth;
-      newImage.height = ("height" in item && item.height) || newImage.naturalHeight;
-    }
-    else {
       
       
-      newImage.width = newImage.naturalWidth;
-      newImage.height = newImage.naturalHeight;
+      
+      if (!isBG) {
+        newImage.width = ("width" in item && item.width) || newImage.naturalWidth;
+        newImage.height = ("height" in item && item.height) || newImage.naturalHeight;
+      }
+      else {
+        
+        
+        newImage.width = newImage.naturalWidth;
+        newImage.height = newImage.naturalHeight;
+      }
+
+      if (item instanceof SVGImageElement) {
+        newImage.width = item.width.baseVal.value;
+        newImage.height = item.height.baseVal.value;
+      }
+
+      width = newImage.width;
+      height = newImage.height;
+
+      document.getElementById("theimagecontainer").collapsed = false
+      document.getElementById("brokenimagecontainer").collapsed = true;
     }
-
-    if (item instanceof SVGImageElement) {
-      newImage.width = item.width.baseVal.value;
-      newImage.height = item.height.baseVal.value;
-    }
-
-    width = newImage.width;
-    height = newImage.height;
-
-    document.getElementById("theimagecontainer").collapsed = false
-    document.getElementById("brokenimagecontainer").collapsed = true;
-  }
 #ifdef MOZ_MEDIA
-  else if (item instanceof HTMLVideoElement && isProtocolAllowed) {
-    newImage = document.createElementNS("http://www.w3.org/1999/xhtml", "video");
-    newImage.id = "thepreviewimage";
-    newImage.mozLoadFrom(item);
-    newImage.controls = true;
-    width = physWidth = item.videoWidth;
-    height = physHeight = item.videoHeight;
+    else if (item instanceof HTMLVideoElement && isProtocolAllowed) {
+      newImage = document.createElementNS("http://www.w3.org/1999/xhtml", "video");
+      newImage.id = "thepreviewimage";
+      newImage.mozLoadFrom(item);
+      newImage.controls = true;
+      width = physWidth = item.videoWidth;
+      height = physHeight = item.videoHeight;
 
-    document.getElementById("theimagecontainer").collapsed = false;
-    document.getElementById("brokenimagecontainer").collapsed = true;
-  }
-  else if (item instanceof HTMLAudioElement && isProtocolAllowed) {
-    newImage = new Audio;
-    newImage.id = "thepreviewimage";
-    newImage.src = url;
-    newImage.controls = true;
-    isAudio = true;
+      document.getElementById("theimagecontainer").collapsed = false;
+      document.getElementById("brokenimagecontainer").collapsed = true;
+    }
+    else if (item instanceof HTMLAudioElement && isProtocolAllowed) {
+      newImage = new Audio;
+      newImage.id = "thepreviewimage";
+      newImage.src = url;
+      newImage.controls = true;
+      isAudio = true;
 
-    document.getElementById("theimagecontainer").collapsed = false;
-    document.getElementById("brokenimagecontainer").collapsed = true;
-  }
+      document.getElementById("theimagecontainer").collapsed = false;
+      document.getElementById("brokenimagecontainer").collapsed = true;
+    }
 #endif
-  else {
-    
-    
-    document.getElementById("brokenimagecontainer").collapsed = false;
-    document.getElementById("theimagecontainer").collapsed = true;
-  }
-
-  var imageSize = "";
-  if (url && !isAudio) {
-    if (width != physWidth || height != physHeight) {
-      imageSize = gBundle.getFormattedString("mediaDimensionsScaled",
-                                             [formatNumber(physWidth),
-                                              formatNumber(physHeight),
-                                              formatNumber(width),
-                                              formatNumber(height)]);
-    }
     else {
-      imageSize = gBundle.getFormattedString("mediaDimensions",
-                                             [formatNumber(width),
-                                              formatNumber(height)]);
+      
+      
+      document.getElementById("brokenimagecontainer").collapsed = false;
+      document.getElementById("theimagecontainer").collapsed = true;
     }
-  }
-  setItemValue("imagedimensiontext", imageSize);
 
-  makeBlockImage(url);
+    var imageSize = "";
+    if (url && !isAudio) {
+      if (width != physWidth || height != physHeight) {
+        imageSize = gBundle.getFormattedString("mediaDimensionsScaled",
+                                               [formatNumber(physWidth),
+                                                formatNumber(physHeight),
+                                                formatNumber(width),
+                                                formatNumber(height)]);
+      }
+      else {
+        imageSize = gBundle.getFormattedString("mediaDimensions",
+                                               [formatNumber(width),
+                                                formatNumber(height)]);
+      }
+    }
+    setItemValue("imagedimensiontext", imageSize);
 
-  imageContainer.removeChild(oldImage);
-  imageContainer.appendChild(newImage);
+    makeBlockImage(url);
+
+    imageContainer.removeChild(oldImage);
+    imageContainer.appendChild(newImage);
+
+    onImagePreviewShown.forEach(function(func) { func(); });
+  });
 }
 
 function makeBlockImage(url)
@@ -1104,7 +1074,7 @@ function makeBlockImage(url)
   var permissionManager = Components.classes[PERMISSION_CONTRACTID]
                                     .getService(nsIPermissionManager);
   var prefs = Components.classes[PREFERENCES_CONTRACTID]
-                        .getService(Components.interfaces.nsIPrefBranch2);
+                        .getService(Components.interfaces.nsIPrefBranch);
 
   var checkbox = document.getElementById("blockImage");
   var imagePref = prefs.getIntPref("permissions.default.image");
@@ -1135,7 +1105,7 @@ var imagePermissionObserver = {
       var permission = aSubject.QueryInterface(Components.interfaces.nsIPermission);
       if (permission.type == "image") {
         var imageTree = document.getElementById("imagetree");
-        var row = imageTree.currentIndex;
+        var row = getSelectedRow(imageTree);
         var item = gImageView.data[row][COL_IMAGE_NODE];
         var url = gImageView.data[row][COL_IMAGE_ADDRESS];
         if (makeURI(url).host == permission.host)
@@ -1274,7 +1244,7 @@ function doCopy()
         elem.removeAttribute("copybuffer");
       }
     }
-    gClipboardHelper.copyString(text.join("\n"));
+    gClipboardHelper.copyString(text.join("\n"), document);
   }
 }
 
