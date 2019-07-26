@@ -1718,17 +1718,16 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
                 return false;
         }
 
-        
-
-
-
-
-
         if (bodyLevel) {
             JS_ASSERT(pn->functionIsHoisted());
             JS_ASSERT_IF(pc->sc->isFunctionBox(), !pn->pn_cookie.isFree());
             JS_ASSERT_IF(!pc->sc->isFunctionBox(), pn->pn_cookie.isFree());
         } else {
+            
+
+
+
+
             JS_ASSERT(!pc->sc->strict);
             JS_ASSERT(pn->pn_cookie.isFree());
             if (pc->sc->isFunctionBox()) {
@@ -2450,36 +2449,6 @@ Parser<ParseHandler>::maybeParseDirective(Node pn, bool *cont)
     return true;
 }
 
-template <>
-void
-Parser<FullParseHandler>::addStatementToList(ParseNode *pn, ParseNode *kid)
-{
-    JS_ASSERT(pn->isKind(PNK_STATEMENTLIST));
-
-    if (kid->isKind(PNK_FUNCTION)) {
-        
-
-
-
-
-        if (pc->atBodyLevel()) {
-            pn->pn_xflags |= PNX_FUNCDEFS;
-        } else {
-            
-            JS_ASSERT_IF(pc->sc->isFunctionBox(), pc->sc->asFunctionBox()->hasExtensibleScope());
-        }
-    }
-
-    pn->append(kid);
-    pn->pn_pos.end = kid->pn_pos.end;
-}
-
-template <>
-void
-Parser<SyntaxParseHandler>::addStatementToList(Node pn, Node kid)
-{
-}
-
 
 
 
@@ -2491,10 +2460,9 @@ Parser<ParseHandler>::statements()
 {
     JS_CHECK_RECURSION(context, return null());
 
-    Node pn = handler.newList(PNK_STATEMENTLIST);
+    Node pn = handler.newStatementList(pc->blockid(), pos());
     if (!pn)
         return null();
-    handler.setBlockId(pn, pc->blockid());
 
     Node saveBlock = pc->blockNode;
     pc->blockNode = pn;
@@ -2522,7 +2490,7 @@ Parser<ParseHandler>::statements()
                 return null();
         }
 
-        addStatementToList(pn, next);
+        handler.addStatementToList(pn, next, pc);
     }
 
     
@@ -2533,8 +2501,6 @@ Parser<ParseHandler>::statements()
     if (pc->blockNode != pn)
         pn = pc->blockNode;
     pc->blockNode = saveBlock;
-
-    handler.setEndPosition(pn, pos().end);
     return pn;
 }
 
@@ -4255,11 +4221,9 @@ Parser<ParseHandler>::switchStatement()
     if (!GenerateBlockId(pc, pc->topStmt->blockid))
         return null();
 
-    
-    Node caseList = handler.newList(PNK_STATEMENTLIST);
+    Node caseList = handler.newStatementList(pc->blockid(), pos());
     if (!caseList)
         return null();
-    handler.setBlockId(caseList, pc->blockid());
 
     Node saveBlock = pc->blockNode;
     pc->blockNode = caseList;
@@ -4277,7 +4241,7 @@ Parser<ParseHandler>::switchStatement()
                 return null();
             }
             seenDefault = true;
-            caseExpr = null();
+            caseExpr = null();  
             break;
 
           case TOK_CASE:
@@ -4296,10 +4260,9 @@ Parser<ParseHandler>::switchStatement()
 
         MUST_MATCH_TOKEN(TOK_COLON, JSMSG_COLON_AFTER_CASE);
 
-        Node body = handler.newList(PNK_STATEMENTLIST);
+        Node body = handler.newStatementList(pc->blockid(), pos());
         if (!body)
             return null();
-        handler.setBlockId(body, pc->blockid());
 
         while ((tt = tokenStream.peekToken(TSF_OPERAND)) != TOK_RC &&
                tt != TOK_CASE && tt != TOK_DEFAULT) {
