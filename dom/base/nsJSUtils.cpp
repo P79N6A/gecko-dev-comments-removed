@@ -206,6 +206,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   MOZ_ASSERT_IF(aCompileOptions.versionSet,
                 aCompileOptions.version != JSVERSION_UNKNOWN);
   MOZ_ASSERT_IF(aEvaluateOptions.coerceToString, aRetValue);
+  MOZ_ASSERT_IF(!aEvaluateOptions.reportUncaught, aRetValue);
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
 
   
@@ -245,17 +246,21 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   }
 
   if (!ok) {
-    if (aRetValue) {
-      *aRetValue = JS::UndefinedValue();
+    if (aEvaluateOptions.reportUncaught) {
+      ReportPendingException(aCx);
+      if (aRetValue) {
+        *aRetValue = JS::UndefinedValue();
+      }
+    } else {
+      rv = JS_IsExceptionPending(aCx) ? NS_ERROR_FAILURE
+                                      : NS_ERROR_OUT_OF_MEMORY;
+      JS_GetPendingException(aCx, aRetValue);
+      JS_ClearPendingException(aCx);
     }
-    
-    
-    
-    ReportPendingException(aCx);
   }
 
   
   if (aRetValue && !JS_WrapValue(aCx, aRetValue))
     return NS_ERROR_OUT_OF_MEMORY;
-  return NS_OK;
+  return rv;
 }
