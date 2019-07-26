@@ -18,7 +18,6 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "mozilla/Services.h"
-#include "nsThreadUtils.h"
 
 mozilla::ThreadLocal<PseudoStack *> tlsPseudoStack;
 mozilla::ThreadLocal<TableTicker *> tlsTicker;
@@ -28,10 +27,9 @@ mozilla::ThreadLocal<TableTicker *> tlsTicker;
 
 bool stack_key_initialized;
 
-TimeStamp   sLastTracerEvent; 
-int         sFrameNumber = 0;
-int         sLastFrameNumber = 0;
-static bool sIsProfiling = false; 
+TimeStamp sLastTracerEvent; 
+int       sFrameNumber = 0;
+int       sLastFrameNumber = 0;
 
 
 unsigned int sLastSampledEventGeneration = 0;
@@ -44,35 +42,6 @@ unsigned int sCurrentEventGeneration = 0;
 
 
 
-
-std::vector<ThreadInfo*>* Sampler::sRegisteredThreads = nullptr;
-mozilla::Mutex* Sampler::sRegisteredThreadsMutex = nullptr;
-
-TableTicker* Sampler::sActiveSampler;
-
-void Sampler::Startup() {
-  sRegisteredThreads = new std::vector<ThreadInfo*>();
-  sRegisteredThreadsMutex = new mozilla::Mutex("sRegisteredThreads mutex");
-}
-
-void Sampler::Shutdown() {
-  while (sRegisteredThreads->size() > 0) {
-    delete sRegisteredThreads->back();
-    sRegisteredThreads->pop_back();
-  }
-
-  delete sRegisteredThreadsMutex;
-  delete sRegisteredThreads;
-}
-
-ThreadInfo::~ThreadInfo() {
-  free(mName);
-
-  if (mProfile)
-    delete mProfile;
-
-  Sampler::FreePlatformData(mPlatformData);
-}
 
 bool sps_version2()
 {
@@ -253,12 +222,8 @@ void mozilla_sampler_init()
   }
   stack_key_initialized = true;
 
-  Sampler::Startup();
-
   PseudoStack *stack = new PseudoStack();
   tlsPseudoStack.set(stack);
-
-  Sampler::RegisterCurrentThread("Gecko", stack, true);
 
   if (sps_version2()) {
     
@@ -329,9 +294,6 @@ void mozilla_sampler_shutdown()
   }
 
   profiler_stop();
-
-  Sampler::Shutdown();
-
   
   
   
@@ -390,7 +352,6 @@ const char** mozilla_sampler_get_features()
 #endif
     "jank",
     "js",
-    "threads",
     NULL
   };
 
@@ -422,29 +383,16 @@ void mozilla_sampler_start(int aProfileEntries, int aInterval,
   if (sps_version2()) {
     t = new BreakpadSampler(aInterval ? aInterval : PROFILE_DEFAULT_INTERVAL,
                            aProfileEntries ? aProfileEntries : PROFILE_DEFAULT_ENTRY,
-                           aFeatures, aFeatureCount);
+                           stack, aFeatures, aFeatureCount);
   } else {
     t = new TableTicker(aInterval ? aInterval : PROFILE_DEFAULT_INTERVAL,
                         aProfileEntries ? aProfileEntries : PROFILE_DEFAULT_ENTRY,
-                        aFeatures, aFeatureCount);
+                        stack, aFeatures, aFeatureCount);
   }
   tlsTicker.set(t);
   t->Start();
-  if (t->ProfileJS()) {
-      mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
-      std::vector<ThreadInfo*> threads = t->GetRegisteredThreads();
-
-      for (uint32_t i = 0; i < threads.size(); i++) {
-        ThreadInfo* info = threads[i];
-        ThreadProfile* thread_profile = info->Profile();
-        if (!thread_profile) {
-          continue;
-        }
-        thread_profile->GetPseudoStack()->enableJSSampling();
-      }
-  }
-
-  sIsProfiling = true;
+  if (t->ProfileJS())
+      stack->enableJSSampling();
 
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os)
@@ -472,8 +420,6 @@ void mozilla_sampler_stop()
   if (disableJS)
     stack->disableJSSampling();
 
-  sIsProfiling = false;
-
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os)
     os->NotifyObservers(nullptr, "profiler-stopped", nullptr);
@@ -481,7 +427,15 @@ void mozilla_sampler_stop()
 
 bool mozilla_sampler_is_active()
 {
-  return sIsProfiling;
+  if (!stack_key_initialized)
+    profiler_init();
+
+  TableTicker *t = tlsTicker.get();
+  if (!t) {
+    return false;
+  }
+
+  return t->IsActive();
 }
 
 static double sResponsivenessTimes[100];
@@ -532,20 +486,6 @@ void mozilla_sampler_unlock()
   if (os)
     os->NotifyObservers(nullptr, "profiler-unlocked", nullptr);
 }
-
-bool mozilla_sampler_register_thread(const char* aName)
-{
-  PseudoStack* stack = new PseudoStack();
-  tlsPseudoStack.set(stack);
-
-  return Sampler::RegisterCurrentThread(aName, stack, false);
-}
-
-void mozilla_sampler_unregister_thread()
-{
-  Sampler::UnregisterCurrentThread();
-}
-
 
 
 
