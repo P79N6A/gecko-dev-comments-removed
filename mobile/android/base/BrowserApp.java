@@ -327,24 +327,35 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         
-        if (keyCode == KeyEvent.KEYCODE_BUTTON_Y &&
+        if (Build.VERSION.SDK_INT >= 9 &&
             (event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
-            if (mBrowserToolbar.isVisible()) {
-                if (mDynamicToolbarEnabled &&
-                    Boolean.FALSE.equals(mAboutHomeShowing)) {
-                    mBrowserToolbar.animateVisibility(false, 0);
-                    mLayerView.requestFocus();
-                } else {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_BUTTON_Y:
                     
+                    if (mBrowserToolbar.isVisible()) {
+                        if (mDynamicToolbarEnabled &&
+                            Boolean.FALSE.equals(mAboutHomeShowing)) {
+                            mBrowserToolbar.animateVisibility(false, 0);
+                            mLayerView.requestFocus();
+                        } else {
+                            
+                            
+                            mBrowserToolbar.requestFocusFromTouch();
+                        }
+                    } else {
+                        mBrowserToolbar.animateVisibility(true, 0);
+                        mBrowserToolbar.requestFocusFromTouch();
+                    }
+                    return true;
+                case KeyEvent.KEYCODE_BUTTON_L1:
                     
-                    mBrowserToolbar.requestFocusFromTouch();
-                }
-            } else {
-                mBrowserToolbar.animateVisibility(true, 0);
-                mBrowserToolbar.requestFocusFromTouch();
+                    Tabs.getInstance().getSelectedTab().doBack();
+                    return true;
+                case KeyEvent.KEYCODE_BUTTON_R1:
+                    
+                    Tabs.getInstance().getSelectedTab().doForward();
+                    return true;
             }
-
-            return true;
         }
 
         return false;
