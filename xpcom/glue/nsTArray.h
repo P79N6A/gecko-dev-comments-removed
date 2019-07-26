@@ -1696,6 +1696,7 @@ public:
 template <class TArrayBase, size_t N>
 class nsAutoArrayBase : public TArrayBase
 {
+  static_assert(N != 0, "nsAutoArrayBase<TArrayBase, 0> should be specialized");
 public:
   typedef nsAutoArrayBase<TArrayBase, N> self_type;
   typedef TArrayBase base_type;
@@ -1755,6 +1756,24 @@ private:
                          ? MOZ_ALIGNOF(Header) : MOZ_ALIGNOF(elem_type)> mAlign;
   };
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class TArrayBase>
+class nsAutoArrayBase<TArrayBase, 0> : public TArrayBase
+{};
 
 
 
