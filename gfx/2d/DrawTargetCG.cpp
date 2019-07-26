@@ -247,13 +247,16 @@ class UnboundnessFixer
     {
       if (!IsOperatorBoundByMask(blend)) {
         mClipBounds = CGContextGetClipBoundingBox(baseCg);
+        if (CGRectIsEmpty(mClipBounds)) {
+          return baseCg;
+        }
+
         
         
 
         
         
         mLayer = CGLayerCreateWithContext(baseCg, mClipBounds.size, nullptr);
-        
         mCg = CGLayerGetContext(mLayer);
         
         
