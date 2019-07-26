@@ -48,10 +48,17 @@ class GamepadService : public nsIObserver
   void RemoveGamepad(uint32_t aIndex);
 
   
+  
+  
+  
   void NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed,
                       double aValue);
   
   void NewButtonEvent(uint32_t aIndex, uint32_t aButton, bool aPressed);
+
+  
+  
+  
   void NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis, double aValue);
 
   
@@ -62,15 +69,26 @@ class GamepadService : public nsIObserver
   virtual ~GamepadService() {};
   void StartCleanupTimer();
 
+  
+  
+  
   void NewConnectionEvent(uint32_t aIndex, bool aConnected);
+
+  
   void FireAxisMoveEvent(EventTarget* aTarget,
                          Gamepad* aGamepad,
                          uint32_t axis,
                          double value);
+
+  
+  
   void FireButtonEvent(EventTarget* aTarget,
                        Gamepad* aGamepad,
                        uint32_t aButton,
                        double aValue);
+
+  
+  
   void FireConnectionEvent(EventTarget* aTarget,
                            Gamepad* aGamepad,
                            bool aConnected);
