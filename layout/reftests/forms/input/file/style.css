@@ -6,7 +6,7 @@ vbox, hbox {
 
 .file {
   
-  color: -moz-FieldText;
+  color: inherit;
   font: -moz-field;
   text-rendering: optimizeLegibility;
   line-height: normal !important;

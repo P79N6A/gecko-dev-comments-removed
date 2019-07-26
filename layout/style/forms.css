@@ -413,7 +413,8 @@ input[type="image"]:-moz-focusring {
 input[type="file"] {
   display: inline-block;
   white-space: nowrap;
-  overflow:hidden;
+  overflow: hidden;
+  color: inherit;
 
   
   -moz-appearance: none;
