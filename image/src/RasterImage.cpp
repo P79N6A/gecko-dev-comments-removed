@@ -1436,12 +1436,13 @@ RasterImage::StartAnimation()
   EnsureAnimExists();
 
   imgFrame* currentFrame = GetCurrentImgFrame();
-  if (currentFrame) {
-    if (currentFrame->GetTimeout() < 0) { 
-      mAnimationFinished = true;
-      return NS_ERROR_ABORT;
-    }
+  
+  if (currentFrame && currentFrame->GetTimeout() < 0) {
+    mAnimationFinished = true;
+    return NS_ERROR_ABORT;
+  }
 
+  if (mAnim) {
     
     
     mAnim->InitAnimationFrameTimeIfNecessary();
@@ -1457,12 +1458,15 @@ RasterImage::StopAnimation()
 {
   NS_ABORT_IF_FALSE(mAnimating, "Should be animating!");
 
-  if (mError)
-    return NS_ERROR_FAILURE;
+  nsresult rv = NS_OK;
+  if (mError) {
+    rv = NS_ERROR_FAILURE;
+  } else {
+    mAnim->SetAnimationFrameTime(TimeStamp());
+  }
 
-  mAnim->SetAnimationFrameTime(TimeStamp());
-
-  return NS_OK;
+  mAnimating = false;
+  return rv;
 }
 
 
@@ -1483,9 +1487,7 @@ RasterImage::ResetAnimation()
     StopAnimation();
 
   mFrameBlender.ResetAnimation();
-  if (mAnim) {
-    mAnim->ResetAnimation();
-  }
+  mAnim->ResetAnimation();
 
   UpdateImageContainer();
 
@@ -1498,13 +1500,9 @@ RasterImage::ResetAnimation()
     mStatusTracker->FrameChanged(&rect);
   }
 
-  if (ShouldAnimate()) {
-    StartAnimation();
-    
-    
-    
-    mAnimating = true;
-  }
+  
+  
+  EvaluateAnimation();
 
   return NS_OK;
 }
@@ -1573,10 +1571,8 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   if (mMultipart && mBytesDecoded == 0) {
     
-    if (mAnimating) {
+    if (mAnimating)
       StopAnimation();
-      mAnimating = false;
-    }
     mAnimationFinished = false;
     if (mAnim) {
       delete mAnim;
