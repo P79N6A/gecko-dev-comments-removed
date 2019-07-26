@@ -859,6 +859,10 @@ pref("browser.sessionstore.max_windows_undo", 3);
 
 pref("browser.sessionstore.max_resumed_crashes", 1);
 
+pref("browser.sessionstore.max_serialize_back", 10);
+
+pref("browser.sessionstore.max_serialize_forward", -1);
+
 
 
 

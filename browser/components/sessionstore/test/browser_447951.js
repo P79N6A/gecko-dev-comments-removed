@@ -9,6 +9,14 @@ function test() {
   const baseURL = "http://mochi.test:8888/browser/" +
     "browser/components/sessionstore/test/browser_447951_sample.html#";
 
+  
+  gPrefService.setIntPref("browser.sessionstore.max_serialize_back", -1);
+  gPrefService.setIntPref("browser.sessionstore.max_serialize_forward", -1);
+  registerCleanupFunction(function () {
+    gPrefService.clearUserPref("browser.sessionstore.max_serialize_back");
+    gPrefService.clearUserPref("browser.sessionstore.max_serialize_forward");
+  });
+
   let tab = gBrowser.addTab();
   whenBrowserLoaded(tab.linkedBrowser, function() {
     let tabState = { entries: [] };

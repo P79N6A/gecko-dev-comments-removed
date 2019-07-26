@@ -70,8 +70,26 @@ let SessionHistoryInternal = {
     let history = webNavigation.sessionHistory;
 
     if (history && history.count > 0) {
+      let oldest;
+      let maxSerializeBack =
+        Services.prefs.getIntPref("browser.sessionstore.max_serialize_back");
+      if (maxSerializeBack >= 0) {
+        oldest = Math.max(0, history.index - maxSerializeBack);
+      } else { 
+        oldest = 0;
+      }
+
+      let newest;
+      let maxSerializeFwd =
+        Services.prefs.getIntPref("browser.sessionstore.max_serialize_forward");
+      if (maxSerializeFwd >= 0) {
+        newest = Math.min(history.count - 1, history.index + maxSerializeFwd);
+      } else { 
+        newest = history.count - 1;
+      }
+
       try {
-        for (let i = 0; i < history.count; i++) {
+        for (let i = oldest; i <= newest; i++) {
           let shEntry = history.getEntryAtIndex(i, false);
           let entry = this.serializeEntry(shEntry, isPinned);
           data.entries.push(entry);
@@ -86,7 +104,8 @@ let SessionHistoryInternal = {
       }
 
       
-      data.index = Math.min(history.index + 1, data.entries.length);
+      
+      data.index = Math.min(history.index - oldest + 1, data.entries.length);
     }
 
     
@@ -164,9 +183,6 @@ let SessionHistoryInternal = {
 
     if (shEntry.isSrcdocEntry)
       entry.isSrcdocEntry = shEntry.isSrcdocEntry;
-
-    if (shEntry.baseURI)
-      entry.baseURI = shEntry.baseURI;
 
     if (shEntry.contentType)
       entry.contentType = shEntry.contentType;
@@ -312,8 +328,6 @@ let SessionHistoryInternal = {
       shEntry.referrerURI = Utils.makeURI(entry.referrer);
     if (entry.isSrcdocEntry)
       shEntry.srcdocData = entry.srcdocData;
-    if (entry.baseURI)
-      shEntry.baseURI = entry.baseURI;
 
     if (entry.cacheKey) {
       var cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].
