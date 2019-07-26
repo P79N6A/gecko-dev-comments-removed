@@ -99,8 +99,9 @@ void
 nsImageLoadingContent::DestroyImageLoadingContent()
 {
   
-  ClearCurrentRequest(NS_BINDING_ABORTED);
-  ClearPendingRequest(NS_BINDING_ABORTED);
+  
+  ClearCurrentRequest(NS_BINDING_ABORTED, 0);
+  ClearPendingRequest(NS_BINDING_ABORTED, 0);
 }
 
 nsImageLoadingContent::~nsImageLoadingContent()
@@ -944,8 +945,8 @@ void
 nsImageLoadingContent::CancelImageRequests(bool aNotify)
 {
   AutoStateChanger changer(this, aNotify);
-  ClearPendingRequest(NS_BINDING_ABORTED);
-  ClearCurrentRequest(NS_BINDING_ABORTED);
+  ClearPendingRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
+  ClearCurrentRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
 }
 
 nsresult
@@ -956,8 +957,8 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgRequestProxy* aRequest,
   AutoStateChanger changer(this, aNotify);
 
   
-  ClearPendingRequest(NS_BINDING_ABORTED);
-  ClearCurrentRequest(NS_BINDING_ABORTED);
+  ClearPendingRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
+  ClearCurrentRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
 
   
   nsRefPtr<imgRequestProxy>& req = PrepareNextRequest();
@@ -1074,14 +1075,14 @@ nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision)
   
   
   
-  ClearPendingRequest(NS_ERROR_IMAGE_BLOCKED);
+  ClearPendingRequest(NS_ERROR_IMAGE_BLOCKED, REQUEST_DISCARD);
 
   
   
   if (!HaveSize(mCurrentRequest)) {
 
     mImageBlockingStatus = aContentDecision;
-    ClearCurrentRequest(NS_ERROR_IMAGE_BLOCKED);
+    ClearCurrentRequest(NS_ERROR_IMAGE_BLOCKED, REQUEST_DISCARD);
 
     
     
@@ -1097,7 +1098,7 @@ nsImageLoadingContent::PrepareCurrentRequest()
   mImageBlockingStatus = nsIContentPolicy::ACCEPT;
 
   
-  ClearCurrentRequest(NS_ERROR_IMAGE_SRC_CHANGED);
+  ClearCurrentRequest(NS_ERROR_IMAGE_SRC_CHANGED, REQUEST_DISCARD);
 
   if (mNewRequestsWillNeedAnimationReset) {
     mCurrentRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
@@ -1111,7 +1112,7 @@ nsRefPtr<imgRequestProxy>&
 nsImageLoadingContent::PreparePendingRequest()
 {
   
-  ClearPendingRequest(NS_ERROR_IMAGE_SRC_CHANGED);
+  ClearPendingRequest(NS_ERROR_IMAGE_SRC_CHANGED, REQUEST_DISCARD);
 
   if (mNewRequestsWillNeedAnimationReset) {
     mPendingRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
@@ -1167,7 +1168,8 @@ nsImageLoadingContent::MakePendingRequestCurrent()
 }
 
 void
-nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
+nsImageLoadingContent::ClearCurrentRequest(nsresult aReason,
+                                           uint32_t aFlags)
 {
   if (!mCurrentRequest) {
     
@@ -1184,14 +1186,15 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
                                         &mCurrentRequestRegistered);
 
   
-  UntrackImage(mCurrentRequest, REQUEST_DISCARD);
+  UntrackImage(mCurrentRequest, aFlags);
   mCurrentRequest->CancelAndForgetObserver(aReason);
   mCurrentRequest = nullptr;
   mCurrentRequestFlags = 0;
 }
 
 void
-nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
+nsImageLoadingContent::ClearPendingRequest(nsresult aReason,
+                                           uint32_t aFlags)
 {
   if (!mPendingRequest)
     return;
@@ -1207,7 +1210,7 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
   nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(), mPendingRequest,
                                         &mPendingRequestRegistered);
 
-  UntrackImage(mPendingRequest, REQUEST_DISCARD);
+  UntrackImage(mPendingRequest, aFlags);
   mPendingRequest->CancelAndForgetObserver(aReason);
   mPendingRequest = nullptr;
   mPendingRequestFlags = 0;
@@ -1329,17 +1332,28 @@ nsImageLoadingContent::UntrackImage(imgIRequest* aImage, uint32_t aFlags )
   
   
   
+  
   nsIDocument* doc = GetOurCurrentDoc();
-  if (doc) {
-    if (aImage == mCurrentRequest && (mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
+  if (aImage == mCurrentRequest) {
+    if (doc && (mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
       mCurrentRequestFlags &= ~REQUEST_IS_TRACKED;
       doc->RemoveImage(mCurrentRequest,
                        (aFlags & REQUEST_DISCARD) ? nsIDocument::REQUEST_DISCARD : 0);
     }
-    if (aImage == mPendingRequest && (mPendingRequestFlags & REQUEST_IS_TRACKED)) {
+    else if (aFlags & REQUEST_DISCARD) {
+      
+      aImage->RequestDiscard();
+    }
+  }
+  if (aImage == mPendingRequest) {
+    if (doc && (mPendingRequestFlags & REQUEST_IS_TRACKED)) {
       mPendingRequestFlags &= ~REQUEST_IS_TRACKED;
       doc->RemoveImage(mPendingRequest,
                        (aFlags & REQUEST_DISCARD) ? nsIDocument::REQUEST_DISCARD : 0);
+    }
+    else if (aFlags & REQUEST_DISCARD) {
+      
+      aImage->RequestDiscard();
     }
   }
   return NS_OK;

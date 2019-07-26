@@ -298,8 +298,8 @@ protected:
   
 
 
-  void ClearCurrentRequest(nsresult aReason);
-  void ClearPendingRequest(nsresult aReason);
+  void ClearCurrentRequest(nsresult aReason, uint32_t aFlags);
+  void ClearPendingRequest(nsresult aReason, uint32_t aFlags);
 
   
 
