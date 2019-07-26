@@ -4403,9 +4403,6 @@ pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
 pref("mms.debugging.enabled", false);
 
 
-pref("ril.numRadioInterfaces", 1);
-
-
 
 
 
