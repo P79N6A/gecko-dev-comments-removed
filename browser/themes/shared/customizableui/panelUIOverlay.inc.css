@@ -510,7 +510,9 @@ toolbarpaletteitem[place="palette"] > #search-container {
 
   min-width: calc(@menuPanelWidth@ / 3 - 2px);
   max-width: calc(@menuPanelWidth@ / 3 - 2px);
-  height: auto;
+  
+
+  height: calc(2.2em + 4px);
   max-height: none;
   -moz-box-orient: horizontal;
 }
