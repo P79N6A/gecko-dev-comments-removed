@@ -23,15 +23,6 @@ typedef struct _cairo cairo_t;
 struct GlyphBufferAzure;
 template <typename T> class FallibleTArray;
 
-class gfxContext;
-
-namespace mozilla {
-template<>
-struct HasDangerousPublicDestructor<gfxContext>
-{
-  static const bool value = true;
-};
-}
 
 
 
@@ -46,8 +37,7 @@ struct HasDangerousPublicDestructor<gfxContext>
 
 
 
-
-class gfxContext {
+class gfxContext MOZ_FINAL {
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
 public:
@@ -63,8 +53,6 @@ public:
 
     gfxContext(mozilla::gfx::DrawTarget *aTarget,
                const mozilla::gfx::Point& aDeviceOffset = mozilla::gfx::Point());
-
-    ~gfxContext();
 
     
 
@@ -730,6 +718,8 @@ public:
     static mozilla::gfx::UserDataKey sDontUseAsSourceKey;
 
 private:
+    ~gfxContext();
+
   friend class GeneralPattern;
   friend struct GlyphBufferAzure;
 
