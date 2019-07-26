@@ -160,6 +160,7 @@ function MarionetteDriverActor(aConnection)
   this.importedScripts = FileUtils.getFile('TmpD', ['marionettescriptchrome']);
   this.currentRemoteFrame = null; 
   this.testName = null;
+  this.mozBrowserClose = null;
 
   
   this.addMessageManagerListeners(this.messageManager);
@@ -1353,6 +1354,18 @@ MarionetteDriverActor.prototype = {
       }
     }
     else {
+      
+      
+      
+      
+      let curWindow = this.getCurrentWindow();
+      let self = this;
+      this.mozBrowserClose = function() { 
+        curWindow.removeEventListener('mozbrowserclose', self.mozBrowserClose, true);
+        self.switchToGlobalMessageManager();
+        self.sendError("The frame closed during the click, recovering to allow further communications", 500, null, command_id);
+      };
+      curWindow.addEventListener('mozbrowserclose', this.mozBrowserClose, true);
       this.sendAsync("clickElement", {element: aRequest.element,
                                       command_id: command_id});
     }
@@ -1848,6 +1861,13 @@ MarionetteDriverActor.prototype = {
 
 
   receiveMessage: function MDA_receiveMessage(message) {
+    
+    if (this.mozBrowserClose !== null){
+      let curWindow = this.getCurrentWindow();
+      curWindow.removeEventListener('mozbrowserclose', this.mozBrowserClose, true);
+      this.mozBrowserClose = null;
+    }
+
     switch (message.name) {
       case "DOMContentLoaded":
         this.sendOk();

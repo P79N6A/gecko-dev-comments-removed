@@ -879,11 +879,22 @@ function switchToFrame(msg) {
     checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   }
   let foundFrame = null;
-  let frames = curWindow.document.getElementsByTagName("iframe");
+  let frames = []; 
+  let parWindow = null; 
   
-  
-  let parWindow = curWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+  try {
+    frames = curWindow.document.getElementsByTagName("iframe");
+    
+    
+    parWindow = curWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+  } catch (e) {
+    
+    
+    
+    msg.json.value = null;
+    msg.json.element = null;
+  }
   if ((msg.json.value == null) && (msg.json.element == null)) {
     curWindow = content;
     if(msg.json.focus == true) {
