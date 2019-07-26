@@ -167,6 +167,9 @@ static Element::MappedAttributeEntry sTokenStyles[] = {
   { &nsGkAtoms::fontsize_ },
   { &nsGkAtoms::color },
   { &nsGkAtoms::fontfamily_ },
+  { &nsGkAtoms::fontstyle_ },
+  { &nsGkAtoms::fontweight_ },
+  { &nsGkAtoms::mathvariant_},
   { nullptr }
 };
 
@@ -643,6 +646,110 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
         fontFamily->GetUnit() == eCSSUnit_Null) {
       fontFamily->SetStringValue(value->GetStringValue(), eCSSUnit_Families);
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsCSSValue* fontStyle = aData->ValueForFontStyle();
+    value = aAttributes->GetAttr(nsGkAtoms::fontstyle_);
+    if (value) {
+      WarnDeprecated(nsGkAtoms::fontstyle_->GetUTF16String(),
+                       nsGkAtoms::mathvariant_->GetUTF16String(),
+                       aData->mPresContext->Document());
+      if (value->Type() == nsAttrValue::eString &&
+          fontStyle->GetUnit() == eCSSUnit_Null) {
+        nsAutoString str(value->GetStringValue());
+        str.CompressWhitespace();
+        if (str.EqualsASCII("normal")) {
+          fontStyle->SetIntValue(NS_STYLE_FONT_STYLE_NORMAL,
+                                eCSSUnit_Enumerated);
+        } else if (str.EqualsASCII("italic")) {
+          fontStyle->SetIntValue(NS_STYLE_FONT_STYLE_ITALIC,
+                                eCSSUnit_Enumerated);
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsCSSValue* fontWeight = aData->ValueForFontWeight();
+    value = aAttributes->GetAttr(nsGkAtoms::fontweight_);
+    if (value) {
+      WarnDeprecated(nsGkAtoms::fontweight_->GetUTF16String(),
+                       nsGkAtoms::mathvariant_->GetUTF16String(),
+                       aData->mPresContext->Document());
+      if (value->Type() == nsAttrValue::eString &&
+          fontWeight->GetUnit() == eCSSUnit_Null) {
+        nsAutoString str(value->GetStringValue());
+        str.CompressWhitespace();
+        if (str.EqualsASCII("normal")) {
+          fontWeight->SetIntValue(NS_STYLE_FONT_WEIGHT_NORMAL,
+                                 eCSSUnit_Enumerated);
+        } else if (str.EqualsASCII("bold")) {
+          fontWeight->SetIntValue(NS_STYLE_FONT_WEIGHT_BOLD,
+                                  eCSSUnit_Enumerated);
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsCSSValue* mathVariant = aData->ValueForMathVariant();
+    value = aAttributes->GetAttr(nsGkAtoms::mathvariant_);
+    if (value && value->Type() == nsAttrValue::eString &&
+        mathVariant->GetUnit() == eCSSUnit_Null) {
+      nsAutoString str(value->GetStringValue());
+      str.CompressWhitespace();
+      static const char sizes[19][23] = {
+        "normal", "bold", "italic", "bold-italic", "script", "bold-script",
+        "fraktur", "double-struck", "bold-fraktur", "sans-serif",
+        "bold-sans-serif", "sans-serif-italic", "sans-serif-bold-italic",
+        "monospace", "initial", "tailed", "looped", "stretched"
+      };
+      static const int32_t values[NS_ARRAY_LENGTH(sizes)] = {
+        NS_MATHML_MATHVARIANT_NORMAL, NS_MATHML_MATHVARIANT_BOLD,
+        NS_MATHML_MATHVARIANT_ITALIC, NS_MATHML_MATHVARIANT_BOLD_ITALIC,
+        NS_MATHML_MATHVARIANT_SCRIPT, NS_MATHML_MATHVARIANT_BOLD_SCRIPT,
+        NS_MATHML_MATHVARIANT_FRAKTUR, NS_MATHML_MATHVARIANT_DOUBLE_STRUCK,
+        NS_MATHML_MATHVARIANT_BOLD_FRAKTUR, NS_MATHML_MATHVARIANT_SANS_SERIF,
+        NS_MATHML_MATHVARIANT_BOLD_SANS_SERIF,
+        NS_MATHML_MATHVARIANT_SANS_SERIF_ITALIC,
+        NS_MATHML_MATHVARIANT_SANS_SERIF_BOLD_ITALIC,
+        NS_MATHML_MATHVARIANT_MONOSPACE, NS_MATHML_MATHVARIANT_INITIAL,
+        NS_MATHML_MATHVARIANT_TAILED, NS_MATHML_MATHVARIANT_LOOPED,
+        NS_MATHML_MATHVARIANT_STRETCHED
+      };
+      for (uint32_t i = 0; i < ArrayLength(sizes); ++i) {
+        if (str.EqualsASCII(sizes[i])) {
+          mathVariant->SetIntValue(values[i], eCSSUnit_Enumerated);
+          break;
+        }
+      }
+    }
   }
 
   
@@ -719,6 +826,17 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
   }
 
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Position)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     nsCSSValue* width = aData->ValueForWidth();
     if (width->GetUnit() == eCSSUnit_Null) {
