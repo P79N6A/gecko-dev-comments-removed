@@ -203,6 +203,10 @@ function InplaceEditor(aOptions, aEvent)
   }
   this.input.focus();
 
+  if (this.contentType == CONTENT_TYPES.CSS_VALUE && this.input.value == "") {
+    this._maybeSuggestCompletion(true);
+  }
+
   this.input.addEventListener("blur", this._onBlur, false);
   this.input.addEventListener("keypress", this._onKeyPress, false);
   this.input.addEventListener("input", this._onInput, false);
@@ -853,6 +857,7 @@ InplaceEditor.prototype = {
     if (increment && this._incrementValue(increment) ) {
       this._updateSize();
       prevent = true;
+      cycling = true;
     } else if (increment && this.popup && this.popup.isOpen) {
       cycling = true;
       prevent = true;
@@ -891,6 +896,12 @@ InplaceEditor.prototype = {
 
       
       this._preventSuggestions = true;
+      
+      
+      if (this.contentType == CONTENT_TYPES.CSS_PROPERTY &&
+          direction == FOCUS_FORWARD) {
+        this._preventSuggestions = false;
+      }
 
       let input = this.input;
 
@@ -993,7 +1004,10 @@ InplaceEditor.prototype = {
   
 
 
-  _maybeSuggestCompletion: function() {
+
+
+
+  _maybeSuggestCompletion: function(aNoAutoInsert) {
     
     
     
@@ -1013,7 +1027,7 @@ InplaceEditor.prototype = {
       }
       let query = input.value.slice(0, input.selectionStart);
       let startCheckQuery = query;
-      if (!query) {
+      if (query == null) {
         return;
       }
       let list = [];
@@ -1030,43 +1044,54 @@ InplaceEditor.prototype = {
 
         list =
           ["!important", ...domUtils.getCSSValuesForProperty(this.property.name)];
+
+        if (query == "") {
+          
+          list.splice(0, 1);
+        }
       } else if (this.contentType == CONTENT_TYPES.CSS_MIXED &&
                  /^\s*style\s*=/.test(query)) {
         
-        let match = query.match(/([:;"'=]?)\s*([^"';:=]+)$/);
-        if (match && match.length == 3) {
+        let match = query.match(/([:;"'=]?)\s*([^"';:=]+)?$/);
+        if (match && match.length >= 2) {
           if (match[1] == ":") { 
             let propertyName =
-              query.match(/[;"'=]\s*([^"';:= ]+)\s*:\s*[^"';:=]+$/)[1];
+              query.match(/[;"'=]\s*([^"';:= ]+)\s*:\s*[^"';:=]*$/)[1];
             list =
               ["!important;", ...domUtils.getCSSValuesForProperty(propertyName)];
-            let matchLastQuery = /([^\s,.\/]+$)/.exec(match[2]);
+            let matchLastQuery = /([^\s,.\/]+$)/.exec(match[2] || "");
             if (matchLastQuery) {
               startCheckQuery = matchLastQuery[0];
             } else {
               startCheckQuery = "";
             }
+            if (!match[2]) {
+              
+              list.splice(0, 1);
+            }
           } else if (match[1]) { 
             list = CSSPropertyList;
             startCheckQuery = match[2];
           }
-          if (!startCheckQuery) {
+          if (startCheckQuery == null) {
             
             this.emit("after-suggest", "nothing to autocomplete");
             return;
           }
         }
       }
-      list.some(item => {
-        if (startCheckQuery && item.startsWith(startCheckQuery)) {
-          input.value = query + item.slice(startCheckQuery.length) +
-                        input.value.slice(query.length);
-          input.setSelectionRange(query.length, query.length + item.length -
-                                                startCheckQuery.length);
-          this._updateSize();
-          return true;
-        }
-      });
+      if (!aNoAutoInsert) {
+        list.some(item => {
+          if (startCheckQuery != null && item.startsWith(startCheckQuery)) {
+            input.value = query + item.slice(startCheckQuery.length) +
+                          input.value.slice(query.length);
+            input.setSelectionRange(query.length, query.length + item.length -
+                                                  startCheckQuery.length);
+            this._updateSize();
+            return true;
+          }
+        });
+      }
 
       if (!this.popup) {
         
@@ -1076,7 +1101,7 @@ InplaceEditor.prototype = {
       let finalList = [];
       let length = list.length;
       for (let i = 0, count = 0; i < length && count < MAX_POPUP_ENTRIES; i++) {
-        if (startCheckQuery && list[i].startsWith(startCheckQuery)) {
+        if (startCheckQuery != null && list[i].startsWith(startCheckQuery)) {
           count++;
           finalList.push({
             preLabel: startCheckQuery,
@@ -1088,7 +1113,7 @@ InplaceEditor.prototype = {
           
           break;
         }
-        else if (list[i][0] > startCheckQuery[0]) {
+        else if (startCheckQuery != null && list[i][0] > startCheckQuery[0]) {
           
           break;
         }
@@ -1100,6 +1125,9 @@ InplaceEditor.prototype = {
                 this.inputCharWidth;
         this.popup.setItems(finalList);
         this.popup.openPopup(this.input, x);
+        if (aNoAutoInsert) {
+          this.popup.selectedIndex = -1;
+        }
       } else {
         this.popup.hidePopup();
       }
