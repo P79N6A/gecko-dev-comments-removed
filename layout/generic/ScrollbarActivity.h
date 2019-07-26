@@ -114,7 +114,7 @@ protected:
   void RegisterWithRefreshDriver();
   void UnregisterFromRefreshDriver();
 
-  void UpdateOpacity(TimeStamp aTime);
+  bool UpdateOpacity(TimeStamp aTime); 
   void HoveredScrollbar(nsIContent* aScrollbar);
 
   nsRefreshDriver* GetRefreshDriver();
