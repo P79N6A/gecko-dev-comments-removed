@@ -18,6 +18,7 @@
 #include "nsCRT.h"
 
 #include "Image.h"
+#include "ImageFactory.h"
 #include "nsError.h"
 #include "ImageLogging.h"
 
@@ -907,24 +908,20 @@ imgRequestProxy::GetStaticRequest(imgRequestProxy** aReturn)
   }
 
   
-  int32_t w = 0;
-  int32_t h = 0;
-  image->GetWidth(&w);
-  image->GetHeight(&h);
-  nsIntRect rect(0, 0, w, h);
-  nsCOMPtr<imgIContainer> currentFrame;
-  nsresult rv = image->ExtractFrame(imgIContainer::FRAME_CURRENT, rect,
-                                    imgIContainer::FLAG_SYNC_DECODE,
-                                    getter_AddRefs(currentFrame));
-  if (NS_FAILED(rv))
-    return rv;
+  
+  
+  if (image->HasError()) {
+    return NS_ERROR_FAILURE;
+  }
 
-  nsRefPtr<Image> frame = static_cast<Image*>(currentFrame.get());
+  
+  nsRefPtr<Image> frozenImage = ImageFactory::Freeze(image);
 
   
   nsCOMPtr<nsIPrincipal> currentPrincipal;
   GetImagePrincipal(getter_AddRefs(currentPrincipal));
-  nsRefPtr<imgRequestProxy> req = new imgRequestProxyStatic(frame, currentPrincipal);
+  nsRefPtr<imgRequestProxy> req = new imgRequestProxyStatic(frozenImage,
+                                                            currentPrincipal);
   req->Init(nullptr, nullptr, mURI, nullptr);
 
   NS_ADDREF(*aReturn = req);

@@ -7,6 +7,9 @@
 #ifndef MOZILLA_IMAGELIB_IMAGEFACTORY_H_
 #define MOZILLA_IMAGELIB_IMAGEFACTORY_H_
 
+#include "nsCOMPtr.h"
+
+class nsCString;
 class nsIRequest;
 class nsIURI;
 class imgStatusTracker;
@@ -43,6 +46,13 @@ public:
 
   static already_AddRefed<Image> CreateAnonymousImage(const nsCString& aMimeType);
 
+  
+
+
+
+
+
+  static already_AddRefed<Image> Freeze(Image* aImage);
 
 private:
   
