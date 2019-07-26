@@ -525,7 +525,7 @@ var SelectionHandler = {
 
 
   _updateUIMarkerRects: function _updateUIMarkerRects(aSelection) {
-    this._cache = this._extractClientRectFromRange(aSelection.getRangeAt(0));
+    this._cache = this._extractUIRects(aSelection.getRangeAt(0));
     if (this. _debugOptions.dumpRanges)  {
        Util.dumpLn("start:", "(" + this._cache.start.xPos + "," +
                    this._cache.start.yPos + ")");
@@ -1139,8 +1139,9 @@ var SelectionHandler = {
 
 
 
-  _extractClientRectFromRange: function _extractClientRectFromRange(aRange) {
-    let cache = {
+
+  _extractUIRects: function _extractUIRects(aRange) {
+    let seldata = {
       start: {}, end: {}, caret: {},
       selection: { left: 0, top: 0, right: 0, bottom: 0 },
       element: { left: 0, top: 0, right: 0, bottom: 0 }
@@ -1149,42 +1150,43 @@ var SelectionHandler = {
     
     let rects = aRange.getClientRects();
 
-    let startSet = false;
-    for (let idx = 0; idx < rects.length; idx++) {
-      if (this. _debugOptions.dumpRanges) Util.dumpDOMRect(idx, rects[idx]);
-      if (!startSet && !Util.isEmptyDOMRect(rects[idx])) {
-        cache.start.xPos = rects[idx].left + this._contentOffset.x;
-        cache.start.yPos = rects[idx].bottom + this._contentOffset.y;
-        cache.caret = cache.start;
-        startSet = true;
-        if (this. _debugOptions.dumpRanges) Util.dumpLn("start set");
+    if (rects && rects.length) {
+      let startSet = false;
+      for (let idx = 0; idx < rects.length; idx++) {
+        if (this. _debugOptions.dumpRanges) Util.dumpDOMRect(idx, rects[idx]);
+        if (!startSet && !Util.isEmptyDOMRect(rects[idx])) {
+          seldata.start.xPos = rects[idx].left + this._contentOffset.x;
+          seldata.start.yPos = rects[idx].bottom + this._contentOffset.y;
+          seldata.caret = seldata.start;
+          startSet = true;
+          if (this. _debugOptions.dumpRanges) Util.dumpLn("start set");
+        }
+        if (!Util.isEmptyDOMRect(rects[idx])) {
+          seldata.end.xPos = rects[idx].right + this._contentOffset.x;
+          seldata.end.yPos = rects[idx].bottom + this._contentOffset.y;
+          if (this. _debugOptions.dumpRanges) Util.dumpLn("end set");
+        }
       }
-      if (!Util.isEmptyDOMRect(rects[idx])) {
-        cache.end.xPos = rects[idx].right + this._contentOffset.x;
-        cache.end.yPos = rects[idx].bottom + this._contentOffset.y;
-        if (this. _debugOptions.dumpRanges) Util.dumpLn("end set");
-      }
-    }
 
-    
-    let r = aRange.getBoundingClientRect();
-    cache.selection.left = r.left + this._contentOffset.x;
-    cache.selection.top = r.top + this._contentOffset.y;
-    cache.selection.right = r.right + this._contentOffset.x;
-    cache.selection.bottom = r.bottom + this._contentOffset.y;
+      
+      let r = aRange.getBoundingClientRect();
+      seldata.selection.left = r.left + this._contentOffset.x;
+      seldata.selection.top = r.top + this._contentOffset.y;
+      seldata.selection.right = r.right + this._contentOffset.x;
+      seldata.selection.bottom = r.bottom + this._contentOffset.y;
+    }
 
     
     r = this._getTargetClientRect();
-    cache.element.left = r.left + this._contentOffset.x;
-    cache.element.top = r.top + this._contentOffset.y;
-    cache.element.right = r.right + this._contentOffset.x;
-    cache.element.bottom = r.bottom + this._contentOffset.y;
+    seldata.element.left = r.left + this._contentOffset.x;
+    seldata.element.top = r.top + this._contentOffset.y;
+    seldata.element.right = r.right + this._contentOffset.x;
+    seldata.element.bottom = r.bottom + this._contentOffset.y;
 
-    if (!rects.length) {
-      Util.dumpLn("no rects in selection range. unexpected.");
-    }
+    
+    seldata.selectionRangeFound = !!rects.length;
 
-    return cache;
+    return seldata;
   },
 
   _getTargetClientRect: function _getTargetClientRect() {

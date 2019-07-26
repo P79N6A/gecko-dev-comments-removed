@@ -770,8 +770,16 @@ var SelectionHelperUI = {
       this.endMark.show();
     }
     if (json.updateCaret) {
-      this.caretMark.position(json.caret.xPos, json.caret.yPos);
-      this.caretMark.show();
+      
+      
+      
+      if (json.selectionRangeFound) {
+        this.caretMark.position(json.caret.xPos, json.caret.yPos);
+        this.caretMark.show();
+      } else {
+        
+        this.closeEditSession();
+      }
     }
     this._activeSelectionRect = json.selection;
     this._targetElementRect = json.element;
