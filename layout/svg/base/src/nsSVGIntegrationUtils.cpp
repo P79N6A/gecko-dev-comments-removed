@@ -197,38 +197,6 @@ nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
            aNonSVGFrame->PresContext()->AppUnitsPerCSSPixel());
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 nsRect
   nsSVGIntegrationUtils::
     ComputePostEffectsVisualOverflowRect(nsIFrame* aFrame,
@@ -247,21 +215,38 @@ nsRect
     return aPreEffectsOverflowRect;
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRUint32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   nsPoint firstFrameToUserSpace = GetOffsetToUserSpace(firstFrame);
   
-  
-  
-  gfxRect overrideBBox =
-    nsLayoutUtils::RectToGfxRect(
-      GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
-                                       aPreEffectsOverflowRect,
-                                       firstFrameToUserSpace),
-      aFrame->PresContext()->AppUnitsPerCSSPixel());
-  overrideBBox.RoundOut();
+  nsIntRect overrideBBox =
+    GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
+                                     aPreEffectsOverflowRect,
+                                     firstFrameToUserSpace).
+      ToOutsidePixels(appUnitsPerDevPixel);
 
   nsRect overflowRect =
     filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox).
-                   ToAppUnits(aFrame->PresContext()->AppUnitsPerDevPixel());
+                   ToAppUnits(appUnitsPerDevPixel);
 
   
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
@@ -509,8 +494,6 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
 gfxMatrix
 nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(nsIFrame* aNonSVGFrame)
 {
-  NS_ASSERTION(!aNonSVGFrame->IsFrameOfType(nsIFrame::eSVG),
-               "SVG frames should not get here");
   PRInt32 appUnitsPerDevPixel = aNonSVGFrame->PresContext()->AppUnitsPerDevPixel();
   float devPxPerCSSPx =
     1 / nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPixel);

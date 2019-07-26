@@ -15,6 +15,7 @@
 #include "nsSVGFilterElement.h"
 #include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
+#include "nsSVGIntegrationUtils.h"
 #include "nsSVGUtils.h"
 
 nsIFrame*
@@ -24,6 +25,10 @@ NS_NewSVGFilterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSVGFilterFrame)
+
+
+
+
 
 static nsIntRect
 MapDeviceRectToFilterSpace(const gfxMatrix& aMatrix,
@@ -404,6 +409,10 @@ nsSVGFilterFrame::PaintFilteredFrame(nsRenderingContext *aContext,
   return rv;
 }
 
+
+
+
+
 static nsresult
 TransformFilterSpaceToDeviceSpace(nsSVGFilterInstance *aInstance,
                                   nsIntRect *aRect)
@@ -423,8 +432,21 @@ nsIntRect
 nsSVGFilterFrame::GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
                                          const nsIntRect& aPreFilterDirtyRect)
 {
+  bool overrideCTM = false;
+  gfxMatrix ctm;
+
+  if (aFilteredFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    
+    
+    
+    
+    overrideCTM = true;
+    ctm = nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(aFilteredFrame);
+  }
+
   nsAutoFilterInstance instance(aFilteredFrame, this, nsnull, nsnull,
-                                &aPreFilterDirtyRect, nsnull);
+                                &aPreFilterDirtyRect, nsnull,
+                                overrideCTM ? &ctm : nsnull);
   if (!instance.get())
     return nsIntRect();
 
@@ -478,11 +500,7 @@ nsSVGFilterFrame::GetPostFilterBounds(nsIFrame *aFilteredFrame,
     
     
     overrideCTM = true;
-    PRInt32 appUnitsPerDevPixel =
-      aFilteredFrame->PresContext()->AppUnitsPerDevPixel();
-    float devPxPerCSSPx =
-      1 / nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPixel);
-    ctm.Scale(devPxPerCSSPx, devPxPerCSSPx);
+    ctm = nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(aFilteredFrame);
   }
 
   nsAutoFilterInstance instance(aFilteredFrame, this, nsnull, nsnull,

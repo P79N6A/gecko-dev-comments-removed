@@ -336,16 +336,11 @@ public:
 
 
 
-  static nsRect FindFilterInvalidation(nsIFrame *aFrame, const nsRect& aRect);
-
-  
 
 
-
-
-
-
-  static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false);
+  static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false,
+                               const nsRect *aBoundsSubArea = nsnull,
+                               PRUint32 aFlags = 0);
 
   
 
@@ -621,9 +616,9 @@ public:
 #ifdef DEBUG
   static void
   WritePPM(const char *fname, gfxImageSurface *aSurface);
+#endif
 
   static bool OuterSVGIsCallingUpdateBounds(nsIFrame *aFrame);
-#endif
 
   
 

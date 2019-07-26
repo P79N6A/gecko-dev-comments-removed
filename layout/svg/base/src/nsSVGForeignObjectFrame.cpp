@@ -175,7 +175,7 @@ nsSVGForeignObjectFrame::InvalidateInternal(const nsRect& aDamageRect,
   if (!mInReflow) {
     
     
-    InvalidateDirtyRect(nsSVGUtils::GetOuterSVGFrame(this), aDamageRect + nsPoint(aX, aY), aFlags);
+    InvalidateDirtyRect(aDamageRect + nsPoint(aX, aY), aFlags, false);
     return;
   }
 
@@ -578,13 +578,16 @@ nsSVGForeignObjectFrame::DoReflow()
   mInReflow = false;
 
   if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-    FlushDirtyRegion(0);
+    
+    
+    FlushDirtyRegion(0, nsSVGUtils::OuterSVGIsCallingUpdateBounds(this));
   }
 }
 
 void
-nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
-    const nsRect& aRect, PRUint32 aFlags)
+nsSVGForeignObjectFrame::InvalidateDirtyRect(const nsRect& aRect,
+                                             PRUint32 aFlags,
+                                             bool aDuringReflowSVG)
 {
   if (aRect.IsEmpty())
     return;
@@ -594,19 +597,12 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
   if (rect.IsEmpty())
     return;
 
-  
-  
-  
-
-  gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
-  r.Scale(1.0 / nsPresContext::AppUnitsPerCSSPixel());
-  rect = ToCanvasBounds(r, GetCanvasTM(), PresContext());
-  rect = nsSVGUtils::FindFilterInvalidation(this, rect);
-  aOuter->InvalidateWithFlags(rect, aFlags);
+  nsSVGUtils::InvalidateBounds(this, aDuringReflowSVG, &rect, aFlags);
 }
 
 void
-nsSVGForeignObjectFrame::FlushDirtyRegion(PRUint32 aFlags)
+nsSVGForeignObjectFrame::FlushDirtyRegion(PRUint32 aFlags,
+                                          bool aDuringReflowSVG)
 {
   NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
                     "Should not have been called");
@@ -618,15 +614,12 @@ nsSVGForeignObjectFrame::FlushDirtyRegion(PRUint32 aFlags)
     return;
   }
 
-  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
-  if (!outerSVGFrame) {
-    NS_ERROR("null outerSVGFrame");
-    return;
-  }
-
-  InvalidateDirtyRect(outerSVGFrame, mSameDocDirtyRegion.GetBounds(), aFlags);
-  InvalidateDirtyRect(outerSVGFrame, mSubDocDirtyRegion.GetBounds(),
-                      aFlags | INVALIDATE_CROSS_DOC);
+  InvalidateDirtyRect(mSameDocDirtyRegion.GetBounds(),
+                      aFlags,
+                      aDuringReflowSVG);
+  InvalidateDirtyRect(mSubDocDirtyRegion.GetBounds(),
+                      aFlags | INVALIDATE_CROSS_DOC,
+                      aDuringReflowSVG);
 
   mSameDocDirtyRegion.SetEmpty();
   mSubDocDirtyRegion.SetEmpty();

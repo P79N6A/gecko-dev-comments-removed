@@ -111,17 +111,13 @@ public:
 
   bool VerticalScrollbarNotNeeded() const;
 
-#ifdef DEBUG
   bool IsCallingUpdateBounds() const {
     return mCallingUpdateBounds;
   }
-#endif
 
 protected:
 
-#ifdef DEBUG
   bool mCallingUpdateBounds;
-#endif
 
   
 

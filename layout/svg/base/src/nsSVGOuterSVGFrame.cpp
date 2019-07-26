@@ -396,9 +396,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
   
   
 
-#ifdef DEBUG
   mCallingUpdateBounds = true;
-#endif
 
   if (!(mState & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     nsIFrame* kid = mFrames.FirstChild();
@@ -411,9 +409,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-#ifdef DEBUG
   mCallingUpdateBounds = false;
-#endif
 
   
   
