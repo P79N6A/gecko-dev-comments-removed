@@ -239,6 +239,34 @@ function setManifestPref(name, manifest) {
   Services.prefs.setComplexValue(name, Ci.nsISupportsString, string);
 }
 
+function getManifestPrefname(aManifest) {
+  
+  let originUri = Services.io.newURI(aManifest.origin, null, null);
+  return "social.manifest." + originUri.hostPort.replace('.','-');
+}
+
+function setBuiltinManifestPref(name, manifest) {
+  
+  manifest.builtin = true;
+  let string = Cc["@mozilla.org/supports-string;1"].
+               createInstance(Ci.nsISupportsString);
+  string.data = JSON.stringify(manifest);
+  Services.prefs.getDefaultBranch(null).setComplexValue(name, Ci.nsISupportsString, string);
+  
+  let stored = Services.prefs.getComplexValue(name, Ci.nsISupportsString).data;
+  is(stored, string.data, "manifest '"+name+"' stored in default prefs");
+  
+  delete manifest.builtin;
+  
+  ok(!Services.prefs.prefHasUserValue(name), "manifest '"+name+"' is not in user-prefs");
+}
+
+function resetBuiltinManifestPref(name) {
+  Services.prefs.getDefaultBranch(null).deleteBranch(name);
+  is(Services.prefs.getDefaultBranch(null).getPrefType(name),
+     Services.prefs.PREF_INVALID, "default manifest removed");
+}
+
 function addWindowListener(aURL, aCallback) {
   Services.wm.addListener({
     onOpenWindow: function(aXULWindow) {

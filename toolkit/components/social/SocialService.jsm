@@ -493,7 +493,7 @@ this.SocialService = {
         
         if (!manifest) {
           let prefname = getPrefnameFromOrigin(installOrigin);
-          manifest = Services.prefs.getDefaultBranch(prefname)
+          manifest = Services.prefs.getDefaultBranch(null)
                           .getComplexValue(prefname, Ci.nsISupportsString).data;
           manifest = JSON.parse(manifest);
           
