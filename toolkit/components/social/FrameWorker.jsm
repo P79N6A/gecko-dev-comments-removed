@@ -199,15 +199,13 @@ function makeRemoteBrowser() {
     let browser = iframe.contentDocument.createElementNS(XUL_NS, "browser");
     browser.setAttribute("type", "content");
     browser.setAttribute("disableglobalhistory", "true");
-    let remote;
     
     
     
     
-    if (Services.prefs.prefHasUserValue("social.allowMultipleWorkers") &&
-        Services.prefs.getBoolPref("social.allowMultipleWorkers")) {
+    if (Services.prefs.getBoolPref("social.allowMultipleWorkers"))
       browser.setAttribute("remote", "true");
-    }
+
     iframe.contentDocument.documentElement.appendChild(browser);
     deferred.resolve(browser);
   }, true);
