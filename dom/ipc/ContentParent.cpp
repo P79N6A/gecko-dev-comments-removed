@@ -1240,7 +1240,7 @@ ContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 
   BlobConstructorParams params;
 
-  if (blob->IsSizeUnknown() ||  0) {
+  if (blob->IsSizeUnknown() || blob->IsDateUnknown()) {
     
     
     
