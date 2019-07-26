@@ -617,7 +617,7 @@ void HTMLMediaElement::AbortExistingLoads()
   if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING ||
       mNetworkState == nsIDOMHTMLMediaElement::NETWORK_IDLE)
   {
-    DispatchAsyncEvent(NS_LITERAL_STRING("abort"));
+    DispatchEvent(NS_LITERAL_STRING("abort"));
   }
 
   mError = nullptr;
@@ -648,7 +648,7 @@ void HTMLMediaElement::AbortExistingLoads()
       
       FireTimeUpdate(false);
     }
-    DispatchAsyncEvent(NS_LITERAL_STRING("emptied"));
+    DispatchEvent(NS_LITERAL_STRING("emptied"));
   }
 
   
