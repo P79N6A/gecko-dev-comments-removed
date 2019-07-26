@@ -73,7 +73,7 @@ private:
   
   
 #ifdef DEBUG
-  StaticMutex(StaticMutex& other);
+  StaticMutex(StaticMutex& aOther);
 #endif
 
   

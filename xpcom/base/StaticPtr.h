@@ -81,7 +81,7 @@ private:
   
   
 #ifdef DEBUG
-  StaticAutoPtr(StaticAutoPtr<T>& other);
+  StaticAutoPtr(StaticAutoPtr<T>& aOther);
 #endif
 
   void Assign(T* aNewPtr)
