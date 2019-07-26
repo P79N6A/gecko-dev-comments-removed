@@ -420,7 +420,24 @@ ContentPermissionPrompt.prototype = {
     if (isApp) {
       details.manifestURL = DOMApplicationRegistry.getManifestURLByLocalId(principal.appId);
     }
-    SystemAppProxy.dispatchEvent(details);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let targetElement = request.element;
+    let targetWindow = request.window || targetElement.ownerDocument.defaultView;
+    while (targetWindow.realFrameElement) {
+      targetElement = targetWindow.realFrameElement;
+      targetWindow = targetElement.ownerDocument.defaultView;
+    }
+
+    SystemAppProxy.dispatchEvent(details, targetElement);
   },
 
   classID: Components.ID("{8c719f03-afe0-4aac-91ff-6c215895d467}"),
