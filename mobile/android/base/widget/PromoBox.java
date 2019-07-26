@@ -33,7 +33,7 @@ import java.util.Random;
 
 
 
-public class AboutHomePromoBox extends TextView implements View.OnClickListener {
+public class PromoBox extends TextView implements View.OnClickListener {
     private static final String LOGTAG = "GeckoAboutHomePromoBox";
 
     
@@ -101,7 +101,7 @@ public class AboutHomePromoBox extends TextView implements View.OnClickListener 
 
     private final Context mContext;
 
-    public AboutHomePromoBox(Context context, AttributeSet attrs) {
+    public PromoBox(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         mContext = context;
@@ -161,10 +161,10 @@ public class AboutHomePromoBox extends TextView implements View.OnClickListener 
                 }
 
                 
-                if (AboutHomePromoBox.sTypeIndex == -1 || AboutHomePromoBox.sTypeIndex >= types.size()) {
-                    AboutHomePromoBox.sTypeIndex = new Random().nextInt(types.size());
+                if (PromoBox.sTypeIndex == -1 || PromoBox.sTypeIndex >= types.size()) {
+                    PromoBox.sTypeIndex = new Random().nextInt(types.size());
                 }
-                mType = types.get(AboutHomePromoBox.sTypeIndex);
+                mType = types.get(PromoBox.sTypeIndex);
 
                 updateViewResources();
                 setVisibility(View.VISIBLE);
