@@ -250,25 +250,6 @@ public:
   gfxPoint ProjectPoint(const gfxPoint& aPoint) const;
   gfxRect ProjectRectBounds(const gfxRect& aRect) const;
 
-  
-
-
-
-
-
-
-
-
-
-  bool UntransformPoint(const gfxPoint& aPoint, const gfxRect& aChildBounds, gfxPoint* aOut) const;
-
-
-  
-
-
-
-  gfxRect UntransformBounds(const gfxRect& aRect, const gfxRect& aChildBounds) const;
-
 
   
 
