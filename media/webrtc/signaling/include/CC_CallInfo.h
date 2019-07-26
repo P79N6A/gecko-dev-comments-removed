@@ -33,10 +33,10 @@ namespace CSF
     protected:
         CC_CallInfo() { }
 
-    public:
         
         virtual ~CC_CallInfo() {};
 
+    public:
         
 
 

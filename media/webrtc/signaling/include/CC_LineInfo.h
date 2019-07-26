@@ -23,10 +23,10 @@ namespace CSF
     protected:
         CC_LineInfo() { }
 
-    public:
         
         virtual ~CC_LineInfo() {};
 
+    public:
         
 
 

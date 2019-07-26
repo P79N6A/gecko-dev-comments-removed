@@ -20,10 +20,10 @@ namespace CSF
     protected:
         CC_FeatureInfo() { }
 
-    public:
         
         virtual ~CC_FeatureInfo() {};
 
+    public:
         
 
 

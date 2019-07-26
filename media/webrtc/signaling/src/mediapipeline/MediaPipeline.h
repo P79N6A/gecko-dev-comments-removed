@@ -67,6 +67,15 @@ class PeerIdentity;
 
 
 
+
+class MediaPipeline;
+
+template<>
+struct HasDangerousPublicDestructor<MediaPipeline>
+{
+  static const bool value = true;
+};
+
 class MediaPipeline : public sigslot::has_slots<> {
  public:
   enum Direction { TRANSMIT, RECEIVE };

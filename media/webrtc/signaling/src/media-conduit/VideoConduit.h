@@ -12,6 +12,7 @@
 #include "MediaEngineWrapper.h"
 #include "CodecStatistics.h"
 #include "LoadManagerFactory.h"
+#include "LoadManager.h"
 
 
 #undef FF

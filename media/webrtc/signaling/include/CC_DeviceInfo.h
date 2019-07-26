@@ -22,10 +22,10 @@ namespace CSF
     protected:
         CC_DeviceInfo() { }
 
-    public:
         
         virtual ~CC_DeviceInfo() {};
 
+    public:
         
 
 

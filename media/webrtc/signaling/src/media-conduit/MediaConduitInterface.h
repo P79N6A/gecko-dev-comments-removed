@@ -25,9 +25,10 @@ namespace mozilla {
 
 class TransportInterface
 {
-public:
+protected:
   virtual ~TransportInterface() {}
 
+public:
   
 
 
@@ -71,9 +72,10 @@ private:
 
 class VideoRenderer
 {
- public:
+protected:
   virtual ~VideoRenderer() {}
 
+public:
   
 
 
@@ -122,10 +124,11 @@ class VideoRenderer
 
 class MediaSessionConduit
 {
+protected:
+  virtual ~MediaSessionConduit() {}
+
 public:
   enum Type { AUDIO, VIDEO } ;
-
-  virtual ~MediaSessionConduit() {}
 
   virtual Type type() const = 0;
 

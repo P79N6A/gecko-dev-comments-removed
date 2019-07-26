@@ -19,13 +19,13 @@ namespace CSF
     {
     public:
         NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CC_CallServerInfo)
+
     protected:
+        
+        virtual ~CC_CallServerInfo() { }
         CC_CallServerInfo() { }
 
     public:
-        
-        virtual ~CC_CallServerInfo() {};
-
         
 
 
