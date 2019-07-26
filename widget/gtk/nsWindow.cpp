@@ -6,6 +6,7 @@
 
 
 #include "mozilla/MouseEvents.h"
+#include "mozilla/TextEvents.h"
 #include "mozilla/Util.h"
 #include <algorithm>
 

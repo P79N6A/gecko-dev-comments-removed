@@ -3,6 +3,7 @@
 
 
 #include "nsIDOMClassInfo.h"
+#include "nsIDOMEvent.h"
 #include "nsIDOMEventListener.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"

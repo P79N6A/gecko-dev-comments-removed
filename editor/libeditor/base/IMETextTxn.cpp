@@ -5,11 +5,11 @@
 
 #include "IMETextTxn.h"
 #include "mozilla/mozalloc.h"           
+#include "mozilla/TextEvents.h"      
 #include "nsAString.h"                  
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
 #include "nsError.h"                    
-#include "nsGUIEvent.h"                 
 #include "nsIDOMCharacterData.h"        
 #include "nsIDOMRange.h"                
 #include "nsIContent.h"                 

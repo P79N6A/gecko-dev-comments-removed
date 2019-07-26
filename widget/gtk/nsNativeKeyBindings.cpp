@@ -4,13 +4,13 @@
 
 
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/TextEvents.h"
 #include "mozilla/Util.h"
 
 #include "nsNativeKeyBindings.h"
 #include "nsString.h"
 #include "nsMemory.h"
 #include "nsGtkKeyUtils.h"
-#include "nsGUIEvent.h"
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>

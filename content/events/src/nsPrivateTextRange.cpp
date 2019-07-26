@@ -4,7 +4,7 @@
 
 
 #include "nsPrivateTextRange.h"
-
+#include "mozilla/TextEvents.h"
 
 nsPrivateTextRange::nsPrivateTextRange(const nsTextRange &aTextRange)
   : mRangeStart(uint16_t(aTextRange.mStartOffset)),

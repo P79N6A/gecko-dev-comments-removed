@@ -4,12 +4,11 @@
 
 
 
+#include "mozilla/TextEvents.h"
 #include "mozilla/Util.h"
 
 #include "nsWindow.h"
 #include "nsQtKeyUtils.h"
-
-#include "nsGUIEvent.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;

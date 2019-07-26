@@ -10,6 +10,7 @@
 
 #import <Cocoa/Cocoa.h>
 #include "mozilla/Attributes.h"
+#include "mozilla/EventForwards.h"
 #include "nsDataHashtable.h"
 
 

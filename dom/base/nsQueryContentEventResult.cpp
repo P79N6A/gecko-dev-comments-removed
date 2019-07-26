@@ -4,9 +4,9 @@
 
 
 #include "nsQueryContentEventResult.h"
-#include "nsGUIEvent.h"
 #include "nsIWidget.h"
 #include "nsPoint.h"
+#include "mozilla/TextEvents.h"
 
 NS_INTERFACE_MAP_BEGIN(nsQueryContentEventResult)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIQueryContentEventResult)
