@@ -1203,6 +1203,9 @@ TEST_F(SignalingTest, FullCallTrickle)
 } 
 
 int main(int argc, char **argv) {
+  
+  CHECK_ENVIRONMENT_FLAG("MOZ_WEBRTC_TESTS")
+
   test_utils = new MtransportTestUtils();
   NSS_NoDB_Init(NULL);
   NSS_SetDomesticPolicy();
