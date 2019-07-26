@@ -309,6 +309,25 @@ LinearScanAllocator::moveInputAlloc(CodePosition pos, LAllocation *from, LAlloca
     return moves->add(from, to);
 }
 
+static inline void
+SetOsiPointUses(LiveInterval *interval, CodePosition defEnd, const LAllocation &allocation)
+{
+    
+    
+    
+
+    JS_ASSERT(interval->index() == 0);
+
+    for (UsePositionIterator usePos(interval->usesBegin());
+         usePos != interval->usesEnd();
+         usePos++)
+    {
+        if (usePos->pos > defEnd)
+            break;
+        *static_cast<LAllocation *>(usePos->use) = allocation;
+    }
+}
+
 
 
 
@@ -349,24 +368,17 @@ LinearScanAllocator::reifyAllocations()
             LDefinition *def = reg->def();
             LAllocation *spillFrom;
 
+            
+            
+            CodePosition defEnd = minimalDefEnd(reg->ins());
+
             if (def->policy() == LDefinition::PRESET && def->output()->isRegister()) {
                 AnyRegister fixedReg = def->output()->toRegister();
                 LiveInterval *from = fixedIntervals[fixedReg.code()];
 
                 
                 
-                CodePosition defEnd = minimalDefEnd(reg->ins());
-
-                
-                
-                for (UsePositionIterator usePos(interval->usesBegin());
-                     usePos != interval->usesEnd();
-                     usePos++)
-                {
-                    if (usePos->pos > defEnd)
-                        break;
-                    *static_cast<LAllocation *>(usePos->use) = LAllocation(fixedReg);
-                }
+                SetOsiPointUses(interval, defEnd, LAllocation(fixedReg));
 
                 if (!moveAfter(defEnd, from, interval))
                     return false;
@@ -403,9 +415,12 @@ LinearScanAllocator::reifyAllocations()
             {
                 
                 
+                SetOsiPointUses(interval, defEnd, *spillFrom);
+
                 
                 
-                LMoveGroup *moves = getMoveGroupAfter(outputOf(reg->ins()));
+                
+                LMoveGroup *moves = getMoveGroupAfter(defEnd);
                 if (!moves->add(spillFrom, reg->canonicalSpill()))
                     return false;
             }

@@ -358,7 +358,6 @@ class RegisterAllocator
         
         
         
-        
         while (true) {
             LInstruction *next = insData[outputOf(ins).next()].ins();
             if (!next->isNop() && !next->isOsiPoint())

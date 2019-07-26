@@ -818,6 +818,20 @@ CodeGenerator::visitOsiPoint(LOsiPoint *lir)
     LSafepoint *safepoint = lir->associatedSafepoint();
     JS_ASSERT(!safepoint->osiCallPointOffset());
     safepoint->setOsiCallPointOffset(osiCallPointOffset);
+
+#ifdef DEBUG
+    
+    
+    
+    for (LInstructionReverseIterator iter(current->rbegin(lir)); iter != current->rend(); iter++) {
+        if (*iter == lir || iter->isNop())
+            continue;
+        JS_ASSERT(!iter->isMoveGroup());
+        JS_ASSERT(iter->safepoint() == safepoint);
+        break;
+    }
+#endif
+
     return true;
 }
 
