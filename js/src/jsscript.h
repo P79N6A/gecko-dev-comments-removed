@@ -405,7 +405,7 @@ class ScriptSource
     
     
     
-    const char *introducerType_;
+    const char *introductionType_;
 
     
     
@@ -426,7 +426,7 @@ class ScriptSource
         originPrincipals_(originPrincipals),
         introductionOffset_(0),
         introducerFilename_(nullptr),
-        introducerType_(nullptr),
+        introductionType_(nullptr),
         sourceRetrievable_(false),
         argumentsNotIncluded_(false),
         ready_(true),
@@ -471,16 +471,16 @@ class ScriptSource
     bool setFilename(ExclusiveContext *cx, const char *filename);
     bool setIntroducedFilename(ExclusiveContext *cx,
                                const char *callerFilename, unsigned callerLineno,
-                               const char *introducer, const char *introducerFilename);
+                               const char *introductionType, const char *introducerFilename);
     const char *introducerFilename() const {
         return introducerFilename_;
     }
-    bool hasIntroducerType() const {
-        return introducerType_;
+    bool hasIntroductionType() const {
+        return introductionType_;
     }
-    const char *introducerType() const {
-        JS_ASSERT(hasIntroducerType());
-        return introducerType_;
+    const char *introductionType() const {
+        JS_ASSERT(hasIntroductionType());
+        return introductionType_;
     }
     const char *filename() const {
         return filename_;
