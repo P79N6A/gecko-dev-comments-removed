@@ -900,17 +900,15 @@ nsChangeHint nsStyleSVG::CalcDifference(const nsStyleSVG& aOther) const
 {
   nsChangeHint hint = nsChangeHint(0);
 
-  if (mTextRendering != aOther.mTextRendering) {
-    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
-    
-    NS_UpdateHint(hint, nsChangeHint_AllReflowHints);
-  }
-
   if (!EqualURIs(mMarkerEnd, aOther.mMarkerEnd) ||
       !EqualURIs(mMarkerMid, aOther.mMarkerMid) ||
       !EqualURIs(mMarkerStart, aOther.mMarkerStart)) {
-    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+    
+    
+    
     NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
+    NS_UpdateHint(hint, nsChangeHint_NeedReflow);
+    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
     return hint;
   }
 
@@ -921,17 +919,32 @@ nsChangeHint nsStyleSVG::CalcDifference(const nsStyleSVG& aOther) const
         PaintURIChanged(mStroke, aOther.mStroke)) {
       NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
     }
-    
+  }
+
+  
+  
+  
+  
+  
+  
+  if (mStrokeWidth           != aOther.mStrokeWidth           ||
+      mStrokeMiterlimit      != aOther.mStrokeMiterlimit      ||
+      mStrokeLinecap         != aOther.mStrokeLinecap         ||
+      mStrokeLinejoin        != aOther.mStrokeLinejoin        ||
+      mTextAnchor            != aOther.mTextAnchor            ||
+      mTextRendering         != aOther.mTextRendering) {
+    NS_UpdateHint(hint, nsChangeHint_NeedReflow);
+    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
     return hint;
   }
 
+  if (hint & nsChangeHint_RepaintFrame) {
+    return hint; 
+  }
+
   if ( mStrokeDashoffset      != aOther.mStrokeDashoffset      ||
-       mStrokeWidth           != aOther.mStrokeWidth           ||
-
        mFillOpacity           != aOther.mFillOpacity           ||
-       mStrokeMiterlimit      != aOther.mStrokeMiterlimit      ||
        mStrokeOpacity         != aOther.mStrokeOpacity         ||
-
        mClipRule              != aOther.mClipRule              ||
        mColorInterpolation    != aOther.mColorInterpolation    ||
        mColorInterpolationFilters != aOther.mColorInterpolationFilters ||
@@ -940,9 +953,6 @@ nsChangeHint nsStyleSVG::CalcDifference(const nsStyleSVG& aOther) const
        mPaintOrder            != aOther.mPaintOrder            ||
        mShapeRendering        != aOther.mShapeRendering        ||
        mStrokeDasharrayLength != aOther.mStrokeDasharrayLength ||
-       mStrokeLinecap         != aOther.mStrokeLinecap         ||
-       mStrokeLinejoin        != aOther.mStrokeLinejoin        ||
-       mTextAnchor            != aOther.mTextAnchor            ||
        mFillOpacitySource     != aOther.mFillOpacitySource     ||
        mStrokeOpacitySource   != aOther.mStrokeOpacitySource   ||
        mStrokeDasharrayFromObject != aOther.mStrokeDasharrayFromObject ||
@@ -1010,18 +1020,28 @@ nsChangeHint nsStyleSVGReset::CalcDifference(const nsStyleSVGReset& aOther) cons
       !EqualURIs(mFilter, aOther.mFilter)     ||
       !EqualURIs(mMask, aOther.mMask)) {
     NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
-    NS_UpdateHint(hint, nsChangeHint_AllReflowHints);
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
-  } else if (mDominantBaseline != aOther.mDominantBaseline) {
+  }
+
+  if (mDominantBaseline != aOther.mDominantBaseline) {
+    
     NS_UpdateHint(hint, NS_STYLE_HINT_REFLOW);
+  } else if (mVectorEffect  != aOther.mVectorEffect) {
+    
+    
+    
+    
+    
+    NS_UpdateHint(hint, nsChangeHint_NeedReflow);
+    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
   } else if (mStopColor     != aOther.mStopColor     ||
              mFloodColor    != aOther.mFloodColor    ||
              mLightingColor != aOther.mLightingColor ||
              mStopOpacity   != aOther.mStopOpacity   ||
              mFloodOpacity  != aOther.mFloodOpacity  ||
-             mVectorEffect  != aOther.mVectorEffect  ||
-             mMaskType      != aOther.mMaskType)
+             mMaskType      != aOther.mMaskType) {
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+  }
 
   return hint;
 }
@@ -2296,12 +2316,20 @@ nsChangeHint nsStyleVisibility::CalcDifference(const nsStyleVisibility& aOther) 
 
   if (mDirection != aOther.mDirection) {
     NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
-  } else if (mVisible != aOther.mVisible) {
-    if ((NS_STYLE_VISIBILITY_COLLAPSE == mVisible) ||
-        (NS_STYLE_VISIBILITY_COLLAPSE == aOther.mVisible)) {
-      NS_UpdateHint(hint, NS_STYLE_HINT_REFLOW);
-    } else {
-      NS_UpdateHint(hint, NS_STYLE_HINT_VISUAL);
+  } else {
+    if (mVisible != aOther.mVisible) {
+      if ((NS_STYLE_VISIBILITY_COLLAPSE == mVisible) ||
+          (NS_STYLE_VISIBILITY_COLLAPSE == aOther.mVisible)) {
+        NS_UpdateHint(hint, NS_STYLE_HINT_REFLOW);
+      } else {
+        NS_UpdateHint(hint, NS_STYLE_HINT_VISUAL);
+      }
+    }
+    if (mPointerEvents != aOther.mPointerEvents) {
+      
+      
+      
+      NS_UpdateHint(hint, nsChangeHint_NeedReflow);
     }
   }
   return hint;
