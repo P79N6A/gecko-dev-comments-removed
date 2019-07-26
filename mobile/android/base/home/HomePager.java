@@ -11,7 +11,6 @@ import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.home.HomeAdapter.OnAddPageListener;
 import org.mozilla.gecko.home.HomeConfig.PageEntry;
 import org.mozilla.gecko.home.HomeConfig.PageType;
-import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
@@ -46,35 +45,7 @@ public class HomePager extends ViewPager {
     private final HomeConfig mConfig;
     private ConfigLoaderCallbacks mConfigLoaderCallbacks;
 
-    private Page mInitialPage;
-
-    
-    @RobocopTarget
-    public enum Page {
-        HISTORY,
-        TOP_SITES,
-        BOOKMARKS,
-        READING_LIST;
-
-        static Page valueOf(PageType page) {
-            switch(page) {
-                case TOP_SITES:
-                    return Page.TOP_SITES;
-
-                case BOOKMARKS:
-                    return Page.BOOKMARKS;
-
-                case HISTORY:
-                    return Page.HISTORY;
-
-                case READING_LIST:
-                    return Page.READING_LIST;
-
-                default:
-                    throw new IllegalArgumentException("Could not convert unrecognized PageType");
-            }
-        }
-    }
+    private String mInitialPageId;
 
     
     
@@ -189,14 +160,14 @@ public class HomePager extends ViewPager {
         
         
         
-        final Page currentPage;
-        if (mInitialPage != null) {
-            currentPage = mInitialPage;
+        final String currentPageId;
+        if (mInitialPageId != null) {
+            currentPageId = mInitialPageId;
         } else {
-            currentPage = adapter.getPageAtPosition(getCurrentItem());
+            currentPageId = adapter.getPageIdAtPosition(getCurrentItem());
         }
 
-        show(lm, fm, currentPage, null);
+        show(lm, fm, currentPageId, null);
     }
 
     
@@ -204,9 +175,9 @@ public class HomePager extends ViewPager {
 
 
 
-    public void show(LoaderManager lm, FragmentManager fm, Page page, PropertyAnimator animator) {
+    public void show(LoaderManager lm, FragmentManager fm, String pageId, PropertyAnimator animator) {
         mLoaded = true;
-        mInitialPage = page;
+        mInitialPageId = pageId;
 
         
         final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
@@ -314,9 +285,9 @@ public class HomePager extends ViewPager {
 
         
         
-        if (mInitialPage != null) {
-            setCurrentItem(adapter.getItemPosition(mInitialPage), false);
-            mInitialPage = null;
+        if (mInitialPageId != null) {
+            setCurrentItem(adapter.getItemPosition(mInitialPageId), false);
+            mInitialPageId = null;
         } else {
             for (int i = 0; i < count; i++) {
                 final PageEntry pageEntry = pageEntries.get(i);
