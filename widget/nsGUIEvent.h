@@ -114,10 +114,6 @@ enum nsEventStructType {
 #define NS_PRIV_EVENT_FLAG_SCRIPT         0x0080
 #define NS_EVENT_FLAG_NO_CONTENT_DISPATCH 0x0100
 #define NS_EVENT_FLAG_SYSTEM_EVENT        0x0200
-
-
-#define NS_EVENT_FLAG_ONLY_CHROME_DISPATCH 0x2000
-
 #define NS_PRIV_EVENT_UNTRUSTED_PERMITTED 0x8000
 
 #define NS_EVENT_CAPTURE_MASK             (~(NS_EVENT_FLAG_BUBBLE | NS_EVENT_FLAG_NO_CONTENT_DISPATCH))
@@ -550,6 +546,8 @@ public:
   
   
   bool    mNoContentDispatch : 1;
+  
+  bool    mOnlyChromeDispatch : 1;
 
   
   bool InTargetPhase() const
@@ -605,7 +603,6 @@ protected:
       refPoint(0, 0),
       lastRefPoint(0, 0),
       time(0),
-      flags(NS_EVENT_FLAG_NONE),
       userType(0)
   {
     MOZ_COUNT_CTOR(nsEvent);
@@ -626,7 +623,6 @@ public:
       refPoint(0, 0),
       lastRefPoint(0, 0),
       time(0),
-      flags(NS_EVENT_FLAG_NONE),
       userType(0)
   {
     MOZ_COUNT_CTOR(nsEvent);
@@ -658,10 +654,6 @@ public:
   
   
   uint64_t    time;
-  
-  
-  uint32_t    flags;
-
   
   mozilla::widget::EventFlags mFlags;
 
