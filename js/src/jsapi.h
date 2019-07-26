@@ -150,7 +150,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
 
 class AutoStringRooter : private AutoGCRooter {
   public:
-    AutoStringRooter(JSContext *cx, JSString *str = NULL
+    AutoStringRooter(JSContext *cx, JSString *str = nullptr
                      MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, STRING), str_(str)
     {
@@ -2221,7 +2221,7 @@ class AutoIdArray : private AutoGCRooter
 
     JSIdArray *steal() {
         JSIdArray *copy = idArray;
-        idArray = NULL;
+        idArray = nullptr;
         return copy;
     }
 
@@ -2318,8 +2318,8 @@ typedef struct JSNativeWrapper {
 
 
 
-#define JSOP_WRAPPER(op) {op, NULL}
-#define JSOP_NULLWRAPPER JSOP_WRAPPER(NULL)
+#define JSOP_WRAPPER(op) {op, nullptr}
+#define JSOP_NULLWRAPPER JSOP_WRAPPER(nullptr)
 
 
 
@@ -2387,7 +2387,7 @@ struct JSFunctionSpec {
 
 
 
-#define JS_FS_END JS_FS(NULL,NULL,0,0)
+#define JS_FS_END JS_FS(nullptr,nullptr,0,0)
 
 
 
@@ -2655,8 +2655,8 @@ struct JSPropertyDescriptor {
     JSStrictPropertyOp setter;
     JS::Value          value;
 
-    JSPropertyDescriptor() : obj(NULL), attrs(0), shortid(0), getter(NULL),
-                             setter(NULL), value(JSVAL_VOID)
+    JSPropertyDescriptor() : obj(nullptr), attrs(0), shortid(0), getter(nullptr),
+                             setter(nullptr), value(JSVAL_VOID)
     {}
 
     void trace(JSTracer *trc);
@@ -2712,11 +2712,11 @@ class MutablePropertyDescriptorOperations : public PropertyDescriptorOperations<
   public:
 
     void clear() {
-        object().set(NULL);
+        object().set(nullptr);
         setAttributes(0);
         setShortId(0);
-        setGetter(NULL);
-        setSetter(NULL);
+        setGetter(nullptr);
+        setSetter(nullptr);
         value().setUndefined();
     }
 
@@ -3820,7 +3820,7 @@ class JSAutoByteString
     }
 
     JSAutoByteString(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM)
-      : mBytes(NULL)
+      : mBytes(nullptr)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -3853,7 +3853,7 @@ class JSAutoByteString
 
     void clear() {
         js_free(mBytes);
-        mBytes = NULL;
+        mBytes = nullptr;
     }
 
     char *ptr() const {
