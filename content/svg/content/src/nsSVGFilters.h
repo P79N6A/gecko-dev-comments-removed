@@ -130,6 +130,9 @@ public:
   
   virtual bool HasValidDimensions() const;
 
+  bool IsNodeOfType(uint32_t aFlags) const
+    { return !(aFlags & ~(eCONTENT | eFILTER)); }
+
   virtual nsSVGString& GetResultImageName() = 0;
   
   

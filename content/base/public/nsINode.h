@@ -363,7 +363,9 @@ public:
     
     eMEDIA               = 1 << 9,
     
-    eANIMATION           = 1 << 10
+    eANIMATION           = 1 << 10,
+    
+    eFILTER              = 1 << 11
   };
 
   
