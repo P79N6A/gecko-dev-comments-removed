@@ -1377,7 +1377,7 @@ ThreadClient.prototype = {
     after: function (aResponse) {
       if (aResponse.error) {
         
-        self._state = "paused";
+        this._state = "paused";
       }
       return aResponse;
     },
