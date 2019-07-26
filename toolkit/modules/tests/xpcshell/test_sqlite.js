@@ -478,10 +478,10 @@ add_task(function test_idle_shrink_reset_on_operation() {
 add_task(function test_in_progress_counts() {
   let c = yield getDummyDatabase("in_progress_counts");
   do_check_eq(c._statementCounter, c._initialStatementCount);
-  do_check_eq(c.inProgress(), 0);
+  do_check_eq(c._pendingStatements.size, 0);
   yield c.executeCached("INSERT INTO dirs (path) VALUES ('foo')");
   do_check_eq(c._statementCounter, c._initialStatementCount + 1);
-  do_check_eq(c.inProgress(), 0);
+  do_check_eq(c._pendingStatements.size, 0);
 
   let expectOne;
   let expectTwo;
@@ -499,12 +499,12 @@ add_task(function test_in_progress_counts() {
   yield c.executeCached("SELECT * from dirs", null, function onRow() {
     
     
-    expectOne = c.inProgress();
+    expectOne = c._pendingStatements.size;
 
     
     
     let p = c.executeCached("SELECT 10, path from dirs");
-    expectTwo = c.inProgress();
+    expectTwo = c._pendingStatements.size;
 
     
     p.then(function onInner() {
@@ -523,7 +523,7 @@ add_task(function test_in_progress_counts() {
   do_check_eq(expectOne, 1);
   do_check_eq(expectTwo, 2);
   do_check_eq(c._statementCounter, c._initialStatementCount + 3);
-  do_check_eq(c.inProgress(), 0);
+  do_check_eq(c._pendingStatements.size, 0);
 
   yield c.close();
 });
@@ -546,10 +546,7 @@ add_task(function test_discard_while_active() {
   });
 
   
-  do_check_eq(2, discarded);
-
-  
-  do_check_eq(1, c.discardCachedStatements());
+  do_check_eq(3, discarded);
 
   
   do_check_eq(0, c.discardCachedStatements());
