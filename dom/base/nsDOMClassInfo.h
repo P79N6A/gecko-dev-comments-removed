@@ -592,35 +592,6 @@ private:
 
 
 
-class nsNamedNodeMapSH : public nsNamedArraySH
-{
-protected:
-  nsNamedNodeMapSH(nsDOMClassInfoData* aData) : nsNamedArraySH(aData)
-  {
-  }
-
-  virtual ~nsNamedNodeMapSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, uint32_t aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult);
-
-  
-  virtual nsISupports* GetNamedItem(nsISupports *aNative,
-                                    const nsAString& aName,
-                                    nsWrapperCache **cache,
-                                    nsresult *aResult);
-
-public:
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsNamedNodeMapSH(aData);
-  }
-};
-
-
-
 class nsDocumentSH : public nsNodeSH
 {
 public:

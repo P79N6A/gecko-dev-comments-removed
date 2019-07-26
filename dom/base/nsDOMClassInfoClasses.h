@@ -19,7 +19,6 @@ DOMCI_CLASS(DOMConstructor)
 DOMCI_CLASS(DOMException)
 DOMCI_CLASS(Element)
 DOMCI_CLASS(Attr)
-DOMCI_CLASS(MozNamedAttrMap)
 
 
 DOMCI_CLASS(Event)
