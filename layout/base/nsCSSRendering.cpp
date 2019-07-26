@@ -4822,6 +4822,22 @@ nsContextBoxBlur::BlurRectangle(gfxContext* aDestinationCtx,
     return;
   }
 
+  gfxRect shadowGfxRect =
+    nsLayoutUtils::RectToGfxRect(aRect, aAppUnitsPerDevPixel);
+
+  if (aBlurRadius <= 0) {
+    aDestinationCtx->SetColor(aShadowColor);
+    aDestinationCtx->NewPath();
+    if (aCornerRadii) {
+      aDestinationCtx->RoundedRectangle(shadowGfxRect, *aCornerRadii);
+    } else {
+      aDestinationCtx->Rectangle(shadowGfxRect);
+    }
+
+    aDestinationCtx->Fill();
+    return;
+  }
+
   gfxFloat scaleX = 1;
   gfxFloat scaleY = 1;
 
@@ -4830,61 +4846,31 @@ nsContextBoxBlur::BlurRectangle(gfxContext* aDestinationCtx,
   
   gfxMatrix transform = aDestinationCtx->CurrentMatrix();
   
-  if (transform.HasNonAxisAlignedTransform() || transform.xx <= 0.0 || transform.yy <= 0.0) {
-    transform = gfxMatrix();
-  } else {
+  if (!transform.HasNonAxisAlignedTransform() && transform.xx > 0.0 && transform.yy > 0.0) {
     scaleX = transform.xx;
     scaleY = transform.yy;
-  }
-
-  gfxRect shadowGfxRect =
-    nsLayoutUtils::RectToGfxRect(aRect, aAppUnitsPerDevPixel);
-  gfxIntSize blurRadius = ComputeBlurRadius(aBlurRadius, aAppUnitsPerDevPixel, scaleX, scaleY);
-
-  gfxAlphaBoxBlur blur;
-  gfxContext *dest;
-  bool preTransformed = false;
-  if (blurRadius.width <= 0 && blurRadius.height <= 0) {
-    dest = aDestinationCtx;
-  } else {
-    gfxRect dirtyRect =
-      nsLayoutUtils::RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
-    dirtyRect.RoundOut();
-
-    gfxRect rect = transform.TransformBounds(shadowGfxRect);
-
-    preTransformed = !transform.IsIdentity();
-
-    
-    dirtyRect = transform.TransformBounds(dirtyRect);
-    gfxRect skipRect = transform.TransformBounds(aSkipRect);
-    dest = blur.Init(rect, gfxIntSize(), blurRadius, &dirtyRect, &skipRect);
-
-    if (!dest) {
-      return;
-    }
-
-    dest->SetMatrix(transform);
-  }
-
-  shadowGfxRect.Round();
-
-  aDestinationCtx->SetColor(aShadowColor);
-
-  dest->NewPath();
-  if (aCornerRadii) {
-    dest->RoundedRectangle(shadowGfxRect, *aCornerRadii);
-  } else {
-    dest->Rectangle(shadowGfxRect);
-  }
-  dest->Fill();
-
-  if (dest == aDestinationCtx)
-    return;
-
-  if (preTransformed) {
     aDestinationCtx->IdentityMatrix();
   }
 
-  blur.Paint(aDestinationCtx);
+  gfxIntSize blurRadius = ComputeBlurRadius(aBlurRadius, aAppUnitsPerDevPixel, scaleX, scaleY);
+
+  gfxRect dirtyRect =
+    nsLayoutUtils::RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
+  dirtyRect.RoundOut();
+
+  shadowGfxRect = transform.TransformBounds(shadowGfxRect);
+  dirtyRect = transform.TransformBounds(dirtyRect);
+  gfxRect skipRect = transform.TransformBounds(aSkipRect);
+
+  if (aCornerRadii) {
+    aCornerRadii->Scale(scaleX, scaleY);
+  }
+
+  gfxAlphaBoxBlur::BlurRectangle(aDestinationCtx,
+                                 shadowGfxRect,
+                                 aCornerRadii,
+                                 blurRadius,
+                                 aShadowColor,
+                                 dirtyRect,
+                                 skipRect);
 }
