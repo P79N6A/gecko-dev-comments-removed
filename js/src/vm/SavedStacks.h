@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef vm_SavedStacks_h
 #define vm_SavedStacks_h
 
@@ -45,7 +44,7 @@ class SavedFrame : public JSObject {
     struct Lookup;
     struct HashPolicy;
 
-    typedef HashSet<SavedFrame *,
+    typedef HashSet<js::ReadBarriered<SavedFrame *>,
                     HashPolicy,
                     SystemAllocPolicy> Set;
 
@@ -110,7 +109,7 @@ struct SavedFrame::HashPolicy
     static HashNumber hash(const Lookup &lookup);
     static bool       match(SavedFrame *existing, const Lookup &lookup);
 
-    typedef SavedFrame* Key;
+    typedef ReadBarriered<SavedFrame*> Key;
     static void rekey(Key &key, const Key &newKey);
 };
 
