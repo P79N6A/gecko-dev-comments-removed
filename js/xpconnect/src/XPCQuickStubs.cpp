@@ -824,28 +824,6 @@ NonVoidStringToJsval(JSContext *cx, nsAString &str, MutableHandleValue rval)
 } 
 
 bool
-xpc_qsStringToJsstring(JSContext *cx, nsString &str, JSString **rval)
-{
-    
-    if (str.IsVoid()) {
-        *rval = nullptr;
-        return true;
-    }
-
-    nsStringBuffer* sharedBuffer;
-    jsval jsstr = XPCStringConvert::ReadableToJSVal(cx, str, &sharedBuffer);
-    if (JSVAL_IS_NULL(jsstr))
-        return false;
-    *rval = JSVAL_TO_STRING(jsstr);
-    if (sharedBuffer) {
-        
-        
-        str.ForgetSharedBuffer();
-    }
-    return true;
-}
-
-bool
 xpc_qsXPCOMObjectToJsval(JSContext *cx, qsObjectHelper &aHelper,
                          const nsIID *iid, XPCNativeInterface **iface,
                          MutableHandleValue rval)

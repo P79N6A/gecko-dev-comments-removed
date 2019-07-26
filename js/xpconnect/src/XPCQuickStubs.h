@@ -362,10 +362,6 @@ bool
 xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, JS::MutableHandleValue pval, const PRUnichar **pstr);
 
 
-
-bool
-xpc_qsStringToJsstring(JSContext *cx, nsString &str, JSString **rval);
-
 nsresult
 getWrapper(JSContext *cx,
            JSObject *obj,
