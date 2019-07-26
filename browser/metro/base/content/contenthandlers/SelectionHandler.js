@@ -2,6 +2,9 @@
 
 
 
+let Ci = Components.interfaces;
+let Cc = Components.classes;
+
 dump("### SelectionHandler.js loaded\n");
 
 var SelectionHandler = {
@@ -397,7 +400,7 @@ var SelectionHandler = {
           contentWindow: contentWindow,
           offset: offset,
           utils: utils } =
-      Content.getCurrentWindowAndOffset(aX, aY);
+      this.getCurrentWindowAndOffset(aX, aY);
     if (!contentWindow) {
       return false;
     }
@@ -556,6 +559,61 @@ var SelectionHandler = {
 
 
 
+  
+
+
+
+
+
+  getCurrentWindowAndOffset: function(x, y) {
+    
+    
+    
+    let utils = Util.getWindowUtils(content);
+    let element = utils.elementFromPoint(x, y, true, false);
+    let offset = { x:0, y:0 };
+
+    while (element && (element instanceof HTMLIFrameElement ||
+                       element instanceof HTMLFrameElement)) {
+      
+      let rect = element.getBoundingClientRect();
+
+      
+      
+
+      
+      scrollOffset = ContentScroll.getScrollOffset(element.contentDocument.defaultView);
+      
+      x -= rect.left + scrollOffset.x;
+      y -= rect.top + scrollOffset.y;
+
+      
+
+      
+      offset.x += rect.left;
+      offset.y += rect.top;
+
+      
+      utils = element.contentDocument
+                     .defaultView
+                     .QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindowUtils);
+
+      
+      element = utils.elementFromPoint(x, y, true, false);
+    }
+
+    if (!element)
+      return {};
+
+    return {
+      element: element,
+      contentWindow: element.ownerDocument.defaultView,
+      offset: offset,
+      utils: utils
+    };
+  },
+
   _getDocShell: function _getDocShell(aWindow) {
     if (aWindow == null)
       return null;
@@ -596,6 +654,7 @@ var SelectionHandler = {
     }
   },
 };
+this.SelectionHandler = SelectionHandler;
 
 SelectionHandler.__proto__ = new SelectionPrototype();
 SelectionHandler.init();
