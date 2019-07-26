@@ -3198,7 +3198,6 @@ nsCycleCollector::Collect(ccType aCCType,
     if (mActivelyCollecting || mFreeingSnowWhite) {
         return false;
     }
-    AutoRestore<bool> ar(mActivelyCollecting);
     mActivelyCollecting = true;
 
     bool startedIdle = (mIncrementalPhase == IdlePhase);
@@ -3238,6 +3237,10 @@ nsCycleCollector::Collect(ccType aCCType,
             break;
         }
     } while (!aBudget.checkOverBudget() && !finished);
+
+    
+    
+    mActivelyCollecting = false;
 
     if (aCCType != SliceCC && !startedIdle) {
         
