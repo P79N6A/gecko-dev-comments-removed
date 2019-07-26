@@ -66,9 +66,6 @@ protected:
   virtual ~nsFlexContainerFrame();
 
   
-  virtual void DestroyFrom(nsIFrame* aDestructRoot);
-
-  
 #ifdef DEBUG
   void SanityCheckAnonymousFlexItems() const;
 #endif 

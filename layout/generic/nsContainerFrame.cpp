@@ -206,12 +206,23 @@ nsContainerFrame::RemoveFrame(ChildListID aListID,
 }
 
 void
+nsContainerFrame::DestroyAbsoluteFrames(nsIFrame* aDestructRoot)
+{
+  if (IsAbsoluteContainer()) {
+    GetAbsoluteContainingBlock()->DestroyFrames(this, aDestructRoot);
+    MarkAsNotAbsoluteContainingBlock();
+  }
+}
+
+void
 nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   if (HasView()) {
     GetView()->SetFrame(nullptr);
   }
+
+  DestroyAbsoluteFrames(aDestructRoot);
 
   
   mFrames.DestroyFramesFrom(aDestructRoot);

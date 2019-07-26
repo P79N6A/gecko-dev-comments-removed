@@ -377,6 +377,14 @@ protected:
 
 
 
+  void DestroyAbsoluteFrames(nsIFrame* aDestructRoot);
+
+  
+
+
+
+
+
 
 
 

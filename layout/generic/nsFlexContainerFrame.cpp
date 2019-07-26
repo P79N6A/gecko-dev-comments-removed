@@ -930,14 +930,6 @@ nsFlexContainerFrame::~nsFlexContainerFrame()
 }
 
 
-void
-nsFlexContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
-{
-  DestroyAbsoluteFrames(aDestructRoot);
-  nsFlexContainerFrameSuper::DestroyFrom(aDestructRoot);
-}
-
-
 nsIAtom*
 nsFlexContainerFrame::GetType() const
 {

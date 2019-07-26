@@ -943,8 +943,6 @@ nsBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   SetLayoutManager(nullptr);
 
-  DestroyAbsoluteFrames(aDestructRoot);
-
   nsContainerFrame::DestroyFrom(aDestructRoot);
 } 
 
