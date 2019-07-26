@@ -58,6 +58,14 @@ public:
 
 
 
+  static void GetTextEquivFromSubtree(Accessible* aAccessible,
+                                      nsString& aTextEquiv);
+
+  
+
+
+
+
 
 
 
