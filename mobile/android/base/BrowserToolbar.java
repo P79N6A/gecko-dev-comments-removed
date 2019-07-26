@@ -1161,8 +1161,10 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         }
     }
 
-    public void onDestroy() {
-        Tabs.unregisterOnTabsChangedListener(this);
+    public void destroy() {
+        
+        
+        mActionItemBar.removeAllViews();
     }
 
     public boolean openOptionsMenu() {
