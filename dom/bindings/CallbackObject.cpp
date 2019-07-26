@@ -220,24 +220,24 @@ CallbackObject::CallSetup::~CallSetup()
   
   
   if (mCx) {
-    bool dealtWithPendingException = false;
+    bool needToDealWithException = JS_IsExceptionPending(mCx);
     if ((mCompartment && mExceptionHandling == eRethrowContentExceptions) ||
         mExceptionHandling == eRethrowExceptions) {
       
       JS::ContextOptionsRef(mCx) = mSavedJSContextOptions;
       mErrorResult.MightThrowJSException();
-      if (JS_IsExceptionPending(mCx)) {
+      if (needToDealWithException) {
         JS::Rooted<JS::Value> exn(mCx);
         if (JS_GetPendingException(mCx, &exn) &&
             ShouldRethrowException(exn)) {
           mErrorResult.ThrowJSException(mCx, exn);
           JS_ClearPendingException(mCx);
-          dealtWithPendingException = true;
+          needToDealWithException = false;
         }
       }
     }
 
-    if (!dealtWithPendingException) {
+    if (needToDealWithException) {
       
       
       
