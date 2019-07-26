@@ -156,9 +156,8 @@ var BrowserUI = {
       BrowserUI._pullDesktopControlledPrefs();
 
       
-      if (BrowserUI.startupCrashCheck()) {
-        Browser.selectedTab = BrowserUI.newOrSelectTab("about:crash");
-      }
+      BrowserUI.startupCrashCheck();
+
       Util.dumpLn("* delay load complete.");
     }, false);
 
@@ -212,24 +211,43 @@ var BrowserUI = {
     return this.CrashSubmit;
   },
 
+  get lastCrashID() {
+    return Cc["@mozilla.org/xre/runtime;1"].getService(Ci.nsIXULRuntime).lastRunCrashID;
+  },
+
   startupCrashCheck: function startupCrashCheck() {
 #ifdef MOZ_CRASHREPORTER
-    if (!Services.prefs.getBoolPref("app.reportCrashes"))
-      return false;
-    if (CrashReporter.enabled) {
-      var lastCrashID = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).lastRunCrashID;
-      if (lastCrashID && lastCrashID.length) {
-        Util.dumpLn("Submitting last crash id:", lastCrashID);
-        try {
-          this.CrashSubmit.submit(lastCrashID);
-        } catch (ex) {
-          Util.dumpLn(ex);
-        }
-        return true;
-      }
+    if (!CrashReporter.enabled) {
+      return;
+    }
+    let lastCrashID = this.lastCrashID;
+    if (!lastCrashID || !lastCrashID.length) {
+      return;
+    }
+    let shouldReport = Services.prefs.getBoolPref("app.crashreporter.autosubmit");
+    let didPrompt = Services.prefs.getBoolPref("app.crashreporter.prompted");
+
+    if (!shouldReport && !didPrompt) {
+      
+      
+      
+      Services.prefs.setBoolPref("app.crashreporter.prompted", true);
+      DialogUI.importModal(document, "chrome://browser/content/prompt/crash.xul");
+      return;
+    }
+
+    
+    if (!shouldReport && didPrompt) {
+      return;
+    }
+
+    Util.dumpLn("Submitting last crash id:", lastCrashID);
+    try {
+      this.CrashSubmit.submit(lastCrashID);
+    } catch (ex) {
+      Util.dumpLn(ex);
     }
 #endif
-    return false;
   },
 
 
@@ -1640,8 +1658,17 @@ var DialogUI = {
     dispatcher.dispatchEvent(event);
 
     
-    let back = document.createElement("box");
+    
+    let back = document.getElementById("dialog-modal-block");
+    if (!back) {
+      back = document.createElement("box");
+    } else {
+      while (back.hasChildNodes()) {
+        back.removeChild(back.firstChild);
+      }
+    }
     back.setAttribute("class", "modal-block");
+    back.setAttribute("id", "dialog-modal-block");
     dialog = back.appendChild(document.importNode(doc, true));
     parentNode.insertBefore(back, contentMenuContainer);
 

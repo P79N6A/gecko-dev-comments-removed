@@ -12,7 +12,9 @@ pref("devtools.errorconsole.enabled", true);
 #endif
 
 
-pref("app.reportCrashes", true);
+pref("app.crashreporter.autosubmit", false);
+
+pref("app.crashreporter.prompted", false);
 
 
 pref("metro.debug.treatmouseastouch", false);
