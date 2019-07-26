@@ -3,7 +3,7 @@
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/vtt.jsm");
+
 
 var Ci = Components.interfaces;
 
@@ -19,7 +19,7 @@ WebVTTParserWrapper.prototype =
 {
   loadParser: function(window)
   {
-    this.parser = new WebVTTParser(window,  new TextDecoder("utf8"));
+    
   },
 
   parse: function(data, count)
@@ -31,23 +31,22 @@ WebVTTParserWrapper.prototype =
       buffer[i] = data.charCodeAt(i);
     }
 
-    this.parser.parse(buffer);
+    
   },
 
   flush: function()
   {
-    this.parser.flush();
+    
   },
 
   watch: function(callback)
   {
-    this.parser.oncue = callback.onCue;
-    this.parser.onregion = callback.onRegion;
+    
   },
 
   convertCueToDOMTree: function(window, cue)
   {
-    return WebVTTParser.convertCueToDOMTree(window, cue.text);
+    
   },
 
   classDescription: "Wrapper for the JS WebVTTParser (vtt.js)",
