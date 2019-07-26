@@ -8,7 +8,7 @@ var Appbar = {
   get jsShellButton() { return document.getElementById('jsshell-button'); },
   get starButton()    { return document.getElementById('star-button'); },
   get pinButton()     { return document.getElementById('pin-button'); },
-  get moreButton()    { return document.getElementById('more-button'); },
+  get menuButton()    { return document.getElementById('menu-button'); },
 
   
   activeTileset: null,
@@ -111,7 +111,7 @@ var Appbar = {
     }
   },
 
-  onMoreButton: function(aEvent) {
+  onMenuButton: function(aEvent) {
       var typesArray = ["find-in-page"];
       try {
         
@@ -124,7 +124,7 @@ var Appbar = {
       } catch(ex) {
       }
 
-      var x = this.moreButton.getBoundingClientRect().left;
+      var x = this.menuButton.getBoundingClientRect().left;
       var y = Elements.navbar.getBoundingClientRect().top;
       ContextMenuUI.showContextMenu({
         json: {
