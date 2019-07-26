@@ -114,7 +114,7 @@ public:
   imgStatusTracker& GetStatusTracker();
 
   
-  inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); };
+  inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); }
 
   
   void ResetCacheEntry();

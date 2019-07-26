@@ -55,7 +55,7 @@ public:
     
     NS_DECL_ISUPPORTS
 
-    EndListener() {};
+    EndListener() {}
 
     
     NS_IMETHOD OnDataAvailable(nsIRequest* request, nsISupports *ctxt, nsIInputStream *inStr, 

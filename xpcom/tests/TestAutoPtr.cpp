@@ -12,14 +12,14 @@
 class TestObjectBaseA {
     public:
         
-        virtual ~TestObjectBaseA() { };
+        virtual ~TestObjectBaseA() { }
         int fooA;
 };
 
 class TestObjectBaseB {
     public:
         
-        virtual ~TestObjectBaseB() { };
+        virtual ~TestObjectBaseB() { }
         int fooB;
 };
 

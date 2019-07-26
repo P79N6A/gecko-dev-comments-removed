@@ -31,7 +31,7 @@ enum MediaEngineState {
 class MediaEngine
 {
 public:
-  virtual ~MediaEngine() {};
+  virtual ~MediaEngine() {}
 
   
 
@@ -48,7 +48,7 @@ public:
 class MediaEngineSource : public nsISupports
 {
 public:
-  virtual ~MediaEngineSource() {};
+  virtual ~MediaEngineSource() {}
 
   
   virtual void GetName(nsAString&) = 0;
@@ -114,7 +114,7 @@ struct MediaEngineVideoOptions {
 class MediaEngineVideoSource : public MediaEngineSource
 {
 public:
-  virtual ~MediaEngineVideoSource() {};
+  virtual ~MediaEngineVideoSource() {}
 
   
 
@@ -127,7 +127,7 @@ public:
 class MediaEngineAudioSource : public MediaEngineSource
 {
 public:
-  virtual ~MediaEngineAudioSource() {};
+  virtual ~MediaEngineAudioSource() {}
 };
 
 }

@@ -81,7 +81,7 @@ public:
     if (mList) {
       mList->mItems[mListIndex] = nullptr;
     }
-  };
+  }
 
   
 

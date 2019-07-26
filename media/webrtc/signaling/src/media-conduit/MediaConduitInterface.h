@@ -26,7 +26,7 @@ namespace mozilla {
 class TransportInterface
 {
 public:
-  virtual ~TransportInterface() {};
+  virtual ~TransportInterface() {}
 
   
 
@@ -58,7 +58,7 @@ public:
 class VideoRenderer
 {
  public:
-  virtual ~VideoRenderer() {} ;
+  virtual ~VideoRenderer() {}
 
   
 
@@ -106,7 +106,7 @@ class MediaSessionConduit
 public:
   enum Type { AUDIO, VIDEO } ;
 
-  virtual ~MediaSessionConduit() {};
+  virtual ~MediaSessionConduit() {}
 
   virtual Type type() const = 0;
 
@@ -159,7 +159,7 @@ public:
 
   static RefPtr<VideoSessionConduit> Create();
 
-  virtual ~VideoSessionConduit() {};
+  virtual ~VideoSessionConduit() {}
 
   virtual Type type() const { return VIDEO; }
 
@@ -228,7 +228,7 @@ public:
 
   static mozilla::RefPtr<AudioSessionConduit> Create();
 
-  virtual ~AudioSessionConduit() {};
+  virtual ~AudioSessionConduit() {}
 
   virtual Type type() const { return AUDIO; }
 

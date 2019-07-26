@@ -89,7 +89,7 @@ public:
   
   
   
-  bool IsSizeDecode() { return mSizeDecode; };
+  bool IsSizeDecode() { return mSizeDecode; }
   void SetSizeDecode(bool aSizeDecode)
   {
     NS_ABORT_IF_FALSE(!mInitialized, "Can't set size decode after Init()!");
@@ -104,10 +104,10 @@ public:
   uint32_t GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
 
   
-  bool HasError() { return HasDataError() || HasDecoderError(); };
-  bool HasDataError() { return mDataError; };
-  bool HasDecoderError() { return NS_FAILED(mFailCode); };
-  nsresult GetDecoderError() { return mFailCode; };
+  bool HasError() { return HasDataError() || HasDecoderError(); }
+  bool HasDataError() { return mDataError; }
+  bool HasDecoderError() { return NS_FAILED(mFailCode); }
+  nsresult GetDecoderError() { return mFailCode; }
   void PostResizeError() { PostDataError(); }
   bool GetDecodeDone() const {
     return mDecodeDone;

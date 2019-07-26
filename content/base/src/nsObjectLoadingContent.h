@@ -131,7 +131,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    bool SrcStreamLoading() { return mSrcStreamLoading; };
+    bool SrcStreamLoading() { return mSrcStreamLoading; }
 
   protected:
     

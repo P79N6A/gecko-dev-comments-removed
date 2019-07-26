@@ -114,7 +114,7 @@ public:
   
   void AddConsumer(imgRequestProxy* aConsumer);
   bool RemoveConsumer(imgRequestProxy* aConsumer, nsresult aStatus);
-  size_t ConsumerCount() const { return mConsumers.Length(); };
+  size_t ConsumerCount() const { return mConsumers.Length(); }
 
   
   
@@ -190,8 +190,8 @@ public:
   void ClearRequest();
 
   
-  inline mozilla::image::Image* GetImage() const { return mImage; };
-  inline imgRequest* GetRequest() const { return mRequest; };
+  inline mozilla::image::Image* GetImage() const { return mImage; }
+  inline imgRequest* GetRequest() const { return mRequest; }
 
   inline imgIDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 

@@ -49,8 +49,8 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 
 
 
-    void setSafeToUnwrap(bool safe) { mSafeToUnwrap = safe; };
-    bool isSafeToUnwrap() { return mSafeToUnwrap; };
+    void setSafeToUnwrap(bool safe) { mSafeToUnwrap = safe; }
+    bool isSafeToUnwrap() { return mSafeToUnwrap; }
 
     static JSObject *New(JSContext *cx, JSObject *obj, JSObject *proto,
                          JSObject *parent, Wrapper *handler);
