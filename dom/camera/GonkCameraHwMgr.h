@@ -43,6 +43,12 @@ class GonkCameraHardware : public GonkNativeWindowNewFrameCallback
 protected:
   GonkCameraHardware(mozilla::nsGonkCameraControl* aTarget, uint32_t aCameraId, const sp<Camera>& aCamera);
   virtual ~GonkCameraHardware();
+
+  
+  
+  
+  
+  
   virtual nsresult Init();
 
 public:

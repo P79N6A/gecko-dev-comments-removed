@@ -34,9 +34,9 @@ public:
   virtual void AddListener(CameraControlListener* aListener) MOZ_OVERRIDE;
   virtual void RemoveListener(CameraControlListener* aListener) MOZ_OVERRIDE;
 
+  
   virtual nsresult Start(const Configuration* aConfig = nullptr) MOZ_OVERRIDE;
   virtual nsresult Stop() MOZ_OVERRIDE;
-
   virtual nsresult SetConfiguration(const Configuration& aConfig) MOZ_OVERRIDE;
   virtual nsresult StartPreview() MOZ_OVERRIDE;
   virtual nsresult StopPreview() MOZ_OVERRIDE;
@@ -57,8 +57,8 @@ public:
   
   void OnShutter();
   void OnClosed();
-  void OnError(CameraControlListener::CameraErrorContext aContext,
-               CameraControlListener::CameraError aError);
+  void OnUserError(CameraControlListener::UserContext aContext, nsresult aError);
+  void OnSystemError(CameraControlListener::SystemContext aContext, nsresult aError);
   void OnAutoFocusMoving(bool aIsMoving);
 
 protected:
@@ -96,6 +96,21 @@ protected:
   class ControlMessage;
   class ListenerMessage;
 
+  nsresult Dispatch(ControlMessage* aMessage);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   virtual nsresult StartImpl(const Configuration* aConfig = nullptr) = 0;
   virtual nsresult StopImpl() = 0;
   virtual nsresult SetConfigurationImpl(const Configuration& aConfig) = 0;
@@ -111,6 +126,7 @@ protected:
   virtual nsresult ResumeContinuousFocusImpl() = 0;
   virtual nsresult PushParametersImpl() = 0;
   virtual nsresult PullParametersImpl() = 0;
+
   virtual already_AddRefed<RecorderProfileManager> GetRecorderProfileManagerImpl() = 0;
 
   void OnShutterInternal();
