@@ -10,6 +10,16 @@
 #include <android/log.h>
 
 extern "C" jclass jsjni_FindClass(const char *className);
+
+
+
+
+
+
+
+
+extern "C" jclass jsjni_GetGlobalClassRef(const char *className);
+
 extern "C" jmethodID jsjni_GetStaticMethodID(jclass methodClass,
                                        const char *methodName,
                                        const char *signature);
