@@ -51,6 +51,10 @@ TransplantObjectWithWrapper(JSContext *cx,
 
 
 
+
+
+
+
 JSObject *
 GetXBLScope(JSContext *cx, JSObject *contentScope);
 
