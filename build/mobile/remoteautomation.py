@@ -3,6 +3,7 @@
 
 
 import time
+import re
 import os
 import automationutils
 import tempfile
@@ -23,6 +24,7 @@ class RemoteAutomation(Automation):
 
         
         self._product = "fennec"
+        self.lastTestSeen = "remoteautomation.py"
         Automation.__init__(self)
 
     def setDeviceManager(self, deviceManager):
@@ -67,6 +69,7 @@ class RemoteAutomation(Automation):
         """
         
         status = proc.wait(timeout = maxTime)
+        self.lastTestSeen = proc.getLastTestSeen
 
         if (status == 1 and self._devicemanager.processExist(proc.procName)):
             
@@ -129,6 +132,7 @@ class RemoteAutomation(Automation):
         def __init__(self, dm, cmd, stdout = None, stderr = None, env = None, cwd = None):
             self.dm = dm
             self.stdoutlen = 0
+            self.lastTestSeen = "remoteautomation.py"
             self.proc = dm.launchProcess(cmd, stdout, cwd, env, True)
             if (self.proc is None):
               if cmd[0] == 'am':
@@ -178,6 +182,9 @@ class RemoteAutomation(Automation):
 
         @property
         def stdout(self):
+            """ Fetch the full remote log file using devicemanager and return just
+                the new log entries since the last call (as a multi-line string).
+            """
             if self.dm.fileExists(self.proc):
                 try:
                     t = self.dm.pullFile(self.proc)
@@ -186,11 +193,21 @@ class RemoteAutomation(Automation):
                     
                     
                     return ''
-                retVal = t[self.stdoutlen:]
+                newLogContent = t[self.stdoutlen:]
                 self.stdoutlen = len(t)
-                return retVal.strip('\n').strip()
+                
+                
+                
+                testStartFilenames = re.findall(r"TEST-START \| ([^\s]*)", newLogContent)
+                if testStartFilenames:
+                    self.lastTestSeen = testStartFilenames[-1]
+                return newLogContent.strip('\n').strip()
             else:
                 return ''
+
+        @property
+        def getLastTestSeen(self):
+            return self.lastTestSeen
 
         def wait(self, timeout = None):
             timer = 0
