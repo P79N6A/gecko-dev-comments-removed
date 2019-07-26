@@ -284,6 +284,12 @@ static const int32_t kResizableBorderMinSize = 3;
 
 
 
+#define HITTEST_CACHE_LIFETIME_MS 50
+
+
+
+
+
 
 
 
@@ -338,6 +344,10 @@ nsWindow::nsWindow() : nsWindowBase()
   mLastKeyboardLayout   = 0;
   mBlurSuppressLevel    = 0;
   mLastPaintEndTime     = TimeStamp::Now();
+  mCachedHitTestPoint.x = 0;
+  mCachedHitTestPoint.y = 0;
+  mCachedHitTestTime    = TimeStamp::Now();
+  mCachedHitTestResult  = 0;
 #ifdef MOZ_XUL
   mTransparentSurface   = nullptr;
   mMemoryDC             = nullptr;
@@ -5559,22 +5569,30 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
   }
 
   if (!sIsInMouseCapture && allowContentOverride) {
-    nsMouseEvent event(true, NS_MOUSE_MOZHITTEST, this, nsMouseEvent::eReal,
-                       nsMouseEvent::eNormal);
     POINT pt = { mx, my };
     ::ScreenToClient(mWnd, &pt);
-    event.refPoint = nsIntPoint(pt.x, pt.y);
-    event.inputSource = MOUSE_INPUT_SOURCE();
-    event.mFlags.mOnlyChromeDispatch = true;
-    bool result = DispatchWindowEvent(&event);
-    if (result) {
-      
-      testResult = testResult == HTCLIENT ? HTCAPTION : testResult;
-
+    if (pt.x == mCachedHitTestPoint.x && pt.y == mCachedHitTestPoint.y &&
+        TimeStamp::Now() - mCachedHitTestTime < TimeDuration::FromMilliseconds(HITTEST_CACHE_LIFETIME_MS)) {
+      testResult = mCachedHitTestResult;
     } else {
-      
-      
-      testResult = HTCLIENT;
+      nsMouseEvent event(true, NS_MOUSE_MOZHITTEST, this, nsMouseEvent::eReal,
+                         nsMouseEvent::eNormal);
+      event.refPoint = nsIntPoint(pt.x, pt.y);
+      event.inputSource = MOUSE_INPUT_SOURCE();
+      event.mFlags.mOnlyChromeDispatch = true;
+      bool result = DispatchWindowEvent(&event);
+      if (result) {
+        
+        testResult = testResult == HTCLIENT ? HTCAPTION : testResult;
+
+      } else {
+        
+        
+        testResult = HTCLIENT;
+      }
+      mCachedHitTestPoint = pt;
+      mCachedHitTestTime = TimeStamp::Now();
+      mCachedHitTestResult = testResult;
     }
   }
 
