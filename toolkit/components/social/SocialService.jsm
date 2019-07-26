@@ -651,13 +651,14 @@ this.SocialService = {
 
 
 
-  updateProvider: function(aDOMDocument, aManifest, aCallback) {
-    let installOrigin = aDOMDocument.nodePrincipal.origin;
-    let installType = this.getOriginActivationType(installOrigin);
+  updateProvider: function(aUpdateOrigin, aManifest, aCallback) {
+    let originUri = Services.io.newURI(aUpdateOrigin, null, null);
+    let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(originUri);
+    let installType = this.getOriginActivationType(aUpdateOrigin);
     
-    let manifest = this._manifestFromData(installType, aManifest, aDOMDocument.nodePrincipal);
+    let manifest = this._manifestFromData(installType, aManifest, principal);
     if (!manifest)
-      throw new Error("SocialService.installProvider: service configuration is invalid from " + installOrigin);
+      throw new Error("SocialService.installProvider: service configuration is invalid from " + aUpdateOrigin);
 
     
     let string = Cc["@mozilla.org/supports-string;1"].
