@@ -494,7 +494,11 @@ bool OmxDecoder::AllocateMediaResources()
     
     
     
+#ifdef MOZ_OMX_WEBM_DECODER
+    int flags = 0;
+#else
     int flags = kHardwareCodecsOnly;
+#endif
 
     if (isInEmulator()) {
       
