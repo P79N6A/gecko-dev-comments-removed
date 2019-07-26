@@ -526,11 +526,11 @@ nsReturnRef<NesteggPacketHolder> WebMReader::NextPacket(TrackType aTrackType)
 {
   
   
-  PacketQueue& otherPackets = 
+  WebMPacketQueue& otherPackets =
     aTrackType == VIDEO ? mAudioPackets : mVideoPackets;
 
   
-  PacketQueue &packets =
+  WebMPacketQueue &packets =
     aTrackType == VIDEO ? mVideoPackets : mAudioPackets;
 
   

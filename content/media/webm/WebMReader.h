@@ -62,13 +62,13 @@ class PacketQueueDeallocator : public nsDequeFunctor {
 
 
 
-class PacketQueue : private nsDeque {
+class WebMPacketQueue : private nsDeque {
  public:
-   PacketQueue()
+   WebMPacketQueue()
      : nsDeque(new PacketQueueDeallocator())
    {}
   
-  ~PacketQueue() {
+  ~WebMPacketQueue() {
     Reset();
   }
 
@@ -77,12 +77,12 @@ class PacketQueue : private nsDeque {
   }
   
   inline void Push(NesteggPacketHolder* aItem) {
-    NS_ASSERTION(aItem, "NULL pushed to PacketQueue");
+    NS_ASSERTION(aItem, "NULL pushed to WebMPacketQueue");
     nsDeque::Push(aItem);
   }
   
   inline void PushFront(NesteggPacketHolder* aItem) {
-    NS_ASSERTION(aItem, "NULL pushed to PacketQueue");
+    NS_ASSERTION(aItem, "NULL pushed to WebMPacketQueue");
     nsDeque::PushFront(aItem);
   }
 
@@ -199,8 +199,8 @@ private:
 
   
   
-  PacketQueue mVideoPackets;
-  PacketQueue mAudioPackets;
+  WebMPacketQueue mVideoPackets;
+  WebMPacketQueue mAudioPackets;
 
   
   uint32_t mVideoTrack;

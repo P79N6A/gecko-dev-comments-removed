@@ -58,10 +58,10 @@ class OggPacketDeallocator : public nsDequeFunctor {
 
 
 
-class PacketQueue : private nsDeque {
+class OggPacketQueue : private nsDeque {
 public:
-  PacketQueue() : nsDeque(new OggPacketDeallocator()) {}
-  ~PacketQueue() { Erase(); }
+  OggPacketQueue() : nsDeque(new OggPacketDeallocator()) {}
+  ~OggPacketQueue() { Erase(); }
   bool IsEmpty() { return nsDeque::GetSize() == 0; }
   void Append(ogg_packet* aPacket);
   ogg_packet* PopFront() { return static_cast<ogg_packet*>(nsDeque::PopFront()); }
@@ -167,7 +167,7 @@ public:
 
   
   
-  PacketQueue mPackets;
+  OggPacketQueue mPackets;
 
   
   bool mActive;
