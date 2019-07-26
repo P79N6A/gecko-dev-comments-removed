@@ -16,14 +16,6 @@
 #include "nsStringIterator.h"
 #endif
 
-
-
-#ifndef NS_DISABLE_LITERAL_TEMPLATE
-#  if (defined(__SUNPRO_CC) && (__SUNPRO_CC < 0x560)) || (defined(__HP_aCC) && (__HP_aCC <= 012100))
-#    define NS_DISABLE_LITERAL_TEMPLATE
-#  endif
-#endif 
-
 #include <string.h>
 #include <stdarg.h>
 
