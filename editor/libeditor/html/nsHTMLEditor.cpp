@@ -3254,7 +3254,7 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
 
     
     if (mInlineSpellChecker) {
-      nsRefPtr<nsRange> range = new nsRange(aChild);
+      nsRefPtr<nsRange> range = new nsRange();
       nsresult res = range->Set(aContainer, aIndexInContainer,
                                 aContainer, aIndexInContainer + 1);
       if (NS_SUCCEEDED(res)) {

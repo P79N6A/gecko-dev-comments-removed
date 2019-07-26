@@ -778,7 +778,7 @@ nsTextControlFrame::SetSelectionInternal(nsIDOMNode *aStartNode,
   
   
 
-  nsRefPtr<nsRange> range = new nsRange(mContent);
+  nsRefPtr<nsRange> range = new nsRange();
   nsresult rv = range->SetStart(aStartNode, aStartOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 

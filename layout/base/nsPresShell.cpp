@@ -2903,7 +2903,7 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
     
     
     
-    nsRefPtr<nsIDOMRange> jumpToRange = new nsRange(mDocument);
+    nsRefPtr<nsIDOMRange> jumpToRange = new nsRange();
     while (content && content->GetFirstChild()) {
       content = content->GetFirstChild();
     }
@@ -4804,7 +4804,7 @@ PresShell::RenderNode(nsIDOMNode* aNode,
   if (!node->IsInDoc())
     return nullptr;
   
-  nsRefPtr<nsRange> range = new nsRange(node);
+  nsRefPtr<nsRange> range = new nsRange();
   if (NS_FAILED(range->SelectNode(aNode)))
     return nullptr;
 
