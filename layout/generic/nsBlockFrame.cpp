@@ -5970,17 +5970,9 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
       continue;
     }
 
-    if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
-      
-      aState.FlowAndPlaceFloat(f);
-    }
-    else {
-      
-      nsRect region = nsFloatManager::GetRegionFor(f);
-      aState.mFloatManager->AddFloat(f, region);
-      if (f->GetNextInFlow())
-        NS_MergeReflowStatusInto(&aStatus, NS_FRAME_OVERFLOW_INCOMPLETE);
-    }
+    
+    
+    aState.FlowAndPlaceFloat(f);
 
     ConsiderChildOverflow(aOverflowAreas, f);
   }
