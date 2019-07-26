@@ -5169,6 +5169,8 @@ class CGPerSignatureCall(CGThing):
                  setter=False, isConstructor=False):
         assert idlNode.isMethod() == (not getter and not setter)
         assert idlNode.isAttr() == (getter or setter)
+        
+        assert not isConstructor or static
 
         CGThing.__init__(self)
         self.returnType = returnType
@@ -5192,11 +5194,20 @@ class CGPerSignatureCall(CGThing):
         if static:
             nativeMethodName = "%s::%s" % (descriptor.nativeType,
                                            nativeMethodName)
-            cgThings.append(CGGeneric("""GlobalObject global(cx, obj);
+            
+            
+            
+            
+            
+            if isConstructor:
+                objForGlobalObject = "obj"
+            else:
+                objForGlobalObject = "xpc::XrayAwareCalleeGlobal(obj)"
+            cgThings.append(CGGeneric("""GlobalObject global(cx, %s);
 if (global.Failed()) {
   return false;
 }
-"""))
+""" % objForGlobalObject))
             argsPre.append("global")
 
         
@@ -5997,11 +6008,10 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
         CGAbstractStaticMethod.__init__(self, descriptor, name, "bool", args)
 
     def definition_body(self):
+        
+        
         unwrap = CGGeneric("""JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-JS::Rooted<JSObject*> obj(cx, args.computeThis(cx).toObjectOrNull());
-if (!obj) {
-  return false;
-}""")
+JS::Rooted<JSObject*> obj(cx, &args.callee());""")
         return CGList([ CGIndenter(unwrap),
                         self.generate_code() ], "\n\n").define()
 
