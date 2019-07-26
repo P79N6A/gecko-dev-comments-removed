@@ -10891,6 +10891,11 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
   textContent->SetPrimaryFrame(newTextFrame);
 
   
+  if (prevSibling && prevSibling->GetType() == nsGkAtoms::textFrame) {
+    prevSibling->AddStateBits(NS_FRAME_IS_DIRTY);
+  }
+
+  
   nsFrameList textList(newTextFrame, newTextFrame);
   InsertFrames(parentFrame, kPrincipalList, prevSibling, textList);
 
@@ -10938,6 +10943,11 @@ nsCSSFrameConstructor::RemoveFirstLetterFrames(nsPresContext* aPresContext,
       
       
       textContent->SetPrimaryFrame(textFrame);
+
+      
+      if (prevSibling && prevSibling->GetType() == nsGkAtoms::textFrame) {
+        prevSibling->AddStateBits(NS_FRAME_IS_DIRTY);
+      }
 
       
       nsFrameList textList(textFrame, textFrame);
