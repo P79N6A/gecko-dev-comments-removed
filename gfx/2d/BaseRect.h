@@ -418,6 +418,22 @@ struct BaseRect {
                  std::max(y, std::min(YMost(), aPoint.y)));
   }
 
+  
+
+
+
+
+  Sub ClampRect(const Sub& aRect) const
+  {
+    Sub rect(std::max(aRect.x, x),
+             std::max(aRect.y, y),
+             std::min(aRect.width, width),
+             std::min(aRect.height, height));
+    rect.x = std::min(rect.XMost(), XMost()) - rect.width;
+    rect.y = std::min(rect.YMost(), YMost()) - rect.height;
+    return rect;
+  }
+
 private:
   
   
