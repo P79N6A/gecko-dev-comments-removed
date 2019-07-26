@@ -32,14 +32,8 @@ class LBinaryMath : public LInstructionHelper<1, 2 + ExtraUses, Temps>
 
 class LLabel : public LInstructionHelper<0, 0, 0>
 {
-    Label label_;
-
   public:
     LIR_HEADER(Label)
-
-    Label *label() {
-        return &label_;
-    }
 };
 
 class LNop : public LInstructionHelper<0, 0, 0>
