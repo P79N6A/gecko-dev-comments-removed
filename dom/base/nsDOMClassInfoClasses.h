@@ -160,9 +160,6 @@ DOMCI_CLASS(CSSRect)
 DOMCI_CLASS(ChromeWindow)
 
 
-DOMCI_CLASS(CSSRGBColor)
-
-
 DOMCI_CLASS(ContentList)
   
 
