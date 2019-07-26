@@ -708,6 +708,10 @@ CustomizeMode.prototype = {
   },
 
   _onDragOver: function(aEvent) {
+    if (this._isUnwantedDragDrop(aEvent)) {
+      return;
+    }
+
     __dumpDragData(aEvent);
 
     let document = aEvent.target.ownerDocument;
@@ -768,6 +772,10 @@ CustomizeMode.prototype = {
   },
 
   _onDragDrop: function(aEvent) {
+    if (this._isUnwantedDragDrop(aEvent)) {
+      return;
+    }
+
     __dumpDragData(aEvent);
 
     let targetArea = this._getCustomizableParent(aEvent.currentTarget);
@@ -891,13 +899,22 @@ CustomizeMode.prototype = {
   },
 
   _onDragExit: function(aEvent) {
+    if (this._isUnwantedDragDrop(aEvent)) {
+      return;
+    }
+
     __dumpDragData(aEvent);
+
     if (this._dragOverItem) {
       this._setDragActive(this._dragOverItem, false);
     }
   },
 
   _onDragEnd: function(aEvent) {
+    if (this._isUnwantedDragDrop(aEvent)) {
+      return;
+    }
+
     __dumpDragData(aEvent);
     let document = aEvent.target.ownerDocument;
     document.documentElement.removeAttribute("customizing-movingItem");
@@ -914,6 +931,31 @@ CustomizeMode.prototype = {
     draggedWrapper.hidden = false;
     draggedWrapper.removeAttribute("mousedown");
     this._showPanelCustomizationPlaceholders();
+  },
+
+  _skipSourceNodeCheck: null,
+  _isUnwantedDragDrop: function(aEvent) {
+    
+    
+    
+    
+    
+    const pref = "browser.uiCustomization.skipSourceNodeCheck";
+    if (this._skipSourceNodeCheck === null) {
+      this._skipSourceNodeCheck = Services.prefs.getPrefType(pref) == Ci.nsIPrefBranch.PREF_BOOL &&
+                                  Services.prefs.getBoolPref(pref);
+    }
+    if (this._skipSourceNodeCheck) {
+      return false;
+    }
+
+    
+
+    let mozSourceNode = aEvent.dataTransfer.mozSourceNode;
+    
+    
+    return !mozSourceNode ||
+           mozSourceNode.ownerDocument.defaultView != this.window;
   },
 
   _setDragActive: function(aItem, aValue, aDraggedItemId, aAtEnd) {
