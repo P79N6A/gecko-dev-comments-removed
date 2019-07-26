@@ -92,8 +92,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xAD5FEF46, 0x7200, 0x417C, \
-    { 0xA9, 0x1C, 0xAB, 0x30, 0x1C, 0x86, 0xE4, 0x6F } }
+  { 0x48568C1E, 0xAF56, 0x4F73, \
+    { 0x94, 0x6D, 0xAA, 0x43, 0xD8, 0x96, 0x78, 0x6B } }
 
 
 
@@ -1526,9 +1526,9 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD OnIMETextChange(uint32_t aStart,
-                               uint32_t aOldEnd,
-                               uint32_t aNewEnd) = 0;
+    NS_IMETHOD NotifyIMEOfTextChange(uint32_t aStart,
+                                     uint32_t aOldEnd,
+                                     uint32_t aNewEnd) = 0;
 
     
 

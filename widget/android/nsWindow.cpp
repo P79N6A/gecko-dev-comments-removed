@@ -1722,7 +1722,7 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
             
             
             
-            OnIMETextChange(0, INT32_MAX / 2, INT32_MAX / 2);
+            NotifyIMEOfTextChange(0, INT32_MAX / 2, INT32_MAX / 2);
             FlushIMEChanges();
         }
         AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_REPLY_EVENT, 0);
@@ -2126,12 +2126,14 @@ nsWindow::FlushIMEChanges()
 }
 
 NS_IMETHODIMP
-nsWindow::OnIMETextChange(uint32_t aStart, uint32_t aOldEnd, uint32_t aNewEnd)
+nsWindow::NotifyIMEOfTextChange(uint32_t aStart,
+                                uint32_t aOldEnd,
+                                uint32_t aNewEnd)
 {
     if (mIMEMaskTextUpdate)
         return NS_OK;
 
-    ALOGIME("IME: OnIMETextChange: s=%d, oe=%d, ne=%d",
+    ALOGIME("IME: NotifyIMEOfTextChange: s=%d, oe=%d, ne=%d",
             aStart, aOldEnd, aNewEnd);
 
     
