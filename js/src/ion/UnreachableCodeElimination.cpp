@@ -95,56 +95,106 @@ UnreachableCodeElimination::removeUnmarkedBlocksAndCleanup()
 }
 
 bool
+UnreachableCodeElimination::enqueue(MBasicBlock *block, BlockList &list)
+{
+    if (block->isMarked())
+        return true;
+
+    block->mark();
+    marked_++;
+    return list.append(block);
+}
+
+MBasicBlock *
+UnreachableCodeElimination::optimizableSuccessor(MBasicBlock *block)
+{
+    
+    
+    
+
+    MControlInstruction *ins = block->lastIns();
+    if (!ins->isTest())
+        return NULL;
+
+    MTest *testIns = ins->toTest();
+    MDefinition *v = testIns->getOperand(0);
+    if (!v->isConstant())
+        return NULL;
+
+    const Value &val = v->toConstant()->value();
+    BranchDirection bdir = ToBoolean(val) ? TRUE_BRANCH : FALSE_BRANCH;
+    return testIns->branchSuccessor(bdir);
+}
+
+bool
 UnreachableCodeElimination::prunePointlessBranchesAndMarkReachableBlocks()
 {
-    Vector<MBasicBlock *, 16, SystemAllocPolicy> worklist;
+    BlockList worklist, optimizableBlocks;
 
     
-    MBasicBlock *entries[] = { graph_.entryBlock(), graph_.osrBlock() };
-    for (size_t i = 0; i < sizeof(entries) / sizeof(entries[0]); i++) {
-        if (entries[i]) {
-            entries[i]->mark();
-            marked_++;
-            if (!worklist.append(entries[i]))
-                return false;
-        }
-    }
-
     
+    if (!enqueue(graph_.entryBlock(), worklist))
+        return false;
     while (!worklist.empty()) {
         if (mir_->shouldCancel("Eliminate Unreachable Code"))
             return false;
 
         MBasicBlock *block = worklist.popCopy();
-        MControlInstruction *ins = block->lastIns();
 
         
-        if (ins->isTest()) {
-            MTest *testIns = ins->toTest();
-            MDefinition *v = testIns->getOperand(0);
-            if (v->isConstant()) {
-                const Value &val = v->toConstant()->value();
-                BranchDirection bdir = ToBoolean(val) ? TRUE_BRANCH : FALSE_BRANCH;
-                MBasicBlock *succ = testIns->branchSuccessor(bdir);
-                MGoto *gotoIns = MGoto::New(succ);
-                block->discardLastIns();
-                block->end(gotoIns);
-                MBasicBlock *successorWithPhis = block->successorWithPhis();
-                if (successorWithPhis && successorWithPhis != succ)
-                    block->setSuccessorWithPhis(NULL, 0);
-            }
-        }
-
-        for (size_t i = 0; i < block->numSuccessors(); i++) {
-            MBasicBlock *succ = block->getSuccessor(i);
-            if (!succ->isMarked()) {
-                succ->mark();
-                marked_++;
-                if (!worklist.append(succ))
+        
+        if (MBasicBlock *succ = optimizableSuccessor(block)) {
+            if (!optimizableBlocks.append(block))
+                return false;
+            if (!enqueue(succ, worklist))
+                return false;
+        } else {
+            
+            for (size_t i = 0; i < block->numSuccessors(); i++) {
+                MBasicBlock *succ = block->getSuccessor(i);
+                if (!enqueue(succ, worklist))
                     return false;
             }
         }
     }
+
+    
+    
+    
+    
+    
+    
+    if (graph_.osrBlock()) {
+        MBasicBlock *osrBlock = graph_.osrBlock();
+        JS_ASSERT(!osrBlock->isMarked());
+        if (!enqueue(osrBlock, worklist))
+            return false;
+        for (size_t i = 0; i < osrBlock->numSuccessors(); i++) {
+            if (!osrBlock->getSuccessor(i)->isMarked()) {
+                
+                for (MBasicBlockIterator iter(graph_.begin()); iter != graph_.end(); iter++)
+                    iter->mark();
+                marked_ = graph_.numBlocks();
+                return true;
+            }
+        }
+    }
+
+    
+    
+    for (uint32_t i = 0; i < optimizableBlocks.length(); i++) {
+        MBasicBlock *block = optimizableBlocks[i];
+        MBasicBlock *succ = optimizableSuccessor(block);
+        JS_ASSERT(succ);
+
+        MGoto *gotoIns = MGoto::New(succ);
+        block->discardLastIns();
+        block->end(gotoIns);
+        MBasicBlock *successorWithPhis = block->successorWithPhis();
+        if (successorWithPhis && successorWithPhis != succ)
+            block->setSuccessorWithPhis(NULL, 0);
+    }
+
     return true;
 }
 
