@@ -588,6 +588,13 @@ protected:
   void SetMutedInternal(bool aMuted);
 
   
+
+
+
+
+  void SuspendOrResumeElement(bool aPauseElement, bool aSuspendEvents);
+
+  
   
   virtual nsHTMLMediaElement* GetMediaElement() MOZ_FINAL MOZ_OVERRIDE
   {
@@ -812,7 +819,11 @@ protected:
   bool mPlayingBeforeSeek;
 
   
-  bool mPausedForInactiveDocument;
+  
+  bool mPausedForInactiveDocumentOrChannel;
+
+  
+  bool mEventDeliveryPaused;
 
   
   
@@ -887,7 +898,7 @@ protected:
   mozilla::dom::AudioChannelType mAudioChannelType;
 
   
-  bool mChannelMuted;
+  bool mChannelSuspended;
 
   
   bool mPlayingThroughTheAudioChannel;
