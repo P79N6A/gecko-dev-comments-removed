@@ -213,6 +213,47 @@ private:
 };
 
 
+
+
+
+
+
+
+class MOZ_STACK_CLASS ReentrantMonitorAutoExit
+{
+public:
+    
+
+
+
+
+
+
+
+
+    ReentrantMonitorAutoExit(ReentrantMonitor& aReentrantMonitor) :
+        mReentrantMonitor(&aReentrantMonitor)
+    {
+        NS_ASSERTION(mReentrantMonitor, "null monitor");
+        mReentrantMonitor->AssertCurrentThreadIn();
+        mReentrantMonitor->Exit();
+    }
+
+    ~ReentrantMonitorAutoExit(void)
+    {
+        mReentrantMonitor->Enter();
+    }
+
+private:
+    ReentrantMonitorAutoExit();
+    ReentrantMonitorAutoExit(const ReentrantMonitorAutoExit&);
+    ReentrantMonitorAutoExit& operator =(const ReentrantMonitorAutoExit&);
+    static void* operator new(size_t) CPP_THROW_NEW;
+    static void operator delete(void*);
+
+    ReentrantMonitor* mReentrantMonitor;
+};
+
 } 
 
 
