@@ -65,7 +65,6 @@
 #include "TexturePoolOGL.h"
 #endif
 
-#include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -1361,8 +1360,6 @@ qcms_profile *
 gfxPlatform::GetCMSOutputProfile()
 {
     if (!gCMSOutputProfile) {
-        NS_TIME_FUNCTION;
-
         
 
 

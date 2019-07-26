@@ -99,7 +99,6 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 
 #include <locale.h>
 #include "mozilla/Services.h"
-#include "mozilla/FunctionTimer.h"
 #include "mozilla/Omnijar.h"
 #include "mozilla/HangMonitor.h"
 #include "mozilla/Telemetry.h"
@@ -313,24 +312,16 @@ NS_InitXPCOM2(nsIServiceManager* *result,
               nsIFile* binDirectory,
               nsIDirectoryServiceProvider* appFileLocationProvider)
 {
-    NS_TIME_FUNCTION;
-
     nsresult rv = NS_OK;
 
      
     gXPCOMShuttingDown = false;
 
-    NS_TIME_FUNCTION_MARK("Next: AvailableMemoryTracker Init()");
-
     
     
     mozilla::AvailableMemoryTracker::Init();
 
-    NS_TIME_FUNCTION_MARK("Next: log init");
-
     NS_LogInit();
-
-    NS_TIME_FUNCTION_MARK("Next: IPC init");
 
     
     NS_ASSERTION(!sExitManager && !sMessageLoop, "Bad logic!");
@@ -358,21 +349,15 @@ NS_InitXPCOM2(nsIServiceManager* *result,
         sIOThread = ioThread.release();
     }
 
-    NS_TIME_FUNCTION_MARK("Next: thread manager init");
-
     
     rv = nsThreadManager::get()->Init();
     if (NS_FAILED(rv)) return rv;
-
-    NS_TIME_FUNCTION_MARK("Next: timer startup");
 
     
     rv = nsTimerImpl::Startup();
     NS_ENSURE_SUCCESS(rv, rv);
 
 #ifndef ANDROID
-    NS_TIME_FUNCTION_MARK("Next: setlocale");
-
     
     
     if (strcmp(setlocale(LC_ALL, NULL), "C") == 0)
@@ -380,12 +365,8 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 #endif
 
 #if defined(XP_UNIX) || defined(XP_OS2)
-    NS_TIME_FUNCTION_MARK("Next: startup native charset utils");
-
     NS_StartupNativeCharsetUtils();
 #endif
-
-    NS_TIME_FUNCTION_MARK("Next: startup local file");
 
     NS_StartupLocalFile();
 
@@ -419,16 +400,12 @@ NS_InitXPCOM2(nsIServiceManager* *result,
         xpcomLib->AppendNative(nsDependentCString(XPCOM_DLL));
         nsDirectoryService::gService->Set(NS_XPCOM_LIBRARY_FILE, xpcomLib);
     }
-    
-    NS_TIME_FUNCTION_MARK("Next: Omnijar init");
 
     if (!mozilla::Omnijar::IsInitialized()) {
         mozilla::Omnijar::Init();
     }
 
     if ((sCommandLineWasInitialized = !CommandLine::IsInitialized())) {
-        NS_TIME_FUNCTION_MARK("Next: IPC command line init");
-
 #ifdef OS_WIN
         CommandLine::Init(0, nullptr);
 #else
@@ -452,8 +429,6 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 
     NS_ASSERTION(nsComponentManagerImpl::gComponentManager == NULL, "CompMgr not null at init");
 
-    NS_TIME_FUNCTION_MARK("Next: component manager init");
-
     
     nsComponentManagerImpl::gComponentManager = new nsComponentManagerImpl();
     NS_ADDREF(nsComponentManagerImpl::gComponentManager);
@@ -472,15 +447,9 @@ NS_InitXPCOM2(nsIServiceManager* *result,
         NS_ADDREF(*result = nsComponentManagerImpl::gComponentManager);
     }
 
-    NS_TIME_FUNCTION_MARK("Next: cycle collector startup");
-
-    NS_TIME_FUNCTION_MARK("Next: interface info manager init");
-
     
     
     (void) xptiInterfaceInfoManager::GetSingleton();
-
-    NS_TIME_FUNCTION_MARK("Next: register category providers");
 
     
     
@@ -489,8 +458,6 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 
     mozilla::scache::StartupCache::GetSingleton();
     mozilla::AvailableMemoryTracker::Activate();
-
-    NS_TIME_FUNCTION_MARK("Next: create services from category");
 
     
     NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_CATEGORY, 

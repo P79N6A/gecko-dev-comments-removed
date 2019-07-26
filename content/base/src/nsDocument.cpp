@@ -41,7 +41,6 @@
 #include "nsIDOMDOMStringList.h"
 #include "nsIDOMDOMImplementation.h"
 #include "nsIDOMDocumentXBL.h"
-#include "mozilla/FunctionTimer.h"
 #include "nsGenericElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMCDATASection.h"
@@ -4238,7 +4237,6 @@ nsDocument::LookupImageElement(const nsAString& aId)
 void
 nsDocument::DispatchContentLoadedEvents()
 {
-  NS_TIME_FUNCTION;
   
   
 

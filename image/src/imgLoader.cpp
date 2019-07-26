@@ -4,7 +4,6 @@
 
 
 #include "mozilla/Attributes.h"
-#include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"
 
 #include "ImageLogging.h"
@@ -868,8 +867,6 @@ void imgLoader::GlobalInit()
 
 nsresult imgLoader::InitCache()
 {
-  NS_TIME_FUNCTION;
-
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (!os)
     return NS_ERROR_FAILURE;

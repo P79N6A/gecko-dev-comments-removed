@@ -71,7 +71,6 @@
 #include "nsPresState.h"
 #include "nsContentList.h"
 
-#include "mozilla/FunctionTimer.h"
 #include "mozilla/Selection.h"
 
 #define DEFAULT_COLUMN_WIDTH 20
@@ -291,8 +290,6 @@ nsTextControlFrame::EnsureEditorInitialized()
   
   if (mUseEditor)
     return NS_OK;
-
-  NS_TIME_FUNCTION;
 
   nsIDocument* doc = mContent->GetCurrentDoc();
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);

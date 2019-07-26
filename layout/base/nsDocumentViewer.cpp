@@ -15,7 +15,6 @@
 #include "nsIContent.h"
 #include "nsIContentViewerContainer.h"
 #include "nsIContentViewer.h"
-#include "mozilla/FunctionTimer.h"
 #include "nsIDocumentViewerPrint.h"
 #include "nsIDOMBeforeUnloadEvent.h"
 #include "nsIDocument.h"
@@ -960,7 +959,6 @@ void DocumentViewerImpl::SetNavigationTiming(nsDOMNavigationTiming* timing)
 NS_IMETHODIMP
 DocumentViewerImpl::LoadComplete(nsresult aStatus)
 {
-  NS_TIME_FUNCTION;
   
 
 

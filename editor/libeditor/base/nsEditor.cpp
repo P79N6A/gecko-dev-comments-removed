@@ -23,7 +23,6 @@
 #include "mozFlushType.h"               
 #include "mozISpellCheckingEngine.h"
 #include "mozInlineSpellChecker.h"      
-#include "mozilla/FunctionTimer.h"      
 #include "mozilla/Preferences.h"        
 #include "mozilla/Selection.h"          
 #include "mozilla/Services.h"           
@@ -1311,8 +1310,6 @@ NS_IMETHODIMP nsEditor::Observe(nsISupports* aSubj, const char *aTopic,
 
 NS_IMETHODIMP nsEditor::SyncRealTimeSpell()
 {
-  NS_TIME_FUNCTION;
-
   bool enable = GetDesiredSpellCheckState();
 
   
