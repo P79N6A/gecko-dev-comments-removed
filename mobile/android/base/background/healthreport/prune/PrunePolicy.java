@@ -82,6 +82,8 @@ public class PrunePolicy {
       return false;
     }
 
+    Logger.debug(LOG_TAG, "Attempting prune-by-size.");
+
     
     
     
@@ -153,6 +155,7 @@ public class PrunePolicy {
     }
 
     editor.setNextCleanupTime(time + getMinimumTimeBetweenCleanupChecks());
+    Logger.debug(LOG_TAG, "Cleaning up storage.");
     storage.cleanup();
     return true;
   }
