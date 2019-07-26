@@ -30,6 +30,9 @@
 #endif
 
 
+static const uint32_t MAX_PREF_LENGTH = 1 * 1024 * 1024;
+
+
 struct EnumerateData {
   const char  *parent;
   nsTArray<nsCString> *pref_list;
@@ -401,10 +404,13 @@ NS_IMETHODIMP nsPrefBranch::SetComplexValue(const char *aPrefName, const nsIID &
     nsCOMPtr<nsISupportsString> theString = do_QueryInterface(aValue);
 
     if (theString) {
-      nsAutoString wideString;
+      nsString wideString;
 
       rv = theString->GetData(wideString);
       if (NS_SUCCEEDED(rv)) {
+        if (wideString.Length() > MAX_PREF_LENGTH) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         rv = SetCharPref(aPrefName, NS_ConvertUTF16toUTF8(wideString).get());
       }
     }
@@ -419,6 +425,9 @@ NS_IMETHODIMP nsPrefBranch::SetComplexValue(const char *aPrefName, const nsIID &
 
       rv = theString->GetData(getter_Copies(wideString));
       if (NS_SUCCEEDED(rv)) {
+        if (wideString.Length() > MAX_PREF_LENGTH) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         rv = SetCharPref(aPrefName, NS_ConvertUTF16toUTF8(wideString).get());
       }
     }
