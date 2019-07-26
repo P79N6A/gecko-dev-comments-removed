@@ -132,6 +132,11 @@ class EncapsulatedPtr
 
     ~EncapsulatedPtr() { pre(); }
 
+    void init(T *v) {
+        JS_ASSERT(!IsPoisonedPtr<T>(v));
+        this->value = v;
+    }
+
     
     void clear() {
         pre();

@@ -40,6 +40,11 @@
 #  include <sys/mman.h>
 # endif
 
+#if USE_NEW_OBJECT_REPRESENTATION
+
+#  error "TypedArray support for new object representation unimplemented."
+#endif
+
 using namespace js;
 using namespace js::gc;
 using namespace js::types;
@@ -270,26 +275,54 @@ ArrayBufferObject::allocateSlots(JSContext *maybecx, uint32_t bytes, uint8_t *co
     return true;
 }
 
-static HeapPtr<ArrayBufferViewObject> *
+static inline void
+PostBarrierTypedArrayObject(JSObject *obj)
+{
+#ifdef JSGC_GENERATIONAL
+    JS_ASSERT(obj);
+    JSRuntime *rt = obj->runtime();
+    if (!rt->isHeapBusy() && !IsInsideNursery(rt, obj))
+        rt->gcStoreBuffer.putWholeCell(obj);
+#endif
+}
+
+
+
+
+
+
+
+struct OldObjectRepresentationHack {
+    uint32_t capacity;
+    uint32_t initializedLength;
+    EncapsulatedPtr<ArrayBufferViewObject> views;
+};
+
+static ArrayBufferViewObject *
 GetViewList(ArrayBufferObject *obj)
 {
-#if USE_NEW_OBJECT_REPRESENTATION
-    
-    return obj->getElementsHeader()->asArrayBufferElements().viewList();
-#else
-    
-    
-    
-    
-    
-    
-    struct OldObjectRepresentationHack {
-            uint32_t capacity;
-            uint32_t initializedLength;
-            HeapPtr<ArrayBufferViewObject> views;
-    };
-    return &reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views;
-#endif
+    return reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views;
+}
+
+static void
+SetViewList(ArrayBufferObject *obj, ArrayBufferViewObject *viewsHead)
+{
+    reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views = viewsHead;
+    PostBarrierTypedArrayObject(obj);
+}
+
+static void
+InitViewList(ArrayBufferObject *obj, ArrayBufferViewObject *viewsHead)
+{
+    reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views.init(viewsHead);
+    PostBarrierTypedArrayObject(obj);
+}
+
+static EncapsulatedPtr<ArrayBufferViewObject> &
+GetViewListRef(ArrayBufferObject *obj)
+{
+    JS_ASSERT(obj->runtime()->isHeapBusy());
+    return reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views;
 }
 
 void
@@ -298,7 +331,7 @@ ArrayBufferObject::changeContents(JSContext *maybecx, ObjectElements *newHeader)
    
    uint32_t byteLengthCopy = byteLength();
    uintptr_t oldDataPointer = uintptr_t(dataPointer());
-   ArrayBufferViewObject *viewListHead = *GetViewList(this);
+   ArrayBufferViewObject *viewListHead = GetViewList(this);
 
    
    uintptr_t newDataPointer = uintptr_t(newHeader->elements());
@@ -316,7 +349,7 @@ ArrayBufferObject::changeContents(JSContext *maybecx, ObjectElements *newHeader)
 
    
    ArrayBufferObject::setElementsHeader(newHeader, byteLengthCopy);
-   *GetViewList(this) = viewListHead;
+   SetViewList(this, viewListHead);
 }
 
 bool
@@ -461,31 +494,6 @@ ArrayBufferObject::neuterAsmJSArrayBuffer(ArrayBufferObject &buffer)
 }
 #endif
 
-#ifdef JSGC_GENERATIONAL
-class WeakObjectSlotRef : public js::gc::BufferableRef
-{
-    JSObject *owner;
-    size_t slot;
-    const char *desc;
-
-  public:
-    explicit WeakObjectSlotRef(JSObject *owner, size_t slot, const char desc[])
-      : owner(owner), slot(slot), desc(desc)
-    {
-    }
-
-    virtual void mark(JSTracer *trc) {
-        MarkObjectUnbarriered(trc, &owner, "weak TypeArrayView ref");
-        JSObject *obj = static_cast<JSObject*>(owner->getFixedSlot(slot).toPrivate());
-        if (obj && obj != UNSET_BUFFER_LINK) {
-            JS_SET_TRACING_LOCATION(trc, (void*)&owner->getFixedSlotRef(slot));
-            MarkObjectUnbarriered(trc, &obj, desc);
-        }
-        owner->setFixedSlot(slot, PrivateValue(obj));
-    }
-};
-#endif
-
 void
 ArrayBufferObject::addView(ArrayBufferViewObject *view)
 {
@@ -497,16 +505,16 @@ ArrayBufferObject::addView(ArrayBufferViewObject *view)
     
     
 
-    HeapPtr<ArrayBufferViewObject> *views = GetViewList(this);
-    if (*views == NULL) {
+    ArrayBufferViewObject *viewsHead = GetViewList(this);
+    if (viewsHead == NULL) {
         
         
         JS_ASSERT(view->nextView() == NULL);
     } else {
-        view->prependToViews(views);
+        view->prependToViews(viewsHead);
     }
 
-    *views = view;
+    SetViewList(this, view);
 }
 
 JSObject *
@@ -588,10 +596,10 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
                                  uint8_t **data)
 {
     ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
-    ArrayBufferViewObject *views = *GetViewList(&buffer);
+    ArrayBufferViewObject *views = GetViewList(&buffer);
     js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
     if (buffer.hasDynamicElements() && !buffer.isAsmJSArrayBuffer()) {
-        *GetViewList(&buffer) = NULL;
+        SetViewList(&buffer, NULL);
         *contents = header;
         *data = buffer.dataPointer();
 
@@ -616,7 +624,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
 
     
     ArrayBufferObject::setElementsHeader(header, 0);
-    GetViewList(&buffer)->init(views);
+    InitViewList(&buffer, views);
     for (ArrayBufferViewObject *view = views; view; view = view->nextView())
         view->neuter();
 
@@ -649,16 +657,15 @@ ArrayBufferObject::obj_trace(JSTracer *trc, JSObject *obj)
     
     
 
-    HeapPtr<ArrayBufferViewObject> *views = GetViewList(&obj->as<ArrayBufferObject>());
-    if (!*views)
+    ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
+    ArrayBufferViewObject *viewsHead = GetViewList(&buffer);
+    if (!viewsHead)
         return;
 
     
-    
-    
     if (trc->runtime->isHeapMinorCollecting()) {
-        MarkObject(trc, views, "arraybuffer.viewlist");
-        ArrayBufferViewObject *prior = views->get();
+        MarkObject(trc, &GetViewListRef(&buffer), "arraybuffer.viewlist");
+        ArrayBufferViewObject *prior = GetViewList(&buffer);
         for (ArrayBufferViewObject *view = prior->nextView();
              view;
              prior = view, view = view->nextView())
@@ -669,13 +676,13 @@ ArrayBufferObject::obj_trace(JSTracer *trc, JSObject *obj)
         return;
     }
 
-    ArrayBufferViewObject *firstView = *views;
+    ArrayBufferViewObject *firstView = viewsHead;
     if (firstView->nextView() == NULL) {
         
         
         
         if (IS_GC_MARKING_TRACER(trc))
-            MarkObject(trc, views, "arraybuffer.singleview");
+            MarkObject(trc, &GetViewListRef(&buffer), "arraybuffer.singleview");
     } else {
         
         if (IS_GC_MARKING_TRACER(trc)) {
@@ -691,7 +698,7 @@ ArrayBufferObject::obj_trace(JSTracer *trc, JSObject *obj)
                 bool found = false;
                 for (ArrayBufferObject *p = obj->compartment()->gcLiveArrayBuffers;
                      p;
-                     p = (*GetViewList(p))->bufferLink())
+                     p = GetViewList(p)->bufferLink())
                 {
                     if (p == obj)
                         found = true;
@@ -711,17 +718,17 @@ ArrayBufferObject::sweep(JSCompartment *compartment)
     compartment->gcLiveArrayBuffers = NULL;
 
     while (buffer) {
-        HeapPtr<ArrayBufferViewObject> *views = GetViewList(buffer);
-        JS_ASSERT(*views);
+        ArrayBufferViewObject *viewsHead = GetViewList(buffer);
+        JS_ASSERT(viewsHead);
 
-        ArrayBufferObject *nextBuffer = (*views)->bufferLink();
+        ArrayBufferObject *nextBuffer = viewsHead->bufferLink();
         JS_ASSERT(nextBuffer != UNSET_BUFFER_LINK);
-        (*views)->setBufferLink(UNSET_BUFFER_LINK);
+        viewsHead->setBufferLink(UNSET_BUFFER_LINK);
 
         
         
         ArrayBufferViewObject *prevLiveView = NULL;
-        ArrayBufferViewObject *view = *views;
+        ArrayBufferViewObject *view = viewsHead;
         while (view) {
             JS_ASSERT(buffer->compartment() == view->compartment());
             ArrayBufferViewObject *nextView = view->nextView();
@@ -731,7 +738,7 @@ ArrayBufferObject::sweep(JSCompartment *compartment)
             }
             view = nextView;
         }
-        *(views->unsafeGet()) = prevLiveView;
+        SetViewList(buffer, prevLiveView);
 
         buffer = nextBuffer;
     }
@@ -745,7 +752,7 @@ ArrayBufferObject::resetArrayBufferList(JSCompartment *comp)
     comp->gcLiveArrayBuffers = NULL;
 
     while (buffer) {
-        ArrayBufferViewObject *view = *GetViewList(buffer);
+        ArrayBufferViewObject *view = GetViewList(buffer);
         JS_ASSERT(view);
 
         ArrayBufferObject *nextBuffer = view->bufferLink();
@@ -765,7 +772,7 @@ ArrayBufferObject::saveArrayBufferList(JSCompartment *comp, ArrayBufferVector &v
         if (!vector.append(buffer))
             return false;
 
-        ArrayBufferViewObject *view = *GetViewList(buffer);
+        ArrayBufferViewObject *view = GetViewList(buffer);
         JS_ASSERT(view);
         buffer = view->bufferLink();
     }
@@ -778,7 +785,7 @@ ArrayBufferObject::restoreArrayBufferLists(ArrayBufferVector &vector)
     for (ArrayBufferObject **p = vector.begin(); p != vector.end(); p++) {
         ArrayBufferObject *buffer = *p;
         JSCompartment *comp = buffer->compartment();
-        ArrayBufferViewObject *firstView = *GetViewList(buffer);
+        ArrayBufferViewObject *firstView = GetViewList(buffer);
         JS_ASSERT(firstView);
         JS_ASSERT(firstView->compartment() == comp);
         JS_ASSERT(firstView->bufferLink() == UNSET_BUFFER_LINK);
@@ -1116,12 +1123,14 @@ inline void
 ArrayBufferViewObject::setBufferLink(ArrayBufferObject *buffer)
 {
     setFixedSlot(NEXT_BUFFER_SLOT, PrivateValue(buffer));
+    PostBarrierTypedArrayObject(this);
 }
 
 inline void
 ArrayBufferViewObject::setNextView(ArrayBufferViewObject *view)
 {
     setFixedSlot(NEXT_VIEW_SLOT, PrivateValue(view));
+    PostBarrierTypedArrayObject(this);
 }
 
 
@@ -1365,21 +1374,6 @@ template<typename ElementType>
 static inline JSObject *
 NewArray(JSContext *cx, uint32_t nelements);
 
-#ifdef JSGC_GENERATIONAL
-class ArrayBufferViewByteOffsetRef : public gc::BufferableRef
-{
-    JSObject *obj;
-
-  public:
-    explicit ArrayBufferViewByteOffsetRef(JSObject *obj) : obj(obj) {}
-
-    void mark(JSTracer *trc) {
-        MarkObjectUnbarriered(trc, &obj, "TypedArray");
-        obj->getClass()->trace(trc, obj);
-    }
-};
-#endif
-
 static inline void
 InitArrayBufferViewDataPointer(JSObject *obj, ArrayBufferObject *buffer, size_t byteOffset)
 {
@@ -1389,10 +1383,7 @@ InitArrayBufferViewDataPointer(JSObject *obj, ArrayBufferObject *buffer, size_t 
 
 
     obj->initPrivate(buffer->dataPointer() + byteOffset);
-#ifdef JSGC_GENERATIONAL
-    if (IsInsideNursery(obj->runtime(), buffer) && buffer->hasFixedElements())
-        obj->runtime()->gcStoreBuffer.putGeneric(ArrayBufferViewByteOffsetRef(obj));
-#endif
+    PostBarrierTypedArrayObject(obj);
 }
 
 template<typename NativeType>
@@ -2646,27 +2637,15 @@ ArrayBufferObject::createTypedArrayFromBuffer(JSContext *cx, unsigned argc, Valu
     return CallNonGenericMethod<IsArrayBuffer, createTypedArrayFromBufferImpl<T> >(cx, args);
 }
 
-
-
-static void
-WeakObjectSlotBarrierPost(JSObject *obj, size_t slot, const char *desc)
-{
-#ifdef JSGC_GENERATIONAL
-    obj->runtime()->gcStoreBuffer.putGeneric(WeakObjectSlotRef(obj, slot, desc));
-#endif
-}
-
 void
-ArrayBufferViewObject::prependToViews(HeapPtr<ArrayBufferViewObject> *views)
+ArrayBufferViewObject::prependToViews(ArrayBufferViewObject *viewsHead)
 {
-    setNextView(*views);
-    WeakObjectSlotBarrierPost(this, NEXT_VIEW_SLOT, "arraybuffer.nextview");
+    setNextView(viewsHead);
 
     
     
-    setBufferLink((*views)->bufferLink());
-    (*views)->setBufferLink(UNSET_BUFFER_LINK);
-    WeakObjectSlotBarrierPost(this, NEXT_BUFFER_SLOT, "view.nextbuffer");
+    setBufferLink(viewsHead->bufferLink());
+    viewsHead->setBufferLink(UNSET_BUFFER_LINK);
 }
 
 void
@@ -4087,7 +4066,7 @@ JS_NewArrayBufferWithContents(JSContext *cx, void *contents)
     if (!obj)
         return NULL;
     obj->setDynamicElements(reinterpret_cast<js::ObjectElements *>(contents));
-    JS_ASSERT(*GetViewList(&obj->as<ArrayBufferObject>()) == NULL);
+    JS_ASSERT(GetViewList(&obj->as<ArrayBufferObject>()) == NULL);
     return obj;
 }
 
