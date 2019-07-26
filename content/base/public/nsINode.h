@@ -414,7 +414,9 @@ protected:
   
   mozilla::dom::ParentObject GetParentObjectInternal(nsINode* aNativeParent) const {
     mozilla::dom::ParentObject p(aNativeParent);
-    p.mUseXBLScope = ChromeOnlyAccess();
+    
+    
+    p.mUseXBLScope = IsInAnonymousSubtree();
     return p;
   }
 
