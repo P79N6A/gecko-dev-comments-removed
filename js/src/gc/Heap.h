@@ -85,6 +85,7 @@ struct Cell
     MOZ_ALWAYS_INLINE bool markIfUnmarked(uint32_t color = BLACK) const;
     MOZ_ALWAYS_INLINE void unmark(uint32_t color) const;
 
+    inline JSRuntime *runtime() const;
     inline JSCompartment *compartment() const;
     inline Zone *zone() const;
 
@@ -593,7 +594,7 @@ struct ChunkInfo
 
 
 
-    char            padding[12];
+    char            padding[16];
 #endif
 
     
@@ -611,6 +612,9 @@ struct ChunkInfo
 
     
     uint32_t        age;
+
+    
+    JSRuntime       *runtime;
 };
 
 
@@ -945,6 +949,12 @@ Cell::chunk() const
     JS_ASSERT(addr % CellSize == 0);
     addr &= ~(ChunkSize - 1);
     return reinterpret_cast<Chunk *>(addr);
+}
+
+inline JSRuntime *
+Cell::runtime() const
+{
+    return chunk()->info.runtime;
 }
 
 AllocKind
