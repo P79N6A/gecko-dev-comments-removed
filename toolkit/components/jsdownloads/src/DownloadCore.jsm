@@ -434,6 +434,12 @@ DownloadSource.prototype = {
 
 
   isPrivate: false,
+
+  
+
+
+
+  referrer: null,
 };
 
 
@@ -606,6 +612,9 @@ DownloadCopySaver.prototype = {
       let channel = NetUtil.newChannel(download.source.uri);
       if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
         channel.setPrivate(download.source.isPrivate);
+      }
+      if (channel instanceof Ci.nsIHttpChannel) {
+        channel.referrer = download.source.referrer;
       }
 
       channel.notificationCallbacks = {

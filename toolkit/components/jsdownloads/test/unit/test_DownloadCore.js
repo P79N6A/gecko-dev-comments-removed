@@ -28,11 +28,62 @@ add_task(function test_download_construction()
   
   do_check_true(download.source.uri.equals(TEST_SOURCE_URI));
   do_check_eq(download.target.file, targetFile);
+  do_check_true(download.source.referrer === null);
 
   
   yield download.start();
 
   yield promiseVerifyContents(targetFile, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_download_referrer()
+{
+  let source_path = "/test_download_referrer.txt";
+  let source_uri = NetUtil.newURI(HTTP_BASE + source_path);
+  let target_uri = getTempFile(TEST_TARGET_FILE_NAME);
+
+  function cleanup() {
+    gHttpServer.registerPathHandler(source_path, null);
+  }
+
+  do_register_cleanup(cleanup);
+
+  gHttpServer.registerPathHandler(source_path, function (aRequest, aResponse) {
+    aResponse.setHeader("Content-Type", "text/plain", false);
+
+    do_check_true(aRequest.hasHeader("Referer"));
+    do_check_eq(aRequest.getHeader("Referer"), TEST_REFERRER_URI.spec);
+  });
+  let download = yield Downloads.createDownload({
+    source: { uri: source_uri, referrer: TEST_REFERRER_URI },
+    target: { file: target_uri },
+    saver: { type: "copy" },
+  });
+  do_check_true(download.source.referrer.equals(TEST_REFERRER_URI));
+  yield download.start();
+
+  download = yield Downloads.createDownload({
+    source: { uri: source_uri, referrer: TEST_REFERRER_URI, isPrivate: true },
+    target: { file: target_uri },
+    saver: { type: "copy" },
+  });
+  do_check_true(download.source.referrer.equals(TEST_REFERRER_URI));
+  yield download.start();
+
+  
+  source_uri = NetUtil.newURI("data:text/html,<html><body></body></html>");
+  download = yield Downloads.createDownload({
+    source: { uri: source_uri, referrer: TEST_REFERRER_URI },
+    target: { file: target_uri },
+    saver: { type: "copy" },
+  });
+  do_check_true(download.source.referrer.equals(TEST_REFERRER_URI));
+  yield download.start();
+
+  cleanup();
 });
 
 
@@ -750,3 +801,4 @@ add_task(function test_download_cancel_immediately_restart_and_check_startTime()
   yield download.start();
   do_check_true(download.startTime.getTime() > startTime.getTime());
 });
+
