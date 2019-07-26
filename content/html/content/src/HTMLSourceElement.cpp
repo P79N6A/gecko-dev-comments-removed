@@ -5,6 +5,7 @@
 
 
 #include "mozilla/dom/HTMLSourceElement.h"
+#include "mozilla/dom/HTMLSourceElementBinding.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Source)
 DOMCI_NODE_DATA(HTMLSourceElement, mozilla::dom::HTMLSourceElement)
@@ -15,6 +16,7 @@ namespace dom {
 HTMLSourceElement::HTMLSourceElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  SetIsDOMBinding();
 }
 
 HTMLSourceElement::~HTMLSourceElement()
@@ -73,6 +75,13 @@ HTMLSourceElement::BindToTree(nsIDocument *aDocument,
   media->NotifyAddedSource();
 
   return NS_OK;
+}
+
+JSObject*
+HTMLSourceElement::WrapNode(JSContext* aCx, JSObject* aScope,
+                            bool* aTriedToWrap)
+{
+  return HTMLSourceElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
