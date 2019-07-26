@@ -21,6 +21,7 @@
 #include "GeckoProfiler.h"
 #include "jsdbgapi.h"
 #include "jsfriendapi.h"
+#include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/EventTargetBinding.h"
 #include "mozilla/DebugOnly.h"
@@ -28,6 +29,7 @@
 #include "mozilla/Util.h"
 #include <Navigator.h>
 #include "nsContentUtils.h"
+#include "nsCycleCollector.h"
 #include "nsDOMJSUtils.h"
 #include "nsLayoutStatics.h"
 #include "nsNetUtil.h"
@@ -748,19 +750,10 @@ CTypesActivityCallback(JSContext* aCx,
 }
 
 JSContext*
-CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
+CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSRuntime* aRuntime)
 {
   aWorkerPrivate->AssertIsOnWorkerThread();
   NS_ASSERTION(!aWorkerPrivate->GetJSContext(), "Already has a context!");
-
-  
-  
-  JSRuntime* runtime =
-    JS_NewRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE, JS_NO_HELPER_THREADS);
-  if (!runtime) {
-    NS_WARNING("Could not create new runtime!");
-    return nullptr;
-  }
 
   JSSettings settings;
   aWorkerPrivate->CopyJSSettings(settings);
@@ -779,45 +772,44 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
     const JSSettings::JSGCSetting& setting = gcSettings[index];
     if (setting.IsSet()) {
       NS_ASSERTION(setting.value, "Can't handle 0 values!");
-      JS_SetGCParameter(runtime, setting.key, setting.value);
+      JS_SetGCParameter(aRuntime, setting.key, setting.value);
     }
   }
 
-  JS_SetNativeStackQuota(runtime, WORKER_CONTEXT_NATIVE_STACK_LIMIT);
+  JS_SetNativeStackQuota(aRuntime, WORKER_CONTEXT_NATIVE_STACK_LIMIT);
 
   
   static JSSecurityCallbacks securityCallbacks = {
     NULL,
     ContentSecurityPolicyAllows
   };
-  JS_SetSecurityCallbacks(runtime, &securityCallbacks);
+  JS_SetSecurityCallbacks(aRuntime, &securityCallbacks);
 
   
   static js::DOMCallbacks DOMCallbacks = {
     InstanceClassHasProtoAtDepth
   };
-  SetDOMCallbacks(runtime, &DOMCallbacks);
+  SetDOMCallbacks(aRuntime, &DOMCallbacks);
 
-  JSContext* workerCx = JS_NewContext(runtime, 0);
+  JSContext* workerCx = JS_NewContext(aRuntime, 0);
   if (!workerCx) {
-    JS_DestroyRuntime(runtime);
     NS_WARNING("Could not create new context!");
     return nullptr;
   }
 
-  JS_SetRuntimePrivate(runtime, aWorkerPrivate);
+  JS_SetRuntimePrivate(aRuntime, aWorkerPrivate);
 
   JS_SetErrorReporter(workerCx, ErrorReporter);
 
   JS_SetOperationCallback(workerCx, OperationCallback);
 
-  js::SetCTypesActivityCallback(runtime, CTypesActivityCallback);
+  js::SetCTypesActivityCallback(aRuntime, CTypesActivityCallback);
 
   JS_SetOptions(workerCx,
                 aWorkerPrivate->IsChromeWorker() ? settings.chrome.options :
                                                    settings.content.options);
 
-  JS_SetJitHardening(runtime, settings.jitHardening);
+  JS_SetJitHardening(aRuntime, settings.jitHardening);
 
 #ifdef JS_GC_ZEAL
   JS_SetGCZeal(workerCx, settings.gcZeal, settings.gcZealFrequency);
@@ -825,6 +817,57 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
 
   return workerCx;
 }
+
+class WorkerJSRuntime : public mozilla::CycleCollectedJSRuntime
+{
+public:
+  
+  
+  WorkerJSRuntime(WorkerPrivate* aWorkerPrivate)
+  : CycleCollectedJSRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE,
+                            JS_NO_HELPER_THREADS)
+  {
+    
+    
+    
+    
+    
+    mLastJSContext = JS_NewContext(Runtime(), 0);
+    MOZ_ASSERT(mLastJSContext);
+  }
+
+  ~WorkerJSRuntime()
+  {
+    
+    
+    
+    
+    
+    nsCycleCollector_shutdownThreads();
+    nsCycleCollector_shutdown();
+    JS_DestroyContext(mLastJSContext);
+    mLastJSContext = nullptr;
+  }
+
+  
+  JSRuntime*
+  Runtime() const
+  {
+    return mozilla::CycleCollectedJSRuntime::Runtime();
+  }
+
+  void
+  DispatchDeferredDeletion(bool aContinuation) MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(!aContinuation);
+
+    
+    nsCycleCollector_doDeferredDeletion();
+  }
+
+private:
+  JSContext* mLastJSContext;
+};
 
 class WorkerThreadRunnable : public nsRunnable
 {
@@ -845,50 +888,45 @@ public:
 
     workerPrivate->AssertIsOnWorkerThread();
 
-    JSContext* cx = CreateJSContextForWorker(workerPrivate);
-    if (!cx) {
-      
-      NS_ERROR("Failed to create runtime and context!");
-      return NS_ERROR_FAILURE;
-    }
-
-    JSRuntime* rt = JS_GetRuntime(cx);
-
-    char aLocal;
-    profiler_register_thread("WebWorker", &aLocal);
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    if (PseudoStack* stack = mozilla_get_pseudo_stack())
-      stack->sampleRuntime(rt);
-#endif
-
     {
-      JSAutoRequest ar(cx);
-      workerPrivate->DoRunLoop(cx);
-    }
+      nsCycleCollector_startup(CCSingleThread);
 
-    
-    
-    
-    
-    
-    
-    
-    
-    JSContext* dummyCx = JS_NewContext(rt, 0);
-    if (dummyCx) {
+      WorkerJSRuntime runtime(workerPrivate);
+      JSRuntime* rt = runtime.Runtime();
+      JSContext* cx = CreateJSContextForWorker(workerPrivate, rt);
+      if (!cx) {
+        
+        NS_ERROR("Failed to create runtime and context!");
+        return NS_ERROR_FAILURE;
+      }
+
+      char aLocal;
+      profiler_register_thread("WebWorker", &aLocal);
+  #ifdef MOZ_ENABLE_PROFILER_SPS
+      if (PseudoStack* stack = mozilla_get_pseudo_stack())
+        stack->sampleRuntime(rt);
+  #endif
+
+      {
+        JSAutoRequest ar(cx);
+        workerPrivate->DoRunLoop(cx);
+      }
+
+      
+      
+      
       JS_DestroyContext(cx);
-      JS_DestroyContext(dummyCx);
-    }
-    else {
-      NS_WARNING("Failed to create dummy context!");
-      JS_DestroyContext(cx);
+
+      
+      
+      
+      
     }
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
     if (PseudoStack* stack = mozilla_get_pseudo_stack())
       stack->sampleRuntime(nullptr);
 #endif
-    JS_DestroyRuntime(rt);
 
     workerPrivate->ScheduleDeletion(false);
     profiler_unregister_thread();
