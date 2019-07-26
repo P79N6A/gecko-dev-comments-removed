@@ -13,4 +13,5 @@ function testReduceThrows() {
   }, TypeError);
 }
 
-testReduceThrows();
+
+
