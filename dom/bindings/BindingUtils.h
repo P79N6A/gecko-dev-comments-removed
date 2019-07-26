@@ -367,24 +367,6 @@ DefineUnforgeableAttributes(JSContext* cx, JSObject* obj,
 bool
 DefineWebIDLBindingPropertiesOnXPCProto(JSContext* cx, JSObject* proto, const NativeProperties* properties);
 
-
-
-
-inline bool
-MaybeWrapValue(JSContext* cx, JS::Value* vp)
-{
-  if (vp->isGCThing()) {
-    void* gcthing = vp->toGCThing();
-    
-    if (gcthing &&
-        js::GetGCThingCompartment(gcthing) != js::GetContextCompartment(cx)) {
-      return JS_WrapValue(cx, vp);
-    }
-  }
-
-  return true;
-}
-
 #ifdef _MSC_VER
 #define HAS_MEMBER_CHECK(_name)                                           \
   template<typename V> static yes& Check(char (*)[(&V::_name == 0) + 1])
@@ -518,6 +500,42 @@ SetSystemOnlyWrapper(JSObject* obj, nsWrapperCache* cache, JSObject& wrapper)
 {
   SetSystemOnlyWrapperSlot(obj, JS::ObjectValue(wrapper));
   cache->SetHasSystemOnlyWrapper();
+}
+
+
+
+
+MOZ_ALWAYS_INLINE bool
+MaybeWrapValue(JSContext* cx, JS::Value* vp)
+{
+  if (vp->isGCThing()) {
+    void* gcthing = vp->toGCThing();
+    
+    if (gcthing &&
+        js::GetGCThingCompartment(gcthing) != js::GetContextCompartment(cx)) {
+      return JS_WrapValue(cx, vp);
+    }
+
+    
+    
+    if (vp->isObject()) {
+      JSObject* obj = &vp->toObject();
+      if (GetSameCompartmentWrapperForDOMBinding(obj)) {
+        
+        *vp = JS::ObjectValue(*obj);
+        return true;
+      }
+
+      if (!IS_SLIM_WRAPPER(obj)) {
+        
+        return JS_WrapValue(cx, vp);
+      }
+
+      
+    }
+  }
+
+  return true;
 }
 
 static inline void
