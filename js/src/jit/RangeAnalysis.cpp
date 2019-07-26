@@ -436,6 +436,14 @@ Range::Range(const MDefinition *def)
         }
     }
 
+    
+    
+    
+    
+    
+    if (!hasInt32UpperBound() && def->isUrsh() && def->toUrsh()->bailoutsDisabled())
+        lower_ = INT32_MIN;
+
     assertInvariants();
 }
 
@@ -1072,8 +1080,6 @@ MUrsh::computeRange()
     }
 
     JS_ASSERT(range()->lower() >= 0);
-    if (type() == MIRType_Int32 && !range()->hasInt32UpperBound())
-        range()->extendUInt32ToInt32Min();
 }
 
 void

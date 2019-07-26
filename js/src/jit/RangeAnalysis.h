@@ -517,14 +517,6 @@ class Range : public TempObject {
     
     void wrapAroundToBoolean();
 
-    
-    
-    
-    void extendUInt32ToInt32Min() {
-        JS_ASSERT(!hasInt32UpperBound());
-        lower_ = JSVAL_INT_MIN;
-    }
-
     const SymbolicBound *symbolicLower() const {
         return symbolicLower_;
     }

@@ -1466,9 +1466,9 @@ MMul::canOverflow()
 }
 
 bool
-MUrsh::canOverflow()
+MUrsh::fallible()
 {
-    if (!canOverflow_)
+    if (bailoutsDisabled())
         return false;
     return !range() || !range()->hasInt32Bounds();
 }
@@ -2013,7 +2013,14 @@ MUrsh::NewAsmJS(MDefinition *left, MDefinition *right)
 {
     MUrsh *ins = new MUrsh(left, right);
     ins->specializeForAsmJS();
-    ins->canOverflow_ = false;
+
+    
+    
+    
+    
+    
+    ins->bailoutsDisabled_ = true;
+
     return ins;
 }
 
