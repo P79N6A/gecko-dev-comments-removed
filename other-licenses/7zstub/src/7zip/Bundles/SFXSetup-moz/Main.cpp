@@ -134,12 +134,86 @@ static inline bool IsItWindowsNT()
 }
 #endif
 
+
+
+
+struct AutoLoadSystemDependencies
+{
+  AutoLoadSystemDependencies()
+  {
+    static LPCWSTR delayDLLs[] = { L"dwmapi.dll" };
+    WCHAR systemDirectory[MAX_PATH + 1] = { L'\0' };
+    
+    
+    GetSystemDirectoryW(systemDirectory, MAX_PATH + 1);
+    size_t systemDirLen = wcslen(systemDirectory);
+
+    
+    if (systemDirectory[systemDirLen - 1] != L'\\' && systemDirLen) {
+      systemDirectory[systemDirLen] = L'\\';
+      ++systemDirLen;
+      
+    }
+
+    
+    for (size_t i = 0; i < sizeof(delayDLLs) / sizeof(delayDLLs[0]); ++i) {
+      size_t fileLen = wcslen(delayDLLs[i]);
+      wcsncpy(systemDirectory + systemDirLen, delayDLLs[i],
+      MAX_PATH - systemDirLen);
+      if (systemDirLen + fileLen <= MAX_PATH) {
+        systemDirectory[systemDirLen + fileLen] = L'\0';
+      } else {
+        systemDirectory[MAX_PATH] = L'\0';
+      }
+      LPCWSTR fullModulePath = systemDirectory; 
+      LoadLibraryW(fullModulePath);
+    }
+  }
+} loadDLLs;
+
+BOOL
+RemoveCurrentDirFromSearchPath()
+{
+  
+  HMODULE kernel32 = LoadLibraryW(L"kernel32.dll");
+  if (!kernel32) {
+    return FALSE;
+  }
+
+  typedef BOOL (WINAPI *SetDllDirectoryType)(LPCWSTR);
+  SetDllDirectoryType SetDllDirectoryFn =
+    (SetDllDirectoryType)GetProcAddress(kernel32, "SetDllDirectoryW");
+  if (!SetDllDirectoryFn) {
+    FreeLibrary(kernel32);
+    return FALSE;
+  }
+
+  
+  
+  SetDllDirectoryFn(L"");
+  FreeLibrary(kernel32);
+  return TRUE;
+}
+
 int APIENTRY WinMain(
   HINSTANCE hInstance,
   HINSTANCE hPrevInstance,
   LPSTR lpCmdLine,
   int nCmdShow)
 {
+  
+  
+  if (!RemoveCurrentDirFromSearchPath()) {
+    WCHAR minOSTitle[512] = { '\0' };
+    WCHAR minOSText[512] = { '\0' };
+    LoadStringW(NULL, IDS_MIN_OS_TITLE, minOSTitle,
+                sizeof(minOSTitle) / sizeof(minOSTitle[0]));
+    LoadStringW(NULL, IDS_MIN_OS_TEXT, minOSText,
+                sizeof(minOSText) / sizeof(minOSText[0]));
+    MessageBoxW(NULL, minOSText, minOSTitle, MB_OK | MB_ICONERROR);
+    return 1;
+  }
+
   g_hInstance = (HINSTANCE)hInstance;
   #ifndef _UNICODE
   g_IsNT = IsItWindowsNT();
