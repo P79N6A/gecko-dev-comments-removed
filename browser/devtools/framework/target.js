@@ -335,6 +335,19 @@ TabTarget.prototype = {
   
 
 
+  _teardownListeners: function TabTarget__teardownListeners() {
+    if (this._webProgressListener) {
+      this._webProgressListener.destroy();
+    }
+
+    this._tab.ownerDocument.defaultView.removeEventListener("unload", this);
+    this._tab.removeEventListener("TabClose", this);
+    this._tab.parentNode.removeEventListener("TabSelect", this);
+  },
+
+  
+
+
   _setupRemoteListeners: function TabTarget__setupRemoteListeners() {
     this.client.addListener("tabDetached", this.destroy);
 
@@ -356,6 +369,14 @@ TabTarget.prototype = {
       }
     }.bind(this);
     this.client.addListener("tabNavigated", this._onTabNavigated);
+  },
+
+  
+
+
+  _teardownRemoteListeners: function TabTarget__teardownRemoteListeners() {
+    this.client.removeListener("tabNavigated", this._onTabNavigated);
+    this.client.removeListener("tabDetached", this.destroy);
   },
 
   
@@ -412,47 +433,41 @@ TabTarget.prototype = {
     this.off("thread-paused", this._handleThreadState);
 
     if (this._tab) {
-      if (this._webProgressListener) {
-        this._webProgressListener.destroy();
-      }
-
-      this._tab.ownerDocument.defaultView.removeEventListener("unload", this);
-      this._tab.removeEventListener("TabClose", this);
-      this._tab.parentNode.removeEventListener("TabSelect", this);
+      this._teardownListeners();
     }
 
     
     
     if (this._tab && !this._client) {
-      targets.delete(this._tab);
-      this._tab = null;
-      this._client = null;
-      this._form = null;
-      this._remote = null;
-
+      this._cleanup();
       this._destroyer.resolve(null);
     } else if (this._client) {
       
       
-      this.client.removeListener("tabNavigated", this._onTabNavigated);
-      this.client.removeListener("tabDetached", this.destroy);
+      this._teardownRemoteListeners();
 
-      this._client.close(function onClosed() {
-        if (this._tab) {
-          targets.delete(this._tab);
-        } else {
-          promiseTargets.delete(this._form);
-        }
-        this._client = null;
-        this._tab = null;
-        this._form = null;
-        this._remote = null;
-
+      this._client.close(() => {
+        this._cleanup();
         this._destroyer.resolve(null);
-      }.bind(this));
+      });
     }
 
     return this._destroyer.promise;
+  },
+
+  
+
+
+  _cleanup: function TabTarget__cleanup() {
+    if (this._tab) {
+      targets.delete(this._tab);
+    } else {
+      promiseTargets.delete(this._form);
+    }
+    this._client = null;
+    this._tab = null;
+    this._form = null;
+    this._remote = null;
   },
 
   toString: function() {
