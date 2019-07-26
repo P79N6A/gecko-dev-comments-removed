@@ -639,12 +639,6 @@ class InternalHandle<T*>
 
 
 template <typename T>
-struct RootKind
-{
-    static ThingRootKind rootKind() { return T::rootKind(); }
-};
-
-template <typename T>
 struct RootKind<T *>
 {
     static ThingRootKind rootKind() { return T::rootKind(); }
@@ -798,7 +792,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 #endif
 
 #ifdef JSGC_TRACK_EXACT_ROOTS
-    Rooted<T> *previous() { return reinterpret_cast<Rooted<T>*>(prev); }
+    Rooted<T> *previous() { return prev; }
 #endif
 
     
@@ -833,12 +827,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 
   private:
 #ifdef JSGC_TRACK_EXACT_ROOTS
-    
-
-
-
-
-    Rooted<void *> **stack, *prev;
+    Rooted<void*> **stack, *prev;
 #endif
 
     
@@ -873,6 +862,61 @@ class RootedBase<JSObject*>
     template <class U>
     JS::Handle<U*> as() const;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename GCType>
+class JS_PUBLIC_API(RootedGeneric)
+{
+  public:
+    JS::Rooted<GCType> rooter;
+
+    explicit RootedGeneric(js::ContextFriendFields *cx)
+        : rooter(cx)
+    {
+    }
+
+    RootedGeneric(js::ContextFriendFields *cx, const GCType &initial)
+        : rooter(cx, initial)
+    {
+    }
+
+    virtual inline void trace(JSTracer *trc);
+
+    operator const GCType&() const { return rooter.get(); }
+    GCType operator->() const { return rooter.get(); }
+};
+
+template <typename GCType>
+inline void RootedGeneric<GCType>::trace(JSTracer *trc)
+{
+    rooter->trace(trc);
+}
+
+
+
+
+
+template <>
+inline void RootedGeneric<void*>::trace(JSTracer *trc)
+{
+    MOZ_ASSUME_UNREACHABLE("RootedGeneric<void*>::trace()");
+}
 
 
 template <typename T>
