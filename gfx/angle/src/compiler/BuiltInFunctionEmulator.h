@@ -28,6 +28,8 @@ public:
     bool SetFunctionCalled(TOperator op, const TType& param);
     bool SetFunctionCalled(
         TOperator op, const TType& param1, const TType& param2);
+    bool SetFunctionCalled(
+        TOperator op, const TType& param1, const TType& param2, const TType& param3);
 
     
     
@@ -60,6 +62,11 @@ private:
         TFunctionDot3_3,  
         TFunctionDot4_4,  
 
+        TFunctionFaceForward1_1_1,  
+        TFunctionFaceForward2_2_2,  
+        TFunctionFaceForward3_3_3,  
+        TFunctionFaceForward4_4_4,  
+
         TFunctionLength1,  
         TFunctionLength2,  
         TFunctionLength3,  
@@ -81,6 +88,8 @@ private:
     TBuiltInFunction IdentifyFunction(TOperator op, const TType& param);
     TBuiltInFunction IdentifyFunction(
         TOperator op, const TType& param1, const TType& param2);
+    TBuiltInFunction IdentifyFunction(
+        TOperator op, const TType& param1, const TType& param2, const TType& param3);
 
     bool SetFunctionCalled(TBuiltInFunction function);
 
