@@ -167,7 +167,7 @@ public class HomePager extends ViewPager {
 
 
 
-    public void show(LoaderManager lm, FragmentManager fm, String panelId, PropertyAnimator animator) {
+    public void load(LoaderManager lm, FragmentManager fm, String panelId, PropertyAnimator animator) {
         mLoaded = true;
         mInitialPanelId = panelId;
 
@@ -178,8 +178,6 @@ public class HomePager extends ViewPager {
         adapter.setOnAddPanelListener(mAddPanelListener);
         adapter.setCanLoadHint(!shouldAnimate);
         setAdapter(adapter);
-
-        setVisibility(VISIBLE);
 
         
         
@@ -213,9 +211,8 @@ public class HomePager extends ViewPager {
     
 
 
-    public void hide() {
+    public void unload() {
         mLoaded = false;
-        setVisibility(GONE);
         setAdapter(null);
     }
 
@@ -227,7 +224,7 @@ public class HomePager extends ViewPager {
 
 
 
-    public boolean isVisible() {
+    public boolean isLoaded() {
         return mLoaded;
     }
 
