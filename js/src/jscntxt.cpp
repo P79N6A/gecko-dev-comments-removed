@@ -547,13 +547,13 @@ checkReportFlags(JSContext *cx, unsigned *flags)
         JSScript *script = cx->stack.currentScript();
         if (script && script->strict)
             *flags &= ~JSREPORT_WARNING;
-        else if (cx->hasStrictOption())
+        else if (cx->hasExtraWarningsOption())
             *flags |= JSREPORT_WARNING;
         else
             return true;
     } else if (JSREPORT_IS_STRICT(*flags)) {
         
-        if (!cx->hasStrictOption())
+        if (!cx->hasExtraWarningsOption())
             return true;
     }
 
