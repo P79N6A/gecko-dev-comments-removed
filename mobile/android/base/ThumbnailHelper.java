@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class ThumbnailHelper {
     private static final String LOGTAG = "GeckoThumbnailHelper";
 
-    public static final float THUMBNAIL_ASPECT_RATIO = 0.714f;  
+    public static final float THUMBNAIL_ASPECT_RATIO = 0.571f;  
 
     
 
