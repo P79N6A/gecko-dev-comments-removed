@@ -23,8 +23,11 @@
 #include "Image.h"
 #include "ScriptedNotificationObserver.h"
 #include "imgIScriptedNotificationObserver.h"
+#include "gfxPlatform.h"
 
+using namespace mozilla;
 using namespace mozilla::image;
+using namespace mozilla::gfx;
 
 
 
@@ -144,17 +147,33 @@ NS_IMETHODIMP imgTools::EncodeScaledImage(imgIContainer *aContainer,
   
   nsRefPtr<gfxImageSurface> dest = new gfxImageSurface(gfxIntSize(aScaledWidth, aScaledHeight),
                                                        gfxImageFormatARGB32);
-  gfxContext ctx(dest);
+  if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
+    RefPtr<DrawTarget> dt =
+      gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(dest, IntSize(aScaledWidth, aScaledHeight));
+    RefPtr<SourceSurface> source = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(dt, frame);
 
-  
-  gfxFloat sw = (double) aScaledWidth / frameWidth;
-  gfxFloat sh = (double) aScaledHeight / frameHeight;
-  ctx.Scale(sw, sh);
+    dt->DrawSurface(source,
+                    Rect(0, 0, aScaledWidth, aScaledHeight),
+                    Rect(0, 0, frameWidth, frameHeight),
+                    DrawSurfaceOptions(),
+                    DrawOptions(1.0f, OP_SOURCE));
+  } else {
+    gfxContext ctx(dest);
 
-  
-  ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-  ctx.SetSource(frame);
-  ctx.Paint();
+    
+    gfxFloat sw = (double) aScaledWidth / frameWidth;
+    gfxFloat sh = (double) aScaledHeight / frameHeight;
+    ctx.Scale(sw, sh);
+
+    
+    ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
+
+    nsRefPtr<gfxPattern> pat = new gfxPattern(frame);
+    pat->SetExtend(gfxPattern::EXTEND_PAD);
+    ctx.SetPattern(pat);
+    ctx.Paint();
+  }
+
 
   return EncodeImageData(dest, aMimeType, aOutputOptions, aStream);
 }
