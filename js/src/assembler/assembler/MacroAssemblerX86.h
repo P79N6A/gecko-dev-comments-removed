@@ -77,17 +77,17 @@ public:
     {
         m_assembler.addl_im(imm.m_value, address.m_ptr);
     }
-    
+
     void addWithCarry32(Imm32 imm, AbsoluteAddress address)
     {
         m_assembler.adcl_im(imm.m_value, address.m_ptr);
     }
-    
+
     void and32(Imm32 imm, AbsoluteAddress address)
     {
         m_assembler.andl_im(imm.m_value, address.m_ptr);
     }
-    
+
     void or32(TrustedImm32 imm, AbsoluteAddress address)
     {
         m_assembler.orl_im(imm.m_value, address.m_ptr);

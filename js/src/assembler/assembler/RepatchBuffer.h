@@ -129,7 +129,7 @@ public:
     {
         relink(CodeLocationCall(CodePtr(returnAddress)), label);
     }
-    
+
     void relinkCallerToTrampoline(ReturnAddressPtr returnAddress, CodePtr newCalleeFunction)
     {
         relinkCallerToTrampoline(returnAddress, CodeLocationLabel(newCalleeFunction));
@@ -139,12 +139,12 @@ public:
     {
         relink(CodeLocationCall(CodePtr(returnAddress)), function);
     }
-    
+
     void relinkNearCallerToTrampoline(ReturnAddressPtr returnAddress, CodeLocationLabel label)
     {
         relink(CodeLocationNearCall(CodePtr(returnAddress)), label);
     }
-    
+
     void relinkNearCallerToTrampoline(ReturnAddressPtr returnAddress, CodePtr newCalleeFunction)
     {
         relinkNearCallerToTrampoline(returnAddress, CodeLocationLabel(newCalleeFunction));

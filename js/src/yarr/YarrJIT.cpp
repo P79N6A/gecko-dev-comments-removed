@@ -751,7 +751,7 @@ class YarrGenerator : private MacroAssembler {
 
         if (op.m_isDeadCode)
             return true;
-        
+
         
         
         ASSERT(opIndex + 1 < m_ops.size());
@@ -790,7 +790,7 @@ class YarrGenerator : private MacroAssembler {
 
         for (numberCharacters = 1; numberCharacters < maxCharactersAtOnce && nextOp->m_op == OpTerm; ++numberCharacters, nextOp = &m_ops[opIndex + numberCharacters]) {
             PatternTerm* nextTerm = nextOp->m_term;
-            
+
             if (nextTerm->type != PatternTerm::TypePatternCharacter
                 || nextTerm->quantityType != QuantifierFixedCount
                 || nextTerm->quantityCount != 1
@@ -820,7 +820,7 @@ class YarrGenerator : private MacroAssembler {
             allCharacters |= (currentCharacter << shiftAmount);
 
             if ((m_pattern.m_ignoreCase) && (isASCIIAlpha(currentCharacter)))
-                ignoreCaseMask |= 32 << shiftAmount;                    
+                ignoreCaseMask |= 32 << shiftAmount;
         }
 
         if (m_charSize == Char8) {
@@ -1203,7 +1203,7 @@ class YarrGenerator : private MacroAssembler {
 
         move(index, matchPos);
 
-        Label findEOLLoop(this);        
+        Label findEOLLoop(this);
         foundEndingNewLine.append(branch32(Equal, matchPos, length));
         if (m_charSize == Char8)
             load8(BaseIndex(input, matchPos, TimesOne, 0), character);
@@ -1226,7 +1226,7 @@ class YarrGenerator : private MacroAssembler {
     {
         backtrackTermDefault(opIndex);
     }
-    
+
     
     
     
@@ -1417,7 +1417,7 @@ class YarrGenerator : private MacroAssembler {
                 PatternAlternative* alternative = op.m_alternative;
 
                 
-                
+
                 
 #if !WTF_CPU_SPARC
                 removeCallFrame();
@@ -2530,7 +2530,7 @@ class YarrGenerator : private MacroAssembler {
                 lastOp.m_alternative = alternative;
                 lastOp.m_nextOp = thisOpIndex;
                 thisOp.m_previousOp = lastOpIndex;
-                
+
                 ++currentAlternativeIndex;
             } while (currentAlternativeIndex < alternatives.size() && alternatives[currentAlternativeIndex]->onceThrough());
 
@@ -2566,7 +2566,7 @@ class YarrGenerator : private MacroAssembler {
             lastOp.m_alternative = alternative;
             lastOp.m_nextOp = thisOpIndex;
             thisOp.m_previousOp = lastOpIndex;
-            
+
             ++currentAlternativeIndex;
         } while (currentAlternativeIndex < alternatives.size());
         YarrOp& lastOp = m_ops.last();

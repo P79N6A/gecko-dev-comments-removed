@@ -62,14 +62,14 @@ class MacroAssemblerARMv7 : public AbstractMacroAssembler<ARMv7Assembler> {
                 Scale scale;
             };
         } u;
-        
+
         explicit ArmAddress(RegisterID base, int32_t offset = 0)
             : type(HasOffset)
             , base(base)
         {
             u.offset = offset;
         }
-        
+
         explicit ArmAddress(RegisterID base, RegisterID index, Scale scale = TimesOne)
             : type(HasIndex)
             , base(base)
@@ -78,7 +78,7 @@ class MacroAssemblerARMv7 : public AbstractMacroAssembler<ARMv7Assembler> {
             u.scale = scale;
         }
     };
-    
+
 public:
 
     static const Scale ScalePtr = TimesFour;
@@ -264,17 +264,17 @@ public:
     {
         m_assembler.asr(dest, dest, imm.m_value & 0x1f);
     }
-    
+
     void urshift32(RegisterID shift_amount, RegisterID dest)
     {
         
         ARMThumbImmediate armImm = ARMThumbImmediate::makeEncodedImm(0x1f);
         ASSERT(armImm.isValid());
         m_assembler.ARM_and(dataTempRegister, shift_amount, armImm);
-        
+
         m_assembler.lsr(dest, dest, dataTempRegister);
     }
-    
+
     void urshift32(Imm32 imm, RegisterID dest)
     {
         m_assembler.lsr(dest, dest, imm.m_value & 0x1f);
@@ -351,7 +351,6 @@ public:
             m_assembler.eor(dest, dest, dataTempRegister);
         }
     }
-    
 
     
     
@@ -463,7 +462,7 @@ public:
     {
         m_assembler.ldrh(dest, makeBaseIndexBase(address), address.index, address.scale);
     }
-    
+
     void load16(ImplicitAddress address, RegisterID dest)
     {
         m_assembler.ldrh(dest, address.base, address.offset);
@@ -537,7 +536,7 @@ public:
             base = addressTempRegister;
             offset = 0;
         }
-        
+
         m_assembler.vldr(dest, base, offset);
     }
 
@@ -552,7 +551,7 @@ public:
             base = addressTempRegister;
             offset = 0;
         }
-        
+
         m_assembler.vstr(src, base, offset);
     }
 
@@ -638,7 +637,7 @@ public:
     
     
     
-    
+
     void pop(RegisterID dest)
     {
         
@@ -933,7 +932,7 @@ public:
     
     
     
-    
+
     Jump branchAdd32(Condition cond, RegisterID src, RegisterID dest)
     {
         ASSERT((cond == Overflow) || (cond == Signed) || (cond == Zero) || (cond == NonZero));
@@ -990,7 +989,7 @@ public:
         }
         return Jump(makeBranch(cond));
     }
-    
+
 
     
 

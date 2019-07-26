@@ -909,7 +909,7 @@ void test5 ( void )
   JSC::RepatchBuffer repatchBuffer(&cb);
   repatchBuffer.relink( JSC::CodeLocationCall(cp),
                         JSC::FunctionPtr::FunctionPtr( &square ));
- 
+
   result = fn();
   printf("value computed is %lu (expected 81)\n", result);
   printf("\n\n");

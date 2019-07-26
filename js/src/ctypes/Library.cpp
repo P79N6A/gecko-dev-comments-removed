@@ -119,7 +119,7 @@ Library::Create(JSContext* cx, jsval path_, JSCTypesCallbacks* callbacks)
   
   char* pathBytes;
   if (callbacks && callbacks->unicodeToNative) {
-    pathBytes = 
+    pathBytes =
       callbacks->unicodeToNative(cx, pathStr->chars(), pathStr->length());
     if (!pathBytes)
       return nullptr;

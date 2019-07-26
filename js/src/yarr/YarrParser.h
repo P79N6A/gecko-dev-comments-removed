@@ -303,7 +303,7 @@ private:
 
                 unsigned backReference;
                 if (!consumeNumber(backReference))
-                    break; 
+                    break;
                 if (backReference <= m_backReferenceLimit) {
                     delegate.atomBackReference(backReference);
                     break;
@@ -311,7 +311,7 @@ private:
 
                 restoreState(state);
             }
-            
+
             
             if (peek() >= '8') {
                 delegate.atomPatternCharacter('\\');
@@ -392,7 +392,7 @@ private:
         default:
             delegate.atomPatternCharacter(consume());
         }
-        
+
         return true;
     }
 
@@ -470,7 +470,7 @@ private:
             case ':':
                 m_delegate.atomParenthesesSubpatternBegin(false);
                 break;
-            
+
             case '=':
                 m_delegate.atomParentheticalAssertionBegin();
                 break;
@@ -478,7 +478,7 @@ private:
             case '!':
                 m_delegate.atomParentheticalAssertionBegin(true);
                 break;
-            
+
             default:
                 m_err = ParenthesesTypeInvalid;
             }
@@ -669,7 +669,7 @@ private:
     
 
     typedef unsigned ParseState;
-    
+
     ParseState saveState()
     {
         return m_index;

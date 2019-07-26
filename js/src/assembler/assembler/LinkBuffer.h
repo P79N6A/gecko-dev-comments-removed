@@ -91,7 +91,7 @@ public:
         ASSERT(call.isFlagSet(Call::Linkable));
         MacroAssembler::linkCall(code(), call, function);
     }
-    
+
     void link(Jump jump, CodeLocationLabel label)
     {
         MacroAssembler::linkJump(code(), jump, label);

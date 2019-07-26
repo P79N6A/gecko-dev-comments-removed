@@ -180,7 +180,6 @@ private:
                 return pool;
             }
 
-            
             void* current = pool->m_current;
             void* allocationEnd = static_cast<char*>(current) + size;
             ASSERT(allocationEnd > current); 

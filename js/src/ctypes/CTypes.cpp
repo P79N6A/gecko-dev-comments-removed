@@ -2719,7 +2719,7 @@ BuildTypeName(JSContext* cx, JSObject* typeObj_)
         
         PrependString(result, "(");
         AppendString(result, ")");
-      } 
+      }
 
       
       AppendString(result, "[");
@@ -2805,8 +2805,8 @@ BuildTypeName(JSContext* cx, JSObject* typeObj_)
 
 static void
 BuildTypeSource(JSContext* cx,
-                JSObject* typeObj_, 
-                bool makeShort, 
+                JSObject* typeObj_,
+                bool makeShort,
                 AutoString& result)
 {
   RootedObject typeObj(cx, typeObj_);
@@ -2952,9 +2952,9 @@ BuildTypeSource(JSContext* cx,
 
 static bool
 BuildDataSource(JSContext* cx,
-                HandleObject typeObj, 
-                void* data, 
-                bool isImplicit, 
+                HandleObject typeObj,
+                void* data,
+                bool isImplicit,
                 AutoString& result)
 {
   TypeCode type = CType::GetTypeCode(typeObj);

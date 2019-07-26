@@ -248,7 +248,7 @@ public:
         } dpun;
 
         dpun.d = constant;
-        
+
         m_pool[m_numConsts] = dpun.s.lo;
         m_pool[m_numConsts+1] = dpun.s.hi;
         m_mask[m_numConsts] = static_cast<char>(isReusable ? ReusableConst : UniqueConst);

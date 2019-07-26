@@ -647,7 +647,7 @@ HandleException(ResumeFromException *rfe)
             
             
             iter.baselineFrame()->unsetPushedSPSFrame();
- 
+
             if (cx->compartment()->debugMode() && !calledDebugEpilogue) {
                 
                 

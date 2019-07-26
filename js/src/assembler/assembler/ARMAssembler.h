@@ -221,7 +221,7 @@ namespace JSC {
             
             HDT_UH = (1 << 5),
             
-            HDT_IMM = (1 << 22), 
+            HDT_IMM = (1 << 22),
             
             HDT_S = (1 << 6),
             DT_LOAD = (1 << 20)
@@ -556,7 +556,7 @@ namespace JSC {
             ASSERT(size == 8 || size == 16 || size == 32);
             char const * mnemonic_act = (isLoad) ? ("ld") : ("st");
             char const * mnemonic_sign = (isSigned) ? ("s") : ("");
-            
+
             char const * mnemonic_size = NULL;
             switch (size / 8) {
             case 1:
@@ -762,7 +762,7 @@ namespace JSC {
         {
             spew("%-15s %s, [%s, #-%u]",
                  "ldrsh", nameGpReg(rd), nameGpReg(rb), offset);
-            emitInst(static_cast<ARMWord>(cc) | LDRH | HDT_UH | HDT_S | DT_PRE, rd, rb, offset); 
+            emitInst(static_cast<ARMWord>(cc) | LDRH | HDT_UH | HDT_S | DT_PRE, rd, rb, offset);
        }
 
         void ldrsh_u(int rd, int rb, ARMWord offset, Condition cc = AL)
@@ -1296,7 +1296,7 @@ namespace JSC {
 
             if ((op2 & OP2_IMM) || (op2 & OP2_IMMh)) {
                 
-                
+
                 uint32_t    imm = decOp2Imm(op2 & ~(OP2_IMM | OP2_IMMh));
                 sprintf(out, "#0x%x @ (%d)", imm, static_cast<int32_t>(imm));
             } else {
@@ -1315,7 +1315,7 @@ namespace JSC {
                     
                     
                     uint32_t        imm = (op2 >> 7) & 0x1f;
-                    
+
                     
                     if ((type == LSL) && (imm == 0)) {
                         
@@ -1450,11 +1450,11 @@ namespace JSC {
             VFP_DXFER = 0x0C400A00,
 
             VFP_DBL   = (1<<8),
-            
+
             
             VFP_ICVT  = 0x00B80040,
             VFP_FPCVT = 0x00B700C0,
-            
+
             VFP_DTR   = 0x01000000,
             VFP_MOV     = 0x00000010,
 
@@ -1523,16 +1523,16 @@ namespace JSC {
         void fmem_imm_off(bool isLoad, bool isDouble, bool isUp, int dest, int rn, ARMWord offset, Condition cc = AL)
         {
             char const * ins = isLoad ? "vldr.f" : "vstr.f";
-            spew("%s%d %s, [%s, #%s%u]", 
+            spew("%s%d %s, [%s, #%s%u]",
                  ins, (isDouble ? 64 : 32), (isDouble ? nameFpRegD(dest) : nameFpRegS(dest)),
                  nameGpReg(rn), (isUp ? "+" : "-"), offset);
             ASSERT(offset <= 0xff);
-            emitVFPInst(static_cast<ARMWord>(cc) | 
-                        VFP_EXT | VFP_DTR | 
+            emitVFPInst(static_cast<ARMWord>(cc) |
+                        VFP_EXT | VFP_DTR |
                         (isDouble ? VFP_DBL : 0) |
-                        (isUp ? DT_UP : 0) | 
+                        (isUp ? DT_UP : 0) |
                         (isLoad ? DT_LOAD : 0), isDouble ? DD(dest) : SD(dest), RN(rn), offset);
-            
+
         }
 
         
@@ -1542,10 +1542,10 @@ namespace JSC {
             ASSERT(srcType != dstType);
             ASSERT(isFloatType(srcType) || isFloatType(dstType));
 
-            spew("vcvt.%s.%-15s, %s,%s", 
+            spew("vcvt.%s.%-15s, %s,%s",
                  nameType(dstType), nameType(srcType),
                  nameTypedReg(dstType,dest), nameTypedReg(srcType,src));
-            
+
             if (isFloatType(srcType) && isFloatType (dstType)) {
                 
                 bool dblToFloat = srcType == FloatReg64;
@@ -1562,7 +1562,7 @@ namespace JSC {
         void vmov64 (bool fromFP, bool isDbl, int r1, int r2, int rFP, Condition cc = AL)
         {
             if (fromFP) {
-                spew("%-15s %s, %s, %s", "vmov", 
+                spew("%-15s %s, %s, %s", "vmov",
                      nameGpReg(r1), nameGpReg(r2), nameFpRegD(rFP));
             } else {
                 spew("%-15s %s, %s, %s", "vmov",

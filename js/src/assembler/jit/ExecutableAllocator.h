@@ -298,7 +298,7 @@ private:
 
         if ((std::numeric_limits<size_t>::max() - granularity) <= request)
             return OVERSIZE_ALLOCATION;
-        
+
         
         size_t size = request + (granularity - 1);
         size = size & ~(granularity - 1);

@@ -54,7 +54,7 @@ public:
         : m_isCaseInsensitive(isCaseInsensitive)
     {
     }
-    
+
     void reset()
     {
         m_matches.clear();
@@ -122,7 +122,7 @@ public:
             char asciiLo = lo;
             char asciiHi = std::min(hi, (UChar)0x7f);
             addSortedRange(m_ranges, lo, asciiHi);
-            
+
             if (m_isCaseInsensitive) {
                 if ((asciiLo <= 'Z') && (asciiHi >= 'A'))
                     addSortedRange(m_ranges, std::max(asciiLo, 'A')+('a'-'A'), std::min(asciiHi, 'Z')+('a'-'A'));
@@ -135,7 +135,7 @@ public:
 
         lo = std::max(lo, (UChar)0x80);
         addSortedRange(m_rangesUnicode, lo, hi);
-        
+
         if (!m_isCaseInsensitive)
             return;
 
@@ -217,7 +217,7 @@ private:
                 range -= (index+1);
             }
         }
-        
+
         if (pos == matches.size())
             matches.append(ch);
         else
@@ -227,7 +227,7 @@ private:
     void addSortedRange(Vector<CharacterRange>& ranges, UChar lo, UChar hi)
     {
         unsigned end = ranges.size();
-        
+
         
         
         for (unsigned i = 0; i < end; ++i) {
@@ -260,7 +260,7 @@ private:
                     } else
                         break;
                 }
-                
+
                 return;
             }
         }
@@ -303,7 +303,7 @@ public:
         m_alternative = m_pattern.m_body->addNewAlternative();
         m_pattern.m_disjunctions.append(m_pattern.m_body);
     }
-    
+
     void assertionBOL()
     {
         if (!m_alternative->m_terms.size() & !m_invertParentheticalAssertion) {
@@ -384,15 +384,15 @@ public:
         case DigitClassID:
             m_characterClassConstructor.append(invert ? m_pattern.nondigitsCharacterClass() : m_pattern.digitsCharacterClass());
             break;
-        
+
         case SpaceClassID:
             m_characterClassConstructor.append(invert ? m_pattern.nonspacesCharacterClass() : m_pattern.spacesCharacterClass());
             break;
-        
+
         case WordClassID:
             m_characterClassConstructor.append(invert ? m_pattern.nonwordcharCharacterClass() : m_pattern.wordcharCharacterClass());
             break;
-        
+
         default:
             ASSERT_NOT_REACHED();
         }
@@ -507,17 +507,17 @@ public:
             m_pattern.m_disjunctions.append(newDisjunction);
         return newDisjunction;
     }
-    
+
     PatternTerm copyTerm(PatternTerm& term, bool filterStartsWithBOL = false)
     {
         if ((term.type != PatternTerm::TypeParenthesesSubpattern) && (term.type != PatternTerm::TypeParentheticalAssertion))
             return PatternTerm(term);
-        
+
         PatternTerm termCopy = term;
         termCopy.parentheses.disjunction = copyDisjunction(termCopy.parentheses.disjunction, filterStartsWithBOL);
         return termCopy;
     }
-    
+
     void quantifyAtom(unsigned min, unsigned max, bool greedy)
     {
         ASSERT(min <= max);
@@ -694,7 +694,7 @@ public:
         ASSERT(minimumInputSize != UINT_MAX);
         if (minimumInputSize == UINT_MAX)
             return PatternTooLarge;
-        
+
         ASSERT(minimumInputSize != UINT_MAX);
         ASSERT(maximumCallFrameSize >= initialCallFrameSize);
 
@@ -747,10 +747,10 @@ public:
         
         
         PatternDisjunction* disjunction = m_pattern.m_body;
-        
+
         if (!m_pattern.m_containsBOL || m_pattern.m_multiline)
             return;
-        
+
         PatternDisjunction* loopDisjunction = copyDisjunction(disjunction, true);
 
         
@@ -761,7 +761,7 @@ public:
             
             for (unsigned alt = 0; alt < loopDisjunction->m_alternatives.size(); ++alt)
                 disjunction->m_alternatives.append(loopDisjunction->m_alternatives[alt]);
-                
+
             loopDisjunction->m_alternatives.clear();
         }
     }
@@ -814,23 +814,23 @@ public:
                 startsWithBOL = true;
                 ++termIndex;
             }
-            
+
             PatternTerm& firstNonAnchorTerm = terms[termIndex];
             if ((firstNonAnchorTerm.type != PatternTerm::TypeCharacterClass) || (firstNonAnchorTerm.characterClass != m_pattern.newlineCharacterClass()) || !((firstNonAnchorTerm.quantityType == QuantifierGreedy) || (firstNonAnchorTerm.quantityType == QuantifierNonGreedy)))
                 return;
-            
+
             firstExpressionTerm = termIndex + 1;
-            
+
             termIndex = terms.size() - 1;
             if (terms[termIndex].type == PatternTerm::TypeAssertionEOL) {
                 endsWithEOL = true;
                 --termIndex;
             }
-            
+
             PatternTerm& lastNonAnchorTerm = terms[termIndex];
             if ((lastNonAnchorTerm.type != PatternTerm::TypeCharacterClass) || (lastNonAnchorTerm.characterClass != m_pattern.newlineCharacterClass()) || (lastNonAnchorTerm.quantityType != QuantifierGreedy))
                 return;
-            
+
             lastExpressionTerm = termIndex - 1;
 
             if (firstExpressionTerm > lastExpressionTerm)
@@ -844,7 +844,7 @@ public:
                     terms.remove(termIndex - 1);
 
                 terms.append(PatternTerm(startsWithBOL, endsWithEOL));
-                
+
                 m_pattern.m_containsBOL = false;
             }
         }
@@ -869,7 +869,7 @@ ErrorCode YarrPattern::compile(const String& patternString)
 
     if (ErrorCode error = parse(constructor, patternString))
         return error;
-    
+
     
     
     
@@ -893,7 +893,7 @@ ErrorCode YarrPattern::compile(const String& patternString)
     constructor.checkForTerminalParentheses();
     constructor.optimizeDotStarWrappedExpressions();
     constructor.optimizeBOL();
-        
+
     if (ErrorCode error = constructor.setupOffsets())
         return error;
 
