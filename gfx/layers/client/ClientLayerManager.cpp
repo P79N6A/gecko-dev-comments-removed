@@ -408,8 +408,8 @@ ClientLayerManager::ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
     
     
     const gfx3DMatrix& rootTransform = GetRoot()->GetTransform();
-    CSSToLayerScale paintScale = LayerToCSSScale(rootTransform.GetXScale(),
-                                                 rootTransform.GetYScale()).Inverse();
+    CSSToLayerScale paintScale(metrics.mDevPixelsPerCSSPixel / rootTransform.GetXScale(),
+                               metrics.mDevPixelsPerCSSPixel / rootTransform.GetYScale());
     const CSSRect& metricsDisplayPort =
       (aDrawingCritical && !metrics.mCriticalDisplayPort.IsEmpty()) ?
         metrics.mCriticalDisplayPort : metrics.mDisplayPort;
