@@ -103,6 +103,8 @@ BrowserElementChild.prototype = {
     
     this._ctxCounter = 0;
 
+    this._shuttingDown = false;
+
     addEventListener('DOMTitleChanged',
                      this._titleChangedHandler.bind(this),
                       true,
@@ -111,6 +113,16 @@ BrowserElementChild.prototype = {
     addEventListener('DOMLinkAdded',
                      this._iconChangedHandler.bind(this),
                       true,
+                      false);
+
+    
+    
+    
+    
+    
+    addEventListener('unload',
+                     this._unloadHandler.bind(this),
+                      false,
                       false);
 
     
@@ -185,6 +197,10 @@ BrowserElementChild.prototype = {
     Services.obs.addObserver(this,
                              'ask-parent-to-rollback-fullscreen',
                               true);
+
+    Services.obs.addObserver(this,
+                             'xpcom-shutdown',
+                              true);
   },
 
   observe: function(subject, topic, data) {
@@ -201,7 +217,18 @@ BrowserElementChild.prototype = {
       case 'ask-parent-to-rollback-fullscreen':
         sendAsyncMsg('rollback-fullscreen');
         break;
+      case 'xpcom-shutdown':
+        this._shuttingDown = true;
+        break;
     }
+  },
+
+  
+
+
+
+  _unloadHandler: function() {
+    this._shuttingDown = true;
   },
 
   _tryGetInnerWindowID: function(win) {
@@ -275,7 +302,8 @@ BrowserElementChild.prototype = {
 
     let thread = Services.tm.currentThread;
     debug("Nested event loop - begin");
-    while (win.modalDepth == origModalDepth) {
+    while (win.modalDepth == origModalDepth && !this._shuttingDown) {
+      
       
       
       if (this._tryGetInnerWindowID(win) !== innerWindowID) {
