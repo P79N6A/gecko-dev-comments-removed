@@ -34,7 +34,6 @@
 
 #include "nsIMemoryReporter.h"
 #include "nsIMemoryInfoDumper.h"
-#include "nsIMutable.h"
 #include "nsIObserverService.h"
 #include "nsTObserverArray.h"
 #include "nsIObserver.h"
@@ -645,13 +644,6 @@ ContentChild::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
   
   
   nsDOMFileBase* blob = static_cast<nsDOMFileBase*>(aBlob);
-
-  
-  nsCOMPtr<nsIMutable> mutableBlob = do_QueryInterface(aBlob);
-  if (!mutableBlob || NS_FAILED(mutableBlob->SetMutable(false))) {
-    NS_WARNING("Failed to make blob immutable!");
-    return nullptr;
-  }
 
   nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(aBlob);
   if (remoteBlob) {
