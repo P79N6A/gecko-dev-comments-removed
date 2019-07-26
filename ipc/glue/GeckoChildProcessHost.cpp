@@ -74,6 +74,14 @@ struct RunnableMethodTraits<GeckoChildProcessHost>
     static void ReleaseCallee(GeckoChildProcessHost* obj) { }
 };
 
+
+base::ChildPrivileges
+GeckoChildProcessHost::DefaultChildPrivileges()
+{
+  return (kLowRightsSubprocesses ?
+          base::PRIVILEGES_UNPRIVILEGED : base::PRIVILEGES_INHERIT);
+}
+
 GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
                                              ChildPrivileges aPrivileges)
   : ChildProcessHost(RENDER_PROCESS), 
@@ -490,8 +498,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   base::environment_map newEnvVars;
   ChildPrivileges privs = mPrivileges;
   if (privs == base::PRIVILEGES_DEFAULT) {
-    privs = kLowRightsSubprocesses ?
-            base::PRIVILEGES_UNPRIVILEGED : base::PRIVILEGES_INHERIT;
+    privs = DefaultChildPrivileges();
   }
   
   
