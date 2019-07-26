@@ -225,7 +225,7 @@ GrallocBufferActor::GrallocBufferActor()
     
     NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
-    NS_RegisterMemoryReporter(new GrallocReporter());
+    RegisterStrongMemoryReporter(new GrallocReporter());
     registered = true;
   }
 }
