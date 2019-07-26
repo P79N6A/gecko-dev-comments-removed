@@ -207,7 +207,7 @@ public:
   
 
 
-  TimeStamp() : mValue(0) {}
+  MOZ_CONSTEXPR TimeStamp() : mValue(0) {}
   
 
   
