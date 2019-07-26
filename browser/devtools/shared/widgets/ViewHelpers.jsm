@@ -770,22 +770,7 @@ this.WidgetMethods = {
 
 
 
-  setUnavailable: function() {
-    this._widget.setAttribute("notice", this.unavailableText);
-    this._widget.setAttribute("label", this.unavailableText);
-    this._widget.removeAttribute("tooltiptext");
-  },
-
-  
-
-
-
   emptyText: "",
-
-  
-
-
-  unavailableText: "",
 
   
 

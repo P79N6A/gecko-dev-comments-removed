@@ -343,7 +343,6 @@ ChromeGlobalsView.prototype = Heritage.extend(WidgetMethods, {
 
     this.widget = document.getElementById("chrome-globals");
     this.emptyText = L10N.getStr("noGlobalsText");
-    this.unavailableText = L10N.getStr("noMatchingGlobalsText");
 
     this.widget.addEventListener("select", this._onSelect, false);
     this.widget.addEventListener("click", this._onClick, false);
@@ -922,67 +921,6 @@ FilterView.prototype = {
 
   
 
-
-
-
-
-  _performFileSearch: function(aFile) {
-    
-    if (this._prevSearchedFile == aFile) {
-      return;
-    }
-
-    
-    
-    let view = this._target;
-
-    
-    if (!aFile) {
-      for (let item in view) {
-        item.target.hidden = false;
-      }
-      view.refresh();
-    }
-    
-    else {
-      let found = false;
-      let lowerCaseFile = aFile.toLowerCase();
-
-      for (let item in view) {
-        let element = item.target;
-        let lowerCaseLabel = item.label.toLowerCase();
-
-        
-        if (lowerCaseLabel.match(lowerCaseFile)) {
-          element.hidden = false;
-
-          
-          if (!found) {
-            found = true;
-            view.selectedItem = item;
-          }
-        }
-        
-        else {
-          element.hidden = true;
-        }
-      }
-      
-      if (!found) {
-        view.setUnavailable();
-      }
-    }
-    
-    DebuggerView.FilteredSources.syncFileSearch();
-
-    
-    view.widget.hideEmptyGroups();
-
-    
-    view.widget.ensureSelectionIsVisible({ withGroup: true });
-
-    
-    this._prevSearchedFile = aFile;
   },
 
   
@@ -1026,9 +964,6 @@ FilterView.prototype = {
     if (this._prevSearchedLine && !aToken) {
       this._target.refresh();
     }
-
-    
-    this._prevSearchedToken = aToken;
   },
 
   
@@ -1346,39 +1281,84 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
   
 
 
-  syncFileSearch: function() {
-    this.empty();
+
+
+
+
+
+  scheduleSearch: function(aToken, aWait) {
+    
+    let maxDelay = FILE_SEARCH_ACTION_MAX_DELAY;
+    let delay = aWait === undefined ? maxDelay / aToken.length : aWait;
 
     
+    setNamedTimeout("sources-search", delay, () => this._doSearch(aToken));
+  },
+
+  
+
+
+
+
+
+  _doSearch: function(aToken, aStore = []) {
     
-    if (!DebuggerView.Filtering.searchedFile ||
-        !DebuggerView.Sources.visibleItems.length) {
-      this.hidden = true;
+    
+    
+    if (!aToken) {
       return;
     }
 
-    
-    let visibleItems = DebuggerView.Sources.visibleItems;
-    let displayedItems = visibleItems.slice(0, RESULTS_PANEL_MAX_RESULTS);
+    for (let item of DebuggerView.Sources.items) {
+      let lowerCaseLabel = item.label.toLowerCase();
+      let lowerCaseToken = aToken.toLowerCase();
+      if (lowerCaseLabel.match(lowerCaseToken)) {
+        aStore.push(item);
+      }
+
+      
+      
+      if (aStore.length >= RESULTS_PANEL_MAX_RESULTS) {
+        this._syncView(aStore);
+        return;
+      }
+    }
 
     
-    for (let item of displayedItems) {
+    
+    this._syncView(aStore);
+  },
+
+  
+
+
+
+
+
+  _syncView: function(aSearchResults) {
+    
+    
+    if (!aSearchResults.length) {
+      return;
+    }
+
+    for (let item of aSearchResults) {
+      
       let trimmedLabel = SourceUtils.trimUrlLength(item.label);
       let trimmedValue = SourceUtils.trimUrlLength(item.value, 0, "start");
-      let locationItem = this.push([trimmedLabel, trimmedValue], {
+
+      this.push([trimmedLabel, trimmedValue], {
+        index: -1, 
         relaxed: true, 
         attachment: {
-          fullLabel: item.label,
-          fullValue: item.value
+          url: item.value
         }
       });
     }
 
     
     this.selectedIndex = 0;
-
-    
-    this.hidden = this.itemCount == 0;
+    this.hidden = false;
   },
 
   
@@ -1400,7 +1380,16 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
 
   _onSelect: function({ detail: locationItem }) {
     if (locationItem) {
-      DebuggerView.setEditorLocation(locationItem.attachment.fullValue, 0);
+      let targetUrl = locationItem.attachment.url;
+      let currentLine = DebuggerView.editor.getCaretPosition().line + 1;
+
+      
+      
+      if (DebuggerView.Sources.selectedValue == targetUrl) {
+        DebuggerView.setEditorLocation(targetUrl, currentLine, { noDebug: true });
+      } else {
+        DebuggerView.setEditorLocation(targetUrl);
+      }
     }
   }
 });
@@ -1447,6 +1436,7 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
 
   scheduleSearch: function(aToken, aWait) {
+    
     let maxDelay = FUNCTION_SEARCH_ACTION_MAX_DELAY;
     let delay = aWait === undefined ? maxDelay / aToken.length : aWait;
 
@@ -1468,8 +1458,7 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
 
 
-  _doSearch: function(aToken, aSources) {
-    
+  _doSearch: function(aToken, aSources, aStore = []) {
     
     
 
@@ -1486,16 +1475,13 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
       aSources.splice(1);
     }
 
-    
-    let searchResults = [];
-
     for (let [location, contents] of aSources) {
       let parserMethods = DebuggerController.Parser.get(location, contents);
       let sourceResults = parserMethods.getNamedFunctionDefinitions(aToken);
 
       for (let scriptResult of sourceResults) {
         for (let parseResult of scriptResult.parseResults) {
-          searchResults.push({
+          aStore.push({
             sourceUrl: scriptResult.sourceUrl,
             scriptOffset: scriptResult.scriptOffset,
             functionName: parseResult.functionName,
@@ -1507,16 +1493,17 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
           
           
-          if (searchResults.length >= RESULTS_PANEL_MAX_RESULTS) {
-            this._syncFunctionSearch(searchResults);
+          if (aStore.length >= RESULTS_PANEL_MAX_RESULTS) {
+            this._syncView(aStore);
             return;
           }
         }
       }
     }
+
     
     
-    this._syncFunctionSearch(searchResults);
+    this._syncView(aStore);
   },
 
   
@@ -1525,13 +1512,10 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
 
 
-  _syncFunctionSearch: function(aSearchResults) {
-    this.empty();
-
+  _syncView: function(aSearchResults) {
     
     
     if (!aSearchResults.length) {
-      this.hidden = true;
       return;
     }
 
@@ -1575,9 +1559,7 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
     
     this.selectedIndex = 0;
-
-    
-    this.hidden = this.itemCount == 0;
+    this.hidden = false;
   },
 
   
