@@ -166,7 +166,7 @@ typedef struct XPCOMFunctions{
 
     
     CycleCollectorSuspect2Func cycleSuspect2Func;
-    CycleCollectorForget2Func cycleForget2Func;
+    CycleCollectorForget2Func cycleForget2Func; 
 
 } XPCOMFunctions;
 
