@@ -51,29 +51,50 @@ function createFrames() {
   
   let loadendCount = 0;
   let countLoadend = function() {
-    ok(this.setInputMethodActive, 'Can access setInputMethodActive.');
-
     if (this === gInputFrame) {
       
       let appFrameScript = function appFrameScript() {
         let input = content.document.body.firstElementChild;
         input.oninput = function() {
-          sendAsyncMessage('test:InputMethod:oninput', this.value);
+          sendAsyncMessage('test:InputMethod:oninput', {
+            from: 'input',
+            value: this.value
+          });
         };
 
-        
+        input.onblur = function() {
+          sendAsyncMessage('test:InputMethod:oninput', {
+            from: 'input',
+            error: true,
+            value: 'Unexpected lost of focus on the input frame!'
+          });
+        };
 
-
-
-        content.setInterval(function() {
-          input.focus();
-        }, 500);
+        input.focus();
       }
 
       
       let mm = SpecialPowers.getBrowserFrameMessageManager(gInputFrame);
       mm.loadFrameScript('data:,(' + appFrameScript.toString() + ')();', false);
       mm.addMessageListener("test:InputMethod:oninput", next);
+    } else {
+      ok(this.setInputMethodActive, 'Can access setInputMethodActive.');
+
+      
+
+      let appFrameScript = function appFrameScript() {
+        content.addEventListener("message", function(evt) {
+          sendAsyncMessage('test:InputMethod:imFrameMessage', {
+            from: 'im',
+            value: evt.data
+          });
+        });
+      }
+
+      
+      let mm = SpecialPowers.getBrowserFrameMessageManager(this);
+      mm.loadFrameScript('data:,(' + appFrameScript.toString() + ')();', false);
+      mm.addMessageListener("test:InputMethod:imFrameMessage", next);
     }
 
     loadendCount++;
@@ -117,19 +138,35 @@ function startTest() {
   };
 }
 
-var gTimerId = null;
 var gCount = 0;
 
 function next(msg) {
-  gCount++;
   let wrappedMsg = SpecialPowers.wrap(msg);
-  let value = wrappedMsg.data;
+  let from = wrappedMsg.data.from;
+  let value = wrappedMsg.data.value;
+
+  if (wrappedMsg.data.error) {
+    ok(false, wrappedMsg.data.value);
+
+    return;
+  }
+
+  gCount++;
+
   
   
   switch (gCount) {
     case 1:
+      is(from, 'im', 'Message sequence unexpected (1).');
+      is(value, '#0true', 'First frame should get the context first.');
+      
+      break;
+
+    case 2:
+      is(from, 'input', 'Message sequence unexpected (2).');
       is(value, '#0hello',
          'Failed to get correct input from the first iframe.');
+
       let req1 = gFrames[1].setInputMethodActive(true);
       req1.onsuccess = function() {
        ok(true, 'setInputMethodActive succeeded (1).');
@@ -139,15 +176,23 @@ function next(msg) {
       };
       break;
 
-    case 2:
-      is(value, '#0#1hello',
-         'Failed to get correct input from the second iframe.');
+    case 3:
+      is(from, 'im', 'Message sequence unexpected (3).');
+      is(value, '#0false', 'First frame should have the context removed.');
       
       break;
 
-    case 3:
-      is(value, '#0#1#1hello',
+    case 4:
+      is(from, 'im', 'Message sequence unexpected (4).');
+      is(value, '#1true', 'Second frame should get the context.');
+      
+      break;
+
+    case 5:
+      is(from, 'input', 'Message sequence unexpected (5).');
+      is(value, '#0#1hello',
          'Failed to get correct input from the second iframe.');
+
       
       
       let req3 = gFrames[1].setInputMethodActive(false);
@@ -157,18 +202,12 @@ function next(msg) {
       req3.onerror = function() {
         ok(false, 'setInputMethodActive(false) failed (3): ' + this.error.name);
       };
-
-      
-      
-      gTimerId = setTimeout(function() {
-        ok(true, 'Successfully deactivate the second iframe.');
-        tearDown();
-      }, 1000);
       break;
 
-    case 4:
-      ok(false, 'Failed to deactivate the second iframe in time.');
-      clearTimeout(gTimerId);
+    case 6:
+      is(from, 'im', 'Message sequence unexpected (6).');
+      is(value, '#1false', 'Second frame should have the context removed.');
+
       tearDown();
       break;
   }
