@@ -57,8 +57,8 @@ function asyncCheckCacheEntryExistance(entryName, shouldExist)
       do_check_eq(status, Cr.NS_OK);
       do_check_true(!!descriptor);
     } else {
-      todo_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND); 
-      todo_check_null(descriptor); 
+      do_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
+      do_check_null(descriptor);
     }
     run_next_test();
   };
@@ -101,15 +101,14 @@ function noStoreHandler(metadata, response)
 }
 function checkNoStore(request, buffer)
 {
-  todo_check_eq(buffer, ""); 
+  do_check_eq(buffer, "");
   asyncCheckCacheEntryExistance(noStoreEntry, false);
   run_next_test();
 }
 add_test(function test_noStore() {
   var chan = make_channel_for_offline_use(baseURI + noStoreEntry);
   
-  chan.asyncOpen(new ChannelListener(checkNoStore, chan
-                                     ),
+  chan.asyncOpen(new ChannelListener(checkNoStore, chan, CL_EXPECT_FAILURE),
                  null);
 });
 
