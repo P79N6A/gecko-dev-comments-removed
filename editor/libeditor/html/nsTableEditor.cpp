@@ -46,7 +46,7 @@ using namespace mozilla;
 
 
 
-class NS_STACK_CLASS nsSetSelectionAfterTableEdit
+class MOZ_STACK_CLASS nsSetSelectionAfterTableEdit
 {
   private:
     nsCOMPtr<nsITableEditor> mEd;
@@ -76,7 +76,7 @@ class NS_STACK_CLASS nsSetSelectionAfterTableEdit
 };
 
 
-class NS_STACK_CLASS nsSelectionBatcherForTable
+class MOZ_STACK_CLASS nsSelectionBatcherForTable
 {
 private:
   nsCOMPtr<nsISelectionPrivate> mSelection;

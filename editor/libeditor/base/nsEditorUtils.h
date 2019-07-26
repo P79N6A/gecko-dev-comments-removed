@@ -26,7 +26,7 @@ template <class E> class nsCOMArray;
 
 
 
-class NS_STACK_CLASS nsAutoPlaceHolderBatch
+class MOZ_STACK_CLASS nsAutoPlaceHolderBatch
 {
   private:
     nsCOMPtr<nsIEditor> mEd;
@@ -41,7 +41,7 @@ class NS_STACK_CLASS nsAutoPlaceHolderBatch
 
 
 
-class nsAutoEditBatch : public nsAutoPlaceHolderBatch
+class MOZ_STACK_CLASS nsAutoEditBatch : public nsAutoPlaceHolderBatch
 {
   public:
     nsAutoEditBatch( nsIEditor *aEd) : nsAutoPlaceHolderBatch(aEd,nullptr)  {}
@@ -52,7 +52,7 @@ class nsAutoEditBatch : public nsAutoPlaceHolderBatch
 
 
 
-class NS_STACK_CLASS nsAutoSelectionReset
+class MOZ_STACK_CLASS nsAutoSelectionReset
 {
   private:
     
@@ -73,7 +73,7 @@ class NS_STACK_CLASS nsAutoSelectionReset
 
 
 
-class NS_STACK_CLASS nsAutoRules
+class MOZ_STACK_CLASS nsAutoRules
 {
   public:
   
@@ -105,7 +105,7 @@ class NS_STACK_CLASS nsAutoRules
 
 
 
-class NS_STACK_CLASS nsAutoTxnsConserveSelection
+class MOZ_STACK_CLASS nsAutoTxnsConserveSelection
 {
   public:
   
@@ -134,7 +134,7 @@ class NS_STACK_CLASS nsAutoTxnsConserveSelection
 
 
 
-class NS_STACK_CLASS nsAutoUpdateViewBatch
+class MOZ_STACK_CLASS nsAutoUpdateViewBatch
 {
   public:
   
@@ -166,7 +166,7 @@ class nsBoolDomIterFunctor
     virtual bool operator()(nsIDOMNode* aNode)=0;
 };
 
-class NS_STACK_CLASS nsDOMIterator
+class MOZ_STACK_CLASS nsDOMIterator
 {
   public:
     nsDOMIterator();
@@ -180,7 +180,7 @@ class NS_STACK_CLASS nsDOMIterator
     nsCOMPtr<nsIContentIterator> mIter;
 };
 
-class nsDOMSubtreeIterator : public nsDOMIterator
+class MOZ_STACK_CLASS nsDOMSubtreeIterator : public nsDOMIterator
 {
   public:
     nsDOMSubtreeIterator();
@@ -202,7 +202,7 @@ class nsTrivialFunctor : public nsBoolDomIterFunctor
 
 
 
-struct NS_STACK_CLASS DOMPoint
+struct MOZ_STACK_CLASS DOMPoint
 {
   nsCOMPtr<nsIDOMNode> node;
   int32_t offset;
