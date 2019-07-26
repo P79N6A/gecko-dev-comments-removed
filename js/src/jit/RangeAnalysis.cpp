@@ -1845,14 +1845,25 @@ RangeAnalysis::addRangeAssertions()
         for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++) {
             MInstruction *ins = *iter;
 
-            if (ins->type() == MIRType_None)
+            
+            if (!IsNumberType(ins->type()) &&
+                ins->type() != MIRType_Boolean &&
+                ins->type() != MIRType_Value)
+            {
+                continue;
+            }
+
+            Range r(ins);
+
+            
+            if (r.isUnknown() || (ins->type() == MIRType_Int32 && r.isUnknownInt32()))
                 continue;
 
-            Range *r = ins->range();
-            if (!r)
+            
+            if (ins->isPassArg())
                 continue;
 
-            MAssertRange *guard = MAssertRange::New(ins, new Range(*r));
+            MAssertRange *guard = MAssertRange::New(ins, new Range(r));
 
             
             
