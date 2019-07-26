@@ -63,6 +63,7 @@ public:
     
     
     mDataChannel->SetListener(nullptr, nullptr);
+    mDataChannel->Close();
   }
 
   nsresult Init(nsPIDOMWindow* aDOMWindow);

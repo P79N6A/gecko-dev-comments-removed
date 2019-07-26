@@ -961,6 +961,7 @@ DataChannelConnection::SendDeferredMessages()
           
           mStreamsIn[channel->mStreamIn]   = nullptr;
           mStreamsOut[channel->mStreamOut] = nullptr;
+          channel->mState = CLOSED;
         }
       }
     }
@@ -976,7 +977,8 @@ DataChannelConnection::SendDeferredMessages()
           still_blocked = true;
         } else {
           
-          Close(channel);
+          CloseInt(channel);
+          
         }
       }
     }
@@ -1099,9 +1101,19 @@ DataChannelConnection::OpenResponseFinish(already_AddRefed<DataChannel> aChannel
 
   if (streamOut == INVALID_STREAM) {
     if (!RequestMoreStreamsOut()) {
+      channel->mState = CLOSED;
+      if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_RSP) {
+        
+        NS_ERROR("Failed to request more streams");
+        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                  DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                  channel));
+      }
+      
+      
+      
       
       mStreamsIn[channel->mStreamIn] = nullptr;
-      
       
       return;
     }
@@ -1127,13 +1139,21 @@ DataChannelConnection::OpenResponseFinish(already_AddRefed<DataChannel> aChannel
         channel->mFlags |= DATA_CHANNEL_FLAGS_SEND_RSP;
         StartDefer();
       } else {
+        if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_RSP) {
+          
+          NS_ERROR("Failed to send open response");
+          NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                    DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                    channel));
+        }
+
         
         mStreamsIn[channel->mStreamIn] = nullptr;
         mStreamsOut[streamOut] = nullptr;
         channel->mStreamOut = INVALID_STREAM;
         
-        
-        return; 
+        channel->mState = CLOSED;
+        return;
       }
     }
   }
@@ -1741,7 +1761,9 @@ DataChannelConnection::HandleStreamChangeEvent(const struct sctp_stream_change_e
           mStreamsIn[channel->mStreamIn] = nullptr;
         }
         channel->mState = CLOSED;
-        
+        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                  DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                  channel));
         
       } else {
         streamOut = FindFreeStreamOut();
@@ -1888,12 +1910,16 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
 
   if (streamOut == INVALID_STREAM) {
     if (!RequestMoreStreamsOut()) {
+      channel->mState = CLOSED;
       if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
         
-        channel->mState = CLOSED;
         NS_ERROR("Failed to request more streams");
+        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                  DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                  channel));
         return channel.forget();
       }
+      
       
       
       return nullptr;
@@ -1916,12 +1942,19 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
       channel->mFlags |= DATA_CHANNEL_FLAGS_SEND_REQ;
       StartDefer();
     } else {
+      if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
+        
+        NS_ERROR("Failed to send open request");
+        NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                                  DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                                  channel));
+      }
       
       
       mStreamsOut[streamOut] = nullptr;
       channel->mStreamOut = INVALID_STREAM;
       
-      
+      channel->mState = CLOSED;
       return nullptr;
     }
   }
@@ -2094,10 +2127,7 @@ DataChannelConnection::SendMsgCommon(uint16_t stream, const nsACString &aMsg,
   uint32_t len     = aMsg.Length();
   DataChannel *channel;
 
-  if (isBinary)
-    LOG(("Sending to stream %u: %u bytes", stream, len));
-  else
-    LOG(("Sending to stream %u: %s", stream, data));
+  LOG(("Sending %sto stream %u: %u bytes", isBinary ? "binary " : "", stream, len));
   
   channel = mStreamsOut[stream];
   NS_ENSURE_TRUE(channel, 0);
@@ -2110,28 +2140,38 @@ DataChannelConnection::SendMsgCommon(uint16_t stream, const nsACString &aMsg,
 void
 DataChannelConnection::Close(DataChannel *aChannel)
 {
+  MutexAutoLock lock(mLock);
+  CloseInt(aChannel);
+}
+
+
+
+void
+DataChannelConnection::CloseInt(DataChannel *aChannel)
+{
   MOZ_ASSERT(aChannel);
   nsRefPtr<DataChannel> channel(aChannel); 
 
-  MutexAutoLock lock(mLock);
+  mLock.AssertCurrentThreadOwns();
   LOG(("Connection %p/Channel %p: Closing stream %d",
-       channel->mConnection.get(), channel.get(), channel->mStreamOut));
-  if (channel->mState == CLOSED || channel->mState == CLOSING) {
-    LOG(("Channel already closing/closed (%d)", channel->mState));
+       aChannel->mConnection.get(), aChannel, aChannel->mStreamOut));
+  
+  if (aChannel->mState == CLOSED || aChannel->mState == CLOSING) {
+    LOG(("Channel already closing/closed (%d)", aChannel->mState));
     return;
   }
-  channel->mBufferedData.Clear();
-  if (channel->mStreamOut != INVALID_STREAM) {
-    ResetOutgoingStream(channel->mStreamOut);
+  aChannel->mBufferedData.Clear();
+  if (aChannel->mStreamOut != INVALID_STREAM) {
+    ResetOutgoingStream(aChannel->mStreamOut);
     if (mState == CLOSED) { 
       
       
-      mStreamsOut[channel->mStreamOut] = nullptr;
+      mStreamsOut[aChannel->mStreamOut] = nullptr;
     } else {
       SendOutgoingStreamReset();
     }
   }
-  channel->mState = CLOSING;
+  aChannel->mState = CLOSING;
   if (mState == CLOSED) {
     
     if (channel->mStreamOut != INVALID_STREAM) {
@@ -2178,7 +2218,10 @@ void DataChannelConnection::CloseAll()
 
 DataChannel::~DataChannel()
 {
-  Close();
+  
+  
+  
+  NS_ASSERTION(mState == CLOSED || mState == CLOSING, "unexpected state in ~DataChannel");
 }
 
 void

@@ -141,6 +141,8 @@ public:
                                      nsISupports *aContext);
 
   void Close(DataChannel *aChannel);
+  
+  void CloseInt(DataChannel *aChannel);
   void CloseAll();
 
   int32_t SendMsg(uint16_t stream, const nsACString &aMsg)
@@ -312,6 +314,7 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannel)
 
+  
   
   void Close();
 
