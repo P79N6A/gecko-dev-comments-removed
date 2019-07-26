@@ -292,20 +292,6 @@ public:
                   const ElementRestyler& aParentFrameRestyler,
                   nsIFrame* aFrame);
 
-public: 
-  enum DesiredA11yNotifications {
-    eSkipNotifications,
-    eSendAllNotifications,
-    eNotifyIfShown
-  };
-
-  enum A11yNotificationType {
-    eDontNotify,
-    eNotifyShown,
-    eNotifyHidden
-  };
-
-public:
   
 
 
@@ -316,7 +302,6 @@ public:
 
 
   void Restyle(nsRestyleHint aRestyleHint,
-               DesiredA11yNotifications aDesiredA11yNotifications,
                nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
                TreeMatchContext &aTreeMatchContext);
 
@@ -333,6 +318,18 @@ private:
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
                      nsChangeHint aChangeToAssume);
+
+  enum DesiredA11yNotifications {
+    eSkipNotifications,
+    eSendAllNotifications,
+    eNotifyIfShown
+  };
+
+  enum A11yNotificationType {
+    eDontNotify,
+    eNotifyShown,
+    eNotifyHidden
+  };
 
 private:
   nsPresContext* const mPresContext;
@@ -353,8 +350,12 @@ private:
   nsChangeHint mParentFrameHintsNotHandledForDescendants;
   nsChangeHint mHintsNotHandledForDescendants;
   RestyleTracker& mRestyleTracker;
+
+  const DesiredA11yNotifications mDesiredA11yNotifications;
+  DesiredA11yNotifications mKidsDesiredA11yNotifications;
+  A11yNotificationType mOurA11yNotification;
 };
 
 } 
 
-#endif
+#endif 
