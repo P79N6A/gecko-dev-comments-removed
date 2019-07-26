@@ -1218,7 +1218,7 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
     }
   }
   else {
-    if (MayFireChangeOnBlur()) {
+    if (IsSingleLineTextControl(false)) {
       
       
       
@@ -1948,7 +1948,7 @@ nsHTMLInputElement::FireChangeEventIfNeeded()
   nsString value;
   GetValueInternal(value);
 
-  if (!MayFireChangeOnBlur() || mFocusedValue.Equals(value)) {
+  if (!IsSingleLineTextControl(false) || mFocusedValue.Equals(value)) {
     return;
   }
 
@@ -2577,7 +2577,6 @@ nsHTMLInputElement::FinishRangeThumbDrag(nsGUIEvent* aEvent)
     SetValueOfRangeForUserEvent(rangeFrame->GetValueAtEventPoint(aEvent));
   }
   mIsDraggingRange = false;
-  FireChangeEventIfNeeded();
 }
 
 void
@@ -2604,10 +2603,6 @@ nsHTMLInputElement::SetValueOfRangeForUserEvent(double aValue)
   if (frame) {
     frame->UpdateThumbPositionForValueChange();
   }
-  nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
-                                       static_cast<nsIDOMHTMLInputElement*>(this),
-                                       NS_LITERAL_STRING("input"), true,
-                                       false);
 }
 
 static bool
@@ -2649,7 +2644,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
       aVisitor.mEvent->message == NS_BLUR_CONTENT) {
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT && 
-        MayFireChangeOnBlur()) {
+        IsSingleLineTextControl(false)) {
       GetValueInternal(mFocusedValue);
     }
 
@@ -3312,7 +3307,8 @@ nsHTMLInputElement::HandleTypeChange(uint8_t aNewType)
   
   
   
-  if (MayFireChangeOnBlur(mType) && !MayFireChangeOnBlur(oldType)) {
+  if (IsSingleLineTextControl(mType, false) &&
+      !IsSingleLineTextControl(oldType, false)) {
     GetValueInternal(mFocusedValue);
   } else if (!IsSingleLineTextControl(mType, false) &&
              IsSingleLineTextControl(oldType, false)) {

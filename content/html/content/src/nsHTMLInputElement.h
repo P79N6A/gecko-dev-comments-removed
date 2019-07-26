@@ -819,20 +819,6 @@ protected:
   bool                     mIsDraggingRange     : 1;
 
 private:
-
-  
-
-
-
-  bool MayFireChangeOnBlur() const {
-    return MayFireChangeOnBlur(mType);
-  }
-
-  static bool MayFireChangeOnBlur(uint8_t aType) {
-    return IsSingleLineTextControl(false, aType) ||
-           aType == NS_FORM_INPUT_RANGE;
-  }
-
   struct nsFilePickerFilter {
     nsFilePickerFilter()
       : mFilterMask(0), mIsTrusted(false) {}
