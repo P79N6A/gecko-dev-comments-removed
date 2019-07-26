@@ -44,28 +44,17 @@
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
 
-
-
-
-
-
-#define MOZILLA_DOMSVGMATRIX_IID \
-  { 0x633419E5, 0x7E88, 0x4C3E, \
-    { 0x8A, 0x9A, 0x85, 0x6F, 0x63, 0x5E, 0x90, 0xA3 } }
-
 namespace mozilla {
 namespace dom {
 
 
 
 
-class SVGMatrix MOZ_FINAL : public nsISupports,
-                            public nsWrapperCache
+class SVGMatrix MOZ_FINAL : public nsWrapperCache
 {
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGMATRIX_IID)
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(SVGMatrix)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(SVGMatrix)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(SVGMatrix)
 
   
 
@@ -140,8 +129,6 @@ private:
   
   gfxMatrix mMatrix;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(SVGMatrix, MOZILLA_DOMSVGMATRIX_IID)
 
 } 
 } 
