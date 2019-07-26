@@ -15,21 +15,18 @@
 
 
 
-
-
 #ifndef DOM_CAMERA_GONKNATIVEWINDOW_H
 #define DOM_CAMERA_GONKNATIVEWINDOW_H
 
 #include <stdint.h>
 #include <sys/types.h>
 
+#include <gui/ISurfaceTexture.h>
 #include <ui/egl/android_natives.h>
-
-#include <utils/Errors.h>
-#include <utils/RefBase.h>
-
 #include <ui/GraphicBuffer.h>
 #include <ui/Rect.h>
+#include <utils/Errors.h>
+#include <utils/RefBase.h>
 #include <utils/String8.h>
 #include <utils/threads.h>
 
@@ -47,8 +44,10 @@ public:
     virtual void OnNewFrame() = 0;
 };
 
-class GonkNativeWindow : public EGLNativeBase<ANativeWindow, GonkNativeWindow, RefBase>
+class GonkNativeWindow : public BnSurfaceTexture
 {
+    friend class GonkNativeWindowClient;
+
     typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
     typedef mozilla::layers::GraphicBufferLocked GraphicBufferLocked;
 
@@ -56,20 +55,11 @@ public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
     enum { MIN_BUFFER_SLOTS = MIN_UNDEQUEUED_BUFFERS };
     enum { NUM_BUFFER_SLOTS = 32 };
+    enum { NO_CONNECTED_API = 0 };
     enum { NATIVE_WINDOW_SET_BUFFERS_SIZE = 0x10000000 };
 
     GonkNativeWindow();
-    GonkNativeWindow(GonkNativeWindowNewFrameCallback* aCallback);
     ~GonkNativeWindow(); 
-
-    
-    static int hook_cancelBuffer(ANativeWindow* window, ANativeWindowBuffer* buffer);
-    static int hook_dequeueBuffer(ANativeWindow* window, ANativeWindowBuffer** buffer);
-    static int hook_lockBuffer(ANativeWindow* window, ANativeWindowBuffer* buffer);
-    static int hook_perform(ANativeWindow* window, int operation, ...);
-    static int hook_query(const ANativeWindow* window, int what, int* value);
-    static int hook_queueBuffer(ANativeWindow* window, ANativeWindowBuffer* buffer);
-    static int hook_setSwapInterval(ANativeWindow* window, int interval);
 
     
     
@@ -80,24 +70,78 @@ public:
     bool returnBuffer(uint32_t index, uint32_t generation);
 
     
+    
+    
+    virtual status_t setBufferCount(int bufferCount);
+
+    
+    virtual status_t requestBuffer(int slot, sp<GraphicBuffer>* buf);
+
+    
+    
+    
+    
+    
+    virtual status_t dequeueBuffer(int *buf, uint32_t width, uint32_t height,
+            uint32_t format, uint32_t usage);
+
+    
+    
+    
+    
+    
+    virtual status_t queueBuffer(int buf, int64_t timestamp,
+            uint32_t* outWidth, uint32_t* outHeight, uint32_t* outTransform);
+    virtual void cancelBuffer(int buf);
+    virtual status_t setCrop(const Rect& reg);
+    virtual status_t setTransform(uint32_t transform);
+    virtual status_t setScalingMode(int mode);
+
+    virtual int query(int what, int* value);
+
+    
+    virtual int performQcomOperation(int operation, int arg1, int arg2, int arg3) {
+        return OK;
+    }
+
+    
+    
+    virtual status_t setSynchronousMode(bool enabled);
+
+    
+    
+    
+    
+    virtual status_t connect(int api,
+            uint32_t* outWidth, uint32_t* outHeight, uint32_t* outTransform);
+
+    
+    
+    
+    virtual status_t disconnect(int api);
+
+    void setNewFrameCallback(GonkNativeWindowNewFrameCallback* aCallback);
+
+    
+    
+    
+    
+    status_t setDefaultBufferSize(uint32_t width, uint32_t height);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
     void abandon();
 
     SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
 
 protected:
-    virtual int cancelBuffer(ANativeWindowBuffer* buffer);
-    virtual int dequeueBuffer(ANativeWindowBuffer** buffer);
-    virtual int lockBuffer(ANativeWindowBuffer* buffer);
-    virtual int perform(int operation, va_list args);
-    virtual int query(int what, int* value) const;
-    virtual int queueBuffer(ANativeWindowBuffer* buffer);
-    virtual int setSwapInterval(int interval);
-
-    virtual int setBufferCount(int bufferCount);
-    virtual int setBuffersDimensions(int w, int h);
-    virtual int setBuffersFormat(int format);
-    virtual int setBuffersTimestamp(int64_t timestamp);
-    virtual int setUsage(uint32_t reqUsage);
 
     
     
@@ -117,23 +161,14 @@ protected:
 private:
     void init();
 
-    int dispatchSetBufferCount(va_list args);
-    int dispatchSetBuffersGeometry(va_list args);
-    int dispatchSetBuffersDimensions(va_list args);
-    int dispatchSetBuffersFormat(va_list args);
-    int dispatchSetBuffersTimestamp(va_list args);
-    int dispatchSetUsage(va_list args);
-
     int getSlotFromBufferLocked(android_native_buffer_t* buffer) const;
 
-private:
     enum { INVALID_BUFFER_SLOT = -1 };
 
     struct BufferSlot {
 
         BufferSlot()
-            : mGraphicBuffer(0),
-              mBufferState(BufferSlot::FREE),
+            : mBufferState(BufferSlot::FREE),
               mTimestamp(0),
               mFrameNumber(0){
         }
@@ -186,6 +221,11 @@ private:
 
         
         
+        
+        bool mRequestBufferCalled;
+
+        
+        
         int64_t mTimestamp;
 
         
@@ -227,13 +267,21 @@ private:
     uint32_t mPixelFormat;
 
     
-    uint32_t mUsage;
-
-    
     
     
     int mBufferCount;
 
+    
+    
+    
+    int mConnectedApi;
+
+    
+    
+    typedef Vector<int> Fifo;
+    Fifo mQueue;
+
+    
     
     
     mutable Mutex mMutex;
