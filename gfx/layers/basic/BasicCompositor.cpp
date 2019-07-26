@@ -144,6 +144,11 @@ DrawSurfaceWithTextureCoords(DrawTarget *aDest,
                      aTextureCoords.y * aSource->GetSize().height,
                      aTextureCoords.width * aSource->GetSize().width,
                      aTextureCoords.height * aSource->GetSize().height);
+
+  
+  
+  sourceRect.Round();
+
   
   gfxMatrix transform =
     gfxUtils::TransformRectToRect(sourceRect,
