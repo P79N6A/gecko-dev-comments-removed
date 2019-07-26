@@ -4386,12 +4386,25 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
     
     if (NS_ERROR_UNKNOWN_PROTOCOL == aError) {
         NS_ENSURE_ARG_POINTER(aURI);
+
         
         nsAutoCString scheme;
         aURI->GetScheme(scheme);
         CopyASCIItoUTF16(scheme, formatStrs[0]);
+        nsCOMPtr<nsINestedURI> nestedURI = do_QueryInterface(aURI);
+        while (nestedURI) {
+            nsCOMPtr<nsIURI> tempURI;
+            nsresult rv2;
+            rv2 = nestedURI->GetInnerURI(getter_AddRefs(tempURI));
+            if (NS_SUCCEEDED(rv2) && tempURI) {
+                tempURI->GetScheme(scheme);
+                formatStrs[0].Append(NS_LITERAL_STRING(", "));
+                AppendASCIItoUTF16(scheme, formatStrs[0]);
+            }
+            nestedURI = do_QueryInterface(tempURI);
+        }
         formatStrCount = 1;
-        error.AssignLiteral("protocolNotFound");
+        error.AssignLiteral("unknownProtocolFound");
     }
     else if (NS_ERROR_FILE_NOT_FOUND == aError) {
         NS_ENSURE_ARG_POINTER(aURI);
@@ -9681,6 +9694,25 @@ nsDocShell::DoURILoad(nsIURI * aURI,
                 channelPolicy->SetContentSecurityPolicy(csp);
                 channelPolicy->SetLoadType(nsIContentPolicy::TYPE_SUBDOCUMENT);
             }
+        }
+
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIURI> tempURI = aURI;
+        nsCOMPtr<nsINestedURI> nestedURI = do_QueryInterface(tempURI);
+        while (nestedURI) {
+            
+            
+            bool isViewSource = false;
+            rv = tempURI->SchemeIs("view-source", &isViewSource);
+            if (NS_FAILED(rv) || isViewSource) {
+                return NS_ERROR_UNKNOWN_PROTOCOL;
+            }
+            nestedURI->GetInnerURI(getter_AddRefs(tempURI));
+            nestedURI = do_QueryInterface(tempURI);
         }
     }
 
