@@ -558,8 +558,11 @@ MOZ_WIN_MEM_TRY_BEGIN
 
     
     
-    if (namelen > kMaxNameLength || buf >= endp)
+    if (namelen < 1 ||
+        namelen > kMaxNameLength ||
+        buf >= endp) {
       return NS_ERROR_FILE_CORRUPTED;
+    }
 
     nsZipItem* item = CreateZipItem();
     if (!item)
@@ -610,7 +613,7 @@ MOZ_WIN_MEM_TRY_BEGIN
   
   for (int i = 0; i < ZIP_TABSIZE; ++i)
   {
-    for (nsZipItem* item = mFiles[i]; item != 0; item = item->next)
+    for (nsZipItem* item = mFiles[i]; item != nullptr; item = item->next)
     {
       if (item->isSynthetic)
         continue;
@@ -622,10 +625,16 @@ MOZ_WIN_MEM_TRY_BEGIN
       
       
       uint16_t namelen = item->nameLength;
+      MOZ_ASSERT(namelen > 0, "Attempt to build synthetic for zero-length entry name!");
       const char *name = item->Name();
       for (uint16_t dirlen = namelen - 1; dirlen > 0; dirlen--)
       {
         if (name[dirlen-1] != '/')
+          continue;
+
+        
+        
+        if (name[dirlen] == '/')
           continue;
 
         
