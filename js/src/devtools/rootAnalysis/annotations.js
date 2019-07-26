@@ -66,10 +66,10 @@ var ignoreCallees = {
     "nsISupports.AddRef" : true,
     "nsISupports.Release" : true, 
     "nsAXPCNativeCallContext.GetJSContext" : true,
-    "js::ion::MDefinition.op" : true, 
-    "js::ion::MDefinition.opName" : true, 
-    "js::ion::LInstruction.getDef" : true, 
-    "js::ion::IonCache.kind" : true, 
+    "js::jit::MDefinition.op" : true, 
+    "js::jit::MDefinition.opName" : true, 
+    "js::jit::LInstruction.getDef" : true, 
+    "js::jit::IonCache.kind" : true, 
     "icu_50::UObject.__deleting_dtor" : true, 
     "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, 
     "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, 
@@ -104,6 +104,8 @@ function ignoreEdgeUse(edge, variable)
             if (/~Anchor/.test(name))
                 return true;
             if (/~DebugOnly/.test(name))
+                return true;
+            if (/~ScopedThreadSafeStringInspector/.test(name))
                 return true;
         }
     }
