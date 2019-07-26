@@ -635,6 +635,10 @@ js_DumpChars(const jschar *s, size_t n)
 JS_FRIEND_API(void)
 js_DumpObject(JSObject *obj)
 {
+    if (!obj) {
+        fprintf(stderr, "NULL\n");
+        return;
+    }
     obj->dump();
 }
 
@@ -1051,28 +1055,6 @@ js::AutoCTypesActivityCallback::AutoCTypesActivityCallback(JSContext *cx,
 
     if (callback)
         callback(cx, beginType);
-}
-
-JS_FRIEND_API(void)
-js::SetObjectMetadataCallback(JSContext *cx, ObjectMetadataCallback callback)
-{
-    
-    
-    ReleaseAllJITCode(cx->runtime->defaultFreeOp());
-
-    cx->compartment->objectMetadataCallback = callback;
-}
-
-JS_FRIEND_API(bool)
-js::SetObjectMetadata(JSContext *cx, JSHandleObject obj, JSHandleObject metadata)
-{
-    return JSObject::setMetadata(cx, obj, metadata);
-}
-
-JS_FRIEND_API(JSObject *)
-js::GetObjectMetadata(JSObject *obj)
-{
-    return obj->getMetadata();
 }
 
 JS_FRIEND_API(JSBool)
