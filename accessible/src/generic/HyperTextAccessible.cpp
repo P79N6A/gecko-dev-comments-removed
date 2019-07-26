@@ -602,41 +602,55 @@ HyperTextAccessible::HypertextOffsetsToDOMRange(int32_t aStartHTOffset,
 }
 
 int32_t
-HyperTextAccessible::GetRelativeOffset(nsIPresShell* aPresShell,
-                                       nsIFrame* aFromFrame,
-                                       int32_t aFromOffset,
-                                       Accessible* aFromAccessible,
-                                       nsSelectionAmount aAmount,
-                                       nsDirection aDirection,
-                                       bool aNeedsStart,
-                                       EWordMovementType aWordMovementType)
+HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
+                                nsSelectionAmount aAmount,
+                                EWordMovementType aWordMovementType)
 {
-  const bool kIsJumpLinesOk = true;          
-  const bool kIsScrollViewAStop = false;     
-  const bool kIsKeyboardSelect = true;       
-  const bool kIsVisualBidi = false;          
+  
+  int32_t offsetInFrame = aOffset, notUsedOffset = aOffset;
+  nsRefPtr<Accessible> accAtOffset;
+  nsIFrame* frameAtOffset =
+    GetPosAndText(offsetInFrame, notUsedOffset, nullptr, nullptr,
+                  getter_AddRefs(accAtOffset));
+  if (!frameAtOffset) {
+    if (aOffset == CharacterCount()) {
+      
+      if (accAtOffset)
+        frameAtOffset = accAtOffset->GetFrame();
+    }
+    NS_ASSERTION(frameAtOffset, "No start frame for text getting!");
+    if (!frameAtOffset)
+      return -1;
+
+    
+    frameAtOffset = frameAtOffset->LastContinuation();
+  }
 
   
+  int32_t contentOffset = offsetInFrame;
+  nsIFrame* primaryFrame = accAtOffset->GetFrame();
+  NS_ENSURE_TRUE(primaryFrame, -1);
 
-  nsresult rv;
-  int32_t contentOffset = aFromOffset;
-  nsIFrame *frame = aFromAccessible->GetFrame();
-  NS_ENSURE_TRUE(frame, -1);
-
-  if (frame->GetType() == nsGkAtoms::textFrame) {
-    rv = RenderedToContentOffset(frame, aFromOffset, &contentOffset);
+  nsresult rv = NS_OK;
+  if (primaryFrame->GetType() == nsGkAtoms::textFrame) {
+    rv = RenderedToContentOffset(primaryFrame, offsetInFrame, &contentOffset);
     NS_ENSURE_SUCCESS(rv, -1);
   }
 
+  const bool kIsJumpLinesOk = true; 
+  const bool kIsScrollViewAStop = false; 
+  const bool kIsKeyboardSelect = true; 
+  const bool kIsVisualBidi = false; 
   nsPeekOffsetStruct pos(aAmount, aDirection, contentOffset,
-                         0, kIsJumpLinesOk, kIsScrollViewAStop, kIsKeyboardSelect, kIsVisualBidi,
+                         0, kIsJumpLinesOk, kIsScrollViewAStop,
+                         kIsKeyboardSelect, kIsVisualBidi,
                          aWordMovementType);
-  rv = aFromFrame->PeekOffset(&pos);
+  rv = frameAtOffset->PeekOffset(&pos);
 
   
   if (NS_FAILED(rv) && aAmount == eSelectLine) {
     pos.mAmount = (aDirection == eDirNext) ? eSelectEndLine : eSelectBeginLine;
-    aFromFrame->PeekOffset(&pos);
+    frameAtOffset->PeekOffset(&pos);
   }
   if (!pos.mResultContent)
     return -1;
@@ -663,44 +677,13 @@ HyperTextAccessible::GetRelativeOffset(nsIPresShell* aPresShell,
       
       hyperTextOffset = 0;
     }
-    if (!aNeedsStart && hyperTextOffset > 0) {
+    if (aWordMovementType != eStartWord && aAmount != eSelectBeginLine &&
+        hyperTextOffset > 0) {
       -- hyperTextOffset;
     }
   }
 
   return hyperTextOffset;
-}
-
-int32_t
-HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
-                                nsSelectionAmount aAmount,
-                                EWordMovementType aWordMovementType)
-{
-  
-  int32_t offsetInFrame = aOffset, notUsedOffset = aOffset;
-  nsRefPtr<Accessible> accAtOffset;
-  nsIFrame* frameAtOffset =
-    GetPosAndText(offsetInFrame, notUsedOffset, nullptr, nullptr,
-                  getter_AddRefs(accAtOffset));
-  if (!frameAtOffset) {
-    if (aOffset == CharacterCount()) {
-      
-      if (accAtOffset)
-        frameAtOffset = accAtOffset->GetFrame();
-    }
-    NS_ASSERTION(frameAtOffset, "No start frame for text getting!");
-    if (!frameAtOffset)
-      return -1;
-
-    
-    frameAtOffset = frameAtOffset->LastContinuation();
-  }
-
-  
-  return GetRelativeOffset(mDoc->PresShell(), frameAtOffset, offsetInFrame,
-                           accAtOffset, aAmount, aDirection,
-                           (aWordMovementType == eStartWord || aAmount == eSelectBeginLine),
-                           aWordMovementType);
 }
 
 int32_t

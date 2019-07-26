@@ -450,26 +450,6 @@ protected:
 
 
 
-  int32_t GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame,
-                            int32_t aFromOffset, Accessible* aFromAccessible,
-                            nsSelectionAmount aAmount, nsDirection aDirection,
-                            bool aNeedsStart,
-                            EWordMovementType aWordMovementType);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
