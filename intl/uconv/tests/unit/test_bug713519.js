@@ -16,13 +16,4 @@ function run_test() {
   catch (ex) {
     
   }
-
-  do_check_eq(svc.getCharsetTitle("windows-1255"), "Hebrew (Windows-1255)");
-  try {
-    svc.getCharsetTitle("no such thing");
-    do_throw("Calling getCharsetTitle with invalid value should throw.");
-  }
-  catch (ex) {
-    
-  }
 }
