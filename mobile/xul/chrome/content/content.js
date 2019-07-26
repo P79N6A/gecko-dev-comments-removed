@@ -384,7 +384,7 @@ let Content = {
             
             
           }
-        } else if (/^about:neterror\?e=netOffline/.test(ownerDoc.documentURI)) {
+        } else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
           let tryAgain = errorDoc.getElementById("errorTryAgain");
           if (target == tryAgain)
             sendSyncMessage("Browser:GoOnline", { });
