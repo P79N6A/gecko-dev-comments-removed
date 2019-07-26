@@ -268,6 +268,17 @@ BaselineCompiler::emit_JSOP_DUP2()
 }
 
 bool
+BaselineCompiler::emit_JSOP_SWAP()
+{
+    
+    frame.popRegsAndSync(2);
+
+    frame.push(R1);
+    frame.push(R0);
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_GOTO()
 {
     frame.syncStack(0);
@@ -788,6 +799,42 @@ bool
 BaselineCompiler::emit_JSOP_CALLGNAME()
 {
     return emit_JSOP_GETGNAME();
+}
+
+bool
+BaselineCompiler::emit_JSOP_GETPROP()
+{
+    
+    ICGetProp_Fallback::Compiler compiler(cx);
+    ICEntry *entry = allocateICEntry(compiler.getStub(&stubSpace_));
+    if (!entry)
+        return false;
+
+    
+    frame.popRegsAndSync(1);
+
+    
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_CALLPROP()
+{
+    return emit_JSOP_GETPROP();
+}
+
+bool
+BaselineCompiler::emit_JSOP_LENGTH()
+{
+    return emit_JSOP_GETPROP();
 }
 
 bool
