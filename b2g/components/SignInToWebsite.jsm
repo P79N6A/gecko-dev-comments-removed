@@ -158,6 +158,8 @@ let Pipe = {
     
     
     let content = GaiaInterface.getContent();
+    let mm = null;
+    let uuid = getRandomId();
 
     if (!content) {
       log("ERROR: what the what? no content window?");
@@ -165,73 +167,90 @@ let Pipe = {
       return;
     }
 
-    
-    
-    
-    
-    let id = kOpenIdentityDialog + "-" + getRandomId();
-    let detail = {
-      type: kOpenIdentityDialog,
-      showUI: aGaiaOptions.showUI || false,
-      id: id
-    };
+    function removeMessageListeners() {
+      if (mm) {
+        mm.removeMessageListener(kIdentityDelegateFinished, identityDelegateFinished);
+        mm.removeMessageListener(kIdentityControllerDoMethod, aMessageCallback);
+      }
+    }
 
-    
-    
-    
-    
-    content.addEventListener("mozContentEvent", function getAssertion(evt) {
+    function identityDelegateFinished() {
+      removeMessageListeners();
 
+      let detail = {
+        type: kReceivedIdentityAssertion,
+        showUI: aGaiaOptions.showUI || false,
+        id: kReceivedIdentityAssertion + "-" + uuid
+      };
+      log('telling gaia to close the dialog');
       
+      GaiaInterface.sendChromeEvent(detail);
+    }
+
+    content.addEventListener("mozContentEvent", function getAssertion(evt) {
       let msg = evt.detail;
-      if (msg.id != id) {
+      if (!msg.id.match(uuid)) {
         return;
       }
 
-      
-      
-      content.removeEventListener("mozContentEvent", getAssertion);
+      switch (msg.id) {
+        case kOpenIdentityDialog + '-' + uuid:
+          if (msg.type === 'cancel') {
+            
+            content.removeEventListener("mozContentEvent", getAssertion);
+            removeMessageListeners();
+            aMessageCallback({json: {method: "cancel"}});
+          } else {
+            
+            
+            
+            
+            let frame = evt.detail.frame;
+            let frameLoader = frame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+            mm = frameLoader.messageManager;
+            try {
+              mm.loadFrameScript(kIdentityShimFile, true);
+              log("Loaded shim " + kIdentityShimFile + "\n");
+            } catch (e) {
+              log("Error loading ", kIdentityShimFile, " as a frame script: ", e);
+            }
 
-      
-      
-      
-      
-      let frame = evt.detail.frame;
-      let frameLoader = frame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-      let mm = frameLoader.messageManager;
-      try {
-        mm.loadFrameScript(kIdentityShimFile, true);
-        log("Loaded shim " + kIdentityShimFile + "\n");
-      } catch (e) {
-        log("Error loading ", kIdentityShimFile, " as a frame script: ", e);
+            
+            
+            
+            
+            
+            mm.addMessageListener(kIdentityControllerDoMethod, aMessageCallback);
+            mm.addMessageListener(kIdentityDelegateFinished, identityDelegateFinished);
+
+            mm.sendAsyncMessage(aGaiaOptions.message, aRpOptions);
+          }
+          break;
+
+        case kReceivedIdentityAssertion + '-' + uuid:
+          
+          
+          
+          content.removeEventListener("mozContentEvent", getAssertion);
+          break;
+
+        default:
+          log("ERROR - Unexpected message: id=" + msg.id + ", type=" + msg.type + ", errorMsg=" + msg.errorMsg);
+          break;
       }
 
-      
-      
-      
-      
-      
-      mm.addMessageListener(kIdentityControllerDoMethod, aMessageCallback);
-      mm.addMessageListener(kIdentityDelegateFinished, function identityDelegateFinished() {
-        
-        mm.removeMessageListener(kIdentityDelegateFinished, identityDelegateFinished);
-        mm.removeMessageListener(kIdentityControllerDoMethod, aMessageCallback);
-
-        let id = kReceivedIdentityAssertion + "-" + getRandomId();
-        let detail = {
-          type: kReceivedIdentityAssertion,
-          showUI: aGaiaOptions.showUI || false,
-          id: id
-        };
-        log('telling gaia to close the dialog');
-        
-        GaiaInterface.sendChromeEvent(detail);
-      });
-
-      mm.sendAsyncMessage(aGaiaOptions.message, aRpOptions);
     });
 
     
+    
+    
+    
+    let detail = {
+      type: kOpenIdentityDialog,
+      showUI: aGaiaOptions.showUI || false,
+      id: kOpenIdentityDialog + "-" + uuid
+    };
+
     GaiaInterface.sendChromeEvent(detail);
   }
 
@@ -314,6 +333,10 @@ this.SignInToWebsiteController = {
 
         case "logout":
           IdentityService.doLogout(aRpId);
+          break;
+
+        case "cancel":
+          IdentityService.doCancel(aRpId);
           break;
 
         default:
