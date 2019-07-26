@@ -73,6 +73,9 @@ public interface TelemetryContract {
 
         
         public static final String LIST_ITEM = "listitem";
+
+        
+        public static final String SUGGESTION = "suggestion";
     }
 
     
@@ -93,6 +96,9 @@ public interface TelemetryContract {
 
         
         public static final String URLBAR_FOCUSED = "urlbar.1:";
+
+        
+        public static final String FRECENCY = "frecency.1:";
     }
 
     
