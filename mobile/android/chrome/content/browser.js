@@ -16,8 +16,6 @@ Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/JNI.jsm");
 Cu.import('resource://gre/modules/Payment.jsm');
-Cu.import("resource://gre/modules/PermissionPromptHelper.jsm");
-Cu.import("resource://gre/modules/ContactService.jsm");
 
 #ifdef ACCESSIBILITY
 Cu.import("resource://gre/modules/accessibility/AccessFu.jsm");
@@ -63,6 +61,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
 [
   ["HelperApps", "chrome://browser/content/HelperApps.js"],
   ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
+  ["SelectionHandler", "chrome://browser/content/SelectionHandler.js"],
   ["InputWidgetHelper", "chrome://browser/content/InputWidgetHelper.js"],
   ["AboutReader", "chrome://browser/content/aboutReader.js"],
   ["WebAppRT", "chrome://browser/content/WebAppRT.js"],
@@ -99,7 +98,6 @@ var LazyNotificationGetter = {
   ["PermissionsHelper", ["Permissions:Get", "Permissions:Clear"], "chrome://browser/content/PermissionsHelper.js"],
   ["FeedHandler", ["Feeds:Subscribe"], "chrome://browser/content/FeedHandler.js"],
   ["Feedback", ["Feedback:Show"], "chrome://browser/content/Feedback.js"],
-  ["SelectionHandler", ["TextSelection:Get"], "chrome://browser/content/SelectionHandler.js"],
 ].forEach(function (aScript) {
   let [name, notifications, script] = aScript;
   XPCOMUtils.defineLazyGetter(window, name, function() {
@@ -149,11 +147,15 @@ const kDoNotTrackPrefState = Object.freeze({
 });
 
 function dump(a) {
-  Services.console.logStringMessage(a);
+  Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
+}
+
+function getBridge() {
+  return Cc["@mozilla.org/android/bridge;1"].getService(Ci.nsIAndroidBridge);
 }
 
 function sendMessageToJava(aMessage) {
-  return Services.androidBridge.handleGeckoMessage(JSON.stringify(aMessage));
+  return getBridge().handleGeckoMessage(JSON.stringify(aMessage));
 }
 
 function doChangeMaxLineBoxWidth(aWidth) {
@@ -202,9 +204,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Rect",
                                   "resource://gre/modules/Geometry.jsm");
 
 function resolveGeckoURI(aURI) {
-  if (!aURI)
-    throw "Can't resolve an empty uri";
-
   if (aURI.startsWith("chrome://")) {
     let registry = Cc['@mozilla.org/chrome/chrome-registry;1'].getService(Ci["nsIChromeRegistry"]);
     return registry.convertChromeURL(Services.io.newURI(aURI, null, null)).spec;
@@ -265,7 +264,7 @@ var BrowserApp = {
     BrowserEventHandler.init();
     ViewportHandler.init();
 
-    Services.androidBridge.browserApp = this;
+    getBridge().browserApp = this;
 
     Services.obs.addObserver(this, "Tab:Load", false);
     Services.obs.addObserver(this, "Tab:Selected", false);
@@ -330,8 +329,7 @@ var BrowserApp = {
     WebappsUI.init();
     RemoteDebugger.init();
     Reader.init();
-    UserAgentOverrides.init();
-    DesktopUserAgent.init();
+    UserAgent.init();
     ExternalApps.init();
     Distribution.init();
     Tabs.init();
@@ -542,18 +540,6 @@ var BrowserApp = {
         aTarget.mozRequestFullScreen();
       });
 
-    NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.mute"),
-      NativeWindow.contextmenus.mediaContext("media-unmuted"),
-      function(aTarget) {
-        aTarget.muted = true;
-      });
-  
-    NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.unmute"),
-      NativeWindow.contextmenus.mediaContext("media-muted"),
-      function(aTarget) {
-        aTarget.muted = false;
-      });
-
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.copyImageLocation"),
       NativeWindow.contextmenus.imageLocationCopyableContext,
       function(aTarget) {
@@ -590,15 +576,17 @@ var BrowserApp = {
                                       aTarget.ownerDocument);
       });
 
-    NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.setImageAs"),
+#ifdef MOZ_ANDROID_WALLPAPER
+    NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.setWallpaper"),
       NativeWindow.contextmenus.imageSaveableContext,
       function(aTarget) {
         let src = aTarget.src;
         sendMessageToJava({
-          type: "Image:SetAs",
+          type: "Wallpaper:Set",
           url: src
         });
       });
+#endif
 
     NativeWindow.contextmenus.add(
       function(aTarget) {
@@ -651,8 +639,7 @@ var BrowserApp = {
     WebappsUI.uninit();
     RemoteDebugger.uninit();
     Reader.uninit();
-    UserAgentOverrides.uninit();
-    DesktopUserAgent.uninit();
+    UserAgent.uninit();
     ExternalApps.uninit();
     Distribution.uninit();
     Tabs.uninit();
@@ -668,7 +655,7 @@ var BrowserApp = {
   
   isBrowserContentDocumentDisplayed: function() {
     try {
-      if (!Services.androidBridge.isContentDocumentDisplayed())
+      if (!getBridge().isContentDocumentDisplayed())
         return false;
     } catch (e) {
       return false;
@@ -682,7 +669,7 @@ var BrowserApp = {
 
   contentDocumentChanged: function() {
     window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).isFirstPaint = true;
-    Services.androidBridge.contentDocumentChanged();
+    getBridge().contentDocumentChanged();
   },
 
   get tabs() {
@@ -778,18 +765,16 @@ var BrowserApp = {
     let referrerURI = "referrerURI" in aParams ? aParams.referrerURI : null;
     let charset = "charset" in aParams ? aParams.charset : null;
 
-    if ("showProgress" in aParams || "userSearch" in aParams) {
-      let tab = this.getTabForBrowser(aBrowser);
-      if (tab) {
-        if ("showProgress" in aParams) tab.showProgress = aParams.showProgress;
-        if ("userSearch" in aParams) tab.userSearch = aParams.userSearch;
-      }
+    let tab = this.getTabForBrowser(aBrowser);
+    if (tab) {
+      if (!tab.aboutHomePage) tab.aboutHomePage = ("aboutHomePage" in aParams) ? aParams.aboutHomePage : "";
+      if ("showProgress" in aParams) tab.showProgress = aParams.showProgress;
+      if ("userSearch" in aParams) tab.userSearch = aParams.userSearch;
     }
 
     try {
       aBrowser.loadURIWithFlags(aURI, flags, referrerURI, charset, postData);
     } catch(e) {
-      let tab = this.getTabForBrowser(aBrowser);
       if (tab) {
         let message = {
           type: "Content:LoadError",
@@ -1004,7 +989,7 @@ var BrowserApp = {
   getPreferences: function getPreferences(aPrefsRequest, aListen) {
     let prefs = [];
 
-    for (let prefName of aPrefsRequest.preferences) {
+    for each (let prefName in aPrefsRequest.preferences) {
       let pref = {
         name: prefName,
         type: "",
@@ -1389,6 +1374,7 @@ var BrowserApp = {
           flags: flags,
           tabID: data.tabID,
           isPrivate: (data.isPrivate === true),
+          aboutHomePage: ("aboutHomePage" in data) ? data.aboutHomePage : "",
           pinned: (data.pinned === true),
           delayLoad: (delayLoad === true),
           desktopMode: (data.desktopMode === true)
@@ -1566,8 +1552,6 @@ var NativeWindow = {
     Services.obs.addObserver(this, "PageActions:Clicked", false);
     Services.obs.addObserver(this, "PageActions:LongClicked", false);
     Services.obs.addObserver(this, "Doorhanger:Reply", false);
-    Services.obs.addObserver(this, "Toast:Click", false);
-    Services.obs.addObserver(this, "Toast:Hidden", false);
     this.contextmenus.init();
   },
 
@@ -1576,8 +1560,6 @@ var NativeWindow = {
     Services.obs.removeObserver(this, "PageActions:Clicked");
     Services.obs.removeObserver(this, "PageActions:LongClicked");
     Services.obs.removeObserver(this, "Doorhanger:Reply");
-    Services.obs.removeObserver(this, "Toast:Click", false);
-    Services.obs.removeObserver(this, "Toast:Hidden", false);
     this.contextmenus.uninit();
   },
 
@@ -1597,26 +1579,12 @@ var NativeWindow = {
   },
 
   toast: {
-    _callbacks: {},
-    show: function(aMessage, aDuration, aOptions) {
-      let msg = {
+    show: function(aMessage, aDuration) {
+      sendMessageToJava({
         type: "Toast:Show",
         message: aMessage,
         duration: aDuration
-      };
-
-      if (aOptions && aOptions.button) {
-        msg.button = {
-          label: aOptions.button.label,
-          id: uuidgen.generateUUID().toString(),
-          
-          
-          icon: aOptions.button.icon ? resolveGeckoURI(aOptions.button.icon) : null,
-        };
-        this._callbacks[msg.button.id] = aOptions.button.callback;
-      }
-
-      sendMessageToJava(msg);
+      });
     }
   },
 
@@ -1625,11 +1593,12 @@ var NativeWindow = {
     add: function(aOptions) {
       let id = uuidgen.generateUUID().toString();
       sendMessageToJava({
-        type: "PageActions:Add",
-        id: id,
-        title: aOptions.title,
-        icon: resolveGeckoURI(aOptions.icon),
-        important: "important" in aOptions ? aOptions.important : false
+        gecko: {
+          type: "PageActions:Add",
+          id: id,
+          title: aOptions.title,
+          icon: aOptions.icon,
+        }
       });
       this._items[id] = {
         clickCallback: aOptions.clickCallback,
@@ -1639,8 +1608,10 @@ var NativeWindow = {
     },
     remove: function(id) {
       sendMessageToJava({
-        type: "PageActions:Remove",
-        id: id
+        gecko: {
+          type: "PageActions:Remove",
+          id: id
+        }
       });
       delete this._items[id];
     }
@@ -1749,14 +1720,6 @@ var NativeWindow = {
     } else if (aTopic == "PageActions:LongClicked") {
         if (this.pageactions._items[aData].longClickCallback)
           this.pageactions._items[aData].longClickCallback();
-    } else if (aTopic == "Toast:Click") {
-      if (this.toast._callbacks[aData]) {
-        this.toast._callbacks[aData]();
-        delete this.toast._callbacks[aData];
-      }
-    } else if (aTopic == "Toast:Hidden") {
-      if (this.toast._callbacks[aData])
-        delete this.toast._callbacks[aData];
     } else if (aTopic == "Doorhanger:Reply") {
       let data = JSON.parse(aData);
       let reply_id = data["callback"];
@@ -1949,12 +1912,6 @@ var NativeWindow = {
             let controls = aElt.controls;
             if (!controls && aMode == "media-hidingcontrols")
               return true;
-
-            let muted = aElt.muted;
-            if (muted && aMode == "media-muted")
-              return true;
-            else if (!muted && aMode == "media-unmuted")
-              return true;
           }
           return false;
         }
@@ -2047,8 +2004,6 @@ var NativeWindow = {
       this.menuitems = [];
       let menuitemsSet = false;
 
-      Services.obs.notifyObservers(null, "before-build-contextmenu", "");
-
       
       let element = target;
       this._nativeItemsSeparator = 0;
@@ -2063,8 +2018,7 @@ var NativeWindow = {
         }
 
         
-        for (let itemId of Object.keys(this.items)) {
-          let item = this.items[itemId];
+         for each (let item in this.items) {
           if (!this._getMenuItemForId(item.id) && item.matches(element, aX, aY)) {
             this.menuitems.push(item);
           }
@@ -2349,11 +2303,13 @@ var LightWeightThemeWebInstaller = {
   }
 };
 
-var DesktopUserAgent = {
+var UserAgent = {
   DESKTOP_UA: null,
+  YOUTUBE_DOMAIN: /(^|\.)youtube\.com$/,
 
   init: function ua_init() {
     Services.obs.addObserver(this, "DesktopMode:Change", false);
+    UserAgentOverrides.init();
     UserAgentOverrides.addComplexOverride(this.onRequest.bind(this));
 
     
@@ -2365,31 +2321,42 @@ var DesktopUserAgent = {
 
   uninit: function ua_uninit() {
     Services.obs.removeObserver(this, "DesktopMode:Change");
+    UserAgentOverrides.uninit();
   },
 
   onRequest: function(channel, defaultUA) {
     let channelWindow = this._getWindowForRequest(channel);
     let tab = BrowserApp.getTabForWindow(channelWindow);
     if (tab == null)
-      return null;
+      return;
 
-    return this.getUserAgentForTab(tab);
+    let ua = this.getUserAgentForUriAndTab(channel.URI, tab, defaultUA);
+    if (ua)
+      channel.setRequestHeader("User-Agent", ua, false);
   },
 
-  getUserAgentForWindow: function ua_getUserAgentForWindow(aWindow) {
+  getUserAgentForWindow: function ua_getUserAgentForWindow(aWindow, defaultUA) {
     let tab = BrowserApp.getTabForWindow(aWindow.top);
     if (tab)
-      return this.getUserAgentForTab(tab);
-
-    return null;
+      return this.getUserAgentForUriAndTab(tab.browser.currentURI, tab, defaultUA);
+    return defaultUA;
   },
 
-  getUserAgentForTab: function ua_getUserAgentForTab(aTab) {
+  getUserAgentForUriAndTab: function ua_getUserAgentForUriAndTab(aUri, aTab, defaultUA) {
     
     if (aTab.desktopMode)
       return this.DESKTOP_UA;
 
-    return null;
+    
+    if (aUri.schemeIs("http") || aUri.schemeIs("https")) {
+      if (this.YOUTUBE_DOMAIN.test(aUri.host)) {
+        
+        if (!defaultUA.contains("Android; Mobile;"))
+          return defaultUA.replace("Android;", "Android; Mobile;");
+      }
+    }
+
+    return defaultUA;
   },
 
   _getRequestLoadContext: function ua_getRequestLoadContext(aRequest) {
@@ -2524,10 +2491,6 @@ nsBrowserAccess.prototype = {
 
   isTabContentWindow: function(aWindow) {
     return BrowserApp.getBrowserForWindow(aWindow) != null;
-  },
-
-  get contentWindow() {
-    return BrowserApp.selectedBrowser.contentWindow;
   }
 };
 
@@ -2561,13 +2524,14 @@ function Tab(aURL, aParams) {
   this.viewportExcludesHorizontalMargins = true;
   this.viewportExcludesVerticalMargins = true;
   this.viewportMeasureCallback = null;
-  this.lastPageSizeAfterViewportRemeasure = { width: 0, height: 0 };
+  this.lastPageSizeUsedForViewportChange = { width: 0, height: 0 };
   this.contentDocumentIsDisplayed = true;
   this.pluginDoorhangerTimeout = null;
   this.shouldShowPluginDoorhanger = true;
   this.clickToPlayPluginsActivated = false;
   this.desktopMode = false;
   this.originalURI = null;
+  this.aboutHomePage = null;
   this.savedArticle = null;
   this.hasTouchListener = false;
   this.browserWidth = 0;
@@ -3250,7 +3214,7 @@ Tab.prototype = {
 
   sendViewportUpdate: function(aPageSizeUpdate) {
     let viewport = this.getViewport();
-    let displayPort = Services.androidBridge.getDisplayPort(aPageSizeUpdate, BrowserApp.isBrowserContentDocumentDisplayed(), this.id, viewport);
+    let displayPort = getBridge().getDisplayPort(aPageSizeUpdate, BrowserApp.isBrowserContentDocumentDisplayed(), this.id, viewport);
     if (displayPort != null)
       this.setDisplayPort(displayPort);
   },
@@ -3277,13 +3241,15 @@ Tab.prototype = {
     let remeasureNeeded = false;
 
     if (hasHorizontalMargins) {
-      let viewportShouldExcludeHorizontalMargins = (pageWidth <= gScreenWidth - 0.5);
+      let screenWidth = gScreenWidth + gViewportMargins.left + gViewportMargins.right;
+      let viewportShouldExcludeHorizontalMargins = (Math.round(pageWidth) <= screenWidth);
       if (viewportShouldExcludeHorizontalMargins != this.viewportExcludesHorizontalMargins) {
         remeasureNeeded = true;
       }
     }
     if (hasVerticalMargins) {
-      let viewportShouldExcludeVerticalMargins = (pageHeight <= gScreenHeight - 0.5);
+      let screenHeight = gScreenHeight + gViewportMargins.top + gViewportMargins.bottom;
+      let viewportShouldExcludeVerticalMargins = (Math.round(pageHeight) <= screenHeight);
       if (viewportShouldExcludeVerticalMargins != this.viewportExcludesVerticalMargins) {
         remeasureNeeded = true;
       }
@@ -3300,8 +3266,8 @@ Tab.prototype = {
           let pageWidth = viewport.pageRight - viewport.pageLeft;
           let pageHeight = viewport.pageBottom - viewport.pageTop;
 
-          if (Math.abs(pageWidth - this.lastPageSizeAfterViewportRemeasure.width) >= 0.5 ||
-              Math.abs(pageHeight - this.lastPageSizeAfterViewportRemeasure.height) >= 0.5) {
+          if (Math.abs(pageWidth - this.lastPageSizeUsedForViewportChange.width) >= 0.5 ||
+              Math.abs(pageHeight - this.lastPageSizeUsedForViewportChange.height) >= 0.5) {
             this.updateViewportSize(gScreenWidth);
           }
         }.bind(this), kViewportRemeasureThrottle);
@@ -3338,26 +3304,17 @@ Tab.prototype = {
           
         }
 
-        let docURI = target.documentURI;
-        let errorType = "";
-        if (docURI.startsWith("about:certerror"))
-          errorType = "certerror";
-        else if (docURI.startsWith("about:blocked"))
-          errorType = "blocked"
-        else if (docURI.startsWith("about:neterror"))
-          errorType = "neterror";
-
         sendMessageToJava({
           type: "DOMContentLoaded",
           tabID: this.id,
-          bgColor: backgroundColor,
-          errorType: errorType
+          bgColor: backgroundColor
         });
 
         
         
         
         
+        let docURI = target.documentURI;
         if (docURI.startsWith("about:certerror") || docURI.startsWith("about:blocked")) {
           this.browser.addEventListener("click", ErrorPageEventHandler, true);
           let listener = function() {
@@ -3554,7 +3511,6 @@ Tab.prototype = {
             if (!tabURL.startsWith("about:reader")) {
               this.savedArticle = null;
               this.readerEnabled = false;
-              this.readerActive = false;
             } else {
               this.readerActive = true;
             }
@@ -3641,6 +3597,7 @@ Tab.prototype = {
       fixedURI = URIFixup.createExposableURI(aLocationURI);
     } catch (ex) { }
 
+    let documentURI = contentWin.document.documentURIObject.spec;
     let contentType = contentWin.document.contentType;
 
     
@@ -3657,7 +3614,6 @@ Tab.prototype = {
     this.shouldShowPluginDoorhanger = true;
     this.clickToPlayPluginsActivated = false;
     
-    let documentURI = contentWin.document.documentURIObject.spec
     let matchedURL = documentURI.match(/^((?:[a-z]+:\/\/)?(?:[^\/]+@)?)(.+?)(?::\d+)?(?:\/|$)/);
     let baseDomain = "";
     if (matchedURL) {
@@ -3679,6 +3635,8 @@ Tab.prototype = {
       tabID: this.id,
       uri: fixedURI.spec,
       userSearch: this.userSearch || "",
+      documentURI: documentURI,
+      aboutHomePage: this.aboutHomePage || "",
       baseDomain: baseDomain,
       contentType: (contentType ? contentType : ""),
       sameDocument: sameDocument
@@ -3888,6 +3846,13 @@ Tab.prototype = {
         this.viewportExcludesVerticalMargins = false;
       }
 
+      
+      
+      this.lastPageSizeUsedForViewportChange = {
+        width: pageWidth,
+        height: pageHeight
+      };
+
       minScale = screenW / pageWidth;
     }
     minScale = this.clampZoom(minScale);
@@ -3916,14 +3881,6 @@ Tab.prototype = {
     this.setResolution(zoom, false);
     this.setScrollClampingSize(zoom);
     this.sendViewportUpdate();
-
-    
-    
-    let viewport = this.getViewport();
-    this.lastPageSizeAfterViewportRemeasure = {
-      width: viewport.pageRight - viewport.pageLeft,
-      height: viewport.pageBottom - viewport.pageTop
-    };
   },
 
   sendViewportMetadata: function sendViewportMetadata() {
@@ -4324,14 +4281,10 @@ var BrowserEventHandler = {
 
   onDoubleTap: function(aData) {
     let data = JSON.parse(aData);
-    let element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
 
     
-    
-    
     if (BrowserEventHandler.mReflozPref &&
-       !BrowserApp.selectedTab._mReflozPoint &&
-       !this._shouldSuppressReflowOnZoom(element)) {
+       !BrowserApp.selectedTab._mReflozPoint) {
      let data = JSON.parse(aData);
      let zoomPointX = data.x;
      let zoomPointY = data.y;
@@ -4341,6 +4294,8 @@ var BrowserEventHandler = {
        BrowserApp.selectedTab.probablyNeedRefloz = true;
     }
 
+    let zoom = BrowserApp.selectedTab._zoom;
+    let element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
     if (!element) {
       this._zoomOut();
       return;
@@ -4354,28 +4309,6 @@ var BrowserEventHandler = {
     } else {
       this._zoomToElement(element, data.y);
     }
-  },
-
-  
-
-
-
-
-
-
-  _shouldSuppressReflowOnZoom: function(aElement) {
-    if (aElement instanceof Ci.nsIDOMHTMLVideoElement ||
-        aElement instanceof Ci.nsIDOMHTMLObjectElement ||
-        aElement instanceof Ci.nsIDOMHTMLEmbedElement ||
-        aElement instanceof Ci.nsIDOMHTMLAppletElement ||
-        aElement instanceof Ci.nsIDOMHTMLCanvasElement ||
-        aElement instanceof Ci.nsIDOMHTMLImageElement ||
-        aElement instanceof Ci.nsIDOMHTMLMediaElement ||
-        aElement instanceof Ci.nsIDOMHTMLPreElement) {
-      return true;
-    }
-
-    return false;
   },
 
   
@@ -4907,7 +4840,7 @@ var ErrorPageEventHandler = {
           let isMalware = errorDoc.documentURI.contains("e=malwareBlocked");
           let bucketName = isMalware ? "WARNING_MALWARE_PAGE_" : "WARNING_PHISHING_PAGE_";
           let nsISecTel = Ci.nsISecurityUITelemetry;
-          let isIframe = (errorDoc.defaultView.parent === errorDoc.defaultView);
+          let isIframe = (aOwnerDoc.defaultView.parent === aOwnerDoc.defaultView);
           bucketName += isIframe ? "TOP_" : "FRAME_";
 
           let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
@@ -5372,12 +5305,12 @@ let HealthReportStatusListener = {
     return o;
   },
 
-  notifyJava: function (aAddon, aNeedsRestart, aAction="Addons:Change") {
+  notifyJava: function (aAddon, aNeedsRestart) {
     let json = this.jsonForAddon(aAddon);
     if (this._shouldIgnore(aAddon)) {
       json.ignore = true;
     }
-    sendMessageToJava({ type: aAction, id: aAddon.id, json: json });
+    sendMessageToJava({ type: "Addons:Change", id: aAddon.id, json: json });
   },
 
   
@@ -5391,12 +5324,9 @@ let HealthReportStatusListener = {
     this.notifyJava(aAddon, aNeedsRestart);
   },
   onUninstalling: function (aAddon, aNeedsRestart) {
-    this.notifyJava(aAddon, aNeedsRestart, "Addons:Uninstalling");
+    this.notifyJava(aAddon, aNeedsRestart);
   },
   onPropertyChanged: function (aAddon, aProperties) {
-    this.notifyJava(aAddon);
-  },
-  onOperationCancelled: function (aAddon) {
     this.notifyJava(aAddon);
   },
 
@@ -5503,11 +5433,8 @@ var XPInstallObserver = {
     if (needsRestart) {
       this.showRestartPrompt();
     } else {
-      
-      if (!aInstall.existingAddon || !AddonManager.shouldAutoUpdate(aInstall.existingAddon)) {
-        let message = Strings.browser.GetStringFromName("alertAddonsInstalledNoRestart");
-        NativeWindow.toast.show(message, "short");
-      }
+      let message = Strings.browser.GetStringFromName("alertAddonsInstalledNoRestart");
+      NativeWindow.toast.show(message, "short");
     }
   },
 
@@ -5984,9 +5911,6 @@ var IndexedDB = {
 };
 
 var ClipboardHelper = {
-  
-  _searchMenuItem: -1,
-
   init: function() {
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.copy"), ClipboardHelper.getCopyContext(false), ClipboardHelper.copy.bind(ClipboardHelper));
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.copyAll"), ClipboardHelper.getCopyContext(true), ClipboardHelper.copy.bind(ClipboardHelper));
@@ -5995,26 +5919,6 @@ var ClipboardHelper = {
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.share"), ClipboardHelper.shareContext, ClipboardHelper.share.bind(ClipboardHelper));
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.paste"), ClipboardHelper.pasteContext, ClipboardHelper.paste.bind(ClipboardHelper));
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.changeInputMethod"), NativeWindow.contextmenus.textContext, ClipboardHelper.inputMethod.bind(ClipboardHelper));
-
-    
-    Services.obs.addObserver(this, "before-build-contextmenu", false);
-  },
-
-  uninit: function ch_uninit() {
-    Services.obs.removeObserver(this, "before-build-contextmenu");
-  },
-
-  observe: function observe(aSubject, aTopic) {
-    if (aTopic == "before-build-contextmenu") {
-      this._setSearchMenuItem();
-    }
-  },
-
-  _setSearchMenuItem: function setSearchMenuItem() {
-    if (this._searchMenuItem) {
-      NativeWindow.contextmenus.remove(this._searchMenuItem);
-    }
-    this._searchMenuItem = NativeWindow.contextmenus.add(Strings.browser.formatStringFromName("contextmenu.search", [Services.search.defaultEngine.name], 1), ClipboardHelper.searchWithContext, ClipboardHelper.searchWith.bind(ClipboardHelper));
   },
 
   get clipboardHelper() {
@@ -6049,10 +5953,6 @@ var ClipboardHelper = {
 
   selectAll: function(aElement, aX, aY) {
     SelectionHandler.selectAll(aElement, aX, aY);
-  },
-
-  searchWith: function(aElement) {
-    SelectionHandler.searchSelection(aElement);
   },
 
   share: function() {
@@ -6120,12 +6020,6 @@ var ClipboardHelper = {
 
   shareContext: {
     matches: function shareContextMatches(aElement, aX, aY) {
-      return SelectionHandler.shouldShowContextMenu(aX, aY);
-    }
-  },
-
-  searchWithContext: {
-    matches: function searchWithContextMatches(aElement, aX, aY) {
       return SelectionHandler.shouldShowContextMenu(aX, aY);
     }
   },
@@ -6287,9 +6181,6 @@ var IdentityHandler = {
     return result;
   },
 
-  
-
-
   getIdentityMode: function getIdentityMode(aState) {
     if (aState & Ci.nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT)
       return this.IDENTITY_MODE_MIXED_CONTENT_BLOCKED;
@@ -6337,9 +6228,7 @@ var IdentityHandler = {
     let result = { mode: mode };
 
     
-    
-    if (mode == this.IDENTITY_MODE_UNKNOWN ||
-        aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN)
+    if (mode == this.IDENTITY_MODE_UNKNOWN)
       return result;
 
     
@@ -6440,9 +6329,6 @@ var SearchEngines = {
 
   init: function init() {
     Services.obs.addObserver(this, "SearchEngines:Get", false);
-    Services.obs.addObserver(this, "SearchEngines:GetVisible", false);
-    Services.obs.addObserver(this, "SearchEngines:SetDefault", false);
-    Services.obs.addObserver(this, "SearchEngines:Remove", false);
     let contextName = Strings.browser.GetStringFromName("contextmenu.addSearchEngine");
     let filter = {
       matches: function (aElement) {
@@ -6454,36 +6340,21 @@ var SearchEngines = {
 
   uninit: function uninit() {
     Services.obs.removeObserver(this, "SearchEngines:Get");
-    Services.obs.removeObserver(this, "SearchEngines:GetVisible");
-    Services.obs.removeObserver(this, "SearchEngines:SetDefault");
-    Services.obs.removeObserver(this, "SearchEngines:Remove");
     if (this._contextMenuId != null)
       NativeWindow.contextmenus.remove(this._contextMenuId);
   },
 
-  
-  _handleSearchEnginesGet: function _handleSearchEnginesGet(rv, all) {
+  _handleSearchEnginesGet: function _handleSearchEnginesGet(rv) {
     if (!Components.isSuccessCode(rv)) {
       Cu.reportError("Could not initialize search service, bailing out.");
       return;
     }
-    let engineData;
-    if (all) {
-      engineData = Services.search.getEngines({});
-    } else {
-      engineData = Services.search.getVisibleEngines({});
-    }
-
-    
-    let immutableEngines = Services.search.getDefaultEngines();
-
+    let engineData = Services.search.getVisibleEngines({});
     let searchEngines = engineData.map(function (engine) {
       return {
         name: engine.name,
         identifier: engine.identifier,
-        iconURI: (engine.iconURI ? engine.iconURI.spec : null),
-        hidden: engine.hidden,
-        immutable: immutableEngines.indexOf(engine) != -1
+        iconURI: (engine.iconURI ? engine.iconURI.spec : null)
       };
     });
 
@@ -6495,8 +6366,6 @@ var SearchEngines = {
       suggestTemplate = engine.getSubmission("__searchTerms__", "application/x-suggestions+json").uri.spec;
     }
 
-
-    
     sendMessageToJava({
       type: "SearchEngines:Data",
       searchEngines: searchEngines,
@@ -6509,45 +6378,9 @@ var SearchEngines = {
     });
   },
 
-  _handleSearchEnginesGetAll: function _handleSearchEnginesGetAll(rv) {
-    this._handleSearchEnginesGet(rv, true);
-  },
-  _handleSearchEnginesGetVisible: function _handleSearchEnginesGetVisible(rv) {
-    this._handleSearchEnginesGet(rv, false)
-  },
-
-  
-  _extractEngineFromJSON: function _extractEngineFromJSON(aData) {
-    let data = JSON.parse(aData);
-    return Services.search.getEngineByName(data.engine);
-  },
-
   observe: function observe(aSubject, aTopic, aData) {
-    let engine;
-    switch(aTopic) {
-      case "SearchEngines:GetVisible":
-        Services.search.init(this._handleSearchEnginesGetVisible.bind(this));
-        break;
-      case "SearchEngines:Get":
-        
-        Services.search.init(this._handleSearchEnginesGetAll.bind(this));
-        break;
-      case "SearchEngines:SetDefault":
-        engine = this._extractEngineFromJSON(aData);
-        
-        Services.search.moveEngine(engine, 0);
-        Services.search.defaultEngine = engine;
-        break;
-      case "SearchEngines:Remove":
-        
-        
-        engine = this._extractEngineFromJSON(aData);
-        engine.hidden = false;
-        Services.search.removeEngine(engine);
-        break;
-      default:
-        dump("Unexpected message type observed: " + aTopic);
-        break;
+    if (aTopic == "SearchEngines:Get") {
+      Services.search.init(this._handleSearchEnginesGet.bind(this));
     }
   },
 
@@ -6598,7 +6431,7 @@ var SearchEngines = {
           formData.push({ name: escapedName, value: escapedValue });
           break;
         case "select-one":
-          for (let option of el.options) {
+          for each (let option in el.options) {
             if (option.selected) {
               formData.push({ name: escapedName, value: escapedValue });
               break;
@@ -6798,9 +6631,10 @@ var WebappsUI = {
   doInstall: function doInstall(aData) {
     let jsonManifest = aData.isPackage ? aData.app.updateManifest : aData.app.manifest;
     let manifest = new ManifestHelper(jsonManifest, aData.app.origin);
+    let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
     let showPrompt = true;
 
-    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), manifest.name + "\n" + aData.app.origin)) {
+    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name + "\n" + aData.app.origin)) {
       
       let origin = aData.app.origin;
       let profilePath = sendMessageToJava({
@@ -6812,12 +6646,10 @@ var WebappsUI = {
       if (profilePath) {
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         file.initWithPath(profilePath);
-
+  
         let self = this;
         DOMApplicationRegistry.confirmInstall(aData, false, file, null,
-          function (aManifest) {
-            let localeManifest = new ManifestHelper(aManifest, aData.app.origin);
-
+          function (manifest) {
             
             
             self.makeBase64Icon(self.getBiggestIcon(manifest.icons, Services.io.newURI(aData.app.origin, null, null)),
@@ -6837,7 +6669,7 @@ var WebappsUI = {
                   
                   sendMessageToJava({
                     type: "WebApps:PostInstall",
-                    name: localeManifest.name,
+                    name: manifest.name,
                     manifestURL: aData.app.manifestURL,
                     originalOrigin: origin,
                     origin: aData.app.origin,
@@ -6847,7 +6679,7 @@ var WebappsUI = {
                     
                     let message = Strings.browser.GetStringFromName("webapps.alertSuccess");
                     let alerts = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
-                    alerts.showAlertNotification("drawable://alert_app", localeManifest.name, message, true, "", {
+                    alerts.showAlertNotification("drawable://alert_app", manifest.name, message, true, "", {
                       observe: function () {
                         self.openURL(aData.app.manifestURL, aData.app.origin);
                       }
@@ -6856,7 +6688,7 @@ var WebappsUI = {
                 } catch(ex) {
                   console.log(ex);
                 }
-                self.writeDefaultPrefs(file, localeManifest);
+                self.writeDefaultPrefs(file, manifest);
               }
             );
           }
@@ -7012,40 +6844,21 @@ var RemoteDebugger = {
 
 
 
-
-  _showConnectionPrompt: function rd_showConnectionPrompt() {
+  _allowConnection: function rd_allowConnection() {
     let title = Strings.browser.GetStringFromName("remoteIncomingPromptTitle");
     let msg = Strings.browser.GetStringFromName("remoteIncomingPromptMessage");
-    let disable = Strings.browser.GetStringFromName("remoteIncomingPromptDisable");
-    let cancel = Strings.browser.GetStringFromName("remoteIncomingPromptCancel");
-    let agree = Strings.browser.GetStringFromName("remoteIncomingPromptAccept");
-
-    
-    let prompt = new Prompt({
-      window: null,
-      title: title,
-      message: msg,
-      buttons: [ agree, cancel, disable ],
-      priority: 1
-    });
-
-    
-    let result = null;
-
-    prompt.show(function(data) {
-      result = data.button;
-    });
-
-    
-    let thread = Services.tm.currentThread;
-    while (result == null)
-      thread.processNextEvent(true);
-
-    if (result === 0)
+    let btn = Strings.browser.GetStringFromName("remoteIncomingPromptDisable");
+    let prompt = Services.prompt;
+    let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_OK +
+                prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL +
+                prompt.BUTTON_POS_2 * prompt.BUTTON_TITLE_IS_STRING +
+                prompt.BUTTON_POS_1_DEFAULT;
+    let result = prompt.confirmEx(null, title, msg, flags, null, null, btn, null, { value: false });
+    if (result == 0)
       return true;
-    if (result === 2) {
-      Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
+    if (result == 2) {
       this._stop();
+      Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
     }
     return false;
   },
@@ -7058,7 +6871,7 @@ var RemoteDebugger = {
   _start: function rd_start() {
     try {
       if (!DebuggerServer.initialized) {
-        DebuggerServer.init(this._showConnectionPrompt.bind(this));
+        DebuggerServer.init(this._allowConnection);
         DebuggerServer.addBrowserActors();
         DebuggerServer.addActors("chrome://browser/content/dbg-browser-actors.js");
       }
@@ -7158,16 +6971,14 @@ let Reader = {
       this.pageAction.id = NativeWindow.pageactions.add({
         title: Strings.browser.GetStringFromName("readerMode.exit"),
         icon: "drawable://reader_active",
-        clickCallback: this.pageAction.readerModeCallback,
-        important: true
+        clickCallback: this.pageAction.readerModeCallback
       });
     } else if (tab.readerEnabled) {
       this.pageAction.id = NativeWindow.pageactions.add({
         title: Strings.browser.GetStringFromName("readerMode.enter"),
         icon: "drawable://reader",
         clickCallback:this.pageAction.readerModeCallback,
-        longClickCallback: this.pageAction.readerModeActiveCallback,
-        important: true
+        longClickCallback: this.pageAction.readerModeActiveCallback
       });
     }
   },
@@ -7303,16 +7114,14 @@ let Reader = {
 
   getArticleForTab: function Reader_getArticleForTab(tabId, url, callback) {
     let tab = BrowserApp.getTabForId(tabId);
-    if (tab) {
-      let article = tab.savedArticle;
-      if (article && article.url == url) {
-        this.log("Saved article found in tab");
-        callback(article);
-        return;
-      }
-    }
+    let article = tab.savedArticle;
 
-    this.parseDocumentFromURL(url, callback);
+    if (article && article.url == url) {
+      this.log("Saved article found in tab");
+      callback(article);
+    } else {
+      this.parseDocumentFromURL(url, callback);
+    }
   },
 
   parseDocumentFromTab: function(tabId, callback) {
@@ -7637,24 +7446,12 @@ let Reader = {
 var ExternalApps = {
   _contextMenuId: -1,
 
-  
-  _getMediaLink: function(aElement) {
-    let uri = NativeWindow.contextmenus._getLink(aElement);
-    if (uri == null && aElement.nodeType == Ci.nsIDOMNode.ELEMENT_NODE && (aElement instanceof Ci.nsIDOMHTMLMediaElement)) {
-      try {
-        let mediaSrc = aElement.currentSrc || aElement.src;
-        uri = ContentAreaUtils.makeURI(mediaSrc, null, null);
-      } catch (e) {}
-    }
-    return uri;
-  },
-
   init: function helper_init() {
     this._contextMenuId = NativeWindow.contextmenus.add(function(aElement) {
       let uri = null;
       var node = aElement;
       while (node && !uri) {
-        uri = ExternalApps._getMediaLink(node);
+        uri = NativeWindow.contextmenus._getLink(node);
         node = node.parentNode;
       }
       let apps = [];
@@ -7672,7 +7469,7 @@ var ExternalApps = {
 
   filter: {
     matches: function(aElement) {
-      let uri = ExternalApps._getMediaLink(aElement);
+      let uri = NativeWindow.contextmenus._getLink(aElement);
       let apps = [];
       if (uri) {
         apps = HelperApps.getAppsForUri(uri);
@@ -7682,7 +7479,7 @@ var ExternalApps = {
   },
 
   openExternal: function(aElement) {
-    let uri = ExternalApps._getMediaLink(aElement);
+    let uri = NativeWindow.contextmenus._getLink(aElement);
     HelperApps.openUriInApp(uri);
   }
 };
