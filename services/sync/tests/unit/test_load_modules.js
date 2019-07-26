@@ -1,3 +1,6 @@
+
+
+
 const modules = [
   "addonutils.js",
   "addonsreconciler.js",
@@ -21,6 +24,7 @@ const modules = [
   "resource.js",
   "rest.js",
   "service.js",
+  "stages/enginesync.js",
   "status.js",
   "util.js",
 ];
