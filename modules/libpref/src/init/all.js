@@ -738,12 +738,12 @@ pref("javascript.options.strict.debug",     true);
 pref("javascript.options.baselinejit.content", true);
 pref("javascript.options.baselinejit.chrome",  true);
 pref("javascript.options.ion.content",      true);
-pref("javascript.options.ion.chrome",       false);
+pref("javascript.options.ion.chrome",       true);
 pref("javascript.options.asmjs",            true);
 pref("javascript.options.parallel_parsing", true);
 pref("javascript.options.ion.parallel_compilation", true);
 pref("javascript.options.typeinference.content", true);
-pref("javascript.options.typeinference.chrome", false);
+pref("javascript.options.typeinference.chrome", true);
 
 
 
