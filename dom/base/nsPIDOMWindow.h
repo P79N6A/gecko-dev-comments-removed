@@ -26,6 +26,7 @@
 
 class nsIIdleObserver;
 class nsIPrincipal;
+class nsPerformance;
 
 
 
@@ -638,6 +639,10 @@ public:
 
   void AddAudioContext(mozilla::dom::AudioContext* aAudioContext);
 
+  
+  static bool HasPerformanceSupport();
+  nsPerformance* GetPerformance();
+
 protected:
   
   
@@ -656,6 +661,9 @@ protected:
   virtual void UpdateParentTarget() = 0;
 
   
+  void CreatePerformanceObjectIfNeeded();
+
+  
   
   
   nsCOMPtr<nsIDOMEventTarget> mChromeEventHandler; 
@@ -667,6 +675,9 @@ protected:
   
   nsCOMPtr<nsIDOMElement> mFrameElement;
   nsIDocShell           *mDocShell;  
+
+  
+  nsRefPtr<nsPerformance>       mPerformance;
 
   uint32_t               mModalStateDepth;
 

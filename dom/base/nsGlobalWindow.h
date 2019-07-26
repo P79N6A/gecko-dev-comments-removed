@@ -102,7 +102,6 @@ class nsBarProp;
 class nsLocation;
 class nsScreen;
 class nsHistory;
-class nsPerformance;
 class nsIDocShellLoadInfo;
 class WindowStateHolder;
 class nsGlobalWindowObserver;
@@ -596,8 +595,6 @@ public:
 
   static bool HasIndexedDBSupport();
 
-  static bool HasPerformanceSupport();
-
   static WindowByIdTable* GetWindowsTable() {
     return sWindowsById;
   }
@@ -981,9 +978,6 @@ protected:
   nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
 
   
-  void CreatePerformanceObjectIfNeeded();
-
-  
   nsDOMWindowList* GetWindowList();
 
   
@@ -1072,8 +1066,6 @@ protected:
   nsCOMPtr<nsIPrincipal>        mArgumentsOrigin;
   nsRefPtr<Navigator>           mNavigator;
   nsRefPtr<nsScreen>            mScreen;
-  
-  nsRefPtr<nsPerformance>       mPerformance;
   nsRefPtr<nsDOMWindowList>     mFrames;
   nsRefPtr<nsBarProp>           mMenubar;
   nsRefPtr<nsBarProp>           mToolbar;
