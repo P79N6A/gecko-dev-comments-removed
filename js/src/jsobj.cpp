@@ -2553,7 +2553,7 @@ JSObject::shrinkSlots(JSContext *cx, HandleObject obj, uint32_t oldCount, uint32
 
 
 
-    if (obj->isCall())
+    if (obj->is<CallObject>())
         return;
 
     if (newCount == 0) {
@@ -3210,7 +3210,7 @@ js_PurgeScopeChainHelper(JSContext *cx, HandleObject objArg, HandleId id)
 
 
 
-    if (obj->isCall()) {
+    if (obj->is<CallObject>()) {
         while ((obj = obj->enclosingScope()) != NULL) {
             if (!PurgeProtoChain(cx, obj, id))
                 return false;
