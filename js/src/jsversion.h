@@ -1,15 +1,15 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jsversion_h
 #define jsversion_h
 
-/*
- * Deprecated JS_VERSION handler.
- */
+
+
+
 #ifdef JS_VERSION
 # if JS_VERSION == 185
 #  warning "JS_VERSION defined but unsupported (legacy)"
@@ -20,9 +20,9 @@
 # endif
 #endif
 
-/*
- * JS Capability Macros.
- */
+
+
+
 #define JS_HAS_STR_HTML_HELPERS 1       /* has str.anchor, str.bold, etc. */
 #define JS_HAS_OBJ_PROTO_PROP   1       /* has o.__proto__ etc. */
 #define JS_HAS_OBJ_WATCHPOINT   1       /* has o.watch and o.unwatch */
@@ -39,29 +39,29 @@
 #define JS_HAS_GENERATOR_EXPRS  1       /* has (expr for (lhs in iterable)) */
 #define JS_HAS_EXPR_CLOSURES    1       /* has function (formals) listexpr */
 
-/* Support for JS_NewGlobalObject. */
+
 #define JS_HAS_NEW_GLOBAL_OBJECT        1
 
-/* Support for JS_MakeSystemObject. */
+
 #define JS_HAS_MAKE_SYSTEM_OBJECT       1
 
-/* Feature-test macro for evolving destructuring support. */
+
 #define JS_HAS_DESTRUCTURING_SHORTHAND  (JS_HAS_DESTRUCTURING == 2)
 
-/*
- * Feature for Object.prototype.__{define,lookup}{G,S}etter__ legacy support;
- * support likely to be made opt-in at some future time.
- */
-#define OLD_GETTER_SETTER_METHODS       1
 
-/* A kill-switch for bug 586842.  Embedders shouldn't touch this! */
-#define USE_NEW_OBJECT_REPRESENTATION 0
 
-#if USE_NEW_OBJECT_REPRESENTATION
-#  define NEW_OBJECT_REPRESENTATION_ONLY() ((void)0)
+
+
+#define JS_OLD_GETTER_SETTER_METHODS    1
+
+
+#define JS_USE_NEW_OBJECT_REPRESENTATION 0
+
+#if JS_USE_NEW_OBJECT_REPRESENTATION
+# define JS_NEW_OBJECT_REPRESENTATION_ONLY() ((void)0)
 #else
-#  define NEW_OBJECT_REPRESENTATION_ONLY() \
+# define JS_NEW_OBJECT_REPRESENTATION_ONLY() \
      MOZ_ASSUME_UNREACHABLE("don't call this!  to be used in the new object representation")
 #endif
 
-#endif /* jsversion_h */
+#endif 

@@ -43,7 +43,7 @@
 
 #include "vm/GlobalObject-inl.h"
 
-#if USE_NEW_OBJECT_REPRESENTATION
+#if JS_USE_NEW_OBJECT_REPRESENTATION
 
 #  error "TypedArray support for new object representation unimplemented."
 #endif
