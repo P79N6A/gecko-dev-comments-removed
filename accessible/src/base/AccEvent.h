@@ -40,8 +40,11 @@ public:
 
      
      
+     eCoalesceReorder,
+
      
-     eCoalesceFromSameSubtree,
+     
+     eCoalesceMutationTextChange,
 
     
     
@@ -90,6 +93,7 @@ public:
     eStateChangeEvent,
     eTextChangeEvent,
     eMutationEvent,
+    eReorderEvent,
     eHideEvent,
     eShowEvent,
     eCaretMoveEvent,
@@ -129,6 +133,7 @@ protected:
   nsCOMPtr<nsINode> mNode;
 
   friend class NotificationController;
+  friend class AccReorderEvent;
 };
 
 
@@ -197,6 +202,7 @@ private:
   nsString mModifiedText;
 
   friend class NotificationController;
+  friend class AccReorderEvent;
 };
 
 
@@ -207,7 +213,15 @@ class AccMutationEvent: public AccEvent
 {
 public:
   AccMutationEvent(uint32_t aEventType, Accessible* aTarget,
-                   nsINode* aTargetNode);
+                   nsINode* aTargetNode) :
+    AccEvent(aEventType, aTarget, eAutoDetect, eCoalesceMutationTextChange)
+  {
+    
+    
+    mNode = aTargetNode;
+    mParent = mAccessible->Parent();
+  }
+  virtual ~AccMutationEvent() { };
 
   
   static const EventGroup kEventGroup = eMutationEvent;
@@ -221,6 +235,7 @@ public:
   bool IsHide() const { return mEventType == nsIAccessibleEvent::EVENT_HIDE; }
 
 protected:
+  nsRefPtr<Accessible> mParent;
   nsRefPtr<AccTextChangeEvent> mTextChangeEvent;
 
   friend class NotificationController;
@@ -250,7 +265,6 @@ public:
   Accessible* TargetPrevSibling() const { return mPrevSibling; }
 
 protected:
-  nsRefPtr<Accessible> mParent;
   nsRefPtr<Accessible> mNextSibling;
   nsRefPtr<Accessible> mPrevSibling;
 
@@ -272,6 +286,57 @@ public:
   {
     return AccMutationEvent::GetEventGroups() | (1U << eShowEvent);
   }
+};
+
+
+
+
+
+class AccReorderEvent : public AccEvent
+{
+public:
+  AccReorderEvent(Accessible* aTarget) :
+    AccEvent(::nsIAccessibleEvent::EVENT_REORDER, aTarget,
+             eAutoDetect, eCoalesceReorder) { }
+  virtual ~AccReorderEvent() { };
+
+  
+  static const EventGroup kEventGroup = eReorderEvent;
+  virtual unsigned int GetEventGroups() const
+  {
+    return AccEvent::GetEventGroups() | (1U << eReorderEvent);
+  }
+
+  
+
+
+  void AddSubMutationEvent(AccMutationEvent* aEvent)
+    { mDependentEvents.AppendElement(aEvent); }
+
+  
+
+
+  void DoNotEmitAll()
+  {
+    mEventRule = AccEvent::eDoNotEmit;
+    uint32_t eventsCount = mDependentEvents.Length();
+    for (uint32_t idx = 0; idx < eventsCount; idx++)
+      mDependentEvents[idx]->mEventRule = AccEvent::eDoNotEmit;
+  }
+
+  
+
+
+
+  uint32_t IsShowHideEventTarget(const Accessible* aTarget) const;
+
+protected:
+  
+
+
+  nsTArray<AccMutationEvent*> mDependentEvents;
+
+  friend class NotificationController;
 };
 
 

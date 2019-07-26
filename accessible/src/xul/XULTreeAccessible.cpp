@@ -662,11 +662,8 @@ XULTreeAccessible::TreeViewChanged(nsITreeView* aView)
   
   
   
-  nsRefPtr<AccEvent> reorderEvent =
-    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, this, eAutoDetect,
-                 AccEvent::eCoalesceFromSameSubtree);
-  if (reorderEvent)
-    Document()->FireDelayedAccessibleEvent(reorderEvent);
+  nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(this);
+  Document()->FireDelayedAccessibleEvent(reorderEvent);
 
   
   ClearCache(mAccessibleCache);

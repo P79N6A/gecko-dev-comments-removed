@@ -1572,9 +1572,7 @@ DocAccessible::DoInitialUpdate()
   
   
   if (!IsRoot()) {
-    nsRefPtr<AccEvent> reorderEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, Parent(), eAutoDetect,
-                   AccEvent::eCoalesceFromSameSubtree);
+    nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(Parent());
     ParentDocument()->FireDelayedAccessibleEvent(reorderEvent);
   }
 }
@@ -1786,36 +1784,6 @@ DocAccessible::FireDelayedAccessibleEvent(AccEvent* aEvent)
 }
 
 void
-DocAccessible::ProcessPendingEvent(AccEvent* aEvent)
-{
-  uint32_t eventType = aEvent->GetEventType();
-  if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
-    HyperTextAccessible* hyperText = aEvent->GetAccessible()->AsHyperText();
-    int32_t caretOffset;
-    if (hyperText &&
-        NS_SUCCEEDED(hyperText->GetCaretOffset(&caretOffset))) {
-      nsRefPtr<AccEvent> caretMoveEvent =
-        new AccCaretMoveEvent(hyperText, caretOffset);
-      nsEventShell::FireEvent(caretMoveEvent);
-
-      int32_t selectionCount;
-      hyperText->GetSelectionCount(&selectionCount);
-      if (selectionCount) {  
-        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                hyperText);
-      }
-    }
-  }
-  else {
-    nsEventShell::FireEvent(aEvent);
-
-    
-    if (eventType == nsIAccessibleEvent::EVENT_HIDE)
-      ShutdownChildrenInSubtree(aEvent->GetAccessible());
-  }
-}
-
-void
 DocAccessible::ProcessContentInserted(Accessible* aContainer,
                                       const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent)
 {
@@ -1823,37 +1791,45 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
   if (!HasAccessible(aContainer->GetNode()))
     return;
 
-  if (aContainer == this) {
-    
-    nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
-    if (rootContent != mContent)
-      mContent = rootContent;
+  bool containerNotUpdated = true;
 
-    
-    
-    
-  }
-
-  
-  
-  
-  
-  
-  aContainer->UpdateChildren();
-
-  
-  
-  
-  
-  
-  
-  
-  
   for (uint32_t idx = 0; idx < aInsertedContent->Length(); idx++) {
-    Accessible* directContainer =
+    
+    
+    
+    
+    
+    
+    
+
+    Accessible* presentContainer =
       GetContainerAccessible(aInsertedContent->ElementAt(idx));
-    if (directContainer)
-      UpdateTree(directContainer, aInsertedContent->ElementAt(idx), true);
+    if (presentContainer != aContainer)
+      continue;
+
+    if (containerNotUpdated) {
+      containerNotUpdated = false;
+
+      if (aContainer == this) {
+        
+        nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
+        if (rootContent != mContent)
+          mContent = rootContent;
+
+        
+        
+        
+      }
+
+      
+      
+      
+      
+      
+      aContainer->UpdateChildren();
+    }
+
+    UpdateTree(aContainer, aInsertedContent->ElementAt(idx), true);
   }
 }
 
@@ -1880,15 +1856,17 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
   }
 #endif
 
+  nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(aContainer);
+
   if (child) {
-    updateFlags |= UpdateTreeInternal(child, aIsInsert);
+    updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
 
   } else {
     nsAccTreeWalker walker(this, aChildNode,
                            aContainer->CanHaveAnonChildren(), true);
 
     while ((child = walker.NextChild()))
-      updateFlags |= UpdateTreeInternal(child, aIsInsert);
+      updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
   }
 
   
@@ -1903,8 +1881,9 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
     Accessible* ancestor = aContainer;
     while (ancestor) {
       if (ancestor->ARIARole() == roles::ALERT) {
-        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT,
-                                   ancestor->GetNode());
+        nsRefPtr<AccEvent> alertEvent =
+          new AccEvent(nsIAccessibleEvent::EVENT_ALERT, ancestor);
+        FireDelayedAccessibleEvent(alertEvent);
         break;
       }
 
@@ -1920,15 +1899,12 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
 
   
   
-  nsRefPtr<AccEvent> reorderEvent =
-    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, aContainer->GetNode(),
-                 eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
-  if (reorderEvent)
-    FireDelayedAccessibleEvent(reorderEvent);
+  FireDelayedAccessibleEvent(reorderEvent);
 }
 
 uint32_t
-DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert)
+DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
+                                  AccReorderEvent* aReorderEvent)
 {
   uint32_t updateFlags = eAccessible;
 
@@ -1950,34 +1926,34 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert)
     if (aChild->ARIARole() == roles::MENUPOPUP) {
       nsRefPtr<AccEvent> event =
         new AccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, aChild);
-
-      if (event)
-        FireDelayedAccessibleEvent(event);
+      FireDelayedAccessibleEvent(event);
     }
   }
 
   
-  nsRefPtr<AccEvent> event;
+  nsRefPtr<AccMutationEvent> event;
   if (aIsInsert)
     event = new AccShowEvent(aChild, node);
   else
     event = new AccHideEvent(aChild, node);
 
-  if (event)
-    FireDelayedAccessibleEvent(event);
+  FireDelayedAccessibleEvent(event);
+  aReorderEvent->AddSubMutationEvent(event);
 
   if (aIsInsert) {
     roles::Role ariaRole = aChild->ARIARole();
     if (ariaRole == roles::MENUPOPUP) {
       
-      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                                 node, AccEvent::eRemoveDupes);
+      nsRefPtr<AccEvent> event =
+        new AccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START, aChild);
+      FireDelayedAccessibleEvent(event);
 
     } else if (ariaRole == roles::ALERT) {
       
       updateFlags = eAlertAccessible;
-      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
-                                 AccEvent::eRemoveDupes);
+      nsRefPtr<AccEvent> event =
+        new AccEvent(nsIAccessibleEvent::EVENT_ALERT, aChild);
+      FireDelayedAccessibleEvent(event);
     }
 
     

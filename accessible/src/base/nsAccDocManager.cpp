@@ -398,9 +398,10 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     
     
     
+    
+    
     nsRefPtr<AccEvent> reorderEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, ApplicationAcc(),
-                   eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
+      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, ApplicationAcc());
     docAcc->FireDelayedAccessibleEvent(reorderEvent);
 
   } else {

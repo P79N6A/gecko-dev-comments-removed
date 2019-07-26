@@ -430,12 +430,6 @@ protected:
   
 
 
-
-  void ProcessPendingEvent(AccEvent* aEvent);
-
-  
-
-
   void ProcessContentInserted(Accessible* aContainer,
                               const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent);
 
@@ -464,7 +458,8 @@ protected:
     eAlertAccessible = 2
   };
 
-  uint32_t UpdateTreeInternal(Accessible* aChild, bool aIsInsert);
+  uint32_t UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
+                              AccReorderEvent* aReorderEvent);
 
   
 

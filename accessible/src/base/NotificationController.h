@@ -203,16 +203,7 @@ private:
   
 
 
-
-
-
-
-
-
-
-  void ApplyToSiblings(uint32_t aStart, uint32_t aEnd,
-                       uint32_t aEventType, nsINode* aNode,
-                       AccEvent::EEventRule aEventRule);
+  void CoalesceReorderEvents(AccEvent* aTailEvent);
 
   
 
@@ -234,7 +225,14 @@ private:
 
 
 
-  void CreateTextChangeEventFor(AccMutationEvent* aEvent);
+   void CreateTextChangeEventFor(AccMutationEvent* aEvent);
+
+  
+
+  
+
+
+  void ProcessEventQueue();
 
 private:
   
