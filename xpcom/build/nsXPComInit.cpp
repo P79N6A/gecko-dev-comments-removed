@@ -461,17 +461,6 @@ NS_InitXPCOM2(nsIServiceManager* *result,
     
     mozilla::AvailableMemoryTracker::Init();
 
-#ifdef XP_UNIX
-    
-    
-    
-    
-    
-    
-    nsSystemInfo::gUserUmask = ::umask(0777);
-    ::umask(nsSystemInfo::gUserUmask);
-#endif
-
     NS_LogInit();
 
     

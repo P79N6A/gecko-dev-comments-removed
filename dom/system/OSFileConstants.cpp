@@ -46,7 +46,6 @@
 #include "nsIObserver.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsIXULRuntime.h"
-#include "nsIPropertyBag2.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
@@ -853,27 +852,6 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
     return false;
   }
 #endif
-
-  
-  
-  
-  {
-    uint32_t userUmask;
-    nsCOMPtr<nsIPropertyBag2> infoService =
-      do_GetService("@mozilla.org/system-info;1");
-    MOZ_ASSERT(infoService, "Could not access the system information service");
-    DebugOnly<nsresult> rv =
-      infoService->GetPropertyAsUint32(NS_LITERAL_STRING("umask"), &userUmask);
-    MOZ_ASSERT(NS_SUCCEEDED(rv), "failed to retrieve umask from info service");
-
-    dom::ConstantSpec umask_cs[] = {
-      { "umask", INT_TO_JSVAL(userUmask) },
-      PROP_END
-    };
-    if (!dom::DefineConstants(cx, objSys, umask_cs)) {
-      return false;
-    }
-  }
 
   
 
