@@ -39,12 +39,6 @@ public:
 
 
 
-  static bool HasSupport();
-
-  
-
-
-
   nsPIDOMWindow* GetParentObject() const
   {
      return GetOwner();
