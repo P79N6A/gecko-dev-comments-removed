@@ -108,13 +108,17 @@
 
 
 
-
 #if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   
 
 
 
-#  define MOZ_BEGIN_NESTED_ENUM_CLASS(Name, type) \
+
+   
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER1(Name) \
+     enum class Name {
+   
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER2(Name, type) \
      enum class Name : type {
 #  define MOZ_END_NESTED_ENUM_CLASS(Name) \
      };
@@ -154,8 +158,17 @@
 
 
 
-\
-#  define MOZ_BEGIN_NESTED_ENUM_CLASS(Name, type) \
+
+
+   
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER1(Name) \
+     class Name \
+     { \
+       public: \
+         enum Enum \
+         {
+   
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER2(Name, type) \
      class Name \
      { \
        public: \
@@ -226,7 +239,36 @@
      inline int& operator<<=(int&, const Name::Enum&) MOZ_DELETE; \
      inline int& operator>>=(int&, const Name::Enum&) MOZ_DELETE;
 #endif
-#  define MOZ_BEGIN_ENUM_CLASS(Name, type) MOZ_BEGIN_NESTED_ENUM_CLASS(Name, type)
+
+   
+
+
+
+
+
+
+
+
+#  define MOZ_COUNT_BEGIN_ENUM_CLASS_ARGS_IMPL2(_1, _2, count, ...) \
+     count
+#  define MOZ_COUNT_BEGIN_ENUM_CLASS_ARGS_IMPL(args) \
+     MOZ_COUNT_BEGIN_ENUM_CLASS_ARGS_IMPL2 args
+#  define MOZ_COUNT_BEGIN_ENUM_CLASS_ARGS(...) \
+     MOZ_COUNT_BEGIN_ENUM_CLASS_ARGS_IMPL((__VA_ARGS__, 2, 1, 0))
+   
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_CHOOSE_HELPER2(count) \
+    MOZ_BEGIN_NESTED_ENUM_CLASS_HELPER##count
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_CHOOSE_HELPER1(count) \
+     MOZ_BEGIN_NESTED_ENUM_CLASS_CHOOSE_HELPER2(count)
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_CHOOSE_HELPER(count) \
+     MOZ_BEGIN_NESTED_ENUM_CLASS_CHOOSE_HELPER1(count)
+   
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS_GLUE(x, y) x y
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS(...) \
+     MOZ_BEGIN_NESTED_ENUM_CLASS_GLUE(MOZ_BEGIN_NESTED_ENUM_CLASS_CHOOSE_HELPER(MOZ_COUNT_BEGIN_ENUM_CLASS_ARGS(__VA_ARGS__)), \
+                                      (__VA_ARGS__))
+
+#  define MOZ_BEGIN_ENUM_CLASS(...) MOZ_BEGIN_NESTED_ENUM_CLASS(__VA_ARGS__)
 #  define MOZ_END_ENUM_CLASS(Name) \
      MOZ_END_NESTED_ENUM_CLASS(Name) \
      MOZ_FINISH_NESTED_ENUM_CLASS(Name)
