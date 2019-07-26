@@ -518,13 +518,13 @@ nsGenericHTMLElement::Spellcheck()
   }
 
   
-  if (nsContentUtils::IsChromeDoc(OwnerDoc())) {
-    return false;                       
+  if (IsEditable()) {
+    return true;
   }
 
-  if (IsCurrentBodyElement()) {
-    nsCOMPtr<nsIHTMLDocument> doc = do_QueryInterface(GetCurrentDoc());
-    return doc && doc->IsEditingOn();
+  
+  if (nsContentUtils::IsChromeDoc(OwnerDoc())) {
+    return false;                       
   }
 
   

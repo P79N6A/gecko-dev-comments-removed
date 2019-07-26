@@ -73,6 +73,7 @@
 #include "nsIEditorObserver.h"          
 #include "nsIEditorSpellCheck.h"        
 #include "nsIFrame.h"                   
+#include "nsIHTMLDocument.h"            
 #include "nsIInlineSpellChecker.h"      
 #include "nsIMEStateManager.h"          
 #include "nsINameSpaceManager.h"        
@@ -399,6 +400,8 @@ nsEditor::GetDesiredSpellCheckState()
     return false;
   }
 
+  
+  
   if (content->IsRootOfNativeAnonymousSubtree()) {
     content = content->GetParent();
   }
@@ -406,6 +409,14 @@ nsEditor::GetDesiredSpellCheckState()
   nsCOMPtr<nsIDOMHTMLElement> element = do_QueryInterface(content);
   if (!element) {
     return false;
+  }
+
+  if (!IsPlaintextEditor()) {
+    
+    
+    
+    nsCOMPtr<nsIHTMLDocument> doc = do_QueryInterface(content->GetCurrentDoc());
+    return doc && doc->IsEditingOn();
   }
 
   bool enable;

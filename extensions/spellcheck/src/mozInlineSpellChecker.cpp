@@ -39,6 +39,7 @@
 #include "nsIDOMNode.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
+#include "nsIDOMHTMLElement.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMNode.h"
@@ -1259,8 +1260,28 @@ mozInlineSpellChecker::SkipSpellCheckForNode(nsIEditor* aEditor,
   }
   else {
     
+    
     nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
-    *checkSpelling = content->IsEditable();
+    if (!content->IsEditable()) {
+      *checkSpelling = false;
+      return NS_OK;
+    }
+
+    
+    
+    nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(content);
+    while (content && !htmlElement) {
+      content = content->GetParent();
+      htmlElement = do_QueryInterface(content);
+    }
+    NS_ASSERTION(htmlElement, "Why do we have no htmlElement?");
+    if (!htmlElement) {
+      return NS_OK;
+    }
+
+    
+    htmlElement->GetSpellcheck(checkSpelling);
+    return NS_OK;
   }
 
   return NS_OK;
