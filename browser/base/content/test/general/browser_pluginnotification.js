@@ -730,20 +730,22 @@ function test22() {
   ok(pluginNode.activated, "Test 22, plugin should be activated");
 
   
-  var oldVal = pluginNode.getObjectValue();
-  pluginNode.src = pluginNode.src;
-  is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_PLUGIN, "Test 22, Plugin should have retained activated state");
-  ok(pluginNode.activated, "Test 22, plugin should have remained activated");
-  
-  var pluginsDiffer;
-  try {
-    pluginNode.checkObjectValue(oldVal);
-  } catch (e) {
-    pluginsDiffer = true;
-  }
-  ok(pluginsDiffer, "Test 22, plugin should have reloaded");
+  executeSoon(function() {
+    var oldVal = pluginNode.getObjectValue();
+    pluginNode.src = pluginNode.src;
+    is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_PLUGIN, "Test 22, Plugin should have retained activated state");
+    ok(pluginNode.activated, "Test 22, plugin should have remained activated");
+    
+    var pluginsDiffer;
+    try {
+      pluginNode.checkObjectValue(oldVal);
+    } catch (e) {
+      pluginsDiffer = true;
+    }
+    ok(pluginsDiffer, "Test 22, plugin should have reloaded");
 
-  prepareTest(runAfterPluginBindingAttached(test23), gTestRoot + "plugin_test.html");
+    prepareTest(runAfterPluginBindingAttached(test23), gTestRoot + "plugin_test.html");
+  });
 }
 
 
