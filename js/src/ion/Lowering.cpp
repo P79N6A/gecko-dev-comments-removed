@@ -1719,6 +1719,15 @@ LIRGenerator::visitGuardObject(MGuardObject *ins)
 }
 
 bool
+LIRGenerator::visitGuardString(MGuardString *ins)
+{
+    
+    
+    JS_ASSERT(ins->input()->type() == MIRType_String);
+    return redefine(ins, ins->input());
+}
+
+bool
 LIRGenerator::visitCallGetProperty(MCallGetProperty *ins)
 {
     LCallGetProperty *lir = new LCallGetProperty();
