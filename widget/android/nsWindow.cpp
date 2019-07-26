@@ -162,7 +162,8 @@ nsWindow::nsWindow() :
     mIMEComposing(false),
     mIMEMaskSelectionUpdate(false),
     mIMEMaskTextUpdate(false),
-    mIMEMaskEventsCount(1) 
+    mIMEMaskEventsCount(1), 
+    mIMESelectionChanged(false)
 {
 }
 
@@ -2064,9 +2065,12 @@ nsWindow::OnIMEFocusChange(bool aFocus)
 
     if (aFocus) {
         mIMETextChanges.Clear();
-        mIMESelectionChange = IMEChange();
+        mIMESelectionChanged = false;
         
-        OnIMETextChange(0, INT32_MAX, INT32_MAX);
+        
+        
+        
+        OnIMETextChange(0, INT32_MAX / 2, INT32_MAX / 2);
         FlushIMEChanges();
     } else {
         
@@ -2086,7 +2090,7 @@ nsWindow::OnIMEFocusChange(bool aFocus)
 void
 nsWindow::PostFlushIMEChanges()
 {
-    if (!mIMETextChanges.IsEmpty() || !mIMESelectionChange.IsEmpty()) {
+    if (!mIMETextChanges.IsEmpty() || mIMESelectionChanged) {
         
         return;
     }
@@ -2101,7 +2105,6 @@ nsWindow::FlushIMEChanges()
     nsRefPtr<nsWindow> kungFuDeathGrip(this);
     for (uint32_t i = 0; i < mIMETextChanges.Length(); i++) {
         IMEChange &change = mIMETextChanges[i];
-        MOZ_ASSERT(change.IsTextChange());
 
         nsQueryContentEvent event(true, NS_QUERY_TEXT_CONTENT, this);
         InitEvent(event, nullptr);
@@ -2119,12 +2122,18 @@ nsWindow::FlushIMEChanges()
     }
     mIMETextChanges.Clear();
 
-    if (!mIMESelectionChange.IsEmpty()) {
-        MOZ_ASSERT(!mIMESelectionChange.IsTextChange());
+    if (mIMESelectionChanged) {
+        nsQueryContentEvent event(true, NS_QUERY_SELECTED_TEXT, this);
+        InitEvent(event, nullptr);
+
+        DispatchEvent(&event);
+        if (!event.mSucceeded)
+            return;
+
         AndroidBridge::NotifyIMEChange(nullptr, 0,
-                                       mIMESelectionChange.mStart,
-                                       mIMESelectionChange.mOldEnd, -1);
-        mIMESelectionChange = IMEChange();
+                                       event.GetSelectionStart(),
+                                       event.GetSelectionEnd(), -1);
+        mIMESelectionChanged = false;
     }
 }
 
@@ -2138,7 +2147,7 @@ nsWindow::OnIMETextChange(uint32_t aStart, uint32_t aOldEnd, uint32_t aNewEnd)
             aStart, aOldEnd, aNewEnd);
 
     
-    mIMESelectionChange = IMEChange();
+    mIMESelectionChanged = false;
     OnIMESelectionChange();
     PostFlushIMEChanges();
 
@@ -2209,17 +2218,8 @@ nsWindow::OnIMESelectionChange(void)
 
     ALOGIME("IME: OnIMESelectionChange");
 
-    nsRefPtr<nsWindow> kungFuDeathGrip(this);
-    nsQueryContentEvent event(true, NS_QUERY_SELECTED_TEXT, this);
-    InitEvent(event, nullptr);
-
-    DispatchEvent(&event);
-    if (!event.mSucceeded)
-        return NS_OK;
-
     PostFlushIMEChanges();
-    mIMESelectionChange = IMEChange((int32_t)event.GetSelectionStart(),
-                                    (int32_t)event.GetSelectionEnd());
+    mIMESelectionChanged = true;
     return NS_OK;
 }
 
