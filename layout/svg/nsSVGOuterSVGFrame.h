@@ -98,7 +98,8 @@ public:
                                 gfxMatrix *aFromParentTransform) const {
     
     
-    return false;
+    
+    return GetFirstPrincipalChild()->IsTransformed();
   }
 
   
@@ -254,13 +255,6 @@ public:
 
 
   virtual nsIAtom* GetType() const;
-
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
-                                gfxMatrix *aFromParentTransform) const {
-    
-    
-    return false;
-  }
 
   
   virtual gfxMatrix GetCanvasTM(uint32_t aFor) {

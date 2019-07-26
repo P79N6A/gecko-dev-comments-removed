@@ -25,6 +25,12 @@ nsSVGAnimatedTransformList::SetBaseValueString(const nsAString& aValue)
     return rv;
   }
 
+  return SetBaseValue(newBaseValue);
+}
+
+nsresult
+nsSVGAnimatedTransformList::SetBaseValue(const SVGTransformList& aValue)
+{
   SVGAnimatedTransformList *domWrapper =
     SVGAnimatedTransformList::GetDOMWrapperIfExists(this);
   if (domWrapper) {
@@ -33,14 +39,14 @@ nsSVGAnimatedTransformList::SetBaseValueString(const nsAString& aValue)
     
     
     
-    domWrapper->InternalBaseValListWillChangeLengthTo(newBaseValue.Length());
+    domWrapper->InternalBaseValListWillChangeLengthTo(aValue.Length());
   }
 
   
   
   
 
-  rv = mBaseVal.CopyFrom(newBaseValue);
+  nsresult rv = mBaseVal.CopyFrom(aValue);
   if (NS_FAILED(rv) && domWrapper) {
     
     

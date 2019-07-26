@@ -962,36 +962,33 @@ SVGSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
   NS_ABORT_IF_FALSE(aWhich != eChildToUserSpace || aMatrix.IsIdentity(),
                     "Skipping eUserSpaceToParent transforms makes no sense");
 
+  
+  gfxMatrix fromUserSpace =
+    SVGSVGElementBase::PrependLocalTransformsTo(aMatrix, aWhich);
+  if (aWhich == eUserSpaceToParent) {
+    return fromUserSpace;
+  }
+
   if (IsInner()) {
     float x, y;
     const_cast<SVGSVGElement*>(this)->GetAnimatedLengthValues(&x, &y, nullptr);
     if (aWhich == eAllTransforms) {
       
-      return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
-    }
-    if (aWhich == eUserSpaceToParent) {
-      return gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+      return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * fromUserSpace;
     }
     NS_ABORT_IF_FALSE(aWhich == eChildToUserSpace, "Unknown TransformTypes");
-    return GetViewBoxTransform(); 
-  }
-
-  if (aWhich == eUserSpaceToParent) {
-    
-    return aMatrix;
+    return GetViewBoxTransform() * fromUserSpace;
   }
 
   if (IsRoot()) {
     gfxMatrix zoomPanTM;
     zoomPanTM.Translate(gfxPoint(mCurrentTranslate.GetX(), mCurrentTranslate.GetY()));
     zoomPanTM.Scale(mCurrentScale, mCurrentScale);
-    gfxMatrix matrix = mFragmentIdentifierTransform ? 
-                         *mFragmentIdentifierTransform * aMatrix : aMatrix;
-    return GetViewBoxTransform() * zoomPanTM * matrix;
+    return GetViewBoxTransform() * zoomPanTM * fromUserSpace;
   }
 
   
-  return GetViewBoxTransform() * aMatrix;
+  return GetViewBoxTransform() * fromUserSpace;
 }
 
  bool
@@ -1243,6 +1240,53 @@ bool
 SVGSVGElement::ClearZoomAndPanProperty()
 {
   return UnsetProperty(nsGkAtoms::zoomAndPan);
+}
+
+
+static void
+ReleaseTransformPropertyValue(void*    aObject,       
+                              nsIAtom* aPropertyName, 
+                              void*    aPropertyValue,
+                              void*    aData          )
+{
+  SVGTransformList* valPtr =
+    static_cast<SVGTransformList*>(aPropertyValue);
+  delete valPtr;
+}
+
+bool
+SVGSVGElement::SetTransformProperty(const SVGTransformList& aTransform)
+{
+  SVGTransformList* pTransformOverridePtr = new SVGTransformList(aTransform);
+  nsresult rv = SetProperty(nsGkAtoms::transform,
+                            pTransformOverridePtr,
+                            ReleaseTransformPropertyValue,
+                            true);
+  NS_ABORT_IF_FALSE(rv != NS_PROPTABLE_PROP_OVERWRITTEN,
+                    "Setting override value when it's already set...?"); 
+
+  if (MOZ_UNLIKELY(NS_FAILED(rv))) {
+    
+    delete pTransformOverridePtr;
+    return false;
+  }
+  return true;
+}
+
+const SVGTransformList*
+SVGSVGElement::GetTransformProperty() const
+{
+  void* valPtr = GetProperty(nsGkAtoms::transform);
+  if (valPtr) {
+    return static_cast<SVGTransformList*>(valPtr);
+  }
+  return nullptr;
+}
+
+bool
+SVGSVGElement::ClearTransformProperty()
+{
+  return UnsetProperty(nsGkAtoms::transform);
 }
 
 } 
