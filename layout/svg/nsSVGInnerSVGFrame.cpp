@@ -206,14 +206,15 @@ nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
         nsSVGEffects::InvalidateRenderingObservers(this);
         nsSVGUtils::ScheduleReflowSVG(this);
       } else if (aAttribute == nsGkAtoms::transform) {
-        nsSVGUtils::InvalidateBounds(this, false);
-        nsSVGUtils::ScheduleReflowSVG(this);
+        
+        SchedulePaint();
       } else if (aAttribute == nsGkAtoms::viewBox ||
                  (aAttribute == nsGkAtoms::preserveAspectRatio &&
                   content->HasViewBoxOrSyntheticViewBox())) {
-        nsSVGUtils::InvalidateBounds(this, false);
-        nsSVGUtils::ScheduleReflowSVG(this);
         content->ChildrenOnlyTransformChanged();
+        
+        
+        SchedulePaint();
       }
     }
   }

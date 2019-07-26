@@ -23,6 +23,7 @@
 #include "nsCSSProps.h"
 #include "nsCSSParser.h"
 #include "nsEventListenerManager.h"
+#include "nsLayoutUtils.h"
 #include "nsSVGAnimatedTransformList.h"
 #include "nsSVGLength2.h"
 #include "nsSVGNumber2.h"
@@ -2367,9 +2368,23 @@ nsSVGElement::DidAnimateTransformList()
   nsIFrame* frame = GetPrimaryFrame();
 
   if (frame) {
+    nsIAtom *transformAttr = GetTransformListAttrName();
+    int32_t modType = nsIDOMMutationEvent::MODIFICATION;
     frame->AttributeChanged(kNameSpaceID_None,
-                            GetTransformListAttrName(),
-                            nsIDOMMutationEvent::MODIFICATION);
+                            transformAttr,
+                            modType);
+    
+    
+    
+    
+    
+    
+    
+    
+    nsChangeHint changeHint = GetAttributeChangeHint(transformAttr, modType);
+    if (changeHint) {
+      nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
+    }
   }
 }
 

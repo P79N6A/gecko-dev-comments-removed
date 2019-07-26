@@ -105,9 +105,8 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
       nsSVGUtils::ScheduleReflowSVG(this);
     } else if (aAttribute == nsGkAtoms::transform) {
       
+      SchedulePaint();
       mCanvasTM = nullptr;
-      nsSVGUtils::InvalidateBounds(this, false);
-      nsSVGUtils::ScheduleReflowSVG(this);
     } else if (aAttribute == nsGkAtoms::viewBox ||
                aAttribute == nsGkAtoms::preserveAspectRatio) {
       nsSVGEffects::InvalidateRenderingObservers(this);
