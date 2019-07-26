@@ -816,8 +816,8 @@ void
 BluetoothA2dpManager::UpdateMetaData(const nsAString& aTitle,
                                      const nsAString& aArtist,
                                      const nsAString& aAlbum,
-                                     uint32_t aMediaNumber,
-                                     uint32_t aTotalMediaCount,
+                                     uint64_t aMediaNumber,
+                                     uint64_t aTotalMediaCount,
                                      uint32_t aDuration)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -925,16 +925,34 @@ BluetoothA2dpManager::UpdateRegisterNotification(int aEventId, int aParam)
       param.play_status = (btrc_play_status_t)mPlayStatus;
       break;
     case BTRC_EVT_TRACK_CHANGE:
+      
+      
+      
+      
+      
+      
+      
       mTrackChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
       
       
-      for (int i = 0; i < BTRC_UID_SIZE; ++i) {
-        param.track[i] = (mMediaNumber >> (56 - 8 * i));
+      for (int index = 0; index < BTRC_UID_SIZE; ++index) {
+        
+        
+        if (mSinkState == BluetoothA2dpManager::SinkState::SINK_PLAYING) {
+          param.track[index] = 0x0;
+        } else {
+          param.track[index] = 0xFF;
+        }
       }
       break;
     case BTRC_EVT_PLAY_POS_CHANGED:
+      
       mPlayPosChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
-      param.song_pos = mPosition;
+      if (mSinkState == BluetoothA2dpManager::SinkState::SINK_PLAYING) {
+        param.song_pos = mPosition;
+      } else {
+        param.song_pos = 0xFFFFFFFF;
+      }
       mPlaybackInterval = aParam;
       break;
     default:
@@ -971,13 +989,13 @@ BluetoothA2dpManager::GetPosition()
   return mPosition;
 }
 
-uint32_t
+uint64_t
 BluetoothA2dpManager::GetMediaNumber()
 {
   return mMediaNumber;
 }
 
-uint32_t
+uint64_t
 BluetoothA2dpManager::GetTotalMediaNumber()
 {
   return mTotalMediaCount;
