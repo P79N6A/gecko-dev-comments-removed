@@ -26,9 +26,9 @@ TCPSocketParentIntermediary.prototype = {
 
     
     
-    ["onopen", "ondrain", "ondata", "onerror", "onclose"].forEach(
+    ["open", "drain", "data", "error", "close"].forEach(
       function(p) {
-        socket[p] = function(data) {
+        socket["on" + p] = function(data) {
           aParentSide.sendCallback(p, data.data, socket.readyState,
                                    socket.bufferedAmount);
         };
