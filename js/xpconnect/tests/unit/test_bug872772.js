@@ -5,7 +5,7 @@ function run_test() {
   
   
   var contentSB = new Cu.Sandbox(['http://www.google.com'],
-                                 {wantXHRConstructor: true, wantComponents: true});
+                                 { wantDOMConstructors: ["XMLHttpRequest"], wantComponents: true });
 
   
   Cu.evalInSandbox('xhr = new XMLHttpRequest();', contentSB);
