@@ -124,11 +124,24 @@ AboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
 
       
       if (kRedirMap[i].flags & nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT) {
-        
-        
-        
-        rv = tempChannel->SetOwner(nullptr);
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (path.EqualsLiteral("feeds")) {
+          nsCOMPtr<nsIScriptSecurityManager> securityManager =
+            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+          NS_ENSURE_SUCCESS(rv, rv);
+  
+          nsCOMPtr<nsIPrincipal> principal;
+          rv = securityManager->GetNoAppCodebasePrincipal(aURI, getter_AddRefs(principal));
+          NS_ENSURE_SUCCESS(rv, rv);
+  
+          rv = tempChannel->SetOwner(principal);
+        }
+        else {
+          
+          
+          
+          rv = tempChannel->SetOwner(nullptr);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
       }
 
       NS_ADDREF(*result = tempChannel);
