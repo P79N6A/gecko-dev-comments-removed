@@ -13,6 +13,8 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsJSUtils.h"
+#include "nsIDOMFile.h"
+#include "nsIDOMFileList.h"
 
 using namespace mozilla;
 using namespace JS;
@@ -69,13 +71,40 @@ StackScopedCloneRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t ta
     return nullptr;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+bool IsBlobOrFileList(JSObject *obj)
+{
+    nsISupports *supports = UnwrapReflectorToISupports(obj);
+    if (!supports)
+        return false;
+    nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(supports);
+    if (blob)
+        return true;
+    nsCOMPtr<nsIDOMFileList> fileList = do_QueryInterface(supports);
+    if (fileList)
+        return true;
+    return false;
+}
+
 static bool
 StackScopedCloneWrite(JSContext *cx, JSStructuredCloneWriter *writer,
                       Handle<JSObject *> obj, void *closure)
 {
     MOZ_ASSERT(closure, "Null pointer!");
     StackScopedCloneData *cloneData = static_cast<StackScopedCloneData *>(closure);
-    if (cloneData->mOptions->wrapReflectors && IsReflector(obj)) {
+    if ((cloneData->mOptions->wrapReflectors && IsReflector(obj)) ||
+        IsBlobOrFileList(obj))
+    {
         if (!cloneData->mReflectors.append(obj))
             return false;
 
