@@ -952,11 +952,6 @@ void MediaDecoder::NotifySuspendedStatusChanged()
   bool suspended = mResource->IsSuspendedByCache(&activeStream);
 
   if (mOwner) {
-    if (suspended) {
-      
-      
-      mOwner->NotifyAutoplayDataReady();
-    }
     mOwner->NotifySuspendedByCache(suspended);
     UpdateReadyStateForData();
   }

@@ -111,11 +111,6 @@ public:
 
   
   
-  
-  virtual void NotifyAutoplayDataReady() = 0;
-
-  
-  
   virtual void NotifySuspendedByCache(bool aIsSuspended) = 0;
 
   

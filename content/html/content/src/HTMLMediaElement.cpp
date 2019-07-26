@@ -2215,9 +2215,7 @@ nsresult HTMLMediaElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   if (aNotify && aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::autoplay) {
       StopSuspendingAfterFirstFrame();
-      if (mReadyState == nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) {
-        NotifyAutoplayDataReady();
-      }
+      CheckAutoplayDataReady();
       
       AddRemoveSelfReference();
       UpdatePreloadAction();
@@ -2854,6 +2852,9 @@ void HTMLMediaElement::SeekCompleted()
 void HTMLMediaElement::NotifySuspendedByCache(bool aIsSuspended)
 {
   mDownloadSuspendedByCache = aIsSuspended;
+  
+  
+  CheckAutoplayDataReady();
 }
 
 void HTMLMediaElement::DownloadSuspended()
@@ -2992,9 +2993,7 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
     DispatchAsyncEvent(NS_LITERAL_STRING("canplay"));
   }
 
-  if (mReadyState == nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) {
-    NotifyAutoplayDataReady();
-  }
+  CheckAutoplayDataReady();
 
   if (oldState < nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA &&
       mReadyState >= nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA &&
@@ -3010,14 +3009,20 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
 
 bool HTMLMediaElement::CanActivateAutoplay()
 {
+  
+  
+  
   return mAutoplaying &&
          mPaused &&
+         (mDownloadSuspendedByCache ||
+          (mDecoder && mReadyState >= nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) ||
+          (mSrcStream && mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA)) &&
          HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
          mAutoplayEnabled &&
          !IsEditable();
 }
 
-void HTMLMediaElement::NotifyAutoplayDataReady()
+void HTMLMediaElement::CheckAutoplayDataReady()
 {
   if (CanActivateAutoplay()) {
     mPaused = false;

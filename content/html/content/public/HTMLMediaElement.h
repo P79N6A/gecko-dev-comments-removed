@@ -232,7 +232,8 @@ public:
   
   
   
-  virtual void NotifyAutoplayDataReady() MOZ_FINAL MOZ_OVERRIDE;
+  
+  void CheckAutoplayDataReady();
 
   
   bool ShouldCheckAllowOrigin();
