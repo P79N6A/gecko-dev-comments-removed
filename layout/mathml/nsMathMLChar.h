@@ -6,11 +6,13 @@
 #ifndef nsMathMLChar_h___
 #define nsMathMLChar_h___
 
+#include "nsAutoPtr.h"
 #include "nsMathMLOperators.h"
 #include "nsPoint.h"
 #include "nsRect.h"
 #include "nsString.h"
 #include "nsBoundingMetrics.h"
+#include "gfxFont.h"
 
 class nsGlyphTable;
 class nsIFrame;
@@ -46,19 +48,30 @@ enum {
 
 
 
-struct nsGlyphCode {
-  char16_t code[2]; 
-  int32_t   font;
 
-  int32_t Length() { return (code[1] == char16_t('\0') ? 1 : 2); }
+
+struct nsGlyphCode {
+  union {
+    char16_t code[2];
+    uint32_t glyphID;
+  };
+  int8_t   font;
+
+  bool IsGlyphID() const { return font == -1; }
+
+  int32_t Length() const {
+    return (IsGlyphID() || code[1] == PRUnichar('\0') ? 1 : 2);
+  }
   bool Exists() const
   {
-    return (code[0] != 0);
+    return IsGlyphID() ? glyphID != 0 : code[0] != 0;
   }
   bool operator==(const nsGlyphCode& other) const
   {
-    return (other.code[0] == code[0] && other.code[1] == code[1] && 
-            other.font == font);
+    return (other.font == font &&
+            ((IsGlyphID() && other.glyphID == glyphID) ||
+             (!IsGlyphID() && other.code[0] == code[0] &&
+              other.code[1] == code[1])));
   }
   bool operator!=(const nsGlyphCode& other) const
   {
@@ -77,7 +90,7 @@ public:
     mStyleContext = nullptr;
     mUnscaledAscent = 0;
     mScaleX = mScaleY = 1.0;
-    mDrawNormal = true;
+    mDraw = DRAW_NORMAL;
     mMirrored = false;
   }
 
@@ -193,17 +206,25 @@ private:
   nsStretchDirection mDirection;
   nsBoundingMetrics  mBoundingMetrics;
   nsStyleContext*    mStyleContext;
-  nsGlyphTable*      mGlyphTable;
-  nsGlyphCode        mGlyph;
   
   
-  nsString           mFamily;
+  nsAutoPtr<gfxTextRun> mGlyphs[4];
+  nsBoundingMetrics     mBmData[4];
   
   nscoord            mUnscaledAscent;
   
   float              mScaleX, mScaleY;
+
   
-  bool               mDrawNormal;
+  
+  
+  
+  
+  enum DrawingMethod {
+    DRAW_NORMAL, DRAW_VARIANT, DRAW_PARTS
+  };
+  DrawingMethod mDraw;
+
   
   bool               mMirrored;
 
@@ -211,9 +232,17 @@ private:
   friend class StretchEnumContext;
 
   
+  bool
+  SetFontFamily(nsPresContext*          aPresContext,
+                const nsGlyphTable*     aGlyphTable,
+                const nsGlyphCode&      aGlyphCode,
+                const nsAString&        aDefaultFamily,
+                nsFont&                 aFont,
+                nsRefPtr<gfxFontGroup>* aFontGroup);
+
   nsresult
   StretchInternal(nsPresContext*           aPresContext,
-                  nsRenderingContext&     aRenderingContext,
+                  gfxContext*              aThebesContext,
                   nsStretchDirection&      aStretchDirection,
                   const nsBoundingMetrics& aContainerSize,
                   nsBoundingMetrics&       aDesiredStretchSize,
@@ -222,23 +251,18 @@ private:
                   bool            aMaxSizeIsAbsolute = false);
 
   nsresult
-  PaintVertically(nsPresContext*       aPresContext,
-                  nsRenderingContext& aRenderingContext,
-                  nsFont&              aFont,
-                  nsStyleContext*      aStyleContext,
-                  nsGlyphTable*        aGlyphTable,
-                  nsRect&              aRect);
+  PaintVertically(nsPresContext* aPresContext,
+                  gfxContext*    aThebesContext,
+                  nsRect&        aRect);
 
   nsresult
-  PaintHorizontally(nsPresContext*       aPresContext,
-                    nsRenderingContext& aRenderingContext,
-                    nsFont&              aFont,
-                    nsStyleContext*      aStyleContext,
-                    nsGlyphTable*        aGlyphTable,
-                    nsRect&              aRect);
+  PaintHorizontally(nsPresContext* aPresContext,
+                    gfxContext*    aThebesContext,
+                    nsRect&        aRect);
 
   void
-  ApplyTransforms(nsRenderingContext& aRenderingContext, nsRect &r);
+  ApplyTransforms(gfxContext* aThebesContext, int32_t aAppUnitsPerGfxUnit,
+                  nsRect &r);
 };
 
 #endif 
