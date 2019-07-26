@@ -517,7 +517,7 @@ if (IS_WIN) {
   function lockDirectory(aDir) {
     var file = aDir.clone();
     file.append(kLockFileName);
-    file.create(file.NORMAL_FILE_TYPE, 4 * 64 + 4 * 8 + 4); 
+    file.create(file.NORMAL_FILE_TYPE, 0o444);
     file.QueryInterface(AUS_Ci.nsILocalFileWin);
     file.fileAttributesWin |= file.WFA_READONLY;
     file.fileAttributesWin &= ~file.WFA_READWRITE;
@@ -577,7 +577,7 @@ function copyMinimumAppFiles(aSrcDir, aDestDir, aDestLeafName) {
   deplibsFile.append("dependentlibs.list");
   let istream = AUS_Cc["@mozilla.org/network/file-input-stream;1"].
                 createInstance(AUS_Ci.nsIFileInputStream);
-  istream.init(deplibsFile, 0x01, 4 * 64 + 4 * 8 + 4, 0); 
+  istream.init(deplibsFile, 0x01, 0o444, 0);
   istream.QueryInterface(AUS_Ci.nsILineInputStream);
 
   let hasMore;
@@ -723,21 +723,6 @@ function shouldRunServiceTest(aFirstTest) {
   
   attemptServiceInstall();
 
-  const REG_PATH = "SOFTWARE\\Mozilla\\MaintenanceService\\" +
-                   "3932ecacee736d366d6436db0f55bce4";
-
-  let key = AUS_Cc["@mozilla.org/windows-registry-key;1"].
-            createInstance(AUS_Ci.nsIWindowsRegKey);
-  try {
-    key.open(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE, REG_PATH,
-             AUS_Ci.nsIWindowsRegKey.ACCESS_READ | key.WOW64_64);
-  }
-  catch (e) {
-    logTestInfo("this test can only run on the buildbot build system at this " +
-                "time.");
-    return false;
-  }
-
   let binDir = getGREDir();
   let updaterBin = binDir.clone();
   updaterBin.append(FILE_UPDATER_BIN);
@@ -750,6 +735,29 @@ function shouldRunServiceTest(aFirstTest) {
     updaterBinPath = '"' + updaterBinPath + '"';
   }
 
+  const REG_PATH = "SOFTWARE\\Mozilla\\MaintenanceService\\" +
+                   "3932ecacee736d366d6436db0f55bce4";
+
+  let key = AUS_Cc["@mozilla.org/windows-registry-key;1"].
+            createInstance(AUS_Ci.nsIWindowsRegKey);
+  try {
+    key.open(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE, REG_PATH,
+             AUS_Ci.nsIWindowsRegKey.ACCESS_READ | key.WOW64_64);
+  }
+  catch (e) {
+#ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
+    
+    
+    if (isBinarySigned(updaterBinPath)) {
+      do_throw("binary is signed but the test registry key does not exists!");
+    }
+#endif
+
+    logTestInfo("this test can only run on the buildbot build system at this " +
+                "time.");
+    return false;
+  }
+
   
   let helperBin = getTestDirFile(FILE_HELPER_BIN);
   let args = ["wait-for-service-stop", "MozillaMaintenance", "10"];
@@ -759,8 +767,8 @@ function shouldRunServiceTest(aFirstTest) {
   logTestInfo("Checking if the service exists on this machine.");
   process.run(true, args, args.length);
   if (process.exitValue == 0xEE) {
-    logTestInfo("this test can only run when the service is installed.");
-    return false;
+    do_throw("test registry key exists but this test can only run on systems " +
+             "with the maintenance service installed.");
   } else {
     logTestInfo("Service exists, return value: " + process.exitValue);
   }
@@ -773,23 +781,34 @@ function shouldRunServiceTest(aFirstTest) {
              process.exitValue);
   }
 
-#ifdef DISABLE_UPDATER_AUTHENTICODE_CHECK
-  
+#ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
+  if (!isBinarySigned(updaterBinPath)) {
+    logTestInfo("this test can only run on builds with signed binaries.");
+    return false;
+  }
+#endif
   return true;
-#else
-  
-  args = ["check-signature", updaterBinPath];
-  process = AUS_Cc["@mozilla.org/process/util;1"].
-            createInstance(AUS_Ci.nsIProcess);
+}
+
+
+
+
+
+
+
+function isBinarySigned(aBinPath) {
+  let helperBin = getTestDirFile(FILE_HELPER_BIN);
+  let args = ["check-signature", aBinPath];
+  let process = AUS_Cc["@mozilla.org/process/util;1"].
+                createInstance(AUS_Ci.nsIProcess);
   process.init(helperBin);
   process.run(true, args, args.length);
-  if (process.exitValue == 0) {
-    return true;
+  if (process.exitValue != 0) {
+    logTestInfo("binary is not signed. " + FILE_HELPER_BIN + " returned " +
+                process.exitValue + " for file " + aBinPath);
+    return false;
   }
-  logTestInfo("this test can only run on builds with signed binaries. " +
-              FILE_HELPER_BIN + " returned " + process.exitValue)
-  return false;
-#endif
+  return true;
 }
 
 
