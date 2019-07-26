@@ -242,10 +242,26 @@ ICStub::trace(JSTracer *trc)
         MarkShape(trc, &propStub->holderShape(), "baseline-getpropnativeproto-stub-holdershape");
         break;
       }
+      case ICStub::GetProp_CallScripted: {
+        ICGetProp_CallScripted *callStub = toGetProp_CallScripted();
+        MarkShape(trc, &callStub->shape(), "baseline-getpropcallscripted-stub-shape");
+        MarkObject(trc, &callStub->holder(), "baseline-getpropcallscripted-stub-holder");
+        MarkShape(trc, &callStub->holderShape(), "baseline-getpropcallscripted-stub-holdershape");
+        MarkObject(trc, &callStub->getter(), "baseline-getpropcallscripted-stub-getter");
+        break;
+      }
       case ICStub::SetProp_Native: {
         ICSetProp_Native *propStub = toSetProp_Native();
         MarkShape(trc, &propStub->shape(), "baseline-setpropnative-stub-shape");
         MarkTypeObject(trc, &propStub->type(), "baseline-setpropnative-stub-type");
+        break;
+      }
+      case ICStub::SetProp_CallScripted: {
+        ICSetProp_CallScripted *callStub = toSetProp_CallScripted();
+        MarkShape(trc, &callStub->shape(), "baseline-setpropcallscripted-stub-shape");
+        MarkObject(trc, &callStub->holder(), "baseline-setpropcallscripted-stub-holder");
+        MarkShape(trc, &callStub->holderShape(), "baseline-setpropcallscripted-stub-holdershape");
+        MarkObject(trc, &callStub->setter(), "baseline-setpropcallscripted-stub-setter");
         break;
       }
       default:
@@ -2452,7 +2468,7 @@ IsCacheableProtoChain(JSObject *obj, JSObject *holder)
 }
 
 static bool
-IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, UnrootedShape shape)
+IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, Shape *shape)
 {
     if (!shape || !IsCacheableProtoChain(obj, holder))
         return false;
@@ -2461,6 +2477,70 @@ IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, UnrootedShape shape)
         return false;
 
     return true;
+}
+
+static bool
+IsCacheableGetPropCallScripted(JSObject *obj, JSObject *holder, Shape *shape)
+{
+    
+    if (obj == holder)
+        return false;
+
+    if (!shape || !IsCacheableProtoChain(obj, holder))
+        return false;
+
+    if (shape->hasSlot() || shape->hasDefaultGetter())
+        return false;
+
+    if (!shape->hasGetterValue() || !shape->getterObject()->isFunction())
+        return false;
+
+    JSFunction *func = shape->getterObject()->toFunction();
+    if (!func->hasScript())
+        return false;
+
+    JSScript *script = func->nonLazyScript();
+    return script->hasIonScript() || script->hasBaselineScript();
+}
+
+static bool
+IsCacheableSetPropWriteSlot(JSObject *obj, JSObject *holder, Shape *shape)
+{
+    if (!shape)
+        return false;
+
+    
+    if (obj != holder)
+        return false;
+
+    if (!shape->hasSlot() || !shape->hasDefaultSetter() || !shape->writable())
+        return false;
+
+    return true;
+}
+
+static bool
+IsCacheableSetPropCallScripted(JSObject *obj, JSObject *holder, Shape *shape)
+{
+    
+    if (obj == holder)
+        return false;
+
+    if (!shape || !IsCacheableProtoChain(obj, holder))
+        return false;
+
+    if (shape->hasSlot() || shape->hasDefaultSetter())
+        return false;
+
+    if (!shape->hasSetterValue() || !shape->setterObject()->isFunction())
+        return false;
+
+    JSFunction *func = shape->setterObject()->toFunction();
+    if (!func->hasScript())
+        return false;
+
+    JSScript *script = func->nonLazyScript();
+    return script->hasIonScript() || script->hasBaselineScript();
 }
 
 static bool
@@ -3892,25 +3972,47 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, ICGetProp_Fallbac
     if (!JSObject::lookupProperty(cx, obj, name, &holder, &shape))
         return false;
 
-    if (!IsCacheableGetPropReadSlot(obj, holder, shape))
-        return true;
-
-    bool isFixedSlot;
-    uint32_t offset;
-    GetFixedOrDynamicSlotOffset(holder, shape->slot(), &isFixedSlot, &offset);
-
     ICStub *monitorStub = stub->fallbackMonitorStub()->firstMonitorStub();
-    ICStub::Kind kind = (obj == holder) ? ICStub::GetProp_Native : ICStub::GetProp_NativePrototype;
+    if (IsCacheableGetPropReadSlot(obj, holder, shape)) {
+        bool isFixedSlot;
+        uint32_t offset;
+        GetFixedOrDynamicSlotOffset(holder, shape->slot(), &isFixedSlot, &offset);
 
-    IonSpew(IonSpew_BaselineIC, "  Generating GetProp(Native %s) stub",
-                (obj == holder) ? "direct" : "prototype");
-    ICGetPropNativeCompiler compiler(cx, kind, monitorStub, obj, holder, isFixedSlot, offset);
-    ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
-    if (!newStub)
-        return false;
+        ICStub::Kind kind = (obj == holder) ? ICStub::GetProp_Native
+                                            : ICStub::GetProp_NativePrototype;
 
-    stub->addNewStub(newStub);
-    *attached = true;
+        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(Native %s) stub",
+                    (obj == holder) ? "direct" : "prototype");
+        ICGetPropNativeCompiler compiler(cx, kind, monitorStub, obj, holder, isFixedSlot, offset);
+        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        *attached = true;
+        return true;
+    }
+
+    
+    if (IsCacheableGetPropCallScripted(obj, holder, shape)) {
+        RootedFunction callee(cx, shape->getterObject()->toFunction());
+        JS_ASSERT(obj != holder);
+        JS_ASSERT(callee->hasScript());
+
+        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(Native %s Getter %s:%d) stub",
+                    (obj == holder) ? "direct" : "prototype",
+                    callee->nonLazyScript()->filename, callee->nonLazyScript()->lineno);
+
+        ICGetProp_CallScripted::Compiler compiler(cx, monitorStub, obj, holder, callee);
+        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        *attached = true;
+        return true;
+    }
+
     return true;
 }
 
@@ -4204,42 +4306,155 @@ ICGetPropNativeCompiler::generateStubCode(MacroAssembler &masm)
     return true;
 }
 
-
-static bool
-TryAttachSetPropStub(JSContext *cx, HandleScript script, ICSetProp_Fallback *stub,
-                     HandleObject obj, HandleId id, HandleValue rhs, bool *attached)
+bool
+ICGetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
 {
-    JS_ASSERT(!*attached);
-
-    if (!obj->isNative() || obj->watched())
-        return true;
+    Label failure;
+    Label failureLeaveStubFrame;
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register scratch;
+    if (regs.has(BaselineTailCallReg)) {
+        regs.take(BaselineTailCallReg);
+        scratch = regs.takeAny();
+        regs.add(BaselineTailCallReg);
+    } else {
+        scratch = regs.takeAny();
+    }
 
     
-    RootedShape shape(cx, obj->nativeLookup(cx, id));
-    if (!shape || !shape->hasSlot() || !shape->hasDefaultSetter() || !shape->writable())
-        return true;
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
 
-    bool isFixedSlot;
-    uint32_t offset;
-    GetFixedOrDynamicSlotOffset(obj, shape->slot(), &isFixedSlot, &offset);
+    
+    Register objReg = masm.extractObject(R0, ExtractTemp0);
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallScripted::offsetOfShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failure);
 
-    IonSpew(IonSpew_BaselineIC, "  Generating SetProp(NativeObject.PROP) stub");
-    RootedTypeObject type(cx, obj->getType(cx));
-    ICSetProp_Native::Compiler compiler(cx, type, obj->lastProperty(), isFixedSlot, offset);
-    ICUpdatedStub *newStub = compiler.getStub(compiler.getStubSpace(script));
-    if (!newStub)
-        return false;
-    if (!newStub->addUpdateStubForValue(cx, script, obj, id, rhs))
-        return false;
+    Register holderReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallScripted::offsetOfHolder()), holderReg);
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallScripted::offsetOfHolderShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, holderReg, scratch, &failure);
+    regs.add(holderReg);
 
-    stub->addNewStub(newStub);
-    *attached = true;
+    
+    enterStubFrame(masm, scratch);
+
+    
+    
+    Register callee;
+    if (regs.has(ArgumentsRectifierReg)) {
+        callee = ArgumentsRectifierReg;
+        regs.take(callee);
+    } else {
+        callee = regs.takeAny();
+    }
+    Register code = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallScripted::offsetOfGetter()), callee);
+    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), code);
+    masm.loadBaselineOrIonCode(code, scratch, &failureLeaveStubFrame);
+    masm.loadPtr(Address(code, IonCode::offsetOfCode()), code);
+
+    
+    
+    
+    masm.Push(R0);
+    EmitCreateStubFrameDescriptor(masm, scratch);
+    masm.Push(Imm32(0));  
+    masm.Push(callee);
+    masm.Push(scratch);
+
+    
+    Label noUnderflow;
+    masm.load16ZeroExtend(Address(callee, offsetof(JSFunction, nargs)), scratch);
+    masm.branch32(Assembler::Equal, scratch, Imm32(0), &noUnderflow);
+    {
+        
+        JS_ASSERT(ArgumentsRectifierReg != code);
+
+        IonCode *argumentsRectifier = cx->compartment->ionCompartment()->getArgumentsRectifier();
+
+        masm.movePtr(ImmGCPtr(argumentsRectifier), code);
+        masm.loadPtr(Address(code, IonCode::offsetOfCode()), code);
+        masm.mov(Imm32(0), ArgumentsRectifierReg);
+    }
+
+    masm.bind(&noUnderflow);
+    masm.callIon(code);
+
+    leaveStubFrame(masm, true);
+
+    
+    EmitEnterTypeMonitorIC(masm);
+
+    
+    masm.bind(&failureLeaveStubFrame);
+    leaveStubFrame(masm, false);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
     return true;
 }
 
 
 
 
+
+
+static bool
+TryAttachSetPropStub(JSContext *cx, HandleScript script, ICSetProp_Fallback *stub,
+                     HandleObject obj, HandlePropertyName name, HandleId id,
+                     HandleValue rhs, bool *attached)
+{
+    JS_ASSERT(!*attached);
+
+    if (!obj->isNative() || obj->watched())
+        return true;
+
+    RootedShape shape(cx);
+    RootedObject holder(cx);
+    if (!JSObject::lookupProperty(cx, obj, name, &holder, &shape))
+        return false;
+
+    if (IsCacheableSetPropWriteSlot(obj, holder, shape)) {
+        bool isFixedSlot;
+        uint32_t offset;
+        GetFixedOrDynamicSlotOffset(obj, shape->slot(), &isFixedSlot, &offset);
+
+        IonSpew(IonSpew_BaselineIC, "  Generating SetProp(NativeObject.PROP) stub");
+        RootedTypeObject type(cx, obj->getType(cx));
+        ICSetProp_Native::Compiler compiler(cx, type, obj->lastProperty(), isFixedSlot, offset);
+        ICUpdatedStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+        if (!newStub->addUpdateStubForValue(cx, script, obj, id, rhs))
+            return false;
+
+        stub->addNewStub(newStub);
+        *attached = true;
+        return true;
+    }
+
+    if (IsCacheableSetPropCallScripted(obj, holder, shape)) {
+        RootedFunction callee(cx, shape->setterObject()->toFunction());
+        JS_ASSERT(obj != holder);
+        JS_ASSERT(callee->hasScript());
+
+        IonSpew(IonSpew_BaselineIC, "  Generating SetProp(Native %s Setter %s:%d) stub",
+                    (obj == holder) ? "direct" : "prototype",
+                    callee->nonLazyScript()->filename, callee->nonLazyScript()->lineno);
+
+        ICSetProp_CallScripted::Compiler compiler(cx, obj, holder, callee);
+        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        *attached = true;
+        return true;
+    }
+
+    return true;
+}
 
 static bool
 DoSetPropFallback(JSContext *cx, ICSetProp_Fallback *stub, HandleValue lhs, HandleValue rhs,
@@ -4283,7 +4498,7 @@ DoSetPropFallback(JSContext *cx, ICSetProp_Fallback *stub, HandleValue lhs, Hand
     }
 
     bool attached = false;
-    if (!TryAttachSetPropStub(cx, script, stub, obj, id, rhs, &attached))
+    if (!TryAttachSetPropStub(cx, script, stub, obj, name, id, rhs, &attached))
         return false;
     if (attached)
         return true;
@@ -4363,6 +4578,111 @@ ICSetProp_Native::Compiler::generateStubCode(MacroAssembler &masm)
     
     masm.moveValue(R1, R0);
     EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+bool
+ICSetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    Label failureUnstow;
+    Label failureLeaveStubFrame;
+
+    
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+
+    
+    EmitStowICValues(masm, 2);
+
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register scratch;
+    if (regs.has(BaselineTailCallReg)) {
+        regs.take(BaselineTailCallReg);
+        scratch = regs.takeAny();
+        regs.add(BaselineTailCallReg);
+    } else {
+        scratch = regs.takeAny();
+    }
+
+    
+    Register objReg = masm.extractObject(R0, ExtractTemp0);
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallScripted::offsetOfShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failureUnstow);
+
+    Register holderReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallScripted::offsetOfHolder()), holderReg);
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallScripted::offsetOfHolderShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, holderReg, scratch, &failureUnstow);
+    regs.add(holderReg);
+
+    
+    enterStubFrame(masm, scratch);
+
+    
+    
+    Register callee;
+    if (regs.has(ArgumentsRectifierReg)) {
+        callee = ArgumentsRectifierReg;
+        regs.take(callee);
+    } else {
+        callee = regs.takeAny();
+    }
+    Register code = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallScripted::offsetOfSetter()), callee);
+    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), code);
+    masm.loadBaselineOrIonCode(code, scratch, &failureLeaveStubFrame);
+    masm.loadPtr(Address(code, IonCode::offsetOfCode()), code);
+
+    
+    
+    
+
+    
+    
+    masm.movePtr(BaselineStackReg, scratch);
+    masm.PushValue(Address(scratch, STUB_FRAME_SIZE));
+    masm.Push(R0);
+    EmitCreateStubFrameDescriptor(masm, scratch);
+    masm.Push(Imm32(1));  
+    masm.Push(callee);
+    masm.Push(scratch);
+
+    
+    Label noUnderflow;
+    masm.load16ZeroExtend(Address(callee, offsetof(JSFunction, nargs)), scratch);
+    masm.branch32(Assembler::BelowOrEqual, scratch, Imm32(1), &noUnderflow);
+    {
+        
+        JS_ASSERT(ArgumentsRectifierReg != code);
+
+        IonCode *argumentsRectifier = cx->compartment->ionCompartment()->getArgumentsRectifier();
+
+        masm.movePtr(ImmGCPtr(argumentsRectifier), code);
+        masm.loadPtr(Address(code, IonCode::offsetOfCode()), code);
+        masm.mov(Imm32(1), ArgumentsRectifierReg);
+    }
+
+    masm.bind(&noUnderflow);
+    masm.callIon(code);
+
+    leaveStubFrame(masm, true);
+    
+    
+    EmitUnstowICValues(masm, 2);
+    masm.moveValue(R1, R0);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failureLeaveStubFrame);
+    leaveStubFrame(masm, false);
+
+    
+    masm.bind(&failureUnstow);
+    EmitUnstowICValues(masm, 2);
 
     
     masm.bind(&failure);
