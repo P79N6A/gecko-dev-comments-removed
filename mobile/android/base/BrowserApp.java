@@ -977,6 +977,10 @@ abstract public class BrowserApp extends GeckoApp
         MenuItem findInPage = aMenu.findItem(R.id.find_in_page);
         MenuItem desktopMode = aMenu.findItem(R.id.desktop_mode);
 
+        
+        
+        aMenu.findItem(R.id.quit).setVisible(Build.VERSION.SDK_INT < 14);
+
         if (tab == null || tab.getURL() == null) {
             bookmark.setEnabled(false);
             forward.setEnabled(false);
