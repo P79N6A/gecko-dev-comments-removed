@@ -15,6 +15,7 @@
 #include "nsDataHashtable.h"
 #include "nsIFrame.h"
 #include "nsTPriorityQueue.h"
+#include "mozilla/SplayTree.h"
 
 class nsCSSFrameConstructor;
 
@@ -42,7 +43,35 @@ public:
 
 
   void AddFrame(nsIFrame* aFrame) {
-    mEntryList.Push(Entry(aFrame, true));
+    if (!mEntryList.contains(Entry(aFrame, true))) {
+      mEntryList.insert(new Entry(aFrame, true));
+    }
+  }
+
+  
+
+
+  void RemoveFrameAndDescendants(nsIFrame* aFrame) {
+    if (mEntryList.contains(Entry(aFrame, 0, false))) {
+      delete mEntryList.remove(Entry(aFrame, 0, false));
+    }
+    if (mEntryList.empty()) {
+      return;
+    }
+
+    nsAutoTArray<nsIFrame::ChildList,4> childListArray;
+    aFrame->GetCrossDocChildLists(&childListArray);
+
+    nsIFrame::ChildListArrayIterator lists(childListArray);
+    for (; !lists.IsDone(); lists.Next()) {
+      nsFrameList::Enumerator childFrames(lists.CurrentList());
+      for (; !childFrames.AtEnd(); childFrames.Next()) {
+        RemoveFrameAndDescendants(childFrames.get());
+        if (mEntryList.empty()) {
+          return;
+        }
+      }
+    }
   }
 
   
@@ -52,23 +81,13 @@ public:
 
 
   void Flush() {
-    while (!mEntryList.IsEmpty()) {
-      Entry entry = mEntryList.Pop();
+    while (!mEntryList.empty()) {
+      Entry *entry = mEntryList.removeMin();
 
-      
-      
-      while (!mEntryList.IsEmpty() &&
-             mEntryList.Top().mFrame == entry.mFrame) {
-        Entry next = mEntryList.Pop();
-
-        if (next.mInitial) {
-          entry.mInitial = true;
-        }
-      }
-      nsIFrame *frame = entry.mFrame;
+      nsIFrame *frame = entry->mFrame;
 
       bool updateParent = false;
-      if (entry.mInitial) {
+      if (entry->mInitial) {
         nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
           (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
         if (pre) {
@@ -80,23 +99,26 @@ public:
           updateParent = true;
         }
       }
-      
+
       
       
       if (!updateParent) {
-        updateParent = frame->UpdateOverflow() || entry.mInitial;
+        updateParent = frame->UpdateOverflow() || entry->mInitial;
       }
       if (updateParent) {
         nsIFrame *parent = frame->GetParent();
         if (parent) {
-          mEntryList.Push(Entry(parent, entry.mDepth - 1, false));
+          if (!mEntryList.contains(Entry(parent, entry->mDepth - 1, false))) {
+            mEntryList.insert(new Entry(parent, entry->mDepth - 1, false));
+          }
         }
       }
+      delete entry;
     }
   }
   
 private:
-  struct Entry
+  struct Entry : SplayTreeNode<Entry>
   {
     Entry(nsIFrame* aFrame, bool aInitial)
       : mFrame(aFrame)
@@ -130,6 +152,17 @@ private:
       return mFrame < aOther.mFrame;
     }
 
+    static int compare(const Entry& aOne, const Entry& aTwo)
+    {
+      if (aOne < aTwo) {
+        return -1;
+      } else if (aOne == aTwo) {
+        return 0;
+      } else {
+        return 1;
+      }
+    }
+
     nsIFrame* mFrame;
     
     uint32_t mDepth;
@@ -141,7 +174,7 @@ private:
   };
 
   
-  nsTPriorityQueue<Entry> mEntryList;
+  SplayTree<Entry, Entry> mEntryList;
 };
 
 class RestyleTracker {

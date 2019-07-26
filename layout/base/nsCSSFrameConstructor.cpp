@@ -8208,6 +8208,9 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
       
       
       
+      if (content->GetPrimaryFrame()) {
+        aTracker.RemoveFrameAndDescendants(content->GetPrimaryFrame());
+      }
       RecreateFramesForContent(content, false);
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
