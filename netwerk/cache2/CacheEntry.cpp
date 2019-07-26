@@ -319,6 +319,7 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
                        aTruncate,
                        !mUseDisk,
                        aPriority,
+                       false ,
                        directLoad ? nullptr : this);
     }
 
@@ -834,17 +835,6 @@ bool CacheEntry::IsReferenced() const
   
   
   return mHandlersCount > 0;
-}
-
-bool CacheEntry::IsFileDoomed()
-{
-  mozilla::MutexAutoLock lock(mLock);
-
-  if (NS_SUCCEEDED(mFileStatus)) {
-    return mFile->IsDoomed();
-  }
-
-  return false;
 }
 
 uint32_t CacheEntry::GetMetadataMemoryConsumption()

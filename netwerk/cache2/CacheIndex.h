@@ -348,7 +348,7 @@ public:
     return mCount - mRemoved - mNotInitialized - mEmpty;
   }
 
-  uint32_t Size() {
+  int64_t Size() {
     MOZ_ASSERT(!mStateLogged, "CacheIndexStats::Size() - state logged!");
     return mSize;
   }
@@ -389,7 +389,7 @@ public:
             MOZ_ASSERT(mEmpty);
             mEmpty--;
           } else {
-            MOZ_ASSERT(mSize >= aEntry->GetFileSize());
+            MOZ_ASSERT(mSize);
             mSize -= aEntry->GetFileSize();
           }
         }
@@ -441,7 +441,7 @@ private:
   uint32_t mDirty;
   uint32_t mFresh;
   uint32_t mEmpty;
-  uint32_t mSize;
+  int64_t  mSize;
 #ifdef DEBUG
   
   
@@ -511,15 +511,6 @@ public:
   
   
   static nsresult HasEntry(const nsACString &aKey, EntryStatus *_retval);
-
-  
-  
-  
-  static nsresult GetEntryForEviction(SHA1Sum::Hash *aHash, uint32_t *aCnt);
-
-  
-  static nsresult GetCacheSize(uint32_t *_retval);
-
 
 private:
   friend class CacheIndexEntryAutoManage;
