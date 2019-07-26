@@ -761,6 +761,21 @@ public:
 
 
 
+  static TransformResult TransformPoint(nsIFrame* aFromFrame, nsIFrame* aToFrame,
+                                        nsPoint& aPoint);
+
+  
+
+
+
+
+  static TransformResult TransformRect(nsIFrame* aFromFrame, nsIFrame* aToFrame,
+                                       nsRect& aRect);
+
+  
+
+
+
 
 
   static bool GetLayerTransformForFrame(nsIFrame* aFrame,
