@@ -1291,10 +1291,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
-    masm.loadPtr(Address(objreg, OffsetOfIonInJSScript(executionMode)), objreg);
 
     
-    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_COMPILING_SCRIPT), &uncompiled);
+    masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &uncompiled);
 
     
     masm.freeStack(unusedStack);
@@ -1313,9 +1312,6 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.cmp32(nargsreg, Imm32(call->numStackArgs()));
     masm.j(Assembler::Above, &thunk);
 
-    
-    masm.loadPtr(Address(objreg, IonScript::offsetOfMethod()), objreg);
-    masm.loadPtr(Address(objreg, IonCode::offsetOfCode()), objreg);
     masm.jump(&makeCall);
 
     
@@ -1429,14 +1425,9 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
 
     
     masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
-    masm.loadPtr(Address(objreg, OffsetOfIonInJSScript(executionMode)), objreg);
 
     
-    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_COMPILING_SCRIPT), &uncompiled);
-
-    
-    masm.loadPtr(Address(objreg, IonScript::offsetOfMethod()), objreg);
-    masm.loadPtr(Address(objreg, IonCode::offsetOfCode()), objreg);
+    masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &uncompiled);
 
     
     masm.freeStack(unusedStack);
@@ -1640,10 +1631,9 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
 
     
     masm.loadPtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
-    masm.loadPtr(Address(objreg, OffsetOfIonInJSScript(executionMode)), objreg);
 
     
-    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_COMPILING_SCRIPT), &invoke);
+    masm.loadBaselineOrIonRaw(objreg, objreg, executionMode, &invoke);
 
     
     {
@@ -1669,14 +1659,8 @@ CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
         }
 
         
-        {
-            masm.loadPtr(Address(objreg, IonScript::offsetOfMethod()), objreg);
-            masm.loadPtr(Address(objreg, IonCode::offsetOfCode()), objreg);
-
-            
-            
-            masm.jump(&rejoin);
-        }
+        
+        masm.jump(&rejoin);
 
         
         {

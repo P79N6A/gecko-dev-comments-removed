@@ -249,9 +249,6 @@ struct IonScript
     }
 
   public:
-    
-    uint32_t slowCallCount;
-
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *) &bottomBuffer()[bailoutTable_];
     }

@@ -5528,8 +5528,7 @@ ICGetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
     Register code = regs.takeAny();
     masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallScripted::offsetOfGetter()), callee);
     masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), code);
-    masm.loadBaselineOrIonCode(code, scratch, &failureLeaveStubFrame);
-    masm.loadPtr(Address(code, IonCode::offsetOfCode()), code);
+    masm.loadBaselineOrIonRaw(code, code, SequentialExecution, &failureLeaveStubFrame);
 
     
     
@@ -6230,8 +6229,7 @@ ICSetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
     Register code = regs.takeAny();
     masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallScripted::offsetOfSetter()), callee);
     masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), code);
-    masm.loadBaselineOrIonCode(code, scratch, &failureLeaveStubFrame);
-    masm.loadPtr(Address(code, IonCode::offsetOfCode()), code);
+    masm.loadBaselineOrIonRaw(code, code, SequentialExecution, &failureLeaveStubFrame);
 
     
     
@@ -6767,13 +6765,13 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
     }
 
     
-    masm.loadBaselineOrIonCode(callee, regs.getAny(), &failure);
-
-    
     Register code;
     if (!isConstructing_) {
         code = regs.takeAny();
-        masm.loadPtr(Address(callee, IonCode::offsetOfCode()), code);
+        masm.loadBaselineOrIonRaw(callee, code, SequentialExecution, &failure);
+    } else {
+        Address scriptCode(callee, JSScript::offsetOfBaselineOrIonRaw());
+        masm.branchPtr(Assembler::Equal, scriptCode, ImmWord((void *)NULL), &failure);
     }
 
     
@@ -6840,17 +6838,16 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
         regs.add(R0);
         regs.takeUnchecked(callee);
         masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
-        Register loadScratch = ArgumentsRectifierReg;
-        masm.loadBaselineOrIonCode(callee, loadScratch, &failureLeaveStubFrame);
+
+        code = regs.takeAny();
+        masm.loadBaselineOrIonRaw(callee, code, SequentialExecution, &failureLeaveStubFrame);
+
         
         
         
         if (callee != ExtractTemp0)
             regs.add(callee);
 
-        
-        code = regs.takeAny();
-        masm.loadPtr(Address(callee, IonCode::offsetOfCode()), code);
         if (canUseTailCallReg)
             regs.addUnchecked(BaselineTailCallReg);
     }
@@ -6917,7 +6914,7 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
 
         masm.bind(&skipProfilerUpdate);
     }
-    
+
     masm.callIon(code);
 
     

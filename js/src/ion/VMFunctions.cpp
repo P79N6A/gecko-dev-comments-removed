@@ -69,26 +69,6 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
             if (!fun)
                 return false;
         }
-
-        
-        
-        if (cx->methodJitEnabled && !fun->nonLazyScript()->canIonCompile()) {
-            RawScript script = GetTopIonJSScript(cx);
-            if (script->hasIonScript() &&
-                ++script->ionScript()->slowCallCount >= js_IonOptions.slowCallLimit)
-            {
-                AutoFlushCache afc("InvokeFunction");
-
-                
-                
-                ForbidCompilation(cx, script);
-            }
-        }
-
-        
-        
-        
-        fun->nonLazyScript()->incUseCount(js_IonOptions.slowCallIncUseCount);
     }
 
     

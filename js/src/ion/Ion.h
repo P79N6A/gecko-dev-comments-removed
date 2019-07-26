@@ -173,18 +173,6 @@ struct IonOptions
     
     
     
-    uint32_t slowCallLimit;
-
-    
-    
-    
-    
-    
-    uint32_t slowCallIncUseCount;
-
-    
-    
-    
     uint32_t usesBeforeCompileParallel;
 
     void setEagerCompilation() {
@@ -221,8 +209,6 @@ struct IonOptions
         inlineMaxTotalBytecodeLength(1000),
         inlineUseCountRatio(128),
         eagerCompilation(false),
-        slowCallLimit(512),
-        slowCallIncUseCount(5),
         usesBeforeCompileParallel(1)
     {
     }

@@ -245,6 +245,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     
     
     it.ionScript()->setBailoutExpected();
+    it.script()->updateBaselineOrIonRaw();
 
     
     
