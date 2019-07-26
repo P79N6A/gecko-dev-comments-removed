@@ -113,9 +113,7 @@ public:
 
 
   nsPoint GetPosition() const {
-    
-    
-    NS_ASSERTION(!ExternalIsRoot() || (mPosX == 0 && mPosY == 0),
+    NS_ASSERTION(!IsRoot() || (mPosX == 0 && mPosY == 0),
                  "root views should always have explicit position of (0,0)");
     return nsPoint(mPosX, mPosY);
   }
@@ -340,8 +338,6 @@ public:
 
 
   bool IsRoot() const;
-
-  virtual bool ExternalIsRoot() const;
 
   nsIntRect CalcWidgetBounds(nsWindowType aType);
 
