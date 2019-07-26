@@ -225,7 +225,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     } else if (mayWait) {
       
       mozilla::HangMonitor::Suspend();
-      ::WaitMessage();
+      WinUtils::WaitForMessage();
     }
   } while (!gotMessage && mayWait);
 
