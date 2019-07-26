@@ -835,12 +835,19 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
                       result->GetStyleIfVisited()->RuleNode() ==
                         aVisitedRuleNode,
                       "unexpected visited rule node");
+    NS_ABORT_IF_FALSE(!aVisitedRuleNode ||
+                      oldAnimRule == GetAnimationRule(aVisitedRuleNode),
+                      "animation rule mismatch between rule nodes");
     if (oldAnimRule != animRule) {
       nsRuleNode *ruleNode =
         ReplaceAnimationRule(aRuleNode, oldAnimRule, animRule);
       nsRuleNode *visitedRuleNode = aVisitedRuleNode
         ? ReplaceAnimationRule(aVisitedRuleNode, oldAnimRule, animRule)
         : nullptr;
+      NS_ABORT_IF_FALSE(!visitedRuleNode ||
+                        GetAnimationRule(ruleNode) ==
+                          GetAnimationRule(visitedRuleNode),
+                        "animation rule mismatch between rule nodes");
       result = GetContext(aParentContext, ruleNode, visitedRuleNode,
                           aPseudoTag, aPseudoType, nullptr,
                           aFlags & ~eDoAnimation);
@@ -1721,15 +1728,30 @@ nsStyleSet::GCRuleTrees()
   }
 }
 
+
+
+
+
 static inline nsRuleNode*
 SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElement, bool isPseudo)
 {
   nsRuleNode* ruleNode = aRuleNode;
-  while (!ruleNode->IsRoot() &&
-         (ruleNode->GetLevel() == nsStyleSet::eTransitionSheet ||
-          ruleNode->GetLevel() == nsStyleSet::eAnimationSheet)) {
+  
+  if (!ruleNode->IsRoot() &&
+      ruleNode->GetLevel() == nsStyleSet::eTransitionSheet) {
     ruleNode = ruleNode->GetParent();
   }
+  NS_ABORT_IF_FALSE(ruleNode->IsRoot() ||
+                    ruleNode->GetLevel() != nsStyleSet::eTransitionSheet,
+                    "can't have more than one transition rule");
+
+  
+  
+  nsIStyleRule* animationRule = GetAnimationRule(ruleNode);
+  if (animationRule) {
+    ruleNode = ReplaceAnimationRule(ruleNode, animationRule, nullptr);
+  }
+
   if (ruleNode != aRuleNode) {
     NS_ASSERTION(aElement, "How can we have transition rules but no element?");
     
