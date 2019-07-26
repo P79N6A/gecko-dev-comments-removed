@@ -3962,9 +3962,6 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
     nsRefPtr<Image> image = container->CreateImage(ImageFormat::CAIRO_SURFACE);
     NS_ASSERTION(image, "Could not create image container for mask layer.");
     CairoImage::Data data;
-    
-    
-    data.mDeprecatedSurface = nullptr;
     data.mSize = surfaceSizeInt;
     data.mSourceSurface = surface;
 

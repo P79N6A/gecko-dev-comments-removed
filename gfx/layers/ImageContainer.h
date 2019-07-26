@@ -44,52 +44,6 @@
 
 
 
-
-
-
-class nsMainThreadSurfaceRef;
-
-template <>
-class nsAutoRefTraits<nsMainThreadSurfaceRef> {
-public:
-  typedef gfxASurface* RawRef;
-
-  
-
-
-  class SurfaceReleaser : public nsRunnable {
-  public:
-    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
-    NS_IMETHOD Run() {
-      mRef->Release();
-      return NS_OK;
-    }
-    RawRef mRef;
-  };
-
-  static RawRef Void() { return nullptr; }
-  static void Release(RawRef aRawRef)
-  {
-    if (NS_IsMainThread()) {
-      aRawRef->Release();
-      return;
-    }
-    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
-    NS_DispatchToMainThread(runnable);
-  }
-  static void AddRef(RawRef aRawRef)
-  {
-    NS_ASSERTION(NS_IsMainThread(),
-                 "Can only add a reference on the main thread");
-    aRawRef->AddRef();
-  }
-};
-
-
-
-
-
-
 class nsMainThreadSourceSurfaceRef;
 
 template <>
@@ -194,7 +148,6 @@ public:
   ImageFormat GetFormat() { return mFormat; }
   void* GetImplData() { return mImplData; }
 
-  virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface() = 0;
   virtual gfx::IntSize GetSize() = 0;
   virtual nsIntRect GetPictureRect()
   {
@@ -521,11 +474,6 @@ public:
 
 
 
-
-
-  already_AddRefed<gfxASurface> DeprecatedGetCurrentAsSurface(gfx::IntSize* aSizeResult);
-
-  
 
 
   TemporaryRef<gfx::SourceSurface> GetCurrentAsSourceSurface(gfx::IntSize* aSizeResult);
@@ -889,7 +837,6 @@ protected:
 
   virtual uint8_t* AllocateBuffer(uint32_t aSize);
 
-  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
   TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
 
   void SetOffscreenFormat(gfxImageFormat aFormat) { mOffscreenFormat = aFormat; }
@@ -900,7 +847,6 @@ protected:
   Data mData;
   gfx::IntSize mSize;
   gfxImageFormat mOffscreenFormat;
-  nsCountedRef<nsMainThreadSurfaceRef> mDeprecatedSurface;
   nsCountedRef<nsMainThreadSourceSurfaceRef> mSourceSurface;
   nsRefPtr<BufferRecycleBin> mRecycleBin;
 };
@@ -914,11 +860,7 @@ class CairoImage : public Image,
                    public ISharedImage {
 public:
   struct Data {
-    gfxASurface* mDeprecatedSurface;
     gfx::IntSize mSize;
-
-    
-    
     RefPtr<gfx::SourceSurface> mSourceSurface;
   };
 
@@ -929,7 +871,6 @@ public:
 
   void SetData(const Data& aData)
   {
-    mDeprecatedSurface = aData.mDeprecatedSurface;
     mSize = aData.mSize;
     mSourceSurface = aData.mSourceSurface;
   }
@@ -937,12 +878,6 @@ public:
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface()
   {
     return mSourceSurface.get();
-  }
-
-  virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface()
-  {
-    nsRefPtr<gfxASurface> surface = mDeprecatedSurface.get();
-    return surface.forget();
   }
 
   virtual ISharedImage* AsSharedImage() { return this; }
@@ -954,11 +889,8 @@ public:
   CairoImage();
   ~CairoImage();
 
-  nsCountedRef<nsMainThreadSurfaceRef> mDeprecatedSurface;
   gfx::IntSize mSize;
 
-  
-  
   nsCountedRef<nsMainThreadSourceSurfaceRef> mSourceSurface;
   nsDataHashtable<nsUint32HashKey, RefPtr<TextureClient> >  mTextureClients;
 };
@@ -967,7 +899,6 @@ class RemoteBitmapImage : public Image {
 public:
   RemoteBitmapImage() : Image(nullptr, ImageFormat::REMOTE_IMAGE_BITMAP) {}
 
-  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
   TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
 
   gfx::IntSize GetSize() { return mSize; }
