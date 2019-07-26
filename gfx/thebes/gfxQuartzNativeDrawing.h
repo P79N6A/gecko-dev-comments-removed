@@ -28,8 +28,20 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
     gfxQuartzNativeDrawing(gfxContext *ctx,
-                           const gfxRect& nativeRect);
+                           const gfxRect& aNativeRect,
+                           gfxFloat aBackingScale = 1.0f);
 
     
 
@@ -50,6 +62,7 @@ private:
     
     nsRefPtr<gfxContext> mSurfaceContext;
     gfxRect mNativeRect;
+    gfxFloat mBackingScale;
 
     
     nsRefPtr<gfxQuartzSurface> mQuartzSurface;
