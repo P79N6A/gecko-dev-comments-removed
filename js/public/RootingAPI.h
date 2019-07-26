@@ -200,6 +200,13 @@ class Heap : public js::HeapBase<T>
         init(js::GCMethods<T>::initial());
     }
     explicit Heap(T p) { init(p); }
+
+    
+
+
+
+
+
     explicit Heap(const Heap<T> &p) { init(p.ptr); }
 
     ~Heap() {

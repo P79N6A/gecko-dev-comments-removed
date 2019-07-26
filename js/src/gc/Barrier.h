@@ -330,6 +330,12 @@ class BarrieredPtr
     void pre() { T::writeBarrierPre(value); }
 };
 
+
+
+
+
+
+
 template <class T, typename Unioned = uintptr_t>
 class EncapsulatedPtr : public BarrieredPtr<T, Unioned>
 {
@@ -359,6 +365,13 @@ class EncapsulatedPtr : public BarrieredPtr<T, Unioned>
         return *this;
     }
 };
+
+
+
+
+
+
+
 
 
 
@@ -407,6 +420,12 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
 
   private:
     
+
+
+
+
+
+
     HeapPtr(HeapPtr<T> &&) MOZ_DELETE;
     HeapPtr<T, Unioned> &operator=(HeapPtr<T, Unioned> &&) MOZ_DELETE;
 };
@@ -441,6 +460,13 @@ class FixedHeapPtr
     }
 };
 
+
+
+
+
+
+
+
 template <class T>
 class RelocatablePtr : public BarrieredPtr<T>
 {
@@ -450,6 +476,13 @@ class RelocatablePtr : public BarrieredPtr<T>
         if (v)
             post();
     }
+
+    
+
+
+
+
+
     RelocatablePtr(const RelocatablePtr<T> &v) : BarrieredPtr<T>(v) {
         if (this->value)
             post();
@@ -661,6 +694,8 @@ class BarrieredValue : public ValueOperations<BarrieredValue>
     const Value * extract() const { return &value; }
 };
 
+
+
 class EncapsulatedValue : public BarrieredValue
 {
   public:
@@ -681,9 +716,6 @@ class EncapsulatedValue : public BarrieredValue
         return *this;
     }
 };
-
-
-
 
 
 
@@ -786,10 +818,11 @@ class HeapValue : public BarrieredValue
         writeBarrierPost(rt, value, &value);
     }
 
-    
     HeapValue(HeapValue &&) MOZ_DELETE;
     HeapValue &operator=(HeapValue &&) MOZ_DELETE;
 };
+
+
 
 class RelocatableValue : public BarrieredValue
 {
@@ -864,6 +897,9 @@ class RelocatableValue : public BarrieredValue
 #endif
     }
 };
+
+
+
 
 class HeapSlot : public BarrieredValue
 {
@@ -1035,6 +1071,8 @@ class BarrieredId
     }
 };
 
+
+
 class EncapsulatedId : public BarrieredId
 {
   public:
@@ -1049,6 +1087,8 @@ class EncapsulatedId : public BarrieredId
         return *this;
     }
 };
+
+
 
 class RelocatableId : public BarrieredId
 {
@@ -1081,9 +1121,6 @@ class RelocatableId : public BarrieredId
         return *this;
     }
 };
-
-
-
 
 
 
@@ -1130,7 +1167,6 @@ class HeapId : public BarrieredId
 
     HeapId(const HeapId &v) MOZ_DELETE;
 
-    
     HeapId(HeapId &&) MOZ_DELETE;
     HeapId &operator=(HeapId &&) MOZ_DELETE;
 };
