@@ -53,7 +53,10 @@ enum BailoutKind
     Bailout_BoundsCheck,
 
     
-    Bailout_Invalidate
+    Bailout_Invalidate,
+
+    
+    Bailout_CachedShapeGuard
 };
 
 #ifdef DEBUG

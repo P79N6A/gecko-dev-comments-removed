@@ -476,14 +476,12 @@ struct JSScript : public js::gc::Cell
     bool            failedBoundsCheck:1; 
 #endif
     bool            invalidatedIdempotentCache:1; 
+    bool            failedCachedShapeGuard:1; 
     bool            isGenerator:1;    
     bool            isGeneratorExp:1; 
     bool            hasScriptCounts:1;
 
     bool            hasDebugScript:1; 
-
-    bool            hasFreezeConstraints:1; 
-
 
   private:
     
@@ -614,7 +612,8 @@ struct JSScript : public js::gc::Cell
     
     bool isShortRunning();
 
-    inline void clearPropertyReadTypes();
+    inline bool hasGlobal() const;
+    inline bool hasClearedGlobal() const;
 
     inline js::GlobalObject &global() const;
 
@@ -1229,11 +1228,10 @@ js_GetScriptLineExtent(JSScript *script);
 namespace js {
 
 extern unsigned
-PCToLineNumber(JSScript *script, jsbytecode *pc, unsigned *columnp = NULL);
+PCToLineNumber(JSScript *script, jsbytecode *pc);
 
 extern unsigned
-PCToLineNumber(unsigned startLine, jssrcnote *notes, jsbytecode *code, jsbytecode *pc,
-               unsigned *columnp = NULL);
+PCToLineNumber(unsigned startLine, jssrcnote *notes, jsbytecode *code, jsbytecode *pc);
 
 extern unsigned
 CurrentLine(JSContext *cx);
