@@ -41,13 +41,17 @@ StickyScrollContainer::~StickyScrollContainer()
 
 
 StickyScrollContainer*
-StickyScrollContainer::StickyScrollContainerForFrame(nsIFrame* aFrame)
+StickyScrollContainer::GetStickyScrollContainerForFrame(nsIFrame* aFrame)
 {
   nsIScrollableFrame* scrollFrame =
     nsLayoutUtils::GetNearestScrollableFrame(aFrame->GetParent(),
       nsLayoutUtils::SCROLLABLE_SAME_DOC |
       nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
-  NS_ASSERTION(scrollFrame, "Need a scrolling container");
+  if (!scrollFrame) {
+    
+    
+    return nullptr;
+  }
   FrameProperties props = static_cast<nsIFrame*>(do_QueryFrame(scrollFrame))->
     Properties();
   StickyScrollContainer* s = static_cast<StickyScrollContainer*>
@@ -91,7 +95,6 @@ StickyScrollContainer::ComputeStickyOffsets(nsIFrame* aFrame)
 
   if (!scrollableFrame) {
     
-    NS_ERROR("Couldn't find a scrollable frame");
     return;
   }
 

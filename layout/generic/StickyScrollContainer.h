@@ -29,7 +29,7 @@ public:
 
 
 
-  static StickyScrollContainer* StickyScrollContainerForFrame(nsIFrame* aFrame);
+  static StickyScrollContainer* GetStickyScrollContainerForFrame(nsIFrame* aFrame);
 
   
 
