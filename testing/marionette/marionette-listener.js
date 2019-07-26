@@ -72,6 +72,7 @@ let touchIds = {};
 let multiLast = {};
 let lastCoordinates = null;
 let isTap = false;
+let scrolling = false;
 
 let mouseEventsOnly = false;
 
@@ -79,6 +80,7 @@ Cu.import("resource://gre/modules/Log.jsm");
 let logger = Log.repository.getLogger("Marionette");
 logger.info("loaded marionette-listener.js");
 let modalHandler = function() {
+  
   sendSyncMessage("Marionette:switchedToFrame", { frameValue: null, storePrevious: true });
   let isLocal = sendSyncMessage("MarionetteFrame:handleModal", {})[0].value;
   if (isLocal) {
@@ -95,14 +97,32 @@ let modalHandler = function() {
 
 function registerSelf() {
   let msg = {value: winUtil.outerWindowID, href: content.location.href};
+  
   let register = sendSyncMessage("Marionette:register", msg);
 
   if (register[0]) {
-    listenerId = register[0].id;
+    listenerId = register[0][0].id;
+    
+    if (register[0][1] == true) {
+      addMessageListener("MarionetteMainListener:emitTouchEvent", emitTouchEventForIFrame);
+    }
     importedScripts = FileUtils.getDir('TmpD', [], false);
     importedScripts.append('marionetteContentScripts');
     startListeners();
   }
+}
+
+function emitTouchEventForIFrame(message) {
+  let message = message.json;
+  let frames = curFrame.document.getElementsByTagName("iframe");
+  let iframe = frames[message.index];
+  let identifier = touchId = nextTouchId++;
+  let tabParent = iframe.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader.tabParent;
+  tabParent.injectTouchEvent(message.type, [identifier],
+                             [message.clientX], [message.clientY],
+                             [message.radiusX], [message.radiusY],
+                             [message.rotationAngle], [message.force],
+                             1, 0);
 }
 
 
@@ -663,6 +683,23 @@ function emitTouchEvent(type, touch) {
   if (!wasInterrupted()) {
     let loggingInfo = "emitting Touch event of type " + type + " to element with id: " + touch.target.id + " and tag name: " + touch.target.tagName + " at coordinates (" + touch.clientX + ", " + touch.clientY + ") relative to the viewport";
     dumpLog(loggingInfo);
+    var docShell = curFrame.document.defaultView.
+                   QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+                   getInterface(Components.interfaces.nsIWebNavigation).
+                   QueryInterface(Components.interfaces.nsIDocShell);
+    if (docShell.asyncPanZoomEnabled && scrolling) {
+      
+      let index = sendSyncMessage("MarionetteFrame:getCurrentFrameId");
+      
+      if (index != null) {
+        sendSyncMessage("Marionette:emitTouchEvent", {index: index, type: type, id: touch.identifier,
+                                                      clientX: touch.clientX, clientY: touch.clientY,
+                                                      radiusX: touch.radiusX, radiusY: touch.radiusY,
+                                                      rotation: touch.rotationAngle, force: touch.force});
+        return;
+      }
+    }
+    
     
 
 
@@ -943,6 +980,10 @@ function actions(chain, touchId, command_id, i) {
         sendError("Invalid Command: press cannot follow an active touch event", 500, null, command_id);
         return;
       }
+      
+      if ((i != chain.length) && (chain[i][0].indexOf('move') !== -1)) {
+        scrolling = true;
+      }
       el = elementManager.getKnownElement(pack[1], curFrame);
       c = coordinates(el, pack[2], pack[3]);
       touchId = generateEvents('press', c.x, c.y, null, el);
@@ -951,6 +992,7 @@ function actions(chain, touchId, command_id, i) {
     case 'release':
       generateEvents('release', lastCoordinates[0], lastCoordinates[1], touchId);
       actions(chain, null, command_id, i);
+      scrolling =  false;
       break;
     case 'move':
       el = elementManager.getKnownElement(pack[1], curFrame);
@@ -984,6 +1026,7 @@ function actions(chain, touchId, command_id, i) {
     case 'cancel':
       generateEvents('cancel', lastCoordinates[0], lastCoordinates[1], touchId);
       actions(chain, touchId, command_id, i);
+      scrolling = false;
       break;
     case 'longPress':
       generateEvents('contextmenu', lastCoordinates[0], lastCoordinates[1], touchId);

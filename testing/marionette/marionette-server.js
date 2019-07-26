@@ -136,6 +136,7 @@ function MarionetteServerConnection(aPrefix, aTransport, aServer)
   this.command_id = null;
   this.mainFrame = null; 
   this.curFrame = null; 
+  this.mainContentFrameId = null;
   this.importedScripts = FileUtils.getFile('TmpD', ['marionetteChromeScripts']);
   this.importedScriptHashes = {"chrome" : [], "content": []};
   this.currentFrameElement = null;
@@ -2393,10 +2394,17 @@ MarionetteServerConnection.prototype = {
           
         }
         let reg = {};
+        
+        let mainContent = (this.curBrowser.mainContentId == null);
         if (!browserType || browserType != "content") {
           
           reg.id = this.curBrowser.register(this.generateFrameId(message.json.value),
                                             listenerWindow);
+        }
+        
+        mainContent = ((mainContent == true) && (this.curBrowser.mainContentId != null));
+        if (mainContent) {
+          this.mainContentFrameId = this.curBrowser.curFrameId;
         }
         this.curBrowser.elementManager.seenItems[reg.id] = Cu.getWeakReference(listenerWindow);
         if (nullPrevious && (this.curBrowser.curFrameId != null)) {
@@ -2410,7 +2418,13 @@ MarionetteServerConnection.prototype = {
             this.newSessionCommandId = null;
           }
         }
-        return reg;
+        return [reg, mainContent];
+      case "Marionette:emitTouchEvent":
+        let globalMessageManager = Cc["@mozilla.org/globalmessagemanager;1"]
+                             .getService(Ci.nsIMessageBroadcaster);
+        globalMessageManager.broadcastAsyncMessage(
+          "MarionetteMainListener:emitTouchEvent", message.json);
+        return;
     }
   }
 };
