@@ -205,9 +205,6 @@ DOMCI_CLASS(MozCellBroadcast)
 DOMCI_CLASS(CSSFontFaceRule)
 
 #if defined(MOZ_MEDIA)
-
-DOMCI_CLASS(HTMLVideoElement)
-DOMCI_CLASS(HTMLAudioElement)
 DOMCI_CLASS(TimeRanges)
 #endif
 
