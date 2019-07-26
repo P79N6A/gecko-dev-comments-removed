@@ -132,15 +132,15 @@ SyntaxTreesPool.prototype = {
   
 
 
-  getIdentifierAt: function(aLine, aColumn) {
-    return this._first(this._call("getIdentifierAt", aLine, aColumn));
+  getIdentifierAt: function({ line, column, scriptIndex }) {
+    return this._first(this._call("getIdentifierAt", scriptIndex, line, column));
   },
 
   
 
 
   getNamedFunctionDefinitions: function(aSubstring) {
-    return this._call("getNamedFunctionDefinitions", aSubstring);
+    return this._call("getNamedFunctionDefinitions", -1, aSubstring);
   },
 
   
@@ -161,12 +161,19 @@ SyntaxTreesPool.prototype = {
 
 
   getScriptInfo: function(aOffset) {
+    let info = { start: -1, length: -1, index: -1 };
+
     for (let { offset, length } of this._trees) {
-      if (offset <= aOffset &&  offset + length >= aOffset) {
-        return { start: offset, length: length };
+      info.index++;
+      if (offset <= aOffset && offset + length >= aOffset) {
+        info.start = offset;
+        info.length = length;
+        return info;
       }
     }
-    return { start: -1, length: -1 };
+
+    info.index = -1;
+    return info;
   },
 
   
@@ -191,14 +198,22 @@ SyntaxTreesPool.prototype = {
 
 
 
-  _call: function(aFunction, ...aParams) {
+
+
+
+
+  _call: function(aFunction, aSyntaxTreeIndex, ...aParams) {
     let results = [];
-    let requestId = aFunction + aParams.toSource(); 
+    let requestId = [aFunction, aSyntaxTreeIndex, aParams].toSource();
 
     if (this._cache.has(requestId)) {
       return this._cache.get(requestId);
     }
-    for (let syntaxTree of this._trees) {
+
+    let requestedTree = this._trees[aSyntaxTreeIndex];
+    let targettedTrees = requestedTree ? [requestedTree] : this._trees;
+
+    for (let syntaxTree of targettedTrees) {
       try {
         results.push({
           sourceUrl: syntaxTree.url,
