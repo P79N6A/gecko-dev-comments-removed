@@ -401,6 +401,8 @@ pref("dom.mozAlarms.enabled", true);
 
 pref("services.push.enabled", true);
 
+pref("services.push.debug", false);
+
 
 pref("services.push.connection.enabled", true);
 

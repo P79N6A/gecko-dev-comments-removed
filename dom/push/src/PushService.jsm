@@ -4,8 +4,12 @@
 
 "use strict";
 
+
+let gDebuggingEnabled = false;
+
 function debug(s) {
-  
+  if (gDebuggingEnabled)
+    dump("-*- PushService.jsm: " + s + "\n");
 }
 
 const Cc = Components.classes;
@@ -26,6 +30,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AlarmService",
 this.EXPORTED_SYMBOLS = ["PushService"];
 
 const prefs = new Preferences("services.push.");
+
+gDebuggingEnabled = prefs.get("debug");
 
 const kPUSHDB_DB_NAME = "push";
 const kPUSHDB_DB_VERSION = 1; 
@@ -318,6 +324,8 @@ this.PushService = {
           } else {
             this._shutdownWS();
           }
+        } else if (aData == "services.push.debug") {
+          gDebuggingEnabled = prefs.get("debug");
         }
         break;
       case "timer-callback":
@@ -467,6 +475,8 @@ this.PushService = {
     prefs.observe("serverURL", this);
     
     prefs.observe("connection.enabled", this);
+    
+    prefs.observe("debug", this);
 
     this._started = true;
   },
@@ -493,6 +503,7 @@ this.PushService = {
 
     debug("uninit()");
 
+    prefs.ignore("debug", this);
     prefs.ignore("connection.enabled", this);
     prefs.ignore("serverURL", this);
     Services.obs.removeObserver(this, this._getNetworkStateChangeEventName());

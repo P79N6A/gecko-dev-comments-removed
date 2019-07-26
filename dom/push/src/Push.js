@@ -4,8 +4,12 @@
 
 "use strict";
 
+
+let gDebuggingEnabled = false;
+
 function debug(s) {
-  
+  if (gDebuggingEnabled)
+    dump("-*- Push.js: " + s + "\n");
 }
 
 const Cc = Components.classes;
@@ -39,6 +43,10 @@ Push.prototype = {
                                           Ci.nsISupportsWeakReference]),
 
   init: function(aWindow) {
+    
+    
+    
+    gDebuggingEnabled = Services.prefs.getBoolPref("services.push.debug");
     debug("init()");
 
     let principal = aWindow.document.nodePrincipal;
