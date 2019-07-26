@@ -286,13 +286,6 @@ CopyableCanvasLayer::PaintWithOpacity(gfx::DrawTarget* aTarget,
 
   DrawOptions options = DrawOptions(aOpacity, CompositionOp::OP_SOURCE);
 
-  
-  
-  
-  if (GetContentFlags() & CONTENT_OPAQUE) {
-    options.mCompositionOp = CompositionOp::OP_SOURCE;
-  }
-
   if (aOperator != CompositionOp::OP_OVER) {
     options.mCompositionOp = aOperator;
   }
