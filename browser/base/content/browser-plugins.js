@@ -424,7 +424,7 @@ var gPluginHandler = {
   
   
   openPluginUpdatePage: function (aEvent) {
-    openURL(Services.urlFormatter.formatURLPref("plugins.update.url"));
+    openUILinkIn(Services.urlFormatter.formatURLPref("plugins.update.url"), "tab");
   },
 
 #ifdef MOZ_CRASHREPORTER
