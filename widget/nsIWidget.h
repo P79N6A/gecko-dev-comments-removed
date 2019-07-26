@@ -163,6 +163,29 @@ enum nsTopLevelWidgetZPlacement {
 
 
 
+#define NS_WIDGET_SLEEP_OBSERVER_TOPIC "sleep_notification"
+
+
+
+
+#define NS_WIDGET_WAKE_OBSERVER_TOPIC "wake_notification"
+
+
+
+
+
+
+#define NS_WIDGET_SUSPEND_PROCESS_OBSERVER_TOPIC "suspend_process_notification"
+
+
+
+
+
+#define NS_WIDGET_RESUME_PROCESS_OBSERVER_TOPIC "resume_process_notification"
+
+
+
+
 
 
 
