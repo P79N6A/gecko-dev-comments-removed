@@ -2136,7 +2136,8 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       
       
       
-      if (itemVisibleRect.IsEmpty() && layerState != LAYER_ACTIVE_EMPTY) {
+      if (itemVisibleRect.IsEmpty() &&
+          !item->ShouldBuildLayerEvenIfInvisible(mBuilder)) {
         continue;
       }
 
@@ -2192,7 +2193,9 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         data->mDrawAboveRegion.SimplifyOutward(4);
       }
       itemVisibleRect.MoveBy(mParameters.mOffset);
-      RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
+      if (!nsDisplayTransform::IsLayerPrerendered(ownLayer)) {
+        RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
+      }
 
       
       
