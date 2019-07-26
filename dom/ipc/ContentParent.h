@@ -94,7 +94,9 @@ public:
     static void RunAfterPreallocatedProcessReady(nsIRunnable* aRequest);
 
     static already_AddRefed<ContentParent>
-    GetNewOrUsed(bool aForBrowserElement = false);
+    GetNewOrUsed(bool aForBrowserElement = false,
+                 hal::ProcessPriority aPriority =
+                   hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND);
 
     
 
