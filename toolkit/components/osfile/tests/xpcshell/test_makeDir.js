@@ -53,4 +53,22 @@ add_task(function() {
   do_check_true(!!exception);
   do_check_true(exception instanceof OS.File.Error);
   do_check_true(exception.becauseExists);
+
+  
+  if (OS.Constants.Win) {
+    dir = "C:\\";
+  } else {
+    dir = "/";
+  }
+
+  yield OS.File.makeDir(dir);
+
+  
+  if (OS.Constants.Win) {
+    dir = "C:\\Program Files";
+  } else {
+    dir = "/tmp";
+  }
+
+  yield OS.File.makeDir(dir);
 });

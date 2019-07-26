@@ -441,13 +441,35 @@
      File.makeDir = function makeDir(path, options = {}) {
        let security = options.winSecurity || null;
        let result = WinFile.CreateDirectory(path, security);
-       if (!result) {
-         if ((!("ignoreExisting" in options) || options.ignoreExisting) &&
-             ctypes.winLastError == Const.ERROR_ALREADY_EXISTS) {
-           return;
-         }
+
+       if (result) {
+         return;
+       }
+
+       if (("ignoreExisting" in options) && !options.ignoreExisting) {
          throw new File.Error("makeDir");
        }
+
+       if (ctypes.winLastError == Const.ERROR_ALREADY_EXISTS) {
+         return;
+       }
+
+       
+       let splitPath = OS.Path.split(path);
+       
+       
+       
+       if( splitPath.components[splitPath.components.length - 1].length === 0 ) {
+         splitPath.components.pop();
+       }
+       
+       if (ctypes.winLastError == Const.ERROR_ACCESS_DENIED &&
+           splitPath.absolute &&
+           splitPath.components.length === 1 ) {
+         return;
+       }
+
+       throw new File.Error("makeDir");
      };
 
      
