@@ -9,7 +9,7 @@ import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
-import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
+import org.mozilla.gecko.mozglue.GeneratableAndroidBridgeTarget;
 
 import java.util.concurrent.SynchronousQueue;
 
@@ -29,7 +29,7 @@ public final class Clipboard {
         mContext = c;
     }
 
-    @WrapElementForJNI(stubName = "GetClipboardTextWrapper")
+    @GeneratableAndroidBridgeTarget(stubName = "GetClipboardTextWrapper")
     public static String getText() {
         
         
@@ -55,7 +55,7 @@ public final class Clipboard {
         }
     }
 
-    @WrapElementForJNI(stubName = "SetClipboardText")
+    @GeneratableAndroidBridgeTarget(stubName = "SetClipboardText")
     public static void setText(final CharSequence text) {
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
@@ -77,25 +77,6 @@ public final class Clipboard {
                 }
             }
         });
-    }
-
-    
-
-
-
-
-    @WrapElementForJNI
-    public static boolean hasText() {
-        String text = getText();
-        return text != null;
-    }
-
-    
-
-
-    @WrapElementForJNI
-    public static void clearText() {
-        setText(null);
     }
 
     private static android.content.ClipboardManager getClipboardManager11(Context context) {
