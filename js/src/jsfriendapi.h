@@ -243,8 +243,9 @@ IsAtomsCompartment(const JSCompartment *c);
 
 
 
+
 extern JS_FRIEND_API(bool)
-CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname);
+ReportIfUndeclaredVarAssignment(JSContext *cx, HandleString propname);
 
 struct WeakMapTracer;
 

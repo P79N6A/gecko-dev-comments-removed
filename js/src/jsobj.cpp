@@ -3474,8 +3474,8 @@ js::GetMethod(JSContext *cx, HandleObject obj, HandleId id, unsigned getHow, Mut
     return op(cx, obj, obj, id, vp);
 }
 
-JS_FRIEND_API(bool)
-js::CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname)
+static bool
+MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 {
     {
         UnrootedScript script = cx->stack.currentScript(NULL, ContextStack::ALLOW_CROSS_COMPARTMENT);
@@ -3492,6 +3492,56 @@ js::CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname)
            JS_ReportErrorFlagsAndNumber(cx,
                                         (JSREPORT_WARNING | JSREPORT_STRICT
                                          | JSREPORT_STRICT_MODE_ERROR),
+                                        js_GetErrorMessage, NULL,
+                                        JSMSG_UNDECLARED_VAR, bytes.ptr());
+}
+
+bool
+js::ReportIfUndeclaredVarAssignment(JSContext *cx, HandleString propname)
+{
+    {
+        jsbytecode *pc;
+        UnrootedScript script = cx->stack.currentScript(&pc, ContextStack::ALLOW_CROSS_COMPARTMENT);
+        if (!script)
+            return true;
+
+        
+        if (!script->strict && !cx->hasStrictOption())
+            return true;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+        MOZ_ASSERT(*pc != JSOP_INCNAME);
+        MOZ_ASSERT(*pc != JSOP_INCGNAME);
+        MOZ_ASSERT(*pc != JSOP_NAMEINC);
+        MOZ_ASSERT(*pc != JSOP_GNAMEINC);
+        MOZ_ASSERT(*pc != JSOP_DECNAME);
+        MOZ_ASSERT(*pc != JSOP_DECGNAME);
+        MOZ_ASSERT(*pc != JSOP_NAMEDEC);
+        MOZ_ASSERT(*pc != JSOP_GNAMEDEC);
+        MOZ_ASSERT(*pc != JSOP_NAME);
+        MOZ_ASSERT(*pc != JSOP_GETGNAME);
+        if (*pc != JSOP_SETNAME && *pc != JSOP_SETGNAME)
+            return true;
+    }
+
+    JSAutoByteString bytes(cx, propname);
+    return !!bytes &&
+           JS_ReportErrorFlagsAndNumber(cx,
+                                        JSREPORT_WARNING | JSREPORT_STRICT |
+                                        JSREPORT_STRICT_MODE_ERROR,
                                         js_GetErrorMessage, NULL,
                                         JSMSG_UNDECLARED_VAR, bytes.ptr());
 }
@@ -3586,8 +3636,9 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
 
         if (obj->isGlobal() &&
             (defineHow & DNP_UNQUALIFIED) &&
-            !js::CheckUndeclaredVarAssignment(cx, JSID_TO_STRING(id))) {
-            return JS_FALSE;
+            !MaybeReportUndeclaredVarAssignment(cx, JSID_TO_STRING(id)))
+        {
+            return false;
         }
     }
 

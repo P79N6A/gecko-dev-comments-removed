@@ -7378,10 +7378,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       
       
-      
-      JSString *str = JSID_TO_STRING(id);
-      if ((!(flags & JSRESOLVE_QUALIFIED) &&
-           !js::CheckUndeclaredVarAssignment(cx, str)) ||
+      js::Rooted<JSString*> str(cx, JSID_TO_STRING(id));
+      if (!js::ReportIfUndeclaredVarAssignment(cx, str) ||
           !::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, JS_PropertyStub,
                                    JS_StrictPropertyStub, JSPROP_ENUMERATE)) {
         *_retval = JS_FALSE;
