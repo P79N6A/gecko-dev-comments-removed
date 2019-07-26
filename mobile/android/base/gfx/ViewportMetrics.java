@@ -103,24 +103,6 @@ public class ViewportMetrics {
         return RectUtils.scale(mViewportRect, 1/mZoomFactor);
     }
 
-    
-    public RectF getClampedViewport() {
-        RectF clampedViewport = new RectF(mViewportRect);
-
-        
-        if (clampedViewport.right > mPageRect.right)
-            clampedViewport.offset(mPageRect.right - clampedViewport.right, 0);
-        if (clampedViewport.left < mPageRect.left)
-            clampedViewport.offset(mPageRect.left - clampedViewport.left, 0);
-
-        if (clampedViewport.bottom > mPageRect.bottom)
-            clampedViewport.offset(0, mPageRect.bottom - clampedViewport.bottom);
-        if (clampedViewport.top < mPageRect.top)
-            clampedViewport.offset(0, mPageRect.top - clampedViewport.top);
-
-        return clampedViewport;
-    }
-
     public RectF getPageRect() {
         return mPageRect;
     }
@@ -155,27 +137,6 @@ public class ViewportMetrics {
 
     public void setZoomFactor(float zoomFactor) {
         mZoomFactor = zoomFactor;
-    }
-
-    
-
-
-
-    public void scaleTo(float newZoomFactor, PointF focus) {
-        
-        
-        mPageRect = RectUtils.scale(mCssPageRect, newZoomFactor);
-
-        float scaleFactor = newZoomFactor / mZoomFactor;
-        PointF origin = getOrigin();
-
-        origin.offset(focus.x, focus.y);
-        origin = PointUtils.scale(origin, scaleFactor);
-        origin.offset(-focus.x, -focus.y);
-
-        setOrigin(origin);
-
-        mZoomFactor = newZoomFactor;
     }
 
     public String toJSON() {
