@@ -23,7 +23,6 @@ class nsBlockFrame;
 class gfxASurface;
 class gfxDrawable;
 class nsView;
-class imgIContainer;
 class nsIFrame;
 class nsStyleCoord;
 class nsStyleCorners;
@@ -51,6 +50,7 @@ struct nsOverflowAreas;
 #include "nsStyleConsts.h"
 #include "nsGkAtoms.h"
 #include "nsRuleNode.h"
+#include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
 
 #include <limits>
@@ -1568,7 +1568,19 @@ public:
     
 
 
-    SFE_NO_PREMULTIPLY_ALPHA = 1 << 3
+    SFE_NO_PREMULTIPLY_ALPHA = 1 << 3,
+    
+
+    SFE_NO_RASTERIZING_VECTORS = 1 << 4
+  };
+
+  struct DirectDrawInfo {
+    
+    nsCOMPtr<imgIContainer> mImgContainer;
+    
+    uint32_t mWhichFrame;
+    
+    uint32_t mDrawingFlags;
   };
 
   struct SurfaceFromElementResult {
@@ -1577,6 +1589,8 @@ public:
     
     nsRefPtr<gfxASurface> mSurface;
     mozilla::RefPtr<SourceSurface> mSourceSurface;
+    
+    DirectDrawInfo mDrawInfo;
 
     
     gfxIntSize mSize;
