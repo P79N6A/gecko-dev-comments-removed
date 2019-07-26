@@ -293,6 +293,11 @@ let SessionStoreInternal = {
   _lastSessionState: null,
 
   
+  
+  
+  _deferredInitialState: null,
+
+  
   _promiseInitialization: Promise.defer(),
 
   
@@ -682,8 +687,9 @@ let SessionStoreInternal = {
     
     this._internalWindows[aWindow.__SSi] = { hosts: {} }
 
+    let isPrivateWindow = false;
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow))
-      this._windows[aWindow.__SSi].isPrivate = true;
+      this._windows[aWindow.__SSi].isPrivate = isPrivateWindow = true;
     if (!this._isWindowLoaded(aWindow))
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
@@ -696,17 +702,28 @@ let SessionStoreInternal = {
 
       
       if (this._initialState) {
-        TelemetryTimestamps.add("sessionRestoreRestoring");
-        
-        this._initialState._firstTabs = true;
-        this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
-        this.restoreWindow(aWindow, this._initialState,
-                           this._isCmdLineEmpty(aWindow, this._initialState));
-        delete this._initialState;
+        if (isPrivateWindow) {
+          
+          
+          
+          this._deferredInitialState = this._initialState;
+          delete this._initialState;
 
-        
-        
-        this.saveState(true);
+          
+          Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
+        } else {
+          TelemetryTimestamps.add("sessionRestoreRestoring");
+          
+          this._initialState._firstTabs = true;
+          this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
+          this.restoreWindow(aWindow, this._initialState,
+                             this._isCmdLineEmpty(aWindow, this._initialState));
+          delete this._initialState;
+
+          
+          
+          this.saveState(true);
+        }
       }
       else {
         
@@ -722,8 +739,7 @@ let SessionStoreInternal = {
       this.restoreWindow(aWindow, this._statesToRestore[aWindow.__SS_restoreID], true, followUp);
     }
     else if (this._restoreLastWindow && aWindow.toolbar.visible &&
-             this._closedWindows.length &&
-             !PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
+             this._closedWindows.length && !isPrivateWindow) {
 
       
       
