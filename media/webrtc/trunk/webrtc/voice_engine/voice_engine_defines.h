@@ -314,11 +314,18 @@ inline int VoEChannelId(const int moduleId)
 
   
   #undef WEBRTC_CODEC_ISAC
-  #undef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
+  
+  
+  
+  
   #undef WEBRTC_CONFERENCING
   #undef WEBRTC_TYPING_DETECTION
 
-  #define ANDROID_NOT_SUPPORTED(stat) NOT_SUPPORTED(stat)
+  
+  
+  
+  #define ANDROID_NOT_SUPPORTED(stat)
+
 
 #else 
 
@@ -337,7 +344,7 @@ inline int VoEChannelId(const int moduleId)
 
 
 
-#ifdef WEBRTC_MAC
+#if defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
 
 #include <pthread.h>
 #include <sys/types.h>
@@ -354,6 +361,7 @@ inline int VoEChannelId(const int moduleId)
 #include <sched.h>
 #include <sys/time.h>
 #include <time.h>
+#if !defined(WEBRTC_BSD)
 #include <AudioUnit/AudioUnit.h>
 #if !defined(WEBRTC_IOS)
   #include <CoreServices/CoreServices.h>
@@ -361,6 +369,7 @@ inline int VoEChannelId(const int moduleId)
   #include <AudioToolbox/DefaultAudioOutput.h>
   #include <AudioToolbox/AudioConverter.h>
   #include <CoreAudio/HostTime.h>
+#endif
 #endif
 
 #define DWORD unsigned long int
