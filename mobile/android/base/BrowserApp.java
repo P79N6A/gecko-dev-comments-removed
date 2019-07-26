@@ -847,7 +847,7 @@ abstract public class BrowserApp extends GeckoApp
         mBrowserToolbar.updateBackButton(false);
         mBrowserToolbar.updateForwardButton(false);
 
-        mDoorHangerPopup.setAnchor(mBrowserToolbar.mFavicon);
+        mDoorHangerPopup.setAnchor(mBrowserToolbar.getDoorHangerAnchor());
 
         
         if (isDynamicToolbarEnabled()) {
