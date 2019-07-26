@@ -85,7 +85,7 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
                                 getter_Copies(resetBackupDirectoryName));
 
   
-  nsCOMPtr<nsIFile> backupDest, uniqueDest;
+  nsCOMPtr<nsIFile> backupDest, containerDest, profileDest;
   rv = NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR, getter_AddRefs(backupDest));
   if (NS_FAILED(rv)) {
     
@@ -94,16 +94,37 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
   }
 
   
-  backupDest->Clone(getter_AddRefs(uniqueDest));
-  uniqueDest->Append(resetBackupDirectoryName);
-  rv = uniqueDest->CreateUnique(nsIFile::DIRECTORY_TYPE, 0700);
+  backupDest->Clone(getter_AddRefs(containerDest));
+  containerDest->Append(resetBackupDirectoryName);
+  rv = containerDest->Create(nsIFile::DIRECTORY_TYPE, 0700);
+  
+  if (rv == NS_ERROR_FILE_ALREADY_EXISTS) {
+    bool containerIsDir;
+    rv = containerDest->IsDirectory(&containerIsDir);
+    if (NS_FAILED(rv) || !containerIsDir) {
+      return rv;
+    }
+  } else if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  
+  nsAutoString leafName;
+  rv = profileDir->GetLeafName(leafName);
   if (NS_FAILED(rv)) return rv;
 
-  nsAutoString leafName;
-  rv = uniqueDest->GetLeafName(leafName);
-  if (NS_FAILED(rv)) return rv;
   
-  rv = uniqueDest->Remove(false);
+  containerDest->Clone(getter_AddRefs(profileDest));
+  profileDest->Append(leafName);
+  rv = profileDest->CreateUnique(nsIFile::DIRECTORY_TYPE, 0700);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  rv = profileDest->GetLeafName(leafName);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  rv = profileDest->Remove(false);
   if (NS_FAILED(rv)) return rv;
 
   
@@ -128,7 +149,7 @@ ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
   rv = tm->NewThread(0, 0, getter_AddRefs(cleanupThread));
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIRunnable> runnable = new ProfileResetCleanupAsyncTask(profileDir, profileLocalDir,
-                                                                      backupDest, leafName);
+                                                                      containerDest, leafName);
     cleanupThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL);
     
 
