@@ -130,6 +130,8 @@ MoveEmitterX86::emit(const MoveResolver &moves)
         
         switch (move.type()) {
           case MoveOp::FLOAT32:
+            emitFloat32Move(from, to);
+            break;
           case MoveOp::DOUBLE:
             emitDoubleMove(from, to);
             break;
@@ -221,6 +223,13 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Type type)
     
     switch (type) {
       case MoveOp::FLOAT32:
+        if (to.isMemory()) {
+            masm.loadFloat32(toAddress(to), ScratchFloatReg);
+            masm.storeFloat32(ScratchFloatReg, cycleSlot());
+        } else {
+            masm.storeFloat32(to.floatReg(), cycleSlot());
+        }
+        break;
       case MoveOp::DOUBLE:
         if (to.isMemory()) {
             masm.loadDouble(toAddress(to), ScratchFloatReg);
@@ -248,6 +257,13 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Type type)
     
     switch (type) {
       case MoveOp::FLOAT32:
+        if (to.isMemory()) {
+            masm.loadFloat32(cycleSlot(), ScratchFloatReg);
+            masm.storeFloat32(ScratchFloatReg, toAddress(to));
+        } else {
+            masm.loadFloat32(cycleSlot(), to.floatReg());
+        }
+        break;
       case MoveOp::DOUBLE:
         if (to.isMemory()) {
             masm.loadDouble(cycleSlot(), ScratchFloatReg);
@@ -305,6 +321,24 @@ MoveEmitterX86::emitGeneralMove(const MoveOperand &from, const MoveOperand &to)
         masm.Pop(toPopOperand(to));
         masm.addPtr(Imm32(from.disp()), toOperand(to));
 #endif
+    }
+}
+
+void
+MoveEmitterX86::emitFloat32Move(const MoveOperand &from, const MoveOperand &to)
+{
+    if (from.isFloatReg()) {
+        if (to.isFloatReg())
+            masm.moveFloat32(from.floatReg(), to.floatReg());
+        else
+            masm.storeFloat32(from.floatReg(), toAddress(to));
+    } else if (to.isFloatReg()) {
+        masm.loadFloat32(toAddress(from), to.floatReg());
+    } else {
+        
+        JS_ASSERT(from.isMemory());
+        masm.loadFloat32(toAddress(from), ScratchFloatReg);
+        masm.storeFloat32(ScratchFloatReg, toAddress(to));
     }
 }
 

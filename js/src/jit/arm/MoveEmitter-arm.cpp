@@ -225,6 +225,29 @@ MoveEmitterARM::emitMove(const MoveOperand &from, const MoveOperand &to)
 }
 
 void
+MoveEmitterARM::emitFloat32Move(const MoveOperand &from, const MoveOperand &to)
+{
+    if (from.isFloatReg()) {
+        if (to.isFloatReg())
+            masm.ma_vmov_f32(from.floatReg(), to.floatReg());
+        else
+            masm.ma_vstr(VFPRegister(from.floatReg()).singleOverlay(),
+                         toOperand(to, true));
+    } else if (to.isFloatReg()) {
+        masm.ma_vldr(toOperand(from, true),
+                     VFPRegister(to.floatReg()).singleOverlay());
+    } else {
+        
+        JS_ASSERT(from.isMemory());
+        FloatRegister reg = ScratchFloatReg;
+        masm.ma_vldr(toOperand(from, true),
+                     VFPRegister(reg).singleOverlay());
+        masm.ma_vstr(VFPRegister(reg).singleOverlay(),
+                     toOperand(to, true));
+    }
+}
+
+void
 MoveEmitterARM::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
 {
     if (from.isFloatReg()) {
@@ -262,6 +285,8 @@ MoveEmitterARM::emit(const MoveOp &move)
 
     switch (move.type()) {
       case MoveOp::FLOAT32:
+        emitFloat32Move(from, to);
+        break;
       case MoveOp::DOUBLE:
         emitDoubleMove(from, to);
         break;

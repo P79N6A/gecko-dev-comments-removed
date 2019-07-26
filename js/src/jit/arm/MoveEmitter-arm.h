@@ -28,7 +28,6 @@ class MoveEmitterARM
     
     int32_t pushedAtCycle_;
     int32_t pushedAtSpill_;
-    int32_t pushedAtDoubleSpill_;
 
     
     
@@ -41,10 +40,10 @@ class MoveEmitterARM
     FloatRegister tempFloatReg();
     Operand cycleSlot() const;
     Operand spillSlot() const;
-    Operand doubleSpillSlot() const;
     Operand toOperand(const MoveOperand &operand, bool isFloat) const;
 
     void emitMove(const MoveOperand &from, const MoveOperand &to);
+    void emitFloat32Move(const MoveOperand &from, const MoveOperand &to);
     void emitDoubleMove(const MoveOperand &from, const MoveOperand &to);
     void breakCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type);
     void completeCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type);
