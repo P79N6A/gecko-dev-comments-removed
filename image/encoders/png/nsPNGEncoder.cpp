@@ -5,7 +5,6 @@
 
 #include "nsCRT.h"
 #include "nsPNGEncoder.h"
-#include "prmem.h"
 #include "prprf.h"
 #include "nsString.h"
 #include "nsStreamUtils.h"
@@ -28,7 +27,7 @@ nsPNGEncoder::nsPNGEncoder() : mPNG(nullptr), mPNGinfo(nullptr),
 nsPNGEncoder::~nsPNGEncoder()
 {
   if (mImageBuffer) {
-    PR_Free(mImageBuffer);
+    moz_free(mImageBuffer);
     mImageBuffer = nullptr;
   }
   
@@ -133,7 +132,7 @@ NS_IMETHODIMP nsPNGEncoder::StartImageEncode(uint32_t aWidth,
   
   
   mImageBufferSize = 8192;
-  mImageBuffer = (uint8_t*)PR_Malloc(mImageBufferSize);
+  mImageBuffer = (uint8_t*)moz_malloc(mImageBufferSize);
   if (!mImageBuffer) {
     png_destroy_write_struct(&mPNG, &mPNGinfo);
     return NS_ERROR_OUT_OF_MEMORY;
@@ -482,7 +481,7 @@ nsPNGEncoder::ParseOptions(const nsAString& aOptions,
 NS_IMETHODIMP nsPNGEncoder::Close()
 {
   if (mImageBuffer != nullptr) {
-    PR_Free(mImageBuffer);
+    moz_free(mImageBuffer);
     mImageBuffer = nullptr;
     mImageBufferSize = 0;
     mImageBufferUsed = 0;
@@ -679,11 +678,11 @@ nsPNGEncoder::WriteCallback(png_structp png, png_bytep data,
 
     
     that->mImageBufferSize *= 2;
-    uint8_t* newBuf = (uint8_t*)PR_Realloc(that->mImageBuffer,
-                                           that->mImageBufferSize);
+    uint8_t* newBuf = (uint8_t*)moz_realloc(that->mImageBuffer,
+                                            that->mImageBufferSize);
     if (! newBuf) {
       
-      PR_Free(that->mImageBuffer);
+      moz_free(that->mImageBuffer);
       that->mImageBuffer = nullptr;
       that->mImageBufferSize = 0;
       that->mImageBufferUsed = 0;
