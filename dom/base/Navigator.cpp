@@ -94,6 +94,9 @@
 #include "nsIPrivateBrowsingChannel.h"
 #include "nsIDocShell.h"
 
+#include "WorkerPrivate.h"
+#include "WorkerRunnable.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -2299,9 +2302,9 @@ Navigator::HasInputMethodSupport(JSContext* ,
 
 
 bool
-Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
+Navigator::HasDataStoreSupport(nsIPrincipal* aPrincipal)
 {
-  JS::Rooted<JSObject*> global(cx, aGlobal);
+  workers::AssertIsOnMainThread();
 
   
   bool enabled = false;
@@ -2315,6 +2318,64 @@ Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
     return true;
   }
 
+  uint16_t status;
+  if (NS_FAILED(aPrincipal->GetAppStatus(&status))) {
+    return false;
+  }
+
+  
+  return status == nsIPrincipal::APP_STATUS_CERTIFIED;
+}
+
+
+
+class HasDataStoreSupportRunnable MOZ_FINAL
+  : public workers::WorkerMainThreadRunnable
+{
+public:
+  bool mResult;
+
+  HasDataStoreSupportRunnable(workers::WorkerPrivate* aWorkerPrivate)
+    : workers::WorkerMainThreadRunnable(aWorkerPrivate)
+    , mResult(false)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    workers::AssertIsOnMainThread();
+
+    mResult = Navigator::HasDataStoreSupport(mWorkerPrivate->GetPrincipal());
+
+    return true;
+  }
+};
+
+
+bool
+Navigator::HasDataStoreSupport(JSContext* aCx, JSObject* aGlobal)
+{
+  
+  if (!NS_IsMainThread()) {
+    workers::WorkerPrivate* workerPrivate =
+      workers::GetWorkerPrivateFromContext(aCx);
+    workerPrivate->AssertIsOnWorkerThread();
+
+    nsRefPtr<HasDataStoreSupportRunnable> runnable =
+      new HasDataStoreSupportRunnable(workerPrivate);
+    runnable->Dispatch(aCx);
+
+    return runnable->mResult;
+  }
+
+  workers::AssertIsOnMainThread();
+
+  JS::Rooted<JSObject*> global(aCx, aGlobal);
+
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(global);
   if (!win) {
     return false;
@@ -2325,12 +2386,7 @@ Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
     return false;
   }
 
-  uint16_t status;
-  if (NS_FAILED(doc->NodePrincipal()->GetAppStatus(&status))) {
-    return false;
-  }
-
-  return status == nsIPrincipal::APP_STATUS_CERTIFIED;
+  return HasDataStoreSupport(doc->NodePrincipal());
 }
 
 
