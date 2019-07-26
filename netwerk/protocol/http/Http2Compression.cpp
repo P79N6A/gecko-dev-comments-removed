@@ -498,28 +498,22 @@ nsresult
 Http2Decompressor::DecodeFinalHuffmanCharacter(HuffmanIncomingTable *table,
                                                uint8_t &c, uint8_t &bitsLeft)
 {
-  uint8_t idxLen = table->mPrefixLen;
   uint8_t mask = (1 << bitsLeft) - 1;
   uint8_t idx = mData[mOffset - 1] & mask;
-  if (idxLen < bitsLeft) {
-    mask &= ~((1 << (bitsLeft - idxLen)) - 1);
-    idx &= mask;
-    idx >>= (bitsLeft - idxLen);
-    idx &= ((1 << idxLen) - 1);
-  } else {
-    idx <<= (idxLen - bitsLeft);
-  }
+  idx <<= (8 - bitsLeft);
   
   
   
 
-  if (table->mEntries[idx].mPtr) {
+  HuffmanIncomingEntry *entry = &(table->mEntries[idx]);
+
+  if (entry->mPtr) {
     
     LOG3(("DecodeFinalHuffmanCharacter trying to chain when we're out of bits"));
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  if (bitsLeft < table->mEntries[idx].mPrefixLen) {
+  if (bitsLeft < entry->mPrefixLen) {
     
     
     LOG3(("DecodeFinalHuffmanCharacter does't have enough bits to match"));
@@ -527,15 +521,39 @@ Http2Decompressor::DecodeFinalHuffmanCharacter(HuffmanIncomingTable *table,
   }
 
   
-  if (table->mEntries[idx].mValue == 256) {
+  if (entry->mValue == 256) {
     
     LOG3(("DecodeFinalHuffmanCharacter actually decoded an EOS"));
     return NS_ERROR_ILLEGAL_VALUE;
   }
-  c = static_cast<uint8_t>(table->mEntries[idx].mValue & 0xFF);
-  bitsLeft -= table->mEntries[idx].mPrefixLen;
+  c = static_cast<uint8_t>(entry->mValue & 0xFF);
+  bitsLeft -= entry->mPrefixLen;
 
   return NS_OK;
+}
+
+uint8_t
+Http2Decompressor::ExtractByte(uint8_t bitsLeft, uint32_t &bytesConsumed)
+{
+  uint8_t rv;
+
+  if (bitsLeft) {
+    
+    
+    uint8_t mask = (1 << bitsLeft) - 1;
+    rv = (mData[mOffset - 1] & mask) << (8 - bitsLeft);
+    rv |= (mData[mOffset] & ~mask) >> bitsLeft;
+  } else {
+    rv = mData[mOffset];
+  }
+
+  
+  
+  
+  ++mOffset;
+  ++bytesConsumed;
+
+  return rv;
 }
 
 nsresult
@@ -543,75 +561,40 @@ Http2Decompressor::DecodeHuffmanCharacter(HuffmanIncomingTable *table,
                                           uint8_t &c, uint32_t &bytesConsumed,
                                           uint8_t &bitsLeft)
 {
-  uint8_t idxLen = table->mPrefixLen;
-  uint8_t idx;
-  uint8_t mask;
+  uint8_t idx = ExtractByte(bitsLeft, bytesConsumed);
+  HuffmanIncomingEntry *entry = &(table->mEntries[idx]);
 
-  if (idxLen < bitsLeft) {
-    
-    mask = (1 << bitsLeft) - 1;
-    bitsLeft -= idxLen;
-    mask &= ~((1 << bitsLeft) - 1);
-    idx = (mData[mOffset - 1] & mask) >> bitsLeft;
-    idx &= ((1 << idxLen) - 1);
-  } else if (bitsLeft) {
-    
-    
-    mask = (1 << bitsLeft) - 1;
-    idxLen -= bitsLeft;
-    idx = (mData[mOffset - 1] & mask) << idxLen;
-    bitsLeft = 0;
-    if (idxLen) {
-      
-      bitsLeft = 8 - idxLen;
-      mask = ~((1 << bitsLeft) - 1);
-      uint8_t lastBits = (mData[mOffset] & mask) >> bitsLeft;
-      idx |= (lastBits & ((1 << idxLen) - 1));
-      bytesConsumed++;
-      mOffset++;
-    }
-  } else {
-    
-    mask = (1 << 8) - 1;
-    bitsLeft = 8 - idxLen;
-    mask &= ~((1 << bitsLeft) - 1);
-    idx = (mData[mOffset] & mask) >> bitsLeft;
-    idx &= ((1 << idxLen) - 1);
-    bytesConsumed++;
-    mOffset++;
-  }
-
-  if (table->mEntries[idx].mPtr) {
+  if (entry->mPtr) {
     if (bytesConsumed >= mDataLen) {
       if (!bitsLeft || (bytesConsumed > mDataLen)) {
+        
         
         LOG3(("DecodeHuffmanCharacter all out of bits to consume, can't chain"));
         return NS_ERROR_ILLEGAL_VALUE;
       }
 
       
-      return DecodeFinalHuffmanCharacter(table->mEntries[idx].mPtr, c,
-                                         bitsLeft);
+      return DecodeFinalHuffmanCharacter(entry->mPtr, c, bitsLeft);
     }
 
     
-    return DecodeHuffmanCharacter(table->mEntries[idx].mPtr, c, bytesConsumed,
-                                  bitsLeft);
+    return DecodeHuffmanCharacter(entry->mPtr, c, bytesConsumed, bitsLeft);
   }
 
-  if (table->mEntries[idx].mValue == 256) {
+  if (entry->mValue == 256) {
     LOG3(("DecodeHuffmanCharacter found an actual EOS"));
     return NS_ERROR_ILLEGAL_VALUE;
   }
-  c = static_cast<uint8_t>(table->mEntries[idx].mValue & 0xFF);
+  c = static_cast<uint8_t>(entry->mValue & 0xFF);
 
   
   
-  bitsLeft += (table->mPrefixLen - table->mEntries[idx].mPrefixLen);
-  if (bitsLeft >= 8) {
-    mOffset--;
-    bytesConsumed--;
-    bitsLeft -= 8;
+  if (entry->mPrefixLen <= bitsLeft) {
+    bitsLeft -= entry->mPrefixLen;
+    --mOffset;
+    --bytesConsumed;
+  } else {
+    bitsLeft = 8 - (entry->mPrefixLen - bitsLeft);
   }
   MOZ_ASSERT(bitsLeft < 8);
 
@@ -712,9 +695,22 @@ Http2Decompressor::DoIndexed()
 
   if (index == 0) {
     
-    mReferenceSet.Clear();
-    mAlternateReferenceSet.Clear();
-    return NS_OK;
+    
+    
+    if (mData[mOffset] & 0x80) {
+      
+      mReferenceSet.Clear();
+      mAlternateReferenceSet.Clear();
+      ++mOffset;
+      return NS_OK;
+    }
+
+    
+    uint32_t newMaxSize;
+    rv = DecodeInteger(7, newMaxSize);
+    if (NS_FAILED(rv))
+      return rv;
+    return mCompressor->SetMaxBufferSizeInternal(newMaxSize);
   }
   index--; 
 
@@ -1316,9 +1312,20 @@ Http2Compressor::ProcessHeader(const nvPair inputPair)
 void
 Http2Compressor::SetMaxBufferSize(uint32_t maxBufferSize)
 {
+  mMaxBufferSetting = maxBufferSize;
+  SetMaxBufferSizeInternal(maxBufferSize);
+}
+
+nsresult
+Http2Compressor::SetMaxBufferSizeInternal(uint32_t maxBufferSize)
+{
+  if (maxBufferSize > mMaxBufferSetting) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
+
   uint32_t removedCount = 0;
 
-  LOG3(("Http2Compressor::SetMaxBufferSize %u called", maxBufferSize));
+  LOG3(("Http2Compressor::SetMaxBufferSizeInternal %u called", maxBufferSize));
 
   while (mHeaderTable.VariableLength() && (mHeaderTable.ByteCount() > maxBufferSize)) {
     mHeaderTable.RemoveElement();
@@ -1327,6 +1334,8 @@ Http2Compressor::SetMaxBufferSize(uint32_t maxBufferSize)
   UpdateReferenceSet(removedCount);
 
   mMaxBuffer = maxBufferSize;
+
+  return NS_OK;
 }
 
 } 

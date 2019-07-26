@@ -33,13 +33,14 @@ namespace net {
         
         
         
-        HTTP2_VERSION_DRAFT09 = 27
+        
+        HTTP2_VERSION_DRAFT10 = 27
     };
 
 typedef uint8_t nsHttpVersion;
 
-#define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT09
-#define NS_HTTP2_DRAFT_TOKEN "HTTP-draft-09/2.0"
+#define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT10
+#define NS_HTTP2_DRAFT_TOKEN "h2-10"
 
 
 

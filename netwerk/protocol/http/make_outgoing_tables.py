@@ -16,8 +16,8 @@ namespace mozilla {
 namespace net {
 
 struct HuffmanOutgoingEntry {
-  uint8_t mLength;
   uint32_t mValue;
+  uint8_t mLength;
 };
 
 static HuffmanOutgoingEntry HuffmanOutgoing[] = {
@@ -41,8 +41,8 @@ for line in sys.stdin:
 
 line = []
 for i, e in enumerate(entries):
-    sys.stdout.write('  { %s, 0x%08x }' %
-                     (e['length'], e['value']))
+    sys.stdout.write('  { 0x%08x, %s }' %
+                     (e['value'], e['length']))
     if i < (len(entries) - 1):
         sys.stdout.write(',')
     sys.stdout.write('\n')
@@ -54,4 +54,3 @@ sys.stdout.write('''};
 
 #endif // mozilla__net__Http2HuffmanOutgoing_h
 ''')
-

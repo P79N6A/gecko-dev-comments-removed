@@ -80,10 +80,9 @@ public:
     FRAME_TYPE_PUSH_PROMISE = 5,
     FRAME_TYPE_PING = 6,
     FRAME_TYPE_GOAWAY = 7,
-    FRAME_TYPE_UNUSED1 = 8,
-    FRAME_TYPE_WINDOW_UPDATE = 9,
-    FRAME_TYPE_CONTINUATION = 10,
-    FRAME_TYPE_LAST = 11
+    FRAME_TYPE_WINDOW_UPDATE = 8,
+    FRAME_TYPE_CONTINUATION = 9,
+    FRAME_TYPE_LAST = 10
   };
 
   
@@ -100,7 +99,8 @@ public:
     CANCEL_ERROR = 8,
     COMPRESSION_ERROR = 9,
     CONNECT_ERROR = 10,
-    ENHANCE_YOUR_CALM = 420
+    ENHANCE_YOUR_CALM = 11,
+    INADEQUATE_SECURITY = 12
   };
 
   
@@ -110,13 +110,15 @@ public:
   const static uint8_t kFlag_PRIORITY = 0x08; 
   const static uint8_t kFlag_END_PUSH_PROMISE = 0x04; 
   const static uint8_t kFlag_ACK = 0x01; 
+  const static uint8_t kFlag_END_SEGMENT = 0x02; 
+  const static uint8_t kFlag_PAD_LOW = 0x10; 
+  const static uint8_t kFlag_PAD_HIGH = 0x20; 
 
   enum {
     SETTINGS_TYPE_HEADER_TABLE_SIZE = 1, 
     SETTINGS_TYPE_ENABLE_PUSH = 2,     
-    SETTINGS_TYPE_MAX_CONCURRENT = 4,  
-    SETTINGS_TYPE_INITIAL_WINDOW = 7,  
-    SETTINGS_TYPE_FLOW_CONTROL = 10    
+    SETTINGS_TYPE_MAX_CONCURRENT = 3,  
+    SETTINGS_TYPE_INITIAL_WINDOW = 4  
   };
 
   
@@ -155,7 +157,6 @@ public:
   static nsresult RecvPushPromise(Http2Session *);
   static nsresult RecvPing(Http2Session *);
   static nsresult RecvGoAway(Http2Session *);
-  static nsresult RecvUnused1(Http2Session *);
   static nsresult RecvWindowUpdate(Http2Session *);
   static nsresult RecvContinuation(Http2Session *);
 
@@ -201,7 +202,6 @@ public:
   Http2Compressor *Compressor() { return &mCompressor; }
   nsISocketTransport *SocketTransport() { return mSocketTransport; }
   int64_t ServerSessionWindow() { return mServerSessionWindow; }
-  bool ServerUsesFlowControl() { return mServerUsesFlowControl; }
   void DecrementServerSessionWindow (uint32_t bytes) { mServerSessionWindow -= bytes; }
 
 private:
@@ -211,7 +211,9 @@ private:
     BUFFERING_OPENING_SETTINGS,
     BUFFERING_FRAME_HEADER,
     BUFFERING_CONTROL_FRAME,
+    PROCESSING_DATA_FRAME_PADDING_CONTROL,
     PROCESSING_DATA_FRAME,
+    DISCARDING_DATA_FRAME_PADDING,
     DISCARDING_DATA_FRAME,
     PROCESSING_COMPLETE_HEADERS,
     PROCESSING_CONTROL_RST_STREAM
@@ -223,6 +225,7 @@ private:
   uint32_t    GetWriteQueueSize();
   void        ChangeDownstreamState(enum internalStateType);
   void        ResetDownstreamState();
+  nsresult    ReadyToProcessDataFrame(enum internalStateType);
   nsresult    UncompressAndDiscard();
   void        MaybeDecrementConcurrent(Http2Stream *);
   void        GeneratePing(bool);
@@ -234,6 +237,7 @@ private:
   void        CloseStream(Http2Stream *, nsresult);
   void        SendHello();
   void        RemoveStreamFromQueues(Http2Stream *);
+  nsresult    ParsePadding(uint8_t &, uint16_t &);
 
   void        SetWriteCallbacks();
   void        RealignOutputQueue();
@@ -333,6 +337,7 @@ private:
   uint8_t              mInputFrameType;
   uint8_t              mInputFrameFlags;
   uint32_t             mInputFrameID;
+  uint16_t             mPaddingLength;
 
   
   
@@ -372,11 +377,6 @@ private:
 
   
   bool                 mCleanShutdown;
-
-  
-  
-  
-  bool                 mServerUsesFlowControl;
 
   
   
@@ -446,4 +446,4 @@ private:
 } 
 } 
 
-#endif 
+#endif
