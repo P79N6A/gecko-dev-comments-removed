@@ -35,6 +35,8 @@ const TOPIC_TIMER_CALLBACK = "timer-callback";
 const TOPIC_DELAYED_STARTUP = "browser-delayed-startup-finished";
 const TOPIC_XUL_WINDOW_CLOSED = "xul-window-destroyed";
 
+const BROWSER_CONTENT_SCRIPT = "chrome://browser/content/content.js";
+
 function createTimer(obj, delay) {
   let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
   timer.init(obj, delay, Ci.nsITimer.TYPE_ONE_SHOT);
@@ -321,9 +323,14 @@ HiddenBrowser.prototype = {
     tabbrowser.swapNewTabWithBrowser(aTab, this._browser);
 
     
+    
     let mm = aTab.linkedBrowser.messageManager;
     let scripts = win.getGroupMessageManager("browsers").getDelayedFrameScripts();
-    Array.forEach(scripts, ([script, runGlobal]) => mm.loadFrameScript(script, true, runGlobal));
+    Array.forEach(scripts, ([script, runGlobal]) => {
+      if (script != BROWSER_CONTENT_SCRIPT) {
+        mm.loadFrameScript(script, true, runGlobal);
+      }
+    });
 
     
     this._removeBrowser();
@@ -371,6 +378,9 @@ HiddenBrowser.prototype = {
 
       
       this._browser.docShell.isActive = false;
+
+      this._browser.messageManager.loadFrameScript(BROWSER_CONTENT_SCRIPT,
+                                                   true);
     });
   },
 

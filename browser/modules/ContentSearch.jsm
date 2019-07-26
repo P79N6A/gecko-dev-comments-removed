@@ -68,6 +68,15 @@ this.ContentSearch = {
   },
 
   receiveMessage: function (msg) {
+    
+    
+    
+    
+    msg.handleEvent = function (event) {
+      this.target = event.detail;
+    };
+    msg.target.addEventListener("SwapDocShells", msg, true);
+
     this._eventQueue.push({
       type: "Message",
       data: msg,
@@ -106,6 +115,7 @@ this.ContentSearch = {
     if (methodName in this) {
       yield this._initService();
       yield this[methodName](msg, msg.data.data);
+      msg.target.removeEventListener("SwapDocShells", msg, true);
     }
   }),
 
