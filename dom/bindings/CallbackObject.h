@@ -320,7 +320,7 @@ public:
       CallbackObjectHolderBase::ToXPCOMCallback(GetWebIDLCallback(),
                                                 NS_GET_TEMPLATE_IID(XPCOMCallbackT));
     
-    return static_cast<XPCOMCallbackT*>(supp.forget().get());
+    return supp.forget().downcast<XPCOMCallbackT>();
   }
 
   

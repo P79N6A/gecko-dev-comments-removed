@@ -176,6 +176,32 @@ struct already_AddRefed
       return tmp;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    template<class U>
+    already_AddRefed<U> downcast()
+    {
+      U* tmp = static_cast<U*>(mRawPtr);
+      mRawPtr = nullptr;
+      return already_AddRefed<U>(tmp);
+    }
+
     T* mRawPtr;
   };
 
