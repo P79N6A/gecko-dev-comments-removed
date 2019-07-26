@@ -90,7 +90,7 @@ public:
 
 
 
-class FrameLayerBuilder {
+class FrameLayerBuilder : public layers::LayerUserData {
 public:
   typedef layers::ContainerLayer ContainerLayer;
   typedef layers::Layer Layer;

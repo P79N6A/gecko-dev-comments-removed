@@ -87,20 +87,6 @@ public:
   virtual ~LayerUserData() {}
 };
 
-class LayerManagerLayerBuilder : public LayerUserData {
-public:
-  LayerManagerLayerBuilder(FrameLayerBuilder* aBuilder, bool aDelete = true)
-    : mLayerBuilder(aBuilder)
-    , mDelete(aDelete)
-  {
-    MOZ_COUNT_CTOR(LayerManagerLayerBuilder);
-  }
-  ~LayerManagerLayerBuilder();
-
-  FrameLayerBuilder* mLayerBuilder;
-  bool mDelete;
-};
-
 
 
 
@@ -213,8 +199,7 @@ public:
   };
 
   FrameLayerBuilder* GetLayerBuilder() {
-    LayerManagerLayerBuilder *data = static_cast<LayerManagerLayerBuilder*>(GetUserData(&gLayerManagerLayerBuilder));
-    return data ? data->mLayerBuilder : nullptr;
+    return reinterpret_cast<FrameLayerBuilder*>(GetUserData(&gLayerManagerLayerBuilder));
   }
 
   
