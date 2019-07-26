@@ -664,7 +664,9 @@ class RecursiveMakeBackend(CommonBackend):
                     
                     self.backend_input_files.add(makefile_in)
 
-                    for skiplist in self._may_skip.values():
+                    for tier, skiplist in self._may_skip.items():
+                        if tier in ('compile', 'binaries'):
+                            continue
                         if bf.relobjdir in skiplist:
                             skiplist.remove(bf.relobjdir)
                 else:
@@ -678,8 +680,6 @@ class RecursiveMakeBackend(CommonBackend):
 
                 with self._write_file(makefile) as fh:
                     bf.environment.create_makefile(fh, stub=stub)
-
-        self._fill_root_mk()
 
         
         ipdl_dir = os.path.join(self.environment.topobjdir, 'ipc', 'ipdl')
@@ -710,6 +710,8 @@ class RecursiveMakeBackend(CommonBackend):
 
         with self._write_file(os.path.join(ipdl_dir, 'ipdlsrcs.mk')) as ipdls:
             mk.dump(ipdls, removal_guard=False)
+
+        self._may_skip['compile'] -= set(['ipc/ipdl'])
 
         
         bindings_dir = os.path.join(self.environment.topobjdir, 'dom', 'bindings')
@@ -743,6 +745,10 @@ class RecursiveMakeBackend(CommonBackend):
         
         with self._write_file(os.path.join(bindings_dir, 'webidlsrcs.mk')) as webidls:
             mk.dump(webidls, removal_guard=False)
+
+        self._may_skip['compile'] -= set(['dom/bindings', 'dom/bindings/test'])
+
+        self._fill_root_mk()
 
         
         
@@ -868,6 +874,10 @@ class RecursiveMakeBackend(CommonBackend):
             return
 
         affected_tiers = set(obj.affected_tiers)
+        
+        
+        if 'binaries' in affected_tiers:
+            affected_tiers.add('compile')
         if 'compile' in affected_tiers or 'binaries' in affected_tiers:
             affected_tiers.add('libs')
         if obj.is_tool_dir and 'libs' in affected_tiers:
