@@ -815,7 +815,9 @@ add_task(function test_common_initialize()
                                             aSuggestedFileExtension,
                                             aForcePrompt)
         {
+          
           let file = getTempFile(TEST_TARGET_FILE_NAME);
+          file.create(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
           aLauncher.saveDestinationAvailable(file);
         },
       }.QueryInterface(aIid);

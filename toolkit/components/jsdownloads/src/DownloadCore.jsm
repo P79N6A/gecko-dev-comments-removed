@@ -1671,7 +1671,16 @@ DownloadCopySaver.prototype = {
         
         try {
           yield OS.File.remove(targetPath);
-        } catch (e2 if e2 instanceof OS.File.Error && e2.becauseNoSuchFile) { }
+        } catch (e2) {
+          
+          
+          
+          
+          if (!(e2 instanceof OS.File.Error &&
+                (e2.becauseNoSuchFile || e2.becauseAccessDenied))) {
+            Cu.reportError(e2);
+          }
+        }
         throw ex;
       }
     }.bind(this));
@@ -1947,6 +1956,23 @@ DownloadLegacySaver.prototype = {
             yield file.close();
           } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) { }
         }
+      } catch (ex) {
+        
+        
+        
+        try {
+          yield OS.File.remove(this.download.target.path);
+        } catch (e2) {
+          
+          
+          
+          
+          if (!(e2 instanceof OS.File.Error &&
+                (e2.becauseNoSuchFile || e2.becauseAccessDenied))) {
+            Cu.reportError(e2);
+          }
+        }
+        throw ex;
       } finally {
         
         this.request = null;
