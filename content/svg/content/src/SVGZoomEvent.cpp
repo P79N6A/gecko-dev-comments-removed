@@ -26,6 +26,8 @@ SVGZoomEvent::SVGZoomEvent(EventTarget* aOwner,
   , mPreviousScale(0)
   , mNewScale(0)
 {
+  SetIsDOMBinding();
+
   if (aEvent) {
     mEventIsInternal = false;
   }
@@ -73,54 +75,6 @@ SVGZoomEvent::SVGZoomEvent(EventTarget* aOwner,
   }
 }
 
-
-
-
-
-NS_IMPL_ADDREF_INHERITED(SVGZoomEvent, nsDOMUIEvent)
-NS_IMPL_RELEASE_INHERITED(SVGZoomEvent, nsDOMUIEvent)
-
-NS_INTERFACE_MAP_BEGIN(SVGZoomEvent)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMSVGZoomEvent)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGZoomEvent)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMUIEvent)
-
-
-
-
-
-
-NS_IMETHODIMP
-SVGZoomEvent::GetPreviousScale(float *aPreviousScale)
-{
-  *aPreviousScale = mPreviousScale;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-SVGZoomEvent::GetPreviousTranslate(nsISupports **aPreviousTranslate)
-{
-  *aPreviousTranslate = mPreviousTranslate;
-  NS_IF_ADDREF(*aPreviousTranslate);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP SVGZoomEvent::GetNewScale(float *aNewScale)
-{
-  *aNewScale = mNewScale;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-SVGZoomEvent::GetNewTranslate(nsISupports **aNewTranslate)
-{
-  *aNewTranslate = mNewTranslate;
-  NS_IF_ADDREF(*aNewTranslate);
-  return NS_OK;
-}
 
 } 
 } 
