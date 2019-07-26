@@ -371,6 +371,15 @@ public:
 
 
 
+  bool DispatchKeyPressEventForFollowingCharMessage(
+                        const UniCharsAndModifiers& aInputtingChars,
+                        const EventFlags& aExtraFlags) const;
+
+  
+
+
+
+
 
 
   bool NeedsToHandleWithoutFollowingCharMessages() const;
