@@ -177,6 +177,11 @@ public:
 
 
 
+
+
+  enum {
+    FLAG_SYNC_DECODE_IMAGES = 0x01,
+  };
   static void
   DrawPaintServer(nsRenderingContext* aRenderingContext,
                   nsIFrame*            aTarget,
@@ -186,7 +191,8 @@ public:
                   const nsRect&        aFill,
                   const nsPoint&       aAnchor,
                   const nsRect&        aDirty,
-                  const nsSize&        aPaintServerSize);
+                  const nsSize&        aPaintServerSize,
+                  uint32_t             aFlags);
 };
 
 #endif 
