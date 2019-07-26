@@ -108,8 +108,6 @@ struct LayerPropertiesBase : public LayerProperties
     , mMaskLayer(nullptr)
     , mVisibleRegion(aLayer->GetVisibleRegion())
     , mInvalidRegion(aLayer->GetInvalidRegion())
-    , mPostXScale(aLayer->GetPostXScale())
-    , mPostYScale(aLayer->GetPostYScale())
     , mOpacity(aLayer->GetLocalOpacity())
     , mUseClipRect(!!aLayer->GetClipRect())
   {
@@ -144,9 +142,7 @@ struct LayerPropertiesBase : public LayerProperties
   {
     gfx3DMatrix transform;
     gfx::To3DMatrix(mLayer->GetTransform(), transform);
-    bool transformChanged = !mTransform.FuzzyEqual(transform) ||
-                            mLayer->GetPostXScale() != mPostXScale ||
-                            mLayer->GetPostYScale() != mPostYScale;
+    bool transformChanged = !mTransform.FuzzyEqual(transform);
     Layer* otherMask = mLayer->GetMaskLayer();
     const nsIntRect* otherClip = mLayer->GetClipRect();
     nsIntRegion result;
@@ -169,6 +165,13 @@ struct LayerPropertiesBase : public LayerProperties
         return result;
       }
     }
+
+    nsIntRegion visible;
+    visible.Xor(mVisibleRegion, mLayer->GetVisibleRegion());
+    if (!visible.IsEmpty()) {
+      aGeometryChanged = true;
+    }
+    AddTransformedRegion(result, visible, mTransform);
 
     AddRegion(result, ComputeChangeInternal(aCallback, aGeometryChanged));
     AddTransformedRegion(result, mLayer->GetInvalidRegion(), mTransform);
@@ -213,8 +216,6 @@ struct LayerPropertiesBase : public LayerProperties
   nsIntRegion mVisibleRegion;
   nsIntRegion mInvalidRegion;
   gfx3DMatrix mTransform;
-  float mPostXScale;
-  float mPostYScale;
   float mOpacity;
   nsIntRect mClipRect;
   bool mUseClipRect;
@@ -224,8 +225,6 @@ struct ContainerLayerProperties : public LayerPropertiesBase
 {
   ContainerLayerProperties(ContainerLayer* aLayer)
     : LayerPropertiesBase(aLayer)
-    , mPreXScale(aLayer->GetPreXScale())
-    , mPreYScale(aLayer->GetPreYScale())
   {
     for (Layer* child = aLayer->GetFirstChild(); child; child = child->GetNextSibling()) {
       mChildren.AppendElement(CloneLayerTreePropertiesInternal(child));
@@ -237,21 +236,6 @@ struct ContainerLayerProperties : public LayerPropertiesBase
   {
     ContainerLayer* container = mLayer->AsContainerLayer();
     nsIntRegion result;
-
-    if (mPreXScale != container->GetPreXScale() ||
-        mPreYScale != container->GetPreYScale()) {
-      aGeometryChanged = true;
-      result = OldTransformedBounds();
-      AddRegion(result, NewTransformedBounds());
-
-      
-      
-      
-      if (!aCallback) {
-        ClearInvalidations(mLayer);
-        return result;
-      }
-    }
 
     
     
@@ -328,8 +312,6 @@ struct ContainerLayerProperties : public LayerPropertiesBase
 
   
   nsAutoTArray<nsAutoPtr<LayerPropertiesBase>,1> mChildren;
-  float mPreXScale;
-  float mPreYScale;
 };
 
 struct ColorLayerProperties : public LayerPropertiesBase
