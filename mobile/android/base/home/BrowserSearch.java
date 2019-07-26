@@ -689,26 +689,39 @@ public class BrowserSearch extends HomeFragment
         GeckoAppShell.unregisterEventListener(eventName, this);
     }
 
+    private void restartSearchLoader() {
+        SearchLoader.restart(getLoaderManager(), LOADER_ID_SEARCH, mCursorLoaderCallbacks, mSearchTerm);
+    }
+
+    private void initSearchLoader() {
+        SearchLoader.init(getLoaderManager(), LOADER_ID_SEARCH, mCursorLoaderCallbacks, mSearchTerm);
+    }
+
     public void filter(String searchTerm, AutocompleteHandler handler) {
         if (TextUtils.isEmpty(searchTerm)) {
             return;
         }
 
-        if (TextUtils.equals(mSearchTerm, searchTerm)) {
-            return;
-        }
+        final boolean isNewFilter = !TextUtils.equals(mSearchTerm, searchTerm);
 
         mSearchTerm = searchTerm;
         mAutocompleteHandler = handler;
 
         if (isVisible()) {
-            
-            
-            mAdapter.notifyDataSetChanged();
+            if (isNewFilter) {
+                
+                
+                mAdapter.notifyDataSetChanged();
 
-            
-            SearchLoader.restart(getLoaderManager(), LOADER_ID_SEARCH, mCursorLoaderCallbacks, mSearchTerm);
-            filterSuggestions();
+                
+                restartSearchLoader();
+                filterSuggestions();
+            } else {
+                
+                
+                
+                initSearchLoader();
+            }
         }
     }
 
