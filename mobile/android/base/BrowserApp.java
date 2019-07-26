@@ -107,6 +107,8 @@ abstract public class BrowserApp extends GeckoApp
                     final TabsPanel.Panel panel = tab.isPrivate()
                                                 ? TabsPanel.Panel.PRIVATE_TABS
                                                 : TabsPanel.Panel.NORMAL_TABS;
+                    
+                    
                     mMainHandler.post(new Runnable() {
                         public void run() {
                             if (areTabsShown() && mTabsPanel.getCurrentPanel() != panel)
@@ -124,10 +126,16 @@ abstract public class BrowserApp extends GeckoApp
                 }
                 break;
             case PAGE_SHOW:
-                handlePageShow(tab);
+                loadFavicon(tab);
                 break;
             case LINK_ADDED:
-                handleLinkAdded(tab);
+                
+                
+                
+                
+                if (tab.getState() != Tab.STATE_LOADING) {
+                    loadFavicon(tab);
+                }
                 break;
             case SECURITY_CHANGE:
                 handleSecurityChange(tab);
@@ -137,28 +145,6 @@ abstract public class BrowserApp extends GeckoApp
                 break;
         }
         super.onTabChanged(tab, msg, data);
-    }
-
-    void handlePageShow(final Tab tab) {
-        mMainHandler.post(new Runnable() {
-            public void run() {
-                loadFavicon(tab);
-            }
-        });
-    }
-
-    void handleLinkAdded(final Tab tab) {
-        
-        
-        
-        
-        if (tab.getState() != Tab.STATE_LOADING) {
-            mMainHandler.post(new Runnable() {
-                public void run() {
-                    loadFavicon(tab);
-                }
-            });
-        }
     }
 
     @Override
