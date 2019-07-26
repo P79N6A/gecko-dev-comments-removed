@@ -118,15 +118,15 @@ IMEHandler::ProcessMessage(nsWindow* aWindow, UINT aMessage,
       if (aWParam) {
         aLParam &= ~ISC_SHOWUICOMPOSITIONWINDOW;
       }
-      return false;
-    }
-
-    if (aMessage == WM_USER_TSF_TEXTCHANGE) {
+    } else if (aMessage == WM_USER_TSF_TEXTCHANGE) {
       nsTextStore::OnTextChangeMsg();
       aResult.mConsumed = true;
       return true;
     }
-    return false;
+    
+    if (!sIsIMMEnabled) {
+      return false;
+    }
   }
 #endif 
 
