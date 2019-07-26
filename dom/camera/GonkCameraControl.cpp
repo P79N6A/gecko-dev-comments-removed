@@ -994,10 +994,17 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
   
   uint32_t r = static_cast<uint32_t>(aTakePicture->mRotation);
   r += mCameraHw->GetSensorOrientation(GonkCameraHardware::OFFSET_SENSOR_ORIENTATION);
-  r %= 360;
-  r += 45;
+  if (r >= 0) {
+    r += 45;
+  } else {
+    r -= 45;
+  }
   r /= 90;
+  r %= 4;
   r *= 90;
+  if (r < 0) {
+    r += 360;
+  }
   DOM_CAMERA_LOGI("setting picture rotation to %d degrees (mapped from %d)\n", r, aTakePicture->mRotation);
   SetParameter(CameraParameters::KEY_ROTATION, nsPrintfCString("%u", r).get());
 
