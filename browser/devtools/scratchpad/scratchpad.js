@@ -273,7 +273,7 @@ var Scratchpad = {
   get sidebar()
   {
     if (!this._sidebar) {
-      this._sidebar = new ScratchpadSidebar();
+      this._sidebar = new ScratchpadSidebar(this);
     }
     return this._sidebar;
   },
@@ -475,7 +475,7 @@ var Scratchpad = {
         this.sidebar.open(aString, aResult).then(resolve, reject);
       }
     }, reject);
-    
+
     return deferred.promise;
   },
 
@@ -1481,11 +1481,12 @@ var Scratchpad = {
 
 
 
-function ScratchpadSidebar()
+function ScratchpadSidebar(aScratchpad)
 {
   let ToolSidebar = devtools.require("devtools/framework/sidebar").ToolSidebar;
   let tabbox = document.querySelector("#scratchpad-sidebar");
   this._sidebar = new ToolSidebar(tabbox, this);
+  this._scratchpad = aScratchpad;
 }
 
 ScratchpadSidebar.prototype = {
@@ -1525,7 +1526,11 @@ ScratchpadSidebar.prototype = {
       if (!this.variablesView) {
         let window = this._sidebar.getWindowForTab("variablesview");
         let container = window.document.querySelector("#variables");
-        this.variablesView = new VariablesView(container);
+        this.variablesView = new VariablesView(container, {
+          searchEnabled: true,
+          searchPlaceholder: this._scratchpad.strings
+                             .GetStringFromName("propertiesFilterPlaceholder")
+        });
       }
       this._update(aObject).then(() => deferred.resolve());
     };

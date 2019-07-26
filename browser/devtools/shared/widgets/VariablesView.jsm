@@ -90,7 +90,7 @@ VariablesView.prototype = {
 
   set rawObject(aObject) {
     this.empty();
-    this.addScope().addItem().populate(aObject);
+    this.addScope().addItem().populate(aObject, { sorted: true });
   },
 
   
