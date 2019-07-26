@@ -314,23 +314,6 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
-AbstractFile.exists = function exists(path) {
-  try {
-    let file = exports.OS.File.open(path);
-    file.close();
-    return true;
-  } catch (x) {
-    return false;
-  }
-};
-
-
-
-
-
-
-
-
 
 
 

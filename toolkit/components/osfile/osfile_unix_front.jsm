@@ -262,6 +262,21 @@
 
 
 
+
+
+     File.exists = function Unix_exists(path) {
+       if (UnixFile.access(path, OS.Constants.libc.F_OK) == -1) {
+         return false;
+       } else {
+         return true;
+       }
+     };
+
+     
+
+
+
+
      File.remove = function remove(path) {
        throw_on_negative("remove",
          UnixFile.unlink(path)
@@ -828,7 +843,6 @@
      };
 
      File.read = exports.OS.Shared.AbstractFile.read;
-     File.exists = exports.OS.Shared.AbstractFile.exists;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
 
      

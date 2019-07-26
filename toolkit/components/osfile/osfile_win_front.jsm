@@ -323,6 +323,23 @@
 
 
 
+
+     File.exists = function Win_exists(path) {
+       try {
+         let file = File.open(path);
+         file.close();
+         return true;
+       } catch (x) {
+         return false;
+       }
+     };
+
+     
+
+
+
+
+
      File.remove = function remove(path) {
        throw_on_zero("remove",
          WinFile.DeleteFile(path));
@@ -822,7 +839,6 @@
      };
 
      File.read = exports.OS.Shared.AbstractFile.read;
-     File.exists = exports.OS.Shared.AbstractFile.exists;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
 
      

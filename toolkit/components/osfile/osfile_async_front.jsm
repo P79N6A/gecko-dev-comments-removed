@@ -625,6 +625,18 @@ File.read = function read(path, bytes) {
 
 
 
+File.exists = function exists(path) {
+  return Scheduler.post("exists",
+    [Type.path.toMsg(path)], path);
+};
+
+
+
+
+
+
+
+
 
 
 
