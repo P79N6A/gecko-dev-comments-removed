@@ -4,18 +4,15 @@
 
 
 
-#ifdef IBMBIDI
-
 #ifndef nsBidiPresUtils_h___
 #define nsBidiPresUtils_h___
 
-#include "nsTArray.h"
+#ifdef IBMBIDI
+
 #include "nsBidi.h"
 #include "nsBidiUtils.h"
-#include "nsCOMPtr.h"
-#include "nsDataHashtable.h"
-#include "nsBlockFrame.h"
-#include "nsTHashtable.h"
+#include "nsHashKeys.h"
+#include "nsCoord.h"
 
 #ifdef DrawText
 #undef DrawText
@@ -24,6 +21,11 @@
 struct BidiParagraphData;
 struct BidiLineData;
 class nsIFrame;
+class nsBlockFrame;
+class nsPresContext;
+class nsRenderingContext;
+class nsBlockInFlowLineIterator;
+template<class T> class nsTHashtable;
 
 
 

@@ -55,6 +55,7 @@
 #include "ScrollbarActivity.h"
 #include "nsRefreshDriver.h"
 #include "nsContentList.h"
+#include "nsThemeConstants.h"
 #include <algorithm>
 #include <cstdlib> 
 #include <cmath> 

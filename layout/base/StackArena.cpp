@@ -3,8 +3,8 @@
 
 
 #include "StackArena.h"
-
-#include "mozilla/MemoryReporting.h"
+#include "nsAlgorithm.h"
+#include "nsDebug.h"
 
 namespace mozilla {
 

@@ -8,10 +8,8 @@
 #define NS_CSS_RENDERING_BORDERS_H
 
 #include "nsColor.h"
-#include "nsStyleStruct.h"
 
-#include "gfxContext.h"
-#include "mozilla/gfx/2D.h"
+class gfxContext;
 
 
 #undef DEBUG_NEW_BORDERS
