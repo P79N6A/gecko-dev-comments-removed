@@ -22,6 +22,12 @@ class imgRequestProxy;
 class nsNodeInfoManager;
 class nsGenericHTMLElement;
 
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
+
 nsresult
 NS_NewElement(nsIContent** aResult,
               already_AddRefed<nsINodeInfo> aNodeInfo,
@@ -31,7 +37,8 @@ nsresult
 NS_NewXMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo);
 
 nsresult
-NS_NewHTMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo,
+NS_NewHTMLElement(mozilla::dom::Element** aResult,
+                  already_AddRefed<nsINodeInfo> aNodeInfo,
                   mozilla::dom::FromParser aFromParser);
 
 
