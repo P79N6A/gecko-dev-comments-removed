@@ -14,12 +14,10 @@ namespace mozilla {
 namespace dom {
 
 
-static const unsigned short SVG_TURBULENCE_TYPE_UNKNOWN = 0;
 static const unsigned short SVG_TURBULENCE_TYPE_FRACTALNOISE = 1;
 static const unsigned short SVG_TURBULENCE_TYPE_TURBULENCE = 2;
 
 
-static const unsigned short SVG_STITCHTYPE_UNKNOWN = 0;
 static const unsigned short SVG_STITCHTYPE_STITCH = 1;
 static const unsigned short SVG_STITCHTYPE_NOSTITCH = 2;
 

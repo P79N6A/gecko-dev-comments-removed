@@ -32,8 +32,6 @@
 
 using namespace mozilla::dom;
 
-static const char kMozStr[] = "moz";
-
 #define kXMLNS "xmlns"
 
 
