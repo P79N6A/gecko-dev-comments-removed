@@ -541,6 +541,12 @@ JitCompartment::notifyOfActiveParallelEntryScript(JSContext *cx, HandleScript sc
     return p || activeParallelEntryScripts_->add(p, script);
 }
 
+bool
+JitCompartment::hasRecentParallelActivity() const
+{
+    return activeParallelEntryScripts_ && !activeParallelEntryScripts_->empty();
+}
+
 void
 jit::FinishOffThreadBuilder(IonBuilder *builder)
 {
@@ -610,7 +616,8 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
             
             
             if (!script->hasParallelIonScript() ||
-                !script->parallelIonScript()->isParallelEntryScript())
+                !script->parallelIonScript()->isParallelEntryScript() ||
+                trc->runtime()->gc.shouldCleanUpEverything)
             {
                 e.removeFront();
                 continue;
@@ -622,9 +629,11 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
             
             
             
-            if (ShouldPreserveParallelJITCode(trc->runtime(), script,  true)) {
+            if (script->parallelIonScript()->shouldPreserveParallelCode(IonScript::IncreaseAge)) {
                 MarkScript(trc, const_cast<PreBarrieredScript *>(&e.front()), "par-script");
                 MOZ_ASSERT(script == e.front());
+            } else {
+                e.removeFront();
             }
         }
     }
@@ -959,13 +968,8 @@ IonScript::trace(JSTracer *trc)
 
     
     
-    for (size_t i = 0; i < callTargetEntries(); i++) {
-        
-        if (callTargetList()[i]->hasParallelIonScript())
-            callTargetList()[i]->parallelIonScript()->parallelAge_ = parallelAge_;
-
+    for (size_t i = 0; i < callTargetEntries(); i++)
         gc::MarkScriptUnbarriered(trc, &callTargetList()[i], "callTarget");
-    }
 }
 
  void
