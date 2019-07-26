@@ -435,10 +435,6 @@ public:
   
   static void VerifyDirtyBitSet(const nsFrameList& aFrameList);
 
-  
-  
-  static int32_t ContentIndexInContainer(const nsIFrame* aFrame);
-
   static void XMLQuote(nsString& aString);
 
   
@@ -452,8 +448,6 @@ public:
 
   virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent);
   
-  nsresult MakeFrameName(const nsAString& aKind, nsAString& aResult) const;
-
   
   static void* DisplayReflowEnter(nsPresContext*          aPresContext,
                                   nsIFrame*                aFrame,
@@ -652,13 +646,21 @@ private:
 
   virtual nsILineIterator* GetLineIterator() MOZ_OVERRIDE;
 
-#ifdef DEBUG
+#ifdef DEBUG_FRAME_DUMP
 public:
   
 
 
 
   NS_IMETHOD  GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  nsresult MakeFrameName(const nsAString& aKind, nsAString& aResult) const;
+  
+  
+  static int32_t ContentIndexInContainer(const nsIFrame* aFrame);
+#endif
+
+#ifdef DEBUG
+public:
   
 
 

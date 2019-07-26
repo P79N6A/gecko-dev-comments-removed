@@ -17,7 +17,7 @@ namespace layout {
 
 
 
-#ifdef DEBUG
+#ifdef DEBUG_FRAME_DUMP
 extern const char* ChildListName(FrameChildListID aListID);
 #endif
 

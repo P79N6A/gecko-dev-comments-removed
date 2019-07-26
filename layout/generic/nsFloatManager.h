@@ -15,6 +15,7 @@
 #include "nsCoord.h"
 #include "nsRect.h"
 #include "nsTArray.h"
+#include "nsFrameList.h" 
 
 class nsIPresShell;
 class nsIFrame;
@@ -269,7 +270,7 @@ public:
                  "float manager state should match saved state");
   }
 
-#ifdef DEBUG
+#ifdef DEBUG_FRAME_DUMP
   
 
 

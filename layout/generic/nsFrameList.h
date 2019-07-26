@@ -9,6 +9,12 @@
 #include <stdio.h> 
 #include "nsDebug.h"
 
+#ifdef DEBUG
+
+
+#define DEBUG_FRAME_DUMP 1
+#endif
+
 class nsIFrame;
 class nsIPresShell;
 class nsPresContext;
@@ -277,7 +283,7 @@ public:
   nsIFrame* GetNextVisualFor(nsIFrame* aFrame) const;
 #endif 
 
-#ifdef DEBUG
+#ifdef DEBUG_FRAME_DUMP
   void List(FILE* out) const;
 #endif
 
