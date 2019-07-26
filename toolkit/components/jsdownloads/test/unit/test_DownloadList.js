@@ -162,6 +162,47 @@ add_task(function test_notifications_change()
 
 
 
+add_task(function test_notifications_this()
+{
+  let list = yield promiseNewDownloadList();
+
+  
+  let receivedOnDownloadAdded = false;
+  let receivedOnDownloadChanged = false;
+  let receivedOnDownloadRemoved = false;
+  let view = {
+    onDownloadAdded: function () {
+      do_check_eq(this, view);
+      receivedOnDownloadAdded = true;
+    },
+    onDownloadChanged: function () {
+      
+      if (!receivedOnDownloadChanged) {
+        do_check_eq(this, view);
+        receivedOnDownloadChanged = true;
+      }
+    },
+    onDownloadRemoved: function () {
+      do_check_eq(this, view);
+      receivedOnDownloadRemoved = true;
+    },
+  };
+  list.addView(view);
+
+  let download = yield promiseNewDownload();
+  list.add(download);
+  yield download.start();
+  list.remove(download);
+
+  
+  do_check_true(receivedOnDownloadAdded);
+  do_check_true(receivedOnDownloadChanged);
+  do_check_true(receivedOnDownloadRemoved);
+});
+
+
+
+
 add_task(function test_history_expiration()
 {
   function cleanup() {

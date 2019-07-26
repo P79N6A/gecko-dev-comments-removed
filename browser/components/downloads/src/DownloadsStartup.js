@@ -86,10 +86,6 @@ DownloadsStartup.prototype = {
   {
     switch (aTopic) {
       case "profile-after-change":
-        kObservedTopics.forEach(
-          function (topic) Services.obs.addObserver(this, topic, true),
-          this);
-
         
         
         
@@ -104,15 +100,21 @@ DownloadsStartup.prototype = {
         
         let useJSTransfer = false;
         try {
+          
+          
           useJSTransfer =
             Services.prefs.getBoolPref("browser.download.useJSTransfer");
-        } catch (ex) {
-          
-        }
+        } catch (ex) { }
         if (useJSTransfer) {
           Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
                             .registerFactory(kTransferCid, "",
                                              kTransferContractId, null);
+        } else {
+          
+          
+          for (let topic of kObservedTopics) {
+            Services.obs.addObserver(this, topic, true);
+          }
         }
         break;
 

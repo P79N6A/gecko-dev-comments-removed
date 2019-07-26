@@ -1106,7 +1106,15 @@ var gBrowserInit = {
     
     
     setTimeout(function() {
-      Services.downloads;
+      let DownloadsCommon =
+        Cu.import("resource:///modules/DownloadsCommon.jsm", {}).DownloadsCommon;
+      if (DownloadsCommon.useJSTransfer) {
+        
+        DownloadsCommon.initializeAllDataLinks();
+      } else {
+        
+        Services.downloads;
+      }
       let DownloadTaskbarProgress =
         Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", {}).DownloadTaskbarProgress;
       DownloadTaskbarProgress.onBrowserWindowLoad(window);
