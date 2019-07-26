@@ -1677,27 +1677,17 @@ nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget, const char* aPropName, n
     ConvertSupportsTojsvals(aArgs, global, &argc, &argv, tempStorage);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::Value vargs;
-
   
 
-  
-  
-  if (strcmp(aPropName, "dialogArguments") == 0 && argc <= 1) {
-    vargs = argc ? argv[0] : JSVAL_VOID;
-  } else {
-    for (uint32_t i = 0; i < argc; ++i) {
-      if (!JS_WrapValue(mContext, &argv[i])) {
-        return NS_ERROR_FAILURE;
-      }
+  for (uint32_t i = 0; i < argc; ++i) {
+    if (!JS_WrapValue(mContext, &argv[i])) {
+      return NS_ERROR_FAILURE;
     }
-
-    JSObject *args = ::JS_NewArrayObject(mContext, argc, argv);
-    vargs = OBJECT_TO_JSVAL(args);
   }
 
-  
-  
+  JSObject *args = ::JS_NewArrayObject(mContext, argc, argv);
+  JS::Value vargs = OBJECT_TO_JSVAL(args);
+
   return JS_DefineProperty(mContext, aTarget, aPropName, vargs, NULL, NULL, 0)
     ? NS_OK
     : NS_ERROR_FAILURE;
