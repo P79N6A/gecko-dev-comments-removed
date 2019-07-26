@@ -127,6 +127,9 @@ class IonRuntime
     JSC::ExecutableAllocator *execAlloc_;
 
     
+    IonCode *exceptionTail_;
+
+    
     IonCode *enterJIT_;
 
     
@@ -169,6 +172,7 @@ class IonRuntime
     AutoFlushCache *flusher_;
 
   private:
+    IonCode *generateExceptionTailStub(JSContext *cx);
     IonCode *generateEnterJIT(JSContext *cx, EnterJitType type);
     IonCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut);
     IonCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
@@ -282,6 +286,10 @@ class IonCompartment
 
     IonCode *getGenericBailoutHandler() {
         return rt->bailoutHandler_;
+    }
+
+    IonCode *getExceptionTail() {
+        return rt->exceptionTail_;
     }
 
     IonCode *getBailoutTable(const FrameSizeClass &frameClass);
