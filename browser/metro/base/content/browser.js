@@ -446,10 +446,40 @@ var Browser = {
     return this._tabId++;
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   addTab: function browser_addTab(aURI, aBringFront, aOwner, aParams) {
     let params = aParams || {};
+
+    if (aOwner && !('index' in params)) {
+      
+      params.index = this._tabs.indexOf(aOwner) + 1;
+      
+      while (this._tabs[params.index] && this._tabs[params.index].owner == aOwner) {
+        params.index++;
+      }
+    }
+
     let newTab = new Tab(aURI, params, aOwner);
-    this._tabs.push(newTab);
+
+    if (params.index >= 0) {
+      this._tabs.splice(params.index, 0, newTab);
+    } else {
+      this._tabs.push(newTab);
+    }
 
     if (aBringFront)
       this.selectedTab = newTab;
@@ -1299,7 +1329,7 @@ Tab.prototype = {
   create: function create(aURI, aParams, aOwner) {
     this._eventDeferred = Promise.defer();
 
-    this._chromeTab = Elements.tabList.addTab();
+    this._chromeTab = Elements.tabList.addTab(aParams.index);
     this._id = Browser.createTabId();
     let browser = this._createBrowser(aURI, null);
 

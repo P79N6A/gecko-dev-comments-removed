@@ -434,6 +434,7 @@ var BrowserUI = {
   
 
 
+
   addAndShowTab: function (aURI, aOwner) {
     ContextUI.peekTabs(kNewTabAnimationDelayMsec);
     return Browser.addTab(aURI || kStartURI, true, aOwner);
