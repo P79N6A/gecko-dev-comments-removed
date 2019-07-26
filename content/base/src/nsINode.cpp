@@ -2291,8 +2291,7 @@ ParseSelectorList(nsINode* aNode,
                   const nsAString& aSelectorString,
                   nsCSSSelectorList** aSelectorList)
 {
-  NS_ENSURE_ARG(aNode);
-
+  MOZ_ASSERT(aNode);
   nsIDocument* doc = aNode->OwnerDoc();
   nsCSSParser parser(doc->CSSLoader());
 
@@ -2345,22 +2344,32 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
 
   nsIDocument* doc = aRoot->OwnerDoc();
   nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
-  nsCSSSelectorList* selectorList = cache.GetList(aSelector);
+  nsCSSSelectorList* selectorList = nullptr;
+  bool haveCachedList = cache.GetList(aSelector, &selectorList);
 
-  if (!selectorList) {
-    nsresult rv = ParseSelectorList(aRoot, aSelector,
-                                    &selectorList);
+  if (!haveCachedList) {
+    nsresult rv = ParseSelectorList(aRoot, aSelector, &selectorList);
     if (NS_FAILED(rv)) {
-      delete selectorList;
+      MOZ_ASSERT(!selectorList);
+      MOZ_ASSERT(rv == NS_ERROR_DOM_SYNTAX_ERR,
+                 "Unexpected error, so cached version won't return it");
       
       
       
-      return rv;
+    } else if (!selectorList) {
+      
+      
+      
+      
+      return NS_OK;
     }
 
-    NS_ENSURE_TRUE(selectorList, NS_OK);
-
     cache.CacheList(aSelector, selectorList);
+  }
+
+  if (!selectorList) {
+    
+    return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
   NS_ASSERTION(selectorList->mSelectors,

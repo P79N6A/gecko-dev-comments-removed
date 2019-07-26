@@ -697,9 +697,11 @@ public:
       
       
       
-      nsCSSSelectorList* GetList(const nsAString& aSelector)
+      
+      
+      bool GetList(const nsAString& aSelector, nsCSSSelectorList** aList)
       {
-        return mTable.Get(aSelector);
+        return mTable.Get(aSelector, aList);
       }
 
       ~SelectorCache()
