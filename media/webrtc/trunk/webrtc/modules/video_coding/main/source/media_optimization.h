@@ -97,6 +97,9 @@ class MediaOptimization {
                                 FrameType encoded_frame_type);
 
   
+  void SetCPULoadState(CPULoadState state);
+
+  
   
   int32_t RegisterProtectionCallback(
       VCMProtectionCallback* protection_callback);
@@ -181,6 +184,7 @@ class MediaOptimization {
   int64_t last_qm_update_time_;
   int64_t last_change_time_;  
   int num_layers_;
+  CPULoadState loadstate_;
 };  
 
 }  

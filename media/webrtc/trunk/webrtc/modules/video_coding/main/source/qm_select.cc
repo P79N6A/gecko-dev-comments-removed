@@ -427,6 +427,11 @@ void VCMQmResolution::ComputeEncoderState() {
 
 bool VCMQmResolution::GoingUpResolution() {
   
+  if (loadstate_ == kLoadStressed) {
+    return false;
+  }
+
+  
 
   float fac_width = kFactorWidthSpatial[down_action_history_[0].spatial];
   float fac_height = kFactorHeightSpatial[down_action_history_[0].spatial];
@@ -506,8 +511,9 @@ bool VCMQmResolution::GoingDownResolution() {
   
   
   
-  if ((avg_target_rate_ < estimated_transition_rate_down ) ||
-      (encoder_state_ == kStressedEncoding && avg_target_rate_ < max_rate)) {
+  if (loadstate_ == kLoadStressed
+      || (avg_target_rate_ < estimated_transition_rate_down)
+      || (encoder_state_ == kStressedEncoding && avg_target_rate_ < max_rate)) {
     
     
     uint8_t spatial_fact =
@@ -554,6 +560,22 @@ bool VCMQmResolution::GoingDownResolution() {
     
     assert(action_.temporal == kNoChangeTemporal ||
            action_.spatial == kNoChangeSpatial);
+
+    
+    
+    if (loadstate_ == kLoadStressed
+        && action_.temporal == kNoChangeTemporal
+        && action_.spatial == kNoChangeSpatial) {
+      
+      if (avg_incoming_framerate_ >= 40) {
+        action_.temporal = kOneHalfTemporal;
+      } else if (avg_incoming_framerate_ >= 24) {
+        action_.temporal = kTwoThirdsTemporal;
+      } else {
+        
+        action_.spatial = kOneHalfSpatialUniform;
+      }
+    }
 
     
     
@@ -903,6 +925,10 @@ void VCMQmResolution::SelectSpatialDirectionMode(float transition_rate) {
   }
 }
 
+void VCMQmResolution::SetCPULoadState(CPULoadState state) {
+  loadstate_ = state;
+}
+
 
 
 VCMQmRobustness::VCMQmRobustness() {
@@ -956,4 +982,5 @@ bool VCMQmRobustness::SetUepProtection(uint8_t code_rate_delta,
   
   return false;
 }
+
 }  
