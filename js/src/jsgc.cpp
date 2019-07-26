@@ -5334,6 +5334,69 @@ CheckStackRootsRangeAndSkipIon(JSRuntime *rt, uintptr_t *begin, uintptr_t *end, 
         CheckStackRootsRange(rt, i, end, rbegin, rend);
 }
 
+static int
+CompareRooters(const void *vpA, const void *vpB)
+{
+    const Rooter *a = static_cast<const Rooter *>(vpA);
+    const Rooter *b = static_cast<const Rooter *>(vpB);
+    
+    return (a->rooter < b->rooter) ? -1 : 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+static bool
+SuppressCheckRoots(Vector<Rooter, 0, SystemAllocPolicy> &rooters)
+{
+    static const unsigned int NumStackMemories = 6;
+    static const size_t StackCheckDepth = 10;
+
+    static uint32_t stacks[NumStackMemories];
+    static unsigned int numMemories = 0;
+    static unsigned int oldestMemory = 0;
+
+    
+    
+    
+    
+    qsort(rooters.begin(), rooters.length(), sizeof(Rooter), CompareRooters);
+
+    
+    
+    unsigned int pos;
+
+    
+    uint32_t hash = mozilla::HashGeneric(&pos);
+    for (unsigned int i = 0; i < Min(StackCheckDepth, rooters.length()); i++)
+        hash = mozilla::AddToHash(hash, rooters[rooters.length() - i - 1].rooter);
+
+    
+    for (pos = 0; pos < numMemories; pos++) {
+        if (stacks[pos] == hash) {
+            
+            
+            
+            return true;
+        }
+    }
+
+    
+    stacks[oldestMemory] = hash;
+    oldestMemory = (oldestMemory + 1) % NumStackMemories;
+    if (numMemories < NumStackMemories)
+        numMemories++;
+
+    return false;
+}
+
 void
 JS::CheckStackRoots(JSContext *cx)
 {
@@ -5400,6 +5463,9 @@ JS::CheckStackRoots(JSContext *cx)
             }
         }
     }
+
+    if (SuppressCheckRoots(rooters))
+        return;
 
     
     
