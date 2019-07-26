@@ -131,13 +131,11 @@ js::UnwrapOneChecked(JSContext *cx, HandleObject obj)
     }
 
     Wrapper *handler = Wrapper::wrapperHandler(obj);
-    bool rvOnFailure;
-    if (!handler->enter(cx, obj, JSID_VOID, Wrapper::PUNCTURE, &rvOnFailure))
-        return rvOnFailure ? (JSObject*) obj : NULL;
-    JSObject *ret = Wrapper::wrappedObject(obj);
-    JS_ASSERT(ret);
-
-    return ret;
+    if (!handler->isSafeToUnwrap()) {
+        JS_ReportError(cx, "Permission denied to access object");
+        return NULL;
+    }
+    return Wrapper::wrappedObject(obj);
 }
 
 bool
@@ -231,16 +229,13 @@ Wrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
 
 
 
-
 bool
 Wrapper::defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint, Value *vp)
 {
     RootedObject wrapper(cx, wrapper_);
 
-    bool status;
-    if (!enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status)) {
+    if (!wrapperHandler(wrapper)->isSafeToUnwrap()) {
         RootedValue v(cx);
-        JS_ClearPendingException(cx);
         if (!DefaultValue(cx, wrapper, hint, &v))
             return false;
         *vp = v;
