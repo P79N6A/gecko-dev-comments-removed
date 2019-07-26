@@ -5,6 +5,35 @@
 
 
 
+function String_codePointAt(pos) {
+    
+    CheckObjectCoercible(this);
+    var S = ToString(this);
+
+    
+    var position = ToInteger(pos);
+
+    
+    var size = S.length;
+
+    
+    if (position < 0 || position >= size)
+        return undefined;
+
+    
+    var first = callFunction(std_String_charCodeAt, S, position);
+    if (first < 0xD800 || first > 0xDBFF || position + 1 === size)
+        return first;
+
+    
+    var second = callFunction(std_String_charCodeAt, S, position + 1);
+    if (second < 0xDC00 || second > 0xDFFF)
+        return first;
+
+    
+    return (first - 0xD800) * 0x400 + (second - 0xDC00) + 0x10000;
+}
+
 var collatorCache = new Record();
 
 
@@ -118,6 +147,45 @@ function String_localeCompare(that) {
 }
 
 
+function String_static_fromCodePoint() {
+    
+    
+    var length = arguments.length;
+
+    
+    var elements = new List();
+
+    
+    for (var nextIndex = 0; nextIndex < length; nextIndex++) {
+        
+        var next = arguments[nextIndex];
+        
+        var nextCP = ToNumber(next);
+
+        
+        if (nextCP !== ToInteger(nextCP) || std_isNaN(nextCP))
+            ThrowError(JSMSG_NOT_A_CODEPOINT, ToString(nextCP));
+
+        
+        if (nextCP < 0 || nextCP > 0x10FFFF)
+            ThrowError(JSMSG_NOT_A_CODEPOINT, ToString(nextCP));
+
+        
+        
+        if (nextCP <= 0xFFFF) {
+            elements.push(nextCP);
+            continue;
+        }
+
+        elements.push((((nextCP - 0x10000) / 0x400) | 0) + 0xD800);
+        elements.push((nextCP - 0x10000) % 0x400 + 0xDC00);
+    }
+
+    
+    return callFunction(std_Function_apply, std_String_fromCharCode, null, elements);
+}
+
+
 
 
 
@@ -131,3 +199,4 @@ function String_static_localeCompare(str1, str2) {
     var options = arguments.length > 3 ? arguments[3] : undefined;
     return callFunction(String_localeCompare, str1, str2, locales, options);
 }
+
