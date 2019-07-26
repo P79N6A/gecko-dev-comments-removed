@@ -636,3 +636,7 @@ pref("webgl.can-lose-context-in-foreground", false);
 
 pref("memory_info_dumper.watch_fifo.enabled", true);
 pref("memory_info_dumper.watch_fifo.directory", "/data/local");
+
+
+
+pref("dom.disable_input_file", true);
