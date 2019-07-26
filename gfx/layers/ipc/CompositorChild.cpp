@@ -169,8 +169,10 @@ CompositorChild::ActorDestroy(ActorDestroyReason aWhy)
     NS_RUNTIMEABORT("ActorDestroy by IPC channel failure at CompositorChild");
   }
 #endif
-
-  sCompositor = nullptr;
+  if (sCompositor) {
+    sCompositor->Release();
+    sCompositor = nullptr;
+  }
   
   
   
