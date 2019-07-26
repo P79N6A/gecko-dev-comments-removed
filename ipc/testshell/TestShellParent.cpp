@@ -59,7 +59,7 @@ TestShellCommandParent::SetCallback(JSContext* aCx,
 bool
 TestShellCommandParent::RunCallback(const nsString& aResponse)
 {
-  NS_ENSURE_TRUE(*mCallback.ToJSValPtr() != JSVAL_NULL && mCx, false);
+  NS_ENSURE_TRUE(!mCallback.get().isNull() && mCx, false);
 
   
   AutoCxPusher pusher(mCx);
