@@ -291,6 +291,31 @@ GetWrappedNative(JSContext *cx, JSObject *obj)
            : nullptr;
 }
 
+#ifdef DEBUG
+static void
+DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
+                        JSCompartment *origin, JSCompartment *target)
+{
+    typedef FilteringWrapper<CrossCompartmentSecurityWrapper, OnlyIfSubjectIsSystem> XSOW;
+
+    if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
+        
+        MOZ_ASSERT(handler->isSafeToUnwrap());
+    } else if (WrapperFactory::IsLocationObject(obj) ||
+               WrapperFactory::IsComponentsObject(obj) ||
+               handler == &XSOW::singleton)
+    {
+        
+        MOZ_ASSERT(!handler->isSafeToUnwrap());
+    } else {
+        
+        MOZ_ASSERT(handler->isSafeToUnwrap() == AccessCheck::subsumes(target, origin));
+    }
+}
+#else
+#define DEBUG_CheckUnwrapSafety(obj, handler, origin, target) {}
+#endif
+
 JSObject *
 WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
                        JSObject *wrappedProto, JSObject *parent,
@@ -443,6 +468,8 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
         }
     }
 
+    DEBUG_CheckUnwrapSafety(obj, wrapper, origin, target);
+
     if (existing && proxyProto == wrappedProto)
         return Wrapper::Renew(cx, existing, obj, wrapper);
 
@@ -465,7 +492,9 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
     MOZ_ASSERT(wn, "Trying to wrap a dead WN!");
 
     
-    return wn->GetSameCompartmentSecurityWrapper(cx);
+    JSObject *wrapper = wn->GetSameCompartmentSecurityWrapper(cx);
+    MOZ_ASSERT_IF(wrapper != obj, !Wrapper::wrapperHandler(wrapper)->isSafeToUnwrap());
+    return wrapper;
 }
 
 bool

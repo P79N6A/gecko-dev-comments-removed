@@ -29,6 +29,7 @@ class DummyFrameGuard;
 class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 {
     unsigned mFlags;
+    bool mSafeToUnwrap;
 
   public:
     enum Action {
@@ -42,6 +43,15 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
         CROSS_COMPARTMENT = 1 << 0,
         LAST_USED_FLAG = CROSS_COMPARTMENT
     };
+
+    
+
+
+
+
+
+    void setSafeToUnwrap(bool safe) { mSafeToUnwrap = safe; };
+    bool isSafeToUnwrap() { return mSafeToUnwrap; };
 
     static JSObject *New(JSContext *cx, JSObject *obj, JSObject *proto,
                          JSObject *parent, Wrapper *handler);
