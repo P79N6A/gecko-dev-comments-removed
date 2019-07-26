@@ -2914,6 +2914,20 @@ public:
     nsTArray<NamedResource> mTrackedBuffers;
 #endif
 
+public:
+    enum MemoryUse {
+        
+        MemoryAllocated,
+        
+        MemoryFreed
+    };
+
+    
+    
+    static void UpdateTextureMemoryUsage(MemoryUse action,
+                                         GLenum format,
+                                         GLenum type,
+                                         uint16_t tileSize);
 };
 
 inline bool
@@ -3107,6 +3121,8 @@ protected:
         mGL->BindUserFBO(mOldState);
     }
 };
+
+uint32_t GetBitsPerTexel(GLenum format, GLenum type);
 
 } 
 } 
