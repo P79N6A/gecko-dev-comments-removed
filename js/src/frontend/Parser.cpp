@@ -5370,7 +5370,7 @@ Parser::generatorExpr(ParseNode *kid)
 
 
 
-    ParseNode *result = ListNode::create(PNK_CALL, this);
+    ParseNode *result = ListNode::create(PNK_GENEXP, this);
     if (!result)
         return NULL;
     result->setOp(JSOP_CALL);

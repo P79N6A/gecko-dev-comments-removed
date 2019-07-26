@@ -143,6 +143,7 @@ class UpvarCookie
     F(XMLELEM) \
     F(XMLLIST) \
     F(YIELD) \
+    F(GENEXP) \
     F(ARRAYCOMP) \
     F(ARRAYPUSH) \
     F(LEXICALSCOPE) \
@@ -209,6 +210,9 @@ enum ParseNodeKind {
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
 
 
 
@@ -846,20 +850,8 @@ struct ParseNode {
 #endif
 
 #ifdef JS_HAS_GENERATOR_EXPRS
-    
-
-
-    bool isGeneratorExpr() const {
-        if (isKind(PNK_CALL)) {
-            ParseNode *callee = this->pn_head;
-            if (callee->getKind() == PNK_FUNCTION && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
-                return true;
-        }
-        return false;
-    }
-
     ParseNode *generatorExpr() const {
-        JS_ASSERT(isGeneratorExpr());
+        JS_ASSERT(isKind(PNK_GENEXP));
         ParseNode *callee = this->pn_head;
         ParseNode *body = callee->pn_body;
         JS_ASSERT(body->isKind(PNK_LEXICALSCOPE));
