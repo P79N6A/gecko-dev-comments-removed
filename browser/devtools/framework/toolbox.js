@@ -728,6 +728,14 @@ Toolbox.prototype = {
     gDevTools.off("tool-registered", this._toolRegistered);
     gDevTools.off("tool-unregistered", this._toolUnregistered);
 
+    
+    
+    if (typeof this._origAllowJavascript != "undefined") {
+      let docShell = this._host.hostTab.linkedBrowser.docShell;
+      docShell.allowJavascript = this._origAllowJavascript;
+      delete this._origAllowJavascript;
+    }
+
     let outstanding = [];
 
     for (let [id, panel] of this._toolPanels) {
