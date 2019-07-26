@@ -41,6 +41,9 @@ let WebappRT = {
     pref("dom.mozTCPSocket.enabled", true),
     
     pref("browser.webapps.checkForUpdates", 0),
+
+    
+    pref("dom.sysmsg.enabled", true),
   ],
 
   init: function(aStatus, aUrl, aCallback) {
