@@ -2,7 +2,7 @@
 
 
 
-import os.path
+import os
 import unittest
 
 from tempfile import NamedTemporaryFile
@@ -108,7 +108,7 @@ class TestWarningsDatabase(unittest.TestCase):
 
         self.assertEqual(len(db), 0)
 
-        for i in xrange(10):
+        for i in range(10):
             db.insert(get_warning(), compute_hash=False)
 
         self.assertEqual(len(db), 10)
@@ -120,7 +120,7 @@ class TestWarningsDatabase(unittest.TestCase):
         """Ensure that hashing files on insert works."""
         db = WarningsDatabase()
 
-        temp = NamedTemporaryFile()
+        temp = NamedTemporaryFile(mode='wt')
         temp.write('x' * 100)
         temp.flush()
 
@@ -143,8 +143,8 @@ class TestWarningsDatabase(unittest.TestCase):
         db = WarningsDatabase()
 
         source_files = []
-        for i in xrange(1, 21):
-            temp = NamedTemporaryFile()
+        for i in range(1, 21):
+            temp = NamedTemporaryFile(mode='wt')
             temp.write('x' * (100 * i))
             temp.flush()
 
@@ -183,7 +183,7 @@ class TestWarningsDatabase(unittest.TestCase):
         
         
         old_filename = source_files[0].name
-        del source_files[0]
+        source_files[0].close()
 
         self.assertFalse(os.path.exists(old_filename))
 
