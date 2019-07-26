@@ -96,15 +96,30 @@ BinaryStringPolicy::adjustInputs(MInstruction *ins)
 bool
 ComparePolicy::adjustInputs(MInstruction *def)
 {
-    if (specialization_ == MIRType_None)
+    JS_ASSERT(def->isCompare());
+    MCompare *compare = def->toCompare();
+    MIRType type = compare->inputType();
+
+    
+    if (type == MIRType_Value)
         return BoxInputsPolicy::adjustInputs(def);
 
-    if (IsNullOrUndefined(specialization_)) {
-        
+    
+    if (type == MIRType_Undefined || type == MIRType_Null)
         return true;
+
+    
+    
+    
+    
+    if (type == MIRType_Boolean && def->getOperand(0)->type() == MIRType_Boolean) {
+       compare->setCompareType(MCompare::Compare_Int32);
+       type = compare->inputType();
     }
 
-    if (specialization_ == MIRType_Boolean) {
+    
+    
+    if (type == MIRType_Boolean) {
         
         MDefinition *rhs = def->getOperand(1);
 
@@ -114,24 +129,15 @@ ComparePolicy::adjustInputs(MInstruction *def)
             def->replaceOperand(1, unbox);
         }
 
+        JS_ASSERT(def->getOperand(0)->type() != MIRType_Boolean);
         JS_ASSERT(def->getOperand(1)->type() == MIRType_Boolean);
-
-        
-        
-        
-        if (def->getOperand(0)->type() != MIRType_Boolean)
-            return true;
-
-        
-        
-        
-        
-        specialization_ = MIRType_Int32;
+        return true;
     }
 
+    
     for (size_t i = 0; i < 2; i++) {
         MDefinition *in = def->getOperand(i);
-        if (in->type() == specialization_)
+        if (in->type() == type)
             continue;
 
         MInstruction *replace;
@@ -140,12 +146,11 @@ ComparePolicy::adjustInputs(MInstruction *def)
         if (in->type() == MIRType_Object || in->type() == MIRType_String)
             in = boxAt(def, in);
 
-        switch (specialization_) {
+        switch (type) {
           case MIRType_Double:
             replace = MToDouble::New(in);
             break;
           case MIRType_Int32:
-          case MIRType_Boolean:
             replace = MToInt32::New(in);
             break;
           case MIRType_Object:

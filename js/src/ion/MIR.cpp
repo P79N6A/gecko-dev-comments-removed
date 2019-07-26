@@ -1084,6 +1084,100 @@ SafelyCoercesToDouble(JSContext *cx, types::StackTypeSet *types)
     return false;
 }
 
+static bool
+CanDoValueBitwiseCmp(JSContext *cx, types::StackTypeSet *lhs, types::StackTypeSet *rhs, bool looseEq)
+{
+    
+    
+    if (!lhs->knownPrimitiveOrObject() ||
+        lhs->hasAnyFlag(types::TYPE_FLAG_STRING) ||
+        lhs->hasAnyFlag(types::TYPE_FLAG_DOUBLE) ||
+        !rhs->knownPrimitiveOrObject() ||
+        rhs->hasAnyFlag(types::TYPE_FLAG_STRING) ||
+        rhs->hasAnyFlag(types::TYPE_FLAG_DOUBLE))
+    {
+        return false;
+    }
+
+    
+    if (lhs->maybeObject() &&
+        (lhs->hasObjectFlags(cx, types::OBJECT_FLAG_SPECIAL_EQUALITY) ||
+         lhs->hasObjectFlags(cx, types::OBJECT_FLAG_EMULATES_UNDEFINED)))
+    {
+        return false;
+    }
+    if (rhs->maybeObject() &&
+        (rhs->hasObjectFlags(cx, types::OBJECT_FLAG_SPECIAL_EQUALITY) ||
+         rhs->hasObjectFlags(cx, types::OBJECT_FLAG_EMULATES_UNDEFINED)))
+    {
+        return false;
+    }
+
+    
+    
+    if (looseEq) {
+
+        
+        
+        if ((lhs->hasAnyFlag(types::TYPE_FLAG_UNDEFINED) &&
+             rhs->hasAnyFlag(types::TYPE_FLAG_NULL)) ||
+            (lhs->hasAnyFlag(types::TYPE_FLAG_NULL) &&
+             rhs->hasAnyFlag(types::TYPE_FLAG_UNDEFINED)))
+        {
+            return false;
+        }
+
+        
+        
+        if ((lhs->hasAnyFlag(types::TYPE_FLAG_INT32) &&
+             rhs->hasAnyFlag(types::TYPE_FLAG_BOOLEAN)) ||
+            (lhs->hasAnyFlag(types::TYPE_FLAG_BOOLEAN) &&
+             rhs->hasAnyFlag(types::TYPE_FLAG_INT32)))
+        {
+            return false;
+        }
+
+        
+        
+        types::TypeFlags numbers = types::TYPE_FLAG_BOOLEAN |
+                                   types::TYPE_FLAG_INT32;
+        if ((lhs->maybeObject() && rhs->hasAnyFlag(numbers)) ||
+            (rhs->maybeObject() && lhs->hasAnyFlag(numbers)))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+MIRType
+MCompare::inputType()
+{
+    switch(compareType_) {
+      case Compare_Undefined:
+        return MIRType_Undefined;
+      case Compare_Null:
+        return MIRType_Null;
+      case Compare_Boolean:
+        return MIRType_Boolean;
+      case Compare_Int32:
+        return MIRType_Int32;
+      case Compare_Double:
+        return MIRType_Double;
+      case Compare_String:
+        return MIRType_String;
+      case Compare_Object:
+        return MIRType_Object;
+      case Compare_Unknown:
+      case Compare_Value:
+        return MIRType_Value;
+      default:
+        JS_NOT_REACHED("No known conversion");
+        return MIRType_None;
+    }
+}
+
 void
 MCompare::infer(const TypeOracle::BinaryTypes &b, JSContext *cx)
 {
@@ -1098,86 +1192,95 @@ MCompare::infer(const TypeOracle::BinaryTypes &b, JSContext *cx)
     MIRType lhs = MIRTypeFromValueType(b.lhsTypes->getKnownTypeTag());
     MIRType rhs = MIRTypeFromValueType(b.rhsTypes->getKnownTypeTag());
 
+    bool looseEq = jsop() == JSOP_EQ || jsop() == JSOP_NE;
+    bool strictEq = jsop() == JSOP_STRICTEQ || jsop() == JSOP_STRICTNE;
+    bool relationalEq = !(looseEq || strictEq);
+
     
     if ((lhs == MIRType_Int32 && rhs == MIRType_Int32) ||
         (lhs == MIRType_Boolean && rhs == MIRType_Boolean))
     {
-        specialization_ = MIRType_Int32;
+        compareType_ = Compare_Int32;
         return;
     }
 
     
-    if (jsop() != JSOP_STRICTEQ && jsop() != JSOP_STRICTNE &&
+    if (!strictEq &&
         (lhs == MIRType_Int32 || lhs == MIRType_Boolean) &&
         (rhs == MIRType_Int32 || rhs == MIRType_Boolean))
     {
-        specialization_ = MIRType_Int32;
+        compareType_ = Compare_Int32;
         return;
     }
 
     
     if (IsNumberType(lhs) && IsNumberType(rhs)) {
-        specialization_ = MIRType_Double;
+        compareType_ = Compare_Double;
         return;
     }
 
     
-    if (jsop() != JSOP_STRICTEQ && jsop() != JSOP_STRICTNE &&
+    if (!strictEq &&
         ((lhs == MIRType_Double && SafelyCoercesToDouble(cx, b.rhsTypes)) ||
          (rhs == MIRType_Double && SafelyCoercesToDouble(cx, b.lhsTypes))))
     {
-        specialization_ = MIRType_Double;
+        compareType_ = Compare_Double;
         return;
     }
 
-    if (jsop() == JSOP_STRICTEQ || jsop() == JSOP_EQ ||
-        jsop() == JSOP_STRICTNE || jsop() == JSOP_NE)
-    {
-        if (lhs == MIRType_Object && rhs == MIRType_Object) {
-            if (b.lhsTypes->hasObjectFlags(cx, types::OBJECT_FLAG_SPECIAL_EQUALITY) ||
-                b.rhsTypes->hasObjectFlags(cx, types::OBJECT_FLAG_SPECIAL_EQUALITY))
-            {
-                return;
-            }
-            specialization_ = MIRType_Object;
+    
+    if (!relationalEq && lhs == MIRType_Object && rhs == MIRType_Object) {
+        if (b.lhsTypes->hasObjectFlags(cx, types::OBJECT_FLAG_SPECIAL_EQUALITY) ||
+            b.rhsTypes->hasObjectFlags(cx, types::OBJECT_FLAG_SPECIAL_EQUALITY))
+        {
             return;
         }
 
-        if (lhs == MIRType_String && rhs == MIRType_String) {
-            
-            specialization_ = MIRType_String;
-            return;
-        }
-
-        
-        if (IsNullOrUndefined(lhs)) {
-            MIRType tmp = lhs;
-            lhs = rhs;
-            rhs = tmp;
-            swapOperands();
-        }
-
-        if (IsNullOrUndefined(rhs)) {
-            specialization_ = rhs;
-            return;
-        }
+        compareType_ = Compare_Object;
+        return;
     }
 
-    if (jsop() == JSOP_STRICTEQ || jsop() == JSOP_STRICTNE) {
+    
+    if (!relationalEq && lhs == MIRType_String && rhs == MIRType_String) {
+        compareType_ = Compare_String;
+        return;
+    }
+
+    
+    if (!relationalEq && IsNullOrUndefined(lhs)) {
+        
+        
+        
+        
+        compareType_ = (lhs == MIRType_Null) ? Compare_Null : Compare_Undefined;
+        swapOperands();
+        return;
+    }
+
+    
+    if (!relationalEq && IsNullOrUndefined(rhs)) {
+        compareType_ = (rhs == MIRType_Null) ? Compare_Null : Compare_Undefined;
+        return;
+    }
+
+    
+    if (strictEq && (lhs == MIRType_Boolean || rhs == MIRType_Boolean)) {
         
         JS_ASSERT(!(lhs == MIRType_Boolean && rhs == MIRType_Boolean));
 
-        if (lhs == MIRType_Boolean) {
-            
-            
-            swapOperands();
-            specialization_ = MIRType_Boolean;
-            return;
-        }
-        if (rhs == MIRType_Boolean) {
-            specialization_ = MIRType_Boolean;
-            return;
-        }
+        
+        
+        if (lhs == MIRType_Boolean)
+             swapOperands();
+
+        compareType_ = Compare_Boolean;
+        return;
+    }
+
+    
+    if (!relationalEq && CanDoValueBitwiseCmp(cx, b.lhsTypes, b.rhsTypes, looseEq)) {
+        compareType_ = Compare_Value;
+        return;
     }
 }
 
@@ -1395,7 +1498,7 @@ MCompare::tryFold(bool *result)
 {
     JSOp op = jsop();
 
-    if (IsNullOrUndefined(specialization())) {
+    if (compareType_ == Compare_Null || compareType_ == Compare_Undefined) {
         JS_ASSERT(op == JSOP_EQ || op == JSOP_STRICTEQ ||
                   op == JSOP_NE || op == JSOP_STRICTNE);
 
@@ -1405,7 +1508,7 @@ MCompare::tryFold(bool *result)
             return false;
           case MIRType_Undefined:
           case MIRType_Null:
-            if (lhs()->type() == specialization()) {
+            if (lhs()->type() == inputType()) {
                 
                 *result = (op == JSOP_EQ || op == JSOP_STRICTEQ);
             } else {
@@ -1430,7 +1533,7 @@ MCompare::tryFold(bool *result)
         }
     }
 
-    if (specialization_ == MIRType_Boolean) {
+    if (compareType_ == Compare_Boolean) {
         JS_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
         JS_ASSERT(rhs()->type() == MIRType_Boolean);
 
