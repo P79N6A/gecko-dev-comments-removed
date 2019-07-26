@@ -60,19 +60,27 @@ class VirtualenvManager(object):
             'virtualenv.py')
 
     @property
-    def python_path(self):
+    def bin_path(self):
+        
+        
+        
+        
         if sys.platform in ('win32', 'cygwin'):
-            return os.path.join(self.virtualenv_root, 'Scripts', 'python.exe')
+            return os.path.join(self.virtualenv_root, 'Scripts')
 
-        return os.path.join(self.virtualenv_root, 'bin', 'python')
+        return os.path.join(self.virtualenv_root, 'bin')
+
+    @property
+    def python_path(self):
+        binary = 'python'
+        if sys.platform in ('win32', 'cygwin'):
+            binary += '.exe'
+
+        return os.path.join(self.bin_path, binary)
 
     @property
     def activate_path(self):
-        if sys.platform in ('win32', 'cygwin'):
-            return os.path.join(self.virtualenv_root, 'Scripts',
-                'activate_this.py')
-
-        return os.path.join(self.virtualenv_root, 'bin', 'activate_this.py')
+        return os.path.join(self.bin_path, 'activate_this.py')
 
     def up_to_date(self):
         """Returns whether the virtualenv is present and up to date."""
@@ -387,6 +395,39 @@ class VirtualenvManager(object):
         """
 
         execfile(self.activate_path, dict(__file__=self.activate_path))
+
+    def install_pip_package(self, package):
+        """Install a package via pip.
+
+        The supplied package is specified using a pip requirement specifier.
+        e.g. 'foo' or 'foo==1.0'.
+
+        If the package is already installed, this is a no-op.
+        """
+        from pip.req import InstallRequirement
+
+        req = InstallRequirement.from_line(package)
+        if req.check_if_exists():
+            return
+
+        args = [
+            'install',
+            '--use-wheel',
+            package,
+        ]
+
+        return self._run_pip(args)
+
+    def _run_pip(self, args):
+        
+        
+        
+        
+        
+        
+        
+        subprocess.check_call([os.path.join(self.bin_path, 'pip')] + args,
+            stderr=subprocess.STDOUT)
 
 
 def verify_python_version(log_handle):
