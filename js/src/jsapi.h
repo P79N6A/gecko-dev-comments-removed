@@ -129,7 +129,6 @@ class JS_PUBLIC_API(AutoGCRooter) {
         STRINGVECTOR =-17, 
         SCRIPTVECTOR =-18, 
         PROPDESC =    -19, 
-        SHAPERANGE =  -20, 
         STACKSHAPE =  -21, 
         STACKBASESHAPE=-22,
         GETTERSETTER =-24, 
