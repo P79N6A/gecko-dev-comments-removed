@@ -4793,13 +4793,15 @@ static void InvalidateFrameInternal(nsIFrame *aFrame, bool aHasDisplayItem = tru
     if (aHasDisplayItem) {
       parent->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
     }
+    nsSVGEffects::InvalidateDirectRenderingObservers(parent);
+
     
     
     
     if (nsLayoutUtils::IsPopup(parent)) {
       needsSchedulePaint = true;
+      break;
     }
-    nsSVGEffects::InvalidateDirectRenderingObservers(parent);
     parent = nsLayoutUtils::GetCrossDocParentFrame(parent);
   }
   if (!aHasDisplayItem) {
