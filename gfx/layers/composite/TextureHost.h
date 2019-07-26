@@ -411,6 +411,9 @@ public:
   
   virtual void OnShutdown() {}
 
+  
+  virtual void ForgetBufferActor() {}
+
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 

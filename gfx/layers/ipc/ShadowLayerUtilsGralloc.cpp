@@ -254,6 +254,7 @@ int64_t GrallocReporter::sAmount = 0;
 
 GrallocBufferActor::GrallocBufferActor()
 : mAllocBytes(0)
+, mTextureHost(nullptr)
 {
   static bool registered;
   if (!registered) {
@@ -304,11 +305,17 @@ GrallocBufferActor::Create(const gfx::IntSize& aSize,
   return actor;
 }
 
-
 void GrallocBufferActor::ActorDestroy(ActorDestroyReason)
 {
+  
   for (size_t i = 0; i < mDeprecatedTextureHosts.Length(); i++) {
     mDeprecatedTextureHosts[i]->ForgetBuffer();
+  }
+
+  
+  if (mTextureHost) {
+    mTextureHost->ForgetBufferActor();
+    mTextureHost = nullptr;
   }
 }
 
@@ -325,6 +332,16 @@ void GrallocBufferActor::RemoveDeprecatedTextureHost(DeprecatedTextureHost* aDep
   
   
   MOZ_ASSERT(!mDeprecatedTextureHosts.Contains(aDeprecatedTextureHost));
+}
+
+void GrallocBufferActor::AddTextureHost(TextureHost* aTextureHost)
+{
+  mTextureHost = aTextureHost;
+}
+
+void GrallocBufferActor::RemoveTextureHost()
+{
+  mTextureHost = nullptr;
 }
 
  bool

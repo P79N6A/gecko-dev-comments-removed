@@ -90,6 +90,9 @@ public:
   void AddDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
   void RemoveDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
 
+  void AddTextureHost(TextureHost* aTextureHost);
+  void RemoveTextureHost();
+
   android::GraphicBuffer* GetGraphicBuffer();
 
   void InitFromHandle(const MagicGrallocBufferHandle& aHandle);
@@ -106,6 +109,9 @@ private:
   
   
   nsAutoTArray<DeprecatedTextureHost*, 2> mDeprecatedTextureHosts;
+
+  
+  TextureHost* mTextureHost;
 
   friend class ISurfaceAllocator;
 };
