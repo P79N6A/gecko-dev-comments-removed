@@ -605,12 +605,11 @@ holder_set(JSContext *cx, HandleObject wrapperArg, HandleId id, JSBool strict, M
 class AutoSetWrapperNotShadowing
 {
 public:
-    AutoSetWrapperNotShadowing(JSObject *wrapper MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    AutoSetWrapperNotShadowing(ResolvingId *resolvingId MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        MOZ_ASSERT(wrapper);
-        mResolvingId = ResolvingId::getResolvingIdFromWrapper(wrapper);
-        MOZ_ASSERT(mResolvingId);
+        MOZ_ASSERT(resolvingId);
+        mResolvingId = resolvingId;
         mResolvingId->mXrayShadowing = true;
     }
 
@@ -640,12 +639,26 @@ XPCWrappedNativeXrayTraits::resolveDOMCollectionProperty(JSContext *cx, HandleOb
         return true;
 
     XPCWrappedNative *wn = getWN(wrapper);
+    if (!wn) {
+        
+        
+        XPCThrower::Throw(NS_ERROR_UNEXPECTED, cx);
+        return false;
+    }
     if (!NATIVE_HAS_FLAG(wn, WantNewResolve))
         return true;
 
+    ResolvingId *resolvingId = ResolvingId::getResolvingIdFromWrapper(wrapper);
+    if (!resolvingId) {
+        
+        
+        XPCThrower::Throw(NS_ERROR_UNEXPECTED, cx);
+        return false;
+    }
+
     
     
-    AutoSetWrapperNotShadowing asw(wrapper);
+    AutoSetWrapperNotShadowing asw(resolvingId);
 
     bool retval = true;
     RootedObject pobj(cx);
@@ -777,10 +790,13 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, HandleObject wr
     XPCNativeInterface *iface;
     XPCNativeMember *member;
     XPCWrappedNative *wn = getWN(wrapper);
-    if (ccx.GetWrapper() != wn ||
-        !wn->IsValid()  ||
-        !(iface = ccx.GetInterface()) ||
-        !(member = ccx.GetMember())) {
+
+    if (ccx.GetWrapper() != wn || !wn->IsValid()) {
+        
+        
+        return true;
+    } else if (!(iface = ccx.GetInterface()) ||
+               !(member = ccx.GetMember())) {
         
         return resolveDOMCollectionProperty(cx, wrapper, holder, id, desc, flags);
     }
