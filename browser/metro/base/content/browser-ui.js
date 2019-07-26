@@ -83,6 +83,7 @@ var BrowserUI = {
   get _forward() { return document.getElementById("cmd_forward"); },
 
   lastKnownGoodURL: "", 
+  ready: false, 
 
   init: function() {
     
@@ -134,6 +135,7 @@ var BrowserUI = {
         let event = document.createEvent("Events");
         event.initEvent("UIReadyDelayed", true, false);
         window.dispatchEvent(event);
+        BrowserUI.ready = true;
       }, 0);
     });
 
