@@ -227,9 +227,22 @@ public:
       CreateDrawTargetForFBO(unsigned int aFBOID, mozilla::gl::GLContext* aGLContext,
                              const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat);
 
+    
+
+
+
     bool SupportsAzureContent() {
       return GetContentBackend() != mozilla::gfx::BACKEND_NONE;
     }
+
+    
+
+
+
+
+
+
+    bool SupportsAzureContentForDrawTarget(mozilla::gfx::DrawTarget* aTarget);
 
     virtual bool UseAcceleratedSkiaCanvas();
 
@@ -628,6 +641,8 @@ private:
     mozilla::gfx::BackendType mFallbackCanvasBackend;
     
     mozilla::gfx::BackendType mContentBackend;
+    
+    uint32_t mContentBackendBitmask;
 
     mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
     bool mWorkAroundDriverBugs;
