@@ -8,7 +8,6 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
-#include "gfxPoint.h"                   
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/ipc/SharedMemory.h"   
@@ -189,7 +188,7 @@ public:
   ~ImageBridgeChild();
 
   virtual PGrallocBufferChild*
-  AllocPGrallocBufferChild(const gfxIntSize&, const uint32_t&, const uint32_t&,
+  AllocPGrallocBufferChild(const gfx::IntSize&, const uint32_t&, const uint32_t&,
                            MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
 
   virtual bool
@@ -205,7 +204,7 @@ public:
 
 
   bool
-  AllocSurfaceDescriptorGralloc(const gfxIntSize& aSize,
+  AllocSurfaceDescriptorGralloc(const gfx::IntSize& aSize,
                                 const uint32_t& aFormat,
                                 const uint32_t& aUsage,
                                 SurfaceDescriptor* aBuffer);
@@ -218,7 +217,7 @@ public:
 
 
   bool
-  AllocSurfaceDescriptorGrallocNow(const gfxIntSize& aSize,
+  AllocSurfaceDescriptorGrallocNow(const gfx::IntSize& aSize,
                                    const uint32_t& aFormat,
                                    const uint32_t& aUsage,
                                    SurfaceDescriptor* aBuffer);
@@ -385,7 +384,7 @@ protected:
   CompositableTransaction* mTxn;
 
   
-  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfxIntSize& aSize,
+  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfx::IntSize& aSize,
                                                   uint32_t aFormat, uint32_t aUsage,
                                                   MaybeMagicGrallocBufferHandle* aHandle) MOZ_OVERRIDE;
 };

@@ -18,6 +18,7 @@ namespace mozilla {
 namespace layers {
 
 class GrallocTextureClientOGL;
+class IntSize;
 
 
 
@@ -78,7 +79,7 @@ class GrallocImage : public PlanarYCbCrImage
 public:
   struct GrallocData {
     nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
-    gfxIntSize mPicSize;
+    IntSize mPicSize;
   };
 
   GrallocImage();

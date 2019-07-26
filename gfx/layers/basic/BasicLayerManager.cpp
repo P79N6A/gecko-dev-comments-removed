@@ -27,6 +27,7 @@
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
+#include "gfx2DGlue.h"                  
 #include "mozilla/Assertions.h"         
 #include "mozilla/WidgetUtils.h"        
 #include "mozilla/gfx/2D.h"             
@@ -721,7 +722,7 @@ PixmanTransform(const gfxImageSurface* aDest,
                 const gfx3DMatrix& aTransform,
                 gfxPoint aDestOffset)
 {
-  gfxIntSize destSize = aDest->GetSize();
+  IntSize destSize = ToIntSize(aDest->GetSize());
   pixman_image_t* dest = pixman_image_create_bits(aDest->Format() == gfxImageFormatARGB32 ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
                                                   destSize.width,
                                                   destSize.height,

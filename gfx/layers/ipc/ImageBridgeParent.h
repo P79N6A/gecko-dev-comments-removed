@@ -9,7 +9,6 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "CompositableTransactionParent.h"
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/ipc/ProtocolUtils.h"
@@ -49,7 +48,7 @@ public:
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
   virtual PGrallocBufferParent*
-  AllocPGrallocBufferParent(const gfxIntSize&, const uint32_t&, const uint32_t&,
+  AllocPGrallocBufferParent(const IntSize&, const uint32_t&, const uint32_t&,
                             MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
 
   virtual bool
