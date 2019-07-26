@@ -773,6 +773,11 @@ DownloadsDataCtor.prototype = {
   ensurePersistentDataLoaded:
   function DD_ensurePersistentDataLoaded(aActiveOnly)
   {
+    if (this == PrivateDownloadsData) {
+      Cu.reportError("ensurePersistentDataLoaded should not be called on PrivateDownloadsData");
+      return;
+    }
+
     if (this._pendingStatement) {
       
       return;
@@ -787,9 +792,7 @@ DownloadsDataCtor.prototype = {
 
         
         
-        let downloads = this._isPrivate ?
-                          Services.downloads.activePrivateDownloads :
-                          Services.downloads.activeDownloads;
+        let downloads = Services.downloads.activeDownloads;
         while (downloads.hasMoreElements()) {
           let download = downloads.getNext().QueryInterface(Ci.nsIDownload);
           this._getOrAddDataItem(download, true);
@@ -807,9 +810,7 @@ DownloadsDataCtor.prototype = {
         
         
         
-        let dbConnection = this._isPrivate ?
-                             Services.downloads.privateDBConnection :
-                             Services.downloads.DBConnection;
+        let dbConnection = Services.downloads.DBConnection;
         let statement = dbConnection.createAsyncStatement(
           "SELECT guid, target, name, source, referrer, state, "
         +        "startTime, endTime, currBytes, maxBytes "
