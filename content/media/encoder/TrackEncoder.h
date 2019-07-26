@@ -52,7 +52,7 @@ public:
   
 
 
-  virtual nsRefPtr<TrackMetadataBase> GetMetadata() = 0;
+  virtual already_AddRefed<TrackMetadataBase> GetMetadata() = 0;
 
   
 

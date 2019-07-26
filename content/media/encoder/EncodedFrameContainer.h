@@ -26,19 +26,20 @@ public:
     mEncodedFrames.AppendElement(aEncodedFrame);
   }
   
-  const nsTArray<nsAutoPtr<EncodedFrame> >& GetEncodedFrames() const
+  const nsTArray<nsRefPtr<EncodedFrame> >& GetEncodedFrames() const
   {
     return mEncodedFrames;
   }
 private:
   
   
-  nsTArray<nsAutoPtr<EncodedFrame> > mEncodedFrames;
+  nsTArray<nsRefPtr<EncodedFrame> > mEncodedFrames;
 };
 
 
 class EncodedFrame
 {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncodedFrame)
 public:
   EncodedFrame() :
     mTimeStamp(0),

@@ -42,7 +42,7 @@ public:
 
 
 
-  virtual nsresult SetMetadata(nsRefPtr<TrackMetadataBase> aMetadata) = 0;
+  virtual nsresult SetMetadata(TrackMetadataBase* aMetadata) = 0;
 
   enum {
     FLUSH_NEEDED = 1 << 0,
@@ -61,7 +61,6 @@ public:
                                     uint32_t aFlags = 0) = 0;
 
 protected:
-  nsRefPtr<TrackMetadataBase> mMetadata;
   bool mInitialized;
 };
 }
