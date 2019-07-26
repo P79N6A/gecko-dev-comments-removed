@@ -24,7 +24,7 @@ namespace mozilla {
 
 
 template<typename T>
-static void
+static MOZ_ALWAYS_INLINE void
 PodZero(T* t)
 {
   memset(t, 0, sizeof(T));
@@ -32,7 +32,7 @@ PodZero(T* t)
 
 
 template<typename T>
-static void
+static MOZ_ALWAYS_INLINE void
 PodZero(T* t, size_t nelem)
 {
   
@@ -58,7 +58,7 @@ static void PodZero(T (&t)[N], size_t nelem) MOZ_DELETE;
 
 
 template <class T, size_t N>
-static void
+static MOZ_ALWAYS_INLINE void
 PodArrayZero(T (&t)[N])
 {
   memset(t, 0, N * sizeof(T));
@@ -69,7 +69,7 @@ PodArrayZero(T (&t)[N])
 
 
 template<typename T>
-static void
+static MOZ_ALWAYS_INLINE void
 PodAssign(T* dst, const T* src)
 {
   MOZ_ASSERT(dst != src);
@@ -83,7 +83,7 @@ PodAssign(T* dst, const T* src)
 
 
 template<typename T>
-MOZ_ALWAYS_INLINE static void
+static MOZ_ALWAYS_INLINE void
 PodCopy(T* dst, const T* src, size_t nelem)
 {
   MOZ_ASSERT(dst != src);
@@ -103,7 +103,7 @@ PodCopy(T* dst, const T* src, size_t nelem)
 }
 
 template<typename T>
-MOZ_ALWAYS_INLINE static void
+static MOZ_ALWAYS_INLINE void
 PodCopy(volatile T* dst, const volatile T* src, size_t nelem)
 {
   MOZ_ASSERT(dst != src);
@@ -127,7 +127,7 @@ PodCopy(volatile T* dst, const volatile T* src, size_t nelem)
 
 
 template <class T, size_t N>
-static void
+static MOZ_ALWAYS_INLINE void
 PodArrayCopy(T (&dst)[N], const T (&src)[N])
 {
   PodCopy(dst, src, N);
@@ -140,7 +140,7 @@ PodArrayCopy(T (&dst)[N], const T (&src)[N])
 
 
 template<typename T>
-MOZ_ALWAYS_INLINE static void
+static MOZ_ALWAYS_INLINE void
 PodMove(T* dst, const T* src, size_t nelem)
 {
   MOZ_ASSERT(nelem <= SIZE_MAX / sizeof(T),
@@ -153,7 +153,7 @@ PodMove(T* dst, const T* src, size_t nelem)
 
 
 template<typename T>
-MOZ_ALWAYS_INLINE static bool
+static MOZ_ALWAYS_INLINE bool
 PodEqual(const T* one, const T* two, size_t len)
 {
   if (len < 128) {
