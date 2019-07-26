@@ -2829,6 +2829,11 @@ WifiWorker.prototype = {
       this.setWifiEnabledInternal(false, function(data) {
         this.setWifiApEnabled(data, this.nextRequest.bind(this));
       }.bind(this));
+      
+      
+      
+      gSettingsService.createLock().set(
+        "tethering.wifi.enabled", false, null, "fromInternalSetting");
     }
     this.setWifiEnabled({enabled: enabled});
   },
