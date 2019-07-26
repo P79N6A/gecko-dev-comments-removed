@@ -15,6 +15,7 @@
 #include <pthread.h>
 #include <alloca.h>
 #include <sys/epoll.h>
+#include <sys/mman.h>
 #include <sys/prctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -141,7 +142,9 @@ TLSInfoList;
 
 
 #ifndef NUWA_STACK_SIZE
-#define NUWA_STACK_SIZE (1024 * 32)
+#define PAGE_SIZE 4096
+#define PAGE_ALIGN_MASK 0xfffff000
+#define NUWA_STACK_SIZE (1024 * 128)
 #endif
 
 #define NATIVE_THREAD_NAME_LENGTH 16
@@ -489,7 +492,18 @@ thread_info_new(void) {
   tinfo->recreatedThreadID = 0;
   tinfo->recreatedNativeThreadID = 0;
   tinfo->reacquireMutex = nullptr;
-  tinfo->stk = malloc(NUWA_STACK_SIZE);
+  tinfo->stk = malloc(NUWA_STACK_SIZE + PAGE_SIZE);
+
+  
+  
+  
+  unsigned long long pageGuard = ((unsigned long long)tinfo->stk);
+  pageGuard &= PAGE_ALIGN_MASK;
+  if (pageGuard != (unsigned long long) tinfo->stk) {
+    pageGuard += PAGE_SIZE; 
+  }
+  mprotect((void*)pageGuard, PAGE_SIZE, PROT_READ);
+
   pthread_attr_init(&tinfo->threadAttr);
 
   REAL(pthread_mutex_lock)(&sThreadCountLock);
