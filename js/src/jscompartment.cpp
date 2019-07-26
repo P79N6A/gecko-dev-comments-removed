@@ -431,7 +431,7 @@ JSCompartment::markTypes(JSTracer *trc)
 
 
 
-    JS_ASSERT(activeAnalysis || gcPreserveCode);
+    JS_ASSERT(activeAnalysis || isPreservingCode());
 
     for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
@@ -466,9 +466,6 @@ JSCompartment::discardJitCode(FreeOp *fop)
 
 
     mjit::ClearAllFrames(this);
-# ifdef JS_ION
-    ion::InvalidateAll(fop, this);
-# endif
 
     if (isPreservingCode()) {
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
@@ -488,6 +485,10 @@ JSCompartment::discardJitCode(FreeOp *fop)
                 script->ion->purgeCaches();
         }
     } else {
+# ifdef JS_ION
+        
+        ion::InvalidateAll(fop, this);
+# endif
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
             mjit::ReleaseScriptCode(fop, script);
@@ -538,7 +539,7 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
     
     regExps.sweep(rt);
 
-    if (!activeAnalysis && !gcPreserveCode) {
+    if (!activeAnalysis && !isPreservingCode()) {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_DISCARD_ANALYSIS);
 
         
