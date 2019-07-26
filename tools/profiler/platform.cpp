@@ -479,7 +479,7 @@ void mozilla_sampler_init(void* stackTop)
   read_profiler_env_vars();
 
   
-  OS::RegisterStartHandler();
+  OS::Startup();
 
   
   mozilla::IOInterposer::Init();

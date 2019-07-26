@@ -125,12 +125,7 @@ class OS {
   static void SleepMicro(const int microseconds);
 
   
-  
-#if defined(ANDROID)
-  static void RegisterStartHandler();
-#else
-  static void RegisterStartHandler() {}
-#endif
+  static void Startup();
 
  private:
   static const int msPerSecond = 1000;

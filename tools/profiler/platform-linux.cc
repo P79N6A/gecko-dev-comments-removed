@@ -136,7 +136,6 @@ static void paf_parent(void) {
 }
 
 
-
 static void* setup_atfork() {
   pthread_atfork(paf_prepare, paf_parent, NULL);
   return NULL;
@@ -262,14 +261,6 @@ Sampler::FreePlatformData(PlatformData* aData)
 static void* SignalSender(void* arg) {
   
   prctl(PR_SET_NAME, "SamplerThread", 0, 0, 0);
-# if defined(ANDROID)
-  
-  void* initialize_atfork = NULL;
-# else
-  
-  
-  static void* initialize_atfork = setup_atfork();
-# endif
 
 #ifdef MOZ_NUWA_PROCESS
   
@@ -328,7 +319,7 @@ static void* SignalSender(void* arg) {
     }
     OS::SleepMicro(interval);
   }
-  return initialize_atfork; 
+  return 0;
 }
 
 Sampler::Sampler(double interval, bool profiling, int entrySize)
@@ -565,7 +556,7 @@ static void StartSignalHandler(int signal, siginfo_t* info, void* context) {
   freeArray(features, featureCount);
 }
 
-void OS::RegisterStartHandler()
+void OS::Startup()
 {
   LOG("Registering start signal");
   struct sigaction sa;
@@ -576,7 +567,17 @@ void OS::RegisterStartHandler()
     LOG("Error installing signal");
   }
 }
+
+#else
+
+void OS::Startup() {
+  
+  setup_atfork();
+}
+
 #endif
+
+
 
 void TickSample::PopulateContext(void* aContext)
 {
