@@ -177,7 +177,7 @@ let gFxAccounts = {
 
     
     
-    fxAccounts.getSignedInUser().then(userData => {
+    let doUpdate = userData => {
       
       this.button.setAttribute("label", defaultLabel);
       this.button.removeAttribute("tooltiptext");
@@ -194,6 +194,15 @@ let gFxAccounts = {
           this.button.setAttribute("tooltiptext", userData.email);
         }
       }
+    }
+    fxAccounts.getSignedInUser().then(userData => {
+      doUpdate(userData);
+    }).then(null, error => {
+      
+      
+      
+      
+      doUpdate(null);
     });
   },
 

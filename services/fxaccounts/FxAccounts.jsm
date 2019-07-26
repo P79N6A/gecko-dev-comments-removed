@@ -669,6 +669,13 @@ FxAccountsInternal.prototype = {
       this.pollTimeRemaining = this.POLL_SESSION;
       if (!currentState.whenVerifiedDeferred) {
         currentState.whenVerifiedDeferred = Promise.defer();
+        
+        
+        
+        
+        currentState.whenVerifiedDeferred.promise.then(null, err => {
+          log.info("the wait for user verification was stopped: " + err);
+        });
       }
     }
 
