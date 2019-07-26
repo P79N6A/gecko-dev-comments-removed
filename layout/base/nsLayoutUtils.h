@@ -1014,21 +1014,21 @@ public:
 
 
   static nsIFrame*
-  GetNextContinuationOrSpecialSibling(nsIFrame *aFrame);
+  GetNextContinuationOrIBSplitSibling(nsIFrame *aFrame);
 
   
 
 
 
   static nsIFrame*
-  FirstContinuationOrSpecialSibling(nsIFrame *aFrame);
+  FirstContinuationOrIBSplitSibling(nsIFrame *aFrame);
 
   
 
 
 
   static bool
-  IsFirstContinuationOrSpecialSibling(nsIFrame *aFrame);
+  IsFirstContinuationOrIBSplitSibling(nsIFrame *aFrame);
 
   
 

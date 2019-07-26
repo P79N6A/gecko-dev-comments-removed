@@ -416,7 +416,7 @@ IsFramePartOfIBSplit(nsIFrame* aFrame)
   return (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) != 0;
 }
 
-static nsIFrame* GetSpecialSibling(nsIFrame* aFrame)
+static nsIFrame* GetIBSplitSibling(nsIFrame* aFrame)
 {
   NS_PRECONDITION(IsFramePartOfIBSplit(aFrame), "Shouldn't call this");
 
@@ -439,13 +439,13 @@ static nsIFrame* GetSpecialPrevSibling(nsIFrame* aFrame)
 }
 
 static nsIFrame*
-GetLastSpecialSibling(nsIFrame* aFrame, bool aReturnEmptyTrailingInline)
+GetLastIBSplitSibling(nsIFrame* aFrame, bool aReturnEmptyTrailingInline)
 {
   for (nsIFrame *frame = aFrame, *next; ; frame = next) {
-    next = GetSpecialSibling(frame);
+    next = GetIBSplitSibling(frame);
     if (!next ||
         (!aReturnEmptyTrailingInline && !next->GetFirstPrincipalChild() &&
-         !GetSpecialSibling(next))) {
+         !GetIBSplitSibling(next))) {
       NS_ASSERTION(!next || !frame->IsInlineOutside(),
                    "Should have a block here!");
       return frame;
@@ -456,7 +456,7 @@ GetLastSpecialSibling(nsIFrame* aFrame, bool aReturnEmptyTrailingInline)
 }
 
 static void
-SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
+SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aIBSplitSibling)
 {
   NS_PRECONDITION(aFrame, "bad args!");
 
@@ -470,16 +470,16 @@ SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
   
   aFrame->AddStateBits(NS_FRAME_PART_OF_IBSPLIT);
 
-  if (aSpecialSibling) {
-    NS_ASSERTION(!aSpecialSibling->GetPrevContinuation(),
+  if (aIBSplitSibling) {
+    NS_ASSERTION(!aIBSplitSibling->GetPrevContinuation(),
                  "assigning something other than the first continuation as the "
                  "special sibling");
 
     
     
     FramePropertyTable* props = aFrame->PresContext()->PropertyTable();
-    props->Set(aFrame, nsIFrame::IBSplitSibling(), aSpecialSibling);
-    props->Set(aSpecialSibling, nsIFrame::IBSplitSpecialPrevSibling(), aFrame);
+    props->Set(aFrame, nsIFrame::IBSplitSibling(), aIBSplitSibling);
+    props->Set(aIBSplitSibling, nsIFrame::IBSplitSpecialPrevSibling(), aFrame);
   }
 }
 
@@ -5744,7 +5744,7 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
     
     
     
-    nsIFrame* trailingInline = GetSpecialSibling(aParentFrame);
+    nsIFrame* trailingInline = GetIBSplitSibling(aParentFrame);
     if (trailingInline) {
       aParentFrame = trailingInline;
     }
@@ -5809,8 +5809,8 @@ nsCSSFrameConstructor::AppendFramesToParent(nsFrameConstructorState&       aStat
                                             bool                           aIsRecursiveCall)
 {
   NS_PRECONDITION(!IsFramePartOfIBSplit(aParentFrame) ||
-                  !GetSpecialSibling(aParentFrame) ||
-                  !GetSpecialSibling(aParentFrame)->GetFirstPrincipalChild(),
+                  !GetIBSplitSibling(aParentFrame) ||
+                  !GetIBSplitSibling(aParentFrame)->GetFirstPrincipalChild(),
                   "aParentFrame has a special sibling with kids?");
   NS_PRECONDITION(!aPrevSibling || aPrevSibling->GetParent() == aParentFrame,
                   "Parent and prevsibling don't match");
@@ -5825,7 +5825,7 @@ nsCSSFrameConstructor::AppendFramesToParent(nsFrameConstructorState&       aStat
   NS_ASSERTION(nextSibling ||
                !IsFramePartOfIBSplit(aParentFrame) ||
                (IsInlineFrame(aParentFrame) &&
-                !GetSpecialSibling(aParentFrame) &&
+                !GetIBSplitSibling(aParentFrame) &&
                 !aParentFrame->GetNextContinuation()) ||
                aIsRecursiveCall,
                "aParentFrame is not last?");
@@ -6011,7 +6011,7 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
     
     
     if (IsFramePartOfIBSplit(sibling)) {
-      sibling = GetLastSpecialSibling(sibling, true);
+      sibling = GetLastIBSplitSibling(sibling, true);
     }
 
     
@@ -6154,7 +6154,7 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
         
         
         
-        aParentFrame = GetLastSpecialSibling(aParentFrame, false);
+        aParentFrame = GetLastIBSplitSibling(aParentFrame, false);
       }
       
       
@@ -6652,7 +6652,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     
     
     
-    parentFrame = GetLastSpecialSibling(parentFrame, false);
+    parentFrame = GetLastIBSplitSibling(parentFrame, false);
   }
 
   
@@ -8336,7 +8336,7 @@ nsCSSFrameConstructor::CaptureStateForFramesOf(nsIContent* aContent,
     frame = mFixedContainingBlock;
   }
   for ( ; frame;
-        frame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(frame)) {
+        frame = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(frame)) {
     CaptureFrameState(frame, aHistoryState);
   }
 }
@@ -8581,7 +8581,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   
   
   nsIFrame* parentFirstContinuation = parent->FirstContinuation();
-  if (!GetSpecialSibling(parentFirstContinuation) ||
+  if (!GetIBSplitSibling(parentFirstContinuation) ||
       !GetSpecialPrevSibling(parentFirstContinuation)) {
     return false;
   }
@@ -10703,7 +10703,7 @@ IsSafeToAppendToSpecialInline(nsIFrame* aParentFrame, nsIFrame* aNextSibling)
     NS_ASSERTION(IsFramePartOfIBSplit(aParentFrame),
                  "How is this not special?");
     if (aNextSibling || aParentFrame->GetNextContinuation() ||
-        GetSpecialSibling(aParentFrame)) {
+        GetIBSplitSibling(aParentFrame)) {
       return false;
     }
 
