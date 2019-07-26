@@ -306,6 +306,13 @@ private:
 
   nsRefPtr<PeerConnectionMedia> mMedia;
 
+  
+  
+  
+  
+  int mNumAudioStreams;
+  int mNumVideoStreams;
+
 public:
   
   unsigned short listenPort;
