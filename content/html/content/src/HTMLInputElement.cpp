@@ -6909,17 +6909,12 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
 
   uint32_t atPos;
   nsAutoCString value;
+  
   if (!PunycodeEncodeEmailAddress(aValue, value, &atPos)) {
     return false;
   }
 
   uint32_t length = value.Length();
-
-  
-  if (atPos == (uint32_t)kNotFound || atPos == 0 || atPos == length - 1) {
-    return false;
-  }
-
   uint32_t i = 0;
 
   
