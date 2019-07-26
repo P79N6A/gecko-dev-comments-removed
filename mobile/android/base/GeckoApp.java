@@ -149,12 +149,7 @@ abstract public class GeckoApp
     public static final String PREFS_NAME          = "GeckoApp";
     public static final String PREFS_OOM_EXCEPTION = "OOMException";
     public static final String PREFS_WAS_STOPPED   = "wasStopped";
-    public static final String PREFS_CRASHED       = "crashed";
     public static final String PREFS_VERSION_CODE  = "versionCode";
-
-    static public final int RESTORE_NONE = 0;
-    static public final int RESTORE_NORMAL = 1;
-    static public final int RESTORE_CRASH = 2;
 
     static private final String LOCATION_URL = "https://location.services.mozilla.com/v1/submit";
 
@@ -197,7 +192,7 @@ abstract public class GeckoApp
 
     private HashMap<String, PowerManager.WakeLock> mWakeLocks = new HashMap<String, PowerManager.WakeLock>();
 
-    protected int mRestoreMode = RESTORE_NONE;
+    protected boolean mShouldRestore;
     protected boolean mInitialized = false;
     private Telemetry.Timer mJavaUiStartupTimer;
     private Telemetry.Timer mGeckoReadyStartupTimer;
@@ -1244,10 +1239,8 @@ abstract public class GeckoApp
         mToast = new ButtonToast(findViewById(R.id.toast));
 
         
-        
-        
-        mRestoreMode = getSessionRestoreState(savedInstanceState);
-        if (mRestoreMode == RESTORE_NORMAL && savedInstanceState != null) {
+        mShouldRestore = getSessionRestoreState(savedInstanceState);
+        if (mShouldRestore && savedInstanceState != null) {
             boolean wasInBackground =
                 savedInstanceState.getBoolean(SAVED_STATE_IN_BACKGROUND, false);
 
@@ -1334,7 +1327,7 @@ abstract public class GeckoApp
 
     protected void loadStartupTab(String url) {
         if (url == null) {
-            if (mRestoreMode == RESTORE_NONE) {
+            if (!mShouldRestore) {
                 
                 
                 Tab tab = Tabs.getInstance().loadUrl("about:home", Tabs.LOADURL_NEW_TAB);
@@ -1389,7 +1382,7 @@ abstract public class GeckoApp
         
         if (!mIsRestoringActivity) {
             String restoreMessage = null;
-            if (mRestoreMode != RESTORE_NONE) {
+            if (mShouldRestore) {
                 try {
                     
                     
@@ -1401,7 +1394,7 @@ abstract public class GeckoApp
                 } catch (SessionRestoreException e) {
                     
                     Log.e(LOGTAG, "An error occurred during restore", e);
-                    mRestoreMode = RESTORE_NONE;
+                    mShouldRestore = false;
                 }
             }
 
@@ -1416,17 +1409,14 @@ abstract public class GeckoApp
             loadStartupTab(null);
         }
 
-        if (mRestoreMode == RESTORE_NORMAL) {
-            
-            
-            Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
-        } else {
-            
-            getProfile().moveSessionFile();
-        }
+        
+        
+        Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
 
-        if (mRestoreMode == RESTORE_NONE) {
-            Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
+        
+        
+        if (!mShouldRestore) {
+            getProfile().moveSessionFile();
         }
 
         Telemetry.HistogramAdd("FENNEC_STARTUP_GECKOAPP_ACTION", startupAction.ordinal());
@@ -1597,7 +1587,7 @@ abstract public class GeckoApp
             
             
             
-            if (mRestoreMode == RESTORE_NORMAL) {
+            if (mShouldRestore) {
                 final JSONArray tabs = new JSONArray();
                 SessionParser parser = new SessionParser() {
                     @Override
@@ -1635,7 +1625,6 @@ abstract public class GeckoApp
             }
 
             JSONObject restoreData = new JSONObject();
-            restoreData.put("normalRestore", mRestoreMode == RESTORE_NORMAL);
             restoreData.put("sessionString", sessionString);
             return restoreData.toString();
 
@@ -1652,9 +1641,15 @@ abstract public class GeckoApp
         return mProfile;
     }
 
-    protected int getSessionRestoreState(Bundle savedInstanceState) {
+    
+
+
+
+
+
+    protected boolean getSessionRestoreState(Bundle savedInstanceState) {
         final SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
-        int restoreMode = RESTORE_NONE;
+        boolean shouldRestore = false;
 
         final int versionCode = getVersionCode();
         if (prefs.getInt(PREFS_VERSION_CODE, 0) != versionCode) {
@@ -1669,33 +1664,23 @@ abstract public class GeckoApp
                 }
             });
 
-            restoreMode = RESTORE_NORMAL;
-        } else if (savedInstanceState != null || PreferenceManager.getDefaultSharedPreferences(this)
-                                                                  .getString(GeckoPreferences.PREFS_RESTORE_SESSION, "quit")
-                                                                  .equals("always")) {
+            shouldRestore = true;
+        } else if (savedInstanceState != null || getSessionRestorePreference().equals("always") || getRestartFromIntent()) {
             
             
-            restoreMode = RESTORE_NORMAL;
+            shouldRestore = true;
         }
 
-        
-        
-        
-        
-        if (prefs.getBoolean(PREFS_CRASHED, false)) {
-            ThreadUtils.postToBackgroundThread(new Runnable() {
-                @Override
-                public void run() {
-                    prefs.edit()
-                         .putBoolean(PREFS_CRASHED, false)
-                         .commit();
-                }
-            });
+        return shouldRestore;
+    }
 
-            restoreMode = RESTORE_CRASH;
-        }
+    private String getSessionRestorePreference() {
+        return PreferenceManager.getDefaultSharedPreferences(this)
+                                .getString(GeckoPreferences.PREFS_RESTORE_SESSION, "quit");
+    }
 
-        return restoreMode;
+    private boolean getRestartFromIntent() {
+        return getIntent().getBooleanExtra("didRestart", false);
     }
 
     
@@ -2157,12 +2142,14 @@ abstract public class GeckoApp
                             Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             if (args != null)
                 intent.putExtra("args", args);
+            intent.putExtra("didRestart", true);
             Log.d(LOGTAG, "Restart intent: " + intent.toString());
             GeckoAppShell.killAnyZombies();
             startActivity(intent);
         } catch (Exception e) {
             Log.e(LOGTAG, "Error effecting restart.", e);
         }
+
         finish();
         
         GeckoAppShell.waitForAnotherGeckoProc();

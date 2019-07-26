@@ -44,7 +44,6 @@ SessionStore.prototype = {
   _lastSaveTime: 0,
   _interval: 10000,
   _maxTabsUndo: 1,
-  _shouldRestore: false,
 
   init: function ss_init() {
     
@@ -57,12 +56,6 @@ SessionStore.prototype = {
 
     this._interval = Services.prefs.getIntPref("browser.sessionstore.interval");
     this._maxTabsUndo = Services.prefs.getIntPref("browser.sessionstore.max_tabs_undo");
-
-    
-    if (this._sessionFileBackup.exists() && Services.prefs.getBoolPref("browser.sessionstore.resume_session_once")) {
-      Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", false);
-      this._shouldRestore = true;
-    }
   },
 
   _clearDisk: function ss_clearDisk() {
@@ -133,24 +126,7 @@ SessionStore.prototype = {
         break;
       case "quit-application":
         
-        if (aData == "restart") {
-          Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
-
-          
-          Services.obs.removeObserver(this, "browser:purge-session-history");
-        }
-
-        
         this._loadState = STATE_QUITTING;
-
-        
-        
-        
-        OS.File.move(this._sessionFile.path, this._sessionFileBackup.path).then(null, function onError(reason) {
-          if (!(reason instanceof OS.File.Error && reason.becauseNoSuchFile)) {
-            Cu.reportError("Error moving sessionstore files: " + reason);
-          }
-        });
 
         observerService.removeObserver(this, "domwindowopened");
         observerService.removeObserver(this, "domwindowclosed");
@@ -217,13 +193,7 @@ SessionStore.prototype = {
 
           
           let data = JSON.parse(aData);
-          this.restoreLastSession(data.normalRestore, data.sessionString);
-        } else if (this._shouldRestore) {
-          
-          
-          
-          
-          this.restoreLastSession(false, null);
+          this.restoreLastSession(data.sessionString);
         } else {
           
           Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
@@ -939,11 +909,7 @@ SessionStore.prototype = {
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
 
-  shouldRestore: function ss_shouldRestore() {
-    return this._shouldRestore;
-  },
-
-  restoreLastSession: function ss_restoreLastSession(aNormalRestore, aSessionString) {
+  restoreLastSession: function ss_restoreLastSession(aSessionString) {
     let self = this;
 
     function restoreWindow(data) {
@@ -959,31 +925,6 @@ SessionStore.prototype = {
     }
 
     try {
-      if (!aNormalRestore && !this._shouldRestore) {
-        
-        
-        
-        
-        
-        
-
-        
-        if (!Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash")) {
-          throw "Restore is disabled via prefs";
-        }
-
-        
-        
-        let maxCrashes = Services.prefs.getIntPref("browser.sessionstore.max_resumed_crashes");
-        let recentCrashes = Services.prefs.getIntPref("browser.sessionstore.recent_crashes") + 1;
-        Services.prefs.setIntPref("browser.sessionstore.recent_crashes", recentCrashes);
-        Services.prefs.savePrefFile(null);
-
-        if (recentCrashes > maxCrashes) {
-          throw "Exceeded maximum number of allowed restores";
-        }
-      }
-
       
       
       
