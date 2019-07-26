@@ -872,7 +872,16 @@ RasterImage::GetImgFrame(uint32_t framenum)
 imgFrame*
 RasterImage::GetDrawableImgFrame(uint32_t framenum)
 {
-  imgFrame *frame = GetImgFrame(framenum);
+  imgFrame* frame;
+
+  if (mMultipart && framenum == GetCurrentImgFrameIndex()) {
+    
+    
+    
+    frame = mMultipartDecodedFrame;
+  } else {
+    frame = GetImgFrame(framenum);
+  }
 
   
   
@@ -3219,19 +3228,9 @@ RasterImage::Draw(gfxContext *aContext,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  imgFrame* frame = nullptr;
-
-  if (mMultipart) {
-    
-    
-    
-    frame = mMultipartDecodedFrame;
-  }
-  if (!frame) {
-    uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
-                                                     : GetCurrentImgFrameIndex();
-    frame = GetDrawableImgFrame(frameIndex);
-  }
+  uint32_t frameIndex = aWhichFrame == FRAME_FIRST ? 0
+                                                   : GetCurrentImgFrameIndex();
+  imgFrame* frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
     return NS_OK; 
   }
