@@ -1835,11 +1835,15 @@ Init(const malloc_table_t* aMallocTable)
 
   DMD_CREATE_TLS_INDEX(gTlsIndex);
 
-  gStackTraceTable = InfallibleAllocPolicy::new_<StackTraceTable>();
-  gStackTraceTable->init(8192);
+  {
+    AutoLockState lock;
 
-  gBlockTable = InfallibleAllocPolicy::new_<BlockTable>();
-  gBlockTable->init(8192);
+    gStackTraceTable = InfallibleAllocPolicy::new_<StackTraceTable>();
+    gStackTraceTable->init(8192);
+
+    gBlockTable = InfallibleAllocPolicy::new_<BlockTable>();
+    gBlockTable->init(8192);
+  }
 
   if (gOptions->IsTestMode()) {
     
@@ -2019,6 +2023,7 @@ PrintSortedTraceAndFrameRecords(const Writer& aWriter,
 
 
 
+
 static void
 SizeOfInternal(Sizes* aSizes)
 {
@@ -2066,12 +2071,10 @@ SizeOf(Sizes* aSizes)
   SizeOfInternal(aSizes);
 }
 
-MOZ_EXPORT void
-ClearReports()
+void
+ClearReportsInternal()
 {
-  if (!gIsDMDRunning) {
-    return;
-  }
+  MOZ_ASSERT(gStateLock->IsLocked());
 
   
   
@@ -2079,6 +2082,17 @@ ClearReports()
   for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
     r.front().UnreportIfNotReportedOnAlloc();
   }
+}
+
+MOZ_EXPORT void
+ClearReports()
+{
+  if (!gIsDMDRunning) {
+    return;
+  }
+
+  AutoLockState lock;
+  ClearReportsInternal();
 }
 
 MOZ_EXPORT void
@@ -2270,7 +2284,7 @@ Dump(Writer aWriter)
 
   InfallibleAllocPolicy::delete_(locService);
 
-  ClearReports();
+  ClearReportsInternal(); 
 
   StatusMsg("}\n");
 }
