@@ -6,7 +6,9 @@
 #define nsLayoutStatics_h__
 
 #include "nscore.h"
-#include "nsThreadUtils.h"
+#include "MainThreadUtils.h"
+#include "nsTraceRefcnt.h"
+#include "nsDebug.h"
 
 
 

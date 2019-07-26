@@ -14,6 +14,7 @@
 #include "nsICacheSession.h"
 #include "nsCharsetSource.h"
 #include "nsProxyRelease.h"
+#include "nsThreadUtils.h"
 
 
 class nsWyciwygAsyncEvent : public nsRunnable {
