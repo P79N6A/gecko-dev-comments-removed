@@ -1111,6 +1111,22 @@ WrapNativeParent(JSContext* cx, JS::Handle<JSObject*> scope, const T& p)
   return WrapNativeParent(cx, scope, GetParentPointer(p), GetWrapperCache(p));
 }
 
+
+
+
+static inline JSObject*
+GetRealParentObject(void* aParent, JSObject* aParentObject)
+{
+  return aParentObject ?
+    js::GetGlobalForObjectCrossCompartment(aParentObject) : nullptr;
+}
+
+static inline JSObject*
+GetRealParentObject(Element* aParent, JSObject* aParentObject)
+{
+  return aParentObject;
+}
+
 HAS_MEMBER(GetParentObject)
 
 template<typename T, bool WrapperCached=HasGetParentObjectMember<T>::Value>
@@ -1119,7 +1135,9 @@ struct GetParentObject
   static JSObject* Get(JSContext* cx, JS::Handle<JSObject*> obj)
   {
     T* native = UnwrapDOMObject<T>(obj);
-    return WrapNativeParent(cx, obj, native->GetParentObject());
+    return
+      GetRealParentObject(native,
+                          WrapNativeParent(cx, obj, native->GetParentObject()));
   }
 };
 
