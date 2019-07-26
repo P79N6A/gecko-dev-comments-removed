@@ -85,9 +85,19 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
     - aActualScrollOffset;
 }
 
-static CSSPoint
-ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint)
+static void
+RecenterDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics)
 {
+    CSSRect compositionBounds = aFrameMetrics.CalculateCompositedRectInCssPixels();
+    aFrameMetrics.mDisplayPort.x = (compositionBounds.width - aFrameMetrics.mDisplayPort.width) / 2;
+    aFrameMetrics.mDisplayPort.y = (compositionBounds.height - aFrameMetrics.mDisplayPort.height) / 2;
+}
+
+static CSSPoint
+ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint, bool& aSuccessOut)
+{
+  aSuccessOut = false;
+
   if (!aFrame) {
     return CSSPoint();
   }
@@ -100,6 +110,7 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint)
   if (!aFrame->IsProcessingAsyncScroll() &&
      (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz)) {
     aFrame->ScrollToCSSPixelsApproximate(aPoint, nsGkAtoms::apz);
+    aSuccessOut = true;
   }
   
   
@@ -129,12 +140,23 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
 
     
     nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.mScrollId);
-    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.mScrollOffset);
+    bool scrollUpdated = false;
+    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.mScrollOffset, scrollUpdated);
 
-    
-    
-    
-    MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+    if (scrollUpdated) {
+        
+        
+        
+        MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+    } else {
+        
+        
+        
+        
+        
+        
+        RecenterDisplayPort(aMetrics);
+    }
     aMetrics.mScrollOffset = actualScrollOffset;
 
     
@@ -187,11 +209,16 @@ APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
     
 
     nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.mScrollId);
-    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.mScrollOffset);
+    bool scrollUpdated = false;
+    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.mScrollOffset, scrollUpdated);
 
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
     if (element) {
-        MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+        if (scrollUpdated) {
+            MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+        } else {
+            RecenterDisplayPort(aMetrics);
+        }
         utils->SetDisplayPortForElement(aMetrics.mDisplayPort.x,
                                         aMetrics.mDisplayPort.y,
                                         aMetrics.mDisplayPort.width,
