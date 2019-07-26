@@ -1198,7 +1198,7 @@ class LBitOpV : public LCallInstructionHelper<1, 2 * BOX_PIECES, 0>
 
 
 
-class LShiftI : public LInstructionHelper<1, 2, 0>
+class LShiftI : public LBinaryMath<0>
 {
     JSOp op_;
 
