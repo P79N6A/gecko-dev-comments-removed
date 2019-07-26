@@ -38,6 +38,9 @@ Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+  "resource://gre/modules/commonjs/sdk/core/promise.js");
+
 XPCOMUtils.defineLazyModuleGetter(this, "Parser",
   "resource:///modules/devtools/Parser.jsm");
 
@@ -51,53 +54,77 @@ let DebuggerController = {
   initialize: function DC_initialize() {
     dumpn("Initializing the DebuggerController");
 
-    this._startupDebugger = this._startupDebugger.bind(this);
-    this._shutdownDebugger = this._shutdownDebugger.bind(this);
+    this.startupDebugger = this.startupDebugger.bind(this);
+    this.shutdownDebugger = this.shutdownDebugger.bind(this);
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onTabDetached = this._onTabDetached.bind(this);
 
-    window.addEventListener("DOMContentLoaded", this._startupDebugger, true);
-    window.addEventListener("unload", this._shutdownDebugger, true);
+    
+    
+    if (window._isChromeDebugger) {
+      window.addEventListener("DOMContentLoaded", this.startupDebugger, true);
+      window.addEventListener("unload", this.shutdownDebugger, true);
+    }
   },
 
   
 
 
-  _startupDebugger: function DC__startupDebugger() {
+
+
+
+  startupDebugger: function DC_startupDebugger() {
     if (this._isInitialized) {
       return;
     }
     this._isInitialized = true;
-    window.removeEventListener("DOMContentLoaded", this._startupDebugger, true);
+    window.removeEventListener("DOMContentLoaded", this.startupDebugger, true);
 
-    DebuggerView.initialize(function() {
+    let deferred = Promise.defer();
+
+    DebuggerView.initialize(() => {
       DebuggerView._isInitialized = true;
 
-      window.dispatchEvent(document, "Debugger:Loaded");
-      this._connect();
-    }.bind(this));
+      
+      if (window._isChromeDebugger) {
+        this.connect().then(deferred.resolve);
+      } else {
+        deferred.resolve();
+      }
+    });
+
+    return deferred.promise;
   },
 
   
 
 
-  _shutdownDebugger: function DC__shutdownDebugger() {
+
+
+
+  shutdownDebugger: function DC__shutdownDebugger() {
     if (this._isDestroyed || !DebuggerView._isInitialized) {
       return;
     }
     this._isDestroyed = true;
-    window.removeEventListener("unload", this._shutdownDebugger, true);
+    window.removeEventListener("unload", this.shutdownDebugger, true);
 
-    DebuggerView.destroy(function() {
+    let deferred = Promise.defer();
+
+    DebuggerView.destroy(() => {
       DebuggerView._isDestroyed = true;
       this.SourceScripts.disconnect();
       this.StackFrames.disconnect();
       this.ThreadState.disconnect();
 
-      this._disconnect();
-      window.dispatchEvent(document, "Debugger:Unloaded");
+      this.disconnect();
+      deferred.resolve();
+
+      
       window._isChromeDebugger && this._quitApp();
-    }.bind(this));
+    });
+
+    return deferred.promise;
   },
 
   
@@ -107,102 +134,46 @@ let DebuggerController = {
 
 
 
-  _prepareConnection: function DC__prepareConnection() {
-    
-    if (this._remoteConnectionTry === Prefs.remoteConnectionRetries) {
-      Services.prompt.alert(null,
-        L10N.getStr("remoteDebuggerPromptTitle"),
-        L10N.getStr("remoteDebuggerConnectionFailedMessage"));
-
-      
-      
-      this._shutdownDebugger();
-      return false;
-    }
-
-    
-    if (!Prefs.remoteAutoConnect) {
-      let prompt = new RemoteDebuggerPrompt();
-      let result = prompt.show(!!this._remoteConnectionTimeout);
-
-      
-      
-      if (!result) {
-        this._shutdownDebugger();
-        return false;
-      }
-
-      Prefs.remoteHost = prompt.remote.host;
-      Prefs.remotePort = prompt.remote.port;
-      Prefs.remoteAutoConnect = prompt.remote.auto;
-    }
-
-    
-    
-    this._remoteConnectionTry = ++this._remoteConnectionTry || 1;
-    this._remoteConnectionTimeout = window.setTimeout(function() {
-      
-      if (!this.activeThread) {
-        this._onRemoteConnectionTimeout();
-        this._connect();
-      }
-    }.bind(this), Prefs.remoteTimeout);
-
-    
-    return true;
-  },
-
-  
-
-
-  _onRemoteConnectionTimeout: function DC__onRemoteConnectionTimeout() {
-    Cu.reportError("Couldn't connect to " +
-      Prefs.remoteHost + ":" + Prefs.remotePort);
-  },
-
-  
-
-
-
-  _connect: function DC__connect() {
-    function callback() {
-      window.dispatchEvent(document, "Debugger:Connected");
-    }
+  connect: function DC_connect() {
+    let deferred = Promise.defer();
 
     if (!window._isChromeDebugger) {
-      let client = this.client = this._target.client;
-      this._target.on("close", this._onTabDetached);
-      this._target.on("navigate", this._onTabNavigated);
-      this._target.on("will-navigate", this._onTabNavigated);
+      let target = this._target;
+      let { client, form } = target;
+      target.on("close", this._onTabDetached);
+      target.on("navigate", this._onTabNavigated);
+      target.on("will-navigate", this._onTabNavigated);
 
-      if (this._target.chrome) {
-        let dbg = this._target.form.chromeDebugger;
-        this._startChromeDebugging(client, dbg, callback);
+      if (target.chrome) {
+        this._startChromeDebugging(client, form.chromeDebugger, deferred.resolve);
       } else {
-        this._startDebuggingTab(client, this._target.form, callback);
+        this._startDebuggingTab(client, form, deferred.resolve);
       }
-      return;
+
+      return deferred.promise;
     }
 
     
     let transport = debuggerSocketConnect(Prefs.chromeDebuggingHost,
                                           Prefs.chromeDebuggingPort);
 
-    let client = this.client = new DebuggerClient(transport);
+    let client = new DebuggerClient(transport);
     client.addListener("tabNavigated", this._onTabNavigated);
     client.addListener("tabDetached", this._onTabDetached);
 
-    client.connect(function(aType, aTraits) {
-      client.listTabs(function(aResponse) {
-        this._startChromeDebugging(client, aResponse.chromeDebugger, callback);
-      }.bind(this));
-    }.bind(this));
+    client.connect((aType, aTraits) => {
+      client.listTabs((aResponse) => {
+        this._startChromeDebugging(client, aResponse.chromeDebugger, deferred.resolve);
+      });
+    });
+
+    return deferred.promise;
   },
 
   
 
 
-  _disconnect: function DC__disconnect() {
+  disconnect: function DC_disconnect() {
     
     if (!this.client) {
       return;
@@ -249,10 +220,12 @@ let DebuggerController = {
 
 
   _onTabDetached: function DC__onTabDetached() {
-    this._shutdownDebugger();
+    this.shutdownDebugger();
   },
 
   
+
+
 
 
 
@@ -267,14 +240,14 @@ let DebuggerController = {
     }
     this.client = aClient;
 
-    aClient.attachTab(aTabGrip.actor, function(aResponse, aTabClient) {
+    aClient.attachTab(aTabGrip.actor, (aResponse, aTabClient) => {
       if (!aTabClient) {
         Cu.reportError("No tab client found!");
         return;
       }
       this.tabClient = aTabClient;
 
-      aClient.attachThread(aResponse.threadActor, function(aResponse, aThreadClient) {
+      aClient.attachThread(aResponse.threadActor, (aResponse, aThreadClient) => {
         if (!aThreadClient) {
           Cu.reportError("Couldn't attach to thread: " + aResponse.error);
           return;
@@ -289,11 +262,13 @@ let DebuggerController = {
         if (aCallback) {
           aCallback();
         }
-      }.bind(this));
-    }.bind(this));
+      });
+    });
   },
 
   
+
+
 
 
 
@@ -308,7 +283,7 @@ let DebuggerController = {
     }
     this.client = aClient;
 
-    aClient.attachThread(aChromeDebugger, function(aResponse, aThreadClient) {
+    aClient.attachThread(aChromeDebugger, (aResponse, aThreadClient) => {
       if (!aThreadClient) {
         Cu.reportError("Couldn't attach to thread: " + aResponse.error);
         return;
@@ -323,7 +298,7 @@ let DebuggerController = {
       if (aCallback) {
         aCallback();
       }
-    }.bind(this));
+    });
   },
 
   
