@@ -22,6 +22,7 @@
 #include "nsDOMMediaStream.h"
 #include "mozilla/Mutex.h"
 #include "nsTimeRanges.h"
+#include "nsIDOMWakeLock.h"
 
 
 
@@ -387,6 +388,19 @@ public:
 protected:
   class MediaLoadListener;
   class StreamListener;
+
+  class WakeLockBoolWrapper {
+  public:
+    WakeLockBoolWrapper(bool val = false) : mValue(val), mOuter(NULL), mWakeLock(NULL) {}
+    void SetOuter(nsHTMLMediaElement* outer) { mOuter = outer; }
+    operator bool() { return mValue; }
+    WakeLockBoolWrapper& operator=(bool val);
+    bool operator !() const { return !mValue; }
+  private:
+    bool mValue;
+    nsHTMLMediaElement* mOuter;
+    nsCOMPtr<nsIDOMMozWakeLock> mWakeLock;
+  };
 
   
 
@@ -814,7 +828,7 @@ protected:
 
   
   
-  bool mPaused;
+  WakeLockBoolWrapper mPaused;
 
   
   bool mMuted;
