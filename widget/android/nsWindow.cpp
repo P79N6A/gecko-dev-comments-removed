@@ -2020,6 +2020,16 @@ NS_IMETHODIMP_(void)
 nsWindow::SetInputContext(const InputContext& aContext,
                           const InputContextAction& aAction)
 {
+    nsWindow *top = TopWindow();
+    if (top && top->mFocus && this != top->mFocus) {
+        
+        
+        
+        
+        top->mFocus->SetInputContext(aContext, aAction);
+        return;
+    }
+
     ALOGIME("IME: SetInputContext: s=0x%X, 0x%X, action=0x%X, 0x%X",
             aContext.mIMEState.mEnabled, aContext.mIMEState.mOpen,
             aAction.mCause, aAction.mFocusChange);
@@ -2060,10 +2070,17 @@ nsWindow::SetInputContext(const InputContext& aContext,
 NS_IMETHODIMP_(InputContext)
 nsWindow::GetInputContext()
 {
-    mInputContext.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
+    nsWindow *top = TopWindow();
+    if (top && top->mFocus && this != top->mFocus) {
+        
+        
+        return top->mFocus->GetInputContext();
+    }
+    InputContext context = mInputContext;
+    context.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
     
-    mInputContext.mNativeIMEContext = nullptr;
-    return mInputContext;
+    context.mNativeIMEContext = nullptr;
+    return context;
 }
 
 void
