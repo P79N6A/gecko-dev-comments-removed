@@ -101,7 +101,21 @@ namespace js {
 
 
 
-extern const Class TypedObjectClass;
+class TypedObjectModuleObject : public JSObject {
+  public:
+    enum Slot {
+        ArrayTypePrototype,
+        StructTypePrototype,
+        SlotCount
+    };
+
+    static const Class class_;
+
+    bool getSuitableClaspAndProto(JSContext *cx,
+                                  TypeRepresentation::Kind kind,
+                                  const Class **clasp,
+                                  MutableHandleObject proto);
+};
 
 
 
@@ -327,6 +341,7 @@ class TypedDatum : public JSObject
     
     
     
+    
     template<class T>
     static T *createUnattached(JSContext *cx, HandleObject type, int32_t length);
 
@@ -471,7 +486,7 @@ extern const JSJitInfo MemcpyJitInfo;
 
 
 
-bool StandardTypeObjectDescriptors(JSContext *cx, unsigned argc, Value *vp);
+bool GetTypedObjectModule(JSContext *cx, unsigned argc, Value *vp);
 
 
 
@@ -561,5 +576,5 @@ JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 
 } 
 
-#endif 
+#endif
 

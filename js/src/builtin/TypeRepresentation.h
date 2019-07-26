@@ -55,6 +55,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #include "jsalloc.h"
 #include "jscntxt.h"
 #include "jspubtd.h"
@@ -139,6 +150,7 @@ class TypeRepresentation {
     static void obj_finalize(js::FreeOp *fop, JSObject *object);
 
     HeapPtrObject ownerObject_;
+    HeapPtrTypeObject typeObject_;
     void traceFields(JSTracer *tracer);
 
   public:
@@ -146,6 +158,7 @@ class TypeRepresentation {
     bool opaque() const { return opaque_; }
     bool transparent() const { return !opaque_; }
     JSObject *ownerObject() const { return ownerObject_.get(); }
+    types::TypeObject *typeObject() const { return typeObject_.get(); }
 
     
     
@@ -421,12 +434,12 @@ class SizedArrayTypeRepresentation : public SizedTypeRepresentation {
 
 struct StructField {
     size_t index;
-    HeapId id;
+    HeapPtrPropertyName propertyName;
     SizedTypeRepresentation *typeRepr;
     size_t offset;
 
     explicit StructField(size_t index,
-                         jsid &id,
+                         PropertyName *propertyName,
                          SizedTypeRepresentation *typeRepr,
                          size_t offset);
 };
@@ -449,7 +462,7 @@ class StructTypeRepresentation : public SizedTypeRepresentation {
 
     StructTypeRepresentation();
     bool init(JSContext *cx,
-              AutoIdVector &ids,
+              AutoPropertyNameVector &names,
               AutoObjectVector &typeReprOwners);
 
     
@@ -473,8 +486,9 @@ class StructTypeRepresentation : public SizedTypeRepresentation {
     
     
     
+    
     static JSObject *Create(JSContext *cx,
-                            AutoIdVector &ids,
+                            AutoPropertyNameVector &names,
                             AutoObjectVector &typeReprOwners);
 };
 

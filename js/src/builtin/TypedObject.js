@@ -282,7 +282,7 @@ TypedObjectPointer.prototype.getReference = function() {
 
 TypedObjectPointer.prototype.getX4 = function() {
   var type = REPR_TYPE(this.typeRepr);
-  var T = StandardTypeObjectDescriptors();
+  var T = GetTypedObjectModule();
   switch (type) {
   case JS_X4TYPEREPR_FLOAT32:
     var x = Load_float32(this.datum, this.offset + 0);
@@ -781,7 +781,7 @@ function ArrayShorthand(...dims) {
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS,
                "this", "typed object");
 
-  var T = StandardTypeObjectDescriptors();
+  var T = GetTypedObjectModule();
 
   if (dims.length == 0)
     return new T.ArrayType(this);
@@ -803,7 +803,7 @@ function TypeOfTypedDatum(obj) {
   
   
   
-  var T = StandardTypeObjectDescriptors();
+  var T = GetTypedObjectModule();
   switch (typeof obj) {
     case "object": return T.Object;
     case "function": return T.Object;
