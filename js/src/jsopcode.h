@@ -82,14 +82,15 @@ typedef enum JSOp {
 
 
 
-#define JOF_INVOKE       (1U<<21) /* JSOP_CALL, JSOP_NEW, JSOP_EVAL */
-#define JOF_TMPSLOT      (1U<<22) /* interpreter uses extra temporary slot
-                                     to root intermediate objects besides
-                                     the slots opcode uses */
-#define JOF_TMPSLOT2     (2U<<22) 
+#define JOF_INVOKE       (1U<<21) /* JSOP_CALL, JSOP_FUNCALL, JSOP_FUNAPPLY,
+                                     JSOP_NEW, JSOP_EVAL */
+#define JOF_TMPSLOT      (1U<<22) 
 
-#define JOF_TMPSLOT3     (3U<<22) /* interpreter uses extra 3 temporary slot
+
+#define JOF_TMPSLOT2     (2U<<22) /* interpreter uses extra 2 temporary slot
                                      besides the slots opcode uses */
+#define JOF_TMPSLOT3     (3U<<22) 
+
 #define JOF_TMPSLOT_SHIFT 22
 #define JOF_TMPSLOT_MASK  (JS_BITMASK(2) << JOF_TMPSLOT_SHIFT)
 
@@ -614,6 +615,12 @@ IsSetterPC(jsbytecode *pc)
 {
     JSOp op = JSOp(*pc);
     return op == JSOP_SETPROP || op == JSOP_SETNAME || op == JSOP_SETGNAME;
+}
+
+inline bool
+IsCallPC(jsbytecode *pc)
+{
+    return js_CodeSpec[*pc].format & JOF_INVOKE;
 }
 
 static inline int32_t

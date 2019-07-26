@@ -351,7 +351,7 @@ IsIonInlinablePC(jsbytecode *pc) {
     
     
     
-    return js_CodeSpec[*pc].format & JOF_INVOKE || IsGetterPC(pc) || IsSetterPC(pc);
+    return IsCallPC(pc) || IsGetterPC(pc) || IsSetterPC(pc);
 }
 
 void ForbidCompilation(JSContext *cx, JSScript *script);
