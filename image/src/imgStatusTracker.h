@@ -9,6 +9,7 @@
 
 class imgDecoderObserver;
 class imgIContainer;
+class imgRequestProxy;
 class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
 class imgStatusTrackerObserver;
@@ -20,7 +21,6 @@ class nsIRunnable;
 #include "nsTObserverArray.h"
 #include "nsThreadUtils.h"
 #include "nsRect.h"
-#include "imgRequestProxy.h"
 
 namespace mozilla {
 namespace image {
@@ -306,7 +306,7 @@ private:
 
   
   
-  static void SyncNotifyState(nsTObserverArray<nsRefPtr<imgRequestProxy> >& proxies,
+  static void SyncNotifyState(nsTObserverArray<imgRequestProxy*>& proxies,
                               bool hasImage, uint32_t state,
                               nsIntRect& dirtyRect, bool hadLastPart);
 
@@ -322,7 +322,7 @@ private:
   
   
   
-  nsTObserverArray<nsRefPtr<imgRequestProxy> > mConsumers;
+  nsTObserverArray<imgRequestProxy*> mConsumers;
 
   mozilla::RefPtr<imgDecoderObserver> mTrackerObserver;
 
