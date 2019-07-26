@@ -340,6 +340,7 @@ public:
 
   
   nsPIDOMWindow* GetPrivateParent();
+
   
   void ReallyCloseWindow();
 
