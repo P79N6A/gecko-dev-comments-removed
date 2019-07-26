@@ -4,15 +4,22 @@
 
 
 #include "mozilla/dom/SVGFETileElement.h"
-
-DOMCI_NODE_DATA(SVGFETileElement, nsSVGFETileElement)
+#include "mozilla/dom/SVGFETileElementBinding.h"
+#include "nsSVGFilterInstance.h"
+#include "gfxUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FETile)
 
 namespace mozilla {
 namespace dom {
 
-nsSVGElement::StringInfo nsSVGFETileElement::sStringInfo[2] =
+JSObject*
+SVGFETileElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
+{
+  return SVGFETileElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
+}
+
+nsSVGElement::StringInfo SVGFETileElement::sStringInfo[2] =
 {
   { &nsGkAtoms::result, kNameSpaceID_None, true },
   { &nsGkAtoms::in, kNameSpaceID_None, true }
@@ -21,64 +28,51 @@ nsSVGElement::StringInfo nsSVGFETileElement::sStringInfo[2] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(nsSVGFETileElement,nsSVGFETileElementBase)
-NS_IMPL_RELEASE_INHERITED(nsSVGFETileElement,nsSVGFETileElementBase)
+NS_IMPL_ADDREF_INHERITED(SVGFETileElement,SVGFETileElementBase)
+NS_IMPL_RELEASE_INHERITED(SVGFETileElement,SVGFETileElementBase)
 
-NS_INTERFACE_TABLE_HEAD(nsSVGFETileElement)
-  NS_NODE_INTERFACE_TABLE5(nsSVGFETileElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement,
-                           nsIDOMSVGFilterPrimitiveStandardAttributes,
-                           nsIDOMSVGFETileElement)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGFETileElement)
-NS_INTERFACE_MAP_END_INHERITING(nsSVGFETileElementBase)
+NS_INTERFACE_TABLE_HEAD(SVGFETileElement)
+  NS_NODE_INTERFACE_TABLE3(SVGFETileElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement)
+NS_INTERFACE_MAP_END_INHERITING(SVGFETileElementBase)
 
 
 
 
 
-NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGFETileElement)
+NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFETileElement)
 
-
-
-
-
-
-NS_IMETHODIMP nsSVGFETileElement::GetIn1(nsIDOMSVGAnimatedString * *aIn)
+already_AddRefed<nsIDOMSVGAnimatedString>
+SVGFETileElement::In1()
 {
-  return mStringAttributes[IN1].ToDOMAnimatedString(aIn, this);
+  return mStringAttributes[IN1].ToDOMAnimatedString(this);
 }
 
 void
-nsSVGFETileElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
+SVGFETileElement::GetSourceImageNames(nsTArray<nsSVGStringInfo>& aSources)
 {
   aSources.AppendElement(nsSVGStringInfo(&mStringAttributes[IN1], this));
 }
 
 nsIntRect
-nsSVGFETileElement::ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
+SVGFETileElement::ComputeTargetBBox(const nsTArray<nsIntRect>& aSourceBBoxes,
         const nsSVGFilterInstance& aInstance)
 {
   return GetMaxRect();
 }
 
 void
-nsSVGFETileElement::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
+SVGFETileElement::ComputeNeededSourceBBoxes(const nsIntRect& aTargetBBox,
           nsTArray<nsIntRect>& aSourceBBoxes, const nsSVGFilterInstance& aInstance)
 {
   
 }
 
 nsIntRect
-nsSVGFETileElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
-                                      const nsSVGFilterInstance& aInstance)
+SVGFETileElement::ComputeChangeBBox(const nsTArray<nsIntRect>& aSourceChangeBoxes,
+                                    const nsSVGFilterInstance& aInstance)
 {
   return GetMaxRect();
-}
-
-static int32_t WrapInterval(int32_t aVal, int32_t aMax)
-{
-  aVal = aVal % aMax;
-  return aVal < 0 ? aMax + aVal : aVal;
 }
 
 
@@ -230,10 +224,10 @@ TilePixels(uint8_t *aTargetData,
 }
 
 nsresult
-nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
-                           const nsTArray<const Image*>& aSources,
-                           const Image* aTarget,
-                           const nsIntRect& rect)
+SVGFETileElement::Filter(nsSVGFilterInstance *instance,
+                         const nsTArray<const Image*>& aSources,
+                         const Image* aTarget,
+                         const nsIntRect& rect)
 {
   
   
@@ -425,11 +419,11 @@ nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
 }
 
 bool
-nsSVGFETileElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                              nsIAtom* aAttribute) const
+SVGFETileElement::AttributeAffectsRendering(int32_t aNameSpaceID,
+                                            nsIAtom* aAttribute) const
 {
-  return nsSVGFETileElementBase::AttributeAffectsRendering(aNameSpaceID, 
-                                                           aAttribute) ||
+  return SVGFETileElementBase::AttributeAffectsRendering(aNameSpaceID,
+                                                         aAttribute) ||
            (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::in);
 }
 
@@ -437,7 +431,7 @@ nsSVGFETileElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 
 
 nsSVGElement::StringAttributesInfo
-nsSVGFETileElement::GetStringInfo()
+SVGFETileElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
                               ArrayLength(sStringInfo));
