@@ -51,29 +51,30 @@ function createDocument() {
     inspector = aInspector;
     inspector.selection.setNode(div, null);
     inspector.once("inspector-updated", () => {
+      getHighlighterOutline().setAttribute("disable-transitions", "true");
       inspector.toolbox.highlighterUtils.startPicker().then(testMouseOverH1Highlights);
     });
   });
 }
 
 function testMouseOverH1Highlights() {
-  inspector.toolbox.once("highlighter-ready", () => {
+  inspector.toolbox.once("picker-node-hovered", () => {
     ok(isHighlighting(), "Highlighter is shown");
     is(getHighlitNode(), h1, "Highlighter's outline correspond to the selected node");
-    testBoxModelDimensions();
+    testOutlineDimensions();
   });
 
   EventUtils.synthesizeMouse(h1, 2, 2, {type: "mousemove"}, content);
 }
 
-function testBoxModelDimensions() {
+function testOutlineDimensions() {
   let h1Dims = h1.getBoundingClientRect();
-  let h1Width = Math.ceil(h1Dims.width);
-  let h1Height = Math.ceil(h1Dims.height);
+  let h1Width = h1Dims.width;
+  let h1Height = h1Dims.height;
 
-  let outlineDims = getSimpleBorderRect();
-  let outlineWidth = Math.ceil(outlineDims.width);
-  let outlineHeight = Math.ceil(outlineDims.height);
+  let outlineDims = getHighlighterOutlineRect();
+  let outlineWidth = outlineDims.width;
+  let outlineHeight = outlineDims.height;
 
   
   is(outlineWidth, h1Width, "outline width matches dimensions of element (no zoom)");
@@ -85,21 +86,26 @@ function testBoxModelDimensions() {
   contentViewer.fullZoom = 2;
 
   
-  let h1Dims = h1.getBoundingClientRect();
   
-  
-  let h1Width = Math.floor(h1Dims.width * contentViewer.fullZoom);
-  let h1Height = Math.floor(h1Dims.height * contentViewer.fullZoom);
 
-  let outlineDims = getSimpleBorderRect();
-  let outlineWidth = Math.floor(outlineDims.width);
-  let outlineHeight = Math.floor(outlineDims.height);
+  window.setTimeout(function() {
+    
+    let h1Dims = h1.getBoundingClientRect();
+    
+    
+    let h1Width = Math.floor(h1Dims.width * contentViewer.fullZoom);
+    let h1Height = Math.floor(h1Dims.height * contentViewer.fullZoom);
 
-  is(outlineWidth, h1Width, "outline width matches dimensions of element (zoomed)");
+    let outlineDims = getHighlighterOutlineRect();
+    let outlineWidth = Math.floor(outlineDims.width);
+    let outlineHeight = Math.floor(outlineDims.height);
 
-  is(outlineHeight, h1Height, "outline height matches dimensions of element (zoomed)");
+    
+    is(outlineWidth, h1Width, "outline width matches dimensions of element (zoomed)");
+    is(outlineHeight, h1Height, "outline height matches dimensions of element (zoomed)");
 
-  executeSoon(finishUp);
+    executeSoon(finishUp);
+  }, 500);
 }
 
 function finishUp() {
@@ -121,5 +127,5 @@ function test() {
     waitForFocus(createDocument, content);
   }, true);
 
-  content.location = "data:text/html;charset=utf-8,browser_inspector_highlighter.js";
+  content.location = "data:text/html,basic tests for inspector";
 }

@@ -10,11 +10,6 @@ const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 let gScratchpadWindow; 
 
-gDevTools.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  gDevTools.testing = false;
-});
-
 
 
 

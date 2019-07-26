@@ -6,11 +6,6 @@ let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let TargetFactory = devtools.TargetFactory;
 let {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
-gDevTools.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  gDevTools.testing = false;
-});
-
 
 
 

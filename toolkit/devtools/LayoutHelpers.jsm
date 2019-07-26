@@ -30,67 +30,71 @@ LayoutHelpers.prototype = {
 
 
 
+  getDirtyRect: function LH_getDirectyRect(aNode) {
+    let frameWin = aNode.ownerDocument.defaultView;
+    let clientRect = aNode.getBoundingClientRect();
 
+    
+    
+    rect = {top: clientRect.top,
+            left: clientRect.left,
+            width: clientRect.width,
+            height: clientRect.height};
 
-  getAdjustedQuads: function(node, region) {
-    if (!node) {
-      return;
-    }
+    
+    while (true) {
 
-    let [quads] = node.getBoxQuads({
-      box: region
-    });
-
-    if (!quads) {
-      return;
-    }
-
-    let [xOffset, yOffset] = this._getNodeOffsets(node);
-    let scale = this.calculateScale(node);
-
-    return {
-      p1: {
-        w: quads.p1.w * scale,
-        x: quads.p1.x * scale + xOffset,
-        y: quads.p1.y * scale + yOffset,
-        z: quads.p1.z * scale
-      },
-      p2: {
-        w: quads.p2.w * scale,
-        x: quads.p2.x * scale + xOffset,
-        y: quads.p2.y * scale + yOffset,
-        z: quads.p2.z * scale
-      },
-      p3: {
-        w: quads.p3.w * scale,
-        x: quads.p3.x * scale + xOffset,
-        y: quads.p3.y * scale + yOffset,
-        z: quads.p3.z * scale
-      },
-      p4: {
-        w: quads.p4.w * scale,
-        x: quads.p4.x * scale + xOffset,
-        y: quads.p4.y * scale + yOffset,
-        z: quads.p4.z * scale
-      },
-      bounds: {
-        bottom: quads.bounds.bottom * scale + yOffset,
-        height: quads.bounds.height * scale,
-        left: quads.bounds.left * scale + xOffset,
-        right: quads.bounds.right * scale + xOffset,
-        top: quads.bounds.top * scale + yOffset,
-        width: quads.bounds.width * scale,
-        x: quads.bounds.x * scale + xOffset,
-        y: quads.bounds.y * scale + yOffset
+      
+      let diffx = frameWin.innerWidth - (rect.left + rect.width);
+      if (diffx < 0) {
+        rect.width += diffx;
       }
-    };
-  },
 
-  calculateScale: function(node) {
-    let win = node.ownerDocument.defaultView;
-    let winUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils);
-    return winUtils.fullZoom;
+      
+      let diffy = frameWin.innerHeight - (rect.top + rect.height);
+      if (diffy < 0) {
+        rect.height += diffy;
+      }
+
+      
+      if (rect.left < 0) {
+        rect.width += rect.left;
+        rect.left = 0;
+      }
+
+      
+      if (rect.top < 0) {
+        rect.height += rect.top;
+        rect.top = 0;
+      }
+
+      
+
+      
+      if (this.isTopLevelWindow(frameWin)) {
+        break;
+      }
+
+      let frameElement = this.getFrameElement(frameWin);
+      if (!frameElement) {
+        break;
+      }
+
+      
+      
+      
+      let frameRect = frameElement.getBoundingClientRect();
+
+      let [offsetTop, offsetLeft] =
+        this.getIframeContentOffset(frameElement);
+
+      rect.top += frameRect.top + offsetTop;
+      rect.left += frameRect.left + offsetLeft;
+
+      frameWin = this.getParentWindow(frameWin);
+    }
+
+    return rect;
   },
 
   
@@ -108,7 +112,7 @@ LayoutHelpers.prototype = {
 
     
     
-    let rect = {top: clientRect.top + aContentWindow.pageYOffset,
+    rect = {top: clientRect.top + aContentWindow.pageYOffset,
             left: clientRect.left + aContentWindow.pageXOffset,
             width: clientRect.width,
             height: clientRect.height};
@@ -177,6 +181,26 @@ LayoutHelpers.prototype = {
   
 
 
+  getZoomedRect: function LH_getZoomedRect(aWin, aRect) {
+    
+    let zoom =
+      aWin.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+        .getInterface(Components.interfaces.nsIDOMWindowUtils)
+        .fullZoom;
+
+    
+    let aRectScaled = {};
+    for (let prop in aRect) {
+      aRectScaled[prop] = aRect[prop] * zoom;
+    }
+
+    return aRectScaled;
+  },
+
+
+  
+
+
 
 
 
@@ -219,7 +243,8 @@ LayoutHelpers.prototype = {
 
 
 
-  scrollIntoViewIfNeeded: function(elem, centered) {
+  scrollIntoViewIfNeeded:
+  function LH_scrollIntoViewIfNeeded(elem, centered) {
     
     
     centered = centered === undefined? true: !!centered;
@@ -372,138 +397,4 @@ LayoutHelpers.prototype = {
 
     return winUtils.containerElement;
   },
-
-  
-
-
-
-
-
-  _getNodeOffsets: function(node) {
-    let xOffset = 0;
-    let yOffset = 0;
-    let frameWin = node.ownerDocument.defaultView;
-    let scale = this.calculateScale(node);
-
-    while (true) {
-      
-      if (this.isTopLevelWindow(frameWin)) {
-        break;
-      }
-
-      let frameElement = this.getFrameElement(frameWin);
-      if (!frameElement) {
-        break;
-      }
-
-      
-      
-      
-      let frameRect = frameElement.getBoundingClientRect();
-
-      let [offsetTop, offsetLeft] =
-        this.getIframeContentOffset(frameElement);
-
-      xOffset += frameRect.left + offsetLeft;
-      yOffset += frameRect.top + offsetTop;
-
-      frameWin = this.getParentWindow(frameWin);
-    }
-
-    return [xOffset * scale, yOffset * scale];
-  },
-
-
-
-  
-
-
-  _getBoxQuadsFromRect: function(rect, node) {
-    let scale = this.calculateScale(node);
-    let [xOffset, yOffset] = this._getNodeOffsets(node);
-
-    let out = {
-      p1: {
-        x: rect.left * scale + xOffset,
-        y: rect.top * scale + yOffset
-      },
-      p2: {
-        x: (rect.left + rect.width) * scale + xOffset,
-        y: rect.top * scale + yOffset
-      },
-      p3: {
-        x: (rect.left + rect.width) * scale + xOffset,
-        y: (rect.top + rect.height) * scale + yOffset
-      },
-      p4: {
-        x: rect.left * scale + xOffset,
-        y: (rect.top + rect.height) * scale + yOffset
-      }
-    };
-
-    out.bounds = {
-      bottom: out.p4.y,
-      height: out.p4.y - out.p1.y,
-      left: out.p1.x,
-      right: out.p2.x,
-      top: out.p1.y,
-      width: out.p2.x - out.p1.x,
-      x: out.p1.x,
-      y: out.p1.y
-    };
-
-    return out;
-  },
-
-  _parseNb: function(distance) {
-    let nb = parseFloat(distance, 10);
-    return isNaN(nb) ? 0 : nb;
-  },
-
-  getAdjustedQuadsPolyfill: function(node, region) {
-    
-    
-    
-    let borderRect = node.getBoundingClientRect();
-
-    
-    if (region === "border") {
-      return this._getBoxQuadsFromRect(borderRect, node);
-    }
-
-    
-    let style = node.ownerDocument.defaultView.getComputedStyle(node);
-    let camel = s => s.substring(0, 1).toUpperCase() + s.substring(1);
-    let distances = {border:{}, padding:{}, margin: {}};
-
-    for (let side of ["top", "right", "bottom", "left"]) {
-      distances.border[side] = this._parseNb(style["border" + camel(side) + "Width"]);
-      distances.padding[side] = this._parseNb(style["padding" + camel(side)]);
-      distances.margin[side] = this._parseNb(style["margin" + camel(side)]);
-    }
-
-    
-    
-    function offsetRect(rect, offsetType, dir=1) {
-      return {
-        top: rect.top + (dir * distances[offsetType].top),
-        left: rect.left + (dir * distances[offsetType].left),
-        width: rect.width - (dir * (distances[offsetType].left + distances[offsetType].right)),
-        height: rect.height - (dir * (distances[offsetType].top + distances[offsetType].bottom))
-      };
-    }
-
-    if (region === "margin") {
-      return this._getBoxQuadsFromRect(offsetRect(borderRect, "margin", -1), node);
-    } else if (region === "padding") {
-      return this._getBoxQuadsFromRect(offsetRect(borderRect, "border"), node);
-    } else if (region === "content") {
-      let paddingRect = offsetRect(borderRect, "border");
-      return this._getBoxQuadsFromRect(offsetRect(paddingRect, "padding"), node);
-    }
-  },
-
-  
-
-
 };
