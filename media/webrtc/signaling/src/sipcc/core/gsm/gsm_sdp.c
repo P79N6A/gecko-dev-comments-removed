@@ -24,6 +24,7 @@
 #include "prlog.h"
 #include "plstr.h"
 #include "sdp_private.h"
+#include "vcm_util.h"
 
 
 #define MULTICAST_START_ADDRESS 0xe1000000
@@ -348,6 +349,8 @@ gsmsdp_free_media (fsmdef_media_t *media)
 
     if(media->payloads != NULL) {
         cpr_free(media->payloads);
+        cpr_free(media->local_dpt_list);
+        cpr_free(media->remote_dpt_list);
         media->num_payloads = 0;
     }
     
@@ -388,7 +391,6 @@ gsmsdp_init_media (fsmdef_media_t *media)
     media->mode = (uint16_t)vcmGetILBCMode();
     media->vad = VCM_VAD_OFF;
     
-    media->payload = RTP_NONE;
     media->level = 0;
     media->dest_port = 0;
     media->dest_addr = ip_addr_invalid;
@@ -414,11 +416,14 @@ gsmsdp_init_media (fsmdef_media_t *media)
     media->previous_sdp.direction = SDP_DIRECTION_INACTIVE;
     media->previous_sdp.packetization_period = media->packetization_period;
     media->previous_sdp.max_packetization_period = media->max_packetization_period;
-    media->previous_sdp.payload_type = media->payload;
-    media->previous_sdp.local_payload_type = media->payload;
+    media->previous_sdp.payload_type =
+      media->num_payloads ? media->payloads[0] : RTP_NONE;
+    media->previous_sdp.local_payload_type =
+      media->num_payloads ? media->payloads[0] : RTP_NONE;
     media->previous_sdp.tias_bw = SDP_INVALID_VALUE;
     media->previous_sdp.profile_level = 0;
-    media->local_dynamic_payload_type_value = media->payload;
+    media->local_dynamic_payload_type_value =
+      media->num_payloads ? media->payloads[0] : RTP_NONE;
     media->hold  = FSM_HOLD_NONE;
     media->flags = 0;                    
     media->cap_index = CC_MAX_MEDIA_CAP; 
@@ -427,6 +432,8 @@ gsmsdp_init_media (fsmdef_media_t *media)
     media->rtcp_mux = FALSE;
     media->protocol = NULL;
     media->payloads = NULL;
+    media->local_dpt_list = NULL;
+    media->remote_dpt_list = NULL;
     media->num_payloads = 0;
 }
 
@@ -1661,7 +1668,7 @@ gsmsdp_set_local_sdp_direction (fsmdef_dcb_t *dcb_p,
     if (media->direction_set) {
         media->previous_sdp.direction = media->direction;
         gsmsdp_remove_sdp_direction(media, media->direction,
-                                    dcb_p->sdp ? dcb_p->sdp->src_sdp: NULL );
+                                    dcb_p->sdp ? dcb_p->sdp->src_sdp : NULL );
         media->direction_set = FALSE;
     }
     gsmsdp_set_sdp_direction(media, direction, dcb_p->sdp ? dcb_p->sdp->src_sdp : NULL);
@@ -1933,11 +1940,23 @@ gsmsdp_add_default_audio_formats_to_local_sdp (fsmdef_dcb_t *dcb_p,
 
 
 
-    if (dcb_p && media && media->payload == RTP_NONE) {
-        media->payload = local_media_types[0];
+
+    
+
+
+    if (dcb_p && media && media->num_payloads == 0) {
+        if (!media->payloads) {
+            media->payloads = cpr_calloc(1, sizeof(vcm_media_payload_type_t));
+            media->local_dpt_list = cpr_calloc(1, sizeof(uint8_t));
+            media->remote_dpt_list = cpr_calloc(1, sizeof(uint8_t));
+        }
+        media->payloads[0] = local_media_types[0];
         media->previous_sdp.payload_type = local_media_types[0];
         media->previous_sdp.local_payload_type = local_media_types[0];
+        media->num_payloads = 1;
     }
+
+
     
     if (media) {
         media->local_dynamic_payload_type_value = RTP_NONE;
@@ -2061,10 +2080,22 @@ gsmsdp_add_default_video_formats_to_local_sdp (fsmdef_dcb_t *dcb_p,
 
 
 
-    if (dcb_p && media && media->payload == RTP_NONE) {
-        media->payload = video_media_types[0];
+
+    
+
+
+
+    if (dcb_p && media && media->num_payloads == 0) {
+        if (!media->payloads) {
+            media->payloads = (vcm_media_payload_type_t*)
+              cpr_calloc(1, sizeof(vcm_media_payload_type_t));
+            media->local_dpt_list = cpr_calloc(1, sizeof(uint8_t));
+            media->remote_dpt_list = cpr_calloc(1, sizeof(uint8_t));
+        }
+        media->payloads[0] = video_media_types[0];
         media->previous_sdp.payload_type = video_media_types[0];
         media->previous_sdp.local_payload_type = video_media_types[0];
+        media->num_payloads = 1;
     }
     
     if (media) {
@@ -2241,6 +2272,7 @@ gsmsdp_update_local_sdp_media (fsmdef_dcb_t *dcb_p, cc_sdp_t *cc_sdp_p,
     uint16_t        level;
     void           *sdp_p;
     int             sdpmode = 0;
+    int             i = 0;
 
     if (!dcb_p || !media)  {
         GSM_ERR_MSG(get_debug_string(FSMDEF_DBG_INVALID_DCB), fname);
@@ -2317,41 +2349,51 @@ gsmsdp_update_local_sdp_media (fsmdef_dcb_t *dcb_p, cc_sdp_t *cc_sdp_p,
             break;
         }
     } else {
-
         
 
 
+        for(i=0; i < media->num_payloads; i++) {
+          
+          
+          
+          
+          if (media->remote_dpt_list[i] > 0) {
+            dynamic_payload_type = media->remote_dpt_list[i];
+          } else {
+            dynamic_payload_type = media->local_dpt_list[i];
+          }
 
-        if (media->remote_dynamic_payload_type_value > 0) {
-            dynamic_payload_type = media->remote_dynamic_payload_type_value;
-        } else {
-            dynamic_payload_type = media->payload;
-        }
-        result =
+          result =
             sdp_add_media_payload_type(sdp_p, level,
                                        (uint16_t)dynamic_payload_type,
                                        SDP_PAYLOAD_NUMERIC);
-        if (result != SDP_SUCCESS) {
+
+          if (result != SDP_SUCCESS) {
             GSM_ERR_MSG(GSM_L_C_F_PREFIX"Adding dynamic payload type failed\n",
                         dcb_p->line, dcb_p->call_id, fname);
-        }
-        switch (media->type) {
-        case SDP_MEDIA_AUDIO:
-            gsmsdp_set_media_attributes(media->payload, sdp_p, level,
-                                    (uint16_t)dynamic_payload_type);
-            break;
-        case SDP_MEDIA_VIDEO:
-            gsmsdp_set_video_media_attributes(media->payload, cc_sdp_p, level,
-                            (uint16_t)dynamic_payload_type);
-            break;
-        case SDP_MEDIA_APPLICATION:
-            gsmsdp_set_sctp_attributes (sdp_p, level, media);
-            break;
-        default:
-            GSM_ERR_MSG(GSM_L_C_F_PREFIX"SDP ERROR media %d for level %d is not"
-                        " supported\n",
+          }
+
+          switch (media->type) {
+            case SDP_MEDIA_AUDIO:
+              gsmsdp_set_media_attributes(mediaPayloadToVcmRtp(
+                  media->payloads[i]), sdp_p, level,
+                  (uint16_t)dynamic_payload_type);
+              break;
+            case SDP_MEDIA_VIDEO:
+              gsmsdp_set_video_media_attributes(mediaPayloadToVcmRtp(
+                  media->payloads[i]), cc_sdp_p, level,
+                  (uint16_t)dynamic_payload_type);
+              break;
+            case SDP_MEDIA_APPLICATION:
+              gsmsdp_set_sctp_attributes (sdp_p, level, media);
+              break;
+            default:
+              GSM_ERR_MSG(GSM_L_C_F_PREFIX"SDP ERROR media %d for level %d is"
+                        " not supported\n",
                         dcb_p->line, dcb_p->call_id, fname, media->level);
-            break;
+              break;
+          }
+
         }
 
         
@@ -2808,7 +2850,8 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
     
 
 
-    media->previous_sdp.payload_type = media->payload;
+    media->previous_sdp.payload_type =
+      media->num_payloads ? media->payloads[0] : RTP_NONE;
     media->previous_sdp.local_payload_type = media->local_dynamic_payload_type_value;
 
     
@@ -2821,13 +2864,19 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
       payload_types_count = num_slave_types;
     }
 
-    media->payloads = (vcm_media_payload_type_t*) cpr_malloc(payload_types_count * sizeof(vcm_media_payload_type_t));
-    if (!(media->payloads))
-    {
-      GSM_ERR_MSG(GSM_L_C_F_PREFIX"Memory Allocation failed for payloads\n",
-                    DEB_L_C_F_PREFIX_ARGS(GSM, dcb_p->line, dcb_p->call_id, fname));
-      return RTP_NONE;
+    
+    if (media->payloads) {
+        cpr_free(media->payloads);
+        cpr_free(media->local_dpt_list);
+        cpr_free(media->remote_dpt_list);
     }
+    
+    media->payloads = cpr_calloc(payload_types_count,
+        sizeof(vcm_media_payload_type_t));
+    media->local_dpt_list = cpr_calloc(payload_types_count,
+        sizeof(uint8_t));
+    media->remote_dpt_list = cpr_calloc(payload_types_count,
+        sizeof(uint8_t));
 
     for (i = 0; i < num_master_types; i++) {
         for (j = 0; j < num_slave_types; j++) {
@@ -2842,7 +2891,7 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                     }
                 } else { 
                       if (media->local_dynamic_payload_type_value == RTP_NONE ||
-                          media->payload !=  media->previous_sdp.payload_type) {
+                          !media->num_payloads || media->payloads[0] !=  media->previous_sdp.payload_type) {
                         
 
                     }
@@ -2858,7 +2907,7 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                     if (payload == RTP_ILBC) {
                         media->mode = (uint16_t)sdp_attr_get_fmtp_mode_for_payload_type
                                                        (sdp_p->dest_sdp, level, 0,
-                                                        media->remote_dynamic_payload_type_value);
+                                                        remote_dynamic_payload_type_value);
                     }
                     if (payload == RTP_OPUS) {
                         u16 a_inst;
@@ -2908,14 +2957,13 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                        vcmFreeMediaPtr(media->video);
                        media->video = NULL;
                     }
-
-                  if ( vcmCheckAttribs(media->payload, sdp_p, level,
-                                       &media->video) == FALSE ) {
-                        GSM_DEBUG(DEB_L_C_F_PREFIX"codec= %d ignored - attribs not accepted\n",
-                             DEB_L_C_F_PREFIX_ARGS(GSM, dcb_p->line,
-                             dcb_p->call_id, fname), media->payload);
-                        explicit_reject = TRUE;
-                        continue; 
+                    if ( vcmCheckAttribs(payload, sdp_p, level,
+                                         &media->video) == FALSE ) {
+                          GSM_DEBUG(DEB_L_C_F_PREFIX"codec= %d ignored - attribs not accepted\n",
+                               DEB_L_C_F_PREFIX_ARGS(GSM, dcb_p->line,
+                               dcb_p->call_id, fname), payload);
+                          explicit_reject = TRUE;
+                          continue; 
                     }
 
                     
@@ -2929,7 +2977,7 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
 
                     GSM_DEBUG(DEB_L_C_F_PREFIX"codec= %d\n",
                          DEB_L_C_F_PREFIX_ARGS(GSM, dcb_p->line,
-                         dcb_p->call_id, fname), media->payload);
+                         dcb_p->call_id, fname), payload);
 
                 }
                 found_codec = TRUE;
@@ -2937,11 +2985,16 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
                   
                   return payload;
                 }
+                
                 media->payloads[media->num_payloads] = vcmRtpToMediaPayload(payload,
                                                                   remote_dynamic_payload_type_value,
                                                                   media->mode);
+                media->local_dpt_list[media->num_payloads] = payload;
+                media->remote_dpt_list[media->num_payloads]  = remote_dynamic_payload_type_value;
                 media->num_payloads++;
                 if(offer) {
+                 
+                 
                  
                  return payload;
                 }
@@ -2962,20 +3015,20 @@ gsmsdp_negotiate_codec (fsmdef_dcb_t *dcb_p, cc_sdp_t *sdp_p,
 
     if (!initial_offer && explicit_reject == FALSE) {
         for (i = 0; i < num_types; i++) {
-            if (media->payload == GET_CODEC_TYPE(remote_media_types[i])) {
+            if (media->num_payloads != 0 && media->payloads[0] == GET_CODEC_TYPE(remote_media_types[i])) {
                 
 
 
 
 
-                if ( (media->payload == RTP_H264_P1 || media->payload == RTP_H264_P0) && offer == TRUE )  {
+                if ( (media->payloads[0] == RTP_H264_P1 || media->payloads[0] == RTP_H264_P0) && offer == TRUE )  {
                    media->remote_dynamic_payload_type_value = GET_DYN_PAYLOAD_TYPE_VALUE(master_list_p[i]);
                    media->local_dynamic_payload_type_value = GET_DYN_PAYLOAD_TYPE_VALUE(master_list_p[i]);
                 }
                 GSM_DEBUG(DEB_L_C_F_PREFIX"local codec list was empty codec= %d local=%d remote =%d\n",
                           DEB_L_C_F_PREFIX_ARGS(GSM, dcb_p->line, dcb_p->call_id, fname),
-                          media->payload, media->local_dynamic_payload_type_value, media->remote_dynamic_payload_type_value);
-                return (media->payload);
+                          media->payloads[0], media->local_dynamic_payload_type_value, media->remote_dynamic_payload_type_value);
+                return (media->payloads[0]);
             }
         }
     }
@@ -4141,7 +4194,7 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
 
                         GSM_DEBUG(DEB_L_C_F_PREFIX"remote_direction: %d global match %sfound\n",
                             DEB_L_C_F_PREFIX_ARGS(GSM, dcb_p->line, dcb_p->call_id, fname),
-                            remote_direction, (cap_index != CC_MAX_MEDIA_CAP)?"":"not ");
+                            remote_direction, (cap_index != CC_MAX_MEDIA_CAP) ? "" : "not ");
                         if ( cap_index != CC_MAX_MEDIA_CAP &&
                                remote_direction != SDP_DIRECTION_INACTIVE ) {
                            
@@ -4756,11 +4809,17 @@ gsmsdp_add_media_line (fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
 
 
 
+
+          
+
+
           media->previous_sdp.avt_payload_type = media->avt_payload_type;
           media->previous_sdp.direction = media->direction;
           media->previous_sdp.packetization_period = media->packetization_period;
-          media->previous_sdp.payload_type = media->payload;
-          media->previous_sdp.local_payload_type = media->payload;
+          media->previous_sdp.payload_type =
+            media->num_payloads ? media->payloads[0] : RTP_NONE;
+          media->previous_sdp.local_payload_type =
+            media->num_payloads ? media->payloads[0] : RTP_NONE;
           break;
         }
 
@@ -6231,11 +6290,14 @@ gsmsdp_sdp_differs_from_previous_sdp (boolean rcv_only, fsmdef_media_t *media)
 
 
     if ((media->previous_sdp.avt_payload_type != media->avt_payload_type) ||
-        (media->previous_sdp.payload_type != media->payload)) {
+        (0 == media->num_payloads) ||
+        (media->previous_sdp.payload_type != media->payloads[0])) {
         GSM_DEBUG(DEB_F_PREFIX"previous payload: %d new payload: %d\n",
-                  DEB_F_PREFIX_ARGS(GSM, fname), media->previous_sdp.payload_type, media->payload);
+                  DEB_F_PREFIX_ARGS(GSM, fname),
+                  media->previous_sdp.payload_type, media->payloads[0]);
         GSM_DEBUG(DEB_F_PREFIX"previous avt payload: %d new avt payload: %d\n",
-                  DEB_F_PREFIX_ARGS(GSM, fname), media->previous_sdp.avt_payload_type,
+                  DEB_F_PREFIX_ARGS(GSM, fname),
+                  media->previous_sdp.avt_payload_type,
                   media->avt_payload_type);
         return TRUE;
     }

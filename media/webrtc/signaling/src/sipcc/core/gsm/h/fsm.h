@@ -146,7 +146,6 @@ typedef struct fsmdef_media_t_ {
 
 
 
-    int32_t         payload;  
     int32_t         local_dynamic_payload_type_value;  
     int32_t         remote_dynamic_payload_type_value; 
     int32_t         avt_payload_type;
@@ -240,8 +239,27 @@ typedef struct fsmdef_media_t_ {
     
 
 
-    vcm_media_payload_type_t* payloads;
+
     int32_t num_payloads;
+
+    
+
+
+
+
+
+
+    vcm_media_payload_type_t* payloads;
+
+    
+
+
+    uint8_t* local_dpt_list;
+
+    
+
+
+    uint8_t* remote_dpt_list;
 } fsmdef_media_t;
 
 struct fsm_fcb_t_;
