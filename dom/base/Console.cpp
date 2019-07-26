@@ -150,10 +150,9 @@ public:
   }
 
   void
-  Initialize(JSContext* aCx, Console::MethodName aName,
+  Initialize(Console::MethodName aName,
              const nsAString& aString, const Sequence<JS::Value>& aArguments)
   {
-    mGlobal = JS::CurrentGlobalOrNull(aCx);
     mMethodName = aName;
     mMethodString = aString;
 
@@ -161,8 +160,6 @@ public:
       mArguments.AppendElement(aArguments[i]);
     }
   }
-
-  JS::Heap<JSObject*> mGlobal;
 
   Console::MethodName mMethodName;
   bool mPrivate;
@@ -207,13 +204,11 @@ public:
   }
 
   bool
-  Dispatch()
+  Dispatch(JSContext* aCx)
   {
     mWorkerPrivate->AssertIsOnWorkerThread();
 
-    JSContext* cx = mWorkerPrivate->GetJSContext();
-
-    if (!PreDispatch(cx)) {
+    if (!PreDispatch(aCx)) {
       return false;
     }
 
@@ -221,7 +216,7 @@ public:
     mSyncLoopTarget = syncLoop.EventTarget();
 
     if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
-      JS_ReportError(cx,
+      JS_ReportError(aCx,
                      "Failed to dispatch to main thread for the Console API!");
       return false;
     }
@@ -275,7 +270,6 @@ private:
   PreDispatch(JSContext* aCx) MOZ_OVERRIDE
   {
     ClearException ce(aCx);
-    JSAutoCompartment ac(aCx, mCallData->mGlobal);
 
     JS::Rooted<JSObject*> arguments(aCx,
       JS_NewArrayObject(aCx, mCallData->mArguments.Length()));
@@ -297,7 +291,6 @@ private:
     }
 
     mCallData->mArguments.Clear();
-    mCallData->mGlobal = nullptr;
     return true;
   }
 
@@ -352,7 +345,6 @@ private:
 
     MOZ_ASSERT(mCallData->mArguments.Length() == length);
 
-    mCallData->mGlobal = JS::CurrentGlobalOrNull(cx);
     console->AppendCallData(mCallData.forget());
   }
 
@@ -502,10 +494,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(Console)
 
   for (ConsoleCallData* data = tmp->mQueuedCalls.getFirst(); data != nullptr;
        data = data->getNext()) {
-    if (data->mGlobal) {
-      aCallbacks.Trace(&data->mGlobal, "data->mGlobal", aClosure);
-    }
-
     for (uint32_t i = 0; i < data->mArguments.Length(); ++i) {
       aCallbacks.Trace(&data->mArguments[i], "data->mArguments[i]", aClosure);
     }
@@ -672,7 +660,7 @@ Console::ProfileMethod(JSContext* aCx, const nsAString& aAction,
     
     nsRefPtr<ConsoleProfileRunnable> runnable =
       new ConsoleProfileRunnable(aAction, aData);
-    runnable->Dispatch();
+    runnable->Dispatch(aCx);
     return;
   }
 
@@ -772,7 +760,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
   ConsoleCallData* callData = new ConsoleCallData();
   mQueuedCalls.insertBack(callData);
 
-  callData->Initialize(aCx, aMethodName, aMethodString, aData);
+  callData->Initialize(aMethodName, aMethodString, aData);
   RAII raii(mQueuedCalls);
 
   if (mWindow) {
@@ -871,7 +859,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
 
     nsRefPtr<ConsoleCallDataRunnable> runnable =
       new ConsoleCallDataRunnable(callData);
-    runnable->Dispatch();
+    runnable->Dispatch(aCx);
     return;
   }
 
@@ -932,7 +920,17 @@ Console::ProcessCallData(ConsoleCallData* aData)
   ClearException ce(cx);
   RootedDictionary<ConsoleEvent> event(cx);
 
-  JSAutoCompartment ac(cx, aData->mGlobal);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  JSAutoCompartment ac(cx, xpc::GetJunkScope());
 
   event.mID.Construct();
   event.mInnerID.Construct();
