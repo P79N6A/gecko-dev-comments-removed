@@ -40,13 +40,6 @@ using namespace mozilla;
                                    gfxPlatform::GetLog(eGfxLog_cmapdata), \
                                    PR_LOG_DEBUG)
 
-
-
-
-
-static const uint32_t kDelayBeforeLoadingFonts = 120 * 1000; 
-static const uint32_t kIntervalBetweenLoadingFonts = 2000;   
-
 static __inline void
 BuildKeyNameFromFontName(nsAString &aName)
 {
@@ -997,7 +990,7 @@ gfxDWriteFontList::DelayedInitFontList()
         Preferences::GetInt("gfx.font_rendering.cleartype_params.force_gdi_classic_max_size",
                             mForceGDIClassicMaxFontSize);
 
-    StartLoader(kDelayBeforeLoadingFonts, kIntervalBetweenLoadingFonts);
+    GetPrefsAndStartLoader();
 
     LOGREGISTRY(L"DelayedInitFontList end");
 

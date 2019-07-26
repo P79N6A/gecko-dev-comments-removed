@@ -246,6 +246,9 @@ protected:
     virtual void FinishLoader();
 
     
+    void GetPrefsAndStartLoader();
+
+    
     static size_t
     SizeOfFamilyNameEntryExcludingThis(const nsAString&               aKey,
                                        const nsRefPtr<gfxFontFamily>& aFamily,

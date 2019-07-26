@@ -54,13 +54,6 @@ using namespace mozilla;
 
 #endif 
 
-
-
-
-
-static const uint32_t kDelayBeforeLoadingFonts = 120 * 1000; 
-static const uint32_t kIntervalBetweenLoadingFonts = 2000;   
-
 static __inline void
 BuildKeyNameFromFontName(nsAString &aName)
 {
@@ -711,7 +704,7 @@ gfxGDIFontList::InitFontList()
 
     GetFontSubstitutes();
 
-    StartLoader(kDelayBeforeLoadingFonts, kIntervalBetweenLoadingFonts);
+    GetPrefsAndStartLoader();
 
     return NS_OK;
 }

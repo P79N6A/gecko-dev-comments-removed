@@ -240,6 +240,17 @@ pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.filter.nearest.force-enabled", false);
 
 
+#ifdef XP_WIN
+pref("gfx.font_loader.families_per_slice", 10); 
+pref("gfx.font_loader.delay", 120000);          
+pref("gfx.font_loader.interval", 2000);         
+#else
+pref("gfx.font_loader.families_per_slice", 10); 
+pref("gfx.font_loader.delay", 8000);            
+pref("gfx.font_loader.interval", 150);          
+#endif
+
+
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
 pref("gfx.font_rendering.graphite.enabled", true);
