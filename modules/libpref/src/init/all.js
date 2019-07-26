@@ -1682,6 +1682,9 @@ pref("dom.max_chrome_script_run_time", 20);
 pref("dom.max_script_run_time", 10);
 
 
+pref("dom.archivereader.enabled", false);
+
+
 
 
 
