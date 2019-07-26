@@ -377,10 +377,12 @@ ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
     target->AddEventListener(NS_LITERAL_STRING("resize"), this, false);
     target->AddEventListener(NS_LITERAL_STRING("keypress"), this, false);
 
-    if (!nsContentUtils::IsChildOfSameType(this) &&
-        GetReadyStateEnum() != nsIDocument::READYSTATE_COMPLETE) {
-      LinkStylesheet(NS_LITERAL_STRING("resource://gre/res/TopLevelImageDocument.css"));
-      LinkStylesheet(NS_LITERAL_STRING("chrome://global/skin/media/TopLevelImageDocument.css"));
+    if (GetReadyStateEnum() != nsIDocument::READYSTATE_COMPLETE) {
+      LinkStylesheet(NS_LITERAL_STRING("resource://gre/res/ImageDocument.css"));
+      if (!nsContentUtils::IsChildOfSameType(this)) {
+        LinkStylesheet(NS_LITERAL_STRING("resource://gre/res/TopLevelImageDocument.css"));
+        LinkStylesheet(NS_LITERAL_STRING("chrome://global/skin/media/TopLevelImageDocument.css"));
+      }
     }
     BecomeInteractive();
   }
@@ -811,35 +813,13 @@ ImageDocument::CreateSyntheticDocument()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  
-  
-  
-  Element* head = GetHeadElement();
-  NS_ENSURE_TRUE(head, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsINodeInfo> nodeInfo;
-  if (nsContentUtils::IsChildOfSameType(this)) {
-    nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::style, nullptr,
-                                             kNameSpaceID_XHTML,
-                                             nsIDOMNode::ELEMENT_NODE);
-    nsRefPtr<nsGenericHTMLElement> styleContent = NS_NewHTMLStyleElement(nodeInfo.forget());
-    NS_ENSURE_TRUE(styleContent, NS_ERROR_OUT_OF_MEMORY);
-
-    ErrorResult error;
-    styleContent->SetTextContent(NS_LITERAL_STRING("img { display: block; }"),
-                                 error);
-    head->AppendChildTo(styleContent, false);
-  }
-
-  
   Element* body = GetBodyElement();
   if (!body) {
     NS_WARNING("no body on image document!");
     return NS_ERROR_FAILURE;
   }
 
+  nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::img, nullptr,
                                            kNameSpaceID_XHTML,
                                            nsIDOMNode::ELEMENT_NODE);

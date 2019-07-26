@@ -1,0 +1,32 @@
+
+
+
+
+
+
+
+
+
+
+@media not print {
+  .overflowing {
+    cursor: -moz-zoom-out;
+  }
+
+  .shrinkToFit,
+  .scaleToDevicePixels {
+    cursor: -moz-zoom-in;
+  }
+}
+
+@media print {
+  
+
+
+
+
+
+  img {
+    display: block;
+  }
+}
