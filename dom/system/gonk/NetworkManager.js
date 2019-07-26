@@ -175,7 +175,8 @@ NetworkManager.prototype = {
         switch (network.state) {
           case Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED:
             
-            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE ||
+                network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
                 network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
               this.addHostRoute(network);
             }
@@ -186,7 +187,8 @@ NetworkManager.prototype = {
             break;
           case Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED:
             
-            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE ||
+                network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
                 network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
               this.removeHostRoute(network);
             }
@@ -219,7 +221,8 @@ NetworkManager.prototype = {
     }
     this.networkInterfaces[network.name] = network;
     
-    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
+    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE ||
+        network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
         network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
       this.addHostRoute(network);
     }
@@ -242,7 +245,8 @@ NetworkManager.prototype = {
     }
     delete this.networkInterfaces[network.name];
     
-    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
+    if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE ||
+        network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
         network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
       this.removeHostRoute(network);
     }
@@ -260,7 +264,8 @@ NetworkManager.prototype = {
   set preferredNetworkType(val) {
     if ([Ci.nsINetworkInterface.NETWORK_TYPE_WIFI,
          Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE,
-         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS].indexOf(val) == -1) {
+         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS,
+         Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL].indexOf(val) == -1) {
       throw "Invalid network type";
     }
     this._preferredNetworkType = val;
