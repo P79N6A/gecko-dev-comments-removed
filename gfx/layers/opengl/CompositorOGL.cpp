@@ -54,10 +54,6 @@ namespace layers {
 
 using namespace mozilla::gl;
 
-static inline IntSize ns2gfxSize(const nsIntSize& s) {
-  return IntSize(s.width, s.height);
-}
-
 
 
 static void
