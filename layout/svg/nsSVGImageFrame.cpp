@@ -466,7 +466,7 @@ nsSVGImageFrame::ReflowSVG()
     return;
   }
 
-  gfxContext tmpCtx(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  nsRefPtr<gfxContext> tmpCtx = new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget());
 
   
   
@@ -485,10 +485,10 @@ nsSVGImageFrame::ReflowSVG()
   if (applyScaling) {
     scaling.Scale(scaleFactors.width, scaleFactors.height);
   }
-  tmpCtx.Save();
-  GeneratePath(&tmpCtx, scaling);
-  tmpCtx.Restore();
-  gfxRect extent = tmpCtx.GetUserPathExtent();
+  tmpCtx->Save();
+  GeneratePath(tmpCtx, scaling);
+  tmpCtx->Restore();
+  gfxRect extent = tmpCtx->GetUserPathExtent();
   if (applyScaling) {
     extent.Scale(1 / scaleFactors.width, 1 / scaleFactors.height);
   }
