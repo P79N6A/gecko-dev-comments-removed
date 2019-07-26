@@ -45,15 +45,6 @@ logger.info('marionette-actors.js loaded');
 
 
 
-let systemMessageListenerReady = false;
-Services.obs.addObserver(function() {
-  systemMessageListenerReady = true;
-}, "system-message-listener-ready", false);
-
-
-
-
-
 function createRootActor(aConnection)
 {
   return new MarionetteRootActor(aConnection);
@@ -447,10 +438,7 @@ MarionetteDriverActor.prototype = {
     function waitForWindow() {
       let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       let win = this.getCurrentWindow();
-      if (!win ||
-          (appName == "Firefox" && !win.gBrowser) ||
-          (appName == "Fennec" && !win.BrowserApp) ||
-          (appName == "B2G" && !systemMessageListenerReady)) { 
+      if (!win || (appName == "Firefox" && !win.gBrowser) || (appName == "Fennec" && !win.BrowserApp)) { 
         checkTimer.initWithCallback(waitForWindow.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
       }
       else {
@@ -1470,6 +1458,13 @@ MarionetteDriverActor.prototype = {
     }
   },
 
+  
+
+
+  getAppCacheStatus: function MDA_getAppCacheStatus(aRequest) {
+    this.sendAsync("getAppCacheStatus");
+  },
+
   _emu_cb_id: 0,
   _emu_cbs: null,
   runEmulatorCmd: function runEmulatorCmd(cmd, callback) {
@@ -1693,6 +1688,7 @@ MarionetteDriverActor.prototype.requestTypes = {
   "deleteSession": MarionetteDriverActor.prototype.deleteSession,
   "emulatorCmdResult": MarionetteDriverActor.prototype.emulatorCmdResult,
   "importScript": MarionetteDriverActor.prototype.importScript,
+  "getAppCacheStatus": MarionetteDriverActor.prototype.getAppCacheStatus,
   "closeWindow": MarionetteDriverActor.prototype.closeWindow
 };
 
