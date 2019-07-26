@@ -149,9 +149,9 @@ float AudioBufferPeakValue(const float* aInput, uint32_t aSize);
 
 
 
-void AudioBufferInPlaceScale(float aBlock[WEBAUDIO_BLOCK_SIZE],
-                             uint32_t aChannelCount,
-                             float aScale);
+void AudioBlockInPlaceScale(float aBlock[WEBAUDIO_BLOCK_SIZE],
+                            uint32_t aChannelCount,
+                            float aScale);
 
 
 
