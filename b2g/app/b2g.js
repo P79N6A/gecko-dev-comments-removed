@@ -870,6 +870,7 @@ pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
 
 
 pref("apz.asyncscroll.throttle", 40);
+pref("apz.pan_repaint_interval", 40);
 
 
 
