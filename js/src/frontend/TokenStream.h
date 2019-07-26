@@ -43,6 +43,7 @@ enum TokenKind {
     TOK_NAME,                      
     TOK_NUMBER,                    
     TOK_STRING,                    
+    TOK_TEMPLATE_STRING,           
     TOK_REGEXP,                    
     TOK_TRUE,                      
     TOK_FALSE,                     
@@ -275,7 +276,7 @@ struct Token
     }
 
     void setAtom(JSAtom *atom) {
-        JS_ASSERT(type == TOK_STRING);
+        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
         JS_ASSERT(!IsPoisonedPtr(atom));
         u.atom = atom;
     }
@@ -300,7 +301,7 @@ struct Token
     }
 
     JSAtom *atom() const {
-        JS_ASSERT(type == TOK_STRING);
+        JS_ASSERT (type == TOK_STRING || type == TOK_TEMPLATE_STRING);
         return u.atom;
     }
 
