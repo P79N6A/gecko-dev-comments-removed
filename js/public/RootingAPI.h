@@ -715,12 +715,15 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::PerThreadDataFriendFields::getMainThread(rt));
     }
 
-    ~Rooted() {
+    
+    
+    
 #ifdef JSGC_TRACK_EXACT_ROOTS
+    ~Rooted() {
         JS_ASSERT(*stack == reinterpret_cast<Rooted<void*>*>(this));
         *stack = prev;
-#endif
     }
+#endif
 
 #ifdef JSGC_TRACK_EXACT_ROOTS
     Rooted<T> *previous() { return prev; }
