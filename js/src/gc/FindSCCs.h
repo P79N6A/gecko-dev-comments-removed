@@ -12,50 +12,33 @@
 namespace js {
 namespace gc {
 
-class ComponentFinder;
-
-struct GraphNodeBase {
-    GraphNodeBase  *gcNextGraphNode;
+template<class Node>
+struct GraphNodeBase
+{
+    Node           *gcNextGraphNode;
+    Node           *gcNextGraphComponent;
     unsigned       gcDiscoveryTime;
     unsigned       gcLowLink;
 
     GraphNodeBase()
       : gcNextGraphNode(NULL),
+        gcNextGraphComponent(NULL),
         gcDiscoveryTime(0),
         gcLowLink(0) {}
 
-    virtual ~GraphNodeBase() {}
-    virtual void findOutgoingEdges(ComponentFinder& finder) = 0;
+    ~GraphNodeBase() {}
+
+    Node *nextNodeInGroup() const {
+        if (gcNextGraphNode && gcNextGraphNode->gcNextGraphComponent == gcNextGraphComponent)
+            return gcNextGraphNode;
+        return NULL;
+    }
+
+    Node *nextGroup() const {
+        return gcNextGraphComponent;
+    }
 };
 
-template <class T> static T *
-NextGraphNode(const T *current)
-{
-    const GraphNodeBase *node = current;
-    return static_cast<T *>(node->gcNextGraphNode);
-}
-
-template <class T> void
-AddGraphNode(T *&listHead, T *newFirstNode)
-{
-    GraphNodeBase *node = newFirstNode;
-    JS_ASSERT(!node->gcNextGraphNode);
-    node->gcNextGraphNode = listHead;
-    listHead = newFirstNode;
-}
-
-template <class T> static T *
-RemoveGraphNode(T *&listHead)
-{
-    GraphNodeBase *node = listHead;
-    if (!node)
-        return NULL;
-
-    T *result = listHead;
-    listHead = static_cast<T *>(node->gcNextGraphNode);
-    node->gcNextGraphNode = NULL;
-    return result;
-}
 
 
 
@@ -74,37 +57,26 @@ RemoveGraphNode(T *&listHead)
 
 
 
+
+
+template<class Node>
 class ComponentFinder
 {
   public:
     ComponentFinder(uintptr_t stackLimit);
     ~ComponentFinder();
-    void addNode(GraphNodeBase *v);
-    GraphNodeBase *getResultsList();
 
-    template <class T> static T *
-    getNextGroup(T *&resultsList) {
-        T *group = resultsList;
-        if (resultsList)
-            resultsList = static_cast<T *>(removeFirstGroup(resultsList));
-        return group;
-    }
+    
+    void useOneComponent() { stackFull = true; }
 
-    template <class T> static T *
-    getAllRemaining(T *&resultsList) {
-        T *all = resultsList;
-        removeAllRemaining(resultsList);
-        resultsList = NULL;
-        return all;
-    }
+    void addNode(Node *v);
+    Node *getResultsList();
 
-  private:
-    static GraphNodeBase *removeFirstGroup(GraphNodeBase *resultsList);
-    static void removeAllRemaining(GraphNodeBase *resultsList);
+    static void mergeCompartmentGroups(Node *first);
 
   public:
     
-    void addEdgeTo(GraphNodeBase *w);
+    void addEdgeTo(Node *w);
 
   private:
     
@@ -113,14 +85,13 @@ class ComponentFinder
     
     static const unsigned Finished = (unsigned)-1;
 
-    void processNode(GraphNodeBase *v);
-    void checkStackFull();
+    void processNode(Node *v);
 
   private:
     unsigned       clock;
-    GraphNodeBase  *stack;
-    GraphNodeBase  *firstComponent;
-    GraphNodeBase  *cur;
+    Node           *stack;
+    Node           *firstComponent;
+    Node           *cur;
     uintptr_t      stackLimit;
     bool           stackFull;
 };
