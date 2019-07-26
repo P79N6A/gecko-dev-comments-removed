@@ -268,13 +268,21 @@ public:
   
 
 
-  
+
   
 
 
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
                            LayerState aLayerState);
+
+  
+
+
+  void AddLayerDisplayItemForFrame(Layer* aLayer,
+                                   nsIFrame* aFrame,
+                                   uint32_t aDisplayItemKey,
+                                   LayerState aLayerState);
 
   
 
@@ -296,7 +304,14 @@ public:
 
 
 
-  Layer* GetOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+  Layer* GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+
+  
+
+
+
+
+  Layer* GetOldLayerFor(nsDisplayItem* aItem);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
   
@@ -584,7 +599,9 @@ public:
   }
 
 protected:
-  void RemoveThebesItemsForLayerSubtree(Layer* aLayer);
+  void RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
+                                                    bool aRemoveThebesItems,
+                                                    bool aRemoveOwnerData);
 
   static void SetAndClearInvalidRegion(DisplayItemDataEntry* aEntry);
   static PLDHashOperator UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,

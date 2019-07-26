@@ -52,6 +52,8 @@ public:
                     nsDeviceContext*  aContext,
                     nsWidgetInitData* aInitData = nullptr);
 
+  void InitIMEState();
+
   virtual already_AddRefed<nsIWidget>
   CreateChild(const nsIntRect  &aRect,
               nsDeviceContext  *aContext,
@@ -206,6 +208,7 @@ private:
   
   
   uint32_t mIMELastBlurSeqno;
+  bool mNeedIMEStateInit;
 
   
   float mDPI;

@@ -4,7 +4,7 @@
 
 
 #include "base/basictypes.h"
-#include "IPC/IPCMessageUtils.h"
+#include "ipc/IPCMessageUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDOMUIEvent.h"
 #include "nsIPresShell.h"

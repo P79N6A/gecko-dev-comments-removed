@@ -12405,6 +12405,15 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
     return true;
   }
 
+  
+  
+  
+  if (aFrame->HasView() ||
+      (aFrame->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW)) {
+    StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
+    return false;
+  }
+
   const nsStyleDisplay* display = aFrame->GetStyleDisplay();
   
   if (display->mPosition == NS_STYLE_POSITION_STATIC) {

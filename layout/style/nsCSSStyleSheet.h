@@ -20,6 +20,7 @@
 #include "nsCOMArray.h"
 #include "nsTArray.h"
 #include "nsString.h"
+#include "mozilla/CORSMode.h"
 
 class nsXMLNameSpaceMap;
 class nsCSSRuleProcessor;
@@ -49,7 +50,8 @@ public:
   friend class nsCSSStyleSheet;
   friend class nsCSSRuleProcessor;
 private:
-  nsCSSStyleSheetInner(nsCSSStyleSheet* aPrimarySheet);
+  nsCSSStyleSheetInner(nsCSSStyleSheet* aPrimarySheet,
+                       mozilla::CORSMode aCORSMode);
   nsCSSStyleSheetInner(nsCSSStyleSheetInner& aCopy,
                        nsCSSStyleSheet* aPrimarySheet);
   ~nsCSSStyleSheetInner();
@@ -78,6 +80,7 @@ private:
   
   
   nsRefPtr<nsCSSStyleSheet> mFirstChild;
+  mozilla::CORSMode      mCORSMode;
   bool                   mComplete;
 
 #ifdef DEBUG
@@ -105,7 +108,7 @@ class nsCSSStyleSheet MOZ_FINAL : public nsIStyleSheet,
                                   public nsICSSLoaderObserver
 {
 public:
-  nsCSSStyleSheet();
+  nsCSSStyleSheet(mozilla::CORSMode aCORSMode);
 
   NS_DECL_ISUPPORTS
 
@@ -239,6 +242,9 @@ public:
 
   size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
+  
+  mozilla::CORSMode GetCORSMode() const { return mInner->mCORSMode; }
+
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
                   nsCSSStyleSheet* aParentToUse,
@@ -260,7 +266,8 @@ protected:
   
   
   
-  nsresult SubjectSubsumesInnerPrincipal() const;
+  
+  nsresult SubjectSubsumesInnerPrincipal();
 
   
   nsresult RegisterNamespaceRule(mozilla::css::Rule* aRule);

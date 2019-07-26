@@ -36,6 +36,7 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
 [
   ["HelperApps", "chrome://browser/content/HelperApps.js"],
   ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
+  ["AboutReader", "chrome://browser/content/aboutReader.js"],
   ["WebAppRT", "chrome://browser/content/WebAppRT.js"],
 ].forEach(function (aScript) {
   let [name, script] = aScript;
@@ -58,6 +59,8 @@ XPCOMUtils.defineLazyServiceGetter(window, "URIFixup",
 const kStateActive = 0x00000001; 
 
 const kXLinkNamespace = "http://www.w3.org/1999/xlink";
+
+const kTapHighlightDelay = 50; 
 
 
 
@@ -2683,6 +2686,14 @@ Tab.prototype = {
             this.browser.removeEventListener("pagehide", listener, true);
           }.bind(this), true);
         }
+
+        if (/^about:reader/.test(target.documentURI)) {
+          let aboutReader = new AboutReader(this.browser.contentDocument, this.browser.contentWindow);
+          this.browser.addEventListener("pagehide", function listener() {
+            aboutReader.uninit();
+            this.browser.removeEventListener("pagehide", listener, true);
+          }.bind(this), true);
+        }
         break;
       }
 
@@ -3618,18 +3629,29 @@ var BrowserEventHandler = {
 
   _highlightElement: null,
 
+  _highlightTimeout: null,
+
   _doTapHighlight: function _doTapHighlight(aElement) {
-    DOMUtils.setContentState(aElement, kStateActive);
+    this._cancelTapHighlight();
     this._highlightElement = aElement;
+    
+    this._highlightTimeout = setTimeout(function() {
+      DOMUtils.setContentState(aElement, kStateActive);
+    }, kTapHighlightDelay);
   },
 
   _cancelTapHighlight: function _cancelTapHighlight() {
+    if (this._highlightTimeout) {
+      clearTimeout(this._highlightTimeout);
+      this._highlightTimeout = null;
+    }
+
     if (!this._highlightElement)
       return;
 
     
     
-    if (this._highlightElement.ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
+    if (this._highlightElement.ownerDocument && this._highlightElement.ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
       DOMUtils.setContentState(this._highlightElement.ownerDocument.documentElement, kStateActive);
 
     DOMUtils.setContentState(BrowserApp.selectedBrowser.contentWindow.document.documentElement, kStateActive);

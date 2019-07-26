@@ -173,6 +173,11 @@ TabParent::AnswerCreateWindow(PBrowserParent** retval)
     }
 
     
+    if (GetApp() || IsBrowserElement()) {
+        return false;
+    }
+
+    
     
     nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner;
     mBrowserDOMWindow->OpenURIInFrame(nullptr, nullptr,
@@ -357,6 +362,14 @@ bool TabParent::SendRealKeyEvent(nsKeyEvent& event)
 bool TabParent::SendRealTouchEvent(nsTouchEvent& event)
 {
   nsTouchEvent e(event);
+  
+  
+  if (event.message == NS_TOUCH_END || event.message == NS_TOUCH_CANCEL) {
+    for (int i = e.touches.Length() - 1; i >= 0; i--) {
+      if (!e.touches[i]->mChanged)
+        e.touches.RemoveElementAt(i);
+    }
+  }
   MaybeForwardEventToRenderFrame(event, &e);
   return (e.message == NS_TOUCH_MOVE) ?
     PBrowserParent::SendRealTouchMoveEvent(e) :

@@ -8,7 +8,7 @@
 
 
 
-#include "IPC/IPCMessageUtils.h"
+#include "ipc/IPCMessageUtils.h"
 
 #include "nsStringStream.h"
 #include "nsStreamUtils.h"
