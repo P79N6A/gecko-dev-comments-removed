@@ -1064,6 +1064,9 @@ class MInitProp
     PropertyName *propertyName() const {
         return name_;
     }
+    TypePolicy *typePolicy() {
+        return this;
+    }
 };
 
 
