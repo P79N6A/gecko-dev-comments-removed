@@ -38,6 +38,7 @@ namespace mozilla {
  bool
 HwcUtils::PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
                             nsIntRect aClip, nsIntRect aBufferRect,
+                            bool aYFlipped,
                             hwc_rect_t* aSourceCrop, hwc_rect_t* aVisibleRegionScreen) {
 
     gfxRect visibleRect(aVisible);
@@ -70,6 +71,9 @@ HwcUtils::PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
 
     
     crop -= aBufferRect.TopLeft();
+    if (aYFlipped) {
+        crop.y = aBufferRect.height - (crop.y + crop.height);
+    }
 
     aSourceCrop->left = crop.x;
     aSourceCrop->top  = crop.y;

@@ -107,8 +107,10 @@ static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
 
 
 
+
 static bool PrepareLayerRects(nsIntRect aVisible, const gfxMatrix& aTransform,
                               nsIntRect aClip, nsIntRect aBufferRect,
+                              bool aYFlipped,
                               hwc_rect_t* aSourceCrop,
                               hwc_rect_t* aVisibleRegionScreen);
 
