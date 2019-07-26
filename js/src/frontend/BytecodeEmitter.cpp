@@ -1978,22 +1978,6 @@ EmitNameOp(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool callC
     return true;
 }
 
-static inline bool
-EmitElemOpBase(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
-{
-    if (Emit1(cx, bce, op) < 0)
-        return false;
-    CheckTypeSet(cx, bce, op);
-
-    if (op == JSOP_CALLELEM) {
-        if (Emit1(cx, bce, JSOP_SWAP) < 0)
-            return false;
-        if (Emit1(cx, bce, JSOP_NOTEARG) < 0)
-            return false;
-    }
-    return true;
-}
-
 static bool
 EmitPropLHS(ExclusiveContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
 {
@@ -2141,6 +2125,11 @@ EmitNameIncDec(ExclusiveContext *cx, ParseNode *pn, BytecodeEmitter *bce)
     return true;
 }
 
+
+
+
+
+
 static bool
 EmitElemOperands(ExclusiveContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
 {
@@ -2151,6 +2140,24 @@ EmitElemOperands(ExclusiveContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *
         return false;
     if (!EmitTree(cx, bce, pn->pn_right))
         return false;
+    if (op == JSOP_SETELEM && Emit2(cx, bce, JSOP_PICK, (jsbytecode)2) < 0)
+        return false;
+    return true;
+}
+
+static inline bool
+EmitElemOpBase(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
+{
+    if (Emit1(cx, bce, op) < 0)
+        return false;
+    CheckTypeSet(cx, bce, op);
+
+    if (op == JSOP_CALLELEM) {
+        if (Emit1(cx, bce, JSOP_SWAP) < 0)
+            return false;
+        if (Emit1(cx, bce, JSOP_NOTEARG) < 0)
+            return false;
+    }
     return true;
 }
 
@@ -2825,19 +2832,15 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
     JS_ASSERT(emitOption != DefineVars);
 
     
-
-
-
-
-
+    
+    
+    
     if (pn->isKind(PNK_ARRAY) || pn->isKind(PNK_OBJECT)) {
         if (!EmitDestructuringOpsHelper(cx, bce, pn, emitOption))
             return false;
         if (emitOption == InitializeVars) {
             
-
-
-
+            
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
         }
@@ -2847,8 +2850,6 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
         JS_ASSERT(pn->getOp() == JSOP_GETLOCAL);
         JS_ASSERT(pn->pn_dflags & PND_BOUND);
     } else {
-        
-
         switch (pn->getKind()) {
           case PNK_NAME:
             if (!BindNameToSlot(cx, bce, pn))
@@ -2886,16 +2887,12 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
 
                 if (!EmitIndexOp(cx, pn->getOp(), atomIndex, bce))
                     return false;
-                if (Emit1(cx, bce, JSOP_POP) < 0)
-                    return false;
                 break;
               }
 
               case JSOP_SETLOCAL:
               case JSOP_SETARG:
                 if (!EmitVarOp(cx, pn, pn->getOp(), bce))
-                    return false;
-                if (Emit1(cx, bce, JSOP_POP) < 0)
                     return false;
                 break;
 
@@ -2919,16 +2916,13 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
                 return false;
             if (!EmitAtomOp(cx, pn, JSOP_SETPROP, bce))
                 return false;
-            if (Emit1(cx, bce, JSOP_POP) < 0)
-                return false;
             break;
 
           case PNK_ELEM:
             
             
             
-            
-            if (!EmitElemOp(cx, pn, JSOP_ENUMELEM, bce))
+            if (!EmitElemOp(cx, pn, JSOP_SETELEM, bce))
                 return false;
             break;
 
@@ -2944,13 +2938,15 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
             
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
-            if (Emit1(cx, bce, JSOP_POP) < 0)
-                return false;
             break;
 
           default:
             MOZ_ASSUME_UNREACHABLE("EmitDestructuringLHS: bad lhs kind");
         }
+
+        
+        if (Emit1(cx, bce, JSOP_POP) < 0)
+            return false;
     }
 
     return true;
