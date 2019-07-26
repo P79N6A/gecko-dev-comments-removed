@@ -361,31 +361,7 @@
 
 
 
-#  if defined(__clang__)
-     
-#    if !defined(PNG_USE_RESULT) && __has_attribute(__warn_unused_result__)
-#      define PNG_USE_RESULT __attribute__((__warn_unused_result__))
-#    endif
-#    if !defined(PNG_NORETURN) && __has_attribute(__noreturn__)
-#      define PNG_NORETURN __attribute__((__noreturn__))
-#    endif
-#    if !defined(PNG_ALLOCATED) && __has_attribute(__malloc__)
-#      define PNG_ALLOCATED __attribute__((__malloc__))
-#    endif
-#    if !defined(PNG_DEPRECATED) && __has_attribute(__deprecated__)
-#      define PNG_DEPRECATED __attribute__((__deprecated__))
-#    endif
-#    if !defined(PNG_PRIVATE)
-#      if __has_extension(attribute_unavailable_with_message)
-#        define PNG_PRIVATE __attribute__((__unavailable__(\
-           "This function is not exported by libpng.")))
-#      endif
-#    endif
-#    ifndef PNG_RESTRICT
-#      define PNG_RESTRICT __restrict
-#    endif
-
-#  elif defined(__GNUC__)
+#  if defined(__GNUC__)
 #    ifndef PNG_USE_RESULT
 #      define PNG_USE_RESULT __attribute__((__warn_unused_result__))
 #    endif
@@ -408,7 +384,7 @@
             __attribute__((__deprecated__))
 #        endif
 #      endif
-#      if ((__GNUC__ > 3) || !defined(__GNUC_MINOR__) || (__GNUC_MINOR__ >= 1))
+#      if ((__GNUC__ != 3) || !defined(__GNUC_MINOR__) || (__GNUC_MINOR__ >= 1))
 #        ifndef PNG_RESTRICT
 #          define PNG_RESTRICT __restrict
 #        endif
@@ -443,7 +419,7 @@
 #    ifndef PNG_RESTRICT
 #      define PNG_RESTRICT __restrict
 #    endif
-#  endif
+#  endif 
 #endif 
 
 #ifndef PNG_DEPRECATED
@@ -464,7 +440,6 @@
 #ifndef PNG_RESTRICT
 #  define PNG_RESTRICT
 #endif
-
 #ifndef PNG_FP_EXPORT     
 #  ifdef PNG_FLOATING_POINT_SUPPORTED
 #     define PNG_FP_EXPORT(ordinal, type, name, args)\

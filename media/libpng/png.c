@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_9 Your_png_h_is_not_version_1_6_9;
+typedef png_libpng_version_1_6_7 Your_png_h_is_not_version_1_6_7;
 
 
 
@@ -201,7 +201,6 @@ png_user_version_check(png_structrp png_ptr, png_const_charp user_png_ver)
          pos = png_safecat(m, (sizeof m), pos, user_png_ver);
          pos = png_safecat(m, (sizeof m), pos, " but running with ");
          pos = png_safecat(m, (sizeof m), pos, png_libpng_ver);
-         PNG_UNUSED(pos)
 
          png_warning(png_ptr, m);
 #endif
@@ -260,10 +259,6 @@ png_create_png_struct,(png_const_charp user_png_ver, png_voidp error_ptr,
 
 #  ifdef PNG_USER_MEM_SUPPORTED
       png_set_mem_fn(&create_struct, mem_ptr, malloc_fn, free_fn);
-#  else
-      PNG_UNUSED(mem_ptr)
-      PNG_UNUSED(malloc_fn)
-      PNG_UNUSED(free_fn)
 #  endif
 
    
@@ -773,14 +768,14 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.9 - February 6, 2014" PNG_STRING_NEWLINE \
-     "Copyright (c) 1998-2014 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
+     "libpng version 1.6.7 - November 14, 2013" PNG_STRING_NEWLINE \
+     "Copyright (c) 1998-2013 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.9 - February 6, 2014\
-      Copyright (c) 1998-2014 Glenn Randers-Pehrson\
+      return "libpng version 1.6.7 - November 14, 2013\
+      Copyright (c) 1998-2013 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
 #  endif
@@ -825,63 +820,6 @@ png_get_header_version(png_const_structrp png_ptr)
    return PNG_HEADER_VERSION_STRING;
 #endif
 }
-
-#ifdef PNG_BUILD_GRAYSCALE_PALETTE_SUPPORTED
-
-
-
-
-
-
-void PNGAPI
-png_build_grayscale_palette(int bit_depth, png_colorp palette)
-{
-   int num_palette;
-   int color_inc;
-   int i;
-   int v;
-
-   png_debug(1, "in png_do_build_grayscale_palette");
-
-   if (palette == NULL)
-      return;
-
-   switch (bit_depth)
-   {
-      case 1:
-         num_palette = 2;
-         color_inc = 0xff;
-         break;
-
-      case 2:
-         num_palette = 4;
-         color_inc = 0x55;
-         break;
-
-      case 4:
-         num_palette = 16;
-         color_inc = 0x11;
-         break;
-
-      case 8:
-         num_palette = 256;
-         color_inc = 1;
-         break;
-
-      default:
-         num_palette = 0;
-         color_inc = 0;
-         break;
-   }
-
-   for (i = 0, v = 0; i < num_palette; i++, v += color_inc)
-   {
-      palette[i].red = (png_byte)v;
-      palette[i].green = (png_byte)v;
-      palette[i].blue = (png_byte)v;
-   }
-}
-#endif
 
 #ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
 int PNGAPI
@@ -1784,7 +1722,6 @@ png_icc_profile_error(png_const_structrp png_ptr, png_colorspacerp colorspace,
 #  endif
    
    pos = png_safecat(message, (sizeof message), pos, reason);
-   PNG_UNUSED(pos)
 
    
 
@@ -2473,6 +2410,14 @@ png_check_IHDR(png_const_structrp png_ptr,
       error = 1;
    }
 
+   if (width > (PNG_UINT_32_MAX
+                 >> 3)      
+                 - 48       
+                 - 1        
+                 - 7*8      
+                 - 8)       
+      png_warning(png_ptr, "Width is too large for libpng to process pixels");
+
    
    if (bit_depth != 1 && bit_depth != 2 && bit_depth != 4 &&
        bit_depth != 8 && bit_depth != 16)
@@ -3146,15 +3091,11 @@ png_fixed(png_const_structrp png_ptr, double fp, png_const_charp text)
    if (r > 2147483647. || r < -2147483648.)
       png_fixed_error(png_ptr, text);
 
-#  ifndef PNG_ERROR_TEXT_SUPPORTED
-      PNG_UNUSED(text)
-#  endif
-
    return (png_fixed_point)r;
 }
 #endif
 
-#if defined(PNG_GAMMA_SUPPORTED) || defined(PNG_COLORSPACE_SUPPORTED) ||\
+#if defined(PNG_READ_GAMMA_SUPPORTED) || \
     defined(PNG_INCH_CONVERSIONS_SUPPORTED) || defined(PNG_READ_pHYs_SUPPORTED)
 
 
@@ -3327,29 +3268,27 @@ png_gamma_significant(png_fixed_point gamma_val)
 #endif
 
 #ifdef PNG_READ_GAMMA_SUPPORTED
-#  ifdef PNG_16BIT_SUPPORTED
 
 static png_fixed_point
 png_product2(png_fixed_point a, png_fixed_point b)
 {
    
-#    ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
+#ifdef PNG_FLOATING_ARITHMETIC_SUPPORTED
    double r = a * 1E-5;
    r *= b;
    r = floor(r+.5);
 
    if (r <= 2147483647. && r >= -2147483648.)
       return (png_fixed_point)r;
-#    else
+#else
    png_fixed_point res;
 
    if (png_muldiv(&res, a, b, 100000))
       return res;
-#    endif
+#endif
 
    return 0; 
 }
-#  endif 
 
 
 png_fixed_point
@@ -3654,7 +3593,6 @@ png_exp8bit(png_fixed_point lg2)
    return (png_byte)((x + 0x7fffffU) >> 24);
 }
 
-#ifdef PNG_16BIT_SUPPORTED
 static png_uint_16
 png_exp16bit(png_fixed_point lg2)
 {
@@ -3665,7 +3603,6 @@ png_exp16bit(png_fixed_point lg2)
    x -= x >> 16;
    return (png_uint_16)((x + 32767U) >> 16);
 }
-#endif 
 #endif 
 
 png_byte
@@ -3691,7 +3628,6 @@ png_gamma_8bit_correct(unsigned int value, png_fixed_point gamma_val)
    return (png_byte)value;
 }
 
-#ifdef PNG_16BIT_SUPPORTED
 png_uint_16
 png_gamma_16bit_correct(unsigned int value, png_fixed_point gamma_val)
 {
@@ -3714,7 +3650,6 @@ png_gamma_16bit_correct(unsigned int value, png_fixed_point gamma_val)
 
    return (png_uint_16)value;
 }
-#endif 
 
 
 
@@ -3728,16 +3663,10 @@ png_gamma_correct(png_structrp png_ptr, unsigned int value,
    if (png_ptr->bit_depth == 8)
       return png_gamma_8bit_correct(value, gamma_val);
 
-#ifdef PNG_16BIT_SUPPORTED
    else
       return png_gamma_16bit_correct(value, gamma_val);
-#else
-      
-      return 0;
-#endif 
 }
 
-#ifdef PNG_16BIT_SUPPORTED
 
 
 
@@ -3876,7 +3805,6 @@ png_build_16to8_table(png_structrp png_ptr, png_uint_16pp *ptable,
       last++;
    }
 }
-#endif 
 
 
 
@@ -3905,7 +3833,6 @@ png_destroy_gamma_table(png_structrp png_ptr)
    png_free(png_ptr, png_ptr->gamma_table);
    png_ptr->gamma_table = NULL;
 
-#ifdef PNG_16BIT_SUPPORTED
    if (png_ptr->gamma_16_table != NULL)
    {
       int i;
@@ -3917,7 +3844,6 @@ png_destroy_gamma_table(png_structrp png_ptr)
    png_free(png_ptr, png_ptr->gamma_16_table);
    png_ptr->gamma_16_table = NULL;
    }
-#endif 
 
 #if defined(PNG_READ_BACKGROUND_SUPPORTED) || \
    defined(PNG_READ_ALPHA_MODE_SUPPORTED) || \
@@ -3927,7 +3853,6 @@ png_destroy_gamma_table(png_structrp png_ptr)
    png_free(png_ptr, png_ptr->gamma_to_1);
    png_ptr->gamma_to_1 = NULL;
 
-#ifdef PNG_16BIT_SUPPORTED
    if (png_ptr->gamma_16_from_1 != NULL)
    {
       int i;
@@ -3950,7 +3875,6 @@ png_destroy_gamma_table(png_structrp png_ptr)
    png_free(png_ptr, png_ptr->gamma_16_to_1);
    png_ptr->gamma_16_to_1 = NULL;
    }
-#endif 
 #endif 
 }
 
@@ -3996,7 +3920,6 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
      }
 #endif 
   }
-#ifdef PNG_16BIT_SUPPORTED
   else
   {
      png_byte shift, sig_bit;
@@ -4053,20 +3976,24 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
 
      png_ptr->gamma_shift = shift;
 
+#ifdef PNG_16BIT_SUPPORTED
      
 
 
 
 
      if (png_ptr->transformations & (PNG_16_TO_8 | PNG_SCALE_16_TO_8))
+#endif
          png_build_16to8_table(png_ptr, &png_ptr->gamma_16_table, shift,
          png_ptr->screen_gamma > 0 ? png_product2(png_ptr->colorspace.gamma,
          png_ptr->screen_gamma) : PNG_FP_1);
 
+#ifdef PNG_16BIT_SUPPORTED
      else
          png_build_16bit_table(png_ptr, &png_ptr->gamma_16_table, shift,
          png_ptr->screen_gamma > 0 ? png_reciprocal2(png_ptr->colorspace.gamma,
          png_ptr->screen_gamma) : PNG_FP_1);
+#endif
 
 #if defined(PNG_READ_BACKGROUND_SUPPORTED) || \
    defined(PNG_READ_ALPHA_MODE_SUPPORTED) || \
@@ -4086,7 +4013,6 @@ png_build_gamma_table(png_structrp png_ptr, int bit_depth)
      }
 #endif 
   }
-#endif 
 }
 #endif 
 

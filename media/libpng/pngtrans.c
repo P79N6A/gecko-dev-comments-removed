@@ -57,9 +57,7 @@ png_set_packing(png_structrp png_ptr)
    if (png_ptr->bit_depth < 8)
    {
       png_ptr->transformations |= PNG_PACK;
-#     ifdef PNG_WRITE_SUPPORTED
-         png_ptr->usr_bit_depth = 8;
-#     endif
+      png_ptr->usr_bit_depth = 8;
    }
 }
 #endif
