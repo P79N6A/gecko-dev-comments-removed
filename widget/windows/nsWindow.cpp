@@ -7276,6 +7276,36 @@ nsWindow::EventIsInsideWindow(nsWindow* aWindow)
 
 
 bool
+nsWindow::GetPopupsToRollup(nsIRollupListener* aRollupListener,
+                            uint32_t* aPopupsToRollup)
+{
+  
+  
+  
+  *aPopupsToRollup = UINT32_MAX;
+  nsAutoTArray<nsIWidget*, 5> widgetChain;
+  uint32_t sameTypeCount =
+    aRollupListener->GetSubmenuWidgetChain(&widgetChain);
+  for (uint32_t i = 0; i < widgetChain.Length(); ++i) {
+    nsIWidget* widget = widgetChain[i];
+    if (EventIsInsideWindow(static_cast<nsWindow*>(widget))) {
+      
+      
+      
+      
+      if (i < sameTypeCount) {
+        return false;
+      }
+
+      *aPopupsToRollup = sameTypeCount;
+      break;
+    }
+  }
+  return true;
+}
+
+
+bool
 nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
                          WPARAM aWParam, LPARAM aLParam, LRESULT* aResult)
 {
@@ -7296,6 +7326,7 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
   }
 
   bool rollup = false;
+  uint32_t popupsToRollup = UINT32_MAX;
 
   nsWindow* popupWindow = static_cast<nsWindow*>(popup.get());
   UINT nativeMessage = WinUtils::GetNativeMessage(aMessage);
@@ -7306,7 +7337,8 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     case WM_NCLBUTTONDOWN:
     case WM_NCRBUTTONDOWN:
     case WM_NCMBUTTONDOWN:
-      rollup = !EventIsInsideWindow(popupWindow);
+      rollup = !EventIsInsideWindow(popupWindow) &&
+               GetPopupsToRollup(rollupListener, &popupsToRollup);
       break;
 
     case WM_MOUSEWHEEL:
@@ -7314,7 +7346,8 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
       
       
       if (!EventIsInsideWindow(popupWindow)) {
-        rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
+        rollup = rollupListener->ShouldRollupOnMouseWheelEvent() &&
+                 GetPopupsToRollup(rollupListener, &popupsToRollup);
         *aResult = MA_ACTIVATE;
       }
       break;
@@ -7326,7 +7359,8 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     case WM_ACTIVATE:
     case WM_MOUSEACTIVATE:
       
-      rollup = !EventIsInsideWindow(popupWindow);
+      rollup = !EventIsInsideWindow(popupWindow) &&
+               GetPopupsToRollup(rollupListener, &popupsToRollup);
       break;
 
     case WM_KILLFOCUS:
@@ -7334,7 +7368,8 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
       
       if (IsDifferentThreadWindow(reinterpret_cast<HWND>(aWParam))) {
         
-        rollup = !EventIsInsideWindow(popupWindow);
+        rollup = !EventIsInsideWindow(popupWindow) &&
+                 GetPopupsToRollup(rollupListener, &popupsToRollup);
         break;
       }
       return false;
@@ -7343,36 +7378,12 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     case WM_SIZING:
     case WM_MENUSELECT:
       
-      rollup = !EventIsInsideWindow(popupWindow);
+      rollup = !EventIsInsideWindow(popupWindow) &&
+               GetPopupsToRollup(rollupListener, &popupsToRollup);
       break;
 
     default:
       return false;
-  }
-
-  
-  
-  
-  uint32_t popupsToRollup = UINT32_MAX;
-  if (rollup && nativeMessage != WM_ACTIVATEAPP) {
-    nsAutoTArray<nsIWidget*, 5> widgetChain;
-    uint32_t sameTypeCount =
-      rollupListener->GetSubmenuWidgetChain(&widgetChain);
-    for (uint32_t i = 0; i < widgetChain.Length(); ++i) {
-      nsIWidget* widget = widgetChain[i];
-      if (EventIsInsideWindow(static_cast<nsWindow*>(widget))) {
-        
-        
-        
-        
-        if (i < sameTypeCount) {
-          rollup = false;
-        } else {
-          popupsToRollup = sameTypeCount;
-        }
-        break;
-      }
-    }
   }
 
   if (nativeMessage == WM_MOUSEACTIVATE) {
