@@ -88,22 +88,22 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
     
     if (native == intrinsic_UnsafeSetElement)
         return inlineUnsafeSetElement(callInfo);
-    if (native == testingFunc_inParallelSection)
-        return inlineShouldForceSequentialOrInParallelSection(callInfo);
     if (native == intrinsic_NewDenseArray)
         return inlineNewDenseArray(callInfo);
 
     
     if (native == intrinsic_ThrowError)
         return inlineThrowError(callInfo);
+    if (native == intrinsic_IsCallable)
+        return inlineIsCallable(callInfo);
+    if (native == intrinsic_ToObject)
+        return inlineToObject(callInfo);
 #ifdef DEBUG
     if (native == intrinsic_Dump)
         return inlineDump(callInfo);
 #endif
 
     
-    if (native == intrinsic_UnsafeSetElement)
-        return inlineUnsafeSetElement(callInfo);
     if (native == intrinsic_ShouldForceSequential)
         return inlineShouldForceSequentialOrInParallelSection(callInfo);
     if (native == testingFunc_inParallelSection)
@@ -112,16 +112,6 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
         return inlineNewParallelArray(callInfo);
     if (native == ParallelArrayObject::construct)
         return inlineParallelArray(callInfo);
-    if (native == intrinsic_NewDenseArray)
-        return inlineNewDenseArray(callInfo);
-
-    
-    if (native == intrinsic_ThrowError)
-        return inlineThrowError(callInfo);
-#ifdef DEBUG
-    if (native == intrinsic_Dump)
-        return inlineDump(callInfo);
-#endif
 
     return InliningStatus_NotInlined;
 }
@@ -1314,6 +1304,51 @@ IonBuilder::inlineThrowError(CallInfo &callInfo)
     current->add(udef);
     current->push(udef);
 
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineIsCallable(CallInfo &callInfo)
+{
+    if (callInfo.argc() != 1 || callInfo.constructing())
+        return InliningStatus_NotInlined;
+
+    if (getInlineReturnType() != MIRType_Boolean)
+        return InliningStatus_NotInlined;
+    if (getInlineArgType(callInfo, 0) != MIRType_Object)
+        return InliningStatus_NotInlined;
+
+    callInfo.unwrapArgs();
+
+    MIsCallable *isCallable = MIsCallable::New(callInfo.getArg(0));
+    current->add(isCallable);
+    current->push(isCallable);
+
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineToObject(CallInfo &callInfo)
+{
+    if (callInfo.argc() != 1 || callInfo.constructing())
+        return InliningStatus_NotInlined;
+
+    
+    if (getInlineReturnType() != MIRType_Object)
+        return InliningStatus_NotInlined;
+    if (getInlineArgType(callInfo, 0) != MIRType_Object)
+        return InliningStatus_NotInlined;
+
+    callInfo.unwrapArgs();
+    MDefinition *object = callInfo.getArg(0);
+
+    
+    
+    
+    MTypeBarrier *barrier = MTypeBarrier::New(object, cloneTypeSet(callInfo.barrier()));
+    current->add(barrier);
+
+    current->push(object);
     return InliningStatus_Inlined;
 }
 
