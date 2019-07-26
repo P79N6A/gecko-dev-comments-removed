@@ -9827,12 +9827,6 @@ nsGlobalWindow::RescheduleTimeout(nsTimeout* aTimeout, const TimeStamp& now,
 
   
   
-
-  
-  
-  
-  
-  
   nsresult rv = aTimeout->InitTimer(TimerCallback, delay.ToMilliseconds());
 
   if (NS_FAILED(rv)) {
