@@ -43,10 +43,7 @@
 # include "android-signal-defs.h"
 #endif
 
-#if defined(SPS_OS_darwin)
-# include <mach-o/dyld.h>
-#endif
-
+#include "shared-libraries.h"
 
 
 
@@ -1258,7 +1255,6 @@ static void* unwind_thr_fn(void* exit_nowV)
 #include "processor/stackwalker_amd64.h"
 #include "processor/stackwalker_arm.h"
 #include "processor/stackwalker_x86.h"
-#include "processor/logging.h"
 #include "common/linux/dump_symbols.h"
 
 #include "google_breakpad/processor/memory_region.h"
@@ -1378,7 +1374,6 @@ public:
 
  private:
   
-  
   u_int64_t x_start_;
   u_int64_t x_len_;    
   string    filename_; 
@@ -1391,107 +1386,20 @@ public:
 static void read_procmaps(std::vector<MyCodeModule*>& mods_)
 {
   MOZ_ASSERT(mods_.size() == 0);
-
-#if defined(SPS_OS_linux) || defined(SPS_OS_android)
-  
-  FILE* f = fopen("/proc/self/maps", "r");
-  MOZ_ASSERT(f);
-  while (!feof(f)) {
-    unsigned long long int start = 0;
-    unsigned long long int end   = 0;
-    char rr = ' ', ww = ' ', xx = ' ', pp = ' ';
-    unsigned long long int offset = 0, inode = 0;
-    unsigned int devMaj = 0, devMin = 0;
-    int nItems = fscanf(f, "%llx-%llx %c%c%c%c %llx %x:%x %llu",
-                        &start, &end, &rr, &ww, &xx, &pp,
-                        &offset, &devMaj, &devMin, &inode);
-    if (nItems == EOF && feof(f)) break;
-    MOZ_ASSERT(nItems == 10);
-    MOZ_ASSERT(start < end);
+#if defined(SPS_OS_linux) || defined(SPS_OS_android) || defined(SPS_OS_darwin)
+  SharedLibraryInfo info = SharedLibraryInfo::GetInfoForSelf();
+  for (size_t i = 0; i < info.GetSize(); i++) {
+    const SharedLibrary& lib = info.GetEntry(i);
     
-    int ch;
     
-    while (1) {
-      ch = fgetc(f);
-      MOZ_ASSERT(ch != EOF);
-      if (ch == '\n' || ch == '/') break;
-    }
-    string fname("");
-    if (ch == '/') {
-      fname += (char)ch;
-      while (1) {
-        ch = fgetc(f);
-        MOZ_ASSERT(ch != EOF);
-        if (ch == '\n') break;
-        fname += (char)ch;
-      }
-    }
-    MOZ_ASSERT(ch == '\n');
-    if (0) LOGF("SEG %llx %llx %c %c %c %c %s",
-                start, end, rr, ww, xx, pp, fname.c_str() );
-    if (xx == 'x' && fname != "") {
-      MyCodeModule* cm = new MyCodeModule( start, end-start, fname );
-      mods_.push_back(cm);
-    }
+    MyCodeModule* cm 
+      = new MyCodeModule( lib.GetStart(), lib.GetEnd()-lib.GetStart(),
+                          lib.GetName() );
+    mods_.push_back(cm);
   }
-  fclose(f);
-
-#elif defined(SPS_OS_darwin)
-
-# if defined(SPS_PLAT_amd64_darwin)
-  typedef mach_header_64 breakpad_mach_header;
-  typedef segment_command_64 breakpad_mach_segment_command;
-  const int LC_SEGMENT_XX = LC_SEGMENT_64;
-# else 
-  typedef mach_header breakpad_mach_header;
-  typedef segment_command breakpad_mach_segment_command;
-  const int LC_SEGMENT_XX = LC_SEGMENT;
-# endif
-
-  uint32_t n_images = _dyld_image_count();
-  for (uint32_t ix = 0; ix < n_images; ix++) {
-
-    MyCodeModule* cm = NULL;
-    unsigned long slide = _dyld_get_image_vmaddr_slide(ix);
-    const char* name = _dyld_get_image_name(ix);
-    const breakpad_mach_header* header
-      = (breakpad_mach_header*)_dyld_get_image_header(ix);
-    if (!header)
-      continue;
-
-    const struct load_command *cmd =
-      reinterpret_cast<const struct load_command *>(header + 1);
-
-    
-
-
-
-    for (unsigned int i = 0; cmd && (i < header->ncmds); i++) {
-      if (cmd->cmd == LC_SEGMENT_XX) {
-
-        const breakpad_mach_segment_command *seg =
-          reinterpret_cast<const breakpad_mach_segment_command *>(cmd);
-
-        if (!strcmp(seg->segname, "__TEXT")) {
-          cm = new MyCodeModule( seg->vmaddr + slide,
-                                 seg->vmsize, string(name) );
-          break;
-        }
-      }
-      cmd = reinterpret_cast<struct load_command*>((char *)cmd + cmd->cmdsize);
-    }
-    if (cm) {
-      mods_.push_back(cm);
-      if (0) LOGF("SEG %llx %llx %s",
-                  cm->base_address(), cm->base_address() + cm->size(),
-                  cm->code_file().c_str());
-    }
-  }
-
 #else
 # error "Unknown platform"
 #endif
-
   if (0) LOGF("got %d mappings\n", (int)mods_.size());
 }
 
