@@ -28,6 +28,7 @@
 #include "GeckoProfiler.h"
 
 #include "prprf.h"
+#include "nsCRT.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsWidgetsCID.h"
 #include "nsAppShellCID.h"
@@ -40,12 +41,48 @@
 #include "mozilla/mozPoisonWrite.h"
 
 #if defined(XP_WIN)
+#include <windows.h>
 
 #undef GetStartupInfo
+#elif defined(XP_UNIX)
+#include <unistd.h>
+#include <sys/syscall.h>
+#endif
+
+#if defined(XP_MACOSX) || defined(__DragonFly__) || defined(__FreeBSD__) \
+  || defined(__NetBSD__) || defined(__OpenBSD__)
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+#include <sys/user.h>
 #endif
 
 #include "mozilla/Telemetry.h"
 #include "mozilla/StartupTimeline.h"
+
+#if defined(__NetBSD__)
+#undef KERN_PROC
+#define KERN_PROC KERN_PROC2
+#define KINFO_PROC struct kinfo_proc2
+#else
+#define KINFO_PROC struct kinfo_proc
+#endif
+
+#if defined(XP_MACOSX)
+#define KP_START_SEC kp_proc.p_un.__p_starttime.tv_sec
+#define KP_START_USEC kp_proc.p_un.__p_starttime.tv_usec
+#elif defined(__DragonFly__)
+#define KP_START_SEC kp_start.tv_sec
+#define KP_START_USEC kp_start.tv_usec
+#elif defined(__FreeBSD__)
+#define KP_START_SEC ki_start.tv_sec
+#define KP_START_USEC ki_start.tv_usec
+#else
+#define KP_START_SEC p_ustart_sec
+#define KP_START_USEC p_ustart_usec
+#endif
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
@@ -112,23 +149,6 @@ public:
     return NS_OK;
   }
 };
-
-
-
-
-
-
-
-
-
-
-uint64_t ComputeAbsoluteTimestamp(PRTime prnow, TimeStamp now, TimeStamp stamp)
-{
-  static PRTime sAbsoluteNow = PR_Now();
-  static TimeStamp sMonotonicNow = TimeStamp::Now();
-
-  return sAbsoluteNow - (sMonotonicNow - stamp).ToMicroseconds();
-}
 
 
 
@@ -363,8 +383,7 @@ nsAppStartup::Quit(uint32_t aMode)
 
     if (mRestart) {
       
-
-      TimeStamp::RecordProcessRestart();
+      PR_SetEnv(PR_smprintf("MOZ_APP_RESTART=%lld", (int64_t) PR_Now() / PR_USEC_PER_MSEC));
     }
 
     obsService = mozilla::services::GetObserverService();
@@ -646,52 +665,160 @@ nsAppStartup::Observe(nsISupports *aSubject,
   return NS_OK;
 }
 
+#if defined(LINUX) || defined(ANDROID)
+static uint64_t 
+JiffiesSinceBoot(const char *file)
+{
+  char stat[512];
+  FILE *f = fopen(file, "r");
+  if (!f)
+    return 0;
+  int n = fread(&stat, 1, sizeof(stat) - 1, f);
+  fclose(f);
+  if (n <= 0)
+    return 0;
+  stat[n] = 0;
+  
+  long long unsigned starttime = 0; 
+  
+  char *s = strrchr(stat, ')');
+  if (!s)
+    return 0;
+  int ret = sscanf(s + 2,
+                   "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u "
+                   "%*u %*u %*u %*u %*u %*d %*d %*d %*d %llu",
+                   &starttime);
+  if (ret != 1 || !starttime)
+    return 0;
+  return starttime;
+}
+
+static void
+ThreadedCalculateProcessCreationTimestamp(void *aClosure)
+{
+  PR_SetCurrentThreadName("Startup Timer");
+
+  PRTime now = PR_Now();
+  long hz = sysconf(_SC_CLK_TCK);
+  if (!hz)
+    return;
+
+  char thread_stat[40];
+  sprintf(thread_stat, "/proc/self/task/%d/stat", (pid_t) syscall(__NR_gettid));
+  
+  uint64_t thread_jiffies = JiffiesSinceBoot(thread_stat);
+  uint64_t self_jiffies = JiffiesSinceBoot("/proc/self/stat");
+  
+  if (!thread_jiffies || !self_jiffies)
+    return;
+
+  PRTime interval = (thread_jiffies - self_jiffies) * PR_USEC_PER_SEC / hz;
+  StartupTimeline::Record(StartupTimeline::PROCESS_CREATION, now - interval);
+}
+
+static PRTime
+CalculateProcessCreationTimestamp()
+{
+ PRThread *thread = PR_CreateThread(PR_USER_THREAD,
+                                    ThreadedCalculateProcessCreationTimestamp,
+                                    NULL,
+                                    PR_PRIORITY_NORMAL,
+                                    PR_LOCAL_THREAD,
+                                    PR_JOINABLE_THREAD,
+                                    0);
+
+  PR_JoinThread(thread);
+  return StartupTimeline::Get(StartupTimeline::PROCESS_CREATION);
+}
+#elif defined(XP_WIN)
+static PRTime
+CalculateProcessCreationTimestamp()
+{
+  FILETIME start, foo, bar, baz;
+  bool success = GetProcessTimes(GetCurrentProcess(), &start, &foo, &bar, &baz);
+  if (!success)
+    return 0;
+  
+  uint64_t timestamp = 0;
+  CopyMemory(&timestamp, &start, sizeof(PRTime));
+#ifdef __GNUC__
+  timestamp = (timestamp - 116444736000000000LL) / 10LL;
+#else
+  timestamp = (timestamp - 116444736000000000i64) / 10i64;
+#endif
+  return timestamp;
+}
+#elif defined(XP_MACOSX) || defined(__DragonFly__) || defined(__FreeBSD__) \
+  || defined(__NetBSD__) || defined(__OpenBSD__)
+static PRTime
+CalculateProcessCreationTimestamp()
+{
+  int mib[] = {
+    CTL_KERN,
+    KERN_PROC,
+    KERN_PROC_PID,
+    getpid(),
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+    sizeof(KINFO_PROC),
+    1,
+#endif
+  };
+  u_int miblen = sizeof(mib) / sizeof(mib[0]);
+
+  KINFO_PROC proc;
+  size_t buffer_size = sizeof(proc);
+  if (sysctl(mib, miblen, &proc, &buffer_size, NULL, 0))
+    return 0;
+
+  PRTime starttime = static_cast<PRTime>(proc.KP_START_SEC) * PR_USEC_PER_SEC;
+  starttime += proc.KP_START_USEC;
+  return starttime;
+}
+#else
+static PRTime
+CalculateProcessCreationTimestamp()
+{
+  return 0;
+}
+#endif
+ 
 NS_IMETHODIMP
 nsAppStartup::GetStartupInfo(JSContext* aCx, JS::Value* aRetval)
 {
   JSObject *obj = JS_NewObject(aCx, NULL, NULL, NULL);
   *aRetval = OBJECT_TO_JSVAL(obj);
 
-  TimeStamp procTime = StartupTimeline::Get(StartupTimeline::PROCESS_CREATION);
-  TimeStamp now = TimeStamp::Now();
-  PRTime absNow = PR_Now();
+  PRTime ProcessCreationTimestamp = StartupTimeline::Get(StartupTimeline::PROCESS_CREATION);
 
-  if (procTime.IsNull()) {
-    bool error = false;
-
-    procTime = TimeStamp::ProcessCreation(error);
-
-    if (error) {
-      Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS,
-        StartupTimeline::PROCESS_CREATION);
+  if (!ProcessCreationTimestamp) {
+    PRTime MainTimestamp = StartupTimeline::Get(StartupTimeline::MAIN);
+    char *moz_app_restart = PR_GetEnv("MOZ_APP_RESTART");
+    if (moz_app_restart) {
+      ProcessCreationTimestamp = nsCRT::atoll(moz_app_restart) * PR_USEC_PER_MSEC;
+    } else {
+      ProcessCreationTimestamp = CalculateProcessCreationTimestamp();
     }
-
-    StartupTimeline::Record(StartupTimeline::PROCESS_CREATION, procTime);
+    
+    if ((PR_Now() <= ProcessCreationTimestamp) ||
+        (MainTimestamp && (ProcessCreationTimestamp > MainTimestamp)))
+    {
+      ProcessCreationTimestamp = MainTimestamp ? MainTimestamp : -1;
+      Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS, StartupTimeline::PROCESS_CREATION);
+    }
+    StartupTimeline::Record(StartupTimeline::PROCESS_CREATION, ProcessCreationTimestamp);
   }
 
-  for (int i = StartupTimeline::PROCESS_CREATION;
-       i < StartupTimeline::MAX_EVENT_ID;
-       ++i)
-  {
+  for (int i = StartupTimeline::PROCESS_CREATION; i < StartupTimeline::MAX_EVENT_ID; ++i) {
     StartupTimeline::Event ev = static_cast<StartupTimeline::Event>(i);
-    TimeStamp stamp = StartupTimeline::Get(ev);
-
-    if (stamp.IsNull() && (ev == StartupTimeline::MAIN)) {
+    if (StartupTimeline::Get(ev) > 0) {
       
-      stamp = procTime;
-      MOZ_ASSERT(!stamp.IsNull());
-      Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS,
-        StartupTimeline::MAIN);
-    }
-
-    if (!stamp.IsNull()) {
-      if (stamp >= procTime) {
-        PRTime prStamp = ComputeAbsoluteTimestamp(absNow, now, stamp);
-        JSObject *date = JS_NewDateObjectMsec(aCx, prStamp / PR_USEC_PER_MSEC);
-        JS_DefineProperty(aCx, obj, StartupTimeline::Describe(ev),
-          OBJECT_TO_JSVAL(date), NULL, NULL, JSPROP_ENUMERATE);
+      if ((ev != StartupTimeline::MAIN) &&
+          (StartupTimeline::Get(ev) < StartupTimeline::Get(StartupTimeline::PROCESS_CREATION))) {
+        Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS, i);
+        StartupTimeline::Record(ev, -1);
       } else {
-        Telemetry::Accumulate(Telemetry::STARTUP_MEASUREMENT_ERRORS, ev);
+        JSObject *date = JS_NewDateObjectMsec(aCx, StartupTimeline::Get(ev) / PR_USEC_PER_MSEC);
+        JS_DefineProperty(aCx, obj, StartupTimeline::Describe(ev), OBJECT_TO_JSVAL(date), NULL, NULL, JSPROP_ENUMERATE);
       }
     }
   }
@@ -828,21 +955,14 @@ nsAppStartup::TrackStartupCrashEnd()
 
   
   
-  TimeStamp mainTime = StartupTimeline::Get(StartupTimeline::MAIN);
-  TimeStamp now = TimeStamp::Now();
-  PRTime prNow = PR_Now();
   nsresult rv;
-
-  if (mainTime.IsNull()) {
+  PRTime mainTime = StartupTimeline::Get(StartupTimeline::MAIN);
+  if (mainTime <= 0) {
     NS_WARNING("Could not get StartupTimeline::MAIN time.");
   } else {
-    uint64_t lockFileTime = ComputeAbsoluteTimestamp(prNow, now, mainTime);
-
-    rv = Preferences::SetInt(kPrefLastSuccess,
-      (int32_t)(lockFileTime / PR_USEC_PER_SEC));
-
-    if (NS_FAILED(rv))
-      NS_WARNING("Could not set startup crash detection pref.");
+    int32_t lockFileTime = (int32_t)(mainTime / PR_USEC_PER_SEC);
+    rv = Preferences::SetInt(kPrefLastSuccess, lockFileTime);
+    if (NS_FAILED(rv)) NS_WARNING("Could not set startup crash detection pref.");
   }
 
   if (inSafeMode && mIsSafeModeNecessary) {

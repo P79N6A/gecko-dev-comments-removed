@@ -229,28 +229,6 @@ public:
 
   static TimeStamp Now() { return Now(true); }
   static TimeStamp NowLoRes() { return Now(false); }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  static TimeStamp ProcessCreation(bool& aIsInconsistent);
-
-  
-
-
-
-
-  static void RecordProcessRestart();
-
   
 
 
@@ -333,7 +311,6 @@ public:
 
 private:
   friend struct IPC::ParamTraits<mozilla::TimeStamp>;
-  friend void StartupTimelineRecordExternal(int, uint64_t);
 
   TimeStamp(TimeStampValue aValue) : mValue(aValue) {}
 
@@ -353,19 +330,6 @@ private:
 
 
   TimeStampValue mValue;
-
-  
-
-
-
-  static TimeStamp sFirstTimeStamp;
-
-  
-
-
-
-
-  static TimeStamp sProcessCreation;
 };
 
 }
