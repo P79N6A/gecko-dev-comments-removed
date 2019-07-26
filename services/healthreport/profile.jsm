@@ -31,14 +31,14 @@ Cu.import("resource://services-common/utils.js");
 
 
 
-function ProfileCreationTimeAccessor(profile, log) {
+this.ProfileCreationTimeAccessor = function(profile, log) {
   this.profilePath = profile || OS.Constants.Path.profileDir;
   if (!this.profilePath) {
     throw new Error("No profile directory.");
   }
   this._log = log || {"debug": function (s) { dump(s + "\n"); }};
 }
-ProfileCreationTimeAccessor.prototype = {
+this.ProfileCreationTimeAccessor.prototype = {
   
 
 
@@ -210,10 +210,10 @@ function truncate(msec) {
 
 
 
-function ProfileMetadataProvider() {
+this.ProfileMetadataProvider = function() {
   Metrics.Provider.call(this);
 }
-ProfileMetadataProvider.prototype = {
+this.ProfileMetadataProvider.prototype = {
   __proto__: Metrics.Provider.prototype,
 
   name: "org.mozilla.profile",
