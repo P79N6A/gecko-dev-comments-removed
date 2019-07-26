@@ -14,6 +14,10 @@
 #include "mozilla/Likely.h"
 #include "mozilla/Telemetry.h"
 
+
+
+#define DISABLE_GENERIC_NTLM_MODULE 1
+
 #ifdef PR_LOGGING
 static PRLogModuleInfo *
 GetNTLMLog()
@@ -754,11 +758,16 @@ nsNTLMAuthModule::~nsNTLMAuthModule()
 nsresult
 nsNTLMAuthModule::InitTest()
 {
+#if defined(DISABLE_GENERIC_NTLM_MODULE)
+  
+  return NS_ERROR_NOT_AVAILABLE;
+#else 
   nsNSSShutDownPreventionLock locker;
   
   
   
   return PK11_IsFIPS() ? NS_ERROR_NOT_AVAILABLE : NS_OK;
+#endif
 }
 
 NS_IMETHODIMP
