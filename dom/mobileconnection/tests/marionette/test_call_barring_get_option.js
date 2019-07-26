@@ -2,38 +2,73 @@
 
 
 MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
+const TEST_DATA = [
+  
+  {
+    options: {
+      program: 5, 
+      serviceClass: 0
+    },
+    expectedError: "InvalidParameter"
+  }, {
+    options: {
+      program: null,
+      serviceClass: 0
+    },
+    expectedError: "InvalidParameter"
+  }, {
+    options: {
+      
+      serviceClass: 0
+    },
+    expectedError: "InvalidParameter"
+  },
+  
+  {
+    options: {
+      program: MozMobileConnection.CALL_BARRING_PROGRAM_ALL_OUTGOING,
+      serviceClass: null
+    },
+    expectedError: "InvalidParameter"
+  }, {
+    options: {
+      program: MozMobileConnection.CALL_BARRING_PROGRAM_ALL_OUTGOING,
+      
+    },
+    expectedError: "InvalidParameter"
+  },
+  
+  
+  
+  {
+    options: {
+      program: MozMobileConnection.CALL_BARRING_PROGRAM_ALL_OUTGOING,
+      serviceClass: 0
+    },
+    expectedError: "RequestNotSupported"
+  }
+];
 
+function testGetCallBarringOption(aOptions, aExpectedError) {
+  log("Test getting call barring to " + JSON.stringify(aOptions));
 
-
-let ifr = document.createElement("iframe");
-let connection;
-ifr.onload = function() {
-  connection = ifr.contentWindow.navigator.mozMobileConnections[0];
-
-  ok(connection instanceof ifr.contentWindow.MozMobileConnection,
-     "connection is instanceof " + connection.constructor);
-
-  testGetCallBarringOption();
-};
-document.body.appendChild(ifr);
-
-function testGetCallBarringOption() {
-  let option = {'program': 0, 'password': '', 'serviceClass': 0};
-  let request = connection.getCallBarringOption(option);
-  request.onsuccess = function() {
-    ok(request.result);
-    ok('enabled' in request.result, 'should have "enabled" field');
-    cleanUp();
-  };
-  request.onerror = function() {
-    
-    cleanUp();
-  };
+  return getCallBarringOption(aOptions)
+    .then(function resolve(aResult) {
+      ok(false, "should not success");
+    }, function reject(aError) {
+      is(aError.name, aExpectedError, "failed to getCallBarringOption");
+    });
 }
 
-function cleanUp() {
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
-}
+
+startTestCommon(function() {
+  let promise = Promise.resolve();
+  for (let i = 0; i < TEST_DATA.length; i++) {
+    let data = TEST_DATA[i];
+    promise = promise.then(() => testGetCallBarringOption(data.options,
+                                                          data.expectedError));
+  }
+  return promise;
+});

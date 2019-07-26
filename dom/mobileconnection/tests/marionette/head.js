@@ -587,6 +587,23 @@ function sendMMI(aMmi) {
 
 
 
+
+
+ function getCallBarringOption(aOptions) {
+  let request = mobileConnection.getCallBarringOption(aOptions);
+  return wrapDomRequestAsPromise(request)
+    .then(() => request.result, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
  function changeCallBarringPassword(aOptions) {
   let request = mobileConnection.changeCallBarringPassword(aOptions);
   return wrapDomRequestAsPromise(request)
