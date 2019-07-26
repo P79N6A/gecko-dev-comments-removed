@@ -13,7 +13,9 @@ let console = (function() {
 
 
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+
 Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);
+Services.scriptloader.loadSubScript(testDir + "/mockCommands.js", this);
 
 
 
