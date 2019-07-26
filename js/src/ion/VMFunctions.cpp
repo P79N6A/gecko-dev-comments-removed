@@ -39,13 +39,12 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
         JSScript *script = GetTopIonJSScript(cx);
         if (script->hasIonScript() && ++script->ion->slowCallCount >= js_IonOptions.slowCallLimit) {
             AutoFlushCache afc("InvokeFunction");
-            Invalidate(cx, script, false);
 
             
-            ForbidCompilation(script);
+            
+            ForbidCompilation(cx, script);
         }
     }
-
 
     
     
