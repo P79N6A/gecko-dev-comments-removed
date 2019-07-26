@@ -392,6 +392,17 @@ GetStubReturnAddress(JSContext *cx, jsbytecode *pc)
     return cx->compartment()->jitCompartment()->baselineCallReturnAddr();
 }
 
+static inline jsbytecode *
+GetNextNonLoopEntryPc(jsbytecode *pc)
+{
+    JSOp op = JSOp(*pc);
+    if (op == JSOP_GOTO)
+        return pc + GET_JUMP_OFFSET(pc);
+    if (op == JSOP_LOOPENTRY || op == JSOP_NOP || op == JSOP_LOOPHEAD)
+        return GetNextPc(pc);
+    return pc;
+}
+
 
 
 
@@ -783,16 +794,18 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     
+    
+    
+    
     if (!resumeAfter) {
+        jsbytecode *fasterPc = pc;
         while (true) {
-            op = JSOp(*pc);
-            if (op == JSOP_GOTO)
-                pc += GET_JUMP_OFFSET(pc);
-            else if (op == JSOP_LOOPENTRY || op == JSOP_NOP || op == JSOP_LOOPHEAD)
-                pc = GetNextPc(pc);
-            else
+            pc = GetNextNonLoopEntryPc(pc);
+            fasterPc = GetNextNonLoopEntryPc(GetNextNonLoopEntryPc(fasterPc));
+            if (fasterPc == pc)
                 break;
         }
+        op = JSOp(*pc);
     }
 
     uint32_t pcOff = script->pcToOffset(pc);
