@@ -216,13 +216,18 @@ nsBindingManager::RemovedFromDocumentInternal(nsIContent* aContent,
 {
   NS_PRECONDITION(aOldDocument != nullptr, "no old document");
 
-  if (mDestroyed)
-    return;
-
   nsRefPtr<nsXBLBinding> binding = aContent->GetXBLBinding();
   if (binding) {
-    binding->PrototypeBinding()->BindingDetached(binding->GetBoundElement());
-    binding->ChangeDocument(aOldDocument, nullptr);
+    
+    
+    
+    
+    
+    if (!mDestroyed) {
+      binding->PrototypeBinding()->BindingDetached(binding->GetBoundElement());
+      binding->ChangeDocument(aOldDocument, nullptr);
+    }
+
     aContent->SetXBLBinding(nullptr, this);
   }
 

@@ -1250,6 +1250,9 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(FragmentOrElement)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(FragmentOrElement)
   nsINode::Unlink(tmp);
 
+  
+  
+
   if (tmp->HasProperties()) {
     if (tmp->IsHTML()) {
       nsIAtom*** props = nsGenericHTMLElement::PropertiesToTraverseAndUnlink();
