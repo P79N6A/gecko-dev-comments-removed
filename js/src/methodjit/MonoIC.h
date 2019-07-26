@@ -201,6 +201,9 @@ struct CallICInfo {
     
     uint32_t slowJoinOffset  : 16;
 
+    
+    uint32_t ionJoinOffset : 16;
+
     RegisterID funObjReg : 5;
     bool hit : 1;
     bool hasJsFunCheck : 1;
@@ -251,6 +254,9 @@ struct CallICInfo {
     }
     JSC::CodeLocationLabel nativeRejoin() {
         return slowPathStart.labelAtOffset(slowJoinOffset);
+    }
+    JSC::CodeLocationLabel ionJoinPoint() {
+        return funGuard.labelAtOffset(ionJoinOffset);
     }
 
     inline void reset(Repatcher &repatcher) {

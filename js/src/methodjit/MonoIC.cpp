@@ -725,27 +725,49 @@ class CallCompiler : public BaseCompiler
 #endif
 
         
-        regs = Registers(Registers::AvailRegs);
-#ifdef JS_NUNBOX32
-        regs.takeRegUnchecked((RegisterID)ion::JSReturnReg_Type.code());
-        regs.takeRegUnchecked((RegisterID)ion::JSReturnReg_Data.code());
-#elif JS_PUNBOX64
-        regs.takeRegUnchecked((RegisterID)ion::JSReturnReg.code());
-#endif
-
-#ifdef JS_CPU_X86
-        RegisterID returnTypeReg = (RegisterID)ion::JSReturnReg_Type.code();
-#elif JS_CPU_ARM
-        
-
-
-
-        RegisterID returnTypeReg = regs.takeAnyReg().reg();
-        masm.move((RegisterID)ion::JSReturnReg_Type.code(), returnTypeReg);
-#endif
-
-        
         masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
+
+        
+        regs = Registers(Registers::AvailRegs);
+        regs.takeRegUnchecked(JSReturnReg_Type);
+        regs.takeRegUnchecked(JSReturnReg_Data);
+
+        
+
+
+
+
+        Address rval(JSFrameReg, spOffset - ((argc + 2) * sizeof(Value)));
+#ifdef JS_NUNBOX32
+        RegisterID ionReturnType = (RegisterID)ion::JSReturnReg_Type.code();
+        RegisterID ionReturnData = (RegisterID)ion::JSReturnReg_Data.code();
+
+        
+        JS_ASSERT(ionReturnType != JSReturnReg_Type);
+        JS_ASSERT(ionReturnType != JSReturnReg_Data);
+        JS_ASSERT(ionReturnType != JSFrameReg);
+        JS_ASSERT(ionReturnData != JSReturnReg_Type);
+        JS_ASSERT(ionReturnData != JSReturnReg_Data);
+        JS_ASSERT(ionReturnData != JSFrameReg);
+
+        masm.move(ionReturnType, JSReturnReg_Type);
+        masm.move(ionReturnData, JSReturnReg_Data);
+        masm.storeValueFromComponents(JSReturnReg_Type, JSReturnReg_Data, rval);
+#elif JS_PUNBOX64
+        RegisterID ionReturn = (RegisterID)ion::JSReturnReg.code();
+
+        
+        JS_ASSERT(ionReturn != JSReturnReg_Type);
+        JS_ASSERT(ionReturn != JSReturnReg_Data);
+        JS_ASSERT(ionReturn != JSFrameReg);
+
+        masm.move(ionReturn, JSReturnReg_Type);
+
+        masm.move(JSReturnReg_Type, rval);
+        masm.move(Registers::PayloadMaskReg, JSReturnReg_Data);
+        masm.andPtr(JSReturnReg_Type, JSReturnReg_Data);
+        masm.xorPtr(JSReturnReg_Data, JSReturnReg_Type);
+#endif
 
         
         masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
@@ -761,18 +783,7 @@ class CallCompiler : public BaseCompiler
         masm.store32(t0, Address(JSFrameReg, StackFrame::offsetOfFlags()));
 
         
-        Address rval(JSFrameReg, spOffset - ((argc + 2) * sizeof(Value)));
-#ifdef JS_NUNBOX32
-        Jump exception = masm.testMagic(Assembler::Equal, returnTypeReg);
-        masm.storeValueFromComponents(returnTypeReg,
-                                      (RegisterID)ion::JSReturnReg_Data.code(),
-                                      rval);
-#elif defined JS_PUNBOX64
-        masm.move(ion::JSReturnReg.code(), t0);
-        masm.convertValueToType(t0);
-        Jump exception = masm.testMagic(Assembler::Equal, t0);
-        masm.storePtr(ion::JSReturnReg.code(), rval);
-#endif
+        Jump exception = masm.testMagic(Assembler::Equal, JSReturnReg_Type);
 
         
         NativeStubLinker::FinalJump done;
@@ -797,7 +808,7 @@ class CallCompiler : public BaseCompiler
         }
 
         linker.link(noIonCode, ic.icCall());
-        linker.patchJump(ic.nativeRejoin());
+        linker.patchJump(ic.ionJoinPoint());
         JSC::CodeLocationLabel cs = linker.finalize(f);
 
         ic.updateLastOolJump(linker.locationOf(noIonCode),
