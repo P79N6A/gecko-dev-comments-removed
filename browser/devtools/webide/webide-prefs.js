@@ -4,6 +4,6 @@
 # file, You can obtain one at http:
 
 pref("devtools.webide.showProjectEditor", true);
-pref("devtools.webide.templatesURL", "http://fixme/");
+pref("devtools.webide.templatesURL", "http://people.mozilla.org/~prouget/webidetemplates/template.json"); 
 pref("devtools.webide.lastprojectlocation", "");
 pref("devtools.webide.enableLocalRuntime", false);
