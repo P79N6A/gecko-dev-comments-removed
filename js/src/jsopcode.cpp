@@ -5385,12 +5385,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                 break;
 #endif 
 
-              case JSOP_ACTUALSFILLED:
-                JS_ASSERT(!defaultsSwitch);
-                defaultsSwitch = true;
-                todo = -2;
-                break;
-
               case JSOP_REST:
                 
                 pc += GetBytecodeLength(pc);
@@ -5644,11 +5638,12 @@ js_DecompileFunction(JSPrinter *jp)
         unsigned nformal = fun->nargs - fun->hasRest();
 
         if (fun->hasDefaults()) {
+            
+            
+            
+            MOZ_CRASH();
+
             jsbytecode *defpc;
-            for (defpc = pc; defpc < endpc; defpc += GetBytecodeLength(defpc)) {
-                if (*defpc == JSOP_ACTUALSFILLED)
-                    break;
-            }
             LOCAL_ASSERT_RV(defpc < endpc, JS_FALSE);
             defpc += GetBytecodeLength(defpc);
             LOCAL_ASSERT_RV(*defpc == JSOP_TABLESWITCH, JS_FALSE);
