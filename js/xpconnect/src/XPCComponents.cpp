@@ -4224,6 +4224,34 @@ nsXPCComponents_Utils::CreateArrayIn(const jsval &vobj, JSContext *cx, jsval *rv
     return NS_OK;
 }
 
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::CreateDateIn(const jsval &vobj,
+                                    int64_t msec,
+                                    JSContext *cx, jsval *rval)
+{
+    if (!cx)
+        return NS_ERROR_FAILURE;
+
+    
+    if (JSVAL_IS_PRIMITIVE(vobj))
+        return NS_ERROR_XPC_BAD_CONVERT_JS;
+
+    JSObject *scope = js::UnwrapObject(JSVAL_TO_OBJECT(vobj));
+    JSObject *obj;
+    {
+        JSAutoCompartment ac(cx, scope);
+        obj =  JS_NewDateObjectMsec(cx, msec);
+        if (!obj)
+            return NS_ERROR_FAILURE;
+    }
+
+    if (!JS_WrapObject(cx, &obj))
+        return NS_ERROR_FAILURE;
+    *rval = OBJECT_TO_JSVAL(obj);
+    return NS_OK;
+}
+
 JSBool
 FunctionWrapper(JSContext *cx, unsigned argc, jsval *vp)
 {
