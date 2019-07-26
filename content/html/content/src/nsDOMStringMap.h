@@ -7,8 +7,6 @@
 #ifndef nsDOMStringMap_h
 #define nsDOMStringMap_h
 
-#include "nsIDOMDOMStringMap.h"
-
 #include "nsCycleCollectionParticipant.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
@@ -16,12 +14,15 @@
 #include "nsWrapperCache.h"
 #include "nsGenericHTMLElement.h"
 
-class nsDOMStringMap : public nsIDOMDOMStringMap,
+namespace mozilla {
+class ErrorResult;
+}
+
+class nsDOMStringMap : public nsISupports,
                        public nsWrapperCache
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_NSIDOMDOMSTRINGMAP
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsDOMStringMap)
 
   nsINode* GetParentObject()
@@ -29,35 +30,16 @@ public:
     return mElement;
   }
 
-  static nsDOMStringMap* FromSupports(nsISupports* aSupports)
-  {
-    nsIDOMDOMStringMap* map =
-      static_cast<nsDOMStringMap*>(aSupports);
-#ifdef DEBUG
-    {
-      nsCOMPtr<nsIDOMDOMStringMap> map_qi =
-        do_QueryInterface(aSupports);
-
-      
-      
-      
-      NS_ASSERTION(map_qi == map, "Uh, fix QI!");
-    }
-#endif
-
-    return static_cast<nsDOMStringMap*>(map);
-  }
-
-  
   nsDOMStringMap(nsGenericHTMLElement* aElement);
 
   
-  
-  
-  nsresult GetDataPropList(nsTArray<nsString>& aResult);
-
-  nsresult RemovePropInternal(nsIAtom* aAttr);
-  nsGenericHTMLElement* GetElement();
+  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
+                               bool *triedToWrap);
+  void NamedGetter(const nsAString& aProp, bool& found, nsString& aResult) const;
+  void NamedSetter(const nsAString& aProp, const nsAString& aValue,
+                   mozilla::ErrorResult& rv);
+  void NamedDeleter(const nsAString& aProp, bool &found);
+  void GetSupportedNames(nsTArray<nsString>& aNames);
 
 private:
   virtual ~nsDOMStringMap();
@@ -66,8 +48,8 @@ protected:
   nsRefPtr<nsGenericHTMLElement> mElement;
   
   bool mRemovingProp;
-  bool DataPropToAttr(const nsAString& aProp, nsAString& aResult);
-  bool AttrToDataProp(const nsAString& aAttr, nsAString& aResult);
+  static bool DataPropToAttr(const nsAString& aProp, nsAString& aResult);
+  static bool AttrToDataProp(const nsAString& aAttr, nsAString& aResult);
 };
 
 #endif
