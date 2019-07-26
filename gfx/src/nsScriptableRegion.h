@@ -4,6 +4,9 @@
 
 
 
+#ifndef nsScriptableRegion_h
+#define nsScriptableRegion_h
+
 #include "nsIScriptableRegion.h"
 #include "gfxCore.h"
 #include "nsISupports.h"
@@ -21,3 +24,5 @@ public:
 private:
 	nsIntRegion mRegion;
 };
+
+#endif
