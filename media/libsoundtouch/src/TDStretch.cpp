@@ -609,9 +609,11 @@ void * TDStretch::operator new(size_t s)
 
 TDStretch * TDStretch::newInstance()
 {
+#if defined(SOUNDTOUCH_ALLOW_MMX) || defined(SOUNDTOUCH_ALLOW_SSE)
     uint uExtensions;
 
     uExtensions = detectCPUextensions();
+#endif
 
     
 
