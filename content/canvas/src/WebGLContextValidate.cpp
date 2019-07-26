@@ -1206,12 +1206,8 @@ WebGLContext::ValidateTexInputData(GLenum type, int jsArrayType, WebGLTexImageFu
         validInput = (jsArrayType == -1 || jsArrayType == js::ArrayBufferView::TYPE_UINT8);
         break;
 
-        
     case LOCAL_GL_HALF_FLOAT:
     case LOCAL_GL_HALF_FLOAT_OES:
-        validInput = (jsArrayType == -1);
-        break;
-
     case LOCAL_GL_UNSIGNED_SHORT:
     case LOCAL_GL_UNSIGNED_SHORT_4_4_4_4:
     case LOCAL_GL_UNSIGNED_SHORT_5_5_5_1:
