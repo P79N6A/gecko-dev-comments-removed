@@ -3,9 +3,25 @@
 
 
 
+let Cc = Components.classes;
+let Ci = Components.interfaces;
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+
+function dump(a) {
+  Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
+}
+
+function sendMessageToJava(aMessage) {
+  return Cc["@mozilla.org/android/bridge;1"]
+           .getService(Ci.nsIAndroidBridge)
+           .handleGeckoMessage(JSON.stringify(aMessage));
+}
+
+this.EXPORTED_SYMBOLS = ["Sanitizer"];
+
 function Sanitizer() {}
 Sanitizer.prototype = {
-  
   clearItem: function (aItemName)
   {
     if (this.items[aItemName].canClear)
@@ -174,9 +190,7 @@ Sanitizer.prototype = {
         sdr.logoutAndTeardown();
 
         
-        var os = Components.classes["@mozilla.org/observer-service;1"]
-                           .getService(Components.interfaces.nsIObserverService);
-        os.notifyObservers(null, "net:clear-active-logins", null);
+        Services.obs.notifyObservers(null, "net:clear-active-logins", null);
       },
 
       get canClear()
@@ -187,3 +201,4 @@ Sanitizer.prototype = {
   }
 };
 
+this.Sanitizer = new Sanitizer();
