@@ -47,13 +47,7 @@ nsNodeInfoManager::GetNodeInfoInnerHashValue(const void *key)
   const nsINodeInfo::nsNodeInfoInner *node =
     reinterpret_cast<const nsINodeInfo::nsNodeInfoInner *>(key);
 
-  if (node->mName) {
-    
-    
-    
-    return HashString(nsDependentAtomString(node->mName));
-  }
-  return HashString(*(node->mNameString));
+  return node->mName ? node->mName->hash() : HashString(*(node->mNameString));
 }
 
 
