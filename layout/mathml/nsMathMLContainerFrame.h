@@ -262,14 +262,6 @@ public:
 
 
 
-
-  nsresult
-  ReportInvalidChildError(nsIAtom* aChildTag);
-
-  
-
-
-
   nsresult
   ReportErrorToConsole(const char*       aErrorMsgId,
                        const PRUnichar** aParams = nullptr,
