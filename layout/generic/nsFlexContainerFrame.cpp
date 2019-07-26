@@ -1405,7 +1405,8 @@ public:
                                      FlexItem& aItem);
 
   void EnterAlignPackingSpace(const FlexLine& aLine,
-                              const FlexItem& aItem);
+                              const FlexItem& aItem,
+                              const FlexboxAxisTracker& aAxisTracker);
 
   
   inline void ResetPosition() { mPosition = 0; }
@@ -1832,6 +1833,16 @@ MainAxisPositionTracker::
 
   
   
+  if (aAxisTracker.AreAxesInternallyReversed()) {
+    if (mJustifyContent == NS_STYLE_JUSTIFY_CONTENT_FLEX_START) {
+      mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_END;
+    } else if (mJustifyContent == NS_STYLE_JUSTIFY_CONTENT_FLEX_END) {
+      mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_START;
+    }
+  }
+
+  
+  
   if (mNumAutoMarginsInMainAxis == 0 &&
       mPackingSpaceRemaining != 0 &&
       !aLine->IsEmpty()) {
@@ -1985,6 +1996,16 @@ CrossAxisPositionTracker::
       mAlignContent = NS_STYLE_ALIGN_CONTENT_FLEX_START;
     } else if (mAlignContent == NS_STYLE_ALIGN_CONTENT_SPACE_AROUND) {
       mAlignContent = NS_STYLE_ALIGN_CONTENT_CENTER;
+    }
+  }
+
+  
+  
+  if (aAxisTracker.AreAxesInternallyReversed()) {
+    if (mAlignContent == NS_STYLE_ALIGN_CONTENT_FLEX_START) {
+      mAlignContent = NS_STYLE_ALIGN_CONTENT_FLEX_END;
+    } else if (mAlignContent == NS_STYLE_ALIGN_CONTENT_FLEX_END) {
+      mAlignContent = NS_STYLE_ALIGN_CONTENT_FLEX_START;
     }
   }
 
@@ -2234,7 +2255,8 @@ SingleLineCrossAxisPositionTracker::
 void
 SingleLineCrossAxisPositionTracker::
   EnterAlignPackingSpace(const FlexLine& aLine,
-                         const FlexItem& aItem)
+                         const FlexItem& aItem,
+                         const FlexboxAxisTracker& aAxisTracker)
 {
   
   
@@ -2242,11 +2264,25 @@ SingleLineCrossAxisPositionTracker::
     return;
   }
 
-  switch (aItem.GetAlignSelf()) {
+  uint8_t alignSelf = aItem.GetAlignSelf();
+  
+  
+  if (alignSelf == NS_STYLE_ALIGN_ITEMS_STRETCH) {
+    alignSelf = NS_STYLE_ALIGN_ITEMS_FLEX_START;
+  }
+
+  
+  
+  if (aAxisTracker.AreAxesInternallyReversed()) {
+    if (alignSelf == NS_STYLE_ALIGN_ITEMS_FLEX_START) {
+      alignSelf = NS_STYLE_ALIGN_ITEMS_FLEX_END;
+    } else if (alignSelf == NS_STYLE_ALIGN_ITEMS_FLEX_END) {
+      alignSelf = NS_STYLE_ALIGN_ITEMS_FLEX_START;
+    }
+  }
+
+  switch (alignSelf) {
     case NS_STYLE_ALIGN_ITEMS_FLEX_START:
-    case NS_STYLE_ALIGN_ITEMS_STRETCH:
-      
-      
       
       break;
     case NS_STYLE_ALIGN_ITEMS_FLEX_END:
@@ -2788,7 +2824,7 @@ FlexLine::PositionItemsInCrossAxis(nscoord aLineStartPosition,
     nscoord itemCrossBorderBoxSize =
       item->GetCrossSize() +
       item->GetBorderPaddingSizeInAxis(aAxisTracker.GetCrossAxis());
-    lineCrossAxisPosnTracker.EnterAlignPackingSpace(*this, *item);
+    lineCrossAxisPosnTracker.EnterAlignPackingSpace(*this, *item, aAxisTracker);
     lineCrossAxisPosnTracker.EnterMargin(item->GetMargin());
     lineCrossAxisPosnTracker.EnterChildFrame(itemCrossBorderBoxSize);
 
