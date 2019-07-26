@@ -268,7 +268,7 @@ public class DoorHangerPopup extends ArrowPopup
 
 
 
-    private void updatePopup() {
+    void updatePopup() {
         
         
         
@@ -299,7 +299,7 @@ public class DoorHangerPopup extends ArrowPopup
 
         showDividers();
         if (isShowing()) {
-            update();
+            show();
             return;
         }
 
