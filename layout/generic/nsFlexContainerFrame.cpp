@@ -433,7 +433,8 @@ public:
 
   
   void SetCrossSize(nscoord aCrossSize) {
-    MOZ_ASSERT(mIsFrozen, "main size should be resolved before this");
+    MOZ_ASSERT(!mIsStretched,
+               "Cross size shouldn't be modified after it's been stretched");
     mCrossSize = aCrossSize;
   }
 
@@ -821,6 +822,13 @@ nsFlexContainerFrame::
                               -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
   childRSForMeasuringHeight.mFlags.mIsFlexContainerMeasuringHeight = true;
   childRSForMeasuringHeight.Init(aPresContext);
+
+  aFlexItem.ResolveStretchedCrossSize(aParentReflowState.ComputedWidth(),
+                                      aAxisTracker);
+  if (aFlexItem.IsStretched()) {
+    childRSForMeasuringHeight.SetComputedWidth(aFlexItem.GetCrossSize());
+    childRSForMeasuringHeight.mFlags.mHResize = true;
+  }
 
   
   
@@ -2239,20 +2247,24 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   for (uint32_t i = 0; i < items.Length(); ++i) {
     FlexItem& curItem = items[i];
 
-    nsHTMLReflowState childReflowState(aPresContext, aReflowState,
-                                       curItem.Frame(),
-                                       nsSize(aReflowState.ComputedWidth(),
-                                              NS_UNCONSTRAINEDSIZE));
     
-    if (IsAxisHorizontal(axisTracker.GetMainAxis())) {
-      childReflowState.SetComputedWidth(curItem.GetMainSize());
-    } else {
-      childReflowState.SetComputedHeight(curItem.GetMainSize());
-    }
+    
+    if (!curItem.IsStretched()) {
+      nsHTMLReflowState childReflowState(aPresContext, aReflowState,
+                                         curItem.Frame(),
+                                         nsSize(aReflowState.ComputedWidth(),
+                                                NS_UNCONSTRAINEDSIZE));
+      
+      if (IsAxisHorizontal(axisTracker.GetMainAxis())) {
+        childReflowState.SetComputedWidth(curItem.GetMainSize());
+      } else {
+        childReflowState.SetComputedHeight(curItem.GetMainSize());
+      }
 
-    nsresult rv = SizeItemInCrossAxis(aPresContext, axisTracker,
-                                      childReflowState, curItem);
-    NS_ENSURE_SUCCESS(rv, rv);
+      nsresult rv = SizeItemInCrossAxis(aPresContext, axisTracker,
+                                        childReflowState, curItem);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
 
   
