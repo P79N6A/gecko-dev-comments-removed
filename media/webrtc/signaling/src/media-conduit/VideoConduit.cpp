@@ -3,6 +3,7 @@
 
 
 #include "VideoConduit.h"
+#include "AudioConduit.h"
 #include "video_engine/include/vie_errors.h"
 #include "CSFLog.h"
 
@@ -72,6 +73,7 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
   {
     mPtrViEBase->StopSend(mChannel);
     mPtrViEBase->StopReceive(mChannel);
+    SyncTo(nullptr);
     mPtrViEBase->DeleteChannel(mChannel);
     mPtrViEBase->Release();
   }
@@ -234,6 +236,22 @@ MediaConduitErrorCode WebrtcVideoConduit::Init()
   return kMediaConduitNoError;
 }
 
+void
+WebrtcVideoConduit::SyncTo(WebrtcAudioConduit *aConduit)
+{
+  CSFLogDebug(logTag, "%s Synced to %p", __FUNCTION__, aConduit);
+
+  if (aConduit) {
+    mPtrViEBase->SetVoiceEngine(aConduit->GetVoiceEngine());
+    mPtrViEBase->ConnectAudioChannel(mChannel, aConduit->GetChannel());
+    
+    mSyncedTo = aConduit;
+  } else if (mSyncedTo) {
+    mPtrViEBase->DisconnectAudioChannel(mChannel);
+    mPtrViEBase->SetVoiceEngine(nullptr);
+    mSyncedTo = nullptr;
+  }
+}
 
 MediaConduitErrorCode
 WebrtcVideoConduit::AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer)

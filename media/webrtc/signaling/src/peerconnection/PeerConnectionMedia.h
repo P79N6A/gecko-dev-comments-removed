@@ -205,9 +205,11 @@ class RemoteSourceStreamInfo {
   nsDOMMediaStream* GetMediaStream() {
     return mMediaStream;
   }
-  void StorePipeline(int aTrack, mozilla::RefPtr<mozilla::MediaPipeline> aPipeline);
+  void StorePipeline(int aTrack, bool aIsVideo,
+                     mozilla::RefPtr<mozilla::MediaPipeline> aPipeline);
 
   void Detach() {
+    
     
     for (std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> >::iterator it =
            mPipelines.begin(); it != mPipelines.end();
@@ -221,6 +223,7 @@ class RemoteSourceStreamInfo {
  private:
   nsRefPtr<nsDOMMediaStream> mMediaStream;
   std::map<int, mozilla::RefPtr<mozilla::MediaPipeline> > mPipelines;
+  std::map<int, bool> mTypes;
 };
 
 class PeerConnectionMedia : public sigslot::has_slots<> {

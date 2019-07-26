@@ -33,6 +33,8 @@
 
 namespace mozilla {
 
+class WebrtcAudioConduit;
+
 
 
 
@@ -46,6 +48,11 @@ public:
 
   
   static const unsigned int CODEC_PLNAME_SIZE;
+
+  
+
+
+  void SyncTo(WebrtcAudioConduit *aConduit);
 
   
 
@@ -206,6 +213,8 @@ private:
   int mCapId;   
   RecvCodecList    mRecvCodecList;
   VideoCodecConfig* mCurSendCodecConfig;
+
+  mozilla::RefPtr<WebrtcAudioConduit> mSyncedTo;
 };
 
 
