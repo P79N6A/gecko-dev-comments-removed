@@ -1144,12 +1144,8 @@ TryConvertFreeName(BytecodeEmitter *bce, ParseNode *pn)
         
         
         for (StmtInfoBCE *stmt = bce->topStmt; stmt; stmt = stmt->down) {
-            switch (stmt->type) {
-              case STMT_TRY:
-              case STMT_FINALLY:
+            if (stmt->type == STMT_CATCH)
                 return true;
-              default:;
-            }
         }
 
         size_t hops = 0;
