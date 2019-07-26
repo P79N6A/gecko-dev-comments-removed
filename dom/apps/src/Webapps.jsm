@@ -2317,7 +2317,14 @@ this.DOMApplicationRegistry = {
 
                 
                 
-                AppsUtils.ensureSameAppName(aManifest._manifest, manifest, app);
+                
+                
+                if (aIsUpdate) {
+                  
+                  
+                  AppsUtils.ensureSameAppName(aManifest._manifest, manifest,
+                                              app);
+                }
 
                 if (!AppsUtils.compareManifests(manifest,
                                                 aManifest._manifest)) {
