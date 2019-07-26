@@ -26,6 +26,7 @@ namespace mozilla {
 namespace dom {
 
 class AnyCallback;
+class DOMError;
 class PromiseCallback;
 class PromiseInit;
 class PromiseNativeHandler;
@@ -89,11 +90,21 @@ public:
     MaybeSomething(aArg, &Promise::MaybeResolve);
   }
 
-  
-  template <typename T>
-  void MaybeReject(const T& aArg) {
+  inline void MaybeReject(nsresult aArg) {
+    MOZ_ASSERT(NS_FAILED(aArg));
     MaybeSomething(aArg, &Promise::MaybeReject);
   }
+  
+  
+  
+  
+  
+  
+  
+  template<typename T>
+  void MaybeRejectBrokenly(const T& aArg); 
+                                           
+                                           
 
   
 
