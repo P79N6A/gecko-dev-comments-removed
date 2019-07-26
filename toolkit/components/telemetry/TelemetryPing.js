@@ -106,69 +106,6 @@ function generateUUID() {
 
 
 
-
-
-
-
-function getSimpleMeasurements() {
-  let si = Services.startup.getStartupInfo();
-
-  var ret = {
-    
-    uptime: Math.round((new Date() - si.process) / 60000)
-  }
-
-  
-  var appTimestamps = {};
-  try {
-    let o = {};
-    Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", o);
-    appTimestamps = o.TelemetryTimestamps.get();
-  } catch (ex) {}
-  try {
-    let o = {};
-    Cu.import("resource://gre/modules/AddonManager.jsm", o);
-    ret.addonManager = o.AddonManagerPrivate.getSimpleMeasures();
-  } catch (ex) {}
-
-  if (si.process) {
-    for each (let field in Object.keys(si)) {
-      if (field == "process")
-        continue;
-      ret[field] = si[field] - si.process
-    }
-
-    for (let p in appTimestamps) {
-      if (!(p in ret) && appTimestamps[p])
-        ret[p] = appTimestamps[p] - si.process;
-    }
-  }
-
-  ret.startupInterrupted = new Number(Services.startup.interrupted);
-
-  
-  let debugService = Cc["@mozilla.org/xpcom/debug;1"].getService(Ci.nsIDebug2);
-  let isDebuggerAttached = debugService.isDebuggerAttached;
-  gWasDebuggerAttached = gWasDebuggerAttached || isDebuggerAttached;
-  ret.debuggerAttached = new Number(gWasDebuggerAttached);
-
-  ret.js = Cc["@mozilla.org/js/xpc/XPConnect;1"]
-           .getService(Ci.nsIJSEngineTelemetryStats)
-           .telemetryValue;
-
-  let shutdownDuration = Telemetry.lastShutdownDuration;
-  if (shutdownDuration)
-    ret.shutdownDuration = shutdownDuration;
-
-  let failedProfileLockCount = Telemetry.failedProfileLockCount;
-  if (failedProfileLockCount)
-    ret.failedProfileLockCount = failedProfileLockCount;
-
-  return ret;
-}
-
-
-
             
 let processInfo = {
   _initialized: false,
@@ -238,6 +175,81 @@ TelemetryPing.prototype = {
   _pingsLoaded: 0,
   
   _pingLoadsCompleted: 0,
+
+  
+
+
+
+
+
+  getSimpleMeasurements: function getSimpleMeasurements(forSavedSession) {
+    let si = Services.startup.getStartupInfo();
+
+    var ret = {
+      
+      uptime: Math.round((new Date() - si.process) / 60000)
+    }
+
+    
+    var appTimestamps = {};
+    try {
+      let o = {};
+      Cu.import("resource://gre/modules/TelemetryTimestamps.jsm", o);
+      appTimestamps = o.TelemetryTimestamps.get();
+    } catch (ex) {}
+    try {
+      let o = {};
+      Cu.import("resource://gre/modules/AddonManager.jsm", o);
+      ret.addonManager = o.AddonManagerPrivate.getSimpleMeasures();
+    } catch (ex) {}
+
+    if (si.process) {
+      for each (let field in Object.keys(si)) {
+        if (field == "process")
+          continue;
+        ret[field] = si[field] - si.process
+      }
+
+      for (let p in appTimestamps) {
+        if (!(p in ret) && appTimestamps[p])
+          ret[p] = appTimestamps[p] - si.process;
+      }
+    }
+
+    ret.startupInterrupted = new Number(Services.startup.interrupted);
+
+    
+    let debugService = Cc["@mozilla.org/xpcom/debug;1"].getService(Ci.nsIDebug2);
+    let isDebuggerAttached = debugService.isDebuggerAttached;
+    gWasDebuggerAttached = gWasDebuggerAttached || isDebuggerAttached;
+    ret.debuggerAttached = new Number(gWasDebuggerAttached);
+
+    ret.js = Cc["@mozilla.org/js/xpc/XPConnect;1"]
+      .getService(Ci.nsIJSEngineTelemetryStats)
+      .telemetryValue;
+
+    let shutdownDuration = Telemetry.lastShutdownDuration;
+    if (shutdownDuration)
+      ret.shutdownDuration = shutdownDuration;
+
+    let failedProfileLockCount = Telemetry.failedProfileLockCount;
+    if (failedProfileLockCount)
+      ret.failedProfileLockCount = failedProfileLockCount;
+
+    for (let ioCounter in this._startupIO)
+      ret[ioCounter] = this._startupIO[ioCounter];
+
+    let hasPingBeenSent = false;
+    try {
+      hasPingBeenSent = Telemetry.getHistogramById("TELEMETRY_SUCCESS").snapshot().sum > 0;
+    } catch(e) {
+    }
+    if (!forSavedSession || hasPingBeenSent) {
+      ret.savedPings = this._pingsLoaded;
+    }
+
+    return ret;
+  },
 
   
 
@@ -528,7 +540,7 @@ TelemetryPing.prototype = {
     
     let payloadObj = {
       ver: PAYLOAD_VERSION,
-      simpleMeasurements: getSimpleMeasurements(),
+      simpleMeasurements: this.getSimpleMeasurements(reason == "saved-session"),
       histograms: this.getHistograms(Telemetry.histogramSnapshots),
       slowSQL: Telemetry.slowSQL,
       chromeHangs: Telemetry.chromeHangs,
@@ -541,18 +553,6 @@ TelemetryPing.prototype = {
       payloadObj.slowSQLStartup = this._slowSQLStartup;
     }
     
-    for (let ioCounter in this._startupIO)
-      payloadObj.simpleMeasurements[ioCounter] = this._startupIO[ioCounter];
-
-    let hasPingBeenSent = false;
-    try {
-      hasPingBeenSent = Telemetry.getHistogramById("TELEMETRY_SUCCESS").snapshot().sum > 0;
-    } catch(e) {
-    }
-    if (reason != "saved-session" || hasPingBeenSent) {
-      payloadObj.simpleMeasurements.savedPings = this._pingsLoaded;
-    }
-
     payloadObj.info = this.getMetadata(reason);
 
     return payloadObj;
