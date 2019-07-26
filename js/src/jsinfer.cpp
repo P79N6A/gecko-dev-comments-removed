@@ -5047,7 +5047,7 @@ TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
 
 
 
-    if (ion::IsEnabled())
+    if (ion::IsEnabled(cx))
         return true;
 
     if (!script->isInnerFunction || nullClosure) {
