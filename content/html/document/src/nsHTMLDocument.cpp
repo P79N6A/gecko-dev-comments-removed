@@ -1620,6 +1620,16 @@ nsHTMLDocument::Open(JSContext* cx,
     if (rv.Failed()) {
       return nullptr;
     }
+
+    
+    
+    bool rootHasSecureConnection = false;
+    bool allowMixedContent = false;
+    bool isDocShellRoot = false;
+    nsresult rvalue = shell->GetAllowMixedContentAndConnectionData(&rootHasSecureConnection, &allowMixedContent, &isDocShellRoot);
+    if (NS_SUCCEEDED(rvalue) && allowMixedContent && isDocShellRoot) {
+       shell->SetMixedContentChannel(channel);
+    }
   }
 
   
