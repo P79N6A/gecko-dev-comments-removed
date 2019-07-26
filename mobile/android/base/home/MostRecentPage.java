@@ -41,6 +41,9 @@ public class MostRecentPage extends HomeFragment {
     private static final int HISTORY_LOADER_ID = 0;
 
     
+    private static final int FAVICONS_LOADER_ID = 1;
+
+    
     private static final long MS_PER_DAY = 86400000;
     private static final long MS_PER_WEEK = MS_PER_DAY * 7;
 
@@ -348,18 +351,48 @@ public class MostRecentPage extends HomeFragment {
     private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            return new MostRecentCursorLoader(getActivity());
+            switch(id) {
+                case HISTORY_LOADER_ID:
+                    return new MostRecentCursorLoader(getActivity());
+            
+                case FAVICONS_LOADER_ID:
+                    return FaviconsLoader.createInstance(getActivity(), args);
+            }
+
+            return null;
         }
 
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
-            loadMostRecentSections(c);
-            mAdapter.swapCursor(c);
+            final int loaderId = loader.getId();
+            switch(loaderId) {
+                case HISTORY_LOADER_ID:
+                    loadMostRecentSections(c);
+                    mAdapter.swapCursor(c);
+                    FaviconsLoader.restartFromCursor(getLoaderManager(), FAVICONS_LOADER_ID,
+                            mCursorLoaderCallbacks, c);
+                    break;
+            
+                case FAVICONS_LOADER_ID:
+                    
+                    
+                    mAdapter.notifyDataSetChanged();
+                    break;
+            }
         }
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
-            mAdapter.swapCursor(null);
+            final int loaderId = loader.getId();
+            switch(loaderId) {
+                case HISTORY_LOADER_ID:
+                    mAdapter.swapCursor(null);
+                    break;
+
+                case FAVICONS_LOADER_ID:
+                    
+                    break;
+            }
         }
     }
 }
