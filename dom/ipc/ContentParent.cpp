@@ -700,6 +700,7 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     }
 
     
+    
     nsAutoString manifestURL;
     if (NS_FAILED(ownApp->GetManifestURL(manifestURL))) {
         NS_ERROR("Failed to get manifest URL");
@@ -707,8 +708,41 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     }
 
     ProcessPriority initialPriority = GetInitialProcessPriority(aFrameElement);
-
     nsRefPtr<ContentParent> p = sAppContentParents->Get(manifestURL);
+
+    if (!p && Preferences::GetBool("dom.ipc.reuse_parent_app")) {
+        nsAutoString parentAppURL;
+        aFrameElement->GetAttr(kNameSpaceID_None,
+                               nsGkAtoms::parentapp, parentAppURL);
+        nsAdoptingString systemAppURL =
+            Preferences::GetString("browser.homescreenURL");
+        nsCOMPtr<nsIAppsService> appsService =
+            do_GetService(APPS_SERVICE_CONTRACTID);
+        if (!parentAppURL.IsEmpty() &&
+            !parentAppURL.Equals(systemAppURL) &&
+            appsService) {
+            nsCOMPtr<mozIApplication> parentApp;
+            nsCOMPtr<mozIApplication> app;
+            appsService->GetAppByManifestURL(parentAppURL,
+                                             getter_AddRefs(parentApp));
+            appsService->GetAppByManifestURL(manifestURL,
+                                             getter_AddRefs(app));
+
+            
+            unsigned short parentAppStatus = 0;
+            unsigned short appStatus = 0;
+            if (app &&
+                NS_SUCCEEDED(app->GetAppStatus(&appStatus)) &&
+                appStatus == nsIPrincipal::APP_STATUS_CERTIFIED &&
+                parentApp &&
+                NS_SUCCEEDED(parentApp->GetAppStatus(&parentAppStatus)) &&
+                parentAppStatus == nsIPrincipal::APP_STATUS_CERTIFIED) {
+                
+                p = sAppContentParents->Get(parentAppURL);
+            }
+        }
+    }
+
     if (p) {
         
         
