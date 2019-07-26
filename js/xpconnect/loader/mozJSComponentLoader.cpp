@@ -415,7 +415,7 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
     if (mModules.Get(spec, &mod))
     return mod;
 
-    nsAutoPtr<ModuleEntry> entry(new ModuleEntry);
+    nsAutoPtr<ModuleEntry> entry(new ModuleEntry(mContext));
 
     JSAutoRequest ar(mContext);
     RootedValue dummy(mContext);
@@ -752,8 +752,8 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
 nsresult
 mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
                                         nsIURI *aURI,
-                                        JSObject **aObject,
-                                        JSScript **aTableScript,
+                                        MutableHandleObject aObject,
+                                        MutableHandleScript aTableScript,
                                         char **aLocation,
                                         bool aPropagateExceptions,
                                         MutableHandleValue aException)
@@ -1004,7 +1004,7 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
 
     
     
-    *aObject = obj;
+    aObject.set(obj);
 
     RootedScript tableScript(cx, script);
     if (!tableScript) {
@@ -1012,10 +1012,13 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
         MOZ_ASSERT(tableScript);
     }
 
-    *aTableScript = tableScript;
+    aTableScript.set(tableScript);
 
     if (js::GetObjectJSClass(obj) == &kFakeBackstagePassJSClass) {
         MOZ_ASSERT(mReuseLoaderGlobal);
+        
+        
+        
         
         
         
@@ -1040,8 +1043,8 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
             JS_GetPendingException(cx, aException);
             JS_ClearPendingException(cx);
         }
-        *aObject = nullptr;
-        *aTableScript = nullptr;
+        aObject.set(nullptr);
+        aTableScript.set(nullptr);
         mThisObjects.Remove(tableScript);
         return NS_ERROR_FAILURE;
     }
@@ -1049,14 +1052,12 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
     
     *aLocation = ToNewCString(nativePath);
     if (!*aLocation) {
-        *aObject = nullptr;
-        *aTableScript = nullptr;
+        aObject.set(nullptr);
+        aTableScript.set(nullptr);
         mThisObjects.Remove(tableScript);
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS_AddNamedObjectRoot(cx, aObject, *aLocation);
-    JS_AddNamedScriptRoot(cx, aTableScript, *aLocation);
     return NS_OK;
 }
 
@@ -1238,7 +1239,7 @@ mozJSComponentLoader::ImportInto(const nsACString &aLocation,
     ModuleEntry* mod;
     nsAutoPtr<ModuleEntry> newEntry;
     if (!mImports.Get(key, &mod) && !mInProgressImports.Get(key, &mod)) {
-        newEntry = new ModuleEntry;
+        newEntry = new ModuleEntry(callercx);
         if (!newEntry)
             return NS_ERROR_OUT_OF_MEMORY;
         mInProgressImports.Put(key, newEntry);
