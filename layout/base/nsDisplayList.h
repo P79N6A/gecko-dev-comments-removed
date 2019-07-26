@@ -3051,7 +3051,7 @@ public:
 
   const gfx3DMatrix& GetTransform();
 
-  float GetHitDepthAtPoint(const nsPoint& aPoint);
+  float GetHitDepthAtPoint(nsDisplayListBuilder* aBuilder, const nsPoint& aPoint);
 
   
 
@@ -3084,7 +3084,8 @@ public:
   
 
 
-  bool UntransformVisibleRect(nsRect* aOutRect);
+  bool UntransformVisibleRect(nsDisplayListBuilder* aBuilder,
+                              nsRect* aOutRect);
 
   static gfxPoint3D GetDeltaToTransformOrigin(const nsIFrame* aFrame,
                                               float aAppUnitsPerPixel,
