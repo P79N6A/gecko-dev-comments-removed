@@ -123,9 +123,7 @@ public:
   Loader(nsIDocument*);
   ~Loader();
 
-  
-  NS_IMETHOD_(nsrefcnt) AddRef();
-  NS_IMETHOD_(nsrefcnt) Release();
+  NS_INLINE_DECL_REFCOUNTING(Loader)
 
   void DropDocumentReference(); 
 
@@ -467,9 +465,6 @@ private:
   
   nsIDocument*      mDocument;  
 
-  
-  nsAutoRefCnt      mRefCnt;
-  NS_DECL_OWNINGTHREAD
 
   
   
