@@ -191,10 +191,8 @@ public class TabsTray extends ListView
         
         private void updateSelectedPosition() {
             int selected = getPositionForTab(Tabs.getInstance().getSelectedTab());
-            if (selected == -1)
-                return;
-
-            TabsTray.this.setItemChecked(selected, true);
+            for (int i=0; i < getCount(); i++)
+                 TabsTray.this.setItemChecked(i, (i == selected));
         }
 
         public void clear() {
