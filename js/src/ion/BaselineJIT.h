@@ -248,7 +248,7 @@ FinishDiscardBaselineScript(FreeOp *fop, UnrootedScript script);
 struct BaselineBailoutInfo
 {
     
-    void *incomingStack;
+    uint8_t *incomingStack;
 
     
     
