@@ -1901,6 +1901,12 @@ pref("layout.css.osx-font-smoothing.enabled", false);
 #endif
 
 
+pref("layout.css.unset-value.enabled", true);
+
+
+pref("layout.css.all-shorthand.enabled", true);
+
+
 
 
 
