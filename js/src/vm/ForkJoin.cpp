@@ -5,11 +5,11 @@
 
 
 
-#include "forkjoin.h"
-#include "monitor.h"
+#include "ForkJoin.h"
+#include "Monitor.h"
 #include "jscntxt.h"
 #include "jscompartment.h"
-#include "forkjoininlines.h"
+#include "ForkJoin-inl.h"
 
 #ifdef JS_THREADSAFE
 #  include "prthread.h"
