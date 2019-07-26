@@ -5707,12 +5707,7 @@ LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
     return FALSE;
   }
 
-  if (!nsIMM32Handler::IsComposingOn(this) &&
-      (aMsg.message != WM_KEYUP || aMsg.wParam != VK_MENU)) {
-    
-    
-    
-    
+  if (!nsIMM32Handler::IsComposingOn(this)) {
     return OnKeyUp(aMsg, modKeyState, aEventDispatched);
   }
 
@@ -5751,9 +5746,7 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
     return FALSE;
 
   LRESULT result = 0;
-  if (modKeyState.IsAlt() && nsIMM32Handler::IsStatusChanged()) {
-    nsIMM32Handler::NotifyEndStatusChange();
-  } else if (!nsIMM32Handler::IsComposingOn(this)) {
+  if (!nsIMM32Handler::IsComposingOn(this)) {
     result = OnKeyDown(aMsg, modKeyState, aEventDispatched, nullptr);
     
     
@@ -6863,6 +6856,13 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
   NativeKey nativeKey(gKbdLayout, this, aMsg);
   keyupEvent.keyCode = nativeKey.GetDOMKeyCode();
   InitKeyEvent(keyupEvent, nativeKey, aModKeyState);
+  
+  
+  
+  
+  
+  keyupEvent.mFlags.mDefaultPrevented =
+    (aMsg.wParam == VK_MENU && aMsg.message != WM_SYSKEYUP);
   return DispatchKeyEvent(keyupEvent, &aMsg);
 }
 

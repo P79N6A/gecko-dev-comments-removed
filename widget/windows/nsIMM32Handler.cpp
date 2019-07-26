@@ -41,7 +41,6 @@ static UINT sWM_MSIME_MOUSE = 0;
 #define IMEMOUSE_WUP        0x10    // wheel up
 #define IMEMOUSE_WDOWN      0x20    // wheel down
 
-bool nsIMM32Handler::sIsStatusChanged = false;
 bool nsIMM32Handler::sIsIME = true;
 bool nsIMM32Handler::sIsIMEOpening = false;
 
@@ -703,29 +702,6 @@ nsIMM32Handler::OnIMENotify(nsWindow* aWindow,
       break;
   }
 #endif 
-
-  if (::GetKeyState(NS_VK_ALT) >= 0) {
-    return false;
-  }
-
-  
-  
-  
-  
-  
-  
-
-  
-  mozilla::widget::ModifierKeyState modKeyState(false, false, true);
-  mozilla::widget::NativeKey nativeKey; 
-  nsKeyEvent keyEvent(true, NS_KEY_PRESS, aWindow);
-  keyEvent.keyCode = 192;
-  aWindow->InitKeyEvent(keyEvent, nativeKey, modKeyState);
-  aWindow->DispatchKeyEvent(keyEvent, nullptr);
-  sIsStatusChanged = sIsStatusChanged || (wParam == IMN_SETOPENSTATUS);
-  PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
-    ("IMM32: OnIMENotify, sIsStatusChanged=%s\n",
-     sIsStatusChanged ? "TRUE" : "FALSE"));
 
   
   return false;
