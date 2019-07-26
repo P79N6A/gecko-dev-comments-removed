@@ -436,6 +436,7 @@ class RecursiveMakeBackend(CommonBackend):
         filters = {
             'export': export_filter,
             'compile': parallel_filter,
+            'binaries': parallel_filter,
             'libs': libs_filter,
             'tools': parallel_filter,
         }
