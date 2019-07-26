@@ -97,10 +97,10 @@ class InternalAnimationEvent;
 class WidgetCommandEvent;
 class WidgetContentCommandEvent;
 class WidgetPluginEvent;
+
+
+class InternalMutationEvent;
 } 
-
-
-class nsMutationEvent;
 
 
 typedef mozilla::WidgetEvent               nsEvent;
@@ -139,5 +139,6 @@ typedef mozilla::InternalAnimationEvent    nsAnimationEvent;
 typedef mozilla::WidgetContentCommandEvent nsContentCommandEvent;
 typedef mozilla::WidgetCommandEvent        nsCommandEvent;
 typedef mozilla::WidgetPluginEvent         nsPluginEvent;
+typedef mozilla::InternalMutationEvent     nsMutationEvent;
 
 #endif 
