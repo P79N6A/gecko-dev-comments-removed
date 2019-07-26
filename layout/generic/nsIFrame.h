@@ -2134,6 +2134,9 @@ public:
 
 
 
+
+
+
   nsIFrame* GetContainingBlock() const;
 
   
