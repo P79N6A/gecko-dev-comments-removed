@@ -265,16 +265,9 @@ namespace js {
 
 
 
+
 extern jschar *
 InflateString(ThreadSafeContext *cx, const char *bytes, size_t *length);
-
-
-
-
-
-
-extern jschar *
-InflateUTF8String(JSContext *cx, const char *bytes, size_t *length);
 
 
 
@@ -286,20 +279,6 @@ InflateUTF8String(JSContext *cx, const char *bytes, size_t *length);
 extern bool
 InflateStringToBuffer(JSContext *maybecx, const char *bytes, size_t length,
                       jschar *chars, size_t *charsLength);
-
-extern bool
-InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
-                          jschar *chars, size_t *charsLength);
-
-
-
-
-
-
-extern bool
-InflateUTF8StringToBufferReplaceInvalid(JSContext *cx, const char *bytes,
-                                        size_t length, jschar *chars,
-                                        size_t *charsLength);
 
 
 
