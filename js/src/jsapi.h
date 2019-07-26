@@ -4683,13 +4683,16 @@ typedef void
 (* CloseAsmJSCacheEntryForWriteOp)(HandleObject global, size_t size, uint8_t *memory,
                                    intptr_t handle);
 
+typedef js::Vector<char, 0, js::SystemAllocPolicy> BuildIdCharVector;
+
+
 
 
 
 
 
 typedef bool
-(* BuildIdOp)(js::Vector<char> *buildId);
+(* BuildIdOp)(BuildIdCharVector *buildId);
 
 struct AsmJSCacheOps
 {
