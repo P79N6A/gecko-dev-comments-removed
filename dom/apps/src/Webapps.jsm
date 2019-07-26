@@ -1366,7 +1366,8 @@ this.DOMApplicationRegistry = {
           
           
           app.lastCheckedUpdate = Date.now();
-          aData.event = "downloadapplied";
+          aData.event = app.downloadAvailable ? "downloadavailable"
+                                              : "downloadapplied";
           aData.app = {
             lastCheckedUpdate: app.lastCheckedUpdate
           }
