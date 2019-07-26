@@ -420,40 +420,43 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
             break;
           default: {
             bool handled = false;
-            if (!mul->canOverflow()) {
+            if (constant > 0) {
                 
-                Register src = ToRegister(lhs);
-                uint32_t shift = FloorLog2(constant);
-                uint32_t rest = constant - (1 << shift);
-                
-                if ((1 << shift) == constant) {
-                    masm.ma_lsl(Imm32(shift), src, ToRegister(dest));
-                    handled = true;
-                } else {
+                if (!mul->canOverflow()) {
+                    
+                    Register src = ToRegister(lhs);
+                    uint32_t shift = FloorLog2(constant);
+                    uint32_t rest = constant - (1 << shift);
+                    
+                    if ((1 << shift) == constant) {
+                        masm.ma_lsl(Imm32(shift), src, ToRegister(dest));
+                        handled = true;
+                    } else {
+                        
+                        
+                        uint32_t shift_rest = FloorLog2(rest);
+                        if ((1u << shift_rest) == rest) {
+                            masm.as_add(ToRegister(dest), src, lsl(src, shift-shift_rest));
+                            if (shift_rest != 0)
+                                masm.ma_lsl(Imm32(shift_rest), ToRegister(dest), ToRegister(dest));
+                            handled = true;
+                        }
+                    }
+                } else if (ToRegister(lhs) != ToRegister(dest)) {
                     
                     
-                    uint32_t shift_rest = FloorLog2(rest);
-                    if ((1u << shift_rest) == rest) {
-                        masm.as_add(ToRegister(dest), src, lsl(src, shift-shift_rest));
-                        if (shift_rest != 0)
-                            masm.ma_lsl(Imm32(shift_rest), ToRegister(dest), ToRegister(dest));
+
+                    uint32_t shift = FloorLog2(constant);
+                    if ((1 << shift) == constant) {
+                        
+                        masm.ma_lsl(Imm32(shift), ToRegister(lhs), ToRegister(dest));
+                        
+                        
+                        
+                        masm.as_cmp(ToRegister(lhs), asr(ToRegister(dest), shift));
+                        c = Assembler::NotEqual;
                         handled = true;
                     }
-                }
-            } else if (ToRegister(lhs) != ToRegister(dest)) {
-                
-                
-
-                uint32_t shift = FloorLog2(constant);
-                if ((1 << shift) == constant) {
-                    
-                    masm.ma_lsl(Imm32(shift), ToRegister(lhs), ToRegister(dest));
-                    
-                    
-                    
-                    masm.as_cmp(ToRegister(lhs), asr(ToRegister(dest), shift));
-                    c = Assembler::NotEqual;
-                    handled = true;
                 }
             }
 
