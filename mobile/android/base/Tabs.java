@@ -19,6 +19,7 @@ import android.content.ContentResolver;
 import android.database.ContentObserver;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -57,15 +58,23 @@ public class Tabs implements GeckoEventListener {
     public static final int LOADURL_DESKTOP = 32;
     public static final int LOADURL_BACKGROUND = 64;
 
-    private static final int SCORE_INCREMENT_TAB_LOCATION_CHANGE = 5;
-    private static final int SCORE_INCREMENT_TAB_SELECTED = 10;
-    private static final int SCORE_THRESHOLD = 30;
+    private static final long PERSIST_TABS_AFTER_MILLISECONDS = 1000 * 5;
 
     private static AtomicInteger sTabId = new AtomicInteger(0);
     private volatile boolean mInitialTabsAdded;
 
     private GeckoApp mActivity;
     private ContentObserver mContentObserver;
+
+    private final Runnable mPersistTabsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            boolean syncIsSetup = SyncAccounts.syncAccountsExist(getActivity());
+            if (syncIsSetup) {
+                TabsAccessor.persistLocalTabs(getContentResolver(), getTabsInOrder());
+            }
+        }
+    };
 
     private Tabs() {
         registerEventListener("Session:RestoreEnd");
@@ -122,6 +131,8 @@ public class Tabs implements GeckoEventListener {
     
     
     public synchronized void detachFromActivity(GeckoApp activity) {
+        ThreadUtils.getBackgroundHandler().removeCallbacks(mPersistTabsRunnable);
+
         if (mContentObserver != null) {
             BrowserDB.unregisterContentObserver(getContentResolver(), mContentObserver);
         }
@@ -545,7 +556,7 @@ public class Tabs implements GeckoEventListener {
     private void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
         switch (msg) {
             case LOCATION_CHANGE:
-                mScore += SCORE_INCREMENT_TAB_LOCATION_CHANGE;
+                queuePersistAllTabs();
                 break;
             case RESTORED:
                 mInitialTabsAdded = true;
@@ -556,33 +567,29 @@ public class Tabs implements GeckoEventListener {
             
             
             case SELECTED:
-                mScore += SCORE_INCREMENT_TAB_SELECTED;
+                queuePersistAllTabs();
             case UNSELECTED:
                 tab.onChange();
                 break;
             default:
                 break;
         }
-
-        if (mScore > SCORE_THRESHOLD) {
-            persistAllTabs();
-            mScore = 0;
-        }
     }
 
     
     public void persistAllTabs() {
-        final GeckoApp activity = getActivity();
-        final Iterable<Tab> tabs = getTabsInOrder();
-        ThreadUtils.postToBackgroundThread(new Runnable() {
-            @Override
-            public void run() {
-                boolean syncIsSetup = SyncAccounts.syncAccountsExist(activity);
-                if (syncIsSetup) {
-                    TabsAccessor.persistLocalTabs(getContentResolver(), tabs);
-                }
-            }
-        });
+        ThreadUtils.postToBackgroundThread(mPersistTabsRunnable);
+    }
+
+    
+
+
+
+
+    private void queuePersistAllTabs() {
+        Handler backgroundHandler = ThreadUtils.getBackgroundHandler();
+        backgroundHandler.removeCallbacks(mPersistTabsRunnable);
+        backgroundHandler.postDelayed(mPersistTabsRunnable, PERSIST_TABS_AFTER_MILLISECONDS);
     }
 
     private void registerEventListener(String event) {
