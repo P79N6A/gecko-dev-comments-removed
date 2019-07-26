@@ -12,6 +12,11 @@ let {getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared
 
 
 
+gDevTools.testing = true;
+SimpleTest.registerCleanupFunction(() => {
+  gDevTools.testing = false;
+});
+
 
 function clearUserPrefs() {
   Services.prefs.clearUserPref("devtools.inspector.htmlPanelOpen");
