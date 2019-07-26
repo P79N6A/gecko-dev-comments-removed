@@ -181,6 +181,10 @@ IsDOMObject(JSObject* obj)
   return IsDOMClass(clasp) || IsDOMProxy(obj, clasp);
 }
 
+#define UNWRAP_OBJECT(Interface, cx, obj, value)                             \
+  UnwrapObject<prototypes::id::Interface,                                    \
+               mozilla::dom::Interface##Binding::NativeType>(cx, obj, value)
+
 
 
 
@@ -255,15 +259,6 @@ MOZ_ALWAYS_INLINE bool
 IsConvertibleToCallbackInterface(JSContext* cx, JS::Handle<JSObject*> obj)
 {
   return IsNotDateOrRegExp(cx, obj);
-}
-
-
-template <class T, typename U>
-inline nsresult
-UnwrapObject(JSContext* cx, JSObject* obj, U& value)
-{
-  return UnwrapObject<static_cast<prototypes::ID>(
-           PrototypeIDMap<T>::PrototypeID), T>(cx, obj, value);
 }
 
 

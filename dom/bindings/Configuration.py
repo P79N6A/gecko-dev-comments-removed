@@ -54,13 +54,6 @@ class Configuration:
             self.descriptors.extend([Descriptor(self, iface, x) for x in entry])
 
         
-        
-        for descriptor in self.descriptors:
-            descriptor.unsharedImplementation = all(
-                d.nativeType != descriptor.nativeType or d == descriptor
-                for d in self.descriptors)
-
-        
         self.descriptors.sort(lambda x,y: cmp(x.name, y.name))
 
         self.descriptorsByName = {}

@@ -257,7 +257,7 @@ struct WorkerStructuredCloneCallbacks
     
     {
       ImageData* imageData = nullptr;
-      if (NS_SUCCEEDED(UnwrapObject<ImageData>(aCx, aObj, imageData))) {
+      if (NS_SUCCEEDED(UNWRAP_OBJECT(ImageData, aCx, aObj, imageData))) {
         
         uint32_t width = imageData->Width();
         uint32_t height = imageData->Height();

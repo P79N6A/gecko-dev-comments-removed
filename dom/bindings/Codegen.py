@@ -6874,19 +6874,6 @@ class CGPrototypeTraitsClass(CGClass):
     def deps(self):
         return set()
 
-class CGPrototypeIDMapClass(CGClass):
-    def __init__(self, descriptor, indent=''):
-        templateArgs = [Argument('class', 'ConcreteClass')]
-        templateSpecialization = [descriptor.nativeType]
-        enums = [ClassEnum('', ['PrototypeID'],
-                           ['prototypes::id::' + descriptor.name])]
-        CGClass.__init__(self, 'PrototypeIDMap', indent=indent,
-                         templateArgs=templateArgs,
-                         templateSpecialization=templateSpecialization,
-                         enums=enums, isStruct=True)
-    def deps(self):
-        return set()
-
 class CGClassForwardDeclare(CGThing):
     def __init__(self, name, isStruct=False):
         CGThing.__init__(self)
@@ -7739,6 +7726,8 @@ class CGDescriptor(CGThing):
         self._deps = descriptor.interface.getDeps()
 
         cgThings = []
+        cgThings.append(CGGeneric(declare="typedef %s NativeType;\n" %
+                                  descriptor.nativeType))
         
         
         (hasMethod, hasGetter, hasLenientGetter, hasSetter, hasJsonifier,
@@ -8646,11 +8635,6 @@ class CGBindingRoot(CGThing):
         descriptorsWithPrototype = filter(lambda d: d.interface.hasInterfacePrototypeObject(),
                                           descriptors)
         traitsClasses = [CGPrototypeTraitsClass(d) for d in descriptorsWithPrototype]
-
-        
-        
-        traitsClasses.extend([CGPrototypeIDMapClass(d) for d in descriptorsWithPrototype
-                              if d.unsharedImplementation])
 
         
         if len(traitsClasses) > 0:
@@ -10277,9 +10261,6 @@ class GlobalGenRoots():
         traitsDecl = CGGeneric(declare="""
 template <prototypes::ID PrototypeID>
 struct PrototypeTraits;
-
-template <class ConcreteClass>
-struct PrototypeIDMap;
 """)
 
         traitsDecl = CGNamespace.build(['mozilla', 'dom'],
