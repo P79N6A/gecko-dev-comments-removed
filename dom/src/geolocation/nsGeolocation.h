@@ -125,7 +125,7 @@ public:
   PRBool IsBetterPosition(nsIDOMGeoPosition *aSomewhere);
 
   
-  nsresult StartDevice(bool aRequestPrivate);
+  nsresult StartDevice();
 
   
   void     StopDevice();
