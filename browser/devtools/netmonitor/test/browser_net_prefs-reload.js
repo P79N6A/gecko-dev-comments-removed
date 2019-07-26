@@ -11,7 +11,7 @@ function test() {
 
     
     
-    requestLongerTimeout(2);
+    requestLongerTimeout(3);
 
     let prefsToCheck = {
       networkDetailsWidth: {
