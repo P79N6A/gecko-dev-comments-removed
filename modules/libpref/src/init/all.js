@@ -1874,9 +1874,6 @@ pref("layout.css.supports-rule.enabled", true);
 pref("layout.css.filters.enabled", false);
 
 
-pref("layout.css.flexbox.enabled", true);
-
-
 #ifdef RELEASE_BUILD
 pref("layout.css.sticky.enabled", false);
 #else
