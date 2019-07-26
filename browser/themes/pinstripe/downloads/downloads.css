@@ -122,14 +122,32 @@ richlistitem[type="download"]:last-child {
   list-style-image: url("chrome://global/skin/icons/Error.png");
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.downloadContainer {
+  font-size: 95%;
+}
+
 .downloadTarget {
+  font-size: calc(100%/0.95);
   margin-bottom: 6px;
   cursor: inherit;
 }
 
 .downloadDetails {
   opacity: 0.7;
-  font-size: 95%;
   cursor: inherit;
 }
 
