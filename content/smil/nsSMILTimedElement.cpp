@@ -4,6 +4,7 @@
 
 
 #include "nsSMILTimedElement.h"
+#include "nsAttrValueInlines.h"
 #include "nsSMILAnimationFunction.h"
 #include "nsSMILTimeValue.h"
 #include "nsSMILTimeValueSpec.h"

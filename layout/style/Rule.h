@@ -16,6 +16,7 @@ class nsIStyleSheet;
 class nsIDocument;
 struct nsRuleData;
 template<class T> struct already_AddRefed;
+class nsHTMLCSSStyleSheet;
 
 namespace mozilla {
 namespace css {
@@ -31,7 +32,7 @@ virtual nsIDOMCSSRule* GetDOMRule();
 class Rule : public nsIStyleRule {
 protected:
   Rule()
-    : mSheet(nullptr),
+    : mSheet(0),
       mParentRule(nullptr)
   {
   }
@@ -75,7 +76,8 @@ public:
 
   virtual int32_t GetType() const = 0;
 
-  nsCSSStyleSheet* GetStyleSheet() const { return mSheet; }
+  nsCSSStyleSheet* GetStyleSheet() const;
+  nsHTMLCSSStyleSheet* GetHTMLCSSStyleSheet() const;
 
   
   nsIDocument* GetDocument() const
@@ -85,6 +87,9 @@ public:
   }
 
   virtual void SetStyleSheet(nsCSSStyleSheet* aSheet);
+  
+  
+  void SetHTMLCSSStyleSheet(nsHTMLCSSStyleSheet* aSheet);
 
   void SetParentRule(GroupRule* aRule) {
     
@@ -117,7 +122,9 @@ public:
                                                    void* aData);
 
 protected:
-  nsCSSStyleSheet*  mSheet;
+  
+  
+  uintptr_t         mSheet;
   GroupRule*        mParentRule;
 };
 

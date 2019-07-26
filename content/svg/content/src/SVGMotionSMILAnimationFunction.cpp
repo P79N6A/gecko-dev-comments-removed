@@ -12,6 +12,7 @@
 #include "nsSVGPathDataParser.h"
 #include "nsSVGPathElement.h" 
 #include "nsSVGMpathElement.h"
+#include "nsAttrValueInlines.h"
 
 namespace mozilla {
 

@@ -4,6 +4,7 @@
 
 
 #include "nsHTMLCanvasElement.h"
+#include "nsAttrValueInlines.h"
 
 #include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
