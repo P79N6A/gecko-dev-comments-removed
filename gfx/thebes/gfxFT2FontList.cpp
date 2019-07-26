@@ -1118,8 +1118,10 @@ gfxFT2FontList::GetDefaultFont(const gfxFontStyle* aStyle, bool& aNeedsBold)
     }
 #elif defined(ANDROID)
     nsAutoString resolvedName;
-    if (ResolveFontName(NS_LITERAL_STRING("Droid Sans"), resolvedName))
+    if (ResolveFontName(NS_LITERAL_STRING("Roboto"), resolvedName) ||
+        ResolveFontName(NS_LITERAL_STRING("Droid Sans"), resolvedName)) {
         return FindFontForFamily(resolvedName, aStyle, aNeedsBold);
+    }
 #endif
     
     return nsnull;

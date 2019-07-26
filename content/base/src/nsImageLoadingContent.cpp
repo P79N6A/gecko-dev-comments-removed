@@ -1014,10 +1014,44 @@ nsImageLoadingContent::PreparePendingRequest()
   return mPendingRequest;
 }
 
+namespace {
+
+class ImageRequestAutoLock
+{
+public:
+  ImageRequestAutoLock(imgIRequest* aRequest)
+    : mRequest(aRequest)
+  {
+    if (mRequest) {
+      mRequest->LockImage();
+    }
+  }
+
+  ~ImageRequestAutoLock()
+  {
+    if (mRequest) {
+      mRequest->UnlockImage();
+    }
+  }
+
+private:
+  nsCOMPtr<imgIRequest> mRequest;
+};
+
+} 
+
 void
 nsImageLoadingContent::MakePendingRequestCurrent()
 {
   MOZ_ASSERT(mPendingRequest);
+
+  
+  
+  
+  
+  
+  ImageRequestAutoLock autoLock(mCurrentRequest);
+
   PrepareCurrentRequest() = mPendingRequest;
   mPendingRequest = nsnull;
   mCurrentRequestNeedsResetAnimation = mPendingRequestNeedsResetAnimation;

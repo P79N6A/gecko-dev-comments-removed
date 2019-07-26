@@ -2086,12 +2086,18 @@ SpdySession3::OnWriteSegment(char *buf,
     *countWritten = count;
 
     if (mFlatHTTPResponseHeaders.Length() == mFlatHTTPResponseHeadersOut) {
-      
       if (mDataPending) {
+        
+        
+        
         mDataPending = false;
         ChangeDownstreamState(PROCESSING_DATA_FRAME);
       }
-      else {
+      else if (!mInputFrameDataLast) {
+        
+        
+        
+        
         ResetDownstreamState();
       }
     }

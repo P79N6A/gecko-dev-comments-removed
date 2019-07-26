@@ -2821,7 +2821,10 @@ nsDocument::ElementFromPointHelper(float aX, float aY,
   if (elem && !elem->IsElement()) {
     elem = elem->GetParent();
   }
-  return CallQueryInterface(elem, aReturn);
+  if (elem) {
+    CallQueryInterface(elem, aReturn);
+  }
+  return NS_OK;
 }
 
 nsresult
@@ -2871,7 +2874,7 @@ nsDocument::NodesFromRectHelper(float aX, float aY,
   
   nsIContent* lastAdded = nsnull;
 
-  for (PRInt32 i = 0; i < outFrames.Length(); i++) {
+  for (PRUint32 i = 0; i < outFrames.Length(); i++) {
     nsIContent* node = GetContentInThisDocument(outFrames[i]);
 
     if (node && !node->IsElement() && !node->IsNodeOfType(nsINode::eTEXT)) {
@@ -7160,12 +7163,12 @@ nsDocument::GetContentInThisDocument(nsIFrame* aFrame) const
 {
   for (nsIFrame* f = aFrame; f;
        f = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(f)) {
-    nsIContent* ptContent = f->GetContent();
-    if (!ptContent || ptContent->IsInAnonymousSubtree())
+    nsIContent* content = f->GetContent();
+    if (!content || content->IsInAnonymousSubtree())
       continue;
 
-    if (ptContent->OwnerDoc() == this) {
-      return ptContent;
+    if (content->OwnerDoc() == this) {
+      return content;
     }
     
     

@@ -18,6 +18,7 @@
 #include "nsToolkitCompsCID.h"
 #include "nsICryptoHash.h"
 #include "nsICryptoHMAC.h"
+#include "mozilla/Attributes.h"
 
 
 #define DOMAIN_LENGTH 4
@@ -33,9 +34,9 @@ class nsIThread;
 
 
 
-class nsUrlClassifierDBService : public nsIUrlClassifierDBService,
-                                 public nsIURIClassifier,
-                                 public nsIObserver
+class nsUrlClassifierDBService MOZ_FINAL : public nsIUrlClassifierDBService,
+                                           public nsIURIClassifier,
+                                           public nsIObserver
 {
 public:
   

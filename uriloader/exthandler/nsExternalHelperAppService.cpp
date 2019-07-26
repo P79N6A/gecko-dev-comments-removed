@@ -925,7 +925,6 @@ NS_IMETHODIMP nsExternalHelperAppService::GetApplicationDescription(const nsACSt
 
 NS_IMETHODIMP nsExternalHelperAppService::DeleteTemporaryFileOnExit(nsIFile * aTemporaryFile)
 {
-  nsresult rv = NS_OK;
   bool isFile = false;
 
   

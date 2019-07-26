@@ -714,17 +714,18 @@ JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeGC &dmgc)
 #ifdef JS_METHODJIT
     bool enabled = debugMode();
 
-    if (enabled)
-        JS_ASSERT(!hasScriptsOnStack());
-    else if (hasScriptsOnStack())
-        return;
+    JS_ASSERT_IF(enabled, !hasScriptsOnStack());
 
     for (gc::CellIter i(this, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        mjit::ReleaseScriptCode(fop, script);
         script->debugMode = enabled;
     }
 
+    
+    
+    
+    
+    
     
     
     

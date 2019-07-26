@@ -413,6 +413,10 @@ class js::AutoDebugModeGC
     explicit AutoDebugModeGC(JSRuntime *rt) : rt(rt), needGC(false) {}
 
     ~AutoDebugModeGC() {
+        
+        
+        
+        
         if (needGC)
             GC(rt, GC_NORMAL, gcreason::DEBUG_MODE_GC);
     }

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
@@ -33,18 +33,18 @@
 
 NS_IMPL_ISUPPORTS1(nsXMLQuery, nsXMLQuery)
 
-//----------------------------------------------------------------------
-//
-// nsXULTemplateResultSetXML
-//
+
+
+
+
 
 NS_IMPL_ISUPPORTS1(nsXULTemplateResultSetXML, nsISimpleEnumerator)
 
 NS_IMETHODIMP
 nsXULTemplateResultSetXML::HasMoreElements(bool *aResult)
 {
-    // if GetSnapshotLength failed, then the return type was not a set of
-    // nodes, so just return false in this case.
+    
+    
     PRUint32 length;
     if (NS_SUCCEEDED(mResults->GetSnapshotLength(&length)))
         *aResult = (mPosition < length);
@@ -72,10 +72,10 @@ nsXULTemplateResultSetXML::GetNext(nsISupports **aResult)
 }
 
 
-//----------------------------------------------------------------------
-//
-// nsXULTemplateQueryProcessorXML
-//
+
+
+
+
 
 static PLDHashOperator
 TraverseRuleToBindingsMap(nsISupports* aKey, nsXMLBindingSet* aMatch, void* aContext)
@@ -116,14 +116,14 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULTemplateQueryProcessorXML)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIXULTemplateQueryProcessor)
 NS_INTERFACE_MAP_END
 
-/*
- * Only the first datasource in aDataSource is used, which should be either an
- * nsIURI of an XML document, or a DOM node. If the former, GetDatasource will
- * load the document asynchronously and return null in aResult. Once the
- * document has loaded, the builder's datasource will be set to the XML
- * document. If the datasource is a DOM node, the node will be returned in
- * aResult.
- */
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
                                               nsIDOMNode* aRootNode,
@@ -142,8 +142,8 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
     if (length == 0)
         return NS_OK;
 
-    // we get only the first item, because the query processor supports only
-    // one document as a datasource
+    
+    
 
     nsCOMPtr<nsIDOMNode> node = do_QueryElementAt(aDataSources, 0);
     if (node) {
@@ -194,7 +194,7 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
     rv = target->AddEventListener(NS_LITERAL_STRING("error"), this, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = req->Send(nsnull, context->GetNativeContext());
+    rv = req->Send(nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mTemplateBuilder = aBuilder;
@@ -212,7 +212,7 @@ nsXULTemplateQueryProcessorXML::InitializeForBuilding(nsISupports* aDatasource,
     if (mGenerationStarted)
         return NS_ERROR_UNEXPECTED;
 
-    // the datasource is either a document or a DOM element
+    
     nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aDatasource);
     if (doc)
         doc->GetDocumentElement(getter_AddRefs(mRoot));
@@ -256,8 +256,8 @@ nsXULTemplateQueryProcessorXML::CompileQuery(nsIXULTemplateBuilder* aBuilder,
     nsAutoString expr;
     content->GetAttr(kNameSpaceID_None, nsGkAtoms::expr, expr);
 
-    // if an expression is not specified, then the default is to
-    // just take all of the children
+    
+    
     if (expr.IsEmpty())
         expr.AssignLiteral("*");
 
@@ -284,7 +284,7 @@ nsXULTemplateQueryProcessorXML::CompileQuery(nsIXULTemplateBuilder* aBuilder,
             nsAutoString expr;
             condition->GetAttr(kNameSpaceID_None, nsGkAtoms::expr, expr);
 
-            // ignore assignments without a variable or an expression
+            
             if (!var.IsEmpty() && !expr.IsEmpty()) {
                 nsCOMPtr<nsIDOMNode> conditionNode =
                     do_QueryInterface(condition);
@@ -378,7 +378,7 @@ nsXULTemplateQueryProcessorXML::AddBinding(nsIDOMNode* aRuleNode,
         return NS_OK;
     }
 
-    // aRef isn't currently used for XML query processors
+    
     return bindings->AddBinding(aVar, compiledexpr);
 }
 
@@ -389,7 +389,7 @@ nsXULTemplateQueryProcessorXML::TranslateRef(nsISupports* aDatasource,
 {
     *aRef = nsnull;
 
-    // the datasource is either a document or a DOM element
+    
     nsCOMPtr<nsIDOMElement> rootElement;
     nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aDatasource);
     if (doc)
@@ -397,7 +397,7 @@ nsXULTemplateQueryProcessorXML::TranslateRef(nsISupports* aDatasource,
     else
         rootElement = do_QueryInterface(aDatasource);
 
-    // if no root element, just return. The document may not have loaded yet
+    
     if (!rootElement)
         return NS_OK;
     
@@ -474,7 +474,7 @@ nsXULTemplateQueryProcessorXML::HandleEvent(nsIDOMEvent* aEvent)
         if (NS_SUCCEEDED(mRequest->GetResponseXML(getter_AddRefs(doc))))
             mTemplateBuilder->SetDatasource(doc);
 
-        // to avoid leak. we don't need it after...
+        
         mTemplateBuilder = nsnull;
         mRequest = nsnull;
     }

@@ -607,7 +607,7 @@ class StackFrame
 
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
     inline Value &unaliasedFormal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
-    inline Value &unaliasedActual(unsigned i);
+    inline Value &unaliasedActual(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
     template <class Op> inline void forEachUnaliasedActual(Op op);
 
     inline unsigned numFormalArgs() const;
@@ -1038,9 +1038,22 @@ class StackFrame
         return !!(flags_ & CONSTRUCTING);
     }
 
+    
+
+
+
+
+
+
+
     bool hasCallObj() const {
         JS_ASSERT(isStrictEvalFrame() || fun()->isHeavyweight());
         return flags_ & HAS_CALL_OBJ;
+    }
+
+    bool hasArgsObj() const {
+        JS_ASSERT(script()->needsArgsObj());
+        return flags_ & HAS_ARGS_OBJ;
     }
 
     

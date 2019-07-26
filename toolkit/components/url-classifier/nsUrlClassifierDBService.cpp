@@ -41,6 +41,7 @@
 #include "prprf.h"
 #include "prnetdb.h"
 #include "zlib.h"
+#include "mozilla/Attributes.h"
 
 
 #include <sqlite3.h>
@@ -3825,8 +3826,8 @@ nsUrlClassifierDBServiceWorker::MaybeCreateTables(mozIStorageConnection* connect
 
 
 
-class nsUrlClassifierLookupCallback : public nsIUrlClassifierLookupCallback
-                                    , public nsIUrlClassifierHashCompleterCallback
+class nsUrlClassifierLookupCallback MOZ_FINAL : public nsIUrlClassifierLookupCallback
+                                              , public nsIUrlClassifierHashCompleterCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -4034,7 +4035,7 @@ nsUrlClassifierLookupCallback::HandleResults()
 
 
 
-class nsUrlClassifierClassifyCallback : public nsIUrlClassifierCallback
+class nsUrlClassifierClassifyCallback MOZ_FINAL : public nsIUrlClassifierCallback
 {
 public:
   NS_DECL_ISUPPORTS

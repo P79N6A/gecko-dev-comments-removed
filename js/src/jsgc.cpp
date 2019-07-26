@@ -3876,7 +3876,14 @@ IsDeterministicGCReason(gcreason::Reason reason)
 static bool
 ShouldCleanUpEverything(JSRuntime *rt, gcreason::Reason reason)
 {
-    return !rt->hasContexts() || reason == gcreason::CC_FORCED;
+    
+    
+    
+    
+    
+    
+    
+    return !rt->hasContexts() || reason == gcreason::CC_FORCED || reason == gcreason::DEBUG_MODE_GC;
 }
 
 static void
