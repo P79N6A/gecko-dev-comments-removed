@@ -51,21 +51,19 @@ def enum(*names):
     return Foo()
 
 class WebIDLError(Exception):
-    def __init__(self, message, location, warning=False, extraLocations=[]):
+    def __init__(self, message, location, warning=False, extraLocation=""):
         self.message = message
         self.location = location
         self.warning = warning
-        self.extraLocations = [str(loc) for loc in extraLocations]
+        self.extraLocation = extraLocation
 
     def __str__(self):
-        extraLocationsStr = (
-            "" if len(self.extraLocations) == 0 else
-            "\n" + "\n".join(self.extraLocations))
-        return "%s: %s%s%s%s" % (self.warning and 'warning' or 'error',
-                                 self.message,
-                                 ", " if self.location else "",
-                                 self.location,
-                                 extraLocationsStr)
+        return "%s: %s%s%s%s%s" % (self.warning and 'warning' or 'error',
+                                   self.message,
+                                   ", " if self.location else "",
+                                   self.location,
+                                   "\n" if self.extraLocation else "",
+                                   self.extraLocation)
 
 class Location(object):
     def __init__(self, lexer, lineno, lexpos, filename):
@@ -347,17 +345,11 @@ class IDLExternalInterface(IDLObjectWithIdentifier):
     def finish(self, scope):
         pass
 
-    def validate(self):
-        pass
-
     def isExternal(self):
         return True
 
     def isInterface(self):
         return True
-
-    def isConsequential(self):
-        return False
 
     def addExtendedAttributes(self, attrs):
         assert len(attrs) == 0
@@ -376,11 +368,6 @@ class IDLInterface(IDLObjectWithScope):
         self._finished = False
         self.members = list(members) 
         self.implementedInterfaces = set()
-        self._consequential = False
-        
-        
-        
-        self.interfacesBasedOnSelf = set([self])
 
         IDLObjectWithScope.__init__(self, location, parentScope, name)
 
@@ -432,23 +419,9 @@ class IDLInterface(IDLObjectWithScope):
 
             
             
-            
-            
             if self.isCallback():
-                if not self.parent.isCallback():
-                    raise WebIDLError("Callback interface %s inheriting from "
-                                      "non-callback interface %s" %
-                                      (self.identifier.name,
-                                       self.parent.identifier.name),
-                                      self.location,
-                                      extraLocations=[self.parent.location])
-            elif self.parent.isCallback():
-                raise WebIDLError("Non-callback interface %s inheriting from "
-                                  "callback interface %s" %
-                                  (self.identifier.name,
-                                   self.parent.identifier.name),
-                                  self.location,
-                                  extraLocations=[self.parent.location])
+                assert(self.parent.isCallback())
+                assert(len(self.parent.getConsequentialInterfaces()) == 0)
 
         for iface in self.implementedInterfaces:
             iface.finish(scope)
@@ -458,14 +431,7 @@ class IDLInterface(IDLObjectWithScope):
             raise WebIDLError("Interface %s has itself as ancestor or "
                               "implemented interface" % self.identifier.name,
                               self.location,
-                              extraLocations=[cycleInGraph.location])
-
-        if self.isCallback():
-            
-            
-            assert len(self.getConsequentialInterfaces()) == 0
-            
-            assert not self.isConsequential()
+                              extraLocation=cycleInGraph.location)
 
         
         
@@ -493,8 +459,6 @@ class IDLInterface(IDLObjectWithScope):
         for iface in sorted(self.getConsequentialInterfaces(),
                             cmp=cmp,
                             key=lambda x: x.identifier.name):
-            
-            iface.setIsConsequentialInterfaceOf(self)
             additionalMembers = iface.originalMembers;
             for additionalMember in additionalMembers:
                 for member in self.members:
@@ -503,13 +467,8 @@ class IDLInterface(IDLObjectWithScope):
                             "Multiple definitions of %s on %s coming from 'implements' statements" %
                             (member.identifier.name, self),
                             additionalMember.location,
-                            extraLocations=[member.location])
+                            extraLocation=member.location)
             self.members.extend(additionalMembers)
-
-        for ancestor in self.getInheritedInterfaces():
-            ancestor.interfacesBasedOnSelf.add(self)
-            for ancestorConsequential in ancestor.getConsequentialInterfaces():
-                ancestorConsequential.interfacesBasedOnSelf.add(self)
 
         
         
@@ -542,22 +501,11 @@ class IDLInterface(IDLObjectWithScope):
 
             specialMembersSeen.add(memberType)
 
-    def validate(self):
-        for member in self.members:
-            member.validate()
-
     def isInterface(self):
         return True
 
     def isExternal(self):
         return False
-
-    def setIsConsequentialInterfaceOf(self, other):
-        self._consequential = True
-        self.interfacesBasedOnSelf.add(other)
-
-    def isConsequential(self):
-        return self._consequential
 
     def setCallback(self, value):
         self._callback = value
@@ -705,7 +653,7 @@ class IDLDictionary(IDLObjectWithScope):
                 raise WebIDLError("Dictionary %s has parent that is not a dictionary" %
                                   self.identifier.name,
                                   oldParent.location,
-                                  extraLocations=[self.parent.location])
+                                  extraLocation=self.parent.location)
 
             
             
@@ -739,10 +687,7 @@ class IDLDictionary(IDLObjectWithScope):
                     raise WebIDLError("Dictionary %s has two members with name %s" %
                                       (self.identifier.name, member.identifier.name),
                                       member.location,
-                                      extraLocations=[inheritedMember.location])
-
-    def validate(self):
-        pass
+                                      extraLocation=inheritedMember.location)
 
     def addExtendedAttributes(self, attrs):
         assert len(attrs) == 0
@@ -763,9 +708,6 @@ class IDLEnum(IDLObjectWithIdentifier):
         return self._values
 
     def finish(self, scope):
-        pass
-
-    def validate(self):
         pass
 
     def isEnum(self):
@@ -1313,33 +1255,22 @@ class IDLWrapperType(IDLType):
                     other.isCallback() or other.isDictionary() or
                     other.isSequence() or other.isArray() or
                     other.isDate())
-        if other.isPrimitive() or other.isString() or other.isEnum() or other.isDate():
+        if other.isPrimitive() or other.isString() or other.isEnum():
             return True
         if self.isDictionary():
             return (other.isNonCallbackInterface() or other.isSequence() or
-                    other.isArray())
+                    other.isArray() or other.isDate())
 
         assert self.isInterface()
         
         
         if other.isInterface():
-            if other.isSpiderMonkeyInterface():
-                
-                return other.isDistinguishableFrom(self)
-            assert self.isGeckoInterface() and other.isGeckoInterface()
-            if self.inner.isExternal() or other.unroll().inner.isExternal():
-                return self != other
-            return (len(self.inner.interfacesBasedOnSelf &
-                        other.unroll().inner.interfacesBasedOnSelf) == 0 and
+            return (self != other and
                     (self.isNonCallbackInterface() or
                      other.isNonCallbackInterface()))
         if (other.isDictionary() or other.isCallback() or
             other.isSequence() or other.isArray()):
             return self.isNonCallbackInterface()
-
-        
-        assert other.isObject()
-        return False
 
 class IDLBuiltinType(IDLType):
 
@@ -1707,9 +1638,6 @@ class IDLConst(IDLInterfaceMember):
     def finish(self, scope):
         assert self.type.isComplete()
 
-    def validate(self):
-        pass
-
 class IDLAttribute(IDLInterfaceMember):
     def __init__(self, location, identifier, type, readonly, inherit):
         IDLInterfaceMember.__init__(self, location, identifier,
@@ -1737,9 +1665,6 @@ class IDLAttribute(IDLInterfaceMember):
                 raise WebIDLError("An attribute cannot be of a dictionary type",
                                   self.location)
             self.type = t
-
-    def validate(self):
-        pass
 
     def handleExtendedAttribute(self, name, list):
         if name == "TreatNonCallableAsNull":
@@ -1814,9 +1739,6 @@ class IDLCallbackType(IDLType, IDLObjectWithScope):
             assert not isinstance(type.name, IDLUnresolvedIdentifier)
             argument.type = type
 
-    def validate(self):
-        pass
-
     def isDistinguishableFrom(self, other):
         return (other.isPrimitive() or other.isString() or other.isEnum() or
                 other.isNonCallbackInterface() or other.isDate())
@@ -1858,9 +1780,6 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
 
         assert isinstance(returnType, IDLType)
         self._returnType = [returnType]
-        
-        
-        self._location = [location]
 
         assert isinstance(static, bool)
         self._static = static
@@ -1892,7 +1811,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             assert self._arguments[0][0].type == BuiltinTypes[IDLBuiltinType.Types.domstring] or \
                    self._arguments[0][0].type == BuiltinTypes[IDLBuiltinType.Types.unsigned_long]
             assert not self._arguments[0][0].optional and not self._arguments[0][0].variadic
-            assert not self._returnType[0].isVoid()
+            assert not self._getter or not self._returnType[0].isVoid()
 
         if self._setter or self._creator:
             assert len(self._arguments[0]) == 2
@@ -1900,39 +1819,26 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                    self._arguments[0][0].type == BuiltinTypes[IDLBuiltinType.Types.unsigned_long]
             assert not self._arguments[0][0].optional and not self._arguments[0][0].variadic
             assert not self._arguments[0][1].optional and not self._arguments[0][1].variadic
-            assert self._arguments[0][1].type == self._returnType[0]
 
         if self._stringifier:
             assert len(self._arguments[0]) == 0
             assert self._returnType[0] == BuiltinTypes[IDLBuiltinType.Types.domstring]
 
         inOptionalArguments = False
-        variadicArgument = None
-        sawOptionalWithNoDefault = False
+        sawVariadicArgument = False
 
         assert len(self._arguments) == 1
         arguments = self._arguments[0]
 
         for argument in arguments:
             
-            if variadicArgument:
-                raise WebIDLError("Variadic argument is not last argument",
-                                  variadicArgument.location)
+            assert not sawVariadicArgument
             
             
-            if inOptionalArguments and not argument.optional:
-                raise WebIDLError("Non-optional argument after optional arguments",
-                                  argument.location)
-            
-            
-            if sawOptionalWithNoDefault and argument.defaultValue:
-                raise WebIDLError("Argument with default value after optional "
-                                  "arguments with no default values",
-                                  argument.location)
+            if inOptionalArguments:
+                assert argument.optional
             inOptionalArguments = argument.optional
-            if argument.variadic:
-                variadicArgument = argument
-            sawOptionalWithNoDefault = argument.optional and not argument.defaultValue
+            sawVariadicArgument = argument.variadic
 
     def isStatic(self):
         return self._static
@@ -1981,11 +1887,9 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
 
         assert len(method._returnType) == 1
         assert len(method._arguments) == 1
-        assert len(method._location) == 1
 
         self._returnType.extend(method._returnType)
         self._arguments.extend(method._arguments)
-        self._location.extend(method._location)
 
         self._hasOverloads = True
 
@@ -2037,64 +1941,6 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                 assert not isinstance(type.name, IDLUnresolvedIdentifier)
                 argument.type = type
 
-        
-        
-        self.maxArgCount = max(len(s[1]) for s in self.signatures())
-        self.allowedArgCounts = [ i for i in range(self.maxArgCount+1)
-                                  if len(self.signaturesForArgCount(i)) != 0 ]
-
-    def validate(self):
-        
-        
-        for argCount in self.allowedArgCounts:
-            possibleSignatures = self.signaturesForArgCount(argCount)
-            if len(possibleSignatures) == 1:
-                continue
-            distinguishingIndex = self.distinguishingIndexForArgCount(argCount)
-            arglists = [ s[1] for s in possibleSignatures ]
-            for idx in range(distinguishingIndex):
-                firstSigType = arglists[0][idx].type
-                for (otherArgList, location) in zip(arglists[1:],
-                                                    self._location[1:]):
-                    if otherArgList[idx].type != firstSigType:
-                        raise WebIDLError(
-                            "Signatures for method '%s' with %d arguments have "
-                            "different types of arguments at index %d, which "
-                            "is before distinguishing index %d" %
-                            (self.identifier.name, argCount, idx,
-                             distinguishingIndex),
-                            self.location,
-                            extraLocations=[location])
-
-    def signaturesForArgCount(self, argc):
-        return [(retval, args) for (retval, args) in self.signatures() if
-                len(args) == argc or (len(args) > argc and args[argc].optional)]
-
-    def locationsForArgCount(self, argc):
-        return [ self._location[i] for (i, args) in enumerate(self._arguments) if
-                 len(args) == argc or
-                 (len(args) > argc and args[argc].optional)]
-
-    def distinguishingIndexForArgCount(self, argc):
-        def isValidDistinguishingIndex(idx, signatures):
-            for (firstSigIndex, (firstRetval, firstArgs)) in enumerate(signatures[:-1]):
-                for (secondRetval, secondArgs) in signatures[firstSigIndex+1:]:
-                    firstType = firstArgs[idx].type
-                    secondType = secondArgs[idx].type
-                    if not firstType.isDistinguishableFrom(secondType):
-                        return False
-            return True
-        signatures = self.signaturesForArgCount(argc)
-        for idx in range(argc):
-            if isValidDistinguishingIndex(idx, signatures):
-                return idx
-        
-        locations = self.locationsForArgCount(argc)
-        raise WebIDLError("Signatures with %d arguments for method '%s' are not "
-                          "distinguishable" % (argc, self.identifier.name),
-                          locations[0],
-                          extraLocations=locations[1:])
-
 class IDLImplementsStatement(IDLObject):
     def __init__(self, location, implementor, implementee):
         IDLObject.__init__(self, location)
@@ -2106,29 +1952,7 @@ class IDLImplementsStatement(IDLObject):
         assert(isinstance(self.implementee, IDLIdentifierPlaceholder))
         implementor = self.implementor.finish(scope)
         implementee = self.implementee.finish(scope)
-        
-        
-        
-        if not isinstance(implementor, IDLInterface):
-            raise WebIDLError("Left-hand side of 'implements' is not an "
-                              "interface",
-                              self.implementor.location)
-        if implementor.isCallback():
-            raise WebIDLError("Left-hand side of 'implements' is a callback "
-                              "interface",
-                              self.implementor.location)
-        if not isinstance(implementee, IDLInterface):
-            raise WebIDLError("Right-hand side of 'implements' is not an "
-                              "interface",
-                              self.implementee.location)
-        if implementee.isCallback():
-            raise WebIDLError("Right-hand side of 'implements' is a callback "
-                              "interface",
-                              self.implementee.location)
         implementor.addImplementedInterface(implementee)
-
-    def validate(self):
-        pass
 
     def addExtendedAttributes(self, attrs):
         assert len(attrs) == 0
@@ -2573,27 +2397,12 @@ class Parser(Tokenizer):
         """
         p[0] = False
 
-    def p_AttributeOrOperationStringifier(self, p):
-        """
-            AttributeOrOperation : STRINGIFIER StringifierAttributeOrOperation
-        """
-        assert False 
-        pass
-
     def p_AttributeOrOperation(self, p):
         """
             AttributeOrOperation : Attribute
                                  | Operation
         """
         p[0] = p[1]
-
-    def p_StringifierAttributeOrOperation(self, p):
-        """
-            StringifierAttributeOrOperation : Attribute
-                                            | OperationRest
-                                            | SEMICOLON
-        """
-        pass
 
     def p_Attribute(self, p):
         """
@@ -2651,6 +2460,7 @@ class Parser(Tokenizer):
         creator = True if IDLMethod.Special.Creator in p[1] else False
         deleter = True if IDLMethod.Special.Deleter in p[1] else False
         legacycaller = True if IDLMethod.Special.LegacyCaller in p[1] else False
+        stringifier = True if IDLMethod.Special.Stringifier in p[1] else False
 
         if getter or deleter:
             if setter or creator:
@@ -2682,9 +2492,9 @@ class Parser(Tokenizer):
                                   ("getter" if getter else "deleter",
                                    "optional" if arguments[0].optional else "variadic"),
                                    arguments[0].location)
+        if getter:
             if returnType.isVoid():
-                raise WebIDLError("%s cannot have void return type" %
-                                  ("getter" if getter else "deleter"),
+                raise WebIDLError("getter cannot have void return type",
                                   self.getLocation(p, 2))
         if setter or creator:
             if len(arguments) != 2:
@@ -2710,13 +2520,13 @@ class Parser(Tokenizer):
                                   ("setter" if setter else "creator",
                                    "optional" if arguments[1].optional else "variadic"),
                                    arguments[1].location)
-            if returnType.isVoid():
-                raise WebIDLError("%s cannot have void return type" %
-                                  ("setter" if setter else "creator"),
+
+        if stringifier:
+            if len(arguments) != 0:
+                raise WebIDLError("stringifier has wrong number of arguments",
                                   self.getLocation(p, 2))
-            if not arguments[1].type == returnType:
-                raise WebIDLError("%s return type and second argument type must match" %
-                                  ("setter" if setter else "creator"),
+            if not returnType.isString():
+                raise WebIDLError("stringifier must have string return type",
                                   self.getLocation(p, 2))
 
         inOptionalArguments = False
@@ -2735,27 +2545,27 @@ class Parser(Tokenizer):
             variadicArgument = argument if argument.variadic else None
 
         
-        
         if not identifier:
             if not getter and not setter and not creator and \
-               not deleter and not legacycaller:
+               not deleter and not legacycaller and not stringifier:
                 raise WebIDLError("Identifier required for non-special methods",
                                   self.getLocation(p, 2))
 
             location = BuiltinLocation("<auto-generated-identifier>")
-            identifier = IDLUnresolvedIdentifier(location, "__%s%s%s%s%s%s" %
+            identifier = IDLUnresolvedIdentifier(location, "__%s%s%s%s%s%s%s" %
                 ("named" if specialType == IDLMethod.NamedOrIndexed.Named else \
                  "indexed" if specialType == IDLMethod.NamedOrIndexed.Indexed else "",
                  "getter" if getter else "",
                  "setter" if setter else "",
                  "deleter" if deleter else "",
                  "creator" if creator else "",
-                 "legacycaller" if legacycaller else ""), allowDoubleUnderscore=True)
+                 "legacycaller" if legacycaller else "",
+                 "stringifier" if stringifier else ""), allowDoubleUnderscore=True)
 
         method = IDLMethod(self.getLocation(p, 2), identifier, returnType, arguments,
                            static=static, getter=getter, setter=setter, creator=creator,
                            deleter=deleter, specialType=specialType,
-                           legacycaller=legacycaller, stringifier=False)
+                           legacycaller=legacycaller, stringifier=stringifier)
         p[0] = method
 
     def p_QualifiersStatic(self, p):
@@ -2812,6 +2622,12 @@ class Parser(Tokenizer):
             Special : LEGACYCALLER
         """
         p[0] = IDLMethod.Special.LegacyCaller
+
+    def p_SpecialStringifier(self, p):
+        """
+            Special : STRINGIFIER
+        """
+        p[0] = IDLMethod.Special.Stringifier
 
     def p_OperationRest(self, p):
         """
@@ -3375,10 +3191,6 @@ class Parser(Tokenizer):
             production.finish(self.globalScope())
         for production in otherStatements:
             production.finish(self.globalScope())
-
-        
-        for production in self._productions:
-            production.validate()
 
         
         seen = set()
