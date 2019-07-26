@@ -22,6 +22,8 @@ function LOG(str) {
   }
 }
 
+function ERROR(aMsg) Cu.reportError("[CustomizeMode] " + aMsg);
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/CustomizableUI.jsm");
 
@@ -491,7 +493,13 @@ CustomizeMode.prototype = {
 
     
     
-    let position = Array.indexOf(targetParent.children, targetNode);
+    let placement = CustomizableUI.getPlacementOfWidget(targetNode.firstChild.id);
+    if (!placement) {
+      ERROR("Could not get a position for " + targetNode.firstChild.id);
+      return;
+    }
+
+    let position = placement.position;
 
     
     
@@ -516,9 +524,15 @@ CustomizeMode.prototype = {
     
     
     if (targetArea === originArea) {
+      let properPlace = getPlaceForItem(targetNode);
+      
+      
+      
       let widget = this.unwrapToolbarItem(draggedWrapper);
+      let targetWidget = this.unwrapToolbarItem(targetNode);
       CustomizableUI.moveWidgetWithinArea(draggedItemId, position);
-      this.wrapToolbarItem(widget, getPlaceForItem(targetNode));
+      this.wrapToolbarItem(targetWidget, properPlace);
+      this.wrapToolbarItem(widget, properPlace);
       return;
     }
 
@@ -529,9 +543,13 @@ CustomizeMode.prototype = {
     
     
     
+    
+    let properPlace = getPlaceForItem(targetNode);
     let widget = this.unwrapToolbarItem(draggedWrapper);
+    let targetWidget = this.unwrapToolbarItem(targetNode);
     CustomizableUI.addWidgetToArea(draggedItemId, targetArea.id, position);
-    draggedWrapper = this.wrapToolbarItem(widget, getPlaceForItem(targetNode));
+    this.wrapToolbarItem(targetWidget, properPlace);
+    draggedWrapper = this.wrapToolbarItem(widget, properPlace);
 
     
     if (draggedWrapper.hasAttribute("flex")) {
