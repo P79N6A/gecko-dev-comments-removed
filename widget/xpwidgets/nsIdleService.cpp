@@ -27,18 +27,9 @@ using namespace mozilla;
 #define MIN_IDLE_POLL_INTERVAL_MSEC (5 * PR_MSEC_PER_SEC) /* 5 sec */
 
 
-
-
-#define DAILY_SIGNIFICANT_IDLE_SERVICE_SEC (3 * 60)
-
-
-
-
-#define DAILY_SHORTENED_IDLE_SERVICE_SEC 60
-
+#define DAILY_SIGNIFICANT_IDLE_SERVICE_SEC 300 /* 5 min */
 
 #define PREF_LAST_DAILY "idle.lastDailyNotification"
-
 
 #define SECONDS_PER_DAY 86400
 
@@ -67,10 +58,6 @@ nsIdleServiceDaily::Observe(nsISupports *,
                             const char *aTopic,
                             const PRUnichar *)
 {
-  PR_LOG(sLog, PR_LOG_DEBUG,
-         ("nsIdleServiceDaily: Observe '%s' (%d)",
-          aTopic, mShutdownInProgress));
-
   if (strcmp(aTopic, "profile-after-change") == 0) {
     
     mShutdownInProgress = false;
@@ -87,11 +74,8 @@ nsIdleServiceDaily::Observe(nsISupports *,
   }
   MOZ_ASSERT(strcmp(aTopic, OBSERVER_TOPIC_IDLE) == 0);
 
-  PR_LOG(sLog, PR_LOG_DEBUG,
-         ("nsIdleServiceDaily: Notifying idle-daily observers"));
 #ifdef ANDROID
-  __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                      "Notifying idle-daily observers");
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "Notifying idle-daily observers");
 #endif
 
   
@@ -109,7 +93,8 @@ nsIdleServiceDaily::Observe(nsISupports *,
   }
 
   
-  (void)mIdleService->RemoveIdleObserver(this, mIdleDailyTriggerWait);
+  (void)mIdleService->RemoveIdleObserver(this,
+                                         DAILY_SIGNIFICANT_IDLE_SERVICE_SEC);
 
   
   int32_t nowSec = static_cast<int32_t>(PR_Now() / PR_USEC_PER_SEC);
@@ -122,19 +107,13 @@ nsIdleServiceDaily::Observe(nsISupports *,
     prefs->SavePrefFile(nullptr);
   }
 
-  PR_LOG(sLog, PR_LOG_DEBUG,
-         ("nsIdleServiceDaily: Storing last idle time as %d sec.", nowSec));
 #ifdef ANDROID
-  __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                      "Storing last idle time as %d", nowSec);
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "Storing last idle time as %d",
+                      nowSec);
 #endif
 
   
-  mExpectedTriggerTime  = PR_Now() + ((PRTime)SECONDS_PER_DAY *
-                                      (PRTime)PR_USEC_PER_SEC);
-
-  PR_LOG(sLog, PR_LOG_DEBUG,
-         ("nsIdleServiceDaily: Restarting daily timer"));
+  mDailyTimerStart  = PR_Now();
 
   
   (void)mTimer->InitWithFuncCallback(DailyCallback,
@@ -149,8 +128,6 @@ nsIdleServiceDaily::nsIdleServiceDaily(nsIIdleService* aIdleService)
   : mIdleService(aIdleService)
   , mTimer(do_CreateInstance(NS_TIMER_CONTRACTID))
   , mCategoryObservers(OBSERVER_TOPIC_IDLE_DAILY)
-  , mExpectedTriggerTime(0)
-  , mIdleDailyTriggerWait(DAILY_SIGNIFICANT_IDLE_SERVICE_SEC)
   , mShutdownInProgress(false)
 {
 }
@@ -160,69 +137,43 @@ nsIdleServiceDaily::Init()
 {
   
   
-  
-  
-
   int32_t nowSec = static_cast<int32_t>(PR_Now() / PR_USEC_PER_SEC);
   int32_t lastDaily = Preferences::GetInt(PREF_LAST_DAILY, 0);
   if (lastDaily < 0 || lastDaily > nowSec) {
     
     lastDaily = 0;
   }
-  int32_t secondsSinceLastDaily = nowSec - lastDaily;
-
-  PR_LOG(sLog, PR_LOG_DEBUG,
-         ("nsIdleServiceDaily: Init: seconds since last daily: %d",
-          secondsSinceLastDaily));
 
   
-  
-  if (secondsSinceLastDaily > SECONDS_PER_DAY) {
-    
-    bool hasBeenLongWait = (lastDaily &&
-                            (secondsSinceLastDaily > (SECONDS_PER_DAY * 2)));
-
-    PR_LOG(sLog, PR_LOG_DEBUG,
-           ("nsIdleServiceDaily: has been long wait? %d",
-            hasBeenLongWait));
-
-    
-    
-    StageIdleDaily(hasBeenLongWait);
-  } else {
-    PR_LOG(sLog, PR_LOG_DEBUG,
-           ("nsIdleServiceDaily: Setting timer a day from now"));
+  if (nowSec - lastDaily > SECONDS_PER_DAY) {
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                        "Setting timer a day from now");
+    __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback started");
+#endif
+    
+    
+    mDailyTimerStart = lastDaily * PR_USEC_PER_SEC;
+
+    
+    DailyCallback(nullptr, this);
+  }
+  else {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_INFO, "IdleService", "Setting timer a day from now");
 #endif
 
     
-    
-    int32_t milliSecLeftUntilDaily = (SECONDS_PER_DAY - secondsSinceLastDaily)
-      * PR_MSEC_PER_SEC;
-
-    PR_LOG(sLog, PR_LOG_DEBUG,
-           ("nsIdleServiceDaily: Seconds till next timeout: %d",
-            (SECONDS_PER_DAY - secondsSinceLastDaily)));
+    mDailyTimerStart  = PR_Now();
 
     
-    
-    
-    mExpectedTriggerTime  = PR_Now() +
-      (milliSecLeftUntilDaily * PR_USEC_PER_MSEC);
-
     (void)mTimer->InitWithFuncCallback(DailyCallback,
                                        this,
-                                       milliSecLeftUntilDaily,
+                                       SECONDS_PER_DAY * PR_MSEC_PER_SEC,
                                        nsITimer::TYPE_ONE_SHOT);
   }
 
   
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
-    PR_LOG(sLog, PR_LOG_DEBUG,
-           ("nsIdleServiceDaily: Registering for system event observers."));
     obs->AddObserver(this, "xpcom-will-shutdown", true);
     obs->AddObserver(this, "profile-change-teardown", true);
     obs->AddObserver(this, "profile-after-change", true);
@@ -239,61 +190,47 @@ nsIdleServiceDaily::~nsIdleServiceDaily()
 
 
 void
-nsIdleServiceDaily::StageIdleDaily(bool aHasBeenLongWait)
-{
-  NS_ASSERTION(mIdleService, "No idle service available?");
-  PR_LOG(sLog, PR_LOG_DEBUG,
-          ("nsIdleServiceDaily: Registering Idle observer callback "
-           "(short wait requested? %d)", aHasBeenLongWait));
-#ifdef ANDROID
-  __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                      "Registering Idle observer callback");
-#endif
-  mIdleDailyTriggerWait = (aHasBeenLongWait ?
-                             DAILY_SHORTENED_IDLE_SERVICE_SEC :
-                             DAILY_SIGNIFICANT_IDLE_SERVICE_SEC);
-  (void)mIdleService->AddIdleObserver(this, mIdleDailyTriggerWait);
-}
-
-
-void
 nsIdleServiceDaily::DailyCallback(nsITimer* aTimer, void* aClosure)
 {
-  PR_LOG(sLog, PR_LOG_DEBUG,
-          ("nsIdleServiceDaily: DailyCallback running"));
 #ifdef ANDROID
-  __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                      "DailyCallback running");
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback running");
 #endif
 
-  nsIdleServiceDaily* self = static_cast<nsIdleServiceDaily*>(aClosure);
+  nsIdleServiceDaily* me = static_cast<nsIdleServiceDaily*>(aClosure);
 
-  
-  
   PRTime now = PR_Now();
-  if (self->mExpectedTriggerTime && now < self->mExpectedTriggerTime) {
-    
-    PRTime newTime = self->mExpectedTriggerTime - now;
+  PRTime launchTime = me->mDailyTimerStart + ((PRTime)SECONDS_PER_DAY * PR_USEC_PER_SEC);
 
-    
-    newTime += 10 * PR_USEC_PER_MSEC;
+  
+  if (now < launchTime) {
+      
+      PRTime newTime = launchTime;
+
+      
+      newTime += 10 * PR_USEC_PER_MSEC;
 
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                        "DailyCallback resetting timer to %lld msec",
-                        (newTime - now) / PR_USEC_PER_MSEC);
+      __android_log_print(ANDROID_LOG_INFO, "IdleService",
+                          "DailyCallback resetting timer to %lld msec",
+                          (newTime - now) / PR_USEC_PER_MSEC);
 #endif
 
-    (void)self->mTimer->InitWithFuncCallback(DailyCallback,
-                                             self,
+      
+      (void)me->mTimer->InitWithFuncCallback(DailyCallback,
+                                             me,
                                              (newTime - now) / PR_USEC_PER_MSEC,
                                              nsITimer::TYPE_ONE_SHOT);
-    return;
+      return;
   }
+
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback registering Idle observer");
+#endif
 
   
   
-  self->StageIdleDaily(false);
+  (void)me->mIdleService->AddIdleObserver(me,
+                                          DAILY_SIGNIFICANT_IDLE_SERVICE_SEC);
 }
 
 
@@ -416,8 +353,7 @@ nsIdleService::AddIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS)
          ("idleService: Register idle observer %x for %d seconds",
           aObserver, aIdleTimeInS));
 #ifdef ANDROID
-  __android_log_print(ANDROID_LOG_INFO, "IdleService",
-                      "Register idle observer %x for %d seconds",
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "Register idle observer %x for %d seconds",
                       aObserver, aIdleTimeInS);
 #endif
 
@@ -733,8 +669,6 @@ nsIdleService::IdleTimerCallback(void)
 
   
   if (!numberOfPendingNotifications) {
-    PR_LOG(sLog, PR_LOG_DEBUG,
-           ("idleService: **** Idle timer callback: no observers to message."));
     return;
   }
 
@@ -745,7 +679,7 @@ nsIdleService::IdleTimerCallback(void)
   
   while (numberOfPendingNotifications--) {
     PR_LOG(sLog, PR_LOG_DEBUG,
-           ("idleService: **** Idle timer callback: tell observer %x user is idle",
+           ("idleService: Idle timer callback: tell observer %x user is idle",
             notifyList[numberOfPendingNotifications]));
 #ifdef ANDROID
   __android_log_print(ANDROID_LOG_INFO, "IdleService",
