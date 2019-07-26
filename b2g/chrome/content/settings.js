@@ -70,7 +70,7 @@ if ("nsIAudioManager" in Ci) {
   const nsIAudioManager = Ci.nsIAudioManager;
   audioChannelSettings = [
     
-    ['audio.volume.content', 15, [nsIAudioManager.STREAM_TYPE_SYSTEM, nsIAudioManager.STREAM_TYPE_MUSIC, nsIAudioManager.STREAM_TYPE_FM]],
+    ['audio.volume.content', 15, [nsIAudioManager.STREAM_TYPE_SYSTEM, nsIAudioManager.STREAM_TYPE_MUSIC]],
     ['audio.volume.notification', 15, [nsIAudioManager.STREAM_TYPE_RING, nsIAudioManager.STREAM_TYPE_NOTIFICATION]],
     ['audio.volume.alarm', 15, [nsIAudioManager.STREAM_TYPE_ALARM]],
     ['audio.volume.telephony', 5, [nsIAudioManager.STREAM_TYPE_VOICE_CALL]],
