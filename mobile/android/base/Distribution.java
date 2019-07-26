@@ -3,10 +3,6 @@
 
 
 
-
-
-
-
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.util.ThreadUtils;
@@ -19,14 +15,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Scanner;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -43,46 +37,16 @@ public final class Distribution {
 
 
 
+
     public static void init(final Context context, final String packagePath) {
         
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                
-                SharedPreferences settings = context.getSharedPreferences(GeckoApp.PREFS_NAME, Activity.MODE_PRIVATE);
-                String keyName = context.getPackageName() + ".distribution_state";
-                int state = settings.getInt(keyName, STATE_UNKNOWN);
-                if (state == STATE_NONE) {
-                    return;
-                }
-
-                
-                if (state == STATE_SET) {
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", ""));
-                    return;
-                }
-
-                boolean distributionSet = false;
-                try {
-                    
-                    distributionSet = copyFiles(context, packagePath);
-                } catch (IOException e) {
-                    Log.e(LOGTAG, "Error copying distribution files", e);
-                }
-
-                if (!distributionSet) {
-                    
-                    File distDir = new File("/system/" + context.getPackageName() + "/distribution");
-                    if (distDir.exists()) {
-                        distributionSet = true;
-                    }
-                }
-
+                Distribution dist = new Distribution(context, packagePath);
+                boolean distributionSet = dist.doInit();
                 if (distributionSet) {
                     GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Distribution:Set", ""));
-                    settings.edit().putInt(keyName, STATE_SET).commit();
-                } else {
-                    settings.edit().putInt(keyName, STATE_NONE).commit();
                 }
             }
         });
@@ -92,34 +56,126 @@ public final class Distribution {
 
 
 
-    private static boolean copyFiles(Context context, String packagePath) throws IOException {
+    public static void init(final Context context) {
+        Distribution.init(context, context.getPackageResourcePath());
+    }
+
+    
+
+
+
+    public static JSONArray getBookmarks(final Context context) {
+        Distribution dist = new Distribution(context);
+        return dist.getBookmarks();
+    }
+
+    private final String packagePath;
+    private final Context context;
+
+    private int state = STATE_UNKNOWN;
+    private File distributionDir = null;
+
+    
+
+
+    public Distribution(final Context context, final String packagePath) {
+        this.context = context;
+        this.packagePath = packagePath;
+    }
+
+    public Distribution(final Context context) {
+        this(context, context.getPackageResourcePath());
+    }
+
+    
+
+
+
+
+    private boolean doInit() {
+        
+        
+        SharedPreferences settings = context.getSharedPreferences(GeckoApp.PREFS_NAME, Activity.MODE_PRIVATE);
+        String keyName = context.getPackageName() + ".distribution_state";
+        this.state = settings.getInt(keyName, STATE_UNKNOWN);
+        if (this.state == STATE_NONE) {
+            return false;
+        }
+
+        
+        if (this.state == STATE_SET) {
+            
+            
+            return true;
+        }
+
+        boolean distributionSet = false;
+        try {
+            
+            distributionSet = copyFiles();
+            if (distributionSet) {
+                
+                
+                
+                this.distributionDir = new File(getDataDir(), "distribution/");
+            }
+        } catch (IOException e) {
+            Log.e(LOGTAG, "Error copying distribution files", e);
+        }
+
+        if (!distributionSet) {
+            
+            File distDir = getSystemDistributionDir();
+            if (distDir.exists()) {
+                distributionSet = true;
+                this.distributionDir = distDir;
+            }
+        }
+
+        this.state = distributionSet ? STATE_SET : STATE_NONE;
+        settings.edit().putInt(keyName, this.state).commit();
+        return distributionSet;
+    }
+
+    
+
+
+
+    private boolean copyFiles() throws IOException {
         File applicationPackage = new File(packagePath);
         ZipFile zip = new ZipFile(applicationPackage);
 
         boolean distributionSet = false;
         Enumeration<? extends ZipEntry> zipEntries = zip.entries();
+
+        byte[] buffer = new byte[1024];
         while (zipEntries.hasMoreElements()) {
             ZipEntry fileEntry = zipEntries.nextElement();
             String name = fileEntry.getName();
 
-            if (!name.startsWith("distribution/"))
+            if (!name.startsWith("distribution/")) {
                 continue;
+            }
 
             distributionSet = true;
 
-            File dataDir = new File(context.getApplicationInfo().dataDir);
-            File outFile = new File(dataDir, name);
-
+            File outFile = new File(getDataDir(), name);
             File dir = outFile.getParentFile();
-            if (!dir.exists())
-                dir.mkdirs();
+
+            if (!dir.exists()) {
+                if (!dir.mkdirs()) {
+                    Log.e(LOGTAG, "Unable to create directories: " + dir.getAbsolutePath());
+                    continue;
+                }
+            }
 
             InputStream fileStream = zip.getInputStream(fileEntry);
             OutputStream outStream = new FileOutputStream(outFile);
 
-            int b;
-            while ((b = fileStream.read()) != -1)
-                outStream.write(b);
+            int count;
+            while ((count = fileStream.read(buffer)) != -1) {
+                outStream.write(buffer, 0, count);
+            }
 
             fileStream.close();
             outStream.close();
@@ -135,74 +191,74 @@ public final class Distribution {
 
 
 
-    public static JSONArray getBookmarks(Context context) {
-        SharedPreferences settings = context.getSharedPreferences(GeckoApp.PREFS_NAME, Activity.MODE_PRIVATE);
-        String keyName = context.getPackageName() + ".distribution_state";
-        int state = settings.getInt(keyName, STATE_UNKNOWN);
-        if (state == STATE_NONE) {
+
+
+    private File ensureDistributionDir() {
+        if (this.distributionDir != null) {
+            return this.distributionDir;
+        }
+
+        if (this.state != STATE_SET) {
             return null;
         }
 
-        ZipFile zip = null;
-        InputStream inputStream = null;
+        
+        
+        
+        
+        File copied = new File(getDataDir(), "distribution/");
+        if (copied.exists()) {
+            return this.distributionDir = copied;
+        }
+        File system = getSystemDistributionDir();
+        if (system.exists()) {
+            return this.distributionDir = system;
+        }
+        return null;
+    }
+
+    public JSONArray getBookmarks() {
+        if (this.state == STATE_UNKNOWN) {
+            this.doInit();
+        }
+
+        File dist = ensureDistributionDir();
+        if (dist == null) {
+            return null;
+        }
+
+        File bookmarks = new File(dist, "bookmarks.json");
+        if (!bookmarks.exists()) {
+            return null;
+        }
+
+        
         try {
-            if (state == STATE_UNKNOWN) {
-                
-                File applicationPackage = new File(context.getPackageResourcePath());
-                zip = new ZipFile(applicationPackage);
-                ZipEntry zipEntry = zip.getEntry("distribution/bookmarks.json");
-                if (zipEntry != null) {
-                    inputStream = zip.getInputStream(zipEntry);
-                } else {
-                    
-                    
-                    zipEntry = zip.getEntry("distribution/preferences.json");
-                    if (zipEntry != null) {
-                        return null;
-                    }
-                    
-                    File systemFile = new File("/system/" + context.getPackageName() + "/distribution/bookmarks.json");
-                    if (!systemFile.exists()) {
-                        return null;
-                    }
-                    inputStream = new FileInputStream(systemFile);
+            Scanner scanner = null;
+            try {
+                scanner = new Scanner(bookmarks, "UTF-8");
+                final String contents = scanner.useDelimiter("\\A").next();
+                return new JSONArray(contents);
+            } finally {
+                if (scanner != null) {
+                    scanner.close();
                 }
-            } else {
-                
-                File distDir = new File(context.getApplicationInfo().dataDir, "distribution");
-                if (!distDir.exists()) {
-                    
-                    distDir = new File("/system/" + context.getPackageName() + "/distribution");
-                }
-
-                File file = new File(distDir, "bookmarks.json");
-                inputStream = new FileInputStream(file);
             }
 
-            
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            StringBuilder stringBuilder = new StringBuilder();
-            String s;
-            while ((s = reader.readLine()) != null) {
-                stringBuilder.append(s);
-            }
-            return new JSONArray(stringBuilder.toString());
         } catch (IOException e) {
             Log.e(LOGTAG, "Error getting bookmarks", e);
         } catch (JSONException e) {
             Log.e(LOGTAG, "Error parsing bookmarks.json", e);
-        } finally {
-            try {
-                if (zip != null) {
-                    zip.close();
-                }
-                if (inputStream != null) {
-                    inputStream.close();
-                }
-            } catch (IOException e) {
-                Log.e(LOGTAG, "Error closing streams", e);
-            } 
         }
+
         return null;
+    }
+
+    private String getDataDir() {
+        return context.getApplicationInfo().dataDir;
+    }
+
+    private File getSystemDistributionDir() {
+        return new File("/system/" + context.getPackageName() + "/distribution");
     }
 }
