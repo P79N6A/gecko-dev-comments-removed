@@ -241,8 +241,10 @@ void OTS_API SetTableActionCallback(TableActionFunc func, void *user_data);
 
 void DisableDebugOutput();
 
+#ifdef MOZ_OTS_WOFF2
 
 void EnableWOFF2();
+#endif
 
 }  
 
