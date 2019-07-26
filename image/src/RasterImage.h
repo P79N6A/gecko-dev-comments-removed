@@ -23,7 +23,6 @@
 #include "imgIContainer.h"
 #include "nsIProperties.h"
 #include "nsITimer.h"
-#include "nsIRequest.h"
 #include "nsWeakReference.h"
 #include "nsTArray.h"
 #include "imgFrame.h"
@@ -153,7 +152,7 @@ public:
   NS_DECL_IMGICONTAINERDEBUG
 #endif
 
-  
+  RasterImage(imgStatusTracker* aStatusTracker = nullptr);
   virtual ~RasterImage();
 
   virtual nsresult StartAnimation();
@@ -162,8 +161,9 @@ public:
   
   nsresult Init(imgIDecoderObserver* aObserver,
                 const char* aMimeType,
+                const char* aURIString,
                 uint32_t aFlags);
-  virtual void  GetCurrentFrameRect(nsIntRect& aRect) MOZ_OVERRIDE;
+  void     GetCurrentFrameRect(nsIntRect& aRect);
 
   
   static NS_METHOD WriteToRasterImage(nsIInputStream* aIn, void* aClosure,
@@ -249,15 +249,11 @@ public:
 
   nsresult AddSourceData(const char *aBuffer, uint32_t aCount);
 
-  virtual nsresult OnImageDataAvailable(nsIRequest* aRequest,
-                                        nsISupports* aContext,
-                                        nsIInputStream* aInStr,
-                                        uint64_t aSourceOffset,
-                                        uint32_t aCount) MOZ_OVERRIDE;
-  virtual nsresult OnImageDataComplete(nsIRequest* aRequest,
-                                       nsISupports* aContext,
-                                       nsresult aResult) MOZ_OVERRIDE;
-  virtual nsresult OnNewSourceData() MOZ_OVERRIDE;
+  
+  nsresult SourceDataComplete();
+
+  
+  nsresult NewSourceData();
 
   
 
@@ -732,11 +728,7 @@ private:
   bool StoringSourceData() const;
 
 protected:
-  RasterImage(imgStatusTracker* aStatusTracker = nullptr, nsIURI* aURI = nullptr);
-
   bool ShouldAnimate();
-
-  friend class ImageFactory;
 };
 
 inline NS_IMETHODIMP RasterImage::GetAnimationMode(uint16_t *aAnimationMode) {
@@ -772,4 +764,4 @@ class imgDecodeRequestor : public nsRunnable
 } 
 } 
 
-#endif
+#endif 

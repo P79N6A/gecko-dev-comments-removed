@@ -169,9 +169,8 @@ NS_IMPL_ISUPPORTS3(VectorImage,
 
 
 
-VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
-                         nsIURI* aURI ) :
-  Image(aStatusTracker, aURI), 
+VectorImage::VectorImage(imgStatusTracker* aStatusTracker) :
+  Image(aStatusTracker), 
   mRestrictedRegion(0, 0, 0, 0),
   mIsInitialized(false),
   mIsFullyLoaded(false),
@@ -191,6 +190,7 @@ VectorImage::~VectorImage()
 nsresult
 VectorImage::Init(imgIDecoderObserver* aObserver,
                   const char* aMimeType,
+                  const char* aURIString,
                   uint32_t aFlags)
 {
   
@@ -241,30 +241,6 @@ size_t
 VectorImage::OutOfProcessSizeOfDecoded() const
 {
   return 0;
-}
-
-nsresult
-VectorImage::OnImageDataComplete(nsIRequest* aRequest,
-                                 nsISupports* aContext,
-                                 nsresult aStatus)
-{
-  return OnStopRequest(aRequest, aContext, aStatus);
-}
-
-nsresult
-VectorImage::OnImageDataAvailable(nsIRequest* aRequest,
-                                  nsISupports* aContext,
-                                  nsIInputStream* aInStr,
-                                  uint64_t aSourceOffset,
-                                  uint32_t aCount)
-{
-  return OnDataAvailable(aRequest, aContext, aInStr, aSourceOffset, aCount);
-}
-
-nsresult
-VectorImage::OnNewSourceData()
-{
-  return NS_OK;
 }
 
 nsresult

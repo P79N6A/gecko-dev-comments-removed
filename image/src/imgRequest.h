@@ -198,7 +198,7 @@ private:
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
-  nsRefPtr<imgStatusTracker> mStatusTracker;
+  nsAutoPtr<imgStatusTracker> mStatusTracker;
   nsRefPtr<mozilla::image::Image> mImage;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;

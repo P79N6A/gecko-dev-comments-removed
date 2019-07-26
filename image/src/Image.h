@@ -8,9 +8,6 @@
 
 #include "imgIContainer.h"
 #include "imgStatusTracker.h"
-#include "nsIURI.h"
-#include "nsIRequest.h"
-#include "nsIInputStream.h"
 
 namespace mozilla {
 namespace image {
@@ -50,6 +47,7 @@ public:
 
   virtual nsresult Init(imgIDecoderObserver* aObserver,
                         const char* aMimeType,
+                        const char* aURIString,
                         uint32_t aFlags) = 0;
 
   
@@ -90,51 +88,15 @@ public:
   uint32_t GetAnimationConsumers() { return mAnimationConsumers; }
 #endif
 
-  
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult OnImageDataAvailable(nsIRequest* aRequest,
-                                        nsISupports* aContext,
-                                        nsIInputStream* aInStr,
-                                        uint64_t aSourceOffset,
-                                        uint32_t aCount) = 0;
-
-  
-
-
-
-
-
-  virtual nsresult OnImageDataComplete(nsIRequest* aRequest,
-                                       nsISupports* aContext,
-                                       nsresult status) = 0;
-
-  
-
-
-
-  virtual nsresult OnNewSourceData() = 0;
-
   void SetInnerWindowID(uint64_t aInnerWindowId) {
     mInnerWindowId = aInnerWindowId;
   }
   uint64_t InnerWindowID() const { return mInnerWindowId; }
 
-  bool HasError()    { return mError; }
-  void SetHasError() { mError = true; }
-
-  nsIURI* GetURI() { return mURI; }
+  bool HasError() { return mError; }
 
 protected:
-  Image(imgStatusTracker* aStatusTracker, nsIURI* aURI);
+  Image(imgStatusTracker* aStatusTracker);
 
   
   
@@ -153,8 +115,7 @@ protected:
   uint64_t mInnerWindowId;
 
   
-  nsRefPtr<imgStatusTracker>  mStatusTracker;
-  nsCOMPtr<nsIURI>            mURI;
+  nsAutoPtr<imgStatusTracker> mStatusTracker;
   uint32_t                    mAnimationConsumers;
   uint16_t                    mAnimationMode;   
   bool                        mInitialized:1;   

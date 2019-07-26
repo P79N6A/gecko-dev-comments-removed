@@ -58,11 +58,9 @@ public:
 
   
   
-  nsresult Init(imgRequest* aOwner,
-                imgStatusTracker* aStatusTracker,
+  nsresult Init(imgStatusTracker* aStatusTracker,
                 nsILoadGroup *aLoadGroup,
-                nsIURI* aURI,
-                imgINotificationObserver *aObserver);
+                nsIURI* aURI, imgINotificationObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
                                                
@@ -138,7 +136,6 @@ protected:
   
 
   
-  void OnStartDecode     ();
   void OnStartContainer  ();
   void OnFrameUpdate     (const nsIntRect * aRect);
   void OnStopFrame       ();

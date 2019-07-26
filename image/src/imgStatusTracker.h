@@ -8,6 +8,7 @@
 #define imgStatusTracker_h__
 
 class imgIContainer;
+class imgRequest;
 class imgRequestProxy;
 class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
@@ -20,7 +21,6 @@ class Image;
 } 
 
 
-#include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsTObserverArray.h"
@@ -32,7 +32,6 @@ class Image;
 enum {
   stateRequestStarted    = 1u << 0,
   stateHasSize           = 1u << 1,
-  stateDecodeStarted     = 1u << 2,
   stateDecodeStopped     = 1u << 3,
   stateFrameStopped      = 1u << 4,
   stateRequestStopped    = 1u << 5,
@@ -71,13 +70,13 @@ private:
 
 
 
-class imgStatusTracker : public mozilla::RefCounted<imgStatusTracker>
+class imgStatusTracker
 {
 public:
   
   
   
-  imgStatusTracker(mozilla::image::Image* aImage);
+  imgStatusTracker(mozilla::image::Image* aImage, imgRequest* aRequest);
   imgStatusTracker(const imgStatusTracker& aOther);
 
   
@@ -87,14 +86,11 @@ public:
   void SetImage(mozilla::image::Image* aImage);
 
   
-  void SetIsMultipart() { mIsMultipart = true; }
-
   
   
   
   
-  
-  void Notify(imgRequestProxy* proxy);
+  void Notify(imgRequest* request, imgRequestProxy* proxy);
 
   
   
@@ -152,8 +148,6 @@ public:
   void RecordDecoded();
 
   
-  void RecordStartDecode();
-  void SendStartDecode(imgRequestProxy* aProxy);
   void RecordStartContainer(imgIContainer* aContainer);
   void SendStartContainer(imgRequestProxy* aProxy);
   void RecordDataAvailable();
@@ -192,10 +186,12 @@ public:
 
   void MaybeUnblockOnload();
 
-  bool IsMultipart() const { return mIsMultipart; }
+  
+  void ClearRequest();
 
   
   inline mozilla::image::Image* GetImage() const { return mImage; }
+  inline imgRequest* GetRequest() const { return mRequest; }
 
   inline imgIDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 
@@ -204,24 +200,22 @@ private:
   friend class imgRequestNotifyRunnable;
   friend class imgStatusTrackerObserver;
 
-  void FireFailureNotification();
-
   nsCOMPtr<nsIRunnable> mRequestRunnable;
 
   
+  
   mozilla::image::Image* mImage;
+  imgRequest* mRequest;
+  uint32_t mState;
+  uint32_t mImageStatus;
+  bool mHadLastPart;
+  bool mBlockingOnload;
 
   
   
   nsTObserverArray<imgRequestProxy*> mConsumers;
 
   nsRefPtr<imgStatusTrackerObserver> mTrackerObserver;
-
-  uint32_t mState;
-  uint32_t mImageStatus;
-  bool mIsMultipart    : 1;
-  bool mHadLastPart    : 1;
-  bool mBlockingOnload : 1;
 };
 
 #endif
