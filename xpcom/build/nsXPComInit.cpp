@@ -16,6 +16,9 @@
 
 #include "prlink.h"
 
+#include "mozilla/layers/ImageBridgeChild.h"
+#include "mozilla/layers/CompositorParent.h"
+
 #include "nsCycleCollector.h"
 #include "nsObserverList.h"
 #include "nsObserverService.h"
@@ -741,6 +744,11 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
                                     nullptr);
             }
         }
+
+        
+        
+        mozilla::layers::ImageBridgeChild::ShutDown();
+        mozilla::layers::CompositorParent::ShutDown();
 
         NS_ProcessPendingEvents(thread);
         mozilla::scache::StartupCache::DeleteSingleton();
