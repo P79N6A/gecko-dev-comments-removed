@@ -530,6 +530,8 @@ public:
 
   virtual void CancelAllPendingReflows() = 0;
 
+  virtual void NotifyCounterStylesAreDirty() = 0;
+
   
 
 

@@ -14,6 +14,7 @@
 #include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
 #include "mozilla/Likely.h"
+#include "CounterStyleManager.h"
 
 class nsCounterList;
 struct nsCounterUseNode;
@@ -79,16 +80,22 @@ struct nsCounterUseNode : public nsCounterNode {
     
     
     
-    nsRefPtr<nsCSSValue::Array> mCounterStyle;
+    nsRefPtr<nsCSSValue::Array> mCounterFunction;
+
+    nsPresContext* mPresContext;
+    nsRefPtr<mozilla::CounterStyle> mCounterStyle;
 
     
     bool mAllCounters;
 
     
-    nsCounterUseNode(nsCSSValue::Array* aCounterStyle,
+    nsCounterUseNode(nsPresContext* aPresContext,
+                     nsCSSValue::Array* aCounterFunction,
                      uint32_t aContentIndex, bool aAllCounters)
         : nsCounterNode(aContentIndex, USE)
-        , mCounterStyle(aCounterStyle)
+        , mCounterFunction(aCounterFunction)
+        , mPresContext(aPresContext)
+        , mCounterStyle(nullptr)
         , mAllCounters(aAllCounters)
     {
         NS_ASSERTION(aContentIndex <= INT32_MAX, "out of range");
@@ -96,6 +103,12 @@ struct nsCounterUseNode : public nsCounterNode {
     
     virtual bool InitTextFrame(nsGenConList* aList,
             nsIFrame* aPseudoFrame, nsIFrame* aTextFrame) MOZ_OVERRIDE;
+
+    mozilla::CounterStyle* GetCounterStyle();
+    void SetCounterStyleDirty()
+    {
+        mCounterStyle = nullptr;
+    }
 
     
     
@@ -218,6 +231,9 @@ public:
 
     
     void RecalcAll();
+
+    
+    void SetAllCounterStylesDirty();
 
     
     

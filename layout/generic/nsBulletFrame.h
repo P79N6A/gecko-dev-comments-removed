@@ -88,7 +88,9 @@ public:
                                 nsString& aResult);
 
   
-  void GetListItemText(const nsStyleList& aStyleList, nsString& aResult);
+  void GetListItemText(nsAString& aResult);
+
+  void GetSpokenText(nsAString& aText);
                          
   void PaintBullet(nsRenderingContext& aRenderingContext, nsPoint aPt,
                    const nsRect& aDirtyRect, uint32_t aFlags);

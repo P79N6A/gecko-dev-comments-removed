@@ -165,7 +165,7 @@ HTMLListBulletAccessible::Name(nsString &aName)
   
   nsBlockFrame* blockFrame = do_QueryFrame(mContent->GetPrimaryFrame());
   if (blockFrame) {
-    blockFrame->GetBulletText(aName);
+    blockFrame->GetSpokenBulletText(aName);
   }
 
   return eNameOK;
@@ -190,7 +190,7 @@ HTMLListBulletAccessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
   nsAutoString bulletText;
   nsBlockFrame* blockFrame = do_QueryFrame(mContent->GetPrimaryFrame());
   if (blockFrame)
-    blockFrame->GetBulletText(bulletText);
+    blockFrame->GetSpokenBulletText(bulletText);
 
   aText.Append(Substring(bulletText, aStartOffset, aLength));
 }

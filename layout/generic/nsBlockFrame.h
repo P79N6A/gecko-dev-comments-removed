@@ -193,7 +193,7 @@ public:
   
 
 
-  void GetBulletText(nsAString& aText) const;
+  void GetSpokenBulletText(nsAString& aText) const;
 
   
 

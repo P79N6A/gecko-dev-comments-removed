@@ -874,6 +874,9 @@ public:
   
   void UserFontSetUpdated();
 
+  void FlushCounterStyles();
+  void RebuildCounterStyles(); 
+
   
   
   
@@ -1163,6 +1166,11 @@ protected:
     FlushUserFontSet();
   }
 
+  void HandleRebuildCounterStyles() {
+    mPostedFlushCounterStyles = false;
+    FlushCounterStyles();
+  }
+
   bool HavePendingInputEvent();
 
   
@@ -1327,6 +1335,11 @@ protected:
   unsigned              mGetUserFontSetCalled : 1;
   
   unsigned              mPostedFlushUserFontSet : 1;
+
+  
+  unsigned              mCounterStylesDirty : 1;
+  
+  unsigned              mPostedFlushCounterStyles: 1;
 
   
   

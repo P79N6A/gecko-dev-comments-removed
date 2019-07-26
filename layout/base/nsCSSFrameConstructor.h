@@ -221,6 +221,9 @@ public:
   void RecalcQuotesAndCounters();
 
   
+  void NotifyCounterStylesAreDirty();
+
+  
   
   void WillDestroyFrameTree();
 
