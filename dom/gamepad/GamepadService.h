@@ -78,6 +78,8 @@ class GamepadService : public nsIObserver
   
   bool mEnabled;
   
+  bool mNonstandardEventsEnabled;
+  
   bool mStarted;
   
   bool mShuttingDown;

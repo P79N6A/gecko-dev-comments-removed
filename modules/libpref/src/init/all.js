@@ -92,8 +92,10 @@ pref("dom.enable_performance", true);
 
 #ifdef RELEASE_BUILD
 pref("dom.gamepad.enabled", false);
+pref("dom.gamepad.non_standard_events.enabled", false);
 #else
 pref("dom.gamepad.enabled", true);
+pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 
 
