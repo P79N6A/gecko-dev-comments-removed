@@ -660,6 +660,20 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, IsAcceptableThis test, Native
             *dst = *src;
             if (!cx->compartment->wrap(cx, dst))
                 return false;
+
+            
+            
+            
+            
+            if ((src == srcArgs.base() + 1) && dst->isObject()) {
+                JSObject *thisObj = &dst->toObject();
+                if (thisObj->isWrapper() &&
+                    !Wrapper::wrapperHandler(thisObj)->isSafeToUnwrap())
+                {
+                    JS_ASSERT(!IsCrossCompartmentWrapper(thisObj));
+                    *src = ObjectValue(*Wrapper::wrappedObject(thisObj));
+                }
+            }
         }
 
         if (!CallNonGenericMethod(cx, test, impl, dstArgs))
