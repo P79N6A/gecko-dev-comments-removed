@@ -7,6 +7,7 @@
 #include "prio.h"
 #include "pldhash.h"
 #include "nsXPCOMStrings.h"
+#include "mozilla/IOInterposer.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/scache/StartupCache.h"
 
@@ -536,6 +537,7 @@ void
 StartupCache::ThreadedWrite(void *aClosure)
 {
   PR_SetCurrentThreadName("StartupCache");
+  mozilla::IOInterposer::RegisterCurrentThread();
   
 
 
@@ -545,6 +547,7 @@ StartupCache::ThreadedWrite(void *aClosure)
 
   StartupCache* startupCacheObj = static_cast<StartupCache*>(aClosure);
   startupCacheObj->WriteToDisk();
+  mozilla::IOInterposer::UnregisterCurrentThread();
 }
 
 

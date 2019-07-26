@@ -162,9 +162,6 @@ protected:
 class IOInterposer MOZ_FINAL
 {
   
-  static IOInterposeObserver::Operation sObservedOperations;
-
-  
   IOInterposer();
 public:
 
@@ -178,7 +175,7 @@ public:
 
 
 
-  static void Init();
+  static bool Init();
 
   
 
@@ -254,8 +251,21 @@ public:
 
 
 
+
+
+
+
+
   static void
   RegisterCurrentThread(bool aIsMainThread = false);
+
+  
+
+
+
+
+  static void
+  UnregisterCurrentThread();
 };
 
 class IOInterposerInit

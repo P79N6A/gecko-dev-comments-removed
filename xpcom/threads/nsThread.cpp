@@ -24,6 +24,7 @@
 #include "prlog.h"
 #include "nsIObserverService.h"
 #include "mozilla/HangMonitor.h"
+#include "mozilla/IOInterposer.h"
 #include "mozilla/Services.h"
 #include "nsXPCOMPrivate.h"
 #include "mozilla/ChaosMode.h"
@@ -291,6 +292,8 @@ nsThread::ThreadFunc(void *arg)
   
   nsThreadManager::get()->RegisterCurrentThread(self);
 
+  mozilla::IOInterposer::RegisterCurrentThread();
+
   
   nsCOMPtr<nsIRunnable> event;
   if (!self->GetEvent(true, getter_AddRefs(event))) {
@@ -327,6 +330,8 @@ nsThread::ThreadFunc(void *arg)
       NS_ProcessPendingEvents(self);
     }
   }
+
+  mozilla::IOInterposer::UnregisterCurrentThread();
 
   
   nsThreadManager::get()->UnregisterCurrentThread(self);
