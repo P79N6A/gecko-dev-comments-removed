@@ -16,6 +16,11 @@ public interface AnnouncementsFetchDelegate {
   
 
 
+  public String getLastDate();
+
+  
+
+
   public Locale getLocale();
 
   
@@ -31,8 +36,11 @@ public interface AnnouncementsFetchDelegate {
   
 
 
-  public void onNoNewAnnouncements(long fetched);
-  public void onNewAnnouncements(List<Announcement> snippets, long fetched);
+
+
+
+  public void onNoNewAnnouncements(long localFetchTime, String serverDate);
+  public void onNewAnnouncements(List<Announcement> snippets, long localFetchTime, String serverDate);
   public void onLocalError(Exception e);
   public void onRemoteError(Exception e);
   public void onRemoteFailure(int status);
