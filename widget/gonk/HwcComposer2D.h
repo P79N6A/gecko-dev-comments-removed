@@ -62,11 +62,7 @@ public:
     
     bool TryRender(layers::Layer* aRoot, const gfxMatrix& aGLWorldTransform) MOZ_OVERRIDE;
 
-    bool Render(EGLDisplay dpy, EGLSurface sur);
-
 private:
-    void Prepare(buffer_handle_t fbHandle, int fence);
-    bool Commit();
     bool TryHwComposition();
     bool ReallocLayerList();
     bool PrepareLayerList(layers::Layer* aContainer, const nsIntRect& aClip,
