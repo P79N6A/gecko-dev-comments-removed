@@ -110,6 +110,7 @@ pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
 pref("layers.enable-tiles", true);
 pref("layers.low-precision-buffer", true);
+pref("layers.low-precision-opacity", "0.5");
 
 
 
