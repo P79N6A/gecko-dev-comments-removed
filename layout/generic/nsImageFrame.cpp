@@ -20,7 +20,6 @@
 #include "nsIDocument.h"
 #include "nsINodeInfo.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsStyleContext.h"
 #include "nsStyleConsts.h"
@@ -202,12 +201,6 @@ nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
     if (imageLoader) {
       
       
-      
-      nsCxPusher pusher;
-      pusher.PushNull();
-
-      
-      
       imageLoader->FrameDestroyed(this);
 
       imageLoader->RemoveObserver(mListener);
@@ -241,15 +234,7 @@ nsImageFrame::Init(nsIContent*      aContent,
     NS_RUNTIMEABORT("Why do we have an nsImageFrame here at all?");
   }
 
-  {
-    
-    
-    
-    nsCxPusher pusher;
-    pusher.PushNull();
-
-    imageLoader->AddObserver(mListener);
-  }
+  imageLoader->AddObserver(mListener);
 
   nsPresContext *aPresContext = PresContext();
   

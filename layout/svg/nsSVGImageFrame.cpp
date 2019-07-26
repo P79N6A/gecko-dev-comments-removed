@@ -20,7 +20,6 @@
 #include "SVGImageContext.h"
 #include "mozilla/dom/SVGImageElement.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -117,12 +116,6 @@ nsSVGImageFrame::~nsSVGImageFrame()
   if (mListener) {
     nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
     if (imageLoader) {
-      
-      
-      
-      nsCxPusher pusher;
-      pusher.PushNull();
-
       imageLoader->RemoveObserver(mListener);
     }
     reinterpret_cast<nsSVGImageListener*>(mListener.get())->SetFrame(nullptr);
@@ -149,12 +142,6 @@ nsSVGImageFrame::Init(nsIContent* aContent,
   
   
   imageLoader->FrameCreated(this);
-
-  
-  
-  
-  nsCxPusher pusher;
-  pusher.PushNull();
 
   imageLoader->AddObserver(mListener);
 }
