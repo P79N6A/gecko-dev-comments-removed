@@ -23,7 +23,7 @@ class Declaration;
 
 struct AnimationEventInfo {
   nsRefPtr<mozilla::dom::Element> mElement;
-  nsAnimationEvent mEvent;
+  mozilla::InternalAnimationEvent mEvent;
 
   AnimationEventInfo(mozilla::dom::Element *aElement,
                      const nsString& aAnimationName,
