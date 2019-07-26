@@ -55,19 +55,9 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(SVGMPathElement)
 NS_INTERFACE_TABLE_TAIL_INHERITING(SVGMPathElementBase)
 
 
-#ifdef _MSC_VER
-
-
-
-#pragma warning(push)
-#pragma warning(disable:4355)
-#endif
 SVGMPathElement::SVGMPathElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGMPathElementBase(aNodeInfo),
-    mHrefTarget(this)
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+    mHrefTarget(MOZ_THIS_IN_INITIALIZER_LIST())
 {
 }
 

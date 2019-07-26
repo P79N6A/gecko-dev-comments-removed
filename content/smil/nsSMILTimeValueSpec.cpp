@@ -36,21 +36,11 @@ nsSMILTimeValueSpec::EventListener::HandleEvent(nsIDOMEvent* aEvent)
 
 
 
-#ifdef _MSC_VER
-
-
-
-#pragma warning(push)
-#pragma warning(disable:4355)
-#endif
 nsSMILTimeValueSpec::nsSMILTimeValueSpec(nsSMILTimedElement& aOwner,
                                          bool aIsBegin)
   : mOwner(&aOwner),
     mIsBegin(aIsBegin),
-    mReferencedElement(this)
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+    mReferencedElement(MOZ_THIS_IN_INITIALIZER_LIST())
 {
 }
 

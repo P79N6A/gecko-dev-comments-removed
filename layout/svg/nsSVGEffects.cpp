@@ -66,21 +66,11 @@ nsSVGRenderingObserver::StopListening()
 
 
 
-#ifdef _MSC_VER
-
-
-
-#pragma warning(push)
-#pragma warning(disable:4355)
-#endif
 nsSVGIDRenderingObserver::nsSVGIDRenderingObserver(nsIURI *aURI,
                                                    nsIFrame *aFrame,
                                                    bool aReferenceImage)
-  : mElement(this), mFrame(aFrame),
+  : mElement(MOZ_THIS_IN_INITIALIZER_LIST()), mFrame(aFrame),
     mFramePresShell(aFrame->PresContext()->PresShell())
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 {
   
   mElement.Reset(aFrame->GetContent(), aURI, true, aReferenceImage);

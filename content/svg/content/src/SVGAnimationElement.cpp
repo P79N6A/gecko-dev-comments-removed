@@ -43,19 +43,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
 
-#ifdef _MSC_VER
-
-
-
-#pragma warning(push)
-#pragma warning(disable:4355)
-#endif
 SVGAnimationElement::SVGAnimationElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGAnimationElementBase(aNodeInfo),
-    mHrefTarget(this)
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+    mHrefTarget(MOZ_THIS_IN_INITIALIZER_LIST())
 {
 }
 

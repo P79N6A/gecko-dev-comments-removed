@@ -71,18 +71,8 @@ NS_INTERFACE_TABLE_TAIL_INHERITING(SVGUseElementBase)
 
 
 
-#ifdef _MSC_VER
-
-
-
-#pragma warning(push)
-#pragma warning(disable:4355)
-#endif
 SVGUseElement::SVGUseElement(already_AddRefed<nsINodeInfo> aNodeInfo)
-  : SVGUseElementBase(aNodeInfo), mSource(this)
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+  : SVGUseElementBase(aNodeInfo), mSource(MOZ_THIS_IN_INITIALIZER_LIST())
 {
 }
 
