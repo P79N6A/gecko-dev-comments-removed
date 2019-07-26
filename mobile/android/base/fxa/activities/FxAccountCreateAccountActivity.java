@@ -89,32 +89,29 @@ public class FxAccountCreateAccountActivity extends FxAccountAbstractSetupActivi
     signInInsteadLink.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View v) {
-        final String email = emailEdit.getText().toString();
-        final String password = passwordEdit.getText().toString();
-        doSigninInstead(email, password);
+        final Bundle extras = makeExtrasBundle(null, null);
+        startActivityInstead(FxAccountSignInActivity.class, CHILD_REQUEST_CODE, extras);
       }
     });
 
-    
-    if (getIntent() != null && getIntent().getExtras() != null) {
-      Bundle bundle = getIntent().getExtras();
-      emailEdit.setText(bundle.getString("email"));
-      passwordEdit.setText(bundle.getString("password"));
-    }
+    updateFromIntentExtras();
   }
 
-  protected void doSigninInstead(final String email, final String password) {
-    Intent intent = new Intent(this, FxAccountSignInActivity.class);
-    if (email != null) {
-      intent.putExtra("email", email);
+  @Override
+  protected Bundle makeExtrasBundle(String email, String password) {
+    final Bundle extras = super.makeExtrasBundle(email, password);
+    final String year = yearEdit.getText().toString();
+    extras.putString(EXTRA_YEAR, year);
+    return extras;
+  }
+
+  @Override
+  protected void updateFromIntentExtras() {
+    super.updateFromIntentExtras();
+
+    if (getIntent() != null) {
+      yearEdit.setText(getIntent().getStringExtra(EXTRA_YEAR));
     }
-    if (password != null) {
-      intent.putExtra("password", password);
-    }
-    
-    
-    intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-    startActivityForResult(intent, CHILD_REQUEST_CODE);
   }
 
   @Override
@@ -142,7 +139,9 @@ public class FxAccountCreateAccountActivity extends FxAccountAbstractSetupActivi
             email = emailEdit.getText().toString();
         }
         final String password = passwordEdit.getText().toString();
-        doSigninInstead(email, password);
+
+        final Bundle extras = makeExtrasBundle(email, password);
+        startActivityInstead(FxAccountSignInActivity.class, CHILD_REQUEST_CODE, extras);
       }
     }, clickableStart, clickableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     remoteErrorTextView.setMovementMethod(LinkMovementMethod.getInstance());
@@ -205,7 +204,7 @@ public class FxAccountCreateAccountActivity extends FxAccountAbstractSetupActivi
   }
 
   public void createAccount(String email, String password, Map<String, Boolean> engines) {
-    String serverURI = FxAccountConstants.DEFAULT_AUTH_SERVER_ENDPOINT;
+    String serverURI = getAuthServerEndpoint();
     PasswordStretcher passwordStretcher = makePasswordStretcher(password);
     
     
