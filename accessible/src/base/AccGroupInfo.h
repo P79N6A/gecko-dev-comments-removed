@@ -17,11 +17,22 @@ namespace a11y {
 class AccGroupInfo
 {
 public:
-  AccGroupInfo(Accessible* aItem, mozilla::a11y::role aRole);
   ~AccGroupInfo() { MOZ_COUNT_DTOR(AccGroupInfo); }
 
-  int32_t PosInSet() const { return mPosInSet; }
+  
+
+
+  uint32_t PosInSet() const { return mPosInSet; }
+
+  
+
+
   uint32_t SetSize() const { return mSetSize; }
+
+  
+
+
+
   Accessible* ConceptualParent() const { return mParent; }
 
   
@@ -50,9 +61,23 @@ public:
     return info;
   }
 
+  
+
+
+  static Accessible* FirstItemOf(Accessible* aContainer);
+
+  
+
+
+  static Accessible* NextItemTo(Accessible* aItem);
+
+protected:
+  AccGroupInfo(Accessible* aItem, a11y::role aRole);
+
 private:
-  AccGroupInfo(const AccGroupInfo&);
-  AccGroupInfo& operator =(const AccGroupInfo&);
+  AccGroupInfo() MOZ_DELETE;
+  AccGroupInfo(const AccGroupInfo&) MOZ_DELETE;
+  AccGroupInfo& operator =(const AccGroupInfo&) MOZ_DELETE;
 
   static mozilla::a11y::role BaseRole(mozilla::a11y::role aRole)
   {
@@ -71,8 +96,7 @@ private:
 
 
 
-  static bool IsConceptualParent(mozilla::a11y::role aRole,
-				 mozilla::a11y::role aParentRole);
+  static bool IsConceptualParent(a11y::role aRole, a11y::role aParentRole);
 
   uint32_t mPosInSet;
   uint32_t mSetSize;

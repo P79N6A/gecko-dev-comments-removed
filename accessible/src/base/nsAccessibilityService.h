@@ -318,22 +318,22 @@ static const char kEventTypeNames[][40] = {
 
 
 static const char kRelationTypeNames[][20] = {
-  "unknown",             
+  "labelled by",         
+  "label for",           
+  "described by",        
+  "description for",     
+  "node child of",       
+  "node parent of",      
   "controlled by",       
   "controller for",      
-  "label for",           
-  "labelled by",         
-  "member of",           
-  "node child of",       
   "flows to",            
   "flows from",          
+  "member of",           
   "subwindow of",        
   "embeds",              
   "embedded by",         
   "popup for",           
   "parent window of",    
-  "described by",        
-  "description for",     
   "default button"       
 };
 
