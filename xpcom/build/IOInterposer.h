@@ -281,8 +281,12 @@ public:
 #endif
   }
 
-  
-  
+  ~IOInterposerInit()
+  {
+#if defined(MOZ_ENABLE_PROFILER_SPS)
+    IOInterposer::Clear();
+#endif
+  }
 };
 
 } 
