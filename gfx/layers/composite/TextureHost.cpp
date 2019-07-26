@@ -22,6 +22,7 @@
 #include "nsAutoPtr.h"                  
 #include "nsPrintfCString.h"            
 #include "mozilla/layers/PTextureParent.h"
+#include <limits>
 
 struct nsIntPoint;
 
@@ -557,9 +558,9 @@ BufferTextureHost::Upload(nsIntRegion *aRegion)
     if (!mFirstSource) {
       mFirstSource = mCompositor->CreateDataTextureSource();
     }
-    ImageDataDeserializer deserializer(GetBuffer());
+    ImageDataDeserializer deserializer(GetBuffer(), GetBufferSize());
     if (!deserializer.IsValid()) {
-      NS_WARNING("failed to open shmem surface");
+      NS_ERROR("Failed to deserialize image!");
       return false;
     }
 
@@ -590,8 +591,9 @@ BufferTextureHost::GetAsSurface()
     }
     result = yuvDeserializer.ToDataSourceSurface();
   } else {
-    ImageDataDeserializer deserializer(GetBuffer());
+    ImageDataDeserializer deserializer(GetBuffer(), GetBufferSize());
     if (!deserializer.IsValid()) {
+      NS_ERROR("Failed to deserialize image!");
       return nullptr;
     }
     result = deserializer.GetAsSurface();
@@ -650,6 +652,11 @@ uint8_t* ShmemTextureHost::GetBuffer()
   return mShmem ? mShmem->get<uint8_t>() : nullptr;
 }
 
+size_t ShmemTextureHost::GetBufferSize()
+{
+  return mShmem ? mShmem->Size<uint8_t>() : 0;
+}
+
 MemoryTextureHost::MemoryTextureHost(uint8_t* aBuffer,
                                      gfx::SurfaceFormat aFormat,
                                      TextureFlags aFlags)
@@ -686,6 +693,15 @@ MemoryTextureHost::ForgetSharedData()
 uint8_t* MemoryTextureHost::GetBuffer()
 {
   return mBuffer;
+}
+
+size_t MemoryTextureHost::GetBufferSize()
+{
+  
+  
+  
+  
+  return std::numeric_limits<size_t>::max();
 }
 
 TextureParent::TextureParent(ISurfaceAllocator* aAllocator)
