@@ -165,7 +165,7 @@ let NetMonitorView = {
     }
 
     if (aTabIndex !== undefined) {
-      $("#details-pane").selectedIndex = aTabIndex;
+      $("#event-details-pane").selectedIndex = aTabIndex;
     }
   },
 
@@ -351,7 +351,62 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     this.refreshSummary();
     this.refreshZebra();
+
+    if (aId == this._preferredItemId) {
+      this.selectedItem = requestItem;
+    }
   },
+
+  
+
+
+
+  cloneSelectedRequest: function() {
+    let selected = this.selectedItem.attachment;
+
+    
+    let menuView = this._createMenuView(selected.method, selected.url);
+
+    let newItem = this.push([menuView], {
+      attachment: Object.create(selected, {
+        isCustom: { value: true }
+      })
+    });
+
+    
+    this.selectedItem = newItem;
+  },
+
+  
+
+
+  sendCustomRequest: function() {
+    let selected = this.selectedItem.attachment;
+
+    let data = Object.create(selected, {
+      headers: { value: selected.requestHeaders.headers }
+    });
+
+    if (selected.requestPostData) {
+      data.body = selected.requestPostData.postData.text;
+    }
+
+    NetMonitorController.webConsoleClient.sendHTTPRequest(data, (response) => {
+      let id = response.eventActor.actor;
+      this._preferredItemId = id;
+    });
+
+    this.closeCustomRequest();
+  },
+
+  
+
+
+  closeCustomRequest: function() {
+    this.remove(this.selectedItem);
+
+    NetMonitorView.Sidebar.toggle(false);
+   },
 
   
 
@@ -690,11 +745,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             break;
           case "status":
             requestItem.attachment.status = value;
-            this._updateMenuView(requestItem, key, value);
+            this.updateMenuView(requestItem, key, value);
             break;
           case "statusText":
             requestItem.attachment.statusText = value;
-            this._updateMenuView(requestItem, key,
+            this.updateMenuView(requestItem, key,
               requestItem.attachment.status + " " +
               requestItem.attachment.statusText);
             break;
@@ -703,11 +758,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             break;
           case "contentSize":
             requestItem.attachment.contentSize = value;
-            this._updateMenuView(requestItem, key, value);
+            this.updateMenuView(requestItem, key, value);
             break;
           case "mimeType":
             requestItem.attachment.mimeType = value;
-            this._updateMenuView(requestItem, key, value);
+            this.updateMenuView(requestItem, key, value);
             break;
           case "responseContent":
             requestItem.attachment.responseContent = value;
@@ -715,7 +770,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
           case "totalTime":
             requestItem.attachment.totalTime = value;
             requestItem.attachment.endedMillis = requestItem.attachment.startedMillis + value;
-            this._updateMenuView(requestItem, key, value);
+            this.updateMenuView(requestItem, key, value);
             this._registerLastRequestEnd(requestItem.attachment.endedMillis);
             break;
           case "eventTimings":
@@ -757,23 +812,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _createMenuView: function(aMethod, aUrl) {
-    let uri = nsIURL(aUrl);
-    let nameWithQuery = this._getUriNameWithQuery(uri);
-    let hostPort = this._getUriHostPort(uri);
-
     let template = $("#requests-menu-item-template");
     let fragment = document.createDocumentFragment();
 
-    let method = $(".requests-menu-method", template);
-    method.setAttribute("value", aMethod);
-
-    let file = $(".requests-menu-file", template);
-    file.setAttribute("value", nameWithQuery);
-    file.setAttribute("tooltiptext", nameWithQuery);
-
-    let domain = $(".requests-menu-domain", template);
-    domain.setAttribute("value", hostPort);
-    domain.setAttribute("tooltiptext", hostPort);
+    this.updateMenuView(template, 'method', aMethod);
+    this.updateMenuView(template, 'url', aUrl);
 
     let waterfall = $(".requests-menu-waterfall", template);
     waterfall.style.backgroundImage = this._cachedWaterfallBackground;
@@ -796,22 +839,48 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  _updateMenuView: function(aItem, aKey, aValue) {
+  updateMenuView: function(aItem, aKey, aValue) {
+    let target = aItem.target || aItem;
+
     switch (aKey) {
+      case "method": {
+        let node = $(".requests-menu-method", target);
+        node.setAttribute("value", aValue);
+        break;
+      }
+      case "url": {
+        let uri;
+        try {
+          uri = nsIURL(aValue);
+        } catch(e) {
+          break; 
+        }
+        let nameWithQuery = this._getUriNameWithQuery(uri);
+        let hostPort = this._getUriHostPort(uri);
+
+        let node = $(".requests-menu-file", target);
+        node.setAttribute("value", nameWithQuery);
+        node.setAttribute("tooltiptext", nameWithQuery);
+
+        let domain = $(".requests-menu-domain", target);
+        domain.setAttribute("value", hostPort);
+        domain.setAttribute("tooltiptext", hostPort);
+        break;
+      }
       case "status": {
-        let node = $(".requests-menu-status", aItem.target);
+        let node = $(".requests-menu-status", target);
         node.setAttribute("code", aValue);
         break;
       }
       case "statusText": {
-        let node = $(".requests-menu-status-and-method", aItem.target);
+        let node = $(".requests-menu-status-and-method", target);
         node.setAttribute("tooltiptext", aValue);
         break;
       }
       case "contentSize": {
         let kb = aValue / 1024;
         let size = L10N.numberWithDecimals(kb, CONTENT_SIZE_DECIMALS);
-        let node = $(".requests-menu-size", aItem.target);
+        let node = $(".requests-menu-size", target);
         let text = L10N.getFormatStr("networkMenu.sizeKB", size);
         node.setAttribute("value", text);
         node.setAttribute("tooltiptext", text);
@@ -819,14 +888,14 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       }
       case "mimeType": {
         let type = this._getAbbreviatedMimeType(aValue);
-        let node = $(".requests-menu-type", aItem.target);
+        let node = $(".requests-menu-type", target);
         let text = CONTENT_MIME_TYPE_ABBREVIATIONS[type] || type;
         node.setAttribute("value", text);
         node.setAttribute("tooltiptext", aValue);
         break;
       }
       case "totalTime": {
-        let node = $(".requests-menu-timings-total", aItem.target);
+        let node = $(".requests-menu-timings-total", target);
         let text = L10N.getFormatStr("networkMenu.totalMS", aValue); 
         node.setAttribute("value", text);
         node.setAttribute("tooltiptext", text);
@@ -1089,10 +1158,10 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   _onSelect: function({ detail: item }) {
     if (item) {
-      NetMonitorView.NetworkDetails.populate(item.attachment);
-      NetMonitorView.NetworkDetails.toggle(true);
+      NetMonitorView.Sidebar.populate(item.attachment);
+      NetMonitorView.Sidebar.toggle(true);
     } else {
-      NetMonitorView.NetworkDetails.toggle(false);
+      NetMonitorView.Sidebar.toggle(false);
     }
   },
 
@@ -1102,6 +1171,14 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   _onResize: function(e) {
     
     drain("resize-events", RESIZE_REFRESH_RATE, () => this._flushWaterfallViews(true));
+  },
+
+  
+
+
+  _onContextShowing: function() {
+    let element = $("#request-menu-context-resend");
+    element.hidden = !this.selectedItem || this.selectedItem.attachment.isCustom;
   },
 
   
@@ -1242,6 +1319,162 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+function SidebarView() {
+  dumpn("SidebarView was instantiated");
+}
+
+SidebarView.prototype = {
+  
+
+
+
+
+
+  toggle: function(aVisibleFlag) {
+    NetMonitorView.toggleDetailsPane({ visible: aVisibleFlag });
+    NetMonitorView.RequestsMenu._flushWaterfallViews(true);
+  },
+
+  
+
+
+
+
+
+  populate: function(aData) {
+    if (aData.isCustom) {
+      NetMonitorView.CustomRequest.populate(aData);
+      $("#details-pane").selectedIndex = 0;
+    } else {
+      NetMonitorView.NetworkDetails.populate(aData);
+      $("#details-pane").selectedIndex = 1;
+    }
+  },
+
+  
+
+
+  reset: function() {
+    this.toggle(false);
+  }
+}
+
+
+
+
+function CustomRequestView() {
+  dumpn("CustomRequestView was instantiated");
+}
+
+CustomRequestView.prototype = {
+  
+
+
+
+
+
+  populate: function(aData) {
+    $("#custom-url-value").value = aData.url;
+    $("#custom-method-value").value = aData.method;
+    $("#custom-headers-value").value =
+       writeHeaderText(aData.requestHeaders.headers);
+
+    if (aData.requestPostData) {
+      let body = aData.requestPostData.postData.text;
+
+      gNetwork.getString(body).then((aString) => {
+        $("#custom-postdata-value").value =  aString;
+      });
+    }
+
+    this.updateCustomQuery(aData.url);
+  },
+
+  
+
+
+
+
+
+  onUpdate: function(aField) {
+    let selectedItem = NetMonitorView.RequestsMenu.selectedItem;
+    let field = aField;
+    let value;
+
+    switch(aField) {
+      case 'method':
+        value = $("#custom-method-value").value.trim();
+        selectedItem.attachment.method = value;
+        break;
+      case 'url':
+        value = $("#custom-url-value").value;
+        this.updateCustomQuery(value);
+        selectedItem.attachment.url = value;
+        break;
+      case 'query':
+        let query = $("#custom-query-value").value;
+        this.updateCustomUrl(query);
+        field = 'url';
+        value = $("#custom-url-value").value
+        selectedItem.attachment.url = value;
+        break;
+      case 'body':
+        value = $("#custom-postdata-value").value;
+        selectedItem.attachment.requestPostData = {
+          postData: {
+            text: value
+          }
+        };
+        break;
+      case 'headers':
+        let headersText = $("#custom-headers-value").value;
+        value = parseHeaderText(headersText);
+        selectedItem.attachment.requestHeaders = {
+          headers: value
+        };
+        break;
+    }
+
+    NetMonitorView.RequestsMenu.updateMenuView(selectedItem, field, value);
+  },
+
+  
+
+
+
+
+
+  updateCustomQuery: function(aUrl) {
+    let paramsArray = parseQueryString(nsIURL(aUrl).query);
+    if (!paramsArray) {
+      $("#custom-query").hidden = true;
+      return;
+    }
+    $("#custom-query").hidden = false;
+    $("#custom-query-value").value = writeQueryText(paramsArray);
+  },
+
+  
+
+
+
+
+
+  updateCustomUrl: function(aQueryText) {
+    let params = parseQueryText(aQueryText);
+    let queryString = writeQueryString(params);
+
+    let url = $("#custom-url-value").value;
+    let oldQuery = nsIURL(url).query;
+    let path = url.replace(oldQuery, queryString);
+
+    $("#custom-url-value").value = path;
+  }
+}
+
+
+
+
 function NetworkDetailsView() {
   dumpn("NetworkDetailsView was instantiated");
 
@@ -1253,9 +1486,9 @@ NetworkDetailsView.prototype = {
 
 
   initialize: function() {
-    dumpn("Initializing the RequestsMenuView");
+    dumpn("Initializing the NetworkDetailsView");
 
-    this.widget = $("#details-pane");
+    this.widget = $("#event-details-pane");
 
     this._headers = new VariablesView($("#all-headers"),
       Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
@@ -1292,25 +1525,13 @@ NetworkDetailsView.prototype = {
 
 
   destroy: function() {
-    dumpn("Destroying the SourcesView");
-  },
-
-  
-
-
-
-
-
-  toggle: function(aVisibleFlag) {
-    NetMonitorView.toggleDetailsPane({ visible: aVisibleFlag });
-    NetMonitorView.RequestsMenu._flushWaterfallViews(true);
+    dumpn("Destroying the NetworkDetailsView");
   },
 
   
 
 
   reset: function() {
-    this.toggle(false);
     this._dataSrc = null;
   },
 
@@ -1584,18 +1805,11 @@ NetworkDetailsView.prototype = {
 
 
 
-  _addParams: function(aName, aParams) {
-    
-    if (!aParams || !aParams.contains("=")) {
+  _addParams: function(aName, aQueryString) {
+    let paramsArray = parseQueryString(aQueryString);
+    if (!paramsArray) {
       return;
     }
-    
-    let paramsArray = aParams.replace(/^[?&]/, "").split("&").map((e) =>
-      let (param = e.split("=")) {
-        name: NetworkHelper.convertToUnicode(unescape(param[0])),
-        value: NetworkHelper.convertToUnicode(unescape(param[1]))
-      });
-
     let paramsScope = this._params.addScope(aName);
     paramsScope.expanded = true;
 
@@ -1811,6 +2025,110 @@ nsIURL.store = new Map();
 
 
 
+
+
+
+
+function parseQueryString(aQueryString) {
+  
+  if (!aQueryString || !aQueryString.contains("=")) {
+    return;
+  }
+  
+  let paramsArray = aQueryString.replace(/^[?&]/, "").split("&").map((e) =>
+    let (param = e.split("=")) {
+      name: NetworkHelper.convertToUnicode(unescape(param[0])),
+      value: NetworkHelper.convertToUnicode(unescape(param[1]))
+    });
+  return paramsArray;
+}
+
+
+
+
+
+
+
+
+
+function parseHeaderText(aText) {
+  return parseRequestText(aText, ":");
+}
+
+
+
+
+
+
+
+
+
+function parseQueryText(aText) {
+  return parseRequestText(aText, "=");
+}
+
+
+
+
+
+
+
+
+
+
+function parseRequestText(aText, aDivider) {
+  let regex = new RegExp("(.+?)\\" + aDivider + "\\s*(.+)");
+  let pairs = [];
+  for (let line of aText.split("\n")) {
+    let matches;
+    if (matches = regex.exec(line)) {
+      let [, name, value] = matches;
+      pairs.push({name: name, value: value});
+    }
+  }
+  return pairs;
+}
+
+
+
+
+
+
+
+
+
+function writeHeaderText(aHeaders) {
+  return [(name + ": " + value) for ({name, value} of aHeaders)].join("\n");
+}
+
+
+
+
+
+
+
+
+
+function writeQueryText(aParams) {
+  return [(name + "=" + value) for ({name, value} of aParams)].join("\n");
+}
+
+
+
+
+
+
+
+
+
+function writeQueryString(aParams) {
+  return [(name + "=" + value) for ({name, value} of aParams)].join("&");
+}
+
+
+
+
+
 function drain(aId, aWait, aCallback, aStore = drain.store) {
   window.clearTimeout(aStore.get(aId));
   aStore.set(aId, window.setTimeout(aCallback, aWait));
@@ -1822,4 +2140,6 @@ drain.store = new Map();
 
 NetMonitorView.Toolbar = new ToolbarView();
 NetMonitorView.RequestsMenu = new RequestsMenuView();
+NetMonitorView.Sidebar = new SidebarView();
+NetMonitorView.CustomRequest = new CustomRequestView();
 NetMonitorView.NetworkDetails = new NetworkDetailsView();
