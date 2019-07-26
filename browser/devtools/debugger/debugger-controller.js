@@ -77,10 +77,9 @@ let DebuggerController = {
 
 
   startupDebugger: function() {
-    if (this._isInitialized) {
-      return this._startup.promise;
+    if (this._startup) {
+      return this._startup;
     }
-    this._isInitialized = true;
 
     
     
@@ -88,20 +87,14 @@ let DebuggerController = {
       window.removeEventListener("DOMContentLoaded", this.startupDebugger, true);
     }
 
-    let deferred = this._startup = promise.defer();
-
-    DebuggerView.initialize(() => {
-      DebuggerView._isInitialized = true;
-
+    return this._startup = DebuggerView.initialize().then(() => {
       
       if (window._isChromeDebugger) {
-        this.connect().then(deferred.resolve);
+        return this.connect();
       } else {
-        deferred.resolve();
+        return promise.resolve(null); 
       }
     });
-
-    return deferred.promise;
   },
 
   
@@ -111,11 +104,9 @@ let DebuggerController = {
 
 
   shutdownDebugger: function() {
-    if (this._isDestroyed) {
-      return this._shutdown.promise;
+    if (this._shutdown) {
+      return this._shutdown;
     }
-    this._isDestroyed = true;
-    this._startup = null;
 
     
     
@@ -123,23 +114,20 @@ let DebuggerController = {
       window.removeEventListener("unload", this.shutdownDebugger, true);
     }
 
-    let deferred = this._shutdown = promise.defer();
-
-    DebuggerView.destroy(() => {
-      DebuggerView._isDestroyed = true;
-
+    return this._shutdown = DebuggerView.destroy().then(() => {
+      DebuggerView.destroy();
       this.SourceScripts.disconnect();
       this.StackFrames.disconnect();
       this.ThreadState.disconnect();
-
       this.disconnect();
-      deferred.resolve();
 
       
-      window._isChromeDebugger && this._quitApp();
+      if (window._isChromeDebugger) {
+        return this._quitApp();
+      } else {
+        return promise.resolve(null); 
+      }
     });
-
-    return deferred.promise;
   },
 
   
@@ -154,10 +142,11 @@ let DebuggerController = {
 
   connect: function() {
     if (this._connection) {
-      return this._connection.promise;
+      return this._connection;
     }
 
-    let deferred = this._connection = promise.defer();
+    let deferred = promise.defer();
+    this._connection = deferred.promise;
 
     if (!window._isChromeDebugger) {
       let target = this._target;
@@ -182,7 +171,6 @@ let DebuggerController = {
     let client = new DebuggerClient(transport);
     client.addListener("tabNavigated", this._onTabNavigated);
     client.addListener("tabDetached", this._onTabDetached);
-
     client.connect((aType, aTraits) => {
       client.listTabs((aResponse) => {
         this._startChromeDebugging(client, aResponse.chromeDebugger, deferred.resolve);
@@ -350,21 +338,30 @@ let DebuggerController = {
   
 
 
-  _quitApp: function() {
-    let canceled = Cc["@mozilla.org/supports-PRBool;1"]
-      .createInstance(Ci.nsISupportsPRBool);
 
-    Services.obs.notifyObservers(canceled, "quit-application-requested", null);
+
+
+  _quitApp: function() {
+    let deferred = promise.defer();
 
     
-    if (canceled.data) {
-      return;
-    }
-    Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+    
+    Services.tm.currentThread.dispatch({ run: () => {
+      let quit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
+      Services.obs.notifyObservers(quit, "quit-application-requested", null);
+
+      
+      if (quit.data) {
+        deferred.reject(quit.data);
+      } else {
+        deferred.resolve(quit.data);
+        Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+      }
+    }}, 0);
+
+    return deferred.promise;
   },
 
-  _isInitialized: false,
-  _isDestroyed: false,
   _startup: null,
   _shutdown: null,
   _connection: null,
