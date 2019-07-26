@@ -440,8 +440,10 @@ public:
 
     
     
+    
+    
     rv = nsScriptLoader::ConvertToUTF16(aLoadInfo.mChannel, aString, aStringLen,
-                                        EmptyString(), parentDoc,
+                                        NS_LITERAL_STRING("UTF-8"), parentDoc,
                                         aLoadInfo.mScriptText);
     if (NS_FAILED(rv)) {
       return rv;
