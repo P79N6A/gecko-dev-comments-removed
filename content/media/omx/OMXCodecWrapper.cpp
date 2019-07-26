@@ -443,7 +443,12 @@ nsresult
 OMXVideoEncoder::SetBitrate(int32_t aKbps)
 {
   sp<AMessage> msg = new AMessage();
+#if ANDROID_VERSION >= 19
+  
+  msg->setInt32("video-bitrate", aKbps * 1000 );
+#else
   msg->setInt32("videoBitrate", aKbps * 1000 );
+#endif
   status_t result = mCodec->setParameters(msg);
   MOZ_ASSERT(result == OK);
   return result == OK ? NS_OK : NS_ERROR_FAILURE;
