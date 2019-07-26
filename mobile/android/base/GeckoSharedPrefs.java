@@ -5,7 +5,6 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.mozglue.RobocopTarget;
-import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -19,7 +18,6 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 
 
@@ -58,9 +56,6 @@ public final class GeckoSharedPrefs {
 
     
     private static final EnumSet<Flags> disableMigrations = EnumSet.of(Flags.DISABLE_MIGRATIONS);
-
-    
-    private static final int MIGRATION_COMMIT_TIMEOUT_MSEC = 10000;
 
     
     
@@ -254,7 +249,6 @@ public final class GeckoSharedPrefs {
         return pmPrefs.edit().clear();
     }
 
-    @SuppressWarnings("unchecked")
     private static void putEntry(Editor to, String key, Object value) {
         Log.d(LOGTAG, "Migrating key = " + key + " with value = " + value);
 
