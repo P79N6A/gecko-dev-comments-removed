@@ -809,7 +809,7 @@ void imgRequestProxy::OnStopRequest(bool lastPart)
   
   nsCOMPtr<imgIRequest> kungFuDeathGrip(this);
 
-  if (mListener) {
+  if (mListener && !mCanceled) {
     
     nsCOMPtr<imgINotificationObserver> kungFuDeathGrip(mListener);
     mListener->Notify(this, imgINotificationObserver::LOAD_COMPLETE, nullptr);
