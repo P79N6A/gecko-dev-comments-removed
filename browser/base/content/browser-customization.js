@@ -100,7 +100,6 @@ let CustomizationHandler = {
     if (gURLBar) {
       URLBarSetURI();
       XULBrowserWindow.asyncUpdateUI();
-      BookmarkingUI.updateStarState();
     }
 
     
