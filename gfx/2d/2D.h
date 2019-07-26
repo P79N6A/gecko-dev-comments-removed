@@ -356,7 +356,11 @@ public:
 
   virtual void MarkDirty() {}
 
-  virtual TemporaryRef<DataSourceSurface> GetDataSurface() { RefPtr<DataSourceSurface> temp = this; return temp.forget(); }
+  
+
+
+
+  virtual TemporaryRef<DataSourceSurface> GetDataSurface();
 };
 
 
