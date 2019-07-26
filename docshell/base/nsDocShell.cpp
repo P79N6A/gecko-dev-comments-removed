@@ -212,9 +212,6 @@ static bool gAddedPreferencesVarCache = false;
 bool nsDocShell::sUseErrorPages = false;
 
 
-static int32_t gNumberOfDocumentsLoading = 0;
-
-
 static int32_t gDocShellCount = 0;
 
 
@@ -243,17 +240,6 @@ static PRLogModuleInfo* gDocShellLeakLog;
 
 const char kBrandBundleURL[]      = "chrome://branding/locale/brand.properties";
 const char kAppstringsBundleURL[] = "chrome://global/locale/appstrings.properties";
-
-static void
-FavorPerformanceHint(bool perfOverStarvation)
-{
-    nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-    if (appShell) {
-        appShell->FavorPerformanceHint(perfOverStarvation,
-                                       Preferences::GetUint("docshell.event_starvation_delay_hint",
-                                                            NS_EVENT_STARVATION_DELAY_HINT));
-    }
-}
 
 
 
@@ -6865,14 +6851,6 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
         mIsExecutingOnLoadHandler = false;
 
         mEODForCurrentDocument = true;
-
-        
-        
-        
-        if (--gNumberOfDocumentsLoading == 0) {
-          
-          FavorPerformanceHint(false);
-        }
     }
     
 
@@ -7876,12 +7854,6 @@ nsDocShell::RestoreFromHistory()
     mSavingOldViewer = false;
     mEODForCurrentDocument = false;
 
-    
-    
-    if (++gNumberOfDocumentsLoading == 1)
-        FavorPerformanceHint(true);
-
-
     if (oldMUDV && newMUDV) {
         newMUDV->SetMinFontSize(minFontSize);
         newMUDV->SetTextZoom(textZoom);
@@ -8276,16 +8248,6 @@ nsDocShell::CreateContentViewer(const char *aContentType,
           doc->SetPartID(partID);
         }
       }
-    }
-
-    
-    
-    
-    if (++gNumberOfDocumentsLoading == 1) {
-      
-      
-      
-      FavorPerformanceHint(true);
     }
 
     if (onLocationChangeNeeded) {
