@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.gfx;
 
+import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 import org.mozilla.gecko.util.FloatUtils;
 
 import android.graphics.PointF;
@@ -52,7 +53,8 @@ public class ImmutableViewportMetrics {
     
 
 
-    private ImmutableViewportMetrics(float aPageRectLeft, float aPageRectTop,
+    @WrapElementForJNI(allowMultithread = true)
+    public ImmutableViewportMetrics(float aPageRectLeft, float aPageRectTop,
         float aPageRectRight, float aPageRectBottom, float aCssPageRectLeft,
         float aCssPageRectTop, float aCssPageRectRight, float aCssPageRectBottom,
         float aViewportRectLeft, float aViewportRectTop, float aViewportRectRight,
