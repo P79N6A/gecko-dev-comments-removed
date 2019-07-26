@@ -526,7 +526,7 @@ this.FxAccounts.prototype = Object.freeze({
           
           
           
-          internal.startVerifiedCheck(credentials);
+          internal.startVerifiedCheck(data);
         }
         return data;
       });
@@ -559,6 +559,15 @@ this.FxAccounts.prototype = Object.freeze({
           });
       });
   },
+
+  getKeys: function() {
+    return internal.getKeys();
+  },
+
+  whenVerified: function(userData) {
+    return internal.whenVerified(userData);
+  },
+
 
   
 
