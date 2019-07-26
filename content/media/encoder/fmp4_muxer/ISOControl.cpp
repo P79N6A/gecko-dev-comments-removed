@@ -61,7 +61,8 @@ FragmentBuffer::AddFrame(EncodedFrame* aFrame)
   }
 
   EncodedFrame::FrameType type = aFrame->GetFrameType();
-  if (type == EncodedFrame::AAC_CSD || type == EncodedFrame::AVC_CSD) {
+  if (type == EncodedFrame::AAC_CSD || type == EncodedFrame::AVC_CSD ||
+      type == EncodedFrame::AMR_AUDIO_CSD) {
     mCSDFrame = aFrame;
     
     
@@ -79,7 +80,7 @@ FragmentBuffer::AddFrame(EncodedFrame* aFrame)
   mFragArray.LastElement().AppendElement(aFrame);
 
   
-  if ((aFrame->GetTimeStamp() - mMediaStartTime) > (mFragDuration * mFragmentNumber)) {
+  if ((aFrame->GetTimeStamp() - mMediaStartTime) >= (mFragDuration * mFragmentNumber)) {
     mFragArray.AppendElement();
     mFragmentNumber++;
   }

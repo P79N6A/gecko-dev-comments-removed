@@ -65,6 +65,34 @@ public:
   uint32_t mFrameRate;       
 };
 
+
+
+#define AMR_SAMPLE_RATE 8000
+
+
+#define AMR_CHANNELS    1
+
+
+
+class AMRTrackMetadata : public AudioTrackMetadata {
+public:
+  
+  
+  
+  
+  uint32_t GetAudioFrameDuration() MOZ_OVERRIDE { return 0; }
+  uint32_t GetAudioFrameSize() MOZ_OVERRIDE { return 0; }
+  uint32_t GetAudioSampleRate() MOZ_OVERRIDE { return AMR_SAMPLE_RATE; }
+  uint32_t GetAudioChannels() MOZ_OVERRIDE { return AMR_CHANNELS; }
+
+  
+  MetadataKind GetKind() const MOZ_OVERRIDE { return METADATA_AMR; }
+
+  
+  AMRTrackMetadata() { MOZ_COUNT_CTOR(AMRTrackMetadata); }
+  ~AMRTrackMetadata() { MOZ_COUNT_DTOR(AMRTrackMetadata); }
+};
+
 }
 
 #endif 
