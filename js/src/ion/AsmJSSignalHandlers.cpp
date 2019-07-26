@@ -900,7 +900,8 @@ HandleSignal(int signum, siginfo_t *info, void *ctx)
 #  endif
 }
 
-static struct sigaction sPrevHandler;
+static struct sigaction sPrevSegvHandler;
+static struct sigaction sPrevBusHandler;
 
 static void
 AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
@@ -915,13 +916,21 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
     
     
     
-    if (sPrevHandler.sa_flags & SA_SIGINFO) {
-        sPrevHandler.sa_sigaction(signum, info, context);
+    struct sigaction* prevHandler = NULL;
+    if (signum == SIGSEGV)
+        prevHandler = &sPrevSegvHandler;
+    else {
+	JS_ASSERT(signum == SIGBUS);
+        prevHandler = &sPrevBusHandler;
+    }
+
+    if (prevHandler->sa_flags & SA_SIGINFO) {
+        prevHandler->sa_sigaction(signum, info, context);
         exit(signum);  
-    } else if (sPrevHandler.sa_handler == SIG_DFL || sPrevHandler.sa_handler == SIG_IGN) {
-        sigaction(signum, &sPrevHandler, NULL);
+    } else if (prevHandler->sa_handler == SIG_DFL || prevHandler->sa_handler == SIG_IGN) {
+        sigaction(signum, prevHandler, NULL);
     } else {
-        sPrevHandler.sa_handler(signum);
+        prevHandler->sa_handler(signum);
         exit(signum);  
     }
 }
@@ -950,9 +959,9 @@ EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
     sigAction.sa_sigaction = &AsmJSFaultHandler;
     sigemptyset(&sigAction.sa_mask);
     sigAction.sa_flags = SA_SIGINFO;
-    if (sigaction(SIGSEGV, &sigAction, &sPrevHandler))
+    if (sigaction(SIGSEGV, &sigAction, &sPrevSegvHandler))
         return false;
-    if (sigaction(SIGBUS, &sigAction, &sPrevHandler))
+    if (sigaction(SIGBUS, &sigAction, &sPrevBusHandler))
         return false;
 #  endif
 
@@ -994,3 +1003,14 @@ js::TriggerOperationCallbackForAsmJSCode(JSRuntime *rt)
 # endif
 #endif
 }
+
+#ifdef MOZ_ASAN
+
+
+
+
+extern "C" MOZ_ASAN_BLACKLIST
+const char* __asan_default_options() {
+    return "allow_user_segv_handler=1";
+}
+#endif
