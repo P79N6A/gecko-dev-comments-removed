@@ -3,20 +3,19 @@
 
 
 
-#ifndef nsContentEventHandler_h__
-#define nsContentEventHandler_h__
+#ifndef mozilla_ContentEventHandler_h_
+#define mozilla_ContentEventHandler_h_
 
+#include "mozilla/EventForwards.h"
 #include "nsCOMPtr.h"
-
 #include "nsISelection.h"
 #include "nsRange.h"
-#include "mozilla/EventForwards.h"
 
-class nsCaret;
 class nsPresContext;
 
 struct nsRect;
 
+namespace mozilla {
 
 
 
@@ -25,32 +24,33 @@ struct nsRect;
 
 
 
-class MOZ_STACK_CLASS nsContentEventHandler {
+
+class MOZ_STACK_CLASS ContentEventHandler
+{
 public:
-  nsContentEventHandler(nsPresContext *aPresContext);
+  ContentEventHandler(nsPresContext* aPresContext);
 
   
-  nsresult OnQuerySelectedText(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQuerySelectedText(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryTextContent(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryTextContent(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryCaretRect(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryCaretRect(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryTextRect(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryTextRect(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryEditorRect(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryEditorRect(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryContentState(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryContentState(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQuerySelectionAsTransferable(
-             mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQuerySelectionAsTransferable(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryCharacterAtPoint(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryCharacterAtPoint(WidgetQueryContentEvent* aEvent);
   
-  nsresult OnQueryDOMWidgetHittest(mozilla::WidgetQueryContentEvent* aEvent);
+  nsresult OnQueryDOMWidgetHittest(WidgetQueryContentEvent* aEvent);
 
   
-  nsresult OnSelectionEvent(mozilla::WidgetSelectionEvent* aEvent);
+  nsresult OnSelectionEvent(WidgetSelectionEvent* aEvent);
 
 protected:
   nsPresContext* mPresContext;
@@ -59,8 +59,8 @@ protected:
   nsRefPtr<nsRange> mFirstSelectedRange;
   nsCOMPtr<nsIContent> mRootContent;
 
-  nsresult Init(mozilla::WidgetQueryContentEvent* aEvent);
-  nsresult Init(mozilla::WidgetSelectionEvent* aEvent);
+  nsresult Init(WidgetQueryContentEvent* aEvent);
+  nsresult Init(WidgetSelectionEvent* aEvent);
 
   
   nsresult InitCommon();
@@ -87,7 +87,7 @@ protected:
   bool IsPlugin(nsIContent* aContent);
   
   nsresult QueryContentRect(nsIContent* aContent,
-                            mozilla::WidgetQueryContentEvent* aEvent);
+                            WidgetQueryContentEvent* aEvent);
   
   
   
@@ -109,5 +109,7 @@ protected:
   nsresult ExpandToClusterBoundary(nsIContent* aContent, bool aForward,
                                    uint32_t* aXPOffset);
 };
+
+} 
 
 #endif 
