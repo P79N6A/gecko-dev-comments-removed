@@ -97,6 +97,12 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
        curr = curr->GetNext())
     curr->InstallMember(cx, targetClassObject);
 
+  
+  for (nsXBLProtoImplField* curr = mFields;
+       curr;
+       curr = curr->GetNext())
+    curr->InstallAccessors(cx, targetClassObject);
+
   return NS_OK;
 }
 

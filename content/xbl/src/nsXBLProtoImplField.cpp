@@ -96,8 +96,6 @@ nsXBLProtoImplField::AppendFieldText(const nsAString& aText)
 
 
 
-
-
 static const uint32_t XBLPROTO_SLOT = 0;
 static const uint32_t FIELD_SLOT = 1;
 
@@ -157,9 +155,6 @@ InstallXBLField(JSContext* cx,
     return false;
   }
 
-  
-  
-  
   
 
   
@@ -284,64 +279,65 @@ FieldSetter(JSContext *cx, unsigned argc, JS::Value *vp)
                                  (cx, args);
 }
 
-JSBool
-XBLResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
-           JSMutableHandleObject objp)
+nsresult
+nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
+                                      JSObject* aTargetClassObject)
 {
-  objp.set(NULL);
-
-  if (!JSID_IS_STRING(id)) {
-    return true;
-  }
-
-  nsXBLPrototypeBinding* protoBinding =
-    static_cast<nsXBLPrototypeBinding*>(::JS_GetReservedSlot(obj, 0).toPrivate());
-  MOZ_ASSERT(protoBinding);
+  MOZ_ASSERT(js::IsObjectInContextCompartment(aTargetClassObject, aCx));
+  JSObject* global = JS_GetGlobalForObject(aCx, aTargetClassObject);
 
   
   
-  
-  nsDependentJSString fieldName(id);
-  nsXBLProtoImplField* field = protoBinding->FindField(fieldName);
-  if (!field || field->IsEmpty()) {
-    return true;
+  if (IsEmpty()) {
+    return NS_OK;
   }
 
   
   
-  js::Rooted<JSObject*> global(cx, JS_GetGlobalForObject(cx, obj));
 
-  js::Rooted<JSObject*> get(cx);
-  get = ::JS_GetFunctionObject(js::NewFunctionByIdWithReserved(cx, FieldGetter,
-                                                               0, 0, global,
-                                                               id));
+  
+  jsid id;
+  JS::TwoByteChars chars(mName, NS_strlen(mName));
+  if (!JS_CharsToId(aCx, chars, &id))
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  
+  
+  JSBool found = false;
+  if (!JS_AlreadyHasOwnPropertyById(aCx, aTargetClassObject, id, &found))
+    return NS_ERROR_FAILURE;
+  if (found)
+    return NS_OK;
+
+  JSObject *get =
+    JS_GetFunctionObject(js::NewFunctionByIdWithReserved(aCx, FieldGetter,
+                                                         0, 0, global, id));
   if (!get) {
-    return false;
+    return NS_ERROR_OUT_OF_MEMORY;
   }
-  js::SetFunctionNativeReserved(get, XBLPROTO_SLOT, JS::ObjectValue(*obj));
+  js::SetFunctionNativeReserved(get, XBLPROTO_SLOT, JS::ObjectValue(*aTargetClassObject));
   js::SetFunctionNativeReserved(get, FIELD_SLOT,
                                 JS::StringValue(JSID_TO_STRING(id)));
 
-  js::Rooted<JSObject*> set(cx);
-  set = ::JS_GetFunctionObject(js::NewFunctionByIdWithReserved(cx, FieldSetter,
-                                                               1, 0, global,
-                                                               id));
+  JSObject *set =
+    JS_GetFunctionObject(js::NewFunctionByIdWithReserved(aCx, FieldSetter,
+                                                          1, 0, global, id));
   if (!set) {
-    return false;
+    return NS_ERROR_OUT_OF_MEMORY;
   }
-  js::SetFunctionNativeReserved(set, XBLPROTO_SLOT, JS::ObjectValue(*obj));
+  js::SetFunctionNativeReserved(set, XBLPROTO_SLOT, JS::ObjectValue(*aTargetClassObject));
   js::SetFunctionNativeReserved(set, FIELD_SLOT,
                                 JS::StringValue(JSID_TO_STRING(id)));
 
-  if (!::JS_DefinePropertyById(cx, obj, id, JS::UndefinedValue(),
-                               JS_DATA_TO_FUNC_PTR(JSPropertyOp, get.get()),
-                               JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, set.get()),
-                               field->AccessorAttributes())) {
-    return false;
+  if (!::JS_DefinePropertyById(aCx, aTargetClassObject, id, JS::UndefinedValue(),
+                               JS_DATA_TO_FUNC_PTR(JSPropertyOp, get),
+                               JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, set),
+                               AccessorAttributes())) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  objp.set(obj);
-  return true;
+  return NS_OK;;
 }
 
 nsresult
