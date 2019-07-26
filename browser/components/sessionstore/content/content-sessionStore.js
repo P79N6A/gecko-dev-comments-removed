@@ -718,6 +718,9 @@ addEventListener("unload", () => {
   SessionHistoryListener.uninit();
 
   
+  gContentRestore.resetRestore();
+
+  
   
   
 });
