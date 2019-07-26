@@ -68,7 +68,6 @@ const char* XPCJSRuntime::mStrings[] = {
     "__exposedProps__",     
     "baseURIObject",        
     "nodePrincipal",        
-    "documentURIObject",    
     "mozMatchesSelector"    
 };
 
