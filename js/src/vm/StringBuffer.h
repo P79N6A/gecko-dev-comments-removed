@@ -11,9 +11,11 @@
 #include "mozilla/DebugOnly.h"
 
 #include "jscntxt.h"
-#include "jspubtd.h"
 
 #include "js/Vector.h"
+
+ForwardDeclareJS(Atom);
+ForwardDeclareJS(FlatString);
 
 namespace js {
 
@@ -87,10 +89,10 @@ class StringBuffer
 
 
 
-    JSFlatString *finishString();
+    js::UnrootedFlatString finishString();
 
     
-    JSAtom *finishAtom();
+    js::UnrootedAtom finishAtom();
 
     
 
