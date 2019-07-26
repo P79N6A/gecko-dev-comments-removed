@@ -521,14 +521,6 @@ class VerifyOp
     }
 };
 
-static void
-OsiPointRegisterCheckFailed()
-{
-    
-    
-    MOZ_ASSUME_UNREACHABLE("Modified registers between VM call and OsiPoint");
-}
-
 void
 CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
 {
@@ -582,10 +574,11 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
     
     
     
+
+    
+    
     masm.bind(&failure);
-    masm.setupUnalignedABICall(0, scratch);
-    masm.callWithABINoProfiling(JS_FUNC_TO_DATA_PTR(void *, OsiPointRegisterCheckFailed));
-    masm.breakpoint();
+    masm.assumeUnreachable("Modified registers between VM call and OsiPoint");
 
     masm.bind(&done);
     masm.pop(scratch);
