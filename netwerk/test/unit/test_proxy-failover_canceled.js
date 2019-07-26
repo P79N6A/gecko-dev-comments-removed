@@ -33,11 +33,24 @@ function run_test()
   httpServer.registerPathHandler("/content", contentHandler);
   httpServer.start(4444);
 
-  
-  
-
   var nc = new ChannelEventSink();
-  nc._flags = ES_ABORT_REDIRECT;
+  var on_modify_request_count = 0;
+
+  modifyrequestobserver = {observe: function() {
+    
+    
+    
+    
+    
+    
+
+    if (++on_modify_request_count == 2)
+      nc._flags = ES_ABORT_REDIRECT;
+  }}
+
+  var os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
+  os.addObserver(modifyrequestobserver, "http-on-modify-request", false);
 
   var prefserv = Cc["@mozilla.org/preferences-service;1"].
                  getService(Ci.nsIPrefService);

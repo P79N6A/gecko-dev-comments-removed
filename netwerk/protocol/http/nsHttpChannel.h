@@ -95,9 +95,7 @@ public:
     nsHttpChannel();
     virtual ~nsHttpChannel();
 
-    virtual nsresult Init(nsIURI *aURI, uint8_t aCaps, nsProxyInfo *aProxyInfo,
-                          uint32_t aProxyResolveFlags,
-                          nsIURI *aProxyURI);
+    virtual nsresult Init(nsIURI *aURI, uint8_t aCaps, nsProxyInfo *aProxyInfo);
 
     
     
@@ -152,7 +150,6 @@ private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 
     bool     RequestIsConditional();
-    nsresult BeginConnect();
     nsresult Connect();
     nsresult ContinueConnect();
     void     SpeculativeConnect();
@@ -189,6 +186,8 @@ private:
     nsresult ProxyFailover();
     nsresult AsyncDoReplaceWithProxy(nsIProxyInfo *);
     nsresult ContinueDoReplaceWithProxy(nsresult);
+    void HandleAsyncReplaceWithProxy();
+    nsresult ContinueHandleAsyncReplaceWithProxy(nsresult);
     nsresult ResolveProxy();
 
     
@@ -303,6 +302,9 @@ private:
 
     
     nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
+
+    
+    nsCOMPtr<nsIProxyInfo>            mTargetProxyInfo;
 
     
     

@@ -41,16 +41,8 @@ function run_test()
     "function FindProxyForURL(url, host) {return 'PROXY localhost:4444';}"
   );
 
-  
-  
-  
-  
-  
-  
-  
-
   var chan = make_channel("http://localhost:4444/content");
+  chan.notificationCallbacks = new ChannelEventSink(ES_ABORT_REDIRECT);
   chan.asyncOpen(new ChannelListener(finish_test, null, CL_EXPECT_FAILURE), null);
-  chan.cancel(Cr.NS_BINDING_ABORTED);
   do_test_pending();
 }

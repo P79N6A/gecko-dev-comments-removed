@@ -701,9 +701,7 @@ nsBaseChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 
   SUSPEND_PUMP_FOR_SCOPE();
 
-  if (mListener) 
-      return mListener->OnStartRequest(this, mListenerContext);
-  return NS_OK;
+  return mListener->OnStartRequest(this, mListenerContext);
 }
 
 NS_IMETHODIMP
@@ -718,8 +716,7 @@ nsBaseChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
   
   mPump = nullptr;
 
-  if (mListener) 
-      mListener->OnStopRequest(this, mListenerContext, mStatus);
+  mListener->OnStopRequest(this, mListenerContext, mStatus);
   mListener = nullptr;
   mListenerContext = nullptr;
 
