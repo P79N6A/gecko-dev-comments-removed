@@ -599,7 +599,10 @@ public:
   
   nsINode* GetFirstEditableNode(nsINode* aRoot);
 
-  int32_t GetIMEBufferLength();
+  
+
+
+  mozilla::TextComposition* GetComposition() const;
   
 
 
@@ -860,7 +863,6 @@ protected:
   EditAction        mAction;             
 
   uint32_t          mIMETextOffset;    
-  uint32_t          mIMEBufferLength;  
 
   EDirection        mDirection;          
   int8_t            mDocDirtyState;      

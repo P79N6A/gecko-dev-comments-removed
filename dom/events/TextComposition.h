@@ -47,7 +47,14 @@ public:
   nsPresContext* GetPresContext() const { return mPresContext; }
   nsINode* GetEventTargetNode() const { return mNode; }
   
-  const nsString& GetLastData() const { return mLastData; }
+  
+  const nsString& LastData() const { return mLastData; }
+  
+  
+  
+  
+  
+  const nsString& String() const { return mString; }
   
   
   bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
@@ -85,6 +92,12 @@ public:
 
   void EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent);
 
+  
+
+
+
+  void EditorDidHandleTextEvent();
+
 private:
   
   
@@ -100,6 +113,10 @@ private:
   
   
   nsString mLastData;
+
+  
+  
+  nsString mString;
 
   
   uint32_t mCompositionStartOffset;

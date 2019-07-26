@@ -3,6 +3,7 @@
 
 
 
+#include "TextComposition.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
@@ -1208,7 +1209,8 @@ nsTextEditRules::TruncateInsertionIfNeeded(Selection* aSelection,
     nsContentUtils::GetSelectionInTextControl(aSelection, mEditor->GetRoot(),
                                               start, end);
 
-    int32_t oldCompStrLength = mEditor->GetIMEBufferLength();
+    TextComposition* composition = mEditor->GetComposition();
+    int32_t oldCompStrLength = composition ? composition->String().Length() : 0;
 
     const int32_t selectionLength = end - start;
     const int32_t resultingDocLength = docLength - selectionLength - oldCompStrLength;

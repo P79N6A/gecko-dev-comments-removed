@@ -140,7 +140,6 @@ nsEditor::nsEditor()
 ,  mPlaceHolderBatch(0)
 ,  mAction(EditAction::none)
 ,  mIMETextOffset(0)
-,  mIMEBufferLength(0)
 ,  mDirection(eNone)
 ,  mDocDirtyState(-1)
 ,  mSpellcheckCheckboxState(eTriUnset)
@@ -247,8 +246,6 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIContent *aRoot, nsISelectionController *
   
   mIMETextNode = nullptr;
   mIMETextOffset = 0;
-  mIMEBufferLength = 0;
-  
   
   selCon->SetCaretReadOnly(false);
   selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
@@ -2056,7 +2053,6 @@ nsEditor::EndIMEComposition()
   
   mIMETextNode = nullptr;
   mIMETextOffset = 0;
-  mIMEBufferLength = 0;
   mComposition = nullptr;
 
   
@@ -4193,10 +4189,10 @@ nsEditor::DeleteSelectionAndCreateNode(const nsAString& aTag,
 
 
 
-int32_t
-nsEditor::GetIMEBufferLength()
+TextComposition*
+nsEditor::GetComposition() const
 {
-  return mIMEBufferLength;
+  return mComposition;
 }
 
 bool
@@ -4399,7 +4395,9 @@ nsEditor::CreateTxnForIMEText(const nsAString& aStringToInsert,
      
   nsRefPtr<IMETextTxn> txn = new IMETextTxn();
 
-  nsresult rv = txn->Init(mIMETextNode, mIMETextOffset, mIMEBufferLength,
+  
+  nsresult rv = txn->Init(mIMETextNode, mIMETextOffset,
+                          mComposition->String().Length(),
                           mIMETextRangeList, aStringToInsert, this);
   if (NS_SUCCEEDED(rv))
   {
