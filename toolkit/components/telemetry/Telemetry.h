@@ -158,6 +158,21 @@ void RecordSlowSQLStatement(const nsACString &statement,
 
 
 
+
+
+
+void InitIOReporting(nsIFile* aXreDir);
+
+
+
+
+
+
+void SetProfileDir(nsIFile* aProfD);
+
+
+
+
 const uint32_t kSlowSQLThresholdForMainThread = 50;
 const uint32_t kSlowSQLThresholdForHelperThreads = 100;
 
