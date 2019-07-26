@@ -152,7 +152,7 @@ this.Social = {
     this.initialized = true;
 
     
-    SocialService.getProviderList(function (providers) {
+    SocialService.getOrderedProviderList(function (providers) {
       this._updateProviderCache(providers);
     }.bind(this));
 
