@@ -114,29 +114,8 @@ struct Zone : private JS::shadow::Zone, public js::gc::GraphNodeBase<JS::Zone>
   private:
     bool                         ionUsingBarriers_;
 
-    
-
-
-
-
-
-    bool                         savedNeedsBarrier_;
-
   public:
     bool                         active;  
-
-    void saveNeedsBarrier(bool newNeeds) {
-        savedNeedsBarrier_ = needsBarrier_;
-        needsBarrier_ = newNeeds;
-    }
-
-    void restoreNeedsBarrier() {
-        needsBarrier_ = savedNeedsBarrier_;
-    }
-
-    bool savedNeedsBarrier() const {
-        return savedNeedsBarrier_;
-    }
 
     bool needsBarrier() const {
         return needsBarrier_;
