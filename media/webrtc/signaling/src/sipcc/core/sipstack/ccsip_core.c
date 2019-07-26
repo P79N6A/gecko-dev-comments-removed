@@ -7217,12 +7217,6 @@ sip_sm_init (void)
 
     }
 
-    
-    if (!sip_sdp_init()) {
-        
-        return (SIP_ERROR);
-    }
-
     return SIP_OK;
 }
 

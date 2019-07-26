@@ -41,13 +41,17 @@ tinybool sdp_verify_conf_ptr (sdp_conf_options_t *conf_p)
 
 
 
-sdp_conf_options_t sdp_config_options;
 void *sdp_init_config ()
 {
     int i;
     sdp_conf_options_t *conf_p;
 
-    conf_p = & sdp_config_options;
+    conf_p = SDP_MALLOC(sizeof(sdp_conf_options_t));
+
+    if (!conf_p) {
+        CSFLogError(logTag, "SDP: could not allocate configuration object.");
+        return NULL;
+    }
 
     
     conf_p->magic_num = SDP_MAGIC_NUM;
@@ -102,7 +106,6 @@ void *sdp_init_config ()
 
     return (conf_p);
 }
-
 
 
 
