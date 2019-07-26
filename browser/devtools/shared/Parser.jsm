@@ -136,8 +136,8 @@ SyntaxTreesPool.prototype = {
   
 
 
-  getIdentifierAt: function({ line, column, scriptIndex }) {
-    return this._call("getIdentifierAt", scriptIndex, line, column)[0];
+  getIdentifierAt: function({ line, column, scriptIndex, ignoreLiterals }) {
+    return this._call("getIdentifierAt", scriptIndex, line, column, ignoreLiterals)[0];
   },
 
   
@@ -260,7 +260,9 @@ SyntaxTree.prototype = {
 
 
 
-  getIdentifierAt: function(aLine, aColumn) {
+
+
+  getIdentifierAt: function(aLine, aColumn, aIgnoreLiterals) {
     let info = null;
 
     SyntaxTreeVisitor.walk(this.AST, {
@@ -286,7 +288,9 @@ SyntaxTree.prototype = {
 
 
       onLiteral: function(aNode) {
-        this.onIdentifier(aNode);
+        if (!aIgnoreLiterals) {
+          this.onIdentifier(aNode);
+        }
       },
 
       
@@ -705,11 +709,7 @@ let ParserHelpers = {
       case "Identifier":
         return aNode.name;
       case "Literal":
-        if (typeof aNode.value == "string") {
-          return "\"" + aNode.value + "\"";
-        } else {
-          return aNode.value + "";
-        }
+        return uneval(aNode.value);
       default:
         return "";
     }
