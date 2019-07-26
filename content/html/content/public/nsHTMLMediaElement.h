@@ -19,7 +19,7 @@
 #include "AudioStream.h"
 #include "VideoFrameContainer.h"
 #include "mozilla/CORSMode.h"
-#include "nsDOMMediaStream.h"
+#include "DOMMediaStream.h"
 #include "mozilla/Mutex.h"
 #include "nsTimeRanges.h"
 #include "nsIDOMWakeLock.h"
@@ -54,6 +54,7 @@ public:
   typedef mozilla::MetadataTags MetadataTags;
   typedef mozilla::AudioStream AudioStream;
   typedef mozilla::MediaDecoder MediaDecoder;
+  typedef mozilla::DOMMediaStream DOMMediaStream;
 
   mozilla::CORSMode GetCORSMode() {
     return mCORSMode;
@@ -368,7 +369,7 @@ protected:
   
 
 
-  void SetupSrcMediaStreamPlayback(nsDOMMediaStream* aStream);
+  void SetupSrcMediaStreamPlayback(DOMMediaStream* aStream);
   
 
 
@@ -381,7 +382,7 @@ protected:
 
 
 
-  already_AddRefed<nsDOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
+  already_AddRefed<DOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
 
   
 
@@ -639,17 +640,17 @@ protected:
 
   
   
-  nsRefPtr<nsDOMMediaStream> mSrcAttrStream;
+  nsRefPtr<DOMMediaStream> mSrcAttrStream;
 
   
   
   
-  nsRefPtr<nsDOMMediaStream> mSrcStream;
+  nsRefPtr<DOMMediaStream> mSrcStream;
 
   
   
   struct OutputMediaStream {
-    nsRefPtr<nsDOMMediaStream> mStream;
+    nsRefPtr<DOMMediaStream> mStream;
     bool mFinishWhenEnded;
   };
   nsTArray<OutputMediaStream> mOutputStreams;

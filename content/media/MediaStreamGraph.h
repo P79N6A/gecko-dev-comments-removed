@@ -17,9 +17,9 @@
 #include "VideoSegment.h"
 #include "nsThreadUtils.h"
 
-class nsDOMMediaStream;
-
 namespace mozilla {
+
+class DOMMediaStream;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaStreamGraphLog;
@@ -260,7 +260,7 @@ class MediaStream {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
 
-  MediaStream(nsDOMMediaStream* aWrapper)
+  MediaStream(DOMMediaStream* aWrapper)
     : mBufferStartTime(0)
     , mExplicitBlockerCount(0)
     , mBlocked(false)
@@ -515,7 +515,7 @@ protected:
   bool mBlockInThisPhase;
 
   
-  nsDOMMediaStream* mWrapper;
+  DOMMediaStream* mWrapper;
   
   StreamTime mMainThreadCurrentTime;
   bool mMainThreadFinished;
@@ -533,7 +533,7 @@ protected:
 
 class SourceMediaStream : public MediaStream {
 public:
-  SourceMediaStream(nsDOMMediaStream* aWrapper) :
+  SourceMediaStream(DOMMediaStream* aWrapper) :
     MediaStream(aWrapper),
     mLastConsumptionState(MediaStreamListener::NOT_CONSUMED),
     mMutex("mozilla::media::SourceMediaStream"),
@@ -777,7 +777,7 @@ protected:
 
 class ProcessedMediaStream : public MediaStream {
 public:
-  ProcessedMediaStream(nsDOMMediaStream* aWrapper)
+  ProcessedMediaStream(DOMMediaStream* aWrapper)
     : MediaStream(aWrapper), mAutofinish(false), mInCycle(false)
   {}
 
@@ -860,7 +860,7 @@ public:
 
 
 
-  SourceMediaStream* CreateSourceStream(nsDOMMediaStream* aWrapper);
+  SourceMediaStream* CreateSourceStream(DOMMediaStream* aWrapper);
   
 
 
@@ -875,7 +875,7 @@ public:
 
 
 
-  ProcessedMediaStream* CreateTrackUnionStream(nsDOMMediaStream* aWrapper);
+  ProcessedMediaStream* CreateTrackUnionStream(DOMMediaStream* aWrapper);
   
 
 

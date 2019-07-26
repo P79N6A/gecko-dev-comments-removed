@@ -257,7 +257,7 @@ MediaDevice::GetSource()
 
 
 
-class nsDOMUserMediaStream : public nsDOMLocalMediaStream
+class nsDOMUserMediaStream : public DOMLocalMediaStream
 {
 public:
   static already_AddRefed<nsDOMUserMediaStream>
@@ -342,8 +342,8 @@ public:
     }
 
     
-    uint32_t hints = (mAudioSource ? nsDOMMediaStream::HINT_CONTENTS_AUDIO : 0);
-    hints |= (mVideoSource ? nsDOMMediaStream::HINT_CONTENTS_VIDEO : 0);
+    uint32_t hints = (mAudioSource ? DOMMediaStream::HINT_CONTENTS_AUDIO : 0);
+    hints |= (mVideoSource ? DOMMediaStream::HINT_CONTENTS_VIDEO : 0);
 
     nsRefPtr<nsDOMUserMediaStream> trackunion =
       nsDOMUserMediaStream::CreateTrackUnionStream(hints);
