@@ -287,7 +287,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   }
 
   
-  if (target->ARIARole() == roles::MENUITEM) {
+  if (target->IsARIARole(nsGkAtoms::menuitem)) {
     
     Accessible* ARIAMenubar = nullptr;
     Accessible* child = target;
