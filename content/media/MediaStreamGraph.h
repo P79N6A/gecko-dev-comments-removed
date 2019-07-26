@@ -179,12 +179,9 @@ public:
 
 
 
+
 class MainThreadMediaStreamListener {
 public:
-  virtual ~MainThreadMediaStreamListener() {}
-
-  NS_INLINE_DECL_REFCOUNTING(MainThreadMediaStreamListener)
-
   virtual void NotifyMainThreadStateChanged() = 0;
 };
 
@@ -274,7 +271,12 @@ public:
     , mMainThreadDestroyed(false)
   {
   }
-  virtual ~MediaStream() {}
+  virtual ~MediaStream()
+  {
+    NS_ASSERTION(mMainThreadDestroyed, "Should have been destroyed already");
+    NS_ASSERTION(mMainThreadListeners.IsEmpty(),
+                 "All main thread listeners should have been removed");
+  }
 
   
 
@@ -303,11 +305,15 @@ public:
   
   void AddListener(MediaStreamListener* aListener);
   void RemoveListener(MediaStreamListener* aListener);
+  
+  
   void AddMainThreadListener(MainThreadMediaStreamListener* aListener)
   {
     NS_ASSERTION(NS_IsMainThread(), "Call only on main thread");
     mMainThreadListeners.AppendElement(aListener);
   }
+  
+  
   void RemoveMainThreadListener(MainThreadMediaStreamListener* aListener)
   {
     NS_ASSERTION(NS_IsMainThread(), "Call only on main thread");
@@ -424,7 +430,7 @@ protected:
   
   TimeVarying<GraphTime,uint32_t> mExplicitBlockerCount;
   nsTArray<nsRefPtr<MediaStreamListener> > mListeners;
-  nsTArray<nsRefPtr<MainThreadMediaStreamListener> > mMainThreadListeners;
+  nsTArray<MainThreadMediaStreamListener*> mMainThreadListeners;
 
   
   
@@ -838,9 +844,9 @@ public:
 
 
 
-  void DispatchToMainThreadAfterStreamStateUpdate(nsIRunnable* aRunnable)
+  void DispatchToMainThreadAfterStreamStateUpdate(already_AddRefed<nsIRunnable> aRunnable)
   {
-    mPendingUpdateRunnables.AppendElement(aRunnable);
+    *mPendingUpdateRunnables.AppendElement() = aRunnable;
   }
 
 protected:
