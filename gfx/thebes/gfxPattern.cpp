@@ -414,11 +414,19 @@ gfxPattern::AdjustTransformForPattern(Matrix &aPatternTransform,
 {
   aPatternTransform.Invert();
   if (!aOriginalTransform) {
+    
+    
     return;
   }
+  
+  
 
   Matrix mat = aCurrentTransform;
   mat.Invert();
+  
 
+  
+  
+  
   aPatternTransform = aPatternTransform * *aOriginalTransform * mat;
 }

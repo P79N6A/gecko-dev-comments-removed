@@ -103,6 +103,17 @@ public:
 protected:
     cairo_pattern_t *mPattern;
 
+    
+
+
+
+
+
+
+
+
+
+
     void AdjustTransformForPattern(mozilla::gfx::Matrix &aPatternTransform,
                                    const mozilla::gfx::Matrix &aCurrentTransform,
                                    const mozilla::gfx::Matrix *aOriginalTransform);

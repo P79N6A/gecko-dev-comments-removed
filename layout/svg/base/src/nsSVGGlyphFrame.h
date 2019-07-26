@@ -273,8 +273,10 @@ private:
 
   
   struct SVGTextObjectPaint : public gfxTextObjectPaint {
-    already_AddRefed<gfxPattern> GetFillPattern(float opacity);
-    already_AddRefed<gfxPattern> GetStrokePattern(float opacity);
+    already_AddRefed<gfxPattern> GetFillPattern(float aOpacity,
+                                                const gfxMatrix& aCTM);
+    already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity,
+                                                  const gfxMatrix& aCTM);
 
     void SetFillOpacity(float aOpacity) { mFillOpacity = aOpacity; }
     float GetFillOpacity() { return mFillOpacity; }
@@ -316,14 +318,17 @@ private:
       } mPaintDefinition;
 
       nsIFrame *mFrame;
+      
       gfxMatrix mContextMatrix;
       nsStyleSVGPaintType mPaintType;
 
+      
       gfxMatrix mPatternMatrix;
       nsRefPtrHashtable<nsFloatHashKey, gfxPattern> mPatternCache;
 
       already_AddRefed<gfxPattern> GetPattern(float aOpacity,
-                                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke);
+                                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                                              const gfxMatrix& aCTM);
     };
 
     Paint mFillPaint;

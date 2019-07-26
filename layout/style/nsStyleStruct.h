@@ -2240,8 +2240,9 @@ struct nsStyleSVG {
 
   
   
-  nsStyleSVGOpacitySource mFillOpacitySource    : 2;
-  nsStyleSVGOpacitySource mStrokeOpacitySource  : 2;
+  
+  nsStyleSVGOpacitySource mFillOpacitySource    : 3;
+  nsStyleSVGOpacitySource mStrokeOpacitySource  : 3;
 
   
   bool mStrokeDasharrayFromObject   : 1;
