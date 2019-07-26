@@ -157,6 +157,7 @@ need to rearrange the mBits bitfield;
 
 
 
+
 nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsIFrame* aFrame,
                          bool aIsBlock);
 

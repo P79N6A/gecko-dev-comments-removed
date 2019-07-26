@@ -3214,7 +3214,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
             
             if (madeContinuation) {
               nsLineBox* line = NewLineBox(nextFrame, true);
-              NS_ENSURE_TRUE(line, NS_ERROR_OUT_OF_MEMORY);
               mLines.after_insert(aLine, line);
             }
 
@@ -3998,9 +3997,6 @@ nsBlockFrame::SplitLine(nsBlockReflowState& aState,
 
     
     nsLineBox* newLine = NewLineBox(aLine, aFrame, pushCount);
-    if (!newLine) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
     mLines.after_insert(aLine, newLine);
 #ifdef DEBUG
     if (gReallyNoisyReflow) {
@@ -4893,9 +4889,6 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     if (rem) {
       
       nsLineBox* line = NewLineBox(prevSibLine, aPrevSibling->GetNextSibling(), rem);
-      if (!line) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
       lineList->after_insert(prevSibLine, line);
       
       
@@ -4938,9 +4931,6 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       
       
       nsLineBox* line = NewLineBox(newFrame, isBlock);
-      if (!line) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
       if (prevSibLine != lineList->end()) {
         
         lineList->after_insert(prevSibLine, line);
