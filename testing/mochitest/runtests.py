@@ -353,7 +353,7 @@ class MochitestUtilsMixin(object):
       manifest = TestManifest(strict=False)
       manifest.read(options.manifestFile)
       
-      tests = manifest.active_tests(disabled=False, **mozinfo.info)
+      tests = manifest.active_tests(disabled=True, **mozinfo.info)
       paths = []
       for test in tests:
         tp = test['path'].split(self.getTestRoot(options), 1)[1].strip('/')
