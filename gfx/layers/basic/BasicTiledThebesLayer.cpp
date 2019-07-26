@@ -92,15 +92,18 @@ BasicTiledLayerBuffer::PaintThebes(BasicTiledThebesLayer* aLayer,
   NS_ASSERTION(!aPaintRegion.GetBounds().IsEmpty(), "Empty paint region\n");
 
   bool useSinglePaintBuffer = UseSinglePaintBuffer();
-  if (useSinglePaintBuffer) {
-    
-    
-    nsIntRect paintBounds = aPaintRegion.GetBounds();
-    useSinglePaintBuffer = GetTileStart(paintBounds.x) !=
-                           GetTileStart(paintBounds.XMost() - 1) ||
-                           GetTileStart(paintBounds.y) !=
-                           GetTileStart(paintBounds.YMost() - 1);
-  }
+  
+  
+
+
+
+
+
+
+
+
+
+
 
   if (useSinglePaintBuffer) {
     const nsIntRect bounds = aPaintRegion.GetBounds();
