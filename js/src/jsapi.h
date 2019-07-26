@@ -2652,7 +2652,10 @@ JS_IsGCMarkingTracer(JSTracer *trc);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_IsAboutToBeFinalized(JSObject **obj);
+JS_IsAboutToBeFinalized(JS::Heap<JSObject *> *objp);
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsAboutToBeFinalizedUnbarriered(JSObject **objp);
 
 typedef enum JSGCParamKey {
     
