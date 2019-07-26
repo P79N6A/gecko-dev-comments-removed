@@ -446,7 +446,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
  bool
 GlobalObject::ensureConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key)
 {
-    if (global->getConstructor(key).isObject())
+    if (global->isStandardClassResolved(key))
         return true;
     return resolveConstructor(cx, global, key);
 }
@@ -454,7 +454,7 @@ GlobalObject::ensureConstructor(JSContext *cx, Handle<GlobalObject*> global, JSP
  bool
 GlobalObject::resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key)
 {
-    MOZ_ASSERT(global->getConstructor(key).isUndefined());
+    MOZ_ASSERT(!global->isStandardClassResolved(key));
 
     
     
