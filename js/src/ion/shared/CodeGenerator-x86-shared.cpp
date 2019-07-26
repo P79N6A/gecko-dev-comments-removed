@@ -629,12 +629,10 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     masm.cdq();
     masm.idiv(rhs);
 
-    if (!mir->isTruncated()) {
-        
-        masm.testl(remainder, remainder);
-        if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
-            return false;
-    }
+    
+    masm.testl(remainder, remainder);
+    if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
+        return false;
 
     return true;
 }

@@ -79,7 +79,7 @@ ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
 
     MDefinition *ins = def->foldsTo(useValueNumbers);
 
-    if (ins == def || !ins->updateForFolding(def))
+    if (ins == def || !ins->updateForReplacement(def))
         return def;
 
     
