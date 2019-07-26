@@ -509,9 +509,10 @@ const DownloadsIndicatorView = {
     if (DownloadsCommon.useToolkitUI) {
       
       DownloadsCommon.indicatorData.attention = false;
+      BrowserDownloadsUI();
+    } else {
+      DownloadsPanel.showPanel();
     }
-
-    DownloadsPanel.showPanel();
 
     aEvent.stopPropagation();
   },
