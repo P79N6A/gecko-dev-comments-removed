@@ -113,8 +113,9 @@ class SharedThreadPool;
 
 
 
-class MediaDecoderStateMachine : public nsRunnable
+class MediaDecoderStateMachine
 {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderStateMachine)
 public:
   typedef MediaDecoder::DecodedStreamData DecodedStreamData;
   MediaDecoderStateMachine(MediaDecoder* aDecoder,
@@ -226,9 +227,6 @@ public:
   
   
   void StartBuffering();
-
-  
-  NS_IMETHOD Run() MOZ_OVERRIDE;
 
   
   

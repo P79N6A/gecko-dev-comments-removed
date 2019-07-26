@@ -2704,13 +2704,6 @@ nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
   return res;
 }
 
-nsresult MediaDecoderStateMachine::Run()
-{
-  
-  MOZ_ASSERT(false);
-  return NS_ERROR_FAILURE;
-}
-
 nsresult MediaDecoderStateMachine::CallRunStateMachine()
 {
   AssertCurrentThreadInMonitor();
