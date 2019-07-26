@@ -331,7 +331,7 @@ function getJSON(element) {
   
   
   
-  let inputmode = element.getAttribute('inputmode');
+  let inputmode = element.getAttribute('x-inputmode');
   if (inputmode) {
     inputmode = inputmode.toLowerCase();
   } else {
