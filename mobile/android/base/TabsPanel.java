@@ -9,6 +9,7 @@ import org.mozilla.gecko.sync.setup.SyncAccounts;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -97,6 +98,23 @@ public class TabsPanel extends LinearLayout {
         });
     }
 
+    private static int getTabContainerHeight(View view) {
+        Context context = view.getContext();
+
+        int actionBarHeight = context.getResources().getDimensionPixelSize(R.dimen.browser_toolbar_height);
+        int screenHeight = context.getResources().getDisplayMetrics().heightPixels;
+
+        Rect windowRect = new Rect();
+        view.getWindowVisibleDisplayFrame(windowRect);
+        int windowHeight = windowRect.bottom - windowRect.top;
+
+        
+        
+        
+        return (int) Math.max(screenHeight * 0.5f,
+                              Math.min(windowHeight - 2.5f * actionBarHeight, windowHeight * 0.8f) - actionBarHeight);
+    }
+
     
     public static class TabsListContainer extends LinearLayout {
         private Context mContext;
@@ -109,7 +127,7 @@ public class TabsPanel extends LinearLayout {
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             if (!GeckoApp.mAppContext.hasTabsSideBar()) {
-                int heightSpec = MeasureSpec.makeMeasureSpec((int) (0.5 * mContext.getResources().getDisplayMetrics().heightPixels), MeasureSpec.EXACTLY);
+                int heightSpec = MeasureSpec.makeMeasureSpec(getTabContainerHeight(this), MeasureSpec.EXACTLY);
                 super.onMeasure(widthMeasureSpec, heightSpec);
             } else {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -166,13 +184,8 @@ public class TabsPanel extends LinearLayout {
             if (showAnimation)
                 dispatchLayoutChange(getWidth(), getHeight());
         } else {
-            int actionBarHeight = (int) (mContext.getResources().getDimension(R.dimen.browser_toolbar_height));
-
-            
-            
-            int listHeight = (int) (0.5 * mContext.getResources().getDisplayMetrics().heightPixels);
-
-            int height = actionBarHeight + listHeight; 
+            int actionBarHeight = mContext.getResources().getDimensionPixelSize(R.dimen.browser_toolbar_height);
+            int height = actionBarHeight + getTabContainerHeight(mListContainer);
             dispatchLayoutChange(getWidth(), height);
         }
 
