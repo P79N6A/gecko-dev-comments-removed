@@ -1033,3 +1033,15 @@ js::TriggerOperationCallbackForAsmJSCode(JSRuntime *rt)
         MOZ_CRASH();
 #endif
 }
+
+#ifdef MOZ_ASAN
+#ifdef JS_STANDALONE
+
+
+
+extern "C" MOZ_ASAN_BLACKLIST
+const char* __asan_default_options() {
+    return "allow_user_segv_handler=1";
+}
+#endif
+#endif
