@@ -37,6 +37,8 @@
 #include "nsIContentSecurityPolicy.h"
 #include "xpcpublic.h"
 #include "nsSandboxFlags.h"
+#include "mozilla/dom/Element.h"
+#include "mozilla/dom/BindingUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -789,6 +791,10 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
   AutoPushJSContext cx(context->GetNativeContext());
   JS::Rooted<JSObject*> handler(cx);
 
+  JS::Rooted<JSObject*> scope(cx, listener->GetEventScope());
+
+  nsIAtom* attrName = aListenerStruct->mTypeAtom;
+
   if (aListenerStruct->mHandlerIsString) {
     
     
@@ -802,11 +808,11 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     
     
     
-    nsCOMPtr<nsIContent> content = do_QueryInterface(mTarget);
+    nsCOMPtr<Element> element = do_QueryInterface(mTarget);
+    MOZ_ASSERT(element || aBody, "Where will we get our body?");
     nsAutoString handlerBody;
     const nsAString* body = aBody;
-    if (content && !aBody) {
-      nsIAtom* attrName = aListenerStruct->mTypeAtom;
+    if (!aBody) {
       if (aListenerStruct->mTypeAtom == nsGkAtoms::onSVGLoad)
         attrName = nsGkAtoms::onload;
       else if (aListenerStruct->mTypeAtom == nsGkAtoms::onSVGUnload)
@@ -828,29 +834,24 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
       else if (aListenerStruct->mTypeAtom == nsGkAtoms::onendEvent)
         attrName = nsGkAtoms::onend;
 
-      content->GetAttr(kNameSpaceID_None, attrName, handlerBody);
+      element->GetAttr(kNameSpaceID_None, attrName, handlerBody);
       body = &handlerBody;
+      aElement = element;
     }
 
     uint32_t lineNo = 0;
     nsAutoCString url (NS_LITERAL_CSTRING("-moz-evil:lying-event-listener"));
-    if (doc) {
-      nsIURI *uri = doc->GetDocumentURI();
-      if (uri) {
-        uri->GetSpec(url);
-        lineNo = 1;
-      }
+    MOZ_ASSERT(body);
+    MOZ_ASSERT(aElement);
+    nsIURI *uri = aElement->OwnerDoc()->GetDocumentURI();
+    if (uri) {
+      uri->GetSpec(url);
+      lineNo = 1;
     }
 
     uint32_t argCount;
     const char **argNames;
-    
-    
-    
-    
-    nsContentUtils::GetEventArgNames(content ?
-                                       content->GetNameSpaceID() :
-                                       kNameSpaceID_None,
+    nsContentUtils::GetEventArgNames(aElement->GetNameSpaceID(),
                                      aListenerStruct->mTypeAtom,
                                      &argCount, &argNames);
 
@@ -858,6 +859,25 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     JS::CompileOptions options(cx);
     options.setFileAndLine(url.get(), lineNo)
            .setVersion(SCRIPTVERSION_DEFAULT);
+
+    JS::Rooted<JS::Value> targetVal(cx);
+    
+    JS::Rooted<JSObject*> wrapScope(cx, JS::CurrentGlobalOrNull(cx));
+    if (WrapNewBindingObject(cx, wrapScope, aElement, &targetVal)) {
+      MOZ_ASSERT(targetVal.isObject());
+
+      nsDependentAtomString str(attrName);
+      
+      
+      
+      JS::Rooted<JSString*> jsStr(cx, JS_NewUCStringCopyN(cx,
+                                                          str.BeginReading(),
+                                                          str.Length()));
+      NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
+
+      options.setElement(&targetVal.toObject())
+             .setElementAttributeName(jsStr);
+    }
 
     JS::Rooted<JSObject*> handlerFun(cx);
     result = nsJSUtils::CompileFunction(cx, JS::NullPtr(), options,
@@ -872,7 +892,6 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mTarget);
     
     JS::Rooted<JSObject*> boundHandler(cx);
-    JS::Rooted<JSObject*> scope(cx, listener->GetEventScope());
     context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
     aListenerStruct = nullptr;
     

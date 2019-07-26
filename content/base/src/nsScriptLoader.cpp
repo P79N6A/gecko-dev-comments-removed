@@ -999,7 +999,7 @@ nsScriptLoader::GetScriptGlobalObject()
 
 void
 nsScriptLoader::FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
-                                             JS::Handle<JSObject *> scopeChain,
+                                             JS::Handle<JSObject *> aScopeChain,
                                              JS::CompileOptions *aOptions)
 {
   
@@ -1008,12 +1008,27 @@ nsScriptLoader::FillCompileOptionsForRequest(nsScriptLoadRequest *aRequest,
 
   aOptions->setFileAndLine(aRequest->mURL.get(), aRequest->mLineNo);
   aOptions->setVersion(JSVersion(aRequest->mJSVersion));
-  aOptions->setCompileAndGo(JS_IsGlobalObject(scopeChain));
+  aOptions->setCompileAndGo(JS_IsGlobalObject(aScopeChain));
   if (aRequest->mHasSourceMapURL) {
     aOptions->setSourceMapURL(aRequest->mSourceMapURL.get());
   }
   if (aRequest->mOriginPrincipal) {
     aOptions->setOriginPrincipals(nsJSPrincipals::get(aRequest->mOriginPrincipal));
+  }
+
+  AutoJSContext cx;
+  JS::Rooted<JS::Value> elementVal(cx);
+  MOZ_ASSERT(aRequest->mElement);
+  
+  
+  
+  
+  
+  if (NS_SUCCEEDED(nsContentUtils::WrapNative(cx, aScopeChain,
+                                              aRequest->mElement, &elementVal,
+                                               true))) {
+    MOZ_ASSERT(elementVal.isObject());
+    aOptions->setElement(&elementVal.toObject());
   }
 }
 
