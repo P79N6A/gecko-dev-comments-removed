@@ -449,7 +449,8 @@ SheetLoadData::OnProcessNextEvent(nsIThreadInternal* aThread,
 
 NS_IMETHODIMP
 SheetLoadData::AfterProcessNextEvent(nsIThreadInternal* aThread,
-                                     uint32_t aRecursionDepth)
+                                     uint32_t aRecursionDepth,
+                                     bool aEventWasProcessed)
 {
   
   

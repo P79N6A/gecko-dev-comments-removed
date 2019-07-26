@@ -2724,7 +2724,8 @@ ContentParent::OnProcessNextEvent(nsIThreadInternal *thread,
 
 NS_IMETHODIMP
 ContentParent::AfterProcessNextEvent(nsIThreadInternal *thread,
-                                     uint32_t recursionDepth)
+                                     uint32_t recursionDepth,
+                                     bool eventWasProcessed)
 {
     return NS_OK;
 }

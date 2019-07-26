@@ -1120,7 +1120,8 @@ nsXPConnect::OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
 
 NS_IMETHODIMP
 nsXPConnect::AfterProcessNextEvent(nsIThreadInternal *aThread,
-                                   uint32_t aRecursionDepth)
+                                   uint32_t aRecursionDepth,
+                                   bool aEventWasProcessed)
 {
     
     if (MOZ_UNLIKELY(mEventDepth == 0))

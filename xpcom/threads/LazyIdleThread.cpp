@@ -501,14 +501,17 @@ LazyIdleThread::OnProcessNextEvent(nsIThreadInternal* ,
 
 NS_IMETHODIMP
 LazyIdleThread::AfterProcessNextEvent(nsIThreadInternal* ,
-                                      uint32_t )
+                                      uint32_t ,
+                                      bool aEventWasProcessed)
 {
   bool shouldNotifyIdle;
   {
     MutexAutoLock lock(mMutex);
 
-    MOZ_ASSERT(mPendingEventCount, "Mismatched calls to observer methods!");
-    --mPendingEventCount;
+    if (aEventWasProcessed) {
+      MOZ_ASSERT(mPendingEventCount, "Mismatched calls to observer methods!");
+      --mPendingEventCount;
+    }
 
     if (mThreadIsShuttingDown) {
       

@@ -399,7 +399,8 @@ nsBaseAppShell::ScheduleSyncSection(nsIRunnable* aRunnable, bool aStable)
 
 NS_IMETHODIMP
 nsBaseAppShell::AfterProcessNextEvent(nsIThreadInternal *thr,
-                                      uint32_t recursionDepth)
+                                      uint32_t recursionDepth,
+                                      bool eventWasProcessed)
 {
   
   RunSyncSections(true, recursionDepth);
