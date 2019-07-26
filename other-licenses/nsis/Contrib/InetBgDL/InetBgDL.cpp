@@ -30,6 +30,10 @@ CRITICAL_SECTION g_CritLock;
 UINT g_N_CCH;
 PTSTR g_N_Vars;
 
+DWORD g_ConnectTimeout = 0;
+DWORD g_ReceiveTimeout = 0;
+
+
 #define NSISPI_INITGLOBALS(N_CCH, N_Vars) do { \
   g_N_CCH = N_CCH; \
   g_N_Vars = N_Vars; \
@@ -121,10 +125,95 @@ UINT_PTR __cdecl NSISPluginCallback(UINT Event)
   return NULL;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<size_t A, size_t B, size_t C> static bool
+BasicParseURL(LPCWSTR url, wchar_t (*protocol)[A], INTERNET_PORT *port,
+              wchar_t (*server)[B], wchar_t (*path)[C])
+{
+  ZeroMemory(*protocol, A * sizeof(wchar_t));
+  ZeroMemory(*server, B * sizeof(wchar_t));
+  ZeroMemory(*path, C * sizeof(wchar_t));
+
+  const WCHAR *p = url;
+  
+  int pos = 0;
+  while (*p != L'\0' && *p != L'/' && *p != L':')
+  {
+    if (pos + 1 >= A)
+      return false;
+    (*protocol)[pos++] = *p++;
+  }
+
+  
+  p += 3;
+
+  *port = INTERNET_DEFAULT_HTTP_PORT;
+  if (!wcsicmp(*protocol, L"https"))
+  {
+    *port = INTERNET_DEFAULT_HTTPS_PORT;
+  }
+
+  
+  pos = 0;
+  while (*p != L'\0' && *p != L'/' && *p != L':')
+  {
+    if (pos + 1 >= B)
+      return false;
+    (*server)[pos++] = *p++;
+  }
+
+  
+  if (*p == L':')
+  {
+    WCHAR portStr[16];
+    p++;
+    pos = 0;
+    while (*p != L'\0' && *p != L'/')
+    {
+      if (pos + 1 >= 16)
+        return false;
+      portStr[pos++] = *p++;
+    }
+    portStr[pos] = '\0';
+    *port = (INTERNET_PORT)_wtoi(portStr);
+  }
+  else
+  {
+    
+    while (*p != L'\0' && *p != L'/')
+    {
+      p++;
+    }
+  }
+
+  
+  pos = 0;
+  while (*p != L'\0')
+  {
+    if (pos + 1 >= C)
+      return false;
+    (*path)[pos++] = *p++;
+  }
+
+  return true;
+}
+
 DWORD CALLBACK TaskThreadProc(LPVOID ThreadParam)
 {
   NSIS::stack_t *pURL,*pFile;
-  HINTERNET hInetSes = NULL;
+  HINTERNET hInetSes = NULL, hInetCon = NULL;
   HANDLE hLocalFile;
   bool completedFile = false;
 startnexttask:
@@ -147,7 +236,8 @@ startnexttask:
 #ifndef ONELOCKTORULETHEMALL
   StatsLock_AcquireExclusive();
 #endif
-  if (completedFile) {
+  if (completedFile)
+  {
     ++g_FilesCompleted;
   }
   completedFile = false;
@@ -157,7 +247,8 @@ startnexttask:
   {
     if (g_FilesTotal)
     {
-      if (g_FilesTotal == g_FilesCompleted) {
+      if (g_FilesTotal == g_FilesCompleted)
+      {
         g_Status = STATUS_COMPLETEDALL;
       }
     }
@@ -180,6 +271,10 @@ diegle:
     if (hInetSes)
     {
       InternetCloseHandle(hInetSes);
+    }
+    if (hInetCon)
+    {
+      InternetCloseHandle(hInetCon);
     }
     if (INVALID_HANDLE_VALUE != hLocalFile)
     {
@@ -209,96 +304,244 @@ diegle:
         InternetSetOption(hInetSes, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof(ci));
       }
     }
+
+    if(g_ConnectTimeout > 0)
+    {
+      InternetSetOption(hInetSes, INTERNET_OPTION_CONNECT_TIMEOUT,
+                        &g_ConnectTimeout, sizeof(g_ConnectTimeout));
+    }
   }
 
   DWORD ec = ERROR_SUCCESS;
   hLocalFile = CreateFile(pFile->text,GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_DELETE,NULL,CREATE_ALWAYS,0,NULL);
-  if (INVALID_HANDLE_VALUE == hLocalFile) {
+  if (INVALID_HANDLE_VALUE == hLocalFile)
+  {
     goto diegle;
   }
 
-  const DWORD IOUFTPFlags = INTERNET_FLAG_PASSIVE;
   const DWORD IOURedirFlags = INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTP | INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTPS;
   const DWORD IOUCacheFlags = INTERNET_FLAG_RESYNCHRONIZE | INTERNET_FLAG_NO_CACHE_WRITE;
   const DWORD IOUCookieFlags = INTERNET_FLAG_NO_COOKIES;
-  DWORD IOUFlags = IOUFTPFlags | IOURedirFlags | IOUCacheFlags | IOUCookieFlags | INTERNET_FLAG_NO_UI | INTERNET_FLAG_EXISTING_CONNECT;
-  HINTERNET hInetFile = InternetOpenUrl(hInetSes, pURL->text, NULL, 0, IOUFlags, NULL);
-  if (!hInetFile) {
+  DWORD IOUFlags = IOURedirFlags | IOUCacheFlags | IOUCookieFlags | INTERNET_FLAG_NO_UI | INTERNET_FLAG_EXISTING_CONNECT;
+
+  WCHAR protocol[16];
+  WCHAR server[128];
+  WCHAR path[1024];
+  INTERNET_PORT port;
+  
+  if (!BasicParseURL<16, 128, 1024>(pURL->text, &protocol, &port, &server, &path))
+  {
+    
     goto diegle;
   }
 
+  DWORD context;
+  hInetCon = InternetConnect(hInetSes, server, port, NULL, NULL,
+                             INTERNET_SERVICE_HTTP, 0, (unsigned long)&context);
+  if (!hInetCon)
+  {
+    goto diegle;
+  }
+
+  
+  
+  
+  
+  const UINT cbBufXF = 262144;
+  const UINT cbRangeReadBufXF = 2097152;
+  BYTE bufXF[cbBufXF];
+
+  
+  DWORD internalReadBufferSize = cbRangeReadBufXF;
+  if (!InternetSetOption(hInetCon, INTERNET_OPTION_READ_BUFFER_SIZE,
+                         &internalReadBufferSize, sizeof(DWORD)))
+  {
+    
+    
+    internalReadBufferSize /= 2;
+    InternetSetOption(hInetCon, INTERNET_OPTION_READ_BUFFER_SIZE,
+                      &internalReadBufferSize, sizeof(DWORD));
+  }
+
+  
+  
+  
+  if (g_ReceiveTimeout)
+  {
+    InternetSetOption(hInetCon, INTERNET_OPTION_DATA_RECEIVE_TIMEOUT,
+                      &g_ReceiveTimeout, sizeof(DWORD));
+  }
+
+  
+  
+  
+  HINTERNET hInetFile = HttpOpenRequest(hInetCon, L"HEAD",
+                                        path, NULL, NULL, NULL, 0, 0);
+  if (!hInetFile)
+  {
+    goto diegle;
+  }
+
+  if (!HttpSendRequest(hInetFile, NULL, 0, NULL, 0))
+  {
+    goto diegle;
+  }
+
+  
   FILESIZE_T cbThisFile;
   DWORD cbio = sizeof(cbThisFile);
-  if (!HttpQueryInfo(hInetFile, HTTP_QUERY_CONTENT_LENGTH|HTTP_QUERY_FLAG_NUMBER, &cbThisFile, &cbio, NULL))
+  if (!HttpQueryInfo(hInetFile,
+                     HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,
+                     &cbThisFile, &cbio, NULL))
   {
     cbThisFile = FILESIZE_UNKNOWN;
   }
 
+  
+  
+  
+  bool useRangeRequest = true;
+  WCHAR rangeRequestAccepted[64] = { '\0' };
+  cbio = sizeof(rangeRequestAccepted);
+  if (cbThisFile != FILESIZE_UNKNOWN && cbThisFile <= cbRangeReadBufXF ||
+      !HttpQueryInfo(hInetFile,
+                     HTTP_QUERY_ACCEPT_RANGES,
+                     (LPDWORD)rangeRequestAccepted, &cbio, NULL))
+  {
+    useRangeRequest = false;
+  }
+  else
+  {
+    useRangeRequest = wcsstr(rangeRequestAccepted, L"bytes") != 0 &&
+                      cbThisFile != FILESIZE_UNKNOWN;
+  }
+
+  
+  
+  if (!useRangeRequest)
+  {
+    InternetCloseHandle(hInetFile);
+    InternetCloseHandle(hInetCon);
+    hInetFile = InternetOpenUrl(hInetSes, pURL->text,
+                                NULL, 0, IOUFlags, NULL);
+    if (!hInetFile)
+    {
+      goto diegle;
+    }
+    
+    
+    if (g_ReceiveTimeout > 0)
+    {
+      InternetSetOption(hInetCon, INTERNET_OPTION_DATA_RECEIVE_TIMEOUT,
+                        &g_ReceiveTimeout, sizeof(DWORD));
+    }
+  }
+
   for(;;)
   {
-#if PLUGIN_DEBUG
-    const UINT cbBufXF = 512;
-    BYTE bufXF[cbBufXF];
-#else
-    const UINT cbBufXF = 4096;
-    BYTE*bufXF = (BYTE*) pURL->text;
-#endif
-    DWORD cbio,cbXF;
-    BOOL retXF = InternetReadFile(hInetFile, bufXF, cbBufXF, &cbio);
-    if (!retXF)
+    DWORD cbio = 0,cbXF = 0;
+    
+    if (useRangeRequest && cbThisFile != g_cbCurrXF)
     {
-      ec = GetLastError();
-      TRACE1(_T("InternetReadFile failed, gle=%u\n"), ec);
-      break;
-    }
-    if (0 == cbio)
-    {
-      ASSERT(ERROR_SUCCESS == ec);
       
-      
-
-      TRACE2(_T("InternetReadFile true with 0 cbio, cbThisFile=%d gle=%u\n"), cbThisFile, GetLastError());
-      
-      
-      
-      if (FILESIZE_UNKNOWN != cbThisFile && g_cbCurrXF != cbThisFile)
+      InternetCloseHandle(hInetFile);
+      hInetFile = HttpOpenRequest(hInetCon, L"GET", path,
+                                  NULL, NULL, NULL, 0, 0);
+      if (!hInetFile)
       {
-        ec = ERROR_BROKEN_PIPE;
+        
+        goto diegle;
       }
 
+      
+      
+      if (g_ReceiveTimeout > 0)
+      {
+        InternetSetOption(hInetCon, INTERNET_OPTION_DATA_RECEIVE_TIMEOUT,
+                          &g_ReceiveTimeout, sizeof(DWORD));
+      }
+
+      WCHAR range[32];
+      swprintf(range, L"Range: bytes=%d-%d", g_cbCurrXF,
+               min(g_cbCurrXF + cbRangeReadBufXF, cbThisFile));
+      if (!HttpSendRequest(hInetFile, range, wcslen(range), NULL, 0))
+      {
+        
+        goto diegle;
+      }
+    }
+
+    
+    BOOL retXF;
+    for (;;)
+    {
+      DWORD cbioThisIteration = 0;
+      retXF = InternetReadFile(hInetFile, bufXF, cbBufXF, &cbioThisIteration);
+      if (!retXF)
+      {
+        ec = GetLastError();
+        TRACE1(_T("InternetReadFile failed, gle=%u\n"), ec);
+        
+        goto diegle;
+      }
+
+      
+      if (cbioThisIteration == 0)
+      {
+        break;
+      }
+
+      
+      cbXF = cbioThisIteration;
+      retXF = WriteFile(hLocalFile, bufXF, cbXF, &cbioThisIteration, NULL);
+      if (!retXF || cbXF != cbioThisIteration)
+      {
+        cbio += cbioThisIteration;
+        ec = GetLastError();
+        break;
+      }
+
+      cbio += cbioThisIteration;
+      StatsLock_AcquireExclusive();
+      if (FILESIZE_UNKNOWN != cbThisFile)
+      {
+        g_cbCurrTot = cbThisFile;
+      }
+      g_cbCurrXF += cbXF;
+      StatsLock_ReleaseExclusive();
+
+      
+      
+      if (cbio == cbRangeReadBufXF && useRangeRequest)
+      {
+        break;
+      }
+    }
+
+    
+    if (0 == cbio &&
+        (cbThisFile == FILESIZE_UNKNOWN || cbThisFile == g_cbCurrXF))
+    {
+      ASSERT(ERROR_SUCCESS == ec);
+      TRACE2(_T("InternetReadFile true with 0 cbio, cbThisFile=%d gle=%u\n"), cbThisFile, GetLastError());
       break;
     }
 
-    if (0==g_FilesTotal)
+    
+    if (0 == g_FilesTotal)
     {
       TRACEA("0==g_FilesTotal, aborting transfer loop...\n");
       ec = ERROR_CANCELLED;
       break;
     }
-
-    cbXF = cbio;
-    if (cbXF)
-    {
-      retXF = WriteFile(hLocalFile, bufXF, cbXF, &cbio, NULL);
-      if (!retXF || cbXF!=cbio)
-      {
-        ec = GetLastError();
-        break;
-      }
-
-      StatsLock_AcquireExclusive();
-      if (FILESIZE_UNKNOWN != cbThisFile) {
-        g_cbCurrTot = cbThisFile;
-      }
-      g_cbCurrXF += cbXF;
-      StatsLock_ReleaseExclusive();
-    }
   }
 
   TRACE2(_T("TaskThreadProc completed %s, ec=%u\n"), pURL->text, ec);
   InternetCloseHandle(hInetFile);
-  if (ERROR_SUCCESS == ec) {
-    if (INVALID_HANDLE_VALUE != hLocalFile) {
+  if (ERROR_SUCCESS == ec)
+  {
+    if (INVALID_HANDLE_VALUE != hLocalFile)
+    {
       CloseHandle(hLocalFile);
       hLocalFile = INVALID_HANDLE_VALUE;
     }
@@ -320,25 +563,39 @@ NSISPIEXPORTFUNC Get(HWND hwndNSIS, UINT N_CCH, TCHAR*N_Vars, NSIS::stack_t**ppS
   for (;;)
   {
     NSIS::stack_t*pURL = StackPopItem(ppST);
-    if (!pURL) {
+    if (!pURL)
+    {
       break;
     }
 
-    if (0==lstrcmp(pURL->text,_T("/END")))
+    if (lstrcmpi(pURL->text, _T("/connecttimeout")) == 0)
     {
-freeurlandexit:
-      StackFreeItem(pURL);
-      break;
+      NSIS::stack_t*pConnectTimeout = StackPopItem(ppST);
+      g_ConnectTimeout = _tcstol(pConnectTimeout->text, NULL, 10) * 1000;
+      continue;
     }
-    if (0==lstrcmp(pURL->text,_T("/RESET")))
+    else if (lstrcmpi(pURL->text, _T("/receivetimeout")) == 0)
+    {
+      NSIS::stack_t*pReceiveTimeout = StackPopItem(ppST);
+      g_ReceiveTimeout = _tcstol(pReceiveTimeout->text, NULL, 10) * 1000;
+      continue;
+    }
+    else if (lstrcmpi(pURL->text, _T("/reset")) == 0)
     {
       StackFreeItem(pURL);
       Reset();
       continue;
     }
+    else if (lstrcmpi(pURL->text, _T("/end")) == 0)
+    {
+freeurlandexit:
+      StackFreeItem(pURL);
+      break;
+    }
 
     NSIS::stack_t*pFile = StackPopItem(ppST);
-    if (!pFile) {
+    if (!pFile)
+    {
       goto freeurlandexit;
     }
 
@@ -367,7 +624,8 @@ freeurlandexit:
       g_hThread = CreateThread(NULL, 0, TaskThreadProc, NULL, 0, &tid);
     }
 
-    if (!g_hThread) {
+    if (!g_hThread)
+    {
       goto freeurlandexit;
     }
 
@@ -391,7 +649,8 @@ NSISPIEXPORTFUNC GetStats(HWND hwndNSIS, UINT N_CCH, TCHAR*N_Vars, NSIS::stack_t
   NSIS_SetRegUINT(2, g_FilesTotal - g_FilesCompleted);
   NSIS_SetRegUINT(3, g_cbCurrXF);
   NSIS_SetRegStrEmpty(4);
-  if (FILESIZE_UNKNOWN != g_cbCurrTot) {
+  if (FILESIZE_UNKNOWN != g_cbCurrTot)
+  {
     NSIS_SetRegUINT(4, g_cbCurrTot);
   }
   StatsLock_ReleaseShared();
@@ -410,4 +669,12 @@ EXTERN_C BOOL WINAPI _DllMainCRTStartup(HMODULE hInst, UINT Reason, LPVOID pCtx)
 BOOL WINAPI DllMain(HINSTANCE hInst, ULONG Reason, LPVOID pCtx)
 {
   return _DllMainCRTStartup(hInst, Reason, pCtx);
+}
+
+
+
+
+int main(int argc, char**argv)
+{
+  return 0;
 }
