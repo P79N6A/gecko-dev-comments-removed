@@ -1129,6 +1129,12 @@ public:
 
 
   const nsRect& GetVisibleRect() { return mVisibleRect; }
+
+  
+
+
+
+  virtual bool ApplyOpacity(float aOpacity) { return false; }
   
 #ifdef MOZ_DUMP_PAINTING
   
@@ -2167,7 +2173,8 @@ protected:
 class nsDisplayBoxShadowOuter : public nsDisplayItem {
 public:
   nsDisplayBoxShadowOuter(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-    : nsDisplayItem(aBuilder, aFrame) {
+    : nsDisplayItem(aBuilder, aFrame)
+    , mOpacity(1.0) {
     MOZ_COUNT_CTOR(nsDisplayBoxShadowOuter);
     mBounds = GetBoundsInternal();
   }
@@ -2187,12 +2194,19 @@ public:
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
                                          nsRegion* aInvalidRegion);
+  
+  virtual bool ApplyOpacity(float aOpacity)
+  {
+    mOpacity = aOpacity;
+    return true;
+  }
 
   nsRect GetBoundsInternal();
 
 private:
   nsRegion mVisibleRegion;
   nsRect mBounds;
+  float mOpacity;
 };
 
 
