@@ -131,12 +131,12 @@ public:
     
 
 
-    already_AddRefed<gfxPath> CopyPath() const;
+    already_AddRefed<gfxPath> CopyPath();
 
     
 
 
-    void AppendPath(gfxPath* path);
+    void SetPath(gfxPath* path);
 
     
 
@@ -881,8 +881,7 @@ public:
     void Restore()
     {
         if (mPath) {
-            mContext->NewPath();
-            mContext->AppendPath(mPath);
+            mContext->SetPath(mPath);
             mPath = nullptr;
         }
     }
