@@ -1617,22 +1617,18 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
                                               nsIntRegion* aVisibleRegion,
                                               bool* aIsSolidColorInVisibleRegion)
 {
-  if (mContainerFrame->GetParent()) {
-    
-    
-    
-    
-    
-    return nullptr;
-  }
+  nsIFrame *viewport = mContainerFrame->PresContext()->PresShell()->GetRootFrame();
+
   
-  if (!mContainerFrame->GetFirstChild(nsIFrame::kFixedList)) {
+  if (!viewport->GetFirstChild(nsIFrame::kFixedList)) {
     return nullptr;
   }
   nsRect displayPort;
   for (const nsIFrame* f = aAnimatedGeometryRoot; f; f = f->GetParent()) {
     if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f, &displayPort)) {
-      displayPort += mContainerFrame->GetOffsetToCrossDoc(mContainerReferenceFrame);
+      
+      
+      displayPort += viewport->GetOffsetToCrossDoc(mContainerReferenceFrame);
       nsIntRegion newVisibleRegion;
       newVisibleRegion.And(ScaleToOutsidePixels(displayPort, false),
                            aDrawRegion);
