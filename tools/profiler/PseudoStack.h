@@ -114,6 +114,18 @@ public:
     , mPrivacyMode(false)
   { }
 
+  ~PseudoStack() {
+    clearMarkers();
+    if (mStackPointer != 0 || mSignalLock != false ||
+        mMarkerPointer != 0) {
+      
+      
+      
+      
+      abort();
+    }
+  }
+
   void addMarker(const char *aMarker)
   {
     char* markerCopy = strdup(aMarker);
