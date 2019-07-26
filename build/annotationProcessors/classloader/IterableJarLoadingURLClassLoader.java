@@ -22,8 +22,6 @@ import java.util.jar.JarFile;
 
 
 
-
-
 public class IterableJarLoadingURLClassLoader extends URLClassLoader {
     LinkedList<String> classNames = new LinkedList<String>();
 
@@ -35,7 +33,7 @@ public class IterableJarLoadingURLClassLoader extends URLClassLoader {
 
 
 
-    public static Iterator<Class<?>> getIteratorOverJars(String[] args) {
+    public static Iterator<ClassWithOptions> getIteratorOverJars(String[] args) {
         URL[] urlArray = new URL[args.length];
         LinkedList<String> aClassNames = new LinkedList<String>();
 
@@ -51,10 +49,7 @@ public class IterableJarLoadingURLClassLoader extends URLClassLoader {
                         continue;
                     }
                     final String className = fName.substring(0, fName.length() - 6).replace('/', '.');
-                    
-                    if (className.contains("$")) {
-                        continue;
-                    }
+
                     aClassNames.add(className);
                 }
             } catch (IOException e) {
