@@ -9,6 +9,7 @@
 #ifndef jsgc_h
 #define jsgc_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -559,13 +560,16 @@ class ArenaLists
 
 
 
-    enum BackgroundFinalizeState {
+    enum BackgroundFinalizeStateEnum {
         BFS_DONE,
         BFS_RUN,
         BFS_JUST_FINISHED
     };
 
-    volatile uintptr_t backgroundFinalizeState[FINALIZE_LIMIT];
+    typedef mozilla::Atomic<BackgroundFinalizeStateEnum, mozilla::ReleaseAcquire>
+        BackgroundFinalizeState;
+
+    BackgroundFinalizeState backgroundFinalizeState[FINALIZE_LIMIT];
 
   public:
     
