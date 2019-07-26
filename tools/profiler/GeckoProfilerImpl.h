@@ -163,6 +163,12 @@ void profiler_js_operation_callback()
   stack->jsOperationCallback();
 }
 
+static inline
+double profiler_time()
+{
+  return mozilla_sampler_time();
+}
+
 
 
 
