@@ -4981,6 +4981,13 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
 {
     int64_t before = PRMJ_Now();
 
+    
+    
+    
+    
+    
+    m.masm().resetForNewCodeGenerator(mir.alloc());
+
     m.masm().bind(func.code());
 
     ScopedJSDeletePtr<CodeGenerator> codegen(jit::GenerateCode(&mir, &lir, &m.masm()));
@@ -5010,13 +5017,6 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
             return false;
     }
 #endif
-
-    
-    
-    
-    
-    
-    m.masm().resetForNewCodeGenerator();
 
     
     m.masm().align(CodeAlignment);
@@ -6401,6 +6401,8 @@ FinishModule(ModuleCompiler &m,
     LifoAlloc lifo(LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     TempAllocator alloc(&lifo);
     IonContext ionContext(m.cx(), &alloc);
+
+    m.masm().resetForNewCodeGenerator(alloc);
 
     if (!GenerateStubs(m))
         return false;
