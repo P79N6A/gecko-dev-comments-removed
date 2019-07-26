@@ -325,7 +325,7 @@ function resetBlocklist(aCallback) {
   
   
   
-  let noBlockedURL = "http://example.com/browser/browser/base/content/test/general/blockNoPlugins.xml";
+  let noBlockedURL = "http://example.com/browser/browser/base/content/test/plugins/blockNoPlugins.xml";
   setAndUpdateBlocklist(noBlockedURL, function() {
     Services.prefs.setCharPref("extensions.blocklist.url", _originalTestBlocklistURL);
     if (aCallback)
