@@ -128,7 +128,8 @@ WorkerHandle.prototype = {
     this._worker.ports.clear();
     this._worker.ports = null;
     this._worker.browserPromise.then(browser => {
-      browser.parentNode.removeChild(browser);
+      let iframe = browser.ownerDocument.defaultView.frameElement;
+      iframe.parentNode.removeChild(iframe);
     });
     
     this._worker.browserPromise = null;
