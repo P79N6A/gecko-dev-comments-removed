@@ -78,7 +78,7 @@ struct ElementAnimations MOZ_FINAL
                                        TimeDuration aIterationDuration,
                                        double aIterationCount,
                                        uint32_t aDirection,
-                                       mozilla::StyleAnimation* aAnimation =
+                                       mozilla::ElementAnimation* aAnimation =
                                          nullptr,
                                        ElementAnimations* aEa = nullptr,
                                        EventArray* aEventsToDispatch = nullptr);
@@ -127,7 +127,7 @@ struct ElementAnimations MOZ_FINAL
   
   bool mNeedsRefreshes;
 
-  mozilla::StyleAnimationPtrArray mAnimations;
+  mozilla::ElementAnimationPtrArray mAnimations;
 };
 
 class nsAnimationManager MOZ_FINAL
@@ -236,7 +236,7 @@ protected:
 
 private:
   void BuildAnimations(nsStyleContext* aStyleContext,
-                       mozilla::StyleAnimationPtrArray& aAnimations);
+                       mozilla::ElementAnimationPtrArray& aAnimations);
   bool BuildSegment(InfallibleTArray<mozilla::AnimationPropertySegment>&
                       aSegments,
                     nsCSSProperty aProperty, const nsAnimation& aAnimation,
