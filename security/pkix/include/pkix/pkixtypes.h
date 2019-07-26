@@ -35,13 +35,13 @@
 namespace mozilla { namespace pkix {
 
 inline void
-ArenaFalseCleaner(PLArenaPool *arena) {
+PORT_FreeArena_false(PLArenaPool* arena) {
   
   
   return PORT_FreeArena(arena, PR_FALSE);
 }
 
-typedef ScopedPtr<PLArenaPool, ArenaFalseCleaner> ScopedPLArenaPool;
+typedef ScopedPtr<PLArenaPool, PORT_FreeArena_false> ScopedPLArenaPool;
 
 typedef ScopedPtr<CERTCertificate, CERT_DestroyCertificate>
         ScopedCERTCertificate;
