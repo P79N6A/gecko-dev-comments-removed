@@ -312,11 +312,9 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
     MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
 
     
-    JSObject *global;
-    JSCompartment *compartment;
-    nsresult rv = xpc::CreateGlobalObject(ccx, clasp, principal, false, &global,
-                                          &compartment);
-    NS_ENSURE_SUCCESS(rv, rv);
+    JSObject *global =  xpc::CreateGlobalObject(ccx, clasp, principal, false);
+    if (!global)
+        return NS_ERROR_FAILURE;
 
     
     
