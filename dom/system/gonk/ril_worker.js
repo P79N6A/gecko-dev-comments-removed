@@ -3866,7 +3866,7 @@ let RIL = {
       this.sendDOMMessage(message);
     }
 
-    if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
+    if (message && message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
       
       
       return PDU_FCS_RESERVED;
