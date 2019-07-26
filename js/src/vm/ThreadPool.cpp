@@ -7,14 +7,14 @@
 #include "jscntxt.h"
 #include "jslock.h"
 
-#include "Monitor.h"
-#include "ThreadPool.h"
+#include "vm/Monitor.h"
+#include "vm/ThreadPool.h"
 
 #ifdef JS_THREADSAFE
 #  include "prthread.h"
 #endif
 
-namespace js {
+using namespace js;
 
 
 
@@ -24,33 +24,30 @@ namespace js {
 
 
 
+const size_t WORKER_THREAD_STACK_SIZE = 1*1024*1024;
 
-#define WORKER_THREAD_STACK_SIZE (1*1024*1024)
-
-enum WorkerState {
-    CREATED, ACTIVE, TERMINATING, TERMINATED
-};
-
-class ThreadPoolWorker : public Monitor
+class js::ThreadPoolWorker : public Monitor
 {
     const size_t workerId_;
     ThreadPool *const threadPool_;
 
     
-
-
-    WorkerState state_;
+    
+    
+    enum WorkerState {
+        CREATED, ACTIVE, TERMINATING, TERMINATED
+    } state_;
 
     
-
-
+    
+    
     js::Vector<TaskExecutor*, 4, SystemAllocPolicy> worklist_;
 
     
     static void ThreadMain(void *arg);
     void run();
 
-public:
+  public:
     ThreadPoolWorker(size_t workerId, ThreadPool *tp);
     ~ThreadPoolWorker();
 
@@ -60,21 +57,24 @@ public:
     bool start();
 
     
-
-
+    
+    
     bool submit(TaskExecutor *task);
 
     
-
+    
     void terminate();
 };
 
 ThreadPoolWorker::ThreadPoolWorker(size_t workerId, ThreadPool *tp)
-    : workerId_(workerId), threadPool_(tp), state_(CREATED), worklist_()
-{}
+  : workerId_(workerId),
+    threadPool_(tp),
+    state_(CREATED),
+    worklist_()
+{ }
 
 ThreadPoolWorker::~ThreadPoolWorker()
-{}
+{ }
 
 bool
 ThreadPoolWorker::init()
@@ -173,9 +173,8 @@ ThreadPoolWorker::terminate()
     } else if (state_ == ACTIVE) {
         state_ = TERMINATING;
         lock.notify();
-        while (state_ != TERMINATED) {
+        while (state_ != TERMINATED)
             lock.wait();
-        }
     } else {
         JS_ASSERT(state_ == TERMINATED);
     }
@@ -187,14 +186,13 @@ ThreadPoolWorker::terminate()
 
 
 
-
 ThreadPool::ThreadPool(JSRuntime *rt)
-    : runtime_(rt),
-      nextId_(0)
-{
-}
+  : runtime_(rt),
+    nextId_(0)
+{ }
 
-ThreadPool::~ThreadPool() {
+ThreadPool::~ThreadPool()
+{
     terminateWorkers();
     while (workers_.length() > 0) {
         ThreadPoolWorker *worker = workers_.popCopy();
@@ -209,11 +207,10 @@ ThreadPool::init()
     
     size_t numWorkers = 0;
     char *pathreads = getenv("PATHREADS");
-    if (pathreads != NULL) {
+    if (pathreads != NULL)
         numWorkers = strtol(pathreads, NULL, 10);
-    } else {
+    else
         numWorkers = GetCPUCount() - 1;
-    }
 
     
     
@@ -228,9 +225,8 @@ ThreadPool::init()
             js_delete(worker);
             return false;
         }
-        if (!worker->start()) {
+        if (!worker->start())
             return false;
-        }
     }
 #endif
 
@@ -240,13 +236,13 @@ ThreadPool::init()
 void
 ThreadPool::terminateWorkers()
 {
-    for (size_t i = 0; i < workers_.length(); i++) {
+    for (size_t i = 0; i < workers_.length(); i++)
         workers_[i]->terminate();
-    }
 }
 
 bool
-ThreadPool::submitOne(TaskExecutor *executor) {
+ThreadPool::submitOne(TaskExecutor *executor)
+{
     runtime_->assertValidThread();
 
     if (numWorkers() == 0)
@@ -258,7 +254,8 @@ ThreadPool::submitOne(TaskExecutor *executor) {
 }
 
 bool
-ThreadPool::submitAll(TaskExecutor *executor) {
+ThreadPool::submitAll(TaskExecutor *executor)
+{
     for (size_t id = 0; id < workers_.length(); id++) {
         if (!workers_[id]->submit(executor))
             return false;
@@ -267,9 +264,8 @@ ThreadPool::submitAll(TaskExecutor *executor) {
 }
 
 bool
-ThreadPool::terminate() {
+ThreadPool::terminate()
+{
     terminateWorkers();
     return true;
-}
-
 }

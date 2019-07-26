@@ -5,23 +5,23 @@
 
 
 
-#include "ForkJoin.h"
-#include "Monitor.h"
 #include "jscntxt.h"
 #include "jscompartment.h"
-#include "ForkJoin-inl.h"
+
+#include "vm/ForkJoin.h"
+#include "vm/Monitor.h"
+
+#include "vm/ForkJoin-inl.h"
 
 #ifdef JS_THREADSAFE
 #  include "prthread.h"
 #endif
 
-namespace js {
+using namespace js;
 
 #ifdef JS_THREADSAFE
 
-class ForkJoinShared
-    : public TaskExecutor,
-      public Monitor
+class js::ForkJoinShared : public TaskExecutor, public Monitor
 {
     
     
@@ -93,7 +93,7 @@ class ForkJoinShared
     
     void endRendezvous(ForkJoinSlice &threadCx);
 
-public:
+  public:
     ForkJoinShared(JSContext *cx,
                    ThreadPool *threadPool,
                    ForkJoinOp &op,
@@ -122,35 +122,33 @@ public:
     JSRuntime *runtime() { return cx_->runtime; }
 };
 
-class AutoRendezvous {
-private:
+class js::AutoRendezvous
+{
+  private:
     ForkJoinSlice &threadCx;
 
-public:
+  public:
     AutoRendezvous(ForkJoinSlice &threadCx)
         : threadCx(threadCx)
     {
         threadCx.shared->initiateRendezvous(threadCx);
     }
 
-    ~AutoRendezvous()
-    {
+    ~AutoRendezvous() {
         threadCx.shared->endRendezvous(threadCx);
     }
 };
 
 PRUintn ForkJoinSlice::ThreadPrivateIndex;
 
-class AutoSetForkJoinSlice
+class js::AutoSetForkJoinSlice
 {
-public:
-    AutoSetForkJoinSlice(ForkJoinSlice *threadCx)
-    {
+  public:
+    AutoSetForkJoinSlice(ForkJoinSlice *threadCx) {
         PR_SetThreadPrivate(ForkJoinSlice::ThreadPrivateIndex, threadCx);
     }
 
-    ~AutoSetForkJoinSlice()
-    {
+    ~AutoSetForkJoinSlice() {
         PR_SetThreadPrivate(ForkJoinSlice::ThreadPrivateIndex, NULL);
     }
 };
@@ -175,7 +173,7 @@ ForkJoinShared::ForkJoinShared(JSContext *cx,
       abort_(false),
       fatal_(false),
       rendezvous_(false)
-{}
+{ }
 
 bool
 ForkJoinShared::init()
@@ -215,9 +213,8 @@ ForkJoinShared::~ForkJoinShared()
 {
     PR_DestroyCondVar(rendezvousEnd_);
 
-    while (arenaListss_.length() > 0) {
+    while (arenaListss_.length() > 0)
         delete arenaListss_.popCopy();
-    }
 }
 
 ParallelResult
@@ -254,7 +251,8 @@ ForkJoinShared::execute()
     if (!op_.post(numThreads_))
         return TP_RETRY_SEQUENTIALLY;
 
-    return TP_SUCCESS; 
+    
+    return TP_SUCCESS;
 }
 
 void
@@ -262,13 +260,11 @@ ForkJoinShared::transferArenasToCompartment()
 {
 #if 0
     
-    
 
     JSRuntime *rt = cx_->runtime;
     JSCompartment *comp = cx_->compartment;
-    for (unsigned i = 0; i < numThreads_; i++) {
+    for (unsigned i = 0; i < numThreads_; i++)
         comp->arenas.adoptArenas(rt, arenaListss_[i]);
-    }
 #endif
 }
 
@@ -332,11 +328,9 @@ ForkJoinShared::check(ForkJoinSlice &slice)
         if (cx_->runtime->interrupt) {
             
             
-            
             AutoRendezvous autoRendezvous(slice);
-            if (!js_HandleExecutionInterrupt(cx_)) {
+            if (!js_HandleExecutionInterrupt(cx_))
                 return setFatal();
-            }
         }
     } else if (rendezvous_) {
         joinRendezvous(slice);
@@ -346,42 +340,36 @@ ForkJoinShared::check(ForkJoinSlice &slice)
 }
 
 void
-ForkJoinShared::initiateRendezvous(ForkJoinSlice &slice) {
+ForkJoinShared::initiateRendezvous(ForkJoinSlice &slice)
+{
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     JS_ASSERT(slice.isMainThread());
     JS_ASSERT(!rendezvous_ && blocked_ == 0);
@@ -392,13 +380,13 @@ ForkJoinShared::initiateRendezvous(ForkJoinSlice &slice) {
     rendezvous_ = true;
 
     
-    while (blocked_ != uncompleted_) {
+    while (blocked_ != uncompleted_)
         lock.wait();
-    }
 }
 
 void
-ForkJoinShared::joinRendezvous(ForkJoinSlice &slice) {
+ForkJoinShared::joinRendezvous(ForkJoinSlice &slice)
+{
     JS_ASSERT(!slice.isMainThread());
     JS_ASSERT(rendezvous_);
 
@@ -407,21 +395,20 @@ ForkJoinShared::joinRendezvous(ForkJoinSlice &slice) {
     blocked_ += 1;
 
     
-    if (blocked_ == uncompleted_) {
+    if (blocked_ == uncompleted_)
         lock.notify();
-    }
 
     
     
     
     
-    while (rendezvousIndex_ == index) {
+    while (rendezvousIndex_ == index)
         PR_WaitCondVar(rendezvousEnd_, PR_INTERVAL_NO_TIMEOUT);
-    }
 }
 
 void
-ForkJoinShared::endRendezvous(ForkJoinSlice &slice) {
+ForkJoinShared::endRendezvous(ForkJoinSlice &slice)
+{
     JS_ASSERT(slice.isMainThread());
 
     AutoLockMonitor lock(*this);
@@ -433,7 +420,7 @@ ForkJoinShared::endRendezvous(ForkJoinSlice &slice) {
     PR_NotifyAllCondVar(rendezvousEnd_);
 }
 
-#endif
+#endif 
 
 
 
@@ -449,7 +436,7 @@ ForkJoinSlice::ForkJoinSlice(PerThreadData *perThreadData,
       ionStackLimit(stackLimit),
       arenaLists(arenaLists),
       shared(shared)
-{}
+{ }
 
 bool
 ForkJoinSlice::isMainThread()
@@ -504,22 +491,23 @@ ForkJoinSlice::Initialize()
 
 
 
-ParallelResult ExecuteForkJoinOp(JSContext *cx, ForkJoinOp &op)
+ParallelResult
+js::ExecuteForkJoinOp(JSContext *cx, ForkJoinOp &op)
 {
-#   ifndef JS_THREADSAFE_ION
-    return TP_RETRY_SEQUENTIALLY;
-#   else
-    JS_ASSERT(!InParallelSection()); 
+#ifdef JS_THREADSAFE
+    
+    JS_ASSERT(!InParallelSection());
 
     ThreadPool *threadPool = &cx->runtime->threadPool;
-    size_t numThreads = threadPool->numWorkers() + 1; 
+    
+    size_t numThreads = threadPool->numWorkers() + 1;
 
     ForkJoinShared shared(cx, threadPool, op, numThreads, numThreads - 1);
     if (!shared.init())
         return TP_RETRY_SEQUENTIALLY;
 
     return shared.execute();
-#   endif
-}
-
+#else
+    return TP_RETRY_SEQUENTIALLY;
+#endif
 }

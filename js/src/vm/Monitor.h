@@ -5,8 +5,8 @@
 
 
 
-#ifndef jsmonitor_h___
-#define jsmonitor_h___
+#ifndef Monitor_h__
+#define Monitor_h__
 
 #include <stdlib.h>
 #include "mozilla/Util.h"
@@ -20,30 +20,42 @@ namespace js {
 
 
 
-
 class Monitor
 {
-protected:
+  protected:
     friend class AutoLockMonitor;
     friend class AutoUnlockMonitor;
 
     PRLock *lock_;
     PRCondVar *condVar_;
 
-public:
-    Monitor();
-    ~Monitor();
+  public:
+    Monitor()
+      : lock_(NULL),
+        condVar_(NULL)
+    { }
+
+    ~Monitor() {
+#ifdef JS_THREADSAFE
+        if (lock_)
+            PR_DestroyLock(lock_);
+        if (condVar_)
+            PR_DestroyCondVar(condVar_);
+#endif
+    }
 
     bool init();
 };
 
 class AutoLockMonitor
 {
-private:
+  private:
     Monitor &monitor;
 
-public:
-    AutoLockMonitor(Monitor &monitor) : monitor(monitor) {
+  public:
+    AutoLockMonitor(Monitor &monitor)
+      : monitor(monitor)
+    {
 #ifdef JS_THREADSAFE
         PR_Lock(monitor.lock_);
 #endif
@@ -82,11 +94,14 @@ class AutoUnlockMonitor
     Monitor &monitor;
 
   public:
-    AutoUnlockMonitor(Monitor &monitor) : monitor(monitor) {
+    AutoUnlockMonitor(Monitor &monitor)
+      : monitor(monitor)
+    {
 #ifdef JS_THREADSAFE
         PR_Unlock(monitor.lock_);
 #endif
     }
+
     ~AutoUnlockMonitor() {
 #ifdef JS_THREADSAFE
         PR_Lock(monitor.lock_);
@@ -94,6 +109,6 @@ class AutoUnlockMonitor
     }
 };
 
-}
+} 
 
 #endif 

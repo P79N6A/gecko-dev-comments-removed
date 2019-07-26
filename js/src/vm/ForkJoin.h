@@ -5,19 +5,10 @@
 
 
 
-#ifndef jstaskset_h___
-#define jstaskset_h___
+#ifndef ForkJoin_h__
+#define ForkJoin_h__
 
-#include "ThreadPool.h"
-
-
-
-
-
-
-
-
-
+#include "vm/ThreadPool.h"
 
 
 
@@ -93,7 +84,6 @@ namespace js {
 
 
 
-
 enum ParallelResult { TP_SUCCESS, TP_RETRY_SEQUENTIALLY, TP_FATAL };
 
 struct ForkJoinOp;
@@ -111,7 +101,7 @@ namespace gc { struct ArenaLists; }
 
 struct ForkJoinSlice
 {
-public:
+  public:
     
     PerThreadData *perThreadData;
 
@@ -158,12 +148,13 @@ public:
     static inline ForkJoinSlice *current();
     static bool Initialize();
 
-private:
+  private:
     friend class AutoRendezvous;
     friend class AutoSetForkJoinSlice;
 
 #ifdef JS_THREADSAFE
-    static PRUintn ThreadPrivateIndex; 
+    
+    static PRUintn ThreadPrivateIndex;
 #endif
 
     ForkJoinShared *const shared;
@@ -173,7 +164,7 @@ private:
 
 struct ForkJoinOp
 {
-public:
+  public:
     
     
     
@@ -181,7 +172,6 @@ public:
     
     virtual bool pre(size_t numSlices) = 0;
 
-    
     
     
     
@@ -195,16 +185,6 @@ public:
     virtual bool post(size_t numSlices) = 0;
 };
 
+} 
 
-
-static inline bool InParallelSection() {
-#   ifdef JS_THREADSAFE
-    return ForkJoinSlice::current() != NULL;
-#   else
-    return false;
-#   endif
-}
-
-#endif
-
-}
+#endif 

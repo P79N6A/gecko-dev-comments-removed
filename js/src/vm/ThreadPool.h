@@ -5,8 +5,8 @@
 
 
 
-#ifndef jsthreadpool_h___
-#define jsthreadpool_h___
+#ifndef ThreadPool_h__
+#define ThreadPool_h__
 
 #include <stddef.h>
 #include "mozilla/StandardInteger.h"
@@ -32,7 +32,7 @@ typedef void (*TaskFun)(void *userdata, size_t workerId, uintptr_t stackLimit);
 
 class TaskExecutor
 {
-public:
+  public:
     virtual void executeFromWorker(size_t workerId, uintptr_t stackLimit) = 0;
 };
 
@@ -64,11 +64,9 @@ public:
 
 
 
-
-
 class ThreadPool
 {
-private:
+  private:
     friend class ThreadPoolWorker;
 
     
@@ -80,7 +78,7 @@ private:
 
     void terminateWorkers();
 
-public:
+  public:
     ThreadPool(JSRuntime *rt);
     ~ThreadPool();
 
@@ -99,8 +97,6 @@ public:
     bool terminate();
 };
 
-}
+} 
 
-
-
-#endif
+#endif 
