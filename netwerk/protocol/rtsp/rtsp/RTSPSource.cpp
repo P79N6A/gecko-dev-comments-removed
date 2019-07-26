@@ -471,6 +471,22 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
             break;
         }
 
+        case RtspConnectionHandler::kWhatTryTCPInterleaving:
+        {
+            
+            
+            
+            
+            
+            
+            int64_t playTimeUs;
+            if (!msg->findInt64("timeUs", &playTimeUs)) {
+                playTimeUs = 0;
+            }
+            performPlay(playTimeUs);
+            break;
+        }
+
         default:
             TRESPASS();
     }
