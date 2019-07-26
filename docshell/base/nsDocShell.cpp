@@ -6225,8 +6225,6 @@ NS_IMETHODIMP
 nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                           uint32_t aStateFlags, nsresult aStatus)
 {
-    nsresult rv;
-
     if ((~aStateFlags & (STATE_START | STATE_IS_NETWORK)) == 0) {
         
         nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
@@ -6241,7 +6239,7 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
 
         
         if (this == aProgress && !wcwgChannel){
-            rv = MaybeInitTiming();
+            MaybeInitTiming();
             if (mTiming) {
                 mTiming->NotifyFetchStart(uri, ConvertLoadTypeToNavigationType(mLoadType));
             } 
@@ -6285,11 +6283,11 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                 
                 
                 
-                rv = AddToSessionHistory(uri, wcwgChannel, nullptr, false,
-                                         getter_AddRefs(mLSHE));
+                AddToSessionHistory(uri, wcwgChannel, nullptr, false,
+                                    getter_AddRefs(mLSHE));
                 SetCurrentURI(uri, aRequest, true, 0);
                 
-                rv = PersistLayoutHistoryState();
+                PersistLayoutHistoryState();
                 
                 
                 SetHistoryEntry(&mOSHE, mLSHE);
