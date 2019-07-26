@@ -255,6 +255,9 @@ struct Zone : public JS::shadow::Zone,
     
     js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
 
+    
+    void *data;
+
     Zone(JSRuntime *rt);
     ~Zone();
     bool init(JSContext *cx);
