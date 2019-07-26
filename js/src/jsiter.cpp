@@ -1418,11 +1418,6 @@ GeneratorState::pushInterpreterFrame(JSContext *cx, FrameGuard *)
 
 
     GeneratorWriteBarrierPre(cx, gen_);
-
-    
-
-
-
     gen_->state = futureState_;
 
     gen_->fp->clearSuspended();
@@ -1563,7 +1558,10 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
 
 
 
+
+            HeapValue::writeBarrierPre(gen->regs.sp[-1]);
             gen->regs.sp[-1] = arg;
+            HeapValue::writeBarrierPost(cx->runtime(), gen->regs.sp[-1], &gen->regs.sp[-1]);
         }
         futureState = JSGEN_RUNNING;
         break;
