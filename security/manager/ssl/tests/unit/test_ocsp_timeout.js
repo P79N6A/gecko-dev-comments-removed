@@ -4,6 +4,26 @@
 
 "use strict";
 
+
+
+
+
+
+
+
+
+
+
+
+let gSocketListener = {
+  onSocketAccepted: function(serverSocket, socketTransport) {
+    socketTransport.setTimeout(Ci.nsISocketTransport.TIMEOUT_CONNECT, 30);
+    socketTransport.setTimeout(Ci.nsISocketTransport.TIMEOUT_READ_WRITE, 30);
+  },
+
+  onStopListening: function(serverSocket, socketTransport) {}
+};
+
 function run_test() {
   do_get_profile();
 
@@ -12,7 +32,7 @@ function run_test() {
   let socket = Cc["@mozilla.org/network/server-socket;1"]
                  .createInstance(Ci.nsIServerSocket);
   socket.init(8080, true, -1);
-
+  socket.asyncListen(gSocketListener);
 
   add_tests_in_mode(true, true);
   add_tests_in_mode(false, true);
