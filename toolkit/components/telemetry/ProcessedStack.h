@@ -36,13 +36,6 @@ public:
     std::string mName;
 
     
-    
-    uintptr_t mStart;
-
-    
-    
-    size_t mMappingSize;
-    
     int mPdbAge;
     std::string mPdbSignature;
     std::string mPdbName;
@@ -65,10 +58,8 @@ private:
 
 
 
-
-
 ProcessedStack
-GetStackAndModules(const std::vector<uintptr_t> &aPCs, bool aRelative);
+GetStackAndModules(const std::vector<uintptr_t> &aPCs);
 
 } 
 } 
