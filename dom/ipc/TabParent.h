@@ -238,6 +238,12 @@ public:
 
     ContentParent* Manager() { return mManager; }
 
+    
+
+
+
+    bool IsDestroyed() const { return mIsDestroyed; }
+
 protected:
     bool ReceiveMessage(const nsString& aMessage,
                         bool aSync,
