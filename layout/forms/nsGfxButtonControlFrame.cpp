@@ -50,24 +50,6 @@ nsGfxButtonControlFrame::GetType() const
   return nsGkAtoms::gfxButtonControlFrame;
 }
 
-
-
-
-
-bool
-nsGfxButtonControlFrame::IsFileBrowseButton(int32_t type) const
-{
-  bool rv = false;
-  if (NS_FORM_INPUT_BUTTON == type) {
-    
-    nsCOMPtr<nsIFormControl> formCtrl =
-      do_QueryInterface(mContent->GetParent());
-
-    rv = formCtrl && formCtrl->GetType() == NS_FORM_INPUT_FILE;
-  }
-  return rv;
-}
-
 #ifdef DEBUG
 NS_IMETHODIMP
 nsGfxButtonControlFrame::GetFrameName(nsAString& aResult) const
@@ -171,9 +153,6 @@ nsGfxButtonControlFrame::GetDefaultLabel(nsXPIDLString& aString) const
   }
   else if (type == NS_FORM_INPUT_SUBMIT) {
     prop = "Submit";
-  }
-  else if (IsFileBrowseButton(type)) {
-    prop = "Browse";
   }
   else {
     aString.Truncate();

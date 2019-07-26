@@ -118,6 +118,12 @@ nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
                    NS_LITERAL_STRING("button"), false);
 
   
+  nsXPIDLString buttonValue;
+  nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
+                                     "Browse", buttonValue);
+  mBrowse->SetAttr(kNameSpaceID_None, nsGkAtoms::value, buttonValue, false);
+
+  
   
   nsCOMPtr<nsIDOMHTMLInputElement> fileContent = do_QueryInterface(mContent);
   nsCOMPtr<nsIDOMHTMLInputElement> browseControl = do_QueryInterface(mBrowse);
