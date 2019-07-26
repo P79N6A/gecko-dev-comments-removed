@@ -18,6 +18,8 @@
 #include "nsError.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "mozilla/Preferences.h"
+#include "nsIConsoleService.h"
+#include "nsIScriptError.h"
 
 using namespace mozilla;
 
@@ -275,105 +277,113 @@ bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
         return true;
     }
 
-    if (mDocShell) {
-        
-        
-        
-        
-        nsCOMPtr<nsIDOMWindow> thisWindow = do_GetInterface(static_cast<nsIDocShell*>(mDocShell));
-        
-        if (!thisWindow)
-            return true;
+    nsCOMPtr<nsIURI> uri;
+    httpChannel->GetURI(getter_AddRefs(uri));
 
-        
-        
-        nsCOMPtr<nsIDOMWindow> topWindow;
-        thisWindow->GetScriptableTop(getter_AddRefs(topWindow));
+    
+    if (!mDocShell) {
+        return true;
+    }
 
-        
-        if (thisWindow == topWindow)
-            return true;
+    
+    
+    
+    
+    nsCOMPtr<nsIDOMWindow> thisWindow = do_GetInterface(static_cast<nsIDocShell*>(mDocShell));
+    
+    if (!thisWindow)
+        return true;
 
-        
-        
-        
-        
-        nsCOMPtr<nsIDocShellTreeItem> thisDocShellItem(do_QueryInterface(
-                                                       static_cast<nsIDocShell*> (mDocShell)));
-        nsCOMPtr<nsIDocShellTreeItem> parentDocShellItem,
-                                      curDocShellItem = thisDocShellItem;
-        nsCOMPtr<nsIDocument> topDoc;
-        nsresult rv;
-        nsCOMPtr<nsIScriptSecurityManager> ssm =
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-        if (!ssm) {
-            NS_ASSERTION(ssm, "Failed to get the ScriptSecurityManager.");
+    
+    
+    nsCOMPtr<nsIDOMWindow> topWindow;
+    thisWindow->GetScriptableTop(getter_AddRefs(topWindow));
+
+    
+    if (thisWindow == topWindow)
+        return true;
+
+    
+    
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> thisDocShellItem(do_QueryInterface(
+                                                   static_cast<nsIDocShell*> (mDocShell)));
+    nsCOMPtr<nsIDocShellTreeItem> parentDocShellItem,
+                                  curDocShellItem = thisDocShellItem;
+    nsCOMPtr<nsIDocument> topDoc;
+    nsresult rv;
+    nsCOMPtr<nsIScriptSecurityManager> ssm =
+        do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+    if (!ssm) {
+        MOZ_CRASH();
+    }
+
+    
+    
+    
+    while (NS_SUCCEEDED(curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem))) &&
+           parentDocShellItem) {
+
+        nsCOMPtr<nsIDocShell> curDocShell = do_QueryInterface(curDocShellItem);
+        if (curDocShell && curDocShell->GetIsContentBoundary()) {
+          break;
+        }
+
+        bool system = false;
+        topDoc = do_GetInterface(parentDocShellItem);
+        if (topDoc) {
+            if (NS_SUCCEEDED(ssm->IsSystemPrincipal(topDoc->NodePrincipal(),
+                                                    &system)) && system) {
+                
+                break;
+            }
+        }
+        else {
             return false;
         }
+        curDocShellItem = parentDocShellItem;
+    }
 
-        
-        
-        
-        while (NS_SUCCEEDED(curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem))) &&
-               parentDocShellItem) {
+    
+    
+    if (curDocShellItem == thisDocShellItem)
+        return true;
 
-            nsCOMPtr<nsIDocShell> curDocShell = do_QueryInterface(curDocShellItem);
-            if (curDocShell && curDocShell->GetIsContentBoundary()) {
-              break;
-            }
+    
+    
+    
+    if (policy.LowerCaseEqualsLiteral("deny")) {
+        ReportXFOViolation(curDocShellItem, uri, eDENY);
+        return false;
+    }
 
-            bool system = false;
-            topDoc = do_GetInterface(parentDocShellItem);
-            if (topDoc) {
-                if (NS_SUCCEEDED(ssm->IsSystemPrincipal(topDoc->NodePrincipal(),
-                                                        &system)) && system) {
-                    
-                    break;
-                }
-            }
-            else {
-                return false;
-            }
-            curDocShellItem = parentDocShellItem;
+    topDoc = do_GetInterface(curDocShellItem);
+    nsCOMPtr<nsIURI> topUri;
+    topDoc->NodePrincipal()->GetURI(getter_AddRefs(topUri));
+
+    
+    
+    if (policy.LowerCaseEqualsLiteral("sameorigin")) {
+        rv = ssm->CheckSameOriginURI(uri, topUri, true);
+        if (NS_FAILED(rv)) {
+            ReportXFOViolation(curDocShellItem, uri, eSAMEORIGIN);
+            return false; 
         }
+    }
 
-        
-        
-        if (curDocShellItem == thisDocShellItem)
-            return true;
+    
+    
+    if (isAllowFrom) {
+        rv = NS_NewURI(getter_AddRefs(uri),
+                       Substring(policy, allowFromLen));
+        if (NS_FAILED(rv))
+          return false;
 
-        
-        
-        
-        if (policy.LowerCaseEqualsLiteral("deny")) {
+        rv = ssm->CheckSameOriginURI(uri, topUri, true);
+        if (NS_FAILED(rv)) {
+            ReportXFOViolation(curDocShellItem, uri, eALLOWFROM);
             return false;
-        }
-
-        topDoc = do_GetInterface(curDocShellItem);
-        nsCOMPtr<nsIURI> topUri;
-        topDoc->NodePrincipal()->GetURI(getter_AddRefs(topUri));
-        nsCOMPtr<nsIURI> uri;
-
-        
-        
-        if (policy.LowerCaseEqualsLiteral("sameorigin")) {
-            httpChannel->GetURI(getter_AddRefs(uri));
-            rv = ssm->CheckSameOriginURI(uri, topUri, true);
-            if (NS_FAILED(rv))
-                return false; 
-        }
-
-        
-        
-        if (isAllowFrom) {
-            rv = NS_NewURI(getter_AddRefs(uri),
-                           Substring(policy, allowFromLen));
-            if (NS_FAILED(rv))
-              return false;
-
-            rv = ssm->CheckSameOriginURI(uri, topUri, true);
-            if (NS_FAILED(rv))
-                return false;
         }
     }
 
@@ -419,4 +429,78 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest *request)
     }
 
     return true;
+}
+
+void
+nsDSURIContentListener::ReportXFOViolation(nsIDocShellTreeItem* aTopDocShellItem,
+                                           nsIURI* aThisURI,
+                                           XFOHeader aHeader)
+{
+    nsresult rv = NS_OK;
+
+    nsCOMPtr<nsPIDOMWindow> topOuterWindow = do_GetInterface(aTopDocShellItem);
+    if (!topOuterWindow)
+        return;
+
+    NS_ASSERTION(topOuterWindow->IsOuterWindow(), "Huh?");
+    nsPIDOMWindow* topInnerWindow = topOuterWindow->GetCurrentInnerWindow();
+    if (!topInnerWindow)
+        return;
+
+    nsCOMPtr<nsIURI> topURI;
+
+    nsCOMPtr<nsIDocument> document;
+
+    document = do_GetInterface(aTopDocShellItem);
+    rv = document->NodePrincipal()->GetURI(getter_AddRefs(topURI));
+    if (NS_FAILED(rv))
+        return;
+
+    if (!topURI)
+        return;
+
+    nsCString topURIString;
+    nsCString thisURIString;
+
+    rv = topURI->GetSpec(topURIString);
+    if (NS_FAILED(rv))
+        return;
+
+    rv = aThisURI->GetSpec(thisURIString);
+    if (NS_FAILED(rv))
+        return;
+
+    nsCOMPtr<nsIConsoleService> consoleService =
+      do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+    nsCOMPtr<nsIScriptError> errorObject =
+      do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
+
+    if (!consoleService || !errorObject)
+        return;
+
+    nsString msg = NS_LITERAL_STRING("Load denied by X-Frame-Options: ");
+    msg.Append(NS_ConvertUTF8toUTF16(thisURIString));
+
+    switch (aHeader) {
+        case eDENY:
+            msg.AppendLiteral(" does not permit framing.");
+            break;
+        case eSAMEORIGIN:
+            msg.AppendLiteral(" does not permit cross-origin framing.");
+            break;
+        case eALLOWFROM:
+            msg.AppendLiteral(" does not permit framing by ");
+            msg.Append(NS_ConvertUTF8toUTF16(topURIString));
+            msg.AppendLiteral(".");
+            break;
+    }
+
+    rv = errorObject->InitWithWindowID(msg, EmptyString(), EmptyString(), 0, 0,
+                                       nsIScriptError::errorFlag,
+                                       "X-Frame-Options",
+                                       topInnerWindow->WindowID());
+    if (NS_FAILED(rv))
+        return;
+
+    consoleService->LogMessage(errorObject);
 }
