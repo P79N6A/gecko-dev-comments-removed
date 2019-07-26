@@ -17,26 +17,34 @@ namespace hal {
 
 
 enum LightType {
-    eHalLightID_Backlight = 0,
-    eHalLightID_Keyboard = 1,
-    eHalLightID_Buttons = 2,
-    eHalLightID_Battery = 3,
-    eHalLightID_Notifications = 4,
-    eHalLightID_Attention = 5,
-    eHalLightID_Bluetooth = 6,
-    eHalLightID_Wifi = 7,
-    eHalLightID_Count = 8         
+  eHalLightID_Backlight     = 0,
+  eHalLightID_Keyboard      = 1,
+  eHalLightID_Buttons       = 2,
+  eHalLightID_Battery       = 3,
+  eHalLightID_Notifications = 4,
+  eHalLightID_Attention     = 5,
+  eHalLightID_Bluetooth     = 6,
+  eHalLightID_Wifi          = 7,
+  eHalLightID_Count         = 8  
 };
 enum LightMode {
-    eHalLightMode_User = 0,       
-    eHalLightMode_Sensor = 1,     
-    eHalLightMode_Count
+  eHalLightMode_User   = 0,  
+  eHalLightMode_Sensor = 1,  
+  eHalLightMode_Count
 };
 enum FlashMode {
-    eHalLightFlash_None = 0,
-    eHalLightFlash_Timed = 1,     
-    eHalLightFlash_Hardware = 2,  
-    eHalLightFlash_Count
+  eHalLightFlash_None     = 0,
+  eHalLightFlash_Timed    = 1,  
+  eHalLightFlash_Hardware = 2,  
+  eHalLightFlash_Count
+};
+
+enum ShutdownMode {
+  eHalShutdownMode_Unknown  = -1,
+  eHalShutdownMode_PowerOff = 0,
+  eHalShutdownMode_Reboot   = 1,
+  eHalShutdownMode_Restart  = 2,
+  eHalShutdownMode_Count    = 3
 };
 
 class SwitchEvent;
@@ -193,6 +201,16 @@ struct ParamTraits<mozilla::hal::FlashMode>
   : public EnumSerializer<mozilla::hal::FlashMode,
                           mozilla::hal::eHalLightFlash_None,
                           mozilla::hal::eHalLightFlash_Count>
+{};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::ShutdownMode>
+  : public EnumSerializer<mozilla::hal::ShutdownMode,
+                          mozilla::hal::eHalShutdownMode_Unknown,
+                          mozilla::hal::eHalShutdownMode_Count>
 {};
 
 

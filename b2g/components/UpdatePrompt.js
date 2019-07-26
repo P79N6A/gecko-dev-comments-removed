@@ -248,17 +248,16 @@ UpdatePrompt.prototype = {
   restartProcess: function UP_restartProcess() {
     log("Update downloaded, restarting to apply it");
 
+#ifndef MOZ_WIDGET_GONK
     let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
-                       .getService(Ci.nsIAppStartup);
+                     .getService(Ci.nsIAppStartup);
+    appStartup.quit(appStartup.eForceQuit | appStartup.eRestart);
+#else
     
-    
-    
-    
-    appStartup.quit(appStartup.eForceQuit
-#ifndef ANDROID
-                    | appStartup.eRestart
+    let pmService = Cc["@mozilla.org/power/powermanagerservice;1"]
+                    .getService(Ci.nsIPowerManagerService);
+    pmService.restart();
 #endif
-      );
   },
 
   finishOSUpdate: function UP_finishOSUpdate(aOsUpdatePath) {

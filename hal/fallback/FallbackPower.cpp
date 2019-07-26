@@ -4,6 +4,8 @@
 
 
 
+#include "Hal.h"
+
 namespace mozilla {
 namespace hal_impl {
 
@@ -13,6 +15,10 @@ Reboot()
 
 void
 PowerOff()
+{}
+
+void
+StartForceQuitWatchdog(hal::ShutdownMode aMode, int32_t aTimeoutSecs)
 {}
 
 } 
