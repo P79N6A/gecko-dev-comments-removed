@@ -628,6 +628,16 @@ SecurityWrapper<Base>::SecurityWrapper(unsigned flags)
 
 template <class Base>
 bool
+SecurityWrapper<Base>::isExtensible(JSObject *wrapper)
+{
+    
+    
+    
+    return true;
+}
+
+template <class Base>
+bool
 SecurityWrapper<Base>::enter(JSContext *cx, HandleObject wrapper, HandleId id,
                              Wrapper::Action act, bool *bp)
 {

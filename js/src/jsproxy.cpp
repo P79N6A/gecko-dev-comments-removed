@@ -307,6 +307,15 @@ BaseProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigned flags, Mut
 }
 
 bool
+BaseProxyHandler::isExtensible(JSObject *proxy)
+{
+    
+    
+    
+    return true;
+}
+
+bool
 BaseProxyHandler::call(JSContext *cx, HandleObject proxy, unsigned argc,
                        Value *vp)
 {
@@ -634,6 +643,12 @@ DirectProxyHandler::iterate(JSContext *cx, HandleObject proxy, unsigned flags,
     JS_ASSERT(!hasPrototype()); 
     RootedObject target(cx, GetProxyTargetObject(proxy));
     return GetIterator(cx, target, flags, vp);
+}
+
+bool
+DirectProxyHandler::isExtensible(JSObject *proxy)
+{
+    return GetProxyTargetObject(proxy)->isExtensible();
 }
 
 static bool
@@ -2472,6 +2487,12 @@ Proxy::iterate(JSContext *cx, HandleObject proxy, unsigned flags, MutableHandleV
         return false;
     }
     return EnumeratedIdVectorToIterator(cx, proxy, flags, props, vp);
+}
+
+bool
+Proxy::isExtensible(JSObject *proxy)
+{
+    return GetProxyHandler(proxy)->isExtensible(proxy);
 }
 
 bool
