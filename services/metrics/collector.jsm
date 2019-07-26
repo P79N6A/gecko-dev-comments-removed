@@ -48,6 +48,19 @@ Collector.prototype = Object.freeze({
   
 
 
+  getProvider: function (name) {
+    let provider = this._providers.get(name);
+
+    if (!provider) {
+      return null;
+    }
+
+    return provider.provider;
+  },
+
+  
+
+
 
 
 

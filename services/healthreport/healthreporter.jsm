@@ -515,6 +515,17 @@ HealthReporter.prototype = Object.freeze({
 
 
 
+  getProvider: function (name) {
+    return this._collector.getProvider(name);
+  },
+
+  
+
+
+
+
+
+
 
 
   registerProvider: function (provider) {
