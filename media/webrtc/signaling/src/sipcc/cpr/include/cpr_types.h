@@ -102,6 +102,16 @@ extern const cpr_ip_addr_t ip_addr_invalid;
 
 #define CPR_IP_ADDR_INIT(a) a.type = CPR_IP_ADDR_INVALID;
 
+
+
+
+
+
+
+
+
+
+
 typedef const char *string_t;
 
 __END_DECLS
