@@ -54,7 +54,7 @@
 
 
 
-.controlBar.audio .playButton {
+.controlBar.audio-only .playButton {
   transform: translateX(28px);
 }
 
