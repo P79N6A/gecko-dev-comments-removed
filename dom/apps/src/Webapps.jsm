@@ -1352,6 +1352,7 @@ this.DOMApplicationRegistry = {
               if (array.length == CHUNK_SIZE) {
                 readChunk();
               } else {
+                file.close();
                 
                 let hash = hasher.finish(false);
                 
