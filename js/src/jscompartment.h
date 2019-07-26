@@ -387,12 +387,6 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     
     js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
 
-    
-
-
-
-    bool                         gcTypesMarked;
-
   private:
     
 
