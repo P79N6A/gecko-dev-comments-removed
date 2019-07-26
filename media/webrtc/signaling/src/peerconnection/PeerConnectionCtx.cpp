@@ -202,13 +202,16 @@ void PeerConnectionCtx::onDeviceEvent(ccapi_device_event_e aDeviceEvent,
                                       CSF::CC_DevicePtr aDevice,
                                       CSF::CC_DeviceInfoPtr aInfo ) {
   cc_service_state_t state = aInfo->getServiceState();
+  
+  
+  PeerConnectionImpl::SipccState currentSipccState = mSipccState;
 
-  CSFLogDebug(logTag, "%s - %d : %d", __FUNCTION__, state, mSipccState);
+  CSFLogDebug(logTag, "%s - %d : %d", __FUNCTION__, state, currentSipccState);
 
   if (CC_STATE_INS == state) {
     
-    if (PeerConnectionImpl::kStarting == mSipccState ||
-        PeerConnectionImpl::kIdle == mSipccState) {
+    if (PeerConnectionImpl::kStarting == currentSipccState ||
+        PeerConnectionImpl::kIdle == currentSipccState) {
       ChangeSipccState(PeerConnectionImpl::kStarted);
     } else {
       CSFLogError(logTag, "%s PeerConnection already started", __FUNCTION__);
