@@ -181,7 +181,7 @@ private:
   nestegg* mContext;
 
   
-  vpx_codec_ctx_t mVP8;
+  vpx_codec_ctx_t mVPX;
 
   
   vorbis_info mVorbisInfo;
@@ -234,6 +234,8 @@ private:
 
   
   int mAudioCodec;
+  
+  int mVideoCodec;
 
 };
 
