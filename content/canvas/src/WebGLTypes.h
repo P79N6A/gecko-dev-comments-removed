@@ -87,7 +87,6 @@ MOZ_BEGIN_ENUM_CLASS(WebGLImageDataStatus, int)
     InitializedImageData
 MOZ_END_ENUM_CLASS(WebGLImageDataStatus)
 
-namespace WebGLTexelConversions {
 
 
 
@@ -96,9 +95,7 @@ namespace WebGLTexelConversions {
 
 
 
-
-enum WebGLTexelFormat
-{
+MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     
     
     BadFormat,
@@ -128,9 +125,7 @@ enum WebGLTexelFormat
     RGBA5551,
     RGBA4444,
     RGBA32F 
-};
-
-} 
+MOZ_END_ENUM_CLASS(WebGLTexelFormat)
 
 } 
 
