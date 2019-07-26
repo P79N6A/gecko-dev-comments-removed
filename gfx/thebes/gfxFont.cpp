@@ -3345,13 +3345,10 @@ gfxFont::ShapeTextWithoutWordCache(gfxContext *aContext,
 
         
         
-        
         if (ch == '\t') {
             aTextRun->SetIsTab(aOffset + i);
         } else if (ch == '\n') {
             aTextRun->SetIsNewline(aOffset + i);
-        } else if ((ch & 0x7f) < 0x20 || ch == 0x7f) {
-            aTextRun->SetMissingGlyph(aOffset + i, ch, this);
         }
         fragStart = i + 1;
     }
@@ -3489,13 +3486,10 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
 
         
         
-        
         if (ch == '\t') {
             aTextRun->SetIsTab(aRunStart + i);
         } else if (ch == '\n') {
             aTextRun->SetIsNewline(aRunStart + i);
-        } else if ((ch & 0x7f) < 0x20 || ch == 0x7f) {
-            aTextRun->SetMissingGlyph(aRunStart + i, ch, this);
         }
 
         hash = 0;
