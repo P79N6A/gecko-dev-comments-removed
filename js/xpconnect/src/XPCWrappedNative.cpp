@@ -2999,12 +2999,9 @@ NS_IMETHODIMP XPCWrappedNative::GetXPConnect(nsIXPConnect * *aXPConnect)
 }
 
 
-NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithMember(jsid nameArg,
+NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithMember(HandleId name,
                                                         nsIInterfaceInfo * *_retval)
 {
-    AutoJSContext cx;
-    RootedId name(cx, nameArg);
-
     XPCNativeInterface* iface;
     XPCNativeMember*  member;
 
@@ -3018,12 +3015,9 @@ NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithMember(jsid nameArg,
 }
 
 
-NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithName(jsid nameArg,
+NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithName(HandleId name,
                                                       nsIInterfaceInfo * *_retval)
 {
-    AutoJSContext cx;
-    RootedId name(cx, nameArg);
-
     XPCNativeInterface* iface = GetSet()->FindNamedInterface(name);
     if (iface) {
         nsIInterfaceInfo* temp = iface->GetInterfaceInfo();
@@ -3036,11 +3030,8 @@ NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithName(jsid nameArg,
 
 
 NS_IMETHODIMP_(bool)
-XPCWrappedNative::HasNativeMember(jsid nameArg)
+XPCWrappedNative::HasNativeMember(HandleId name)
 {
-    AutoJSContext cx;
-    RootedId name(cx, nameArg);
-
     XPCNativeMember *member = nullptr;
     uint16_t ignored;
     return GetSet()->FindMember(name, &member, &ignored) && !!member;
