@@ -1728,7 +1728,13 @@ function WifiWorker() {
       
       if (!ok)
         return;
+
       self.waitForScan(function firstScan() {});
+      
+      
+      
+      self._enableAllNetworks();
+      WifiManager.saveConfig(function() {})
     });
 
     
@@ -1768,11 +1774,22 @@ function WifiWorker() {
   };
 
   WifiManager.ondisconnected = function() {
-    var currentNetwork = self.currentNetwork;
-    if (currentNetwork) {
-      WifiManager.disableNetwork(currentNetwork.netId, function() {});
-      self._fireEvent("onconnectingfailed", {network: currentNetwork});
+    
+    
+    if (self._needToEnableNetworks) {
+      self._enableAllNetworks();
+      self._needToEnableNetworks = false;
     }
+
+    var currentNetwork = self.currentNetwork;
+    if (currentNetwork && !isNaN(currentNetwork.netId)) {
+      
+      WifiManager.disableNetwork(currentNetwork.netId, function() {});
+    } else {
+      
+      
+    }
+    self._fireEvent("onconnectingfailed", {network: currentNetwork});
   };
 
   WifiManager.onstatechange = function() {
