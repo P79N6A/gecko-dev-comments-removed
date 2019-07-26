@@ -286,6 +286,10 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
                                                       const nsPoint& aToReferenceFrame,
                                                       const nsIntRect& aInvalidRect)
 {
+  if (aInvalidRect.IsEmpty()) {
+    return nsIntRect();
+  }
+
   
   
   nsIFrame* firstFrame =
