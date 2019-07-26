@@ -224,12 +224,6 @@ private:
 
 
 
-  Layer* GetPrimaryScrollableLayer();
-
-  
-
-
-
 
 
 

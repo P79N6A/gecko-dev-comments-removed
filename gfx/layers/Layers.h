@@ -298,6 +298,13 @@ public:
 
 
 
+  Layer* GetPrimaryScrollableLayer();
+
+  
+
+
+
+
 
 #ifdef DEBUG
   

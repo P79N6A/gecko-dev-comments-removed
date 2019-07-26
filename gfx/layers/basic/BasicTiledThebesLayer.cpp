@@ -257,16 +257,53 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       regionToPaint.Sub(regionToPaint, staleRegion);
     }
 
-    nsIntRegionRectIterator it(regionToPaint);
-    const nsIntRect* rect = it.Next();
-    if (!rect)
-      return;
+    
+    
+    
+    
+    
+    
+
+    gfx::Point scrollOffset(0, 0);
+    Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
+    if (primaryScrollable) {
+      const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
+      scrollOffset = metrics.mViewportScrollOffset;
+    }
 
     
     
     
-    int paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->x);
-    int paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->y);
+    
+    nsIntRegionRectIterator it(regionToPaint);
+    const nsIntRect* rect;
+    int32_t scrollDiffX = scrollOffset.x - mLastScrollOffset.x;
+    int32_t scrollDiffY = scrollOffset.y - mLastScrollOffset.y;
+    if ((NS_ABS(scrollDiffY) > NS_ABS(scrollDiffX) && scrollDiffY >= 0)) {
+      rect = it.Next();
+    } else {
+      const nsIntRect* lastRect;
+      while (lastRect = it.Next()) {
+        rect = lastRect;
+      }
+    }
+
+    
+    
+    
+    
+    int paintTileStartX, paintTileStartY;
+    if (scrollOffset.x >= mLastScrollOffset.x) {
+      paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->x);
+    } else {
+      paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->XMost() - 1);
+    }
+
+    if (scrollOffset.y >= mLastScrollOffset.y) {
+      paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->y);
+    } else {
+      paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->YMost() - 1);
+    }
 
     nsIntRegion maxPaint(
       nsIntRect(paintTileStartX, paintTileStartY,
@@ -280,6 +317,9 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
       
       mValidRegion.And(mValidRegion, mVisibleRegion);
+    } else {
+      
+      mLastScrollOffset = scrollOffset;
     }
 
     
