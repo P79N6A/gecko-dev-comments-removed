@@ -1,13 +1,13 @@
 
 
 
-const TEST_URI = "data:text/html;charset=utf-8,<p>browser_telemetry_sidebar.js</p>";
+const TEST_URI = "data:text/html;charset=utf-8,<p>browser_telemetry_toolbox.js</p>";
 
 
 
 const TOOL_DELAY = 200;
 
-let {Promise: promise} = Cu.import("resource://gre/modules/devtools/deprecated-sync-thenables.js", {});
+let {Promise: promise} = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
 let {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
 let require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
@@ -17,10 +17,6 @@ function init() {
   Telemetry.prototype.telemetryInfo = {};
   Telemetry.prototype._oldlog = Telemetry.prototype.log;
   Telemetry.prototype.log = function(histogramId, value) {
-    if (!this.telemetryInfo) {
-      
-      return;
-    }
     if (histogramId) {
       if (!this.telemetryInfo[histogramId]) {
         this.telemetryInfo[histogramId] = [];
@@ -30,51 +26,37 @@ function init() {
     }
   };
 
-  testSidebar();
+  openToolboxThreeTimes();
 }
 
-function testSidebar() {
-  info("Testing sidebar");
-
+let pass = 0;
+function openToolboxThreeTimes() {
   let target = TargetFactory.forTab(gBrowser.selectedTab);
 
   gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    let inspector = toolbox.getCurrentPanel();
-    let sidebarTools = ["ruleview", "computedview", "fontinspector", "layoutview"];
+    info("Toolbox opened");
 
-    
-    sidebarTools.push.apply(sidebarTools, sidebarTools);
-
-    
-    setTimeout(function selectSidebarTab() {
-      let tool = sidebarTools.pop();
-      if (tool) {
-        inspector.sidebar.select(tool);
-        setTimeout(function() {
-          setTimeout(selectSidebarTab, TOOL_DELAY);
-        }, TOOL_DELAY);
-      } else {
+    toolbox.once("destroyed", function() {
+      if (pass++ === 3) {
         checkResults();
+      } else {
+        openToolboxThreeTimes();
       }
+    });
+    
+    setTimeout(function() {
+      gDevTools.closeToolbox(target);
     }, TOOL_DELAY);
-  });
+  }).then(null, console.error);
 }
 
 function checkResults() {
   let result = Telemetry.prototype.telemetryInfo;
 
   for (let [histId, value] of Iterator(result)) {
-    if (histId.startsWith("DEVTOOLS_INSPECTOR_")) {
-      
-      
-      continue;
-    }
-
     if (histId.endsWith("OPENED_PER_USER_FLAG")) {
       ok(value.length === 1 && value[0] === true,
          "Per user value " + histId + " has a single value of true");
-    } else if (histId === "DEVTOOLS_TOOLBOX_OPENED_BOOLEAN") {
-      is(value.length, 1, histId + " has only one entry");
     } else if (histId.endsWith("OPENED_BOOLEAN")) {
       ok(value.length > 1, histId + " has more than one entry");
 
