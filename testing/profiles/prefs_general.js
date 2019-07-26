@@ -144,3 +144,7 @@ user_pref("media.webaudio.legacy.OscillatorNode", true);
 
 
 user_pref("geo.provider.testing", true);
+
+
+
+user_pref("browser.pageThumbs.enabled", false);

@@ -46,6 +46,11 @@ const BackgroundPageThumbs = {
 
 
   capture: function (url, options={}) {
+    if (!PageThumbs._prefEnabled()) {
+      if (options.onDone)
+        schedule(() => options.onDone(null));
+      return;
+    }
     this._captureQueue = this._captureQueue || [];
     this._capturesByURL = this._capturesByURL || new Map();
 
