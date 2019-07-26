@@ -591,6 +591,14 @@ JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::Runtim
         rtSizes->scriptData += mallocSizeOf(r.front());
 }
 
+static bool
+SignalBasedTriggersDisabled()
+{
+  
+  
+  return !!getenv("JS_DISABLE_SLOW_SCRIPT_SIGNALS");
+}
+
 void
 JSRuntime::triggerOperationCallback(OperationCallbackTrigger trigger)
 {
@@ -611,8 +619,10 @@ JSRuntime::triggerOperationCallback(OperationCallbackTrigger trigger)
 
 
 
-    TriggerOperationCallbackForAsmJSCode(this);
-    jit::TriggerOperationCallbackForIonCode(this, trigger);
+    if (!SignalBasedTriggersDisabled()) {
+        TriggerOperationCallbackForAsmJSCode(this);
+        jit::TriggerOperationCallbackForIonCode(this, trigger);
+    }
 #endif
 }
 
