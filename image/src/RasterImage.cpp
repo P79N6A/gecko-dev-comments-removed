@@ -16,14 +16,9 @@
 #include "nsAutoPtr.h"
 #include "nsStringStream.h"
 #include "prenv.h"
-#include "prsystem.h"
 #include "ImageContainer.h"
 #include "Layers.h"
 #include "nsPresContext.h"
-#include "nsThread.h"
-#include "nsIThreadPool.h"
-#include "nsXPCOMCIDInternal.h"
-#include "nsIObserverService.h"
 
 #include "nsPNGDecoder.h"
 #include "nsGIFDecoder2.h"
@@ -35,7 +30,6 @@
 
 #include "gfxContext.h"
 
-#include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StandardInteger.h"
 #include "mozilla/Telemetry.h"
@@ -76,8 +70,6 @@ static uint32_t gMaxMSBeforeYield = 0;
 static bool gHQDownscaling = false;
 
 static uint32_t gHQDownscalingMinFactor = 1000;
-static bool gMultithreadedDecoding = true;
-static int32_t gDecodingThreadLimit = -1;
 
 
 
@@ -94,10 +86,6 @@ InitPrefCaches()
                                "image.high_quality_downscaling.enabled", false);
   Preferences::AddUintVarCache(&gHQDownscalingMinFactor,
                                "image.high_quality_downscaling.min_factor", 1000);
-  Preferences::AddBoolVarCache(&gMultithreadedDecoding,
-                               "image.multithreaded_decoding.enabled", true);
-  Preferences::AddIntVarCache(&gDecodingThreadLimit,
-                              "image.multithreaded_decoding.limit", -1);
 }
 
 
@@ -361,14 +349,14 @@ private:
 namespace mozilla {
 namespace image {
 
- StaticRefPtr<RasterImage::DecodePool> RasterImage::DecodePool::sSingleton;
+ StaticRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
 static nsCOMPtr<nsIThread> sScaleWorkerThread = nullptr;
 
 #ifndef DEBUG
-NS_IMPL_THREADSAFE_ISUPPORTS2(RasterImage, imgIContainer, nsIProperties)
+NS_IMPL_ISUPPORTS2(RasterImage, imgIContainer, nsIProperties)
 #else
-NS_IMPL_THREADSAFE_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
-                              imgIContainerDebug)
+NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
+                   imgIContainerDebug)
 #endif
 
 
@@ -380,14 +368,12 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mAnim(nullptr),
   mLoopCount(-1),
   mLockCount(0),
+  mDecoder(nullptr),
+  mBytesDecoded(0),
   mDecodeCount(0),
 #ifdef DEBUG
   mFramesNotified(0),
 #endif
-  mDecodingMutex("RasterImage"),
-  mDecoder(nullptr),
-  mBytesDecoded(0),
-  mInDecoder(false),
   mHasSize(false),
   mDecodeOnDraw(false),
   mMultipart(false),
@@ -395,6 +381,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mHasSourceData(false),
   mDecoded(false),
   mHasBeenDecoded(false),
+  mInDecoder(false),
   mAnimationFinished(false),
   mFinishing(false),
   mInUpdateImageContainer(false),
@@ -431,8 +418,7 @@ RasterImage::~RasterImage()
   if (mDecoder) {
     
     
-    MutexAutoLock lock(mDecodingMutex);
-    DecodePool::StopDecoding(this);
+    DecodeWorker::Singleton()->StopDecoding(this);
     mDecoder = nullptr;
 
     
@@ -466,7 +452,7 @@ RasterImage::Initialize()
 
   
   
-  DecodePool::Singleton();
+  DecodeWorker::Singleton();
 }
 
 nsresult
@@ -793,7 +779,7 @@ RasterImage::GetHeight(int32_t *aHeight)
   *aHeight = mSize.height;
   return NS_OK;
 }
-
+ 
 
 
 NS_IMETHODIMP
@@ -1391,8 +1377,6 @@ RasterImage::ApplyDecodeFlags(uint32_t aNewFlags)
 nsresult
 RasterImage::SetSize(int32_t aWidth, int32_t aHeight)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   if (mError)
     return NS_ERROR_FAILURE;
 
@@ -1548,8 +1532,6 @@ RasterImage::SetFrameAsNonPremult(uint32_t aFrameNum, bool aIsNonPremult)
 nsresult
 RasterImage::DecodingComplete()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   if (mError)
     return NS_ERROR_FAILURE;
 
@@ -1678,8 +1660,6 @@ RasterImage::SetLoopCount(int32_t aLoopCount)
 nsresult
 RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
 {
-  MutexAutoLock lock(mDecodingMutex);
-
   if (mError)
     return NS_ERROR_FAILURE;
 
@@ -1741,9 +1721,6 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
     mInDecoder = true;
     mDecoder->FlushInvalidations();
     mInDecoder = false;
-
-    rv = FinishedSomeDecoding();
-    CONTAINER_ENSURE_SUCCESS(rv);
   }
 
   
@@ -1754,8 +1731,10 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
     if (!newElem)
       return NS_ERROR_OUT_OF_MEMORY;
 
+    
+    
     if (mDecoder) {
-      DecodePool::Singleton()->RequestDecode(this);
+      DecodeWorker::Singleton()->RequestDecode(this);
     }
   }
 
@@ -1799,8 +1778,6 @@ get_header_str (char *buf, char *data, size_t data_len)
 nsresult
 RasterImage::DoImageDataComplete()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   if (mError)
     return NS_ERROR_FAILURE;
 
@@ -1810,26 +1787,25 @@ RasterImage::DoImageDataComplete()
   mHasSourceData = true;
 
   
+  NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
+
+  
   
   
   
   if (mDecoder) {
-    nsresult rv = DecodePool::Singleton()->DecodeUntilSizeAvailable(this);
+    nsresult rv = DecodeWorker::Singleton()->DecodeUntilSizeAvailable(this);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
-  {
-    MutexAutoLock lock(mDecodingMutex);
-
-    
-    
-    if (mDecoder) {
-      DecodePool::Singleton()->RequestDecode(this);
-    }
-
-    
-    mSourceData.Compact();
+  
+  
+  if (mDecoder) {
+    DecodeWorker::Singleton()->RequestDecode(this);
   }
+
+  
+  mSourceData.Compact();
 
   
   if (PR_LOG_TEST(GetCompressedImageAccountingLog(), PR_LOG_DEBUG)) {
@@ -1869,10 +1845,7 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus, bo
   }
 
   
-  {
-    MutexAutoLock lock(mDecodingMutex);
-    FinishedSomeDecoding();
-  }
+  FinishedSomeDecoding();
 
   return finalStatus;
 }
@@ -1900,8 +1873,6 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
 nsresult
 RasterImage::OnNewSourceData()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   nsresult rv;
 
   if (mError)
@@ -2457,8 +2428,6 @@ RasterImage::GetKeys(uint32_t *count, char ***keys)
 void
 RasterImage::Discard(bool force)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   
   NS_ABORT_IF_FALSE(force ? CanForciblyDiscard() : CanDiscard(), "Asked to discard but can't!");
 
@@ -2684,7 +2653,7 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 
   
   
-  DecodePool::StopDecoding(this);
+  DecodeWorker::Singleton()->StopDecoding(this);
 
   nsresult decoderStatus = decoder->GetDecoderError();
   if (NS_FAILED(decoderStatus)) {
@@ -2719,8 +2688,6 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 nsresult
 RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount)
 {
-  mDecodingMutex.AssertCurrentThreadOwns();
-
   
   NS_ABORT_IF_FALSE(mDecoder, "Trying to write to null decoder!");
 
@@ -2784,8 +2751,6 @@ RasterImage::StartDecoding()
 NS_IMETHODIMP
 RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   nsresult rv;
 
   if (mError)
@@ -2816,7 +2781,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   if (mDecoder && mDecoder->IsSizeDecode()) {
-    nsresult rv = DecodePool::Singleton()->DecodeUntilSizeAvailable(this);
+    nsresult rv = DecodeWorker::Singleton()->DecodeUntilSizeAvailable(this);
     CONTAINER_ENSURE_SUCCESS(rv);
 
     
@@ -2832,8 +2797,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   if (mDecoded)
     return NS_OK;
-
-  MutexAutoLock lock(mDecodingMutex);
 
   
   
@@ -2854,13 +2817,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   }
 
   
-  if (mDecodeRequest &&
-      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-    nsresult rv = FinishedSomeDecoding();
-    CONTAINER_ENSURE_SUCCESS(rv);
-  }
-
-  
   if (mHasSourceData && mBytesDecoded == mSourceData.Length())
     return NS_OK;
 
@@ -2871,7 +2827,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     SAMPLE_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString().get());
     mDecoder->SetSynchronous(true);
 
-    DecodePool::Singleton()->DecodeABitOf(this);
+    DecodeWorker::Singleton()->DecodeABitOf(this);
 
     
     if (mDecoder) {
@@ -2880,12 +2836,10 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     return NS_OK;
   }
 
-  if (!mDecoded) {
-    
-    
-    
-    DecodePool::Singleton()->RequestDecode(this);
-  }
+  
+  
+  
+  DecodeWorker::Singleton()->RequestDecode(this);
 
   return NS_OK;
 }
@@ -2894,16 +2848,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 nsresult
 RasterImage::SyncDecode()
 {
-  MutexAutoLock imgLock(mDecodingMutex);
-
-  if (mDecodeRequest) {
-    
-    if (mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      nsresult rv = FinishedSomeDecoding();
-      CONTAINER_ENSURE_SUCCESS(rv);
-    }
-  }
-
   nsresult rv;
 
   SAMPLE_LABEL_PRINTF("RasterImage", "SyncDecode", "%s", GetURIString().get());;
@@ -2916,7 +2860,7 @@ RasterImage::SyncDecode()
 
   
   if (mDecoder && mDecoder->IsSizeDecode()) {
-    nsresult rv = DecodePool::Singleton()->DecodeUntilSizeAvailable(this);
+    nsresult rv = DecodeWorker::Singleton()->DecodeUntilSizeAvailable(this);
     CONTAINER_ENSURE_SUCCESS(rv);
 
     
@@ -2972,9 +2916,6 @@ RasterImage::SyncDecode()
 
   if (mDecoder) {
     mDecoder->SetSynchronous(false);
-
-    
-    DecodePool::Singleton()->RequestDecode(this);
   }
 
   
@@ -3185,7 +3126,11 @@ RasterImage::Draw(gfxContext *aContext,
 
   
   if (!mDecoded && mHasSourceData) {
-    mDrawStartTime = TimeStamp::Now();
+      mDrawStartTime = TimeStamp::Now();
+
+      
+      
+      DecodeWorker::Singleton()->MarkAsASAP(this);
   }
 
   
@@ -3259,7 +3204,6 @@ RasterImage::UnlockImage()
     PR_LOG(GetCompressedImageAccountingLog(), PR_LOG_DEBUG,
            ("RasterImage[0x%p] canceling decode because image "
             "is now unlocked.", this));
-    MutexAutoLock lock(mDecodingMutex);
     FinishedSomeDecoding(eShutdownIntent_NotNeeded);
     ForceDiscard();
     return NS_OK;
@@ -3294,8 +3238,6 @@ RasterImage::DecodeSomeData(uint32_t aMaxBytes)
   
   NS_ABORT_IF_FALSE(mDecoder, "trying to decode without decoder!");
 
-  mDecodingMutex.AssertCurrentThreadOwns();
-
   
   
   
@@ -3313,7 +3255,7 @@ RasterImage::DecodeSomeData(uint32_t aMaxBytes)
 
   
   uint32_t bytesToDecode = std::min(aMaxBytes,
-                                    mSourceData.Length() - mBytesDecoded);
+                                  mSourceData.Length() - mBytesDecoded);
   nsresult rv = WriteToDecoder(mSourceData.Elements() + mBytesDecoded,
                                bytesToDecode);
 
@@ -3369,7 +3311,6 @@ RasterImage::DoError()
 
   
   if (mDecoder) {
-    MutexAutoLock lock(mDecodingMutex);
     FinishedSomeDecoding(eShutdownIntent_Error);
   }
 
@@ -3442,8 +3383,6 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  mDecodingMutex.AssertCurrentThreadOwns();
-
   nsRefPtr<DecodeRequest> request;
   if (aRequest) {
     request = aRequest;
@@ -3505,140 +3444,135 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     }
   }
 
-  imgStatusTracker::StatusDiff diff;
+  
+  
+  
   if (request) {
-    diff = image->mStatusTracker->CalculateAndApplyDifference(request->mStatusTracker);
+    image->mStatusTracker->SyncAndSyncNotifyDifference(request->mStatusTracker);
+  } else {
+    image->mStatusTracker->SyncNotifyDecodeState();
   }
 
-  {
-    
-    MutexAutoUnlock unlock(mDecodingMutex);
+  
+  if (NS_SUCCEEDED(rv) && done && wasSize && image->mWantFullDecode) {
+    image->mWantFullDecode = false;
 
     
     
     
-    if (request) {
-      image->mStatusTracker->SyncNotifyDifference(diff);
+    if (!image->StoringSourceData()) {
+      rv = image->SyncDecode();
     } else {
-      image->mStatusTracker->SyncNotifyDecodeState();
+      rv = image->RequestDecode();
     }
-
-    
-    if (NS_SUCCEEDED(rv) && done && wasSize && image->mWantFullDecode) {
-      image->mWantFullDecode = false;
-
-      
-      
-      
-      if (!image->StoringSourceData()) {
-        rv = image->SyncDecode();
-      } else {
-        rv = image->RequestDecode();
-      }
-    }
-
   }
 
   return rv;
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(RasterImage::DecodePool,
-                              nsIObserver)
-
- RasterImage::DecodePool*
-RasterImage::DecodePool::Singleton()
+ RasterImage::DecodeWorker*
+RasterImage::DecodeWorker::Singleton()
 {
   if (!sSingleton) {
-    MOZ_ASSERT(NS_IsMainThread());
-    sSingleton = new DecodePool();
+    sSingleton = new DecodeWorker();
     ClearOnShutdown(&sSingleton);
   }
 
   return sSingleton;
 }
 
-RasterImage::DecodePool::DecodePool()
+RasterImage::DecodeWorker::~DecodeWorker()
 {
-  if (gMultithreadedDecoding) {
-    mThreadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
-    if (mThreadPool) {
-      mThreadPool->SetName(NS_LITERAL_CSTRING("ImageDecoder"));
-      if (gDecodingThreadLimit <= 0) {
-        mThreadPool->SetThreadLimit(std::max(PR_GetNumberOfProcessors() - 1, 1));
-      } else {
-        mThreadPool->SetThreadLimit(static_cast<uint32_t>(gDecodingThreadLimit));
-      }
+  MOZ_ASSERT(NS_IsMainThread(), "Must shut down DecodeWorker on main thread!");
 
-      nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
-      if (obsSvc) {
-        obsSvc->AddObserver(this, "xpcom-shutdown-threads", false);
-      }
-    }
-  }
-}
+  
+  DecodeRequest* request = mASAPDecodeRequests.getFirst();
+  while (request) {
+    request->mImage->FinishedSomeDecoding(eShutdownIntent_NotNeeded);
 
-RasterImage::DecodePool::~DecodePool()
-{
-  MOZ_ASSERT(NS_IsMainThread(), "Must shut down DecodePool on main thread!");
-}
-
-NS_IMETHODIMP
-RasterImage::DecodePool::Observe(nsISupports *subject, const char *topic,
-                                   const PRUnichar *data)
-{
-  NS_ASSERTION(strcmp(topic, "xpcom-shutdown-threads") == 0, "oops");
-
-  if (mThreadPool) {
-    mThreadPool->Shutdown();
-    mThreadPool = nullptr;
+    request = request->getNext();
   }
 
-  return NS_OK;
+  request = mNormalDecodeRequests.getFirst();
+  while (request) {
+    request->mImage->FinishedSomeDecoding(eShutdownIntent_NotNeeded);
+
+    request = request->getNext();
+  }
 }
 
 void
-RasterImage::DecodePool::RequestDecode(RasterImage* aImg)
+RasterImage::DecodeWorker::MarkAsASAP(RasterImage* aImg)
+{
+  
+  
+  if (!aImg->mDecodeRequest) {
+    aImg->mDecodeRequest = new DecodeRequest(aImg);
+  }
+
+  DecodeRequest* request = aImg->mDecodeRequest;
+
+  
+  if (request->mIsASAP) {
+    return;
+  }
+
+  request->mIsASAP = true;
+
+  if (request->isInList()) {
+    
+    
+    
+    request->removeFrom(mNormalDecodeRequests);
+    mASAPDecodeRequests.insertBack(request);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(mPendingInEventLoop);
+  }
+}
+
+void
+RasterImage::DecodeWorker::AddDecodeRequest(DecodeRequest* aRequest, uint32_t bytesToDecode)
+{
+  if (aRequest->isInList()) {
+    
+    
+    return;
+  }
+
+  aRequest->mBytesToDecode = bytesToDecode;
+
+  if (aRequest->mIsASAP) {
+    mASAPDecodeRequests.insertBack(aRequest);
+  } else {
+    mNormalDecodeRequests.insertBack(aRequest);
+  }
+}
+
+void
+RasterImage::DecodeWorker::RequestDecode(RasterImage* aImg)
 {
   MOZ_ASSERT(aImg->mDecoder);
-  MOZ_ASSERT(NS_IsMainThread());
-  aImg->mDecodingMutex.AssertCurrentThreadOwns();
 
   
   
   if (!aImg->mDecoder->NeedsNewFrame()) {
-    
-    
-    aImg->mDecodeRequest->mBytesToDecode = aImg->mSourceData.Length() - aImg->mBytesDecoded;
-
-    if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_PENDING ||
-        aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_ACTIVE) {
-      
-      
-      return;
-    }
-
-    aImg->mDecodeRequest->mRequestStatus = DecodeRequest::REQUEST_PENDING;
-    nsRefPtr<DecodeJob> job = new DecodeJob(aImg->mDecodeRequest, aImg);
-    if (!gMultithreadedDecoding || !mThreadPool) {
-      NS_DispatchToMainThread(job);
-    } else {
-      mThreadPool->Dispatch(job, nsIEventTarget::DISPATCH_NORMAL);
-    }
+    AddDecodeRequest(aImg->mDecodeRequest, aImg->mSourceData.Length() - aImg->mBytesDecoded);
+    EnsurePendingInEventLoop();
   }
 }
 
 void
-RasterImage::DecodePool::DecodeABitOf(RasterImage* aImg)
+RasterImage::DecodeWorker::DecodeABitOf(RasterImage* aImg)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  aImg->mDecodingMutex.AssertCurrentThreadOwns();
-
-  if (aImg->mDecodeRequest) {
-    
-    if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      aImg->FinishedSomeDecoding();
-    }
-  }
 
   DecodeSomeOfImage(aImg);
 
@@ -3660,89 +3594,97 @@ RasterImage::DecodePool::DecodeABitOf(RasterImage* aImg)
   }
 }
 
- void
-RasterImage::DecodePool::StopDecoding(RasterImage* aImg)
+void
+RasterImage::DecodeWorker::EnsurePendingInEventLoop()
 {
-  aImg->mDecodingMutex.AssertCurrentThreadOwns();
+  if (!mPendingInEventLoop) {
+    mPendingInEventLoop = true;
+    NS_DispatchToCurrentThread(this);
+  }
+}
 
+void
+RasterImage::DecodeWorker::StopDecoding(RasterImage* aImg)
+{
   
   
   if (aImg->mDecodeRequest) {
-    aImg->mDecodeRequest->mRequestStatus = DecodeRequest::REQUEST_INACTIVE;
+    if (aImg->mDecodeRequest->isInList()) {
+      aImg->mDecodeRequest->remove();
+    }
   }
 }
 
 NS_IMETHODIMP
-RasterImage::DecodePool::DecodeJob::Run()
+RasterImage::DecodeWorker::Run()
 {
-  MutexAutoLock imglock(mImage->mDecodingMutex);
-
-  
-  if (mRequest->mRequestStatus == DecodeRequest::REQUEST_STOPPED) {
-    return NS_OK;
-  }
-
-  
-  if (!mRequest->mAllocatedNewFrame && (!mImage->mDecoder || mImage->IsDecodeFinished() ||
-                                        mRequest->mRequestStatus != DecodeRequest::REQUEST_PENDING)) {
-    return NS_OK;
-  }
-
-  mRequest->mRequestStatus = DecodeRequest::REQUEST_ACTIVE;
-
-  uint32_t oldByteCount = mImage->mBytesDecoded;
-
-  DecodeType type = DECODE_TYPE_UNTIL_DONE_BYTES;
-
   
   
-  if (NS_IsMainThread()) {
-    type = DECODE_TYPE_UNTIL_TIME;
-  }
+  mPendingInEventLoop = false;
 
-  DecodePool::Singleton()->DecodeSomeOfImage(mImage, type, mRequest->mBytesToDecode);
-
-  uint32_t bytesDecoded = mImage->mBytesDecoded - oldByteCount;
-
-  mRequest->mRequestStatus = DecodeRequest::REQUEST_WORK_DONE;
+  TimeStamp eventStart = TimeStamp::Now();
 
   
-  
-  if (mImage->mDecoder && mImage->mDecoder->NeedsNewFrame()) {
-    FrameNeededWorker::GetNewFrame(mImage);
-  }
-  
-  
-  else if (mImage->mDecoder &&
-           !mImage->mError &&
-           !mImage->IsDecodeFinished() &&
-           bytesDecoded < mRequest->mBytesToDecode) {
-    DecodePool::Singleton()->RequestDecode(mImage);
-  } else {
+  do {
     
-    DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage, mRequest);
+    
+    
+    DecodeRequest* request = mASAPDecodeRequests.popFirst();
+    if (!request)
+      request = mNormalDecodeRequests.popFirst();
+    if (!request)
+      break;
+
+    
+    
+    nsRefPtr<RasterImage> image = request->mImage;
+    uint32_t oldFrameCount = image->mDecoder->GetFrameCount();
+    uint32_t oldByteCount = image->mBytesDecoded;
+
+    DecodeSomeOfImage(image, DECODE_TYPE_NORMAL, request->mBytesToDecode);
+
+    uint32_t bytesDecoded = image->mBytesDecoded - oldByteCount;
+
+    
+    
+    if (image->mDecoder && image->mDecoder->NeedsNewFrame()) {
+      FrameNeededWorker::GetNewFrame(image);
+    }
+
+    
+    
+    else if (image->mDecoder &&
+             !image->mError &&
+             !image->IsDecodeFinished() &&
+             bytesDecoded < request->mBytesToDecode) {
+      AddDecodeRequest(request, request->mBytesToDecode - bytesDecoded);
+
+      
+      if (image->mDecoder->GetFrameCount() != oldFrameCount) {
+        DecodeDoneWorker::NotifyFinishedSomeDecoding(image, request);
+      }
+    } else {
+      
+      DecodeDoneWorker::NotifyFinishedSomeDecoding(image, request);
+    }
+
+  } while ((TimeStamp::Now() - eventStart).ToMilliseconds() <= gMaxMSBeforeYield);
+
+  
+  if (!mASAPDecodeRequests.isEmpty() || !mNormalDecodeRequests.isEmpty()) {
+    EnsurePendingInEventLoop();
   }
+
+  Telemetry::Accumulate(Telemetry::IMAGE_DECODE_LATENCY_US,
+                        uint32_t((TimeStamp::Now() - eventStart).ToMicroseconds()));
 
   return NS_OK;
 }
 
 nsresult
-RasterImage::DecodePool::DecodeUntilSizeAvailable(RasterImage* aImg)
+RasterImage::DecodeWorker::DecodeUntilSizeAvailable(RasterImage* aImg)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  MutexAutoLock imgLock(aImg->mDecodingMutex);
-
-  if (aImg->mDecodeRequest) {
-    
-    if (aImg->mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
-      nsresult rv = aImg->FinishedSomeDecoding();
-      if (NS_FAILED(rv)) {
-        aImg->DoError();
-        return rv;
-      }
-    }
-  }
 
   nsresult rv = DecodeSomeOfImage(aImg, DECODE_TYPE_UNTIL_SIZE);
   if (NS_FAILED(rv)) {
@@ -3761,13 +3703,12 @@ RasterImage::DecodePool::DecodeUntilSizeAvailable(RasterImage* aImg)
 }
 
 nsresult
-RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
-                                           DecodeType aDecodeType ,
-                                           uint32_t bytesToDecode )
+RasterImage::DecodeWorker::DecodeSomeOfImage(RasterImage* aImg,
+                                             DecodeType aDecodeType ,
+                                             uint32_t bytesToDecode )
 {
   NS_ABORT_IF_FALSE(aImg->mInitialized,
                     "Worker active for uninitialized container!");
-  aImg->mDecodingMutex.AssertCurrentThreadOwns();
 
   
   
@@ -3781,15 +3722,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
 
   
   
-  if (aImg->mDecoder->IsSynchronous() && aImg->mDecoder->NeedsNewFrame()) {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    aImg->mDecoder->AllocateFrame();
-    aImg->mDecodeRequest->mAllocatedNewFrame = true;
-  }
-
-  
-  else if (aImg->mDecoder->NeedsNewFrame()) {
+  if (aImg->mDecoder->NeedsNewFrame()) {
     return NS_OK;
   }
 
@@ -3840,7 +3773,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
 
     
     
-    if (aDecodeType == DECODE_TYPE_UNTIL_TIME && TimeStamp::Now() >= deadline)
+    if (TimeStamp::Now() >= deadline)
       break;
   }
 
@@ -3885,8 +3818,6 @@ RasterImage::DecodeDoneWorker::DecodeDoneWorker(RasterImage* image, DecodeReques
 void
 RasterImage::DecodeDoneWorker::NotifyFinishedSomeDecoding(RasterImage* image, DecodeRequest* request)
 {
-  image->mDecodingMutex.AssertCurrentThreadOwns();
-
   nsCOMPtr<DecodeDoneWorker> worker = new DecodeDoneWorker(image, request);
   NS_DispatchToMainThread(worker);
 }
@@ -3894,15 +3825,12 @@ RasterImage::DecodeDoneWorker::NotifyFinishedSomeDecoding(RasterImage* image, De
 NS_IMETHODIMP
 RasterImage::DecodeDoneWorker::Run()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-  MutexAutoLock lock(mImage->mDecodingMutex);
-
   mImage->FinishedSomeDecoding(eShutdownIntent_Done, mRequest);
 
   
   if (mImage->mDecoder && !mImage->IsDecodeFinished() &&
       mImage->mSourceData.Length() > mImage->mBytesDecoded) {
-    DecodePool::Singleton()->RequestDecode(mImage);
+    DecodeWorker::Singleton()->RequestDecode(mImage);
   }
 
   return NS_OK;
@@ -3923,7 +3851,6 @@ RasterImage::FrameNeededWorker::GetNewFrame(RasterImage* image)
 NS_IMETHODIMP
 RasterImage::FrameNeededWorker::Run()
 {
-  MutexAutoLock lock(mImage->mDecodingMutex);
   nsresult rv = NS_OK;
 
   
@@ -3934,8 +3861,7 @@ RasterImage::FrameNeededWorker::Run()
   }
 
   if (NS_SUCCEEDED(rv) && mImage->mDecoder) {
-    
-    DecodePool::Singleton()->RequestDecode(mImage);
+    DecodeWorker::Singleton()->RequestDecode(mImage);
   }
 
   return NS_OK;

@@ -3871,14 +3871,6 @@ pref("image.mem.max_ms_before_yield", 5);
 pref("image.mem.max_decoded_image_kb", 51200);
 
 
-
-pref("image.multithreaded_decoding.enabled", true);
-
-
-
-pref("image.multithreaded_decoding.limit", -1);
-
-
 pref("gl.msaa-level", 2);
 pref("webgl.force-enabled", false);
 pref("webgl.disabled", false);

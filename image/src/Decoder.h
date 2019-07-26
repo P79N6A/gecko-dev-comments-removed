@@ -76,7 +76,7 @@ public:
   void FlushInvalidations();
 
   
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder)
+  NS_INLINE_DECL_REFCOUNTING(Decoder)
 
   
 
@@ -95,11 +95,6 @@ public:
   void SetSynchronous(bool aSynchronous)
   {
     mSynchronous = aSynchronous;
-  }
-
-  bool IsSynchronous() const
-  {
-    return mSynchronous;
   }
 
   void SetObserver(imgDecoderObserver* aObserver)
