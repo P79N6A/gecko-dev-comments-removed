@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsgc_internal_h___
-#define jsgc_internal_h___
+#ifndef gc_GCInternals_h
+#define gc_GCInternals_h
 
 #include "jsapi.h"
 

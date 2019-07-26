@@ -4,8 +4,8 @@
 
 
 
-#ifndef Xdr_h___
-#define Xdr_h___
+#ifndef vm_Xdr_h
+#define vm_Xdr_h
 
 #include "mozilla/Endian.h"
 

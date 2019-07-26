@@ -4,8 +4,8 @@
 
 
 
-#ifndef Debugger_inl_h__
-#define Debugger_inl_h__
+#ifndef vm_Debugger_inl_h
+#define vm_Debugger_inl_h
 
 #include "vm/Debugger.h"
 
@@ -22,4 +22,4 @@ js::Debugger::onLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok)
     return ok;
 }
 
-#endif  
+#endif 

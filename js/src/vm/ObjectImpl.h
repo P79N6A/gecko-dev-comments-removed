@@ -4,8 +4,8 @@
 
 
 
-#ifndef ObjectImpl_h___
-#define ObjectImpl_h___
+#ifndef vm_ObjectImpl_h
+#define vm_ObjectImpl_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/GuardObjects.h"

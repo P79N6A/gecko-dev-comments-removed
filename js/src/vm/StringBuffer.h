@@ -4,8 +4,8 @@
 
 
 
-#ifndef StringBuffer_h___
-#define StringBuffer_h___
+#ifndef vm_StringBuffer_h
+#define vm_StringBuffer_h
 
 #include "mozilla/DebugOnly.h"
 

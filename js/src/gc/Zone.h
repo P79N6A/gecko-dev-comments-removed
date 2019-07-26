@@ -4,8 +4,8 @@
 
 
 
-#ifndef gc_zone_h___
-#define gc_zone_h___
+#ifndef gc_Zone_h
+#define gc_Zone_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"

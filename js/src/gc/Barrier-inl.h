@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsgc_barrier_inl_h___
-#define jsgc_barrier_inl_h___
+#ifndef gc_Barrier_inl_h
+#define gc_Barrier_inl_h
 
 #include "gc/Barrier.h"
 #include "gc/Marking.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef ForkJoin_h__
-#define ForkJoin_h__
+#ifndef vm_ForkJoin_h
+#define vm_ForkJoin_h
 
 #include "jscntxt.h"
 #include "vm/ThreadPool.h"

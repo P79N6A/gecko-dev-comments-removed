@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsgc_barrier_h___
-#define jsgc_barrier_h___
+#ifndef gc_Barrier_h
+#define gc_Barrier_h
 
 #include "jsapi.h"
 

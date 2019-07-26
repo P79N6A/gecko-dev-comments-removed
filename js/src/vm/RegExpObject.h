@@ -4,8 +4,8 @@
 
 
 
-#ifndef RegExpObject_h__
-#define RegExpObject_h__
+#ifndef vm_RegExpObject_h
+#define vm_RegExpObject_h
 
 #include "mozilla/Attributes.h"
 
@@ -401,4 +401,4 @@ CloneScriptRegExpObject(JSContext *cx, RegExpObject &re);
 
 } 
 
-#endif
+#endif 

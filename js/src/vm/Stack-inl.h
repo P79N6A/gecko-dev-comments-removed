@@ -4,8 +4,8 @@
 
 
 
-#ifndef Stack_inl_h__
-#define Stack_inl_h__
+#ifndef vm_Stack_inl_h
+#define vm_Stack_inl_h
 
 #include "mozilla/PodOperations.h"
 

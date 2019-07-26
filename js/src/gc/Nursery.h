@@ -5,8 +5,8 @@
 
 
 
-#ifndef jsgc_nursery_h___
-#define jsgc_nursery_h___
+#ifndef gc_Nursery_h
+#define gc_Nursery_h
 
 #ifdef JSGC_GENERATIONAL
 

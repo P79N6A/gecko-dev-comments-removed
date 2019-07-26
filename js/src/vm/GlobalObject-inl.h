@@ -4,8 +4,8 @@
 
 
 
-#ifndef GlobalObject_inl_h___
-#define GlobalObject_inl_h___
+#ifndef vm_GlobalObject_inl_h
+#define vm_GlobalObject_inl_h
 
 #include "vm/GlobalObject.h"
 
@@ -219,4 +219,4 @@ GlobalObject::setIntrinsicsHolder(JSObject *obj)
 
 } 
 
-#endif
+#endif 

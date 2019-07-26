@@ -4,8 +4,8 @@
 
 
 
-#ifndef gc_marking_h___
-#define gc_marking_h___
+#ifndef gc_Marking_h
+#define gc_Marking_h
 
 #include "jsgc.h"
 #include "jscntxt.h"

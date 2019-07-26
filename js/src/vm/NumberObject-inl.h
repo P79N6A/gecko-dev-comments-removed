@@ -4,8 +4,8 @@
 
 
 
-#ifndef NumberObject_inl_h___
-#define NumberObject_inl_h___
+#ifndef vm_NumberObject_inl_h
+#define vm_NumberObject_inl_h
 
 #include "NumberObject.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef GlobalObject_h___
-#define GlobalObject_h___
+#ifndef vm_GlobalObject_h
+#define vm_GlobalObject_h
 
 #include "mozilla/DebugOnly.h"
 

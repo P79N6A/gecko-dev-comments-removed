@@ -4,8 +4,8 @@
 
 
 
-#ifndef BooleanObject_h___
-#define BooleanObject_h___
+#ifndef vm_BooleanObject_h
+#define vm_BooleanObject_h
 
 #include "jsbool.h"
 

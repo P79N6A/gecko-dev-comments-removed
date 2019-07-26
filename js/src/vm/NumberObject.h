@@ -4,8 +4,8 @@
 
 
 
-#ifndef NumberObject_h___
-#define NumberObject_h___
+#ifndef vm_NumberObject_h
+#define vm_NumberObject_h
 
 #include "jsnum.h"
 

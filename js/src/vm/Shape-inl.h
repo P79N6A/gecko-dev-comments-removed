@@ -4,8 +4,8 @@
 
 
 
-#ifndef Shape_inl_h__
-#define Shape_inl_h__
+#ifndef vm_Shape_inl_h
+#define vm_Shape_inl_h
 
 #include "mozilla/PodOperations.h"
 

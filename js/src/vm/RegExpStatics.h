@@ -4,8 +4,8 @@
 
 
 
-#ifndef RegExpStatics_h__
-#define RegExpStatics_h__
+#ifndef vm_RegExpStatics_h
+#define vm_RegExpStatics_h
 
 #include <stddef.h>
 

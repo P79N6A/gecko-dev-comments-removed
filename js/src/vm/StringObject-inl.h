@@ -4,8 +4,8 @@
 
 
 
-#ifndef StringObject_inl_h___
-#define StringObject_inl_h___
+#ifndef vm_StringObject_inl_h
+#define vm_StringObject_inl_h
 
 #include "StringObject.h"
 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef StringObject_h___
-#define StringObject_h___
+#ifndef vm_StringObject_h
+#define vm_StringObject_h
 
 #include "jsobj.h"
 #include "jsstr.h"

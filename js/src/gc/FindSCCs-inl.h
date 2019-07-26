@@ -4,6 +4,9 @@
 
 
 
+#ifndef gc_FindSCCs_inl_h
+#define gc_FindSCCs_inl_h
+
 #include "jsfriendapi.h"
 
 #include "gc/FindSCCs.h"
@@ -145,3 +148,5 @@ ComponentFinder<Node>::mergeGroups(Node *first)
 
 } 
 } 
+
+#endif 

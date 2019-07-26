@@ -4,8 +4,10 @@
 
 
 
-#ifndef Interpreter_h___
-#define Interpreter_h___
+#ifndef vm_Interpreter_h
+#define vm_Interpreter_h
+
+
 
 
 

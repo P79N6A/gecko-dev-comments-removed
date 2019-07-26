@@ -4,8 +4,8 @@
 
 
 
-#ifndef SPSProfiler_h__
-#define SPSProfiler_h__
+#ifndef vm_SPSProfiler_h
+#define vm_SPSProfiler_h
 
 #include <stddef.h>
 

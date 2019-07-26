@@ -4,8 +4,8 @@
 
 
 
-#ifndef NumericConversions_h___
-#define NumericConversions_h___
+#ifndef vm_NumericConversions_h
+#define vm_NumericConversions_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"

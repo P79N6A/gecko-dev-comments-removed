@@ -4,8 +4,8 @@
 
 
 
-#ifndef Unicode_h__
-#define Unicode_h__
+#ifndef vm_Unicode_h
+#define vm_Unicode_h
 
 #include "jspubtd.h"
 

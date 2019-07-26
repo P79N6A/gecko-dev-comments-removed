@@ -4,8 +4,8 @@
 
 
 
-#ifndef ThreadPool_h__
-#define ThreadPool_h__
+#ifndef vm_ThreadPool_h
+#define vm_ThreadPool_h
 
 #include <stddef.h>
 #include "mozilla/StandardInteger.h"

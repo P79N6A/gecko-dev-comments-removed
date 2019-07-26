@@ -4,8 +4,8 @@
 
 
 
-#ifndef Stack_h__
-#define Stack_h__
+#ifndef vm_Stack_h
+#define vm_Stack_h
 
 #include "jsautooplen.h"
 #include "jsfun.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef Probes_h__
-#define Probes_h__
+#ifndef vm_Probes_h
+#define vm_Probes_h
 
 #include "jspubtd.h"
 #include "jsobj.h"
@@ -170,4 +170,4 @@ Probes::finalizeObject(JSObject *obj)
 
 } 
 
-#endif  
+#endif 

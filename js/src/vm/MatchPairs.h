@@ -4,8 +4,8 @@
 
 
 
-#ifndef MatchPairs_h__
-#define MatchPairs_h__
+#ifndef vm_MatchPairs_h
+#define vm_MatchPairs_h
 
 #include "ds/LifoAlloc.h"
 

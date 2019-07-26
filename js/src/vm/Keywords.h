@@ -6,8 +6,8 @@
 
 
 
-#ifndef Keywords_h_
-#define Keywords_h_
+#ifndef vm_Keywords_h
+#define vm_Keywords_h
 
 #include "jsversion.h"
 

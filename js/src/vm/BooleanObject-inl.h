@@ -4,8 +4,8 @@
 
 
 
-#ifndef BooleanObject_inl_h___
-#define BooleanObject_inl_h___
+#ifndef vm_BooleanObject_inl_h
+#define vm_BooleanObject_inl_h
 
 #include "vm/BooleanObject.h"
 

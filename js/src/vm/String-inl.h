@@ -4,8 +4,8 @@
 
 
 
-#ifndef String_inl_h__
-#define String_inl_h__
+#ifndef vm_String_inl_h
+#define vm_String_inl_h
 
 #include "vm/String.h"
 
@@ -509,4 +509,4 @@ JSExternalString::finalize(js::FreeOp *fop)
     fin->finalize(fin, const_cast<jschar *>(chars()));
 }
 
-#endif
+#endif 

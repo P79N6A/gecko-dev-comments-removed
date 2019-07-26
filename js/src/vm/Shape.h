@@ -4,8 +4,8 @@
 
 
 
-#ifndef Shape_h___
-#define Shape_h___
+#ifndef vm_Shape_h
+#define vm_Shape_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"

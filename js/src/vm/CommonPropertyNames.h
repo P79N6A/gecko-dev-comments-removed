@@ -6,8 +6,8 @@
 
 
 
-#ifndef CommonPropertyNames_h__
-#define CommonPropertyNames_h__
+#ifndef vm_CommonPropertyNames_h
+#define vm_CommonPropertyNames_h
 
 #include "jsprototypes.h"
 #include "jsversion.h"

@@ -4,8 +4,8 @@
 
 
 
-#ifndef gc_heap_h___
-#define gc_heap_h___
+#ifndef gc_Heap_h
+#define gc_Heap_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/PodOperations.h"

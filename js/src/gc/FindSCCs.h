@@ -4,8 +4,8 @@
 
 
 
-#ifndef gc_findsccs_h___
-#define gc_findsccs_h___
+#ifndef gc_FindSCCs_h
+#define gc_FindSCCs_h
 
 #include "jsutil.h"
 

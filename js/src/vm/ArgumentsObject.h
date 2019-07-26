@@ -4,8 +4,8 @@
 
 
 
-#ifndef ArgumentsObject_h___
-#define ArgumentsObject_h___
+#ifndef vm_ArgumentsObject_h
+#define vm_ArgumentsObject_h
 
 #include "jsfun.h"
 

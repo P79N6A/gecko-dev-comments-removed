@@ -4,8 +4,8 @@
 
 
 
-#ifndef Monitor_h__
-#define Monitor_h__
+#ifndef vm_Monitor_h
+#define vm_Monitor_h
 
 #include "jslock.h"
 

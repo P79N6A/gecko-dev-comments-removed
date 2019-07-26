@@ -4,8 +4,8 @@
 
 
 
-#ifndef ScopeObject_h___
-#define ScopeObject_h___
+#ifndef vm_ScopeObject_h
+#define vm_ScopeObject_h
 
 #include "jscntxt.h"
 #include "jsobj.h"

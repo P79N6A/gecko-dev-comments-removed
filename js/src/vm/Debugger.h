@@ -4,8 +4,8 @@
 
 
 
-#ifndef Debugger_h__
-#define Debugger_h__
+#ifndef vm_Debugger_h
+#define vm_Debugger_h
 
 #include "mozilla/LinkedList.h"
 

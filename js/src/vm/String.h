@@ -4,8 +4,8 @@
 
 
 
-#ifndef String_h_
-#define String_h_
+#ifndef vm_String_h
+#define vm_String_h
 
 #include "mozilla/PodOperations.h"
 
@@ -992,4 +992,4 @@ JSAtom::asPropertyName()
     return static_cast<js::PropertyName *>(this);
 }
 
-#endif
+#endif 

@@ -4,8 +4,8 @@
 
 
 
-#ifndef Interpreter_inl_h__
-#define Interpreter_inl_h__
+#ifndef vm_Interpreter_inl_h
+#define vm_Interpreter_inl_h
 
 #include "jsapi.h"
 #include "jsbool.h"

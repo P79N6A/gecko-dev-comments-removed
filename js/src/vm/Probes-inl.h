@@ -4,8 +4,8 @@
 
 
 
-#ifndef Probes_inl_h__
-#define Probes_inl_h__
+#ifndef vm_Probes_inl_h
+#define vm_Probes_inl_h
 
 #include "vm/Probes.h"
 
@@ -124,4 +124,4 @@ Probes::stopExecution(JSScript *script)
 
 } 
  
-#endif  
+#endif 

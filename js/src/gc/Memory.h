@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsgc_memory_h___
-#define jsgc_memory_h___
+#ifndef gc_Memory_h
+#define gc_Memory_h
 
 #include <stddef.h>
 #include "jsgc.h"

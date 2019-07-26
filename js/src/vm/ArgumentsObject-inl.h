@@ -4,8 +4,8 @@
 
 
 
-#ifndef ArgumentsObject_inl_h___
-#define ArgumentsObject_inl_h___
+#ifndef vm_ArgumentsObject_inl_h
+#define vm_ArgumentsObject_inl_h
 
 #include "vm/ArgumentsObject.h"
 

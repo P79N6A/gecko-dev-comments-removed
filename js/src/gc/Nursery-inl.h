@@ -5,9 +5,10 @@
 
 
 
+#ifndef gc_Nursery_inl_h
+#define gc_Nursery_inl_h
+
 #ifdef JSGC_GENERATIONAL
-#ifndef gc_Nursery_inl_h__
-#define gc_Nursery_inl_h__
 
 #include "gc/Heap.h"
 #include "gc/Nursery.h"
@@ -80,4 +81,5 @@ js::Nursery::getForwardedPointer(T **ref)
 }
 
 #endif 
+
 #endif 
