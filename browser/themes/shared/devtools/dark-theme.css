@@ -93,7 +93,8 @@
 .theme-fg-color1,
 .cm-s-mozilla .cm-number,
 .variable-or-property .token-number,
-.variable-or-property[return] > .title > .name { 
+.variable-or-property[return] > .title > .name,
+.variable-or-property[scope] > .title > .name { 
   color: #5c9966;
 }
 
@@ -103,8 +104,7 @@
 .cm-s-mozilla .cm-def,
 .cm-s-mozilla .cm-property,
 .cm-s-mozilla .cm-qualifier,
-.variables-view-variable > .title > .name,
-.variable-or-property[scope] > .title > .name { 
+.variables-view-variable > .title > .name { 
   color: #3689b2;
 }
 
