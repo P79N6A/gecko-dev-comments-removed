@@ -1060,12 +1060,6 @@ XPCConvert::JSObject2NativeInterface(JSContext* cx,
         
 
         
-        
-        
-        if (JS_TypeOfValue(cx, OBJECT_TO_JSVAL(src)) == JSTYPE_XML)
-            return false;
-
-        
         if (GetISupportsFromJSObject(inner ? inner : src, &iface)) {
             if (iface)
                 return NS_SUCCEEDED(iface->QueryInterface(*iid, dest));

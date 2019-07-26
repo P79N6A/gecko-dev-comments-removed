@@ -4,6 +4,7 @@
 
 
 
+
 #include "builtin/Module.h"
 #include "frontend/ParseNode.h"
 #include "frontend/Parser.h"
@@ -176,10 +177,6 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
         stack->pushUnlessNull(pn->pn_kid);
         break;
       case PN_NULLARY:
-        
-
-
-
         return !pn->isUsed() && !pn->isDefn();
       default:
         ;
@@ -454,7 +451,6 @@ CloneParseTree(ParseNode *opn, Parser *parser)
         break;
 
       case PN_NULLARY:
-        
         pn->pn_u = opn->pn_u;
         break;
 

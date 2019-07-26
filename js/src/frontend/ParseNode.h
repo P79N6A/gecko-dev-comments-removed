@@ -85,7 +85,6 @@ class UpvarCookie
     F(ELEM) \
     F(ARRAY) \
     F(STATEMENTLIST) \
-    F(XMLCURLYEXPR) \
     F(OBJECT) \
     F(CALL) \
     F(NAME) \
@@ -121,27 +120,6 @@ class UpvarCookie
     F(THROW) \
     F(INSTANCEOF) \
     F(DEBUGGER) \
-    F(DEFXMLNS) \
-    F(XMLSTAGO) \
-    F(XMLETAGO) \
-    F(XMLPTAGC) \
-    F(XMLTAGC) \
-    F(XMLNAME) \
-    F(XMLATTR) \
-    F(XMLSPACE) \
-    F(XMLTEXT) \
-    F(XMLCOMMENT) \
-    F(XMLCDATA) \
-    F(XMLPI) \
-    F(XMLUNARY) \
-    F(AT) \
-    F(FUNCTIONNS) \
-    F(DBLCOLON) \
-    F(ANYNAME) \
-    F(DBLDOT) \
-    F(FILTER) \
-    F(XMLELEM) \
-    F(XMLLIST) \
     F(YIELD) \
     F(GENEXP) \
     F(ARRAYCOMP) \
@@ -411,73 +389,6 @@ enum ParseNodeKind {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -493,7 +404,6 @@ struct Definition;
 class LoopControlStatement;
 class BreakStatement;
 class ContinueStatement;
-class XMLProcessingInstruction;
 class ConditionalExpression;
 class PropertyAccess;
 
@@ -548,24 +458,9 @@ struct ParseNode {
     bool isArity(ParseNodeArity a) const   { return getArity() == a; }
     void setArity(ParseNodeArity a)        { pn_arity = a; }
 
-    bool isXMLNameOp() const {
-        ParseNodeKind kind = getKind();
-        return kind == PNK_ANYNAME || kind == PNK_AT || kind == PNK_DBLCOLON;
-    }
     bool isAssignment() const {
         ParseNodeKind kind = getKind();
         return PNK_ASSIGNMENT_START <= kind && kind <= PNK_ASSIGNMENT_LAST;
-    }
-
-    bool isXMLPropertyIdentifier() const {
-        ParseNodeKind kind = getKind();
-        return kind == PNK_ANYNAME || kind == PNK_AT || kind == PNK_DBLCOLON;
-    }
-
-    bool isXMLItem() const {
-        ParseNodeKind kind = getKind();
-        return kind == PNK_XMLCOMMENT || kind == PNK_XMLCDATA || kind == PNK_XMLPI ||
-               kind == PNK_XMLELEM || kind == PNK_XMLLIST;
     }
 
     
@@ -631,11 +526,6 @@ struct ParseNode {
             friend class LoopControlStatement;
             PropertyName     *label;    
         } loopControl;
-        class {                         
-            friend class XMLProcessingInstruction;
-            PropertyName     *target;   
-            JSAtom           *data;     
-        } xmlpi;
     } pn_u;
 
 #define pn_funbox       pn_u.name.funbox
@@ -747,19 +637,18 @@ struct ParseNode {
 #define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_FORIN node
                                            which is left kid of PNK_FOR */
 #define PNX_ENDCOMMA    0x10            /* array literal has comma at end */
-#define PNX_XMLROOT     0x20            /* top-most node in XML literal tree */
-#define PNX_GROUPINIT   0x40            /* var [a, b] = [c, d]; unit list */
-#define PNX_NEEDBRACES  0x80            /* braces necessary due to closure */
-#define PNX_FUNCDEFS   0x100            /* contains top-level function statements */
-#define PNX_SETCALL    0x100            /* call expression in lvalue context */
-#define PNX_DESTRUCT   0x200            /* destructuring special cases:
+#define PNX_GROUPINIT   0x20            /* var [a, b] = [c, d]; unit list */
+#define PNX_NEEDBRACES  0x40            /* braces necessary due to closure */
+#define PNX_FUNCDEFS    0x80            /* contains top-level function statements */
+#define PNX_SETCALL     0x80            /* call expression in lvalue context */
+#define PNX_DESTRUCT   0x100            /* destructuring special cases:
                                            1. shorthand syntax used, at present
                                               object destructuring ({x,y}) only;
                                            2. code evaluating destructuring
                                               arguments occurs before function
                                               body */
-#define PNX_HOLEY      0x400            /* array initialiser has holes */
-#define PNX_NONCONST   0x800            /* initialiser has non-constants */
+#define PNX_HOLEY      0x200            /* array initialiser has holes */
+#define PNX_NONCONST   0x400            /* initialiser has non-constants */
 
     unsigned frameLevel() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
@@ -1138,33 +1027,6 @@ class DebuggerStatement : public ParseNode {
     { }
 };
 
-#if JS_HAS_XML_SUPPORT
-class XMLProcessingInstruction : public ParseNode {
-  public:
-    XMLProcessingInstruction(PropertyName *target, JSAtom *data, const TokenPos &pos)
-      : ParseNode(PNK_XMLPI, JSOP_NOP, PN_NULLARY, pos)
-    {
-        pn_u.xmlpi.target = target;
-        pn_u.xmlpi.data = data;
-    }
-
-    static bool test(const ParseNode &node) {
-        bool match = node.isKind(PNK_XMLPI);
-        JS_ASSERT_IF(match, node.isArity(PN_NULLARY));
-        JS_ASSERT_IF(match, node.isOp(JSOP_NOP));
-        return match;
-    }
-
-    PropertyName *target() const {
-        return pn_u.xmlpi.target;
-    }
-
-    JSAtom *data() const {
-        return pn_u.xmlpi.data;
-    }
-};
-#endif
-
 class ConditionalExpression : public ParseNode {
   public:
     ConditionalExpression(ParseNode *condition, ParseNode *thenExpr, ParseNode *elseExpr)
@@ -1214,64 +1076,6 @@ class BooleanLiteral : public ParseNode {
     BooleanLiteral(bool b, const TokenPos &pos)
       : ParseNode(b ? PNK_TRUE : PNK_FALSE, b ? JSOP_TRUE : JSOP_FALSE, PN_NULLARY, pos)
     { }
-};
-
-class XMLDoubleColonProperty : public ParseNode {
-  public:
-    XMLDoubleColonProperty(ParseNode *lhs, ParseNode *rhs,
-                           const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
-    {
-        JS_ASSERT(rhs->isKind(PNK_DBLCOLON));
-        pn_u.binary.left = lhs;
-        pn_u.binary.right = rhs;
-    }
-
-    ParseNode &left() const {
-        return *pn_u.binary.left;
-    }
-
-    ParseNode &right() const {
-        return *pn_u.binary.right;
-    }
-};
-
-class XMLFilterExpression : public ParseNode {
-  public:
-    XMLFilterExpression(ParseNode *lhs, ParseNode *filterExpr,
-                        const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_FILTER, JSOP_FILTER, PN_BINARY, TokenPos::make(begin, end))
-    {
-        pn_u.binary.left = lhs;
-        pn_u.binary.right = filterExpr;
-    }
-
-    ParseNode &left() const {
-        return *pn_u.binary.left;
-    }
-
-    ParseNode &filter() const {
-        return *pn_u.binary.right;
-    }
-};
-
-class XMLProperty : public ParseNode {
-  public:
-    XMLProperty(ParseNode *lhs, ParseNode *propertyId,
-                const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
-    {
-        pn_u.binary.left = lhs;
-        pn_u.binary.right = propertyId;
-    }
-
-    ParseNode &left() const {
-        return *pn_u.binary.left;
-    }
-
-    ParseNode &right() const {
-        return *pn_u.binary.right;
-    }
 };
 
 class PropertyAccess : public ParseNode {

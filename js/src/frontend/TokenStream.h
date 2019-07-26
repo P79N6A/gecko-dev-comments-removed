@@ -82,23 +82,6 @@ enum TokenKind {
     TOK_THROW,                     
     TOK_INSTANCEOF,                
     TOK_DEBUGGER,                  
-    TOK_XMLSTAGO,                  
-    TOK_XMLETAGO,                  
-    TOK_XMLPTAGC,                  
-    TOK_XMLTAGC,                   
-    TOK_XMLNAME,                   
-    TOK_XMLATTR,                   
-    TOK_XMLSPACE,                  
-    TOK_XMLTEXT,                   
-    TOK_XMLCOMMENT,                
-    TOK_XMLCDATA,                  
-    TOK_XMLPI,                     
-    TOK_AT,                        
-    TOK_DBLCOLON,                  
-    TOK_DBLDOT,                    
-    TOK_FILTER,                    
-    TOK_XMLELEM,                   
-    TOK_XMLLIST,                   
     TOK_YIELD,                     
     TOK_LEXICALSCOPE,              
     TOK_LET,                       
@@ -292,10 +275,6 @@ struct Token {
 
       private:
         friend struct Token;
-        struct {                        
-            PropertyName *target;       
-            JSAtom       *data;         
-        } xmlpi;
         struct {
             double       value;         
             DecimalPoint decimalPoint;  
@@ -319,20 +298,10 @@ struct Token {
     }
 
     void setAtom(JSOp op, JSAtom *atom) {
-        JS_ASSERT(op == JSOP_STRING || op == JSOP_XMLCOMMENT || JSOP_XMLCDATA);
+        JS_ASSERT(op == JSOP_STRING);
         JS_ASSERT(!IsPoisonedPtr(atom));
         u.s.op = op;
         u.s.n.atom = atom;
-    }
-
-    void setProcessingInstruction(PropertyName *target, JSAtom *data) {
-        JS_ASSERT(target);
-        JS_ASSERT(data);
-        JS_ASSERT(!target->empty());
-        JS_ASSERT(!IsPoisonedPtr(target));
-        JS_ASSERT(!IsPoisonedPtr(data));
-        u.xmlpi.target = target;
-        u.xmlpi.data = data;
     }
 
     void setRegExpFlags(js::RegExpFlag flags) {
@@ -353,23 +322,8 @@ struct Token {
     }
 
     JSAtom *atom() const {
-        JS_ASSERT(type == TOK_STRING ||
-                  type == TOK_XMLNAME ||
-                  type == TOK_XMLATTR ||
-                  type == TOK_XMLTEXT ||
-                  type == TOK_XMLCDATA ||
-                  type == TOK_XMLSPACE ||
-                  type == TOK_XMLCOMMENT);
+        JS_ASSERT(type == TOK_STRING);
         return u.s.n.atom;
-    }
-
-    PropertyName *xmlPITarget() const {
-        JS_ASSERT(type == TOK_XMLPI);
-        return u.xmlpi.target;
-    }
-    JSAtom *xmlPIData() const {
-        JS_ASSERT(type == TOK_XMLPI);
-        return u.xmlpi.data;
     }
 
     js::RegExpFlag regExpFlags() const {
@@ -400,11 +354,8 @@ enum TokenStreamFlags
     TSF_KEYWORD_IS_NAME = 0x20, 
     TSF_DIRTYLINE = 0x40,       
     TSF_OWNFILENAME = 0x80,     
-    TSF_XMLTAGMODE = 0x100,     
-    TSF_XMLTEXTMODE = 0x200,    
-    TSF_XMLONLYMODE = 0x400,    
-    TSF_OCTAL_CHAR = 0x800,     
-    TSF_HAD_ERROR = 0x1000,     
+    TSF_OCTAL_CHAR = 0x100,     
+    TSF_HAD_ERROR = 0x200,      
 
     
 
@@ -504,14 +455,8 @@ class TokenStream
     const CharBuffer &getTokenbuf() const { return tokenbuf; }
     const char *getFilename() const { return filename; }
     unsigned getLineno() const { return lineno; }
-    
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    bool allowsXML() const { return banXML == 0 && !strictMode(); }
-    bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
-    void setMoarXML(bool enabled) { moarXML = enabled; }
-    void incBanXML() { banXML++; }
-    void decBanXML() { JS_ASSERT(banXML); banXML--; }
     bool hadError() const { return !!(flags & TSF_HAD_ERROR); }
 
     bool isCurrentTokenEquality() const {
@@ -531,12 +476,8 @@ class TokenStream
     }
 
     
-    void setXMLTagMode(bool enabled = true) { setFlag(enabled, TSF_XMLTAGMODE); }
-    void setXMLOnlyMode(bool enabled = true) { setFlag(enabled, TSF_XMLONLYMODE); }
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
 
-    bool isXMLTagMode() const { return !!(flags & TSF_XMLTAGMODE); }
-    bool isXMLOnlyMode() const { return !!(flags & TSF_XMLONLYMODE); }
     bool isUnexpectedEOF() const { return !!(flags & TSF_UNEXPECTED_EOF); }
     bool isEOF() const { return !!(flags & TSF_EOF); }
     bool sawOctalEscape() const { return !!(flags & TSF_OCTAL_CHAR); }
@@ -595,7 +536,6 @@ class TokenStream
     TokenKind getToken() {
         
         if (lookahead != 0) {
-            JS_ASSERT(!(flags & TSF_XMLTEXTMODE));
             lookahead--;
             cursor = (cursor + 1) & ntokensMask;
             TokenKind tt = currentToken().type;
@@ -831,10 +771,6 @@ class TokenStream
     bool getAtLine();
     bool getAtSourceMappingURL();
 
-    bool getXMLEntity();
-    bool getXMLTextOrTag(TokenKind *ttp, Token **tpp);
-    bool getXMLMarkup(TokenKind *ttp, Token **tpp);
-
     bool matchChar(int32_t expect) {
         int32_t c = getChar();
         if (c == expect)
@@ -878,8 +814,6 @@ class TokenStream
     bool                maybeEOL[256];       
     bool                maybeStrSpecial[256];
     JSVersion           version;        
-    unsigned            banXML;         
-    bool                moarXML;        
     JSContext           *const cx;
     JSPrincipals        *const originPrincipals;
     StrictModeGetter    *strictModeGetter; 
