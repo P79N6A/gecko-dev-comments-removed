@@ -18,10 +18,10 @@
 #include "vm/ArrayObject.h"
 #include "vm/ForkJoin.h"
 #include "vm/TypedArrayObject.h"
-#include "vm/ObjectImpl-inl.h"
 
 #include "jsgcinlines.h"
 #include "gc/Nursery-inl.h"
+#include "vm/ObjectImpl-inl.h"
 
 
 
