@@ -637,14 +637,18 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     }
 
     
-    rv = nss_InitModules(configdir, certPrefix, keyPrefix, secmodName, 
+
+    if (!(isReallyInitted && noCertDB && noModDB)) {
+	
+	rv = nss_InitModules(configdir, certPrefix, keyPrefix, secmodName, 
 		updateDir, updCertPrefix, updKeyPrefix, updateID, 
 		updateName, configName, configStrings, passwordRequired,
 		readOnly, noCertDB, noModDB, forceOpen, optimizeSpace, 
 		(initContextPtr != NULL));
 
-    if (rv != SECSuccess) {
-	goto loser;
+	if (rv != SECSuccess) {
+	    goto loser;
+	}
     }
 
 
@@ -917,6 +921,12 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
 
+    
+ 
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+	return SECFailure;
+    }
+
     PZ_Lock(nssInitLock);
     if (!NSS_IsInitialized()) {
 	PZ_Unlock(nssInitLock);
@@ -975,6 +985,11 @@ NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
 
+    
+ 
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+	return SECFailure;
+    }
     PZ_Lock(nssInitLock);
     if (!NSS_IsInitialized()) {
 	PZ_Unlock(nssInitLock);
@@ -1113,6 +1128,11 @@ SECStatus
 NSS_Shutdown(void)
 {
     SECStatus rv;
+    
+ 
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+	return SECFailure;
+    }
     PZ_Lock(nssInitLock);
 
     if (!nssIsInitted) {
@@ -1165,6 +1185,11 @@ NSS_ShutdownContext(NSSInitContext *context)
 {
     SECStatus rv = SECSuccess;
 
+    
+ 
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+	return SECFailure;
+    }
     PZ_Lock(nssInitLock);
     
 

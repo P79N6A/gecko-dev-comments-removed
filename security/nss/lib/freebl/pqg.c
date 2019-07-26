@@ -73,7 +73,7 @@ int prime_testcount_q(int L, int N)
 
 
 
-SECStatus static
+static SECStatus
 pqg_validate_dsa2(unsigned int L, unsigned int N)
 {
 
@@ -101,6 +101,27 @@ pqg_validate_dsa2(unsigned int L, unsigned int N)
 	return SECFailure;
     }
     return SECSuccess;
+}
+
+static unsigned int
+pqg_get_default_N(unsigned int L)
+{
+    unsigned int N = 0;
+    switch (L) {
+    case 1024:
+	N = DSA1_Q_BITS;
+	break;
+    case 2048:
+	N = 224;
+	break;
+    case 3072:
+	N = 256;
+	break;
+    default:
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	break; 
+    }
+    return N;
 }
 
 
@@ -221,7 +242,7 @@ PQG_Check(const PQGParams *params)
 	    return SECFailure;
 	}
 	j = PQG_PBITS_TO_INDEX(L);
-	if ( j >= 0 && j <= 8 ) {
+	if ( j < 0 ) { 
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	    rv = SECFailure;
 	}
@@ -1223,7 +1244,10 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
     PQGVerify    *verify = NULL;
     PRBool passed;
     SECItem hit = { 0, 0, 0 };
-    mp_int P, Q, G, H, l;
+    SECItem firstseed = { 0, 0, 0 };
+    SECItem qseed = { 0, 0, 0 };
+    SECItem pseed = { 0, 0, 0 };
+    mp_int P, Q, G, H, l, p0;
     mp_err    err = MP_OKAY;
     SECStatus rv  = SECFailure;
     int iterations = 0;
@@ -1271,11 +1295,13 @@ pqg_ParamGen(unsigned int L, unsigned int N, pqgGenType type,
     MP_DIGITS(&G) = 0;
     MP_DIGITS(&H) = 0;
     MP_DIGITS(&l) = 0;
+    MP_DIGITS(&p0) = 0;
     CHECK_MPI_OK( mp_init(&P) );
     CHECK_MPI_OK( mp_init(&Q) );
     CHECK_MPI_OK( mp_init(&G) );
     CHECK_MPI_OK( mp_init(&H) );
     CHECK_MPI_OK( mp_init(&l) );
+    CHECK_MPI_OK( mp_init(&p0) );
 
     
     
@@ -1315,10 +1341,47 @@ step_5:
 
 
 
+
+
+
     if (type == FIPS186_1_TYPE) {
 	CHECK_SEC_OK( makeQfromSeed(seedlen, seed, &Q) );
-    } else {
+    } else if (type == FIPS186_3_TYPE) {
 	CHECK_SEC_OK( makeQ2fromSeed(hashtype, N, seed, &Q) );
+    } else {
+	
+	int qgen_counter, pgen_counter;
+
+        
+
+	firstseed = *seed;
+	qgen_counter = 0;
+	
+
+	CHECK_SEC_OK( makePrimefromSeedShaweTaylor(hashtype, N, &firstseed, &Q,
+		&qseed, &qgen_counter) );
+	
+
+	pgen_counter = 0;
+	CHECK_SEC_OK( makePrimefromSeedShaweTaylor(hashtype, (L+1)/2+1,
+			&qseed, &p0, &pseed, &pgen_counter) );
+	
+	CHECK_SEC_OK( makePrimefromPrimesShaweTaylor(hashtype, L, 
+		&p0, &Q, &P, &pseed, &pgen_counter) );
+
+	
+	seed->len = firstseed.len +qseed.len + pseed.len;
+	seed->data = PORT_ArenaZAlloc(verify->arena, seed->len);
+	if (seed->data == NULL) {
+	    goto cleanup;
+	}
+	PORT_Memcpy(seed->data, firstseed.data, firstseed.len);
+	PORT_Memcpy(seed->data+firstseed.len, pseed.data, pseed.len);
+	PORT_Memcpy(seed->data+firstseed.len+pseed.len, qseed.data, qseed.len);
+	counter = 0 ; 
+
+	
+	goto generate_G;
     }
     
 
@@ -1403,6 +1466,8 @@ step_11_9:
 
     if (counter > maxCount) 
 	     goto step_5;
+
+generate_G:
     
 
 
@@ -1435,11 +1500,18 @@ step_11_9:
     *pParams = params;
     *pVfy = verify;
 cleanup:
+    if (pseed.data) {
+	PORT_Free(pseed.data);
+    }
+    if (qseed.data) {
+	PORT_Free(qseed.data);
+    }
     mp_clear(&P);
     mp_clear(&Q);
     mp_clear(&G);
     mp_clear(&H);
     mp_clear(&l);
+    mp_clear(&p0);
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
@@ -1489,11 +1561,18 @@ SECStatus
 PQG_ParamGenV2(unsigned int L, unsigned int N, unsigned int seedBytes,
                     PQGParams **pParams, PQGVerify **pVfy)
 {
+    if (N == 0) {
+	N = pqg_get_default_N(L);
+    }
+    if (seedBytes == 0) {
+	
+	seedBytes = N/8;
+    }
     if (pqg_validate_dsa2(L,N) != SECSuccess) {
 	
 	return SECFailure;
     }
-    return pqg_ParamGen(L, N, FIPS186_3_TYPE, seedBytes, pParams, pVfy);
+    return pqg_ParamGen(L, N, FIPS186_3_ST_TYPE, seedBytes, pParams, pVfy);
 }
 
 

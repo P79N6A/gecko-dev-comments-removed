@@ -249,6 +249,7 @@ typedef enum {
 struct SFTKSessionContextStr {
     SFTKContextType	type;
     PRBool		multi; 		
+    PRBool		rsa; 		
     PRBool		doPad; 		
     unsigned int	blockSize; 	
     unsigned int	padDataLength; 	

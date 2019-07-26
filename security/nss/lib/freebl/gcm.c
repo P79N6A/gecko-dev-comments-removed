@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -15,9 +15,9 @@
 
 #include <limits.h>
 
-/**************************************************************************
- *          First implement the Galois hash function of GCM (gcmHash)     *
- **************************************************************************/
+
+
+
 #define GCM_HASH_LEN_LEN 8 /* gcm hash defines lengths to be 64 bits */
 
 typedef struct gcmHashContextStr gcmHashContext;
@@ -37,22 +37,22 @@ static SECStatus gcmHash_Reset(gcmHashContext *ghash,
 			       const unsigned char *inbuf,
 			       unsigned int inbufLen, unsigned int blocksize);
 
-/* compile time defines to select how the GF2 multiply is calculated.
- * There are currently 2 algorithms implemented here: MPI and ALGORITHM_1.
- *
- * MPI uses the GF2m implemented in mpi to support GF2 ECC.
- * ALGORITHM_1 is the Algorithm 1 in both NIST SP 800-38D and
- * "The Galois/Counter Mode of Operation (GCM)", McGrew & Viega.
- */
+
+
+
+
+
+
+
 #if !defined(GCM_USE_ALGORITHM_1) && !defined(GCM_USE_MPI)
 #define GCM_USE_MPI 1 /* MPI is about 5x faster with the
 		       * same or less complexity. It's possible to use
 		       * tables to speed things up even more */
 #endif
 
-/* GCM defines the bit string to be LSB first, which is exactly
- * opposite everyone else, including hardware. build array
- * to reverse everything. */
+
+
+
 static const unsigned char gcm_byte_rev[256] = {
     0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
     0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,
@@ -112,13 +112,13 @@ static const unsigned char gcm_byte_rev[256] = {
 #ifdef GCM_USE_ALGORITHM_1
 #error "Only define one of GCM_USE_MPI, GCM_USE_ALGORITHM_1"
 #endif
-/* use the MPI functions to calculate Xn = (Xn-1^C_i)*H mod poly */
+
 #include "mpi.h"
 #include "secmpi.h"
 #include "mplogic.h"
 #include "mp_gf2m.h"
 
-/* state needed to handle GCM Hash function */
+
 struct gcmHashContextStr {
      mp_int H;
      mp_int X;
@@ -126,17 +126,15 @@ struct gcmHashContextStr {
      const unsigned int *poly;
      unsigned char buffer[MAX_BLOCK_SIZE];
      unsigned int bufLen;
-     int m; /* XXX what is m? */
+     int m; 
      unsigned char counterBuf[2*GCM_HASH_LEN_LEN];
      PRUint64 cLen;
 };
 
-/* f = x^128 + x^7 + x^2 + x + 1 */
-static const unsigned int poly_128[] = { 128, 7, 2, 1, 0 };
-/* f = x^64 + x^4 + x^3 + x + 1 */
-static const unsigned int poly_64[] = { 64, 4, 3, 1, 0 };
 
-/* sigh, GCM defines the bit strings exactly backwards from everything else */
+static const unsigned int poly_128[] = { 128, 7, 2, 1, 0 };
+
+
 static void
 gcm_reverse(unsigned char *target, const unsigned char *src,
 							unsigned int blocksize)
@@ -147,7 +145,7 @@ gcm_reverse(unsigned char *target, const unsigned char *src,
     }
 }
 
-/* Initialize a gcmHashContext */
+
 static SECStatus
 gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
 		    unsigned int blocksize)
@@ -166,14 +164,11 @@ gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
     gcm_reverse(H_rev, H, blocksize);
     CHECK_MPI_OK( mp_read_unsigned_octets(&ghash->H, H_rev, blocksize) );
 
-    /* set the irreducible polynomial. Each blocksize has its own polynomial.
-     * for now only blocksizes 16 (=128 bits) and 8 (=64 bits) are defined */
+    
+
     switch (blocksize) {
-    case 16: /* 128 bits */
+    case 16: 
 	ghash->poly = poly_128;
-	break;
-    case 8: /* 64 bits */
-	ghash->poly = poly_64;
 	break;
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -189,8 +184,8 @@ cleanup:
     return SECFailure;
 }
 
-/* Destroy a HashContext (Note we zero the digits so this function
- * is idempotent if called with freeit == PR_FALSE */
+
+
 static void
 gcmHash_DestroyContext(gcmHashContext *ghash, PRBool freeit)
 {
@@ -224,7 +219,7 @@ gcm_getX(gcmHashContext *ghash, unsigned char *T, unsigned int blocksize)
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	return SECFailure;
     }
-    /* zero pad the result */
+    
     if (len != blocksize) {
 	PORT_Memset(X,0,blocksize-len);
 	X += blocksize-len;
@@ -253,19 +248,19 @@ gcm_HashMult(gcmHashContext *ghash, const unsigned char *buf,
 	gcm_reverse(tmp_buf, buf, blocksize);
 	CHECK_MPI_OK(mp_read_unsigned_octets(&ghash->C_i, tmp_buf, blocksize));
 	CHECK_MPI_OK(mp_badd(&ghash->X, &ghash->C_i, &ghash->C_i));
-	/*
-	 * Looking to speed up GCM, this the the place to do it.
-	 * There are two areas that can be exploited to speed up this code.
-	 *
-	 * 1) H is a constant in this multiply. We can precompute H * (0 - 255)
-	 * at init time and this becomes an blockize xors of our table lookup.
-	 *
-	 * 2) poly is a constant for each blocksize. We can calculate the
-	 * modulo reduction by a series of adds and shifts.
-	 *
-	 * For now we are after functionality, so we will go ahead and use
-	 * the builtin bmulmod from mpi
-	 */
+	
+
+
+
+
+
+
+
+
+
+
+
+
         CHECK_MPI_OK(mp_bmulmod(&ghash->C_i, &ghash->H,
 					ghash->poly, &ghash->X));
 	GCM_TRACE_X(ghash, "X%d = ")
@@ -288,7 +283,7 @@ gcm_zeroX(gcmHashContext *ghash)
 #endif
 
 #ifdef GCM_USE_ALGORITHM_1
-/* use algorithm 1 of McGrew & Viega "The Galois/Counter Mode of Operation" */
+
 
 #define GCM_ARRAY_SIZE (MAX_BLOCK_SIZE/sizeof(unsigned long))
 
@@ -338,7 +333,7 @@ gcm_longs_to_bytes(const unsigned long *l, unsigned char *c, unsigned int len)
 }
 
 
-/* Initialize a gcmHashContext */
+
 static SECStatus
 gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
 		    unsigned int blocksize)
@@ -347,14 +342,11 @@ gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H,
     PORT_Memset(ghash->H, 0, sizeof(ghash->H));
     gcm_bytes_to_longs(ghash->H, H, blocksize);
 
-    /* set the irreducible polynomial. Each blocksize has it's own polynommial
-     * for now only blocksizes 16 (=128 bits) and 8 (=64 bits) are defined */
+    
+
     switch (blocksize) {
-    case 16: /* 128 bits */
-	ghash->R = (unsigned long) 0x87; /* x^7 + x^2 + x +1 */
-	break;
-    case 8: /* 64 bits */
-	ghash->R = (unsigned long) 0x1b; /* x^4 + x^3 + x + 1 */
+    case 16: 
+	ghash->R = (unsigned long) 0x87; 
 	break;
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -369,8 +361,8 @@ cleanup:
     return SECFailure;
 }
 
-/* Destroy a HashContext (Note we zero the digits so this function
- * is idempotent if called with freeit == PR_FALSE */
+
+
 static void
 gcmHash_DestroyContext(gcmHashContext *ghash, PRBool freeit)
 {
@@ -415,7 +407,7 @@ gcm_HashMult(gcmHashContext *ghash, const unsigned char *buf,
 	ghash->m++;
 	gcm_bytes_to_longs(C_i, buf, blocksize);
 	GCM_XOR(C_i, ghash->X, arraysize);
-	/* multiply X = C_i * H */
+	
 	PORT_Memset(ghash->X, 0, sizeof(ghash->X));
 	for (j=0; j < arraysize; j++) {
 	    unsigned long H = ghash->H[j];
@@ -443,11 +435,11 @@ gcm_zeroX(gcmHashContext *ghash)
 }
 #endif
 
-/*
- * implement GCM GHASH using the freebl GHASH function. The gcm_HashMult
- * function always takes blocksize lengths of data. gcmHash_Update will
- * format the data properly.
- */
+
+
+
+
+
 static SECStatus
 gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
 	       unsigned int len, unsigned int blocksize)
@@ -457,8 +449,8 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
 
     ghash->cLen += (len*PR_BITS_PER_BYTE);
 
-    /* first deal with the current buffer of data. Try to fill it out so
-     * we can hash it */
+    
+
     if (ghash->bufLen) {
 	unsigned int needed = PR_MIN(len, blocksize - ghash->bufLen);
 	PORT_Memcpy(ghash->buffer+ghash->bufLen, buf, needed);
@@ -466,11 +458,11 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
 	len -= needed;
 	ghash->bufLen += needed;
 	if (len == 0) {
-	    /* didn't add enough to hash the data, nothing more do do */
+	    
 	    return SECSuccess;
 	}
 	PORT_Assert(ghash->bufLen == blocksize);
-	/* hash the buffer and clear it */
+	
 	rv = gcm_HashMult(ghash, ghash->buffer, 1, blocksize);
 	PORT_Memset(ghash->buffer, 0, blocksize);
 	ghash->bufLen = 0;
@@ -478,7 +470,7 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
 	    return SECFailure;
 	}
     }
-    /* now hash any full blocks remaining in the data stream */
+    
     blocks = len/blocksize;
     if (blocks) {
 	rv = gcm_HashMult(ghash, buf, blocks, blocksize);
@@ -489,7 +481,7 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
 	len -= blocks*blocksize;
     }
 
-    /* save any remainder in the buffer to be hashed with the next call */
+    
     if (len != 0) {
 	PORT_Memcpy(ghash->buffer, buf, len);
 	ghash->bufLen = len;
@@ -497,27 +489,27 @@ gcmHash_Update(gcmHashContext *ghash, const unsigned char *buf,
     return SECSuccess;
 }
 
-/*
- * write out any partial blocks zero padded through the GHASH engine,
- * save the lengths for the final completion of the hash
- */
+
+
+
+
 static SECStatus
 gcmHash_Sync(gcmHashContext *ghash, unsigned int blocksize)
 {
     int i;
     SECStatus rv;
 
-    /* copy the previous counter to the upper block */
+    
     PORT_Memcpy(ghash->counterBuf, &ghash->counterBuf[GCM_HASH_LEN_LEN],
 							GCM_HASH_LEN_LEN);
-    /* copy the current counter in the lower block */
+    
     for (i=0; i < GCM_HASH_LEN_LEN; i++) {
 	ghash->counterBuf[GCM_HASH_LEN_LEN+i] =
 	    (ghash->cLen >> ((GCM_HASH_LEN_LEN-1-i)*PR_BITS_PER_BYTE)) & 0xff;
     }
     ghash->cLen = 0;
 
-    /* now zero fill the buffer and hash the last block */
+    
     if (ghash->bufLen) {
 	PORT_Memset(ghash->buffer+ghash->bufLen, 0, blocksize - ghash->bufLen);
 	rv = gcm_HashMult(ghash, ghash->buffer, 1, blocksize);
@@ -530,10 +522,10 @@ gcmHash_Sync(gcmHashContext *ghash, unsigned int blocksize)
     return SECSuccess;
 }
 
-/*
- * This does the final sync, hashes the lengths, then returns
- * "T", the hashed output.
- */
+
+
+
+
 static SECStatus
 gcmHash_Final(gcmHashContext *ghash, unsigned char *outbuf,
 		unsigned int *outlen, unsigned int maxout,
@@ -577,7 +569,7 @@ gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
     ghash->bufLen = 0;
     gcm_zeroX(ghash);
 
-    /* now kick things off by hashing the Additional Authenticated Data */
+    
     if (AADLen != 0) {
 	rv = gcmHash_Update(ghash, AAD, AADLen, blocksize);
 	if (rv != SECSuccess) {
@@ -591,11 +583,11 @@ gcmHash_Reset(gcmHashContext *ghash, const unsigned char *AAD,
     return SECSuccess;
 }
 
-/**************************************************************************
- *           Now implement the GCM using gcmHash and CTR                  *
- **************************************************************************/
 
-/* state to handle the full GCM operation (hash and counter) */
+
+
+
+
 struct GCMContextStr {
     gcmHashContext ghash_context;
     CTRContext ctr_context;
@@ -613,7 +605,7 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     unsigned int tmp;
     PRBool freeCtr = PR_FALSE;
     PRBool freeHash = PR_FALSE;
-    const CK_AES_GCM_PARAMS *gcmParams = (const CK_AES_GCM_PARAMS *)params;
+    const CK_GCM_PARAMS *gcmParams = (const CK_GCM_PARAMS *)params;
     CK_AES_CTR_PARAMS ctrParams;
     SECStatus rv;
 
@@ -625,7 +617,7 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     if (gcm == NULL) {
 	return NULL;
     }
-    /* first fill in the ghash context */
+    
     ghash = &gcm->ghash_context;
     PORT_Memset(H, 0, blocksize);
     rv = (*cipher)(context, H, &tmp, blocksize, H, blocksize, blocksize);
@@ -638,13 +630,10 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     }
     freeHash = PR_TRUE;
 
-    /* fill in the Counter context */
+    
     ctrParams.ulCounterBits = 32;
     PORT_Memset(ctrParams.cb, 0, sizeof(ctrParams.cb));
-    if ((blocksize == 8) && (gcmParams->ulIvLen == 4)) {
-	ctrParams.cb[3] = 1;
-	PORT_Memcpy(&ctrParams.cb[4], gcmParams->pIv, gcmParams->ulIvLen);
-    } else if ((blocksize == 16) && (gcmParams->ulIvLen == 12)) {
+    if ((blocksize == 16) && (gcmParams->ulIvLen == 12)) {
 	PORT_Memcpy(ctrParams.cb, gcmParams->pIv, gcmParams->ulIvLen);
 	ctrParams.cb[blocksize-1] = 1;
     } else {
@@ -665,17 +654,17 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     }
     freeCtr = PR_TRUE;
 
-    /* fill in the gcm structure */
-    gcm->tagBits = gcmParams->ulTagBits; /* save for final step */
-    /* calculate the final tag key. NOTE: gcm->tagKey is zero to start with.
-     * if this assumption changes, we would need to explicitly clear it here */
+    
+    gcm->tagBits = gcmParams->ulTagBits; 
+    
+
     rv = CTR_Update(&gcm->ctr_context, gcm->tagKey, &tmp, blocksize,
 		    gcm->tagKey, blocksize, blocksize);
     if (rv != SECSuccess) {
 	goto loser;
     }
 
-    /* finally mix in the AAD data */
+    
     rv = gcmHash_Reset(ghash, gcmParams->pAAD, gcmParams->ulAADLen, blocksize);
     if (rv != SECSuccess) {
 	goto loser;
@@ -699,9 +688,9 @@ loser:
 void
 GCM_DestroyContext(GCMContext *gcm, PRBool freeit)
 {
-    /* these two are statically allocated and will be freed when we free
-     * gcm. call their destroy functions to free up any locally
-     * allocated data (like mp_int's) */
+    
+
+
     CTR_DestroyContext(&gcm->ctr_context, PR_FALSE);
     gcmHash_DestroyContext(&gcm->ghash_context, PR_FALSE);
     if (freeit) {
@@ -746,7 +735,7 @@ gcm_GetTag(GCMContext *gcm, unsigned char *outbuf,
     }
     GCM_TRACE_BLOCK("Y0=", gcm->tagKey, blocksize);
     GCM_TRACE_BLOCK("T=", outbuf, blocksize);
-    /* mask off any extra bits we got */
+    
     if (extra) {
 	outbuf[tagBytes-1] &= ~((1 << extra)-1);
     }
@@ -754,11 +743,11 @@ gcm_GetTag(GCMContext *gcm, unsigned char *outbuf,
 }
 
 
-/*
- * See The Galois/Counter Mode of Operation, McGrew and Viega.
- *  GCM is basically counter mode with a specific initialization and
- *  built in macing operation.
- */
+
+
+
+
+
 SECStatus
 GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
 		unsigned int *outlen, unsigned int maxout,
@@ -787,13 +776,13 @@ GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     }
     rv = gcmHash_Update(&gcm->ghash_context, outbuf, *outlen, blocksize);
     if (rv != SECSuccess) {
-	PORT_Memset(outbuf, 0, *outlen); /* clear the output buffer */
+	PORT_Memset(outbuf, 0, *outlen); 
 	*outlen = 0;
 	return SECFailure;
     }
     rv = gcm_GetTag(gcm, outbuf + *outlen, &len, maxout - *outlen, blocksize);
     if (rv != SECSuccess) {
-	PORT_Memset(outbuf, 0, *outlen); /* clear the output buffer */
+	PORT_Memset(outbuf, 0, *outlen); 
 	*outlen = 0;
 	return SECFailure;
     };
@@ -801,14 +790,14 @@ GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     return SECSuccess;
 }
 
-/*
- * See The Galois/Counter Mode of Operation, McGrew and Viega.
- *  GCM is basically counter mode with a specific initialization and
- *  built in macing operation. NOTE: the only difference between Encrypt
- *  and Decrypt is when we calculate the mac. That is because the mac must
- *  always be calculated on the cipher text, not the plain text, so for
- *  encrypt, we do the CTR update first and for decrypt we do the mac first.
- */
+
+
+
+
+
+
+
+
 SECStatus
 GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
 		unsigned int *outlen, unsigned  int maxout,
@@ -823,7 +812,7 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
 
     tagBytes = (gcm->tagBits + (PR_BITS_PER_BYTE-1)) / PR_BITS_PER_BYTE;
 
-    /* get the authentication block */
+    
     if (inlen < tagBytes) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -832,7 +821,7 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     inlen -= tagBytes;
     intag = inbuf + inlen;
 
-    /* verify the block */
+    
     rv = gcmHash_Update(&gcm->ghash_context, inbuf, inlen, blocksize);
     if (rv != SECSuccess) {
 	return SECFailure;
@@ -841,15 +830,15 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     if (rv != SECSuccess) {
 	return SECFailure;
     }
-    /* Don't decrypt if we can't authenticate the encrypted data!
-     * This assumes that if tagBits is not a multiple of 8, intag will
-     * preserve the masked off missing bits.  */
+    
+
+
     if (NSS_SecureMemcmp(tag, intag, tagBytes) != 0) {
-	/* force a CKR_ENCRYPTED_DATA_INVALID error at in softoken */
+	
 	PORT_SetError(SEC_ERROR_BAD_DATA);
 	return SECFailure;
     }
-    /* finish the decryption */
+    
     return CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
 			  inbuf, inlen, blocksize);
 }
