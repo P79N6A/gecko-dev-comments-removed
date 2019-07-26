@@ -2808,8 +2808,13 @@ Tab.prototype = {
 
     if (aActive) {
       this.browser.setAttribute("type", "content-primary");
-      this.browser.focus();
       this.browser.docShellIsActive = true;
+
+      
+      
+      setTimeout(function () {
+        this.browser.focus();
+      }.bind(this), 0);
     } else {
       this.browser.setAttribute("type", "content-targetable");
       this.browser.docShellIsActive = false;
