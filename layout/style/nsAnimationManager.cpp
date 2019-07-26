@@ -54,29 +54,32 @@ ElementAnimations::GetPositionInIteration(TimeStamp aStartTime, TimeStamp aCurre
     currentTimeDuration / aDuration;
   bool dispatchStartOrIteration = false;
   if (currentIterationCount >= aIterationCount) {
-    if (!aAnimation) {
+    if (aAnimation) {
       
-      
-      return -1;
-    }
-    
-    if (aIsForElement &&
-        aAnimation->mLastNotification !=
-          ElementAnimation::LAST_NOTIFICATION_END) {
-      aAnimation->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
-      
-      
-      
-      AnimationEventInfo ei(aEa->mElement, aAnimation->mName, NS_ANIMATION_END,
-                            currentTimeDuration);
-      aEventsToDispatch->AppendElement(ei);
-    }
+      if (aIsForElement &&
+          aAnimation->mLastNotification !=
+            ElementAnimation::LAST_NOTIFICATION_END) {
+        aAnimation->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
+        
+        
+        
+        AnimationEventInfo ei(aEa->mElement, aAnimation->mName, NS_ANIMATION_END,
+                              currentTimeDuration);
+        aEventsToDispatch->AppendElement(ei);
+      }
 
-    if (!aAnimation->FillsForwards()) {
+      if (!aAnimation->FillsForwards()) {
+        
+        return -1;
+      }
+    } else {
       
-      return -1;
+      
+      
+      
+      
     }
-    currentIterationCount = double(aAnimation->mIterationCount);
+    currentIterationCount = aIterationCount;
   } else {
     if (aAnimation && !aAnimation->IsPaused()) {
       aEa->mNeedsRefreshes = true;

@@ -129,6 +129,8 @@ struct ElementAnimations : public mozilla::css::CommonElementAnimationData
   
   
   
+  
+  
   static double GetPositionInIteration(TimeStamp aStartTime,
                                        TimeStamp aCurrentTime,
                                        TimeDuration aDuration,
