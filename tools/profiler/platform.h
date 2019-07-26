@@ -238,6 +238,8 @@ extern UnwMode sUnwindMode;
 extern int     sUnwindInterval;   
 extern int     sUnwindStackScan;  
 
+extern int     sProfileEntries;   
+
 
 
 
