@@ -33,6 +33,8 @@
 
 #include "jsautooplen.h"
 
+#include "ion/Ion.h"
+
 using namespace js;
 using namespace js::mjit;
 using namespace JSC;
@@ -238,6 +240,35 @@ stubs::CompileFunction(VMFrame &f, uint32_t argc)
         return UncachedCall(f, argc);
 }
 
+
+
+
+static inline bool
+ShouldJaegerCompileCallee(JSContext *cx, JSScript *caller, JSScript *callee)
+{
+#ifdef JS_ION
+    if (!ion::IsEnabled(cx))
+        return true;
+
+    
+    if (!caller->canIonCompile() || !callee->canIonCompile())
+        return true;
+
+    
+    
+    if (caller->getUseCount() > 1500)
+        return true;
+
+    
+    
+    if (!callee->hasAnalysis() || !callee->analysis()->hasLoops())
+        return true;
+
+    return false;
+#endif
+    return true;
+}
+
 static inline bool
 UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
                    void **pret, bool *unjittable, uint32_t argc)
@@ -256,13 +287,16 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
         return false;
 
     
-    CompileStatus status = CanMethodJIT(cx, newscript, newscript->code, construct, CompileRequest_JIT);
-    if (status == Compile_Error) {
-        
-        return false;
+    if (ShouldJaegerCompileCallee(cx, f.script(), newscript)) {
+        CompileStatus status = CanMethodJIT(cx, newscript, newscript->code, construct,
+                                            CompileRequest_JIT);
+        if (status == Compile_Error) {
+            
+            return false;
+        }
+        if (status == Compile_Abort)
+            *unjittable = true;
     }
-    if (status == Compile_Abort)
-        *unjittable = true;
 
     
 

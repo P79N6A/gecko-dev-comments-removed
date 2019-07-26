@@ -106,13 +106,19 @@ struct IonOptions
     
     
     
+    uint32 usesBeforeCompileNoJaeger;
+
+    
+    
+    
+    
     uint32 usesBeforeInlining;
 
     void setEagerCompilation() {
-        usesBeforeCompile = 0;
+        usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
 
         
-        usesBeforeInlining = usesBeforeCompile;
+        usesBeforeInlining = 0;
     }
 
     IonOptions()
@@ -124,8 +130,9 @@ struct IonOptions
         lsra(true),
         inlining(true),
         rangeAnalysis(true),
-        usesBeforeCompile(40),
-        usesBeforeInlining(10240)
+        usesBeforeCompile(10240),
+        usesBeforeCompileNoJaeger(40),
+        usesBeforeInlining(usesBeforeCompile)
     { }
 };
 

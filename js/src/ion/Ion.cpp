@@ -955,8 +955,15 @@ Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *osrPc)
         return Method_Compiled;
     }
 
-    if (script->incUseCount() <= js_IonOptions.usesBeforeCompile)
-        return Method_Skipped;
+    if (cx->methodJitEnabled) {
+        
+        
+        if (script->getUseCount() < js_IonOptions.usesBeforeCompile)
+            return Method_Skipped;
+    } else {
+        if (script->incUseCount() < js_IonOptions.usesBeforeCompileNoJaeger)
+            return Method_Skipped;
+    }
 
     if (!IonCompile(cx, script, fp, osrPc))
         return Method_CantCompile;

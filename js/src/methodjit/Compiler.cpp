@@ -51,7 +51,7 @@ using namespace js::analyze;
 
 
 
-static const size_t USES_BEFORE_INLINING = 10000;
+static const size_t USES_BEFORE_INLINING = 10240;
 
 mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
                          unsigned chunkIndex, bool isConstructing)
@@ -910,6 +910,11 @@ IonGetsFirstChance(JSContext *cx, JSScript *script, CompileRequest request)
 {
 #ifdef JS_ION
     if (!ion::IsEnabled(cx))
+        return false;
+
+    
+    
+    if (script->getUseCount() < ion::js_IonOptions.usesBeforeCompile)
         return false;
 
     
@@ -3885,13 +3890,30 @@ mjit::Compiler::interruptCheckHelper()
     stubcc.rejoin(Changes(0));
 }
 
+static bool
+MaybeIonCompileable(JSContext *cx, JSScript *script)
+{
+#ifdef JS_ION
+    if (!ion::IsEnabled(cx))
+        return false;
+    if (!script->canIonCompile())
+        return false;
+    return true;
+#endif
+    return false;
+}
+
 void
 mjit::Compiler::recompileCheckHelper()
 {
-    if (inlining() || debugMode() || !globalObj ||
-        !analysis->hasFunctionCalls() || !cx->typeInferenceEnabled()) {
+    if (inlining() || debugMode() || !globalObj || !cx->typeInferenceEnabled())
         return;
-    }
+
+    
+    
+    
+    if (!MaybeIonCompileable(cx, outerScript) && !analysis->hasFunctionCalls())
+        return;
 
     uint32_t *addr = script->addressOfUseCount();
     masm.add32(Imm32(1), AbsoluteAddress(addr));
