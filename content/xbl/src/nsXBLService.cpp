@@ -580,12 +580,14 @@ nsXBLService::AttachGlobalKeyHandler(EventTarget* aTarget)
   
   if (contentNode && contentNode->GetProperty(nsGkAtoms::listener))
     return NS_OK;
-
+    
   nsCOMPtr<nsIDOMElement> elt(do_QueryInterface(contentNode));
 
   
-  nsRefPtr<nsXBLWindowKeyHandler> handler =
-    NS_NewXBLWindowKeyHandler(elt, piTarget);
+  nsXBLWindowKeyHandler* handler;
+  NS_NewXBLWindowKeyHandler(elt, piTarget, &handler); 
+  if (!handler)
+    return NS_ERROR_FAILURE;
 
   
   manager->AddEventListenerByType(handler, NS_LITERAL_STRING("keydown"),
@@ -596,11 +598,12 @@ nsXBLService::AttachGlobalKeyHandler(EventTarget* aTarget)
                                   dom::TrustedEventsAtSystemGroupBubble());
 
   if (contentNode)
-    return contentNode->SetProperty(nsGkAtoms::listener, handler.forget().get(),
+    return contentNode->SetProperty(nsGkAtoms::listener, handler,
                                     nsPropertyTable::SupportsDtorFunc, true);
 
   
   
+  NS_RELEASE(handler);
   return NS_OK;
 }
 
