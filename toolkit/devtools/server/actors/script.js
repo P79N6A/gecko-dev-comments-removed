@@ -448,7 +448,10 @@ function ThreadActor(aHooks, aGlobal)
   this._state = "detached";
   this._frameActors = [];
   this._hooks = aHooks;
-  this.global = aGlobal;
+  this.global = this.globalSafe = aGlobal;
+  if (aGlobal && aGlobal.wrappedJSObject) {
+    this.global = aGlobal.wrappedJSObject;
+  }
   
   this._hiddenBreakpoints = new Map();
 
@@ -1815,7 +1818,7 @@ ThreadActor.prototype = {
     
     
     
-    if (this.global && !this.global.toString().contains("Sandbox")) {
+    if (this.globalSafe && !this.globalSafe.toString().contains("Sandbox")) {
       let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
       els.removeListenerForAllEvents(this.global, this._allEventsListener, true);
@@ -3703,8 +3706,10 @@ DebuggerServer.ObjectActorPreviewers.Object = [
     let url;
     if (aRawObj instanceof Ci.nsIDOMWindow && aRawObj.location) {
       url = aRawObj.location.href;
-    } else {
+    } else if (aRawObj.href) {
       url = aRawObj.href;
+    } else {
+      return false;
     }
 
     aGrip.preview = {
