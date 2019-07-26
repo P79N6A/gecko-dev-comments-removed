@@ -873,7 +873,7 @@ protected:
     eGroupInfoDirty = 1 << 5, 
     eIgnoreDOMUIEvent = 1 << 6, 
 
-    eLastStateFlag = eGroupInfoDirty
+    eLastStateFlag = eIgnoreDOMUIEvent
   };
 
   
@@ -987,7 +987,7 @@ protected:
   int32_t mIndexInParent;
 
   static const uint8_t kChildrenFlagsBits = 2;
-  static const uint8_t kStateFlagsBits = 6;
+  static const uint8_t kStateFlagsBits = 7;
   static const uint8_t kContextFlagsBits = 1;
   static const uint8_t kTypeBits = 6;
   static const uint8_t kGenericTypesBits = 12;
