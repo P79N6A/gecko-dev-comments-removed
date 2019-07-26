@@ -4017,6 +4017,8 @@ var XULBrowserWindow = {
   
   status: "",
   defaultStatus: "",
+  jsStatus: "",
+  jsDefaultStatus: "",
   overLink: "",
   startTime: 0,
   statusText: "",
@@ -4074,12 +4076,14 @@ var XULBrowserWindow = {
     delete this.statusText;
   },
 
-  setJSStatus: function () {
-    
+  setJSStatus: function (status) {
+    this.jsStatus = status;
+    this.updateStatusField();
   },
 
-  setJSDefaultStatus: function () {
-    
+  setJSDefaultStatus: function (status) {
+    this.jsDefaultStatus = status;
+    this.updateStatusField();
   },
 
   setDefaultStatus: function (status) {
@@ -4104,7 +4108,7 @@ var XULBrowserWindow = {
     var text, type, types = ["overLink"];
     if (this._busyUI)
       types.push("status");
-    types.push("defaultStatus");
+    types.push("jsStatus", "jsDefaultStatus", "defaultStatus");
     for (type of types) {
       text = this[type];
       if (text)
@@ -4339,6 +4343,18 @@ var XULBrowserWindow = {
         
         PlacesStarButton.updateState();
         SocialShareButton.updateShareState();
+      }
+
+      
+      
+      if (aRequest) {
+        
+        
+        
+        
+        
+        if (!__lookupGetter__("PopupNotifications"))
+          PopupNotifications.locationChange();
       }
 
       
@@ -4717,12 +4733,16 @@ var TabsProgressListener = {
 #endif
 
     
-    if (aWebProgress.DOMWindow == aWebProgress.DOMWindow.top &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
-        TelemetryStopwatch.start("FX_PAGE_LOAD_MS", aBrowser);
-      else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
-        TelemetryStopwatch.finish("FX_PAGE_LOAD_MS", aBrowser);
+    if (aWebProgress.DOMWindow == aWebProgress.DOMWindow.top) {
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
+        if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
+          TelemetryStopwatch.start("FX_PAGE_LOAD_MS", aBrowser);
+        else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
+          TelemetryStopwatch.finish("FX_PAGE_LOAD_MS", aBrowser);
+      } else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+                 aStatus == Cr.NS_BINDING_ABORTED) {
+        TelemetryStopwatch.cancel("FX_PAGE_LOAD_MS", aBrowser);
+      }
     }
 
     
@@ -4764,12 +4784,6 @@ var TabsProgressListener = {
         aBrowser._clickToPlayPluginsActivated = new Map();
         aBrowser._clickToPlayAllPluginsActivated = false;
         aBrowser._pluginScriptedState = gPluginHandler.PLUGIN_SCRIPTED_STATE_NONE;
-
-        
-        
-        
-        if (!Object.getOwnPropertyDescriptor(window, "PopupNotifications").get)
-          PopupNotifications.locationChange(aBrowser);
       }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
