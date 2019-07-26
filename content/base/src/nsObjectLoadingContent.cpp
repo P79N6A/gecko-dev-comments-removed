@@ -703,7 +703,7 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
   nsIDocument* ownerDoc = thisContent->OwnerDoc();
   ownerDoc->RemovePlugin(this);
 
-  if (mType == eType_Plugin && mInstanceOwner) {
+  if (mType == eType_Plugin && (mInstanceOwner || mInstantiating)) {
     
     
     
@@ -744,7 +744,7 @@ nsObjectLoadingContent::~nsObjectLoadingContent()
     NS_NOTREACHED("Should not be tearing down frame loaders at this point");
     mFrameLoader->Destroy();
   }
-  if (mInstanceOwner) {
+  if (mInstanceOwner || mInstantiating) {
     
     
     NS_NOTREACHED("Should not be tearing down a plugin at this point!");
@@ -909,7 +909,7 @@ nsObjectLoadingContent::NotifyOwnerDocumentActivityChanged()
 
   
   
-  if (mInstanceOwner)
+  if (mInstanceOwner || mInstantiating)
     QueueCheckPluginStopEvent();
 }
 
@@ -1073,8 +1073,10 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
     
     
     
-    if (mInstanceOwner) {
-      mInstanceOwner->SetFrame(nullptr);
+    if (mInstanceOwner || mInstantiating) {
+      if (mInstanceOwner) {
+        mInstanceOwner->SetFrame(nullptr);
+      }
       QueueCheckPluginStopEvent();
     }
     return NS_OK;
@@ -2825,6 +2827,10 @@ nsObjectLoadingContent::StopPluginInstance()
   
   mPendingInstantiateEvent = nullptr;
   mPendingCheckPluginStopEvent = nullptr;
+
+  
+  
+  mInstantiating = false;
 
   if (!mInstanceOwner) {
     return NS_OK;
