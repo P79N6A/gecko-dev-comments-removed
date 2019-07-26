@@ -60,6 +60,12 @@ const PREF_DIRECTORY_SOURCE = "browser.newtabpage.directorySource";
 
 const DIRECTORY_FRECENCY = 1000;
 
+const LINK_TYPES = Object.freeze([
+  "sponsored",
+  "affiliate",
+  "organic",
+]);
+
 
 
 
@@ -88,6 +94,8 @@ let DirectoryLinksProvider = {
     }
     return this.__linksURL;
   },
+
+  get linkTypes() LINK_TYPES,
 
   observe: function DirectoryLinksProvider_observe(aSubject, aTopic, aData) {
     if (aTopic == "nsPref:changed") {
