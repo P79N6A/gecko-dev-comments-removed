@@ -23,9 +23,6 @@ DOMCI_CLASS(StyleSheetList)
 DOMCI_CLASS(CSSStyleSheet)
 
 
-DOMCI_CLASS(Selection)
-
-
 #ifdef MOZ_XUL
 DOMCI_CLASS(XULCommandDispatcher)
 #endif
