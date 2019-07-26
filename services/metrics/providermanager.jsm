@@ -5,7 +5,7 @@
 "use strict";
 
 #ifndef MERGED_COMPARTMENT
-this.EXPORTED_SYMBOLS = ["Collector"];
+this.EXPORTED_SYMBOLS = ["ProviderManager"];
 
 const {utils: Cu} = Components;
 
@@ -24,8 +24,8 @@ Cu.import("resource://services-common/utils.js");
 
 
 
-this.Collector = function (storage) {
-  this._log = Log4Moz.repository.getLogger("Services.Metrics.Collector");
+this.ProviderManager = function (storage) {
+  this._log = Log4Moz.repository.getLogger("Services.Metrics.ProviderManager");
 
   this._providers = new Map();
   this._storage = storage;
@@ -34,7 +34,7 @@ this.Collector = function (storage) {
   this._providerInitializing = false;
 }
 
-Collector.prototype = Object.freeze({
+this.ProviderManager.prototype = Object.freeze({
   get providers() {
     let providers = [];
     for (let [name, entry] of this._providers) {
