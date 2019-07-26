@@ -389,12 +389,6 @@ public:
 
 
 
-  bool DispatchKeyDownEvent(bool* aEventDispatched = nullptr) const;
-
-  
-
-
-
 
   bool HandleCharMessage(const MSG& aCharMsg,
                          bool* aEventDispatched = nullptr,

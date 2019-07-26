@@ -765,29 +765,6 @@ NativeKey::DispatchKeyEvent(nsKeyEvent& aKeyEvent,
 }
 
 bool
-NativeKey::DispatchKeyDownEvent(bool* aEventDispatched) const
-{
-  MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
-
-  if (aEventDispatched) {
-    *aEventDispatched = false;
-  }
-
-  
-  if (mModKeyState.IsAlt() && !mModKeyState.IsControl() &&
-      mVirtualKeyCode == VK_SPACE) {
-    return false;
-  }
-
-  nsKeyEvent keydownEvent(true, NS_KEY_DOWN, mWidget);
-  InitKeyEvent(keydownEvent, mModKeyState);
-  if (aEventDispatched) {
-    *aEventDispatched = true;
-  }
-  return DispatchKeyEvent(keydownEvent, &mMsg);
-}
-
-bool
 NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
@@ -799,18 +776,19 @@ NativeKey::HandleKeyDownMessage(bool* aEventDispatched) const
   bool defaultPrevented = false;
   if (mIsFakeCharMsg ||
       !RedirectedKeyDownMessageManager::IsRedirectedMessage(mMsg)) {
-    bool isIMEEnabled = WinUtils::IsIMEEnabled(mWidget->GetInputContext());
-    bool eventDispatched;
-    defaultPrevented = DispatchKeyDownEvent(&eventDispatched);
-    if (aEventDispatched) {
-      *aEventDispatched = eventDispatched;
-    }
-    if (!eventDispatched) {
-      
-      
-      RedirectedKeyDownMessageManager::Forget();
+    
+    if (mModKeyState.IsAlt() && !mModKeyState.IsControl() &&
+        mVirtualKeyCode == VK_SPACE) {
       return false;
     }
+
+    bool isIMEEnabled = WinUtils::IsIMEEnabled(mWidget->GetInputContext());
+    nsKeyEvent keydownEvent(true, NS_KEY_DOWN, mWidget);
+    InitKeyEvent(keydownEvent, mModKeyState);
+    if (aEventDispatched) {
+      *aEventDispatched = true;
+    }
+    defaultPrevented = DispatchKeyEvent(keydownEvent, &mMsg);
 
     
     
