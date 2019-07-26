@@ -16,6 +16,7 @@
 
 
 
+
 var ios = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
 var pps = Components.classes["@mozilla.org/network/protocol-proxy-service;1"]
@@ -595,6 +596,30 @@ function myipaddress_callback(pi)
   do_check_neq(pi.host, null);
   do_check_neq(pi.host, "127.0.0.1");
   do_check_neq(pi.host, "::1");
+
+  run_failed_script_test();
+}
+
+function run_failed_script_test()
+{
+  
+  var pac = 'data:text/plain,' +
+            '\nfor(;\n';
+
+  var uri = ios.newURI("http://www.mozilla.org/", null, null);
+
+  prefs.setIntPref("network.proxy.type", 2);
+  prefs.setCharPref("network.proxy.autoconfig_url", pac);
+
+  var cb = new resolveCallback();
+  cb.nextFunction = failed_script_callback;
+  var req = pps.asyncResolve(uri, 0, cb);
+}
+
+function failed_script_callback(pi)
+{
+  
+  do_check_eq(pi, null);
 
   prefs.setIntPref("network.proxy.type", 0);
   do_test_finished();
