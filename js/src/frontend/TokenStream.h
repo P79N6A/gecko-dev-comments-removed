@@ -34,23 +34,12 @@ enum TokenKind {
     TOK_SEMI,                      
     TOK_COMMA,                     
     TOK_HOOK, TOK_COLON,           
-    TOK_OR,                        
-    TOK_AND,                       
-    TOK_BITOR,                     
-    TOK_BITXOR,                    
-    TOK_BITAND,                    
-    TOK_PLUS,                      
-    TOK_MINUS,                     
-    TOK_STAR,                      
-    TOK_DIV,                       
-    TOK_MOD,                       
     TOK_INC, TOK_DEC,              
     TOK_DOT,                       
     TOK_TRIPLEDOT,                 
     TOK_LB, TOK_RB,                
     TOK_LC, TOK_RC,                
     TOK_LP, TOK_RP,                
-    TOK_ARROW,                     
     TOK_NAME,                      
     TOK_NUMBER,                    
     TOK_STRING,                    
@@ -70,7 +59,6 @@ enum TokenKind {
     TOK_FOR,                       
     TOK_BREAK,                     
     TOK_CONTINUE,                  
-    TOK_IN,                        
     TOK_VAR,                       
     TOK_CONST,                     
     TOK_WITH,                      
@@ -81,7 +69,6 @@ enum TokenKind {
     TOK_CATCH,                     
     TOK_FINALLY,                   
     TOK_THROW,                     
-    TOK_INSTANCEOF,                
     TOK_DEBUGGER,                  
     TOK_YIELD,                     
     TOK_LEXICALSCOPE,              
@@ -97,18 +84,23 @@ enum TokenKind {
 
 
     
+
+
+
+    TOK_OR,                        
+    TOK_BINOP_FIRST = TOK_OR,
+    TOK_AND,                       
+    TOK_BITOR,                     
+    TOK_BITXOR,                    
+    TOK_BITAND,                    
+
+    
     TOK_STRICTEQ,
     TOK_EQUALITY_START = TOK_STRICTEQ,
     TOK_EQ,
     TOK_STRICTNE,
     TOK_NE,
     TOK_EQUALITY_LAST = TOK_NE,
-
-    
-    TOK_TYPEOF,
-    TOK_VOID,
-    TOK_NOT,
-    TOK_BITNOT,
 
     
     TOK_LT,
@@ -118,12 +110,30 @@ enum TokenKind {
     TOK_GE,
     TOK_RELOP_LAST = TOK_GE,
 
+    TOK_INSTANCEOF,                
+    TOK_IN,                        
+
     
     TOK_LSH,
     TOK_SHIFTOP_START = TOK_LSH,
     TOK_RSH,
     TOK_URSH,
     TOK_SHIFTOP_LAST = TOK_URSH,
+
+    TOK_PLUS,                      
+    TOK_MINUS,                     
+    TOK_STAR,                      
+    TOK_DIV,                       
+    TOK_MOD,                       
+    TOK_BINOP_LAST = TOK_MOD,
+
+    
+    TOK_TYPEOF,
+    TOK_VOID,
+    TOK_NOT,
+    TOK_BITNOT,
+
+    TOK_ARROW,                     
 
     
     TOK_ASSIGN,                    
@@ -143,6 +153,12 @@ enum TokenKind {
 
     TOK_LIMIT                      
 };
+
+inline bool
+TokenKindIsBinaryOp(TokenKind tt)
+{
+    return TOK_BINOP_FIRST <= tt && tt <= TOK_BINOP_LAST;
+}
 
 inline bool
 TokenKindIsEquality(TokenKind tt)
