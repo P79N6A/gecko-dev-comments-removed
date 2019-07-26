@@ -3676,6 +3676,7 @@ pref("dom.mozAlarms.enabled", false);
 
 
 pref("dom.mozSettings.enabled", false);
+pref("dom.mozPermissionSettings.enabled", false);
 
 
 pref("browser.dom.window.dump.enabled", false);

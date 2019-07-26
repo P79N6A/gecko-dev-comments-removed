@@ -387,6 +387,7 @@ pref("dom.mozAlarms.enabled", true);
 
 
 pref("dom.mozSettings.enabled", true);
+pref("dom.mozPermissionSettings.enabled", true);
 
 
 pref("device.camera.enabled", true);
