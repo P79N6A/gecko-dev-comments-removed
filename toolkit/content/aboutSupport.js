@@ -61,6 +61,8 @@ const PREFS_WHITELIST = [
   "print.",
   "privacy.",
   "security.",
+  "social.active",
+  "social.enabled",
   "svg.",
   "toolkit.startup.recent_crashes",
   "webgl."
@@ -95,6 +97,7 @@ window.onload = function () {
   populateExtensionsSection();
   populateGraphicsSection();
   populateJavaScriptSection();
+  populateAccessibilitySection();
   populateLibVersionsSection();
 }
 
@@ -404,6 +407,27 @@ function populateJavaScriptSection() {
   document.getElementById("javascript-incremental-gc").textContent = enabled ? "1" : "0";
 }
 
+function populateAccessibilitySection() {
+  var active;
+  try {
+    active = Components.manager.QueryInterface(Ci.nsIServiceManager)
+      .isServiceInstantiatedByContractID(
+        "@mozilla.org/accessibilityService;1",
+        Ci.nsISupports);
+  } catch (ex) {
+    active = false;
+  }
+
+  document.getElementById("a11y-activated").textContent = active ? "1" : "0";
+
+  var forceDisabled = 0;
+  forceDisabled = getPrefValue("accessibility.force_disabled").value;
+
+  document.getElementById("a11y-force-disabled").textContent
+    = (forceDisabled == -1) ? "never" :
+	((forceDisabled == 1) ? "1" : "0");
+}
+
 function getPrefValue(aName) {
   let value = "";
   let type = Services.prefs.getPrefType(aName);
@@ -478,6 +502,12 @@ function appendChildren(parentElem, childNodes) {
     parentElem.appendChild(childNodes[i]);
 }
 
+function getLoadContext() {
+  return window.QueryInterface(Ci.nsIInterfaceRequestor)
+               .getInterface(Ci.nsIWebNavigation)
+               .QueryInterface(Ci.nsILoadContext);
+}
+
 function copyContentsToClipboard() {
   
   let contentsDiv = document.getElementById("contents");
@@ -491,6 +521,7 @@ function copyContentsToClipboard() {
 
   let transferable = Cc["@mozilla.org/widget/transferable;1"]
                        .createInstance(Ci.nsITransferable);
+  transferable.init(getLoadContext());
 
   
   transferable.addDataFlavor("text/html");
