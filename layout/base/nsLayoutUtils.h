@@ -368,19 +368,28 @@ public:
 
 
 
-  static nsIFrame* GetActiveScrolledRootFor(nsIFrame* aFrame,
-                                            const nsIFrame* aStopAtAncestor);
 
-  static nsIFrame* GetActiveScrolledRootFor(nsDisplayItem* aItem,
-                                            nsDisplayListBuilder* aBuilder,
-                                            bool* aShouldFixToViewport = nullptr);
+
+
+
+
+
+
+
+
+  static nsIFrame* GetAnimatedGeometryRootFor(nsIFrame* aFrame,
+                                              const nsIFrame* aStopAtAncestor = nullptr);
+
+  static nsIFrame* GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
+                                              nsDisplayListBuilder* aBuilder);
+
 
   
 
 
 
 
-  static bool IsScrolledByRootContentDocumentDisplayportScrolling(const nsIFrame* aActiveScrolledRoot,
+  static bool IsScrolledByRootContentDocumentDisplayportScrolling(const nsIFrame* aAnimatedGeometryRoot,
                                                                   nsDisplayListBuilder* aBuilder);
 
   

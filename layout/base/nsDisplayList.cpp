@@ -544,28 +544,28 @@ static bool IsFixedFrame(nsIFrame* aFrame)
 
 bool
 nsDisplayListBuilder::IsFixedItem(nsDisplayItem *aItem,
-                                  const nsIFrame** aActiveScrolledRoot,
-                                  const nsIFrame* aOverrideActiveScrolledRoot)
+                                  const nsIFrame** aAnimatedGeometryRoot,
+                                  const nsIFrame* aOverrideAnimatedGeometryRoot)
 {
-  const nsIFrame* activeScrolledRoot = aOverrideActiveScrolledRoot;
-  if (!activeScrolledRoot) {
+  const nsIFrame* animatedGeometryRoot = aOverrideAnimatedGeometryRoot;
+  if (!animatedGeometryRoot) {
     if (aItem->GetType() == nsDisplayItem::TYPE_SCROLL_LAYER) {
       nsDisplayScrollLayer* scrollLayerItem =
         static_cast<nsDisplayScrollLayer*>(aItem);
-      activeScrolledRoot =
-        nsLayoutUtils::GetActiveScrolledRootFor(scrollLayerItem->GetScrolledFrame(),
-                                                FindReferenceFrameFor(scrollLayerItem->GetScrolledFrame()));
+      animatedGeometryRoot =
+        nsLayoutUtils::GetAnimatedGeometryRootFor(scrollLayerItem->GetScrolledFrame(),
+                                                  FindReferenceFrameFor(scrollLayerItem->GetScrolledFrame()));
     } else {
-      activeScrolledRoot = nsLayoutUtils::GetActiveScrolledRootFor(aItem, this);
+      animatedGeometryRoot = nsLayoutUtils::GetAnimatedGeometryRootFor(aItem, this);
     }
   }
 
-  if (aActiveScrolledRoot) {
-    *aActiveScrolledRoot = activeScrolledRoot;
+  if (aAnimatedGeometryRoot) {
+    *aAnimatedGeometryRoot = animatedGeometryRoot;
   }
 
-  return activeScrolledRoot &&
-    !nsLayoutUtils::IsScrolledByRootContentDocumentDisplayportScrolling(activeScrolledRoot, this);
+  return animatedGeometryRoot &&
+    !nsLayoutUtils::IsScrolledByRootContentDocumentDisplayportScrolling(animatedGeometryRoot, this);
 }
 
 static bool ForceVisiblityForFixedItem(nsDisplayListBuilder* aBuilder,
@@ -2290,20 +2290,14 @@ nsDisplayThemedBackground::nsDisplayThemedBackground(nsDisplayListBuilder* aBuil
   const nsStyleDisplay* disp = mFrame->StyleDisplay();
   mAppearance = disp->mAppearance;
   mFrame->IsThemed(disp, &mThemeTransparency);
-
   
-  switch (disp->mAppearance) {
-    case NS_THEME_MOZ_MAC_UNIFIED_TOOLBAR:
-    case NS_THEME_TOOLBAR:
-    case NS_THEME_WINDOW_TITLEBAR:
-    case NS_THEME_WINDOW_BUTTON_BOX:
-    case NS_THEME_MOZ_MAC_FULLSCREEN_BUTTON:
-      RegisterThemeGeometry(aBuilder, aFrame);
-      break;
-    case NS_THEME_WIN_BORDERLESS_GLASS:
-    case NS_THEME_WIN_GLASS:
-      aBuilder->SetGlassDisplayItem(this);
-      break;
+  if (mAppearance == NS_THEME_MOZ_MAC_UNIFIED_TOOLBAR ||
+      mAppearance == NS_THEME_TOOLBAR ||
+      mAppearance == NS_THEME_WINDOW_TITLEBAR) {
+    RegisterThemeGeometry(aBuilder, aFrame);
+  } else if (mAppearance == NS_THEME_WIN_BORDERLESS_GLASS ||
+             mAppearance == NS_THEME_WIN_GLASS) {
+    aBuilder->SetGlassDisplayItem(this);
   }
 
   mBounds = GetBoundsInternal();
@@ -2938,28 +2932,32 @@ void nsDisplayWrapList::Paint(nsDisplayListBuilder* aBuilder,
   NS_ERROR("nsDisplayWrapList should have been flattened away for painting");
 }
 
-LayerState
-nsDisplayWrapList::RequiredLayerStateForChildren(nsDisplayListBuilder* aBuilder,
-                                                 LayerManager* aManager,
-                                                 const ContainerParameters& aParameters,
-                                                 const nsDisplayList& aList,
-                                                 nsIFrame* aActiveScrolledRoot) {
+static LayerState
+RequiredLayerStateForChildrenInternal(nsDisplayListBuilder* aBuilder,
+                                      LayerManager* aManager,
+                                      const FrameLayerBuilder::ContainerParameters& aParameters,
+                                      const nsDisplayList& aList,
+                                      nsIFrame* aAnimatedGeometryRoot)
+{
   LayerState result = LAYER_INACTIVE;
   for (nsDisplayItem* i = aList.GetBottom(); i; i = i->GetAbove()) {
     nsIFrame* f = i->Frame();
-    nsIFrame* activeScrolledRoot =
-      nsLayoutUtils::GetActiveScrolledRootFor(f, nullptr);
-    if (activeScrolledRoot != aActiveScrolledRoot && result == LAYER_INACTIVE) {
+    if (result == LAYER_INACTIVE &&
+        nsLayoutUtils::GetAnimatedGeometryRootFor(f) != aAnimatedGeometryRoot) {
       result = LAYER_ACTIVE;
     }
 
     LayerState state = i->GetLayerState(aBuilder, aManager, aParameters);
-    if ((state == LAYER_ACTIVE || state == LAYER_ACTIVE_FORCE) && (state > result))
+    if ((state == LAYER_ACTIVE || state == LAYER_ACTIVE_FORCE) &&
+        state > result) {
       result = state;
+    }
     if (state == LAYER_NONE) {
       nsDisplayList* list = i->GetSameCoordinateSystemChildren();
       if (list) {
-        LayerState childState = RequiredLayerStateForChildren(aBuilder, aManager, aParameters, *list, aActiveScrolledRoot);
+        LayerState childState =
+          RequiredLayerStateForChildrenInternal(aBuilder, aManager, aParameters, *list,
+              aAnimatedGeometryRoot);
         if (childState > result) {
           result = childState;
         }
@@ -2967,6 +2965,18 @@ nsDisplayWrapList::RequiredLayerStateForChildren(nsDisplayListBuilder* aBuilder,
     }
   }
   return result;
+}
+
+LayerState
+nsDisplayWrapList::RequiredLayerStateForChildren(nsDisplayListBuilder* aBuilder,
+                                                 LayerManager* aManager,
+                                                 const ContainerParameters& aParameters,
+                                                 const nsDisplayList& aList,
+                                                 nsIFrame* aItemFrame)
+{
+  return RequiredLayerStateForChildrenInternal(
+      aBuilder, aManager, aParameters, aList,
+      nsLayoutUtils::GetAnimatedGeometryRootFor(aItemFrame));
 }
 
 nsRect nsDisplayWrapList::GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
@@ -3118,9 +3128,7 @@ nsDisplayOpacity::GetLayerState(nsDisplayListBuilder* aBuilder,
       return LAYER_ACTIVE;
     }
   }
-  nsIFrame* activeScrolledRoot =
-    nsLayoutUtils::GetActiveScrolledRootFor(mFrame, nullptr);
-  return RequiredLayerStateForChildren(aBuilder, aManager, aParameters, mList, activeScrolledRoot);
+  return RequiredLayerStateForChildren(aBuilder, aManager, aParameters, mList, mFrame);
 }
 
 bool
@@ -3347,16 +3355,19 @@ nsDisplayFixedPosition::~nsDisplayFixedPosition() {
 }
 #endif
 
-void nsDisplayFixedPosition::SetFixedPositionLayerData(Layer* const aLayer,
-                                                       nsIFrame* aViewportFrame,
-                                                       nsSize aViewportSize,
-                                                       nsPresContext* aPresContext,
-                                                       const ContainerParameters& aContainerParameters) {
+ void
+nsDisplayFixedPosition::SetFixedPositionLayerData(Layer* aLayer,
+                                                  const nsIFrame* aViewportFrame,
+                                                  nsSize aViewportSize,
+                                                  const nsIFrame* aFixedPosFrame,
+                                                  const nsIFrame* aReferenceFrame,
+                                                  nsPresContext* aPresContext,
+                                                  const ContainerParameters& aContainerParameters) {
   
   
   
   float factor = aPresContext->AppUnitsPerDevPixel();
-  nsPoint origin = aViewportFrame->GetOffsetToCrossDoc(ReferenceFrame());
+  nsPoint origin = aViewportFrame->GetOffsetToCrossDoc(aReferenceFrame);
   LayerRect anchorRect(NSAppUnitsToFloatPixels(origin.x, factor) *
                          aContainerParameters.mXScale,
                        NSAppUnitsToFloatPixels(origin.y, factor) *
@@ -3373,7 +3384,7 @@ void nsDisplayFixedPosition::SetFixedPositionLayerData(Layer* const aLayer,
   
   LayerPoint anchor = anchorRect.TopLeft();
 
-  const nsStylePosition* position = mFixedPosFrame->StylePosition();
+  const nsStylePosition* position = aFixedPosFrame->StylePosition();
   if (position->mOffset.GetRightUnit() != eStyleUnit_Auto) {
     if (position->mOffset.GetLeftUnit() != eStyleUnit_Auto) {
       anchor.x = anchorRect.x + anchorRect.width / 2.f;
@@ -3436,7 +3447,8 @@ nsDisplayFixedPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
       GetScrollPositionClampingScrollPortSize();
   }
 
-  SetFixedPositionLayerData(layer, viewportFrame, viewportSize, presContext,
+  SetFixedPositionLayerData(layer, viewportFrame, viewportSize, mFixedPosFrame,
+                            ReferenceFrame(), presContext,
                             aContainerParameters);
 
   return layer.forget();
@@ -3494,7 +3506,9 @@ nsDisplayStickyPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
       GetScrollPositionClampingScrollPortSize();
   }
 
-  SetFixedPositionLayerData(layer, scrollFrame, scrollFrameSize, presContext,
+  SetFixedPositionLayerData(layer, scrollFrame, scrollFrameSize,
+                            mFixedPosFrame, ReferenceFrame(),
+                            presContext,
                             aContainerParameters);
 
   ViewID scrollId = nsLayoutUtils::FindOrCreateIDFor(
@@ -4401,13 +4415,11 @@ nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
       return LAYER_ACTIVE;
     }
   }
-  nsIFrame* activeScrolledRoot =
-    nsLayoutUtils::GetActiveScrolledRootFor(mFrame, nullptr);
   return mStoredList.RequiredLayerStateForChildren(aBuilder,
                                                    aManager,
                                                    aParameters,
                                                    *mStoredList.GetChildren(),
-                                                   activeScrolledRoot);
+                                                   mFrame);
 }
 
 bool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
