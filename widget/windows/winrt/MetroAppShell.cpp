@@ -325,7 +325,7 @@ void
 MetroAppShell::DispatchAllGeckoEvents()
 {
   
-  if (!sShouldPurgeThreadQueue) {
+  if (!sShouldPurgeThreadQueue || MetroApp::sGeckoShuttingDown) {
     return;
   }
 
@@ -414,6 +414,15 @@ void
 MetroAppShell::NativeCallback()
 {
   NS_ASSERTION(NS_IsMainThread(), "Native callbacks must be on the metro main thread");
+
+  
+  
+  
+  
+  if (MetroApp::sGeckoShuttingDown) {
+    return;
+  }
+
   NativeEventCallback();
 }
 

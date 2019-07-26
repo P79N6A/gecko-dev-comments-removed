@@ -46,6 +46,8 @@ public:
   void CoreExit();
 
   void ShutdownXPCOM();
+  
+  static bool sGeckoShuttingDown;
 
   
   static void SetBaseWidget(MetroWidget* aPtr);
