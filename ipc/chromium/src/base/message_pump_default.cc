@@ -54,13 +54,19 @@ void MessagePumpDefault::Run(Delegate* delegate) {
     if (delayed_work_time_.is_null()) {
       hangMonitor.NotifyWait();
       PROFILER_LABEL("MessagePump", "Wait");
-      event_.Wait();
+      {
+        GeckoProfilerSleepRAII profiler_sleep;
+        event_.Wait();
+      }
     } else {
       TimeDelta delay = delayed_work_time_ - TimeTicks::Now();
       if (delay > TimeDelta()) {
         hangMonitor.NotifyWait();
         PROFILER_LABEL("MessagePump", "Wait");
-        event_.TimedWait(delay);
+        {
+          GeckoProfilerSleepRAII profiler_sleep;
+          event_.TimedWait(delay);
+        }
       } else {
         
         

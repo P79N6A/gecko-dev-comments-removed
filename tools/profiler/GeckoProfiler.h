@@ -173,6 +173,12 @@ static inline void profiler_unregister_thread() {}
 
 
 
+
+static inline void profiler_sleep_start() {}
+static inline void profiler_sleep_end() {}
+
+
+
 static inline void profiler_js_operation_callback() {}
 
 static inline double profiler_time() { return 0; }
@@ -193,6 +199,16 @@ public:
   }
   ~GeckoProfilerInitRAII() {
     profiler_shutdown();
+  }
+};
+
+class GeckoProfilerSleepRAII {
+public:
+  GeckoProfilerSleepRAII() {
+    profiler_sleep_start();
+  }
+  ~GeckoProfilerSleepRAII() {
+    profiler_sleep_end();
   }
 };
 

@@ -291,6 +291,14 @@ static void* SignalSender(void* arg) {
         if (!info->Profile())
           continue;
 
+        PseudoStack::SleepState sleeping = info->Stack()->observeSleeping();
+        if (sleeping == PseudoStack::SLEEPING_AGAIN) {
+          info->Profile()->DuplicateLastSample();
+          
+          info->Profile()->flush();
+          continue;
+        }
+
         
         
         sCurrentThreadProfile = info->Profile();

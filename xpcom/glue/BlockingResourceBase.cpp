@@ -12,6 +12,11 @@
 #include "mozilla/CondVar.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Mutex.h"
+
+#ifdef MOZILLA_INTERNAL_API
+#include "GeckoProfiler.h"
+#endif 
+
 #endif 
 
 namespace mozilla {
@@ -304,11 +309,20 @@ ReentrantMonitor::Wait(PRIntervalTime interval)
     SetAcquisitionContext(CallStack::kNone);
     mChainPrev = 0;
 
-    
-    nsresult rv =
-        PR_Wait(mReentrantMonitor, interval) == PR_SUCCESS ?
+    nsresult rv;
+#ifdef MOZILLA_INTERNAL_API
+    {
+        GeckoProfilerSleepRAII profiler_sleep;
+#endif
+
+
+    rv = PR_Wait(mReentrantMonitor, interval) == PR_SUCCESS ?
             NS_OK : NS_ERROR_FAILURE;
-    
+
+#ifdef MOZILLA_INTERNAL_API
+    }
+#endif 
+
     
     mEntryCount = savedEntryCount;
     SetAcquisitionContext(savedAcquisitionContext);

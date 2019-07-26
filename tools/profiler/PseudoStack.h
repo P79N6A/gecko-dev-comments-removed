@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include "js/ProfilingStack.h"
 #include <stdlib.h>
-#include <algorithm>
+#include "mozilla/Atomics.h"
 
 
 
@@ -68,6 +68,12 @@ LinuxKernelMemoryBarrierFunc pLinuxKernelMemoryBarrier __attribute__((weak)) =
 #else
 # error "Memory clobber not supported for your platform."
 #endif
+
+
+
+static inline uint32_t sMin(uint32_t l, uint32_t r) {
+  return l < r ? l : r;
+}
 
 
 
@@ -302,6 +308,9 @@ struct PseudoStack
 public:
   PseudoStack()
     : mStackPointer(0)
+    , mSleepId(0)
+    , mSleepIdObserved(0)
+    , mSleeping(false)
     , mRuntime(nullptr)
     , mStartJSSampling(false)
     , mPrivacyMode(false)
@@ -315,6 +324,13 @@ public:
       
       abort();
     }
+  }
+
+  
+  void reinitializeOnResume() {
+    
+    
+    mSleepId++;
   }
 
   void addLinkedUWTBuffer(LinkedUWTBuffer* aBuff)
@@ -379,7 +395,7 @@ public:
   }
   uint32_t stackSize() const
   {
-    return std::min<uint32_t>(mStackPointer, mozilla::sig_safe_t(mozilla::ArrayLength(mStack)));
+    return sMin(mStackPointer, mozilla::sig_safe_t(mozilla::ArrayLength(mStack)));
   }
 
   void sampleRuntime(JSRuntime *runtime) {
@@ -428,12 +444,44 @@ public:
   
   
   mozilla::sig_safe_t mStackPointer;
+  
+  int mSleepId;
+  
+  mozilla::Atomic<int> mSleepIdObserved;
+  
+  mozilla::Atomic<int> mSleeping;
  public:
   
   JSRuntime *mRuntime;
   
   bool mStartJSSampling;
   bool mPrivacyMode;
+
+  enum SleepState {NOT_SLEEPING, SLEEPING_FIRST, SLEEPING_AGAIN};
+
+  
+  
+  SleepState observeSleeping() {
+    if (mSleeping != 0) {
+      if (mSleepIdObserved == mSleepId) {
+        return SLEEPING_AGAIN;
+      } else {
+        mSleepIdObserved = mSleepId;
+        return SLEEPING_FIRST;
+      }
+    } else {
+      return NOT_SLEEPING;
+    }
+  }
+
+
+  
+  
+  void setSleeping(int sleeping) {
+    MOZ_ASSERT(mSleeping != sleeping);
+    mSleepId++;
+    mSleeping = sleeping;
+  }
 };
 
 #endif

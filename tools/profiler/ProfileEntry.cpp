@@ -107,7 +107,7 @@ void ProfileEntry::log()
       LOGF("%c %d", mTagName, mTagLine); break;
     case 'h':
       LOGF("%c \'%c\'", mTagName, mTagChar); break;
-    case 'r': case 't':
+    case 'r': case 't': case 'p':
       LOGF("%c %f", mTagName, mTagFloat); break;
     default:
       LOGF("'%c' unknown_tag", mTagName); break;
@@ -458,6 +458,36 @@ void ThreadProfile::EndUnwind()
 mozilla::Mutex* ThreadProfile::GetMutex()
 {
   return &mMutex;
+}
+
+void ThreadProfile::DuplicateLastSample() {
+  
+  
+  
+  for (int readPos = mWritePos; readPos != (mReadPos + mEntrySize - 1) % mEntrySize; readPos = (readPos + mEntrySize - 1) % mEntrySize) {
+    
+    if (mEntries[readPos].mTagName == 's') {
+      int copyEndIdx = mWritePos;
+      
+      for (;readPos != copyEndIdx; readPos = (readPos + 1) % mEntrySize) {
+        switch (mEntries[readPos].mTagName) {
+          
+          case 't':
+            addTag(ProfileEntry('t', (mozilla::TimeStamp::Now() - sStartTime).ToMilliseconds()));
+            break;
+          
+          case 'm':
+            break;
+          
+          
+          default:
+            addTag(mEntries[readPos]);
+            break;
+        }
+      }
+      break;
+    }
+  }
 }
 
 std::ostream& operator<<(std::ostream& stream, const ThreadProfile& profile)

@@ -209,6 +209,14 @@ class SamplerThread : public Thread {
           if (!info->Profile())
             continue;
 
+          PseudoStack::SleepState sleeping = info->Stack()->observeSleeping();
+          if (sleeping == PseudoStack::SLEEPING_AGAIN) {
+            info->Profile()->DuplicateLastSample();
+            
+            info->Profile()->flush();
+            continue;
+          }
+
           ThreadProfile* thread_profile = info->Profile();
 
           SampleContext(SamplerRegistry::sampler, thread_profile);
