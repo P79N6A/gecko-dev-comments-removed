@@ -52,6 +52,8 @@ import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.InputDevice;
@@ -106,6 +108,7 @@ abstract public class BrowserApp extends GeckoApp
 
     public static BrowserToolbar mBrowserToolbar;
     private HomePager mHomePager;
+    private View mHomePagerContainer;
     protected Telemetry.Timer mAboutHomeStartupTimer = null;
 
     private static final int ADDON_MENU_OFFSET = 1000;
@@ -429,6 +432,7 @@ abstract public class BrowserApp extends GeckoApp
         });
 
         mHomePager = (HomePager) findViewById(R.id.home_pager);
+        mHomePagerContainer = findViewById(R.id.home_pager_container);
 
         mBrowserSearchContainer = findViewById(R.id.search_container);
         mBrowserSearch = (BrowserSearch) getSupportFragmentManager().findFragmentByTag(BROWSER_SEARCH_TAG);
@@ -888,7 +892,7 @@ abstract public class BrowserApp extends GeckoApp
                 
                 
                 
-                mHomePager.setPadding(0, height, 0, 0);
+                mHomePagerContainer.setPadding(0, height, 0, 0);
             } else {
                 setToolbarMargin(height);
                 height = 0;
