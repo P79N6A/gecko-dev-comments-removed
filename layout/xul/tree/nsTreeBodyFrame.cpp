@@ -313,9 +313,9 @@ nsTreeBodyFrame::EnsureBoxObject()
       nsIDocument* nsDoc = parent->GetDocument();
       if (!nsDoc) 
         return;
-      nsCOMPtr<nsIBoxObject> box;
-      nsCOMPtr<nsIDOMElement> domElem = do_QueryInterface(parent);
-      nsDoc->GetBoxObjectFor(domElem, getter_AddRefs(box));
+      ErrorResult ignored;
+      nsCOMPtr<nsIBoxObject> box =
+        nsDoc->GetBoxObjectFor(parent->AsElement(), ignored);
       
       nsCOMPtr<nsPIBoxObject> pBox = do_QueryInterface(box);
       if (pBox) {
