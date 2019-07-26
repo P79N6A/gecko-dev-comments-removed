@@ -70,6 +70,12 @@ public:
   
 
 
+  static void SetOpenState(nsWindow* aWindow, bool aOpen);
+  static bool GetOpenState(nsWindow* aWindow);
+
+  
+
+
 
 
   static bool IsDoingKakuteiUndo(HWND aWnd);
