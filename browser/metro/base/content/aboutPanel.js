@@ -2,6 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
 
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 var gAppUpdater;
 var AboutPanelUI = {
   get _aboutVersionLabel() {
@@ -162,11 +165,21 @@ appUpdater.prototype =
 
   
   get updateEnabled() {
+    let updatesEnabled = true;
     try {
-      return Services.prefs.getBoolPref("app.update.enabled");
+      updatesEnabled = Services.prefs.getBoolPref("app.update.metro.enabled");
     }
     catch (e) { }
-    return true; 
+    if (!updatesEnabled) {
+      return false;
+    }
+
+    try {
+      updatesEnabled = Services.prefs.getBoolPref("app.update.enabled")
+    }
+    catch (e) { }
+
+    return updatesEnabled;
   },
 
   

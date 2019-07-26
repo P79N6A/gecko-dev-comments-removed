@@ -167,10 +167,11 @@ var gCloseWindowTimeoutCounter = 0;
 
 
 
-var gAppUpdateEnabled;    
-var gAppUpdateURLDefault; 
-var gAppUpdateURL;        
-var gExtUpdateURL;        
+var gAppUpdateEnabled;      
+var gAppUpdateMetroEnabled; 
+var gAppUpdateURLDefault;   
+var gAppUpdateURL;          
+var gExtUpdateURL;          
 
 var gTestCounter = -1;
 var gWin;
@@ -809,6 +810,11 @@ function setupPrefs() {
   }
   Services.prefs.setBoolPref(PREF_APP_UPDATE_ENABLED, true)
 
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_METRO_ENABLED)) {
+    gAppUpdateMetroEnabled = Services.prefs.getBoolPref(PREF_APP_UPDATE_METRO_ENABLED);
+  }
+  Services.prefs.setBoolPref(PREF_APP_UPDATE_METRO_ENABLED, true)
+
   if (Services.prefs.prefHasUserValue(PREF_EXTENSIONS_UPDATE_URL)) {
     gExtUpdateURL = Services.prefs.getCharPref(PREF_EXTENSIONS_UPDATE_URL);
   }
@@ -843,6 +849,13 @@ function resetPrefs() {
   }
   else if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_ENABLED)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_ENABLED);
+  }
+
+  if (gAppUpdateMetroEnabled !== undefined) {
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_METRO_ENABLED, gAppUpdateMetroEnabled);
+  }
+  else if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_METRO_ENABLED)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_METRO_ENABLED);
   }
 
   if (gExtUpdateURL !== undefined) {
