@@ -16,6 +16,7 @@
 #include "mozilla/Attributes.h"
 
 class nsIAccessibleTraversalRule;
+class RuleCache;
 
 
 
@@ -89,6 +90,18 @@ private:
 
 
   bool MovePivotInternal(Accessible* aPosition, PivotMoveReason aReason);
+
+  
+
+
+
+
+
+
+
+
+  Accessible* AdjustStartPosition(Accessible* aAccessible, RuleCache& aCache,
+                                  uint16_t* aFilterResult, nsresult* aResult);
 
   
 
