@@ -18,6 +18,7 @@ public class INISection {
     
     private String mName = null;
     public String getName() { return mName; }
+    public void setName(String name) { mName = name; }
 
     
     private  boolean mDebug = false;

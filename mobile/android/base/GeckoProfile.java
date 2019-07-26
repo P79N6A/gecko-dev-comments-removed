@@ -491,8 +491,9 @@ public final class GeckoProfile {
                 } else {
                     
                     parser.removeSection(mName);
-                    return true;
                 }
+
+                break;
             }
 
             parser.write();
