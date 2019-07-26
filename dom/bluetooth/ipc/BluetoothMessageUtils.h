@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_bluetooth_ipc_bluetoothmessageutils_h__
 #define mozilla_dom_bluetooth_ipc_bluetoothmessageutils_h__
 

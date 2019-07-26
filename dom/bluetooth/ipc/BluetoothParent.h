@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_bluetooth_ipc_bluetoothparent_h__
 #define mozilla_dom_bluetooth_ipc_bluetoothparent_h__
 
@@ -145,6 +147,24 @@ protected:
 
   bool
   DoRequest(const DevicePropertiesRequest& aRequest);
+
+  bool
+  DoRequest(const SetPinCodeRequest& aRequest);
+
+  bool
+  DoRequest(const SetPasskeyRequest& aRequest);
+
+  bool
+  DoRequest(const ConfirmPairingConfirmationRequest& aRequest);
+
+  bool
+  DoRequest(const DenyPairingConfirmationRequest& aRequest);
+
+  bool
+  DoRequest(const ConfirmAuthorizationRequest& aRequest);
+
+  bool
+  DoRequest(const DenyAuthorizationRequest& aRequest);
 };
 
 END_BLUETOOTH_NAMESPACE
