@@ -33,54 +33,54 @@ this.PduHelper = {
 
 
 
+
+
+
   parse: function parse_sl(data, contentType) {
-    let msg = {};
+    
+    let msg = {
+      contentType: contentType
+    };
 
     
 
 
 
 
-    if (!contentType || contentType === "application/vnd.wap.slc") {
+    if (contentType === "application/vnd.wap.slc") {
       let appToken = {
         publicId: PUBLIC_IDENTIFIER_SL,
-        tagToken: SL_TAG_FIELDS,
-        attrToken: SL_ATTRIBUTE_FIELDS,
+        tagTokenList: SL_TAG_FIELDS,
+        attrTokenList: SL_ATTRIBUTE_FIELDS,
+        valueTokenList: SL_VALUE_FIELDS,
         globalTokenOverride: null
       }
 
-      WBXML.PduHelper.parse(data, appToken, msg);
+      try {
+        let parseResult = WBXML.PduHelper.parse(data, appToken);
+        msg.content = parseResult.content;
+        msg.contentType = "text/vnd.wap.sl";
+      } catch (e) {
+        
+        msg.content = data.array;
+      }
 
-      msg.contentType = "text/vnd.wap.sl";
       return msg;
     }
 
     
 
 
-    if (contentType === "text/vnd.wap.sl") {
+    try {
       let stringData = WSP.Octet.decodeMultiple(data, data.array.length);
-      msg.publicId = PUBLIC_IDENTIFIER_SL;
       msg.content = WSP.PduHelper.decodeStringContent(stringData, "UTF-8");
-      msg.contentType = "text/vnd.wap.sl";
-      return msg;
+    } catch (e) {
+      
+      msg.content = data.array;
     }
+    return msg;
 
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-  compose: function compose_sl(multiStream, msg) {
-    
-    return null;
-  },
+  }
 };
 
 
@@ -95,7 +95,7 @@ const SL_TAG_FIELDS = (function () {
       name: name,
       number: number,
     };
-    names[name] = names[number] = entry;
+    names[number] = entry;
   }
 
   add("sl",           0x05);
@@ -116,7 +116,7 @@ const SL_ATTRIBUTE_FIELDS = (function () {
       value: value,
       number: number,
     };
-    names[name] = names[number] = entry;
+    names[number] = entry;
   }
 
   add("action",       "execute-low",    0x05);
@@ -127,10 +127,24 @@ const SL_ATTRIBUTE_FIELDS = (function () {
   add("href",         "http://www.",    0x0A);
   add("href",         "https://",       0x0B);
   add("href",         "https://www.",   0x0C);
-  add("",             ".com/",          0x85);
-  add("",             ".edu/",          0x86);
-  add("",             ".net/",          0x87);
-  add("",             ".org/",          0x88);
+
+  return names;
+})();
+
+const SL_VALUE_FIELDS = (function () {
+  let names = {};
+  function add(value, number) {
+    let entry = {
+      value: value,
+      number: number,
+    };
+    names[number] = entry;
+  }
+
+  add(".com/",          0x85);
+  add(".edu/",          0x86);
+  add(".net/",          0x87);
+  add(".org/",          0x88);
 
   return names;
 })();

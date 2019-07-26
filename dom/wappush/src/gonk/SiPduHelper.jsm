@@ -72,15 +72,21 @@ this.PduHelper = {
 
 
 
+
+
+
   parse: function parse_si(data, contentType) {
-    let msg = {};
+    
+    let msg = {
+      contentType: contentType
+    };
 
     
 
 
 
 
-    if (!contentType || contentType === "application/vnd.wap.sic") {
+    if (contentType === "application/vnd.wap.sic") {
       let globalTokenOverride = {};
       globalTokenOverride[0xC3] = {
         number: 0xC3,
@@ -89,43 +95,36 @@ this.PduHelper = {
 
       let appToken = {
         publicId: PUBLIC_IDENTIFIER_SI,
-        tagToken: SI_TAG_FIELDS,
-        attrToken: SI_ATTRIBUTE_FIELDS,
+        tagTokenList: SI_TAG_FIELDS,
+        attrTokenList: SI_ATTRIBUTE_FIELDS,
+        valueTokenList: SI_VALUE_FIELDS,
         globalTokenOverride: globalTokenOverride
       }
 
-      WBXML.PduHelper.parse(data, appToken, msg);
-
-      msg.contentType = "text/vnd.wap.si";
+      try {
+        let parseResult = WBXML.PduHelper.parse(data, appToken);
+        msg.content = parseResult.content;
+        msg.contentType = "text/vnd.wap.si";
+      } catch (e) {
+        
+        msg.content = data.array;
+      }
       return msg;
     }
 
     
 
 
-    if (contentType === "text/vnd.wap.si") {
+    try {
       let stringData = WSP.Octet.decodeMultiple(data, data.array.length);
-      msg.publicId = PUBLIC_IDENTIFIER_SI;
       msg.content = WSP.PduHelper.decodeStringContent(stringData, "UTF-8");
-      msg.contentType = "text/vnd.wap.si";
-      return msg;
+    } catch (e) {
+      
+      msg.content = data.array;
     }
+    return msg;
 
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-  compose: function compose_si(multiStream, msg) {
-    
-    return null;
-  },
+  }
 };
 
 
@@ -140,7 +139,7 @@ const SI_TAG_FIELDS = (function () {
       name: name,
       number: number,
     };
-    names[name] = names[number] = entry;
+    names[number] = entry;
   }
 
   add("si",           0x05);
@@ -164,7 +163,7 @@ const SI_ATTRIBUTE_FIELDS = (function () {
       value: value,
       number: number,
     };
-    names[name] = names[number] = entry;
+    names[number] = entry;
   }
 
   add("action",       "signal-none",    0x05);
@@ -181,10 +180,24 @@ const SI_ATTRIBUTE_FIELDS = (function () {
   add("si-expires",   "",               0x10);
   add("si-id",        "",               0x11);
   add("class",        "",               0x12);
-  add("",             ".com/",          0x85);
-  add("",             ".edu/",          0x86);
-  add("",             ".net/",          0x87);
-  add("",             ".org/",          0x88);
+
+  return names;
+})();
+
+const SI_VALUE_FIELDS = (function () {
+  let names = {};
+  function add(value, number) {
+    let entry = {
+      value: value,
+      number: number,
+    };
+    names[number] = entry;
+  }
+
+  add(".com/",          0x85);
+  add(".edu/",          0x86);
+  add(".net/",          0x87);
+  add(".org/",          0x88);
 
   return names;
 })();

@@ -132,20 +132,26 @@ this.PduHelper = {
 
 
 
-  parseWbxml: function parseWbxml_wbxml(data, msg, appToken) {
+  parseWbxml: function parseWbxml_wbxml(data, decodeInfo, appToken) {
 
     
-    let tagTokenList = appToken.tagToken;
-    let attrTokenList = appToken.attrToken;
-    let globalTokenOverrideList = appToken.globalTokenOverride || {};
+    let tagTokenList = appToken.tagTokenList;
+    let attrTokenList = appToken.attrTokenList;
+    let valueTokenList = appToken.valueTokenList;
 
-    let decodeInfo = {
-      tagStack: [],                                                 
-      charset: WSP.WSP_WELL_KNOWN_CHARSETS[msg.charset].converter,  
-      stringTable: msg.stringTable                                  
-    };
+    decodeInfo.tagStack = [];    
 
-    msg.content = "";
+    
+    
+    let globalTagTokenList = Object.create(WBXML_GLOBAL_TOKENS);
+    if (appToken.globalTokenOverride) {
+      let globalTokenOverrideList = appToken.globalTokenOverride;
+      for (let token in globalTokenOverrideList) {
+        globalTagTokenList[token] = globalTokenOverrideList[token];
+      }
+    }
+
+    let content = "";
     while (data.offset < data.array.length) {
       
       
@@ -156,21 +162,20 @@ this.PduHelper = {
       
       
       
-      let tagInfo = globalTokenOverrideList[tagToken] ||
-                    globalTokenOverrideList[tagTokenValue] ||
-                    WBXML_GLOBAL_TOKENS[tagToken] ||
-                    WBXML_GLOBAL_TOKENS[tagTokenValue];
+      let tagInfo = globalTagTokenList[tagToken] ||
+                    globalTagTokenList[tagTokenValue];
       if (tagInfo) {
-        msg.content += tagInfo.coder.decode(data, decodeInfo);
+        content += tagInfo.coder.decode(data, decodeInfo);
         continue;
       }
 
       
       tagInfo = tagTokenList[tagTokenValue];
-      if (!tagInfo)
-        continue;
+      if (!tagInfo) {
+        throw new Error("Unsupported WBXML token: " + tagTokenValue + ".");
+      }
 
-      msg.content += "<" + tagInfo.name;
+      content += "<" + tagInfo.name;
 
       if (tagToken & TAG_TOKEN_ATTR_MASK) {
         
@@ -183,37 +188,42 @@ this.PduHelper = {
             break;
           }
 
-          let attrInfo = globalTokenOverrideList[attrToken] ||
-                         WBXML_GLOBAL_TOKENS[attrToken];
+          let attrInfo = globalTagTokenList[attrToken];
           if (attrInfo) {
-            msg.content += attrInfo.coder.decode(data, decodeInfo);
+            content += attrInfo.coder.decode(data, decodeInfo);
             continue;
           }
 
           
           attrInfo = attrTokenList[attrToken];
-          if (!attrInfo)
-            continue;
-
-          if (attrInfo.name !== "") {
-            msg.content += attrSeperator + " " + attrInfo.name + "=\"" + attrInfo.value;
+          if (attrInfo) {
+            content += attrSeperator + " " + attrInfo.name + "=\"" + attrInfo.value;
             attrSeperator = "\"";
-          } else {
-            msg.content += attrInfo.value;
+            continue;
           }
+
+          attrInfo = valueTokenList[attrToken];
+          if (attrInfo) {
+            content += attrInfo.value;
+            continue;
+          }
+
+          throw new Error("Unsupported WBXML token: " + attrToken + ".");
         }
 
-        msg.content += attrSeperator;
+        content += attrSeperator;
       }
 
       if (tagToken & TAG_TOKEN_CONTENT_MASK) {
-        msg.content += ">";
+        content += ">";
         decodeInfo.tagStack.push(tagInfo);
         continue;
       }
 
-      msg.content += "/>";
+      content += "/>";
     }
+
+    return content;
   },
 
   
@@ -251,12 +261,8 @@ this.PduHelper = {
 
 
 
-
-
-  parse: function parse_wbxml(data, appToken, msg) {
-    if (!msg) {
-      msg = {};
-    }
+  parse: function parse_wbxml(data, appToken) {
+    let msg = {};
 
     
 
@@ -289,28 +295,19 @@ this.PduHelper = {
                                      WSP.WSP_WELL_KNOWN_CHARSETS[msg.charset].converter);
     }
     if (msg.publicId != appToken.publicId) {
-      return null;
+      throw new Error("Public ID does not match.");
     }
 
     msg.version = ((headerRaw.version >> 4) + 1) + "." + (headerRaw.version & 0x0F);
 
-    this.parseWbxml(data, msg, appToken);
+    let decodeInfo = {
+      charset: WSP.WSP_WELL_KNOWN_CHARSETS[msg.charset].converter,  
+      stringTable: msg.stringTable                                  
+    };
+    msg.content = this.parseWbxml(data, decodeInfo, appToken);
 
     return msg;
-  },
-
-  
-
-
-
-
-
-
-
-  compose: function compose_wbxml(multiStream, msg) {
-    
-    return null;
-  },
+  }
 };
 
 
