@@ -4,6 +4,11 @@
 
  
 #include <windows.h>
+#if defined(_WIN32_WINNT_WIN8) && defined(_MSC_VER) && _MSC_VER < 1700
+
+
+#undef FACILITY_VISUALCPP
+#endif
 #include <delayimp.h>
 #include "nsToolkit.h"
 #include "mozilla/Assertions.h"
