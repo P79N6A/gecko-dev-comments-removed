@@ -252,20 +252,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-  bool LoadMask(Layer* aLayer);
-
-  
-
-
-
-
   void SetLayerTransform(const gfx3DMatrix& aMatrix) {
     SetMatrixUniform(mProfile.LookupUniformLocation("uLayerTransform"), aMatrix);
   }
