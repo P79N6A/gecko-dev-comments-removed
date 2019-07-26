@@ -4301,9 +4301,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
 
     AddCookiesToRequest();
 
-    
-    gHttpHandler->OnModifyRequest(this);
-
     mIsPending = true;
     mWasOpened = true;
 
@@ -4318,8 +4315,8 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     
     
     
-    if (mTimingEnabled)
-        mAsyncOpenTime = mozilla::TimeStamp::Now();
+    
+    mAsyncOpenTime = mozilla::TimeStamp::Now();
 
     
     
@@ -4338,6 +4335,14 @@ nsHttpChannel::BeginConnect()
 {
     LOG(("nsHttpChannel::BeginConnect [this=%p]\n", this));
     nsresult rv;
+
+    
+    gHttpHandler->OnModifyRequest(this);
+
+    
+    
+    if (!mTimingEnabled)
+        mAsyncOpenTime = mozilla::TimeStamp();
 
     
     nsAutoCString host;
@@ -4519,11 +4524,10 @@ NS_IMETHODIMP
 nsHttpChannel::GetProxyInfo(nsIProxyInfo **result)
 {
     if (!mConnectionInfo)
-        *result = nullptr;
-    else {
+        *result = mProxyInfo;
+    else
         *result = mConnectionInfo->ProxyInfo();
-        NS_IF_ADDREF(*result);
-    }
+    NS_IF_ADDREF(*result);
     return NS_OK;
 }
 
