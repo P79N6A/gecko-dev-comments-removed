@@ -10,6 +10,8 @@ var gThreadClient;
 
 
 
+Cu.import("resource://gre/modules/NetUtil.jsm");
+
 function run_test()
 {
   initTestDebuggerServer();
@@ -58,9 +60,15 @@ function test_source()
         do_check_true(!aResponse.error);
         do_check_true(!!aResponse.source);
 
-        do_check_eq(readFile("test_source-01.js"),
+        let f = do_get_file("test_source-01.js", false);
+        let s = Cc["@mozilla.org/network/file-input-stream;1"]
+          .createInstance(Ci.nsIFileInputStream);
+        s.init(f, -1, -1, false);
+
+        do_check_eq(NetUtil.readInputStreamToString(s, s.available()),
                     aResponse.source);
 
+        s.close();
         gThreadClient.resume(function () {
           finishClient(gClient);
         });

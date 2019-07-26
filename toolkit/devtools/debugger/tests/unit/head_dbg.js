@@ -178,14 +178,6 @@ function finishClient(aClient)
 
 
 
-function getFileUrl(aName) {
-  let file = do_get_file(aName);
-  return Services.io.newFileURI(file).spec;
-}
-
-
-
-
 
 function getFilePath(aName)
 {
@@ -197,21 +189,4 @@ function getFilePath(aName)
     filePrePath += "/";
   }
   return path.slice(filePrePath.length);
-}
-
-Cu.import("resource://gre/modules/NetUtil.jsm");
-
-
-
-
-function readFile(aFileName) {
-  let f = do_get_file(aFileName);
-  let s = Cc["@mozilla.org/network/file-input-stream;1"]
-    .createInstance(Ci.nsIFileInputStream);
-  s.init(f, -1, -1, false);
-  try {
-    return NetUtil.readInputStreamToString(s, s.available());
-  } finally {
-    s.close();
-  }
 }
