@@ -48,7 +48,7 @@ public:
     mParentDecoder->NotifyDataArrived(aBuffer, aLength, aOffset);
   }
 
-  nsresult GetBuffered(dom::TimeRanges* aBuffered)
+  nsresult GetBuffered(TimeRanges* aBuffered)
   {
     
     return mReader->GetBuffered(aBuffered, 0);

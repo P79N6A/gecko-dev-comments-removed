@@ -201,6 +201,8 @@ class TimeRanges;
 }
 }
 
+using namespace mozilla::dom;
+
 namespace mozilla {
 namespace layers {
 class Image;
@@ -230,6 +232,8 @@ class MediaDecoder : public nsIObserver,
                      public AbstractMediaDecoder
 {
 public:
+  typedef mozilla::layers::Image Image;
+
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
@@ -367,7 +371,7 @@ public:
     MediaDecoder* mDecoder;
     
     
-    nsRefPtr<layers::Image> mLastVideoImage;
+    nsRefPtr<Image> mLastVideoImage;
     gfxIntSize mLastVideoImageDisplaySize;
     
     
@@ -519,7 +523,7 @@ public:
   virtual bool IsTransportSeekable();
 
   
-  virtual nsresult GetSeekable(dom::TimeRanges* aSeekable);
+  virtual nsresult GetSeekable(TimeRanges* aSeekable);
 
   
   
@@ -555,7 +559,7 @@ public:
   virtual void MoveLoadsToBackground();
 
   
-  MediaDecoderOwner* GetMediaOwner() const;
+  mozilla::MediaDecoderOwner* GetMediaOwner() const;
 
   
   
@@ -580,7 +584,7 @@ public:
 
   
   
-  virtual nsresult GetBuffered(dom::TimeRanges* aBuffered);
+  virtual nsresult GetBuffered(TimeRanges* aBuffered);
 
   
   
@@ -591,7 +595,7 @@ public:
   {
     return mVideoFrameContainer;
   }
-  layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
+  mozilla::layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
 
   
   
@@ -657,8 +661,8 @@ public:
   
   void UpdatePlaybackPosition(int64_t aTime) MOZ_FINAL MOZ_OVERRIDE;
 
-  void SetAudioChannelType(dom::AudioChannelType aType) { mAudioChannelType = aType; }
-  dom::AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
+  void SetAudioChannelType(AudioChannelType aType) { mAudioChannelType = aType; }
+  AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
 
   
   
@@ -923,7 +927,6 @@ public:
     GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded);
   }
 
-protected:
   
 
 
@@ -1022,7 +1025,7 @@ private:
   
   RestrictedAccessMonitor mReentrantMonitor;
 
-protected:
+public:
   
   nsTArray<OutputStreamData> mOutputStreams;
   
@@ -1084,6 +1087,8 @@ protected:
   
   bool mTriggerPlaybackEndedWhenSourceStreamFinishes;
 
+protected:
+
   
   nsresult StartProgress();
 
@@ -1143,7 +1148,7 @@ protected:
 
   
   
-  dom::AudioChannelType mAudioChannelType;
+  AudioChannelType mAudioChannelType;
 };
 
 } 
