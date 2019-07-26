@@ -184,39 +184,50 @@ SuspendWorkersForWindow(nsPIDOMWindow* aWindow);
 void
 ResumeWorkersForWindow(nsPIDOMWindow* aWindow);
 
-class WorkerTask {
+class WorkerTask
+{
+protected:
+  WorkerTask()
+  { }
+
+  virtual ~WorkerTask()
+  { }
+
 public:
-    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WorkerTask)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WorkerTask)
 
-    virtual ~WorkerTask() { }
-
-    virtual bool RunTask(JSContext* aCx) = 0;
+  virtual bool
+  RunTask(JSContext* aCx) = 0;
 };
 
-class WorkerCrossThreadDispatcher {
+class WorkerCrossThreadDispatcher
+{
+   friend class WorkerPrivate;
+
+  
+  
+  Mutex mMutex;
+  WorkerPrivate* mWorkerPrivate;
+
+private:
+  
+  WorkerCrossThreadDispatcher(WorkerPrivate* aWorkerPrivate);
+
+  
+  void
+  Forget()
+  {
+    MutexAutoLock lock(mMutex);
+    mWorkerPrivate = nullptr;
+  }
+
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WorkerCrossThreadDispatcher)
 
-  WorkerCrossThreadDispatcher(WorkerPrivate* aPrivate) :
-    mMutex("WorkerCrossThreadDispatcher"), mPrivate(aPrivate) {}
-  void Forget()
-  {
-    mozilla::MutexAutoLock lock(mMutex);
-    mPrivate = nullptr;
-  }
-
   
-
-
-
-  bool PostTask(WorkerTask* aTask);
-
-protected:
-  friend class WorkerPrivate;
-
   
-  mozilla::Mutex mMutex;
-  WorkerPrivate* mPrivate;
+  bool
+  PostTask(WorkerTask* aTask);
 };
 
 WorkerCrossThreadDispatcher*
