@@ -378,17 +378,7 @@ BrowserTabList.prototype._listenToMediatorIf = function(aShouldListen) {
 BrowserTabList.prototype.onWindowTitleChange = () => { };
 
 BrowserTabList.prototype.onOpenWindow = makeInfallible(function(aWindow) {
-  
-
-
-
-
-
-  aWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIDOMWindow);
-  aWindow.addEventListener("load", makeInfallible(handleLoad.bind(this)), false);
-
-  function handleLoad(aEvent) {
+  let handleLoad = makeInfallible(() => {
     
     aWindow.removeEventListener("load", handleLoad, false);
 
@@ -408,7 +398,18 @@ BrowserTabList.prototype.onOpenWindow = makeInfallible(function(aWindow) {
     
     
     this._notifyListChanged();
-  }
+  });
+
+  
+
+
+
+
+
+  aWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindow);
+
+  aWindow.addEventListener("load", handleLoad, false);
 }, "BrowserTabList.prototype.onOpenWindow");
 
 BrowserTabList.prototype.onCloseWindow = makeInfallible(function(aWindow) {
