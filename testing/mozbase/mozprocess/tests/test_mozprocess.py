@@ -4,13 +4,13 @@
 
 
 
+import optparse
 import os
 import subprocess
 import sys
 import unittest
-from time import sleep
-
 from mozprocess import processhandler
+from time import sleep
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,14 +22,33 @@ def make_proclaunch(aDir):
         Returns:
             the path to the proclaunch executable that is generated
     """
-    
-    
-    p = subprocess.call(["make", "-C", "iniparser"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=aDir)
-    p = subprocess.call(["make"],stdout=subprocess.PIPE, stderr=subprocess.PIPE ,cwd=aDir)
+
     if sys.platform == "win32":
         exepath = os.path.join(aDir, "proclaunch.exe")
     else:
         exepath = os.path.join(aDir, "proclaunch")
+
+    
+    
+    if os.path.exists(exepath):
+        os.remove(exepath)
+
+    
+    
+    for command in [["make", "-C", "iniparser"],
+                    ["make"]]:
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=aDir)
+        stdout, stderr = process.communicate()
+        if process.returncode:
+            
+            print "%s: exit %d" % (command, process.returncode)
+            print "stdout:\n%s" % stdout
+            print "stderr:\n%s" % stderr
+            raise subprocess.CalledProcessError(process.returncode, command, stdout)
+
+    
+    if not os.path.exists(exepath):
+        raise AssertionError("proclaunch executable '%s' does not exist (sys.platform=%s)" % (exepath, sys.platform))
     return exepath
 
 def check_for_process(processName):
@@ -72,12 +91,18 @@ def check_for_process(processName):
 
 class ProcTest(unittest.TestCase):
 
+    
+    cleanup = os.environ.get('CLEANUP', 'true').lower() in ('1', 'true')
+
     @classmethod
     def setUpClass(cls):
         cls.proclaunch = make_proclaunch(here)
 
     @classmethod
     def tearDownClass(cls):
+        del cls.proclaunch
+        if not cls.cleanup:
+            return
         files = [('proclaunch',),
                  ('proclaunch.exe',),
                  ('iniparser', 'dictionary.o'),
@@ -96,7 +121,6 @@ class ProcTest(unittest.TestCase):
                     errors.append(str(e))
         if errors:
             raise OSError("Error(s) encountered tearing down %s.%s:\n%s" % (cls.__module__, cls.__name__, '\n'.join(errors)))
-        del cls.proclaunch
 
     def test_process_normal_finish(self):
         """Process is started, runs to completion while we wait for it"""
