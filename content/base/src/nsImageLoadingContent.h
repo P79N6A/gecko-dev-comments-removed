@@ -327,8 +327,14 @@ protected:
 
 
 
+
+
+
   nsresult TrackImage(imgIRequest* aImage);
-  nsresult UntrackImage(imgIRequest* aImage);
+  enum {
+    REQUEST_DISCARD = 0x1
+  };
+  nsresult UntrackImage(imgIRequest* aImage, uint32_t aFlags = 0);
 
   
   nsRefPtr<imgRequestProxy> mCurrentRequest;
