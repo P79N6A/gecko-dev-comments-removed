@@ -366,10 +366,9 @@ ValueNumberer::eliminateRedundancies()
         IonSpew(IonSpew_GVN, "Looking at block %d", block->id());
 
         
-        for (size_t i = 0; i < block->numImmediatelyDominatedBlocks(); i++) {
-            if (!worklist.append(block->getImmediatelyDominatedBlock(i)))
-                return false;
-        }
+        if (!worklist.append(block->immediatelyDominatedBlocksBegin(),
+                             block->immediatelyDominatedBlocksEnd()))
+            return false;
 
         
         for (MDefinitionIterator iter(block); iter; ) {
