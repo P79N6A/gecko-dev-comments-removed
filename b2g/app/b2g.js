@@ -437,6 +437,9 @@ pref("marionette.defaultPrefs.port", 2828);
 
 #ifdef MOZ_UPDATER
 
+
+pref("shutdown.watchdog.timeoutSecs", 5);
+
 pref("b2g.update.apply-prompt-timeout", 60000); 
 
 pref("b2g.update.apply-wait-timeout", 1800000); 
@@ -466,6 +469,10 @@ pref("app.update.download.backgroundInterval", 0);
 
 
 pref("app.update.log", true);
+#else
+
+
+pref("shutdown.watchdog.timeoutSecs", -1);
 #endif
 
 

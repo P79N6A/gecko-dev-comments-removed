@@ -373,6 +373,50 @@ RecordShutdownEndTimeStamp() {
 }
 }
 
+#ifdef MOZ_WIDGET_GONK
+static void
+QuitHard()
+{
+  
+  kill(0, SIGKILL);
+  
+  
+  
+  
+  _exit(1);
+}
+
+static void*
+ForceQuitWatchdog(void* aTimeoutSecs)
+{
+  int32_t timeoutSecs = int32_t(intptr_t(aTimeoutSecs));
+  if (timeoutSecs > 0 && timeoutSecs <= 30) {
+    
+    
+    sleep(timeoutSecs);
+  }
+
+  QuitHard();
+  MOZ_NOT_REACHED();
+  return nullptr;
+}
+
+static void
+StartForceQuitWatchdog(int32_t aTimeoutSecs)
+{
+  
+  
+  pthread_t watchdog;
+  if (pthread_create(&watchdog, nullptr,
+                     ForceQuitWatchdog,
+                     reinterpret_cast<void*>(intptr_t(aTimeoutSecs)))) {
+    
+    QuitHard();
+  }
+  
+}
+#endif
+
 NS_IMETHODIMP
 nsAppStartup::Quit(uint32_t aMode)
 {
@@ -417,6 +461,25 @@ nsAppStartup::Quit(uint32_t aMode)
     }
 #endif
   }
+
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int32_t timeoutSecs =
+    Preferences::GetInt("shutdown.watchdog.timeoutSecs", 5);
+  if (ferocity == eForceQuit && timeoutSecs > 0) {
+    StartForceQuitWatchdog(timeoutSecs);
+  }
+#endif
 
   nsCOMPtr<nsIObserverService> obsService;
   if (ferocity == eAttemptQuit || ferocity == eForceQuit) {

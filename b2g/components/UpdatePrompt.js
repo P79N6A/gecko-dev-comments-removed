@@ -40,7 +40,6 @@ UpdatePrompt.prototype = {
   _update: null,
   _applyPromptTimer: null,
   _applyWaitTimer: null,
-  _selfDestructTimer: null,
 
   
 
@@ -182,10 +181,6 @@ UpdatePrompt.prototype = {
   restartProcess: function UP_restartProcess() {
     log("Update downloaded, restarting to apply it");
 
-    
-    
-    this._selfDestructTimer = this.createTimer(SELF_DESTRUCT_TIMEOUT);
-
     let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
                        .getService(Ci.nsIAppStartup);
     
@@ -200,10 +195,7 @@ UpdatePrompt.prototype = {
   },
 
   notify: function UP_notify(aTimer) {
-    if (aTimer == this._selfDestructTimer) {
-      this._selfDestructTimer = null;
-      this.selfDestruct();
-    } else if (aTimer == this._applyPromptTimer) {
+    if (aTimer == this._applyPromptTimer) {
       log("Timed out waiting for result, restarting");
       this._applyPromptTimer = null;
       this.restartProcess();
@@ -211,19 +203,6 @@ UpdatePrompt.prototype = {
       this._applyWaitTimer = null;
       this.showUpdatePrompt();
     }
-  },
-
-  selfDestruct: function UP_selfDestruct() {
-#ifdef ANDROID
-    Cu.import("resource://gre/modules/ctypes.jsm");
-    let libc = ctypes.open("libc.so");
-    let _exit = libc.declare("_exit", ctypes.default_abi,
-                             ctypes.void_t, 
-                             ctypes.int);   
-
-    log("Self-destruct timer fired; didn't cleanly shut down.  BOOM");
-    _exit(0);
-#endif
   },
 
   createTimer: function UP_createTimer(aTimeoutMs) {
