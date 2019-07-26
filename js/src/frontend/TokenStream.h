@@ -50,6 +50,7 @@ enum TokenKind {
     TOK_LB, TOK_RB,                
     TOK_LC, TOK_RC,                
     TOK_LP, TOK_RP,                
+    TOK_ARROW,                     
     TOK_NAME,                      
     TOK_NUMBER,                    
     TOK_STRING,                    
@@ -560,8 +561,8 @@ class TokenStream
 
     TokenKind peekToken() {
         if (lookahead != 0) {
-            JS_ASSERT(lookahead < maxLookahead);
-            return tokens[(cursor + lookahead) & ntokensMask].type;
+            JS_ASSERT(lookahead <= maxLookahead);
+            return tokens[(cursor + 1) & ntokensMask].type;
         }
         TokenKind tt = getTokenInternal();
         ungetToken();
@@ -574,13 +575,16 @@ class TokenStream
     }
 
     TokenKind peekTokenSameLine(unsigned withFlags = 0) {
+        if (lookahead != 0) {
+            JS_ASSERT(lookahead <= maxLookahead);
+            Token &nextToken = tokens[(cursor + 1) & ntokensMask];
+            return currentToken().pos.end.lineno == nextToken.pos.begin.lineno
+                   ? nextToken.type
+                   : TOK_EOL;
+        }
+
         if (!onCurrentLine(currentToken().pos))
             return TOK_EOL;
-
-        if (lookahead != 0) {
-            JS_ASSERT(lookahead < maxLookahead);
-            return tokens[(cursor + lookahead) & ntokensMask].type;
-        }
 
         
 
@@ -622,6 +626,9 @@ class TokenStream
         unsigned lineno;
         const jschar *linebase;
         const jschar *prevLinebase;
+        Token currentToken;
+        unsigned lookahead;
+        Token lookaheadTokens[maxLookahead];
     };
 
     void tell(Position *);
@@ -632,6 +639,10 @@ class TokenStream
 
 
     size_t endOffset(const Token &tok);
+
+    size_t positionToOffset(const Position &pos) const {
+        return pos.buf - userbuf.base();
+    }
 
     bool hasSourceMap() const {
         return sourceMap != NULL;

@@ -35,6 +35,7 @@ class JSFunction : public JSObject
 
         LAMBDA           = 0x0080,  
 
+
         SELF_HOSTED      = 0x0100,  
 
         SELF_HOSTED_CTOR = 0x0200,  
@@ -42,10 +43,12 @@ class JSFunction : public JSObject
         HAS_REST         = 0x0400,  
         HAS_DEFAULTS     = 0x0800,  
         INTERPRETED_LAZY = 0x1000,  
+        ARROW            = 0x2000,  
 
         
         NATIVE_FUN = 0,
-        INTERPRETED_LAMBDA = INTERPRETED | LAMBDA
+        INTERPRETED_LAMBDA = INTERPRETED | LAMBDA,
+        INTERPRETED_LAMBDA_ARROW = INTERPRETED | LAMBDA | ARROW
     };
 
     static void staticAsserts() {
@@ -97,6 +100,7 @@ class JSFunction : public JSObject
     bool isSelfHostedConstructor()  const { return flags & SELF_HOSTED_CTOR; }
     bool hasRest()                  const { return flags & HAS_REST; }
     bool hasDefaults()              const { return flags & HAS_DEFAULTS; }
+    bool isArrow()                  const { return flags & ARROW; }
 
     
     bool isBuiltin() const {
