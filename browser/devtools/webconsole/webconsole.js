@@ -3079,6 +3079,14 @@ JSTerm.prototype = {
 
 
 
+
+  _lastFrameActorId: null,
+
+  
+
+
+
+
   sidebar: null,
 
   
@@ -4286,6 +4294,8 @@ JSTerm.prototype = {
   {
     let inputNode = this.inputNode;
     let inputValue = inputNode.value;
+    let frameActor = this.getFrameActor(this.SELECTED_FRAME);
+
     
     if (!inputValue) {
       this.clearCompletion();
@@ -4299,7 +4309,7 @@ JSTerm.prototype = {
     }
 
     
-    if (this.lastCompletion.value != inputValue) {
+    if (this.lastCompletion.value != inputValue || frameActor != this._lastFrameActorId) {
       this._updateCompletionResult(aType, aCallback);
       return false;
     }
@@ -4335,7 +4345,8 @@ JSTerm.prototype = {
   _updateCompletionResult:
   function JST__updateCompletionResult(aType, aCallback)
   {
-    if (this.lastCompletion.value == this.inputNode.value) {
+    let frameActor = this.getFrameActor(this.SELECTED_FRAME);
+    if (this.lastCompletion.value == this.inputNode.value && frameActor == this._lastFrameActorId) {
       return;
     }
 
@@ -4350,7 +4361,7 @@ JSTerm.prototype = {
     
 
     
-    if (!/[a-zA-Z0-9]$/.test(input)) {
+    if (!/[a-zA-Z0-9]$/.test(input) || frameActor != this._lastFrameActorId) {
       this._autocompleteQuery = null;
       this._autocompleteCache = null;
     }
@@ -4380,6 +4391,8 @@ JSTerm.prototype = {
       return;
     }
 
+    this._lastFrameActorId = frameActor;
+
     this.lastCompletion = {
       requestId: requestId,
       completionType: aType,
@@ -4388,7 +4401,8 @@ JSTerm.prototype = {
 
     let callback = this._receiveAutocompleteProperties.bind(this, requestId,
                                                             aCallback);
-    this.webConsoleClient.autocomplete(input, cursor, callback);
+
+    this.webConsoleClient.autocomplete(input, cursor, callback, frameActor);
   },
 
   

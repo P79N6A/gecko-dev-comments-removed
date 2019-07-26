@@ -122,13 +122,16 @@ WebConsoleClient.prototype = {
 
 
 
-  autocomplete: function WCC_autocomplete(aString, aCursor, aOnResponse)
+
+
+  autocomplete: function WCC_autocomplete(aString, aCursor, aOnResponse, aFrameActor)
   {
     let packet = {
       to: this._actor,
       type: "autocomplete",
       text: aString,
       cursor: aCursor,
+      frameActor: aFrameActor,
     };
     this._client.request(packet, aOnResponse);
   },

@@ -231,6 +231,13 @@ WebConsoleActor.prototype =
 
 
 
+
+  _jstermHelpersCache: null,
+
+  
+
+
+
   get saveRequestAndResponseBodies()
     this._prefs["NetworkMonitor.saveRequestAndResponseBodies"],
 
@@ -692,12 +699,29 @@ WebConsoleActor.prototype =
 
   onAutocomplete: function WCA_onAutocomplete(aRequest)
   {
+    let frameActorId = aRequest.frameActor;
+    let dbgObject = null;
+    let environment = null;
+
     
+    if (frameActorId) {
+      let frameActor = this.conn.getActor(frameActorId);
+      if (frameActor) {
+        let frame = frameActor.frame;
+        environment = frame.environment;
+      }
+      else {
+        Cu.reportError("Web Console Actor: the frame actor was not found: " +
+                       frameActorId);
+      }
+    }
     
-    
-    
-    let result = JSPropertyProvider(this.window, aRequest.text,
-                                    aRequest.cursor) || {};
+    else {
+      dbgObject = this.dbg.makeGlobalObjectReference(this.window);
+    }
+
+    let result = JSPropertyProvider(dbgObject, environment, aRequest.text,
+                                    aRequest.cursor, frameActorId) || {};
     let matches = result.matches || [];
     let reqText = aRequest.text.substr(0, aRequest.cursor);
 
@@ -705,13 +729,14 @@ WebConsoleActor.prototype =
     
     let lastNonAlphaIsDot = /[.][a-zA-Z0-9$]*$/.test(reqText);
     if (!lastNonAlphaIsDot) {
-      let helpers = {
-        sandbox: Object.create(null)
-      };
-      JSTermHelpers(helpers);
-
-      let helperNames = Object.getOwnPropertyNames(helpers.sandbox);
-      matches = matches.concat(helperNames.filter(n => n.startsWith(result.matchProp)));
+      if (!this._jstermHelpersCache) {
+        let helpers = {
+          sandbox: Object.create(null)
+        };
+        JSTermHelpers(helpers);
+        this._jstermHelpersCache = Object.getOwnPropertyNames(helpers.sandbox);
+      }
+      matches = matches.concat(this._jstermHelpersCache.filter(n => n.startsWith(result.matchProp)));
     }
 
     return {
