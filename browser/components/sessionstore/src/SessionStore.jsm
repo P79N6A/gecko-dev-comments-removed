@@ -482,15 +482,6 @@ let SessionStoreInternal = {
     }
 
     
-    XPCOMUtils.defineLazyGetter(this, "_backupSessionFileOnce", function () {
-      
-      
-      
-      
-      return _SessionFile.moveToBackupPath();
-    });
-
-    
     
     if (this._loadState != STATE_QUITTING &&
         this._prefBranch.getBoolPref("sessionstore.resume_session_once"))
@@ -500,17 +491,6 @@ let SessionStoreInternal = {
 
     this._performUpgradeBackup();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     this._sessionInitialized = true;
     this._promiseInitialization.resolve();
   },
@@ -3904,25 +3884,9 @@ let SessionStoreInternal = {
       return;
     }
 
-    let promise;
     
-    
-    if (this._resume_from_crash) {
-      
-      
-      
-      
-      promise = this._backupSessionFileOnce;
-    } else {
-      promise = Promise.resolve();
-    }
-
-    
-    
-    promise = promise.then(function onSuccess() {
-      
-      return _SessionFile.write(data);
-    });
+    let promise =
+      _SessionFile.write(data, {backupOnFirstWrite: this._resume_from_crash});
 
     
     

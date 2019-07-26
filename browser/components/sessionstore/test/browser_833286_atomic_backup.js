@@ -3,6 +3,8 @@
 
 
 
+
+
 let tmp = {};
 Cu.import("resource://gre/modules/osfile.jsm", tmp);
 Cu.import("resource://gre/modules/Task.jsm", tmp);
@@ -41,6 +43,9 @@ function waitForSaveStateComplete(aSaveStateCallback) {
 
 function nextTest(testFunc) {
   waitForSaveStateComplete(testFunc);
+
+  
+  
   Services.prefs.setIntPref(PREF_SS_INTERVAL, 0);
 }
 
@@ -53,20 +58,12 @@ registerCleanupFunction(function() {
 
 function test() {
   waitForExplicitFinish();
-  nextTest(testInitialWriteNoBackup);
+  nextTest(testAfterFirstWrite);
 }
 
-function testInitialWriteNoBackup() {
+function testAfterFirstWrite() {
   
-  let ssExists = yield OS.File.exists(path);
-  let ssBackupExists = yield OS.File.exists(backupPath);
-  ok(ssExists, "sessionstore.js should be created.");
-  ok(!ssBackupExists, "sessionstore.bak should not have been created, yet.");
-
-  nextTest(testWriteNoBackup);
-}
-
-function testWriteNoBackup() {
+  
   
   let ssExists = yield OS.File.exists(path);
   let ssBackupExists = yield OS.File.exists(backupPath);
@@ -80,12 +77,12 @@ function testWriteNoBackup() {
 
   
   
-  yield _SessionFile.moveToBackupPath();
+  yield OS.File.move(path, backupPath);
 
-  nextTest(testWriteBackup);
+  nextTest(testReadBackup);
 }
 
-function testWriteBackup() {
+function testReadBackup() {
   
   let ssExists = yield OS.File.exists(path);
   let ssBackupExists = yield OS.File.exists(backupPath);
@@ -127,10 +124,11 @@ function testWriteBackup() {
   ssDataRead = _SessionFile.syncRead();
   is(ssDataRead, gSSBakData,
     "_SessionFile.syncRead read sessionstore.bak correctly.");
-  nextTest(testNoWriteBackup);
+
+  nextTest(testBackupUnchanged);
 }
 
-function testNoWriteBackup() {
+function testBackupUnchanged() {
   
 
   

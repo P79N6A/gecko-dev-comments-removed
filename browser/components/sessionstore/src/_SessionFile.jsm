@@ -67,8 +67,8 @@ this._SessionFile = {
   
 
 
-  write: function (aData) {
-    return SessionFileInternal.write(aData);
+  write: function (aData, aOptions = {}) {
+    return SessionFileInternal.write(aData, aOptions);
   },
   
 
@@ -76,12 +76,6 @@ this._SessionFile = {
 
   writeLoadStateOnceAfterStartup: function (aLoadState) {
     return SessionFileInternal.writeLoadStateOnceAfterStartup(aLoadState);
-  },
-  
-
-
-  moveToBackupPath: function () {
-    return SessionFileInternal.moveToBackupPath();
   },
   
 
@@ -212,14 +206,14 @@ let SessionFileInternal = {
     return SessionWorker.post("read").then(msg => msg.ok);
   },
 
-  write: function (aData) {
+  write: function (aData, aOptions) {
     let refObj = {};
     return TaskUtils.spawn(function task() {
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_MS", refObj);
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
       try {
-        let promise = SessionWorker.post("write", [aData]);
+        let promise = SessionWorker.post("write", [aData, aOptions]);
         
         TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
@@ -237,10 +231,6 @@ let SessionFileInternal = {
 
   writeLoadStateOnceAfterStartup: function (aLoadState) {
     return SessionWorker.post("writeLoadStateOnceAfterStartup", [aLoadState]);
-  },
-
-  moveToBackupPath: function () {
-    return SessionWorker.post("moveToBackupPath");
   },
 
   createBackupCopy: function (ext) {

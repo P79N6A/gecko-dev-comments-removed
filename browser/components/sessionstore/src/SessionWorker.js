@@ -58,6 +58,12 @@ let Agent = {
   hasWrittenLoadStateOnce: false,
 
   
+  
+  
+  
+  hasWrittenState: false,
+
+  
   path: OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js"),
 
   
@@ -107,7 +113,19 @@ let Agent = {
   
 
 
-  write: function (stateString) {
+  write: function (stateString, options) {
+    if (!this.hasWrittenState) {
+      if (options && options.backupOnFirstWrite) {
+        try {
+          File.move(this.path, this.backupPath);
+        } catch (ex if isNoSuchFileEx(ex)) {
+          
+        }
+      }
+
+      this.hasWrittenState = true;
+    }
+
     let bytes = Encoder.encode(stateString);
     return File.writeAtomic(this.path, bytes, {tmpPath: this.path + ".tmp"});
   },
@@ -140,19 +158,8 @@ let Agent = {
 
     state.session = state.session || {};
     state.session.state = loadState;
-    return this.write(JSON.stringify(state));
-  },
-
-  
-
-
-  moveToBackupPath: function () {
-    try {
-      return File.move(this.path, this.backupPath);
-    } catch (ex if isNoSuchFileEx(ex)) {
-      
-      return true;
-    }
+    let bytes = Encoder.encode(JSON.stringify(state));
+    return File.writeAtomic(this.path, bytes, {tmpPath: this.path + ".tmp"});
   },
 
   
