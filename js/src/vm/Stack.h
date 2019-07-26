@@ -236,7 +236,22 @@ class StackFrame
 
         
         EVAL               =        0x4,  
-        DEBUGGER           =        0x8,  
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+        DEBUGGER           =        0x8,
+
         GENERATOR          =       0x10,  
         CONSTRUCTING       =       0x20,  
 
@@ -302,7 +317,13 @@ class StackFrame
     Value               *prevsp_;
 
     void                *hookData_;     
-    AbstractFramePtr    evalInFramePrev_; 
+
+    
+
+
+
+    AbstractFramePtr    evalInFramePrev_;
+
     Value               *argv_;         
     LifoAlloc::Mark     mark_;          
 
