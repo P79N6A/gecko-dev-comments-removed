@@ -372,7 +372,7 @@ class MakefileGenerator(object):
     WriteMakefile(output_file, data, build_file, depth, top,
                   
                   
-                  swapslashes(os.path.join(top, self.relative_srcdir, os.path.split(rel_path)[0])),
+                  swapslashes(os.path.normpath(os.path.join(top, self.relative_srcdir, os.path.split(rel_path)[0]))),
                   self.relative_srcdir,
                   self.common_mk_path)
     return True
