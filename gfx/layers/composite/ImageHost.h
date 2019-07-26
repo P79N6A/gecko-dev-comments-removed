@@ -70,9 +70,9 @@ public:
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual void Dump(FILE* aFile=NULL,
-                    const char* aPrefix="",
-                    bool aDumpHtml=false) MOZ_OVERRIDE;
+  virtual void Dump(FILE* aFile = nullptr,
+                    const char* aPrefix = "",
+                    bool aDumpHtml = false) MOZ_OVERRIDE;
 
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
 #endif
