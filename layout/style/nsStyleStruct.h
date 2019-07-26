@@ -540,6 +540,11 @@ struct nsStyleBackground {
   nscolor mBackgroundColor;       
 
   
+  
+  
+  uint8_t mBackgroundInlinePolicy; 
+
+  
   bool IsTransparent() const;
 
   
@@ -981,7 +986,6 @@ public:
   uint8_t        mBorderImageRepeatH; 
   uint8_t        mBorderImageRepeatV; 
   uint8_t        mFloatEdge;          
-  uint8_t        mBoxDecorationBreak; 
 
 protected:
   

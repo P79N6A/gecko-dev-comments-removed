@@ -4366,15 +4366,10 @@ ReduceRadii(nscoord aXBorder, nscoord aYBorder,
 
 
 bool
-ScrollFrameHelper::GetBorderRadii(const nsSize& aFrameSize,
-                                  const nsSize& aBorderArea,
-                                  int aSkipSides,
-                                  nscoord aRadii[8]) const
+ScrollFrameHelper::GetBorderRadii(nscoord aRadii[8]) const
 {
-  if (!mOuter->nsContainerFrame::GetBorderRadii(aFrameSize, aBorderArea,
-                                                aSkipSides, aRadii)) {
+  if (!mOuter->nsContainerFrame::GetBorderRadii(aRadii))
     return false;
-  }
 
   
   
