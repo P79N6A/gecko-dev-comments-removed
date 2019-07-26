@@ -397,6 +397,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
   
   if (gfxPlatform::UseProgressiveTilePainting() &&
+      !BasicManager()->HasShadowTarget() &&
       mTiledBuffer.GetResolution() == resolution) {
     
     gfx3DMatrix transform = GetEffectiveTransform();
