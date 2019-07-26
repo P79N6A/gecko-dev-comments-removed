@@ -32,7 +32,7 @@ function* checkPopupContextMenu() {
   yield contextMenuHiddenPromise;
   let popupHiddenPromise = onPopupEvent(BMB_menuPopup, "hidden");
   
-  EventUtils.synthesizeMouse(dropmarker, 2, 2, {});
+  EventUtils.synthesizeKey("VK_ESCAPE", {});
   info("Waiting for bookmarks menu to be hidden.");
   yield popupHiddenPromise;
 }
