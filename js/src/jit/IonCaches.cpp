@@ -3342,6 +3342,11 @@ SetElementIC::attachDenseElement(JSContext *cx, IonScript *ion, JSObject *obj, c
         }
 
         
+        Register postBarrierScratch = elements;
+        if (masm.maybeCallPostBarrier(object(), value(), postBarrierScratch))
+            masm.loadPtr(Address(object(), JSObject::offsetOfElements()), elements);
+
+        
         masm.bind(&storeElem);
         masm.storeConstantOrRegister(value(), target);
     }
