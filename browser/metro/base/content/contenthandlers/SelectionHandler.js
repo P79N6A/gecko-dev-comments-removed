@@ -225,14 +225,14 @@ var SelectionHandler = {
 
     
     if (!this._targetIsEditable) {
-      this._onFail("Unexpected, coordiates didn't find a text input element.");
+      this._onFail("Coordiates didn't find a text input element.");
       return;
     }
 
     
     let selection = this._getSelection();
     if (!selection || !selection.isCollapsed) {
-      this._onFail("Unexpected, No selection or selection is not collapsed.");
+      this._onFail("No selection or selection is not collapsed.");
       return;
     }
 
@@ -281,7 +281,7 @@ var SelectionHandler = {
     if (aClearSelection) {
       this._clearSelection();
     }
-    this._closeSelection();
+    this.closeSelection();
   },
 
   
@@ -307,7 +307,7 @@ var SelectionHandler = {
       Util.dumpLn(aDbgMessage);
     this.sendAsync("Content:SelectionFail");
     this._clearSelection();
-    this._closeSelection();
+    this.closeSelection();
   },
 
   
@@ -372,7 +372,7 @@ var SelectionHandler = {
 
 
 
-  _closeSelection: function _closeSelection() {
+  closeSelection: function closeSelection() {
     this._clearTimers();
     this._cache = null;
     this._contentWindow = null;

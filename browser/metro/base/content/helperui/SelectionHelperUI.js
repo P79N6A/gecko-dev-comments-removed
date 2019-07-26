@@ -645,38 +645,6 @@ var SelectionHelperUI = {
 
 
 
-
-
-  _transitionFromSelectionToCaret: function _transitionFromSelectionToCaret(aClientX, aClientY) {
-    
-    this._activeSelectionRect = null;
-
-    
-    this._shutdownAllMarkers();
-    this._setupMonocleIdArray();
-
-    
-    let coords =
-      this._msgTarget.ptClientToBrowser(aClientX, aClientY, true);
-
-    
-    
-    
-    this._sendAsyncMessage("Browser:CaretAttach", {
-      xPos: coords.x,
-      yPos: coords.y
-    });
-
-    
-    this._setCaretPositionAtPoint(coords.x, coords.y);
-  },
-
-  
-
-
-
-
-
   _setupDebugOptions: function _setupDebugOptions() {
     
     let debugOpts = { dumpRanges: false, displayRanges: false, dumpEvents: false };
@@ -807,64 +775,10 @@ var SelectionHelperUI = {
 
 
 
-
-
-
-  _onTap: function _onTap(aEvent) {
-    let clientCoords =
-      this._msgTarget.ptBrowserToClient(aEvent.clientX, aEvent.clientY, true);
-
-    
-    if (this.startMark.hitTest(clientCoords.x, clientCoords.y) ||
-        this.endMark.hitTest(clientCoords.x, clientCoords.y)) {
-      aEvent.stopPropagation();
-      aEvent.preventDefault();
-      return;
-    }
-
-    
-    
-    
-    let pointInTargetElement =
-      Util.pointWithinRect(clientCoords.x, clientCoords.y,
-                           this._targetElementRect);
-
-    
-    
-    if (this.caretMark.visible && pointInTargetElement) {
-      
-      this._setCaretPositionAtPoint(aEvent.clientX, aEvent.clientY);
-      return;
-    }
-
-    
-    
-    
-    if (this._targetIsEditable && !pointInTargetElement) {
-      
-      
-      
-      
-      this.closeEditSession(false);
-      return;
-    }
-
-    if (this._hitTestSelection(aEvent) && this._targetIsEditable) {
-      
+  _onClick: function(aEvent) {
+    if (this.layerMode == kChromeLayer && this._targetIsEditable) {
       this.attachToCaret(this._msgTarget, aEvent.clientX, aEvent.clientY);
-      return;
     }
-
-    
-    
-    if (this.startMark.visible && pointInTargetElement &&
-        this._targetIsEditable) {
-      this._transitionFromSelectionToCaret(clientCoords.x, clientCoords.y);
-      return;
-    }
-
-    
-    this.closeEditSession(false);
   },
 
   _onKeypress: function _onKeypress() {
@@ -1019,7 +933,7 @@ var SelectionHelperUI = {
     }
     switch (aEvent.type) {
       case "click":
-        this._onTap(aEvent);
+        this._onClick(aEvent);
         break;
 
       case "touchstart": {
