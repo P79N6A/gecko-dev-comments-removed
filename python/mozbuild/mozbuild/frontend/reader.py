@@ -59,7 +59,6 @@ from .sandbox_symbols import (
     VARIABLES,
 )
 
-
 if sys.version_info.major == 2:
     text_type = unicode
     type_type = types.TypeType
@@ -734,25 +733,58 @@ class BuildReader(object):
                        ' and '.join(', '.join(matches).rsplit(', ', 1)),
                        's are' if len(matches) > 1 else ' is'))
 
-        yield sandbox
-
-        
-
         
         dir_vars = ['DIRS', 'PARALLEL_DIRS', 'TOOL_DIRS']
 
         if self.config.substs.get('ENABLE_TESTS', False) == '1':
             dir_vars.extend(['TEST_DIRS', 'TEST_TOOL_DIRS'])
 
+        dirs = [(v, sandbox[v]) for v in dir_vars if v in sandbox]
+
+        curdir = mozpath.dirname(path)
+
+        gyp_sandboxes = []
+        for target_dir in sandbox['GYP_DIRS']:
+            gyp_dir = sandbox['GYP_DIRS'][target_dir]
+            for v in ('input', 'variables'):
+                if not getattr(gyp_dir, v):
+                    raise Exception('Missing value for GYP_DIRS["%s"].%s' %
+                        (target_dir, v))
+
+            
+            
+            
+            
+            
+            from .gyp_reader import read_from_gyp
+            gyp_sandboxes.extend(read_from_gyp(self.config,
+                                               mozpath.join(curdir, gyp_dir.input),
+                                               mozpath.join(sandbox['OBJDIR'],
+                                               target_dir),
+                                 gyp_dir.variables))
+
+        
+        
+        
+        
+        
+        
+        for gyp_sandbox in gyp_sandboxes:
+            sandbox['DIRS'].append(mozpath.relpath(gyp_sandbox['OBJDIR'], sandbox['OBJDIR']))
+
+        yield sandbox
+
+        for gyp_sandbox in gyp_sandboxes:
+            yield gyp_sandbox
+
+        
+
         
         
         
         recurse_info = OrderedDict()
-        for var in dir_vars:
-            if not var in sandbox:
-                continue
-
-            for d in sandbox[var]:
+        for var, var_dirs in dirs:
+            for d in var_dirs:
                 if d in recurse_info:
                     raise SandboxValidationError(
                         'Directory (%s) registered multiple times in %s' % (
@@ -783,7 +815,6 @@ class BuildReader(object):
                                        'parent': sandbox['RELATIVEDIR'],
                                        'var': 'DIRS'}
 
-        curdir = mozpath.dirname(path)
         for relpath, child_metadata in recurse_info.items():
             child_path = mozpath.join(curdir, relpath, 'moz.build')
 

@@ -1424,6 +1424,10 @@ class DependencyGraphNode(object):
     self.dependencies = []
     self.dependents = []
 
+  
+  def __hash__(self):
+    return hash(self.ref)
+
   def FlattenToList(self):
     
     
