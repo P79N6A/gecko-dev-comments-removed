@@ -550,7 +550,13 @@ pref("nglayout.debug.paint_flashing_chrome", false);
 
 pref("nglayout.debug.widget_update_flashing", false);
 
+
+
 pref("layout.imagevisibility.enabled", true);
+
+
+
+pref("layout.imagevisibility.enabled_for_browser_elements_only", false);
 pref("layout.imagevisibility.numscrollportwidths", 0);
 pref("layout.imagevisibility.numscrollportheights", 1);
 
