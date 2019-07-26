@@ -70,19 +70,25 @@ struct ElementPropertyTransition
   bool IsRunningAt(mozilla::TimeStamp aTime) const;
 };
 
-struct ElementTransitions : public mozilla::css::CommonElementAnimationData
+struct ElementTransitions MOZ_FINAL
+  : public mozilla::css::CommonElementAnimationData 
 {
   ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
-                     nsTransitionManager *aTransitionManager);
+                     nsTransitionManager *aTransitionManager,
+                     mozilla::TimeStamp aNow);
 
   void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
 
+  virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
+  virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
 
-  bool HasTransitionOfProperty(nsCSSProperty aProperty) const;
-  
-  bool CanPerformOnCompositorThread() const;
   
   nsTArray<ElementPropertyTransition> mPropertyTransitions;
+
+  
+  
+  
+  mozilla::TimeStamp mFlushGeneration;
 };
 
 
@@ -100,16 +106,31 @@ public:
       (aContent->GetProperty(nsGkAtoms::transitionsProperty));
   }
 
+  
+  static bool ContentOrAncestorHasTransition(nsIContent* aContent) {
+    do {
+      if (GetTransitions(aContent)) {
+        return true;
+      }
+    } while ((aContent = aContent->GetParent()));
+
+    return false;
+  }
+
+  typedef mozilla::css::CommonElementAnimationData CommonElementAnimationData;
+
   static ElementTransitions*
     GetTransitionsForCompositor(nsIContent* aContent,
                                 nsCSSProperty aProperty)
   {
-    if (!aContent->MayHaveAnimations())
+    if (!aContent->MayHaveAnimations()) {
       return nullptr;
+    }
     ElementTransitions* transitions = GetTransitions(aContent);
     if (!transitions ||
-        !transitions->HasTransitionOfProperty(aProperty) ||
-        !transitions->CanPerformOnCompositorThread()) {
+        !transitions->HasAnimationOfProperty(aProperty) ||
+        !transitions->CanPerformOnCompositorThread(
+          CommonElementAnimationData::CanAnimate_AllowPartial)) {
       return nullptr;
     }
     return transitions;
@@ -151,6 +172,29 @@ public:
   
   virtual void WillRefresh(mozilla::TimeStamp aTime) MOZ_OVERRIDE;
 
+  void FlushTransitions(FlushFlags aFlags);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void UpdateAllThrottledStyles();
+
 private:
   void ConsiderStartingTransition(nsCSSProperty aProperty,
                                   const nsTransition& aTransition,
@@ -165,6 +209,17 @@ private:
                                             bool aCreateIfNeeded);
   void WalkTransitionRule(ElementDependentRuleProcessorData* aData,
                           nsCSSPseudoElements::Type aPseudoType);
+
+  
+  
+  
+  void UpdateThrottledStylesForSubtree(nsIContent* aContent,
+                                       nsStyleContext* aParentStyle);
+  
+  
+  
+  nsStyleContext* UpdateThrottledStyle(mozilla::dom::Element* aElement,
+                                       nsStyleContext* aParentStyle);
 };
 
 #endif 

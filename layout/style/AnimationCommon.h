@@ -52,10 +52,16 @@ public:
 
   void Disconnect();
 
+  enum FlushFlags {
+    Can_Throttle,
+    Cannot_Throttle
+  };
+
   static bool ExtractComputedValueForTransition(
                   nsCSSProperty aProperty,
                   nsStyleContext* aStyleContext,
                   nsStyleAnimation::Value& aComputedValue);
+  static bool ThrottlingEnabled();
 protected:
   friend struct CommonElementAnimationData; 
 
@@ -151,10 +157,28 @@ struct CommonElementAnimationData : public PRCList
     mElement->DeleteProperty(mElementProperty);
   }
 
+  bool CanThrottleTransformChanges(mozilla::TimeStamp aTime);
+
+  bool CanThrottleAnimation(mozilla::TimeStamp aTime);
+
+  enum CanAnimateFlags {
+    
+    CanAnimate_HasGeometricProperty = 1,
+    
+    
+    CanAnimate_AllowPartial = 2
+  };
+
   static bool
   CanAnimatePropertyOnCompositor(const dom::Element *aElement,
                                  nsCSSProperty aProperty,
-                                 bool aHasGeometricProperties);
+                                 CanAnimateFlags aFlags);
+
+  
+  
+  
+  virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const = 0;
+  virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const = 0;
 
   static void LogAsyncAnimationFailure(nsCString& aMessage,
                                        const nsIContent* aContent = nullptr);
@@ -175,6 +199,16 @@ struct CommonElementAnimationData : public PRCList
   
   
   nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
+
+  
+  
+  
+  
+  
+  uint64_t mAnimationGeneration;
+  
+  void UpdateAnimationGeneration(nsPresContext* aPresContext);
+
   
   TimeStamp mStyleRuleRefreshTime;
 

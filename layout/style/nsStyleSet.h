@@ -90,6 +90,21 @@ class nsStyleSet
                        const nsTArray< nsCOMPtr<nsIStyleRule> > &aRules);
 
   
+  struct RuleAndLevel
+  {
+    nsIStyleRule* mRule;
+    uint8_t mLevel;
+  };
+
+  
+  
+  
+  already_AddRefed<nsStyleContext>
+  ResolveStyleForRules(nsStyleContext* aParentContext,
+                       nsStyleContext* aOldStyle,
+                       const nsTArray<RuleAndLevel>& aRules);
+
+  
   
   
   already_AddRefed<nsStyleContext>

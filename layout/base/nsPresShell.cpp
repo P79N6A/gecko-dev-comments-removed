@@ -179,6 +179,7 @@
 #include "mozilla/css/ImageLoader.h"
 
 #include "Layers.h"
+#include "nsTransitionManager.h"
 #include "LayerTreeInvalidation.h"
 #include "nsAsyncDOMEvent.h"
 
@@ -186,6 +187,7 @@
   (nsIPresShell::SCROLL_OVERFLOW_HIDDEN | nsIPresShell::SCROLL_NO_PARENT_FRAMES)
 
 using namespace mozilla;
+using namespace mozilla::css;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
 
@@ -3751,10 +3753,19 @@ void
 PresShell::FlushPendingNotifications(mozFlushType aType)
 {
   
+  mozilla::ChangesToFlush flush(aType, aType >= Flush_Style);
+  FlushPendingNotifications(flush);
+}
+
+void
+PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
+{
+  
 
 
 
 
+  mozFlushType flushType = aFlush.mFlushType;
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
   static const char flushTypeNames[][20] = {
@@ -3765,11 +3776,12 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     "Layout",
     "Display"
   };
+
   
-  MOZ_ASSERT(static_cast<uint32_t>(aType) <= ArrayLength(flushTypeNames));
+  MOZ_ASSERT(static_cast<uint32_t>(flushType) <= ArrayLength(flushTypeNames));
 
   SAMPLE_LABEL_PRINTF("layout", "Flush", "(Flush_%s)",
-                      flushTypeNames[aType - 1]);
+                      flushTypeNames[flushType - 1]);
 #endif
 
 #ifdef ACCESSIBILITY
@@ -3782,7 +3794,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
 #endif
 #endif
 
-  NS_ASSERTION(aType >= Flush_Frames, "Why did we get called?");
+  NS_ASSERTION(flushType >= Flush_Frames, "Why did we get called?");
 
   bool isSafeToFlush = IsSafeToFlush();
 
@@ -3815,7 +3827,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     
     
-    mDocument->FlushExternalResources(aType);
+    mDocument->FlushExternalResources(flushType);
 
     
     
@@ -3837,6 +3849,16 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       
       if (mDocument->HasAnimationController()) {
         mDocument->GetAnimationController()->FlushResampleRequests();
+      }
+
+      if (aFlush.mFlushAnimations &&
+          (!CommonAnimationManager::ThrottlingEnabled() ||
+           !mPresContext->StyleUpdateForAllAnimationsIsUpToDate())) {
+        mPresContext->AnimationManager()->
+          FlushAnimations(CommonAnimationManager::Cannot_Throttle);
+        mPresContext->TransitionManager()->
+          FlushTransitions(CommonAnimationManager::Cannot_Throttle);
+        mPresContext->TickLastStyleUpdateForAllAnimations();
       }
 
       
@@ -3878,11 +3900,11 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     
 
-    if (aType >= (mSuppressInterruptibleReflows ? Flush_Layout : Flush_InterruptibleLayout) &&
+    if (flushType >= (mSuppressInterruptibleReflows ? Flush_Layout : Flush_InterruptibleLayout) &&
         !mIsDestroying) {
       mFrameConstructor->RecalcQuotesAndCounters();
       mViewManager->FlushDelayedResize(true);
-      if (ProcessReflowCommands(aType < Flush_Layout) && mContentToScrollTo) {
+      if (ProcessReflowCommands(flushType < Flush_Layout) && mContentToScrollTo) {
         
         DoScrollContentIntoView();
         if (mContentToScrollTo) {
@@ -3891,13 +3913,13 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
         }
       }
     } else if (!mIsDestroying && mSuppressInterruptibleReflows &&
-               aType == Flush_InterruptibleLayout) {
+               flushType == Flush_InterruptibleLayout) {
       
       
       mDocument->SetNeedLayoutFlush();
     }
 
-    if (aType >= Flush_Layout) {
+    if (flushType >= Flush_Layout) {
       if (!mIsDestroying) {
         mViewManager->UpdateWidgetGeometry();
       }
@@ -7114,7 +7136,7 @@ PresShell::WillPaint(bool aWillSendDidPaint)
   
   
   
-  FlushPendingNotifications(Flush_InterruptibleLayout);
+  FlushPendingNotifications(ChangesToFlush(Flush_InterruptibleLayout, false));
 }
 
 void

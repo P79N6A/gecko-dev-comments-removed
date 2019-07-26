@@ -7,6 +7,7 @@
 
 
 #include "nsTransitionManager.h"
+#include "nsAnimationManager.h"
 #include "nsIContent.h"
 #include "nsStyleContext.h"
 #include "nsCSSProps.h"
@@ -24,17 +25,23 @@
 #include "mozilla/dom/Element.h"
 #include "nsIFrame.h"
 #include "nsCSSFrameConstructor.h"
+#include "Layers.h"
+#include "FrameLayerBuilder.h"
+#include "nsDisplayList.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
 
-namespace dom = mozilla::dom;
-namespace css = mozilla::css;
+using namespace mozilla;
+using namespace mozilla::layers;
+using namespace mozilla::css;
 
-ElementTransitions::ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
-                                       nsTransitionManager *aTransitionManager)
-  : CommonElementAnimationData(aElement, aElementProperty,
-                               aTransitionManager)
+ElementTransitions::ElementTransitions(mozilla::dom::Element *aElement,
+                                       nsIAtom *aElementProperty,
+                                       nsTransitionManager *aTransitionManager,
+                                       TimeStamp aNow)
+  : CommonElementAnimationData(aElement, aElementProperty, aTransitionManager)
+  , mFlushGeneration(aNow)
 {
 }
 
@@ -47,7 +54,11 @@ ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
   double duration = mDuration.ToSeconds();
   NS_ABORT_IF_FALSE(duration >= 0.0, "negative duration forbidden");
   double timePortion;
-  if (duration == 0.0) {
+  if (IsRemovedSentinel()) {
+    
+    
+    timePortion = 1.0;
+  } else if (duration == 0.0) {
     
     
     if (aRefreshTime >= mStartTime) {
@@ -110,11 +121,13 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
 
 bool
 ElementPropertyTransition::IsRunningAt(TimeStamp aTime) const {
-  return !IsRemovedSentinel() && mStartTime < aTime && aTime < mStartTime + mDuration;
+  return !IsRemovedSentinel() &&
+         mStartTime <= aTime &&
+         aTime < mStartTime + mDuration;
 }
 
 bool
-ElementTransitions::HasTransitionOfProperty(nsCSSProperty aProperty) const
+ElementTransitions::HasAnimationOfProperty(nsCSSProperty aProperty) const
 {
   for (uint32_t tranIdx = mPropertyTransitions.Length(); tranIdx-- != 0; ) {
     if (aProperty == mPropertyTransitions[tranIdx].mProperty) {
@@ -125,7 +138,7 @@ ElementTransitions::HasTransitionOfProperty(nsCSSProperty aProperty) const
 }
 
 bool
-ElementTransitions::CanPerformOnCompositorThread() const
+ElementTransitions::CanPerformOnCompositorThread(CanAnimateFlags aFlags) const
 {
   nsIFrame* frame = mElement->GetPrimaryFrame();
   if (!frame) {
@@ -143,25 +156,28 @@ ElementTransitions::CanPerformOnCompositorThread() const
 
   TimeStamp now = frame->PresContext()->RefreshDriver()->MostRecentRefresh();
 
-  bool hasGeometricProperty = false;
   for (uint32_t i = 0, i_end = mPropertyTransitions.Length(); i < i_end; ++i) {
     const ElementPropertyTransition& pt = mPropertyTransitions[i];
     if (css::IsGeometricProperty(pt.mProperty) && pt.IsRunningAt(now)) {
-      hasGeometricProperty = true;
+      aFlags = CanAnimateFlags(aFlags | CanAnimate_HasGeometricProperty);
       break;
     }
   }
 
   bool hasOpacity = false;
   bool hasTransform = false;
+  bool existsProperty = false;
   for (uint32_t i = 0, i_end = mPropertyTransitions.Length(); i < i_end; ++i) {
     const ElementPropertyTransition& pt = mPropertyTransitions[i];
     if (pt.IsRemovedSentinel()) {
       continue;
     }
+    
+    existsProperty = true;
+
     if (!css::CommonElementAnimationData::CanAnimatePropertyOnCompositor(mElement,
                                                                          pt.mProperty,
-                                                                         hasGeometricProperty)) {
+                                                                         aFlags)) {
       return false;
     }
     if (pt.mProperty == eCSSProperty_opacity) {
@@ -170,6 +186,12 @@ ElementTransitions::CanPerformOnCompositorThread() const
       hasTransform = true;
     }
   }
+  
+  
+  if (!existsProperty) {
+    return false;
+  }
+
   
   
   if (hasOpacity) {
@@ -184,6 +206,211 @@ ElementTransitions::CanPerformOnCompositorThread() const
 
 
 
+
+
+static void ReparentBeforeAndAfter(dom::Element* aElement,
+                                   nsIFrame* aPrimaryFrame,
+                                   nsStyleContext* aNewStyle,
+                                   nsStyleSet* aStyleSet)
+{
+  if (nsIFrame* before = nsLayoutUtils::GetBeforeFrame(aPrimaryFrame)) {
+    nsRefPtr<nsStyleContext> beforeStyle =
+      aStyleSet->ReparentStyleContext(before->GetStyleContext(),
+                                     aNewStyle, aElement);
+    before->SetStyleContextWithoutNotification(beforeStyle);
+  }
+  if (nsIFrame* after = nsLayoutUtils::GetBeforeFrame(aPrimaryFrame)) {
+    nsRefPtr<nsStyleContext> afterStyle =
+      aStyleSet->ReparentStyleContext(after->GetStyleContext(),
+                                     aNewStyle, aElement);
+    after->SetStyleContextWithoutNotification(afterStyle);
+  }
+}
+
+
+
+
+
+static void
+ForceLayerRerendering(nsIFrame* aFrame, CommonElementAnimationData* aData)
+{
+  if (aData->HasAnimationOfProperty(eCSSProperty_opacity)) {
+    if (Layer* layer = FrameLayerBuilder::GetDedicatedLayer(
+          aFrame, nsDisplayItem::TYPE_OPACITY)) {
+      layer->RemoveUserData(nsIFrame::LayerIsPrerenderedDataKey());
+    }
+  } 
+  
+  if (aData->HasAnimationOfProperty(eCSSProperty_transform)) {
+    if (Layer* layer = FrameLayerBuilder::GetDedicatedLayer(
+          aFrame, nsDisplayItem::TYPE_TRANSFORM)) {
+      layer->RemoveUserData(nsIFrame::LayerIsPrerenderedDataKey());
+    }
+  }
+}
+
+nsStyleContext*
+nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
+                                          nsStyleContext* aParentStyle)
+{
+  NS_ASSERTION(GetElementTransitions(aElement,
+                                     nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                                     false), "element not transitioning");
+
+  nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
+  if (!primaryFrame) {
+    return nullptr;
+  }
+
+  nsStyleContext* oldStyle = primaryFrame->GetStyleContext();
+  nsRuleNode* ruleNode = oldStyle->GetRuleNode();
+  nsTArray<nsStyleSet::RuleAndLevel> rules;
+  do {
+    if (ruleNode->IsRoot()) {
+      break;
+    }
+
+    nsStyleSet::RuleAndLevel* curRule = rules.AppendElement();
+    curRule->mLevel = ruleNode->GetLevel();
+
+    if (curRule->mLevel == nsStyleSet::eAnimationSheet) {
+      ElementAnimations* ea = 
+        mPresContext->AnimationManager()->GetElementAnimations(aElement,
+                                                               oldStyle->GetPseudoType(),
+                                                               false);
+      NS_ASSERTION(ea, "Rule has level eAnimationSheet without animation on manager");
+
+      mPresContext->AnimationManager()->EnsureStyleRuleFor(ea);
+      curRule->mRule = ea->mStyleRule;
+
+      ForceLayerRerendering(primaryFrame, ea);
+    } else if (curRule->mLevel == nsStyleSet::eTransitionSheet) {
+      ElementTransitions *et =
+        GetElementTransitions(aElement, oldStyle->GetPseudoType(), false);
+      NS_ASSERTION(et, "Rule has level eTransitionSheet without transition on manager");
+      
+      et->EnsureStyleRuleFor(mPresContext->RefreshDriver()->MostRecentRefresh());
+      curRule->mRule = et->mStyleRule;
+
+      ForceLayerRerendering(primaryFrame, et);
+    } else {
+      curRule->mRule = ruleNode->GetRule();
+    }
+  } while (ruleNode = ruleNode->GetParent());
+
+  nsRefPtr<nsStyleContext> newStyle = mPresContext->PresShell()->StyleSet()->
+    ResolveStyleForRules(aParentStyle, oldStyle, rules);
+  primaryFrame->SetStyleContextWithoutNotification(newStyle);
+
+  ReparentBeforeAndAfter(aElement, primaryFrame, newStyle, mPresContext->PresShell()->StyleSet());
+
+  return newStyle;
+}
+
+void
+nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
+                                                     nsStyleContext* aParentStyle)
+{
+  dom::Element* element;
+  if (aContent->IsElement()) {
+    element = aContent->AsElement();
+  } else {
+    element = nullptr;
+  }
+
+  nsRefPtr<nsStyleContext> newStyle;
+
+  ElementTransitions* et;
+  if (element &&
+      (et = GetElementTransitions(element,
+                                  nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                                  false))) {
+    
+    newStyle = UpdateThrottledStyle(element, aParentStyle);
+    
+    et->mFlushGeneration = mPresContext->RefreshDriver()->MostRecentRefresh();
+;
+  } else {
+    
+    nsStyleSet* styleSet = mPresContext->PresShell()->StyleSet();
+    nsIFrame* primaryFrame = aContent->GetPrimaryFrame();
+    if (!primaryFrame) {
+      return;
+    }
+
+    newStyle = styleSet->ReparentStyleContext(primaryFrame->GetStyleContext(),
+                                              aParentStyle, element);
+    primaryFrame->SetStyleContextWithoutNotification(newStyle);
+    ReparentBeforeAndAfter(element, primaryFrame, newStyle, styleSet);
+  }
+
+  
+  if (newStyle) {
+    nsIContent* child = aContent->GetFirstChild();
+    for (nsIContent *child = aContent->GetFirstChild(); child;
+         child = child->GetNextSibling()) {
+      UpdateThrottledStylesForSubtree(child, newStyle);
+    }
+  }
+}
+
+void
+nsTransitionManager::UpdateAllThrottledStyles()
+{
+  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+    
+    mPresContext->TickLastUpdateThrottledStyle();
+    return;
+  }
+
+  if (mPresContext->ThrottledStyleIsUpToDate()) {
+    
+    return;
+  }
+
+  mPresContext->TickLastUpdateThrottledStyle();
+  TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
+
+  
+  
+  PRCList *next = PR_LIST_HEAD(&mElementData);
+  while (next != &mElementData) {
+    ElementTransitions* et = static_cast<ElementTransitions*>(next);
+    next = PR_NEXT_LINK(next);
+
+    if (et->mFlushGeneration == now) {
+      
+      continue;
+    }
+
+    
+    
+    
+    dom::Element* element = et->mElement;
+    
+    nsTArray<dom::Element*> ancestors;
+    do {
+      ancestors.AppendElement(element);
+    } while (element = element->GetElementParent());
+
+    
+    for (int32_t i = ancestors.Length() - 1; i >= 0; --i) {
+      if (GetElementTransitions(ancestors[i],
+                                nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                                false)) {
+        element = ancestors[i];
+        break;
+      }
+    }
+
+    nsIFrame* primaryFrame;
+    if (element &&
+        (primaryFrame = element->GetPrimaryFrame())) {
+      UpdateThrottledStylesForSubtree(element,
+        primaryFrame->GetStyleContext()->GetParent());
+    }
+  }
+}
 
 already_AddRefed<nsIStyleRule>
 nsTransitionManager::StyleContextChanged(dom::Element *aElement,
@@ -247,6 +474,10 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     
     return nullptr;
   }
+
+  NS_WARN_IF_FALSE(!CommonAnimationManager::ThrottlingEnabled() ||
+                     mPresContext->ThrottledStyleIsUpToDate(),
+                   "throttled animations not up to date");
 
   
   
@@ -340,6 +571,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
           currentValue != pt.mEndValue) {
         
         pts.RemoveElementAt(i);
+        et->UpdateAnimationGeneration(mPresContext);
       }
     } while (i != 0);
 
@@ -386,17 +618,19 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
 
 void
 nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
-                       const nsTransition& aTransition,
-                       dom::Element *aElement,
-                       ElementTransitions *&aElementTransitions,
-                       nsStyleContext *aOldStyleContext,
-                       nsStyleContext *aNewStyleContext,
-                       bool *aStartedAny,
-                       nsCSSPropertySet *aWhichStarted)
+                                                const nsTransition& aTransition,
+                                                dom::Element* aElement,
+                                                ElementTransitions*& aElementTransitions,
+                                                nsStyleContext* aOldStyleContext,
+                                                nsStyleContext* aNewStyleContext,
+                                                bool* aStartedAny,
+                                                nsCSSPropertySet* aWhichStarted)
 {
   
   NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(aProperty),
                     "property out of range");
+  NS_ASSERTION(!aElementTransitions ||
+               aElementTransitions->mElement == aElement, "Element mismatch");
 
   if (aWhichStarted->HasProperty(aProperty)) {
     
@@ -414,22 +648,15 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   nsStyleAnimation::Value dummyValue;
   bool haveValues =
     ExtractComputedValueForTransition(aProperty, aOldStyleContext,
-                                      pt.mStartValue) &&
+                                       pt.mStartValue) &&
     ExtractComputedValueForTransition(aProperty, aNewStyleContext,
-                                      pt.mEndValue);
+                                       pt.mEndValue);
 
   bool haveChange = pt.mStartValue != pt.mEndValue;
-  bool haveOMTA = false;
-  if (!aNewStyleContext->GetPseudoType()) {
-    ElementTransitions* et = nsTransitionManager::GetTransitions(aElement);
-    if (et) {
-      haveOMTA = et->CanPerformOnCompositorThread();
-    }
-  }
-
+    
   bool shouldAnimate =
     haveValues &&
-    (haveChange || haveOMTA) &&
+    haveChange &&
     
     
     
@@ -465,6 +692,8 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       
       
       pts.RemoveElementAt(currentIndex);
+      aElementTransitions->UpdateAnimationGeneration(mPresContext);
+
       if (pts.IsEmpty()) {
         aElementTransitions->Destroy();
         
@@ -569,13 +798,13 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       return;
     }
   }
+  aElementTransitions->UpdateAnimationGeneration(mPresContext);
 
   nsRestyleHint hint =
     aNewStyleContext->GetPseudoType() ==
       nsCSSPseudoElements::ePseudo_NotPseudoElement ?
     eRestyle_Self : eRestyle_Subtree;
   presContext->PresShell()->RestyleForAnimation(aElement, hint);
-  
 
   *aStartedAny = true;
   aWhichStarted->AddProperty(aProperty);
@@ -608,7 +837,8 @@ nsTransitionManager::GetElementTransitions(dom::Element *aElement,
                              aElement->GetProperty(propName));
   if (!et && aCreateIfNeeded) {
     
-    et = new ElementTransitions(aElement, propName, this);
+    et = new ElementTransitions(aElement, propName, this,
+      mPresContext->RefreshDriver()->MostRecentRefresh());
     nsresult rv = aElement->SetProperty(propName, et,
                                         ElementTransitionsPropertyDtor, false);
     if (NS_FAILED(rv)) {
@@ -747,8 +977,20 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
     return;
   }
 
-  nsTArray<TransitionEventInfo> events;
+  FlushTransitions(Can_Throttle);
+}
 
+void
+nsTransitionManager::FlushTransitions(FlushFlags aFlags)
+{ 
+  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+    
+    return;
+  }
+
+  nsTArray<TransitionEventInfo> events;
+  TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
+  bool didThrottle = false;
   
   
   {
@@ -757,6 +999,11 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
       ElementTransitions *et = static_cast<ElementTransitions*>(next);
       next = PR_NEXT_LINK(next);
 
+      bool canThrottleTick = aFlags == Can_Throttle &&
+        et->CanPerformOnCompositorThread(
+          CommonElementAnimationData::CanAnimateFlags(0)) &&
+        et->CanThrottleAnimation(now);
+
       NS_ABORT_IF_FALSE(et->mElement->GetCurrentDoc() ==
                           mPresContext->Document(),
                         "Element::UnbindFromTree should have "
@@ -764,14 +1011,20 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
 
       uint32_t i = et->mPropertyTransitions.Length();
       NS_ABORT_IF_FALSE(i != 0, "empty transitions list?");
+      bool transitionEnded = false;
       do {
         --i;
         ElementPropertyTransition &pt = et->mPropertyTransitions[i];
         if (pt.IsRemovedSentinel()) {
           
           
-          et->mPropertyTransitions.RemoveElementAt(i);
-        } else if (pt.mStartTime + pt.mDuration <= aTime) {
+          
+          
+          
+          if (aFlags == Can_Throttle) {
+            et->mPropertyTransitions.RemoveElementAt(i);
+          }
+        } else if (pt.mStartTime + pt.mDuration <= now) {
           
           
           
@@ -793,6 +1046,8 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
           
           
           pt.SetRemovedSentinel();
+          et->UpdateAnimationGeneration(mPresContext);
+          transitionEnded = true;
         }
       } while (i != 0);
 
@@ -802,12 +1057,13 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
                    et->mElementProperty == nsGkAtoms::transitionsOfBeforeProperty ||
                    et->mElementProperty == nsGkAtoms::transitionsOfAfterProperty,
                    "Unexpected element property; might restyle too much");
-      nsRestyleHint hint = et->mElementProperty == nsGkAtoms::transitionsProperty ?
-        eRestyle_Self : eRestyle_Subtree;
-      mPresContext->PresShell()->RestyleForAnimation(et->mElement, hint);
-      
-      
-      
+      if (!canThrottleTick || transitionEnded) {
+        nsRestyleHint hint = et->mElementProperty == nsGkAtoms::transitionsProperty ?
+          eRestyle_Self : eRestyle_Subtree;
+        mPresContext->PresShell()->RestyleForAnimation(et->mElement, hint);
+      } else {
+        didThrottle = true;
+      }
 
       if (et->mPropertyTransitions.IsEmpty()) {
         et->Destroy();
@@ -819,6 +1075,10 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
 
   
   ElementDataRemoved();
+
+  if (didThrottle) {
+    mPresContext->Document()->SetNeedStyleFlush();
+  }
 
   for (uint32_t i = 0, i_end = events.Length(); i < i_end; ++i) {
     TransitionEventInfo &info = events[i];

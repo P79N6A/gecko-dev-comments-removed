@@ -96,6 +96,10 @@ public:
   
 
 
+  virtual nsPoint GetLogicalScrollPosition() const = 0;
+  
+
+
 
 
 

@@ -160,7 +160,7 @@ ProcessMatrix3D(gfx3DMatrix& aMatrix,
 }
 
 
-static void
+void
 ProcessInterpolateMatrix(gfx3DMatrix& aMatrix,
                          const nsCSSValue::Array* aData,
                          nsStyleContext* aContext,

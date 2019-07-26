@@ -804,6 +804,9 @@ public:
   AnimationArray& GetAnimations() { return mAnimations; }
   InfallibleTArray<AnimData>& GetAnimationData() { return mAnimationData; }
 
+  uint64_t GetAnimationGeneration() { return mAnimationGeneration; }
+  void SetAnimationGeneration(uint64_t aCount) { mAnimationGeneration = aCount; }
+
   
 
 
@@ -1108,6 +1111,9 @@ protected:
   bool mIsFixedPosition;
   gfxPoint mAnchor;
   DebugOnly<uint32_t> mDebugColorIndex;
+  
+  
+  uint64_t mAnimationGeneration;
 };
 
 

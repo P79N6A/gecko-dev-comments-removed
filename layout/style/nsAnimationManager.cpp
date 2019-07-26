@@ -11,7 +11,6 @@
 #include "nsStyleAnimation.h"
 #include "nsSMILKeySpline.h"
 #include "nsEventDispatcher.h"
-#include "nsDisplayList.h"
 #include "nsCSSFrameConstructor.h"
 
 using namespace mozilla;
@@ -60,9 +59,6 @@ ElementAnimations::GetPositionInIteration(TimeStamp aStartTime, TimeStamp aCurre
           aAnimation->mLastNotification !=
             ElementAnimation::LAST_NOTIFICATION_END) {
         aAnimation->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
-        
-        
-        
         AnimationEventInfo ei(aEa->mElement, aAnimation->mName, NS_ANIMATION_END,
                               currentTimeDuration);
         aEventsToDispatch->AppendElement(ei);
@@ -140,7 +136,7 @@ ElementAnimations::GetPositionInIteration(TimeStamp aStartTime, TimeStamp aCurre
     uint32_t message =
       aAnimation->mLastNotification == ElementAnimation::LAST_NOTIFICATION_NONE
         ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
-    
+
     aAnimation->mLastNotification = whichIteration;
     AnimationEventInfo ei(aEa->mElement, aAnimation->mName, message,
                           currentTimeDuration);
@@ -152,9 +148,12 @@ ElementAnimations::GetPositionInIteration(TimeStamp aStartTime, TimeStamp aCurre
 
 void
 ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
-                                      EventArray& aEventsToDispatch)
+                                      EventArray& aEventsToDispatch,
+                                      bool aIsThrottled)
 {
-  if (!mNeedsRefreshes) {
+  if (!mNeedsRefreshes ||
+      aIsThrottled) {
+    
     
     mStyleRuleRefreshTime = aRefreshTime;
     return;
@@ -269,7 +268,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 bool
 ElementAnimation::IsRunningAt(TimeStamp aTime) const
 {
-  return !IsPaused() && aTime > mStartTime &&
+  return !IsPaused() && aTime >= mStartTime &&
     (aTime - mStartTime)  / mIterationDuration < mIterationCount;
 }
 
@@ -300,7 +299,7 @@ ElementAnimations::HasAnimationOfProperty(nsCSSProperty aProperty) const
 }
 
 bool
-ElementAnimations::CanPerformOnCompositorThread() const
+ElementAnimations::CanPerformOnCompositorThread(CanAnimateFlags aFlags) const
 {
   nsIFrame* frame = mElement->GetPrimaryFrame();
   if (!frame) {
@@ -310,7 +309,9 @@ ElementAnimations::CanPerformOnCompositorThread() const
   if (mElementProperty != nsGkAtoms::animationsProperty) {
     if (nsLayoutUtils::IsAnimationLoggingEnabled()) {
       nsCString message;
-      message.AppendLiteral("Gecko bug: Async animation of pseudoelements not supported.  See bug 771367");
+      message.AppendLiteral("Gecko bug: Async animation of pseudoelements not supported.  See bug 771367 (");
+      message.Append(nsAtomCString(mElementProperty));
+      message.AppendLiteral(")");
       LogAsyncAnimationFailure(message, mElement);
     }
     return false;
@@ -318,14 +319,13 @@ ElementAnimations::CanPerformOnCompositorThread() const
 
   TimeStamp now = frame->PresContext()->RefreshDriver()->MostRecentRefresh();
 
-  bool hasGeometricProperty = false;
   for (uint32_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
     const ElementAnimation& anim = mAnimations[animIdx];
     for (uint32_t propIdx = 0, propEnd = anim.mProperties.Length();
          propIdx != propEnd; ++propIdx) {
       if (IsGeometricProperty(anim.mProperties[propIdx].mProperty) &&
           anim.IsRunningAt(now)) {
-        hasGeometricProperty = true;
+        aFlags = CanAnimateFlags(aFlags | CanAnimate_HasGeometricProperty);
         break;
       }
     }
@@ -345,7 +345,7 @@ ElementAnimations::CanPerformOnCompositorThread() const
       const AnimationProperty& prop = anim.mProperties[propIdx];
       if (!CanAnimatePropertyOnCompositor(mElement,
                                           prop.mProperty,
-                                          hasGeometricProperty)) {
+                                          aFlags)) {
         return false;
       }
       if (prop.mProperty == eCSSProperty_opacity) {
@@ -409,6 +409,15 @@ nsAnimationManager::GetElementAnimations(dom::Element *aElement,
   }
 
   return ea;
+}
+
+
+void
+nsAnimationManager::EnsureStyleRuleFor(ElementAnimations* aET)
+{
+  aET->EnsureStyleRuleFor(mPresContext->RefreshDriver()->MostRecentRefresh(),
+                          mPendingEvents,
+                          false);
 }
 
  void
@@ -505,10 +514,9 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
 
     if (ea) {
-      
-      
       ea->mStyleRule = nullptr;
       ea->mStyleRuleRefreshTime = TimeStamp();
+      ea->UpdateAnimationGeneration(mPresContext);
 
       
       
@@ -567,7 +575,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     ea->mAnimations.SwapElements(newAnimations);
     ea->mNeedsRefreshes = true;
 
-    ea->EnsureStyleRuleFor(refreshTime, mPendingEvents);
+    ea->EnsureStyleRuleFor(refreshTime, mPendingEvents, false);
     
     
     
@@ -893,10 +901,6 @@ nsAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
     return nullptr;
   }
 
-  NS_WARN_IF_FALSE(ea->mStyleRuleRefreshTime ==
-                     mPresContext->RefreshDriver()->MostRecentRefresh(),
-                   "should already have refreshed style rule");
-
   if (mPresContext->IsProcessingRestyles() &&
       !mPresContext->IsProcessingAnimationStyleChange()) {
     
@@ -908,6 +912,10 @@ nsAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
 
     return nullptr;
   }
+
+  NS_WARN_IF_FALSE(ea->mStyleRuleRefreshTime ==
+                     mPresContext->RefreshDriver()->MostRecentRefresh(),
+                   "should already have refreshed style rule");
 
   return ea->mStyleRule;
 }
@@ -927,18 +935,36 @@ nsAnimationManager::WillRefresh(mozilla::TimeStamp aTime)
     return;
   }
 
+  FlushAnimations(Can_Throttle);
+}
+
+void
+nsAnimationManager::FlushAnimations(FlushFlags aFlags)
+{
   
   
   
+  TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
+  bool didThrottle = false;
   for (PRCList *l = PR_LIST_HEAD(&mElementData); l != &mElementData;
        l = PR_NEXT_LINK(l)) {
     ElementAnimations *ea = static_cast<ElementAnimations*>(l);
+    bool canThrottleTick = aFlags == Can_Throttle &&
+      ea->CanPerformOnCompositorThread(
+        CommonElementAnimationData::CanAnimateFlags(0)) &&
+      ea->CanThrottleAnimation(now);
+
     nsRefPtr<css::AnimValuesStyleRule> oldStyleRule = ea->mStyleRule;
-    ea->EnsureStyleRuleFor(mPresContext->RefreshDriver()->MostRecentRefresh(),
-                           mPendingEvents);
+    ea->EnsureStyleRuleFor(now, mPendingEvents, canThrottleTick);
     if (oldStyleRule != ea->mStyleRule) {
       ea->PostRestyleForAnimation(mPresContext);
+    } else {
+      didThrottle = true;
     }
+  }
+
+  if (didThrottle) {
+    mPresContext->Document()->SetNeedStyleFlush();
   }
 
   DispatchEvents(); 

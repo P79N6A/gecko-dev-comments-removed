@@ -234,6 +234,10 @@ public:
 
   
   
+  uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
+
+  
+  
   
   
   
@@ -302,6 +306,7 @@ public:
   {
     PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, true);
   }
+
 private:
   
 
@@ -1885,6 +1890,10 @@ private:
   nsChangeHint        mRebuildAllExtraHint;
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
+
+  
+  
+  uint64_t mAnimationGeneration;
 
   RestyleTracker mPendingRestyles;
   RestyleTracker mPendingAnimationRestyles;

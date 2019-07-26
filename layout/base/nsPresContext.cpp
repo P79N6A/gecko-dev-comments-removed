@@ -957,6 +957,10 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
     }
   }
 
+  
+  mLastStyleUpdateForAllAnimations =
+    mLastUpdateThrottledStyle = mRefreshDriver->MostRecentRefresh();
+
   mLangService = do_GetService(NS_LANGUAGEATOMSERVICE_CONTRACTID);
 
   

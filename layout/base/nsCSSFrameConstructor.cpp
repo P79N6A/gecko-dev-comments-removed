@@ -89,6 +89,8 @@
 #include "nsCSSRenderingBorders.h"
 #include "nsRenderingContext.h"
 #include "nsStyleStructInlines.h"
+#include "nsAnimationManager.h"
+#include "nsTransitionManager.h"
 
 #ifdef MOZ_XUL
 #include "nsIRootBox.h"
@@ -1397,6 +1399,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mInStyleRefresh(false)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
+  , mAnimationGeneration(0)
   , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
                      ELEMENT_IS_POTENTIAL_RESTYLE_ROOT, this)
   , mPendingAnimationRestyles(ELEMENT_HAS_PENDING_ANIMATION_RESTYLE |
@@ -8238,9 +8241,12 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
 #ifdef DEBUG
     
     if (changeData->mContent) {
-      nsIFrame* frame = changeData->mContent->GetPrimaryFrame();
-      if (frame) {
-        DebugVerifyStyleTree(frame);
+      if (!nsAnimationManager::ContentOrAncestorHasAnimation(changeData->mContent) &&
+          !nsTransitionManager::ContentOrAncestorHasTransition(changeData->mContent)) {
+        nsIFrame* frame = changeData->mContent->GetPrimaryFrame();
+        if (frame) {
+          DebugVerifyStyleTree(frame);
+        }
       }
     } else {
       NS_WARNING("Unable to test style tree integrity -- no content node");
@@ -12074,6 +12080,17 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   NS_ABORT_IF_FALSE(!presContext->IsProcessingRestyles(),
                     "Nesting calls to ProcessPendingRestyles?");
   presContext->SetProcessingRestyles(true);
+
+  
+  
+  
+  
+  
+  if (css::CommonAnimationManager::ThrottlingEnabled() &&
+      mPendingRestyles.Count() > 0) {
+    ++mAnimationGeneration;
+    presContext->TransitionManager()->UpdateAllThrottledStyles();
+  }
 
   mPendingRestyles.ProcessRestyles();
 
