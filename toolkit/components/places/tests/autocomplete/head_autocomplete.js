@@ -257,7 +257,7 @@ function run_test() {
   
   
   
-  waitForAsyncUpdates(ensure_results, this, [search, expected]);
+  promiseAsyncUpdates().then(function () ensure_results(search, expected));
 }
 
 

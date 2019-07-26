@@ -26,7 +26,7 @@ let historyObserver = {
     {
       Services.obs.removeObserver(observeExpiration, aTopic, false);
 
-      waitForAsyncUpdates(function () {
+      promiseAsyncUpdates().then(function () {
         
         
         
@@ -160,8 +160,5 @@ function continue_test() {
   PlacesUtils.history.addVisit(uri("http://frecency.mozilla.org/"), Date.now(),
                                null, Ci.nsINavHistoryService.TRANSITION_LINK,
                                false, 0);
-  waitForFrecency("http://frecency.mozilla.org/", function (aFrecency) aFrecency > 0,
-                  function () {
-                    PlacesUtils.bhistory.removeAllPages();
-                  }, this, []);
+  promiseAsyncUpdates().then(function () PlacesUtils.bhistory.removeAllPages());
 }

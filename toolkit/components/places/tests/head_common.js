@@ -23,22 +23,18 @@ const TITLE_LENGTH_MAX = 4096;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "Services", function() {
-  Cu.import("resource://gre/modules/Services.jsm");
-  return Services;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+                                  "resource://gre/modules/FileUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/commonjs/promise/core.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
-  Cu.import("resource://gre/modules/NetUtil.jsm");
-  return NetUtil;
-});
-
-XPCOMUtils.defineLazyGetter(this, "FileUtils", function() {
-  Cu.import("resource://gre/modules/FileUtils.jsm");
-  return FileUtils;
-});
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+
 XPCOMUtils.defineLazyGetter(this, "SMALLPNG_DATA_URI", function() {
   return NetUtil.newURI(
          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAA" +
@@ -382,16 +378,33 @@ function setPageTitle(aURI, aTitle) {
 
 
 
-function waitForClearHistory(aCallback) {
-  let observer = {
-    observe: function(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(this, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-      aCallback();
-    }
-  };
-  Services.obs.addObserver(observer, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
 
+
+
+function promiseTopicObserved(aTopic)
+{
+  let deferred = Promise.defer();
+
+  Services.obs.addObserver(
+    function PTO_observe(aSubject, aTopic, aData) {
+      Services.obs.removeObserver(PTO_observe, aTopic);
+      deferred.resolve([aSubject, aData]);
+    }, aTopic, false);
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+function promiseClearHistory() {
+  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
   PlacesUtils.bhistory.removeAllPages();
+  return promise;
 }
 
 
@@ -523,37 +536,6 @@ function check_JSON_backup() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-function waitForFrecency(aURI, aValidator, aCallback, aCbScope, aCbArguments) {
-  Services.obs.addObserver(function (aSubject, aTopic, aData) {
-    let frecency = frecencyForUrl(aURI);
-    if (!aValidator(frecency)) {
-      print("Has to wait for frecency...");
-      return;
-    }
-    Services.obs.removeObserver(arguments.callee, aTopic);
-    aCallback.apply(aCbScope, aCbArguments);
-  }, "places-frecency-updated", false);
-}
-
-
-
-
-
-
-
-
 function frecencyForUrl(aURI)
 {
   let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
@@ -561,12 +543,14 @@ function frecencyForUrl(aURI)
     "SELECT frecency FROM moz_places WHERE url = ?1"
   );
   stmt.bindByIndex(0, url);
-  if (!stmt.executeStep())
-    throw new Error("No result for frecency.");
-  let frecency = stmt.getInt32(0);
-  stmt.finalize();
-
-  return frecency;
+  try {
+    if (!stmt.executeStep()) {
+      throw new Error("No result for frecency.");
+    }
+    return stmt.getInt32(0);
+  } finally {
+    stmt.finalize();
+  }
 }
 
 
@@ -623,14 +607,10 @@ function is_time_ordered(before, after) {
 
 
 
-
-
-
-
-function waitForAsyncUpdates(aCallback, aScope, aArguments)
+function promiseAsyncUpdates()
 {
-  let scope = aScope || this;
-  let args = aArguments || [];
+  let deferred = Promise.defer();
+
   let db = DBConn();
   let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
   begin.executeAsync();
@@ -638,14 +618,16 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
 
   let commit = db.createAsyncStatement("COMMIT");
   commit.executeAsync({
-    handleResult: function() {},
-    handleError: function() {},
+    handleResult: function () {},
+    handleError: function () {},
     handleCompletion: function(aReason)
     {
-      aCallback.apply(scope, args);
+      deferred.resolve();
     }
   });
   commit.finalize();
+
+  return deferred.promise;
 }
 
 

@@ -3,6 +3,8 @@
 
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/commonjs/promise/core.js");
 
 
 
@@ -10,12 +12,34 @@ Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 
 
-function waitForClearHistory(aCallback) {
-  Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
-    Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-    aCallback();
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+
+
+
+
+function promiseTopicObserved(aTopic)
+{
+  let deferred = Promise.defer();
+
+  Services.obs.addObserver(
+    function PTO_observe(aSubject, aTopic, aData) {
+      Services.obs.removeObserver(PTO_observe, aTopic);
+      deferred.resolve([aSubject, aData]);
+    }, aTopic, false);
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+function promiseClearHistory() {
+  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
   PlacesUtils.bhistory.removeAllPages();
+  return promise;
 }
 
 
@@ -31,14 +55,10 @@ function waitForClearHistory(aCallback) {
 
 
 
-
-
-
-
-function waitForAsyncUpdates(aCallback, aScope, aArguments)
+function promiseAsyncUpdates()
 {
-  let scope = aScope || this;
-  let args = aArguments || [];
+  let deferred = Promise.defer();
+
   let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
                               .DBConnection;
   let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
@@ -51,10 +71,12 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
     handleError: function() {},
     handleCompletion: function(aReason)
     {
-      aCallback.apply(scope, args);
+      deferred.resolve();
     }
   });
   commit.finalize();
+
+  return deferred.promise;
 }
 
 
@@ -89,26 +111,4 @@ function fieldForUrl(aURI, aFieldName, aCallback)
     }
   });
   stmt.finalize();
-}
-
-function waitForAsyncUpdates(aCallback, aScope, aArguments)
-{
-  let scope = aScope || this;
-  let args = aArguments || [];
-  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
-                              .DBConnection;
-  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
-  begin.executeAsync();
-  begin.finalize();
-
-  let commit = db.createAsyncStatement("COMMIT");
-  commit.executeAsync({
-    handleResult: function() {},
-    handleError: function() {},
-    handleCompletion: function(aReason)
-    {
-      aCallback.apply(scope, args);
-    }
-  });
-  commit.finalize();
 }

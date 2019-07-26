@@ -40,7 +40,7 @@ add_test(function test_keywordRemovedOnUniqueItemRemoval() {
   
   bmsvc.removeItem(bookmarkId);
 
-  waitForAsyncUpdates(function() {
+  promiseAsyncUpdates().then(function() {
     
     
     var sql = "SELECT id FROM moz_keywords WHERE keyword = ?1";
@@ -77,7 +77,7 @@ add_test(function test_keywordNotRemovedOnNonUniqueItemRemoval() {
   
   bmsvc.removeItem(bookmarkId1);
 
-  waitForAsyncUpdates(function() {
+  promiseAsyncUpdates().then(function() {
     
     var sql = "SELECT id FROM moz_keywords WHERE keyword = ?1";
     var stmt = mDBConn.createStatement(sql);

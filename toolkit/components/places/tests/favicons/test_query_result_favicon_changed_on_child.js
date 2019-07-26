@@ -69,7 +69,7 @@ add_test(function test_query_result_favicon_changed_on_child()
     
     
     
-    waitForAsyncUpdates(function QRFCOC_asyncUpdates() {
+    promiseAsyncUpdates().then(function QRFCOC_asyncUpdates() {
       do_execute_soon(function QRFCOC_soon() {
         result.removeObserver(resultObserver);
 

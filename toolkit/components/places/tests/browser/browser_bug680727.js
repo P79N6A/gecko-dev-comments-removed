@@ -55,7 +55,7 @@ function errorListener() {
      "Docshell URI is the original URI.");
 
   
-  waitForAsyncUpdates(function() {
+  promiseAsyncUpdates().then(function() {
     gAsyncHistory.isURIVisited(kUniqueURI, errorAsyncListener);
   });
 }
@@ -91,14 +91,14 @@ function reloadListener() {
      "Document URI is not the offline-error page, but the original URI.");
 
   
-  waitForAsyncUpdates(function() {
+  promiseAsyncUpdates().then(function() {
     gAsyncHistory.isURIVisited(kUniqueURI, reloadAsyncListener);
   });
 }
 
 function reloadAsyncListener(aURI, aIsVisited) {
   ok(kUniqueURI.equals(aURI) && aIsVisited, "We have visited the URI.");
-  waitForClearHistory(finish);
+  promiseClearHistory().then(finish);
 }
 
 registerCleanupFunction(function() {

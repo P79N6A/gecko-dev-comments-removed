@@ -166,7 +166,8 @@ function run_test() {
       
       
       
-      waitForAsyncUpdates(ensure_results, this, [searchString, expectedValue]);
+      promiseAsyncUpdates().then(function () ensure_results(searchString,
+                                                            expectedValue));
     })
   }, this);
 
@@ -180,7 +181,7 @@ function add_autocomplete_test(aTestData) {
 
 function waitForCleanup(aCallback) {
   remove_all_bookmarks();
-  waitForClearHistory(aCallback);
+  promiseClearHistory().then(aCallback);
 }
 
 function addBookmark(aBookmarkObj) {

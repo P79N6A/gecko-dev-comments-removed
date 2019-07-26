@@ -60,7 +60,7 @@ function run_test() {
     
     validate();
   
-    waitForAsyncUpdates(function testJsonExport() {
+    promiseAsyncUpdates().then(function testJsonExport() {
       
       
       try {
@@ -79,7 +79,7 @@ function run_test() {
       validate();
       LOG("validated import");
   
-      waitForAsyncUpdates(do_test_finished);
+      promiseAsyncUpdates().then(do_test_finished);
     });
   }
 }

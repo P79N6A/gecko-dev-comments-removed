@@ -131,7 +131,7 @@ function run_next_test() {
   }
   else {
     clearMaxPages();
-    waitForClearHistory(do_test_finished);
+    promiseClearHistory().then(do_test_finished);
   }
 }
 
@@ -141,5 +141,5 @@ function check_result() {
               gCurrentTest.expectedNotifications);
 
   
-  waitForClearHistory(run_next_test);
+  promiseClearHistory().then(run_next_test);
 }
