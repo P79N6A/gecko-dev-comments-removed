@@ -523,7 +523,7 @@ gfxASurface::MovePixels(const nsIntRect& aSourceRect,
     
     
     
-    NS_ASSERTION(tmp, "Must have temporary surface to move pixels!");
+    NS_WARN_IF_FALSE(tmp, "Must have temporary surface to move pixels!");
     if (!tmp) {
         return;
     }
