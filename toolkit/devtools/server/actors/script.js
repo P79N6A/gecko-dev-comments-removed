@@ -3902,7 +3902,7 @@ function ThreadSources(aThreadActor, aUseSourceMaps, aAllowPredicate,
 
 
 
-ThreadSources._blackBoxedSources = new Set();
+ThreadSources._blackBoxedSources = new Set(["self-hosted"]);
 ThreadSources._prettyPrintedSources = new Map();
 
 ThreadSources.prototype = {
