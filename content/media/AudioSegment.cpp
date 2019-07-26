@@ -6,7 +6,6 @@
 #include "AudioSegment.h"
 
 #include "AudioStream.h"
-#include "AudioMixer.h"
 #include "AudioChannelFormat.h"
 #include "Latency.h"
 #include "speex/speex_resampler.h"
@@ -135,74 +134,69 @@ void AudioSegment::ResampleChunks(SpeexResamplerState* aResampler)
 }
 
 void
-AudioSegment::WriteTo(uint64_t aID, AudioStream* aOutput, AudioMixer* aMixer)
+AudioSegment::WriteTo(uint64_t aID, AudioStream* aOutput)
 {
   uint32_t outputChannels = aOutput->GetChannels();
   nsAutoTArray<AudioDataValue,AUDIO_PROCESSING_FRAMES*GUESS_AUDIO_CHANNELS> buf;
   nsAutoTArray<const void*,GUESS_AUDIO_CHANNELS> channelData;
 
-  if (!GetDuration()) {
-    return;
-  }
-
-  uint32_t outBufferLength = GetDuration() * outputChannels;
-  buf.SetLength(outBufferLength);
-
-  
-  uint32_t offset = 0;
-
   for (ChunkIterator ci(*this); !ci.IsEnded(); ci.Next()) {
     AudioChunk& c = *ci;
-    uint32_t frames = c.mDuration;
-
-    
-    
-    
-    
-    
-    if (c.mBuffer || aOutput->GetWritten()) {
-      if (c.mBuffer) {
-        channelData.SetLength(c.mChannelData.Length());
-        for (uint32_t i = 0; i < channelData.Length(); ++i) {
-          channelData[i] = c.mChannelData[i];
-        }
-
-        if (channelData.Length() < outputChannels) {
-          
-          
-          AudioChannelsUpMix(&channelData, outputChannels, gZeroChannel);
-        }
-
-        if (channelData.Length() > outputChannels) {
-          
-          DownmixAndInterleave(channelData, c.mBufferFormat, frames,
-                               c.mVolume, outputChannels, buf.Elements() + offset);
-        } else {
-          InterleaveAndConvertBuffer(channelData.Elements(), c.mBufferFormat,
-                                     frames, c.mVolume,
-                                     outputChannels,
-                                     buf.Elements() + offset);
-        }
-      } else {
-        
-        memset(buf.Elements() + offset, 0, outputChannels * frames * sizeof(AudioDataValue));
+    TrackTicks offset = 0;
+    while (offset < c.mDuration) {
+      TrackTicks durationTicks =
+        std::min<TrackTicks>(c.mDuration - offset, AUDIO_PROCESSING_FRAMES);
+      if (uint64_t(outputChannels)*durationTicks > INT32_MAX || offset > INT32_MAX) {
+        NS_ERROR("Buffer overflow");
+        return;
       }
-    }
 
-    offset += frames * outputChannels;
+      uint32_t duration = uint32_t(durationTicks);
 
-    if (!c.mTimeStamp.IsNull()) {
-      TimeStamp now = TimeStamp::Now();
       
-      LogTime(AsyncLatencyLogger::AudioMediaStreamTrack, aID,
-              (now - c.mTimeStamp).ToMilliseconds(), c.mTimeStamp);
+      
+      
+      
+      
+      if (c.mBuffer || aOutput->GetWritten()) {
+        buf.SetLength(outputChannels*duration);
+        if (c.mBuffer) {
+          channelData.SetLength(c.mChannelData.Length());
+          for (uint32_t i = 0; i < channelData.Length(); ++i) {
+            channelData[i] =
+              AddAudioSampleOffset(c.mChannelData[i], c.mBufferFormat, int32_t(offset));
+          }
+
+          if (channelData.Length() < outputChannels) {
+            
+            
+            AudioChannelsUpMix(&channelData, outputChannels, gZeroChannel);
+          }
+
+          if (channelData.Length() > outputChannels) {
+            
+            DownmixAndInterleave(channelData, c.mBufferFormat, duration,
+                                 c.mVolume, outputChannels, buf.Elements());
+          } else {
+            InterleaveAndConvertBuffer(channelData.Elements(), c.mBufferFormat,
+                                       duration, c.mVolume,
+                                       outputChannels,
+                                       buf.Elements());
+          }
+        } else {
+          
+          memset(buf.Elements(), 0, buf.Length()*sizeof(AudioDataValue));
+        }
+        aOutput->Write(buf.Elements(), int32_t(duration), &(c.mTimeStamp));
+      }
+      if(!c.mTimeStamp.IsNull()) {
+        TimeStamp now = TimeStamp::Now();
+        
+        LogTime(AsyncLatencyLogger::AudioMediaStreamTrack, aID,
+                (now - c.mTimeStamp).ToMilliseconds(), c.mTimeStamp);
+      }
+      offset += duration;
     }
-  }
-
-  aOutput->Write(buf.Elements(), GetDuration(), &(mChunks[mChunks.Length() - 1].mTimeStamp));
-
-  if (aMixer) {
-    aMixer->Mix(buf.Elements(), outputChannels, GetDuration());
   }
   aOutput->Start();
 }

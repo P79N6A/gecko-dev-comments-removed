@@ -27,7 +27,6 @@ public:
 };
 
 class AudioStream;
-class AudioMixer;
 
 
 
@@ -216,7 +215,7 @@ public:
     return chunk;
   }
   void ApplyVolume(float aVolume);
-  void WriteTo(uint64_t aID, AudioStream* aOutput, AudioMixer* aMixer = nullptr);
+  void WriteTo(uint64_t aID, AudioStream* aOutput);
 
   int ChannelCount() {
     NS_WARN_IF_FALSE(!mChunks.IsEmpty(),
