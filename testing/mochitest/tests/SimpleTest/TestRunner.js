@@ -395,22 +395,6 @@ TestRunner.expectChildProcessCrash = function() {
 
 
 
-
-
-
-
-
-var MEM_STAT_UNKNOWN = 0;
-var MEM_STAT_UNSUPPORTED = 1;
-var MEM_STAT_SUPPORTED = 2;
-TestRunner._hasMemoryStatistics = {}
-TestRunner._hasMemoryStatistics.vsize = MEM_STAT_UNKNOWN;
-TestRunner._hasMemoryStatistics.vsizeMaxContiguous = MEM_STAT_UNKNOWN;
-TestRunner._hasMemoryStatistics.heapAllocated = MEM_STAT_UNKNOWN;
-
-
-
-
 TestRunner.testFinished = function(tests) {
     
     
@@ -425,33 +409,7 @@ TestRunner.testFinished = function(tests) {
     TestRunner._lastTestFinished = TestRunner._currentTest;
     TestRunner._loopIsRestarting = false;
 
-    var mrm;
-    try {
-	mrm = Cc["@mozilla.org/memory-reporter-manager;1"]
-	    .getService(Ci.nsIMemoryReporterManager);
-    } catch (e) {
-	mrm = SpecialPowers.Cc["@mozilla.org/memory-reporter-manager;1"]
-	                   .getService(SpecialPowers.Ci.nsIMemoryReporterManager);
-    }
-    for (stat in TestRunner._hasMemoryStatistics) {
-        var supported = TestRunner._hasMemoryStatistics[stat];
-        var firstAccess = false;
-        if (supported == MEM_STAT_UNKNOWN) {
-            firstAccess = true;
-            try {
-                var value = mrm[stat];
-                supported = MEM_STAT_SUPPORTED;
-            } catch (e) {
-                supported = MEM_STAT_UNSUPPORTED;
-            }
-            TestRunner._hasMemoryStatistics[stat] = supported;
-        }
-        if (supported == MEM_STAT_SUPPORTED) {
-            TestRunner.log("TEST-INFO | MEMORY STAT " + stat + " after test: " + mrm[stat]);
-        } else if (firstAccess) {
-            TestRunner.log("TEST-INFO | MEMORY STAT " + stat + " not supported in this build configuration.");
-        }
-    }
+    MemoryStats.dump(TestRunner.log);
 
     function cleanUpCrashDumpFiles() {
         if (!SpecialPowers.removeExpectedCrashDumpFiles(TestRunner._expectingProcessCrash)) {
