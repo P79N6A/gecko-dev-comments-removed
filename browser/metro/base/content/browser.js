@@ -70,6 +70,16 @@ var Browser = {
       dump("###########" + e + "\n");
     }
 
+    if (!Services.metro) {
+      
+      
+      Services.metro = {
+        activationURI: "",
+        pinTileAsync: function () {},
+        unpinTileAsync: function () {}
+      };
+    }
+
     
     Elements.browsers.customDragger = new Browser.MainDragger();
 
