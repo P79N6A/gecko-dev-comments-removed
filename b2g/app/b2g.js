@@ -876,6 +876,14 @@ pref("apz.max_velocity_pixels_per_ms", "6.0");
 
 
 
+pref("apz.x_skate_size_multiplier", "1.25");
+pref("apz.y_skate_size_multiplier", "1.5");
+pref("apz.x_stationary_size_multiplier", "1.5");
+pref("apz.y_stationary_size_multiplier", "1.8");
+pref("apz.enlarge_displayport_when_clipped", true);
+
+
+
 
 
 
