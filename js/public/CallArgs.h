@@ -54,7 +54,7 @@ typedef js::ParallelResult
 
 
 typedef JSBool
-(* JSThreadSafeNative)(js::ThreadSafeContext *tcx, unsigned argc, JS::Value *vp);
+(* JSThreadSafeNative)(js::ThreadSafeContext *cx, unsigned argc, JS::Value *vp);
 
 
 
