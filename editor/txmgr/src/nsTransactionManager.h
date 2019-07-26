@@ -34,15 +34,15 @@ private:
   nsTransactionStack     mRedoStack;
   nsCOMArray<nsITransactionListener> mListeners;
 
+  
+
+  virtual ~nsTransactionManager();
+
 public:
 
   
 
   nsTransactionManager(int32_t aMaxTransactionCount=-1);
-
-  
-
-  virtual ~nsTransactionManager();
 
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

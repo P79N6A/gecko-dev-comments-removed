@@ -87,15 +87,16 @@ private:
 
   nsCOMPtr<nsITextServicesFilter> mTxtSvcFilter;
 
+protected:
+  
+
+  virtual ~nsTextServicesDocument();
+
 public:
 
   
 
   nsTextServicesDocument();
-
-  
-
-  virtual ~nsTextServicesDocument();
 
   
 

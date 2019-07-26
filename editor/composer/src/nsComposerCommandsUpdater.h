@@ -32,7 +32,6 @@ class nsComposerCommandsUpdater : public nsISelectionListener,
 public:
 
                                   nsComposerCommandsUpdater();
-  virtual                         ~nsComposerCommandsUpdater();
 
   
   NS_DECL_ISUPPORTS
@@ -69,6 +68,8 @@ public:
 
 protected:
 
+  virtual ~nsComposerCommandsUpdater();
+
   enum {
     eStateUninitialized   = -1,
     eStateOff             = false,
@@ -98,4 +99,4 @@ protected:
 extern "C" nsresult NS_NewComposerCommandsUpdater(nsISelectionListener** aInstancePtrResult);
 
 
-#endif
+#endif 

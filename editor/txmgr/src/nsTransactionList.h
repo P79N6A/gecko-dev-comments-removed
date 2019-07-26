@@ -27,12 +27,13 @@ private:
   nsTransactionStack         *mTxnStack;
   nsRefPtr<nsTransactionItem> mTxnItem;
 
+protected:
+  virtual ~nsTransactionList();
+
 public:
 
   nsTransactionList(nsITransactionManager *aTxnMgr, nsTransactionStack *aTxnStack);
   nsTransactionList(nsITransactionManager *aTxnMgr, nsTransactionItem *aTxnItem);
-
-  virtual ~nsTransactionList();
 
   
   NS_DECL_ISUPPORTS
