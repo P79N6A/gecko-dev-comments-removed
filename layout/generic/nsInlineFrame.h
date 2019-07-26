@@ -92,6 +92,7 @@ public:
 
   virtual void PullOverflowsFromPrevInFlow() MOZ_OVERRIDE;
   virtual nscoord GetBaseline() const MOZ_OVERRIDE;
+  virtual bool DrainSelfOverflowList() MOZ_OVERRIDE;
 
   
 
@@ -168,6 +169,22 @@ protected:
                           nsIFrame* aPrevSibling,
                           InlineReflowState& aState);
 
+private:
+  
+  
+  enum DrainFlags {
+    eDontReparentFrames = 1, 
+    eInFirstLine = 2, 
+  };
+  
+
+
+
+
+
+  bool DrainSelfOverflowListInternal(DrainFlags aFlags,
+                                     nsIFrame* aLineContainer);
+protected:
   nscoord mBaseline;
 };
 
@@ -177,7 +194,7 @@ protected:
 
 
 
-class nsFirstLineFrame : public nsInlineFrame {
+class nsFirstLineFrame MOZ_FINAL : public nsInlineFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -195,6 +212,7 @@ public:
   virtual void Init(nsIContent* aContent, nsIFrame* aParent,
                     nsIFrame* aPrevInFlow) MOZ_OVERRIDE;
   virtual void PullOverflowsFromPrevInFlow() MOZ_OVERRIDE;
+  virtual bool DrainSelfOverflowList() MOZ_OVERRIDE;
 
 protected:
   nsFirstLineFrame(nsStyleContext* aContext) : nsInlineFrame(aContext) {}
@@ -204,4 +222,4 @@ protected:
                                  bool* aIsComplete) MOZ_OVERRIDE;
 };
 
-#endif 
+#endif

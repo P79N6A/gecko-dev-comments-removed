@@ -368,29 +368,12 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
   }
 #endif
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    AutoFrameListPtr overflowFrames(aPresContext, StealOverflowFrames());
-    if (overflowFrames) {
-      NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-      if (!lazilySetParentPointer) {
-        
-        
-        
-        
-        nsIFrame* firstChild = overflowFrames->FirstChild();
-        if (lineContainer && lineContainer->GetPrevContinuation()) {
-          ReparentFloatsForInlineChild(lineContainer, firstChild, true);
-        }
-        const bool inFirstLine = aReflowState.mLineLayout->GetInFirstLine();
-        RestyleManager* restyleManager = PresContext()->RestyleManager();
-        for (nsIFrame* f = firstChild; f; f = f->GetNextSibling()) {
-          f->SetParent(this);
-          if (inFirstLine) {
-            restyleManager->ReparentStyleContext(f);
-          }
-        }
-      }
-      mFrames.AppendFrames(nullptr, *overflowFrames);
+    DrainFlags flags =
+      lazilySetParentPointer ? eDontReparentFrames : DrainFlags(0);
+    if (aReflowState.mLineLayout->GetInFirstLine()) {
+      flags = DrainFlags(flags | eInFirstLine);
     }
+    DrainSelfOverflowListInternal(flags, lineContainer);
   }
 
   
@@ -419,6 +402,53 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
   return rv;
+}
+
+bool
+nsInlineFrame::DrainSelfOverflowListInternal(DrainFlags aFlags,
+                                             nsIFrame* aLineContainer)
+{
+  AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
+  if (overflowFrames) {
+    NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
+    
+    
+    
+    if (!(aFlags & eDontReparentFrames)) {
+      nsIFrame* firstChild = overflowFrames->FirstChild();
+      if (aLineContainer && aLineContainer->GetPrevContinuation()) {
+        ReparentFloatsForInlineChild(aLineContainer, firstChild, true);
+      }
+      const bool inFirstLine = (aFlags & eInFirstLine);
+      RestyleManager* restyleManager = PresContext()->RestyleManager();
+      for (nsIFrame* f = firstChild; f; f = f->GetNextSibling()) {
+        f->SetParent(this);
+        if (inFirstLine) {
+          restyleManager->ReparentStyleContext(f);
+        }
+      }
+    }
+    bool result = !overflowFrames->IsEmpty();
+    mFrames.AppendFrames(nullptr, *overflowFrames);
+    return result;
+  }
+  return false;
+}
+
+ bool
+nsInlineFrame::DrainSelfOverflowList()
+{
+  nsIFrame* lineContainer = nsLayoutUtils::FindNearestBlockAncestor(this);
+  
+  
+  DrainFlags flags = DrainFlags(0);
+  for (nsIFrame* p = GetParent(); p != lineContainer; p = p->GetParent()) {
+    if (p->GetType() == nsGkAtoms::lineFrame) {
+      flags = DrainFlags(flags | eInFirstLine);
+      break;
+    }
+  }
+  return DrainSelfOverflowListInternal(flags, lineContainer);
 }
 
  bool
@@ -1019,14 +1049,7 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
   }
 
   
-  AutoFrameListPtr overflowFrames(aPresContext, StealOverflowFrames());
-  if (overflowFrames) {
-    NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-
-    const nsFrameList::Slice& newFrames =
-      mFrames.AppendFrames(nullptr, *overflowFrames);
-    ReparentChildListStyle(aPresContext, newFrames, this);
-  }
+  DrainSelfOverflowList();
 
   
   
@@ -1094,3 +1117,18 @@ nsFirstLineFrame::PullOverflowsFromPrevInFlow()
   }
 }
 
+ bool
+nsFirstLineFrame::DrainSelfOverflowList()
+{
+  AutoFrameListPtr overflowFrames(PresContext(), StealOverflowFrames());
+  if (overflowFrames) {
+    NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
+
+    bool result = !overflowFrames->IsEmpty();
+    const nsFrameList::Slice& newFrames =
+      mFrames.AppendFrames(nullptr, *overflowFrames);
+    ReparentChildListStyle(PresContext(), newFrames, this);
+    return result;
+  }
+  return false;
+}
