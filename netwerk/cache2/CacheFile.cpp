@@ -187,6 +187,16 @@ CacheFile::CacheFile()
   , mOutput(nullptr)
 {
   LOG(("CacheFile::CacheFile() [this=%p]", this));
+
+  
+  
+  
+  
+  
+  
+  
+  
+  mPreloadChunkCount = CacheObserver::PreloadChunkCount();
 }
 
 CacheFile::~CacheFile()
@@ -351,7 +361,7 @@ CacheFile::OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk)
 
   bool keepChunk = false;
   if (NS_SUCCEEDED(aResult)) {
-    keepChunk = ShouldKeepChunk(aChunk->Index());
+    keepChunk = ShouldCacheChunk(aChunk->Index());
     LOG(("CacheFile::OnChunkWritten() - %s unused chunk [this=%p, chunk=%p]",
          keepChunk ? "Caching" : "Releasing", this, aChunk));
   } else {
@@ -778,7 +788,9 @@ CacheFile::ThrowMemoryCachedData()
     return NS_ERROR_ABORT;
   }
 
-  mCachedChunks.Clear();
+  
+  
+  mCachedChunks.Enumerate(&CacheFile::CleanUpCachedChunks, this);
 
   return NS_OK;
 }
@@ -1205,7 +1217,7 @@ CacheFile::PreloadChunks(uint32_t aIndex)
 }
 
 bool
-CacheFile::ShouldKeepChunk(uint32_t aIndex)
+CacheFile::ShouldCacheChunk(uint32_t aIndex)
 {
   AssertOwnsLock();
 
@@ -1213,22 +1225,37 @@ CacheFile::ShouldKeepChunk(uint32_t aIndex)
   
   return true;
 #else
+
+  if (mPreloadChunkCount != 0 && mInputs.Length() == 0 &&
+      mPreloadWithoutInputStreams && aIndex < mPreloadChunkCount) {
+    
+    
+    
+    
+    
+    
+    return true;
+  }
+
+  
+  return MustKeepCachedChunk(aIndex);
+#endif
+}
+
+bool
+CacheFile::MustKeepCachedChunk(uint32_t aIndex)
+{
+  AssertOwnsLock();
+
+  
   
   if (mMemoryOnly || mOpeningFile) {
     return true;
   }
 
-  uint32_t preloadChunkCount = CacheObserver::PreloadChunkCount();
-
-  if (preloadChunkCount == 0) {
+  if (mPreloadChunkCount == 0) {
     
     return false;
-  }
-
-  if (mPreloadWithoutInputStreams && aIndex < preloadChunkCount) {
-    
-    
-    return true;
   }
 
   
@@ -1240,10 +1267,10 @@ CacheFile::ShouldKeepChunk(uint32_t aIndex)
   
   
   int64_t minPos;
-  if (preloadChunkCount >= aIndex) {
+  if (mPreloadChunkCount >= aIndex) {
     minPos = 0;
   } else {
-    minPos = static_cast<int64_t>(aIndex - preloadChunkCount) * kChunkSize;
+    minPos = static_cast<int64_t>(aIndex - mPreloadChunkCount) * kChunkSize;
   }
 
   for (uint32_t i = 0; i < mInputs.Length(); ++i) {
@@ -1254,7 +1281,6 @@ CacheFile::ShouldKeepChunk(uint32_t aIndex)
   }
 
   return false;
-#endif
 }
 
 nsresult
@@ -1335,7 +1361,7 @@ CacheFile::RemoveChunk(CacheFileChunk *aChunk)
       }
     }
 
-    bool keepChunk = ShouldKeepChunk(aChunk->Index());
+    bool keepChunk = ShouldCacheChunk(aChunk->Index());
     LOG(("CacheFile::RemoveChunk() - %s unused chunk [this=%p, chunk=%p]",
          keepChunk ? "Caching" : "Releasing", this, chunk.get()));
 
@@ -1370,12 +1396,23 @@ CacheFile::BytesFromChunk(uint32_t aIndex)
   if (!mDataSize)
     return 0;
 
+  
   uint32_t lastChunk = (mDataSize - 1) / kChunkSize;
   if (aIndex > lastChunk)
     return 0;
 
+  
+  
+  
+  uint32_t maxPreloadedChunk;
+  if (mMemoryOnly) {
+    maxPreloadedChunk = lastChunk;
+  } else {
+    maxPreloadedChunk = std::min(aIndex + mPreloadChunkCount, lastChunk);
+  }
+
   uint32_t i;
-  for (i = aIndex; i <= lastChunk; ++i) {
+  for (i = aIndex; i <= maxPreloadedChunk; ++i) {
     CacheFileChunk * chunk;
 
     chunk = mChunks.GetWeak(i);
@@ -1424,7 +1461,7 @@ CacheFile::RemoveInput(CacheFileInputStream *aInput)
 
   
   
-  mCachedChunks.Enumerate(&CacheFile::CleanUpPreloadedChunks, this);
+  mCachedChunks.Enumerate(&CacheFile::CleanUpCachedChunks, this);
 
   return NS_OK;
 }
@@ -1746,21 +1783,21 @@ CacheFile::FailUpdateListeners(
 }
 
 PLDHashOperator
-CacheFile::CleanUpPreloadedChunks(const uint32_t& aIdx,
-                                  nsRefPtr<CacheFileChunk>& aChunk,
-                                  void* aClosure)
+CacheFile::CleanUpCachedChunks(const uint32_t& aIdx,
+                               nsRefPtr<CacheFileChunk>& aChunk,
+                               void* aClosure)
 {
   CacheFile *file = static_cast<CacheFile*>(aClosure);
 
-  LOG(("CacheFile::CleanUpPreloadedChunks() [this=%p, idx=%u, chunk=%p]", file,
+  LOG(("CacheFile::CleanUpCachedChunks() [this=%p, idx=%u, chunk=%p]", file,
        aIdx, aChunk.get()));
 
-  if (file->ShouldKeepChunk(aIdx)) {
-    LOG(("CacheFile::CleanUpPreloadedChunks() - Keeping chunk"));
+  if (file->MustKeepCachedChunk(aIdx)) {
+    LOG(("CacheFile::CleanUpCachedChunks() - Keeping chunk"));
     return PL_DHASH_NEXT;
   }
 
-  LOG(("CacheFile::CleanUpPreloadedChunks() - Removing chunk"));
+  LOG(("CacheFile::CleanUpCachedChunks() - Removing chunk"));
   return PL_DHASH_REMOVE;
 }
 
