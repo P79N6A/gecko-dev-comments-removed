@@ -19,13 +19,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
   "resource://gre/modules/devtools/dbg-client.jsm");
 
 const targets = new WeakMap();
+const promiseTargets = new WeakMap();
 
 
 
 
 this.TargetFactory = {
   
-
 
 
 
@@ -39,6 +39,28 @@ this.TargetFactory = {
       targets.set(tab, target);
     }
     return target;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  forRemoteTab: function TF_forRemoteTab(options) {
+    let promise = promiseTargets.get(options);
+    if (promise == null) {
+      let target = new TabTarget(options);
+      promise = target.makeRemote().then(() => target);
+      promiseTargets.set(options, promise);
+    }
+    return promise;
   },
 
   
@@ -167,6 +189,10 @@ function TabTarget(tab) {
   if (tab && !["client", "form", "chrome"].every(tab.hasOwnProperty, tab)) {
     this._tab = tab;
     this._setupListeners();
+  } else {
+    this._form = tab.form;
+    this._client = tab.client;
+    this._chrome = tab.chrome;
   }
 }
 
@@ -227,22 +253,14 @@ TabTarget.prototype = {
 
 
 
-
-
-
-
-  makeRemote: function TabTarget_makeRemote(aOptions) {
+  makeRemote: function TabTarget_makeRemote() {
     if (this._remote) {
       return this._remote.promise;
     }
 
     this._remote = Promise.defer();
 
-    if (aOptions) {
-      this._form = aOptions.form;
-      this._client = aOptions.client;
-      this._chrome = aOptions.chrome;
-    } else {
+    if (this.isLocalTab) {
       
       
       if (!DebuggerServer.initialized) {
@@ -257,7 +275,7 @@ TabTarget.prototype = {
 
     this._setupRemoteListeners();
 
-    if (aOptions) {
+    if (this.isRemote) {
       
       
       this._remote.resolve(null);
@@ -372,7 +390,6 @@ TabTarget.prototype = {
 
     
     
-    
     if (this._tab && !this._client) {
       targets.delete(this._tab);
       this._tab = null;
@@ -388,8 +405,11 @@ TabTarget.prototype = {
       this.client.removeListener("tabDetached", this.destroy);
 
       this._client.close(function onClosed() {
-        let key = this._tab ? this._tab : this._form;
-        targets.delete(key);
+        if (this._tab) {
+          targets.delete(this._tab);
+        } else {
+          promiseTargets.delete(this._form);
+        }
         this._client = null;
         this._tab = null;
         this._form = null;
