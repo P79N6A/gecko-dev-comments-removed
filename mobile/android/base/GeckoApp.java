@@ -182,6 +182,9 @@ abstract public class GeckoApp
     protected FormAssistPopup mFormAssistPopup;
     protected TabsPanel mTabsPanel;
 
+    
+    protected NotificationHelper mNotificationHelper;
+
     protected LayerView mLayerView;
     private AbsoluteLayout mPluginContainer;
 
@@ -1242,6 +1245,7 @@ abstract public class GeckoApp
 
         
         mTabsPanel = (TabsPanel) findViewById(R.id.tabs_panel);
+        mNotificationHelper = new NotificationHelper(this);
 
         
         
