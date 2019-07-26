@@ -148,6 +148,31 @@ public:
 
 
 
+
+class HTMLRangeAccessible : public LeafAccessible
+{
+public:
+  HTMLRangeAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+    LeafAccessible(aContent, aDoc)
+  {
+    mStateFlags |= eHasNumericValue;
+  }
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIACCESSIBLEVALUE
+
+  
+  virtual void Value(nsString& aValue);
+  virtual mozilla::a11y::role NativeRole();
+
+  
+  virtual bool IsWidget() const;
+};
+
+
+
+
+
 class HTMLGroupboxAccessible : public HyperTextAccessibleWrap
 {
 public:

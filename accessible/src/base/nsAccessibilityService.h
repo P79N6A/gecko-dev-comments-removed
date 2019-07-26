@@ -102,6 +102,11 @@ public:
   
 
 
+  void RangeValueChanged(nsIPresShell* aPresShell, nsIContent* aContent);
+
+  
+
+
   virtual void UpdateListBullet(nsIPresShell* aPresShell,
                                 nsIContent* aHTMLListItemContent,
                                 bool aHasBullet);

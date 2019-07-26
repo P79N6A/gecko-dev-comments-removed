@@ -602,6 +602,14 @@ public:
     aRv = ApplyStep(-aN);
   }
 
+  
+
+
+
+
+
+  double GetStep() const;
+
   void GetValidationMessage(nsAString& aValidationMessage, ErrorResult& aRv);
 
   
@@ -1026,14 +1034,6 @@ protected:
 
 
   double GetStepScaleFactor() const;
-
-  
-
-
-
-
-
-  double GetStep() const;
 
   
 
