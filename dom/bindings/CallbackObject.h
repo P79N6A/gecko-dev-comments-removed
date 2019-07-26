@@ -24,8 +24,8 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsWrapperCache.h"
 #include "nsJSEnvironment.h"
 #include "xpcpublic.h"
@@ -152,8 +152,7 @@ protected:
     JSCompartment* mCompartment;
 
     
-
-    nsCxPusher mCxPusher;
+    Maybe<AutoEntryScript> mAutoEntryScript;
 
     
     
