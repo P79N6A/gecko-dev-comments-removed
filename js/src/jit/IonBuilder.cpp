@@ -296,12 +296,12 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
             AutoThreadSafeAccess ts(typeObj);
 
             JS_ASSERT(typeObj);
-            if (!typeObj->hasInterpretedFunction()) {
+            if (!typeObj->interpretedFunction) {
                 targets.clear();
                 return true;
             }
 
-            fun = typeObj->interpretedFunction();
+            fun = typeObj->interpretedFunction;
             *gotLambda = true;
         }
 
@@ -9405,7 +9405,43 @@ IonBuilder::hasStaticScopeObject(ScopeCoordinate sc, JSObject **pcall)
     
     
 
-    *pcall = funType->runOnceCallObject();
+    
+    
+    
+
+    MDefinition *scope = current->getSlot(info().scopeChainSlot());
+    scope->setImplicitlyUsedUnchecked();
+
+    JSObject *environment = script()->function()->environment();
+    while (environment && !environment->is<GlobalObject>()) {
+        if (environment->is<CallObject>() &&
+            !environment->as<CallObject>().isForEval() &&
+            environment->as<CallObject>().callee().nonLazyScript() == outerScript)
+        {
+            JS_ASSERT(environment->hasSingletonType());
+            *pcall = environment;
+            return true;
+        }
+        environment = environment->enclosingScope();
+    }
+
+    
+    
+    
+    
+
+    if (script() == outerScript && baselineFrame_ && info().osrPc()) {
+        JSObject *singletonScope = baselineFrame_->singletonScopeChain;
+        if (singletonScope &&
+            singletonScope->is<CallObject>() &&
+            singletonScope->as<CallObject>().callee().nonLazyScript() == outerScript)
+        {
+            JS_ASSERT(singletonScope->hasSingletonType());
+            *pcall = singletonScope;
+            return true;
+        }
+    }
+
     return true;
 }
 
@@ -9655,13 +9691,13 @@ IonBuilder::lookupTypeRepresentationSet(MDefinition *typedObj,
 
     types::TemporaryTypeSet *types = typedObj->resultTypeSet();
     return typeSetToTypeRepresentationSet(types, out,
-                                          types::TypedObjectAddendum::Datum);
+                                          types::TypeTypedObject::Datum);
 }
 
 bool
 IonBuilder::typeSetToTypeRepresentationSet(types::TemporaryTypeSet *types,
                                            TypeRepresentationSet *out,
-                                           types::TypedObjectAddendum::Kind kind)
+                                           types::TypeTypedObject::Kind kind)
 {
     
     if (!types || types->getKnownTypeTag() != JSVAL_TYPE_OBJECT)
