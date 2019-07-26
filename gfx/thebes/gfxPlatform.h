@@ -263,20 +263,6 @@ public:
 
 
 
-
-
-
-    bool SupportsAzureContent() {
-      return GetContentBackend() != mozilla::gfx::BackendType::NONE;
-    }
-
-    
-
-
-
-
-
-
     bool SupportsAzureContentForDrawTarget(mozilla::gfx::DrawTarget* aTarget);
 
     bool SupportsAzureContentForType(mozilla::gfx::BackendType aType) {
