@@ -270,11 +270,7 @@ void ResizeFilter::ComputeFilters(int src_size,
     
     
     
-    
-    
-    
-    
-    float src_pixel = dest_subset_i * inv_scale;
+    float src_pixel = (static_cast<float>(dest_subset_i) + 0.5f) * inv_scale;
 
     
     int src_begin = NS_MAX(0, FloorInt(src_pixel - src_support));
@@ -291,11 +287,8 @@ void ResizeFilter::ComputeFilters(int src_size,
       
       
       
-      
-      
-      
-      
-      float src_filter_dist = cur_filter_pixel - src_pixel;
+      float src_filter_dist =
+           ((static_cast<float>(cur_filter_pixel) + 0.5f) - src_pixel);
 
       
       float dest_filter_dist = src_filter_dist * clamped_scale;
