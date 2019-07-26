@@ -588,7 +588,9 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         }
 
         
+        
         returnValue = iter.read();
+        flags |= BaselineFrame::HAS_RVAL;
 
         
         if (script->argumentsHasVarBinding()) {
@@ -604,7 +606,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     blFrame->setReturnValue(returnValue);
 
     
-
     blFrame->setFlags(flags);
 
     
