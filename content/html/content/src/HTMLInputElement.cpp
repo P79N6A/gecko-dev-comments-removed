@@ -3835,11 +3835,10 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       
       
       
-      
-      
-      
-      StepNumberControlForUserEvent(keyEvent->keyCode == NS_VK_UP ? 1 : -1);
-      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+      if (!aVisitor.mEvent->mFlags.mDefaultPreventedByContent) {
+        StepNumberControlForUserEvent(keyEvent->keyCode == NS_VK_UP ? 1 : -1);
+        aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+      }
     } else if (nsEventStatus_eIgnore == aVisitor.mEventStatus) {
       switch (aVisitor.mEvent->message) {
 
@@ -5730,38 +5729,6 @@ HTMLInputElement::IntrinsicState() const
   }
 
   return state;
-}
-
-void
-HTMLInputElement::AddStates(nsEventStates aStates)
-{
-  if (mType == NS_FORM_INPUT_TEXT) {
-    nsEventStates focusStates(aStates & (NS_EVENT_STATE_FOCUS |
-                                         NS_EVENT_STATE_FOCUSRING));
-    if (!focusStates.IsEmpty()) {
-      HTMLInputElement* ownerNumberControl = GetOwnerNumberControl();
-      if (ownerNumberControl) {
-        ownerNumberControl->AddStates(focusStates);
-      }
-    }
-  }
-  nsGenericHTMLFormElementWithState::AddStates(aStates);                          
-}
-
-void
-HTMLInputElement::RemoveStates(nsEventStates aStates)
-{
-  if (mType == NS_FORM_INPUT_TEXT) {
-    nsEventStates focusStates(aStates & (NS_EVENT_STATE_FOCUS |
-                                         NS_EVENT_STATE_FOCUSRING));
-    if (!focusStates.IsEmpty()) {
-      HTMLInputElement* ownerNumberControl = GetOwnerNumberControl();
-      if (ownerNumberControl) {
-        ownerNumberControl->RemoveStates(focusStates);
-      }
-    }
-  }
-  nsGenericHTMLFormElementWithState::RemoveStates(aStates);
 }
 
 bool
