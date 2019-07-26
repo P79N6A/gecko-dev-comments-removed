@@ -3,14 +3,17 @@
 
 
 
-#ifndef _nsHTMLWin32ObjectAccessible_H_
-#define _nsHTMLWin32ObjectAccessible_H_
+#ifndef mozilla_a11y_HTMLWin32ObjectAccessible_h_
+#define mozilla_a11y_HTMLWin32ObjectAccessible_h_
 
 #include "BaseAccessibles.h"
 
 struct IAccessible;
 
-class nsHTMLWin32ObjectOwnerAccessible : public AccessibleWrap
+namespace mozilla {
+namespace a11y {
+
+class HTMLWin32ObjectOwnerAccessible : public AccessibleWrap
 {
 public:
   
@@ -19,9 +22,9 @@ public:
   
   
   
-  nsHTMLWin32ObjectOwnerAccessible(nsIContent* aContent,
+  HTMLWin32ObjectOwnerAccessible(nsIContent* aContent,
                                    DocAccessible* aDoc, void* aHwnd);
-  virtual ~nsHTMLWin32ObjectOwnerAccessible() {}
+  virtual ~HTMLWin32ObjectOwnerAccessible() {}
 
   
   virtual void Shutdown();
@@ -48,14 +51,11 @@ protected:
 
 
 
-class nsHTMLWin32ObjectAccessible : public mozilla::a11y::LeafAccessible
+class HTMLWin32ObjectAccessible : public DummyAccessible
 {
 public:
-
-  nsHTMLWin32ObjectAccessible(void* aHwnd);
-  virtual ~nsHTMLWin32ObjectAccessible() {}
-
-  NS_DECL_ISUPPORTS_INHERITED
+  HTMLWin32ObjectAccessible(void* aHwnd);
+  virtual ~HTMLWin32ObjectAccessible() {}
 
   NS_IMETHOD GetNativeInterface(void** aNativeAccessible) MOZ_OVERRIDE;
 
@@ -63,4 +63,7 @@ protected:
   void* mHwnd;
 };
 
-#endif  
+} 
+} 
+
+#endif

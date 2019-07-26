@@ -154,7 +154,7 @@ HTMLAreaAccessible::
 {
   
   
-  mFlags |= eSharedNode;
+  mFlags |= eNotNodeMapEntry;
 }
 
 

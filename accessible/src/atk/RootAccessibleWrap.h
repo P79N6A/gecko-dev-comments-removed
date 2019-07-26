@@ -7,6 +7,7 @@
 #ifndef mozilla_a11y_RootAccessibleWrap_h__
 #define mozilla_a11y_RootAccessibleWrap_h__
 
+#include "BaseAccessibles.h"
 #include "RootAccessible.h"
 
 namespace mozilla {
@@ -19,11 +20,11 @@ typedef RootAccessible RootAccessibleWrap;
 
 
 
-class NativeRootAccessibleWrap : public RootAccessible
+class GtkWindowAccessible MOZ_FINAL : public DummyAccessible
 {
 public:
-  NativeRootAccessibleWrap(AtkObject* aAccessible);
-  virtual ~NativeRootAccessibleWrap();
+  GtkWindowAccessible(AtkObject* aAccessible);
+  virtual ~GtkWindowAccessible();
 };
 
 } 

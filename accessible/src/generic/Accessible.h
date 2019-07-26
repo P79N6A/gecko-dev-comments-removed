@@ -149,11 +149,6 @@ public:
   
 
 
-  nsresult GetARIAName(nsAString& aName);
-
-  
-
-
 
 
 
@@ -695,11 +690,13 @@ public:
   
 
 
+  bool IsNodeMapEntry() const
+    { return HasOwnContent() && !(mFlags & eNotNodeMapEntry); }
+
+  
 
 
-
-
-  bool IsPrimaryForNode() const { return !(mFlags & eSharedNode); }
+  bool HasOwnContent() const { return mContent && !(mFlags & eSharedNode); }
 
   
 
@@ -757,7 +754,8 @@ protected:
     eIsDefunct = 1 << 2, 
     eIsNotInDocument = 1 << 3, 
     eSharedNode = 1 << 4, 
-    eHasNumericValue = 1 << 5 
+    eNotNodeMapEntry = 1 << 5, 
+    eHasNumericValue = 1 << 6 
   };
 
   
@@ -765,23 +763,23 @@ protected:
 
 
   enum AccessibleTypes {
-    eApplicationAccessible = 1 << 6,
-    eAutoCompleteAccessible = 1 << 7,
-    eAutoCompletePopupAccessible = 1 << 8,
-    eComboboxAccessible = 1 << 9,
-    eDocAccessible = 1 << 10,
-    eHyperTextAccessible = 1 << 11,
-    eHTMLFileInputAccessible = 1 << 12,
-    eHTMLListItemAccessible = 1 << 13,
-    eImageAccessible = 1 << 14,
-    eImageMapAccessible = 1 << 15,
-    eListControlAccessible = 1 << 16,
-    eMenuButtonAccessible = 1 << 17,
-    eMenuPopupAccessible = 1 << 18,
-    eRootAccessible = 1 << 19,
-    eTextLeafAccessible = 1 << 20,
-    eXULDeckAccessible = 1 << 21,
-    eXULTreeAccessible = 1 << 22
+    eApplicationAccessible = 1 << 7,
+    eAutoCompleteAccessible = 1 << 8,
+    eAutoCompletePopupAccessible = 1 << 9,
+    eComboboxAccessible = 1 << 10,
+    eDocAccessible = 1 << 11,
+    eHyperTextAccessible = 1 << 12,
+    eHTMLFileInputAccessible = 1 << 13,
+    eHTMLListItemAccessible = 1 << 14,
+    eImageAccessible = 1 << 15,
+    eImageMapAccessible = 1 << 16,
+    eListControlAccessible = 1 << 17,
+    eMenuButtonAccessible = 1 << 18,
+    eMenuPopupAccessible = 1 << 19,
+    eRootAccessible = 1 << 20,
+    eTextLeafAccessible = 1 << 21,
+    eXULDeckAccessible = 1 << 22,
+    eXULTreeAccessible = 1 << 23
   };
 
   
@@ -794,6 +792,11 @@ protected:
 
   
   
+
+  
+
+
+  void ARIAName(nsAString& aName);
 
   
 
