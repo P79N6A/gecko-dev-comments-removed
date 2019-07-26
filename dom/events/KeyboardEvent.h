@@ -30,6 +30,12 @@ public:
   
   NS_FORWARD_TO_UIEVENT
 
+  static already_AddRefed<KeyboardEvent> Constructor(
+                                           const GlobalObject& aGlobal,
+                                           const nsAString& aType,
+                                           const KeyboardEventInit& aParam,
+                                           ErrorResult& aRv);
+
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
   {
     return KeyboardEventBinding::Wrap(aCx, this);
@@ -62,6 +68,14 @@ public:
                        aCtrlKey, aAltKey, aShiftKey,aMetaKey,
                        aKeyCode, aCharCode);
   }
+
+private:
+  
+  bool mInitializedByCtor;
+  
+  
+  
+  uint32_t mInitialzedWhichValue;
 };
 
 } 
