@@ -894,7 +894,8 @@ static JSBool
 DefinePropertyOnArray(JSContext *cx, HandleObject obj, HandleId id, const PropDesc &desc,
                       bool throwError, bool *rval)
 {
-    uint32_t oldLen = obj->getArrayLength();
+    
+    
 
     if (JSID_IS_ATOM(id, cx->names().length)) {
         
