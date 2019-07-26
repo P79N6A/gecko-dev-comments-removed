@@ -757,7 +757,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
 
     for (uint32_t i = 0; i < mListeners.Length(); ++i) {
       
-      nsCOMPtr<nsIMessageListener> weakListener;
+      nsCOMPtr<nsISupports> weakListener;
       if (mListeners[i].mWeakListener) {
         weakListener = do_QueryReferent(mListeners[i].mWeakListener);
         if (!weakListener) {
