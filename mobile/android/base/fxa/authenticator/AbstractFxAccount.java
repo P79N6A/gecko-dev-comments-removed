@@ -38,7 +38,7 @@ public interface AbstractFxAccount {
 
 
 
-  public String getServerURI();
+  public String getAccountServerURI();
 
   
 
