@@ -132,17 +132,12 @@ protected:
   
 
   
-  void OnStartDecode     ();
   void OnStartContainer  ();
-  void OnStartFrame      ();
-  void OnDataAvailable   (const nsIntRect * aRect);
+  void OnFrameUpdate     (const nsIntRect * aRect);
   void OnStopFrame       ();
   void OnStopDecode      ();
   void OnDiscard         ();
   void OnImageIsAnimated ();
-
-  
-  void FrameChanged(const nsIntRect *aDirtyRect);
 
   
   void OnStartRequest();

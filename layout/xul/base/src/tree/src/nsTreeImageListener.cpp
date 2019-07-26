@@ -29,15 +29,14 @@ nsTreeImageListener::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRec
     return mTreeFrame ? mTreeFrame->OnImageIsAnimated(aRequest) : NS_OK;
   }
 
-  if (aType == imgINotificationObserver::START_CONTAINER) {
+  if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
     
     
     
     aRequest->IncrementAnimationConsumers();
   }
 
-  if (aType == imgINotificationObserver::DATA_AVAILABLE ||
-      aType == imgINotificationObserver::FRAME_CHANGED) {
+  if (aType == imgINotificationObserver::FRAME_UPDATE) {
     Invalidate();
   }
 
