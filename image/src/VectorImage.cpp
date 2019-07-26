@@ -714,7 +714,8 @@ VectorImage::Draw(gfxContext* aContext,
   gfxUtils::DrawPixelSnapped(aContext, drawable,
                              aUserSpaceToImageSpace,
                              subimage, sourceRect, imageRect, aFill,
-                             gfxASurface::ImageFormatARGB32, aFilter);
+                             gfxASurface::ImageFormatARGB32, aFilter,
+                             aFlags);
 
   
   MOZ_ASSERT(mRenderingObserver, "Should have a rendering observer by now");
