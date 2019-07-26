@@ -1405,9 +1405,8 @@ abstract public class GeckoApp
         
         
         
-        if (savedInstanceState != null) {
-            mRestoreMode = RESTORE_OOM;
-
+        mRestoreMode = getSessionRestoreState(savedInstanceState);
+        if (mRestoreMode == RESTORE_OOM) {
             boolean wasInBackground =
                 savedInstanceState.getBoolean(SAVED_STATE_IN_BACKGROUND, false);
 
@@ -1475,10 +1474,6 @@ abstract public class GeckoApp
         String uri = getURIFromIntent(intent);
         if (uri != null && uri.length() > 0) {
             passedUri = uri;
-        }
-
-        if (mRestoreMode == RESTORE_NONE && shouldRestoreSession()) {
-            mRestoreMode = RESTORE_CRASH;
         }
 
         final boolean isExternalURL = passedUri != null && !passedUri.equals("about:home");
@@ -1714,20 +1709,32 @@ abstract public class GeckoApp
         return mProfile;
     }
 
-    protected boolean shouldRestoreSession() {
-        SharedPreferences prefs = GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
+    protected int getSessionRestoreState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            return RESTORE_OOM;
+        }
+
+        final SharedPreferences prefs = GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
 
         
         
         
         
         if (prefs.getBoolean(PREFS_CRASHED, false)) {
-            prefs.edit().putBoolean(GeckoApp.PREFS_CRASHED, false).commit();
+            ThreadUtils.postToBackgroundThread(new Runnable() {
+                @Override
+                public void run() {
+                    prefs.edit()
+                         .putBoolean(GeckoApp.PREFS_CRASHED, false)
+                         .commit();
+                }
+            });
+
             if (getProfile().shouldRestoreSession()) {
-                return true;
+                return RESTORE_CRASH;
             }
         }
-        return false;
+        return RESTORE_NONE;
     }
 
     
