@@ -47,7 +47,10 @@ public class BookmarksPage extends HomeFragment {
     private static final int TOP_BOOKMARKS_LOADER_ID = 1;
 
     
-    private static final int THUMBNAILS_LOADER_ID = 2;
+    private static final int FAVICONS_LOADER_ID = 2; 
+
+    
+    private static final int THUMBNAILS_LOADER_ID = 3;
 
     
     private static final String BOOKMARKS_FOLDER_KEY = "folder_id";
@@ -217,6 +220,10 @@ public class BookmarksPage extends HomeFragment {
                 case TOP_BOOKMARKS_LOADER_ID: {
                     return new TopBookmarksLoader(getActivity());
                 }
+
+                case FAVICONS_LOADER_ID: {
+                    return FaviconsLoader.createInstance(getActivity(), args);
+                }
             }
 
             return null;
@@ -228,6 +235,8 @@ public class BookmarksPage extends HomeFragment {
             switch(loaderId) {
                 case BOOKMARKS_LIST_LOADER_ID: {
                     mListAdapter.swapCursor(c);
+                    FaviconsLoader.restartFromCursor(getLoaderManager(), FAVICONS_LOADER_ID,
+                            mLoaderCallbacks, c);
                     break;
                 }
 
@@ -250,6 +259,12 @@ public class BookmarksPage extends HomeFragment {
                     }
                     break;
                 }
+
+                case FAVICONS_LOADER_ID: {
+                    
+                    mListAdapter.notifyDataSetChanged();
+                    break;
+                }
             }
         }
 
@@ -269,6 +284,11 @@ public class BookmarksPage extends HomeFragment {
                         mTopBookmarksAdapter.swapCursor(null);
                         break;
                     }
+                }
+
+                case FAVICONS_LOADER_ID: {
+                    
+                    break;
                 }
             }
         }
