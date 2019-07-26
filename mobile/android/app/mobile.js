@@ -813,3 +813,9 @@ pref("browser.snippets.statsUrl", "https://snippets-stats.mozilla.org/mobile");
 
 
 pref("browser.snippets.enabled", false);
+
+#ifdef MOZ_ANDROID_SYNTHAPKS
+
+
+pref("browser.webapps.apkFactoryUrl", "http://107.22.148.17:8080/application.apk");
+#endif
