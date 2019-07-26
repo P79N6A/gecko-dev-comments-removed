@@ -124,12 +124,29 @@ ProtoSetterImpl(JSContext *cx, CallArgs args)
     Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
     
+
+
+
+
+    if (obj->is<ArrayBufferObject>()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
+                             "Object", "__proto__ setter", "ArrayBuffer");
+        return false;
+    }
+
+    
     if (args.length() == 0 || !args[0].isObjectOrNull()) {
         args.rval().setUndefined();
         return true;
     }
 
     Rooted<JSObject*> newProto(cx, args[0].toObjectOrNull());
+
+    unsigned dummy;
+    RootedId nid(cx, NameToId(cx->names().proto));
+    RootedValue v(cx);
+    if (!CheckAccess(cx, obj, nid, JSAccessMode(JSACC_PROTO | JSACC_WRITE), &v, &dummy))
+        return false;
 
     bool success;
     if (!JSObject::setProto(cx, obj, newProto, &success))

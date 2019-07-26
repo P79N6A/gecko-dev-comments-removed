@@ -423,22 +423,6 @@ JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, 
     }
 
     
-
-
-
-
-    if (obj->is<js::ArrayBufferObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL);
-        return false;
-    }
-
-    unsigned dummy;
-    js::RootedId nid(cx, NameToId(cx->names().proto));
-    js::RootedValue v(cx);
-    if (!CheckAccess(cx, obj, nid, JSAccessMode(JSACC_PROTO | JSACC_WRITE), &v, &dummy))
-        return false;
-
-    
     bool extensible;
     if (!JSObject::isExtensible(cx, obj, &extensible))
         return false;
