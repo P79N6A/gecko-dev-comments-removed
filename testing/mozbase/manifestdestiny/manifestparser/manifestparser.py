@@ -8,9 +8,6 @@
 Mozilla universal manifest parser
 """
 
-
-
-
 __all__ = ['read_ini', 
            'ManifestParser', 'TestManifest', 'convert', 
            'parse', 'ParseError', 'ExpressionParser'] 
@@ -436,15 +433,15 @@ class ManifestParser(object):
 
             
             path = test.get('path', section)
-            relpath = path
+            _relpath = path
             if '://' not in path: 
                 path = normalize_path(path)
                 if not os.path.isabs(path):
                     path = os.path.join(here, path)
-                relpath = os.path.relpath(path, self.rootdir)
+                _relpath = relpath(path, self.rootdir)
 
             test['path'] = path
-            test['relpath'] = relpath
+            test['relpath'] = _relpath
 
             
             self.tests.append(test)
