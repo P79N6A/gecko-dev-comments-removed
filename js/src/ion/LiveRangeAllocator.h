@@ -155,6 +155,24 @@ DefinitionCompatibleWith(LInstruction *ins, const LDefinition *def, LAllocation 
 
 #endif 
 
+static inline LDefinition *
+FindReusingDefinition(LInstruction *ins, LAllocation *alloc)
+{
+    for (size_t i = 0; i < ins->numDefs(); i++) {
+        LDefinition *def = ins->getDef(i);
+        if (def->policy() == LDefinition::MUST_REUSE_INPUT &&
+            ins->getOperand(def->getReusedInput()) == alloc)
+            return def;
+    }
+    for (size_t i = 0; i < ins->numTemps(); i++) {
+        LDefinition *def = ins->getTemp(i);
+        if (def->policy() == LDefinition::MUST_REUSE_INPUT &&
+            ins->getOperand(def->getReusedInput()) == alloc)
+            return def;
+    }
+    return NULL;
+}
+
 
 
 
