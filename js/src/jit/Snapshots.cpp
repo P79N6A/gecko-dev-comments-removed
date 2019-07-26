@@ -92,6 +92,9 @@ using namespace js::jit;
 
 
 
+
+
+
 SnapshotReader::SnapshotReader(const uint8_t *buffer, const uint8_t *end)
   : reader_(buffer, end),
     slotCount_(0),
@@ -172,10 +175,12 @@ static const uint32_t NUNBOX32_REG_REG     = 3;
 
 static const uint32_t MAX_TYPE_FIELD_VALUE = 7;
 
-static const uint32_t MAX_REG_FIELD_VALUE  = 31;
-static const uint32_t ESC_REG_FIELD_INDEX  = 31;
-static const uint32_t ESC_REG_FIELD_CONST  = 30;
-static const uint32_t MIN_REG_FIELD_ESC    = 30;
+static const uint32_t MAX_REG_FIELD_VALUE         = 31;
+static const uint32_t ESC_REG_FIELD_INDEX         = 31;
+static const uint32_t ESC_REG_FIELD_CONST         = 30;
+static const uint32_t ESC_REG_FIELD_FLOAT32_STACK = 29;
+static const uint32_t ESC_REG_FIELD_FLOAT32_REG   = 28;
+static const uint32_t MIN_REG_FIELD_ESC           = 28;
 
 SnapshotReader::Slot
 SnapshotReader::readSlot()
@@ -210,6 +215,10 @@ SnapshotReader::readSlot()
             return Slot(JS_NULL);
         if (code == ESC_REG_FIELD_INDEX)
             return Slot(JS_INT32, reader_.readSigned());
+        if (code == ESC_REG_FIELD_FLOAT32_REG)
+            return Slot(FLOAT32_REG, FloatRegister::FromCode(reader_.readUnsigned()));
+        if (code == ESC_REG_FIELD_FLOAT32_STACK)
+            return Slot(FLOAT32_STACK, Location::From(reader_.readSigned()));
         return Slot(JS_INT32, code);
 
       case JSVAL_TYPE_UNDEFINED:
@@ -353,6 +362,7 @@ SnapshotWriter::writeSlotHeader(JSValueType type, uint32_t regCode)
 void
 SnapshotWriter::addSlot(const FloatRegister &reg)
 {
+    JS_ASSERT(reg.code() < MIN_REG_FIELD_ESC);
     IonSpew(IonSpew_Snapshots, "    slot %u: double (reg %s)", slotsWritten_, reg.name());
 
     writeSlotHeader(JSVAL_TYPE_DOUBLE, reg.code());
@@ -504,6 +514,23 @@ SnapshotWriter::addInt32Slot(int32_t value)
         writeSlotHeader(JSVAL_TYPE_NULL, ESC_REG_FIELD_INDEX);
         writer_.writeSigned(value);
     }
+}
+
+void
+SnapshotWriter::addFloat32Slot(const FloatRegister &reg)
+{
+    JS_ASSERT(reg.code() < MIN_REG_FIELD_ESC);
+    IonSpew(IonSpew_Snapshots, "    slot %u: float32 (reg %s)", slotsWritten_, reg.name());
+    writeSlotHeader(JSVAL_TYPE_NULL, ESC_REG_FIELD_FLOAT32_REG);
+    writer_.writeUnsigned(reg.code());
+}
+
+void
+SnapshotWriter::addFloat32Slot(int32_t stackIndex)
+{
+    IonSpew(IonSpew_Snapshots, "    slot %u: float32 (stack %d)", slotsWritten_, stackIndex);
+    writeSlotHeader(JSVAL_TYPE_NULL, ESC_REG_FIELD_FLOAT32_STACK);
+    writer_.writeSigned(stackIndex);
 }
 
 void
