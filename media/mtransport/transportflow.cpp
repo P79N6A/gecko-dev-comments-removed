@@ -24,7 +24,6 @@ nsresult TransportFlow::PushLayer(TransportLayer *layer) {
   if (!NS_SUCCEEDED(rv))
     return rv;
 
-
   TransportLayer *old_layer = layers_.empty() ? nullptr : layers_.front();
 
   
@@ -37,6 +36,27 @@ nsresult TransportFlow::PushLayer(TransportLayer *layer) {
 
   layers_.push_front(layer);
   layer->Inserted(this, old_layer);
+  return NS_OK;
+}
+
+nsresult TransportFlow::PushLayers(std::queue<TransportLayer *> layers) {
+  nsresult rv;
+
+  while (!layers.empty()) {
+    rv = PushLayer(layers.front());
+    layers.pop();
+
+    if (NS_FAILED(rv)) {
+      
+      while (!layers.empty()) {
+        delete layers.front();
+        layers.pop();
+      }
+
+      return rv;
+    }
+  }
+
   return NS_OK;
 }
 

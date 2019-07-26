@@ -12,6 +12,9 @@
 #include "sigslot.h"
 
 #include "mozilla/RefPtr.h"
+#include "nsCOMPtr.h"
+#include "nsIEventTarget.h"
+#include "nsThreadUtils.h"
 
 #include "m_cpp_utils.h"
 
@@ -57,6 +60,23 @@ class TransportLayer : public sigslot::has_slots<> {
   TransportLayer *downward() { return downward_; }
 
   
+  
+  nsresult RunOnThread(nsIRunnable *event) {
+    if (target_) {
+      nsIThread *thr;
+
+      nsresult rv = NS_GetCurrentThread(&thr);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+      if (target_ != thr) {
+        return target_->Dispatch(event, NS_DISPATCH_SYNC);
+      }
+    }
+
+    return event->Run();
+  }
+
+  
   State state() const { return state_; }
   
   virtual TransportResult SendPacket(const unsigned char *data, size_t len) = 0;
@@ -78,13 +98,27 @@ class TransportLayer : public sigslot::has_slots<> {
   virtual void WasInserted() {}
   virtual void SetState(State state);
 
+  void CheckThread() {
+    NS_ABORT_IF_FALSE(CheckThreadInt(), "Wrong thread");
+  }
+
   Mode mode_;
   State state_;
   TransportFlow *flow_;  
   TransportLayer *downward_; 
+  nsCOMPtr<nsIEventTarget> target_;
 
  private:
   DISALLOW_COPY_ASSIGN(TransportLayer);
+
+  bool CheckThreadInt() {
+    bool on;
+    NS_ENSURE_TRUE(target_, false);
+    NS_ENSURE_SUCCESS(target_->IsOnCurrentThread(&on), false);
+    NS_ENSURE_TRUE(on, false);
+
+    return true;
+  }
 };
 
 #define LAYER_INFO "Flow[" << flow_id() << "(none)" << "]; Layer[" << id() << "]: "

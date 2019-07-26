@@ -10,6 +10,7 @@
 #define transportflow_h__
 
 #include <deque>
+#include <queue>
 #include <string>
 
 #include "nscore.h"
@@ -33,7 +34,18 @@ class TransportFlow : public sigslot::has_slots<> {
   
   
   
+  
+  
+  
   nsresult PushLayer(TransportLayer *layer);
+
+  
+  
+  
+  
+  
+  nsresult PushLayers(std::queue<TransportLayer *> layers);
+
   TransportLayer *top() const;
   TransportLayer *GetLayer(const std::string& id) const;
 
