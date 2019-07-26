@@ -101,6 +101,7 @@
 #include "nsIColorPicker.h"
 #include "nsIStringEnumerator.h"
 #include "HTMLSplitOnSpacesTokenizer.h"
+#include "nsIController.h"
 
 
 #include "js/Date.h"
