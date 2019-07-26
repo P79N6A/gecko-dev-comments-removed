@@ -344,20 +344,6 @@ protected:
 
 
 
-  nsresult GetTextHelper(EGetTextType aType, AccessibleTextBoundary aBoundaryType,
-                         int32_t aOffset, int32_t *aStartOffset, int32_t *aEndOffset,
-                         nsAString & aText);
-
-  
-
-
-
-
-
-
-
-
-
 
 
 

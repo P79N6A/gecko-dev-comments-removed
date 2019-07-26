@@ -881,186 +881,6 @@ HyperTextAccessible::FindLineBoundary(int32_t aOffset,
 
 
 
-
-
-
-
-
-
-nsresult
-HyperTextAccessible::GetTextHelper(EGetTextType aType,
-                                   AccessibleTextBoundary aBoundaryType,
-                                   int32_t aOffset,
-                                   int32_t* aStartOffset, int32_t* aEndOffset,
-                                   nsAString& aText)
-{
-  aText.Truncate();
-
-  NS_ENSURE_ARG_POINTER(aStartOffset);
-  NS_ENSURE_ARG_POINTER(aEndOffset);
-  *aStartOffset = *aEndOffset = 0;
-
-  int32_t offset = ConvertMagicOffset(aOffset);
-  if (offset < 0)
-    return NS_ERROR_INVALID_ARG;
-
-  if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET && offset > 0 &&
-      (aBoundaryType == BOUNDARY_LINE_START ||
-       aBoundaryType == BOUNDARY_LINE_END)) {
-    
-    
-    
-    
-    
-    nsRefPtr<nsFrameSelection> frameSelection = FrameSelection();
-    if (frameSelection &&
-        frameSelection->GetHint() == nsFrameSelection::HINTLEFT) {
-      -- offset;  
-    }
-  }
-
-  nsSelectionAmount amount;
-  bool needsStart = false;
-  switch (aBoundaryType) {
-    case BOUNDARY_WORD_START:
-      needsStart = true;
-      amount = eSelectWord;
-      break;
-
-    case BOUNDARY_WORD_END:
-      amount = eSelectWord;
-      break;
-
-    case BOUNDARY_LINE_START:
-      
-      
-      
-      needsStart = true;
-      amount = eSelectLine;
-      break;
-
-    case BOUNDARY_LINE_END:
-      
-      
-      
-      amount = eSelectLine;
-      break;
-
-    case BOUNDARY_ATTRIBUTE_RANGE:
-    {
-      nsresult rv = GetTextAttributes(false, offset,
-                                      aStartOffset, aEndOffset, nullptr);
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      return GetText(*aStartOffset, *aEndOffset, aText);
-    }
-
-    default:  
-      return NS_ERROR_INVALID_ARG;
-  }
-
-  int32_t startOffset = offset + (aBoundaryType == BOUNDARY_LINE_END);  
-  int32_t endOffset = startOffset;
-
-  
-  nsRefPtr<Accessible> startAcc;
-  nsIFrame *startFrame = GetPosAndText(startOffset, endOffset, nullptr, nullptr,
-                                       nullptr, getter_AddRefs(startAcc));
-
-  if (!startFrame) {
-    int32_t textLength = CharacterCount();
-    if (aBoundaryType == BOUNDARY_LINE_START && offset > 0 && offset == textLength) {
-      
-      if (startAcc)
-        startFrame = startAcc->GetFrame();
-    }
-    if (!startFrame) {
-      return offset > textLength ? NS_ERROR_FAILURE : NS_OK;
-    }
-    else {
-      
-      startFrame = startFrame->GetLastContinuation();
-    }
-  }
-
-  int32_t finalStartOffset = 0, finalEndOffset = 0;
-  EWordMovementType wordMovementType = needsStart ? eStartWord : eEndWord;
-
-  nsIPresShell* presShell = mDoc->PresShell();
-  
-  
-  if (aType == eGetAfter) {
-    finalStartOffset = offset;
-  }
-  else {
-    finalStartOffset = GetRelativeOffset(presShell, startFrame, startOffset,
-                                         startAcc,
-                                         (amount == eSelectLine ? eSelectBeginLine : amount),
-                                         eDirPrevious, needsStart,
-                                         wordMovementType);
-    NS_ENSURE_TRUE(finalStartOffset >= 0, NS_ERROR_FAILURE);
-  }
-
-  if (aType == eGetBefore) {
-    finalEndOffset = offset;
-  }
-  else {
-    
-    
-    
-    
-    startOffset = endOffset = finalStartOffset + (aBoundaryType == BOUNDARY_LINE_END);
-    nsRefPtr<Accessible> endAcc;
-    nsIFrame *endFrame = GetPosAndText(startOffset, endOffset, nullptr, nullptr,
-                                       nullptr, getter_AddRefs(endAcc));
-    if (endAcc && endAcc->Role() == roles::STATICTEXT) {
-      
-      
-      startOffset = endOffset = finalStartOffset +
-                                (aBoundaryType == BOUNDARY_LINE_END) +
-                                nsAccUtils::TextLength(endAcc);
-
-      endFrame = GetPosAndText(startOffset, endOffset, nullptr, nullptr,
-                               nullptr, getter_AddRefs(endAcc));
-    }
-    if (!endFrame) {
-      return NS_ERROR_FAILURE;
-    }
-    finalEndOffset = GetRelativeOffset(presShell, endFrame, endOffset, endAcc,
-                                       (amount == eSelectLine ? eSelectEndLine : amount),
-                                       eDirNext, needsStart, wordMovementType);
-    NS_ENSURE_TRUE(endOffset >= 0, NS_ERROR_FAILURE);
-    if (finalEndOffset == offset) {
-      if (aType == eGetAt && amount == eSelectWord) { 
-        
-        
-        
-        return GetTextHelper(eGetAfter, aBoundaryType, offset,
-                             aStartOffset, aEndOffset, aText);
-      }
-      int32_t textLength = CharacterCount();
-      if (finalEndOffset < textLength) {
-        
-        
-        
-        ++ finalEndOffset;
-      }
-    }
-  }
-
-  *aStartOffset = finalStartOffset;
-  *aEndOffset = finalEndOffset;
-
-  NS_ASSERTION((finalStartOffset < offset && finalEndOffset >= offset) || aType != eGetBefore, "Incorrect results for GetTextHelper");
-  NS_ASSERTION((finalStartOffset <= offset && finalEndOffset > offset) || aType == eGetBefore, "Incorrect results for GetTextHelper");
-
-  GetPosAndText(finalStartOffset, finalEndOffset, &aText);
-  return NS_OK;
-}
-
-
-
-
 NS_IMETHODIMP
 HyperTextAccessible::GetTextBeforeOffset(int32_t aOffset,
                                          AccessibleTextBoundary aBoundaryType,
@@ -1120,10 +940,6 @@ HyperTextAccessible::GetTextBeforeOffset(int32_t aOffset,
       *aStartOffset = FindLineBoundary(*aEndOffset, ePrevLineEnd);
       return GetText(*aStartOffset, *aEndOffset, aText);
 
-    case BOUNDARY_ATTRIBUTE_RANGE:
-      return GetTextHelper(eGetBefore, aBoundaryType, aOffset,
-                           aStartOffset, aEndOffset, aText);
-
     default:
       return NS_ERROR_INVALID_ARG;
   }
@@ -1176,10 +992,6 @@ HyperTextAccessible::GetTextAtOffset(int32_t aOffset,
       *aStartOffset = FindLineBoundary(offset, ePrevLineEnd);
       *aEndOffset = FindLineBoundary(offset, eThisLineEnd);
       return GetText(*aStartOffset, *aEndOffset, aText);
-
-    case BOUNDARY_ATTRIBUTE_RANGE:
-      return GetTextHelper(eGetAt, aBoundaryType, aOffset,
-                           aStartOffset, aEndOffset, aText);
 
     default:
       return NS_ERROR_INVALID_ARG;
@@ -1242,10 +1054,6 @@ HyperTextAccessible::GetTextAfterOffset(int32_t aOffset,
       *aStartOffset = FindLineBoundary(offset, eThisLineEnd);
       *aEndOffset = FindLineBoundary(offset, eNextLineEnd);
       return GetText(*aStartOffset, *aEndOffset, aText);
-
-    case BOUNDARY_ATTRIBUTE_RANGE:
-      return GetTextHelper(eGetAfter, aBoundaryType, aOffset,
-                           aStartOffset, aEndOffset, aText);
 
     default:
       return NS_ERROR_INVALID_ARG;
