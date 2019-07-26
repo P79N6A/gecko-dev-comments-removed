@@ -3,10 +3,8 @@
 
 
 
-#ifndef nsUCvTW2Dll_h___
-#define nsUCvTW2Dll_h___
-
-#include "prtypes.h"
+#ifndef nsUCvTW2Dll_h_
+#define nsUCvTW2Dll_h_
 
 extern const uint16_t g_ASCIIMappingTable[] ;
 extern const uint16_t g_ufCNS1MappingTable[];

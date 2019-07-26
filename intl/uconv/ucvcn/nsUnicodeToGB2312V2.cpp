@@ -4,7 +4,6 @@
 
 
 #include "nsUnicodeToGB2312V2.h"
-#include "nsUCvCnDll.h"
 #include "gbku.h"
 
 

@@ -3,10 +3,8 @@
 
 
 
-#ifndef nsUCVJADll_h___
-#define nsUCVJADll_h___
-
-#include "prtypes.h"
+#ifndef nsUCVJADll_h_
+#define nsUCVJADll_h_
 
 extern const uint16_t g_ut0201Mapping[];
 extern const uint16_t g_ut0208Mapping[];

@@ -4,8 +4,6 @@
 
 
 #include "nscore.h"
-#include "pratom.h"
-#include "nsUUDll.h"
 #include "nsISupports.h"
 #include "nsCategoryImp.h"
 #include "nsUnicodeProperties.h"

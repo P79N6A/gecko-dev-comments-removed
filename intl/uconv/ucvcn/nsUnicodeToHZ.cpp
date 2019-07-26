@@ -14,7 +14,6 @@
 
 
 #include "nsUnicodeToHZ.h"
-#include "nsUCvCnDll.h"
 #include "gbku.h"
 
 

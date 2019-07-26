@@ -2,9 +2,8 @@
 
 
 
-#ifndef nsGBKConvUtil_h__
-#define nsGBKConvUtil_h__
-#include "prtypes.h"
+#ifndef nsGBKConvUtil_h_
+#define nsGBKConvUtil_h_
 #include "nscore.h"
 class nsGBKConvUtil {
 public:

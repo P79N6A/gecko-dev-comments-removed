@@ -3,10 +3,8 @@
 
 
 
-#ifndef nsUCvKODll_h___
-#define nsUCvKODll_h___
-
-#include "prtypes.h"
+#ifndef nsUCvKODll_h_
+#define nsUCvKODll_h_
 
 extern const uint16_t g_utKSC5601Mapping[];
 extern const uint16_t g_ufKSC5601Mapping[];
