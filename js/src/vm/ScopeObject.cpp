@@ -899,44 +899,6 @@ ScopeIter::ScopeIter(const ScopeIterVal &val, JSContext *cx
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 }
 
-ScopeIter::ScopeIter(AbstractFramePtr frame, jsbytecode *pc, ScopeObject &scope, JSContext *cx
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-  : cx(cx),
-    frame_(frame),
-    cur_(cx, &scope),
-    block_(cx)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (cur_->is<NestedScopeObject>()) {
-        block_ = frame.script()->getBlockScope(pc);
-        while (block_) {
-            if (block_->stackDepth() <= cur_->as<NestedScopeObject>().stackDepth())
-                break;
-            block_ = block_->enclosingBlock();
-        }
-        JS_ASSERT_IF(cur_->is<ClonedBlockObject>(),
-                     cur_->as<ClonedBlockObject>().staticBlock() == *block_);
-    } else {
-        block_ = nullptr;
-    }
-    settle();
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-}
-
 ScopeObject &
 ScopeIter::scope() const
 {
