@@ -13,6 +13,7 @@
 #include "InputData.h"
 #include "UIABridgePrivate.h"
 #include "MetroAppShell.h"
+#include "mozilla/TouchEvents.h"
 
 
 #include <windows.ui.core.h> 

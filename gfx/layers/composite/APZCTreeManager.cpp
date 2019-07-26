@@ -14,6 +14,7 @@
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/mozalloc.h"           
+#include "mozilla/TouchEvents.h"
 #include "nsGUIEvent.h"                 
 #include "nsPoint.h"                    
 #include "nsTArray.h"                   

@@ -5,6 +5,7 @@
 
 
 
+#include "mozilla/TouchEvents.h"
 #include "mozilla/Util.h"
 
 #include <QApplication>

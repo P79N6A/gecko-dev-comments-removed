@@ -14,7 +14,7 @@
 #include <winuser.h>
 #include <tpcshrd.h>
 #include "nsPoint.h"
-#include "nsGUIEvent.h"
+#include "mozilla/TouchEvents.h"
 
 
 #if WINVER < 0x0602
