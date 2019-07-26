@@ -29,6 +29,11 @@
 #include "nsWidgetsCID.h"
 #include "nsIRequestObserver.h"
 
+
+#include "nsIScriptGlobalObject.h"
+#include "nsIScriptContext.h"
+#include "jsapi.h"
+
 #include "nsAppShellService.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIPlatformCharset.h"
@@ -79,12 +84,6 @@ NS_IMETHODIMP
 nsAppShellService::CreateHiddenWindow()
 {
   return CreateHiddenWindowHelper(false);
-}
-
-void
-nsAppShellService::EnsureHiddenWindow()
-{
-  CreateHiddenWindow();
 }
 
 void
@@ -438,8 +437,6 @@ nsAppShellService::GetHiddenWindow(nsIXULWindow **aWindow)
 {
   NS_ENSURE_ARG_POINTER(aWindow);
 
-  EnsureHiddenWindow();
-
   *aWindow = mHiddenWindow;
   NS_IF_ADDREF(*aWindow);
   return *aWindow ? NS_OK : NS_ERROR_FAILURE;
@@ -448,8 +445,6 @@ nsAppShellService::GetHiddenWindow(nsIXULWindow **aWindow)
 NS_IMETHODIMP
 nsAppShellService::GetHiddenDOMWindow(nsIDOMWindow **aWindow)
 {
-  EnsureHiddenWindow();
-
   nsresult rv;
   nsCOMPtr<nsIDocShell> docShell;
   NS_ENSURE_TRUE(mHiddenWindow, NS_ERROR_FAILURE);
@@ -475,15 +470,6 @@ nsAppShellService::GetHiddenPrivateWindow(nsIXULWindow **aWindow)
   *aWindow = mHiddenPrivateWindow;
   NS_IF_ADDREF(*aWindow);
   return *aWindow ? NS_OK : NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsAppShellService::GetHasHiddenWindow(bool* aHasHiddenWindow)
-{
-  NS_ENSURE_ARG_POINTER(aHasHiddenWindow);
-
-  *aHasHiddenWindow = !!mHiddenWindow;
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -513,6 +499,54 @@ nsAppShellService::GetHasHiddenPrivateWindow(bool* aHasPrivateWindow)
 
   *aHasPrivateWindow = !!mHiddenPrivateWindow;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsAppShellService::GetHiddenWindowAndJSContext(nsIDOMWindow **aWindow,
+                                               JSContext    **aJSContext)
+{
+    nsresult rv = NS_OK;
+    if ( aWindow && aJSContext ) {
+        *aWindow    = nullptr;
+        *aJSContext = nullptr;
+
+        if ( mHiddenWindow ) {
+            
+            do {
+                
+                nsCOMPtr<nsIDocShell> docShell;
+                rv = mHiddenWindow->GetDocShell(getter_AddRefs(docShell));
+                if (NS_FAILED(rv)) break;
+
+                
+                nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(do_GetInterface(docShell));
+                if(!hiddenDOMWindow) break;
+
+                
+                nsCOMPtr<nsIScriptGlobalObject> sgo;
+                sgo = do_QueryInterface( hiddenDOMWindow );
+                if (!sgo) { rv = NS_ERROR_FAILURE; break; }
+
+                
+                nsIScriptContext *scriptContext = sgo->GetContext();
+                if (!scriptContext) { rv = NS_ERROR_FAILURE; break; }
+
+                
+                JSContext *jsContext = scriptContext->GetNativeContext();
+                if (!jsContext) { rv = NS_ERROR_FAILURE; break; }
+
+                
+                *aWindow    = hiddenDOMWindow.get();
+                NS_IF_ADDREF( *aWindow );
+                *aJSContext = jsContext;
+            } while (0);
+        } else {
+            rv = NS_ERROR_FAILURE;
+        }
+    } else {
+        rv = NS_ERROR_NULL_POINTER;
+    }
+    return rv;
 }
 
 NS_IMETHODIMP

@@ -3803,12 +3803,8 @@ XREMain::XRE_mainRun()
   SaveToEnv("XRE_BINARY_PATH=");
 
   if (!mShuttingDown) {
-#ifdef XP_MACOSX
-    
-    
     rv = appStartup->CreateHiddenWindow();
     NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
-#endif
 
 #if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_WIDGET_GTK)
     nsGTKToolkit* toolkit = nsGTKToolkit::GetToolkit();
