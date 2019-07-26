@@ -32,7 +32,22 @@ let dir = Services.dirsvc.get("CurWorkD", Components.interfaces.nsILocalFile);
 let file = dir.clone();
 file.append(ctypes.libraryName("testcrasher"));
 let lib = ctypes.open(file.path);
-CrashTestUtils.crash = lib.declare("Crash",
+
+CrashTestUtils.crash = (crashType) => {
+  
+  
+  
+  if (crashType == CrashTestUtils.CRASH_ABORT) {
+    if (Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS == "WINNT") {
+      throw new Error("CRASH_ABORT cannot be used on Windows because it " +
+                      "launches a dialog that requires user interaction.");
+    }
+  }
+
+  return CrashTestUtils._crash(crashType);
+};
+
+CrashTestUtils._crash = lib.declare("Crash",
                                    ctypes.default_abi,
                                    ctypes.void_t,
                                    ctypes.int16_t);
