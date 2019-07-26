@@ -1092,8 +1092,8 @@ pref("network.http.bypass-cachelock-threshold", 250);
 
 
 pref("network.http.spdy.enabled", true);
+pref("network.http.spdy.enabled.v2", true);
 pref("network.http.spdy.enabled.v3", true);
-pref("network.http.spdy.enabled.v3-1", true);
 pref("network.http.spdy.chunk-size", 4096);
 pref("network.http.spdy.timeout", 180);
 pref("network.http.spdy.coalesce-hostnames", true);
@@ -4423,6 +4423,9 @@ pref("dom.forms.inputmode", false);
 #else
 pref("dom.forms.inputmode", true);
 #endif
+
+
+pref("dom.mozInputMethod.enabled", false);
 
 
 pref("dom.telephony.enabled", false);

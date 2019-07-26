@@ -795,6 +795,9 @@ pref("dom.inter-app-communication-api.enabled", true);
 pref("b2g.adb.timeout-hours", 12);
 
 
+pref("dom.mozInputMethod.enabled", true);
+
+
 
 pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
 
@@ -808,6 +811,3 @@ pref("dom.telephony.enabled", true);
 
 
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
-
-
-pref("media.webspeech.synth.enabled", true);
