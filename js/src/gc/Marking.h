@@ -224,10 +224,6 @@ void
 MarkObject(JSTracer *trc, HeapPtr<GlobalObject, JSScript *> *thingp, const char *name);
 
 
-void
-MarkValueUnbarriered(JSTracer *trc, Value *v, const char *name);
-
-
 
 
 
