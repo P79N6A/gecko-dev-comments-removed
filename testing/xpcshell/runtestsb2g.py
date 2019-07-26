@@ -65,14 +65,18 @@ class B2GXPCShellRemote(XPCShellRemote):
             XPCShellRemote.setLD_LIBRARY_PATH(self, env)
 
     
-    
-    
-    def getReturnCode(self, proc):
-
-
-
-        return 0
-
+    def launchProcess(self, cmd, stdout, stderr, env, cwd):
+        try:
+            
+            outputFile = XPCShellRemote.launchProcess(self, cmd, stdout, stderr, env, cwd)
+            self.shellReturnCode = 0
+        except DMError:
+            self.shellReturnCode = -1
+            outputFile = "xpcshelloutput"
+            f = open(outputFile, "a")
+            f.write("\n%s" % traceback.format_exc())
+            f.close()
+        return outputFile
 
 class B2GOptions(RemoteXPCShellOptions):
 
