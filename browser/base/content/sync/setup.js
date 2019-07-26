@@ -60,10 +60,10 @@ var gSyncSetup = {
 
   init: function () {
     let obs = [
-      ["weave:service:changepph:finish", "onResetPassphrase"],
-      ["weave:service:login:start",  "onLoginStart"],
-      ["weave:service:login:error",  "onLoginEnd"],
-      ["weave:service:login:finish", "onLoginEnd"]];
+      ["weave:service:change-passphrase", "onResetPassphrase"],
+      ["weave:service:login:start",       "onLoginStart"],
+      ["weave:service:login:error",       "onLoginEnd"],
+      ["weave:service:login:finish",      "onLoginEnd"]];
 
     
     let self = this;
@@ -927,23 +927,6 @@ var gSyncSetup = {
 
         if (!Weave.Engines.get("prefs").enabled) {
           document.getElementById("prefsWipe").hidden = true;
-        }
-
-        if (Weave.Engines.get("addons").enabled) {
-          let ids = Weave.Engines.get("addons")._store.getAllIDs();
-          let blessedcount = 0;
-          for each (let i in ids) {
-            if (i) {
-              blessedcount++;
-            }
-          }
-          
-          document.getElementById("addonCount").value =
-            PluralForm.get(blessedcount,
-                           this._stringBundle.GetStringFromName("addonsCount.label"))
-                      .replace("#1", blessedcount);
-        } else {
-          document.getElementById("addonCount").hidden = true;
         }
 
         this._case1Setup = true;

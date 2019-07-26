@@ -22,6 +22,7 @@ const KEYS_WBO = "keys";
 const LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
@@ -630,94 +631,93 @@ WeaveSvc.prototype = {
     }
   },
 
-  verifyLogin: function verifyLogin()
-    this._notify("verify-login", "", function onNotify() {
-      if (!this._identity.username) {
-        this._log.warn("No username in verifyLogin.");
-        Status.login = LOGIN_FAILED_NO_USERNAME;
-        return false;
+  verifyLogin: function verifyLogin() {
+    if (!this._identity.username) {
+      this._log.warn("No username in verifyLogin.");
+      Status.login = LOGIN_FAILED_NO_USERNAME;
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    try {
+      this._identity.syncKey;
+    } catch (ex) {
+      this._log.debug("Fetching passphrase threw " + ex +
+                      "; assuming master password locked.");
+      Status.login = MASTER_PASSWORD_LOCKED;
+      return false;
+    }
+
+    try {
+      
+      
+      
+      if (this.clusterURL == "" && !this._setCluster()) {
+        Status.sync = NO_SYNC_NODE_FOUND;
+        Svc.Obs.notify("weave:service:sync:delayed");
+        return true;
       }
 
       
-      
-      
-      
-      
-      try {
-        this._identity.syncKey;
-      } catch (ex) {
-        this._log.debug("Fetching passphrase threw " + ex +
-                        "; assuming master password locked.");
-        Status.login = MASTER_PASSWORD_LOCKED;
-        return false;
-      }
+      let test = new Resource(this.infoURL).get();
 
-      try {
-        
-        
-        
-        if (this.clusterURL == "" && !this._setCluster()) {
-          Status.sync = NO_SYNC_NODE_FOUND;
-          Svc.Obs.notify("weave:service:sync:delayed");
-          return true;
-        }
+      switch (test.status) {
+        case 200:
+          
 
-        
-        let test = new Resource(this.infoURL).get();
-
-        switch (test.status) {
-          case 200:
-            
-
-            
-            
-            
-            if (!this._identity.syncKey) {
-              this._log.warn("No passphrase in verifyLogin.");
-              Status.login = LOGIN_FAILED_NO_PASSPHRASE;
-              return false;
-            }
-
-            
-            
-            if (this._remoteSetup()) {
-              
-              Status.login = LOGIN_SUCCEEDED;
-              return true;
-            }
-
-            this._log.warn("Remote setup failed.");
-            
+          
+          
+          
+          if (!this._identity.syncKey) {
+            this._log.warn("No passphrase in verifyLogin.");
+            Status.login = LOGIN_FAILED_NO_PASSPHRASE;
             return false;
+          }
 
-          case 401:
-            this._log.warn("401: login failed.");
+          
+          
+          if (this._remoteSetup()) {
             
+            Status.login = LOGIN_SUCCEEDED;
+            return true;
+          }
 
-          case 404:
-            
-            if (this._setCluster())
-              return this.verifyLogin();
+          this._log.warn("Remote setup failed.");
+          
+          return false;
 
-            
-            Status.login = LOGIN_FAILED_LOGIN_REJECTED;
-            return false;
+        case 401:
+          this._log.warn("401: login failed.");
+          
 
-          default:
-            
-            Status.login = LOGIN_FAILED_SERVER_ERROR;
-            ErrorHandler.checkServerError(test);
-            return false;
-        }
+        case 404:
+          
+          if (this._setCluster()) {
+            return this.verifyLogin();
+          }
+
+          
+          Status.login = LOGIN_FAILED_LOGIN_REJECTED;
+          return false;
+
+        default:
+          
+          Status.login = LOGIN_FAILED_SERVER_ERROR;
+          ErrorHandler.checkServerError(test);
+          return false;
       }
-      catch (ex) {
-        
-        this._log.debug("verifyLogin failed: " + Utils.exceptionStr(ex));
-        Status.login = LOGIN_FAILED_NETWORK_ERROR;
-        ErrorHandler.checkServerError(ex);
-        return false;
-      }
-    })(),
+    } catch (ex) {
+      
+      this._log.debug("verifyLogin failed: " + Utils.exceptionStr(ex));
+      Status.login = LOGIN_FAILED_NETWORK_ERROR;
+      ErrorHandler.checkServerError(ex);
+      return false;
+    }
+  },
 
   generateNewSymmetricKeys: function generateNewSymmetricKeys() {
     this._log.info("Generating new keys WBO...");
@@ -777,30 +777,28 @@ WeaveSvc.prototype = {
   },
 
   changePassword: function changePassword(newpass) {
-    return this._notify("changepwd", "", function onNotify() {
-      let url = this.userAPI + this._identity.username + "/password";
-      try {
-        let resp = new Resource(url).post(Utils.encodeUTF8(newpass));
-        if (resp.status != 200) {
-          this._log.debug("Password change failed: " + resp);
-          return false;
-        }
-      }
-      catch(ex) {
-        
-        this._log.debug("changePassword failed: " + Utils.exceptionStr(ex));
+    let url = this.userAPI + this._identity.username + "/password";
+    try {
+      let resp = new Resource(url).post(Utils.encodeUTF8(newpass));
+      if (resp.status != 200) {
+        this._log.debug("Password change failed: " + resp);
         return false;
       }
-
+    }
+    catch(ex) {
       
-      this._identity.basicPassword = newpass;
-      this.persistLogin();
-      return true;
-    })();
+      this._log.debug("changePassword failed: " + Utils.exceptionStr(ex));
+      return false;
+    }
+
+    
+    this._identity.basicPassword = newpass;
+    this.persistLogin();
+    return true;
   },
 
   changePassphrase: function changePassphrase(newphrase) {
-    return this._catch(this._notify("changepph", "", function onNotify() {
+    return this._catch(function doChangePasphrase() {
       
       this.wipeServer();
 
@@ -816,8 +814,11 @@ WeaveSvc.prototype = {
 
       
       this.sync();
+
+      Svc.Obs.notify("weave:service:change-passphrase", true);
+
       return true;
-    }))();
+    })();
   },
 
   startOver: function startOver() {
@@ -1502,47 +1503,50 @@ WeaveSvc.prototype = {
 
 
 
-  wipeServer: function wipeServer(collections)
-    this._notify("wipe-server", "", function onNotify() {
-      let response;
-      if (!collections) {
-        
-        let res = new Resource(this.storageURL.slice(0, -1));
-        res.setHeader("X-Confirm-Delete", "1");
-        try {
-          response = res.delete();
-        } catch (ex) {
-          this._log.debug("Failed to wipe server: " + Utils.exceptionStr(ex));
-          throw ex;
-        }
-        if (response.status != 200 && response.status != 404) {
-          this._log.debug("Aborting wipeServer. Server responded with " +
-                          response.status + " response for " + this.storageURL);
-          throw response;
-        }
-        return response.headers["x-weave-timestamp"];
+  wipeServer: function wipeServer(collections) {
+    let response;
+    if (!collections) {
+      
+      let res = new Resource(this.storageURL.slice(0, -1));
+      res.setHeader("X-Confirm-Delete", "1");
+      try {
+        response = res.delete();
+      } catch (ex) {
+        this._log.debug("Failed to wipe server: " + CommonUtils.exceptionStr(ex));
+        throw ex;
       }
-      let timestamp;
-      for each (let name in collections) {
-        let url = this.storageURL + name;
-        try {
-          response = new Resource(url).delete();
-        } catch (ex) {
-          this._log.debug("Failed to wipe '" + name + "' collection: " +
-                          Utils.exceptionStr(ex));
-          throw ex;
-        }
-        if (response.status != 200 && response.status != 404) {
-          this._log.debug("Aborting wipeServer. Server responded with " +
-                          response.status + " response for " + url);
-          throw response;
-        }
-        if ("x-weave-timestamp" in response.headers) {
-          timestamp = response.headers["x-weave-timestamp"];
-        }
+      if (response.status != 200 && response.status != 404) {
+        this._log.debug("Aborting wipeServer. Server responded with " +
+                        response.status + " response for " + this.storageURL);
+        throw response;
       }
-      return timestamp;
-    })(),
+      return response.headers["x-weave-timestamp"];
+    }
+
+    let timestamp;
+    for (let name of collections) {
+      let url = this.storageURL + name;
+      try {
+        response = new Resource(url).delete();
+      } catch (ex) {
+        this._log.debug("Failed to wipe '" + name + "' collection: " +
+                        Utils.exceptionStr(ex));
+        throw ex;
+      }
+
+      if (response.status != 200 && response.status != 404) {
+        this._log.debug("Aborting wipeServer. Server responded with " +
+                        response.status + " response for " + url);
+        throw response;
+      }
+
+      if ("x-weave-timestamp" in response.headers) {
+        timestamp = response.headers["x-weave-timestamp"];
+      }
+    }
+
+    return timestamp;
+  },
 
   
 
@@ -1550,27 +1554,29 @@ WeaveSvc.prototype = {
 
 
 
-  wipeClient: function wipeClient(engines)
-    this._notify("wipe-client", "", function onNotify() {
+  wipeClient: function wipeClient(engines) {
+    
+    if (!engines) {
       
-      if (!engines) {
-        
-        this.resetService();
+      this.resetService();
 
-        engines = [Clients].concat(Engines.getAll());
+      engines = [Clients].concat(Engines.getAll());
+    }
+    
+    else {
+      engines = Engines.get(engines);
+    }
+
+    
+    for each (let engine in engines) {
+      if (engine.canDecrypt()) {
+        engine.wipeClient();
       }
-      
-      else
-        engines = Engines.get(engines);
+    }
 
-      
-      for each (let engine in engines)
-        if (engine.canDecrypt())
-          engine.wipeClient();
-
-      
-      this.persistLogin();
-    })(),
+    
+    this.persistLogin();
+  },
 
   
 
@@ -1607,14 +1613,15 @@ WeaveSvc.prototype = {
   
 
 
-  resetService: function resetService()
-    this._catch(this._notify("reset-service", "", function onNotify() {
+  resetService: function resetService() {
+    this._catch(function reset() {
       this._log.info("Service reset.");
 
       
       this.syncID = "";
       Records.clearCache();
-    }))(),
+    })();
+  },
 
   
 
@@ -1622,8 +1629,8 @@ WeaveSvc.prototype = {
 
 
 
-  resetClient: function resetClient(engines)
-    this._catch(this._notify("reset-client", "", function onNotify() {
+  resetClient: function resetClient(engines) {
+    this._catch(function doResetClient() {
       
       if (!engines) {
         
@@ -1632,13 +1639,16 @@ WeaveSvc.prototype = {
         engines = [Clients].concat(Engines.getAll());
       }
       
-      else
+      else {
         engines = Engines.get(engines);
+      }
 
       
-      for each (let engine in engines)
+      for each (let engine in engines) {
         engine.resetClient();
-    }))(),
+      }
+    })();
+  },
 
   
 
