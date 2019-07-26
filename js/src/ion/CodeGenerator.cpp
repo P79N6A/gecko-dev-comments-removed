@@ -4020,17 +4020,27 @@ CodeGenerator::emitInstanceOf(LInstruction *ins, Register rhs)
     Register rhsFlags = ToRegister(ins->getTemp(0));
     Register lhsTmp = ToRegister(ins->getTemp(0));
 
-    Label callHasInstance;
     Label boundFunctionCheck;
     Label boundFunctionDone;
     Label done;
     Label loopPrototypeChain;
 
+    JS_ASSERT(ins->isInstanceOfO() || ins->isInstanceOfV());
+    bool lhsIsValue = ins->isInstanceOfV();
+
     typedef bool (*pf)(JSContext *, HandleObject, HandleValue, JSBool *);
     static const VMFunction HasInstanceInfo = FunctionInfo<pf>(js::HasInstance);
 
-    OutOfLineCode *call = oolCallVM(HasInstanceInfo, ins, (ArgList(), rhs, ToValue(ins, 0)),
-                                   StoreRegisterTo(output));
+    
+    
+    
+    
+    
+    
+
+    OutOfLineCode *call = oolCallVM(HasInstanceInfo, ins,
+        (ArgList(), rhs, lhsIsValue ? ToValue(ins, 0) : ToTempValue(ins, 0)),
+        StoreRegisterTo(output));
     if (!call)
         return false;
 
@@ -4052,7 +4062,18 @@ CodeGenerator::emitInstanceOf(LInstruction *ins, Register rhs)
 
     masm.loadBaseShape(rhsTmp, output);
     masm.cmpPtr(Address(output, BaseShape::offsetOfClass()), ImmWord(&js::FunctionClass));
-    masm.j(Assembler::NotEqual, call->entry());
+    if (lhsIsValue) {
+        
+        masm.j(Assembler::NotEqual, call->entry());
+    } else {
+        
+        
+        Label dontCallHasInstance;
+        masm.j(Assembler::Equal, &dontCallHasInstance);
+        masm.boxNonDouble(JSVAL_TYPE_OBJECT, ToRegister(ins->getOperand(0)), ToTempValue(ins, 0));
+        masm.jump(call->entry());
+        masm.bind(&dontCallHasInstance);
+    }
 
     
     masm.loadPtr(Address(output, BaseShape::offsetOfFlags()), rhsFlags);
@@ -4086,7 +4107,7 @@ CodeGenerator::emitInstanceOf(LInstruction *ins, Register rhs)
     
     
     
-    if (ins->isInstanceOfV()) {
+    if (lhsIsValue) {
         Label isObject;
         ValueOperand lhsValue = ToValue(ins, LInstanceOfV::LHS);
         masm.branchTestObject(Assembler::Equal, lhsValue, &isObject);
@@ -4125,7 +4146,17 @@ CodeGenerator::emitInstanceOf(LInstruction *ins, Register rhs)
     masm.loadPtr(Address(lhsTmp, offsetof(types::TypeObject, proto)), lhsTmp);
 
     
-    masm.branch32(Assembler::Equal, lhsTmp, Imm32(1), call->entry());
+    if (lhsIsValue) {
+        masm.branch32(Assembler::Equal, lhsTmp, Imm32(1), call->entry());
+    } else {
+        
+        
+        Label dontCallHasInstance;
+        masm.branch32(Assembler::NotEqual, lhsTmp, Imm32(1), &dontCallHasInstance);
+        masm.boxNonDouble(JSVAL_TYPE_OBJECT, ToRegister(ins->getOperand(0)), ToTempValue(ins, 0));
+        masm.jump(call->entry());
+        masm.bind(&dontCallHasInstance);
+    }
 
     masm.testPtr(lhsTmp, lhsTmp);
     masm.j(Assembler::Zero, &done);
