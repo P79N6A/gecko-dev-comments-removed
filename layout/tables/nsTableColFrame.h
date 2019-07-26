@@ -288,7 +288,7 @@ protected:
   
   
   
-  uint32_t mColIndex:        16;
+  uint32_t mColIndex;
   
   
   BCPixelSize mLeftBorderWidth;
