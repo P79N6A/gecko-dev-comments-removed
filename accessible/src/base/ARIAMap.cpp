@@ -112,7 +112,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoLiveAttr,
     eTableCell,
     kNoReqStates,
-    eARIASelectable,
+    eARIASelectableIfDefined,
     eARIAReadonlyOrEditableIfDefined
   },
   { 
@@ -463,7 +463,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoLiveAttr,
     eTableCell,
     kNoReqStates,
-    eARIASelectable,
+    eARIASelectableIfDefined,
     eARIAReadonlyOrEditableIfDefined
   },
   { 
