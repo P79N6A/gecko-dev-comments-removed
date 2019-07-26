@@ -51,6 +51,11 @@ TypeDescrSetBuilder::TypeDescrSetBuilder()
 bool
 TypeDescrSetBuilder::insert(TypeDescr *descr)
 {
+    
+    
+    
+    JS_ASSERT(!GetIonContext()->runtime->isInsideNursery(descr));
+
     if (invalid_)
         return true;
 
