@@ -2,6 +2,7 @@
 
 
 
+
 #include "inDOMUtils.h"
 #include "inLayoutUtils.h"
 
@@ -343,6 +344,73 @@ inDOMUtils::IsInheritedProperty(const nsAString &aPropertyName, bool *_retval)
 
   nsStyleStructID sid = nsCSSProps::kSIDTable[prop];
   *_retval = !nsCachedStyleData::IsReset(sid);
+  return NS_OK;
+}
+
+extern const char* const kCSSRawProperties[];
+
+NS_IMETHODIMP
+inDOMUtils::GetCSSPropertyNames(uint32_t aFlags, uint32_t* aCount,
+                                PRUnichar*** aProps)
+{
+  
+  
+  uint32_t maxCount;
+  if (aFlags & EXCLUDE_SHORTHANDS) {
+    maxCount = eCSSProperty_COUNT_no_shorthands;
+  } else {
+    maxCount = eCSSProperty_COUNT;
+  }
+
+  if (aFlags & INCLUDE_ALIASES) {
+    maxCount += (eCSSProperty_COUNT_with_aliases - eCSSProperty_COUNT);
+  }
+
+  PRUnichar** props =
+    static_cast<PRUnichar**>(nsMemory::Alloc(maxCount * sizeof(PRUnichar*)));
+
+#define DO_PROP(_prop)                                                  \
+  PR_BEGIN_MACRO                                                        \
+    nsCSSProperty cssProp = nsCSSProperty(_prop);                       \
+    if (nsCSSProps::IsEnabled(cssProp)) {                               \
+      props[propCount] =                                                \
+        ToNewUnicode(nsDependentCString(kCSSRawProperties[_prop]));     \
+      ++propCount;                                                      \
+    }                                                                   \
+  PR_END_MACRO
+
+  
+  
+  uint32_t prop = 0, propCount = 0;
+  for ( ; prop < eCSSProperty_COUNT_no_shorthands; ++prop) {
+    if (!nsCSSProps::PropHasFlags(nsCSSProperty(prop),
+                                  CSS_PROPERTY_PARSE_INACCESSIBLE)) {
+      DO_PROP(prop);
+    }
+  }
+
+  if (!(aFlags & EXCLUDE_SHORTHANDS)) {
+    for ( ; prop < eCSSProperty_COUNT; ++prop) {
+      
+      if ((aFlags & INCLUDE_ALIASES) ||
+          !nsCSSProps::PropHasFlags(nsCSSProperty(prop),
+                                    CSS_PROPERTY_IS_ALIAS)) {
+        DO_PROP(prop);
+      }
+    }
+  }
+
+  if (aFlags & INCLUDE_ALIASES) {
+    for (prop = eCSSProperty_COUNT; prop < eCSSProperty_COUNT_with_aliases; ++prop) {
+      DO_PROP(prop);
+    }
+  }
+
+#undef DO_PROP
+
+  *aCount = propCount;
+  *aProps = props;
+
   return NS_OK;
 }
 
