@@ -70,6 +70,9 @@ function run_test()
   if ("nsIBrowserSearchService" in Ci) {
     checkService("search", Ci.nsIBrowserSearchService);
   }
+  if ("nsIAndroidBridge" in Ci) {
+    checkService("androidBridge", Ci.nsIAndroidBridge);
+  }
 
   
   
