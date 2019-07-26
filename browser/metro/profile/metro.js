@@ -216,6 +216,9 @@ pref("dom.disable_open_during_load", true);
 pref("privacy.popups.showBrowserMessage", true);
 
 
+pref("privacy.donottrackheader.value", -1);
+
+
 pref("dom.disable_window_open_dialog_feature", true);
 
 pref("keyword.enabled", true);
