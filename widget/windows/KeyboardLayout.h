@@ -20,6 +20,10 @@
 #define VK_OEM_PERIOD           0xBE
 #define VK_OEM_2                0xBF
 #define VK_OEM_3                0xC0
+
+#define VK_ABNT_C1              0xC1
+
+#define VK_ABNT_C2              0xC2
 #define VK_OEM_4                0xDB
 #define VK_OEM_5                0xDC
 #define VK_OEM_6                0xDD

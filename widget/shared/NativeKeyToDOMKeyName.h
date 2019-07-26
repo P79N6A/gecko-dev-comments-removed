@@ -439,6 +439,7 @@ KEY_MAP_QT      (Zoom, Qt::Key_Zoom)
 
 
 KEY_MAP_WIN     (Separator, VK_SEPARATOR)
+KEY_MAP_WIN     (Separator, VK_ABNT_C2) 
 KEY_MAP_COCOA   (Separator, kVK_JIS_KeypadComma)
 KEY_MAP_GTK     (Separator, GDK_KP_Separator)
 KEY_MAP_ANDROID (Separator, AKEYCODE_NUMPAD_COMMA)
