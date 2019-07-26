@@ -22,10 +22,6 @@
 
 ForwardDeclareJS(Script);
 
-namespace JS {
-struct TypeInferenceSizes;
-}
-
 namespace js {
 
 class TaggedProto
@@ -1036,7 +1032,7 @@ struct TypeObject : gc::Cell
     inline void clearProperties();
     inline void sweep(FreeOp *fop);
 
-    void sizeOfExcludingThis(TypeInferenceSizes *sizes, JSMallocSizeOfFun mallocSizeOf);
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf);
 
     
 
