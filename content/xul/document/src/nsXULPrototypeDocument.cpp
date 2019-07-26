@@ -179,9 +179,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULPrototypeDocument)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULPrototypeDocument)
-    NS_INTERFACE_MAP_ENTRY(nsIScriptGlobalObjectOwner)
     NS_INTERFACE_MAP_ENTRY(nsISerializable)
-    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptGlobalObjectOwner)
+    NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsXULPrototypeDocument)
@@ -205,7 +204,6 @@ NS_NewXULPrototypeDocument(nsXULPrototypeDocument** aResult)
     NS_ADDREF(*aResult);
     return rv;
 }
-
 
 
 
@@ -629,8 +627,11 @@ nsXULPrototypeDocument::SetDocumentPrincipal(nsIPrincipal* aPrincipal)
 JSObject*
 nsXULPrototypeDocument::GetCompilationGlobal()
 {
-  GetScriptGlobalObject()->EnsureScriptEnvironment();
-  return GetScriptGlobalObject()->GetGlobalJSObject();
+  if (!mGlobalObject) {
+      mGlobalObject = NewXULPDGlobalObject();
+  }
+  mGlobalObject->EnsureScriptEnvironment();
+  return mGlobalObject->GetGlobalJSObject();
 }
 
 nsNodeInfoManager*
@@ -692,20 +693,6 @@ nsXULPrototypeDocument::TraceProtos(JSTracer* aTrc, uint32_t aGCNumber)
   if (mRoot) {
     mRoot->TraceAllScripts(aTrc);
   }
-}
-
-
-
-
-
-
-nsIScriptGlobalObject*
-nsXULPrototypeDocument::GetScriptGlobalObject()
-{
-    if (!mGlobalObject)
-        mGlobalObject = NewXULPDGlobalObject();
-
-    return mGlobalObject;
 }
 
 
