@@ -2,6 +2,9 @@
 
 
 
+#include "nsDebug.h"
+#include "nsIDocument.h"
+#include "nsIPermissionManager.h"
 #include "DOMCameraControl.h"
 #include "DOMCameraManager.h"
 #include "nsDOMClassInfo.h"
@@ -27,9 +30,7 @@ NS_IMPL_RELEASE(nsDOMCameraManager)
 
 
 
-#ifdef PR_LOGGING
-PRLogModuleInfo* gCameraLog;
-#endif
+PRLogModuleInfo* gCameraLog = PR_LOG_DEFINE("Camera");
 
 
 
@@ -58,16 +59,21 @@ nsDOMCameraManager::OnNavigation(uint64_t aWindowId)
 
 
 already_AddRefed<nsDOMCameraManager>
-nsDOMCameraManager::Create(uint64_t aWindowId)
+nsDOMCameraManager::CheckPermissionAndCreateInstance(nsPIDOMWindow* aWindow)
 {
-  
+  nsCOMPtr<nsIPermissionManager> permMgr =
+    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE(permMgr, nullptr);
 
-#ifdef PR_LOGGING
-  if (!gCameraLog) {
-    gCameraLog = PR_LOG_DEFINE("Camera");
+  uint32_t permission = nsIPermissionManager::DENY_ACTION;
+  permMgr->TestPermissionFromWindow(aWindow, "camera", &permission);
+  if (permission != nsIPermissionManager::ALLOW_ACTION) {
+    NS_WARNING("No permission to access camera");
+    return nullptr;
   }
-#endif
-  nsRefPtr<nsDOMCameraManager> cameraManager = new nsDOMCameraManager(aWindowId);
+
+  nsRefPtr<nsDOMCameraManager> cameraManager =
+    new nsDOMCameraManager(aWindow->WindowID());
   return cameraManager.forget();
 }
 
