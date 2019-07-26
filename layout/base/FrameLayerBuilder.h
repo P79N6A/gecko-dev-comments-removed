@@ -96,7 +96,6 @@ public:
   typedef layers::ThebesLayer ThebesLayer;
   typedef layers::ImageLayer ImageLayer;
   typedef layers::LayerManager LayerManager;
-  class DisplayItemData;
 
   FrameLayerBuilder() :
     mRetainingManager(nullptr),
@@ -264,13 +263,13 @@ public:
 
 
   struct Clip;
-  DisplayItemData* AddLayerDisplayItem(Layer* aLayer,
-                                       nsDisplayItem* aItem,
-                                       const Clip& aClip,
-                                       LayerState aLayerState,
-                                       const nsPoint& aTopLeft,
-                                       LayerManager* aManager,
-                                       nsAutoPtr<nsDisplayItemGeometry> aGeometry);
+  void AddLayerDisplayItem(Layer* aLayer,
+                           nsDisplayItem* aItem,
+                           const Clip& aClip,
+                           LayerState aLayerState,
+                           const nsPoint& aTopLeft,
+                           LayerManager* aManager,
+                           nsAutoPtr<nsDisplayItemGeometry> aGeometry);
 
   
 
@@ -320,9 +319,10 @@ public:
 
   static bool HasVisibleRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
+  class DisplayItemData;
   typedef void (*DisplayItemDataCallback)(nsIFrame *aFrame, DisplayItemData* aItem);
 
-  static void IterateVisibleRetainedDataFor(nsIFrame* aFrame, DisplayItemDataCallback aCallback);
+  static void IterateRetainedDataFor(nsIFrame* aFrame, DisplayItemDataCallback aCallback);
 
   
 
@@ -417,7 +417,7 @@ public:
     
     
     
-    nsRect ApproximateIntersectInner(const nsRect& aRect) const;
+    nsRect ApproximateIntersect(const nsRect& aRect) const;
 
     
     
@@ -477,9 +477,6 @@ public:
     uint32_t GetDisplayItemKey() { return mDisplayItemKey; }
     Layer* GetLayer() { return mLayer; }
     void Invalidate() { mIsInvalid = true; }
-    bool IsVisibleInLayer() { return mIsVisible; }
-    void SetIsVisibleInLayer(bool aIsVisible) { mIsVisible = aIsVisible; }
-
   protected:
 
     DisplayItemData(LayerManagerData* aParent, uint32_t aKey, Layer* aLayer, LayerState aLayerState, uint32_t aGeneration);
@@ -528,15 +525,7 @@ public:
 
 
     bool            mUsed;
-    
-
-
     bool            mIsInvalid;
-    
-
-
-
-    bool            mIsVisible;
   };
 
 protected:
@@ -603,17 +592,14 @@ protected:
 
 
   struct ClippedDisplayItem {
-    ClippedDisplayItem(nsDisplayItem* aItem, DisplayItemData* aData,
-                       const Clip& aClip, uint32_t aGeneration)
-      : mItem(aItem), mData(aData), mClip(aClip),
-        mContainerLayerGeneration(aGeneration)
+    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip, uint32_t aGeneration)
+      : mItem(aItem), mClip(aClip), mContainerLayerGeneration(aGeneration)
     {
     }
 
     ~ClippedDisplayItem();
 
     nsDisplayItem* mItem;
-    DisplayItemData* mData;
 
     
 

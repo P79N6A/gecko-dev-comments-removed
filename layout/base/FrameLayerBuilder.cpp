@@ -49,7 +49,6 @@ FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, u
   , mLayerState(aLayerState)
   , mUsed(true)
   , mIsInvalid(false)
-  , mIsVisible(true)
 {
 }
 
@@ -67,7 +66,6 @@ FrameLayerBuilder::DisplayItemData::DisplayItemData(DisplayItemData &toCopy)
   mContainerLayerGeneration = toCopy.mContainerLayerGeneration;
   mLayerState = toCopy.mLayerState;
   mUsed = toCopy.mUsed;
-  mIsVisible = toCopy.mIsVisible;
 }
 
 void
@@ -1100,7 +1098,7 @@ FrameLayerBuilder::HasVisibleRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplay
 }
 
 void
-FrameLayerBuilder::IterateVisibleRetainedDataFor(nsIFrame* aFrame, DisplayItemDataCallback aCallback)
+FrameLayerBuilder::IterateRetainedDataFor(nsIFrame* aFrame, DisplayItemDataCallback aCallback)
 {
   nsTArray<DisplayItemData*> *array = 
     reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
@@ -1110,8 +1108,7 @@ FrameLayerBuilder::IterateVisibleRetainedDataFor(nsIFrame* aFrame, DisplayItemDa
   
   for (uint32_t i = 0; i < array->Length(); i++) {
     DisplayItemData* data = array->ElementAt(i);
-    if (data->mDisplayItemKey != nsDisplayItem::TYPE_ZERO &&
-        data->IsVisibleInLayer()) {
+    if (data->mDisplayItemKey != nsDisplayItem::TYPE_ZERO) {
       aCallback(aFrame, data);
     }
   }
@@ -1827,7 +1824,7 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
     nsRegion opaqueClipped;
     nsRegionRectIterator iter(opaque);
     for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
-      opaqueClipped.Or(opaqueClipped, aClip.ApproximateIntersectInner(*r));
+      opaqueClipped.Or(opaqueClipped, aClip.ApproximateIntersect(*r));
     }
 
     nsIntRegion opaquePixels = aState->ScaleRegionToInsidePixels(opaqueClipped, snap);
@@ -2429,8 +2426,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
     }
   }
 
-  DisplayItemData* displayItemData =
-    AddLayerDisplayItem(aLayer, aItem, aClip, aLayerState, aTopLeft, tempManager, aGeometry);
+  AddLayerDisplayItem(aLayer, aItem, aClip, aLayerState, aTopLeft, tempManager, aGeometry);
 
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
   if (entry) {
@@ -2497,7 +2493,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
       }
     }
     ClippedDisplayItem* cdi =
-      entry->mItems.AppendElement(ClippedDisplayItem(aItem, displayItemData, aClip,
+      entry->mItems.AppendElement(ClippedDisplayItem(aItem, aClip,
                                                      mContainerLayerGeneration));
     cdi->mInactiveLayerManager = tempManager;
   }
@@ -2572,7 +2568,7 @@ FrameLayerBuilder::ClippedDisplayItem::~ClippedDisplayItem()
   }
 }
 
-FrameLayerBuilder::DisplayItemData*
+void
 FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
                                        nsDisplayItem* aItem,
                                        const Clip& aClip,
@@ -2582,7 +2578,7 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
                                        nsAutoPtr<nsDisplayItemGeometry> aGeometry)
 {
   if (aLayer->Manager() != mRetainingManager)
-    return nullptr;
+    return;
 
   DisplayItemData *data = StoreDataForFrame(aItem, aLayer, aLayerState);
   ThebesLayer *t = aLayer->AsThebesLayer();
@@ -2591,7 +2587,6 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
     data->mClip = aClip;
   }
   data->mInactiveManager = aManager;
-  return data;
 }
 
 nsIntPoint
@@ -3241,24 +3236,10 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIntRegion layerRegion;
-  layerRegion.Or(aLayer->GetValidRegion(), aRegionToDraw);
-  nsRegion visible = layerRegion.ToAppUnits(appUnitsPerDevPixel);
+  nsRegion visible = aRegionToDraw.ToAppUnits(appUnitsPerDevPixel);
   visible.MoveBy(NSIntPixelsToAppUnits(offset.x, appUnitsPerDevPixel),
                  NSIntPixelsToAppUnits(offset.y, appUnitsPerDevPixel));
   visible.ScaleInverseRoundOut(userData->mXScale, userData->mYScale);
-  nsRegion toDraw = aRegionToDraw.ToAppUnits(appUnitsPerDevPixel);
-  toDraw.MoveBy(NSIntPixelsToAppUnits(offset.x, appUnitsPerDevPixel),
-                NSIntPixelsToAppUnits(offset.y, appUnitsPerDevPixel));
-  toDraw.ScaleInverseRoundOut(userData->mXScale, userData->mYScale);
 
   for (i = items.Length(); i > 0; --i) {
     ClippedDisplayItem* cdi = &items[i - 1];
@@ -3274,28 +3255,29 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
         (cdi->mClip.mRoundedClipRects.IsEmpty() &&
          cdi->mClip.mClipRect.Contains(visible.GetBounds()))) {
       cdi->mItem->RecomputeVisibility(builder, &visible);
-    } else {
+      continue;
+    }
+
+    
+    
+    nsRegion clipped;
+    clipped.And(visible, cdi->mClip.mClipRect);
+    nsRegion finalClipped = clipped;
+    cdi->mItem->RecomputeVisibility(builder, &finalClipped);
+    
+    
+    if (cdi->mClip.mRoundedClipRects.IsEmpty()) {
+      nsRegion removed;
+      removed.Sub(clipped, finalClipped);
+      nsRegion newVisible;
+      newVisible.Sub(visible, removed);
       
-      
-      nsRegion clipped;
-      clipped.And(visible, cdi->mClip.mClipRect);
-      nsRegion finalClipped = clipped;
-      cdi->mItem->RecomputeVisibility(builder, &finalClipped);
-      
-      
-      if (cdi->mClip.mRoundedClipRects.IsEmpty()) {
-        nsRegion removed;
-        removed.Sub(clipped, finalClipped);
-        nsRegion newVisible;
-        newVisible.Sub(visible, removed);
-        
-        if (newVisible.GetNumRects() <= 15) {
-          visible = newVisible;
-        }
+      if (newVisible.GetNumRects() <= 15) {
+        visible = newVisible;
       }
-      if (!cdi->mClip.IsRectClippedByRoundedCorner(cdi->mItem->GetVisibleRect())) {
-        cdi->mClip.RemoveRoundedCorners();
-      }
+    }
+    if (!cdi->mClip.IsRectClippedByRoundedCorner(cdi->mItem->GetVisibleRect())) {
+      cdi->mClip.RemoveRoundedCorners();
     }
   }
 
@@ -3308,13 +3290,8 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   for (i = 0; i < items.Length(); ++i) {
     ClippedDisplayItem* cdi = &items[i];
 
-    if (cdi->mData) {
-      cdi->mData->SetIsVisibleInLayer(!cdi->mItem->GetVisibleRect().IsEmpty());
-    }
-
-    if (!toDraw.Intersects(cdi->mItem->GetVisibleRect())) {
+    if (cdi->mItem->GetVisibleRect().IsEmpty())
       continue;
-    }
 
     
     
@@ -3492,7 +3469,7 @@ FrameLayerBuilder::Clip::AddRoundedRectPathTo(gfxContext* aContext,
 }
 
 nsRect
-FrameLayerBuilder::Clip::ApproximateIntersectInner(const nsRect& aRect) const
+FrameLayerBuilder::Clip::ApproximateIntersect(const nsRect& aRect) const
 {
   nsRect r = aRect;
   if (mHaveClipRect) {
