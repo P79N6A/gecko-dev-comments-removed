@@ -39,7 +39,6 @@
 #include "nsIFocusManager.h"            
 #include "nsIFormControl.h"             
 #include "nsIHTMLEditor.h"              
-#include "nsINativeKeyBindings.h"       
 #include "nsINode.h"                    
 #include "nsIPlaintextEditor.h"         
 #include "nsIPresShell.h"               
@@ -47,6 +46,7 @@
 #include "nsISelectionController.h"     
 #include "nsISelectionPrivate.h"        
 #include "nsITransferable.h"            
+#include "nsIWidget.h"                  
 #include "nsLiteralString.h"            
 #include "nsPIWindowRoot.h"             
 #include "nsServiceManagerUtils.h"      
@@ -60,24 +60,6 @@ class nsPresContext;
 
 using namespace mozilla;
 using namespace mozilla::dom;
-
-static nsINativeKeyBindings *sNativeEditorBindings = nullptr;
-
-static nsINativeKeyBindings*
-GetEditorKeyBindings()
-{
-  static bool noBindings = false;
-  if (!sNativeEditorBindings && !noBindings) {
-    CallGetService(NS_NATIVEKEYBINDINGS_CONTRACTID_PREFIX "editor",
-                   &sNativeEditorBindings);
-
-    if (!sNativeEditorBindings) {
-      noBindings = true;
-    }
-  }
-
-  return sNativeEditorBindings;
-}
 
 static void
 DoCommandCallback(Command aCommand, void* aData)
@@ -125,12 +107,6 @@ nsEditorEventListener::~nsEditorEventListener()
     NS_WARNING("We're not uninstalled");
     Disconnect();
   }
-}
-
- void
-nsEditorEventListener::ShutDown()
-{
-  NS_IF_RELEASE(sNativeEditorBindings);
 }
 
 nsresult
@@ -528,16 +504,25 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
     return NS_OK;
   }
 
-  if (GetEditorKeyBindings() && ShouldHandleNativeKeyBindings(aKeyEvent)) {
+  if (ShouldHandleNativeKeyBindings(aKeyEvent)) {
     
     WidgetKeyboardEvent* keyEvent =
       aKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
     MOZ_ASSERT(keyEvent,
                "DOM key event's internal event must be WidgetKeyboardEvent");
+    nsIWidget* widget = keyEvent->widget;
+    
+    if (!widget) {
+      nsCOMPtr<nsIPresShell> ps = GetPresShell();
+      nsPresContext* pc = ps ? ps->GetPresContext() : nullptr;
+      widget = pc ? pc->GetNearestWidget() : nullptr;
+      NS_ENSURE_TRUE(widget, NS_OK);
+    }
+
     nsCOMPtr<nsIDocument> doc = mEditor->GetDocument();
-    bool handled = sNativeEditorBindings->KeyPress(*keyEvent,
-                                                   DoCommandCallback,
-                                                   doc);
+    bool handled = widget->ExecuteNativeKeyBinding(
+                             nsIWidget::NativeKeyBindingsForRichTextEditor,
+                             *keyEvent, DoCommandCallback, doc);
     if (handled) {
       aKeyEvent->PreventDefault();
     }

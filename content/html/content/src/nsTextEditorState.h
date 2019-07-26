@@ -188,9 +188,6 @@ public:
 
   bool GetMaxLength(int32_t* aMaxLength);
 
-  
-  static NS_HIDDEN_(void) ShutDown();
-
   void ClearValueCache() { mCachedValue.Truncate(); }
 
   void HideSelectionIfBlurred();
