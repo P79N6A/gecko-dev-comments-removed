@@ -216,14 +216,7 @@ DnsContinueVerifier.prototype = {
     
     var tstamp = (new Date().valueOf() * 1000) - (10 * 86400 * 1000000);
 
-    var dbfile = FileUtils.getFile("ProfD", ["netpredictions.sqlite"]);
-    var dbconn = Services.storage.openDatabase(dbfile);
-    
-    
-    
-    var stmt = "UPDATE moz_subresources SET last_hit = " + tstamp + ", hits = 2 WHERE uri = '" + this.subresource + "';";
-    dbconn.executeSimpleSQL(stmt);
-    dbconn.close();
+    seer.prepareForDnsTest(tstamp, this.subresource);
 
     var verifier = new Verifier("dns", [], this.preresolves);
     seer.predict(this.tluri, null, seer.PREDICT_LOAD, load_context, verifier);
