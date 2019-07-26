@@ -95,13 +95,30 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
   
 
 
 
-#  define MOZ_BEGIN_ENUM_CLASS(Name, type) enum class Name : type {
-#  define MOZ_END_ENUM_CLASS(Name)         };
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS(Name, type) \
+     enum class Name : type {
+#  define MOZ_END_NESTED_ENUM_CLASS(Name) \
+     };
+#  define MOZ_FINISH_NESTED_ENUM_CLASS(Name)
 #else
    
 
@@ -137,14 +154,14 @@
 
 
 
-
-#  define MOZ_BEGIN_ENUM_CLASS(Name, type) \
+\
+#  define MOZ_BEGIN_NESTED_ENUM_CLASS(Name, type) \
      class Name \
      { \
        public: \
          enum Enum MOZ_ENUM_TYPE(type) \
          {
-#  define MOZ_END_ENUM_CLASS(Name) \
+#  define MOZ_END_NESTED_ENUM_CLASS(Name) \
          }; \
          Name() {} \
          Name(Enum aEnum) : mEnum(aEnum) {} \
@@ -152,7 +169,8 @@
          operator Enum() const { return mEnum; } \
        private: \
          Enum mEnum; \
-     }; \
+     };
+#  define MOZ_FINISH_NESTED_ENUM_CLASS(Name) \
      inline int operator+(const int&, const Name::Enum&) MOZ_DELETE; \
      inline int operator+(const Name::Enum&, const int&) MOZ_DELETE; \
      inline int operator-(const int&, const Name::Enum&) MOZ_DELETE; \
@@ -208,6 +226,10 @@
      inline int& operator<<=(int&, const Name::Enum&) MOZ_DELETE; \
      inline int& operator>>=(int&, const Name::Enum&) MOZ_DELETE;
 #endif
+#  define MOZ_BEGIN_ENUM_CLASS(Name, type) MOZ_BEGIN_NESTED_ENUM_CLASS(Name, type)
+#  define MOZ_END_ENUM_CLASS(Name) \
+     MOZ_END_NESTED_ENUM_CLASS(Name) \
+     MOZ_FINISH_NESTED_ENUM_CLASS(Name)
 
 #endif 
 
