@@ -738,6 +738,10 @@ const gFormSubmitObserver = {
 
 
 let gGestureSupport = {
+  _currentRotation: 0,
+  _lastRotateDelta: 0,
+  _rotateMomentumThreshold: .75,
+
   
 
 
@@ -797,6 +801,10 @@ let gGestureSupport = {
       case "MozTapGesture":
         aEvent.preventDefault();
         this._doAction(aEvent, ["tap"]);
+        break;
+      case "MozRotateGesture":
+        aEvent.preventDefault();
+        this._doAction(aEvent, ["twist", "end"]);
         break;
       
 
@@ -914,7 +922,7 @@ let gGestureSupport = {
           let cmdEvent = document.createEvent("xulcommandevent");
           cmdEvent.initCommandEvent("command", true, true, window, 0,
                                     aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKey,
-                                    aEvent.metaKey, null);
+                                    aEvent.metaKey, aEvent);
           node.dispatchEvent(cmdEvent);
         }
       } else {
@@ -973,6 +981,123 @@ let gGestureSupport = {
     catch (e) {
       return aDef;
     }
+  },
+
+  
+
+
+
+
+
+  rotate: function(aEvent) {
+    if (!(content.document instanceof ImageDocument))
+      return;
+
+    let contentElement = content.document.body.firstElementChild;
+    if (!contentElement)
+      return;
+
+    this.rotation = Math.round(this.rotation + aEvent.delta);
+    contentElement.style.transform = "rotate(" + this.rotation + "deg)";
+    this._lastRotateDelta = aEvent.delta;
+  },
+
+  
+
+
+  rotateEnd: function() {
+    if (!(content.document instanceof ImageDocument))
+      return;
+
+    let contentElement = content.document.body.firstElementChild;
+    if (!contentElement)
+      return;
+
+    let transitionRotation = 0;
+
+    
+    
+    
+    if (this.rotation <= 45)
+      transitionRotation = 0;
+    else if (this.rotation > 45 && this.rotation <= 135)
+      transitionRotation = 90;
+    else if (this.rotation > 135 && this.rotation <= 225)
+      transitionRotation = 180;
+    else if (this.rotation > 225 && this.rotation <= 315)
+      transitionRotation = 270;
+    else
+      transitionRotation = 360;
+
+    
+    
+    if (this._lastRotateDelta > this._rotateMomentumThreshold &&
+        this.rotation > transitionRotation)
+      transitionRotation += 90;
+    else if (this._lastRotateDelta < -1 * this._rotateMomentumThreshold &&
+             this.rotation < transitionRotation)
+      transitionRotation -= 90;
+
+    contentElement.classList.add("completeRotation");
+    contentElement.addEventListener("transitionend", this._clearCompleteRotation);
+
+    contentElement.style.transform = "rotate(" + transitionRotation + "deg)";
+    this.rotation = transitionRotation;
+  },
+
+  
+
+
+  get rotation() {
+    return this._currentRotation;
+  },
+
+  
+
+
+
+
+
+
+  set rotation(aVal) {
+    this._currentRotation = aVal % 360;
+    if (this._currentRotation < 0)
+      this._currentRotation += 360;
+    return this._currentRotation;
+  },
+
+  
+
+
+
+  restoreRotationState: function() {
+    if (!(content.document instanceof ImageDocument))
+      return;
+
+    let contentElement = content.document.body.firstElementChild;
+    let transformValue = content.window.getComputedStyle(contentElement, null)
+                                       .transform;
+
+    if (transformValue == "none") {
+      this.rotation = 0;
+      return;
+    }
+
+    
+    
+    transformValue = transformValue.split("(")[1]
+                                   .split(")")[0]
+                                   .split(",");
+    this.rotation = Math.round(Math.atan2(transformValue[1], transformValue[0]) *
+                               (180 / Math.PI));
+  },
+
+  
+
+
+  _clearCompleteRotation: function() {
+    this.classList.remove("completeRotation");
+    this.removeEventListener("transitionend", this._clearCompleteRotation);
   },
 };
 
@@ -4186,6 +4311,8 @@ var XULBrowserWindow = {
       }
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
+
+    gGestureSupport.restoreRotationState();
 
     
     
