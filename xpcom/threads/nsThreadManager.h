@@ -44,6 +44,10 @@ public:
 
   
   
+  uint32_t GetHighestNumberOfThreads();
+
+  
+  
   ~nsThreadManager() {}
 
 private:
@@ -51,9 +55,11 @@ private:
     : mCurThreadIndex(0)
     , mMainPRThread(nullptr)
     , mLock(nullptr)
-    , mInitialized(false) {
+    , mInitialized(false)
+    , mCurrentNumberOfThreads(1)
+    , mHighestNumberOfThreads(1) {
   }
-  
+
   static nsThreadManager sInstance;
 
   nsRefPtrHashtable<nsPtrHashKey<PRThread>, nsThread> mThreadsByPRThread;
@@ -64,6 +70,11 @@ private:
   
   nsAutoPtr<mozilla::Mutex> mLock;  
   bool                mInitialized;
+
+   
+   uint32_t           mCurrentNumberOfThreads;
+   
+   uint32_t           mHighestNumberOfThreads;
 };
 
 #define NS_THREADMANAGER_CID                       \

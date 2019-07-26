@@ -160,6 +160,11 @@ nsThreadManager::RegisterCurrentThread(nsThread *thread)
 
   MutexAutoLock lock(*mLock);
 
+  ++mCurrentNumberOfThreads;
+  if (mCurrentNumberOfThreads > mHighestNumberOfThreads) {
+    mHighestNumberOfThreads = mCurrentNumberOfThreads;
+  }
+
   mThreadsByPRThread.Put(thread->GetPRThread(), thread);  
 
   NS_ADDREF(thread);  
@@ -173,6 +178,7 @@ nsThreadManager::UnregisterCurrentThread(nsThread *thread)
 
   MutexAutoLock lock(*mLock);
 
+  --mCurrentNumberOfThreads;
   mThreadsByPRThread.Remove(thread->GetPRThread());
 
   PR_SetThreadPrivate(mCurThreadIndex, nullptr);
@@ -278,4 +284,11 @@ nsThreadManager::GetIsCycleCollectorThread(bool *result)
 {
   *result = bool(NS_IsCycleCollectorThread());
   return NS_OK;
+}
+
+uint32_t
+nsThreadManager::GetHighestNumberOfThreads()
+{
+  MutexAutoLock lock(*mLock);
+  return mHighestNumberOfThreads;
 }
