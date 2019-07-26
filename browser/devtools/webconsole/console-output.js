@@ -9,8 +9,6 @@ const {Cc, Ci, Cu} = require("chrome");
 
 loader.lazyImporter(this, "VariablesView", "resource:///modules/devtools/VariablesView.jsm");
 loader.lazyImporter(this, "escapeHTML", "resource:///modules/devtools/VariablesView.jsm");
-loader.lazyImporter(this, "gDevTools", "resource:///modules/devtools/gDevTools.jsm");
-loader.lazyImporter(this, "Task","resource://gre/modules/Task.jsm");
 
 const Heritage = require("sdk/core/heritage");
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
@@ -133,7 +131,7 @@ ConsoleOutput.prototype = {
 
 
   get document() {
-    return this.owner ? this.owner.document : null;
+    return this.owner.document;
   },
 
   
@@ -150,14 +148,6 @@ ConsoleOutput.prototype = {
 
   get webConsoleClient() {
     return this.owner.webConsoleClient;
-  },
-
-  
-
-
-
-  get toolboxTarget() {
-    return this.owner.owner.target;
   },
 
   
@@ -517,15 +507,6 @@ Messages.BaseMessage.prototype = {
   {
     this.output.openLink(event.target.href);
   },
-
-  destroy: function()
-  {
-    
-    for (let widget of this.widgets) {
-      widget.destroy();
-    }
-    this.widgets.clear();
-  }
 }; 
 
 
@@ -2036,7 +2017,6 @@ Widgets.ObjectRenderers.add({
       case Ci.nsIDOMNode.TEXT_NODE:
       case Ci.nsIDOMNode.COMMENT_NODE:
       case Ci.nsIDOMNode.DOCUMENT_FRAGMENT_NODE:
-      case Ci.nsIDOMNode.ELEMENT_NODE:
         return true;
       default:
         return false;
@@ -2064,9 +2044,6 @@ Widgets.ObjectRenderers.add({
         break;
       case Ci.nsIDOMNode.DOCUMENT_FRAGMENT_NODE:
         this._renderDocumentFragmentNode();
-        break;
-      case Ci.nsIDOMNode.ELEMENT_NODE:
-        this._renderElementNode();
         break;
       default:
         throw new Error("Unsupported nodeType: " + preview.nodeType);
@@ -2160,168 +2137,6 @@ Widgets.ObjectRenderers.add({
     }
 
     this._text(" ]");
-  },
-
-  _renderElementNode: function()
-  {
-    let doc = this.document;
-    let {attributes, nodeName} = this.objectActor.preview;
-
-    this.element = this.el("span." + "kind-" + this.objectActor.preview.kind + ".elementNode");
-
-    let openTag = this.el("span.cm-tag");
-    openTag.textContent = "<";
-    this.element.appendChild(openTag);
-
-    let tagName = this._anchor(nodeName, {
-      className: "cm-tag",
-      appendTo: openTag
-    });
-
-    if (this.options.concise) {
-      if (attributes.id) {
-        tagName.appendChild(this.el("span.cm-attribute", "#" + attributes.id));
-      }
-      if (attributes.class) {
-        tagName.appendChild(this.el("span.cm-attribute", "." + attributes.class.split(" ").join(".")));
-      }
-    } else {
-      for (let name of Object.keys(attributes)) {
-        let attr = this._renderAttributeNode(" " + name, attributes[name]);
-        this.element.appendChild(attr);
-      }
-    }
-
-    let closeTag = this.el("span.cm-tag");
-    closeTag.textContent = ">";
-    this.element.appendChild(closeTag);
-
-    
-    
-    this.message.widgets.add(this);
-
-    this.linkToInspector();
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  linkToInspector: function()
-  {
-    if (this._linkedToInspector) {
-      return this._linkedToInspector;
-    }
-
-    this._linkedToInspector = Task.spawn(function*() {
-      
-      if (this.objectActor.preview.nodeType !== Ci.nsIDOMNode.ELEMENT_NODE) {
-        throw null;
-      }
-
-      
-      let target = this.message.output.toolboxTarget;
-      this.toolbox = gDevTools.getToolbox(target);
-      if (!this.toolbox) {
-        throw null;
-      }
-
-      
-      yield this.toolbox.initInspector();
-      this._nodeFront = yield this.toolbox.walker.getNodeActorFromObjectActor(this.objectActor.actor);
-      if (!this._nodeFront) {
-        throw null;
-      }
-
-      
-      if (!this.document) {
-        throw null;
-      }
-
-      this.highlightDomNode = this.highlightDomNode.bind(this);
-      this.element.addEventListener("mouseover", this.highlightDomNode, false);
-      this.unhighlightDomNode = this.unhighlightDomNode.bind(this);
-      this.element.addEventListener("mouseout", this.unhighlightDomNode, false);
-
-      this._openInspectorNode = this._anchor("", {
-        className: "open-inspector",
-        onClick: this.openNodeInInspector.bind(this)
-      });
-      this._openInspectorNode.title = l10n.getStr("openNodeInInspector");
-    }.bind(this));
-
-    return this._linkedToInspector;
-  },
-
-  
-
-
-
-
-  highlightDomNode: function()
-  {
-    return Task.spawn(function*() {
-      yield this.linkToInspector();
-      let isAttached = yield this.toolbox.walker.isInDOMTree(this._nodeFront);
-      if (isAttached) {
-        yield this.toolbox.highlighterUtils.highlightNodeFront(this._nodeFront);
-      } else {
-        throw null;
-      }
-    }.bind(this));
-  },
-
-  
-
-
-
-
-  unhighlightDomNode: function()
-  {
-    return this.linkToInspector().then(() => {
-      return this.toolbox.highlighterUtils.unhighlight();
-    });
-  },
-
-  
-
-
-
-
-
-
-  openNodeInInspector: function()
-  {
-    return Task.spawn(function*() {
-      yield this.linkToInspector();
-      yield this.toolbox.selectTool("inspector");
-
-      let isAttached = yield this.toolbox.walker.isInDOMTree(this._nodeFront);
-      if (isAttached) {
-        let onReady = this.toolbox.inspector.once("inspector-updated");
-        yield this.toolbox.selection.setNodeFront(this._nodeFront, "console");
-        yield onReady;
-      } else {
-        throw null;
-      }
-    }.bind(this));
-  },
-
-  destroy: function()
-  {
-    if (this.toolbox && this._nodeFront) {
-      this.element.removeEventListener("mouseover", this.highlightDomNode, false);
-      this.element.removeEventListener("mouseout", this.unhighlightDomNode, false);
-      this._openInspectorNode.removeEventListener("mousedown", this.openNodeInInspector, true);
-      this.toolbox = null;
-      this._nodeFront = null;
-    }
   },
 }); 
 
