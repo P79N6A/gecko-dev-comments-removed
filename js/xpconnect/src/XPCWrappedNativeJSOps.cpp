@@ -1168,6 +1168,20 @@ XPCNativeScriptableShared::PopulateJSClass()
     
     mJSClass.base.resolve = (JSResolveOp) XPC_WN_Helper_NewResolve;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (mFlags.WantConvert())
         mJSClass.base.convert = XPC_WN_Helper_Convert;
     else if (mFlags.WantOuterObject())
