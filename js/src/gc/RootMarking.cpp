@@ -466,8 +466,12 @@ AutoGCRooter::trace(JSTracer *trc)
       }
 
       case VALARRAY: {
-        AutoValueArray *array = static_cast<AutoValueArray *>(this);
-        MarkValueRootRange(trc, array->length(), array->start(), "js::AutoValueArray");
+        
+
+
+
+        AutoValueArray<1> *array = static_cast<AutoValueArray<1> *>(this);
+        MarkValueRootRange(trc, array->length(), array->begin(), "js::AutoValueArray");
         return;
       }
 
