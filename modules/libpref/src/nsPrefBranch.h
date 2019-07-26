@@ -194,6 +194,12 @@ protected:
     { }
 
   nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, PRUnichar **return_buf);
+  
+  nsresult   SetCharPrefInternal(const char *aPrefName, const char *aValue);
+  
+  nsresult   CheckSanityOfStringLength(const char* aPrefName, const nsAString& aValue);
+  nsresult   CheckSanityOfStringLength(const char* aPrefName, const char* aValue);
+  nsresult   CheckSanityOfStringLength(const char* aPrefName, const uint32_t aLength);
   void RemoveExpiredCallback(PrefCallback *aCallback);
   const char *getPrefName(const char *aPrefName);
   void       freeObserverList(void);
