@@ -62,7 +62,7 @@ extern SECStatus RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *  key,
 
 
 
-extern SECStatus RSA_PrivateKeyCheck(RSAPrivateKey *key);
+extern SECStatus RSA_PrivateKeyCheck(const RSAPrivateKey *key);
 
 
 

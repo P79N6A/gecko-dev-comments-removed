@@ -981,8 +981,15 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
 
 
     nssPKIObject_AddInstance(&c->object, certobj);
+    
+
+
+    nssCertificate_AddRef(c);
     nssTrustDomain_AddCertsToCache(STAN_GetDefaultTrustDomain(), &c, 1);
+    
+
     (void)STAN_ForceCERTCertificateUpdate(c);
+    nssCertificate_Destroy(c);
     SECITEM_FreeItem(keyID,PR_TRUE);
     return SECSuccess;
 loser:
