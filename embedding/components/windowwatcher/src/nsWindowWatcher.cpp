@@ -1587,6 +1587,17 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   bool disableDialogFeature = false;
   nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(prefs);
   branch->GetBoolPref("dom.disable_window_open_dialog_feature", &disableDialogFeature);
+
+  bool isFullScreen = false;
+  if (aParent) {
+    aParent->GetFullScreen(&isFullScreen);
+  }
+  if (isFullScreen && !isCallerChrome) {
+    
+    
+    disableDialogFeature = true;
+  }
+
   if (!disableDialogFeature) {
     chromeFlags |= WinHasOption(aFeatures, "dialog", 0, nullptr) ?
       nsIWebBrowserChrome::CHROME_OPENAS_DIALOG : 0;
