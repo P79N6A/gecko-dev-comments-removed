@@ -1359,7 +1359,6 @@ Scope.prototype = {
       
       return;
     }
-    this._wasToggled = true;
     this.expanded ^= 1;
 
     
@@ -1800,30 +1799,21 @@ Scope.prototype = {
         
         
         
-
-        if (variable._wasToggled && aLowerCaseQuery) {
+        if (variable._store.size) {
           variable.expand();
         }
-        if (variable._isExpanded && !aLowerCaseQuery) {
-          variable._wasToggled = true;
-        }
 
         
         
         
-        while ((variable = variable.ownerView) &&  
-               variable instanceof Scope) {
-
-          
+        while ((variable = variable.ownerView) && variable instanceof Scope) {
           variable._matched = true;
-          aLowerCaseQuery && variable.expand();
+          variable.expand();
         }
       }
 
       
-      if (currentObject._wasToggled ||
-          currentObject.getter ||
-          currentObject.setter) {
+      if (currentObject._store.size || currentObject.getter || currentObject.setter) {
         currentObject._performSearch(aLowerCaseQuery);
       }
     }
@@ -2007,7 +1997,6 @@ Scope.prototype = {
   _locked: false,
   _isExpanding: false,
   _isExpanded: false,
-  _wasToggled: false,
   _isContentVisible: true,
   _isHeaderVisible: true,
   _isArrowVisible: true,
@@ -2926,7 +2915,6 @@ VariablesView.prototype.commitHierarchy = function() {
 
     
     if (expanded) {
-      currVariable._wasToggled = prevVariable._wasToggled;
       currVariable.expand();
     }
     
