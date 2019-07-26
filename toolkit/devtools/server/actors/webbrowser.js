@@ -471,7 +471,7 @@ BrowserTabList.prototype.onCloseWindow = DevToolsUtils.makeInfallible(function(a
 
 
 
-function BrowserTabActor(aConnection, aBrowser, aTabBrowser)
+function TabActor(aConnection, aBrowser, aTabBrowser)
 {
   this.conn = aConnection;
   this._browser = aBrowser;
@@ -486,7 +486,7 @@ function BrowserTabActor(aConnection, aBrowser, aTabBrowser)
 
 
 
-BrowserTabActor.prototype = {
+TabActor.prototype = {
   get browser() { return this._browser; },
 
   get exited() { return !this.browser; },
@@ -734,7 +734,7 @@ BrowserTabActor.prototype = {
     
     Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
       this.window.location.reload();
-    }, "BrowserTabActor.prototype.onReload's delayed body"), 0);
+    }, "TabActor.prototype.onReload's delayed body"), 0);
     return {};
   },
 
@@ -746,7 +746,7 @@ BrowserTabActor.prototype = {
     
     Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
       this.window.location = aRequest.url;
-    }, "BrowserTabActor.prototype.onNavigateTo's delayed body"), 0);
+    }, "TabActor.prototype.onNavigateTo's delayed body"), 0);
     return {};
   },
 
@@ -912,7 +912,7 @@ BrowserTabActor.prototype = {
     if (this.threadActor.attached) {
       this.threadActor.findGlobals();
     }
-  }, "BrowserTabActor.prototype.onWindowCreated"),
+  }, "TabActor.prototype.onWindowCreated"),
 
   
 
@@ -933,13 +933,33 @@ BrowserTabActor.prototype = {
 
 
 
-BrowserTabActor.prototype.requestTypes = {
-  "attach": BrowserTabActor.prototype.onAttach,
-  "detach": BrowserTabActor.prototype.onDetach,
-  "reload": BrowserTabActor.prototype.onReload,
-  "navigateTo": BrowserTabActor.prototype.onNavigateTo,
-  "reconfigure": BrowserTabActor.prototype.onReconfigure
+TabActor.prototype.requestTypes = {
+  "attach": TabActor.prototype.onAttach,
+  "detach": TabActor.prototype.onDetach,
+  "reload": TabActor.prototype.onReload,
+  "navigateTo": TabActor.prototype.onNavigateTo,
+  "reconfigure": TabActor.prototype.onReconfigure
 };
+
+
+
+
+
+
+
+
+
+
+
+
+function BrowserTabActor(aConnection, aBrowser, aTabBrowser)
+{
+  TabActor.call(this, aConnection, aBrowser, aTabBrowser);
+}
+
+BrowserTabActor.prototype = Object.create(TabActor.prototype);
+
+BrowserTabActor.prototype.constructor = BrowserTabActor;
 
 function BrowserAddonList(aConnection)
 {
@@ -1109,8 +1129,8 @@ BrowserAddonActor.prototype.requestTypes = {
 
 
 
-function DebuggerProgressListener(aBrowserTabActor) {
-  this._tabActor = aBrowserTabActor;
+function DebuggerProgressListener(aTabActor) {
+  this._tabActor = aTabActor;
   this._tabActor.webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_ALL);
   let EventEmitter = devtools.require("devtools/toolkit/event-emitter");
   EventEmitter.decorate(this);
