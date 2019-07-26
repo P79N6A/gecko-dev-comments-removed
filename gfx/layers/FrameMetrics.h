@@ -7,7 +7,6 @@
 #define GFX_FRAMEMETRICS_H
 
 #include <stdint.h>                     
-#include <string>                       
 #include "Units.h"                      
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/Rect.h"           
@@ -71,8 +70,6 @@ public:
 
   bool operator==(const FrameMetrics& aOther) const
   {
-    
-    
     return mCompositionBounds.IsEqualEdges(aOther.mCompositionBounds) &&
            mDisplayPort.IsEqualEdges(aOther.mDisplayPort) &&
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
@@ -339,16 +336,6 @@ public:
     return mScrollGeneration;
   }
 
-  const std::string& GetContentDescription() const
-  {
-    return mContentDescription;
-  }
-
-  void SetContentDescription(const std::string& aContentDescription)
-  {
-    mContentDescription = aContentDescription;
-  }
-
 private:
   
   
@@ -363,10 +350,6 @@ private:
   bool mUpdateScrollOffset;
   
   uint32_t mScrollGeneration;
-
-  
-  
-  std::string mContentDescription;
 };
 
 

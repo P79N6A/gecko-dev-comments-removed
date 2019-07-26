@@ -304,9 +304,6 @@ pref("media.audio_data.enabled", false);
 
 pref("apz.axis_lock_mode", 0);
 
-
-pref("apz.printtree", false);
-
 #ifdef XP_MACOSX
 
 
