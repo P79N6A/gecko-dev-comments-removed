@@ -475,6 +475,15 @@ public:
             return;
 
         
+        if (Screen()) {
+            
+
+
+
+
+            Screen()->AssureBlitted();
+        }
+
         mCurSurface = eglSurface;
         MakeCurrent(true);
     }
