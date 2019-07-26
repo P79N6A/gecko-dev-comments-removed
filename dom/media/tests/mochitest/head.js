@@ -174,6 +174,29 @@ function checkMediaStreamTracks(constraints, mediaStream) {
 
 
 
+
+
+
+function getBlobContent(blob, onSuccess) {
+  var reader = new FileReader();
+
+  
+  reader.onloadend = function (event) {
+    onSuccess(event.target.result);
+  };
+
+  reader.readAsText(blob);
+}
+
+
+
+
+
+
+
+
+
+
 function unexpectedCallbackAndFinish(message) {
   var stack = new Error().stack.split("\n");
   stack.shift(); 

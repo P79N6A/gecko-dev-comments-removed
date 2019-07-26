@@ -12,10 +12,12 @@
 
 
 
-function CommandChain(framework) {
+
+
+function CommandChain(framework, commandList) {
   this._framework = framework;
 
-  this._commands = [ ];
+  this._commands = commandList || [ ];
   this._current = 0;
 
   this.onFinished = null;
@@ -229,111 +231,6 @@ CommandChain.prototype = {
 
 
 
-var commandsPeerConnection = [
-  [
-    'PC_LOCAL_GUM',
-    function (test) {
-      test.pcLocal.getAllUserMedia(function () {
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_REMOTE_GUM',
-    function (test) {
-      test.pcRemote.getAllUserMedia(function () {
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_CHECK_INITIAL_SIGNALINGSTATE',
-    function (test) {
-      is(test.pcLocal.signalingState, "stable",
-         "Initial local signalingState is 'stable'");
-      is(test.pcRemote.signalingState, "stable",
-         "Initial remote signalingState is 'stable'");
-      test.next();
-    }
-  ],
-  [
-    'PC_LOCAL_CREATE_OFFER',
-    function (test) {
-      test.createOffer(test.pcLocal, function () {
-        is(test.pcLocal.signalingState, "stable",
-           "Local create offer does not change signaling state");
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_LOCAL_SET_LOCAL_DESCRIPTION',
-    function (test) {
-      test.setLocalDescription(test.pcLocal, test.pcLocal._last_offer, function () {
-        is(test.pcLocal.signalingState, "have-local-offer",
-           "signalingState after local setLocalDescription is 'have-local-offer'");
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_REMOTE_SET_REMOTE_DESCRIPTION',
-    function (test) {
-      test.setRemoteDescription(test.pcRemote, test.pcLocal._last_offer, function () {
-        is(test.pcRemote.signalingState, "have-remote-offer",
-           "signalingState after remote setRemoteDescription is 'have-remote-offer'");
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_REMOTE_CREATE_ANSWER',
-    function (test) {
-      test.createAnswer(test.pcRemote, function () {
-        is(test.pcRemote.signalingState, "have-remote-offer",
-           "Remote createAnswer does not change signaling state");
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_LOCAL_SET_REMOTE_DESCRIPTION',
-    function (test) {
-      test.setRemoteDescription(test.pcLocal, test.pcRemote._last_answer, function () {
-        is(test.pcLocal.signalingState, "stable",
-           "signalingState after local setRemoteDescription is 'stable'");
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_REMOTE_SET_LOCAL_DESCRIPTION',
-    function (test) {
-      test.setLocalDescription(test.pcRemote, test.pcRemote._last_answer, function () {
-        is(test.pcRemote.signalingState, "stable",
-           "signalingState after remote setLocalDescription is 'stable'");
-        test.next();
-      });
-    }
-  ],
-  [
-    'PC_LOCAL_CHECK_MEDIA',
-    function (test) {
-      test.pcLocal.checkMedia(test.pcRemote.constraints);
-      test.next();
-    }
-  ],
-  [
-    'PC_REMOTE_CHECK_MEDIA',
-    function (test) {
-      test.pcRemote.checkMedia(test.pcLocal.constraints);
-      test.next();
-    }
-  ]
-];
-
-
-
 
 
 
@@ -347,19 +244,39 @@ var commandsPeerConnection = [
 function PeerConnectionTest(options) {
   
   options = options || { };
+  options.commands = options.commands || commandsPeerConnection;
 
   this.pcLocal = new PeerConnectionWrapper('pcLocal', options.config_pc1);
   this.pcRemote = new PeerConnectionWrapper('pcRemote', options.config_pc2 || options.config_pc1);
 
+  this.connected = false;
+
   
-  this.chain = new CommandChain(this);
-  this.chain.commands = commandsPeerConnection;
+  this.chain = new CommandChain(this, options.commands);
 
   var self = this;
   this.chain.onFinished = function () {
     self.teardown();
   }
 }
+
+
+
+
+
+
+
+PeerConnectionTest.prototype.close = function PCT_close(onSuccess) {
+  info("Closing peer connections. Connection state=" + this.connected);
+
+  
+  
+  this.pcLocal.close();
+  this.pcRemote.close();
+  this.connected = false;
+
+  onSuccess();
+};
 
 
 
@@ -504,18 +421,363 @@ PeerConnectionTest.prototype.run = function PCT_run() {
 
 
 PeerConnectionTest.prototype.teardown = function PCT_teardown() {
-  if (this.pcLocal) {
-    this.pcLocal.close();
-    this.pcLocal = null;
-  }
+  this.close(function () {
+    info("Test finished");
+    SimpleTest.finish();
+  });
+};
 
-  if (this.pcRemote) {
-    this.pcRemote.close();
-    this.pcRemote = null;
-  }
 
-  info("Test finished");
-  SimpleTest.finish();
+
+
+
+
+
+
+
+
+
+
+
+
+
+function DataChannelTest(options) {
+  options = options || { };
+  options.commands = options.commands || commandsDataChannel;
+
+  PeerConnectionTest.call(this, options);
+}
+
+DataChannelTest.prototype = Object.create(PeerConnectionTest.prototype, {
+  close : {
+    
+
+
+
+
+
+    value : function DCT_close(onSuccess) {
+      var self = this;
+
+      function _closeChannels() {
+        var length = self.pcLocal.dataChannels.length;
+
+        if (length > 0) {
+          self.closeDataChannel(length - 1, function () {
+            _closeChannels();
+          });
+        }
+        else {
+          PeerConnectionTest.prototype.close.call(self, onSuccess);
+        }
+      }
+
+      _closeChannels();
+    }
+  },
+
+  closeDataChannel : {
+    
+
+
+
+
+
+
+
+    value : function DCT_closeDataChannel(index, onSuccess) {
+      var localChannel = this.pcLocal.dataChannels[index];
+      var remoteChannel = this.pcRemote.dataChannels[index];
+
+      var self = this;
+
+      
+      
+      remoteChannel.onclose = function () {
+        self.pcRemote.dataChannels.splice(index, 1);
+
+        onSuccess(remoteChannel);
+      };
+
+      localChannel.close();
+      this.pcLocal.dataChannels.splice(index, 1);
+    }
+  },
+
+  createDataChannel : {
+    
+
+
+
+
+
+
+
+    value : function DCT_createDataChannel(options, onSuccess) {
+      var localChannel = null;
+      var remoteChannel = null;
+      var self = this;
+
+      
+      function check_next_test() {
+        if (self.connected && localChannel && remoteChannel) {
+          onSuccess(localChannel, remoteChannel);
+        }
+      }
+
+      
+      this.pcRemote.registerDataChannelOpenEvents(function (channel) {
+        remoteChannel = channel;
+        check_next_test();
+      });
+
+      
+      this.pcLocal.createDataChannel(options, function (channel) {
+        localChannel = channel;
+        check_next_test();
+      });
+    }
+  },
+
+  send : {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    value : function DCT_send(data, onSuccess, options) {
+      options = options || { };
+      source = options.sourceChannel ||
+               this.pcLocal.dataChannels[this.pcLocal.dataChannels.length - 1];
+      target = options.targetChannel ||
+               this.pcRemote.dataChannels[this.pcRemote.dataChannels.length - 1];
+
+      
+      target.onmessage = function (recv_data) {
+        onSuccess(target, recv_data);
+      };
+
+      source.send(data);
+    }
+  },
+
+  setLocalDescription : {
+    
+
+
+
+
+
+
+
+
+
+
+
+    value : function DCT_setLocalDescription(peer, desc, onSuccess) {
+      
+      
+      
+      if (peer.signalingState === 'have-remote-offer') {
+        this.waitForInitialDataChannel(peer, desc, onSuccess);
+      }
+      else {
+        PeerConnectionTest.prototype.setLocalDescription.call(this, peer,
+                                                              desc, onSuccess);
+      }
+
+    }
+  },
+
+  waitForInitialDataChannel : {
+    
+
+
+
+
+
+
+
+
+
+    value : function DCT_waitForInitialDataChannel(peer, desc, onSuccess) {
+      var self = this;
+
+      var targetPeer = peer;
+      var targetChannel = null;
+
+      var sourcePeer = (peer == this.pcLocal) ? this.pcRemote : this.pcLocal;
+      var sourceChannel = null;
+
+      
+      
+      
+      function check_next_test() {
+        if (self.connected && sourceChannel && targetChannel) {
+          onSuccess(sourceChannel, targetChannel);
+        }
+      }
+
+      
+      sourcePeer.dataChannels[0].onopen = function (channel) {
+        sourceChannel = channel;
+        check_next_test();
+      };
+
+      
+      targetPeer.registerDataChannelOpenEvents(function (channel) {
+        targetChannel = channel;
+        check_next_test();
+      });
+
+      PeerConnectionTest.prototype.setLocalDescription.call(this, targetPeer, desc,
+        function () {
+          self.connected = true;
+          check_next_test();
+        }
+      );
+    }
+  }
+});
+
+
+
+
+
+
+
+
+function DataChannelWrapper(dataChannel, peerConnectionWrapper) {
+  this._channel = dataChannel;
+  this._pc = peerConnectionWrapper;
+
+  info("Creating " + this);
+
+  
+
+
+
+  this.onclose = unexpectedEventAndFinish(this, 'onclose');
+  this.onerror = unexpectedEventAndFinish(this, 'onerror');
+  this.onmessage = unexpectedEventAndFinish(this, 'onmessage');
+  this.onopen = unexpectedEventAndFinish(this, 'onopen');
+
+  var self = this;
+
+  
+
+
+
+
+  this._channel.onclose = function () {
+    info(self + ": 'onclose' event fired");
+
+    self.onclose(self);
+    self.onclose = unexpectedEventAndFinish(self, 'onclose');
+  };
+
+  
+
+
+
+
+
+
+
+  this._channel.onmessage = function (event) {
+    info(self + ": 'onmessage' event fired for '" + event.data + "'");
+
+    self.onmessage(event.data);
+    self.onmessage = unexpectedEventAndFinish(self, 'onmessage');
+  };
+
+  
+
+
+
+
+  this._channel.onopen = function () {
+    info(self + ": 'onopen' event fired");
+
+    self.onopen(self);
+    self.onopen = unexpectedEventAndFinish(self, 'onopen');
+  };
+}
+
+DataChannelWrapper.prototype = {
+  
+
+
+
+
+  get binaryType() {
+    return this._channel.binaryType;
+  },
+
+  
+
+
+
+
+
+  set binaryType(type) {
+    this._channel.binaryType = type;
+  },
+
+  
+
+
+
+
+  get label() {
+    return this._channel.label;
+  },
+
+  
+
+
+
+
+  get readyState() {
+    return this._channel.readyState;
+  },
+
+  
+
+
+  close : function () {
+    info(this + ": Closing channel");
+    this._channel.close();
+  },
+
+  
+
+
+
+
+
+  send: function DCW_send(data) {
+    info(this + ": Sending data '" + data + "'");
+    this._channel.send(data);
+  },
+
+  
+
+
+
+
+  toString: function DCW_toString() {
+    return "DataChannelWrapper (" + this._pc.label + '_' + this._channel.label + ")";
+  }
 };
 
 
@@ -536,21 +798,46 @@ function PeerConnectionWrapper(label, configuration) {
   this.offerConstraints = {};
   this.streams = [ ];
 
-  info("Creating new PeerConnectionWrapper: " + this);
+  this.dataChannels = [ ];
+
+  info("Creating " + this);
   this._pc = new mozRTCPeerConnection(this.configuration);
 
   
 
 
 
+  this.ondatachannel = unexpectedEventAndFinish(this, 'ondatachannel');
   this.onsignalingstatechange = unexpectedEventAndFinish(this, 'onsignalingstatechange');
+
+  
+
+
+
 
 
   var self = this;
   this._pc.onaddstream = function (event) {
+    info(self + ": 'onaddstream' event fired for " + event.stream);
+
     
     self.attachMedia(event.stream, 'video', 'remote');
-  };
+   };
+
+  
+
+
+
+
+
+
+
+  this._pc.ondatachannel = function (event) {
+    info(self + ": 'ondatachannel' event fired for " + event.channel.label);
+
+    self.ondatachannel(new DataChannelWrapper(event.channel, self));
+    self.ondatachannel = unexpectedEventAndFinish(self, 'ondatachannel');
+  }
 
   
 
@@ -587,6 +874,15 @@ PeerConnectionWrapper.prototype = {
 
   set localDescription(desc) {
     this._pc.localDescription = desc;
+  },
+
+  
+
+
+
+
+  get readyState() {
+    return this._pc.readyState;
   },
 
   
@@ -676,6 +972,32 @@ PeerConnectionWrapper.prototype = {
 
     info("Get " + this.constraints.length + " local streams");
     _getAllUserMedia(this.constraints, 0);
+  },
+
+  
+
+
+
+
+
+
+
+
+  createDataChannel : function PCW_createDataChannel(options, onCreation) {
+    var label = 'channel_' + this.dataChannels.length;
+    info(this + ": Create data channel '" + label);
+
+    var channel = this._pc.createDataChannel(label, options);
+    var wrapper = new DataChannelWrapper(channel, this);
+
+    if (onCreation) {
+      wrapper.onopen = function () {
+        onCreation(wrapper);
+      }
+    }
+
+    this.dataChannels.push(wrapper);
+    return wrapper;
   },
 
   
@@ -841,12 +1163,33 @@ PeerConnectionWrapper.prototype = {
     try {
       this._pc.close();
       info(this + ": Closed connection.");
-    } catch (e) {
+    }
+    catch (e) {
       info(this + ": Failure in closing connection - " + e.message);
     }
   },
 
   
+
+
+
+
+
+  registerDataChannelOpenEvents : function (onDataChannelOpened) {
+    info(this + ": Register callbacks for 'ondatachannel' and 'onopen'");
+
+    this.ondatachannel = function (targetChannel) {
+      targetChannel.onopen = function (targetChannel) {
+        onDataChannelOpened(targetChannel);
+      };
+
+      this.dataChannels.push(targetChannel);
+    }
+  },
+
+  
+
+
 
 
   toString : function PCW_toString() {
