@@ -230,7 +230,8 @@ public:
     
     uint32_t Generation() { return mGeneration.value(); }
 
-    const WebGLRectangleObject *FramebufferRectangleObject() const;
+    
+    const WebGLRectangleObject* CurValidFBRectObject() const;
 
     static const size_t sMaxColorAttachments = 16;
 
