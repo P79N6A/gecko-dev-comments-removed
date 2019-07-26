@@ -389,7 +389,8 @@ class CodeGenerator : public CodeGeneratorSpecific
                                const LDefinition *scratch1, const LDefinition *scratch2,
                                FloatRegister fr,
                                Label *ifTruthy, Label *ifFalsy,
-                               OutOfLineTestObject *ool);
+                               OutOfLineTestObject *ool,
+                               MDefinition *valueMIR);
 
     
     
@@ -400,7 +401,8 @@ class CodeGenerator : public CodeGeneratorSpecific
                          const LDefinition *scratch1, const LDefinition *scratch2,
                          FloatRegister fr,
                          Label *ifTruthy, Label *ifFalsy,
-                         OutOfLineTestObject *ool);
+                         OutOfLineTestObject *ool,
+                         MDefinition *valueMIR);
 
     
     
