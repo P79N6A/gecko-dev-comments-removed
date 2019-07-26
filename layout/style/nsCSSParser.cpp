@@ -5245,7 +5245,7 @@ CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
 
   
   
-  if (!ParseVariant(stop->mLocation, VARIANT_LP, nullptr)) {
+  if (!ParseVariant(stop->mLocation, VARIANT_LP | VARIANT_CALC, nullptr)) {
     stop->mLocation.SetNoneValue();
   }
   return true;

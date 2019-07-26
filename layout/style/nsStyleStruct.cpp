@@ -1361,7 +1361,10 @@ nsStyleGradient::IsOpaque()
 bool
 nsStyleGradient::HasCalc()
 {
-  
+  for (uint32_t i = 0; i < mStops.Length(); i++) {
+    if (mStops[i].mLocation.IsCalcUnit())
+      return true;
+  }
   return mBgPosX.IsCalcUnit() || mBgPosY.IsCalcUnit() || mAngle.IsCalcUnit() ||
          mRadiusX.IsCalcUnit() || mRadiusX.IsCalcUnit();
 }
