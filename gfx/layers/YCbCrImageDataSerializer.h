@@ -13,6 +13,7 @@
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Point.h"          
+#include "Units.h"
 
 namespace mozilla {
 namespace gfx {
@@ -58,12 +59,12 @@ public:
   
 
 
-  gfxIntSize GetYSize();
+  LayerIntSize GetYSize();
 
   
 
 
-  gfxIntSize GetCbCrSize();
+  LayerIntSize GetCbCrSize();
 
   
 
@@ -103,8 +104,8 @@ public:
 
 
 
-  static size_t ComputeMinBufferSize(const gfx::IntSize& aYSize,
-                                     const gfx::IntSize& aCbCrSize);
+  static size_t ComputeMinBufferSize(const LayerIntSize& aYSize,
+                                     const LayerIntSize& aCbCrSize);
   static size_t ComputeMinBufferSize(const gfxIntSize& aYSize,
                                      const gfxIntSize& aCbCrSize);
   static size_t ComputeMinBufferSize(uint32_t aSize);
@@ -114,8 +115,8 @@ public:
 
 
 
-  void InitializeBufferInfo(const gfx::IntSize& aYSize,
-                            const gfx::IntSize& aCbCrSize,
+  void InitializeBufferInfo(const LayerIntSize& aYSize,
+                            const LayerIntSize& aCbCrSize,
                             StereoMode aStereoMode);
   void InitializeBufferInfo(const gfxIntSize& aYSize,
                             const gfxIntSize& aCbCrSize,
@@ -123,8 +124,8 @@ public:
 
   bool CopyData(const uint8_t* aYData,
                 const uint8_t* aCbData, const uint8_t* aCrData,
-                gfxIntSize aYSize, uint32_t aYStride,
-                gfxIntSize aCbCrSize, uint32_t aCbCrStride,
+                LayerIntSize aYSize, uint32_t aYStride,
+                LayerIntSize aCbCrSize, uint32_t aCbCrStride,
                 uint32_t aYSkip, uint32_t aCbCrSkip);
 };
 
