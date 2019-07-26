@@ -64,6 +64,10 @@ public:
   
   void SetValue(float aValue)
   {
+    
+    if (HasSimpleValue() && fabsf(GetValue() - aValue) < 1e-7) {
+      return;
+    }
     AudioParamTimeline::SetValue(aValue);
     mCallback(mNode);
   }
