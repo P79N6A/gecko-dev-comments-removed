@@ -2,10 +2,10 @@
 
 
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
-PACKAGE_NAME = "mozlog"
-PACKAGE_VERSION = '1.3'
+PACKAGE_NAME = 'mozlog'
+PACKAGE_VERSION = '1.5'
 
 setup(name=PACKAGE_NAME,
       version=PACKAGE_VERSION,
@@ -15,7 +15,7 @@ setup(name=PACKAGE_NAME,
       author_email='tools@lists.mozilla.org',
       url='https://wiki.mozilla.org/Auto-tools/Projects/Mozbase',
       license='MPL 1.1/GPL 2.0/LGPL 2.1',
-      packages=['mozlog'],
+      packages=find_packages(),
       zip_safe=False,
       tests_require=['mozfile'],
       platforms =['Any'],

@@ -318,7 +318,7 @@ def read_ini(fp, variables=None, default='DEFAULT',
         fp = file(fp)
 
     
-    for line in fp.readlines():
+    for (linenum, line) in enumerate(fp.readlines(), start=1):
 
         stripped = line.strip()
 
@@ -380,7 +380,12 @@ def read_ini(fp, variables=None, default='DEFAULT',
                 current_section[key] = value
             else:
                 
-                raise Exception("Not sure what you're trying to do")
+                if hasattr(fp, 'name'):
+                    filename = fp.name
+                else:
+                    filename = 'unknown'
+                raise Exception("Error parsing manifest file '%s', line %s" %
+                                (filename, linenum))
 
     
     def interpret_variables(global_dict, local_dict):
