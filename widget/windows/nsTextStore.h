@@ -11,6 +11,7 @@
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 #include "nsIWidget.h"
+#include "nsWindowBase.h"
 #include "mozilla/Attributes.h"
 
 #include <msctf.h>
@@ -22,6 +23,9 @@ struct ITfDisplayAttributeMgr;
 struct ITfCategoryMgr;
 class nsWindow;
 class nsTextEvent;
+#ifdef MOZ_METRO
+class MetroWidget;
+#endif
 
 
 
@@ -100,8 +104,9 @@ public:
     sTsfTextStore->SetInputContextInternal(aContext.mIMEState.mEnabled);
   }
 
-  static nsresult OnFocusChange(bool, nsWindow*, IMEState::Enabled);
-
+  static nsresult OnFocusChange(bool aGotFocus,
+                                nsWindowBase* aFocusedWidget,
+                                IMEState::Enabled aIMEEnabled);
   static nsresult OnTextChange(uint32_t aStart,
                                uint32_t aOldEnd,
                                uint32_t aNewEnd)
@@ -154,7 +159,8 @@ protected:
   nsTextStore();
   ~nsTextStore();
 
-  bool     Create(nsWindow*, IMEState::Enabled);
+  bool     Create(nsWindowBase* aWidget,
+                  IMEState::Enabled aIMEEnabled);
   bool     Destroy(void);
 
   bool     IsReadLock(DWORD aLock) const
@@ -193,6 +199,8 @@ protected:
   nsresult OnCompositionTimer();
 
   
+  nsRefPtr<nsWindowBase>       mWidget;
+  
   nsRefPtr<ITfDocumentMgr>     mDocumentMgr;
   
   DWORD                        mEditCookie;
@@ -202,8 +210,6 @@ protected:
   nsRefPtr<ITextStoreACPSink>  mSink;
   
   DWORD                        mSinkMask;
-  
-  nsWindow*                    mWindow;
   
   DWORD                        mLock;
   
