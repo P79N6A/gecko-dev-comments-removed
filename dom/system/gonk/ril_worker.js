@@ -3751,7 +3751,7 @@ let RIL = {
       return PDU_FCS_OK;
     }
 
-    if (message.messageClass == PDU_DCS_MSG_CLASS_SIM_SPECIFIC) {
+    if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
       switch (message.epid) {
         case PDU_PID_ANSI_136_R_DATA:
         case PDU_PID_USIM_DATA_DOWNLOAD:
@@ -3777,13 +3777,13 @@ let RIL = {
     }
 
     
-    if ((message.messageClass != PDU_DCS_MSG_CLASS_0) && !true) {
+    if ((message.messageClass != GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_0]) && !true) {
       
       
       
       
 
-      if (message.messageClass == PDU_DCS_MSG_CLASS_SIM_SPECIFIC) {
+      if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
         
         
         return PDU_FCS_MEMORY_CAPACITY_EXCEEDED;
@@ -3809,7 +3809,7 @@ let RIL = {
       this.sendDOMMessage(message);
     }
 
-    if (message.messageClass == PDU_DCS_MSG_CLASS_SIM_SPECIFIC) {
+    if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
       
       
       return PDU_FCS_RESERVED;
@@ -5925,7 +5925,7 @@ let GsmPDUHelper = {
     if (DEBUG) debug("PDU: read dcs: " + dcs);
 
     
-    let messageClass = PDU_DCS_MSG_CLASS_UNKNOWN;
+    let messageClass = PDU_DCS_MSG_CLASS_NORMAL;
     
     let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
     switch (dcs & PDU_DCS_CODING_GROUP_BITS) {
@@ -6002,7 +6002,7 @@ let GsmPDUHelper = {
 
     msg.dcs = dcs;
     msg.encoding = encoding;
-    msg.messageClass = messageClass;
+    msg.messageClass = GECKO_SMS_MESSAGE_CLASSES[messageClass];
 
     if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
   },
