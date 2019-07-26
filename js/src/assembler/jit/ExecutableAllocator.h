@@ -212,8 +212,9 @@ public:
     {
         for (size_t i = 0; i < m_smallPools.length(); i++)
             m_smallPools[i]->release(true);
+
         
-        
+        JS_ASSERT_IF(m_pools.initialized(), m_pools.empty());
     }
 
     void purge() {
