@@ -3430,7 +3430,7 @@ function XULWidgetGroupWrapper(aWidgetId) {
       instance = aWindow.gNavToolbox.palette.getElementsByAttribute("id", aWidgetId)[0];
     }
 
-    let wrapper = new XULWidgetSingleWrapper(aWidgetId, instance);
+    let wrapper = new XULWidgetSingleWrapper(aWidgetId, instance, aWindow.document);
     wrapperMap.set(aWidgetId, wrapper);
     return wrapper;
   };
@@ -3456,14 +3456,47 @@ function XULWidgetGroupWrapper(aWidgetId) {
 
 
 
-function XULWidgetSingleWrapper(aWidgetId, aNode) {
+function XULWidgetSingleWrapper(aWidgetId, aNode, aDocument) {
   this.isGroup = false;
 
   this.id = aWidgetId;
   this.type = "custom";
   this.provider = CustomizableUI.PROVIDER_XUL;
 
-  this.node = aNode;
+  let weakDoc = Cu.getWeakReference(aDocument);
+  
+  aDocument = null;
+
+  this.__defineGetter__("node", function() {
+    
+    
+    if (!weakDoc) {
+      return null;
+    }
+    if (aNode) {
+      
+      if (aNode.ownerDocument.contains(aNode)) {
+        return aNode;
+      }
+      
+      let toolbox = aNode.ownerDocument.defaultView.gNavToolbox;
+      if (toolbox && toolbox.palette && aNode.parentNode == toolbox.palette) {
+        return aNode;
+      }
+      
+      aNode = null;
+    }
+
+    let doc = weakDoc.get();
+    if (doc) {
+      
+      aNode = CustomizableUIInternal.findWidgetInWindow(aWidgetId, doc.defaultView);
+      return aNode;
+    }
+    
+    weakDoc = null;
+    return null;
+  });
 
   this.__defineGetter__("anchor", function() {
     let anchorId;
@@ -3472,16 +3505,21 @@ function XULWidgetSingleWrapper(aWidgetId, aNode) {
     if (placement) {
       anchorId = gAreas.get(placement.area).get("anchor");
     }
-    if (!anchorId) {
-      anchorId = aNode.getAttribute("cui-anchorid");
+
+    let node = this.node;
+    if (!anchorId && node) {
+      anchorId = node.getAttribute("cui-anchorid");
     }
 
-    return anchorId ? aNode.ownerDocument.getElementById(anchorId)
-                    : aNode;
+    return (anchorId && node) ? node.ownerDocument.getElementById(anchorId) : node;
   });
 
   this.__defineGetter__("overflowed", function() {
-    return aNode.getAttribute("overflowedItem") == "true";
+    let node = this.node;
+    if (!node) {
+      return false;
+    }
+    return node.getAttribute("overflowedItem") == "true";
   });
 
   Object.freeze(this);
