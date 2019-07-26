@@ -260,7 +260,7 @@ nsTransferable::GetTransferDataFlavors(nsISupportsArray ** aDataFlavorList)
   nsresult rv = NS_NewISupportsArray ( aDataFlavorList );
   if (NS_FAILED(rv)) return rv;
 
-  for ( uint32_t i=0; i<mDataArray.Length(); ++i ) {
+  for (size_t i = 0; i < mDataArray.Length(); ++i) {
     DataStruct& data = mDataArray.ElementAt(i);
     nsCOMPtr<nsISupportsCString> flavorWrapper = do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID);
     if ( flavorWrapper ) {
@@ -292,8 +292,7 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, uint32
   nsCOMPtr<nsISupports> savedData;
   
   
-  uint32_t i;
-  for (i = 0; i < mDataArray.Length(); ++i ) {
+  for (size_t i = 0; i < mDataArray.Length(); ++i) {
     DataStruct& data = mDataArray.ElementAt(i);
     if ( data.GetFlavor().Equals(aFlavor) ) {
       nsCOMPtr<nsISupports> dataBytes;
@@ -323,7 +322,7 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, uint32
 
   
   if ( mFormatConv ) {
-    for (i = 0; i < mDataArray.Length(); ++i) {
+    for (size_t i = 0; i < mDataArray.Length(); ++i) {
       DataStruct& data = mDataArray.ElementAt(i);
       bool canConvert = false;
       mFormatConv->CanConvert(data.GetFlavor().get(), aFlavor, &canConvert);
@@ -371,7 +370,7 @@ nsTransferable::GetAnyTransferData(char **aFlavor, nsISupports **aData, uint32_t
 
   NS_ENSURE_ARG_POINTER(aFlavor && aData && aDataLen);
 
-  for ( uint32_t i=0; i < mDataArray.Length(); ++i ) {
+  for (size_t i = 0; i < mDataArray.Length(); ++i) {
     DataStruct& data = mDataArray.ElementAt(i);
     if (data.IsDataAvailable()) {
       *aFlavor = ToNewCString(data.GetFlavor());
@@ -397,8 +396,7 @@ nsTransferable::SetTransferData(const char *aFlavor, nsISupports *aData, uint32_
   NS_ENSURE_ARG(aFlavor);
 
   
-  uint32_t i = 0;
-  for (i = 0; i < mDataArray.Length(); ++i) {
+  for (size_t i = 0; i < mDataArray.Length(); ++i) {
     DataStruct& data = mDataArray.ElementAt(i);
     if ( data.GetFlavor().Equals(aFlavor) ) {
       data.SetData ( aData, aDataLen );
@@ -408,7 +406,7 @@ nsTransferable::SetTransferData(const char *aFlavor, nsISupports *aData, uint32_
 
   
   if ( mFormatConv ) {
-    for (i = 0; i < mDataArray.Length(); ++i) {
+    for (size_t i = 0; i < mDataArray.Length(); ++i) {
       DataStruct& data = mDataArray.ElementAt(i);
       bool canConvert = false;
       mFormatConv->CanConvert(aFlavor, data.GetFlavor().get(), &canConvert);
