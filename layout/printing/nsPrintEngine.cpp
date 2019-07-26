@@ -616,13 +616,16 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
         
         
         
+        if (!mPrt) {
+          return NS_ERROR_FAILURE;
+        }
 
         if (NS_SUCCEEDED(rv)) {
           
           
           printSilently = true;
 
-          if (mPrt && mPrt->mPrintSettings) {
+          if (mPrt->mPrintSettings) {
             
             mPrt->mPrintSettings->GetShrinkToFit(&mPrt->mShrinkToFit);
           }
