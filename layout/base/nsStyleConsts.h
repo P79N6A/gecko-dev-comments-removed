@@ -233,6 +233,7 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 #define NS_STYLE_BG_ATTACHMENT_SCROLL     0
 #define NS_STYLE_BG_ATTACHMENT_FIXED      1
+#define NS_STYLE_BG_ATTACHMENT_LOCAL      2
 
 
 
