@@ -361,7 +361,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   }
 
   if (result && !updaterIsCorrect) {
-    LOG_WARN(("The updaters do not match, udpater will not run.")); 
+    LOG_WARN(("The updaters do not match, updater will not run.")); 
     result = FALSE;
   }
 
@@ -477,6 +477,79 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
 
 
 
+BOOL
+GetSecureUpdaterPath(WCHAR serviceUpdaterPath[MAX_PATH + 1])
+{
+  if (!GetModuleFileNameW(NULL, serviceUpdaterPath, MAX_PATH)) {
+    LOG_WARN(("Could not obtain module filename when attempting to "
+              "use a secure updater path.  (%d)", GetLastError()));
+    return FALSE;
+  }
+
+  if (!PathRemoveFileSpecW(serviceUpdaterPath)) {
+    LOG_WARN(("Couldn't remove file spec when attempting to use a secure "
+              "updater path.  (%d)", GetLastError()));
+    return FALSE;
+  }
+
+  if (!PathAppendSafe(serviceUpdaterPath, L"update")) {
+    LOG_WARN(("Couldn't append file spec when attempting to use a secure "
+              "updater path.  (%d)", GetLastError()));
+    return FALSE;
+  }
+
+  CreateDirectoryW(serviceUpdaterPath, NULL);
+
+  if (!PathAppendSafe(serviceUpdaterPath, L"updater.exe")) {
+    LOG_WARN(("Couldn't append file spec when attempting to use a secure "
+              "updater path.  (%d)", GetLastError()));
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+
+
+
+
+
+BOOL
+DeleteSecureUpdater(WCHAR serviceUpdaterPath[MAX_PATH + 1])
+{
+  BOOL result = FALSE;
+  if (serviceUpdaterPath[0]) {
+    result = DeleteFileW(serviceUpdaterPath);
+    if (!result && GetLastError() != ERROR_PATH_NOT_FOUND &&
+        GetLastError() != ERROR_FILE_NOT_FOUND) {
+      LOG_WARN(("Could not delete service updater path: '%ls'.",
+                serviceUpdaterPath));
+    }
+
+    WCHAR updaterINIPath[MAX_PATH + 1] = { L'\0' };
+    if (PathGetSiblingFilePath(updaterINIPath, serviceUpdaterPath,
+                               L"updater.ini")) {
+      result = DeleteFileW(updaterINIPath);
+      if (!result && GetLastError() != ERROR_PATH_NOT_FOUND &&
+          GetLastError() != ERROR_FILE_NOT_FOUND) {
+        LOG_WARN(("Could not delete service updater INI path: '%ls'.",
+                  updaterINIPath));
+      }
+    }
+  }
+  return result;
+}
+
+
+
+
+
+
+
+
+
+
 
 BOOL
 ExecuteServiceCommand(int argc, LPWSTR *argv)
@@ -500,7 +573,49 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
 
   BOOL result = FALSE;
   if (!lstrcmpi(argv[2], L"software-update")) {
+
+    
+    
+    
+    
+    
+    LPWSTR oldUpdaterPath = argv[3];
+    WCHAR secureUpdaterPath[MAX_PATH + 1] = { L'\0' };
+    result = GetSecureUpdaterPath(secureUpdaterPath); 
+    if (result) {
+      LOG(("Passed in path: '%ls'; Using this path for updating: '%ls'.",
+           oldUpdaterPath, secureUpdaterPath));
+      DeleteSecureUpdater(secureUpdaterPath);
+      result = CopyFileW(oldUpdaterPath, secureUpdaterPath, FALSE);
+      if (!result) {
+        LOG_WARN(("Could not copy path to secure location.  (%d)",
+                  GetLastError()));
+      }
+    }
+
+    
+    
+    
+    if (result) {
+      argv[3] = secureUpdaterPath;
+
+      WCHAR oldUpdaterINIPath[MAX_PATH + 1] = { L'\0' };
+      WCHAR secureUpdaterINIPath[MAX_PATH + 1] = { L'\0' };
+      if (PathGetSiblingFilePath(secureUpdaterINIPath, secureUpdaterPath,
+                                 L"updater.ini") &&
+          PathGetSiblingFilePath(oldUpdaterINIPath, oldUpdaterPath,
+                                 L"updater.ini")) {
+        
+        if (!CopyFileW(oldUpdaterINIPath, secureUpdaterINIPath, FALSE)) {
+          LOG_WARN(("Could not copy updater.ini from: '%ls' to '%ls'.  (%d)",
+                    oldUpdaterINIPath, secureUpdaterINIPath, GetLastError()));
+        }
+      }
+    }
+
     result = ProcessSoftwareUpdateCommand(argc - 3, argv + 3);
+    DeleteSecureUpdater(secureUpdaterPath);
+
     
     
     
