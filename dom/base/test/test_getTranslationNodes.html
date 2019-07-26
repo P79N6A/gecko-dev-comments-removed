@@ -206,5 +206,22 @@
      expected="p[root] a b span em">
   <p>Lorem <a>ipsum <b>dolor <span>sit</span> amet</b></a>, <em>consetetur</em></p>
 </div>
+
+
+<div id="testcase16"
+     expected="p[root] p[root]">
+  <p>Lorem ipsum</p>
+  <div>    </div>
+  <p>Lorem ipsum</p>
+</div>
+
+
+<div id="testcase17"
+     expected="p[root]">
+  <div>
+    
+    <p>Lorem Ipsum</p>
+  </div>
+</div>
 </body>
 </html>
