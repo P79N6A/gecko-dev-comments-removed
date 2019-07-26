@@ -1689,6 +1689,9 @@ MmsService.prototype = {
       if (DEBUG) debug("Saving sending message is done. Start to send.");
 
       
+      Services.obs.notifyObservers(aDomMessage, kSmsSendingObserverTopic, null);
+
+      
       if (gMmsConnection.radioDisabled) {
         if (DEBUG) debug("Error! Radio is disabled when sending MMS.");
         sendTransactionCb(aDomMessage,
@@ -1704,8 +1707,6 @@ MmsService.prototype = {
         return;
       }
 
-      
-      Services.obs.notifyObservers(aDomMessage, kSmsSendingObserverTopic, null);
       let sendTransaction;
       try {
         sendTransaction = new SendTransaction(aDomMessage.id, savableMessage);
