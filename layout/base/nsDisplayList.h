@@ -1790,8 +1790,13 @@ public:
   
   
   
+  
+  
+  
   nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                      uint32_t aLayer, bool aSkipFixedItemBoundsCheck = false);
+                      uint32_t aLayer, bool aIsThemed,
+                      const nsStyleBackground* aBackgroundStyle,
+                      bool aSkipFixedItemBoundsCheck = false);
   virtual ~nsDisplayBackground();
 
   
@@ -1856,25 +1861,31 @@ protected:
   void ConfigureLayer(ImageLayer* aLayer);
 
   
+  
+  const nsStyleBackground* mBackgroundStyle;
+  
+  nsRefPtr<ImageContainer> mImageContainer;
+  gfxRect mDestRect;
+  uint32_t mLayer;
+
+  nsITheme::Transparency mThemeTransparency;
+  
   bool mIsThemed;
   
 
   bool mIsFixed;
   
   bool mIsBottommostLayer;
-  nsITheme::Transparency mThemeTransparency;
-
-  
-  nsRefPtr<ImageContainer> mImageContainer;
-  gfxRect mDestRect;
-  uint32_t mLayer;
 };
 
 class nsDisplayBackgroundColor : public nsDisplayItem
 {
 public:
-  nsDisplayBackgroundColor(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nscolor aColor)
+  nsDisplayBackgroundColor(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                           const nsStyleBackground* aBackgroundStyle,
+                           nscolor aColor)
     : nsDisplayItem(aBuilder, aFrame)
+    , mBackgroundStyle(aBackgroundStyle)
     , mColor(aColor)
   { }
 
@@ -1894,6 +1905,8 @@ public:
 
   NS_DISPLAY_DECL_NAME("BackgroundColor", TYPE_BACKGROUND_COLOR)
 
+protected:
+  const nsStyleBackground* mBackgroundStyle;
   nscolor mColor;
 };
 
