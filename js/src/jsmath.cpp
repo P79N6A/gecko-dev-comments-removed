@@ -463,12 +463,23 @@ js::math_imul(JSContext *cx, unsigned argc, Value *vp)
 
 
 bool
-js::RoundFloat32(JSContext *cx, Handle<Value> v, float *out)
+js::RoundFloat32(JSContext *cx, HandleValue v, float *out)
 {
     double d;
     bool success = ToNumber(cx, v, &d);
     *out = static_cast<float>(d);
     return success;
+}
+
+bool
+js::RoundFloat32(JSContext *cx, HandleValue arg, MutableHandleValue res)
+{
+    float f;
+    if (!RoundFloat32(cx, arg, &f))
+        return false;
+
+    res.setDouble(static_cast<double>(f));
+    return true;
 }
 
 bool

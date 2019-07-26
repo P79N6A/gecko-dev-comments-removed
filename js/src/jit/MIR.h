@@ -540,6 +540,10 @@ class MDefinition : public MNode
     
     bool hasDefUses() const;
 
+    
+    
+    bool hasLiveDefUses() const;
+
     bool hasUses() const {
         return !uses_.empty();
     }
@@ -614,6 +618,10 @@ class MDefinition : public MNode
         JS_ASSERT(!isEffectful() && store->isEffectful());
         JS_ASSERT(getAliasSet().flags() & store->getAliasSet().flags());
         return true;
+    }
+
+    virtual bool canRecoverOnBailout() const {
+        return false;
     }
 };
 
@@ -4009,6 +4017,11 @@ class MAdd : public MBinaryArithInstruction
     void computeRange(TempAllocator &alloc);
     bool truncate();
     bool isOperandTruncated(size_t index) const;
+
+    bool writeRecoverData(CompactBufferWriter &writer) const;
+    bool canRecoverOnBailout() const {
+        return specialization_ < MIRType_Object;
+    }
 };
 
 class MSub : public MBinaryArithInstruction
