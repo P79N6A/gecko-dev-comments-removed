@@ -200,11 +200,6 @@ var TouchModule = {
 
   
   _onTouchStart: function _onTouchStart(aEvent) {
-    if (Services.prefs.getBoolPref(kAsyncPanZoomEnabled) &&
-        !StartUI.isStartPageVisible) {
-      return;
-    }
-
     if (aEvent.touches.length > 1)
       return;
 
@@ -242,6 +237,14 @@ var TouchModule = {
     }
 
     
+    let deck = document.getElementById("browsers");
+    if (Services.prefs.getBoolPref(kAsyncPanZoomEnabled) &&
+        !StartUI.isStartPageVisible &&
+        this._targetScrollbox == deck) {
+      return;
+    }
+
+    
     if (dragger) {
       let draggable = dragger.isDraggable(targetScrollbox, targetScrollInterface);
       dragData.locked = !draggable.x || !draggable.y;
@@ -256,11 +259,6 @@ var TouchModule = {
 
   
   _onTouchEnd: function _onTouchEnd(aEvent) {
-    if (Services.prefs.getBoolPref(kAsyncPanZoomEnabled) &&
-        !StartUI.isStartPageVisible) {
-      return;
-    }
-
     if (aEvent.touches.length > 0 || this._isCancelled || !this._targetScrollbox)
       return;
 
@@ -277,11 +275,6 @@ var TouchModule = {
 
 
   _onTouchMove: function _onTouchMove(aEvent) {
-    if (Services.prefs.getBoolPref(kAsyncPanZoomEnabled) &&
-        !StartUI.isStartPageVisible) {
-      return;
-    }
-
     if (aEvent.touches.length > 1)
       return;
 
@@ -370,8 +363,15 @@ var TouchModule = {
     if (dragData.isPan()) {
       if (Date.now() - this._dragStartTime > kStopKineticPanOnDragTimeout)
         this._kinetic._velocity.set(0, 0);
+
       
-      this._kinetic.start();
+      
+      let deck = document.getElementById("browsers");
+      if (!Services.prefs.getBoolPref(kAsyncPanZoomEnabled) ||
+          StartUI.isStartPageVisible ||
+          this._targetScrollbox != deck) {
+        this._kinetic.start();
+      }
     } else {
       this._kinetic.end();
       if (this._dragger)
