@@ -100,7 +100,6 @@ public:
 protected:
   AutoJSContext(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
-private:
   
   
   
@@ -134,6 +133,8 @@ private:
 class MOZ_STACK_CLASS AutoSafeJSContext : public AutoJSContext {
 public:
   AutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+private:
+  JSAutoCompartment mAc;
 };
 
 
