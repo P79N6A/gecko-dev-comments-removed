@@ -9,66 +9,124 @@ module.metadata = {
 };
 
 
-let { Class } = require("./heritage");
-let { on, off } = require('../system/events');
-let unloadSubject = require('@loader/unload');
+const { Class } = require("./heritage");
+const { Observer, subscribe, unsubscribe, observe } = require("./observer");
+const { isWeak, WeakReference } = require("./reference");
+const method = require("../../method/core");
 
-let disposables = WeakMap();
+const unloadSubject = require('@loader/unload');
+const addonUnloadTopic = "sdk:loader:destroy";
 
-function initialize(instance) {
-  
-  function handler(event) {
-    if (event.subject.wrappedJSObject === unloadSubject) {
-      instance.destroy();
-    }
-  }
 
-  
-  
-  
-  
-  
-  
-  disposables.set(instance, handler);
-  on("sdk:loader:destroy", handler);
-}
-exports.initialize = initialize;
 
-function dispose(instance) {
-  
-  
-  
+const uninstall = method("disposable/uninstall");
+exports.uninstall = uninstall;
 
-  let handler = disposables.get(instance);
-  if (handler) off("sdk:loader:destroy", handler);
-  disposables.delete(instance);
-}
+
+const shutdown = method("disposable/shutdown");
+exports.shutdown = shutdown;
+
+const disable = method("disposable/disable");
+exports.disable = disable;
+
+const upgrade = method("disposable/upgrade");
+exports.upgrade = upgrade;
+
+const downgrade = method("disposable/downgrade");
+exports.downgrade = downgrade;
+
+const unload = method("disposable/unload");
+exports.unload = unload;
+
+const dispose = method("disposable/dispose");
 exports.dispose = dispose;
+dispose.define(Object, object => object.dispose());
+
+
+const setup = method("disposable/setup");
+exports.setup = setup;
+setup.define(Object, (object, ...args) => object.setup(...args));
 
 
 
-let Disposable = Class({
-  initialize: function setupDisposable() {
+const setupDisposable = disposable => {
+  subscribe(disposable, addonUnloadTopic, isWeak(disposable));
+};
+
+
+const disposeDisposable = disposable => {
+  unsubscribe(disposable, addonUnloadTopic);
+};
+
+
+
+const Disposable = Class({
+  implements: [Observer],
+  initialize: function(...args) {
     
     
     
-    this.setup.apply(this, arguments);
-    initialize(this);
+    setup(this, ...args);
+    setupDisposable(this);
   },
-  setup: function setup() {
+  destroy: function(reason) {
+    
+    
+    disposeDisposable(this);
+    unload(this, reason);
+  },
+  setup: function() {
     
   },
-  dispose: function dispose() {
+  dispose: function() {
     
-  },
-
-  destroy: function destroy() {
-    
-    
-    if (disposables.has(this)) {
-      dispose(this);
-      this.dispose();
-    }
   }
 });
 exports.Disposable = Disposable;
+
+
+
+observe.define(Disposable, (disposable, subject, topic, data) => {
+  const isUnloadTopic = topic === addonUnloadTopic;
+  const isUnloadSubject = subject.wrappedJSObject === unloadSubject;
+  if (isUnloadTopic && isUnloadSubject) {
+    unsubscribe(disposable, topic);
+    unload(disposable);
+  }
+});
+
+const unloaders = {
+  destroy: dispose,
+  uninstall: uninstall,
+  shutdown: shutdown,
+  disable: disable,
+  upgrade: upgrade,
+  downgrade: downgrade
+}
+const unloaded = new WeakMap();
+unload.define(Disposable, (disposable, reason) => {
+  if (!unloaded.get(disposable)) {
+    unloaded.set(disposable, true);
+    
+    
+    
+    const unload = unloaders[reason] || unloaders.destroy;
+    unload(disposable);
+  }
+});
+
+
+
+
+
+disable.define(Disposable, dispose);
+downgrade.define(Disposable, dispose);
+upgrade.define(Disposable, dispose);
+uninstall.define(Disposable, dispose);
+
+
+
+
+
+shutdown.define(Disposable, disposable => {});
+

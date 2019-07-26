@@ -1,13 +1,12 @@
 
 
 
-
 "use strict";
 
 
 
 module.metadata = {
-  "stability": "stable",
+  "stability": "deprecated",
   "engines": {
     "Firefox": "*"
   }
@@ -39,6 +38,7 @@ const EVENTS = {
 
 
 const AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF = 70;
+const AUSTRALIS_PANEL_WIDE_CLASSNAME = "panel-wide-item";
 
 const { validateOptions } = require("./deprecated/api-utils");
 const panels = require("./panel");
@@ -54,6 +54,11 @@ const { setTimeout } = require("./timers");
 const unload = require("./system/unload");
 const { getNodeView } = require("./view/core");
 const prefs = require('./preferences/service');
+
+require("./util/deprecate").deprecateUsage(
+  "The widget module is deprecated.  " +
+  "Please consider using the sdk/ui module instead."
+);
 
 
 const valid = {
@@ -229,6 +234,8 @@ function saveInserted(widgetId) {
 function haveInserted(widgetId) {
   return prefs.has(INSERTION_PREF_ROOT + widgetId);
 }
+
+const isWide = node => node.classList.contains(AUSTRALIS_PANEL_WIDE_CLASSNAME);
 
 
 
@@ -626,7 +633,7 @@ BrowserWindow.prototype = {
     let placement = CustomizableUI.getPlacementOfWidget(id);
 
     if (!placement) {
-      if (haveInserted(id))
+      if (haveInserted(id) || isWide(node))
         return;
 
       placement = {area: 'nav-bar', position: undefined};
@@ -703,7 +710,7 @@ WidgetChrome.prototype._createNode = function WC__createNode() {
   node.setAttribute("sdkstylewidget", "true");
 
   if (this._widget.width > AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF) {
-    node.classList.add("panel-wide-item");
+    node.classList.add(AUSTRALIS_PANEL_WIDE_CLASSNAME);
   }
 
   
