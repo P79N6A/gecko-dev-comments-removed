@@ -540,7 +540,9 @@ ContentChild::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 
   BlobConstructorParams params;
 
-  if (blob->IsSizeUnknown()) {
+  if (blob->IsSizeUnknown() || blob->IsDateUnknown()) {
+    
+    
     
     
     params = MysteryBlobConstructorParams();
@@ -559,6 +561,9 @@ ContentChild::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
       FileBlobConstructorParams fileParams;
 
       rv = file->GetName(fileParams.name());
+      NS_ENSURE_SUCCESS(rv, nullptr);
+
+      rv = file->GetMozLastModifiedDate(&fileParams.modDate());
       NS_ENSURE_SUCCESS(rv, nullptr);
 
       fileParams.contentType() = contentType;

@@ -1238,7 +1238,9 @@ ContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 
   BlobConstructorParams params;
 
-  if (blob->IsSizeUnknown()) {
+  if (blob->IsSizeUnknown() ||  0) {
+    
+    
     
     
     params = MysteryBlobConstructorParams();
@@ -1255,6 +1257,9 @@ ContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
     nsCOMPtr<nsIDOMFile> file = do_QueryInterface(aBlob);
     if (file) {
       FileBlobConstructorParams fileParams;
+
+      rv = file->GetMozLastModifiedDate(&fileParams.modDate());
+      NS_ENSURE_SUCCESS(rv, nullptr);
 
       rv = file->GetName(fileParams.name());
       NS_ENSURE_SUCCESS(rv, nullptr);

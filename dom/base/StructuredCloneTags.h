@@ -10,14 +10,21 @@
 namespace mozilla {
 namespace dom {
 
+
+
 enum StructuredCloneTags {
   SCTAG_BASE = JS_SCTAG_USER_MIN,
 
   
   SCTAG_DOM_BLOB,
-  SCTAG_DOM_FILE,
+
+  
+  
+  SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE,
+
   SCTAG_DOM_FILELIST,
   SCTAG_DOM_FILEHANDLE,
+  SCTAG_DOM_FILE,
 
   
   SCTAG_DOM_IMAGEDATA,
