@@ -1,8 +1,8 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "WorkerScope.h"
 
@@ -78,7 +78,7 @@ class WorkerGlobalScope : public workers::EventTarget
     SLOT_COUNT
   };
 
-  // Must be traced!
+  
   JS::Heap<JS::Value> mSlots[SLOT_COUNT];
 
   enum
@@ -858,8 +858,8 @@ private:
 
 DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   {
-    // We don't have to worry about Xray expando slots here because we'll never
-    // have an Xray wrapper to a worker global scope.
+    
+    
     "DedicatedWorkerGlobalScope",
     JSCLASS_DOM_GLOBAL | JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(3) | JSCLASS_NEW_RESOLVE,
@@ -876,25 +876,25 @@ DOMJSClass DedicatedWorkerGlobalScope::sClass = {
 
 DOMIfaceAndProtoJSClass DedicatedWorkerGlobalScope::sProtoClass = {
   {
-    // XXXbz we use "DedicatedWorkerGlobalScope" here to match sClass
-    // so that we can JS_InitClass this JSClass and then
-    // call JS_NewObject with our sClass and have it find the right
-    // prototype.
+    
+    
+    
+    
     "DedicatedWorkerGlobalScope",
     JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2),
-    JS_PropertyStub,       /* addProperty */
-    JS_DeletePropertyStub, /* delProperty */
-    JS_PropertyStub,       /* getProperty */
-    JS_StrictPropertyStub, /* setProperty */
+    JS_PropertyStub,       
+    JS_DeletePropertyStub, 
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    nullptr,               /* finalize */
-    nullptr,               /* checkAccess */
-    nullptr,               /* call */
-    nullptr,               /* hasInstance */
-    nullptr,               /* construct */
-    nullptr,               /* trace */
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
     JSCLASS_NO_INTERNAL_MEMBERS
   },
   eInterfacePrototype,
@@ -925,8 +925,8 @@ WorkerGlobalScope::GetInstancePrivate(JSContext* aCx, JSObject* aObj,
 {
   JSClass* classPtr = JS_GetClass(aObj);
 
-  // We can only make DedicatedWorkerGlobalScope, not WorkerGlobalScope, so this
-  // should never happen.
+  
+  
   JS_ASSERT(classPtr != Class());
 
   if (classPtr == DedicatedWorkerGlobalScope::Class()) {
@@ -938,7 +938,7 @@ WorkerGlobalScope::GetInstancePrivate(JSContext* aCx, JSObject* aObj,
   return NULL;
 }
 
-} /* anonymous namespace */
+} 
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -962,16 +962,16 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
 
   JSAutoCompartment ac(aCx, global);
 
-  // Make the private slots now so that all our instance checks succeed.
+  
   if (!DedicatedWorkerGlobalScope::InitPrivate(aCx, global, worker)) {
     return NULL;
   }
 
-  // Proto chain should be:
-  //   global -> DedicatedWorkerGlobalScope
-  //          -> WorkerGlobalScope
-  //          -> EventTarget
-  //          -> Object
+  
+  
+  
+  
+  
 
   JS::Rooted<JSObject*> eventTargetProto(aCx,
     EventTargetBinding_workers::GetProtoObject(aCx, global));
@@ -979,14 +979,14 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
     return NULL;
   }
 
-  JSObject* scopeProto =
-    WorkerGlobalScope::InitClass(aCx, global, eventTargetProto);
+  JS::Rooted<JSObject*> scopeProto(aCx,
+    WorkerGlobalScope::InitClass(aCx, global, eventTargetProto));
   if (!scopeProto) {
     return NULL;
   }
 
-  JSObject* dedicatedScopeProto =
-    DedicatedWorkerGlobalScope::InitClass(aCx, global, scopeProto);
+  JS::Rooted<JSObject*> dedicatedScopeProto(aCx,
+    DedicatedWorkerGlobalScope::InitClass(aCx, global, scopeProto));
   if (!dedicatedScopeProto) {
     return NULL;
   }
@@ -1009,7 +1009,7 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
     }
   }
 
-  // Init other classes we care about.
+  
   if (!events::InitClasses(aCx, global, false) ||
       !file::InitClasses(aCx, global) ||
       !exceptions::InitClasses(aCx, global) ||
@@ -1017,7 +1017,7 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
     return NULL;
   }
 
-  // Init other paris-bindings.
+  
   if (!FileReaderSyncBinding_workers::GetConstructorObject(aCx, global) ||
       !TextDecoderBinding_workers::GetConstructorObject(aCx, global) ||
       !TextEncoderBinding_workers::GetConstructorObject(aCx, global) ||
