@@ -186,6 +186,23 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
   psd->mX = aX;
   psd->mRightEdge = aX + aWidth;
 
+  
+  
+  if (!(GetLineContainerFrame()->GetStateBits() &
+      NS_FRAME_IN_CONSTRAINED_HEIGHT)) {
+
+    
+    
+    
+    nscoord maxLineBoxWidth =
+      GetLineContainerFrame()->PresContext()->PresShell()->MaxLineBoxWidth();
+
+    if (maxLineBoxWidth > 0 &&
+        psd->mRightEdge - psd->mLeftEdge > maxLineBoxWidth) {
+      psd->mRightEdge = psd->mLeftEdge + maxLineBoxWidth;
+    }
+  }
+
   mTopEdge = aY;
 
   psd->mNoWrap = !mStyleText->WhiteSpaceCanWrap();
@@ -748,15 +765,6 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   nsSize availSize(mBlockReflowState->ComputedWidth(), NS_UNCONSTRAINEDSIZE);
-
-  
-  
-  
-  nscoord maxLineBoxWidth = aFrame->PresContext()->PresShell()->MaxLineBoxWidth();
-
-  if (maxLineBoxWidth > 0 && psd->mRightEdge - psd->mLeftEdge > maxLineBoxWidth) {
-    psd->mRightEdge = psd->mLeftEdge + maxLineBoxWidth;
-  }
 
   
   
