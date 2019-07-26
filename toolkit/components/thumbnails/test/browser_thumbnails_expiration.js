@@ -15,6 +15,15 @@ const {EXPIRATION_MIN_CHUNK_SIZE, PageThumbsExpiration} = tmp;
 
 function runTests() {
   
+  let dummyURLs = [];
+  for (let i = 0; i < EXPIRATION_MIN_CHUNK_SIZE + 10; i++) {
+    dummyURLs.push(URL + "#dummy" + i);
+  }
+
+  
+  dontExpireThumbnailURLs([URL1, URL2, URL3].concat(dummyURLs));
+
+  
   yield createDummyThumbnail(URL1);
   ok(thumbnailExists(URL1), "first thumbnail created");
 
@@ -40,26 +49,15 @@ function runTests() {
   ok(!thumbnailExists(URL1), "all thumbnails have been removed");
 
   
-  let urls = [];
-  for (let i = 0; i < EXPIRATION_MIN_CHUNK_SIZE + 10; i++) {
-    let url = URL + "#dummy" + i;
-    urls.push(url);
+  for (let url of dummyURLs) {
     yield createDummyThumbnail(url);
   }
 
-  ok(urls.every(thumbnailExists), "all dummy thumbnails created");
-
-  
-  let dontExpireDummyURLs = function (cb) cb(urls);
-  PageThumbs.addExpirationFilter(dontExpireDummyURLs);
-
-  registerCleanupFunction(function () {
-    PageThumbs.removeExpirationFilter(dontExpireDummyURLs);
-  });
+  ok(dummyURLs.every(thumbnailExists), "all dummy thumbnails created");
 
   
   yield expireThumbnails([]);
-  let remainingURLs = [u for (u of urls) if (thumbnailExists(u))];
+  let remainingURLs = [u for (u of dummyURLs) if (thumbnailExists(u))];
   is(remainingURLs.length, 10, "10 dummy thumbnails remaining");
 
   

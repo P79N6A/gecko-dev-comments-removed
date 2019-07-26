@@ -240,3 +240,17 @@ function whenFileRemoved(aFile, aCallback) {
 
   executeSoon(callback || next);
 }
+
+
+
+
+
+
+function dontExpireThumbnailURLs(aURLs) {
+  let dontExpireURLs = (cb) => cb(aURLs);
+  PageThumbs.addExpirationFilter(dontExpireURLs);
+
+  registerCleanupFunction(function () {
+    PageThumbs.removeExpirationFilter(dontExpireURLs);
+  });
+}
