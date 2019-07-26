@@ -80,7 +80,10 @@ nsPlaintextEditor::nsPlaintextEditor()
 , mCaretStyle(0)
 #endif
 {
-} 
+  
+  
+  GetDefaultEditorPrefs(mNewlineHandling, mCaretStyle);
+}
 
 nsPlaintextEditor::~nsPlaintextEditor()
 {
@@ -134,10 +137,6 @@ NS_IMETHODIMP nsPlaintextEditor::Init(nsIDOMDocument *aDoc,
     
     res = nsEditor::Init(aDoc, aRoot, aSelCon, aFlags, aInitialValue);
   }
-
-  
-  
-  GetDefaultEditorPrefs(mNewlineHandling, mCaretStyle);
 
   NS_ENSURE_SUCCESS(rulesRes, rulesRes);
 
