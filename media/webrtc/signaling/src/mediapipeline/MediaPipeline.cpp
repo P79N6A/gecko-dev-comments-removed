@@ -595,6 +595,10 @@ void MediaPipelineTransmit::ProcessVideoChunk(VideoSessionConduit *conduit,
                                               VideoChunk& chunk) {
   
   layers::Image *img = chunk.mFrame.GetImage();
+  if (!img) {
+    
+    return;
+  }
 
   ImageFormat format = img->GetFormat();
 
