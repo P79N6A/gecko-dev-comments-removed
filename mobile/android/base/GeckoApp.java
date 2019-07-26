@@ -2405,6 +2405,15 @@ abstract public class GeckoApp
     }
 
     protected void connectGeckoLayerClient() {
+        
+        PrefsHelper.getPref("gfx.android.rgb16.force", new PrefsHelper.PrefHandlerBase() {
+            @Override public void prefValue(String pref, boolean force16bit) {
+                if (force16bit) {
+                    GeckoAppShell.setScreenDepthOverride(16);
+                }
+            }
+        });
+
         mLayerView.getLayerClient().notifyGeckoReady();
 
         mLayerView.addTouchInterceptor(this);
