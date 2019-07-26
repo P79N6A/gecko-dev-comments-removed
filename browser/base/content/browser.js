@@ -172,6 +172,9 @@ let gInitialPages = [
 #include browser-feeds.js
 #include browser-fullScreen.js
 #include browser-fullZoom.js
+#ifdef MOZ_LOOP
+#include browser-loop.js
+#endif
 #include browser-places.js
 #include browser-plugins.js
 #include browser-safebrowsing.js
@@ -2421,8 +2424,7 @@ let BrowserOnClick = {
         TabCrashReporter.submitCrashReport(browser);
       }
 #endif
-
-      TabCrashReporter.reloadCrashedTabs();
+      openUILinkIn(button.getAttribute("url"), "current");
     }
   },
 
@@ -4546,9 +4548,6 @@ var TabsInTitlebar = {
     }
 
     ToolbarIconColor.inferFromText();
-    if (CustomizationHandler.isCustomizing()) {
-      gCustomizeMode.updateLWTStyling();
-    }
   },
 
   _sizePlaceholder: function (type, width) {
@@ -5311,8 +5310,8 @@ function setStyleDisabled(disabled) {
 
 var LanguageDetectionListener = {
   init: function() {
-    window.messageManager.addMessageListener("Translation:DocumentState", msg => {
-      Translation.documentStateReceived(msg.target, msg.data);
+    window.messageManager.addMessageListener("LanguageDetection:Result", msg => {
+      Translation.languageDetected(msg.target, msg.data);
     });
   }
 };
@@ -6062,7 +6061,7 @@ function GetSearchFieldBookmarkData(node) {
 
 
 function AddKeywordForSearchField() {
-  let bookmarkData = GetSearchFieldBookmarkData(gContextMenu.target);
+  bookmarkData = GetSearchFieldBookmarkData(gContextMenu.target);
 
   PlacesUIUtils.showBookmarkDialog({ action: "add"
                                    , type: "bookmark"

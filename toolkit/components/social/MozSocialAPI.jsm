@@ -12,7 +12,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Social", "resource:///modules/Social.js
 XPCOMUtils.defineLazyModuleGetter(this, "Chat", "resource:///modules/Chat.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-this.EXPORTED_SYMBOLS = ["MozSocialAPI", "openChatWindow", "findChromeWindowForChats", "closeAllChatWindows"];
+this.EXPORTED_SYMBOLS = [
+  "MozSocialAPI", "openChatWindow", "findChromeWindowForChats", "closeAllChatWindows",
+  "hookWindowCloseForPanelClose"
+];
 
 this.MozSocialAPI = {
   _enabled: false,
@@ -71,7 +74,7 @@ function injectController(doc, topic, data) {
     
     
     
-    handleWindowClose(window);
+    hookWindowCloseForPanelClose(window);
 
     SocialService.getProvider(doc.nodePrincipal.origin, function(provider) {
       if (provider && provider.enabled) {
@@ -223,7 +226,7 @@ function attachToWindow(provider, targetWindow) {
   }
 }
 
-function handleWindowClose(targetWindow) {
+function hookWindowCloseForPanelClose(targetWindow) {
   
   
   
