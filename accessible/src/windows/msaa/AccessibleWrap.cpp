@@ -1532,6 +1532,13 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
 nsresult
 AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
 {
+  
+  
+  
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
+    return NS_OK;
+  }
+
   uint32_t eventType = aEvent->GetEventType();
 
   MOZ_STATIC_ASSERT(sizeof(gWinEventMap)/sizeof(gWinEventMap[0]) == nsIAccessibleEvent::EVENT_LAST_ENTRY,
