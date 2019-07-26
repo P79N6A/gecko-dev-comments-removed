@@ -8,6 +8,7 @@
 
 #include "mozilla/Util.h"
 
+#include "pratom.h"
 #include "prmem.h"
 #include "prenv.h"
 #include "prclist.h"

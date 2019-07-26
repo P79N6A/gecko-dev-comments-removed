@@ -3,7 +3,6 @@
 
 
 
-#include "nsAtomicRefcnt.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsIServiceManager.h"
@@ -14,6 +13,7 @@
 #include "nsCRT.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCharsetAlias.h"
+#include "pratom.h"
 
 static int32_t          gInstanceCount = 0;
 
