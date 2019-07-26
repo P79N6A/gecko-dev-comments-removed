@@ -245,6 +245,9 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
   NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
 
   
+  nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
+
+  
   ForceCompositionEnd();
   nsAutoEditBatch beginBatching(this);
   nsAutoRules beginRulesSniffing(this, EditAction::htmlPaste, nsIEditor::eNext);
