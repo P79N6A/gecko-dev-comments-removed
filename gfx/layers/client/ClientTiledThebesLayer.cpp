@@ -393,9 +393,7 @@ ClientTiledThebesLayer::RenderLayer()
     
     updatedLowPrecision = true;
     mLowPrecisionValidRegion.SetEmpty();
-    mContentClient->mLowPrecisionTiledBuffer.PaintThebes(mLowPrecisionValidRegion,
-                                                         mLowPrecisionValidRegion,
-                                                         callback, data);
+    mContentClient->mLowPrecisionTiledBuffer.ResetPaintedAndValidState();
   }
 
   

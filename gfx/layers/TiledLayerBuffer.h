@@ -123,6 +123,19 @@ public:
   const nsIntRegion& GetPaintedRegion() const { return mPaintedRegion; }
   void ClearPaintedRegion() { mPaintedRegion.SetEmpty(); }
 
+  void ResetPaintedAndValidState() {
+    mPaintedRegion.SetEmpty();
+    mValidRegion.SetEmpty();
+    mRetainedWidth = 0;
+    mRetainedHeight = 0;
+    for (size_t i = 0; i < mRetainedTiles.Length(); i++) {
+      if (!IsPlaceholder(mRetainedTiles[i])) {
+        AsDerived().ReleaseTile(mRetainedTiles[i]);
+      }
+    }
+    mRetainedTiles.Clear();
+  }
+
   
   int GetTileStart(int i, int aTileLength) const {
     return (i >= 0) ? (i % aTileLength)
