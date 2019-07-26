@@ -49,6 +49,11 @@ typedef IntegralConstant<bool, false> FalseType;
 
 
 
+template<typename T>
+struct IsPointer : FalseType {};
+
+template<typename T>
+struct IsPointer<T*> : TrueType {};
 
 
 
@@ -60,6 +65,19 @@ typedef IntegralConstant<bool, false> FalseType;
 
 
 
+
+
+
+
+
+
+
+
+template<typename T, typename U>
+struct IsSame : FalseType {};
+
+template<typename T>
+struct IsSame<T, T> : TrueType {};
 
 namespace detail {
 
@@ -132,6 +150,20 @@ template<class Base, class Derived>
 struct IsBaseOf
   : Conditional<detail::BaseOfTester<Base, Derived>::value, TrueType, FalseType>::Type
 {};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 namespace detail {
 
@@ -234,22 +266,6 @@ struct EnableIf<true, T>
 
 
 
-
-
-template<typename T, typename U>
-struct IsSame : FalseType {};
-
-template<typename T>
-struct IsSame<T, T> : TrueType {};
-
-
-
-
-
-
-
-
-
 template<typename T>
 struct IsPod : public FalseType {};
 
@@ -269,22 +285,6 @@ template<> struct IsPod<float>              : TrueType {};
 template<> struct IsPod<double>             : TrueType {};
 template<> struct IsPod<wchar_t>            : TrueType {};
 template<typename T> struct IsPod<T*>       : TrueType {};
-
-
-
-
-
-
-
-
-
-
-
-template<typename T>
-struct IsPointer : FalseType {};
-
-template<typename T>
-struct IsPointer<T*> : TrueType {};
 
 } 
 
