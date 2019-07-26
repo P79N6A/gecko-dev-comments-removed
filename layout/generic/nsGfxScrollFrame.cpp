@@ -2354,6 +2354,11 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
        (styles.mVertical   != NS_STYLE_OVERFLOW_HIDDEN && mVScrollbarBox));
     
     bool wantSubAPZC = (XRE_GetProcessType() == GeckoProcessType_Content);
+#ifdef XP_WIN
+    if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
+      wantSubAPZC = true;
+    }
+#endif
     mShouldBuildLayer =
       wantSubAPZC &&
       hasScrollableOverflow &&
