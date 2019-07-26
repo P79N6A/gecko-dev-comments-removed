@@ -318,7 +318,7 @@ let AdbController = {
     
     
     let isDebugging = Object.keys(DebuggerServer._connections).length > 0;
-    debug("isDebugging=" + isDebugging);
+    this.debug("isDebugging=" + isDebugging);
 
     let enableAdb = this.remoteDebuggerEnabled &&
       (!(this.lockEnabled && this.locked) || isDebugging);

@@ -524,6 +524,9 @@ pref("shutdown.watchdog.timeoutSecs", -1);
 #endif
 
 
+pref("webapps.update.interval", 86400);
+
+
 pref("extensions.update.enabled", false);
 pref("extensions.getAddons.cache.enabled", false);
 
