@@ -1679,13 +1679,24 @@ AppendGridTemplateToString(const nsCSSValueList* val,
                            nsCSSValue::Serialization aSerialization)
 {
   
+  bool isSubgrid = false;
   for (;;) {
     bool addSpaceSeparator = true;
     nsCSSUnit unit = val->mValue.GetUnit();
 
-    if (unit == eCSSUnit_Null) {
+    if (unit == eCSSUnit_Enumerated &&
+        val->mValue.GetIntValue() == NS_STYLE_GRID_TEMPLATE_SUBGRID) {
+      isSubgrid = true;
+      aResult.AppendLiteral("subgrid");
+
+    } else if (unit == eCSSUnit_Null) {
       
-      addSpaceSeparator = false;  
+      if (isSubgrid) {
+        aResult.AppendLiteral("()");
+      } else {
+        
+        addSpaceSeparator = false;  
+      }
 
     } else if (unit == eCSSUnit_List || unit == eCSSUnit_ListDep) {
       

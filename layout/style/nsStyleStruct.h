@@ -1157,32 +1157,48 @@ public:
   nsRect        mImageRegion;           
 };
 
-struct nsStyleGridTrackList {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct nsStyleGridTemplate {
+  bool mIsSubgrid;
   nsTArray<nsTArray<nsString>> mLineNameLists;
   nsTArray<nsStyleCoord> mMinTrackSizingFunctions;
   nsTArray<nsStyleCoord> mMaxTrackSizingFunctions;
 
-  inline bool operator!=(const nsStyleGridTrackList& aOther) const {
+  nsStyleGridTemplate()
+    : mIsSubgrid(false)
+  {
+  }
+
+  inline bool operator!=(const nsStyleGridTemplate& aOther) const {
     return mLineNameLists != aOther.mLineNameLists ||
            mMinTrackSizingFunctions != aOther.mMinTrackSizingFunctions ||
            mMaxTrackSizingFunctions != aOther.mMaxTrackSizingFunctions;
@@ -1298,8 +1314,8 @@ struct nsStylePosition {
   
   
   
-  nsStyleGridTrackList mGridTemplateColumns;
-  nsStyleGridTrackList mGridTemplateRows;
+  nsStyleGridTemplate mGridTemplateColumns;
+  nsStyleGridTemplate mGridTemplateRows;
 
   
   nsRefPtr<mozilla::css::GridTemplateAreasValue> mGridTemplateAreas;

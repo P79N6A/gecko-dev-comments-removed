@@ -657,6 +657,7 @@ protected:
   
   
   CSSParseResult ParseGridLineNames(nsCSSValue& aValue);
+  bool ParseOptionalLineNameListAfterSubgrid(nsCSSValue& aValue);
   bool ParseGridTrackBreadth(nsCSSValue& aValue);
   CSSParseResult ParseGridTrackSize(nsCSSValue& aValue);
   bool ParseGridAutoColumnsRows(nsCSSProperty aPropID);
@@ -7007,6 +7008,29 @@ CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
 
 
 bool
+CSSParserImpl::ParseOptionalLineNameListAfterSubgrid(nsCSSValue& aValue)
+{
+  nsCSSValueList* item = aValue.SetListValue();
+  
+  item->mValue.SetIntValue(NS_STYLE_GRID_TEMPLATE_SUBGRID,
+                           eCSSUnit_Enumerated);
+  for (;;) {
+    nsCSSValue lineNames;
+    CSSParseResult result = ParseGridLineNames(lineNames);
+    if (result == CSSParseResult::NotFound) {
+      return true;
+    }
+    if (result == CSSParseResult::Error) {
+      return false;
+    }
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+    item->mValue = lineNames;
+  }
+}
+
+
+bool
 CSSParserImpl::ParseGridTrackBreadth(nsCSSValue& aValue)
 {
   if (ParseNonNegativeVariant(aValue,
@@ -7126,7 +7150,18 @@ CSSParserImpl::ParseGridTemplateColumnsRows(nsCSSProperty aPropID)
     AppendValue(aPropID, value);
     return true;
   }
-  
+
+  nsSubstring* ident = NextIdent();
+  if (ident) {
+    if (ident->LowerCaseEqualsLiteral("subgrid")) {
+      if (!ParseOptionalLineNameListAfterSubgrid(value)) {
+        return false;
+      }
+      AppendValue(aPropID, value);
+      return true;
+    }
+    UngetToken();
+  }
 
   nsCSSValue firstLineNames;
   if (ParseGridLineNames(firstLineNames) == CSSParseResult::Error ||
@@ -7270,6 +7305,8 @@ CSSParserImpl::ParseGridTemplate()
 
   
 
+  
+  
   if (ParseVariant(value, VARIANT_NONE, nullptr)) {
     AppendValue(eCSSProperty_grid_template_columns, value);
     if (ExpectSymbol('/', true)) {
@@ -7282,6 +7319,31 @@ CSSParserImpl::ParseGridTemplate()
 
   
   
+  nsSubstring* ident = NextIdent();
+  if (ident) {
+    if (ident->LowerCaseEqualsLiteral("subgrid")) {
+      if (!ParseOptionalLineNameListAfterSubgrid(value)) {
+        return false;
+      }
+      AppendValue(eCSSProperty_grid_template_columns, value);
+      if (ExpectSymbol('/', true)) {
+        return ParseGridTemplateAfterSlash( false);
+      }
+      if (value.GetListValue()->mNext) {
+        
+        
+        
+        return false;
+      }
+      
+      
+      AppendValue(eCSSProperty_grid_template_rows, value);
+      value.SetNoneValue();
+      AppendValue(eCSSProperty_grid_template_areas, value);
+      return true;
+    }
+    UngetToken();
+  }
 
   
   
@@ -7309,34 +7371,61 @@ CSSParserImpl::ParseGridTemplate()
 }
 
 
+
+
+
+
+
+
+
+
+
 bool
 CSSParserImpl::ParseGridTemplateAfterSlash(bool aColumnsIsTrackList)
 {
   nsCSSValue rowsValue;
-  if (!ParseVariant(rowsValue, VARIANT_NONE, nullptr)) {
+  if (ParseVariant(rowsValue, VARIANT_NONE, nullptr)) {
     
-    
+    AppendValue(eCSSProperty_grid_template_rows, rowsValue);
+    nsCSSValue areasValue(eCSSUnit_None);  
+    AppendValue(eCSSProperty_grid_template_areas, areasValue);
+    return true;
+  }
 
-    nsCSSValue firstLineNames;
-    if (ParseGridLineNames(firstLineNames) == CSSParseResult::Error ||
-        !GetToken(true)) {
-      return false;
-    }
-    if (aColumnsIsTrackList && mToken.mType == eCSSToken_String) {
-      return ParseGridTemplateAfterString(firstLineNames);
+  nsSubstring* ident = NextIdent();
+  if (ident) {
+    if (ident->LowerCaseEqualsLiteral("subgrid")) {
+      if (!ParseOptionalLineNameListAfterSubgrid(rowsValue)) {
+        return false;
+      }
+      
+      AppendValue(eCSSProperty_grid_template_rows, rowsValue);
+      nsCSSValue areasValue(eCSSUnit_None);  
+      AppendValue(eCSSProperty_grid_template_areas, areasValue);
+      return true;
     }
     UngetToken();
-
-    if (!ParseGridTrackListWithFirstLineNames(rowsValue, firstLineNames)) {
-      return false;
-    }
   }
+
+  nsCSSValue firstLineNames;
+  if (ParseGridLineNames(firstLineNames) == CSSParseResult::Error ||
+      !GetToken(true)) {
+    return false;
+  }
+  if (aColumnsIsTrackList && mToken.mType == eCSSToken_String) {
+    
+    return ParseGridTemplateAfterString(firstLineNames);
+  }
+  UngetToken();
+
+  if (!ParseGridTrackListWithFirstLineNames(rowsValue, firstLineNames)) {
+    return false;
+  }
+
   
-  
-  
+  AppendValue(eCSSProperty_grid_template_rows, rowsValue);
   nsCSSValue areasValue(eCSSUnit_None);  
   AppendValue(eCSSProperty_grid_template_areas, areasValue);
-  AppendValue(eCSSProperty_grid_template_rows, rowsValue);
   return true;
 }
 
