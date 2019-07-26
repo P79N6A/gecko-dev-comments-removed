@@ -471,10 +471,24 @@ GetHashtableElements(nsTHashtable<nsPtrHashKey<T> >& aHashtable, nsTArray<T*>& a
 }
 
 void
+AudioContext::ShutdownDecoder()
+{
+  mDecoder.Shutdown();
+}
+
+void
 AudioContext::Shutdown()
 {
   Suspend();
-  mDecoder.Shutdown();
+
+  
+  
+  
+  nsCOMPtr<nsIRunnable> threadShutdownEvent =
+    NS_NewRunnableMethod(this, &AudioContext::ShutdownDecoder);
+  if (threadShutdownEvent) {
+    NS_DispatchToCurrentThread(threadShutdownEvent);
+  }
 
   
   
