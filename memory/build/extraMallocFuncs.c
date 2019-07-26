@@ -119,7 +119,15 @@ wrap(wcsdup)(const wchar_t *src)
 
 #ifdef MOZ_JEMALLOC
 
-const char *je_malloc_conf = "narenas:1,lg_chunk:20";
+#undef wrap
+#if defined(MOZ_NATIVE_JEMALLOC)
+#define wrap(a) a
+#else
+#define wrap(a) je_ ## a
+#endif
+
+
+MOZ_EXPORT_DATA(const char *) wrap(malloc_conf) = "narenas:1,lg_chunk:20";
 
 #ifdef ANDROID
 #include <android/log.h>
