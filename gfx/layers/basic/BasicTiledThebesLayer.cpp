@@ -411,10 +411,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     transform.Invert();
 
     
-    
-    
     nsIntRegion oldValidRegion = mTiledBuffer.GetValidRegion();
-    oldValidRegion.And(oldValidRegion, mVisibleRegion);
     mTiledBuffer.ClearPaintedRegion();
 
     
@@ -458,13 +455,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       mValidRegion.Or(mValidRegion, regionToPaint);
 
       
-      
-      
-      nsIntRegion validOrStale;
-      validOrStale.Or(mValidRegion, oldValidRegion);
-
-      
-      mTiledBuffer.PaintThebes(this, validOrStale, regionToPaint, aCallback, aCallbackData);
+      mTiledBuffer.PaintThebes(this, mValidRegion, regionToPaint, aCallback, aCallbackData);
       invalidRegion.Sub(invalidRegion, regionToPaint);
     } while (repeat);
   } else {
