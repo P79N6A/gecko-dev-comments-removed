@@ -395,12 +395,11 @@ pref("services.push.enabled", true);
 pref("services.push.serverURL", "");
 pref("services.push.userAgentID", "");
 
-
 pref("services.push.retryBaseInterval", 5000);
 
+pref("services.push.websocketPingInterval", 55);
 
-
-pref("services.push.pingInterval", 1800000); 
+pref("services.push.maxRetryInterval", 1200000);
 
 pref("services.push.requestTimeout", 10000);
 

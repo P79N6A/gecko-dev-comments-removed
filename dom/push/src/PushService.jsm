@@ -19,7 +19,6 @@ Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-Cu.import("resource://gre/modules/AlarmService.jsm");
 
 this.EXPORTED_SYMBOLS = ["PushService"];
 
@@ -88,8 +87,7 @@ this.PushDB.prototype = {
       function txnCb(aTxn, aStore) {
         debug("Going to put " + aChannelRecord.channelID);
         aStore.put(aChannelRecord).onsuccess = function setTxnResult(aEvent) {
-          debug("Request successful. Updated record ID: " +
-                aEvent.target.result);
+          debug("Request successful. Updated record ID: " + aEvent.target.result);
         };
       },
       aSuccessCb,
@@ -335,6 +333,9 @@ this.PushService = {
             }
           }
         }
+        else if (aSubject == this._retryTimeoutTimer) {
+          this._beginWSSetup();
+        }
         break;
       case "webapps-uninstall":
         debug("webapps-uninstall");
@@ -350,8 +351,7 @@ this.PushService = {
           debug("Got " + records.length);
           for (var i = 0; i < records.length; i++) {
             this._db.delete(records[i].channelID, null, function() {
-              debug("app uninstall: " + app.manifestURL +
-                    " Could not delete entry " + records[i].channelID);
+              debug("app uninstall: " + app.manifestURL + " Could not delete entry " + records[i].channelID);
             });
             
             
@@ -389,6 +389,25 @@ this.PushService = {
   _currentState: STATE_SHUT_DOWN,
   _requestTimeout: 0,
   _requestTimeoutTimer: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _retryTimeoutTimer: null,
   _retryFailCount: 0,
 
   
@@ -421,8 +440,6 @@ this.PushService = {
         ppmm.addMessageListener(msgName, this);
     }.bind(this));
 
-    this._alarmID = null;
-
     this._requestTimeout = prefs.get("requestTimeout");
 
     this._udpPort = prefs.get("udp.port");
@@ -449,16 +466,12 @@ this.PushService = {
     debug("shutdownWS()");
     this._currentState = STATE_SHUT_DOWN;
     this._willBeWokenUpByUDP = false;
-
     if (this._wsListener)
       this._wsListener._pushService = null;
     try {
         this._ws.close(0, null);
     } catch (e) {}
     this._ws = null;
-
-    this._waitingForPong = false;
-    this._stopAlarm();
   },
 
   _shutdown: function() {
@@ -485,7 +498,8 @@ this.PushService = {
     
     
     
-    this._stopAlarm();
+    if (this._retryTimeoutTimer)
+      this._retryTimeoutTimer.cancel();
 
     if (this._requestTimeoutTimer)
       this._requestTimeoutTimer.cancel();
@@ -494,34 +508,30 @@ this.PushService = {
   },
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _reconnectAfterBackoff: function() {
-    debug("reconnectAfterBackoff()");
+  _socketError: function(aStatusCode) {
+    debug("socketError()");
 
     
     var retryTimeout = prefs.get("retryBaseInterval") *
                        Math.pow(2, this._retryFailCount);
-    retryTimeout = Math.min(retryTimeout, prefs.get("pingInterval"));
+
+    
+    
+    
+    retryTimeout = Math.min(retryTimeout, prefs.get("maxRetryInterval"));
 
     this._retryFailCount++;
 
     debug("Retry in " + retryTimeout + " Try number " + this._retryFailCount);
-    this._setAlarm(retryTimeout);
+
+    if (!this._retryTimeoutTimer) {
+      this._retryTimeoutTimer = Cc["@mozilla.org/timer;1"]
+                                  .createInstance(Ci.nsITimer);
+    }
+
+    this._retryTimeoutTimer.init(this,
+                                 retryTimeout,
+                                 Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   _beginWSSetup: function() {
@@ -531,9 +541,6 @@ this.PushService = {
             this._currentState);
       return;
     }
-
-    
-    this._stopAlarm();
 
     var serverURL = prefs.get("serverURL");
     if (!serverURL) {
@@ -563,99 +570,12 @@ this.PushService = {
       return;
     }
 
-
     debug("serverURL: " + uri.spec);
     this._wsListener = new PushWebSocketListener(this);
     this._ws.protocol = "push-notification";
+    this._ws.pingInterval = prefs.get("websocketPingInterval");
     this._ws.asyncOpen(uri, serverURL, this._wsListener, null);
     this._currentState = STATE_WAITING_FOR_WS_START;
-  },
-
-  
-  _setAlarm: function(delay) {
-    
-    this._stopAlarm();
-
-    AlarmService.add(
-      {
-        date: new Date(Date.now() + delay),
-        ignoreTimezone: true
-      },
-      this._onAlarmFired.bind(this),
-      function onSuccess(alarmID) {
-        this._alarmID = alarmID;
-        debug("Set alarm " + delay + " in the future " + this._alarmID);
-      }.bind(this)
-    )
-  },
-
-  _stopAlarm: function() {
-    if (this._alarmID !== null) {
-      debug("Stopped existing alarm " + this._alarmID);
-      AlarmService.remove(this._alarmID);
-      this._alarmID = null;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _onAlarmFired: function() {
-    
-    
-    if (this._waitingForPong) {
-      debug("Did not receive pong in time. Reconnecting WebSocket.");
-      this._shutdownWS();
-      this._reconnectAfterBackoff();
-    }
-    else if (this._currentState == STATE_READY) {
-      
-      
-      this._ws.sendMsg('{}');
-      debug("Sent ping.");
-      this._waitingForPong = true;
-      this._setAlarm(prefs.get("requestTimeout"));
-    }
-    else if (this._alarmID !== null) {
-      debug("reconnect alarm fired.");
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      
-      this._beginWSSetup();
-    }
   },
 
   
@@ -1208,6 +1128,9 @@ this.PushService = {
       return;
     }
 
+    if (this._retryTimeoutTimer)
+      this._retryTimeoutTimer.cancel();
+
     
     this._retryFailCount = 0;
 
@@ -1254,25 +1177,17 @@ this.PushService = {
   _wsOnStop: function(context, statusCode) {
     debug("wsOnStop()");
 
-    this._shutdownWS();
-
     if (statusCode != Cr.NS_OK &&
         !(statusCode == Cr.NS_BASE_STREAM_CLOSED && this._willBeWokenUpByUDP)) {
       debug("Socket error " + statusCode);
-      this._reconnectAfterBackoff();
+      this._socketError(statusCode);
     }
 
+    this._shutdownWS();
   },
 
   _wsOnMessageAvailable: function(context, message) {
     debug("wsOnMessageAvailable() " + message);
-
-    this._waitingForPong = false;
-
-    
-    
-    this._setAlarm(prefs.get("pingInterval"));
-
     var reply = undefined;
     try {
       reply = JSON.parse(message);
