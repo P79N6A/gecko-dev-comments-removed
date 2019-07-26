@@ -7,15 +7,13 @@
 
 
 
-var EXPORTED_SYMBOLS = ["BrowserTabs"];
+const EXPORTED_SYMBOLS = ["BrowserTabs"];
 
-const CC = Components.classes;
-const CI = Components.interfaces;
-const CU = Components.utils;
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-CU.import("resource://services-sync/engines.js");
+Cu.import("resource://services-sync/service.js");
 
-var BrowserTabs = {
+let BrowserTabs = {
   
 
 
@@ -28,8 +26,8 @@ var BrowserTabs = {
   Add: function(uri, fn) {
     
     
-    let wm = CC["@mozilla.org/appshell/window-mediator;1"]
-             .getService(CI.nsIWindowMediator);
+    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+               .getService(Ci.nsIWindowMediator);
     let mainWindow = wm.getMostRecentWindow("navigator:browser");
     let newtab = mainWindow.getBrowser().addTab(uri);
     mainWindow.getBrowser().selectedTab = newtab;
@@ -50,7 +48,7 @@ var BrowserTabs = {
 
   Find: function(uri, title, profile) {
     
-    let engine = Engines.get("tabs");
+    let engine = Service.engineManager.get("tabs");
     for (let [guid, client] in Iterator(engine.getAllClients())) {
       for each (tab in client.tabs) {
         let weaveTabUrl = tab.urlHistory[0];
