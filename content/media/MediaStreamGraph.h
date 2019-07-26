@@ -675,7 +675,7 @@ public:
 
 
   void DispatchWhenNotEnoughBuffered(TrackID aID,
-      nsIThread* aSignalThread, nsIRunnable* aSignalRunnable);
+      nsIEventTarget* aSignalThread, nsIRunnable* aSignalRunnable);
   
 
 
@@ -728,13 +728,13 @@ public:
   friend class MediaStreamGraphImpl;
 
   struct ThreadAndRunnable {
-    void Init(nsIThread* aThread, nsIRunnable* aRunnable)
+    void Init(nsIEventTarget* aTarget, nsIRunnable* aRunnable)
     {
-      mThread = aThread;
+      mTarget = aTarget;
       mRunnable = aRunnable;
     }
 
-    nsCOMPtr<nsIThread> mThread;
+    nsCOMPtr<nsIEventTarget> mTarget;
     nsCOMPtr<nsIRunnable> mRunnable;
   };
   enum TrackCommands {

@@ -122,7 +122,6 @@ public:
                                bool aRealTime = false);
   ~MediaDecoderStateMachine();
 
-  
   nsresult Init(MediaDecoderStateMachine* aCloneDonor);
 
   
@@ -303,7 +302,7 @@ public:
   void SetFrameBufferLength(uint32_t aLength);
 
   
-  static nsIThread* GetStateMachineThread();
+  nsIEventTarget* GetStateMachineThread();
 
   
   
@@ -615,6 +614,8 @@ private:
   
   
   RefPtr<MediaTaskQueue> mDecodeTaskQueue;
+
+  RefPtr<SharedThreadPool> mStateMachineThreadPool;
 
   
   

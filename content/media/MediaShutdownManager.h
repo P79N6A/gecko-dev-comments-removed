@@ -58,8 +58,6 @@ class StateMachineThread;
 
 
 
-
-
 class MediaShutdownManager : public nsIObserver {
 public:
   NS_DECL_ISUPPORTS
@@ -77,18 +75,6 @@ public:
   
   
   void Unregister(MediaDecoder* aDecoder);
-
-  
-  
-  
-  
-  void Register(StateMachineThread* aThread);
-
-  
-  
-  
-  
-  void Unregister(StateMachineThread* aThread);
 
 private:
 
@@ -109,59 +95,9 @@ private:
   nsTHashtable<nsRefPtrHashKey<MediaDecoder>> mDecoders;
 
   
-  
-  
-  
-  
-  nsTHashtable<nsRefPtrHashKey<StateMachineThread>> mStateMachineThreads;
-
-  
   bool mIsObservingShutdown;
 
   bool mIsDoingXPCOMShutDown;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class StateMachineThread {
-public:
-  StateMachineThread();
-  ~StateMachineThread();
-
-  NS_INLINE_DECL_REFCOUNTING(StateMachineThread);
-
-  
-  nsresult Init();
-
-  
-  
-  nsIThread* GetThread();
-
-  
-  
-  
-  
-  void Shutdown();
-
-  
-  
-  
-  void SpinUntilShutdownComplete();
-
-private:
-  void ShutdownThread();
-  nsCOMPtr<nsIThread> mThread;
 };
 
 } 
