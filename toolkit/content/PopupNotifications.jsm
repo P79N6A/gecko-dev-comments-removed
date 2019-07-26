@@ -540,9 +540,12 @@ PopupNotifications.prototype = {
     
     
     this.panel.setAttribute("popupid", this.panel.firstChild.getAttribute("popupid"));
+    notificationsToShow.forEach(function (n) {
+      
+      n.timeShown = this.window.performance.now();
+    }, this);
     this.panel.openPopup(anchorElement, "bottomcenter topleft");
     notificationsToShow.forEach(function (n) {
-      n.timeShown = Date.now();
       this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
     }, this);
   },
@@ -725,7 +728,7 @@ PopupNotifications.prototype = {
       throw "PopupNotifications_onButtonCommand: couldn't find notification";
 
     let notification = notificationEl.notification;
-    let timeSinceShown = Date.now() - notification.timeShown;
+    let timeSinceShown = this.window.performance.now() - notification.timeShown;
 
     
     if (!notification.timeMainActionFirstTriggered) {
