@@ -80,6 +80,17 @@ public:
 
 
 
+
+  static void InitializeGlobalState();
+
+  
+  
+  
+
+  
+
+
+
   void Destroy();
 
   
@@ -570,14 +581,6 @@ private:
   
   
   CancelableTask* mAsyncScrollTimeoutTask;
-
-  
-  
-  uint32_t mAsyncScrollThrottleTime;
-
-  
-  
-  uint32_t mAsyncScrollTimeout;
 
   int mDPI;
 
