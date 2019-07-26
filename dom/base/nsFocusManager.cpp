@@ -233,7 +233,7 @@ nsFocusManager::Observe(nsISupports *aSubject,
     mFirstFocusEvent = nullptr;
     mWindowBeingLowered = nullptr;
     mDelayedBlurFocusEvents.Clear();
-    mMouseDownEventHandlingDocument = nullptr;
+    mMouseButtonEventHandlingDocument = nullptr;
   }
 
   return NS_OK;
@@ -1198,10 +1198,10 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, int32_t aFlags,
     
     nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(mFocusedContent));
     sendFocusEvent = nsContentUtils::CanCallerAccess(domNode);
-    if (!sendFocusEvent && mMouseDownEventHandlingDocument) {
+    if (!sendFocusEvent && mMouseButtonEventHandlingDocument) {
       
       
-      domNode = do_QueryInterface(mMouseDownEventHandlingDocument);
+      domNode = do_QueryInterface(mMouseButtonEventHandlingDocument);
       sendFocusEvent = nsContentUtils::CanCallerAccess(domNode);
     }
   }
@@ -3468,8 +3468,8 @@ nsFocusManager::MarkUncollectableForCCGeneration(uint32_t aGeneration)
     sInstance->mFirstFocusEvent->OwnerDoc()->
       MarkUncollectableForCCGeneration(aGeneration);
   }
-  if (sInstance->mMouseDownEventHandlingDocument) {
-    sInstance->mMouseDownEventHandlingDocument->
+  if (sInstance->mMouseButtonEventHandlingDocument) {
+    sInstance->mMouseButtonEventHandlingDocument->
       MarkUncollectableForCCGeneration(aGeneration);
   }
 }

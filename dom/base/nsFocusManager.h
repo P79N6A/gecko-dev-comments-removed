@@ -77,11 +77,11 @@ public:
   
 
 
-  void SetMouseButtonDownHandlingDocument(nsIDocument* aDocument)
+  void SetMouseButtonHandlingDocument(nsIDocument* aDocument)
   {
-    NS_ASSERTION(!aDocument || !mMouseDownEventHandlingDocument,
+    NS_ASSERTION(!aDocument || !mMouseButtonEventHandlingDocument,
                  "Some mouse button down events are nested?");
-    mMouseDownEventHandlingDocument = aDocument;
+    mMouseButtonEventHandlingDocument = aDocument;
   }
 
   
@@ -521,7 +521,9 @@ private:
   
   
   
-  nsCOMPtr<nsIDocument> mMouseDownEventHandlingDocument;
+  
+  
+  nsCOMPtr<nsIDocument> mMouseButtonEventHandlingDocument;
 
   static bool sTestMode;
 
