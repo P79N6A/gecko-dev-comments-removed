@@ -46,7 +46,10 @@ function triggerSave(aWindow, aCallback) {
       MockFilePicker.filterIndex = 1; 
     };
 
-    mockTransferCallback = function(a) onTransferComplete(aWindow, a, destFile, destDir);
+    mockTransferCallback = function(a) {
+      onTransferComplete(aWindow, a, destFile, destDir);
+      mockTransferCallback = function(){};
+    }
 
     
     var saveLinkCommand = aWindow.document.getElementById("context-savelink");
