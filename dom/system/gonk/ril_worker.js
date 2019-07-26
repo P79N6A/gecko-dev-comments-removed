@@ -5045,18 +5045,6 @@ RilObject.prototype = {
   
 
 
-  enumerateDataCalls: function() {
-    let datacall_list = [];
-    for each (let datacall in this.currentDataCalls) {
-      datacall_list.push(datacall);
-    }
-    this.sendChromeMessage({rilMessageType: "datacalllist",
-                            datacalls: datacall_list});
-  },
-
-  
-
-
   processStkProactiveCommand: function() {
     let Buf = this.context.Buf;
     let length = Buf.readInt32();
