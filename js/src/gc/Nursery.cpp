@@ -569,13 +569,43 @@ js::Nursery::moveObjectToTenured(JSObject *dst, JSObject *src, AllocKind dstKind
     tenuredSize += moveElementsToTenured(dst, src, dstKind);
 
     if (src->is<TypedArrayObject>())
-        dst->setPrivate(dst->fixedData(TypedArrayObject::FIXED_DATA_START));
+        forwardTypedArrayPointers(dst, src);
 
     
     if (&src->shape_ == dst->shape_->listp)
         dst->shape_->listp = &dst->shape_;
 
     return tenuredSize;
+}
+
+void
+js::Nursery::forwardTypedArrayPointers(JSObject *dst, JSObject *src)
+{
+    
+
+
+
+
+    TypedArrayObject &typedArray = src->as<TypedArrayObject>();
+
+    JS_ASSERT_IF(typedArray.buffer(), !isInside(src->getPrivate()));
+    if (typedArray.buffer())
+        return;
+
+    void *srcData = src->fixedData(TypedArrayObject::FIXED_DATA_START);
+    void *dstData = dst->fixedData(TypedArrayObject::FIXED_DATA_START);
+    JS_ASSERT(src->getPrivate() == srcData);
+    dst->setPrivate(dstData);
+
+    
+
+
+
+
+    size_t nslots = 1;
+    setSlotsForwardingPointer(reinterpret_cast<HeapSlot*>(srcData),
+                              reinterpret_cast<HeapSlot*>(dstData),
+                              nslots);
 }
 
 size_t
