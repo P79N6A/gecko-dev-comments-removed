@@ -537,9 +537,13 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
   mTransactionIncomplete = false;
 
   if (aFlags & END_NO_COMPOSITE) {
-    
-    nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(1, 1), gfxASurface::CONTENT_COLOR);
-    mTarget = new gfxContext(surf);
+    if (!mDummyTarget) {
+      
+      
+      nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(1, 1), gfxASurface::CONTENT_COLOR);
+      mDummyTarget = new gfxContext(surf);
+    }
+    mTarget = mDummyTarget;
   }
 
   if (mTarget && mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
