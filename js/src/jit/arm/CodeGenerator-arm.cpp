@@ -201,7 +201,7 @@ CodeGeneratorARM::bailoutIf(Assembler::Condition condition, LSnapshot *snapshot)
     
     
     
-    OutOfLineBailout *ool = new OutOfLineBailout(snapshot, masm.framePushed());
+    OutOfLineBailout *ool = new(alloc()) OutOfLineBailout(snapshot, masm.framePushed());
     if (!addOutOfLineCode(ool))
         return false;
 
@@ -259,7 +259,7 @@ CodeGeneratorARM::bailoutFrom(Label *label, LSnapshot *snapshot)
     
     
     
-    OutOfLineBailout *ool = new OutOfLineBailout(snapshot, masm.framePushed());
+    OutOfLineBailout *ool = new(alloc()) OutOfLineBailout(snapshot, masm.framePushed());
     if (!addOutOfLineCode(ool)) {
         return false;
     }
@@ -1132,7 +1132,7 @@ CodeGeneratorARM::emitTableSwitchDispatch(MTableSwitch *mir, const Register &ind
     
     
     
-    OutOfLineTableSwitch *ool = new OutOfLineTableSwitch(alloc(), mir);
+    OutOfLineTableSwitch *ool = new(alloc()) OutOfLineTableSwitch(alloc(), mir);
     for (int32_t i = 0; i < cases; i++) {
         CodeLabel cl;
         masm.writeCodePointer(cl.dest());

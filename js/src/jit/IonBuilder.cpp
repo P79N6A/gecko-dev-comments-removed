@@ -3056,7 +3056,7 @@ IonBuilder::jsop_condswitch()
 
     
     CFGState state = CFGState::CondSwitch(this, exitpc, defaultTarget);
-    if (!state.condswitch.bodies || !state.condswitch.bodies->init(nbBodies))
+    if (!state.condswitch.bodies || !state.condswitch.bodies->init(alloc(), nbBodies))
         return ControlStatus_Error;
 
     

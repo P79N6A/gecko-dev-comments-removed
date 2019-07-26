@@ -14,10 +14,11 @@ using namespace js;
 using namespace js::jit;
 
 bool
-FrameInfo::init() {
+FrameInfo::init(TempAllocator &alloc)
+{
     
     size_t nstack = Max(script->nslots - script->nfixed, 1);
-    if (!stack.init(nstack))
+    if (!stack.init(alloc, nstack))
         return false;
 
     return true;
