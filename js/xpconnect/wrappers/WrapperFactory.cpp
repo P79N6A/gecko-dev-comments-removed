@@ -314,7 +314,7 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, js::Wrapper *handler,
 {
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
-        MOZ_ASSERT(handler->isSafeToUnwrap());
+        MOZ_ASSERT(!handler->hasSecurityPolicy());
     } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
         
     } else if (handler == &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton) {
@@ -323,7 +323,7 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, js::Wrapper *handler,
         
     } else {
         
-        MOZ_ASSERT(handler->isSafeToUnwrap() == AccessCheck::subsumes(target, origin));
+        MOZ_ASSERT(handler->hasSecurityPolicy() == !AccessCheck::subsumes(target, origin));
     }
 }
 #else
