@@ -246,6 +246,8 @@ CSPRep.ALLOW_DIRECTIVE   = "allow";
 
 
 
+
+
 CSPRep.fromString = function(aStr, self, docRequest, csp, reportOnly) {
   if (typeof reportOnly === 'undefined') reportOnly = false;
   var SD = CSPRep.SRC_DIRECTIVES_OLD;
@@ -480,10 +482,13 @@ CSPRep.fromString = function(aStr, self, docRequest, csp, reportOnly) {
   
   if (!aCSPR._directives[SD.DEFAULT_SRC]) {
     cspWarn(aCSPR, CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
-    return CSPRep.fromString("default-src 'none'", selfUri);
+    return CSPRep.fromString("default-src 'none'", selfUri, docRequest, csp,
+                             reportOnly);
   }
   return aCSPR;
 };
+
+
 
 
 
