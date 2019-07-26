@@ -143,6 +143,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "SitePermissions",
   "resource:///modules/SitePermissions.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
+  "resource:///modules/sessionstore/SessionStore.jsm");
+
 let gInitialPages = [
   "about:blank",
   "about:newtab",
@@ -1028,6 +1031,8 @@ var gBrowserInit = {
     OfflineApps.init();
     IndexedDBPromptHelper.init();
     gFormSubmitObserver.init();
+    SocialUI.init();
+
     
     
     
@@ -1085,10 +1090,6 @@ var gBrowserInit = {
       Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
       NP.trackBrowserWindow(window);
     }
-
-    
-    let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    let ssPromise = ss.init(window);
 
     PlacesToolbarHelper.init();
 
@@ -1242,14 +1243,13 @@ var gBrowserInit = {
 #endif
 #endif
 
-    ssPromise.then(() =>{
+    SessionStore.promiseInitialized.then(() => {
       
-      if (ss.canRestoreLastSession &&
+      if (SessionStore.canRestoreLastSession &&
           !PrivateBrowsingUtils.isWindowPrivate(window))
         goSetCommandEnabled("Browser:RestoreLastSession", true);
 
       TabView.init();
-      SocialUI.init();
 
       setTimeout(function () { BrowserChromeTest.markAsReady(); }, 0);
     });
