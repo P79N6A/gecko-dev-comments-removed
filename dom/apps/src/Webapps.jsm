@@ -218,7 +218,7 @@ this.DOMApplicationRegistry = {
   },
 
   
-  installPreinstalledPackage: function installPreinstalledPackage(aId) {
+  installPreinstalledApp: function installPreinstalledApp(aId) {
 #ifdef MOZ_WIDGET_GONK
     let app = this.webapps[aId];
     let baseDir;
@@ -229,30 +229,46 @@ this.DOMApplicationRegistry = {
       return;
     }
 
+    let filesToMove;
+    let isPackage;
+
     let updateFile = baseDir.clone();
     updateFile.append("update.webapp");
     if (!updateFile.exists()) {
       
-      return;
+      
+      let appFile = baseDir.clone();
+      appFile.append("application.zip");
+      if (appFile.exists()) {
+        return;
+      }
+
+      isPackage = false;
+      filesToMove = ["manifest.webapp"];
+    } else {
+      isPackage = true;
+      filesToMove = ["application.zip", "update.webapp"];
     }
 
-    debug("Installing 3rd party packaged app : " + aId +
+    debug("Installing 3rd party app : " + aId +
           " from " + baseDir.path);
 
     
     let destDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", aId], true, true);
 
-    ["application.zip", "update.webapp"]
-      .forEach(function(aFile) {
+    filesToMove.forEach(function(aFile) {
         let file = baseDir.clone();
         file.append(aFile);
         file.copyTo(destDir, aFile);
-        let newFile = destDir.clone();
-        newFile.append(aFile);
       });
 
     app.basePath = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true)
                             .path;
+
+    if (!isPackage) {
+      return;
+    }
+
     app.origin = "app://" + aId;
     app.removable = true;
 
@@ -384,7 +400,7 @@ this.DOMApplicationRegistry = {
       if (runUpdate) {
         
         for (let id in this.webapps) {
-          this.installPreinstalledPackage(id);
+          this.installPreinstalledApp(id);
           if (!this.webapps[id]) {
             continue;
           }
@@ -1222,7 +1238,14 @@ this.DOMApplicationRegistry = {
     }
 
     
-    if (!app.removable) {
+    let onlyCheckAppCache = false;
+
+#ifdef MOZ_WIDGET_GONK
+      let appDir = FileUtils.getDir("coreAppsDir", ["webapps"], false);
+      onlyCheckAppCache = (app.basePath == appDir.path);
+#endif
+
+    if (onlyCheckAppCache) {
       
       if (app.origin.startsWith("app://")) {
         aData.error = "NOT_UPDATABLE";
@@ -1259,6 +1282,7 @@ this.DOMApplicationRegistry = {
         updateSvc.checkForUpdate(Services.io.newURI(aData.manifestURL, null, null),
                                  app.localId, false, updateObserver);
       });
+
       return;
     }
 
@@ -1275,6 +1299,7 @@ this.DOMApplicationRegistry = {
       this.createLoadContext(app.installerAppId, app.installerIsBrowser);
 
     xhr.addEventListener("load", (function() {
+      debug("Got http status=" + xhr.status + " for " + aData.manifestURL);
       if (xhr.status == 200) {
         let manifest = xhr.response;
         if (manifest == null) {
@@ -1313,6 +1338,7 @@ this.DOMApplicationRegistry = {
       sendError("NETWORK_ERROR");
     }).bind(this), false);
 
+    debug("Checking manifest at " + aData.manifestURL);
     xhr.send(null);
   },
 
