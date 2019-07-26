@@ -758,7 +758,7 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
 
   
   
-  wantNextFrame |= SampleAnimations(layer, mLastCompose);
+  wantNextFrame |= SampleAnimations(root, mLastCompose);
 
   const FrameMetrics& metrics = container->GetFrameMetrics();
   
