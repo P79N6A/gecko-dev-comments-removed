@@ -23,7 +23,7 @@ namespace layers {
 
 
 
-class NS_STACK_CLASS AutoOpenSurface
+class MOZ_STACK_CLASS AutoOpenSurface
 {
 public:
   typedef gfxASurface::gfxContentType gfxContentType;

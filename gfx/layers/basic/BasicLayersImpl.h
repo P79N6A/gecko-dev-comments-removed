@@ -74,7 +74,7 @@ protected:
 
 
 
-class NS_STACK_CLASS AutoMaskData {
+class MOZ_STACK_CLASS AutoMaskData {
 public:
   AutoMaskData() { }
   ~AutoMaskData() { }

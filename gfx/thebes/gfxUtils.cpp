@@ -264,7 +264,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
 
 
 
-struct NS_STACK_CLASS AutoCairoPixmanBugWorkaround
+struct MOZ_STACK_CLASS AutoCairoPixmanBugWorkaround
 {
     AutoCairoPixmanBugWorkaround(gfxContext*      aContext,
                                  const gfxMatrix& aDeviceSpaceToImageSpace,

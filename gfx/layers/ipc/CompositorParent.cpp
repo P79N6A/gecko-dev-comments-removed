@@ -468,7 +468,7 @@ CompositorParent::SetTransformation(float aScale, nsIntPoint aScrollOffset)
 
 
 
-class NS_STACK_CLASS AutoResolveRefLayers {
+class MOZ_STACK_CLASS AutoResolveRefLayers {
 public:
   
 
