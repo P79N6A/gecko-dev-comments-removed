@@ -564,15 +564,6 @@ SCOPED_TEMPLATE(ScopedReleasePtr, ScopedReleasePtrTraits)
 
 namespace js {
 
-template <class T>
-JS_ALWAYS_INLINE static void
-Swap(T &t, T &u)
-{
-    T tmp(mozilla::Move(t));
-    t = mozilla::Move(u);
-    u = mozilla::Move(tmp);
-}
-
 
 
 

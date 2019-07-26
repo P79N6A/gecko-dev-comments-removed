@@ -136,6 +136,16 @@ Move(const T& t)
   return MoveRef<T>(const_cast<T&>(t));
 }
 
+
+template<typename T>
+inline void
+Swap(T& t, T& u)
+{
+  T tmp(Move(t));
+  t = Move(u);
+  u = Move(tmp);
+}
+
 } 
 
 #endif 
