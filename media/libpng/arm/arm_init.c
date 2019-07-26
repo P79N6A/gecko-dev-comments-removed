@@ -16,7 +16,7 @@
 
 #include "../pngpriv.h"
 
-#ifdef PNG_ARM_NEON_SUPPORTED
+#if PNG_ARM_NEON_OPT > 0
 #ifdef PNG_ARM_NEON_CHECK_SUPPORTED 
 #include <signal.h> 
 
