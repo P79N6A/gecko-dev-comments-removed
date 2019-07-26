@@ -10,6 +10,9 @@
 
 #include "AccessibleComponent.h"
 
+namespace mozilla {
+namespace a11y {
+
 class ia2AccessibleComponent : public IAccessibleComponent
 {
 public:
@@ -29,5 +32,7 @@ public:
        IA2Color *background);
 };
 
-#endif
+} 
+} 
 
+#endif

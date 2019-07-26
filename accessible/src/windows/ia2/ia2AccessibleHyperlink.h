@@ -13,6 +13,9 @@
 #include "ia2AccessibleAction.h"
 #include "AccessibleHyperlink.h"
 
+namespace mozilla {
+namespace a11y {
+
 class ia2AccessibleHyperlink : public ia2AccessibleAction,
                                public IAccessibleHyperlink
 {
@@ -42,5 +45,7 @@ public:
        boolean *valid);
 };
 
-#endif
+} 
+} 
 
+#endif

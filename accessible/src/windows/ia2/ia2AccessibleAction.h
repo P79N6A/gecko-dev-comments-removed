@@ -12,6 +12,9 @@
 
 #include "AccessibleAction.h"
 
+namespace mozilla {
+namespace a11y {
+
 class ia2AccessibleAction: public IAccessibleAction
 {
 public:
@@ -46,6 +49,8 @@ public:
 
 };
 
+} 
+} 
 
 #define FORWARD_IACCESSIBLEACTION(Class)                                       \
 virtual HRESULT STDMETHODCALLTYPE nActions(long *nActions)                     \

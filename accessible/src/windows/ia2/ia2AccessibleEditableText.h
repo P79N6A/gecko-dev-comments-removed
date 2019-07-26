@@ -13,6 +13,9 @@
 
 #include "AccessibleEditableText.h"
 
+namespace mozilla {
+namespace a11y {
+
 class ia2AccessibleEditableText: public IAccessibleEditableText
 {
 public:
@@ -48,5 +51,7 @@ public:
        BSTR *attributes);
 };
 
-#endif
+} 
+} 
 
+#endif

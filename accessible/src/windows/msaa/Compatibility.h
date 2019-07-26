@@ -12,8 +12,6 @@
 namespace mozilla {
 namespace a11y {
 
-class nsAccessNodeWrap;
-
 
 
 

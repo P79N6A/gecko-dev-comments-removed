@@ -9,6 +9,15 @@
 #define mozilla_a11y_IUnknownImpl_h_
 
 #include <windows.h>
+#include "nsError.h"
+
+
+
+
+
+#ifdef _MSC_VER
+#pragma warning( disable : 4509 )
+#endif
 
 namespace mozilla {
 namespace a11y {
@@ -133,5 +142,36 @@ Class::QueryInterface(REFIID aIID, void** aInstancePtr)                        \
   IMPL_IUNKNOWN_QUERY_CLASS(Super2);                                           \
   IMPL_IUNKNOWN_QUERY_CLASS(Super0)                                            \
   IMPL_IUNKNOWN_QUERY_TAIL
+
+
+
+
+
+
+#define A11Y_TRYBLOCK_BEGIN                                                    \
+  MOZ_SEH_TRY {
+
+#define A11Y_TRYBLOCK_END                                                      \
+  } MOZ_SEH_EXCEPT(mozilla::a11y::FilterExceptions(::GetExceptionCode(),       \
+                                                   GetExceptionInformation())) \
+  { }                                                                          \
+  return E_FAIL;
+
+
+namespace mozilla {
+namespace a11y {
+
+
+
+
+HRESULT GetHRESULT(nsresult aResult);
+
+
+
+
+int FilterExceptions(unsigned int aCode, EXCEPTION_POINTERS* aExceptionInfo);
+
+} 
+} 
 
 #endif

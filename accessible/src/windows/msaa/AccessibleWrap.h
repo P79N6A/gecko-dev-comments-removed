@@ -14,6 +14,13 @@
 #include "ia2AccessibleHyperlink.h"
 #include "ia2AccessibleValue.h"
 
+#ifdef __GNUC__
+
+
+
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
 namespace mozilla {
 namespace a11y {
 
@@ -28,8 +35,8 @@ public:
     Accessible(aContent, aDoc) { }
   virtual ~AccessibleWrap() { }
 
-    
-    NS_DECL_ISUPPORTS_INHERITED
+  
+  NS_DECL_ISUPPORTS_INHERITED
 
   public: 
     STDMETHODIMP QueryInterface(REFIID, void**);
