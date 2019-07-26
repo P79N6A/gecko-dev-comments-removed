@@ -51,7 +51,7 @@ class DeferredJumpTable : public DeferredData
 
 
 
-CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph &graph)
+CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph)
   : CodeGeneratorShared(gen, graph),
     deoptLabel_(NULL)
 {

@@ -17,7 +17,7 @@
 namespace js {
 namespace ion {
 
-class LIRGraph;
+class CodeGenerator;
 
 class IonBuilder : public MIRGenerator
 {
@@ -439,16 +439,21 @@ class IonBuilder : public MIRGenerator
     
     HeapPtrScript script_;
 
+    
+    
+    
+    CodeGenerator *backgroundCodegen_;
+
   public:
     
     types::RecompileInfo const recompileInfo;
 
-    
-    LIRGraph *backgroundCompiledLir;
-
     void clearForBackEnd();
 
     Return<JSScript*> script() const { return script_; }
+
+    CodeGenerator *backgroundCodegen() const { return backgroundCodegen_; }
+    void setBackgroundCodegen(CodeGenerator *codegen) { backgroundCodegen_ = codegen; }
 
   private:
     JSContext *cx;
