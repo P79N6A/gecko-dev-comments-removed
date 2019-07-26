@@ -5,30 +5,76 @@
 
 
 #include "SandboxFilter.h"
+#include "SandboxAssembler.h"
 
 #include "linux_seccomp.h"
 #include "linux_syscalls.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/NullPtr.h"
 
 #include <errno.h>
+#include <unistd.h>
 
 namespace mozilla {
 
-#define SYSCALL_EXISTS(name) defined(__NR_##name)
+class SandboxFilterImpl : public SandboxAssembler
+{
+  void Build();
+public:
+  SandboxFilterImpl() {
+    Build();
+    Finish();
+  }
+};
 
-static struct sock_filter seccomp_filter[] = {
-  VALIDATE_ARCHITECTURE,
-  EXAMINE_SYSCALL,
+SandboxFilter::SandboxFilter(const sock_fprog** aStored, bool aVerbose)
+  : mStored(aStored)
+{
+  MOZ_ASSERT(*mStored == nullptr);
+  std::vector<struct sock_filter> filterVec;
+  {
+    SandboxFilterImpl impl;
+    impl.Compile(&filterVec, aVerbose);
+  }
+  mProg = new sock_fprog;
+  mProg->len = filterVec.size();
+  mProg->filter = mFilter = new sock_filter[mProg->len];
+  for (size_t i = 0; i < mProg->len; ++i) {
+    mFilter[i] = filterVec[i];
+  }
+  *mStored = mProg;
+}
+
+SandboxFilter::~SandboxFilter()
+{
+  *mStored = nullptr;
+  delete[] mFilter;
+  delete mProg;
+}
+
+void
+SandboxFilterImpl::Build() {
+#define SYSCALL_EXISTS(name) (defined(__NR_##name))
+
+#define SYSCALL(name) (Condition(__NR_##name))
+#if defined(__arm__) && (defined(__thumb__) || defined(__ARM_EABI__))
+#define ARM_SYSCALL(name) (Condition(__ARM_NR_##name))
+#endif
+
+#define SYSCALL_WITH_ARG(name, arg, values...) ({ \
+  uint32_t argValues[] = { values };              \
+  Condition(__NR_##name, arg, argValues);         \
+})
 
   
   
   
   
 #if SYSCALL_EXISTS(stat64)
-#define ALLOW_SYSCALL_LARGEFILE(plain, versioned) ALLOW_SYSCALL(versioned)
+#define SYSCALL_LARGEFILE(plain, versioned) SYSCALL(versioned)
 #else
-#define ALLOW_SYSCALL_LARGEFILE(plain, versioned) ALLOW_SYSCALL(plain)
+#define SYSCALL_LARGEFILE(plain, versioned) SYSCALL(plain)
 #endif
 
   
@@ -48,237 +94,220 @@ static struct sock_filter seccomp_filter[] = {
 
 
 
-  ALLOW_SYSCALL(futex),
+  Allow(SYSCALL(futex));
   
   
 #if SYSCALL_EXISTS(socketcall)
-  ALLOW_SYSCALL(socketcall),
+  Allow(SYSCALL(socketcall));
 #else
-  ALLOW_SYSCALL(recvmsg),
-  ALLOW_SYSCALL(sendmsg),
+  Allow(SYSCALL(recvmsg));
+  Allow(SYSCALL(sendmsg));
 #endif
 
   
   
   
 #if SYSCALL_EXISTS(mmap2)
-  ALLOW_SYSCALL(mmap2),
+  Allow(SYSCALL(mmap2));
 #else
-  ALLOW_SYSCALL(mmap),
+  Allow(SYSCALL(mmap));
 #endif
 
   
 #ifdef MOZ_WIDGET_GONK
-  ALLOW_SYSCALL(clock_gettime),
-  ALLOW_SYSCALL(epoll_wait),
-  ALLOW_SYSCALL(gettimeofday),
+  Allow(SYSCALL(clock_gettime));
+  Allow(SYSCALL(epoll_wait));
+  Allow(SYSCALL(gettimeofday));
 #endif
-  ALLOW_SYSCALL(read),
-  ALLOW_SYSCALL(write),
+  Allow(SYSCALL(read));
+  Allow(SYSCALL(write));
   
 #if SYSCALL_EXISTS(_llseek)
-  ALLOW_SYSCALL(_llseek),
+  Allow(SYSCALL(_llseek));
 #endif
-  ALLOW_SYSCALL(lseek),
+  Allow(SYSCALL(lseek));
   
-  ALLOW_SYSCALL(ftruncate),
+  Allow(SYSCALL(ftruncate));
 #if SYSCALL_EXISTS(ftruncate64)
-  ALLOW_SYSCALL(ftruncate64),
+  Allow(SYSCALL(ftruncate64));
 #endif
 
   
 
 
-  ALLOW_SYSCALL(ioctl),
-  ALLOW_SYSCALL(close),
-  ALLOW_SYSCALL(munmap),
-  ALLOW_SYSCALL(mprotect),
-  ALLOW_SYSCALL(writev),
-  ALLOW_SYSCALL(clone),
-  ALLOW_SYSCALL(brk),
+  Allow(SYSCALL(ioctl));
+  Allow(SYSCALL(close));
+  Allow(SYSCALL(munmap));
+  Allow(SYSCALL(mprotect));
+  Allow(SYSCALL(writev));
+  Allow(SYSCALL(clone));
+  Allow(SYSCALL(brk));
 #if SYSCALL_EXISTS(set_thread_area)
-  ALLOW_SYSCALL(set_thread_area),
+  Allow(SYSCALL(set_thread_area));
 #endif
 
-  ALLOW_SYSCALL(getpid),
-  ALLOW_SYSCALL(gettid),
-  ALLOW_SYSCALL(getrusage),
-  ALLOW_SYSCALL(madvise),
-  ALLOW_SYSCALL(dup),
-  ALLOW_SYSCALL(nanosleep),
-  ALLOW_SYSCALL(poll),
+  Allow(SYSCALL(getpid));
+  Allow(SYSCALL(gettid));
+  Allow(SYSCALL(getrusage));
+  Allow(SYSCALL(madvise));
+  Allow(SYSCALL(dup));
+  Allow(SYSCALL(nanosleep));
+  Allow(SYSCALL(poll));
   
 #if SYSCALL_EXISTS(_newselect)
-  ALLOW_SYSCALL(_newselect),
+  Allow(SYSCALL(_newselect));
 #else
-  ALLOW_SYSCALL(select),
+  Allow(SYSCALL(select));
 #endif
   
 #if SYSCALL_EXISTS(getuid32)
-  ALLOW_SYSCALL(getuid32),
-  ALLOW_SYSCALL(geteuid32),
+  Allow(SYSCALL(getuid32));
+  Allow(SYSCALL(geteuid32));
 #else
-  ALLOW_SYSCALL(getuid),
-  ALLOW_SYSCALL(geteuid),
+  Allow(SYSCALL(getuid));
+  Allow(SYSCALL(geteuid));
 #endif
   
   
   
 #if SYSCALL_EXISTS(sigreturn)
-  ALLOW_SYSCALL(sigreturn),
+  Allow(SYSCALL(sigreturn));
 #endif
-  ALLOW_SYSCALL(rt_sigreturn),
-  ALLOW_SYSCALL_LARGEFILE(fcntl, fcntl64),
+  Allow(SYSCALL(rt_sigreturn));
+  Allow(SYSCALL_LARGEFILE(fcntl, fcntl64));
 
   
   
   
-  ALLOW_SYSCALL_LARGEFILE(fstat, fstat64),
-  ALLOW_SYSCALL_LARGEFILE(stat, stat64),
-  ALLOW_SYSCALL_LARGEFILE(lstat, lstat64),
+  Allow(SYSCALL_LARGEFILE(fstat, fstat64));
+  Allow(SYSCALL_LARGEFILE(stat, stat64));
+  Allow(SYSCALL_LARGEFILE(lstat, lstat64));
   
 #if !SYSCALL_EXISTS(socketcall)
-  ALLOW_SYSCALL(socketpair),
-  DENY_SYSCALL(socket, EACCES),
+  Allow(SYSCALL(socketpair));
+  Deny(EACCES, SYSCALL(socket));
 #endif
-  ALLOW_SYSCALL(open),
-  ALLOW_SYSCALL(readlink), 
-  ALLOW_SYSCALL(prctl),
-  ALLOW_SYSCALL(access),
-  ALLOW_SYSCALL(unlink),
-  ALLOW_SYSCALL(fsync),
-  ALLOW_SYSCALL(msync),
+  Allow(SYSCALL(open));
+  Allow(SYSCALL(readlink)); 
+  Allow(SYSCALL(prctl));
+  Allow(SYSCALL(access));
+  Allow(SYSCALL(unlink));
+  Allow(SYSCALL(fsync));
+  Allow(SYSCALL(msync));
 
   
-  ALLOW_SYSCALL(getpriority),
-  ALLOW_SYSCALL(sched_get_priority_min),
-  ALLOW_SYSCALL(sched_get_priority_max),
-  ALLOW_SYSCALL(setpriority),
+  Allow(SYSCALL(getpriority));
+  Allow(SYSCALL(sched_get_priority_min));
+  Allow(SYSCALL(sched_get_priority_max));
+  Allow(SYSCALL(setpriority));
   
   
 #if SYSCALL_EXISTS(sigprocmask)
-  ALLOW_SYSCALL(sigprocmask),
+  Allow(SYSCALL(sigprocmask));
 #endif
-  ALLOW_SYSCALL(rt_sigprocmask),
+  Allow(SYSCALL(rt_sigprocmask));
 
   
   
-  ALLOW_SYSCALL(tgkill),
+  Allow(SYSCALL(tgkill));
 
   
 #ifdef MOZ_WIDGET_GONK
 #if !SYSCALL_EXISTS(socketcall)
-  ALLOW_SYSCALL(sendto),
-  ALLOW_SYSCALL(recvfrom),
+  Allow(SYSCALL(sendto));
+  Allow(SYSCALL(recvfrom));
 #endif
-  ALLOW_SYSCALL_LARGEFILE(getdents, getdents64),
-  ALLOW_SYSCALL(epoll_ctl),
-  ALLOW_SYSCALL(sched_yield),
-  ALLOW_SYSCALL(sched_getscheduler),
-  ALLOW_SYSCALL(sched_setscheduler),
-  ALLOW_SYSCALL(sigaltstack),
+  Allow(SYSCALL_LARGEFILE(getdents, getdents64));
+  Allow(SYSCALL(epoll_ctl));
+  Allow(SYSCALL(sched_yield));
+  Allow(SYSCALL(sched_getscheduler));
+  Allow(SYSCALL(sched_setscheduler));
+  Allow(SYSCALL(sigaltstack));
 #endif
 
   
   
 #if SYSCALL_EXISTS(sigaction)
-  ALLOW_SYSCALL(sigaction),
+  Allow(SYSCALL(sigaction));
 #endif
-  ALLOW_SYSCALL(rt_sigaction),
-#ifdef ALLOW_ARM_SYSCALL
-  ALLOW_ARM_SYSCALL(breakpoint),
-  ALLOW_ARM_SYSCALL(cacheflush),
-  ALLOW_ARM_SYSCALL(usr26),
-  ALLOW_ARM_SYSCALL(usr32),
-  ALLOW_ARM_SYSCALL(set_tls),
+  Allow(SYSCALL(rt_sigaction));
+#ifdef ARM_SYSCALL
+  Allow(ARM_SYSCALL(breakpoint));
+  Allow(ARM_SYSCALL(cacheflush));
+  Allow(ARM_SYSCALL(usr26));
+  Allow(ARM_SYSCALL(usr32));
+  Allow(ARM_SYSCALL(set_tls));
 #endif
 
   
-  ALLOW_SYSCALL(restart_syscall),
+  Allow(SYSCALL(restart_syscall));
 
   
   
 #ifndef MOZ_WIDGET_GONK
-  ALLOW_SYSCALL(stat),
-  ALLOW_SYSCALL(getdents),
-  ALLOW_SYSCALL(lstat),
-  ALLOW_SYSCALL(mmap),
-  ALLOW_SYSCALL(openat),
-  ALLOW_SYSCALL(fcntl),
-  ALLOW_SYSCALL(fstat),
-  ALLOW_SYSCALL(readlink),
-  ALLOW_SYSCALL(getsockname),
-  ALLOW_SYSCALL(getuid),
-  ALLOW_SYSCALL(geteuid),
-  ALLOW_SYSCALL(mkdir),
-  ALLOW_SYSCALL(getcwd),
-  ALLOW_SYSCALL(readahead),
-  ALLOW_SYSCALL(pread64),
-  ALLOW_SYSCALL(statfs),
-  ALLOW_SYSCALL(pipe),
-  ALLOW_SYSCALL(getrlimit),
-  ALLOW_SYSCALL(shutdown),
-  ALLOW_SYSCALL(getpeername),
-  ALLOW_SYSCALL(eventfd2),
-  ALLOW_SYSCALL(clock_getres),
-  ALLOW_SYSCALL(sysinfo),
-  ALLOW_SYSCALL(getresuid),
-  ALLOW_SYSCALL(umask),
-  ALLOW_SYSCALL(getresgid),
-  ALLOW_SYSCALL(poll),
-  ALLOW_SYSCALL(getegid),
-  ALLOW_SYSCALL(inotify_init1),
-  ALLOW_SYSCALL(wait4),
-  ALLOW_SYSCALL(shmctl),
-  ALLOW_SYSCALL(set_robust_list),
-  ALLOW_SYSCALL(rmdir),
-  ALLOW_SYSCALL(recvfrom),
-  ALLOW_SYSCALL(shmdt),
-  ALLOW_SYSCALL(pipe2),
-  ALLOW_SYSCALL(setsockopt),
-  ALLOW_SYSCALL(shmat),
-  ALLOW_SYSCALL(set_tid_address),
-  ALLOW_SYSCALL(inotify_add_watch),
-  ALLOW_SYSCALL(rt_sigprocmask),
-  ALLOW_SYSCALL(shmget),
-  ALLOW_SYSCALL(getgid),
-  ALLOW_SYSCALL(utime),
-  ALLOW_SYSCALL(arch_prctl),
-  ALLOW_SYSCALL(sched_getaffinity),
+  Allow(SYSCALL(stat));
+  Allow(SYSCALL(getdents));
+  Allow(SYSCALL(lstat));
+  Allow(SYSCALL(mmap));
+  Allow(SYSCALL(openat));
+  Allow(SYSCALL(fcntl));
+  Allow(SYSCALL(fstat));
+  Allow(SYSCALL(readlink));
+  Allow(SYSCALL(getsockname));
+  Allow(SYSCALL(getuid));
+  Allow(SYSCALL(geteuid));
+  Allow(SYSCALL(mkdir));
+  Allow(SYSCALL(getcwd));
+  Allow(SYSCALL(readahead));
+  Allow(SYSCALL(pread64));
+  Allow(SYSCALL(statfs));
+  Allow(SYSCALL(pipe));
+  Allow(SYSCALL(getrlimit));
+  Allow(SYSCALL(shutdown));
+  Allow(SYSCALL(getpeername));
+  Allow(SYSCALL(eventfd2));
+  Allow(SYSCALL(clock_getres));
+  Allow(SYSCALL(sysinfo));
+  Allow(SYSCALL(getresuid));
+  Allow(SYSCALL(umask));
+  Allow(SYSCALL(getresgid));
+  Allow(SYSCALL(poll));
+  Allow(SYSCALL(getegid));
+  Allow(SYSCALL(inotify_init1));
+  Allow(SYSCALL(wait4));
+  Allow(SYSCALL(shmctl));
+  Allow(SYSCALL(set_robust_list));
+  Allow(SYSCALL(rmdir));
+  Allow(SYSCALL(recvfrom));
+  Allow(SYSCALL(shmdt));
+  Allow(SYSCALL(pipe2));
+  Allow(SYSCALL(setsockopt));
+  Allow(SYSCALL(shmat));
+  Allow(SYSCALL(set_tid_address));
+  Allow(SYSCALL(inotify_add_watch));
+  Allow(SYSCALL(rt_sigprocmask));
+  Allow(SYSCALL(shmget));
+  Allow(SYSCALL(getgid));
+  Allow(SYSCALL(utime));
+  Allow(SYSCALL(arch_prctl));
+  Allow(SYSCALL(sched_getaffinity));
   
-  ALLOW_SYSCALL(socket),
-  ALLOW_SYSCALL(chmod),
-  ALLOW_SYSCALL(execve),
-  ALLOW_SYSCALL(rename),
-  ALLOW_SYSCALL(symlink),
-  ALLOW_SYSCALL(connect),
-  ALLOW_SYSCALL(quotactl),
-  ALLOW_SYSCALL(kill),
-  ALLOW_SYSCALL(sendto),
+  Allow(SYSCALL(socket));
+  Allow(SYSCALL(chmod));
+  Allow(SYSCALL(execve));
+  Allow(SYSCALL(rename));
+  Allow(SYSCALL(symlink));
+  Allow(SYSCALL(connect));
+  Allow(SYSCALL(quotactl));
+  Allow(SYSCALL(kill));
+  Allow(SYSCALL(sendto));
 #endif
 
   
   
-  ALLOW_SYSCALL(uname),
-  ALLOW_SYSCALL(exit_group),
-  ALLOW_SYSCALL(exit),
-
-#ifdef MOZ_CONTENT_SANDBOX_REPORTER
-  TRAP_PROCESS,
-#else
-  KILL_PROCESS,
-#endif
-};
-
-static struct sock_fprog seccomp_prog = {
-  (unsigned short)MOZ_ARRAY_LENGTH(seccomp_filter),
-  seccomp_filter,
-};
-
-const sock_fprog*
-GetSandboxFilter()
-{
-  return &seccomp_prog;
+  Allow(SYSCALL(uname));
+  Allow(SYSCALL(exit_group));
+  Allow(SYSCALL(exit));
 }
 
 }
