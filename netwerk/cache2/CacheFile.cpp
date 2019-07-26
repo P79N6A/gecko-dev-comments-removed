@@ -691,6 +691,12 @@ CacheFile::OpenOutputStream(CacheOutputCloseListener *aCloseListener, nsIOutputS
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  
+  
+  
+  
+  mPreloadWithoutInputStreams = false;
+
   mOutput = new CacheFileOutputStream(this, aCloseListener);
 
   LOG(("CacheFile::OpenOutputStream() - Creating new output stream %p "
