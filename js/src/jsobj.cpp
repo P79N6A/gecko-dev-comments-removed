@@ -3055,8 +3055,9 @@ ReallocateElements(ThreadSafeContext *cx, JSObject *obj, ObjectElements *oldHead
 {
 #ifdef JSGC_GENERATIONAL
     if (cx->isJSContext()) {
-        return cx->asJSContext()->runtime()-> gcNursery.reallocateElements(cx->asJSContext(), obj, oldHeader,
-                                                                           oldCount, newCount);
+        return cx->asJSContext()->runtime()->gcNursery.reallocateElements(cx->asJSContext(), obj,
+                                                                          oldHeader, oldCount,
+                                                                          newCount);
     }
 #endif
 
@@ -3151,8 +3152,10 @@ JSObject::shrinkElements(ThreadSafeContext *cx, uint32_t newcap)
 
     ObjectElements *newheader = ReallocateElements(cx, this, getElementsHeader(),
                                                    oldAllocated, newAllocated);
-    if (!newheader)
+    if (!newheader) {
+        cx->recoverFromOutOfMemory();
         return;  
+    }
 
     newheader->capacity = newcap;
     elements = newheader->elements();

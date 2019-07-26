@@ -266,6 +266,9 @@ struct ThreadSafeContext : ContextFriendFields,
         return runtime_->onOutOfMemory(p, nbytes, maybeJSContext());
     }
 
+    
+    void recoverFromOutOfMemory();
+
     inline void updateMallocCounter(size_t nbytes) {
         
         runtime_->updateMallocCounter(zone_, nbytes);
