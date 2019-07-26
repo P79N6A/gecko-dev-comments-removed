@@ -618,10 +618,6 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult)
 
   mInput->CancelDirectoryPickerScanIfRunning();
 
-  
-  
-  mInput->ClearFiles();
-
   int16_t mode;
   mFilePicker->GetMode(&mode);
 
@@ -2456,12 +2452,6 @@ HTMLInputElement::SetFiles(nsIDOMFileList* aFiles,
   }
 
   AfterSetFiles(aSetValueChanged);
-}
-
-void
-HTMLInputElement::ClearFiles()
-{
-  mFiles.Clear();
 }
 
 void
