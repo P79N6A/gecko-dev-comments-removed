@@ -718,33 +718,19 @@ HyperTextAccessible::GetRelativeOffset(nsIPresShell* aPresShell,
                          0, kIsJumpLinesOk, kIsScrollViewAStop, kIsKeyboardSelect, kIsVisualBidi,
                          aWordMovementType);
   rv = aFromFrame->PeekOffset(&pos);
-  if (NS_FAILED(rv)) {
-    pos.mResultContent = aFromFrame->GetContent();
-    if (aDirection == eDirPrevious) {
-      
-      
-      
-      
-      int32_t endOffsetUnused;
-      aFromFrame->GetOffsets(pos.mContentOffset, endOffsetUnused);
-    }
-    else {
-      
-      
-      
-      
-      int32_t startOffsetUnused;
-      aFromFrame->GetOffsets(startOffsetUnused, pos.mContentOffset);
-    }
-  }
 
   
-  int32_t hyperTextOffset;
+  if (NS_FAILED(rv) && aAmount == eSelectLine) {
+    pos.mAmount = (aDirection == eDirNext) ? eSelectEndLine : eSelectBeginLine;
+    aFromFrame->PeekOffset(&pos);
+  }
   if (!pos.mResultContent)
     return -1;
 
   
   
+  
+  int32_t hyperTextOffset;
   Accessible* finalAccessible =
     DOMPointToHypertextOffset(pos.mResultContent, pos.mContentOffset,
                               &hyperTextOffset, aDirection == eDirNext);
