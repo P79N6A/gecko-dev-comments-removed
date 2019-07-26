@@ -202,8 +202,6 @@
 #include "nsIAppShellService.h"
 #include "nsAppShellCID.h"
 
-#include "nsIAppsService.h"
-
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID,
                      NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
@@ -4597,8 +4595,10 @@ nsDocShell::Stop(uint32_t aStopFlags)
 
     if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
         
-        if (mContentViewer)
-            mContentViewer->Stop();
+        if (mContentViewer) {
+            nsCOMPtr<nsIContentViewer> cv = mContentViewer;
+            cv->Stop();
+        }
     }
 
     if (nsIWebNavigation::STOP_NETWORK & aStopFlags) {
@@ -6438,30 +6438,6 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     if (!oldURI || !newURI) {
         return;
     }
-
-    
-    uint32_t appId;
-    nsresult rv = GetAppId(&appId);
-    if (NS_FAILED(rv)) {
-      return;
-    }
-
-    if (appId != nsIScriptSecurityManager::NO_APP_ID &&
-        appId != nsIScriptSecurityManager::UNKNOWN_APP_ID) {
-      nsCOMPtr<nsIAppsService> appsService =
-        do_GetService(APPS_SERVICE_CONTRACTID);
-      NS_ASSERTION(appsService, "No AppsService available");
-      nsCOMPtr<nsIURI> redirect;
-      rv = appsService->GetRedirect(appId, newURI, getter_AddRefs(redirect));
-      if (NS_SUCCEEDED(rv) && redirect) {
-        aNewChannel->Cancel(NS_BINDING_ABORTED);
-        rv = LoadURI(redirect, nullptr, 0, false);
-        if (NS_SUCCEEDED(rv)) {
-          return;
-        }
-      }
-    }
-
     
     bool equals = false;
     if (mTiming &&
