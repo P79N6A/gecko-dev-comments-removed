@@ -27,7 +27,6 @@
 #undef JS_KEYWORD
 
 namespace js {
-namespace frontend {
 
 enum TokenKind {
     TOK_ERROR = -1,                
@@ -267,10 +266,6 @@ struct TokenPos {
     bool operator >=(const TokenPos& bpos) const {
         return !(*this < bpos);
     }
-
-    bool encloses(const TokenPos& pos) const {
-        return begin <= pos.begin && pos.end <= end;
-    }
 };
 
 struct Token {
@@ -393,7 +388,6 @@ enum TokenStreamFlags
     TSF_XMLTEXTMODE = 0x200,    
     TSF_XMLONLYMODE = 0x400,    
     TSF_OCTAL_CHAR = 0x800,     
-    TSF_HAD_ERROR = 0x1000,     
 
     
 
@@ -414,39 +408,10 @@ enum TokenStreamFlags
 
 
 
-    TSF_IN_HTML_COMMENT = 0x2000
+    TSF_IN_HTML_COMMENT = 0x1000
 };
 
 struct Parser;
-
-struct CompileError {
-    JSContext *cx;
-    JSErrorReport report;
-    char *message;
-    bool hasCharArgs;
-    CompileError(JSContext *cx)
-     : cx(cx), message(NULL), hasCharArgs(false)
-    {
-        PodZero(&report);
-    }
-    ~CompileError();
-    void throwError();
-};
-
-
-MOZ_BEGIN_ENUM_CLASS(StrictMode, uint8_t)
-    NOTSTRICT,
-    UNKNOWN,
-    STRICT
-MOZ_END_ENUM_CLASS(StrictMode)
-
-inline StrictMode
-StrictModeFromContext(JSContext *cx)
-{
-    return cx->hasRunOption(JSOPTION_STRICT_MODE) ? StrictMode::STRICT : StrictMode::UNKNOWN;
-}
-
-
 
 
 
@@ -461,9 +426,7 @@ class StrictModeGetter {
   public:
     StrictModeGetter(Parser *p) : parser(p) { }
 
-    StrictMode get() const;
-    CompileError *queuedStrictModeError() const;
-    void setQueuedStrictModeError(CompileError *e);
+    bool get() const;
 };
 
 class TokenStream
@@ -481,8 +444,9 @@ class TokenStream
   public:
     typedef Vector<jschar, 32> CharBuffer;
 
-    TokenStream(JSContext *cx, const CompileOptions &options,
-                const jschar *base, size_t length, StrictModeGetter *smg);
+    TokenStream(JSContext *cx, JSPrincipals *principals, JSPrincipals *originPrincipals,
+                const jschar *base, size_t length, const char *filename, unsigned lineno,
+                JSVersion version, StrictModeGetter *smg);
 
     ~TokenStream();
 
@@ -497,21 +461,15 @@ class TokenStream
         TokenKind type = currentToken().type;
         return type == type1 || type == type2;
     }
-    size_t offsetOfToken(const Token &tok) const {
-        return tok.ptr - userbuf.base();
-    }
     const CharBuffer &getTokenbuf() const { return tokenbuf; }
     const char *getFilename() const { return filename; }
     unsigned getLineno() const { return lineno; }
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    
-    
-    bool allowsXML() const { return allowXML && strictModeState() != StrictMode::STRICT; }
+    bool allowsXML() const { return allowXML && !isStrictMode(); }
     bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
     void setMoarXML(bool enabled) { moarXML = enabled; }
-    bool hadError() const { return !!(flags & TSF_HAD_ERROR); }
 
     bool isCurrentTokenEquality() const {
         return TokenKindIsEquality(currentToken().type);
@@ -533,31 +491,21 @@ class TokenStream
     void setXMLTagMode(bool enabled = true) { setFlag(enabled, TSF_XMLTAGMODE); }
     void setXMLOnlyMode(bool enabled = true) { setFlag(enabled, TSF_XMLONLYMODE); }
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
+    void setOctalCharacterEscape(bool enabled = true) { setFlag(enabled, TSF_OCTAL_CHAR); }
 
-    StrictMode strictModeState() const
-    {
-        return strictModeGetter ? strictModeGetter->get() : StrictMode(StrictMode::NOTSTRICT);
-    }
+    bool isStrictMode() const { return strictModeGetter ? strictModeGetter->get() : false; }
     bool isXMLTagMode() const { return !!(flags & TSF_XMLTAGMODE); }
     bool isXMLOnlyMode() const { return !!(flags & TSF_XMLONLYMODE); }
     bool isUnexpectedEOF() const { return !!(flags & TSF_UNEXPECTED_EOF); }
     bool isEOF() const { return !!(flags & TSF_EOF); }
+    bool hasOctalCharacterEscape() const { return flags & TSF_OCTAL_CHAR; }
 
-    
-    bool reportError(unsigned errorNumber, ...);
-    bool reportWarning(unsigned errorNumber, ...);
-    bool reportStrictWarning(unsigned errorNumber, ...);
-    bool reportStrictModeError(unsigned errorNumber, ...);
-
-    
     
     
     bool reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned errorNumber,
-                                    va_list args);
-    bool reportStrictModeErrorNumberVA(ParseNode *pn, unsigned errorNumber, va_list args);
+                                    va_list ap);
 
   private:
-    void onError();
     static JSAtom *atomize(JSContext *cx, CharBuffer &cb);
     bool putIdentInTokenbuf(const jschar *identStart);
 
@@ -620,7 +568,7 @@ class TokenStream
 
     TokenKind peekToken() {
         if (lookahead != 0) {
-            JS_ASSERT(lookahead <= 2);
+            JS_ASSERT(lookahead == 1);
             return tokens[(cursor + lookahead) & ntokensMask].type;
         }
         TokenKind tt = getTokenInternal();
@@ -638,7 +586,7 @@ class TokenStream
             return TOK_EOL;
 
         if (lookahead != 0) {
-            JS_ASSERT(lookahead <= 2);
+            JS_ASSERT(lookahead == 1);
             return tokens[(cursor + lookahead) & ntokensMask].type;
         }
 
@@ -675,22 +623,11 @@ class TokenStream
         JS_ALWAYS_TRUE(matchToken(tt));
     }
 
-
     
 
 
-    size_t endOffset(const Token &tok);
-
-    bool hasSourceMap() const {
-        return sourceMap != NULL;
-    }
-
-    
-
-
-    jschar *releaseSourceMap() {
-        JS_ASSERT(hasSourceMap());
-        jschar *sm = sourceMap;
+    const jschar *releaseSourceMap() {
+        const jschar* sm = sourceMap;
         sourceMap = NULL;
         return sm;
     }
@@ -722,22 +659,14 @@ class TokenStream
     class TokenBuf {
       public:
         TokenBuf(const jschar *buf, size_t length)
-          : base_(buf), limit_(buf + length), ptr(buf) { }
+          : base(buf), limit(buf + length), ptr(buf) { }
 
         bool hasRawChars() const {
-            return ptr < limit_;
+            return ptr < limit;
         }
 
         bool atStart() const {
-            return ptr == base_;
-        }
-
-        const jschar *base() const {
-            return base_;
-        }
-
-        const jschar *limit() const {
-            return limit_;
+            return ptr == base;
         }
 
         jschar getRawChar() {
@@ -797,8 +726,8 @@ class TokenStream
         const jschar *findEOLMax(const jschar *p, size_t max);
 
       private:
-        const jschar *base_;            
-        const jschar *limit_;           
+        const jschar *base;             
+        const jschar *limit;            
         const jschar *ptr;              
     };
 
@@ -892,7 +821,7 @@ FindKeyword(const jschar *s, size_t length);
 
 
 
-bool
+JSBool
 IsIdentifier(JSLinearString *str);
 
 
@@ -901,7 +830,22 @@ IsIdentifier(JSLinearString *str);
 
 #define JSREPORT_UC 0x100
 
-} 
+
+
+
+
+
+bool
+ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned flags,
+                         unsigned errorNumber, ...);
+
+
+
+
+
+bool
+ReportStrictModeError(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned errorNumber, ...);
+
 } 
 
 extern JS_FRIEND_API(int)
@@ -909,7 +853,7 @@ js_fgets(char *buf, int size, FILE *file);
 
 #ifdef DEBUG
 extern const char *
-TokenKindToString(js::frontend::TokenKind tt);
+TokenKindToString(js::TokenKind tt);
 #endif
 
 #endif 
