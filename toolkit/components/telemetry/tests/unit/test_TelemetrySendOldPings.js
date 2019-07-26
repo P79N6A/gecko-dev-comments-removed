@@ -37,6 +37,7 @@ const PING_TIMEOUT_LENGTH = 5000;
 const EXPIRED_PINGS = 5;
 const OVERDUE_PINGS = 6;
 const RECENT_PINGS = 4;
+const LRU_PINGS = TelemetryFile.MAX_LRU_PINGS;
 
 const TOTAL_EXPECTED_PINGS = OVERDUE_PINGS + RECENT_PINGS;
 
@@ -199,7 +200,7 @@ function run_test() {
 
 
 
-add_task(function test_expired_pings_are_deleted() {
+add_task(function* test_expired_pings_are_deleted() {
   let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
   yield startTelemetry();
   assertReceivedPings(0);
@@ -210,7 +211,7 @@ add_task(function test_expired_pings_are_deleted() {
 
 
 
-add_task(function test_recent_pings_not_sent() {
+add_task(function* test_recent_pings_not_sent() {
   let recentPings = yield createSavedPings(RECENT_PINGS);
   yield startTelemetry();
   assertReceivedPings(0);
@@ -221,9 +222,31 @@ add_task(function test_recent_pings_not_sent() {
 
 
 
+add_task(function* test_most_recent_pings_kept() {
+  let head = yield createSavedPings(LRU_PINGS);
+  let tail = yield createSavedPings(3, ONE_MINUTE_MS);
+  let pings = head.concat(tail);
+
+  yield startTelemetry();
+  let gen = TelemetryFile.popPendingPings();
+
+  for (let item of gen) {
+    for (let p of tail) {
+      do_check_neq(p.slug, item.slug);
+    }
+  }
+
+  assertNotSaved(tail);
+  yield resetTelemetry();
+  yield clearPings(pings);
+});
 
 
-add_task(function test_overdue_pings_trigger_send() {
+
+
+
+
+add_task(function* test_overdue_pings_trigger_send() {
   let recentPings = yield createSavedPings(RECENT_PINGS);
   let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
   let overduePings = yield createSavedPings(OVERDUE_PINGS, OVERDUE_PING_FILE_AGE);
@@ -237,6 +260,6 @@ add_task(function test_overdue_pings_trigger_send() {
   yield resetTelemetry();
 });
 
-add_task(function teardown() {
+add_task(function* teardown() {
   yield stopHttpServer();
 });
