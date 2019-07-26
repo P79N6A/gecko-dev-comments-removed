@@ -8,6 +8,12 @@
 #include "nsSpeechTask.h"
 #include "SpeechSynthesis.h"
 
+
+
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
 #undef LOG
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* GetSpeechSynthLog();

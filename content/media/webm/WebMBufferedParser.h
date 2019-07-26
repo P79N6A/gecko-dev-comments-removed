@@ -10,9 +10,11 @@
 #include "nsTArray.h"
 #include "mozilla/ReentrantMonitor.h"
 
-class TimeRanges;
-
 namespace mozilla {
+
+namespace dom {
+class TimeRanges;
+}
 
 
 
