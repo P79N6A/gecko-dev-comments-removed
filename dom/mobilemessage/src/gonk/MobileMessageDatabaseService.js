@@ -827,9 +827,24 @@ MobileMessageDatabaseService.prototype = {
 
     
     let normalizedAddress = PhoneNumberUtils.normalize(aAddress, false);
+    let allPossibleAddresses = [normalizedAddress];
+    let parsedAddress = PhoneNumberUtils.parse(normalizedAddress);
+    if (parsedAddress &&
+        allPossibleAddresses.indexOf(parsedAddress.internationalNumber) < 0) {
+      
+      
+      
+      allPossibleAddresses.push(parsedAddress.internationalNumber);
+    }
+    if (DEBUG) {
+      debug("findParticipantRecordByAddress: allPossibleAddresses = " +
+            JSON.stringify(allPossibleAddresses));
+    }
 
-    let request = aParticipantStore.index("addresses").get(normalizedAddress);
-    request.onsuccess = (function (event) {
+    
+    let needles = allPossibleAddresses.slice(0);
+    let request = aParticipantStore.index("addresses").get(needles.pop());
+    request.onsuccess = (function onsuccess(event) {
       let participantRecord = event.target.result;
       
       
@@ -843,7 +858,12 @@ MobileMessageDatabaseService.prototype = {
       }
 
       
-      let parsedAddress = PhoneNumberUtils.parseWithMCC(normalizedAddress, null);
+      if (needles.length) {
+        let request = aParticipantStore.index("addresses").get(needles.pop());
+        request.onsuccess = onsuccess.bind(this);
+        return;
+      }
+
       
       aParticipantStore.openCursor().onsuccess = (function (event) {
         let cursor = event.target.result;
@@ -868,7 +888,7 @@ MobileMessageDatabaseService.prototype = {
         }
 
         let participantRecord = cursor.value;
-        for each (let storedAddress in participantRecord.addresses) {
+        for (let storedAddress of participantRecord.addresses) {
           let match = false;
           if (parsedAddress) {
             
@@ -898,11 +918,12 @@ MobileMessageDatabaseService.prototype = {
           if (aCreate) {
             
             
-            participantRecord.addresses.push(normalizedAddress);
+            participantRecord.addresses =
+              participantRecord.addresses.concat(allPossibleAddresses);
             cursor.update(participantRecord);
           }
           if (DEBUG) {
-            debug("findParticipantRecordByAddress: got "
+            debug("findParticipantRecordByAddress: match "
                   + JSON.stringify(cursor.value));
           }
           aCallback(participantRecord);
