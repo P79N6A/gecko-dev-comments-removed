@@ -1081,6 +1081,7 @@ pref("devtools.layoutview.open", false);
 
 
 pref("devtools.responsiveUI.enabled", true);
+pref("devtools.responsiveUI.no-reload-notification", false);
 
 
 pref("devtools.debugger.enabled", true);
