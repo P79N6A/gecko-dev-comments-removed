@@ -9488,6 +9488,10 @@ nsDocument::UpdateVisibilityState()
   mVisibilityState = GetVisibilityState();
   if (oldState != mVisibilityState) {
     nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
+                                         NS_LITERAL_STRING("visibilitychange"),
+                                          true,
+                                          false);
+    nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
                                          NS_LITERAL_STRING("mozvisibilitychange"),
                                           true,
                                           false);
@@ -9523,12 +9527,24 @@ nsDocument::PostVisibilityUpdateEvent()
 NS_IMETHODIMP
 nsDocument::GetMozHidden(bool* aHidden)
 {
+  return GetHidden(aHidden);
+}
+
+NS_IMETHODIMP
+nsDocument::GetHidden(bool* aHidden)
+{
   *aHidden = mVisibilityState != eVisible;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocument::GetMozVisibilityState(nsAString& aState)
+{
+  return GetVisibilityState(aState);
+}
+
+NS_IMETHODIMP
+nsDocument::GetVisibilityState(nsAString& aState)
 {
   
   static const char states[][8] = {
