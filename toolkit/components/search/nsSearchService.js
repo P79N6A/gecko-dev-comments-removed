@@ -21,6 +21,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
   "resource://gre/modules/TelemetryStopwatch.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
+  "resource://gre/modules/Deprecated.jsm");
 
 
 
@@ -922,7 +924,33 @@ EngineURL.prototype = {
     this.mozparams[aObj.name] = aObj;
   },
 
+  reevalMozParams: function(engine) {
+    for (let param of this.params) {
+      let mozparam = this.mozparams[param.name];
+      if (mozparam && mozparam.positionDependent) {
+        
+        let positionStr = mozparam.condition.slice("top".length);
+        let position = parseInt(positionStr, 10);
+        let engines;
+        try {
+          
+          
+          
+          engines = Services.search.getVisibleEngines({});
+        } catch (ex) {
+          LOG("reevalMozParams called before search service initialization!?");
+          break;
+        }
+        let index = engines.map((e) => e.wrappedJSObject).indexOf(engine.wrappedJSObject);
+        let isTopN = index > -1 && (index + 1) <= position;
+        param.value = isTopN ? mozparam.trueValue : mozparam.falseValue;
+      }
+    }
+  },
+
   getSubmission: function SRCH_EURL_getSubmission(aSearchTerms, aEngine, aPurpose) {
+    this.reevalMozParams(aEngine);
+
     var url = ParamSubstitution(this.template, aSearchTerms, aEngine);
     
     
@@ -1824,9 +1852,15 @@ Engine.prototype = {
             } catch (e) { }
             break;
           default:
-            let engineLoc = this._location;
-            let paramName = param.getAttribute("name");
-            LOG("_parseURL: MozParam (" + paramName + ") has an unknown condition: " + condition + ". Found parsing engine: " + engineLoc);
+            if (condition && condition.startsWith("top")) {
+              url.addParam(param.getAttribute("name"), param.getAttribute("falseValue"));
+              let mozparam = {"name": param.getAttribute("name"),
+                              "falseValue": param.getAttribute("falseValue"),
+                              "trueValue": param.getAttribute("trueValue"),
+                              "condition": condition,
+                              "positionDependent": true};
+              url._addMozParam(mozparam);
+            }
           break;
         }
       }
@@ -2877,8 +2911,7 @@ SearchService.prototype = {
       "Search service falling back to synchronous initialization. " +
       "This is generally the consequence of an add-on using a deprecated " +
       "search service API.";
-    
-    
+    Deprecated.warning(warning, "https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsIBrowserSearchService#async_warning");
     LOG(warning);
 
     engineMetadataService.syncInit();
