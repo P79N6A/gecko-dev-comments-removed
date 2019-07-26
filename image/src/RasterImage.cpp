@@ -1064,7 +1064,7 @@ RasterImage::GetCurrentImage()
   if (!mDecoded) {
     
     
-    RequestDecode();
+    RequestDecodeCore(ASYNCHRONOUS);
     return nullptr;
   }
 
@@ -2727,14 +2727,14 @@ RasterImage::WantDecodedFrames()
 NS_IMETHODIMP
 RasterImage::RequestDecode()
 {
-  return RequestDecodeCore(ASYNCHRONOUS);
+  return RequestDecodeCore(SYNCHRONOUS_NOTIFY);
 }
 
 
 NS_IMETHODIMP
 RasterImage::StartDecoding()
 {
-  return RequestDecodeCore(SOMEWHAT_SYNCHRONOUS);
+  return RequestDecodeCore(SYNCHRONOUS_NOTIFY_AND_SOME_DECODE);
 }
 
 
@@ -2791,7 +2791,8 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   if (mDecodeRequest &&
-      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE) {
+      mDecodeRequest->mRequestStatus == DecodeRequest::REQUEST_WORK_DONE &&
+      aDecodeType != ASYNCHRONOUS) {
     nsresult rv = FinishedSomeDecoding();
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2835,7 +2836,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   
   
   
-  if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SOMEWHAT_SYNCHRONOUS) {
+  if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SYNCHRONOUS_NOTIFY_AND_SOME_DECODE) {
     PROFILER_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString().get());
     mDecoder->SetSynchronous(true);
 
