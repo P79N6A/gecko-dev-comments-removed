@@ -51,6 +51,88 @@ double AudioStream::sVolumeScale;
 uint32_t AudioStream::sCubebLatency;
 bool AudioStream::sCubebLatencyPrefSet;
 
+
+
+
+
+
+
+
+class FrameHistory {
+  struct Chunk {
+    uint32_t servicedFrames;
+    uint32_t totalFrames;
+    int rate;
+  };
+
+  template <typename T>
+  static T FramesToUs(uint32_t frames, int rate) {
+    return static_cast<T>(frames) * USECS_PER_S / rate;
+  }
+public:
+  FrameHistory()
+    : mBaseOffset(0), mBasePosition(0) {}
+
+  void Append(uint32_t aServiced, uint32_t aUnderrun, int aRate) {
+    
+
+
+
+    if (!mChunks.IsEmpty()) {
+      Chunk& c = mChunks.LastElement();
+      
+      
+      
+      if (c.rate == aRate &&
+          (c.servicedFrames == c.totalFrames ||
+           aServiced == 0)) {
+        c.servicedFrames += aServiced;
+        c.totalFrames += aServiced + aUnderrun;
+        return;
+      }
+    }
+    Chunk* p = mChunks.AppendElement();
+    p->servicedFrames = aServiced;
+    p->totalFrames = aServiced + aUnderrun;
+    p->rate = aRate;
+  }
+
+  
+
+
+
+
+  int64_t GetPosition(int64_t frames) {
+    
+    MOZ_ASSERT(frames >= mBaseOffset);
+    while (true) {
+      if (mChunks.IsEmpty()) {
+        return mBasePosition;
+      }
+      const Chunk& c = mChunks[0];
+      if (frames <= mBaseOffset + c.totalFrames) {
+        uint32_t delta = frames - mBaseOffset;
+        delta = std::min(delta, c.servicedFrames);
+        return static_cast<int64_t>(mBasePosition) +
+               FramesToUs<int64_t>(delta, c.rate);
+      }
+      
+      
+      
+      
+      
+      
+      mBaseOffset += c.totalFrames;
+      mBasePosition += FramesToUs<double>(c.servicedFrames, c.rate);
+      mChunks.RemoveElementAt(0);
+    }
+  }
+private:
+  nsAutoTArray<Chunk, 7> mChunks;
+  int64_t mBaseOffset;
+  double mBasePosition;
+};
+
  void AudioStream::PrefChanged(const char* aPref, void* aClosure)
 {
   if (strcmp(aPref, PREF_VOLUME_SCALE) == 0) {
@@ -163,10 +245,6 @@ AudioStream::AudioStream()
   , mAudioClock(MOZ_THIS_IN_INITIALIZER_LIST())
   , mLatencyRequest(HighLatency)
   , mReadPoint(0)
-  , mWrittenFramesPast(0)
-  , mLostFramesPast(0)
-  , mWrittenFramesLast(0)
-  , mLostFramesLast(0)
   , mDumpFile(nullptr)
   , mVolume(1.0)
   , mBytesPerFrame(0)
@@ -773,18 +851,12 @@ AudioStream::GetPosition()
 int64_t
 AudioStream::GetPositionInFrames()
 {
+  MonitorAutoLock mon(mMonitor);
   return mAudioClock.GetPositionInFrames();
 }
 #ifdef _MSC_VER
 #pragma optimize("", on)
 #endif
-
-int64_t
-AudioStream::GetPositionInFramesInternal()
-{
-  MonitorAutoLock mon(mMonitor);
-  return GetPositionInFramesUnlocked();
-}
 
 int64_t
 AudioStream::GetPositionInFramesUnlocked()
@@ -803,32 +875,7 @@ AudioStream::GetPositionInFramesUnlocked()
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  uint64_t adjustedPosition = 0;
-  if (position <= mWrittenFramesPast) {
-    adjustedPosition = position;
-  } else if (position <= mWrittenFramesPast + mLostFramesPast) {
-    adjustedPosition = mWrittenFramesPast;
-  } else if (position <= mWrittenFramesPast + mLostFramesPast + mWrittenFramesLast) {
-    adjustedPosition = position - mLostFramesPast;
-  } else {
-    adjustedPosition = mWrittenFramesPast + mWrittenFramesLast;
-  }
-  return std::min<uint64_t>(adjustedPosition, INT64_MAX);
+  return std::min<uint64_t>(position, INT64_MAX);
 }
 
 int64_t
@@ -933,7 +980,7 @@ AudioStream::GetTimeStretched(void* aBuffer, long aFrames, int64_t &aTimeMs)
 
   uint8_t* wpos = reinterpret_cast<uint8_t*>(aBuffer);
   double playbackRate = static_cast<double>(mInRate) / mOutRate;
-  uint32_t toPopBytes = FramesToBytes(ceil(aFrames / playbackRate));
+  uint32_t toPopBytes = FramesToBytes(ceil(aFrames * playbackRate));
   uint32_t available = 0;
   bool lowOnBufferedData = false;
   do {
@@ -972,9 +1019,6 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
   uint32_t underrunFrames = 0;
   uint32_t servicedFrames = 0;
   int64_t insertTime;
-
-  mWrittenFramesPast += mWrittenFramesLast;
-  mLostFramesPast += mLostFramesLast;
 
   
   
@@ -1039,10 +1083,11 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
   }
 
   underrunFrames = aFrames - servicedFrames;
-  mWrittenFramesLast = servicedFrames;
-  mLostFramesLast = underrunFrames;
 
+  
+  
   if (mState != DRAINING) {
+    mAudioClock.UpdateFrameHistory(servicedFrames, underrunFrames);
     uint8_t* rpos = static_cast<uint8_t*>(aBuffer) + FramesToBytes(aFrames - underrunFrames);
     memset(rpos, 0, FramesToBytes(underrunFrames));
     if (underrunFrames) {
@@ -1050,6 +1095,8 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
              ("AudioStream %p lost %d frames", this, underrunFrames));
     }
     servicedFrames += underrunFrames;
+  } else {
+    mAudioClock.UpdateFrameHistory(servicedFrames, 0);
   }
 
   WriteDumpFile(mDumpFile, this, aFrames, aBuffer);
@@ -1069,7 +1116,6 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
                      (latency * 1000) / mOutRate, now);
   }
 
-  mAudioClock.UpdateWritePosition(servicedFrames);
   return servicedFrames;
 }
 
@@ -1088,94 +1134,42 @@ AudioStream::StateCallback(cubeb_state aState)
 
 AudioClock::AudioClock(AudioStream* aStream)
  :mAudioStream(aStream),
-  mOldOutRate(0),
-  mBasePosition(0),
-  mBaseOffset(0),
-  mOldBaseOffset(0),
-  mOldBasePosition(0),
-  mPlaybackRateChangeOffset(0),
-  mPreviousPosition(0),
-  mWritten(0),
   mOutRate(0),
   mInRate(0),
   mPreservesPitch(true),
-  mCompensatingLatency(false)
+  mFrameHistory(new FrameHistory())
 {}
 
 void AudioClock::Init()
 {
   mOutRate = mAudioStream->GetRate();
   mInRate = mAudioStream->GetRate();
-  mOldOutRate = mOutRate;
 }
 
-void AudioClock::UpdateWritePosition(uint32_t aCount)
+void AudioClock::UpdateFrameHistory(uint32_t aServiced, uint32_t aUnderrun)
 {
-  mWritten += aCount;
+  mFrameHistory->Append(aServiced, aUnderrun, mOutRate);
 }
 
-uint64_t AudioClock::GetPositionUnlocked()
+int64_t AudioClock::GetPositionUnlocked() const
 {
   
-  int64_t position = mAudioStream->GetPositionInFramesUnlocked();
-  int64_t diffOffset;
-  NS_ASSERTION(position < 0 || (mInRate != 0 && mOutRate != 0), "AudioClock not initialized.");
-  if (position >= 0) {
-    if (position < mPlaybackRateChangeOffset) {
-      
-      
-      
-      mCompensatingLatency = true;
-      diffOffset = position - mOldBaseOffset;
-      position = static_cast<uint64_t>(mOldBasePosition +
-        static_cast<float>(USECS_PER_S * diffOffset) / mOldOutRate);
-      mPreviousPosition = position;
-      return position;
-    }
-
-    if (mCompensatingLatency) {
-      diffOffset = position - mPlaybackRateChangeOffset;
-      mCompensatingLatency = false;
-      mBasePosition = mPreviousPosition;
-    } else {
-      diffOffset = position - mPlaybackRateChangeOffset;
-    }
-    position =  static_cast<uint64_t>(mBasePosition +
-      (static_cast<float>(USECS_PER_S * diffOffset) / mOutRate));
-    return position;
-  }
-  return UINT64_MAX;
+  int64_t frames = mAudioStream->GetPositionInFramesUnlocked();
+  NS_ASSERTION(frames < 0 || (mInRate != 0 && mOutRate != 0), "AudioClock not initialized.");
+  return frames >= 0 ? mFrameHistory->GetPosition(frames) : -1;
 }
 
-uint64_t AudioClock::GetPositionInFrames()
+int64_t AudioClock::GetPositionInFrames() const
 {
-  return (GetPositionUnlocked() * mOutRate) / USECS_PER_S;
+  return (GetPositionUnlocked() * mInRate) / USECS_PER_S;
 }
 
 void AudioClock::SetPlaybackRateUnlocked(double aPlaybackRate)
 {
-  
-  int64_t position = mAudioStream->GetPositionInFramesUnlocked();
-  if (position > mPlaybackRateChangeOffset) {
-    mOldBasePosition = mBasePosition;
-    mBasePosition = GetPositionUnlocked();
-    mOldBaseOffset = mPlaybackRateChangeOffset;
-    mBaseOffset = position;
-    mPlaybackRateChangeOffset = mWritten;
-    mOldOutRate = mOutRate;
-    mOutRate = static_cast<int>(mInRate / aPlaybackRate);
-  } else {
-    
-    
-    
-    mBasePosition = GetPositionUnlocked();
-    mBaseOffset = position;
-    mPlaybackRateChangeOffset = mWritten;
-    mOutRate = static_cast<int>(mInRate / aPlaybackRate);
-  }
+  mOutRate = static_cast<int>(mInRate / aPlaybackRate);
 }
 
-double AudioClock::GetPlaybackRate()
+double AudioClock::GetPlaybackRate() const
 {
   return static_cast<double>(mInRate) / mOutRate;
 }
@@ -1185,7 +1179,7 @@ void AudioClock::SetPreservesPitch(bool aPreservesPitch)
   mPreservesPitch = aPreservesPitch;
 }
 
-bool AudioClock::GetPreservesPitch()
+bool AudioClock::GetPreservesPitch() const
 {
   return mPreservesPitch;
 }

@@ -32,6 +32,7 @@ class SoundTouch;
 namespace mozilla {
 
 class AudioStream;
+class FrameHistory;
 
 class AudioClock
 {
@@ -42,15 +43,15 @@ public:
   void Init();
   
   
-  void UpdateWritePosition(uint32_t aCount);
+  void UpdateFrameHistory(uint32_t aServiced, uint32_t aUnderrun);
   
   
   
   
-  uint64_t GetPositionUnlocked();
+  int64_t GetPositionUnlocked() const;
   
   
-  uint64_t GetPositionInFrames();
+  int64_t GetPositionInFrames() const;
   
   
   
@@ -58,38 +59,17 @@ public:
   void SetPlaybackRateUnlocked(double aPlaybackRate);
   
   
-  double GetPlaybackRate();
+  double GetPlaybackRate() const;
   
   
   void SetPreservesPitch(bool aPreservesPitch);
   
   
-  bool GetPreservesPitch();
+  bool GetPreservesPitch() const;
 private:
   
   
-  AudioStream* mAudioStream;
-  
-  
-  
-  int mOldOutRate;
-  
-  int64_t mBasePosition;
-  
-  int64_t mBaseOffset;
-  
-  
-  int64_t mOldBaseOffset;
-  
-  
-  int64_t mOldBasePosition;
-  
-  int64_t mPlaybackRateChangeOffset;
-  
-  
-  int64_t mPreviousPosition;
-  
-  int64_t mWritten;
+  AudioStream* const mAudioStream;
   
   int mOutRate;
   
@@ -97,7 +77,7 @@ private:
   
   bool mPreservesPitch;
   
-  bool mCompensatingLatency;
+  const nsAutoPtr<FrameHistory> mFrameHistory;
 };
 
 class CircularByteBuffer
@@ -271,11 +251,6 @@ public:
   int64_t GetPositionInFrames();
 
   
-  
-  
-  int64_t GetPositionInFramesInternal();
-
-  
   bool IsPaused();
 
   int GetRate() { return mOutRate; }
@@ -293,6 +268,8 @@ public:
 protected:
   friend class AudioClock;
 
+  
+  
   
   
   int64_t GetPositionInFramesUnlocked();
@@ -371,15 +348,6 @@ private:
     int64_t mFrames;
   };
   nsAutoTArray<Inserts, 8> mInserts;
-
-  
-  
-  
-  uint64_t mWrittenFramesPast; 
-  uint64_t mLostFramesPast;    
-  
-  uint64_t mWrittenFramesLast; 
-  uint64_t mLostFramesLast;    
 
   
   FILE* mDumpFile;
