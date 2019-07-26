@@ -565,11 +565,6 @@ xt_client_create ( XtClient* xtclient ,
 void
 xt_client_unrealize ( XtClient* xtclient )
 {
-  
-
-
-  XtUnrealizeWidget(xtclient->child_widget);
-
 #if XlibSpecificationRelease >= 6
   XtUnregisterDrawable(xtclient->xtdisplay,
                        xtclient->top_widget->core.window);
