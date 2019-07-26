@@ -47,6 +47,34 @@ SimpleTest.registerCleanupFunction(() => {
 
 
 
+function asyncTest(generator) {
+  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
+}
+
+
+
+
+
+
+function addTab(url) {
+  let def = promise.defer();
+
+  let tab = gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedBrowser.addEventListener("load", function onload() {
+    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+    info("URL " + url + " loading complete into new test tab");
+    waitForFocus(() => {
+      def.resolve(tab);
+    }, content);
+  }, true);
+  content.location = url;
+
+  return def.promise;
+}
+
+
+
+
 
 
 

@@ -2,61 +2,30 @@
 
 
 
-function test() {
-  let inspector, doc, toolbox;
-  let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-  let {require} = devtools;
-  let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-  let {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+"use strict";
 
-  waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    doc = content.document;
-    waitForFocus(setupTest, content);
-  }, true);
 
-  content.location = "data:text/html;charset=utf-8,<h1>foo</h1><span>bar</span>";
 
-  function setupTest() {
-    openInspector((aInspector, aToolbox) => {
-      toolbox = aToolbox;
-      inspector = aInspector;
-      inspector.selection.setNode(doc.querySelector("span"), "test");
-      inspector.toolbox.once("highlighter-ready", runTests);
-    });
-  }
+waitForExplicitFinish();
 
-  function runTests() {
-    Task.spawn(function() {
-      yield hoverH1InMarkupView();
-      yield assertH1Highlighted();
+let test = asyncTest(function*() {
+  info("Loading the test document and opening the inspector");
+  yield addTab("data:text/html;charset=utf-8,<h1>foo</h1><span>bar</span>");
+  let {toolbox, inspector} = yield openInspector();
 
-      finishUp();
-    }).then(null, Cu.reportError);
-  }
+  info("Selecting the test node");
+  yield selectNode("span", inspector);
 
-  function hoverH1InMarkupView() {
-    let deferred = promise.defer();
-    let container = getContainerForRawNode(inspector.markup, doc.querySelector("h1"));
+  let container = getContainerForRawNode(inspector.markup, getNode("h1"));
 
-    inspector.toolbox.once("highlighter-ready", deferred.resolve);
-    EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousemove"},
-                                       inspector.markup.doc.defaultView);
+  let onHighlighterReady = toolbox.once("highlighter-ready");
+  EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousemove"},
+                                     inspector.markup.doc.defaultView);
+  yield onHighlighterReady;
 
-    return deferred.promise;
-  }
+  ok(isHighlighting(), "The highlighter is shown on a markup container hover");
+  is(getHighlitNode(), getNode("h1"), "The highlighter highlights the right node");
 
-  function assertH1Highlighted() {
-    ok(isHighlighting(), "The highlighter is shown on a markup container hover");
-    is(getHighlitNode(), doc.querySelector("h1"), "The highlighter highlights the right node");
-  }
-
-  function finishUp() {
-    inspector = doc = toolbox = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
-}
+  gBrowser.removeCurrentTab();
+});
