@@ -3393,7 +3393,7 @@ nsCSSFrameConstructor::FindInputData(Element* aElement,
       FCDATA_WITH_WRAPPING_BLOCK(0, NS_NewColorControlFrame,
                                  nsCSSAnonBoxes::buttonContent) },
     
-    SIMPLE_INT_CREATE(NS_FORM_INPUT_NUMBER, NS_NewTextControlFrame),
+    SIMPLE_INT_CREATE(NS_FORM_INPUT_NUMBER, NS_NewNumberControlFrame),
     
     SIMPLE_INT_CREATE(NS_FORM_INPUT_DATE, NS_NewTextControlFrame),
     

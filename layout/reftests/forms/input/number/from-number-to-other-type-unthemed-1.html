@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <script type="text/javascript">
+    function setToCheckbox()
+    {
+      document.getElementById('i').type='checkbox';
+      document.documentElement.className = '';
+    }
+    document.addEventListener("MozReftestInvalidate", setToCheckbox);
+  </script>
+  <body>
+    <input type='number' id='i' style="-moz-appearance:none;">
+  </body>
+</html>

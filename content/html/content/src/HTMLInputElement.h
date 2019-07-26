@@ -574,6 +574,13 @@ public:
   void SetType(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::type, aValue, aRv);
+    if (aValue.Equals(NS_LITERAL_STRING("number"))) {
+      
+      
+      
+      
+      FlushFrames();
+    }
   }
 
   
@@ -1088,9 +1095,13 @@ protected:
 
   static bool IsExperimentalMobileType(uint8_t aType)
   {
-    return aType == NS_FORM_INPUT_NUMBER || aType == NS_FORM_INPUT_DATE ||
-           aType == NS_FORM_INPUT_TIME;
+    return aType == NS_FORM_INPUT_DATE || aType == NS_FORM_INPUT_TIME;
   }
+
+  
+
+
+  void FlushFrames();
 
   
 
@@ -1243,7 +1254,8 @@ private:
 
   static bool MayFireChangeOnBlur(uint8_t aType) {
     return IsSingleLineTextControl(false, aType) ||
-           aType == NS_FORM_INPUT_RANGE;
+           aType == NS_FORM_INPUT_RANGE ||
+           aType == NS_FORM_INPUT_NUMBER;
   }
 
   struct nsFilePickerFilter {
