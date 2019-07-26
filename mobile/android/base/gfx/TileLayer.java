@@ -3,52 +3,12 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.gfx;
 
-import android.graphics.Point;
 import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.Region;
 import android.opengl.GLES20;
-import android.util.Log;
-import javax.microedition.khronos.opengles.GL10;
-import javax.microedition.khronos.opengles.GL11Ext;
-import java.nio.Buffer;
+
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 
 
 
@@ -58,55 +18,55 @@ public abstract class TileLayer extends Layer {
     private static final String LOGTAG = "GeckoTileLayer";
 
     private final Rect mDirtyRect;
-    private final CairoImage mImage;
-    private final boolean mRepeat;
     private IntSize mSize;
-    private boolean mSkipTextureUpdate;
     private int[] mTextureIDs;
 
-    public TileLayer(boolean repeat, CairoImage image) {
-        mRepeat = repeat;
+    protected final CairoImage mImage;
+
+    public enum PaintMode { NORMAL, REPEAT, STRETCH };
+    private PaintMode mPaintMode;
+
+    public TileLayer(CairoImage image, PaintMode paintMode) {
+        super(image.getSize());
+
+        mPaintMode = paintMode;
         mImage = image;
         mSize = new IntSize(0, 0);
-        mSkipTextureUpdate = false;
-
-        IntSize bufferSize = mImage.getSize();
         mDirtyRect = new Rect();
     }
 
-    @Override
-    public IntSize getSize() { return mImage.getSize(); }
-
-    protected boolean repeats() { return mRepeat; }
+    protected boolean repeats() { return mPaintMode == PaintMode.REPEAT; }
+    protected boolean stretches() { return mPaintMode == PaintMode.STRETCH; }
     protected int getTextureID() { return mTextureIDs[0]; }
     protected boolean initialized() { return mImage != null && mTextureIDs != null; }
 
     @Override
     protected void finalize() throws Throwable {
-        if (mTextureIDs != null)
-            TextureReaper.get().add(mTextureIDs);
+        try {
+            if (mTextureIDs != null)
+                TextureReaper.get().add(mTextureIDs);
+        } finally {
+            super.finalize();
+        }
+    }
+
+    public void setPaintMode(PaintMode mode) {
+        mPaintMode = mode;
     }
 
     
 
 
 
-    public void invalidate(Rect rect) {
-        if (!inTransaction())
-            throw new RuntimeException("invalidate() is only valid inside a transaction");
-        mDirtyRect.union(rect);
-    }
 
     public void invalidate() {
+        if (!inTransaction())
+            throw new RuntimeException("invalidate() is only valid inside a transaction");
         IntSize bufferSize = mImage.getSize();
-        invalidate(new Rect(0, 0, bufferSize.width, bufferSize.height));
+        mDirtyRect.set(0, 0, bufferSize.width, bufferSize.height);
     }
 
-    public boolean isDirty() {
-        return mImage.getSize().isPositive() && (mTextureIDs == null || !mDirtyRect.isEmpty());
-    }
-
-    private void validateTexture(GL10 gl) {
+    private void validateTexture() {
         
 
 
@@ -114,10 +74,7 @@ public abstract class TileLayer extends Layer {
 
 
 
-        IntSize bufferSize = mImage.getSize();
-        IntSize textureSize = bufferSize;
-
-        textureSize = bufferSize.nextPowerOfTwo();
+        IntSize textureSize = mImage.getSize().nextPowerOfTwo();
 
         if (!textureSize.equals(mSize)) {
             mSize = textureSize;
@@ -129,53 +86,38 @@ public abstract class TileLayer extends Layer {
 
                 
                 
-                TextureReaper.get().reap(gl);
+                TextureReaper.get().reap();
             }
         }
     }
 
-    
-    public void setSkipTextureUpdate(boolean skip) {
-        mSkipTextureUpdate = skip;
-    }
-
-    public boolean getSkipTextureUpdate() {
-        return mSkipTextureUpdate;
-    }
-
     @Override
-    protected boolean performUpdates(GL10 gl, RenderContext context) {
-        super.performUpdates(gl, context);
-
-        if (mSkipTextureUpdate) {
-            return false;
-        }
+    protected void performUpdates(RenderContext context) {
+        super.performUpdates(context);
 
         
-        validateTexture(gl);
+        validateTexture();
 
         
         if (!mImage.getSize().isPositive())
-            return true;
+            return;
 
         
         if (mTextureIDs == null) {
-            uploadFullTexture(gl);
+            uploadFullTexture();
         } else {
-            uploadDirtyRect(gl, mDirtyRect);
+            uploadDirtyRect(mDirtyRect);
         }
 
         mDirtyRect.setEmpty();
-
-        return true;
     }
 
-    private void uploadFullTexture(GL10 gl) {
+    private void uploadFullTexture() {
         IntSize bufferSize = mImage.getSize();
-        uploadDirtyRect(gl, new Rect(0, 0, bufferSize.width, bufferSize.height));
+        uploadDirtyRect(new Rect(0, 0, bufferSize.width, bufferSize.height));
     }
 
-    private void uploadDirtyRect(GL10 gl, Rect dirtyRect) {
+    private void uploadDirtyRect(Rect dirtyRect) {
         
         if (dirtyRect.isEmpty())
             return;
@@ -185,71 +127,40 @@ public abstract class TileLayer extends Layer {
         if (imageBuffer == null)
             return;
 
-        boolean newlyCreated = false;
-
         if (mTextureIDs == null) {
             mTextureIDs = new int[1];
-            gl.glGenTextures(mTextureIDs.length, mTextureIDs, 0);
-            newlyCreated = true;
+            GLES20.glGenTextures(mTextureIDs.length, mTextureIDs, 0);
         }
-
-        IntSize bufferSize = mImage.getSize();
-        Rect bufferRect = new Rect(0, 0, bufferSize.width, bufferSize.height);
 
         int cairoFormat = mImage.getFormat();
         CairoGLInfo glInfo = new CairoGLInfo(cairoFormat);
 
-        bindAndSetGLParameters(gl);
-
-        if (newlyCreated || dirtyRect.contains(bufferRect)) {
-            if (mSize.equals(bufferSize)) {
-                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width, mSize.height,
-                                0, glInfo.format, glInfo.type, imageBuffer);
-                return;
-            } else {
-                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width, mSize.height,
-                                0, glInfo.format, glInfo.type, null);
-                gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, 0, 0, bufferSize.width, bufferSize.height,
-                                   glInfo.format, glInfo.type, imageBuffer);
-                return;
-            }
-        }
+        bindAndSetGLParameters();
 
         
         
-        if (!Rect.intersects(dirtyRect, bufferRect)) {
-            return;
+        IntSize bufferSize = mImage.getSize();
+        if (mSize.equals(bufferSize)) {
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width,
+                                mSize.height, 0, glInfo.format, glInfo.type, imageBuffer);
+        } else {
+            
+            
+            throw new RuntimeException("Buffer/image size mismatch in TileLayer!");
         }
-
-        
-
-
-
-
-
-
-        Buffer viewBuffer = imageBuffer.slice();
-        int bpp = CairoUtils.bitsPerPixelForCairoFormat(cairoFormat) / 8;
-        int position = dirtyRect.top * bufferSize.width * bpp;
-        if (position > viewBuffer.limit()) {
-            Log.e(LOGTAG, "### Position outside tile! " + dirtyRect.top);
-            return;
-        }
-
-        viewBuffer.position(position);
-        gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, 0, dirtyRect.top, bufferSize.width,
-                           Math.min(bufferSize.height - dirtyRect.top, dirtyRect.height()),
-                           glInfo.format, glInfo.type, viewBuffer);
     }
 
-    private void bindAndSetGLParameters(GL10 gl) {
-        gl.glBindTexture(GL10.GL_TEXTURE_2D, mTextureIDs[0]);
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+    private void bindAndSetGLParameters() {
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureIDs[0]);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
+                               GLES20.GL_LINEAR);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER,
+                               GLES20.GL_LINEAR);
 
-        int repeatMode = mRepeat ? GL10.GL_REPEAT : GL10.GL_CLAMP_TO_EDGE;
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_WRAP_S, repeatMode);
-        gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_WRAP_T, repeatMode);
+        int repeatMode = repeats() ? GLES20.GL_REPEAT : GLES20.GL_CLAMP_TO_EDGE;
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, repeatMode);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, repeatMode);
     }
 }
 
