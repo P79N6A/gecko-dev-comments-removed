@@ -2,7 +2,7 @@
 
 
 
-Components.utils.import('resource://tps/sync.jsm');
+Components.utils.import('resource://tps/mozmill/sync.jsm');
 
 var setupModule = function(module) {
   controller = mozmill.getBrowserController();
