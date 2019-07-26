@@ -349,6 +349,9 @@ public:
                               nsIDOMGetUserMediaErrorCallback* aOnError,
                               ErrorResult& aRv);
 #endif 
+  bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
+                    JS::Handle<jsid> aId, unsigned aFlags,
+                    JS::MutableHandle<JSObject*> aObjp);
 
   
   static bool HasBatterySupport(JSContext* , JSObject* );
