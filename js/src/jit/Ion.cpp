@@ -347,6 +347,9 @@ JitRuntime::handleAccessViolation(JSRuntime *rt, void *faultingAddress)
     
     JSRuntime::AutoLockForOperationCallback lock(rt);
 
+    
+    
+    
     ensureIonCodeAccessible(rt);
     return true;
 }
@@ -362,14 +365,10 @@ JitRuntime::ensureIonCodeAccessible(JSRuntime *rt)
     JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
 #endif
 
-    if (!ionCodeProtected_)
-        return;
-
-    
-    
-    
-    ionAlloc_->toggleAllCodeAsAccessible(true);
-    ionCodeProtected_ = false;
+    if (ionCodeProtected_) {
+        ionAlloc_->toggleAllCodeAsAccessible(true);
+        ionCodeProtected_ = false;
+    }
 
     if (rt->interrupt) {
         
