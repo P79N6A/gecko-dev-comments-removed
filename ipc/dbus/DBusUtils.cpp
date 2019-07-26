@@ -95,7 +95,11 @@ dbus_bool_t dbus_func_send_async(DBusConnection *conn,
   reply = dbus_connection_send_with_reply(conn, msg,
                                           &call,
                                           timeout_ms);
-  if (!reply) {
+  
+
+
+
+  if (!reply || !call) {
     goto done;
   }
 
