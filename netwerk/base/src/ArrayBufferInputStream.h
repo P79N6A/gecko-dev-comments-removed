@@ -30,9 +30,10 @@ public:
 private:
   JSRuntime* mRt;
   jsval mArrayBuffer;
-  uint8_t* mBuffer;
-  uint32_t mBufferLength;
-  uint32_t mOffset;
+  uint8_t* mBuffer; 
+  uint32_t mBufferLength; 
+  uint32_t mOffset; 
+  uint32_t mPos; 
   bool mClosed;
 };
 
