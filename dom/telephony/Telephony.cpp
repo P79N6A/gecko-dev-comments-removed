@@ -127,8 +127,13 @@ Telephony::NotifyCallsChanged(TelephonyCall* aCall)
   nsRefPtr<CallEvent> event = CallEvent::Create(aCall);
   NS_ASSERTION(event, "This should never fail!");
 
-  if (aCall->CallState() == nsIRadioInterfaceLayer::CALL_STATE_DIALING) {
+  if (aCall->CallState() == nsIRadioInterfaceLayer::CALL_STATE_DIALING ||
+      aCall->CallState() == nsIRadioInterfaceLayer::CALL_STATE_ALERTING ||
+      aCall->CallState() == nsIRadioInterfaceLayer::CALL_STATE_CONNECTED) {
+    NS_ASSERTION(!mActiveCall, "Already have an active call!");
     mActiveCall = aCall;
+  } else if (mActiveCall && mActiveCall->CallIndex() == aCall->CallIndex()) {
+    mActiveCall = nullptr;
   }
 
   nsresult rv =
@@ -383,18 +388,11 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
   }
 
   if (modifiedCall) {
-
     
     if (aIsActive) {
-      if (aCallState == nsIRadioInterfaceLayer::CALL_STATE_DISCONNECTED) {
-        mActiveCall = nullptr;
-      } else {
         mActiveCall = modifiedCall;
-      }
-    } else {
-      if (mActiveCall && mActiveCall->CallIndex() == aCallIndex) {
-        mActiveCall = nullptr;
-      }
+    } else if (mActiveCall && mActiveCall->CallIndex() == aCallIndex) {
+      mActiveCall = nullptr;
     }
 
     
@@ -404,10 +402,12 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
   }
 
   
-  
-  NS_ASSERTION(aCallState == nsIRadioInterfaceLayer::CALL_STATE_INCOMING ||
-               aCallState == nsIRadioInterfaceLayer::CALL_STATE_DIALING,
-               "Serious logic problem here!");
+
+  if (aCallState == nsIRadioInterfaceLayer::CALL_STATE_DISCONNECTED) {
+    
+    
+    return NS_OK;
+  }
 
   nsRefPtr<TelephonyCall> call =
     TelephonyCall::Create(this, aNumber, aCallState, aCallIndex);
@@ -433,23 +433,21 @@ Telephony::EnumerateCallState(uint32_t aCallIndex, uint16_t aCallState,
                               const nsAString& aNumber, bool aIsActive,
                               bool* aContinue)
 {
-#ifdef DEBUG
   
   for (uint32_t index = 0; index < mCalls.Length(); index++) {
-    NS_ASSERTION(mCalls[index]->CallIndex() != aCallIndex,
-                 "Something is really wrong here!");
+    nsRefPtr<TelephonyCall>& tempCall = mCalls[index];
+    if (tempCall->CallIndex() == aCallIndex) {
+      
+      *aContinue = true;
+      return NS_OK;
+    }
   }
-#endif
+
   nsRefPtr<TelephonyCall> call =
     TelephonyCall::Create(this, aNumber, aCallState, aCallIndex);
   NS_ASSERTION(call, "This should never fail!");
 
   NS_ASSERTION(mCalls.Contains(call), "Should have auto-added new call!");
-
-  if (aIsActive) {
-    NS_ASSERTION(!mActiveCall, "Already have an active call!");
-    mActiveCall = call;
-  }
 
   *aContinue = true;
   return NS_OK;
