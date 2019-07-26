@@ -123,9 +123,6 @@ public:
 
   bool Init(unsigned short aPort, uint16_t aNumStreams, bool aUsingDtls);
   void Destroy(); 
-  
-  void DestroyOnSTS(struct socket *aMasterSocket,
-                    struct socket *aSocket);
 
 #ifdef ALLOW_DIRECT_SCTP_LISTEN_CONNECT
   

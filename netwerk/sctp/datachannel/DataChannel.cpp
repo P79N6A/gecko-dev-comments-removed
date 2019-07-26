@@ -255,41 +255,32 @@ DataChannelConnection::Destroy()
   
   ClearResets();
 
-  MOZ_ASSERT(mSTS);
-  ASSERT_WEBRTC(NS_IsMainThread());
-  
-  
-  
-  RUN_ON_THREAD(mSTS, WrapRunnable(nsRefPtr<DataChannelConnection>(this),
-                                   &DataChannelConnection::DestroyOnSTS,
-                                   mSocket, mMasterSocket),
-                NS_DISPATCH_NORMAL);
+  if (mSocket && mSocket != mMasterSocket)
+    usrsctp_close(mSocket);
+  if (mMasterSocket)
+    usrsctp_close(mMasterSocket);
 
-  
   mSocket = nullptr;
   mMasterSocket = nullptr; 
 
-  
   if (mUsingDtls) {
     usrsctp_deregister_address(static_cast<void *>(this));
     LOG(("Deregistered %p from the SCTP stack.", static_cast<void *>(this)));
   }
-
   
   
 
   
-}
-
-void DataChannelConnection::DestroyOnSTS(struct socket *aMasterSocket,
-                                         struct socket *aSocket)
-{
-  if (aSocket && aSocket != aMasterSocket)
-    usrsctp_close(aSocket);
-  if (aMasterSocket)
-    usrsctp_close(aMasterSocket);
-
-  disconnect_all();
+  if (mTransportFlow) {
+    MOZ_ASSERT(mSTS);
+    ASSERT_WEBRTC(NS_IsMainThread());
+    RUN_ON_THREAD(mSTS, WrapRunnable(nsRefPtr<DataChannelConnection>(this),
+                                     &DataChannelConnection::disconnect_all),
+                  NS_DISPATCH_NORMAL);
+    
+    
+    
+  }
 }
 
 NS_IMPL_ISUPPORTS1(DataChannelConnection,
