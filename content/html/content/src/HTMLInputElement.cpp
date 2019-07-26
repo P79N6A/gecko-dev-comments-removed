@@ -3,9 +3,10 @@
 
 
 
-#include "mozilla/DebugOnly.h"
-
 #include "mozilla/dom/HTMLInputElement.h"
+
+#include "mozilla/DebugOnly.h"
+#include "mozilla/dom/Date.h"
 #include "mozilla/dom/HTMLInputElementBinding.h"
 #include "nsAsyncDOMEvent.h"
 #include "nsAttrValueInlines.h"
