@@ -744,11 +744,12 @@ setting[type="radio"] > vbox {
   min-width: calc(3 * @grid_double_column_width@);
 }
 
+#start-scrollbox {
+  -moz-box-orient: horizontal;
+}
 
-
-#start[viewstate="snapped"],
-#snapped-start:not([viewstate="snapped"]) {
-  visibility: collapse;
+#start[viewstate="snapped"] #start-scrollbox {
+  -moz-box-orient: vertical;
 }
 
 
