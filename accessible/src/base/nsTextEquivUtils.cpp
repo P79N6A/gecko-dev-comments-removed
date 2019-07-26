@@ -32,7 +32,7 @@ nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
     return NS_OK;
 
   gInitiatorAcc = aAccessible;
-  if (GetRoleRule(aAccessible->Role()) == eFromSubtree) {
+  if (IsNameFromSubtreeAllowed(aAccessible)) {
     
     if (aAccessible->IsContent()) {
       nsAutoString name;

@@ -1953,12 +1953,14 @@ HyperTextAccessible::ScrollSubstringToPoint(int32_t aStartIndex,
 ENameValueFlag
 HyperTextAccessible::NativeName(nsString& aName)
 {
-  AccessibleWrap::NativeName(aName);
+  ENameValueFlag nameFlag = AccessibleWrap::NativeName(aName);
+  if (!aName.IsEmpty())
+    return nameFlag;
 
   
   
   
-  if (aName.IsEmpty() && IsAbbreviation() &&
+  if (IsAbbreviation() &&
       mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::title, aName))
     aName.CompressWhitespace();
 

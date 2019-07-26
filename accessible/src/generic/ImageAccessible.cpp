@@ -77,16 +77,15 @@ ImageAccessible::NativeName(nsString& aName)
   if (!aName.IsEmpty())
     return eNameOK;
 
-  Accessible::NativeName(aName);
-  if (aName.IsEmpty() && hasAltAttrib) {
-    
-    
-    
-    
-    return eNoNameOnPurpose;
-  }
+  ENameValueFlag nameFlag = Accessible::NativeName(aName);
+  if (!aName.IsEmpty())
+    return nameFlag;
 
-  return eNameOK;
+  
+  
+  
+  
+  return hasAltAttrib ? eNoNameOnPurpose : eNameOK;
 }
 
 role

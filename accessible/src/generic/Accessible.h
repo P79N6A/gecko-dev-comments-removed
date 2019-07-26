@@ -61,6 +61,11 @@ enum ENameValueFlag {
  
 
 
+ eNameFromSubtree,
+
+ 
+
+
  eNameFromTooltip
 };
 
@@ -805,13 +810,13 @@ protected:
   
 
 
-  void ARIAName(nsAString& aName);
+  void ARIAName(nsString& aName);
 
   
 
 
-  void GetHTMLName(nsString& aName);
-  void GetXULName(nsString& aName);
+  mozilla::a11y::ENameValueFlag GetHTMLName(nsString& aName);
+  mozilla::a11y::ENameValueFlag GetXULName(nsString& aName);
 
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
