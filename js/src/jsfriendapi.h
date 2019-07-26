@@ -1478,6 +1478,13 @@ struct JSJitInfo {
         ArgTypeListEnd = (1 << 31)
     };
 
+    static_assert(Any & String, "Any must include String.");
+    static_assert(Any & Integer, "Any must include Integer.");
+    static_assert(Any & Double, "Any must include Double.");
+    static_assert(Any & Boolean, "Any must include Boolean.");
+    static_assert(Any & Object, "Any must include Object.");
+    static_assert(Any & Null, "Any must include Null.");
+
     enum AliasSet {
         
         
@@ -1585,17 +1592,6 @@ struct JSJitInfo {
 
     uint32_t slotIndex : 12;   
 
-
-private:
-    static void staticAsserts()
-    {
-        JS_STATIC_ASSERT(Any & String);
-        JS_STATIC_ASSERT(Any & Integer);
-        JS_STATIC_ASSERT(Any & Double);
-        JS_STATIC_ASSERT(Any & Boolean);
-        JS_STATIC_ASSERT(Any & Object);
-        JS_STATIC_ASSERT(Any & Null);
-    }
 };
 
 static_assert(sizeof(JSJitInfo) == (sizeof(void*) + 2 * sizeof(uint32_t)),
