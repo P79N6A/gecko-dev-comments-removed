@@ -932,6 +932,34 @@ this.GECKO_ICC_SERVICES = {
 
 
 
+this.CB_FORMAT_GSM  = 0;
+this.CB_FORMAT_ETWS = 1;
+this.CB_FORMAT_CMAS = 2;
+this.CB_FORMAT_UMTS = 3;
+
+
+
+this.CB_GSM_GEOGRAPHICAL_SCOPE_NAMES = [
+  "cell-immediate",
+  "plmn",
+  "location-area",
+  "cell"
+];
+
+
+
+this.CB_ETWS_WARNING_TYPE_NAMES = [
+  "earthquake",
+  "tsunami",
+  "earthquake-tsunami",
+  "test",
+  "other"
+];
+
+
+
+
+
 
 this.PDU_TOA_UNKNOWN       = 0x80; 
                                     
