@@ -570,6 +570,12 @@ final class GeckoEditable
         }
         final int newEnd = start + text.length();
 
+        
+
+
+
+        ++mGeckoUpdateSeqno;
+
         if (!mActionQueue.isEmpty()) {
             final Action action = mActionQueue.peek();
             if (action.mType == Action.TYPE_REPLACE_TEXT &&
