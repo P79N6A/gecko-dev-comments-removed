@@ -655,7 +655,7 @@ TryPreserveWrapper(JSObject* obj)
 
 
 JSBool
-InstanceClassHasProtoAtDepth(JSHandleObject protoObject, uint32_t protoID,
+InstanceClassHasProtoAtDepth(JS::Handle<JSObject*> protoObject, uint32_t protoID,
                              uint32_t depth)
 {
   const DOMClass* domClass = static_cast<DOMClass*>(
@@ -1755,7 +1755,7 @@ InterfaceHasInstance(JSContext* cx, JS::Handle<JSObject*> obj,
 }
 
 JSBool
-InterfaceHasInstance(JSContext* cx, JSHandleObject obj, JS::MutableHandle<JS::Value> vp,
+InterfaceHasInstance(JSContext* cx, JS::Handle<JSObject*> obj, JS::MutableHandle<JS::Value> vp,
                      JSBool* bp)
 {
   if (!vp.isObject()) {
