@@ -1,6 +1,6 @@
 from marionette_test import MarionetteTestCase
 from marionette import Actions
-from marionette import MarionetteException
+from errors import MarionetteException
 
 import os
 import sys
