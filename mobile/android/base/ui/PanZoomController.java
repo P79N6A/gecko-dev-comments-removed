@@ -226,7 +226,7 @@ public class PanZoomController
             
             synchronized (mTarget.getLock()) {
                 mTarget.setViewportMetrics(getValidViewportMetrics());
-                mTarget.setForceRedraw();
+                mTarget.forceRedraw();
             }
             break;
         }
@@ -283,7 +283,7 @@ public class PanZoomController
             
             
             
-            mTarget.setForceRedraw();
+            mTarget.forceRedraw();
             
         case FLING:
         case BOUNCE:
@@ -736,7 +736,7 @@ public class PanZoomController
         stopAnimationTimer();
 
         
-        mTarget.setForceRedraw();
+        mTarget.forceRedraw();
     }
 
     
@@ -927,7 +927,7 @@ public class PanZoomController
         startTouch(detector.getFocusX(), detector.getFocusY(), detector.getEventTime());
 
         
-        mTarget.setForceRedraw();
+        mTarget.forceRedraw();
 
         PointF point = new PointF(detector.getFocusX(), detector.getFocusY());
         GeckoEvent event = GeckoEvent.createNativeGestureEvent(GeckoEvent.ACTION_MAGNIFY_END, point, getMetrics().zoomFactor);
