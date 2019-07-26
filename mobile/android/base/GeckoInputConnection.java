@@ -64,6 +64,8 @@ class GeckoInputConnection
     protected int mBatchEditCount;
     private ExtractedTextRequest mUpdateRequest;
     private final ExtractedText mUpdateExtract = new ExtractedText();
+    private boolean mBatchSelectionChanged;
+    private boolean mBatchTextChanged;
 
     public static InputConnectionHandler create(View targetView,
                                                 GeckoEditableClient editable) {
@@ -94,6 +96,16 @@ class GeckoInputConnection
         if (mBatchEditCount > 0) {
             mBatchEditCount--;
             if (mBatchEditCount == 0) {
+                if (mBatchTextChanged) {
+                    notifyTextChange();
+                    mBatchTextChanged = false;
+                }
+                if (mBatchSelectionChanged) {
+                    Editable editable = getEditable();
+                    notifySelectionChange(Selection.getSelectionStart(editable),
+                                           Selection.getSelectionEnd(editable));
+                    mBatchSelectionChanged = false;
+                }
                 mEditableClient.setUpdateGecko(true);
             }
         } else {
@@ -191,9 +203,19 @@ class GeckoInputConnection
 
     public void onTextChange(String text, int start, int oldEnd, int newEnd) {
 
-        if (mBatchEditCount > 0 || mUpdateRequest == null) {
+        if (mUpdateRequest == null) {
             return;
         }
+
+        if (mBatchEditCount > 0) {
+            
+            mBatchTextChanged = true;
+            return;
+        }
+        notifyTextChange();
+    }
+
+    private void notifyTextChange() {
 
         final InputMethodManager imm = getInputMethodManager();
         if (imm == null) {
@@ -204,9 +226,8 @@ class GeckoInputConnection
 
         mUpdateExtract.flags = 0;
         
-        
-        mUpdateExtract.partialStartOffset = 0;
-        mUpdateExtract.partialEndOffset = editable.length();
+        mUpdateExtract.partialStartOffset = -1;
+        mUpdateExtract.partialEndOffset = -1;
         mUpdateExtract.selectionStart =
                 Selection.getSelectionStart(editable);
         mUpdateExtract.selectionEnd =
@@ -221,8 +242,15 @@ class GeckoInputConnection
     public void onSelectionChange(int start, int end) {
 
         if (mBatchEditCount > 0) {
+            
+            mBatchSelectionChanged = true;
             return;
         }
+        notifySelectionChange(start, end);
+    }
+
+    private void notifySelectionChange(int start, int end) {
+
         final InputMethodManager imm = getInputMethodManager();
         if (imm == null) {
             return;
