@@ -2221,59 +2221,49 @@ HyperTextAccessible::GetSpellTextAttribute(nsINode* aNode,
                                            int32_t* aHTEndOffset,
                                            nsIPersistentProperties* aAttributes)
 {
-  nsTArray<nsRange*> ranges;
-  GetSelectionDOMRanges(nsISelectionController::SELECTION_SPELLCHECK, &ranges);
-
-  uint32_t rangeCount = ranges.Length();
-  if (!rangeCount)
+  nsRefPtr<nsFrameSelection> fs = FrameSelection();
+  if (!fs)
     return NS_OK;
 
-  nsCOMPtr<nsIDOMNode> DOMNode = do_QueryInterface(aNode);
-  for (uint32_t index = 0; index < rangeCount; index++) {
-    nsRange* range = ranges[index];
+  Selection* domSel = fs->GetSelection(nsISelectionController::SELECTION_SPELLCHECK);
+  if (!domSel)
+    return NS_OK;
 
-    int16_t result;
-    nsresult rv = range->ComparePoint(DOMNode, aNodeOffset, &result);
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    
-    
-    if (result == 0) {
-      if (aNode == range->GetEndParent() && aNodeOffset == range->EndOffset())
-        result = 1;
-    }
+  int32_t rangeCount = domSel->GetRangeCount();
+  if (rangeCount <= 0)
+    return NS_OK;
 
-    if (result == 1) { 
-      int32_t startHTOffset = 0;
-      nsresult rv = RangeBoundToHypertextOffset(range, false, true,
-                                                &startHTOffset);
+  int32_t startHTOffset = 0, endHTOffset = 0;
+  nsresult rv = NS_OK;
+  for (int32_t idx = 0; idx < rangeCount; idx++) {
+    nsRange* range = domSel->GetRangeAt(idx);
+    if (range->Collapsed())
+      continue;
+
+    
+    
+    nsINode* endNode = range->GetEndParent();
+    int32_t endOffset = range->EndOffset();
+    if (nsContentUtils::ComparePoints(aNode, aNodeOffset, endNode, endOffset) >= 0)
+      continue;
+
+    
+    
+    
+    
+    nsINode* startNode = range->GetStartParent();
+    int32_t startOffset = range->StartOffset();
+    if (nsContentUtils::ComparePoints(startNode, startOffset, aNode,
+                                      aNodeOffset) <= 0) {
+      rv = RangeBoundToHypertextOffset(range, true, true, &startHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = RangeBoundToHypertextOffset(range, false, false, &endHTOffset);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (startHTOffset > *aHTStartOffset)
         *aHTStartOffset = startHTOffset;
 
-    } else if (result == -1) { 
-      int32_t endHTOffset = 0;
-      nsresult rv = RangeBoundToHypertextOffset(range, true, false,
-                                                &endHTOffset);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      if (endHTOffset < *aHTEndOffset)
-        *aHTEndOffset = endHTOffset;
-
-    } else { 
-      int32_t startHTOffset = 0;
-      nsresult rv = RangeBoundToHypertextOffset(range, true, true,
-                                                &startHTOffset);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      int32_t endHTOffset = 0;
-      rv = RangeBoundToHypertextOffset(range, false, false,
-                                       &endHTOffset);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      if (startHTOffset > *aHTStartOffset)
-        *aHTStartOffset = startHTOffset;
       if (endHTOffset < *aHTEndOffset)
         *aHTEndOffset = endHTOffset;
 
@@ -2284,7 +2274,36 @@ HyperTextAccessible::GetSpellTextAttribute(nsINode* aNode,
 
       return NS_OK;
     }
+
+    
+    rv = RangeBoundToHypertextOffset(range, true, false, &endHTOffset);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (idx > 0) {
+      rv = RangeBoundToHypertextOffset(domSel->GetRangeAt(idx - 1), false,
+                                       true, &startHTOffset);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    if (startHTOffset > *aHTStartOffset)
+      *aHTStartOffset = startHTOffset;
+
+    if (endHTOffset < *aHTEndOffset)
+      *aHTEndOffset = endHTOffset;
+
+    return NS_OK;
   }
+
+  
+  
+  
+  
+  rv = RangeBoundToHypertextOffset(domSel->GetRangeAt(rangeCount - 1), false,
+                                   true, &startHTOffset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (startHTOffset > *aHTStartOffset)
+    *aHTStartOffset = startHTOffset;
 
   return NS_OK;
 }
