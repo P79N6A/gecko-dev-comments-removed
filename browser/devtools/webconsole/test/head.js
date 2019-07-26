@@ -3,7 +3,7 @@
 
 
 
-let WebConsoleUtils, gDevTools, TargetFactory, console, promise;
+let WebConsoleUtils, gDevTools, TargetFactory, console, promise, require;
 
 (() => {
   gDevTools = Cu.import("resource:///modules/devtools/gDevTools.jsm", {}).gDevTools;
@@ -14,6 +14,7 @@ let WebConsoleUtils, gDevTools, TargetFactory, console, promise;
   let utils = tools.require("devtools/toolkit/webconsole/utils");
   TargetFactory = tools.TargetFactory;
   WebConsoleUtils = utils.Utils;
+  require = tools.require;
 })();
 
 
@@ -901,6 +902,9 @@ function getMessageElementText(aElement)
 
 
 
+
+
+
 function waitForMessages(aOptions)
 {
   gPendingOutputTest++;
@@ -1063,8 +1067,25 @@ function waitForMessages(aOptions)
       return false;
     }
 
+    if (aRule.type) {
+      
+      
+      if (!aElement._messageObject ||
+          !(aElement._messageObject instanceof aRule.type)) {
+        return false;
+      }
+    }
+    else if (aElement._messageObject) {
+      
+      
+      
+      
+      
+      return false;
+    }
+
     let partialMatch = !!(aRule.consoleTrace || aRule.consoleTime ||
-                          aRule.consoleTimeEnd);
+                          aRule.consoleTimeEnd || aRule.type);
 
     if (aRule.category && aElement.category != aRule.category) {
       if (partialMatch) {
