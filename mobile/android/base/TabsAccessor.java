@@ -21,6 +21,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public final class TabsAccessor {
     private static final String LOGTAG = "GeckoTabsAccessor";
@@ -49,6 +50,7 @@ public final class TabsAccessor {
 
     private static final String LOCAL_CLIENT_SELECTION = BrowserContract.Clients.GUID + " IS NULL";
     private static final String LOCAL_TABS_SELECTION = BrowserContract.Tabs.CLIENT_GUID + " IS NULL";
+    private static final Pattern FILTERED_URL_PATTERN = Pattern.compile("^(about|chrome|wyciwyg|file):");
 
     public static class RemoteTab {
         public String title;
@@ -151,7 +153,7 @@ public final class TabsAccessor {
         for (Tab tab : tabs) {
             
             String url = tab.getURL();
-            if (url == null || tab.isPrivate())
+            if (url == null || tab.isPrivate() || isFilteredURL(url))
                 continue;
 
             ContentValues values = new ContentValues();
@@ -191,5 +193,14 @@ public final class TabsAccessor {
         deleteLocalTabs(cr);
         insertLocalTabs(cr, tabs);
         updateLocalClient(cr);
+    }
+
+    
+
+
+
+
+    private static boolean isFilteredURL(String url) {
+        return FILTERED_URL_PATTERN.matcher(url).lookingAt();
     }
 }
