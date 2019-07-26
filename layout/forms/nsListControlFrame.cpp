@@ -2131,12 +2131,11 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
       break;
     case NS_VK_RETURN:
       if (IsInDropDownMode()) {
-        
-        
-        
-        aKeyEvent->PreventDefault();
-
         if (mComboboxFrame->IsDroppedDown()) {
+          
+          
+          aKeyEvent->PreventDefault();
+
           nsWeakFrame weakFrame(this);
           ComboboxFinish(mEndSelectionIndex);
           if (!weakFrame.IsAlive()) {
