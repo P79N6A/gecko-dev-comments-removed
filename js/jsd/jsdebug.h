@@ -13,9 +13,6 @@
 
 #include "jsapi.h"
 #include "jsdbgapi.h"
-#ifdef LIVEWIRE
-#include "lwdbgapi.h"
-#endif
 
 extern "C" {
 
@@ -636,8 +633,6 @@ JSD_IncrementSourceAlterCount(JSDContext* jsdc, JSDSourceText* jsdsrc);
 
 extern JSD_PUBLIC_API(void)
 JSD_DestroyAllSources( JSDContext* jsdc );
-
-
 
 
 
@@ -1521,31 +1516,6 @@ JSD_GetObjectForValue(JSDContext* jsdc, JSDValue* jsdval);
 
 extern JSD_PUBLIC_API(JSDValue*)
 JSD_GetValueForObject(JSDContext* jsdc, JSDObject* jsdobj);
-
-
-
-#ifdef LIVEWIRE
-
-extern JSD_PUBLIC_API(LWDBGScript*)
-JSDLW_GetLWScript(JSDContext* jsdc, JSDScript* jsdscript);
-
-extern JSD_PUBLIC_API(JSDSourceText*)
-JSDLW_PreLoadSource(JSDContext* jsdc, LWDBGApp* app,
-                    const char* filename, JSBool clear);
-
-extern JSD_PUBLIC_API(JSDSourceText*)
-JSDLW_ForceLoadSource(JSDContext* jsdc, JSDSourceText* jsdsrc);
-
-extern JSD_PUBLIC_API(JSBool)
-JSDLW_RawToProcessedLineNumber(JSDContext* jsdc, JSDScript* jsdscript,
-                               unsigned lineIn, unsigned* lineOut);
-
-extern JSD_PUBLIC_API(JSBool)
-JSDLW_ProcessedToRawLineNumber(JSDContext* jsdc, JSDScript* jsdscript,
-                               unsigned lineIn, unsigned* lineOut);
-
-#endif
-
 
 } 
 
