@@ -65,6 +65,21 @@ public:
   virtual void ReadLock() = 0;
   virtual void ReadUnlock() = 0;
 
+  
+
+
+  enum Type {
+    TYPE_SHARED_IMAGE,
+    TYPE_IMAGE,
+
+    TYPE_MAX
+  };
+
+  
+
+
+  virtual Type GetType() = 0;
+
 protected:
   NS_DECL_OWNINGTHREAD
 };
