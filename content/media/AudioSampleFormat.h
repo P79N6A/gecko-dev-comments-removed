@@ -56,7 +56,6 @@ typedef AudioSampleTraits<AUDIO_OUTPUT_FORMAT>::Type AudioDataValue;
 
 
 
-
 inline float
 AudioSampleToFloat(float aValue)
 {
