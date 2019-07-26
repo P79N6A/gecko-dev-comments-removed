@@ -136,6 +136,44 @@ function runTest(aCallback) {
 
 
 
+
+function checkMediaStreamTracksByType(constraints, type, mediaStreamTracks) {
+  if(constraints[type]) {
+    is(mediaStreamTracks.length, 1, 'One ' + type + ' track shall be present');
+
+    if(mediaStreamTracks.length) {
+      is(mediaStreamTracks[0].kind, type, 'Track kind should be ' + type);
+      ok(mediaStreamTracks[0].id, 'Track id should be defined');
+    }
+  } else {
+    is(mediaStreamTracks.length, 0, 'No ' + type + ' tracks shall be present');
+  }
+}
+
+
+
+
+
+
+
+
+
+function checkMediaStreamTracks(constraints, mediaStream) {
+  checkMediaStreamTracksByType(constraints, 'audio',
+    mediaStream.getAudioTracks());
+  checkMediaStreamTracksByType(constraints, 'video',
+    mediaStream.getVideoTracks());
+}
+
+
+
+
+
+
+
+
+
+
 function unexpectedCallbackAndFinish(error) {
   
 
