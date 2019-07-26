@@ -396,14 +396,16 @@ struct JSScript : public js::gc::Cell
     uint32_t        idpad;
 #endif
 
-    uint32_t        PADDING;
-
     
 
   private:
+    uint16_t        PADDING;
+
     uint16_t        version;    
 
   public:
+    uint16_t        ndefaults;  
+
     uint16_t        nfixed;     
 
 
