@@ -1238,7 +1238,7 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
         
         
         if (!mReuseLoaderGlobal) {
-            xpc::SetLocationForGlobal(newEntry->global, aLocation);
+            xpc::SetLocationForGlobal(newEntry->obj, aLocation);
         }
 
         mod = newEntry;
