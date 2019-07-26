@@ -232,7 +232,13 @@ public:
   
   
   
+  
+  
   virtual void UpdateReadyStateForData(NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
+
+  
+  
+  void ChangeReadyState(nsMediaReadyState aState);
 
   
   bool CanActivateAutoplay();
@@ -629,12 +635,6 @@ protected:
   
 
 
-
-  void ChangeReadyState(nsMediaReadyState aState);
-
-  
-
-
   void AddMediaElementToURITable();
   
 
@@ -1017,14 +1017,8 @@ protected:
   bool mBegun;
 
   
-  bool mMetadataLoaded;
-
   
-  
-  bool mFirstFrameLoaded;
-
-  
-  bool mFiredLoadedData;
+  bool mLoadedFirstFrame;
 
   
   
