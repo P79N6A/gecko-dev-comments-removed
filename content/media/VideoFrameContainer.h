@@ -46,6 +46,7 @@ public:
   
   void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage,
                        TimeStamp aTargetTime);
+  void ClearCurrentFrame();
   
   
   
