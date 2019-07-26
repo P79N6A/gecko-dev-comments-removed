@@ -2350,6 +2350,28 @@ ClipListsExceptCaret(nsDisplayListCollection* aLists,
   ::ClipItemsExceptCaret(aLists->Content(), aBuilder, aClipFrame, aClip);
 }
 
+static bool
+DisplayportExceedsMaxTextureSize(nsPresContext* aPresContext, const nsRect& aDisplayPort)
+{
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfxSize resolution = aPresContext->PresShell()->GetCumulativeResolution();
+  return (aPresContext->AppUnitsToDevPixels(aDisplayPort.width) * resolution.width > 4096) ||
+         (aPresContext->AppUnitsToDevPixels(aDisplayPort.height) * resolution.height > 4096);
+#else
+  return false;
+#endif
+}
+
 void
 ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                     const nsRect&           aDirtyRect,
@@ -2420,6 +2442,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   bool usingDisplayport =
     nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort) &&
     !aBuilder->IsForEventDelivery();
+  if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort)) {
+    usingDisplayport = false;
+  }
   if (usingDisplayport) {
     dirtyRect = displayPort;
   }
