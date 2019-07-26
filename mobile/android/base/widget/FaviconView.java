@@ -64,7 +64,7 @@ public class FaviconView extends ImageView {
     private void formatImage() {
         
         if (mIconBitmap == null || mActualWidth == 0 || mActualHeight == 0) {
-            clearImage();
+            showNoImage();
             return;
         }
 
@@ -157,12 +157,16 @@ public class FaviconView extends ImageView {
         hideBackground();
     }
 
+    private void showNoImage() {
+        setImageBitmap(null);
+        hideBackground();
+    }
+
     
 
 
     public void clearImage() {
-        setImageResource(0);
-        hideBackground();
+        showNoImage();
         mUnscaledBitmap = null;
         mIconBitmap = null;
         mIconKey = null;
