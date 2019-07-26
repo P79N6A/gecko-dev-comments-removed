@@ -472,6 +472,26 @@ PlanarYCbCrImage::~PlanarYCbCrImage()
   }
 }
 
+size_t
+PlanarYCbCrImage::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  size_t size = mBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+  
+  
+
+  return size;
+}
+
 uint8_t* 
 PlanarYCbCrImage::AllocateBuffer(uint32_t aSize)
 {

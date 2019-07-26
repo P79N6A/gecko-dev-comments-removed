@@ -89,6 +89,22 @@ VideoData::~VideoData()
   MOZ_COUNT_DTOR(VideoData);
 }
 
+size_t
+VideoData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t size = aMallocSizeOf(this);
+
+  
+  
+  if (mImage && mImage->GetFormat() == ImageFormat::PLANAR_YCBCR) {
+    const mozilla::layers::PlanarYCbCrImage* img =
+        static_cast<const mozilla::layers::PlanarYCbCrImage*>(mImage.get());
+    size += img->SizeOfIncludingThis(aMallocSizeOf);
+  }
+
+  return size;
+}
+
 
 VideoData* VideoData::ShallowCopyUpdateDuration(VideoData* aOther,
                                                 int64_t aDuration)

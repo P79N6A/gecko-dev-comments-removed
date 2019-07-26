@@ -646,7 +646,7 @@ public:
 
   
   
-  virtual int64_t VideoQueueMemoryInUse();
+  size_t SizeOfVideoQueue();
   size_t SizeOfAudioQueue();
 
   VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE

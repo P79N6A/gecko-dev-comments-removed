@@ -132,41 +132,13 @@ public:
   virtual nsresult GetBuffered(dom::TimeRanges* aBuffered,
                                int64_t aStartTime);
 
-  class VideoQueueMemoryFunctor : public nsDequeFunctor {
-  public:
-    VideoQueueMemoryFunctor() : mResult(0) {}
+  
+  
+  size_t SizeOfVideoQueueInBytes() const;
 
-    virtual void* operator()(void* anObject);
-
-    int64_t mResult;
-  };
-
-  virtual int64_t VideoQueueMemoryInUse() {
-    VideoQueueMemoryFunctor functor;
-    mVideoQueue.LockedForEach(functor);
-    return functor.mResult;
-  }
-
-  class AudioQueueMemoryFunctor : public nsDequeFunctor {
-  public:
-    AudioQueueMemoryFunctor() : mSize(0) {}
-
-    MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf);
-
-    virtual void* operator()(void* anObject) {
-      const AudioData* audioData = static_cast<const AudioData*>(anObject);
-      mSize += audioData->SizeOfIncludingThis(MallocSizeOf);
-      return nullptr;
-    }
-
-    size_t mSize;
-  };
-
-  size_t SizeOfAudioQueue() {
-    AudioQueueMemoryFunctor functor;
-    mAudioQueue.LockedForEach(functor);
-    return functor.mSize;
-  }
+  
+  
+  size_t SizeOfAudioQueueInBytes() const;
 
   
   

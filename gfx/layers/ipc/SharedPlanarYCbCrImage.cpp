@@ -62,6 +62,17 @@ DeprecatedSharedPlanarYCbCrImage::~DeprecatedSharedPlanarYCbCrImage() {
   }
 }
 
+size_t
+SharedPlanarYCbCrImage::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  
+  
+  
+  
+  size_t size = PlanarYCbCrImage::SizeOfExcludingThis(aMallocSizeOf);
+  return size;
+}
+
 TextureClient*
 SharedPlanarYCbCrImage::GetTextureClient(CompositableClient* aClient)
 {
