@@ -2290,6 +2290,7 @@ public class GeckoAppShell
 
 
 
+    @RobocopTarget
     public static void registerEventListener(String event, GeckoEventListener listener) {
         sEventDispatcher.registerEventListener(event, listener);
     }
