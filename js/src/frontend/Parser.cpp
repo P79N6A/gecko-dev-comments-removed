@@ -865,8 +865,15 @@ Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun, const AutoN
     if (!FoldConstants(context, &pn, this))
         return null();
 
-    InternalHandle<Bindings*> bindings(script, &script->bindings);
-    if (!funpc.generateFunctionBindings(context, bindings))
+    InternalHandle<Bindings*> scriptBindings(script, &script->bindings);
+    if (!funpc.generateFunctionBindings(context, scriptBindings))
+        return null();
+
+    
+    
+    InternalHandle<Bindings*> funboxBindings =
+        InternalHandle<Bindings*>::fromMarkedLocation(&(*funbox)->bindings);
+    if (!funpc.generateFunctionBindings(context, funboxBindings))
         return null();
 
     return pn;
