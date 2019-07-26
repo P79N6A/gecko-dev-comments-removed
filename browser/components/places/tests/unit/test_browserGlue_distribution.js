@@ -18,8 +18,8 @@ function run_test()
   do_test_pending();
 
   
-  let distroDir = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
-  distroDir.append("distribution");
+  let distroDir = Services.dirsvc.get("XREExeF", Ci.nsIFile);
+  distroDir.leafName = "distribution";
   let iniFile = distroDir.clone();
   iniFile.append("distribution.ini");
   if (iniFile.exists()) {
@@ -94,8 +94,8 @@ function onCustomizationComplete()
 do_register_cleanup(function() {
   
   
-  let iniFile = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
-  iniFile.append("distribution");
+  let iniFile = Services.dirsvc.get("XREExeF", Ci.nsIFile);
+  iniFile.leafName = "distribution";
   iniFile.append("distribution.ini");
   if (iniFile.exists())
     iniFile.remove(false);
