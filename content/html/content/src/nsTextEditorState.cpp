@@ -26,7 +26,7 @@
 #include "nsAttrValue.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMEventListener.h"
-#include "nsIEditorObserver.h"
+#include "EditActionListener.h"
 #include "nsINativeKeyBindings.h"
 #include "nsIDocumentEncoder.h"
 #include "nsISelectionPrivate.h"
@@ -615,7 +615,7 @@ nsTextInputSelectionImpl::CheckVisibilityContent(nsIContent* aNode,
 
 class nsTextInputListener : public nsISelectionListener,
                             public nsIDOMEventListener,
-                            public nsIEditorObserver,
+                            public EditActionListener,
                             public nsSupportsWeakReference
 {
 public:
@@ -640,7 +640,7 @@ public:
 
   NS_DECL_NSIDOMEVENTLISTENER
 
-  NS_DECL_NSIEDITOROBSERVER
+  virtual void EditAction();
 
 protected:
 
@@ -697,9 +697,8 @@ nsTextInputListener::~nsTextInputListener()
 {
 }
 
-NS_IMPL_ISUPPORTS4(nsTextInputListener,
+NS_IMPL_ISUPPORTS3(nsTextInputListener,
                    nsISelectionListener,
-                   nsIEditorObserver,
                    nsISupportsWeakReference,
                    nsIDOMEventListener)
 
@@ -830,9 +829,7 @@ nsTextInputListener::HandleEvent(nsIDOMEvent* aEvent)
   return NS_OK;
 }
 
-
-
-NS_IMETHODIMP
+void
 nsTextInputListener::EditAction()
 {
   nsWeakFrame weakFrame = mFrame;
@@ -861,7 +858,7 @@ nsTextInputListener::EditAction()
   }
 
   if (!weakFrame.IsAlive()) {
-    return NS_OK;
+    return;
   }
 
   
@@ -873,12 +870,7 @@ nsTextInputListener::EditAction()
   if (!mSettingValue) {
     mTxtCtrlElement->OnValueChanged(true);
   }
-
-  return NS_OK;
 }
-
-
-
 
 nsresult
 nsTextInputListener::UpdateTextInputCommands(const nsAString& commandsToUpdate)
@@ -1359,7 +1351,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
   }
 
   if (mTextListener)
-    newEditor->AddEditorObserver(mTextListener);
+    newEditor->SetEditorObserver(mTextListener);
 
   
   if (mSelectionCached) {
@@ -1383,7 +1375,7 @@ nsTextEditorState::DestroyEditor()
   
   if (mEditorInitialized) {
     if (mTextListener)
-      mEditor->RemoveEditorObserver(mTextListener);
+      mEditor->RemoveEditorObserver();
 
     mEditor->PreDestroy(true);
     mEditorInitialized = false;
