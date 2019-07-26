@@ -1470,7 +1470,11 @@ nsTextControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
   nsIFrame* kid = mFrames.FirstChild();
-  nsDisplayListSet set(aLists, aLists.Content());
+  
+  
+  
+  nsDisplayList* content = aLists.Content();
+  nsDisplayListSet set(content, content, content, content, content, content);
 
   while (kid) {
     
