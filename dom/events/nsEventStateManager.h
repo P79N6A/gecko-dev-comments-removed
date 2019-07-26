@@ -25,7 +25,7 @@ class nsIDocShell;
 class nsIDocShellTreeItem;
 class imgIContainer;
 class nsDOMDataTransfer;
-class MouseEnterLeaveDispatcher;
+class EnterLeaveDispatcher;
 class nsIMarkupDocumentViewer;
 class nsIScrollableFrame;
 class nsITimer;
@@ -234,7 +234,7 @@ public:
   static nsWeakPtr sPointerLockedDoc;
 
 protected:
-  friend class MouseEnterLeaveDispatcher;
+  friend class EnterLeaveDispatcher;
 
   
 
@@ -276,10 +276,10 @@ protected:
 
 
 
-  nsIFrame* DispatchMouseEvent(mozilla::WidgetMouseEvent* aMouseEvent,
-                               uint32_t aMessage,
-                               nsIContent* aTargetContent,
-                               nsIContent* aRelatedContent);
+  nsIFrame* DispatchMouseOrPointerEvent(mozilla::WidgetMouseEvent* aMouseEvent,
+                                        uint32_t aMessage,
+                                        nsIContent* aTargetContent,
+                                        nsIContent* aRelatedContent);
   
 
 

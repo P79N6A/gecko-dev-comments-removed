@@ -701,7 +701,9 @@ nsIContent::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   bool isAnonForEvents = IsRootOfChromeAccessOnlySubtree();
   if ((aVisitor.mEvent->message == NS_MOUSE_ENTER_SYNTH ||
-       aVisitor.mEvent->message == NS_MOUSE_EXIT_SYNTH) &&
+       aVisitor.mEvent->message == NS_MOUSE_EXIT_SYNTH ||
+       aVisitor.mEvent->message == NS_POINTER_OVER ||
+       aVisitor.mEvent->message == NS_POINTER_OUT) &&
       
       
       

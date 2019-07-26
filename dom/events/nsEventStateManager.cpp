@@ -1111,7 +1111,8 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       aEvent->message = 0;
       break;
     }
-  case NS_MOUSE_MOVE: {
+  case NS_MOUSE_MOVE:
+  case NS_POINTER_MOVE: {
     
     
     
@@ -3378,6 +3379,16 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       SetActiveManager(this, activeContent);
     }
     break;
+  case NS_POINTER_CANCEL:
+  case NS_POINTER_UP: {
+    WidgetPointerEvent* pointerEvent = aEvent->AsPointerEvent();
+    
+    
+    if (pointerEvent->inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {
+      mPointersEnterLeaveHelper.Remove(pointerEvent->pointerId);
+    }
+    break;
+  }
   case NS_MOUSE_BUTTON_UP:
     {
       ClearGlobalActiveContent(this);
@@ -3753,6 +3764,7 @@ nsEventStateManager::NotifyDestroyPresContext(nsPresContext* aPresContext)
     
     SetContentState(nullptr, NS_EVENT_STATE_HOVER);
   }
+  mPointersEnterLeaveHelper.Clear();
 }
 
 void
@@ -4042,10 +4054,10 @@ nsEventStateManager::IsHandlingUserInput()
 }
 
 nsIFrame*
-nsEventStateManager::DispatchMouseEvent(WidgetMouseEvent* aMouseEvent,
-                                        uint32_t aMessage,
-                                        nsIContent* aTargetContent,
-                                        nsIContent* aRelatedContent)
+nsEventStateManager::DispatchMouseOrPointerEvent(WidgetMouseEvent* aMouseEvent,
+                                                 uint32_t aMessage,
+                                                 nsIContent* aTargetContent,
+                                                 nsIContent* aRelatedContent)
 {
   
   
@@ -4066,16 +4078,35 @@ nsEventStateManager::DispatchMouseEvent(WidgetMouseEvent* aMouseEvent,
     return mPresContext->GetPrimaryFrameFor(content);
   }
 
-  PROFILER_LABEL("Input", "DispatchMouseEvent");
   nsEventStatus status = nsEventStatus_eIgnore;
-  WidgetMouseEvent event(aMouseEvent->mFlags.mIsTrusted, aMessage,
-                         aMouseEvent->widget, WidgetMouseEvent::eReal);
-  event.refPoint = aMouseEvent->refPoint;
-  event.modifiers = aMouseEvent->modifiers;
-  event.buttons = aMouseEvent->buttons;
-  event.pluginEvent = aMouseEvent->pluginEvent;
-  event.relatedTarget = aRelatedContent;
-  event.inputSource = aMouseEvent->inputSource;
+  nsAutoPtr<WidgetPointerEvent> newPointerEvent;
+  nsAutoPtr<WidgetMouseEvent> newMouseEvent;
+  WidgetMouseEvent* event = nullptr;
+  WidgetPointerEvent* sourcePointer = aMouseEvent->AsPointerEvent();
+  if (sourcePointer) {
+    PROFILER_LABEL("Input", "DispatchPointerEvent");
+    newPointerEvent =
+      new WidgetPointerEvent(aMouseEvent->mFlags.mIsTrusted, aMessage,
+                             aMouseEvent->widget);
+    newPointerEvent->isPrimary = sourcePointer->isPrimary;
+    newPointerEvent->pointerId = sourcePointer->pointerId;
+    newPointerEvent->width = sourcePointer->width;
+    newPointerEvent->height = sourcePointer->height;
+    newPointerEvent->inputSource = sourcePointer->inputSource;
+    event = newPointerEvent.get();
+  } else {
+    PROFILER_LABEL("Input", "DispatchMouseEvent");
+    newMouseEvent =
+      new WidgetMouseEvent(aMouseEvent->mFlags.mIsTrusted, aMessage,
+                           aMouseEvent->widget, WidgetMouseEvent::eReal);
+    event = newMouseEvent.get();
+  }
+  event->refPoint = aMouseEvent->refPoint;
+  event->modifiers = aMouseEvent->modifiers;
+  event->buttons = aMouseEvent->buttons;
+  event->pluginEvent = aMouseEvent->pluginEvent;
+  event->relatedTarget = aRelatedContent;
+  event->inputSource = aMouseEvent->inputSource;
 
   nsWeakFrame previousTarget = mCurrentTarget;
 
@@ -4084,7 +4115,7 @@ nsEventStateManager::DispatchMouseEvent(WidgetMouseEvent* aMouseEvent,
   nsIFrame* targetFrame = nullptr;
   if (aTargetContent) {
     nsESMEventCB callback(aTargetContent);
-    nsEventDispatcher::Dispatch(aTargetContent, mPresContext, &event, nullptr,
+    nsEventDispatcher::Dispatch(aTargetContent, mPresContext, event, nullptr,
                                 &status, &callback);
 
     
@@ -4101,17 +4132,18 @@ nsEventStateManager::DispatchMouseEvent(WidgetMouseEvent* aMouseEvent,
   return targetFrame;
 }
 
-class MouseEnterLeaveDispatcher
+class EnterLeaveDispatcher
 {
 public:
-  MouseEnterLeaveDispatcher(nsEventStateManager* aESM,
-                            nsIContent* aTarget, nsIContent* aRelatedTarget,
-                            WidgetMouseEvent* aMouseEvent, uint32_t aType)
+  EnterLeaveDispatcher(nsEventStateManager* aESM,
+                       nsIContent* aTarget, nsIContent* aRelatedTarget,
+                       WidgetMouseEvent* aMouseEvent, uint32_t aType)
   : mESM(aESM), mMouseEvent(aMouseEvent), mType(aType)
   {
     nsPIDOMWindow* win =
       aTarget ? aTarget->OwnerDoc()->GetInnerWindow() : nullptr;
-    if (win && win->HasMouseEnterLeaveEventListeners()) {
+    if (aMouseEvent->AsPointerEvent() ? win && win->HasPointerEnterLeaveEventListeners() :
+                                        win && win->HasMouseEnterLeaveEventListeners()) {
       mRelatedTarget = aRelatedTarget ?
         aRelatedTarget->FindFirstNonChromeOnlyAccessContent() : nullptr;
       nsINode* commonParent = nullptr;
@@ -4131,17 +4163,18 @@ public:
     }
   }
 
-  ~MouseEnterLeaveDispatcher()
+  ~EnterLeaveDispatcher()
   {
-    if (mType == NS_MOUSEENTER) {
+    if (mType == NS_MOUSEENTER ||
+        mType == NS_POINTER_ENTER) {
       for (int32_t i = mTargets.Count() - 1; i >= 0; --i) {
-        mESM->DispatchMouseEvent(mMouseEvent, mType, mTargets[i],
-                                 mRelatedTarget);
+        mESM->DispatchMouseOrPointerEvent(mMouseEvent, mType, mTargets[i],
+                                          mRelatedTarget);
       }
     } else {
       for (int32_t i = 0; i < mTargets.Count(); ++i) {
-        mESM->DispatchMouseEvent(mMouseEvent, mType, mTargets[i],
-                                 mRelatedTarget);
+        mESM->DispatchMouseOrPointerEvent(mMouseEvent, mType, mTargets[i],
+                                          mRelatedTarget);
       }
     }
   }
@@ -4197,17 +4230,20 @@ nsEventStateManager::NotifyMouseOut(WidgetMouseEvent* aMouseEvent,
   
   
   
-  if (!aMovingInto) {
+  bool isPointer = aMouseEvent->eventStructType == NS_POINTER_EVENT;
+  if (!aMovingInto && !isPointer) {
     
     SetContentState(nullptr, NS_EVENT_STATE_HOVER);
   }
 
-  MouseEnterLeaveDispatcher leaveDispatcher(this, wrapper->mLastOverElement, aMovingInto,
-                                            aMouseEvent, NS_MOUSELEAVE);
+  EnterLeaveDispatcher leaveDispatcher(this, wrapper->mLastOverElement,
+                                       aMovingInto, aMouseEvent,
+                                       isPointer ? NS_POINTER_LEAVE :
+                                                   NS_MOUSELEAVE);
 
   
-  DispatchMouseEvent(aMouseEvent, NS_MOUSE_EXIT_SYNTH,
-                     wrapper->mLastOverElement, aMovingInto);
+  DispatchMouseOrPointerEvent(aMouseEvent, isPointer ? NS_POINTER_OUT : NS_MOUSE_EXIT_SYNTH,
+                              wrapper->mLastOverElement, aMovingInto);
 
   wrapper->mLastOverFrame = nullptr;
   wrapper->mLastOverElement = nullptr;
@@ -4255,8 +4291,11 @@ nsEventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   
   nsCOMPtr<nsIContent> lastOverElement = wrapper->mLastOverElement;
 
-  MouseEnterLeaveDispatcher enterDispatcher(this, aContent, lastOverElement,
-                                            aMouseEvent, NS_MOUSEENTER);
+  bool isPointer = aMouseEvent->eventStructType == NS_POINTER_EVENT;
+  EnterLeaveDispatcher enterDispatcher(this, aContent, lastOverElement,
+                                       aMouseEvent,
+                                       isPointer ? NS_POINTER_ENTER :
+                                                   NS_MOUSEENTER);
 
   NotifyMouseOut(aMouseEvent, aContent);
 
@@ -4264,11 +4303,16 @@ nsEventStateManager::NotifyMouseOver(WidgetMouseEvent* aMouseEvent,
   
   wrapper->mFirstOverEventElement = aContent;
 
-  SetContentState(aContent, NS_EVENT_STATE_HOVER);
+  if (!isPointer) {
+    SetContentState(aContent, NS_EVENT_STATE_HOVER);
+  }
 
   
-  wrapper->mLastOverFrame = DispatchMouseEvent(aMouseEvent, NS_MOUSE_ENTER_SYNTH,
-                                               aContent, lastOverElement);
+  wrapper->mLastOverFrame =
+    DispatchMouseOrPointerEvent(aMouseEvent,
+                                isPointer ? NS_POINTER_OVER :
+                                            NS_MOUSE_ENTER_SYNTH,
+                                aContent, lastOverElement);
   wrapper->mLastOverElement = aContent;
 
   
@@ -4376,6 +4420,9 @@ nsEventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
       
       sLastRefPoint = aMouseEvent->refPoint;
 
+    }
+  case NS_POINTER_MOVE:
+    {
       
       nsCOMPtr<nsIContent> targetElement = GetEventTargetContent(aMouseEvent);
       if (!targetElement) {
@@ -4389,6 +4436,7 @@ nsEventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
       }
     }
     break;
+  case NS_POINTER_LEAVE:
   case NS_MOUSE_EXIT:
     {
       
@@ -4419,10 +4467,21 @@ nsEventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
 OverOutElementsWrapper*
 nsEventStateManager::GetWrapperByEventID(WidgetMouseEvent* aEvent)
 {
-  if (!mMouseEnterLeaveHelper) {
-    mMouseEnterLeaveHelper = new OverOutElementsWrapper();
+  WidgetPointerEvent* pointer = aEvent->AsPointerEvent();
+  if (!pointer) {
+    MOZ_ASSERT(aEvent->AsMouseEvent() != nullptr);
+    if (!mMouseEnterLeaveHelper) {
+      mMouseEnterLeaveHelper = new OverOutElementsWrapper();
+    }
+    return mMouseEnterLeaveHelper;
   }
-  return mMouseEnterLeaveHelper.get();
+  nsRefPtr<OverOutElementsWrapper> helper;
+  if (!mPointersEnterLeaveHelper.Get(pointer->pointerId, getter_AddRefs(helper))) {
+    helper = new OverOutElementsWrapper();
+    mPointersEnterLeaveHelper.Put(pointer->pointerId, helper);
+  }
+
+  return helper;
 }
 
 void
@@ -5135,6 +5194,7 @@ nsEventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent
 
   
   ResetLastOverForContent(0, mMouseEnterLeaveHelper, aContent);
+  mPointersEnterLeaveHelper.Enumerate(&nsEventStateManager::ResetLastOverForContent, aContent);
 }
 
 bool
