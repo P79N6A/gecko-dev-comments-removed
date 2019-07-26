@@ -1,10 +1,10 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Helpers for defining and using refcounted objects. */
+
+
+
+
+
+
 
 #ifndef mozilla_RefPtr_h
 #define mozilla_RefPtr_h
@@ -30,38 +30,38 @@ template<typename T> class TemporaryRef;
 template<typename T> class OutParamRef;
 template<typename T> OutParamRef<T> byRef(RefPtr<T>&);
 
-/**
- * RefCounted<T> is a sort of a "mixin" for a class T.  RefCounted
- * manages, well, refcounting for T, and because RefCounted is
- * parameterized on T, RefCounted<T> can call T's destructor directly.
- * This means T doesn't need to have a virtual dtor and so doesn't
- * need a vtable.
- *
- * RefCounted<T> is created with refcount == 0.  Newly-allocated
- * RefCounted<T> must immediately be assigned to a RefPtr to make the
- * refcount > 0.  It's an error to allocate and free a bare
- * RefCounted<T>, i.e. outside of the RefPtr machinery.  Attempts to
- * do so will abort DEBUG builds.
- *
- * Live RefCounted<T> have refcount > 0.  The lifetime (refcounts) of
- * live RefCounted<T> are controlled by RefPtr<T> and
- * RefPtr<super/subclass of T>.  Upon a transition from refcounted==1
- * to 0, the RefCounted<T> "dies" and is destroyed.  The "destroyed"
- * state is represented in DEBUG builds by refcount==0xffffdead.  This
- * state distinguishes use-before-ref (refcount==0) from
- * use-after-destroy (refcount==0xffffdead).
- *
- * Note that when deriving from RefCounted or AtomicRefCounted, you
- * should add MOZ_DECLARE_REFCOUNTED_TYPENAME(ClassName) to the public
- * section of your class, where ClassName is the name of your class.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace detail {
 #ifdef DEBUG
 const MozRefCountType DEAD = 0xffffdead;
 #endif
 
-// When building code that gets compiled into Gecko, try to use the
-// trace-refcount leak logging facilities.
+
+
 #ifdef MOZ_REFCOUNTED_LEAK_CHECKING
 class RefCountLogger
 {
@@ -82,7 +82,7 @@ class RefCountLogger
 };
 #endif
 
-// This is used WeakPtr.h as well as this file.
+
 enum RefCountAtomicity
 {
   AtomicRefCount,
@@ -101,9 +101,9 @@ class RefCounted
     }
 
   public:
-    // Compatibility with nsRefPtr.
+    
     void AddRef() const {
-      // Note: this method must be thread safe for AtomicRefCounted.
+      
       MOZ_ASSERT(int32_t(refCnt) >= 0);
 #ifndef MOZ_REFCOUNTED_LEAK_CHECKING
       ++refCnt;
@@ -117,7 +117,7 @@ class RefCounted
     }
 
     void Release() const {
-      // Note: this method must be thread safe for AtomicRefCounted.
+      
       MOZ_ASSERT(int32_t(refCnt) > 0);
 #ifndef MOZ_REFCOUNTED_LEAK_CHECKING
       MozRefCountType cnt = --refCnt;
@@ -125,15 +125,15 @@ class RefCounted
       const char* type = static_cast<const T*>(this)->typeName();
       const void* ptr = static_cast<const T*>(this);
       MozRefCountType cnt = --refCnt;
-      // Note: it's not safe to touch |this| after decrementing the refcount,
-      // except for below.
+      
+      
       detail::RefCountLogger::logRelease(ptr, cnt, type);
 #endif
       if (0 == cnt) {
-        // Because we have atomically decremented the refcount above, only
-        // one thread can get a 0 count here, so as long as we can assume that
-        // everything else in the system is accessing this object through
-        // RefPtrs, it's safe to access |this| here.
+        
+        
+        
+        
 #ifdef DEBUG
         refCnt = detail::DEAD;
 #endif
@@ -141,7 +141,7 @@ class RefCounted
       }
     }
 
-    // Compatibility with wtf::RefPtr.
+    
     void ref() { AddRef(); }
     void deref() { Release(); }
     MozRefCountType refCount() const { return refCnt; }
@@ -155,17 +155,19 @@ class RefCounted
 };
 
 #ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-#define MOZ_DECLARE_REFCOUNTED_TYPENAME(T) \
-  const char* typeName() const { return #T; } \
-  size_t typeSize() const { return sizeof(*this); }
-
 #define MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(T) \
   virtual const char* typeName() const { return #T; } \
   virtual size_t typeSize() const { return sizeof(*this); }
 #else
-#define MOZ_DECLARE_REFCOUNTED_TYPENAME(T)
 #define MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(T)
 #endif
+
+
+
+
+#define MOZ_DECLARE_REFCOUNTED_TYPENAME(T) \
+  const char* typeName() const { return #T; } \
+  size_t typeSize() const { return sizeof(*this); }
 
 }
 
@@ -181,13 +183,13 @@ class RefCounted : public detail::RefCounted<T, detail::NonAtomicRefCount>
 
 namespace external {
 
-/**
- * AtomicRefCounted<T> is like RefCounted<T>, with an atomically updated
- * reference counter.
- *
- * NOTE: Please do not use this class, use NS_INLINE_DECL_THREADSAFE_REFCOUNTING
- * instead.
- */
+
+
+
+
+
+
+
 template<typename T>
 class AtomicRefCounted : public mozilla::detail::RefCounted<T, mozilla::detail::AtomicRefCount>
 {
@@ -200,20 +202,20 @@ class AtomicRefCounted : public mozilla::detail::RefCounted<T, mozilla::detail::
 
 }
 
-/**
- * RefPtr points to a refcounted thing that has AddRef and Release
- * methods to increase/decrease the refcount, respectively.  After a
- * RefPtr<T> is assigned a T*, the T* can be used through the RefPtr
- * as if it were a T*.
- *
- * A RefPtr can forget its underlying T*, which results in the T*
- * being wrapped in a temporary object until the T* is either
- * re-adopted from or released by the temporary.
- */
+
+
+
+
+
+
+
+
+
+
 template<typename T>
 class RefPtr
 {
-    // To allow them to use unref()
+    
     friend class TemporaryRef<T>;
     friend class OutParamRef<T>;
 
@@ -282,16 +284,16 @@ class RefPtr
     }
 };
 
-/**
- * TemporaryRef<T> represents an object that holds a temporary
- * reference to a T.  TemporaryRef objects can't be manually ref'd or
- * unref'd (being temporaries, not lvalues), so can only relinquish
- * references to other objects, or unref on destruction.
- */
+
+
+
+
+
+
 template<typename T>
 class TemporaryRef
 {
-    // To allow it to construct TemporaryRef from a bare T*
+    
     friend class RefPtr<T>;
 
     typedef typename RefPtr<T>::DontRef DontRef;
@@ -320,20 +322,20 @@ class TemporaryRef
     void operator=(const TemporaryRef&) MOZ_DELETE;
 };
 
-/**
- * OutParamRef is a wrapper that tracks a refcounted pointer passed as
- * an outparam argument to a function.  OutParamRef implements COM T**
- * outparam semantics: this requires the callee to AddRef() the T*
- * returned through the T** outparam on behalf of the caller.  This
- * means the caller (through OutParamRef) must Release() the old
- * object contained in the tracked RefPtr.  It's OK if the callee
- * returns the same T* passed to it through the T** outparam, as long
- * as the callee obeys the COM discipline.
- *
- * Prefer returning TemporaryRef<T> from functions over creating T**
- * outparams and passing OutParamRef<T> to T**.  Prefer RefPtr<T>*
- * outparams over T** outparams.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template<typename T>
 class OutParamRef
 {
@@ -357,9 +359,9 @@ class OutParamRef
     OutParamRef& operator=(const OutParamRef&) MOZ_DELETE;
 };
 
-/**
- * byRef cooperates with OutParamRef to implement COM outparam semantics.
- */
+
+
+
 template<typename T>
 OutParamRef<T>
 byRef(RefPtr<T>& ptr)
@@ -367,13 +369,13 @@ byRef(RefPtr<T>& ptr)
   return OutParamRef<T>(ptr);
 }
 
-} // namespace mozilla
+} 
 
 #if 0
 
-// Command line that builds these tests
-//
-//   cp RefPtr.h test.cc && g++ -g -Wall -pedantic -DDEBUG -o test test.cc && ./test
+
+
+
 
 using namespace mozilla;
 
@@ -410,14 +412,14 @@ void
 GetNewFoo(Foo** f)
 {
   *f = new Bar();
-  // Kids, don't try this at home
+  
   (*f)->AddRef();
 }
 
 void
 GetPassedFoo(Foo** f)
 {
-  // Kids, don't try this at home
+  
   (*f)->AddRef();
 }
 
@@ -440,8 +442,8 @@ GetNullFoo()
 int
 main(int argc, char** argv)
 {
-  // This should blow up
-//    Foo* f = new Foo(); delete f;
+  
+
 
   MOZ_ASSERT(0 == Foo::numDestroyed);
   {
@@ -525,4 +527,4 @@ main(int argc, char** argv)
 
 #endif
 
-#endif /* mozilla_RefPtr_h */
+#endif 
