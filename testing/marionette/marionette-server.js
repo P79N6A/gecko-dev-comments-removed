@@ -495,6 +495,9 @@ MarionetteServerConnection.prototype = {
 
 
 
+
+
+
   newSession: function MDA_newSession() {
     this.command_id = this.getCommandId();
     this.newSessionCommandId = this.command_id;
@@ -507,13 +510,13 @@ MarionetteServerConnection.prototype = {
       if (!win ||
           (appName == "Firefox" && !win.gBrowser) ||
           (appName == "Fennec" && !win.BrowserApp)) {
-        checkTimer.initWithCallback(waitForWindow.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
+        checkTimer.initWithCallback(waitForWindow.bind(this), 100,
+                                    Ci.nsITimer.TYPE_ONE_SHOT);
       }
       else {
         this.startBrowser(win, true);
       }
     }
-
 
     if (!Services.prefs.getBoolPref("marionette.contentListener")) {
       waitForWindow.call(this);
@@ -521,11 +524,13 @@ MarionetteServerConnection.prototype = {
     else if ((appName != "Firefox") && (this.curBrowser == null)) {
       
       this.addBrowser(this.getCurrentWindow());
-      this.curBrowser.startSession(false, this.getCurrentWindow(), this.whenBrowserStarted);
+      this.curBrowser.startSession(false, this.getCurrentWindow(),
+                                   this.whenBrowserStarted);
       this.messageManager.broadcastAsyncMessage("Marionette:restart", {});
     }
     else {
-      this.sendError("Session already running", 500, null, this.command_id);
+      this.sendError("Session already running", 500, null,
+                     this.command_id);
     }
     this.switchToGlobalMessageManager();
   },
@@ -536,21 +541,21 @@ MarionetteServerConnection.prototype = {
     let rotatable = appName == "B2G" ? true : false;
 
     let value = {
-          'appBuildId' : Services.appinfo.appBuildID,
-          'XULappId' : Services.appinfo.ID,
-          'cssSelectorsEnabled': true,
-          'browserName': appName,
-          'handlesAlerts': false,
-          'javascriptEnabled': true,
-          'nativeEvents': false,
-          'platformName': Services.appinfo.OS,
-          'platformVersion': Services.appinfo.platformVersion,
-          'secureSsl': false,
-          'device': qemu == "1" ? "qemu" : (!device ? "desktop" : device),
-          'rotatable': rotatable,
-          'takesScreenshot': true,
-          'takesElementScreenshot': true,
-          'version': Services.appinfo.version
+      'appBuildId' : Services.appinfo.appBuildID,
+      'XULappId' : Services.appinfo.ID,
+      'cssSelectorsEnabled': true,
+      'browserName': appName,
+      'handlesAlerts': false,
+      'javascriptEnabled': true,
+      'nativeEvents': false,
+      'platformName': Services.appinfo.OS,
+      'platformVersion': Services.appinfo.platformVersion,
+      'secureSsl': false,
+      'device': qemu == "1" ? "qemu" : (!device ? "desktop" : device),
+      'rotatable': rotatable,
+      'takesScreenshot': true,
+      'takesElementScreenshot': true,
+      'version': Services.appinfo.version
     };
 
     this.sendResponse(value, this.command_id);
@@ -2387,7 +2392,7 @@ MarionetteServerConnection.prototype = {
             return;
           }
           if (this.curBrowser.newSession) {
-            this.sendResponse(reg.id, this.newSessionCommandId);
+            this.getSessionCapabilities();
             this.newSessionCommandId = null;
           }
         }
