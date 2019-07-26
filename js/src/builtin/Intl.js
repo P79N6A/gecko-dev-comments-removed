@@ -1212,3 +1212,178 @@ function Intl_Collator_resolvedOptions() {
     }
     return result;
 }
+
+
+
+
+
+
+
+
+
+
+function InitializeNumberFormat(numberFormat, locales, options) {
+    assert(IsObject(numberFormat), "InitializeNumberFormat");
+
+    
+    if (isInitializedIntlObject(numberFormat))
+        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+
+    
+    var internals = initializeIntlObject(numberFormat);
+
+    
+    var requestedLocales = CanonicalizeLocaleList(locales);
+
+    
+    if (options === undefined)
+        options = {};
+    else
+        options = ToObject(options);
+
+    
+    
+    var opt = new Record();
+
+    
+    var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
+    opt.localeMatcher = matcher;
+
+    
+    
+    var NumberFormat = numberFormatInternalProperties;
+
+    
+    var localeData = NumberFormat.localeData;
+
+    
+    var r = ResolveLocale(NumberFormat.availableLocales,
+                          requestedLocales, opt,
+                          NumberFormat.relevantExtensionKeys,
+                          localeData);
+
+    
+    internals.locale = r.locale;
+    internals.numberingSystem = r.nu;
+    var dataLocale = r.dataLocale;
+
+    
+    
+    var s = GetOption(options, "style", "string", ["decimal", "percent", "currency"], "decimal");
+    internals.style = s;
+
+    
+    var c = GetOption(options, "currency", "string", undefined, undefined);
+    if (c !== undefined && !IsWellFormedCurrencyCode(c))
+        ThrowError(JSMSG_INVALID_CURRENCY_CODE, c);
+    var cDigits;
+    if (s === "currency") {
+        if (c === undefined)
+            ThrowError(JSMSG_UNDEFINED_CURRENCY);
+
+        
+        c = toASCIIUpperCase(c);
+        internals.currency = c;
+        cDigits = CurrencyDigits(c);
+    }
+
+    
+    var cd = GetOption(options, "currencyDisplay", "string", ["code", "symbol", "name"], "symbol");
+    if (s === "currency")
+        internals.currencyDisplay = cd;
+
+    
+    var mnid = GetNumberOption(options, "minimumIntegerDigits", 1, 21, 1);
+    internals.minimumIntegerDigits = mnid;
+
+    
+    var mnfdDefault = (s === "currency") ? cDigits : 0;
+    var mnfd = GetNumberOption(options, "minimumFractionDigits", 0, 20, mnfdDefault);
+    internals.minimumFractionDigits = mnfd;
+
+    
+    var mxfdDefault;
+    if (s === "currency")
+        mxfdDefault = std_Math_max(mnfd, cDigits);
+    else if (s === "percent")
+        mxfdDefault = std_Math_max(mnfd, 0);
+    else
+        mxfdDefault = std_Math_max(mnfd, 3);
+    var mxfd = GetNumberOption(options, "maximumFractionDigits", mnfd, 20, mxfdDefault);
+    internals.maximumFractionDigits = mxfd;
+
+    
+    var mnsd = options.minimumSignificantDigits;
+    var mxsd = options.maximumSignificantDigits;
+
+    
+    if (mnsd !== undefined || mxsd !== undefined) {
+        mnsd = GetNumberOption(options, "minimumSignificantDigits", 1, 21, 1);
+        mxsd = GetNumberOption(options, "maximumSignificantDigits", mnsd, 21, 21);
+        internals.minimumSignificantDigits = mnsd;
+        internals.maximumSignificantDigits = mxsd;
+    }
+
+    
+    var g = GetOption(options, "useGrouping", "boolean", undefined, true);
+    internals.useGrouping = g;
+
+    
+
+    
+    internals.boundFormat = undefined;
+
+    
+    internals.initializedNumberFormat = true;
+}
+
+
+
+
+
+
+
+
+
+var currencyDigits = {
+    BHD: 3,
+    BIF: 0,
+    BYR: 0,
+    CLF: 0,
+    CLP: 0,
+    DJF: 0,
+    IQD: 3,
+    GNF: 0,
+    ISK: 0,
+    JOD: 3,
+    JPY: 0,
+    KMF: 0,
+    KRW: 0,
+    KWD: 3,
+    LYD: 3,
+    OMR: 3,
+    PYG: 0,
+    RWF: 0,
+    TND: 3,
+    UYI: 0,
+    VND: 0,
+    VUV: 0,
+    XAF: 0,
+    XOF: 0,
+    XPF: 0
+};
+
+
+
+
+
+
+
+function CurrencyDigits(currency) {
+    assert(typeof currency === "string", "CurrencyDigits");
+    assert(callFunction(std_RegExp_test, /^[A-Z]{3}$/, currency), "CurrencyDigits");
+
+    if (callFunction(std_Object_hasOwnProperty, currencyDigits, currency))
+        return currencyDigits[currency];
+    return 2;
+}
