@@ -1308,7 +1308,7 @@ FrameGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
 
 
 static void RunTestMode(FILE* fp);
-static void RunStressMode();
+static void RunStressMode(FILE* fp);
 
 static const char* gDMDEnvVar = nullptr;
 
@@ -1381,6 +1381,18 @@ BadArg(const char* aArg)
   StatusMsg("  --mode=<normal|test|stress>   Which mode to run in? [normal]\n");
   StatusMsg("\n");
   exit(1);
+}
+
+
+static FILE*
+OpenTestOrStressFile(const char* aFilename)
+{
+  FILE* fp = fopen(aFilename, "w");
+  if (!fp) {
+    StatusMsg("can't create %s file: %s\n", aFilename, strerror(errno));
+    exit(1);
+  }
+  return fp;
 }
 
 
@@ -1467,19 +1479,6 @@ Init(const malloc_table_t* aMallocTable)
 
   gSmallBlockActualSizeCounter = 0;
 
-  FILE* testFp;
-
-  if (gMode == Test) {
-    
-    
-    const char* filename = "test.dmd";
-    testFp = fopen(filename, "w");
-    if (!testFp) {
-      StatusMsg("can't create test file %s: %s\n", filename, strerror(errno));
-      exit(1);
-    }
-  }
-
   DMD_CREATE_TLS_INDEX(gTlsIndex);
 
   gStackTraceTable = InfallibleAllocPolicy::new_<StackTraceTable>();
@@ -1491,25 +1490,32 @@ Init(const malloc_table_t* aMallocTable)
   gDoubleReportBlockGroupTable = InfallibleAllocPolicy::new_<BlockGroupTable>();
   gDoubleReportBlockGroupTable->init(0);
 
-  
-  
-  
-  gIsDMDRunning = true;
-
   if (gMode == Test) {
+    
+    
+    
+    FILE* fp = OpenTestOrStressFile("test.dmd");
+    gIsDMDRunning = true;
+
     StatusMsg("running test mode...\n");
-    RunTestMode(testFp);
+    RunTestMode(fp);
     StatusMsg("finished test mode\n");
-    fclose(testFp);
+    fclose(fp);
     exit(0);
   }
 
   if (gMode == Stress) {
+    FILE* fp = OpenTestOrStressFile("stress.dmd");
+    gIsDMDRunning = true;
+
     StatusMsg("running stress mode...\n");
-    RunStressMode();
+    RunStressMode(fp);
     StatusMsg("finished stress mode\n");
+    fclose(fp);
     exit(0);
   }
+
+  gIsDMDRunning = true;
 }
 
 
@@ -2134,10 +2140,17 @@ stress1()
 
 
 static void
-RunStressMode()
+RunStressMode(FILE* fp)
 {
+  Writer writer(FpWrite, fp);
+
+  
+  gSampleBelowSize = 1;
+
   stress1(); stress1(); stress1(); stress1(); stress1();
   stress1(); stress1(); stress1(); stress1(); stress1();
+
+  Dump(writer);
 }
 
 }   
