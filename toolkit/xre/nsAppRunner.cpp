@@ -3215,19 +3215,6 @@ XREMain::XRE_mainInit(bool* aExitFlag)
     return 0;
   }
 
-  if (PR_GetEnv("MOZ_RUN_GTEST")) {
-    int result;
-    
-    if (mozilla::RunGTest) {
-      result = mozilla::RunGTest();
-    } else {
-      result = 1;
-      printf("TEST-UNEXPECTED-FAIL | gtest | Not compiled with enable-tests\n");
-    }
-    *aExitFlag = true;
-    return result;
-  }
-
   return 0;
 }
 
@@ -3432,7 +3419,22 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   
   if (!gtk_parse_args(&gArgc, &gArgv))
     return 1;
+#endif 
 
+  if (PR_GetEnv("MOZ_RUN_GTEST")) {
+    int result;
+    
+    if (mozilla::RunGTest) {
+      result = mozilla::RunGTest();
+    } else {
+      result = 1;
+      printf("TEST-UNEXPECTED-FAIL | gtest | Not compiled with enable-tests\n");
+    }
+    *aExitFlag = true;
+    return result;
+  }
+
+#if defined(MOZ_WIDGET_GTK)
   
   const char *display_name = gdk_get_display_arg_name();
   if (display_name) {
