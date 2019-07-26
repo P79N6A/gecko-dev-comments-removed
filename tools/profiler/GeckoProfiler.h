@@ -95,7 +95,8 @@ static inline void profiler_shutdown() {};
 
 
 static inline void profiler_start(int aProfileEntries, int aInterval,
-                              const char** aFeatures, uint32_t aFeatureCount) {}
+                              const char** aFeatures, uint32_t aFeatureCount,
+                              const char** aThreadNameFilters, uint32_t aFilterCount) {}
 
 
 
