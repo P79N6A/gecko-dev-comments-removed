@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "jit/AsmJSModule.h"
 #include "jit/IonCode.h"
@@ -29,7 +29,7 @@ AsmJSModule::initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx)
     maybeHeap_ = heap;
     heapDatum() = heap->dataPointer();
 
-    JS_ASSERT(IsPowerOfTwo(heap->byteLength()));
+    JS_ASSERT(IsValidAsmJSHeapLength(heap->byteLength()));
 #if defined(JS_CPU_X86)
     uint8_t *heapOffset = heap->dataPointer();
     void *heapLength = (void*)heap->byteLength();
@@ -47,8 +47,8 @@ AsmJSModule::initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx)
         jit::Assembler::updateBoundsCheck(heapLength,
                                           (jit::Instruction*)(heapAccesses_[i].offset() + code_));
     }
-    // We already know the exact extent of areas that need to be patched, just make sure we
-    // flush all of them at once.
+    
+    
     jit::AutoFlushCache::updateTop(uintptr_t(code_), pod.codeBytes_);
 #endif
 }
@@ -64,7 +64,7 @@ AllocateExecutableMemory(ExclusiveContext *cx, size_t totalBytes)
         js_ReportOutOfMemory(cx);
         return NULL;
     }
-#else  // assume Unix
+#else  
     void *p = mmap(NULL, totalBytes, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANON, -1, 0);
     if (p == MAP_FAILED) {
         js_ReportOutOfMemory(cx);
@@ -90,13 +90,13 @@ AsmJSModule::allocateCodeAndGlobalSegment(ExclusiveContext *cx, size_t bytesNeed
 {
     JS_ASSERT(!code_);
 
-    // The global data section sits immediately after the executable (and
-    // other) data allocated by the MacroAssembler, so ensure it is
-    // double-aligned.
+    
+    
+    
     pod.codeBytes_ = AlignBytes(bytesNeeded, sizeof(double));
 
-    // The entire region is allocated via mmap/VirtualAlloc which requires
-    // units of pages.
+    
+    
     pod.totalBytes_ = AlignBytes(pod.codeBytes_ + globalDataBytes(), AsmJSPageSize);
 
     code_ = AllocateExecutableMemory(cx, pod.totalBytes_);
@@ -169,18 +169,18 @@ const Class AsmJSModuleObject::class_ = {
     "AsmJSModuleObject",
     JSCLASS_IS_ANONYMOUS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(AsmJSModuleObject::RESERVED_SLOTS),
-    JS_PropertyStub,         /* addProperty */
-    JS_DeletePropertyStub,   /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
-    NULL,                    /* convert     */
+    NULL,                    
     AsmJSModuleObject_finalize,
-    NULL,                    /* checkAccess */
-    NULL,                    /* call        */
-    NULL,                    /* hasInstance */
-    NULL,                    /* construct   */
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
     AsmJSModuleObject_trace
 };
 

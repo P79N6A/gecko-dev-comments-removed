@@ -917,6 +917,81 @@ enum NeedsBoundsCheck {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uint32_t
+js::RoundUpToNextValidAsmJSHeapLength(uint32_t length)
+{
+    if (length < 0x00001000u) 
+        return 0x1000u;
+    if (length < 0x00100000u) 
+        return (length + 0x00000fff) & ~0x00000fff;
+    if (length < 0x00400000u) 
+        return (length + 0x00003fff) & ~0x00003fff;
+    if (length < 0x01000000u) 
+        return (length + 0x0000ffff) & ~0x0000ffff;
+    if (length < 0x04000000u) 
+        return (length + 0x0003ffff) & ~0x0003ffff;
+    if (length < 0x10000000u) 
+        return (length + 0x000fffff) & ~0x000fffff;
+    if (length < 0x10000000u) 
+        return (length + 0x003fffff) & ~0x003fffff;
+    
+    
+    JS_ASSERT(length <= 0xff000000);
+    return (length + 0x00ffffff) & ~0x00ffffff;
+}
+
+bool
+js::IsValidAsmJSHeapLength(uint32_t length)
+{
+    if (length <  AsmJSAllocationGranularity)
+        return false;
+    if (length <= 0x00100000u)
+        return (length & 0x00000fff) == 0;
+    if (length <= 0x00400000u)
+        return (length & 0x00003fff) == 0;
+    if (length <= 0x01000000u)
+        return (length & 0x0000ffff) == 0;
+    if (length <= 0x04000000u)
+        return (length & 0x0003ffff) == 0;
+    if (length <= 0x10000000u)
+        return (length & 0x000fffff) == 0;
+    if (length <= 0x40000000u)
+        return (length & 0x003fffff) == 0;
+    if (length <= 0xff000000u)
+        return (length & 0x00ffffff) == 0;
+    return false;
+}
+
+
+
 namespace {
 
 typedef Vector<PropertyName*,1> LabelVector;
@@ -4861,7 +4936,7 @@ CheckFunction(ModuleCompiler &m, LifoAlloc &lifo, MIRGenerator **mir, ModuleComp
     
     
     
-    size_t len = mozilla::RoundUpPow2((size_t) m.minHeapLength());
+    uint32_t len = js::RoundUpToNextValidAsmJSHeapLength(m.minHeapLength());
     m.requireHeapLengthToBeAtLeast(len);
 
     *mir = f.extractMIR();

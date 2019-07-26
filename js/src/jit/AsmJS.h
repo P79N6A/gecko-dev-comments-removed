@@ -78,6 +78,13 @@ const size_t AsmJSPageSize = 4096;
 
 static const size_t AsmJSAllocationGranularity = 4096;
 
+
+extern uint32_t
+RoundUpToNextValidAsmJSHeapLength(uint32_t length);
+
+extern bool
+IsValidAsmJSHeapLength(uint32_t length);
+
 #ifdef JS_CPU_X64
 
 
