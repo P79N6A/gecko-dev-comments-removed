@@ -114,11 +114,17 @@ ion::EliminatePhis(MIRGraph &graph)
         MPhiIterator iter = block->phisBegin();
         while (iter != block->phisEnd()) {
             
+            
+            iter->setUnused();
+
+            
             if (MDefinition *redundant = IsPhiRedundant(*iter)) {
                 iter->replaceAllUsesWith(redundant);
                 iter = block->discardPhiAt(iter);
                 continue;
             }
+
+            
             if (IsPhiObservable(*iter)) {
                 iter->setInWorklist();
                 if (!worklist.append(*iter))
@@ -131,10 +137,22 @@ ion::EliminatePhis(MIRGraph &graph)
     
     while (!worklist.empty()) {
         MPhi *phi = worklist.popCopy();
+        JS_ASSERT(phi->isUnused());
+        phi->setNotInWorklist();
+
+        
+        if (MDefinition *redundant = IsPhiRedundant(phi)) {
+            phi->replaceAllUsesWith(redundant);
+            if (redundant->isPhi())
+                redundant->setUnusedUnchecked();
+        } else {
+            
+            phi->setNotUnused();
+        }
 
         for (size_t i = 0; i < phi->numOperands(); i++) {
             MDefinition *in = phi->getOperand(i);
-            if (!in->isPhi() || in->isInWorklist())
+            if (!in->isPhi() || !in->isUnused() || in->isInWorklist())
                 continue;
             in->setInWorklist();
             if (!worklist.append(in->toPhi()))
@@ -146,13 +164,10 @@ ion::EliminatePhis(MIRGraph &graph)
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
         MPhiIterator iter = block->phisBegin();
         while (iter != block->phisEnd()) {
-            if (iter->isInWorklist()) {
-                iter->setNotInWorklist();
-                iter++;
-            } else {
-                iter->setUnused();
+            if (iter->isUnused())
                 iter = block->discardPhiAt(iter);
-            }
+            else
+                iter++;
         }
     }
 
