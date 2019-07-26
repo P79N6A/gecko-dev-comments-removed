@@ -163,6 +163,23 @@ LIRGeneratorX86Shared::lowerDivI(MDiv *div)
         }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    if (div->lhs() == div->rhs()) {
+        if (!div->canBeDivideByZero())
+            return define(new LInteger(1), div);
+
+        LDivSelfI *lir = new LDivSelfI(useRegisterAtStart(div->lhs()));
+        if (div->fallible() && !assignSnapshot(lir))
+            return false;
+        return define(lir, div);
+    }
+
     LDivI *lir = new LDivI(useFixed(div->lhs(), eax), useRegister(div->rhs()), tempFixed(edx));
     if (div->fallible() && !assignSnapshot(lir))
         return false;
