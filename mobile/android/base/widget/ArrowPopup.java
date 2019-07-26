@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
+import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -58,8 +59,39 @@ public abstract class ArrowPopup extends PopupWindow {
         setWindowLayoutMode(widthSpec, ViewGroup.LayoutParams.WRAP_CONTENT);
 
         final LayoutInflater inflater = LayoutInflater.from(mContext);
-        final RelativeLayout layout = (RelativeLayout) inflater.inflate(R.layout.arrow_popup, null);
+        final ArrowPopupLayout layout = (ArrowPopupLayout) inflater.inflate(R.layout.arrow_popup, null);
         setContentView(layout);
+
+        layout.mListener = new ArrowPopupLayout.OnSizeChangedListener() {
+            @Override
+            public void onSizeChanged() {
+                if (mAnchor == null) {
+                    return;
+                }
+
+                
+                final int anchorWidth = mAnchor.getWidth() - mAnchor.getPaddingLeft() - mAnchor.getPaddingRight();
+
+                
+                
+                final int arrowOffset = (anchorWidth - mArrowWidth) / 2 + mAnchor.getPaddingLeft();
+
+                
+                final int[] location = new int[2];
+                mAnchor.getLocationOnScreen(location);
+                final int anchorX = location[0];
+                layout.getLocationOnScreen(location);
+                final int popupX = location[0];
+                final int leftMargin = anchorX - popupX + arrowOffset;
+
+                
+                
+                
+                
+                final RelativeLayout.LayoutParams arrowLayoutParams = (RelativeLayout.LayoutParams) mArrow.getLayoutParams();
+                arrowLayoutParams.setMargins(leftMargin, 0, 0, 0);
+            }
+        };
 
         mArrow = (ImageView) layout.findViewById(R.id.arrow);
         mContent = (LinearLayout) layout.findViewById(R.id.content);
@@ -102,37 +134,44 @@ public abstract class ArrowPopup extends PopupWindow {
                 setHeight(decorView.getHeight());
             }
 
-            showAtLocation(decorView, Gravity.TOP, anchorLocation[0], 0);
+            showAtLocation(decorView, Gravity.NO_GRAVITY, anchorLocation[0] - mArrowWidth, 0);
             return;
         }
 
         
-        int anchorWidth = mAnchor.getWidth() - mAnchor.getPaddingLeft() - mAnchor.getPaddingRight();
         
         
-        int arrowOffset = (anchorWidth - mArrowWidth)/2 + mAnchor.getPaddingLeft();
-
         
-        int offset = 0;
-
-        RelativeLayout.LayoutParams arrowLayoutParams = (RelativeLayout.LayoutParams) mArrow.getLayoutParams();
-
-        if (HardwareUtils.isTablet()) {
-            
-            
-            
-            offset = arrowOffset - arrowLayoutParams.leftMargin;
+        if (isShowing()) {
+            update(mAnchor, -mArrowWidth, -mYOffset, -1, -1);
         } else {
-            
-            
-            int leftMargin = anchorLocation[0] + arrowOffset;
-            arrowLayoutParams.setMargins(leftMargin, 0, 0, 0);
+            showAsDropDown(mAnchor, -mArrowWidth, -mYOffset);
+        }
+    }
+
+    private static class ArrowPopupLayout extends RelativeLayout {
+        public interface OnSizeChangedListener {
+            public void onSizeChanged();
         }
 
-        if (isShowing()) {
-            update(mAnchor, offset, -mYOffset, -1, -1);
-        } else {
-            showAsDropDown(mAnchor, offset, -mYOffset);
+        private OnSizeChangedListener mListener;
+
+        public ArrowPopupLayout(Context context, AttributeSet attrs, int defStyle) {
+            super(context, attrs, defStyle);
+        }
+
+        public ArrowPopupLayout(Context context, AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        public ArrowPopupLayout(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            mListener.onSizeChanged();
         }
     }
 }
