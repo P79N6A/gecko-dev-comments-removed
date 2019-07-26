@@ -11,7 +11,7 @@ let Cr = Components.results;
 Cu.import("resource://gre/modules/PageThumbs.jsm");
 
 
-const kStartURI = "about:start";
+const kStartURI = "about:newtab";
 
 
 const kTouchTimeout = 300;
