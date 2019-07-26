@@ -48,12 +48,10 @@ public:
 private:
   static void SendDelayToStream(AudioNode* aNode);
   friend class DelayNodeEngine;
-  friend class PlayingRefChangeHandler<DelayNode>;
 
 private:
   int64_t mMediaStreamGraphUpdateIndexAtLastInputConnection;
   nsRefPtr<AudioParam> mDelay;
-  SelfReference<DelayNode> mPlayingRef;
 };
 
 }
