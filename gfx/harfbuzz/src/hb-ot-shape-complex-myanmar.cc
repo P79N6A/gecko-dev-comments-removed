@@ -60,6 +60,16 @@ other_features[] =
   HB_TAG('p','s','t','s'),
   
   HB_TAG('d','i','s','t'),
+  
+
+
+
+
+
+
+
+  HB_TAG('a','b','v','m'),
+  HB_TAG('b','l','w','m'),
 };
 
 static void
@@ -141,7 +151,7 @@ static inline bool
 is_one_of (const hb_glyph_info_t &info, unsigned int flags)
 {
   
-  if (is_a_ligature (info)) return false;
+  if (_hb_glyph_info_ligated (&info)) return false;
   return !!(FLAG (info.myanmar_category()) & flags);
 }
 
