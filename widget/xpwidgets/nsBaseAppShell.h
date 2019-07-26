@@ -78,6 +78,9 @@ private:
 
   bool DispatchDummyEvent(nsIThread* target);
 
+  void IncrementEventloopNestingLevel();
+  void DecrementEventloopNestingLevel();
+
   
 
 
