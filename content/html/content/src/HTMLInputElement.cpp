@@ -513,7 +513,7 @@ public:
     , mInput(aInput)
     , mTopDir(aTopDir)
     , mFileListLength(0)
-    , mCanceled(0)
+    , mCanceled(false)
   {}
 
   NS_IMETHOD Run() {
@@ -578,7 +578,7 @@ public:
     
     
     mInput = nullptr;
-    mCanceled = 1; 
+    mCanceled = true;
   }
 
   uint32_t GetFileListLength() const
@@ -606,8 +606,7 @@ private:
   
   mozilla::Atomic<uint32_t> mFileListLength;
 
-  
-  mozilla::Atomic<uint32_t> mCanceled;
+  mozilla::Atomic<bool> mCanceled;
 };
 
 
