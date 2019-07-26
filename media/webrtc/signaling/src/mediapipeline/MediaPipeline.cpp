@@ -568,20 +568,32 @@ void MediaPipelineTransmit::ProcessVideoChunk(VideoSessionConduit *conduit,
 
   
   
-  unsigned int length = ((yuv->GetSize().width * yuv->GetSize().height) * 3 / 2);
+  const layers::PlanarYCbCrImage::Data *data = yuv->GetData();
+
+  uint8_t *y = data->mYChannel;
+#ifdef DEBUG
+  uint8_t *cb = data->mCbChannel;
+  uint8_t *cr = data->mCrChannel;
+#endif
+  uint32_t width = yuv->GetSize().width;
+  uint32_t height = yuv->GetSize().height;
+  uint32_t length = yuv->GetDataSize();
 
   
   
+  MOZ_ASSERT(cb == (y + width*height) &&
+             cr == (cb + width*height/4));
   
-  PR_ASSERT(length == yuv->GetDataSize());
-  if (length != yuv->GetDataSize())
-    return;
+  
+  
+  
+  
+  
 
-  
   
   MOZ_MTLOG(PR_LOG_DEBUG, "Sending a video frame");
-  conduit->SendVideoFrame(yuv->mBuffer.get(), yuv->GetDataSize(),
-    yuv->GetSize().width, yuv->GetSize().height, kVideoI420, 0);
+  
+  conduit->SendVideoFrame(y, length, width, height, mozilla::kVideoI420, 0);
 }
 #endif
 
