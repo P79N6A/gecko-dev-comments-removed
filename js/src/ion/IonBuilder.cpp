@@ -36,7 +36,6 @@ IonBuilder::IonBuilder(JSContext *cx, TempAllocator *temp, MIRGraph *graph,
     oracle(oracle),
     inliningDepth(inliningDepth),
     failedBoundsCheck_(script->failedBoundsCheck),
-    failedCachedShapeGuard_(script->failedCachedShapeGuard),
     lazyArguments_(NULL)
 {
     pc = info->startPC();
@@ -395,9 +394,6 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
 
     if (callerBuilder->failedBoundsCheck_)
         failedBoundsCheck_ = true;
-
-    if (callerBuilder->failedCachedShapeGuard_)
-        failedCachedShapeGuard_ = true;
 
     
     current = newBlock(pc);
@@ -4607,7 +4603,7 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
     
     
     if (!propertyTypes && shape->configurable()) {
-        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty(), Bailout_Invalidate);
+        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty());
         current->add(guard);
     }
 
@@ -4660,7 +4656,7 @@ IonBuilder::jsop_setgname(HandlePropertyName name)
     
     
     if (!propertyTypes) {
-        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty(), Bailout_Invalidate);
+        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty());
         current->add(guard);
     }
 
@@ -5414,7 +5410,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
     
     MInstruction *wrapper = MConstant::New(ObjectValue(*foundProto));
     current->add(wrapper);
-    MGuardShape *guard = MGuardShape::New(wrapper, foundProto->lastProperty(), Bailout_Invalidate);
+    MGuardShape *guard = MGuardShape::New(wrapper, foundProto->lastProperty());
     current->add(guard);
 
     
@@ -5839,8 +5835,7 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
             rvalType = unary.rval;
 
         Shape *objShape;
-        if (!failedCachedShapeGuard_ &&
-            (objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) &&
+        if ((objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) &&
             !objShape->inDictionary())
         {
             
@@ -5848,7 +5843,7 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
             
             
             
-            MGuardShape *guard = MGuardShape::New(obj, objShape, Bailout_CachedShapeGuard);
+            MGuardShape *guard = MGuardShape::New(obj, objShape);
             current->add(guard);
 
             spew("Inlining monomorphic GETPROP");
@@ -5956,15 +5951,14 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
         ins = MCallSetProperty::New(obj, value, name, script->strictModeCode);
     } else {
         Shape *objShape;
-        if (!failedCachedShapeGuard_ &&
-            (objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) &&
+        if ((objShape = mjit::GetPICSingleShape(cx, script, pc, info().constructing())) &&
             !objShape->inDictionary())
         {
             
             
             
             
-            MGuardShape *guard = MGuardShape::New(obj, objShape, Bailout_CachedShapeGuard);
+            MGuardShape *guard = MGuardShape::New(obj, objShape);
             current->add(guard);
 
             Shape *shape = objShape->search(cx, NameToId(name));

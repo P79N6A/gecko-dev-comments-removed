@@ -308,9 +308,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         return BAILOUT_RETURN_BOUNDS_CHECK;
       case Bailout_Invalidate:
         return BAILOUT_RETURN_INVALIDATE;
-      case Bailout_CachedShapeGuard:
-        it.script()->failedCachedShapeGuard = true;
-        return BAILOUT_RETURN_INVALIDATE;
 
       
       

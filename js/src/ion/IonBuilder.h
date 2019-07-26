@@ -458,10 +458,6 @@ class IonBuilder : public MIRGenerator
 
     
     
-    bool failedCachedShapeGuard_;
-
-    
-    
     MInstruction *lazyArguments_;
 };
 
