@@ -444,7 +444,7 @@ class TypeSet
     inline void sweep(JSCompartment *compartment);
 
     
-    inline bool hasType(Type type);
+    inline bool hasType(Type type) const;
 
     TypeFlags baseFlags() const { return flags & TYPE_FLAG_BASE_MASK; }
     bool unknown() const { return !!(flags & TYPE_FLAG_UNKNOWN); }
@@ -470,6 +470,12 @@ class TypeSet
 
 
 
+    const TypeSet *clone(LifoAlloc *alloc) const;
+
+    
+
+
+
     inline void addType(JSContext *cx, Type type);
 
     
@@ -480,10 +486,10 @@ class TypeSet
 
 
 
-    inline unsigned getObjectCount();
-    inline TypeObjectKey *getObject(unsigned i);
-    inline RawObject getSingleObject(unsigned i);
-    inline TypeObject *getTypeObject(unsigned i);
+    inline unsigned getObjectCount() const;
+    inline TypeObjectKey *getObject(unsigned i) const;
+    inline RawObject getSingleObject(unsigned i) const;
+    inline TypeObject *getTypeObject(unsigned i) const;
 
     void setOwnProperty(bool configurable) {
         flags |= TYPE_FLAG_OWN_PROPERTY;

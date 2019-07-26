@@ -437,6 +437,8 @@ class IonBuilder : public MIRGenerator
                            MBasicBlock *bottom,
                            Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns);
 
+    const types::TypeSet *cloneTypeSet(const types::TypeSet *types);
+
     
     HeapPtrScript script_;
 

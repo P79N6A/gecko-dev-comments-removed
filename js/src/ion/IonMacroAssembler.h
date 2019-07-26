@@ -119,7 +119,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     template <typename T>
-    void guardTypeSet(const T &address, types::TypeSet *types, Register scratch,
+    void guardTypeSet(const T &address, const types::TypeSet *types, Register scratch,
                       Label *mismatched);
 
     void loadObjShape(Register objReg, Register dest) {
