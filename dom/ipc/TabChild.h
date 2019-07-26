@@ -51,6 +51,7 @@
 #include "mozilla/Attributes.h"
 #include "FrameMetrics.h"
 #include "ProcessUtils.h"
+#include "mozilla/dom/TabContext.h"
 
 struct gfxMatrix;
 
@@ -149,7 +150,8 @@ class TabChild : public PBrowserChild,
                  public nsIDialogCreator,
                  public nsITabChild,
                  public nsIObserver,
-                 public mozilla::dom::ipc::MessageManagerCallback
+                 public ipc::MessageManagerCallback,
+                 public TabContext
 {
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
@@ -164,11 +166,9 @@ public:
 
     
     static already_AddRefed<TabChild> 
-    Create(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
+    Create(const TabContext& aContext, uint32_t aChromeFlags);
 
     virtual ~TabChild();
-
-    uint32_t GetAppId() { return mAppId; }
 
     bool IsRootContentDocument();
 
@@ -324,11 +324,17 @@ private:
 
 
 
-    TabChild(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
+
+    TabChild(const TabContext& aContext, uint32_t aChromeFlags);
 
     nsresult Init();
 
-    void SetAppBrowserConfig(bool aIsBrowserElement, uint32_t aAppId);
+    
+    
+    
+    
+    
+    void NotifyTabContextUpdated();
 
     bool UseDirectCompositor();
 
@@ -392,9 +398,7 @@ private:
     float mOldViewportWidth;
     nscolor mLastBackgroundColor;
     ScrollingBehavior mScrolling;
-    uint32_t mAppId;
     bool mDidFakeShow;
-    bool mIsBrowserElement;
     bool mNotified;
     bool mContentDocumentIsDisplayed;
     bool mTriedBrowserInit;
