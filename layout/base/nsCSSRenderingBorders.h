@@ -10,6 +10,14 @@
 #include "nsColor.h"
 
 class gfxContext;
+class gfxPattern;
+struct gfxRGBA;
+
+namespace mozilla {
+namespace gfx {
+class GradientStops;
+}
+}
 
 
 #undef DEBUG_NEW_BORDERS

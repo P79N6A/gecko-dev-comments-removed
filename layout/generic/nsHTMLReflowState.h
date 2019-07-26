@@ -10,7 +10,6 @@
 
 #include "nsMargin.h"
 #include "nsStyleCoord.h"
-#include "nsStyleStructInlines.h"
 #include "nsIFrame.h"
 #include "mozilla/Assertions.h"
 #include <algorithm>
@@ -311,13 +310,9 @@ public:
   const nsStylePadding*    mStylePadding;
   const nsStyleText*       mStyleText;
 
-  bool IsFloating() const {
-    return mStyleDisplay->IsFloating(frame);
-  }
+  bool IsFloating() const;
 
-  uint8_t GetDisplay() const {
-    return mStyleDisplay->GetDisplay(frame);
-  }
+  uint8_t GetDisplay() const;
 
   
   
