@@ -18,6 +18,7 @@
 #include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
 #include "mozilla/StaticPtr.h"
+#include "nsTHashtable.h"
 #include "GeckoProfiler.h"
 
 using namespace mozilla;
@@ -32,15 +33,33 @@ public:
 
 private:
   NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) {
-    if (aState.Equals(NS_LITERAL_STRING("locked-foreground"))) {
-      
-      SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
+    bool isLocked = mLockedTopics.Contains(aTopic);
+    bool shouldLock = aState.Equals(NS_LITERAL_STRING("locked-foreground"));
+    if (isLocked == shouldLock) {
+      return NS_OK;
+    }
+    if (shouldLock) {
+      if (!mLockedTopics.Count()) {
+        
+        
+        SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
+      }
+      mLockedTopics.PutEntry(aTopic);
     } else {
-      
-      SetThreadExecutionState(ES_CONTINUOUS);
+      mLockedTopics.RemoveEntry(aTopic);
+      if (!mLockedTopics.Count()) {
+        
+        
+        SetThreadExecutionState(ES_CONTINUOUS);
+      }
    }
     return NS_OK;
   }
+
+  
+  
+  
+  nsTHashtable<nsStringHashKey> mLockedTopics;
 };
 
 NS_IMPL_ISUPPORTS1(WinWakeLockListener, nsIDOMMozWakeLockListener)
