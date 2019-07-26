@@ -287,9 +287,7 @@ function extractJarToTmp(jar) {
     var targetDir = buildRelativePath(dirs.getNext(), tmpdir, filepath);
     
     
-    if (!targetDir.exists()) {
-      targetDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0777", 8));
-    }
+    targetDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0777", 8));
   }
 
   
@@ -302,41 +300,6 @@ function extractJarToTmp(jar) {
     }
   }
   return tmpdir;
-}
-
-
-
-
-
-function getTestFilePath(path) {
-  if (path[0] == "/") {
-    throw new Error("getTestFilePath only accepts relative path");
-  }
-  
-  
-  
-  var baseURI = typeof(gTestPath) == "string" ? gTestPath : window.location.href;
-  var parentURI = getResolvedURI(getRootDirectory(baseURI));
-  var file;
-  if (parentURI.JARFile) {
-    
-    file = extractJarToTmp(parentURI);
-  } else {
-    
-    var fileHandler = Components.classes["@mozilla.org/network/protocol;1?name=file"].
-                      getService(Components.interfaces.nsIFileProtocolHandler);
-    file = fileHandler.getFileFromURLSpec(parentURI.spec);
-  }
-  
-  path.split("/")
-      .forEach(function (p) {
-        if (p == "..") {
-          file = file.parent;
-        } else if (p != ".") {
-          file.append(p);
-        }
-      });
-  return file.path;
 }
 
 
