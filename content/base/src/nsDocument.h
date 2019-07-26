@@ -1183,11 +1183,6 @@ protected:
   
   
   
-  nsWeakPtr mScriptObject;
-
-  
-  
-  
   nsWeakPtr mScopeObject;
 
   
