@@ -2217,9 +2217,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   nscoord frameMainSize = flexContainerMainSize +
     axisTracker.GetMarginSizeInMainAxis(aReflowState.mComputedBorderPadding);
 
-  MainAxisPositionTracker mainAxisPosnTracker(this, axisTracker,
-                                              aReflowState, items);
-
+  
+  
   
   for (uint32_t i = 0; i < items.Length(); ++i) {
     FlexItem& curItem = items[i];
@@ -2234,8 +2233,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     } else {
       childReflowState.SetComputedHeight(curItem.GetMainSize());
     }
-
-    PositionItemInMainAxis(mainAxisPosnTracker, curItem);
 
     nsresult rv =
       SizeItemInCrossAxis(aPresContext, axisTracker,
@@ -2303,6 +2300,15 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     flexContainerAscent += aReflowState.mComputedBorderPadding.top;
   }
 
+  
+  
+  MainAxisPositionTracker mainAxisPosnTracker(this, axisTracker,
+                                              aReflowState, items);
+  for (uint32_t i = 0; i < items.Length(); ++i) {
+    PositionItemInMainAxis(mainAxisPosnTracker, items[i]);
+  }
+
+  
   
   for (uint32_t i = 0; i < items.Length(); ++i) {
     PositionItemInCrossAxis(crossAxisPosnTracker.GetPosition(),
