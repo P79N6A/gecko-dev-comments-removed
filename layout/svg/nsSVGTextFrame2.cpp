@@ -4128,8 +4128,11 @@ nsSVGTextFrame2::ResolvePositions(nsIContent* aContent,
         j++;
       }
       
-      while (j < count) {
+      while (j < count &&
+             (!mPositions[aIndex + j].IsAngleSpecified() ||
+              mPositions[aIndex + j].mAngleImplied)) {
         mPositions[aIndex + j].mAngle = mPositions[aIndex + j - 1].mAngle;
+        mPositions[aIndex + j].mAngleImplied = true;
         j++;
       }
     }
@@ -4661,11 +4664,7 @@ nsSVGTextFrame2::DoGlyphPositioning()
     }
     
     if (!mPositions[i].IsAngleSpecified()) {
-      mPositions[i].mAngle = mPositions[i - 1].mAngle;
-      if (mPositions[i].mAngle != 0.0f) {
-        
-        mPositions[i].mRunBoundary = true;
-      }
+      mPositions[i].mAngle = 0.0f;
     }
   }
 
