@@ -28,6 +28,10 @@ using namespace ABI::Windows::Foundation;
 
 #define MSG_WAIT_TIMEOUT 250
 
+
+
+#define PURGE_MAX_TIMEOUT 50
+
 namespace mozilla {
 namespace widget {
 namespace winrt {
@@ -43,7 +47,8 @@ extern UINT sAppShellGeckoMsgId;
 
 static ComPtr<ICoreWindowStatic> sCoreStatic;
 static bool sIsDispatching = false;
-static bool sWillEmptyThreadQueue = false;
+static bool sShouldPurgeThreadQueue = false;
+static bool sBlockNativeEvents = false;
 
 MetroAppShell::~MetroAppShell()
 {
@@ -245,7 +250,7 @@ MetroAppShell::Run(void)
 void 
 MetroAppShell::MarkEventQueueForPurge()
 {
-  sWillEmptyThreadQueue = true;
+  sShouldPurgeThreadQueue = true;
 
   
   
@@ -258,18 +263,31 @@ MetroAppShell::MarkEventQueueForPurge()
 }
 
 
+
+
+void 
+MetroAppShell::InputEventsDispatched()
+{
+  sBlockNativeEvents = false;
+}
+
+
 void
 MetroAppShell::DispatchAllGeckoEvents()
 {
-  if (!sWillEmptyThreadQueue) {
+  
+  if (!sShouldPurgeThreadQueue) {
     return;
   }
 
   NS_ASSERTION(NS_IsMainThread(), "DispatchAllGeckoEvents should be called on the main thread");
 
-  sWillEmptyThreadQueue = false;
+  sShouldPurgeThreadQueue = false;
+
+  sBlockNativeEvents = true;
   nsIThread *thread = NS_GetCurrentThread();
-  NS_ProcessPendingEvents(thread, 0);
+  NS_ProcessPendingEvents(thread, PURGE_MAX_TIMEOUT);
+  sBlockNativeEvents = false;
 }
 
 static void
@@ -317,6 +335,15 @@ MetroAppShell::ProcessOneNativeEventIfPresent()
 bool
 MetroAppShell::ProcessNextNativeEvent(bool mayWait)
 {
+  
+  
+  
+  
+  
+  if (sBlockNativeEvents) {
+    return false;
+  }
+
   if (ProcessOneNativeEventIfPresent()) {
     return true;
   }

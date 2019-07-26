@@ -653,11 +653,6 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
     mGestureRecognizer->ProcessUpEvent(currentPoint.Get());
   }
 
-  
-  
-  
-  MetroAppShell::MarkEventQueueForPurge();
-
   return S_OK;
 }
 
@@ -989,6 +984,11 @@ MetroInput::HandleTap(const Foundation::Point& aPoint, unsigned int aTapCount)
   mouseEvent->inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
   mouseEvent->button = WidgetMouseEvent::buttonType::eLeftButton;
   DispatchAsyncEventIgnoreStatus(mouseEvent);
+
+  
+  
+  
+  MetroAppShell::MarkEventQueueForPurge();
 }
 
 void
@@ -1032,6 +1032,12 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
     static_cast<WidgetGUIEvent*>(mInputEventQueue.PopFront());
   MOZ_ASSERT(event.get());
   DispatchEventIgnoreStatus(event.get());
+
+  
+  
+  if (event->message == NS_MOUSE_BUTTON_UP) {
+    MetroAppShell::InputEventsDispatched();
+  }
 
   
   WidgetMouseEvent* mouseEvent = event.get()->AsMouseEvent();
