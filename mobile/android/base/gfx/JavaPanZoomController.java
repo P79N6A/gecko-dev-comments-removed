@@ -1357,7 +1357,8 @@ class JavaPanZoomController
         
         
         
-        if (mMediumPress || !mTarget.getZoomConstraints().getAllowZoom()) {
+        
+        if (mMediumPress || !mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
@@ -1367,7 +1368,7 @@ class JavaPanZoomController
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
         
-        if (mTarget.getZoomConstraints().getAllowZoom()) {
+        if (mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         return true;
@@ -1375,7 +1376,7 @@ class JavaPanZoomController
 
     @Override
     public boolean onDoubleTap(MotionEvent motionEvent) {
-        if (mTarget.getZoomConstraints().getAllowZoom()) {
+        if (mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
             sendPointToGecko("Gesture:DoubleTap", motionEvent);
         }
         return true;
