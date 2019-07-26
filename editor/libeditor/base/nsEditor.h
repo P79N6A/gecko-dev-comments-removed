@@ -587,11 +587,6 @@ public:
   virtual bool IsEditable(nsIContent *aNode);
 
   
-
-
-  virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
-
-  
   bool IsMozEditorBogusNode(nsIContent *aNode);
 
   

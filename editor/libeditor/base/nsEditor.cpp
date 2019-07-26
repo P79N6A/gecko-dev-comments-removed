@@ -3641,20 +3641,6 @@ nsEditor::IsContainer(nsIDOMNode *aNode)
   return aNode ? true : false;
 }
 
-bool
-nsEditor::IsTextInDirtyFrameVisible(nsIContent *aNode)
-{
-  MOZ_ASSERT(aNode);
-  MOZ_ASSERT(aNode->NodeType() == nsIDOMNode::TEXT_NODE);
-
-  
-  
-  
-  
-
-  return true;
-}
-
 static inline bool
 IsElementVisible(dom::Element* aElement)
 {
@@ -3737,9 +3723,8 @@ nsEditor::IsEditable(nsIContent *aNode)
   }
   switch (aNode->NodeType()) {
     case nsIDOMNode::ELEMENT_NODE:
-      return true; 
     case nsIDOMNode::TEXT_NODE:
-      return IsTextInDirtyFrameVisible(aNode);
+      return true; 
     default:
       return false;
   }

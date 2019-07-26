@@ -4338,23 +4338,6 @@ nsHTMLEditor::GetLastEditableLeaf(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutL
   return res;
 }
 
-bool
-nsHTMLEditor::IsTextInDirtyFrameVisible(nsIContent *aNode)
-{
-  MOZ_ASSERT(aNode);
-  MOZ_ASSERT(aNode->NodeType() == nsIDOMNode::TEXT_NODE);
-
-  bool isEmptyTextNode;
-  nsresult rv = IsVisTextNode(aNode, &isEmptyTextNode, false);
-  if (NS_FAILED(rv)) {
-    
-    
-    return true;
-  }
-
-  return !isEmptyTextNode;
-}
-
 
 
 
