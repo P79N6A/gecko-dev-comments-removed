@@ -217,7 +217,6 @@ public:
   static jsid sDocument_id;
   static jsid sFrames_id;
   static jsid sSelf_id;
-  static jsid sAll_id;
   static jsid sJava_id;
   static jsid sPackages_id;
   static jsid sWrappedJSObject_id;
@@ -593,6 +592,8 @@ private:
 
 
 
+extern JSClass sHTMLDocumentAllClass;
+
 class nsHTMLDocumentSH
 {
 protected:
@@ -606,14 +607,6 @@ public:
                                       unsigned flags, JS::MutableHandle<JSObject*> objp);
   static void ReleaseDocument(JSFreeOp *fop, JSObject *obj);
   static JSBool CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp);
-  static JSBool DocumentAllHelperGetProperty(JSContext *cx, JSHandleObject obj,
-                                             JSHandleId id, JSMutableHandleValue vp);
-  static JSBool DocumentAllHelperNewResolve(JSContext *cx, JSHandleObject obj,
-                                            JSHandleId id, unsigned flags,
-                                            JS::MutableHandle<JSObject*> objp);
-
-  static nsresult TryResolveAll(JSContext* cx, nsHTMLDocument* doc,
-                                JS::Handle<JSObject*> obj);
 };
 
 
