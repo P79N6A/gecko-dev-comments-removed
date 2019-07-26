@@ -362,6 +362,13 @@ public:
   
   void NotifyWaitingForResourcesStatusChanged();
 
+  
+  
+  
+  
+  
+  void SetMinimizePrerollUntilPlaybackStarts();
+
 protected:
 
   void AssertCurrentThreadInMonitor() const { mDecoder->GetReentrantMonitor().AssertCurrentThreadIn(); }
@@ -920,6 +927,18 @@ private:
   
   
   bool mRunAgain;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mMinimizePreroll;
 
   
   

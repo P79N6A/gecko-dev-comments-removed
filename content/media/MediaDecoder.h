@@ -384,6 +384,11 @@ public:
   
   
   
+  void SetMinimizePrerollUntilPlaybackStarts();
+
+  
+  
+  
   
   
   
@@ -849,6 +854,13 @@ public:
 
   MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
 
+  
+  
+  
+  
+  
+  bool IsLogicallyPlaying();
+
 #ifdef MOZ_RAW
   static bool IsRawEnabled();
 #endif
@@ -1218,6 +1230,12 @@ protected:
   
   
   dom::AudioChannelType mAudioChannelType;
+
+  
+  
+  
+  
+  bool mMinimizePreroll;
 };
 
 } 

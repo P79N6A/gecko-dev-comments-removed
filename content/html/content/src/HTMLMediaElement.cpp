@@ -2749,12 +2749,17 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
 
   
   
-  aDecoder->SetResource(aStream);
-  aDecoder->SetAudioChannelType(mAudioChannelType);
-  aDecoder->SetAudioCaptured(mAudioCaptured);
-  aDecoder->SetVolume(mMuted ? 0.0 : mVolume);
-  aDecoder->SetPreservesPitch(mPreservesPitch);
-  aDecoder->SetPlaybackRate(mPlaybackRate);
+  mDecoder->SetResource(aStream);
+  mDecoder->SetAudioChannelType(mAudioChannelType);
+  mDecoder->SetAudioCaptured(mAudioCaptured);
+  mDecoder->SetVolume(mMuted ? 0.0 : mVolume);
+  mDecoder->SetPreservesPitch(mPreservesPitch);
+  mDecoder->SetPlaybackRate(mPlaybackRate);
+
+  if (mPreloadAction == HTMLMediaElement::PRELOAD_METADATA) {
+    mDecoder->SetMinimizePrerollUntilPlaybackStarts();
+  }
+
   
   
   NotifyDecoderPrincipalChanged();
