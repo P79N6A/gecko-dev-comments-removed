@@ -3653,6 +3653,56 @@ Parser<ParseHandler>::ifStatement()
 }
 
 template <typename ParseHandler>
+typename ParseHandler::Node
+Parser<ParseHandler>::doWhileStatement()
+{
+    uint32_t begin = pos().begin;
+    StmtInfoPC stmtInfo(context);
+    PushStatementPC(pc, &stmtInfo, STMT_DO_LOOP);
+    Node body = statement();
+    if (!body)
+        return null();
+    MUST_MATCH_TOKEN(TOK_WHILE, JSMSG_WHILE_AFTER_DO);
+    Node cond = condition();
+    if (!cond)
+        return null();
+    PopStatementPC(context, pc);
+
+    if (versionNumber() == JSVERSION_ECMA_3) {
+        
+        
+        if (!MatchOrInsertSemicolon(context, &tokenStream))
+            return null();
+    } else {
+        
+        
+        
+        
+        
+        (void) tokenStream.matchToken(TOK_SEMI);
+    }
+
+    return handler.newDoWhileStatement(body, cond, TokenPos::make(begin, pos().end));
+}
+
+template <typename ParseHandler>
+typename ParseHandler::Node
+Parser<ParseHandler>::whileStatement()
+{
+    uint32_t begin = pos().begin;
+    StmtInfoPC stmtInfo(context);
+    PushStatementPC(pc, &stmtInfo, STMT_WHILE_LOOP);
+    Node cond = condition();
+    if (!cond)
+        return null();
+    Node body = statement();
+    if (!body)
+        return null();
+    PopStatementPC(context, pc);
+    return handler.newWhileStatement(begin, cond, body);
+}
+
+template <typename ParseHandler>
 bool
 Parser<ParseHandler>::matchInOrOf(bool *isForOfp)
 {
@@ -4686,61 +4736,17 @@ Parser<ParseHandler>::statement(bool canHaveDirectives)
       case TOK_IF:
         return ifStatement();
 
-      case TOK_SWITCH:
-        return switchStatement();
+      case TOK_DO:
+        return doWhileStatement();
 
       case TOK_WHILE:
-      {
-        uint32_t begin = pos().begin;
-        StmtInfoPC stmtInfo(context);
-        PushStatementPC(pc, &stmtInfo, STMT_WHILE_LOOP);
-        Node cond = condition();
-        if (!cond)
-            return null();
-        Node body = statement();
-        if (!body)
-            return null();
-        PopStatementPC(context, pc);
-        pn = handler.newBinary(PNK_WHILE, cond, body);
-        if (!pn)
-            return null();
-        handler.setBeginPosition(pn, begin);
-        return pn;
-      }
-
-      case TOK_DO:
-      {
-        uint32_t begin = pos().begin;
-        StmtInfoPC stmtInfo(context);
-        PushStatementPC(pc, &stmtInfo, STMT_DO_LOOP);
-        Node body = statement();
-        if (!body)
-            return null();
-        MUST_MATCH_TOKEN(TOK_WHILE, JSMSG_WHILE_AFTER_DO);
-        Node cond = condition();
-        if (!cond)
-            return null();
-        PopStatementPC(context, pc);
-
-        pn = handler.newBinary(PNK_DOWHILE, body, cond);
-        if (!pn)
-            return null();
-        handler.setBeginPosition(pn, begin);
-
-        if (versionNumber() != JSVERSION_ECMA_3) {
-            
-
-
-
-
-            (void) tokenStream.matchToken(TOK_SEMI);
-            return pn;
-        }
-        break;
-      }
+        return whileStatement();
 
       case TOK_FOR:
         return forStatement();
+
+      case TOK_SWITCH:
+        return switchStatement();
 
       case TOK_BREAK:
       {
