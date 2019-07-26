@@ -54,16 +54,10 @@ static const char* kNetworkConnStateChangedTopic = "network-connection-state-cha
 
 
 
-#ifdef MOZ_B2G_RIL
 NS_IMPL_ISUPPORTS3(GonkGPSGeolocationProvider,
                    nsIGeolocationProvider,
                    nsIObserver,
                    nsISettingsServiceCallback)
-#else
-NS_IMPL_ISUPPORTS2(GonkGPSGeolocationProvider,
-                   nsIGeolocationProvider,
-                   nsIObserver)
-#endif
 
  GonkGPSGeolocationProvider* GonkGPSGeolocationProvider::sSingleton = nullptr;
 GpsCallbacks GonkGPSGeolocationProvider::mCallbacks = {
@@ -382,6 +376,8 @@ GonkGPSGeolocationProvider::SetAGpsDataConn(nsAString& aApn)
   }
 }
 
+#endif 
+
 void
 GonkGPSGeolocationProvider::RequestSettingValue(char* aKey)
 {
@@ -396,6 +392,7 @@ GonkGPSGeolocationProvider::RequestSettingValue(char* aKey)
   lock->Get(aKey, this);
 }
 
+#ifdef MOZ_B2G_RIL
 void
 GonkGPSGeolocationProvider::RequestDataConnection()
 {
@@ -791,32 +788,33 @@ GonkGPSGeolocationProvider::Observe(nsISupports* aSubject,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (strcmp(aTopic, kNetworkConnStateChangedTopic)) {
-    return NS_OK;
-  }
+#ifdef MOZ_B2G_RIL
+  if (!strcmp(aTopic, kNetworkConnStateChangedTopic)) {
+    nsCOMPtr<nsIRilNetworkInterface> iface = do_QueryInterface(aSubject);
+    if (!iface) {
+      return NS_OK;
+    }
 
-  nsCOMPtr<nsIRilNetworkInterface> iface = do_QueryInterface(aSubject);
-  if (!iface) {
-    return NS_OK;
+    RequestSettingValue("ril.supl.apn");
   }
+#endif
 
-  RequestSettingValue("ril.supl.apn");
   return NS_OK;
 }
 
-#ifdef MOZ_B2G_RIL
 
 
 NS_IMETHODIMP
 GonkGPSGeolocationProvider::Handle(const nsAString& aName,
                                    JS::Handle<JS::Value> aResult)
 {
-  JSContext *cx = nsContentUtils::GetCurrentJSContext();
-  NS_ENSURE_TRUE(cx, NS_OK);
-
+#ifdef MOZ_B2G_RIL
   if (aName.EqualsLiteral("ril.supl.apn")) {
     
     if (aResult.isString()) {
+      JSContext *cx = nsContentUtils::GetCurrentJSContext();
+      NS_ENSURE_TRUE(cx, NS_OK);
+
       
       nsDependentJSString apn;
       apn.init(cx, aResult.toString());
@@ -824,7 +822,9 @@ GonkGPSGeolocationProvider::Handle(const nsAString& aName,
         SetAGpsDataConn(apn);
       }
     }
-  } else if (aName.EqualsLiteral(SETTING_DEBUG_ENABLED)) {
+  } else
+#endif 
+  if (aName.EqualsLiteral(SETTING_DEBUG_ENABLED)) {
     if (!aResult.isBoolean()) {
       return NS_ERROR_FAILURE;
     }
@@ -838,4 +838,3 @@ GonkGPSGeolocationProvider::HandleError(const nsAString& aErrorMessage)
 {
   return NS_OK;
 }
-#endif 
