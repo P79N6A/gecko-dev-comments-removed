@@ -3189,7 +3189,7 @@ ThreadSources.prototype = {
     }
     dbg_assert(aScript.sourceMapURL, "Script should have a sourceMapURL");
     let sourceMapURL = this._normalize(aScript.sourceMapURL, aScript.url);
-    let map = this._fetchSourceMap(sourceMapURL)
+    let map = this._fetchSourceMap(sourceMapURL, aScript.url)
       .then((aSourceMap) => {
         for (let s of aSourceMap.sources) {
           this._generatedUrlsByOriginalUrl[s] = aScript.url;
@@ -3206,23 +3206,44 @@ ThreadSources.prototype = {
 
 
 
-  _fetchSourceMap: function TS__fetchSourceMap(aAbsSourceMapURL) {
+
+
+
+
+
+
+
+  _fetchSourceMap: function TS__fetchSourceMap(aAbsSourceMapURL, aScriptURL) {
     if (aAbsSourceMapURL in this._sourceMaps) {
       return this._sourceMaps[aAbsSourceMapURL];
-    } else {
-      let promise = fetch(aAbsSourceMapURL).then(rawSourceMap => {
-        let map = new SourceMapConsumer(rawSourceMap);
-        let base = aAbsSourceMapURL.replace(/\/[^\/]+$/, '/');
-        if (base.indexOf("data:") !== 0) {
-          map.sourceRoot = map.sourceRoot
-            ? this._normalize(map.sourceRoot, base)
-            : base;
-        }
-        return map;
-      });
-      this._sourceMaps[aAbsSourceMapURL] = promise;
-      return promise;
     }
+
+    let promise = fetch(aAbsSourceMapURL).then(rawSourceMap => {
+      let map = new SourceMapConsumer(rawSourceMap);
+      this._setSourceMapRoot(map, aAbsSourceMapURL, aScriptURL);
+      return map;
+    });
+    this._sourceMaps[aAbsSourceMapURL] = promise;
+    return promise;
+  },
+
+  
+
+
+  _setSourceMapRoot: function TS__setSourceMapRoot(aSourceMap, aAbsSourceMapURL,
+                                                   aScriptURL) {
+    const base = this._dirname(
+      aAbsSourceMapURL.indexOf("data:") === 0
+        ? aScriptURL
+        : aAbsSourceMapURL);
+    aSourceMap.sourceRoot = aSourceMap.sourceRoot
+      ? this._normalize(aSourceMap.sourceRoot, base)
+      : base;
+  },
+
+  _dirname: function TS__dirname(aPath) {
+    return Services.io.newURI(
+      ".", null, Services.io.newURI(aPath, null, null)).spec;
   },
 
   
