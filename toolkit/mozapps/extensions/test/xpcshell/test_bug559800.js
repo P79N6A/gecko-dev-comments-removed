@@ -5,8 +5,6 @@
 
 
 
-const EXTENSIONS_DB = "extensions.sqlite";
-
 const profileDir = gProfD.clone();
 profileDir.append("extensions");
 

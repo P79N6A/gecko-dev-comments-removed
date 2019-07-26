@@ -257,13 +257,9 @@ function run_test_1() {
     
     shutdownManager();
     var dbfile = gProfD.clone();
-    dbfile.append("extensions.sqlite");
-    let connection = Services.storage.openUnsharedDatabase(dbfile);
-    connection.executeSimpleSQL("PRAGMA synchronous = FULL");
-    connection.executeSimpleSQL("PRAGMA locking_mode = EXCLUSIVE");
-    
-    connection.beginTransactionAs(connection.TRANSACTION_EXCLUSIVE);
-    connection.commitTransaction();
+    dbfile.append(EXTENSIONS_DB);
+    var savedPermissions = dbfile.permissions;
+    dbfile.permissions = 0;
 
     startupManager(false);
 
@@ -429,7 +425,7 @@ function run_test_1() {
         do_check_eq(t2.pendingOperations, AddonManager.PENDING_NONE);
         do_check_true(isThemeInAddonsList(profileDir, t2.id));
 
-        connection.close();
+        dbfile.permissions = savedPermissions;
 
         
         
