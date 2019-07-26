@@ -323,3 +323,12 @@ add_task(function test_detect_multiple_transactions() {
   yield c.close();
 });
 
+add_task(function test_shrink_memory() {
+  let c = yield getDummyDatabase("shrink_memory");
+
+  
+  
+
+  yield c.shrinkMemory();
+  yield c.close();
+});

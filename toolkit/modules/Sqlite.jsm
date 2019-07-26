@@ -586,6 +586,15 @@ OpenedConnection.prototype = Object.freeze({
     );
   },
 
+  
+
+
+
+
+  shrinkMemory: function () {
+    return this.execute("PRAGMA shrink_memory");
+  },
+
   _executeStatement: function (sql, statement, params, onRow) {
     if (statement.state != statement.MOZ_STORAGE_STATEMENT_READY) {
       throw new Error("Statement is not ready for execution.");
