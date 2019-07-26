@@ -868,6 +868,7 @@ pref("network.http.accept-encoding", "gzip, deflate");
 
 pref("network.http.pipelining"      , false);
 pref("network.http.pipelining.ssl"  , false); 
+pref("network.http.pipelining.abtest", false);
 pref("network.http.proxy.pipelining", false);
 
 
