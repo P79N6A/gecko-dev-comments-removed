@@ -413,6 +413,9 @@ class StackFrame
     void                *hookData_;     
     FrameRejoinState    rejoin_;        
 
+#ifdef JS_ION
+    ion::BaselineFrame  *prevBaselineFrame_; 
+#endif
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(StackFrame, rval_) % sizeof(Value) == 0);
@@ -578,6 +581,19 @@ class StackFrame
     StackFrame *prev() const {
         return prev_;
     }
+
+#ifdef JS_ION
+    
+
+
+
+
+
+    ion::BaselineFrame *prevBaselineFrame() const {
+        JS_ASSERT(isDebuggerFrame());
+        return prevBaselineFrame_;
+    }
+#endif
 
     inline void resetGeneratorPrev(JSContext *cx);
 
@@ -1899,6 +1915,7 @@ class StackIter
 #ifdef JS_ION
     void nextIonFrame();
     void popIonFrame();
+    void popBaselineDebuggerFrame();
 #endif
     void settleOnNewSegment();
     void settleOnNewState();
