@@ -9,8 +9,6 @@
 #include "Logging.h"
 #include "Elfxx.h"
 
-class Mappable;
-
 
 
 
@@ -157,7 +155,7 @@ private:
   }
 
   
-  Mappable *mappable;
+  mozilla::RefPtr<Mappable> mappable;
 
   
   MappedPtr base;

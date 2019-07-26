@@ -95,7 +95,7 @@ private:
     mappable->munmap(buf, length);
   }
 
-  Mappable *mappable;
+  mozilla::RefPtr<Mappable> mappable;
 };
 
 
@@ -233,7 +233,6 @@ CustomElf::~CustomElf()
 
 
   ElfLoader::__wrap_cxa_finalize(this);
-  delete mappable;
   ElfLoader::Singleton.Forget(this);
 }
 

@@ -22,7 +22,7 @@
 
 
 
-class Mappable
+class Mappable: public mozilla::RefCounted<Mappable>
 {
 public:
   virtual ~Mappable() { }
@@ -119,6 +119,9 @@ public:
 
 
   static Mappable *Create(const char *name, Zip *zip, Zip::Stream *stream);
+
+  
+  virtual void finalize() {}
 
   virtual Kind GetKind() const { return MAPPABLE_EXTRACT_FILE; };
 private:

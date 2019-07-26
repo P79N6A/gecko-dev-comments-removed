@@ -11,6 +11,7 @@
 #include "mozilla/RefPtr.h"
 #include "Zip.h"
 #include "Elfxx.h"
+#include "Mappable.h"
 
 
 
@@ -75,9 +76,6 @@ template <> inline RefCounted<LibHandle, AtomicRefCount>::~RefCounted()
 
 } 
 } 
-
-
-class Mappable;
 
 
 
@@ -200,7 +198,7 @@ private:
   char *path;
 
   
-  mutable Mappable *mappable;
+  mutable mozilla::RefPtr<Mappable> mappable;
 };
 
 
