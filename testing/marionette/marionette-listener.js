@@ -286,6 +286,36 @@ function resetValues() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+function createStackMessage(error, fnName, pythonFile, pythonLine, script) {
+  let python_stack = fnName + " @" + pythonFile + ", line " + pythonLine;
+  let stack = error.stack.split("\n");
+  let line = stack[0].substr(stack[0].lastIndexOf(':') + 1);
+  let msg = error.name + ": " + error.message;
+  let trace = python_stack +
+              "\ninline javascript, line " + line +
+              "\nsrc: \"" + script.split("\n")[line] + "\"";
+  return [msg, trace];
+}
+
+
+
+
+
+
+
+
 function createExecuteContentSandbox(aWindow, timeout) {
   let sandbox = new Cu.Sandbox(aWindow, {sandboxPrototype: aWindow});
   sandbox.global = sandbox;
@@ -384,7 +414,7 @@ function executeScript(msg, directInject) {
         let data = NetUtil.readInputStreamToString(stream, stream.available());
         script = data + script;
       }
-      let res = Cu.evalInSandbox(script, sandbox, "1.8");
+      let res = Cu.evalInSandbox(script, sandbox, "1.8", "dummy file" ,0);
       sendSyncMessage("Marionette:shareData",
                       {log: elementManager.wrapValue(marionetteLogObj.getLogs())});
       marionetteLogObj.clearLogs();
@@ -406,16 +436,16 @@ function executeScript(msg, directInject) {
         return;
       }
 
-      let scriptSrc = "let __marionetteFunc = function(){" + script + "};" +
-                      "__marionetteFunc.apply(null, __marionetteParams);";
+      script = "let __marionetteFunc = function(){" + script + "};" +
+                   "__marionetteFunc.apply(null, __marionetteParams);";
       if (importedScripts.exists()) {
         let stream = Components.classes["@mozilla.org/network/file-input-stream;1"].  
                       createInstance(Components.interfaces.nsIFileInputStream);
         stream.init(importedScripts, -1, 0, 0);
         let data = NetUtil.readInputStreamToString(stream, stream.available());
-        scriptSrc = data + scriptSrc;
+        script = data + script;
       }
-      let res = Cu.evalInSandbox(scriptSrc, sandbox, "1.8");
+      let res = Cu.evalInSandbox(script, sandbox, "1.8", "dummy file", 0);
       sendSyncMessage("Marionette:shareData",
                       {log: elementManager.wrapValue(marionetteLogObj.getLogs())});
       marionetteLogObj.clearLogs();
@@ -424,7 +454,12 @@ function executeScript(msg, directInject) {
   }
   catch (e) {
     
-    sendError(e.name + ': ' + e.message, 17, e.stack, asyncTestCommandId);
+    let error = createStackMessage(e,
+                                   "execute_script",
+                                   msg.json.filename,
+                                   msg.json.line,
+                                   script);
+    sendError(error[0], 17, error[1], asyncTestCommandId);
   }
 }
 
@@ -531,11 +566,15 @@ function executeWithCallback(msg, useFinish) {
       let data = NetUtil.readInputStreamToString(stream, stream.available());
       scriptSrc = data + scriptSrc;
     }
-    Cu.evalInSandbox(scriptSrc, sandbox, "1.8");
+    Cu.evalInSandbox(scriptSrc, sandbox, "1.8", "dummy file", 0);
   } catch (e) {
     
-    sandbox.asyncComplete(e.name + ': ' + e.message, 17,
-                          e.stack, asyncTestCommandId);
+    let error = createStackMessage(e,
+                                   "execute_async_script",
+                                   msg.json.filename,
+                                   msg.json.line,
+                                   scriptSrc);
+    sandbox.asyncComplete(error[0], 17, error[1], asyncTestCommandId);
   }
 }
 
