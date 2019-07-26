@@ -193,6 +193,7 @@ let FormAssistant = {
     addMessageListener("Forms:Input:Value", this);
     addMessageListener("Forms:Select:Blur", this);
     addMessageListener("Forms:SetSelectionRange", this);
+    addMessageListener("Forms:ReplaceSurroundingText", this);
   },
 
   ignoredInputTypes: new Set([
@@ -256,6 +257,11 @@ let FormAssistant = {
 
   get documentEncoder() {
     return this._documentEncoder;
+  },
+
+  
+  get editor() {
+    return this._editor;
   },
 
   
@@ -427,6 +433,15 @@ let FormAssistant = {
         let end =  json.selectionEnd;
         setSelectionRange(target, start, end);
         this.updateSelection();
+        break;
+      }
+
+      case "Forms:ReplaceSurroundingText": {
+        let text = json.text;
+        let beforeLength = json.beforeLength;
+        let afterLength = json.afterLength;
+        replaceSurroundingText(target, text, this.selectionStart, beforeLength,
+                               afterLength);
         break;
       }
     }
@@ -783,4 +798,38 @@ function getPlaintextEditor(element) {
     editor.QueryInterface(Ci.nsIPlaintextEditor);
   }
   return editor;
+}
+
+function replaceSurroundingText(element, text, selectionStart, beforeLength,
+                                afterLength) {
+  let editor = FormAssistant.editor;
+  if (!editor) {
+    return;
+  }
+
+  
+  if (beforeLength < 0) {
+    beforeLength = 0;
+  }
+  if (afterLength < 0) {
+    afterLength = 0;
+  }
+
+  let start = selectionStart - beforeLength;
+  let end = selectionStart + afterLength;
+
+  if (beforeLength != 0 || afterLength != 0) {
+    
+    setSelectionRange(element, start, end);
+  }
+
+  if (start != end) {
+    
+    editor.deleteSelection(Ci.nsIEditor.ePrevious, Ci.nsIEditor.eStrip);
+  }
+
+  if (text) {
+    
+    editor.insertText(text);
+  }
 }
