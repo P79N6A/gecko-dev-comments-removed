@@ -150,6 +150,30 @@ static ObjectElements emptyElementsHeader(0, 0);
 HeapSlot *js::emptyObjectElements =
     reinterpret_cast<HeapSlot *>(uintptr_t(&emptyElementsHeader) + sizeof(ObjectElements));
 
+ bool
+ObjectElements::ConvertElementsToDoubles(JSContext *cx, uintptr_t elementsPtr)
+{
+    
+
+
+
+
+    HeapSlot *elementsHeapPtr = (HeapSlot *) elementsPtr;
+    JS_ASSERT(elementsHeapPtr != emptyObjectElements);
+
+    ObjectElements *header = ObjectElements::fromElements(elementsHeapPtr);
+    JS_ASSERT(!header->convertDoubleElements);
+
+    Value *vp = (Value *) elementsPtr;
+    for (size_t i = 0; i < header->initializedLength; i++) {
+        if (vp[i].isInt32())
+            vp[i].setDouble(vp[i].toInt32());
+    }
+
+    header->convertDoubleElements = 1;
+    return true;
+}
+
 #ifdef DEBUG
 void
 js::ObjectImpl::checkShapeConsistency()

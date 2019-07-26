@@ -1996,6 +1996,70 @@ StackTypeSet::filtersType(const StackTypeSet *other, Type filteredType) const
     return true;
 }
 
+StackTypeSet::DoubleConversion
+StackTypeSet::convertDoubleElements(JSContext *cx)
+{
+    if (unknownObject() || !getObjectCount())
+        return AmbiguousDoubleConversion;
+
+    bool alwaysConvert = true;
+    bool maybeConvert = false;
+    bool dontConvert = false;
+
+    for (unsigned i = 0; i < getObjectCount(); i++) {
+        TypeObject *type = getTypeObject(i);
+        if (!type) {
+            if (JSObject *obj = getSingleObject(i)) {
+                type = obj->getType(cx);
+                if (!type)
+                    return AmbiguousDoubleConversion;
+            } else {
+                continue;
+            }
+        }
+
+        if (type->unknownProperties()) {
+            alwaysConvert = false;
+            continue;
+        }
+
+        HeapTypeSet *types = type->getProperty(cx, JSID_VOID, false);
+        if (!types)
+            return AmbiguousDoubleConversion;
+
+        
+        
+        
+        
+        if (!types->hasType(Type::DoubleType()) || type->clasp != &ArrayClass) {
+            dontConvert = true;
+            alwaysConvert = false;
+            continue;
+        }
+
+        
+        
+        
+        if (types->getKnownTypeTag(cx) == JSVAL_TYPE_DOUBLE &&
+            !HeapTypeSet::HasObjectFlags(cx, type, OBJECT_FLAG_NON_PACKED))
+        {
+            maybeConvert = true;
+        } else {
+            alwaysConvert = false;
+        }
+    }
+
+    JS_ASSERT_IF(alwaysConvert, maybeConvert);
+
+    if (maybeConvert && dontConvert)
+        return AmbiguousDoubleConversion;
+    if (alwaysConvert)
+        return AlwaysConvertToDoubles;
+    if (maybeConvert)
+        return MaybeConvertToDoubles;
+    return DontConvertToDoubles;
+}
+
 bool
 HeapTypeSet::knownSubset(JSContext *cx, TypeSet *other)
 {

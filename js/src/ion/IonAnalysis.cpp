@@ -1361,6 +1361,11 @@ ion::EliminateRedundantChecks(MIRGraph &graph)
             } else if (iter->isTypeBarrier()) {
                 if (!TryEliminateTypeBarrier(iter->toTypeBarrier(), &eliminated))
                     return false;
+            } else if (iter->isConvertElementsToDoubles()) {
+                
+                
+                MConvertElementsToDoubles *ins = iter->toConvertElementsToDoubles();
+                ins->replaceAllUsesWith(ins->elements());
             }
 
             if (eliminated)

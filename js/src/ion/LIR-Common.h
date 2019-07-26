@@ -2124,6 +2124,21 @@ class LElements : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LConvertElementsToDoubles : public LInstructionHelper<0, 1, 0>
+{
+  public:
+    LIR_HEADER(ConvertElementsToDoubles)
+
+    LConvertElementsToDoubles(const LAllocation &elements) {
+        setOperand(0, elements);
+    }
+
+    const LAllocation *elements() {
+        return getOperand(0);
+    }
+};
+
+
 class LInitializedLength : public LInstructionHelper<1, 1, 0>
 {
   public:

@@ -637,6 +637,26 @@ class StackTypeSet : public TypeSet
 
         return true;
     }
+
+    enum DoubleConversion {
+        
+        AlwaysConvertToDoubles,
+
+        
+        MaybeConvertToDoubles,
+
+        
+        DontConvertToDoubles,
+
+        
+        AmbiguousDoubleConversion
+    };
+
+    
+
+
+
+    DoubleConversion convertDoubleElements(JSContext *cx);
 };
 
 

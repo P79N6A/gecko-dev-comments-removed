@@ -936,7 +936,7 @@ class ObjectElements
     uint32_t length;
 
     
-    uint32_t unused;
+    uint32_t convertDoubleElements;
 
     void staticAsserts() {
         MOZ_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value),
@@ -946,7 +946,7 @@ class ObjectElements
   public:
 
     ObjectElements(uint32_t capacity, uint32_t length)
-      : capacity(capacity), initializedLength(0), length(length)
+      : capacity(capacity), initializedLength(0), length(length), convertDoubleElements(0)
     {}
 
     HeapSlot *elements() { return (HeapSlot *)(uintptr_t(this) + sizeof(ObjectElements)); }
@@ -963,6 +963,11 @@ class ObjectElements
     static int offsetOfLength() {
         return (int)offsetof(ObjectElements, length) - (int)sizeof(ObjectElements);
     }
+    static int offsetOfConvertDoubleElements() {
+        return (int)offsetof(ObjectElements, convertDoubleElements) - (int)sizeof(ObjectElements);
+    }
+
+    static bool ConvertElementsToDoubles(JSContext *cx, uintptr_t elements);
 
     static const size_t VALUES_PER_HEADER = 2;
 };
