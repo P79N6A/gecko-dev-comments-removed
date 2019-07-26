@@ -445,7 +445,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
 
 
     if( number > NAS_DEFAULT_NUM ){
-        nas = (struct NumArgState*)malloc( number * sizeof( struct NumArgState ) );
+        nas = (struct NumArgState*)js_malloc( number * sizeof( struct NumArgState ) );
         if( !nas ){
             *rv = -1;
             return nullptr;

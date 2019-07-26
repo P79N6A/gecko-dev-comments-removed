@@ -4416,7 +4416,7 @@ typedef void
 
 
 typedef bool
-(* BuildIdOp)(mozilla::Vector<char> *buildId);
+(* BuildIdOp)(js::Vector<char> *buildId);
 
 struct AsmJSCacheOps
 {

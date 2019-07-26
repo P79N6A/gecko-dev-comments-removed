@@ -100,6 +100,8 @@ PrintBacktrace()
         fprintf(stderr, "#%d %s\n", OOM_traceIdx, OOM_traceSymbols[OOM_traceIdx]);
     }
 
+    
+    
     free(OOM_traceSymbols);
 }
 
