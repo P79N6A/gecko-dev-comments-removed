@@ -425,6 +425,13 @@ var gChainingTests = [
 
 
 
+
+var gAspectRatioTests = [
+  { name:"VID_0001.ogg", type:"video/ogg", duration:19.966 }
+];
+
+
+
 var gMetadataTests = [
   
   { name:"short-video.ogv", tags: {
