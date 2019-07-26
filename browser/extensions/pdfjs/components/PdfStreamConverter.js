@@ -348,6 +348,7 @@ ChromeActions.prototype = {
     
     
     return this.domWindow.frameElement === null &&
+           getChromeWindow(this.domWindow).gFindBar &&
            'updateControlState' in getChromeWindow(this.domWindow).gFindBar;
   },
   fallback: function(url, sendResponse) {
