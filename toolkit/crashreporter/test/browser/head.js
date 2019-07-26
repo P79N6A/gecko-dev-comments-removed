@@ -31,7 +31,13 @@ function make_fake_appdir() {
       if (prop == "UAppData") {
         return appD.clone();
       }
-      throw Components.results.NS_ERROR_FAILURE;
+      
+      
+      
+      
+      
+      dump("WARNING: make_fake_appdir - fake nsIDirectoryServiceProvider - Unexpected getFile for: '" + prop + "'\n");
+      return null;
     },
     QueryInterface: function(iid) {
       if (iid.equals(Ci.nsIDirectoryServiceProvider) ||
