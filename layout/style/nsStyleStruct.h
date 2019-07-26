@@ -28,6 +28,7 @@
 #include "nsIAtom.h"
 #include "nsCSSValue.h"
 #include "imgRequestProxy.h"
+#include "Orientation.h"
 #include <algorithm>
 
 class nsIFrame;
@@ -1372,6 +1373,94 @@ struct nsStyleText {
   inline bool WordCanWrap(const nsIFrame* aContextFrame) const;
 };
 
+struct nsStyleImageOrientation {
+  static nsStyleImageOrientation CreateAsAngleAndFlip(double aRadians,
+                                                      bool aFlip) {
+    uint8_t orientation(0);
+
+    
+    double roundedAngle = fmod(aRadians, 2 * M_PI);
+    if      (roundedAngle < 0.25 * M_PI) orientation = ANGLE_0;
+    else if (roundedAngle < 0.75 * M_PI) orientation = ANGLE_90;
+    else if (roundedAngle < 1.25 * M_PI) orientation = ANGLE_180;
+    else if (roundedAngle < 1.75 * M_PI) orientation = ANGLE_270;
+    else                                 orientation = ANGLE_0;
+
+    
+    if (aFlip)
+      orientation |= FLIP_MASK;
+
+    return nsStyleImageOrientation(orientation);
+  }
+
+  static nsStyleImageOrientation CreateAsFlip() {
+    return nsStyleImageOrientation(FLIP_MASK);
+  }
+
+  static nsStyleImageOrientation CreateAsFromImage() {
+    return nsStyleImageOrientation(FROM_IMAGE_MASK);
+  }
+
+  
+  nsStyleImageOrientation() : mOrientation(0) { }
+
+  bool IsDefault()   const { return mOrientation == 0; }
+  bool IsFlipped()   const { return mOrientation & FLIP_MASK; }
+  bool IsFromImage() const { return mOrientation & FROM_IMAGE_MASK; }
+
+  mozilla::image::Angle Angle() const {
+    switch (mOrientation & ORIENTATION_MASK) {
+      case ANGLE_0:   return mozilla::image::Angle::D0;
+      case ANGLE_90:  return mozilla::image::Angle::D90;
+      case ANGLE_180: return mozilla::image::Angle::D180;
+      case ANGLE_270: return mozilla::image::Angle::D270;
+      default:
+        NS_NOTREACHED("Unexpected angle");
+        return mozilla::image::Angle::D0;
+    }
+  }
+
+  nsStyleCoord AngleAsCoord() const {
+    switch (mOrientation & ORIENTATION_MASK) {
+      case ANGLE_0:   return nsStyleCoord(0.0f,   eStyleUnit_Degree);
+      case ANGLE_90:  return nsStyleCoord(90.0f,  eStyleUnit_Degree);
+      case ANGLE_180: return nsStyleCoord(180.0f, eStyleUnit_Degree);
+      case ANGLE_270: return nsStyleCoord(270.0f, eStyleUnit_Degree);
+      default:
+        NS_NOTREACHED("Unexpected angle");
+        return nsStyleCoord();
+    }
+  }
+
+  bool operator==(const nsStyleImageOrientation& aOther) const {
+    return aOther.mOrientation == mOrientation;
+  }
+
+  bool operator!=(const nsStyleImageOrientation& aOther) const {
+    return !(*this == aOther);
+  }
+
+protected:
+  enum Bits {
+    ORIENTATION_MASK = 0x1 | 0x2,  
+    FLIP_MASK        = 0x4,        
+    FROM_IMAGE_MASK  = 0x8,        
+  };                               
+
+  enum Angles {
+    ANGLE_0   = 0,
+    ANGLE_90  = 1,
+    ANGLE_180 = 2,
+    ANGLE_270 = 3,
+  };
+
+  explicit nsStyleImageOrientation(uint8_t aOrientation)
+    : mOrientation(aOrientation)
+  { }
+
+  uint8_t mOrientation;
+};
+
 struct nsStyleVisibility {
   nsStyleVisibility(nsPresContext* aPresContext);
   nsStyleVisibility(const nsStyleVisibility& aVisibility);
@@ -1392,6 +1481,7 @@ struct nsStyleVisibility {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
 
+  nsStyleImageOrientation mImageOrientation;  
   uint8_t mDirection;                  
   uint8_t mVisible;                    
   uint8_t mPointerEvents;              
