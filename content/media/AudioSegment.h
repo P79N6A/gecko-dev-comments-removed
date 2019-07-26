@@ -15,6 +15,14 @@ namespace mozilla {
 
 class AudioStream;
 
+
+
+
+
+
+
+
+
 struct AudioChunk {
   typedef mozilla::AudioSampleFormat SampleFormat;
 
@@ -24,7 +32,11 @@ struct AudioChunk {
     NS_ASSERTION(aStart >= 0 && aStart < aEnd && aEnd <= mDuration,
                  "Slice out of bounds");
     if (mBuffer) {
-      mOffset += int32_t(aStart);
+      MOZ_ASSERT(aStart < INT32_MAX, "Can't slice beyond 32-bit sample lengths");
+      for (uint32_t channel = 0; channel < mChannelData.Length(); ++channel) {
+        mChannelData[channel] = AddAudioSampleOffset(mChannelData[channel],
+            mBufferFormat, int32_t(aStart));
+      }
     }
     mDuration = aEnd - aStart;
   }
@@ -35,9 +47,19 @@ struct AudioChunk {
       return false;
     }
     if (mBuffer) {
-      NS_ASSERTION(aOther.mBufferFormat == mBufferFormat && aOther.mBufferLength == mBufferLength,
+      NS_ASSERTION(aOther.mBufferFormat == mBufferFormat,
                    "Wrong metadata about buffer");
-      return aOther.mOffset == mOffset + mDuration && aOther.mVolume == mVolume;
+      NS_ASSERTION(aOther.mChannelData.Length() == mChannelData.Length(),
+                   "Mismatched channel count");
+      if (mDuration > INT32_MAX) {
+        return false;
+      }
+      for (uint32_t channel = 0; channel < mChannelData.Length(); ++channel) {
+        if (aOther.mChannelData[channel] != AddAudioSampleOffset(mChannelData[channel],
+            mBufferFormat, int32_t(mDuration))) {
+          return false;
+        }
+      }
     }
     return true;
   }
@@ -45,17 +67,16 @@ struct AudioChunk {
   void SetNull(TrackTicks aDuration)
   {
     mBuffer = nullptr;
+    mChannelData.Clear();
     mDuration = aDuration;
-    mOffset = 0;
     mVolume = 1.0f;
   }
 
-  TrackTicks mDuration;           
-  nsRefPtr<SharedBuffer> mBuffer; 
-  int32_t mBufferLength;          
-  SampleFormat mBufferFormat;     
-  int32_t mOffset;                
-  float mVolume;                  
+  TrackTicks mDuration; 
+  nsRefPtr<ThreadSharedObject> mBuffer; 
+  nsTArray<const void*> mChannelData; 
+  float mVolume; 
+  SampleFormat mBufferFormat; 
 };
 
 
@@ -83,16 +104,35 @@ public:
     NS_ASSERTION(IsInitialized(), "Not initialized");
     return mChannels;
   }
-  void AppendFrames(already_AddRefed<SharedBuffer> aBuffer, int32_t aBufferLength,
-                    int32_t aStart, int32_t aEnd, SampleFormat aFormat)
+  void AppendFrames(already_AddRefed<ThreadSharedObject> aBuffer,
+                    const nsTArray<const float*>& aChannelData,
+                    int32_t aDuration)
   {
     NS_ASSERTION(mChannels > 0, "Not initialized");
-    AudioChunk* chunk = AppendChunk(aEnd - aStart);
+    NS_ASSERTION(!aBuffer.get() || aChannelData.Length() == uint32_t(mChannels),
+                 "Wrong number of channels");
+    AudioChunk* chunk = AppendChunk(aDuration);
     chunk->mBuffer = aBuffer;
-    chunk->mBufferFormat = aFormat;
-    chunk->mBufferLength = aBufferLength;
-    chunk->mOffset = aStart;
+    for (uint32_t channel = 0; channel < aChannelData.Length(); ++channel) {
+      chunk->mChannelData.AppendElement(aChannelData[channel]);
+    }
     chunk->mVolume = 1.0f;
+    chunk->mBufferFormat = AUDIO_FORMAT_FLOAT32;
+  }
+  void AppendFrames(already_AddRefed<ThreadSharedObject> aBuffer,
+                    const nsTArray<const int16_t*>& aChannelData,
+                    int32_t aDuration)
+  {
+    NS_ASSERTION(mChannels > 0, "Not initialized");
+    NS_ASSERTION(!aBuffer.get() || aChannelData.Length() == uint32_t(mChannels),
+                 "Wrong number of channels");
+    AudioChunk* chunk = AppendChunk(aDuration);
+    chunk->mBuffer = aBuffer;
+    for (uint32_t channel = 0; channel < aChannelData.Length(); ++channel) {
+      chunk->mChannelData.AppendElement(aChannelData[channel]);
+    }
+    chunk->mVolume = 1.0f;
+    chunk->mBufferFormat = AUDIO_FORMAT_S16;
   }
   void ApplyVolume(float aVolume);
   

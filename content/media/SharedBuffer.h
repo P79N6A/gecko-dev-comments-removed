@@ -16,19 +16,24 @@ namespace mozilla {
 
 
 
-
-
-
-
-class SharedBuffer {
+class ThreadSharedObject {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedBuffer)
-  ~SharedBuffer() {}
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ThreadSharedObject)
+  virtual ~ThreadSharedObject() {}
+};
 
+
+
+
+
+
+
+
+
+class SharedBuffer : public ThreadSharedObject {
+public:
   void* Data() { return this + 1; }
 
-  
-  
   static already_AddRefed<SharedBuffer> Create(size_t aSize)
   {
     void* m = moz_xmalloc(sizeof(SharedBuffer) + aSize);
