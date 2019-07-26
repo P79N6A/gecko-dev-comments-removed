@@ -7,7 +7,7 @@
 #define __nsCheapSets_h__
 
 #include "nsTHashtable.h"
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 

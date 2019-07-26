@@ -15,15 +15,8 @@
 
 
 
-
-
-
-
-
-#include "mozilla/StandardInteger.h"
-
-
 #include <stddef.h>
+#include <stdint.h>
 
 
 

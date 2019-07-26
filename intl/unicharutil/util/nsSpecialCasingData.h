@@ -3,7 +3,7 @@
 
 
 #include "prtypes.h"
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 namespace mozilla {
 namespace unicode {

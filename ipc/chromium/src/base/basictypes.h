@@ -12,7 +12,7 @@
 #include "base/port.h"    
 
 #include "mozilla/Assertions.h"
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 

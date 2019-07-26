@@ -5,7 +5,7 @@
 
 
 #include "WMFUtils.h"
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 #include "mozilla/RefPtr.h"
 #include "prlog.h"
 #include "nsThreadUtils.h"

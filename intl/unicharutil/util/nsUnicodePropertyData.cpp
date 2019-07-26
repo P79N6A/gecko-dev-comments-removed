@@ -54,7 +54,7 @@
 
 
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 #include "harfbuzz/hb.h"
 
 static const uint32_t sScriptCodeToTag[] = {

@@ -7,7 +7,7 @@
 #include "mozilla/dom/TimeRanges.h"
 #include "nsMathUtils.h"
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 

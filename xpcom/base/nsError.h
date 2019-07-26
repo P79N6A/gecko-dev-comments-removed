@@ -7,8 +7,9 @@
 #define nsError_h__
 
 #include "mozilla/Likely.h"
-#include "mozilla/StandardInteger.h"
 #include "mozilla/TypedEnum.h"
+
+#include <stdint.h>
 
 
 

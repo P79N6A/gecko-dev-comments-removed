@@ -2,7 +2,7 @@
 
 
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
  
 #include "prtypes.h"
 

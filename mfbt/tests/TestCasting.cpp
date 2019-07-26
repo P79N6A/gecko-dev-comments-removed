@@ -4,7 +4,8 @@
 
 
 #include "mozilla/Casting.h"
-#include "mozilla/StandardInteger.h"
+
+#include <stdint.h>
 
 using mozilla::BitwiseCast;
 using mozilla::detail::IsInBounds;

@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 #include "mozilla/Util.h"
 #include "nsSize.h"
 

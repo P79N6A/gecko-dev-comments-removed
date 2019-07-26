@@ -4,8 +4,7 @@
 #ifdef MOZ_QCMS
 
 #include "prtypes.h"
-#include "mozilla/StandardInteger.h"
-
+#include <stdint.h>
 
 
 

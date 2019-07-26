@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 

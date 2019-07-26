@@ -43,11 +43,11 @@
 #ifndef nsIDNKitWrapper_h__
 #define nsIDNKitWrapper_h__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "mozilla/StandardInteger.h"
 
 
 

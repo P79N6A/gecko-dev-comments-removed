@@ -5,7 +5,7 @@
 
 
 #include "mozilla/DebugOnly.h"
-#include "mozilla/StandardInteger.h" 
+#include <stdint.h> 
 
 #include "PluginInstanceParent.h"
 #include "BrowserStreamParent.h"

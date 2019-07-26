@@ -7,9 +7,8 @@
 #ifndef ion_arm_Architecture_arm_h
 #define ion_arm_Architecture_arm_h
 
-#include "mozilla/StandardInteger.h"
-
 #include <limits.h>
+#include <stdint.h>
 
 
 #ifdef __ARM_PCS_VFP

@@ -27,7 +27,7 @@
 #include <nsClassHashtable.h>
 #include "VideoUtils.h"
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 

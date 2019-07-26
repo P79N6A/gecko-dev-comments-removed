@@ -10,7 +10,7 @@
 #include "nsDebug.h"
 
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 typedef int (* nsVoidArrayComparatorFunc)

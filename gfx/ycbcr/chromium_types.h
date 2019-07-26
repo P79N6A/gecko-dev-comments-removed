@@ -5,7 +5,7 @@
 #ifndef GFX_CHROMIUMTYPES_H
 #define GFX_CHROMIUMTYPES_H
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 #ifndef PROTYPES_H

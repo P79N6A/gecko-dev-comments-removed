@@ -74,7 +74,7 @@
 #endif
 
 
-#include "mozilla/StandardInteger.h"
+#include <stdint.h>
 
 
 
