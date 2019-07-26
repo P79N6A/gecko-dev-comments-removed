@@ -43,7 +43,6 @@ SessionStore.prototype = {
   _lastSaveTime: 0,
   _interval: 10000,
   _maxTabsUndo: 1,
-  _pendingWrite: false,
 
   init: function ss_init() {
     
@@ -78,8 +77,6 @@ SessionStore.prototype = {
         observerService.addObserver(this, "domwindowclosed", true);
         observerService.addObserver(this, "browser:purge-session-history", true);
         observerService.addObserver(this, "Session:Restore", true);
-        observerService.addObserver(this, "Session:StoreTab", true);
-        observerService.addObserver(this, "application-background", true);
         break;
       case "final-ui-startup":
         observerService.removeObserver(this, "final-ui-startup");
@@ -105,7 +102,7 @@ SessionStore.prototype = {
 
         if (this._loadState == STATE_RUNNING) {
           
-          this.saveState();
+          this.saveStateNow();
         }
 
         Services.obs.notifyObservers(null, "sessionstore-state-purge-complete", "");
@@ -113,12 +110,9 @@ SessionStore.prototype = {
       case "timer-callback":
         
         this._saveTimer = null;
-        if (this._pendingWrite) {
-          this.saveState();
-        }
+        this.saveState();
         break;
       case "Session:Restore": {
-        Services.obs.removeObserver(this, "Session:Restore");
         if (aData) {
           
           let window = Services.wm.getMostRecentWindow("navigator:browser");
@@ -149,19 +143,6 @@ SessionStore.prototype = {
         }
         break;
       }
-      case "Session:StoreTab": {
-        let window = Services.wm.getMostRecentWindow("navigator:browser");
-        let tab = window.BrowserApp.getTabForId(aData);
-        this.onTabLoad(window, tab.browser);
-        break;
-      }
-      case "application-background":
-        
-        
-        
-        
-        this.flushPendingState();
-        break;
     }
   },
 
@@ -182,6 +163,13 @@ SessionStore.prototype = {
       case "TabSelect": {
         let browser = aEvent.target;
         this.onTabSelect(window, browser);
+        break;
+      }
+      case "pageshow": {
+        let browser = aEvent.currentTarget;
+        
+        if (aEvent.originalTarget == browser.contentDocument)
+          this.onTabLoad(window, browser, aEvent.persisted);
         break;
       }
     }
@@ -247,12 +235,15 @@ SessionStore.prototype = {
   },
 
   onTabAdd: function ss_onTabAdd(aWindow, aBrowser, aNoNotification) {
+    aBrowser.addEventListener("pageshow", this, true);
     if (!aNoNotification)
       this.saveStateDelayed();
     this._updateCrashReportURL(aWindow);
   },
 
   onTabRemove: function ss_onTabRemove(aWindow, aBrowser, aNoNotification) {
+    aBrowser.removeEventListener("pageshow", this, true);
+
     
     if (aBrowser.__SS_restore)
       return;
@@ -280,7 +271,7 @@ SessionStore.prototype = {
     }
   },
 
-  onTabLoad: function ss_onTabLoad(aWindow, aBrowser) {
+  onTabLoad: function ss_onTabLoad(aWindow, aBrowser, aPersisted) {
     
     if (aBrowser.__SS_restore)
       return;
@@ -291,26 +282,32 @@ SessionStore.prototype = {
 
     let history = aBrowser.sessionHistory;
 
-    
-    let entries = [];
-    let index = history.index + 1;
-    for (let i = 0; i < history.count; i++) {
-      let historyEntry = history.getEntryAtIndex(i, false);
+    if (aPersisted && aBrowser.__SS_data) {
       
-      if (historyEntry.URI.schemeIs("wyciwyg")) {
+      aBrowser.__SS_data.index = history.index + 1;
+      this.saveStateDelayed();
+    } else {
+      
+      let entries = [];
+      let index = history.index + 1;
+      for (let i = 0; i < history.count; i++) {
+        let historyEntry = history.getEntryAtIndex(i, false);
         
-        if (i <= history.index)
-          index--;
-        continue;
+        if (historyEntry.URI.schemeIs("wyciwyg")) {
+          
+          if (i <= history.index)
+            index--;
+          continue;
+        }
+        let entry = this._serializeHistoryEntry(historyEntry);
+        entries.push(entry);
       }
-      let entry = this._serializeHistoryEntry(historyEntry);
-      entries.push(entry);
-    }
-    let data = { entries: entries, index: index };
+      let data = { entries: entries, index: index };
 
-    delete aBrowser.__SS_data;
-    this._collectTabData(aWindow, aBrowser, data);
-    this.saveStateDelayed();
+      delete aBrowser.__SS_data;
+      this._collectTabData(aWindow, aBrowser, data);
+      this.saveStateNow();
+    }
 
     this._updateCrashReportURL(aWindow);
   },
@@ -345,7 +342,6 @@ SessionStore.prototype = {
       
       let delay = Math.max(minimalDelay, 2000);
       if (delay > 0) {
-        this._pendingWrite = true;
         this._saveTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
         this._saveTimer.init(this, delay, Ci.nsITimer.TYPE_ONE_SHOT);
       } else {
@@ -354,25 +350,16 @@ SessionStore.prototype = {
     }
   },
 
-  saveState: function ss_saveState() {
-    this._pendingWrite = true;
-    this._saveState(true);
-  },
-
-  
-  flushPendingState: function ss_flushPendingState() {
-    if (this._pendingWrite) {
-      this._saveState(false);
-    }
-  },
-
-  _saveState: function ss_saveState(aAsync) {
+  saveStateNow: function ss_saveStateNow() {
     
     if (this._saveTimer) {
       this._saveTimer.cancel();
       this._saveTimer = null;
     }
+    this.saveState();
+  },
 
+  saveState: function ss_saveState() {
     let data = this._getCurrentState();
     let normalData = { windows: [] };
     let privateData = { windows: [] };
@@ -401,7 +388,7 @@ SessionStore.prototype = {
     }
 
     
-    this._writeFile(this._sessionFile, JSON.stringify(normalData), aAsync);
+    this._writeFile(this._sessionFile, JSON.stringify(normalData));
 
     
     
@@ -477,7 +464,7 @@ SessionStore.prototype = {
     }
   },
 
-  _writeFile: function ss_writeFile(aFile, aData, aAsync) {
+  _writeFile: function ss_writeFile(aFile, aData) {
     let stateString = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
     stateString.data = aData;
     Services.obs.notifyObservers(stateString, "sessionstore-state-write", "");
@@ -486,23 +473,11 @@ SessionStore.prototype = {
     if (!stateString.data)
       return;
 
-    if (aAsync) {
-      let array = new TextEncoder().encode(aData);
-      OS.File.writeAtomic(aFile.path, array, { tmpPath: aFile.path + ".tmp" }).then(function onSuccess() {
-        this._pendingWrite = false;
-        Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
-      }.bind(this));
-    } else {
-      this._pendingWrite = false;
-      let foStream = Cc["@mozilla.org/network/file-output-stream;1"].
-                     createInstance(Ci.nsIFileOutputStream);
-      foStream.init(aFile, 0x02 | 0x08 | 0x20, 0666, 0);
-      let converter = Cc["@mozilla.org/intl/converter-output-stream;1"].
-                      createInstance(Ci.nsIConverterOutputStream);
-      converter.init(foStream, "UTF-8", 0, 0);
-      converter.writeString(aData);
-      converter.close();
-    }
+    
+    let array = new TextEncoder().encode(aData);
+    OS.File.writeAtomic(aFile.path, array, { tmpPath: aFile.path + ".tmp" }).then(function onSuccess() {
+      Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
+    });
   },
 
   _updateCrashReportURL: function ss_updateCrashReportURL(aWindow) {
