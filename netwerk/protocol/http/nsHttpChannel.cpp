@@ -2538,7 +2538,8 @@ nsHttpChannel::OpenCacheEntry(bool usingSSL)
         cacheEntryOpenFlags = nsICacheStorage::OPEN_TRUNCATE;
     }
     else {
-        cacheEntryOpenFlags = nsICacheStorage::OPEN_NORMALLY;
+        cacheEntryOpenFlags = nsICacheStorage::OPEN_NORMALLY
+                            | nsICacheStorage::CHECK_MULTITHREADED;
     }
 
     if (mApplicationCache) {
@@ -3142,16 +3143,6 @@ nsHttpChannel::OnOfflineCacheEntryForWritingAvailable(nsICacheEntry *aEntry,
     }
 
     return aEntryStatus;
-}
-
-NS_IMETHODIMP
-nsHttpChannel::GetMainThreadOnly(bool *aMainThreadOnly)
-{
-    NS_ENSURE_ARG(aMainThreadOnly);
-
-    
-    *aMainThreadOnly = false;
-    return NS_OK;
 }
 
 

@@ -42,6 +42,8 @@ const RECREATE =        1 << 10;
 
 const NOTWANTED =       1 << 11;
 
+const COMPLETE =        1 << 12;
+
 var log_c2 = true;
 function LOG_C2(o, m)
 {
@@ -117,8 +119,24 @@ OpenCallback.prototype =
     do_check_neq(this.behavior & (REVAL|PARTIAL), REVAL|PARTIAL);
 
     if (this.behavior & (REVAL|PARTIAL)) {
-      LOG_C2(this, "onCacheEntryCheck DONE, return REVAL");
+      LOG_C2(this, "onCacheEntryCheck DONE, return ENTRY_NEEDS_REVALIDATION");
       return Ci.nsICacheEntryOpenCallback.ENTRY_NEEDS_REVALIDATION;
+    }
+
+    if (this.behavior & COMPLETE) {
+      LOG_C2(this, "onCacheEntryCheck DONE, return RECHECK_AFTER_WRITE_FINISHED");
+      if (newCacheBackEndUsed()) {
+        
+        
+        
+        
+        
+        
+        this.onCheckPassed = false;
+        
+        this.behavior &= ~COMPLETE;
+      }
+      return Ci.nsICacheEntryOpenCallback.RECHECK_AFTER_WRITE_FINISHED;
     }
 
     LOG_C2(this, "onCacheEntryCheck DONE, return ENTRY_WANTED");
@@ -217,9 +235,6 @@ OpenCallback.prototype =
         entry.close();
       });
     }
-  },
-  get mainThreadOnly() {
-    return true;
   },
   selfCheck: function()
   {
