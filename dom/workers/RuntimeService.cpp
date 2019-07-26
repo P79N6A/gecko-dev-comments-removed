@@ -383,7 +383,7 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
 
   
   
-  JSRuntime* runtime = JS_NewRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE);
+  JSRuntime* runtime = JS_NewRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE, JS_NO_HELPER_THREADS);
   if (!runtime) {
     NS_WARNING("Could not create new runtime!");
     return nullptr;
