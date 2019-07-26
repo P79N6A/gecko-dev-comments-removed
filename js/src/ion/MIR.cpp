@@ -955,7 +955,7 @@ MUrsh::infer(BaselineInspector *inspector, jsbytecode *pc)
         return;
     }
 
-    if (inspector->expectedResultType(pc) == MIRType_Double) {
+    if (inspector->hasSeenDoubleResult(pc)) {
         specialization_ = MIRType_Double;
         setResultType(MIRType_Double);
         return;
@@ -1309,7 +1309,7 @@ MBinaryArithInstruction::infer(BaselineInspector *inspector,
         return inferFallback(inspector, pc);
 
     
-    if (inspector->expectedResultType(pc) == MIRType_Double)
+    if (inspector->hasSeenDoubleResult(pc))
         setResultType(MIRType_Double);
 
     
