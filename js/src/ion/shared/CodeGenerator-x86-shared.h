@@ -18,12 +18,6 @@ class OutOfLineUndoALUOperation;
 class MulNegativeZeroCheck;
 class OutOfLineTruncate;
 
-enum NaNCond {
-    NaN_Unexpected,
-    NaN_IsTrue,
-    NaN_IsFalse
-};
-
 class CodeGeneratorX86Shared : public CodeGeneratorShared
 {
     friend class MoveResolverX86;
@@ -72,13 +66,14 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     void emitCompare(MIRType type, const LAllocation *left, const LAllocation *right);
 
     
-    void emitSet(Assembler::Condition cond, const Register &dest, NaNCond ifNaN = NaN_Unexpected);
+    void emitSet(Assembler::Condition cond, const Register &dest,
+                 Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected);
     void emitSet(Assembler::DoubleCondition cond, const Register &dest);
 
     
     
     void emitBranch(Assembler::Condition cond, MBasicBlock *ifTrue, MBasicBlock *ifFalse,
-                    NaNCond ifNaN = NaN_Unexpected);
+                    Assembler::NaNCond ifNaN = Assembler::NaN_Unexpected);
     void emitBranch(Assembler::DoubleCondition cond, MBasicBlock *ifTrue, MBasicBlock *ifFalse);
 
     bool emitTableSwitchDispatch(MTableSwitch *mir, const Register &index, const Register &base);
