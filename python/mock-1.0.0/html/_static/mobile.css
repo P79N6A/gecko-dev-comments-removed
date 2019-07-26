@@ -1,0 +1,17 @@
+
+
+
+
+
+
+#breadcrumbs {
+	display: none !important;
+}
+
+.document {
+    bottom: inherit !important;
+}
+
+#sphinxsidebar {
+    bottom: inherit !important;
+}
