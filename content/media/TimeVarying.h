@@ -45,6 +45,9 @@ protected:
 
 
 
+
+
+
 template <typename Time, typename T, uint32_t ReservedChanges>
 class TimeVarying : public TimeVaryingBase {
 public:
@@ -78,6 +81,9 @@ public:
         return;
       }
       mChanges.RemoveElementAt(i);
+    }
+    if (mCurrent == aValue) {
+      return;
     }
     mChanges.InsertElementAt(0, Entry(aTime, aValue));
   }
