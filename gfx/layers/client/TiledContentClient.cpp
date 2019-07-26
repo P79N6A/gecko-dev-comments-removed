@@ -732,10 +732,12 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   }
 
   bool createdTextureClient = false;
-  nsIntRegion offsetDirtyRegion = aDirtyRegion.MovedBy(-aTileOrigin);
+  nsIntRegion offsetScaledDirtyRegion = aDirtyRegion.MovedBy(-aTileOrigin);
+  offsetScaledDirtyRegion.ScaleRoundOut(mResolution, mResolution);
+
   bool usingSinglePaintBuffer = !!mSinglePaintDrawTarget;
   RefPtr<TextureClient> backBuffer =
-    aTile.GetBackBuffer(offsetDirtyRegion,
+    aTile.GetBackBuffer(offsetScaledDirtyRegion,
                         mManager->GetTexturePool(gfxPlatform::GetPlatform()->Optimal2DFormatForContent(GetContentType())),
                         &createdTextureClient, !usingSinglePaintBuffer);
 
@@ -781,33 +783,40 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
     
     aTile.mInvalidBack.Sub(nsIntRect(0, 0, TILEDLAYERBUFFER_TILE_SIZE, TILEDLAYERBUFFER_TILE_SIZE),
-                           offsetDirtyRegion);
+                           offsetScaledDirtyRegion);
   } else {
     
-    nsIntRegion tileRegion = nsIntRect(aTileOrigin.x, aTileOrigin.y, TILEDLAYERBUFFER_TILE_SIZE, TILEDLAYERBUFFER_TILE_SIZE);
+    nsIntRegion tileRegion =
+      nsIntRect(aTileOrigin.x, aTileOrigin.y,
+                GetScaledTileLength(), GetScaledTileLength());
 
     
     tileRegion = tileRegion.Intersect(aDirtyRegion);
 
     
-    aTile.mInvalidFront.MoveBy(aTileOrigin);
-    aTile.mInvalidBack.MoveBy(aTileOrigin);
+    nsIntPoint unscaledTileOrigin = nsIntPoint(aTileOrigin.x * mResolution,
+                                               aTileOrigin.y * mResolution);
+    nsIntRegion unscaledTileRegion(tileRegion);
+    unscaledTileRegion.ScaleRoundOut(mResolution, mResolution);
+
+    
+    aTile.mInvalidFront.MoveBy(unscaledTileOrigin);
+    aTile.mInvalidBack.MoveBy(unscaledTileOrigin);
 
     
     
-    aTile.mInvalidFront.Or(aTile.mInvalidFront, tileRegion);
+    aTile.mInvalidFront.Or(aTile.mInvalidFront, unscaledTileRegion);
 
     
     tileRegion.Or(tileRegion, aTile.mInvalidBack);
 
     
-    aTile.mInvalidFront.MoveBy(-aTileOrigin);
+    aTile.mInvalidFront.MoveBy(-unscaledTileOrigin);
 
     
     aTile.mInvalidBack.SetEmpty();
 
     nsIntRect bounds = tileRegion.GetBounds();
-    bounds.ScaleRoundOut(mResolution, mResolution);
     bounds.MoveBy(-aTileOrigin);
 
     if (GetContentType() != gfxContentType::COLOR) {
@@ -816,8 +825,8 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
     ctxt->NewPath();
     ctxt->Clip(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height));
+    ctxt->Translate(gfxPoint(-unscaledTileOrigin.x, -unscaledTileOrigin.y));
     ctxt->Scale(mResolution, mResolution);
-    ctxt->Translate(gfxPoint(-aTileOrigin.x, -aTileOrigin.y));
     mCallback(mThebesLayer, ctxt,
               tileRegion.GetBounds(),
               DrawRegionClip::CLIP_NONE,
