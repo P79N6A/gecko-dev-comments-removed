@@ -121,18 +121,18 @@ class RegExpShared
     Vector<uint8_t *, 0, SystemAllocPolicy> tables;
 
     
-    bool compile(JSContext *cx, const jschar *sampleChars, size_t sampleLength);
-    bool compile(JSContext *cx, HandleAtom pattern, const jschar *sampleChars, size_t sampleLength);
+    bool compile(JSContext *cx, HandleLinearString sample);
+    bool compile(JSContext *cx, HandleAtom pattern, HandleLinearString sample);
 
-    bool compileIfNecessary(JSContext *cx, const jschar *sampleChars, size_t sampleLength);
+    bool compileIfNecessary(JSContext *cx, HandleLinearString sample);
 
   public:
     RegExpShared(JSAtom *source, RegExpFlag flags);
     ~RegExpShared();
 
     
-    RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length,
-                            size_t *lastIndex, MatchPairs &matches);
+    RegExpRunStatus execute(JSContext *cx, HandleLinearString str, size_t *lastIndex,
+                            MatchPairs &matches);
 
     
     bool addTable(uint8_t *table) {
