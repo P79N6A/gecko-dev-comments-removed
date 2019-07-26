@@ -1185,12 +1185,15 @@ WebGLProxy.prototype = {
 
 
 
-  _getFramebufferAttachmentParameter: function(type, name) {
+
+
+
+  _getFramebufferAttachmentParameter: function(type, name = "FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE") {
     if (!this._getParameter("FRAMEBUFFER_BINDING")) {
       return null;
     }
     let gl = this._gl;
-    return gl.getFramebufferAttachmentParameter(gl.RENDERBUFFER, gl[type], gl[name]);
+    return gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl[type], gl[name]);
   },
 
   
@@ -1282,8 +1285,18 @@ WebGLProxy.prototype = {
     let gl = this._gl;
 
     
-    let format = this._getRenderbufferParameter("RENDERBUFFER_INTERNAL_FORMAT");
-    if (format == gl.DEPTH_COMPONENT16) {
+
+    
+    let hasFramebuffer = this._getParameter("FRAMEBUFFER_BINDING");
+    let hasRenderbuffer = this._getParameter("RENDERBUFFER_BINDING");
+    if (hasFramebuffer && !hasRenderbuffer) {
+      return;
+    }
+
+    
+    let writesDepth = this._getFramebufferAttachmentParameter("DEPTH_ATTACHMENT");
+    let writesStencil = this._getFramebufferAttachmentParameter("STENCIL_ATTACHMENT");
+    if (writesDepth || writesStencil) {
       return;
     }
 
