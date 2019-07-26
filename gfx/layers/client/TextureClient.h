@@ -48,6 +48,11 @@ class Image;
 
 
 
+enum TextureAllocationFlags {
+  ALLOC_DEFAULT = 0,
+  ALLOC_CLEAR_BUFFER = 1
+};
+
 
 
 
@@ -56,7 +61,34 @@ class TextureClientSurface
 public:
   virtual bool UpdateSurface(gfxASurface* aSurface) = 0;
   virtual already_AddRefed<gfxASurface> GetAsSurface() = 0;
-  virtual bool AllocateForSurface(gfx::IntSize aSize) = 0;
+  
+
+
+
+
+
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize,
+                                  TextureAllocationFlags flags = ALLOC_DEFAULT) = 0;
+};
+
+
+
+
+class TextureClientDrawTarget
+{
+public:
+  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() = 0;
+  virtual gfx::SurfaceFormat GetFormat() const = 0;
+  
+
+
+
+
+
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize,
+                                  TextureAllocationFlags flags = ALLOC_DEFAULT) = 0;
 };
 
 
@@ -124,6 +156,7 @@ public:
   virtual ~TextureClient();
 
   virtual TextureClientSurface* AsTextureClientSurface() { return nullptr; }
+  virtual TextureClientDrawTarget* AsTextureClientDrawTarget() { return nullptr; }
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
   
@@ -240,7 +273,8 @@ protected:
 
 class BufferTextureClient : public TextureClient
                           , public TextureClientSurface
-                          , TextureClientYCbCr
+                          , public TextureClientYCbCr
+                          , public TextureClientDrawTarget
 {
 public:
   BufferTextureClient(CompositableClient* aCompositable, gfx::SurfaceFormat aFormat,
@@ -264,7 +298,14 @@ public:
 
   virtual already_AddRefed<gfxASurface> GetAsSurface() MOZ_OVERRIDE;
 
-  virtual bool AllocateForSurface(gfx::IntSize aSize) MOZ_OVERRIDE;
+  virtual bool AllocateForSurface(gfx::IntSize aSize,
+                                  TextureAllocationFlags aFlags = ALLOC_DEFAULT) MOZ_OVERRIDE;
+
+  
+
+  virtual TextureClientDrawTarget* AsTextureClientDrawTarget() MOZ_OVERRIDE { return this; }
+
+  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
 
   
 
@@ -276,7 +317,7 @@ public:
                                 gfx::IntSize aCbCrSize,
                                 StereoMode aStereoMode) MOZ_OVERRIDE;
 
-  gfx::SurfaceFormat GetFormat() const { return mFormat; }
+  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE { return mFormat; }
 
   
   

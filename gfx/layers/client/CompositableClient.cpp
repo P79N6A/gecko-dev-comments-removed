@@ -15,7 +15,10 @@
 #include "mozilla/layers/TextureD3D9.h"
 #include "mozilla/layers/TextureD3D11.h"
 #include "gfxWindowsPlatform.h"
+#include "gfx2DGlue.h"
 #endif
+
+using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
@@ -193,8 +196,8 @@ CompositableClient::CreateDeprecatedTextureClient(DeprecatedTextureClientType aD
 }
 
 TemporaryRef<BufferTextureClient>
-CompositableClient::CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
-                                              uint32_t aTextureFlags)
+CompositableClient::CreateBufferTextureClient(SurfaceFormat aFormat,
+                                              TextureFlags aTextureFlags)
 {
 
 
@@ -214,15 +217,56 @@ CompositableClient::CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
   return result.forget();
 }
 
-bool
-CompositableClient::AddTextureClient(TextureClient* aClient)
+TemporaryRef<TextureClient>
+CompositableClient::CreateTextureClientForDrawing(SurfaceFormat aFormat,
+                                                  TextureFlags aTextureFlags)
+{
+  RefPtr<TextureClient> result;
+
+#ifdef XP_WIN
+  LayersBackend parentBackend = GetForwarder()->GetCompositorBackendType();
+  
+  if (parentBackend == LAYERS_D3D11 && gfxWindowsPlatform::GetPlatform()->GetD2DDevice() &&
+      !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
+    
+  }
+  if (parentBackend == LAYERS_D3D9 &&
+      !GetForwarder()->ForwardsToDifferentProcess() &&
+      !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
+    
+    if (ContentForFormat(aFormat) == GFX_CONTENT_COLOR_ALPHA) {
+      
+    } else {
+      
+    }
+  }
+#endif
+  
+  if (!result) {
+    result = CreateBufferTextureClient(aFormat, aTextureFlags);
+  }
+
+  MOZ_ASSERT(!result || result->AsTextureClientDrawTarget(),
+             "Not a TextureClientDrawTarget?");
+  return result;
+}
+
+uint64_t
+CompositableClient::NextTextureID()
 {
   ++mNextTextureID;
   
   if (mNextTextureID == 0) {
     ++mNextTextureID;
   }
-  aClient->SetID(mNextTextureID);
+
+  return mNextTextureID;
+}
+
+bool
+CompositableClient::AddTextureClient(TextureClient* aClient)
+{
+  aClient->SetID(NextTextureID());
   return mForwarder->AddTexture(this, aClient);
 }
 

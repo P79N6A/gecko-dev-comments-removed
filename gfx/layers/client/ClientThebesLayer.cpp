@@ -106,6 +106,18 @@ ClientThebesLayer::RenderLayer()
   mContentClient->BeginPaint();
   PaintThebes();
   mContentClient->EndPaint();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  mContentClient->OnTransaction();
 }
 
 void

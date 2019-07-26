@@ -33,6 +33,7 @@ class Matrix;
 namespace layers {
 
 class DeprecatedTextureClient;
+class TextureClient;
 class ThebesLayer;
 
 
@@ -157,7 +158,9 @@ public:
   };
 
   RotatedContentBuffer(BufferSizePolicy aBufferSizePolicy)
-    : mBufferProvider(nullptr)
+    : mDeprecatedBufferProvider(nullptr)
+    , mDeprecatedBufferProviderOnWhite(nullptr)
+    , mBufferProvider(nullptr)
     , mBufferProviderOnWhite(nullptr)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
@@ -176,6 +179,8 @@ public:
   {
     mDTBuffer = nullptr;
     mDTBufferOnWhite = nullptr;
+    mDeprecatedBufferProvider = nullptr;
+    mDeprecatedBufferProviderOnWhite = nullptr;
     mBufferProvider = nullptr;
     mBufferProviderOnWhite = nullptr;
     mBufferRect.SetEmpty();
@@ -290,23 +295,48 @@ protected:
 
 
 
-  void SetBufferProvider(DeprecatedTextureClient* aClient)
+  void SetDeprecatedBufferProvider(DeprecatedTextureClient* aClient)
   {
     
     
-    MOZ_ASSERT(!aClient || !mDTBuffer);
+    MOZ_ASSERT((!aClient || !mDTBuffer) && !mBufferProvider);
 
-    mBufferProvider = aClient;
-    if (!mBufferProvider) {
+    mDeprecatedBufferProvider = aClient;
+    if (!mDeprecatedBufferProvider) {
       mDTBuffer = nullptr;
     } 
   }
   
-  void SetBufferProviderOnWhite(DeprecatedTextureClient* aClient)
+  void SetDeprecatedBufferProviderOnWhite(DeprecatedTextureClient* aClient)
   {
     
     
-    MOZ_ASSERT(!aClient || !mDTBufferOnWhite);
+    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mBufferProviderOnWhite);
+
+    mDeprecatedBufferProviderOnWhite = aClient;
+    if (!mDeprecatedBufferProviderOnWhite) {
+      mDTBufferOnWhite = nullptr;
+    }
+  }
+
+  
+  void SetBufferProvider(TextureClient* aClient)
+  {
+    
+    
+    MOZ_ASSERT((!aClient || !mDTBuffer) && !mDeprecatedBufferProvider);
+
+    mBufferProvider = aClient;
+    if (!mBufferProvider) {
+      mDTBuffer = nullptr;
+    }
+  }
+
+  void SetBufferProviderOnWhite(TextureClient* aClient)
+  {
+    
+    
+    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mDeprecatedBufferProviderOnWhite);
 
     mBufferProviderOnWhite = aClient;
     if (!mBufferProviderOnWhite) {
@@ -349,8 +379,10 @@ protected:
 
 
 
-  DeprecatedTextureClient* mBufferProvider;
-  DeprecatedTextureClient* mBufferProviderOnWhite;
+  DeprecatedTextureClient* mDeprecatedBufferProvider;
+  DeprecatedTextureClient* mDeprecatedBufferProviderOnWhite;
+  TextureClient* mBufferProvider;
+  TextureClient* mBufferProviderOnWhite;
 
   BufferSizePolicy      mBufferSizePolicy;
 };

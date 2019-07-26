@@ -104,13 +104,6 @@ TextureHost::Create(uint64_t aID,
       return CreateTextureHostOGL(aID, aDesc, aDeallocator, aFlags);
     case LAYERS_BASIC:
       return CreateTextureHostBasic(aID, aDesc, aDeallocator, aFlags);
-#ifdef MOZ_WIDGET_GONK
-    case LAYERS_NONE:
-      
-      
-      
-      return CreateTextureHostOGL(aID, aDesc, aDeallocator, aFlags);
-#endif
 #ifdef XP_WIN
     case LAYERS_D3D11:
     case LAYERS_D3D9:
@@ -520,6 +513,7 @@ ShmemTextureHost::DeallocateSharedData()
     MOZ_ASSERT(mDeallocator,
                "Shared memory would leak without a ISurfaceAllocator");
     mDeallocator->DeallocShmem(*mShmem);
+    mShmem = nullptr;
   }
 }
 
@@ -558,6 +552,7 @@ MemoryTextureHost::DeallocateSharedData()
     GfxMemoryImageReporter::WillFree(mBuffer);
   }
   delete[] mBuffer;
+  mBuffer = nullptr;
 }
 
 uint8_t* MemoryTextureHost::GetBuffer()
