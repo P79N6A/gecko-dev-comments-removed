@@ -311,12 +311,13 @@ public:
     
 
 
-    bool DispatchMouseEvent(const nsString& aType,
-                            const CSSPoint& aPoint,
-                            const int32_t&  aButton,
-                            const int32_t&  aClickCount,
-                            const int32_t&  aModifiers,
-                            const bool&     aIgnoreRootScrollFrame);
+    bool DispatchMouseEvent(const nsString&       aType,
+                            const CSSPoint&       aPoint,
+                            const int32_t&        aButton,
+                            const int32_t&        aClickCount,
+                            const int32_t&        aModifiers,
+                            const bool&           aIgnoreRootScrollFrame,
+                            const unsigned short& aInputSourceArg);
 
     
 
