@@ -2,6 +2,7 @@
 
 
 
+
 let tempScope = {};
 Cu.import("resource://gre/modules/NetUtil.jsm", tempScope);
 Cu.import("resource://gre/modules/FileUtils.jsm", tempScope);

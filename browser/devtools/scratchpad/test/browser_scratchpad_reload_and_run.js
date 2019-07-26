@@ -2,6 +2,7 @@
 
 
 
+
 let DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
 let EDITOR_TEXT = [
   "var evt = new CustomEvent('foo', { bubbles: true });",
