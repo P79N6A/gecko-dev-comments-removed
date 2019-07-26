@@ -4,8 +4,8 @@ function check_webm(v, enabled) {
   }
 
   
-  check("video/webm", "probably");
-  check("audio/webm", "probably");
+  check("video/webm", "maybe");
+  check("audio/webm", "maybe");
 
   
   check("audio/webm; codecs=vorbis", "probably");
