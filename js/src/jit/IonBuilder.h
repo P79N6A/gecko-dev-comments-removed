@@ -110,6 +110,7 @@ class IonBuilder : public MIRGenerator
                 MBasicBlock *ifFalse;
                 jsbytecode *falseEnd;
                 MBasicBlock *ifTrue;    
+                MTest *test;
             } branch;
             struct {
                 
@@ -200,8 +201,8 @@ class IonBuilder : public MIRGenerator
             }
         }
 
-        static CFGState If(jsbytecode *join, MBasicBlock *ifFalse);
-        static CFGState IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse);
+        static CFGState If(jsbytecode *join, MTest *test);
+        static CFGState IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MTest *test);
         static CFGState AndOr(jsbytecode *join, MBasicBlock *joinStart);
         static CFGState TableSwitch(jsbytecode *exitpc, MTableSwitch *ins);
         static CFGState CondSwitch(IonBuilder *builder, jsbytecode *exitpc, jsbytecode *defaultTarget);
@@ -338,6 +339,9 @@ class IonBuilder : public MIRGenerator
     MConstant *constantInt(int32_t i);
 
     
+    bool filterTypesAtTest(MTest *test);
+
+    
     
     bool pushTypeBarrier(MDefinition *def, types::TemporaryTypeSet *observed, bool needBarrier);
 
@@ -351,6 +355,9 @@ class IonBuilder : public MIRGenerator
     
     
     MDefinition *ensureDefiniteType(MDefinition* def, JSValueType definiteType);
+
+    
+    MDefinition *ensureDefiniteTypeSet(MDefinition* def, types::TemporaryTypeSet *types);
 
     JSObject *getSingletonPrototype(JSFunction *target);
 
