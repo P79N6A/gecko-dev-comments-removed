@@ -9,6 +9,8 @@
 
 #include <stdio.h>                      
 #include <stdint.h>                     
+#include <algorithm>                    
+#include "nsDebug.h"                    
 #include "gfxCore.h"                    
 #include "mozilla/Likely.h"             
 #include "mozilla/gfx/BaseRect.h"       
@@ -56,11 +58,6 @@ struct NS_GFX nsRect :
   
   
   
-  void SaturatingInflate(const nsMargin& aMargin);
-
-  
-  
-  
 
   nsRect SaturatingUnion(const nsRect& aRect) const
   {
@@ -73,7 +70,40 @@ struct NS_GFX nsRect :
     }
   }
 
-  nsRect SaturatingUnionEdges(const nsRect& aRect) const;
+  nsRect SaturatingUnionEdges(const nsRect& aRect) const
+  {
+#ifdef NS_COORD_IS_FLOAT
+    return UnionEdges(aRect);
+#else
+    nsRect result;
+    result.x = std::min(aRect.x, x);
+    int64_t w = std::max(int64_t(aRect.x) + aRect.width, int64_t(x) + width) - result.x;
+    if (MOZ_UNLIKELY(w > nscoord_MAX)) {
+      NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord width");
+      
+      result.x = std::max(result.x, nscoord_MIN / 2);
+      w = std::max(int64_t(aRect.x) + aRect.width, int64_t(x) + width) - result.x;
+      if (MOZ_UNLIKELY(w > nscoord_MAX)) {
+        w = nscoord_MAX;
+      }
+    }
+    result.width = nscoord(w);
+
+    result.y = std::min(aRect.y, y);
+    int64_t h = std::max(int64_t(aRect.y) + aRect.height, int64_t(y) + height) - result.y;
+    if (MOZ_UNLIKELY(h > nscoord_MAX)) {
+      NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord height");
+      
+      result.y = std::max(result.y, nscoord_MIN / 2);
+      h = std::max(int64_t(aRect.y) + aRect.height, int64_t(y) + height) - result.y;
+      if (MOZ_UNLIKELY(h > nscoord_MAX)) {
+        h = nscoord_MAX;
+      }
+    }
+    result.height = nscoord(h);
+    return result;
+#endif
+  }
 
 #ifndef NS_COORD_IS_FLOAT
   
