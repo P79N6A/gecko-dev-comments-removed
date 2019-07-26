@@ -882,6 +882,7 @@ this.StorageServer = function StorageServer(callback) {
 StorageServer.prototype = {
   DEFAULT_QUOTA: 1024 * 1024, 
 
+  port:   8080,
   server: null,    
   users:  null,    
 
@@ -908,14 +909,11 @@ StorageServer.prototype = {
       this._log.warn("Warning: server already started on " + this.port);
       return;
     }
-    if (!port) {
-      port = -1;
+    if (port) {
+      this.port = port;
     }
-    this.port = port;
-
     try {
       this.server.start(this.port);
-      this.port = this.server.identity.primaryPort;
       this.started = true;
       if (cb) {
         cb();
@@ -937,7 +935,7 @@ StorageServer.prototype = {
 
 
 
-  startSynchronous: function startSynchronous(port=-1) {
+  startSynchronous: function startSynchronous(port) {
     let cb = Async.makeSpinningCallback();
     this.start(port, cb);
     cb.wait();
