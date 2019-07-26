@@ -598,6 +598,8 @@ ContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
                             mFrontBufferRect,
                             mFrontBufferRotation);
   UpdateDestinationFrom(frontBuffer, updateRegion);
+  
+  FlushBuffers();
   mFrontClient->Unlock();
   if (mFrontClientOnWhite) {
     mFrontClientOnWhite->Unlock();
@@ -815,6 +817,9 @@ DeprecatedContentClientDoubleBuffered::SyncFrontBufferToBackBuffer()
                             mFrontBufferRect,
                             mFrontBufferRotation);
   UpdateDestinationFrom(frontBuffer, updateRegion);
+
+  
+  FlushBuffers();
 
   mFrontAndBackBufferDiffer = false;
 }

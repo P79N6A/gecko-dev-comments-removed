@@ -75,6 +75,8 @@ public:
     BUFFER_WHITE, 
     BUFFER_BOTH 
   };
+  
+  
   void DrawBufferWithRotation(gfx::DrawTarget* aTarget, ContextSource aSource,
                               float aOpacity = 1.0,
                               gfx::CompositionOp aOperator = gfx::OP_OVER,
@@ -396,6 +398,10 @@ protected:
 
   bool EnsureBuffer();
   bool EnsureBufferOnWhite();
+
+  
+  void FlushBuffers();
+
   
 
 
