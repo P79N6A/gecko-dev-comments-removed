@@ -27,7 +27,7 @@ const EVENT_HEALTH_RESPONSE = "HealthReport:Response";
 
 
 
-let sharedPrefs = new SharedPreferences();
+let sharedPrefs = SharedPreferences.forApp();
 
 let healthReportWrapper = {
   init: function () {
