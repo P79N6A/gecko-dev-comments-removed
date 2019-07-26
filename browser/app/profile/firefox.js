@@ -1275,6 +1275,9 @@ pref("devtools.hud.loglimit.exception", 200);
 pref("devtools.hud.loglimit.console", 200);
 
 
+pref("devtools.eyedropper.zoom", 6);
+
+
 
 
 
@@ -1364,8 +1367,6 @@ pref("security.csp.speccompliant", true);
 
 
 pref("security.mixed_content.block_active_content", true);
-
-pref("security.use_mozillapkix_verification", true);
 
 
 pref("plain_text.wrap_long_lines", true);
