@@ -317,6 +317,12 @@ struct CompileError {
     }
     ~CompileError();
     void throwError(JSContext *cx);
+
+  private:
+    
+    
+    void operator=(const CompileError &) MOZ_DELETE;
+    CompileError(const CompileError &) MOZ_DELETE;
 };
 
 
