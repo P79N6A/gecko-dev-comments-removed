@@ -159,6 +159,12 @@ CertVerifier::VerifyCert(CERTCertificate * cert,
       if (!trustAnchors) {
         return SECFailure;
       }
+      
+      
+      
+      if (CERT_LIST_EMPTY(trustAnchors)) {
+        evPolicy = SEC_OID_UNKNOWN;
+      }
     } else {
       
       evPolicy = SEC_OID_UNKNOWN;
