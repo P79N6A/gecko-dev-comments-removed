@@ -2023,6 +2023,31 @@ sdp_result_e sdp_set_media_portnum (void *sdp_ptr, u16 level, int32 portnum, int
 
 
 
+int32 sdp_get_media_sctp_port(void *sdp_ptr, u16 level)
+{
+    sdp_t      *sdp_p = (sdp_t *)sdp_ptr;
+    sdp_mca_t  *mca_p;
+
+    if (!sdp_verify_sdp_ptr(sdp_p)) {
+        return -1;
+    }
+
+    mca_p = sdp_find_media_level(sdp_p, level);
+    if (!mca_p) {
+        sdp_p->conf_p->num_invalid_param++;
+        return -1;
+    }
+
+    return mca_p->sctpport;
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -1059,13 +1059,51 @@ short vcmGetDtlsIdentity(const char *peerconnection,
 
 
 
-short vcmSetDataChannelParameters(const char *peerconnection, cc_uint16_t streams, int sctp_port, const char* protocol)
+
+static short vcmInitializeDataChannel_m(const char *peerconnection, cc_uint16_t streams,
+  int local_datachannel_port, int remote_datachannel_port, const char* protocol)
 {
+  nsresult res;
+
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
+
+  sipcc::PeerConnectionWrapper pc(peerconnection);
+  ENSURE_PC(pc, VCM_ERROR);
+
+  res = pc.impl()->InitializeDataChannel(local_datachannel_port, remote_datachannel_port, streams);
+  if (NS_FAILED(res)) {
+    return VCM_ERROR;
+  }
 
   return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+short vcmInitializeDataChannel(const char *peerconnection, cc_uint16_t streams,
+  int local_datachannel_port, int remote_datachannel_port, const char* protocol)
+{
+  short ret;
+
+  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
+      WrapRunnableNMRet(&vcmInitializeDataChannel_m,
+                        peerconnection,
+                        streams,
+                        local_datachannel_port,
+                        remote_datachannel_port,
+                        protocol,
+                        &ret));
+
+  return ret;
+}
 
 
 
