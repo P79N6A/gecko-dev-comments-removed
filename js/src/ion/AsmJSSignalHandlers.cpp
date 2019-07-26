@@ -16,8 +16,6 @@ using namespace js;
 using namespace js::ion;
 using namespace mozilla;
 
-#ifdef JS_ASMJS
-
 #if defined(XP_WIN)
 # define XMM_sig(p,i) ((p)->Xmm##i)
 # define EIP_sig(p) ((p)->Eip)
@@ -935,26 +933,24 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
     }
 }
 # endif
-#endif 
 
 bool
 EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 {
-#if defined(JS_ASMJS)
-# if defined(XP_MACOSX)
+#if defined(XP_MACOSX)
     
     return rt->asmJSMachExceptionHandler.installed() || rt->asmJSMachExceptionHandler.install(rt);
-# else
+#else
     
     
     InstallSignalHandlersMutex::Lock lock;
     if (lock.handlersInstalled())
         return true;
 
-#  if defined(XP_WIN)
+# if defined(XP_WIN)
     if (!AddVectoredExceptionHandler(true, AsmJSExceptionHandler))
         return false;
-#  else  
+# else  
     struct sigaction sigAction;
     sigAction.sa_sigaction = &AsmJSFaultHandler;
     sigemptyset(&sigAction.sa_mask);
@@ -963,10 +959,9 @@ EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
         return false;
     if (sigaction(SIGBUS, &sigAction, &sPrevBusHandler))
         return false;
-#  endif
+# endif
 
     lock.setHandlersInstalled();
-# endif
 #endif
     return true;
 }
@@ -984,7 +979,6 @@ EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 void
 js::TriggerOperationCallbackForAsmJSCode(JSRuntime *rt)
 {
-#if defined(JS_ASMJS)
     JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
 
     AsmJSActivation *activation = rt->mainThread.asmJSActivationStackFromAnyThread();
@@ -993,14 +987,13 @@ js::TriggerOperationCallbackForAsmJSCode(JSRuntime *rt)
 
     const AsmJSModule &module = activation->module();
 
-# if defined(XP_WIN)
+#if defined(XP_WIN)
     DWORD oldProtect;
     if (!VirtualProtect(module.functionCode(), module.functionBytes(), PAGE_NOACCESS, &oldProtect))
         MOZ_CRASH();
-# else  
+#else  
     if (mprotect(module.functionCode(), module.functionBytes(), PROT_NONE))
         MOZ_CRASH();
-# endif
 #endif
 }
 
