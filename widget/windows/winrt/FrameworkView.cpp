@@ -292,6 +292,11 @@ void FrameworkView::SetDpi(float aDpi)
 
     
     mWindowBounds = MetroUtils::LogToPhys(logicalBounds);
+
+    
+    if (mWidget) {
+      mWidget->ChangedDPI();
+    }
   }
 }
 
