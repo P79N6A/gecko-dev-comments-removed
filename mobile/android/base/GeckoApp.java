@@ -452,7 +452,7 @@ public abstract class GeckoApp
             if (GeckoThread.checkAndSetLaunchState(GeckoThread.LaunchState.GeckoRunning, GeckoThread.LaunchState.GeckoExiting)) {
                 GeckoAppShell.notifyGeckoOfEvent(GeckoEvent.createBroadcastEvent("Browser:Quit", null));
             } else {
-                System.exit(0);
+                GeckoAppShell.systemExit();
             }
             return true;
         }
@@ -1235,7 +1235,7 @@ public abstract class GeckoApp
         if (LocaleManager.systemLocaleDidChange()) {
             Log.i(LOGTAG, "System locale changed. Restarting.");
             doRestart();
-            System.exit(0);
+            GeckoAppShell.systemExit();
             return;
         }
 
@@ -1888,7 +1888,7 @@ public abstract class GeckoApp
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoExiting)) {
             
             
-            System.exit(0);
+            GeckoAppShell.systemExit();
             return;
         }
 
