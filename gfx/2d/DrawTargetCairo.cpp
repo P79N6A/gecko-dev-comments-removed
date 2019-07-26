@@ -173,6 +173,15 @@ GetCairoSurfaceForSourceSurface(SourceSurface *aSurface)
                                         data->GetSize().width,
                                         data->GetSize().height,
                                         data->Stride());
+
+  
+  
+  
+  
+  if (cairo_surface_status(surf)) {
+    return nullptr;
+  }
+
   cairo_surface_set_user_data(surf,
  				                      &surfaceDataKey,
  				                      data.forget().drop(),
@@ -746,6 +755,13 @@ CopyDataToCairoSurface(cairo_surface_t* aSurface,
                        int32_t aPixelWidth)
 {
   unsigned char* surfData = cairo_image_surface_get_data(aSurface);
+  
+  
+  
+  
+  if (!surfData) {
+    return;
+  }
   for (int32_t y = 0; y < aSize.height; ++y) {
     memcpy(surfData + y * aSize.width * aPixelWidth,
            aData + y * aStride,
@@ -763,6 +779,14 @@ DrawTargetCairo::CreateSourceSurfaceFromData(unsigned char *aData,
   cairo_surface_t* surf = cairo_image_surface_create(GfxFormatToCairoFormat(aFormat),
                                                      aSize.width,
                                                      aSize.height);
+  
+  
+  
+  
+  if (cairo_surface_status(surf)) {
+    return nullptr;
+  }
+
   CopyDataToCairoSurface(surf, aData, aSize, aStride, BytesPerPixel(aFormat));
 
   RefPtr<SourceSurfaceCairo> source_surf = new SourceSurfaceCairo(surf, aSize, aFormat);
