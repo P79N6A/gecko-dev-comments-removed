@@ -138,7 +138,11 @@ public class HomeBanner extends LinearLayout
                 public void run() {
                     mTextView.setText(text);
                     setVisibility(VISIBLE);
-                    animateUp();
+
+                    
+                    if (mEnabled) {
+                        animateUp();
+                    }
                 }
             });
         } catch (JSONException e) {
@@ -168,6 +172,12 @@ public class HomeBanner extends LinearLayout
         }
 
         mEnabled = enabled;
+
+        
+        if (getVisibility() != View.VISIBLE) {
+            return;
+        }
+
         if (enabled) {
             animateUp();
         } else {
@@ -178,12 +188,7 @@ public class HomeBanner extends LinearLayout
     private void animateUp() {
         
         
-        if (!mEnabled || TextUtils.isEmpty(mTextView.getText()) || mUserSwipedDown) {
-            return;
-        }
-
-        
-        if (ViewHelper.getTranslationY(this) == 0) {
+        if (ViewHelper.getTranslationY(this) == 0 || mUserSwipedDown) {
             return;
         }
 
