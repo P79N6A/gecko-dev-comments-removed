@@ -282,8 +282,6 @@ class ProcessMetrics {
   
   
   size_t GetPagefileUsage() const;
-  
-  size_t GetPeakPagefileUsage() const;
 
   
   
