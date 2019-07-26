@@ -1302,7 +1302,6 @@ Interpret(JSContext *cx, RunState &state)
     InterpreterActivation activation(cx, entryFrame, regs, &switchMask);
 
     
-    JSRuntime *const rt = cx->runtime();
     RootedScript script(cx);
     SET_SCRIPT(regs.fp()->script());
 
@@ -1378,7 +1377,7 @@ Interpret(JSContext *cx, RunState &state)
     int32_t len;
     len = 0;
 
-    if (rt->profilingScripts || cx->runtime()->debugHooks.interruptHook)
+    if (cx->runtime()->profilingScripts || cx->runtime()->debugHooks.interruptHook)
         switchMask = EnableInterruptsPseudoOpcode; 
 
   advanceAndDoOp:
@@ -2251,7 +2250,7 @@ END_CASE(JSOP_TOID)
 CASE(JSOP_TYPEOFEXPR)
 CASE(JSOP_TYPEOF)
 {
-    regs.sp[-1].setString(TypeOfOperation(regs.sp[-1], rt));
+    regs.sp[-1].setString(TypeOfOperation(regs.sp[-1], cx->runtime()));
 }
 END_CASE(JSOP_TYPEOF)
 
