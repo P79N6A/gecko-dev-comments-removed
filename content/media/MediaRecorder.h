@@ -109,7 +109,7 @@ protected:
   
   nsRefPtr<DOMMediaStream> mStream;
   
-  nsAutoPtr<ProcessedMediaStream> mTrackUnionStream;
+  nsRefPtr<ProcessedMediaStream> mTrackUnionStream;
   
   nsAutoPtr<EncodedBufferCache> mEncodedBufferCache;
   
