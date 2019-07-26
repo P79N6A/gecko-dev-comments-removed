@@ -900,7 +900,6 @@ NS_INTERFACE_MAP_BEGIN(nsDocShell)
     NS_INTERFACE_MAP_ENTRY(nsIDocShell)
     NS_INTERFACE_MAP_ENTRY(nsIDocShellTreeItem)
     NS_INTERFACE_MAP_ENTRY(nsIDocShellTreeNode)
-    NS_INTERFACE_MAP_ENTRY(nsIDocShellHistory)
     NS_INTERFACE_MAP_ENTRY(nsIWebNavigation)
     NS_INTERFACE_MAP_ENTRY(nsIBaseWindow)
     NS_INTERFACE_MAP_ENTRY(nsIScrollable)
@@ -1317,82 +1316,75 @@ nsDocShell::LoadURI(nsIURI * aURI,
             
             parentDS->GetLoadType(&parentLoadType);            
 
-            nsCOMPtr<nsIDocShellHistory> parent(do_QueryInterface(parentAsItem));
-            if (parent) {
+            
+            nsCOMPtr<nsISHEntry> currentSH;
+            bool oshe = false;
+            parentDS->GetCurrentSHEntry(getter_AddRefs(currentSH), &oshe);
+            bool dynamicallyAddedChild = mDynamicallyCreated;
+            if (!dynamicallyAddedChild && !oshe && currentSH) {
+                currentSH->HasDynamicallyAddedChild(&dynamicallyAddedChild);
+            }
+            if (!dynamicallyAddedChild) {
                 
-                nsCOMPtr<nsISHEntry> currentSH;
-                bool oshe = false;
-                parent->GetCurrentSHEntry(getter_AddRefs(currentSH), &oshe);
-                bool dynamicallyAddedChild = mDynamicallyCreated;
-                if (!dynamicallyAddedChild && !oshe && currentSH) {
-                    currentSH->HasDynamicallyAddedChild(&dynamicallyAddedChild);
-                }
-                if (!dynamicallyAddedChild) {
-                    
-                    
-                    parent->GetChildSHEntry(mChildOffset, getter_AddRefs(shEntry));
-                }
+                
+                parentDS->GetChildSHEntry(mChildOffset, getter_AddRefs(shEntry));
+            }
 
+            
+            
+            if (mCurrentURI == nullptr) {
                 
                 
-                if (mCurrentURI == nullptr) {
+                if (shEntry && (parentLoadType == LOAD_NORMAL ||
+                            parentLoadType == LOAD_LINK   ||
+                            parentLoadType == LOAD_NORMAL_EXTERNAL)) {
                     
                     
-                    if (shEntry && (parentLoadType == LOAD_NORMAL ||
-                                    parentLoadType == LOAD_LINK   ||
-                                    parentLoadType == LOAD_NORMAL_EXTERNAL)) {
-                        
-                        
-                        
-                        
-                        
-                        bool inOnLoadHandler=false;
-                        parentDS->GetIsExecutingOnLoadHandler(&inOnLoadHandler);
-                        if (inOnLoadHandler) {
-                            loadType = LOAD_NORMAL_REPLACE;
-                            shEntry = nullptr;
-                        }
-                    }   
-                    else if (parentLoadType == LOAD_REFRESH) {
-                        
-                        
+                    
+                    
+                    
+                    bool inOnLoadHandler=false;
+                    parentDS->GetIsExecutingOnLoadHandler(&inOnLoadHandler);
+                    if (inOnLoadHandler) {
+                        loadType = LOAD_NORMAL_REPLACE;
                         shEntry = nullptr;
                     }
-                    else if ((parentLoadType == LOAD_BYPASS_HISTORY) ||
-                              (shEntry && 
-                               ((parentLoadType & LOAD_CMD_HISTORY) || 
-                                (parentLoadType == LOAD_RELOAD_NORMAL) || 
-                                (parentLoadType == LOAD_RELOAD_CHARSET_CHANGE)))) {
-                        
-                        
-                        
-                        
-                        loadType = parentLoadType;
-                    }
-                    else if (parentLoadType == LOAD_ERROR_PAGE) {
-                        
-                        
-                        
-                        loadType = LOAD_BYPASS_HISTORY;
-                    }
+                }   else if (parentLoadType == LOAD_REFRESH) {
+                    
+                    
+                    shEntry = nullptr;
+                } else if ((parentLoadType == LOAD_BYPASS_HISTORY) ||
+                        (shEntry && 
+                         ((parentLoadType & LOAD_CMD_HISTORY) || 
+                          (parentLoadType == LOAD_RELOAD_NORMAL) || 
+                          (parentLoadType == LOAD_RELOAD_CHARSET_CHANGE)))) {
+                    
+                    
+                    
+                    
+                    loadType = parentLoadType;
+                } else if (parentLoadType == LOAD_ERROR_PAGE) {
+                    
+                    
+                    
+                    loadType = LOAD_BYPASS_HISTORY;
                 }
-                else {
-                    
-                    
-                    
-                    
-                    
-                    uint32_t parentBusy = BUSY_FLAGS_NONE;
-                    uint32_t selfBusy = BUSY_FLAGS_NONE;
-                    parentDS->GetBusyFlags(&parentBusy);                    
-                    GetBusyFlags(&selfBusy);
-                    if (parentBusy & BUSY_FLAGS_BUSY ||
+            } else {
+                
+                
+                
+                
+                
+                uint32_t parentBusy = BUSY_FLAGS_NONE;
+                uint32_t selfBusy = BUSY_FLAGS_NONE;
+                parentDS->GetBusyFlags(&parentBusy);                    
+                GetBusyFlags(&selfBusy);
+                if (parentBusy & BUSY_FLAGS_BUSY ||
                         selfBusy & BUSY_FLAGS_BUSY) {
-                        loadType = LOAD_NORMAL_REPLACE;
-                        shEntry = nullptr; 
-                    }
+                    loadType = LOAD_NORMAL_REPLACE;
+                    shEntry = nullptr; 
                 }
-            } 
+            }
         } 
         else {  
             
@@ -3461,9 +3453,9 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
     NS_ASSERTION(!mChildList.IsEmpty(),
                  "child list must not be empty after a successful add");
 
-    nsCOMPtr<nsIDocShellHistory> docshellhistory = do_QueryInterface(aChild);
+    nsCOMPtr<nsIDocShell> childDocShell = do_QueryInterface(aChild);
     bool dynamic = false;
-    docshellhistory->GetCreatedDynamically(&dynamic);
+    childDocShell->GetCreatedDynamically(&dynamic);
     if (!dynamic) {
         nsCOMPtr<nsISHEntry> currentSH;
         bool oshe = false;
@@ -3472,15 +3464,11 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
             currentSH->HasDynamicallyAddedChild(&dynamic);
         }
     }
-    nsCOMPtr<nsIDocShell> childDocShell = do_QueryInterface(aChild);
     childDocShell->SetChildOffset(dynamic ? -1 : mChildList.Length() - 1);
 
     
     if (mUseGlobalHistory) {
-        nsCOMPtr<nsIDocShellHistory>
-            dsHistoryChild(do_QueryInterface(aChild));
-        if (dsHistoryChild)
-            dsHistoryChild->SetUseGlobalHistory(true);
+            childDocShell->SetUseGlobalHistory(true);
     }
 
 
@@ -3643,9 +3631,6 @@ nsDocShell::FindChildWithName(const PRUnichar * aName,
     return NS_OK;
 }
 
-
-
-
 NS_IMETHODIMP
 nsDocShell::GetChildSHEntry(int32_t aChildOffset, nsISHEntry ** aResult)
 {
@@ -3759,7 +3744,7 @@ nsDocShell::AddChildSHEntry(nsISHEntry * aCloneRef, nsISHEntry * aNewEntry,
     }
     else {
         
-        nsCOMPtr<nsIDocShellHistory> parent =
+        nsCOMPtr<nsIDocShell> parent =
             do_QueryInterface(GetAsSupports(mParent), &rv);
         if (parent) {
             rv = parent->AddChildSHEntry(aCloneRef, aNewEntry, aChildOffset,
@@ -3789,7 +3774,7 @@ nsDocShell::DoAddChildSHEntry(nsISHEntry* aNewEntry, int32_t aChildOffset,
     }
 
     nsresult rv;
-    nsCOMPtr<nsIDocShellHistory> parent =
+    nsCOMPtr<nsIDocShell> parent =
         do_QueryInterface(GetAsSupports(mParent), &rv);
     if (parent) {
         rv = parent->AddChildSHEntry(mOSHE, aNewEntry, aChildOffset, mLoadType,
@@ -6388,7 +6373,7 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                     
                     
                     
-                    nsCOMPtr<nsIDocShellHistory> parent =
+                    nsCOMPtr<nsIDocShell> parent =
                         do_QueryInterface(parentAsItem);
                     if (parent) {
                         bool oshe = false;
