@@ -1085,6 +1085,7 @@ pref("devtools.commands.dir", "");
 
 pref("devtools.appmanager.enabled", true);
 pref("devtools.appmanager.firstrun", true);
+pref("devtools.appmanager.manifestEditor.enabled", false);
 
 
 pref("devtools.toolbox.footer.height", 250);
