@@ -763,6 +763,7 @@ nsDocShell::nsDocShell():
     mInEnsureScriptEnv(false),
 #endif
     mAffectPrivateSessionLifetime(true),
+    mDefaultLoadFlags(nsIRequest::LOAD_NORMAL),
     mFrameType(eFrameTypeRegular),
     mOwnOrContainingAppId(nsIScriptSecurityManager::UNKNOWN_APP_ID),
     mParentCharsetSource(0)
@@ -2876,6 +2877,12 @@ nsDocShell::SetDocLoaderParent(nsDocLoader * aParent)
         SetAllowDNSPrefetch(value);
         value = parentAsDocShell->GetAffectPrivateSessionLifetime();
         SetAffectPrivateSessionLifetime(value);
+        uint32_t flags;
+        if (NS_SUCCEEDED(parentAsDocShell->GetDefaultLoadFlags(&flags)))
+        {
+            SetDefaultLoadFlags(flags);
+        }
+
     }
 
     nsCOMPtr<nsILoadContext> parentAsLoadContext(do_QueryInterface(parent));
@@ -5369,6 +5376,32 @@ nsDocShell::GetSandboxFlags(uint32_t  *aSandboxFlags)
 }
 
 NS_IMETHODIMP
+nsDocShell::SetDefaultLoadFlags(uint32_t aDefaultLoadFlags)
+{
+    mDefaultLoadFlags = aDefaultLoadFlags;
+    
+    
+    
+    nsTObserverArray<nsDocLoader*>::ForwardIterator iter(mChildList);
+    while (iter.HasMore()) {
+        nsCOMPtr<nsIDocShell> docshell = do_QueryObject(iter.GetNext());
+        if (!docshell) {
+            continue;
+        }
+        docshell->SetDefaultLoadFlags(aDefaultLoadFlags);
+    }
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetDefaultLoadFlags(uint32_t *aDefaultLoadFlags)
+{
+    *aDefaultLoadFlags = mDefaultLoadFlags;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsDocShell::SetMixedContentChannel(nsIChannel* aMixedContentChannel)
 {
 #ifdef DEBUG
@@ -7791,6 +7824,9 @@ nsDocShell::RestoreFromHistory()
 
         bool allowContentRetargeting = childShell->GetAllowContentRetargeting();
 
+        uint32_t defaultLoadFlags;
+        childShell->GetDefaultLoadFlags(&defaultLoadFlags);
+
         
         
         
@@ -7805,6 +7841,7 @@ nsDocShell::RestoreFromHistory()
         childShell->SetAllowMedia(allowMedia);
         childShell->SetAllowDNSPrefetch(allowDNSPrefetch);
         childShell->SetAllowContentRetargeting(allowContentRetargeting);
+        childShell->SetDefaultLoadFlags(defaultLoadFlags);
 
         rv = childShell->BeginRestore(nullptr, false);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -9432,7 +9469,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     uriLoader = do_GetService(NS_URI_LOADER_CONTRACTID, &rv);
     if (NS_FAILED(rv)) return rv;
 
-    nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL;
+    nsLoadFlags loadFlags = mDefaultLoadFlags;
     if (aFirstParty) {
         
         loadFlags |= nsIChannel::LOAD_INITIAL_DOCUMENT_URI;
