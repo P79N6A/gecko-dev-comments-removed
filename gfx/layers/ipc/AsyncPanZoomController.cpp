@@ -1138,16 +1138,6 @@ void AsyncPanZoomController::RequestContentRepaint() {
 
   
   
-  CSSToScreenScale actualZoom = mFrameMetrics.mZoom;
-  
-  float accelerationFactor =
-    clamped(std::max(mX.GetAccelerationFactor(), mY.GetAccelerationFactor()),
-            MIN_ZOOM.scale / 2.0f, MAX_ZOOM.scale);
-  
-  mFrameMetrics.mZoom.scale /= accelerationFactor;
-
-  
-  
   
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
@@ -1164,9 +1154,6 @@ void AsyncPanZoomController::RequestContentRepaint() {
   }
   mFrameMetrics.mPresShellId = mLastContentPaintMetrics.mPresShellId;
   mLastPaintRequestMetrics = mFrameMetrics;
-
-  
-  mFrameMetrics.mZoom = actualZoom;
 }
 
 void
