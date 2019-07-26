@@ -405,8 +405,6 @@ typedef enum {
     SDP_USE_IN_BAND_FEC,
     SDP_MAX_CODED_AUDIO_BW,
     SDP_CBR,
-    SDP_STREAMS,
-    SDP_PROTOCOL,
     SDP_MAX_FMTP_PARAM,
     SDP_FMTP_PARAM_UNKNOWN
 } sdp_fmtp_codec_param_e;
@@ -644,10 +642,6 @@ typedef struct sdp_fmtp {
     u16                       cbr;
 
     
-    u16                       streams;   
-    char                      protocol[SDP_MAX_STRING_LEN+1];
-
-    
     u16                       qcif;
     u16                       cif;
     u16                       maxbr;
@@ -714,6 +708,14 @@ typedef struct sdp_fmtp {
   
 
 } sdp_fmtp_t;
+
+
+typedef struct sdp_sctpmap {
+    u16                       port;
+    u16                       streams;   
+    char                      protocol[SDP_MAX_STRING_LEN+1];
+} sdp_sctpmap_t;
+
 
 
 typedef struct sdp_qos {
@@ -956,6 +958,7 @@ typedef struct sdp_attr {
         char                  string_val[SDP_MAX_STRING_LEN+1];
         char                  ice_attr[SDP_MAX_STRING_LEN+1];
         sdp_fmtp_t            fmtp;
+        sdp_sctpmap_t         sctpmap;
         sdp_qos_t             qos;
         sdp_curr_t            curr;
         sdp_des_t             des;
@@ -1595,15 +1598,6 @@ extern char* sdp_attr_get_fmtp_maxcodedaudiobandwidth (void *sdp_ptr, u16 level,
                                                              u8 cap_num, u16 inst_num);
 extern sdp_result_e sdp_attr_get_fmtp_cbr (void *sdp_ptr, u16 level,
                              u8 cap_num, u16 inst_num, tinybool* val);
-extern sdp_result_e sdp_attr_set_fmtp_streams (void *sdp_ptr, u16 level,
-                             u8 cap_num, u16 inst_num, u32 streams);
-extern sdp_result_e sdp_attr_get_fmtp_streams (void *sdp_ptr, u16 level,
-                             u8 cap_num, u16 inst_num, u32* val);
-extern sdp_result_e sdp_attr_get_fmtp_data_channel_protocol (void *sdp_ptr, u16 level,
-                             u8 cap_num, u16 inst_num, char* protocol);
-extern sdp_result_e sdp_attr_set_fmtp_data_channel_protocol (void *sdp_ptr, u16 level,
-                             u8 cap_num, u16 inst_num,
-                             const char *protocol);
 extern int32 sdp_attr_get_fmtp_custom_x (void *sdp_ptr, u16 level,
                                          u8 cap_num, u16 inst_num);
 extern int32 sdp_attr_get_fmtp_custom_y (void *sdp_ptr, u16 level,
@@ -1643,6 +1637,22 @@ extern int32 sdp_attr_get_fmtp_annex_p_picture_resize (void *sdp_ptr, u16 level,
                                                        u8 cap_num, u16 inst_num);
 extern int32 sdp_attr_get_fmtp_annex_p_warp (void *sdp_ptr, u16 level,
                                              u8 cap_num, u16 inst_num);
+
+
+extern u16 sdp_attr_get_sctpmap_port(void *sdp_ptr, u16 level,
+                                     u8 cap_num, u16 inst_num);
+extern sdp_result_e sdp_attr_set_sctpmap_port(void *sdp_ptr, u16 level,
+                                              u8 cap_num, u16 inst_num,
+                                              u16 port);
+extern sdp_result_e sdp_attr_get_sctpmap_protocol (void *sdp_ptr, u16 level,
+                             u8 cap_num, u16 inst_num, char* protocol);
+extern sdp_result_e sdp_attr_set_sctpmap_protocol (void *sdp_ptr, u16 level,
+                             u8 cap_num, u16 inst_num,
+                             const char *protocol);
+extern sdp_result_e sdp_attr_set_sctpmap_streams (void *sdp_ptr, u16 level,
+                             u8 cap_num, u16 inst_num, u32 streams);
+extern sdp_result_e sdp_attr_get_sctpmap_streams (void *sdp_ptr, u16 level,
+                             u8 cap_num, u16 inst_num, u32* val);
 
 
 
