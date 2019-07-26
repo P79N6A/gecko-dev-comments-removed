@@ -125,6 +125,14 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         
+        if (apzc && !apzc->Matches(ScrollableLayerGuid(aLayersId, container->GetFrameMetrics()))) {
+          apzc = nullptr;
+        }
+
+        
+        
+        
+        
         
         
         if (apzc == nullptr) {
@@ -159,7 +167,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         APZC_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, container->GetFrameMetrics().mScrollId);
 
         apzc->NotifyLayersUpdated(container->GetFrameMetrics(),
-                                        aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
+                                  aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
         ScreenRect visible(container->GetFrameMetrics().mCompositionBounds);
         apzc->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
