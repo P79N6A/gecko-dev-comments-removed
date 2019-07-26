@@ -2133,6 +2133,12 @@ public:
   static nsRect
   CalculateExpandedScrollableRect(nsIFrame* aFrame);
 
+  
+
+
+
+  static bool WantSubAPZC();
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;

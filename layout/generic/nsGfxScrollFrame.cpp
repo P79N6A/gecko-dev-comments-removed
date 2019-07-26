@@ -2595,15 +2595,8 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (mShouldBuildScrollableLayer) {
     shouldBuildLayer = true;
   } else {
-    
-    bool wantSubAPZC = gfxPrefs::APZSubframeEnabled();
-#ifdef MOZ_WIDGET_GONK
-    if (XRE_GetProcessType() != GeckoProcessType_Content) {
-      wantSubAPZC = false;
-    }
-#endif
     shouldBuildLayer =
-      wantSubAPZC &&
+      nsLayoutUtils::WantSubAPZC() &&
       WantAsyncScroll() &&
       
       
