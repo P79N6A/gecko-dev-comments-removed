@@ -310,6 +310,14 @@ ICStub::trace(JSTracer *trc)
         MarkObject(trc, &callStub->getter(), "baseline-getpropcallscripted-stub-getter");
         break;
       }
+      case ICStub::GetProp_CallNative: {
+        ICGetProp_CallNative *callStub = toGetProp_CallNative();
+        MarkShape(trc, &callStub->shape(), "baseline-getpropcallnative-stub-shape");
+        MarkObject(trc, &callStub->holder(), "baseline-getpropcallnative-stub-holder");
+        MarkShape(trc, &callStub->holderShape(), "baseline-getpropcallnative-stub-holdershape");
+        MarkObject(trc, &callStub->getter(), "baseline-getpropcallnative-stub-getter");
+        break;
+      }
       case ICStub::SetProp_Native: {
         ICSetProp_Native *propStub = toSetProp_Native();
         MarkShape(trc, &propStub->shape(), "baseline-setpropnative-stub-shape");
@@ -337,6 +345,14 @@ ICStub::trace(JSTracer *trc)
         MarkObject(trc, &callStub->holder(), "baseline-setpropcallscripted-stub-holder");
         MarkShape(trc, &callStub->holderShape(), "baseline-setpropcallscripted-stub-holdershape");
         MarkObject(trc, &callStub->setter(), "baseline-setpropcallscripted-stub-setter");
+        break;
+      }
+      case ICStub::SetProp_CallNative: {
+        ICSetProp_CallNative *callStub = toSetProp_CallNative();
+        MarkShape(trc, &callStub->shape(), "baseline-setpropcallnative-stub-shape");
+        MarkObject(trc, &callStub->holder(), "baseline-setpropcallnative-stub-holder");
+        MarkShape(trc, &callStub->holderShape(), "baseline-setpropcallnative-stub-holdershape");
+        MarkObject(trc, &callStub->setter(), "baseline-setpropcallnative-stub-setter");
         break;
       }
       default:
@@ -572,14 +588,15 @@ ICStubCompiler::leaveStubFrame(MacroAssembler &masm, bool calledIntoIon)
     JS_ASSERT(entersStubFrame_);
     EmitLeaveStubFrame(masm, calledIntoIon);
 }
- 
+
 void
 ICStubCompiler::guardProfilingEnabled(MacroAssembler &masm, Register scratch, Label *skip)
 {
     
-    JS_ASSERT(kind == ICStub::Call_Scripted || kind == ICStub::Call_AnyScripted ||
-              kind == ICStub::Call_Native   || kind == ICStub::GetProp_CallScripted ||
-              kind == ICStub::SetProp_CallScripted);
+    JS_ASSERT(kind == ICStub::Call_Scripted      || kind == ICStub::Call_AnyScripted     ||
+              kind == ICStub::Call_Native        || kind == ICStub::GetProp_CallScripted ||
+              kind == ICStub::GetProp_CallNative || kind == ICStub::SetProp_CallScripted ||
+              kind == ICStub::SetProp_CallNative);
 
     
     
@@ -3031,8 +3048,10 @@ IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, Shape *shape)
 }
 
 static bool
-IsCacheableGetPropCallScripted(JSObject *obj, JSObject *holder, Shape *shape)
+IsCacheableGetPropCall(JSObject *obj, JSObject *holder, Shape *shape, bool *isScripted)
 {
+    JS_ASSERT(isScripted);
+
     
     if (obj == holder)
         return false;
@@ -3043,15 +3062,27 @@ IsCacheableGetPropCallScripted(JSObject *obj, JSObject *holder, Shape *shape)
     if (shape->hasSlot() || shape->hasDefaultGetter())
         return false;
 
-    if (!shape->hasGetterValue() || !shape->getterObject()->isFunction())
+    if (!shape->hasGetterValue())
+        return false;
+
+    if (!shape->getterValue().isObject() || !shape->getterObject()->isFunction())
         return false;
 
     JSFunction *func = shape->getterObject()->toFunction();
+    if (func->isNative()) {
+        *isScripted = false;
+        return true;
+    }
+
     if (!func->hasScript())
         return false;
 
     JSScript *script = func->nonLazyScript();
-    return script->hasIonScript() || script->hasBaselineScript();
+    if (!script->hasIonScript() && !script->hasBaselineScript())
+        return false;
+
+    *isScripted = true;
+    return true;
 }
 
 static bool
@@ -3132,8 +3163,10 @@ IsCacheableSetPropAddSlot(JSContext *cx, HandleObject obj, HandleShape oldShape,
 }
 
 static bool
-IsCacheableSetPropCallScripted(JSObject *obj, JSObject *holder, Shape *shape)
+IsCacheableSetPropCall(JSObject *obj, JSObject *holder, Shape *shape, bool *isScripted)
 {
+    JS_ASSERT(isScripted);
+
     
     if (obj == holder)
         return false;
@@ -3144,15 +3177,27 @@ IsCacheableSetPropCallScripted(JSObject *obj, JSObject *holder, Shape *shape)
     if (shape->hasSlot() || shape->hasDefaultSetter())
         return false;
 
-    if (!shape->hasSetterValue() || !shape->setterObject()->isFunction())
+    if (!shape->hasSetterValue())
+        return false;
+
+    if (!shape->setterValue().isObject() || !shape->setterObject()->isFunction())
         return false;
 
     JSFunction *func = shape->setterObject()->toFunction();
+    if (func->isNative()) {
+        *isScripted = false;
+        return true;
+    }
+
     if (!func->hasScript())
         return false;
 
     JSScript *script = func->nonLazyScript();
-    return script->hasIonScript() || script->hasBaselineScript();
+    if (!script->hasIonScript() && !script->hasBaselineScript())
+        return false;
+
+    *isScripted = true;
+    return true;
 }
 
 static bool
@@ -4711,18 +4756,40 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         return true;
     }
 
+    bool isScripted = false;
+    bool cacheableCall = IsCacheableGetPropCall(obj, holder, shape, &isScripted);
+
     
-    if (IsCacheableGetPropCallScripted(obj, holder, shape)) {
+    if (cacheableCall && isScripted) {
         RootedFunction callee(cx, shape->getterObject()->toFunction());
         JS_ASSERT(obj != holder);
         JS_ASSERT(callee->hasScript());
 
-        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(Native %s Getter %s:%d) stub",
-                    (obj == holder) ? "direct" : "prototype",
+        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(NativeObj/ScriptedGetter %s:%d) stub",
                     callee->nonLazyScript()->filename(), callee->nonLazyScript()->lineno);
 
         ICGetProp_CallScripted::Compiler compiler(cx, monitorStub, obj, holder, callee,
                                                   pc - script->code);
+        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        *attached = true;
+        return true;
+    }
+
+    
+    if (cacheableCall && !isScripted) {
+        RootedFunction callee(cx, shape->getterObject()->toFunction());
+        JS_ASSERT(obj != holder);
+        JS_ASSERT(callee->isNative());
+
+        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(NativeObj/NativeGetter %p) stub",
+                    callee->native());
+
+        ICGetProp_CallNative::Compiler compiler(cx, monitorStub, obj, holder, callee,
+                                                pc - script->code);
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
         if (!newStub)
             return false;
@@ -5137,6 +5204,99 @@ ICGetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
     return true;
 }
 
+static bool
+DoCallNativeGetter(JSContext *cx, HandleFunction callee, HandleObject obj,
+                   MutableHandleValue result)
+{
+    JS_ASSERT(callee->isNative());
+    JSNative natfun = callee->native();
+
+    Value vp[2] = { ObjectValue(*callee.get()), ObjectValue(*obj.get()) };
+    AutoValueArray rootVp(cx, vp, 2);
+
+    if (!natfun(cx, 0, vp))
+        return false;
+
+    result.set(vp[0]);
+    return true;
+}
+
+typedef bool (*DoCallNativeGetterFn)(JSContext *, HandleFunction, HandleObject, MutableHandleValue);
+static const VMFunction DoCallNativeGetterInfo =
+    FunctionInfo<DoCallNativeGetterFn>(DoCallNativeGetter);
+
+bool
+ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register scratch;
+    if (regs.has(BaselineTailCallReg)) {
+        regs.take(BaselineTailCallReg);
+        scratch = regs.takeAny();
+        regs.add(BaselineTailCallReg);
+    } else {
+        scratch = regs.takeAny();
+    }
+
+    
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+
+    
+    Register objReg = masm.extractObject(R0, ExtractTemp0);
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallNative::offsetOfShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failure);
+
+    Register holderReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallNative::offsetOfHolder()), holderReg);
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallNative::offsetOfHolderShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, holderReg, scratch, &failure);
+    regs.add(holderReg);
+
+    
+    enterStubFrame(masm, scratch);
+
+    
+    Register callee = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallNative::offsetOfGetter()), callee);
+
+    
+    masm.push(objReg);
+    masm.push(callee);
+
+    
+    regs.add(R0);
+
+    
+    {
+        Label skipProfilerUpdate;
+        Register scratch = regs.takeAny();
+        Register pcIdx = regs.takeAny();
+
+        
+        guardProfilingEnabled(masm, scratch, &skipProfilerUpdate);
+
+        
+        masm.load32(Address(BaselineStubReg, ICGetProp_CallNative::offsetOfPCOffset()), pcIdx);
+        masm.spsUpdatePCIdx(&cx->runtime->spsProfiler, pcIdx, scratch);
+
+        masm.bind(&skipProfilerUpdate);
+        regs.add(scratch);
+        regs.add(pcIdx);
+    }
+    if (!callVM(DoCallNativeGetterInfo, masm))
+        return false;
+    leaveStubFrame(masm);
+
+    
+    EmitEnterTypeMonitorIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
 
 
 
@@ -5198,16 +5358,38 @@ TryAttachSetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc, ICSetPr
         return true;
     }
 
-    if (IsCacheableSetPropCallScripted(obj, holder, shape)) {
+    bool isScripted = false;
+    bool cacheableCall = IsCacheableSetPropCall(obj, holder, shape, &isScripted);
+
+    
+    if (cacheableCall && isScripted) {
         RootedFunction callee(cx, shape->setterObject()->toFunction());
         JS_ASSERT(obj != holder);
         JS_ASSERT(callee->hasScript());
 
-        IonSpew(IonSpew_BaselineIC, "  Generating SetProp(Native %s Setter %s:%d) stub",
-                    (obj == holder) ? "direct" : "prototype",
+        IonSpew(IonSpew_BaselineIC, "  Generating SetProp(NativeObj/ScriptedSetter %s:%d) stub",
                     callee->nonLazyScript()->filename(), callee->nonLazyScript()->lineno);
 
         ICSetProp_CallScripted::Compiler compiler(cx, obj, holder, callee, pc - script->code);
+        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        if (!newStub)
+            return false;
+
+        stub->addNewStub(newStub);
+        *attached = true;
+        return true;
+    }
+
+    
+    if (cacheableCall && !isScripted) {
+        RootedFunction callee(cx, shape->setterObject()->toFunction());
+        JS_ASSERT(obj != holder);
+        JS_ASSERT(callee->isNative());
+
+        IonSpew(IonSpew_BaselineIC, "  Generating SetProp(NativeObj/NativeSetter %p) stub",
+                    callee->native());
+
+        ICSetProp_CallNative::Compiler compiler(cx, obj, holder, callee, pc - script->code);
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
         if (!newStub)
             return false;
@@ -5587,6 +5769,110 @@ ICSetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
     return true;
 }
 
+static bool
+DoCallNativeSetter(JSContext *cx, HandleFunction callee, HandleObject obj, HandleValue val)
+{
+    JS_ASSERT(callee->isNative());
+    JSNative natfun = callee->native();
+
+    Value vp[3] = { ObjectValue(*callee.get()), ObjectValue(*obj.get()), val };
+    AutoValueArray rootVp(cx, vp, 3);
+
+    return natfun(cx, 1, vp);
+}
+
+typedef bool (*DoCallNativeSetterFn)(JSContext *, HandleFunction, HandleObject, HandleValue);
+static const VMFunction DoCallNativeSetterInfo =
+    FunctionInfo<DoCallNativeSetterFn>(DoCallNativeSetter);
+
+bool
+ICSetProp_CallNative::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    Label failureUnstow;
+
+    
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+
+    
+    EmitStowICValues(masm, 2);
+
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register scratch;
+    if (regs.has(BaselineTailCallReg)) {
+        regs.take(BaselineTailCallReg);
+        scratch = regs.takeAny();
+        regs.add(BaselineTailCallReg);
+    } else {
+        scratch = regs.takeAny();
+    }
+
+    
+    Register objReg = masm.extractObject(R0, ExtractTemp0);
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallNative::offsetOfShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failureUnstow);
+
+    Register holderReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallNative::offsetOfHolder()), holderReg);
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallNative::offsetOfHolderShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, holderReg, scratch, &failureUnstow);
+    regs.add(holderReg);
+
+    
+    enterStubFrame(masm, scratch);
+
+    
+    
+    Register callee = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICSetProp_CallNative::offsetOfSetter()), callee);
+
+    
+    
+    masm.movePtr(BaselineStackReg, scratch);
+    masm.pushValue(Address(scratch, STUB_FRAME_SIZE));
+    masm.push(objReg);
+    masm.push(callee);
+
+    
+    regs.add(R0);
+
+    
+    {
+        Label skipProfilerUpdate;
+        Register scratch = regs.takeAny();
+        Register pcIdx = regs.takeAny();
+
+        
+        guardProfilingEnabled(masm, scratch, &skipProfilerUpdate);
+
+        
+        masm.load32(Address(BaselineStubReg, ICSetProp_CallNative::offsetOfPCOffset()), pcIdx);
+        masm.spsUpdatePCIdx(&cx->runtime->spsProfiler, pcIdx, scratch);
+
+        masm.bind(&skipProfilerUpdate);
+        regs.add(scratch);
+        regs.add(pcIdx);
+    }
+    if (!callVM(DoCallNativeSetterInfo, masm))
+        return false;
+    leaveStubFrame(masm);
+
+    
+    
+    EmitUnstowICValues(masm, 2);
+    masm.moveValue(R1, R0);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failureUnstow);
+    EmitUnstowICValues(masm, 2);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
 
 
 
@@ -5631,7 +5917,7 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
 
         if (stub->scriptedStubCount() >= ICCall_Fallback::MAX_SCRIPTED_STUBS) {
             
-            IonSpew(IonSpew_BaselineIC, "  Generating Call_AnyScripted stub (cons=%s)", 
+            IonSpew(IonSpew_BaselineIC, "  Generating Call_AnyScripted stub (cons=%s)",
                     constructing ? "yes" : "no");
 
             ICCallScriptedCompiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
