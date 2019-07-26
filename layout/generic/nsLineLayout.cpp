@@ -800,7 +800,9 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
 
     
     
-    ApplyStartMargin(pfd, reflowState);
+    
+    
+    AllowForStartMargin(pfd, reflowState);
   }
   
   
@@ -1055,15 +1057,14 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
 }
 
 void
-nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
-                               nsHTMLReflowState& aReflowState)
+nsLineLayout::AllowForStartMargin(PerFrameData* pfd,
+                                  nsHTMLReflowState& aReflowState)
 {
   NS_ASSERTION(!aReflowState.IsFloating(),
                "How'd we get a floated inline frame? "
                "The frame ctor should've dealt with this.");
 
   WritingMode frameWM = pfd->mFrame->GetWritingMode();
-  WritingMode lineWM = mRootSpan->mWritingMode;
 
   
   
@@ -1079,21 +1080,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
     
     
     pfd->mMargin.IStart(frameWM) = 0;
-  }
-  if ((pfd->mFrame->LastInFlow()->GetNextContinuation() ||
-      pfd->mFrame->FrameIsNonLastInIBSplit())
-    && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
-    pfd->mMargin.IEnd(frameWM) = 0;
-  }
-  nscoord startMargin = pfd->mMargin.ConvertTo(lineWM, frameWM).IStart(lineWM);
-  if (startMargin) {
-    
-    
-    
-    if (lineWM.IsBidiLTR() && frameWM.IsBidiLTR()) {
-      pfd->mBounds.IStart(lineWM) += startMargin;
-    }
-
+  } else {
     NS_WARN_IF_FALSE(NS_UNCONSTRAINEDSIZE != aReflowState.AvailableWidth(),
                      "have unconstrained width; this should only result from "
                      "very large sizes, not attempts at intrinsic width "
@@ -1103,7 +1090,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
       
       
       
-      aReflowState.AvailableWidth() -= startMargin;
+      aReflowState.AvailableWidth() -= pfd->mMargin.IStart(frameWM);
     }
   }
 }
@@ -1161,10 +1148,6 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
 
 
-  if (pfd->mFrame->GetPrevContinuation() ||
-      pfd->mFrame->FrameIsNonFirstInIBSplit()) {
-    pfd->mMargin.IStart(frameWM) = 0;
-  }
   if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
        pfd->mFrame->LastInFlow()->GetNextContinuation() ||
        pfd->mFrame->FrameIsNonLastInIBSplit()) &&
@@ -1173,13 +1156,14 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
         NS_STYLE_BOX_DECORATION_BREAK_SLICE) {
     pfd->mMargin.IEnd(frameWM) = 0;
   }
+
+  
+  
   LogicalMargin usedMargins = pfd->mMargin.ConvertTo(lineWM, frameWM);
   nscoord startMargin = usedMargins.IStart(lineWM);
   nscoord endMargin = usedMargins.IEnd(lineWM);
 
-  if (!(lineWM.IsBidiLTR() && frameWM.IsBidiLTR())) {
-    pfd->mBounds.IStart(lineWM) += startMargin;
-  }
+  pfd->mBounds.IStart(lineWM) += startMargin;
 
   PerSpanData* psd = mCurrentSpan;
   if (psd->mNoWrap) {
