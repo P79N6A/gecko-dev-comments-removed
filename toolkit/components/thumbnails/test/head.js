@@ -3,10 +3,11 @@
 
 let tmp = {};
 Cu.import("resource://gre/modules/PageThumbs.jsm", tmp);
+Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", tmp);
 Cu.import("resource:///modules/sessionstore/SessionStore.jsm", tmp);
 Cu.import("resource://gre/modules/FileUtils.jsm", tmp);
 Cu.import("resource://gre/modules/osfile.jsm", tmp);
-let {PageThumbs, PageThumbsStorage, SessionStore, FileUtils, OS} = tmp;
+let {PageThumbs, BackgroundPageThumbs, PageThumbsStorage, SessionStore, FileUtils, OS} = tmp;
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
@@ -49,9 +50,11 @@ let TestRunner = {
   
 
 
-  next: function () {
+
+
+  next: function (aValue) {
     try {
-      let value = TestRunner._iter.next();
+      let value = TestRunner._iter.send(aValue);
       if (value && typeof value.then == "function") {
         value.then(result => {
           next(result);
@@ -68,8 +71,10 @@ let TestRunner = {
 
 
 
-function next() {
-  TestRunner.next();
+
+
+function next(aValue) {
+  TestRunner.next(aValue);
 }
 
 
@@ -168,9 +173,26 @@ function retrieveImageDataForURL(aURL, aCallback) {
 
 
 
+function thumbnailFile(aURL) {
+  return new FileUtils.File(PageThumbsStorage.getFilePathForURL(aURL));
+}
+
+
+
+
+
 function thumbnailExists(aURL) {
-  let file = new FileUtils.File(PageThumbsStorage.getFilePathForURL(aURL));
+  let file = thumbnailFile(aURL);
   return file.exists() && file.fileSize;
+}
+
+
+
+
+
+function removeThumbnail(aURL) {
+  let file = thumbnailFile(aURL);
+  file.remove(false);
 }
 
 
@@ -263,6 +285,10 @@ function whenFileRemoved(aFile, aCallback) {
   executeSoon(callback || next);
 }
 
+function wait(aMillis) {
+  setTimeout(next, aMillis);
+}
+
 
 
 
@@ -275,4 +301,22 @@ function dontExpireThumbnailURLs(aURLs) {
   registerCleanupFunction(function () {
     PageThumbs.removeExpirationFilter(dontExpireURLs);
   });
+}
+
+function bgCapture(aURL, aOptions) {
+  bgCaptureWithMethod("capture", aURL, aOptions);
+}
+
+function bgCaptureIfMissing(aURL, aOptions) {
+  bgCaptureWithMethod("captureIfMissing", aURL, aOptions);
+}
+
+function bgCaptureWithMethod(aMethodName, aURL, aOptions = {}) {
+  aOptions.onDone = next;
+  BackgroundPageThumbs[aMethodName](aURL, aOptions);
+}
+
+function bgTestPageURL(aOpts = {}) {
+  let TEST_PAGE_URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_background.sjs";
+  return TEST_PAGE_URL + "?" + encodeURIComponent(JSON.stringify(aOpts));
 }
