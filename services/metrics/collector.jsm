@@ -4,11 +4,12 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["MetricsCollector"];
+this.EXPORTED_SYMBOLS = ["Collector"];
 
 const {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/commonjs/promise/core.js");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://gre/modules/services/metrics/dataprovider.jsm");
@@ -20,41 +21,23 @@ Cu.import("resource://gre/modules/services/metrics/dataprovider.jsm");
 
 
 
-this.MetricsCollector = function MetricsCollector() {
-  this._log = Log4Moz.repository.getLogger("Metrics.MetricsCollector");
+this.Collector = function (storage) {
+  this._log = Log4Moz.repository.getLogger("Services.Metrics.Collector");
 
-  this._providers = [];
-  this.collectionResults = new Map();
+  this._providers = new Map();
+  this._storage = storage;
+
   this.providerErrors = new Map();
 }
 
-MetricsCollector.prototype = {
-  
-
-
-
-
-
-
-
-
-  registerProvider: function registerProvider(provider) {
-    if (!(provider instanceof MetricsProvider)) {
-      throw new Error("argument must be a MetricsProvider instance.");
+Collector.prototype = Object.freeze({
+  get providers() {
+    let providers = [];
+    for (let [name, entry] of this._providers) {
+      providers.push(entry.provider);
     }
 
-    for (let p of this._providers) {
-      if (p.provider == provider) {
-        return;
-      }
-    }
-
-    this._providers.push({
-      provider: provider,
-      constantsCollected: false,
-    });
-
-    this.providerErrors.set(provider.name, []);
+    return providers;
   },
 
   
@@ -65,53 +48,74 @@ MetricsCollector.prototype = {
 
 
 
-  collectConstantMeasurements: function collectConstantMeasurements() {
+
+
+
+
+
+
+  registerProvider: function (provider) {
+    if (!(provider instanceof Provider)) {
+      throw new Error("Argument must be a Provider instance.");
+    }
+
+    if (this._providers.has(provider.name)) {
+      return Promise.resolve();
+    }
+
+    return provider.init(this._storage).then(function afterInit() {
+      this._providers.set(provider.name, {
+        provider: provider,
+        constantsCollected: false,
+      });
+
+      this.providerErrors.set(provider.name, []);
+
+      return Promise.resolve();
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+  collectConstantData: function () {
     let promises = [];
 
-    for (let provider of this._providers) {
-      let name = provider.provider.name;
-
-      if (provider.constantsCollected) {
+    for (let [name, entry] of this._providers) {
+      if (entry.constantsCollected) {
         this._log.trace("Provider has already provided constant data: " +
                         name);
         continue;
       }
 
-      let result;
+      let collectPromise;
       try {
-        result = provider.provider.collectConstantMeasurements();
+        collectPromise = entry.provider.collectConstantData();
       } catch (ex) {
         this._log.warn("Exception when calling " + name +
-                       ".collectConstantMeasurements: " +
+                       ".collectConstantData: " +
                        CommonUtils.exceptionStr(ex));
         this.providerErrors.get(name).push(ex);
         continue;
       }
 
-      if (!result) {
-        this._log.trace("Provider does not provide constant data: " + name);
-        continue;
+      if (!collectPromise) {
+        throw new Error("Provider does not return a promise from " +
+                        "collectConstantData():" + name);
       }
 
-      try {
-        this._log.debug("Populating constant measurements: " + name);
-        result.populate(result);
-      } catch (ex) {
-        this._log.warn("Exception when calling " + name + ".populate(): " +
-                       CommonUtils.exceptionStr(ex));
-        result.addError(ex);
-        promises.push(Promise.resolve(result));
-        continue;
-      }
-
-      
-      let promise = result.onFinished(function onFinished(result) {
-        provider.constantsCollected = true;
+      let promise = collectPromise.then(function onCollected(result) {
+        entry.constantsCollected = true;
 
         return Promise.resolve(result);
       });
 
-      promises.push(promise);
+      promises.push([name, promise]);
     }
 
     return this._handleCollectionPromises(promises);
@@ -123,7 +127,10 @@ MetricsCollector.prototype = {
 
 
 
-  _handleCollectionPromises: function _handleCollectionPromises(promises) {
+
+
+
+  _handleCollectionPromises: function (promises) {
     if (!promises.length) {
       return Promise.resolve(this);
     }
@@ -131,36 +138,24 @@ MetricsCollector.prototype = {
     let deferred = Promise.defer();
     let finishedCount = 0;
 
-    let onResult = function onResult(result) {
-      try {
-        this._log.debug("Got result for " + result.name);
-
-        if (this.collectionResults.has(result.name)) {
-          this.collectionResults.get(result.name).aggregate(result);
-        } else {
-          this.collectionResults.set(result.name, result);
-        }
-      } finally {
-        finishedCount++;
-        if (finishedCount >= promises.length) {
-          deferred.resolve(this);
-        }
+    let onComplete = function () {
+      finishedCount++;
+      if (finishedCount >= promises.length) {
+        deferred.resolve(this);
       }
     }.bind(this);
 
-    let onError = function onError(error) {
-      this._log.warn("Error when handling result: " +
-                     CommonUtils.exceptionStr(error));
-      deferred.reject(error);
-    }.bind(this);
-
-    for (let promise of promises) {
-      promise.then(onResult, onError);
+    for (let [name, promise] of promises) {
+      let onError = function (error) {
+        this._log.warn("Collection promise was rejected: " +
+                       CommonUtils.exceptionStr(error));
+        this.providerErrors.get(name).push(error);
+        onComplete();
+      }.bind(this);
+      promise.then(onComplete, onError);
     }
 
     return deferred.promise;
   },
-};
-
-Object.freeze(MetricsCollector.prototype);
+});
 

@@ -5,15 +5,19 @@
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
-  "MetricsCollectionResult",
-  "MetricsMeasurement",
-  "MetricsProvider",
+  "Measurement",
+  "Provider",
 ];
 
 const {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/commonjs/promise/core.js");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-common/utils.js");
+
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 
 
@@ -43,437 +47,413 @@ Cu.import("resource://services-common/log4moz.js");
 
 
 
-
-
-
-
-
-
-
-
-this.MetricsMeasurement = function MetricsMeasurement(name, version) {
-  if (!this.fields) {
-    throw new Error("fields not defined on instance. You are likely using " +
-                    "this type incorrectly.");
+this.Measurement = function () {
+  if (!this.name) {
+    throw new Error("Measurement must have a name.");
   }
 
-  if (!name) {
-    throw new Error("Must define a name for this measurement.");
+  if (!this.version) {
+    throw new Error("Measurement must have a version.");
   }
 
-  if (!version) {
-    throw new Error("Must define a version for this measurement.");
+  if (!Number.isInteger(this.version)) {
+    throw new Error("Measurement's version must be an integer: " + this.version);
   }
 
-  if (!Number.isInteger(version)) {
-    throw new Error("version must be an integer: " + version);
-  }
-
-  this.name = name;
-  this.version = version;
-
-  this.values = new Map();
-}
-
-MetricsMeasurement.prototype = {
-  
-
-
-
-
-  TYPE_UINT32: {
-    validate: function validate(value) {
-      if (!Number.isInteger(value)) {
-        throw new Error("UINT32 field expects an integer. Got " + value);
-      }
-
-      if (value < 0) {
-        throw new Error("UINT32 field expects a positive integer. Got " + value);
-      }
-
-      if (value >= 0xffffffff) {
-        throw new Error("Value is too large to fit within 32 bits: " + value);
-      }
-    },
-  },
-
-  
-
-
-
-
-  TYPE_STRING: {
-    validate: function validate(value) {
-      if (typeof(value) != "string") {
-        throw new Error("STRING field expects a string. Got " + typeof(value));
-      }
-    },
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setValue: function setValue(name, value) {
-    if (!this.fields[name]) {
-      throw new Error("Attempting to set unknown field: " + name);
-    }
-
-    let type = this.fields[name].type;
-
-    if (!(type in this)) {
-      throw new Error("Unknown field type: " + type);
-    }
-
-    this[type].validate(value);
-    this.values.set(name, value);
-  },
-
-  
-
-
-
-
-
-  getValue: function getValue(name) {
-    return this.values.get(name);
-  },
-
-  
-
-
-
-
-
-  validate: function validate() {
-    for (let field in this.fields) {
-      let spec = this.fields[field];
-
-      if (!spec.optional && !(field in this.values)) {
-        throw new Error("Required field not defined: " + field);
-      }
-    }
-  },
-
-  toJSON: function toJSON() {
-    let fields = {};
-    for (let [k, v] of this.values) {
-      fields[k] = v;
-    }
-
-    return {
-      name: this.name,
-      version: this.version,
-      fields: fields,
-    };
-  },
-};
-
-Object.freeze(MetricsMeasurement.prototype);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.MetricsProvider = function MetricsProvider(name) {
-  if (!name) {
-    throw new Error("MetricsProvider must have a name.");
-  }
-
-  if (typeof(name) != "string") {
-    throw new Error("name must be a string. Got: " + typeof(name));
-  }
-
-  this._log = Log4Moz.repository.getLogger("Services.Metrics.MetricsProvider");
-
-  this.name = name;
-}
-
-MetricsProvider.prototype = {
-  
-
-
-
-
-
-
-  collectConstantMeasurements: function collectConstantMeasurements() {
-    return null;
-  },
-
-  
-
-
-  createResult: function createResult() {
-    return new MetricsCollectionResult(this.name);
-  },
-};
-
-Object.freeze(MetricsProvider.prototype);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.MetricsCollectionResult = function MetricsCollectionResult(name) {
-  if (!name || typeof(name) != "string") {
-    throw new Error("Must provide name argument to MetricsCollectionResult.");
-  }
-
-  this._log = Log4Moz.repository.getLogger("Services.Metrics.MetricsCollectionResult");
-
-  this.name = name;
-
-  this.measurements = new Map();
-  this.expectedMeasurements = new Set();
-  this.errors = [];
-
-  this.populate = function populate() {
-    throw new Error("populate() must be defined on MetricsCollectionResult " +
-                    "instance.");
+  this._log = Log4Moz.repository.getLogger("Services.Metrics.Measurement." + this.name);
+
+  this.id = null;
+  this.storage = null;
+  this._fieldsByName = new Map();
+
+  this._serializers = {};
+  this._serializers[this.SERIALIZE_JSON] = {
+    singular: this._serializeJSONSingular.bind(this),
+    daily: this._serializeJSONDay.bind(this),
   };
-
-  this._deferred = Promise.defer();
 }
 
-MetricsCollectionResult.prototype = {
+Measurement.prototype = Object.freeze({
+  SERIALIZE_JSON: "json",
+
   
 
 
-  get missingMeasurements() {
-    let missing = new Set();
 
-    for (let name of this.expectedMeasurements) {
-      if (this.measurements.has(name)) {
+
+
+
+
+
+
+
+  configureStorage: function () {
+    throw new Error("configureStorage() must be implemented.");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  serializer: function (format) {
+    if (!(format in this._serializers)) {
+      throw new Error("Don't know how to serialize format: " + format);
+    }
+
+    return this._serializers[format];
+  },
+
+  hasField: function (name) {
+    return this._fieldsByName.has(name);
+  },
+
+  fieldID: function (name) {
+    let entry = this._fieldsByName.get(name);
+
+    if (!entry) {
+      throw new Error("Unknown field: " + name);
+    }
+
+    return entry[0];
+  },
+
+  fieldType: function (name) {
+    let entry = this._fieldsByName.get(name);
+
+    if (!entry) {
+      throw new Error("Unknown field: " + name);
+    }
+
+    return entry[1];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  registerStorageField: function (name, type) {
+    this._log.debug("Registering field: " + name + " " + type);
+
+    let deferred = Promise.defer();
+
+    let self = this;
+    this.storage.registerField(this.id, name, type).then(
+      function onSuccess(id) {
+        self._fieldsByName.set(name, [id, type]);
+        deferred.resolve();
+      }, deferred.reject);
+
+    return deferred.promise;
+  },
+
+  incrementDailyCounter: function (field, date=new Date()) {
+    return this.storage.incrementDailyCounterFromFieldID(this.fieldID(field),
+                                                         date);
+  },
+
+  addDailyDiscreteNumeric: function (field, value, date=new Date()) {
+    return this.storage.addDailyDiscreteNumericFromFieldID(
+                          this.fieldID(field), value, date);
+  },
+
+  addDailyDiscreteText: function (field, value, date=new Date()) {
+    return this.storage.addDailyDiscreteTextFromFieldID(
+                          this.fieldID(field), value, date);
+  },
+
+  setLastNumeric: function (field, value, date=new Date()) {
+    return this.storage.setLastNumericFromFieldID(this.fieldID(field), value,
+                                                  date);
+  },
+
+  setLastText: function (field, value, date=new Date()) {
+    return this.storage.setLastTextFromFieldID(this.fieldID(field), value,
+                                               date);
+  },
+
+  setDailyLastNumeric: function (field, value, date=new Date()) {
+    return this.storage.setDailyLastNumericFromFieldID(this.fieldID(field),
+                                                       value, date);
+  },
+
+  setDailyLastText: function (field, value, date=new Date()) {
+    return this.storage.setDailyLastTextFromFieldID(this.fieldID(field),
+                                                    value, date);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getValues: function () {
+    return this.storage.getMeasurementValues(this.id);
+  },
+
+  deleteLastNumeric: function (field) {
+    return this.storage.deleteLastNumericFromFieldID(this.fieldID(field));
+  },
+
+  deleteLastText: function (field) {
+    return this.storage.deleteLastTextFromFieldID(this.fieldID(field));
+  },
+
+  _serializeJSONSingular: function (data) {
+    let result = {};
+
+    for (let [field, data] of data) {
+      
+      if (!this._fieldsByName.has(field)) {
         continue;
       }
 
-      missing.add(name);
+      let type = this.fieldType(field);
+
+      switch (type) {
+        case this.storage.FIELD_LAST_NUMERIC:
+        case this.storage.FIELD_LAST_TEXT:
+          result[field] = data[1];
+          break;
+
+        case this.storage.FIELD_DAILY_COUNTER:
+        case this.storage.FIELD_DAILY_DISCRETE_NUMERIC:
+        case this.storage.FIELD_DAILY_DISCRETE_TEXT:
+        case this.storage.FIELD_DAILY_LAST_NUMERIC:
+        case this.storage.FIELD_DAILY_LAST_TEXT:
+          continue;
+
+        default:
+          throw new Error("Unknown field type: " + type);
+      }
     }
 
-    return missing;
+    return result;
   },
 
+  _serializeJSONDay: function (data) {
+    let result = {};
+
+    for (let [field, data] of data) {
+      if (!this._fieldsByName.has(field)) {
+        continue;
+      }
+
+      let type = this.fieldType(field);
+
+      switch (type) {
+        case this.storage.FIELD_DAILY_COUNTER:
+        case this.storage.FIELD_DAILY_DISCRETE_NUMERIC:
+        case this.storage.FIELD_DAILY_DISCRETE_TEXT:
+        case this.storage.FIELD_DAILY_LAST_NUMERIC:
+        case this.storage.FIELD_DAILY_LAST_TEXT:
+          result[field] = data;
+          break;
+
+        case this.storage.FIELD_LAST_NUMERIC:
+        case this.storage.FIELD_LAST_TEXT:
+          continue;
+
+        default:
+          throw new Error("Unknown field type: " + type);
+      }
+    }
+
+    return result;
+  },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.Provider = function () {
+  if (!this.name) {
+    throw new Error("Provider must define a name.");
+  }
+
+  if (!Array.isArray(this.measurementTypes)) {
+    throw new Error("Provider must define measurement types.");
+  }
+
+  this._log = Log4Moz.repository.getLogger("Services.Metrics.Provider." + this.name);
+
+  this.measurements = null;
+  this.storage = null;
+}
+
+Provider.prototype = Object.freeze({
   
 
 
 
 
-
-
-
-
-  expectMeasurement: function expectMeasurement(name) {
-    this.expectedMeasurements.add(name);
-  },
-
-  
-
-
-  addMeasurement: function addMeasurement(data) {
-    if (!(data instanceof MetricsMeasurement)) {
-      throw new Error("addMeasurement expects a MetricsMeasurement instance.");
+  getMeasurement: function (name, version) {
+    if (!Number.isInteger(version)) {
+      throw new Error("getMeasurement expects an integer version. Got: " + version);
     }
 
-    if (!this.expectedMeasurements.has(data.name)) {
-      throw new Error("Not expecting this measurement: " + data.name);
-    }
+    let m = this.measurements.get([name, version].join(":"));
 
-    if (this.measurements.has(data.name)) {
-      throw new Error("Measurement of this name already present: " + data.name);
-    }
-
-    this.measurements.set(data.name, data);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setValue: function setValue(name, field, value, rethrow=false) {
-    let m = this.measurements.get(name);
     if (!m) {
-      throw new Error("Attempting to operate on an undefined measurement: " +
-                      name);
+      throw new Error("Unknown measurement: " + name + " v" + version);
     }
 
-    try {
-      m.setValue(field, value);
-      return true;
-    } catch (ex) {
-      this.addError(ex);
+    return m;
+  },
 
-      if (rethrow) {
-        throw ex;
+  init: function (storage) {
+    if (this.storage !== null) {
+      throw new Error("Provider() not called. Did the sub-type forget to call it?");
+    }
+
+    if (this.storage) {
+      throw new Error("Provider has already been initialized.");
+    }
+
+    this.measurements = new Map();
+    this.storage = storage;
+
+    let self = this;
+    return Task.spawn(function init() {
+      for (let measurementType of self.measurementTypes) {
+        let measurement = new measurementType();
+
+        measurement.provider = self;
+        measurement.storage = self.storage;
+
+        let id = yield storage.registerMeasurement(self.name, measurement.name,
+                                                   measurement.version);
+
+        measurement.id = id;
+
+        yield measurement.configureStorage();
+
+        self.measurements.set([measurement.name, measurement.version].join(":"),
+                              measurement);
       }
 
-      return false;
-    }
-  },
+      let promise = self.onInit();
 
-  
-
-
-  addError: function addError(error) {
-    this.errors.push(error);
-  },
-
-  
-
-
-
-
-
-  aggregate: function aggregate(other) {
-    if (!(other instanceof MetricsCollectionResult)) {
-      throw new Error("aggregate expects a MetricsCollectionResult instance.");
-    }
-
-    if (this.name != other.name) {
-      throw new Error("Can only aggregate MetricsCollectionResult from " +
-                      "the same provider. " + this.name + " != " + other.name);
-    }
-
-    for (let name of other.expectedMeasurements) {
-      this.expectedMeasurements.add(name);
-    }
-
-    for (let [name, m] of other.measurements) {
-      if (this.measurements.has(name)) {
-        throw new Error("Incoming result has same measurement as us: " + name);
+      if (!promise || typeof(promise.then) != "function") {
+        throw new Error("onInit() does not return a promise.");
       }
 
-      this.measurements.set(name, m);
-    }
-
-    this.errors = this.errors.concat(other.errors);
+      yield promise;
+    });
   },
 
-  toJSON: function toJSON() {
-    let o = {
-      measurements: {},
-      missing: [],
-      errors: [],
-    };
+  shutdown: function () {
+    let promise = this.onShutdown();
 
-    for (let [name, value] of this.measurements) {
-      o.measurements[name] = value;
+    if (!promise || typeof(promise.then) != "function") {
+      throw new Error("onShutdown implementation does not return a promise.");
     }
 
-    for (let missing of this.missingMeasurements) {
-      o.missing.push(missing);
-    }
-
-    for (let error of this.errors) {
-      if (error.message) {
-        o.errors.push(error.message);
-      } else {
-        o.errors.push(error);
-      }
-    }
-
-    return o;
-  },
-
-  
-
-
-
-
-  finish: function finish() {
-    this._deferred.resolve(this);
+    return promise;
   },
 
   
@@ -484,10 +464,72 @@ MetricsCollectionResult.prototype = {
 
 
 
-  onFinished: function onFinished(onFulfill, onError) {
-    return this._deferred.promise.then(onFulfill, onError);
-  },
-};
 
-Object.freeze(MetricsCollectionResult.prototype);
+  onInit: function () {
+    return Promise.resolve();
+  },
+
+  
+
+
+
+
+
+
+
+
+  onShutdown: function () {
+    return Promise.resolve();
+  },
+
+  
+
+
+
+
+
+  collectConstantData: function () {
+    return Promise.resolve();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  enqueueStorageOperation: function (func) {
+    return this.storage.enqueueOperation(func);
+  },
+
+  getState: function (key) {
+    let name = this.name;
+    let storage = this.storage;
+    return storage.enqueueOperation(function get() {
+      return storage.getProviderState(name, key);
+    });
+  },
+
+  setState: function (key, value) {
+    let name = this.name;
+    let storage = this.storage;
+    return storage.enqueueOperation(function set() {
+      return storage.setProviderState(name, key, value);
+    });
+  },
+
+  _dateToDays: function (date) {
+    return Math.floor(date.getTime() / MILLISECONDS_PER_DAY);
+  },
+
+  _daysToDate: function (days) {
+    return new Date(days * MILLISECONDS_PER_DAY);
+  },
+});
 
