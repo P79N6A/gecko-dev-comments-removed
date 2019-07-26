@@ -190,22 +190,10 @@ public:
 
   virtual NS_HIDDEN_(bool) IsRunningTimeout() = 0;
 
-  
-  bool GetAudioMuted() const;
-  void SetAudioMuted(bool aMuted);
-
-  float GetAudioVolume() const;
-  nsresult SetAudioVolume(float aVolume);
-
-  float GetAudioGlobalVolume();
-
 protected:
   
   
   void MaybeCreateDoc();
-
-  float GetAudioGlobalVolumeInternal(float aVolume);
-  void RefreshMediaElements();
 
 public:
   
@@ -779,9 +767,6 @@ protected:
   
   
   bool                   mIsBackground;
-
-  bool                   mAudioMuted;
-  float                  mAudioVolume;
 
   
   nsPIDOMWindow         *mInnerWindow;
