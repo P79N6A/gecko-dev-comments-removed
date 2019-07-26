@@ -73,7 +73,7 @@ template <size_t N> struct NBitMask {
     
     
     
-    static const size_t checkPrecondition = 0 / (N < BitSize<size_t>::result);
+    static const size_t checkPrecondition = 0 / size_t(N < BitSize<size_t>::result);
     static const size_t result = (size_t(1) << N) - 1 + checkPrecondition;
 };
 template <> struct NBitMask<BitSize<size_t>::result> {
