@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 module.metadata = {
@@ -102,6 +103,7 @@ function normalizeRange(range) {
 
 
 function compareVersion(version, comparison, compareVersion) {
+
   let hasWildcard = compareVersion.indexOf("*") !== -1;
 
   comparison = comparison || "=";
@@ -179,4 +181,5 @@ function satisfiesVersion(version, versionRange) {
       : true);
   });
 }
+
 exports.satisfiesVersion = satisfiesVersion;

@@ -769,7 +769,7 @@ def run(arguments=sys.argv[1:], target_cfg=None, pkg_cfg=None,
         
         
         harness_options['main'] = 'sdk/test/runner'
-        harness_options['mainPath'] = 'sdk/test/runner'
+        harness_options['mainPath'] = manifest.get_manifest_entry("addon-sdk", "lib", "sdk/test/runner").get_path()
     else:
         harness_options['main'] = target_cfg.get('main')
         harness_options['mainPath'] = manifest.top_path

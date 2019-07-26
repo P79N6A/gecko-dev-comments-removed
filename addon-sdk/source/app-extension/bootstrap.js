@@ -57,6 +57,29 @@ function readURI(uri) {
 
 
 
+function path2id(path) {
+  
+  return path.replace(/([^\/]*)\/lib/, '$1').replace(/.js$/, '');
+}
+
+
+function manifestV2(manifest) {
+  return Object.keys(manifest).reduce(function(result, path) {
+    let entry = manifest[path];
+    let id = path2id(path);
+    let requirements = entry.requirements || {};
+    result[id] = {
+      requirements: Object.keys(requirements).reduce(function(result, path) {
+        result[path] = path2id(requirements[path].path);
+        return result;
+      }, {})
+    };
+    return result
+  }, {});
+}
+
+
+
 function install(data, reason) {}
 function uninstall(data, reason) {}
 
@@ -92,31 +115,19 @@ function startup(data, reasonCode) {
     resourceHandler.setSubstitution(domain, resourcesURI);
 
     
-    let paths = {
+    let paths = Object.keys(options.metadata).reduce(function(result, name) {
+      result[name + '/'] = prefixURI + name + '/lib/'
+      result[name + '/tests/'] = prefixURI + name + '/tests/'
+      return result
+    }, {
       
       './': prefixURI + name + '/lib/',
-      './tests/': prefixURI + name + '/tests/',
-      '': 'resource://gre/modules/commonjs/'
-    };
+      'toolkit/': 'resource://gre/modules/toolkit/',
+      '': 'resources:///modules/'
+    });
 
     
-    paths[name + '/'] = prefixURI + name + '/lib/';
-    paths[name + '/tests/'] = prefixURI + name + '/tests/';
-    
-    
-    if (name == 'addon-sdk')
-      paths['tests/'] = prefixURI + name + '/tests/';
-
-    
-    paths['sdk/'] = prefixURI + 'addon-sdk/lib/sdk/';
-    paths['toolkit/'] = prefixURI + 'addon-sdk/lib/toolkit/';
-    
-    
-    
-    paths['test'] = prefixURI + 'addon-sdk/lib/sdk/test.js';
-
-    
-    let manifest = options.manifest;
+    let manifest = manifestV2(options.manifest);
 
     
     let cuddlefishURI = prefixURI + options.loader;
@@ -125,7 +136,7 @@ function startup(data, reasonCode) {
 
     
     
-    let main = options.mainPath;
+    let main = path2id(options.mainPath);
 
     unload = cuddlefish.unload;
     loader = cuddlefish.Loader({
@@ -169,7 +180,7 @@ function startup(data, reasonCode) {
       }
     });
 
-    let module = cuddlefish.Module('sdk/loader/cuddlefish', cuddlefishURI);
+    let module = cuddlefish.Module('addon-sdk/sdk/loader/cuddlefish', cuddlefishURI);
     let require = cuddlefish.Require(loader, module);
 
     require('sdk/addon/runner').startup(reason, {

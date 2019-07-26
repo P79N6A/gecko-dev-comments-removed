@@ -81,7 +81,6 @@ exports.getOwnerWindow = getOwnerWindow;
 function getWindowHoldingTab(rawTab) {
   for each (let window in windows()) {
     
-    
     if (!window.BrowserApp)
       continue;
 
@@ -101,8 +100,7 @@ function openTab(window, url, options) {
   if (window.BrowserApp) {
     return window.BrowserApp.addTab(url, {
       selected: options.inBackground ? false : true,
-      pinned: options.isPinned || false,
-      isPrivate: options.private || false
+      pinned: options.isPinned || false
     });
   }
   return window.gBrowser.addTab(url);
@@ -152,12 +150,6 @@ function getBrowserForTab(tab) {
 }
 exports.getBrowserForTab = getBrowserForTab;
 
-
-function getContentWindowForTab(tab) {
-  return getBrowserForTab(tab).contentWindow;
-}
-exports.getContentWindowForTab = getContentWindowForTab;
-
 function getTabId(tab) {
   if (tab.browser) 
     return tab.id
@@ -165,6 +157,7 @@ function getTabId(tab) {
   return String.split(tab.linkedPanel, 'panel').pop();
 }
 exports.getTabId = getTabId;
+
 
 function getTabTitle(tab) {
   return getBrowserForTab(tab).contentDocument.title || tab.label || "";

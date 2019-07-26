@@ -115,8 +115,7 @@ exports["test behavior on close"] = function(assert, done) {
     url: "about:mozilla",
     onReady: function(tab) {
       assert.equal(tab.url, "about:mozilla", "Tab has the expected url");
-      
-      assert.ok(tab.index >= 1, "Tab has the expected index, a value greater than 0");
+      assert.equal(tab.index, 1, "Tab has the expected index");
       tab.close(function () {
         assert.equal(tab.url, undefined,
                      "After being closed, tab attributes are undefined (url)");

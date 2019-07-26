@@ -8,15 +8,11 @@ module.metadata = {
   "stability": "unstable"
 };
 
-const { Ci, Cu } = require("chrome");
+const { Ci } = require("chrome");
 const events = require("../system/events");
 const core = require("./core");
 
 const assetsURI = require('../self').data.url();
-const { Services } = Cu.import("resource://gre/modules/Services.jsm");
-
-const hideContentStyle = "data:text/css,:root {visibility: hidden !important;}";
-const hideSheetUri = Services.io.newURI(hideContentStyle, null, null);
 
 
 
@@ -45,15 +41,8 @@ function onDocumentReady2Translate(event) {
 
   translateElement(document);
 
-  try {
-    
-    let winUtils = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                       .getInterface(Ci.nsIDOMWindowUtils);
-    winUtils.removeSheet(hideSheetUri, winUtils.USER_SHEET);
-  }
-  catch(e) {
-    console.exception(e);
-  }
+  
+  document.documentElement.style.visibility = "visible";
 }
 
 function onContentWindow(event) {
@@ -72,16 +61,12 @@ function onContentWindow(event) {
   if (document.location.href.indexOf(assetsURI) !== 0)
     return;
 
-  try {
-    
-    
-    let winUtils = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor)
-                                       .getInterface(Ci.nsIDOMWindowUtils);
-    winUtils.loadSheet(hideSheetUri, winUtils.USER_SHEET);
-  }
-  catch(e) {
-    console.exception(e);
-  }
+  
+  
+  
+  
+  document.documentElement.style.visibility = "hidden";
+
   
   document.addEventListener("DOMContentLoaded", onDocumentReady2Translate,
                             false);
@@ -107,4 +92,4 @@ function disable() {
 }
 exports.disable = disable;
 
-require("sdk/system/unload").when(disable);
+require("api-utils/unload").when(disable);

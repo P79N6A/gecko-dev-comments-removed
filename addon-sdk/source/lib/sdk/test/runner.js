@@ -105,7 +105,7 @@ exports.runTestsFromModule = function runTestsFromModule(module) {
 
   runTests(function findAndRunTests(loader, nextIteration) {
     
-    loader.require('../../test').run(exports);
+    loader.require('../test').run(exports);
 
     
     let tests = [];

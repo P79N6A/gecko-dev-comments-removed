@@ -15,9 +15,6 @@ if (options.parseable || options.verbose)
   loader.sandbox("sdk/test/httpd").DEBUG = true;
 const { startServerAsync } = httpd;
 
-const { Cc, Ci, Cu } = require("chrome");
-const { Services } = Cu.import("resource://gre/modules/Services.jsm");
-
 
 
 const basePath = pathFor("ProfD")
@@ -139,55 +136,6 @@ exports.testComplexHeader = function (test) {
         test.assertEqual(response.headers[k], headers[k]);
       }
       srv.stop(function() test.done());
-    }
-  }).get();
-}
-
-
-exports.test3rdPartyCookies = function (test) {
-  let srv = startServerAsync(port, basePath);
-
-  let basename = "test-request-3rd-party-cookies.sjs";
-
-  
-  let content = function handleRequest(request, response) {
-    var cookiePresent = request.hasHeader("Cookie");
-    
-    if(!cookiePresent) {
-      response.setHeader("Set-Cookie", "cookie=monster;", "true");
-      response.setHeader("x-jetpack-3rd-party", "false", "true");
-    } else {
-      
-      response.setHeader("x-jetpack-3rd-party", "true", "true");
-    }
-
-    response.write("<html><body>This tests 3rd party cookies.</body></html>");
-  }.toString()
-
-  prepareFile(basename, content);
-
-  
-  Services.prefs.setIntPref("network.cookie.cookieBehavior", 1);
-
-  test.waitUntilDone();
-  Request({
-    url: "http://localhost:" + port + "/test-request-3rd-party-cookies.sjs",
-    onComplete: function (response) {
-      
-      test.assertEqual(response.headers['Set-Cookie'], 'cookie=monster;');
-
-      
-      test.assertEqual(response.headers['x-jetpack-3rd-party'], 'false');
-
-      
-      
-      Request({
-        url: "http://localhost:" + port + "/test-request-3rd-party-cookies.sjs",
-        onComplete: function (response) {
-          test.assertEqual(response.headers['x-jetpack-3rd-party'], 'true');
-          srv.stop(function() test.done());
-        }
-      }).get();
     }
   }).get();
 }

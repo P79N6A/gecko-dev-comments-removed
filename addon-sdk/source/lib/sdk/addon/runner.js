@@ -86,7 +86,8 @@ function startup(reason, options) {
     then(function onLocalizationReady(data) {
       
       
-      definePseudo(options.loader, '@l10n/data', data ? data : null);
+      if (data)
+        definePseudo(options.loader, '@l10n/data', data);
       run(options);
     });
 }

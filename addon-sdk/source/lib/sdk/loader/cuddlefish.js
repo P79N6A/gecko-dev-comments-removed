@@ -88,8 +88,8 @@ function CuddlefishLoader(options) {
     
     modules: override({
       'toolkit/loader': loaderModule,
-      'sdk/loader/cuddlefish': exports,
-      'sdk/system/xul-app': xulappModule
+      'addon-sdk/sdk/loader/cuddlefish': exports,
+      'addon-sdk/sdk/system/xul-app': xulappModule
     }, options.modules),
     resolve: function resolve(id, requirer) {
       let entry = requirer && requirer in manifest && manifest[requirer];
@@ -103,14 +103,15 @@ function CuddlefishLoader(options) {
         
         
         if (!requirement)
-          throw Error('Module: ' + requirer + ' has no authority to load: '
-                      + id, requirer);
+          throw Error('Module: ' + requirer.id + ' located at ' + requirer.uri
+                      + ' has no authority to load: ' + id, requirer.uri);
 
         uri = requirement;
-      } else {
-        
-        
-        uri = loaderModule.resolve(id, requirer);
+      }
+      
+      
+      else {
+        uri = id;
       }
       return uri;
     },
