@@ -5871,10 +5871,11 @@ IonBuilder::jsop_setelem_dense()
     id = idInt32;
 
     
+    MDefinition *newValue = value;
     if (oracle->elementWriteNeedsDoubleConversion(script(), pc)) {
         MInstruction *valueDouble = MToDouble::New(value);
         current->add(valueDouble);
-        value = valueDouble;
+        newValue = valueDouble;
     }
 
     
@@ -5886,7 +5887,7 @@ IonBuilder::jsop_setelem_dense()
     
     MStoreElementCommon *store;
     if (oracle->setElementHasWrittenHoles(script(), pc) && writeOutOfBounds) {
-        MStoreElementHole *ins = MStoreElementHole::New(obj, elements, id, value);
+        MStoreElementHole *ins = MStoreElementHole::New(obj, elements, id, newValue);
         store = ins;
 
         current->add(ins);
@@ -5902,7 +5903,7 @@ IonBuilder::jsop_setelem_dense()
 
         bool needsHoleCheck = !packed && !writeOutOfBounds;
 
-        MStoreElement *ins = MStoreElement::New(elements, id, value, needsHoleCheck);
+        MStoreElement *ins = MStoreElement::New(elements, id, newValue, needsHoleCheck);
         store = ins;
 
         current->add(ins);
