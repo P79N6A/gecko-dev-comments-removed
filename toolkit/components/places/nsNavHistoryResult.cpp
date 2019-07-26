@@ -106,8 +106,7 @@ nsNavHistoryResultNode::nsNavHistoryResultNode(
   mLastModified(0),
   mIndentLevel(-1),
   mFrecency(0),
-  mHidden(false),
-  mTransitionType(0)
+  mHidden(false)
 {
   mTags.SetIsVoid(true);
 }
@@ -1953,8 +1952,7 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
                                   true, aOptions),
   mQueries(aQueries),
   mContentsValid(false),
-  mBatchChanges(0),
-  mTransitions(mQueries[0]->Transitions())
+  mBatchChanges(0)
 {
   NS_ASSERTION(aQueries.Count() > 0, "Must have at least one query");
 
@@ -1963,15 +1961,6 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
   if (history) {
     mLiveUpdate = history->GetUpdateRequirements(mQueries, mOptions,
                                                  &mHasSearchTerms);
-  }
-
-  
-  for (int32_t i = 1; i < mQueries.Count(); ++i) {
-    const nsTArray<uint32_t>& queryTransitions = mQueries[i]->Transitions();
-    for (uint32_t j = mTransitions.Length() - 1; j >= 0 ; --j) {
-      if (!queryTransitions.Contains(mTransitions[j]))
-        mTransitions.RemoveElement(mTransitions[j]);
-    }
   }
 }
 
@@ -1985,8 +1974,7 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
                                   true, aOptions),
   mQueries(aQueries),
   mContentsValid(false),
-  mBatchChanges(0),
-  mTransitions(mQueries[0]->Transitions())
+  mBatchChanges(0)
 {
   NS_ASSERTION(aQueries.Count() > 0, "Must have at least one query");
 
@@ -1995,15 +1983,6 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
   if (history) {
     mLiveUpdate = history->GetUpdateRequirements(mQueries, mOptions,
                                                  &mHasSearchTerms);
-  }
-
-  
-  for (int32_t i = 1; i < mQueries.Count(); ++i) {
-    const nsTArray<uint32_t>& queryTransitions = mQueries[i]->Transitions();
-    for (uint32_t j = mTransitions.Length() - 1; j >= 0 ; --j) {
-      if (!queryTransitions.Contains(mTransitions[j]))
-        mTransitions.RemoveElement(mTransitions[j]);
-    }
   }
 }
 
@@ -2626,17 +2605,10 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, int64_t aVisitId,
     case QUERYUPDATE_SIMPLE: {
       
       
-      if (mTransitions.Length() > 0 && !mTransitions.Contains(aTransitionType))
-        return NS_OK;
-
-      
-      
       rv = history->VisitIdToResultNode(aVisitId, mOptions,
                                         getter_AddRefs(addition));
-      NS_ENSURE_SUCCESS(rv, rv);
-      NS_ENSURE_STATE(addition);
-      addition->mTransitionType = aTransitionType;
-      if (!history->EvaluateQueryForNode(mQueries, mOptions, addition))
+      if (NS_FAILED(rv) || !addition ||
+          !history->EvaluateQueryForNode(mQueries, mOptions, addition))
         return NS_OK; 
       break;
     }
@@ -2901,7 +2873,7 @@ nsNavHistoryQueryResultNode::OnDeleteVisits(nsIURI* aURI,
     
     
     
-    if (mTransitions.Length() > 0 && mTransitions.Contains(aTransitionType)) {
+    if ((mQueries[0]->Transitions()).Contains(aTransitionType)) {
       nsresult rv = OnDeleteURI(aURI, aGUID, aReason);
       NS_ENSURE_SUCCESS(rv, rv);
     }

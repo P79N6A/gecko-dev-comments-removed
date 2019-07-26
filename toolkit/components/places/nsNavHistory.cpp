@@ -894,6 +894,7 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
 
   bool nonTimeBasedItems = false;
   bool domainBasedItems = false;
+  bool queryContainsTransitions = false;
 
   for (i = 0; i < aQueries.Count(); i ++) {
     nsNavHistoryQuery* query = aQueries[i];
@@ -903,6 +904,9 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
         query->Tags().Length() > 0) {
       return QUERYUPDATE_COMPLEX_WITH_BOOKMARKS;
     }
+
+    if (query->Transitions().Length() > 0)
+      queryContainsTransitions = true;
 
     
     
@@ -919,6 +923,9 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
       nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY)
     return QUERYUPDATE_COMPLEX_WITH_BOOKMARKS;
 
+  if (queryContainsTransitions)
+    return QUERYUPDATE_COMPLEX;
+
   
   
   
@@ -930,7 +937,6 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
     return QUERYUPDATE_HOST;
   if (aQueries.Count() == 1 && !nonTimeBasedItems)
     return QUERYUPDATE_TIME;
-
   return QUERYUPDATE_SIMPLE;
 }
 
@@ -1053,14 +1059,6 @@ nsNavHistory::EvaluateQueryForNode(const nsCOMArray<nsNavHistoryQuery>& aQueries
         if (! nodeUriString.Equals(queryUriString))
           continue; 
       }
-    }
-
-    
-    const nsTArray<uint32_t>& transitions = query->Transitions();
-    if (aNode->mTransitionType > 0 &&
-        transitions.Length() &&
-        !transitions.Contains(aNode->mTransitionType)) {
-      continue; 
     }
 
     
