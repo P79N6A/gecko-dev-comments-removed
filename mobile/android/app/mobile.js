@@ -795,6 +795,9 @@ pref("browser.ui.linkify.phone", false);
 pref("snav.enabled", true);
 
 
+pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/mobile");
+
+
 
 
 pref("browser.snippets.updateUrl", "https://snippets.mozilla.com/json/%SNIPPETS_VERSION%/%NAME%/%VERSION%/%APPBUILDID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/");
