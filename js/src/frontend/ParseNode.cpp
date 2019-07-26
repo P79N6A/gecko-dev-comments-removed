@@ -326,8 +326,6 @@ Definition::kindString(Kind kind)
 namespace js {
 namespace frontend {
 
-#if JS_HAS_DESTRUCTURING
-
 
 
 
@@ -423,8 +421,6 @@ Parser<FullParseHandler>::cloneParseTree(ParseNode *opn)
     return pn;
 }
 
-#endif 
-
 
 
 
@@ -447,7 +443,6 @@ Parser<FullParseHandler>::cloneLeftHandSide(ParseNode *opn)
     pn->setDefn(opn->isDefn());
     pn->setUsed(opn->isUsed());
 
-#if JS_HAS_DESTRUCTURING
     if (opn->isArity(PN_LIST)) {
         JS_ASSERT(opn->isKind(PNK_ARRAY) || opn->isKind(PNK_OBJECT));
         pn->makeEmpty();
@@ -479,7 +474,6 @@ Parser<FullParseHandler>::cloneLeftHandSide(ParseNode *opn)
         pn->pn_xflags = opn->pn_xflags;
         return pn;
     }
-#endif
 
     JS_ASSERT(opn->isArity(PN_NAME));
     JS_ASSERT(opn->isKind(PNK_NAME));
