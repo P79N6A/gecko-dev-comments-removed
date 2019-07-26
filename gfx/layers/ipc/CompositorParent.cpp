@@ -697,12 +697,17 @@ CompositorParent::NotifyChildCreated(uint64_t aChild)
   sIndirectLayerTrees[aChild].mParent = this;
 }
 
+
+
+
+uint64_t CompositorParent::ROOT_LAYER_TREE_ID = 1;
+
  uint64_t
 CompositorParent::AllocateLayerTreeId()
 {
   MOZ_ASSERT(CompositorLoop());
   MOZ_ASSERT(NS_IsMainThread());
-  static uint64_t ids;
+  static uint64_t ids = ROOT_LAYER_TREE_ID;
   return ++ids;
 }
 
