@@ -1295,6 +1295,7 @@ class Shape : public gc::BarrieredCell<Shape>
     }
 
     inline Shape *search(ExclusiveContext *cx, jsid id);
+    inline Shape *searchLinear(jsid id);
 
     
     static inline size_t offsetOfBase() { return offsetof(Shape, base_); }
@@ -1582,6 +1583,25 @@ Shape::Shape(UnownedBaseShape *base, uint32_t nfixed)
     kids.setNull();
 }
 
+inline Shape *
+Shape::searchLinear(jsid id)
+{
+    
+
+
+
+
+
+    JS_ASSERT(!inDictionary());
+
+    for (Shape *shape = this; shape; shape = shape->parent) {
+        if (shape->propidRef() == id)
+            return shape;
+    }
+
+    return nullptr;
+}
+
 
 
 
@@ -1598,12 +1618,7 @@ Shape::searchNoHashify(Shape *start, jsid id)
         return SHAPE_FETCH(spp);
     }
 
-    for (Shape *shape = start; shape; shape = shape->parent) {
-        if (shape->propidRef() == id)
-            return shape;
-    }
-
-    return nullptr;
+    return start->searchLinear(id);
 }
 
 inline bool

@@ -2787,7 +2787,7 @@ CASE(JSOP_SETALIASEDVAR)
 
     
     
-    PropertyName *name = obj.hasSingletonType() ? ScopeCoordinateName(cx, script, REGS.pc)
+    PropertyName *name = obj.hasSingletonType() ? ScopeCoordinateName(script, REGS.pc)
                                                 : nullptr;
 
     obj.setAliasedVar(cx, sc, name, REGS.sp[-1]);
