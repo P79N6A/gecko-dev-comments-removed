@@ -9,15 +9,13 @@
 
 #include "mozilla/Attributes.h"
 
-#include "jscntxt.h"
-#include "jsstr.h"
+#include "jsapi.h"
+
+#include "vm/String.h"
 
 namespace js {
 
-
-
-
-class JSONParser : private AutoGCRooter
+class MOZ_STACK_CLASS JSONParser : private AutoGCRooter
 {
   public:
     enum ErrorHandling { RaiseError, NoError };
@@ -141,23 +139,23 @@ class JSONParser : private AutoGCRooter
 
 
 
-    bool parse(js::MutableHandleValue vp);
+    bool parse(MutableHandleValue vp);
 
   private:
-    js::Value numberValue() const {
+    Value numberValue() const {
         JS_ASSERT(lastToken == Number);
         JS_ASSERT(v.isNumber());
         return v;
     }
 
-    js::Value stringValue() const {
+    Value stringValue() const {
         JS_ASSERT(lastToken == String);
         JS_ASSERT(v.isString());
         return v;
     }
 
     JSAtom *atomValue() const {
-        js::Value strval = stringValue();
+        Value strval = stringValue();
         return &strval.toString()->asAtom();
     }
 
@@ -171,7 +169,7 @@ class JSONParser : private AutoGCRooter
     }
 
     Token stringToken(JSString *str) {
-        this->v = js::StringValue(str);
+        this->v = StringValue(str);
 #ifdef DEBUG
         lastToken = String;
 #endif
@@ -179,7 +177,7 @@ class JSONParser : private AutoGCRooter
     }
 
     Token numberToken(double d) {
-        this->v = js::NumberValue(d);
+        this->v = NumberValue(d);
 #ifdef DEBUG
         lastToken = Number;
 #endif
