@@ -197,9 +197,10 @@ static const char * const TypeChars[] =
     "i",            
     "o",            
     "f",            
+    "d",            
 #ifdef JS_NUNBOX32
     "t",            
-    "d"             
+    "p"             
 #elif JS_PUNBOX64
     "x"             
 #endif
