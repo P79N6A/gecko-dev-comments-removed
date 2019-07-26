@@ -1997,6 +1997,16 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
         new (aBuilder) nsDisplayTransform(aBuilder, this, &resultList));
     }
   }
+
+  
+
+
+
+
+  if (useBlendMode && !resultList.IsEmpty()) {
+    resultList.AppendNewToTop(
+        new (aBuilder) nsDisplayMixBlendMode(aBuilder, this, &resultList));
+  }
   
   if (aBuilder->ContainsBlendMode()) {
       resultList.AppendNewToTop(
