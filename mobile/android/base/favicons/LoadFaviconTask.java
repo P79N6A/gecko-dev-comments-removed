@@ -97,6 +97,10 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
     
     private void saveFaviconToDb(final byte[] encodedFavicon) {
+        if (encodedFavicon == null) {
+            return;
+        }
+
         if ((flags & FLAG_PERSIST) == 0) {
             return;
         }
@@ -376,6 +380,9 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         if (loadedBitmaps != null) {
+            
+            
+            
             saveFaviconToDb(loadedBitmaps.getBytesForDatabaseStorage());
             return pushToCacheAndGetResult(loadedBitmaps);
         }

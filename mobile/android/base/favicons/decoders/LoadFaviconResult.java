@@ -49,26 +49,28 @@ public class LoadFaviconResult {
 
         
         
-        if (!isICO) {
-            Bitmap favicon = ((FaviconDecoder.SingleBitmapIterator) bitmapsDecoded).peek();
-            byte[] data = null;
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-
-            if (favicon.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
-                data = stream.toByteArray();
-            } else {
-                Log.w(LOGTAG, "Favicon compression failed.");
-            }
-
-            return data;
+        
+        
+        
+        if (isICO) {
+            return faviconBytes;
         }
 
         
         
-        
-        
-        
-        return faviconBytes;
+        final Bitmap favicon = ((FaviconDecoder.SingleBitmapIterator) bitmapsDecoded).peek();
+        final ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+        try {
+            if (favicon.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
+                return stream.toByteArray();
+            }
+        } catch (OutOfMemoryError e) {
+            Log.w(LOGTAG, "Out of memory re-compressing favicon.");
+        }
+
+        Log.w(LOGTAG, "Favicon re-compression failed.");
+        return null;
     }
 
 }
