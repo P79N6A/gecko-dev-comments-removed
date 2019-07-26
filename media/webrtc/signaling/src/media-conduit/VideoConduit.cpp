@@ -118,6 +118,9 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
     mVideoEngine = nullptr;
   } else {
     
+    if (mVideoCodecStat) {
+      mVideoCodecStat->EndOfCallStats();
+    }
     mVideoCodecStat = nullptr;
     
     
