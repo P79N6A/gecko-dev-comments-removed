@@ -62,6 +62,11 @@ ShadowLayerParent::ActorDestroy(ActorDestroyReason why)
     break;
 
   case AbnormalShutdown:
+    if (mLayer) {
+      mLayer->Disconnect();
+    }
+    break;
+
   case NormalShutdown:
     
     
