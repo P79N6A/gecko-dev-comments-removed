@@ -1192,28 +1192,6 @@ TabParent::GetChildProcessOffset()
            pt, targetFrame->PresContext()->AppUnitsPerDevPixel()));
 }
 
-bool
-TabParent::RecvReplyKeyEvent(const WidgetKeyboardEvent& event)
-{
-  NS_ENSURE_TRUE(mFrameElement, true);
-
-  WidgetKeyboardEvent localEvent(event);
-  
-  
-  localEvent.mFlags.mNoCrossProcessBoundaryForwarding = true;
-
-  
-  
-  nsIDocument* doc = mFrameElement->OwnerDoc();
-  nsIPresShell* presShell = doc->GetShell();
-  NS_ENSURE_TRUE(presShell, true);
-  nsPresContext* presContext = presShell->GetPresContext();
-  NS_ENSURE_TRUE(presContext, true);
-
-  nsEventDispatcher::Dispatch(mFrameElement, presContext, &localEvent);
-  return true;
-}
-
 
 
 

@@ -1186,6 +1186,13 @@ var gBrowserInit = {
       WindowsPrefSync.init();
     }
 
+    if (gMultiProcessBrowser) {
+      
+      
+      document.getElementById("cmd_handleBackspace").setAttribute("disabled", true);
+      document.getElementById("key_delete").setAttribute("disabled", true);
+    }
+
     SessionStore.promiseInitialized.then(() => {
       
       if (window.closed) {
