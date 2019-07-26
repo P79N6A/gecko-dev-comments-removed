@@ -413,6 +413,13 @@ GetNativeForGlobal(JSObject *global);
 
 JSObject *
 GetJunkScope();
+
+
+
+
+
+nsIGlobalObject *
+GetJunkScopeGlobal();
 } 
 
 namespace mozilla {

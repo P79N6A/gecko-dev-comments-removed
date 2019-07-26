@@ -134,7 +134,9 @@ nsDOMFileReader::Init()
   
   
   
-  BindToOwner(xpc::GetNativeForGlobal(xpc::GetJunkScope()));
+  nsCOMPtr<nsIGlobalObject> global = xpc::GetJunkScopeGlobal();
+  NS_ENSURE_TRUE(global, NS_ERROR_FAILURE);
+  BindToOwner(global);
   return NS_OK;
 }
 

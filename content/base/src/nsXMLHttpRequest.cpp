@@ -358,7 +358,9 @@ nsXMLHttpRequest::Init()
   
   
   
-  Construct(subjectPrincipal, xpc::GetNativeForGlobal(xpc::GetJunkScope()));
+  nsCOMPtr<nsIGlobalObject> global = xpc::GetJunkScopeGlobal();
+  NS_ENSURE_TRUE(global, NS_ERROR_FAILURE);
+  Construct(subjectPrincipal, global);
   return NS_OK;
 }
 
