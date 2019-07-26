@@ -92,7 +92,7 @@ NS_QUERYFRAME_HEAD(nsTextControlFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
   NS_QUERYFRAME_ENTRY(nsITextControlFrame)
   NS_QUERYFRAME_ENTRY(nsIStatefulFrame)
-NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 #ifdef ACCESSIBILITY
 already_AddRefed<Accessible>
@@ -134,7 +134,7 @@ private:
 #endif
 
 nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aContext)
-  : nsStackFrame(aShell, aContext)
+  : nsContainerFrame(aContext)
   , mUseEditor(false)
   , mIsProcessing(false)
 #ifdef DEBUG
@@ -166,7 +166,7 @@ nsTextControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
   nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
 
-  nsBoxFrame::DestroyFrom(aDestructRoot);
+  nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
 nsIAtom*
@@ -441,6 +441,20 @@ nsTextControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
   aElements.MaybeAppendElement(txtCtrl->GetRootEditorNode());
   if (!(aFilter & nsIContent::eSkipPlaceholderContent))
     aElements.MaybeAppendElement(txtCtrl->GetPlaceholderNode());
+  
+}
+
+nscoord
+nsTextControlFrame::GetPrefWidth(nsRenderingContext* aRenderingContext)
+{
+    nscoord result = 0;
+    DISPLAY_PREF_WIDTH(this, result);
+
+    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
+    nsSize autoSize;
+    CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
+
+    return autoSize.width; 
 }
 
 nscoord
@@ -472,21 +486,18 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   
   else if (GetStylePosition()->mWidth.GetUnit() == eStyleUnit_Auto) {
     nsSize ancestorAutoSize =
-      nsStackFrame::ComputeAutoSize(aRenderingContext,
-                                    aCBSize, aAvailableWidth,
-                                    aMargin, aBorder,
-                                    aPadding, aShrinkWrap);
+      nsContainerFrame::ComputeAutoSize(aRenderingContext,
+                                        aCBSize, aAvailableWidth,
+                                        aMargin, aBorder,
+                                        aPadding, aShrinkWrap);
     
     NS_ASSERTION(inflation != 1.0f || ancestorAutoSize.width == autoSize.width,
                  "Incorrect size computed by ComputeAutoSize?");
   }
 #endif
-  
+
   return autoSize;
 }
-
-
-
 
 NS_IMETHODIMP
 nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
@@ -502,50 +513,93 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
     nsFormControlFrame::RegUnRegAccessKey(this, true);
   }
 
-  return nsStackFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
-                              aStatus);
+  
+  aDesiredSize.width = aReflowState.ComputedWidth() +
+                        aReflowState.mComputedBorderPadding.LeftRight();
+  aDesiredSize.height = NS_CSS_MINMAX(aReflowState.ComputedHeight(),
+                                      aReflowState.mComputedMinHeight,
+                                      aReflowState.mComputedMaxHeight);
+  nscoord lineHeight = aDesiredSize.height;
+  aDesiredSize.height += aReflowState.mComputedBorderPadding.TopBottom();
+
+  
+  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
+  if (!IsSingleLineTextControl()) {
+    lineHeight = nsHTMLReflowState::CalcLineHeight(GetStyleContext(), 
+                                                  NS_AUTOHEIGHT, inflation);
+  }
+  nsRefPtr<nsFontMetrics> fontMet;
+  nsresult rv = nsLayoutUtils::GetFontMetricsForFrame(this, 
+                                                      getter_AddRefs(fontMet), 
+                                                      inflation);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  aDesiredSize.ascent = 
+        nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight) 
+        + aReflowState.mComputedBorderPadding.top;
+
+  
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+  
+  nsIFrame* kid = mFrames.FirstChild();
+  while (kid) {
+    ReflowTextControlChild(kid, aPresContext, aReflowState, aStatus, aDesiredSize);
+    kid = kid->GetNextSibling();
+  }
+  
+  FinishAndStoreOverflow(&aDesiredSize);
+
+  aStatus = NS_FRAME_COMPLETE;
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+  return NS_OK;
 }
 
-nsSize
-nsTextControlFrame::GetPrefSize(nsBoxLayoutState& aState)
+void
+nsTextControlFrame::ReflowTextControlChild(nsIFrame*                aKid,
+                                           nsPresContext*           aPresContext,
+                                           const nsHTMLReflowState& aReflowState,
+                                           nsReflowStatus&          aStatus,
+                                           nsHTMLReflowMetrics& aParentDesiredSize)
 {
-  if (!DoesNeedRecalc(mPrefSize))
-     return mPrefSize;
-
-#ifdef DEBUG_LAYOUT
-  PropagateDebug(aState);
-#endif
-
-  nsSize pref(0,0);
+  
+  nsSize availSize(aReflowState.ComputedWidth(), 
+                   aReflowState.ComputedHeight());
+  availSize.width = NS_MAX(availSize.width, 0);
+  availSize.height = NS_MAX(availSize.height, 0);
+  
+  nsHTMLReflowState kidReflowState(aPresContext, aReflowState, 
+                                   aKid, availSize);
 
   
+  nscoord width = availSize.width;
+  width -= kidReflowState.mComputedMargin.LeftRight() +
+              kidReflowState.mComputedBorderPadding.LeftRight();
+  width = NS_MAX(width, 0);
+  kidReflowState.SetComputedWidth(width);
+
+  nscoord height = availSize.height;
+  height -= kidReflowState.mComputedMargin.TopBottom() +
+              kidReflowState.mComputedBorderPadding.TopBottom();
+  height = NS_MAX(height, 0);       
+  kidReflowState.SetComputedHeight(height); 
+
   
+  nscoord xOffset = aReflowState.mComputedBorderPadding.left
+                      + kidReflowState.mComputedMargin.left;
+  nscoord yOffset = aReflowState.mComputedBorderPadding.top
+                      + kidReflowState.mComputedMargin.top;
+
   
+  nsHTMLReflowMetrics desiredSize;  
+  ReflowChild(aKid, aPresContext, desiredSize, kidReflowState, 
+              xOffset, yOffset, 0, aStatus);
+
   
-  nsresult rv = CalcIntrinsicSize(aState.GetRenderingContext(), pref, 1.0f);
-  NS_ENSURE_SUCCESS(rv, pref);
-  AddBorderAndPadding(pref);
+  FinishReflowChild(aKid, aPresContext, &kidReflowState, 
+                    desiredSize, xOffset, yOffset, 0);
 
-  bool widthSet, heightSet;
-  nsIBox::AddCSSPrefSize(this, pref, widthSet, heightSet);
-
-  nsSize minSize = GetMinSize(aState);
-  nsSize maxSize = GetMaxSize(aState);
-  mPrefSize = BoundsCheck(minSize, pref, maxSize);
-
-#ifdef DEBUG_rods
-  {
-    nsMargin borderPadding(0,0,0,0);
-    GetBorderAndPadding(borderPadding);
-    nsSize size(169, 24);
-    nsSize actual(pref.width/15, 
-                  pref.height/15);
-    printf("nsGfxText(field) %d,%d  %d,%d  %d,%d\n", 
-           size.width, size.height, actual.width, actual.height, actual.width-size.width, actual.height-size.height);  
-  }
-#endif
-
-  return mPrefSize;
+  
+  aParentDesiredSize.mOverflowAreas.UnionWith(desiredSize.mOverflowAreas);
 }
 
 nsSize
@@ -553,43 +607,6 @@ nsTextControlFrame::GetMinSize(nsBoxLayoutState& aState)
 {
   
   return nsBox::GetMinSize(aState);
-}
-
-nsSize
-nsTextControlFrame::GetMaxSize(nsBoxLayoutState& aState)
-{
-  
-  return nsBox::GetMaxSize(aState);
-}
-
-nscoord
-nsTextControlFrame::GetBoxAscent(nsBoxLayoutState& aState)
-{
-  
-  
-
-  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-
-  
-  nsRect clientRect;
-  GetClientRect(clientRect);
-  nscoord lineHeight =
-    IsSingleLineTextControl() ? clientRect.height :
-    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT,
-                                      inflation);
-
-  nsRefPtr<nsFontMetrics> fontMet;
-  nsresult rv =
-    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet),
-                                          inflation);
-  NS_ENSURE_SUCCESS(rv, 0);
-
-  nscoord ascent = nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight);
-
-  
-  ascent += clientRect.y;
-
-  return ascent;
 }
 
 bool
@@ -1111,7 +1128,7 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
     GetEditor(getter_AddRefs(editor));
   }
   if ((needEditor && !editor) || !selCon)
-    return nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);;
+    return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 
   nsresult rv = NS_OK;
 
@@ -1180,7 +1197,7 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
   
   
   else {
-    rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+    rv = nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
   }
 
   return rv;
@@ -1250,7 +1267,7 @@ NS_IMETHODIMP
 nsTextControlFrame::SetInitialChildList(ChildListID     aListID,
                                         nsFrameList&    aChildList)
 {
-  nsresult rv = nsBoxFrame::SetInitialChildList(aListID, aChildList);
+  nsresult rv = nsContainerFrame::SetInitialChildList(aListID, aChildList);
 
   nsIFrame* first = GetFirstPrincipalChild();
 
