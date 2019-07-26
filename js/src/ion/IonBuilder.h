@@ -71,6 +71,8 @@ class IonBuilder : public MIRGenerator
             FOR_LOOP_UPDATE,    
             TABLE_SWITCH,       
             LOOKUP_SWITCH,      
+            COND_SWITCH_CASE,   
+            COND_SWITCH_BODY,   
             AND_OR              
         };
 
@@ -134,6 +136,23 @@ class IonBuilder : public MIRGenerator
                 
                 uint32_t currentBlock;
             } lookupswitch;
+            struct {
+                
+                FixedList<MBasicBlock *> *bodies;
+
+                
+                
+                
+                uint32_t currentIdx;
+
+                
+                jsbytecode *defaultTarget;
+                uint32_t defaultIdx;
+
+                
+                jsbytecode *exitpc;
+                DeferredEdge *breaks;
+            } condswitch;
         };
 
         inline bool isLoop() const {
@@ -156,6 +175,7 @@ class IonBuilder : public MIRGenerator
         static CFGState AndOr(jsbytecode *join, MBasicBlock *joinStart);
         static CFGState TableSwitch(jsbytecode *exitpc, MTableSwitch *ins);
         static CFGState LookupSwitch(jsbytecode *exitpc);
+        static CFGState CondSwitch(jsbytecode *exitpc, jsbytecode *defaultTarget);
     };
 
     static int CmpSuccessors(const void *a, const void *b);
@@ -204,11 +224,12 @@ class IonBuilder : public MIRGenerator
     ControlStatus processForBodyEnd(CFGState &state);
     ControlStatus processForUpdateEnd(CFGState &state);
     ControlStatus processNextTableSwitchCase(CFGState &state);
-    ControlStatus processTableSwitchEnd(CFGState &state);
     ControlStatus processNextLookupSwitchCase(CFGState &state);
-    ControlStatus processLookupSwitchEnd(CFGState &state);
-    ControlStatus processAndOrEnd(CFGState &state);
+    ControlStatus processCondSwitchCase(CFGState &state);
+    ControlStatus processCondSwitchBody(CFGState &state);
     ControlStatus processSwitchBreak(JSOp op, jssrcnote *sn);
+    ControlStatus processSwitchEnd(DeferredEdge *breaks, jsbytecode *exitpc);
+    ControlStatus processAndOrEnd(CFGState &state);
     ControlStatus processReturn(JSOp op);
     ControlStatus processThrow();
     ControlStatus processContinue(JSOp op, jssrcnote *sn);
@@ -222,6 +243,7 @@ class IonBuilder : public MIRGenerator
     MBasicBlock *newBlock(MBasicBlock *predecessor, jsbytecode *pc);
     MBasicBlock *newBlock(MBasicBlock *predecessor, jsbytecode *pc, uint32_t loopDepth);
     MBasicBlock *newBlock(MBasicBlock *predecessor, jsbytecode *pc, MResumePoint *priorResumePoint);
+    MBasicBlock *newBlockPopN(MBasicBlock *predecessor, jsbytecode *pc, uint32_t popped);
     MBasicBlock *newBlockAfter(MBasicBlock *at, MBasicBlock *predecessor, jsbytecode *pc);
     MBasicBlock *newOsrPreheader(MBasicBlock *header, jsbytecode *loopEntry);
     MBasicBlock *newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc);
@@ -251,6 +273,7 @@ class IonBuilder : public MIRGenerator
     ControlStatus doWhileLoop(JSOp op, jssrcnote *sn);
     ControlStatus tableSwitch(JSOp op, jssrcnote *sn);
     ControlStatus lookupSwitch(JSOp op, jssrcnote *sn);
+    ControlStatus condSwitch(JSOp op, jssrcnote *sn);
 
     
     
@@ -318,6 +341,7 @@ class IonBuilder : public MIRGenerator
     bool jsop_funapply(uint32_t argc);
     bool jsop_call(uint32_t argc, bool constructing);
     bool jsop_ifeq(JSOp op);
+    bool jsop_condswitch();
     bool jsop_andor(JSOp op);
     bool jsop_dup2();
     bool jsop_loophead(jsbytecode *pc);
