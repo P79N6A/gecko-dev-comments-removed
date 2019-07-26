@@ -41,6 +41,11 @@
 #include "OSFileConstants.h"
 #include "nsIOSFileConstantsService.h"
 
+#if defined(__DragonFly__) || defined(__FreeBSD__) \
+  || defined(__NetBSD__) || defined(__OpenBSD__)
+#define __dd_fd dd_fd
+#endif
+
 
 
 
