@@ -264,10 +264,27 @@ Toolbox.prototype = {
         key.setAttribute("modifiers", toolDefinition.modifiers);
         key.setAttribute("oncommand", "void(0);"); 
         key.addEventListener("command", function(toolId) {
-          this.selectTool(toolId);
+          this.selectTool(toolId).then(() => {
+              this.fireCustomKey(toolId);
+          });
         }.bind(this, id), true);
         doc.getElementById("toolbox-keyset").appendChild(key);
       }
+    }
+  },
+
+
+  
+
+
+
+
+  fireCustomKey: function TBOX_fireCustomKey(toolId) {
+    let tools = gDevTools.getToolDefinitionMap();
+    let activeToolDefinition = tools.get(toolId);
+
+    if (activeToolDefinition.onkey && this.currentToolId === toolId) {
+        activeToolDefinition.onkey(this.getCurrentPanel());
     }
   },
 
