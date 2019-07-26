@@ -160,8 +160,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
     
     
     nsIPrincipal *principal = GetPrincipal();
-    mAllowXBLScope = XPCJSRuntime::Get()->XBLScopesEnabled() &&
-                     !RemoteXULForbidsXBLScope(principal);
+    mAllowXBLScope = !RemoteXULForbidsXBLScope(principal);
 
     
     mUseXBLScope = mAllowXBLScope;

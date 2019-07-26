@@ -1143,7 +1143,7 @@ public:
 
 
 
-  static bool ShouldExposeUserData(JSContext* aCx, JSObject* );
+  static bool IsChromeOrXBL(JSContext* aCx, JSObject* );
 
   void LookupPrefix(const nsAString& aNamespace, nsAString& aResult);
   bool IsDefaultNamespace(const nsAString& aNamespaceURI)
