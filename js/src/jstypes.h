@@ -186,12 +186,9 @@
 
 
 
-
-
-
 typedef int JSBool;
-#define JS_TRUE (int)1
-#define JS_FALSE (int)0
+#define JS_TRUE_DEPRECATED  (int)1
+#define JS_FALSE_DEPRECATED (int)0
 
 
 

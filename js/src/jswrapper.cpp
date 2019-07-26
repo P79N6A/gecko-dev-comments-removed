@@ -892,7 +892,7 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
         }
     }
 
-    return JS_TRUE;
+    return true;
 }
 
 

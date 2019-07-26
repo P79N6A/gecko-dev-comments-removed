@@ -824,7 +824,7 @@ js_fun_call(JSContext *cx, unsigned argc, Value *vp)
     
     InvokeArgs args(cx);
     if (!args.init(argc))
-        return JS_FALSE;
+        return false;
 
     
     args.setCallee(fval);

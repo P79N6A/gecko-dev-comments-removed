@@ -704,7 +704,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   if (!ctx) {
     
-    return JS_TRUE;
+    return true;
   }
 
   
@@ -724,12 +724,12 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     
     
     ctx->mOperationCallbackTime = now;
-    return JS_TRUE;
+    return true;
   }
 
   if (ctx->mModalStateDepth) {
     
-    return JS_TRUE;
+    return true;
   }
 
   PRTime duration = now - callbackTime;
@@ -741,7 +741,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     global && xpc::AccessCheck::isChrome(js::GetObjectCompartment(global));
   if (duration < (isTrackingChromeCodeTime ?
                   sMaxChromeScriptRunTime : sMaxScriptRunTime)) {
-    return JS_TRUE;
+    return true;
   }
 
   if (!nsContentUtils::IsSafeToRunScript()) {
@@ -751,14 +751,14 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     
 
     JS_ReportWarning(cx, "A long running script was terminated");
-    return JS_FALSE;
+    return false;
   }
 
   
   
   
   nsCOMPtr<nsIPrompt> prompt = GetPromptFromContext(ctx);
-  NS_ENSURE_TRUE(prompt, JS_FALSE);
+  NS_ENSURE_TRUE(prompt, false);
 
   
   JS::RootedScript script(cx);
@@ -844,7 +844,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   if (NS_FAILED(rv) || !title || !msg || !stopButton || !waitButton ||
       (!debugButton && debugPossible) || !neverShowDlg) {
     NS_ERROR("Failed to get localized strings.");
-    return JS_TRUE;
+    return true;
   }
 
   
@@ -902,14 +902,14 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     }
 
     ctx->mOperationCallbackTime = PR_Now();
-    return JS_TRUE;
+    return true;
   }
   else if ((buttonPressed == 2) && debugPossible) {
     return js_CallContextDebugHandler(cx);
   }
 
   JS_ClearPendingException(cx);
-  return JS_FALSE;
+  return false;
 }
 
 void
@@ -3326,7 +3326,7 @@ NS_DOMWriteStructuredClone(JSContext* cx,
   if (NS_FAILED(rv)) {
     
     xpc::Throw(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
-    return JS_FALSE;
+    return false;
   }
 
   

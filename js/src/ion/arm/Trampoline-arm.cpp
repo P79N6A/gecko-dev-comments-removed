@@ -320,7 +320,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
 
     
-    GenerateReturn(masm, JS_TRUE);
+    GenerateReturn(masm, true);
 
     Linker linker(masm);
     return linker.newCode(cx, JSC::OTHER_CODE);

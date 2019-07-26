@@ -1364,7 +1364,7 @@ JSD_GetScriptForValue(JSDContext* jsdc, JSDValue* jsdval);
 #define JSDPD_ALIAS      JSPD_ALIAS        /* property has an alias id */
 #define JSDPD_EXCEPTION  JSPD_EXCEPTION    /* exception occurred looking up */
                                            
-#define JSDPD_ERROR      JSPD_ERROR        /* native getter returned JS_FALSE */
+#define JSDPD_ERROR      JSPD_ERROR        /* native getter returned false */
                                            
 
 #define JSDPD_HINTED     0x800             /* found via explicit lookup */

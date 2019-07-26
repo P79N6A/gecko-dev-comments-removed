@@ -432,17 +432,17 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 
     NS_ASSERTION(ssm, "Failed to get security manager service");
     if (!ssm)
-        return JS_FALSE;
+        return false;
 
     nsresult rv;
     nsIPrincipal* subjectPrincipal = ssm->GetSubjectPrincipal(cx, &rv);
 
     NS_ASSERTION(NS_SUCCEEDED(rv), "CSP: Failed to get nsIPrincipal from js context");
     if (NS_FAILED(rv))
-        return JS_FALSE; 
+        return false; 
 
     if (!subjectPrincipal)
-        return JS_TRUE;
+        return true;
 
     nsCOMPtr<nsIContentSecurityPolicy> csp;
     rv = subjectPrincipal->GetCsp(getter_AddRefs(csp));
@@ -450,7 +450,7 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 
     
     if (!csp)
-        return JS_TRUE;
+        return true;
 
     bool evalOK = true;
     bool reportViolation = false;
@@ -459,7 +459,7 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
     if (NS_FAILED(rv))
     {
         NS_WARNING("CSP: failed to get allowsEval");
-        return JS_TRUE; 
+        return true; 
     }
 
     if (reportViolation) {
@@ -494,7 +494,7 @@ nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JS::Handle<JSObject*> 
 
     NS_WARN_IF_FALSE(ssm, "Failed to get security manager service");
     if (!ssm)
-        return JS_FALSE;
+        return false;
 
     
     
@@ -515,9 +515,9 @@ nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JS::Handle<JSObject*> 
                                  (int32_t)nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
 
     if (NS_FAILED(rv))
-        return JS_FALSE; 
+        return false; 
 
-    return JS_TRUE;
+    return true;
 }
 
 NS_IMETHODIMP

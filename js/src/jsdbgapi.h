@@ -260,7 +260,7 @@ typedef struct JSPropertyDesc {
 #define JSPD_ALIAS      0x08    /* property has an alias id */
 #define JSPD_EXCEPTION  0x40    /* exception occurred fetching the property, */
                                 
-#define JSPD_ERROR      0x80    /* native getter returned JS_FALSE without */
+#define JSPD_ERROR      0x80    /* native getter returned false without */
                                 
 
 typedef struct JSPropertyDescArray {

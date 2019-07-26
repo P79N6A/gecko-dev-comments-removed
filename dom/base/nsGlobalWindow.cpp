@@ -5356,10 +5356,7 @@ nsGlobalWindow::CanMoveResizeWindows()
     }
   }
 
-  
-  
-  if (mDocShell && !Preferences::GetBool("dom.always_allow_move_resize_window",
-                                         false)) {
+  if (mDocShell) {
     bool allow;
     nsresult rv = mDocShell->GetAllowWindowControl(&allow);
     if (NS_SUCCEEDED(rv) && !allow)
@@ -6769,7 +6766,7 @@ PostMessageWriteStructuredClone(JSContext* cx,
     return runtimeCallbacks->write(cx, writer, obj, nullptr);
   }
 
-  return JS_FALSE;
+  return false;
 }
 
 JSStructuredCloneCallbacks kPostMessageCallbacks = {
