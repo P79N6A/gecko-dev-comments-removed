@@ -343,14 +343,16 @@ this.DownloadIntegration = {
         }
 
         
-        mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
-
         let localHandlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"]
                                 .createInstance(Ci.nsILocalHandlerApp);
         localHandlerApp.executable = new FileUtils.File(aDownload.launcherPath);
 
+        mimeInfo.preferredApplicationHandler = localHandlerApp;
+        mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
+
+        
         if (this.dontOpenFileAndFolder) {
-          throw new Task.Result("chosen-app");
+          throw new Task.Result(mimeInfo);
         }
 
         mimeInfo.launchWithFile(file);
@@ -360,7 +362,7 @@ this.DownloadIntegration = {
       
       
       if (this.dontOpenFileAndFolder) {
-        throw new Task.Result("default-handler");
+        throw new Task.Result(null);
       }
 
       

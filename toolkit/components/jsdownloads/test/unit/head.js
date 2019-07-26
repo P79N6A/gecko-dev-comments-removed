@@ -210,6 +210,10 @@ function promiseNewDownload(aSourceUrl) {
 
 
 
+
+
+
+
 function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   let sourceURI = NetUtil.newURI(aSourceUrl || httpUrl("source.txt"));
   let targetFile = (aOptions && aOptions.targetFile)
@@ -229,9 +233,25 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
 
   if (fileExtension) {
     try {
-      mimeInfo = gMIMEService.getFromTypeAndExtension(null,
-                                                      fileExtension);
+      mimeInfo = gMIMEService.getFromTypeAndExtension(null, fileExtension);
+      mimeInfo.preferredAction = Ci.nsIMIMEInfo.saveToDisk;
     } catch (ex) { }
+  }
+
+  if (aOptions && aOptions.launcherPath) {
+    do_check_true(mimeInfo != null);
+
+    let localHandlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"]
+                            .createInstance(Ci.nsILocalHandlerApp);
+    localHandlerApp.executable = new FileUtils.File(aOptions.launcherPath);
+
+    mimeInfo.preferredApplicationHandler = localHandlerApp;
+  }
+
+  if (aOptions && aOptions.launchWhenSucceeded) {
+    do_check_true(mimeInfo != null);
+
+    mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
   }
 
   
@@ -268,8 +288,8 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
 
     
     
-    transfer.init(sourceURI, NetUtil.newURI(targetFile), null, mimeInfo, null, null,
-                  persist, isPrivate);
+    transfer.init(sourceURI, NetUtil.newURI(targetFile), null, mimeInfo, null,
+                  null, persist, isPrivate);
     persist.progressListener = transfer;
 
     

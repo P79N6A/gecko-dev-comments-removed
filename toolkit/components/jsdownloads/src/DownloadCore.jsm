@@ -314,7 +314,8 @@ Download.prototype = {
     
     
     
-    function DS_setDownloadProperties(aOptions) {
+    function DS_setProperties(aOptions)
+    {
       if (this._currentAttempt && this._currentAttempt != currentAttempt) {
         return;
       }
@@ -359,7 +360,7 @@ Download.prototype = {
       try {
         
         yield this.saver.execute(DS_setProgressBytes.bind(this),
-                                 DS_setDownloadProperties.bind(this));
+                                 DS_setProperties.bind(this));
 
         
         this.progress = 100;
@@ -1233,13 +1234,13 @@ DownloadCopySaver.prototype = {
             onStartRequest: function (aRequest, aContext) {
               backgroundFileSaver.onStartRequest(aRequest, aContext);
 
+              aSetPropertiesFn({ contentType: channel.contentType });
+
               
               
               
-              if (aRequest instanceof Ci.nsIChannel &&
-                  aRequest.contentLength >= 0) {
-                aSetProgressBytesFn(0, aRequest.contentLength);
-                aSetPropertiesFn({ contentType: aRequest.contentType });
+              if (channel.contentLength >= 0) {
+                aSetProgressBytesFn(0, channel.contentLength);
               }
 
               if (keepPartialData) {

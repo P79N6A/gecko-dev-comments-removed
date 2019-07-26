@@ -354,6 +354,9 @@ add_task(function test_empty_progress()
   do_check_eq(download.currentBytes, 0);
   do_check_eq(download.totalBytes, 0);
 
+  
+  do_check_eq(download.contentType, "text/plain");
+
   do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
 });
 
@@ -418,6 +421,9 @@ add_task(function test_empty_noprogress()
   
   continueResponses();
   yield promiseDownloadStopped(download);
+
+  
+  do_check_eq(download.contentType, "text/plain");
 
   
   do_check_true(download.stopped);
@@ -1401,35 +1407,65 @@ add_task(function test_showContainingDirectory() {
 
 
 add_task(function test_launch() {
-  let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
+  let customLauncher = getTempFile("app-launcher");
 
+  
+  for (let launcherPath of [null, customLauncher.path]) {
+    let download;
+    if (!gUseLegacySaver) {
+      
+      
+      download = yield Downloads.createDownload({
+        source: httpUrl("source.txt"),
+        target: getTempFile(TEST_TARGET_FILE_NAME).path,
+        launcherPath: launcherPath,
+      });
+
+      try {
+        yield download.launch();
+        do_throw("Can't launch download file as it has not completed yet");
+      } catch (ex) {
+        do_check_eq(ex.message,
+                    "launch can only be called if the download succeeded");
+      }
+
+      yield download.start();
+    } else {
+      
+      
+      download = yield promiseStartLegacyDownload(
+                                         httpUrl("source.txt"),
+                                         { launcherPath: launcherPath });
+      yield promiseDownloadStopped(download);
+    }
+
+    do_check_false(download.launchWhenSucceeded);
+
+    DownloadIntegration._deferTestOpenFile = Promise.defer();
+    download.launch();
+    let result = yield DownloadIntegration._deferTestOpenFile.promise;
+
+    
+    if (!launcherPath) {
+      
+      do_check_true(result === null);
+    } else {
+      
+      do_check_eq(result.preferredAction, Ci.nsIMIMEInfo.useHelperApp);
+      do_check_true(result.preferredApplicationHandler
+                          .QueryInterface(Ci.nsILocalHandlerApp)
+                          .executable.equals(customLauncher));
+    }
+  }
+});
+
+
+
+
+add_task(function test_launcherPath_invalid() {
   let download = yield Downloads.createDownload({
     source: { url: httpUrl("source.txt") },
-    target: { path: targetPath }
-  });
-
-  
-  
-  try {
-    yield download.launch();
-    do_throw("Can't launch download file as it has not completed yet");
-  } catch (ex) {
-    do_check_eq(ex.message, "launch can only be called if the download succeeded")
-  }
-
-  
-  DownloadIntegration._deferTestOpenFile = Promise.defer();
-  yield download.start();
-  download.launch();
-  let result = yield DownloadIntegration._deferTestOpenFile.promise;
-  do_check_eq(result, "default-handler");
-
-
-  
-  
-  download = yield Downloads.createDownload({
-    source: { url: httpUrl("source.txt") },
-    target: { path: targetPath },
+    target: { path: getTempFile(TEST_TARGET_FILE_NAME).path },
     launcherPath: " "
   });
 
@@ -1446,21 +1482,6 @@ add_task(function test_launch() {
                       ex.result == Cr.NS_ERROR_FAILURE;
     do_check_true(validResult);
   }
-
-  
-  
-  download = yield Downloads.createDownload({
-    source: { url: httpUrl("source.txt") },
-    target: { path: targetPath },
-    launcherPath: getTempFile("app-launcher").path
-  });
-
-  DownloadIntegration._deferTestOpenFile = Promise.defer();
-  yield download.start();
-  download.launch();
-  result = yield DownloadIntegration._deferTestOpenFile.promise;
-  do_check_eq(result, "chosen-app");
-
 });
 
 
@@ -1468,35 +1489,42 @@ add_task(function test_launch() {
 
 
 add_task(function test_launchWhenSucceeded() {
-  let targetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
-
-  let download = yield Downloads.createDownload({
-    source: { url: httpUrl("source.txt") },
-    target: { path: targetPath },
-    launchWhenSucceeded: true,
-  });
+  let customLauncher = getTempFile("app-launcher");
 
   
-  
-  DownloadIntegration._deferTestOpenFile = Promise.defer();
-  download.start();
-  let result = yield DownloadIntegration._deferTestOpenFile.promise;
-  do_check_eq(result, "default-handler");
+  for (let launcherPath of [null, customLauncher.path]) {
+    DownloadIntegration._deferTestOpenFile = Promise.defer();
 
+    if (!gUseLegacySaver) {
+      let download = yield Downloads.createDownload({
+        source: httpUrl("source.txt"),
+        target: getTempFile(TEST_TARGET_FILE_NAME).path,
+        launchWhenSucceeded: true,
+        launcherPath: launcherPath,
+      });
+      yield download.start();
+    } else {
+      let download = yield promiseStartLegacyDownload(
+                                             httpUrl("source.txt"),
+                                             { launcherPath: launcherPath,
+                                               launchWhenSucceeded: true });
+      yield promiseDownloadStopped(download);
+    }
 
-  
-  
-  download = yield Downloads.createDownload({
-    source: { url: httpUrl("source.txt") },
-    target: { path: targetPath },
-    launchWhenSucceeded: true,
-    launcherPath: getTempFile("app-launcher").path
-  });
+    let result = yield DownloadIntegration._deferTestOpenFile.promise;
 
-  DownloadIntegration._deferTestOpenFile = Promise.defer();
-  yield download.start();
-  result = yield DownloadIntegration._deferTestOpenFile.promise;
-  do_check_eq(result, "chosen-app");
+    
+    if (!launcherPath) {
+      
+      do_check_true(result === null);
+    } else {
+      
+      do_check_eq(result.preferredAction, Ci.nsIMIMEInfo.useHelperApp);
+      do_check_true(result.preferredApplicationHandler
+                          .QueryInterface(Ci.nsILocalHandlerApp)
+                          .executable.equals(customLauncher));
+    }
+  }
 });
 
 
@@ -1504,8 +1532,7 @@ add_task(function test_launchWhenSucceeded() {
 
 add_task(function test_contentType() {
   let download = yield promiseStartDownload(httpUrl("source.txt"));
-
   yield promiseDownloadStopped(download);
+
   do_check_eq("text/plain", download.contentType);
 });
-
