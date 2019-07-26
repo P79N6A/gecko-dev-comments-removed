@@ -80,7 +80,6 @@ class GetCameraNameRunnable;
 
 
 
-
 class MediaEngineWebRTCVideoSource : public MediaEngineVideoSource
                                    , public nsRunnable
 #ifdef MOZ_B2G_CAMERA
