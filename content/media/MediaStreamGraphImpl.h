@@ -374,6 +374,11 @@ public:
 
 
 
+  nsTArray<nsRefPtr<MediaStream> > mOldStreams;
+  
+
+
+
   GraphTime mCurrentTime;
   
 
