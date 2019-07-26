@@ -6660,8 +6660,17 @@ Requisition.prototype.exec = function(options) {
 
   this.commandOutputManager.onOutput({ output: output });
 
-  var onDone = function(data) { output.complete(data, false); };
-  var onError = function(error) { output.complete(error, true); };
+  var onDone = function(data) {
+    output.complete(data, false);
+  };
+
+  var onError = function(ex) {
+    output.complete({
+      isTypedData: true,
+      data: ex,
+      type: "exception"
+    }, true);
+  };
 
   try {
     var reply = command.exec(args, this.context);
@@ -9551,6 +9560,20 @@ var stringDomConverter = {
 
 
 
+var exceptionDomConverter = {
+  from: 'exception',
+  to: 'dom',
+  exec: function(ex, context) {
+    var node = util.createElement(context.document, 'p');
+    node.className = "gcli-exception";
+    node.textContent = ex;
+    return node;
+  }
+};
+
+
+
+
 function getChainConverter(first, second) {
   if (first.to !== second.from) {
     throw new Error('Chain convert impossible: ' + first.to + '!=' + second.from);
@@ -9655,6 +9678,7 @@ exports.convert = function(data, from, to, context) {
 exports.addConverter(viewDomConverter);
 exports.addConverter(terminalDomConverter);
 exports.addConverter(stringDomConverter);
+exports.addConverter(exceptionDomConverter);
 
 
 });

@@ -74,6 +74,12 @@ function fmt(aStr, aMaxLen, aMinLen, aOptions) {
 
 
 function getCtorName(aObj) {
+  if (aObj === null) {
+    return "null";
+  }
+  if (aObj === undefined) {
+    return "undefined";
+  }
   if (aObj.constructor && aObj.constructor.name) {
     return aObj.constructor.name;
   }
