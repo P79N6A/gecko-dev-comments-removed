@@ -760,6 +760,7 @@ class JSObject : public js::ObjectImpl
     }
 
     inline void setShouldConvertDoubleElements();
+    inline void clearShouldConvertDoubleElements();
 
     
     inline bool writeToIndexWouldMarkNotPacked(uint32_t index);
