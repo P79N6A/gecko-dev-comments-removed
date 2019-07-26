@@ -162,11 +162,7 @@ ActiveLayerTracker::IsStyleAnimated(nsIFrame* aFrame, nsCSSProperty aProperty)
 {
   LayerActivity* layerActivity = GetLayerActivity(aFrame);
   if (layerActivity) {
-    
-    uint8_t minStyleChangesToBeConsideredAnimation =
-        aProperty == eCSSProperty_opacity ? 2 : 1;
-    if (layerActivity->RestyleCountForProperty(aProperty) >=
-        minStyleChangesToBeConsideredAnimation) {
+    if (layerActivity->RestyleCountForProperty(aProperty) >= 2) {
       return true;
     }
   }
