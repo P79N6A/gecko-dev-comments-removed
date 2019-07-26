@@ -481,6 +481,13 @@ TabParent::TryCapture(const nsGUIEvent& aEvent)
 
   
   nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+
+  if (!frameLoader) {
+    
+    sEventCapturer = nullptr;
+    return false;
+  }
+
   nsEventStateManager::MapEventCoordinatesForChildProcess(frameLoader, &event);
 
   SendRealTouchEvent(event);
