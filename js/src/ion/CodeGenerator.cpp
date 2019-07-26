@@ -2178,7 +2178,11 @@ struct ScriptCountBlockState
         last = ins->isMoveGroup() ? &spillBytes : &instructionBytes;
 
         
-        printer.printf("[%s]\n", ins->opName());
+        
+        if (const char *extra = ins->extraName())
+            printer.printf("[%s:%s]\n", ins->opName(), extra);
+        else
+            printer.printf("[%s]\n", ins->opName());
     }
 
     ~ScriptCountBlockState()

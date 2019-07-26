@@ -609,6 +609,12 @@ class LInstruction
         }
     }
 
+    
+    
+    virtual const char *extraName() const {
+        return NULL;
+    }
+
   public:
     virtual Opcode op() const = 0;
 
