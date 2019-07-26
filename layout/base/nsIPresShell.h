@@ -131,8 +131,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xde498c49, 0xf83f, 0x47bf, \
-  {0x8c, 0xc6, 0x8f, 0xf8, 0x74, 0x62, 0x22, 0x23 } }
+{ 0xdb8d5e1e, 0x6392, 0x4ec1, \
+  {0x9a, 0x29, 0x18, 0xee, 0x2e, 0xc0, 0x88, 0x9b}}
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1255,6 +1255,7 @@ public:
   gfxSize GetResolution() { return gfxSize(mXResolution, mYResolution); }
   float GetXResolution() { return mXResolution; }
   float GetYResolution() { return mYResolution; }
+  virtual gfxSize GetCumulativeResolution() = 0;
 
   
 
