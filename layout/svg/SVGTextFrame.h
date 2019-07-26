@@ -619,17 +619,6 @@ private:
 
 
 
-  bool SetupContextPaint(gfxContext* aContext,
-                        nsIFrame* aFrame,
-                        nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                        float& aOpacity,
-                        gfxTextContextPaint* aContextPaint);
-
-  
-
-
-
-
 
 
 
