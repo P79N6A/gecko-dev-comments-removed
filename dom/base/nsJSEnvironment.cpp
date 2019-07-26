@@ -1136,6 +1136,10 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime, bool aGCOnDestruction,
 
 nsJSContext::~nsJSContext()
 {
+#ifdef DEBUG
+  nsCycleCollector_DEBUG_wasFreed(static_cast<nsIScriptContext*>(this));
+#endif
+
   *mPrev = mNext;
   if (mNext) {
     mNext->mPrev = mPrev;
@@ -1247,8 +1251,15 @@ nsJSContext::EvaluateString(const nsAString& aScript,
 {
   SAMPLE_LABEL("JS", "EvaluateString");
   MOZ_ASSERT_IF(aOptions.versionSet, aOptions.version != JSVERSION_UNKNOWN);
+  MOZ_ASSERT_IF(aCoerceToString, aRetValue);
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
-  *aRetValue = JSVAL_VOID;
+  
+  
+  
+  
+  if (aRetValue) {
+    *aRetValue = JSVAL_VOID;
+  }
 
   if (!mScriptsEnabled) {
     return NS_OK;
@@ -1283,7 +1294,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
     ok = JS::Evaluate(mContext, rootedScope, aOptions,
                       PromiseFlatString(aScript).get(),
                       aScript.Length(), aRetValue);
-    if (ok && !aRetValue->isUndefined() && aCoerceToString) {
+    if (ok && aCoerceToString && !aRetValue->isUndefined()) {
       JSString* str = JS_ValueToString(mContext, *aRetValue);
       ok = !!str;
       *aRetValue = ok ? JS::StringValue(str) : JS::UndefinedValue();
@@ -1292,7 +1303,9 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   if (!ok) {
-    *aRetValue = JS::UndefinedValue();
+    if (aRetValue) {
+      *aRetValue = JS::UndefinedValue();
+    }
     
     
     
@@ -1304,7 +1317,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   ScriptEvaluated(true);
 
   
-  if (!JS_WrapValue(mContext, aRetValue))
+  if (aRetValue && !JS_WrapValue(mContext, aRetValue))
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
 }

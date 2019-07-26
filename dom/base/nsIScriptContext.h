@@ -74,6 +74,8 @@ public:
 
 
 
+
+
   virtual nsresult EvaluateString(const nsAString& aScript,
                                   JSObject& aScopeObject,
                                   JS::CompileOptions& aOptions,

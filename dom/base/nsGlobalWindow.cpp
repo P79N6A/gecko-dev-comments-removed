@@ -1151,6 +1151,10 @@ nsGlobalWindow::~nsGlobalWindow()
 
   CleanUp(true);
 
+#ifdef DEBUG
+  nsCycleCollector_DEBUG_wasFreed(static_cast<nsIScriptGlobalObject*>(this));
+#endif
+
   nsCOMPtr<nsIDeviceSensors> ac = do_GetService(NS_DEVICE_SENSORS_CONTRACTID);
   if (ac)
     ac->RemoveWindowAsListener(this);
@@ -1281,6 +1285,9 @@ nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
 
   mOpener = nullptr;             
   if (mContext) {
+#ifdef DEBUG
+    nsCycleCollector_DEBUG_shouldBeFreed(mContext);
+#endif
     mContext = nullptr;            
   }
   mChromeEventHandler = nullptr; 
@@ -1314,6 +1321,9 @@ nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
   }
 
   DisableTimeChangeNotifications();
+#ifdef DEBUG
+  nsCycleCollector_DEBUG_shouldBeFreed(static_cast<nsIScriptGlobalObject*>(this));
+#endif
 }
 
 void
@@ -1397,6 +1407,11 @@ nsGlobalWindow::FreeInnerObjects()
     mDocBaseURI = mDoc->GetDocBaseURI();
   }
 
+#ifdef DEBUG
+  if (mDocument)
+    nsCycleCollector_DEBUG_shouldBeFreed(nsCOMPtr<nsISupports>(do_QueryInterface(mDocument)));
+#endif
+
   
   mDocument = nullptr;
   mDoc = nullptr;
@@ -1417,6 +1432,10 @@ nsGlobalWindow::FreeInnerObjects()
     mAudioContexts[i]->Shutdown();
   }
   mAudioContexts.Clear();
+
+#ifdef DEBUG
+  nsCycleCollector_DEBUG_shouldBeFreed(static_cast<nsIScriptGlobalObject*>(this));
+#endif
 }
 
 
@@ -2579,6 +2598,11 @@ nsGlobalWindow::DetachFromDocShell()
     mContext->GC(js::gcreason::SET_DOC_SHELL);
     mContext = nullptr;
   }
+
+#ifdef DEBUG
+  nsCycleCollector_DEBUG_shouldBeFreed(mContext);
+  nsCycleCollector_DEBUG_shouldBeFreed(static_cast<nsIScriptGlobalObject*>(this));
+#endif
 
   mDocShell = nullptr; 
 
@@ -10003,9 +10027,8 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     JS::CompileOptions options(aScx->GetNativeContext());
     options.setFileAndLine(filename, lineNo)
            .setVersion(JSVERSION_DEFAULT);
-    JS::Value ignored;
     aScx->EvaluateString(nsDependentString(script), *FastGetGlobalJSObject(),
-                         options,  false, &ignored);
+                         options,  false, nullptr);
   } else {
     nsCOMPtr<nsIVariant> dummy;
     nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
