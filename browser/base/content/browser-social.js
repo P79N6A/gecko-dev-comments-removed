@@ -326,7 +326,7 @@ let SocialShareButton = {
     
     
     
-    let port = Social.provider._getWorkerPort();
+    let port = Social.provider.getWorkerPort();
     if (port) {
       port.onmessage = function(evt) {
         if (evt.data.topic == "social.user-recommend-prompt-response") {
