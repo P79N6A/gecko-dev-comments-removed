@@ -282,9 +282,10 @@ let Content = {
     
     if (Util.isTextInput(element) &&
         aEvent.mozInputSource == Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH) {
+      let { offsetX, offsetY } = Util.translateToTopLevelWindow(element);
       sendAsyncMessage("Content:SelectionCaret", {
-        xPos: aEvent.clientX,
-        yPos: aEvent.clientY
+        xPos: aEvent.clientX + offsetX,
+        yPos: aEvent.clientY + offsetY
       });
     }
   },
