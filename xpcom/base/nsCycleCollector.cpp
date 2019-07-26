@@ -320,7 +320,6 @@ public:
     {
         mSentinelAndBlocks[0].block = nullptr;
         mSentinelAndBlocks[1].block = nullptr;
-        mNumBlocks = 0;
     }
 
     ~EdgePool()
@@ -336,9 +335,6 @@ public:
         while (b) {
             Block *next = b->Next();
             delete b;
-            NS_ASSERTION(mNumBlocks > 0,
-                         "Expected EdgePool mNumBlocks to be positive.");
-            mNumBlocks--;
             b = next;
         }
 
@@ -362,20 +358,17 @@ private:
             mPointers[BlockSize - 2].block = nullptr; 
             mPointers[BlockSize - 1].block = nullptr; 
         }
-        Block*& Next()
-            { return mPointers[BlockSize - 1].block; }
-        PtrInfoOrBlock* Start()
-            { return &mPointers[0]; }
-        PtrInfoOrBlock* End()
-            { return &mPointers[BlockSize - 2]; }
+        Block*& Next()          { return mPointers[BlockSize - 1].block; }
+        PtrInfoOrBlock* Start() { return &mPointers[0]; }
+        PtrInfoOrBlock* End()   { return &mPointers[BlockSize - 2]; }
     };
 
     
     
     PtrInfoOrBlock mSentinelAndBlocks[2];
-    uint32_t mNumBlocks;
 
-    Block*& Blocks() { return mSentinelAndBlocks[1].block; }
+    Block*& Blocks()       { return mSentinelAndBlocks[1].block; }
+    Block*  Blocks() const { return mSentinelAndBlocks[1].block; }
 
 public:
     class Iterator
@@ -419,8 +412,7 @@ public:
         Builder(EdgePool &aPool)
             : mCurrent(&aPool.mSentinelAndBlocks[0]),
               mBlockEnd(&aPool.mSentinelAndBlocks[0]),
-              mNextBlockPtr(&aPool.Blocks()),
-              mNumBlocks(aPool.mNumBlocks)
+              mNextBlockPtr(&aPool.Blocks())
         {
         }
 
@@ -438,7 +430,6 @@ public:
                 mCurrent = b->Start();
                 mBlockEnd = b->End();
                 mNextBlockPtr = &b->Next();
-                mNumBlocks++;
             }
             (mCurrent++)->ptrInfo = aEdge;
         }
@@ -446,13 +437,17 @@ public:
         
         PtrInfoOrBlock *mCurrent, *mBlockEnd;
         Block **mNextBlockPtr;
-        uint32_t &mNumBlocks;
     };
 
-    size_t BlocksSize() const {
-        return sizeof(Block) * mNumBlocks;
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+        size_t n = 0;
+        Block *b = Blocks();
+        while (b) {
+            n += aMallocSizeOf(b);
+            b = b->Next();
+        }
+        return n;
     }
-
 };
 
 enum NodeColor { black, white, grey };
@@ -537,7 +532,7 @@ private:
         
         
         
-        Block() { NS_NOTREACHED("should never be called"); }
+        Block()  { NS_NOTREACHED("should never be called"); }
         ~Block() { NS_NOTREACHED("should never be called"); }
 
         Block* mNext;
@@ -547,8 +542,7 @@ private:
 public:
     NodePool()
         : mBlocks(nullptr),
-          mLast(nullptr),
-          mNumBlocks(0)
+          mLast(nullptr)
     {
     }
 
@@ -571,9 +565,6 @@ public:
         while (b) {
             Block *n = b->mNext;
             NS_Free(b);
-            NS_ASSERTION(mNumBlocks > 0,
-                         "Expected NodePool mNumBlocks to be positive.");
-            mNumBlocks--;
             b = n;
         }
 
@@ -588,8 +579,7 @@ public:
         Builder(NodePool& aPool)
             : mNextBlock(&aPool.mBlocks),
               mNext(aPool.mLast),
-              mBlockEnd(nullptr),
-              mNumBlocks(aPool.mNumBlocks)
+              mBlockEnd(nullptr)
         {
             NS_ASSERTION(aPool.mBlocks == nullptr && aPool.mLast == nullptr,
                          "pool not empty");
@@ -605,7 +595,6 @@ public:
                 mBlockEnd = block->mEntries + BlockSize;
                 block->mNext = nullptr;
                 mNextBlock = &block->mNext;
-                mNumBlocks++;
             }
             return new (mNext++) PtrInfo(aPointer, aParticipant);
         }
@@ -613,7 +602,6 @@ public:
         Block **mNextBlock;
         PtrInfo *&mNext;
         PtrInfo *mBlockEnd;
-        uint32_t &mNumBlocks;
     };
 
     class Enumerator;
@@ -657,14 +645,21 @@ public:
         PtrInfo *mNext, *mBlockEnd, *&mLast;
     };
 
-    size_t BlocksSize() const {
-        return sizeof(Block) * mNumBlocks;
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+        
+        
+        size_t n = 0;
+        Block *b = mBlocks;
+        while (b) {
+            n += aMallocSizeOf(b);
+            b = b->mNext;
+        }
+        return n;
     }
 
 private:
     Block *mBlocks;
     PtrInfo *mLast;
-    uint32_t mNumBlocks;
 };
 
 
@@ -688,13 +683,17 @@ struct GCGraph
 
     GCGraph() : mRootCount(0) {
     }
-    ~GCGraph() { 
+    ~GCGraph() {
     }
 
-    size_t BlocksSize() const {
-        return mNodes.BlocksSize() + mEdges.BlocksSize();
-    }
+    void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                             size_t *aNodesSize, size_t *aEdgesSize) const {
+        *aNodesSize = mNodes.SizeOfExcludingThis(aMallocSizeOf);
+        *aEdgesSize = mEdges.SizeOfExcludingThis(aMallocSizeOf);
 
+        
+        
+    }
 };
 
 
@@ -736,17 +735,30 @@ struct nsPurpleBuffer
 private:
     struct Block {
         Block *mNext;
-         
-        nsPurpleBufferEntry mEntries[1360];
+        
+        
+        
+        
+        
+        nsPurpleBufferEntry mEntries[1365];
 
-        Block() : mNext(nullptr) {}
+        Block() : mNext(nullptr) {
+#ifndef DEBUG_CC
+            
+            MOZ_STATIC_ASSERT(
+                sizeof(Block) == 16384 ||       
+                sizeof(Block) == 32768,         
+                "ill-sized nsPurpleBuffer::Block"
+            );
+#endif
+        }
+        void StaticAsserts();
     };
 public:
     
     
 
     nsCycleCollectorParams &mParams;
-    uint32_t mNumBlocksAlloced;
     uint32_t mCount;
     Block mFirstBlock;
     nsPurpleBufferEntry *mFreeList;
@@ -755,10 +767,10 @@ public:
     PointerSet mNormalObjects; 
     nsCycleCollectorStats &mStats;
 #endif
-    
+
 #ifdef DEBUG_CC
     nsPurpleBuffer(nsCycleCollectorParams &params,
-                   nsCycleCollectorStats &stats) 
+                   nsCycleCollectorStats &stats)
         : mParams(params),
           mStats(stats)
     {
@@ -766,7 +778,7 @@ public:
         mNormalObjects.Init();
     }
 #else
-    nsPurpleBuffer(nsCycleCollectorParams &params) 
+    nsPurpleBuffer(nsCycleCollectorParams &params)
         : mParams(params)
     {
         InitBlocks();
@@ -780,7 +792,6 @@ public:
 
     void InitBlocks()
     {
-        mNumBlocksAlloced = 0;
         mCount = 0;
         mFreeList = nullptr;
         StartBlock(&mFirstBlock);
@@ -805,16 +816,13 @@ public:
     {
         if (mCount > 0)
             UnmarkRemainingPurple(&mFirstBlock);
-        Block *b = mFirstBlock.mNext; 
+        Block *b = mFirstBlock.mNext;
         while (b) {
             if (mCount > 0)
                 UnmarkRemainingPurple(b);
             Block *next = b->mNext;
             delete b;
             b = next;
-            NS_ASSERTION(mNumBlocksAlloced > 0,
-                         "Expected positive mNumBlocksAlloced.");
-            mNumBlocksAlloced--;
         }
         mFirstBlock.mNext = nullptr;
     }
@@ -865,7 +873,6 @@ public:
             if (!b) {
                 return nullptr;
             }
-            mNumBlocksAlloced++;
             StartBlock(b);
 
             
@@ -916,11 +923,28 @@ public:
         return mCount;
     }
 
-    size_t BlocksSize() const
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
     {
-        return sizeof(Block) * mNumBlocksAlloced;
-    }
+        size_t n = 0;
 
+        
+        const Block *block = mFirstBlock.mNext;
+        while (block) {
+            n += aMallocSizeOf(block);
+            block = block->mNext;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+
+        return n;
+    }
 };
 
 static bool
@@ -976,8 +1000,6 @@ nsPurpleBuffer::SelectPointers(GCGraphBuilder &aBuilder)
         InitBlocks();
     }
 }
-
-
 
 
 
@@ -1054,6 +1076,13 @@ struct nsCycleCollector
         mGraph.mRootCount = 0;
     }
 
+    void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                             size_t *aObjectSize,
+                             size_t *aGraphNodesSize,
+                             size_t *aGraphEdgesSize,
+                             size_t *aWhiteNodeSize,
+                             size_t *aPurpleBufferSize) const;
+
 #ifdef DEBUG_CC
     nsCycleCollectorStats mStats;
     FILE *mPtrLog;
@@ -1098,6 +1127,7 @@ public:
 
 
 static nsCycleCollector *sCollector = nullptr;
+static nsIMemoryMultiReporter *sCollectorReporter = nullptr;
 
 
 
@@ -2963,30 +2993,103 @@ nsCycleCollector::WasFreed(nsISupports *n)
 
 
 
-static int64_t
-GetCycleCollectorSize()
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(CycleCollectorMallocSizeOf,
+                                     "cycle-collector")
+
+void
+nsCycleCollector::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                                      size_t *aObjectSize,
+                                      size_t *aGraphNodesSize,
+                                      size_t *aGraphEdgesSize,
+                                      size_t *aWhiteNodeSize,
+                                      size_t *aPurpleBufferSize) const
 {
-    if (!sCollector)
-        return 0;
-    int64_t size = sizeof(nsCycleCollector) + 
-        sCollector->mPurpleBuf.BlocksSize() +
-        sCollector->mGraph.BlocksSize();
-    if (sCollector->mWhiteNodes)
-        size += sCollector->mWhiteNodes->Capacity() * sizeof(PtrInfo*);
-    return size;
+    *aObjectSize = aMallocSizeOf(this);
+
+    mGraph.SizeOfExcludingThis(aMallocSizeOf, aGraphNodesSize, aGraphEdgesSize);
+
+    
+    
+    *aWhiteNodeSize = mWhiteNodes
+                    ? mWhiteNodes->SizeOfIncludingThis(aMallocSizeOf)
+                    : 0;
+
+    *aPurpleBufferSize = mPurpleBuf.SizeOfExcludingThis(aMallocSizeOf);
+
+    
+    
+    
+    
+    
 }
 
-NS_MEMORY_REPORTER_IMPLEMENT(CycleCollector,
-                             "explicit/cycle-collector",
-                             KIND_HEAP,
-                             UNITS_BYTES,
-                             GetCycleCollectorSize,
-                             "Memory used by the cycle collector.  This "
-                             "includes the cycle collector structure, the "
-                             "purple buffer, the graph, and the white nodes.  "
-                             "The latter two are expected to be empty when the "
-                             "cycle collector is idle.")
+class CycleCollectorMultiReporter MOZ_FINAL : public nsIMemoryMultiReporter
+{
+  public:
+    NS_DECL_ISUPPORTS
 
+    NS_IMETHOD GetName(nsACString &name)
+    {
+        name.AssignLiteral("cycle-collector");
+        return NS_OK;
+    }
+
+    NS_IMETHOD CollectReports(nsIMemoryMultiReporterCallback *aCb,
+                              nsISupports *aClosure)
+    {
+        if (!sCollector)
+            return NS_OK;
+
+        size_t objectSize, graphNodesSize, graphEdgesSize, whiteNodesSize,
+               purpleBufferSize;
+        sCollector->SizeOfIncludingThis(CycleCollectorMallocSizeOf,
+                                        &objectSize, &graphNodesSize,
+                                        &graphEdgesSize, &whiteNodesSize,
+                                        &purpleBufferSize);
+
+    #define REPORT(_path, _amount, _desc)                                     \
+        do {                                                                  \
+            size_t amount = _amount;  /* evaluate |_amount| just once */      \
+            if (amount > 0) {                                                 \
+                nsresult rv;                                                  \
+                rv = aCb->Callback(EmptyCString(), NS_LITERAL_CSTRING(_path), \
+                                   nsIMemoryReporter::KIND_HEAP,              \
+                                   nsIMemoryReporter::UNITS_BYTES, _amount,   \
+                                   NS_LITERAL_CSTRING(_desc), aClosure);      \
+                NS_ENSURE_SUCCESS(rv, rv);                                    \
+            }                                                                 \
+        } while (0)
+
+        REPORT("explicit/cycle-collector/collector-object", objectSize,
+               "Memory used for the cycle collector object itself.");
+
+        REPORT("explicit/cycle-collector/graph-nodes", graphNodesSize,
+               "Memory used for the nodes of the cycle collector's graph. "
+               "This should be zero when the collector is idle.");
+
+        REPORT("explicit/cycle-collector/graph-edges", graphEdgesSize,
+               "Memory used for the edges of the cycle collector's graph. "
+               "This should be zero when the collector is idle.");
+
+        REPORT("explicit/cycle-collector/white-nodes", whiteNodesSize,
+               "Memory used for the cycle collector's white nodes array. "
+               "This should be zero when the collector is idle.");
+
+        REPORT("explicit/cycle-collector/purple-buffer", purpleBufferSize,
+               "Memory used for the cycle collector's purple buffer.");
+
+        return NS_OK;
+    }
+
+    NS_IMETHOD GetExplicitNonHeap(int64_t *n)
+    {
+        
+        *n = 0;
+        return NS_OK;
+    }
+};
+
+NS_IMPL_ISUPPORTS1(CycleCollectorMultiReporter, nsIMemoryMultiReporter)
 
 
 
@@ -3001,15 +3104,20 @@ nsCycleCollector_registerJSRuntime(nsCycleCollectionJSRuntime *rt)
         sCollector->RegisterJSRuntime(rt);
     if (regMemReport) {
         regMemReport = false;
-        NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(CycleCollector));
+        sCollectorReporter = new CycleCollectorMultiReporter;
+        NS_RegisterMemoryMultiReporter(sCollectorReporter);
     }
 }
 
-void 
+void
 nsCycleCollector_forgetJSRuntime()
 {
     if (sCollector)
         sCollector->ForgetJSRuntime();
+    if (sCollectorReporter) {
+        NS_UnregisterMemoryMultiReporter(sCollectorReporter);
+        sCollectorReporter = nullptr;
+    }
 }
 
 nsPurpleBufferEntry*
