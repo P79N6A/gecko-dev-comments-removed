@@ -2103,7 +2103,7 @@ var LightWeightThemeWebInstaller = {
 
 var UserAgent = {
   DESKTOP_UA: null,
-  YOUTUBE_DOMAIN: /\.?youtube\.com$/,
+  YOUTUBE_DOMAIN: /(^|\.)youtube\.com$/,
 
   init: function ua_init() {
     Services.obs.addObserver(this, "DesktopMode:Change", false);
@@ -2141,15 +2141,18 @@ var UserAgent = {
   },
 
   getUserAgentForUriAndTab: function ua_getUserAgentForUriAndTab(aUri, aTab, defaultUA) {
-    if (this.YOUTUBE_DOMAIN.test(aUri.host)) {
-      
-      if (defaultUA.indexOf("Android; Mobile;") === -1)
-        return defaultUA.replace("Android;", "Android; Mobile;");
-    }
-
     
     if (aTab.desktopMode)
       return this.DESKTOP_UA;
+
+    
+    if (aUri.schemeIs("http") || aUri.schemeIs("https")) {
+      if (this.YOUTUBE_DOMAIN.test(aUri.host)) {
+        
+        if (defaultUA.indexOf("Android; Mobile;") === -1)
+          return defaultUA.replace("Android;", "Android; Mobile;");
+      }
+    }
 
     return defaultUA;
   },

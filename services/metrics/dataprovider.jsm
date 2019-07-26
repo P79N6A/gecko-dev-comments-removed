@@ -556,6 +556,12 @@ Provider.prototype = Object.freeze({
 
     let self = this;
     return Task.spawn(function init() {
+      let pre = self.preInit();
+      if (!pre || typeof(pre.then) != "function") {
+        throw new Error("preInit() does not return a promise.");
+      }
+      yield pre;
+
       for (let measurementType of self.measurementTypes) {
         let measurement = new measurementType();
 
@@ -573,13 +579,11 @@ Provider.prototype = Object.freeze({
                               measurement);
       }
 
-      let promise = self.onInit();
-
-      if (!promise || typeof(promise.then) != "function") {
-        throw new Error("onInit() does not return a promise.");
+      let post = self.postInit();
+      if (!post || typeof(post.then) != "function") {
+        throw new Error("postInit() does not return a promise.");
       }
-
-      yield promise;
+      yield post;
     });
   },
 
@@ -601,8 +605,23 @@ Provider.prototype = Object.freeze({
 
 
 
+  preInit: function () {
+    return CommonUtils.laterTickResolvingPromise();
+  },
 
-  onInit: function () {
+  
+
+
+
+
+
+
+
+
+
+
+
+  postInit: function () {
     return CommonUtils.laterTickResolvingPromise();
   },
 
