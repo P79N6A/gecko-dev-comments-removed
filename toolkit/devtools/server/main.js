@@ -150,6 +150,7 @@ var DebuggerServer = {
   _listener: null,
   _initialized: false,
   _transportInitialized: false,
+  _controller: null,
   xpcInspector: null,
   
   _socketConnections: 0,
@@ -161,6 +162,17 @@ var DebuggerServer = {
   LONG_STRING_LENGTH: 10000,
   LONG_STRING_INITIAL_LENGTH: 1000,
   LONG_STRING_READ_LENGTH: 65 * 1024,
+
+  get controller() {
+    if (!this._controller) {
+      let cid = "@mozilla.org/devtools/DebuggerServerController;1";
+      if (cid in Cc) {
+        this._controller = Cc[cid].createInstance(Ci.nsIDebuggerServerController);
+        this._controller.init(this);
+      }
+    }
+    return this._controller;
+  },
 
   
 
@@ -246,6 +258,13 @@ var DebuggerServer = {
   },
 
   get initialized() this._initialized,
+
+  
+
+
+  isSocketConnected: function DS_isSocketConnected() {
+    return this._connections && Object.keys(this._connections).length > 0;
+  },
 
   
 
@@ -426,9 +445,6 @@ var DebuggerServer = {
 
 
   openListener: function DS_openListener(aPortOrPath) {
-    if (!Services.prefs.getBoolPref("devtools.debugger.remote-enabled")) {
-      return false;
-    }
     this._checkInit();
 
     
@@ -462,6 +478,7 @@ var DebuggerServer = {
     }
     this._socketConnections++;
 
+    Services.obs.notifyObservers(null, "debugger-server-started", aPortOrPath);
     return true;
   },
 
@@ -483,6 +500,7 @@ var DebuggerServer = {
       this._listener.close();
       this._listener = null;
       this._socketConnections = 0;
+      Services.obs.notifyObservers(null, "debugger-server-stopped", null);
     }
 
     return true;
