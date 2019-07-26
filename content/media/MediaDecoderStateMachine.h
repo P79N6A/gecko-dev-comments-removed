@@ -95,13 +95,6 @@ class VideoSegment;
 
 
 
-#ifdef GetCurrentTime
-#undef GetCurrentTime
-#endif
-
-
-
-
 
 
 

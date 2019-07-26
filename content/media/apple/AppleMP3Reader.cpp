@@ -13,11 +13,7 @@
 
 
 
-
-
-
-
-#define MAX_AUDIO_FRAMES 128
+#define MAX_AUDIO_FRAMES 4096
 
 namespace mozilla {
 
@@ -205,8 +201,7 @@ AppleMP3Reader::AudioSampleCallback(UInt32 aNumBytes,
   LOGD("got %u bytes, %u packets\n", aNumBytes, aNumPackets);
 
   
-  uint32_t decodedSize = MAX_AUDIO_FRAMES * mAudioChannels *
-                         sizeof(AudioDataValue);
+  uint32_t decodedSize = MAX_AUDIO_FRAMES * mAudioChannels * 4;
 
   
   nsAutoArrayPtr<AudioStreamPacketDescription>
@@ -240,14 +235,6 @@ AppleMP3Reader::AudioSampleCallback(UInt32 aNumBytes,
 
     if (rv && rv != kNeedMoreData) {
       LOGE("Error decoding audio stream: %x\n", rv);
-      break;
-    }
-
-    
-    
-    
-    if (numFrames == 0 && rv == kNeedMoreData) {
-      LOGD("FillComplexBuffer out of data exactly\n");
       break;
     }
 
