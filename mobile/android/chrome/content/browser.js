@@ -235,6 +235,7 @@ var BrowserApp = {
     ExternalApps.init();
     MemoryObserver.init();
     Distribution.init();
+    Tabs.init();
 #ifdef MOZ_TELEMETRY_REPORTING
     Telemetry.init();
 #endif
@@ -511,6 +512,7 @@ var BrowserApp = {
     ExternalApps.uninit();
     MemoryObserver.uninit();
     Distribution.uninit();
+    Tabs.uninit();
 #ifdef MOZ_TELEMETRY_REPORTING
     Telemetry.uninit();
 #endif
@@ -670,7 +672,7 @@ var BrowserApp = {
     evt.initUIEvent("TabOpen", true, false, window, null);
     newTab.browser.dispatchEvent(evt);
 
-    Tabs.zombifyLru();
+    Tabs.expireLruTab();
 
     return newTab;
   },
@@ -7709,13 +7711,43 @@ var Tabs = {
   
   
 
+  _enableTabExpiration: false,
+
+  init: function() {
+    
+    
+    if (Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory).isLowMemoryPlatform()) {
+      this._enableTabExpiration = true;
+    } else {
+      Services.obs.addObserver(this, "memory-pressure", false);
+    }
+  },
+
+  uninit: function() {
+    if (!this._enableTabExpiration) {
+      
+      
+      Services.obs.removeObserver(this, "memory-pressure");
+    }
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    if (aTopic == "memory-pressure" && aData != "heap-minimize") {
+      this._enableTabExpiration = true;
+      Services.obs.removeObserver(this, "memory-pressure");
+    }
+  },
+
   touch: function(aTab) {
     aTab.lastTouchedAt = Date.now();
   },
 
-  zombifyLru: function() {
-    let zombieTimeMs = Services.prefs.getIntPref("browser.tabs.zombieTime") * 1000;
-    if (zombieTimeMs < 0) {
+  expireLruTab: function() {
+    if (!this._enableTabExpiration) {
+      return false;
+    }
+    let expireTimeMs = Services.prefs.getIntPref("browser.tabs.expireTime") * 1000;
+    if (expireTimeMs < 0) {
       
       return false;
     }
@@ -7734,7 +7766,7 @@ var Tabs = {
     }
     
     
-    if (lruTab && (Date.now() - lruTab.lastTouchedAt) > zombieTimeMs) {
+    if (lruTab && (Date.now() - lruTab.lastTouchedAt) > expireTimeMs) {
       MemoryObserver.zombify(lruTab);
       return true;
     }
