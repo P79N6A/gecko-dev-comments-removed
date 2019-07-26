@@ -91,7 +91,11 @@ TEST_F(pkixder_input_tests, InputInitWithNullPointerOrZeroLength)
   ASSERT_EQ(SEC_ERROR_BAD_DER, PR_GetError());
 
   
+  
+  
+  
   ASSERT_EQ(Success, input.Init((const uint8_t*) "hello", 0));
+  ASSERT_TRUE(input.AtEnd());
 }
 
 TEST_F(pkixder_input_tests, InputInitWithLargeData)
