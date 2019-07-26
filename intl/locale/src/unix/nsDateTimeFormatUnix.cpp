@@ -15,7 +15,7 @@
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsDateTimeFormatUnix, nsIDateTimeFormat)
+NS_IMPL_ISUPPORTS1(nsDateTimeFormatUnix, nsIDateTimeFormat)
 
 
 nsresult nsDateTimeFormatUnix::Initialize(nsILocale* locale)

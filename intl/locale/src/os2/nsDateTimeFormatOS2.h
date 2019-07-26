@@ -9,7 +9,7 @@
 class nsDateTimeFormatOS2 : public nsIDateTimeFormat {
 
  public:
-   NS_DECL_ISUPPORTS
+   NS_DECL_THREADSAFE_ISUPPORTS
    
   
   NS_IMETHOD FormatTime(nsILocale* locale, 
