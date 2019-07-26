@@ -28,7 +28,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageErrorListener",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "prefBranch", function() {
-  var prefService = Components.classes["@mozilla.org/preferences-service;1"]
+  let prefService = Components.classes["@mozilla.org/preferences-service;1"]
           .getService(Components.interfaces.nsIPrefService);
   return prefService.getBranch(null)
           .QueryInterface(Components.interfaces.nsIPrefBranch2);
@@ -52,11 +52,15 @@ this.CommandUtils = {
 
 
 
-  createButtons: function CU_createButtons(toolbarSpec, document, requisition) {
-    var reply = [];
+
+
+
+
+  createButtons: function CU_createButtons(toolbarSpec, target, document, requisition) {
+    let reply = [];
 
     toolbarSpec.forEach(function(buttonSpec) {
-      var button = document.createElement("toolbarbutton");
+      let button = document.createElement("toolbarbutton");
       reply.push(button);
 
       if (typeof buttonSpec == "string") {
@@ -66,7 +70,7 @@ this.CommandUtils = {
       requisition.update(buttonSpec.typed);
 
       
-      var command = requisition.commandAssignment.value;
+      let command = requisition.commandAssignment.value;
       if (command == null) {
         
         
@@ -101,15 +105,24 @@ this.CommandUtils = {
         }, false);
 
         
-        
-
-
-
-
-
-
-
-
+        if (command.state) {
+          button.setAttribute("autocheck", false);
+          let onChange = function(event, eventTab) {
+            if (eventTab == target.tab) {
+              if (command.state.isChecked(target)) {
+                button.setAttribute("checked", true);
+              }
+              else if (button.hasAttribute("checked")) {
+                button.removeAttribute("checked");
+              }
+            }
+          };
+          command.state.onChange(target, onChange);
+          onChange(null, target.tab);
+          document.defaultView.addEventListener("unload", function() {
+            command.state.offChange(target, onChange);
+          }, false);
+        }
       }
     });
 
@@ -192,7 +205,7 @@ Object.defineProperty(DeveloperToolbar.prototype, 'visible', {
   enumerable: true
 });
 
-var _gSequenceId = 0;
+let _gSequenceId = 0;
 
 
 
@@ -239,8 +252,8 @@ DeveloperToolbar.prototype.focusToggle = function DT_focusToggle()
   if (this.visible) {
     
     
-    var active = this._chromeWindow.document.activeElement;
-    var position = this._input.compareDocumentPosition(active);
+    let active = this._chromeWindow.document.activeElement;
+    let position = this._input.compareDocumentPosition(active);
     if (position & Node.DOCUMENT_POSITION_CONTAINED_BY) {
       this.hide();
     }
