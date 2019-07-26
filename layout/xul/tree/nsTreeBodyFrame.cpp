@@ -943,15 +943,14 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
   
   
   if (!weakFrame.IsAlive()) {
-    fprintf(stderr, "FRAME DEAD 1!\n");
     return;
   }
+  NS_ASSERTION(!mCheckingOverflow, "mCheckingOverflow should not already be set");
+  
+  
   mCheckingOverflow = true;
-  fprintf(stderr, "BEGIN FlushPendingNotifications\n");
   presShell->FlushPendingNotifications(Flush_Layout);
-  fprintf(stderr, "END FlushPendingNotifications\n");
   if (!weakFrame.IsAlive()) {
-    fprintf(stderr, "FRAME DEAD 2!\n");
     return;
   }
   mCheckingOverflow = false;
@@ -4672,10 +4671,10 @@ nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation)
   
   
   nsRefPtr<nsOverflowChecker> checker = new nsOverflowChecker(this);
-  if (mCheckingOverflow) {
-    NS_DispatchToCurrentThread(checker);
-  } else {
+  if (!mCheckingOverflow) {
     nsContentUtils::AddScriptRunner(checker);
+  } else {
+    NS_DispatchToCurrentThread(checker);
   }
   return weakFrame.IsAlive();
 }
