@@ -1163,9 +1163,12 @@ MapObject::construct(JSContext *cx, unsigned argc, Value *vp)
                 return false;
             if (done)
                 break;
-            
-            
-            pairObj = ToObject(cx, pairVal);
+            if (!pairVal.isObject()) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INVALID_MAP_ITERABLE);
+                return false;
+            }
+
+            pairObj = &pairVal.toObject();
             if (!pairObj)
                 return false;
 
