@@ -197,12 +197,6 @@ public:
   static LayoutDeviceIntPoint GetChildProcessOffset(nsFrameLoader* aFrameLoader,
                                                     const nsEvent& aEvent);
 
-  static void MapEventCoordinatesForChildProcess(nsFrameLoader* aFrameLoader,
-                                                 nsEvent* aEvent);
-
-  static void MapEventCoordinatesForChildProcess(const LayoutDeviceIntPoint& aOffset,
-                                                 nsEvent* aEvent);
-
   
   
   
