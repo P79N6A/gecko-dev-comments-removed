@@ -34,6 +34,11 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
   NS_DECL_NSIOBSERVER
 
+  
+  
+  
+  
+
   WakeLock();
   virtual ~WakeLock();
 
