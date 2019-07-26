@@ -19,6 +19,7 @@ import org.mozilla.gecko.health.BrowserHealthReporter;
 import org.mozilla.gecko.home.BrowserSearch;
 import org.mozilla.gecko.home.HomePager;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
+import org.mozilla.gecko.home.SearchEngine;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.prompts.Prompt;
 import org.mozilla.gecko.util.Clipboard;
@@ -1491,9 +1492,12 @@ abstract public class BrowserApp extends GeckoApp
 
 
 
-    private static void recordSearch(String identifier, String where) {
-        Log.i(LOGTAG, "Recording search: " + identifier + ", " + where);
+    private static void recordSearch(SearchEngine engine, String where) {
+        Log.i(LOGTAG, "Recording search: " +
+                      ((engine == null) ? "null" : engine.name) +
+                      ", " + where);
         try {
+            String identifier = (engine == null) ? "other" : engine.getEngineIdentifier();
             JSONObject message = new JSONObject();
             message.put("type", BrowserHealthRecorder.EVENT_SEARCH);
             message.put("location", where);
@@ -2308,9 +2312,9 @@ abstract public class BrowserApp extends GeckoApp
 
     
     @Override
-    public void onSearch(String engineId, String text) {
-        recordSearch(engineId, "barsuggest");
-        openUrl(text, engineId);
+    public void onSearch(SearchEngine engine, String text) {
+        recordSearch(engine, "barsuggest");
+        openUrl(text, engine.name);
     }
 
     

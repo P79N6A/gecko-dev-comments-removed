@@ -82,7 +82,7 @@ class SearchEngineRow extends AnimatedHeightLayout {
                         mUrlOpenListener.onUrlOpen(suggestion, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
                     }
                 } else if (mSearchListener != null) {
-                    mSearchListener.onSearch(mSearchEngine.name, suggestion);
+                    mSearchListener.onSearch(mSearchEngine, suggestion);
                 }
             }
         };
@@ -135,7 +135,7 @@ class SearchEngineRow extends AnimatedHeightLayout {
     public void performUserEnteredSearch() {
         String searchTerm = getSuggestionTextFromView(mUserEnteredView);
         if (mSearchListener != null) {
-            mSearchListener.onSearch(mSearchEngine.name, searchTerm);
+            mSearchListener.onSearch(mSearchEngine, searchTerm);
         }
     }
 
@@ -166,21 +166,21 @@ class SearchEngineRow extends AnimatedHeightLayout {
         mSearchEngine = searchEngine;
 
         
-        mIconView.updateAndScaleImage(mSearchEngine.icon, mSearchEngine.name);
+        mIconView.updateAndScaleImage(mSearchEngine.getIcon(), mSearchEngine.getEngineIdentifier());
 
         
         setDescriptionOnSuggestion(mUserEnteredTextView, mUserEnteredTextView.getText().toString());
 
         
         final int recycledSuggestionCount = mSuggestionView.getChildCount();
-        final int suggestionCount = mSearchEngine.suggestions.size();
 
-        for (int i = 0; i < suggestionCount; i++) {
+        int suggestionCounter = 0;
+        for (String suggestion : mSearchEngine.getSuggestions()) {
             final View suggestionItem;
 
             
-            if (i + 1 < recycledSuggestionCount) {
-                suggestionItem = mSuggestionView.getChildAt(i + 1);
+            if (suggestionCounter + 1 < recycledSuggestionCount) {
+                suggestionItem = mSuggestionView.getChildAt(suggestionCounter + 1);
                 suggestionItem.setVisibility(View.VISIBLE);
             } else {
                 suggestionItem = mInflater.inflate(R.layout.suggestion_item, null);
@@ -195,19 +195,20 @@ class SearchEngineRow extends AnimatedHeightLayout {
                 mSuggestionView.addView(suggestionItem);
             }
 
-            final String suggestion = mSearchEngine.suggestions.get(i);
             setSuggestionOnView(suggestionItem, suggestion);
 
             if (animate) {
                 AlphaAnimation anim = new AlphaAnimation(0, 1);
                 anim.setDuration(ANIMATION_DURATION);
-                anim.setStartOffset(i * ANIMATION_DURATION);
+                anim.setStartOffset(suggestionCounter * ANIMATION_DURATION);
                 suggestionItem.startAnimation(anim);
             }
+
+            ++suggestionCounter;
         }
 
         
-        for (int i = suggestionCount + 1; i < recycledSuggestionCount; i++) {
+        for (int i = suggestionCounter + 1; i < recycledSuggestionCount; ++i) {
             mSuggestionView.getChildAt(i).setVisibility(View.GONE);
         }
 
