@@ -16,7 +16,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
-Cu.import("resource://gre/modules/FxAccountsUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsClient",
   "resource://gre/modules/FxAccountsClient.jsm");
@@ -204,6 +203,47 @@ AccountState.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function copyObjectProperties(from, to, opts = {}) {
+  let keys = (opts && opts.keys) || Object.keys(from);
+  let thisArg = (opts && opts.bind) || to;
+
+  for (let prop of keys) {
+    let desc = Object.getOwnPropertyDescriptor(from, prop);
+
+    if (typeof(desc.value) == "function") {
+      desc.value = desc.value.bind(thisArg);
+    }
+
+    if (desc.get) {
+      desc.get = desc.get.bind(thisArg);
+    }
+
+    if (desc.set) {
+      desc.set = desc.set.bind(thisArg);
+    }
+
+    Object.defineProperty(to, prop, desc);
+  }
+}
+
+
+
+
 this.FxAccounts = function (mockInternal) {
   let internal = new FxAccountsInternal();
   let external = {};
@@ -211,11 +251,11 @@ this.FxAccounts = function (mockInternal) {
   
   let prototype = FxAccountsInternal.prototype;
   let options = {keys: publicProperties, bind: internal};
-  FxAccountsUtils.copyObjectProperties(prototype, external, options);
+  copyObjectProperties(prototype, external, options);
 
   
   if (mockInternal && !mockInternal.onlySetInternal) {
-    FxAccountsUtils.copyObjectProperties(mockInternal, internal);
+    copyObjectProperties(mockInternal, internal);
   }
 
   if (mockInternal) {
