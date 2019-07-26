@@ -439,7 +439,7 @@ pref("plugins.click_to_play", true);
 
 
 
-pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
+pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
 pref("app.support.baseURL", "http://support.mozilla.org/1/mobile/%VERSION%/%OS%/%LOCALE%/");
 
 pref("app.feedback.postURL", "http://m.input.mozilla.org/%LOCALE%/feedback");
