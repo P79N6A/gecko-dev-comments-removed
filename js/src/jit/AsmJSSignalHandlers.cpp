@@ -957,6 +957,11 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
     
     
     
+    
+    
+    
+    
+    
     struct sigaction* prevHandler = NULL;
     if (signum == SIGSEGV)
         prevHandler = &sPrevSegvHandler;
@@ -965,15 +970,12 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
         prevHandler = &sPrevBusHandler;
     }
 
-    if (prevHandler->sa_flags & SA_SIGINFO) {
+    if (prevHandler->sa_flags & SA_SIGINFO)
         prevHandler->sa_sigaction(signum, info, context);
-        exit(signum);  
-    } else if (prevHandler->sa_handler == SIG_DFL || prevHandler->sa_handler == SIG_IGN) {
+    else if (prevHandler->sa_handler == SIG_DFL || prevHandler->sa_handler == SIG_IGN)
         sigaction(signum, prevHandler, NULL);
-    } else {
+    else
         prevHandler->sa_handler(signum);
-        exit(signum);  
-    }
 }
 # endif
 
