@@ -124,6 +124,8 @@ protected:
     kBlockEnd
   };
 
+  void InitFields();
+
   
   nsresult WillInsert(nsISelection *aSelection, bool *aCancel);
   nsresult WillInsertText(  EditAction aAction,

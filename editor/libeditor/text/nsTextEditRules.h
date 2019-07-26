@@ -102,6 +102,8 @@ public:
 
 protected:
 
+  void InitFields();
+
   
   nsresult WillInsertText(  EditAction aAction,
                             mozilla::dom::Selection* aSelection,
