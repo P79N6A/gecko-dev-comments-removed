@@ -64,7 +64,7 @@ let TESTS = [
 
     test_log,
     test_reportError,
-    test_wrappers
+    test_wrappers,
 ];
 
 TESTS.forEach(add_test);
