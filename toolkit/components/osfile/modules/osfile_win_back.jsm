@@ -39,6 +39,7 @@
      let SysAll = require("resource://gre/modules/osfile/osfile_win_allthreads.jsm");
      let LOG = SharedAll.LOG.bind(SharedAll, "Unix", "back");
      let libc = SysAll.libc;
+     let advapi32 = new SharedAll.Library("advapi32", "advapi32.dll");
      let Const = SharedAll.Constants.Win;
 
      
@@ -121,8 +122,29 @@
        Type.zero_or_nothing =
          Type.int.withName("zero_or_nothing");
 
+       
+
+
        Type.SECURITY_ATTRIBUTES =
          Type.void_t.withName("SECURITY_ATTRIBUTES");
+
+       
+
+
+       Type.PSID =
+         Type.voidptr_t.withName("PSID");
+
+       Type.PACL =
+         Type.voidptr_t.withName("PACL");
+
+       Type.PSECURITY_DESCRIPTOR =
+         Type.voidptr_t.withName("PSECURITY_DESCRIPTOR");
+
+       
+
+
+       Type.HLOCAL =
+         Type.voidptr_t.withName("HLOCAL");
 
        Type.FILETIME =
          new SharedAll.Type("FILETIME",
@@ -356,6 +378,34 @@
                               Type.zero_or_nothing,
                             Type.path,
                       Type.DWORD);
+
+        advapi32.declareLazyFFI(SysFile, "GetNamedSecurityInfo",
+          "GetNamedSecurityInfoW", ctypes.winapi_abi,
+                            Type.DWORD,
+                        Type.path,
+                        Type.DWORD,
+                      Type.DWORD,
+                          Type.PSID.out_ptr,
+                          Type.PSID.out_ptr,
+                              Type.PACL.out_ptr,
+                              Type.PACL.out_ptr,
+                      Type.PSECURITY_DESCRIPTOR.out_ptr);
+
+        advapi32.declareLazyFFI(SysFile, "SetNamedSecurityInfo",
+          "SetNamedSecurityInfoW", ctypes.winapi_abi,
+                            Type.DWORD,
+                        Type.path,
+                        Type.DWORD,
+                      Type.DWORD,
+                          Type.PSID,
+                          Type.PSID,
+                              Type.PACL,
+                              Type.PACL);
+
+        declareLazyFFI(SysFile, "LocalFree", libc,
+          "LocalFree", ctypes.winapi_abi,
+                            Type.HLOCAL,
+                               Type.HLOCAL);
      };
 
      exports.OS.Win = {

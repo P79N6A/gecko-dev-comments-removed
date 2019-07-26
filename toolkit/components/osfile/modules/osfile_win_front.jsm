@@ -516,6 +516,37 @@
        throw_on_zero("move",
          WinFile.MoveFileEx(sourcePath, destPath, flags)
        );
+
+       
+       
+       if (Path.dirname(sourcePath) === Path.dirname(destPath)) {
+         
+         return;
+       }
+       
+       
+       
+       
+       
+       let dacl = new ctypes.voidptr_t();
+       let sd = new ctypes.voidptr_t();
+       WinFile.GetNamedSecurityInfo(destPath, Const.SE_FILE_OBJECT,
+                                    Const.DACL_SECURITY_INFORMATION,
+                                    null , null ,
+                                    dacl.address(), null ,
+                                    sd.address());
+       
+       if (!dacl.isNull()) {
+         WinFile.SetNamedSecurityInfo(destPath, Const.SE_FILE_OBJECT,
+                                      Const.DACL_SECURITY_INFORMATION |
+                                      Const.UNPROTECTED_DACL_SECURITY_INFORMATION,
+                                      null , null ,
+                                      dacl, null );
+       }
+       
+       if (!sd.isNull()) {
+           WinFile.LocalFree(Type.HLOCAL.cast(sd));
+       }
      };
 
      
