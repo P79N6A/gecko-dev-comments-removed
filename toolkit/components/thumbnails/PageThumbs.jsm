@@ -20,6 +20,11 @@ const EXPIRATION_INTERVAL_SECS = 3600;
 
 
 
+const MAX_THUMBNAIL_AGE_SECS = 172800; 
+
+
+
+
 const THUMBNAIL_DIRECTORY = "thumbnails";
 
 
@@ -187,6 +192,26 @@ this.PageThumbs = {
 
 
 
+  captureIfStale: function PageThumbs_captureIfStale(aUrl) {
+    let filePath = PageThumbsStorage.getFilePathForURL(aUrl);
+    PageThumbsWorker.post("isFileRecent", [filePath, MAX_THUMBNAIL_AGE_SECS]
+    ).then(result => {
+      if (!result.ok) {
+        
+        
+        let BPT = Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", {}).BackgroundPageThumbs;
+        BPT.capture(aUrl);
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
   capture: function PageThumbs_capture(aWindow, aCallback) {
     if (!this._prefEnabled()) {
       return;
@@ -310,6 +335,7 @@ this.PageThumbs = {
       Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
         .add(new Date() - telemetryStoreTime);
 
+      Services.obs.notifyObservers(null, "page-thumbnail:create", aFinalURL);
       
       
       
@@ -321,8 +347,10 @@ this.PageThumbs = {
       
       
       
-      if (aFinalURL != aOriginalURL)
+      if (aFinalURL != aOriginalURL) {
         yield PageThumbsStorage.copy(aFinalURL, aOriginalURL);
+        Services.obs.notifyObservers(null, "page-thumbnail:create", aOriginalURL);
+      }
     });
   },
 

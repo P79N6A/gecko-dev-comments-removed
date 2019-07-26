@@ -53,6 +53,20 @@ self.onmessage = function onmessage(msg) {
 
 
 let Agent = {
+  
+  
+  isFileRecent: function Agent_isFileRecent(path, maxAge) {
+    try {
+      let stat = OS.File.stat(path);
+      let maxDate = new Date();
+      maxDate.setSeconds(maxDate.getSeconds() - maxAge);
+      return stat.lastModificationDate > maxDate;
+    } catch (ex if ex instanceof OS.File.Error) {
+      
+      return false;
+    }
+  },
+
   remove: function Agent_removeFile(path) {
     try {
       OS.File.remove(path);
