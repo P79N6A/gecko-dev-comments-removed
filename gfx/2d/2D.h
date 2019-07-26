@@ -337,7 +337,7 @@ public:
 class DataSourceSurface : public SourceSurface
 {
 public:
-  virtual SurfaceType GetType() const { return SURFACE_DATA; }
+  virtual SurfaceType GetType() const { return SurfaceType::DATA; }
   
 
 

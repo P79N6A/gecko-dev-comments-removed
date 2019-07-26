@@ -7,6 +7,7 @@
 #define MOZILLA_GFX_TYPES_H_
 
 #include "mozilla/NullPtr.h"
+#include "mozilla/TypedEnum.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -16,20 +17,19 @@ namespace gfx {
 
 typedef float Float;
 
-enum SurfaceType
-{
-  SURFACE_DATA, 
-  SURFACE_D2D1_BITMAP, 
-  SURFACE_D2D1_DRAWTARGET, 
-  SURFACE_CAIRO, 
-  SURFACE_CAIRO_IMAGE, 
-  SURFACE_COREGRAPHICS_IMAGE, 
-  SURFACE_COREGRAPHICS_CGCONTEXT, 
-  SURFACE_SKIA, 
-  SURFACE_DUAL_DT, 
-  SURFACE_D2D1_1_IMAGE, 
-  SURFACE_RECORDING 
-};
+MOZ_BEGIN_ENUM_CLASS(SurfaceType)
+  DATA, 
+  D2D1_BITMAP, 
+  D2D1_DRAWTARGET, 
+  CAIRO, 
+  CAIRO_IMAGE, 
+  COREGRAPHICS_IMAGE, 
+  COREGRAPHICS_CGCONTEXT, 
+  SKIA, 
+  DUAL_DT, 
+  D2D1_1_IMAGE, 
+  RECORDING 
+MOZ_END_ENUM_CLASS(SurfaceType)
 
 enum SurfaceFormat
 {
