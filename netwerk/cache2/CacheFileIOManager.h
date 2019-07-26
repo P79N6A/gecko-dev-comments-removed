@@ -360,6 +360,12 @@ private:
   nsresult CacheIndexStateChangedInternal();
 
   
+  
+  
+  
+  nsresult UpdateSmartCacheSize();
+
+  
   size_t SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const;
 
   static CacheFileIOManager           *gInstance;
@@ -380,6 +386,7 @@ private:
   nsCOMPtr<nsIDirectoryEnumerator>     mTrashDirEnumerator;
   nsTArray<nsCString>                  mFailedTrashDirs;
   nsRefPtr<CacheFileContextEvictor>    mContextEvictor;
+  TimeStamp                            mLastSmartSizeTime;
 };
 
 } 

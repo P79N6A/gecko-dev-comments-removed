@@ -17,7 +17,7 @@ namespace net {
 class CacheObserver : public nsIObserver
                     , public nsSupportsWeakReference
 {
-  NS_DECL_ISUPPORTS
+  NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
   virtual ~CacheObserver() {}
@@ -37,6 +37,9 @@ class CacheObserver : public nsIObserver
   static uint32_t const MemoryCacheCapacity(); 
   static uint32_t const DiskCacheCapacity() 
     { return sDiskCacheCapacity << 10; }
+  static void SetDiskCacheCapacity(uint32_t); 
+  static bool const SmartCacheSizeEnabled()
+    { return sSmartCacheSizeEnabled; }
   static uint32_t const MaxMemoryEntrySize() 
     { return sMaxMemoryEntrySize << 10; }
   static uint32_t const MaxDiskEntrySize() 
@@ -56,6 +59,7 @@ class CacheObserver : public nsIObserver
 private:
   static CacheObserver* sSelf;
 
+  void StoreDiskCacheCapacity();
   void AttachToPreferences();
   void SchduleAutoDelete();
 
@@ -66,6 +70,7 @@ private:
   static int32_t sMemoryCacheCapacity;
   static int32_t sAutoMemoryCacheCapacity;
   static uint32_t sDiskCacheCapacity;
+  static bool sSmartCacheSizeEnabled;
   static uint32_t sMaxMemoryEntrySize;
   static uint32_t sMaxDiskEntrySize;
   static uint32_t sCompressionLevel;
