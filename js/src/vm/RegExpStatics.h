@@ -25,14 +25,26 @@ class RegExpStatics
     HeapPtr<JSLinearString> matchesInput;
 
     
+    HeapPtr<RegExpObject>   regexp;
+    size_t                  lastIndex;
+
+    
     HeapPtr<JSString>       pendingInput;
     RegExpFlag              flags;
+
+    
+
+
+
+    bool                    pendingLazyEvaluation;
 
     
     RegExpStatics           *bufferLink;
     bool                    copied;
 
   private:
+    bool executeLazy(JSContext *cx);
+
     inline void aboutToWrite();
     inline void copyTo(RegExpStatics &dst);
 
@@ -72,6 +84,8 @@ class RegExpStatics
 
     
 
+    inline void updateLazily(JSContext *cx, JSLinearString *input,
+                             RegExpObject *regexp, size_t lastIndex);
     inline bool updateFromMatchPairs(JSContext *cx, JSLinearString *input, MatchPairs &newPairs);
     inline void setMultiline(JSContext *cx, bool enabled);
 
@@ -85,6 +99,8 @@ class RegExpStatics
   public:
     
     const MatchPairs &getMatches() const {
+        
+        JS_ASSERT(!pendingLazyEvaluation);
         return matches;
     }
 
@@ -95,11 +111,15 @@ class RegExpStatics
 
     
     bool matched() const {
+        
+        JS_ASSERT(!pendingLazyEvaluation);
         JS_ASSERT(matches.pairCount() > 0);
         return matches[0].limit - matches[0].start > 0;
     }
 
     void mark(JSTracer *trc) {
+        if (regexp)
+            gc::MarkObject(trc, &regexp, "res->regexp");
         if (pendingInput)
             MarkString(trc, &pendingInput, "res->pendingInput");
         if (matchesInput)

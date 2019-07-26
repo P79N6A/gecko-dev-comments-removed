@@ -139,10 +139,11 @@ class RegExpShared
     uint64_t           gcNumberWhenUsed;
 
     
-    bool compile(JSContext *cx);
-    bool compile(JSContext *cx, JSLinearString &pattern);
+    bool compile(JSContext *cx, bool matchOnly);
+    bool compile(JSContext *cx, JSLinearString &pattern, bool matchOnly);
 
     bool compileIfNecessary(JSContext *cx);
+    bool compileMatchOnlyIfNecessary(JSContext *cx);
 
   public:
     RegExpShared(JSRuntime *rt, JSAtom *source, RegExpFlag flags);
@@ -161,6 +162,10 @@ class RegExpShared
                             size_t *lastIndex, MatchPairs &matches);
 
     
+    RegExpRunStatus executeMatchOnly(JSContext *cx, StableCharPtr chars, size_t length,
+                                     size_t *lastIndex, MatchPair &match);
+
+    
 
     size_t getParenCount() const        { JS_ASSERT(isCompiled()); return parenCount; }
     void incRef()                       { activeUseCount++; }
@@ -177,11 +182,13 @@ class RegExpShared
 
 #ifdef ENABLE_YARR_JIT
     bool hasCode() const                { return codeBlock.has16BitCode(); }
+    bool hasMatchOnlyCode() const       { return codeBlock.has16BitCodeMatchOnly(); }
 #else
     bool hasCode() const                { return false; }
+    bool hasMatchOnlyCode() const       { return false; }
 #endif
     bool hasBytecode() const            { return bytecode != NULL; }
-    bool isCompiled() const             { return hasBytecode() || hasCode(); }
+    bool isCompiled() const             { return hasBytecode() || hasCode() || hasMatchOnlyCode(); }
 };
 
 
@@ -252,7 +259,6 @@ class RegExpCompartment
     bool init(JSContext *cx);
     void sweep(JSRuntime *rt);
 
-    
     bool get(JSContext *cx, JSAtom *source, RegExpFlag flags, RegExpGuard *g);
 
     

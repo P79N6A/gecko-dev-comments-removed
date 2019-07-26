@@ -119,14 +119,20 @@ ExecuteRegExpImpl(JSContext *cx, RegExpStatics *res, RegExpShared &re, RegExpObj
                   size_t *lastIndex, MatchConduit &matches)
 {
     RegExpRunStatus status;
-    
-    
-    JS_ASSERT(!matches.isPair);
 
     
-    status = re.execute(cx, chars, length, lastIndex, *matches.u.pairs);
-    if (status == RegExpRunStatus_Success && res)
-        res->updateFromMatchPairs(cx, input, *matches.u.pairs);
+    if (matches.isPair) {
+        size_t lastIndex_orig = *lastIndex;
+        
+        status = re.executeMatchOnly(cx, chars, length, lastIndex, *matches.u.pair);
+        if (status == RegExpRunStatus_Success && res)
+            res->updateLazily(cx, input, &regexp, lastIndex_orig);
+    } else {
+        
+        status = re.execute(cx, chars, length, lastIndex, *matches.u.pairs);
+        if (status == RegExpRunStatus_Success && res)
+            res->updateFromMatchPairs(cx, input, *matches.u.pairs);
+    }
 
     return status;
 }
