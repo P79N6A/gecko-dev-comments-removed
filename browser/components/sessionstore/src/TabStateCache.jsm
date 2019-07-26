@@ -6,13 +6,6 @@
 
 this.EXPORTED_SYMBOLS = ["TabStateCache"];
 
-const Cu = Components.utils;
-Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
-
-XPCOMUtils.defineLazyModuleGetter(this, "Utils",
-  "resource:///modules/sessionstore/Utils.jsm");
-
 
 
 
@@ -24,18 +17,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Utils",
 
 
 this.TabStateCache = Object.freeze({
-  
-
-
-
-
-
-
-
-  onBrowserContentsSwapped: function(browser, otherBrowser) {
-    TabStateCacheInternal.onBrowserContentsSwapped(browser, otherBrowser);
-  },
-
   
 
 
@@ -72,21 +53,8 @@ let TabStateCacheInternal = {
 
 
 
-  onBrowserContentsSwapped: function(browser, otherBrowser) {
-    
-    Utils.swapMapEntries(this._data, browser, otherBrowser);
-  },
-
-  
-
-
-
-
-
-
-
   get: function (browser) {
-    return this._data.get(browser);
+    return this._data.get(browser.permanentKey);
   },
 
   
@@ -98,7 +66,7 @@ let TabStateCacheInternal = {
 
 
   update: function (browser, newData) {
-    let data = this._data.get(browser) || {};
+    let data = this._data.get(browser.permanentKey) || {};
 
     for (let key of Object.keys(newData)) {
       let value = newData[key];
@@ -109,6 +77,6 @@ let TabStateCacheInternal = {
       }
     }
 
-    this._data.set(browser, data);
+    this._data.set(browser.permanentKey, data);
   }
 };

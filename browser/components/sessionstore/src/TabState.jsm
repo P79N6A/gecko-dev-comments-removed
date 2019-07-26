@@ -20,8 +20,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "TabStateCache",
   "resource:///modules/sessionstore/TabStateCache.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TabAttributes",
   "resource:///modules/sessionstore/TabAttributes.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Utils",
-  "resource:///modules/sessionstore/Utils.jsm");
 
 
 
@@ -29,10 +27,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Utils",
 this.TabState = Object.freeze({
   setSyncHandler: function (browser, handler) {
     TabStateInternal.setSyncHandler(browser, handler);
-  },
-
-  onBrowserContentsSwapped: function (browser, otherBrowser) {
-    TabStateInternal.onBrowserContentsSwapped(browser, otherBrowser);
   },
 
   update: function (browser, data) {
@@ -70,8 +64,8 @@ let TabStateInternal = {
 
 
   setSyncHandler: function (browser, handler) {
-    this._syncHandlers.set(browser, handler);
-    this._latestMessageID.set(browser, 0);
+    this._syncHandlers.set(browser.permanentKey, handler);
+    this._latestMessageID.set(browser.permanentKey, 0);
   },
 
   
@@ -81,8 +75,8 @@ let TabStateInternal = {
     
     
     
-    if (id > this._latestMessageID.get(browser)) {
-      this._latestMessageID.set(browser, id);
+    if (id > this._latestMessageID.get(browser.permanentKey)) {
+      this._latestMessageID.set(browser.permanentKey, id);
       TabStateCache.update(browser, data);
     }
   },
@@ -91,9 +85,9 @@ let TabStateInternal = {
 
 
   flush: function (browser) {
-    if (this._syncHandlers.has(browser)) {
-      let lastID = this._latestMessageID.get(browser);
-      this._syncHandlers.get(browser).flush(lastID);
+    if (this._syncHandlers.has(browser.permanentKey)) {
+      let lastID = this._latestMessageID.get(browser.permanentKey);
+      this._syncHandlers.get(browser.permanentKey).flush(lastID);
     }
   },
 
@@ -104,18 +98,6 @@ let TabStateInternal = {
     for (let browser of window.gBrowser.browsers) {
       this.flush(browser);
     }
-  },
-
-  
-
-
-
-
-
-  onBrowserContentsSwapped: function (browser, otherBrowser) {
-    
-    [this._syncHandlers, this._latestMessageID]
-      .forEach(map => Utils.swapMapEntries(map, browser, otherBrowser));
   },
 
   
