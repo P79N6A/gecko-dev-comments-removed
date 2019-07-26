@@ -166,12 +166,6 @@ abstract public class BrowserApp extends GeckoApp
 
     private BrowserHealthReporter mBrowserHealthReporter;
 
-    
-    
-    
-    
-    private boolean mHideWebContentOnAnimationEnd = false;
-
     private SiteIdentityPopup mSiteIdentityPopup;
 
     public SiteIdentityPopup getSiteIdentityPopup() {
@@ -1579,38 +1573,7 @@ abstract public class BrowserApp extends GeckoApp
             final ViewStub homePagerStub = (ViewStub) findViewById(R.id.home_pager_stub);
             mHomePager = (HomePager) homePagerStub.inflate();
         }
-
         mHomePager.show(getSupportFragmentManager(), page, animator);
-
-        
-        hideWebContentOnPropertyAnimationEnd(animator);
-    }
-
-    private void hideWebContentOnPropertyAnimationEnd(final PropertyAnimator animator) {
-        if (animator == null) {
-            hideWebContent();
-            return;
-        }
-
-        animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
-            @Override
-            public void onPropertyAnimationStart() {
-                mHideWebContentOnAnimationEnd = true;
-            }
-
-            @Override
-            public void onPropertyAnimationEnd() {
-                if (mHideWebContentOnAnimationEnd) {
-                    hideWebContent();
-                }
-            }
-        });
-    }
-
-    private void hideWebContent() {
-        
-        
-        mLayerView.setVisibility(View.INVISIBLE);
     }
 
     private void hideHomePager() {
@@ -1622,12 +1585,6 @@ abstract public class BrowserApp extends GeckoApp
         if (tab != null && isAboutHome(tab)) {
             return;
         }
-
-        
-        mHideWebContentOnAnimationEnd = false;
-
-        
-        mLayerView.setVisibility(View.VISIBLE);
 
         if (mHomePager != null) {
             mHomePager.hide();
