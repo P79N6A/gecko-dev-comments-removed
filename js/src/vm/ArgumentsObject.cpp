@@ -28,7 +28,7 @@ CopyStackFrameArguments(const AbstractFramePtr frame, HeapValue *dst)
     JS_ASSERT_IF(frame.isStackFrame(), !frame.asStackFrame()->runningInIon());
 
     unsigned numActuals = frame.numActualArgs();
-    unsigned numFormals = frame.callee().nargs;
+    unsigned numFormals = frame.callee()->nargs;
 
     
     Value *src = frame.formals();
@@ -48,7 +48,7 @@ CopyStackFrameArguments(const AbstractFramePtr frame, HeapValue *dst)
  void
 ArgumentsObject::MaybeForwardToCallObject(AbstractFramePtr frame, JSObject *obj, ArgumentsData *data)
 {
-    RawScript script = frame.script();
+    UnrootedScript script = frame.script();
     if (frame.fun()->isHeavyweight() && script->argsObjAliasesFormals()) {
         obj->initFixedSlot(MAYBE_CALL_SLOT, ObjectValue(frame.callObj()));
         for (AliasedFormalIter fi(script); fi; fi++)
@@ -119,16 +119,18 @@ template <typename CopyArgs>
 ArgumentsObject::create(JSContext *cx, HandleScript script, HandleFunction callee, unsigned numActuals,
                         CopyArgs &copy)
 {
+    AssertCanGC();
+
     RootedObject proto(cx, callee->global().getOrCreateObjectPrototype(cx));
     if (!proto)
         return NULL;
 
-    bool strict = callee->strict();
-    Class *clasp = strict ? &StrictArgumentsObjectClass : &NormalArgumentsObjectClass;
-
-    RootedTypeObject type(cx, proto->getNewType(cx, clasp));
+    RootedTypeObject type(cx, proto->getNewType(cx));
     if (!type)
         return NULL;
+
+    bool strict = callee->strict();
+    Class *clasp = strict ? &StrictArgumentsObjectClass : &NormalArgumentsObjectClass;
 
     RootedShape shape(cx, EmptyShape::getInitialShape(cx, clasp, TaggedProto(proto),
                                                       proto->getParent(), FINALIZE_KIND,
@@ -158,8 +160,7 @@ ArgumentsObject::create(JSContext *cx, HandleScript script, HandleFunction calle
     data->deletedBits = reinterpret_cast<size_t *>(dstEnd);
     ClearAllBitArrayElements(data->deletedBits, numDeletedWords);
 
-    RawObject obj = JSObject::create(cx, FINALIZE_KIND, GetInitialHeap(GenericObject, clasp),
-                                     shape, type);
+    RawObject obj = JSObject::create(cx, FINALIZE_KIND, shape, type, NULL);
     if (!obj) {
         js_free(data);
         return NULL;
@@ -181,7 +182,7 @@ ArgumentsObject::createExpected(JSContext *cx, AbstractFramePtr frame)
 {
     JS_ASSERT(frame.script()->needsArgsObj());
     RootedScript script(cx, frame.script());
-    RootedFunction callee(cx, &frame.callee());
+    RootedFunction callee(cx, frame.callee());
     CopyFrameArgs copy(frame);
     ArgumentsObject *argsobj = create(cx, script, callee, frame.numActualArgs(), copy);
     if (!argsobj)
@@ -204,7 +205,7 @@ ArgumentsObject *
 ArgumentsObject::createUnexpected(JSContext *cx, AbstractFramePtr frame)
 {
     RootedScript script(cx, frame.script());
-    RootedFunction callee(cx, &frame.callee());
+    RootedFunction callee(cx, frame.callee());
     CopyFrameArgs copy(frame);
     return create(cx, script, callee, frame.numActualArgs(), copy);
 }
@@ -348,7 +349,7 @@ args_enumerate(JSContext *cx, HandleObject obj)
 
         RootedObject pobj(cx);
         RootedShape prop(cx);
-        if (!baseops::LookupProperty<CanGC>(cx, argsobj, id, &pobj, &prop))
+        if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
             return false;
     }
     return true;
@@ -466,22 +467,22 @@ strictargs_enumerate(JSContext *cx, HandleObject obj)
 
     
     id = NameToId(cx->names().length);
-    if (!baseops::LookupProperty<CanGC>(cx, argsobj, id, &pobj, &prop))
+    if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
         return false;
 
     
     id = NameToId(cx->names().callee);
-    if (!baseops::LookupProperty<CanGC>(cx, argsobj, id, &pobj, &prop))
+    if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
         return false;
 
     
     id = NameToId(cx->names().caller);
-    if (!baseops::LookupProperty<CanGC>(cx, argsobj, id, &pobj, &prop))
+    if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
         return false;
 
     for (uint32_t i = 0, argc = argsobj->initialLength(); i < argc; i++) {
         id = INT_TO_JSID(i);
-        if (!baseops::LookupProperty<CanGC>(cx, argsobj, id, &pobj, &prop))
+        if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
             return false;
     }
 
@@ -514,7 +515,7 @@ Class js::NormalArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) | JSCLASS_BACKGROUND_FINALIZE,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
@@ -532,6 +533,8 @@ Class js::NormalArgumentsObjectClass = {
         NULL,       
         NULL,       
         NULL,       
+        NULL,       
+        NULL,       
         false,      
     }
 };
@@ -545,7 +548,7 @@ Class js::StrictArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) | JSCLASS_BACKGROUND_FINALIZE,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
     JS_PropertyStub,         
     args_delProperty,
     JS_PropertyStub,         
@@ -560,6 +563,8 @@ Class js::StrictArgumentsObjectClass = {
     NULL,                    
     ArgumentsObject::trace,
     {
+        NULL,       
+        NULL,       
         NULL,       
         NULL,       
         NULL,       

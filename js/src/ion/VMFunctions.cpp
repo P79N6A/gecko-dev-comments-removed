@@ -13,10 +13,6 @@
 
 #include "vm/StringObject-inl.h"
 
-#include "builtin/ParallelArray.h"
-
-#include "frontend/TokenStream.h"
-
 #include "jsboolinlines.h"
 #include "jsinterpinlines.h"
 
@@ -53,13 +49,17 @@ ShouldMonitorReturnType(JSFunction *fun)
 bool
 InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, Value *rval)
 {
+    AssertCanGC();
+
     RootedFunction fun(cx, fun0);
+
+    
+    
     if (fun->isInterpreted()) {
-        if (fun->isInterpretedLazy() && !fun->getOrCreateScript(cx))
+        if (fun->isInterpretedLazy() && !JSFunction::getOrCreateScript(cx, fun))
             return false;
 
-        
-        if (fun->nonLazyScript()->shouldCloneAtCallsite) {
+        if (fun->isCloneAtCallsite()) {
             RootedScript script(cx);
             jsbytecode *pc;
             types::TypeScript::GetPcScript(cx, script.address(), &pc);
@@ -68,10 +68,8 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
                 return false;
         }
 
-        
-        
-        if (cx->methodJitEnabled && !fun->nonLazyScript()->canIonCompile()) {
-            RawScript script = GetTopIonJSScript(cx);
+        if (!fun->nonLazyScript()->canIonCompile()) {
+            UnrootedScript script = GetTopIonJSScript(cx);
             if (script->hasIonScript() &&
                 ++script->ion->slowCallCount >= js_IonOptions.slowCallLimit)
             {
@@ -118,7 +116,7 @@ InvokeFunction(JSContext *cx, HandleFunction fun0, uint32_t argc, Value *argv, V
 JSObject *
 NewGCThing(JSContext *cx, gc::AllocKind allocKind, size_t thingSize)
 {
-    return gc::NewGCThing<JSObject, CanGC>(cx, allocKind, thingSize, gc::DefaultHeap);
+    return gc::NewGCThing<JSObject>(cx, allocKind, thingSize);
 }
 
 bool
@@ -169,7 +167,7 @@ InitProp(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue v
 
 template<bool Equal>
 bool
-LooselyEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+LooselyEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res)
 {
     bool equal;
     if (!js::LooselyEqual(cx, lhs, rhs, &equal))
@@ -178,12 +176,12 @@ LooselyEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBo
     return true;
 }
 
-template bool LooselyEqual<true>(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
-template bool LooselyEqual<false>(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
+template bool LooselyEqual<true>(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
+template bool LooselyEqual<false>(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
 
 template<bool Equal>
 bool
-StrictlyEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+StrictlyEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res)
 {
     bool equal;
     if (!js::StrictlyEqual(cx, lhs, rhs, &equal))
@@ -192,11 +190,11 @@ StrictlyEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSB
     return true;
 }
 
-template bool StrictlyEqual<true>(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
-template bool StrictlyEqual<false>(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
+template bool StrictlyEqual<true>(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
+template bool StrictlyEqual<false>(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
 
 bool
-LessThan(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+LessThan(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res)
 {
     bool cond;
     if (!LessThanOperation(cx, lhs, rhs, &cond))
@@ -206,7 +204,7 @@ LessThan(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *
 }
 
 bool
-LessThanOrEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+LessThanOrEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res)
 {
     bool cond;
     if (!LessThanOrEqualOperation(cx, lhs, rhs, &cond))
@@ -216,7 +214,7 @@ LessThanOrEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, J
 }
 
 bool
-GreaterThan(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+GreaterThan(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res)
 {
     bool cond;
     if (!GreaterThanOperation(cx, lhs, rhs, &cond))
@@ -226,7 +224,7 @@ GreaterThan(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBoo
 }
 
 bool
-GreaterThanOrEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res)
+GreaterThanOrEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res)
 {
     bool cond;
     if (!GreaterThanOrEqualOperation(cx, lhs, rhs, &cond))
@@ -252,6 +250,7 @@ template bool StringsEqual<false>(JSContext *cx, HandleString lhs, HandleString 
 JSBool
 ObjectEmulatesUndefined(RawObject obj)
 {
+    AutoAssertNoGC nogc;
     return EmulatesUndefined(obj);
 }
 
@@ -266,34 +265,22 @@ IteratorMore(JSContext *cx, HandleObject obj, JSBool *res)
     return true;
 }
 
-JSObject *
-NewInitParallelArray(JSContext *cx, HandleObject templateObject)
-{
-    JS_ASSERT(templateObject->getClass() == &ParallelArrayObject::class_);
-    JS_ASSERT(!templateObject->hasSingletonType());
-
-    RootedObject obj(cx, ParallelArrayObject::newInstance(cx));
-    if (!obj)
-        return NULL;
-
-    obj->setType(templateObject->type());
-
-    return obj;
-}
-
 JSObject*
 NewInitArray(JSContext *cx, uint32_t count, types::TypeObject *typeArg)
 {
     RootedTypeObject type(cx, typeArg);
-    NewObjectKind newKind = !type ? SingletonObject : GenericObject;
-    RootedObject obj(cx, NewDenseAllocatedArray(cx, count, NULL, newKind));
+    RootedObject obj(cx, NewDenseAllocatedArray(cx, count));
     if (!obj)
         return NULL;
 
-    if (!type)
+    if (!type) {
+        if (!JSObject::setSingletonType(cx, obj))
+            return NULL;
+
         types::TypeScript::Monitor(cx, ObjectValue(*obj));
-    else
+    } else {
         obj->setType(type);
+    }
 
     return obj;
 }
@@ -301,16 +288,19 @@ NewInitArray(JSContext *cx, uint32_t count, types::TypeObject *typeArg)
 JSObject*
 NewInitObject(JSContext *cx, HandleObject templateObject)
 {
-    NewObjectKind newKind = templateObject->hasSingletonType() ? SingletonObject : GenericObject;
-    RootedObject obj(cx, CopyInitializerObject(cx, templateObject, newKind));
+    RootedObject obj(cx, CopyInitializerObject(cx, templateObject));
 
     if (!obj)
         return NULL;
 
-    if (templateObject->hasSingletonType())
+    if (templateObject->hasSingletonType()) {
+        if (!JSObject::setSingletonType(cx, obj))
+            return NULL;
+
         types::TypeScript::Monitor(cx, ObjectValue(*obj));
-    else
+    } else {
         obj->setType(templateObject->type());
+    }
 
     return obj;
 }
@@ -412,7 +402,8 @@ StringFromCharCode(JSContext *cx, int32_t code)
     if (StaticStrings::hasUnit(c))
         return cx->runtime->staticStrings.getUnit(c);
 
-    return js_NewStringCopyN<CanGC>(cx, &c, 1);
+    return js_NewStringCopyN(cx, &c, 1);
+
 }
 
 bool
@@ -508,83 +499,49 @@ CreateThis(JSContext *cx, HandleObject callee, MutableHandleValue rval)
 
     if (callee->isFunction()) {
         JSFunction *fun = callee->toFunction();
-        if (fun->isInterpreted()) {
-            JSScript *script = fun->getOrCreateScript(cx);
-            if (!script || !script->ensureHasTypes(cx))
-                return false;
-            rval.set(ObjectValue(*CreateThisForFunction(cx, callee, false)));
-        }
+        if (fun->isInterpreted())
+            rval.set(ObjectValue(*js_CreateThisForFunction(cx, callee, false)));
     }
 
     return true;
 }
 
-void
-GetDynamicName(JSContext *cx, JSObject *scopeChain, JSString *str, Value *vp)
+bool
+DebugPrologue(JSContext *cx, BaselineFrame *frame, JSBool *mustReturn)
 {
-    
-    
-    
+    JSTrapStatus status = ScriptDebugPrologue(cx, frame);
+    switch (status) {
+      case JSTRAP_CONTINUE:
+        *mustReturn = false;
+        return true;
 
-    JSAtom *atom;
-    if (str->isAtom()) {
-        atom = &str->asAtom();
-    } else {
-        atom = AtomizeString<NoGC>(cx, str);
-        if (!atom) {
-            vp->setUndefined();
-            return;
-        }
-    }
+      case JSTRAP_RETURN:
+        
+        
+        JS_ASSERT(frame->hasReturnValue());
+        *mustReturn = true;
+        return ScriptDebugEpilogue(cx, frame, true);
 
-    if (!frontend::IsIdentifier(atom) || frontend::FindKeyword(atom->chars(), atom->length())) {
-        vp->setUndefined();
-        return;
-    }
-
-    Shape *shape = NULL;
-    JSObject *scope = NULL, *pobj = NULL;
-    if (LookupNameNoGC(cx, atom->asPropertyName(), scopeChain, &scope, &pobj, &shape)) {
-        if (FetchNameNoGC(pobj, shape, MutableHandleValue::fromMarkedLocation(vp)))
-            return;
-    }
-
-    vp->setUndefined();
-}
-
-JSBool
-FilterArguments(JSContext *cx, JSString *str)
-{
-    
-    
-    
-    
-    const jschar *chars = str->getChars(cx);
-    if (!chars)
+      case JSTRAP_THROW:
+      case JSTRAP_ERROR:
         return false;
 
-    static jschar arguments[] = {'a', 'r', 'g', 'u', 'm', 'e', 'n', 't', 's'};
-    return !StringHasPattern(chars, str->length(), arguments, mozilla::ArrayLength(arguments));
+      default:
+        JS_NOT_REACHED("Invalid trap status");
+    }
 }
 
-uint32_t
-GetIndexFromString(JSString *str)
+bool
+DebugEpilogue(JSContext *cx, BaselineFrame *frame, JSBool ok)
 {
     
     
     
-
-    if (!str->isAtom())
-        return UINT32_MAX;
-
-    uint32_t index;
-    JSAtom *atom = &str->asAtom();
-    if (!atom->isIndex(&index))
-        return UINT32_MAX;
-
-    return index;
+    ok = ScriptDebugEpilogue(cx, frame, ok);
+    JS_ASSERT_IF(ok, frame->hasReturnValue());
+    DebugScopes::onPopCall(frame, cx);
+    return ok;
 }
-
 
 } 
 } 

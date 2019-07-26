@@ -416,6 +416,19 @@ ion::HandleException(ResumeFromException *rfe)
             HandleException(cx, iter, rfe);
             if (rfe->kind == ResumeFromException::RESUME_CATCH)
                 return;
+
+            if (cx->compartment->debugMode()) {
+                
+                
+                BaselineFrame *frame = iter.baselineFrame();
+                if (ion::DebugEpilogue(cx, frame, false)) {
+                    JS_ASSERT(frame->hasReturnValue());
+                    rfe->kind = ResumeFromException::RESUME_FORCED_RETURN;
+                    rfe->framePointer = iter.fp() - BaselineFrame::FramePointerOffset;
+                    rfe->stackPointer = reinterpret_cast<uint8_t *>(frame);
+                    return;
+                }
+            }
         }
 
         ++iter;

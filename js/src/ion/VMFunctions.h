@@ -274,7 +274,6 @@ template <> struct OutParamToDataType<MutableHandleValue> { static const DataTyp
 #define FOR_EACH_ARGS_3(Macro, Sep, Last) FOR_EACH_ARGS_2(Macro, Sep, Sep) Macro(3) Last(3)
 #define FOR_EACH_ARGS_4(Macro, Sep, Last) FOR_EACH_ARGS_3(Macro, Sep, Sep) Macro(4) Last(4)
 #define FOR_EACH_ARGS_5(Macro, Sep, Last) FOR_EACH_ARGS_4(Macro, Sep, Sep) Macro(5) Last(5)
-#define FOR_EACH_ARGS_6(Macro, Sep, Last) FOR_EACH_ARGS_5(Macro, Sep, Sep) Macro(6) Last(6)
 
 #define COMPUTE_INDEX(NbArg) NbArg
 #define COMPUTE_OUTPARAM_RESULT(NbArg) OutParamToDataType<A ## NbArg>::result
@@ -371,12 +370,6 @@ template <class R, class A1, class A2, class A3, class A4, class A5>
     FUNCTION_INFO_STRUCT_BODY(FOR_EACH_ARGS_5)
 };
 
-template <class R, class A1, class A2, class A3, class A4, class A5, class A6>
-    struct FunctionInfo<R (*)(JSContext *, A1, A2, A3, A4, A5, A6)> : public VMFunction {
-    typedef R (*pf)(JSContext *, A1, A2, A3, A4, A5, A6);
-    FUNCTION_INFO_STRUCT_BODY(FOR_EACH_ARGS_6)
-};
-
 #undef FUNCTION_INFO_STRUCT_BODY
 
 #undef FOR_EACH_ARGS_5
@@ -426,15 +419,15 @@ bool DefVarOrConst(JSContext *cx, HandlePropertyName dn, unsigned attrs, HandleO
 bool InitProp(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue value);
 
 template<bool Equal>
-bool LooselyEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
+bool LooselyEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
 
 template<bool Equal>
-bool StrictlyEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
+bool StrictlyEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
 
-bool LessThan(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
-bool LessThanOrEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
-bool GreaterThan(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
-bool GreaterThanOrEqual(JSContext *cx, MutableHandleValue lhs, MutableHandleValue rhs, JSBool *res);
+bool LessThan(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
+bool LessThanOrEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
+bool GreaterThan(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
+bool GreaterThanOrEqual(JSContext *cx, HandleValue lhs, HandleValue rhs, JSBool *res);
 
 template<bool Equal>
 bool StringsEqual(JSContext *cx, HandleString left, HandleString right, JSBool *res);
@@ -444,7 +437,6 @@ JSBool ObjectEmulatesUndefined(RawObject obj);
 bool IteratorMore(JSContext *cx, HandleObject obj, JSBool *res);
 
 
-JSObject *NewInitParallelArray(JSContext *cx, HandleObject templateObj);
 JSObject *NewInitArray(JSContext *cx, uint32_t count, types::TypeObject *type);
 JSObject *NewInitObject(JSContext *cx, HandleObject templateObject);
 
@@ -474,11 +466,8 @@ bool GetIntrinsicValue(JSContext *cx, HandlePropertyName name, MutableHandleValu
 
 bool CreateThis(JSContext *cx, HandleObject callee, MutableHandleValue rval);
 
-void GetDynamicName(JSContext *cx, JSObject *scopeChain, JSString *str, Value *vp);
-
-JSBool FilterArguments(JSContext *cx, JSString *str);
-
-uint32_t GetIndexFromString(JSString *str);
+bool DebugPrologue(JSContext *cx, BaselineFrame *frame, JSBool *mustReturn);
+bool DebugEpilogue(JSContext *cx, BaselineFrame *frame, JSBool ok);
 
 } 
 } 
