@@ -901,6 +901,13 @@ input[type=number]::-moz-number-text {
   -moz-appearance: none;
   
   -moz-user-modify: read-write;
+  
+
+
+
+
+
+  text-align: inherit;
   flex: 1;
   padding: 0;
   border: 0;
