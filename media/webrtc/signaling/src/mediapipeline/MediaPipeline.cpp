@@ -1272,7 +1272,8 @@ static void AddTrackAndListener(MediaStream* source,
 
     virtual void Run() MOZ_OVERRIDE {
       StreamTime current_end = mStream->GetBufferEnd();
-      TrackTicks current_ticks = TimeToTicksRoundUp(track_rate_, current_end);
+      TrackTicks current_ticks =
+        mStream->TimeToTicksRoundUp(track_rate_, current_end);
 
       mStream->AddListenerImpl(listener_.forget());
 
@@ -1281,7 +1282,7 @@ static void AddTrackAndListener(MediaStream* source,
 
       if (current_end != 0L) {
         MOZ_MTLOG(ML_DEBUG, "added track @ " << current_end <<
-                  " -> " << MediaTimeToSeconds(current_end));
+                  " -> " << mStream->StreamTimeToSeconds(current_end));
       }
 
       
@@ -1340,7 +1341,8 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
   }
 
   
-  while (TicksToTimeRoundDown(track_rate_, played_ticks_) < desired_time) {
+  while (source_->TicksToTimeRoundDown(track_rate_, played_ticks_) <
+         desired_time) {
     
     
 #define AUDIO_SAMPLE_BUFFER_MAX 1000
@@ -1364,7 +1366,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
       MOZ_MTLOG(ML_ERROR, "Audio conduit failed (" << err
                 << ") to return data @ " << played_ticks_
                 << " (desired " << desired_time << " -> "
-                << MediaTimeToSeconds(desired_time) << ")");
+                << source_->StreamTimeToSeconds(desired_time) << ")");
       MOZ_ASSERT(err == kMediaConduitNoError);
       samples_length = (track_rate_/100)*sizeof(uint16_t); 
       memset(samples_data, '\0', samples_length);
@@ -1483,7 +1485,7 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
 
 #ifdef MOZILLA_INTERNAL_API
   nsRefPtr<layers::Image> image = image_;
-  TrackTicks target = TimeToTicksRoundUp(USECS_PER_S, desired_time);
+  TrackTicks target = source_->TimeToTicksRoundUp(USECS_PER_S, desired_time);
   TrackTicks delta = target - played_ticks_;
 
   
