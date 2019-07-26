@@ -653,14 +653,23 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     bool isCall = js_CodeSpec[op].format & JOF_INVOKE;
     BaselineScript *baselineScript = script->baselineScript();
 
-    
-    
-    
 #ifdef DEBUG
     uint32_t expectedDepth = js_ReconstructStackDepth(cx, script,
                                                       resumeAfter ? GetNextPc(pc) : pc);
-    JS_ASSERT_IF(op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter,
-                 exprStackSlots == expectedDepth);
+    if (op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter) {
+        if (op == JSOP_FUNCALL) {
+            
+            
+            
+            JS_ASSERT(expectedDepth - exprStackSlots <= 1);
+        } else {
+            
+            
+            
+            
+            JS_ASSERT(exprStackSlots == expectedDepth);
+        }
+    }
 
     IonSpew(IonSpew_BaselineBailouts, "      Resuming %s pc offset %d (op %s) (line %d) of %s:%d",
                 resumeAfter ? "after" : "at", (int) pcOff, js_CodeName[op],
@@ -873,6 +882,10 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     unsigned actualArgc = GET_ARGC(pc);
     if (op == JSOP_FUNAPPLY)
         actualArgc = blFrame->numActualArgs();
+    if (op == JSOP_FUNCALL) {
+        JS_ASSERT(actualArgc > 0);
+        actualArgc--;
+    }
 
     JS_ASSERT(actualArgc + 2 <= exprStackSlots);
     for (unsigned i = 0; i < actualArgc + 1; i++) {

@@ -265,11 +265,23 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
         if (mir->mode() == MResumePoint::ResumeAfter)
           bailPC = GetNextPc(pc);
 
-        
-        
-        
-        JS_ASSERT_IF(GetIonContext()->cx && JSOp(*bailPC) != JSOP_FUNAPPLY,
-                     exprStack == js_ReconstructStackDepth(GetIonContext()->cx, script, bailPC));
+#ifdef DEBUG
+        if (GetIonContext()->cx) {
+            uint32_t stackDepth = js_ReconstructStackDepth(GetIonContext()->cx, script, bailPC);
+            if (JSOp(*bailPC) == JSOP_FUNCALL) {
+                
+                
+                
+                JS_ASSERT(stackDepth - exprStack <= 1);
+            } else if (JSOp(*bailPC) != JSOP_FUNAPPLY) {
+                
+                
+                
+                
+                JS_ASSERT(exprStack == stackDepth);
+            }
+        }
+#endif
 
 #ifdef TRACK_SNAPSHOTS
         LInstruction *ins = instruction();
