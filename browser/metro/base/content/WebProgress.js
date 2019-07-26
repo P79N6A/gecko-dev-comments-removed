@@ -145,6 +145,9 @@ const WebProgress = {
     this._progressActive = true;
 
     
+    Elements.progressContainer.removeAttribute("collapsed");
+
+    
     this._progressCount = kProgressMarginStart;
     Elements.progress.style.width = this._progressCount + "%"; 
     Elements.progress.removeAttribute("fade");
@@ -198,6 +201,7 @@ const WebProgress = {
     
     if (data.propertyName == "opacity") {
       Elements.progress.style.width = "0px"; 
+      Elements.progressContainer.setAttribute("collapsed", true);
     }
   },
 };
