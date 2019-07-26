@@ -7,7 +7,7 @@
 
 #ifdef ANDROID
 #include <android/log.h>
-#define log(...) __android_log_print(ANDROID_LOG_ERROR, "GeckoLinker", __VA_ARGS__)
+#define LOG(...) __android_log_print(ANDROID_LOG_ERROR, "GeckoLinker", __VA_ARGS__)
 #else
 #include <cstdio>
 
@@ -27,19 +27,19 @@
 
 
 #define MOZ_CHOOSE_LOG(...) \
-  MOZ_MACRO_GLUE(MOZ_CONCAT(log, MOZ_ONE_OR_MORE_ARGS(__VA_ARGS__)), \
+  MOZ_MACRO_GLUE(MOZ_CONCAT(LOG, MOZ_ONE_OR_MORE_ARGS(__VA_ARGS__)), \
                  (__VA_ARGS__))
 
-#define log1(format) fprintf(stderr, format "\n")
-#define logm(format, ...) fprintf(stderr, format "\n", __VA_ARGS__)
-#define log(...) MOZ_CHOOSE_LOG(__VA_ARGS__)
+#define LOG1(format) fprintf(stderr, format "\n")
+#define LOGm(format, ...) fprintf(stderr, format "\n", __VA_ARGS__)
+#define LOG(...) MOZ_CHOOSE_LOG(__VA_ARGS__)
 
 #endif
 
 #ifdef MOZ_DEBUG_LINKER
-#define debug log
+#define DEBUG_LOG LOG
 #else
-#define debug(...)
+#define DEBUG_LOG(...)
 #endif
 
 
