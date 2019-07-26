@@ -1160,8 +1160,24 @@ Http2Session::ResponseHeadersComplete()
         this, mInputFrameDataStream->StreamID(), mInputFrameFinal));
 
   
-  if (mInputFrameDataStream->AllHeadersReceived())
+  if (mInputFrameDataStream->AllHeadersReceived()) {
+    LOG3(("Http2Session::ResponseHeadersComplete extra headers"));
+    nsresult rv = UncompressAndDiscard();
+    if (NS_FAILED(rv)) {
+      LOG3(("Http2Session::ResponseHeadersComplete extra uncompress failed\n"));
+      return rv;
+    }
+    mFlatHTTPResponseHeadersOut = 0;
+    mFlatHTTPResponseHeaders.Truncate();
+    if (mInputFrameFinal) {
+      
+      ChangeDownstreamState(PROCESSING_COMPLETE_HEADERS);
+    } else {
+      ResetDownstreamState();
+    }
+
     return NS_OK;
+  }
   mInputFrameDataStream->SetAllHeadersReceived();
 
   
