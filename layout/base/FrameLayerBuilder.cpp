@@ -2161,14 +2161,6 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     thebesLayerData->mLayer = layer;
     thebesLayerData->mAnimatedGeometryRoot = aActiveScrolledRoot;
     thebesLayerData->mReferenceFrame = aItem->ReferenceFrame();
-    if (!aActiveScrolledRoot->GetParent() &&
-        nsLayoutUtils::ViewportHasDisplayPort(aActiveScrolledRoot->PresContext())) {
-      
-      
-      
-      
-      thebesLayerData->SetAllDrawingAbove();
-    }
 
     NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
     *mNewChildLayers.AppendElement() = layer.forget();
