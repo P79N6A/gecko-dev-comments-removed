@@ -28,6 +28,7 @@ const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
 const EDITOR_VARIABLE_HOVER_DELAY = 350; 
 const EDITOR_VARIABLE_POPUP_POSITION = "topcenter bottomleft";
+const TOOLBAR_ORDER_POPUP_POSITION = "topcenter bottomleft";
 
 
 
