@@ -1,0 +1,97 @@
+
+
+
+
+
+
+
+#include "SkCachingPixelRef.h"
+#include "SkScaledImageCache.h"
+
+bool SkCachingPixelRef::Install(SkImageGenerator* generator,
+                                SkBitmap* dst) {
+    SkImageInfo info;
+    SkASSERT(dst != NULL);
+    if ((NULL == generator)
+        || !(generator->getInfo(&info))
+        || !dst->setConfig(info, 0)) {
+        SkDELETE(generator);
+        return false;
+    }
+    SkAutoTUnref<SkCachingPixelRef> ref(SkNEW_ARGS(SkCachingPixelRef,
+                                           (info, generator, dst->rowBytes())));
+    dst->setPixelRef(ref);
+    return true;
+}
+
+SkCachingPixelRef::SkCachingPixelRef(const SkImageInfo& info,
+                                     SkImageGenerator* generator,
+                                     size_t rowBytes)
+    : INHERITED(info)
+    , fImageGenerator(generator)
+    , fErrorInDecoding(false)
+    , fScaledCacheId(NULL)
+    , fRowBytes(rowBytes) {
+    SkASSERT(fImageGenerator != NULL);
+}
+SkCachingPixelRef::~SkCachingPixelRef() {
+    SkDELETE(fImageGenerator);
+    SkASSERT(NULL == fScaledCacheId);
+    
+}
+
+bool SkCachingPixelRef::onNewLockPixels(LockRec* rec) {
+    if (fErrorInDecoding) {
+        return false;  
+    }
+
+    const SkImageInfo& info = this->info();
+    SkBitmap bitmap;
+    SkASSERT(NULL == fScaledCacheId);
+    fScaledCacheId = SkScaledImageCache::FindAndLock(this->getGenerationID(),
+                                                     info.fWidth,
+                                                     info.fHeight,
+                                                     &bitmap);
+    if (NULL == fScaledCacheId) {
+        
+        if ((!bitmap.setConfig(info, fRowBytes)) || !bitmap.allocPixels()) {
+            fErrorInDecoding = true;
+            return false;
+        }
+        SkAutoLockPixels autoLockPixels(bitmap);
+        if (!fImageGenerator->getPixels(info, bitmap.getPixels(), fRowBytes)) {
+            fErrorInDecoding = true;
+            return false;
+        }
+        fScaledCacheId = SkScaledImageCache::AddAndLock(this->getGenerationID(),
+                                                        info.fWidth,
+                                                        info.fHeight,
+                                                        bitmap);
+        SkASSERT(fScaledCacheId != NULL);
+    }
+
+    
+    
+    SkAutoLockPixels autoLockPixels(bitmap);
+    void* pixels = bitmap.getPixels();
+    SkASSERT(pixels != NULL);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    rec->fPixels = pixels;
+    rec->fColorTable = NULL;
+    rec->fRowBytes = bitmap.rowBytes();
+    return true;
+}
+
+void SkCachingPixelRef::onUnlockPixels() {
+    SkASSERT(fScaledCacheId != NULL);
+    SkScaledImageCache::Unlock( static_cast<SkScaledImageCache::ID*>(fScaledCacheId));
+    fScaledCacheId = NULL;
+}

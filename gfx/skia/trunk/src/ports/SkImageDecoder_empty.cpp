@@ -1,0 +1,155 @@
+
+
+
+
+
+
+
+
+#include "SkBitmap.h"
+#include "SkImage.h"
+#include "SkImageDecoder.h"
+#include "SkImageEncoder.h"
+#include "SkMovie.h"
+
+class SkColorTable;
+class SkStream;
+class SkStreamRewindable;
+
+
+
+SkImageDecoder::SkImageDecoder() {}
+
+SkImageDecoder::~SkImageDecoder() {}
+
+SkImageDecoder* SkImageDecoder::Factory(SkStreamRewindable*) {
+    return NULL;
+}
+
+void SkImageDecoder::copyFieldsToOther(SkImageDecoder* ) {}
+
+bool SkImageDecoder::DecodeFile(const char[], SkBitmap*, SkBitmap::Config,
+                                SkImageDecoder::Mode, SkImageDecoder::Format*) {
+    return false;
+}
+
+bool SkImageDecoder::decode(SkStream*, SkBitmap*, SkBitmap::Config, Mode) {
+    return false;
+}
+
+bool SkImageDecoder::DecodeStream(SkStreamRewindable*, SkBitmap*, SkBitmap::Config,
+                                  SkImageDecoder::Mode,
+                                  SkImageDecoder::Format*) {
+    return false;
+}
+
+bool SkImageDecoder::DecodeMemory(const void*, size_t, SkBitmap*,
+                                  SkBitmap::Config, SkImageDecoder::Mode,
+                                  SkImageDecoder::Format*) {
+    return false;
+}
+
+bool SkImageDecoder::buildTileIndex(SkStreamRewindable*, int *width, int *height) {
+    return false;
+}
+
+bool SkImageDecoder::decodeSubset(SkBitmap*, const SkIRect&, SkBitmap::Config) {
+    return false;
+}
+
+SkImageDecoder::Format SkImageDecoder::getFormat() const {
+    return kUnknown_Format;
+}
+
+SkImageDecoder::Format SkImageDecoder::GetStreamFormat(SkStreamRewindable*) {
+    return kUnknown_Format;
+}
+
+const char* SkImageDecoder::GetFormatName(Format) {
+    return NULL;
+}
+
+SkImageDecoder::Peeker* SkImageDecoder::setPeeker(Peeker*) {
+    return NULL;
+}
+
+SkImageDecoder::Chooser* SkImageDecoder::setChooser(Chooser*) {
+    return NULL;
+}
+
+SkBitmap::Allocator* SkImageDecoder::setAllocator(SkBitmap::Allocator*) {
+    return NULL;
+}
+
+void SkImageDecoder::setSampleSize(int) {}
+
+SkBitmap::Config SkImageDecoder::GetDeviceConfig() {
+    return SkBitmap::kNo_Config;
+}
+
+void SkImageDecoder::SetDeviceConfig(SkBitmap::Config) {}
+
+bool SkImageDecoder::cropBitmap(SkBitmap*, SkBitmap*, int, int, int, int, int,
+                    int, int) {
+    return false;
+}
+
+bool SkImageDecoder::chooseFromOneChoice(SkBitmap::Config, int, int) const {
+    return false;
+}
+
+bool SkImageDecoder::allocPixelRef(SkBitmap*, SkColorTable*) const {
+    return false;
+}
+
+SkBitmap::Config SkImageDecoder::getPrefConfig(SrcDepth, bool) const {
+    return SkBitmap::kNo_Config;
+}
+
+
+
+
+
+
+SkMovie* SkMovie::DecodeStream(SkStreamRewindable* stream) {
+    return NULL;
+}
+
+
+
+
+
+SkImageEncoder* SkImageEncoder::Create(Type t) {
+    return NULL;
+}
+
+bool SkImageEncoder::EncodeFile(const char file[], const SkBitmap&, Type, int quality) {
+    return false;
+}
+
+bool SkImageEncoder::EncodeStream(SkWStream*, const SkBitmap&, SkImageEncoder::Type, int) {
+    return false;
+}
+
+SkData* SkImageEncoder::EncodeData(const SkBitmap&, Type, int quality) {
+    return NULL;
+}
+
+bool SkImageEncoder::encodeStream(SkWStream*, const SkBitmap&, int) {
+    return false;
+}
+
+SkData* SkImageEncoder::encodeData(const SkBitmap&, int) {
+    return NULL;
+}
+
+bool SkImageEncoder::encodeFile(const char file[], const SkBitmap& bm, int quality) {
+    return false;
+}
+
+
+
+
+#include "SkImages.h"
+
+void SkImages::InitializeFlattenables() {}

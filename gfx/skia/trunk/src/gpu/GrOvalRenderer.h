@@ -1,0 +1,57 @@
+
+
+
+
+
+
+
+#ifndef GrOvalRenderer_DEFINED
+#define GrOvalRenderer_DEFINED
+
+#include "GrContext.h"
+#include "GrPaint.h"
+
+class GrContext;
+class GrDrawTarget;
+class GrPaint;
+struct SkRect;
+class SkStrokeRec;
+
+
+
+
+class GrOvalRenderer : public SkRefCnt {
+public:
+    SK_DECLARE_INST_COUNT(GrOvalRenderer)
+
+    GrOvalRenderer() : fRRectIndexBuffer(NULL) {}
+    ~GrOvalRenderer() {
+        this->reset();
+    }
+
+    void reset();
+
+    bool drawOval(GrDrawTarget* target, const GrContext* context, bool useAA,
+                  const SkRect& oval, const SkStrokeRec& stroke);
+    bool drawSimpleRRect(GrDrawTarget* target, GrContext* context, bool useAA,
+                         const SkRRect& rrect, const SkStrokeRec& stroke);
+
+private:
+    bool drawEllipse(GrDrawTarget* target, bool useCoverageAA,
+                     const SkRect& ellipse,
+                     const SkStrokeRec& stroke);
+    bool drawDIEllipse(GrDrawTarget* target, bool useCoverageAA,
+                       const SkRect& ellipse,
+                       const SkStrokeRec& stroke);
+    void drawCircle(GrDrawTarget* target, bool useCoverageAA,
+                    const SkRect& circle,
+                    const SkStrokeRec& stroke);
+
+    GrIndexBuffer* rRectIndexBuffer(GrGpu* gpu);
+
+    GrIndexBuffer* fRRectIndexBuffer;
+
+    typedef SkRefCnt INHERITED;
+};
+
+#endif 
