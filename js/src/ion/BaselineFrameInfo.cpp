@@ -16,7 +16,8 @@ using namespace js::ion;
 
 bool
 FrameInfo::init() {
-    size_t nstack = script->nslots - script->nfixed;
+    
+    size_t nstack = Max(script->nslots - script->nfixed, 1);
     if (!stack.init(nstack))
         return false;
 
