@@ -627,7 +627,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     if (lastInsertNode) 
     {
       
-      nsCOMPtr<nsIDOMNode> selNode, tmp, visNode, highTable;
+      nsCOMPtr<nsIDOMNode> selNode, tmp, highTable;
       int32_t selOffset;
 
       
@@ -663,9 +663,11 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
 
       
       nsWSRunObject wsRunObj(this, selNode, selOffset);
+      nsCOMPtr<nsINode> visNode;
       int32_t outVisOffset=0;
       WSType visType;
-      wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
+      nsCOMPtr<nsINode> selNode_(do_QueryInterface(selNode));
+      wsRunObj.PriorVisibleNode(selNode_, selOffset, address_of(visNode),
                                 &outVisOffset, &visType);
       if (visType == WSType::br) {
         
@@ -679,10 +681,11 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
           selNode = GetNodeLocation(GetAsDOMNode(wsRunObj.mStartReasonNode), &selOffset);
           
           nsWSRunObject wsRunObj(this, selNode, selOffset);
-          wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
+          selNode_ = do_QueryInterface(selNode);
+          wsRunObj.PriorVisibleNode(selNode_, selOffset, address_of(visNode),
                                     &outVisOffset, &visType);
           if (visType == WSType::text || visType == WSType::normalWS) {
-            selNode = visNode;
+            selNode = GetAsDOMNode(visNode);
             selOffset = outVisOffset;  
           } else if (visType == WSType::special) {
             
