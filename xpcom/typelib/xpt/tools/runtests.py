@@ -388,10 +388,10 @@ class TestXPTLink(unittest.TestCase):
         """
         t1 = xpt.Typelib()
         
-        t1.interfaces.append(xpt.Interface("IFoo"))
+        t1.interfaces.append(xpt.Interface("IFoo", scriptable=True))
         t2 = xpt.Typelib()
         
-        t2.interfaces.append(xpt.Interface("IBar"))
+        t2.interfaces.append(xpt.Interface("IBar", scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -402,10 +402,10 @@ class TestXPTLink(unittest.TestCase):
         
         t1 = xpt.Typelib()
         
-        t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff"))
+        t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff", scriptable=True))
         t2 = xpt.Typelib()
         
-        t2.interfaces.append(xpt.Interface("IBar", iid="44332211-6655-8877-0099-aabbccddeeff"))
+        t2.interfaces.append(xpt.Interface("IBar", iid="44332211-6655-8877-0099-aabbccddeeff", scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -447,7 +447,7 @@ class TestXPTLink(unittest.TestCase):
         
         t1 = xpt.Typelib()
         
-        t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff"))
+        t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff", scriptable=True))
         t2 = xpt.Typelib()
         
         t2.interfaces.append(xpt.Interface("IFoo"))
@@ -462,7 +462,7 @@ class TestXPTLink(unittest.TestCase):
         t1.interfaces.append(xpt.Interface("IFoo"))
         t2 = xpt.Typelib()
         
-        t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff"))
+        t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff", scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(1, len(t3.interfaces))
@@ -486,7 +486,7 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.SimpleType(xpt.Type.Tags.void))
         m = xpt.Method("Bar", p)
         t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(1, len(t3.interfaces))
@@ -502,7 +502,7 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.SimpleType(xpt.Type.Tags.void))
         m = xpt.Method("Bar", p)
         t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         t2.interfaces.append(xpt.Interface("IFoo"))
@@ -530,13 +530,13 @@ class TestXPTLink(unittest.TestCase):
         t1.interfaces.append(pi)
         
         t1.interfaces.append(xpt.Interface("IChild", iid="11111111-1111-1111-1111-111111111111",
-                                           resolved=True, parent=pi))
+                                           resolved=True, parent=pi, scriptable=True))
         t2 = xpt.Typelib()
         
         p = xpt.Param(xpt.SimpleType(xpt.Type.Tags.void))
         m = xpt.Method("Bar", p)
         t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -557,14 +557,14 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.SimpleType(xpt.Type.Tags.void))
         m = xpt.Method("Bar", p)
         t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         pi = xpt.Interface("IFoo")
         t2.interfaces.append(pi)
         
         t2.interfaces.append(xpt.Interface("IChild", iid="11111111-1111-1111-1111-111111111111",
-                                           resolved=True, parent=pi))
+                                           resolved=True, parent=pi, scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -595,13 +595,13 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.InterfaceType(i))
         m = xpt.Method("ReturnIface", p)
         t1.interfaces.append(xpt.Interface("IRetval", iid="11111111-1111-1111-1111-111111111111",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         p = xpt.Param(xpt.SimpleType(xpt.Type.Tags.void))
         m = xpt.Method("Bar", p)
         t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -624,7 +624,7 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.SimpleType(xpt.Type.Tags.void))
         m = xpt.Method("Bar", p)
         t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         i = xpt.Interface("IFoo")
@@ -634,7 +634,7 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.InterfaceType(i))
         m = xpt.Method("ReturnIface", p)
         t2.interfaces.append(xpt.Interface("IRetval", iid="11111111-1111-1111-1111-111111111111",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -668,12 +668,12 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.InterfaceType(i))
         m = xpt.Method("IfaceParam", vp, params=[p])
         t1.interfaces.append(xpt.Interface("IParam", iid="11111111-1111-1111-1111-111111111111",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         m = xpt.Method("Bar", vp)
         t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -695,7 +695,7 @@ class TestXPTLink(unittest.TestCase):
         
         m = xpt.Method("Bar", vp)
         t1.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         i = xpt.Interface("IFoo")
@@ -706,7 +706,7 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.InterfaceType(i))
         m = xpt.Method("IfaceParam", vp, params=[p])
         t2.interfaces.append(xpt.Interface("IParam", iid="11111111-1111-1111-1111-111111111111",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
@@ -743,12 +743,12 @@ class TestXPTLink(unittest.TestCase):
         p = xpt.Param(xpt.ArrayType(xpt.InterfaceType(i), 1, 2))
         m = xpt.Method("ArrayIfaceParam", vp, params=[p, intp, intp])
         t1.interfaces.append(xpt.Interface("IParam", iid="11111111-1111-1111-1111-111111111111",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t2 = xpt.Typelib()
         
         m = xpt.Method("Bar", vp)
         t2.interfaces.append(xpt.Interface("IFoo", iid="11223344-5566-7788-9900-aabbccddeeff",
-                                           methods=[m]))
+                                           methods=[m], scriptable=True))
         t3 = xpt.xpt_link([t1, t2])
         
         self.assertEqual(2, len(t3.interfaces))
