@@ -499,14 +499,22 @@ BaseShape::markChildren(JSTracer *trc)
 
 
 
+
+
 static inline void
-MarkImplicitPropertyFound(MutableHandleShape propp)
+MarkNonNativePropertyFound(MutableHandleShape propp)
+{
+    propp.set(reinterpret_cast<Shape*>(1));
+}
+
+static inline void
+MarkDenseElementFound(MutableHandleShape propp)
 {
     propp.set(reinterpret_cast<Shape*>(1));
 }
 
 static inline bool
-IsImplicitProperty(HandleShape prop)
+IsImplicitDenseElement(HandleShape prop)
 {
     return prop.get() == reinterpret_cast<Shape*>(1);
 }
@@ -514,7 +522,7 @@ IsImplicitProperty(HandleShape prop)
 static inline uint8_t
 GetShapeAttributes(HandleShape shape)
 {
-    return IsImplicitProperty(shape) ? JSPROP_ENUMERATE : shape->attributes();
+    return IsImplicitDenseElement(shape) ? JSPROP_ENUMERATE : shape->attributes();
 }
 
 } 

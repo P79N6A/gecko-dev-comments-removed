@@ -1747,7 +1747,7 @@ ParallelArrayObject::lookupElement(JSContext *cx, HandleObject obj, uint32_t ind
 {
     
     if (index < as(obj)->outermostDimension()) {
-        MarkImplicitPropertyFound(propp);
+        MarkNonNativePropertyFound(propp);
         objp.set(obj);
         return true;
     }
