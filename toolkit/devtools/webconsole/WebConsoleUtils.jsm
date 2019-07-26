@@ -42,7 +42,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
                                   "resource:///modules/devtools/VariablesView.jsm");
 
 this.EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider", "JSTermHelpers",
-                         "PageErrorListener", "ConsoleAPIListener",
+                         "ConsoleServiceListener", "ConsoleAPIListener",
                          "NetworkResponseListener", "NetworkMonitor",
                          "ConsoleProgressListener"];
 
@@ -888,13 +888,13 @@ return JSPropertyProvider;
 
 
 
-this.PageErrorListener = function PageErrorListener(aWindow, aListener)
+this.ConsoleServiceListener = function ConsoleServiceListener(aWindow, aListener)
 {
   this.window = aWindow;
   this.listener = aListener;
 }
 
-PageErrorListener.prototype =
+ConsoleServiceListener.prototype =
 {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleListener]),
 
@@ -908,13 +908,12 @@ PageErrorListener.prototype =
 
 
 
-
   listener: null,
 
   
 
 
-  init: function PEL_init()
+  init: function CSL_init()
   {
     Services.console.registerListener(this);
   },
@@ -927,27 +926,28 @@ PageErrorListener.prototype =
 
 
 
-  observe: function PEL_observe(aScriptError)
+  observe: function CSL_observe(aMessage)
   {
-    if (!this.listener ||
-        !(aScriptError instanceof Ci.nsIScriptError)) {
+    if (!this.listener) {
       return;
     }
 
     if (this.window) {
-      if (!aScriptError.outerWindowID ||
-          !this.isCategoryAllowed(aScriptError.category)) {
+      if (!(aMessage instanceof Ci.nsIScriptError) ||
+          !aMessage.outerWindowID ||
+          !this.isCategoryAllowed(aMessage.category)) {
         return;
       }
 
-      let errorWindow =
-        Services.wm.getOuterWindowWithId(aScriptError.outerWindowID);
+      let errorWindow = Services.wm.getOuterWindowWithId(aMessage.outerWindowID);
       if (!errorWindow || errorWindow.top != this.window) {
         return;
       }
     }
 
-    this.listener.onPageError(aScriptError);
+    if (aMessage.message) {
+      this.listener.onConsoleServiceMessage(aMessage);
+    }
   },
 
   
@@ -959,8 +959,12 @@ PageErrorListener.prototype =
 
 
 
-  isCategoryAllowed: function PEL_isCategoryAllowed(aCategory)
+  isCategoryAllowed: function CSL_isCategoryAllowed(aCategory)
   {
+    if (!aCategory) {
+      return false;
+    }
+
     switch (aCategory) {
       case "XPConnect JavaScript":
       case "component javascript":
@@ -985,24 +989,30 @@ PageErrorListener.prototype =
 
 
 
-  getCachedMessages: function PEL_getCachedMessages(aIncludePrivate = false)
+
+  getCachedMessages: function CSL_getCachedMessages(aIncludePrivate = false)
   {
-    let innerWindowId = this.window ?
+    let innerWindowID = this.window ?
                         WebConsoleUtils.getInnerWindowId(this.window) : null;
     let errors = Services.console.getMessageArray() || [];
 
     return errors.filter((aError) => {
-      if (!(aError instanceof Ci.nsIScriptError)) {
+      if (aError instanceof Ci.nsIScriptError) {
+        if (!aIncludePrivate && aError.isFromPrivateWindow) {
+          return false;
+        }
+        if (innerWindowID &&
+            (aError.innerWindowID != innerWindowID ||
+             !this.isCategoryAllowed(aError.category))) {
+          return false;
+        }
+      }
+      else if (innerWindowID) {
+        
+        
         return false;
       }
-      if (!aIncludePrivate && aError.isFromPrivateWindow) {
-        return false;
-      }
-      if (innerWindowId &&
-          (aError.innerWindowID != innerWindowId ||
-           !this.isCategoryAllowed(aError.category))) {
-        return false;
-      }
+
       return true;
     });
   },
@@ -1010,7 +1020,7 @@ PageErrorListener.prototype =
   
 
 
-  destroy: function PEL_destroy()
+  destroy: function CSL_destroy()
   {
     Services.console.unregisterListener(this);
     this.listener = this.window = null;
@@ -1112,12 +1122,12 @@ ConsoleAPIListener.prototype =
   {
     let innerWindowId = this.window ?
                         WebConsoleUtils.getInnerWindowId(this.window) : null;
-    return ConsoleAPIStorage.getEvents(innerWindowId).filter((aMessage) => {
-      if (!aIncludePrivate && aMessage.private) {
-        return false;
-      }
-      return true;
-    });
+    let events = ConsoleAPIStorage.getEvents(innerWindowId);
+    if (aIncludePrivate) {
+      return events;
+    }
+
+    return events.filter((m) => !m.private);
   },
 
   
