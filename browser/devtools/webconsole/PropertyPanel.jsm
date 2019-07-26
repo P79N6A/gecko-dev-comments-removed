@@ -27,7 +27,7 @@ var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView"];
 
 var PropertyTreeView = function() {
   this._rows = [];
-  this._objectCache = {};
+  this._objectActors = [];
 };
 
 PropertyTreeView.prototype = {
@@ -47,7 +47,10 @@ PropertyTreeView.prototype = {
 
 
 
-  _objectCache: null,
+
+
+
+  _objectActors: null,
 
   
 
@@ -55,8 +58,12 @@ PropertyTreeView.prototype = {
 
 
 
+  _localObjectActors: null,
 
+  _releaseObject: null,
+  _objectPropertiesProvider: null,
 
+  
 
 
 
@@ -87,25 +94,25 @@ PropertyTreeView.prototype = {
   set data(aData) {
     let oldLen = this._rows.length;
 
-    this._cleanup();
+    this.cleanup();
 
     if (!aData) {
       return;
     }
 
-    if (aData.remoteObject) {
-      this._rootCacheId = aData.rootCacheId;
-      this._panelCacheId = aData.panelCacheId;
-      this._remoteObjectProvider = aData.remoteObjectProvider;
-      this._rows = [].concat(aData.remoteObject);
-      this._updateRemoteObject(this._rows, 0);
+    if (aData.objectPropertiesProvider) {
+      this._objectPropertiesProvider = aData.objectPropertiesProvider;
+      this._releaseObject = aData.releaseObject;
+      this._propertiesToRows(aData.objectProperties, 0);
+      this._rows = aData.objectProperties;
     }
     else if (aData.object) {
+      this._localObjectActors = Object.create(null);
       this._rows = this._inspectObject(aData.object);
     }
     else {
-      throw new Error("First argument must have a .remoteObject or " +
-                      "an .object property!");
+      throw new Error("First argument must have an objectActor or an " +
+                      "object property!");
     }
 
     if (this._treeBox) {
@@ -128,13 +135,22 @@ PropertyTreeView.prototype = {
 
 
 
-  _updateRemoteObject: function PTV__updateRemoteObject(aObject, aLevel)
+  _propertiesToRows: function PTV__propertiesToRows(aObject, aLevel)
   {
-    aObject.forEach(function(aElement) {
-      aElement.level = aLevel;
-      aElement.isOpened = false;
-      aElement.children = null;
-    });
+    aObject.forEach(function(aItem) {
+      aItem._level = aLevel;
+      aItem._open = false;
+      aItem._children = null;
+
+      if (this._releaseObject) {
+        ["value", "get", "set"].forEach(function(aProp) {
+          let val = aItem[aProp];
+          if (val && val.actor) {
+            this._objectActors.push(val.actor);
+          }
+        }, this);
+      }
+    }, this);
   },
 
   
@@ -144,12 +160,15 @@ PropertyTreeView.prototype = {
 
 
 
+
+
+
   _inspectObject: function PTV__inspectObject(aObject)
   {
-    this._objectCache = {};
-    this._remoteObjectProvider = this._localObjectProvider.bind(this);
-    let children = WebConsoleUtils.namesAndValuesOf(aObject, this._objectCache);
-    this._updateRemoteObject(children, 0);
+    this._objectPropertiesProvider = this._localPropertiesProvider.bind(this);
+    let children =
+      WebConsoleUtils.inspectObject(aObject, this._localObjectGrip.bind(this));
+    this._propertiesToRows(children, 0);
     return children;
   },
 
@@ -162,23 +181,31 @@ PropertyTreeView.prototype = {
 
 
 
-
-
-
-
-
-
-  _localObjectProvider:
-  function PTV__localObjectProvider(aFromCacheId, aObjectId, aDestCacheId,
-                                    aCallback)
+  _localObjectGrip: function PTV__localObjectGrip(aObject)
   {
-    let object = WebConsoleUtils.namesAndValuesOf(this._objectCache[aObjectId],
-                                                  this._objectCache);
-    aCallback({cacheId: aFromCacheId,
-               objectId: aObjectId,
-               object: object,
-               childrenCacheId: aDestCacheId || aFromCacheId,
-    });
+    let grip = WebConsoleUtils.getObjectGrip(aObject);
+    grip.actor = "obj" + gSequenceId();
+    this._localObjectActors[grip.actor] = aObject;
+    return grip;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _localPropertiesProvider:
+  function PTV__localPropertiesProvider(aActor, aCallback)
+  {
+    let object = this._localObjectActors[aActor];
+    let properties =
+      WebConsoleUtils.inspectObject(object, this._localObjectGrip.bind(this));
+    aCallback(properties);
   },
 
   
@@ -187,18 +214,20 @@ PropertyTreeView.prototype = {
 
   get rowCount()                     { return this._rows.length; },
   setTree: function(treeBox)         { this._treeBox = treeBox;  },
-  getCellText: function(idx, column) {
+  getCellText: function PTV_getCellText(idx, column)
+  {
     let row = this._rows[idx];
-    return row.name + ": " + row.value;
+    return row.name + ": " + WebConsoleUtils.getPropertyPanelValue(row);
   },
   getLevel: function(idx) {
-    return this._rows[idx].level;
+    return this._rows[idx]._level;
   },
   isContainer: function(idx) {
-    return !!this._rows[idx].inspectable;
+    return typeof this._rows[idx].value == "object" && this._rows[idx].value &&
+           this._rows[idx].value.inspectable;
   },
   isContainerOpen: function(idx) {
-    return this._rows[idx].isOpened;
+    return this._rows[idx]._open;
   },
   isContainerEmpty: function(idx)    { return false; },
   isSeparator: function(idx)         { return false; },
@@ -221,22 +250,22 @@ PropertyTreeView.prototype = {
 
   hasNextSibling: function(idx, after)
   {
-    var thisLevel = this.getLevel(idx);
-    return this._rows.slice(after + 1).some(function (r) r.level == thisLevel);
+    let thisLevel = this.getLevel(idx);
+    return this._rows.slice(after + 1).some(function (r) r._level == thisLevel);
   },
 
   toggleOpenState: function(idx)
   {
     let item = this._rows[idx];
-    if (!item.inspectable) {
+    if (!this.isContainer(idx)) {
       return;
     }
 
-    if (item.isOpened) {
+    if (item._open) {
       this._treeBox.beginUpdateBatch();
-      item.isOpened = false;
+      item._open = false;
 
-      var thisLevel = item.level;
+      var thisLevel = item._level;
       var t = idx + 1, deleteCount = 0;
       while (t < this._rows.length && this.getLevel(t++) > thisLevel) {
         deleteCount++;
@@ -251,31 +280,27 @@ PropertyTreeView.prototype = {
     }
     else {
       let levelUpdate = true;
-      let callback = function _onRemoteResponse(aResponse) {
+      let callback = function _onRemoteResponse(aProperties) {
         this._treeBox.beginUpdateBatch();
-        item.isOpened = true;
-
         if (levelUpdate) {
-          this._updateRemoteObject(aResponse.object, item.level + 1);
-          item.children = aResponse.object;
+          this._propertiesToRows(aProperties, item._level + 1);
+          item._children = aProperties;
         }
 
-        this._rows.splice.apply(this._rows, [idx + 1, 0].concat(item.children));
+        this._rows.splice.apply(this._rows, [idx + 1, 0].concat(item._children));
 
-        this._treeBox.rowCountChanged(idx + 1, item.children.length);
+        this._treeBox.rowCountChanged(idx + 1, item._children.length);
         this._treeBox.invalidateRow(idx);
         this._treeBox.endUpdateBatch();
+        item._open = true;
       }.bind(this);
 
-      if (!item.children) {
-        let fromCacheId = item.level > 0 ? this._panelCacheId :
-                                           this._rootCacheId;
-        this._remoteObjectProvider(fromCacheId, item.objectId,
-                                   this._panelCacheId, callback);
+      if (!item._children) {
+        this._objectPropertiesProvider(item.value.actor, callback);
       }
       else {
         levelUpdate = false;
-        callback({object: item.children});
+        callback(item._children);
       }
     }
   },
@@ -298,18 +323,23 @@ PropertyTreeView.prototype = {
   drop: function(index, orientation, dataTransfer)      { },
   canDrop: function(index, orientation, dataTransfer)   { return false; },
 
-  _cleanup: function PTV__cleanup()
+  
+
+
+  cleanup: function PTV_cleanup()
   {
-    if (this._rows.length) {
-      
-      this._updateRemoteObject(this._rows, 0);
-      this._rows = [];
+    if (this._releaseObject) {
+      this._objectActors.forEach(this._releaseObject);
+      delete this._objectPropertiesProvider;
+      delete this._releaseObject;
+    }
+    if (this._localObjectActors) {
+      delete this._localObjectActors;
+      delete this._objectPropertiesProvider;
     }
 
-    delete this._objectCache;
-    delete this._rootCacheId;
-    delete this._panelCacheId;
-    delete this._remoteObjectProvider;
+    this._rows = [];
+    this._objectActors = [];
   },
 };
 
@@ -459,3 +489,9 @@ PropertyPanel.prototype.destroy = function PP_destroy()
   this.tree = null;
 }
 
+
+function gSequenceId()
+{
+  return gSequenceId.n++;
+}
+gSequenceId.n = 0;
