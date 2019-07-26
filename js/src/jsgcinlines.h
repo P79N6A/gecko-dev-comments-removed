@@ -379,7 +379,7 @@ TryNewNurseryGCThing(ThreadSafeContext *cxArg, size_t thingSize)
     if (t)
         return t;
     if (allowGC && !rt->mainThread.suppressGC) {
-        MinorGC(rt, JS::gcreason::OUT_OF_NURSERY);
+        MinorGC(cx, JS::gcreason::OUT_OF_NURSERY);
 
         
         if (nursery.isEnabled()) {

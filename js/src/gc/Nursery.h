@@ -19,6 +19,7 @@
 #include "js/HashTable.h"
 #include "js/HeapAPI.h"
 #include "js/Value.h"
+#include "js/Vector.h"
 
 namespace JS {
 struct Zone;
@@ -33,6 +34,10 @@ namespace gc {
 class Cell;
 class MinorCollectionTracer;
 } 
+
+namespace types {
+struct TypeObject;
+}
 
 namespace jit {
 class CodeGenerator;
@@ -95,8 +100,13 @@ class Nursery
     
     void notifyInitialSlots(gc::Cell *cell, HeapSlot *slots);
 
+    typedef Vector<types::TypeObject *, 0, SystemAllocPolicy> TypeObjectList;
+
     
-    void collect(JSRuntime *rt, JS::gcreason::Reason reason);
+
+
+
+    void collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList *pretenureTypes);
 
     
 
@@ -219,11 +229,13 @@ class Nursery
     
     void *allocateFromTenured(JS::Zone *zone, gc::AllocKind thingKind);
 
+    struct TenureCountCache;
+
     
 
 
 
-    void collectToFixedPoint(gc::MinorCollectionTracer *trc);
+    void collectToFixedPoint(gc::MinorCollectionTracer *trc, TenureCountCache &tenureCounts);
     JS_ALWAYS_INLINE void traceObject(gc::MinorCollectionTracer *trc, JSObject *src);
     JS_ALWAYS_INLINE void markSlots(gc::MinorCollectionTracer *trc, HeapSlot *vp, uint32_t nslots);
     JS_ALWAYS_INLINE void markSlots(gc::MinorCollectionTracer *trc, HeapSlot *vp, HeapSlot *end);

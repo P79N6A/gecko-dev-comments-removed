@@ -4640,13 +4640,8 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
     
     
     
-    MInstruction *callObj = MNewCallObject::New(alloc(), templateObj, script()->treatAsRunOnce, slots);
+    MNewCallObject *callObj = MNewCallObject::New(alloc(), templateObj, script()->treatAsRunOnce, slots);
     current->add(callObj);
-
-    
-    
-    if (templateObj->type()->isLongLivedForJITAlloc())
-        current->add(MPostWriteBarrier::New(alloc(), callObj));
 
     
     
@@ -4750,7 +4745,9 @@ IonBuilder::createThisScriptedSingleton(JSFunction *target, MDefinition *callee)
 
     
     
-    MCreateThisWithTemplate *createThis = MCreateThisWithTemplate::New(alloc(), templateObject);
+    MCreateThisWithTemplate *createThis =
+        MCreateThisWithTemplate::New(alloc(), templateObject,
+                                     templateObject->type()->initialHeap(constraints()));
     current->add(createThis);
 
     return createThis;
@@ -5445,7 +5442,9 @@ IonBuilder::jsop_newarray(uint32_t count)
     if (conversion == types::TemporaryTypeSet::AlwaysConvertToDoubles)
         templateObject->setShouldConvertDoubleElements();
 
-    MNewArray *ins = MNewArray::New(alloc(), count, templateObject, MNewArray::NewArray_Allocating);
+    MNewArray *ins = MNewArray::New(alloc(), count, templateObject,
+                                    templateObject->type()->initialHeap(constraints()),
+                                    MNewArray::NewArray_Allocating);
 
     current->add(ins);
     current->push(ins);
@@ -5465,6 +5464,9 @@ IonBuilder::jsop_newobject()
 
     JS_ASSERT(templateObject->is<JSObject>());
     MNewObject *ins = MNewObject::New(alloc(), templateObject,
+                                      templateObject->hasSingletonType()
+                                      ? gc::TenuredHeap
+                                      : templateObject->type()->initialHeap(constraints()),
                                        false);
 
     current->add(ins);
@@ -7775,7 +7777,9 @@ IonBuilder::jsop_rest()
     unsigned numFormals = info().nargs() - 1;
     unsigned numRest = numActuals > numFormals ? numActuals - numFormals : 0;
 
-    MNewArray *array = MNewArray::New(alloc(), numRest, templateObject, MNewArray::NewArray_Allocating);
+    MNewArray *array = MNewArray::New(alloc(), numRest, templateObject,
+                                      templateObject->type()->initialHeap(constraints()),
+                                      MNewArray::NewArray_Allocating);
     current->add(array);
 
     if (numActuals <= numFormals) {

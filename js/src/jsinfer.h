@@ -389,8 +389,7 @@ typedef uint32_t TypeFlags;
 
 enum {
     
-
-
+    OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
 
     
     OBJECT_FLAG_ADDENDUM_CLEARED      = 0x2,
@@ -427,39 +426,31 @@ enum {
     OBJECT_FLAG_LENGTH_OVERFLOW       = 0x00040000,
 
     
-
-
-
-    
-    OBJECT_FLAG_ITERATED              = 0x00100000,
+    OBJECT_FLAG_ITERATED              = 0x00080000,
 
     
-    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00200000,
+    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00100000,
 
     
 
 
 
-    
-
-
-
-    OBJECT_FLAG_RUNONCE_INVALIDATED   = 0x00800000,
-
-    
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
-
-    
-    OBJECT_FLAG_TENURE_COUNT_MASK     = 0x7f000000,
-    OBJECT_FLAG_TENURE_COUNT_SHIFT    = 24,
-    OBJECT_FLAG_TENURE_COUNT_LIMIT    =
-        OBJECT_FLAG_TENURE_COUNT_MASK >> OBJECT_FLAG_TENURE_COUNT_SHIFT,
+    OBJECT_FLAG_RUNONCE_INVALIDATED   = 0x00200000,
 
     
 
 
 
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x80000000,
+    OBJECT_FLAG_PRE_TENURE            = 0x00400000,
+
+    
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x007f0000,
+
+    
+
+
+
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x00800000,
 
     
     OBJECT_FLAG_UNKNOWN_MASK =
@@ -991,6 +982,27 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
         return !!(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES);
     }
 
+    bool shouldPreTenure() {
+        return hasAnyFlags(OBJECT_FLAG_PRE_TENURE) && !unknownProperties();
+    }
+
+    gc::InitialHeap initialHeap(CompilerConstraintList *constraints);
+
+    bool canPreTenure() {
+        
+        
+        
+        
+        if (unknownProperties())
+            return false;
+        return (flags & OBJECT_FLAG_FROM_ALLOCATION_SITE) || hasNewScript();
+    }
+
+    void setShouldPreTenure(ExclusiveContext *cx) {
+        JS_ASSERT(canPreTenure());
+        setFlags(cx, OBJECT_FLAG_PRE_TENURE);
+    }
+
     
 
 
@@ -1002,39 +1014,6 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
-
-    
-
-    
-
-
-
-
-    const static uint32_t MaxJITAllocTenures = OBJECT_FLAG_TENURE_COUNT_LIMIT - 2;
-
-    
-
-
-
-    const static uint32_t MaxCachedAllocTenures = 64;
-
-    
-    bool incrementTenureCount();
-    uint32_t tenureCount() const {
-        return (flags & OBJECT_FLAG_TENURE_COUNT_MASK) >> OBJECT_FLAG_TENURE_COUNT_SHIFT;
-    }
-
-    bool isLongLivedForCachedAlloc() const {
-        return tenureCount() >= MaxCachedAllocTenures;
-    }
-
-    bool isLongLivedForJITAlloc() const {
-        return tenureCount() >= MaxJITAllocTenures;
-    }
-
-    gc::InitialHeap initialHeapForJITAlloc() const {
-        return isLongLivedForJITAlloc() ? gc::TenuredHeap : gc::DefaultHeap;
-    }
 
     
 
