@@ -815,19 +815,3 @@ label.requests-menu-status-code {
 
   }
 }
-
-@media (min-width: 701px) {
-  #network-table[type-overflows] .requests-menu-domain {
-    border-width: 0 !important;
-    box-shadow: none !important;
-    
-
-  }
-
-  #network-table[domain-overflows] .requests-menu-icon-and-file {
-    border-width: 0 !important;
-    box-shadow: none !important;
-    
-
-  }
-}
