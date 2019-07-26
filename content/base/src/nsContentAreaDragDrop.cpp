@@ -130,8 +130,7 @@ NS_IMPL_ISUPPORTS1(nsContentAreaDragDropDataProvider, nsIFlavorDataProvider)
 
 nsresult
 nsContentAreaDragDropDataProvider::SaveURIToFile(nsAString& inSourceURIString,
-                                                 nsIFile* inDestFile,
-                                                 bool isPrivate)
+                                                 nsIFile* inDestFile)
 {
   nsCOMPtr<nsIURI> sourceURI;
   nsresult rv = NS_NewURI(getter_AddRefs(sourceURI), inSourceURIString);
@@ -156,8 +155,7 @@ nsContentAreaDragDropDataProvider::SaveURIToFile(nsAString& inSourceURIString,
 
   persist->SetPersistFlags(nsIWebBrowserPersist::PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION);
 
-  return persist->SavePrivacyAwareURI(sourceURI, nullptr, nullptr, nullptr, nullptr,
-                                      inDestFile, isPrivate);
+  return persist->SaveURI(sourceURI, nullptr, nullptr, nullptr, nullptr, inDestFile);
 }
 
 
@@ -229,10 +227,7 @@ nsContentAreaDragDropDataProvider::GetFlavorData(nsITransferable *aTransferable,
 
     file->Append(targetFilename);
 
-    bool isPrivate;
-    aTransferable->GetIsPrivateData(&isPrivate);
-
-    rv = SaveURIToFile(sourceURLString, file, isPrivate);
+    rv = SaveURIToFile(sourceURLString, file);
     
     if (NS_SUCCEEDED(rv)) {
       CallQueryInterface(file, aData);
