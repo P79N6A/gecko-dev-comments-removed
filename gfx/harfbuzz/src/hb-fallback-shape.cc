@@ -95,6 +95,16 @@ _hb_fallback_shape (hb_shape_plan_t    *shape_plan HB_UNUSED,
 		    const hb_feature_t *features HB_UNUSED,
 		    unsigned int        num_features HB_UNUSED)
 {
+  
+
+
+
+
+
+
+
+
+
   hb_codepoint_t space;
   font->get_glyph (' ', 0, &space);
 
