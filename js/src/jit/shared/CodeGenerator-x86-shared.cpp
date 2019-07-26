@@ -1365,7 +1365,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
                 return false;
 
             
-            masm.cvtsi2sd(output, scratch);
+            masm.convertInt32ToDouble(output, scratch);
             masm.branchDouble(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
 
             
@@ -1453,7 +1453,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
                 return false;
 
             
-            masm.cvtsi2sd(output, scratch);
+            masm.convertInt32ToDouble(output, scratch);
             masm.branchDouble(Assembler::DoubleEqualOrUnordered, temp, scratch, &end);
 
             

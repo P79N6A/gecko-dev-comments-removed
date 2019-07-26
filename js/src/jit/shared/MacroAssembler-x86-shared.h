@@ -240,19 +240,38 @@ class MacroAssemblerX86Shared : public Assembler
     }
 
     void convertInt32ToDouble(const Register &src, const FloatRegister &dest) {
+        
+        
+        
+        
+        
+        
+        zeroDouble(dest);
         cvtsi2sd(src, dest);
     }
     void convertInt32ToDouble(const Address &src, FloatRegister dest) {
+        convertInt32ToDouble(Operand(src), dest);
+    }
+    void convertInt32ToDouble(const Operand &src, FloatRegister dest) {
+        
+        zeroDouble(dest);
         cvtsi2sd(Operand(src), dest);
     }
     void convertInt32ToFloat32(const Register &src, const FloatRegister &dest) {
+        
+        zeroFloat32(dest);
         cvtsi2ss(src, dest);
     }
     void convertInt32ToFloat32(const Address &src, FloatRegister dest) {
-        cvtsi2ss(Operand(src), dest);
+        convertInt32ToFloat32(Operand(src), dest);
+    }
+    void convertInt32ToFloat32(const Operand &src, FloatRegister dest) {
+        
+        zeroFloat32(dest);
+        cvtsi2ss(src, dest);
     }
     Condition testDoubleTruthy(bool truthy, const FloatRegister &reg) {
-        xorpd(ScratchFloatReg, ScratchFloatReg);
+        zeroDouble(ScratchFloatReg);
         ucomisd(ScratchFloatReg, reg);
         return truthy ? NonZero : Zero;
     }
@@ -324,6 +343,9 @@ class MacroAssemblerX86Shared : public Assembler
     }
     void zeroDouble(FloatRegister reg) {
         xorpd(reg, reg);
+    }
+    void zeroFloat32(FloatRegister reg) {
+        xorps(reg, reg);
     }
     void negateDouble(FloatRegister reg) {
         
