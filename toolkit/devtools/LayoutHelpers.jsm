@@ -13,15 +13,14 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyGetter(this, "PlatformKeys", function() {
+  return Services.strings.createBundle(
+    "chrome://global-platform/locale/platformKeys.properties");
+});
+
 this.EXPORTED_SYMBOLS = ["LayoutHelpers"];
 
-this.LayoutHelpers = LayoutHelpers = function(aTopLevelWindow) {
-  this._topDocShell = aTopLevelWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                     .getInterface(Ci.nsIWebNavigation)
-                                     .QueryInterface(Ci.nsIDocShell);
-}
-
-LayoutHelpers.prototype = {
+this.LayoutHelpers = LayoutHelpers = {
 
   
 
@@ -71,27 +70,22 @@ LayoutHelpers.prototype = {
       
 
       
-      if (this.isTopLevelWindow(frameWin)) {
-        break;
-      }
-
-      let frameElement = this.getFrameElement(frameWin);
-      if (!frameElement) {
+      if (frameWin.parent === frameWin || !frameWin.frameElement) {
         break;
       }
 
       
       
       
-      let frameRect = frameElement.getBoundingClientRect();
+      let frameRect = frameWin.frameElement.getBoundingClientRect();
 
       let [offsetTop, offsetLeft] =
-        this.getIframeContentOffset(frameElement);
+        this.getIframeContentOffset(frameWin.frameElement);
 
       rect.top += frameRect.top + offsetTop;
       rect.left += frameRect.left + offsetLeft;
 
-      frameWin = this.getParentWindow(frameWin);
+      frameWin = frameWin.parent;
     }
 
     return rect;
@@ -121,27 +115,22 @@ LayoutHelpers.prototype = {
     while (true) {
 
       
-      if (this.isTopLevelWindow(frameWin)) {
-        break;
-      }
-
-      let frameElement = this.getFrameElement(frameWin);
-      if (!frameElement) {
+      if (frameWin.parent === frameWin || !frameWin.frameElement) {
         break;
       }
 
       
       
       
-      let frameRect = frameElement.getBoundingClientRect();
+      let frameRect = frameWin.frameElement.getBoundingClientRect();
 
       let [offsetTop, offsetLeft] =
-        this.getIframeContentOffset(frameElement);
+        this.getIframeContentOffset(frameWin.frameElement);
 
       rect.top += frameRect.top + offsetTop;
       rect.left += frameRect.left + offsetLeft;
 
-      frameWin = this.getParentWindow(frameWin);
+      frameWin = frameWin.parent;
     }
 
     return rect;
@@ -214,7 +203,7 @@ LayoutHelpers.prototype = {
         let rect = node.getBoundingClientRect();
 
         
-        let [offsetTop, offsetLeft] = this.getIframeContentOffset(node);
+        let [offsetTop, offsetLeft] = LayoutHelpers.getIframeContentOffset(node);
 
         aX -= rect.left + offsetLeft;
         aY -= rect.top + offsetTop;
@@ -307,10 +296,9 @@ LayoutHelpers.prototype = {
       }
     }
 
-    if (!this.isTopLevelWindow(win)) {
+    if (win.parent !== win) {
       
-      let frameElement = this.getFrameElement(win);
-      this.scrollIntoViewIfNeeded(frameElement, centered);
+      LH_scrollIntoViewIfNeeded(win.frameElement, centered);
     }
   },
 
@@ -336,58 +324,61 @@ LayoutHelpers.prototype = {
   
 
 
-  isTopLevelWindow: function LH_isTopLevelWindow(win) {
-    let docShell = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIWebNavigation)
-                   .QueryInterface(Ci.nsIDocShell);
-
-    return docShell === this._topDocShell;
-  },
-
-  
 
 
-  getParentWindow: function LH_getParentWindow(win) {
-    if (this.isTopLevelWindow(win)) {
-      return null;
-    }
-
-    let docShell = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIWebNavigation)
-                   .QueryInterface(Ci.nsIDocShell);
-
-    if (docShell.isBrowserOrApp) {
-      let parentDocShell = docShell.getSameTypeParentIgnoreBrowserAndAppBoundaries();
-      return parentDocShell.contentViewer.DOMDocument.defaultView;
-    } else {
-      return win.parent;
-    }
-  },
-
-  
 
 
-  getFrameElement: function LH_getFrameElement(win) {
-    if (this.isTopLevelWindow(win)) {
-      return null;
-    }
 
-    let docShell = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIWebNavigation)
-                   .QueryInterface(Ci.nsIDocShell);
 
-    if (docShell.isBrowserOrApp) {
-      let parentDocShell = docShell.getSameTypeParentIgnoreBrowserAndAppBoundaries();
-      let parentDoc = parentDocShell.contentViewer.DOMDocument;
-      let allIframes = parentDoc.querySelectorAll("iframe");
-      for (let f of allIframes) {
-        if (f.contentWindow === win) {
-          return f;
+
+  prettyKey: function LH_prettyKey(aElemKey, aAllowCloverleaf)
+  {
+    let elemString = "";
+    let elemMod = aElemKey.getAttribute("modifiers");
+
+    if (elemMod.match("accel")) {
+      if (Services.appinfo.OS == "Darwin") {
+        
+        
+        if (!aAllowCloverleaf) {
+          elemString += "Cmd-";
+        } else {
+          elemString += PlatformKeys.GetStringFromName("VK_META") +
+                        PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
         }
+      } else {
+        elemString += PlatformKeys.GetStringFromName("VK_CONTROL") +
+                      PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
       }
-      return null;
-    } else {
-      return win.frameElement;
     }
-  },
+    if (elemMod.match("access")) {
+      if (Services.appinfo.OS == "Darwin") {
+        elemString += PlatformKeys.GetStringFromName("VK_CONTROL") +
+                      PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+      } else {
+        elemString += PlatformKeys.GetStringFromName("VK_ALT") +
+                      PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+      }
+    }
+    if (elemMod.match("shift")) {
+      elemString += PlatformKeys.GetStringFromName("VK_SHIFT") +
+                    PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+    }
+    if (elemMod.match("alt")) {
+      elemString += PlatformKeys.GetStringFromName("VK_ALT") +
+                    PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+    }
+    if (elemMod.match("ctrl") || elemMod.match("control")) {
+      elemString += PlatformKeys.GetStringFromName("VK_CONTROL") +
+                    PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+    }
+    if (elemMod.match("meta")) {
+      elemString += PlatformKeys.GetStringFromName("VK_META") +
+                    PlatformKeys.GetStringFromName("MODIFIER_SEPARATOR");
+    }
+
+    return elemString +
+      (aElemKey.getAttribute("keycode").replace(/^.*VK_/, "") ||
+       aElemKey.getAttribute("key")).toUpperCase();
+  }
 };

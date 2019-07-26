@@ -77,8 +77,7 @@ function getHighlitNode()
   
   let midpoint = midPoint(a, b);
 
-  let lh = new LayoutHelpers(window.content);
-  return lh.getElementFromPoint(h.win.document, midpoint.x,
+  return LayoutHelpers.getElementFromPoint(h.win.document, midpoint.x,
     midpoint.y);
 }
 
