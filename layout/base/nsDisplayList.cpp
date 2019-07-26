@@ -1607,12 +1607,9 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
 
   
   
-  if ((drawBackgroundColor && color != NS_RGBA(0,0,0,0)) ||
-      aBuilder->IsForEventDelivery()) {
-    aList->AppendNewToTop(
-        new (aBuilder) nsDisplayBackgroundColor(aBuilder, aFrame, bg,
-                                                drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0)));
-  }
+  aList->AppendNewToTop(
+      new (aBuilder) nsDisplayBackgroundColor(aBuilder, aFrame, bg,
+                                              drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0)));
 
   if (isThemed) {
     nsDisplayBackgroundImage* bgItem =
