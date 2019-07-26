@@ -36,7 +36,7 @@
 #include "nsIPresShell.h"
 #include "nsUnicharUtils.h"
 #include "nsStyleSet.h"
-#include "nsViewManager.h"
+#include "nsIViewManager.h"
 #include "nsEventStates.h"
 #include "nsStyleConsts.h"
 #include "nsTableOuterFrame.h"
@@ -12023,7 +12023,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
 
   
-  nsRefPtr<nsViewManager> vm = mPresShell->GetViewManager();
+  nsCOMPtr<nsIViewManager> vm = mPresShell->GetViewManager();
 
   
   

@@ -44,7 +44,7 @@ class nsIDocument;
 class nsIFrame;
 class nsPresContext;
 class nsStyleSet;
-class nsViewManager;
+class nsIViewManager;
 class nsView;
 class nsRenderingContext;
 class nsIPageSequenceFrame;
@@ -176,7 +176,7 @@ protected:
 public:
   virtual NS_HIDDEN_(nsresult) Init(nsIDocument* aDocument,
                                    nsPresContext* aPresContext,
-                                   nsViewManager* aViewManager,
+                                   nsIViewManager* aViewManager,
                                    nsStyleSet* aStyleSet,
                                    nsCompatibility aCompatMode) = 0;
 
@@ -272,7 +272,7 @@ public:
 
   nsPresContext* GetPresContext() const { return mPresContext; }
 
-  nsViewManager* GetViewManager() const { return mViewManager; }
+  nsIViewManager* GetViewManager() const { return mViewManager; }
 
 #ifdef ACCESSIBILITY
   
@@ -1381,7 +1381,7 @@ protected:
   nsPresContext*            mPresContext;   
   nsStyleSet*               mStyleSet;      
   nsCSSFrameConstructor*    mFrameConstructor; 
-  nsViewManager*           mViewManager;   
+  nsIViewManager*           mViewManager;   
   nsPresArena               mFrameArena;
   nsFrameSelection*         mSelection;
   

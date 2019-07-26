@@ -40,8 +40,9 @@
 #include "nsLayoutStylesheetCache.h"
 #include "mozilla/Preferences.h"
 
+#include "nsViewsCID.h"
 #include "nsIDeviceContextSpec.h"
-#include "nsViewManager.h"
+#include "nsIViewManager.h"
 #include "nsView.h"
 
 #include "nsIPageSequenceFrame.h"
@@ -378,7 +379,7 @@ protected:
   
   nsIPresShell* GetPresShell();
   nsPresContext* GetPresContext();
-  nsViewManager* GetViewManager();
+  nsIViewManager* GetViewManager();
 
   void DetachFromTopLevelWidget();
 
@@ -396,7 +397,7 @@ protected:
   
   nsCOMPtr<nsIDocument>    mDocument;
   nsCOMPtr<nsIWidget>      mWindow;      
-  nsRefPtr<nsViewManager> mViewManager;
+  nsCOMPtr<nsIViewManager> mViewManager;
   nsRefPtr<nsPresContext>  mPresContext;
   nsCOMPtr<nsIPresShell>   mPresShell;
 
@@ -496,6 +497,8 @@ private:
 
 
 
+
+static NS_DEFINE_CID(kViewManagerCID,       NS_VIEW_MANAGER_CID);
 
 
 nsresult
@@ -1396,7 +1399,7 @@ nsDocumentViewer::Open(nsISupports *aState, nsISHEntry *aSHEntry)
     
     DetachFromTopLevelWidget();
 
-    nsViewManager *vm = GetViewManager();
+    nsIViewManager *vm = GetViewManager();
     NS_ABORT_IF_FALSE(vm, "no view manager");
     nsView* v = vm->GetRootView();
     NS_ABORT_IF_FALSE(v, "no root view");
@@ -1543,7 +1546,7 @@ nsDocumentViewer::Destroy()
 
     
     if (mPresShell) {
-      nsViewManager *vm = mPresShell->GetViewManager();
+      nsIViewManager *vm = mPresShell->GetViewManager();
       if (vm) {
         nsView *rootView = vm->GetRootView();
 
@@ -1556,7 +1559,7 @@ nsDocumentViewer::Destroy()
 
           nsView *rootViewParent = rootView->GetParent();
           if (rootViewParent) {
-            nsViewManager *parentVM = rootViewParent->GetViewManager();
+            nsIViewManager *parentVM = rootViewParent->GetViewManager();
             if (parentVM) {
               parentVM->RemoveChild(rootView);
             }
@@ -1803,7 +1806,7 @@ nsDocumentViewer::GetPresContext()
   return mPresContext;
 }
 
-nsViewManager*
+nsIViewManager*
 nsDocumentViewer::GetViewManager()
 {
   return mViewManager;
@@ -2269,11 +2272,14 @@ nsDocumentViewer::MakeWindow(const nsSize& aSize, nsView* aContainerView)
     DetachFromTopLevelWidget();
   }
 
-  mViewManager = new nsViewManager();
+  nsresult rv;
+  mViewManager = do_CreateInstance(kViewManagerCID, &rv);
+  if (NS_FAILED(rv))
+    return rv;
 
   nsDeviceContext *dx = mPresContext->DeviceContext();
 
-  nsresult rv = mViewManager->Init(dx);
+  rv = mViewManager->Init(dx);
   if (NS_FAILED(rv))
     return rv;
 
@@ -4382,7 +4388,7 @@ nsDocumentViewer::InitializeForPrintPreview()
 }
 
 void
-nsDocumentViewer::SetPrintPreviewPresentation(nsViewManager* aViewManager,
+nsDocumentViewer::SetPrintPreviewPresentation(nsIViewManager* aViewManager,
                                                 nsPresContext* aPresContext,
                                                 nsIPresShell* aPresShell)
 {

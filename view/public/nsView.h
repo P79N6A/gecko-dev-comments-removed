@@ -6,14 +6,21 @@
 #ifndef nsView_h__
 #define nsView_h__
 
+#include "nsISupports.h"
 #include "nsCoord.h"
 #include "nsRect.h"
 #include "nsPoint.h"
+#include "nsNativeWidget.h"
+#include "nsIWidget.h"
+#include "nsWidgetInitData.h"
 #include "nsRegion.h"
 #include "nsCRT.h"
+#include "nsIFactory.h"
 #include "nsEvent.h"
 #include "nsIWidgetListener.h"
+#include <stdio.h>
 
+class nsIViewManager;
 class nsViewManager;
 class nsIWidget;
 class nsIFrame;
@@ -68,7 +75,9 @@ public:
 
 
 
-  nsViewManager* GetViewManager() const { return mViewManager; }
+  nsIViewManager* GetViewManager() const
+  { return reinterpret_cast<nsIViewManager*>(mViewManager); }
+  nsViewManager* GetViewManagerInternal() const { return mViewManager; }
 
   
 
@@ -451,13 +460,13 @@ private:
   
   void InvalidateHierarchy(nsViewManager *aViewManagerParent);
 
-  nsViewManager    *mViewManager;
+  nsViewManager     *mViewManager;
   nsView           *mParent;
-  nsIWidget        *mWindow;
+  nsIWidget         *mWindow;
   nsView           *mNextSibling;
   nsView           *mFirstChild;
-  nsIFrame         *mFrame;
-  nsRegion         *mDirtyRegion;
+  nsIFrame          *mFrame;
+  nsRegion          *mDirtyRegion;
   int32_t           mZIndex;
   nsViewVisibility  mVis;
   

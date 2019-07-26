@@ -20,7 +20,7 @@
 #include "nsEventStateManager.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsLayoutUtils.h"
-#include "nsViewManager.h"
+#include "nsIViewManager.h"
 #include "nsIComponentManager.h"
 #include "nsITimer.h"
 #include "nsFocusManager.h"
@@ -2295,7 +2295,7 @@ nsXULMenuCommandEvent::Run()
 
     nsPresContext* presContext = menuFrame->PresContext();
     nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
-    nsRefPtr<nsViewManager> kungFuDeathGrip = shell->GetViewManager();
+    nsCOMPtr<nsIViewManager> kungFuDeathGrip = shell->GetViewManager();
 
     
     if (mCloseMenuMode != CloseMenuMode_None)

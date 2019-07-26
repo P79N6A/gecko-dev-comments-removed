@@ -43,7 +43,7 @@
 #include "nsThreadUtils.h"
 #include "nsFrameManager.h"
 #include "nsLayoutUtils.h"
-#include "nsViewManager.h"
+#include "nsIViewManager.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsCSSRuleProcessor.h"
 #include "nsStyleChangeList.h"
@@ -826,7 +826,7 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
       
       
       nscoord oldWidthAppUnits, oldHeightAppUnits;
-      nsViewManager* vm = mShell->GetViewManager();
+      nsIViewManager* vm = mShell->GetViewManager();
       vm->GetWindowDimensions(&oldWidthAppUnits, &oldHeightAppUnits);
       float oldWidthDevPixels = oldWidthAppUnits/oldAppUnitsPerDevPixel;
       float oldHeightDevPixels = oldHeightAppUnits/oldAppUnitsPerDevPixel;
