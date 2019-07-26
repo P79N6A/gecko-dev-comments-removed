@@ -440,6 +440,7 @@
 #include "mozilla/dom/indexedDB/IDBIndex.h"
 
 using mozilla::dom::indexedDB::IDBWrapperCache;
+using mozilla::dom::workers::ResolveWorkerClasses;
 
 #include "nsIDOMMediaQueryList.h"
 
@@ -6552,10 +6553,6 @@ ContentWindowGetter(JSContext *cx, unsigned argc, jsval *vp)
   return ::JS_GetProperty(cx, obj, "content", vp);
 }
 
-static JSNewResolveOp sOtherResolveFuncs[] = {
-  mozilla::dom::workers::ResolveWorkerClasses
-};
-
 template<class Interface>
 static nsresult
 LocationSetterGuts(JSContext *cx, JSObject *obj, jsval *vp)
@@ -6740,7 +6737,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  nsresult rv = NS_OK;
   if (sLocation_id == id) {
     
     
@@ -6748,7 +6744,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
 
     nsCOMPtr<nsIDOMLocation> location;
-    rv = win->GetLocation(getter_AddRefs(location));
+    nsresult rv = win->GetLocation(getter_AddRefs(location));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -6777,7 +6773,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   if (sTop_id == id) {
     nsCOMPtr<nsIDOMWindow> top;
-    rv = win->GetScriptableTop(getter_AddRefs(top));
+    nsresult rv = win->GetScriptableTop(getter_AddRefs(top));
     NS_ENSURE_SUCCESS(rv, rv);
 
     jsval v;
@@ -6827,9 +6823,9 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
         jsval v;
         nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-        rv = WrapNative(cx, wrapperObj, child_win,
-                        &NS_GET_IID(nsIDOMWindow), true, &v,
-                        getter_AddRefs(holder));
+        nsresult rv = WrapNative(cx, wrapperObj, child_win,
+                                 &NS_GET_IID(nsIDOMWindow), true, &v,
+                                 getter_AddRefs(holder));
         NS_ENSURE_SUCCESS(rv, rv);
 
         JSAutoRequest ar(cx);
@@ -6848,37 +6844,27 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   }
 
   
+  js::RootedObject tmp(cx, NULL);
+  if (!ResolveWorkerClasses(cx, obj, id, flags, &tmp)) {
+    return NS_ERROR_FAILURE;
+  }
+  if (tmp) {
+    *objp = tmp;
+    return NS_OK;
+  }
+
   
   
-  if (!(flags & JSRESOLVE_ASSIGNING)) {
-    JSAutoRequest ar(cx);
+  
+  
+  
+  bool did_resolve = false;
+  nsresult rv = GlobalResolve(win, cx, obj, id, &did_resolve);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    for (uint32_t i = 0; i < ArrayLength(sOtherResolveFuncs); i++) {
-      js::RootedObject tmp(cx, *objp);
-      if (!sOtherResolveFuncs[i](cx, obj, id, flags, &tmp)) {
-        return NS_ERROR_FAILURE;
-      }
-      *objp = tmp;
-      if (*objp) {
-        return NS_OK;
-      }
-    }
-
-    
-    
-    
-
-    bool did_resolve = false;
-    rv = GlobalResolve(win, cx, obj, id, &did_resolve);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (did_resolve) {
-      
-      *objp = obj;
-
-      return NS_OK;
-    }
+  if (did_resolve) {
+    *objp = obj;
+    return NS_OK;
   }
 
   if (s_content_id == id) {
@@ -6998,11 +6984,10 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  JSObject *oldobj = *objp;
   rv = nsDOMGenericSH::NewResolve(wrapper, cx, obj, id, flags, objp,
                                   _retval);
 
-  if (NS_FAILED(rv) || *objp != oldobj) {
+  if (NS_FAILED(rv) || *objp) {
     
     return rv;
   }
