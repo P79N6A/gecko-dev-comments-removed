@@ -2,39 +2,42 @@
 
 
 
-#ifndef nsDomGamepad_h
-#define nsDomGamepad_h
+#ifndef mozilla_dom_gamepad_Gamepad_h
+#define mozilla_dom_gamepad_Gamepad_h
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/StandardInteger.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMGamepad.h"
+#include "nsIVariant.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
 
-class nsDOMGamepad : public nsIDOMGamepad
-                   , public nsWrapperCache
+namespace mozilla {
+namespace dom {
+
+class Gamepad : public nsIDOMGamepad
+              , public nsWrapperCache
 {
 public:
-  nsDOMGamepad(nsISupports* aParent,
-               const nsAString& aID, uint32_t aIndex,
-               uint32_t aNumButtons, uint32_t aNumAxes);
+  Gamepad(nsISupports* aParent,
+          const nsAString& aID, uint32_t aIndex,
+          uint32_t aNumButtons, uint32_t aNumAxes);
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsDOMGamepad)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Gamepad)
 
-  nsDOMGamepad();
   void SetConnected(bool aConnected);
   void SetButton(uint32_t aButton, double aValue);
   void SetAxis(uint32_t aAxis, double aValue);
   void SetIndex(uint32_t aIndex);
 
   
-  void SyncState(nsDOMGamepad* other);
+  void SyncState(Gamepad* aOther);
 
   
   
-  already_AddRefed<nsDOMGamepad> Clone(nsISupports* aParent);
+  already_AddRefed<Gamepad> Clone(nsISupports* aParent);
 
   nsISupports* GetParentObject() const
   {
@@ -74,7 +77,7 @@ public:
   }
 
 private:
-  virtual ~nsDOMGamepad() {}
+  virtual ~Gamepad() {}
 
   nsresult GetButtons(nsIVariant** aButtons);
   nsresult GetAxes(nsIVariant** aAxes);
@@ -91,5 +94,8 @@ protected:
   nsTArray<double> mButtons;
   nsTArray<double> mAxes;
 };
+
+} 
+} 
 
 #endif 
