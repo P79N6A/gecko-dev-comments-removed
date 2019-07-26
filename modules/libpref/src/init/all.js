@@ -2398,9 +2398,6 @@ pref("print.print_extra_margin", 90);
 pref("print.extend_native_print_dialog", true);
 
 
-pref("plugin.scan.SunJRE", "1.6");
-
-
 pref("plugin.scan.Acrobat", "5.0");
 
 
