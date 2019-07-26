@@ -745,6 +745,13 @@ TypeSet::toHeapTypeSet()
     return (HeapTypeSet *) this;
 }
 
+bool
+AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, TypeObject *type, jsid id);
+
+void
+AddClearDefiniteFunctionUsesInScript(JSContext *cx, TypeObject *type,
+                                     JSScript *script, JSScript *calleeScript);
+
 
 
 
@@ -935,11 +942,11 @@ struct TypeNewScript : public TypeObjectAddendum
 
 
 
+
     struct Initializer {
         enum Kind {
             SETPROP,
-            FRAME_PUSH,
-            FRAME_POP,
+            SETPROP_FRAME,
             DONE
         } kind;
         uint32_t offset;

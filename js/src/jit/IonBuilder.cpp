@@ -3930,15 +3930,20 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
     }
 
     
+    
     uint32_t callerUses = script()->getUseCount();
-    if (callerUses < js_IonOptions.usesBeforeInlining()) {
+    if (callerUses < js_IonOptions.usesBeforeInlining() &&
+        info().executionMode() != DefinitePropertiesAnalysis)
+    {
         IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: caller is insufficiently hot.",
                                   targetScript->filename(), targetScript->lineno);
         return false;
     }
 
     
-    if (targetScript->getUseCount() * js_IonOptions.inlineUseCountRatio < callerUses) {
+    if (targetScript->getUseCount() * js_IonOptions.inlineUseCountRatio < callerUses &&
+        info().executionMode() != DefinitePropertiesAnalysis)
+    {
         IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee is not hot.",
                                   targetScript->filename(), targetScript->lineno);
         return false;
@@ -4803,7 +4808,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     
     
-    if (inliningDepth_ == 0) {
+    if (inliningDepth_ == 0 && info().executionMode() != DefinitePropertiesAnalysis) {
 
         
         MPassArg *passVp = current->pop()->toPassArg();
@@ -4841,7 +4846,9 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     
     
-    JS_ASSERT(inliningDepth_ > 0);
+    
+    
+    
 
     CallInfo callInfo(cx, false);
 
@@ -4853,8 +4860,10 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     
     Vector<MDefinition *> args(cx);
-    if (!args.append(inlineCallInfo_->argv().begin(), inlineCallInfo_->argv().end()))
-        return false;
+    if (inliningDepth_) {
+        if (!args.append(inlineCallInfo_->argv().begin(), inlineCallInfo_->argv().end()))
+            return false;
+    }
     callInfo.setArgs(&args);
 
     
@@ -5570,6 +5579,7 @@ IonBuilder::jsop_initprop(HandlePropertyName name)
     
     switch (info().executionMode()) {
       case SequentialExecution:
+      case DefinitePropertiesAnalysis:
         break;
       case ParallelExecution:
         needsBarrier = false;
@@ -8019,11 +8029,22 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
     if (!getPropTryArgumentsLength(&emitted) || emitted)
         return emitted;
 
+    bool barrier = PropertyReadNeedsTypeBarrier(cx, current->peek(-1), name, types);
+
     
     if (!getPropTryConstant(&emitted, id, types) || emitted)
         return emitted;
 
-    bool barrier = PropertyReadNeedsTypeBarrier(cx, current->peek(-1), name, types);
+    
+    
+    
+    if (info().executionMode() == DefinitePropertiesAnalysis) {
+        MDefinition *obj = current->pop();
+        MCallGetProperty *call = MCallGetProperty::New(obj, name);
+        current->add(call);
+        current->push(call);
+        return resumeAfter(call);
+    }
 
     
     if (!getPropTryDefiniteSlot(&emitted, name, barrier, types) || emitted)
@@ -8369,6 +8390,15 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
 
     RootedId id(cx, NameToId(name));
     bool emitted = false;
+
+    
+    
+    if (info().executionMode() == DefinitePropertiesAnalysis) {
+        MInstruction *ins = MCallSetProperty::New(obj, value, name, script()->strict);
+        current->add(ins);
+        current->push(value);
+        return resumeAfter(ins);
+    }
 
     
     if (NeedsPostBarrier(info(), value))
@@ -8755,6 +8785,15 @@ IonBuilder::jsop_this()
         
         
         
+        current->pushSlot(info().thisSlot());
+        return true;
+    }
+
+    
+    
+    
+    
+    if (info().executionMode() == DefinitePropertiesAnalysis) {
         current->pushSlot(info().thisSlot());
         return true;
     }

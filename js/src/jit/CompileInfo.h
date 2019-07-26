@@ -30,11 +30,15 @@ CountArgSlots(JSScript *script, JSFunction *fun)
 
 enum ExecutionMode {
     
-    SequentialExecution = 0,
+    SequentialExecution,
 
     
     
-    ParallelExecution
+    ParallelExecution,
+
+    
+    
+    DefinitePropertiesAnalysis
 };
 
 

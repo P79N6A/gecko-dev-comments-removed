@@ -1102,7 +1102,7 @@ IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
         
         return InliningStatus_NotInlined;
 
-      case ParallelExecution:
+      case ParallelExecution: {
         
         
         
@@ -1111,6 +1111,9 @@ IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
         current->add(ins);
         current->push(ins);
         return InliningStatus_Inlined;
+      }
+
+      default:;
     }
 
     MOZ_ASSUME_UNREACHABLE("Invalid execution mode");
@@ -1285,6 +1288,7 @@ IonBuilder::inlineNewDenseArray(CallInfo &callInfo)
         return inlineNewDenseArrayForSequentialExecution(callInfo);
       case ParallelExecution:
         return inlineNewDenseArrayForParallelExecution(callInfo);
+      default:;
     }
 
     MOZ_ASSUME_UNREACHABLE("unknown ExecutionMode");
