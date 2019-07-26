@@ -1151,36 +1151,32 @@ TokenStream::getTokenInternal()
         ungetCharIgnoreEOL(c);
 
         
-        if (hadUnicodeEscape && !putIdentInTokenbuf(identStart))
-            goto error;
+
+
+
+
+        const jschar *chars;
+        size_t length;
+        if (hadUnicodeEscape) {
+            if (!putIdentInTokenbuf(identStart))
+                goto error;
+
+            chars = tokenbuf.begin();
+            length = tokenbuf.length();
+        } else {
+            chars = identStart;
+            length = userbuf.addressOfNextRawChar() - identStart;
+        }
 
         
         if (!(flags & TSF_KEYWORD_IS_NAME)) {
-            const jschar *chars;
-            size_t length;
-            if (hadUnicodeEscape) {
-                chars = tokenbuf.begin();
-                length = tokenbuf.length();
-            } else {
-                chars = identStart;
-                length = userbuf.addressOfNextRawChar() - identStart;
-            }
             tt = TOK_NAME;
             if (!checkForKeyword(chars, length, &tt))
                 goto error;
             if (tt != TOK_NAME)                goto out;
         }
 
-        
-
-
-
-
-        JSAtom *atom;
-        if (!hadUnicodeEscape)
-            atom = AtomizeChars<CanGC>(cx, identStart, userbuf.addressOfNextRawChar() - identStart);
-        else
-            atom = atomize(cx, tokenbuf);
+        JSAtom *atom = AtomizeChars<CanGC>(cx, chars, length);
         if (!atom)
             goto error;
         tp->setName(atom->asPropertyName());
