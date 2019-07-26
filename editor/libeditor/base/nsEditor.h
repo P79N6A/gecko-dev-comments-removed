@@ -585,7 +585,8 @@ public:
   bool IsDescendantOfEditorRoot(nsINode* aNode);
 
   
-  virtual bool IsContainer(nsIDOMNode *aNode);
+  virtual bool IsContainer(nsINode* aNode);
+  virtual bool IsContainer(nsIDOMNode* aNode);
 
   
   bool IsEditable(nsIDOMNode *aNode);
