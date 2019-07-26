@@ -1338,6 +1338,12 @@ public:
 
 
 
+  static nsIPrincipal* GetNullSubjectPrincipal() { return sNullSubjectPrincipal; }
+
+  
+
+
+
 
 
 
@@ -2169,6 +2175,7 @@ private:
 
   static nsIScriptSecurityManager *sSecurityManager;
   static nsIPrincipal *sSystemPrincipal;
+  static nsIPrincipal *sNullSubjectPrincipal;
 
   static nsIParserService *sParserService;
 

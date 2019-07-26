@@ -196,6 +196,7 @@ const char kLoadAsData[] = "loadAsData";
 nsIXPConnect *nsContentUtils::sXPConnect;
 nsIScriptSecurityManager *nsContentUtils::sSecurityManager;
 nsIPrincipal *nsContentUtils::sSystemPrincipal;
+nsIPrincipal *nsContentUtils::sNullSubjectPrincipal;
 nsIParserService *nsContentUtils::sParserService = nullptr;
 nsNameSpaceManager *nsContentUtils::sNameSpaceManager;
 nsIIOService *nsContentUtils::sIOService;
@@ -379,6 +380,7 @@ nsContentUtils::Init()
 
   sSecurityManager->GetSystemPrincipal(&sSystemPrincipal);
   MOZ_ASSERT(sSystemPrincipal);
+  NS_ADDREF(sNullSubjectPrincipal = new nsNullPrincipal());
 
   nsresult rv = CallGetService(NS_IOSERVICE_CONTRACTID, &sIOService);
   if (NS_FAILED(rv)) {
@@ -1436,6 +1438,7 @@ nsContentUtils::Shutdown()
   sXPConnect = nullptr;
   NS_IF_RELEASE(sSecurityManager);
   NS_IF_RELEASE(sSystemPrincipal);
+  NS_IF_RELEASE(sNullSubjectPrincipal);
   NS_IF_RELEASE(sParserService);
   NS_IF_RELEASE(sIOService);
   NS_IF_RELEASE(sLineBreaker);
@@ -2322,9 +2325,33 @@ nsContentUtils::SubjectPrincipal()
     return GetSystemPrincipal();
   }
 
-  JSCompartment* compartment = js::GetContextCompartment(cx);
-  MOZ_ASSERT(compartment);
-  JSPrincipals* principals = JS_GetCompartmentPrincipals(compartment);
+  JSCompartment *compartment = js::GetContextCompartment(cx);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!compartment) {
+    return sNullSubjectPrincipal;
+  }
+
+  JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);
   return nsJSPrincipals::get(principals);
 }
 
