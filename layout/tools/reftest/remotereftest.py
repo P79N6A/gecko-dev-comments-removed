@@ -370,11 +370,6 @@ class RemoteReftest(RefTest):
         prefs["plugins.update.url"] = "http://127.0.0.1:8888/plugins-dummy/updateCheckURL"
 
         
-        if options.enablePrivilege:
-            prefs["capability.principal.codebase.p2.granted"] = "UniversalXPConnect"
-            prefs["capability.principal.codebase.p2.id"] = "http://%s:%s" % (options.remoteWebServer, options.httpPort)
-
-        
         profile.set_preferences(prefs)
 
         try:
