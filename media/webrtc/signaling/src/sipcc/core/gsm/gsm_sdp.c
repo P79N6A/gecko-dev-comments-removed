@@ -3576,15 +3576,6 @@ gsmsdp_negotiate_datachannel_attribs(fsmdef_dcb_t* dcb_p, cc_sdp_t* sdp_p, uint1
     sdp_attr_get_fmtp_data_channel_protocol(sdp_p->dest_sdp, level, 0, 1, media->datachannel_protocol);
 
     media->remote_datachannel_port = sdp_get_media_sctp_port(sdp_p->dest_sdp, level);
-
-    
-
-
-
-    if (offer) {
-        
-        media->local_datachannel_port = media->remote_datachannel_port + 1;
-    }
 }
 
 
