@@ -267,6 +267,7 @@ protected:
 
 
 
+
   nsresult SetEventHandlerInternal(nsIScriptContext *aContext,
                                    JSObject* aScopeGlobal,
                                    nsIAtom* aName,

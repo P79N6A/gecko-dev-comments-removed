@@ -192,6 +192,7 @@ public:
     mTarget = nullptr;
   }
 
+  
   JSObject* GetEventScope() const
   {
     return xpc_UnmarkGrayObject(mScopeObject);
@@ -214,7 +215,7 @@ public:
   {
     mHandler.SetHandler(aHandler);
     mContext = aContext;
-    mScopeObject = aScopeObject;
+    UpdateScopeObject(aScopeObject);
   }
   void SetHandler(mozilla::dom::EventHandlerNonNull* aHandler)
   {
@@ -255,6 +256,11 @@ protected:
   {
     NS_ASSERTION(!mTarget, "Should have called Disconnect()!");
   }
+
+  
+  
+  virtual void UpdateScopeObject(JSObject* aScopeObject) = 0;
+
   nsCOMPtr<nsIScriptContext> mContext;
   JSObject* mScopeObject;
   nsISupports* mTarget;
