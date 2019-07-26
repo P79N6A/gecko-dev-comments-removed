@@ -33,12 +33,6 @@ class LICM
     bool analyze();
 };
 
-
-
-bool
-ExtractLinearInequality(MTest *test, BranchDirection direction,
-                        LinearSum *plhs, MDefinition **prhs, bool *plessEqual);
-
 class Loop
 {
     MIRGenerator *mir;
@@ -77,7 +71,7 @@ class Loop
     
     LoopReturn iterateLoopBlocks(MBasicBlock *current);
 
-    bool hoistInstructions(InstructionQueue &toHoist, InstructionQueue &boundsChecks);
+    bool hoistInstructions(InstructionQueue &toHoist);
 
     
     bool isInLoop(MDefinition *ins);
@@ -96,15 +90,6 @@ class Loop
     inline bool isHoistable(const MDefinition *ins) const {
         return ins->isMovable() && !ins->isEffectful();
     }
-
-    
-    
-    
-
-    void tryHoistBoundsCheck(MBoundsCheck *ins, MTest *test, BranchDirection direction,
-                             MInstruction **pupper, MInstruction **plower);
-
-    bool nonDecreasing(MDefinition *initial, MDefinition *start);
 };
 
 } 
