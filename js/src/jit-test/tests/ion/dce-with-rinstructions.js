@@ -192,6 +192,25 @@ function rsub_object(i) {
     return i;
 }
 
+var uceFault_mod_number = eval(uneval(uceFault).replace('uceFault', 'uceFault_mod_number'));
+function rmod_number(i) {
+    var x = i % 98;
+    if (uceFault_mod_number(i) || uceFault_mod_number(i))
+        assertEq(x, 1); 
+    return i;
+}
+
+var uceFault_mod_object = eval(uneval(uceFault).replace('uceFault', 'uceFault_mod_object'));
+function rmod_object(i) {
+    var t = i;
+    var o = { valueOf: function() { return t; } };
+    var x = o % 98; 
+    t = 1000;
+    if(uceFault_mod_object(i) || uceFault_mod_object(i))
+        assertEq(x, 1); 
+    return i;
+}
+
 for (i = 0; i < 100; i++) {
     rbitnot_number(i);
     rbitnot_object(i);
@@ -212,6 +231,8 @@ for (i = 0; i < 100; i++) {
     rsub_number(i);
     rsub_float(i);
     rsub_object(i);
+    rmod_number(i);
+    rmod_object(i);
 }
 
 
