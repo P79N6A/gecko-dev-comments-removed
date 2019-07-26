@@ -257,16 +257,6 @@ BluetoothServiceChildProcess::SendFile(
 }
 
 void
-BluetoothServiceChildProcess::SendFile(
-  const nsAString& aDeviceAddress,
-  nsIDOMBlob* aBlobChild,
-  BluetoothReplyRunnable* aRunnable)
-{
-  
-  MOZ_CRASH("This should never be called!");
-}
-
-void
 BluetoothServiceChildProcess::StopSendingFile(
   const nsAString& aDeviceAddress,
   BluetoothReplyRunnable* aRunnable)
