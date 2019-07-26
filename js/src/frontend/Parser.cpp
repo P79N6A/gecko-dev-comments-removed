@@ -5781,7 +5781,7 @@ Parser<ParseHandler>::unaryExpr()
 
 
 
-class CompExprTransplanter
+class LegacyCompExprTransplanter
 {
     ParseNode       *root;
     Parser<FullParseHandler> *parser;
@@ -5791,9 +5791,9 @@ class CompExprTransplanter
     HashSet<Definition *> visitedImplicitArguments;
 
   public:
-    CompExprTransplanter(ParseNode *pn, Parser<FullParseHandler> *parser,
-                         ParseContext<FullParseHandler> *outerpc,
-                         GeneratorKind kind, unsigned adj)
+    LegacyCompExprTransplanter(ParseNode *pn, Parser<FullParseHandler> *parser,
+                               ParseContext<FullParseHandler> *outerpc,
+                               GeneratorKind kind, unsigned adj)
       : root(pn), parser(parser), outerpc(outerpc), comprehensionKind(kind), adjust(adj),
         visitedImplicitArguments(parser->context)
     {}
@@ -5838,7 +5838,7 @@ AdjustBlockId(TokenStream &ts, ParseNode *pn, unsigned adjust, ParseContext<Pars
 }
 
 bool
-CompExprTransplanter::transplant(ParseNode *pn)
+LegacyCompExprTransplanter::transplant(ParseNode *pn)
 {
     ParseContext<FullParseHandler> *pc = parser->pc;
 
@@ -6018,7 +6018,7 @@ CompExprTransplanter::transplant(ParseNode *pn)
 
 template <typename ParseHandler>
 static unsigned
-ComprehensionHeadBlockScopeDepth(ParseContext<ParseHandler> *pc)
+LegacyComprehensionHeadBlockScopeDepth(ParseContext<ParseHandler> *pc)
 {
     return pc->topStmt ? pc->topStmt->innerBlockScopeDepth : pc->blockScopeDepth;
 }
@@ -6034,10 +6034,10 @@ ComprehensionHeadBlockScopeDepth(ParseContext<ParseHandler> *pc)
 
 template <>
 ParseNode *
-Parser<FullParseHandler>::comprehensionTail(ParseNode *bodyStmt, unsigned blockid,
-                                            GeneratorKind comprehensionKind,
-                                            ParseContext<FullParseHandler> *outerpc,
-                                            unsigned innerBlockScopeDepth)
+Parser<FullParseHandler>::legacyComprehensionTail(ParseNode *bodyStmt, unsigned blockid,
+                                                  GeneratorKind comprehensionKind,
+                                                  ParseContext<FullParseHandler> *outerpc,
+                                                  unsigned innerBlockScopeDepth)
 {
     
 
@@ -6102,7 +6102,7 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *bodyStmt, unsigned blocki
 
     pnp = &pn->pn_expr;
 
-    CompExprTransplanter transplanter(bodyStmt, this, outerpc, comprehensionKind, adjust);
+    LegacyCompExprTransplanter transplanter(bodyStmt, this, outerpc, comprehensionKind, adjust);
     if (!transplanter.init())
         return null();
 
@@ -6270,7 +6270,7 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *bodyStmt, unsigned blocki
 
 template <>
 ParseNode*
-Parser<FullParseHandler>::arrayComprehension(ParseNode *array)
+Parser<FullParseHandler>::legacyArrayComprehension(ParseNode *array)
 {
     array->setKind(PNK_ARRAYCOMP);
 
@@ -6287,8 +6287,8 @@ Parser<FullParseHandler>::arrayComprehension(ParseNode *array)
     if (!arrayPush)
         return null();
 
-    ParseNode *comp = comprehensionTail(arrayPush, array->pn_blockid, NotGenerator,
-                                        nullptr, ComprehensionHeadBlockScopeDepth(pc));
+    ParseNode *comp = legacyComprehensionTail(arrayPush, array->pn_blockid, NotGenerator,
+                                              nullptr, LegacyComprehensionHeadBlockScopeDepth(pc));
     if (!comp)
         return null();
 
@@ -6301,7 +6301,7 @@ Parser<FullParseHandler>::arrayComprehension(ParseNode *array)
 
 template <>
 SyntaxParseHandler::Node
-Parser<SyntaxParseHandler>::arrayComprehension(Node array)
+Parser<SyntaxParseHandler>::legacyArrayComprehension(Node array)
 {
     abortIfSyntaxParser();
     return null();
@@ -6326,7 +6326,7 @@ Parser<SyntaxParseHandler>::arrayComprehension(Node array)
 
 template <>
 ParseNode *
-Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
+Parser<FullParseHandler>::legacyGeneratorExpr(ParseNode *kid)
 {
     JS_ASSERT(tokenStream.isCurrentTokenType(TOK_FOR));
 
@@ -6384,8 +6384,9 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
         genFunbox->inGenexpLambda = true;
         genfn->pn_blockid = genpc.bodyid;
 
-        ParseNode *body = comprehensionTail(yieldStmt, outerpc->blockid(), LegacyGenerator, outerpc,
-                                            ComprehensionHeadBlockScopeDepth(outerpc));
+        ParseNode *body = legacyComprehensionTail(yieldStmt, outerpc->blockid(), LegacyGenerator,
+                                                  outerpc,
+                                                  LegacyComprehensionHeadBlockScopeDepth(outerpc));
         if (!body)
             return null();
         JS_ASSERT(!genfn->pn_body);
@@ -6412,7 +6413,7 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
 
 template <>
 SyntaxParseHandler::Node
-Parser<SyntaxParseHandler>::generatorExpr(Node kid)
+Parser<SyntaxParseHandler>::legacyGeneratorExpr(Node kid)
 {
     JS_ALWAYS_FALSE(abortIfSyntaxParser());
     return SyntaxParseHandler::NodeFailure;
@@ -6478,7 +6479,7 @@ Parser<ParseHandler>::argumentList(Node listNode, bool *isSpread)
                                  JSMSG_BAD_GENEXP_BODY, js_yield_str);
                 return false;
             }
-            argNode = generatorExpr(argNode);
+            argNode = legacyGeneratorExpr(argNode);
             if (!argNode)
                 return false;
             if (!arg0 || tokenStream.peekToken() == TOK_COMMA) {
@@ -6779,7 +6780,7 @@ Parser<ParseHandler>::arrayInitializer()
 
 
         if (index == 0 && !spread && tokenStream.matchToken(TOK_FOR) && missingTrailingComma)
-            return arrayComprehension(literal);
+            return legacyArrayComprehension(literal);
 
         MUST_MATCH_TOKEN(TOK_RB, JSMSG_BRACKET_AFTER_LIST);
     }
@@ -7158,7 +7159,7 @@ Parser<ParseHandler>::parenExpr(bool *genexp)
                    JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
             return null();
         }
-        pn = generatorExpr(pn);
+        pn = legacyGeneratorExpr(pn);
         if (!pn)
             return null();
         handler.setBeginPosition(pn, begin);
