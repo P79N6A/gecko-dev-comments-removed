@@ -183,7 +183,7 @@ public:
   {
     
     mozilla::dom::MozXMLHttpRequestParameters params;
-    if (!params.Init(aCx, JS::NullValue())) {
+    if (!params.Init(aCx, nullptr, JS::NullValue())) {
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
