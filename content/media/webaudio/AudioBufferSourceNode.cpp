@@ -304,7 +304,7 @@ public:
              mSampleRate == IdealAudioRate());
   }
 
-  void UpdateSampleRateIfNeeded(AudioNodeStream* aStream, uint32_t aChannels)
+  void UpdateSampleRateIfNeeded(AudioNodeStream* aStream)
   {
     if (mPlaybackRateTimeline.HasSimpleValue()) {
       mPlaybackRate = mPlaybackRateTimeline.GetValue();
@@ -319,7 +319,7 @@ public:
 
     uint32_t currentOutSampleRate, currentInSampleRate;
     if (ShouldResample()) {
-      SpeexResamplerState* resampler = Resampler(aChannels);
+      SpeexResamplerState* resampler = Resampler(mChannels);
       speex_resampler_get_rate(resampler, &currentInSampleRate, &currentOutSampleRate);
       uint32_t finalSampleRate = ComputeFinalOutSampleRate();
       if (currentOutSampleRate != finalSampleRate) {
@@ -345,7 +345,7 @@ public:
     
     
     
-    UpdateSampleRateIfNeeded(aStream, channels);
+    UpdateSampleRateIfNeeded(aStream);
 
     uint32_t written = 0;
     TrackTicks currentPosition = GetPosition(aStream);
