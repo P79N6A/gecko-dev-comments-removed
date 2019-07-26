@@ -1135,6 +1135,11 @@ pref("devtools.webconsole.fontSize", 0);
 
 
 
+
+pref("devtools.webconsole.persistlog", false);
+
+
+
 pref("devtools.hud.loglimit.network", 200);
 pref("devtools.hud.loglimit.cssparser", 200);
 pref("devtools.hud.loglimit.exception", 200);
@@ -1174,7 +1179,7 @@ pref("browser.panorama.animate_zoom", true);
 
 pref("browser.newtab.url", "about:newtab");
 
-pref("browser.newtab.preload", false);
+pref("browser.newtab.preload", true);
 
 
 pref("browser.newtabpage.enabled", true);
