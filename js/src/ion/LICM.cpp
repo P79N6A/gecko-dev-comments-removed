@@ -52,6 +52,12 @@ class Loop
     
     MBasicBlock* preLoop_;
 
+    
+    
+    
+    
+    bool containsPossibleCall_;
+
     bool hoistInstructions(InstructionQueue &toHoist);
 
     
@@ -72,6 +78,8 @@ class Loop
     inline bool isHoistable(const MDefinition *ins) const {
         return ins->isMovable() && !ins->isEffectful() && !ins->neverHoist();
     }
+
+    bool requiresHoistedUse(const MDefinition *ins) const;
 };
 
 } 
@@ -116,7 +124,8 @@ LICM::analyze()
 
 Loop::Loop(MIRGenerator *mir, MBasicBlock *header)
   : mir(mir),
-    header_(header)
+    header_(header),
+    containsPossibleCall_(false)
 {
     preLoop_ = header_->getPredecessor(0);
 }
@@ -174,6 +183,11 @@ Loop::init()
         for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
             MInstruction *ins = *i;
 
+            
+            
+            if (ins->possiblyCalls())
+                containsPossibleCall_ = true;
+
             if (isHoistable(ins)) {
                 if (!insertInWorklist(ins))
                     return LoopReturn_Error;
@@ -226,6 +240,22 @@ Loop::optimize()
 }
 
 bool
+Loop::requiresHoistedUse(const MDefinition *ins) const
+{
+    if (ins->isConstantElements() || ins->isBox())
+        return true;
+
+    
+    
+    
+    
+    if (ins->isConstant() && (ins->type() != MIRType_Double || containsPossibleCall_))
+        return true;
+
+    return false;
+}
+
+bool
 Loop::hoistInstructions(InstructionQueue &toHoist)
 {
     
@@ -235,7 +265,7 @@ Loop::hoistInstructions(InstructionQueue &toHoist)
         
         
         
-        if (ins->isConstantElements() || ins->isConstant() || ins->isBox()) {
+        if (requiresHoistedUse(ins)) {
             bool loopInvariantUse = false;
             for (MUseDefIterator use(ins); use; use++) {
                 if (use.def()->isLoopInvariant()) {
