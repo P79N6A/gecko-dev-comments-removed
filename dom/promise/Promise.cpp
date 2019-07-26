@@ -561,12 +561,16 @@ Promise::MaybeReportRejected()
   }
 
   
-  NS_DispatchToMainThread(
+  
+  
+  
+  nsRefPtr<AsyncErrorReporter> r =
     new AsyncErrorReporter(JS_GetObjectRuntime(&mResult.toObject()),
                            report,
                            nullptr,
                            isChromeError,
-                           win));
+                           win);
+  NS_DispatchToMainThread(r);
 }
 
 void
