@@ -122,7 +122,6 @@ tabbrowser {
   visibility: hidden;
 }
 
-.tab-close-button,
 .tab-background {
   
 
@@ -131,15 +130,28 @@ tabbrowser {
   transition: visibility 0ms 25ms;
 }
 
-.tab-close-button:not([fadein]):not([pinned]),
 .tab-background:not([fadein]):not([pinned]) {
   visibility: hidden;
   
   transition-delay: 0ms;
 }
 
+.tab-close-button,
+.tab-label {
+  
+
+  visibility: visible;
+  transition: opacity 70ms 230ms,
+              visibility 0ms 230ms;
+}
+
+.tab-close-button:not([fadein]):not([pinned]),
+.tab-label:not([fadein]):not([pinned]) {
+  visibility: collapse;
+  opacity: .6;
+}
+
 .tab-throbber:not([fadein]):not([pinned]),
-.tab-label:not([fadein]):not([pinned]),
 .tab-icon-image:not([fadein]):not([pinned]) {
   display: none;
 }
