@@ -52,6 +52,10 @@ void
 SPSProfiler::enable(bool enabled)
 {
     JS_ASSERT(installed());
+
+    if (enabled_ == enabled)
+        return;
+
     enabled_ = enabled;
     
 
