@@ -491,7 +491,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   nsLineLayout* lineLayout = aReflowState.mLineLayout;
   bool inFirstLine = aReflowState.mLineLayout->GetInFirstLine();
   RestyleManager* restyleManager = aPresContext->RestyleManager();
-  WritingMode wm = aReflowState.GetWritingMode();
+  WritingMode frameWM = aReflowState.GetWritingMode();
+  WritingMode lineWM = aReflowState.mLineLayout->mRootSpan->mWritingMode;
+  LogicalMargin framePadding = aReflowState.ComputedLogicalBorderPadding();
   nscoord startEdge = 0;
   const bool boxDecorationBreakClone =
     MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
@@ -502,14 +504,14 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
       boxDecorationBreakClone) {
-    startEdge = aReflowState.ComputedLogicalBorderPadding().IStart(wm);
+    startEdge = framePadding.IStart(frameWM);
   }
   nscoord availableISize = aReflowState.AvailableISize();
   NS_ASSERTION(availableISize != NS_UNCONSTRAINEDSIZE,
                "should no longer use available widths");
   
   availableISize -= startEdge;
-  availableISize -= aReflowState.ComputedLogicalBorderPadding().IEnd(wm);
+  availableISize -= framePadding.IEnd(frameWM);
   lineLayout->BeginSpan(this, &aReflowState, startEdge,
                         startEdge + availableISize, &mBaseline);
 
@@ -654,8 +656,14 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   
-  aMetrics.ISize() = lineLayout->EndSpan(this);
+  aMetrics.ISize(lineWM) = lineLayout->EndSpan(this);
 
+  
+
+  
+  
+  
+  
   
 
   
@@ -664,7 +672,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
       boxDecorationBreakClone) {
-    aMetrics.ISize() += aReflowState.ComputedLogicalBorderPadding().IStart(wm);
+    aMetrics.ISize(lineWM) += framePadding.IStart(frameWM);
   }
 
   
@@ -679,7 +687,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
        !LastInFlow()->GetNextContinuation() &&
        !FrameIsNonLastInIBSplit()) ||
       boxDecorationBreakClone) {
-    aMetrics.Width() += aReflowState.ComputedLogicalBorderPadding().IEnd(wm);
+    aMetrics.ISize(lineWM) += framePadding.IEnd(frameWM);
   }
 
   nsRefPtr<nsFontMetrics> fm;

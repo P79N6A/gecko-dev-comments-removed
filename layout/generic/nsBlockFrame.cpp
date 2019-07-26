@@ -6817,15 +6817,15 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
   nscoord iStart = logicalFAS.IStart(wm) -
                    rs.ComputedLogicalBorderPadding().IStart(wm) -
                    bulletMargin.IEnd(wm) -
-                   aMetrics.ISize();
+                   aMetrics.ISize(wm);
 
   
   
   
   nscoord bStart = logicalFAS.BStart(wm);
   aBulletFrame->SetRect(wm, LogicalRect(wm, LogicalPoint(wm, iStart, bStart),
-                                        LogicalSize(wm, aMetrics.ISize(),
-                                                    aMetrics.BSize())),
+                                        LogicalSize(wm, aMetrics.ISize(wm),
+                                                    aMetrics.BSize(wm))),
                         containerWidth);
   aBulletFrame->DidReflow(aState.mPresContext, &aState.mReflowState,
                           nsDidReflowStatus::FINISHED);
