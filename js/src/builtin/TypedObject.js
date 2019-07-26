@@ -405,6 +405,15 @@ function FillTypedArrayWithValue(destArray, fromValue) {
 }
 
 
+function TypeObjectEquivalent(otherTypeObj) {
+  if (!IsObject(this) || !ObjectIsTypeObject(this))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "type object");
+  if (!IsObject(otherTypeObj) || !ObjectIsTypeObject(otherTypeObj))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "1", "type object");
+  return TYPE_TYPE_REPR(this) === TYPE_TYPE_REPR(otherTypeObj);
+}
+
+
 
 
 
