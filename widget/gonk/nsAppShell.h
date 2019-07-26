@@ -64,6 +64,9 @@ class nsAppShell : public nsBaseAppShell {
 public:
     nsAppShell();
 
+    NS_DECL_ISUPPORTS_INHERITED
+    NS_DECL_NSIOBSERVER
+
     nsresult Init();
 
     NS_IMETHOD Exit() MOZ_OVERRIDE;
@@ -87,6 +90,11 @@ private:
 
     
     bool mNativeCallbackRequest;
+
+    
+    
+    
+    bool mEnableDraw;
     nsTArray<FdHandler> mHandlers;
 
     android::sp<android::EventHub>               mEventHub;
