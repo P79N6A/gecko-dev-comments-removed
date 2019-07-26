@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <body>
+    
+    <p id="inline-script-valid-hash">blocked</p>
+    <p id="inline-script-invalid-hash">blocked</p>
+    <p id="inline-script-invalid-hash-valid-nonce">blocked</p>
+    <p id="inline-script-valid-hash-invalid-nonce">blocked</p>
+    <p id="inline-script-invalid-hash-invalid-nonce">blocked</p>
+    <p id="inline-script-valid-sha512-hash">blocked</p>
+    <p id="inline-script-valid-sha384-hash">blocked</p>
+    <p id="inline-script-valid-sha1-hash">blocked</p>
+    <p id="inline-script-valid-md5-hash">blocked</p>
+
+    
+    <script>document.getElementById("inline-script-valid-hash").innerHTML = "allowed";</script>
+    
+    <script>document.getElementById("inline-script-invalid-hash").innerHTML = "allowed";</script>
+    
+    <script nonce="jPRxvuRHbiQnCWVuoCMAvQ==">document.getElementById("inline-script-invalid-hash-valid-nonce").innerHTML = "allowed";</script>
+    
+    <script nonce="foobar">document.getElementById("inline-script-valid-hash-invalid-nonce").innerHTML = "allowed";</script>
+    
+    <script nonce="foobar">document.getElementById("inline-script-invalid-hash-invalid-nonce").innerHTML = "allowed";</script>
+    
+    <script>document.getElementById("inline-script-valid-sha512-hash").innerHTML = "allowed";</script>
+    
+    <script>document.getElementById("inline-script-valid-sha384-hash").innerHTML = "allowed";</script>
+    
+    <script>document.getElementById("inline-script-valid-sha1-hash").innerHTML = "allowed";</script>
+    
+    <script>document.getElementById("inline-script-valid-md5-hash").innerHTML = "allowed";</script>
+
+    
+    <p id="inline-style-valid-hash"></p>
+    <p id="inline-style-invalid-hash"></p>
+    <p id="inline-style-invalid-hash-valid-nonce"></p>
+    <p id="inline-style-valid-hash-invalid-nonce"></p>
+    <p id="inline-style-invalid-hash-invalid-nonce"></p>
+    <p id="inline-style-valid-sha512-hash"></p>
+    <p id="inline-style-valid-sha384-hash"></p>
+    <p id="inline-style-valid-sha1-hash"></p>
+    <p id="inline-style-valid-md5-hash"></p>
+
+    
+    <style>p#inline-style-valid-hash { color: green; }</style>
+    
+    <style>p#inline-style-invalid-hash { color: red; }</style>
+    
+    <style nonce="ftL2UbGHlSEaZTLWMwtA5Q==">p#inline-style-invalid-hash-valid-nonce { color: green; }</style>
+    
+    <style nonce="foobar">p#inline-style-valid-hash-invalid-nonce { color: green; }</style>
+    
+    <style nonce="foobar">p#inline-style-invalid-hash-invalid-nonce { color: red; }</style>
+    
+    <style>p#inline-style-valid-sha512-hash { color: green; }</style>
+    
+    <style>p#inline-style-valid-sha384-hash { color: green; }</style>
+    
+    <style>p#inline-style-valid-sha1-hash { color: red; }</style>
+    
+    <style>p#inline-style-valid-md5-hash { color: red; }</style>
+
+  </body>
+</html>

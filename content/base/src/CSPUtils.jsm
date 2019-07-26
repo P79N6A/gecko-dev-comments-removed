@@ -66,15 +66,25 @@ const R_EXTHOSTSRC = new RegExp ("^" + R_HOSTSRC.source + "\\/[:print:]+$", 'i')
 
 const R_KEYWORDSRC = new RegExp ("^('self'|'unsafe-inline'|'unsafe-eval')$", 'i');
 
+const R_BASE64     = new RegExp ("([a-zA-Z0-9+/]+={0,2})");
 
 
-const R_NONCESRC = new RegExp ("^'nonce-([a-zA-Z0-9\+\/]+)'$", 'i');
+
+const R_NONCESRC = new RegExp ("^'nonce-" + R_BASE64.source + "'$");
+
+
+
+
+
+const R_HASH_ALGOS = new RegExp ("(sha256|sha384|sha512)");
+const R_HASHSRC    = new RegExp ("^'" + R_HASH_ALGOS.source + "-" + R_BASE64.source + "'$");
 
 
 const R_SOURCEEXP  = new RegExp (R_SCHEMESRC.source + "|" +
                                    R_HOSTSRC.source + "|" +
                                 R_KEYWORDSRC.source + "|" +
-                                  R_NONCESRC.source,  'i');
+                                  R_NONCESRC.source + "|" +
+                                   R_HASHSRC.source,  'i');
 
 
 this.CSPPrefObserver = {
@@ -806,6 +816,22 @@ CSPRep.prototype = {
     return dirs.join("; ");
   },
 
+  permitsNonce:
+  function csp_permitsNonce(aNonce, aDirective) {
+    if (!this._directives.hasOwnProperty(aDirective)) return false;
+    return this._directives[aDirective]._sources.some(function (source) {
+      return source instanceof CSPNonceSource && source.permits(aNonce);
+    });
+  },
+
+  permitsHash:
+  function csp_permitsHash(aContent, aDirective) {
+    if (!this._directives.hasOwnProperty(aDirective)) return false;
+    return this._directives[aDirective]._sources.some(function (source) {
+      return source instanceof CSPHashSource && source.permits(aContent);
+    });
+  },
+
   
 
 
@@ -815,21 +841,9 @@ CSPRep.prototype = {
 
 
 
-
-
-
-
-
-
-
   permits:
-  function csp_permits(aURI, aDirective, aContext) {
-    
-    
-    
-    let checking_nonce = aContext instanceof Ci.nsIDOMHTMLElement ||
-                         typeof aContext === 'string';
-    if (!aURI && !checking_nonce) return false;
+  function csp_permits(aURI, aDirective) {
+    if (!aURI) return false;
 
     
     if (aURI instanceof String && aURI.substring(0,6) === "about:")
@@ -846,7 +860,7 @@ CSPRep.prototype = {
         
         directiveInPolicy = true;
         if (this._directives.hasOwnProperty(aDirective)) {
-          return this._directives[aDirective].permits(aURI, aContext);
+          return this._directives[aDirective].permits(aURI);
         }
         
         break;
@@ -871,7 +885,7 @@ CSPRep.prototype = {
     
     
     if (this._directives.hasOwnProperty(DIRS.DEFAULT_SRC)) {
-      return this._directives[DIRS.DEFAULT_SRC].permits(aURI, aContext);
+      return this._directives[DIRS.DEFAULT_SRC].permits(aURI);
     }
 
     
@@ -949,6 +963,12 @@ this.CSPSourceList = function CSPSourceList() {
 
   
   this._allowUnsafeEval = false;
+
+  
+  this._hasNonceSource = false;
+
+  
+  this._hasHashSource = false;
 }
 
 
@@ -1009,6 +1029,12 @@ CSPSourceList.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     
     if (src._allowUnsafeEval)
       slObj._allowUnsafeEval = true;
+
+    if (src instanceof CSPNonceSource)
+      slObj._hasNonceSource = true;
+
+    if (src instanceof CSPHashSource)
+      slObj._hasHashSource = true;
 
     
     if (src.permitAll) {
@@ -1110,12 +1136,12 @@ CSPSourceList.prototype = {
 
 
   permits:
-  function cspsd_permits(aURI, aContext) {
+  function cspsd_permits(aURI) {
     if (this.isNone())    return false;
     if (this.isAll())     return true;
 
     for (var i in this._sources) {
-      if (this._sources[i].permits(aURI, aContext)) {
+      if (this._sources[i].permits(aURI)) {
         return true;
       }
     }
@@ -1131,7 +1157,6 @@ this.CSPSource = function CSPSource() {
   this._scheme = undefined;
   this._port = undefined;
   this._host = undefined;
-  this._nonce = undefined;
 
   
   this._permitAll = false;
@@ -1377,17 +1402,12 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   
-  if (R_NONCESRC.test(aStr)) {
-    
-    
-    
-    
-    
-    if (!CSPPrefObserver.experimentalEnabled) return null;
-    var nonceSrcMatch = R_NONCESRC.exec(aStr);
-    sObj._nonce = nonceSrcMatch[1];
-    return sObj;
-  }
+  if (R_NONCESRC.test(aStr))
+    return CSPNonceSource.fromString(aStr, aCSPRep);
+
+  
+  if (R_HASHSRC.test(aStr))
+    return CSPHashSource.fromString(aStr, aCSPRep);
 
   
   if (aStr.toUpperCase() === "'SELF'") {
@@ -1493,8 +1513,6 @@ CSPSource.prototype = {
       s = s + this._host;
     if (this.port)
       s = s + ":" + this.port;
-    if (this._nonce)
-      s = s + "'nonce-" + this._nonce + "'";
     return s;
   },
 
@@ -1510,7 +1528,6 @@ CSPSource.prototype = {
     aClone._scheme = this._scheme;
     aClone._port = this._port;
     aClone._host = this._host ? this._host.clone() : undefined;
-    aClone._nonce = this._nonce;
     aClone._isSelf = this._isSelf;
     aClone._CSPRep = this._CSPRep;
     return aClone;
@@ -1523,21 +1540,8 @@ CSPSource.prototype = {
 
 
 
-
-
   permits:
-  function(aSource, aContext) {
-    if (this._nonce && CSPPrefObserver.experimentalEnabled) {
-      if (aContext instanceof Ci.nsIDOMHTMLElement) {
-        return this._nonce === aContext.getAttribute('nonce');
-      } else if (typeof aContext === 'string') {
-        return this._nonce === aContext;
-      }
-    }
-    
-    
-    if (!CSPPrefObserver.experimentalEnabled && aContext) return false;
-
+  function(aSource) {
     if (!aSource) return false;
 
     if (!(aSource instanceof CSPSource))
@@ -1732,6 +1736,127 @@ CSPHost.prototype = {
   }
 };
 
+this.CSPNonceSource = function CSPNonceSource() {
+  this._nonce = undefined;
+}
+
+CSPNonceSource.fromString = function(aStr, aCSPRep) {
+  if (!CSPPrefObserver.experimentalEnabled)
+    return null;
+
+  let nonce = R_NONCESRC.exec(aStr)[1];
+  if (!nonce) {
+    cspError(aCSPRep, "Error in parsing nonce-source from string: nonce was empty");
+    return null;
+  }
+
+  let nonceSourceObj = new CSPNonceSource();
+  nonceSourceObj._nonce = nonce;
+  return nonceSourceObj;
+};
+
+CSPNonceSource.prototype = {
+
+  permits: function(aContext) {
+    if (!CSPPrefObserver.experimentalEnabled) return false;
+
+    if (aContext instanceof Ci.nsIDOMHTMLElement) {
+      return this._nonce === aContext.getAttribute('nonce');
+    } else if (typeof aContext === 'string') {
+      return this._nonce === aContext;
+    }
+    CSPdebug("permits called on nonce-source, but aContext was not nsIDOMHTMLElement or string (was " + typeof(aContext) + ")");
+    return false;
+  },
+
+  toString: function() {
+    return "'nonce-" + this._nonce + "'";
+  },
+
+  clone: function() {
+    let clone = new CSPNonceSource();
+    clone._nonce = this._nonce;
+    return clone;
+  },
+
+  equals: function(that) {
+    return this._nonce === that._nonce;
+  }
+
+};
+
+this.CSPHashSource = function CSPHashSource() {
+  this._algo = undefined;
+  this._hash = undefined;
+}
+
+CSPHashSource.fromString = function(aStr, aCSPRep) {
+  if (!CSPPrefObserver.experimentalEnabled)
+    return null;
+
+  let hashSrcMatch = R_HASHSRC.exec(aStr);
+  let algo = hashSrcMatch[1];
+  let hash = hashSrcMatch[2];
+  if (!algo) {
+    cspError(aCSPRep, "Error parsing hash-source from string: algo was empty");
+    return null;
+  }
+  if (!hash) {
+    cspError(aCSPRep, "Error parsing hash-source from string: hash was empty");
+    return null;
+  }
+
+  let hashSourceObj = new CSPHashSource();
+  hashSourceObj._algo = algo;
+  hashSourceObj._hash = hash;
+  return hashSourceObj;
+};
+
+CSPHashSource.prototype = {
+
+  permits: function(aContext) {
+    if (!CSPPrefObserver.experimentalEnabled) return false;
+
+    let ScriptableUnicodeConverter =
+      Components.Constructor("@mozilla.org/intl/scriptableunicodeconverter",
+                             "nsIScriptableUnicodeConverter");
+    let converter = new ScriptableUnicodeConverter();
+    converter.charset = 'utf8';
+    let utf8InnerHTML = converter.convertToByteArray(aContext);
+
+    let CryptoHash =
+      Components.Constructor("@mozilla.org/security/hash;1",
+                             "nsICryptoHash",
+                             "initWithString");
+    let hash = new CryptoHash(this._algo);
+    hash.update(utf8InnerHTML, utf8InnerHTML.length);
+    
+    let contentHash = hash.finish(true);
+
+    
+    
+    
+    contentHash = contentHash.replace('\r\n', '');
+
+    return contentHash === this._hash;
+  },
+
+  toString: function() {
+    return "'" + this._algo + '-' + this._hash + "'";
+  },
+
+  clone: function() {
+    let clone = new CSPHashSource();
+    clone._algo = this._algo;
+    clone._hash = this._hash;
+    return clone;
+  },
+
+  equals: function(that) {
+    return this._algo === that._algo && this._hash === that._hash;
+  }
+
+};
 
 
 
