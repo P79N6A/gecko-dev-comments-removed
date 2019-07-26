@@ -767,6 +767,12 @@ PlacesViewBase.prototype = {
     }
 
     if (!hasMultipleURIs) {
+      aPopup.setAttribute("singleitempopup", "true");
+    } else {
+      aPopup.removeAttribute("singleitempopup");
+    }
+
+    if (!hasMultipleURIs) {
       
       if (aPopup._endOptOpenAllInTabs) {
         aPopup.removeChild(aPopup._endOptOpenAllInTabs);

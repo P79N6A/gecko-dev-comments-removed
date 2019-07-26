@@ -16,14 +16,14 @@
 
 
 
-#BMB_bookmarksPopup menupopup {
+#BMB_bookmarksPopup menupopup[placespopup=true] {
   -moz-appearance: none;
   background: transparent;
   border: none;
   padding: 6px;
 }
 
-#BMB_bookmarksPopup menupopup > hbox {
+#BMB_bookmarksPopup menupopup[placespopup=true] > hbox {
   
   box-shadow: 0 0 4px rgba(0,0,0,0.2);
   background: #FFF;
@@ -32,14 +32,48 @@
   margin-top: -4px;
 }
 
+#BMB_bookmarksPopup menupopup {
+  padding-top: 2px;
+}
+
+
+#BMB_bookmarksPopup menupopup[placespopup=true] > hbox > .popup-internal-box > .arrowscrollbox-scrollbox > .scrollbox-innerbox  {
+  padding-top: 4px;
+}
+
 #BMB_bookmarksPopup .menu-text {
   color: #000;
+}
+
+#BMB_bookmarksPopup .subviewbutton[disabled=true] > .menu-text {
+  color: #6d6d6d;
 }
 
 
 #BMB_bookmarksPopup menuseparator {
   padding-top: 0;
   padding-bottom: 0;
+}
+
+.subviewbutton > .menu-right,
+.subviewbutton > .menu-iconic-left {
+  padding-top: 1px;
+  margin-top: 1px;
+  margin-bottom: 2px;
+}
+
+
+menuitem.subviewbutton[disabled]:not(.menuitem-iconic),
+
+menuitem[type="checkbox"].subviewbutton {
+  
+
+  min-height: 22px;
+}
+
+.subviewbutton > .toolbarbutton-text {
+  padding-top: 3px;
+  padding-bottom: 3px;
 }
 
 .widget-overflow-list .toolbarbutton-1 > .toolbarbutton-menubutton-button {
