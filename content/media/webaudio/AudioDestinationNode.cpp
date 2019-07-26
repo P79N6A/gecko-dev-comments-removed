@@ -17,6 +17,8 @@
 #include "nsIPermissionManager.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsServiceManagerUtils.h"
+#include "nsIAppShell.h"
+#include "nsWidgetsCID.h"
 
 namespace mozilla {
 namespace dom {
@@ -217,6 +219,9 @@ AudioDestinationNode::AudioDestinationNode(AudioContext* aContext,
   , mAudioChannel(AudioChannel::Normal)
   , mIsOffline(aIsOffline)
   , mHasFinished(false)
+  , mExtraCurrentTime(0)
+  , mExtraCurrentTimeSinceLastStartedBlocking(0)
+  , mExtraCurrentTimeUpdatedSinceLastStableState(false)
 {
   MediaStreamGraph* graph = aIsOffline ?
                             MediaStreamGraph::CreateNonRealtimeInstance() :
@@ -486,6 +491,76 @@ AudioDestinationNode::CreateAudioChannelAgent()
   mAudioChannelAgent->StartPlaying(&state);
   SetCanPlay(state == AudioChannelState::AUDIO_CHANNEL_STATE_NORMAL);
 }
+
+void
+AudioDestinationNode::NotifyStableState()
+{
+  mExtraCurrentTimeUpdatedSinceLastStableState = false;
+}
+
+static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
+
+void
+AudioDestinationNode::ScheduleStableStateNotification()
+{
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  if (appShell) {
+    nsCOMPtr<nsIRunnable> event =
+      NS_NewRunnableMethod(this, &AudioDestinationNode::NotifyStableState);
+    appShell->RunInStableState(event);
+  }
+}
+
+double
+AudioDestinationNode::ExtraCurrentTime()
+{
+  if (!mStartedBlockingDueToBeingOnlyNode.IsNull() &&
+      !mExtraCurrentTimeUpdatedSinceLastStableState) {
+    mExtraCurrentTimeUpdatedSinceLastStableState = true;
+    mExtraCurrentTimeSinceLastStartedBlocking =
+      (TimeStamp::Now() - mStartedBlockingDueToBeingOnlyNode).ToSeconds();
+    ScheduleStableStateNotification();
+  }
+  return mExtraCurrentTime + mExtraCurrentTimeSinceLastStartedBlocking;
+}
+
+void
+AudioDestinationNode::SetIsOnlyNodeForContext(bool aIsOnlyNode)
+{
+  if (!mStartedBlockingDueToBeingOnlyNode.IsNull() == aIsOnlyNode) {
+    
+    return;
+  }
+
+  if (!mStream) {
+    
+    return;
+  }
+
+  if (mIsOffline) {
+    
+    
+    
+    
+    return;
+  }
+
+  if (aIsOnlyNode) {
+    mStream->ChangeExplicitBlockerCount(1);
+    mStartedBlockingDueToBeingOnlyNode = TimeStamp::Now();
+    mExtraCurrentTimeSinceLastStartedBlocking = 0;
+    
+    mExtraCurrentTimeUpdatedSinceLastStableState = true;
+    ScheduleStableStateNotification();
+  } else {
+    
+    ExtraCurrentTime();
+    mExtraCurrentTime += mExtraCurrentTimeSinceLastStartedBlocking;
+    mStream->ChangeExplicitBlockerCount(-1);
+    mStartedBlockingDueToBeingOnlyNode = TimeStamp();
+  }
+}
+
 }
 
 }

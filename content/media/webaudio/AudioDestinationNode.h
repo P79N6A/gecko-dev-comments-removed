@@ -70,11 +70,21 @@ public:
   virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
   void FireOfflineCompletionEvent();
 
+  
+  
+  double ExtraCurrentTime();
+
+  
+  void SetIsOnlyNodeForContext(bool aIsOnlyNode);
+
 private:
   bool CheckAudioChannelPermissions(AudioChannel aValue);
   void CreateAudioChannelAgent();
 
   void SetCanPlay(bool aCanPlay);
+
+  void NotifyStableState();
+  void ScheduleStableStateNotification();
 
   SelfReference<AudioDestinationNode> mOfflineRenderingRef;
   uint32_t mFramesToProduce;
@@ -85,6 +95,11 @@ private:
   AudioChannel mAudioChannel;
   bool mIsOffline;
   bool mHasFinished;
+
+  TimeStamp mStartedBlockingDueToBeingOnlyNode;
+  double mExtraCurrentTime;
+  double mExtraCurrentTimeSinceLastStartedBlocking;
+  bool mExtraCurrentTimeUpdatedSinceLastStableState;
 };
 
 }
