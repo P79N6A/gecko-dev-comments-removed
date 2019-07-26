@@ -23,7 +23,6 @@
 #include "nsPIDOMWindow.h"               
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
-#include "mozilla/dom/DirectionalityUtils.h"
 #include "mozilla/dom/DocumentBinding.h"
 
 class imgIRequest;
@@ -523,10 +522,6 @@ public:
     mSandboxFlags = sandboxFlags;
   }
 
-  inline mozilla::Directionality GetDocumentDirectionality() {
-    return mDirectionality;
-  }
-  
   
 
 
@@ -641,7 +636,7 @@ protected:
 public:
   
   
-  Element* GetHtmlElement();
+  Element* GetHtmlElement() const;
   
   
   Element* GetHtmlChildElement(nsIAtom* aTag);
@@ -2001,7 +1996,7 @@ public:
   virtual void GetTitle(nsString& aTitle) = 0;
   virtual void SetTitle(const nsAString& aTitle, mozilla::ErrorResult& rv) = 0;
   void GetDir(nsAString& aDirection) const;
-  void SetDir(const nsAString& aDirection, mozilla::ErrorResult& rv);
+  void SetDir(const nsAString& aDirection);
   nsIDOMWindow* GetDefaultView() const
   {
     return GetWindow();
@@ -2148,12 +2143,6 @@ protected:
   nsCString GetContentTypeInternal() const
   {
     return mContentType;
-  }
-
-  inline void
-  SetDocumentDirectionality(mozilla::Directionality aDir)
-  {
-    mDirectionality = aDir;
   }
 
   
@@ -2334,9 +2323,6 @@ protected:
   
   
   uint32_t mSandboxFlags;
-
-  
-  mozilla::Directionality mDirectionality;
 
   nsCString mContentLanguage;
 private:

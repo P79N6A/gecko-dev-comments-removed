@@ -602,11 +602,7 @@ RecomputeDirectionality(Element* aElement, bool aNotify)
     } else {
       
       
-      Directionality documentDir =
-        aElement->OwnerDoc()->GetDocumentDirectionality();
-      if (documentDir != eDir_NotSet) {
-        dir = documentDir;
-      }
+      dir = eDir_LTR;
     }
 
     aElement->SetDirectionality(dir, aNotify);
