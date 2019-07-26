@@ -22,14 +22,14 @@
 void WebRtcIlbcfix_CbSearch(
     iLBC_Enc_Inst_t *iLBCenc_inst,
     
-    WebRtc_Word16 *index,  
-    WebRtc_Word16 *gain_index, 
-    WebRtc_Word16 *intarget, 
-    WebRtc_Word16 *decResidual,
-    WebRtc_Word16 lMem,  
-    WebRtc_Word16 lTarget,  
-    WebRtc_Word16 *weightDenum,
-    WebRtc_Word16 block  
+    int16_t *index,  
+    int16_t *gain_index, 
+    int16_t *intarget, 
+    int16_t *decResidual,
+    int16_t lMem,  
+    int16_t lTarget,  
+    int16_t *weightDenum,
+    int16_t block  
                             );
 
 #endif

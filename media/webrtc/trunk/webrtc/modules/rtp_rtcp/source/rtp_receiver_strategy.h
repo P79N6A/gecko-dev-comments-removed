@@ -22,7 +22,15 @@ namespace webrtc {
 
 class RTPReceiverStrategy {
  public:
-  RTPReceiverStrategy();
+  
+  
+  
+  
+  
+  
+  
+  
+  RTPReceiverStrategy(RtpData* data_callback);
   virtual ~RTPReceiverStrategy() {}
 
   
@@ -31,67 +39,45 @@ class RTPReceiverStrategy {
   
   
   
-  virtual WebRtc_Word32 ParseRtpPacket(
+  virtual int32_t ParseRtpPacket(
     WebRtcRTPHeader* rtp_header,
     const ModuleRTPUtility::PayloadUnion& specific_payload,
     const bool is_red,
-    const WebRtc_UWord8* packet,
-    const WebRtc_UWord16 packet_length,
-    const WebRtc_Word64 timestamp_ms) = 0;
+    const uint8_t* packet,
+    const uint16_t packet_length,
+    const int64_t timestamp_ms,
+    const bool is_first_packet) = 0;
 
   
-  virtual WebRtc_Word32 GetFrequencyHz() const = 0;
+  virtual int32_t GetFrequencyHz() const = 0;
 
   
   virtual RTPAliveType ProcessDeadOrAlive(
-    WebRtc_UWord16 last_payload_length) const = 0;
+    uint16_t last_payload_length) const = 0;
 
   
   
-  virtual bool PayloadIsCompatible(
-    const ModuleRTPUtility::Payload& payload,
-    const WebRtc_UWord32 frequency,
-    const WebRtc_UWord8 channels,
-    const WebRtc_UWord32 rate) const = 0;
+  virtual bool ShouldReportCsrcChanges(uint8_t payload_type) const = 0;
 
   
-  virtual void UpdatePayloadRate(
-    ModuleRTPUtility::Payload* payload,
-    const WebRtc_UWord32 rate) const = 0;
+  
+  virtual int32_t OnNewPayloadTypeCreated(
+      const char payloadName[RTP_PAYLOAD_NAME_SIZE],
+      const int8_t payloadType,
+      const uint32_t frequency) = 0;
 
   
-  virtual ModuleRTPUtility::Payload* CreatePayloadType(
-    const char payload_name[RTP_PAYLOAD_NAME_SIZE],
-    const WebRtc_Word8 payload_type,
-    const WebRtc_UWord32 frequency,
-    const WebRtc_UWord8 channels,
-    const WebRtc_UWord32 rate) = 0;
-
-  
-  virtual WebRtc_Word32 InvokeOnInitializeDecoder(
+  virtual int32_t InvokeOnInitializeDecoder(
     RtpFeedback* callback,
-    const WebRtc_Word32 id,
-    const WebRtc_Word8 payload_type,
+    const int32_t id,
+    const int8_t payload_type,
     const char payload_name[RTP_PAYLOAD_NAME_SIZE],
     const ModuleRTPUtility::PayloadUnion& specific_payload) const = 0;
 
   
   
-  
-  virtual void PossiblyRemoveExistingPayloadType(
-    ModuleRTPUtility::PayloadTypeMap* payload_type_map,
-    const char payload_name[RTP_PAYLOAD_NAME_SIZE],
-    const size_t payload_name_length,
-    const WebRtc_UWord32 frequency,
-    const WebRtc_UWord8 channels,
-    const WebRtc_UWord32 rate) const {
-    
-  }
-
-  
-  
   virtual void CheckPayloadChanged(
-    const WebRtc_Word8 payload_type,
+    const int8_t payload_type,
     ModuleRTPUtility::PayloadUnion* specific_payload,
     bool* should_reset_statistics,
     bool* should_discard_changes) {
@@ -108,6 +94,7 @@ class RTPReceiverStrategy {
 
  protected:
   ModuleRTPUtility::PayloadUnion last_payload_;
+  RtpData* data_callback_;
 };
 
 }  

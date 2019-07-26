@@ -31,6 +31,7 @@ class VCMDecodingState {
   
   bool ContinuousFrame(const VCMFrameBuffer* frame) const;
   void SetState(const VCMFrameBuffer* frame);
+  void CopyFrom(const VCMDecodingState& state);
   
   void SetStateOneBack(const VCMFrameBuffer* frame);
   void UpdateEmptyFrame(const VCMFrameBuffer* frame);
@@ -43,7 +44,7 @@ class VCMDecodingState {
   uint32_t time_stamp() const;
   uint16_t sequence_num() const;
   
-  bool init() const;
+  bool in_initial_state() const;
   
   bool full_sync() const;
 
@@ -63,7 +64,7 @@ class VCMDecodingState {
   int         temporal_id_;
   int         tl0_pic_id_;
   bool        full_sync_;  
-  bool        init_;
+  bool        in_initial_state_;
 };
 
 }  

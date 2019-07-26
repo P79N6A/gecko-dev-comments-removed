@@ -26,7 +26,7 @@ class ModuleFileUtility
 {
 public:
 
-    ModuleFileUtility(const WebRtc_Word32 id);
+    ModuleFileUtility(const int32_t id);
     ~ModuleFileUtility();
 
 #ifdef WEBRTC_MODULE_UTILITY_VIDEO
@@ -34,8 +34,7 @@ public:
     
     
     
-    WebRtc_Word32 InitAviReading(const char* fileName, bool videoOnly,
-                                 bool loop);
+    int32_t InitAviReading(const char* fileName, bool videoOnly, bool loop);
 
     
     
@@ -43,54 +42,54 @@ public:
     
     
     
-    WebRtc_Word32 ReadAviAudioData(WebRtc_Word8* outBuffer,
-                                   const WebRtc_UWord32 bufferLengthInBytes);
+    int32_t ReadAviAudioData(int8_t* outBuffer,
+                             const uint32_t bufferLengthInBytes);
 
     
     
     
-    WebRtc_Word32 ReadAviVideoData(WebRtc_Word8* videoBuffer,
-                                   const WebRtc_UWord32 bufferLengthInBytes);
-
-    
-    
-    
-    
-    WebRtc_Word32 InitAviWriting(const char* filename,
-                                 const CodecInst& codecInst,
-                                 const VideoCodec& videoCodecInst,
-                                 const bool videoOnly);
+    int32_t ReadAviVideoData(int8_t* videoBuffer,
+                             const uint32_t bufferLengthInBytes);
 
     
     
     
     
-    
-    WebRtc_Word32 WriteAviAudioData(const WebRtc_Word8* audioBuffer,
-                                    WebRtc_UWord32 bufferLengthInBytes);
-
+    int32_t InitAviWriting(const char* filename,
+                           const CodecInst& codecInst,
+                           const VideoCodec& videoCodecInst,
+                           const bool videoOnly);
 
     
     
     
     
     
-    
-    WebRtc_Word32 WriteAviVideoData(const WebRtc_Word8* videoBuffer,
-                                    WebRtc_UWord32 bufferLengthInBytes);
+    int32_t WriteAviAudioData(const int8_t* audioBuffer,
+                              uint32_t bufferLengthInBytes);
+
 
     
-    WebRtc_Word32 CloseAviFile();
+    
+    
+    
+    
+    
+    int32_t WriteAviVideoData(const int8_t* videoBuffer,
+                              uint32_t bufferLengthInBytes);
 
-    WebRtc_Word32 VideoCodecInst(VideoCodec& codecInst);
+    
+    int32_t CloseAviFile();
+
+    int32_t VideoCodecInst(VideoCodec& codecInst);
 #endif 
 
     
     
     
-    WebRtc_Word32 InitWavReading(InStream& stream,
-                                 const WebRtc_UWord32 startPointMs = 0,
-                                 const WebRtc_UWord32 stopPointMs = 0);
+    int32_t InitWavReading(InStream& stream,
+                           const uint32_t startPointMs = 0,
+                           const uint32_t stopPointMs = 0);
 
     
     
@@ -98,8 +97,8 @@ public:
     
     
     
-    WebRtc_Word32 ReadWavDataAsMono(InStream& stream, WebRtc_Word8* audioBuffer,
-                                    const WebRtc_UWord32 dataLengthInBytes);
+    int32_t ReadWavDataAsMono(InStream& stream, int8_t* audioBuffer,
+                              const uint32_t dataLengthInBytes);
 
     
     
@@ -109,172 +108,171 @@ public:
     
     
     
-    WebRtc_Word32 ReadWavDataAsStereo(InStream& wav,
-                                      WebRtc_Word8* audioBufferLeft,
-                                      WebRtc_Word8* audioBufferRight,
-                                      const WebRtc_UWord32 bufferLength);
+    int32_t ReadWavDataAsStereo(InStream& wav,
+                                int8_t* audioBufferLeft,
+                                int8_t* audioBufferRight,
+                                const uint32_t bufferLength);
 
     
     
     
     
-    WebRtc_Word32 InitWavWriting(OutStream& stream, const CodecInst& codecInst);
+    int32_t InitWavWriting(OutStream& stream, const CodecInst& codecInst);
 
     
     
     
     
-    WebRtc_Word32 WriteWavData(OutStream& stream,
-                               const WebRtc_Word8* audioBuffer,
-                               const WebRtc_UWord32 bufferLength);
-
-    
-    
-    
-    
-    
-    WebRtc_Word32 UpdateWavHeader(OutStream& stream);
+    int32_t WriteWavData(OutStream& stream,
+                         const int8_t* audioBuffer,
+                         const uint32_t bufferLength);
 
     
     
     
     
     
-    WebRtc_Word32 InitPCMReading(InStream& stream,
-                                 const WebRtc_UWord32 startPointMs = 0,
-                                 const WebRtc_UWord32 stopPointMs = 0,
-                                 const WebRtc_UWord32 freqInHz = 16000);
-
-    
-    
-    
-    WebRtc_Word32 ReadPCMData(InStream& stream, WebRtc_Word8* audioBuffer,
-                              const WebRtc_UWord32 dataLengthInBytes);
-
-    
-    
-    
-    WebRtc_Word32 InitPCMWriting(OutStream& stream,
-                                 const WebRtc_UWord32 freqInHz = 16000);
-
-    
-    
-    
-    
-    WebRtc_Word32 WritePCMData(OutStream& stream,
-                               const WebRtc_Word8* audioBuffer,
-                               WebRtc_UWord32 bufferLength);
-
-    
-    
-    
-    WebRtc_Word32 InitCompressedReading(InStream& stream,
-                                        const WebRtc_UWord32 startPointMs = 0,
-                                        const WebRtc_UWord32 stopPointMs = 0);
-
-    
-    
-    
-    WebRtc_Word32 ReadCompressedData(InStream& stream,
-                                     WebRtc_Word8* audioBuffer,
-                                     const WebRtc_UWord32 dataLengthInBytes);
-
-    
-    
-    WebRtc_Word32 InitCompressedWriting(OutStream& stream,
-                                        const CodecInst& codecInst);
+    int32_t UpdateWavHeader(OutStream& stream);
 
     
     
     
     
     
-    WebRtc_Word32 WriteCompressedData(OutStream& stream,
-                                      const WebRtc_Word8* audioBuffer,
-                                      const WebRtc_UWord32 bufferLength);
-
-    
-    
-    WebRtc_Word32 InitPreEncodedReading(InStream& stream,
-                                        const CodecInst& codecInst);
+    int32_t InitPCMReading(InStream& stream,
+                           const uint32_t startPointMs = 0,
+                           const uint32_t stopPointMs = 0,
+                           const uint32_t freqInHz = 16000);
 
     
     
     
-    WebRtc_Word32 ReadPreEncodedData(InStream& stream,
-                                     WebRtc_Word8* audioBuffer,
-                                     const WebRtc_UWord32 dataLengthInBytes);
+    int32_t ReadPCMData(InStream& stream, int8_t* audioBuffer,
+                        const uint32_t dataLengthInBytes);
 
     
     
-    WebRtc_Word32 InitPreEncodedWriting(OutStream& stream,
-                                        const CodecInst& codecInst);
+    
+    int32_t InitPCMWriting(OutStream& stream, const uint32_t freqInHz = 16000);
+
+    
+    
+    
+    
+    int32_t WritePCMData(OutStream& stream,
+                         const int8_t* audioBuffer,
+                         uint32_t bufferLength);
+
+    
+    
+    
+    int32_t InitCompressedReading(InStream& stream,
+                                  const uint32_t startPointMs = 0,
+                                  const uint32_t stopPointMs = 0);
+
+    
+    
+    
+    int32_t ReadCompressedData(InStream& stream,
+                               int8_t* audioBuffer,
+                               const uint32_t dataLengthInBytes);
+
+    
+    
+    int32_t InitCompressedWriting(OutStream& stream,
+                                  const CodecInst& codecInst);
+
+    
+    
+    
+    
+    
+    int32_t WriteCompressedData(OutStream& stream,
+                                const int8_t* audioBuffer,
+                                const uint32_t bufferLength);
+
+    
+    
+    int32_t InitPreEncodedReading(InStream& stream,
+                                  const CodecInst& codecInst);
+
+    
+    
+    
+    int32_t ReadPreEncodedData(InStream& stream,
+                               int8_t* audioBuffer,
+                               const uint32_t dataLengthInBytes);
+
+    
+    
+    int32_t InitPreEncodedWriting(OutStream& stream,
+                                  const CodecInst& codecInst);
 
     
     
     
    
     
-    WebRtc_Word32 WritePreEncodedData(OutStream& stream,
-                                      const WebRtc_Word8* inData,
-                                      const WebRtc_UWord32 dataLengthInBytes);
+    int32_t WritePreEncodedData(OutStream& stream,
+                                const int8_t* inData,
+                                const uint32_t dataLengthInBytes);
 
     
     
-    WebRtc_Word32 FileDurationMs(const char* fileName,
-                                 const FileFormats fileFormat,
-                                 const WebRtc_UWord32 freqInHz = 16000);
+    int32_t FileDurationMs(const char* fileName,
+                           const FileFormats fileFormat,
+                           const uint32_t freqInHz = 16000);
 
     
-    WebRtc_UWord32 PlayoutPositionMs();
+    uint32_t PlayoutPositionMs();
 
     
     
-    WebRtc_Word32 codec_info(CodecInst& codecInst);
+    int32_t codec_info(CodecInst& codecInst);
 
 private:
     
     enum{WAV_MAX_BUFFER_SIZE = 480*2*2};
 
 
-    WebRtc_Word32 InitWavCodec(WebRtc_UWord32 samplesPerSec,
-                               WebRtc_UWord32 channels,
-                               WebRtc_UWord32 bitsPerSample,
-                               WebRtc_UWord32 formatTag);
+    int32_t InitWavCodec(uint32_t samplesPerSec,
+                         uint32_t channels,
+                         uint32_t bitsPerSample,
+                         uint32_t formatTag);
 
     
-    WebRtc_Word32 ReadWavHeader(InStream& stream);
-
-    
-    
-    
-    
-    
-    
-    WebRtc_Word32 WriteWavHeader(OutStream& stream,
-                                 const WebRtc_UWord32 freqInHz,
-                                 const WebRtc_UWord32 bytesPerSample,
-                                 const WebRtc_UWord32 channels,
-                                 const WebRtc_UWord32 format,
-                                 const WebRtc_UWord32 lengthInBytes);
+    int32_t ReadWavHeader(InStream& stream);
 
     
     
-    WebRtc_Word32 ReadWavData(InStream& stream, WebRtc_UWord8* audioBuffer,
-                              const WebRtc_UWord32 dataLengthInBytes);
+    
+    
+    
+    
+    int32_t WriteWavHeader(OutStream& stream,
+                           const uint32_t freqInHz,
+                           const uint32_t bytesPerSample,
+                           const uint32_t channels,
+                           const uint32_t format,
+                           const uint32_t lengthInBytes);
 
     
     
-    WebRtc_Word32 set_codec_info(const CodecInst& codecInst);
+    int32_t ReadWavData(InStream& stream, uint8_t* audioBuffer,
+                        const uint32_t dataLengthInBytes);
+
+    
+    
+    int32_t set_codec_info(const CodecInst& codecInst);
 
     struct WAVE_FMTINFO_header
     {
-        WebRtc_Word16 formatTag;
-        WebRtc_Word16 nChannels;
-        WebRtc_Word32 nSamplesPerSec;
-        WebRtc_Word32 nAvgBytesPerSec;
-        WebRtc_Word16 nBlockAlign;
-        WebRtc_Word16 nBitsPerSample;
+        int16_t formatTag;
+        int16_t nChannels;
+        int32_t nSamplesPerSec;
+        int32_t nAvgBytesPerSec;
+        int16_t nBlockAlign;
+        int16_t nBitsPerSample;
     };
     
     enum MediaFileUtility_CodecType
@@ -312,31 +310,31 @@ private:
     
     
     WAVE_FMTINFO_header _wavFormatObj;
-    WebRtc_Word32 _dataSize;      
+    int32_t _dataSize;      
     
     
-    WebRtc_Word32 _readSizeBytes;
+    int32_t _readSizeBytes;
 
-    WebRtc_Word32 _id;
+    int32_t _id;
 
-    WebRtc_UWord32 _stopPointInMs;
-    WebRtc_UWord32 _startPointInMs;
-    WebRtc_UWord32 _playoutPositionMs;
-    WebRtc_UWord32 _bytesWritten;
+    uint32_t _stopPointInMs;
+    uint32_t _startPointInMs;
+    uint32_t _playoutPositionMs;
+    uint32_t _bytesWritten;
 
     CodecInst codec_info_;
     MediaFileUtility_CodecType _codecId;
 
     
-    WebRtc_Word32  _bytesPerSample;
-    WebRtc_Word32  _readPos;
+    int32_t  _bytesPerSample;
+    int32_t  _readPos;
 
     
     bool _reading;
     bool _writing;
 
     
-    WebRtc_UWord8 _tempData[WAV_MAX_BUFFER_SIZE];
+    uint8_t _tempData[WAV_MAX_BUFFER_SIZE];
 
 #ifdef WEBRTC_MODULE_UTILITY_VIDEO
     AviFile* _aviAudioInFile;

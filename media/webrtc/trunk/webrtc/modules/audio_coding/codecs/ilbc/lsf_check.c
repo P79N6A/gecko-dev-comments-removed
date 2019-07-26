@@ -24,15 +24,15 @@
 
 
 int WebRtcIlbcfix_LsfCheck(
-    WebRtc_Word16 *lsf, 
+    int16_t *lsf, 
     int dim, 
     int NoAn)  
 {
   int k,n,m, Nit=2, change=0,pos;
-  const WebRtc_Word16 eps=319;  
-  const WebRtc_Word16 eps2=160;  
-  const WebRtc_Word16 maxlsf=25723; 
-  const WebRtc_Word16 minlsf=82;  
+  const int16_t eps=319;  
+  const int16_t eps2=160;  
+  const int16_t maxlsf=25723; 
+  const int16_t minlsf=82;  
 
   
   for (n=0;n<Nit;n++) {  

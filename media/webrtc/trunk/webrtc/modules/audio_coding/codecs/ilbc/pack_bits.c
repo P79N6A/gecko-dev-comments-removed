@@ -23,24 +23,24 @@
 
 
 void WebRtcIlbcfix_PackBits(
-    WebRtc_UWord16 *bitstream,   
+    uint16_t *bitstream,   
     iLBC_bits *enc_bits,  
-    WebRtc_Word16 mode     
+    int16_t mode     
                              ){
-  WebRtc_UWord16 *bitstreamPtr;
+  uint16_t *bitstreamPtr;
   int i, k;
-  WebRtc_Word16 *tmpPtr;
+  int16_t *tmpPtr;
 
   bitstreamPtr=bitstream;
 
   
   
-  (*bitstreamPtr)  = ((WebRtc_UWord16)enc_bits->lsf[0])<<10;   
+  (*bitstreamPtr)  = ((uint16_t)enc_bits->lsf[0])<<10;   
   (*bitstreamPtr) |= (enc_bits->lsf[1])<<3;     
   (*bitstreamPtr) |= (enc_bits->lsf[2]&0x70)>>4;    
   bitstreamPtr++;
   
-  (*bitstreamPtr)  = ((WebRtc_UWord16)enc_bits->lsf[2]&0xF)<<12;  
+  (*bitstreamPtr)  = ((uint16_t)enc_bits->lsf[2]&0xF)<<12;  
 
   if (mode==20) {
     (*bitstreamPtr) |= (enc_bits->startIdx)<<10;    
@@ -61,14 +61,14 @@ void WebRtcIlbcfix_PackBits(
     (*bitstreamPtr) |= (enc_bits->lsf[4]&0x7E)>>1;    
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)enc_bits->lsf[4]&0x1)<<15;  
+    (*bitstreamPtr)  = ((uint16_t)enc_bits->lsf[4]&0x1)<<15;  
     (*bitstreamPtr) |= (enc_bits->lsf[5])<<8;     
     (*bitstreamPtr) |= (enc_bits->startIdx)<<5;     
     (*bitstreamPtr) |= (enc_bits->state_first)<<4;    
     (*bitstreamPtr) |= ((enc_bits->idxForMax)&0x3C)>>2;   
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)enc_bits->idxForMax&0x3)<<14; 
+    (*bitstreamPtr)  = ((uint16_t)enc_bits->idxForMax&0x3)<<14; 
     (*bitstreamPtr) |= (enc_bits->cb_index[0]&0x78)<<7;   
     (*bitstreamPtr) |= (enc_bits->gain_index[0]&0x10)<<5;  
     (*bitstreamPtr) |= (enc_bits->gain_index[1]&0x8)<<5;  
@@ -84,7 +84,7 @@ void WebRtcIlbcfix_PackBits(
   for (k=0; k<3; k++) {
     (*bitstreamPtr) = 0;
     for (i=15; i>=0; i--) {
-      (*bitstreamPtr) |= ((WebRtc_UWord16)((*tmpPtr)&0x4)>>2)<<i;
+      (*bitstreamPtr) |= ((uint16_t)((*tmpPtr)&0x4)>>2)<<i;
       
       tmpPtr++;
     }
@@ -95,7 +95,7 @@ void WebRtcIlbcfix_PackBits(
     
     (*bitstreamPtr) = 0;
     for (i=15; i>6; i--) {
-      (*bitstreamPtr) |= ((WebRtc_UWord16)((*tmpPtr)&0x4)>>2)<<i;
+      (*bitstreamPtr) |= ((uint16_t)((*tmpPtr)&0x4)>>2)<<i;
       
       tmpPtr++;
     }
@@ -109,7 +109,7 @@ void WebRtcIlbcfix_PackBits(
     
     (*bitstreamPtr) = 0;
     for (i=15; i>5; i--) {
-      (*bitstreamPtr) |= ((WebRtc_UWord16)((*tmpPtr)&0x4)>>2)<<i;
+      (*bitstreamPtr) |= ((uint16_t)((*tmpPtr)&0x4)>>2)<<i;
       
       tmpPtr++;
     }
@@ -120,12 +120,12 @@ void WebRtcIlbcfix_PackBits(
     (*bitstreamPtr) |= (enc_bits->cb_index[6]&0x80)>>7;   
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)enc_bits->cb_index[6]&0x7E)<<9;
+    (*bitstreamPtr)  = ((uint16_t)enc_bits->cb_index[6]&0x7E)<<9;
     (*bitstreamPtr) |= (enc_bits->cb_index[9]&0xFE)<<2;   
     (*bitstreamPtr) |= (enc_bits->cb_index[12]&0xE0)>>5;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)enc_bits->cb_index[12]&0x1E)<<11;
+    (*bitstreamPtr)  = ((uint16_t)enc_bits->cb_index[12]&0x1E)<<11;
     (*bitstreamPtr) |= (enc_bits->gain_index[3]&0xC)<<8;  
     (*bitstreamPtr) |= (enc_bits->gain_index[4]&0x6)<<7;  
     (*bitstreamPtr) |= (enc_bits->gain_index[6]&0x18)<<3;  
@@ -143,7 +143,7 @@ void WebRtcIlbcfix_PackBits(
   for (k=0; k<7; k++) {
     (*bitstreamPtr) = 0;
     for (i=14; i>=0; i-=2) {
-      (*bitstreamPtr) |= ((WebRtc_UWord16)((*tmpPtr)&0x3))<<i; 
+      (*bitstreamPtr) |= ((uint16_t)((*tmpPtr)&0x3))<<i; 
       tmpPtr++;
     }
     bitstreamPtr++;
@@ -151,13 +151,13 @@ void WebRtcIlbcfix_PackBits(
 
   if (mode==20) {
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)((enc_bits->idxVec[56])&0x3))<<14;
+    (*bitstreamPtr)  = ((uint16_t)((enc_bits->idxVec[56])&0x3))<<14;
     (*bitstreamPtr) |= (((enc_bits->cb_index[0])&1))<<13;  
     (*bitstreamPtr) |= ((enc_bits->cb_index[1]))<<6;   
     (*bitstreamPtr) |= ((enc_bits->cb_index[2])&0x7E)>>1;  
     bitstreamPtr++;
     
-    (*bitstreamPtr) = ((WebRtc_UWord16)((enc_bits->cb_index[2])&0x1))<<15;
+    (*bitstreamPtr) = ((uint16_t)((enc_bits->cb_index[2])&0x1))<<15;
     
     (*bitstreamPtr) |= ((enc_bits->gain_index[0])&0x7)<<12;  
     (*bitstreamPtr) |= ((enc_bits->gain_index[1])&0x3)<<10;  
@@ -166,17 +166,17 @@ void WebRtcIlbcfix_PackBits(
     (*bitstreamPtr) |= ((enc_bits->cb_index[4])&0x7E)>>1;  
     bitstreamPtr++;
     
-    (*bitstreamPtr) = ((WebRtc_UWord16)((enc_bits->cb_index[4])&0x1))<<15;
+    (*bitstreamPtr) = ((uint16_t)((enc_bits->cb_index[4])&0x1))<<15;
     
     (*bitstreamPtr) |= (enc_bits->cb_index[5])<<8;    
     (*bitstreamPtr) |= (enc_bits->cb_index[6]);     
     bitstreamPtr++;
     
-    (*bitstreamPtr) = ((WebRtc_UWord16)(enc_bits->cb_index[7]))<<8; 
+    (*bitstreamPtr) = ((uint16_t)(enc_bits->cb_index[7]))<<8; 
     (*bitstreamPtr) |= (enc_bits->cb_index[8]);     
     bitstreamPtr++;
     
-    (*bitstreamPtr) = ((WebRtc_UWord16)((enc_bits->gain_index[3])&0x3))<<14;
+    (*bitstreamPtr) = ((uint16_t)((enc_bits->gain_index[3])&0x3))<<14;
     
     (*bitstreamPtr) |= ((enc_bits->gain_index[4])&0x3)<<12;  
     (*bitstreamPtr) |= ((enc_bits->gain_index[5]))<<9;   
@@ -185,14 +185,14 @@ void WebRtcIlbcfix_PackBits(
     (*bitstreamPtr) |= (enc_bits->gain_index[8])<<1;   
   } else { 
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)((enc_bits->idxVec[56])&0x3))<<14;
+    (*bitstreamPtr)  = ((uint16_t)((enc_bits->idxVec[56])&0x3))<<14;
     (*bitstreamPtr) |= (((enc_bits->idxVec[57])&0x3))<<12;  
     (*bitstreamPtr) |= (((enc_bits->cb_index[0])&1))<<11;  
     (*bitstreamPtr) |= ((enc_bits->cb_index[1]))<<4;   
     (*bitstreamPtr) |= ((enc_bits->cb_index[2])&0x78)>>3;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->cb_index[2])&0x7)<<13;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->cb_index[2])&0x7)<<13;
     
     (*bitstreamPtr) |= ((enc_bits->gain_index[0])&0x7)<<10;  
     (*bitstreamPtr) |= ((enc_bits->gain_index[1])&0x3)<<8;  
@@ -201,35 +201,35 @@ void WebRtcIlbcfix_PackBits(
     (*bitstreamPtr) |= ((enc_bits->cb_index[4])&0x78)>>3;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->cb_index[4])&0x7)<<13;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->cb_index[4])&0x7)<<13;
     
     (*bitstreamPtr) |= ((enc_bits->cb_index[5]))<<6;   
     (*bitstreamPtr) |= ((enc_bits->cb_index[6])&0x1)<<5;  
     (*bitstreamPtr) |= ((enc_bits->cb_index[7])&0xF8)>>3;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->cb_index[7])&0x7)<<13;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->cb_index[7])&0x7)<<13;
     
     (*bitstreamPtr) |= ((enc_bits->cb_index[8]))<<5;   
     (*bitstreamPtr) |= ((enc_bits->cb_index[9])&0x1)<<4;  
     (*bitstreamPtr) |= ((enc_bits->cb_index[10])&0xF0)>>4;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->cb_index[10])&0xF)<<12;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->cb_index[10])&0xF)<<12;
     
     (*bitstreamPtr) |= ((enc_bits->cb_index[11]))<<4;   
     (*bitstreamPtr) |= ((enc_bits->cb_index[12])&0x1)<<3;  
     (*bitstreamPtr) |= ((enc_bits->cb_index[13])&0xE0)>>5;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->cb_index[13])&0x1F)<<11;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->cb_index[13])&0x1F)<<11;
     
     (*bitstreamPtr) |= ((enc_bits->cb_index[14]))<<3;   
     (*bitstreamPtr) |= ((enc_bits->gain_index[3])&0x3)<<1;  
     (*bitstreamPtr) |= ((enc_bits->gain_index[4])&0x1);   
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->gain_index[5]))<<13;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->gain_index[5]))<<13;
     
     (*bitstreamPtr) |= ((enc_bits->gain_index[6])&0x7)<<10;  
     (*bitstreamPtr) |= ((enc_bits->gain_index[7])&0x3)<<8;  
@@ -238,7 +238,7 @@ void WebRtcIlbcfix_PackBits(
     (*bitstreamPtr) |= ((enc_bits->gain_index[10])&0x4)>>2;  
     bitstreamPtr++;
     
-    (*bitstreamPtr)  = ((WebRtc_UWord16)(enc_bits->gain_index[10])&0x3)<<14;
+    (*bitstreamPtr)  = ((uint16_t)(enc_bits->gain_index[10])&0x3)<<14;
     
     (*bitstreamPtr) |= ((enc_bits->gain_index[11]))<<11;  
     (*bitstreamPtr) |= ((enc_bits->gain_index[12])&0xF)<<7;  

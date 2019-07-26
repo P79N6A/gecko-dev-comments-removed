@@ -20,29 +20,29 @@
 #include "constants.h"
 
 void WebRtcIlbcfix_CbSearchCore(
-    WebRtc_Word32 *cDot,    
-    WebRtc_Word16 range,    
-    WebRtc_Word16 stage,    
-    WebRtc_Word16 *inverseEnergy,  
-    WebRtc_Word16 *inverseEnergyShift, 
+    int32_t *cDot,    
+    int16_t range,    
+    int16_t stage,    
+    int16_t *inverseEnergy,  
+    int16_t *inverseEnergyShift, 
 
-    WebRtc_Word32 *Crit,    
-    WebRtc_Word16 *bestIndex,   
+    int32_t *Crit,    
+    int16_t *bestIndex,   
 
 
-    WebRtc_Word32 *bestCrit,   
+    int32_t *bestCrit,   
 
-    WebRtc_Word16 *bestCritSh)   
+    int16_t *bestCritSh)   
 
 {
-  WebRtc_Word32 maxW32, tmp32;
-  WebRtc_Word16 max, sh, tmp16;
+  int32_t maxW32, tmp32;
+  int16_t max, sh, tmp16;
   int i;
-  WebRtc_Word32 *cDotPtr;
-  WebRtc_Word16 cDotSqW16;
-  WebRtc_Word16 *inverseEnergyPtr;
-  WebRtc_Word32 *critPtr;
-  WebRtc_Word16 *inverseEnergyShiftPtr;
+  int32_t *cDotPtr;
+  int16_t cDotSqW16;
+  int16_t *inverseEnergyPtr;
+  int32_t *critPtr;
+  int16_t *inverseEnergyShiftPtr;
 
   
   if (stage==0) {
@@ -56,7 +56,7 @@ void WebRtcIlbcfix_CbSearchCore(
   
   maxW32 = WebRtcSpl_MaxAbsValueW32(cDot, range);
 
-  sh = (WebRtc_Word16)WebRtcSpl_NormW32(maxW32);
+  sh = (int16_t)WebRtcSpl_NormW32(maxW32);
   cDotPtr = cDot;
   inverseEnergyPtr = inverseEnergy;
   critPtr = Crit;
@@ -66,8 +66,8 @@ void WebRtcIlbcfix_CbSearchCore(
   for (i=0;i<range;i++) {
     
     tmp32 = WEBRTC_SPL_LSHIFT_W32(*cDotPtr,sh);
-    tmp16 = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmp32,16);
-    cDotSqW16 = (WebRtc_Word16)(((WebRtc_Word32)(tmp16)*(tmp16))>>16);
+    tmp16 = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp32,16);
+    cDotSqW16 = (int16_t)(((int32_t)(tmp16)*(tmp16))>>16);
 
     
     *critPtr=WEBRTC_SPL_MUL_16_16(cDotSqW16, (*inverseEnergyPtr));

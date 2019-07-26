@@ -31,7 +31,6 @@
 
 
 
-
 #ifndef WEBRTC_VOICE_ENGINE_VOE_BASE_H
 #define WEBRTC_VOICE_ENGINE_VOE_BASE_H
 
@@ -40,6 +39,7 @@
 namespace webrtc {
 
 class AudioDeviceModule;
+class AudioProcessing;
 
 const int kVoEDefault = -1;
 
@@ -82,11 +82,11 @@ public:
     
     static int SetTraceCallback(TraceCallback* callback);
 
-    static int SetAndroidObjects(void* javaVM, void* context);
+    static int SetAndroidObjects(void* javaVM, void* env, void* context);
 
 protected:
     VoiceEngine() {}
-    virtual ~VoiceEngine() {}
+    ~VoiceEngine() {}
 };
 
 
@@ -116,7 +116,16 @@ public:
     
     
     
-    virtual int Init(AudioDeviceModule* external_adm = NULL) = 0;
+    
+    
+    
+    
+    
+    virtual int Init(AudioDeviceModule* external_adm = NULL,
+                     AudioProcessing* audioproc = NULL) = 0;
+
+    
+    virtual AudioProcessing* audio_processing() = 0;
 
     
     virtual int Terminate() = 0;
@@ -129,28 +138,6 @@ public:
 
     
     virtual int DeleteChannel(int channel) = 0;
-
-    
-    
-    virtual int SetLocalReceiver(int channel, int port,
-                                 int RTCPport = kVoEDefault,
-                                 const char ipAddr[64] = NULL,
-                                 const char multiCastAddr[64] = NULL) = 0;
-
-    
-    
-    virtual int GetLocalReceiver(int channel, int& port, int& RTCPport,
-                                 char ipAddr[64]) = 0;
-
-    
-    virtual int SetSendDestination(int channel, int port,
-                                   const char ipAddr[64],
-                                   int sourcePort = kVoEDefault,
-                                   int RTCPport = kVoEDefault) = 0;
-
-    
-    virtual int GetSendDestination(int channel, int& port, char ipAddr[64],
-                                   int& sourcePort, int& RTCPport) = 0;
 
     
     
@@ -180,7 +167,6 @@ public:
     
     virtual int LastError() = 0;
 
-
     
     virtual int SetOnHoldStatus(int channel, bool enable,
                                 OnHoldModes mode = kHoldSendAndPlay) = 0;
@@ -194,12 +180,6 @@ public:
 
     
     virtual int GetNetEQPlayoutMode(int channel, NetEqModes& mode) = 0;
-
-    
-    virtual int SetNetEQBGNMode(int channel, NetEqBgnModes mode) = 0;
-
-    
-    virtual int GetNetEQBGNMode(int channel, NetEqBgnModes& mode) = 0;
 
 protected:
     VoEBase() {}

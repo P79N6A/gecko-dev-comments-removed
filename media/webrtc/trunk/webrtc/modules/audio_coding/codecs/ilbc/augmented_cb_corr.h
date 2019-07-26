@@ -26,17 +26,17 @@
 
 
 void WebRtcIlbcfix_AugmentedCbCorr(
-    WebRtc_Word16 *target,   
-    WebRtc_Word16 *buffer,   
-    WebRtc_Word16 *interpSamples, 
+    int16_t *target,   
+    int16_t *buffer,   
+    int16_t *interpSamples, 
 
-    WebRtc_Word32 *crossDot,  
+    int32_t *crossDot,  
 
 
-    WebRtc_Word16 low,    
+    int16_t low,    
 
-    WebRtc_Word16 high,   
-    WebRtc_Word16 scale);   
+    int16_t high,   
+    int16_t scale);   
 
 
 #endif

@@ -17,10 +17,16 @@
 namespace webrtc
 {
 
+enum VCMJitterEstimateMode
+{
+    kMaxEstimate,
+    kLastEstimate,
+};
+
 class VCMJitterEstimator
 {
 public:
-    VCMJitterEstimator(WebRtc_Word32 vcmId = 0, WebRtc_Word32 receiverId = 0);
+    VCMJitterEstimator(int32_t vcmId = 0, int32_t receiverId = 0);
 
     VCMJitterEstimator& operator=(const VCMJitterEstimator& rhs);
 
@@ -35,8 +41,8 @@ public:
     
     
     
-    void UpdateEstimate(WebRtc_Word64 frameDelayMS,
-                        WebRtc_UWord32 frameSizeBytes,
+    void UpdateEstimate(int64_t frameDelayMS,
+                        uint32_t frameSizeBytes,
                         bool incompleteFrame = false);
 
     
@@ -45,7 +51,7 @@ public:
     
     
     
-    double GetJitterEstimate(double rttMultiplier);
+    int GetJitterEstimate(double rttMultiplier);
 
     
     void FrameNacked();
@@ -54,14 +60,19 @@ public:
     
     
     
-    void UpdateRtt(WebRtc_UWord32 rttMs);
+    void UpdateRtt(uint32_t rttMs);
 
-    void UpdateMaxFrameSize(WebRtc_UWord32 frameSizeBytes);
+    void UpdateMaxFrameSize(uint32_t frameSizeBytes);
 
     
     
     
-    static const WebRtc_UWord32 OPERATING_SYSTEM_JITTER = 10;
+    void SetMaxJitterEstimate(uint32_t initial_delay_ms);
+
+    
+    
+    
+    static const uint32_t OPERATING_SYSTEM_JITTER = 10;
 
 protected:
     
@@ -76,7 +87,7 @@ private:
     
     
     
-    void KalmanEstimateChannel(WebRtc_Word64 frameDelayMS, WebRtc_Word32 deltaFSBytes);
+    void KalmanEstimateChannel(int64_t frameDelayMS, int32_t deltaFSBytes);
 
     
     
@@ -106,19 +117,19 @@ private:
     
     
     
-    double DeviationFromExpectedDelay(WebRtc_Word64 frameDelayMS,
-                                      WebRtc_Word32 deltaFSBytes) const;
+    double DeviationFromExpectedDelay(int64_t frameDelayMS,
+                                      int32_t deltaFSBytes) const;
 
     
-    WebRtc_Word32         _vcmId;
-    WebRtc_Word32         _receiverId;
+    int32_t         _vcmId;
+    int32_t         _receiverId;
     const double          _phi;
     const double          _psi;
-    const WebRtc_UWord32  _alphaCountMax;
+    const uint32_t  _alphaCountMax;
     const double          _thetaLow;
-    const WebRtc_UWord32  _nackLimit;
-    const WebRtc_Word32   _numStdDevDelayOutlier;
-    const WebRtc_Word32   _numStdDevFrameSizeOutlier;
+    const uint32_t  _nackLimit;
+    const int32_t   _numStdDevDelayOutlier;
+    const int32_t   _numStdDevFrameSizeOutlier;
     const double          _noiseStdDevs;
     const double          _noiseStdDevOffset;
 
@@ -128,22 +139,24 @@ private:
     double                _varFrameSize;   
     double                _maxFrameSize;   
                                            
-    WebRtc_UWord32        _fsSum;
-    WebRtc_UWord32        _fsCount;
+    uint32_t        _fsSum;
+    uint32_t        _fsCount;
 
-    WebRtc_Word64         _lastUpdateT;
+    int64_t         _lastUpdateT;
     double                _prevEstimate;         
-    WebRtc_UWord32        _prevFrameSize;        
+    uint32_t        _prevFrameSize;        
     double                _avgNoise;             
-    WebRtc_UWord32        _alphaCount;
+    uint32_t        _alphaCount;
     double                _filterJitterEstimate; 
 
-    WebRtc_UWord32        _startupCount;
+    uint32_t        _startupCount;
 
-    WebRtc_Word64         _latestNackTimestamp;  
-    WebRtc_UWord32        _nackCount;            
+    int64_t         _latestNackTimestamp;  
+    uint32_t        _nackCount;            
                                                  
     VCMRttFilter          _rttFilter;
+    VCMJitterEstimateMode _jitterEstimateMode;
+    int                   _maxJitterEstimateMs;
 
     enum { kStartupDelaySamples = 30 };
     enum { kFsAccuStartupSamples = 5 };

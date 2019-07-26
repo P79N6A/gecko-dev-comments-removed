@@ -24,26 +24,26 @@
 
 
 int WebRtcIlbcfix_XcorrCoef(
-    WebRtc_Word16 *target,  
-    WebRtc_Word16 *regressor, 
-    WebRtc_Word16 subl,  
-    WebRtc_Word16 searchLen, 
-    WebRtc_Word16 offset,  
-    WebRtc_Word16 step   
+    int16_t *target,  
+    int16_t *regressor, 
+    int16_t subl,  
+    int16_t searchLen, 
+    int16_t offset,  
+    int16_t step   
                             ){
   int k;
-  WebRtc_Word16 maxlag;
-  WebRtc_Word16 pos;
-  WebRtc_Word16 max;
-  WebRtc_Word16 crossCorrScale, Energyscale;
-  WebRtc_Word16 crossCorrSqMod, crossCorrSqMod_Max;
-  WebRtc_Word32 crossCorr, Energy;
-  WebRtc_Word16 crossCorrmod, EnergyMod, EnergyMod_Max;
-  WebRtc_Word16 *tp, *rp;
-  WebRtc_Word16 *rp_beg, *rp_end;
-  WebRtc_Word16 totscale, totscale_max;
-  WebRtc_Word16 scalediff;
-  WebRtc_Word32 newCrit, maxCrit;
+  int16_t maxlag;
+  int16_t pos;
+  int16_t max;
+  int16_t crossCorrScale, Energyscale;
+  int16_t crossCorrSqMod, crossCorrSqMod_Max;
+  int32_t crossCorr, Energy;
+  int16_t crossCorrmod, EnergyMod, EnergyMod_Max;
+  int16_t *tp, *rp;
+  int16_t *rp_beg, *rp_end;
+  int16_t totscale, totscale_max;
+  int16_t scalediff;
+  int32_t newCrit, maxCrit;
   int shifts;
 
   
@@ -55,11 +55,11 @@ int WebRtcIlbcfix_XcorrCoef(
 
   
   if (step==1) {
-    max=WebRtcSpl_MaxAbsValueW16(regressor, (WebRtc_Word16)(subl+searchLen-1));
+    max=WebRtcSpl_MaxAbsValueW16(regressor, (int16_t)(subl+searchLen-1));
     rp_beg = regressor;
     rp_end = &regressor[subl];
   } else { 
-    max=WebRtcSpl_MaxAbsValueW16(&regressor[-searchLen], (WebRtc_Word16)(subl+searchLen-1));
+    max=WebRtcSpl_MaxAbsValueW16(&regressor[-searchLen], (int16_t)(subl+searchLen-1));
     rp_beg = &regressor[-1];
     rp_end = &regressor[subl-1];
   }
@@ -86,13 +86,13 @@ int WebRtcIlbcfix_XcorrCoef(
     if ((Energy>0)&&(crossCorr>0)) {
 
       
-      crossCorrScale=(WebRtc_Word16)WebRtcSpl_NormW32(crossCorr)-16;
-      crossCorrmod=(WebRtc_Word16)WEBRTC_SPL_SHIFT_W32(crossCorr, crossCorrScale);
-      Energyscale=(WebRtc_Word16)WebRtcSpl_NormW32(Energy)-16;
-      EnergyMod=(WebRtc_Word16)WEBRTC_SPL_SHIFT_W32(Energy, Energyscale);
+      crossCorrScale=(int16_t)WebRtcSpl_NormW32(crossCorr)-16;
+      crossCorrmod=(int16_t)WEBRTC_SPL_SHIFT_W32(crossCorr, crossCorrScale);
+      Energyscale=(int16_t)WebRtcSpl_NormW32(Energy)-16;
+      EnergyMod=(int16_t)WEBRTC_SPL_SHIFT_W32(Energy, Energyscale);
 
       
-      crossCorrSqMod=(WebRtc_Word16)WEBRTC_SPL_MUL_16_16_RSFT(crossCorrmod, crossCorrmod, 16);
+      crossCorrSqMod=(int16_t)WEBRTC_SPL_MUL_16_16_RSFT(crossCorrmod, crossCorrmod, 16);
 
       
 
@@ -111,11 +111,11 @@ int WebRtcIlbcfix_XcorrCoef(
 
 
       if (scalediff<0) {
-        newCrit = ((WebRtc_Word32)crossCorrSqMod*EnergyMod_Max)>>(-scalediff);
-        maxCrit = ((WebRtc_Word32)crossCorrSqMod_Max*EnergyMod);
+        newCrit = ((int32_t)crossCorrSqMod*EnergyMod_Max)>>(-scalediff);
+        maxCrit = ((int32_t)crossCorrSqMod_Max*EnergyMod);
       } else {
-        newCrit = ((WebRtc_Word32)crossCorrSqMod*EnergyMod_Max);
-        maxCrit = ((WebRtc_Word32)crossCorrSqMod_Max*EnergyMod)>>scalediff;
+        newCrit = ((int32_t)crossCorrSqMod*EnergyMod_Max);
+        maxCrit = ((int32_t)crossCorrSqMod_Max*EnergyMod)>>scalediff;
       }
 
       
@@ -132,7 +132,7 @@ int WebRtcIlbcfix_XcorrCoef(
 
     
     Energy += step*(WEBRTC_SPL_RSHIFT_W32(
-        ((WebRtc_Word32)(*rp_end)*(*rp_end)) - ((WebRtc_Word32)(*rp_beg)*(*rp_beg)),
+        ((int32_t)(*rp_end)*(*rp_end)) - ((int32_t)(*rp_beg)*(*rp_beg)),
         shifts));
     rp_beg+=step;
     rp_end+=step;

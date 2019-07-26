@@ -64,57 +64,57 @@ typedef struct
 {
 
     
-    WebRtc_UWord16 levelFiltFact; 
-    WebRtc_UWord16 buffLevelFilt; 
+    uint16_t levelFiltFact; 
+    int buffLevelFilt; 
 
     
-    WebRtc_Word32 iatProb[MAX_IAT + 1]; 
-    WebRtc_Word16 iatProbFact; 
-    WebRtc_UWord32 packetIatCountSamp; 
+    int32_t iatProb[MAX_IAT + 1]; 
+    int16_t iatProbFact; 
+    uint32_t packetIatCountSamp; 
 
-    WebRtc_UWord16 optBufLevel; 
-
-    
-    WebRtc_Word16 packetSpeechLenSamp; 
-    WebRtc_Word16 lastPackCNGorDTMF; 
-
-    WebRtc_UWord16 lastSeqNo; 
-    WebRtc_UWord32 lastTimeStamp; 
-    WebRtc_Word32 sampleMemory; 
-
-    WebRtc_Word16 prevTimeScale; 
-
-    WebRtc_UWord32 timescaleHoldOff; 
-
-
-    WebRtc_Word16 extraDelayMs; 
+    int optBufLevel; 
 
     
+    int16_t packetSpeechLenSamp; 
+    int16_t lastPackCNGorDTMF; 
+
+    uint16_t lastSeqNo; 
+    uint32_t lastTimeStamp; 
+    int32_t sampleMemory; 
+
+    int16_t prevTimeScale; 
+
+    uint32_t timescaleHoldOff; 
+
+
+    int16_t extraDelayMs; 
+
     
-    WebRtc_UWord32 peakPeriodSamp[NUM_PEAKS];
     
-    WebRtc_Word16 peakHeightPkt[NUM_PEAKS];
-    WebRtc_Word16 peakIndex; 
+    uint32_t peakPeriodSamp[NUM_PEAKS];
+    
+    int16_t peakHeightPkt[NUM_PEAKS];
+    int16_t peakIndex; 
 
-    WebRtc_UWord16 peakThresholdPkt; 
+    uint16_t peakThresholdPkt; 
 
-    WebRtc_UWord32 peakIatCountSamp; 
-    WebRtc_UWord32 curPeakPeriod; 
-    WebRtc_Word16 curPeakHeight; 
+    uint32_t peakIatCountSamp; 
+    uint32_t curPeakPeriod; 
+    int16_t curPeakHeight; 
 
-    WebRtc_Word16 peakModeDisabled; 
+    int16_t peakModeDisabled; 
     uint16_t peakFound; 
 
 
     
-    WebRtc_UWord32 countIAT500ms; 
-    WebRtc_UWord32 countIAT1000ms; 
-    WebRtc_UWord32 countIAT2000ms; 
-    WebRtc_UWord32 longestIATms; 
+    uint32_t countIAT500ms; 
+    uint32_t countIAT1000ms; 
+    uint32_t countIAT2000ms; 
+    uint32_t longestIATms; 
 
-    WebRtc_Word16 cSumIatQ8; 
-    WebRtc_Word16 maxCSumIatQ8; 
-    WebRtc_UWord32 maxCSumUpdateTimer;
+    int16_t cSumIatQ8; 
+    int16_t maxCSumIatQ8; 
+    uint32_t maxCSumUpdateTimer;
 
 } AutomodeInst_t;
 
@@ -148,8 +148,8 @@ typedef struct
 
 
 int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
-                                    WebRtc_UWord16 seqNumber, WebRtc_UWord32 timeStamp,
-                                    WebRtc_Word32 fsHz, int mdCodec, int streamingMode);
+                                    uint16_t seqNumber, uint32_t timeStamp,
+                                    int32_t fsHz, int mdCodec, int streamingMode);
 
 
 
@@ -172,9 +172,9 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 
 
 
-WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 fsHz,
-                                            int mdCodec, WebRtc_UWord32 timeIatPkts,
-                                            int streamingMode);
+int16_t WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, int32_t fsHz,
+                                      int mdCodec, uint32_t timeIatPkts,
+                                      int streamingMode);
 
 
 
@@ -197,8 +197,8 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
 
 
 
-int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst,
-                                  int sampPerCall, WebRtc_Word16 fsMult);
+int WebRtcNetEQ_BufferLevelFilter(int32_t curSizeMs8, AutomodeInst_t *inst,
+                                  int sampPerCall, int16_t fsMult);
 
 
 
@@ -220,8 +220,8 @@ int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst
 
 
 
-int WebRtcNetEQ_SetPacketSpeechLen(AutomodeInst_t *inst, WebRtc_Word16 newLenSamp,
-                                   WebRtc_Word32 fsHz);
+int WebRtcNetEQ_SetPacketSpeechLen(AutomodeInst_t *inst, int16_t newLenSamp,
+                                   int32_t fsHz);
 
 
 

@@ -27,12 +27,12 @@
 
 
 int WebRtcIlbcfix_XcorrCoef(
-    WebRtc_Word16 *target,  
-    WebRtc_Word16 *regressor, 
-    WebRtc_Word16 subl,  
-    WebRtc_Word16 searchLen, 
-    WebRtc_Word16 offset,  
-    WebRtc_Word16 step   
+    int16_t *target,  
+    int16_t *regressor, 
+    int16_t subl,  
+    int16_t searchLen, 
+    int16_t offset,  
+    int16_t step   
                             );
 
 #endif

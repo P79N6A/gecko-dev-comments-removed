@@ -30,14 +30,14 @@
 
 
 void WebRtcIlbcfix_Refiner(
-    WebRtc_Word16 *updStartPos, 
-    WebRtc_Word16 *idata,   
-    WebRtc_Word16 idatal,   
-    WebRtc_Word16 centerStartPos, 
-    WebRtc_Word16 estSegPos,  
-    WebRtc_Word16 *surround,  
+    int16_t *updStartPos, 
+    int16_t *idata,   
+    int16_t idatal,   
+    int16_t centerStartPos, 
+    int16_t estSegPos,  
+    int16_t *surround,  
 
-    WebRtc_Word16 gain    
+    int16_t gain    
                            );
 
 #endif

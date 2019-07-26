@@ -26,9 +26,9 @@
 
 
 void WebRtcIlbcfix_PackBits( 
-    WebRtc_UWord16 *bitstream,   
+    uint16_t *bitstream,   
     iLBC_bits *enc_bits,  
-    WebRtc_Word16 mode     
+    int16_t mode     
                              );
 
 #endif

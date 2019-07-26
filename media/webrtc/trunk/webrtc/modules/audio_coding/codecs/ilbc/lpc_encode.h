@@ -26,12 +26,12 @@
 
 
 void WebRtcIlbcfix_LpcEncode(
-    WebRtc_Word16 *syntdenum,  
+    int16_t *syntdenum,  
 
-    WebRtc_Word16 *weightdenum, 
+    int16_t *weightdenum, 
 
-    WebRtc_Word16 *lsf_index,  
-    WebRtc_Word16 *data,   
+    int16_t *lsf_index,  
+    int16_t *data,   
     iLBC_Enc_Inst_t *iLBCenc_inst
     
                              );

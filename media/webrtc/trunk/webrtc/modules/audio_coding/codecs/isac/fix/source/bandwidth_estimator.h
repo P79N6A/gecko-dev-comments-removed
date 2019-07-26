@@ -33,7 +33,7 @@
 
 
 
-WebRtc_Word32 WebRtcIsacfix_InitBandwidthEstimator(BwEstimatorstr *bwest_str);
+int32_t WebRtcIsacfix_InitBandwidthEstimator(BwEstimatorstr *bwest_str);
 
 
 
@@ -57,20 +57,17 @@ WebRtc_Word32 WebRtcIsacfix_InitBandwidthEstimator(BwEstimatorstr *bwest_str);
 
 
 
-WebRtc_Word32 WebRtcIsacfix_UpdateUplinkBwImpl(BwEstimatorstr            *bwest_str,
-                                               const WebRtc_UWord16        rtp_number,
-                                               const WebRtc_Word16         frameSize,
-                                               const WebRtc_UWord32    send_ts,
-                                               const WebRtc_UWord32        arr_ts,
-                                               const WebRtc_Word16         pksize,
-                                               const WebRtc_UWord16        Index);
+int32_t WebRtcIsacfix_UpdateUplinkBwImpl(BwEstimatorstr       *bwest_str,
+                                         const uint16_t        rtp_number,
+                                         const int16_t         frameSize,
+                                         const uint32_t        send_ts,
+                                         const uint32_t        arr_ts,
+                                         const int16_t         pksize,
+                                         const uint16_t        Index);
 
 
-WebRtc_Word16 WebRtcIsacfix_UpdateUplinkBwRec(BwEstimatorstr *bwest_str,
-                                              const WebRtc_Word16 Index);
-
-
-
+int16_t WebRtcIsacfix_UpdateUplinkBwRec(BwEstimatorstr *bwest_str,
+                                        const int16_t Index);
 
 
 
@@ -81,47 +78,50 @@ WebRtc_Word16 WebRtcIsacfix_UpdateUplinkBwRec(BwEstimatorstr *bwest_str,
 
 
 
-WebRtc_UWord16 WebRtcIsacfix_GetDownlinkBwIndexImpl(BwEstimatorstr *bwest_str);
-
-
-WebRtc_UWord16 WebRtcIsacfix_GetDownlinkBandwidth(const BwEstimatorstr *bwest_str);
-
-
-WebRtc_Word16 WebRtcIsacfix_GetUplinkBandwidth(const BwEstimatorstr *bwest_str);
-
-
-WebRtc_Word16 WebRtcIsacfix_GetDownlinkMaxDelay(const BwEstimatorstr *bwest_str);
-
-
-WebRtc_Word16 WebRtcIsacfix_GetUplinkMaxDelay(const BwEstimatorstr *bwest_str);
 
 
 
+uint16_t WebRtcIsacfix_GetDownlinkBwIndexImpl(BwEstimatorstr *bwest_str);
 
 
-WebRtc_UWord16 WebRtcIsacfix_GetMinBytes(RateModel *State,
-                                         WebRtc_Word16 StreamSize,     
-                                         const WebRtc_Word16 FrameLen,    
-                                         const WebRtc_Word16 BottleNeck,        
-                                         const WebRtc_Word16 DelayBuildUp);     
+uint16_t WebRtcIsacfix_GetDownlinkBandwidth(const BwEstimatorstr *bwest_str);
+
+
+int16_t WebRtcIsacfix_GetUplinkBandwidth(const BwEstimatorstr *bwest_str);
+
+
+int16_t WebRtcIsacfix_GetDownlinkMaxDelay(const BwEstimatorstr *bwest_str);
+
+
+int16_t WebRtcIsacfix_GetUplinkMaxDelay(const BwEstimatorstr *bwest_str);
+
+
+
+
+
+uint16_t WebRtcIsacfix_GetMinBytes(RateModel *State,
+                                   int16_t StreamSize,     
+                                   const int16_t FrameLen,    
+                                   const int16_t BottleNeck,        
+                                   const int16_t DelayBuildUp);     
 
 
 
 
 void WebRtcIsacfix_UpdateRateModel(RateModel *State,
-                                   WebRtc_Word16 StreamSize,    
-                                   const WebRtc_Word16 FrameSamples,  
-                                   const WebRtc_Word16 BottleNeck);       
+                                   int16_t StreamSize,    
+                                   const int16_t FrameSamples,  
+                                   const int16_t BottleNeck);       
 
 
 void WebRtcIsacfix_InitRateModel(RateModel *State);
 
 
-WebRtc_Word16 WebRtcIsacfix_GetNewFrameLength(WebRtc_Word16 bottle_neck, WebRtc_Word16 current_framelength);
+int16_t WebRtcIsacfix_GetNewFrameLength(int16_t bottle_neck, int16_t current_framelength);
 
 
 
-WebRtc_Word16 WebRtcIsacfix_GetSnr(WebRtc_Word16 bottle_neck, WebRtc_Word16 framesamples);
+int16_t WebRtcIsacfix_GetSnr(int16_t bottle_neck, int16_t framesamples);
 
 
 #endif 

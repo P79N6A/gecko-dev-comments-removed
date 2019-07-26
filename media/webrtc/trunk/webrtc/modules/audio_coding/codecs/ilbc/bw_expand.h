@@ -26,11 +26,11 @@
 
 
 void WebRtcIlbcfix_BwExpand(
-    WebRtc_Word16 *out, 
-    WebRtc_Word16 *in,  
+    int16_t *out, 
+    int16_t *in,  
 
-    WebRtc_Word16 *coef, 
-    WebRtc_Word16 length 
+    int16_t *coef, 
+    int16_t length 
                             );
 
 #endif

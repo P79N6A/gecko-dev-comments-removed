@@ -24,7 +24,7 @@
 
 
 void WebRtcIlbcfix_EnergyInverse(
-    WebRtc_Word16 *energy,     
+    int16_t *energy,     
 
     int noOfEnergies);   
 

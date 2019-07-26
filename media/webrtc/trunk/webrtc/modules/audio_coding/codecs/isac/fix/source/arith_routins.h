@@ -38,9 +38,9 @@
 
 int WebRtcIsacfix_EncLogisticMulti2(
     Bitstr_enc *streamData,
-    WebRtc_Word16 *dataQ7,
-    const WebRtc_UWord16 *env,
-    const WebRtc_Word16 lenData);
+    int16_t *dataQ7,
+    const uint16_t *env,
+    const int16_t lenData);
 
 
 
@@ -54,7 +54,7 @@ int WebRtcIsacfix_EncLogisticMulti2(
 
 
 
-WebRtc_Word16 WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData);
+int16_t WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData);
 
 
 
@@ -74,11 +74,11 @@ WebRtc_Word16 WebRtcIsacfix_EncTerminate(Bitstr_enc *streamData);
 
 
 
-WebRtc_Word16 WebRtcIsacfix_DecLogisticMulti2(
-    WebRtc_Word16 *data,
+int16_t WebRtcIsacfix_DecLogisticMulti2(
+    int16_t *data,
     Bitstr_dec *streamData,
-    const WebRtc_Word32 *env,
-    const WebRtc_Word16 lenData);
+    const int32_t *env,
+    const int16_t lenData);
 
 
 
@@ -97,9 +97,9 @@ WebRtc_Word16 WebRtcIsacfix_DecLogisticMulti2(
 
 int WebRtcIsacfix_EncHistMulti(
     Bitstr_enc *streamData,
-    const WebRtc_Word16 *data,
-    const WebRtc_UWord16 **cdf,
-    const WebRtc_Word16 lenData);
+    const int16_t *data,
+    const uint16_t **cdf,
+    const int16_t lenData);
 
 
 
@@ -122,12 +122,12 @@ int WebRtcIsacfix_EncHistMulti(
 
 
 
-WebRtc_Word16 WebRtcIsacfix_DecHistBisectMulti(
-    WebRtc_Word16 *data,
+int16_t WebRtcIsacfix_DecHistBisectMulti(
+    int16_t *data,
     Bitstr_dec *streamData,
-    const WebRtc_UWord16 **cdf,
-    const WebRtc_UWord16 *cdfSize,
-    const WebRtc_Word16 lenData);
+    const uint16_t **cdf,
+    const uint16_t *cdfSize,
+    const int16_t lenData);
 
 
 
@@ -150,11 +150,11 @@ WebRtc_Word16 WebRtcIsacfix_DecHistBisectMulti(
 
 
 
-WebRtc_Word16 WebRtcIsacfix_DecHistOneStepMulti(
-    WebRtc_Word16 *data,
+int16_t WebRtcIsacfix_DecHistOneStepMulti(
+    int16_t *data,
     Bitstr_dec *streamData,
-    const WebRtc_UWord16 **cdf,
-    const WebRtc_UWord16 *initIndex,
-    const WebRtc_Word16 lenData);
+    const uint16_t **cdf,
+    const uint16_t *initIndex,
+    const int16_t lenData);
 
 #endif 

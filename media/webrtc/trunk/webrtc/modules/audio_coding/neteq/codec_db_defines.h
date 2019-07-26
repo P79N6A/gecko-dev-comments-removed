@@ -23,45 +23,45 @@
 
 
 
-typedef WebRtc_Word16 (*FuncDecode)(void* state, WebRtc_Word16* encoded, WebRtc_Word16 len,
-                                    WebRtc_Word16* decoded, WebRtc_Word16* speechType);
+typedef int16_t (*FuncDecode)(void* state, int16_t* encoded, int16_t len,
+                                    int16_t* decoded, int16_t* speechType);
 
 
 
 
-typedef WebRtc_Word16 (*FuncDecodePLC)(void* state, WebRtc_Word16* decodec,
-                                       WebRtc_Word16 frames);
+typedef int16_t (*FuncDecodePLC)(void* state, int16_t* decodec,
+                                       int16_t frames);
 
 
 
 
-typedef WebRtc_Word16 (*FuncDecodeInit)(void* state);
+typedef int16_t (*FuncDecodeInit)(void* state);
 
 
 
 
-typedef WebRtc_Word16
-                (*FuncAddLatePkt)(void* state, WebRtc_Word16* encoded, WebRtc_Word16 len);
+typedef int16_t
+                (*FuncAddLatePkt)(void* state, int16_t* encoded, int16_t len);
 
 
 
 
-typedef WebRtc_Word16 (*FuncGetMDinfo)(void* state);
+typedef int16_t (*FuncGetMDinfo)(void* state);
 
 
 
 
 
-typedef WebRtc_Word16 (*FuncGetPitchInfo)(void* state, WebRtc_Word16* encoded,
-                                          WebRtc_Word16* length);
+typedef int16_t (*FuncGetPitchInfo)(void* state, int16_t* encoded,
+                                          int16_t* length);
 
 
 
 
-typedef WebRtc_Word16 (*FuncUpdBWEst)(void* state, const WebRtc_UWord16 *encoded,
-                                      WebRtc_Word32 packet_size,
-                                      WebRtc_UWord16 rtp_seq_number, WebRtc_UWord32 send_ts,
-                                      WebRtc_UWord32 arr_ts);
+typedef int16_t (*FuncUpdBWEst)(void* state, const uint16_t *encoded,
+                                      int32_t packet_size,
+                                      uint16_t rtp_seq_number, uint32_t send_ts,
+                                      uint32_t arr_ts);
 
 
 
@@ -73,7 +73,7 @@ typedef int (*FuncDurationEst)(void* state, const uint8_t* payload,
 
 
 
-typedef WebRtc_Word16 (*FuncGetErrorCode)(void* state);
+typedef int16_t (*FuncGetErrorCode)(void* state);
 
 typedef struct CodecFuncInst_t_
 {
@@ -88,8 +88,8 @@ typedef struct CodecFuncInst_t_
     FuncDurationEst funcDurationEst;
     FuncGetErrorCode funcGetErrorCode;
     void * codec_state;
-    WebRtc_UWord16 codec_fs;
-    WebRtc_UWord32 timeStamp;
+    uint16_t codec_fs;
+    uint32_t timeStamp;
 
 } CodecFuncInst_t;
 

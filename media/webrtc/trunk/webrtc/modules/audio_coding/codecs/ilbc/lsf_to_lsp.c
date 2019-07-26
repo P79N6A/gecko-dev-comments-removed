@@ -24,19 +24,19 @@
 
 
 void WebRtcIlbcfix_Lsf2Lsp(
-    WebRtc_Word16 *lsf, 
-    WebRtc_Word16 *lsp, 
-    WebRtc_Word16 m  
+    int16_t *lsf, 
+    int16_t *lsp, 
+    int16_t m  
                            ) {
-  WebRtc_Word16 i, k;
-  WebRtc_Word16 diff; 
+  int16_t i, k;
+  int16_t diff; 
 
-  WebRtc_Word16 freq; 
-  WebRtc_Word32 tmpW32;
+  int16_t freq; 
+  int32_t tmpW32;
 
   for(i=0; i<m; i++)
   {
-    freq = (WebRtc_Word16)WEBRTC_SPL_MUL_16_16_RSFT(lsf[i], 20861, 15);
+    freq = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(lsf[i], 20861, 15);
     
     
 
@@ -54,7 +54,7 @@ void WebRtcIlbcfix_Lsf2Lsp(
 
     
     tmpW32 = WEBRTC_SPL_MUL_16_16(WebRtcIlbcfix_kCosDerivative[k], diff);
-    lsp[i] = WebRtcIlbcfix_kCos[k]+(WebRtc_Word16)(WEBRTC_SPL_RSHIFT_W32(tmpW32, 12));
+    lsp[i] = WebRtcIlbcfix_kCos[k]+(int16_t)(WEBRTC_SPL_RSHIFT_W32(tmpW32, 12));
   }
 
   return;

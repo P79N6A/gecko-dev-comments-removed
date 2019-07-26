@@ -41,12 +41,12 @@
 
 short encode(                         
     iLBC_Enc_Inst_t *iLBCenc_inst,    
-    WebRtc_Word16 *encoded_data,      
-    WebRtc_Word16 *data               
+    int16_t *encoded_data,      
+    int16_t *data               
                                                         ){
 
   
-  WebRtcIlbcfix_Encode((WebRtc_UWord16 *)encoded_data, data, iLBCenc_inst);
+  WebRtcIlbcfix_Encode((uint16_t *)encoded_data, data, iLBCenc_inst);
 
   return (iLBCenc_inst->no_of_bytes);
 }
@@ -69,7 +69,7 @@ short decode(
 
   
 
-  WebRtcIlbcfix_Decode(decoded_data, (WebRtc_UWord16 *)encoded_data,
+  WebRtcIlbcfix_Decode(decoded_data, (uint16_t *)encoded_data,
                        iLBCdec_inst, mode);
 
   return (iLBCdec_inst->blockl);
@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
   frameLen = Enc_Inst.blockl;
 
   while( fread(&inputdata[noOfBlocks*Enc_Inst.blockl],sizeof(short),
-               Enc_Inst.blockl,ifileid)==(WebRtc_UWord16)Enc_Inst.blockl){
+               Enc_Inst.blockl,ifileid)==(uint16_t)Enc_Inst.blockl){
     noOfBlocks++;
   }
 #endif

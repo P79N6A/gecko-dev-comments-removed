@@ -22,17 +22,17 @@
 #include "defines.h"
 
 void WebRtcIlbcfix_CbUpdateBestIndex(
-    WebRtc_Word32 CritNew,    
-    WebRtc_Word16 CritNewSh,   
-    WebRtc_Word16 IndexNew,   
-    WebRtc_Word32 cDotNew,    
-    WebRtc_Word16 invEnergyNew,  
-    WebRtc_Word16 energyShiftNew,  
-    WebRtc_Word32 *CritMax,   
-    WebRtc_Word16 *shTotMax,   
-    WebRtc_Word16 *bestIndex,   
+    int32_t CritNew,    
+    int16_t CritNewSh,   
+    int16_t IndexNew,   
+    int32_t cDotNew,    
+    int16_t invEnergyNew,  
+    int16_t energyShiftNew,  
+    int32_t *CritMax,   
+    int16_t *shTotMax,   
+    int16_t *bestIndex,   
 
-    WebRtc_Word16 *bestGain);   
+    int16_t *bestGain);   
 
 
 #endif

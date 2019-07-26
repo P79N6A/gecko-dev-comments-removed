@@ -12,6 +12,7 @@
 #define WEBRTC_MODULES_PACED_SENDER_H_
 
 #include <list>
+#include <set>
 
 #include "webrtc/modules/interface/module.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
@@ -28,6 +29,9 @@ class PacedSender : public Module {
     kNormalPriority = 2,  
     kLowPriority = 3,  
   };
+  
+  
+
   class Callback {
    public:
     
@@ -40,7 +44,8 @@ class PacedSender : public Module {
    protected:
     virtual ~Callback() {}
   };
-  PacedSender(Callback* callback, int target_bitrate_kbps);
+  PacedSender(Callback* callback, int target_bitrate_kbps,
+              float pace_multiplier);
 
   virtual ~PacedSender();
 
@@ -48,12 +53,24 @@ class PacedSender : public Module {
   void SetStatus(bool enable);
 
   
+  void Pause();
+
+  
+  void Resume();
+
+  
   void UpdateBitrate(int target_bitrate_kbps);
 
   
   
-  bool SendPacket(Priority priority, uint32_t ssrc, uint16_t sequence_number,
-                  int64_t capture_time_ms, int bytes);
+  virtual bool SendPacket(Priority priority,
+                          uint32_t ssrc,
+                          uint16_t sequence_number,
+                          int64_t capture_time_ms,
+                          int bytes);
+
+  
+  virtual int QueueInMs() const;
 
   
   
@@ -76,9 +93,31 @@ class PacedSender : public Module {
     int64_t capture_time_ms_;
     int bytes_;
   };
+
+  
+  class PacketList {
+   public:
+    PacketList() {};
+
+    bool empty() const;
+    Packet front() const;
+    void pop_front();
+    void push_back(const Packet& packet);
+
+   private:
+    std::list<Packet> packet_list_;
+    std::set<uint16_t> sequence_number_set_;
+  };
+
   
   bool GetNextPacket(uint32_t* ssrc, uint16_t* sequence_number,
-                     int64_t* capture_time_ms);
+                     int64_t* capture_time_ms, Priority* priority,
+                     bool* last_packet);
+
+  
+  void GetNextPacketFromList(PacketList* list,
+      uint32_t* ssrc, uint16_t* sequence_number, int64_t* capture_time_ms,
+      bool* last_packet);
 
   
   void UpdateBytesPerInterval(uint32_t delta_time_in_ms);
@@ -87,16 +126,21 @@ class PacedSender : public Module {
   void UpdateState(int num_bytes);
 
   Callback* callback_;
+  const float pace_multiplier_;
   bool enable_;
+  bool paused_;
   scoped_ptr<CriticalSectionWrapper> critsect_;
   int target_bitrate_kbytes_per_s_;
   int bytes_remaining_interval_;
   int padding_bytes_remaining_interval_;
   TickTime time_last_update_;
   TickTime time_last_send_;
+  int64_t capture_time_ms_last_queued_;
+  int64_t capture_time_ms_last_sent_;
 
-  std::list<Packet> normal_priority_packets_;
-  std::list<Packet> low_priority_packets_;
+  PacketList high_priority_packets_;
+  PacketList normal_priority_packets_;
+  PacketList low_priority_packets_;
 };
 }  
 #endif

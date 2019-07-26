@@ -22,76 +22,71 @@ class MediaFileImpl : public MediaFile
 {
 
 public:
-    MediaFileImpl(const WebRtc_Word32 id);
+    MediaFileImpl(const int32_t id);
     ~MediaFileImpl();
 
-    WebRtc_Word32 ChangeUniqueId(const WebRtc_Word32 id);
-    WebRtc_Word32 Process();
-    WebRtc_Word32 TimeUntilNextProcess();
+    int32_t ChangeUniqueId(const int32_t id);
+    int32_t Process();
+    int32_t TimeUntilNextProcess();
 
     
-    WebRtc_Word32 PlayoutAudioData(WebRtc_Word8*   audioBuffer,
-                                   WebRtc_UWord32& dataLengthInBytes);
-    WebRtc_Word32 PlayoutAVIVideoData(WebRtc_Word8* videoBuffer,
-                                      WebRtc_UWord32& dataLengthInBytes);
-    WebRtc_Word32 PlayoutStereoData(WebRtc_Word8* audioBufferLeft,
-                                    WebRtc_Word8* audioBufferRight,
-                                    WebRtc_UWord32& dataLengthInBytes);
-    virtual WebRtc_Word32 StartPlayingAudioFile(
+    int32_t PlayoutAudioData(int8_t* audioBuffer, uint32_t& dataLengthInBytes);
+    int32_t PlayoutAVIVideoData(int8_t* videoBuffer,
+                                uint32_t& dataLengthInBytes);
+    int32_t PlayoutStereoData(int8_t* audioBufferLeft, int8_t* audioBufferRight,
+                              uint32_t& dataLengthInBytes);
+    virtual int32_t StartPlayingAudioFile(
         const char*  fileName,
-        const WebRtc_UWord32 notificationTimeMs = 0,
+        const uint32_t notificationTimeMs = 0,
         const bool           loop = false,
         const FileFormats    format = kFileFormatPcm16kHzFile,
         const CodecInst*     codecInst = NULL,
-        const WebRtc_UWord32 startPointMs = 0,
-        const WebRtc_UWord32 stopPointMs = 0);
-    WebRtc_Word32 StartPlayingVideoFile(const char* fileName,
-                                        const bool          loop,
-                                        bool                videoOnly,
-                                        const FileFormats   format);
-    WebRtc_Word32 StartPlayingAudioStream(
-        InStream&            stream,
-        const WebRtc_UWord32 notificationTimeMs = 0,
-        const FileFormats    format = kFileFormatPcm16kHzFile,
-        const CodecInst*     codecInst = NULL,
-        const WebRtc_UWord32 startPointMs = 0,
-        const WebRtc_UWord32 stopPointMs = 0);
-    WebRtc_Word32 StopPlaying();
+        const uint32_t startPointMs = 0,
+        const uint32_t stopPointMs = 0);
+    int32_t StartPlayingVideoFile(const char* fileName, const bool loop,
+                                  bool videoOnly, const FileFormats format);
+    int32_t StartPlayingAudioStream(InStream& stream,
+        const uint32_t notificationTimeMs = 0,
+        const FileFormats format = kFileFormatPcm16kHzFile,
+        const CodecInst* codecInst = NULL,
+        const uint32_t startPointMs = 0,
+        const uint32_t stopPointMs = 0);
+    int32_t StopPlaying();
     bool IsPlaying();
-    WebRtc_Word32 PlayoutPositionMs(WebRtc_UWord32& positionMs) const;
-    WebRtc_Word32 IncomingAudioData(const WebRtc_Word8*  audioBuffer,
-                                    const WebRtc_UWord32 bufferLength);
-    WebRtc_Word32 IncomingAVIVideoData(const WebRtc_Word8*  audioBuffer,
-                                       const WebRtc_UWord32 bufferLength);
-    WebRtc_Word32 StartRecordingAudioFile(
+    int32_t PlayoutPositionMs(uint32_t& positionMs) const;
+    int32_t IncomingAudioData(const int8_t*  audioBuffer,
+                              const uint32_t bufferLength);
+    int32_t IncomingAVIVideoData(const int8_t*  audioBuffer,
+                                 const uint32_t bufferLength);
+    int32_t StartRecordingAudioFile(
         const char*  fileName,
         const FileFormats    format,
         const CodecInst&     codecInst,
-        const WebRtc_UWord32 notificationTimeMs = 0,
-        const WebRtc_UWord32 maxSizeBytes = 0);
-    WebRtc_Word32 StartRecordingVideoFile(
+        const uint32_t notificationTimeMs = 0,
+        const uint32_t maxSizeBytes = 0);
+    int32_t StartRecordingVideoFile(
         const char* fileName,
         const FileFormats   format,
         const CodecInst&    codecInst,
         const VideoCodec&   videoCodecInst,
         bool                videoOnly = false);
-    WebRtc_Word32 StartRecordingAudioStream(
+    int32_t StartRecordingAudioStream(
         OutStream&           stream,
         const FileFormats    format,
         const CodecInst&     codecInst,
-        const WebRtc_UWord32 notificationTimeMs = 0);
-    WebRtc_Word32 StopRecording();
+        const uint32_t notificationTimeMs = 0);
+    int32_t StopRecording();
     bool IsRecording();
-    WebRtc_Word32 RecordDurationMs(WebRtc_UWord32& durationMs);
+    int32_t RecordDurationMs(uint32_t& durationMs);
     bool IsStereo();
-    WebRtc_Word32 SetModuleFileCallback(FileCallback* callback);
-    WebRtc_Word32 FileDurationMs(
+    int32_t SetModuleFileCallback(FileCallback* callback);
+    int32_t FileDurationMs(
         const char*  fileName,
-        WebRtc_UWord32&      durationMs,
+        uint32_t&      durationMs,
         const FileFormats    format,
-        const WebRtc_UWord32 freqInHz = 16000);
-    WebRtc_Word32 codec_info(CodecInst& codecInst) const;
-    WebRtc_Word32 VideoCodecInst(VideoCodec& codecInst) const;
+        const uint32_t freqInHz = 16000);
+    int32_t codec_info(CodecInst& codecInst) const;
+    int32_t VideoCodecInst(VideoCodec& codecInst) const;
 
 private:
     
@@ -103,8 +98,8 @@ private:
     static bool ValidFileName(const char* fileName);
 
   
-    static bool ValidFilePositions(const WebRtc_UWord32 startPointMs,
-                                   const WebRtc_UWord32 stopPointMs);
+    static bool ValidFilePositions(const uint32_t startPointMs,
+                                   const uint32_t stopPointMs);
 
     
     
@@ -118,15 +113,15 @@ private:
     
     
     
-    WebRtc_Word32 StartPlayingFile(
+    int32_t StartPlayingFile(
         const char*  fileName,
-        const WebRtc_UWord32 notificationTimeMs = 0,
+        const uint32_t notificationTimeMs = 0,
         const bool           loop               = false,
         bool                 videoOnly          = false,
         const FileFormats    format             = kFileFormatPcm16kHzFile,
         const CodecInst*     codecInst          = NULL,
-        const WebRtc_UWord32 startPointMs       = 0,
-        const WebRtc_UWord32 stopPointMs        = 0);
+        const uint32_t startPointMs       = 0,
+        const uint32_t stopPointMs        = 0);
 
     
     
@@ -142,15 +137,15 @@ private:
     
     
     
-    WebRtc_Word32 StartPlayingStream(
+    int32_t StartPlayingStream(
         InStream&            stream,
         const char*          fileName,
         bool                 loop,
-        const WebRtc_UWord32 notificationTimeMs = 0,
+        const uint32_t notificationTimeMs = 0,
         const FileFormats    format             = kFileFormatPcm16kHzFile,
         const CodecInst*     codecInst          = NULL,
-        const WebRtc_UWord32 startPointMs       = 0,
-        const WebRtc_UWord32 stopPointMs        = 0,
+        const uint32_t startPointMs       = 0,
+        const uint32_t stopPointMs        = 0,
         bool                 videoOnly          = true);
 
     
@@ -158,15 +153,15 @@ private:
     
     
     
-    WebRtc_Word32 PlayoutData(WebRtc_Word8* dataBuffer,
-                              WebRtc_UWord32& dataLengthInBytes, bool video);
+    int32_t PlayoutData(int8_t* dataBuffer, uint32_t& dataLengthInBytes,
+                        bool video);
 
     
     
     
-    WebRtc_Word32 IncomingAudioVideoData(const WebRtc_Word8*  buffer,
-                                         const WebRtc_UWord32 bufferLength,
-                                         const bool video);
+    int32_t IncomingAudioVideoData(const int8_t*  buffer,
+                                   const uint32_t bufferLength,
+                                   const bool video);
 
     
     
@@ -181,13 +176,13 @@ private:
     
     
     
-    WebRtc_Word32 StartRecordingFile(
+    int32_t StartRecordingFile(
         const char*  fileName,
         const FileFormats    format,
         const CodecInst&     codecInst,
         const VideoCodec&    videoCodecInst,
-        const WebRtc_UWord32 notificationTimeMs = 0,
-        const WebRtc_UWord32 maxSizeBytes = 0,
+        const uint32_t notificationTimeMs = 0,
+        const uint32_t maxSizeBytes = 0,
         bool                 videoOnly = false);
 
     
@@ -203,21 +198,21 @@ private:
     
     
     
-    WebRtc_Word32 StartRecordingStream(
+    int32_t StartRecordingStream(
         OutStream&           stream,
         const char*  fileName,
         const FileFormats    format,
         const CodecInst&     codecInst,
         const VideoCodec&    videoCodecInst,
-        const WebRtc_UWord32 notificationTimeMs = 0,
+        const uint32_t notificationTimeMs = 0,
         const bool           videoOnly = false);
 
     
-    static bool ValidFrequency(const WebRtc_UWord32 frequencyInHz);
+    static bool ValidFrequency(const uint32_t frequencyInHz);
 
-    void HandlePlayCallbacks(WebRtc_Word32 bytesRead);
+    void HandlePlayCallbacks(int32_t bytesRead);
 
-    WebRtc_Word32 _id;
+    int32_t _id;
     CriticalSectionWrapper* _crit;
     CriticalSectionWrapper* _callbackCrit;
 
@@ -228,9 +223,9 @@ private:
     OutStream* _ptrOutStream;
 
     FileFormats _fileFormat;
-    WebRtc_UWord32 _recordDurationMs;
-    WebRtc_UWord32 _playoutPositionMs;
-    WebRtc_UWord32 _notificationMs;
+    uint32_t _recordDurationMs;
+    uint32_t _playoutPositionMs;
+    uint32_t _notificationMs;
 
     bool _playingActive;
     bool _recordingActive;

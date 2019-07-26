@@ -65,14 +65,14 @@
 
 
 
-const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl8Khz[8] =
+const int16_t WebRtcNetEQ_dtfm_aTbl8Khz[8] =
 {
     27980, 26956, 25701, 24219,
     19073, 16325, 13085, 9315
 };
 
 #ifdef NETEQ_WIDEBAND
-const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl16Khz[8]=
+const int16_t WebRtcNetEQ_dtfm_aTbl16Khz[8]=
 {
     31548, 31281, 30951, 30556,
     29144, 28361, 27409, 26258
@@ -80,7 +80,7 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl16Khz[8]=
 #endif
 
 #ifdef NETEQ_32KHZ_WIDEBAND
-const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl32Khz[8]=
+const int16_t WebRtcNetEQ_dtfm_aTbl32Khz[8]=
 {
     32462, 32394, 32311, 32210,
     31849, 31647, 31400, 31098
@@ -88,7 +88,7 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl32Khz[8]=
 #endif
 
 #ifdef NETEQ_48KHZ_WIDEBAND
-const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl48Khz[8]=
+const int16_t WebRtcNetEQ_dtfm_aTbl48Khz[8]=
 {
     32632, 32602, 32564, 32520,
     32359, 32268, 32157, 32022
@@ -100,14 +100,14 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_aTbl48Khz[8]=
 
 
 
-const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab8Khz[8] =
+const int16_t WebRtcNetEQ_dtfm_yInitTab8Khz[8] =
 {
     8528, 9315, 10163, 11036,
     13323, 14206,15021, 15708
 };
 
 #ifdef NETEQ_WIDEBAND
-const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab16Khz[8]=
+const int16_t WebRtcNetEQ_dtfm_yInitTab16Khz[8]=
 {
     4429, 4879, 5380, 5918,
     7490, 8207, 8979, 9801
@@ -115,7 +115,7 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab16Khz[8]=
 #endif
 
 #ifdef NETEQ_32KHZ_WIDEBAND
-const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab32Khz[8]=
+const int16_t WebRtcNetEQ_dtfm_yInitTab32Khz[8]=
 {
     2235, 2468, 2728, 3010,
     3853, 4249, 4685, 5164
@@ -123,7 +123,7 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab32Khz[8]=
 #endif
 
 #ifdef NETEQ_48KHZ_WIDEBAND
-const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab48Khz[8]=
+const int16_t WebRtcNetEQ_dtfm_yInitTab48Khz[8]=
 {
     1493, 1649, 1823, 2013,
     2582, 2851, 3148, 3476
@@ -135,7 +135,7 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_yInitTab48Khz[8]=
 
 
 
-const WebRtc_Word16 WebRtcNetEQ_dtfm_dBm0[37] = { 16141, 14386, 12821, 11427, 10184, 9077, 8090,
+const int16_t WebRtcNetEQ_dtfm_dBm0[37] = { 16141, 14386, 12821, 11427, 10184, 9077, 8090,
                                                 7210, 6426, 5727, 5104, 4549, 4054, 3614,
                                                 3221, 2870, 2558, 2280, 2032, 1811, 1614,
                                                 1439, 1282, 1143, 1018, 908, 809, 721, 643,
@@ -163,21 +163,21 @@ const WebRtc_Word16 WebRtcNetEQ_dtfm_dBm0[37] = { 16141, 14386, 12821, 11427, 10
 
 
 
-WebRtc_Word16 WebRtcNetEQ_DTMFGenerate(dtmf_tone_inst_t *DTMFdecInst, WebRtc_Word16 value,
-                                       WebRtc_Word16 volume, WebRtc_Word16 *signal,
-                                       WebRtc_UWord16 sampFreq, WebRtc_Word16 extFrameLen)
+int16_t WebRtcNetEQ_DTMFGenerate(dtmf_tone_inst_t *DTMFdecInst, int16_t value,
+                                 int16_t volume, int16_t *signal,
+                                 uint16_t sampFreq, int16_t extFrameLen)
 {
-    const WebRtc_Word16 *aTbl; 
-    const WebRtc_Word16 *yInitTable; 
-    WebRtc_Word16 a1 = 0; 
-    WebRtc_Word16 a2 = 0; 
+    const int16_t *aTbl; 
+    const int16_t *yInitTable; 
+    int16_t a1 = 0; 
+    int16_t a2 = 0; 
     int i;
     int frameLen; 
     int lowIndex = 0;  
     int highIndex = 4;  
-    WebRtc_Word32 tempVal;
-    WebRtc_Word16 tempValLow;
-    WebRtc_Word16 tempValHigh;
+    int32_t tempVal;
+    int16_t tempValLow;
+    int16_t tempValHigh;
 
     
     if ((volume < 0) || (volume > 36))
@@ -333,10 +333,10 @@ WebRtc_Word16 WebRtcNetEQ_DTMFGenerate(dtmf_tone_inst_t *DTMFdecInst, WebRtc_Wor
 
         
         tempValLow
-                        = (WebRtc_Word16) (((WEBRTC_SPL_MUL_16_16(a1, DTMFdecInst->oldOutputLow[1])
+                        = (int16_t) (((WEBRTC_SPL_MUL_16_16(a1, DTMFdecInst->oldOutputLow[1])
                                         + 8192) >> 14) - DTMFdecInst->oldOutputLow[0]);
         tempValHigh
-                        = (WebRtc_Word16) (((WEBRTC_SPL_MUL_16_16(a2, DTMFdecInst->oldOutputHigh[1])
+                        = (int16_t) (((WEBRTC_SPL_MUL_16_16(a2, DTMFdecInst->oldOutputHigh[1])
                                         + 8192) >> 14) - DTMFdecInst->oldOutputHigh[0]);
 
         
@@ -348,13 +348,13 @@ WebRtc_Word16 WebRtcNetEQ_DTMFGenerate(dtmf_tone_inst_t *DTMFdecInst, WebRtc_Wor
         
 
         tempVal = WEBRTC_SPL_MUL_16_16(DTMF_AMP_LOW, tempValLow)
-                        + WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)tempValHigh, 15);
+                        + WEBRTC_SPL_LSHIFT_W32((int32_t)tempValHigh, 15);
 
         
         tempVal = (tempVal + 16384) >> 15;
 
         
-        signal[i] = (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(
+        signal[i] = (int16_t) WEBRTC_SPL_RSHIFT_W32(
                                (WEBRTC_SPL_MUL_16_16(tempVal, WebRtcNetEQ_dtfm_dBm0[volume])
                                + 8192), 14); 
     }

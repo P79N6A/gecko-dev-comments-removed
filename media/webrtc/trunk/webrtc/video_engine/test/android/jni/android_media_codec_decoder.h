@@ -27,8 +27,8 @@ class AndroidMediaCodecDecoder : public VideoDecoder {
   
   
   
-  virtual WebRtc_Word32 InitDecode(
-      const VideoCodec* codecSettings, WebRtc_Word32 numberOfCores);
+  virtual int32_t InitDecode(
+      const VideoCodec* codecSettings, int32_t numberOfCores);
 
   
   
@@ -47,12 +47,12 @@ class AndroidMediaCodecDecoder : public VideoDecoder {
   
   
   
-  virtual WebRtc_Word32
+  virtual int32_t
   Decode(const EncodedImage& inputImage,
          bool missingFrames,
          const RTPFragmentationHeader* fragmentation,
          const CodecSpecificInfo* codecSpecificInfo = NULL,
-         WebRtc_Word64 renderTimeMs = -1);
+         int64_t renderTimeMs = -1);
 
   
   
@@ -60,18 +60,18 @@ class AndroidMediaCodecDecoder : public VideoDecoder {
   
   
   
-  virtual WebRtc_Word32 RegisterDecodeCompleteCallback(
+  virtual int32_t RegisterDecodeCompleteCallback(
       DecodedImageCallback* callback);
 
   
   
   
-  virtual WebRtc_Word32 Release();
+  virtual int32_t Release();
 
   
   
   
-  virtual WebRtc_Word32 Reset();
+  virtual int32_t Reset();
 
   
   
@@ -81,8 +81,8 @@ class AndroidMediaCodecDecoder : public VideoDecoder {
   
   
   
-  virtual WebRtc_Word32 SetCodecConfigParameters(
-      const WebRtc_UWord8* , WebRtc_Word32 ) {
+  virtual int32_t SetCodecConfigParameters(
+      const uint8_t* , int32_t ) {
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
 

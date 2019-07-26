@@ -18,7 +18,7 @@
 
 #include "neteq_error_codes.h"
 
-int WebRtcNetEQ_RTPPayloadInfo(WebRtc_Word16* pw16_Datagram, int i_DatagramLen,
+int WebRtcNetEQ_RTPPayloadInfo(int16_t* pw16_Datagram, int i_DatagramLen,
                                RTPPacket_t* RTPheader)
 {
     int i_P, i_X, i_CC, i_startPosition;
@@ -32,16 +32,16 @@ int WebRtcNetEQ_RTPPayloadInfo(WebRtc_Word16* pw16_Datagram, int i_DatagramLen,
     }
 
 #ifdef WEBRTC_BIG_ENDIAN
-    i_IPver = (((WebRtc_UWord16) (pw16_Datagram[0] & 0xC000)) >> 14); 
-    i_P = (((WebRtc_UWord16) (pw16_Datagram[0] & 0x2000)) >> 13); 
-    i_X = (((WebRtc_UWord16) (pw16_Datagram[0] & 0x1000)) >> 12); 
-    i_CC = ((WebRtc_UWord16) (pw16_Datagram[0] >> 8) & 0xF); 
+    i_IPver = (((uint16_t) (pw16_Datagram[0] & 0xC000)) >> 14); 
+    i_P = (((uint16_t) (pw16_Datagram[0] & 0x2000)) >> 13); 
+    i_X = (((uint16_t) (pw16_Datagram[0] & 0x1000)) >> 12); 
+    i_CC = ((uint16_t) (pw16_Datagram[0] >> 8) & 0xF); 
     RTPheader->payloadType = pw16_Datagram[0] & 0x7F; 
     RTPheader->seqNumber = pw16_Datagram[1]; 
-    RTPheader->timeStamp = ((((WebRtc_UWord32) ((WebRtc_UWord16) pw16_Datagram[2])) << 16)
-        | (WebRtc_UWord16) (pw16_Datagram[3])); 
-    RTPheader->ssrc = (((WebRtc_UWord32) pw16_Datagram[4]) << 16)
-        + (((WebRtc_UWord32) pw16_Datagram[5])); 
+    RTPheader->timeStamp = ((((uint32_t) ((uint16_t) pw16_Datagram[2])) << 16)
+        | (uint16_t) (pw16_Datagram[3])); 
+    RTPheader->ssrc = (((uint32_t) pw16_Datagram[4]) << 16)
+        + (((uint32_t) pw16_Datagram[5])); 
 
     if (i_X == 1)
     {
@@ -54,7 +54,7 @@ int WebRtcNetEQ_RTPPayloadInfo(WebRtc_Word16* pw16_Datagram, int i_DatagramLen,
         if (i_DatagramLen & 0x1)
         {
             
-            i_padlength = (((WebRtc_UWord16) pw16_Datagram[i_DatagramLen >> 1]) >> 8);
+            i_padlength = (((uint16_t) pw16_Datagram[i_DatagramLen >> 1]) >> 8);
         }
         else
         {
@@ -63,27 +63,27 @@ int WebRtcNetEQ_RTPPayloadInfo(WebRtc_Word16* pw16_Datagram, int i_DatagramLen,
         }
     }
 #else 
-    i_IPver = (((WebRtc_UWord16) (pw16_Datagram[0] & 0xC0)) >> 6); 
-    i_P = (((WebRtc_UWord16) (pw16_Datagram[0] & 0x20)) >> 5); 
-    i_X = (((WebRtc_UWord16) (pw16_Datagram[0] & 0x10)) >> 4); 
-    i_CC = (WebRtc_UWord16) (pw16_Datagram[0] & 0xF); 
+    i_IPver = (((uint16_t) (pw16_Datagram[0] & 0xC0)) >> 6); 
+    i_P = (((uint16_t) (pw16_Datagram[0] & 0x20)) >> 5); 
+    i_X = (((uint16_t) (pw16_Datagram[0] & 0x10)) >> 4); 
+    i_CC = (uint16_t) (pw16_Datagram[0] & 0xF); 
     RTPheader->payloadType = (pw16_Datagram[0] >> 8) & 0x7F; 
-    RTPheader->seqNumber = (((((WebRtc_UWord16) pw16_Datagram[1]) >> 8) & 0xFF)
-        | (((WebRtc_UWord16) (pw16_Datagram[1] & 0xFF)) << 8)); 
-    RTPheader->timeStamp = ((((WebRtc_UWord16) pw16_Datagram[2]) & 0xFF) << 24)
-        | ((((WebRtc_UWord16) pw16_Datagram[2]) & 0xFF00) << 8)
-        | ((((WebRtc_UWord16) pw16_Datagram[3]) >> 8) & 0xFF)
-        | ((((WebRtc_UWord16) pw16_Datagram[3]) & 0xFF) << 8); 
-    RTPheader->ssrc = ((((WebRtc_UWord16) pw16_Datagram[4]) & 0xFF) << 24)
-        | ((((WebRtc_UWord16) pw16_Datagram[4]) & 0xFF00) << 8)
-        | ((((WebRtc_UWord16) pw16_Datagram[5]) >> 8) & 0xFF)
-        | ((((WebRtc_UWord16) pw16_Datagram[5]) & 0xFF) << 8); 
+    RTPheader->seqNumber = (((((uint16_t) pw16_Datagram[1]) >> 8) & 0xFF)
+        | (((uint16_t) (pw16_Datagram[1] & 0xFF)) << 8)); 
+    RTPheader->timeStamp = ((((uint16_t) pw16_Datagram[2]) & 0xFF) << 24)
+        | ((((uint16_t) pw16_Datagram[2]) & 0xFF00) << 8)
+        | ((((uint16_t) pw16_Datagram[3]) >> 8) & 0xFF)
+        | ((((uint16_t) pw16_Datagram[3]) & 0xFF) << 8); 
+    RTPheader->ssrc = ((((uint16_t) pw16_Datagram[4]) & 0xFF) << 24)
+        | ((((uint16_t) pw16_Datagram[4]) & 0xFF00) << 8)
+        | ((((uint16_t) pw16_Datagram[5]) >> 8) & 0xFF)
+        | ((((uint16_t) pw16_Datagram[5]) & 0xFF) << 8); 
 
     if (i_X == 1)
     {
         
-        i_extlength = (((((WebRtc_UWord16) pw16_Datagram[7 + 2 * i_CC]) >> 8) & 0xFF)
-            | (((WebRtc_UWord16) (pw16_Datagram[7 + 2 * i_CC] & 0xFF)) << 8));
+        i_extlength = (((((uint16_t) pw16_Datagram[7 + 2 * i_CC]) >> 8) & 0xFF)
+            | (((uint16_t) (pw16_Datagram[7 + 2 * i_CC] & 0xFF)) << 8));
     }
     if (i_P == 1)
     {
@@ -96,7 +96,7 @@ int WebRtcNetEQ_RTPPayloadInfo(WebRtc_Word16* pw16_Datagram, int i_DatagramLen,
         else
         {
             
-            i_padlength = (((WebRtc_UWord16) pw16_Datagram[(i_DatagramLen >> 1) - 1]) >> 8);
+            i_padlength = (((uint16_t) pw16_Datagram[(i_DatagramLen >> 1) - 1]) >> 8);
         }
     }
 #endif
@@ -120,8 +120,8 @@ int WebRtcNetEQ_RTPPayloadInfo(WebRtc_Word16* pw16_Datagram, int i_DatagramLen,
 int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
                                 int *i_No_Of_Payloads)
 {
-    const WebRtc_Word16 *pw16_data = RTPheader[0]->payload; 
-    WebRtc_UWord16 uw16_offsetTimeStamp = 65535, uw16_secondPayload = 65535;
+    const int16_t *pw16_data = RTPheader[0]->payload; 
+    uint16_t uw16_offsetTimeStamp = 65535, uw16_secondPayload = 65535;
     int i_blockLength, i_k;
     int i_discardedBlockLength = 0;
     int singlePayload = 0;
@@ -133,7 +133,7 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
         singlePayload = 1;
         
         i_blockLength = -4;
-        RTPheader[0]->payloadType = ((((WebRtc_UWord16)pw16_data[0]) & 0x7F00) >> 8);
+        RTPheader[0]->payloadType = ((((uint16_t)pw16_data[0]) & 0x7F00) >> 8);
     }
     else
     {
@@ -141,7 +141,7 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
         while (((pw16_data[2] & 0x8000) != 0) &&
             (pw16_data<((RTPheader[0]->payload)+((RTPheader[0]->payloadLen+1)>>1))))
         {
-            i_discardedBlockLength += (4+(((WebRtc_UWord16)pw16_data[1]) & 0x3FF));
+            i_discardedBlockLength += (4+(((uint16_t)pw16_data[1]) & 0x3FF));
             pw16_data+=2;
         }
         if (pw16_data>=(RTPheader[0]->payload+((RTPheader[0]->payloadLen+1)>>1)))
@@ -149,11 +149,11 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
             return RED_SPLIT_ERROR2; 
         }
         singlePayload = 0; 
-        uw16_secondPayload = ((((WebRtc_UWord16)pw16_data[0]) & 0x7F00) >> 8);
-        RTPheader[0]->payloadType = ((((WebRtc_UWord16)pw16_data[2]) & 0x7F00) >> 8);
-        uw16_offsetTimeStamp = ((((WebRtc_UWord16)pw16_data[0]) & 0xFF) << 6) +
-        ((((WebRtc_UWord16)pw16_data[1]) & 0xFC00) >> 10);
-        i_blockLength = (((WebRtc_UWord16)pw16_data[1]) & 0x3FF);
+        uw16_secondPayload = ((((uint16_t)pw16_data[0]) & 0x7F00) >> 8);
+        RTPheader[0]->payloadType = ((((uint16_t)pw16_data[2]) & 0x7F00) >> 8);
+        uw16_offsetTimeStamp = ((((uint16_t)pw16_data[0]) & 0xFF) << 6) +
+        ((((uint16_t)pw16_data[1]) & 0xFC00) >> 10);
+        i_blockLength = (((uint16_t)pw16_data[1]) & 0x3FF);
     }
 #else 
     if ((pw16_data[0] & 0x80) == 0)
@@ -162,7 +162,7 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
         singlePayload = 1;
         
         i_blockLength = -4;
-        RTPheader[0]->payloadType = (((WebRtc_UWord16) pw16_data[0]) & 0x7F);
+        RTPheader[0]->payloadType = (((uint16_t) pw16_data[0]) & 0x7F);
     }
     else
     {
@@ -170,8 +170,8 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
         while (((pw16_data[2] & 0x80) != 0) && (pw16_data < ((RTPheader[0]->payload)
             + ((RTPheader[0]->payloadLen + 1) >> 1))))
         {
-            i_discardedBlockLength += (4 + ((((WebRtc_UWord16) pw16_data[1]) & 0x3) << 8)
-                + ((((WebRtc_UWord16) pw16_data[1]) & 0xFF00) >> 8));
+            i_discardedBlockLength += (4 + ((((uint16_t) pw16_data[1]) & 0x3) << 8)
+                + ((((uint16_t) pw16_data[1]) & 0xFF00) >> 8));
             pw16_data += 2;
         }
         if (pw16_data >= (RTPheader[0]->payload + ((RTPheader[0]->payloadLen + 1) >> 1)))
@@ -179,12 +179,12 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
             return RED_SPLIT_ERROR2; ;
         }
         singlePayload = 0; 
-        uw16_secondPayload = (((WebRtc_UWord16) pw16_data[0]) & 0x7F);
-        RTPheader[0]->payloadType = (((WebRtc_UWord16) pw16_data[2]) & 0x7F);
-        uw16_offsetTimeStamp = ((((WebRtc_UWord16) pw16_data[0]) & 0xFF00) >> 2)
-            + ((((WebRtc_UWord16) pw16_data[1]) & 0xFC) >> 2);
-        i_blockLength = ((((WebRtc_UWord16) pw16_data[1]) & 0x3) << 8)
-            + ((((WebRtc_UWord16) pw16_data[1]) & 0xFF00) >> 8);
+        uw16_secondPayload = (((uint16_t) pw16_data[0]) & 0x7F);
+        RTPheader[0]->payloadType = (((uint16_t) pw16_data[2]) & 0x7F);
+        uw16_offsetTimeStamp = ((((uint16_t) pw16_data[0]) & 0xFF00) >> 2)
+            + ((((uint16_t) pw16_data[1]) & 0xFC) >> 2);
+        i_blockLength = ((((uint16_t) pw16_data[1]) & 0x3) << 8)
+            + ((((uint16_t) pw16_data[1]) & 0xFF00) >> 8);
     }
 #endif
 

@@ -8,21 +8,21 @@
 
 
 
-#include "audio_processing.h"
-
 #include <stdio.h>
 
 #include <algorithm>
+#include <queue>
 
 #include "gtest/gtest.h"
 
-#include "event_wrapper.h"
-#include "module_common_types.h"
-#include "scoped_ptr.h"
-#include "signal_processing_library.h"
-#include "test/testsupport/fileutils.h"
-#include "thread_wrapper.h"
-#include "trace.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/audio_processing/include/audio_processing.h"
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/system_wrappers/interface/event_wrapper.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/system_wrappers/interface/thread_wrapper.h"
+#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/test/testsupport/fileutils.h"
 #ifdef WEBRTC_ANDROID_PLATFORM_BUILD
 #include "external/webrtc/webrtc/modules/audio_processing/test/unittest.pb.h"
 #else
@@ -67,14 +67,18 @@ const int kProcessSampleRates[] = {8000, 16000, 32000};
 const size_t kProcessSampleRatesSize = sizeof(kProcessSampleRates) /
     sizeof(*kProcessSampleRates);
 
+int TruncateToMultipleOf10(int value) {
+  return (value / 10) * 10;
+}
+
 
 void MixStereoToMono(const int16_t* stereo,
                      int16_t* mono,
                      int samples_per_channel) {
   for (int i = 0; i < samples_per_channel; i++) {
-    int32_t int32 = (static_cast<int32_t>(stereo[i * 2]) +
-                     static_cast<int32_t>(stereo[i * 2 + 1])) >> 1;
-    mono[i] = static_cast<int16_t>(int32);
+    int32_t mono_s32 = (static_cast<int32_t>(stereo[i * 2]) +
+        static_cast<int32_t>(stereo[i * 2 + 1])) >> 1;
+    mono[i] = static_cast<int16_t>(mono_s32);
   }
 }
 
@@ -231,6 +235,8 @@ class ApmTest : public ::testing::Test {
   template <typename F>
   void ChangeTriggersInit(F f, AudioProcessing* ap, int initial_value,
                           int changed_value);
+  void ProcessDelayVerificationTest(int delay_ms, int system_delay_ms,
+                                    int delay_min, int delay_max);
 
   const std::string output_path_;
   const std::string ref_path_;
@@ -438,8 +444,7 @@ bool ApmTest::ReadFrame(FILE* file, AudioFrame* frame) {
 
 void ApmTest::ProcessWithDefaultStreamParameters(AudioFrame* frame) {
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(0));
-  EXPECT_EQ(apm_->kNoError,
-      apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError,
       apm_->gain_control()->set_stream_analog_level(127));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame));
@@ -451,7 +456,8 @@ void ApmTest::ChangeTriggersInit(F f, AudioProcessing* ap, int initial_value,
   EnableAllComponents();
   Init(16000, 2, 2, 2, false);
   SetFrameTo(frame_, 1000);
-  AudioFrame frame_copy = *frame_;
+  AudioFrame frame_copy;
+  frame_copy.CopyFrom(*frame_);
   ProcessWithDefaultStreamParameters(frame_);
   
   EXPECT_FALSE(FrameDataAreEqual(*frame_, frame_copy));
@@ -464,13 +470,14 @@ void ApmTest::ChangeTriggersInit(F f, AudioProcessing* ap, int initial_value,
 
   apm_->Initialize();
   SetFrameTo(frame_, 1000);
-  AudioFrame initial_frame = *frame_;
+  AudioFrame initial_frame;
+  initial_frame.CopyFrom(*frame_);
   ProcessWithDefaultStreamParameters(frame_);
   ProcessWithDefaultStreamParameters(frame_);
   
   EXPECT_FALSE(FrameDataAreEqual(*frame_, initial_frame));
 
-  frame_copy = initial_frame;
+  frame_copy.CopyFrom(initial_frame);
   apm_->Initialize();
   ProcessWithDefaultStreamParameters(&frame_copy);
   
@@ -478,13 +485,100 @@ void ApmTest::ChangeTriggersInit(F f, AudioProcessing* ap, int initial_value,
   ProcessWithDefaultStreamParameters(&frame_copy);
   EXPECT_FALSE(FrameDataAreEqual(*frame_, frame_copy));
 
-  frame_copy = initial_frame;
+  frame_copy.CopyFrom(initial_frame);
   apm_->Initialize();
   ProcessWithDefaultStreamParameters(&frame_copy);
   
   f(apm_, initial_value);
   ProcessWithDefaultStreamParameters(&frame_copy);
   EXPECT_TRUE(FrameDataAreEqual(*frame_, frame_copy));
+}
+
+void ApmTest::ProcessDelayVerificationTest(int delay_ms, int system_delay_ms,
+                                           int delay_min, int delay_max) {
+  
+  
+  webrtc::AudioFrame tmp_frame;
+  std::queue<webrtc::AudioFrame*> frame_queue;
+  bool causal = true;
+
+  tmp_frame.CopyFrom(*revframe_);
+  SetFrameTo(&tmp_frame, 0);
+
+  EXPECT_EQ(apm_->kNoError, apm_->Initialize());
+  
+  int frame_delay = delay_ms / 10;
+  while (frame_delay < 0) {
+    webrtc::AudioFrame* frame = new AudioFrame();
+    frame->CopyFrom(tmp_frame);
+    frame_queue.push(frame);
+    frame_delay++;
+    causal = false;
+  }
+  while (frame_delay > 0) {
+    webrtc::AudioFrame* frame = new AudioFrame();
+    frame->CopyFrom(tmp_frame);
+    frame_queue.push(frame);
+    frame_delay--;
+  }
+  
+  
+  
+  
+  for (int frame_count = 0; frame_count < 450; ++frame_count) {
+    webrtc::AudioFrame* frame = new AudioFrame();
+    frame->CopyFrom(tmp_frame);
+    
+    ASSERT_TRUE(ReadFrame(near_file_, frame));
+    frame_queue.push(frame);
+    webrtc::AudioFrame* reverse_frame = frame;
+    webrtc::AudioFrame* process_frame = frame_queue.front();
+    if (!causal) {
+      reverse_frame = frame_queue.front();
+      
+      
+      
+      process_frame = &tmp_frame;
+      process_frame->CopyFrom(*frame);
+    }
+    EXPECT_EQ(apm_->kNoError, apm_->AnalyzeReverseStream(reverse_frame));
+    EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(system_delay_ms));
+    EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(process_frame));
+    frame = frame_queue.front();
+    frame_queue.pop();
+    delete frame;
+
+    if (frame_count == 100) {
+      int median;
+      int std;
+      
+      EXPECT_EQ(apm_->kNoError,
+                apm_->echo_cancellation()->GetDelayMetrics(&median, &std));
+    }
+  }
+
+  rewind(near_file_);
+  while (!frame_queue.empty()) {
+    webrtc::AudioFrame* frame = frame_queue.front();
+    frame_queue.pop();
+    delete frame;
+  }
+  
+  
+  const int samples_per_ms = std::min(16, frame_->samples_per_channel_ / 10);
+  int expected_median = std::min(std::max(delay_ms - system_delay_ms,
+                                          delay_min), delay_max);
+  int expected_median_high = std::min(std::max(
+      expected_median + 96 / samples_per_ms, delay_min), delay_max);
+  int expected_median_low = std::min(std::max(
+      expected_median - 96 / samples_per_ms, delay_min), delay_max);
+  
+  int median;
+  int std;
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->GetDelayMetrics(&median, &std));
+  EXPECT_GE(expected_median_high, median);
+  EXPECT_LE(expected_median_low, median);
 }
 
 TEST_F(ApmTest, StreamParameters) {
@@ -508,8 +602,7 @@ TEST_F(ApmTest, StreamParameters) {
   EXPECT_EQ(apm_->kNoError,
             apm_->echo_cancellation()->enable_drift_compensation(true));
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(100));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kStreamParameterNotSetError,
             apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kNoError, apm_->gain_control()->Enable(false));
@@ -530,8 +623,7 @@ TEST_F(ApmTest, StreamParameters) {
   EXPECT_EQ(apm_->kNoError, apm_->gain_control()->Enable(true));
   EXPECT_EQ(apm_->kNoError,
             apm_->echo_cancellation()->enable_drift_compensation(true));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError,
             apm_->gain_control()->set_stream_analog_level(127));
   EXPECT_EQ(apm_->kStreamParameterNotSetError, apm_->ProcessStream(frame_));
@@ -543,8 +635,7 @@ TEST_F(ApmTest, StreamParameters) {
 
   
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(100));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kStreamParameterNotSetError, apm_->ProcessStream(frame_));
 
@@ -565,8 +656,7 @@ TEST_F(ApmTest, StreamParameters) {
   
   EXPECT_EQ(apm_->kNoError, apm_->Initialize());
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(100));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError,
             apm_->gain_control()->set_stream_analog_level(127));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
@@ -715,12 +805,93 @@ TEST_F(ApmTest, EchoCancellation) {
   EXPECT_TRUE(apm_->echo_cancellation()->is_enabled());
   EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(false));
   EXPECT_FALSE(apm_->echo_cancellation()->is_enabled());
+
+  EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(true));
+  EXPECT_TRUE(apm_->echo_cancellation()->is_enabled());
+  EXPECT_TRUE(apm_->echo_cancellation()->aec_core() != NULL);
+  EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(false));
+  EXPECT_FALSE(apm_->echo_cancellation()->is_enabled());
+  EXPECT_FALSE(apm_->echo_cancellation()->aec_core() != NULL);
+}
+
+TEST_F(ApmTest, EchoCancellationReportsCorrectDelays) {
+  
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->enable_drift_compensation(false));
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->enable_metrics(false));
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_cancellation()->enable_delay_logging(true));
+  EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(true));
+
+  
+  
+  const int kLookaheadBlocks = 15;
+  const int kMaxDelayBlocks = 60;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const int kSystemDelayMs = 66;
+  
+  
+  
+  for (size_t i = 0; i < kProcessSampleRatesSize; i++) {
+    Init(kProcessSampleRates[i], 2, 2, 2, false);
+    
+    const int num_ms_per_block = std::max(4,
+                                           640 / frame_->samples_per_channel_);
+    const int delay_min_ms = -kLookaheadBlocks * num_ms_per_block;
+    const int delay_max_ms = (kMaxDelayBlocks - 1) * num_ms_per_block;
+
+    
+    int delay_ms = TruncateToMultipleOf10(kSystemDelayMs + delay_min_ms);
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+    
+    
+    delay_ms -= 20;
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+    
+    
+    delay_ms = TruncateToMultipleOf10(kSystemDelayMs - 10);
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+    delay_ms = TruncateToMultipleOf10(kSystemDelayMs);
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+    delay_ms = TruncateToMultipleOf10(kSystemDelayMs + 10);
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+    
+    delay_ms = TruncateToMultipleOf10(kSystemDelayMs + delay_max_ms);
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+    
+    
+    delay_ms += 20;
+    ProcessDelayVerificationTest(delay_ms, kSystemDelayMs, delay_min_ms,
+                                 delay_max_ms);
+  }
 }
 
 TEST_F(ApmTest, EchoControlMobile) {
   
   EXPECT_EQ(apm_->kNoError, apm_->set_sample_rate_hz(32000));
-  EXPECT_EQ(apm_->kBadSampleRateError, apm_->echo_control_mobile()->Enable(true));
+  EXPECT_EQ(apm_->kBadSampleRateError,
+            apm_->echo_control_mobile()->Enable(true));
+  EXPECT_EQ(apm_->kNoError, apm_->set_sample_rate_hz(16000));
+  EXPECT_EQ(apm_->kNoError,
+            apm_->echo_control_mobile()->Enable(true));
+  EXPECT_EQ(apm_->kUnsupportedComponentError, apm_->set_sample_rate_hz(32000));
+
   
   Init(16000, 2, 2, 2, false);
   EXPECT_EQ(apm_->kNoError, apm_->echo_control_mobile()->Enable(true));
@@ -963,7 +1134,7 @@ TEST_F(ApmTest, LevelEstimator) {
 
   
   SetFrameTo(frame_, 10000);
-  uint32_t energy = frame_->energy_; 
+  uint32_t energy = frame_->energy_;  
   frame_->energy_ = 0;
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
@@ -1078,7 +1249,8 @@ TEST_F(ApmTest, NoProcessingWhenAllComponentsDisabled) {
   for (size_t i = 0; i < kSampleRatesSize; i++) {
     Init(kSampleRates[i], 2, 2, 2, false);
     SetFrameTo(frame_, 1000, 2000);
-    AudioFrame frame_copy = *frame_;
+    AudioFrame frame_copy;
+    frame_copy.CopyFrom(*frame_);
     for (int j = 0; j < 1000; j++) {
       EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
       EXPECT_TRUE(FrameDataAreEqual(*frame_, frame_copy));
@@ -1092,6 +1264,8 @@ TEST_F(ApmTest, IdenticalInputChannelsResultInIdenticalOutputChannels) {
   for (size_t i = 0; i < kProcessSampleRatesSize; i++) {
     Init(kProcessSampleRates[i], 2, 2, 2, false);
     int analog_level = 127;
+    EXPECT_EQ(0, feof(far_file_));
+    EXPECT_EQ(0, feof(near_file_));
     while (1) {
       if (!ReadFrame(far_file_, revframe_)) break;
       CopyLeftToRightChannel(revframe_->data_, revframe_->samples_per_channel_);
@@ -1103,8 +1277,7 @@ TEST_F(ApmTest, IdenticalInputChannelsResultInIdenticalOutputChannels) {
       frame_->vad_activity_ = AudioFrame::kVadUnknown;
 
       EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(0));
-      EXPECT_EQ(apm_->kNoError,
-          apm_->echo_cancellation()->set_stream_drift_samples(0));
+      apm_->echo_cancellation()->set_stream_drift_samples(0);
       EXPECT_EQ(apm_->kNoError,
           apm_->gain_control()->set_stream_analog_level(analog_level));
       EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
@@ -1112,6 +1285,8 @@ TEST_F(ApmTest, IdenticalInputChannelsResultInIdenticalOutputChannels) {
 
       VerifyChannelsAreEqual(frame_->data_, frame_->samples_per_channel_);
     }
+    rewind(far_file_);
+    rewind(near_file_);
   }
 }
 
@@ -1119,14 +1294,15 @@ TEST_F(ApmTest, SplittingFilter) {
   
   
   SetFrameTo(frame_, 1000);
-  AudioFrame frame_copy = *frame_;
+  AudioFrame frame_copy;
+  frame_copy.CopyFrom(*frame_);
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_TRUE(FrameDataAreEqual(*frame_, frame_copy));
 
   
   SetFrameTo(frame_, 1000);
-  frame_copy = *frame_;
+  frame_copy.CopyFrom(*frame_);
   EXPECT_EQ(apm_->kNoError, apm_->level_estimator()->Enable(true));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
@@ -1135,7 +1311,7 @@ TEST_F(ApmTest, SplittingFilter) {
 
   
   SetFrameTo(frame_, 1000);
-  frame_copy = *frame_;
+  frame_copy.CopyFrom(*frame_);
   EXPECT_EQ(apm_->kNoError, apm_->voice_detection()->Enable(true));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
@@ -1144,7 +1320,7 @@ TEST_F(ApmTest, SplittingFilter) {
 
   
   SetFrameTo(frame_, 1000);
-  frame_copy = *frame_;
+  frame_copy.CopyFrom(*frame_);
   EXPECT_EQ(apm_->kNoError, apm_->level_estimator()->Enable(true));
   EXPECT_EQ(apm_->kNoError, apm_->voice_detection()->Enable(true));
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
@@ -1164,14 +1340,12 @@ TEST_F(ApmTest, SplittingFilter) {
   
   EXPECT_EQ(apm_->kNoError, apm_->echo_cancellation()->Enable(true));
   SetFrameTo(frame_, 1000);
-  frame_copy = *frame_;
+  frame_copy.CopyFrom(*frame_);
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(0));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(0));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_TRUE(FrameDataAreEqual(*frame_, frame_copy));
 
@@ -1182,10 +1356,9 @@ TEST_F(ApmTest, SplittingFilter) {
   frame_->num_channels_ = 2;
   frame_->sample_rate_hz_ = 32000;
   SetFrameTo(frame_, 1000);
-  frame_copy = *frame_;
+  frame_copy.CopyFrom(*frame_);
   EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(0));
-  EXPECT_EQ(apm_->kNoError,
-            apm_->echo_cancellation()->set_stream_drift_samples(0));
+  apm_->echo_cancellation()->set_stream_drift_samples(0);
   EXPECT_EQ(apm_->kNoError, apm_->ProcessStream(frame_));
   EXPECT_FALSE(FrameDataAreEqual(*frame_, frame_copy));
 }
@@ -1277,8 +1450,7 @@ TEST_F(ApmTest, Process) {
       frame_->vad_activity_ = AudioFrame::kVadUnknown;
 
       EXPECT_EQ(apm_->kNoError, apm_->set_stream_delay_ms(0));
-      EXPECT_EQ(apm_->kNoError,
-          apm_->echo_cancellation()->set_stream_drift_samples(0));
+      apm_->echo_cancellation()->set_stream_drift_samples(0);
       EXPECT_EQ(apm_->kNoError,
           apm_->gain_control()->set_stream_analog_level(analog_level));
 

@@ -90,7 +90,7 @@ VPMContentAnalysis::ComputeContentMetrics(const I420VideoFrame& inputFrame)
     return ContentMetrics();
 }
 
-WebRtc_Word32
+int32_t
 VPMContentAnalysis::Release()
 {
     if (_cMetrics != NULL)
@@ -112,7 +112,7 @@ VPMContentAnalysis::Release()
     return VPM_OK;
 }
 
-WebRtc_Word32
+int32_t
 VPMContentAnalysis::Initialize(int width, int height)
 {
    _width = width;
@@ -158,7 +158,7 @@ VPMContentAnalysis::Initialize(int width, int height)
         return VPM_MEMORY;
     }
 
-    _prevFrame = new WebRtc_UWord8[_width * _height] ; 
+    _prevFrame = new uint8_t[_width * _height] ; 
     if (_prevFrame == NULL)
     {
         return VPM_MEMORY;
@@ -170,7 +170,7 @@ VPMContentAnalysis::Initialize(int width, int height)
 
 
 
-WebRtc_Word32
+int32_t
 VPMContentAnalysis::ComputeMotionMetrics()
 {
 
@@ -185,18 +185,18 @@ VPMContentAnalysis::ComputeMotionMetrics()
 
 
 
-WebRtc_Word32
+int32_t
 VPMContentAnalysis::TemporalDiffMetric_C()
 {
     
     int sizei = _height;
     int sizej = _width;
 
-    WebRtc_UWord32 tempDiffSum = 0;
-    WebRtc_UWord32 pixelSum = 0;
-    WebRtc_UWord64 pixelSqSum = 0;
+    uint32_t tempDiffSum = 0;
+    uint32_t pixelSum = 0;
+    uint64_t pixelSqSum = 0;
 
-    WebRtc_UWord32 numPixels = 0; 
+    uint32_t numPixels = 0; 
 
     const int width_end = ((_width - 2*_border) & -16) + _border;
 
@@ -207,13 +207,13 @@ VPMContentAnalysis::TemporalDiffMetric_C()
             numPixels += 1;
             int ssn =  i * sizej + j;
 
-            WebRtc_UWord8 currPixel  = _origFrame[ssn];
-            WebRtc_UWord8 prevPixel  = _prevFrame[ssn];
+            uint8_t currPixel  = _origFrame[ssn];
+            uint8_t prevPixel  = _prevFrame[ssn];
 
-            tempDiffSum += (WebRtc_UWord32)
-                            abs((WebRtc_Word16)(currPixel - prevPixel));
-            pixelSum += (WebRtc_UWord32) currPixel;
-            pixelSqSum += (WebRtc_UWord64) (currPixel * currPixel);
+            tempDiffSum += (uint32_t)
+                            abs((int16_t)(currPixel - prevPixel));
+            pixelSum += (uint32_t) currPixel;
+            pixelSqSum += (uint64_t) (currPixel * currPixel);
         }
     }
 
@@ -248,7 +248,7 @@ VPMContentAnalysis::TemporalDiffMetric_C()
 
 
 
-WebRtc_Word32
+int32_t
 VPMContentAnalysis::ComputeSpatialMetrics_C()
 {
     
@@ -256,11 +256,11 @@ VPMContentAnalysis::ComputeSpatialMetrics_C()
     const int sizej = _width;
 
     
-    WebRtc_UWord32 pixelMSA = 0;
+    uint32_t pixelMSA = 0;
 
-    WebRtc_UWord32 spatialErrSum = 0;
-    WebRtc_UWord32 spatialErrVSum = 0;
-    WebRtc_UWord32 spatialErrHSum = 0;
+    uint32_t spatialErrSum = 0;
+    uint32_t spatialErrVSum = 0;
+    uint32_t spatialErrHSum = 0;
 
     
     const int width_end = ((sizej - 2*_border) & -16) + _border;
@@ -276,21 +276,21 @@ VPMContentAnalysis::ComputeSpatialMetrics_C()
             int ssn4 = i * sizej + j + 1;   
             int ssn5 = i * sizej + j - 1;   
 
-            WebRtc_UWord16 refPixel1  = _origFrame[ssn1] << 1;
-            WebRtc_UWord16 refPixel2  = _origFrame[ssn1] << 2;
+            uint16_t refPixel1  = _origFrame[ssn1] << 1;
+            uint16_t refPixel2  = _origFrame[ssn1] << 2;
 
-            WebRtc_UWord8 bottPixel = _origFrame[ssn2];
-            WebRtc_UWord8 topPixel = _origFrame[ssn3];
-            WebRtc_UWord8 rightPixel = _origFrame[ssn4];
-            WebRtc_UWord8 leftPixel = _origFrame[ssn5];
+            uint8_t bottPixel = _origFrame[ssn2];
+            uint8_t topPixel = _origFrame[ssn3];
+            uint8_t rightPixel = _origFrame[ssn4];
+            uint8_t leftPixel = _origFrame[ssn5];
 
-            spatialErrSum  += (WebRtc_UWord32) abs((WebRtc_Word16)(refPixel2
-                            - (WebRtc_UWord16)(bottPixel + topPixel
+            spatialErrSum  += (uint32_t) abs((int16_t)(refPixel2
+                            - (uint16_t)(bottPixel + topPixel
                                              + leftPixel + rightPixel)));
-            spatialErrVSum += (WebRtc_UWord32) abs((WebRtc_Word16)(refPixel1
-                            - (WebRtc_UWord16)(bottPixel + topPixel)));
-            spatialErrHSum += (WebRtc_UWord32) abs((WebRtc_Word16)(refPixel1
-                            - (WebRtc_UWord16)(leftPixel + rightPixel)));
+            spatialErrVSum += (uint32_t) abs((int16_t)(refPixel1
+                            - (uint16_t)(bottPixel + topPixel)));
+            spatialErrHSum += (uint32_t) abs((int16_t)(refPixel1
+                            - (uint16_t)(leftPixel + rightPixel)));
 
             pixelMSA += _origFrame[ssn1];
         }

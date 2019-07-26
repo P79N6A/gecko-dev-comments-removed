@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+
+#ifndef WEBRTC_MODULES_AUDIO_CODING_NETEQ4_ACCELERATE_H_
+#define WEBRTC_MODULES_AUDIO_CODING_NETEQ4_ACCELERATE_H_
+
+#include <assert.h>
+
+#include "webrtc/modules/audio_coding/neteq4/audio_multi_vector.h"
+#include "webrtc/modules/audio_coding/neteq4/time_stretch.h"
+#include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "webrtc/typedefs.h"
+
+namespace webrtc {
+
+
+class BackgroundNoise;
+
+
+
+
+
+class Accelerate : public TimeStretch {
+ public:
+  Accelerate(int sample_rate_hz, size_t num_channels,
+             const BackgroundNoise& background_noise)
+      : TimeStretch(sample_rate_hz, num_channels, background_noise) {
+  }
+
+  virtual ~Accelerate() {}
+
+  
+  
+  
+  
+  
+  ReturnCodes Process(const int16_t* input,
+                      int input_length,
+                      AudioMultiVector<int16_t>* output,
+                      int16_t* length_change_samples);
+
+ protected:
+  
+  
+  virtual void SetParametersForPassiveSpeech(int len,
+                                             int16_t* best_correlation,
+                                             int* peak_index) const;
+
+  
+  
+  virtual ReturnCodes CheckCriteriaAndStretch(
+      const int16_t* input, int input_length, size_t peak_index,
+      int16_t best_correlation, bool active_speech,
+      AudioMultiVector<int16_t>* output) const;
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(Accelerate);
+};
+
+}  
+#endif  

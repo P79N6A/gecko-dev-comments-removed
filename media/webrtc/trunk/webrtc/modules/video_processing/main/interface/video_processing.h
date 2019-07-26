@@ -54,13 +54,13 @@ public:
             memset(hist, 0, sizeof(hist));
         }
 
-        WebRtc_UWord32 hist[256];      
-        WebRtc_UWord32 mean;           
-        WebRtc_UWord32 sum;            
-        WebRtc_UWord32 numPixels;      
-        WebRtc_UWord8  subSamplWidth;  
+        uint32_t hist[256];      
+        uint32_t mean;           
+        uint32_t sum;            
+        uint32_t numPixels;      
+        uint8_t  subSamplWidth;  
 
-        WebRtc_UWord8  subSamplHeight; 
+        uint8_t  subSamplHeight; 
 
     };
 
@@ -82,7 +82,7 @@ public:
 
 
 
-    static VideoProcessingModule* Create(WebRtc_Word32 id);
+    static VideoProcessingModule* Create(int32_t id);
 
     
 
@@ -95,12 +95,12 @@ public:
     
 
 
-    virtual WebRtc_Word32 TimeUntilNextProcess() { return -1; }
+    virtual int32_t TimeUntilNextProcess() { return -1; }
 
     
 
 
-    virtual WebRtc_Word32 Process() { return -1; }
+    virtual int32_t Process() { return -1; }
 
     
 
@@ -120,8 +120,8 @@ public:
 
 
 
-    static WebRtc_Word32 GetFrameStats(FrameStats* stats,
-                                       const I420VideoFrame& frame);
+    static int32_t GetFrameStats(FrameStats* stats,
+                                 const I420VideoFrame& frame);
 
     
 
@@ -149,7 +149,7 @@ public:
 
 
 
-    static WebRtc_Word32 ColorEnhancement(I420VideoFrame* frame);
+    static int32_t ColorEnhancement(I420VideoFrame* frame);
 
     
 
@@ -163,7 +163,7 @@ public:
 
 
 
-    static WebRtc_Word32 Brighten(I420VideoFrame* frame, int delta);
+    static int32_t Brighten(I420VideoFrame* frame, int delta);
 
     
 
@@ -180,8 +180,7 @@ public:
 
 
 
-    virtual WebRtc_Word32 Deflickering(I420VideoFrame* frame,
-                                       FrameStats* stats) = 0;
+    virtual int32_t Deflickering(I420VideoFrame* frame, FrameStats* stats) = 0;
     
     
 
@@ -192,7 +191,7 @@ public:
 
 
 
-    virtual WebRtc_Word32 Denoising(I420VideoFrame* frame) = 0;
+    virtual int32_t Denoising(I420VideoFrame* frame) = 0;
     
     
 
@@ -207,8 +206,8 @@ public:
 
 
 
-    virtual WebRtc_Word32 BrightnessDetection(const I420VideoFrame& frame,
-                                              const FrameStats& stats) = 0;
+    virtual int32_t BrightnessDetection(const I420VideoFrame& frame,
+                                        const FrameStats& stats) = 0;
 
     
 
@@ -238,9 +237,9 @@ public:
 
 
 
-    virtual WebRtc_Word32 SetTargetResolution(WebRtc_UWord32 width,
-                                              WebRtc_UWord32 height,
-                                              WebRtc_UWord32 frameRate) = 0;
+    virtual int32_t SetTargetResolution(uint32_t width,
+                                        uint32_t height,
+                                        uint32_t frameRate) = 0;
     
     
 
@@ -248,22 +247,22 @@ public:
 
 
 
-    virtual WebRtc_Word32 SetMaxFrameRate(WebRtc_UWord32 maxFrameRate) = 0;
+    virtual int32_t SetMaxFrameRate(uint32_t maxFrameRate) = 0;
 
     
 
 
-    virtual WebRtc_UWord32 DecimatedFrameRate() = 0;
+    virtual uint32_t DecimatedFrameRate() = 0;
 	
     
 
 
-    virtual WebRtc_UWord32 DecimatedWidth() const = 0;
+    virtual uint32_t DecimatedWidth() const = 0;
 
     
 
 
-    virtual WebRtc_UWord32 DecimatedHeight() const = 0 ;
+    virtual uint32_t DecimatedHeight() const = 0 ;
 
     
 
@@ -285,8 +284,8 @@ public:
 
 
 
-    virtual WebRtc_Word32 PreprocessFrame(const I420VideoFrame& frame,
-                                          I420VideoFrame** processedFrame) = 0;
+    virtual int32_t PreprocessFrame(const I420VideoFrame& frame,
+                                    I420VideoFrame** processedFrame) = 0;
 
     
 

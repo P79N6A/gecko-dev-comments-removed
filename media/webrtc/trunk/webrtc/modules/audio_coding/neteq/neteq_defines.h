@@ -106,8 +106,6 @@
 
 
 
-
-
 #if !defined NETEQ_DEFINES_H
 #define NETEQ_DEFINES_H
 
@@ -249,7 +247,6 @@
     #define NETEQ_PCM16B_CODEC
     #define NETEQ_G711_CODEC
     #define NETEQ_ILBC_CODEC
-    #define NETEQ_OPUS_CODEC
     #define NETEQ_G729_CODEC
     #define NETEQ_G726_CODEC
     #define NETEQ_GSMFR_CODEC
@@ -259,7 +256,6 @@
 
 #if (defined(NETEQ_ALL_WB_CODECS))        
     #define NETEQ_ISAC_CODEC
-    #define NETEQ_OPUS_CODEC
     #define NETEQ_G722_CODEC
     #define NETEQ_G722_1_CODEC
     #define NETEQ_G729_1_CODEC
@@ -271,7 +267,6 @@
 
 #if (defined(NETEQ_ALL_WB32_CODECS))        
     #define NETEQ_ISAC_SWB_CODEC
-    #define NETEQ_OPUS_CODEC
     #define NETEQ_32KHZ_WIDEBAND
     #define NETEQ_G722_1C_CODEC
     #define NETEQ_CELT_CODEC
@@ -308,10 +303,6 @@
     #define NETEQ_32KHZ_WIDEBAND
     #define NETEQ_G722_1C_CODEC
     #define NETEQ_CELT_CODEC
-    #define NETEQ_OPUS_CODEC
-
-
-    #define NETEQ_48KHZ_WIDEBAND
 
     
     #define NETEQ_OPUS_CODEC
@@ -330,16 +321,14 @@
     #define NETEQ_PCM16B_CODEC
     #define NETEQ_G711_CODEC
     #define NETEQ_ILBC_CODEC
-    #define NETEQ_OPUS_CODEC
     #define NETEQ_G729_CODEC
     #define NETEQ_G726_CODEC
     #define NETEQ_GSMFR_CODEC
     #define NETEQ_AMR_CODEC
 
-
+    
     #define NETEQ_WIDEBAND
     #define NETEQ_ISAC_CODEC
-    #define NETEQ_OPUS_CODEC
     #define NETEQ_G722_CODEC
     #define NETEQ_G722_1_CODEC
     #define NETEQ_G729_1_CODEC
@@ -348,26 +337,15 @@
 
 
     #define NETEQ_ISAC_SWB_CODEC
-    #define NETEQ_OPUS_CODEC
     #define NETEQ_32KHZ_WIDEBAND
     #define NETEQ_G722_1C_CODEC
     #define NETEQ_CELT_CODEC
-    #define NETEQ_OPUS_CODEC
 
 
-    #define NETEQ_48KHZ_WIDEBAND
-
-    
     #define NETEQ_48KHZ_WIDEBAND
     #define NETEQ_OPUS_CODEC
     #define NETEQ_ISAC_FB
 #endif
-
-
-
-
-
-#define NETEQ_48KHZ_WIDEBAND
 
 
 #if defined(NETEQ_48KHZ_WIDEBAND)

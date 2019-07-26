@@ -8,27 +8,23 @@
 
 
 
+#include "webrtc/voice_engine/test/auto_test/voe_extended_test.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <vector>
 
-#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/ref_count.h"
-#include "webrtc/system_wrappers/interface/sleep.h"
-#include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/voice_engine/voice_engine_defines.h"
-#include "webrtc/voice_engine/test/auto_test/voe_extended_test.h"
 
 #if defined(_WIN32)
 #include <conio.h>
-#include <winsock2.h>
 #elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
 #include <netdb.h>
 #endif
 
 using namespace webrtc;
+using namespace test;
 
 namespace voetest {
 
@@ -158,21 +154,6 @@ int ExtendedTestTransport::SendRTCPPacket(int channel, const void *data, int len
   return len;
 }
 
-XTransport::XTransport(VoENetwork* netw, VoEFile* file) :
-  _netw(netw), _file(file) {
-}
-
-int XTransport::SendPacket(int channel, const void *data, int len) {
-  
-  
-
-  return 0;
-}
-
-int XTransport::SendRTCPPacket(int, const void *, int) {
-  return 0;
-}
-
 
 
 
@@ -255,8 +236,14 @@ void VoEExtendedTest::StartMedia(int channel, int rtpPort, bool listen,
   _playing[channel] = false;
   _sending[channel] = false;
 
-  voe_base_->SetLocalReceiver(channel, rtpPort);
-  voe_base_->SetSendDestination(channel, rtpPort, "127.0.0.1");
+  VoENetwork* voe_network = _mgr.NetworkPtr();
+
+  voice_channel_transports_[channel].reset(
+      new VoiceChannelTransport(voe_network, channel));
+
+  voice_channel_transports_[channel]->SetSendDestination("127.0.0.1", rtpPort);
+  voice_channel_transports_[channel]->SetLocalReceiver(rtpPort);
+
   if (listen) {
     _listening[channel] = true;
     voe_base_->StartReceive(channel);
@@ -286,6 +273,7 @@ void VoEExtendedTest::StopMedia(int channel) {
     _sending[channel] = false;
     voe_base_->StopSend(channel);
   }
+  voice_channel_transports_[channel].reset(NULL);
 }
 
 void VoEExtendedTest::Play(int channel, unsigned int timeMillisec, bool addFileAsMicrophone,
@@ -333,7 +321,7 @@ int VoEExtendedTest::TestBase() {
   
   
   VoEBase* voe_base_ = _mgr.BasePtr();
-  VoENetwork* netw = _mgr.NetworkPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 #ifdef _TEST_RTP_RTCP_
   VoERTP_RTCP* rtp = _mgr.RTP_RTCPPtr();
 #endif
@@ -558,305 +546,6 @@ int VoEExtendedTest::TestBase() {
   
   
   
-  TEST_MUSTPASS(voe_base_->Init());
-
-  int ch;
-
-  TEST(SetLocalReceiver);
-  ANL();
-
-  
-  TEST_MUSTPASS(!voe_base_->SetLocalReceiver(0, 100));
-  MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  ch = voe_base_->CreateChannel();
-
-#ifdef WEBRTC_IOS
-  printf("\nNOTE: Local IP must be set in source code (line %d) \n",
-      __LINE__ + 1);
-  char* localIp = "127.0.0.1";
-#else
-  char localIp[64] = { 0 };
-  TEST_MUSTPASS(netw->GetLocalIP(localIp));
-  MARK();
-  
-  
-#endif
-
-  
-  TEST_MUSTPASS(!voe_base_->SetLocalReceiver(ch+1, 12345));
-  MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-  TEST_MUSTPASS(!voe_base_->SetLocalReceiver(ch, -1));
-  MARK();
-  TEST_ERROR(VE_INVALID_PORT_NMBR);
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  TEST_MUSTPASS(voe_base_->StartReceive(ch));
-  TEST_MUSTPASS(!voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  TEST_ERROR(VE_ALREADY_LISTENING);
-  TEST_MUSTPASS(voe_base_->StopReceive(ch));
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartSend(ch));
-  TEST_MUSTPASS(!voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  TEST_ERROR(VE_ALREADY_SENDING);
-  TEST_MUSTPASS(voe_base_->StopSend(ch));
-
-  
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, kVoEDefault, localIp));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, kVoEDefault, NULL,
-          "230.1.2.3"));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, kVoEDefault, localIp,
-          "230.1.2.3"));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, 5555, NULL));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  SleepMs(100);
-
-  
-  
-
-  
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 44444));
-  MARK();
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 54321));
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 54321, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(ch));
-  TEST_MUSTPASS(voe_base_->StartSend(ch));
-  Play(ch, 1000, true, true);
-  TEST_MUSTPASS(voe_base_->StopSend(ch));
-  TEST_MUSTPASS(voe_base_->StopReceive(ch));
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(ch));
-
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
-  TEST(GetLocalReceiver);
-  ANL();
-
-  int port;
-  char ipaddr[64];
-  int RTCPport;
-
-  ch = voe_base_->CreateChannel();
-
-  
-  TEST_MUSTPASS(voe_base_->GetLocalReceiver(ch, port, RTCPport, ipaddr));
-  MARK();
-  TEST_MUSTPASS(port != 0);
-  TEST_MUSTPASS(RTCPport != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345))
-  TEST_MUSTPASS(voe_base_->GetLocalReceiver(ch, port, RTCPport, ipaddr));
-  MARK();
-  TEST_MUSTPASS(port != 12345);
-  TEST_MUSTPASS(RTCPport != 12346);
-  TEST_MUSTPASS(strcmp(ipaddr, "0.0.0.0") != 0); 
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, 55555))
-  TEST_MUSTPASS(voe_base_->GetLocalReceiver(ch, port, RTCPport, ipaddr));
-  MARK();
-  TEST_MUSTPASS(port != 12345);
-  TEST_MUSTPASS(RTCPport != 55555);
-  TEST_MUSTPASS(strcmp(ipaddr, "0.0.0.0") != 0);
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, kVoEDefault, localIp))
-  TEST_MUSTPASS(voe_base_->GetLocalReceiver(ch, port, RTCPport, ipaddr));
-  MARK();
-  TEST_MUSTPASS(port != 12345);
-  TEST_MUSTPASS(RTCPport != 12346);
-  TEST_MUSTPASS(strcmp(ipaddr, localIp) != 0);
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(ch));
-
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
-  TEST(SetSendDestination);
-  ANL();
-
-  
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
-  MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  ch = voe_base_->CreateChannel();
-
-  
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(ch, 65536, "127.0.0.1"));
-  MARK();
-  TEST_ERROR(VE_INVALID_PORT_NMBR); 
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(ch, 12345, "127.0.0.1", 65536));
-  MARK();
-  TEST_ERROR(VE_INVALID_PORT_NMBR); 
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(ch, 12345, "127.0.0.1", kVoEDefault,
-          65536));
-  MARK();
-  TEST_ERROR(VE_INVALID_PORT_NMBR); 
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(ch, 12345, "127.0.0.300"));
-  MARK();
-  TEST_ERROR(VE_INVALID_IP_ADDRESS); 
-
-  
-  
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(ch, 55555, "230.0.0.1"));
-  MARK();
-  TEST_ERROR(VE_SOCKET_ERROR);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 55555)); 
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 55555, "230.0.0.1"));
-  MARK(); 
-
-  voe_base_->DeleteChannel(0);
-  ch = voe_base_->CreateChannel();
-
-  
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333, "127.0.0.1"));
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333, "127.0.0.1", 44444));
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333, "127.0.0.1", kVoEDefault,
-          55555));
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333, "127.0.0.1", 44444,
-          55555));
-  MARK();
-
-  voe_base_->DeleteChannel(0);
-  ch = voe_base_->CreateChannel();
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 44444));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 44444, "127.0.0.1", 11111));
-  MARK(); 
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(ch));
-
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
-  TEST(GetSendDestination);
-  ANL();
-
-  int sourcePort;
-
-  ch = voe_base_->CreateChannel();
-
-  
-  TEST_MUSTPASS(voe_base_->GetSendDestination(ch, port, ipaddr, sourcePort,
-          RTCPport));
-  MARK();
-  TEST_MUSTPASS(port != 0);
-  TEST_MUSTPASS(sourcePort != 0);
-  TEST_MUSTPASS(RTCPport != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 44444, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->GetSendDestination(ch, port, ipaddr, sourcePort,
-          RTCPport));
-  MARK();
-  TEST_MUSTPASS(port != 44444);
-  TEST_MUSTPASS(sourcePort != 0); 
-  
-  TEST_MUSTPASS(RTCPport != 44445);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 55555));
-  TEST_MUSTPASS(voe_base_->GetSendDestination(ch, port, ipaddr, sourcePort,
-          RTCPport));
-  MARK();
-  TEST_MUSTPASS(port != 44444);
-  TEST_MUSTPASS(sourcePort != 55555); 
-  TEST_MUSTPASS(RTCPport != 44445);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  voe_base_->DeleteChannel(0);
-  ch = voe_base_->CreateChannel();
-
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 44444, "127.0.0.1"));
-  
-  TEST_MUSTPASS(voe_base_->GetSendDestination(ch, port, NULL, sourcePort,
-          RTCPport));
-  MARK();
-  TEST_MUSTPASS(port != 44444);
-  TEST_MUSTPASS(sourcePort != 0);
-  TEST_MUSTPASS(RTCPport != 44445);
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(ch));
-
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
   
   TEST(StartReceive);
   ANL();
@@ -871,14 +560,14 @@ int VoEExtendedTest::TestBase() {
   MARK();
   TEST_ERROR(VE_CHANNEL_NOT_VALID);
 
-  ch = voe_base_->CreateChannel();
+  int ch = voe_base_->CreateChannel();
 
   
   TEST_MUSTPASS(!voe_base_->StartReceive(0));
   MARK();
-  TEST_ERROR(VE_SOCKETS_NOT_INITED);
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 55555));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
+
+  ExtendedTestTransport* ptrTransport = new ExtendedTestTransport(voe_network);
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(ch, *ptrTransport));
   MARK(); 
 
   
@@ -892,7 +581,6 @@ int VoEExtendedTest::TestBase() {
   MARK();
 
   
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 55555, "127.0.0.1"));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   Play(ch, 1000, true, true);
   TEST_MUSTPASS(voe_base_->StopSend(ch));
@@ -900,16 +588,15 @@ int VoEExtendedTest::TestBase() {
   MARK();
 
   voe_base_->DeleteChannel(0);
+  delete ptrTransport;
   ch = voe_base_->CreateChannel();
 
   
   TEST_LOG("\nspeak after 2 seconds and ensure that no delay is added:\n");
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 55555));
 
   Sleep(2000, true); 
 
   TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 55555, "127.0.0.1"));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   Play(ch, 2000, true, true);
   TEST_MUSTPASS(voe_base_->StopSend(ch));
@@ -922,23 +609,23 @@ int VoEExtendedTest::TestBase() {
 
   for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
     ch = voe_base_->CreateChannel();
-    TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 11111+2*i));
-    TEST_MUSTPASS(voe_base_->StartReceive(ch));
     MARK();
   }
   for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
-    TEST_MUSTPASS(voe_base_->StopReceive(i));
-    MARK();
     voe_base_->DeleteChannel(i);
+    MARK();
   }
   for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
     ch = voe_base_->CreateChannel();
-    TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 11111+2*i));
+    ExtendedTestTransport* ptrTransport =
+        new ExtendedTestTransport(voe_network);
+    TEST_MUSTPASS(voe_network ->RegisterExternalTransport(ch, *ptrTransport));
     TEST_MUSTPASS(voe_base_->StartReceive(ch));
     MARK();
     TEST_MUSTPASS(voe_base_->StopReceive(ch));
     MARK();
     voe_base_->DeleteChannel(ch);
+    delete ptrTransport;
   }
 
   ANL();
@@ -981,19 +668,17 @@ int VoEExtendedTest::TestBase() {
   voe_base_->DeleteChannel(ch);
 
   
-  const int MaxNumberOfPlayingChannels(kVoiceEngineMaxNumOfActiveChannels);
-
-  for (i = 0; i < MaxNumberOfPlayingChannels; i++) {
+  for (i = 0; i < kVoiceEngineMaxNumChannels; i++) {
     ch = voe_base_->CreateChannel();
     TEST_MUSTPASS(voe_base_->StartPlayout(ch));
     MARK();
   }
-  for (i = 0; i < MaxNumberOfPlayingChannels; i++) {
+  for (i = 0; i < kVoiceEngineMaxNumChannels; i++) {
     TEST_MUSTPASS(voe_base_->StopPlayout(i));
     MARK();
     voe_base_->DeleteChannel(i);
   }
-  for (i = 0; i < MaxNumberOfPlayingChannels; i++) {
+  for (i = 0; i < kVoiceEngineMaxNumChannels; i++) {
     ch = voe_base_->CreateChannel();
     TEST_MUSTPASS(voe_base_->StartPlayout(ch));
     MARK();
@@ -1035,25 +720,24 @@ int VoEExtendedTest::TestBase() {
   MARK();
   TEST_ERROR(VE_DESTINATION_NOT_INITED);
 
+
   
   
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333, "127.0.0.1"));
+  ptrTransport = new ExtendedTestTransport(voe_network);
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(ch, *ptrTransport));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   MARK();
   SleepMs(100);
 
-  
-  
   TEST_MUSTPASS(voe_base_->StopSend(ch));
   MARK();
 
   voe_base_->DeleteChannel(ch);
+  delete ptrTransport;
   ch = voe_base_->CreateChannel();
 
-  
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 33333));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333, "127.0.0.1", 44444));
+  ptrTransport = new ExtendedTestTransport(voe_network);
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(ch, *ptrTransport));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   MARK();
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
@@ -1063,31 +747,7 @@ int VoEExtendedTest::TestBase() {
   TEST_MUSTPASS(voe_base_->StopReceive(ch));
 
   voe_base_->DeleteChannel(ch);
-  ANL();
 
-  
-  for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
-    ch = voe_base_->CreateChannel();
-    TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 33333 + 2*i));
-    TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33333 + 2*i, "127.0.0.1"));
-    TEST_MUSTPASS(voe_base_->StartSend(ch));
-    MARK();
-  }
-  for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
-    TEST_MUSTPASS(voe_base_->StopSend(i));
-    MARK();
-    voe_base_->DeleteChannel(i);
-  }
-  for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
-    ch = voe_base_->CreateChannel();
-    TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 45633 + 2*i));
-    TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 45633 + 2*i, "127.0.0.1"));
-    TEST_MUSTPASS(voe_base_->StartSend(ch));
-    MARK();
-    TEST_MUSTPASS(voe_base_->StopSend(ch));
-    MARK();
-    voe_base_->DeleteChannel(ch);
-  }
   ANL();
   AOK();
   ANL();
@@ -1162,70 +822,14 @@ int VoEExtendedTest::TestBase() {
   ANL();
 
   
-  
-  
-  TEST(SetNetEQBGNMode);
-  ANL();
-  TEST(GetNetEQBGNMode);
-  ANL();
-
-  NetEqBgnModes bgnMode;
 
   ch = voe_base_->CreateChannel();
 
-  
-  TEST_MUSTPASS(!voe_base_->GetNetEQBGNMode(ch+1, bgnMode));
-  MARK();
-  TEST_MUSTPASS(!voe_base_->SetNetEQBGNMode(ch+1, kBgnOn));
-  MARK();
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(voe_network, ch));
 
-  
-  TEST_MUSTPASS(voe_base_->GetNetEQBGNMode(ch, bgnMode));
-  MARK();
-  TEST_MUSTPASS(bgnMode != kBgnOn);
-  voe_base_->DeleteChannel(ch);
-
-  
-  ch = voe_base_->CreateChannel();
-  TEST_MUSTPASS(voe_base_->GetNetEQBGNMode(ch, bgnMode));
-  MARK();
-  TEST_MUSTPASS(bgnMode != kBgnOn);
-  voe_base_->DeleteChannel(ch);
-
-  
-  for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
-    ch = voe_base_->CreateChannel();
-
-    
-    TEST_MUSTPASS(voe_base_->SetNetEQBGNMode(i, kBgnOn));
-    MARK();
-    TEST_MUSTPASS(voe_base_->GetNetEQBGNMode(i, bgnMode));
-    MARK();
-    TEST_MUSTPASS(bgnMode != kBgnOn);
-    TEST_MUSTPASS(voe_base_->SetNetEQBGNMode(i, kBgnFade));
-    MARK();
-    TEST_MUSTPASS(voe_base_->GetNetEQBGNMode(i, bgnMode));
-    MARK();
-    TEST_MUSTPASS(bgnMode != kBgnFade);
-    TEST_MUSTPASS(voe_base_->SetNetEQBGNMode(i, kBgnOff));
-    MARK();
-    TEST_MUSTPASS(voe_base_->GetNetEQBGNMode(i, bgnMode));
-    MARK();
-    TEST_MUSTPASS(bgnMode != kBgnOff);
-    SleepMs(50);
-  }
-
-  for (i = 0; i < voe_base_->MaxNumOfChannels(); i++) {
-    voe_base_->DeleteChannel(i);
-  }
-
-  
-
-  ch = voe_base_->CreateChannel();
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch , 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1"));
-
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   TEST_MUSTPASS(voe_base_->StartPlayout(ch));
@@ -1266,9 +870,9 @@ int VoEExtendedTest::TestBase() {
 #ifdef _TEST_RTP_RTCP_
   TEST_MUSTPASS(rtp->SetRTCP_CNAME(ch, "Johnny"));
 #endif
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345, 12349));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1", kVoEDefault,
-          12349));
+  voice_channel_transport.reset(new VoiceChannelTransport(voe_network, ch));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
 
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
@@ -1286,18 +890,11 @@ int VoEExtendedTest::TestBase() {
   TEST_MUSTPASS(rtp->GetRemoteRTCP_CNAME(ch, tmpStr));
   TEST_MUSTPASS(_stricmp("Johnny", tmpStr));
 #endif
-  int rtpPort(0), rtcpPort(0);
-  char ipAddr[64] = { 0 };
-  TEST_MUSTPASS(netw->GetSourceInfo(ch, rtpPort, rtcpPort, ipAddr));
-  TEST_MUSTPASS(12349 != rtcpPort);
   TEST_MUSTPASS(voe_base_->StopSend(ch));
   TEST_MUSTPASS(voe_base_->StopPlayout(ch));
   TEST_MUSTPASS(voe_base_->StopReceive(ch));
 
   
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1"));
-
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartPlayout(ch));
@@ -1311,9 +908,6 @@ int VoEExtendedTest::TestBase() {
   TEST_MUSTPASS(voe_base_->StopReceive(ch));
 
   
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1"));
-
   TEST_MUSTPASS(voe_base_->StartSend(ch));
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartPlayout(ch));
@@ -1324,38 +918,17 @@ int VoEExtendedTest::TestBase() {
   SleepMs(7000); 
   PAUSE
 
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(ch, rtpPort, rtcpPort, ipAddr));
-  TEST_MUSTPASS(12345+1 != rtcpPort);
   TEST_MUSTPASS(voe_base_->StopSend(ch));
   TEST_MUSTPASS(voe_base_->StopPlayout(ch));
   TEST_MUSTPASS(voe_base_->StopReceive(ch));
 
   voe_base_->DeleteChannel(ch);
+
   ch = voe_base_->CreateChannel();
+  voice_channel_transport.reset(new VoiceChannelTransport(voe_network, ch));
 
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch , 22222));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 22222, "127.0.0.1", 11111));
-
-  TEST_MUSTPASS(voe_base_->StartReceive(ch));
-  TEST_MUSTPASS(voe_base_->StartSend(ch));
-  TEST_MUSTPASS(voe_base_->StartPlayout(ch));
-
-  TEST_LOG("\nfull duplex is now activated (4)\n");
-
-  PAUSE
-
-  TEST_MUSTPASS(voe_base_->StopSend(ch));
-  TEST_MUSTPASS(voe_base_->StopPlayout(ch));
-  TEST_MUSTPASS(voe_base_->StopReceive(ch));
-
-  
-
-  voe_base_->DeleteChannel(ch);
-  ch = voe_base_->CreateChannel();
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch , 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1"));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
 
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
@@ -1370,7 +943,6 @@ int VoEExtendedTest::TestBase() {
   TEST_MUSTPASS(voe_base_->StopReceive(ch));
 
   
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 12345));
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartPlayout(ch));
   TEST_MUSTPASS(voe_base_->StartSend(ch));
@@ -1384,33 +956,13 @@ int VoEExtendedTest::TestBase() {
   TEST_MUSTPASS(voe_base_->StopReceive(ch));
 
   
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch , 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 12345, "127.0.0.1", 12350,
-          12359));
-  TEST_MUSTPASS(voe_base_->StartReceive(ch));
-  TEST_MUSTPASS(voe_base_->StartPlayout(ch));
-  TEST_MUSTPASS(voe_base_->StartSend(ch));
-  TEST_LOG("\nfull duplex is now activated (7)\n");
-
-  PAUSE
-
-  
-  TEST_MUSTPASS(voe_base_->GetSendDestination(ch, rtpPort, ipAddr, sourcePort,
-          rtcpPort));
-  TEST_MUSTPASS(12345 != rtpPort);
-  TEST_MUSTPASS(_stricmp("127.0.0.1", ipAddr));
-  TEST_MUSTPASS(12350 != sourcePort);
-  TEST_MUSTPASS(12359 != rtcpPort);
-
-  TEST_MUSTPASS(voe_base_->StopSend(ch));
-  TEST_MUSTPASS(voe_base_->StopPlayout(ch));
-  TEST_MUSTPASS(voe_base_->StopReceive(ch));
-
-  
   ch = voe_base_->CreateChannel();
 
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch , 33221));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33221, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport_2(
+      new VoiceChannelTransport(voe_network, ch));
+
+  voice_channel_transport_2->SetSendDestination("127.0.0.1", 33221);
+  voice_channel_transport_2->SetLocalReceiver(33221);
 
   TEST_MUSTPASS(voe_base_->StartReceive(ch));
   TEST_MUSTPASS(voe_base_->StartPlayout(ch));
@@ -1419,36 +971,6 @@ int VoEExtendedTest::TestBase() {
   TEST_LOG("\nfull duplex is now activated (8)\n");
 
   PAUSE
-
-  TEST_MUSTPASS(voe_base_->StopSend(ch));
-  TEST_MUSTPASS(voe_base_->StopPlayout(ch));
-  TEST_MUSTPASS(voe_base_->StopReceive(ch));
-
-  voe_base_->DeleteChannel(ch);
-  ch = voe_base_->CreateChannel();
-
-#ifndef WEBRTC_IOS
-  
-  strcpy(localIp, "127.0.0.1");
-#else
-  localIp = "127.0.0.1";
-#endif
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch, 33221, 12349, localIp));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch, 33221, localIp));
-
-  TEST_MUSTPASS(voe_base_->StartReceive(ch));
-  TEST_MUSTPASS(voe_base_->StartPlayout(ch));
-  TEST_MUSTPASS(voe_base_->StartSend(ch));
-
-  TEST_LOG("\nfull duplex is now activated (9)\n");
-
-  PAUSE
-
-  TEST_MUSTPASS(voe_base_->GetLocalReceiver(ch, rtpPort, rtcpPort, ipAddr));
-  TEST_MUSTPASS(33221 != rtpPort);
-  TEST_MUSTPASS(_stricmp(localIp, ipAddr));
-  TEST_MUSTPASS(12349 != rtcpPort);
 
   ANL();
   AOK();
@@ -1537,7 +1059,6 @@ int VoEExtendedTest::TestBase() {
 
   voe_base_->DeleteChannel(0);
   TEST_MUSTPASS(voe_base_->Terminate());
-
   return 0;
 }
 
@@ -1551,7 +1072,7 @@ int VoEExtendedTest::TestCallReport() {
   VoECallReport* report = _mgr.CallReportPtr();
   VoEFile* file = _mgr.FilePtr();
   VoEAudioProcessing* apm = _mgr.APMPtr();
-  VoENetwork* netw = _mgr.NetworkPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
   PrepareTest("CallReport");
 
@@ -1576,8 +1097,10 @@ int VoEExtendedTest::TestCallReport() {
 
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(voe_network, 0));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
@@ -1641,14 +1164,14 @@ int VoEExtendedTest::TestCallReport() {
   
   TEST_MUSTPASS(report->GetDeadOrAliveSummary(0, nDead, nAlive) != -1);
   MARK();
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, true, 1));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 1));
   SleepMs(2000);
   
   TEST_MUSTPASS(report->GetDeadOrAliveSummary(0, nDead, nAlive));
   MARK();
   TEST_MUSTPASS(nDead == -1);
   TEST_MUSTPASS(nAlive == -1)
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, false));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, false));
   AOK();
   ANL();
 
@@ -1701,6 +1224,7 @@ int VoEExtendedTest::TestCodec() {
   VoEBase* voe_base_ = _mgr.BasePtr();
   VoECodec* codec = _mgr.CodecPtr();
   VoEFile* file = _mgr.FilePtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
 #ifdef _USE_EXTENDED_TRACE_
   TEST_MUSTPASS(VoiceEngine::SetTraceFile(
@@ -1717,14 +1241,8 @@ int VoEExtendedTest::TestCodec() {
 
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-#ifdef WEBRTC_EXTERNAL_TRANSPORT
-  ExtendedTestTransport* ptrTransport(NULL);
-  ptrTransport = new ExtendedTestTransport(netw);
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
-#else
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
-#endif
+  ExtendedTestTransport* ptrTransport = new ExtendedTestTransport(voe_network);
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(0, *ptrTransport));
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
@@ -2200,10 +1718,6 @@ int VoEExtendedTest::TestCodec() {
   TEST_MUSTPASS(voe_base_->StopReceive(0));
 
   
-#ifndef WEBRTC_EXTERNAL_TRANSPORT
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0,8000,"127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0,8000));
-#endif
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
@@ -2476,16 +1990,10 @@ int VoEExtendedTest::TestCodec() {
   TEST(SetRecPayloadType - removing receive codecs);
   ANL();
 
-#ifndef WEBRTC_EXTERNAL_TRANSPORT
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-#endif
   TEST_MUSTPASS(voe_base_->StartSend(0));
   if (file) {
-    TEST_MUSTPASS(file->StartPlayingFileAsMicrophone(0,
-            _mgr.AudioFilename(),
-            true,
-            true));
+    TEST_MUSTPASS(file->StartPlayingFileAsMicrophone(
+        0, _mgr.AudioFilename(), true, true));
   }
 
   
@@ -3000,12 +2508,7 @@ int VoEExtendedTest::TestCodec() {
 
   
   
-#ifdef WEBRTC_EXTERNAL_TRANSPORT
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
-#else
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8001, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8001));
-#endif
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(0, *ptrTransport));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartReceive(0));
@@ -3051,10 +2554,8 @@ int VoEExtendedTest::TestCodec() {
   TEST_LOG("Skipping extended iSAC API tests - "
       "WEBRTC_CODEC_ISAC not defined\n");
 #endif 
-#ifdef WEBRTC_EXTERNAL_TRANSPORT
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   delete ptrTransport;
-#endif
 
   TEST_MUSTPASS(voe_base_->DeleteChannel(0));
   TEST_MUSTPASS(voe_base_->Terminate());
@@ -3073,6 +2574,7 @@ int VoEExtendedTest::TestDtmf() {
   VoEDtmf* dtmf = _mgr.DtmfPtr();
   VoECodec* codec = _mgr.CodecPtr();
   VoEVolumeControl* volume = _mgr.VolumeControlPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
   std::string output_path = webrtc::test::OutputPath();
   TEST_MUSTPASS(VoiceEngine::SetTraceFile(
@@ -3088,8 +2590,10 @@ int VoEExtendedTest::TestDtmf() {
   
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(voe_network, 0));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
@@ -3379,71 +2883,6 @@ int VoEExtendedTest::TestDtmf() {
   AOK();
   ANL();
 
-#ifdef WEBRTC_DTMF_DETECTION
-  TEST(RegisterTelephoneEventDetection - several channels); ANL();
-
-  ci.channels = 1;
-  ci.pacsize = 160;
-  ci.plfreq = 8000;
-  ci.pltype = 0;
-  ci.rate = 64000;
-  strcpy(ci.plname, "PCMU");
-  TEST_MUSTPASS(codec->SetSendCodec(0, ci));
-
-  int ch2 = voe_base_->CreateChannel();
-  TEST_MUSTPASS(voe_base_->SetSendDestination(ch2, 8002, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(ch2, 8002));
-  TEST_MUSTPASS(voe_base_->StartReceive(ch2));
-  TEST_MUSTPASS(codec->SetSendCodec(ch2, ci));
-  TEST_MUSTPASS(voe_base_->StartPlayout(ch2));
-  TEST_MUSTPASS(voe_base_->StartSend(ch2));
-  MARK();
-
-  DtmfCallback *d = new DtmfCallback();
-  TEST_MUSTPASS(dtmf->SetDtmfFeedbackStatus(false));
-
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopPlayout(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  TEST_MUSTPASS(voe_base_->StartPlayout(0));
-
-  
-  TEST_MUSTPASS(dtmf->RegisterTelephoneEventDetection(0, kInBand, *d));
-  TEST_MUSTPASS(dtmf->RegisterTelephoneEventDetection(ch2, kInBand, *d));
-  TEST_LOG("\nSending in-band telephone events:");
-  for(int i = 0; i < 16; i++)
-  {
-    TEST_LOG("\n  %d ", i); fflush(NULL);
-    TEST_MUSTPASS(dtmf->SendTelephoneEvent(0, i, false, 160, 10));
-    TEST_MUSTPASS(dtmf->SendTelephoneEvent(ch2, i, false, 160, 10));
-    SleepMs(500);
-  }
-  TEST_LOG("\nDetected %d events \n", d->counter);
-  TEST_MUSTPASS(d->counter != 32);
-  TEST_MUSTPASS(dtmf->DeRegisterTelephoneEventDetection(0));
-  TEST_MUSTPASS(dtmf->DeRegisterTelephoneEventDetection(ch2));
-
-  
-  d->counter = 0;
-  TEST_MUSTPASS(dtmf->RegisterTelephoneEventDetection(0, kOutOfBand, *d));
-  TEST_MUSTPASS(dtmf->RegisterTelephoneEventDetection(ch2, kOutOfBand, *d));
-  TEST_LOG("\nSending out-band telephone events:");
-  for(int i = 0; i < 16; i++)
-  {
-    TEST_LOG("\n  %d ", i); fflush(NULL);
-    TEST_MUSTPASS(dtmf->SendTelephoneEvent(0, i, true, 160, 10));
-    TEST_MUSTPASS(dtmf->SendTelephoneEvent(ch2, i, true, 160, 10));
-    SleepMs(500);
-  }
-  TEST_LOG("\nDetected %d events \n", d->counter);
-  TEST_MUSTPASS(d->counter != 32);
-  TEST_MUSTPASS(dtmf->DeRegisterTelephoneEventDetection(0));
-  TEST_MUSTPASS(dtmf->DeRegisterTelephoneEventDetection(ch2));
-  delete d;
-
-  AOK(); ANL();
-#endif
-
   TEST_MUSTPASS(dtmf->SetDtmfFeedbackStatus(true, false));
   TEST_MUSTPASS(voe_base_->StopSend(0));
   TEST_MUSTPASS(voe_base_->StopPlayout(0));
@@ -3463,7 +2902,7 @@ int VoEExtendedTest::TestEncryption() {
 
   VoEBase* voe_base_ = _mgr.BasePtr();
   VoEFile* file = _mgr.FilePtr();
-  VoEEncryption* encrypt = _mgr.EncryptionPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
 #ifdef _USE_EXTENDED_TRACE_
   TEST_MUSTPASS(VoiceEngine::SetTraceFile(
@@ -3479,482 +2918,27 @@ int VoEExtendedTest::TestEncryption() {
 #endif
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(voe_network, 0));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(file->StartPlayingFileAsMicrophone(0, _mgr.AudioFilename(),
           true, true));
 
-    
+  
   
 
-  unsigned char key1[30] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6,
-      7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
-#ifdef WEBRTC_SRTP
-  unsigned char key2[30]; 
-  memcpy(key2, key1, 30);
-  key2[0] = 99;
-  unsigned char key3[30]; 
-  memcpy(key3, key1, 30);
-  key3[29] = 99;
-  unsigned char key4[29]; 
-  memcpy(key4, key1, 29);
-
-  TEST(SRTP - Fail tests); ANL();
-
-  
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kNoProtection, key1));
-  TEST_MUSTPASS(VE_SRTP_ERROR != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kEncryption key1));
-  TEST_MUSTPASS(VE_SRTP_ERROR != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kAuthentication, key1));
-  TEST_MUSTPASS(VE_SRTP_ERROR != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 15,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 257,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherNull, 15, kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherNull, 257, kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 21, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 257, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 21,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 20, 13,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, NULL));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-
-  
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kNoProtection, key1));
-  TEST_MUSTPASS(VE_SRTP_ERROR != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kEncryption key1));
-  TEST_MUSTPASS(VE_SRTP_ERROR != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kAuthentication, key1));
-  TEST_MUSTPASS(VE_SRTP_ERROR != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 15,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 257,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherNull, 15,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherNull, 257,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode,
-          30, kAuthHmacSha1, 21, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 257, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 21,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 20, 13,
-          kEncryptionAndAuthentication,
-          key1));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          NULL));
-  TEST_MUSTPASS(VE_INVALID_ARGUMENT != voe_base_->LastError());
-  MARK();
-  ANL();
-
-  TEST(SRTP - Should hear audio at all time); ANL();
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherNull, 0, kAuthHmacSha1, 20,
-          4, kAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherNull, 0, kAuthHmacSha1,
-          20, 4, kAuthentication, key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-  ANL();
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherNull, 0, kAuthNull, 0, 0,
-          kNoProtection, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherNull, 0, kAuthNull, 0, 0,
-          kNoProtection, key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0, kEncryption key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0,
-          kEncryption key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherNull, 0, kAuthHmacSha1, 20,
-          4, kAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherNull, 0, kAuthHmacSha1,
-          20, 4, kAuthentication, key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-  ANL();
-
-  
-  TEST(SRTP - Different keys - should hear audio at all time); ANL();
-
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key2));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key2));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(voe_base_->StopPlayout(0));
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key2));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key2));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartPlayout(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  TEST_MUSTPASS(file->StartPlayingFileAsMicrophone(0, _mgr.AudioFilename(),
-          true, true));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-  ANL();
-
-  
-  TEST(SRTP - Should be silent or garbage); ANL();
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key2));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key2));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0, kEncryption key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0,
-          kEncryption key2));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherNull, 0, kAuthHmacSha1,
-          20, 4, kAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherNull, 0, kAuthHmacSha1,
-          20, 4, kAuthentication, key2));
-  MARK(); SleepMs(2000);
-
-  
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key3));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key3));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0, kEncryption key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0,
-          kEncryption key3));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherNull, 0, kAuthHmacSha1, 20,
-          4, kAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherNull, 0, kAuthHmacSha1,
-          20, 4, kAuthentication, key3));
-  MARK(); SleepMs(2000);
-
-  
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key4));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication, key4));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1, 20, 4,
-          kEncryptionAndAuthentication,
-          key1));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0, kEncryption key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthNull, 0, 0,
-          kEncryption key4));
-  MARK(); SleepMs(2000);
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherNull, 0, kAuthHmacSha1, 20,
-          4, kAuthentication, key1));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherNull, 0, kAuthHmacSha1,
-          20, 4, kAuthentication, key4));
-  MARK(); SleepMs(2000);
-  ANL();
-
-  
-  TEST(SRTP - Back to normal - should hear audio); ANL();
-
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  MARK(); SleepMs(2000);
-  ANL();
-
-  
-  TEST(SRTCP - Ignore voice or not); ANL();
-  VoERTP_RTCP* rtp_rtcp = _mgr.RTP_RTCPPtr();
-  char tmpStr[32];
-
-  
-
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik1"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik1", tmpStr));
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1, true));
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1, true));
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik2"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik2", tmpStr));
-
-  
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik3"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik2", tmpStr)); 
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik4"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik2", tmpStr)); 
-
-  
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->EnableSRTPSend(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1, true));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik5"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik2", tmpStr)); 
-
-  
-  TEST_MUSTPASS(encrypt->EnableSRTPReceive(0, kCipherAes128CounterMode, 30,
-          kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik6"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik2", tmpStr)); 
-
-  
-  TEST_MUSTPASS(encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(rtp_rtcp->SetRTCP_CNAME(0, "Henrik7"));
-  MARK(); SleepMs(8000);
-  TEST_MUSTPASS(rtp_rtcp->GetRemoteRTCP_CNAME(0, tmpStr));
-  TEST_MUSTPASS(_stricmp("Henrik7", tmpStr));
-  ANL();
-
-#else
   TEST(SRTP disabled - Fail tests);
   ANL();
 
-  TEST_MUSTPASS(!encrypt->EnableSRTPSend(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_FUNC_NOT_SUPPORTED != voe_base_->LastError());
-  TEST_MUSTPASS(!encrypt->EnableSRTPReceive(0, kCipherNull, 30, kAuthHmacSha1,
-          20, 4, kEncryptionAndAuthentication, key1));
-  TEST_MUSTPASS(VE_FUNC_NOT_SUPPORTED != voe_base_->LastError());
-  TEST_MUSTPASS(!encrypt->DisableSRTPSend(0));
-  TEST_MUSTPASS(VE_FUNC_NOT_SUPPORTED != voe_base_->LastError());
-  TEST_MUSTPASS(!encrypt->DisableSRTPReceive(0));
-  TEST_MUSTPASS(VE_FUNC_NOT_SUPPORTED != voe_base_->LastError());
-  ANL();
-#endif
-  AOK();
+  
+  
+  
+  
+  
 
   TEST_MUSTPASS(file->StopPlayingFileAsMicrophone(0));
   TEST_MUSTPASS(voe_base_->StopSend(0));
@@ -3975,6 +2959,7 @@ int VoEExtendedTest::TestExternalMedia() {
 
   VoEBase* voe_base_ = _mgr.BasePtr();
   VoEExternalMedia* xmedia = _mgr.ExternalMediaPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
   
   if (!xmedia) {
@@ -3992,14 +2977,16 @@ int VoEExtendedTest::TestExternalMedia() {
 #endif
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(voe_network, 0));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
 
   int getLen = 0;
-  WebRtc_Word16 vector[32000];
+  int16_t vector[32000];
   memset(vector, 0, 32000 * sizeof(short));
 
 #ifdef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
@@ -4098,6 +3085,7 @@ int VoEExtendedTest::TestFile() {
   VoEBase* voe_base_ = _mgr.BasePtr();
   VoEFile* file = _mgr.FilePtr();
   VoECodec* codec = _mgr.CodecPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
 #ifdef _USE_EXTENDED_TRACE_
   TEST_MUSTPASS(VoiceEngine::SetTraceFile(
@@ -4114,8 +3102,10 @@ int VoEExtendedTest::TestFile() {
 
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(voe_network, 0));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
@@ -4514,9 +3504,10 @@ int VoEExtendedTest::TestFile() {
     TEST_MUSTPASS(ch == -1);
     TEST_MUSTPASS(voe_base_->StopPlayout(ch));
   }
-
-  TEST_MUSTPASS(voe_base_->SetSendDestination(1, 12356, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(1, 12356));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport_1(
+      new VoiceChannelTransport(voe_network, 1));
+  voice_channel_transport_1->SetSendDestination("127.0.0.1", 12356);
+  voice_channel_transport_1->SetLocalReceiver(12356);
   TEST_MUSTPASS(voe_base_->StartReceive(1));
   TEST_MUSTPASS(voe_base_->StopPlayout(1));
   TEST_MUSTPASS(voe_base_->StartSend(1));
@@ -5103,20 +4094,8 @@ int VoEExtendedTest::TestNetEqStats() {
 int VoEExtendedTest::TestNetwork() {
   PrepareTest("Network");
 
-#ifdef WEBRTC_ANDROID
-  int sleepTime = 200;
-  int sleepTime2 = 250;
-#elif defined(WEBRTC_IOS) 
-  int sleepTime = 150;
-  int sleepTime2 = 200;
-#else
-  int sleepTime = 100;
-  int sleepTime2 = 200;
-#endif
-
   VoEBase* voe_base_ = _mgr.BasePtr();
-  VoEFile* file = _mgr.FilePtr();
-  VoENetwork* netw = _mgr.NetworkPtr();
+  VoENetwork* voe_network = _mgr.NetworkPtr();
 
 #ifdef _USE_EXTENDED_TRACE_
   TEST_MUSTPASS(VoiceEngine::SetTraceFile((output_path +
@@ -5137,735 +4116,65 @@ int VoEExtendedTest::TestNetwork() {
   
   
   
-  TEST(GetLocalIP);
-  ANL();
-
-#ifdef WEBRTC_IOS
-  
-  TEST_MUSTPASS(!netw->GetLocalIP(NULL, 0)); MARK();
-  TEST_ERROR(VE_FUNC_NOT_SUPPORTED);
-
-  ANL();
-  printf("NOTE: Local IP must be set in source code (line %d) \n",
-      __LINE__ + 1);
-  const char* localIP = "192.168.1.4";
-
-#else
-  
-  char localIP[256] = {0};
-
-  
-  TEST_MUSTPASS(!netw->GetLocalIP(NULL));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-
-  
-  TEST_MUSTPASS(netw->GetLocalIP(localIP));
-  MARK();
-  TEST_LOG("[local IPv4: %s]\n", localIP);
-  TEST_MUSTPASS(netw->GetLocalIP(localIP));
-  MARK();
-
-#if !defined(WEBRTC_MAC) && !defined(WEBRTC_ANDROID)
-  
-  TEST_MUSTPASS(netw->GetLocalIP(localIP, true));
-  MARK();
-  TEST_LOG("[local IPv6: %s]\n", localIP);
-  TEST_MUSTPASS(netw->GetLocalIP(localIP, true));
-  MARK();
-#endif
-
-  
-  TEST_MUSTPASS(netw->GetLocalIP(localIP));
-  MARK();
-#endif
-
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
-  
-  TEST(GetSourceInfo);
-  ANL();
-
-  int rtpPort(0);
-  int rtcpPort(0);
-  char ipaddr[64] = { 0 };
-  ExtendedTestTransport* ptrTransport(NULL);
-
-  
-  TEST_MUSTPASS(!netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(!netw->GetSourceInfo(0, rtpPort, rtcpPort, NULL));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-
-  
-  ptrTransport = new ExtendedTestTransport(netw);
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
-  TEST_MUSTPASS(!netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  delete ptrTransport;
-
-  
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 0);
-  TEST_MUSTPASS(rtcpPort != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime2); 
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 8000);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 8000);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 8000);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 9005));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 9005, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-
-  
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 9005);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 9005, kVoEDefault, localIP));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 9005, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 9005);
-  TEST_MUSTPASS(strcmp(ipaddr, localIP) != 0); 
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 9005));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 9005, "127.0.0.1", 9010));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 9010);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 9010);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 9005, "127.0.0.1", 9020));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-#ifdef WEBRTC_IOS
-  SleepMs(500); 
-#endif
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 9020);
-  
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0)); 
-  
-  TEST_MUSTPASS(voe_base_->CreateChannel()); 
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000)); 
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 8000);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-
-  
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 7000));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 7000, "127.0.0.1", 7010));
-  
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-  
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 7010);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-
-  
-  Sleep(8000, true);
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 7010);
-  TEST_MUSTPASS(rtcpPort != 7011);
-  TEST_MUSTPASS(strcmp(ipaddr, "127.0.0.1") != 0);
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
   
   
   
   TEST(SetExternalTransport);
   ANL();
 
-  ptrTransport = new ExtendedTestTransport(netw);
+  ExtendedTestTransport* ptrTransport = new ExtendedTestTransport(voe_network);
 
   
-  TEST_MUSTPASS(!netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(!voe_network ->DeRegisterExternalTransport(0));
   MARK();
   TEST_ERROR(VE_CHANNEL_NOT_VALID);
 
   TEST_MUSTPASS(voe_base_->CreateChannel());
 
   
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(0, *ptrTransport));
   MARK();
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   MARK();
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   MARK();
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(0, *ptrTransport));
   MARK();
-  TEST_MUSTPASS(!netw->RegisterExternalTransport(0, *ptrTransport));
+  TEST_MUSTPASS(!voe_network ->RegisterExternalTransport(0, *ptrTransport));
   MARK(); 
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   MARK();
-
-  
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 1234, "127.0.0.2"));
-  TEST_MUSTPASS(!netw->RegisterExternalTransport(0, *ptrTransport));
-  MARK();
-  TEST_ERROR(VE_SEND_SOCKETS_CONFLICT);
 
   
   TEST_MUSTPASS(voe_base_->DeleteChannel(0));
   TEST_MUSTPASS(voe_base_->CreateChannel());
 
   
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 5678));
-  TEST_MUSTPASS(!netw->RegisterExternalTransport(0, *ptrTransport));
-  MARK();
-  TEST_ERROR(VE_RECEIVE_SOCKETS_CONFLICT);
-
-  
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(0, *ptrTransport));
   MARK();
   TEST_MUSTPASS(voe_base_->StartSend(0)); 
-  TEST_MUSTPASS(!netw->RegisterExternalTransport(0, *ptrTransport));
+  TEST_MUSTPASS(!voe_network ->RegisterExternalTransport(0, *ptrTransport));
   MARK(); 
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   MARK();
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
+  TEST_MUSTPASS(voe_network ->RegisterExternalTransport(0, *ptrTransport));
   MARK();
   Play(0, 2000, true, true); 
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   MARK();
-
-  
-#if defined(WEBRTC_ANDROID) || defined(WEBRTC_IOS)
-  int testError = VE_FUNC_NOT_SUPPORTED;
-#else
-  int testError = VE_EXTERNAL_TRANSPORT_ENABLED;
-#endif
-
-  
-  int DSCP, priority, serviceType, overrideDSCP, nBytes(0);
-  bool useSetSockopt, enabled;
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
-  MARK();
-  TEST_MUSTPASS(!voe_base_->SetLocalReceiver(0, 12345));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!voe_base_->GetLocalReceiver(0, rtpPort, rtcpPort, ipaddr));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!voe_base_->GetSendDestination(0, rtpPort, ipaddr, rtpPort,
-          rtcpPort));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!netw->EnableIPv6(0))
-  TEST_ERROR(testError);
-  TEST_MUSTPASS(netw->IPv6IsEnabled(0) != false)
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!netw->SetSourceFilter(0, 12345, 12346));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(!netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
 
   
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StopReceive(0));
 
-#if (!defined(_WIN32) && !defined(WEBRTC_LINUX) && !defined(WEBRTC_MAC)) || \
-      defined(WEBRTC_EXTERNAL_TRANSPORT)
-  testError = VE_FUNC_NOT_SUPPORTED;
-#else
-  testError = VE_EXTERNAL_TRANSPORT_ENABLED;
-#endif
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 0));
-  TEST_ERROR(testError);
-  TEST_MUSTPASS(!netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_ERROR(testError);
-#if !defined(_WIN32) || defined(WEBRTC_EXTERNAL_TRANSPORT)
-  testError = VE_FUNC_NOT_SUPPORTED;
-#else
-  testError = VE_EXTERNAL_TRANSPORT_ENABLED;
-#endif
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, false, 0));
-  TEST_ERROR(testError);
-  TEST_MUSTPASS(!netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_ERROR(testError);
-  char dummy[1] = { 'a' };
-  TEST_MUSTPASS(!netw->SendUDPPacket(0, dummy, 1, nBytes));
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-
   
   
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterExternalTransport(0));
   MARK();
   delete ptrTransport;
 
   TEST_MUSTPASS(voe_base_->DeleteChannel(0));
 
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-#ifdef _ENABLE_IPV6_TESTS_
-
-  TEST(EnableIPv6); ANL();
-
-  
-  TEST_MUSTPASS(!netw->EnableIPv6(0)); MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  ptrTransport = new ExtendedTestTransport(netw);
-  TEST_MUSTPASS(netw->RegisterExternalTransport(0, *ptrTransport));
-  TEST_MUSTPASS(!netw->EnableIPv6(0)); MARK();
-  TEST_ERROR(VE_EXTERNAL_TRANSPORT_ENABLED);
-  TEST_MUSTPASS(netw->DeRegisterExternalTransport(0));
-  delete ptrTransport;
-
-  
-  TEST_MUSTPASS(netw->IPv6IsEnabled(0)); MARK(); 
-  
-  TEST_MUSTPASS(!netw->EnableIPv6(0)); MARK(); 
-
-  
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(0, 8000, "::1")); MARK(); 
-
-  
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(netw->EnableIPv6(0)); MARK();
-  TEST_MUSTPASS(netw->GetLocalIP(localIP)); MARK(); 
-  TEST_LOG("[local IPv4: %s]", localIP);
-
-  
-  TEST_MUSTPASS(netw->IPv6IsEnabled(0) != true);
-
-  
-  TEST_MUSTPASS(!voe_base_->SetSendDestination(0, 8000, "127.0.0.1"));
-  TEST_ERROR(VE_INVALID_IP_ADDRESS);
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "::1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(!netw->EnableIPv6(0)); MARK(); 
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true);
-  ANL();
-
-  
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  TEST_MUSTPASS(netw->EnableIPv6(0)); MARK();
-  
-  TEST_MUSTPASS(netw->IPv6IsEnabled(0) != true);
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "::1"));
-  TEST_MUSTPASS(voe_base_->StartPlayout(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  file->StartPlayingFileAsMicrophone(0, _mgr.AudioFilename(), true,
-      true);
-  SleepMs(500); 
-
-  
-  TEST(SetSourceFilter and GetSourceFilter for IPv6); ANL();
-  char sourceIp[64] =
-  { 0};
-  char filterIp[64] =
-  { 0};
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, sourceIp));
-  TEST_LOG("Source port: %d \n", rtpPort);
-  TEST_LOG("Source RTCP port: %d \n", rtcpPort);
-  TEST_LOG("Source IP: %s \n", sourceIp);
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, filterIp));
-  TEST_LOG("Filter port RTP: %d \n", rtpPort);
-  TEST_LOG("Filter port RTCP: %d \n", rtcpPort);
-  TEST_LOG("Filter IP: %s \n", filterIp);
-  TEST_MUSTPASS(0 != rtpPort);
-  TEST_MUSTPASS(0 != rtcpPort);
-  TEST_MUSTPASS(filterIp[0] != '\0');
-  TEST_LOG("Set filter IP to %s => should hear audio\n", sourceIp);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, sourceIp));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, filterIp));
-  TEST_MUSTPASS(0 != rtpPort);
-  TEST_MUSTPASS(0 != rtcpPort);
-  TEST_MUSTPASS(_stricmp(filterIp, sourceIp));
-  SleepMs(1500);
-  TEST_LOG("Set filter IP to ::10:10:10 => should *not* hear audio\n");
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "::10:10:10"));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, filterIp));
-  TEST_MUSTPASS(_stricmp(filterIp, "::10:10:10"));
-  SleepMs(1500);
-  TEST_LOG("Disable IP filter => should hear audio again\n");
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "::0"));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, filterIp));
-  TEST_MUSTPASS(_stricmp(filterIp, "::"));
-  SleepMs(1500);
-  TEST_LOG("Set filter IP to ::10:10:10 => should *not* hear audio\n");
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "::10:10:10"));
-  SleepMs(1500);
-  TEST_LOG("Disable IP filter => should hear audio again\n");
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, filterIp));
-  TEST_MUSTPASS(filterIp[0] != '\0');
-  SleepMs(1500);
-  TEST_LOG("Set filter IP to ::10:10:10 => should *not* hear audio\n");
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "::10:10:10"));
-  SleepMs(1500);
-  TEST_LOG("Disable IP filter => should hear audio again\n");
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "::"));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, filterIp));
-  TEST_MUSTPASS(_stricmp(filterIp, "::"));
-  SleepMs(1500);
-
-  file->StopPlayingFileAsMicrophone(0);
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-
-#endif 
-  
-  
-
-  
-  
-  
-  
-  
-  
-  TEST(SetSourceFilter);
-  ANL();
-
-  
-  TEST_MUSTPASS(!netw->SetSourceFilter(0, 12345));
-  MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(!netw->SetSourceFilter(0, 65536));
-  MARK();
-  TEST_ERROR(VE_INVALID_PORT_NMBR);
-  TEST_MUSTPASS(!netw->SetSourceFilter(0, 12345, 65536));
-  MARK();
-  TEST_ERROR(VE_INVALID_PORT_NMBR);
-  TEST_MUSTPASS(!netw->SetSourceFilter(0, 12345, 12346, "300.300.300.300"));
-  MARK();
-  TEST_ERROR(VE_INVALID_IP_ADDRESS);
-
-  
-
-  
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 2000, kVoEDefault, localIP));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 2000, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  TEST_MUSTPASS(rtpPort != 2000);
-  TEST_MUSTPASS(rtcpPort != 2001);
-  TEST_MUSTPASS(strcmp(ipaddr, localIP) != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0)); 
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 2002, 0, NULL));;
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 2000, kVoEDefault, localIP));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 2000, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  TEST_MUSTPASS(rtpPort != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  
-  
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 2002, kVoEDefault, localIP));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 2002, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  TEST_MUSTPASS(rtpPort != 2002);
-  TEST_MUSTPASS(strcmp(ipaddr, localIP) != 0);
-
-  
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0)); 
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, localIP));;
-  MARK();
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 2000));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 2000, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  TEST_MUSTPASS(rtpPort != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  
-  
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 2000, kVoEDefault, localIP));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 2000, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  SleepMs(sleepTime);
-  TEST_MUSTPASS(netw->GetSourceInfo(0, rtpPort, rtcpPort, ipaddr));
-  TEST_MUSTPASS(rtpPort != 2000);
-  TEST_MUSTPASS(strcmp(ipaddr, localIP) != 0);
-
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-
-  
-
-  
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));;
-  MARK();
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  TEST_MUSTPASS(rtpPort != 0);
-  TEST_MUSTPASS(rtcpPort != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  ANL();
-  AOK();
-  ANL();
-  ANL();
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  TEST(GetSourceFilter);
-  ANL();
-
-  
-  TEST_MUSTPASS(!netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(!netw->GetSourceFilter(0, rtpPort, rtcpPort, NULL));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-
-  
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 0);
-  TEST_MUSTPASS(rtcpPort != 0);
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  
-
-  
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 54321, 0, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 54321);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtpPort != 0);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 15425, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtcpPort != 15425);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(rtcpPort != 0);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "192.168.199.19"));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(strcmp(ipaddr, "192.168.199.19") != 0);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, "0.0.0.0"));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(strcmp(ipaddr, "0.0.0.0") != 0);
-  TEST_MUSTPASS(netw->SetSourceFilter(0, 0, 0, NULL));
-  TEST_MUSTPASS(netw->GetSourceFilter(0, rtpPort, rtcpPort, ipaddr));
-  MARK();
-  TEST_MUSTPASS(strcmp(ipaddr, "") != 0);
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
   ANL();
   AOK();
   ANL();
@@ -5887,24 +4196,24 @@ int VoEExtendedTest::TestNetwork() {
   ANL();
 
   
-  TEST_MUSTPASS(!netw->RegisterDeadOrAliveObserver(0, *this));
+  TEST_MUSTPASS(!voe_network ->RegisterDeadOrAliveObserver(0, *this));
   MARK();
   TEST_ERROR(VE_CHANNEL_NOT_VALID);
 
   TEST_MUSTPASS(voe_base_->CreateChannel());
 
-  TEST_MUSTPASS(netw->RegisterDeadOrAliveObserver(0, *this));
+  TEST_MUSTPASS(voe_network ->RegisterDeadOrAliveObserver(0, *this));
   MARK();
-  TEST_MUSTPASS(!netw->RegisterDeadOrAliveObserver(0, *this));
+  TEST_MUSTPASS(!voe_network ->RegisterDeadOrAliveObserver(0, *this));
   MARK(); 
   TEST_ERROR(VE_INVALID_OPERATION);
-  TEST_MUSTPASS(netw->DeRegisterDeadOrAliveObserver(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterDeadOrAliveObserver(0));
   MARK();
-  TEST_MUSTPASS(netw->DeRegisterDeadOrAliveObserver(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterDeadOrAliveObserver(0));
   MARK(); 
-  TEST_MUSTPASS(netw->RegisterDeadOrAliveObserver(0, *this));
+  TEST_MUSTPASS(voe_network ->RegisterDeadOrAliveObserver(0, *this));
   MARK();
-  TEST_MUSTPASS(netw->DeRegisterDeadOrAliveObserver(0));
+  TEST_MUSTPASS(voe_network ->DeRegisterDeadOrAliveObserver(0));
   MARK();
 
   TEST_MUSTPASS(voe_base_->DeleteChannel(0));
@@ -5923,39 +4232,43 @@ int VoEExtendedTest::TestNetwork() {
   
 
   
-  TEST_MUSTPASS(!netw->SetPeriodicDeadOrAliveStatus(0, false));
+  TEST_MUSTPASS(!voe_network ->SetPeriodicDeadOrAliveStatus(0, false));
   MARK();
   TEST_ERROR(VE_CHANNEL_NOT_VALID);
 
   TEST_MUSTPASS(voe_base_->CreateChannel());
 
   
-  TEST_MUSTPASS(!netw->SetPeriodicDeadOrAliveStatus(0, true, 0));
+  TEST_MUSTPASS(!voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 0));
   MARK();
   TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetPeriodicDeadOrAliveStatus(0, true, 151));
+  TEST_MUSTPASS(!voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 151));
   MARK();
   TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetPeriodicDeadOrAliveStatus(1, true, 10));
+  TEST_MUSTPASS(!voe_network ->SetPeriodicDeadOrAliveStatus(1, true, 10));
   MARK();
   TEST_ERROR(VE_CHANNEL_NOT_VALID);
 
   int sampleTime(0);
+  bool enabled;
 
   
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, true, 1));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 1));
   MARK();
-  TEST_MUSTPASS(netw->GetPeriodicDeadOrAliveStatus(0, enabled, sampleTime));
+  TEST_MUSTPASS(
+      voe_network ->GetPeriodicDeadOrAliveStatus(0, enabled, sampleTime));
   TEST_MUSTPASS(enabled != true);
   TEST_MUSTPASS(sampleTime != 1);
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, true, 150));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 150));
   MARK();
-  TEST_MUSTPASS(netw->GetPeriodicDeadOrAliveStatus(0, enabled, sampleTime));
+  TEST_MUSTPASS(
+      voe_network ->GetPeriodicDeadOrAliveStatus(0, enabled, sampleTime));
   TEST_MUSTPASS(enabled != true);
   TEST_MUSTPASS(sampleTime != 150);
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, false));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, false));
   MARK();
-  TEST_MUSTPASS(netw->GetPeriodicDeadOrAliveStatus(0, enabled, sampleTime));
+  TEST_MUSTPASS(
+      voe_network ->GetPeriodicDeadOrAliveStatus(0, enabled, sampleTime));
   TEST_MUSTPASS(enabled != false);
   TEST_MUSTPASS(sampleTime != 150); 
 
@@ -5964,25 +4277,25 @@ int VoEExtendedTest::TestNetwork() {
   
 
   
-  TEST_MUSTPASS(netw->RegisterDeadOrAliveObserver(0, *this));
+  TEST_MUSTPASS(voe_network ->RegisterDeadOrAliveObserver(0, *this));
   MARK();
   TEST_LOG("\nVerify that Alive callbacks are received (dT=2sec): ");
   fflush(NULL);
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, true, 2));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 2));
   SleepMs(6000);
   TEST_LOG("\nChange dT to 1 second: ");
   fflush(NULL);
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, true, 1));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 1));
   SleepMs(6000);
   TEST_LOG("\nDisable dead-or-alive callbacks: ");
   fflush(NULL);
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, false));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, false));
   SleepMs(6000);
   TEST_LOG("\nStop sending and enable callbacks again.\n");
   TEST_LOG("Verify that Dead callbacks are received (dT=2sec): ");
   fflush(NULL);
   TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, true, 2));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, true, 2));
   SleepMs(6000);
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_LOG("\nRestart sending.\n");
@@ -5991,8 +4304,8 @@ int VoEExtendedTest::TestNetwork() {
   SleepMs(6000);
   TEST_LOG("\nDisable dead-or-alive callbacks.");
   fflush(NULL);
-  TEST_MUSTPASS(netw->SetPeriodicDeadOrAliveStatus(0, false));
-  TEST_MUSTPASS(netw->DeRegisterDeadOrAliveObserver(0));
+  TEST_MUSTPASS(voe_network ->SetPeriodicDeadOrAliveStatus(0, false));
+  TEST_MUSTPASS(voe_network ->DeRegisterDeadOrAliveObserver(0));
   MARK();
 
   StopMedia(0);
@@ -6023,47 +4336,52 @@ int VoEExtendedTest::TestNetwork() {
   ANL();
 
   
-  TEST_MUSTPASS(!netw->SetPacketTimeoutNotification(0, false));
+  TEST_MUSTPASS(!voe_network ->SetPacketTimeoutNotification(0, false));
   MARK();
   TEST_ERROR(VE_CHANNEL_NOT_VALID);
 
   TEST_MUSTPASS(voe_base_->CreateChannel());
 
   
-  TEST_MUSTPASS(!netw->SetPacketTimeoutNotification(0, true, 0));
+  TEST_MUSTPASS(!voe_network ->SetPacketTimeoutNotification(0, true, 0));
   MARK();
   TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetPacketTimeoutNotification(0, true, 151));
+  TEST_MUSTPASS(!voe_network ->SetPacketTimeoutNotification(0, true, 151));
   MARK();
   TEST_ERROR(VE_INVALID_ARGUMENT);
 
   
-  TEST_MUSTPASS(netw->SetPacketTimeoutNotification(0, true, 2));
+  TEST_MUSTPASS(voe_network ->SetPacketTimeoutNotification(0, true, 2));
   MARK();
-  TEST_MUSTPASS(netw->GetPacketTimeoutNotification(0, enabled, timeOut));
+  TEST_MUSTPASS(voe_network ->GetPacketTimeoutNotification(0, enabled,
+                                                           timeOut));
   MARK();
   TEST_MUSTPASS(enabled != true);
   TEST_MUSTPASS(timeOut != 2);
-  TEST_MUSTPASS(netw->SetPacketTimeoutNotification(0, false));
+  TEST_MUSTPASS(voe_network ->SetPacketTimeoutNotification(0, false));
   MARK();
-  TEST_MUSTPASS(netw->GetPacketTimeoutNotification(0, enabled, timeOut));
+  TEST_MUSTPASS(voe_network ->GetPacketTimeoutNotification(0, enabled,
+                                                           timeOut));
   MARK();
   TEST_MUSTPASS(enabled != false);
-  TEST_MUSTPASS(netw->SetPacketTimeoutNotification(0, true, 10));
+  TEST_MUSTPASS(voe_network ->SetPacketTimeoutNotification(0, true, 10));
   MARK();
-  TEST_MUSTPASS(netw->GetPacketTimeoutNotification(0, enabled, timeOut));
+  TEST_MUSTPASS(voe_network ->GetPacketTimeoutNotification(0, enabled,
+                                                           timeOut));
   MARK();
   TEST_MUSTPASS(enabled != true);
   TEST_MUSTPASS(timeOut != 10);
-  TEST_MUSTPASS(netw->SetPacketTimeoutNotification(0, true, 2));
+  TEST_MUSTPASS(voe_network ->SetPacketTimeoutNotification(0, true, 2));
   MARK();
-  TEST_MUSTPASS(netw->GetPacketTimeoutNotification(0, enabled, timeOut));
+  TEST_MUSTPASS(voe_network ->GetPacketTimeoutNotification(0, enabled,
+                                                           timeOut));
   MARK();
   TEST_MUSTPASS(enabled != true);
   TEST_MUSTPASS(timeOut != 2);
-  TEST_MUSTPASS(netw->SetPacketTimeoutNotification(0, false));
+  TEST_MUSTPASS(voe_network ->SetPacketTimeoutNotification(0, false));
   MARK();
-  TEST_MUSTPASS(netw->GetPacketTimeoutNotification(0, enabled, timeOut));
+  TEST_MUSTPASS(voe_network ->GetPacketTimeoutNotification(0, enabled,
+                                                           timeOut));
   MARK();
   TEST_MUSTPASS(enabled != false);
 
@@ -6072,512 +4390,10 @@ int VoEExtendedTest::TestNetwork() {
   AOK();
   ANL();
   ANL();
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  TEST(SetSendTOS);
-  ANL();
-#if defined(_WIN32) || defined(WEBRTC_MAC) || defined(WEBRTC_LINUX)
-
-  
-
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 0)); MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(!netw->SetSendTOS(0, -1)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 64)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 1, -2)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 1, 8)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 1)); MARK();
-  TEST_ERROR(VE_SOCKET_ERROR); 
-
-#ifdef _WIN32
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 3000));
-
-  
-  TEST_MUSTPASS(netw->SetSendTOS(0, 1, -1, true)); MARK();
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt)); MARK();
-  TEST_MUSTPASS(DSCP != 1);
-  TEST_MUSTPASS(priority != 0);
-  TEST_MUSTPASS(useSetSockopt != true);
-
-  
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 1, -1, false)); MARK();
-  TEST_ERROR(VE_TOS_INVALID); 
-
-  
-  TEST_MUSTPASS(netw->SetSendTOS(0, 0, -1, true)); MARK(); 
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt)); MARK();
-  TEST_MUSTPASS(DSCP != 0);
-  TEST_MUSTPASS(priority != 0);
-  TEST_MUSTPASS(useSetSockopt != true);
-
-  
-  
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 1, -1, false)); MARK();
-  TEST_ERROR(VE_TOS_ERROR); 
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345, kVoEDefault, localIP));
-  TEST_LOG("\nThis test needs to be run as administrator\n");
-  TEST_MUSTPASS(netw->SetSendTOS(0, 1, -1, false)); MARK();
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt)); MARK();
-  TEST_MUSTPASS(DSCP != 1);
-  TEST_MUSTPASS(priority != 0);
-  TEST_MUSTPASS(useSetSockopt != false);
-
-  
-  
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true); 
-
-#ifdef _SEND_TO_REMOTE_IP_
-  
-  
-  TEST_LOG("\nUse Wireshark and verify a correctly received DSCP at the "
-      "remote side!\n");
-  TEST_LOG("Sending approx. 5 packets to %s:%d for each DSCP below:\n",
-      RemoteIP, RemotePort);
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, RemotePort, RemoteIP));
-  TEST_LOG("  DSCP is set to 0x%02x\n", 1);
-  SleepMs(100);
-
-  
-  TEST_MUSTPASS(netw->SetSendTOS(0, 2));
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x\n", DSCP);
-  SleepMs(100);
-
-  
-  TEST_MUSTPASS(netw->SetSendTOS(0, 63));
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x\n", DSCP);
-  SleepMs(100);
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x\n", DSCP);
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(netw->SetSendTOS(0, 0));
-#endif 
-  
-  TEST_LOG("Testing priority\n");
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 0, 3, true)); 
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(netw->SetSendTOS(0, 0, 3, false));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true); 
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(netw->SetSendTOS(0, 1, 3, false));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true); 
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-#endif 
-  
-
-  
-  
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345, kVoEDefault));
-  TEST_MUSTPASS(netw->SetSendTOS(0, 10, -1, true)); MARK();
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt)); MARK();
-  TEST_MUSTPASS(DSCP != 10);
-  TEST_MUSTPASS(priority != 0);
-  TEST_MUSTPASS(useSetSockopt != true);
-
-  
-  
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true); 
-
-#ifdef _SEND_TO_REMOTE_IP_
-  
-  
-  TEST_LOG("\nUse Wireshark and verify a correctly received DSCP at the"
-      " remote side!\n");
-  TEST_LOG("Sending approx. 5 packets to %s:%d for each DSCP below:\n",
-      RemoteIP, RemotePort);
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, RemotePort, RemoteIP));
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x (setsockopt)\n", DSCP);
-  SleepMs(100);
-
-  
-  TEST_MUSTPASS(netw->SetSendTOS(0, 20, -1, true)); 
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x (setsockopt)\n", DSCP);
-  SleepMs(100);
-
-  
-  TEST_MUSTPASS(netw->SetSendTOS(0, 61, -1, true)); 
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x (setsockopt)\n", DSCP);
-  SleepMs(100);
-
-  
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  TEST_MUSTPASS(netw->GetSendTOS(0, DSCP, priority, useSetSockopt));
-  TEST_LOG("  DSCP is set to 0x%02x (setsockopt)\n", DSCP);
-  SleepMs(100);
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(netw->SetSendTOS(0, 0, -1, true));
-#endif 
-#if defined(WEBRTC_LINUX)
-  
-  TEST_LOG("Testing priority\n");
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, localIP));
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(netw->SetSendTOS(0, 0, 3, true));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true); 
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(netw->SetSendTOS(0, 1, 3, true));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  Play(0, 2000, true, true); 
-#endif 
-#if !defined(_WIN32) && !defined(WEBRTC_LINUX)
-  
-  TEST_MUSTPASS(!netw->SetSendTOS(0, 0, 3, false)); 
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-#endif 
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  ANL(); AOK(); ANL(); ANL();
-
-  
-#else
-  TEST_LOG("Skipping ToS tests -  _WIN32, LINUX, MAC is not defined or "
-    "WEBRTC_ANDROID is defined");
-#endif
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  TEST(SetSendGQoS);
-  ANL();
-#ifdef _WIN32
-
-  
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, false, 0)); MARK();
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-
-  TEST_MUSTPASS(voe_base_->CreateChannel());
-
-  
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT)); MARK();
-  TEST_ERROR(VE_SOCKETS_NOT_INITED);
-
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-
-  
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT)); MARK();
-  TEST_ERROR(VE_DESTINATION_NOT_INITED);
-
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
-
-  
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_NOTRAFFIC)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_NETWORK_UNAVAILABLE));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_GENERAL_INFORMATION));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_NOCHANGE)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_NONCONFORMING));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_NETWORK_CONTROL));
-  MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICE_BESTEFFORT)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICE_CONTROLLEDLOAD)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICE_GUARANTEED)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICE_QUALITATIVE)); MARK();
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-
-  
-
-  
-
-  
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT)); MARK();
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  MARK();
-  TEST_MUSTPASS(enabled != true);
-  TEST_MUSTPASS(serviceType != SERVICETYPE_BESTEFFORT);
-  TEST_MUSTPASS(overrideDSCP != false);
-
-  
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_CONTROLLEDLOAD));
-  MARK();
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  MARK();
-  TEST_MUSTPASS(enabled != true);
-  TEST_MUSTPASS(serviceType != SERVICETYPE_CONTROLLEDLOAD);
-  TEST_MUSTPASS(overrideDSCP != false);
-
-  
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_GUARANTEED)); MARK();
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  MARK();
-  TEST_MUSTPASS(enabled != true);
-  TEST_MUSTPASS(serviceType != SERVICETYPE_GUARANTEED);
-  TEST_MUSTPASS(overrideDSCP != false);
-
-  
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_QUALITATIVE)); MARK();
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  MARK();
-  TEST_MUSTPASS(enabled != true);
-  TEST_MUSTPASS(serviceType != SERVICETYPE_QUALITATIVE);
-  TEST_MUSTPASS(overrideDSCP != false);
-
-  
-  TEST_MUSTPASS(netw->SetSendGQoS(0, false, 0)); MARK();
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  MARK();
-  TEST_MUSTPASS(enabled != false);
-  TEST_MUSTPASS(serviceType != SERVICETYPE_QUALITATIVE);
-  TEST_MUSTPASS(overrideDSCP != false);
-
-  
-
-  
-
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT)); MARK();
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  ANL();
-  TEST_LOG("[SERVICETYPE_BESTEFFORT]");
-  Play(0, 2000, true, true); 
-
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_CONTROLLEDLOAD)); MARK();
-  ANL();
-  TEST_LOG("[SERVICETYPE_CONTROLLEDLOAD]");
-  Play(0, 2000, true, true); 
-
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_GUARANTEED)); MARK();
-  ANL();
-  TEST_LOG("[SERVICETYPE_GUARANTEED]");
-  Play(0, 2000, true, true); 
-
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_QUALITATIVE)); MARK();
-  ANL();
-  TEST_LOG("[SERVICETYPE_QUALITATIVE]");
-  Play(0, 2000, true, true); 
-
-#ifdef _SEND_TO_REMOTE_IP_
-  
-  
-
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, RemotePort, RemoteIP));
-
-  TEST_LOG("\nUse Wireshark and verify a correctly received DSCP mapping at"
-      " the remote side!\n");
-  TEST_LOG("Sending approx. 5 packets to %s:%d for each GQoS setting below:\n",
-      RemoteIP, RemotePort);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_BESTEFFORT (0x%02x), should "
-      "be mapped to DSCP = 0x00\n", serviceType);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_CONTROLLEDLOAD));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_CONTROLLEDLOAD (0x%02x), "
-      "should be mapped to DSCP = 0x18\n", serviceType);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, false, 0));
-  TEST_LOG("  QoS is disabled, should give DSCP = 0x%02x\n", 0);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_GUARANTEED));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_GUARANTEED (0x%02x), should "
-      "be mapped to DSCP = 0x28\n", serviceType);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, false, 0));
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_QUALITATIVE));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_QUALITATIVE (0x%02x), should"
-      " be mapped to DSCP = 0x00\n", serviceType);
-  SleepMs(100);
-#endif 
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-
-  
-
-  
-
-  
-  
-
-  
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 3));
-  MARK();
-  TEST_ERROR(VE_TOS_GQOS_CONFLICT);
-
-  
-  
-  TEST_MUSTPASS(netw->SetSendGQoS(0, false, 0));
-  TEST_MUSTPASS(!netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 3));
-  MARK();
-  TEST_ERROR(VE_GQOS_ERROR);
-
-  
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345, kVoEDefault, localIP));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, localIP));
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 3));
-  MARK();
-
-  
-
-  TEST_MUSTPASS(voe_base_->StartReceive(0));
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  ANL();
-  TEST_LOG("[overrideDSCP=3]");
-  Play(0, 2000, true, true); 
-
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 17));
-  MARK();
-  ANL();
-  TEST_LOG("[overrideDSCP=17]");
-  Play(0, 2000, true, true); 
-
-  
-  
-
-#ifdef _SEND_TO_REMOTE_IP_
-  
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, RemotePort, RemoteIP));
-
-  TEST_LOG("\nUse Wireshark and verify a correctly received DSCP mapping at"
-      " the remote side!\n");
-  TEST_LOG("Sending approx. 5 packets to %s:%d for each GQoS setting below:\n",
-      RemoteIP, RemotePort);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 18));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_BESTEFFORT, should be "
-      "overrided to DSCP = 0x%02x\n", overrideDSCP);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 62));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_BESTEFFORT, should be "
-      "overrided to DSCP = 0x%02x\n", overrideDSCP);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 32));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_BESTEFFORT, should be "
-      "overrided to DSCP = 0x%02x\n", overrideDSCP);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, true, SERVICETYPE_BESTEFFORT, 1));
-  TEST_MUSTPASS(netw->GetSendGQoS(0, enabled, serviceType, overrideDSCP));
-  TEST_LOG("  serviceType is set to SERVICETYPE_BESTEFFORT, should be "
-      "overrided to DSCP = 0x%02x\n", overrideDSCP);
-  SleepMs(100);
-  TEST_MUSTPASS(netw->SetSendGQoS(0, false, 0));
-  TEST_LOG("  QoS is disabled, should give DSCP = 0x%02x\n", 0);
-  SleepMs(100);
-#endif 
-  TEST_MUSTPASS(voe_base_->StopReceive(0));
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-
-  TEST_MUSTPASS(voe_base_->DeleteChannel(0));
-  ANL(); AOK(); ANL(); ANL();
-
-#else
-  TEST_LOG("Skipping GQoS tests - _WIN32 is not defined");
-#endif  
-  
-  
-
-    if (file) {
-    file->StopPlayingFileAsMicrophone(0);
-  }
-  voe_base_->StopSend(0);
-  voe_base_->StopPlayout(0);
-  voe_base_->StopReceive(0);
-  voe_base_->DeleteChannel(0);
-  voe_base_->Terminate();
-
-  ANL();
-  AOK();
   return 0;
 }
+  
+  
 
 
 
@@ -6585,8 +4401,7 @@ int VoEExtendedTest::TestNetwork() {
 
 
 class RTPAudioTransport: public Transport {
-public:
-
+ public:
   RTPAudioTransport() :
     mute_(false) {
   }
@@ -6637,7 +4452,6 @@ public:
       assert(vad == 0 || vad == 1);
       assert(level >= 0 && level <= 127);
     }
-
     return 0;
   }
 
@@ -6646,7 +4460,7 @@ public:
     return 0;
   }
 
-private:
+ private:
   bool mute_;
 };
 
@@ -6683,8 +4497,13 @@ int VoEExtendedTest::TestRTP_RTCP() {
 
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(network, 0));
+
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
+
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
@@ -6787,8 +4606,12 @@ int VoEExtendedTest::TestRTP_RTCP() {
   TEST_MUSTPASS(voe_base_->DeleteChannel(1));
 
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+
+  voice_channel_transport.reset(new VoiceChannelTransport(network, 0));
+
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
+
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
@@ -6813,58 +4636,6 @@ int VoEExtendedTest::TestRTP_RTCP() {
 
   TEST_MUSTPASS(file->StartPlayingFileAsMicrophone(0, _mgr.AudioFilename(),
           true, true));
-
-  
-  
-  TEST(InsertExtraRTPPacket);
-  ANL();
-
-  const char payloadData[8] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
-
-  TEST_MUSTPASS(-1 != rtp_rtcp->InsertExtraRTPPacket(-1, 0, false,
-          payloadData, 8));
-  MARK(); 
-  TEST_ERROR(VE_CHANNEL_NOT_VALID);
-  TEST_MUSTPASS(-1 != rtp_rtcp->InsertExtraRTPPacket(0, -1, false,
-          payloadData, 8));
-  MARK(); 
-  TEST_ERROR(VE_INVALID_PLTYPE);
-  TEST_MUSTPASS(-1 != rtp_rtcp->InsertExtraRTPPacket(0, 128, false,
-          payloadData, 8));
-  MARK(); 
-  TEST_ERROR(VE_INVALID_PLTYPE);
-  TEST_MUSTPASS(-1 != rtp_rtcp->InsertExtraRTPPacket(0, 99, false,
-          NULL, 8));
-    MARK(); 
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(-1 != rtp_rtcp->InsertExtraRTPPacket(0, 99, false,
-          payloadData, 1500-28+1));
-  MARK(); 
-  TEST_ERROR(VE_INVALID_ARGUMENT);
-  TEST_MUSTPASS(voe_base_->StopSend(0));
-  TEST_MUSTPASS(-1 != rtp_rtcp->InsertExtraRTPPacket(0, 99, false,
-          payloadData, 8));
-  MARK(); 
-  TEST_ERROR(VE_NOT_SENDING);
-  TEST_MUSTPASS(voe_base_->StartSend(0));
-  TEST_MUSTPASS(file->StartPlayingFileAsMicrophone(0, _mgr.AudioFilename(),
-          true, true));
-
-  SleepMs(1000);
-  for (int p = 0; p < 128; p++) {
-    TEST_MUSTPASS(rtp_rtcp->InsertExtraRTPPacket(0, p, false,
-            payloadData, 8));
-    MARK();
-    TEST_MUSTPASS(rtp_rtcp->InsertExtraRTPPacket(0, p, true,
-            payloadData, 8));
-    MARK();
-  }
-
-  
-  
-  SleepMs(1000);
-
-  ANL();
 
   
   
@@ -7004,8 +4775,12 @@ int VoEExtendedTest::TestRTP_RTCP() {
   SleepMs(100);
 
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+
+  voice_channel_transport.reset(new VoiceChannelTransport(network, 0));
+
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
+
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
@@ -7251,8 +5026,12 @@ int VoEExtendedTest::TestRTP_RTCP() {
   
   
   TEST_MUSTPASS(codec->SetRecPayloadType(0, cinst));
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 8000));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 8000, "127.0.0.1"));
+
+  voice_channel_transport.reset(new VoiceChannelTransport(network, 0));
+
+  voice_channel_transport->SetSendDestination("127.0.0.1", 8000);
+  voice_channel_transport->SetLocalReceiver(8000);
+
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
@@ -7288,6 +5067,7 @@ int VoEExtendedTest::TestVideoSync()
 
   VoEBase* voe_base_ = _mgr.BasePtr();
   VoEVideoSync* vsync = _mgr.VideoSyncPtr();
+  VoENetwork* network = _mgr.NetworkPtr();
 
   
   if (!vsync)
@@ -7311,8 +5091,13 @@ int VoEExtendedTest::TestVideoSync()
 
   TEST_MUSTPASS(voe_base_->Init());
   TEST_MUSTPASS(voe_base_->CreateChannel());
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(network, 0));
+
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
+
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));
@@ -7390,6 +5175,7 @@ int VoEExtendedTest::TestVolumeControl()
 
   VoEBase* voe_base_ = _mgr.BasePtr();
   VoEVolumeControl* volume = _mgr.VolumeControlPtr();
+  VoENetwork* network = _mgr.NetworkPtr();
 #ifdef _TEST_FILE_
   VoEFile* file = _mgr.FilePtr();
 #endif
@@ -7421,8 +5207,10 @@ int VoEExtendedTest::TestVolumeControl()
   TEST_MUSTPASS(hardware->SetPlayoutDevice(0));
 #endif
 #endif
-  TEST_MUSTPASS(voe_base_->SetLocalReceiver(0, 12345));
-  TEST_MUSTPASS(voe_base_->SetSendDestination(0, 12345, "127.0.0.1"));
+  scoped_ptr<VoiceChannelTransport> voice_channel_transport(
+      new VoiceChannelTransport(network, 0));
+  voice_channel_transport->SetSendDestination("127.0.0.1", 12345);
+  voice_channel_transport->SetLocalReceiver(12345);
   TEST_MUSTPASS(voe_base_->StartReceive(0));
   TEST_MUSTPASS(voe_base_->StartPlayout(0));
   TEST_MUSTPASS(voe_base_->StartSend(0));

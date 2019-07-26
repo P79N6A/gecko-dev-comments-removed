@@ -69,20 +69,6 @@ TEST_F(HardwareTest, GetCpuLoadReturnsErrorOnNonWindowsPlatform) {
 }
 #endif
 
-#if !defined(WEBRTC_MAC) && !defined(WEBRTC_ANDROID)
-TEST_F(HardwareTest, GetSystemCpuLoadWorksExceptOnMacAndAndroid) {
-#ifdef _WIN32
-  
-  
-  Sleep(2000);
-#endif
-  int load = -1;
-  EXPECT_EQ(0, voe_hardware_->GetSystemCPULoad(load));
-  EXPECT_GE(load, 0);
-  TEST_LOG("System CPU load = %d%%\n", load);
-}
-#endif
-
 TEST_F(HardwareTest, BuiltInWasapiAECWorksForAudioWindowsCoreAudioLayer) {
 #ifdef WEBRTC_IOS
   

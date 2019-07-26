@@ -84,12 +84,12 @@ class ViEFilePlayer
   }
 
   
-  virtual void PlayNotification(const WebRtc_Word32 ,
-                                const WebRtc_UWord32 ) {}
-  virtual void RecordNotification(const WebRtc_Word32 ,
-                                  const WebRtc_UWord32 ) {}
-  virtual void PlayFileEnded(const WebRtc_Word32 id);
-  virtual void RecordFileEnded(const WebRtc_Word32 ) {}
+  virtual void PlayNotification(const int32_t ,
+                                const uint32_t ) {}
+  virtual void RecordNotification(const int32_t ,
+                                  const uint32_t ) {}
+  virtual void PlayFileEnded(const int32_t id);
+  virtual void RecordFileEnded(const int32_t ) {}
 
  private:
   static const int kMaxDecodedAudioLength = 320;
@@ -120,7 +120,7 @@ class ViEFilePlayer
   
   ThreadWrapper* decode_thread_;
   EventWrapper* decode_event_;
-  WebRtc_Word16 decoded_audio_[kMaxDecodedAudioLength];
+  int16_t decoded_audio_[kMaxDecodedAudioLength];
   int decoded_audio_length_;
 
   

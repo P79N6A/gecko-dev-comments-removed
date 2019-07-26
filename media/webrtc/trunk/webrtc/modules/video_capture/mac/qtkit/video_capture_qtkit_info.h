@@ -29,12 +29,12 @@ class VideoCaptureMacQTKitInfo: public DeviceInfoImpl
 {
 public:
 
-   VideoCaptureMacQTKitInfo(const WebRtc_Word32 id);
+   VideoCaptureMacQTKitInfo(const int32_t id);
     virtual ~VideoCaptureMacQTKitInfo();
 
-    WebRtc_Word32 Init();
+    int32_t Init();
 
-    virtual WebRtc_UWord32 NumberOfDevices();
+    virtual uint32_t NumberOfDevices();
 
     
 
@@ -45,32 +45,32 @@ public:
 
 
 
-    virtual WebRtc_Word32 GetDeviceName(
-        WebRtc_UWord32 deviceNumber, char* deviceNameUTF8,
-        WebRtc_UWord32 deviceNameLength, char* deviceUniqueIdUTF8,
-        WebRtc_UWord32 deviceUniqueIdUTF8Length,
+    virtual int32_t GetDeviceName(
+        uint32_t deviceNumber, char* deviceNameUTF8,
+        uint32_t deviceNameLength, char* deviceUniqueIdUTF8,
+        uint32_t deviceUniqueIdUTF8Length,
         char* productUniqueIdUTF8 = 0,
-        WebRtc_UWord32 productUniqueIdUTF8Length = 0);
+        uint32_t productUniqueIdUTF8Length = 0);
 
     
 
 
-    virtual WebRtc_Word32 NumberOfCapabilities(
+    virtual int32_t NumberOfCapabilities(
         const char* deviceUniqueIdUTF8);
 
     
 
 
-    virtual WebRtc_Word32 GetCapability(
+    virtual int32_t GetCapability(
         const char* deviceUniqueIdUTF8,
-        const WebRtc_UWord32 deviceCapabilityNumber,
+        const uint32_t deviceCapabilityNumber,
         VideoCaptureCapability& capability);
 
     
 
 
 
-    virtual WebRtc_Word32 GetBestMatchedCapability(
+    virtual int32_t GetBestMatchedCapability(
         const char* deviceUniqueIdUTF8,
         const VideoCaptureCapability& requested,
         VideoCaptureCapability& resulting);
@@ -78,13 +78,13 @@ public:
     
 
 
-    virtual WebRtc_Word32 DisplayCaptureSettingsDialogBox(
+    virtual int32_t DisplayCaptureSettingsDialogBox(
         const char* deviceUniqueIdUTF8,
         const char* dialogTitleUTF8, void* parentWindow,
-        WebRtc_UWord32 positionX, WebRtc_UWord32 positionY);
+        uint32_t positionX, uint32_t positionY);
 
 protected:
-    virtual WebRtc_Word32 CreateCapabilityMap(
+    virtual int32_t CreateCapabilityMap(
         const char* deviceUniqueIdUTF8);
 
     VideoCaptureMacQTKitInfoObjC*    _captureInfo;

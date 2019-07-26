@@ -48,7 +48,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 Init();
+  int32_t Init();
 
   
   
@@ -64,9 +64,11 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 RecIn(const WebRtc_UWord8* incoming_payload,
-                      const WebRtc_Word32 length_payload,
-                      const WebRtcRTPHeader& rtp_info);
+  
+  int32_t RecIn(const uint8_t* incoming_payload,
+                const int32_t length_payload,
+                const WebRtcRTPHeader& rtp_info,
+                uint32_t receive_timestamp);
 
   
   
@@ -79,7 +81,23 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 RecOut(AudioFrame& audio_frame);
+  
+  
+  
+  int RecIn(const WebRtcRTPHeader& rtp_info, uint32_t receive_timestamp);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int32_t RecOut(AudioFrame& audio_frame);
 
   
   
@@ -94,8 +112,8 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 AddCodec(WebRtcNetEQ_CodecDef *codec_def,
-                         bool to_master = true);
+  int32_t AddCodec(WebRtcNetEQ_CodecDef *codec_def,
+                   bool to_master = true);
 
   
   
@@ -108,8 +126,8 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 AllocatePacketBuffer(const WebRtcNetEQDecoder* used_codecs,
-                                     WebRtc_Word16 num_codecs);
+  int32_t AllocatePacketBuffer(const WebRtcNetEQDecoder* used_codecs,
+                               int16_t num_codecs);
 
   
   
@@ -121,7 +139,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 SetExtraDelay(const WebRtc_Word32 delay_in_ms);
+  int32_t SetExtraDelay(const int32_t delay_in_ms);
 
   
   
@@ -133,7 +151,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 SetAVTPlayout(const bool enable);
+  int32_t SetAVTPlayout(const bool enable);
 
   
   
@@ -150,7 +168,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 CurrentSampFreqHz() const;
+  int32_t CurrentSampFreqHz() const;
 
   
   
@@ -163,7 +181,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 SetPlayoutMode(const AudioPlayoutMode mode);
+  int32_t SetPlayoutMode(const AudioPlayoutMode mode);
 
   
   
@@ -183,7 +201,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 NetworkStatistics(ACMNetworkStatistics* statistics) const;
+  int32_t NetworkStatistics(ACMNetworkStatistics* statistics) const;
 
   
   
@@ -203,7 +221,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word16 SetVADMode(const ACMVADMode mode);
+  int16_t SetVADMode(const ACMVADMode mode);
 
   
   
@@ -222,7 +240,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word32 FlushBuffers();
+  int32_t FlushBuffers();
 
   
   
@@ -234,8 +252,8 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word16 RemoveCodec(WebRtcNetEQDecoder codec_idx,
-                            bool is_stereo = false);
+  int16_t RemoveCodec(WebRtcNetEQDecoder codec_idx,
+                      bool is_stereo = false);
 
   
   
@@ -248,7 +266,7 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word16 SetBackgroundNoiseMode(const ACMBackgroundNoiseMode mode);
+  int16_t SetBackgroundNoiseMode(const ACMBackgroundNoiseMode mode);
 
   
   
@@ -256,21 +274,32 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word16 BackgroundNoiseMode(ACMBackgroundNoiseMode& mode);
+  int16_t BackgroundNoiseMode(ACMBackgroundNoiseMode& mode);
 
-  void set_id(WebRtc_Word32 id);
+  void set_id(int32_t id);
 
-  WebRtc_Word32 PlayoutTimestamp(WebRtc_UWord32& timestamp);
+  int32_t PlayoutTimestamp(uint32_t& timestamp);
 
   void set_received_stereo(bool received_stereo);
 
-  WebRtc_UWord8 num_slaves();
+  uint8_t num_slaves();
 
   
   void RemoveSlaves();
 
-  WebRtc_Word16 AddSlave(const WebRtcNetEQDecoder* used_codecs,
-                         WebRtc_Word16 num_codecs);
+  int16_t AddSlave(const WebRtcNetEQDecoder* used_codecs,
+                   int16_t num_codecs);
+
+  void BufferSpec(int& num_packets, int& size_bytes, int& overhead_bytes) {
+    num_packets = min_of_max_num_packets_;
+    size_bytes = min_of_buffer_size_bytes_;
+    overhead_bytes = per_packet_overhead_bytes_;
+  }
+
+  
+  
+  
+  void EnableAVSync(bool enable);
 
  private:
   
@@ -286,13 +315,13 @@ class ACMNetEQ {
   
   
   
-  static void RTPPack(WebRtc_Word16* rtp_packet, const WebRtc_Word8* payload,
-                      const WebRtc_Word32 payload_length_bytes,
+  static void RTPPack(int16_t* rtp_packet, const int8_t* payload,
+                      const int32_t payload_length_bytes,
                       const WebRtcRTPHeader& rtp_info);
 
-  void LogError(const char* neteq_func_name, const WebRtc_Word16 idx) const;
+  void LogError(const char* neteq_func_name, const int16_t idx) const;
 
-  WebRtc_Word16 InitByIdxSafe(const WebRtc_Word16 idx);
+  int16_t InitByIdxSafe(const int16_t idx);
 
   
   
@@ -301,14 +330,14 @@ class ACMNetEQ {
   
   
   
-  WebRtc_Word16 EnableVAD();
+  int16_t EnableVAD();
 
-  WebRtc_Word16 EnableVADByIdxSafe(const WebRtc_Word16 idx);
+  int16_t EnableVADByIdxSafe(const int16_t idx);
 
-  WebRtc_Word16 AllocatePacketBufferByIdxSafe(
+  int16_t AllocatePacketBufferByIdxSafe(
       const WebRtcNetEQDecoder* used_codecs,
-      WebRtc_Word16 num_codecs,
-      const WebRtc_Word16 idx);
+      int16_t num_codecs,
+      const int16_t idx);
 
   
   void RemoveNetEQSafe(int index);
@@ -318,9 +347,9 @@ class ACMNetEQ {
   void* inst_[MAX_NUM_SLAVE_NETEQ + 1];
   void* inst_mem_[MAX_NUM_SLAVE_NETEQ + 1];
 
-  WebRtc_Word16* neteq_packet_buffer_[MAX_NUM_SLAVE_NETEQ + 1];
+  int16_t* neteq_packet_buffer_[MAX_NUM_SLAVE_NETEQ + 1];
 
-  WebRtc_Word32 id_;
+  int32_t id_;
   float current_samp_freq_khz_;
   bool avt_playout_;
   AudioPlayoutMode playout_mode_;
@@ -332,13 +361,21 @@ class ACMNetEQ {
   ACMVADMode vad_mode_;
   RWLockWrapper* decode_lock_;
   bool is_initialized_[MAX_NUM_SLAVE_NETEQ + 1];
-  WebRtc_UWord8 num_slaves_;
+  uint8_t num_slaves_;
   bool received_stereo_;
   void* master_slave_info_;
   AudioFrame::VADActivity previous_audio_activity_;
-  WebRtc_Word32 extra_delay_;
+  int32_t extra_delay_;
 
   CriticalSectionWrapper* callback_crit_sect_;
+  
+  int min_of_max_num_packets_;
+  
+  int min_of_buffer_size_bytes_;
+  int per_packet_overhead_bytes_;
+
+  
+  bool av_sync_;
 };
 
 }  

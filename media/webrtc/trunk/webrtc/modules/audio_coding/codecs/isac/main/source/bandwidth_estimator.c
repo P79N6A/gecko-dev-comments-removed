@@ -41,7 +41,7 @@ static const float kQRateTableSwb[24] =
 
 
 
-WebRtc_Word32 WebRtcIsac_InitBandwidthEstimator(
+int32_t WebRtcIsac_InitBandwidthEstimator(
     BwEstimatorstr*              bwest_str,
     enum IsacSamplingRate encoderSampRate,
     enum IsacSamplingRate decoderSampRate)
@@ -67,7 +67,7 @@ WebRtc_Word32 WebRtcIsac_InitBandwidthEstimator(
         bwest_str->prev_frame_length = INIT_FRAME_LEN_WB;
         bwest_str->rec_bw_inv        = 1.0f /
             (INIT_BN_EST_WB + INIT_HDR_RATE_WB);
-        bwest_str->rec_bw            = (WebRtc_Word32)INIT_BN_EST_WB;
+        bwest_str->rec_bw            = (int32_t)INIT_BN_EST_WB;
         bwest_str->rec_bw_avg_Q      = INIT_BN_EST_WB;
         bwest_str->rec_bw_avg        = INIT_BN_EST_WB + INIT_HDR_RATE_WB;
         bwest_str->rec_header_rate   = INIT_HDR_RATE_WB;
@@ -78,7 +78,7 @@ WebRtc_Word32 WebRtcIsac_InitBandwidthEstimator(
         bwest_str->prev_frame_length = INIT_FRAME_LEN_SWB;
         bwest_str->rec_bw_inv        = 1.0f /
             (INIT_BN_EST_SWB + INIT_HDR_RATE_SWB);
-        bwest_str->rec_bw            = (WebRtc_Word32)INIT_BN_EST_SWB;
+        bwest_str->rec_bw            = (int32_t)INIT_BN_EST_SWB;
         bwest_str->rec_bw_avg_Q      = INIT_BN_EST_SWB;
         bwest_str->rec_bw_avg        = INIT_BN_EST_SWB + INIT_HDR_RATE_SWB;
         bwest_str->rec_header_rate   = INIT_HDR_RATE_SWB;
@@ -131,13 +131,13 @@ WebRtc_Word32 WebRtcIsac_InitBandwidthEstimator(
 
 
 
-WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
+int16_t WebRtcIsac_UpdateBandwidthEstimator(
     BwEstimatorstr *bwest_str,
-    const WebRtc_UWord16 rtp_number,
-    const WebRtc_Word32  frame_length,
-    const WebRtc_UWord32 send_ts,
-    const WebRtc_UWord32 arr_ts,
-    const WebRtc_Word32  pksize
+    const uint16_t rtp_number,
+    const int32_t  frame_length,
+    const uint32_t send_ts,
+    const uint32_t arr_ts,
+    const int32_t  pksize
     )
 {
   float weight = 0.0f;
@@ -207,7 +207,7 @@ WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
       
     {
       
-      if((WebRtc_UWord32)(arr_ts - bwest_str->last_update_ts) *
+      if((uint32_t)(arr_ts - bwest_str->last_update_ts) *
          1000.0f / FS > 3000)
       {
         
@@ -222,7 +222,7 @@ WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
            0.9)
         {
           float inv_bitrate = (float) pow( 0.99995,
-                                           (double)((WebRtc_UWord32)(arr_ts -
+                                           (double)((uint32_t)(arr_ts -
                                                                      bwest_str->last_reduction_ts)*1000.0f/FS) );
 
           if ( inv_bitrate )
@@ -303,7 +303,7 @@ WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
       float averageLatencyMs = latencyMs / bwest_str->numConsecLatePkts;
       delay_correction_factor = frame_length / (frame_length + averageLatencyMs);
       immediate_set = 1;
-      bwest_str->inWaitLatePkts = (WebRtc_Word16)((bwest_str->consecLatency/(FS/1000)) / 30);
+      bwest_str->inWaitLatePkts = (int16_t)((bwest_str->consecLatency/(FS/1000)) / 30);
       bwest_str->start_wait_period = arr_ts;
     }
     
@@ -466,17 +466,17 @@ WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
   bwest_str->prev_rec_send_ts = send_ts;
 
   
-  bwest_str->rec_bw = (WebRtc_Word32)(1.0f / bwest_str->rec_bw_inv -
+  bwest_str->rec_bw = (int32_t)(1.0f / bwest_str->rec_bw_inv -
                                       bwest_str->rec_header_rate);
 
   if (immediate_set)
   {
-    bwest_str->rec_bw = (WebRtc_Word32) (delay_correction_factor *
+    bwest_str->rec_bw = (int32_t) (delay_correction_factor *
                                          (float) bwest_str->rec_bw);
 
-    if (bwest_str->rec_bw < (WebRtc_Word32) MIN_ISAC_BW)
+    if (bwest_str->rec_bw < (int32_t) MIN_ISAC_BW)
     {
-      bwest_str->rec_bw = (WebRtc_Word32) MIN_ISAC_BW;
+      bwest_str->rec_bw = (int32_t) MIN_ISAC_BW;
     }
 
     bwest_str->rec_bw_avg = bwest_str->rec_bw +
@@ -503,9 +503,9 @@ WebRtc_Word16 WebRtcIsac_UpdateBandwidthEstimator(
 
 
 
-WebRtc_Word16 WebRtcIsac_UpdateUplinkBwImpl(
+int16_t WebRtcIsac_UpdateUplinkBwImpl(
     BwEstimatorstr*           bwest_str,
-    WebRtc_Word16               index,
+    int16_t               index,
     enum IsacSamplingRate encoderSamplingFreq)
 {
   if((index < 0) || (index > 23))
@@ -560,9 +560,9 @@ WebRtc_Word16 WebRtcIsac_UpdateUplinkBwImpl(
 
 
 
-WebRtc_Word16 WebRtcIsac_UpdateUplinkJitter(
+int16_t WebRtcIsac_UpdateUplinkJitter(
     BwEstimatorstr*              bwest_str,
-    WebRtc_Word32                  index)
+    int32_t                  index)
 {
   if((index < 0) || (index > 23))
   {
@@ -589,11 +589,11 @@ WebRtc_Word16 WebRtcIsac_UpdateUplinkJitter(
 
 
 
-WebRtc_UWord16
+uint16_t
 WebRtcIsac_GetDownlinkBwJitIndexImpl(
     BwEstimatorstr*           bwest_str,
-    WebRtc_Word16*              bottleneckIndex,
-    WebRtc_Word16*              jitterInfo,
+    int16_t*              bottleneckIndex,
+    int16_t*              jitterInfo,
     enum IsacSamplingRate decoderSamplingFreq)
 {
   float MaxDelay;
@@ -604,10 +604,10 @@ WebRtcIsac_GetDownlinkBwJitIndexImpl(
   float e1, e2;
   const float weight = 0.1f;
   const float* ptrQuantizationTable;
-  WebRtc_Word16 addJitterInfo;
-  WebRtc_Word16 minInd;
-  WebRtc_Word16 maxInd;
-  WebRtc_Word16 midInd;
+  int16_t addJitterInfo;
+  int16_t minInd;
+  int16_t maxInd;
+  int16_t midInd;
 
   
   
@@ -691,9 +691,9 @@ WebRtcIsac_GetDownlinkBwJitIndexImpl(
 
 
 
-WebRtc_Word32 WebRtcIsac_GetDownlinkBandwidth( const BwEstimatorstr *bwest_str)
+int32_t WebRtcIsac_GetDownlinkBandwidth( const BwEstimatorstr *bwest_str)
 {
-  WebRtc_Word32  rec_bw;
+  int32_t  rec_bw;
   float   jitter_sign;
   float   bw_adjust;
 
@@ -705,7 +705,7 @@ WebRtc_Word32 WebRtcIsac_GetDownlinkBandwidth( const BwEstimatorstr *bwest_str)
   bw_adjust = 1.0f - jitter_sign * (0.15f + 0.15f * jitter_sign * jitter_sign);
 
   
-  rec_bw = (WebRtc_Word32)(bwest_str->rec_bw * bw_adjust);
+  rec_bw = (int32_t)(bwest_str->rec_bw * bw_adjust);
 
   
   if (rec_bw < MIN_ISAC_BW)
@@ -720,12 +720,12 @@ WebRtc_Word32 WebRtcIsac_GetDownlinkBandwidth( const BwEstimatorstr *bwest_str)
 }
 
 
-WebRtc_Word32
+int32_t
 WebRtcIsac_GetDownlinkMaxDelay(const BwEstimatorstr *bwest_str)
 {
-  WebRtc_Word32 rec_max_delay;
+  int32_t rec_max_delay;
 
-  rec_max_delay = (WebRtc_Word32)(bwest_str->rec_max_delay);
+  rec_max_delay = (int32_t)(bwest_str->rec_max_delay);
 
   
   if (rec_max_delay < MIN_ISAC_MD)
@@ -743,7 +743,7 @@ WebRtcIsac_GetDownlinkMaxDelay(const BwEstimatorstr *bwest_str)
 void
 WebRtcIsac_GetUplinkBandwidth(
     const BwEstimatorstr* bwest_str,
-    WebRtc_Word32*          bitRate)
+    int32_t*          bitRate)
 {
   
   if (bwest_str->send_bw_avg < MIN_ISAC_BW)
@@ -756,18 +756,18 @@ WebRtcIsac_GetUplinkBandwidth(
   }
   else
   {
-    *bitRate = (WebRtc_Word32)(bwest_str->send_bw_avg);
+    *bitRate = (int32_t)(bwest_str->send_bw_avg);
   }
   return;
 }
 
 
-WebRtc_Word32
+int32_t
 WebRtcIsac_GetUplinkMaxDelay(const BwEstimatorstr *bwest_str)
 {
-  WebRtc_Word32 send_max_delay;
+  int32_t send_max_delay;
 
-  send_max_delay = (WebRtc_Word32)(bwest_str->send_max_delay_avg);
+  send_max_delay = (int32_t)(bwest_str->send_max_delay_avg);
 
   
   if (send_max_delay < MIN_ISAC_MD)

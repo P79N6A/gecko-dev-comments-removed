@@ -24,15 +24,15 @@
 
 
 void WebRtcIlbcfix_CompCorr(
-    WebRtc_Word32 *corr, 
-    WebRtc_Word32 *ener, 
-    WebRtc_Word16 *buffer, 
-    WebRtc_Word16 lag,  
-    WebRtc_Word16 bLen, 
-    WebRtc_Word16 sRange, 
-    WebRtc_Word16 scale 
+    int32_t *corr, 
+    int32_t *ener, 
+    int16_t *buffer, 
+    int16_t lag,  
+    int16_t bLen, 
+    int16_t sRange, 
+    int16_t scale 
                             ){
-  WebRtc_Word16 *w16ptr;
+  int16_t *w16ptr;
 
   w16ptr=&buffer[bLen-sRange-lag];
 

@@ -26,12 +26,12 @@ const int kPacketDataNumberOfPackets = 3;
 class PacketRelatedTest: public testing::Test {
  protected:
   
-  WebRtc_UWord8 packet1_[kPacketSizeInBytes];
-  WebRtc_UWord8 packet2_[kPacketSizeInBytes];
-  WebRtc_UWord8 packet3_[1];
+  uint8_t packet1_[kPacketSizeInBytes];
+  uint8_t packet2_[kPacketSizeInBytes];
+  uint8_t packet3_[1];
   
-  WebRtc_UWord8 packet_data_[kPacketDataLength];
-  WebRtc_UWord8* packet_data_pointer_;
+  uint8_t packet_data_[kPacketDataLength];
+  uint8_t* packet_data_pointer_;
 
   PacketRelatedTest() {
     packet_data_pointer_ = packet_data_;

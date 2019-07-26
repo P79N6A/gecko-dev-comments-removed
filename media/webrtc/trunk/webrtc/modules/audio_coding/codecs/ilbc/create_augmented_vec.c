@@ -25,14 +25,14 @@
 
 
 void WebRtcIlbcfix_CreateAugmentedVec(
-    WebRtc_Word16 index,  
-    WebRtc_Word16 *buffer,  
+    int16_t index,  
+    int16_t *buffer,  
 
-    WebRtc_Word16 *cbVec  
+    int16_t *cbVec  
                                       ) {
-  WebRtc_Word16 ilow;
-  WebRtc_Word16 *ppo, *ppi;
-  WebRtc_Word16 cbVecTmp[4];
+  int16_t ilow;
+  int16_t *ppo, *ppi;
+  int16_t cbVecTmp[4];
 
   ilow = index-4;
 

@@ -26,9 +26,9 @@
 
 
 void WebRtcIlbcfix_Lsf2Lsp(
-    WebRtc_Word16 *lsf, 
-    WebRtc_Word16 *lsp, 
-    WebRtc_Word16 m     
+    int16_t *lsf, 
+    int16_t *lsp, 
+    int16_t m     
                            );
 
 #endif

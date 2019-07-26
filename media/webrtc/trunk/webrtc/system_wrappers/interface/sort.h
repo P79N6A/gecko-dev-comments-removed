@@ -39,7 +39,7 @@ enum Type {
 
 
 
-WebRtc_Word32 Sort(void* data, WebRtc_UWord32 num_of_elements, Type data_type);
+int32_t Sort(void* data, uint32_t num_of_elements, Type data_type);
 
 
 
@@ -57,8 +57,8 @@ WebRtc_Word32 Sort(void* data, WebRtc_UWord32 num_of_elements, Type data_type);
 
 
 
-WebRtc_Word32 KeySort(void* data, void* key, WebRtc_UWord32 num_of_elements,
-                      WebRtc_UWord32 size_of_element, Type key_type);
+int32_t KeySort(void* data, void* key, uint32_t num_of_elements,
+                uint32_t size_of_element, Type key_type);
 
 }  
 

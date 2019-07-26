@@ -11,7 +11,7 @@
 
 
 
-#include "echo_cancellation.h"
+#include "webrtc/modules/audio_processing/aec/include/echo_cancellation.h"
 
 #include <math.h>
 #ifdef WEBRTC_AEC_DEBUG_DUMP
@@ -20,12 +20,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "aec_core.h"
-#include "aec_resampler.h"
-#include "common_audio/signal_processing/include/signal_processing_library.h"
-#include "modules/audio_processing/aec/echo_cancellation_internal.h"
-#include "ring_buffer.h"
-#include "typedefs.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/audio_processing/aec/aec_core.h"
+#include "webrtc/modules/audio_processing/aec/aec_resampler.h"
+#include "webrtc/modules/audio_processing/aec/echo_cancellation_internal.h"
+#include "webrtc/modules/audio_processing/utility/ring_buffer.h"
+#include "webrtc/typedefs.h"
 
 
 
@@ -35,21 +35,17 @@
 
 static const int kMaxBufSizeStart = 62;  
 static const int sampMsNb = 8; 
-
-
-static const float targetSupp[3] = {-6.9f, -11.5f, -18.4f};
-static const float minOverDrive[3] = {1.0f, 2.0f, 5.0f};
 static const int initCheck = 42;
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
-static int instance_count = 0;
+int webrtc_aec_instance_count = 0;
 #endif
 
 
 
 static int EstBufDelay(aecpc_t *aecInst);
 
-WebRtc_Word32 WebRtcAec_Create(void **aecInst)
+int32_t WebRtcAec_Create(void **aecInst)
 {
     aecpc_t *aecpc;
     if (aecInst == NULL) {
@@ -76,9 +72,9 @@ WebRtc_Word32 WebRtcAec_Create(void **aecInst)
     
     
     
-    if (WebRtc_CreateBuffer(&aecpc->far_pre_buf,
-                            PART_LEN2 + kResamplerBufferSize,
-                            sizeof(float)) == -1) {
+    aecpc->far_pre_buf = WebRtc_CreateBuffer(PART_LEN2 + kResamplerBufferSize,
+                                             sizeof(float));
+    if (!aecpc->far_pre_buf) {
         WebRtcAec_Free(aecpc);
         aecpc = NULL;
         return -1;
@@ -88,37 +84,29 @@ WebRtc_Word32 WebRtcAec_Create(void **aecInst)
     aecpc->lastError = 0;
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
-    if (WebRtc_CreateBuffer(&aecpc->far_pre_buf_s16,
-                            PART_LEN2 + kResamplerBufferSize,
-                            sizeof(int16_t)) == -1) {
+    aecpc->far_pre_buf_s16 = WebRtc_CreateBuffer(
+        PART_LEN2 + kResamplerBufferSize, sizeof(int16_t));
+    if (!aecpc->far_pre_buf_s16) {
         WebRtcAec_Free(aecpc);
         aecpc = NULL;
         return -1;
     }
     {
       char filename[64];
-      sprintf(filename, "aec_far%d.pcm", instance_count);
-      aecpc->aec->farFile = fopen(filename, "wb");
-      sprintf(filename, "aec_near%d.pcm", instance_count);
-      aecpc->aec->nearFile = fopen(filename, "wb");
-      sprintf(filename, "aec_out%d.pcm", instance_count);
-      aecpc->aec->outFile = fopen(filename, "wb");
-      sprintf(filename, "aec_out_linear%d.pcm", instance_count);
-      aecpc->aec->outLinearFile = fopen(filename, "wb");
-      sprintf(filename, "aec_buf%d.dat", instance_count);
+      sprintf(filename, "aec_buf%d.dat", webrtc_aec_instance_count);
       aecpc->bufFile = fopen(filename, "wb");
-      sprintf(filename, "aec_skew%d.dat", instance_count);
+      sprintf(filename, "aec_skew%d.dat", webrtc_aec_instance_count);
       aecpc->skewFile = fopen(filename, "wb");
-      sprintf(filename, "aec_delay%d.dat", instance_count);
+      sprintf(filename, "aec_delay%d.dat", webrtc_aec_instance_count);
       aecpc->delayFile = fopen(filename, "wb");
-      instance_count++;
+      webrtc_aec_instance_count++;
     }
 #endif
 
     return 0;
 }
 
-WebRtc_Word32 WebRtcAec_Free(void *aecInst)
+int32_t WebRtcAec_Free(void *aecInst)
 {
     aecpc_t *aecpc = aecInst;
 
@@ -130,10 +118,6 @@ WebRtc_Word32 WebRtcAec_Free(void *aecInst)
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
     WebRtc_FreeBuffer(aecpc->far_pre_buf_s16);
-    fclose(aecpc->aec->farFile);
-    fclose(aecpc->aec->nearFile);
-    fclose(aecpc->aec->outFile);
-    fclose(aecpc->aec->outLinearFile);
     fclose(aecpc->bufFile);
     fclose(aecpc->skewFile);
     fclose(aecpc->delayFile);
@@ -146,7 +130,7 @@ WebRtc_Word32 WebRtcAec_Free(void *aecInst)
     return 0;
 }
 
-WebRtc_Word32 WebRtcAec_Init(void *aecInst, WebRtc_Word32 sampFreq, WebRtc_Word32 scSampFreq)
+int32_t WebRtcAec_Init(void *aecInst, int32_t sampFreq, int32_t scSampFreq)
 {
     aecpc_t *aecpc = aecInst;
     AecConfig aecConfig;
@@ -217,6 +201,9 @@ WebRtc_Word32 WebRtcAec_Init(void *aecInst, WebRtc_Word32 sampFreq, WebRtc_Word3
     aecpc->sampFactor = (aecpc->scSampFreq * 1.0f) / aecpc->splitSampFreq;
 
     
+    aecpc->rate_factor = aecpc->splitSampFreq / 8000;
+
+    
     aecConfig.nlpMode = kAecNlpModerate;
     aecConfig.skewMode = kAecFalse;
     aecConfig.metricsMode = kAecFalse;
@@ -239,11 +226,11 @@ WebRtc_Word32 WebRtcAec_Init(void *aecInst, WebRtc_Word32 sampFreq, WebRtc_Word3
 }
 
 
-WebRtc_Word32 WebRtcAec_BufferFarend(void *aecInst, const WebRtc_Word16 *farend,
-    WebRtc_Word16 nrOfSamples)
+int32_t WebRtcAec_BufferFarend(void *aecInst, const int16_t *farend,
+                               int16_t nrOfSamples)
 {
     aecpc_t *aecpc = aecInst;
-    WebRtc_Word32 retVal = 0;
+    int32_t retVal = 0;
     int newNrOfSamples = (int) nrOfSamples;
     short newFarend[MAX_RESAMP_LEN];
     const int16_t* farend_ptr = farend;
@@ -281,7 +268,8 @@ WebRtc_Word32 WebRtcAec_BufferFarend(void *aecInst, const WebRtc_Word16 *farend,
         farend_ptr = (const int16_t*) newFarend;
     }
 
-    aecpc->aec->system_delay += newNrOfSamples;
+    WebRtcAec_SetSystemDelay(aecpc->aec, WebRtcAec_system_delay(aecpc->aec) +
+                             newNrOfSamples);
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
     WebRtc_WriteBuffer(aecpc->far_pre_buf_s16, farend_ptr,
@@ -307,7 +295,8 @@ WebRtc_Word32 WebRtcAec_BufferFarend(void *aecInst, const WebRtc_Word16 *farend,
 #ifdef WEBRTC_AEC_DEBUG_DUMP
       WebRtc_ReadBuffer(aecpc->far_pre_buf_s16, (void**) &farend_ptr, newFarend,
                         PART_LEN2);
-      WebRtc_WriteBuffer(aecpc->aec->far_time_buf, &farend_ptr[PART_LEN], 1);
+      WebRtc_WriteBuffer(WebRtcAec_far_time_buf(aecpc->aec),
+                         &farend_ptr[PART_LEN], 1);
       WebRtc_MoveReadPtr(aecpc->far_pre_buf_s16, -PART_LEN);
 #endif
     }
@@ -315,12 +304,13 @@ WebRtc_Word32 WebRtcAec_BufferFarend(void *aecInst, const WebRtc_Word16 *farend,
     return retVal;
 }
 
-WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
-    const WebRtc_Word16 *nearendH, WebRtc_Word16 *out, WebRtc_Word16 *outH,
-    WebRtc_Word16 nrOfSamples, WebRtc_Word16 msInSndCardBuf, WebRtc_Word32 skew)
+int32_t WebRtcAec_Process(void *aecInst, const int16_t *nearend,
+                          const int16_t *nearendH, int16_t *out, int16_t *outH,
+                          int16_t nrOfSamples, int16_t msInSndCardBuf,
+                          int32_t skew)
 {
     aecpc_t *aecpc = aecInst;
-    WebRtc_Word32 retVal = 0;
+    int32_t retVal = 0;
     short i;
     short nBlocks10ms;
     short nFrames;
@@ -407,7 +397,7 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
     }
 
     nFrames = nrOfSamples / FRAME_LEN;
-    nBlocks10ms = nFrames / aecpc->aec->mult;
+    nBlocks10ms = nFrames / aecpc->rate_factor;
 
     if (aecpc->ECstartup) {
         if (nearend != out) {
@@ -445,7 +435,7 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
                 
                 
                 aecpc->bufSizeStart = WEBRTC_SPL_MIN((3 * aecpc->sum *
-                  aecpc->aec->mult * 8) / (4 * aecpc->counter * PART_LEN),
+                  aecpc->rate_factor * 8) / (4 * aecpc->counter * PART_LEN),
                   kMaxBufSizeStart);
                 
                 aecpc->checkBuffSize = 0;
@@ -455,7 +445,7 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
                 
                 
                 aecpc->bufSizeStart = WEBRTC_SPL_MIN((aecpc->msInSndCardBuf *
-                    aecpc->aec->mult * 3) / 40, kMaxBufSizeStart);
+                    aecpc->rate_factor * 3) / 40, kMaxBufSizeStart);
                 aecpc->checkBuffSize = 0;
             }
         }
@@ -466,7 +456,8 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
             
             
             
-            int overhead_elements = aecpc->aec->system_delay / PART_LEN -
+            int overhead_elements =
+                WebRtcAec_system_delay(aecpc->aec) / PART_LEN -
                 aecpc->bufSizeStart;
             if (overhead_elements == 0) {
                 
@@ -486,54 +477,27 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
     } else {
         
 
-        int out_elements = 0;
-
         EstBufDelay(aecpc);
 
         
         for (i = 0; i < nFrames; i++) {
-            int16_t* out_ptr = NULL;
-            int16_t out_tmp[FRAME_LEN];
-
             
             WebRtcAec_ProcessFrame(aecpc->aec,
                                    &nearend[FRAME_LEN * i],
                                    &nearendH[FRAME_LEN * i],
-                                   aecpc->knownDelay);
+                                   aecpc->knownDelay,
+                                   &out[FRAME_LEN * i],
+                                   &outH[FRAME_LEN * i]);
             
             
             
-
-            
-            
-            out_elements = (int) WebRtc_available_read(aecpc->aec->outFrBuf);
-            if (out_elements < FRAME_LEN) {
-                WebRtc_MoveReadPtr(aecpc->aec->outFrBuf,
-                                   out_elements - FRAME_LEN);
-                if (aecpc->sampFreq == 32000) {
-                    WebRtc_MoveReadPtr(aecpc->aec->outFrBufH,
-                                       out_elements - FRAME_LEN);
-                }
-            }
-
-            
-            WebRtc_ReadBuffer(aecpc->aec->outFrBuf, (void**) &out_ptr,
-                              out_tmp, FRAME_LEN);
-            memcpy(&out[FRAME_LEN * i], out_ptr, sizeof(int16_t) * FRAME_LEN);
-            
-            if (aecpc->sampFreq == 32000) {
-                WebRtc_ReadBuffer(aecpc->aec->outFrBufH, (void**) &out_ptr,
-                                  out_tmp, FRAME_LEN);
-                memcpy(&outH[FRAME_LEN * i], out_ptr,
-                       sizeof(int16_t) * FRAME_LEN);
-            }
         }
     }
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
     {
-        int16_t far_buf_size_ms = (int16_t)(aecpc->aec->system_delay /
-            (sampMsNb * aecpc->aec->mult));
+        int16_t far_buf_size_ms = (int16_t)(WebRtcAec_system_delay(aecpc->aec) /
+            (sampMsNb * aecpc->rate_factor));
         (void)fwrite(&far_buf_size_ms, 2, 1, aecpc->bufFile);
         (void)fwrite(&aecpc->knownDelay, sizeof(aecpc->knownDelay), 1,
                      aecpc->delayFile);
@@ -543,212 +507,164 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst, const WebRtc_Word16 *nearend,
     return retVal;
 }
 
-WebRtc_Word32 WebRtcAec_set_config(void *aecInst, AecConfig config)
-{
-    aecpc_t *aecpc = aecInst;
+int WebRtcAec_set_config(void* handle, AecConfig config) {
+  aecpc_t* self = (aecpc_t*)handle;
 
-    if (aecpc == NULL) {
-        return -1;
-    }
-
-    if (aecpc->initFlag != initCheck) {
-        aecpc->lastError = AEC_UNINITIALIZED_ERROR;
-        return -1;
-    }
-
-    if (config.skewMode != kAecFalse && config.skewMode != kAecTrue) {
-        aecpc->lastError = AEC_BAD_PARAMETER_ERROR;
-        return -1;
-    }
-    aecpc->skewMode = config.skewMode;
-
-    if (config.nlpMode != kAecNlpConservative && config.nlpMode !=
-            kAecNlpModerate && config.nlpMode != kAecNlpAggressive) {
-        aecpc->lastError = AEC_BAD_PARAMETER_ERROR;
-        return -1;
-    }
-    aecpc->nlpMode = config.nlpMode;
-    aecpc->aec->targetSupp = targetSupp[aecpc->nlpMode];
-    aecpc->aec->minOverDrive = minOverDrive[aecpc->nlpMode];
-
-    if (config.metricsMode != kAecFalse && config.metricsMode != kAecTrue) {
-        aecpc->lastError = AEC_BAD_PARAMETER_ERROR;
-        return -1;
-    }
-    aecpc->aec->metricsMode = config.metricsMode;
-    if (aecpc->aec->metricsMode == kAecTrue) {
-        WebRtcAec_InitMetrics(aecpc->aec);
-    }
-
-  if (config.delay_logging != kAecFalse && config.delay_logging != kAecTrue) {
-    aecpc->lastError = AEC_BAD_PARAMETER_ERROR;
+  if (handle == NULL ) {
     return -1;
   }
-  aecpc->aec->delay_logging_enabled = config.delay_logging;
-  if (aecpc->aec->delay_logging_enabled == kAecTrue) {
-    memset(aecpc->aec->delay_histogram, 0, sizeof(aecpc->aec->delay_histogram));
+
+  if (self->initFlag != initCheck) {
+    self->lastError = AEC_UNINITIALIZED_ERROR;
+    return -1;
   }
 
-    return 0;
+  if (config.skewMode != kAecFalse && config.skewMode != kAecTrue) {
+    self->lastError = AEC_BAD_PARAMETER_ERROR;
+    return -1;
+  }
+  self->skewMode = config.skewMode;
+
+  if (config.nlpMode != kAecNlpConservative && config.nlpMode != kAecNlpModerate
+      && config.nlpMode != kAecNlpAggressive) {
+    self->lastError = AEC_BAD_PARAMETER_ERROR;
+    return -1;
+  }
+
+  if (config.metricsMode != kAecFalse && config.metricsMode != kAecTrue) {
+    self->lastError = AEC_BAD_PARAMETER_ERROR;
+    return -1;
+  }
+
+  if (config.delay_logging != kAecFalse && config.delay_logging != kAecTrue) {
+    self->lastError = AEC_BAD_PARAMETER_ERROR;
+    return -1;
+  }
+
+  WebRtcAec_SetConfigCore(self->aec, config.nlpMode, config.metricsMode,
+                          config.delay_logging);
+  return 0;
 }
 
-WebRtc_Word32 WebRtcAec_get_config(void *aecInst, AecConfig *config)
-{
-    aecpc_t *aecpc = aecInst;
+int WebRtcAec_get_echo_status(void* handle, int* status) {
+  aecpc_t* self = (aecpc_t*)handle;
 
-    if (aecpc == NULL) {
-        return -1;
-    }
+  if (handle == NULL ) {
+    return -1;
+  }
+  if (status == NULL ) {
+    self->lastError = AEC_NULL_POINTER_ERROR;
+    return -1;
+  }
+  if (self->initFlag != initCheck) {
+    self->lastError = AEC_UNINITIALIZED_ERROR;
+    return -1;
+  }
 
-    if (config == NULL) {
-        aecpc->lastError = AEC_NULL_POINTER_ERROR;
-        return -1;
-    }
+  *status = WebRtcAec_echo_state(self->aec);
 
-    if (aecpc->initFlag != initCheck) {
-        aecpc->lastError = AEC_UNINITIALIZED_ERROR;
-        return -1;
-    }
-
-    config->nlpMode = aecpc->nlpMode;
-    config->skewMode = aecpc->skewMode;
-    config->metricsMode = aecpc->aec->metricsMode;
-    config->delay_logging = aecpc->aec->delay_logging_enabled;
-
-    return 0;
+  return 0;
 }
 
-WebRtc_Word32 WebRtcAec_get_echo_status(void *aecInst, WebRtc_Word16 *status)
-{
-    aecpc_t *aecpc = aecInst;
+int WebRtcAec_GetMetrics(void* handle, AecMetrics* metrics) {
+  const float kUpWeight = 0.7f;
+  float dtmp;
+  int stmp;
+  aecpc_t* self = (aecpc_t*)handle;
+  Stats erl;
+  Stats erle;
+  Stats a_nlp;
 
-    if (aecpc == NULL) {
-        return -1;
-    }
+  if (handle == NULL ) {
+    return -1;
+  }
+  if (metrics == NULL ) {
+    self->lastError = AEC_NULL_POINTER_ERROR;
+    return -1;
+  }
+  if (self->initFlag != initCheck) {
+    self->lastError = AEC_UNINITIALIZED_ERROR;
+    return -1;
+  }
 
-    if (status == NULL) {
-        aecpc->lastError = AEC_NULL_POINTER_ERROR;
-        return -1;
-    }
+  WebRtcAec_GetEchoStats(self->aec, &erl, &erle, &a_nlp);
 
-    if (aecpc->initFlag != initCheck) {
-        aecpc->lastError = AEC_UNINITIALIZED_ERROR;
-        return -1;
-    }
+  
+  metrics->erl.instant = (int) erl.instant;
 
-    *status = aecpc->aec->echoState;
-
-    return 0;
-}
-
-WebRtc_Word32 WebRtcAec_GetMetrics(void *aecInst, AecMetrics *metrics)
-{
-    const float upweight = 0.7f;
-    float dtmp;
-    short stmp;
-    aecpc_t *aecpc = aecInst;
-
-    if (aecpc == NULL) {
-        return -1;
-    }
-
-    if (metrics == NULL) {
-        aecpc->lastError = AEC_NULL_POINTER_ERROR;
-        return -1;
-    }
-
-    if (aecpc->initFlag != initCheck) {
-        aecpc->lastError = AEC_UNINITIALIZED_ERROR;
-        return -1;
-    }
-
+  if ((erl.himean > kOffsetLevel) && (erl.average > kOffsetLevel)) {
     
-    metrics->erl.instant = (short) aecpc->aec->erl.instant;
+    dtmp = kUpWeight * erl.himean + (1 - kUpWeight) * erl.average;
+    metrics->erl.average = (int) dtmp;
+  } else {
+    metrics->erl.average = kOffsetLevel;
+  }
 
-    if ((aecpc->aec->erl.himean > offsetLevel) && (aecpc->aec->erl.average > offsetLevel)) {
+  metrics->erl.max = (int) erl.max;
+
+  if (erl.min < (kOffsetLevel * (-1))) {
+    metrics->erl.min = (int) erl.min;
+  } else {
+    metrics->erl.min = kOffsetLevel;
+  }
+
+  
+  metrics->erle.instant = (int) erle.instant;
+
+  if ((erle.himean > kOffsetLevel) && (erle.average > kOffsetLevel)) {
     
-        dtmp = upweight * aecpc->aec->erl.himean + (1 - upweight) * aecpc->aec->erl.average;
-        metrics->erl.average = (short) dtmp;
-    }
-    else {
-        metrics->erl.average = offsetLevel;
-    }
+    dtmp = kUpWeight * erle.himean + (1 - kUpWeight) * erle.average;
+    metrics->erle.average = (int) dtmp;
+  } else {
+    metrics->erle.average = kOffsetLevel;
+  }
 
-    metrics->erl.max = (short) aecpc->aec->erl.max;
+  metrics->erle.max = (int) erle.max;
 
-    if (aecpc->aec->erl.min < (offsetLevel * (-1))) {
-        metrics->erl.min = (short) aecpc->aec->erl.min;
-    }
-    else {
-        metrics->erl.min = offsetLevel;
-    }
+  if (erle.min < (kOffsetLevel * (-1))) {
+    metrics->erle.min = (int) erle.min;
+  } else {
+    metrics->erle.min = kOffsetLevel;
+  }
 
+  
+  if ((metrics->erl.average > kOffsetLevel)
+      && (metrics->erle.average > kOffsetLevel)) {
+    stmp = metrics->erl.average + metrics->erle.average;
+  } else {
+    stmp = kOffsetLevel;
+  }
+  metrics->rerl.average = stmp;
+
+  
+  metrics->rerl.instant = stmp;
+  metrics->rerl.max = stmp;
+  metrics->rerl.min = stmp;
+
+  
+  metrics->aNlp.instant = (int) a_nlp.instant;
+
+  if ((a_nlp.himean > kOffsetLevel) && (a_nlp.average > kOffsetLevel)) {
     
-    metrics->erle.instant = (short) aecpc->aec->erle.instant;
+    dtmp = kUpWeight * a_nlp.himean + (1 - kUpWeight) * a_nlp.average;
+    metrics->aNlp.average = (int) dtmp;
+  } else {
+    metrics->aNlp.average = kOffsetLevel;
+  }
 
-    if ((aecpc->aec->erle.himean > offsetLevel) && (aecpc->aec->erle.average > offsetLevel)) {
-        
-        dtmp =  upweight * aecpc->aec->erle.himean + (1 - upweight) * aecpc->aec->erle.average;
-        metrics->erle.average = (short) dtmp;
-    }
-    else {
-        metrics->erle.average = offsetLevel;
-    }
+  metrics->aNlp.max = (int) a_nlp.max;
 
-    metrics->erle.max = (short) aecpc->aec->erle.max;
+  if (a_nlp.min < (kOffsetLevel * (-1))) {
+    metrics->aNlp.min = (int) a_nlp.min;
+  } else {
+    metrics->aNlp.min = kOffsetLevel;
+  }
 
-    if (aecpc->aec->erle.min < (offsetLevel * (-1))) {
-        metrics->erle.min = (short) aecpc->aec->erle.min;
-    } else {
-        metrics->erle.min = offsetLevel;
-    }
-
-    
-    if ((metrics->erl.average > offsetLevel) && (metrics->erle.average > offsetLevel)) {
-        stmp = metrics->erl.average + metrics->erle.average;
-    }
-    else {
-        stmp = offsetLevel;
-    }
-    metrics->rerl.average = stmp;
-
-    
-    metrics->rerl.instant = stmp;
-    metrics->rerl.max = stmp;
-    metrics->rerl.min = stmp;
-
-    
-    metrics->aNlp.instant = (short) aecpc->aec->aNlp.instant;
-
-    if ((aecpc->aec->aNlp.himean > offsetLevel) && (aecpc->aec->aNlp.average > offsetLevel)) {
-        
-        dtmp =  upweight * aecpc->aec->aNlp.himean + (1 - upweight) * aecpc->aec->aNlp.average;
-        metrics->aNlp.average = (short) dtmp;
-    }
-    else {
-        metrics->aNlp.average = offsetLevel;
-    }
-
-    metrics->aNlp.max = (short) aecpc->aec->aNlp.max;
-
-    if (aecpc->aec->aNlp.min < (offsetLevel * (-1))) {
-        metrics->aNlp.min = (short) aecpc->aec->aNlp.min;
-    }
-    else {
-        metrics->aNlp.min = offsetLevel;
-    }
-
-    return 0;
+  return 0;
 }
 
 int WebRtcAec_GetDelayMetrics(void* handle, int* median, int* std) {
   aecpc_t* self = handle;
-  int i = 0;
-  int delay_values = 0;
-  int num_delay_values = 0;
-  int my_median = 0;
-  const int kMsPerBlock = (PART_LEN * 1000) / self->splitSampFreq;
-  float l1_norm = 0;
 
   if (handle == NULL) {
     return -1;
@@ -765,50 +681,16 @@ int WebRtcAec_GetDelayMetrics(void* handle, int* median, int* std) {
     self->lastError = AEC_UNINITIALIZED_ERROR;
     return -1;
   }
-  if (self->aec->delay_logging_enabled == 0) {
+  if (WebRtcAec_GetDelayMetricsCore(self->aec, median, std) == -1) {
     
     self->lastError = AEC_UNSUPPORTED_FUNCTION_ERROR;
     return -1;
   }
 
-  
-  for (i = 0; i < kHistorySizeBlocks; i++) {
-    num_delay_values += self->aec->delay_histogram[i];
-  }
-  if (num_delay_values == 0) {
-    
-    
-    
-    *median = -1;
-    *std = -1;
-    return 0;
-  }
-
-  delay_values = num_delay_values >> 1; 
-  
-  for (i = 0; i < kHistorySizeBlocks; i++) {
-    delay_values -= self->aec->delay_histogram[i];
-    if (delay_values < 0) {
-      my_median = i;
-      break;
-    }
-  }
-  
-  *median = (my_median - kLookaheadBlocks) * kMsPerBlock;
-
-  
-  for (i = 0; i < kHistorySizeBlocks; i++) {
-    l1_norm += (float) (fabs(i - my_median) * self->aec->delay_histogram[i]);
-  }
-  *std = (int) (l1_norm / (float) num_delay_values + 0.5f) * kMsPerBlock;
-
-  
-  memset(self->aec->delay_histogram, 0, sizeof(self->aec->delay_histogram));
-
   return 0;
 }
 
-WebRtc_Word32 WebRtcAec_get_error_code(void *aecInst)
+int32_t WebRtcAec_get_error_code(void *aecInst)
 {
     aecpc_t *aecpc = aecInst;
 
@@ -819,9 +701,16 @@ WebRtc_Word32 WebRtcAec_get_error_code(void *aecInst)
     return aecpc->lastError;
 }
 
+AecCore* WebRtcAec_aec_core(void* handle) {
+  if (!handle) {
+    return NULL;
+  }
+  return ((aecpc_t*) handle)->aec;
+}
+
 static int EstBufDelay(aecpc_t* aecpc) {
-  int nSampSndCard = aecpc->msInSndCardBuf * sampMsNb * aecpc->aec->mult;
-  int current_delay = nSampSndCard - aecpc->aec->system_delay;
+  int nSampSndCard = aecpc->msInSndCardBuf * sampMsNb * aecpc->rate_factor;
+  int current_delay = nSampSndCard - WebRtcAec_system_delay(aecpc->aec);
   int delay_difference = 0;
 
   
@@ -831,7 +720,7 @@ static int EstBufDelay(aecpc_t* aecpc) {
   
 
   
-  current_delay += FRAME_LEN * aecpc->aec->mult;
+  current_delay += FRAME_LEN * aecpc->rate_factor;
 
   
   if (aecpc->skewMode == kAecTrue && aecpc->resample == kAecTrue) {

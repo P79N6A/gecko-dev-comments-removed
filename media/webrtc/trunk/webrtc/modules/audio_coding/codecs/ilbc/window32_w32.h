@@ -26,10 +26,10 @@
 
 
 void WebRtcIlbcfix_Window32W32(
-    WebRtc_Word32 *z,    
-    WebRtc_Word32 *x,    
-    const WebRtc_Word32  *y,  
-    WebRtc_Word16 N     
+    int32_t *z,    
+    int32_t *x,    
+    const int32_t  *y,  
+    int16_t N     
                                );
 
 #endif

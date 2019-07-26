@@ -15,6 +15,16 @@
 #include <map>
 #include <vector>
 
+#include "system_wrappers/interface/constructor_magic.h"
+#include "test/testsupport/gtest_prod_util.h"
+
+
+
+
+
+
+
+
 
 
 
@@ -44,8 +54,12 @@ class CommandLineParser {
   void PrintUsageMessage();
 
   
-  void SetFlag(std::string flag_name, std::string flag_value);
+  
+  
+  void SetFlag(std::string flag_name, std::string default_flag_value);
 
+  
+  
   
   std::string GetFlag(std::string flag_name);
 
@@ -62,13 +76,22 @@ class CommandLineParser {
   bool IsStandaloneFlag(std::string flag);
 
   
+  
   bool IsFlagWellFormed(std::string flag);
 
   
   std::string GetCommandLineFlagName(std::string flag);
 
   
+  
   std::string GetCommandLineFlagValue(std::string flag);
+
+  FRIEND_TEST_ALL_PREFIXES(CommandLineParserTest, IsStandaloneFlag);
+  FRIEND_TEST_ALL_PREFIXES(CommandLineParserTest, IsFlagWellFormed);
+  FRIEND_TEST_ALL_PREFIXES(CommandLineParserTest, GetCommandLineFlagName);
+  FRIEND_TEST_ALL_PREFIXES(CommandLineParserTest, GetCommandLineFlagValue);
+
+  DISALLOW_COPY_AND_ASSIGN(CommandLineParser);
 };
 
 }  

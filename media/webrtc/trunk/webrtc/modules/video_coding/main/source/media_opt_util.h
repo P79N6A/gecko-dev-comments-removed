@@ -11,18 +11,18 @@
 #ifndef WEBRTC_MODULES_VIDEO_CODING_MEDIA_OPT_UTIL_H_
 #define WEBRTC_MODULES_VIDEO_CODING_MEDIA_OPT_UTIL_H_
 
-#include "typedefs.h"
-#include "trace.h"
-#include "exp_filter.h"
-#include "internal_defines.h"
-#include "qm_select.h"
-
 #include <cmath>
 #include <cstdlib>
 
+#include "webrtc/modules/video_coding/utility/include/exp_filter.h"
+#include "webrtc/modules/video_coding/main/source/internal_defines.h"
+#include "webrtc/modules/video_coding/main/source/qm_select.h"
+#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/typedefs.h"
 
-namespace webrtc
-{
+namespace webrtc {
+namespace media_optimization {
+
 
 
 
@@ -62,11 +62,11 @@ struct VCMProtectionParameters
     float               packetsPerFrameKey;
     float               frameRate;
     float               keyFrameSize;
-    WebRtc_UWord8       fecRateDelta;
-    WebRtc_UWord8       fecRateKey;
+    uint8_t       fecRateDelta;
+    uint8_t       fecRateKey;
     float               residualPacketLossFec;
-    WebRtc_UWord16      codecWidth;
-    WebRtc_UWord16      codecHeight;
+    uint16_t      codecWidth;
+    uint16_t      codecHeight;
     int                 numLayers;
 };
 
@@ -88,8 +88,8 @@ class VCMLossProbabilitySample
 public:
     VCMLossProbabilitySample() : lossPr255(0), timeMs(-1) {};
 
-    WebRtc_UWord8     lossPr255;
-    WebRtc_Word64     timeMs;
+    uint8_t     lossPr255;
+    int64_t     timeMs;
 };
 
 
@@ -122,17 +122,17 @@ public:
     
     
     
-    virtual WebRtc_UWord8 RequiredPacketLossER() { return _effectivePacketLoss; }
+    virtual uint8_t RequiredPacketLossER() { return _effectivePacketLoss; }
 
     
     
     
-    virtual WebRtc_UWord8 RequiredProtectionFactorK() { return _protectionFactorK; }
+    virtual uint8_t RequiredProtectionFactorK() { return _protectionFactorK; }
 
     
     
     
-    virtual WebRtc_UWord8 RequiredProtectionFactorD() { return _protectionFactorD; }
+    virtual uint8_t RequiredProtectionFactorD() { return _protectionFactorD; }
 
     
     
@@ -151,13 +151,13 @@ public:
 
 protected:
 
-    WebRtc_UWord8                        _effectivePacketLoss;
-    WebRtc_UWord8                        _protectionFactorK;
-    WebRtc_UWord8                        _protectionFactorD;
+    uint8_t                        _effectivePacketLoss;
+    uint8_t                        _protectionFactorK;
+    uint8_t                        _protectionFactorD;
     
     float                                _residualPacketLossFec;
     float                                _scaleProtKey;
-    WebRtc_Word32                        _maxPayloadSize;
+    int32_t                        _maxPayloadSize;
 
     VCMQmRobustness*                     _qmRobustness;
     bool                                 _useUepProtectionK;
@@ -188,16 +188,16 @@ public:
     
     bool ProtectionFactor(const VCMProtectionParameters* parameters);
     
-    WebRtc_UWord8 BoostCodeRateKey(WebRtc_UWord8 packetFrameDelta,
-                                   WebRtc_UWord8 packetFrameKey) const;
+    uint8_t BoostCodeRateKey(uint8_t packetFrameDelta,
+                                   uint8_t packetFrameKey) const;
     
-    WebRtc_UWord8 ConvertFECRate(WebRtc_UWord8 codeRate) const;
+    uint8_t ConvertFECRate(uint8_t codeRate) const;
     
     float AvgRecoveryFEC(const VCMProtectionParameters* parameters) const;
     
-    void UpdateProtectionFactorD(WebRtc_UWord8 protectionFactorD);
+    void UpdateProtectionFactorD(uint8_t protectionFactorD);
     
-    void UpdateProtectionFactorK(WebRtc_UWord8 protectionFactorK);
+    void UpdateProtectionFactorK(uint8_t protectionFactorK);
     
     int BitsPerFrame(const VCMProtectionParameters* parameters);
 
@@ -251,14 +251,14 @@ public:
     
     
     
-    bool SetMethod(enum VCMProtectionMethodEnum newMethodType);
+    bool SetMethod(VCMProtectionMethodEnum newMethodType);
 
     
     
     
     
     
-    bool RemoveMethod(enum VCMProtectionMethodEnum method);
+    bool RemoveMethod(VCMProtectionMethodEnum method);
 
     
     float RequiredBitRate() const;
@@ -267,7 +267,7 @@ public:
     
     
     
-    void UpdateRtt(WebRtc_UWord32 rtt);
+    void UpdateRtt(uint32_t rtt);
 
     
     
@@ -281,7 +281,7 @@ public:
     
     
     
-    void UpdateFilteredLossPr(WebRtc_UWord8 packetLossEnc);
+    void UpdateFilteredLossPr(uint8_t packetLossEnc);
 
     
     
@@ -318,7 +318,7 @@ public:
     
     
     
-    void UpdateFrameSize(WebRtc_UWord16 width, WebRtc_UWord16 height);
+    void UpdateFrameSize(uint16_t width, uint16_t height);
 
     
     
@@ -333,7 +333,7 @@ public:
     
     
     
-    void UpdateFECRates(WebRtc_UWord8 fecRateKey, WebRtc_UWord8 fecRateDelta)
+    void UpdateFECRates(uint8_t fecRateKey, uint8_t fecRateDelta)
                        { _fecRateKey = fecRateKey;
                          _fecRateDelta = fecRateDelta; }
 
@@ -356,8 +356,8 @@ public:
     
 
     
-    WebRtc_UWord8 FilteredLoss(int64_t nowMs, FilterPacketLossMode filter_mode,
-                               WebRtc_UWord8 lossPr255);
+    uint8_t FilteredLoss(int64_t nowMs, FilterPacketLossMode filter_mode,
+                               uint8_t lossPr255);
 
     void Reset(int64_t nowMs);
 
@@ -365,31 +365,32 @@ public:
 
 private:
     
-    void UpdateMaxLossHistory(WebRtc_UWord8 lossPr255, WebRtc_Word64 now);
-    WebRtc_UWord8 MaxFilteredLossPr(WebRtc_Word64 nowMs) const;
+    void UpdateMaxLossHistory(uint8_t lossPr255, int64_t now);
+    uint8_t MaxFilteredLossPr(int64_t nowMs) const;
     VCMProtectionMethod*      _selectedMethod;
     VCMProtectionParameters   _currentParameters;
-    WebRtc_UWord32            _rtt;
+    uint32_t            _rtt;
     float                     _lossPr;
     float                     _bitRate;
     float                     _frameRate;
     float                     _keyFrameSize;
-    WebRtc_UWord8             _fecRateKey;
-    WebRtc_UWord8             _fecRateDelta;
-    WebRtc_Word64             _lastPrUpdateT;
-    WebRtc_Word64             _lastPacketPerFrameUpdateT;
-    WebRtc_Word64             _lastPacketPerFrameUpdateTKey;
+    uint8_t             _fecRateKey;
+    uint8_t             _fecRateDelta;
+    int64_t             _lastPrUpdateT;
+    int64_t             _lastPacketPerFrameUpdateT;
+    int64_t             _lastPacketPerFrameUpdateTKey;
     VCMExpFilter              _lossPr255;
     VCMLossProbabilitySample  _lossPrHistory[kLossPrHistorySize];
-    WebRtc_UWord8             _shortMaxLossPr255;
+    uint8_t             _shortMaxLossPr255;
     VCMExpFilter              _packetsPerFrame;
     VCMExpFilter              _packetsPerFrameKey;
     float                     _residualPacketLossFec;
-    WebRtc_UWord16            _codecWidth;
-    WebRtc_UWord16            _codecHeight;
+    uint16_t            _codecWidth;
+    uint16_t            _codecHeight;
     int                       _numLayers;
 };
 
+} 
 } 
 
 #endif

@@ -39,9 +39,9 @@ enum
 
 typedef struct
 {
-    WebRtc_Word16 targetLevelDbfs;   
-    WebRtc_Word16 compressionGaindB; 
-    WebRtc_UWord8 limiterEnable;     
+    int16_t targetLevelDbfs;   
+    int16_t compressionGaindB; 
+    uint8_t limiterEnable;     
 } WebRtcAgc_config_t;
 
 #if defined(__cplusplus)
@@ -65,8 +65,8 @@ extern "C"
 
 
 int WebRtcAgc_AddFarend(void* agcInst,
-                        const WebRtc_Word16* inFar,
-                        WebRtc_Word16 samples);
+                        const int16_t* inFar,
+                        int16_t samples);
 
 
 
@@ -92,9 +92,9 @@ int WebRtcAgc_AddFarend(void* agcInst,
 
 
 int WebRtcAgc_AddMic(void* agcInst,
-                     WebRtc_Word16* inMic,
-                     WebRtc_Word16* inMic_H,
-                     WebRtc_Word16 samples);
+                     int16_t* inMic,
+                     int16_t* inMic_H,
+                     int16_t samples);
 
 
 
@@ -123,11 +123,11 @@ int WebRtcAgc_AddMic(void* agcInst,
 
 
 int WebRtcAgc_VirtualMic(void* agcInst,
-                         WebRtc_Word16* inMic,
-                         WebRtc_Word16* inMic_H,
-                         WebRtc_Word16 samples,
-                         WebRtc_Word32 micLevelIn,
-                         WebRtc_Word32* micLevelOut);
+                         int16_t* inMic,
+                         int16_t* inMic_H,
+                         int16_t samples,
+                         int32_t micLevelIn,
+                         int32_t* micLevelOut);
 
 
 
@@ -168,15 +168,15 @@ int WebRtcAgc_VirtualMic(void* agcInst,
 
 
 int WebRtcAgc_Process(void* agcInst,
-                      const WebRtc_Word16* inNear,
-                      const WebRtc_Word16* inNear_H,
-                      WebRtc_Word16 samples,
-                      WebRtc_Word16* out,
-                      WebRtc_Word16* out_H,
-                      WebRtc_Word32 inMicLevel,
-                      WebRtc_Word32* outMicLevel,
-                      WebRtc_Word16 echo,
-                      WebRtc_UWord8* saturationWarning);
+                      const int16_t* inNear,
+                      const int16_t* inNear_H,
+                      int16_t samples,
+                      int16_t* out,
+                      int16_t* out_H,
+                      int32_t inMicLevel,
+                      int32_t* outMicLevel,
+                      int16_t echo,
+                      uint8_t* saturationWarning);
 
 
 
@@ -247,10 +247,10 @@ int WebRtcAgc_Free(void *agcInst);
 
 
 int WebRtcAgc_Init(void *agcInst,
-                   WebRtc_Word32 minLevel,
-                   WebRtc_Word32 maxLevel,
-                   WebRtc_Word16 agcMode,
-                   WebRtc_UWord32 fs);
+                   int32_t minLevel,
+                   int32_t maxLevel,
+                   int16_t agcMode,
+                   uint32_t fs);
 
 #if defined(__cplusplus)
 }

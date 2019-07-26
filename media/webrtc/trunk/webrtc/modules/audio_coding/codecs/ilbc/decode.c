@@ -37,25 +37,25 @@
 
 
 void WebRtcIlbcfix_DecodeImpl(
-    WebRtc_Word16 *decblock,    
-    const WebRtc_UWord16 *bytes, 
+    int16_t *decblock,    
+    const uint16_t *bytes, 
     iLBC_Dec_Inst_t *iLBCdec_inst, 
 
-    WebRtc_Word16 mode      
+    int16_t mode      
 
                            ) {
   int i;
-  WebRtc_Word16 order_plus_one;
+  int16_t order_plus_one;
 
-  WebRtc_Word16 last_bit;
-  WebRtc_Word16 *data;
+  int16_t last_bit;
+  int16_t *data;
   
-  WebRtc_Word16 decresidual[BLOCKL_MAX];
-  WebRtc_Word16 PLCresidual[BLOCKL_MAX + LPC_FILTERORDER];
-  WebRtc_Word16 syntdenum[NSUB_MAX*(LPC_FILTERORDER+1)];
-  WebRtc_Word16 PLClpc[LPC_FILTERORDER + 1];
+  int16_t decresidual[BLOCKL_MAX];
+  int16_t PLCresidual[BLOCKL_MAX + LPC_FILTERORDER];
+  int16_t syntdenum[NSUB_MAX*(LPC_FILTERORDER+1)];
+  int16_t PLClpc[LPC_FILTERORDER + 1];
 #ifndef WEBRTC_BIG_ENDIAN
-  WebRtc_UWord16 swapped[NO_OF_WORDS_30MS];
+  uint16_t swapped[NO_OF_WORDS_30MS];
 #endif
   iLBC_bits *iLBCbits_inst = (iLBC_bits*)PLCresidual;
 
@@ -87,14 +87,14 @@ void WebRtcIlbcfix_DecodeImpl(
 
     if (mode) { 
       
-      WebRtc_Word16 lsfdeq[LPC_FILTERORDER*LPC_N_MAX];
-      WebRtc_Word16 weightdenum[(LPC_FILTERORDER + 1)*NSUB_MAX];
+      int16_t lsfdeq[LPC_FILTERORDER*LPC_N_MAX];
+      int16_t weightdenum[(LPC_FILTERORDER + 1)*NSUB_MAX];
 
       
       WebRtcIlbcfix_IndexConvDec(iLBCbits_inst->cb_index);
 
       
-      WebRtcIlbcfix_SimpleLsfDeQ(lsfdeq, (WebRtc_Word16*)(iLBCbits_inst->lsf), iLBCdec_inst->lpc_n);
+      WebRtcIlbcfix_SimpleLsfDeQ(lsfdeq, (int16_t*)(iLBCbits_inst->lsf), iLBCdec_inst->lpc_n);
       WebRtcIlbcfix_LsfCheck(lsfdeq, LPC_FILTERORDER, iLBCdec_inst->lpc_n);
       WebRtcIlbcfix_DecoderInterpolateLsp(syntdenum, weightdenum,
                                           lsfdeq, LPC_FILTERORDER, iLBCdec_inst);
@@ -105,7 +105,7 @@ void WebRtcIlbcfix_DecodeImpl(
       
       WebRtcIlbcfix_DoThePlc( PLCresidual, PLClpc, 0,
                               decresidual, syntdenum + (LPC_FILTERORDER + 1)*(iLBCdec_inst->nsub - 1),
-                              (WebRtc_Word16)(iLBCdec_inst->last_lag), iLBCdec_inst);
+                              (int16_t)(iLBCdec_inst->last_lag), iLBCdec_inst);
 
       
       WEBRTC_SPL_MEMCPY_W16(decresidual, PLCresidual, iLBCdec_inst->blockl);
@@ -121,7 +121,7 @@ void WebRtcIlbcfix_DecodeImpl(
     
 
     WebRtcIlbcfix_DoThePlc( PLCresidual, PLClpc, 1,
-                            decresidual, syntdenum, (WebRtc_Word16)(iLBCdec_inst->last_lag), iLBCdec_inst);
+                            decresidual, syntdenum, (int16_t)(iLBCdec_inst->last_lag), iLBCdec_inst);
 
     WEBRTC_SPL_MEMCPY_W16(decresidual, PLCresidual, iLBCdec_inst->blockl);
 
@@ -187,18 +187,18 @@ void WebRtcIlbcfix_DecodeImpl(
     WEBRTC_SPL_MEMCPY_W16(iLBCdec_inst->syntMem, &data[iLBCdec_inst->blockl-LPC_FILTERORDER], LPC_FILTERORDER);
 
   } else { 
-    WebRtc_Word16 lag;
+    int16_t lag;
 
     
     lag = 20;
     if (iLBCdec_inst->mode==20) {
-      lag = (WebRtc_Word16)WebRtcIlbcfix_XcorrCoef(
+      lag = (int16_t)WebRtcIlbcfix_XcorrCoef(
           &decresidual[iLBCdec_inst->blockl-60],
           &decresidual[iLBCdec_inst->blockl-60-lag],
           60,
           80, lag, -1);
     } else {
-      lag = (WebRtc_Word16)WebRtcIlbcfix_XcorrCoef(
+      lag = (int16_t)WebRtcIlbcfix_XcorrCoef(
           &decresidual[iLBCdec_inst->blockl-ENH_BLOCKL],
           &decresidual[iLBCdec_inst->blockl-ENH_BLOCKL-lag],
           ENH_BLOCKL,
@@ -228,7 +228,7 @@ void WebRtcIlbcfix_DecodeImpl(
   WEBRTC_SPL_MEMCPY_W16(decblock,data,iLBCdec_inst->blockl);
 
   
-  WebRtcIlbcfix_HpOutput(decblock, (WebRtc_Word16*)WebRtcIlbcfix_kHpOutCoefs,
+  WebRtcIlbcfix_HpOutput(decblock, (int16_t*)WebRtcIlbcfix_kHpOutCoefs,
                          iLBCdec_inst->hpimemy, iLBCdec_inst->hpimemx,
                          iLBCdec_inst->blockl);
 

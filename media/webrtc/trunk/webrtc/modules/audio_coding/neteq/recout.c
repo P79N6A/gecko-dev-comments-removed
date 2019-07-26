@@ -91,49 +91,50 @@
 
 #ifdef NETEQ_DELAY_LOGGING
 extern FILE *delay_fid2; 
-extern WebRtc_UWord32 tot_received_packets;
+extern uint32_t tot_received_packets;
 #endif
 
 
-int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
-                               WebRtc_Word16 *pw16_len, WebRtc_Word16 BGNonly)
+int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, int16_t *pw16_outData,
+                               int16_t *pw16_len, int16_t BGNonly,
+                               int av_sync)
 {
 
-    WebRtc_Word16 blockLen, payloadLen, len = 0, pos;
-    WebRtc_Word16 w16_tmp1, w16_tmp2, w16_tmp3, DataEnough;
-    WebRtc_Word16 *blockPtr;
-    WebRtc_Word16 MD = 0;
+    int16_t blockLen, payloadLen, len = 0, pos;
+    int16_t w16_tmp1, w16_tmp2, w16_tmp3, DataEnough;
+    int16_t *blockPtr;
+    int16_t MD = 0;
 
-    WebRtc_Word16 speechType = TYPE_SPEECH;
-    WebRtc_UWord16 instr;
-    WebRtc_UWord16 uw16_tmp;
+    int16_t speechType = TYPE_SPEECH;
+    uint16_t instr;
+    uint16_t uw16_tmp;
 #ifdef SCRATCH
     char pw8_ScratchBuffer[((SIZE_SCRATCH_BUFFER + 1) * 2)];
-    WebRtc_Word16 *pw16_scratchPtr = (WebRtc_Word16*) pw8_ScratchBuffer;
+    int16_t *pw16_scratchPtr = (int16_t*) pw8_ScratchBuffer;
     
-    WebRtc_Word16 pw16_decoded_buffer[NETEQ_MAX_FRAME_SIZE+240*6];
-    WebRtc_Word16 *pw16_NetEqAlgorithm_buffer = pw16_scratchPtr
+    int16_t pw16_decoded_buffer[NETEQ_MAX_FRAME_SIZE+240*6];
+    int16_t *pw16_NetEqAlgorithm_buffer = pw16_scratchPtr
         + SCRATCH_ALGORITHM_BUFFER;
     DSP2MCU_info_t *dspInfo = (DSP2MCU_info_t*) (pw16_scratchPtr + SCRATCH_DSP_INFO);
 #else
     
-    WebRtc_Word16 pw16_decoded_buffer[NETEQ_MAX_FRAME_SIZE+240*6];
-    WebRtc_Word16 pw16_NetEqAlgorithm_buffer[NETEQ_MAX_OUTPUT_SIZE+240*6];
+    int16_t pw16_decoded_buffer[NETEQ_MAX_FRAME_SIZE+240*6];
+    int16_t pw16_NetEqAlgorithm_buffer[NETEQ_MAX_OUTPUT_SIZE+240*6];
     DSP2MCU_info_t dspInfoStruct;
     DSP2MCU_info_t *dspInfo = &dspInfoStruct;
 #endif
-    WebRtc_Word16 fs_mult;
+    int16_t fs_mult;
     int borrowedSamples;
     int oldBorrowedSamples;
     int return_value = 0;
-    WebRtc_Word16 lastModeBGNonly = (inst->w16_mode & MODE_BGN_ONLY) != 0; 
+    int16_t lastModeBGNonly = (inst->w16_mode & MODE_BGN_ONLY) != 0; 
     void *mainInstBackup = inst->main_inst;
 
 #ifdef NETEQ_DELAY_LOGGING
     int temp_var;
 #endif
-    WebRtc_Word16 dtmfValue = -1;
-    WebRtc_Word16 dtmfVolume = -1;
+    int16_t dtmfValue = -1;
+    int16_t dtmfVolume = -1;
     int playDtmf = 0;
 #ifdef NETEQ_ATEVENT_DECODE
     int dtmfSwitch = 0;
@@ -141,7 +142,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
 #ifdef NETEQ_STEREO
     MasterSlaveInfo *msInfo = inst->msInfo;
 #endif
-    WebRtc_Word16 *sharedMem = pw16_NetEqAlgorithm_buffer; 
+    int16_t *sharedMem = pw16_NetEqAlgorithm_buffer; 
     inst->pw16_readAddress = sharedMem;
     inst->pw16_writeAddress = sharedMem;
 
@@ -164,8 +165,8 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
 
 
         
-        WebRtc_UWord32 currentMasterTimestamp;
-        WebRtc_UWord32 currentSlaveTimestamp;
+        uint32_t currentMasterTimestamp;
+        uint32_t currentSlaveTimestamp;
 
         currentMasterTimestamp = msInfo->endTimestamp - msInfo->samplesLeftWithOverlap;
         currentSlaveTimestamp = inst->endTimestamp - (inst->endPosition - inst->curPosition);
@@ -244,8 +245,8 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
     if (msInfo->msMode == NETEQ_MASTER)
     {
         
-        WebRtcSpl_MemSetW16((WebRtc_Word16 *) msInfo, 0,
-            sizeof(MasterSlaveInfo) / sizeof(WebRtc_Word16));
+        WebRtcSpl_MemSetW16((int16_t *) msInfo, 0,
+            sizeof(MasterSlaveInfo) / sizeof(int16_t));
         
         msInfo->msMode = NETEQ_MASTER;
 
@@ -263,7 +264,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
     return_value = WebRtcNetEQ_DSP2MCUinterrupt((MainInst_t *) inst->main_inst, sharedMem);
 
     
-    instr = (WebRtc_UWord16) (inst->pw16_readAddress[0] & 0xf000);
+    instr = (uint16_t) (inst->pw16_readAddress[0] & 0xf000);
 
 #ifdef NETEQ_STEREO
     if (msInfo->msMode == NETEQ_MASTER)
@@ -322,7 +323,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
             temp_var = NETEQ_DELAY_LOGGING_SIGNAL_CHANGE_FS;
             if ((fwrite(&temp_var, sizeof(int),
                         1, delay_fid2) != 1) ||
-                (fwrite(&inst->fs, sizeof(WebRtc_UWord16),
+                (fwrite(&inst->fs, sizeof(uint16_t),
                         1, delay_fid2) != 1)) {
               return -1;
             }
@@ -410,10 +411,19 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
         {
             if (inst->codec_ptr_inst.funcDecode != NULL)
             {
-                WebRtc_Word16 dec_Len;
+                int16_t dec_Len;
                 if (!BGNonly)
                 {
+                  
+                  if (av_sync && WebRtcNetEQ_IsSyncPayload(blockPtr,
+                                                           payloadLen)) {
                     
+                    dec_Len = inst->w16_frameLen;
+                    memset(&pw16_decoded_buffer[len], 0, dec_Len *
+                           sizeof(pw16_decoded_buffer[len]));
+                  } else {
+                    
+
 
 
 
@@ -422,16 +432,18 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
                     if (((*(blockPtr - 1) & DSP_CODEC_RED_FLAG) != 0)
                         && (inst->codec_ptr_inst.funcDecodeRCU != NULL))
                     {
-                        dec_Len = inst->codec_ptr_inst.funcDecodeRCU(
-                            inst->codec_ptr_inst.codec_state, blockPtr, payloadLen,
-                            &pw16_decoded_buffer[len], &speechType);
+                      dec_Len = inst->codec_ptr_inst.funcDecodeRCU(
+                          inst->codec_ptr_inst.codec_state, blockPtr,
+                          payloadLen, &pw16_decoded_buffer[len], &speechType);
                     }
                     else
                     {
-                        dec_Len = inst->codec_ptr_inst.funcDecode(
-                            inst->codec_ptr_inst.codec_state, blockPtr, payloadLen,
-                            &pw16_decoded_buffer[len], &speechType);
+                      
+                      dec_Len = inst->codec_ptr_inst.funcDecode(
+                          inst->codec_ptr_inst.codec_state, blockPtr,
+                          payloadLen, &pw16_decoded_buffer[len], &speechType);
                     }
+                  }
                 }
                 else
                 {
@@ -517,11 +529,11 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
             if (fwrite(&temp_var, sizeof(int), 1, delay_fid2) != 1) {
               return -1;
             }
-            if (fwrite(&inst->endTimestamp, sizeof(WebRtc_UWord32),
+            if (fwrite(&inst->endTimestamp, sizeof(uint32_t),
                        1, delay_fid2) != 1) {
               return -1;
             }
-            if (fwrite(&dspInfo->samplesLeft, sizeof(WebRtc_UWord16),
+            if (fwrite(&dspInfo->samplesLeft, sizeof(uint16_t),
                        1, delay_fid2) != 1) {
               return -1;
             }
@@ -625,7 +637,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
                     
                     inst->VADInst.VADDecision |= inst->VADInst.VADFunction(
                         inst->VADInst.VADState, (int) inst->fs,
-                        (WebRtc_Word16 *) &pw16_decoded_buffer[VADSamplePtr],
+                        (int16_t *) &pw16_decoded_buffer[VADSamplePtr],
                         (VADframeSize * fs_mult * 8));
 
                     VADSamplePtr += VADframeSize * fs_mult * 8; 
@@ -642,9 +654,9 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
 #endif 
 
     
-    uw16_tmp = (WebRtc_UWord16) inst->pw16_readAddress[1];
-    inst->endTimestamp += (((WebRtc_UWord32) uw16_tmp) << 16);
-    uw16_tmp = (WebRtc_UWord16) inst->pw16_readAddress[2];
+    uw16_tmp = (uint16_t) inst->pw16_readAddress[1];
+    inst->endTimestamp += (((uint32_t) uw16_tmp) << 16);
+    uw16_tmp = (uint16_t) inst->pw16_readAddress[2];
     inst->endTimestamp += uw16_tmp;
 
     if (BGNonly && len > 0)
@@ -907,7 +919,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
 #ifdef NETEQ_CNG_CODEC
             if (blockLen > 0)
             {
-                if (WebRtcCng_UpdateSid(inst->CNG_Codec_inst, (WebRtc_UWord8*) blockPtr,
+                if (WebRtcCng_UpdateSid(inst->CNG_Codec_inst, (uint8_t*) blockPtr,
                     payloadLen) < 0)
                 {
                     
@@ -1022,7 +1034,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
 
 
 
-                WebRtc_Word16 tempLen;
+                int16_t tempLen;
 
                 tempLen = WebRtcNetEQ_DTMFGenerate(&inst->DTMFInst, dtmfValue, dtmfVolume,
                     &pw16_NetEqAlgorithm_buffer[len], inst->fs,
@@ -1269,7 +1281,7 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
             {
                 inst->speechBuffer[inst->curPosition + pos]
                     =
-                    (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(
+                    (int16_t) WEBRTC_SPL_RSHIFT_W32(
                         WEBRTC_SPL_MUL_16_16( inst->speechBuffer[inst->endPosition - w16_tmp3 + pos],
                             16384-w16_tmp1 ) +
                         WEBRTC_SPL_MUL_16_16( pw16_NetEqAlgorithm_buffer[pos], w16_tmp1 ),
@@ -1336,9 +1348,9 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
     if (playDtmf != 0)
     {
 #ifdef NETEQ_ATEVENT_DECODE
-        WebRtc_Word16 outDataIndex = 0;
-        WebRtc_Word16 overdubLen = -1; 
-        WebRtc_Word16 dtmfLen;
+        int16_t outDataIndex = 0;
+        int16_t overdubLen = -1; 
+        int16_t dtmfLen;
 
         
 
@@ -1455,9 +1467,9 @@ int WebRtcNetEQ_RecOutInternal(DSPInst_t *inst, WebRtc_Word16 *pw16_outData,
 
     if ((inst->w16_mode != MODE_EXPAND) && (inst->w16_mode != MODE_RFC3389CNG))
     {
-        WebRtc_UWord32 uw32_tmpTS;
+        uint32_t uw32_tmpTS;
         uw32_tmpTS = inst->endTimestamp - (inst->endPosition - inst->curPosition);
-        if ((WebRtc_Word32) (uw32_tmpTS - inst->videoSyncTimestamp) > 0)
+        if ((int32_t) (uw32_tmpTS - inst->videoSyncTimestamp) > 0)
         {
             inst->videoSyncTimestamp = uw32_tmpTS;
         }

@@ -18,23 +18,23 @@
 
 namespace webrtc {
 
-const int kMaxVideoDiffMs = 80;
-const int kMaxAudioDiffMs = 80;
-const int kMaxDelay = 1500;
+static const int kMaxChangeMs = 80;
+static const int kMaxDeltaDelayMs = 10000;
+static const int kFilterLength = 4;
+
+static const int kMinDeltaMs = 30;
 
 struct ViESyncDelay {
   ViESyncDelay() {
     extra_video_delay_ms = 0;
     last_video_delay_ms = 0;
     extra_audio_delay_ms = 0;
-    last_sync_delay = 0;
     network_delay = 120;
   }
 
   int extra_video_delay_ms;
   int last_video_delay_ms;
   int extra_audio_delay_ms;
-  int last_sync_delay;
   int network_delay;
 };
 
@@ -42,7 +42,9 @@ StreamSynchronization::StreamSynchronization(int audio_channel_id,
                                              int video_channel_id)
     : channel_delay_(new ViESyncDelay),
       audio_channel_id_(audio_channel_id),
-      video_channel_id_(video_channel_id) {}
+      video_channel_id_(video_channel_id),
+      base_target_delay_ms_(0),
+      avg_diff_ms_(0) {}
 
 StreamSynchronization::~StreamSynchronization() {
   delete channel_delay_;
@@ -76,7 +78,8 @@ bool StreamSynchronization::ComputeRelativeDelay(
   *relative_delay_ms = video_measurement.latest_receive_time_ms -
       audio_measurement.latest_receive_time_ms -
       (video_last_capture_time_ms - audio_last_capture_time_ms);
-  if (*relative_delay_ms > 1000 || *relative_delay_ms < -1000) {
+  if (*relative_delay_ms > kMaxDeltaDelayMs ||
+      *relative_delay_ms < -kMaxDeltaDelayMs) {
     return false;
   }
   return true;
@@ -87,6 +90,8 @@ bool StreamSynchronization::ComputeDelays(int relative_delay_ms,
                                           int* extra_audio_delay_ms,
                                           int* total_video_delay_target_ms) {
   assert(extra_audio_delay_ms && total_video_delay_target_ms);
+
+  int current_video_delay_ms = *total_video_delay_target_ms;
   WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideo, video_channel_id_,
                "Audio delay is: %d for voice channel: %d",
                current_audio_delay_ms, audio_channel_id_);
@@ -99,150 +104,114 @@ bool StreamSynchronization::ComputeDelays(int relative_delay_ms,
                "Current diff is: %d for audio channel: %d",
                relative_delay_ms, audio_channel_id_);
 
-  int current_diff_ms = *total_video_delay_target_ms - current_audio_delay_ms +
+  int current_diff_ms = current_video_delay_ms - current_audio_delay_ms +
       relative_delay_ms;
 
-  int video_delay_ms = 0;
-  if (current_diff_ms > 0) {
+  avg_diff_ms_ = ((kFilterLength - 1) * avg_diff_ms_ +
+      current_diff_ms) / kFilterLength;
+  if (abs(avg_diff_ms_) < kMinDeltaMs) {
     
-    
-    
-    if (channel_delay_->extra_video_delay_ms > 0) {
-      
-      
+    return false;
+  }
 
-      
-      video_delay_ms = *total_video_delay_target_ms;
+  
+  int diff_ms = avg_diff_ms_ / 2;
+  diff_ms = std::min(diff_ms, kMaxChangeMs);
+  diff_ms = std::max(diff_ms, -kMaxChangeMs);
 
+  
+  avg_diff_ms_ = 0;
+
+  if (diff_ms > 0) {
+    
+    
+    if (channel_delay_->extra_video_delay_ms > base_target_delay_ms_) {
       
-      if (video_delay_ms <
-          channel_delay_->last_video_delay_ms - kMaxVideoDiffMs) {
-        video_delay_ms =
-            channel_delay_->last_video_delay_ms - kMaxVideoDiffMs;
-        channel_delay_->extra_video_delay_ms =
-            video_delay_ms - *total_video_delay_target_ms;
-      } else {
-        channel_delay_->extra_video_delay_ms = 0;
-      }
-      channel_delay_->last_video_delay_ms = video_delay_ms;
-      channel_delay_->last_sync_delay = -1;
-      channel_delay_->extra_audio_delay_ms = 0;
+      
+      channel_delay_->extra_video_delay_ms -= diff_ms;
+      channel_delay_->extra_audio_delay_ms = base_target_delay_ms_;
     } else {  
       
-      if (channel_delay_->last_sync_delay >= 0) {
-        
-        int audio_diff_ms = current_diff_ms / 2;
-        if (audio_diff_ms > kMaxAudioDiffMs) {
-          
-          
-          audio_diff_ms = kMaxAudioDiffMs;
-        }
-        
-        channel_delay_->extra_audio_delay_ms += audio_diff_ms;
-
-        
-        if (channel_delay_->extra_audio_delay_ms > kMaxDelay) {
-          channel_delay_->extra_audio_delay_ms = kMaxDelay;
-        }
-
-        
-        video_delay_ms = *total_video_delay_target_ms;
-        channel_delay_->extra_video_delay_ms = 0;
-        channel_delay_->last_video_delay_ms = video_delay_ms;
-        channel_delay_->last_sync_delay = 1;
-      } else {  
-        
-        
-        channel_delay_->extra_audio_delay_ms = 0;
-        
-        video_delay_ms = *total_video_delay_target_ms;
-        channel_delay_->extra_video_delay_ms = 0;
-        channel_delay_->last_video_delay_ms = video_delay_ms;
-        channel_delay_->last_sync_delay = 0;
-      }
+      channel_delay_->extra_audio_delay_ms += diff_ms;
+      channel_delay_->extra_video_delay_ms = base_target_delay_ms_;
     }
   } else {  
     
     
-    
-
-    if (channel_delay_->extra_audio_delay_ms > 0) {
+    if (channel_delay_->extra_audio_delay_ms > base_target_delay_ms_) {
       
       
-      int audio_diff_ms = current_diff_ms / 2;
-      if (audio_diff_ms < -1 * kMaxAudioDiffMs) {
-        
-        audio_diff_ms = -1 * kMaxAudioDiffMs;
-      }
       
-      channel_delay_->extra_audio_delay_ms += audio_diff_ms;
-
-      if (channel_delay_->extra_audio_delay_ms < 0) {
-        
-        channel_delay_->extra_audio_delay_ms = 0;
-        channel_delay_->last_sync_delay = 0;
-      } else {
-        
-        channel_delay_->last_sync_delay = 1;
-      }
-
-      
-      video_delay_ms = *total_video_delay_target_ms;
-      channel_delay_->extra_video_delay_ms = 0;
-      channel_delay_->last_video_delay_ms = video_delay_ms;
+      channel_delay_->extra_audio_delay_ms += diff_ms;
+      channel_delay_->extra_video_delay_ms = base_target_delay_ms_;
     } else {  
       
-      channel_delay_->extra_audio_delay_ms = 0;
-
       
-      int video_diff_ms = -1 * current_diff_ms;
-
-      
-      video_delay_ms = *total_video_delay_target_ms + video_diff_ms;
-      if (video_delay_ms > channel_delay_->last_video_delay_ms) {
-        if (video_delay_ms >
-            channel_delay_->last_video_delay_ms + kMaxVideoDiffMs) {
-          
-          video_delay_ms =
-              channel_delay_->last_video_delay_ms + kMaxVideoDiffMs;
-        }
-        
-        if (video_delay_ms > kMaxDelay) {
-          video_delay_ms = kMaxDelay;
-        }
-      } else {
-        if (video_delay_ms <
-            channel_delay_->last_video_delay_ms - kMaxVideoDiffMs) {
-          
-          video_delay_ms =
-              channel_delay_->last_video_delay_ms - kMaxVideoDiffMs;
-        }
-        
-        if (video_delay_ms < *total_video_delay_target_ms) {
-          video_delay_ms = *total_video_delay_target_ms;
-        }
-      }
-      
-      channel_delay_->extra_video_delay_ms =
-          video_delay_ms - *total_video_delay_target_ms;
-      channel_delay_->last_video_delay_ms = video_delay_ms;
-      channel_delay_->last_sync_delay = -1;
+      channel_delay_->extra_video_delay_ms -= diff_ms;  
+      channel_delay_->extra_audio_delay_ms = base_target_delay_ms_;
     }
   }
+
+  
+  channel_delay_->extra_video_delay_ms = std::max(
+      channel_delay_->extra_video_delay_ms, base_target_delay_ms_);
+
+  int new_video_delay_ms;
+  if (channel_delay_->extra_video_delay_ms > base_target_delay_ms_) {
+    new_video_delay_ms = channel_delay_->extra_video_delay_ms;
+  } else {
+    
+    
+    new_video_delay_ms = channel_delay_->last_video_delay_ms;
+  }
+
+  
+  new_video_delay_ms = std::max(
+      new_video_delay_ms, channel_delay_->extra_video_delay_ms);
+
+  
+  new_video_delay_ms =
+      std::min(new_video_delay_ms, base_target_delay_ms_ + kMaxDeltaDelayMs);
+
+  
+  channel_delay_->extra_audio_delay_ms =
+      std::max(base_target_delay_ms_, channel_delay_->extra_audio_delay_ms);
+
+  
+  channel_delay_->extra_audio_delay_ms = std::min(
+      channel_delay_->extra_audio_delay_ms,
+      base_target_delay_ms_ + kMaxDeltaDelayMs);
+
+  
+  channel_delay_->last_video_delay_ms = new_video_delay_ms;
 
   WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideo, video_channel_id_,
       "Sync video delay %d ms for video channel and audio delay %d for audio "
       "channel %d",
-      video_delay_ms, channel_delay_->extra_audio_delay_ms, audio_channel_id_);
+      new_video_delay_ms, channel_delay_->extra_audio_delay_ms,
+      audio_channel_id_);
 
+  
   *extra_audio_delay_ms = channel_delay_->extra_audio_delay_ms;
-
-  if (video_delay_ms < 0) {
-    video_delay_ms = 0;
-  }
-  *total_video_delay_target_ms =
-      (*total_video_delay_target_ms  >  video_delay_ms) ?
-      *total_video_delay_target_ms : video_delay_ms;
+  *total_video_delay_target_ms = new_video_delay_ms;
   return true;
 }
+
+void StreamSynchronization::SetTargetBufferingDelay(int target_delay_ms) {
+  
+  channel_delay_->extra_audio_delay_ms +=
+      target_delay_ms - base_target_delay_ms_;
+
+  
+  
+  channel_delay_->last_video_delay_ms +=
+      target_delay_ms - base_target_delay_ms_;
+
+  channel_delay_->extra_video_delay_ms +=
+      target_delay_ms - base_target_delay_ms_;
+
+  
+  base_target_delay_ms_ = target_delay_ms;
+}
+
 }  

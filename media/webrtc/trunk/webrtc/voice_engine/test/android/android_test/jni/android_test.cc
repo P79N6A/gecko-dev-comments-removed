@@ -32,7 +32,6 @@
 
 
 
-
 #define WEBRTC_LOG_TAG "*WEBRTCN*" // As in WEBRTC Native...
 #define VALIDATE_BASE_POINTER \
     if (!veData1.base) \
@@ -767,20 +766,6 @@ JNIEXPORT jint JNICALL Java_org_webrtc_voiceengine_test_AndroidTest_StartListen(
         jobject,
         jint channel)
 {
-#ifdef USE_SRTP
-    VALIDATE_ENCRYPT_POINTER;
-    bool useForRTCP = false;
-    if (veData1.encrypt->EnableSRTPReceive(
-                    channel,CIPHER_AES_128_COUNTER_MODE,30,AUTH_HMAC_SHA1,
-                    16,4, ENCRYPTION_AND_AUTHENTICATION,
-                    (unsigned char*)nikkey, useForRTCP) != 0)
-    {
-        __android_log_write(ANDROID_LOG_ERROR, WEBRTC_LOG_TAG,
-                "Failed to enable SRTP receive");
-        return -1;
-    }
-#endif
-
     VALIDATE_BASE_POINTER;
     int retVal = veData1.base->StartReceive(channel);
 
@@ -834,19 +819,6 @@ JNIEXPORT jint JNICALL Java_org_webrtc_voiceengine_test_AndroidTest_StartSend(
 
 
 
-#ifdef USE_SRTP
-    VALIDATE_ENCRYPT_POINTER;
-    bool useForRTCP = false;
-    if (veData1.encrypt->EnableSRTPSend(
-                    channel,CIPHER_AES_128_COUNTER_MODE,30,AUTH_HMAC_SHA1,
-                    16,4, ENCRYPTION_AND_AUTHENTICATION,
-                    (unsigned char*)nikkey, useForRTCP) != 0)
-    {
-        __android_log_write(ANDROID_LOG_ERROR, WEBRTC_LOG_TAG,
-                "Failed to enable SRTP send");
-        return -1;
-    }
-#endif
 
     VALIDATE_BASE_POINTER;
     int retVal = veData1.base->StartSend(channel);
@@ -862,16 +834,6 @@ JNIEXPORT jint JNICALL Java_org_webrtc_voiceengine_test_AndroidTest_StopListen(
         jobject,
         jint channel)
 {
-#ifdef USE_SRTP
-    VALIDATE_ENCRYPT_POINTER;
-    if (veData1.encrypt->DisableSRTPReceive(channel) != 0)
-    {
-        __android_log_write(ANDROID_LOG_ERROR, WEBRTC_LOG_TAG,
-                "Failed to disable SRTP receive");
-        return -1;
-    }
-#endif
-
     VALIDATE_BASE_POINTER;
     return veData1.base->StopReceive(channel);
 }
@@ -902,16 +864,6 @@ JNIEXPORT jint JNICALL Java_org_webrtc_voiceengine_test_AndroidTest_StopSend(
 
 
 
-
-#ifdef USE_SRTP
-    VALIDATE_ENCRYPT_POINTER;
-    if (veData1.encrypt->DisableSRTPSend(channel) != 0)
-    {
-        __android_log_write(ANDROID_LOG_ERROR, WEBRTC_LOG_TAG,
-                "Failed to disable SRTP send");
-        return -1;
-    }
-#endif
 
     VALIDATE_BASE_POINTER;
     return veData1.base->StopSend(channel);

@@ -64,7 +64,7 @@ enum AudioSource {
 class WEBRTC_DLLEXPORT ViEFileObserver {
  public:
   
-  virtual void PlayFileEnded(const WebRtc_Word32 file_id) = 0;
+  virtual void PlayFileEnded(const int32_t file_id) = 0;
 
  protected:
   virtual ~ViEFileObserver() {}

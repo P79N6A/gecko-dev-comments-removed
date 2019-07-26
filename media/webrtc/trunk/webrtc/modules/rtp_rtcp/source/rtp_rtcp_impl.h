@@ -12,13 +12,15 @@
 #define WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_RTCP_IMPL_H_
 
 #include <list>
+#include <vector>
 
-#include "modules/rtp_rtcp/interface/rtp_rtcp.h"
-#include "modules/rtp_rtcp/source/rtcp_receiver.h"
-#include "modules/rtp_rtcp/source/rtcp_sender.h"
-#include "modules/rtp_rtcp/source/rtp_receiver.h"
-#include "modules/rtp_rtcp/source/rtp_sender.h"
-#include "system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp.h"
+#include "webrtc/modules/rtp_rtcp/source/rtcp_receiver.h"
+#include "webrtc/modules/rtp_rtcp/source/rtcp_sender.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_payload_registry.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_receiver.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_sender.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 #ifdef MATLAB
 class MatlabPlot;
@@ -28,496 +30,493 @@ namespace webrtc {
 
 class ModuleRtpRtcpImpl : public RtpRtcp {
  public:
-    explicit ModuleRtpRtcpImpl(const RtpRtcp::Configuration& configuration);
+  explicit ModuleRtpRtcpImpl(const RtpRtcp::Configuration& configuration);
 
-    virtual ~ModuleRtpRtcpImpl();
+  virtual ~ModuleRtpRtcpImpl();
 
-    
-    virtual WebRtc_Word32 TimeUntilNextProcess();
+  
+  
+  virtual int32_t TimeUntilNextProcess();
 
-    
-    virtual WebRtc_Word32 Process();
+  
+  virtual int32_t Process();
 
-    
+  
 
+  
+  virtual int32_t SetPacketTimeout(const uint32_t rtp_timeout_ms,
+                                   const uint32_t rtcp_timeout_ms);
 
-    
-    virtual WebRtc_Word32 SetPacketTimeout(const WebRtc_UWord32 RTPtimeoutMS,
-                                           const WebRtc_UWord32 RTCPtimeoutMS);
+  
+  virtual int32_t SetPeriodicDeadOrAliveStatus(
+      const bool enable,
+      const uint8_t sample_time_seconds);
 
-    
-    virtual WebRtc_Word32 SetPeriodicDeadOrAliveStatus(
-        const bool enable,
-        const WebRtc_UWord8 sampleTimeSeconds);
+  
+  virtual int32_t PeriodicDeadOrAliveStatus(
+      bool& enable,
+      uint8_t& sample_time_seconds);
 
-    
-    virtual WebRtc_Word32 PeriodicDeadOrAliveStatus(
-        bool &enable,
-        WebRtc_UWord8 &sampleTimeSeconds);
+  virtual int32_t RegisterReceivePayload(const CodecInst& voice_codec);
 
-    virtual WebRtc_Word32 RegisterReceivePayload(const CodecInst& voiceCodec);
+  virtual int32_t RegisterReceivePayload(const VideoCodec& video_codec);
 
-    virtual WebRtc_Word32 RegisterReceivePayload(const VideoCodec& videoCodec);
+  virtual int32_t ReceivePayloadType(const CodecInst& voice_codec,
+                                     int8_t* pl_type);
 
-    virtual WebRtc_Word32 ReceivePayloadType(const CodecInst& voiceCodec,
-                                             WebRtc_Word8* plType);
+  virtual int32_t ReceivePayloadType(const VideoCodec& video_codec,
+                                     int8_t* pl_type);
 
-    virtual WebRtc_Word32 ReceivePayloadType(const VideoCodec& videoCodec,
-                                             WebRtc_Word8* plType);
+  virtual int32_t DeRegisterReceivePayload(
+      const int8_t payload_type);
 
-    virtual WebRtc_Word32 DeRegisterReceivePayload(
-        const WebRtc_Word8 payloadType);
+  
+  virtual int32_t RegisterReceiveRtpHeaderExtension(
+      const RTPExtensionType type,
+      const uint8_t id);
 
-    
-    virtual WebRtc_Word32 RegisterReceiveRtpHeaderExtension(
-        const RTPExtensionType type,
-        const WebRtc_UWord8 id);
+  virtual int32_t DeregisterReceiveRtpHeaderExtension(
+      const RTPExtensionType type);
 
-    virtual WebRtc_Word32 DeregisterReceiveRtpHeaderExtension(
-        const RTPExtensionType type);
+  
+  virtual int32_t SSRCFilter(uint32_t& allowed_ssrc) const;
 
-    
-    virtual WebRtc_Word32 SSRCFilter(WebRtc_UWord32& allowedSSRC) const;
+  
+  virtual int32_t SetSSRCFilter(const bool enable,
+                                const uint32_t allowed_ssrc);
 
-    
-    virtual WebRtc_Word32 SetSSRCFilter(const bool enable, const WebRtc_UWord32 allowedSSRC);
+  
+  virtual uint32_t RemoteTimestamp() const;
 
-    
-    virtual WebRtc_UWord32 RemoteTimestamp() const;
+  
+  virtual int64_t LocalTimeOfRemoteTimeStamp() const;
 
-    
-    virtual int64_t LocalTimeOfRemoteTimeStamp() const;
+  
+  virtual int32_t EstimatedRemoteTimeStamp(
+      uint32_t& timestamp) const;
 
-    
-    virtual WebRtc_Word32 EstimatedRemoteTimeStamp(WebRtc_UWord32& timestamp) const;
+  virtual uint32_t RemoteSSRC() const;
 
-    virtual WebRtc_UWord32 RemoteSSRC() const;
+  virtual int32_t RemoteCSRCs(
+      uint32_t arr_of_csrc[kRtpCsrcSize]) const;
 
-    virtual WebRtc_Word32 RemoteCSRCs( WebRtc_UWord32 arrOfCSRC[kRtpCsrcSize]) const ;
+  virtual int32_t SetRTXReceiveStatus(const bool enable,
+                                      const uint32_t ssrc);
 
-    virtual WebRtc_Word32 SetRTXReceiveStatus(const bool enable,
-                                              const WebRtc_UWord32 SSRC);
+  virtual int32_t RTXReceiveStatus(bool* enable, uint32_t* ssrc,
+                                   int* payloadType) const;
 
-    virtual WebRtc_Word32 RTXReceiveStatus(bool* enable,
-                                           WebRtc_UWord32* SSRC) const;
+  virtual void SetRtxReceivePayloadType(int payload_type);
 
-    
-    virtual WebRtc_Word32 IncomingPacket( const WebRtc_UWord8* incomingPacket,
-                                        const WebRtc_UWord16 packetLength);
+  
+  virtual int32_t IncomingPacket(const uint8_t* incoming_packet,
+                                 const uint16_t packet_length);
 
-    
+  
 
+  virtual int32_t RegisterSendPayload(const CodecInst& voice_codec);
 
-    virtual WebRtc_Word32 RegisterSendPayload(const CodecInst& voiceCodec);
+  virtual int32_t RegisterSendPayload(const VideoCodec& video_codec);
 
-    virtual WebRtc_Word32 RegisterSendPayload(const VideoCodec& videoCodec);
+  virtual int32_t DeRegisterSendPayload(const int8_t payload_type);
 
-    virtual WebRtc_Word32 DeRegisterSendPayload(const WebRtc_Word8 payloadType);
+  virtual int8_t SendPayloadType() const;
 
-    virtual WebRtc_Word8 SendPayloadType() const;
+  
+  virtual int32_t RegisterSendRtpHeaderExtension(
+      const RTPExtensionType type,
+      const uint8_t id);
 
-    
-    virtual WebRtc_Word32 RegisterSendRtpHeaderExtension(
-        const RTPExtensionType type,
-        const WebRtc_UWord8 id);
+  virtual int32_t DeregisterSendRtpHeaderExtension(
+      const RTPExtensionType type);
 
-    virtual WebRtc_Word32 DeregisterSendRtpHeaderExtension(
-        const RTPExtensionType type);
+  
+  virtual uint32_t StartTimestamp() const;
 
-    
-    virtual WebRtc_UWord32 StartTimestamp() const;
+  
+  virtual int32_t SetStartTimestamp(const uint32_t timestamp);
 
-    
-    virtual WebRtc_Word32 SetStartTimestamp(const WebRtc_UWord32 timestamp);
+  virtual uint16_t SequenceNumber() const;
 
-    virtual WebRtc_UWord16 SequenceNumber() const;
+  
+  virtual int32_t SetSequenceNumber(const uint16_t seq);
 
-    
-    virtual WebRtc_Word32 SetSequenceNumber(const WebRtc_UWord16 seq);
+  virtual uint32_t SSRC() const;
 
-    virtual WebRtc_UWord32 SSRC() const;
+  
+  virtual int32_t SetSSRC(const uint32_t ssrc);
 
-    
-    virtual WebRtc_Word32 SetSSRC(const WebRtc_UWord32 ssrc);
+  virtual int32_t CSRCs(uint32_t arr_of_csrc[kRtpCsrcSize]) const;
 
-    virtual WebRtc_Word32 CSRCs( WebRtc_UWord32 arrOfCSRC[kRtpCsrcSize]) const ;
+  virtual int32_t SetCSRCs(const uint32_t arr_of_csrc[kRtpCsrcSize],
+                           const uint8_t arr_length);
 
-    virtual WebRtc_Word32 SetCSRCs( const WebRtc_UWord32 arrOfCSRC[kRtpCsrcSize],
-                                  const WebRtc_UWord8 arrLength);
+  virtual int32_t SetCSRCStatus(const bool include);
 
-    virtual WebRtc_Word32 SetCSRCStatus(const bool include);
+  virtual uint32_t PacketCountSent() const;
 
-    virtual WebRtc_UWord32 PacketCountSent() const;
+  virtual int CurrentSendFrequencyHz() const;
 
-    virtual int CurrentSendFrequencyHz() const;
+  virtual uint32_t ByteCountSent() const;
 
-    virtual WebRtc_UWord32 ByteCountSent() const;
+  virtual int32_t SetRTXSendStatus(const RtxMode mode,
+                                   const bool set_ssrc,
+                                   const uint32_t ssrc);
 
-    virtual WebRtc_Word32 SetRTXSendStatus(const bool enable,
-                                           const bool setSSRC,
-                                           const WebRtc_UWord32 SSRC);
+  virtual int32_t RTXSendStatus(RtxMode* mode, uint32_t* ssrc,
+                                int* payloadType) const;
 
-    virtual WebRtc_Word32 RTXSendStatus(bool* enable,
-                                        WebRtc_UWord32* SSRC) const;
 
-    
-    virtual WebRtc_Word32 SetSendingStatus(const bool sending);
+  virtual void SetRtxSendPayloadType(int payload_type);
 
-    virtual bool Sending() const;
+  
+  virtual int32_t SetSendingStatus(const bool sending);
 
-    
-    virtual WebRtc_Word32 SetSendingMediaStatus(const bool sending);
+  virtual bool Sending() const;
 
-    virtual bool SendingMedia() const;
+  
+  virtual int32_t SetSendingMediaStatus(const bool sending);
 
-    
-    virtual WebRtc_Word32 SendOutgoingData(
-        const FrameType frameType,
-        const WebRtc_Word8 payloadType,
-        const WebRtc_UWord32 timeStamp,
-        int64_t capture_time_ms,
-        const WebRtc_UWord8* payloadData,
-        const WebRtc_UWord32 payloadSize,
-        const RTPFragmentationHeader* fragmentation = NULL,
-        const RTPVideoHeader* rtpVideoHdr = NULL);
+  virtual bool SendingMedia() const;
 
-    virtual void TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
-                                  int64_t capture_time_ms);
-    
+  
+  
+  virtual int32_t SendOutgoingData(
+      const FrameType frame_type,
+      const int8_t payload_type,
+      const uint32_t time_stamp,
+      int64_t capture_time_ms,
+      const uint8_t* payload_data,
+      const uint32_t payload_size,
+      const RTPFragmentationHeader* fragmentation = NULL,
+      const RTPVideoHeader* rtp_video_hdr = NULL);
 
+  virtual void TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
+                                int64_t capture_time_ms);
+  
 
+  
+  virtual RTCPMethod RTCP() const;
 
-    
-    virtual RTCPMethod RTCP() const;
+  
+  virtual int32_t SetRTCPStatus(const RTCPMethod method);
 
-    
-    virtual WebRtc_Word32 SetRTCPStatus(const RTCPMethod method);
+  
+  virtual int32_t SetCNAME(const char c_name[RTCP_CNAME_SIZE]);
 
-    
-    virtual WebRtc_Word32 SetCNAME(const char cName[RTCP_CNAME_SIZE]);
+  
+  virtual int32_t CNAME(char c_name[RTCP_CNAME_SIZE]);
 
-    
-    virtual WebRtc_Word32 CNAME(char cName[RTCP_CNAME_SIZE]);
+  
+  virtual int32_t RemoteCNAME(const uint32_t remote_ssrc,
+                              char c_name[RTCP_CNAME_SIZE]) const;
 
-    
-    virtual WebRtc_Word32 RemoteCNAME(const WebRtc_UWord32 remoteSSRC,
-                                      char cName[RTCP_CNAME_SIZE]) const;
+  
+  virtual int32_t RemoteNTP(uint32_t* received_ntp_secs,
+                            uint32_t* received_ntp_frac,
+                            uint32_t* rtcp_arrival_time_secs,
+                            uint32_t* rtcp_arrival_time_frac,
+                            uint32_t* rtcp_timestamp) const;
 
-    
-    virtual WebRtc_Word32 RemoteNTP(WebRtc_UWord32 *ReceivedNTPsecs,
-                                  WebRtc_UWord32 *ReceivedNTPfrac,
-                                  WebRtc_UWord32 *RTCPArrivalTimeSecs,
-                                  WebRtc_UWord32 *RTCPArrivalTimeFrac,
-                                  WebRtc_UWord32 *rtcp_timestamp) const;
+  virtual int32_t AddMixedCNAME(const uint32_t ssrc,
+                                const char c_name[RTCP_CNAME_SIZE]);
 
-    virtual WebRtc_Word32 AddMixedCNAME(const WebRtc_UWord32 SSRC,
-                                        const char cName[RTCP_CNAME_SIZE]);
+  virtual int32_t RemoveMixedCNAME(const uint32_t ssrc);
 
-    virtual WebRtc_Word32 RemoveMixedCNAME(const WebRtc_UWord32 SSRC);
+  
+  virtual int32_t RTT(const uint32_t remote_ssrc,
+                      uint16_t* rtt,
+                      uint16_t* avg_rtt,
+                      uint16_t* min_rtt,
+                      uint16_t* max_rtt) const;
 
-    
-    virtual WebRtc_Word32 RTT(const WebRtc_UWord32 remoteSSRC,
-                            WebRtc_UWord16* RTT,
-                            WebRtc_UWord16* avgRTT,
-                            WebRtc_UWord16* minRTT,
-                            WebRtc_UWord16* maxRTT) const;
+  
+  virtual int32_t ResetRTT(const uint32_t remote_ssrc);
 
-    
-    virtual WebRtc_Word32 ResetRTT(const WebRtc_UWord32 remoteSSRC);
+  virtual void SetRtt(uint32_t rtt);
 
-    virtual void SetRtt(uint32_t rtt);
+  
+  
+  virtual int32_t SendRTCP(uint32_t rtcp_packet_type = kRtcpReport);
 
-    
-    
-    virtual WebRtc_Word32 SendRTCP(WebRtc_UWord32 rtcpPacketType = kRtcpReport);
+  
+  virtual int32_t StatisticsRTP(uint8_t*  fraction_lost,
+                                uint32_t* cum_lost,
+                                uint32_t* ext_max,
+                                uint32_t* jitter,
+                                uint32_t* max_jitter = NULL) const;
 
-    
-    virtual WebRtc_Word32 StatisticsRTP(WebRtc_UWord8  *fraction_lost,
-                                      WebRtc_UWord32 *cum_lost,
-                                      WebRtc_UWord32 *ext_max,
-                                      WebRtc_UWord32 *jitter,
-                                      WebRtc_UWord32 *max_jitter = NULL) const;
+  
+  virtual int32_t ResetStatisticsRTP();
 
-    
-    virtual WebRtc_Word32 ResetStatisticsRTP();
+  virtual int32_t ResetReceiveDataCountersRTP();
 
-    virtual WebRtc_Word32 ResetReceiveDataCountersRTP();
+  virtual int32_t ResetSendDataCountersRTP();
 
-    virtual WebRtc_Word32 ResetSendDataCountersRTP();
+  
+  virtual int32_t DataCountersRTP(uint32_t* bytes_sent,
+                                  uint32_t* packets_sent,
+                                  uint32_t* bytes_received,
+                                  uint32_t* packets_received) const;
 
-    
-    virtual WebRtc_Word32 DataCountersRTP(WebRtc_UWord32 *bytesSent,
-                                          WebRtc_UWord32 *packetsSent,
-                                          WebRtc_UWord32 *bytesReceived,
-                                          WebRtc_UWord32 *packetsReceived) const;
+  virtual int32_t ReportBlockStatistics(
+      uint8_t* fraction_lost,
+      uint32_t* cum_lost,
+      uint32_t* ext_max,
+      uint32_t* jitter,
+      uint32_t* jitter_transmission_time_offset);
 
-    virtual WebRtc_Word32 ReportBlockStatistics(
-        WebRtc_UWord8 *fraction_lost,
-        WebRtc_UWord32 *cum_lost,
-        WebRtc_UWord32 *ext_max,
-        WebRtc_UWord32 *jitter,
-        WebRtc_UWord32 *jitter_transmission_time_offset);
+  
+  virtual int32_t RemoteRTCPStat(RTCPSenderInfo* sender_info);
 
-    
-    virtual WebRtc_Word32 RemoteRTCPStat( RTCPSenderInfo* senderInfo);
+  
+  virtual int32_t RemoteRTCPStat(
+      std::vector<RTCPReportBlock>* receive_blocks) const;
 
-    
-    virtual WebRtc_Word32 RemoteRTCPStat(
-        std::vector<RTCPReportBlock>* receiveBlocks) const;
+  
+  virtual int32_t AddRTCPReportBlock(
+    const uint32_t ssrc, const RTCPReportBlock* receive_block);
 
-    
-    virtual WebRtc_Word32 AddRTCPReportBlock(const WebRtc_UWord32 SSRC,
-                                           const RTCPReportBlock* receiveBlock);
+  virtual int32_t RemoveRTCPReportBlock(const uint32_t ssrc);
 
-    virtual WebRtc_Word32 RemoveRTCPReportBlock(const WebRtc_UWord32 SSRC);
+  
+  virtual bool REMB() const;
 
-    
+  virtual int32_t SetREMBStatus(const bool enable);
 
+  virtual int32_t SetREMBData(const uint32_t bitrate,
+                              const uint8_t number_of_ssrc,
+                              const uint32_t* ssrc);
 
-    virtual bool REMB() const;
+  
+  virtual bool IJ() const;
 
-    virtual WebRtc_Word32 SetREMBStatus(const bool enable);
+  virtual int32_t SetIJStatus(const bool enable);
 
-    virtual WebRtc_Word32 SetREMBData(const WebRtc_UWord32 bitrate,
-                                      const WebRtc_UWord8 numberOfSSRC,
-                                      const WebRtc_UWord32* SSRC);
+  
+  virtual bool TMMBR() const;
 
-    
+  virtual int32_t SetTMMBRStatus(const bool enable);
 
+  int32_t SetTMMBN(const TMMBRSet* bounding_set);
 
-    virtual bool IJ() const;
+  virtual uint16_t MaxPayloadLength() const;
 
-    virtual WebRtc_Word32 SetIJStatus(const bool enable);
+  virtual uint16_t MaxDataPayloadLength() const;
 
-    
+  virtual int32_t SetMaxTransferUnit(const uint16_t size);
 
+  virtual int32_t SetTransportOverhead(
+      const bool tcp,
+      const bool ipv6,
+      const uint8_t authentication_overhead = 0);
 
-    virtual bool TMMBR() const ;
+  
 
-    virtual WebRtc_Word32 SetTMMBRStatus(const bool enable);
+  
+  virtual NACKMethod NACK() const;
 
-    WebRtc_Word32 SetTMMBN(const TMMBRSet* boundingSet);
+  
+  virtual int32_t SetNACKStatus(const NACKMethod method,
+                                int max_reordering_threshold);
 
-    virtual WebRtc_UWord16 MaxPayloadLength() const;
+  virtual int SelectiveRetransmissions() const;
 
-    virtual WebRtc_UWord16 MaxDataPayloadLength() const;
+  virtual int SetSelectiveRetransmissions(uint8_t settings);
 
-    virtual WebRtc_Word32 SetMaxTransferUnit(const WebRtc_UWord16 size);
+  
+  virtual int32_t SendNACK(const uint16_t* nack_list, const uint16_t size);
 
-    virtual WebRtc_Word32 SetTransportOverhead(const bool TCP,
-                                             const bool IPV6,
-                                             const WebRtc_UWord8 authenticationOverhead = 0);
+  
+  
+  virtual int32_t SetStorePacketsStatus(
+      const bool enable, const uint16_t number_to_store);
 
-    
+  
+  virtual int32_t SetRTCPApplicationSpecificData(
+      const uint8_t sub_type,
+      const uint32_t name,
+      const uint8_t* data,
+      const uint16_t length);
 
+  
+  virtual int32_t SetRTCPVoIPMetrics(const RTCPVoIPMetric* VoIPMetric);
 
+  
 
-    
-    virtual NACKMethod NACK() const ;
+  
+  
+  virtual int32_t SetAudioPacketSize(
+      const uint16_t packet_size_samples);
 
-    
-    virtual WebRtc_Word32 SetNACKStatus(const NACKMethod method);
+  
+  virtual int SetTelephoneEventForwardToDecoder(bool forward_to_decoder);
 
-    virtual int SelectiveRetransmissions() const;
+  
+  virtual bool TelephoneEventForwardToDecoder() const;
 
-    virtual int SetSelectiveRetransmissions(uint8_t settings);
+  virtual bool SendTelephoneEventActive(int8_t& telephone_event) const;
 
-    
-    virtual WebRtc_Word32 SendNACK(const WebRtc_UWord16* nackList,
-                                   const WebRtc_UWord16 size);
+  
+  virtual int32_t SendTelephoneEventOutband(const uint8_t key,
+                                            const uint16_t time_ms,
+                                            const uint8_t level);
 
-    
-    virtual WebRtc_Word32 SetStorePacketsStatus(const bool enable, const WebRtc_UWord16 numberToStore = 200);
+  
+  virtual int32_t SetSendREDPayloadType(const int8_t payload_type);
 
-    
+  
+  virtual int32_t SendREDPayloadType(int8_t& payload_type) const;
 
+  
+  virtual int32_t SetRTPAudioLevelIndicationStatus(
+      const bool enable, const uint8_t id);
 
-    virtual WebRtc_Word32 SetRTCPApplicationSpecificData(const WebRtc_UWord8 subType,
-                                                       const WebRtc_UWord32 name,
-                                                       const WebRtc_UWord8* data,
-                                                       const WebRtc_UWord16 length);
-    
+  
+  virtual int32_t GetRTPAudioLevelIndicationStatus(
+      bool& enable, uint8_t& id) const;
 
+  
+  
+  virtual int32_t SetAudioLevel(const uint8_t level_d_bov);
 
-    virtual WebRtc_Word32 SetRTCPVoIPMetrics(const RTCPVoIPMetric* VoIPMetric);
+  
 
-    
+  virtual RtpVideoCodecTypes ReceivedVideoCodec() const;
 
+  virtual RtpVideoCodecTypes SendVideoCodec() const;
 
+  virtual int32_t SendRTCPSliceLossIndication(
+      const uint8_t picture_id);
 
-    
-    virtual WebRtc_Word32 SetAudioPacketSize(const WebRtc_UWord16 packetSizeSamples);
+  
+  virtual int32_t SetKeyFrameRequestMethod(
+      const KeyFrameRequestMethod method);
 
-    
-    virtual WebRtc_Word32 SetTelephoneEventStatus(const bool enable,
-                                                const bool forwardToDecoder,
-                                                const bool detectEndOfTone = false);
+  
+  virtual int32_t RequestKeyFrame();
 
-    
-    virtual bool TelephoneEvent() const;
+  virtual int32_t SetCameraDelay(const int32_t delay_ms);
 
-    
-    virtual bool TelephoneEventForwardToDecoder() const;
+  virtual void SetTargetSendBitrate(const uint32_t bitrate);
 
-    virtual bool SendTelephoneEventActive(WebRtc_Word8& telephoneEvent) const;
+  virtual int32_t SetGenericFECStatus(
+      const bool enable,
+      const uint8_t payload_type_red,
+      const uint8_t payload_type_fec);
 
-    
-    virtual WebRtc_Word32 SendTelephoneEventOutband(const WebRtc_UWord8 key,
-                                                  const WebRtc_UWord16 time_ms,
-                                                  const WebRtc_UWord8 level);
+  virtual int32_t GenericFECStatus(
+      bool& enable,
+      uint8_t& payload_type_red,
+      uint8_t& payload_type_fec);
 
-    
-    virtual WebRtc_Word32 SetSendREDPayloadType(const WebRtc_Word8 payloadType);
+  virtual int32_t SetFecParameters(
+      const FecProtectionParams* delta_params,
+      const FecProtectionParams* key_params);
 
-    
-    virtual WebRtc_Word32 SendREDPayloadType(WebRtc_Word8& payloadType) const;
+  virtual int32_t LastReceivedNTP(uint32_t& NTPsecs,
+                                  uint32_t& NTPfrac,
+                                  uint32_t& remote_sr);
 
-    
-    virtual WebRtc_Word32 SetRTPAudioLevelIndicationStatus(const bool enable,
-                                                         const WebRtc_UWord8 ID);
+  virtual int32_t BoundingSet(bool& tmmbr_owner, TMMBRSet*& bounding_set_rec);
 
-    
-    virtual WebRtc_Word32 GetRTPAudioLevelIndicationStatus(bool& enable,
-                                                         WebRtc_UWord8& ID) const;
+  virtual void BitrateSent(uint32_t* total_rate,
+                           uint32_t* video_rate,
+                           uint32_t* fec_rate,
+                           uint32_t* nackRate) const;
 
-    
-    virtual WebRtc_Word32 SetAudioLevel(const WebRtc_UWord8 level_dBov);
+  virtual void SetRemoteSSRC(const uint32_t ssrc);
 
-    
+  virtual uint32_t SendTimeOfSendReport(const uint32_t send_report);
 
+  
+  virtual int32_t SendRTCPReferencePictureSelection(
+      const uint64_t picture_id);
 
-    virtual RtpVideoCodecTypes ReceivedVideoCodec() const;
+  void OnReceivedTMMBR();
 
-    virtual RtpVideoCodecTypes SendVideoCodec() const;
+  
+  void OnRequestIntraFrame();
 
-    virtual WebRtc_Word32 SendRTCPSliceLossIndication(const WebRtc_UWord8 pictureID);
+  
+  void OnReceivedSliceLossIndication(const uint8_t picture_id);
 
-    
-    virtual WebRtc_Word32 SetKeyFrameRequestMethod(const KeyFrameRequestMethod method);
+  
+  void OnReceivedReferencePictureSelectionIndication(
+      const uint64_t picture_id);
 
-    
-    virtual WebRtc_Word32 RequestKeyFrame();
+  void OnReceivedNACK(const std::list<uint16_t>& nack_sequence_numbers);
 
-    virtual WebRtc_Word32 SetCameraDelay(const WebRtc_Word32 delayMS);
+  void OnRequestSendReport();
 
-    virtual void SetTargetSendBitrate(const WebRtc_UWord32 bitrate);
+ protected:
+  void RegisterChildModule(RtpRtcp* module);
 
-    virtual WebRtc_Word32 SetGenericFECStatus(const bool enable,
-                                            const WebRtc_UWord8 payloadTypeRED,
-                                            const WebRtc_UWord8 payloadTypeFEC);
+  void DeRegisterChildModule(RtpRtcp* module);
 
-    virtual WebRtc_Word32 GenericFECStatus(bool& enable,
-                                         WebRtc_UWord8& payloadTypeRED,
-                                         WebRtc_UWord8& payloadTypeFEC);
+  bool UpdateRTCPReceiveInformationTimers();
 
-    virtual WebRtc_Word32 SetFecParameters(
-        const FecProtectionParams* delta_params,
-        const FecProtectionParams* key_params);
+  void ProcessDeadOrAliveTimer();
 
-    virtual WebRtc_Word32 LastReceivedNTP(WebRtc_UWord32& NTPsecs,
-                                          WebRtc_UWord32& NTPfrac,
-                                          WebRtc_UWord32& remoteSR);
+  uint32_t BitrateReceivedNow() const;
 
-    virtual WebRtc_Word32 BoundingSet(bool &tmmbrOwner,
-                                      TMMBRSet*& boundingSetRec);
+  
+  uint16_t RemoteSequenceNumber() const;
 
-    virtual void BitrateSent(WebRtc_UWord32* totalRate,
-                             WebRtc_UWord32* videoRate,
-                             WebRtc_UWord32* fecRate,
-                             WebRtc_UWord32* nackRate) const;
+  
+  uint32_t LastSendReport(uint32_t& last_rtcptime);
 
-    virtual int EstimatedReceiveBandwidth(
-        WebRtc_UWord32* available_bandwidth) const;
+  RTPPayloadRegistry        rtp_payload_registry_;
 
-    virtual void SetRemoteSSRC(const WebRtc_UWord32 SSRC);
+  RTPSender                 rtp_sender_;
+  scoped_ptr<RTPReceiver>   rtp_receiver_;
 
-    virtual WebRtc_UWord32 SendTimeOfSendReport(const WebRtc_UWord32 sendReport);
+  RTCPSender                rtcp_sender_;
+  RTCPReceiver              rtcp_receiver_;
 
-    
-    virtual WebRtc_Word32 SendRTCPReferencePictureSelection(const WebRtc_UWord64 pictureID);
+  Clock*                    clock_;
 
-    void OnReceivedTMMBR();
+ private:
+  int64_t RtcpReportInterval();
 
-    
-    void OnRequestIntraFrame();
+  RTPReceiverAudio*         rtp_telephone_event_handler_;
 
-    
-    void OnReceivedSliceLossIndication(const WebRtc_UWord8 pictureID);
+  int32_t             id_;
+  const bool                audio_;
+  bool                      collision_detected_;
+  int64_t             last_process_time_;
+  int64_t             last_bitrate_process_time_;
+  int64_t             last_packet_timeout_process_time_;
+  int64_t             last_rtt_process_time_;
+  uint16_t            packet_overhead_;
 
-    
-    void OnReceivedReferencePictureSelectionIndication(
-        const WebRtc_UWord64 pitureID);
+  scoped_ptr<CriticalSectionWrapper> critical_section_module_ptrs_;
+  scoped_ptr<CriticalSectionWrapper> critical_section_module_ptrs_feedback_;
+  ModuleRtpRtcpImpl*            default_module_;
+  std::list<ModuleRtpRtcpImpl*> child_modules_;
 
-    void OnReceivedNACK(const WebRtc_UWord16 nackSequenceNumbersLength,
-                        const WebRtc_UWord16* nackSequenceNumbers);
+  
+  bool                  dead_or_alive_active_;
+  uint32_t        dead_or_alive_timeout_ms_;
+  int64_t         dead_or_alive_last_timer_;
+  
+  NACKMethod            nack_method_;
+  uint32_t        nack_last_time_sent_full_;
+  uint16_t        nack_last_seq_number_sent_;
 
-    void OnRequestSendReport();
+  bool                  simulcast_;
+  VideoCodec            send_video_codec_;
+  KeyFrameRequestMethod key_frame_req_method_;
 
-    
-    
-    void OwnsClock() { _owns_clock = true; }
-
-protected:
-    void RegisterChildModule(RtpRtcp* module);
-
-    void DeRegisterChildModule(RtpRtcp* module);
-
-    bool UpdateRTCPReceiveInformationTimers();
-
-    void ProcessDeadOrAliveTimer();
-
-    WebRtc_UWord32 BitrateReceivedNow() const;
-
-    
-    WebRtc_UWord16 RemoteSequenceNumber() const;
-
-    
-    WebRtc_UWord32 LastSendReport(WebRtc_UWord32& lastRTCPTime);
-
-    RTPSender                 _rtpSender;
-    RTPReceiver               _rtpReceiver;
-
-    RTCPSender                _rtcpSender;
-    RTCPReceiver              _rtcpReceiver;
-
-    bool                      _owns_clock;
-    RtpRtcpClock&             _clock;
-private:
-    int64_t RtcpReportInterval();
-
-    WebRtc_Word32             _id;
-    const bool                _audio;
-    bool                      _collisionDetected;
-    WebRtc_Word64             _lastProcessTime;
-    WebRtc_Word64             _lastBitrateProcessTime;
-    WebRtc_Word64             _lastPacketTimeoutProcessTime;
-    WebRtc_UWord16            _packetOverHead;
-
-    scoped_ptr<CriticalSectionWrapper> _criticalSectionModulePtrs;
-    scoped_ptr<CriticalSectionWrapper> _criticalSectionModulePtrsFeedback;
-    ModuleRtpRtcpImpl*            _defaultModule;
-    std::list<ModuleRtpRtcpImpl*> _childModules;
-
-    
-    bool                  _deadOrAliveActive;
-    WebRtc_UWord32        _deadOrAliveTimeoutMS;
-    WebRtc_Word64        _deadOrAliveLastTimer;
-    
-    NACKMethod            _nackMethod;
-    WebRtc_UWord32        _nackLastTimeSent;
-    WebRtc_UWord16        _nackLastSeqNumberSent;
-
-    bool                  _simulcast;
-    VideoCodec            _sendVideoCodec;
-    KeyFrameRequestMethod _keyFrameReqMethod;
-
-    RemoteBitrateEstimator* remote_bitrate_;
-
-    RtcpRttObserver* rtt_observer_;
+  RemoteBitrateEstimator* remote_bitrate_;
 
 #ifdef MATLAB
-    MatlabPlot*           _plot1;
+  MatlabPlot*           plot1_;
 #endif
+
+  RtcpRttObserver* rtt_observer_;
 };
-} 
-#endif 
+
+}  
+
+#endif  

@@ -24,11 +24,11 @@
 
 
 void WebRtcIlbcfix_BwExpand(
-    WebRtc_Word16 *out, 
-    WebRtc_Word16 *in,  
+    int16_t *out, 
+    int16_t *in,  
 
-    WebRtc_Word16 *coef, 
-    WebRtc_Word16 length 
+    int16_t *coef, 
+    int16_t length 
                             ) {
   int i;
 
@@ -37,6 +37,6 @@ void WebRtcIlbcfix_BwExpand(
     
 
 
-    out[i] = (WebRtc_Word16)((WEBRTC_SPL_MUL_16_16(coef[i], in[i])+16384)>>15);
+    out[i] = (int16_t)((WEBRTC_SPL_MUL_16_16(coef[i], in[i])+16384)>>15);
   }
 }

@@ -24,16 +24,16 @@
 
 
 void WebRtcIlbcfix_Vq3(
-    WebRtc_Word16 *Xq, 
-    WebRtc_Word16 *index,
-    WebRtc_Word16 *CB, 
-    WebRtc_Word16 *X,  
-    WebRtc_Word16 n_cb
+    int16_t *Xq, 
+    int16_t *index,
+    int16_t *CB, 
+    int16_t *X,  
+    int16_t n_cb
                        ){
-  WebRtc_Word16 i, j;
-  WebRtc_Word16 pos, minindex=0;
-  WebRtc_Word16 tmp;
-  WebRtc_Word32 dist, mindist;
+  int16_t i, j;
+  int16_t pos, minindex=0;
+  int16_t tmp;
+  int32_t dist, mindist;
 
   pos = 0;
   mindist = WEBRTC_SPL_WORD32_MAX; 

@@ -72,7 +72,7 @@ void VerifyExtensions(const RTPPayloadVP8 &header,
 }
 
 TEST(ParseVP8Test, BasicHeader) {
-  WebRtc_UWord8 payload[4] = {0};
+  uint8_t payload[4] = {0};
   payload[0] = 0x14;  
   payload[1] = 0x01;  
 
@@ -92,7 +92,7 @@ TEST(ParseVP8Test, BasicHeader) {
 }
 
 TEST(ParseVP8Test, PictureID) {
-  WebRtc_UWord8 payload[10] = {0};
+  uint8_t payload[10] = {0};
   payload[0] = 0xA0;
   payload[1] = 0x80;
   payload[2] = 17;
@@ -131,7 +131,7 @@ TEST(ParseVP8Test, PictureID) {
 }
 
 TEST(ParseVP8Test, Tl0PicIdx) {
-  WebRtc_UWord8 payload[13] = {0};
+  uint8_t payload[13] = {0};
   payload[0] = 0x90;
   payload[1] = 0x40;
   payload[2] = 17;
@@ -154,7 +154,7 @@ TEST(ParseVP8Test, Tl0PicIdx) {
 }
 
 TEST(ParseVP8Test, TIDAndLayerSync) {
-  WebRtc_UWord8 payload[10] = {0};
+  uint8_t payload[10] = {0};
   payload[0] = 0x88;
   payload[1] = 0x20;
   payload[2] = 0x80;  
@@ -178,7 +178,7 @@ TEST(ParseVP8Test, TIDAndLayerSync) {
 }
 
 TEST(ParseVP8Test, KeyIdx) {
-  WebRtc_UWord8 payload[10] = {0};
+  uint8_t payload[10] = {0};
   payload[0] = 0x88;
   payload[1] = 0x10;  
   payload[2] = 0x11;  
@@ -201,7 +201,7 @@ TEST(ParseVP8Test, KeyIdx) {
 }
 
 TEST(ParseVP8Test, MultipleExtensions) {
-  WebRtc_UWord8 payload[10] = {0};
+  uint8_t payload[10] = {0};
   payload[0] = 0x88;
   payload[1] = 0x80 | 0x40 | 0x20 | 0x10;
   payload[2] = 0x80 | 17;    
@@ -230,7 +230,7 @@ TEST(ParseVP8Test, MultipleExtensions) {
 }
 
 TEST(ParseVP8Test, TooShortHeader) {
-  WebRtc_UWord8 payload[4] = {0};
+  uint8_t payload[4] = {0};
   payload[0] = 0x88;
   payload[1] = 0x80 | 0x40 | 0x20 | 0x10;  
   payload[2] = 0x80 | 17;  
@@ -243,8 +243,8 @@ TEST(ParseVP8Test, TooShortHeader) {
 }
 
 TEST(ParseVP8Test, TestWithPacketizer) {
-  WebRtc_UWord8 payload[10] = {0};
-  WebRtc_UWord8 packet[20] = {0};
+  uint8_t payload[10] = {0};
+  uint8_t packet[20] = {0};
   RTPVideoHeaderVP8 inputHeader;
   inputHeader.nonReference = true;
   inputHeader.pictureId = 300;

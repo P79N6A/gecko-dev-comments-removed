@@ -14,8 +14,8 @@
 #include "typedefs.h"
 
 
-#define G711_WEBRTC_SPEECH    1
-#define G711_WEBRTC_CNG       2
+#define G711_WEBRTC_SPEECH 1
+#define G711_WEBRTC_CNG 2
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,10 +40,10 @@ extern "C" {
 
 
 
-WebRtc_Word16 WebRtcG711_EncodeA(void *state,
-                                 WebRtc_Word16 *speechIn,
-                                 WebRtc_Word16 len,
-                                 WebRtc_Word16 *encoded);
+int16_t WebRtcG711_EncodeA(void* state,
+                           int16_t* speechIn,
+                           int16_t len,
+                           int16_t* encoded);
 
 
 
@@ -64,10 +64,10 @@ WebRtc_Word16 WebRtcG711_EncodeA(void *state,
 
 
 
-WebRtc_Word16 WebRtcG711_EncodeU(void *state,
-                                 WebRtc_Word16 *speechIn,
-                                 WebRtc_Word16 len,
-                                 WebRtc_Word16 *encoded);
+int16_t WebRtcG711_EncodeU(void* state,
+                           int16_t* speechIn,
+                           int16_t len,
+                           int16_t* encoded);
 
 
 
@@ -90,11 +90,11 @@ WebRtc_Word16 WebRtcG711_EncodeU(void *state,
 
 
 
-WebRtc_Word16 WebRtcG711_DecodeA(void *state,
-                                 WebRtc_Word16 *encoded,
-                                 WebRtc_Word16 len,
-                                 WebRtc_Word16 *decoded,
-                                 WebRtc_Word16 *speechType);
+int16_t WebRtcG711_DecodeA(void* state,
+                           int16_t* encoded,
+                           int16_t len,
+                           int16_t* decoded,
+                           int16_t* speechType);
 
 
 
@@ -117,12 +117,11 @@ WebRtc_Word16 WebRtcG711_DecodeA(void *state,
 
 
 
-WebRtc_Word16 WebRtcG711_DecodeU(void *state,
-                                 WebRtc_Word16 *encoded,
-                                 WebRtc_Word16 len,
-                                 WebRtc_Word16 *decoded,
-                                 WebRtc_Word16 *speechType);
-
+int16_t WebRtcG711_DecodeU(void* state,
+                           int16_t* encoded,
+                           int16_t len,
+                           int16_t* decoded,
+                           int16_t* speechType);
 
 
 
@@ -159,11 +158,10 @@ int WebRtcG711_DurationEst(void* state,
 
 
 
-WebRtc_Word16 WebRtcG711_Version(char* version, WebRtc_Word16 lenBytes);
+int16_t WebRtcG711_Version(char* version, int16_t lenBytes);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

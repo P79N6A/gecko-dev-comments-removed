@@ -26,16 +26,16 @@
 
 
 void WebRtcIlbcfix_SplitVq(
-    WebRtc_Word16 *qX,  
-    WebRtc_Word16 *index, 
+    int16_t *qX,  
+    int16_t *index, 
 
-    WebRtc_Word16 *X,  
-    WebRtc_Word16 *CB,  
-    WebRtc_Word16 *dim, 
-    WebRtc_Word16 *cbsize 
+    int16_t *X,  
+    int16_t *CB,  
+    int16_t *dim, 
+    int16_t *cbsize 
                            ) {
 
-  WebRtc_Word16 *qXPtr, *indexPtr, *CBPtr, *XPtr;
+  int16_t *qXPtr, *indexPtr, *CBPtr, *XPtr;
 
   
 

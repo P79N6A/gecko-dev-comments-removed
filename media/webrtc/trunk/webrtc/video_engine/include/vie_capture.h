@@ -103,6 +103,7 @@ class WEBRTC_DLLEXPORT ViEExternalCapture {
 
   
   
+  
   virtual int IncomingFrame(unsigned char* video_frame,
                             unsigned int video_frame_length,
                             unsigned short width,
@@ -110,6 +111,7 @@ class WEBRTC_DLLEXPORT ViEExternalCapture {
                             RawVideoType video_type,
                             unsigned long long capture_time = 0) = 0;
 
+  
   
   
   virtual int IncomingFrameI420(

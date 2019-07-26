@@ -28,7 +28,7 @@ TimedTrace::~TimedTrace()
     _timedTraceFile = NULL;
 }
 
-WebRtc_Word16
+int16_t
 TimedTrace::SetUp(char* fileName)
 {
     if(_timedTraceFile == NULL)
@@ -62,8 +62,8 @@ TimedTrace::Tick10Msec()
 
 void
 TimedTrace::TimedLogg(char* message)
-{    
-    unsigned int minutes = (WebRtc_UWord32)floor(_timeEllapsedSec / 60.0);
+{
+    unsigned int minutes = (uint32_t)floor(_timeEllapsedSec / 60.0);
     double seconds = _timeEllapsedSec - minutes * 60;
     
     if(_timedTraceFile != NULL)

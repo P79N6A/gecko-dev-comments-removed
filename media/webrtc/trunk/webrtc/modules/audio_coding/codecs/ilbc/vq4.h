@@ -26,11 +26,11 @@
 
 
 void WebRtcIlbcfix_Vq4(
-    WebRtc_Word16 *Xq,  
-    WebRtc_Word16 *index, 
-    WebRtc_Word16 *CB,  
-    WebRtc_Word16 *X,  
-    WebRtc_Word16 n_cb  
+    int16_t *Xq,  
+    int16_t *index, 
+    int16_t *CB,  
+    int16_t *X,  
+    int16_t n_cb  
                        );
 
 #endif

@@ -24,14 +24,14 @@
 
 
 
-WebRtc_Word16 WebRtcIlbcfix_GainDequant(
+int16_t WebRtcIlbcfix_GainDequant(
     
-    WebRtc_Word16 index, 
-    WebRtc_Word16 maxIn, 
-    WebRtc_Word16 stage 
+    int16_t index, 
+    int16_t maxIn, 
+    int16_t stage 
                                                 ){
-  WebRtc_Word16 scale;
-  const WebRtc_Word16 *gain;
+  int16_t scale;
+  const int16_t *gain;
 
   
 
@@ -41,5 +41,5 @@ WebRtc_Word16 WebRtcIlbcfix_GainDequant(
   
   gain = WebRtcIlbcfix_kGain[stage];
 
-  return((WebRtc_Word16)((WEBRTC_SPL_MUL_16_16(scale, gain[index])+8192)>>14));
+  return((int16_t)((WEBRTC_SPL_MUL_16_16(scale, gain[index])+8192)>>14));
 }

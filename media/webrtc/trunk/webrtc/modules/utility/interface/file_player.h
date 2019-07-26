@@ -29,7 +29,7 @@ public:
 
     
     
-    static FilePlayer* CreateFilePlayer(const WebRtc_UWord32 instanceID,
+    static FilePlayer* CreateFilePlayer(const uint32_t instanceID,
                                         const FileFormats fileFormat);
 
     static void DestroyFilePlayer(FilePlayer* player);
@@ -43,65 +43,65 @@ public:
         int frequencyInHz) = 0;
 
     
-    virtual WebRtc_Word32 RegisterModuleFileCallback(
+    virtual int32_t RegisterModuleFileCallback(
         FileCallback* callback) = 0;
 
     
     
-    virtual WebRtc_Word32 StartPlayingFile(
+    virtual int32_t StartPlayingFile(
         const char* fileName,
         bool loop,
-        WebRtc_UWord32 startPosition,
+        uint32_t startPosition,
         float volumeScaling,
-        WebRtc_UWord32 notification,
-        WebRtc_UWord32 stopPosition = 0,
+        uint32_t notification,
+        uint32_t stopPosition = 0,
         const CodecInst* codecInst = NULL) = 0;
 
     
-    virtual WebRtc_Word32 StartPlayingFile(
+    virtual int32_t StartPlayingFile(
         InStream& sourceStream,
-        WebRtc_UWord32 startPosition,
+        uint32_t startPosition,
         float volumeScaling,
-        WebRtc_UWord32 notification,
-        WebRtc_UWord32 stopPosition = 0,
+        uint32_t notification,
+        uint32_t stopPosition = 0,
         const CodecInst* codecInst = NULL) = 0;
 
-    virtual WebRtc_Word32 StopPlayingFile() = 0;
+    virtual int32_t StopPlayingFile() = 0;
 
     virtual bool IsPlayingFile() const = 0;
 
-    virtual WebRtc_Word32 GetPlayoutPosition(WebRtc_UWord32& durationMs) = 0;
+    virtual int32_t GetPlayoutPosition(uint32_t& durationMs) = 0;
 
     
-    virtual WebRtc_Word32 AudioCodec(CodecInst& audioCodec) const = 0;
+    virtual int32_t AudioCodec(CodecInst& audioCodec) const = 0;
 
-    virtual WebRtc_Word32 Frequency() const = 0;
-
-    
-    virtual WebRtc_Word32 SetAudioScaling(float scaleFactor) = 0;
+    virtual int32_t Frequency() const = 0;
 
     
-    
-    
-    
-    virtual WebRtc_Word32 TimeUntilNextVideoFrame() { return -1;}
+    virtual int32_t SetAudioScaling(float scaleFactor) = 0;
 
-    virtual WebRtc_Word32 StartPlayingVideoFile(
+    
+    
+    
+    
+    virtual int32_t TimeUntilNextVideoFrame() { return -1;}
+
+    virtual int32_t StartPlayingVideoFile(
         const char* ,
         bool ,
         bool ) { return -1;}
 
-    virtual WebRtc_Word32 video_codec_info(VideoCodec& ) const
+    virtual int32_t video_codec_info(VideoCodec& ) const
     {return -1;}
 
-    virtual WebRtc_Word32 GetVideoFromFile(I420VideoFrame& )
+    virtual int32_t GetVideoFromFile(I420VideoFrame& )
     { return -1;}
 
     
     
-    virtual WebRtc_Word32 GetVideoFromFile(I420VideoFrame& ,
-                                           const WebRtc_UWord32 ,
-                                           const WebRtc_UWord32 )
+    virtual int32_t GetVideoFromFile(I420VideoFrame& ,
+                                     const uint32_t ,
+                                     const uint32_t )
     {return -1;}
 protected:
     virtual ~FilePlayer() {}

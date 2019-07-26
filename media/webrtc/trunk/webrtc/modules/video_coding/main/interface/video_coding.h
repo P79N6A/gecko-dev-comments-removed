@@ -11,18 +11,35 @@
 #ifndef WEBRTC_MODULES_INTERFACE_VIDEO_CODING_H_
 #define WEBRTC_MODULES_INTERFACE_VIDEO_CODING_H_
 
-#include "common_video/interface/i420_video_frame.h"
-#include "modules/interface/module.h"
-#include "modules/interface/module_common_types.h"
-#include "modules/video_coding/main/interface/video_coding_defines.h"
+#include "webrtc/common_video/interface/i420_video_frame.h"
+#include "webrtc/modules/interface/module.h"
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/modules/video_coding/main/interface/video_coding_defines.h"
+#include "webrtc/system_wrappers/interface/event_wrapper.h"
 
 namespace webrtc
 {
 
-class TickTimeBase;
+class Clock;
 class VideoEncoder;
 class VideoDecoder;
 struct CodecSpecificInfo;
+
+class EventFactory {
+ public:
+  virtual ~EventFactory() {}
+
+  virtual EventWrapper* CreateEvent() = 0;
+};
+
+class EventFactoryImpl : public EventFactory {
+ public:
+  virtual ~EventFactoryImpl() {}
+
+  virtual EventWrapper* CreateEvent() {
+    return EventWrapper::Create();
+  }
+};
 
 class VideoCodingModule : public Module
 {
@@ -46,17 +63,18 @@ public:
         kAllowDecodeErrors
     };
 
-    static VideoCodingModule* Create(const WebRtc_Word32 id);
+    static VideoCodingModule* Create(const int32_t id);
 
-    static VideoCodingModule* Create(const WebRtc_Word32 id,
-                                     TickTimeBase* clock);
+    static VideoCodingModule* Create(const int32_t id,
+                                     Clock* clock,
+                                     EventFactory* event_factory);
 
     static void Destroy(VideoCodingModule* module);
 
     
     
     
-    static WebRtc_UWord8 NumberOfCodecs();
+    static uint8_t NumberOfCodecs();
 
     
     
@@ -66,7 +84,7 @@ public:
     
     
     
-    static WebRtc_Word32 Codec(const WebRtc_UWord8 listId, VideoCodec* codec);
+    static int32_t Codec(const uint8_t listId, VideoCodec* codec);
 
     
     
@@ -76,7 +94,7 @@ public:
     
     
     
-    static WebRtc_Word32 Codec(VideoCodecType codecType, VideoCodec* codec);
+    static int32_t Codec(VideoCodecType codecType, VideoCodec* codec);
 
     
 
@@ -90,7 +108,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 InitializeSender() = 0;
+    virtual int32_t InitializeSender() = 0;
 
     
     
@@ -104,9 +122,9 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterSendCodec(const VideoCodec* sendCodec,
-                                            WebRtc_UWord32 numberOfCores,
-                                            WebRtc_UWord32 maxPayloadSize) = 0;
+    virtual int32_t RegisterSendCodec(const VideoCodec* sendCodec,
+                                            uint32_t numberOfCores,
+                                            uint32_t maxPayloadSize) = 0;
 
     
     
@@ -115,7 +133,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 SendCodec(VideoCodec* currentSendCodec) const = 0;
+    virtual int32_t SendCodec(VideoCodec* currentSendCodec) const = 0;
 
     
     
@@ -133,8 +151,8 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterExternalEncoder(VideoEncoder* externalEncoder,
-                                                  WebRtc_UWord8 payloadType,
+    virtual int32_t RegisterExternalEncoder(VideoEncoder* externalEncoder,
+                                                  uint8_t payloadType,
                                                   bool internalSource = false) = 0;
 
     
@@ -145,7 +163,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 CodecConfigParameters(WebRtc_UWord8* buffer, WebRtc_Word32 size) = 0;
+    virtual int32_t CodecConfigParameters(uint8_t* buffer, int32_t size) = 0;
 
     
     
@@ -171,9 +189,9 @@ public:
     
     
     
-    virtual WebRtc_Word32 SetChannelParameters(WebRtc_UWord32 availableBandWidth,
-                                               WebRtc_UWord8 lossRate,
-                                               WebRtc_UWord32 rtt) = 0;
+    virtual int32_t SetChannelParameters(uint32_t target_bitrate,
+                                               uint8_t lossRate,
+                                               uint32_t rtt) = 0;
 
     
     
@@ -185,7 +203,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 SetReceiveChannelParameters(WebRtc_UWord32 rtt) = 0;
+    virtual int32_t SetReceiveChannelParameters(uint32_t rtt) = 0;
 
     
     
@@ -195,7 +213,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterTransportCallback(VCMPacketizationCallback* transport) = 0;
+    virtual int32_t RegisterTransportCallback(VCMPacketizationCallback* transport) = 0;
 
     
     
@@ -206,7 +224,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterSendStatisticsCallback(
+    virtual int32_t RegisterSendStatisticsCallback(
                                      VCMSendStatisticsCallback* sendStats) = 0;
 
     
@@ -217,7 +235,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings) = 0;
+    virtual int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* videoQMSettings) = 0;
 
     
     
@@ -227,7 +245,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterProtectionCallback(VCMProtectionCallback* protection) = 0;
+    virtual int32_t RegisterProtectionCallback(VCMProtectionCallback* protection) = 0;
 
     
     
@@ -238,7 +256,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 SetVideoProtection(VCMVideoProtection videoProtection,
+    virtual int32_t SetVideoProtection(VCMVideoProtection videoProtection,
                                              bool enable) = 0;
 
     
@@ -252,7 +270,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 AddVideoFrame(
+    virtual int32_t AddVideoFrame(
         const I420VideoFrame& videoFrame,
         const VideoContentMetrics* contentMetrics = NULL,
         const CodecSpecificInfo* codecSpecificInfo = NULL) = 0;
@@ -261,7 +279,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 IntraFrameRequest(int stream_index) = 0;
+    virtual int32_t IntraFrameRequest(int stream_index) = 0;
 
     
     
@@ -273,25 +291,14 @@ public:
     
     
     
-    virtual WebRtc_Word32 EnableFrameDropper(bool enable) = 0;
+    virtual int32_t EnableFrameDropper(bool enable) = 0;
 
     
-    virtual WebRtc_Word32 SentFrameCount(VCMFrameCount& frameCount) const = 0;
+    virtual int32_t SentFrameCount(VCMFrameCount& frameCount) const = 0;
 
     
 
 
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    virtual WebRtc_Word32 InitializeReceiver() = 0;
 
     
     
@@ -302,11 +309,22 @@ public:
     
     
     
+    virtual int32_t InitializeReceiver() = 0;
+
     
     
     
-    virtual WebRtc_Word32 RegisterReceiveCodec(const VideoCodec* receiveCodec,
-                                               WebRtc_Word32 numberOfCores,
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual int32_t RegisterReceiveCodec(const VideoCodec* receiveCodec,
+                                               int32_t numberOfCores,
                                                bool requireKeyFrame = false) = 0;
 
     
@@ -322,8 +340,8 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterExternalDecoder(VideoDecoder* externalDecoder,
-                                                  WebRtc_UWord8 payloadType,
+    virtual int32_t RegisterExternalDecoder(VideoDecoder* externalDecoder,
+                                                  uint8_t payloadType,
                                                   bool internalRenderTiming) = 0;
 
     
@@ -336,7 +354,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterReceiveCallback(VCMReceiveCallback* receiveCallback) = 0;
+    virtual int32_t RegisterReceiveCallback(VCMReceiveCallback* receiveCallback) = 0;
 
     
     
@@ -347,7 +365,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterReceiveStatisticsCallback(
+    virtual int32_t RegisterReceiveStatisticsCallback(
                                VCMReceiveStatisticsCallback* receiveStats) = 0;
 
     
@@ -360,7 +378,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterFrameTypeCallback(
+    virtual int32_t RegisterFrameTypeCallback(
                                   VCMFrameTypeCallback* frameTypeCallback) = 0;
 
     
@@ -372,7 +390,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterFrameStorageCallback(
+    virtual int32_t RegisterFrameStorageCallback(
                              VCMFrameStorageCallback* frameStorageCallback) = 0;
 
     
@@ -383,7 +401,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 RegisterPacketRequestCallback(
+    virtual int32_t RegisterPacketRequestCallback(
                                         VCMPacketRequestCallback* callback) = 0;
 
     
@@ -392,7 +410,11 @@ public:
     
     
     
-    virtual WebRtc_Word32 Decode(WebRtc_UWord16 maxWaitTimeMs = 200) = 0;
+    virtual int32_t Decode(uint16_t maxWaitTimeMs = 200) = 0;
+
+    
+    virtual int RegisterRenderBufferSizeCallback(
+        VCMRenderBufferSizeCallback* callback) = 0;
 
     
     
@@ -403,7 +425,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 DecodeDualFrame(WebRtc_UWord16 maxWaitTimeMs = 200) = 0;
+    virtual int32_t DecodeDualFrame(uint16_t maxWaitTimeMs = 200) = 0;
 
     
     
@@ -414,13 +436,13 @@ public:
     
     
     
-    virtual WebRtc_Word32 DecodeFromStorage(const EncodedVideoData& frameFromStorage) = 0;
+    virtual int32_t DecodeFromStorage(const EncodedVideoData& frameFromStorage) = 0;
 
     
     
     
     
-    virtual WebRtc_Word32 ResetDecoder() = 0;
+    virtual int32_t ResetDecoder() = 0;
 
     
     
@@ -429,7 +451,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 ReceiveCodec(VideoCodec* currentReceiveCodec) const = 0;
+    virtual int32_t ReceiveCodec(VideoCodec* currentReceiveCodec) const = 0;
 
     
     
@@ -448,8 +470,8 @@ public:
     
     
     
-    virtual WebRtc_Word32 IncomingPacket(const WebRtc_UWord8* incomingPayload,
-                                       WebRtc_UWord32 payloadLength,
+    virtual int32_t IncomingPacket(const uint8_t* incomingPayload,
+                                       uint32_t payloadLength,
                                        const WebRtcRTPHeader& rtpInfo) = 0;
 
     
@@ -461,7 +483,7 @@ public:
     
     
     
-    virtual WebRtc_Word32 SetMinimumPlayoutDelay(WebRtc_UWord32 minPlayoutDelayMs) = 0;
+    virtual int32_t SetMinimumPlayoutDelay(uint32_t minPlayoutDelayMs) = 0;
 
     
     
@@ -470,14 +492,14 @@ public:
     
     
     
-    virtual WebRtc_Word32 SetRenderDelay(WebRtc_UWord32 timeMS) = 0;
+    virtual int32_t SetRenderDelay(uint32_t timeMS) = 0;
 
     
     
     
     
     
-    virtual WebRtc_Word32 Delay() const = 0;
+    virtual int32_t Delay() const = 0;
 
     
     
@@ -487,13 +509,13 @@ public:
     
     
     
-    virtual WebRtc_Word32 ReceivedFrameCount(VCMFrameCount& frameCount) const = 0;
+    virtual int32_t ReceivedFrameCount(VCMFrameCount& frameCount) const = 0;
 
     
     
     
     
-    virtual WebRtc_UWord32 DiscardedPackets() const = 0;
+    virtual uint32_t DiscardedPackets() const = 0;
 
 
     
@@ -545,6 +567,17 @@ public:
     
     virtual int SetReceiverRobustnessMode(ReceiverRobustness robustnessMode,
                                           DecodeErrors errorMode) = 0;
+
+    
+    
+    
+    
+    virtual void SetNackSettings(size_t max_nack_list_size,
+                                 int max_packet_age_to_nack) = 0;
+
+    
+    
+    virtual int SetMinReceiverDelay(int desired_delay_ms) = 0;
 
     
     virtual int StartDebugRecording(const char* file_name_utf8) = 0;

@@ -26,16 +26,16 @@
 
 
 void WebRtcIlbcfix_DecoderInterpolateLsp(
-    WebRtc_Word16 *syntdenum,  
-    WebRtc_Word16 *weightdenum, 
+    int16_t *syntdenum,  
+    int16_t *weightdenum, 
 
-    WebRtc_Word16 *lsfdeq,   
-    WebRtc_Word16 length,   
+    int16_t *lsfdeq,   
+    int16_t length,   
     iLBC_Dec_Inst_t *iLBCdec_inst
     
                                           ){
   int  i, pos, lp_length;
-  WebRtc_Word16  lp[LPC_FILTERORDER + 1], *lsfdeq2;
+  int16_t  lp[LPC_FILTERORDER + 1], *lsfdeq2;
 
   lsfdeq2 = lsfdeq + length;
   lp_length = length + 1;
@@ -46,7 +46,7 @@ void WebRtcIlbcfix_DecoderInterpolateLsp(
     WebRtcIlbcfix_LspInterpolate2PolyDec(lp, (*iLBCdec_inst).lsfdeqold, lsfdeq,
                                          WebRtcIlbcfix_kLsfWeight30ms[0], length);
     WEBRTC_SPL_MEMCPY_W16(syntdenum,lp,lp_length);
-    WebRtcIlbcfix_BwExpand(weightdenum, lp, (WebRtc_Word16*)WebRtcIlbcfix_kLpcChirpSyntDenum, (WebRtc_Word16)lp_length);
+    WebRtcIlbcfix_BwExpand(weightdenum, lp, (int16_t*)WebRtcIlbcfix_kLpcChirpSyntDenum, (int16_t)lp_length);
 
     
 
@@ -56,7 +56,7 @@ void WebRtcIlbcfix_DecoderInterpolateLsp(
                                            WebRtcIlbcfix_kLsfWeight30ms[i], length);
       WEBRTC_SPL_MEMCPY_W16(syntdenum + pos,lp,lp_length);
       WebRtcIlbcfix_BwExpand(weightdenum + pos, lp,
-                             (WebRtc_Word16*)WebRtcIlbcfix_kLpcChirpSyntDenum, (WebRtc_Word16)lp_length);
+                             (int16_t*)WebRtcIlbcfix_kLpcChirpSyntDenum, (int16_t)lp_length);
       pos += lp_length;
     }
   } else { 
@@ -67,7 +67,7 @@ void WebRtcIlbcfix_DecoderInterpolateLsp(
                                            WebRtcIlbcfix_kLsfWeight20ms[i], length);
       WEBRTC_SPL_MEMCPY_W16(syntdenum+pos,lp,lp_length);
       WebRtcIlbcfix_BwExpand(weightdenum+pos, lp,
-                             (WebRtc_Word16*)WebRtcIlbcfix_kLpcChirpSyntDenum, (WebRtc_Word16)lp_length);
+                             (int16_t*)WebRtcIlbcfix_kLpcChirpSyntDenum, (int16_t)lp_length);
       pos += lp_length;
     }
   }

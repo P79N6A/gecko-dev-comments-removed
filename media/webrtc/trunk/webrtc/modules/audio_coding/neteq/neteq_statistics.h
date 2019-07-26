@@ -24,18 +24,33 @@ typedef struct
 {
 
     
-    WebRtc_UWord32 expandLength; 
-    WebRtc_UWord32 preemptiveLength; 
+    uint32_t expandLength; 
+    uint32_t preemptiveLength; 
 
-    WebRtc_UWord32 accelerateLength; 
+    uint32_t accelerateLength; 
     int addedSamples; 
 
     
-    WebRtc_UWord32 expandedVoiceSamples; 
-    WebRtc_UWord32 expandedNoiseSamples; 
+    uint32_t expandedVoiceSamples; 
+    uint32_t expandedNoiseSamples; 
 
 
 } DSPStats_t;
+
+typedef struct {
+  int preemptive_expand_bgn_samples;
+  int preemptive_expand_normal_samples;
+
+  int expand_bgn_samples;
+  int expand_normal_samples;
+
+  int merge_expand_bgn_samples;
+  int merge_expand_normal_samples;
+
+  int accelerate_bgn_samples;
+  int accelarate_normal_samples;
+} ActivityStats;
+
 
 #endif
 

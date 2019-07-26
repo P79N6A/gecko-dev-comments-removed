@@ -22,19 +22,19 @@
 #include "defines.h"
 
 void WebRtcIlbcfix_CbSearchCore(
-    WebRtc_Word32 *cDot,    
-    WebRtc_Word16 range,    
-    WebRtc_Word16 stage,    
-    WebRtc_Word16 *inverseEnergy,  
-    WebRtc_Word16 *inverseEnergyShift, 
+    int32_t *cDot,    
+    int16_t range,    
+    int16_t stage,    
+    int16_t *inverseEnergy,  
+    int16_t *inverseEnergyShift, 
 
-    WebRtc_Word32 *Crit,    
-    WebRtc_Word16 *bestIndex,   
+    int32_t *Crit,    
+    int16_t *bestIndex,   
 
 
-    WebRtc_Word32 *bestCrit,   
+    int32_t *bestCrit,   
 
-    WebRtc_Word16 *bestCritSh);  
+    int16_t *bestCritSh);  
 
 
 #endif

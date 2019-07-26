@@ -23,16 +23,16 @@
 
 
 
-WebRtc_Word16 WebRtcIlbcfix_GainQuant( 
-    WebRtc_Word16 gain, 
-    WebRtc_Word16 maxIn, 
-    WebRtc_Word16 stage, 
-    WebRtc_Word16 *index 
+int16_t WebRtcIlbcfix_GainQuant( 
+    int16_t gain, 
+    int16_t maxIn, 
+    int16_t stage, 
+    int16_t *index 
                                         ) {
 
-  WebRtc_Word16 scale, returnVal, cblen;
-  WebRtc_Word32 gainW32, measure1, measure2;
-  const WebRtc_Word16 *cbPtr, *cb;
+  int16_t scale, returnVal, cblen;
+  int32_t gainW32, measure1, measure2;
+  const int16_t *cbPtr, *cb;
   int loc, noMoves, noChecks, i;
 
   
@@ -48,7 +48,7 @@ WebRtc_Word16 WebRtcIlbcfix_GainQuant(
 
   
 
-  gainW32 = WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)gain, 14);
+  gainW32 = WEBRTC_SPL_LSHIFT_W32((int32_t)gain, 14);
 
   
 
@@ -99,7 +99,7 @@ WebRtc_Word16 WebRtcIlbcfix_GainQuant(
   *index=loc;
 
   
-  returnVal=(WebRtc_Word16)((WEBRTC_SPL_MUL_16_16(scale, cb[loc])+8192)>>14);
+  returnVal=(int16_t)((WEBRTC_SPL_MUL_16_16(scale, cb[loc])+8192)>>14);
 
   
   return(returnVal);

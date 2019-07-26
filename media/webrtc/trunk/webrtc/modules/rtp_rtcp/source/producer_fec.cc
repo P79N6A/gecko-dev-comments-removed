@@ -32,7 +32,7 @@ enum { kHighProtectionThreshold = 80 };
 
 
 struct RtpPacket {
-  WebRtc_UWord16 rtpHeaderLength;
+  uint16_t rtpHeaderLength;
   ForwardErrorCorrection::Packet* pkt;
 };
 

@@ -22,15 +22,15 @@
 #include "constants.h"
 
 void WebRtcIlbcfix_Lsf2Poly(
-    WebRtc_Word16 *a,     
-    WebRtc_Word16 *lsf    
+    int16_t *a,     
+    int16_t *lsf    
                             ) {
-  WebRtc_Word32 f[2][6]; 
+  int32_t f[2][6]; 
 
-  WebRtc_Word32 *f1ptr, *f2ptr;
-  WebRtc_Word16 *a1ptr, *a2ptr;
-  WebRtc_Word32 tmpW32;
-  WebRtc_Word16 lsp[10];
+  int32_t *f1ptr, *f2ptr;
+  int16_t *a1ptr, *a2ptr;
+  int32_t tmpW32;
+  int16_t lsp[10];
   int i;
 
   
@@ -71,10 +71,10 @@ void WebRtcIlbcfix_Lsf2Poly(
   for (i=5; i>0; i--)
   {
     tmpW32 = (*f1ptr) + (*f2ptr);
-    (*a1ptr) = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32((tmpW32+4096),13);
+    (*a1ptr) = (int16_t)WEBRTC_SPL_RSHIFT_W32((tmpW32+4096),13);
 
     tmpW32 = (*f1ptr) - (*f2ptr);
-    (*a2ptr) = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32((tmpW32+4096),13);
+    (*a2ptr) = (int16_t)WEBRTC_SPL_RSHIFT_W32((tmpW32+4096),13);
 
     a1ptr++;
     a2ptr--;

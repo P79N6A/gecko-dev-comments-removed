@@ -37,7 +37,7 @@ public:
 
 
 
-    static VideoCaptureModule* Create(const WebRtc_Word32 id,
+    static VideoCaptureModule* Create(const int32_t id,
                                       const char* deviceUniqueIdUTF8);
 
     
@@ -46,72 +46,73 @@ public:
 
 
 
-    static VideoCaptureModule* Create(const WebRtc_Word32 id,
+    static VideoCaptureModule* Create(const int32_t id,
                                       VideoCaptureExternal*& externalCapture);
 
-    static DeviceInfo* CreateDeviceInfo(const WebRtc_Word32 id);
+    static DeviceInfo* CreateDeviceInfo(const int32_t id);
 
     
-    virtual WebRtc_Word32 ChangeUniqueId(const WebRtc_Word32 id);
+    virtual int32_t ChangeUniqueId(const int32_t id);
 
     
-    virtual WebRtc_Word32 RegisterCaptureDataCallback(VideoCaptureDataCallback& dataCallback);
-    virtual WebRtc_Word32 DeRegisterCaptureDataCallback();
-    virtual WebRtc_Word32 RegisterCaptureCallback(VideoCaptureFeedBack& callBack);
-    virtual WebRtc_Word32 DeRegisterCaptureCallback();
+    virtual int32_t RegisterCaptureDataCallback(VideoCaptureDataCallback& dataCallback);
+    virtual int32_t DeRegisterCaptureDataCallback();
+    virtual int32_t RegisterCaptureCallback(VideoCaptureFeedBack& callBack);
+    virtual int32_t DeRegisterCaptureCallback();
 
-    virtual WebRtc_Word32 SetCaptureDelay(WebRtc_Word32 delayMS);
-    virtual WebRtc_Word32 CaptureDelay();
-    virtual WebRtc_Word32 SetCaptureRotation(VideoCaptureRotation rotation);
+    virtual int32_t SetCaptureDelay(int32_t delayMS);
+    virtual int32_t CaptureDelay();
+    virtual int32_t SetCaptureRotation(VideoCaptureRotation rotation);
 
-    virtual WebRtc_Word32 EnableFrameRateCallback(const bool enable);
-    virtual WebRtc_Word32 EnableNoPictureAlarm(const bool enable);
+    virtual int32_t EnableFrameRateCallback(const bool enable);
+    virtual int32_t EnableNoPictureAlarm(const bool enable);
 
     virtual const char* CurrentDeviceName() const;
 
     
-    virtual WebRtc_Word32 TimeUntilNextProcess();
-    virtual WebRtc_Word32 Process();
+    virtual int32_t TimeUntilNextProcess();
+    virtual int32_t Process();
 
     
-    virtual WebRtc_Word32 IncomingFrame(WebRtc_UWord8* videoFrame,
-                                        WebRtc_Word32 videoFrameLength,
-                                        const VideoCaptureCapability& frameInfo,
-                                        WebRtc_Word64 captureTime = 0);
-    virtual WebRtc_Word32 IncomingFrameI420(
+    
+    virtual int32_t IncomingFrame(uint8_t* videoFrame,
+                                  int32_t videoFrameLength,
+                                  const VideoCaptureCapability& frameInfo,
+                                  int64_t captureTime = 0);
+    virtual int32_t IncomingFrameI420(
         const VideoFrameI420& video_frame,
-        WebRtc_Word64 captureTime = 0);
+        int64_t captureTime = 0);
 
     
-    virtual WebRtc_Word32 StartCapture(const VideoCaptureCapability& capability)
+    virtual int32_t StartCapture(const VideoCaptureCapability& capability)
     {
         _requestedCapability = capability;
         return -1;
     }
-    virtual WebRtc_Word32 StopCapture()   { return -1; }
+    virtual int32_t StopCapture()   { return -1; }
     virtual bool CaptureStarted() {return false; }
-    virtual WebRtc_Word32 CaptureSettings(VideoCaptureCapability& )
+    virtual int32_t CaptureSettings(VideoCaptureCapability& )
     { return -1; }
     VideoCaptureEncodeInterface* GetEncodeInterface(const VideoCodec& )
     { return NULL; }
 
 protected:
-    VideoCaptureImpl(const WebRtc_Word32 id);
+    VideoCaptureImpl(const int32_t id);
     virtual ~VideoCaptureImpl();
-    WebRtc_Word32 DeliverCapturedFrame(I420VideoFrame& captureFrame,
-                                       WebRtc_Word64 capture_time);
-    WebRtc_Word32 DeliverEncodedCapturedFrame(VideoFrame& captureFrame,
-                                              WebRtc_Word64 capture_time,
-                                              VideoCodecType codec_type);
+    int32_t DeliverCapturedFrame(I420VideoFrame& captureFrame,
+                                 int64_t capture_time);
+    int32_t DeliverEncodedCapturedFrame(VideoFrame& captureFrame,
+                                        int64_t capture_time,
+                                        VideoCodecType codec_type);
 
-    WebRtc_Word32 _id; 
+    int32_t _id; 
     char* _deviceUniqueId; 
     CriticalSectionWrapper& _apiCs;
-    WebRtc_Word32 _captureDelay; 
+    int32_t _captureDelay; 
     VideoCaptureCapability _requestedCapability; 
 private:
     void UpdateFrameCount();
-    WebRtc_UWord32 CalculateFrameRate(const TickTime& now);
+    uint32_t CalculateFrameRate(const TickTime& now);
 
     CriticalSectionWrapper& _callBackCs;
 
@@ -121,7 +122,7 @@ private:
     bool _noPictureAlarmCallBack; 
     VideoCaptureAlarm _captureAlarm; 
 
-    WebRtc_Word32 _setCaptureDelay; 
+    int32_t _setCaptureDelay; 
     VideoCaptureDataCallback* _dataCallBack;
     VideoCaptureFeedBack* _captureCallBack;
 
@@ -133,7 +134,7 @@ private:
     VideoFrame _capture_encoded_frame;
 
     
-    WebRtc_Word64 last_capture_time_;
+    int64_t last_capture_time_;
 };
 } 
 } 

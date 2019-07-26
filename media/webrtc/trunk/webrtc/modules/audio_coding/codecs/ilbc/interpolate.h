@@ -26,10 +26,10 @@
 
 
 void WebRtcIlbcfix_Interpolate(
-    WebRtc_Word16 *out, 
-    WebRtc_Word16 *in1, 
-    WebRtc_Word16 *in2, 
-    WebRtc_Word16 coef, 
-    WebRtc_Word16 length); 
+    int16_t *out, 
+    int16_t *in1, 
+    int16_t *in2, 
+    int16_t coef, 
+    int16_t length); 
 
 #endif

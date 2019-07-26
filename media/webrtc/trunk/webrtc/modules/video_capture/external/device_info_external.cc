@@ -17,34 +17,34 @@ namespace videocapturemodule {
 
 class ExternalDeviceInfo : public DeviceInfoImpl {
  public:
-  ExternalDeviceInfo(const WebRtc_Word32 id)
+  ExternalDeviceInfo(const int32_t id)
       : DeviceInfoImpl(id) {
   }
   virtual ~ExternalDeviceInfo() {}
-  virtual WebRtc_UWord32 NumberOfDevices() { return 0; }
-  virtual WebRtc_Word32 DisplayCaptureSettingsDialogBox(
+  virtual uint32_t NumberOfDevices() { return 0; }
+  virtual int32_t DisplayCaptureSettingsDialogBox(
       const char* ,
       const char* ,
       void* ,
-      WebRtc_UWord32 ,
-      WebRtc_UWord32 ) { return -1; }
-  virtual WebRtc_Word32 GetDeviceName(
-      WebRtc_UWord32 deviceNumber,
+      uint32_t ,
+      uint32_t ) { return -1; }
+  virtual int32_t GetDeviceName(
+      uint32_t deviceNumber,
       char* deviceNameUTF8,
-      WebRtc_UWord32 deviceNameLength,
+      uint32_t deviceNameLength,
       char* deviceUniqueIdUTF8,
-      WebRtc_UWord32 deviceUniqueIdUTF8Length,
+      uint32_t deviceUniqueIdUTF8Length,
       char* productUniqueIdUTF8=0,
-      WebRtc_UWord32 productUniqueIdUTF8Length=0) {
+      uint32_t productUniqueIdUTF8Length=0) {
     return -1;
   }
-  virtual WebRtc_Word32 CreateCapabilityMap(
+  virtual int32_t CreateCapabilityMap(
       const char* deviceUniqueIdUTF8) { return 0; }
-  virtual WebRtc_Word32 Init() { return 0; }
+  virtual int32_t Init() { return 0; }
 };
 
 VideoCaptureModule::DeviceInfo* VideoCaptureImpl::CreateDeviceInfo(
-    const WebRtc_Word32 id) {
+    const int32_t id) {
   return new ExternalDeviceInfo(id);
 }
 

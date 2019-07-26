@@ -14,11 +14,11 @@
 
 
 
-int WebRtcIsacfix_AutocorrC(WebRtc_Word32* __restrict r,
-                            const WebRtc_Word16* __restrict x,
-                            WebRtc_Word16 N,
-                            WebRtc_Word16 order,
-                            WebRtc_Word16* __restrict scale) {
+int WebRtcIsacfix_AutocorrC(int32_t* __restrict r,
+                            const int16_t* __restrict x,
+                            int16_t N,
+                            int16_t order,
+                            int16_t* __restrict scale) {
   int i = 0;
   int j = 0;
   int16_t scaling = 0;
@@ -59,17 +59,17 @@ int WebRtcIsacfix_AutocorrC(WebRtc_Word32* __restrict r,
   return(order + 1);
 }
 
-static const WebRtc_Word32 kApUpperQ15[ALLPASSSECTIONS] = { 1137, 12537 };
-static const WebRtc_Word32 kApLowerQ15[ALLPASSSECTIONS] = { 5059, 24379 };
+static const int32_t kApUpperQ15[ALLPASSSECTIONS] = { 1137, 12537 };
+static const int32_t kApLowerQ15[ALLPASSSECTIONS] = { 5059, 24379 };
 
 
-static void AllpassFilterForDec32(WebRtc_Word16         *InOut16, 
-                                  const WebRtc_Word32   *APSectionFactors, 
-                                  WebRtc_Word16         lengthInOut,
-                                  WebRtc_Word32          *FilterState) 
+static void AllpassFilterForDec32(int16_t         *InOut16, 
+                                  const int32_t   *APSectionFactors, 
+                                  int16_t         lengthInOut,
+                                  int32_t          *FilterState) 
 {
   int n, j;
-  WebRtc_Word32 a, b;
+  int32_t a, b;
 
   for (j=0; j<ALLPASSSECTIONS; j++) {
     for (n=0;n<lengthInOut;n+=2){
@@ -77,12 +77,12 @@ static void AllpassFilterForDec32(WebRtc_Word16         *InOut16,
       a = WEBRTC_SPL_LSHIFT_W32(a, 1); 
       b = WEBRTC_SPL_ADD_SAT_W32(a, FilterState[j]); 
       a = WEBRTC_SPL_MUL_16_32_RSFT16(
-          (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(b, 16),
+          (int16_t) WEBRTC_SPL_RSHIFT_W32(b, 16),
           -APSectionFactors[j]); 
       FilterState[j] = WEBRTC_SPL_ADD_SAT_W32(
           WEBRTC_SPL_LSHIFT_W32(a,1),
-          WEBRTC_SPL_LSHIFT_W32((WebRtc_UWord32)InOut16[n], 16)); 
-      InOut16[n] = (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(b, 16); 
+          WEBRTC_SPL_LSHIFT_W32((uint32_t)InOut16[n], 16)); 
+      InOut16[n] = (int16_t) WEBRTC_SPL_RSHIFT_W32(b, 16); 
     }
   }
 }
@@ -90,20 +90,20 @@ static void AllpassFilterForDec32(WebRtc_Word16         *InOut16,
 
 
 
-void WebRtcIsacfix_DecimateAllpass32(const WebRtc_Word16 *in,
-                                     WebRtc_Word32 *state_in,        
-                                     WebRtc_Word16 N,                
-                                     WebRtc_Word16 *out)             
+void WebRtcIsacfix_DecimateAllpass32(const int16_t *in,
+                                     int32_t *state_in,        
+                                     int16_t N,                
+                                     int16_t *out)             
 {
   int n;
-  WebRtc_Word16 data_vec[PITCH_FRAME_LEN];
+  int16_t data_vec[PITCH_FRAME_LEN];
 
   
-  memcpy(data_vec+1, in, WEBRTC_SPL_MUL_16_16(sizeof(WebRtc_Word16), (N-1)));
+  memcpy(data_vec+1, in, WEBRTC_SPL_MUL_16_16(sizeof(int16_t), (N-1)));
 
 
-  data_vec[0] = (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(state_in[WEBRTC_SPL_MUL_16_16(2, ALLPASSSECTIONS)],16);   
-  state_in[WEBRTC_SPL_MUL_16_16(2, ALLPASSSECTIONS)] = WEBRTC_SPL_LSHIFT_W32((WebRtc_UWord32)in[N-1],16);
+  data_vec[0] = (int16_t) WEBRTC_SPL_RSHIFT_W32(state_in[WEBRTC_SPL_MUL_16_16(2, ALLPASSSECTIONS)],16);   
+  state_in[WEBRTC_SPL_MUL_16_16(2, ALLPASSSECTIONS)] = WEBRTC_SPL_LSHIFT_W32((uint32_t)in[N-1],16);
 
 
 

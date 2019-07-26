@@ -23,9 +23,9 @@
 
 
 
-WebRtc_Word16 WebRtcIlbcfix_InitEncode(  
+int16_t WebRtcIlbcfix_InitEncode(  
     iLBC_Enc_Inst_t *iLBCenc_inst,  
-    WebRtc_Word16 mode) {  
+    int16_t mode) {  
   iLBCenc_inst->mode = mode;
 
   

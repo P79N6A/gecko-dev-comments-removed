@@ -41,11 +41,8 @@ class ChannelGroup {
   bool HasChannel(int channel_id);
   bool Empty();
 
-  bool SetChannelRembStatus(int channel_id,
-                            bool sender,
-                            bool receiver,
-                            ViEChannel* channel,
-                            ViEEncoder* encoder);
+  bool SetChannelRembStatus(int channel_id, bool sender, bool receiver,
+                            ViEChannel* channel);
 
   BitrateController* GetBitrateController();
   CallStats* GetCallStats();

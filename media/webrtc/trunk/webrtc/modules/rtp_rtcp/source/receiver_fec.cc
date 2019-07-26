@@ -19,7 +19,7 @@
 
 
 namespace webrtc {
-ReceiverFEC::ReceiverFEC(const WebRtc_Word32 id, RTPReceiverVideo* owner)
+ReceiverFEC::ReceiverFEC(const int32_t id, RTPReceiverVideo* owner)
     : _id(id),
       _owner(owner),
       _fec(new ForwardErrorCorrection(id)),
@@ -42,7 +42,7 @@ ReceiverFEC::~ReceiverFEC() {
   }
 }
 
-void ReceiverFEC::SetPayloadTypeFEC(const WebRtc_Word8 payloadType) {
+void ReceiverFEC::SetPayloadTypeFEC(const int8_t payloadType) {
   _payloadTypeFEC = payloadType;
 }
 
@@ -76,16 +76,16 @@ void ReceiverFEC::SetPayloadTypeFEC(const WebRtc_Word8 payloadType) {
 
 
 
-WebRtc_Word32 ReceiverFEC::AddReceivedFECPacket(
+int32_t ReceiverFEC::AddReceivedFECPacket(
     const WebRtcRTPHeader* rtpHeader,
-    const WebRtc_UWord8* incomingRtpPacket,
-    const WebRtc_UWord16 payloadDataLength,
+    const uint8_t* incomingRtpPacket,
+    const uint16_t payloadDataLength,
     bool& FECpacket) {
   if (_payloadTypeFEC == -1) {
     return -1;
   }
 
-  WebRtc_UWord8 REDHeaderLength = 1;
+  uint8_t REDHeaderLength = 1;
 
   
   
@@ -95,7 +95,7 @@ WebRtc_Word32 ReceiverFEC::AddReceivedFECPacket(
   receivedPacket->pkt = new ForwardErrorCorrection::Packet;
 
   
-  WebRtc_UWord8 payloadType =
+  uint8_t payloadType =
       incomingRtpPacket[rtpHeader->header.headerLength] & 0x7f;
 
   
@@ -108,11 +108,11 @@ WebRtc_Word32 ReceiverFEC::AddReceivedFECPacket(
   }
   receivedPacket->seqNum = rtpHeader->header.sequenceNumber;
 
-  WebRtc_UWord16 blockLength = 0;
+  uint16_t blockLength = 0;
   if(incomingRtpPacket[rtpHeader->header.headerLength] & 0x80) {
     
     REDHeaderLength = 4;
-    WebRtc_UWord16 timestampOffset =
+    uint16_t timestampOffset =
         (incomingRtpPacket[rtpHeader->header.headerLength + 1]) << 8;
     timestampOffset += incomingRtpPacket[rtpHeader->header.headerLength+2];
     timestampOffset = timestampOffset >> 2;
@@ -221,7 +221,7 @@ WebRtc_Word32 ReceiverFEC::AddReceivedFECPacket(
   return 0;
 }
 
-WebRtc_Word32 ReceiverFEC::ProcessReceivedFEC() {
+int32_t ReceiverFEC::ProcessReceivedFEC() {
   if (!_receivedPacketList.empty()) {
     
     if (!_receivedPacketList.front()->isFec) {

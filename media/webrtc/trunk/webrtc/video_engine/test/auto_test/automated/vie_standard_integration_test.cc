@@ -13,19 +13,17 @@
 
 
 
-
-
 #include <cstdio>
 
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
-#include "legacy_fixture.h"
-#include "testsupport/metrics/video_metrics.h"
-#include "vie_autotest.h"
-#include "vie_autotest_window_manager_interface.h"
-#include "vie_to_file_renderer.h"
-#include "vie_window_creator.h"
-#include "testsupport/metrics/video_metrics.h"
+#include "webrtc/test/testsupport/metrics/video_metrics.h"
+#include "webrtc/test/testsupport/metrics/video_metrics.h"
+#include "webrtc/video_engine/test/auto_test/automated/legacy_fixture.h"
+#include "webrtc/video_engine/test/auto_test/interface/vie_autotest.h"
+#include "webrtc/video_engine/test/auto_test/interface/vie_autotest_window_manager_interface.h"
+#include "webrtc/video_engine/test/auto_test/interface/vie_window_creator.h"
+#include "webrtc/video_engine/test/libvietest/include/vie_to_file_renderer.h"
 
 namespace {
 
@@ -54,10 +52,6 @@ TEST_F(ViEStandardIntegrationTest, RunsFileTestWithoutErrors)  {
 
 TEST_F(ViEStandardIntegrationTest, RunsImageProcessTestWithoutErrors)  {
   tests_->ViEImageProcessStandardTest();
-}
-
-TEST_F(ViEStandardIntegrationTest, RunsNetworkTestWithoutErrors)  {
-  tests_->ViENetworkStandardTest();
 }
 
 TEST_F(ViEStandardIntegrationTest, RunsRenderTestWithoutErrors)  {

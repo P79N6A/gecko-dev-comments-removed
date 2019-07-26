@@ -19,14 +19,14 @@
 #include "resample_by_2_internal.h"
 
 
-static void WebRtcSpl_32khzTo22khzIntToShort(const WebRtc_Word32 *In, WebRtc_Word16 *Out,
-                                             const WebRtc_Word32 K);
+static void WebRtcSpl_32khzTo22khzIntToShort(const int32_t *In, int16_t *Out,
+                                             const int32_t K);
 
-void WebRtcSpl_32khzTo22khzIntToInt(const WebRtc_Word32 *In, WebRtc_Word32 *Out,
-                                    const WebRtc_Word32 K);
+void WebRtcSpl_32khzTo22khzIntToInt(const int32_t *In, int32_t *Out,
+                                    const int32_t K);
 
 
-static const WebRtc_Word16 kCoefficients32To22[5][9] = {
+static const int16_t kCoefficients32To22[5][9] = {
         {127, -712,  2359, -6333, 23456, 16775, -3695,  945, -154},
         {-39,  230,  -830,  2785, 32366, -2324,   760, -218,   38},
         {117, -663,  2222, -6133, 26634, 13070, -3174,  831, -137},
@@ -42,8 +42,8 @@ static const WebRtc_Word16 kCoefficients32To22[5][9] = {
 #define SUB_BLOCKS_22_16    5
 
 
-void WebRtcSpl_Resample22khzTo16khz(const WebRtc_Word16* in, WebRtc_Word16* out,
-                                    WebRtcSpl_State22khzTo16khz* state, WebRtc_Word32* tmpmem)
+void WebRtcSpl_Resample22khzTo16khz(const int16_t* in, int16_t* out,
+                                    WebRtcSpl_State22khzTo16khz* state, int32_t* tmpmem)
 {
     int k;
 
@@ -112,8 +112,8 @@ void WebRtcSpl_ResetResample22khzTo16khz(WebRtcSpl_State22khzTo16khz* state)
 #define SUB_BLOCKS_16_22    4
 
 
-void WebRtcSpl_Resample16khzTo22khz(const WebRtc_Word16* in, WebRtc_Word16* out,
-                                    WebRtcSpl_State16khzTo22khz* state, WebRtc_Word32* tmpmem)
+void WebRtcSpl_Resample16khzTo22khz(const int16_t* in, int16_t* out,
+                                    WebRtcSpl_State16khzTo22khz* state, int32_t* tmpmem)
 {
     int k;
 
@@ -175,8 +175,8 @@ void WebRtcSpl_ResetResample16khzTo22khz(WebRtcSpl_State16khzTo22khz* state)
 #define SUB_BLOCKS_22_8     2
 
 
-void WebRtcSpl_Resample22khzTo8khz(const WebRtc_Word16* in, WebRtc_Word16* out,
-                                   WebRtcSpl_State22khzTo8khz* state, WebRtc_Word32* tmpmem)
+void WebRtcSpl_Resample22khzTo8khz(const int16_t* in, int16_t* out,
+                                   WebRtcSpl_State22khzTo8khz* state, int32_t* tmpmem)
 {
     int k;
 
@@ -246,8 +246,8 @@ void WebRtcSpl_ResetResample22khzTo8khz(WebRtcSpl_State22khzTo8khz* state)
 #define SUB_BLOCKS_8_22     2
 
 
-void WebRtcSpl_Resample8khzTo22khz(const WebRtc_Word16* in, WebRtc_Word16* out,
-                                   WebRtcSpl_State8khzTo22khz* state, WebRtc_Word32* tmpmem)
+void WebRtcSpl_Resample8khzTo22khz(const int16_t* in, int16_t* out,
+                                   WebRtcSpl_State8khzTo22khz* state, int32_t* tmpmem)
 {
     int k;
 
@@ -309,13 +309,13 @@ void WebRtcSpl_ResetResample8khzTo22khz(WebRtcSpl_State8khzTo22khz* state)
 }
 
 
-static void WebRtcSpl_DotProdIntToInt(const WebRtc_Word32* in1, const WebRtc_Word32* in2,
-                                      const WebRtc_Word16* coef_ptr, WebRtc_Word32* out1,
-                                      WebRtc_Word32* out2)
+static void WebRtcSpl_DotProdIntToInt(const int32_t* in1, const int32_t* in2,
+                                      const int16_t* coef_ptr, int32_t* out1,
+                                      int32_t* out2)
 {
-    WebRtc_Word32 tmp1 = 16384;
-    WebRtc_Word32 tmp2 = 16384;
-    WebRtc_Word16 coef;
+    int32_t tmp1 = 16384;
+    int32_t tmp2 = 16384;
+    int16_t coef;
 
     coef = coef_ptr[0];
     tmp1 += coef * in1[0];
@@ -355,13 +355,13 @@ static void WebRtcSpl_DotProdIntToInt(const WebRtc_Word32* in1, const WebRtc_Wor
 }
 
 
-static void WebRtcSpl_DotProdIntToShort(const WebRtc_Word32* in1, const WebRtc_Word32* in2,
-                                        const WebRtc_Word16* coef_ptr, WebRtc_Word16* out1,
-                                        WebRtc_Word16* out2)
+static void WebRtcSpl_DotProdIntToShort(const int32_t* in1, const int32_t* in2,
+                                        const int16_t* coef_ptr, int16_t* out1,
+                                        int16_t* out2)
 {
-    WebRtc_Word32 tmp1 = 16384;
-    WebRtc_Word32 tmp2 = 16384;
-    WebRtc_Word16 coef;
+    int32_t tmp1 = 16384;
+    int32_t tmp2 = 16384;
+    int16_t coef;
 
     coef = coef_ptr[0];
     tmp1 += coef * in1[0];
@@ -401,17 +401,17 @@ static void WebRtcSpl_DotProdIntToShort(const WebRtc_Word32* in1, const WebRtc_W
 
     
     tmp1 >>= 15;
-    if (tmp1 > (WebRtc_Word32)0x00007FFF)
+    if (tmp1 > (int32_t)0x00007FFF)
         tmp1 = 0x00007FFF;
-    if (tmp1 < (WebRtc_Word32)0xFFFF8000)
+    if (tmp1 < (int32_t)0xFFFF8000)
         tmp1 = 0xFFFF8000;
     tmp2 >>= 15;
-    if (tmp2 > (WebRtc_Word32)0x00007FFF)
+    if (tmp2 > (int32_t)0x00007FFF)
         tmp2 = 0x00007FFF;
-    if (tmp2 < (WebRtc_Word32)0xFFFF8000)
+    if (tmp2 < (int32_t)0xFFFF8000)
         tmp2 = 0xFFFF8000;
-    *out1 = (WebRtc_Word16)tmp1;
-    *out2 = (WebRtc_Word16)tmp2;
+    *out1 = (int16_t)tmp1;
+    *out2 = (int16_t)tmp2;
 }
 
 
@@ -419,21 +419,21 @@ static void WebRtcSpl_DotProdIntToShort(const WebRtc_Word32* in1, const WebRtc_W
 
 
 
-void WebRtcSpl_32khzTo22khzIntToInt(const WebRtc_Word32* In,
-                                    WebRtc_Word32* Out,
-                                    const WebRtc_Word32 K)
+void WebRtcSpl_32khzTo22khzIntToInt(const int32_t* In,
+                                    int32_t* Out,
+                                    const int32_t K)
 {
     
     
     
     
     
-    WebRtc_Word32 m;
+    int32_t m;
 
     for (m = 0; m < K; m++)
     {
         
-        Out[0] = ((WebRtc_Word32)In[3] << 15) + (1 << 14);
+        Out[0] = ((int32_t)In[3] << 15) + (1 << 14);
 
         
         WebRtcSpl_DotProdIntToInt(&In[0], &In[22], kCoefficients32To22[0], &Out[1], &Out[10]);
@@ -461,27 +461,27 @@ void WebRtcSpl_32khzTo22khzIntToInt(const WebRtc_Word32* In,
 
 
 
-void WebRtcSpl_32khzTo22khzIntToShort(const WebRtc_Word32 *In,
-                                      WebRtc_Word16 *Out,
-                                      const WebRtc_Word32 K)
+void WebRtcSpl_32khzTo22khzIntToShort(const int32_t *In,
+                                      int16_t *Out,
+                                      const int32_t K)
 {
     
     
     
     
     
-    WebRtc_Word32 tmp;
-    WebRtc_Word32 m;
+    int32_t tmp;
+    int32_t m;
 
     for (m = 0; m < K; m++)
     {
         
         tmp = In[3];
-        if (tmp > (WebRtc_Word32)0x00007FFF)
+        if (tmp > (int32_t)0x00007FFF)
             tmp = 0x00007FFF;
-        if (tmp < (WebRtc_Word32)0xFFFF8000)
+        if (tmp < (int32_t)0xFFFF8000)
             tmp = 0xFFFF8000;
-        Out[0] = (WebRtc_Word16)tmp;
+        Out[0] = (int16_t)tmp;
 
         
         WebRtcSpl_DotProdIntToShort(&In[0], &In[22], kCoefficients32To22[0], &Out[1], &Out[10]);

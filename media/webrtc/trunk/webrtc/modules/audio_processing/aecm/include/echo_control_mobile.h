@@ -11,7 +11,9 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_AECM_INCLUDE_ECHO_CONTROL_MOBILE_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_AECM_INCLUDE_ECHO_CONTROL_MOBILE_H_
 
-#include "typedefs.h"
+#include <stdlib.h>
+
+#include "webrtc/typedefs.h"
 
 enum {
     AecmFalse = 0,
@@ -29,8 +31,8 @@ enum {
 #define AECM_BAD_PARAMETER_WARNING       12100
 
 typedef struct {
-    WebRtc_Word16 cngMode;            
-    WebRtc_Word16 echoMode;           
+    int16_t cngMode;            
+    int16_t echoMode;           
 } AecmConfig;
 
 #ifdef __cplusplus
@@ -51,7 +53,7 @@ extern "C" {
 
 
 
-WebRtc_Word32 WebRtcAecm_Create(void **aecmInst);
+int32_t WebRtcAecm_Create(void **aecmInst);
 
 
 
@@ -65,7 +67,7 @@ WebRtc_Word32 WebRtcAecm_Create(void **aecmInst);
 
 
 
-WebRtc_Word32 WebRtcAecm_Free(void *aecmInst);
+int32_t WebRtcAecm_Free(void *aecmInst);
 
 
 
@@ -80,8 +82,7 @@ WebRtc_Word32 WebRtcAecm_Free(void *aecmInst);
 
 
 
-WebRtc_Word32 WebRtcAecm_Init(void* aecmInst,
-                              WebRtc_Word32 sampFreq);
+int32_t WebRtcAecm_Init(void* aecmInst, int32_t sampFreq);
 
 
 
@@ -98,9 +99,9 @@ WebRtc_Word32 WebRtcAecm_Init(void* aecmInst,
 
 
 
-WebRtc_Word32 WebRtcAecm_BufferFarend(void* aecmInst,
-                                      const WebRtc_Word16* farend,
-                                      WebRtc_Word16 nrOfSamples);
+int32_t WebRtcAecm_BufferFarend(void* aecmInst,
+                                const int16_t* farend,
+                                int16_t nrOfSamples);
 
 
 
@@ -127,12 +128,12 @@ WebRtc_Word32 WebRtcAecm_BufferFarend(void* aecmInst,
 
 
 
-WebRtc_Word32 WebRtcAecm_Process(void* aecmInst,
-                                 const WebRtc_Word16* nearendNoisy,
-                                 const WebRtc_Word16* nearendClean,
-                                 WebRtc_Word16* out,
-                                 WebRtc_Word16 nrOfSamples,
-                                 WebRtc_Word16 msInSndCardBuf);
+int32_t WebRtcAecm_Process(void* aecmInst,
+                           const int16_t* nearendNoisy,
+                           const int16_t* nearendClean,
+                           int16_t* out,
+                           int16_t nrOfSamples,
+                           int16_t msInSndCardBuf);
 
 
 
@@ -148,8 +149,7 @@ WebRtc_Word32 WebRtcAecm_Process(void* aecmInst,
 
 
 
-WebRtc_Word32 WebRtcAecm_set_config(void* aecmInst,
-                                    AecmConfig config);
+int32_t WebRtcAecm_set_config(void* aecmInst, AecmConfig config);
 
 
 
@@ -165,8 +165,7 @@ WebRtc_Word32 WebRtcAecm_set_config(void* aecmInst,
 
 
 
-WebRtc_Word32 WebRtcAecm_get_config(void *aecmInst,
-                                    AecmConfig *config);
+int32_t WebRtcAecm_get_config(void *aecmInst, AecmConfig *config);
 
 
 
@@ -182,9 +181,9 @@ WebRtc_Word32 WebRtcAecm_get_config(void *aecmInst,
 
 
 
-WebRtc_Word32 WebRtcAecm_InitEchoPath(void* aecmInst,
-                                      const void* echo_path,
-                                      size_t size_bytes);
+int32_t WebRtcAecm_InitEchoPath(void* aecmInst,
+                                const void* echo_path,
+                                size_t size_bytes);
 
 
 
@@ -201,9 +200,9 @@ WebRtc_Word32 WebRtcAecm_InitEchoPath(void* aecmInst,
 
 
 
-WebRtc_Word32 WebRtcAecm_GetEchoPath(void* aecmInst,
-                                     void* echo_path,
-                                     size_t size_bytes);
+int32_t WebRtcAecm_GetEchoPath(void* aecmInst,
+                               void* echo_path,
+                               size_t size_bytes);
 
 
 
@@ -225,7 +224,7 @@ size_t WebRtcAecm_echo_path_size_bytes();
 
 
 
-WebRtc_Word32 WebRtcAecm_get_error_code(void *aecmInst);
+int32_t WebRtcAecm_get_error_code(void *aecmInst);
 
 #ifdef __cplusplus
 }

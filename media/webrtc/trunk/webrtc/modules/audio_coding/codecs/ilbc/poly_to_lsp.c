@@ -26,17 +26,17 @@
 
 
 void WebRtcIlbcfix_Poly2Lsp(
-    WebRtc_Word16 *a,  
-    WebRtc_Word16 *lsp, 
-    WebRtc_Word16 *old_lsp 
+    int16_t *a,  
+    int16_t *lsp, 
+    int16_t *old_lsp 
 
                             ) {
-  WebRtc_Word16 f[2][6]; 
-  WebRtc_Word16 *a_i_ptr, *a_10mi_ptr;
-  WebRtc_Word16 *f1ptr, *f2ptr;
-  WebRtc_Word32 tmpW32;
-  WebRtc_Word16 x, y, xlow, ylow, xmid, ymid, xhigh, yhigh, xint;
-  WebRtc_Word16 shifts, sign;
+  int16_t f[2][6]; 
+  int16_t *a_i_ptr, *a_10mi_ptr;
+  int16_t *f1ptr, *f2ptr;
+  int32_t tmpW32;
+  int16_t x, y, xlow, ylow, xmid, ymid, xhigh, yhigh, xint;
+  int16_t shifts, sign;
   int i, j;
   int foundFreqs;
   int fi_select;
@@ -56,8 +56,8 @@ void WebRtcIlbcfix_Poly2Lsp(
   (*f1ptr) = 1024; 
   (*f2ptr) = 1024; 
   for (i = 0; i < 5; i++) {
-    (*(f1ptr+1)) = (WebRtc_Word16)(WEBRTC_SPL_RSHIFT_W32(((WebRtc_Word32)(*a_i_ptr)+(*a_10mi_ptr)), 2) - (*f1ptr));
-    (*(f2ptr+1)) = (WebRtc_Word16)(WEBRTC_SPL_RSHIFT_W32(((WebRtc_Word32)(*a_i_ptr)-(*a_10mi_ptr)), 2) + (*f2ptr));
+    (*(f1ptr+1)) = (int16_t)(WEBRTC_SPL_RSHIFT_W32(((int32_t)(*a_i_ptr)+(*a_10mi_ptr)), 2) - (*f1ptr));
+    (*(f2ptr+1)) = (int16_t)(WEBRTC_SPL_RSHIFT_W32(((int32_t)(*a_i_ptr)-(*a_10mi_ptr)), 2) + (*f2ptr));
     a_i_ptr++;
     a_10mi_ptr--;
     f1ptr++;
@@ -116,25 +116,25 @@ void WebRtcIlbcfix_Poly2Lsp(
       } else {
         sign = y;
         y = WEBRTC_SPL_ABS_W16(y);
-        shifts = (WebRtc_Word16)WebRtcSpl_NormW32(y)-16;
+        shifts = (int16_t)WebRtcSpl_NormW32(y)-16;
         y = WEBRTC_SPL_LSHIFT_W16(y, shifts);
-        y = (WebRtc_Word16)WebRtcSpl_DivW32W16(536838144, y); 
+        y = (int16_t)WebRtcSpl_DivW32W16(536838144, y); 
 
         tmpW32 = WEBRTC_SPL_MUL_16_16_RSFT(x, y, (19-shifts));
 
         
-        y = (WebRtc_Word16)(tmpW32&0xFFFF);
+        y = (int16_t)(tmpW32&0xFFFF);
 
         if (sign < 0) {
           y = -y;
         }
         
         tmpW32 = WEBRTC_SPL_MUL_16_16_RSFT(ylow, y, 10);
-        xint = xlow-(WebRtc_Word16)(tmpW32&0xFFFF);
+        xint = xlow-(int16_t)(tmpW32&0xFFFF);
       }
 
       
-      lsp[foundFreqs] = (WebRtc_Word16)xint;
+      lsp[foundFreqs] = (int16_t)xint;
       foundFreqs++;
 
       

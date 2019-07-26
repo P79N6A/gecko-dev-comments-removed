@@ -25,18 +25,18 @@ public:
     VPMDenoising();
     ~VPMDenoising();
 
-    WebRtc_Word32 ChangeUniqueId(WebRtc_Word32 id);
+    int32_t ChangeUniqueId(int32_t id);
 
     void Reset();
 
-    WebRtc_Word32 ProcessFrame(I420VideoFrame* frame);
+    int32_t ProcessFrame(I420VideoFrame* frame);
 
 private:
-    WebRtc_Word32 _id;
+    int32_t _id;
 
-    WebRtc_UWord32*   _moment1;           
-    WebRtc_UWord32*   _moment2;           
-    WebRtc_UWord32    _frameSize;         
+    uint32_t*   _moment1;           
+    uint32_t*   _moment2;           
+    uint32_t    _frameSize;         
     int               _denoiseFrameCnt;   
 };
 

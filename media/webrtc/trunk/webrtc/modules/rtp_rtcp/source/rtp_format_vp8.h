@@ -48,8 +48,8 @@ class RtpFormatVp8 {
  public:
   
   
-  RtpFormatVp8(const WebRtc_UWord8* payload_data,
-               WebRtc_UWord32 payload_size,
+  RtpFormatVp8(const uint8_t* payload_data,
+               uint32_t payload_size,
                const RTPVideoHeaderVP8& hdr_info,
                int max_payload_len,
                const RTPFragmentationHeader& fragmentation,
@@ -57,8 +57,8 @@ class RtpFormatVp8 {
 
   
   
-  RtpFormatVp8(const WebRtc_UWord8* payload_data,
-               WebRtc_UWord32 payload_size,
+  RtpFormatVp8(const uint8_t* payload_data,
+               uint32_t payload_size,
                const RTPVideoHeaderVP8& hdr_info,
                int max_payload_len);
 
@@ -73,7 +73,7 @@ class RtpFormatVp8 {
   
   
   
-  int NextPacket(WebRtc_UWord8* buffer,
+  int NextPacket(uint8_t* buffer,
                  int* bytes_to_send,
                  bool* last_packet);
 
@@ -139,35 +139,35 @@ class RtpFormatVp8 {
   
   
   int WriteHeaderAndPayload(const InfoStruct& packet_info,
-                            WebRtc_UWord8* buffer,
+                            uint8_t* buffer,
                             int buffer_length) const;
 
 
   
   
   
-  int WriteExtensionFields(WebRtc_UWord8* buffer, int buffer_length) const;
+  int WriteExtensionFields(uint8_t* buffer, int buffer_length) const;
 
   
   
-  int WritePictureIDFields(WebRtc_UWord8* x_field, WebRtc_UWord8* buffer,
+  int WritePictureIDFields(uint8_t* x_field, uint8_t* buffer,
                            int buffer_length, int* extension_length) const;
 
   
   
-  int WriteTl0PicIdxFields(WebRtc_UWord8* x_field, WebRtc_UWord8* buffer,
+  int WriteTl0PicIdxFields(uint8_t* x_field, uint8_t* buffer,
                            int buffer_length, int* extension_length) const;
 
   
   
   
-  int WriteTIDAndKeyIdxFields(WebRtc_UWord8* x_field, WebRtc_UWord8* buffer,
+  int WriteTIDAndKeyIdxFields(uint8_t* x_field, uint8_t* buffer,
                               int buffer_length, int* extension_length) const;
 
   
   
   
-  int WritePictureID(WebRtc_UWord8* buffer, int buffer_length) const;
+  int WritePictureID(uint8_t* buffer, int buffer_length) const;
 
   
   
@@ -184,7 +184,7 @@ class RtpFormatVp8 {
   bool TL0PicIdxFieldPresent() const;
   bool PictureIdPresent() const { return (PictureIdLength() > 0); }
 
-  const WebRtc_UWord8* payload_data_;
+  const uint8_t* payload_data_;
   const int payload_size_;
   RTPFragmentationHeader part_info_;
   const int vp8_fixed_payload_descriptor_bytes_;  

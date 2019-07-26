@@ -31,7 +31,7 @@ namespace webrtc {
 
 
 
-AudioMixerManager::AudioMixerManager(const WebRtc_Word32 id) :
+AudioMixerManager::AudioMixerManager(const int32_t id) :
     _critSect(*CriticalSectionWrapper::CreateCriticalSection()),
     _id(id),
     _inputMixerHandle(NULL),
@@ -59,7 +59,7 @@ AudioMixerManager::~AudioMixerManager()
 
 
 
-WebRtc_Word32 AudioMixerManager::Close()
+int32_t AudioMixerManager::Close()
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -83,7 +83,7 @@ WebRtc_Word32 AudioMixerManager::Close()
 
 
 
-WebRtc_Word32 AudioMixerManager::CloseSpeaker()
+int32_t AudioMixerManager::CloseSpeaker()
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -106,7 +106,7 @@ WebRtc_Word32 AudioMixerManager::CloseSpeaker()
 
 
 
-WebRtc_Word32 AudioMixerManager::CloseMicrophone()
+int32_t AudioMixerManager::CloseMicrophone()
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -129,7 +129,7 @@ WebRtc_Word32 AudioMixerManager::CloseMicrophone()
 
 
 
-WebRtc_Word32 AudioMixerManager::EnumerateAll()
+int32_t AudioMixerManager::EnumerateAll()
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -170,7 +170,7 @@ WebRtc_Word32 AudioMixerManager::EnumerateAll()
 
 
 
-WebRtc_Word32 AudioMixerManager::EnumerateSpeakers()
+int32_t AudioMixerManager::EnumerateSpeakers()
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -254,7 +254,7 @@ WebRtc_Word32 AudioMixerManager::EnumerateSpeakers()
 
 
 
-WebRtc_Word32 AudioMixerManager::EnumerateMicrophones()
+int32_t AudioMixerManager::EnumerateMicrophones()
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -565,7 +565,7 @@ WebRtc_Word32 AudioMixerManager::EnumerateMicrophones()
 
 
 
-WebRtc_Word32 AudioMixerManager::OpenSpeaker(AudioDeviceModule::WindowsDeviceType device)
+int32_t AudioMixerManager::OpenSpeaker(AudioDeviceModule::WindowsDeviceType device)
 {
     if (device == AudioDeviceModule::kDefaultDevice)
     {
@@ -691,7 +691,7 @@ WebRtc_Word32 AudioMixerManager::OpenSpeaker(AudioDeviceModule::WindowsDeviceTyp
 
 
 
-WebRtc_Word32 AudioMixerManager::OpenSpeaker(WebRtc_UWord16 index)
+int32_t AudioMixerManager::OpenSpeaker(uint16_t index)
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "AudioMixerManager::OpenSpeaker(index=%d)", index);
 
@@ -787,7 +787,7 @@ WebRtc_Word32 AudioMixerManager::OpenSpeaker(WebRtc_UWord16 index)
 
 
 
-WebRtc_Word32 AudioMixerManager::OpenMicrophone(AudioDeviceModule::WindowsDeviceType device)
+int32_t AudioMixerManager::OpenMicrophone(AudioDeviceModule::WindowsDeviceType device)
 {
     if (device == AudioDeviceModule::kDefaultDevice)
     {
@@ -913,7 +913,7 @@ WebRtc_Word32 AudioMixerManager::OpenMicrophone(AudioDeviceModule::WindowsDevice
 
 
 
-WebRtc_Word32 AudioMixerManager::OpenMicrophone(WebRtc_UWord16 index)
+int32_t AudioMixerManager::OpenMicrophone(uint16_t index)
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "AudioMixerManager::OpenMicrophone(index=%d)", index);
 
@@ -1028,7 +1028,7 @@ bool AudioMixerManager::MicrophoneIsInitialized() const
 
 
 
-WebRtc_Word32 AudioMixerManager::SetSpeakerVolume(WebRtc_UWord32 volume)
+int32_t AudioMixerManager::SetSpeakerVolume(uint32_t volume)
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "AudioMixerManager::SetSpeakerVolume(volume=%u)", volume);
 
@@ -1061,7 +1061,7 @@ WebRtc_Word32 AudioMixerManager::SetSpeakerVolume(WebRtc_UWord32 volume)
 
 
 
-WebRtc_Word32 AudioMixerManager::SpeakerVolume(WebRtc_UWord32& volume) const
+int32_t AudioMixerManager::SpeakerVolume(uint32_t& volume) const
 {
 
     if (_outputMixerHandle == NULL)
@@ -1093,7 +1093,7 @@ WebRtc_Word32 AudioMixerManager::SpeakerVolume(WebRtc_UWord32& volume) const
 
 
 
-WebRtc_Word32 AudioMixerManager::MaxSpeakerVolume(WebRtc_UWord32& maxVolume) const
+int32_t AudioMixerManager::MaxSpeakerVolume(uint32_t& maxVolume) const
 {
 
     if (_outputMixerHandle == NULL)
@@ -1122,7 +1122,7 @@ WebRtc_Word32 AudioMixerManager::MaxSpeakerVolume(WebRtc_UWord32& maxVolume) con
 
 
 
-WebRtc_Word32 AudioMixerManager::MinSpeakerVolume(WebRtc_UWord32& minVolume) const
+int32_t AudioMixerManager::MinSpeakerVolume(uint32_t& minVolume) const
 {
 
     if (_outputMixerHandle == NULL)
@@ -1151,7 +1151,7 @@ WebRtc_Word32 AudioMixerManager::MinSpeakerVolume(WebRtc_UWord32& minVolume) con
 
 
 
-WebRtc_Word32 AudioMixerManager::SpeakerVolumeStepSize(WebRtc_UWord16& stepSize) const
+int32_t AudioMixerManager::SpeakerVolumeStepSize(uint16_t& stepSize) const
 {
 
     if (_outputMixerHandle == NULL)
@@ -1170,7 +1170,7 @@ WebRtc_Word32 AudioMixerManager::SpeakerVolumeStepSize(WebRtc_UWord16& stepSize)
         return -1;
     }
 
-    stepSize = static_cast<WebRtc_UWord16> (mixerControl.Metrics.cSteps);
+    stepSize = static_cast<uint16_t> (mixerControl.Metrics.cSteps);
 
     return 0;
 }
@@ -1179,7 +1179,7 @@ WebRtc_Word32 AudioMixerManager::SpeakerVolumeStepSize(WebRtc_UWord16& stepSize)
 
 
 
-WebRtc_Word32 AudioMixerManager::SpeakerVolumeIsAvailable(bool& available)
+int32_t AudioMixerManager::SpeakerVolumeIsAvailable(bool& available)
 {
     if (_outputMixerHandle == NULL)
     {
@@ -1196,7 +1196,7 @@ WebRtc_Word32 AudioMixerManager::SpeakerVolumeIsAvailable(bool& available)
 
 
 
-WebRtc_Word32 AudioMixerManager::SpeakerMuteIsAvailable(bool& available)
+int32_t AudioMixerManager::SpeakerMuteIsAvailable(bool& available)
 {
     if (_outputMixerHandle == NULL)
     {
@@ -1215,7 +1215,7 @@ WebRtc_Word32 AudioMixerManager::SpeakerMuteIsAvailable(bool& available)
 
 
 
-WebRtc_Word32 AudioMixerManager::SetSpeakerMute(bool enable)
+int32_t AudioMixerManager::SetSpeakerMute(bool enable)
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "AudioMixerManager::SetSpeakerMute(enable=%u)", enable);
 
@@ -1253,7 +1253,7 @@ WebRtc_Word32 AudioMixerManager::SetSpeakerMute(bool enable)
 
 
 
-WebRtc_Word32 AudioMixerManager::SpeakerMute(bool& enabled) const
+int32_t AudioMixerManager::SpeakerMute(bool& enabled) const
 {
 
     if (_outputMixerHandle == NULL)
@@ -1291,7 +1291,7 @@ WebRtc_Word32 AudioMixerManager::SpeakerMute(bool& enabled) const
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneMuteIsAvailable(bool& available)
+int32_t AudioMixerManager::MicrophoneMuteIsAvailable(bool& available)
 {
     if (_inputMixerHandle == NULL)
     {
@@ -1310,7 +1310,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneMuteIsAvailable(bool& available)
 
 
 
-WebRtc_Word32 AudioMixerManager::SetMicrophoneMute(bool enable)
+int32_t AudioMixerManager::SetMicrophoneMute(bool enable)
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "AudioMixerManager::SetMicrophoneMute(enable=%u)", enable);
 
@@ -1348,7 +1348,7 @@ WebRtc_Word32 AudioMixerManager::SetMicrophoneMute(bool enable)
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneMute(bool& enabled) const
+int32_t AudioMixerManager::MicrophoneMute(bool& enabled) const
 {
 
     if (_inputMixerHandle == NULL)
@@ -1386,7 +1386,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneMute(bool& enabled) const
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneBoostIsAvailable(bool& available)
+int32_t AudioMixerManager::MicrophoneBoostIsAvailable(bool& available)
 {
     if (_inputMixerHandle == NULL)
     {
@@ -1403,7 +1403,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneBoostIsAvailable(bool& available)
 
 
 
-WebRtc_Word32 AudioMixerManager::SetMicrophoneBoost(bool enable)
+int32_t AudioMixerManager::SetMicrophoneBoost(bool enable)
 {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "AudioMixerManager::SetMicrophoneBoost(enable=%u)", enable);
 
@@ -1441,7 +1441,7 @@ WebRtc_Word32 AudioMixerManager::SetMicrophoneBoost(bool enable)
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneBoost(bool& enabled) const
+int32_t AudioMixerManager::MicrophoneBoost(bool& enabled) const
 {
 
     if (_inputMixerHandle == NULL)
@@ -1479,7 +1479,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneBoost(bool& enabled) const
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneVolumeIsAvailable(bool& available)
+int32_t AudioMixerManager::MicrophoneVolumeIsAvailable(bool& available)
 {
     if (_inputMixerHandle == NULL)
     {
@@ -1496,7 +1496,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneVolumeIsAvailable(bool& available)
 
 
 
-WebRtc_Word32 AudioMixerManager::SetMicrophoneVolume(WebRtc_UWord32 volume)
+int32_t AudioMixerManager::SetMicrophoneVolume(uint32_t volume)
 {
     CriticalSectionScoped lock(&_critSect);
 
@@ -1524,7 +1524,7 @@ WebRtc_Word32 AudioMixerManager::SetMicrophoneVolume(WebRtc_UWord32 volume)
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneVolume(WebRtc_UWord32& volume) const
+int32_t AudioMixerManager::MicrophoneVolume(uint32_t& volume) const
 {
     CriticalSectionScoped lock(&_critSect);
 
@@ -1554,7 +1554,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneVolume(WebRtc_UWord32& volume) const
 
 
 
-WebRtc_Word32 AudioMixerManager::MaxMicrophoneVolume(WebRtc_UWord32& maxVolume) const
+int32_t AudioMixerManager::MaxMicrophoneVolume(uint32_t& maxVolume) const
 {
     WEBRTC_TRACE(kTraceStream, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
@@ -1584,7 +1584,7 @@ WebRtc_Word32 AudioMixerManager::MaxMicrophoneVolume(WebRtc_UWord32& maxVolume) 
 
 
 
-WebRtc_Word32 AudioMixerManager::MinMicrophoneVolume(WebRtc_UWord32& minVolume) const
+int32_t AudioMixerManager::MinMicrophoneVolume(uint32_t& minVolume) const
 {
 
     if (_inputMixerHandle == NULL)
@@ -1613,7 +1613,7 @@ WebRtc_Word32 AudioMixerManager::MinMicrophoneVolume(WebRtc_UWord32& minVolume) 
 
 
 
-WebRtc_Word32 AudioMixerManager::MicrophoneVolumeStepSize(WebRtc_UWord16& stepSize) const
+int32_t AudioMixerManager::MicrophoneVolumeStepSize(uint16_t& stepSize) const
 {
 
     if (_inputMixerHandle == NULL)
@@ -1633,7 +1633,7 @@ WebRtc_Word32 AudioMixerManager::MicrophoneVolumeStepSize(WebRtc_UWord16& stepSi
         return -1;
     }
 
-    stepSize = static_cast<WebRtc_UWord16> (mixerControl.Metrics.cSteps);
+    stepSize = static_cast<uint16_t> (mixerControl.Metrics.cSteps);
 
     return 0;
 }
