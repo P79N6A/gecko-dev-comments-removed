@@ -1142,7 +1142,9 @@ GetNPObjectWrapper(JSContext *cx, JSObject *obj, bool wrapResult = true)
       }
       return obj;
     }
-    obj = ::JS_GetPrototype(obj);
+    if (!::JS_GetPrototype(cx, obj, &obj)) {
+      return NULL;
+    }
   }
   return NULL;
 }
@@ -2054,12 +2056,20 @@ nsJSNPRuntime::OnPluginDestroy(NPP npp)
   
   
   
-  while (obj && (proto = ::JS_GetPrototype(obj))) {
+  while (obj) {
+    if (!::JS_GetPrototype(cx, obj, &proto)) {
+      return;
+    }
+    if (!proto) {
+      break;
+    }
     
     
     if (JS_GetClass(js::UnwrapObject(proto)) == &sNPObjectJSWrapperClass) {
       
-      proto = ::JS_GetPrototype(proto);
+      if (!::JS_GetPrototype(cx, proto, &proto)) {
+        return;
+      }
 
       
       ::JS_SetPrototype(cx, obj, proto);

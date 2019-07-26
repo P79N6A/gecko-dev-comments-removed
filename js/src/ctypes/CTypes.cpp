@@ -717,7 +717,9 @@ InitCTypeClass(JSContext* cx, HandleObject parent)
     return NULL;
 
   RootedObject ctor(cx, JS_GetFunctionObject(fun));
-  RootedObject fnproto(cx, JS_GetPrototype(ctor));
+  RootedObject fnproto(cx);
+  if (!JS_GetPrototype(cx, ctor, fnproto.address()))
+    return NULL;
   JS_ASSERT(ctor);
   JS_ASSERT(fnproto);
 
@@ -1928,11 +1930,15 @@ ConvertToJS(JSContext* cx,
     if (!numeric_limits<type>::is_signed) {                                    \
       value = *static_cast<type*>(data);                                       \
       /* Get ctypes.UInt64.prototype from ctypes.CType.prototype. */           \
-      proto = CType::GetProtoFromType(typeObj, SLOT_UINT64PROTO);              \
+      proto = CType::GetProtoFromType(cx, typeObj, SLOT_UINT64PROTO);          \
+      if (!proto)                                                              \
+        return false;                                                          \
     } else {                                                                   \
       value = int64_t(*static_cast<type*>(data));                              \
       /* Get ctypes.Int64.prototype from ctypes.CType.prototype. */            \
-      proto = CType::GetProtoFromType(typeObj, SLOT_INT64PROTO);               \
+      proto = CType::GetProtoFromType(cx, typeObj, SLOT_INT64PROTO);     \
+      if (!proto)                                                              \
+        return false;                                                          \
     }                                                                          \
                                                                                \
     JSObject* obj = Int64Base::Construct(cx, proto, value,                     \
@@ -3357,17 +3363,20 @@ CType::GetProtoFromCtor(JSObject* obj, CTypeProtoSlot slot)
 }
 
 JSObject*
-CType::GetProtoFromType(JSObject* obj, CTypeProtoSlot slot)
+CType::GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot)
 {
   JS_ASSERT(IsCType(obj));
 
   
-  JSObject* proto = JS_GetPrototype(obj);
+  JSObject* proto;
+  if (!JS_GetPrototype(cx, obj, &proto))
+    return NULL;
   JS_ASSERT(proto);
   JS_ASSERT(CType::IsCTypeProto(proto));
 
   
   jsval result = JS_GetReservedSlot(proto, slot);
+  JS_ASSERT(!JSVAL_IS_PRIMITIVE(result));
   return JSVAL_TO_OBJECT(result);
 }
 
@@ -3538,7 +3547,11 @@ CType::HasInstance(JSContext* cx, JSHandleObject obj, JSMutableHandleValue v, JS
     return JS_TRUE;
 
   JSObject* proto = JSVAL_TO_OBJECT(v);
-  while ((proto = JS_GetPrototype(proto))) {
+  for (;;) {
+    if (!JS_GetPrototype(cx, proto, &proto))
+      return JS_FALSE;
+    if (!proto)
+      break;
     if (proto == prototype) {
       *bp = JS_TRUE;
       break;
@@ -3552,15 +3565,16 @@ CType::GetGlobalCTypes(JSContext* cx, JSObject* obj)
 {
   JS_ASSERT(CType::IsCType(obj));
 
-  JSObject *objTypeProto = JS_GetPrototype(obj);
-  if (!objTypeProto) {
-  }
+  JSObject *objTypeProto;
+  if (!JS_GetPrototype(cx, obj, &objTypeProto))
+    return NULL;
   JS_ASSERT(objTypeProto);
   JS_ASSERT(CType::IsCTypeProto(objTypeProto));
 
   jsval valCTypes = JS_GetReservedSlot(objTypeProto, SLOT_CTYPES);
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(valCTypes));
 
+  JS_ASSERT(!JSVAL_IS_PRIMITIVE(valCTypes));
   return JSVAL_TO_OBJECT(valCTypes);
 }
 
@@ -3653,8 +3667,12 @@ PointerType::CreateInternal(JSContext* cx, HandleObject baseType)
   
   CTypeProtoSlot slotId = CType::GetTypeCode(baseType) == TYPE_function ?
     SLOT_FUNCTIONDATAPROTO : SLOT_POINTERDATAPROTO;
-  RootedObject dataProto(cx, CType::GetProtoFromType(baseType, slotId));
-  RootedObject typeProto(cx, CType::GetProtoFromType(baseType, SLOT_POINTERPROTO));
+  RootedObject dataProto(cx, CType::GetProtoFromType(cx, baseType, slotId));
+  if (!dataProto)
+    return NULL;
+  RootedObject typeProto(cx, CType::GetProtoFromType(cx, baseType, SLOT_POINTERPROTO));
+  if (!typeProto)
+    return NULL;
 
   
   JSObject* typeObj = CType::Create(cx, typeProto, dataProto, TYPE_pointer,
@@ -3971,8 +3989,12 @@ ArrayType::CreateInternal(JSContext* cx,
 {
   
   
-  RootedObject typeProto(cx, CType::GetProtoFromType(baseType, SLOT_ARRAYPROTO));
-  RootedObject dataProto(cx, CType::GetProtoFromType(baseType, SLOT_ARRAYDATAPROTO));
+  RootedObject typeProto(cx, CType::GetProtoFromType(cx, baseType, SLOT_ARRAYPROTO));
+  if (!typeProto)
+    return NULL;
+  RootedObject dataProto(cx, CType::GetProtoFromType(cx, baseType, SLOT_ARRAYDATAPROTO));
+  if (!dataProto)
+    return NULL;
 
   
   
@@ -4515,7 +4537,9 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
 
   
   
-  RootedObject dataProto(cx, CType::GetProtoFromType(typeObj, SLOT_STRUCTDATAPROTO));
+  RootedObject dataProto(cx, CType::GetProtoFromType(cx, typeObj, SLOT_STRUCTDATAPROTO));
+  if (!dataProto)
+    return JS_FALSE;
 
   
   
@@ -5372,10 +5396,14 @@ FunctionType::CreateInternal(JSContext* cx,
 
   
   
-  RootedObject typeProto(cx, CType::GetProtoFromType(fninfo->mReturnType,
+  RootedObject typeProto(cx, CType::GetProtoFromType(cx, fninfo->mReturnType,
                                                      SLOT_FUNCTIONPROTO));
-  RootedObject dataProto(cx, CType::GetProtoFromType(fninfo->mReturnType,
+  if (!typeProto)
+    return NULL;
+  RootedObject dataProto(cx, CType::GetProtoFromType(cx, fninfo->mReturnType,
                                                      SLOT_FUNCTIONDATAPROTO));
+  if (!dataProto)
+    return NULL;
 
   
   JSObject* typeObj = CType::Create(cx, typeProto, dataProto, TYPE_function,
@@ -5590,6 +5618,8 @@ FunctionType::Call(JSContext* cx,
 
   
   JSObject *objCTypes = CType::GetGlobalCTypes(cx, typeObj);
+  if (!objCTypes)
+    return false;
 
   JS_SetReservedSlot(objCTypes, SLOT_ERRNO, INT_TO_JSVAL(errnoStatus));
 #if defined(XP_WIN)
@@ -5740,7 +5770,9 @@ CClosure::Create(JSContext* cx,
 
   
   
-  JSObject* proto = JS_GetPrototype(typeObj);
+  JSObject* proto;
+  if (!JS_GetPrototype(cx, typeObj, &proto))
+    return NULL;
   JS_ASSERT(proto);
   JS_ASSERT(CType::IsCTypeProto(proto));
 
@@ -6906,6 +6938,8 @@ CDataFinalizer::Methods::Dispose(JSContext* cx, unsigned argc, jsval *vp)
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(valType));
 
   JSObject *objCTypes = CType::GetGlobalCTypes(cx, JSVAL_TO_OBJECT(valType));
+  if (!objCTypes)
+    return JS_FALSE;
 
   jsval valCodePtrType = JS_GetReservedSlot(obj, SLOT_DATAFINALIZER_CODETYPE);
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(valCodePtrType));
