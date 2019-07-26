@@ -1658,69 +1658,6 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
 }
 
 
-static bool
-CheckCorner(nscoord aXOffset, nscoord aYOffset,
-            nscoord aXRadius, nscoord aYRadius)
-{
-  NS_ABORT_IF_FALSE(aXOffset > 0 && aYOffset > 0,
-                    "must not pass nonpositives to CheckCorner");
-  NS_ABORT_IF_FALSE(aXRadius >= 0 && aYRadius >= 0,
-                    "must not pass negatives to CheckCorner");
-
-  
-  
-  
-  if (aXOffset >= aXRadius || aYOffset >= aYRadius)
-    return true;
-
-  
-  
-  float scaledX = float(aXRadius - aXOffset) / float(aXRadius);
-  float scaledY = float(aYRadius - aYOffset) / float(aYRadius);
-  return scaledX * scaledX + scaledY * scaledY < 1.0f;
-}
-
-
-
-
-
-
-
-
-
-static bool
-RoundedRectIntersectsRect(const nsRect& aRoundedRect, nscoord aRadii[8],
-                          const nsRect& aTestRect)
-{
-  NS_ABORT_IF_FALSE(aTestRect.Intersects(aRoundedRect),
-                    "we should already have tested basic rect intersection");
-
-  
-  
-  nsMargin insets;
-  insets.top = aTestRect.YMost() - aRoundedRect.y;
-  insets.right = aRoundedRect.XMost() - aTestRect.x;
-  insets.bottom = aRoundedRect.YMost() - aTestRect.y;
-  insets.left = aTestRect.XMost() - aRoundedRect.x;
-
-  
-  
-  
-  return CheckCorner(insets.left, insets.top,
-                     aRadii[NS_CORNER_TOP_LEFT_X],
-                     aRadii[NS_CORNER_TOP_LEFT_Y]) &&
-         CheckCorner(insets.right, insets.top,
-                     aRadii[NS_CORNER_TOP_RIGHT_X],
-                     aRadii[NS_CORNER_TOP_RIGHT_Y]) &&
-         CheckCorner(insets.right, insets.bottom,
-                     aRadii[NS_CORNER_BOTTOM_RIGHT_X],
-                     aRadii[NS_CORNER_BOTTOM_RIGHT_Y]) &&
-         CheckCorner(insets.left, insets.bottom,
-                     aRadii[NS_CORNER_BOTTOM_LEFT_X],
-                     aRadii[NS_CORNER_BOTTOM_LEFT_Y]);
-}
-
-
 
 
 static bool

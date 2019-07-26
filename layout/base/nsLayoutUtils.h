@@ -657,6 +657,15 @@ public:
                                            const nscoord aRadii[8],
                                            const nsRect& aContainedRect);
 
+  
+
+
+
+
+  static bool RoundedRectIntersectsRect(const nsRect& aRoundedRect,
+                                        const nscoord aRadii[8],
+                                        const nsRect& aTestRect);
+
   enum {
     PAINT_IN_TRANSFORM = 0x01,
     PAINT_SYNC_DECODE_IMAGES = 0x02,
