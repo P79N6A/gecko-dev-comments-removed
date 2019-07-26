@@ -478,8 +478,9 @@ let Buf = {
     
     
     
-    if (incoming.length > this.INCOMING_BUFFER_LENGTH) {
-      this.growIncomingBuffer(incoming.length);
+    let minMustAvailableSize = incoming.length + this.readIncoming;
+    if (minMustAvailableSize > this.INCOMING_BUFFER_LENGTH) {
+      this.growIncomingBuffer(minMustAvailableSize);
     }
 
     
@@ -588,6 +589,13 @@ let Buf = {
       let error = this.readUint32();
 
       options = this.tokenRequestMap[token];
+      if (!options) {
+        if (DEBUG) {
+          debug("Suspicious uninvited request found: " + token + ". Ignored!");
+        }
+        return;
+      }
+
       delete this.tokenRequestMap[token];
       request_type = options.rilRequestType;
 
