@@ -1065,12 +1065,9 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     
     
     
-    if (!drawingLowPrecision && paintInSingleTransaction) {
-      return true;
-    }
-
-    mManager->SetRepeatTransaction();
-    return false;
+    
+    
+    return (!drawingLowPrecision && paintInSingleTransaction);
   }
 
   
