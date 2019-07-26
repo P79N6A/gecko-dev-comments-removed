@@ -301,9 +301,17 @@ RotatedContentBuffer::BufferContentType()
 bool
 RotatedContentBuffer::BufferSizeOkFor(const nsIntSize& aSize)
 {
-  return (aSize == mBufferRect.Size() ||
-          (SizedToVisibleBounds != mBufferSizePolicy &&
-           aSize < mBufferRect.Size()));
+  if (aSize == mBufferRect.Size()) {
+    return true;
+  }
+
+  if (SizedToVisibleBounds != mBufferSizePolicy &&
+      aSize < mBufferRect.Size()) {
+    return (aSize.width * 2 > mBufferRect.width) &&
+           (aSize.height * 2 > mBufferRect.height);
+  }
+
+  return false;
 }
 
 bool
@@ -503,8 +511,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   
   FinalizeFrame(result.mRegionToDraw);
 
-  if (result.mRegionToDraw.IsEmpty())
+  if (result.mRegionToDraw.IsEmpty()) {
     return result;
+  }
 
   nsIntRect drawBounds = result.mRegionToDraw.GetBounds();
   RefPtr<DrawTarget> destDTBuffer;
