@@ -82,7 +82,7 @@ public:
 
 
 
-  static gfxSize
+  static mozilla::gfx::Size
   GetSVGCoordContextForNonSVGFrame(nsIFrame* aNonSVGFrame);
 
   
