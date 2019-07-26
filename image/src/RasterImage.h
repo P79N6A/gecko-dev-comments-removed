@@ -659,9 +659,6 @@ private:
   
   nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
 
-  
-  WeakPtr<mozilla::layers::ImageContainer> mImageContainerCache;
-
 #ifdef DEBUG
   uint32_t                       mFramesNotified;
 #endif

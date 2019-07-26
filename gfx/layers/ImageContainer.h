@@ -26,7 +26,6 @@
 #include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "mozilla/Atomics.h"
-#include "mozilla/WeakPtr.h"
 #include "nsThreadUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "nsDataHashtable.h"
@@ -381,7 +380,7 @@ struct RemoteImageData {
 
 
 
-class ImageContainer : public SupportsWeakPtr<ImageContainer> {
+class ImageContainer {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 public:
 
