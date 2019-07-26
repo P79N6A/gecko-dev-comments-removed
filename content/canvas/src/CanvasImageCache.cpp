@@ -13,6 +13,7 @@
 #include "nsTHashtable.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsContentUtils.h"
+#include "mozilla/Preferences.h"
 
 namespace mozilla {
 
@@ -41,6 +42,8 @@ struct ImageCacheEntryData {
   {}
 
   nsExpirationState* GetExpirationState() { return &mState; }
+
+  size_t SizeInBytes() { return mSize.width * mSize.height * 4; }
 
   
   nsRefPtr<Element> mImage;
@@ -79,13 +82,21 @@ public:
   nsAutoPtr<ImageCacheEntryData> mData;
 };
 
+static bool sPrefsInitialized = false;
+static int32_t sCanvasImageCacheLimit = 0;
+
 class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4> {
 public:
   
   enum { GENERATION_MS = 1000 };
   ImageCache()
     : nsExpirationTracker<ImageCacheEntryData,4>(GENERATION_MS)
+    , mTotal(0)
   {
+    if (!sPrefsInitialized) {
+      sPrefsInitialized = true;
+      Preferences::AddIntVarCache(&sCanvasImageCacheLimit, "canvas.image.cache.limit", 0);
+    }
     mCache.Init();
   }
   ~ImageCache() {
@@ -94,12 +105,14 @@ public:
 
   virtual void NotifyExpired(ImageCacheEntryData* aObject)
   {
+    mTotal -= aObject->SizeInBytes();
     RemoveObject(aObject);
     
     mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas));
   }
 
   nsTHashtable<ImageCacheEntry> mCache;
+  size_t mTotal;
 };
 
 static ImageCache* gImageCache = nullptr;
@@ -127,6 +140,7 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
   if (entry) {
     if (entry->mData->mSurface) {
       
+      gImageCache->mTotal -= entry->mData->SizeInBytes();
       gImageCache->RemoveObject(entry->mData);
     }
     gImageCache->AddObject(entry->mData);
@@ -139,7 +153,16 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
     entry->mData->mILC = ilc;
     entry->mData->mSurface = aSurface;
     entry->mData->mSize = aSize;
+
+    gImageCache->mTotal += entry->mData->SizeInBytes();
   }
+
+  if (!sCanvasImageCacheLimit)
+    return;
+
+  
+  while (gImageCache->mTotal > size_t(sCanvasImageCacheLimit))
+    gImageCache->AgeOneGeneration();
 }
 
 gfxASurface*
