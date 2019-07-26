@@ -897,24 +897,135 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
   return appliedTransform;
 }
 
+void
+CompositorParent::TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRootTransform)
+{
+  ShadowLayer* shadow = aLayer->AsShadowLayer();
+  ContainerLayer* container = aLayer->AsContainerLayer();
+
+  const FrameMetrics& metrics = container->GetFrameMetrics();
+  
+  
+  const gfx3DMatrix& currentTransform = aLayer->GetTransform();
+    
+  gfx3DMatrix treeTransform;
+
+  
+  
+  gfxPoint offset;
+  gfxSize scaleDiff;
+
+  float rootScaleX = aRootTransform.GetXScale(),
+        rootScaleY = aRootTransform.GetYScale();
+  
+  
+  
+  
+  float devPixelRatioX = 1 / rootScaleX, devPixelRatioY = 1 / rootScaleY;
+
+  gfxPoint scrollOffsetLayersPixels(metrics.GetScrollOffsetInLayerPixels());
+  nsIntPoint scrollOffsetDevPixels(
+    NS_lround(scrollOffsetLayersPixels.x * devPixelRatioX),
+    NS_lround(scrollOffsetLayersPixels.y * devPixelRatioY));
+
+  if (mIsFirstPaint) {
+    mContentRect = metrics.mContentRect;
+    SetFirstPaintViewport(scrollOffsetDevPixels,
+                          1/rootScaleX,
+                          mContentRect,
+                          metrics.mScrollableRect);
+    mIsFirstPaint = false;
+  } else if (!metrics.mContentRect.IsEqualEdges(mContentRect)) {
+    mContentRect = metrics.mContentRect;
+    SetPageRect(metrics.mScrollableRect);
+  }
+
+  
+  
+  
+  gfx::Rect displayPortLayersPixels(metrics.mCriticalDisplayPort.IsEmpty() ?
+                                    metrics.mDisplayPort : metrics.mCriticalDisplayPort);
+  nsIntRect displayPortDevPixels(
+    NS_lround(displayPortLayersPixels.x * devPixelRatioX),
+    NS_lround(displayPortLayersPixels.y * devPixelRatioY),
+    NS_lround(displayPortLayersPixels.width * devPixelRatioX),
+    NS_lround(displayPortLayersPixels.height * devPixelRatioY));
+
+  displayPortDevPixels.x += scrollOffsetDevPixels.x;
+  displayPortDevPixels.y += scrollOffsetDevPixels.y;
+
+  SyncViewportInfo(displayPortDevPixels, 1/rootScaleX, mLayersUpdated,
+                   mScrollOffset, mXScale, mYScale);
+  mLayersUpdated = false;
+
+  
+  
+  
+  
+  
+  
+  float tempScaleDiffX = rootScaleX * mXScale;
+  float tempScaleDiffY = rootScaleY * mYScale;
+
+  nsIntPoint metricsScrollOffset(0, 0);
+  if (metrics.IsScrollable()) {
+    metricsScrollOffset = scrollOffsetDevPixels;
+  }
+
+  nsIntPoint scrollCompensation(
+    (mScrollOffset.x / tempScaleDiffX - metricsScrollOffset.x) * mXScale,
+    (mScrollOffset.y / tempScaleDiffY - metricsScrollOffset.y) * mYScale);
+  treeTransform = gfx3DMatrix(ViewTransform(-scrollCompensation,
+                                            gfxSize(mXScale, mYScale)));
+
+  
+  
+  
+  if (mContentRect.width * tempScaleDiffX < metrics.mCompositionBounds.width) {
+    offset.x = -metricsScrollOffset.x;
+    scaleDiff.width = NS_MIN(1.0f, metrics.mCompositionBounds.width / (float)mContentRect.width);
+  } else {
+    offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
+                       mContentRect.XMost() - metrics.mCompositionBounds.width / tempScaleDiffX) -
+               metricsScrollOffset.x;
+    scaleDiff.width = tempScaleDiffX;
+  }
+
+  if (mContentRect.height * tempScaleDiffY < metrics.mCompositionBounds.height) {
+    offset.y = -metricsScrollOffset.y;
+    scaleDiff.height = NS_MIN(1.0f, metrics.mCompositionBounds.height / (float)mContentRect.height);
+  } else {
+    offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
+                       mContentRect.YMost() - metrics.mCompositionBounds.height / tempScaleDiffY) -
+               metricsScrollOffset.y;
+    scaleDiff.height = tempScaleDiffY;
+  }
+
+  
+  
+  
+  gfx3DMatrix computedTransform = treeTransform * currentTransform;
+  computedTransform.Scale(1.0f/container->GetPreXScale(),
+                          1.0f/container->GetPreYScale(),
+                          1);
+  computedTransform.ScalePost(1.0f/container->GetPostXScale(),
+                              1.0f/container->GetPostYScale(),
+                              1);
+  shadow->SetShadowTransform(computedTransform);
+  TransformFixedLayers(aLayer, offset, scaleDiff);
+}
+
 bool
 CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
 {
   bool wantNextFrame = false;
-  Layer* layer = mLayerManager->GetPrimaryScrollableLayer();
-  ShadowLayer* shadow = layer->AsShadowLayer();
-  ContainerLayer* container = layer->AsContainerLayer();
   Layer* root = mLayerManager->GetRoot();
 
   
   
   wantNextFrame |= SampleAnimations(root, aCurrentFrame);
 
-  const FrameMetrics& metrics = container->GetFrameMetrics();
-  
-  
   const gfx3DMatrix& rootTransform = root->GetTransform();
-  const gfx3DMatrix& currentTransform = layer->GetTransform();
 
   
   
@@ -928,111 +1039,18 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
   
   
   if (!ApplyAsyncContentTransformToTree(aCurrentFrame, root, &wantNextFrame)) {
-    gfx3DMatrix treeTransform;
+    nsAutoTArray<Layer*,1> scrollableLayers;
+#ifdef MOZ_WIDGET_ANDROID
+    scrollableLayers.AppendElement(mLayerManager->GetPrimaryScrollableLayer());
+#else
+    mLayerManager->GetScrollableLayers(scrollableLayers);
+#endif
 
-    
-    
-    gfxPoint offset;
-    gfxSize scaleDiff;
-
-    float rootScaleX = rootTransform.GetXScale(),
-          rootScaleY = rootTransform.GetYScale();
-    
-    
-    
-    
-    float devPixelRatioX = 1 / rootScaleX, devPixelRatioY = 1 / rootScaleY;
-
-    gfxPoint scrollOffsetLayersPixels(metrics.GetScrollOffsetInLayerPixels());
-    nsIntPoint scrollOffsetDevPixels(
-      NS_lround(scrollOffsetLayersPixels.x * devPixelRatioX),
-      NS_lround(scrollOffsetLayersPixels.y * devPixelRatioY));
-
-    if (mIsFirstPaint) {
-      mContentRect = metrics.mContentRect;
-      SetFirstPaintViewport(scrollOffsetDevPixels,
-                            1/rootScaleX,
-                            mContentRect,
-                            metrics.mScrollableRect);
-      mIsFirstPaint = false;
-    } else if (!metrics.mContentRect.IsEqualEdges(mContentRect)) {
-      mContentRect = metrics.mContentRect;
-      SetPageRect(metrics.mScrollableRect);
+    for (uint32_t i = 0; i < scrollableLayers.Length(); i++) {
+      if (scrollableLayers[i]) {
+        TransformScrollableLayer(scrollableLayers[i], rootTransform);
+      }
     }
-
-    
-    
-    
-    gfx::Rect displayPortLayersPixels(metrics.mCriticalDisplayPort.IsEmpty() ?
-                                      metrics.mDisplayPort : metrics.mCriticalDisplayPort);
-    nsIntRect displayPortDevPixels(
-      NS_lround(displayPortLayersPixels.x * devPixelRatioX),
-      NS_lround(displayPortLayersPixels.y * devPixelRatioY),
-      NS_lround(displayPortLayersPixels.width * devPixelRatioX),
-      NS_lround(displayPortLayersPixels.height * devPixelRatioY));
-
-    displayPortDevPixels.x += scrollOffsetDevPixels.x;
-    displayPortDevPixels.y += scrollOffsetDevPixels.y;
-
-    SyncViewportInfo(displayPortDevPixels, 1/rootScaleX, mLayersUpdated,
-                     mScrollOffset, mXScale, mYScale);
-    mLayersUpdated = false;
-
-    
-    
-    
-    
-    
-    
-    float tempScaleDiffX = rootScaleX * mXScale;
-    float tempScaleDiffY = rootScaleY * mYScale;
-
-    nsIntPoint metricsScrollOffset(0, 0);
-    if (metrics.IsScrollable()) {
-      metricsScrollOffset = scrollOffsetDevPixels;
-    }
-
-    nsIntPoint scrollCompensation(
-      (mScrollOffset.x / tempScaleDiffX - metricsScrollOffset.x) * mXScale,
-      (mScrollOffset.y / tempScaleDiffY - metricsScrollOffset.y) * mYScale);
-    treeTransform = gfx3DMatrix(ViewTransform(-scrollCompensation,
-                                              gfxSize(mXScale, mYScale)));
-
-    
-    
-    
-    if (mContentRect.width * tempScaleDiffX < metrics.mCompositionBounds.width) {
-      offset.x = -metricsScrollOffset.x;
-      scaleDiff.width = NS_MIN(1.0f, metrics.mCompositionBounds.width / (float)mContentRect.width);
-    } else {
-      offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
-                         mContentRect.XMost() - metrics.mCompositionBounds.width / tempScaleDiffX) -
-                 metricsScrollOffset.x;
-      scaleDiff.width = tempScaleDiffX;
-    }
-
-    if (mContentRect.height * tempScaleDiffY < metrics.mCompositionBounds.height) {
-      offset.y = -metricsScrollOffset.y;
-      scaleDiff.height = NS_MIN(1.0f, metrics.mCompositionBounds.height / (float)mContentRect.height);
-    } else {
-      offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
-                         mContentRect.YMost() - metrics.mCompositionBounds.height / tempScaleDiffY) -
-                 metricsScrollOffset.y;
-      scaleDiff.height = tempScaleDiffY;
-    }
-
-    
-    
-    
-    gfx3DMatrix computedTransform = treeTransform * currentTransform;
-    computedTransform.Scale(1.0f/container->GetPreXScale(),
-                            1.0f/container->GetPreYScale(),
-                            1);
-    computedTransform.ScalePost(1.0f/container->GetPostXScale(),
-                                1.0f/container->GetPostYScale(),
-                                1);
-    shadow->SetShadowTransform(computedTransform);
-    TransformFixedLayers(layer, offset, scaleDiff);
   }
 
   return wantNextFrame;

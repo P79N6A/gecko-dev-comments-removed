@@ -189,6 +189,7 @@ private:
   
   
   bool TransformShadowTree(TimeStamp aCurrentFrame);
+  void TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRootTransform);
   
   
   
