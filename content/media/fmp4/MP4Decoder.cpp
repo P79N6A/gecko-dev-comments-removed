@@ -9,6 +9,11 @@
 #include "MediaDecoderStateMachine.h"
 #include "mozilla/Preferences.h"
 
+#ifdef XP_WIN
+#include "WinUtils.h"
+using namespace mozilla::widget;
+#endif
+
 namespace mozilla {
 
 MediaDecoderStateMachine* MP4Decoder::CreateStateMachine()
@@ -63,7 +68,13 @@ MP4Decoder::GetSupportedCodecs(const nsACString& aType,
 static bool
 HavePlatformMPEGDecoders()
 {
-  return false;
+  return
+#ifdef XP_WIN
+    
+    WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION ||
+#endif
+  
+  false;
 }
 
 
