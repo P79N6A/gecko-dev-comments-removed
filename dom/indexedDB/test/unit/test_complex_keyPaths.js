@@ -39,12 +39,10 @@ function testSteps()
     { keyPath: "fo o",    exception: true },
     { keyPath: "foo ",    exception: true },
     { keyPath: "foo[bar]",exception: true },
-    { keyPath: "foo[1]",  exception: true },
     { keyPath: "$('id').stuff", exception: true },
     { keyPath: "foo.2.bar", exception: true },
     { keyPath: "foo. .bar", exception: true },
     { keyPath: ".bar",    exception: true },
-    { keyPath: [],        exception: true },
 
     { keyPath: ["foo", "bar"],        value: { foo: 1, bar: 2 },              key: [1, 2] },
     { keyPath: ["foo"],               value: { foo: 1, bar: 2 },              key: [1] },
@@ -67,7 +65,7 @@ function testSteps()
     { keyPath: ["x", "y ", "z"],      exception: true },
   ];
 
-  let openRequest = indexedDB.open(name, 1);
+  let openRequest = mozIndexedDB.open(name, 1);
   openRequest.onerror = errorHandler;
   openRequest.onupgradeneeded = grabEventAndContinueHandler;
   openRequest.onsuccess = unexpectedSuccessHandler;
@@ -88,8 +86,6 @@ function testSteps()
         ok(!("exception" in info), "shouldn't throw" + test);
         is(JSON.stringify(objectStore.keyPath), JSON.stringify(info.keyPath),
            "correct keyPath property" + test);
-        ok(objectStore.keyPath === objectStore.keyPath,
-           "object identity should be preserved");
         stores[indexName] = objectStore;
       } catch (e) {
         ok("exception" in info, "should throw" + test);
@@ -120,45 +116,12 @@ function testSteps()
     is(e.type, "success", "inserted successfully" + test);
     is(e.target, request, "expected target" + test);
     ok(compareKeys(request.result, info.key), "found correct key" + test);
-    is(indexedDB.cmp(request.result, info.key), 0, "returned key compares correctly" + test);
+    is(mozIndexedDB.cmp(request.result, info.key), 0, "returned key compares correctly" + test);
 
     store.get(info.key).onsuccess = grabEventAndContinueHandler;
     e = yield;
     isnot(e.target.result, undefined, "Did find entry");
 
-    
-    request = store.openCursor();
-    request.onerror = errorHandler;
-    request.onsuccess = grabEventAndContinueHandler;
-    e = yield;
-    let cursor = e.target.result;
-    request = cursor.update(info.value);
-    request.onerror = errorHandler;
-    request.onsuccess = grabEventAndContinueHandler;
-    yield;
-    ok(true, "Successfully updated cursor" + test);
-
-    
-    let newValue = cursor.value;
-    let destProp = Array.isArray(info.keyPath) ? info.keyPath[0] : info.keyPath;
-    if (destProp) {
-      eval("newValue." + destProp + " = 'newKeyValue'");
-    }
-    else {
-      newValue = 'newKeyValue';
-    }
-    let didThrow;
-    try {
-      cursor.update(newValue);
-    }
-    catch (ex) {
-      didThrow = ex;
-    }
-    ok(didThrow instanceof DOMException, "Got a DOMException" + test);
-    is(didThrow.name, "DataError", "expect a DataError" + test);
-    is(didThrow.code, 0, "expect zero" + test);
-
-    
     store.clear().onsuccess = grabEventAndContinueHandler;
     yield;
   }
@@ -176,8 +139,6 @@ function testSteps()
         ok(!("exception" in info), "shouldn't throw" + test);
         is(JSON.stringify(index.keyPath), JSON.stringify(info.keyPath),
            "index has correct keyPath property" + test);
-        ok(index.keyPath === index.keyPath,
-           "object identity should be preserved");
         indexes[indexName] = index;
       } catch (e) {
         ok("exception" in info, "should throw" + test);
@@ -259,6 +220,18 @@ function testSteps()
     e = yield;
     is(JSON.stringify(e.target.result), JSON.stringify(info.res || info.v),
        "expected value stored" + test);
+  }
+
+  
+  try {
+    store = db.createObjectStore("storefail", { keyPath: "", autoIncrement: true });
+    ok(false, "Should have thrown when creating empty-keypath autoincrement store");
+  }
+  catch(e) {
+    ok(true, "Did throw when creating empty-keypath autoincrement store");
+    is(e.name, "InvalidAccessError", "expect an InvalidAccessError when creating empty-keypath autoincrement store");
+    ok(e instanceof DOMException, "Got a DOMException when creating empty-keypath autoincrement store");
+    is(e.code, DOMException.INVALID_ACCESS_ERR, "expect an INVALID_ACCESS_ERR when creating empty-keypath autoincrement store");
   }
 
   openRequest.onsuccess = grabEventAndContinueHandler;
