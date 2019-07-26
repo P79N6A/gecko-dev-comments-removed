@@ -21,6 +21,10 @@ XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
 });
 #endif
 
+XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
+                                   "@mozilla.org/uuid-generator;1",
+                                   "nsIUUIDGenerator");
+
 
 
 var SettingsListener = {
@@ -521,6 +525,14 @@ SettingsListener.observe('privacy.donottrackheader.enabled', false, function(val
 
 SettingsListener.observe('privacy.donottrackheader.value', 1, function(value) {
   Services.prefs.setIntPref('privacy.donottrackheader.value', value);
+  
+  
+  if (value == 1) {
+    Services.prefs.setCharPref('app.update.custom', '');
+    return;
+  }
+  
+  setUpdateTrackingId();
 });
 
 
@@ -536,6 +548,39 @@ SettingsListener.observe('app.reportCrashes', 'ask', function(value) {
   Services.prefs.savePrefFile(null);
 });
 
+
+
+
+
+
+
+
+function setUpdateTrackingId() {
+  try {
+    let dntEnabled = Services.prefs.getBoolPref('privacy.donottrackheader.enabled');
+    let dntValue =  Services.prefs.getIntPref('privacy.donottrackheader.value');
+    
+    if (dntEnabled && (dntValue == 1)) {
+      return;
+    }
+
+    let trackingId =
+      Services.prefs.getPrefType('app.update.custom') ==
+      Ci.nsIPrefBranch.PREF_STRING &&
+      Services.prefs.getCharPref('app.update.custom');
+
+    
+    
+    
+    if (!trackingId) {
+      trackingId = uuidgen.generateUUID().toString().replace(/[{}]/g, "");
+      Services.prefs.setCharPref('app.update.custom', trackingId);
+    }
+  } catch(e) {
+    dump('Error getting tracking ID ' + e + '\n');
+  }
+}
+setUpdateTrackingId();
 
 SettingsListener.observe('app.update.interval', 86400, function(value) {
   Services.prefs.setIntPref('app.update.interval', value);
