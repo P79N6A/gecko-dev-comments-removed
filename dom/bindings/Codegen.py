@@ -2714,7 +2714,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     
     
     def wrapObjectTemplate(templateBody, type, codeToSetNull, failureCode=None):
-        if isNullOrUndefined and type.nullable():
+        if isNullOrUndefined:
+            assert type.nullable()
             
             
             
@@ -3331,6 +3332,9 @@ for (uint32_t i = 0; i < length; ++i) {
             "Default": "eStringify",
             "EmptyString": "eEmpty",
             "Null": "eNull",
+            
+            
+            "Missing": "eStringify"
         }
         if type.nullable():
             
@@ -3850,8 +3854,11 @@ class CGArgumentConverter(CGThing):
             "args[${index}]"
             ).substitute(replacer)
         self.replacementVariables["mutableVal"] = self.replacementVariables["val"]
-        haveValueCheck = string.Template(
-            "args.hasDefined(${index})").substitute(replacer)
+        if argument.treatUndefinedAs == "Missing":
+            haveValueCheck = "args.hasDefined(${index})"
+        else:
+            haveValueCheck = "${index} < args.length()"
+        haveValueCheck = string.Template(haveValueCheck).substitute(replacer)
         self.replacementVariables["haveValue"] = haveValueCheck
         self.descriptorProvider = descriptorProvider
         if self.argument.optional and not self.argument.defaultValue:
@@ -4993,6 +5000,15 @@ class CGMethodCall(CGThing):
             return
 
         
+        
+        for (_, sigArgs) in signatures:
+            for arg in sigArgs:
+                if arg.treatUndefinedAs == "Missing":
+                    raise TypeError("No support for [TreatUndefinedAs=Missing] "
+                                    "handling in overload resolution yet: %s" %
+                                    arg.location)
+
+        
         maxArgCount = method.maxArgCount
         allowedArgCounts = method.allowedArgCounts
 
@@ -5084,27 +5100,19 @@ class CGMethodCall(CGThing):
                 
                 
                 
-                
-                
-                argIsOptional = (distinguishingArgument(signature).optional and
-                                 not distinguishingArgument(signature).defaultValue)
                 testCode = instantiateJSToNativeConversion(
                     getJSToNativeConversionInfo(type, descriptor,
                                                 failureCode=failureCode,
                                                 isDefinitelyObject=isDefinitelyObject,
                                                 isNullOrUndefined=isNullOrUndefined,
-                                                isOptional=argIsOptional,
                                                 sourceDescription=(argDesc % (distinguishingIndex + 1))),
                     {
                         "declName" : "arg%d" % distinguishingIndex,
                         "holderName" : ("arg%d" % distinguishingIndex) + "_holder",
                         "val" : distinguishingArg,
                         "mutableVal" : distinguishingArg,
-                        "obj" : "obj",
-                        "haveValue": "args.hasDefined(%d)" % distinguishingIndex
-                        },
-                    checkForValue=argIsOptional
-                    )
+                        "obj" : "obj"
+                        })
                 caseBody.append(CGIndenter(testCode, indent));
                 
                 
@@ -5114,64 +5122,8 @@ class CGMethodCall(CGThing):
                         getPerSignatureCall(signature, distinguishingIndex + 1),
                         indent))
 
-            def hasConditionalConversion(type):
-                """
-                Return whether the argument conversion for this type will be
-                conditional on the type of incoming JS value.  For example, for
-                interface types the conversion is conditional on the incoming
-                value being isObject().
-
-                For the types for which this returns false, we do not have to
-                output extra isUndefined() or isNullOrUndefined() cases, because
-                null/undefined values will just fall through into our
-                unconditional conversion.
-                """
-                if type.isString() or type.isEnum():
-                    return False
-                if type.isBoolean():
-                    distinguishingTypes = (distinguishingType(s) for s in
-                                           possibleSignatures)
-                    return any(t.isString() or t.isEnum() or t.isNumeric()
-                               for t in distinguishingTypes)
-                if type.isNumeric():
-                    distinguishingTypes = (distinguishingType(s) for s in
-                                           possibleSignatures)
-                    return any(t.isString() or t.isEnum()
-                               for t in distinguishingTypes)
-                return True
-
-            def needsNullOrUndefinedCase(type):
-                """
-                Return true if the type needs a special isNullOrUndefined() case
-                """
-                return ((type.nullable() and
-                        hasConditionalConversion(type)) or
-                        type.isDictionary())
-
             
             
-            
-            
-            
-            
-            
-            
-            
-            
-            undefSigs = [s for s in possibleSignatures if
-                         distinguishingIndex < len(s[1]) and
-                         s[1][distinguishingIndex].optional and
-                         hasConditionalConversion(s[1][distinguishingIndex].type) and
-                         not needsNullOrUndefinedCase(s[1][distinguishingIndex].type)]
-            
-            
-            assert len(undefSigs) < 2
-            if len(undefSigs) > 0:
-                caseBody.append(CGGeneric("if (%s.isUndefined()) {" %
-                                          distinguishingArg))
-                tryCall(undefSigs[0], 2, isNullOrUndefined=True)
-                caseBody.append(CGGeneric("}"))
-
             
             
             
@@ -5183,7 +5135,11 @@ class CGMethodCall(CGThing):
             
             
             nullOrUndefSigs = [s for s in possibleSignatures
-                               if needsNullOrUndefinedCase(distinguishingType(s))]
+                               if ((distinguishingType(s).nullable() and not
+                                    distinguishingType(s).isString() and not
+                                    distinguishingType(s).isEnum() and not
+                                   distinguishingType(s).isPrimitive()) or
+                                   distinguishingType(s).isDictionary())]
             
             assert len(nullOrUndefSigs) < 2
             if len(nullOrUndefSigs) > 0:
