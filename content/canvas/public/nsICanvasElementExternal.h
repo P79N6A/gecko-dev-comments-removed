@@ -7,7 +7,7 @@
 #define nsICanvasElementExternal_h___
 
 #include "nsISupports.h"
-#include "gfxPattern.h"
+#include "GraphicsFilter.h"
 
 class gfxContext;
 class nsIFrame;
@@ -49,7 +49,7 @@ public:
 
 
   NS_IMETHOD RenderContextsExternal(gfxContext *ctx,
-                                    gfxPattern::GraphicsFilter aFilter,
+                                    GraphicsFilter aFilter,
                                     uint32_t aFlags = RenderFlagPremultAlpha) = 0;
 };
 

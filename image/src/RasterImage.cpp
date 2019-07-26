@@ -2453,7 +2453,7 @@ RasterImage::CanQualityScale(const gfxSize& scale)
 }
 
 bool
-RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
+RasterImage::CanScale(GraphicsFilter aFilter,
                       gfxSize aScale, uint32_t aFlags)
 {
 
@@ -2462,7 +2462,7 @@ RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
   
   
   
-  if (gHQDownscaling && aFilter == gfxPattern::FILTER_GOOD &&
+  if (gHQDownscaling && aFilter == GraphicsFilter::FILTER_GOOD &&
       !mAnim && mDecoded && !mMultipart && CanQualityScale(aScale) &&
       (aFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING)) {
     gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
@@ -2519,7 +2519,7 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
 void
 RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                           gfxContext *aContext,
-                                          gfxPattern::GraphicsFilter aFilter,
+                                          GraphicsFilter aFilter,
                                           const gfxMatrix &aUserSpaceToImageSpace,
                                           const gfxRect &aFill,
                                           const nsIntRect &aSubimage,
@@ -2594,7 +2594,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
 
 NS_IMETHODIMP
 RasterImage::Draw(gfxContext *aContext,
-                  gfxPattern::GraphicsFilter aFilter,
+                  GraphicsFilter aFilter,
                   const gfxMatrix &aUserSpaceToImageSpace,
                   const gfxRect &aFill,
                   const nsIntRect &aSubimage,

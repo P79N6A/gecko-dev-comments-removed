@@ -7,7 +7,7 @@
 #define GFX_LAYERSLOGGING_H
 
 #include "FrameMetrics.h"               
-#include "gfxPattern.h"                 
+#include "GraphicsFilter.h"             
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"  
@@ -35,7 +35,7 @@ AppendToString(nsACString& s, const void* p,
                const char* pfx="", const char* sfx="");
 
 nsACString&
-AppendToString(nsACString& s, const gfxPattern::GraphicsFilter& f,
+AppendToString(nsACString& s, const GraphicsFilter& f,
                const char* pfx="", const char* sfx="");
 
 nsACString&

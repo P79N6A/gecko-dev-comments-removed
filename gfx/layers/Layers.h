@@ -16,7 +16,7 @@
 #include "gfxTypes.h"
 #include "gfxColor.h"                   
 #include "gfxMatrix.h"                  
-#include "gfxPattern.h"                 
+#include "GraphicsFilter.h"             
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/Assertions.h"         
@@ -1797,7 +1797,7 @@ public:
 
 
 
-  void SetFilter(gfxPattern::GraphicsFilter aFilter)
+  void SetFilter(GraphicsFilter aFilter)
   {
     if (mFilter != aFilter) {
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) Filter", this));
@@ -1805,7 +1805,7 @@ public:
       Mutated();
     }
   }
-  gfxPattern::GraphicsFilter GetFilter() const { return mFilter; }
+  GraphicsFilter GetFilter() const { return mFilter; }
 
   MOZ_LAYER_DECL_NAME("CanvasLayer", TYPE_CANVAS)
 
@@ -1829,7 +1829,7 @@ protected:
     , mPreTransCallbackData(nullptr)
     , mPostTransCallback(nullptr)
     , mPostTransCallbackData(nullptr)
-    , mFilter(gfxPattern::FILTER_GOOD)
+    , mFilter(GraphicsFilter::FILTER_GOOD)
     , mDirty(false)
   {}
 
@@ -1850,7 +1850,7 @@ protected:
   void* mPreTransCallbackData;
   DidTransactionCallback mPostTransCallback;
   void* mPostTransCallbackData;
-  gfxPattern::GraphicsFilter mFilter;
+  GraphicsFilter mFilter;
 
 private:
   

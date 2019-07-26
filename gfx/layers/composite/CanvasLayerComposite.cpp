@@ -7,7 +7,7 @@
 #include "composite/CompositableHost.h"  
 #include "gfx2DGlue.h"                  
 #include "gfxImageSurface.h"            
-#include "gfxPattern.h"                 
+#include "GraphicsFilter.h"             
 #include "gfxUtils.h"                   
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/gfx/Point.h"          
@@ -77,7 +77,7 @@ CanvasLayerComposite::RenderLayer(const nsIntPoint& aOffset,
   }
 #endif
 
-  gfxPattern::GraphicsFilter filter = mFilter;
+  GraphicsFilter filter = mFilter;
 #ifdef ANDROID
   
   
@@ -85,7 +85,7 @@ CanvasLayerComposite::RenderLayer(const nsIntPoint& aOffset,
   gfxMatrix matrix;
   bool is2D = GetEffectiveTransform().Is2D(&matrix);
   if (is2D && !matrix.HasNonTranslationOrFlip()) {
-    filter = gfxPattern::FILTER_NEAREST;
+    filter = GraphicsFilter::FILTER_NEAREST;
   }
 #endif
 

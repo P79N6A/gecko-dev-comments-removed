@@ -260,7 +260,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
       nsRefPtr<gfxContext> tmpCtx = new gfxContext(temp);
       tmpCtx->SetOperator(OptimalFillOperator());
       aDrawable->Draw(tmpCtx, needed - needed.TopLeft(), true,
-                      gfxPattern::FILTER_FAST, gfxMatrix().Translate(needed.TopLeft()));
+                      GraphicsFilter::FILTER_FAST, gfxMatrix().Translate(needed.TopLeft()));
     }
 
     nsRefPtr<gfxDrawable> drawable = 
@@ -348,9 +348,9 @@ DeviceToImageTransform(gfxContext* aContext,
 
 
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
-static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
-                                                         int aImgWidth, int aImgHeight,
-                                                         float aSourceWidth, float aSourceHeight)
+static GraphicsFilter ReduceResamplingFilter(GraphicsFilter aFilter,
+                                             int aImgWidth, int aImgHeight,
+                                             float aSourceWidth, float aSourceHeight)
 {
     
     
@@ -365,7 +365,7 @@ static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFil
         || aImgHeight <= kSmallImageSizeThreshold) {
         
         
-        return gfxPattern::FILTER_NEAREST;
+        return GraphicsFilter::FILTER_NEAREST;
     }
 
     if (aImgHeight * kLargeStretch <= aSourceHeight || aImgWidth * kLargeStretch <= aSourceWidth) {
@@ -376,7 +376,7 @@ static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFil
         
         
         if (fabs(aSourceWidth - aImgWidth)/aImgWidth < 0.5 || fabs(aSourceHeight - aImgHeight)/aImgHeight < 0.5)
-            return gfxPattern::FILTER_NEAREST;
+            return GraphicsFilter::FILTER_NEAREST;
 
         
         
@@ -404,9 +404,9 @@ static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFil
     return aFilter;
 }
 #else
-static gfxPattern::GraphicsFilter ReduceResamplingFilter(gfxPattern::GraphicsFilter aFilter,
-                                                          int aImgWidth, int aImgHeight,
-                                                          int aSourceWidth, int aSourceHeight)
+static GraphicsFilter ReduceResamplingFilter(GraphicsFilter aFilter,
+                                             int aImgWidth, int aImgHeight,
+                                             int aSourceWidth, int aSourceHeight)
 {
     
     return aFilter;
@@ -422,7 +422,7 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
                            const gfxRect&   aImageRect,
                            const gfxRect&   aFill,
                            const gfxImageFormat aFormat,
-                           gfxPattern::GraphicsFilter aFilter,
+                           GraphicsFilter aFilter,
                            uint32_t         aImageFlags)
 {
     PROFILER_LABEL("gfxUtils", "DrawPixelSnapped");

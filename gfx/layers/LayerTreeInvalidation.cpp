@@ -10,7 +10,7 @@
 #include "Layers.h"                     
 #include "gfx3DMatrix.h"                
 #include "gfxColor.h"                   
-#include "gfxPattern.h"                 
+#include "GraphicsFilter.h"             
 #include "gfxPoint.h"                   
 #include "gfxPoint3D.h"                 
 #include "gfxRect.h"                    
@@ -350,7 +350,7 @@ struct ImageLayerProperties : public LayerPropertiesBase
 
   nsIntRegion mVisibleRegion;
   nsRefPtr<ImageContainer> mContainer;
-  gfxPattern::GraphicsFilter mFilter;
+  GraphicsFilter mFilter;
   gfxIntSize mScaleToSize;
   ScaleMode mScaleMode;
 };
