@@ -447,8 +447,19 @@ function updateAboutMemoryFromJSONObject(aObj)
         function(aHandleReport, aDisplayReports) {
       for (let i = 0; i < aObj.reports.length; i++) {
         let r = aObj.reports[i];
-        aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
-                      r.description, r._presence);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (!r.path.startsWith("redundant/")) {
+          aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
+                        r.description, r._presence);
+        }
       }
       aDisplayReports();
     }
