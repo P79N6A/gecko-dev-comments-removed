@@ -6,6 +6,7 @@ package org.mozilla.gecko.sync.stage;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import org.json.simple.parser.ParseException;
@@ -86,7 +87,13 @@ public abstract class ServerSyncStage implements
 
     
     
+    
     boolean enabledInMetaGlobal = session.engineIsEnabled(this.getEngineName(), engineSettings);
+
+    
+    checkAndUpdateUserSelectedEngines(enabledInMetaGlobal);
+
+    
     if (!enabledInMetaGlobal) {
       Logger.debug(LOG_TAG, "Stage " + this.getEngineName() + " disabled by server meta/global.");
       return false;
@@ -103,11 +110,36 @@ public abstract class ServerSyncStage implements
     return enabledThisSync;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+  protected void checkAndUpdateUserSelectedEngines(boolean enabledInMetaGlobal) throws MetaGlobalException {
+    Map<String, Boolean> selectedEngines = session.config.userSelectedEngines;
+    String thisEngine = this.getEngineName();
+
+    if (selectedEngines != null && selectedEngines.containsKey(thisEngine)) {
+      boolean enabledInSelection = selectedEngines.get(thisEngine);
+      if (enabledInMetaGlobal != enabledInSelection) {
+        
+        Logger.debug(LOG_TAG, "Engine state has been changed by user. Throwing exception.");
+        throw new MetaGlobalException.MetaGlobalEngineStateChangedException(enabledInSelection);
+      }
+    }
+  }
+
   protected EngineSettings getEngineSettings() throws NonObjectJSONException, IOException, ParseException {
     Integer version = getStorageVersion();
     if (version == null) {
       Logger.warn(LOG_TAG, "null storage version for " + this + "; using version 0.");
-      version = new Integer(0);
+      version = Integer.valueOf(0);
     }
 
     SynchronizerConfiguration config = this.getConfig();
@@ -465,7 +497,7 @@ public abstract class ServerSyncStage implements
     } catch (MetaGlobalException.MetaGlobalMalformedSyncIDException e) {
       
       try {
-        session.updateMetaGlobalWith(name, new EngineSettings(Utils.generateGuid(), this.getStorageVersion()));
+        session.recordForMetaGlobalUpdate(name, new EngineSettings(Utils.generateGuid(), this.getStorageVersion()));
         Logger.info(LOG_TAG, "Wiping server because malformed engine sync ID was found in meta/global.");
         wipeServer();
         Logger.info(LOG_TAG, "Wiped server after malformed engine sync ID found in meta/global.");
@@ -475,7 +507,7 @@ public abstract class ServerSyncStage implements
     } catch (MetaGlobalException.MetaGlobalMalformedVersionException e) {
       
       try {
-        session.updateMetaGlobalWith(name, new EngineSettings(Utils.generateGuid(), this.getStorageVersion()));
+        session.recordForMetaGlobalUpdate(name, new EngineSettings(Utils.generateGuid(), this.getStorageVersion()));
         Logger.info(LOG_TAG, "Wiping server because malformed engine version was found in meta/global.");
         wipeServer();
         Logger.info(LOG_TAG, "Wiped server after malformed engine version found in meta/global.");
@@ -487,6 +519,31 @@ public abstract class ServerSyncStage implements
       Logger.warn(LOG_TAG, "Remote engine syncID different from local engine syncID:" +
                            " resetting local engine and assuming remote engine syncID.");
       this.resetLocal(e.serverSyncID);
+    } catch (MetaGlobalException.MetaGlobalEngineStateChangedException e) {
+      boolean isEnabled = e.isEnabled;
+      if (!isEnabled) {
+        
+        session.removeEngineFromMetaGlobal(name);
+      } else {
+        
+        String newSyncID = Utils.generateGuid();
+        session.recordForMetaGlobalUpdate(name, new EngineSettings(newSyncID, this.getStorageVersion()));
+        
+        this.resetLocal(newSyncID);
+      }
+      try {
+        
+        Logger.warn(LOG_TAG, "Wiping server because engine sync state changed.");
+        wipeServer();
+        Logger.warn(LOG_TAG, "Wiped server because engine sync state changed.");
+      } catch (Exception ex) {
+        session.abort(ex, "Failed to wipe server after engine sync state changed");
+      }
+      if (!isEnabled) {
+        Logger.warn(LOG_TAG, "Stage has been disabled. Advancing to next stage.");
+        session.advance();
+        return;
+      }
     } catch (MetaGlobalException e) {
       session.abort(e, "Inappropriate meta/global; refusing to execute " + name + " stage.");
       return;

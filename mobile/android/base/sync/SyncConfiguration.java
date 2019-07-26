@@ -7,12 +7,15 @@ package org.mozilla.gecko.sync;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.crypto.PersistedCrypto5Keys;
+import org.mozilla.gecko.sync.stage.GlobalSyncStage.Stage;
 
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -211,6 +214,29 @@ public class SyncConfiguration implements CredentialsSource {
   public Collection<String> stagesToSync;
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public Map<String, Boolean> userSelectedEngines;
+  public long userSelectedEnginesTimestamp;
+
+  
   
   
   public String          prefsPath;
@@ -224,7 +250,10 @@ public class SyncConfiguration implements CredentialsSource {
 
   public static final String PREF_CLUSTER_URL = "clusterURL";
   public static final String PREF_SYNC_ID = "syncID";
+
   public static final String PREF_ENABLED_ENGINE_NAMES = "enabledEngineNames";
+  public static final String PREF_USER_SELECTED_ENGINES_TO_SYNC = "userSelectedEngines";
+  public static final String PREF_USER_SELECTED_ENGINES_TO_SYNC_TIMESTAMP = "userSelectedEnginesTimestamp";
 
   public static final String PREF_EARLIEST_NEXT_SYNC = "earliestnextsync";
   public static final String PREF_CLUSTER_URL_IS_STALE = "clusterurlisstale";
@@ -253,9 +282,102 @@ public class SyncConfiguration implements CredentialsSource {
 
 
 
+  public static Set<String> validEngineNames() {
+    Set<String> engineNames = new HashSet<String>();
+    for (Stage stage : Stage.getNamedStages()) {
+      engineNames.add(stage.getRepositoryName());
+    }
+    return engineNames;
+  }
+
+  
+
+
+
+
 
   public ConfigurationBranch getBranch(String prefix) {
     return new ConfigurationBranch(this, prefix);
+  }
+
+  
+
+
+
+
+
+
+
+  public static Set<String> getEnabledEngineNames(SharedPreferences prefs) {
+    String json = prefs.getString(PREF_ENABLED_ENGINE_NAMES, null);
+    if (json == null) {
+      return null;
+    }
+    try {
+      ExtendedJSONObject o = ExtendedJSONObject.parseJSONObject(json);
+      return new HashSet<String>(o.keySet());
+    } catch (Exception e) {
+      
+      return null;
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+  public static Map<String, Boolean> getUserSelectedEngines(SharedPreferences prefs) {
+    String json = prefs.getString(PREF_USER_SELECTED_ENGINES_TO_SYNC, null);
+    if (json == null) {
+      return null;
+    }
+    try {
+      ExtendedJSONObject o = ExtendedJSONObject.parseJSONObject(json);
+      Map<String, Boolean> map = new HashMap<String, Boolean>();
+      for (Entry<String, Object> e : o.entryIterable()) {
+        String key = e.getKey();
+        Boolean value = (Boolean) e.getValue();
+        map.put(key, value);
+        
+        if ("history".equals(key)) {
+          map.put("forms", value);
+        }
+      }
+      
+      if (!map.containsKey("history")) {
+        map.remove("forms");
+      }
+      return map;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  
+
+
+
+
+
+
+
+  public static void storeSelectedEnginesToPrefs(SharedPreferences prefs, Map<String, Boolean> selectedEngines) {
+    ExtendedJSONObject jObj = new ExtendedJSONObject();
+    for (Entry<String, Boolean> e : selectedEngines.entrySet()) {
+      jObj.put(e.getKey(), e.getValue());
+    }
+    String json = jObj.toJSONString();
+    long currentTime = System.currentTimeMillis();
+    Editor edit = prefs.edit();
+    edit.putString(PREF_USER_SELECTED_ENGINES_TO_SYNC, json);
+    edit.putLong(PREF_USER_SELECTED_ENGINES_TO_SYNC_TIMESTAMP, currentTime);
+    Logger.error(LOG_TAG, "Storing user-selected engines at [" + currentTime + "].");
+    edit.commit();
   }
 
   public void loadFromPrefs(SharedPreferences prefs) {
@@ -273,15 +395,9 @@ public class SyncConfiguration implements CredentialsSource {
       syncID = prefs.getString(PREF_SYNC_ID, null);
       Logger.trace(LOG_TAG, "Set syncID from bundle: " + syncID);
     }
-    if (prefs.contains(PREF_ENABLED_ENGINE_NAMES)) {
-      String json = prefs.getString(PREF_ENABLED_ENGINE_NAMES, null);
-      try {
-        ExtendedJSONObject o = ExtendedJSONObject.parseJSONObject(json);
-        enabledEngineNames = new HashSet<String>(o.keySet());
-      } catch (Exception e) {
-        
-      }
-    }
+    enabledEngineNames = getEnabledEngineNames(prefs);
+    userSelectedEngines = getUserSelectedEngines(prefs);
+    userSelectedEnginesTimestamp = prefs.getLong(PREF_USER_SELECTED_ENGINES_TO_SYNC_TIMESTAMP, 0);
     
     
     
@@ -310,6 +426,12 @@ public class SyncConfiguration implements CredentialsSource {
       }
       edit.putString(PREF_ENABLED_ENGINE_NAMES, o.toJSONString());
     }
+    if (userSelectedEngines == null) {
+      edit.remove(PREF_USER_SELECTED_ENGINES_TO_SYNC);
+      edit.remove(PREF_USER_SELECTED_ENGINES_TO_SYNC_TIMESTAMP);
+    }
+    
+    
     edit.commit();
     
   }

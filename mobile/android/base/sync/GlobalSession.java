@@ -75,9 +75,10 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
   
 
 
+
   public final Map<String, EngineSettings> enginesToUpdate = new HashMap<String, EngineSettings>();
 
-  
+   
 
 
   public KeyBundle keyBundleForCollection(String collection) throws NoCollectionKeysSetException {
@@ -162,10 +163,8 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
 
     registerCommands();
     prepareStages();
-    Collection<String> knownStageNames = new HashSet<String>();
-    for (Stage stage : Stage.getNamedStages()) {
-      knownStageNames.add(stage.getRepositoryName());
-    }
+
+    Collection<String> knownStageNames = SyncConfiguration.validEngineNames();
     config.stagesToSync = Utils.getStagesToSyncFromBundle(knownStageNames, extras);
 
     
@@ -388,8 +387,19 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
 
 
 
-  public void updateMetaGlobalWith(String engineName, EngineSettings engineSettings) {
+  public void recordForMetaGlobalUpdate(String engineName, EngineSettings engineSettings) {
     enginesToUpdate.put(engineName, engineSettings);
+  }
+
+  
+
+
+
+
+
+
+  public void removeEngineFromMetaGlobal(String engineName) {
+    enginesToUpdate.put(engineName, null);
   }
 
   public boolean hasUpdatedMetaGlobal() {
@@ -399,8 +409,8 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
     }
 
     if (Logger.shouldLogVerbose(LOG_TAG)) {
-      Logger.trace(LOG_TAG, "Uploading updated meta/global record since there are engines requesting upload: " +
-          Utils.toCommaSeparatedString(enginesToUpdate.keySet()));
+      Logger.trace(LOG_TAG, "Uploading updated meta/global record since there are engine changes to meta/global.");
+      Logger.trace(LOG_TAG, "Engines requesting update [" + Utils.toCommaSeparatedString(enginesToUpdate.keySet()) + "]");
     }
 
     return true;
@@ -409,8 +419,13 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
   public void updateMetaGlobalInPlace() {
     ExtendedJSONObject engines = config.metaGlobal.getEngines();
     for (Entry<String, EngineSettings> pair : enginesToUpdate.entrySet()) {
-      engines.put(pair.getKey(), pair.getValue().toJSONObject());
+      if (pair.getValue() == null) {
+        engines.remove(pair.getKey());
+      } else {
+        engines.put(pair.getKey(), pair.getValue().toJSONObject());
+      }
     }
+
     enginesToUpdate.clear();
   }
 
@@ -432,6 +447,11 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
           @Override
           public void handleSuccess(MetaGlobal global, SyncStorageResponse response) {
             Logger.info(LOG_TAG, "Successfully uploaded updated meta/global record.");
+            
+            config.enabledEngineNames = config.metaGlobal.getEnabledEngineNames();
+            
+            config.userSelectedEngines = null;
+
             synchronized (monitor) {
               monitor.notify();
             }
@@ -660,6 +680,12 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
       resetAllStages();
       config.purgeCryptoKeys();
       config.syncID = remoteSyncID;
+    }
+    
+    Logger.debug(LOG_TAG, "Comparing local engine selection timestamp [" + config.userSelectedEnginesTimestamp + "] to server meta/global timestamp [" + config.persistedMetaGlobal().lastModified() + "].");
+    if (config.userSelectedEnginesTimestamp < config.persistedMetaGlobal().lastModified()) {
+      
+      config.userSelectedEngines = null;
     }
     
     config.enabledEngineNames = global.getEnabledEngineNames();
@@ -945,11 +971,8 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
     if (config.enabledEngineNames != null) {
       return config.enabledEngineNames;
     }
-    Set<String> engineNames = new HashSet<String>();
-    for (Stage stage : Stage.getNamedStages()) {
-      engineNames.add(stage.getRepositoryName());
-    }
-    return engineNames;
+
+    return SyncConfiguration.validEngineNames();
   }
 
   

@@ -52,6 +52,7 @@ public class SyncAccounts {
 
 
 
+
   public static Account[] syncAccounts(final Context c) {
     return AccountManager.get(c).getAccountsByType(GlobalConstants.ACCOUNTTYPE_SYNC);
   }
@@ -579,5 +580,65 @@ public class SyncAccounts {
     }
 
     return intent;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static SharedPreferences blockingPrefsFromAndroidAccountV0(final Context context, final AccountManager accountManager, final Account account,
+      final String product, final String profile, final long version)
+          throws CredentialException, NoSuchAlgorithmException, UnsupportedEncodingException {
+    SyncAccountParameters params = SyncAccounts.blockingFromAndroidAccountV0(context, accountManager, account);
+    String prefsPath = Utils.getPrefsPath(product, params.username, params.serverURL, profile, version);
+
+    return context.getSharedPreferences(prefsPath, Utils.SHARED_PREFERENCES_MODE);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static SharedPreferences blockingPrefsFromDefaultProfileV0(final Context context, final AccountManager accountManager, final Account account)
+      throws CredentialException, NoSuchAlgorithmException, UnsupportedEncodingException {
+    final String product = GlobalConstants.BROWSER_INTENT_PACKAGE;
+    final String profile = Constants.DEFAULT_PROFILE;
+    final long version = SyncConfiguration.CURRENT_PREFS_VERSION;
+
+    return blockingPrefsFromAndroidAccountV0(context, accountManager, account, product, profile, version);
   }
 }

@@ -128,6 +128,7 @@ public class ExtendedJSONObject {
 
 
 
+
   public Long getTimestamp(String key) {
     Object val = this.object.get(key);
 
@@ -164,6 +165,18 @@ public class ExtendedJSONObject {
     @SuppressWarnings("unchecked")
     Map<Object, Object> map = this.object;
     map.put(key, value);
+  }
+
+  
+
+
+
+
+
+
+  public boolean remove(String key) {
+    Object res = this.object.remove(key);
+    return (res != null);
   }
 
   public ExtendedJSONObject getObject(String key) throws NonObjectJSONException {
