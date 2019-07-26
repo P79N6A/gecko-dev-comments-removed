@@ -135,6 +135,14 @@ AudioChannelService::UnregisterType(AudioChannelType aType,
   
   
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    
+    
+    if (aType == AUDIO_CHANNEL_CONTENT &&
+        mActiveContentChildIDs.Contains(aChildID) &&
+        (!aElementHidden &&
+         !mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].Contains(aChildID))) {
+      mActiveContentChildIDs.RemoveElement(aChildID);
+    }
     SendAudioChannelChangedNotification();
     Notify();
   }
@@ -175,23 +183,31 @@ AudioChannelService::GetMutedInternal(AudioChannelType aType, uint64_t aChildID,
 
   
   if (newType == AUDIO_CHANNEL_INT_CONTENT &&
-      oldType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
-      !mActiveContentChildIDs.Contains(aChildID)) {
+      oldType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN) {
 
     if (mActiveContentChildIDsFrozen) {
       mActiveContentChildIDsFrozen = false;
       mActiveContentChildIDs.Clear();
     }
 
-    mActiveContentChildIDs.AppendElement(aChildID);
+    if (!mActiveContentChildIDs.Contains(aChildID)) {
+      mActiveContentChildIDs.AppendElement(aChildID);
+    }
   }
 
-  
   else if (newType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
            oldType == AUDIO_CHANNEL_INT_CONTENT &&
-           !mActiveContentChildIDsFrozen &&
-           mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
-    mActiveContentChildIDsFrozen = true;
+           !mActiveContentChildIDsFrozen) {
+    
+    
+    
+    
+    
+    if (mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
+      mActiveContentChildIDsFrozen = true;
+    } else if (!mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].Contains(aChildID)) {
+      mActiveContentChildIDs.RemoveElement(aChildID);
+    }
   }
 
   if (newType != oldType && aType == AUDIO_CHANNEL_CONTENT) {
@@ -292,7 +308,11 @@ AudioChannelService::SendAudioChannelChangedNotification()
     }
 
     
-    else if (!mActiveContentChildIDs.IsEmpty()) {
+    
+    
+    else if (!mActiveContentChildIDs.IsEmpty() &&
+             mChannelCounters[AUDIO_CHANNEL_INT_CONTENT_HIDDEN].Contains(
+             mActiveContentChildIDs[0])) {
       higher = AUDIO_CHANNEL_CONTENT;
     }
   }
