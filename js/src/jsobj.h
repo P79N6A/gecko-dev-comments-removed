@@ -1180,7 +1180,14 @@ enum NewObjectKind {
 
 
 
-    MaybeSingletonObject
+    MaybeSingletonObject,
+
+    
+
+
+
+
+    TenuredObject
 };
 
 inline gc::InitialHeap
