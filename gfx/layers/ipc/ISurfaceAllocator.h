@@ -11,6 +11,7 @@
 #include "gfxTypes.h"
 #include "gfxPoint.h"                   
 #include "mozilla/ipc/SharedMemory.h"   
+#include "mozilla/WeakPtr.h"
 
 
 
@@ -68,7 +69,7 @@ bool ReleaseOwnedSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
 
 
 
-class ISurfaceAllocator
+class ISurfaceAllocator : public SupportsWeakPtr<ISurfaceAllocator>
 {
 public:
 ISurfaceAllocator() {}
