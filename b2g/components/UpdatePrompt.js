@@ -18,14 +18,9 @@ let log =
   function log_dump(msg) { dump("UpdatePrompt: "+ msg +"\n"); } :
   function log_noop(msg) { };
 
-const APPLY_PROMPT_TIMEOUT =
-      Services.prefs.getIntPref("b2g.update.apply-prompt-timeout");
-const APPLY_IDLE_TIMEOUT =
-      Services.prefs.getIntPref("b2g.update.apply-idle-timeout");
-const SELF_DESTRUCT_TIMEOUT =
-      Services.prefs.getIntPref("b2g.update.self-destruct-timeout");
+const PREF_APPLY_PROMPT_TIMEOUT = "b2g.update.apply-prompt-timeout";
+const PREF_APPLY_IDLE_TIMEOUT   = "b2g.update.apply-idle-timeout";
 
-const APPLY_IDLE_TIMEOUT_SECONDS = APPLY_IDLE_TIMEOUT / 1000;
 const NETWORK_ERROR_OFFLINE = 111;
 
 XPCOMUtils.defineLazyServiceGetter(Services, "aus",
@@ -108,6 +103,14 @@ UpdatePrompt.prototype = {
   _waitingForIdle: false,
   _updateCheckListner: null,
 
+  get applyPromptTimeout() {
+    return Services.prefs.getIntPref(PREF_APPLY_PROMPT_TIMEOUT);
+  },
+
+  get applyIdleTimeout() {
+    return Services.prefs.getIntPref(PREF_APPLY_IDLE_TIMEOUT);
+  },
+
   
 
   
@@ -130,14 +133,15 @@ UpdatePrompt.prototype = {
     
     this.sendUpdateEvent("update-downloaded", aUpdate);
 
-    if (Services.idle.idleTime >= APPLY_IDLE_TIMEOUT) {
+    if (Services.idle.idleTime >= this.applyIdleTimeout) {
       this.showApplyPrompt(aUpdate);
       return;
     }
 
+    let applyIdleTimeoutSeconds = this.applyIdleTimeout / 1000;
     
     log("Update is ready to apply, registering idle timeout of " +
-        APPLY_IDLE_TIMEOUT_SECONDS + " seconds before prompting.");
+        applyIdleTimeoutSeconds + " seconds before prompting.");
 
     this._update = aUpdate;
     this.waitForIdle();
@@ -165,7 +169,7 @@ UpdatePrompt.prototype = {
     }
 
     this._waitingForIdle = true;
-    Services.idle.addIdleObserver(this, APPLY_IDLE_TIMEOUT_SECONDS);
+    Services.idle.addIdleObserver(this, this.applyIdleTimeout / 1000);
     Services.obs.addObserver(this, "quit-application", false);
   },
 
@@ -185,7 +189,7 @@ UpdatePrompt.prototype = {
 
     
     
-    this._applyPromptTimer = this.createTimer(APPLY_PROMPT_TIMEOUT);
+    this._applyPromptTimer = this.createTimer(this.applyPromptTimeout);
   },
 
   sendUpdateEvent: function UP_sendUpdateEvent(aType, aUpdate) {
@@ -429,7 +433,7 @@ UpdatePrompt.prototype = {
         this.showApplyPrompt(this._update);
         
       case "quit-application":
-        Services.idle.removeIdleObserver(this, APPLY_IDLE_TIMEOUT_SECONDS);
+        Services.idle.removeIdleObserver(this, this.applyIdleTimeout / 1000);
         Services.obs.removeObserver(this, "quit-application");
         break;
       case "update-check-start":
