@@ -2356,7 +2356,7 @@ nsSVGElement::DidChangeTransformList(const nsAttrValue& aEmptyOrOldValue)
 }
 
 void
-nsSVGElement::DidAnimateTransformList()
+nsSVGElement::DidAnimateTransformList(int32_t aModType)
 {
   NS_ABORT_IF_FALSE(GetTransformListAttrName(),
                     "Animating non-existent transform data?");
@@ -2365,10 +2365,9 @@ nsSVGElement::DidAnimateTransformList()
 
   if (frame) {
     nsIAtom *transformAttr = GetTransformListAttrName();
-    int32_t modType = nsIDOMMutationEvent::MODIFICATION;
     frame->AttributeChanged(kNameSpaceID_None,
                             transformAttr,
-                            modType);
+                            aModType);
     
     
     
@@ -2377,7 +2376,7 @@ nsSVGElement::DidAnimateTransformList()
     
     
     
-    nsChangeHint changeHint = GetAttributeChangeHint(transformAttr, modType);
+    nsChangeHint changeHint = GetAttributeChangeHint(transformAttr, aModType);
     if (changeHint) {
       nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
     }
