@@ -573,7 +573,12 @@ pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 #endif
 
 #ifdef NIGHTLY_BUILD
+
+
 pref("shumway.disabled", true);
+
+
+pref("shumway.ignoreCTP", true);
 #endif
 
 
