@@ -110,11 +110,9 @@ RemoteOpenFileChild::AsyncRemoteFileOpen(int32_t aFlags,
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
   
   
-  mListener->OnRemoteFileOpenComplete(NS_OK);
-  mListener = nullptr;
+  aListener->OnRemoteFileOpenComplete(NS_OK);
   mAsyncOpenCalled = true;
   return NS_OK;
-
 #else
   URIParams uri;
   SerializeURI(mURI, uri);
