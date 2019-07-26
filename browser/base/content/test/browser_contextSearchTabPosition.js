@@ -29,7 +29,7 @@ function test() {
   try {
     let cm = Components.classes["@mozilla.org/categorymanager;1"]
                        .getService(Components.interfaces.nsICategoryManager);
-    cm.getCategoryEntry("healthreport-js-provider", "SearchesProvider");
+    cm.getCategoryEntry("healthreport-js-provider-default", "SearchesProvider");
   } catch (ex) {
     
     finish();
