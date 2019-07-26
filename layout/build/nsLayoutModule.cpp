@@ -1250,13 +1250,14 @@ LayoutModuleDtor()
 {
   Shutdown();
   nsContentUtils::XPCOMShutdown();
-  nsScriptSecurityManager::Shutdown();
-  xpcModuleDtor();
 
   
   
   mozilla::image::ShutdownModule();
   gfxPlatform::Shutdown();
+
+  nsScriptSecurityManager::Shutdown();
+  xpcModuleDtor();
 }
 
 static const mozilla::Module kLayoutModule = {
