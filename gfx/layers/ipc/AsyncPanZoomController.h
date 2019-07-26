@@ -30,6 +30,7 @@ class GestureEventListener;
 class ContainerLayer;
 class ViewTransform;
 class APZCTreeManager;
+class AsyncPanZoomAnimation;
 
 
 
@@ -154,6 +155,8 @@ public:
   
   
 
+  bool UpdateAnimation(const TimeStamp& aSampleTime);
+
   
 
 
@@ -263,6 +266,8 @@ public:
 
 
   void UpdateScrollOffset(const CSSPoint& aScrollOffset);
+
+  void StartAnimation(AsyncPanZoomAnimation* aAnimation);
 
   
 
@@ -594,16 +599,6 @@ private:
   
   FrameMetrics mLastPaintRequestMetrics;
 
-  
-  
-  
-  
-  FrameMetrics mStartZoomToMetrics;
-  
-  
-  
-  FrameMetrics mEndZoomToMetrics;
-
   nsTArray<MultiTouchInput> mTouchQueue;
 
   CancelableTask* mTouchListenerTimeoutTask;
@@ -623,10 +618,6 @@ private:
   TimeStamp mLastSampleTime;
   
   uint32_t mLastEventTime;
-
-  
-  
-  TimeStamp mAnimationStartTime;
 
   
   
@@ -654,6 +645,8 @@ private:
   
   
   bool mHandlingTouchQueue;
+
+  RefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
 
@@ -738,6 +731,29 @@ private:
   gfx3DMatrix mAncestorTransform;
   
   gfx3DMatrix mCSSTransform;
+};
+
+class AsyncPanZoomAnimation {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomAnimation)
+
+public:
+  AsyncPanZoomAnimation(const TimeDuration& aRepaintInterval =
+                        TimeDuration::Forever())
+    : mRepaintInterval(aRepaintInterval)
+  { }
+
+  virtual ~AsyncPanZoomAnimation()
+  { }
+
+  virtual bool Sample(FrameMetrics& aFrameMetrics,
+                      const TimeDuration& aDelta) = 0;
+
+  
+
+
+
+
+  TimeDuration mRepaintInterval;
 };
 
 }
