@@ -51,7 +51,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void assertUsesAreNotWithin(MUseIterator use, MUseIterator end);
 
     
-    bool earlyAbort_;
+    bool unreachable_;
 
     
     void pushVariable(uint32_t slot);
@@ -88,14 +88,14 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void setId(uint32_t id) {
         id_ = id;
     }
-    void setEarlyAbort() {
-        earlyAbort_ = true;
+    void setUnreachable() {
+        unreachable_ = true;
     }
-    void clearEarlyAbort() {
-        earlyAbort_ = false;
+    void clearUnreachable() {
+        unreachable_ = false;
     }
-    bool earlyAbort() {
-        return earlyAbort_;
+    bool unreachable() {
+        return unreachable_;
     }
     
     void pick(int32_t depth);

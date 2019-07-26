@@ -23,6 +23,7 @@ class UnreachableCodeElimination
     uint32_t marked_;
     bool redundantPhis_;
     bool rerunAliasAnalysis_;
+    bool disableAliasAnalysis_;
 
     bool prunePointlessBranchesAndMarkReachableBlocks();
     void checkDependencyAndRemoveUsesFromUnmarkedBlocks(MDefinition *instr);
@@ -38,7 +39,8 @@ class UnreachableCodeElimination
         graph_(graph),
         marked_(0),
         redundantPhis_(false),
-        rerunAliasAnalysis_(false)
+        rerunAliasAnalysis_(false),
+        disableAliasAnalysis_(false)
     {}
 
     
@@ -48,6 +50,12 @@ class UnreachableCodeElimination
     
     
     bool removeUnmarkedBlocks(size_t marked);
+
+    
+    
+    void disableAliasAnalysis() {
+        disableAliasAnalysis_ = true;
+    }
 };
 
 } 

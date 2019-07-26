@@ -204,7 +204,7 @@ UnreachableCodeElimination::checkDependencyAndRemoveUsesFromUnmarkedBlocks(MDefi
 {
     
     
-    if (instr->dependency() && !instr->dependency()->block()->isMarked())
+    if (!disableAliasAnalysis_ && instr->dependency() && !instr->dependency()->block()->isMarked())
         rerunAliasAnalysis_ = true;
 
     for (MUseIterator iter(instr->usesBegin()); iter != instr->usesEnd(); ) {

@@ -386,8 +386,6 @@ class MDefinition : public MNode
     virtual bool truncate();
     virtual bool isOperandTruncated(size_t index) const;
 
-    bool earlyAbortCheck();
-
     
     virtual void computeRange(TempAllocator &alloc) {
     }
