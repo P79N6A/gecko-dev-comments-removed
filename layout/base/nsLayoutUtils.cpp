@@ -93,6 +93,7 @@ using mozilla::image::ImageOps;
 using mozilla::image::Orientation;
 
 #define FLEXBOX_ENABLED_PREF_NAME "layout.css.flexbox.enabled"
+#define STICKY_ENABLED_PREF_NAME "layout.css.sticky.enabled"
 
 #ifdef DEBUG
 
@@ -119,6 +120,11 @@ static int32_t sIndexOfFlexInDisplayTable;
 static int32_t sIndexOfInlineFlexInDisplayTable;
 
 static bool sAreFlexKeywordIndicesInitialized = false;
+
+
+
+static int32_t sIndexOfStickyInPositionTable;
+static bool sIsStickyKeywordIndexInitialized = false;
 
 typedef nsDataHashtable<nsUint64HashKey, nsIContent*> ContentMap;
 static ContentMap* sContentMap = nullptr;
@@ -166,6 +172,38 @@ FlexboxEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
     nsCSSProps::kDisplayKTable[sIndexOfInlineFlexInDisplayTable] =
       isFlexboxEnabled ? eCSSKeyword_inline_flex : eCSSKeyword_UNKNOWN;
   }
+
+  return 0;
+}
+
+
+
+
+static int
+StickyEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
+{
+  MOZ_ASSERT(strncmp(aPrefName, STICKY_ENABLED_PREF_NAME,
+                     NS_ARRAY_LENGTH(STICKY_ENABLED_PREF_NAME)) == 0,
+             "We only registered this callback for a single pref, so it "
+             "should only be called for that pref");
+
+  bool isStickyEnabled =
+    Preferences::GetBool(STICKY_ENABLED_PREF_NAME, false);
+
+  if (!sIsStickyKeywordIndexInitialized) {
+    
+    sIndexOfStickyInPositionTable =
+      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_sticky,
+                                     nsCSSProps::kPositionKTable);
+    MOZ_ASSERT(sIndexOfStickyInPositionTable >= 0,
+               "Couldn't find sticky in kPositionKTable");
+    sIsStickyKeywordIndexInitialized = true;
+  }
+
+  
+  
+  nsCSSProps::kPositionKTable[sIndexOfStickyInPositionTable] =
+    isStickyEnabled ? eCSSKeyword_sticky : eCSSKeyword_UNKNOWN;
 
   return 0;
 }
@@ -5002,6 +5040,9 @@ nsLayoutUtils::Initialize()
   Preferences::RegisterCallback(FlexboxEnabledPrefChangeCallback,
                                 FLEXBOX_ENABLED_PREF_NAME);
   FlexboxEnabledPrefChangeCallback(FLEXBOX_ENABLED_PREF_NAME, nullptr);
+  Preferences::RegisterCallback(StickyEnabledPrefChangeCallback,
+                                STICKY_ENABLED_PREF_NAME);
+  StickyEnabledPrefChangeCallback(STICKY_ENABLED_PREF_NAME, nullptr);
 }
 
 
@@ -5015,6 +5056,8 @@ nsLayoutUtils::Shutdown()
 
   Preferences::UnregisterCallback(FlexboxEnabledPrefChangeCallback,
                                   FLEXBOX_ENABLED_PREF_NAME);
+  Preferences::UnregisterCallback(StickyEnabledPrefChangeCallback,
+                                  STICKY_ENABLED_PREF_NAME);
 }
 
 
