@@ -82,7 +82,7 @@ struct FontListSizes {
     uint32_t mCharMapsSize; 
 };
 
-class gfxPlatformFontList : protected gfxFontInfoLoader
+class gfxPlatformFontList : public gfxFontInfoLoader
 {
 public:
     static gfxPlatformFontList* PlatformFontList() {
@@ -212,6 +212,9 @@ protected:
     virtual bool UsesSystemFallback() { return false; }
 
     
+    gfxFontFamily* CheckFamily(gfxFontFamily *aFamily);
+
+    
     void InitOtherFamilyNames();
 
     static PLDHashOperator InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
@@ -241,10 +244,12 @@ protected:
                                 nsRefPtr<gfxFontFamily>& aFamilyEntry,
                                 void* aUserArg);
 
+    virtual void GetFontFamilyNames(nsTArray<nsString>& aFontFamilyNames);
+
     
     virtual void InitLoader();
-    virtual bool RunLoader();
-    virtual void FinishLoader();
+    virtual bool LoadFontInfo();
+    virtual void CleanupLoader();
 
     
     void GetPrefsAndStartLoader();

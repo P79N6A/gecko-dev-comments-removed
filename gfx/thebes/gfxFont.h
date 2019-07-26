@@ -49,6 +49,7 @@ class gfxShapedText;
 class gfxShapedWord;
 class gfxSVGGlyphs;
 class gfxTextContextPaint;
+class FontInfoData;
 
 class nsILanguageAtomService;
 
@@ -299,7 +300,7 @@ public:
     
     
     
-    virtual nsresult ReadCMAP();
+    virtual nsresult ReadCMAP(FontInfoData *aFontInfoData = nullptr);
 
     bool TryGetSVGData(gfxFont* aFont);
     bool HasSVGGlyph(uint32_t aGlyphId);
@@ -490,6 +491,12 @@ protected:
     
     
     hb_blob_t* GetTableFromFontData(const void* aFontData, uint32_t aTableTag);
+
+    
+    virtual already_AddRefed<gfxCharacterMap>
+    GetCMAPFromFontInfo(FontInfoData *aFontInfoData,
+                        uint32_t& aUVSOffset,
+                        bool& aSymbolFont);
 
     
     
@@ -693,6 +700,7 @@ public:
     }
 
     
+    bool HasStyles() { return mHasStyles; }
     void SetHasStyles(bool aHasStyles) { mHasStyles = aHasStyles; }
 
     
@@ -729,17 +737,18 @@ public:
     
     
     virtual void ReadFaceNames(gfxPlatformFontList *aPlatformFontList,
-                               bool aNeedFullnamePostscriptNames);
+                               bool aNeedFullnamePostscriptNames,
+                               FontInfoData *aFontInfoData = nullptr);
 
     
     
-    virtual void FindStyleVariations() { }
+    virtual void FindStyleVariations(FontInfoData *aFontInfoData = nullptr) { }
 
     
     gfxFontEntry* FindFont(const nsAString& aPostscriptName);
 
     
-    void ReadAllCMAPs();
+    void ReadAllCMAPs(FontInfoData *aFontInfoData = nullptr);
 
     bool TestCharacterMap(uint32_t aCh) {
         if (!mFamilyCharacterMapInitialized) {

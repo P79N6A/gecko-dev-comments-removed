@@ -74,7 +74,7 @@ public:
     
     cairo_scaled_font_t *CreateScaledFont(const gfxFontStyle *aStyle);
 
-    nsresult ReadCMAP();
+    nsresult ReadCMAP(FontInfoData *aFontInfoData = nullptr);
 
     virtual hb_blob_t* GetFontTable(uint32_t aTableTag) MOZ_OVERRIDE;
 
