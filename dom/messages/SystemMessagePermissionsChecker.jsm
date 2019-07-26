@@ -56,6 +56,7 @@ this.SystemMessagePermissionsTable = {
     "bluetooth": []
   },
   "connection": { },
+  "dummy-system-message": { }, 
   "headset-button": { },
   "icc-stkcommand": {
     "settings": ["read", "write"]
