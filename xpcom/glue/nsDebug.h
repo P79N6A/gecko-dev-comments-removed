@@ -12,7 +12,7 @@
 
 #ifndef nsError_h__
 #include "nsError.h"
-#endif 
+#endif
 
 #include "nsXPCOM.h"
 #include "mozilla/Assertions.h"
@@ -22,7 +22,35 @@
 #include "prprf.h"
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef __cplusplus
 #ifdef DEBUG
+inline bool NS_warn_if_impl(bool condition, const char* expr, const char* file,
+                            int32_t line)
+{
+  if (MOZ_UNLIKELY(condition)) {
+    NS_DebugBreak(NS_DEBUG_WARNING, nullptr, expr, file, line);
+  }
+  return condition;
+}
+#define NS_WARN_IF(condition) \
+  NS_warn_if_impl(condition, #condition, __FILE__, __LINE__)
+#else
+#define NS_WARN_IF(condition) (bool)(condition)
+#endif
+#endif
 
 
 
@@ -40,12 +68,16 @@
 
 
 
+#ifdef DEBUG
 #define NS_ABORT_IF_FALSE(_expr, _msg)                        \
   do {                                                        \
     if (!(_expr)) {                                           \
       NS_DebugBreak(NS_DEBUG_ABORT, _msg, #_expr, __FILE__, __LINE__); \
     }                                                         \
   } while(0)
+#else
+#define NS_ABORT_IF_FALSE(_expr, _msg) do { /* nothing */ } while(0)
+#endif
 
 
 
@@ -55,103 +87,105 @@
 
 
 
+#ifdef DEBUG
 #define NS_WARN_IF_FALSE(_expr,_msg)                          \
   do {                                                        \
     if (!(_expr)) {                                           \
       NS_DebugBreak(NS_DEBUG_WARNING, _msg, #_expr, __FILE__, __LINE__); \
     }                                                         \
   } while(0)
+#else
+#define NS_WARN_IF_FALSE(_expr, _msg)  do { /* nothing */ } while(0)
+#endif
 
 
 
 
 
-#define NS_PRECONDITION(expr, str)                            \
-  do {                                                        \
-    if (!(expr)) {                                            \
-      NS_DebugBreak(NS_DEBUG_ASSERTION, str, #expr, __FILE__, __LINE__); \
-    }                                                         \
-  } while(0)
 
 
 
 
-
+#ifdef DEBUG
 #define NS_ASSERTION(expr, str)                               \
   do {                                                        \
     if (!(expr)) {                                            \
       NS_DebugBreak(NS_DEBUG_ASSERTION, str, #expr, __FILE__, __LINE__); \
     }                                                         \
   } while(0)
+#else
+#define NS_ASSERTION(expr, str)        do { /* nothing */ } while(0)
+#endif
+
+
+
+
+#define NS_PRECONDITION(expr, str) NS_ASSERTION(expr, str)
+#define NS_POSTCONDITION(expr, str) NS_ASSERTION(expr, str)
 
 
 
 
 
-#define NS_POSTCONDITION(expr, str)                           \
-  do {                                                        \
-    if (!(expr)) {                                            \
-      NS_DebugBreak(NS_DEBUG_ASSERTION, str, #expr, __FILE__, __LINE__); \
-    }                                                         \
-  } while(0)
-
-
-
-
-
+#ifdef DEBUG
 #define NS_NOTYETIMPLEMENTED(str)                             \
   NS_DebugBreak(NS_DEBUG_ASSERTION, str, "NotYetImplemented", __FILE__, __LINE__)
+#else
+#define NS_NOTYETIMPLEMENTED(str)      do { /* nothing */ } while(0)
+#endif
 
 
 
 
 
+#ifdef DEBUG
 #define NS_NOTREACHED(str)                                    \
   NS_DebugBreak(NS_DEBUG_ASSERTION, str, "Not Reached", __FILE__, __LINE__)
+#else
+#define NS_NOTREACHED(str)             do { /* nothing */ } while(0)
+#endif
 
 
 
 
+#ifdef DEBUG
 #define NS_ERROR(str)                                         \
   NS_DebugBreak(NS_DEBUG_ASSERTION, str, "Error", __FILE__, __LINE__)
+#else
+#define NS_ERROR(str)                  do { /* nothing */ } while(0)
+#endif
 
 
 
 
+#ifdef DEBUG
 #define NS_WARNING(str)                                       \
   NS_DebugBreak(NS_DEBUG_WARNING, str, nullptr, __FILE__, __LINE__)
+#else
+#define NS_WARNING(str)                do { /* nothing */ } while(0)
+#endif
 
 
 
 
+
+
+#ifdef DEBUG
 #define NS_ABORT()                                            \
   NS_DebugBreak(NS_DEBUG_ABORT, nullptr, nullptr, __FILE__, __LINE__)
+#else
+#define NS_ABORT()                     do { /* nothing */ } while(0)
+#endif
 
 
 
 
+#ifdef DEBUG
 #define NS_BREAK()                                            \
   NS_DebugBreak(NS_DEBUG_BREAK, nullptr, nullptr, __FILE__, __LINE__)
-
-#else 
-
-
-
-
-
-#define NS_ABORT_IF_FALSE(_expr, _msg) do { /* nothing */ } while(0)
-#define NS_WARN_IF_FALSE(_expr, _msg)  do { /* nothing */ } while(0)
-#define NS_PRECONDITION(expr, str)     do { /* nothing */ } while(0)
-#define NS_ASSERTION(expr, str)        do { /* nothing */ } while(0)
-#define NS_POSTCONDITION(expr, str)    do { /* nothing */ } while(0)
-#define NS_NOTYETIMPLEMENTED(str)      do { /* nothing */ } while(0)
-#define NS_NOTREACHED(str)             do { /* nothing */ } while(0)
-#define NS_ERROR(str)                  do { /* nothing */ } while(0)
-#define NS_WARNING(str)                do { /* nothing */ } while(0)
-#define NS_ABORT()                     do { /* nothing */ } while(0)
+#else
 #define NS_BREAK()                     do { /* nothing */ } while(0)
-
-#endif 
+#endif
 
 
 
@@ -240,6 +274,7 @@
 
 #define NS_RUNTIMEABORT(msg)                                    \
   NS_DebugBreak(NS_DEBUG_ABORT, msg, nullptr, __FILE__, __LINE__)
+
 
 
 
