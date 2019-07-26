@@ -676,7 +676,6 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
         return false;
     }
 
-    RootedValue v(cxArg, NumberValue(newLen));
     if (mode == ParallelExecution) {
         
         if (newLen > INT32_MAX)

@@ -1002,10 +1002,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
         return addendum->asTypedObject();
     }
 
-    void setAddendum(TypeObjectAddendum *addendum) {
-        JS_ASSERT(CurrentThreadCanWriteCompilationData());
-        this->addendum = addendum;
-    }
+    void setAddendum(TypeObjectAddendum *addendum);
 
     
 
