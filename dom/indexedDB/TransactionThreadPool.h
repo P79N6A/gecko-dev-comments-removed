@@ -45,7 +45,7 @@ public:
                     bool aFinish,
                     nsIRunnable* aFinishRunnable);
 
-  void WaitForDatabasesToComplete(nsTArray<IDBDatabase*>& aDatabases,
+  void WaitForDatabasesToComplete(nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
                                   nsIRunnable* aCallback);
 
   
@@ -159,7 +159,7 @@ protected:
 
   struct DatabasesCompleteCallback
   {
-    nsTArray<IDBDatabase*> mDatabases;
+    nsTArray<nsRefPtr<IDBDatabase> > mDatabases;
     nsCOMPtr<nsIRunnable> mCallback;
   };
 
