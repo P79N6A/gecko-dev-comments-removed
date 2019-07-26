@@ -6811,7 +6811,7 @@ class CGBindingRoot(CGThing):
             components = nativeType.split('::')
             className = components[-1]
             
-            declare = CGClassForwardDeclare(className, className is "JSObject")
+            declare = CGClassForwardDeclare(className, className == "JSObject")
             if len(components) > 1:
                 declare = CGNamespace.build(components[:-1],
                                             CGWrapper(declare, declarePre='\n',
