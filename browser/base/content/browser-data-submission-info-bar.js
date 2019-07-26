@@ -96,9 +96,6 @@ let gDataNotificationInfoBar = {
     );
 
     
-    notification.persistence = -1;
-
-    
     request.onUserNotifyComplete();
   },
 
