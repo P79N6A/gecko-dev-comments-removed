@@ -264,6 +264,10 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   
   virtual int GetReceivedRTCPStatistics(
       const int video_channel,
+      unsigned int& ntpHigh,
+      unsigned int& ntpLow,
+      unsigned int& bytes_sent,
+      unsigned int& packets_sent,
       unsigned short& fraction_lost,
       unsigned int& cumulative_lost,
       unsigned int& extended_max,
@@ -273,6 +277,10 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   
   
   virtual int GetSentRTCPStatistics(const int video_channel,
+                                    unsigned int& ntpHigh,
+                                    unsigned int& ntpLow,
+                                    unsigned int& bytes_sent,
+                                    unsigned int& packets_sent,
                                     unsigned short& fraction_lost,
                                     unsigned int& cumulative_lost,
                                     unsigned int& extended_max,

@@ -3799,8 +3799,11 @@ Channel::GetRemoteRTCPData(
     unsigned int& NTPLow,
     unsigned int& timestamp,
     unsigned int& playoutTimestamp,
+    unsigned int& sendPacketCount,
+    unsigned int& sendOctetCount,
     unsigned int* jitter,
-    unsigned short* fractionLost)
+    unsigned short* fractionLost,
+    unsigned int* cumulativeLost)
 {
     
 
@@ -3814,11 +3817,11 @@ Channel::GetRemoteRTCPData(
         return -1;
     }
 
-    
-    
     NTPHigh = senderInfo.NTPseconds;
     NTPLow = senderInfo.NTPfraction;
     timestamp = senderInfo.RTPtimeStamp;
+    sendPacketCount = senderInfo.sendPacketCount;
+    sendOctetCount = senderInfo.sendOctetCount;
 
     WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
                  VoEId(_instanceId, _channelId),
@@ -3837,7 +3840,7 @@ Channel::GetRemoteRTCPData(
                  "GetRemoteRTCPData() => playoutTimestamp=%lu",
                  playout_timestamp_rtcp_);
 
-    if (NULL != jitter || NULL != fractionLost)
+    if (NULL != jitter || NULL != fractionLost || NULL != cumulativeLost)
     {
         
         
@@ -3881,6 +3884,14 @@ Channel::GetRemoteRTCPData(
                        VoEId(_instanceId, _channelId),
                        "GetRemoteRTCPData() => fractionLost = %lu",
                        *fractionLost);
+        }
+
+        if (cumulativeLost) {
+          *cumulativeLost = it->cumulativeLost;
+          WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
+                       VoEId(_instanceId, _channelId),
+                       "GetRemoteRTCPData() => cumulativeLost = %lu",
+                       *cumulativeLost);
         }
     }
     return 0;
