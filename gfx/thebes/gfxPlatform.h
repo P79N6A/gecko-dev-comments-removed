@@ -495,7 +495,6 @@ public:
 
 
     static bool GetPrefLayersOffMainThreadCompositionEnabled();
-    static bool GetPrefLayersOffMainThreadCompositionForceEnabled();
     static bool GetPrefLayersPreferOpenGL();
     static bool GetPrefLayersPreferD3D9();
     static bool CanUseDirect3D9();
@@ -584,8 +583,6 @@ public:
     static PRLogModuleInfo* GetLog(eGfxLog aWhichLog);
 
     virtual int GetScreenDepth() const;
-
-    bool WidgetUpdateFlashing() const { return mWidgetUpdateFlashing; }
 
     
 
@@ -718,7 +715,6 @@ private:
     mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
 
     mozilla::RefPtr<mozilla::gfx::DrawEventRecorder> mRecorder;
-    bool mWidgetUpdateFlashing;
     bool mLayersPreferMemoryOverShmem;
     bool mLayersUseDeprecated;
 };
