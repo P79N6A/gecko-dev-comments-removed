@@ -1336,12 +1336,12 @@ this.DOMApplicationRegistry = {
     let app = this.webapps[id];
     if (!app) {
       debug("startDownload: No app found for " + aManifestURL);
-      return;
+      throw new Error("NO_SUCH_APP");
     }
 
     if (app.downloading) {
       debug("app is already downloading. Ignoring.");
-      return;
+      throw new Error("APP_IS_DOWNLOADING");
     }
 
     
@@ -1355,7 +1355,7 @@ this.DOMApplicationRegistry = {
         eventType: "downloaderror",
         manifestURL: app.manifestURL
       });
-      return;
+      throw new Error("NO_DOWNLOAD_AVAILABLE");
     }
 
     
@@ -1412,7 +1412,7 @@ this.DOMApplicationRegistry = {
     if (!json) {
       debug("startDownload: No update manifest found at " + file.path + " " +
             aManifestURL);
-      return;
+      throw new Error("MISSING_UPDATE_MANIFEST");
     }
 
     let manifest = new ManifestHelper(json, app.manifestURL);
@@ -1453,104 +1453,103 @@ this.DOMApplicationRegistry = {
     }
   }),
 
-  applyDownload: function applyDownload(aManifestURL) {
+  applyDownload: Task.async(function*(aManifestURL) {
     debug("applyDownload for " + aManifestURL);
     let id = this._appIdForManifestURL(aManifestURL);
     let app = this.webapps[id];
-    if (!app || (app && !app.readyToApplyDownload)) {
-      return;
+    if (!app) {
+      throw new Error("NO_SUCH_APP");
+    }
+    if (!app.readyToApplyDownload) {
+      throw new Error("NOT_READY_TO_APPLY_DOWNLOAD");
     }
 
     
-    this.getManifestFor(aManifestURL).then((aOldManifest) => {
-      
-      let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
-      let manFile = tmpDir.clone();
-      manFile.append("manifest.webapp");
-      let appFile = tmpDir.clone();
-      appFile.append("application.zip");
+    let oldManifest = yield this.getManifestFor(aManifestURL);
+    
+    let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
+    let manFile = tmpDir.clone();
+    manFile.append("manifest.webapp");
+    let appFile = tmpDir.clone();
+    appFile.append("application.zip");
 
-      let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
-      appFile.moveTo(dir, "application.zip");
-      manFile.moveTo(dir, "manifest.webapp");
+    let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
+    appFile.moveTo(dir, "application.zip");
+    manFile.moveTo(dir, "manifest.webapp");
 
-      
-      let staged = dir.clone();
-      staged.append("staged-update.webapp");
+    
+    let staged = dir.clone();
+    staged.append("staged-update.webapp");
 
-      
-      
-      if (staged.exists()) {
-        staged.moveTo(dir, "update.webapp");
+    
+    
+    if (staged.exists()) {
+      staged.moveTo(dir, "update.webapp");
+    }
+
+    try {
+      tmpDir.remove(true);
+    } catch(e) { }
+
+    
+    if (id in this._manifestCache) {
+      delete this._manifestCache[id];
+    }
+
+    
+    
+    let zipFile = dir.clone();
+    zipFile.append("application.zip");
+    Services.obs.notifyObservers(zipFile, "flush-cache-entry", null);
+
+    
+    let newManifest = yield this.getManifestFor(aManifestURL);
+    app.downloading = false;
+    app.downloadAvailable = false;
+    app.downloadSize = 0;
+    app.installState = "installed";
+    app.readyToApplyDownload = false;
+
+    
+    if (app.staged) {
+      for (let prop in app.staged) {
+        app[prop] = app.staged[prop];
       }
+      delete app.staged;
+    }
 
-      try {
-        tmpDir.remove(true);
-      } catch(e) { }
+    delete app.retryingDownload;
 
-      
-      if (id in this._manifestCache) {
-        delete this._manifestCache[id];
-      }
+    
+    yield ScriptPreloader.preload(app, newManifest);
+    yield this._saveApps();
+    
+    this.updateAppHandlers(oldManifest, newManifest, app);
 
-      
-      
-      let zipFile = dir.clone();
-      zipFile.append("application.zip");
-      Services.obs.notifyObservers(zipFile, "flush-cache-entry", null);
+    let updateManifest = yield AppsUtils.loadJSONAsync(staged.path);
+    let appObject = AppsUtils.cloneAppObject(app);
+    appObject.updateManifest = updateManifest;
+    this.notifyUpdateHandlers(appObject, newManifest, appFile.path);
 
-      
-      this.getManifestFor(aManifestURL).then((aData) => {
-        app.downloading = false;
-        app.downloadAvailable = false;
-        app.downloadSize = 0;
-        app.installState = "installed";
-        app.readyToApplyDownload = false;
-
-        
-        if (app.staged) {
-          for (let prop in app.staged) {
-            app[prop] = app.staged[prop];
-          }
-          delete app.staged;
-        }
-
-        delete app.retryingDownload;
-
-        
-        ScriptPreloader.preload(app, aData)
-          .then(() => this._saveApps()).then(() => {
-          
-          this.updateAppHandlers(aOldManifest, aData, app);
-
-          AppsUtils.loadJSONAsync(staged.path).then((aUpdateManifest) => {
-            let appObject = AppsUtils.cloneAppObject(app);
-            appObject.updateManifest = aUpdateManifest;
-            this.notifyUpdateHandlers(appObject, aData, appFile.path);
-          });
-
-          if (supportUseCurrentProfile()) {
-            PermissionsInstaller.installPermissions(
-              { manifest: aData,
-                origin: app.origin,
-                manifestURL: app.manifestURL },
-              true);
-          }
-          this.updateDataStore(this.webapps[id].localId, app.origin,
-                               app.manifestURL, aData, app.appStatus);
-          this.broadcastMessage("Webapps:UpdateState", {
-            app: app,
-            manifest: aData,
-            manifestURL: app.manifestURL
-          });
-          this.broadcastMessage("Webapps:FireEvent", {
-            eventType: "downloadapplied",
-            manifestURL: app.manifestURL
-          });
-        });
-      });
+    if (supportUseCurrentProfile()) {
+      PermissionsInstaller.installPermissions(
+        { manifest: newManifest,
+          origin: app.origin,
+          manifestURL: app.manifestURL },
+        true);
+    }
+    this.updateDataStore(this.webapps[id].localId, app.origin,
+                         app.manifestURL, newManifest, app.appStatus);
+    this.broadcastMessage("Webapps:UpdateState", {
+      app: app,
+      manifest: newManifest,
+      manifestURL: app.manifestURL
     });
-  },
+    this.broadcastMessage("Webapps:FireEvent", {
+      eventType: "downloadapplied",
+      manifestURL: app.manifestURL
+    });
+  }),
 
   startOfflineCacheDownload: function(aManifest, aApp, aProfileDir, aIsUpdate) {
     if (!aManifest.appcache_path) {
@@ -2777,8 +2776,10 @@ this.DOMApplicationRegistry = {
         debug("package's etag or hash unchanged; sending 'applied' event");
         
         
+        
+        
         this._sendAppliedEvent(aNewApp, oldApp, id);
-        return;
+        throw new Error("PACKAGE_UNCHANGED");
       }
 
       let newManifest = yield this._openAndReadPackage(zipFile, oldApp, aNewApp,
@@ -3491,6 +3492,8 @@ this.DOMApplicationRegistry = {
       });
     });
     AppDownloadManager.remove(aNewApp.manifestURL);
+
+    throw aError;
   },
 
   doUninstall: function(aData, aMm) {
