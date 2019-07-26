@@ -683,15 +683,18 @@ public:
   ~nsFrameConstructorSaveState();
 
 private:
-  nsAbsoluteItems* mItems;                
-  bool*    mFixedPosIsAbsPos;
-
-  nsAbsoluteItems  mSavedItems;           
-  bool             mSavedFixedPosIsAbsPos;
+  nsAbsoluteItems* mItems;      
+  nsAbsoluteItems  mSavedItems; 
 
   
   ChildListID mChildListID;
   nsFrameConstructorState* mState;
+
+  
+  
+  nsAbsoluteItems mSavedFixedItems;
+
+  bool mSavedFixedPosIsAbsPos;
 
   friend class nsFrameConstructorState;
 };
@@ -777,6 +780,8 @@ public:
                           nsIFrame*              aFloatContainingBlock);
 
   ~nsFrameConstructorState();
+  
+  
   
   
   
@@ -1027,10 +1032,14 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
   aSaveState.mSavedItems = mAbsoluteItems;
   aSaveState.mChildListID = nsIFrame::kAbsoluteList;
   aSaveState.mState = this;
-
-  
-  aSaveState.mFixedPosIsAbsPos = &mFixedPosIsAbsPos;
   aSaveState.mSavedFixedPosIsAbsPos = mFixedPosIsAbsPos;
+
+  if (mFixedPosIsAbsPos) {
+    
+    
+    aSaveState.mSavedFixedItems = mFixedItems;
+    mFixedItems = mAbsoluteItems;
+  }
 
   mAbsoluteItems = 
     nsAbsoluteItems(AdjustAbsoluteContainingBlock(aNewAbsoluteContainingBlock));
@@ -1235,7 +1244,13 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
 
   NS_ASSERTION(containingBlock,
                "Child list without containing block?");
-  
+
+  if (aChildListID == nsIFrame::kFixedList &&
+      containingBlock->GetStyleDisplay()->HasTransform(containingBlock)) {
+    
+    aChildListID = nsIFrame::kAbsoluteList;
+  }
+
   
   
   
@@ -1299,11 +1314,11 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
 
 nsFrameConstructorSaveState::nsFrameConstructorSaveState()
   : mItems(nullptr),
-    mFixedPosIsAbsPos(nullptr),
     mSavedItems(nullptr),
-    mSavedFixedPosIsAbsPos(false),
     mChildListID(kPrincipalList),
-    mState(nullptr)
+    mState(nullptr),
+    mSavedFixedItems(nullptr),
+    mSavedFixedPosIsAbsPos(false)
 {
 }
 
@@ -1319,9 +1334,20 @@ nsFrameConstructorSaveState::~nsFrameConstructorSaveState()
     
     mSavedItems.Clear();
 #endif
-  }
-  if (mFixedPosIsAbsPos) {
-    *mFixedPosIsAbsPos = mSavedFixedPosIsAbsPos;
+    if (mItems == &mState->mAbsoluteItems) {
+      mState->mFixedPosIsAbsPos = mSavedFixedPosIsAbsPos;
+      if (mSavedFixedPosIsAbsPos) {
+        
+        
+        mState->mAbsoluteItems = mState->mFixedItems;
+        mState->mFixedItems = mSavedFixedItems;
+#ifdef DEBUG
+        mSavedFixedItems.Clear();
+#endif
+      }
+    }
+    NS_ASSERTION(!mItems->LastChild() || !mItems->LastChild()->GetNextSibling(),
+                 "Something corrupted our list");
   }
 }
 
@@ -5614,6 +5640,21 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
 }
 
 nsIFrame*
+nsCSSFrameConstructor::GetFixedContainingBlock(nsIFrame* aFrame)
+{
+  NS_PRECONDITION(nullptr != mRootElementFrame, "no root element frame");
+
+  
+  for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
+    if (frame->GetStyleDisplay()->HasTransform(frame)) {
+      return frame;
+    }
+  }
+
+  return mFixedContainingBlock;
+}
+
+nsIFrame*
 nsCSSFrameConstructor::GetFloatContainingBlock(nsIFrame* aFrame)
 {
   
@@ -6607,7 +6648,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                                         &parentAfterFrame);
   
   
-  nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+  nsFrameConstructorState state(mPresShell, GetFixedContainingBlock(parentFrame),
                                 GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame));
   state.mTreeMatchContext.InitAncestors(aContainer->AsElement());
@@ -7042,7 +7083,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     return rv;
   }
 
-  nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+  nsFrameConstructorState state(mPresShell, GetFixedContainingBlock(parentFrame),
                                 GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame),
                                 aFrameState);
