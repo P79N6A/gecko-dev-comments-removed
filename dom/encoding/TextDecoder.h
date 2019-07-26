@@ -5,21 +5,14 @@
 #ifndef mozilla_dom_textdecoder_h_
 #define mozilla_dom_textdecoder_h_
 
-#include "jsapi.h"
-#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/TextDecoderBase.h"
 #include "mozilla/dom/TextDecoderBinding.h"
-#include "mozilla/dom/TypedArray.h"
-#include "mozilla/ErrorResult.h"
-#include "nsIUnicodeDecoder.h"
-#include "nsString.h"
-
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 
 namespace mozilla {
 namespace dom {
 
-class TextDecoder : public nsISupports, public nsWrapperCache
+class TextDecoder MOZ_FINAL
+  : public nsISupports, public nsWrapperCache, public TextDecoderBase
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -29,11 +22,11 @@ public:
   static already_AddRefed<TextDecoder>
   Constructor(nsISupports* aGlobal,
               const nsAString& aEncoding,
-              const TextDecoderOptions& aFatal,
+              const TextDecoderOptions& aOptions,
               ErrorResult& aRv)
   {
     nsRefPtr<TextDecoder> txtDecoder = new TextDecoder(aGlobal);
-    txtDecoder->Init(aEncoding, aFatal, aRv);
+    txtDecoder->Init(aEncoding, aOptions.mFatal, aRv);
     if (aRv.Failed()) {
       return nullptr;
     }
@@ -41,7 +34,7 @@ public:
   }
 
   TextDecoder(nsISupports* aGlobal)
-    : mGlobal(aGlobal), mFatal(false)
+    : mGlobal(aGlobal)
   {
     MOZ_ASSERT(aGlobal);
     SetIsDOMBinding();
@@ -52,7 +45,7 @@ public:
   {}
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap)
+  WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap) MOZ_OVERRIDE
   {
     return TextDecoderBinding::Wrap(aCx, aScope, this, aTriedToWrap);
   }
@@ -63,53 +56,16 @@ public:
     return mGlobal;
   }
 
-  
-
-
-
-
-  void GetEncoding(nsAString& aEncoding);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   void Decode(const ArrayBufferView* aView,
               const TextDecodeOptions& aOptions,
               nsAString& aOutDecodedString,
-              ErrorResult& aRv);
+              ErrorResult& aRv) {
+    return TextDecoderBase::Decode(aView, aOptions.mStream,
+                                   aOutDecodedString, aRv);
+  }
 
 private:
-  nsCString mEncoding;
-  nsCOMPtr<nsIUnicodeDecoder> mDecoder;
   nsCOMPtr<nsISupports> mGlobal;
-  bool mFatal;
-
-  
-
-
-
-
-
-
-
-
-
-  void Init(const nsAString& aEncoding,
-            const TextDecoderOptions& aFatal,
-            ErrorResult& aRv);
 };
 
 } 

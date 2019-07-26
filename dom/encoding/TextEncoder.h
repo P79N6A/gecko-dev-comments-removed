@@ -5,21 +5,14 @@
 #ifndef mozilla_dom_textencoder_h_
 #define mozilla_dom_textencoder_h_
 
-#include "jsapi.h"
-#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/TextEncoderBase.h"
 #include "mozilla/dom/TextEncoderBinding.h"
-#include "mozilla/dom/TypedArray.h"
-#include "mozilla/ErrorResult.h"
-#include "nsIUnicodeEncoder.h"
-#include "nsString.h"
-
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 
 namespace mozilla {
 namespace dom {
 
-class TextEncoder : public nsISupports, public nsWrapperCache
+class TextEncoder MOZ_FINAL
+  : public nsISupports, public nsWrapperCache, public TextEncoderBase
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -51,7 +44,7 @@ public:
   {}
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap)
+  WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap) MOZ_OVERRIDE
   {
     return TextEncoderBinding::Wrap(aCx, aScope, this, aTriedToWrap);
   }
@@ -62,44 +55,23 @@ public:
     return mGlobal;
   }
 
-  
-
-
-
-
-  void GetEncoding(nsAString& aEncoding);
-
-  
-
-
-
-
-
-
-
-
-
-
   JSObject* Encode(JSContext* aCx,
                    const nsAString& aString,
                    const TextEncodeOptions& aOptions,
-                   ErrorResult& aRv);
+                   ErrorResult& aRv) {
+    return TextEncoderBase::Encode(aCx, aString, aOptions.mStream, aRv);
+  }
+
+protected:
+  virtual JSObject*
+  CreateUint8Array(JSContext* aCx, char* aBuf, uint32_t aLen) MOZ_OVERRIDE
+  {
+    return Uint8Array::Create(aCx, this, aLen,
+                              reinterpret_cast<uint8_t*>(aBuf));
+  }
+
 private:
-  nsCString mEncoding;
-  nsCOMPtr<nsIUnicodeEncoder> mEncoder;
   nsCOMPtr<nsISupports> mGlobal;
-
-  
-
-
-
-
-
-
-
-
-  void Init(const nsAString& aEncoding,
-            ErrorResult& aRv);
 };
 
 } 

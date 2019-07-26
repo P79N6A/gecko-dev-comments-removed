@@ -14,9 +14,8 @@ namespace dom {
 static const PRUnichar kReplacementChar = static_cast<PRUnichar>(0xFFFD);
 
 void
-TextDecoder::Init(const nsAString& aEncoding,
-                  const TextDecoderOptions& aFatal,
-                  ErrorResult& aRv)
+TextDecoderBase::Init(const nsAString& aEncoding, const bool aFatal,
+                      ErrorResult& aRv)
 {
   nsAutoString label(aEncoding);
   EncodingUtils::TrimSpaceCharacters(label);
@@ -31,7 +30,7 @@ TextDecoder::Init(const nsAString& aEncoding,
   
   
   
-  mFatal = aFatal.mFatal;
+  mFatal = aFatal;
 
   
   nsCOMPtr<nsICharsetConverterManager> ccm =
@@ -53,10 +52,10 @@ TextDecoder::Init(const nsAString& aEncoding,
 }
 
 void
-TextDecoder::Decode(const ArrayBufferView* aView,
-                    const TextDecodeOptions& aOptions,
-                    nsAString& aOutDecodedString,
-                    ErrorResult& aRv)
+TextDecoderBase::Decode(const ArrayBufferView* aView,
+                        const bool aStream,
+                        nsAString& aOutDecodedString,
+                        ErrorResult& aRv)
 {
   const char* data;
   int32_t length;
@@ -94,7 +93,7 @@ TextDecoder::Decode(const ArrayBufferView* aView,
 
   
   
-  if (!aOptions.mStream) {
+  if (!aStream) {
     mDecoder->Reset();
     if (rv == NS_OK_UDEC_MOREINPUT) {
       if (mFatal) {
@@ -113,7 +112,7 @@ TextDecoder::Decode(const ArrayBufferView* aView,
 }
 
 void
-TextDecoder::GetEncoding(nsAString& aEncoding)
+TextDecoderBase::GetEncoding(nsAString& aEncoding)
 {
   CopyASCIItoUTF16(mEncoding, aEncoding);
   nsContentUtils::ASCIIToLower(aEncoding);
