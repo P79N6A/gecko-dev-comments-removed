@@ -30,9 +30,6 @@
 #include "mozilla/layers/PCompositorChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/Preferences.h"
-#ifdef MOZ_CONTENT_SANDBOX
-#include "mozilla/Sandbox.h"
-#endif
 #include "mozilla/unused.h"
 
 #include "nsIMemoryReporter.h"
@@ -549,13 +546,6 @@ ContentChild::RecvSetProcessPrivileges(const ChildPrivileges& aPrivs)
                           aPrivs;
   
   SetCurrentProcessPrivileges(privs);
-#ifdef MOZ_CONTENT_SANDBOX
-  
-  
-  
-  
-  SetCurrentProcessSandbox();
-#endif
   return true;
 }
 
