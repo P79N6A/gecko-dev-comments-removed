@@ -861,6 +861,8 @@ pref("browser.sessionstore.upgradeBackup.latestBuildID", "");
 
 pref("browser.sessionstore.debug", false);
 
+pref("browser.sessionstore.async", true);
+
 
 pref("accessibility.blockautorefresh", false);
 

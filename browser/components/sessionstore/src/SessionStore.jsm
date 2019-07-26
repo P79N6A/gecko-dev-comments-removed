@@ -277,6 +277,10 @@ this.SessionStore = {
     return SessionStoreInternal.getCurrentState(aUpdateAll);
   },
 
+  fillTabCachesAsynchronously: function () {
+    return SessionStoreInternal.fillTabCachesAsynchronously();
+  },
+
   
 
 
@@ -1881,6 +1885,68 @@ let SessionStoreInternal = {
     }
 
     return [true, canOverwriteTabs];
+  },
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  fillTabCachesAsynchronously: function () {
+    let countdown = 0;
+    let deferred = Promise.defer();
+    let activeWindow = this._getMostRecentBrowserWindow();
+
+    
+    
+    function done() {
+      if (--countdown === 0) {
+        deferred.resolve();
+      }
+    }
+
+    
+    
+    function fail(reason) {
+      debug("Failed collecting tab data asynchronously: " + reason);
+      done();
+    }
+
+    this._forEachBrowserWindow(win => {
+      if (!this._isWindowLoaded(win)) {
+        
+        return;
+      }
+
+      if (!DirtyWindows.has(win) && win != activeWindow) {
+        
+        return;
+      }
+
+      for (let tab of win.gBrowser.tabs) {
+        if (!TabStateCache.has(tab)) {
+          countdown++;
+          TabState.collect(tab).then(done, fail);
+        }
+      }
+    });
+
+    
+    
+    if (countdown == 0) {
+      return Promise.resolve();
+    }
+
+    return deferred.promise;
   },
 
   
