@@ -10,7 +10,7 @@ var actual = '';
 var expect = '';
 
 
-window.SpecialPowers = null;
+if (this.window) window.SpecialPowers = null;
 
 
 test();
