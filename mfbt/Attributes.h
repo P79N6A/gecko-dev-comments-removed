@@ -159,12 +159,19 @@
 
 
 
+
 #if defined(__has_feature)
 #  if __has_feature(address_sanitizer)
-#    define MOZ_ASAN_BLACKLIST MOZ_NEVER_INLINE __attribute__((no_sanitize_address))
-#  else
-#    define MOZ_ASAN_BLACKLIST
+#    define MOZ_HAVE_ASAN_BLACKLIST
 #  endif
+#elif defined(__GNUC__)
+#  if defined(__SANITIZE_ADDRESS__)
+#    define MOZ_HAVE_ASAN_BLACKLIST
+#  endif
+#endif
+
+#if defined(MOZ_HAVE_ASAN_BLACKLIST)
+#  define MOZ_ASAN_BLACKLIST MOZ_NEVER_INLINE __attribute__((no_sanitize_address))
 #else
 #  define MOZ_ASAN_BLACKLIST
 #endif
