@@ -1393,10 +1393,7 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
   }
 
   
-#ifdef DEBUG
-  nsresult rv =
-#endif
-    StealFrame(aPresContext, aNextInFlow);
+  DebugOnly<nsresult> rv = StealFrame(aPresContext, aNextInFlow);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failure");
 
 #ifdef DEBUG
