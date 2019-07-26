@@ -402,8 +402,8 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     bool maybeParseDirective(Node pn, bool *cont);
 
     
-    Node standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals, HandleScript script,
-                                Node fn, FunctionBox **funbox, bool strict,
+    Node standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals,
+                                HandleScript script, Node fn, bool strict,
                                 bool *becameStrict = NULL);
 
     
