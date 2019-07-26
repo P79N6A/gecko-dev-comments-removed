@@ -17,7 +17,6 @@
 #include "nsIDNSListener.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "mozilla/net/DNS.h"
 #include "mozilla/net/DashboardTypes.h"
 
 class nsHostResolver;
@@ -70,8 +69,8 @@ public:
 
     Mutex        addr_info_lock;
     int          addr_info_gencnt; 
-    mozilla::net::AddrInfo *addr_info;
-    mozilla::net::NetAddr  *addr;
+    PRAddrInfo  *addr_info;
+    PRNetAddr   *addr;
     bool         negative;   
 
 
@@ -82,9 +81,9 @@ public:
     bool HasResult() const { return addr_info || addr || negative; }
 
     
-    bool   Blacklisted(mozilla::net::NetAddr *query);
+    bool Blacklisted(PRNetAddr *query);
     void   ResetBlacklist();
-    void   ReportUnusable(mozilla::net::NetAddr *addr);
+    void   ReportUnusable(PRNetAddr *addr);
 
 private:
     friend class nsHostResolver;
@@ -239,7 +238,7 @@ private:
     nsresult Init();
     nsresult IssueLookup(nsHostRecord *);
     bool     GetHostToLookup(nsHostRecord **m);
-    void     OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
+    void     OnLookupComplete(nsHostRecord *, nsresult, PRAddrInfo *);
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
     nsresult ConditionallyCreateThread(nsHostRecord *rec);
