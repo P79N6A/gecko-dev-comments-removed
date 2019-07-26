@@ -93,6 +93,15 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     private final LayerMarginsAnimator mMarginsAnimator;
     private LayerView mView;
 
+    
+
+
+
+
+
+
+    private volatile boolean mContentDocumentIsDisplayed;
+
     public GeckoLayerClient(Context context, LayerView view, EventDispatcher eventDispatcher) {
         
         
@@ -120,6 +129,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         mMarginsAnimator = new LayerMarginsAnimator(this, view);
         mView = view;
         mView.setListener(this);
+        mContentDocumentIsDisplayed = true;
     }
 
     
@@ -414,6 +424,16 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     }
 
     
+    void contentDocumentChanged() {
+        mContentDocumentIsDisplayed = false;
+    }
+
+    
+    boolean isContentDocumentDisplayed() {
+        return mContentDocumentIsDisplayed;
+    }
+
+    
     
     
     
@@ -579,6 +599,8 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         }
         DisplayPortCalculator.resetPageState();
         mDrawTimingQueue.reset();
+
+        mContentDocumentIsDisplayed = true;
     }
 
     
