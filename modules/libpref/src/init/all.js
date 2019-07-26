@@ -4088,6 +4088,8 @@ pref("layers.offmainthreadcomposition.async-animations", false);
 
 pref("layers.prefer-memory-over-shmem", true);
 
+pref("layers.bufferrotation.enabled", true);
+
 #ifdef MOZ_X11
 #ifdef MOZ_WIDGET_GTK2
 pref("gfx.xrender.enabled",true);

@@ -26,36 +26,6 @@ class ThebesLayerD3D9;
 
 
 
-
-
-
-struct ShaderConstantRect
-{
-  float mX, mY, mWidth, mHeight;
-
-  
-  
-  ShaderConstantRect(float aX, float aY, float aWidth, float aHeight)
-    : mX(aX), mY(aY), mWidth(aWidth), mHeight(aHeight)
-  { }
-
-  ShaderConstantRect(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight)
-    : mX((float)aX), mY((float)aY)
-    , mWidth((float)aWidth), mHeight((float)aHeight)
-  { }
-
-  ShaderConstantRect(int32_t aX, int32_t aY, float aWidth, float aHeight)
-    : mX((float)aX), mY((float)aY), mWidth(aWidth), mHeight(aHeight)
-  { }
-
-  
-  operator float* () { return &mX; }
-};
-
-
-
-
-
 class LayerManagerD3D9 : public LayerManager {
 public:
   LayerManagerD3D9(nsIWidget *aWidget);

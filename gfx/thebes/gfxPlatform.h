@@ -471,8 +471,14 @@ public:
     static bool GetPrefLayersAccelerationDisabled();
     static bool GetPrefLayersPreferOpenGL();
     static bool GetPrefLayersPreferD3D9();
+    static bool CanUseDirect3D9();
     static int  GetPrefLayoutFrameRate();
 
+    
+
+
+    static bool BufferRotationEnabled();
+    static void DisableBufferRotation();
     
 
 
