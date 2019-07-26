@@ -2606,7 +2606,8 @@ GLContextProviderEGL::GetGlobalContext(const ContextFlags)
 {
 
 
-#ifdef MOZ_ANDROID_OMTC
+
+#ifdef ANDROID
     return nullptr;
 #endif
 
