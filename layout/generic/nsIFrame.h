@@ -511,10 +511,10 @@ void NS_MergeReflowStatusInto(nsReflowStatus* aPrimary,
 
 
 
-typedef bool nsDidReflowStatus;
-
-#define NS_FRAME_REFLOW_NOT_FINISHED false
-#define NS_FRAME_REFLOW_FINISHED     true
+enum nsDidReflowStatus {
+  NS_FRAME_REFLOW_NOT_FINISHED,
+  NS_FRAME_REFLOW_FINISHED
+};
 
 
 
