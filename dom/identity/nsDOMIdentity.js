@@ -10,6 +10,11 @@ const PREF_DEBUG = "toolkit.identity.debug";
 const PREF_ENABLED = "dom.identity.enabled";
 
 
+
+
+const PREF_SYNTHETIC_EVENTS_OK = "dom.identity.syntheticEventsOk";
+
+
 const MAX_STRING_LENGTH = 2048;
 
 const MAX_RP_CALLS = 100;
@@ -48,6 +53,13 @@ nsDOMIdentity.prototype = {
   },
 
   
+  get nativeEventsRequired() {
+    if (Services.prefs.prefHasUserValue(PREF_SYNTHETIC_EVENTS_OK)) {
+      return !Services.prefs.getBoolPref(PREF_SYNTHETIC_EVENTS_OK);
+    }
+    return true;
+  },
+
   
 
 
@@ -115,7 +127,8 @@ nsDOMIdentity.prototype = {
     
     
     
-    if (!util.isHandlingUserInput && !aOptions._internal) {
+    if (this.nativeEventsRequired && !util.isHandlingUserInput && !aOptions._internal) {
+      this._log("request: rejecting non-native event");
       return;
     }
 
