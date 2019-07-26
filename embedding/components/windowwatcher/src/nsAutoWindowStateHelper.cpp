@@ -19,19 +19,23 @@ using namespace mozilla::dom;
 
 
 
-nsAutoWindowStateHelper::nsAutoWindowStateHelper(nsPIDOMWindow *aWindow)
+nsAutoWindowStateHelper::nsAutoWindowStateHelper(nsIDOMWindow *aWindow)
   : mWindow(aWindow),
     mDefaultEnabled(DispatchEventToChrome("DOMWillOpenModalDialog"))
 {
-  if (mWindow) {
-    mWindow->EnterModalState();
+  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aWindow));
+
+  if (window) {
+    window->EnterModalState();
   }
 }
 
 nsAutoWindowStateHelper::~nsAutoWindowStateHelper()
 {
-  if (mWindow) {
-    mWindow->LeaveModalState();
+  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mWindow));
+
+  if (window) {
+    window->LeaveModalState();
   }
 
   if (mDefaultEnabled) {
@@ -42,15 +46,14 @@ nsAutoWindowStateHelper::~nsAutoWindowStateHelper()
 bool
 nsAutoWindowStateHelper::DispatchEventToChrome(const char *aEventName)
 {
-  
-  
-  if (!mWindow) {
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mWindow);
+  if (!window || (window->IsInnerWindow() && !window->IsCurrentInnerWindow())) {
     return true;
   }
 
   
   
-  nsIDocument* doc = mWindow->GetExtantDoc();
+  nsIDocument* doc = window->GetExtantDoc();
   if (!doc) {
     return true;
   }
@@ -64,7 +67,7 @@ nsAutoWindowStateHelper::DispatchEventToChrome(const char *aEventName)
   event->SetTrusted(true);
   event->GetInternalNSEvent()->mFlags.mOnlyChromeDispatch = true;
 
-  nsCOMPtr<EventTarget> target = do_QueryInterface(mWindow);
+  nsCOMPtr<EventTarget> target = do_QueryInterface(window);
   bool defaultActionEnabled;
   target->DispatchEvent(event, &defaultActionEnabled);
   return defaultActionEnabled;
