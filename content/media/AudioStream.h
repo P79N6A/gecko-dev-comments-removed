@@ -45,13 +45,17 @@ public:
   void UpdateWritePosition(uint32_t aCount);
   
   
-  uint64_t GetPosition();
+  
+  
+  uint64_t GetPositionUnlocked();
   
   
   uint64_t GetPositionInFrames();
   
   
-  void SetPlaybackRate(double aPlaybackRate);
+  
+  
+  void SetPlaybackRateUnlocked(double aPlaybackRate);
   
   
   double GetPlaybackRate();
@@ -280,14 +284,19 @@ public:
   int GetOutChannels() { return mOutChannels; }
 
   
-  nsresult EnsureTimeStretcherInitialized();
-  
   
   nsresult SetPlaybackRate(double aPlaybackRate);
   
   nsresult SetPreservesPitch(bool aPreservesPitch);
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
+
+protected:
+  friend class AudioClock;
+
+  
+  
+  int64_t GetPositionInFramesUnlocked();
 
 private:
   friend class AudioInitTask;
@@ -324,10 +333,6 @@ private:
   long GetUnprocessed(void* aBuffer, long aFrames, int64_t &aTime);
   long GetTimeStretched(void* aBuffer, long aFrames, int64_t &aTime);
   long GetUnprocessedWithSilencePadding(void* aBuffer, long aFrames, int64_t &aTime);
-
-  
-  
-  int64_t GetPositionInFramesUnlocked();
 
   int64_t GetLatencyInFrames();
   void GetBufferInsertTime(int64_t &aTimeMs);
