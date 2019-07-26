@@ -3018,6 +3018,15 @@ WebGLContext::CompileShader(WebGLShader *shader)
         
         resources.FragmentPrecisionHigh = mDisableFragHighP ? 0 : 1;
 
+        if (gl->WorkAroundDriverBugs()) {
+#ifdef XP_MACOSX
+            if (gl->Vendor() == gl::GLContext::VendorNVIDIA) {
+                
+                resources.MaxExpressionComplexity = 1000;
+            }
+#endif
+        }
+
         
         
         
@@ -3098,6 +3107,10 @@ WebGLContext::CompileShader(WebGLShader *shader)
         int compileOptions = SH_ATTRIBUTES_UNIFORMS |
                              SH_ENFORCE_PACKING_RESTRICTIONS;
 
+        if (resources.MaxExpressionComplexity > 0) {
+            compileOptions |= SH_LIMIT_EXPRESSION_COMPLEXITY;
+        }
+
         
 #ifndef XP_MACOSX 
                   
@@ -3107,6 +3120,7 @@ WebGLContext::CompileShader(WebGLShader *shader)
         if (useShaderSourceTranslation) {
             compileOptions |= SH_OBJECT_CODE
                             | SH_MAP_LONG_VARIABLE_NAMES;
+
 #ifdef XP_MACOSX
             if (gl->WorkAroundDriverBugs()) {
                 
