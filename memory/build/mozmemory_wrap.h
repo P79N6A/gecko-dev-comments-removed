@@ -213,6 +213,15 @@
 #endif
 
 
+#ifdef ANDROID
+
+
+
+#define vasprintf_impl  mozmem_dup_impl(vasprintf)
+#define asprintf_impl   mozmem_dup_impl(asprintf)
+#endif
+
+
 #define jemalloc_stats_impl              mozmem_jemalloc_impl(jemalloc_stats)
 #define jemalloc_purge_freed_pages_impl  mozmem_jemalloc_impl(jemalloc_purge_freed_pages)
 #define jemalloc_free_dirty_pages_impl   mozmem_jemalloc_impl(jemalloc_free_dirty_pages)
