@@ -232,15 +232,26 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mFrames.FirstChild());
   }
 
-  
-  
-  nsHTMLReflowState reflowState(aReflowState);
-#ifdef DEBUG
-  nsPoint offset =
-#endif
-    AdjustReflowStateForScrollbars(&reflowState);
-
   if (IsAbsoluteContainer()) {
+    
+    
+    nsHTMLReflowState reflowState(aReflowState);
+
+    if (reflowState.availableHeight == NS_UNCONSTRAINEDSIZE) {
+      
+      
+      reflowState.availableHeight = aDesiredSize.height;
+      
+      NS_ASSERTION(reflowState.mComputedBorderPadding == nsMargin(0,0,0,0),
+                   "Viewports can't have border/padding");
+      reflowState.SetComputedHeight(aDesiredSize.height);
+    }
+
+#ifdef DEBUG
+    nsPoint offset =
+#endif
+      AdjustReflowStateForScrollbars(&reflowState);
+
     NS_ASSERTION(GetAbsoluteContainingBlock()->GetChildList().IsEmpty() ||
                  (offset.x == 0 && offset.y == 0),
                  "We don't handle correct positioning of fixed frames with "
