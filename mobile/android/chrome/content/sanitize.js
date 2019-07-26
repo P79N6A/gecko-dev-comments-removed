@@ -12,48 +12,6 @@ Sanitizer.prototype = {
       this.items[aItemName].clear();
   },
 
-  canClearItem: function (aItemName)
-  {
-    return this.items[aItemName].canClear;
-  },
-
-  _prefDomain: "privacy.item.",
-  getNameFromPreference: function (aPreferenceName)
-  {
-    return aPreferenceName.substr(this._prefDomain.length);
-  },
-
-  
-
-
-
-
-
-  sanitize: function ()
-  {
-    var branch = Services.prefs.getBranch(this._prefDomain);
-    var errors = null;
-    for (var itemName in this.items) {
-      var item = this.items[itemName];
-      if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) {
-        
-        
-        
-        
-        
-        try {
-          item.clear();
-        } catch(er) {
-          if (!errors)
-            errors = {};
-          errors[itemName] = er;
-          dump("Error sanitizing " + itemName + ": " + er + "\n");
-        }
-      }
-    }
-    return errors;
-  },
-
   items: {
     cache: {
       clear: function ()
@@ -228,56 +186,4 @@ Sanitizer.prototype = {
     }
   }
 };
-
-
-
-Sanitizer.prefDomain          = "privacy.sanitize.";
-Sanitizer.prefShutdown        = "sanitizeOnShutdown";
-Sanitizer.prefDidShutdown     = "didShutdownSanitize";
-
-Sanitizer._prefs = null;
-Sanitizer.__defineGetter__("prefs", function()
-{
-  return Sanitizer._prefs ? Sanitizer._prefs
-    : Sanitizer._prefs = Cc["@mozilla.org/preferences-service;1"]
-                         .getService(Ci.nsIPrefService)
-                         .getBranch(Sanitizer.prefDomain);
-});
-
-
-
-
-
-
-
-
-Sanitizer.sanitize = function()
-{
-  return new Sanitizer().sanitize();
-};
-
-Sanitizer.onStartup = function()
-{
-  
-  Sanitizer._checkAndSanitize();
-};
-
-Sanitizer.onShutdown = function()
-{
-  
-  Sanitizer._checkAndSanitize();
-};
-
-
-Sanitizer._checkAndSanitize = function()
-{
-  const prefs = Sanitizer.prefs;
-  if (prefs.getBoolPref(Sanitizer.prefShutdown) &&
-      !prefs.prefHasUserValue(Sanitizer.prefDidShutdown)) {
-    
-    Sanitizer.sanitize() || 
-      prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
-  }
-};
-
 
