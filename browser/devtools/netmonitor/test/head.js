@@ -55,9 +55,9 @@ SimpleTest.registerCleanupFunction(() => {
 
 waitForExplicitFinish();
 
-
 const gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
-Services.prefs.setBoolPref("devtools.debugger.log", true);
+
+Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 
 const gDefaultFilters = Services.prefs.getCharPref("devtools.netmonitor.filters");

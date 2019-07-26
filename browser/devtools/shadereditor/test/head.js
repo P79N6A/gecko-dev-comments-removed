@@ -6,10 +6,9 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
-
-
 let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
-Services.prefs.setBoolPref("devtools.debugger.log", true);
+
+Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 let { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});

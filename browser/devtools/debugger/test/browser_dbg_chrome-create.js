@@ -5,9 +5,6 @@
 
 
 
-
-Services.prefs.setBoolPref("devtools.debugger.log", true);
-
 let gProcess;
 
 function test() {
