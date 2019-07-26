@@ -14,21 +14,24 @@
 #include "nsLineBox.h"
 #include "nsLayoutUtils.h"
 
+using namespace mozilla;
+
 #ifdef DEBUG
 #undef  NOISY_MAX_ELEMENT_SIZE
 #undef   REALLY_NOISY_MAX_ELEMENT_SIZE
-#undef  NOISY_VERTICAL_MARGINS
+#undef  NOISY_BLOCK_DIR_MARGINS
 #else
 #undef  NOISY_MAX_ELEMENT_SIZE
 #undef   REALLY_NOISY_MAX_ELEMENT_SIZE
-#undef  NOISY_VERTICAL_MARGINS
+#undef  NOISY_BLOCK_DIR_MARGINS
 #endif
 
 nsBlockReflowContext::nsBlockReflowContext(nsPresContext* aPresContext,
                                            const nsHTMLReflowState& aParentRS)
   : mPresContext(aPresContext),
     mOuterReflowState(aParentRS),
-    mMetrics(aParentRS.GetWritingMode())
+    mSpace(aParentRS.GetWritingMode()),
+    mMetrics(aParentRS)
 {
 }
 
@@ -41,20 +44,23 @@ static nsIFrame* DescendIntoBlockLevelFrame(nsIFrame* aFrame)
 }
 
 bool
-nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
-  nsCollapsingMargin* aMargin, nsIFrame* aClearanceFrame,
-  bool* aMayNeedRetry, bool* aBlockIsEmpty)
+nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
+                                                   nsCollapsingMargin* aMargin,
+                                                   nsIFrame* aClearanceFrame,
+                                                   bool* aMayNeedRetry,
+                                                   bool* aBlockIsEmpty)
 {
+  WritingMode wm = aRS.GetWritingMode();
   
-  aMargin->Include(aRS.ComputedPhysicalMargin().top);
+  aMargin->Include(aRS.ComputedLogicalMargin().BStart(wm));
 
   
   
   
 
-#ifdef NOISY_VERTICAL_MARGINS
+#ifdef NOISY_BLOCKDIR_MARGINS
   nsFrame::ListTag(stdout, aRS.frame);
-  printf(": %d => %d\n", aRS.ComputedPhysicalMargin().top, aMargin->get());
+  printf(": %d => %d\n", aRS.ComputedLogicalMargin().BStart(wm), aMargin->get());
 #endif
 
   bool dirtiedLine = false;
@@ -68,12 +74,12 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
   nsIFrame* frame = DescendIntoBlockLevelFrame(aRS.frame);
   nsPresContext* prescontext = frame->PresContext();
   nsBlockFrame* block = nullptr;
-  if (0 == aRS.ComputedPhysicalBorderPadding().top) {
+  if (0 == aRS.ComputedLogicalBorderPadding().BStart(wm)) {
     block = nsLayoutUtils::GetAsBlock(frame);
     if (block) {
-      bool topMarginRoot, unused;
-      block->IsMarginRoot(&topMarginRoot, &unused);
-      if (topMarginRoot) {
+      bool bStartMarginRoot, unused;
+      block->IsMarginRoot(&bStartMarginRoot, &unused);
+      if (bStartMarginRoot) {
         block = nullptr;
       }
     }
@@ -112,7 +118,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
           line->MarkDirty();
           dirtiedLine = true;
         }
-        
+
         bool isEmpty;
         if (line->IsInline()) {
           isEmpty = line->IsEmpty();
@@ -129,7 +135,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
           
           
           
-          
+
           
           
           
@@ -153,12 +159,18 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
             if (kid->StyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
               *aMayNeedRetry = true;
             }
-            if (ComputeCollapsedTopMargin(innerReflowState, aMargin, aClearanceFrame, aMayNeedRetry, &isEmpty)) {
+            if (ComputeCollapsedBStartMargin(innerReflowState, aMargin,
+                                             aClearanceFrame, aMayNeedRetry,
+                                             &isEmpty)) {
               line->MarkDirty();
               dirtiedLine = true;
             }
-            if (isEmpty)
-              aMargin->Include(innerReflowState.ComputedPhysicalMargin().bottom);
+            if (isEmpty) {
+              WritingMode innerWM = innerReflowState.GetWritingMode();
+              LogicalMargin innerMargin =
+                innerReflowState.ComputedLogicalMargin().ConvertTo(wm, innerWM);
+              aMargin->Include(innerMargin.BEnd(wm));
+            }
           }
           if (outerReflowState != &aRS) {
             delete const_cast<nsHTMLReflowState*>(outerReflowState);
@@ -187,7 +199,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
     *aBlockIsEmpty = aRS.frame->IsEmpty();
   }
   
-#ifdef NOISY_VERTICAL_MARGINS
+#ifdef NOISY_BLOCKDIR_MARGINS
   nsFrame::ListTag(stdout, aRS.frame);
   printf(": => %d\n", aMargin->get());
 #endif
@@ -197,40 +209,43 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
 
 void
 nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
-                                  bool                aApplyTopMargin,
+                                  bool                aApplyBStartMargin,
                                   nsCollapsingMargin& aPrevMargin,
                                   nscoord             aClearance,
-                                  bool                aIsAdjacentWithTop,
+                                  bool                aIsAdjacentWithBStart,
                                   nsLineBox*          aLine,
                                   nsHTMLReflowState&  aFrameRS,
                                   nsReflowStatus&     aFrameReflowStatus,
                                   nsBlockReflowState& aState)
 {
   mFrame = aFrameRS.frame;
-  mSpace = aSpace;
+  mWritingMode = aState.mReflowState.GetWritingMode();
+  mContainerWidth = aState.mContainerWidth;
+  mSpace = LogicalRect(mWritingMode, aSpace, mContainerWidth);
 
-  if (!aIsAdjacentWithTop) {
+  if (!aIsAdjacentWithBStart) {
     aFrameRS.mFlags.mIsTopOfPage = false;  
   }
 
-  if (aApplyTopMargin) {
-    mTopMargin = aPrevMargin;
+  if (aApplyBStartMargin) {
+    mBStartMargin = aPrevMargin;
 
-#ifdef NOISY_VERTICAL_MARGINS
+#ifdef NOISY_BLOCKDIR_MARGINS
     nsFrame::ListTag(stdout, mOuterReflowState.frame);
     printf(": reflowing ");
     nsFrame::ListTag(stdout, mFrame);
-    printf(" margin => %d, clearance => %d\n", mTopMargin.get(), aClearance);
+    printf(" margin => %d, clearance => %d\n", mBStartMargin.get(), aClearance);
 #endif
 
     
     
-    if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableHeight()) {
-      aFrameRS.AvailableHeight() -= mTopMargin.get() + aClearance;
+    if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableBSize()) {
+      aFrameRS.AvailableBSize() -= mBStartMargin.get() + aClearance;
     }
   }
 
-  nscoord tx = 0, ty = 0;
+  nscoord tI = 0, tB = 0;
+  
   
   
   
@@ -240,12 +255,21 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     
     
 
-    mX = tx = mSpace.x + aFrameRS.ComputedPhysicalMargin().left;
-    mY = ty = mSpace.y + mTopMargin.get() + aClearance;
+    WritingMode frameWM = aFrameRS.GetWritingMode();
+    mICoord = tI =
+      mSpace.IStart(mWritingMode) +
+      aFrameRS.ComputedLogicalMargin().ConvertTo(mWritingMode,
+                                                 frameWM).IStart(mWritingMode);
+    mBCoord = tB = mSpace.BStart(mWritingMode) +
+                   mBStartMargin.get() + aClearance;
+
+    
+    tI = aSpace.x + aFrameRS.ComputedPhysicalMargin().left;
+    tB = aSpace.y + mBStartMargin.get() + aClearance;
 
     if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
       aFrameRS.mBlockDelta =
-        mOuterReflowState.mBlockDelta + ty - aLine->BStart();
+        mOuterReflowState.mBlockDelta + mBCoord - aLine->BStart();
   }
 
   
@@ -256,9 +280,9 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
   mMetrics.Height() = nscoord(0xdeadbeef);
 #endif
 
-  mOuterReflowState.mFloatManager->Translate(tx, ty);
+  mOuterReflowState.mFloatManager->Translate(tI, tB);
   mFrame->Reflow(mPresContext, mMetrics, aFrameRS, aFrameReflowStatus);
-  mOuterReflowState.mFloatManager->Translate(-tx, -ty);
+  mOuterReflowState.mFloatManager->Translate(-tI, -tB);
 
 #ifdef DEBUG
   if (!NS_INLINE_IS_BREAK_BEFORE(aFrameReflowStatus)) {
@@ -310,21 +334,21 @@ bool
 nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
                                  bool                      aForceFit,
                                  nsLineBox*                aLine,
-                                 nsCollapsingMargin&       aBottomMarginResult,
+                                 nsCollapsingMargin&       aBEndMarginResult,
                                  nsOverflowAreas&          aOverflowAreas,
-                                 nsReflowStatus            aReflowStatus,
-                                 nscoord                   aContainerWidth)
+                                 nsReflowStatus            aReflowStatus)
 {
   
+  WritingMode wm = aReflowState.GetWritingMode();
+  WritingMode parentWM = mMetrics.GetWritingMode();
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
-    aBottomMarginResult = mMetrics.mCarriedOutBottomMargin;
-    aBottomMarginResult.Include(aReflowState.ComputedPhysicalMargin().bottom);
+    aBEndMarginResult = mMetrics.mCarriedOutBottomMargin;
+    aBEndMarginResult.Include(aReflowState.ComputedLogicalMargin().BEnd(wm));
   } else {
     
-    aBottomMarginResult.Zero();
+    aBEndMarginResult.Zero();
   }
 
-  nsPoint position(mX, mY);
   nscoord backupContainingBlockAdvance = 0;
 
   
@@ -336,19 +360,19 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
   
   
   mFrame->RemoveStateBits(NS_FRAME_IS_DIRTY);
-  bool empty = 0 == mMetrics.Height() && aLine->CachedIsEmpty();
+  bool empty = 0 == mMetrics.BSize(parentWM) && aLine->CachedIsEmpty();
   if (empty) {
     
     
-    aBottomMarginResult.Include(mTopMargin);
+    aBEndMarginResult.Include(mBStartMargin);
 
-#ifdef NOISY_VERTICAL_MARGINS
+#ifdef NOISY_BLOCKDIR_MARGINS
     printf("  ");
     nsFrame::ListTag(stdout, mOuterReflowState.frame);
     printf(": ");
     nsFrame::ListTag(stdout, mFrame);
-    printf(" -- collapsing top & bottom margin together; y=%d spaceY=%d\n",
-           position.y, mSpace.y);
+    printf(" -- collapsing block start & end margin together; BStart=%d spaceBStart=%d\n",
+           mBCoord, mSpace.BStart(mWritingMode));
 #endif
     
     
@@ -367,28 +391,36 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
     
     
     
-    backupContainingBlockAdvance = mTopMargin.get();
+    backupContainingBlockAdvance = mBStartMargin.get();
   }
 
   
   
   
   
-  if (!empty && !aForceFit && mSpace.height != NS_UNCONSTRAINEDSIZE) {
-    nscoord yMost = position.y - backupContainingBlockAdvance + mMetrics.Height();
-    if (yMost > mSpace.YMost()) {
+  if (!empty && !aForceFit &&
+      mSpace.BSize(mWritingMode) != NS_UNCONSTRAINEDSIZE) {
+    nscoord bEnd = mBCoord -
+                   backupContainingBlockAdvance + mMetrics.BSize(mWritingMode);
+    if (bEnd > mSpace.BEnd(mWritingMode)) {
       
-      mFrame->DidReflow(mPresContext, &aReflowState, nsDidReflowStatus::FINISHED);
+      mFrame->DidReflow(mPresContext, &aReflowState,
+                        nsDidReflowStatus::FINISHED);
       return false;
     }
   }
 
-  aLine->SetBounds(aReflowState.GetWritingMode(),
-                   nsRect(position.x,
-                          position.y - backupContainingBlockAdvance,
-                          mMetrics.Width(),
-                          mMetrics.Height()),
-                   aContainerWidth);
+  aLine->SetBounds(mWritingMode,
+                   mICoord, mBCoord - backupContainingBlockAdvance,
+                   mMetrics.ISize(mWritingMode), mMetrics.BSize(mWritingMode),
+                   mContainerWidth);
+
+  
+  nsPoint position = LogicalRect(mWritingMode,
+                                 mICoord, mBCoord,
+                                 mMetrics.ISize(mWritingMode),
+                                 mMetrics.BSize(mWritingMode)).
+                       GetPhysicalPosition(mWritingMode, mContainerWidth);
 
   aReflowState.ApplyRelativePositioning(&position);
 

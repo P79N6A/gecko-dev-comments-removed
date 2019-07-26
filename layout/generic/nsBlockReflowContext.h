@@ -29,10 +29,10 @@ public:
   ~nsBlockReflowContext() { }
 
   void ReflowBlock(const nsRect&       aSpace,
-                   bool                aApplyTopMargin,
+                   bool                aApplyBStartMargin,
                    nsCollapsingMargin& aPrevMargin,
                    nscoord             aClearance,
-                   bool                aIsAdjacentWithTop,
+                   bool                aIsAdjacentWithBStart,
                    nsLineBox*          aLine,
                    nsHTMLReflowState&  aReflowState,
                    nsReflowStatus&     aReflowStatus,
@@ -41,17 +41,12 @@ public:
   bool PlaceBlock(const nsHTMLReflowState& aReflowState,
                   bool                     aForceFit,
                   nsLineBox*               aLine,
-                  nsCollapsingMargin&      aBottomMarginResult ,
+                  nsCollapsingMargin&      aBEndMarginResult ,
                   nsOverflowAreas&         aOverflowAreas,
-                  nsReflowStatus           aReflowStatus,
-                  nscoord                  aContainerWidth);
+                  nsReflowStatus           aReflowStatus);
 
-  nsCollapsingMargin& GetCarriedOutBottomMargin() {
+  nsCollapsingMargin& GetCarriedOutBEndMargin() {
     return mMetrics.mCarriedOutBottomMargin;
-  }
-
-  nscoord GetTopMargin() const {
-    return mTopMargin.get();
   }
 
   const nsHTMLReflowMetrics& GetMetrics() const {
@@ -72,20 +67,26 @@ public:
 
 
 
-  static bool ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
-                                          nsCollapsingMargin* aMargin, nsIFrame* aClearanceFrame,
-                                          bool* aMayNeedRetry, bool* aIsEmpty = nullptr);
+
+
+
+  static bool ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
+                                           nsCollapsingMargin* aMargin,
+                                           nsIFrame* aClearanceFrame,
+                                           bool* aMayNeedRetry,
+                                           bool* aIsEmpty = nullptr);
 
 protected:
   nsPresContext* mPresContext;
   const nsHTMLReflowState& mOuterReflowState;
 
   nsIFrame* mFrame;
-  nsRect mSpace;
+  mozilla::LogicalRect mSpace;
 
-  nscoord mX, mY;
+  nscoord mICoord, mBCoord, mContainerWidth;
+  mozilla::WritingMode mWritingMode;
   nsHTMLReflowMetrics mMetrics;
-  nsCollapsingMargin mTopMargin;
+  nsCollapsingMargin mBStartMargin;
 };
 
 #endif 
