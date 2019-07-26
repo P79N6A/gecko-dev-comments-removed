@@ -1,0 +1,26 @@
+
+
+
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that overlay scrollbars are on top of positioned content</title>
+
+<style>
+
+#outer {
+  width: 200px;
+  height: 200px;
+  overflow: auto;
+}
+
+#content {
+  height: 400px;
+  background: cyan;
+  position: relative;
+  z-index: 1;
+}
+
+</style>
+
+<div id="outer"><div id="content"></div></div>

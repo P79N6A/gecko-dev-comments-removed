@@ -2024,13 +2024,10 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   for (;;) {
     nsDisplayItem* item = set.PositionedDescendants()->GetBottom();
-    if (item) {
-      nsIFrame* f = item->Frame();
-      if (nsLayoutUtils::GetZIndex(f) < 0) {
-        set.PositionedDescendants()->RemoveBottom();
-        resultList.AppendToTop(item);
-        continue;
-      }
+    if (item && item->ZIndex() < 0) {
+      set.PositionedDescendants()->RemoveBottom();
+      resultList.AppendToTop(item);
+      continue;
     }
     break;
   }

@@ -845,6 +845,12 @@ public:
 
 
 
+  virtual int32_t ZIndex() const;
+  
+
+
+
+
 
 
 
@@ -2447,7 +2453,7 @@ public:
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                     nsDisplayItem* aItem, const nsIFrame* aReferenceFrame, const nsPoint& aToReferenceFrame);
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-    : nsDisplayItem(aBuilder, aFrame) {}
+    : nsDisplayItem(aBuilder, aFrame), mOverrideZIndex(0) {}
   virtual ~nsDisplayWrapList();
   
 
@@ -2506,6 +2512,16 @@ public:
   }
   virtual nsDisplayList* GetChildren() MOZ_OVERRIDE { return &mList; }
 
+  virtual int32_t ZIndex() const MOZ_OVERRIDE
+  {
+    return (mOverrideZIndex > 0) ? mOverrideZIndex : nsDisplayItem::ZIndex();
+  }
+
+  void SetOverrideZIndex(int32_t aZIndex)
+  {
+    mOverrideZIndex = aZIndex;
+  }
+
   
 
 
@@ -2549,6 +2565,8 @@ protected:
   
   nsTArray<nsIFrame*> mMergedFrames;
   nsRect mBounds;
+  
+  int32_t mOverrideZIndex;
 };
 
 

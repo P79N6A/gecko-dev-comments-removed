@@ -2496,20 +2496,6 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   return NS_OK;
 }
 
-int32_t
-nsLayoutUtils::GetZIndex(nsIFrame* aFrame) {
-  if (!aFrame->IsPositioned() && !aFrame->IsFlexItem())
-    return 0;
-
-  const nsStylePosition* position =
-    aFrame->StylePosition();
-  if (position->mZIndex.GetUnit() == eStyleUnit_Integer)
-    return position->mZIndex.GetIntValue();
-
-  
-  return 0;
-}
-
 
 
 

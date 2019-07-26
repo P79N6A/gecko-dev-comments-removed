@@ -845,12 +845,6 @@ public:
 
 
 
-  static int32_t GetZIndex(nsIFrame* aFrame);
-
-  
-
-
-
 
 
 
