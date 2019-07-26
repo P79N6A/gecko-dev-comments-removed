@@ -3841,6 +3841,13 @@ pref("browser.zoom.reflowOnZoom", false);
 
 
 
+pref("browser.zoom.reflowZoom.reflowTimeout", 500);
+
+
+
+
+
+
 
 
 
