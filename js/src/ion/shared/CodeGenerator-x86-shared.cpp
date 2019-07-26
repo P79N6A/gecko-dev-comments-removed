@@ -836,32 +836,58 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     Label done;
 
     
-    masm.testl(rhs, rhs);
-    if (ins->mir()->isTruncated()) {
-        Label notzero;
-        masm.j(Assembler::NonZero, &notzero);
-        masm.xorl(edx, edx);
-        masm.jmp(&done);
-        masm.bind(&notzero);
-    } else {
-        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-            return false;
+    if (ins->mir()->canBeDivideByZero()) {
+        masm.testl(rhs, rhs);
+        if (ins->mir()->isTruncated()) {
+            Label notzero;
+            masm.j(Assembler::NonZero, &notzero);
+            masm.xorl(edx, edx);
+            masm.jmp(&done);
+            masm.bind(&notzero);
+        } else {
+            if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+                return false;
+        }
     }
 
     Label negative;
 
     
-    masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
-    
-    {
-        
-        masm.xorl(edx, edx);
-        masm.idiv(rhs);
-        masm.jump(&done);
-    }
+    if (ins->mir()->canBeNegativeDividend())
+        masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
 
     
     {
+        
+        if (ins->mir()->canBePowerOfTwoDivisor()) {
+            JS_ASSERT(rhs != remainder);
+
+            
+            
+            
+            
+            
+            
+            Label notPowerOfTwo;
+            masm.mov(rhs, remainder);
+            masm.subl(Imm32(1), remainder);
+            masm.branchTest32(Assembler::NonZero, remainder, rhs, &notPowerOfTwo);
+            {
+                masm.andl(lhs, remainder);
+                masm.jmp(&done);
+            }
+            masm.bind(&notPowerOfTwo);
+        }
+
+        
+        masm.xorl(edx, edx);
+        masm.idiv(rhs);
+    }
+
+    
+    if (ins->mir()->canBeNegativeDividend()) {
+        masm.jump(&done);
+
         masm.bind(&negative);
 
         

@@ -651,22 +651,26 @@ CodeGeneratorARM::visitModI(LModI *ins)
     
     JS_ASSERT(callTemp.code() > r3.code() && callTemp.code() < r12.code());
     masm.ma_mov(lhs, callTemp);
+
     
     
-    masm.ma_cmp(lhs, Imm32(INT_MIN)); 
-    masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
-    if (mir->isTruncated()) {
-        
-        Label skip;
-        masm.ma_b(&skip, Assembler::NotEqual);
-        masm.ma_mov(Imm32(0), r1);
-        masm.ma_b(&done);
-        masm.bind(&skip);
-    } else {
-        JS_ASSERT(mir->fallible());
-        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-            return false;
+    if (mir->canBeNegativeDividend()) {
+        masm.ma_cmp(lhs, Imm32(INT_MIN)); 
+        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
+        if (mir->isTruncated()) {
+            
+            Label skip;
+            masm.ma_b(&skip, Assembler::NotEqual);
+            masm.ma_mov(Imm32(0), r1);
+            masm.ma_b(&done);
+            masm.bind(&skip);
+        } else {
+            JS_ASSERT(mir->fallible());
+            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+                return false;
+        }
     }
+
     
     
     
