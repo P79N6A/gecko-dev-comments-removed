@@ -294,6 +294,7 @@ pref("media.tabstreaming.time_per_frame", 40);
 
 
 pref("media.webvtt.enabled", true);
+pref("media.webvtt.regions.enabled", false);
 
 
 pref("media.mediasource.enabled", false);
