@@ -75,7 +75,7 @@ class JavaPanZoomController
     private static final float MAX_ZOOM_DELTA = 0.125f;
 
     
-    private static final int BOUNCE_FRAME_NUMBER = 15;
+    private static final int BOUNCE_ANIMATION_DURATION = 250000000;
 
     private enum PanZoomState {
         NOTHING,                
@@ -824,6 +824,11 @@ class JavaPanZoomController
 
     private abstract class PanZoomRenderTask extends RenderTask {
 
+        
+
+
+        protected long mCurrentFrameStartTime;
+
         private final Runnable mRunnable = new Runnable() {
             @Override
             public final void run() {
@@ -841,6 +846,8 @@ class JavaPanZoomController
 
         @Override
         protected final boolean internalRun(long timeDelta, long currentFrameStartTime) {
+
+            mCurrentFrameStartTime = currentFrameStartTime;
 
             mTarget.post(mRunnable);
             return mContinueAnimation;
@@ -887,7 +894,8 @@ class JavaPanZoomController
 
         private ImmutableViewportMetrics mBounceStartMetrics;
         private ImmutableViewportMetrics mBounceEndMetrics;
-        private int mBounceFrame;
+        
+        private long mBounceDuration;
 
         BounceRenderTask(ImmutableViewportMetrics startMetrics, ImmutableViewportMetrics endMetrics) {
             super();
@@ -908,7 +916,8 @@ class JavaPanZoomController
             }
 
             
-            if (mBounceFrame < BOUNCE_FRAME_NUMBER) {
+            mBounceDuration = mCurrentFrameStartTime - getStartTime();
+            if (mBounceDuration < BOUNCE_ANIMATION_DURATION) {
                 advanceBounce();
                 return;
             }
@@ -922,10 +931,9 @@ class JavaPanZoomController
         
         private void advanceBounce() {
             synchronized (mTarget.getLock()) {
-                float t = easeOut(((float)mBounceFrame) / BOUNCE_FRAME_NUMBER);
+                float t = easeOut((float)mBounceDuration / BOUNCE_ANIMATION_DURATION);
                 ImmutableViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
                 mTarget.setViewportMetrics(newMetrics);
-                mBounceFrame++;
             }
         }
 
@@ -933,7 +941,6 @@ class JavaPanZoomController
         private void finishBounce() {
             synchronized (mTarget.getLock()) {
                 mTarget.setViewportMetrics(mBounceEndMetrics);
-                mBounceFrame = -1;
             }
         }
     }
