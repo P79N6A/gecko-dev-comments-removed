@@ -48,12 +48,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 
-function DownloadList() {
+this.DownloadList = function ()
+{
   this._downloads = [];
   this._views = new Set();
 }
 
-DownloadList.prototype = {
+this.DownloadList.prototype = {
   
 
 
@@ -269,7 +270,7 @@ DownloadList.prototype = {
 
 
 
-function DownloadCombinedList(aPublicList, aPrivateList)
+this.DownloadCombinedList = function (aPublicList, aPrivateList)
 {
   DownloadList.call(this);
   this._publicList = aPublicList;
@@ -278,7 +279,7 @@ function DownloadCombinedList(aPublicList, aPrivateList)
   aPrivateList.addView(this).then(null, Cu.reportError);
 }
 
-DownloadCombinedList.prototype = {
+this.DownloadCombinedList.prototype = {
   __proto__: DownloadList.prototype,
 
   
@@ -371,12 +372,13 @@ DownloadCombinedList.prototype = {
 
 
 
-function DownloadSummary() {
+this.DownloadSummary = function ()
+{
   this._downloads = [];
   this._views = new Set();
 }
 
-DownloadSummary.prototype = {
+this.DownloadSummary.prototype = {
   
 
 

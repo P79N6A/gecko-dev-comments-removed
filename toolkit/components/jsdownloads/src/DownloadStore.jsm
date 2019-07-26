@@ -71,13 +71,13 @@ XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function () {
 
 
 
-function DownloadStore(aList, aPath)
+this.DownloadStore = function (aList, aPath)
 {
   this.list = aList;
   this.path = aPath;
 }
 
-DownloadStore.prototype = {
+this.DownloadStore.prototype = {
   
 
 

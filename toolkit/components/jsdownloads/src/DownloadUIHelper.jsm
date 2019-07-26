@@ -106,12 +106,17 @@ XPCOMUtils.defineLazyGetter(DownloadUIHelper, "strings", function () {
 
 
 
-function DownloadPrompter(aParent)
+this.DownloadPrompter = function (aParent)
 {
+#ifdef MOZ_WIDGET_GONK
+  
+  this._prompter = null;
+#else
   this._prompter = Services.ww.getNewPrompter(aParent);
+#endif
 }
 
-DownloadPrompter.prototype = {
+this.DownloadPrompter.prototype = {
   
 
 
@@ -141,6 +146,11 @@ DownloadPrompter.prototype = {
     const kPrefAlertOnEXEOpen = "browser.download.manager.alertOnEXEOpen";
 
     try {
+      
+      if (!this._prompter) {
+        return Promise.resolve(true);
+      }
+
       try {
         if (!Services.prefs.getBoolPref(kPrefAlertOnEXEOpen)) {
           return Promise.resolve(true);
@@ -185,7 +195,8 @@ DownloadPrompter.prototype = {
                                                             aPromptType)
   {
     
-    if (aDownloadsCount <= 0) {
+    
+    if (!this._prompter || aDownloadsCount <= 0) {
       return false;
     }
 

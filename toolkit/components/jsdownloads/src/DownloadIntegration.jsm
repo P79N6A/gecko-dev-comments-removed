@@ -39,8 +39,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
+#ifdef MOZ_PLACES
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
+#endif
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
@@ -1007,6 +1009,7 @@ this.DownloadObserver = {
 
 
 
+#ifdef MOZ_PLACES
 
 
 
@@ -1017,13 +1020,13 @@ this.DownloadObserver = {
 
 
 
-function DownloadHistoryObserver(aList)
+this.DownloadHistoryObserver = function (aList)
 {
   this._list = aList;
   PlacesUtils.history.addObserver(this, false);
 }
 
-DownloadHistoryObserver.prototype = {
+this.DownloadHistoryObserver.prototype = {
   
 
 
@@ -1053,6 +1056,12 @@ DownloadHistoryObserver.prototype = {
   onPageChanged: function () {},
   onDeleteVisits: function () {},
 };
+#else
+
+
+
+this.DownloadHistoryObserver = function (aList) {}
+#endif
 
 
 
@@ -1071,13 +1080,14 @@ DownloadHistoryObserver.prototype = {
 
 
 
-function DownloadAutoSaveView(aList, aStore) {
+this.DownloadAutoSaveView = function (aList, aStore)
+{
   this._list = aList;
   this._store = aStore;
   this._downloadsMap = new Map();
 }
 
-DownloadAutoSaveView.prototype = {
+this.DownloadAutoSaveView.prototype = {
   
 
 

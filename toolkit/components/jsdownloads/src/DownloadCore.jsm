@@ -137,12 +137,12 @@ const kProgressUpdateIntervalMs = 400;
 
 
 
-function Download()
+this.Download = function ()
 {
   this._deferSucceeded = Promise.defer();
 }
 
-Download.prototype = {
+this.Download.prototype = {
   
 
 
@@ -998,9 +998,9 @@ Download.fromSerializable = function (aSerializable) {
 
 
 
-function DownloadSource() { }
+this.DownloadSource = function () {}
 
-DownloadSource.prototype = {
+this.DownloadSource.prototype = {
   
 
 
@@ -1062,7 +1062,7 @@ DownloadSource.prototype = {
 
 
 
-DownloadSource.fromSerializable = function (aSerializable) {
+this.DownloadSource.fromSerializable = function (aSerializable) {
   let source = new DownloadSource();
   if (isString(aSerializable)) {
     
@@ -1093,9 +1093,9 @@ DownloadSource.fromSerializable = function (aSerializable) {
 
 
 
-function DownloadTarget() { }
+this.DownloadTarget = function () {}
 
-DownloadTarget.prototype = {
+this.DownloadTarget.prototype = {
   
 
 
@@ -1141,7 +1141,7 @@ DownloadTarget.prototype = {
 
 
 
-DownloadTarget.fromSerializable = function (aSerializable) {
+this.DownloadTarget.fromSerializable = function (aSerializable) {
   let target = new DownloadTarget();
   if (isString(aSerializable)) {
     
@@ -1184,7 +1184,7 @@ DownloadTarget.fromSerializable = function (aSerializable) {
 
 
 
-function DownloadError(aProperties)
+this.DownloadError = function (aProperties)
 {
   const NS_ERROR_MODULE_BASE_OFFSET = 0x45;
   const NS_ERROR_MODULE_NETWORK = 6;
@@ -1231,7 +1231,7 @@ function DownloadError(aProperties)
   this.stack = new Error().stack;
 }
 
-DownloadError.prototype = {
+this.DownloadError.prototype = {
   __proto__: Error.prototype,
 
   
@@ -1274,9 +1274,9 @@ DownloadError.prototype = {
 
 
 
-function DownloadSaver() { }
+this.DownloadSaver = function () {}
 
-DownloadSaver.prototype = {
+this.DownloadSaver.prototype = {
   
 
 
@@ -1414,7 +1414,7 @@ DownloadSaver.prototype = {
 
 
 
-DownloadSaver.fromSerializable = function (aSerializable) {
+this.DownloadSaver.fromSerializable = function (aSerializable) {
   let serializable = isString(aSerializable) ? { type: aSerializable }
                                              : aSerializable;
   let saver;
@@ -1437,9 +1437,9 @@ DownloadSaver.fromSerializable = function (aSerializable) {
 
 
 
-function DownloadCopySaver() { }
+this.DownloadCopySaver = function () {}
 
-DownloadCopySaver.prototype = {
+this.DownloadCopySaver.prototype = {
   __proto__: DownloadSaver.prototype,
 
   
@@ -1782,7 +1782,7 @@ DownloadCopySaver.prototype = {
 
 
 
-DownloadCopySaver.fromSerializable = function (aSerializable) {
+this.DownloadCopySaver.fromSerializable = function (aSerializable) {
   let saver = new DownloadCopySaver();
   if ("entityID" in aSerializable) {
     saver.entityID = aSerializable.entityID;
@@ -1802,13 +1802,13 @@ DownloadCopySaver.fromSerializable = function (aSerializable) {
 
 
 
-function DownloadLegacySaver()
+this.DownloadLegacySaver = function()
 {
   this.deferExecuted = Promise.defer();
   this.deferCanceled = Promise.defer();
 }
 
-DownloadLegacySaver.prototype = {
+this.DownloadLegacySaver.prototype = {
   __proto__: DownloadSaver.prototype,
 
   
@@ -2095,6 +2095,6 @@ DownloadLegacySaver.prototype = {
 
 
 
-DownloadLegacySaver.fromSerializable = function () {
+this.DownloadLegacySaver.fromSerializable = function () {
   return new DownloadLegacySaver();
 };
