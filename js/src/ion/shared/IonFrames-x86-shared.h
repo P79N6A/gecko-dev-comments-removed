@@ -438,7 +438,10 @@ class IonDOMMethodExitFrameLayout
     Value *argv_;
     uintptr_t argc_;
 
-    Value CalleeResult_;
+    
+    
+    uint32_t loCalleeResult_;
+    uint32_t hiCalleeResult_;
 
   public:
     static inline size_t Size() {
@@ -446,7 +449,7 @@ class IonDOMMethodExitFrameLayout
     }
 
     static size_t offsetOfResult() {
-        return offsetof(IonDOMMethodExitFrameLayout, CalleeResult_);
+        return offsetof(IonDOMMethodExitFrameLayout, loCalleeResult_);
     }
     static size_t offsetOfArgcFromArgv() {
         return offsetof(IonDOMMethodExitFrameLayout, argc_) -
@@ -454,9 +457,9 @@ class IonDOMMethodExitFrameLayout
     }
 
     inline Value *vp() {
-        JS_STATIC_ASSERT(offsetof(IonDOMMethodExitFrameLayout, CalleeResult_) ==
+        JS_STATIC_ASSERT(offsetof(IonDOMMethodExitFrameLayout, loCalleeResult_) ==
                          (offsetof(IonDOMMethodExitFrameLayout, argc_) + sizeof(uintptr_t)));
-        return &CalleeResult_;
+        return reinterpret_cast<Value*>(&loCalleeResult_);
     }
     inline JSObject **thisObjAddress() {
         return &thisObj_;
