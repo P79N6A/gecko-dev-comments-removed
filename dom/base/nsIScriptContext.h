@@ -73,37 +73,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-  virtual nsresult EvaluateString(const nsAString& aScript,
-                                  JSObject* aScopeObject,
-                                  nsIPrincipal *aPrincipal,
-                                  nsIPrincipal *aOriginPrincipal,
-                                  const char *aURL,
-                                  uint32_t aLineNo,
-                                  JSVersion aVersion,
-                                  nsAString *aRetValue,
-                                  bool* aIsUndefined) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
   virtual nsresult EvaluateStringWithValue(const nsAString& aScript,
                                            JSObject& aScopeObject,
                                            JS::CompileOptions& aOptions,
