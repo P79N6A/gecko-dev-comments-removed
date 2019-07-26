@@ -101,6 +101,7 @@ class SyntaxParseHandler
     Node newFunctionDefinition() { return NodeGeneric; }
     void setFunctionBody(Node pn, Node kid) {}
     void setFunctionBox(Node pn, FunctionBox *funbox) {}
+    Node newLexicalScope(ObjectBox *blockbox) { return NodeGeneric; }
     bool isOperationWithoutParens(Node pn, ParseNodeKind kind) {
         
         
