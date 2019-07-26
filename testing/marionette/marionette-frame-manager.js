@@ -22,7 +22,7 @@ let remoteFrames = [];
 
 function MarionetteRemoteFrame(windowId, frameId) {
   this.windowId = windowId; 
-  this.frameId = frameId ? frameId : null; 
+  this.frameId = frameId; 
   this.targetFrameId = this.frameId; 
 };
 
