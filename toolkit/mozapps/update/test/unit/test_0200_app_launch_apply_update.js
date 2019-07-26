@@ -230,8 +230,9 @@ function getUpdateTestDir() {
 function checkUpdateFinished() {
   gTimeoutRuns++;
   
-  let log = getUpdatesDir();
-  log.append("0");
+  let updatesDir = getUpdatesDir();
+  updatesDir.append("0");
+  let log = updatesDir.clone();
   log.append(FILE_UPDATE_LOG);
   if (!log.exists()) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
@@ -255,6 +256,53 @@ function checkUpdateFinished() {
 
   
   
+  try {
+    log.moveTo(updatesDir, FILE_UPDATE_LOG + ".bak");
+  }
+  catch (e) {
+    logTestInfo("unable to rename file " + FILE_UPDATE_LOG + " to " +
+                FILE_UPDATE_LOG + ".bak. Exception: " + e);
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting to be able to " +
+               "rename " + FILE_UPDATE_LOG + " to " + FILE_UPDATE_LOG +
+               ".bak. Path: " + log.path);
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
+    return;
+  }
+
+  restoreLogFile();
+}
+
+
+
+
+
+function restoreLogFile() {
+  gTimeoutRuns++;
+  
+  
+  let updatesDir = getUpdatesDir();
+  updatesDir.append("0");
+  let log = updatesDir.clone();
+  log.append(FILE_UPDATE_LOG + ".bak");
+  try {
+    log.moveTo(updatesDir, FILE_UPDATE_LOG);
+  }
+  catch (e) {
+    logTestInfo("unable to rename file " + FILE_UPDATE_LOG + ".bak back to " +
+                FILE_UPDATE_LOG + ". Exception: " + e);
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting to be able to " +
+               "rename " + FILE_UPDATE_LOG + ".bak back to " + FILE_UPDATE_LOG +
+               ". Path: " + log.path);
+    else
+      do_timeout(CHECK_TIMEOUT_MILLI, restoreLogFile);
+    return;
+  }
+
+  
+  
   
   let contents = readFile(log);
   logTestInfo("contents of " + log.path + ":\n" +  
@@ -264,6 +312,7 @@ function checkUpdateFinished() {
     do_throw("the application can't be in use when running this test");
   }
 
+  let status = readStatusFile();
   do_check_eq(status, STATE_SUCCEEDED);
 
   standardInit();
@@ -289,6 +338,10 @@ function checkUpdateFinished() {
 
   checkLogRenameFinished();
 }
+
+
+
+
 
 function checkLogRenameFinished() {
   gTimeoutRuns++;
