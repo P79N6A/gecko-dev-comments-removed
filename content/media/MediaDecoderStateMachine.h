@@ -99,6 +99,7 @@ class AudioSegment;
 class VideoSegment;
 class MediaTaskQueue;
 class SharedThreadPool;
+class AudioSink;
 
 
 
@@ -121,6 +122,7 @@ class SharedThreadPool;
 
 class MediaDecoderStateMachine
 {
+  friend class AudioSink;
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderStateMachine)
 public:
   typedef MediaDecoder::DecodedStreamData DecodedStreamData;
@@ -185,9 +187,6 @@ public:
   
   bool OnDecodeThread() const;
   bool OnStateMachineThread() const;
-  bool OnAudioThread() const {
-    return IsCurrentThread(mAudioThread);
-  }
 
   MediaDecoderOwner::NextFrameStatus GetNextFrameStatus();
 
@@ -441,16 +440,6 @@ protected:
   bool JustExitedQuickBuffering();
 
   
-  
-  
-  
-  
-  
-  
-  
-  void Wait(int64_t aUsecs);
-
-  
   void UpdateReadyState();
 
   
@@ -494,31 +483,11 @@ protected:
 
   
   
-  
-  
-  
-  
-  
-  uint32_t PlaySilence(uint32_t aFrames,
-                       uint32_t aChannels,
-                       uint64_t aFrameOffset);
-
-  
-  
-  uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels);
-
-  
-  
   void StopAudioThread();
 
   
   
   nsresult StartAudioThread();
-
-  
-  
-  
-  void AudioLoop();
 
   
   
@@ -653,6 +622,20 @@ protected:
 
   
   
+  void SetPlayStartTime(const TimeStamp& aTimeStamp);
+
+  
+  void OnAudioEndTimeUpdate(int64_t aAudioEndTime);
+
+  
+  void OnPlaybackOffsetUpdate(int64_t aPlaybackOffset);
+
+  
+  
+  void OnAudioSinkComplete();
+
+  
+  
   
   
   
@@ -680,10 +663,6 @@ protected:
   
   
   State mState;
-
-  
-  
-  nsCOMPtr<nsIThread> mAudioThread;
 
   
   
@@ -753,10 +732,7 @@ protected:
   int64_t mFragmentEndTime;
 
   
-  
-  
-  
-  RefPtr<AudioStream> mAudioStream;
+  RefPtr<AudioSink> mAudioSink;
 
   
   
