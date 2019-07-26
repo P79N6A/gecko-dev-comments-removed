@@ -881,6 +881,54 @@ add_test(function test_stk_event_download_language_selection() {
 
 
 
+add_test(function test_stk_event_download_user_activity() {
+  let worker = newUint8SupportOutgoingIndexWorker();
+  let buf = worker.Buf;
+  let pduHelper = worker.GsmPDUHelper;
+
+  buf.sendParcel = function () {
+    
+    do_check_eq(this.readUint32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
+
+    
+    this.readUint32();
+
+    
+    do_check_eq(this.readUint32(), 18);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), BER_EVENT_DOWNLOAD_TAG);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), 7);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_DEVICE_ID |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 2);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_ME);
+    do_check_eq(pduHelper.readHexOctet(), STK_DEVICE_ID_SIM);
+
+    
+    do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_EVENT_LIST |
+                                          COMPREHENSIONTLV_FLAG_CR);
+    do_check_eq(pduHelper.readHexOctet(), 1);
+    do_check_eq(pduHelper.readHexOctet(), STK_EVENT_TYPE_USER_ACTIVITY);
+
+    run_next_test();
+  };
+
+  let event = {
+    eventType: STK_EVENT_TYPE_USER_ACTIVITY
+  };
+  worker.RIL.sendStkEventDownload({
+    event: event
+  });
+});
+
+
+
+
 add_test(function test_stk_event_download_idle_screen_available() {
   let worker = newUint8SupportOutgoingIndexWorker();
   let buf = worker.Buf;
