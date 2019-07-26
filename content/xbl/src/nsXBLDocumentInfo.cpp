@@ -54,7 +54,7 @@ public:
   virtual nsresult EnsureScriptEnvironment();
   void ClearScriptContext()
   {
-    mScriptContext = NULL;
+    mScriptContext = nullptr;
   }
 
   virtual nsIScriptContext *GetContext();
@@ -174,8 +174,8 @@ JSClass nsXBLDocGlobalObject::gSharedGlobalClass = {
     nsXBLDocGlobalObject_getProperty, nsXBLDocGlobalObject_setProperty,
     JS_EnumerateStub, nsXBLDocGlobalObject_resolve,
     JS_ConvertStub, nsXBLDocGlobalObject_finalize,
-    nsXBLDocGlobalObject_checkAccess, NULL, NULL, NULL,
-    NULL
+    nsXBLDocGlobalObject_checkAccess, nullptr, nullptr, nullptr,
+    nullptr
 };
 
 
@@ -351,7 +351,7 @@ void
 nsXBLDocGlobalObject::OnFinalize(JSObject* aObject)
 {
   NS_ASSERTION(aObject == mJSObject, "Wrong object finalized!");
-  mJSObject = NULL;
+  mJSObject = nullptr;
 }
 
 void
@@ -379,7 +379,7 @@ nsXBLDocGlobalObject::GetPrincipal()
 
   nsCOMPtr<nsIDocument> document = docInfo->GetDocument();
   if (!document)
-    return NULL;
+    return nullptr;
 
   return document->NodePrincipal();
 }
@@ -533,7 +533,7 @@ nsXBLPrototypeBinding*
 nsXBLDocumentInfo::GetPrototypeBinding(const nsACString& aRef)
 {
   if (!mBindingTable)
-    return NULL;
+    return nullptr;
 
   if (aRef.IsEmpty()) {
     

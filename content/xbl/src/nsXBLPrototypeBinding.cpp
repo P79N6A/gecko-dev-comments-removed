@@ -1028,7 +1028,7 @@ nsXBLPrototypeBinding::ConstructAttributeTable(nsIContent* aElement)
       
 
       char* token = nsCRT::strtok( str, ", ", &newStr );
-      while( token != NULL ) {
+      while( token != nullptr ) {
         
         nsCOMPtr<nsIAtom> atom;
         int32_t atomNsID = kNameSpaceID_None;
@@ -1137,7 +1137,7 @@ nsXBLPrototypeBinding::ConstructInsertionTable(nsIContent* aContent)
       
 
       char* token = nsCRT::strtok( str, "| ", &newStr );
-      while( token != NULL ) {
+      while( token != nullptr ) {
         nsAutoString tok;
         tok.AssignWithConversion(token);
 
@@ -1218,7 +1218,7 @@ nsXBLPrototypeBinding::ConstructInterfaceTable(const nsAString& aImpls)
     
 
     char* token = nsCRT::strtok( str, ", ", &newStr );
-    while( token != NULL ) {
+    while( token != nullptr ) {
       
       nsCOMPtr<nsIInterfaceInfo> iinfo;
       infoManager->GetInfoForName(token, getter_AddRefs(iinfo));

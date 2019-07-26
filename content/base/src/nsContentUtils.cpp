@@ -6419,7 +6419,7 @@ nsContentUtils::FindInternalContentViewer(const char* aType,
   
   nsCOMPtr<nsICategoryManager> catMan(do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
   if (!catMan)
-    return NULL;
+    return nullptr;
 
   nsCOMPtr<nsIDocumentLoaderFactory> docFactory;
 
@@ -6448,7 +6448,7 @@ nsContentUtils::FindInternalContentViewer(const char* aType,
   }
 #endif 
 
-  return NULL;
+  return nullptr;
 }
 
 
