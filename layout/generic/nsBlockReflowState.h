@@ -108,11 +108,6 @@ public:
   }
 
   
-  const nsMargin& Margin() const {
-    return mReflowState.mComputedMargin;
-  }
-
-  
   void ReconstructMarginAbove(nsLineList::iterator aLine);
 
   
