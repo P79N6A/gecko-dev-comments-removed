@@ -261,7 +261,7 @@ function deleteSession(msg) {
   if (isB2G) {
     content.removeEventListener("mozbrowsershowmodalprompt", modalHandler, false);
   }
-  this.elementManager.reset();
+  elementManager.reset();
   
   curFrame = content;
   curFrame.focus();
