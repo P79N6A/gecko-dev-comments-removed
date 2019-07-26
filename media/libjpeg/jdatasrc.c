@@ -16,6 +16,8 @@
 
 
 
+
+
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jerror.h"
@@ -53,7 +55,7 @@ init_source (j_decompress_ptr cinfo)
   src->start_of_file = TRUE;
 }
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(void)
 init_mem_source (j_decompress_ptr cinfo)
 {
@@ -120,20 +122,21 @@ fill_input_buffer (j_decompress_ptr cinfo)
   return TRUE;
 }
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(boolean)
 fill_mem_input_buffer (j_decompress_ptr cinfo)
 {
-  static JOCTET mybuffer[4];
+  static const JOCTET mybuffer[4] = {
+    (JOCTET) 0xFF, (JOCTET) JPEG_EOI, 0, 0
+  };
 
   
 
 
 
   WARNMS(cinfo, JWRN_JPEG_EOF);
+
   
-  mybuffer[0] = (JOCTET) 0xFF;
-  mybuffer[1] = (JOCTET) JPEG_EOI;
 
   cinfo->src->next_input_byte = mybuffer;
   cinfo->src->bytes_in_buffer = 2;
@@ -243,7 +246,7 @@ jpeg_stdio_src (j_decompress_ptr cinfo, FILE * infile)
 }
 
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 
 
 

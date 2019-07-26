@@ -15,6 +15,7 @@
 
 
 
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -290,8 +291,6 @@ dump_buffer (working_state * state)
 
 {
   struct jpeg_destination_mgr * dest = state->cinfo->dest;
-
-  dest->free_in_buffer = state->free_in_buffer;
 
   if (! (*dest->empty_output_buffer) (state->cinfo))
     return FALSE;

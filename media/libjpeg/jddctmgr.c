@@ -17,6 +17,8 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -115,11 +117,27 @@ start_pass (j_decompress_ptr cinfo)
         method_ptr = jpeg_idct_2x2;
       method = JDCT_ISLOW;	
       break;
+    case 3:
+      method_ptr = jpeg_idct_3x3;
+      method = JDCT_ISLOW;	
+      break;
     case 4:
       if (jsimd_can_idct_4x4())
         method_ptr = jsimd_idct_4x4;
       else
         method_ptr = jpeg_idct_4x4;
+      method = JDCT_ISLOW;	
+      break;
+    case 5:
+      method_ptr = jpeg_idct_5x5;
+      method = JDCT_ISLOW;	
+      break;
+    case 6:
+      method_ptr = jpeg_idct_6x6;
+      method = JDCT_ISLOW;	
+      break;
+    case 7:
+      method_ptr = jpeg_idct_7x7;
       method = JDCT_ISLOW;	
       break;
 #endif
@@ -156,6 +174,38 @@ start_pass (j_decompress_ptr cinfo)
 	ERREXIT(cinfo, JERR_NOT_COMPILED);
 	break;
       }
+      break;
+    case 9:
+      method_ptr = jpeg_idct_9x9;
+      method = JDCT_ISLOW;	
+      break;
+    case 10:
+      method_ptr = jpeg_idct_10x10;
+      method = JDCT_ISLOW;	
+      break;
+    case 11:
+      method_ptr = jpeg_idct_11x11;
+      method = JDCT_ISLOW;	
+      break;
+    case 12:
+      method_ptr = jpeg_idct_12x12;
+      method = JDCT_ISLOW;	
+      break;
+    case 13:
+      method_ptr = jpeg_idct_13x13;
+      method = JDCT_ISLOW;	
+      break;
+    case 14:
+      method_ptr = jpeg_idct_14x14;
+      method = JDCT_ISLOW;	
+      break;
+    case 15:
+      method_ptr = jpeg_idct_15x15;
+      method = JDCT_ISLOW;	
+      break;
+    case 16:
+      method_ptr = jpeg_idct_16x16;
+      method = JDCT_ISLOW;	
       break;
     default:
       ERREXIT1(cinfo, JERR_BAD_DCTSIZE, compptr->_DCT_scaled_size);

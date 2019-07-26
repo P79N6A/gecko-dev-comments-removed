@@ -24,6 +24,7 @@
 
 
 
+
 INLINE
 LOCAL(void)
 ycc_rgb_convert_internal (j_decompress_ptr cinfo,

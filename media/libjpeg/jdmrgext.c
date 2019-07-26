@@ -17,6 +17,7 @@
 
 
 
+
 INLINE
 LOCAL(void)
 h2v1_merged_upsample_internal (j_decompress_ptr cinfo,

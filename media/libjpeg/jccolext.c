@@ -25,6 +25,7 @@
 
 
 
+
 INLINE
 LOCAL(void)
 rgb_ycc_convert_internal (j_compress_ptr cinfo,

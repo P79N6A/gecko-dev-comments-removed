@@ -16,6 +16,8 @@
 
 
 
+
+
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jerror.h"
@@ -40,7 +42,7 @@ typedef my_destination_mgr * my_dest_ptr;
 #define OUTPUT_BUF_SIZE  4096	/* choose an efficiently fwrite'able size */
 
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 
 
 typedef struct {
@@ -76,7 +78,7 @@ init_destination (j_compress_ptr cinfo)
   dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
 }
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(void)
 init_mem_destination (j_compress_ptr cinfo)
 {
@@ -123,7 +125,7 @@ empty_output_buffer (j_compress_ptr cinfo)
   return TRUE;
 }
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(boolean)
 empty_mem_output_buffer (j_compress_ptr cinfo)
 {
@@ -133,7 +135,7 @@ empty_mem_output_buffer (j_compress_ptr cinfo)
 
   
   nextsize = dest->bufsize * 2;
-  nextbuffer = malloc(nextsize);
+  nextbuffer = (JOCTET *) malloc(nextsize);
 
   if (nextbuffer == NULL)
     ERREXIT1(cinfo, JERR_OUT_OF_MEMORY, 10);
@@ -182,14 +184,14 @@ term_destination (j_compress_ptr cinfo)
     ERREXIT(cinfo, JERR_FILE_WRITE);
 }
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 METHODDEF(void)
 term_mem_destination (j_compress_ptr cinfo)
 {
   my_mem_dest_ptr dest = (my_mem_dest_ptr) cinfo->dest;
 
   *dest->outbuffer = dest->buffer;
-  *dest->outsize = dest->bufsize - dest->pub.free_in_buffer;
+  *dest->outsize = (unsigned long)(dest->bufsize - dest->pub.free_in_buffer);
 }
 #endif
 
@@ -225,7 +227,7 @@ jpeg_stdio_dest (j_compress_ptr cinfo, FILE * outfile)
 }
 
 
-#if JPEG_LIB_VERSION >= 80
+#if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
 
 
 
@@ -265,7 +267,7 @@ jpeg_mem_dest (j_compress_ptr cinfo,
 
   if (*outbuffer == NULL || *outsize == 0) {
     
-    dest->newbuffer = *outbuffer = malloc(OUTPUT_BUF_SIZE);
+    dest->newbuffer = *outbuffer = (unsigned char *) malloc(OUTPUT_BUF_SIZE);
     if (dest->newbuffer == NULL)
       ERREXIT1(cinfo, JERR_OUT_OF_MEMORY, 10);
     *outsize = OUTPUT_BUF_SIZE;

@@ -5,7 +5,10 @@
 #define JPEG_LIB_VERSION 62
 
 
-#define LIBJPEG_TURBO_VERSION 1.2.0
+#define LIBJPEG_TURBO_VERSION 1.3.0
+
+
+
 
 
 #define HAVE_PROTOTYPES 1

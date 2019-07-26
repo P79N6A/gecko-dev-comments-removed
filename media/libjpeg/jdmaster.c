@@ -12,6 +12,8 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -91,6 +93,177 @@ use_merged_upsample (j_decompress_ptr cinfo)
 
 
 
+#if JPEG_LIB_VERSION >= 80
+GLOBAL(void)
+#else
+LOCAL(void)
+#endif
+jpeg_core_output_dimensions (j_decompress_ptr cinfo)
+
+
+
+{
+#ifdef IDCT_SCALING_SUPPORTED
+  int ci;
+  jpeg_component_info *compptr;
+
+  
+  if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 1;
+    cinfo->_min_DCT_v_scaled_size = 1;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 2) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 2L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 2L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 2;
+    cinfo->_min_DCT_v_scaled_size = 2;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 3) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 3L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 3L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 3;
+    cinfo->_min_DCT_v_scaled_size = 3;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 4) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 4L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 4L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 4;
+    cinfo->_min_DCT_v_scaled_size = 4;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 5) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 5L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 5L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 5;
+    cinfo->_min_DCT_v_scaled_size = 5;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 6) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 6L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 6L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 6;
+    cinfo->_min_DCT_v_scaled_size = 6;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 7) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 7L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 7L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 7;
+    cinfo->_min_DCT_v_scaled_size = 7;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 8) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 8L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 8L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 8;
+    cinfo->_min_DCT_v_scaled_size = 8;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 9) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 9L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 9L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 9;
+    cinfo->_min_DCT_v_scaled_size = 9;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 10) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 10L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 10L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 10;
+    cinfo->_min_DCT_v_scaled_size = 10;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 11) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 11L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 11L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 11;
+    cinfo->_min_DCT_v_scaled_size = 11;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 12) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 12L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 12L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 12;
+    cinfo->_min_DCT_v_scaled_size = 12;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 13) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 13L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 13L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 13;
+    cinfo->_min_DCT_v_scaled_size = 13;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 14) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 14L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 14L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 14;
+    cinfo->_min_DCT_v_scaled_size = 14;
+  } else if (cinfo->scale_num * DCTSIZE <= cinfo->scale_denom * 15) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 15L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 15L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 15;
+    cinfo->_min_DCT_v_scaled_size = 15;
+  } else {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 16L, (long) DCTSIZE);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 16L, (long) DCTSIZE);
+    cinfo->_min_DCT_h_scaled_size = 16;
+    cinfo->_min_DCT_v_scaled_size = 16;
+  }
+
+  
+  for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
+       ci++, compptr++) {
+    compptr->_DCT_h_scaled_size = cinfo->_min_DCT_h_scaled_size;
+    compptr->_DCT_v_scaled_size = cinfo->_min_DCT_v_scaled_size;
+  }
+
+#else 
+
+  
+  cinfo->output_width = cinfo->image_width;
+  cinfo->output_height = cinfo->image_height;
+  
+
+
+
+#endif 
+}
+
+
+
+
+
+
+
+
 
 GLOBAL(void)
 jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
@@ -105,52 +278,11 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
   if (cinfo->global_state != DSTATE_READY)
     ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
 
+  
+  jpeg_core_output_dimensions(cinfo);
+
 #ifdef IDCT_SCALING_SUPPORTED
 
-  
-  if (cinfo->scale_num * 8 <= cinfo->scale_denom) {
-    
-    cinfo->output_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width, 8L);
-    cinfo->output_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height, 8L);
-#if JPEG_LIB_VERSION >= 70
-    cinfo->min_DCT_h_scaled_size = cinfo->min_DCT_v_scaled_size = 1;
-#else
-    cinfo->min_DCT_scaled_size = 1;
-#endif
-  } else if (cinfo->scale_num * 4 <= cinfo->scale_denom) {
-    
-    cinfo->output_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width, 4L);
-    cinfo->output_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height, 4L);
-#if JPEG_LIB_VERSION >= 70
-    cinfo->min_DCT_h_scaled_size = cinfo->min_DCT_v_scaled_size = 2;
-#else
-    cinfo->min_DCT_scaled_size = 2;
-#endif
-  } else if (cinfo->scale_num * 2 <= cinfo->scale_denom) {
-    
-    cinfo->output_width = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_width, 2L);
-    cinfo->output_height = (JDIMENSION)
-      jdiv_round_up((long) cinfo->image_height, 2L);
-#if JPEG_LIB_VERSION >= 70
-    cinfo->min_DCT_h_scaled_size = cinfo->min_DCT_v_scaled_size = 4;
-#else
-    cinfo->min_DCT_scaled_size = 4;
-#endif
-  } else {
-    
-    cinfo->output_width = cinfo->image_width;
-    cinfo->output_height = cinfo->image_height;
-#if JPEG_LIB_VERSION >= 70
-    cinfo->min_DCT_h_scaled_size = cinfo->min_DCT_v_scaled_size = DCTSIZE;
-#else
-    cinfo->min_DCT_scaled_size = DCTSIZE;
-#endif
-  }
   
 
 
@@ -160,10 +292,10 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
        ci++, compptr++) {
     int ssize = cinfo->_min_DCT_scaled_size;
     while (ssize < DCTSIZE &&
-	   (compptr->h_samp_factor * ssize * 2 <=
-	    cinfo->max_h_samp_factor * cinfo->_min_DCT_scaled_size) &&
-	   (compptr->v_samp_factor * ssize * 2 <=
-	    cinfo->max_v_samp_factor * cinfo->_min_DCT_scaled_size)) {
+	   ((cinfo->max_h_samp_factor * cinfo->_min_DCT_scaled_size) %
+	    (compptr->h_samp_factor * ssize * 2) == 0) &&
+	   ((cinfo->max_v_samp_factor * cinfo->_min_DCT_scaled_size) %
+	    (compptr->v_samp_factor * ssize * 2) == 0)) {
       ssize = ssize * 2;
     }
 #if JPEG_LIB_VERSION >= 70

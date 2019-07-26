@@ -13,6 +13,7 @@
 
 
 
+
 #ifdef NEED_SHORT_EXTERNAL_NAMES
 #define jpeg_make_d_derived_tbl	jMkDDerived
 #define jpeg_fill_bit_buffer	jFilBitBuf
