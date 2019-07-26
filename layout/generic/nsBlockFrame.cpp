@@ -4779,7 +4779,7 @@ ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
   }
   
   if (type == nsGkAtoms::textFrame &&
-      !(aLastFrame->GetStateBits() & NS_FRAME_IS_DIRTY)) {
+      !(aLastFrame->GetStateBits() & TEXT_OFFSETS_NEED_FIXING)) {
     return aLastFrame->HasSignificantTerminalNewline();
   }
   return false;
