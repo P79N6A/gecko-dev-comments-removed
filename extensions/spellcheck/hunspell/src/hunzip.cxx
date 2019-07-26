@@ -1,42 +1,9 @@
-/******* BEGIN LICENSE BLOCK *******
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- * 
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- * 
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- * 
- * The Initial Developers of the Original Code are Kevin Hendricks (MySpell)
- * and László Németh (Hunspell). Portions created by the Initial Developers
- * are Copyright (C) 2002-2005 the Initial Developers. All Rights Reserved.
- * 
- * Contributor(s): László Németh (nemethl@gyorsposta.hu)
- *                 Caolan McNamara (caolanm@redhat.com)
- * 
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- ******* END LICENSE BLOCK *******/
-
 #include <stdlib.h> 
 #include <string.h>
 #include <stdio.h> 
 
 #include "hunzip.hxx"
+#include "csutil.hxx"
 
 #define CODELEN  65536
 #define BASEBITREC 5000
@@ -51,15 +18,17 @@ int Hunzip::fail(const char * err, const char * par) {
     return -1;
 }
 
-Hunzip::Hunzip(const char * file, const char * key) {
-    bufsiz = 0;
-    lastbit = 0;
-    inc = 0;
-    outc = 0;
-    dec = NULL;
-    fin = NULL;
-    filename = (char *) malloc(strlen(file) + 1);
-    if (filename) strcpy(filename, file);
+Hunzip::Hunzip(const char * file, const char * key)
+    : fin(NULL)
+    , bufsiz(0)
+    , lastbit(0)
+    , inc(0)
+    , inbits(0)
+    , outc(0)
+    , dec(NULL)
+{
+    in[0] = out[0] = line[0] = '\0';
+    filename = mystrdup(file);
     if (getcode(key) == -1) bufsiz = -1;
     else bufsiz = getbuf();
 }
@@ -72,17 +41,17 @@ int Hunzip::getcode(const char * key) {
 
     if (!filename) return -1;
 
-    fin = fopen(filename, "rb");
+    fin = myfopen(filename, "rb");
     if (!fin) return -1;
 
-    // read magic number
+    
     if ((fread(in, 1, 3, fin) < MAGICLEN)
         || !(strncmp(MAGIC, in, MAGICLEN) == 0 ||
                 strncmp(MAGIC_ENCRYPT, in, MAGICLEN) == 0)) {
             return fail(MSG_FORMAT, filename);
     }
 
-    // check encryption
+    
     if (strncmp(MAGIC_ENCRYPT, in, MAGICLEN) == 0) {
         unsigned char cs;
         if (!key) return fail(MSG_KEY, filename);
@@ -92,7 +61,7 @@ int Hunzip::getcode(const char * key) {
         enc = key;
     } else key = NULL;
 
-    // read record count
+    
     if (fread(&c, 1, 2, fin) < 2) return fail(MSG_FORMAT, filename);
 
     if (key) {
@@ -107,7 +76,7 @@ int Hunzip::getcode(const char * key) {
     dec[0].v[0] = 0;
     dec[0].v[1] = 0;
 
-    // read codes
+    
     for (i = 0; i < n; i++) {
         unsigned char l;
         if (fread(c, 1, 2, fin) < 2) return fail(MSG_FORMAT, filename);
@@ -170,7 +139,7 @@ int Hunzip::getbuf() {
                 if (oldp == lastbit) {
                     fclose(fin);
                     fin = NULL;
-                    // add last odd byte
+                    
                     if (dec[lastbit].c[0]) out[o++]  = dec[lastbit].c[1];
                     return o;
                 }
@@ -193,7 +162,7 @@ const char * Hunzip::getline() {
         linebuf[l++] = out[outc];
         switch (out[outc]) {
             case '\t': break;
-            case 31: { // escape
+            case 31: { 
                 if (++outc == bufsiz) {
                     bufsiz = getbuf();
                     outc = 0;
