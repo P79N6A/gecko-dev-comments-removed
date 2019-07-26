@@ -291,6 +291,7 @@ nsHttpChannel::nsHttpChannel()
     , mCachedContentIsPartial(false)
     , mTransactionReplaced(false)
     , mAuthRetryPending(false)
+    , mProxyAuthPending(false)
     , mResuming(false)
     , mInitedCacheEntry(false)
     , mFallbackChannel(false)
@@ -1277,6 +1278,9 @@ nsHttpChannel::ProcessResponse()
             
             
             mAuthRetryPending = true;
+            if (httpStatus == 407 || mTransaction->ProxyConnectFailed())
+                mProxyAuthPending = true;
+
             
             
             
@@ -4134,6 +4138,7 @@ NS_IMETHODIMP nsHttpChannel::OnAuthAvailable()
     
     
     mAuthRetryPending = true;
+    mProxyAuthPending = false;
     LOG(("Resuming the transaction, we got credentials from user"));
     mTransactionPump->Resume();
   
@@ -4147,8 +4152,19 @@ NS_IMETHODIMP nsHttpChannel::OnAuthCancelled(bool userCancel)
     if (mTransactionPump) {
         
         
+        
+        
+        
+        
+        
+        if (mProxyAuthPending)
+            Cancel(NS_ERROR_PROXY_CONNECTION_REFUSED);
+
+        
+        
         nsresult rv = CallOnStartRequest();
 
+        
         
         
         mAuthRetryPending = false;
@@ -4158,7 +4174,8 @@ NS_IMETHODIMP nsHttpChannel::OnAuthCancelled(bool userCancel)
         if (NS_FAILED(rv))
             mTransactionPump->Cancel(rv);
     }
-    
+
+    mProxyAuthPending = false;
     return NS_OK;
 }
 
