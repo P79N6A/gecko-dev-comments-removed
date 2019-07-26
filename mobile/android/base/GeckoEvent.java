@@ -205,6 +205,7 @@ public class GeckoEvent {
     private int mMetaState;
     private int mFlags;
     private int mKeyCode;
+    private int mScanCode;
     private int mUnicodeChar;
     private int mBaseUnicodeChar; 
     private int mDOMPrintableKeyValue;
@@ -294,6 +295,7 @@ public class GeckoEvent {
         mMetaState = k.getMetaState() | metaState;
         mFlags = k.getFlags();
         mKeyCode = k.getKeyCode();
+        mScanCode = k.getScanCode();
         mUnicodeChar = k.getUnicodeChar(mMetaState);
         
         
