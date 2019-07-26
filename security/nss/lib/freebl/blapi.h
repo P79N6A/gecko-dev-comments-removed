@@ -1092,6 +1092,15 @@ extern void SHA224_Update(SHA224Context *cx, const unsigned char *input,
 			unsigned int inputLen);
 extern void SHA224_End(SHA224Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
+
+
+
+
+
+
+
+
+
 extern void SHA224_EndRaw(SHA224Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
@@ -1112,6 +1121,15 @@ extern void SHA256_Update(SHA256Context *cx, const unsigned char *input,
 			unsigned int inputLen);
 extern void SHA256_End(SHA256Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
+
+
+
+
+
+
+
+
+
 extern void SHA256_EndRaw(SHA256Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA256_HashBuf(unsigned char *dest, const unsigned char *src,
@@ -1130,6 +1148,15 @@ extern void SHA512_DestroyContext(SHA512Context *cx, PRBool freeit);
 extern void SHA512_Begin(SHA512Context *cx);
 extern void SHA512_Update(SHA512Context *cx, const unsigned char *input,
 			unsigned int inputLen);
+
+
+
+
+
+
+
+
+
 extern void SHA512_EndRaw(SHA512Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern void SHA512_End(SHA512Context *cx, unsigned char *digest,
@@ -1152,6 +1179,15 @@ extern void SHA384_Update(SHA384Context *cx, const unsigned char *input,
 			unsigned int inputLen);
 extern void SHA384_End(SHA384Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
+
+
+
+
+
+
+
+
+
 extern void SHA384_EndRaw(SHA384Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA384_HashBuf(unsigned char *dest, const unsigned char *src,

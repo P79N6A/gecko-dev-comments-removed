@@ -2,8 +2,8 @@
 
 
 
-#ifndef _ALGHMACCT_H_
-#define _ALGHMACCT_H_
+#ifndef _HMACCT_H_
+#define _HMACCT_H_
 
 SEC_BEGIN_PROTOS
 
