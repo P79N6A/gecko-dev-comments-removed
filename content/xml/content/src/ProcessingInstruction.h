@@ -47,6 +47,12 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+
+  
+  void GetTarget(nsString& aTarget)
+  {
+    aTarget = NodeName();
+  }
 protected:
   
 
@@ -59,6 +65,9 @@ protected:
 
 
   bool GetAttrValue(nsIAtom *aName, nsAString& aValue);
+
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
+                             bool *aTriedToWrap) MOZ_OVERRIDE;
 };
 
 } 
