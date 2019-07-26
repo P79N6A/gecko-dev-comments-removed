@@ -8,6 +8,7 @@
 #include "MIRGraph.h"
 #include "Ion.h"
 #include "IonAnalysis.h"
+#include "LIR.h"
 
 using namespace js;
 using namespace js::ion;
@@ -1387,6 +1388,100 @@ ion::EliminateRedundantChecks(MIRGraph &graph)
     }
 
     JS_ASSERT(index == graph.numBlocks());
+    return true;
+}
+
+
+
+static LGoto *
+FindLeadingGoto(LBlock *bb)
+{
+    for (LInstructionIterator ins(bb->begin()); ins != bb->end(); ins++) {
+        
+        if (ins->isLabel())
+            continue;
+        
+        if (ins->isMoveGroup() && ins->toMoveGroup()->numMoves() == 0)
+            continue;
+        
+        if (ins->isGoto())
+            return ins->toGoto();
+        break;
+    }
+    return NULL;
+}
+
+
+
+
+
+bool
+ion::UnsplitEdges(LIRGraph *lir)
+{
+    for (size_t i = 0; i < lir->numBlocks(); i++) {
+        LBlock *bb = lir->getBlock(i);
+        MBasicBlock *mirBlock = bb->mir();
+
+        
+        mirBlock->setId(i);
+
+        
+        
+        
+        bb->clearPhis();
+        mirBlock->discardAllPhis();
+
+        
+        
+        
+        if (mirBlock->numPredecessors() == 0 || mirBlock->numSuccessors() != 1 ||
+            !mirBlock->resumePointsEmpty() || !mirBlock->begin()->isGoto())
+        {
+            continue;
+        }
+
+        
+        
+        LGoto *theGoto = FindLeadingGoto(bb);
+        if (!theGoto)
+            continue;
+        MBasicBlock *target = theGoto->target();
+        if (target == mirBlock || target != mirBlock->getSuccessor(0))
+            continue;
+
+        
+        
+        if (!target->phisEmpty()) {
+            target->discardAllPhis();
+            target->lir()->clearPhis();
+        }
+
+        
+        for (size_t j = 0; j < mirBlock->numPredecessors(); j++) {
+            MBasicBlock *mirPred = mirBlock->getPredecessor(j);
+
+            for (size_t k = 0; k < mirPred->numSuccessors(); k++) {
+                if (mirPred->getSuccessor(k) == mirBlock) {
+                    mirPred->replaceSuccessor(k, target);
+                    if (!target->addPredecessorWithoutPhis(mirPred))
+                        return false;
+                }
+            }
+
+            LInstruction *predTerm = *mirPred->lir()->rbegin();
+            for (size_t k = 0; k < predTerm->numSuccessors(); k++) {
+                if (predTerm->getSuccessor(k) == mirBlock)
+                    predTerm->setSuccessor(k, target);
+            }
+        }
+        target->removePredecessor(mirBlock);
+
+        
+        lir->removeBlock(i);
+        lir->mir().removeBlock(mirBlock);
+        --i;
+    }
+
     return true;
 }
 

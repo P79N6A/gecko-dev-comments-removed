@@ -1218,6 +1218,13 @@ GenerateLIR(MIRGenerator *mir)
     if (mir->shouldCancel("Allocate Registers"))
         return NULL;
 
+    
+    
+    if (!UnsplitEdges(lir))
+        return NULL;
+    IonSpewPass("Unsplit Critical Edges");
+    AssertBasicGraphCoherency(graph);
+
     return lir;
 }
 
