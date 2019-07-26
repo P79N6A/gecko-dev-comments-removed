@@ -172,9 +172,6 @@ private:
                                 uint32_t aMagEventType,
                                 uint32_t aRotEventType);
 
-  void DispatchEventIgnoreStatus(nsGUIEvent *aEvent);
-  static nsEventStatus sThrowawayStatus;
-
   
   
   
@@ -221,9 +218,7 @@ private:
   
   
   
-  nsTouchEvent mTouchEvent;
-  void DispatchPendingTouchEvent();
-  void DispatchPendingTouchEvent(nsEventStatus& status);
+  void InitTouchEventTouchList(nsTouchEvent* aEvent);
   nsBaseHashtable<nsUint32HashKey,
                   nsRefPtr<mozilla::dom::Touch>,
                   nsRefPtr<mozilla::dom::Touch> > mTouches;
@@ -254,9 +249,33 @@ private:
   EventRegistrationToken mTokenTapped;
   EventRegistrationToken mTokenRightTapped;
 
-  void DispatchAsyncEventIgnoreStatus(nsGUIEvent* aEvent);
+  
+  
+  
+  
+  
+  
+  
+
+  
+  void DispatchAsyncEventIgnoreStatus(nsInputEvent* aEvent);
+  void DispatchAsyncTouchEventIgnoreStatus(nsTouchEvent* aEvent);
+  void DispatchAsyncTouchEventWithCallback(nsTouchEvent* aEvent, void (MetroInput::*Callback)());
+
+  
   void DeliverNextQueuedEventIgnoreStatus();
-  nsDeque mInputEventQueue;
+  nsEventStatus DeliverNextQueuedEvent();
+  nsEventStatus DeliverNextQueuedTouchEvent();
+
+  
+  void OnPointerPressedCallback();
+  void OnFirstPointerMoveCallback();
+
+  
+  void DispatchEventIgnoreStatus(nsGUIEvent *aEvent);
+
+   nsDeque mInputEventQueue;
+  static nsEventStatus sThrowawayStatus;
 };
 
 } } }
