@@ -1252,7 +1252,9 @@ void AsyncPanZoomController::DetectScrollableSubframe() {
   mDelayPanning = true;
 }
 
-void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
+void AsyncPanZoomController::ZoomToRect(const gfxRect& aRect) {
+  CSSRect zoomToRect(aRect.x, aRect.y, aRect.width, aRect.height);
+
   SetState(ANIMATING_ZOOM);
 
   {
@@ -1276,19 +1278,19 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
                          / intrinsicScale;
     float localMaxZoom = mMaxZoom / intrinsicScale;
 
-    if (!aRect.IsEmpty()) {
+    if (!zoomToRect.IsEmpty()) {
       
-      aRect = aRect.Intersect(cssPageRect);
+      zoomToRect = zoomToRect.Intersect(cssPageRect);
       float targetResolution =
-        std::min(compositionBounds.width / aRect.width,
-                 compositionBounds.height / aRect.height);
+        std::min(compositionBounds.width / zoomToRect.width,
+                 compositionBounds.height / zoomToRect.height);
       targetZoom = targetResolution / intrinsicScale;
     }
     
     
     
     
-    if (aRect.IsEmpty() ||
+    if (zoomToRect.IsEmpty() ||
         (currentZoom == localMaxZoom && targetZoom >= localMaxZoom) ||
         (currentZoom == localMinZoom && targetZoom <= localMinZoom)) {
       CSSRect compositedRect = mFrameMetrics.CalculateCompositedRectInCssPixels();
@@ -1297,14 +1299,14 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
         cssPageRect.width * (compositedRect.height / compositedRect.width);
       float dh = compositedRect.height - newHeight;
 
-      aRect = CSSRect(0.0f,
+      zoomToRect = CSSRect(0.0f,
                            y + dh/2,
                            cssPageRect.width,
                            newHeight);
-      aRect = aRect.Intersect(cssPageRect);
+      zoomToRect = zoomToRect.Intersect(cssPageRect);
       float targetResolution =
-        std::min(compositionBounds.width / aRect.width,
-                 compositionBounds.height / aRect.height);
+        std::min(compositionBounds.width / zoomToRect.width,
+                 compositionBounds.height / zoomToRect.height);
       targetZoom = targetResolution / intrinsicScale;
     }
 
@@ -1318,17 +1320,17 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
 
     
     
-    if (aRect.y + rectAfterZoom.height > cssPageRect.height) {
-      aRect.y = cssPageRect.height - rectAfterZoom.height;
-      aRect.y = aRect.y > 0 ? aRect.y : 0;
+    if (zoomToRect.y + rectAfterZoom.height > cssPageRect.height) {
+      zoomToRect.y = cssPageRect.height - rectAfterZoom.height;
+      zoomToRect.y = zoomToRect.y > 0 ? zoomToRect.y : 0;
     }
-    if (aRect.x + rectAfterZoom.width > cssPageRect.width) {
-      aRect.x = cssPageRect.width - rectAfterZoom.width;
-      aRect.x = aRect.x > 0 ? aRect.x : 0;
+    if (zoomToRect.x + rectAfterZoom.width > cssPageRect.width) {
+      zoomToRect.x = cssPageRect.width - rectAfterZoom.width;
+      zoomToRect.x = zoomToRect.x > 0 ? zoomToRect.x : 0;
     }
 
     mStartZoomToMetrics = mFrameMetrics;
-    mEndZoomToMetrics.mScrollOffset = aRect.TopLeft();
+    mEndZoomToMetrics.mScrollOffset = zoomToRect.TopLeft();
 
     mAnimationStartTime = GetFrameTime();
 
