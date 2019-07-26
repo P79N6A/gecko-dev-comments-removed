@@ -8,6 +8,7 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.login.State;
 import org.mozilla.gecko.tabspanel.TabsPanel.PanelView;
+import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -97,6 +98,11 @@ class RemoteTabsVerificationPanel extends LinearLayout implements PanelView {
 
     @Override
     public void show() {
+        
+        if (HardwareUtils.isTablet()) {
+            return;
+        }
+
         refresh();
         setVisibility(View.VISIBLE);
     }
