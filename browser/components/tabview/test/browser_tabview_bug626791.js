@@ -1,6 +1,9 @@
 
 
 
+Cu.import("resource:///modules/CustomizableUI.jsm");
+
+
 function test() {
   let cw;
   let win;
@@ -31,10 +34,7 @@ function test() {
     let pos = currentSet.indexOf(buttonId);
 
     if (-1 < pos) {
-      currentSet.splice(pos, 1);
-      toolbar.setAttribute("currentset", currentSet.join(","));
-      toolbar.currentSet = currentSet.join(",");
-      win.document.persist(toolbar.id, "currentset");
+      CustomizableUI.removeWidgetFromArea("tabview-button");
     }
   }
 
