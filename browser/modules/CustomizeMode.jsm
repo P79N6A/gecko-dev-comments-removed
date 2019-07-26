@@ -55,10 +55,10 @@ CustomizeMode.prototype = {
   _stowedPalette: null,
 
   enter: function() {
-    CustomizableUI.addListener(this);
-
     let window = this.window;
     let document = this.document;
+
+    CustomizableUI.addListener(this);
 
     
     let evt = document.createEvent("CustomEvent");
@@ -220,7 +220,14 @@ CustomizeMode.prototype = {
 
   wrapToolbarItem: function(aNode, aPlace) {
     let wrapper = this.createWrapper(aNode, aPlace);
-    aNode = aNode.parentNode.replaceChild(wrapper, aNode);
+    
+    
+    
+    
+    
+    if (aNode.parentNode) {
+      aNode = aNode.parentNode.replaceChild(wrapper, aNode);
+    }
     wrapper.appendChild(aNode);
     return wrapper;
   },
@@ -289,7 +296,9 @@ CustomizeMode.prototype = {
       }
     }
 
-    aWrapper.parentNode.replaceChild(toolbarItem, aWrapper);
+    if (aWrapper.parentNode) {
+      aWrapper.parentNode.replaceChild(toolbarItem, aWrapper);
+    }
     return toolbarItem;
   },
 
@@ -409,7 +418,13 @@ CustomizeMode.prototype = {
         CustomizableUI.removeWidgetFromArea(draggedItemId);
         draggedWrapper = this.wrapToolbarItem(widget, "palette");
       }
-      this.visiblePalette.insertBefore(draggedWrapper, targetNode);
+
+      
+      if (targetNode == this.visiblePalette) {
+        this.visiblePalette.appendChild(draggedWrapper);
+      } else {
+        this.visiblePalette.insertBefore(draggedWrapper, targetNode);
+      }
       return;
     }
 
@@ -432,7 +447,6 @@ CustomizeMode.prototype = {
     
     let widget = this.unwrapToolbarItem(draggedWrapper);
     CustomizableUI.addWidgetToArea(draggedItemId, targetArea.id, position);
-    LOG("Re-wrapping " + draggedItemId);
     draggedWrapper = this.wrapToolbarItem(widget, "");
 
     
