@@ -459,6 +459,17 @@ AutocompletePopup.prototype = {
 
 
 
+
+  get _itemHeight() {
+    return this._list.selectedItem.clientHeight;
+  },
+
+  
+
+
+
+
+
   selectNextItem: function AP_selectNextItem()
   {
     if (this.selectedIndex < (this.itemCount - 1)) {
@@ -485,6 +496,39 @@ AutocompletePopup.prototype = {
     else {
       this.selectedIndex = this.itemCount - 1;
     }
+
+    return this.selectedItem;
+  },
+
+  
+
+
+
+
+
+
+  selectNextPageItem: function AP_selectNextPageItem()
+  {
+    let itemsPerPane = Math.floor(this._list.scrollHeight / this._itemHeight);
+    let nextPageIndex = this.selectedIndex + itemsPerPane + 1;
+    this.selectedIndex = nextPageIndex > this.itemCount - 1 ?
+      this.itemCount - 1 : nextPageIndex;
+
+    return this.selectedItem;
+  },
+
+  
+
+
+
+
+
+
+  selectPreviousPageItem: function AP_selectPreviousPageItem()
+  {
+    let itemsPerPane = Math.floor(this._list.scrollHeight / this._itemHeight);
+    let prevPageIndex = this.selectedIndex - itemsPerPane - 1;
+    this.selectedIndex = prevPageIndex < 0 ? 0 : prevPageIndex;
 
     return this.selectedItem;
   },

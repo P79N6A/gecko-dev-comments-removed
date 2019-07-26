@@ -2661,8 +2661,6 @@ WebConsoleFrame.prototype = {
 
       
       
-      
-      
       if (mousedown &&
           (this._startX != aEvent.clientX) &&
           (this._startY != aEvent.clientY))
@@ -3063,6 +3061,8 @@ JSTerm.prototype = {
   COMPLETE_FORWARD: 0,
   COMPLETE_BACKWARD: 1,
   COMPLETE_HINT_ONLY: 2,
+  COMPLETE_PAGEUP: 3,
+  COMPLETE_PAGEDOWN: 4,
 
   
 
@@ -3924,6 +3924,40 @@ JSTerm.prototype = {
         }
         break;
 
+      case Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP:
+        if (this.autocompletePopup.isOpen) {
+          inputUpdated = this.complete(this.COMPLETE_PAGEUP);
+          if (inputUpdated) {
+            this._autocompletePopupNavigated = true;
+          }
+        }
+        else {
+          this.hud.outputNode.parentNode.scrollTop =
+            Math.max(0,
+              this.hud.outputNode.parentNode.scrollTop -
+              this.hud.outputNode.parentNode.clientHeight
+            );
+        }
+        aEvent.preventDefault();
+        break;
+
+      case Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN:
+        if (this.autocompletePopup.isOpen) {
+          inputUpdated = this.complete(this.COMPLETE_PAGEDOWN);
+          if (inputUpdated) {
+            this._autocompletePopupNavigated = true;
+          }
+        }
+        else {
+          this.hud.outputNode.parentNode.scrollTop =
+            Math.min(this.hud.outputNode.parentNode.scrollHeight,
+              this.hud.outputNode.parentNode.scrollTop +
+              this.hud.outputNode.parentNode.clientHeight
+            );
+        }
+        aEvent.preventDefault();
+        break;
+
       case Ci.nsIDOMKeyEvent.DOM_VK_HOME:
       case Ci.nsIDOMKeyEvent.DOM_VK_END:
       case Ci.nsIDOMKeyEvent.DOM_VK_LEFT:
@@ -4107,6 +4141,10 @@ JSTerm.prototype = {
 
 
 
+
+
+
+
   complete: function JSTF_complete(aType, aCallback)
   {
     let inputNode = this.inputNode;
@@ -4147,6 +4185,12 @@ JSTerm.prototype = {
     }
     else if (aType == this.COMPLETE_FORWARD) {
       popup.selectNextItem();
+    }
+    else if (aType == this.COMPLETE_PAGEUP) {
+      popup.selectPreviousPageItem();
+    }
+    else if (aType == this.COMPLETE_PAGEDOWN) {
+      popup.selectNextPageItem();
     }
 
     aCallback && aCallback(this);
