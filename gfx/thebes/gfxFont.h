@@ -29,10 +29,8 @@
 #include "mozilla/Attributes.h"
 #include <algorithm>
 #include "nsUnicodeProperties.h"
-#include "harfbuzz/hb.h"
 
 typedef struct _cairo_scaled_font cairo_scaled_font_t;
-typedef struct gr_face            gr_face;
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -51,6 +49,8 @@ class gfxSVGGlyphs;
 class gfxTextObjectPaint;
 
 class nsILanguageAtomService;
+
+typedef struct hb_blob_t hb_blob_t;
 
 #define FONT_MAX_SIZE                  2000.0
 
@@ -237,17 +237,13 @@ public:
         mHasSpaceFeaturesKerning(false),
         mHasSpaceFeaturesNonKerning(false),
         mHasSpaceFeaturesSubDefault(false),
+        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mCheckedForGraphiteTables(false),
         mHasCmapTable(false),
-        mGrFaceInitialized(false),
-        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
         mSVGGlyphs(nullptr),
-        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
-        mHBFace(nullptr),
-        mGrFace(nullptr),
-        mGrFaceRefCnt(0)
+        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE)
     {
         memset(&mHasSpaceFeaturesSub, 0, sizeof(mHasSpaceFeaturesSub));
     }
@@ -326,46 +322,9 @@ public:
         return true;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    virtual hb_blob_t *GetFontTable(uint32_t aTag);
-
-    
-    
-    class AutoTable {
-    public:
-        AutoTable(gfxFontEntry* aFontEntry, uint32_t aTag)
-        {
-            mBlob = aFontEntry->GetFontTable(aTag);
-        }
-        ~AutoTable() {
-            if (mBlob) {
-                hb_blob_destroy(mBlob);
-            }
-        }
-        operator hb_blob_t*() const { return mBlob; }
-    private:
-        hb_blob_t* mBlob;
-        
-        AutoTable(const AutoTable&) MOZ_DELETE;
-        AutoTable& operator=(const AutoTable&) MOZ_DELETE;
-    };
+    virtual nsresult GetFontTable(uint32_t aTableTag, FallibleTArray<uint8_t>& aBuffer) {
+        return NS_ERROR_FAILURE; 
+    }
 
     already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle,
                                              bool aNeedsBold);
@@ -388,21 +347,6 @@ public:
     hb_blob_t *ShareFontTableAndGetBlob(uint32_t aTag,
                                         FallibleTArray<uint8_t>* aTable);
 
-    
-    
-    
-
-    
-    
-    
-    hb_face_t* GetHBFace();
-    virtual void ForgetHBFace();
-
-    
-    
-    gr_face* GetGrFace();
-    virtual void ReleaseGrFace(gr_face* aFace);
-    
     
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                      FontListSizes*    aSizes) const;
@@ -429,10 +373,6 @@ public:
     bool             mHasSpaceFeaturesKerning : 1;
     bool             mHasSpaceFeaturesNonKerning : 1;
     bool             mHasSpaceFeaturesSubDefault : 1;
-    bool             mHasGraphiteTables : 1;
-    bool             mCheckedForGraphiteTables : 1;
-    bool             mHasCmapTable : 1;
-    bool             mGrFaceInitialized : 1;
 
     
     uint32_t         mHasSpaceFeaturesSub[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
@@ -440,6 +380,9 @@ public:
     uint16_t         mWeight;
     int16_t          mStretch;
 
+    bool             mHasGraphiteTables;
+    bool             mCheckedForGraphiteTables;
+    bool             mHasCmapTable;
     nsRefPtr<gfxCharacterMap> mCharacterMap;
     uint32_t         mUVSOffset;
     nsAutoArrayPtr<uint8_t> mUVSData;
@@ -472,17 +415,13 @@ protected:
         mHasSpaceFeaturesKerning(false),
         mHasSpaceFeaturesNonKerning(false),
         mHasSpaceFeaturesSubDefault(false),
+        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mCheckedForGraphiteTables(false),
         mHasCmapTable(false),
-        mGrFaceInitialized(false),
-        mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
         mUVSOffset(0), mUVSData(nullptr),
         mUserFontData(nullptr),
         mSVGGlyphs(nullptr),
-        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
-        mHBFace(nullptr),
-        mGrFace(nullptr),
-        mGrFaceRefCnt(0)
+        mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE)
     { }
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold) {
@@ -492,52 +431,8 @@ protected:
 
     virtual void CheckForGraphiteTables();
 
-    
-    
-    virtual nsresult CopyFontTable(uint32_t aTableTag,
-                                   FallibleTArray<uint8_t>& aBuffer) {
-        NS_NOTREACHED("forgot to override either GetFontTable or CopyFontTable?");
-        return NS_ERROR_FAILURE;
-    }
-
-protected:
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-    hb_face_t* mHBFace;
-
-    static hb_blob_t* HBGetTable(hb_face_t *face, uint32_t aTag, void *aUserData);
-
-    
-    static void HBFaceDeletedCallback(void *aUserData);
-
-    
-    
-    
-    
-    gr_face*   mGrFace;
-
-    
-    
-    nsDataHashtable<nsPtrHashKey<const void>,void*>* mGrTableMap;
-
-    
-    nsrefcnt mGrFaceRefCnt;
-
-    static const void* GrGetTable(const void *aAppFaceHandle,
-                                  unsigned int aName,
-                                  size_t *aLen);
-    static void GrReleaseTable(const void *aAppFaceHandle,
-                               const void *aTableBuffer);
-
 private:
+
     
 
 
@@ -797,8 +692,8 @@ protected:
                                        bool anItalic, int16_t aStretch);
 
     bool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
-                                     hb_blob_t           *aNameTable,
-                                     bool                 useFullName = false);
+                                       FallibleTArray<uint8_t>& aNameTable,
+                                       bool useFullName = false);
 
     
     void SetBadUnderlineFonts() {
@@ -1411,6 +1306,21 @@ public:
     bool FontCanSupportGraphite() {
         return mFontEntry->HasGraphiteTables();
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual hb_blob_t *GetFontTable(uint32_t aTag);
 
     
     

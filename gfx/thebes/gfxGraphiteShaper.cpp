@@ -40,11 +40,21 @@ using namespace mozilla;
 
 gfxGraphiteShaper::gfxGraphiteShaper(gfxFont *aFont)
     : gfxFontShaper(aFont),
-      mGrFace(mFont->GetFontEntry()->GetGrFace()),
+      mGrFace(nullptr),
       mGrFont(nullptr)
 {
+    mTables.Init();
     mCallbackData.mFont = aFont;
     mCallbackData.mShaper = this;
+}
+
+PLDHashOperator
+ReleaseTableFunc(const uint32_t& ,
+                 gfxGraphiteShaper::TableRec& aData,
+                 void* )
+{
+    hb_blob_destroy(aData.mBlob);
+    return PL_DHASH_REMOVE;
 }
 
 gfxGraphiteShaper::~gfxGraphiteShaper()
@@ -52,14 +62,47 @@ gfxGraphiteShaper::~gfxGraphiteShaper()
     if (mGrFont) {
         gr_font_destroy(mGrFont);
     }
-    mFont->GetFontEntry()->ReleaseGrFace(mGrFace);
+    if (mGrFace) {
+        gr_face_destroy(mGrFace);
+    }
+    mTables.Enumerate(ReleaseTableFunc, nullptr);
 }
 
- float
-gfxGraphiteShaper::GrGetAdvance(const void* appFontHandle, uint16_t glyphid)
+static const void*
+GrGetTable(const void* appFaceHandle, unsigned int name, size_t *len)
 {
-    const CallbackData *cb =
-        static_cast<const CallbackData*>(appFontHandle);
+    const gfxGraphiteShaper::CallbackData *cb =
+        static_cast<const gfxGraphiteShaper::CallbackData*>(appFaceHandle);
+    return cb->mShaper->GetTable(name, len);
+}
+
+const void*
+gfxGraphiteShaper::GetTable(uint32_t aTag, size_t *aLength)
+{
+    TableRec tableRec;
+
+    if (!mTables.Get(aTag, &tableRec)) {
+        hb_blob_t *blob = mFont->GetFontTable(aTag);
+        if (blob) {
+            
+            
+            tableRec.mBlob = blob;
+            tableRec.mData = hb_blob_get_data(blob, &tableRec.mLength);
+            mTables.Put(aTag, tableRec);
+        } else {
+            return nullptr;
+        }
+    }
+
+    *aLength = tableRec.mLength;
+    return tableRec.mData;
+}
+
+static float
+GrGetAdvance(const void* appFontHandle, gr_uint16 glyphid)
+{
+    const gfxGraphiteShaper::CallbackData *cb =
+        static_cast<const gfxGraphiteShaper::CallbackData*>(appFontHandle);
     return FixedToFloat(cb->mFont->GetGlyphWidth(cb->mContext, glyphid));
 }
 
@@ -109,6 +152,7 @@ gfxGraphiteShaper::ShapeText(gfxContext      *aContext,
     mCallbackData.mContext = aContext;
 
     if (!mGrFont) {
+        mGrFace = gr_make_face(&mCallbackData, GrGetTable, gr_face_default);
         if (!mGrFace) {
             return false;
         }
@@ -126,6 +170,8 @@ gfxGraphiteShaper::ShapeText(gfxContext      *aContext,
         }
 
         if (!mGrFont) {
+            gr_face_destroy(mGrFace);
+            mGrFace = nullptr;
             return false;
         }
     }

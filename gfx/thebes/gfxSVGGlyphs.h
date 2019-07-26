@@ -65,8 +65,8 @@ class gfxSVGGlyphsDocument
     typedef gfxFont::DrawMode DrawMode;
 
 public:
-    gfxSVGGlyphsDocument(const uint8_t *aBuffer, uint32_t aBufLen,
-                         hb_blob_t *aCmapTable);
+    gfxSVGGlyphsDocument(uint8_t *aBuffer, uint32_t aBufLen,
+                         const FallibleTArray<uint8_t>& aCmapTable);
 
     Element *GetGlyphElement(uint32_t aGlyphId);
 
@@ -77,14 +77,16 @@ public:
     }
 
 private:
-    nsresult ParseDocument(const uint8_t *aBuffer, uint32_t aBufLen);
+    nsresult ParseDocument(uint8_t *aBuffer, uint32_t aBufLen);
 
     nsresult SetupPresentation();
 
-    void FindGlyphElements(Element *aElement, hb_blob_t *aCmapTable);
+    void FindGlyphElements(Element *aElement,
+                           const FallibleTArray<uint8_t> &aCmapTable);
 
     void InsertGlyphId(Element *aGlyphElement);
-    void InsertGlyphChar(Element *aGlyphElement, hb_blob_t *aCmapTable);
+    void InsertGlyphChar(Element *aGlyphElement,
+                         const FallibleTArray<uint8_t> &aCmapTable);
 
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsIContentViewer> mViewer;
@@ -112,16 +114,13 @@ public:
 
 
 
-
-
-
-
-    gfxSVGGlyphs(hb_blob_t *aSVGTable, hb_blob_t *aCmapTable);
+    gfxSVGGlyphs(FallibleTArray<uint8_t>& aSVGTable,
+                 const FallibleTArray<uint8_t>& aCmapTable);
 
     
 
 
-    ~gfxSVGGlyphs();
+    void UnmangleHeaders();
 
     
 
@@ -158,19 +157,19 @@ private:
     nsClassHashtable<nsUint32HashKey, gfxSVGGlyphsDocument> mGlyphDocs;
     nsBaseHashtable<nsUint32HashKey, Element*, Element*> mGlyphIdMap;
 
-    hb_blob_t *mSVGData;
-    hb_blob_t *mCmapData;
+    FallibleTArray<uint8_t> mSVGData;
+    FallibleTArray<uint8_t> mCmapData;
 
-    const struct Header {
-        mozilla::AutoSwap_PRUint16 mVersion;
-        mozilla::AutoSwap_PRUint16 mIndexLength;
+    struct Header {
+        uint16_t mVersion;
+        uint16_t mIndexLength;
     } *mHeader;
 
-    const struct IndexEntry {
-        mozilla::AutoSwap_PRUint16 mStartGlyph;
-        mozilla::AutoSwap_PRUint16 mEndGlyph;
-        mozilla::AutoSwap_PRUint32 mDocOffset;
-        mozilla::AutoSwap_PRUint32 mDocLength;
+    struct IndexEntry {
+        uint16_t mStartGlyph;
+        uint16_t mEndGlyph;
+        uint32_t mDocOffset;
+        uint32_t mDocLength;
     } *mIndex;
 
     static int CompareIndexEntries(const void *_a, const void *_b);

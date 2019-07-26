@@ -48,6 +48,8 @@ public:
 
     void GetMetrics(gfxFont::Metrics* aMetrics, uint32_t* aSpaceGlyph);
 
+    bool GetFontTable(uint32_t aTag, FallibleTArray<uint8_t>& aBuffer);
+
     
     
     gfxFloat XScale()

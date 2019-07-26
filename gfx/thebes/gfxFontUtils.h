@@ -33,8 +33,6 @@
 #undef max
 #endif
 
-typedef struct hb_blob_t hb_blob_t;
-
 class gfxSparseBitSet {
 private:
     enum { BLOCK_SIZE = 32 };   
@@ -831,12 +829,12 @@ public:
     
     
     static nsresult
-    GetFullNameFromTable(hb_blob_t *aNameTable,
+    GetFullNameFromTable(FallibleTArray<uint8_t>& aNameTable,
                          nsAString& aFullName);
 
     
     static nsresult
-    GetFamilyNameFromTable(hb_blob_t *aNameTable,
+    GetFamilyNameFromTable(FallibleTArray<uint8_t>& aNameTable,
                            nsAString& aFamilyName);
 
     
@@ -847,20 +845,20 @@ public:
     
     
     static nsresult
-    ReadNames(hb_blob_t *aNameTable, uint32_t aNameID, 
+    ReadNames(FallibleTArray<uint8_t>& aNameTable, uint32_t aNameID, 
               int32_t aPlatformID, nsTArray<nsString>& aNames);
       
     
     
     static nsresult
-    ReadCanonicalName(hb_blob_t *aNameTable, uint32_t aNameID, 
+    ReadCanonicalName(FallibleTArray<uint8_t>& aNameTable, uint32_t aNameID, 
                       nsString& aName);
       
     
     
     
     static bool
-    DecodeFontName(const char *aBuf, int32_t aLength, 
+    DecodeFontName(const uint8_t *aBuf, int32_t aLength, 
                    uint32_t aPlatformCode, uint32_t aScriptCode,
                    uint32_t aLangCode, nsAString& dest);
 
@@ -936,7 +934,7 @@ public:
 
 protected:
     static nsresult
-    ReadNames(hb_blob_t *aNameTable, uint32_t aNameID, 
+    ReadNames(FallibleTArray<uint8_t>& aNameTable, uint32_t aNameID, 
               int32_t aLangID, int32_t aPlatformID, nsTArray<nsString>& aNames);
 
     
