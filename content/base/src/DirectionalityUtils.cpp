@@ -378,8 +378,12 @@ GetDirectionFromText(const nsTextFragment* aFrag,
 
 
 
+
+
+
 static nsINode*
-WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true)
+WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
+                                    nsINode* aChangedNode = nullptr)
 {
   MOZ_ASSERT(aElement, "aElement is null");
   if (DoesNotParticipateInAutoDirection(aElement)) {
@@ -394,7 +398,8 @@ WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true)
       continue;
     }
 
-    if (child->NodeType() == nsIDOMNode::TEXT_NODE) {
+    if (child->NodeType() == nsIDOMNode::TEXT_NODE &&
+        child != aChangedNode) {
       Directionality textNodeDir = GetDirectionFromText(child->GetText());
       if (textNodeDir != eDir_NotSet) {
         
@@ -490,10 +495,12 @@ private:
     MOZ_ASSERT(aEntry->GetKey()->IsElement(), "Must be an Element");
     
     
+    nsINode* oldTextNode = static_cast<Element*>(aData);
     Element* rootNode = aEntry->GetKey();
-    nsINode* textNode = WalkDescendantsSetDirectionFromText(rootNode, true);
-    if (textNode) {
-      nsTextNodeDirectionalityMap::AddEntryToMap(textNode, rootNode);
+    nsINode* newTextNode = WalkDescendantsSetDirectionFromText(rootNode, true,
+                                                               oldTextNode);
+    if (newTextNode) {
+      nsTextNodeDirectionalityMap::AddEntryToMap(newTextNode, rootNode);
     } else {
       rootNode->ClearHasDirAutoSet();
       rootNode->UnsetProperty(nsGkAtoms::dirAutoSetBy);
@@ -507,9 +514,9 @@ public:
     mElements.EnumerateEntries(SetNodeDirection, &aDir);
   }
 
-  void ResetAutoDirection()
+  void ResetAutoDirection(nsINode* aTextNode)
   {
-    mElements.EnumerateEntries(ResetNodeDirection, nullptr);
+    mElements.EnumerateEntries(ResetNodeDirection, aTextNode);
   }
 
   static void RemoveElementFromMap(nsINode* aTextNode, Element* aElement)
@@ -540,7 +547,7 @@ public:
   {
     MOZ_ASSERT(aTextNode->HasTextNodeDirectionalityMap(),
                "Map missing in ResetTextNodeDirection");
-    GetDirectionalityMap(aTextNode)->ResetAutoDirection();
+    GetDirectionalityMap(aTextNode)->ResetAutoDirection(aTextNode);
   }
 };
 
