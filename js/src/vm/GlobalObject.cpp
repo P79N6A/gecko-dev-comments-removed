@@ -376,12 +376,17 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
         return NULL;
     self->setThrowTypeError(throwTypeError);
 
-    RootedObject intrinsicsHolder(cx, JS_NewObject(cx, NULL, NULL, self));
-    if (!intrinsicsHolder)
-        return NULL;
+    RootedObject intrinsicsHolder(cx);
+    if (cx->runtime->isSelfHostingGlobal(self)) {
+        intrinsicsHolder = this;
+    } else {
+        intrinsicsHolder = NewObjectWithClassProto(cx, &ObjectClass, NULL, self);
+        if (!intrinsicsHolder)
+            return NULL;
+    }
     self->setIntrinsicsHolder(intrinsicsHolder);
     
-    RootedValue global(cx, OBJECT_TO_JSVAL(self));
+    RootedValue global(cx, ObjectValue(*self));
     if (!JSObject::defineProperty(cx, intrinsicsHolder, cx->names().global,
                                   global, JS_PropertyStub, JS_StrictPropertyStub,
                                   JSPROP_PERMANENT | JSPROP_READONLY))
