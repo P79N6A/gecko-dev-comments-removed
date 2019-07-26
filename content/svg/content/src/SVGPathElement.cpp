@@ -13,11 +13,17 @@
 #include "gfxPath.h"
 #include "mozilla/dom/SVGPathElementBinding.h"
 #include "nsCOMPtr.h"
+#include "nsComputedDOMStyle.h"
 #include "nsGkAtoms.h"
+#include "nsStyleConsts.h"
+#include "nsStyleStruct.h"
+#include "SVGContentUtils.h"
 
 class gfxContext;
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Path)
+
+using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace dom {
@@ -348,6 +354,44 @@ SVGPathElement::GetPathLengthScale(PathLengthScaleForType aFor)
     }
   }
   return 1.0;
+}
+
+TemporaryRef<Path>
+SVGPathElement::BuildPath()
+{
+  
+  
+  
+  
+  
+  
+
+  uint8_t strokeLineCap = NS_STYLE_STROKE_LINECAP_BUTT;
+  Float strokeWidth = 0;
+
+  nsRefPtr<nsStyleContext> styleContext =
+    nsComputedDOMStyle::GetStyleContextForElementNoFlush(this, nullptr, nullptr);
+  if (styleContext) {
+    const nsStyleSVG* style = styleContext->StyleSVG();
+    
+    
+    
+    
+    if (style->mStrokeLinecap == NS_STYLE_STROKE_LINECAP_SQUARE) {
+      strokeLineCap = style->mStrokeLinecap;
+      strokeWidth = GetStrokeWidth();
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  
+
+  return mD.GetAnimValue().BuildPath(GetFillRule(), strokeLineCap, strokeWidth);
 }
 
 } 

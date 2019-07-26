@@ -297,15 +297,6 @@ public:
 
 
 
-  static float CoordToFloat(nsPresContext *aPresContext,
-                            nsSVGElement *aContent,
-                            const nsStyleCoord &aCoord);
-
-  
-
-
-
-
   static nsSVGDisplayContainerFrame* GetNearestSVGViewport(nsIFrame *aFrame);
 
   

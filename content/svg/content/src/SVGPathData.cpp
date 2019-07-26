@@ -16,6 +16,7 @@
 #include "nsSVGPathDataParser.h"
 #include "nsSVGPathGeometryElement.h" 
 #include <stdarg.h>
+#include "nsStyleConsts.h"
 #include "SVGContentUtils.h"
 #include "SVGPathSegUtils.h"
 #include "gfxContext.h"
@@ -229,6 +230,39 @@ SVGPathData::GetPathSegAtLength(float aDistance) const
 
 
 
+
+
+
+
+
+
+
+
+
+
+static void
+ApproximateZeroLengthSubpathSquareCaps(PathBuilder* aPB,
+                                       const Point& aPoint,
+                                       Float aStrokeWidth)
+{
+  
+  
+  
+  
+  MOZ_ASSERT(aStrokeWidth > 0.0f,
+             "Make the caller check for this, or check it here");
+
+  
+  
+  
+
+  Float tinyLength = aStrokeWidth / 32;
+
+  aPB->MoveTo(aPoint);
+  aPB->LineTo(aPoint + Point(tinyLength, 0));
+  aPB->MoveTo(aPoint);
+}
+
 static void
 ApproximateZeroLengthSubpathSquareCaps(const gfxPoint &aPoint, gfxContext *aCtx)
 {
@@ -244,32 +278,12 @@ ApproximateZeroLengthSubpathSquareCaps(const gfxPoint &aPoint, gfxContext *aCtx)
   aCtx->MoveTo(aPoint);
 }
 
-static void
-ApproximateZeroLengthSubpathSquareCaps(const Point& aPoint,
-                                       DrawTarget* aDT,
-                                       PathBuilder* aPB)
-{
-  
-  
-  
-  
-
-  Matrix currentTransform = aDT->GetTransform();
-  currentTransform.Invert();
-  Size tinyAdvance = currentTransform * Size(2.0/256.0, 0.0);
-
-  aPB->MoveTo(aPoint);
-  aPB->LineTo(aPoint + Point(tinyAdvance.width, tinyAdvance.height));
-  aPB->MoveTo(aPoint);
-}
-
 #define MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS_TO_DT               \
   do {                                                                        \
-    if (capsAreSquare && !subpathHasLength && subpathContainsNonArc &&        \
-        SVGPathSegUtils::IsValidType(prevSegType) &&                          \
-        (!IsMoveto(prevSegType) ||                                            \
-         segType == PATHSEG_CLOSEPATH)) {                                     \
-      ApproximateZeroLengthSubpathSquareCaps(segStart, aDT, builder);         \
+    if (capsAreSquare && !subpathHasLength && aStrokeWidth > 0 &&             \
+        subpathContainsNonArc && SVGPathSegUtils::IsValidType(prevSegType) && \
+        (!IsMoveto(prevSegType) || segType == PATHSEG_CLOSEPATH)) {           \
+      ApproximateZeroLengthSubpathSquareCaps(builder, segStart, aStrokeWidth);\
     }                                                                         \
   } while(0)
 
@@ -284,17 +298,23 @@ ApproximateZeroLengthSubpathSquareCaps(const Point& aPoint,
   } while(0)
 
 TemporaryRef<Path>
-SVGPathData::ConstructPath(DrawTarget *aDT,
-                           FillRule aFillRule,
-                           CapStyle aCapStyle) const
+SVGPathData::BuildPath(FillRule aFillRule,
+                       uint8_t aStrokeLineCap,
+                       Float aStrokeWidth) const
 {
   if (mData.IsEmpty() || !IsMoveto(SVGPathSegUtils::DecodeType(mData[0]))) {
     return nullptr; 
   }
 
-  RefPtr<PathBuilder> builder = aDT->CreatePathBuilder(aFillRule);
+  RefPtr<DrawTarget> drawTarget =
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+  NS_ASSERTION(gfxPlatform::GetPlatform()->
+                 SupportsAzureContentForDrawTarget(drawTarget),
+               "Should support Moz2D content drawing");
 
-  bool capsAreSquare = aCapStyle == CAP_SQUARE;
+  RefPtr<PathBuilder> builder = drawTarget->CreatePathBuilder(aFillRule);
+
+  bool capsAreSquare = aStrokeLineCap == NS_STYLE_STROKE_LINECAP_SQUARE;
   bool subpathHasLength = false;  
   bool subpathContainsNonArc = false;
 
