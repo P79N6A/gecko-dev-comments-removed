@@ -117,6 +117,7 @@
 #include "WinUtils.h"
 #include "WidgetUtils.h"
 #include "nsIWidgetListener.h"
+#include "nsDOMTouchEvent.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -6179,6 +6180,86 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
 {
   uint32_t cInputs = LOWORD(wParam);
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
+
+  if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
+    nsTouchEvent* touchEventToSend = nullptr;
+    nsTouchEvent* touchEndEventToSend = nullptr;
+    nsEventStatus status;
+
+    
+    for (uint32_t i = 0; i < cInputs; i++) {
+      uint32_t msg;
+
+      if (pInputs[i].dwFlags & (TOUCHEVENTF_DOWN | TOUCHEVENTF_MOVE)) {
+        
+        if (!touchEventToSend) {
+          touchEventToSend = new nsTouchEvent(true, NS_TOUCH_MOVE, this);
+          touchEventToSend->time = ::GetMessageTime();
+          ModifierKeyState modifierKeyState;
+          modifierKeyState.InitInputEvent(*touchEventToSend);
+        }
+
+        
+        
+        if (pInputs[i].dwFlags & TOUCHEVENTF_DOWN) {
+          touchEventToSend->message = msg = NS_TOUCH_START;
+        } else {
+          msg = NS_TOUCH_MOVE;
+        }
+      } else if (pInputs[i].dwFlags & TOUCHEVENTF_UP) {
+        
+        
+        
+        if (!touchEndEventToSend) {
+          touchEndEventToSend = new nsTouchEvent(true, NS_TOUCH_END, this);
+          touchEndEventToSend->time = ::GetMessageTime();
+          ModifierKeyState modifierKeyState;
+          modifierKeyState.InitInputEvent(*touchEndEventToSend);
+        }
+        msg = NS_TOUCH_END;
+      } else {
+        
+        
+        continue;
+      }
+
+      
+      nsPointWin touchPoint;
+      touchPoint.x = TOUCH_COORD_TO_PIXEL(pInputs[i].x);
+      touchPoint.y = TOUCH_COORD_TO_PIXEL(pInputs[i].y);
+      touchPoint.ScreenToClient(mWnd);
+      nsCOMPtr<nsIDOMTouch> touch =
+        new nsDOMTouch(pInputs[i].dwID,
+                       touchPoint,
+                       
+                       pInputs[i].dwFlags & TOUCHINPUTMASKF_CONTACTAREA ?
+                         nsIntPoint(
+                           TOUCH_COORD_TO_PIXEL(pInputs[i].cxContact) / 2,
+                           TOUCH_COORD_TO_PIXEL(pInputs[i].cyContact) / 2) :
+                         nsIntPoint(1,1),
+                       
+                       0.0f, 0.0f);
+
+      
+      if (msg == NS_TOUCH_START || msg == NS_TOUCH_MOVE) {
+        touchEventToSend->touches.AppendElement(touch);
+      } else {
+        touchEndEventToSend->touches.AppendElement(touch);
+      }
+    }
+
+    
+    if (touchEventToSend) {
+      DispatchEvent(touchEventToSend, status);
+      delete touchEventToSend;
+    }
+
+    
+    if (touchEndEventToSend) {
+      DispatchEvent(touchEndEventToSend, status);
+      delete touchEndEventToSend;
+    }
+  }
 
   delete [] pInputs;
   mGesture.CloseTouchInputHandle((HTOUCHINPUT)lParam);
