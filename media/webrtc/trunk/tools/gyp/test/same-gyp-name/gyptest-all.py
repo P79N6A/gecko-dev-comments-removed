@@ -12,7 +12,7 @@ import TestGyp
 
 
 
-test = TestGyp.TestGyp(formats=['msvs', 'scons', 'make', 'ninja'])
+test = TestGyp.TestGyp(formats=['!xcode'])
 
 test.run_gyp('all.gyp', chdir='src')
 

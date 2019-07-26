@@ -20,7 +20,8 @@ namespace webrtc {
 class Module {
  public:
   
-  virtual int32_t ChangeUniqueId(const int32_t id) = 0;
+  
+  virtual int32_t ChangeUniqueId(const int32_t id) { return 0; }
 
   
   

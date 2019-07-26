@@ -15,7 +15,7 @@
 #include <windows.h>
 
 #include "aligned_malloc.h"
-#include "atomic32_wrapper.h"
+#include "atomic32.h"
 #include "typedefs.h"
 
 namespace webrtc {
@@ -66,8 +66,8 @@ private:
     
     PSLIST_HEADER _pListHead;
 
-    Atomic32Wrapper _createdMemory;
-    Atomic32Wrapper _outstandingMemory;
+    Atomic32 _createdMemory;
+    Atomic32 _outstandingMemory;
 };
 
 template<class MemoryType>

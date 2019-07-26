@@ -61,6 +61,7 @@ int WebRtcNs_Free(NsHandle* NS_inst);
 
 
 
+
 int WebRtcNs_Init(NsHandle* NS_inst, WebRtc_UWord32 fs);
 
 
@@ -102,6 +103,18 @@ int WebRtcNs_Process(NsHandle* NS_inst,
                      short* spframe_H,
                      short* outframe,
                      short* outframe_H);
+
+
+
+
+
+
+
+
+
+
+
+float WebRtcNs_prior_speech_probability(NsHandle* handle);
 
 #ifdef __cplusplus
 }

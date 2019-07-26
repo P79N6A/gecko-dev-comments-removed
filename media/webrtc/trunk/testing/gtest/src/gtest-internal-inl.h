@@ -116,6 +116,12 @@ GTEST_API_ std::string FormatTimeInMillisAsSeconds(TimeInMillis ms);
 
 
 
+GTEST_API_ std::string FormatEpochTimeInMillisAsIso8601(TimeInMillis ms);
+
+
+
+
+
 GTEST_API_ bool ParseInt32Flag(
     const char* str, const char* flag, Int32* value);
 
@@ -190,6 +196,7 @@ class GTestFlagSaver {
     GTEST_FLAG(stream_result_to) = stream_result_to_;
     GTEST_FLAG(throw_on_failure) = throw_on_failure_;
   }
+
  private:
   
   bool also_run_disabled_tests_;
@@ -432,8 +439,11 @@ class OsStackTraceGetterInterface {
 class OsStackTraceGetter : public OsStackTraceGetterInterface {
  public:
   OsStackTraceGetter() : caller_frame_(NULL) {}
-  virtual String CurrentStackTrace(int max_depth, int skip_count);
-  virtual void UponLeavingGTest();
+
+  virtual String CurrentStackTrace(int max_depth, int skip_count)
+      GTEST_LOCK_EXCLUDED_(mutex_);
+
+  virtual void UponLeavingGTest() GTEST_LOCK_EXCLUDED_(mutex_);
 
   
   
@@ -549,6 +559,10 @@ class GTEST_API_ UnitTestImpl {
   int test_to_run_count() const;
 
   
+  
+  TimeInMillis start_timestamp() const { return start_timestamp_; }
+
+  
   TimeInMillis elapsed_time() const { return elapsed_time_; }
 
   
@@ -606,7 +620,7 @@ class GTEST_API_ UnitTestImpl {
   
   
   
-  String CurrentOsStackTraceExceptTop(int skip_count);
+  String CurrentOsStackTraceExceptTop(int skip_count) GTEST_NO_INLINE_;
 
   
   
@@ -879,6 +893,10 @@ class GTEST_API_ UnitTestImpl {
 
   
   internal::Random random_;
+
+  
+  
+  TimeInMillis start_timestamp_;
 
   
   TimeInMillis elapsed_time_;

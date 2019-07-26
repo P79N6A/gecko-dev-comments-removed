@@ -8,7 +8,7 @@
 
 
 
-#ifndef INCLUDE_LIBYUV_SCALE_H_
+#ifndef INCLUDE_LIBYUV_SCALE_H_  
 #define INCLUDE_LIBYUV_SCALE_H_
 
 #include "libyuv/basic_types.h"
@@ -24,6 +24,13 @@ enum FilterMode {
   kFilterBilinear = 1,  
   kFilterBox = 2  
 };
+
+
+void ScalePlane(const uint8* src, int src_stride,
+                int src_width, int src_height,
+                uint8* dst, int dst_stride,
+                int dst_width, int dst_height,
+                FilterMode filtering);
 
 
 
@@ -67,4 +74,4 @@ void SetUseReferenceImpl(bool use);
 }  
 #endif
 
-#endif 
+#endif  

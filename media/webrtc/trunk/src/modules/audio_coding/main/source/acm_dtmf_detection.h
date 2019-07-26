@@ -29,13 +29,8 @@ class ACMDTMFDetection {
                        bool& toneDetected,
                        WebRtc_Word16& tone);
 
-  static WebRtc_Word16 GetVersion(WebRtc_Word8* version,
-                                  WebRtc_UWord32& remainingBufferInBytes,
-                                  WebRtc_UWord32& position);
-
  private:
   ACMResampler _resampler;
-  bool _init;
 };
 
 } 

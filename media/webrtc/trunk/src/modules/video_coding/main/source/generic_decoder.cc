@@ -40,13 +40,13 @@ void VCMDecodedFrameCallback::SetUserReceiveCallback(
     _receiveCallback = receiveCallback;
 }
 
-WebRtc_Word32 VCMDecodedFrameCallback::Decoded(RawImage& decodedImage)
+WebRtc_Word32 VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage)
 {
     
     
     CriticalSectionScoped cs(_critSect);
     VCMFrameInformation* frameInfo = static_cast<VCMFrameInformation*>(
-        _timestampMap.Pop(decodedImage._timeStamp));
+        _timestampMap.Pop(decodedImage.TimeStamp()));
     if (frameInfo == NULL)
     {
         
@@ -54,20 +54,14 @@ WebRtc_Word32 VCMDecodedFrameCallback::Decoded(RawImage& decodedImage)
     }
 
     _timing.StopDecodeTimer(
-        decodedImage._timeStamp,
+        decodedImage.TimeStamp(),
         frameInfo->decodeStartTimeMs,
         _clock->MillisecondTimestamp());
 
     if (_receiveCallback != NULL)
     {
-        _frame.Swap(decodedImage._buffer,
-                    decodedImage._length,
-                    decodedImage._size);
-        _frame.SetWidth(decodedImage._width);
-        _frame.SetHeight(decodedImage._height);
-        _frame.SetTimeStamp(decodedImage._timeStamp);
+        _frame.SwapFrame(decodedImage);
         _frame.SetRenderTime(frameInfo->renderTimeMs);
-        
         WebRtc_Word32 callbackReturn = _receiveCallback->FrameToRender(_frame);
         if (callbackReturn < 0)
         {

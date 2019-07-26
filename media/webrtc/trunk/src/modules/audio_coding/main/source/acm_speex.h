@@ -76,10 +76,6 @@ protected:
         WebRtc_Word16 mode);
 #endif
 
-    WebRtc_Word16 UnregisterFromNetEqSafe(
-        ACMNetEQ*     netEq,
-        WebRtc_Word16 payloadType);
-
     SPEEX_encinst_t_* _encoderInstPtr;
     SPEEX_decinst_t_* _decoderInstPtr;
     WebRtc_Word16     _complMode;

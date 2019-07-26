@@ -7,6 +7,7 @@ import gyp.common
 import gyp.xcodeproj_file
 import errno
 import os
+import sys
 import posixpath
 import re
 import shutil
@@ -145,7 +146,6 @@ class XcodeProject(object):
       xccl = CreateXCConfigurationList(configurations)
       self.project.SetProperty('buildConfigurationList', xccl)
     except:
-      import sys
       sys.stderr.write("Problem with gyp file %s\n" % self.gyp_path)
       raise
 
@@ -513,7 +513,7 @@ def InstalledXcodeVersion():
   return cached_xcode_version
 
 
-def AddSourceToTarget(source, pbxp, xct):
+def AddSourceToTarget(source, type, pbxp, xct):
   
   
   source_extensions = ['c', 'cc', 'cpp', 'cxx', 'm', 'mm', 's']
@@ -526,12 +526,12 @@ def AddSourceToTarget(source, pbxp, xct):
 
   basename = posixpath.basename(source)
   (root, ext) = posixpath.splitext(basename)
-  if ext != '':
+  if ext:
     ext = ext[1:].lower()
 
-  if ext in source_extensions:
+  if ext in source_extensions and type != 'none':
     xct.SourcesPhase().AddFile(source)
-  elif ext in library_extensions:
+  elif ext in library_extensions and type != 'none':
     xct.FrameworksPhase().AddFile(source)
   else:
     
@@ -614,11 +614,13 @@ def GenerateOutput(target_list, target_dicts, data, params):
     if project_version:
       xcp.project_file.SetXcodeVersion(project_version)
 
-    main_group = pbxp.GetProperty('mainGroup')
-    build_group = gyp.xcodeproj_file.PBXGroup({'name': 'Build'})
-    main_group.AppendChild(build_group)
-    for included_file in build_file_dict['included_files']:
-      build_group.AddOrGetFileByPath(included_file, False)
+    
+    if not generator_flags.get('standalone'):
+      main_group = pbxp.GetProperty('mainGroup')
+      build_group = gyp.xcodeproj_file.PBXGroup({'name': 'Build'})
+      main_group.AppendChild(build_group)
+      for included_file in build_file_dict['included_files']:
+        build_group.AddOrGetFileByPath(included_file, False)
 
   xcode_targets = {}
   xcode_target_to_target_dict = {}
@@ -772,7 +774,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
       
       if int(action.get('process_outputs_as_sources', False)):
         for output in action['outputs']:
-          AddSourceToTarget(output, pbxp, xct)
+          AddSourceToTarget(output, type, pbxp, xct)
 
       if int(action.get('process_outputs_as_mac_bundle_resources', False)):
         for output in action['outputs']:
@@ -900,7 +902,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
         
         if int(rule.get('process_outputs_as_sources', False)):
           for output in concrete_outputs_for_this_rule_source:
-            AddSourceToTarget(output, pbxp, xct)
+            AddSourceToTarget(output, type, pbxp, xct)
 
         
         
@@ -926,7 +928,8 @@ def GenerateOutput(target_list, target_dicts, data, params):
       if len(concrete_outputs_all) > 0:
         
         
-        makefile_name = '%s_%s.make' % (target_name, rule['rule_name'])
+        makefile_name = '%s.make' % re.sub(
+            '[^a-zA-Z0-9_]', '_' , '%s_%s' % (target_name, rule['rule_name']))
         makefile_path = os.path.join(xcode_projects[build_file].path,
                                      makefile_name)
         
@@ -1064,7 +1067,7 @@ exit 1
       if source_extension[1:] not in rules_by_ext:
         
         
-        AddSourceToTarget(source, pbxp, xct)
+        AddSourceToTarget(source, type, pbxp, xct)
       else:
         pbxp.AddOrGetFileInRootGroup(source)
 
@@ -1078,11 +1081,14 @@ exit 1
         else:
           pbxp.AddOrGetFileInRootGroup(resource)
 
-      for header in spec.get('mac_framework_headers', []):
-        AddHeaderToTarget(header, pbxp, xct, True)
-
       for header in spec.get('mac_framework_private_headers', []):
         AddHeaderToTarget(header, pbxp, xct, False)
+
+    
+    
+    if is_bundle or type == 'static_library':
+      for header in spec.get('mac_framework_headers', []):
+        AddHeaderToTarget(header, pbxp, xct, True)
 
     
     for copy_group in spec.get('copies', []):

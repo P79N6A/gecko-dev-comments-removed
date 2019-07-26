@@ -26,7 +26,7 @@ enum { kMinEnergy = 10 };
 typedef struct VadInstT_
 {
 
-    int16_t vad;
+    int vad;
     int32_t downsampling_filter_states[4];
     int16_t noise_means[kTableSize];
     int16_t speech_means[kTableSize];
@@ -100,11 +100,11 @@ int WebRtcVad_set_mode_core(VadInstT* self, int mode);
 
 
 
-int16_t WebRtcVad_CalcVad32khz(VadInstT* inst, int16_t* speech_frame,
-                               int frame_length);
-int16_t WebRtcVad_CalcVad16khz(VadInstT* inst, int16_t* speech_frame,
-                               int frame_length);
-int16_t WebRtcVad_CalcVad8khz(VadInstT* inst, int16_t* speech_frame,
-                              int frame_length);
+int WebRtcVad_CalcVad32khz(VadInstT* inst, int16_t* speech_frame,
+                           int frame_length);
+int WebRtcVad_CalcVad16khz(VadInstT* inst, int16_t* speech_frame,
+                           int frame_length);
+int WebRtcVad_CalcVad8khz(VadInstT* inst, int16_t* speech_frame,
+                          int frame_length);
 
 #endif  

@@ -84,7 +84,7 @@ class NoneTarget(TargetBase):
   """
   A GYP target type of 'none', implicitly or explicitly.
   """
-  def write_target(self, fp, pre=''):
+  def write_target(self, fp, src_dir='', pre=''):
     fp.write('\ntarget_files.extend(input_files)\n')
 
 

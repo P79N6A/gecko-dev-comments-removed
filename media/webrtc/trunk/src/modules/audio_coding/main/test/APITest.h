@@ -30,7 +30,7 @@ public:
     void Perform();
 private:
     WebRtc_Word16 SetUp();
-    
+
     static bool PushAudioThreadA(void* obj);
     static bool PullAudioThreadA(void* obj);
     static bool ProcessThreadA(void* obj);
@@ -60,20 +60,20 @@ private:
     void TestSendVAD(char side);
 
     void CurrentCodec(char side);
-    
+
     void ChangeCodec(char side);
-    
+
     void Wait(WebRtc_UWord32 waitLengthMs);
 
     void LookForDTMF(char side);
 
     void RunTest(char thread);
-    
-    bool PushAudioRunA();    
+
+    bool PushAudioRunA();
     bool PullAudioRunA();
     bool ProcessRunA();
     bool APIRunA();
-  
+
     bool PullAudioRunB();
     bool PushAudioRunB();
     bool ProcessRunB();
@@ -84,11 +84,11 @@ private:
     
     AudioCodingModule* _acmA;
     AudioCodingModule* _acmB;
-    
+
     
     Channel* _channel_A2B;
     Channel* _channel_B2A;
-    
+
     
     
     PCMFile _inFileA;
@@ -96,13 +96,13 @@ private:
     
     PCMFile _outFileB;
     PCMFile _inFileB;
-    
+
     
     
     WebRtc_Word32 _outFreqHzA;
     
     WebRtc_Word32 _outFreqHzB;
-    
+
     
     
     
@@ -124,10 +124,6 @@ private:
     WebRtc_UWord8 _codecCntrB;
 
     
-    WebRtc_UWord8 _testCntrA;
-    WebRtc_UWord8 _testCntrB;
-
-    
     bool _thereIsEncoderA;
     bool _thereIsEncoderB;
     bool _thereIsDecoderA;
@@ -144,7 +140,7 @@ private:
     WebRtc_Word32    _minDelayA;
     WebRtc_Word32    _minDelayB;
     bool             _payloadUsed[32];
-        
+
     AudioPlayoutMode    _playoutModeA;
     AudioPlayoutMode    _playoutModeB;
 
@@ -155,14 +151,14 @@ private:
     int            _receiveVADActivityA[3];
     int            _receiveVADActivityB[3];
     bool           _verbose;
-    
+
     int            _dotPositionA;
     int            _dotMoveDirectionA;
     int            _dotPositionB;
     int            _dotMoveDirectionB;
 
     char           _movingDot[41];
-    
+
     DTMFDetector*  _dtmfCallback;
     VADCallback*   _vadCallbackA;
     VADCallback*   _vadCallbackB;

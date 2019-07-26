@@ -11,10 +11,9 @@ and using the subdirectory's solution or project file as the entry point.
 """
 
 import TestGyp
-import errno
 
 
-test = TestGyp.TestGyp(formats=['!ninja'])
+test = TestGyp.TestGyp(formats=['!ninja', '!android'])
 
 test.run_gyp('prog1.gyp', chdir='src')
 

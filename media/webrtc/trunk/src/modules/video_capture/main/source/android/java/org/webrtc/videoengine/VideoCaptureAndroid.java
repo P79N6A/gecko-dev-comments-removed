@@ -19,6 +19,8 @@ import org.webrtc.videoengine.VideoCaptureDeviceInfoAndroid.AndroidVideoCaptureD
 
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.util.Log;
@@ -27,13 +29,20 @@ import android.view.SurfaceHolder.Callback;
 
 public class VideoCaptureAndroid implements PreviewCallback, Callback {
 
+    private final static String TAG = "WEBRTC-JC";
+
     private Camera camera;
     private AndroidVideoCaptureDevice currentDevice = null;
     public ReentrantLock previewBufferLock = new ReentrantLock();
+    
+    private ReentrantLock captureLock = new ReentrantLock();
     private int PIXEL_FORMAT = ImageFormat.NV21;
     PixelFormat pixelFormat = new PixelFormat();
     
-    private boolean isRunning=false;
+    private boolean isCaptureStarted = false;
+    private boolean isCaptureRunning = false;
+    private boolean isSurfaceReady = false;
+    private SurfaceHolder surfaceHolder = null;
 
     private final int numCaptureBuffers = 3;
     private int expectedFrameSize = 0;
@@ -45,29 +54,21 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
     
     private boolean ownsBuffers = false;
 
-    
-    private static int LOGLEVEL = 0;
-    private static boolean VERBOSE = LOGLEVEL > 2;
-    private static boolean DEBUG = LOGLEVEL > 1;
-
-    CaptureCapabilityAndroid currentCapability = null;
+    private int mCaptureWidth = -1;
+    private int mCaptureHeight = -1;
+    private int mCaptureFPS = -1;
 
     public static
     void DeleteVideoCaptureAndroid(VideoCaptureAndroid captureAndroid) {
-        if(DEBUG) Log.d("*WEBRTC*", "DeleteVideoCaptureAndroid");
+        Log.d(TAG, "DeleteVideoCaptureAndroid");
 
         captureAndroid.StopCapture();
         captureAndroid.camera.release();
         captureAndroid.camera = null;
         captureAndroid.context = 0;
-
-        if(DEBUG) Log.v("*WEBRTC*", "DeleteVideoCaptureAndroid ended");
-
     }
 
-    public VideoCaptureAndroid(int in_id,
-            long in_context,
-            Camera in_camera,
+    public VideoCaptureAndroid(int in_id, long in_context, Camera in_camera,
             AndroidVideoCaptureDevice in_device) {
         id = in_id;
         context = in_context;
@@ -75,16 +76,27 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
         currentDevice = in_device;
     }
 
-    public int StartCapture(int width, int height, int frameRate) {
-        if(DEBUG) Log.d("*WEBRTC*", "StartCapture width" + width +
-                " height " + height +" frame rate " + frameRate);
+    private int tryStartCapture(int width, int height, int frameRate) {
+        if (camera == null) {
+            Log.e(TAG, "Camera not initialized %d" + id);
+            return -1;
+        }
+
+        Log.d(TAG, "tryStartCapture " + width +
+                " height " + height +" frame rate " + frameRate +
+                "isCaptureRunning " + isCaptureRunning +
+                "isSurfaceReady " + isSurfaceReady +
+                "isCaptureStarted " + isCaptureStarted);
+
+        if (isCaptureRunning || !isSurfaceReady || !isCaptureStarted) {
+            return 0;
+        }
+
         try {
-            if (camera == null) {
-                Log.e("*WEBRTC*",
-                        String.format(Locale.US,"Camera not initialized %d",id));
-                return -1;
-            }
-            currentCapability = new CaptureCapabilityAndroid();
+            camera.setPreviewDisplay(surfaceHolder);
+
+            CaptureCapabilityAndroid currentCapability =
+                    new CaptureCapabilityAndroid();
             currentCapability.width = width;
             currentCapability.height = height;
             currentCapability.maxFPS = frameRate;
@@ -93,93 +105,88 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
             Camera.Parameters parameters = camera.getParameters();
             parameters.setPreviewSize(currentCapability.width,
                     currentCapability.height);
-            parameters.setPreviewFormat(PIXEL_FORMAT );
+            parameters.setPreviewFormat(PIXEL_FORMAT);
             parameters.setPreviewFrameRate(currentCapability.maxFPS);
             camera.setParameters(parameters);
 
-            
-            localPreview = ViERenderer.GetLocalRenderer();
-            if(localPreview != null) {
-                localPreview.addCallback(this);
-            }
-
             int bufSize = width * height * pixelFormat.bitsPerPixel / 8;
-            if(android.os.Build.VERSION.SDK_INT >= 7) {
-                
-                
-                
-                byte[] buffer = null;
-                for (int i = 0; i < numCaptureBuffers; i++) {
-                    buffer = new byte[bufSize];
-                    camera.addCallbackBuffer(buffer);
-                }
-
-                camera.setPreviewCallbackWithBuffer(this);
-                ownsBuffers = true;
+            byte[] buffer = null;
+            for (int i = 0; i < numCaptureBuffers; i++) {
+                buffer = new byte[bufSize];
+                camera.addCallbackBuffer(buffer);
             }
-            else {
-                camera.setPreviewCallback(this);
-            }
+            camera.setPreviewCallbackWithBuffer(this);
+            ownsBuffers = true;
 
             camera.startPreview();
             previewBufferLock.lock();
             expectedFrameSize = bufSize;
-            isRunning = true;
+            isCaptureRunning = true;
             previewBufferLock.unlock();
+
         }
         catch (Exception ex) {
-            Log.e("*WEBRTC*", "Failed to start camera");
+            Log.e(TAG, "Failed to start camera");
             return -1;
         }
+
+        isCaptureRunning = true;
         return 0;
+    }
+
+    public int StartCapture(int width, int height, int frameRate) {
+        Log.d(TAG, "StartCapture width " + width +
+                " height " + height +" frame rate " + frameRate);
+        
+        localPreview = ViERenderer.GetLocalRenderer();
+        if (localPreview != null) {
+            localPreview.addCallback(this);
+        }
+
+        captureLock.lock();
+        isCaptureStarted = true;
+        mCaptureWidth = width;
+        mCaptureHeight = height;
+        mCaptureFPS = frameRate;
+
+        int res = tryStartCapture(mCaptureWidth, mCaptureHeight, mCaptureFPS);
+
+        captureLock.unlock();
+        return res;
     }
 
     public int StopCapture() {
-        if(DEBUG) Log.d("*WEBRTC*", "StopCapture");
+        Log.d(TAG, "StopCapture");
         try {
             previewBufferLock.lock();
-            isRunning = false;
+            isCaptureRunning = false;
             previewBufferLock.unlock();
-
             camera.stopPreview();
-
-            if(android.os.Build.VERSION.SDK_INT > 7) {
-                camera.setPreviewCallbackWithBuffer(null);
-            }
-            else {
-                camera.setPreviewCallback(null);
-            }
+            camera.setPreviewCallbackWithBuffer(null);
         }
         catch (Exception ex) {
-            Log.e("*WEBRTC*", "Failed to stop camera");
+            Log.e(TAG, "Failed to stop camera");
             return -1;
         }
 
-        if(DEBUG) {
-            Log.d("*WEBRTC*", "StopCapture ended");
-        }
+        isCaptureStarted = false;
         return 0;
     }
 
-    native void ProvideCameraFrame(byte[] data,int length, long captureObject);
+    native void ProvideCameraFrame(byte[] data, int length, long captureObject);
 
     public void onPreviewFrame(byte[] data, Camera camera) {
         previewBufferLock.lock();
 
-        if(VERBOSE) {
-            Log.v("*WEBRTC*",
-                    String.format(Locale.US, "preview frame length %d context %x",
-                            data.length, context));
-        }
-        if(isRunning) {
+        
+        
+        
+        if (isCaptureRunning) {
             
             
             if (data.length == expectedFrameSize) {
                 ProvideCameraFrame(data, expectedFrameSize, context);
-                if (VERBOSE) {
-                    Log.v("*WEBRTC*", String.format(Locale.US, "frame delivered"));
-                }
-                if(ownsBuffers) {
+                if (ownsBuffers) {
                     
                     camera.addCallbackBuffer(data);
                 }
@@ -188,41 +195,26 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
         previewBufferLock.unlock();
     }
 
-
-    public void surfaceChanged(SurfaceHolder holder,
-            int format, int width, int height) {
-
-        try {
-            if(camera != null) {
-                camera.setPreviewDisplay(localPreview);
-            }
-        } catch (IOException e) {
-            Log.e("*WEBRTC*",
-                    String.format(Locale.US,
-                            "Failed to set Local preview. " + e.getMessage()));
-        }
-    }
-
     
     
     public void SetPreviewRotation(int rotation) {
-        if(camera != null) {
+        Log.v(TAG, "SetPreviewRotation:" + rotation);
+
+        if (camera != null) {
             previewBufferLock.lock();
-            final boolean running = isRunning;
             int width = 0;
             int height = 0;
             int framerate = 0;
 
-            if(running) {
-                width = currentCapability.width;
-                height = currentCapability.height;
-                framerate = currentCapability.maxFPS;
-
+            if (isCaptureRunning) {
+                width = mCaptureWidth;
+                height = mCaptureHeight;
+                framerate = mCaptureFPS;
                 StopCapture();
             }
 
             int resultRotation = 0;
-            if(currentDevice.frontCameraType ==
+            if (currentDevice.frontCameraType ==
                     VideoCaptureDeviceInfoAndroid.FrontFacingCameraType.Android23) {
                 
                 
@@ -233,30 +225,34 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
                 
                 resultRotation=rotation;
             }
-            if(android.os.Build.VERSION.SDK_INT>7) {
-                camera.setDisplayOrientation(resultRotation);
-            }
-            else {
-                
-                
-                
-                Camera.Parameters parameters = camera.getParameters();
-                parameters.setRotation(resultRotation);
-                camera.setParameters(parameters);
-            }
+            camera.setDisplayOrientation(resultRotation);
 
-            if(running) {
+            if (isCaptureRunning) {
                 StartCapture(width, height, framerate);
             }
             previewBufferLock.unlock();
         }
     }
 
-    public void surfaceCreated(SurfaceHolder holder) {
+    public void surfaceChanged(SurfaceHolder holder,
+                               int format, int width, int height) {
+        Log.d(TAG, "VideoCaptureAndroid::surfaceChanged");
+
+        captureLock.lock();
+        isSurfaceReady = true;
+        surfaceHolder = holder;
+
+        tryStartCapture(mCaptureWidth, mCaptureHeight, mCaptureFPS);
+        captureLock.unlock();
+        return;
     }
 
+    public void surfaceCreated(SurfaceHolder holder) {
+        Log.d(TAG, "VideoCaptureAndroid::surfaceCreated");
+    }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.d(TAG, "VideoCaptureAndroid::surfaceDestroyed");
+        isSurfaceReady = false;
     }
-
 }

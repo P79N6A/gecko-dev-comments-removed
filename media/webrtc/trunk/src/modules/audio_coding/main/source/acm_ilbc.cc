@@ -131,16 +131,6 @@ ACMILBC::SetBitRateSafe(const WebRtc_Word32 )
     return -1;
 }
 
-
-WebRtc_Word16
-ACMILBC::UnregisterFromNetEqSafe(
-    ACMNetEQ*     ,
-    WebRtc_Word16 )
-{
-    return -1;
-}
-
-
 #else     
 
 
@@ -365,24 +355,6 @@ ACMILBC::SetBitRateSafe(const WebRtc_Word32 rate)
     _encoderParams.codecInstant.rate = rate;
 
     return 0;
-}
-
-WebRtc_Word16
-ACMILBC::UnregisterFromNetEqSafe(
-    ACMNetEQ*     netEq,
-    WebRtc_Word16 payloadType)
-{
-    if(payloadType != _decoderParams.codecInstant.pltype)
-    {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-            "Cannot unregister codec: given payload-type does not match \
-the stored payload type",
-            _decoderParams.codecInstant.plname,
-            payloadType,
-            _decoderParams.codecInstant.pltype);
-        return -1;
-    }
-    return netEq->RemoveCodec(kDecoderILBC);
 }
 
 #endif

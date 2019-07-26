@@ -29,7 +29,7 @@ class ViEAutoTestMain {
   static const int kInvalidChoice = -1;
 
   
-  bool RunInteractiveMode();
+  int RunInteractiveMode();
   
   
   int RunSpecificTestCaseIn(const std::string test_case_name);

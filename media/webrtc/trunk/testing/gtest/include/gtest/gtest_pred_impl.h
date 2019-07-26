@@ -98,7 +98,7 @@ AssertionResult AssertPred1Helper(const char* pred_text,
 
 
 #define GTEST_PRED_FORMAT1_(pred_format, v1, on_failure)\
-  GTEST_ASSERT_(pred_format(#v1, v1),\
+  GTEST_ASSERT_(pred_format(#v1, v1), \
                 on_failure)
 
 
@@ -144,7 +144,7 @@ AssertionResult AssertPred2Helper(const char* pred_text,
 
 
 #define GTEST_PRED_FORMAT2_(pred_format, v1, v2, on_failure)\
-  GTEST_ASSERT_(pred_format(#v1, #v2, v1, v2),\
+  GTEST_ASSERT_(pred_format(#v1, #v2, v1, v2), \
                 on_failure)
 
 
@@ -197,7 +197,7 @@ AssertionResult AssertPred3Helper(const char* pred_text,
 
 
 #define GTEST_PRED_FORMAT3_(pred_format, v1, v2, v3, on_failure)\
-  GTEST_ASSERT_(pred_format(#v1, #v2, #v3, v1, v2, v3),\
+  GTEST_ASSERT_(pred_format(#v1, #v2, #v3, v1, v2, v3), \
                 on_failure)
 
 
@@ -257,7 +257,7 @@ AssertionResult AssertPred4Helper(const char* pred_text,
 
 
 #define GTEST_PRED_FORMAT4_(pred_format, v1, v2, v3, v4, on_failure)\
-  GTEST_ASSERT_(pred_format(#v1, #v2, #v3, #v4, v1, v2, v3, v4),\
+  GTEST_ASSERT_(pred_format(#v1, #v2, #v3, #v4, v1, v2, v3, v4), \
                 on_failure)
 
 
@@ -324,7 +324,7 @@ AssertionResult AssertPred5Helper(const char* pred_text,
 
 
 #define GTEST_PRED_FORMAT5_(pred_format, v1, v2, v3, v4, v5, on_failure)\
-  GTEST_ASSERT_(pred_format(#v1, #v2, #v3, #v4, #v5, v1, v2, v3, v4, v5),\
+  GTEST_ASSERT_(pred_format(#v1, #v2, #v3, #v4, #v5, v1, v2, v3, v4, v5), \
                 on_failure)
 
 

@@ -19,8 +19,6 @@
 #include <vector>
 
 #include "../source/event.h"
-#include "receiver_tests.h" 
-#include "test_callbacks.h"
 #include "test_macros.h"
 #include "test_util.h" 
 #include "testsupport/metrics/video_metrics.h"
@@ -67,35 +65,34 @@ int MediaOptTest::RunTest(int testNum, CmdArgs& args)
 }
 
 
-MediaOptTest::MediaOptTest(VideoCodingModule* vcm, TickTimeBase* clock):
-_vcm(vcm),
-_clock(clock),
-_width(0),
-_height(0),
-_lengthSourceFrame(0),
-_timeStamp(0),
-_frameRate(30.0f),
-_nackEnabled(false),
-_fecEnabled(false),
-_rttMS(0),
-_bitRate(300.0f),
-_lossRate(0.0f),
-_renderDelayMs(0),
-_frameCnt(0),
-_sumEncBytes(0),
-_numFramesDropped(0),
-_numberOfCores(4)
-{
-    _rtp = RtpRtcp::CreateRtpRtcp(1, false);
+MediaOptTest::MediaOptTest(VideoCodingModule* vcm, TickTimeBase* clock)
+    : _vcm(vcm),
+      _rtp(NULL),
+      _outgoingTransport(NULL),
+      _dataCallback(NULL),
+      _clock(clock),
+      _width(0),
+      _height(0),
+      _lengthSourceFrame(0),
+      _timeStamp(0),
+      _frameRate(30.0f),
+      _nackEnabled(false),
+      _fecEnabled(false),
+      _rttMS(0),
+      _bitRate(300.0f),
+      _lossRate(0.0f),
+      _renderDelayMs(0),
+      _frameCnt(0),
+      _sumEncBytes(0),
+      _numFramesDropped(0),
+      _numberOfCores(4) {
 }
 
-MediaOptTest::~MediaOptTest()
-{
-    RtpRtcp::DestroyRtpRtcp(_rtp);
+MediaOptTest::~MediaOptTest() {
+  delete _rtp;
 }
-void
-MediaOptTest::Setup(int testType, CmdArgs& args)
-{
+
+void MediaOptTest::Setup(int testType, CmdArgs& args) {
     
     
     _inname = args.inputFile;
@@ -168,7 +165,6 @@ MediaOptTest::Setup(int testType, CmdArgs& args)
    _lengthSourceFrame  = 3*_width*_height/2;
     _log.open((test::OutputPath() + "VCM_MediaOptLog.txt").c_str(),
               std::fstream::out | std::fstream::app);
-    return;
 }
 
 void
@@ -193,15 +189,6 @@ MediaOptTest::GeneralSetup()
         printf("Cannot read file %s.\n", _actualSourcename.c_str());
         exit(1);
     }
-
-    if (_rtp->InitReceiver() < 0)
-    {
-        exit(1);
-    }
-    if (_rtp->InitSender() < 0)
-    {
-        exit(1);
-    }
     if (_vcm->InitializeReceiver() < 0)
     {
         exit(1);
@@ -210,6 +197,17 @@ MediaOptTest::GeneralSetup()
     {
         exit(1);
     }
+    _outgoingTransport = new RTPSendCompleteCallback(_clock);
+    _dataCallback = new RtpDataCallback(_vcm);
+
+    RtpRtcp::Configuration configuration;
+    configuration.id = 1;
+    configuration.audio = false;
+    configuration.incoming_data = _dataCallback;
+    configuration.outgoing_transport = _outgoingTransport;
+    _rtp = RtpRtcp::CreateRtpRtcp(configuration);
+
+    _outgoingTransport->SetRtpModule(_rtp);
 
     
 
@@ -262,8 +260,6 @@ MediaOptTest::GeneralSetup()
 
     _vcm->SetRenderDelay(_renderDelayMs);
     _vcm->SetMinimumPlayoutDelay(minPlayoutDelayMs);
-
-    return;
 }
 
 
@@ -272,33 +268,23 @@ MediaOptTest::GeneralSetup()
 WebRtc_Word32
 MediaOptTest::Perform()
 {
-    
-    EventWrapper* waitEvent = EventWrapper::Create();
+    VCMDecodeCompleteCallback receiveCallback(_decodedFile);
 
-    
     VCMRTPEncodeCompleteCallback* encodeCompleteCallback = new VCMRTPEncodeCompleteCallback(_rtp);
     _vcm->RegisterTransportCallback(encodeCompleteCallback);
     encodeCompleteCallback->SetCodecType(ConvertCodecType(_codecName.c_str()));
     encodeCompleteCallback->SetFrameDimensions(_width, _height);
-    
-    RTPSendCompleteCallback* outgoingTransport =
-        new RTPSendCompleteCallback(_rtp, _clock);
-    _rtp->RegisterSendTransport(outgoingTransport);
-    
-    VCMDecodeCompleteCallback receiveCallback(_decodedFile);
-    RtpDataCallback dataCallback(_vcm);
-    _rtp->RegisterIncomingDataCallback(&dataCallback);
 
+    
     VideoProtectionCallback  protectionCallback;
     protectionCallback.RegisterRtpModule(_rtp);
     _vcm->RegisterProtectionCallback(&protectionCallback);
 
     
-    outgoingTransport->SetLossPct(_lossRate);
-    if (_nackFecEnabled == 1)
+    _outgoingTransport->SetLossPct(_lossRate);
+    if (_nackFecEnabled == 1) {
         _vcm->SetVideoProtection(kProtectionNackFEC, _nackFecEnabled);
-    else
-    {
+    } else {
         _vcm->SetVideoProtection(kProtectionNack, _nackEnabled);
         _vcm->SetVideoProtection(kProtectionFEC, _fecEnabled);
     }
@@ -344,18 +330,18 @@ MediaOptTest::Perform()
         }
         else
         {
-            
-            fwrite(sourceFrame.Buffer(), 1, sourceFrame.Length(), _actualSourceFile);
+          
+          if (fwrite(sourceFrame.Buffer(), 1, sourceFrame.Length(),
+                     _actualSourceFile) !=  sourceFrame.Length()) {
+            return -1;
+          }
         }
 
         _sumEncBytes += encBytes;
-         
     }
 
     
-    delete waitEvent;
     delete encodeCompleteCallback;
-    delete outgoingTransport;
     delete tmpBuffer;
 
 return 0;
@@ -441,17 +427,10 @@ MediaOptTest::RTTest()
 
 
 
-                 if (_rtp != NULL)
-                 {
-                     RtpRtcp::DestroyRtpRtcp(_rtp);
-                 }
-                 _rtp = RtpRtcp::CreateRtpRtcp(1, false);
                  GeneralSetup();
                  Perform();
                  Print(1);
                  TearDown();
-                 RtpRtcp::DestroyRtpRtcp(_rtp);
-                 _rtp = NULL;
 
                  printf("\n");
                   
@@ -549,12 +528,15 @@ MediaOptTest::Print(int mode)
     TEST(psnr.average > 10); 
 }
 
-void
-MediaOptTest::TearDown()
-{
-    _log.close();
-    fclose(_sourceFile);
-    fclose(_decodedFile);
-    fclose(_actualSourceFile);
-    return;
+void MediaOptTest::TearDown() {
+  delete _rtp;
+  _rtp = NULL;
+  delete _outgoingTransport;
+  _outgoingTransport = NULL;
+  delete _dataCallback;
+  _dataCallback = NULL;
+  _log.close();
+  fclose(_sourceFile);
+  fclose(_decodedFile);
+  fclose(_actualSourceFile);
 }

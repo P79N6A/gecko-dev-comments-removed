@@ -167,7 +167,12 @@ int main(int argc, char* argv[])
 			}
 
 			
-			fwrite(temp_packet, sizeof(unsigned char), ntohs(*((WebRtc_UWord16*) temp_packet)), out_file);
+                        if (fwrite(temp_packet, sizeof(unsigned char),
+                                   ntohs(*((WebRtc_UWord16*) temp_packet)),
+                                   out_file) !=
+                            ntohs(*((WebRtc_UWord16*) temp_packet))) {
+                          return -1;
+                        }
 		}
 	}
 

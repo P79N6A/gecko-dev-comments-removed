@@ -14,16 +14,51 @@
 #include "audio_processing.h"
 #include "critical_section_wrapper.h"
 #include "map_wrapper.h"
+#include "modules/utility/interface/audio_frame_operations.h"
 #include "trace.h"
 
 namespace webrtc {
 namespace {
+
+
+
+
+
+
+
+void MixFrames(AudioFrame* mixed_frame, AudioFrame* frame) {
+  assert(mixed_frame->num_channels_ >= frame->num_channels_);
+  
+  *frame >>= 1;
+  if (mixed_frame->num_channels_ > frame->num_channels_) {
+    
+    assert(mixed_frame->num_channels_ == 2 &&
+           frame->num_channels_ == 1);
+    AudioFrameOperations::MonoToStereo(frame);
+  }
+
+  *mixed_frame += *frame;
+}
+
+
+int MaxNumChannels(const ListWrapper& list) {
+  ListItem* item = list.First();
+  int max_num_channels = 1;
+  while (item) {
+    AudioFrame* frame = static_cast<AudioFrame*>(item->GetItem());
+    max_num_channels = std::max(max_num_channels, frame->num_channels_);
+    item = list.Next(item);
+  }
+  return max_num_channels;
+}
+
 void SetParticipantStatistics(ParticipantStatistics* stats,
                               const AudioFrame& frame)
 {
-    stats->participant = frame._id;
-    stats->level = frame._volume;
+    stats->participant = frame.id_;
+    stats->level = 0;  
 }
+
 }  
 
 MixerParticipant::MixerParticipant()
@@ -247,6 +282,12 @@ WebRtc_Word32 AudioConferenceMixerImpl::Process()
                     SetOutputFrequency(kSwbInHz);
                 }
                 break;
+            case 48000:
+                if(OutputFrequency() != kWbInHz)
+                {
+                    SetOutputFrequency(kWbInHz);
+                }
+                break;
             default:
                 assert(false);
 
@@ -283,25 +324,22 @@ WebRtc_Word32 AudioConferenceMixerImpl::Process()
     int retval = 0;
     WebRtc_Word32 audioLevel = 0;
     {
-        const ListItem* firstItem = mixList.First();
-        
-        WebRtc_UWord8 numberOfChannels = 1;
-        if(firstItem != NULL)
-        {
-            
-            numberOfChannels = static_cast<const AudioFrame*>(
-                firstItem->GetItem())->_audioChannel;
-        }
+        CriticalSectionScoped cs(_crit.get());
+
         
         
 
-        CriticalSectionScoped cs(_crit.get());
-        if (!SetNumLimiterChannels(numberOfChannels))
+        
+        const int num_mixed_channels = std::max(MaxNumChannels(mixList),
+            std::max(MaxNumChannels(additionalFramesList),
+                     MaxNumChannels(rampOutList)));
+
+        if (!SetNumLimiterChannels(num_mixed_channels))
             retval = -1;
 
         mixedAudio->UpdateFrame(-1, _timeStamp, NULL, 0, _outputFrequency,
                                 AudioFrame::kNormalSpeech,
-                                AudioFrame::kVadPassive, numberOfChannels);
+                                AudioFrame::kVadPassive, num_mixed_channels);
 
         _timeStamp += _sampleSize;
 
@@ -309,11 +347,11 @@ WebRtc_Word32 AudioConferenceMixerImpl::Process()
         MixAnonomouslyFromList(*mixedAudio, additionalFramesList);
         MixAnonomouslyFromList(*mixedAudio, rampOutList);
 
-        if(mixedAudio->_payloadDataLengthInSamples == 0)
+        if(mixedAudio->samples_per_channel_ == 0)
         {
             
-            memset(mixedAudio->_payloadData, 0, _sampleSize);
-            mixedAudio->_payloadDataLengthInSamples = _sampleSize;
+            memset(mixedAudio->data_, 0, _sampleSize);
+            mixedAudio->samples_per_channel_ = _sampleSize;
         }
         else
         {
@@ -322,7 +360,7 @@ WebRtc_Word32 AudioConferenceMixerImpl::Process()
                 retval = -1;
         }
 
-        _mixedAudioLevel.ComputeLevel(mixedAudio->_payloadData,_sampleSize);
+        _mixedAudioLevel.ComputeLevel(mixedAudio->data_,_sampleSize);
         audioLevel = _mixedAudioLevel.GetLevel();
 
         if(_mixerStatusCb)
@@ -719,7 +757,7 @@ void AudioConferenceMixerImpl::UpdateToMix(
             assert(false);
             return;
         }
-        audioFrame->_frequencyInHz = _outputFrequency;
+        audioFrame->sample_rate_hz_ = _outputFrequency;
 
         if(participant->GetAudioFrame(_id,*audioFrame) != 0)
         {
@@ -733,13 +771,13 @@ void AudioConferenceMixerImpl::UpdateToMix(
         
         
         
-        if (audioFrame->_vadActivity == AudioFrame::kVadUnknown)
+        if (audioFrame->vad_activity_ == AudioFrame::kVadUnknown)
         {
             WEBRTC_TRACE(kTraceWarning, kTraceAudioMixerServer, _id,
                          "invalid VAD state from participant");
         }
 
-        if(audioFrame->_vadActivity == AudioFrame::kVadActive)
+        if(audioFrame->vad_activity_ == AudioFrame::kVadActive)
         {
             if(!wasMixed)
             {
@@ -752,7 +790,7 @@ void AudioConferenceMixerImpl::UpdateToMix(
                 
                 ListItem* replaceItem = NULL;
                 CalculateEnergy(*audioFrame);
-                WebRtc_UWord32 lowestEnergy = audioFrame->_energy;
+                WebRtc_UWord32 lowestEnergy = audioFrame->energy_;
 
                 ListItem* activeItem = activeList.First();
                 while(activeItem)
@@ -760,10 +798,10 @@ void AudioConferenceMixerImpl::UpdateToMix(
                     AudioFrame* replaceFrame = static_cast<AudioFrame*>(
                         activeItem->GetItem());
                     CalculateEnergy(*replaceFrame);
-                    if(replaceFrame->_energy < lowestEnergy)
+                    if(replaceFrame->energy_ < lowestEnergy)
                     {
                         replaceItem = activeItem;
-                        lowestEnergy = replaceFrame->_energy;
+                        lowestEnergy = replaceFrame->energy_;
                     }
                     activeItem = activeList.Next(activeItem);
                 }
@@ -774,7 +812,7 @@ void AudioConferenceMixerImpl::UpdateToMix(
 
                     bool replaceWasMixed = false;
                     MapItem* replaceParticipant = mixParticipantList.Find(
-                        replaceFrame->_id);
+                        replaceFrame->id_);
                     
                     
                     
@@ -786,12 +824,12 @@ void AudioConferenceMixerImpl::UpdateToMix(
                             replaceParticipant->GetItem())->_mixHistory->
                             WasMixed(replaceWasMixed);
 
-                        mixParticipantList.Erase(replaceFrame->_id);
+                        mixParticipantList.Erase(replaceFrame->id_);
                         activeList.Erase(replaceItem);
 
                         activeList.PushFront(static_cast<void*>(audioFrame));
                         mixParticipantList.Insert(
-                            audioFrame->_id,
+                            audioFrame->id_,
                             static_cast<void*>(participant));
                         assert(mixParticipantList.Size() <=
                                kMaximumAmountOfMixedParticipants);
@@ -820,7 +858,7 @@ void AudioConferenceMixerImpl::UpdateToMix(
                 }
             } else {
                 activeList.PushFront(static_cast<void*>(audioFrame));
-                mixParticipantList.Insert(audioFrame->_id,
+                mixParticipantList.Insert(audioFrame->id_,
                                           static_cast<void*>(participant));
                 assert(mixParticipantList.Size() <=
                        kMaximumAmountOfMixedParticipants);
@@ -864,7 +902,7 @@ void AudioConferenceMixerImpl::UpdateToMix(
         if(mixList.GetSize() <  maxAudioFrameCounter + mixListStartSize)
         {
             mixList.PushBack(pair->audioFrame);
-            mixParticipantList.Insert(pair->audioFrame->_id,
+            mixParticipantList.Insert(pair->audioFrame->id_,
                                       static_cast<void*>(pair->participant));
             assert(mixParticipantList.Size() <=
                    kMaximumAmountOfMixedParticipants);
@@ -885,7 +923,7 @@ void AudioConferenceMixerImpl::UpdateToMix(
         if(mixList.GetSize() <  maxAudioFrameCounter + mixListStartSize)
         {
             mixList.PushBack(pair->audioFrame);
-            mixParticipantList.Insert(pair->audioFrame->_id,
+            mixParticipantList.Insert(pair->audioFrame->id_,
                                       static_cast<void*>(pair->participant));
             assert(mixParticipantList.Size() <=
                    kMaximumAmountOfMixedParticipants);
@@ -923,7 +961,7 @@ void AudioConferenceMixerImpl::GetAdditionalAudio(
             assert(false);
             return;
         }
-        audioFrame->_frequencyInHz = _outputFrequency;
+        audioFrame->sample_rate_hz_ = _outputFrequency;
         if(participant->GetAudioFrame(_id, *audioFrame) != 0)
         {
             WEBRTC_TRACE(kTraceWarning, kTraceAudioMixerServer, _id,
@@ -932,7 +970,7 @@ void AudioConferenceMixerImpl::GetAdditionalAudio(
             item = nextItem;
             continue;
         }
-        if(audioFrame->_payloadDataLengthInSamples == 0)
+        if(audioFrame->samples_per_channel_ == 0)
         {
             
             _audioFramePool->PushMemory(audioFrame);
@@ -1000,14 +1038,14 @@ void AudioConferenceMixerImpl::UpdateVADPositiveParticipants(
     {
         AudioFrame* audioFrame = static_cast<AudioFrame*>(item->GetItem());
         CalculateEnergy(*audioFrame);
-        if(audioFrame->_vadActivity == AudioFrame::kVadActive)
+        if(audioFrame->vad_activity_ == AudioFrame::kVadActive)
         {
             _scratchVadPositiveParticipants[
                 _scratchVadPositiveParticipantsAmount].participant =
-                audioFrame->_id;
+                audioFrame->id_;
+            
             _scratchVadPositiveParticipants[
-                _scratchVadPositiveParticipantsAmount].level =
-                audioFrame->_volume;
+                _scratchVadPositiveParticipantsAmount].level = 0;
             _scratchVadPositiveParticipantsAmount++;
         }
         item = mixList.Next(item);
@@ -1108,10 +1146,7 @@ WebRtc_Word32 AudioConferenceMixerImpl::MixFromList(
             position = 0;
         }
         AudioFrame* audioFrame = static_cast<AudioFrame*>(item->GetItem());
-
-        
-        *audioFrame >>= 1;
-        mixedAudio += *audioFrame;
+        MixFrames(&mixedAudio, audioFrame);
 
         SetParticipantStatistics(&_scratchMixedParticipants[position],
                                  *audioFrame);
@@ -1145,9 +1180,7 @@ WebRtc_Word32 AudioConferenceMixerImpl::MixAnonomouslyFromList(
     while(item != NULL)
     {
         AudioFrame* audioFrame = static_cast<AudioFrame*>(item->GetItem());
-        
-        *audioFrame >>= 1;
-        mixedAudio += *audioFrame;
+        MixFrames(&mixedAudio, audioFrame);
         item = audioFrameList.Next(item);
     }
     return 0;

@@ -17,7 +17,7 @@
 
 #include <winsock2.h>
 
-#include "atomic32_wrapper.h"
+#include "atomic32.h"
 #include "critical_section_wrapper.h"
 #include "event_wrapper.h"
 #include "list_wrapper.h"
@@ -88,8 +88,8 @@ private:
     PSLIST_HEADER _pListHead;
 
     bool _init;
-    Atomic32Wrapper _size;
-    Atomic32Wrapper _inUse;
+    Atomic32 _size;
+    Atomic32 _inUse;
 };
 
 

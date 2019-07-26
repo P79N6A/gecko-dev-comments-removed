@@ -50,29 +50,15 @@ AudioCodingModule::Codec(
 }
 
 
-WebRtc_Word32
-AudioCodingModule::Codec(
-    const char* payloadName,
-    CodecInst&          codec,
-    const WebRtc_Word32 samplingFreqHz)
-{
-    
-    for(int codecCntr = 0; codecCntr < ACMCodecDB::kNumCodecs; codecCntr++)
-    {
-        
-        ACMCodecDB::Codec(codecCntr, &codec);
+WebRtc_Word32 AudioCodingModule::Codec(const char* payload_name,
+                                       CodecInst& codec,
+                                       int sampling_freq_hz,
+                                       int channels) {
+  int codec_id;
 
-        if(!STR_CASE_CMP(codec.plname, payloadName))
-        {
-            
-            if((samplingFreqHz == codec.plfreq) || (samplingFreqHz == -1))
-            {
-                
-                return 0;
-            }
-        }
-    }
-
+  
+  codec_id = ACMCodecDB::CodecId(payload_name, sampling_freq_hz, channels);
+  if (codec_id < 0) {
     
     
     codec.plname[0] = '\0';
@@ -81,35 +67,19 @@ AudioCodingModule::Codec(
     codec.rate      = 0;
     codec.plfreq    = 0;
     return -1;
+  }
+
+  
+  ACMCodecDB::Codec(codec_id, &codec);
+
+  return 0;
 }
 
 
-WebRtc_Word32
-AudioCodingModule::Codec(
-    const char* payloadName,
-    const WebRtc_Word32 samplingFreqHz)
-{
-    CodecInst codec;
-
-    
-    for(int codecCntr = 0; codecCntr < ACMCodecDB::kNumCodecs; codecCntr++)
-    {
-        
-        ACMCodecDB::Codec(codecCntr, &codec);
-
-        if(!STR_CASE_CMP(codec.plname, payloadName))
-        {
-            
-            if((samplingFreqHz == codec.plfreq) || (samplingFreqHz == -1))
-            {
-                
-                return codecCntr;
-            }
-        }
-    }
-
-    
-    return -1;
+WebRtc_Word32 AudioCodingModule::Codec(const char* payload_name,
+                                       int sampling_freq_hz,
+                                       int channels) {
+  return ACMCodecDB::CodecId(payload_name, sampling_freq_hz, channels);
 }
 
 

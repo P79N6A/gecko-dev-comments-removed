@@ -20,6 +20,7 @@
 #include "../source/audio_device_config.h"
 #include "../source/audio_device_impl.h"
 #include "../source/audio_device_utility.h"
+#include "system_wrappers/interface/sleep.h"
 
 
 #if defined(ANDROID)
@@ -76,8 +77,7 @@ class AudioEventObserverAPI: public AudioDeviceObserver {
 class AudioTransportAPI: public AudioTransport {
  public:
   AudioTransportAPI(AudioDeviceModule* audioDevice)
-      : audio_device_(audioDevice),
-        rec_count_(0),
+      : rec_count_(0),
         play_count_(0) {
   }
 
@@ -129,7 +129,6 @@ class AudioTransportAPI: public AudioTransport {
   }
 
  private:
-  AudioDeviceModule* audio_device_;
   WebRtc_UWord32 rec_count_;
   WebRtc_UWord32 play_count_;
 };
@@ -533,7 +532,7 @@ TEST_F(AudioDeviceAPITest, InitPlayout) {
     EXPECT_EQ(0, audio_device_->InitPlayout());
     
     
-    AudioDeviceUtility::Sleep(50);
+    SleepMs(50);
     EXPECT_TRUE(audio_device_->PlayoutIsInitialized());
   }
 
@@ -582,7 +581,7 @@ TEST_F(AudioDeviceAPITest, InitRecording) {
   EXPECT_EQ(0, audio_device_->RecordingIsAvailable(&available));
   if (available) {
     EXPECT_EQ(0, audio_device_->InitRecording());
-    AudioDeviceUtility::Sleep(50);
+    SleepMs(50);
     EXPECT_TRUE(audio_device_->RecordingIsInitialized());
   }
 
@@ -941,6 +940,8 @@ TEST_F(AudioDeviceAPITest, SpeakerVolumeIsAvailable) {
 
 
 
+
+#ifndef WEBRTC_MAC
 TEST_F(AudioDeviceAPITest, SpeakerVolumeTests) {
   WebRtc_UWord32 vol(0);
   WebRtc_UWord32 volume(0);
@@ -1036,6 +1037,7 @@ TEST_F(AudioDeviceAPITest, SpeakerVolumeTests) {
         maxVolume/3 : maxVolume/10) == 0);
   }
 }
+#endif  
 
 TEST_F(AudioDeviceAPITest, AGC) {
   
@@ -1082,6 +1084,8 @@ TEST_F(AudioDeviceAPITest, MicrophoneVolumeIsAvailable) {
 
 
 
+
+#ifndef WEBRTC_MAC
 TEST_F(AudioDeviceAPITest, MicrophoneVolumeTests) {
   WebRtc_UWord32 vol(0);
   WebRtc_UWord32 volume(0);
@@ -1175,6 +1179,7 @@ TEST_F(AudioDeviceAPITest, MicrophoneVolumeTests) {
     EXPECT_EQ(0, audio_device_->SetMicrophoneVolume(maxVolume/10));
   }
 }
+#endif  
 
 TEST_F(AudioDeviceAPITest, SpeakerMuteIsAvailable) {
   bool available;
@@ -1706,7 +1711,7 @@ TEST_F(AudioDeviceAPITest, StartAndStopRawOutputFileRecording) {
 
   EXPECT_EQ(0, audio_device_->StartRawOutputFileRecording(
       GetFilename("raw_output_playing.pcm")));
-  AudioDeviceUtility::Sleep(100);
+  SleepMs(100);
   EXPECT_EQ(0, audio_device_->StopRawOutputFileRecording());
   EXPECT_EQ(0, audio_device_->StopPlayout());
   EXPECT_EQ(0, audio_device_->StartRawOutputFileRecording(
@@ -1719,6 +1724,8 @@ TEST_F(AudioDeviceAPITest, StartAndStopRawOutputFileRecording) {
   
 }
 
+
+#if !defined(WEBRTC_LINUX)
 TEST_F(AudioDeviceAPITest, StartAndStopRawInputFileRecording) {
   
   CheckInitialRecordingStates();
@@ -1740,7 +1747,7 @@ TEST_F(AudioDeviceAPITest, StartAndStopRawInputFileRecording) {
 #endif
   EXPECT_EQ(0, audio_device_->StartRawInputFileRecording(
       GetFilename("raw_input_recording.pcm")));
-  AudioDeviceUtility::Sleep(100);
+  SleepMs(100);
   EXPECT_EQ(0, audio_device_->StopRawInputFileRecording());
   EXPECT_EQ(0, audio_device_->StopRecording());
   EXPECT_EQ(0, audio_device_->StartRawInputFileRecording(
@@ -1752,7 +1759,8 @@ TEST_F(AudioDeviceAPITest, StartAndStopRawInputFileRecording) {
   
   
 }
-#endif
+#endif  
+#endif  
 
 TEST_F(AudioDeviceAPITest, RecordingSampleRate) {
   WebRtc_UWord32 sampleRate(0);
@@ -1808,7 +1816,7 @@ TEST_F(AudioDeviceAPITest, ResetAudioDevice) {
   {
     TEST_LOG("Resetting sound device several time with pause %d ms\n", l);
     EXPECT_EQ(0, audio_device_->ResetAudioDevice());
-    AudioDeviceUtility::Sleep(l);
+    SleepMs(l);
   }
 #else
   

@@ -75,17 +75,18 @@ VPMSimpleSpatialResampler::ResampleFrame(const VideoFrame& inFrame,
 
   
   
+  
   int retVal = 0;
   retVal = _scaler.Set(inFrame.Width(), inFrame.Height(),
                        _targetWidth, _targetHeight, kI420, kI420, kScaleBox);
   if (retVal < 0)
     return retVal;
 
-
   
-  int requiredSize = (WebRtc_UWord32)(_targetWidth * _targetHeight * 3 >> 1);
+  int requiredSize = CalcBufferSize(kI420, _targetWidth, _targetHeight);
   outFrame.VerifyAndAllocate(requiredSize);
   outFrame.SetTimeStamp(inFrame.TimeStamp());
+  outFrame.SetRenderTime(inFrame.RenderTimeMs());
   outFrame.SetWidth(_targetWidth);
   outFrame.SetHeight(_targetHeight);
 

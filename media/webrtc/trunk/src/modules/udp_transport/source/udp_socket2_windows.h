@@ -19,7 +19,7 @@
 #include <Ntddndis.h>
 #include <traffic.h>
 
-#include "atomic32_wrapper.h"
+#include "atomic32.h"
 #include "condition_variable_wrapper.h"
 #include "critical_section_wrapper.h"
 #include "event_wrapper.h"
@@ -129,8 +129,8 @@ private:
     UdpSocket2ManagerWindows* _mgr;
 
     CriticalSectionWrapper* _pCrit;
-    Atomic32Wrapper _outstandingCalls;
-    Atomic32Wrapper _outstandingCallComplete;
+    Atomic32 _outstandingCalls;
+    Atomic32 _outstandingCallComplete;
     volatile bool _terminate;
     volatile bool _addedToMgr;
 
@@ -165,7 +165,7 @@ private:
     
     int _pcp;
 
-    Atomic32Wrapper _receiveBuffers;
+    Atomic32 _receiveBuffers;
 };
 } 
 #endif 

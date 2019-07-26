@@ -12,7 +12,7 @@ import TestGyp
 
 
 
-test = TestGyp.TestGyp(formats=['make'])
+test = TestGyp.TestGyp(formats=['make', 'android'])
 
 test.run_gyp('hello.gyp')
 

@@ -42,6 +42,7 @@
 #include <uuids.h>
 
 #include "audio_device_utility.h"
+#include "system_wrappers/interface/sleep.h"
 #include "trace.h"
 
 
@@ -3569,6 +3570,16 @@ DWORD AudioDeviceWindowsCore::DoRenderThread()
             _Lock();
 
             
+            
+            if (_ptrRenderClient == NULL || _ptrClientOut == NULL)
+            {
+                _UnLock();
+                WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
+                    "output state has been modified during unlocked period");
+                goto Exit;
+            }
+
+            
             UINT32 padding = 0;
             hr = _ptrClientOut->GetCurrentPadding(&padding);
             EXIT_ON_ERROR(hr);
@@ -3657,7 +3668,7 @@ DWORD AudioDeviceWindowsCore::DoRenderThread()
 
     
 
-    Sleep(static_cast<DWORD>(endpointBufferSizeMS+0.5));
+    SleepMs(static_cast<DWORD>(endpointBufferSizeMS+0.5));
     hr = _ptrClientOut->Stop();
 
 Exit:
@@ -4015,6 +4026,16 @@ DWORD AudioDeviceWindowsCore::DoCaptureThread()
             UINT64 recPos = 0;
 
             _Lock();
+
+            
+            
+            if (_ptrCaptureClient == NULL || _ptrClientIn == NULL)
+            {
+                _UnLock();
+                WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
+                    "input state has been modified during unlocked period");
+                goto Exit;
+            }
 
             
             

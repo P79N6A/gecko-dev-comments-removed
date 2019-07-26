@@ -13,6 +13,7 @@
 
 
 
+
 #if defined(BUILD_PRECOMPILE_H_)
 #error You shouldn't include the precompiled header file more than once.
 #endif
@@ -26,7 +27,6 @@
 #include <shellapi.h>
 #include <wincrypt.h>  
 #include <wtypes.h>  
-
 
 
 

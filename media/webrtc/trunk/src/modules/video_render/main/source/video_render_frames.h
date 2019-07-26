@@ -8,71 +8,55 @@
 
 
 
-#ifndef WEBRTC_MODULES_VIDEO_RENDER_MAIN_SOURCE_VIDEO_RENDER_FRAMES_H_
+#ifndef WEBRTC_MODULES_VIDEO_RENDER_MAIN_SOURCE_VIDEO_RENDER_FRAMES_H_  
 #define WEBRTC_MODULES_VIDEO_RENDER_MAIN_SOURCE_VIDEO_RENDER_FRAMES_H_
 
-#include "list_wrapper.h"
-#include "video_render.h"
+#include "modules/video_render/main/interface/video_render.h"
+#include "system_wrappers/interface/list_wrapper.h"
 
 namespace webrtc {
 
 
-class VideoRenderFrames
-{
-public:
-    VideoRenderFrames();
-    ~VideoRenderFrames();
+class VideoRenderFrames {
+ public:
+  VideoRenderFrames();
+  ~VideoRenderFrames();
 
-    
+  
+  WebRtc_Word32 AddFrame(VideoFrame* new_frame);
 
+  
+  VideoFrame* FrameToRender();
 
-    WebRtc_Word32 AddFrame(VideoFrame* ptrNewFrame);
+  
+  WebRtc_Word32 ReturnFrame(VideoFrame* old_frame);
 
-    
+  
+  WebRtc_Word32 ReleaseAllFrames();
 
+  
+  WebRtc_UWord32 TimeToNextFrameRelease();
 
-    VideoFrame* FrameToRender();
+  
+  WebRtc_Word32 SetRenderDelay(const WebRtc_UWord32 render_delay);
 
-    
+ private:
+  
+  enum { KMaxNumberOfFrames = 300 };
+  
+  enum { KOldRenderTimestampMS = 500 };
+  
+  enum { KFutureRenderTimestampMS = 10000 };
 
+  
+  ListWrapper incoming_frames_;
+  
+  ListWrapper empty_frames_;
 
-    WebRtc_Word32 ReturnFrame(VideoFrame* ptrOldFrame);
-
-    
-
-
-    WebRtc_Word32 ReleaseAllFrames();
-
-    
-
-
-    WebRtc_UWord32 TimeToNextFrameRelease();
-
-    
-
-
-    WebRtc_Word32 SetRenderDelay(const WebRtc_UWord32 renderDelay);
-
-private:
-    enum
-    {
-        KMaxNumberOfFrames = 300
-    }; 
-    enum
-    {
-        KOldRenderTimestampMS = 500
-    }; 
-    enum
-    {
-        KFutureRenderTimestampMS = 10000
-    }; 
-
-    ListWrapper _incomingFrames; 
-    ListWrapper _emptyFrames; 
-
-    WebRtc_UWord32 _renderDelayMs; 
+  
+  WebRtc_UWord32 render_delay_ms_;
 };
 
-} 
+}  
 
 #endif

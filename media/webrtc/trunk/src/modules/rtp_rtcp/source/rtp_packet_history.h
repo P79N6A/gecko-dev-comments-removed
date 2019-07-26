@@ -10,8 +10,6 @@
 
 
 
-
-
 #ifndef WEBRTC_MODULES_RTP_RTCP_RTP_PACKET_HISTORY_H_
 #define WEBRTC_MODULES_RTP_RTCP_RTP_PACKET_HISTORY_H_
 
@@ -39,6 +37,7 @@ class RTPPacketHistory {
   int32_t PutRTPPacket(const uint8_t* packet,
                        uint16_t packet_length,
                        uint16_t max_packet_length,
+                       int64_t capture_time_ms,
                        StorageType type);
 
   
@@ -56,7 +55,7 @@ class RTPPacketHistory {
                     uint32_t min_elapsed_time_ms,
                     uint8_t* packet,
                     uint16_t* packet_length,
-                    uint32_t* stored_time_ms,
+                    int64_t* stored_time_ms,
                     StorageType* type) const;
 
   bool HasRTPPacket(uint16_t sequence_number) const;
@@ -79,8 +78,8 @@ class RTPPacketHistory {
   std::vector<std::vector<uint8_t> > stored_packets_;
   std::vector<uint16_t> stored_seq_nums_;
   std::vector<uint16_t> stored_lengths_;
-  std::vector<uint32_t> stored_times_;
-  std::vector<uint32_t> stored_resend_times_;
+  std::vector<int64_t> stored_times_;
+  std::vector<int64_t> stored_resend_times_;
   std::vector<StorageType> stored_types_;
 };
 }  

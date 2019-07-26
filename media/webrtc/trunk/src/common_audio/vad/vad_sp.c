@@ -8,13 +8,13 @@
 
 
 
-#include "vad_sp.h"
+#include "common_audio/vad/vad_sp.h"
 
 #include <assert.h>
 
-#include "signal_processing_library.h"
+#include "common_audio/signal_processing/include/signal_processing_library.h"
+#include "common_audio/vad/vad_core.h"
 #include "typedefs.h"
-#include "vad_core.h"
 
 
 
@@ -64,83 +64,80 @@ int16_t WebRtcVad_FindMinimum(VadInstT* self,
   int i = 0, j = 0;
   int position = -1;
   
-  int offset = (channel << 4);
+  const int offset = (channel << 4);
   int16_t current_median = 1600;
   int16_t alpha = 0;
   int32_t tmp32 = 0;
   
   
-  int16_t* age_ptr = &self->index_vector[offset];
-  int16_t* value_ptr = &self->low_value_vector[offset];
-  int16_t *p1, *p2, *p3;
+  int16_t* age = &self->index_vector[offset];
+  int16_t* smallest_values = &self->low_value_vector[offset];
 
   assert(channel < kNumChannels);
 
   
   
   for (i = 0; i < 16; i++) {
-    p3 = age_ptr + i;
-    if (*p3 != 100) {
-      *p3 += 1;
+    if (age[i] != 100) {
+      age[i]++;
     } else {
-      p1 = value_ptr + i + 1;
-      p2 = p3 + 1;
+      
       for (j = i; j < 16; j++) {
-        *(value_ptr + j) = *p1++;
-        *(age_ptr + j) = *p2++;
+        smallest_values[j] = smallest_values[j + 1];
+        age[j] = age[j + 1];
       }
-      *(age_ptr + 15) = 101;
-      *(value_ptr + 15) = 10000;
+      age[15] = 101;
+      smallest_values[15] = 10000;
     }
   }
 
   
   
   
-  if (feature_value < *(value_ptr + 7)) {
-    if (feature_value < *(value_ptr + 3)) {
-      if (feature_value < *(value_ptr + 1)) {
-        if (feature_value < *value_ptr) {
+  if (feature_value < smallest_values[7]) {
+    if (feature_value < smallest_values[3]) {
+      if (feature_value < smallest_values[1]) {
+        if (feature_value < smallest_values[0]) {
           position = 0;
         } else {
           position = 1;
         }
-      } else if (feature_value < *(value_ptr + 2)) {
+      } else if (feature_value < smallest_values[2]) {
         position = 2;
       } else {
         position = 3;
       }
-    } else if (feature_value < *(value_ptr + 5)) {
-      if (feature_value < *(value_ptr + 4)) {
+    } else if (feature_value < smallest_values[5]) {
+      if (feature_value < smallest_values[4]) {
         position = 4;
       } else {
         position = 5;
       }
-    } else if (feature_value < *(value_ptr + 6)) {
+    } else if (feature_value < smallest_values[6]) {
       position = 6;
     } else {
       position = 7;
     }
-  } else if (feature_value < *(value_ptr + 15)) {
-    if (feature_value < *(value_ptr + 11)) {
-      if (feature_value < *(value_ptr + 9)) {
-        if (feature_value < *(value_ptr + 8)) {
+  } else if (feature_value < smallest_values[15]) {
+    if (feature_value < smallest_values[11]) {
+      if (feature_value < smallest_values[9]) {
+        if (feature_value < smallest_values[8]) {
           position = 8;
         } else {
           position = 9;
         }
-      } else if (feature_value < *(value_ptr + 10)) {
+      } else if (feature_value < smallest_values[10]) {
         position = 10;
       } else {
         position = 11;
       }
-    } else if (feature_value < *(value_ptr + 13)) {
-      if (feature_value < *(value_ptr + 12)) {
+    } else if (feature_value < smallest_values[13]) {
+      if (feature_value < smallest_values[12]) {
         position = 12;
       } else {
         position = 13;
       }
-    } else if (feature_value < *(value_ptr + 14)) {
+    } else if (feature_value < smallest_values[14]) {
       position = 14;
     } else {
       position = 15;
@@ -151,19 +148,18 @@ int16_t WebRtcVad_FindMinimum(VadInstT* self,
   
   if (position > -1) {
     for (i = 15; i > position; i--) {
-      j = i - 1;
-      *(value_ptr + i) = *(value_ptr + j);
-      *(age_ptr + i) = *(age_ptr + j);
+      smallest_values[i] = smallest_values[i - 1];
+      age[i] = age[i - 1];
     }
-    *(value_ptr + position) = feature_value;
-    *(age_ptr + position) = 1;
+    smallest_values[position] = feature_value;
+    age[position] = 1;
   }
 
   
   if (self->frame_counter > 2) {
-    current_median = *(value_ptr + 2);
+    current_median = smallest_values[2];
   } else if (self->frame_counter > 0) {
-    current_median = *value_ptr;
+    current_median = smallest_values[0];
   }
 
   

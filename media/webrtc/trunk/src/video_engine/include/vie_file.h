@@ -211,6 +211,13 @@ class WEBRTC_DLLEXPORT ViEFile {
                                     const ViEPicture& picture,
                                     const unsigned int timeout_ms) = 0;
 
+  
+  virtual int StartDebugRecording(int video_channel,
+                                  const char* file_name_utf8) = 0;
+  
+  virtual int StopDebugRecording(int video_channel) = 0;
+
+
  protected:
   ViEFile() {}
   virtual ~ViEFile() {}

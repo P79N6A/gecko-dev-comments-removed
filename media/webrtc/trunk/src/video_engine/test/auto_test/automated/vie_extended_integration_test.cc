@@ -25,7 +25,8 @@ TEST_F(ViEExtendedIntegrationTest, RunsBaseTestWithoutErrors) {
   tests_->ViEBaseExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsCaptureTestWithoutErrors) {
+
+TEST_F(ViEExtendedIntegrationTest, DISABLED_RunsCaptureTestWithoutErrors) {
   tests_->ViECaptureExtendedTest();
 }
 

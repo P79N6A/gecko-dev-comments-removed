@@ -129,16 +129,22 @@ int main(int argc, char* argv[])
             
             stream_len = WebRtcG711_EncodeA(NULL, shortdata, framelength, streamdata);
             if (argc==6){
-                
-                fwrite(streamdata,sizeof(unsigned char),stream_len,bitp);
+              
+              if (fwrite(streamdata, sizeof(unsigned char), stream_len,
+                         bitp) != static_cast<size_t>(stream_len)) {
+                return -1;
+              }
             }
             err = WebRtcG711_DecodeA(NULL, streamdata, stream_len, decoded, speechType);
         } else if (!strcmp(law,"u")){
             
             stream_len = WebRtcG711_EncodeU(NULL, shortdata, framelength, streamdata);
             if (argc==6){
-                
-                fwrite(streamdata,sizeof(unsigned char),stream_len,bitp);
+              
+              if (fwrite(streamdata, sizeof(unsigned char), stream_len,
+                         bitp) != static_cast<size_t>(stream_len)) {
+                return -1;
+              }
             }
             err = WebRtcG711_DecodeU(NULL, streamdata, stream_len, decoded, speechType);
         } else {
@@ -149,8 +155,11 @@ int main(int argc, char* argv[])
             
             printf("Error in encoder/decoder\n");
         } else {
-            
-            fwrite(decoded,sizeof(short),framelength,outp);
+          
+          if (fwrite(decoded, sizeof(short), framelength,
+                     outp) != static_cast<size_t>(framelength)) {
+            return -1;
+          }
         }
     }
 

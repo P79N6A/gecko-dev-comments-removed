@@ -60,7 +60,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
         
         packetLenSamp = inst->packetSpeechLenSamp; 
     }
-    else if (timeStamp > inst->lastTimeStamp)
+    else
     {
         
         packetLenSamp = (WebRtc_Word16) WebRtcSpl_DivU32U16(timeStamp - inst->lastTimeStamp,
@@ -378,7 +378,9 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
 #ifdef NETEQ_DELAY_LOGGING
     
     temp_var = NETEQ_DELAY_LOGGING_SIGNAL_OPTBUF;
-    fwrite( &temp_var, sizeof(int), 1, delay_fid2 );
+    if (fwrite( &temp_var, sizeof(int), 1, delay_fid2 ) != 1) {
+      return -1;
+    }
     temp_var = (int) (Bopt * inst->packetSpeechLenSamp);
 #endif
 
@@ -518,7 +520,9 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
 
 #ifdef NETEQ_DELAY_LOGGING
     
-    fwrite( &temp_var, sizeof(int), 1, delay_fid2 );
+    if (fwrite( &temp_var, sizeof(int), 1, delay_fid2 ) != 1) {
+      return -1;
+    }
 #endif
 
     

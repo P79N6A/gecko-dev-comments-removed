@@ -11,7 +11,7 @@ Verifies --generator-output= behavior when using actions.
 import TestGyp
 
 
-test = TestGyp.TestGyp(formats=['!ninja'])
+test = TestGyp.TestGyp(formats=['!ninja', '!android'])
 
 
 

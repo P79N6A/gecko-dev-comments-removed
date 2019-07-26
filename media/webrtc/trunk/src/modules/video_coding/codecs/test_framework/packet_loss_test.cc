@@ -64,36 +64,40 @@ PacketLossTest::Encoded(const EncodedImage& encodedImage)
 }
 
 void
-PacketLossTest::Decoded(const RawImage& decodedImage)
+PacketLossTest::Decoded(const VideoFrame& decodedImage)
 {
     
     assert(!_frameQueue.empty()); 
-    while(_frameQueue.front() < decodedImage._timeStamp)
+    while(_frameQueue.front() < decodedImage.TimeStamp())
     {
         
         
         if (_decodedFile && _lastFrame)
         {
-            fwrite(_lastFrame, 1, _lastFrameLength, _decodedFile);
+          if (fwrite(_lastFrame, 1, _lastFrameLength,
+                     _decodedFile) != _lastFrameLength) {
+            return;
+          }
         }
 
         
         _frameQueue.pop_front();
     }
-    assert(_frameQueue.front() == decodedImage._timeStamp); 
+    
+    assert(_frameQueue.front() == decodedImage.TimeStamp());
 
     
     _frameQueue.pop_front();
 
     
-    if (_lastFrameLength < decodedImage._length)
+    if (_lastFrameLength < decodedImage.Length())
     {
         if (_lastFrame) delete [] _lastFrame;
 
-        _lastFrame = new WebRtc_UWord8[decodedImage._length];
+        _lastFrame = new WebRtc_UWord8[decodedImage.Length()];
     }
-    memcpy(_lastFrame, decodedImage._buffer, decodedImage._length);
-    _lastFrameLength = decodedImage._length;
+    memcpy(_lastFrame, decodedImage.Buffer(), decodedImage.Length());
+    _lastFrameLength = decodedImage.Length();
 
     NormalAsyncTest::Decoded(decodedImage);
 }

@@ -129,6 +129,7 @@ int ViEAutoTestWindowManager::ViEDestroyWindow(Window *window,
   XUnmapWindow(display, *window);
   XDestroyWindow(display, *window);
   XSync(display, false);
+  XCloseDisplay(display);
   return 0;
 }
 

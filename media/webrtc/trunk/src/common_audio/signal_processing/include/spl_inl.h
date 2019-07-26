@@ -15,7 +15,7 @@
 #ifndef WEBRTC_SPL_SPL_INL_H_
 #define WEBRTC_SPL_SPL_INL_H_
 
-#ifdef WEBRTC_ARCH_ARM_V7A
+#ifdef WEBRTC_ARCH_ARM_V7
 #include "spl_inl_armv7.h"
 #else
 
@@ -35,47 +35,9 @@ static __inline WebRtc_Word16 WebRtcSpl_AddSatW16(WebRtc_Word16 a,
   return WebRtcSpl_SatW32ToW16((WebRtc_Word32) a + (WebRtc_Word32) b);
 }
 
-static __inline WebRtc_Word32 WebRtcSpl_AddSatW32(WebRtc_Word32 l_var1,
-                                                  WebRtc_Word32 l_var2) {
-  WebRtc_Word32 l_sum;
-
-  
-  l_sum = l_var1 + l_var2;
-
-  
-  if (WEBRTC_SPL_IS_NEG(l_var1)) {
-    if (WEBRTC_SPL_IS_NEG(l_var2) && !WEBRTC_SPL_IS_NEG(l_sum)) {
-        l_sum = (WebRtc_Word32)0x80000000;
-    }
-  } else {
-    if (!WEBRTC_SPL_IS_NEG(l_var2) && WEBRTC_SPL_IS_NEG(l_sum)) {
-        l_sum = (WebRtc_Word32)0x7FFFFFFF;
-    }
-  }
-
-  return l_sum;
-}
-
 static __inline WebRtc_Word16 WebRtcSpl_SubSatW16(WebRtc_Word16 var1,
                                                   WebRtc_Word16 var2) {
   return WebRtcSpl_SatW32ToW16((WebRtc_Word32) var1 - (WebRtc_Word32) var2);
-}
-
-static __inline WebRtc_Word32 WebRtcSpl_SubSatW32(WebRtc_Word32 l_var1,
-                                                  WebRtc_Word32 l_var2) {
-  WebRtc_Word32 l_diff;
-
-  
-  l_diff = l_var1 - l_var2;
-
-  
-  if ((l_var1 < 0) && (l_var2 > 0) && (l_diff > 0))
-    l_diff = (WebRtc_Word32)0x80000000;
-  
-  if ((l_var1 > 0) && (l_var2 < 0) && (l_diff < 0))
-    l_diff = (WebRtc_Word32)0x7FFFFFFF;
-
-  return l_diff;
 }
 
 static __inline WebRtc_Word16 WebRtcSpl_GetSizeInBits(WebRtc_UWord32 n) {
@@ -155,5 +117,47 @@ static __inline int32_t WebRtc_MulAccumW16(int16_t a,
 }
 
 #endif  
+
+
+
+static __inline WebRtc_Word32 WebRtcSpl_AddSatW32(WebRtc_Word32 l_var1,
+                                                  WebRtc_Word32 l_var2) {
+  WebRtc_Word32 l_sum;
+
+  
+  l_sum = l_var1 + l_var2;
+
+  if (l_var1 < 0) {  
+    if ((l_var2 < 0) && (l_sum >= 0)) {
+        l_sum = (WebRtc_Word32)0x80000000;
+    }
+  } else {  
+    if ((l_var2 > 0) && (l_sum < 0)) {
+        l_sum = (WebRtc_Word32)0x7FFFFFFF;
+    }
+  }
+
+  return l_sum;
+}
+
+static __inline WebRtc_Word32 WebRtcSpl_SubSatW32(WebRtc_Word32 l_var1,
+                                                  WebRtc_Word32 l_var2) {
+  WebRtc_Word32 l_diff;
+
+  
+  l_diff = l_var1 - l_var2;
+
+  if (l_var1 < 0) {  
+    if ((l_var2 > 0) && (l_diff > 0)) {
+      l_diff = (WebRtc_Word32)0x80000000;
+    }
+  } else {  
+    if ((l_var2 < 0) && (l_diff < 0)) {
+      l_diff = (WebRtc_Word32)0x7FFFFFFF;
+    }
+  }
+
+  return l_diff;
+}
 
 #endif  

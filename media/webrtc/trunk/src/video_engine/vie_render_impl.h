@@ -12,7 +12,7 @@
 #define WEBRTC_VIDEO_ENGINE_VIE_RENDER_IMPL_H_
 
 #include "modules/video_render/main/interface/video_render_defines.h"
-#include "typedefs.h"
+#include "typedefs.h"  
 #include "video_engine/include/vie_render.h"
 #include "video_engine/vie_ref_count.h"
 
@@ -26,8 +26,9 @@ class ViERenderImpl
  public:
   
   virtual int Release();
-  virtual int RegisterVideoRenderModule(VideoRender& render_module);
-  virtual int DeRegisterVideoRenderModule(VideoRender& render_module);
+  virtual int RegisterVideoRenderModule(VideoRender& render_module);  
+  virtual int DeRegisterVideoRenderModule(
+      VideoRender& render_module);  
   virtual int AddRenderer(const int render_id, void* window,
                           const unsigned int z_order, const float left,
                           const float top, const float right,
@@ -45,7 +46,7 @@ class ViERenderImpl
                           ExternalRenderer* renderer);
 
  protected:
-  ViERenderImpl(ViESharedData* shared_data);
+  explicit ViERenderImpl(ViESharedData* shared_data);
   virtual ~ViERenderImpl();
 
  private:

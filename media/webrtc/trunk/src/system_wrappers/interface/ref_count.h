@@ -11,7 +11,7 @@
 #ifndef SYSTEM_WRAPPERS_INTERFACE_REF_COUNT_H_
 #define SYSTEM_WRAPPERS_INTERFACE_REF_COUNT_H_
 
-#include "system_wrappers/interface/atomic32_wrapper.h"
+#include "system_wrappers/interface/atomic32.h"
 
 namespace webrtc {
 
@@ -74,7 +74,7 @@ class RefCountImpl : public T {
   }
 
  protected:
-  Atomic32Wrapper ref_count_;
+  Atomic32 ref_count_;
 };
 
 }  

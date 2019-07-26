@@ -14,7 +14,7 @@
 #include "modules/video_capture/main/interface/video_capture.h"
 #include "system_wrappers/interface/map_wrapper.h"
 #include "system_wrappers/interface/scoped_ptr.h"
-#include "typedefs.h"
+#include "typedefs.h"  
 #include "video_engine/include/vie_capture.h"
 #include "video_engine/vie_defines.h"
 #include "video_engine/vie_frame_provider_base.h"
@@ -36,7 +36,7 @@ class ViEInputManager : private ViEManagerBase {
   explicit ViEInputManager(int engine_id);
   ~ViEInputManager();
 
-  void SetModuleProcessThread(ProcessThread& module_process_thread);
+  void SetModuleProcessThread(ProcessThread* module_process_thread);
 
   
   int NumberOfCaptureDevices();
@@ -71,7 +71,7 @@ class ViEInputManager : private ViEManagerBase {
   int CreateCaptureDevice(const char* device_unique_idUTF8,
                           const WebRtc_UWord32 device_unique_idUTF8Length,
                           int& capture_id);
-  int CreateCaptureDevice(VideoCaptureModule& capture_module,
+  int CreateCaptureDevice(VideoCaptureModule* capture_module,
                           int& capture_id);
   int CreateExternalCaptureDevice(ViEExternalCapture*& external_capture,
                                   int& capture_id);
@@ -85,13 +85,13 @@ class ViEInputManager : private ViEManagerBase {
 
  private:
   
-  bool GetFreeCaptureId(int& freecapture_id);
+  bool GetFreeCaptureId(int* freecapture_id);
 
   
   void ReturnCaptureId(int capture_id);
 
   
-  bool GetFreeFileId(int& free_file_id);
+  bool GetFreeFileId(int* free_file_id);
 
   
   void ReturnFileId(int file_id);
@@ -107,9 +107,6 @@ class ViEInputManager : private ViEManagerBase {
   ViECapturer* ViECapturePtr(int capture_id) const;
 
   
-  void GetViECaptures(MapWrapper& vie_capture_map);
-
-  
   ViEFilePlayer* ViEFilePlayerPtr(int file_id) const;
 
   int engine_id_;
@@ -123,7 +120,7 @@ class ViEInputManager : private ViEManagerBase {
   
   int free_file_id_[kViEMaxFilePlayers];
 
-  ProcessThread* module_process_thread_;
+  ProcessThread* module_process_thread_;  
 };
 
 

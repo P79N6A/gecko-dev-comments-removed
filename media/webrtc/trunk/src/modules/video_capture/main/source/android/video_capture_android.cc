@@ -18,6 +18,16 @@
 
 namespace webrtc
 {
+#if defined(WEBRTC_ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
+
+
+WebRtc_Word32 SetCaptureAndroidVM(void* javaVM, void* javaContext) {
+  return videocapturemodule::VideoCaptureAndroid::SetAndroidObjects(
+      javaVM,
+      javaContext);
+}
+#endif
+
 namespace videocapturemodule
 {
 

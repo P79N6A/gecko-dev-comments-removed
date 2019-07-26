@@ -14,7 +14,7 @@ import TestGyp
 
 
 
-test = TestGyp.TestGyp(formats=['make'])
+test = TestGyp.TestGyp(formats=['make', 'android'])
 
 try:
   os.environ['GYP_DEFINES'] = 'value=50'
@@ -32,6 +32,7 @@ expect = """\
 FOO is defined
 VALUE is 1
 2*PAREN_VALUE is 12
+HASH_VALUE is a#1
 """
 test.run_built_executable('defines', stdout=expect)
 

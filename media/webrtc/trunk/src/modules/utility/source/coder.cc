@@ -21,8 +21,7 @@
 
 namespace webrtc {
 AudioCoder::AudioCoder(WebRtc_UWord32 instanceID)
-    : _instanceID(instanceID),
-      _acm(AudioCodingModule::Create(instanceID)),
+    : _acm(AudioCodingModule::Create(instanceID)),
       _receiveCodec(),
       _encodeTimestamp(0),
       _encodedData(NULL),
@@ -94,8 +93,8 @@ WebRtc_Word32 AudioCoder::Encode(const AudioFrame& audio,
     
     
     AudioFrame audioFrame = audio;
-    audioFrame._timeStamp = _encodeTimestamp;
-    _encodeTimestamp += audioFrame._payloadDataLengthInSamples;
+    audioFrame.timestamp_ = _encodeTimestamp;
+    _encodeTimestamp += audioFrame.samples_per_channel_;
 
     
     

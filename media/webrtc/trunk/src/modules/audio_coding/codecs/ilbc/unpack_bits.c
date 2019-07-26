@@ -23,11 +23,11 @@
 
 
 WebRtc_Word16 WebRtcIlbcfix_UnpackBits( 
-    WebRtc_UWord16 *bitstream,   
+    const WebRtc_UWord16 *bitstream,    
     iLBC_bits *enc_bits,  
     WebRtc_Word16 mode     
                                         ) {
-  WebRtc_UWord16 *bitstreamPtr;
+  const WebRtc_UWord16 *bitstreamPtr;
   int i, k;
   WebRtc_Word16 *tmpPtr;
 

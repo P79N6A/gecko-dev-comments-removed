@@ -34,7 +34,6 @@
     
     
     
-    
     #include "g7291_interface.h"
 #endif
 
@@ -144,15 +143,6 @@ ACMG729_1::InternalDestructEncoderInst(
     void* )
 {
     return;
-}
-
-
-WebRtc_Word16
-ACMG729_1::UnregisterFromNetEqSafe(
-    ACMNetEQ*     ,
-    WebRtc_Word16 )
-{
-    return -1;
 }
 
 WebRtc_Word16
@@ -383,25 +373,6 @@ ACMG729_1::InternalDestructEncoderInst(
         
     }
     return;
-}
-
-
-WebRtc_Word16
-ACMG729_1::UnregisterFromNetEqSafe(
-    ACMNetEQ*     netEq,
-    WebRtc_Word16 payloadType)
-{
-    if(payloadType != _decoderParams.codecInstant.pltype)
-    {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-      "Cannot unregister codec: given payload-type does not match \
-the stored payload type",
-            _decoderParams.codecInstant.plname,
-            payloadType,
-            _decoderParams.codecInstant.pltype);
-        return -1;
-    }
-    return netEq->RemoveCodec(kDecoderG729_1);
 }
 
 WebRtc_Word16

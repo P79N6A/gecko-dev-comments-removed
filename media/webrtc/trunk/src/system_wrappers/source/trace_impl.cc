@@ -17,17 +17,16 @@
 #include "trace_win.h"
 #else
 #include <stdio.h>
-#include <time.h>
 #include <stdarg.h>
 #include "trace_posix.h"
 #endif 
 
+#include "system_wrappers/interface/sleep.h"
+
 #define KEY_LEN_CHARS 31
 
 #ifdef _WIN32
-    #pragma warning(disable:4355)
-
-    #pragma warning(disable:4351)
+#pragma warning(disable:4355)
 #endif 
 
 namespace webrtc {
@@ -108,14 +107,7 @@ bool TraceImpl::StopThread()
     
     
     
-#ifdef _WIN32
-    Sleep(10);
-#else
-    timespec t;
-    t.tv_sec = 0;
-    t.tv_nsec = 10*1000000;
-    nanosleep(&t,NULL);
-#endif
+    SleepMs(10);
 
     _thread.SetNotAlive();
     

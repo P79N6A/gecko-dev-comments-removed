@@ -24,7 +24,7 @@ def PopEnv():
 
 
 
-test = TestGyp.TestGyp(formats=['make'])
+test = TestGyp.TestGyp(formats=['make', 'android'])
 
 try:
   PushEnv()

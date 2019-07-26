@@ -210,9 +210,9 @@ bool
 FileWriter::WriteToFile(
     const AudioFrame& audioFrame)
 {
-    WebRtc_Word32 written = (WebRtc_Word32)fwrite(audioFrame._payloadData,sizeof(WebRtc_Word16),audioFrame._payloadDataLengthInSamples,_file);
+    WebRtc_Word32 written = (WebRtc_Word32)fwrite(audioFrame.data_,sizeof(WebRtc_Word16),audioFrame.samples_per_channel_,_file);
     
-    return written == audioFrame._payloadDataLengthInSamples;
+    return written == audioFrame.samples_per_channel_;
 }
 
 FileReader::FileReader()
@@ -269,8 +269,8 @@ FileReader::ReadFromFile(
     AudioFrame& audioFrame)
 {
 
-    WebRtc_Word16 buffer[AudioFrame::kMaxAudioFrameSizeSamples];
-    LoopedFileRead(buffer,AudioFrame::kMaxAudioFrameSizeSamples,_sampleSize,_file);
+    WebRtc_Word16 buffer[AudioFrame::kMaxDataSizeSamples];
+    LoopedFileRead(buffer,AudioFrame::kMaxDataSizeSamples,_sampleSize,_file);
 
     bool vad = false;
     GetVAD(buffer,_sampleSize,vad);

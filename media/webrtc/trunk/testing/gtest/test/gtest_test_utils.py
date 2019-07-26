@@ -241,7 +241,7 @@ class Subprocess:
         
         
         
-        for key in dest:
+        for key in dest.keys():
           del dest[key]
         dest.update(src)
 

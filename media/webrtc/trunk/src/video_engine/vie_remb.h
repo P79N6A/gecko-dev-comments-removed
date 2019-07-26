@@ -20,8 +20,10 @@
 
 #include <list>
 #include <map>
+#include <utility>
 
 #include "modules/interface/module.h"
+#include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "system_wrappers/interface/scoped_ptr.h"
 
@@ -31,9 +33,9 @@ class CriticalSectionWrapper;
 class ProcessThread;
 class RtpRtcp;
 
-class VieRemb : public RtpRemoteBitrateObserver, public Module {
+class VieRemb : public RemoteBitrateObserver, public Module {
  public:
-  VieRemb(ProcessThread* process_thread);
+  explicit VieRemb(ProcessThread* process_thread);
   ~VieRemb();
 
   
@@ -49,13 +51,6 @@ class VieRemb : public RtpRemoteBitrateObserver, public Module {
   void RemoveRembSender(RtpRtcp* rtp_rtcp);
 
   
-  
-  void AddSendChannel(RtpRtcp* rtp_rtcp);
-
-  
-  void RemoveSendChannel(RtpRtcp* rtp_rtcp);
-
-  
   bool InUse() const;
 
   
@@ -64,10 +59,6 @@ class VieRemb : public RtpRemoteBitrateObserver, public Module {
   
   
   virtual void OnReceiveBitrateChanged(unsigned int ssrc, unsigned int bitrate);
-
-  
-  
-  virtual void OnReceivedRemb(unsigned int bitrate);
 
   
   virtual WebRtc_Word32 ChangeUniqueId(const WebRtc_Word32 id);
@@ -84,13 +75,10 @@ class VieRemb : public RtpRemoteBitrateObserver, public Module {
 
   
   int64_t last_remb_time_;
-  int last_send_bitrate_;
+  unsigned int last_send_bitrate_;
 
   
   RtpModules receive_modules_;
-
-  
-  RtpModules send_modules_;
 
   
   RtpModules rtcp_sender_;

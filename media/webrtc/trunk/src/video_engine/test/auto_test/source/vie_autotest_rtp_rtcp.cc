@@ -342,106 +342,18 @@ void ViEAutoTest::ViERtpRtcpStandardTest()
     fclose(inDump);
     FILE* outDump = fopen(outDumpName.c_str(), "r");
     fseek(outDump, 0L, SEEK_END);
-    long outEndPos = ftell(outDump);
+    
     fclose(outDump);
 
     EXPECT_GT(inEndPos, 0);
-    EXPECT_LT(inEndPos, outEndPos + 100);
+
+    
+    
+    
 
     
     EXPECT_EQ(0, ViE.network->DeregisterSendTransport(tbChannel.videoChannel));
 
-    
-    
-    
-    
-    if (tbCapture.device_name() != "vivi") {
-      
-      
-      
-      
-      
-      
-      const unsigned int start_rate_1_bps = 100000;
-      const unsigned int start_rate_2_bps = 300000;
-      const unsigned int start_rate_3_bps = 1000000;
-
-      int channel_1 = -1;
-      int channel_2 = -1;
-      int channel_3 = -1;
-      EXPECT_EQ(0, ViE.base->CreateChannel(channel_1));
-      EXPECT_EQ(0, ViE.base->CreateChannel(channel_2, channel_1));
-      EXPECT_EQ(0, ViE.base->CreateChannel(channel_3));
-
-      
-      tbCapture.ConnectTo(channel_1);
-      tbCapture.ConnectTo(channel_2);
-      tbCapture.ConnectTo(channel_3);
-
-      TbExternalTransport transport_1(*(ViE.network));
-      TbExternalTransport transport_2(*(ViE.network));
-      TbExternalTransport transport_3(*(ViE.network));
-
-      EXPECT_EQ(0, ViE.network->RegisterSendTransport(channel_1, transport_1));
-      EXPECT_EQ(0, ViE.network->RegisterSendTransport(channel_2, transport_2));
-      EXPECT_EQ(0, ViE.network->RegisterSendTransport(channel_3, transport_3));
-
-      webrtc::VideoCodec video_codec;
-      for (int idx = 0; idx < ViE.codec->NumberOfCodecs(); ++idx) {
-        ViE.codec->GetCodec(idx, video_codec);
-        if (video_codec.codecType == webrtc::kVideoCodecVP8) {
-          break;
-        }
-      }
-      EXPECT_EQ(0, ViE.codec->SetReceiveCodec(channel_1, video_codec));
-      EXPECT_EQ(0, ViE.codec->SetReceiveCodec(channel_2, video_codec));
-      EXPECT_EQ(0, ViE.codec->SetReceiveCodec(channel_3, video_codec));
-
-      video_codec.startBitrate = start_rate_1_bps / 1000;
-      EXPECT_EQ(0, ViE.codec->SetSendCodec(channel_1, video_codec));
-      video_codec.startBitrate = start_rate_2_bps / 1000;
-      EXPECT_EQ(0, ViE.codec->SetSendCodec(channel_2, video_codec));
-      video_codec.startBitrate = start_rate_3_bps / 1000;
-      EXPECT_EQ(0, ViE.codec->SetSendCodec(channel_3, video_codec));
-
-      EXPECT_EQ(0, ViE.rtp_rtcp->SetRembStatus(channel_1, true, true));
-      EXPECT_EQ(0, ViE.rtp_rtcp->SetRembStatus(channel_2, true, true));
-      EXPECT_EQ(0, ViE.rtp_rtcp->SetRembStatus(channel_3, true, true));
-
-      EXPECT_EQ(0, ViE.base->StartReceive(channel_1));
-      EXPECT_EQ(0, ViE.base->StartReceive(channel_2));
-      EXPECT_EQ(0, ViE.base->StartReceive(channel_3));
-      EXPECT_EQ(0, ViE.base->StartSend(channel_1));
-      EXPECT_EQ(0, ViE.base->StartSend(channel_2));
-      EXPECT_EQ(0, ViE.base->StartSend(channel_3));
-
-      AutoTestSleep(KAutoTestSleepTimeMs);
-
-      EXPECT_EQ(0, ViE.base->StopReceive(channel_1));
-      EXPECT_EQ(0, ViE.base->StopReceive(channel_2));
-      EXPECT_EQ(0, ViE.base->StopReceive(channel_3));
-      EXPECT_EQ(0, ViE.base->StopSend(channel_1));
-      EXPECT_EQ(0, ViE.base->StopSend(channel_2));
-      EXPECT_EQ(0, ViE.base->StopSend(channel_3));
-
-      unsigned int bw_estimate_1 = 0;
-      unsigned int bw_estimate_2 = 0;
-      unsigned int bw_estimate_3 = 0;
-      ViE.rtp_rtcp->GetEstimatedSendBandwidth(channel_1, &bw_estimate_1);
-      ViE.rtp_rtcp->GetEstimatedSendBandwidth(channel_2, &bw_estimate_2);
-      ViE.rtp_rtcp->GetEstimatedSendBandwidth(channel_3, &bw_estimate_3);
-
-      EXPECT_LT(bw_estimate_1, start_rate_2_bps);
-      EXPECT_LT(bw_estimate_2, start_rate_2_bps);
-      EXPECT_NE(bw_estimate_1, start_rate_1_bps);
-
-      
-      EXPECT_GT(bw_estimate_3, 0.75 * start_rate_3_bps);
-
-      EXPECT_EQ(0, ViE.base->DeleteChannel(channel_1));
-      EXPECT_EQ(0, ViE.base->DeleteChannel(channel_2));
-      EXPECT_EQ(0, ViE.base->DeleteChannel(channel_3));
-    }
 
     
     
@@ -453,8 +365,6 @@ void ViEAutoTest::ViERtpRtcpExtendedTest()
     
     
     
-    ViERtpRtcpStandardTest();
-
     
     TbInterfaces ViE("ViERtpRtcpExtendedTest");
     
@@ -699,6 +609,44 @@ void ViEAutoTest::ViERtpRtcpAPITest()
     {
       EXPECT_EQ(0, ViE.rtp_rtcp->SetNACKStatus(tbChannel.videoChannel, true));
     }
+
+    
+    
+    EXPECT_EQ(-1, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 0));
+    EXPECT_EQ(-1, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 15));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+            tbChannel.videoChannel, false, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+              tbChannel.videoChannel, false, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetSendTimestampOffsetStatus(
+            tbChannel.videoChannel, false, 3));
+
+    EXPECT_EQ(-1, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 0));
+    EXPECT_EQ(-1, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 15));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 3));
+    EXPECT_EQ(-1, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+            tbChannel.videoChannel, false, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+        tbChannel.videoChannel, true, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+              tbChannel.videoChannel, false, 3));
+    EXPECT_EQ(0, ViE.rtp_rtcp->SetReceiveTimestampOffsetStatus(
+            tbChannel.videoChannel, false, 3));
+
+
 
     
     

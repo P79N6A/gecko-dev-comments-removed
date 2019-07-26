@@ -38,7 +38,7 @@ class ViEExternalCodecImpl
                                              const unsigned char pl_type);
 
  protected:
-  ViEExternalCodecImpl(ViESharedData* shared_data);
+  explicit ViEExternalCodecImpl(ViESharedData* shared_data);
   virtual ~ViEExternalCodecImpl();
 
  private:

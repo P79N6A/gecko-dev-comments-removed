@@ -26,7 +26,6 @@ _sendCodecType(kVideoCodecUnknown),
 _codecWidth(0),
 _codecHeight(0),
 _userFrameRate(0),
-_packetLossEnc(0),
 _fractionLost(0),
 _sendStatisticsZeroEncode(0),
 _maxPayloadSize(1460),
@@ -228,6 +227,13 @@ int VCMMediaOptimization::UpdateProtectionCallback(
     
     delta_fec_params.max_fec_frames = selected_method->MaxFramesFec();
     key_fec_params.max_fec_frames = selected_method->MaxFramesFec();
+
+    
+    
+    
+    
+    delta_fec_params.fec_mask_type = kFecMaskRandom;
+    key_fec_params.fec_mask_type = kFecMaskRandom;
 
     
     return _videoProtectionCallback->ProtectionRequest(&delta_fec_params,

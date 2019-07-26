@@ -43,7 +43,6 @@
 
 
 
-
 #include "amr_interface.h"
 #endif
 
@@ -145,12 +144,6 @@ WebRtc_Word16 ACMAMR::SetAMRDecoderPackingFormat(
 ACMAMRPackingFormat ACMAMR::AMRDecoderPackingFormat() const {
   return AMRUndefined;
 }
-
-WebRtc_Word16 ACMAMR::UnregisterFromNetEqSafe(ACMNetEQ* ,
-                                              WebRtc_Word16 ) {
-  return -1;
-}
-
 
 #else     
 
@@ -424,19 +417,6 @@ WebRtc_Word16 ACMAMR::SetAMRDecoderPackingFormat(
 
 ACMAMRPackingFormat ACMAMR::AMRDecoderPackingFormat() const {
   return _decoderPackingFormat;
-}
-
-WebRtc_Word16 ACMAMR::UnregisterFromNetEqSafe(ACMNetEQ* netEq,
-                                              WebRtc_Word16 payloadType) {
-  if (payloadType != _decoderParams.codecInstant.pltype) {
-    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-                 "Cannot unregister codec %s given payload-type %d does not "
-                 "match the stored payload type",
-                 _decoderParams.codecInstant.plname, payloadType,
-                 _decoderParams.codecInstant.pltype);
-    return -1;
-  }
-  return netEq->RemoveCodec(kDecoderAMR);
 }
 
 #endif

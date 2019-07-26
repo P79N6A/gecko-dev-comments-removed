@@ -190,8 +190,8 @@ typedef struct ExpandInst_t_
 
 typedef int (*VADInitFunction)(void *VAD_inst);
 typedef int (*VADSetmodeFunction)(void *VAD_inst, int mode);
-typedef WebRtc_Word16 (*VADFunction)(void *VAD_inst, WebRtc_Word16 fs, WebRtc_Word16 *frame,
-                                     WebRtc_Word16 frameLen);
+typedef int (*VADFunction)(void *VAD_inst, int fs, WebRtc_Word16 *frame,
+                           int frameLen);
 
 
 typedef struct PostDecodeVAD_t_
@@ -201,7 +201,7 @@ typedef struct PostDecodeVAD_t_
 
     WebRtc_Word16 VADEnabled; 
     int VADMode; 
-    WebRtc_Word16 VADDecision; 
+    int VADDecision; 
     WebRtc_Word16 SIDintervalCounter; 
 
 

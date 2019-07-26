@@ -8,105 +8,18 @@
 
 
 
+#include "source/row.h"
+
 #include "libyuv/basic_types.h"
-#include "row.h"
 
 #ifdef __cplusplus
 namespace libyuv {
 extern "C" {
 #endif
 
-#if defined(__ARM_NEON__) && !defined(YUV_DISABLE_ASM)
+#if !defined(YUV_DISABLE_ASM) && defined(__ARM_NEON__)
 
-void ReverseRow_NEON(const uint8* src, uint8* dst, int width) {
-  asm volatile (
-    
-    "add         %1, %2                        \n"
-
-    
-    "lsrs        r3, %2, #4                    \n"
-
-    
-    
-    
-    
-    
-    
-    "mov         r3, #-24                      \n"
-
-    "beq         2f                            \n"
-
-    
-    
-    "sub         %1, #16                       \n"
-
-    
-    
-    
-    
-    "sub         %2, #16                       \n"
-
-    "1:                                        \n"
-      "vld1.8      {q0}, [%0]!                 \n"  
-
-        
-        
-      "vrev64.8    q0, q0                      \n"
-
-        
-        
-      "vst1.8      {d1}, [%1]!                 \n"
-      "vst1.8      {d0}, [%1], r3              \n"  
-
-      "subs        %2, #16                     \n"
-    "bge         1b                            \n"
-
-    
-    
-    "adds        %2, #16                       \n"
-    "beq         5f                            \n"
-
-    "add         %1, #16                       \n"
-
-    "2:                                        \n"
-
-    "mov         r3, #-3                       \n"
-
-    "sub         %1, #2                        \n"
-    "subs        %2, #2                        \n"
-    
-    
-    "blt         4f                            \n"
-
-
-
-    "3:                                        \n"
-    "vld2.8      {d0[0], d1[0]}, [%0]!         \n"  
-
-    "vst1.8      {d1[0]}, [%1]!                \n"
-    "vst1.8      {d0[0]}, [%1], r3             \n"  
-
-    "subs        %2, #2                        \n"
-    "bge         3b                            \n"
-
-    "adds        %2, #2                        \n"
-    "beq         5f                            \n"
-
-    "4:                                        \n"
-    "add         %1, #1                        \n"
-    "vld1.8      {d0[0]}, [%0]                 \n"
-    "vst1.8      {d0[0]}, [%1]                 \n"
-
-    "5:                                        \n"
-    : "+r"(src),              
-      "+r"(dst),              
-      "+r"(width)             
-    :
-    : "memory", "cc", "r3", "q0"
-  );
-}
-
-static const uint8 vtbl_4x4_transpose[16] __attribute__((vector_size(16))) =
+static const uvec8 kVTbl4x4Transpose =
   { 0,  4,  8, 12,  1,  5,  9, 13,  2,  6, 10, 14,  3,  7, 11, 15 };
 
 void TransposeWx8_NEON(const uint8* src, int src_stride,
@@ -119,6 +32,7 @@ void TransposeWx8_NEON(const uint8* src, int src_stride,
     "sub         %4, #8                        \n"
 
     
+    ".p2align  4                               \n"
     "1:                                        \n"
       "mov         r9, %0                      \n"
 
@@ -261,91 +175,17 @@ void TransposeWx8_NEON(const uint8* src, int src_stride,
 
     "4:                                        \n"
 
-    : "+r"(src),              
-      "+r"(src_stride),       
-      "+r"(dst),              
-      "+r"(dst_stride),       
-      "+r"(width)             
-    : "r"(vtbl_4x4_transpose) 
+    : "+r"(src),               
+      "+r"(src_stride),        
+      "+r"(dst),               
+      "+r"(dst_stride),        
+      "+r"(width)              
+    : "r"(&kVTbl4x4Transpose)  
     : "memory", "cc", "r9", "q0", "q1", "q2", "q3"
   );
 }
 
-void ReverseRowUV_NEON(const uint8* src,
-                       uint8* dst_a, uint8* dst_b,
-                       int width) {
-  asm volatile (
-    
-    "add         %1, %3                        \n"  
-    "add         %2, %3                        \n"  
-
-    
-    
-    
-    "lsrs        r12, %3, #3                   \n"
-
-    "beq         2f                            \n"
-
-    
-    "mov         r12, #-8                      \n"
-
-    
-    
-    "sub         %1, #8                        \n"
-    "sub         %2, #8                        \n"
-
-    
-    
-    
-    
-    "sub         %3, #8                        \n"
-
-    "1:                                        \n"
-      "vld2.8      {d0, d1}, [%0]!             \n"  
-
-      
-      "vrev64.8    q0, q0                      \n"
-
-      "vst1.8      {d0}, [%1], r12             \n"  
-      "vst1.8      {d1}, [%2], r12             \n"  
-
-      "subs        %3, #8                      \n"
-      "bge         1b                          \n"
-
-    
-    
-    "adds        %3, #8                        \n"
-    "beq         4f                            \n"
-
-    "add         %1, #8                        \n"
-    "add         %2, #8                        \n"
-
-    "2:                                        \n"
-
-    "mov         r12, #-1                      \n"
-
-    "sub         %1, #1                        \n"
-    "sub         %2, #1                        \n"
-
-    "3:                                        \n"
-      "vld2.8      {d0[0], d1[0]}, [%0]!       \n"  
-
-      "vst1.8      {d0[0]}, [%1], r12          \n"  
-      "vst1.8      {d1[0]}, [%2], r12          \n"  
-
-      "subs        %3, %3, #1                  \n"
-      "bgt         3b                          \n"
-    "4:                                        \n"
-    : "+r"(src),              
-      "+r"(dst_a),            
-      "+r"(dst_b),            
-      "+r"(width)             
-    :
-    : "memory", "cc", "r12", "q0"
-  );
-}
-
-static const uint8 vtbl_4x4_transpose_di[16] __attribute__((vector_size(16))) =
+static const uvec8 kVTbl4x4TransposeDi =
   { 0,  8,  1,  9,  2, 10,  3, 11,  4, 12,  5, 13,  6, 14,  7, 15 };
 
 void TransposeUVWx8_NEON(const uint8* src, int src_stride,
@@ -359,6 +199,7 @@ void TransposeUVWx8_NEON(const uint8* src, int src_stride,
     "sub         %6, #8                        \n"
 
     
+    ".p2align  4                               \n"
     "1:                                        \n"
       "mov         r9, %0                      \n"
 
@@ -545,14 +386,14 @@ void TransposeUVWx8_NEON(const uint8* src, int src_stride,
 
     "4:                                        \n"
 
-    : "+r"(src),              
-      "+r"(src_stride),       
-      "+r"(dst_a),            
-      "+r"(dst_stride_a),     
-      "+r"(dst_b),            
-      "+r"(dst_stride_b),     
-      "+r"(width)             
-    : "r"(vtbl_4x4_transpose_di)
+    : "+r"(src),                 
+      "+r"(src_stride),          
+      "+r"(dst_a),               
+      "+r"(dst_stride_a),        
+      "+r"(dst_b),               
+      "+r"(dst_stride_b),        
+      "+r"(width)                
+    : "r"(&kVTbl4x4TransposeDi)  
     : "memory", "cc", "r9",
       "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11"
   );

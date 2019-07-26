@@ -4,7 +4,6 @@
 
 """New implementation of Visual Studio project generation for SCons."""
 
-import common
 import os
 import random
 
@@ -139,10 +138,11 @@ class MSVSProject(object):
     else:
       self.config_platform_overrides = {}
     self.fixpath_prefix = fixpath_prefix
+    self.msbuild_toolset = None
 
   def set_dependencies(self, dependencies):
     self.dependencies = list(dependencies or [])
-  
+
   def get_guid(self):
     if self.guid is None:
       
@@ -159,6 +159,9 @@ class MSVSProject(object):
       
       self.guid = MakeGuid(self.name)
     return self.guid
+
+  def set_msbuild_toolset(self, msbuild_toolset):
+    self.msbuild_toolset = msbuild_toolset
 
 
 
@@ -204,7 +207,7 @@ class MSVSSolution:
     self.Write()
 
 
-  def Write(self, writer=common.WriteOnDiff):
+  def Write(self, writer=gyp.common.WriteOnDiff):
     """Writes the solution file to disk.
 
     Raises:

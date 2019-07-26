@@ -133,10 +133,16 @@ int main(int argc, char* argv[])
             
             printf("Error in encoder/decoder\n");
         } else {
-            
-            fwrite(streamdata,sizeof(short),stream_len/2,outbitp);
-            
-            fwrite(decoded,sizeof(short),framelength,outp);
+          
+          if (fwrite(streamdata, sizeof(short), stream_len/2,
+                     outbitp) != static_cast<size_t>(stream_len/2)) {
+            return -1;
+          }
+          
+          if (fwrite(decoded, sizeof(short), framelength,
+                     outp) != static_cast<size_t>(framelength)) {
+            return -1;
+          }
         }
     }
 
@@ -154,4 +160,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-

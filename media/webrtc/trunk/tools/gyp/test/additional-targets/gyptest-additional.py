@@ -33,7 +33,7 @@ test.built_file_must_not_exist('foolib1',
                                chdir=chdir)
 
 
-if test.format in ('make', 'ninja'):
+if test.format in ('make', 'ninja', 'android'):
   chdir='relocate/src'
 else:
   chdir='relocate/src/dir1'
@@ -50,6 +50,7 @@ test.build('actions.gyp', 'foolib1', chdir=chdir)
 
 test.built_file_must_exist('foolib1',
                            type=test.SHARED_LIB,
-                           chdir=chdir)
+                           chdir=chdir,
+                           subdir='dir1')
 
 test.pass_test()

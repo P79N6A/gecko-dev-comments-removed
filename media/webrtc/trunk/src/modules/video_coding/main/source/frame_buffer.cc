@@ -14,11 +14,6 @@
 #include <cassert>
 #include <string.h>
 
-#if defined(_WIN32)
-    
-    #pragma warning(disable:4351)
-#endif
-
 namespace webrtc {
 
 VCMFrameBuffer::VCMFrameBuffer()

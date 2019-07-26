@@ -30,9 +30,8 @@ public class VideoCaptureDeviceInfoAndroid {
     Context context;
 
     
-    private static int LOGLEVEL = 0;
-    private static boolean VERBOSE = LOGLEVEL > 2;
-    private static boolean DEBUG = LOGLEVEL > 1;
+    
+    private final static String TAG = "WEBRTC";
 
     
     public class AndroidVideoCaptureDevice {
@@ -65,10 +64,8 @@ public class VideoCaptureDeviceInfoAndroid {
 
     public static VideoCaptureDeviceInfoAndroid
     CreateVideoCaptureDeviceInfoAndroid(int in_id, Context in_context) {
-        if(DEBUG) {
-            Log.d("*WEBRTC*",
-                    String.format(Locale.US, "VideoCaptureDeviceInfoAndroid"));
-        }
+        Log.d(TAG,
+                String.format(Locale.US, "VideoCaptureDeviceInfoAndroid"));
 
         VideoCaptureDeviceInfoAndroid self =
                 new VideoCaptureDeviceInfoAndroid(in_id, in_context);
@@ -76,9 +73,7 @@ public class VideoCaptureDeviceInfoAndroid {
             return self;
         }
         else {
-            if(DEBUG) {
-                Log.d("*WEBRTC*", "Failed to create VideoCaptureDeviceInfoAndroid.");
-            }
+            Log.d(TAG, "Failed to create VideoCaptureDeviceInfoAndroid.");
         }
         return null;
     }
@@ -106,11 +101,14 @@ public class VideoCaptureDeviceInfoAndroid {
                     if(info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                         newDevice.deviceUniqueName =
                                 "Camera " + i +", Facing back, Orientation "+ info.orientation;
+                        Log.d(TAG, "Camera " + i +", Facing back, Orientation "+ info.orientation);
+
                     }
                     else {
                         newDevice.deviceUniqueName =
                                 "Camera " + i +", Facing front, Orientation "+ info.orientation;
                         newDevice.frontCameraType = FrontFacingCameraType.Android23;
+                        Log.d(TAG, "Camera " + i +", Facing front, Orientation "+ info.orientation);
                     }
 
                     camera = Camera.open(i);
@@ -121,33 +119,9 @@ public class VideoCaptureDeviceInfoAndroid {
                     deviceList.add(newDevice);
                 }
             }
-            else {
-                
-                AndroidVideoCaptureDevice newDevice;
-                Camera.Parameters parameters;
-
-                newDevice = new AndroidVideoCaptureDevice();
-                camera = Camera.open();
-                parameters = camera.getParameters();
-                newDevice.deviceUniqueName = "Camera 1, Facing back";
-                newDevice.orientation = 90;
-                AddDeviceInfo(newDevice, parameters);
-
-                deviceList.add(newDevice);
-                camera.release();
-                camera=null;
-
-                newDevice = new AndroidVideoCaptureDevice();
-                newDevice.deviceUniqueName = "Camera 2, Facing front";
-                parameters = SearchOldFrontFacingCameras(newDevice);
-                if(parameters != null) {
-                    AddDeviceInfo(newDevice, parameters);
-                    deviceList.add(newDevice);
-                }
-            }
         }
         catch (Exception ex) {
-            Log.e("*WEBRTC*", "Failed to init VideoCaptureDeviceInfo ex" +
+            Log.e(TAG, "Failed to init VideoCaptureDeviceInfo ex" +
                     ex.getLocalizedMessage());
             return -1;
         }
@@ -161,12 +135,8 @@ public class VideoCaptureDeviceInfoAndroid {
 
         List<Size> sizes = parameters.getSupportedPreviewSizes();
         List<Integer> frameRates = parameters.getSupportedPreviewFrameRates();
-        int maxFPS=0;
+        int maxFPS = 0;
         for(Integer frameRate:frameRates) {
-            if(VERBOSE) {
-                Log.v("*WEBRTC*",
-                        "VideoCaptureDeviceInfoAndroid:frameRate " + frameRate);
-            }
             if(frameRate > maxFPS) {
                 maxFPS = frameRate;
             }
@@ -179,6 +149,9 @@ public class VideoCaptureDeviceInfoAndroid {
             newDevice.captureCapabilies[i].height = s.height;
             newDevice.captureCapabilies[i].width = s.width;
             newDevice.captureCapabilies[i].maxFPS = maxFPS;
+            Log.v(TAG,
+                    "VideoCaptureDeviceInfo " + "maxFPS:" + maxFPS +
+                    " width:" + s.width + " height:" + s.height);
         }
     }
 
@@ -282,7 +255,7 @@ public class VideoCaptureDeviceInfoAndroid {
     public VideoCaptureAndroid AllocateCamera(int id, long context,
             String deviceUniqueId) {
         try {
-            if(DEBUG) Log.d("*WEBRTC*", "AllocateCamera " + deviceUniqueId);
+            Log.d(TAG, "AllocateCamera " + deviceUniqueId);
 
             Camera camera = null;
             AndroidVideoCaptureDevice deviceToUse = null;
@@ -310,14 +283,12 @@ public class VideoCaptureDeviceInfoAndroid {
             if(camera == null) {
                 return null;
             }
-            if(VERBOSE) {
-                Log.v("*WEBRTC*", "AllocateCamera - creating VideoCaptureAndroid");
-            }
+            Log.v(TAG, "AllocateCamera - creating VideoCaptureAndroid");
 
-            return new VideoCaptureAndroid(id,context,camera,deviceToUse);
+            return new VideoCaptureAndroid(id, context, camera, deviceToUse);
 
         }catch (Exception ex) {
-            Log.e("*WEBRTC*", "AllocateCamera Failed to open camera- ex " +
+            Log.e(TAG, "AllocateCamera Failed to open camera- ex " +
                     ex.getLocalizedMessage());
         }
         return null;
@@ -347,7 +318,7 @@ public class VideoCaptureDeviceInfoAndroid {
             }
             catch (Exception ex) {
                 
-                Log.e("*WEBRTC*", "Init Failed to open front camera camera - ex " +
+                Log.e(TAG, "Init Failed to open front camera camera - ex " +
                         ex.getLocalizedMessage());
             }
         }

@@ -24,8 +24,8 @@ class ViERefCount {
   ViERefCount();
   ~ViERefCount();
 
-  ViERefCount& operator++(int);
-  ViERefCount& operator--(int);
+  ViERefCount& operator++(int);  
+  ViERefCount& operator--(int);  
 
   void Reset();
   int GetCount() const;

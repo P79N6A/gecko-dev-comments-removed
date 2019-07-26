@@ -10,864 +10,800 @@
 
 #include "TestAllCodecs.h"
 
-#include <cassert>
-#include <iostream>
+#include <stdio.h>
+#include <string>
 
+#include "gtest/gtest.h"
+
+#include "audio_coding_module.h"
 #include "audio_coding_module_typedefs.h"
 #include "common_types.h"
 #include "engine_configurations.h"
 #include "testsupport/fileutils.h"
 #include "trace.h"
+#include "typedefs.h"
 #include "utility.h"
+
+
+
+
+
+
+
+
 
 namespace webrtc {
 
 
-TestPack::TestPack():
-_receiverACM(NULL),
-_seqNo(0),
-_timeStampDiff(0),
-_lastInTimestamp(0),
-_totalBytes(0),
-_payloadSize(0)
-{
-}
-TestPack::~TestPack()
-{
+TestPack::TestPack()
+    : receiver_acm_(NULL),
+      sequence_number_(0),
+      timestamp_diff_(0),
+      last_in_timestamp_(0),
+      total_bytes_(0),
+      payload_size_(0) {
 }
 
-void 
-TestPack::RegisterReceiverACM(AudioCodingModule* acm)
-{
-    _receiverACM = acm;
-    return;
-}
-WebRtc_Word32 
-TestPack::SendData(
-        const FrameType       frameType,
-        const WebRtc_UWord8   payloadType,
-        const WebRtc_UWord32  timeStamp,
-        const WebRtc_UWord8*  payloadData, 
-        const WebRtc_UWord16  payloadSize,
-        const RTPFragmentationHeader* fragmentation)
-{
-    WebRtcRTPHeader rtpInfo;
-    WebRtc_Word32   status;
-    WebRtc_UWord16  payloadDataSize = payloadSize;
-
-    rtpInfo.header.markerBit = false;
-    rtpInfo.header.ssrc = 0;
-    rtpInfo.header.sequenceNumber = _seqNo++;
-    rtpInfo.header.payloadType = payloadType;
-    rtpInfo.header.timestamp = timeStamp;
-    if(frameType == kAudioFrameCN)
-    {
-        rtpInfo.type.Audio.isCNG = true;
-    }
-    else
-    {
-        rtpInfo.type.Audio.isCNG = false;
-    }
-    if(frameType == kFrameEmpty)
-    {
-        
-        return 0;
-    }
-
-    rtpInfo.type.Audio.channel = 1;
-    memcpy(_payloadData, payloadData, payloadDataSize);
-    
-    status = _receiverACM->IncomingPacket(_payloadData, payloadDataSize,
-                                          rtpInfo);
-
-    _payloadSize = payloadDataSize;
-    _timeStampDiff = timeStamp - _lastInTimestamp;
-    _lastInTimestamp = timeStamp;
-    _totalBytes += payloadDataSize;
-    return status;
+TestPack::~TestPack() {
 }
 
-WebRtc_UWord16
-TestPack::GetPayloadSize()
-{
-    return _payloadSize;
+void TestPack::RegisterReceiverACM(AudioCodingModule* acm) {
+  receiver_acm_ = acm;
+  return;
 }
 
+int32_t TestPack::SendData(FrameType frame_type, uint8_t payload_type,
+                           uint32_t timestamp, const uint8_t* payload_data,
+                           uint16_t payload_size,
+                           const RTPFragmentationHeader* fragmentation) {
+  WebRtcRTPHeader rtp_info;
+  int32_t status;
 
-WebRtc_UWord32
-TestPack::GetTimeStampDiff()
-{
-    return _timeStampDiff;
-}
-
-void 
-TestPack::ResetPayloadSize()
-{
-    _payloadSize = 0;
-}
-
-TestAllCodecs::TestAllCodecs(int testMode):
-_acmA(NULL),
-_acmB(NULL),
-_channelA2B(NULL),
-_testCntr(0),
-_packSizeSamp(0),
-_packSizeBytes(0),
-_counter(0)
-{
-    
-    _testMode = testMode;
-}
-
-TestAllCodecs::~TestAllCodecs()
-{
-    if(_acmA != NULL)
-    {
-        AudioCodingModule::Destroy(_acmA);
-        _acmA = NULL;
-    }
-    if(_acmB != NULL)
-    {
-        AudioCodingModule::Destroy(_acmB);
-        _acmB = NULL;
-    }
-    if(_channelA2B != NULL)
-    {
-        delete _channelA2B;
-        _channelA2B = NULL;
-    }
-}
-
-void TestAllCodecs::Perform()
-{
-
-    char file[] = "./test/data/audio_coding/testfile32kHz.pcm";
-    _inFileA.Open(file, 32000, "rb");
-
-    if(_testMode == 0)
-    {
-        printf("Running All Codecs Test");
-        WEBRTC_TRACE(kTraceStateInfo, kTraceAudioCoding, -1,
-                     "---------- TestAllCodecs ----------");
-    }
-
-    _acmA = AudioCodingModule::Create(0);
-    _acmB = AudioCodingModule::Create(1);
-
-    _acmA->InitializeReceiver();
-    _acmB->InitializeReceiver();
-
-    WebRtc_UWord8 numEncoders = _acmA->NumberOfCodecs();
-    CodecInst myCodecParam;
- 
-    for(WebRtc_UWord8 n = 0; n < numEncoders; n++)
-    {
-        _acmB->Codec(n, myCodecParam);
-        _acmB->RegisterReceiveCodec(myCodecParam);
-    }
-
-    
-    _channelA2B = new TestPack;    
-    _acmA->RegisterTransportCallback(_channelA2B);
-    _channelA2B->RegisterReceiverACM(_acmB);
-
-    
-#ifdef WEBRTC_CODEC_GSMAMR
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecAMR[] = "AMR";
-    RegisterSendCodec('A', codecAMR, 8000, 4750, 160, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 4750, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 4750, 480, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 5150, 160, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 5150, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 5150, 480, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 5900, 160, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 5900, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 5900, 480, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 6700, 160, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 6700, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 6700, 480, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 7400, 160, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 7400, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 7400, 480, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 7950, 160, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 7950, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 7950, 480, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 10200, 160, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 10200, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 10200, 480, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 12200, 160, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 12200, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMR, 8000, 12200, 480, 3);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_GSMAMRWB
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    char codecAMRWB[] = "AMR-WB";
-    OpenOutFile(_testCntr);
-    RegisterSendCodec('A', codecAMRWB, 16000, 7000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 7000, 640, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 7000, 960, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 9000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 9000, 640, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 9000, 960, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 12000, 320, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 12000, 640, 6);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 12000, 960, 8);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 14000, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 14000, 640, 4);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 14000, 960, 5);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 16000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 16000, 640, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 16000, 960, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 18000, 320, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 18000, 640, 4);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 18000, 960, 5);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 20000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 20000, 640, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 20000, 960, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 23000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 23000, 640, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 23000, 960, 3);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 24000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 24000, 640, 2);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecAMRWB, 16000, 24000, 960, 2);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_G722
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecG722[] = "G722";
-    RegisterSendCodec('A', codecG722, 16000, 64000, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG722, 16000, 64000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG722, 16000, 64000, 480, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG722, 16000, 64000, 640, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG722, 16000, 64000, 800, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG722, 16000, 64000, 960, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_G722_1
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecG7221_1[] = "G7221";
-    RegisterSendCodec('A', codecG7221_1, 16000, 32000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7221_1, 16000, 24000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7221_1, 16000, 16000, 320, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_G722_1C
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecG7221_2[] = "G7221";
-    RegisterSendCodec('A', codecG7221_2, 32000, 48000, 640, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7221_2, 32000, 32000, 640, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7221_2, 32000, 24000, 640, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_G729
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecG729[] = "G729";
-    RegisterSendCodec('A', codecG729, 8000, 8000, 80, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG729, 8000, 8000, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG729, 8000, 8000, 240, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG729, 8000, 8000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG729, 8000, 8000, 400, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG729, 8000, 8000, 480, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_G729_1
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecG7291[] = "G7291";
-    RegisterSendCodec('A', codecG7291, 16000, 8000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 8000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 8000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 12000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 12000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 12000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 14000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 14000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 14000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 16000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 16000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 16000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 18000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 18000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 18000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 20000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 20000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 20000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 22000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 22000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 22000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 24000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 24000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 24000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 26000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 26000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 26000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 28000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 28000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 28000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 30000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 30000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 30000, 960, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 32000, 320, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 32000, 640, 1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecG7291, 16000, 32000, 960, 1);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_GSMFR
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecGSM[] = "GSM";
-    RegisterSendCodec('A', codecGSM, 8000, 13200, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecGSM, 8000, 13200, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecGSM, 8000, 13200, 480, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_ILBC
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecILBC[] = "ILBC";
-    RegisterSendCodec('A', codecILBC, 8000, 13300, 240, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecILBC, 8000, 13300, 480, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecILBC, 8000, 15200, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecILBC, 8000, 15200, 320, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#if (defined(WEBRTC_CODEC_ISAC) || defined(WEBRTC_CODEC_ISACFX))
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecISAC[] = "ISAC";
-    RegisterSendCodec('A', codecISAC, 16000, -1, 480, -1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecISAC, 16000, -1, 960, -1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecISAC, 16000, 15000, 480, -1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecISAC, 16000, 32000, 960, -1);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_ISAC
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    RegisterSendCodec('A', codecISAC, 32000, -1, 960, -1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecISAC, 32000, 56000, 960, -1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecISAC, 32000, 37000, 960, -1);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecISAC, 32000, 32000, 960, -1);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_PCM16
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++; 
-    OpenOutFile(_testCntr);
-    char codecL16[] = "L16";
-    RegisterSendCodec('A', codecL16, 8000, 128000, 80, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 8000, 128000, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 8000, 128000, 240, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 8000, 128000, 320, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;  
-    OpenOutFile(_testCntr);
-    RegisterSendCodec('A', codecL16, 16000, 256000, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 16000, 256000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 16000, 256000, 480, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 16000, 256000, 640, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++; 
-    OpenOutFile(_testCntr);
-    RegisterSendCodec('A', codecL16, 32000, 512000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecL16, 32000, 512000, 640, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecPCMA[] = "PCMA";
-    RegisterSendCodec('A', codecPCMA, 8000, 64000, 80, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMA, 8000, 64000, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMA, 8000, 64000, 240, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMA, 8000, 64000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMA, 8000, 64000, 400, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMA, 8000, 64000, 480, 0);
-    Run(_channelA2B);
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    char codecPCMU[] = "PCMU";
-    RegisterSendCodec('A', codecPCMU, 8000, 64000, 80, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMU, 8000, 64000, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMU, 8000, 64000, 240, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMU, 8000, 64000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMU, 8000, 64000, 400, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecPCMU, 8000, 64000, 480, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#ifdef WEBRTC_CODEC_SPEEX
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;   
-    OpenOutFile(_testCntr);
-    char codecSPEEX[] = "SPEEX";
-    RegisterSendCodec('A', codecSPEEX, 8000, 2400, 160, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecSPEEX, 8000, 8000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecSPEEX, 8000, 18200, 480, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;  
-    OpenOutFile(_testCntr);
-    RegisterSendCodec('A', codecSPEEX, 16000, 4000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecSPEEX, 16000, 12800, 640, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecSPEEX, 16000, 34200, 960, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-#ifdef WEBRTC_CODEC_CELT
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf(".");
-    }
-    _testCntr++;
-    OpenOutFile(_testCntr);
-    char codecCELT_32[] = "CELT";
-    RegisterSendCodec('A', codecCELT_32, 32000, 48000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecCELT_32, 32000, 64000, 320, 0);
-    Run(_channelA2B);
-    RegisterSendCodec('A', codecCELT_32, 32000, 128000, 320, 0);
-    Run(_channelA2B);
-    _outFileB.Close();
-#endif
-    if(_testMode != 0) {
-        printf("=======================================================================\n");
-    } else {
-        printf("Done!\n");
-    }
-
-    
-    if(_testMode != 0) {
-        printf("The following codecs was not included in the test:\n");
-#ifndef WEBRTC_CODEC_GSMAMR
-        printf("   GSMAMR\n");
-#endif
-#ifndef WEBRTC_CODEC_GSMAMRWB
-        printf("   GSMAMR-wb\n");
-#endif
-#ifndef WEBRTC_CODEC_G722
-        printf("   G.722\n");
-#endif
-#ifndef WEBRTC_CODEC_G722_1
-        printf("   G.722.1\n");
-#endif
-#ifndef WEBRTC_CODEC_G722_1C
-        printf("   G.722.1C\n");
-#endif
-#ifndef WEBRTC_CODEC_G729
-        printf("   G.729\n");
-#endif
-#ifndef WEBRTC_CODEC_G729_1
-        printf("   G.729.1\n");
-#endif
-#ifndef WEBRTC_CODEC_GSMFR
-        printf("   GSMFR\n");
-#endif
-#ifndef WEBRTC_CODEC_ILBC
-        printf("   iLBC\n");
-#endif
-#ifndef WEBRTC_CODEC_ISAC
-        printf("   ISAC float\n");
-#endif
-#ifndef WEBRTC_CODEC_ISACFX
-        printf("   ISAC fix\n");
-#endif
-#ifndef WEBRTC_CODEC_PCM16
-        printf("   PCM16\n");
-#endif
-#ifndef WEBRTC_CODEC_SPEEX
-        printf("   Speex\n");
-#endif
-
-        printf("\nTo complete the test, listen to the %d number of output files.\n", _testCntr);
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-WebRtc_Word16 TestAllCodecs::RegisterSendCodec(char side, 
-                                             char* codecName, 
-                                             WebRtc_Word32 samplingFreqHz,
-                                             int rate,
-                                             int packSize,
-                                             int extraByte)
-{
-    if(_testMode != 0) {
-        
-        printf("codec: %s Freq: %d Rate: %d PackSize: %d", codecName, samplingFreqHz, rate, packSize);
-    }
-
-    
-    _packSizeSamp = packSize;
-
-    
-    
-    if (extraByte != -1) 
-    {
-        
-        _packSizeBytes = (WebRtc_UWord16)((float)(packSize*rate)/(float)(samplingFreqHz*8)+0.875)+extraByte;
-    } 
-    else 
-    {
-        
-        _packSizeBytes = -1;
-    }
-
-    
-    AudioCodingModule* myACM;
-    switch(side)
-    {
-    case 'A':
-        {
-            myACM = _acmA;
-            break;
-        }
-    case 'B':
-        {
-            myACM = _acmB;
-            break;
-        }
-    default:
-        return -1;
-    }
-
-    if(myACM == NULL)
-    {
-        assert(false);
-        return -1;
-    }
-    CodecInst myCodecParam;
-
-    
-    CHECK_ERROR(AudioCodingModule::Codec(codecName, myCodecParam, samplingFreqHz));
-    myCodecParam.rate = rate;
-    myCodecParam.pacsize = packSize;
-    CHECK_ERROR(myACM->RegisterSendCodec(myCodecParam));
-
+  rtp_info.header.markerBit = false;
+  rtp_info.header.ssrc = 0;
+  rtp_info.header.sequenceNumber = sequence_number_++;
+  rtp_info.header.payloadType = payload_type;
+  rtp_info.header.timestamp = timestamp;
+  if (frame_type == kAudioFrameCN) {
+    rtp_info.type.Audio.isCNG = true;
+  } else {
+    rtp_info.type.Audio.isCNG = false;
+  }
+  if (frame_type == kFrameEmpty) {
     
     return 0;
+  }
+
+  
+  rtp_info.type.Audio.channel = 1;
+  memcpy(payload_data_, payload_data, payload_size);
+
+  status =  receiver_acm_->IncomingPacket(payload_data_, payload_size,
+                                          rtp_info);
+
+  payload_size_ = payload_size;
+  timestamp_diff_ = timestamp - last_in_timestamp_;
+  last_in_timestamp_ = timestamp;
+  total_bytes_ += payload_size;
+  return status;
 }
 
-void TestAllCodecs::Run(TestPack* channel)
-{
-    AudioFrame audioFrame;
+uint16_t TestPack::payload_size() {
+  return payload_size_;
+}
 
-    WebRtc_Word32 outFreqHzB = _outFileB.SamplingFrequency();
-    WebRtc_UWord16 recSize;
-    WebRtc_UWord32 timeStampDiff;
-    channel->ResetPayloadSize();
-    int errorCount = 0;
+uint32_t TestPack::timestamp_diff() {
+  return timestamp_diff_;
+}
+
+void TestPack::reset_payload_size() {
+  payload_size_ = 0;
+}
+
+TestAllCodecs::TestAllCodecs(int test_mode)
+    : acm_a_(NULL),
+      acm_b_(NULL),
+      channel_a_to_b_(NULL),
+      test_count_(0),
+      packet_size_samples_(0),
+      packet_size_bytes_(0) {
+  
+  test_mode_ = test_mode;
+}
+
+TestAllCodecs::~TestAllCodecs() {
+  if (acm_a_ != NULL) {
+    AudioCodingModule::Destroy(acm_a_);
+    acm_a_ = NULL;
+  }
+  if (acm_b_ != NULL) {
+    AudioCodingModule::Destroy(acm_b_);
+    acm_b_ = NULL;
+  }
+  if (channel_a_to_b_ != NULL) {
+    delete channel_a_to_b_;
+    channel_a_to_b_ = NULL;
+  }
+}
+
+void TestAllCodecs::Perform() {
+
+  const std::string file_name =
+      webrtc::test::ResourcePath("audio_coding/testfile32kHz", "pcm");
+  infile_a_.Open(file_name, 32000, "rb");
+
+  if (test_mode_ == 0) {
+    WEBRTC_TRACE(kTraceStateInfo, kTraceAudioCoding, -1,
+                 "---------- TestAllCodecs ----------");
+  }
+
+  acm_a_ = AudioCodingModule::Create(0);
+  acm_b_ = AudioCodingModule::Create(1);
+
+  acm_a_->InitializeReceiver();
+  acm_b_->InitializeReceiver();
+
+  uint8_t num_encoders = acm_a_->NumberOfCodecs();
+  CodecInst my_codec_param;
+  for (uint8_t n = 0; n < num_encoders; n++) {
+    acm_b_->Codec(n, my_codec_param);
+    acm_b_->RegisterReceiveCodec(my_codec_param);
+  }
+
+  
+  channel_a_to_b_ = new TestPack;
+  acm_a_->RegisterTransportCallback(channel_a_to_b_);
+  channel_a_to_b_->RegisterReceiverACM(acm_b_);
+
+  
+  
+#ifdef WEBRTC_CODEC_AMR
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_amr[] = "AMR";
+  RegisterSendCodec('A', codec_amr, 8000, 4750, 160, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 4750, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 4750, 480, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 5150, 160, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 5150, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 5150, 480, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 5900, 160, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 5900, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 5900, 480, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 6700, 160, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 6700, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 6700, 480, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 7400, 160, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 7400, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 7400, 480, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 7950, 160, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 7950, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 7950, 480, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 10200, 160, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 10200, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 10200, 480, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 12200, 160, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 12200, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amr, 8000, 12200, 480, 3);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_AMRWB
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  char codec_amrwb[] = "AMR-WB";
+  OpenOutFile(test_count_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 7000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 7000, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 7000, 960, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 9000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 9000, 640, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 9000, 960, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 12000, 320, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 12000, 640, 6);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 12000, 960, 8);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 14000, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 14000, 640, 4);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 14000, 960, 5);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 16000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 16000, 640, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 16000, 960, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 18000, 320, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 18000, 640, 4);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 18000, 960, 5);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 20000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 20000, 640, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 20000, 960, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 23000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 23000, 640, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 23000, 960, 3);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 24000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 24000, 640, 2);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_amrwb, 16000, 24000, 960, 2);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_G722
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_g722[] = "G722";
+  RegisterSendCodec('A', codec_g722, 16000, 64000, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722, 16000, 64000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722, 16000, 64000, 480, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722, 16000, 64000, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722, 16000, 64000, 800, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722, 16000, 64000, 960, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_G722_1
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_g722_1[] = "G7221";
+  RegisterSendCodec('A', codec_g722_1, 16000, 32000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722_1, 16000, 24000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722_1, 16000, 16000, 320, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_G722_1C
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_g722_1c[] = "G7221";
+  RegisterSendCodec('A', codec_g722_1c, 32000, 48000, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722_1c, 32000, 32000, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g722_1c, 32000, 24000, 640, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_G729
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_g729[] = "G729";
+  RegisterSendCodec('A', codec_g729, 8000, 8000, 80, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729, 8000, 8000, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729, 8000, 8000, 240, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729, 8000, 8000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729, 8000, 8000, 400, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729, 8000, 8000, 480, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_G729_1
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_g729_1[] = "G7291";
+  RegisterSendCodec('A', codec_g729_1, 16000, 8000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 8000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 8000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 12000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 12000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 12000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 14000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 14000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 14000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 16000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 16000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 16000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 18000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 18000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 18000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 20000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 20000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 20000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 22000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 22000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 22000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 24000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 24000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 24000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 26000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 26000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 26000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 28000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 28000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 28000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 30000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 30000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 30000, 960, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 32000, 320, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 32000, 640, 1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_g729_1, 16000, 32000, 960, 1);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_GSMFR
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_gsmfr[] = "GSM";
+  RegisterSendCodec('A', codec_gsmfr, 8000, 13200, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_gsmfr, 8000, 13200, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_gsmfr, 8000, 13200, 480, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_ILBC
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_ilbc[] = "ILBC";
+  RegisterSendCodec('A', codec_ilbc, 8000, 13300, 240, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_ilbc, 8000, 13300, 480, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_ilbc, 8000, 15200, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_ilbc, 8000, 15200, 320, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#if (defined(WEBRTC_CODEC_ISAC) || defined(WEBRTC_CODEC_ISACFX))
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_isac[] = "ISAC";
+  RegisterSendCodec('A', codec_isac, 16000, -1, 480, -1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_isac, 16000, -1, 960, -1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_isac, 16000, 15000, 480, -1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_isac, 16000, 32000, 960, -1);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_ISAC
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  RegisterSendCodec('A', codec_isac, 32000, -1, 960, -1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_isac, 32000, 56000, 960, -1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_isac, 32000, 37000, 960, -1);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_isac, 32000, 32000, 960, -1);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_PCM16
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_l16[] = "L16";
+  RegisterSendCodec('A', codec_l16, 8000, 128000, 80, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 8000, 128000, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 8000, 128000, 240, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 8000, 128000, 320, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  RegisterSendCodec('A', codec_l16, 16000, 256000, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 16000, 256000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 16000, 256000, 480, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 16000, 256000, 640, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  RegisterSendCodec('A', codec_l16, 32000, 512000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_l16, 32000, 512000, 640, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_pcma[] = "PCMA";
+  RegisterSendCodec('A', codec_pcma, 8000, 64000, 80, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcma, 8000, 64000, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcma, 8000, 64000, 240, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcma, 8000, 64000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcma, 8000, 64000, 400, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcma, 8000, 64000, 480, 0);
+  Run(channel_a_to_b_);
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  char codec_pcmu[] = "PCMU";
+  RegisterSendCodec('A', codec_pcmu, 8000, 64000, 80, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcmu, 8000, 64000, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcmu, 8000, 64000, 240, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcmu, 8000, 64000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcmu, 8000, 64000, 400, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_pcmu, 8000, 64000, 480, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#ifdef WEBRTC_CODEC_SPEEX
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_speex[] = "SPEEX";
+  RegisterSendCodec('A', codec_speex, 8000, 2400, 160, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_speex, 8000, 8000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_speex, 8000, 18200, 480, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  RegisterSendCodec('A', codec_speex, 16000, 4000, 320, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_speex, 16000, 12800, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_speex, 16000, 34200, 960, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+#ifdef WEBRTC_CODEC_CELT
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
+  }
+  test_count_++;
+  OpenOutFile(test_count_);
+  char codec_celt[] = "CELT";
+  RegisterSendCodec('A', codec_celt, 32000, 48000, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_celt, 32000, 64000, 640, 0);
+  Run(channel_a_to_b_);
+  RegisterSendCodec('A', codec_celt, 32000, 128000, 640, 0);
+  Run(channel_a_to_b_);
+  outfile_b_.Close();
+#endif
+  if (test_mode_ != 0) {
+    printf("===============================================================\n");
 
     
-    while((_counter<1000)&& (!_inFileA.EndOfFile()))
-    {
-        
-         _inFileA.Read10MsData(audioFrame);
-        CHECK_ERROR(_acmA->Add10MsData(audioFrame));
+    printf("The following codecs was not included in the test:\n");
+#ifndef WEBRTC_CODEC_AMR
+    printf("   GSMAMR\n");
+#endif
+#ifndef WEBRTC_CODEC_AMRWB
+    printf("   GSMAMR-wb\n");
+#endif
+#ifndef WEBRTC_CODEC_G722
+    printf("   G.722\n");
+#endif
+#ifndef WEBRTC_CODEC_G722_1
+    printf("   G.722.1\n");
+#endif
+#ifndef WEBRTC_CODEC_G722_1C
+    printf("   G.722.1C\n");
+#endif
+#ifndef WEBRTC_CODEC_G729
+    printf("   G.729\n");
+#endif
+#ifndef WEBRTC_CODEC_G729_1
+    printf("   G.729.1\n");
+#endif
+#ifndef WEBRTC_CODEC_GSMFR
+    printf("   GSMFR\n");
+#endif
+#ifndef WEBRTC_CODEC_ILBC
+    printf("   iLBC\n");
+#endif
+#ifndef WEBRTC_CODEC_ISAC
+    printf("   ISAC float\n");
+#endif
+#ifndef WEBRTC_CODEC_ISACFX
+    printf("   ISAC fix\n");
+#endif
+#ifndef WEBRTC_CODEC_PCM16
+    printf("   PCM16\n");
+#endif
+#ifndef WEBRTC_CODEC_SPEEX
+    printf("   Speex\n");
+#endif
 
-        
-        CHECK_ERROR(_acmA->Process());
-
-        
-        recSize = channel->GetPayloadSize();
-        if (recSize) {
-            if ((recSize != _packSizeBytes) && (_packSizeBytes < 65535)) {
-                errorCount++;
-            }
-
-        
-        timeStampDiff = channel->GetTimeStampDiff();
-        if ((_counter > 10) && (timeStampDiff != _packSizeSamp))
-            errorCount++;
-        }
+    printf("\nTo complete the test, listen to the %d number of output files.\n",
+           test_count_);
+  }
+}
 
 
-        
-        CHECK_ERROR(_acmB->PlayoutData10Ms(outFreqHzB, audioFrame));
 
-        
-        _outFileB.Write10MsData(audioFrame._payloadData, audioFrame._payloadDataLengthInSamples);
+
+
+
+
+
+
+
+
+void TestAllCodecs::RegisterSendCodec(char side, char* codec_name,
+                                      int32_t sampling_freq_hz, int rate,
+                                      int packet_size, int extra_byte) {
+  if (test_mode_ != 0) {
+    
+    printf("codec: %s Freq: %d Rate: %d PackSize: %d\n", codec_name,
+           sampling_freq_hz, rate, packet_size);
+  }
+
+  
+  
+  
+  
+  
+  if (!strcmp(codec_name, "G722")) {
+    packet_size_samples_ = packet_size / 2;
+  } else if (!strcmp(codec_name, "ISAC") && (rate == -1)) {
+    packet_size_samples_ = -1;
+  } else {
+    packet_size_samples_ = packet_size;
+  }
+
+  
+  
+  if (extra_byte != -1) {
+    
+    packet_size_bytes_ =
+        static_cast<uint16_t>(static_cast<float>(packet_size * rate) /
+        static_cast<float>(sampling_freq_hz * 8) + 0.875) + extra_byte;
+  } else {
+    
+    packet_size_bytes_ = -1;
+  }
+
+  
+  AudioCodingModule* my_acm = NULL;
+  switch (side) {
+    case 'A': {
+      my_acm = acm_a_;
+      break;
     }
-
-    if (errorCount) 
-    {
-        printf(" - test FAILED\n");
+    case 'B': {
+      my_acm = acm_b_;
+      break;
     }
-    else if(_testMode != 0)
-    {
-        printf(" - test PASSED\n");
+    default: {
+      break;
+    }
+  }
+  ASSERT_TRUE(my_acm != NULL);
+
+  
+  CodecInst my_codec_param;
+  CHECK_ERROR(AudioCodingModule::Codec(codec_name, my_codec_param,
+                                       sampling_freq_hz, 1));
+  my_codec_param.rate = rate;
+  my_codec_param.pacsize = packet_size;
+  CHECK_ERROR(my_acm->RegisterSendCodec(my_codec_param));
+}
+
+void TestAllCodecs::Run(TestPack* channel) {
+  AudioFrame audio_frame;
+
+  int32_t out_freq_hz = outfile_b_.SamplingFrequency();
+  uint16_t receive_size;
+  uint32_t timestamp_diff;
+  channel->reset_payload_size();
+  int error_count = 0;
+
+  int counter = 0;
+  while (!infile_a_.EndOfFile()) {
+    
+    infile_a_.Read10MsData(audio_frame);
+    CHECK_ERROR(acm_a_->Add10MsData(audio_frame));
+
+    
+    CHECK_ERROR(acm_a_->Process());
+
+    
+    receive_size = channel->payload_size();
+    if (receive_size) {
+      if ((receive_size != packet_size_bytes_) &&
+          (packet_size_bytes_ < 65535)) {
+        error_count++;
+      }
+
+      
+      
+      
+      timestamp_diff = channel->timestamp_diff();
+      if ((counter > 10) && (timestamp_diff != packet_size_samples_) &&
+          (packet_size_samples_ < 65535))
+        error_count++;
     }
 
     
-    if (_counter == 1000) {
-        _counter = 0;
-    }
-    if (_inFileA.EndOfFile()) {
-        _inFileA.Rewind();
-    }
+    CHECK_ERROR(acm_b_->PlayoutData10Ms(out_freq_hz, audio_frame));
+
+    
+    outfile_b_.Write10MsData(audio_frame.data_,
+                             audio_frame.samples_per_channel_);
+
+    
+    counter++;
+  }
+
+  EXPECT_EQ(0, error_count);
+
+  if (infile_a_.EndOfFile()) {
+    infile_a_.Rewind();
+  }
 }
 
-void TestAllCodecs::OpenOutFile(WebRtc_Word16 testNumber)
-{
-    char fileName[500];
-    sprintf(fileName, "%s/testallcodecs_out_%02d.pcm",
-            webrtc::test::OutputPath().c_str(), testNumber);
-    _outFileB.Open(fileName, 32000, "wb");
+void TestAllCodecs::OpenOutFile(int test_number) {
+  std::string filename = webrtc::test::OutputPath();
+  std::ostringstream test_number_str;
+  test_number_str << test_number;
+  filename += "testallcodecs_out_";
+  filename += test_number_str.str();
+  filename += ".pcm";
+  outfile_b_.Open(filename, 32000, "wb");
 }
 
-void TestAllCodecs::DisplaySendReceiveCodec()
-{
-    CodecInst myCodecParam;
-    _acmA->SendCodec(myCodecParam);
-    printf("%s -> ", myCodecParam.plname);
-    _acmB->ReceiveCodec(myCodecParam);
-    printf("%s\n", myCodecParam.plname);
+void TestAllCodecs::DisplaySendReceiveCodec() {
+  CodecInst my_codec_param;
+  acm_a_->SendCodec(my_codec_param);
+  printf("%s -> ", my_codec_param.plname);
+  acm_b_->ReceiveCodec(my_codec_param);
+  printf("%s\n", my_codec_param.plname);
 }
 
-} 
+}  
 

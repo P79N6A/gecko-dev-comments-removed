@@ -10,15 +10,20 @@
 
 
 
+
 #ifndef WEBRTC_TYPEDEFS_H_
 #define WEBRTC_TYPEDEFS_H_
 
 
 
-#define WEBRTC_EXTERN extern
 #define G_CONST const
-#define WEBRTC_INLINE extern __inline
 
+
+
+#if defined(WEBRTC_MAC) || defined(WEBRTC_LINUX) || \
+    defined(WEBRTC_ANDROID)
+#define WEBRTC_POSIX
+#endif
 
 
 
@@ -45,6 +50,10 @@
 
 
 
+#define WEBRTC_ARCH_32_BITS
+#define WEBRTC_ARCH_LITTLE_ENDIAN
+#define WEBRTC_LITTLE_ENDIAN
+#elif defined(__MIPSEL__)
 #define WEBRTC_ARCH_32_BITS
 #define WEBRTC_ARCH_LITTLE_ENDIAN
 #define WEBRTC_LITTLE_ENDIAN

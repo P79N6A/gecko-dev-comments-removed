@@ -14,11 +14,11 @@
 #ifndef WEBRTC_VIDEO_ENGINE_VIE_SENDER_H_
 #define WEBRTC_VIDEO_ENGINE_VIE_SENDER_H_
 
-#include "common_types.h"
-#include "engine_configurations.h"
+#include "common_types.h"  
+#include "engine_configurations.h"  
 #include "system_wrappers/interface/scoped_ptr.h"
-#include "typedefs.h"
-#include "vie_defines.h"
+#include "typedefs.h"  
+#include "video_engine/vie_defines.h"
 
 namespace webrtc {
 
@@ -29,7 +29,7 @@ class VideoCodingModule;
 
 class ViESender: public Transport {
  public:
-  ViESender(int engine_id, int channel_id);
+  explicit ViESender(const int32_t channel_id);
   ~ViESender();
 
   
@@ -49,8 +49,7 @@ class ViESender: public Transport {
   virtual int SendRTCPPacket(int vie_id, const void* data, int len);
 
  private:
-  int engine_id_;
-  int channel_id_;
+  const int32_t channel_id_;
 
   scoped_ptr<CriticalSectionWrapper> critsect_;
 

@@ -8,12 +8,16 @@
 
 
 
+#ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_MOCK_MOCK_RTP_RECEIVER_VIDEO_H_
+#define WEBRTC_MODULES_RTP_RTCP_SOURCE_MOCK_MOCK_RTP_RECEIVER_VIDEO_H_
+
 #include "modules/rtp_rtcp/source/rtp_receiver_video.h"
 
 namespace webrtc {
 
 class MockRTPReceiverVideo : public RTPReceiverVideo {
  public:
+  MockRTPReceiverVideo() : RTPReceiverVideo(0, NULL, NULL) {}
   MOCK_METHOD1(ChangeUniqueId,
       void(const WebRtc_Word32 id));
   MOCK_METHOD3(ReceiveRecoveredPacketCallback,
@@ -39,3 +43,5 @@ class MockRTPReceiverVideo : public RTPReceiverVideo {
 };
 
 }  
+
+#endif  

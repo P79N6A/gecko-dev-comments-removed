@@ -3,6 +3,7 @@
 
 
 
+
 """Pretty-prints the contents of a GYP file."""
 
 import sys
@@ -16,7 +17,7 @@ COMMENT_RE = re.compile(r'\s*#.*')
 
 
 
-quote_re_str = r'(?P<q>[\'"])(.*?)(?<![^\\][\\])(?P=q)'
+QUOTE_RE_STR = r'(?P<q>[\'"])(.*?)(?<![^\\][\\])(?P=q)'
 QUOTE_RE = re.compile(QUOTE_RE_STR)
 
 

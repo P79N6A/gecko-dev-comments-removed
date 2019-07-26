@@ -197,13 +197,15 @@ using ::std::pair;
 using ::std::set;
 using ::std::vector;
 using ::testing::PrintToString;
+using ::testing::internal::FormatForComparisonFailureMessage;
+using ::testing::internal::ImplicitCast_;
 using ::testing::internal::NativeArray;
 using ::testing::internal::RE;
 using ::testing::internal::Strings;
-using ::testing::internal::UniversalTersePrint;
 using ::testing::internal::UniversalPrint;
-using ::testing::internal::UniversalTersePrintTupleFieldsToStrings;
 using ::testing::internal::UniversalPrinter;
+using ::testing::internal::UniversalTersePrint;
+using ::testing::internal::UniversalTersePrintTupleFieldsToStrings;
 using ::testing::internal::kReference;
 using ::testing::internal::string;
 
@@ -613,16 +615,29 @@ TEST(PrintArrayTest, ConstArray) {
 }
 
 
-TEST(PrintArrayTest, CharArray) {
+TEST(PrintArrayTest, CharArrayWithNoTerminatingNul) {
   
-  char a[3] = { 'H', '\0', 'i' };
-  EXPECT_EQ("\"H\\0i\"", PrintArrayHelper(a));
+  char a[] = { 'H', '\0', 'i' };
+  EXPECT_EQ("\"H\\0i\" (no terminating NUL)", PrintArrayHelper(a));
 }
 
 
-TEST(PrintArrayTest, ConstCharArray) {
-  const char a[4] = "\0Hi";
-  EXPECT_EQ("\"\\0Hi\\0\"", PrintArrayHelper(a));
+TEST(PrintArrayTest, ConstCharArrayWithTerminatingNul) {
+  const char a[] = "\0Hi";
+  EXPECT_EQ("\"\\0Hi\"", PrintArrayHelper(a));
+}
+
+
+TEST(PrintArrayTest, WCharArrayWithNoTerminatingNul) {
+  
+  const wchar_t a[] = { L'H', L'\0', L'i' };
+  EXPECT_EQ("L\"H\\0i\" (no terminating NUL)", PrintArrayHelper(a));
+}
+
+
+TEST(PrintArrayTest, WConstCharArrayWithTerminatingNul) {
+  const wchar_t a[] = L"\0Hi";
+  EXPECT_EQ("L\"\\0Hi\"", PrintArrayHelper(a));
 }
 
 
@@ -840,7 +855,7 @@ TEST(PrintStlContainerTest, HashMultiSet) {
   std::vector<int> numbers;
   for (size_t i = 0; i != result.length(); i++) {
     if (expected_pattern[i] == 'd') {
-      ASSERT_TRUE(isdigit(static_cast<unsigned char>(result[i])) != 0);
+      ASSERT_NE(isdigit(static_cast<unsigned char>(result[i])), 0);
       numbers.push_back(result[i] - '0');
     } else {
       EXPECT_EQ(expected_pattern[i], result[i]) << " where result is "
@@ -1002,9 +1017,12 @@ TEST(PrintTupleTest, VariousSizes) {
   EXPECT_EQ("(false, 2, 3, 4, true, 6, 7, true, 9)", Print(t9));
 
   const char* const str = "8";
+  
+  
   tuple<bool, char, short, testing::internal::Int32,  
       testing::internal::Int64, float, double, const char*, void*, string>
-      t10(false, 'a', 3, 4, 5, 1.5F, -2.5, str, NULL, "10");
+      t10(false, 'a', 3, 4, 5, 1.5F, -2.5, str,
+          ImplicitCast_<void*>(NULL), "10");
   EXPECT_EQ("(false, 'a' (97, 0x61), 3, 4, 5, 1.5, -2.5, " + PrintPointer(str) +
             " pointing to \"8\", NULL, \"10\")",
             Print(t10));
@@ -1185,6 +1203,207 @@ TEST(PrintReferenceTest, HandlesMemberVariablePointer) {
 
 
 
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForScalar) {
+  EXPECT_STREQ("123",
+               FormatForComparisonFailureMessage(123, 124).c_str());
+}
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForNonCharPointer) {
+  int n = 0;
+  EXPECT_EQ(PrintPointer(&n),
+            FormatForComparisonFailureMessage(&n, &n).c_str());
+}
+
+
+TEST(FormatForComparisonFailureMessageTest, FormatsNonCharArrayAsPointer) {
+  
+  
+  int n[] = { 1, 2, 3 };
+  EXPECT_EQ(PrintPointer(n),
+            FormatForComparisonFailureMessage(n, n).c_str());
+}
+
+
+
+
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharPointerVsPointer) {
+  
+  
+  
+  
+
+  
+  const char* s = "hello";
+  EXPECT_EQ(PrintPointer(s),
+            FormatForComparisonFailureMessage(s, s).c_str());
+
+  
+  char ch = 'a';
+  EXPECT_EQ(PrintPointer(&ch),
+            FormatForComparisonFailureMessage(&ch, &ch).c_str());
+}
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharPointerVsPointer) {
+  
+  
+  
+  
+
+  
+  const wchar_t* s = L"hello";
+  EXPECT_EQ(PrintPointer(s),
+            FormatForComparisonFailureMessage(s, s).c_str());
+
+  
+  wchar_t ch = L'a';
+  EXPECT_EQ(PrintPointer(&ch),
+            FormatForComparisonFailureMessage(&ch, &ch).c_str());
+}
+
+
+
+
+#if GTEST_HAS_GLOBAL_STRING
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharPointerVsString) {
+  const char* s = "hello \"world";
+  EXPECT_STREQ("\"hello \\\"world\"",  
+               FormatForComparisonFailureMessage(s, ::string()).c_str());
+
+  
+  char str[] = "hi\1";
+  char* p = str;
+  EXPECT_STREQ("\"hi\\x1\"",  
+               FormatForComparisonFailureMessage(p, ::string()).c_str());
+}
+#endif
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharPointerVsStdString) {
+  const char* s = "hello \"world";
+  EXPECT_STREQ("\"hello \\\"world\"",  
+               FormatForComparisonFailureMessage(s, ::std::string()).c_str());
+
+  
+  char str[] = "hi\1";
+  char* p = str;
+  EXPECT_STREQ("\"hi\\x1\"",  
+               FormatForComparisonFailureMessage(p, ::std::string()).c_str());
+}
+
+#if GTEST_HAS_GLOBAL_WSTRING
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharPointerVsWString) {
+  const wchar_t* s = L"hi \"world";
+  EXPECT_STREQ("L\"hi \\\"world\"",  
+               FormatForComparisonFailureMessage(s, ::wstring()).c_str());
+
+  
+  wchar_t str[] = L"hi\1";
+  wchar_t* p = str;
+  EXPECT_STREQ("L\"hi\\x1\"",  
+               FormatForComparisonFailureMessage(p, ::wstring()).c_str());
+}
+#endif
+
+#if GTEST_HAS_STD_WSTRING
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharPointerVsStdWString) {
+  const wchar_t* s = L"hi \"world";
+  EXPECT_STREQ("L\"hi \\\"world\"",  
+               FormatForComparisonFailureMessage(s, ::std::wstring()).c_str());
+
+  
+  wchar_t str[] = L"hi\1";
+  wchar_t* p = str;
+  EXPECT_STREQ("L\"hi\\x1\"",  
+               FormatForComparisonFailureMessage(p, ::std::wstring()).c_str());
+}
+#endif
+
+
+
+
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharArrayVsPointer) {
+  char str[] = "hi \"world\"";
+  char* p = NULL;
+  EXPECT_EQ(PrintPointer(str),
+            FormatForComparisonFailureMessage(str, p).c_str());
+}
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharArrayVsCharArray) {
+  const char str[] = "hi \"world\"";
+  EXPECT_EQ(PrintPointer(str),
+            FormatForComparisonFailureMessage(str, str).c_str());
+}
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharArrayVsPointer) {
+  wchar_t str[] = L"hi \"world\"";
+  wchar_t* p = NULL;
+  EXPECT_EQ(PrintPointer(str),
+            FormatForComparisonFailureMessage(str, p).c_str());
+}
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharArrayVsWCharArray) {
+  const wchar_t str[] = L"hi \"world\"";
+  EXPECT_EQ(PrintPointer(str),
+            FormatForComparisonFailureMessage(str, str).c_str());
+}
+
+
+
+
+#if GTEST_HAS_GLOBAL_STRING
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharArrayVsString) {
+  const char str[] = "hi \"w\0rld\"";
+  EXPECT_STREQ("\"hi \\\"w\"",  
+                                
+               FormatForComparisonFailureMessage(str, ::string()).c_str());
+}
+#endif
+
+
+TEST(FormatForComparisonFailureMessageTest, WorksForCharArrayVsStdString) {
+  const char str[] = "hi \"world\"";
+  EXPECT_STREQ("\"hi \\\"world\\\"\"",  
+               FormatForComparisonFailureMessage(str, ::std::string()).c_str());
+}
+
+#if GTEST_HAS_GLOBAL_WSTRING
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharArrayVsWString) {
+  const wchar_t str[] = L"hi \"world\"";
+  EXPECT_STREQ("L\"hi \\\"world\\\"\"",  
+               FormatForComparisonFailureMessage(str, ::wstring()).c_str());
+}
+#endif
+
+#if GTEST_HAS_STD_WSTRING
+
+TEST(FormatForComparisonFailureMessageTest, WorksForWCharArrayVsStdWString) {
+  const wchar_t str[] = L"hi \"w\0rld\"";
+  EXPECT_STREQ(
+      "L\"hi \\\"w\"",  
+                        
+      FormatForComparisonFailureMessage(str, ::std::wstring()).c_str());
+}
+#endif
+
+
+
+
 #define EXPECT_PRINT_TO_STRING_(value, expected_string)         \
   EXPECT_TRUE(PrintToString(value) == (expected_string))        \
       << " where " #value " prints as " << (PrintToString(value))
@@ -1204,9 +1423,33 @@ TEST(PrintToStringTest, WorksForPointerToNonConstChar) {
   EXPECT_PRINT_TO_STRING_(p, "\"hello\"");
 }
 
+TEST(PrintToStringTest, EscapesForPointerToConstChar) {
+  const char* p = "hello\n";
+  EXPECT_PRINT_TO_STRING_(p, "\"hello\\n\"");
+}
+
+TEST(PrintToStringTest, EscapesForPointerToNonConstChar) {
+  char s[] = "hello\1";
+  char* p = s;
+  EXPECT_PRINT_TO_STRING_(p, "\"hello\\x1\"");
+}
+
 TEST(PrintToStringTest, WorksForArray) {
   int n[3] = { 1, 2, 3 };
   EXPECT_PRINT_TO_STRING_(n, "{ 1, 2, 3 }");
+}
+
+TEST(PrintToStringTest, WorksForCharArray) {
+  char s[] = "hello";
+  EXPECT_PRINT_TO_STRING_(s, "\"hello\"");
+}
+
+TEST(PrintToStringTest, WorksForCharArrayWithEmbeddedNul) {
+  const char str_with_nul[] = "hello\0 world";
+  EXPECT_PRINT_TO_STRING_(str_with_nul, "\"hello\\0 world\"");
+
+  char mutable_str_with_nul[] = "hello\0 world";
+  EXPECT_PRINT_TO_STRING_(mutable_str_with_nul, "\"hello\\0 world\"");
 }
 
 #undef EXPECT_PRINT_TO_STRING_
@@ -1271,6 +1514,17 @@ TEST(UniversalPrintTest, WorksForCString) {
   EXPECT_EQ("NULL", ss3.str());
 }
 
+TEST(UniversalPrintTest, WorksForCharArray) {
+  const char str[] = "\"Line\0 1\"\nLine 2";
+  ::std::stringstream ss1;
+  UniversalPrint(str, &ss1);
+  EXPECT_EQ("\"\\\"Line\\0 1\\\"\\nLine 2\"", ss1.str());
+
+  const char mutable_str[] = "\"Line\0 1\"\nLine 2";
+  ::std::stringstream ss2;
+  UniversalPrint(mutable_str, &ss2);
+  EXPECT_EQ("\"\\\"Line\\0 1\\\"\\nLine 2\"", ss2.str());
+}
 
 #if GTEST_HAS_TR1_TUPLE
 

@@ -31,7 +31,8 @@
 
 
 
-#if !(defined(WEBRTC_ANDROID) && defined(WEBRTC_ARCH_ARM_NEON))
+
+#ifndef WEBRTC_ARCH_ARM_NEON
 
 
 int16_t WebRtcSpl_MaxAbsValueW16(const int16_t* vector, int length) {
@@ -144,7 +145,7 @@ int32_t WebRtcSpl_MinValueW32(const int32_t* vector, int length) {
   }
   return minimum;
 }
-#endif
+#endif  
 
 
 

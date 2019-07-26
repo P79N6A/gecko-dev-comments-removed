@@ -17,7 +17,7 @@
 
 #include "signal_processing_library.h"
 
-#ifdef WEBRTC_ARCH_ARM_V7A
+#ifdef WEBRTC_ARCH_ARM_V7
 
 
 static const WebRtc_UWord32 kResampleAllpass1[3] = {3284, 24441, 49528 << 15};

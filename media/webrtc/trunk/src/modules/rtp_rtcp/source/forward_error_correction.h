@@ -162,10 +162,17 @@ class ForwardErrorCorrection {
 
 
 
+
+
+
+
+
+
   int32_t GenerateFEC(const PacketList& mediaPacketList,
                       uint8_t protectionFactor,
                       int numImportantPackets,
                       bool useUnequalProtection,
+                      FecMaskType fec_mask_type,
                       PacketList* fecPacketList);
 
   
@@ -198,6 +205,12 @@ class ForwardErrorCorrection {
 
   int32_t DecodeFEC(ReceivedPacketList* receivedPacketList,
                     RecoveredPacketList* recoveredPacketList);
+
+  
+  
+  int GetNumberOfFecPackets(int numMediaPackets,
+                            int protectionFactor);
+
   
 
 
@@ -215,7 +228,7 @@ class ForwardErrorCorrection {
   void GenerateFecUlpHeaders(const PacketList& mediaPacketList,
                              uint8_t* packetMask,
                              bool lBit,
-                             uint32_t numFecPackets);
+                             int numFecPackets);
 
   
   
@@ -225,8 +238,8 @@ class ForwardErrorCorrection {
   
   int InsertZerosInBitMasks(const PacketList& media_packets,
                             uint8_t* packet_mask,
-                            uint16_t num_mask_bytes,
-                            uint32_t num_fec_packets);
+                            int num_mask_bytes,
+                            int num_fec_packets);
 
   
   
@@ -256,7 +269,7 @@ class ForwardErrorCorrection {
 
   void GenerateFecBitStrings(const PacketList& mediaPacketList,
                              uint8_t* packetMask,
-                             uint32_t numFecPackets,
+                             int numFecPackets,
                              bool lBit);
 
   

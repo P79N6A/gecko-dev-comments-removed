@@ -302,7 +302,6 @@ def ProcessToolsetsInDict(data):
       if 'toolset' in target and 'toolsets' not in target:
         new_target_list.append(target)
         continue
-      global multiple_toolsets
       if multiple_toolsets:
         toolsets = target.get('toolsets', ['target'])
       else:
@@ -331,8 +330,6 @@ def ProcessToolsetsInDict(data):
 
 def LoadTargetBuildFile(build_file_path, data, aux_data, variables, includes,
                         depth, check):
-  global absolute_build_file_paths
-
   
   
   if depth:
@@ -383,8 +380,8 @@ def LoadTargetBuildFile(build_file_path, data, aux_data, variables, includes,
   ProcessToolsetsInDict(build_file_data)
 
   
-  ProcessVariablesAndConditionsInDict(build_file_data, False, variables,
-                                      build_file_path)
+  ProcessVariablesAndConditionsInDict(
+      build_file_data, PHASE_EARLY, variables, build_file_path)
 
   
   
@@ -500,6 +497,13 @@ late_variable_re = re.compile(
     '(?P<content>.*?)(\]?)\))')
 
 
+latelate_variable_re = re.compile(
+    '(?P<replace>(?P<type>[\^](?:(?:!?@?)|\|)?)'
+    '(?P<command_string>[-a-zA-Z0-9_.]+)?'
+    '\((?P<is_array>\s*\[?)'
+    '(?P<content>.*?)(\]?)\))')
+
+
 
 cached_command_results = {}
 
@@ -513,263 +517,297 @@ def FixupPlatformCommand(cmd):
   return cmd
 
 
-def ExpandVariables(input, is_late, variables, build_file):
+PHASE_EARLY = 0
+PHASE_LATE = 1
+PHASE_LATELATE = 2
+
+
+def ExpandVariables(input, phase, variables, build_file):
   
-  if not is_late:
+  if phase == PHASE_EARLY:
     variable_re = early_variable_re
     expansion_symbol = '<'
-  else:
+  elif phase == PHASE_LATE:
     variable_re = late_variable_re
     expansion_symbol = '>'
+  elif phase == PHASE_LATELATE:
+    variable_re = latelate_variable_re
+    expansion_symbol = '^'
+  else:
+    assert False
 
   input_str = str(input)
+  if IsStrCanonicalInt(input_str):
+    return int(input_str)
+
   
-  if expansion_symbol in input_str:
-    
-    
-    matches = [match for match in variable_re.finditer(input_str)]
-  else:
-    matches = None
+  if expansion_symbol not in input_str:
+    return input_str
+
+  
+  
+  matches = [match for match in variable_re.finditer(input_str)]
+  if not matches:
+    return input_str
 
   output = input_str
-  if matches:
+  
+  
+  
+  
+  matches.reverse()
+  for match_group in matches:
+    match = match_group.groupdict()
+    gyp.DebugOutput(gyp.DEBUG_VARIABLES,
+                    "Matches: %s" % repr(match))
     
     
     
     
-    matches.reverse()
-    for match_group in matches:
-      match = match_group.groupdict()
-      gyp.DebugOutput(gyp.DEBUG_VARIABLES,
-                      "Matches: %s" % repr(match))
-      
-      
-      
-      
-      
-      
+    
+    
 
-      
-      run_command = '!' in match['type']
-      command_string = match['command_string']
+    
+    run_command = '!' in match['type']
+    command_string = match['command_string']
 
-      
-      file_list = '|' in match['type']
+    
+    file_list = '|' in match['type']
 
-      
-      replace_start = match_group.start('replace')
-      replace_end = match_group.end('replace')
+    
+    replace_start = match_group.start('replace')
+    replace_end = match_group.end('replace')
 
-      
-      (c_start, c_end) = FindEnclosingBracketGroup(input_str[replace_start:])
+    
+    (c_start, c_end) = FindEnclosingBracketGroup(input_str[replace_start:])
 
-      
-      
-      
-      
-      replace_end = replace_start + c_end
+    
+    
+    
+    
+    replace_end = replace_start + c_end
 
-      
-      
-      replacement = input_str[replace_start:replace_end]
+    
+    
+    replacement = input_str[replace_start:replace_end]
 
-      
-      contents_start = replace_start + c_start + 1
-      contents_end = replace_end - 1
-      contents = input_str[contents_start:contents_end]
+    
+    contents_start = replace_start + c_start + 1
+    contents_end = replace_end - 1
+    contents = input_str[contents_start:contents_end]
 
+    
+    
+    
+    
+    if file_list:
+      processed_variables = copy.deepcopy(variables)
+      ProcessListFiltersInDict(contents, processed_variables)
+      
+      contents = ExpandVariables(contents, phase,
+                                 processed_variables, build_file)
+    else:
+      
+      contents = ExpandVariables(contents, phase, variables, build_file)
+
+    
+    
+    contents = contents.strip()
+
+    
+    
+    
+    
+    
+    
+    expand_to_list = '@' in match['type'] and input_str == replacement
+
+    if run_command or file_list:
       
       
-      
-      
-      if file_list:
-        processed_variables = copy.deepcopy(variables)
-        ProcessListFiltersInDict(contents, processed_variables)
+      build_file_dir = os.path.dirname(build_file)
+      if build_file_dir == '':
         
-        contents = ExpandVariables(contents, is_late,
-                                   processed_variables, build_file)
+        
+        
+        
+        build_file_dir = None
+
+    
+    
+    
+    
+    if file_list:
+      if type(contents) == list:
+        contents_list = contents
       else:
-        
-        contents = ExpandVariables(contents, is_late, variables, build_file)
+        contents_list = contents.split(' ')
+      replacement = contents_list[0]
+      path = replacement
+      if not os.path.isabs(path):
+        path = os.path.join(build_file_dir, path)
+      f = gyp.common.WriteOnDiff(path)
+      for i in contents_list[1:]:
+        f.write('%s\n' % i)
+      f.close()
 
-      
-      
-      contents = contents.strip()
-
-      
-      
-      
-      
-      
-      
-      expand_to_list = '@' in match['type'] and input_str == replacement
-
-      if run_command or file_list:
-        
-        
-        build_file_dir = os.path.dirname(build_file)
-        if build_file_dir == '':
-          
-          
-          
-          
-          build_file_dir = None
+    elif run_command:
+      use_shell = True
+      if match['is_array']:
+        contents = eval(contents)
+        use_shell = False
 
       
       
       
       
-      if file_list:
-        if type(contents) == list:
-          contents_list = contents
+      
+      
+      
+      
+      
+      
+      
+      cache_key = str(contents)
+      cached_value = cached_command_results.get(cache_key, None)
+      if cached_value is None:
+        gyp.DebugOutput(gyp.DEBUG_VARIABLES,
+                        "Executing command '%s' in directory '%s'" %
+                        (contents,build_file_dir))
+
+        replacement = ''
+
+        if command_string == 'pymod_do_main':
+          
+          
+          
+          
+          
+          oldwd = os.getcwd()  
+          os.chdir(build_file_dir)
+
+          parsed_contents = shlex.split(contents)
+          py_module = __import__(parsed_contents[0])
+          replacement = str(py_module.DoMain(parsed_contents[1:])).rstrip()
+
+          os.chdir(oldwd)
+          assert replacement != None
+        elif command_string:
+          raise Exception("Unknown command string '%s' in '%s'." %
+                          (command_string, contents))
         else:
-          contents_list = contents.split(' ')
-        replacement = contents_list[0]
-        path = replacement
-        if not os.path.isabs(path):
-          path = os.path.join(build_file_dir, path)
-        f = gyp.common.WriteOnDiff(path)
-        for i in contents_list[1:]:
-          f.write('%s\n' % i)
-        f.close()
+          
+          contents = FixupPlatformCommand(contents)
+          p = subprocess.Popen(contents, shell=use_shell,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               stdin=subprocess.PIPE,
+                               cwd=build_file_dir)
 
-      elif run_command:
-        use_shell = True
-        if match['is_array']:
-          contents = eval(contents)
-          use_shell = False
+          p_stdout, p_stderr = p.communicate('')
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        cache_key = str(contents)
-        cached_value = cached_command_results.get(cache_key, None)
-        if cached_value is None:
-          gyp.DebugOutput(gyp.DEBUG_VARIABLES,
-                          "Executing command '%s' in directory '%s'" %
-                          (contents,build_file_dir))
-
-          replacement = ''
-
-          if command_string == 'pymod_do_main':
+          if p.wait() != 0 or p_stderr:
+            sys.stderr.write(p_stderr)
             
             
-            
-            
-            
-            oldwd = os.getcwd()  
-            os.chdir(build_file_dir)
+            raise Exception("Call to '%s' returned exit status %d." %
+                            (contents, p.returncode))
+          replacement = p_stdout.rstrip()
 
-            parsed_contents = shlex.split(contents)
-            py_module = __import__(parsed_contents[0])
-            replacement = str(py_module.DoMain(parsed_contents[1:])).rstrip()
-
-            os.chdir(oldwd)
-            assert replacement != None
-          elif command_string:
-            raise Exception("Unknown command string '%s' in '%s'." %
-                            (command_string, contents))
-          else:
-            
-            contents = FixupPlatformCommand(contents)
-            p = subprocess.Popen(contents, shell=use_shell,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 stdin=subprocess.PIPE,
-                                 cwd=build_file_dir)
-
-            p_stdout, p_stderr = p.communicate('')
-
-            if p.wait() != 0 or p_stderr:
-              sys.stderr.write(p_stderr)
-              
-              
-              raise Exception("Call to '%s' returned exit status %d." %
-                              (contents, p.returncode))
-            replacement = p_stdout.rstrip()
-
-          cached_command_results[cache_key] = replacement
-        else:
-          gyp.DebugOutput(gyp.DEBUG_VARIABLES,
-                          "Had cache value for command '%s' in directory '%s'" %
-                          (contents,build_file_dir))
-          replacement = cached_value
-
+        cached_command_results[cache_key] = replacement
       else:
-        if not contents in variables:
+        gyp.DebugOutput(gyp.DEBUG_VARIABLES,
+                        "Had cache value for command '%s' in directory '%s'" %
+                        (contents,build_file_dir))
+        replacement = cached_value
+
+    else:
+      if not contents in variables:
+        if contents[-1] in ['!', '/']:
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          replacement = []
+        else:
           raise KeyError, 'Undefined variable ' + contents + \
                           ' in ' + build_file
+      else:
         replacement = variables[contents]
 
-      if isinstance(replacement, list):
-        for item in replacement:
-          if not isinstance(item, str) and not isinstance(item, int):
-            raise TypeError, 'Variable ' + contents + \
-                             ' must expand to a string or list of strings; ' + \
-                             'list contains a ' + \
-                             item.__class__.__name__
-        
-        
-        
-        ProcessVariablesAndConditionsInList(replacement, is_late, variables,
-                                            build_file)
-      elif not isinstance(replacement, str) and \
-           not isinstance(replacement, int):
-            raise TypeError, 'Variable ' + contents + \
-                             ' must expand to a string or list of strings; ' + \
-                             'found a ' + replacement.__class__.__name__
+    if isinstance(replacement, list):
+      for item in replacement:
+        if (not contents[-1] == '/' and
+            not isinstance(item, str) and not isinstance(item, int)):
+          raise TypeError, 'Variable ' + contents + \
+                           ' must expand to a string or list of strings; ' + \
+                           'list contains a ' + \
+                           item.__class__.__name__
+      
+      
+      
+      ProcessVariablesAndConditionsInList(replacement, phase, variables,
+                                          build_file)
+    elif not isinstance(replacement, str) and \
+         not isinstance(replacement, int):
+          raise TypeError, 'Variable ' + contents + \
+                           ' must expand to a string or list of strings; ' + \
+                           'found a ' + replacement.__class__.__name__
 
-      if expand_to_list:
+    if expand_to_list:
+      
+      
+      
+      if isinstance(replacement, list):
         
-        
-        
-        if isinstance(replacement, list):
-          
-          output = replacement[:]
-        else:
-          
-          output = shlex.split(str(replacement))
+        output = replacement[:]
       else:
         
-        encoded_replacement = ''
-        if isinstance(replacement, list):
-          
-          
-          
-          
-          
-          
-          
-          
-          encoded_replacement = gyp.common.EncodePOSIXShellList(replacement)
-        else:
-          encoded_replacement = replacement
-
-        output = output[:replace_start] + str(encoded_replacement) + \
-                 output[replace_end:]
+        output = shlex.split(str(replacement))
+    else:
       
-      input_str = output
+      encoded_replacement = ''
+      if isinstance(replacement, list):
+        
+        
+        
+        
+        
+        
+        
+        
+        encoded_replacement = gyp.common.EncodePOSIXShellList(replacement)
+      else:
+        encoded_replacement = replacement
 
+      output = output[:replace_start] + str(encoded_replacement) + \
+               output[replace_end:]
     
-    
-    
-    gyp.DebugOutput(gyp.DEBUG_VARIABLES,
-                    "Found output %s, recursing." % repr(output))
-    if isinstance(output, list):
+    input_str = output
+
+  
+  
+  
+  gyp.DebugOutput(gyp.DEBUG_VARIABLES,
+                  "Found output %s, recursing." % repr(output))
+  if isinstance(output, list):
+    if output and isinstance(output[0], list):
+      
+      
+      pass
+    else:
       new_output = []
       for item in output:
-        new_output.append(ExpandVariables(item, is_late, variables, build_file))
+        new_output.append(
+            ExpandVariables(item, phase, variables, build_file))
       output = new_output
-    else:
-      output = ExpandVariables(output, is_late, variables, build_file)
+  else:
+    output = ExpandVariables(output, phase, variables, build_file)
 
   
   if isinstance(output, list):
@@ -779,12 +817,13 @@ def ExpandVariables(input, is_late, variables, build_file):
   elif IsStrCanonicalInt(output):
     output = int(output)
 
-  gyp.DebugOutput(gyp.DEBUG_VARIABLES,
-                  "Expanding %s to %s" % (repr(input), repr(output)))
   return output
 
 
-def ProcessConditionsInDict(the_dict, is_late, variables, build_file):
+def ProcessConditionsInDict(the_dict, phase, variables, build_file):
+  
+  
+  
   
   
   
@@ -798,10 +837,14 @@ def ProcessConditionsInDict(the_dict, is_late, variables, build_file):
   
   
 
-  if not is_late:
+  if phase == PHASE_EARLY:
     conditions_key = 'conditions'
-  else:
+  elif phase == PHASE_LATE:
     conditions_key = 'target_conditions'
+  elif phase == PHASE_LATELATE:
+    return
+  else:
+    assert False
 
   if not conditions_key in the_dict:
     return
@@ -828,7 +871,7 @@ def ProcessConditionsInDict(the_dict, is_late, variables, build_file):
     
     
     
-    cond_expr_expanded = ExpandVariables(cond_expr, is_late, variables,
+    cond_expr_expanded = ExpandVariables(cond_expr, phase, variables,
                                          build_file)
     if not isinstance(cond_expr_expanded, str) and \
        not isinstance(cond_expr_expanded, int):
@@ -857,7 +900,7 @@ def ProcessConditionsInDict(the_dict, is_late, variables, build_file):
     if merge_dict != None:
       
       
-      ProcessVariablesAndConditionsInDict(merge_dict, is_late,
+      ProcessVariablesAndConditionsInDict(merge_dict, phase,
                                           variables, build_file)
 
       MergeDicts(the_dict, merge_dict, build_file, build_file)
@@ -901,7 +944,7 @@ def LoadVariablesFromVariablesDict(variables, the_dict, the_dict_key):
     variables[variable_name] = value
 
 
-def ProcessVariablesAndConditionsInDict(the_dict, is_late, variables_in,
+def ProcessVariablesAndConditionsInDict(the_dict, phase, variables_in,
                                         build_file, the_dict_key=None):
   """Handle all variable and command expansion and conditional evaluation.
 
@@ -928,7 +971,7 @@ def ProcessVariablesAndConditionsInDict(the_dict, is_late, variables_in,
     
     
     
-    ProcessVariablesAndConditionsInDict(the_dict['variables'], is_late,
+    ProcessVariablesAndConditionsInDict(the_dict['variables'], phase,
                                         variables, build_file, 'variables')
 
   LoadVariablesFromVariablesDict(variables, the_dict, the_dict_key)
@@ -936,7 +979,7 @@ def ProcessVariablesAndConditionsInDict(the_dict, is_late, variables_in,
   for key, value in the_dict.iteritems():
     
     if key != 'variables' and isinstance(value, str):
-      expanded = ExpandVariables(value, is_late, variables, build_file)
+      expanded = ExpandVariables(value, phase, variables, build_file)
       if not isinstance(expanded, str) and not isinstance(expanded, int):
         raise ValueError, \
               'Variable expansion in this context permits str and int ' + \
@@ -981,7 +1024,7 @@ def ProcessVariablesAndConditionsInDict(the_dict, is_late, variables_in,
   
   
   
-  ProcessConditionsInDict(the_dict, is_late, variables, build_file)
+  ProcessConditionsInDict(the_dict, phase, variables, build_file)
 
   
   
@@ -999,21 +1042,21 @@ def ProcessVariablesAndConditionsInDict(the_dict, is_late, variables_in,
     if isinstance(value, dict):
       
       
-      ProcessVariablesAndConditionsInDict(value, is_late, variables,
+      ProcessVariablesAndConditionsInDict(value, phase, variables,
                                           build_file, key)
     elif isinstance(value, list):
       
       
       
       
-      ProcessVariablesAndConditionsInList(value, is_late, variables,
+      ProcessVariablesAndConditionsInList(value, phase, variables,
                                           build_file)
     elif not isinstance(value, int):
       raise TypeError, 'Unknown type ' + value.__class__.__name__ + \
                        ' for ' + key
 
 
-def ProcessVariablesAndConditionsInList(the_list, is_late, variables,
+def ProcessVariablesAndConditionsInList(the_list, phase, variables,
                                         build_file):
   
   index = 0
@@ -1022,18 +1065,16 @@ def ProcessVariablesAndConditionsInList(the_list, is_late, variables,
     if isinstance(item, dict):
       
       
-      ProcessVariablesAndConditionsInDict(item, is_late, variables, build_file)
+      ProcessVariablesAndConditionsInDict(item, phase, variables, build_file)
     elif isinstance(item, list):
-      ProcessVariablesAndConditionsInList(item, is_late, variables, build_file)
+      ProcessVariablesAndConditionsInList(item, phase, variables, build_file)
     elif isinstance(item, str):
-      expanded = ExpandVariables(item, is_late, variables, build_file)
+      expanded = ExpandVariables(item, phase, variables, build_file)
       if isinstance(expanded, str) or isinstance(expanded, int):
         the_list[index] = expanded
       elif isinstance(expanded, list):
-        del the_list[index]
-        for expanded_item in expanded:
-          the_list.insert(index, expanded_item)
-          index = index + 1
+        the_list[index:index+1] = expanded
+        index += len(expanded)
 
         
         
@@ -1098,7 +1139,6 @@ def QualifyDependencies(targets):
       for index in xrange(0, len(dependencies)):
         dep_file, dep_target, dep_toolset = gyp.common.ResolveTarget(
             target_build_file, dependencies[index], toolset)
-        global multiple_toolsets
         if not multiple_toolsets:
           
           dep_toolset = toolset
@@ -1184,6 +1224,22 @@ def ExpandWildcardDependencies(targets, data):
         index = index + 1
 
 
+def Unify(l):
+  """Removes duplicate elements from l, keeping the first element."""
+  seen = {}
+  return [seen.setdefault(e, e) for e in l if e not in seen]
+
+
+def RemoveDuplicateDependencies(targets):
+  """Makes sure every dependency appears only once in all targets's dependency
+  lists."""
+  for target_name, target_dict in targets.iteritems():
+    for dependency_key in dependency_sections:
+      dependencies = target_dict.get(dependency_key, [])
+      if dependencies:
+        target_dict[dependency_key] = Unify(dependencies)
+
+
 class DependencyGraphNode(object):
   """
 
@@ -1212,14 +1268,14 @@ class DependencyGraphNode(object):
     
     
     
-    in_degree_zeros = self.dependents[:]
+    in_degree_zeros = set(self.dependents[:])
 
     while in_degree_zeros:
       
       
       
       
-      node = in_degree_zeros.pop(0)
+      node = in_degree_zeros.pop()
       flat_list.append(node.ref)
 
       
@@ -1239,7 +1295,7 @@ class DependencyGraphNode(object):
           
           
           
-          in_degree_zeros.append(node_dependent)
+          in_degree_zeros.add(node_dependent)
 
     return flat_list
 
@@ -1423,7 +1479,8 @@ def BuildDependencyList(targets):
   
   if len(flat_list) != len(targets):
     raise DependencyGraphNode.CircularException, \
-        'Some targets not reachable, cycle in dependency graph detected'
+        'Some targets not reachable, cycle in dependency graph detected: ' + \
+        ' '.join(set(flat_list) ^ set(targets))
 
   return [dependency_nodes, flat_list]
 
@@ -1584,10 +1641,11 @@ def AdjustStaticLibraryDependencies(flat_list, targets, dependency_nodes,
 
 
 
-exception_re = re.compile(r'''["']?[-/$<>]''')
+exception_re = re.compile(r'''["']?[-/$<>^]''')
 
 
 def MakePathRelative(to_file, fro_file, item):
+  
   
   
   
@@ -1816,7 +1874,6 @@ def MergeConfigWithInheritance(new_configuration_dict, build_file,
 
 
 def SetUpConfigurations(target, target_dict):
-  global non_configuration_keys
   
   
   
@@ -2004,7 +2061,7 @@ def ProcessListFiltersInDict(name, the_dict):
         else:
           
           raise ValueError, 'Unrecognized action ' + action + ' in ' + name + \
-                            ' key ' + key
+                            ' key ' + regex_key
 
         for index in xrange(0, len(the_list)):
           list_item = the_list[index]
@@ -2084,6 +2141,33 @@ def ValidateTargetType(target, target_dict):
                     (target, target_type, '/'.join(VALID_TARGET_TYPES)))
 
 
+def ValidateSourcesInTarget(target, target_dict, build_file):
+  
+  if target_dict.get('type', None) != 'static_library':
+    return
+  sources = target_dict.get('sources', [])
+  basenames = {}
+  for source in sources:
+    name, ext = os.path.splitext(source)
+    is_compiled_file = ext in [
+        '.c', '.cc', '.cpp', '.cxx', '.m', '.mm', '.s', '.S']
+    if not is_compiled_file:
+      continue
+    basename = os.path.basename(name)  
+    basenames.setdefault(basename, []).append(source)
+
+  error = ''
+  for basename, files in basenames.iteritems():
+    if len(files) > 1:
+      error += '  %s: %s\n' % (basename, ' '.join(files))
+
+  if error:
+    print ('static library %s has several files with the same basename:\n' %
+           target + error + 'Some build systems, e.g. MSVC08, '
+           'cannot handle that.')
+    raise KeyError, 'Duplicate basenames in sources section, see list above'
+
+
 def ValidateRulesInTarget(target, target_dict, extra_sources_for_rules):
   """Ensures that the rules sections in target_dict are valid and consistent,
   and determines which sources they apply to.
@@ -2141,19 +2225,6 @@ def ValidateRulesInTarget(target, target_dict, extra_sources_for_rules):
       rule['rule_sources'] = rule_sources
 
 
-def ValidateActionsInTarget(target, target_dict, build_file):
-  '''Validates the inputs to the actions in a target.'''
-  target_name = target_dict.get('target_name')
-  actions = target_dict.get('actions', [])
-  for action in actions:
-    action_name = action.get('action_name')
-    if not action_name:
-      raise Exception("Anonymous action in target %s.  "
-                      "An action must have an 'action_name' field." %
-                      target_name)
-    inputs = action.get('inputs', [])
-
-
 def ValidateRunAsInTarget(target, target_dict, build_file):
   target_name = target_dict.get('target_name')
   run_as = target_dict.get('run_as')
@@ -2182,6 +2253,24 @@ def ValidateRunAsInTarget(target, target_dict, build_file):
     raise Exception("The 'environment' for 'run_as' in target %s "
                     "in file %s should be a dictionary." %
                     (target_name, build_file))
+
+
+def ValidateActionsInTarget(target, target_dict, build_file):
+  '''Validates the inputs to the actions in a target.'''
+  target_name = target_dict.get('target_name')
+  actions = target_dict.get('actions', [])
+  for action in actions:
+    action_name = action.get('action_name')
+    if not action_name:
+      raise Exception("Anonymous action in target %s.  "
+                      "An action must have an 'action_name' field." %
+                      target_name)
+    inputs = action.get('inputs', None)
+    if inputs is None:
+      raise Exception('Action in target %s has no inputs.' % target_name)
+    action_command = action.get('action')
+    if action_command and not action_command[0]:
+      raise Exception("Empty action as command in target %s." % target_name)
 
 
 def TurnIntIntoStrInDict(the_dict):
@@ -2314,6 +2403,9 @@ def Load(build_files, variables, includes, depth, generator_input_info, check,
     for key in tmp_dict:
       target_dict[key] = tmp_dict[key]
 
+  
+  RemoveDuplicateDependencies(targets)
+
   if circular_check:
     
     
@@ -2348,8 +2440,8 @@ def Load(build_files, variables, includes, depth, generator_input_info, check,
   for target in flat_list:
     target_dict = targets[target]
     build_file = gyp.common.BuildFile(target)
-    ProcessVariablesAndConditionsInDict(target_dict, True, variables,
-                                        build_file)
+    ProcessVariablesAndConditionsInDict(
+        target_dict, PHASE_LATE, variables, build_file)
 
   
   for target in flat_list:
@@ -2362,6 +2454,13 @@ def Load(build_files, variables, includes, depth, generator_input_info, check,
     ProcessListFiltersInDict(target, target_dict)
 
   
+  for target in flat_list:
+    target_dict = targets[target]
+    build_file = gyp.common.BuildFile(target)
+    ProcessVariablesAndConditionsInDict(
+        target_dict, PHASE_LATELATE, variables, build_file)
+
+  
   
   
   
@@ -2369,6 +2468,10 @@ def Load(build_files, variables, includes, depth, generator_input_info, check,
     target_dict = targets[target]
     build_file = gyp.common.BuildFile(target)
     ValidateTargetType(target, target_dict)
+    
+    
+    if 'arm' not in variables.get('target_arch', ''):
+      ValidateSourcesInTarget(target, target_dict, build_file)
     ValidateRulesInTarget(target, target_dict, extra_sources_for_rules)
     ValidateRunAsInTarget(target, target_dict, build_file)
     ValidateActionsInTarget(target, target_dict, build_file)

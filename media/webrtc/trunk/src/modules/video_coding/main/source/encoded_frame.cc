@@ -216,6 +216,10 @@ webrtc::FrameType VCMEncodedFrame::ConvertFrameType(VideoFrameType frameType)
         {
             return kVideoFrameAltRef;
         }
+    case kSkipFrame:
+        {
+            return kFrameEmpty;
+        }
     default:
         {
             return kVideoFrameDelta;

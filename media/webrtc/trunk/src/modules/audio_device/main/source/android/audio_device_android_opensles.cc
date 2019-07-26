@@ -255,7 +255,8 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::InitSpeaker() {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceAndroidOpenSLES::MicrophoneIsAvailable(bool& available) {
+WebRtc_Word32 AudioDeviceAndroidOpenSLES::MicrophoneIsAvailable(
+    bool& available) {
 
     
     available = true;
@@ -297,7 +298,7 @@ bool AudioDeviceAndroidOpenSLES::MicrophoneIsInitialized() const {
 }
 
 WebRtc_Word32 AudioDeviceAndroidOpenSLES::SpeakerVolumeIsAvailable(
-                                                                 bool& available) {
+    bool& available) {
 
     available = true; 
 
@@ -329,134 +330,11 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::SetSpeakerVolume(
             return -1;
         }
     }
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     return 0;
 }
 
 WebRtc_Word32 AudioDeviceAndroidOpenSLES::SpeakerVolume(
     WebRtc_UWord32& volume) const {
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     return 0;
 }
 
@@ -577,7 +455,7 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::MicrophoneMute(
 }
 
 WebRtc_Word32 AudioDeviceAndroidOpenSLES::MicrophoneBoostIsAvailable(
-                                                                   bool& available) {
+    bool& available) {
 
     available = false; 
 
@@ -710,8 +588,8 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::SetMicrophoneVolume(
 
     if (_slMicVolume != NULL) {
         WebRtc_Word32 vol(0);
-        vol = ((volume * (_maxSpeakerVolume - _minSpeakerVolume) + (int) (255
-                / 2)) / (255)) + _minSpeakerVolume;
+        vol = ((volume * (_maxSpeakerVolume - _minSpeakerVolume) +
+                (int) (255 / 2)) / (255)) + _minSpeakerVolume;
         if ((*_slMicVolume)->SetVolume(_slMicVolume, _micDeviceId, vol)
                 != SL_RESULT_SUCCESS) {
             WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
@@ -724,41 +602,6 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::SetMicrophoneVolume(
 
 WebRtc_Word32 AudioDeviceAndroidOpenSLES::MicrophoneVolume(
     WebRtc_UWord32& ) const {
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     return -1;
 }
 
@@ -786,7 +629,8 @@ WebRtc_Word16 AudioDeviceAndroidOpenSLES::PlayoutDevices() {
     return 1;
 }
 
-WebRtc_Word32 AudioDeviceAndroidOpenSLES::SetPlayoutDevice(WebRtc_UWord16 index) {
+WebRtc_Word32 AudioDeviceAndroidOpenSLES::SetPlayoutDevice(
+    WebRtc_UWord16 index) {
 
     if (_playIsInitialized) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
@@ -909,7 +753,8 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::PlayoutIsAvailable(bool& available) {
     return res;
 }
 
-WebRtc_Word32 AudioDeviceAndroidOpenSLES::RecordingIsAvailable(bool& available) {
+WebRtc_Word32 AudioDeviceAndroidOpenSLES::RecordingIsAvailable(
+    bool& available) {
 
     available = false;
 
@@ -994,15 +839,6 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::InitPlayout() {
                      "  failed to realize SL Output Mix object");
         return -1;
     }
-    
-    
-
-
-
-
-
-
-
 
     
     
@@ -1122,84 +958,6 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::InitRecording() {
         return -1;
     }
 
-    
-    
-    
-    
-    
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-
-
-
-
-
-
-
-
-
     WebRtc_Word32 res(-1);
     SLDataSource audioSource;
     SLDataLocator_IODevice micLocator;
@@ -1300,7 +1058,7 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::StartRecording() {
     }
 
     if (_slRecorderRecord == NULL) {
-        WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id, "  RecordITF is NULL");
+      WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id, "  RecordITF is NULL");
         return -1;
     }
 
@@ -1481,14 +1239,6 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::StartPlayout() {
     WebRtc_UWord32 nSample10ms = _adbSampleRate / 100;
     WebRtc_Word8 playBuffer[2 * nSample10ms];
     WebRtc_UWord32 noSamplesOut(0);
-    
-
-
-
-
-
-
-
     {
         noSamplesOut = _ptrAudioBuffer->RequestPlayoutData(nSample10ms);
         
@@ -1653,58 +1403,7 @@ void AudioDeviceAndroidOpenSLES::ClearRecordingError() {
 }
 
 WebRtc_Word32 AudioDeviceAndroidOpenSLES::SetLoudspeakerStatus(bool enable) {
-
-    
-    
-    
-    
-    
-
-    
-    
-    
-
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-
     _loudSpeakerOn = enable;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
     return 0;
 }
 
@@ -1770,11 +1469,10 @@ void AudioDeviceAndroidOpenSLES::PlayerSimpleBufferQueueCallbackHandler(
         
         
         
-        res
-                = (*_slPlayerSimpleBufferQueue)->Enqueue(
-                                                         _slPlayerSimpleBufferQueue,
-                                                         _playQueueBuffer[_playQueueSeq],
-                                                         2 * noSamplesOut);
+        res = (*_slPlayerSimpleBufferQueue)->Enqueue(
+            _slPlayerSimpleBufferQueue,
+            _playQueueBuffer[_playQueueSeq],
+            2 * noSamplesOut);
         if (res != SL_RESULT_SUCCESS) {
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                          "  player simpler buffer queue Enqueue failed, %d",
@@ -1906,7 +1604,8 @@ void AudioDeviceAndroidOpenSLES::CheckErr(SLresult res) {
     }
 }
 
-void AudioDeviceAndroidOpenSLES::UpdatePlayoutDelay(WebRtc_UWord32 nSamplePlayed) {
+void AudioDeviceAndroidOpenSLES::UpdatePlayoutDelay(
+    WebRtc_UWord32 nSamplePlayed) {
     
     
     
@@ -1929,149 +1628,10 @@ void AudioDeviceAndroidOpenSLES::UpdateRecordingDelay() {
 }
 
 WebRtc_Word32 AudioDeviceAndroidOpenSLES::InitSampleRate() {
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
     if (_slEngineObject == NULL) {
-        WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id, "  SL Object is NULL");
-        return -1;
+      WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id, "  SL Object is NULL");
+      return -1;
     }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     _samplingRateIn = SL_SAMPLINGRATE_16;
     _samplingRateOut = SL_SAMPLINGRATE_16;
@@ -2088,7 +1648,7 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::InitSampleRate() {
 
 
 bool AudioDeviceAndroidOpenSLES::RecThreadFunc(void* pThis) {
-    return (static_cast<AudioDeviceAndroidOpenSLES*> (pThis)->RecThreadProcess());
+  return (static_cast<AudioDeviceAndroidOpenSLES*>(pThis)->RecThreadProcess());
 }
 
 bool AudioDeviceAndroidOpenSLES::RecThreadProcess() {

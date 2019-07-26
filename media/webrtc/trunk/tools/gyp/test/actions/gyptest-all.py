@@ -22,7 +22,8 @@ test.relocate('src', 'relocate/src')
 
 
 
-if test.format == 'ninja':
+
+if test.format in ['ninja', 'android']:
   test.build('actions.gyp', test.ALL, chdir='relocate/src')
 else:
   

@@ -46,28 +46,6 @@ public:
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    static WebRtc_Word32 GetVersion(
-        char*   version,
-        WebRtc_UWord32& remainingBuffInBytes,
-        WebRtc_UWord32& position);
-
-    
-    
-    
-    
-    
-    
-    
-    
     WebRtc_Word32 Init();
 
     
@@ -305,6 +283,9 @@ public:
 
     enum JB {masterJB = 0, slaveJB = 1};
 
+    
+    void RemoveSlaves();
+
     WebRtc_Word16 AddSlave(
         const WebRtcNetEQDecoder*    usedCodecs,
         WebRtc_Word16       noOfCodecs);
@@ -351,6 +332,11 @@ private:
         const WebRtcNetEQDecoder* usedCodecs,
         WebRtc_Word16       noOfCodecs,
         const WebRtc_Word16 idx);
+
+    
+    void RemoveNetEQSafe(int index);
+
+    void RemoveSlavesSafe();
 
     void*                   _inst[MAX_NUM_SLAVE_NETEQ + 1];
     void*                   _instMem[MAX_NUM_SLAVE_NETEQ + 1];

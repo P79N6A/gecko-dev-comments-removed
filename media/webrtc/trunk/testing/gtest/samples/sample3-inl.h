@@ -60,7 +60,7 @@ class QueueNode {
  private:
   
   
-  QueueNode(const E& an_element) : element_(an_element), next_(NULL) {}
+  explicit QueueNode(const E& an_element) : element_(an_element), next_(NULL) {}
 
   
   const QueueNode& operator = (const QueueNode&);
@@ -72,8 +72,7 @@ class QueueNode {
 
 template <typename E>  
 class Queue {
-public:
-
+ public:
   
   Queue() : head_(NULL), last_(NULL), size_(0) {}
 
@@ -168,6 +167,6 @@ public:
   
   Queue(const Queue&);
   const Queue& operator = (const Queue&);
- };
+};
 
 #endif  

@@ -15,6 +15,10 @@ import shlex
 class XcodeSettings(object):
   """A class that understands the gyp 'xcode_settings' object."""
 
+  
+  
+  _sdk_base_dir = None
+
   def __init__(self, spec):
     self.spec = spec
 
@@ -215,11 +219,34 @@ class XcodeSettings(object):
     else:
       return self._GetStandaloneBinaryPath()
 
+  def _GetSdkBaseDir(self):
+    """Returns the root of the 'Developer' directory. On Xcode 4.2 and prior,
+    this is usually just /Developer. Xcode 4.3 moved that folder into the Xcode
+    bundle."""
+    if not XcodeSettings._sdk_base_dir:
+      import subprocess
+      job = subprocess.Popen(['xcode-select', '-print-path'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT)
+      out, err = job.communicate()
+      if job.returncode != 0:
+        print out
+        raise Exception('Error %d running xcode-select' % job.returncode)
+      
+      xcode43_sdk_path = os.path.join(
+          out.rstrip(), 'Platforms/MacOSX.platform/Developer/SDKs')
+      if os.path.isdir(xcode43_sdk_path):
+        XcodeSettings._sdk_base_dir = xcode43_sdk_path
+      else:
+        XcodeSettings._sdk_base_dir = os.path.join(out.rstrip(), 'SDKs')
+    return XcodeSettings._sdk_base_dir
+
   def _SdkPath(self):
     sdk_root = self.GetPerTargetSetting('SDKROOT', default='macosx10.5')
     if sdk_root.startswith('macosx'):
-      sdk_root = 'MacOSX' + sdk_root[len('macosx'):]
-    return '/Developer/SDKs/%s.sdk' % sdk_root
+      return os.path.join(self._GetSdkBaseDir(),
+                          'MacOSX' + sdk_root[len('macosx'):] + '.sdk')
+    return sdk_root
 
   def GetCflags(self, configname):
     """Returns flags that need to be added to .c, .cc, .m, and .mm
@@ -233,6 +260,9 @@ class XcodeSettings(object):
     sdk_root = self._SdkPath()
     if 'SDKROOT' in self._Settings():
       cflags.append('-isysroot %s' % sdk_root)
+
+    if self._Test('GCC_CHAR_IS_UNSIGNED_CHAR', 'YES', default='NO'):
+      cflags.append('-funsigned-char')
 
     if self._Test('GCC_CW_ASM_SYNTAX', 'YES', default='YES'):
       cflags.append('-fasm-blocks')
@@ -274,29 +304,39 @@ class XcodeSettings(object):
     self._Appendf(cflags, 'MACOSX_DEPLOYMENT_TARGET', '-mmacosx-version-min=%s')
 
     
-    self._WarnUnimplemented('ARCHS')
     if self._Test('COPY_PHASE_STRIP', 'YES', default='NO'):
       self._WarnUnimplemented('COPY_PHASE_STRIP')
     self._WarnUnimplemented('GCC_DEBUGGING_SYMBOLS')
     self._WarnUnimplemented('GCC_ENABLE_OBJC_EXCEPTIONS')
-    self._WarnUnimplemented('GCC_ENABLE_OBJC_GC')
 
     
     self._WarnUnimplemented('MACH_O_TYPE')
     self._WarnUnimplemented('PRODUCT_TYPE')
 
-    
-    
-    
-    cflags.append('-arch i386')
+    archs = self._Settings().get('ARCHS', ['i386'])
+    if len(archs) != 1:
+      
+      self._WarnUnimplemented('ARCHS')
+      archs = ['i386']
+    cflags.append('-arch ' + archs[0])
 
-    cflags += self._Settings().get('OTHER_CFLAGS', [])
+    if archs[0] in ('i386', 'x86_64'):
+      if self._Test('GCC_ENABLE_SSE3_EXTENSIONS', 'YES', default='NO'):
+        cflags.append('-msse3')
+      if self._Test('GCC_ENABLE_SUPPLEMENTAL_SSE3_INSTRUCTIONS', 'YES',
+                    default='NO'):
+        cflags.append('-mssse3')  
+      if self._Test('GCC_ENABLE_SSE41_EXTENSIONS', 'YES', default='NO'):
+        cflags.append('-msse4.1')
+      if self._Test('GCC_ENABLE_SSE42_EXTENSIONS', 'YES', default='NO'):
+        cflags.append('-msse4.2')
+
     cflags += self._Settings().get('WARNING_CFLAGS', [])
 
     config = self.spec['configurations'][self.configname]
     framework_dirs = config.get('mac_framework_dirs', [])
     for directory in framework_dirs:
-      cflags.append('-F ' + directory.replace('$(SDKROOT)', sdk_root))
+      cflags.append('-F' + directory.replace('$(SDKROOT)', sdk_root))
 
     self.configname = None
     return cflags
@@ -306,6 +346,7 @@ class XcodeSettings(object):
     self.configname = configname
     cflags_c = []
     self._Appendf(cflags_c, 'GCC_C_LANGUAGE_STANDARD', '-std=%s')
+    cflags_c += self._Settings().get('OTHER_CFLAGS', [])
     self.configname = None
     return cflags_c
 
@@ -321,23 +362,139 @@ class XcodeSettings(object):
       cflags_cc.append('-fvisibility-inlines-hidden')
     if self._Test('GCC_THREADSAFE_STATICS', 'NO', default='YES'):
       cflags_cc.append('-fno-threadsafe-statics')
+    if self._Test('GCC_WARN_ABOUT_INVALID_OFFSETOF_MACRO', 'NO', default='YES'):
+      cflags_cc.append('-Wno-invalid-offsetof')
+
+    other_ccflags = []
+
+    for flag in self._Settings().get('OTHER_CPLUSPLUSFLAGS', ['$(inherited)']):
+      
+      if flag in ('$inherited', '$(inherited)', '${inherited}'):
+        flag = '$OTHER_CFLAGS'
+      if flag in ('$OTHER_CFLAGS', '$(OTHER_CFLAGS)', '${OTHER_CFLAGS}'):
+        other_ccflags += self._Settings().get('OTHER_CFLAGS', [])
+      else:
+        other_ccflags.append(flag)
+    cflags_cc += other_ccflags
+
     self.configname = None
     return cflags_cc
+
+  def _AddObjectiveCGarbageCollectionFlags(self, flags):
+    gc_policy = self._Settings().get('GCC_ENABLE_OBJC_GC', 'unsupported')
+    if gc_policy == 'supported':
+      flags.append('-fobjc-gc')
+    elif gc_policy == 'required':
+      flags.append('-fobjc-gc-only')
 
   def GetCflagsObjC(self, configname):
     """Returns flags that need to be added to .m compilations."""
     self.configname = configname
+    cflags_objc = []
+
+    self._AddObjectiveCGarbageCollectionFlags(cflags_objc)
+
     self.configname = None
-    return []
+    return cflags_objc
 
   def GetCflagsObjCC(self, configname):
     """Returns flags that need to be added to .mm compilations."""
     self.configname = configname
     cflags_objcc = []
+    self._AddObjectiveCGarbageCollectionFlags(cflags_objcc)
     if self._Test('GCC_OBJC_CALL_CXX_CDTORS', 'YES', default='NO'):
       cflags_objcc.append('-fobjc-call-cxx-cdtors')
     self.configname = None
     return cflags_objcc
+
+  def GetInstallNameBase(self):
+    """Return DYLIB_INSTALL_NAME_BASE for this target."""
+    
+    if (self.spec['type'] != 'shared_library' and
+        (self.spec['type'] != 'loadable_module' or self._IsBundle())):
+      return None
+    install_base = self.GetPerTargetSetting(
+        'DYLIB_INSTALL_NAME_BASE',
+        default='/Library/Frameworks' if self._IsBundle() else '/usr/local/lib')
+    return install_base
+
+  def _StandardizePath(self, path):
+    """Do :standardizepath processing for path."""
+    
+    
+    if '/' in path:
+      prefix, rest = '', path
+      if path.startswith('@'):
+        prefix, rest = path.split('/', 1)
+      rest = os.path.normpath(rest)  
+      path = os.path.join(prefix, rest)
+    return path
+
+  def GetInstallName(self):
+    """Return LD_DYLIB_INSTALL_NAME for this target."""
+    
+    if (self.spec['type'] != 'shared_library' and
+        (self.spec['type'] != 'loadable_module' or self._IsBundle())):
+      return None
+
+    default_install_name = \
+        '$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)'
+    install_name = self.GetPerTargetSetting(
+        'LD_DYLIB_INSTALL_NAME', default=default_install_name)
+
+    
+    
+    if '$' in install_name:
+      assert install_name in ('$(DYLIB_INSTALL_NAME_BASE:standardizepath)/'
+          '$(WRAPPER_NAME)/$(PRODUCT_NAME)', default_install_name), (
+          'Variables in LD_DYLIB_INSTALL_NAME are not generally supported '
+          'yet in target \'%s\' (got \'%s\')' %
+              (self.spec['target_name'], install_name))
+
+      install_name = install_name.replace(
+          '$(DYLIB_INSTALL_NAME_BASE:standardizepath)',
+          self._StandardizePath(self.GetInstallNameBase()))
+      if self._IsBundle():
+        
+        install_name = install_name.replace(
+            '$(WRAPPER_NAME)', self.GetWrapperName())
+        install_name = install_name.replace(
+            '$(PRODUCT_NAME)', self.GetProductName())
+      else:
+        assert '$(WRAPPER_NAME)' not in install_name
+        assert '$(PRODUCT_NAME)' not in install_name
+
+      install_name = install_name.replace(
+          '$(EXECUTABLE_PATH)', self.GetExecutablePath())
+    return install_name
+
+  def _MapLinkerFlagFilename(self, ldflag, gyp_to_build_path):
+    """Checks if ldflag contains a filename and if so remaps it from
+    gyp-directory-relative to build-directory-relative."""
+    
+    
+    
+    
+    
+    LINKER_FILE = '(\S+)'
+    WORD = '\S+'
+    linker_flags = [
+      ['-exported_symbols_list', LINKER_FILE],    
+      ['-unexported_symbols_list', LINKER_FILE],
+      ['-reexported_symbols_list', LINKER_FILE],
+      ['-sectcreate', WORD, WORD, LINKER_FILE],   
+    ]
+    for flag_pattern in linker_flags:
+      regex = re.compile('(?:-Wl,)?' + '[ ,]'.join(flag_pattern))
+      m = regex.match(ldflag)
+      if m:
+        ldflag = ldflag[:m.start(1)] + gyp_to_build_path(m.group(1)) + \
+                 ldflag[m.end(1):]
+    
+    
+    if ldflag.startswith('-L'):
+      ldflag = '-L' + gyp_to_build_path(ldflag[len('-L'):])
+    return ldflag
 
   def GetLdflags(self, configname, product_dir, gyp_to_build_path):
     """Returns flags that need to be passed to the linker.
@@ -354,18 +511,8 @@ class XcodeSettings(object):
 
     
     
-    
-    def MapGypPathWithPrefix(flag, prefix):
-      if flag.startswith(prefix):
-        flag = prefix + gyp_to_build_path(flag[len(prefix):])
-      return flag
     for ldflag in self._Settings().get('OTHER_LDFLAGS', []):
-      
-      
-      ldflag = MapGypPathWithPrefix(ldflag, '-L')
-      
-      ldflag = MapGypPathWithPrefix(ldflag, '-Wl,-exported_symbols_list ')
-      ldflags.append(ldflag)
+      ldflags.append(self._MapLinkerFlagFilename(ldflag, gyp_to_build_path))
 
     if self._Test('DEAD_CODE_STRIPPING', 'YES', default='NO'):
       ldflags.append('-Wl,-dead_strip')
@@ -390,57 +537,46 @@ class XcodeSettings(object):
                      '-Wl,' + gyp_to_build_path(
                                   self._Settings()['ORDER_FILE']))
 
-    
-    ldflags.append('-arch i386')
+    archs = self._Settings().get('ARCHS', ['i386'])
+    if len(archs) != 1:
+      
+      self._WarnUnimplemented('ARCHS')
+      archs = ['i386']
+    ldflags.append('-arch ' + archs[0])
 
     
     ldflags.append('-L' + product_dir)
 
-    install_name = self.GetPerTargetSetting('LD_DYLIB_INSTALL_NAME')
-    install_base = self.GetPerTargetSetting('DYLIB_INSTALL_NAME_BASE')
-    default_install_name = \
-          '$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)'
-    if not install_name and install_base:
-      install_name = default_install_name
-
+    install_name = self.GetInstallName()
     if install_name:
-      
-      
-      if '$' in install_name:
-        assert install_name in ('$(DYLIB_INSTALL_NAME_BASE:standardizepath)/'
-            '$(WRAPPER_NAME)/$(PRODUCT_NAME)', default_install_name), (
-            'Variables in LD_DYLIB_INSTALL_NAME are not generally supported yet'
-            ' in target \'%s\' (got \'%s\')' %
-                (self.spec['target_name'], install_name))
-        
-        
-        if '/' in install_base:
-          prefix, rest = '', install_base
-          if install_base.startswith('@'):
-            prefix, rest = install_base.split('/', 1)
-          rest = os.path.normpath(rest)  
-          install_base = os.path.join(prefix, rest)
+      ldflags.append('-install_name ' + install_name.replace(' ', r'\ '))
 
-        install_name = install_name.replace(
-            '$(DYLIB_INSTALL_NAME_BASE:standardizepath)', install_base)
-        if self._IsBundle():
-          
-          install_name = install_name.replace(
-              '$(WRAPPER_NAME)', self.GetWrapperName())
-          install_name = install_name.replace(
-              '$(PRODUCT_NAME)', self.GetProductName())
-        else:
-          assert '$(WRAPPER_NAME)' not in install_name
-          assert '$(PRODUCT_NAME)' not in install_name
+    for rpath in self._Settings().get('LD_RUNPATH_SEARCH_PATHS', []):
+      ldflags.append('-Wl,-rpath,' + rpath)
 
-        install_name = install_name.replace(
-            '$(EXECUTABLE_PATH)', self.GetExecutablePath())
-
-      install_name = install_name.replace(' ', r'\ ')
-      ldflags.append('-install_name ' + install_name)
+    config = self.spec['configurations'][self.configname]
+    framework_dirs = config.get('mac_framework_dirs', [])
+    for directory in framework_dirs:
+      ldflags.append('-F' + directory.replace('$(SDKROOT)', self._SdkPath()))
 
     self.configname = None
     return ldflags
+
+  def GetLibtoolflags(self, configname):
+    """Returns flags that need to be passed to the static linker.
+
+    Args:
+        configname: The name of the configuration to get ld flags for.
+    """
+    self.configname = configname
+    libtoolflags = []
+
+    for libtoolflag in self._Settings().get('OTHER_LDFLAGS', []):
+      libtoolflags.append(libtoolflag)
+    
+
+    self.configname = None
+    return libtoolflags
 
   def GetPerTargetSettings(self):
     """Gets a list of all the per-target settings. This will only fetch keys
@@ -476,7 +612,7 @@ class XcodeSettings(object):
       return default
     return result
 
-  def _GetStripPostbuilds(self, configname, output_binary):
+  def _GetStripPostbuilds(self, configname, output_binary, quiet):
     """Returns a list of shell commands that contain the shell commands
     neccessary to strip this target's binary. These should be run as postbuilds
     before the actual postbuilds run."""
@@ -503,13 +639,14 @@ class XcodeSettings(object):
       if explicit_strip_flags:
         strip_flags += ' ' + _NormalizeEnvVarReferences(explicit_strip_flags)
 
-      result.append('echo STRIP\\(%s\\)' % self.spec['target_name'])
+      if not quiet:
+        result.append('echo STRIP\\(%s\\)' % self.spec['target_name'])
       result.append('strip %s %s' % (strip_flags, output_binary))
 
     self.configname = None
     return result
 
-  def _GetDebugInfoPostbuilds(self, configname, output, output_binary):
+  def _GetDebugInfoPostbuilds(self, configname, output, output_binary, quiet):
     """Returns a list of shell commands that contain the shell commands
     neccessary to massage this target's debug information. These should be run
     as postbuilds before the actual postbuilds run."""
@@ -521,18 +658,20 @@ class XcodeSettings(object):
         self._Test(
             'DEBUG_INFORMATION_FORMAT', 'dwarf-with-dsym', default='dwarf') and
         self.spec['type'] != 'static_library'):
-      result.append('echo DSYMUTIL\\(%s\\)' % self.spec['target_name'])
+      if not quiet:
+        result.append('echo DSYMUTIL\\(%s\\)' % self.spec['target_name'])
       result.append('dsymutil %s -o %s' % (output_binary, output + '.dSYM'))
 
     self.configname = None
     return result
 
-  def GetTargetPostbuilds(self, configname, output, output_binary):
+  def GetTargetPostbuilds(self, configname, output, output_binary, quiet=False):
     """Returns a list of shell commands that contain the shell commands
     to run as postbuilds for this target, before the actual postbuilds."""
     
-    return (self._GetDebugInfoPostbuilds(configname, output, output_binary) +
-            self._GetStripPostbuilds(configname, output_binary))
+    return (
+        self._GetDebugInfoPostbuilds(configname, output, output_binary, quiet) +
+        self._GetStripPostbuilds(configname, output_binary, quiet))
 
   def _AdjustLibrary(self, library):
     if library.endswith('.framework'):
@@ -638,7 +777,7 @@ class MacPrefixHeader(object):
         result.append((source, obj, self._Gch(lang)))
     return result
 
-  def GetGchBuildCommands(self):
+  def GetPchBuildCommands(self):
     """Returns [(path_to_gch, language_flag, language, header)].
     |path_to_gch| and |header| are relative to the build directory.
     """
@@ -766,7 +905,7 @@ def GetMacInfoPlist(product_dir, xcode_settings, gyp_path_to_build_path):
   return info_plist, dest_plist, defines, extra_env
 
 
-def GetXcodeEnv(xcode_settings, built_products_dir, srcroot, configuration,
+def _GetXcodeEnv(xcode_settings, built_products_dir, srcroot, configuration,
                 additional_settings=None):
   """Return the environment variables that Xcode would set. See
   http://developer.apple.com/library/mac/#documentation/DeveloperTools/Reference/XcodeBuildSettingRef/1-Build_Setting_Reference/build_setting_ref.html#//apple_ref/doc/uid/TP40003931-CH3-SW153
@@ -817,6 +956,13 @@ def GetXcodeEnv(xcode_settings, built_products_dir, srcroot, configuration,
     env['INFOPLIST_PATH'] = xcode_settings.GetBundlePlistPath()
     env['WRAPPER_NAME'] = xcode_settings.GetWrapperName()
 
+  install_name = xcode_settings.GetInstallName()
+  if install_name:
+    env['LD_DYLIB_INSTALL_NAME'] = install_name
+  install_name_base = xcode_settings.GetInstallNameBase()
+  if install_name_base:
+    env['DYLIB_INSTALL_NAME_BASE'] = install_name_base
+
   if not additional_settings:
     additional_settings = {}
   else:
@@ -851,17 +997,17 @@ def _NormalizeEnvVarReferences(str):
 
 def ExpandEnvVars(string, expansions):
   """Expands ${VARIABLES}, $(VARIABLES), and $VARIABLES in string per the
-  expansions dict. If the variable expands to something that references
+  expansions list. If the variable expands to something that references
   another variable, this variable is expanded as well if it's in env --
   until no variables present in env are left."""
-  for k in reversed(TopologicallySortedEnvVarKeys(expansions)):
-    string = string.replace('${' + k + '}', expansions[k])
-    string = string.replace('$(' + k + ')', expansions[k])
-    string = string.replace('$' + k, expansions[k])
+  for k, v in reversed(expansions):
+    string = string.replace('${' + k + '}', v)
+    string = string.replace('$(' + k + ')', v)
+    string = string.replace('$' + k, v)
   return string
 
 
-def TopologicallySortedEnvVarKeys(env):
+def _TopologicallySortedEnvVarKeys(env):
   """Takes a dict |env| whose values are strings that can refer to other keys,
   for example env['foo'] = '$(bar) and $(baz)'. Returns a list L of all keys of
   env such that key2 is after key1 in L if env[key2] refers to env[key1].
@@ -872,78 +1018,43 @@ def TopologicallySortedEnvVarKeys(env):
   
   
   regex = re.compile(r'\$\{([a-zA-Z0-9\-_]+)\}')
-
-  
-  key_list = sorted(env.keys())
-
-  
-  
-  edges = set()
-  dependees = set()
-  dependers = set()
-  for k in key_list:
-    matches = regex.findall(env[k])
-    if not len(matches):
-      continue
-
-    depends_on_other_var = False
+  def GetEdges(node):
+    
+    
+    
+    
+    
+    matches = set([v for v in regex.findall(env[node]) if v in env])
     for dependee in matches:
       assert '${' not in dependee, 'Nested variables not supported: ' + dependee
-      if dependee in env:
-        edges.add((dependee, k))
-        dependees.add(dependee)
-        depends_on_other_var = True
-    if depends_on_other_var:
-      dependers.add(k)
+    return matches
 
-  
-  sorted_nodes = []
-  edgeless_nodes = dependees - dependers
-
-  
-  while len(edgeless_nodes):
+  try:
     
     
-    node = edgeless_nodes.pop()
-    sorted_nodes.append(node)
-    key_list.remove(node)
-
     
-    edges_to_node = [e for e in edges if e[0] == node]
-    for edge in edges_to_node:
-      edges.remove(edge)
-      
-      
-      if not len([e for e in edges if e[1] == edge[1]]):
-        edgeless_nodes.add(edge[1])
+    order = gyp.common.TopologicallySorted(env.keys(), GetEdges)
+    order.reverse()
+    return order
+  except gyp.common.CycleError, e:
+    raise Exception(
+        'Xcode environment variables are cyclically dependent: ' + str(e.nodes))
 
-  
-  if len(edges):
-    raise Exception('Xcode environment variables are cyclically dependent: ' +
-        str(edges))
 
-  
-  sorted_nodes.extend(key_list)
+def GetSortedXcodeEnv(xcode_settings, built_products_dir, srcroot,
+                      configuration, additional_settings=None):
+  env = _GetXcodeEnv(xcode_settings, built_products_dir, srcroot, configuration,
+                    additional_settings)
+  return [(key, env[key]) for key in _TopologicallySortedEnvVarKeys(env)]
 
-  return sorted_nodes
 
-def GetSpecPostbuildCommands(spec, gyp_path_to_build_path):
+def GetSpecPostbuildCommands(spec, quiet=False):
   """Returns the list of postbuilds explicitly defined on |spec|, in a form
   executable by a shell."""
   postbuilds = []
   for postbuild in spec.get('postbuilds', []):
-    postbuilds.append('echo POSTBUILD\\(%s\\) %s' % (
-          spec['target_name'], postbuild['postbuild_name']))
-    shell_list = postbuild['action'][:]
-    
-    
-    
-    if os.path.sep in shell_list[0]:
-      shell_list[0] = gyp_path_to_build_path(shell_list[0])
-
-      
-      if not os.path.sep in shell_list[0]:
-        shell_list[0] = os.path.join('.', shell_list[0])
-    postbuilds.append(gyp.common.EncodePOSIXShellList(shell_list))
-
+    if not quiet:
+      postbuilds.append('echo POSTBUILD\\(%s\\) %s' % (
+            spec['target_name'], postbuild['postbuild_name']))
+    postbuilds.append(gyp.common.EncodePOSIXShellList(postbuild['action']))
   return postbuilds

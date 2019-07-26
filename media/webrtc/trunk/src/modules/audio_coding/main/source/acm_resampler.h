@@ -18,26 +18,23 @@ namespace webrtc {
 
 class CriticalSectionWrapper;
 
-class ACMResampler
-{
-public:
-    ACMResampler();
-    ~ACMResampler();
+class ACMResampler {
+ public:
+  ACMResampler();
+  ~ACMResampler();
 
-    WebRtc_Word16 Resample10Msec(
-        const WebRtc_Word16* inAudio,
-        const WebRtc_Word32  inFreqHz,
-        WebRtc_Word16*       outAudio,
-        const WebRtc_Word32  outFreqHz,
-        WebRtc_UWord8        numAudioChannels);
+  WebRtc_Word16 Resample10Msec(const WebRtc_Word16* inAudio,
+                               const WebRtc_Word32 inFreqHz,
+                               WebRtc_Word16* outAudio,
+                               const WebRtc_Word32 outFreqHz,
+                               WebRtc_UWord8 numAudioChannels);
 
-private:
-
-    
-    Resampler               _resampler;
-    CriticalSectionWrapper& _resamplerCritSect;
+ private:
+  
+  Resampler _resampler;
+  CriticalSectionWrapper* _resamplerCritSect;
 };
 
-} 
+}  
 
 #endif  

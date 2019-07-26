@@ -87,8 +87,6 @@ private:
     int _stretchedHeight;
     int _oldStretchedHeight;
     int _oldStretchedWidth;
-    int _xOldWidth;
-    int _yOldHeight;
     unsigned char* _buffer;
     int _bufferSize;
     int _incommingBufferSize;
@@ -97,7 +95,6 @@ private:
     GLenum _pixelFormat;
     GLenum _pixelDataType;
     unsigned int _texture;
-    bool _bVideoSizeStartedChanging;
 };
 
 class VideoRenderNSOpenGL

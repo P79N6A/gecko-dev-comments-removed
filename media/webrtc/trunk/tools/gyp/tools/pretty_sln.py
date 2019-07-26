@@ -121,7 +121,7 @@ def PrintBuildOrder(projects, deps):
   print "--                                   --"
 
   built = []
-  for (project, dep_list) in sorted(deps.items()):
+  for (project, _) in sorted(deps.items()):
     if project not in built:
       BuildProject(project, built, projects, deps)
 

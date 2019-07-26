@@ -20,12 +20,12 @@ os.environ['GYP_GENERATORS'] = 'foo'
 os.environ['GYP_GENERATOR_FLAGS'] = 'genflag=foo'
 os.environ['GYP_GENERATOR_OUTPUT'] = 'somedir'
 
-expect = test.read('commands.gyp.ignore-env.stdout').replace('\r', '')
+expect = test.read('commands.gyp.ignore-env.stdout').replace('\r\n', '\n')
 
 test.run_gyp('commands.gyp',
-             '--debug', 'variables', '--debug', 'general',
+             '--debug', 'variables',
              '--ignore-environment',
-             stdout=expect)
+             stdout=expect, ignore_line_numbers=True)
 
 
 

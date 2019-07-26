@@ -12,7 +12,7 @@
 #define WEBRTC_MODULES_VIDEO_CODING_CODECS_TEST_FRAMEWORK_VIDEO_SOURCE_H_
 
 #include <string>
-#include "common_video/libyuv/include/libyuv.h"
+#include "common_video/libyuv/include/webrtc_libyuv.h"
 
 enum VideoSize
     {

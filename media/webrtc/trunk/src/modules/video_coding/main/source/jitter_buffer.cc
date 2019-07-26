@@ -23,11 +23,6 @@
 #include "system_wrappers/interface/critical_section_wrapper.h"
 #include "system_wrappers/interface/trace.h"
 
-#if defined(_WIN32)
-    
-    #pragma warning(disable:4351)
-#endif
-
 namespace webrtc {
 
 

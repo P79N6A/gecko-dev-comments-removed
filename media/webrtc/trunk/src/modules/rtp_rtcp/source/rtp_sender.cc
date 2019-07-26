@@ -118,86 +118,65 @@ RTPSender::~RTPSender() {
   WEBRTC_TRACE(kTraceMemory, kTraceRtpRtcp, _id, "%s deleted", __FUNCTION__);
 }
 
-WebRtc_Word32
-RTPSender::Init(const WebRtc_UWord32 remoteSSRC)
-{
-    CriticalSectionScoped cs(_sendCritsect);
 
-    
-    _ssrcForced = false;
-    _startTimeStampForced = false;
 
-    
-    if(remoteSSRC != 0)
-    {
-        if(_ssrc == remoteSSRC)
-        {
-            
-            _ssrc = _ssrcDB.CreateSSRC(); 
-        }
-        _remoteSSRC = remoteSSRC;
-        _ssrcDB.RegisterSSRC(remoteSSRC);
-    }
-    _sequenceNumber = rand() / (RAND_MAX / MAX_INIT_RTP_SEQ_NUMBER);
-    _sequenceNumberRTX = rand() / (RAND_MAX / MAX_INIT_RTP_SEQ_NUMBER);
-    _packetsSent = 0;
-    _payloadBytesSent = 0;
-    _packetOverHead = 28;
 
-    _rtpHeaderExtensionMap.Erase();
 
-    while (!_payloadTypeMap.empty()) {
-      std::map<WebRtc_Word8, ModuleRTPUtility::Payload*>::iterator it =
-          _payloadTypeMap.begin();
-      delete it->second;
-      _payloadTypeMap.erase(it);
-    }
 
-    memset(_CSRC, 0, sizeof(_CSRC));
 
-    memset(_nackByteCount, 0, sizeof(_nackByteCount));
-    memset(_nackByteCountTimes, 0, sizeof(_nackByteCountTimes));
-    _nackBitrate.Init();
 
-    SetStorePacketsStatus(false, 0);
-    _sendBucket.Reset();
 
-    Bitrate::Init();
 
-    if(_audioConfigured)
-    {
-        _audio->Init();
-    } else
-    {
-        _video->Init();
-    }
-    return(0);
-}
 
-void
-RTPSender::ChangeUniqueId(const WebRtc_Word32 id)
-{
-    _id = id;
-    if(_audioConfigured)
-    {
-        _audio->ChangeUniqueId(id);
-    } else
-    {
-        _video->ChangeUniqueId(id);
-    }
-}
 
-WebRtc_Word32
-RTPSender::SetTargetSendBitrate(const WebRtc_UWord32 bits)
-{
-    _targetSendBitrate = (WebRtc_UWord16)(bits/1000);
-    return 0;
-}
 
-WebRtc_UWord16
-RTPSender::TargetSendBitrateKbit() const
-{
-    return _targetSendBitrate;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void RTPSender::SetTargetSendBitrate(const WebRtc_UWord32 bits) {
+  _targetSendBitrate = static_cast<uint16_t>(bits / 1000);
 }
 
 WebRtc_UWord16
@@ -482,14 +461,15 @@ WebRtc_Word32 RTPSender::CheckPayloadType(const WebRtc_Word8 payloadType,
 }
 
 WebRtc_Word32
-RTPSender::SendOutgoingData(const FrameType frameType,
-                            const WebRtc_Word8 payloadType,
-                            const WebRtc_UWord32 captureTimeStamp,
-                            const WebRtc_UWord8* payloadData,
-                            const WebRtc_UWord32 payloadSize,
+RTPSender::SendOutgoingData(const FrameType frame_type,
+                            const WebRtc_Word8 payload_type,
+                            const WebRtc_UWord32 capture_timestamp,
+                            int64_t capture_time_ms,
+                            const WebRtc_UWord8* payload_data,
+                            const WebRtc_UWord32 payload_size,
                             const RTPFragmentationHeader* fragmentation,
-                            VideoCodecInformation* codecInfo,
-                            const RTPVideoTypeHeader* rtpTypeHdr)
+                            VideoCodecInformation* codec_info,
+                            const RTPVideoTypeHeader* rtp_type_hdr)
 {
     {
         
@@ -499,43 +479,74 @@ RTPSender::SendOutgoingData(const FrameType frameType,
             return 0;
         }
     }
-    RtpVideoCodecTypes videoType = kRtpNoVideo;
-    if(CheckPayloadType(payloadType, videoType) != 0)
+    RtpVideoCodecTypes video_type = kRtpNoVideo;
+    if (CheckPayloadType(payload_type, video_type) != 0)
     {
-        WEBRTC_TRACE(kTraceError, kTraceRtpRtcp, _id, "%s invalid argument failed to find payloadType:%d", __FUNCTION__, payloadType);
+        WEBRTC_TRACE(kTraceError, kTraceRtpRtcp, _id,
+            "%s invalid argument failed to find payloadType:%d",
+            __FUNCTION__, payload_type);
         return -1;
     }
 
-    if(_audioConfigured)
+    if (_audioConfigured)
     {
-        
-        assert(frameType == kAudioFrameSpeech ||
-               frameType == kAudioFrameCN ||
-               frameType == kFrameEmpty);
+        assert(frame_type == kAudioFrameSpeech ||
+               frame_type == kAudioFrameCN ||
+               frame_type == kFrameEmpty);
 
-        return _audio->SendAudio(frameType, payloadType, captureTimeStamp, payloadData, payloadSize,fragmentation);
-    } else
-    {
-        
-        assert(frameType == kVideoFrameKey ||
-               frameType == kVideoFrameDelta ||
-               frameType == kVideoFrameGolden ||
-               frameType == kVideoFrameAltRef);
+        return _audio->SendAudio(frame_type, payload_type, capture_timestamp,
+            payload_data, payload_size,fragmentation);
+    } else {
+        assert(frame_type != kAudioFrameSpeech &&
+               frame_type != kAudioFrameCN);
 
-        return _video->SendVideo(videoType,
-                                 frameType,
-                                 payloadType,
-                                 captureTimeStamp,
-                                 payloadData,
-                                 payloadSize,
+        if (frame_type == kFrameEmpty) {
+          return SendPaddingAccordingToBitrate(payload_type, capture_timestamp,
+                                               capture_time_ms);
+        }
+        return _video->SendVideo(video_type,
+                                 frame_type,
+                                 payload_type,
+                                 capture_timestamp,
+                                 capture_time_ms,
+                                 payload_data,
+                                 payload_size,
                                  fragmentation,
-                                 codecInfo,
-                                 rtpTypeHdr);
+                                 codec_info,
+                                 rtp_type_hdr);
     }
+}
+
+WebRtc_Word32 RTPSender::SendPaddingAccordingToBitrate(
+    WebRtc_Word8 payload_type,
+    WebRtc_UWord32 capture_timestamp,
+    int64_t capture_time_ms) {
+  
+  
+  uint32_t current_bitrate = BitrateNow();
+  int bitrate_diff = _targetSendBitrate * 1000 - current_bitrate;
+  if (bitrate_diff > 0) {
+    int bytes = 0;
+    if (current_bitrate == 0) {
+      
+      bytes = (bitrate_diff / 8) / 30;
+    } else {
+      bytes = (bitrate_diff / 8);
+      
+      int bytes_cap = _targetSendBitrate * 25;  
+      if (bytes > bytes_cap) {
+        bytes = bytes_cap;
+      }
+    }
+    
+    return SendPadData(payload_type, capture_timestamp, capture_time_ms, bytes);
+  }
+  return 0;
 }
 
 WebRtc_Word32 RTPSender::SendPadData(WebRtc_Word8 payload_type,
                                      WebRtc_UWord32 capture_timestamp,
+                                     int64_t capture_time_ms,
                                      WebRtc_Word32 bytes) {
   
   if (!_sendingMedia) {
@@ -546,6 +557,15 @@ WebRtc_Word32 RTPSender::SendPadData(WebRtc_Word8 payload_type,
   WebRtc_UWord8 data_buffer[IP_PACKET_SIZE];
 
   for (; bytes > 0; bytes -= max_length) {
+    int padding_bytes_in_packet = max_length;
+    if (bytes < max_length) {
+      padding_bytes_in_packet = (bytes + 16) & 0xffe0;  
+    }
+    if (padding_bytes_in_packet < 32) {
+       
+       break;
+    }
+
     WebRtc_Word32 header_length;
     {
       
@@ -560,14 +580,6 @@ WebRtc_Word32 RTPSender::SendPadData(WebRtc_Word8 payload_type,
     WebRtc_Word32* data =
         reinterpret_cast<WebRtc_Word32*>(&(data_buffer[header_length]));
 
-    int padding_bytes_in_packet = max_length;
-    if (bytes < max_length) {
-      padding_bytes_in_packet = (bytes + 16) & 0xffe0;  
-    }
-    if (padding_bytes_in_packet < 32) {
-       
-       break;
-    }
     
     for(int j = 0; j < (padding_bytes_in_packet >> 2); j++) {
       data[j] = rand();
@@ -579,6 +591,7 @@ WebRtc_Word32 RTPSender::SendPadData(WebRtc_Word8 payload_type,
     if (0 > SendToNetwork(data_buffer,
                           padding_bytes_in_packet,
                           header_length,
+                          capture_time_ms,
                           kDontRetransmit)) {
       
       break;
@@ -609,13 +622,13 @@ WebRtc_Word32 RTPSender::ReSendPacket(WebRtc_UWord16 packet_id,
   WebRtc_UWord8 data_buffer[IP_PACKET_SIZE];
   WebRtc_UWord8* buffer_to_send_ptr = data_buffer;
 
-  WebRtc_UWord32 stored_time_in_ms;
+  int64_t stored_time_in_ms;
   StorageType type;
   bool found = _packetHistory->GetRTPPacket(packet_id,
       min_resend_time, data_buffer, &length, &stored_time_in_ms, &type);
   if (!found) {
     
-    return -1;
+    return 0;
   }
 
   if (length == 0 || type == kDontRetransmit) {
@@ -711,7 +724,7 @@ void
 RTPSender::OnReceivedNACK(const WebRtc_UWord16 nackSequenceNumbersLength,
                           const WebRtc_UWord16* nackSequenceNumbers,
                           const WebRtc_UWord16 avgRTT) {
-    const WebRtc_UWord32 now = _clock.GetTimeInMS();
+    const WebRtc_Word64 now = _clock.GetTimeInMS();
     WebRtc_UWord32 bytesReSent = 0;
 
   
@@ -720,7 +733,7 @@ RTPSender::OnReceivedNACK(const WebRtc_UWord16 nackSequenceNumbersLength,
                  kTraceRtpRtcp,
                  _id,
                  "NACK bitrate reached. Skip sending NACK response. Target %d",
-                 TargetSendBitrateKbit());
+                 _targetSendBitrate);
     return;
   }
 
@@ -743,10 +756,10 @@ RTPSender::OnReceivedNACK(const WebRtc_UWord16 nackSequenceNumbersLength,
       break;
     }
     
-    if (TargetSendBitrateKbit() != 0 && avgRTT) {
+    if (_targetSendBitrate != 0 && avgRTT) {
       
       WebRtc_UWord32 targetBytes =
-          (static_cast<WebRtc_UWord32>(TargetSendBitrateKbit()) * avgRTT) >> 3;
+          (static_cast<WebRtc_UWord32>(_targetSendBitrate) * avgRTT) >> 3;
       if (bytesReSent > targetBytes) {
         break; 
       }
@@ -817,22 +830,19 @@ void RTPSender::UpdateNACKBitRate(const WebRtc_UWord32 bytes,
   }
 }
 
-void RTPSender::ProcessSendToNetwork() {
 
-  
-  WebRtc_UWord32 delta_time_ms;
+void RTPSender::ProcessSendToNetwork() {
+  WebRtc_Word64 delta_time_ms;
   {
     CriticalSectionScoped cs(_sendCritsect);
 
     if (!_transmissionSmoothing) {
       return;
     }
-
-    WebRtc_UWord32 now = _clock.GetTimeInMS();
+    WebRtc_Word64 now = _clock.GetTimeInMS();
     delta_time_ms = now - _timeLastSendToNetworkUpdate;
     _timeLastSendToNetworkUpdate = now;
   }
-
   _sendBucket.UpdateBytesPerInterval(delta_time_ms, _targetSendBitrate);
 
   while (!_sendBucket.Empty()) {
@@ -844,7 +854,7 @@ void RTPSender::ProcessSendToNetwork() {
 
     WebRtc_UWord8 data_buffer[IP_PACKET_SIZE];
     WebRtc_UWord16 length = IP_PACKET_SIZE;
-    WebRtc_UWord32 stored_time_ms;
+    int64_t stored_time_ms;
     StorageType type;
     bool found = _packetHistory->GetRTPPacket(seq_num, 0, data_buffer, &length,
         &stored_time_ms, &type);
@@ -854,7 +864,7 @@ void RTPSender::ProcessSendToNetwork() {
     }
     assert(length > 0);
 
-    WebRtc_UWord32 diff_ms = _clock.GetTimeInMS() - stored_time_ms;
+    WebRtc_Word64 diff_ms = _clock.GetTimeInMS() - stored_time_ms;
 
     ModuleRTPUtility::RTPHeaderParser rtpParser(data_buffer, length);
     WebRtcRTPHeader rtp_header;
@@ -880,18 +890,20 @@ void RTPSender::ProcessSendToNetwork() {
         _payloadBytesSent += bytes_sent - rtp_header.header.headerLength;
       }
     }
-  } 
+  }
 }
 
 WebRtc_Word32
-RTPSender::SendToNetwork(const WebRtc_UWord8* buffer,
+RTPSender::SendToNetwork(WebRtc_UWord8* buffer,
                          const WebRtc_UWord16 length,
                          const WebRtc_UWord16 rtpLength,
+                         int64_t capture_time_ms,
                          const StorageType storage)
 {
   
   if (_packetHistory->PutRTPPacket(
-      buffer, rtpLength + length, _maxPayloadLength, storage) != 0) {
+      buffer, rtpLength + length, _maxPayloadLength, capture_time_ms, storage)
+      != 0) {
     return -1;
   }
 
@@ -900,6 +912,18 @@ RTPSender::SendToNetwork(const WebRtc_UWord8* buffer,
     _sendBucket.Fill(sequenceNumber, rtpLength + length);
     
     return 0;
+  }
+
+  
+  
+  
+  if (capture_time_ms > 0) {
+    ModuleRTPUtility::RTPHeaderParser rtpParser(buffer, length);
+    WebRtcRTPHeader rtp_header;
+    rtpParser.Parse(rtp_header);
+    int64_t time_now = _clock.GetTimeInMS();
+    UpdateTransmissionTimeOffset(buffer, length, rtp_header,
+                                 time_now - capture_time_ms);
   }
 
   
@@ -1151,7 +1175,7 @@ void RTPSender::UpdateTransmissionTimeOffset(
     WebRtc_UWord8* rtp_packet,
     const WebRtc_UWord16 rtp_packet_length,
     const WebRtcRTPHeader& rtp_header,
-    const WebRtc_UWord32 time_ms) const {
+    const WebRtc_Word64 time_diff_ms) const {
   CriticalSectionScoped cs(_sendCritsect);
 
   
@@ -1165,7 +1189,8 @@ void RTPSender::UpdateTransmissionTimeOffset(
   }
 
   int block_pos = 12 + rtp_header.header.numCSRCs + transmission_block_pos;
-  if ((rtp_packet_length < block_pos + 4)) {
+  if (rtp_packet_length < block_pos + 4 ||
+      rtp_header.header.headerLength < block_pos + 4) {
     WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, _id,
         "Failed to update transmission time offset, invalid length.");
     return;
@@ -1187,7 +1212,7 @@ void RTPSender::UpdateTransmissionTimeOffset(
         "Failed to update transmission time offset, no id.");
     return;
   }
-  
+
   
   const WebRtc_UWord8 first_block_byte = (id << 4) + 2;
   if (rtp_packet[block_pos] != first_block_byte) {
@@ -1198,7 +1223,7 @@ void RTPSender::UpdateTransmissionTimeOffset(
 
   
   ModuleRTPUtility::AssignUWord24ToBuffer(rtp_packet + block_pos + 1,
-                                          time_ms * 90);  
+                                          time_diff_ms * 90);  
 }
 
 WebRtc_Word32

@@ -90,11 +90,6 @@ void ACMCELT::InternalDestructEncoderInst(void* ) {
   return;
 }
 
-int16_t ACMCELT::UnregisterFromNetEqSafe(ACMNetEQ* ,
-                                         int16_t ) {
-  return -1;
-}
-
 bool ACMCELT::IsTrueStereoCodec() {
   return true;
 }
@@ -228,14 +223,20 @@ int32_t ACMCELT::CodecDef(WebRtcNetEQ_CodecDef& codecDef,
   
   
   
-  SET_CODEC_PAR((codecDef), kDecoderCELT_32, codecInst.pltype, dec_inst_ptr_,
-                32000);
+  if (codecInst.channels == 1) {
+    SET_CODEC_PAR(codecDef, kDecoderCELT_32, codecInst.pltype, dec_inst_ptr_,
+                  32000);
+  } else {
+    SET_CODEC_PAR(codecDef, kDecoderCELT_32_2ch, codecInst.pltype,
+                  dec_inst_ptr_, 32000);
+  }
+
   
   
   if (_isMaster) {
-    SET_CELT_FUNCTIONS((codecDef));
+    SET_CELT_FUNCTIONS(codecDef);
   } else {
-    SET_CELTSLAVE_FUNCTIONS((codecDef));
+    SET_CELTSLAVE_FUNCTIONS(codecDef);
   }
   return 0;
 }
@@ -287,21 +288,6 @@ void ACMCELT::InternalDestructEncoderInst(void* ptrInst) {
     WebRtcCelt_FreeEnc(static_cast<CELT_encinst_t*>(ptrInst));
   }
   return;
-}
-
-int16_t ACMCELT::UnregisterFromNetEqSafe(ACMNetEQ* netEq, int16_t payloadType) {
-  if (payloadType != _decoderParams.codecInstant.pltype) {
-    WEBRTC_TRACE(
-        webrtc::kTraceError,
-        webrtc::kTraceAudioCoding,
-        _uniqueID,
-        "Cannot unregister codec: given payload-type does not match the stored "
-        "payload type",
-        _decoderParams.codecInstant.plname, payloadType,
-        _decoderParams.codecInstant.pltype);
-    return -1;
-  }
-  return netEq->RemoveCodec(kDecoderCELT_32);
 }
 
 bool ACMCELT::IsTrueStereoCodec() {

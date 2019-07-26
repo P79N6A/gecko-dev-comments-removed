@@ -12,7 +12,7 @@
 #define WEBRTC_VIDEO_ENGINE_VIE_FILE_IMPL_H_
 
 #include "system_wrappers/interface/scoped_ptr.h"
-#include "typedefs.h"
+#include "typedefs.h"  
 #include "video_engine/include/vie_file.h"
 #include "video_engine/vie_defines.h"
 #include "video_engine/vie_frame_provider_base.h"
@@ -30,14 +30,17 @@ class ViECaptureSnapshot : public ViEFrameCallback {
   ViECaptureSnapshot();
   ~ViECaptureSnapshot();
 
-  bool GetSnapshot(VideoFrame& video_frame, unsigned int max_wait_time);
+  bool GetSnapshot(unsigned int max_wait_time, VideoFrame* video_frame);
 
   
-  virtual void DeliverFrame(int id, VideoFrame& video_frame, int num_csrcs = 0,
+  virtual void DeliverFrame(int id,
+                            VideoFrame* video_frame,
+                            int num_csrcs = 0,
                             const WebRtc_UWord32 CSRC[kRtpCsrcSize] = NULL);
   virtual void DelayChanged(int id, int frame_delay) {}
-  virtual int GetPreferedFrameSettings(int& width, int& height,
-                                       int& frame_rate) {
+  virtual int GetPreferedFrameSettings(int* width,
+                                       int* height,
+                                       int* frame_rate) {
     return -1;
   }
   virtual void ProviderDestroyed(int id) {}
@@ -54,12 +57,14 @@ class ViEFileImpl
  public:
   
   virtual int Release();
-  virtual int StartPlayFile(const char* file_nameUTF8, int& file_id,
+  virtual int StartPlayFile(const char* file_nameUTF8, int& file_id,  
                             const bool loop = false,
                             const FileFormats file_format = kFileFormatAviFile);
   virtual int StopPlayFile(const int file_id);
-  virtual int RegisterObserver(int file_id, ViEFileObserver& observer);
-  virtual int DeregisterObserver(int file_id, ViEFileObserver& observer);
+  virtual int RegisterObserver(int file_id,
+                               ViEFileObserver& observer);  
+  virtual int DeregisterObserver(int file_id,
+                                 ViEFileObserver& observer);  
   virtual int SendFileOnChannel(const int file_id, const int video_channel);
   virtual int StopSendFileOnChannel(const int video_channel);
   virtual int StartPlayFileAsMicrophone(const int file_id,
@@ -94,8 +99,9 @@ class ViEFileImpl
       const FileFormats file_format = kFileFormatAviFile);
   virtual int GetRenderSnapshot(const int video_channel,
                                 const char* file_nameUTF8);
-  virtual int GetRenderSnapshot(const int video_channel, ViEPicture& picture);
-  virtual int FreePicture(ViEPicture& picture);
+  virtual int GetRenderSnapshot(const int video_channel,
+                                ViEPicture& picture);  
+  virtual int FreePicture(ViEPicture& picture);  
   virtual int GetCaptureDeviceSnapshot(const int capture_id,
                                        const char* file_nameUTF8);
   virtual int GetCaptureDeviceSnapshot(const int capture_id,
@@ -114,14 +120,17 @@ class ViEFileImpl
   virtual int SetRenderTimeoutImage(const int video_channel,
                                     const ViEPicture& picture,
                                     const unsigned int timeout_ms);
+  virtual int StartDebugRecording(int video_channel,
+                                  const char* file_name_utf8);
+  virtual int StopDebugRecording(int video_channel);
 
  protected:
-  ViEFileImpl(ViESharedData* shared_data);
+  explicit ViEFileImpl(ViESharedData* shared_data);
   virtual ~ViEFileImpl();
 
  private:
   WebRtc_Word32 GetNextCapturedFrame(WebRtc_Word32 capture_id,
-                                     VideoFrame& video_frame);
+                                     VideoFrame* video_frame);
 
   ViESharedData* shared_data_;
 };

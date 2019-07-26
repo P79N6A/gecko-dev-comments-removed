@@ -43,10 +43,13 @@ public:
     
     
     WebRtc_Word32 SendData(const FrameType frameType,
-            const WebRtc_UWord8 payloadType, const WebRtc_UWord32 timeStamp,
-            const WebRtc_UWord8* payloadData, const WebRtc_UWord32 payloadSize,
-            const RTPFragmentationHeader& fragmentationHeader,
-            const RTPVideoHeader* videoHdr);
+                           const WebRtc_UWord8 payloadType,
+                           const WebRtc_UWord32 timeStamp,
+                           int64_t capture_time_ms,
+                           const WebRtc_UWord8* payloadData,
+                           const WebRtc_UWord32 payloadSize,
+                           const RTPFragmentationHeader& fragmentationHeader,
+                           const RTPVideoHeader* videoHdr);
     
     void RegisterReceiverVCM(VideoCodingModule *vcm) {_VCMReceiver = vcm;}
     
@@ -75,7 +78,6 @@ private:
     float              _encodedBytes;
     VideoCodingModule* _VCMReceiver;
     FrameType          _frameType;
-    WebRtc_UWord8*     _payloadData;
     WebRtc_UWord16     _seqNo;
     bool               _encodeComplete;
     WebRtc_Word32      _width;
@@ -91,7 +93,6 @@ class VCMRTPEncodeCompleteCallback: public VCMPacketizationCallback
 public:
     VCMRTPEncodeCompleteCallback(RtpRtcp* rtp) :
         _encodedBytes(0),
-        _seqNo(0),
         _encodeComplete(false),
         _RTPModule(rtp) {}
 
@@ -99,10 +100,13 @@ public:
     
     
     WebRtc_Word32 SendData(const FrameType frameType,
-            const WebRtc_UWord8 payloadType, const WebRtc_UWord32 timeStamp,
-            const WebRtc_UWord8* payloadData, const WebRtc_UWord32 payloadSize,
-            const RTPFragmentationHeader& fragmentationHeader,
-            const RTPVideoHeader* videoHdr);
+                           const WebRtc_UWord8 payloadType,
+                           const WebRtc_UWord32 timeStamp,
+                           int64_t capture_time_ms,
+                           const WebRtc_UWord8* payloadData,
+                           const WebRtc_UWord32 payloadSize,
+                           const RTPFragmentationHeader& fragmentationHeader,
+                           const RTPVideoHeader* videoHdr);
     
     
     float EncodedBytes();
@@ -122,8 +126,6 @@ public:
 private:
     float              _encodedBytes;
     FrameType          _frameType;
-    WebRtc_UWord8*     _payloadData;
-    WebRtc_UWord16     _seqNo;
     bool               _encodeComplete;
     RtpRtcp*           _RTPModule;
     WebRtc_Word16      _width;
@@ -155,9 +157,11 @@ class RTPSendCompleteCallback: public Transport
 {
 public:
     
-    RTPSendCompleteCallback(RtpRtcp* rtp, TickTimeBase* clock,
+    RTPSendCompleteCallback(TickTimeBase* clock,
                             const char* filename = NULL);
     virtual ~RTPSendCompleteCallback();
+
+    void SetRtpModule(RtpRtcp* rtp_module) { _rtp = rtp_module; }
     
     virtual int SendPacket(int channel, const void *data, int len);
     
@@ -248,24 +252,5 @@ private:
     FecProtectionParams delta_fec_params_;
     FecProtectionParams key_fec_params_;
 };
-
-
-class RTPFeedbackCallback : public RtpVideoFeedback {
- public:
-  RTPFeedbackCallback(VideoCodingModule* vcm) {_vcm = vcm;};
-  void OnReceivedIntraFrameRequest(const WebRtc_Word32 id,
-                                   const FrameType type,
-                                   const WebRtc_UWord8 streamIdx) {};
-
-   void OnNetworkChanged(const WebRtc_Word32 id,
-                         const WebRtc_UWord32 bitrateBps,
-                         const WebRtc_UWord8 fractionLost,
-                         const WebRtc_UWord16 roundTripTimeMs);
-
- private:
-  VideoCodingModule* _vcm;
-};
-
 }  
-
 #endif

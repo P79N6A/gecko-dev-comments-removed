@@ -71,7 +71,7 @@ namespace {
                   << "Which is: " << expected_val << "\n";\
       ::testing::internal::posix::Abort();\
     }\
-  } while(::testing::internal::AlwaysFalse())
+  } while (::testing::internal::AlwaysFalse())
 
 
 

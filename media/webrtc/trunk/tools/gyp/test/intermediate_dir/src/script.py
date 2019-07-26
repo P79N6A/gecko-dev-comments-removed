@@ -12,7 +12,7 @@ import shlex
 import sys
 
 if len(sys.argv) == 3 and ' ' in sys.argv[2]:
-  sys.argv[2], fourth = shlex.split(sys.argv[2])
+  sys.argv[2], fourth = shlex.split(sys.argv[2].replace('\\', '\\\\'))
   sys.argv.append(fourth)
 
 

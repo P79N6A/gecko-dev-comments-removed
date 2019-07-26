@@ -13,7 +13,7 @@
 
 #include "test.h"
 
-class NormalTest : public Test
+class NormalTest : public CodecTest
 {
 public:
     NormalTest();

@@ -12,7 +12,8 @@ path as the executable.
 
 import TestGyp
 
-test = TestGyp.TestGyp()
+
+test = TestGyp.TestGyp(formats=['!android'])
 
 test.run_gyp('module.gyp', chdir='src')
 

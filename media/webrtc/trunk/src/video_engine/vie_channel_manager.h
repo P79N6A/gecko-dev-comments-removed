@@ -14,9 +14,9 @@
 #include <list>
 #include <map>
 
-#include "engine_configurations.h"
+#include "engine_configurations.h"  
 #include "system_wrappers/interface/scoped_ptr.h"
-#include "typedefs.h"
+#include "typedefs.h"  
 #include "video_engine/vie_channel_group.h"
 #include "video_engine/vie_defines.h"
 #include "video_engine/vie_manager_base.h"
@@ -43,18 +43,19 @@ class ViEChannelManager: private ViEManagerBase {
  public:
   ViEChannelManager(int engine_id,
                     int number_of_cores,
-                    ViEPerformanceMonitor& vie_performance_monitor);
+                    ViEPerformanceMonitor* vie_performance_monitor,
+                    const OverUseDetectorOptions& options);
   ~ViEChannelManager();
 
-  void SetModuleProcessThread(ProcessThread& module_process_thread);
+  void SetModuleProcessThread(ProcessThread* module_process_thread);
 
   
-  int CreateChannel(int& channel_id);
+  int CreateChannel(int* channel_id);
 
   
   
   
-  int CreateChannel(int& channel_id, int original_channel, bool sender);
+  int CreateChannel(int* channel_id, int original_channel, bool sender);
 
   
   int DeleteChannel(int channel_id);
@@ -76,14 +77,14 @@ class ViEChannelManager: private ViEManagerBase {
  private:
   
   
-  bool CreateChannelObject(int channel_id, ViEEncoder* vie_encoder);
+  bool CreateChannelObject(int channel_id, ViEEncoder* vie_encoder,
+                           RtcpBandwidthObserver* bandwidth_observer,
+                           RemoteBitrateEstimator* remote_bitrate_estimator,
+                           bool sender);
 
   
   
   ViEChannel* ViEChannelPtr(int channel_id) const;
-
-  
-  void GetViEChannels(MapWrapper& channel_map);
 
   
   
@@ -107,7 +108,6 @@ class ViEChannelManager: private ViEManagerBase {
   CriticalSectionWrapper* channel_id_critsect_;
   int engine_id_;
   int number_of_cores_;
-  ViEPerformanceMonitor& vie_performance_monitor_;
 
   
   ChannelMap channel_map_;
@@ -124,6 +124,7 @@ class ViEChannelManager: private ViEManagerBase {
 
   VoiceEngine* voice_engine_;
   ProcessThread* module_process_thread_;
+  const OverUseDetectorOptions& over_use_detector_options_;
 };
 
 class ViEChannelManagerScoped: private ViEManagerScopedBase {

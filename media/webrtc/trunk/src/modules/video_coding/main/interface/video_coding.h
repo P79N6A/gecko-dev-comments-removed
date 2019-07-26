@@ -544,6 +544,12 @@ public:
     
     virtual int SetReceiverRobustnessMode(ReceiverRobustness robustnessMode,
                                           DecodeErrors errorMode) = 0;
+
+    
+    virtual int StartDebugRecording(const char* file_name_utf8) = 0;
+
+    
+    virtual int StopDebugRecording() = 0;
 };
 
 } 

@@ -23,16 +23,23 @@ class UdpTransportImpl : public UdpTransport
 {
 public:
     
-    typedef UdpSocketWrapper* (SocketMaker)(const WebRtc_Word32 id,
-                                            UdpSocketManager* mgr,
-                                            CallbackObj obj,
-                                            IncomingSocketCallback cb,
-                                            bool ipV6Enable,
-                                            bool disableGQOS);
+    class SocketFactoryInterface {
+    public:
+        virtual ~SocketFactoryInterface() {}
+        virtual UdpSocketWrapper* CreateSocket(const WebRtc_Word32 id,
+                                               UdpSocketManager* mgr,
+                                               CallbackObj obj,
+                                               IncomingSocketCallback cb,
+                                               bool ipV6Enable,
+                                               bool disableGQOS) = 0;
+    };
 
     
-    UdpTransportImpl(const WebRtc_Word32 id, WebRtc_UWord8& numSocketThreads,
-                     SocketMaker* maker);
+    
+    
+    UdpTransportImpl(const WebRtc_Word32 id,
+                     SocketFactoryInterface* maker,
+                     UdpSocketManager* socket_manager);
     virtual ~UdpTransportImpl();
 
     
@@ -183,7 +190,7 @@ private:
                           WebRtc_UWord16& sourcePort);
 
     WebRtc_Word32 _id;
-    SocketMaker* _socket_creator;
+    SocketFactoryInterface* _socket_creator;
     
     CriticalSectionWrapper* _crit;
     CriticalSectionWrapper* _critFilter;

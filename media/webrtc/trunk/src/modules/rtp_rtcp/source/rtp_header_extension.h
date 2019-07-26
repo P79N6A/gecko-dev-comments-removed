@@ -13,14 +13,14 @@
 
 #include <map>
 
-#include "rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "typedefs.h"
 
 namespace webrtc {
 
 enum {RTP_ONE_BYTE_HEADER_EXTENSION = 0xbede};
 
-enum ExtensionLength {
+enum {
    RTP_ONE_BYTE_HEADER_LENGTH_IN_BYTES = 4,
    TRANSMISSION_TIME_OFFSET_LENGTH_IN_BYTES = 4
 };

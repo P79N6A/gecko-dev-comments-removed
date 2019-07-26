@@ -10,56 +10,91 @@
 
 #include "tmmbr_help.h"
 
+#include <assert.h>
 #include <limits>
+#include <string.h>
 #include "rtp_rtcp_config.h"
 
 namespace webrtc {
 TMMBRSet::TMMBRSet() :
-    ptrTmmbrSet(0),
-    ptrPacketOHSet(0),
-    ptrSsrcSet(0),
-    sizeOfSet(0),
-    lengthOfSet(0)
+    _sizeOfSet(0),
+    _lengthOfSet(0)
 {
 }
 
 TMMBRSet::~TMMBRSet()
 {
-    delete [] ptrTmmbrSet;
-    delete [] ptrPacketOHSet;
-    delete [] ptrSsrcSet;
-    ptrTmmbrSet = 0;
-    ptrPacketOHSet = 0;
-    ptrSsrcSet = 0;
-    sizeOfSet = 0;
-    lengthOfSet = 0;
+    _sizeOfSet = 0;
+    _lengthOfSet = 0;
 }
 
 void
 TMMBRSet::VerifyAndAllocateSet(WebRtc_UWord32 minimumSize)
 {
-    if(minimumSize > sizeOfSet)
+    if(minimumSize > _sizeOfSet)
     {
         
-        if(ptrTmmbrSet)
-        {
-            delete [] ptrTmmbrSet;
-            delete [] ptrPacketOHSet;
-            delete [] ptrSsrcSet;
-        }
-        ptrTmmbrSet = new WebRtc_UWord32[minimumSize];
-        ptrPacketOHSet = new WebRtc_UWord32[minimumSize];
-        ptrSsrcSet = new WebRtc_UWord32[minimumSize];
-        sizeOfSet = minimumSize;
+        _data.resize(minimumSize);
+        _sizeOfSet = minimumSize;
     }
     
-    for(WebRtc_UWord32 i = 0; i < sizeOfSet; i++)
+    for(WebRtc_UWord32 i = 0; i < _sizeOfSet; i++)
     {
-        ptrTmmbrSet[i] = 0;
-        ptrPacketOHSet[i] = 0;
-        ptrSsrcSet[i] = 0;
+        _data.at(i).tmmbr = 0;
+        _data.at(i).packet_oh = 0;
+        _data.at(i).ssrc = 0;
     }
-    lengthOfSet = 0;
+    _lengthOfSet = 0;
+}
+
+void
+TMMBRSet::VerifyAndAllocateSetKeepingData(WebRtc_UWord32 minimumSize)
+{
+    if(minimumSize > _sizeOfSet)
+    {
+        {
+          _data.resize(minimumSize);
+        }
+        _sizeOfSet = minimumSize;
+    }
+}
+
+void TMMBRSet::SetEntry(unsigned int i,
+                         WebRtc_UWord32 tmmbrSet,
+                         WebRtc_UWord32 packetOHSet,
+                         WebRtc_UWord32 ssrcSet) {
+  assert(i < _sizeOfSet);
+  _data.at(i).tmmbr = tmmbrSet;
+  _data.at(i).packet_oh = packetOHSet;
+  _data.at(i).ssrc = ssrcSet;
+  if (i >= _lengthOfSet) {
+    _lengthOfSet = i + 1;
+  }
+}
+
+void TMMBRSet::AddEntry(WebRtc_UWord32 tmmbrSet,
+                        WebRtc_UWord32 packetOHSet,
+                        WebRtc_UWord32 ssrcSet) {
+  assert(_lengthOfSet < _sizeOfSet);
+  SetEntry(_lengthOfSet, tmmbrSet, packetOHSet, ssrcSet);
+}
+
+void TMMBRSet::RemoveEntry(WebRtc_UWord32 sourceIdx) {
+  assert(sourceIdx < _lengthOfSet);
+  _data.erase(_data.begin() + sourceIdx);
+  _lengthOfSet--;
+  _data.resize(_sizeOfSet);  
+}
+
+void TMMBRSet::SwapEntries(WebRtc_UWord32 i, WebRtc_UWord32 j) {
+    SetElement temp;
+    temp = _data[i];
+    _data[i] = _data[j];
+    _data[j] = temp;
+}
+
+void TMMBRSet::ClearEntry(WebRtc_UWord32 idx) {
+  SetEntry(idx, 0, 0, 0);
 }
 
 TMMBRHelp::TMMBRHelp()
@@ -84,7 +119,7 @@ TMMBRHelp::VerifyAndAllocateBoundingSet(WebRtc_UWord32 minimumSize)
 {
     CriticalSectionScoped lock(_criticalSection);
 
-    if(minimumSize > _boundingSet.sizeOfSet)
+    if(minimumSize > _boundingSet.sizeOfSet())
     {
         
         if(_ptrIntersectionBoundingSet)
@@ -111,16 +146,16 @@ TMMBRHelp::SetTMMBRBoundingSetToSend(const TMMBRSet* boundingSetToSend,
 
     if (boundingSetToSend == NULL)
     {
-        _boundingSetToSend.lengthOfSet = 0;
+        _boundingSetToSend.clearSet();
         return 0;
     }
 
-    VerifyAndAllocateBoundingSetToSend(boundingSetToSend->lengthOfSet);
-
-    for (WebRtc_UWord32 i = 0; i < boundingSetToSend->lengthOfSet; i++)
+    VerifyAndAllocateBoundingSetToSend(boundingSetToSend->lengthOfSet());
+    _boundingSetToSend.clearSet();
+    for (WebRtc_UWord32 i = 0; i < boundingSetToSend->lengthOfSet(); i++)
     {
         
-        WebRtc_UWord32 bitrate = boundingSetToSend->ptrTmmbrSet[i];
+        WebRtc_UWord32 bitrate = boundingSetToSend->Tmmbr(i);
         if(maxBitrateKbit)
         {
             
@@ -129,12 +164,10 @@ TMMBRHelp::SetTMMBRBoundingSetToSend(const TMMBRSet* boundingSetToSend,
                 bitrate = maxBitrateKbit;
             }
         }
-
-        _boundingSetToSend.ptrTmmbrSet[i]    = bitrate;
-        _boundingSetToSend.ptrPacketOHSet[i] = boundingSetToSend->ptrPacketOHSet[i];
-        _boundingSetToSend.ptrSsrcSet[i]     = boundingSetToSend->ptrSsrcSet[i];
+        _boundingSetToSend.SetEntry(i, bitrate,
+                                    boundingSetToSend->PacketOH(i),
+                                    boundingSetToSend->Ssrc(i));
     }
-    _boundingSetToSend.lengthOfSet = boundingSetToSend->lengthOfSet;
     return 0;
 }
 
@@ -175,33 +208,34 @@ TMMBRHelp::FindTMMBRBoundingSet(TMMBRSet*& boundingSet)
 
     
     TMMBRSet    candidateSet;
-    candidateSet.VerifyAndAllocateSet(_candidateSet.sizeOfSet);
+    candidateSet.VerifyAndAllocateSet(_candidateSet.sizeOfSet());
 
     
-    WebRtc_Word32 numSetCandidates = 0;
-    for (WebRtc_UWord32 i = 0; i < _candidateSet.sizeOfSet; i++)
+    for (WebRtc_UWord32 i = 0; i < _candidateSet.sizeOfSet(); i++)
     {
-        if(_candidateSet.ptrTmmbrSet[i])
+        if(_candidateSet.Tmmbr(i))
         {
-            numSetCandidates++;
-            candidateSet.ptrTmmbrSet[i]    = _candidateSet.ptrTmmbrSet[i];
-            candidateSet.ptrPacketOHSet[i] = _candidateSet.ptrPacketOHSet[i];
-            candidateSet.ptrSsrcSet[i]     = _candidateSet.ptrSsrcSet[i];
+            candidateSet.AddEntry(_candidateSet.Tmmbr(i),
+                                  _candidateSet.PacketOH(i),
+                                  _candidateSet.Ssrc(i));
         }
         else
         {
             
-            _candidateSet.ptrPacketOHSet[i] = 0;
+            assert(_candidateSet.PacketOH(i) == 0);
+            
+            
         }
     }
-    candidateSet.lengthOfSet = numSetCandidates;
 
+    
+    WebRtc_Word32 numSetCandidates = candidateSet.lengthOfSet();
     
     WebRtc_UWord32 numBoundingSet = 0;
     if (numSetCandidates > 0)
     {
         numBoundingSet =  FindTMMBRBoundingSet(numSetCandidates, candidateSet);
-        if(numBoundingSet < 1 || (numBoundingSet > _candidateSet.sizeOfSet))
+        if(numBoundingSet < 1 || (numBoundingSet > _candidateSet.sizeOfSet()))
         {
             return -1;
         }
@@ -217,17 +251,18 @@ TMMBRHelp::FindTMMBRBoundingSet(WebRtc_Word32 numCandidates, TMMBRSet& candidate
     CriticalSectionScoped lock(_criticalSection);
 
     WebRtc_UWord32 numBoundingSet = 0;
-    VerifyAndAllocateBoundingSet(candidateSet.sizeOfSet);
+    VerifyAndAllocateBoundingSet(candidateSet.sizeOfSet());
 
     if (numCandidates == 1)
     {
-        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet; i++)
+        
+        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet(); i++)
         {
-            if(candidateSet.ptrTmmbrSet[i] > 0)
+            if (candidateSet.Tmmbr(i) > 0)
             {
-                _boundingSet.ptrTmmbrSet[numBoundingSet]    = candidateSet.ptrTmmbrSet[i];
-                _boundingSet.ptrPacketOHSet[numBoundingSet] = candidateSet.ptrPacketOHSet[i];
-                _boundingSet.ptrSsrcSet[numBoundingSet]     = candidateSet.ptrSsrcSet[i];
+                _boundingSet.AddEntry(candidateSet.Tmmbr(i),
+                                    candidateSet.PacketOH(i),
+                                    candidateSet.Ssrc(i));
                 numBoundingSet++;
             }
         }
@@ -238,110 +273,103 @@ TMMBRHelp::FindTMMBRBoundingSet(WebRtc_Word32 numCandidates, TMMBRSet& candidate
     } else
     {
         
-        WebRtc_UWord32 temp;
-        for (int i = candidateSet.sizeOfSet - 1; i >= 0; i--)
+        for (int i = candidateSet.sizeOfSet() - 1; i >= 0; i--)
         {
             for (int j = 1; j <= i; j++)
             {
-                if (candidateSet.ptrPacketOHSet[j-1] > candidateSet.ptrPacketOHSet[j])
+                if (candidateSet.PacketOH(j-1) > candidateSet.PacketOH(j))
                 {
-                    temp = candidateSet.ptrPacketOHSet[j-1];
-                    candidateSet.ptrPacketOHSet[j-1] = candidateSet.ptrPacketOHSet[j];
-                    candidateSet.ptrPacketOHSet[j] = temp;
-                    temp = candidateSet.ptrTmmbrSet[j-1];
-                    candidateSet.ptrTmmbrSet[j-1] = candidateSet.ptrTmmbrSet[j];
-                    candidateSet.ptrTmmbrSet[j] = temp;
-                    temp = candidateSet.ptrSsrcSet[j-1];
-                    candidateSet.ptrSsrcSet[j-1] = candidateSet.ptrSsrcSet[j];
-                    candidateSet.ptrSsrcSet[j] = temp;
+                    candidateSet.SwapEntries(j-1, j);
                 }
             }
         }
         
-        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet; i++)
+        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet(); i++)
         {
-            if (candidateSet.ptrTmmbrSet[i] > 0)
+            if (candidateSet.Tmmbr(i) > 0)
             {
                 
-                WebRtc_UWord32 currentPacketOH = candidateSet.ptrPacketOHSet[i];
-                WebRtc_UWord32 currentMinTMMBR = candidateSet.ptrTmmbrSet[i];
+                WebRtc_UWord32 currentPacketOH = candidateSet.PacketOH(i);
+                WebRtc_UWord32 currentMinTMMBR = candidateSet.Tmmbr(i);
                 WebRtc_UWord32 currentMinIndexTMMBR = i;
-                for (WebRtc_UWord32 j = i+1; j < candidateSet.sizeOfSet; j++)
+                for (WebRtc_UWord32 j = i+1; j < candidateSet.sizeOfSet(); j++)
                 {
-                    if(candidateSet.ptrPacketOHSet[j] == currentPacketOH)
+                    if(candidateSet.PacketOH(j) == currentPacketOH)
                     {
-                        if(candidateSet.ptrTmmbrSet[j] < currentMinTMMBR)
+                        if(candidateSet.Tmmbr(j) < currentMinTMMBR)
                         {
-                            currentMinTMMBR = candidateSet.ptrTmmbrSet[j];
+                            currentMinTMMBR = candidateSet.Tmmbr(j);
                             currentMinIndexTMMBR = j;
                         }
                     }
                 }
                 
-                for (WebRtc_UWord32 j = 0; j < candidateSet.sizeOfSet; j++)
+                for (WebRtc_UWord32 j = 0; j < candidateSet.sizeOfSet(); j++)
                 {
-                    if(candidateSet.ptrPacketOHSet[j] == currentPacketOH && j != currentMinIndexTMMBR)
+                  if(candidateSet.PacketOH(j) == currentPacketOH
+                     && j != currentMinIndexTMMBR)
                     {
-                        candidateSet.ptrTmmbrSet[j]    = 0;
-                        candidateSet.ptrPacketOHSet[j] = 0;
-                        candidateSet.ptrSsrcSet[j]     = 0;
-                        numCandidates--;
+                        candidateSet.ClearEntry(j);
                     }
                 }
             }
         }
         
+        
         WebRtc_UWord32 minTMMBR = 0;
         WebRtc_UWord32 minIndexTMMBR = 0;
-        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet; i++)
+        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet(); i++)
         {
-            if (candidateSet.ptrTmmbrSet[i] > 0)
+            if (candidateSet.Tmmbr(i) > 0)
             {
-                minTMMBR = candidateSet.ptrTmmbrSet[i];
+                minTMMBR = candidateSet.Tmmbr(i);
                 minIndexTMMBR = i;
                 break;
             }
         }
 
-        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet; i++)
+        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet(); i++)
         {
-            if (candidateSet.ptrTmmbrSet[i] > 0 && candidateSet.ptrTmmbrSet[i] <= minTMMBR)
+            if (candidateSet.Tmmbr(i) > 0 && candidateSet.Tmmbr(i) <= minTMMBR)
             {
                 
-                minTMMBR = candidateSet.ptrTmmbrSet[i];
+                minTMMBR = candidateSet.Tmmbr(i);
                 minIndexTMMBR = i;
             }
         }
         
-        _boundingSet.ptrTmmbrSet[numBoundingSet]    = candidateSet.ptrTmmbrSet[minIndexTMMBR];
-        _boundingSet.ptrPacketOHSet[numBoundingSet] = candidateSet.ptrPacketOHSet[minIndexTMMBR];
-        _boundingSet.ptrSsrcSet[numBoundingSet]     = candidateSet.ptrSsrcSet[minIndexTMMBR];
+        _boundingSet.SetEntry(numBoundingSet,
+                              candidateSet.Tmmbr(minIndexTMMBR),
+                              candidateSet.PacketOH(minIndexTMMBR),
+                              candidateSet.Ssrc(minIndexTMMBR));
+
         
         _ptrIntersectionBoundingSet[numBoundingSet] = 0;
         
-        _ptrMaxPRBoundingSet[numBoundingSet] = _boundingSet.ptrTmmbrSet[numBoundingSet]*1000 / float(8*_boundingSet.ptrPacketOHSet[numBoundingSet]);
+        _ptrMaxPRBoundingSet[numBoundingSet]
+            = _boundingSet.Tmmbr(numBoundingSet) * 1000
+            / float(8 * _boundingSet.PacketOH(numBoundingSet));
         numBoundingSet++;
         
-        candidateSet.ptrTmmbrSet[minIndexTMMBR]    = 0;
-        candidateSet.ptrPacketOHSet[minIndexTMMBR] = 0;
-        candidateSet.ptrSsrcSet[minIndexTMMBR]     = 0;
+        candidateSet.ClearEntry(minIndexTMMBR);
         numCandidates--;
 
         
-        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet; i++)
+        
+        for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet(); i++)
         {
-            if(candidateSet.ptrTmmbrSet[i] > 0 && candidateSet.ptrPacketOHSet[i] < _boundingSet.ptrPacketOHSet[0])
+            if(candidateSet.Tmmbr(i) > 0
+               && candidateSet.PacketOH(i) < _boundingSet.PacketOH(0))
             {
-                candidateSet.ptrTmmbrSet[i]    = 0;
-                candidateSet.ptrPacketOHSet[i] = 0;
-                candidateSet.ptrSsrcSet[i]     = 0;
+                candidateSet.ClearEntry(i);
                 numCandidates--;
             }
         }
 
         if (numCandidates == 0)
         {
-            _boundingSet.lengthOfSet = numBoundingSet;
+            
+            assert(_boundingSet.lengthOfSet() == numBoundingSet);
             return numBoundingSet;
         }
 
@@ -355,47 +383,54 @@ TMMBRHelp::FindTMMBRBoundingSet(WebRtc_Word32 numCandidates, TMMBRSet& candidate
             if (getNewCandidate)
             {
                 
-                for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet; i++)
+                for (WebRtc_UWord32 i = 0; i < candidateSet.sizeOfSet(); i++)
                 {
-                    if (candidateSet.ptrTmmbrSet[i] > 0)
+                    if (candidateSet.Tmmbr(i) > 0)
                     {
-                        curCandidateTMMBR    = candidateSet.ptrTmmbrSet[i];
-                        curCandidatePacketOH = candidateSet.ptrPacketOHSet[i];
-                        curCandidateSSRC     = candidateSet.ptrSsrcSet[i];
+                        curCandidateTMMBR    = candidateSet.Tmmbr(i);
+                        curCandidatePacketOH = candidateSet.PacketOH(i);
+                        curCandidateSSRC     = candidateSet.Ssrc(i);
                         curCandidateIndex    = i;
-                        candidateSet.ptrTmmbrSet[curCandidateIndex]    = 0;
-                        candidateSet.ptrPacketOHSet[curCandidateIndex] = 0;
-                        candidateSet.ptrSsrcSet[curCandidateIndex]     = 0;
+                        candidateSet.ClearEntry(curCandidateIndex);
                         break;
                     }
                 }
             }
 
             
-            float packetRate = float(curCandidateTMMBR - _boundingSet.ptrTmmbrSet[numBoundingSet-1])*1000 / (8*(curCandidatePacketOH - _boundingSet.ptrPacketOHSet[numBoundingSet-1]));
+            
+            float packetRate
+                = float(curCandidateTMMBR
+                        - _boundingSet.Tmmbr(numBoundingSet-1))*1000
+                / (8*(curCandidatePacketOH
+                      - _boundingSet.PacketOH(numBoundingSet-1)));
 
+            
             
             
             if(packetRate <= _ptrIntersectionBoundingSet[numBoundingSet-1])
             {
                 
                 numBoundingSet--;
-                _boundingSet.ptrTmmbrSet[numBoundingSet]    = 0;
-                _boundingSet.ptrPacketOHSet[numBoundingSet] = 0;
-                _boundingSet.ptrSsrcSet[numBoundingSet]     = 0;
+                _boundingSet.ClearEntry(numBoundingSet);
                 _ptrIntersectionBoundingSet[numBoundingSet] = 0;
                 _ptrMaxPRBoundingSet[numBoundingSet]        = 0;
                 getNewCandidate = false;
             } else
             {
                 
+                
+                
                 if (packetRate < _ptrMaxPRBoundingSet[numBoundingSet-1])
                 {
-                    _boundingSet.ptrTmmbrSet[numBoundingSet]    = curCandidateTMMBR;
-                    _boundingSet.ptrPacketOHSet[numBoundingSet] = curCandidatePacketOH;
-                    _boundingSet.ptrSsrcSet[numBoundingSet]     = curCandidateSSRC;
+                    _boundingSet.SetEntry(numBoundingSet,
+                                          curCandidateTMMBR,
+                                          curCandidatePacketOH,
+                                          curCandidateSSRC);
                     _ptrIntersectionBoundingSet[numBoundingSet] = packetRate;
-                    _ptrMaxPRBoundingSet[numBoundingSet] = _boundingSet.ptrTmmbrSet[numBoundingSet]*1000 / float(8*_boundingSet.ptrPacketOHSet[numBoundingSet]);
+                    _ptrMaxPRBoundingSet[numBoundingSet]
+                        = _boundingSet.Tmmbr(numBoundingSet)*1000
+                        / float(8*_boundingSet.PacketOH(numBoundingSet));
                     numBoundingSet++;
                 }
                 numCandidates--;
@@ -405,7 +440,6 @@ TMMBRHelp::FindTMMBRBoundingSet(WebRtc_Word32 numCandidates, TMMBRSet& candidate
             
         } while (numCandidates > 0);
     }
-    _boundingSet.lengthOfSet = numBoundingSet;
     return numBoundingSet;
 }
 
@@ -417,8 +451,9 @@ bool TMMBRHelp::IsOwner(const WebRtc_UWord32 ssrc,
     
     return false;
   }
-  for(WebRtc_UWord32 i = 0; (i < length) && (i < _boundingSet.sizeOfSet); ++i) {
-    if(_boundingSet.ptrSsrcSet[i] == ssrc) {
+  for(WebRtc_UWord32 i = 0;
+      (i < length) && (i < _boundingSet.sizeOfSet()); ++i) {
+    if(_boundingSet.Ssrc(i) == ssrc) {
       return true;
     }
   }
@@ -428,14 +463,14 @@ bool TMMBRHelp::IsOwner(const WebRtc_UWord32 ssrc,
 bool TMMBRHelp::CalcMinBitRate( WebRtc_UWord32* minBitrateKbit) const {
   CriticalSectionScoped lock(_criticalSection);
 
-  if (_candidateSet.sizeOfSet == 0) {
+  if (_candidateSet.sizeOfSet() == 0) {
     
     return false;
   }
   *minBitrateKbit = std::numeric_limits<uint32_t>::max();
 
-  for (WebRtc_UWord32 i = 0; i < _candidateSet.sizeOfSet; ++i) {
-    WebRtc_UWord32 curNetBitRateKbit = _candidateSet.ptrTmmbrSet[i];
+  for (WebRtc_UWord32 i = 0; i < _candidateSet.sizeOfSet(); ++i) {
+    WebRtc_UWord32 curNetBitRateKbit = _candidateSet.Tmmbr(i);
     if (curNetBitRateKbit < MIN_VIDEO_BW_MANAGEMENT_BITRATE) {
       curNetBitRateKbit = MIN_VIDEO_BW_MANAGEMENT_BITRATE;
     }

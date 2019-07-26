@@ -55,14 +55,6 @@ namespace {
 
 using ::std::ostream;
 
-#if GTEST_OS_WINDOWS_MOBILE  
-# define snprintf _snprintf
-#elif _MSC_VER >= 1400  
-# define snprintf _snprintf_s
-#elif _MSC_VER
-# define snprintf _snprintf
-#endif  
-
 
 void PrintByteSegmentInObjectTo(const unsigned char* obj_bytes, size_t start,
                                 size_t count, ostream* os) {
@@ -77,7 +69,7 @@ void PrintByteSegmentInObjectTo(const unsigned char* obj_bytes, size_t start,
       else
         *os << '-';
     }
-    snprintf(text, sizeof(text), "%02X", obj_bytes[j]);
+    GTEST_SNPRINTF_(text, sizeof(text), "%02X", obj_bytes[j]);
     *os << text;
   }
 }
@@ -193,7 +185,7 @@ static CharFormat PrintAsCharLiteralTo(Char c, ostream* os) {
 
 
 
-static CharFormat PrintAsWideStringLiteralTo(wchar_t c, ostream* os) {
+static CharFormat PrintAsStringLiteralTo(wchar_t c, ostream* os) {
   switch (c) {
     case L'\'':
       *os << "'";
@@ -208,8 +200,9 @@ static CharFormat PrintAsWideStringLiteralTo(wchar_t c, ostream* os) {
 
 
 
-static CharFormat PrintAsNarrowStringLiteralTo(char c, ostream* os) {
-  return PrintAsWideStringLiteralTo(static_cast<unsigned char>(c), os);
+static CharFormat PrintAsStringLiteralTo(char c, ostream* os) {
+  return PrintAsStringLiteralTo(
+      static_cast<wchar_t>(static_cast<unsigned char>(c)), os);
 }
 
 
@@ -258,45 +251,60 @@ void PrintTo(wchar_t wc, ostream* os) {
 
 
 
-static void PrintCharsAsStringTo(const char* begin, size_t len, ostream* os) {
-  *os << "\"";
+
+template <typename CharType>
+static void PrintCharsAsStringTo(
+    const CharType* begin, size_t len, ostream* os) {
+  const char* const kQuoteBegin = sizeof(CharType) == 1 ? "\"" : "L\"";
+  *os << kQuoteBegin;
   bool is_previous_hex = false;
   for (size_t index = 0; index < len; ++index) {
-    const char cur = begin[index];
+    const CharType cur = begin[index];
     if (is_previous_hex && IsXDigit(cur)) {
       
       
       
-      *os << "\" \"";
+      *os << "\" " << kQuoteBegin;
     }
-    is_previous_hex = PrintAsNarrowStringLiteralTo(cur, os) == kHexEscape;
+    is_previous_hex = PrintAsStringLiteralTo(cur, os) == kHexEscape;
   }
   *os << "\"";
+}
+
+
+
+template <typename CharType>
+static void UniversalPrintCharArray(
+    const CharType* begin, size_t len, ostream* os) {
+  
+  
+  
+  
+  
+  
+  
+  if (len > 0 && begin[len - 1] == '\0') {
+    PrintCharsAsStringTo(begin, len - 1, os);
+    return;
+  }
+
+  
+  
+  
+  
+  PrintCharsAsStringTo(begin, len, os);
+  *os << " (no terminating NUL)";
 }
 
 
 void UniversalPrintArray(const char* begin, size_t len, ostream* os) {
-  PrintCharsAsStringTo(begin, len, os);
+  UniversalPrintCharArray(begin, len, os);
 }
 
 
 
-
-static void PrintWideCharsAsStringTo(const wchar_t* begin, size_t len,
-                                     ostream* os) {
-  *os << "L\"";
-  bool is_previous_hex = false;
-  for (size_t index = 0; index < len; ++index) {
-    const wchar_t cur = begin[index];
-    if (is_previous_hex && isascii(cur) && IsXDigit(static_cast<char>(cur))) {
-      
-      
-      
-      *os << "\" L\"";
-    }
-    is_previous_hex = PrintAsWideStringLiteralTo(cur, os) == kHexEscape;
-  }
-  *os << "\"";
+void UniversalPrintArray(const wchar_t* begin, size_t len, ostream* os) {
+  UniversalPrintCharArray(begin, len, os);
 }
 
 
@@ -322,7 +330,7 @@ void PrintTo(const wchar_t* s, ostream* os) {
     *os << "NULL";
   } else {
     *os << ImplicitCast_<const void*>(s) << " pointing to ";
-    PrintWideCharsAsStringTo(s, wcslen(s), os);
+    PrintCharsAsStringTo(s, wcslen(s), os);
   }
 }
 #endif  
@@ -341,13 +349,13 @@ void PrintStringTo(const ::std::string& s, ostream* os) {
 
 #if GTEST_HAS_GLOBAL_WSTRING
 void PrintWideStringTo(const ::wstring& s, ostream* os) {
-  PrintWideCharsAsStringTo(s.data(), s.size(), os);
+  PrintCharsAsStringTo(s.data(), s.size(), os);
 }
 #endif  
 
 #if GTEST_HAS_STD_WSTRING
 void PrintWideStringTo(const ::std::wstring& s, ostream* os) {
-  PrintWideCharsAsStringTo(s.data(), s.size(), os);
+  PrintCharsAsStringTo(s.data(), s.size(), os);
 }
 #endif  
 

@@ -11,6 +11,14 @@ import subprocess
 import sys
 import tempfile
 
+def run_quiet(*args):
+  """Run 'expand' supressing noisy output. Returns returncode from process."""
+  popen = subprocess.Popen(args, stdout=subprocess.PIPE)
+  out, _ = popen.communicate()
+  if popen.returncode:
+    
+    print out
+  return popen.returncode
 
 def main():
   if len(sys.argv) != 4:
@@ -27,8 +35,7 @@ def main():
 
   try:
     
-    level = subprocess.call(
-        ['expand', cab_path, '-F:' + archived_file, temp_dir])
+    level = run_quiet('expand', cab_path, '-F:' + archived_file, temp_dir)
     if level == 0:
       
       

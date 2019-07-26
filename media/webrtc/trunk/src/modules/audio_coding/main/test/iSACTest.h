@@ -11,6 +11,8 @@
 #ifndef ACM_ISAC_TEST_H
 #define ACM_ISAC_TEST_H
 
+#include <string.h>
+
 #include "ACMTest.h"
 #include "Channel.h"
 #include "PCMFile.h"
@@ -81,8 +83,7 @@ private:
     CodecInst _paramISAC16kHz;
     CodecInst _paramISAC32kHz;
 
-    char _fileNameWB[MAX_FILE_NAME_LENGTH_BYTE];
-    char _fileNameSWB[MAX_FILE_NAME_LENGTH_BYTE];
+    std::string file_name_swb_;
 
     ACMTestTimer _myTimer;
     int _testMode;

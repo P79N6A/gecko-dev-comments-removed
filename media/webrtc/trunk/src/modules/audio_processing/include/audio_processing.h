@@ -545,6 +545,11 @@ class NoiseSuppression {
   virtual int set_level(Level level) = 0;
   virtual Level level() const = 0;
 
+  
+  
+  
+  virtual float speech_probability() const = 0;
+
  protected:
   virtual ~NoiseSuppression() {};
 };

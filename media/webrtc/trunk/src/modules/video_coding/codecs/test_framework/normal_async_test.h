@@ -38,8 +38,7 @@ class FrameQueue
 public:
     FrameQueue()
     :
-        _queueRWLock(*webrtc::RWLockWrapper::CreateRWLock()),
-        _prevTS(-1)
+        _queueRWLock(*webrtc::RWLockWrapper::CreateRWLock())
     {
     }
 
@@ -56,7 +55,6 @@ public:
 private:
     webrtc::RWLockWrapper&                       _queueRWLock;
     std::queue<FrameQueueTuple *>     _frameBufferQueue;
-    WebRtc_Word64                       _prevTS;
 };
 
 
@@ -82,7 +80,7 @@ public:
     virtual ~NormalAsyncTest() {};
     virtual void Perform();
     virtual void Encoded(const webrtc::EncodedImage& encodedImage);
-    virtual void Decoded(const webrtc::RawImage& decodedImage);
+    virtual void Decoded(const webrtc::VideoFrame& decodedImage);
     virtual webrtc::CodecSpecificInfo*
     CopyCodecSpecificInfo(
         const webrtc::CodecSpecificInfo* codecSpecificInfo) const;
@@ -174,7 +172,7 @@ public:
         _decodedBytes(0)
     {}
 
-    virtual WebRtc_Word32 Decoded(webrtc::RawImage& decodedImage);
+    virtual WebRtc_Word32 Decoded(webrtc::VideoFrame& decodedImage);
     virtual WebRtc_Word32
     ReceivedDecodedReferenceFrame(const WebRtc_UWord64 pictureId);
     virtual WebRtc_Word32 ReceivedDecodedFrame(const WebRtc_UWord64 pictureId);

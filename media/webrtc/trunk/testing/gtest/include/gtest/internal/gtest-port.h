@@ -183,6 +183,11 @@
 
 
 
+
+
+
+
+
 #include <ctype.h>   
 #include <stddef.h>  
 #include <stdlib.h>
@@ -192,6 +197,11 @@
 # include <sys/types.h>
 # include <sys/stat.h>
 #endif  
+
+#if defined __APPLE__
+# include <AvailabilityMacros.h>
+# include <TargetConditionals.h>
+#endif
 
 #include <iostream>  
 #include <sstream>  
@@ -227,6 +237,9 @@
 # endif  
 #elif defined __APPLE__
 # define GTEST_OS_MAC 1
+# if TARGET_OS_IPHONE
+#  define GTEST_OS_IOS 1
+# endif
 #elif defined __linux__
 # define GTEST_OS_LINUX 1
 # ifdef ANDROID
@@ -242,7 +255,24 @@
 # define GTEST_OS_HPUX 1
 #elif defined __native_client__
 # define GTEST_OS_NACL 1
+#elif defined __OpenBSD__
+# define GTEST_OS_OPENBSD 1
+#elif defined __QNX__
+# define GTEST_OS_QNX 1
 #endif  
+
+#ifndef GTEST_LANG_CXX11
+
+
+
+
+# if __GXX_EXPERIMENTAL_CXX0X__ || __cplusplus >= 201103L
+
+#  define GTEST_LANG_CXX11 1
+# else
+#  define GTEST_LANG_CXX11 0
+# endif
+#endif
 
 
 
@@ -252,12 +282,7 @@
 
 
 # include <unistd.h>
-# if !GTEST_OS_NACL
-
-
-
-#  include <strings.h>  
-# endif
+# include <strings.h>
 #elif !GTEST_OS_WINDOWS_MOBILE
 # include <direct.h>
 # include <io.h>
@@ -387,6 +412,13 @@
 
 
 
+
+# elif defined(__clang__)
+
+#  define GTEST_HAS_RTTI __has_feature(cxx_rtti)
+
+
+
 # elif defined(__IBMCPP__) && (__IBMCPP__ >= 900)
 
 #  ifdef __RTTI_ALL__
@@ -417,7 +449,8 @@
 
 
 
-# define GTEST_HAS_PTHREAD (GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_HPUX)
+# define GTEST_HAS_PTHREAD (GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_HPUX \
+    || GTEST_OS_QNX)
 #endif  
 
 #if GTEST_HAS_PTHREAD
@@ -449,8 +482,22 @@
 
 
 
-# if (defined(__GNUC__) && !defined(__CUDACC__) && (GTEST_GCC_VER_ >= 40000)) \
-    || _MSC_VER >= 1600
+
+
+
+# if (defined(__GNUC__) && !defined(__CUDACC__) && (GTEST_GCC_VER_ >= 40000) \
+      && !GTEST_OS_QNX && !defined(_LIBCPP_VERSION)) || _MSC_VER >= 1600
+#  define GTEST_ENV_HAS_TR1_TUPLE_ 1
+# endif
+
+
+
+
+# if GTEST_LANG_CXX11
+#  define GTEST_ENV_HAS_STD_TUPLE_ 1
+# endif
+
+# if GTEST_ENV_HAS_TR1_TUPLE_ || GTEST_ENV_HAS_STD_TUPLE_
 #  define GTEST_USE_OWN_TR1_TUPLE 0
 # else
 #  define GTEST_USE_OWN_TR1_TUPLE 1
@@ -465,6 +512,22 @@
 
 # if GTEST_USE_OWN_TR1_TUPLE
 #  include "gtest/internal/gtest-tuple.h"
+# elif GTEST_ENV_HAS_STD_TUPLE_
+#  include <tuple>
+
+
+
+
+namespace std {
+namespace tr1 {
+using ::std::get;
+using ::std::make_tuple;
+using ::std::tuple;
+using ::std::tuple_element;
+using ::std::tuple_size;
+}
+}
+
 # elif GTEST_OS_SYMBIAN
 
 
@@ -538,9 +601,11 @@
 
 
 
-#if (GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_CYGWIN || GTEST_OS_SOLARIS || \
+#if (GTEST_OS_LINUX || GTEST_OS_CYGWIN || GTEST_OS_SOLARIS || \
+     (GTEST_OS_MAC && !GTEST_OS_IOS) || \
      (GTEST_OS_WINDOWS_DESKTOP && _MSC_VER >= 1400) || \
-     GTEST_OS_WINDOWS_MINGW || GTEST_OS_AIX || GTEST_OS_HPUX)
+     GTEST_OS_WINDOWS_MINGW || GTEST_OS_AIX || GTEST_OS_HPUX || \
+     GTEST_OS_OPENBSD || GTEST_OS_QNX)
 # define GTEST_HAS_DEATH_TEST 1
 # include <vector>  
 #endif
@@ -667,6 +732,13 @@
 # define GTEST_NO_INLINE_ __attribute__((noinline))
 #else
 # define GTEST_NO_INLINE_
+#endif
+
+
+#if defined(__GLIBCXX__) || defined(_LIBCPP_VERSION)
+# define GTEST_HAS_CXXABI_H_ 1
+#else
+# define GTEST_HAS_CXXABI_H_ 0
 #endif
 
 namespace testing {
@@ -796,6 +868,7 @@ class scoped_ptr {
       ptr_ = p;
     }
   }
+
  private:
   T* ptr_;
 
@@ -1053,11 +1126,12 @@ GTEST_API_ String GetCapturedStderr();
 
 #if GTEST_HAS_DEATH_TEST
 
+const ::std::vector<testing::internal::string>& GetInjectableArgvs();
+void SetInjectableArgvs(const ::std::vector<testing::internal::string>*
+                             new_argvs);
 
-extern ::std::vector<String> g_argvs;
 
-
-const ::std::vector<String>& GetArgvs();
+extern ::std::vector<testing::internal::string> g_argvs;
 
 #endif  
 
@@ -1084,22 +1158,37 @@ inline void SleepMilliseconds(int n) {
 
 class Notification {
  public:
-  Notification() : notified_(false) {}
+  Notification() : notified_(false) {
+    GTEST_CHECK_POSIX_SUCCESS_(pthread_mutex_init(&mutex_, NULL));
+  }
+  ~Notification() {
+    pthread_mutex_destroy(&mutex_);
+  }
 
   
   
-  void Notify() { notified_ = true; }
+  void Notify() {
+    pthread_mutex_lock(&mutex_);
+    notified_ = true;
+    pthread_mutex_unlock(&mutex_);
+  }
 
   
   
   void WaitForNotification() {
-    while(!notified_) {
+    for (;;) {
+      pthread_mutex_lock(&mutex_);
+      const bool notified = notified_;
+      pthread_mutex_unlock(&mutex_);
+      if (notified)
+        break;
       SleepMilliseconds(10);
     }
   }
 
  private:
-  volatile bool notified_;
+  pthread_mutex_t mutex_;
+  bool notified_;
 
   GTEST_DISALLOW_COPY_AND_ASSIGN_(Notification);
 };
@@ -1207,6 +1296,7 @@ class MutexBase {
   void Lock() {
     GTEST_CHECK_POSIX_SUCCESS_(pthread_mutex_lock(&mutex_));
     owner_ = pthread_self();
+    has_owner_ = true;
   }
 
   
@@ -1214,14 +1304,15 @@ class MutexBase {
     
     
     
-    owner_ = 0;
+    
+    has_owner_ = false;
     GTEST_CHECK_POSIX_SUCCESS_(pthread_mutex_unlock(&mutex_));
   }
 
   
   
   void AssertHeld() const {
-    GTEST_CHECK_(owner_ == pthread_self())
+    GTEST_CHECK_(has_owner_ && pthread_equal(owner_, pthread_self()))
         << "The current thread is not holding the mutex @" << this;
   }
 
@@ -1232,6 +1323,13 @@ class MutexBase {
   
  public:
   pthread_mutex_t mutex_;  
+  
+  
+  
+  
+  
+  
+  bool has_owner_;
   pthread_t owner_;  
 };
 
@@ -1240,8 +1338,13 @@ class MutexBase {
     extern ::testing::internal::MutexBase mutex
 
 
+
+
+
+
+
 # define GTEST_DEFINE_STATIC_MUTEX_(mutex) \
-    ::testing::internal::MutexBase mutex = { PTHREAD_MUTEX_INITIALIZER, 0 }
+    ::testing::internal::MutexBase mutex = { PTHREAD_MUTEX_INITIALIZER, false }
 
 
 
@@ -1249,7 +1352,7 @@ class Mutex : public MutexBase {
  public:
   Mutex() {
     GTEST_CHECK_POSIX_SUCCESS_(pthread_mutex_init(&mutex_, NULL));
-    owner_ = 0;
+    has_owner_ = false;
   }
   ~Mutex() {
     GTEST_CHECK_POSIX_SUCCESS_(pthread_mutex_destroy(&mutex_));
@@ -1399,6 +1502,8 @@ class ThreadLocal {
 class Mutex {
  public:
   Mutex() {}
+  void Lock() {}
+  void Unlock() {}
   void AssertHeld() const {}
 };
 
@@ -1528,6 +1633,10 @@ inline bool IsUpper(char ch) {
 }
 inline bool IsXDigit(char ch) {
   return isxdigit(static_cast<unsigned char>(ch)) != 0;
+}
+inline bool IsXDigit(wchar_t ch) {
+  const unsigned char low_byte = static_cast<unsigned char>(ch);
+  return ch == low_byte && isxdigit(low_byte) != 0;
 }
 
 inline char ToLower(char ch) {
@@ -1671,6 +1780,23 @@ inline void Abort() { abort(); }
 
 
 
+#if _MSC_VER >= 1400 && !GTEST_OS_WINDOWS_MOBILE
+
+# define GTEST_SNPRINTF_(buffer, size, format, ...) \
+     _snprintf_s(buffer, size, size, format, __VA_ARGS__)
+#elif defined(_MSC_VER)
+
+
+# define GTEST_SNPRINTF_ _snprintf
+#else
+# define GTEST_SNPRINTF_ snprintf
+#endif
+
+
+
+
+
+
 
 
 const BiggestInt kMaxBiggestInt =
@@ -1718,7 +1844,6 @@ class TypeWithSize<4> {
 template <>
 class TypeWithSize<8> {
  public:
-
 #if GTEST_OS_WINDOWS
   typedef __int64 Int;
   typedef unsigned __int64 UInt;
@@ -1754,6 +1879,10 @@ typedef TypeWithSize<8>::Int TimeInMillis;
     GTEST_API_ ::testing::internal::Int32 GTEST_FLAG(name) = (default_val)
 #define GTEST_DEFINE_string_(name, default_val, doc) \
     GTEST_API_ ::testing::internal::String GTEST_FLAG(name) = (default_val)
+
+
+#define GTEST_EXCLUSIVE_LOCK_REQUIRED_(locks)
+#define GTEST_LOCK_EXCLUDED_(locks)
 
 
 

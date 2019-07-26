@@ -203,6 +203,16 @@ public:
 
 protected:
     enum { kUpperLimitFramesFec = 6 };
+    
+    
+    
+    enum { kMaxBytesPerFrameForFec = 700 };
+    
+    enum { kMaxBytesPerFrameForFecLow = 400 };
+    
+    enum { kMaxBytesPerFrameForFecHigh = 1000 };
+    
+    enum { kMaxRttTurnOffFec = 200 };
 };
 
 
@@ -219,7 +229,8 @@ public:
     bool ProtectionFactor(const VCMProtectionParameters* parameters);
     
     int MaxFramesFec() const;
-
+    
+    bool BitRateTooLowForFec(const VCMProtectionParameters* parameters);
 private:
     int ComputeMaxFramesFec(const VCMProtectionParameters* parameters);
 
@@ -374,7 +385,6 @@ private:
     VCMExpFilter              _packetsPerFrame;
     VCMExpFilter              _packetsPerFrameKey;
     float                     _residualPacketLossFec;
-    WebRtc_UWord8             _boostRateKey;
     WebRtc_UWord16            _codecWidth;
     WebRtc_UWord16            _codecHeight;
     int                       _numLayers;

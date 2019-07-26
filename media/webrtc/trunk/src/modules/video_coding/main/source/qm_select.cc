@@ -40,7 +40,6 @@ VCMQmMethod::~VCMQmMethod() {
 
 void VCMQmMethod::ResetQM() {
   aspect_ratio_ = 1.0f;
-  image_type_ = kVGA;
   motion_.Reset();
   spatial_.Reset();
   content_class_ = 0;
@@ -137,11 +136,11 @@ ImageType VCMQmMethod::FindClosestImageType(uint16_t width, uint16_t height) {
 }
 
 FrameRateLevelClass VCMQmMethod::FrameRateLevel(float avg_framerate) {
-  if (avg_framerate < kLowFrameRate) {
+  if (avg_framerate <= kLowFrameRate) {
     return kFrameRateLow;
-  } else if (avg_framerate < kMiddleFrameRate) {
+  } else if (avg_framerate <= kMiddleFrameRate) {
     return kFrameRateMiddle1;
-  } else if (avg_framerate < kHighFrameRate) {
+  } else if (avg_framerate <= kHighFrameRate) {
      return kFrameRateMiddle2;
   } else {
     return kFrameRateHigh;
@@ -165,7 +164,7 @@ void VCMQmResolution::ResetRates() {
   sum_rate_MM_ = 0.0f;
   sum_rate_MM_sgn_ = 0.0f;
   sum_packet_loss_ = 0.0f;
-  buffer_level_ = kOptBufferLevel * target_bitrate_;
+  buffer_level_ = kInitBufferLevel * target_bitrate_;
   frame_cnt_ = 0;
   frame_cnt_delta_ = 0;
   low_buffer_cnt_ = 0;
@@ -185,7 +184,7 @@ void VCMQmResolution::Reset() {
   target_bitrate_ = 0.0f;
   incoming_framerate_ = 0.0f;
   buffer_level_ = 0.0f;
-  per_frame_bandwidth_ =0.0f;
+  per_frame_bandwidth_ = 0.0f;
   avg_target_rate_ = 0.0f;
   avg_incoming_framerate_ = 0.0f;
   avg_ratio_buffer_low_ = 0.0f;
@@ -222,7 +221,7 @@ int VCMQmResolution::Initialize(float bitrate,
   native_frame_rate_ = user_framerate;
   num_layers_ = num_layers;
   
-  buffer_level_ = kOptBufferLevel * target_bitrate_;
+  buffer_level_ = kInitBufferLevel * target_bitrate_;
   
   per_frame_bandwidth_ = target_bitrate_ / user_framerate;
   init_  = true;
@@ -250,9 +249,10 @@ void VCMQmResolution::UpdateEncodedSize(int encoded_size,
   
   
   buffer_level_ += per_frame_bandwidth_ - encoded_size_kbits;
+
   
   
-  if (buffer_level_ <= kPercBufferThr * kOptBufferLevel * target_bitrate_) {
+  if (buffer_level_ <= kPercBufferThr * kInitBufferLevel * target_bitrate_) {
     low_buffer_cnt_++;
   }
 }
@@ -286,7 +286,6 @@ void VCMQmResolution::UpdateRates(float target_bitrate,
   target_bitrate_ =  target_bitrate;
   incoming_framerate_ = incoming_framerate;
   sum_incoming_framerate_ += incoming_framerate_;
-
   
   
   per_frame_bandwidth_  = 0.0f;
@@ -319,8 +318,15 @@ int VCMQmResolution::SelectResolution(VCMResolutionScale** qm) {
   }
 
   
-  content_class_ = ComputeContentClass();
+  assert(state_dec_factor_spatial_ >= 1.0f);
+  assert(state_dec_factor_temporal_ >= 1.0f);
+  assert(state_dec_factor_spatial_ <= kMaxSpatialDown);
+  assert(state_dec_factor_temporal_ <= kMaxTempDown);
+  assert(state_dec_factor_temporal_ * state_dec_factor_spatial_ <=
+         kMaxTotalDown);
 
+  
+  content_class_ = ComputeContentClass();
   
   ComputeRatesForSelection();
 
@@ -342,12 +348,9 @@ int VCMQmResolution::SelectResolution(VCMResolutionScale** qm) {
   }
 
   
-  
-  if (state_dec_factor_temporal_ * state_dec_factor_spatial_ < kMaxDownSample) {
-    if (GoingDownResolution()) {
-      *qm = qm_;
-      return VCM_OK;
-    }
+  if (GoingDownResolution()) {
+    *qm = qm_;
+    return VCM_OK;
   }
   return VCM_OK;
 }
@@ -423,9 +426,19 @@ void VCMQmResolution::ComputeEncoderState() {
 
 bool VCMQmResolution::GoingUpResolution() {
   
+
   float fac_width = kFactorWidthSpatial[down_action_history_[0].spatial];
   float fac_height = kFactorHeightSpatial[down_action_history_[0].spatial];
   float fac_temp = kFactorTemporal[down_action_history_[0].temporal];
+  
+  
+  
+  if (down_action_history_[0].spatial == kOneQuarterSpatialUniform) {
+    fac_width = kFactorWidthSpatial[kOneQuarterSpatialUniform] /
+        kFactorWidthSpatial[kOneHalfSpatialUniform];
+    fac_height = kFactorHeightSpatial[kOneQuarterSpatialUniform] /
+        kFactorHeightSpatial[kOneHalfSpatialUniform];
+  }
 
   
   if (down_action_history_[0].spatial != kNoChangeSpatial &&
@@ -473,7 +486,6 @@ bool VCMQmResolution::ConditionForGoingUp(float fac_width,
                                           float scale_fac) {
   float estimated_transition_rate_up = GetTransitionRate(fac_width, fac_height,
                                                          fac_temp, scale_fac);
-
   
   
   
@@ -490,7 +502,6 @@ bool VCMQmResolution::GoingDownResolution() {
   float estimated_transition_rate_down =
       GetTransitionRate(1.0f, 1.0f, 1.0f, 1.0f);
   float max_rate = kFrameRateFac[framerate_level_] * kMaxRateQm[image_type_];
-
   
   
   
@@ -539,17 +550,13 @@ bool VCMQmResolution::GoingDownResolution() {
         assert(false);
       }
     }
-
     
     assert(action_.temporal == kNoChangeTemporal ||
            action_.spatial == kNoChangeSpatial);
 
     
+    
     AdjustAction();
-
-    ConvertSpatialFractionalToWhole();
-
-    CheckForEvenFrameSize();
 
     
     if (action_.spatial != kNoChangeSpatial ||
@@ -587,7 +594,6 @@ float VCMQmResolution::GetTransitionRate(float fac_width,
   
   
   float scaleTransRate = kScaleTransRateQm[table_index];
-
   
   return static_cast<float> (scale_fac * scaleTransRate * max_rate);
 }
@@ -596,13 +602,24 @@ void VCMQmResolution::UpdateDownsamplingState(UpDownAction up_down) {
   if (up_down == kUpResolution) {
     qm_->spatial_width_fact = 1.0f / kFactorWidthSpatial[action_.spatial];
     qm_->spatial_height_fact = 1.0f / kFactorHeightSpatial[action_.spatial];
+    
+    
+    if (action_.spatial == kOneQuarterSpatialUniform) {
+      qm_->spatial_width_fact =
+          1.0f * kFactorWidthSpatial[kOneHalfSpatialUniform] /
+          kFactorWidthSpatial[kOneQuarterSpatialUniform];
+      qm_->spatial_height_fact =
+          1.0f * kFactorHeightSpatial[kOneHalfSpatialUniform] /
+          kFactorHeightSpatial[kOneQuarterSpatialUniform];
+    }
     qm_->temporal_fact = 1.0f / kFactorTemporal[action_.temporal];
     RemoveLastDownAction();
   } else if (up_down == kDownResolution) {
+    ConstrainAmountOfDownSampling();
+    ConvertSpatialFractionalToWhole();
     qm_->spatial_width_fact = kFactorWidthSpatial[action_.spatial];
     qm_->spatial_height_fact = kFactorHeightSpatial[action_.spatial];
     qm_->temporal_fact = kFactorTemporal[action_.temporal];
-    ConstrainAmountOfDownSampling();
     InsertLatestDownAction();
   } else {
     
@@ -613,10 +630,6 @@ void VCMQmResolution::UpdateDownsamplingState(UpDownAction up_down) {
   state_dec_factor_spatial_ = state_dec_factor_spatial_ *
       qm_->spatial_width_fact * qm_->spatial_height_fact;
   state_dec_factor_temporal_ = state_dec_factor_temporal_ * qm_->temporal_fact;
-  assert(state_dec_factor_spatial_ >= 1.0f);
-  assert(state_dec_factor_spatial_ <= kMaxSpatialDown);
-  assert(state_dec_factor_temporal_ >= 1.0f);
-  assert(state_dec_factor_temporal_ <= kMaxTempDown);
 }
 
 void  VCMQmResolution::UpdateCodecResolution() {
@@ -629,6 +642,7 @@ void  VCMQmResolution::UpdateCodecResolution() {
     
     assert(qm_->codec_width <= native_width_);
     assert(qm_->codec_height <= native_height_);
+    
     
     assert(qm_->codec_width % 2 == 0);
     assert(qm_->codec_height % 2 == 0);
@@ -652,40 +666,51 @@ uint8_t VCMQmResolution::RateClass(float transition_rate) {
   (avg_target_rate_ >= transition_rate ? 2 : 1);
 }
 
+
+
 void VCMQmResolution::AdjustAction() {
   
   
   
   if (spatial_.level == kDefault && motion_.level != kHigh &&
+      action_.spatial != kNoChangeSpatial &&
       framerate_level_ == kFrameRateHigh) {
     action_.spatial = kNoChangeSpatial;
-    action_.temporal = kOneHalfTemporal;
+    action_.temporal = kTwoThirdsTemporal;
   }
   
   
+  
   if (motion_.level == kLow && spatial_.level == kLow &&
-      framerate_level_ == kFrameRateLow &&
+      framerate_level_ <= kFrameRateMiddle1 &&
       action_.temporal != kNoChangeTemporal) {
     action_.spatial = kOneHalfSpatialUniform;
     action_.temporal = kNoChangeTemporal;
   }
-
   
   
-  if (action_.spatial == kOneQuarterSpatialUniform &&
+  
+  if (action_.spatial != kNoChangeSpatial &&
       down_action_history_[0].spatial == kOneQuarterSpatialUniform &&
-      down_action_history_[0].temporal == kNoChangeTemporal &&
       framerate_level_ != kFrameRateLow) {
     action_.spatial = kNoChangeSpatial;
-    action_.temporal = kOneHalfTemporal;
+    action_.temporal = kTwoThirdsTemporal;
   }
-
   
   if (num_layers_ > 2) {
     if (action_.temporal !=  kNoChangeTemporal) {
       action_.spatial = kOneHalfSpatialUniform;
     }
     action_.temporal = kNoChangeTemporal;
+  }
+  
+  
+  if (action_.spatial != kNoChangeSpatial &&
+      !EvenFrameSize()) {
+    action_.spatial = kNoChangeSpatial;
+    
+    
+    action_.temporal = kTwoThirdsTemporal;
   }
 }
 
@@ -704,42 +729,57 @@ void VCMQmResolution::ConvertSpatialFractionalToWhole() {
       }
     }
     if (found) {
-      
-      state_dec_factor_spatial_ = state_dec_factor_spatial_ /
-          (kFactorWidthSpatial[kOneHalfSpatialUniform] *
-           kFactorHeightSpatial[kOneHalfSpatialUniform]);
-      width_ = width_ * kFactorWidthSpatial[kOneHalfSpatialUniform];
-      height_ = height_ * kFactorHeightSpatial[kOneHalfSpatialUniform];
-      
-      for (int i = isel; i < kDownActionHistorySize - 1; ++i) {
-        down_action_history_[i].spatial = down_action_history_[i + 1].spatial;
-      }
-      
-      action_.spatial = kOneQuarterSpatialUniform;
+       action_.spatial = kOneQuarterSpatialUniform;
+       state_dec_factor_spatial_ = state_dec_factor_spatial_ /
+           (kFactorWidthSpatial[kOneHalfSpatialUniform] *
+            kFactorHeightSpatial[kOneHalfSpatialUniform]);
+       
+       ConstrainAmountOfDownSampling();
+       if (action_.spatial == kNoChangeSpatial) {
+         
+         action_.spatial = kOneHalfSpatialUniform;
+         state_dec_factor_spatial_ = state_dec_factor_spatial_ *
+             kFactorWidthSpatial[kOneHalfSpatialUniform] *
+             kFactorHeightSpatial[kOneHalfSpatialUniform];
+       } else {
+         
+         
+         for (int i = isel; i < kDownActionHistorySize - 1; ++i) {
+           down_action_history_[i].spatial =
+               down_action_history_[i + 1].spatial;
+         }
+         width_ = width_ * kFactorWidthSpatial[kOneHalfSpatialUniform];
+         height_ = height_ * kFactorHeightSpatial[kOneHalfSpatialUniform];
+       }
     }
   }
 }
 
-void VCMQmResolution::CheckForEvenFrameSize() {
-  
-  
+
+
+bool VCMQmResolution::EvenFrameSize() {
   if (action_.spatial == kOneHalfSpatialUniform) {
-    if ((width_ * 3 / 4)%2 != 0 || (height_ * 3 / 4)%2 != 0) {
-      action_.spatial = kOneQuarterSpatialUniform;
+    if ((width_ * 3 / 4) % 2 != 0 || (height_ * 3 / 4) % 2 != 0) {
+      return false;
+    }
+  } else if (action_.spatial == kOneQuarterSpatialUniform) {
+    if ((width_ * 1 / 2) % 2 != 0 || (height_ * 1 / 2) % 2 != 0) {
+      return false;
     }
   }
+  return true;
 }
 
 void VCMQmResolution::InsertLatestDownAction() {
   if (action_.spatial != kNoChangeSpatial) {
     for (int i = kDownActionHistorySize - 1; i > 0; --i) {
-      down_action_history_[i].spatial =   down_action_history_[i - 1].spatial;
+      down_action_history_[i].spatial = down_action_history_[i - 1].spatial;
     }
     down_action_history_[0].spatial = action_.spatial;
   }
   if (action_.temporal != kNoChangeTemporal) {
     for (int i = kDownActionHistorySize - 1; i > 0; --i) {
-      down_action_history_[i].temporal =   down_action_history_[i - 1].temporal;
+      down_action_history_[i].temporal = down_action_history_[i - 1].temporal;
     }
     down_action_history_[0].temporal = action_.temporal;
   }
@@ -747,14 +787,20 @@ void VCMQmResolution::InsertLatestDownAction() {
 
 void VCMQmResolution::RemoveLastDownAction() {
   if (action_.spatial != kNoChangeSpatial) {
-    for (int i = 0; i< kDownActionHistorySize - 1; ++i) {
-      down_action_history_[i].spatial =   down_action_history_[i + 1].spatial;
+    
+    if (action_.spatial == kOneQuarterSpatialUniform) {
+      down_action_history_[0].spatial = kOneHalfSpatialUniform;
+    } else {
+      for (int i = 0; i < kDownActionHistorySize - 1; ++i) {
+        down_action_history_[i].spatial = down_action_history_[i + 1].spatial;
+      }
+      down_action_history_[kDownActionHistorySize - 1].spatial =
+          kNoChangeSpatial;
     }
-    down_action_history_[kDownActionHistorySize - 1].spatial = kNoChangeSpatial;
   }
   if (action_.temporal != kNoChangeTemporal) {
-    for (int i = 0; i< kDownActionHistorySize - 1; ++i) {
-      down_action_history_[i].temporal =   down_action_history_[i + 1].temporal;
+    for (int i = 0; i < kDownActionHistorySize - 1; ++i) {
+      down_action_history_[i].temporal = down_action_history_[i + 1].temporal;
     }
     down_action_history_[kDownActionHistorySize - 1].temporal =
         kNoChangeTemporal;
@@ -766,25 +812,42 @@ void VCMQmResolution::ConstrainAmountOfDownSampling() {
   
   
 
-  
-  
+  float spatial_width_fact = kFactorWidthSpatial[action_.spatial];
+  float spatial_height_fact = kFactorHeightSpatial[action_.spatial];
+  float temporal_fact = kFactorTemporal[action_.temporal];
   float new_dec_factor_spatial = state_dec_factor_spatial_ *
-      qm_->spatial_width_fact * qm_->spatial_height_fact;
+      spatial_width_fact * spatial_height_fact;
+  float new_dec_factor_temp = state_dec_factor_temporal_ * temporal_fact;
+
+  
+  
   if ((width_ * height_) <= kMinImageSize ||
       new_dec_factor_spatial > kMaxSpatialDown) {
     action_.spatial = kNoChangeSpatial;
-    qm_->change_resolution_spatial = false;
-    qm_->spatial_width_fact = 1.0f;
-    qm_->spatial_height_fact = 1.0f;
+    new_dec_factor_spatial = state_dec_factor_spatial_;
   }
   
   
-  float new_dec_factor_temp = state_dec_factor_temporal_ * qm_->temporal_fact;
   if (avg_incoming_framerate_ <= kMinFrameRate ||
-      new_dec_factor_temp >= kMaxTempDown) {
+      new_dec_factor_temp > kMaxTempDown) {
     action_.temporal = kNoChangeTemporal;
-    qm_->change_resolution_temporal = false;
-    qm_->temporal_fact = 1.0f;
+    new_dec_factor_temp = state_dec_factor_temporal_;
+  }
+  
+  
+  if (new_dec_factor_spatial * new_dec_factor_temp > kMaxTotalDown) {
+    if (action_.spatial != kNoChangeSpatial) {
+      action_.spatial = kNoChangeSpatial;
+    } else if (action_.temporal != kNoChangeTemporal) {
+      action_.temporal = kNoChangeTemporal;
+    } else {
+      
+      
+      
+      
+      
+      assert(false);
+    }
   }
 }
 

@@ -21,7 +21,7 @@ class FakeRtpRtcpClock : public RtpRtcpClock {
   }
   
   
-  virtual WebRtc_UWord32 GetTimeInMS() {
+  virtual WebRtc_Word64 GetTimeInMS() {
     return time_in_ms_;
   }
   
@@ -33,17 +33,20 @@ class FakeRtpRtcpClock : public RtpRtcpClock {
     time_in_ms_ += time_increment_ms;
   }
  private:
-  WebRtc_UWord32 time_in_ms_;
+  WebRtc_Word64 time_in_ms_;
 };
 
 
 
 class LoopBackTransport : public webrtc::Transport {
  public:
-  LoopBackTransport(RtpRtcp* rtpRtcpModule)
+  LoopBackTransport()
     : _count(0),
       _packetLoss(0),
-      _rtpRtcpModule(rtpRtcpModule) {
+      _rtpRtcpModule(NULL) {
+  }
+  void SetSendModule(RtpRtcp* rtpRtcpModule) {
+    _rtpRtcpModule = rtpRtcpModule;
   }
   void DropEveryNthPacket(int n) {
     _packetLoss = n;

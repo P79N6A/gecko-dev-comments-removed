@@ -17,11 +17,11 @@ test = TestGyp.TestGyp(format='gypd')
 
 expect = test.read('filelist.gyp.stdout')
 if sys.platform == 'win32':
-  expect = expect.replace('/', r'\\').replace('\r', '')
+  expect = expect.replace('/', r'\\').replace('\r\n', '\n')
 
 test.run_gyp('src/filelist.gyp',
-             '--debug', 'variables', '--debug', 'general',
-             stdout=expect)
+             '--debug', 'variables',
+             stdout=expect, ignore_line_numbers=True)
 
 
 

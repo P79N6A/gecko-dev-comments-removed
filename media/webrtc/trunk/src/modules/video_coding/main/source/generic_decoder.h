@@ -38,7 +38,7 @@ public:
     virtual ~VCMDecodedFrameCallback();
     void SetUserReceiveCallback(VCMReceiveCallback* receiveCallback);
 
-    virtual WebRtc_Word32 Decoded(RawImage& decodedImage);
+    virtual WebRtc_Word32 Decoded(VideoFrame& decodedImage);
     virtual WebRtc_Word32 ReceivedDecodedReferenceFrame(const WebRtc_UWord64 pictureId);
     virtual WebRtc_Word32 ReceivedDecodedFrame(const WebRtc_UWord64 pictureId);
 

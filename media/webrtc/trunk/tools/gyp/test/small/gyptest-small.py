@@ -27,6 +27,8 @@ files_to_test = [
     'pylib/gyp/MSVSSettings_test.py',
     'pylib/gyp/easy_xml_test.py',
     'pylib/gyp/generator/msvs_test.py',
+    'pylib/gyp/generator/ninja_test.py',
+    'pylib/gyp/common_test.py',
 ]
 
 

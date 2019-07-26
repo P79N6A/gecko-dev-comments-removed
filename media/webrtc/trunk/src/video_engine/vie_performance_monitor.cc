@@ -8,29 +8,26 @@
 
 
 
-#include "vie_performance_monitor.h"
+#include "video_engine/vie_performance_monitor.h"
 
-#include "cpu_wrapper.h"
-#include "critical_section_wrapper.h"
-#include "event_wrapper.h"
-#include "thread_wrapper.h"
-#include "tick_util.h"
-#include "trace.h"
-#include "vie_base.h"
-#include "vie_defines.h"
+#include "system_wrappers/interface/cpu_wrapper.h"
+#include "system_wrappers/interface/critical_section_wrapper.h"
+#include "system_wrappers/interface/event_wrapper.h"
+#include "system_wrappers/interface/thread_wrapper.h"
+#include "system_wrappers/interface/tick_util.h"
+#include "system_wrappers/interface/trace.h"
+#include "video_engine/include/vie_base.h"
+#include "video_engine/vie_defines.h"
 
 namespace webrtc {
 
 enum { kVieMonitorPeriodMs = 975 };
-enum { kVieCpuStartValue = 75 };
 
 ViEPerformanceMonitor::ViEPerformanceMonitor(int engine_id)
     : engine_id_(engine_id),
       pointer_cs_(CriticalSectionWrapper::CreateCriticalSection()),
       monitor_thread_(NULL),
       monitor_event_(*EventWrapper::Create()),
-      average_application_cpu_(kVieCpuStartValue),
-      average_system_cpu_(kVieCpuStartValue),
       cpu_(NULL),
       vie_base_observer_(NULL) {
 }

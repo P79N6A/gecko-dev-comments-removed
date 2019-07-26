@@ -12,7 +12,8 @@ directory tree.
 
 import TestGyp
 
-test = TestGyp.TestGyp(formats=['!ninja'])
+
+test = TestGyp.TestGyp(formats=['!ninja', '!android'])
 
 test.writable(test.workpath('src'), False)
 

@@ -122,7 +122,7 @@ class TestInfoImpl;
 class UnitTestImpl;                    
 
 
-extern int g_init_gtest_count;
+GTEST_API_ extern int g_init_gtest_count;
 
 
 
@@ -194,67 +194,6 @@ class GTEST_API_ ScopedTrace {
 
 template <typename T>
 String StreamableToString(const T& streamable);
-
-
-
-
-
-
-#if defined(__SYMBIAN32__)
-# define GTEST_CREF_WORKAROUND_ const&
-#else
-# define GTEST_CREF_WORKAROUND_
-#endif
-
-
-
-
-
-
-
-#define GTEST_FORMAT_IMPL_(operand2_type, operand1_printer)\
-inline String FormatForComparisonFailureMessage(\
-    operand2_type::value_type* GTEST_CREF_WORKAROUND_ str, \
-    const operand2_type& /*operand2*/) {\
-  return operand1_printer(str);\
-}\
-inline String FormatForComparisonFailureMessage(\
-    const operand2_type::value_type* GTEST_CREF_WORKAROUND_ str, \
-    const operand2_type& /*operand2*/) {\
-  return operand1_printer(str);\
-}
-
-GTEST_FORMAT_IMPL_(::std::string, String::ShowCStringQuoted)
-#if GTEST_HAS_STD_WSTRING
-GTEST_FORMAT_IMPL_(::std::wstring, String::ShowWideCStringQuoted)
-#endif  
-
-#if GTEST_HAS_GLOBAL_STRING
-GTEST_FORMAT_IMPL_(::string, String::ShowCStringQuoted)
-#endif  
-#if GTEST_HAS_GLOBAL_WSTRING
-GTEST_FORMAT_IMPL_(::wstring, String::ShowWideCStringQuoted)
-#endif  
-
-#undef GTEST_FORMAT_IMPL_
-
-
-
-
-
-#define GTEST_FORMAT_CHAR_PTR_IMPL_(CharType)                       \
-  template <typename T>                                             \
-  String FormatForComparisonFailureMessage(CharType* GTEST_CREF_WORKAROUND_ p, \
-                                           const T&) { \
-    return PrintToString(static_cast<const void*>(p));              \
-  }
-
-GTEST_FORMAT_CHAR_PTR_IMPL_(char)
-GTEST_FORMAT_CHAR_PTR_IMPL_(const char)
-GTEST_FORMAT_CHAR_PTR_IMPL_(wchar_t)
-GTEST_FORMAT_CHAR_PTR_IMPL_(const wchar_t)
-
-#undef GTEST_FORMAT_CHAR_PTR_IMPL_
 
 
 
@@ -797,11 +736,17 @@ struct RemoveConst<const T> { typedef T type; };
 
 
 
-
-
-#if defined(_MSC_VER) || defined(__SUNPRO_CC) || defined(__IBMCPP__)
 template <typename T, size_t N>
 struct RemoveConst<const T[N]> {
+  typedef typename RemoveConst<T>::type type[N];
+};
+
+#if defined(_MSC_VER) && _MSC_VER < 1400
+
+
+
+template <typename T, size_t N>
+struct RemoveConst<T[N]> {
   typedef typename RemoveConst<T>::type type[N];
 };
 #endif

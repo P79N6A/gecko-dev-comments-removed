@@ -48,7 +48,7 @@ int32_t RtpHeaderExtensionMap::Register(const RTPExtensionType type,
 int32_t RtpHeaderExtensionMap::Deregister(const RTPExtensionType type) {
   uint8_t id;
   if (GetId(type, &id) != 0) {
-    return -1;
+    return 0;
   }
   std::map<uint8_t, HeaderExtension*>::iterator it =
       extensionMap_.find(id);

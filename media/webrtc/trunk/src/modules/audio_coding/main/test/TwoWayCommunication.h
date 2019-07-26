@@ -28,7 +28,6 @@ public:
     void Perform();
 private:
     WebRtc_UWord8 ChooseCodec(WebRtc_UWord8* codecID_A, WebRtc_UWord8* codecID_B);
-    WebRtc_Word16 ChooseFile(char* fileName, WebRtc_Word16 maxLen, WebRtc_UWord16* frequencyHz);
     WebRtc_Word16 SetUp();
     WebRtc_Word16 SetUpAutotest();
 
@@ -52,9 +51,6 @@ private:
 
     PCMFile _outFileRefA;
     PCMFile _outFileRefB;
-
-    DTMFDetector* _dtmfDetectorA;
-    DTMFDetector* _dtmfDetectorB;
 
     int _testMode;
 };

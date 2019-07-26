@@ -8,7 +8,7 @@
 
 
 
-#ifndef INCLUDE_LIBYUV_ROTATE_H_
+#ifndef INCLUDE_LIBYUV_ROTATE_H_  
 #define INCLUDE_LIBYUV_ROTATE_H_
 
 #include "libyuv/basic_types.h"
@@ -20,7 +20,7 @@ extern "C" {
 
 
 enum RotationMode {
-  kRotate0 = 0, 
+  kRotate0 = 0,  
   kRotate90 = 90,  
   kRotate180 = 180,  
   kRotate270 = 270,  
@@ -38,8 +38,7 @@ int I420Rotate(const uint8* src_y, int src_stride_y,
                uint8* dst_y, int dst_stride_y,
                uint8* dst_u, int dst_stride_u,
                uint8* dst_v, int dst_stride_v,
-               int width, int height,
-               RotationMode mode);
+               int src_width, int src_height, RotationMode mode);
 
 
 int NV12ToI420Rotate(const uint8* src_y, int src_stride_y,
@@ -47,8 +46,7 @@ int NV12ToI420Rotate(const uint8* src_y, int src_stride_y,
                      uint8* dst_y, int dst_stride_y,
                      uint8* dst_u, int dst_stride_u,
                      uint8* dst_v, int dst_stride_v,
-                     int width, int height,
-                     RotationMode mode);
+                     int src_width, int src_height, RotationMode mode);
 
 #ifdef __cplusplus
 }  

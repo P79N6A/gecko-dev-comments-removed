@@ -13,8 +13,7 @@
 
 namespace webrtc {
 
-ACMDTMFDetection::ACMDTMFDetection()
-    : _init(0) {}
+ACMDTMFDetection::ACMDTMFDetection() {}
 
 ACMDTMFDetection::~ACMDTMFDetection() {}
 
@@ -32,13 +31,6 @@ WebRtc_Word16 ACMDTMFDetection::Detect(
     const WebRtc_Word32 ,
     bool& ,
     WebRtc_Word16& ) {
-  return -1;
-}
-
-WebRtc_Word16 ACMDTMFDetection::GetVersion(
-    WebRtc_Word8* ,
-    WebRtc_UWord32& ,
-    WebRtc_UWord32& ) {
   return -1;
 }
 

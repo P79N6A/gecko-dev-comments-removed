@@ -12,7 +12,7 @@ target of 'all'.
 import TestGyp
 
 
-test = TestGyp.TestGyp(formats=['!ninja'])
+test = TestGyp.TestGyp(formats=['!ninja', '!android'])
 
 test.writable(test.workpath('copies'), False)
 

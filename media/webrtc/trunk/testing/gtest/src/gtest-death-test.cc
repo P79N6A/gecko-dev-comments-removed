@@ -43,6 +43,11 @@
 # include <errno.h>
 # include <fcntl.h>
 # include <limits.h>
+
+# if GTEST_OS_LINUX
+#  include <signal.h>
+# endif  
+
 # include <stdarg.h>
 
 # if GTEST_OS_WINDOWS
@@ -50,6 +55,10 @@
 # else
 #  include <sys/mman.h>
 #  include <sys/wait.h>
+# endif  
+
+# if GTEST_OS_QNX
+#  include <spawn.h>
 # endif  
 
 #endif  
@@ -100,12 +109,41 @@ GTEST_DEFINE_string_(
     "Indicates the file, line number, temporal index of "
     "the single death test to run, and a file descriptor to "
     "which a success code may be sent, all separated by "
-    "colons.  This flag is specified if and only if the current "
+    "the '|' characters.  This flag is specified if and only if the current "
     "process is a sub-process launched for running a thread-safe "
     "death test.  FOR INTERNAL USE ONLY.");
 }  
 
 #if GTEST_HAS_DEATH_TEST
+
+namespace internal {
+
+
+
+static bool g_in_fast_death_test_child = false;
+
+
+
+
+
+
+bool InDeathTestChild() {
+# if GTEST_OS_WINDOWS
+
+  
+  
+  return !GTEST_FLAG(internal_run_death_test).empty();
+
+# else
+
+  if (GTEST_FLAG(death_test_style) == "threadsafe")
+    return !GTEST_FLAG(internal_run_death_test).empty();
+  else
+    return g_in_fast_death_test_child;
+#endif
+}
+
+}  
 
 
 ExitedWithCode::ExitedWithCode(int exit_code) : exit_code_(exit_code) {
@@ -816,6 +854,7 @@ DeathTest::TestRole NoExecDeathTest::AssumeRole() {
     
     
     GetUnitTestImpl()->listeners()->SuppressEventForwarding();
+    g_in_fast_death_test_child = true;
     return EXECUTE_TEST;
   } else {
     GTEST_DEATH_TEST_CHECK_SYSCALL_(close(pipe_fd[1]));
@@ -835,6 +874,11 @@ class ExecDeathTest : public ForkingDeathTest {
       ForkingDeathTest(a_statement, a_regex), file_(file), line_(line) { }
   virtual TestRole AssumeRole();
  private:
+  static ::std::vector<testing::internal::string>
+  GetArgvsForDeathTestChildProcess() {
+    ::std::vector<testing::internal::string> args = GetInjectableArgvs();
+    return args;
+  }
   
   const char* const file_;
   
@@ -869,6 +913,7 @@ class Arguments {
   char* const* Argv() {
     return &args_[0];
   }
+
  private:
   std::vector<char*> args_;
 };
@@ -890,10 +935,11 @@ inline char** GetEnviron() {
 #  else
 
 
-extern "C" char** environ;
+extern "C" __attribute__ ((visibility ("default"))) char** environ;
 inline char** GetEnviron() { return environ; }
 #  endif  
 
+#  if !GTEST_OS_QNX
 
 
 
@@ -926,6 +972,7 @@ static int ExecDeathTestChildMain(void* child_arg) {
                                 GetLastErrnoDescription().c_str()));
   return EXIT_FAILURE;
 }
+#  endif  
 
 
 
@@ -936,25 +983,76 @@ static int ExecDeathTestChildMain(void* child_arg) {
 
 
 
-bool StackLowerThanAddress(const void* ptr) GTEST_NO_INLINE_;
-bool StackLowerThanAddress(const void* ptr) {
+void StackLowerThanAddress(const void* ptr, bool* result) GTEST_NO_INLINE_;
+void StackLowerThanAddress(const void* ptr, bool* result) {
   int dummy;
-  return &dummy < ptr;
+  *result = (&dummy < ptr);
 }
 
 bool StackGrowsDown() {
   int dummy;
-  return StackLowerThanAddress(&dummy);
+  bool result;
+  StackLowerThanAddress(&dummy, &result);
+  return result;
 }
 
 
 
 
-static pid_t ExecDeathTestFork(char* const* argv, int close_fd) {
+
+
+
+
+static pid_t ExecDeathTestSpawnChild(char* const* argv, int close_fd) {
   ExecDeathTestArgs args = { argv, close_fd };
   pid_t child_pid = -1;
 
-#  if GTEST_HAS_CLONE
+#  if GTEST_OS_QNX
+  
+  
+  const int cwd_fd = open(".", O_RDONLY);
+  GTEST_DEATH_TEST_CHECK_(cwd_fd != -1);
+  GTEST_DEATH_TEST_CHECK_SYSCALL_(fcntl(cwd_fd, F_SETFD, FD_CLOEXEC));
+  
+  
+  
+  const char* const original_dir =
+      UnitTest::GetInstance()->original_working_dir();
+  
+  if (chdir(original_dir) != 0) {
+    DeathTestAbort(String::Format("chdir(\"%s\") failed: %s",
+                                  original_dir,
+                                  GetLastErrnoDescription().c_str()));
+    return EXIT_FAILURE;
+  }
+
+  int fd_flags;
+  
+  GTEST_DEATH_TEST_CHECK_SYSCALL_(fd_flags = fcntl(close_fd, F_GETFD));
+  GTEST_DEATH_TEST_CHECK_SYSCALL_(fcntl(close_fd, F_SETFD,
+                                        fd_flags | FD_CLOEXEC));
+  struct inheritance inherit = {0};
+  
+  child_pid = spawn(args.argv[0], 0, NULL, &inherit, args.argv, GetEnviron());
+  
+  GTEST_DEATH_TEST_CHECK_(fchdir(cwd_fd) != -1);
+  GTEST_DEATH_TEST_CHECK_SYSCALL_(close(cwd_fd));
+
+#  else   
+#   if GTEST_OS_LINUX
+  
+  
+  
+  struct sigaction saved_sigprof_action;
+  struct sigaction ignore_sigprof_action;
+  memset(&ignore_sigprof_action, 0, sizeof(ignore_sigprof_action));
+  sigemptyset(&ignore_sigprof_action.sa_mask);
+  ignore_sigprof_action.sa_handler = SIG_IGN;
+  GTEST_DEATH_TEST_CHECK_SYSCALL_(sigaction(
+      SIGPROF, &ignore_sigprof_action, &saved_sigprof_action));
+#   endif  
+
+#   if GTEST_HAS_CLONE
   const bool use_fork = GTEST_FLAG(death_test_use_fork);
 
   if (!use_fork) {
@@ -964,21 +1062,37 @@ static pid_t ExecDeathTestFork(char* const* argv, int close_fd) {
     void* const stack = mmap(NULL, stack_size, PROT_READ | PROT_WRITE,
                              MAP_ANON | MAP_PRIVATE, -1, 0);
     GTEST_DEATH_TEST_CHECK_(stack != MAP_FAILED);
+
+    
+    
+    
+    
+    
+    
+    const size_t kMaxStackAlignment = 64;
     void* const stack_top =
-        static_cast<char*>(stack) + (stack_grows_down ? stack_size : 0);
+        static_cast<char*>(stack) +
+            (stack_grows_down ? stack_size - kMaxStackAlignment : 0);
+    GTEST_DEATH_TEST_CHECK_(stack_size > kMaxStackAlignment &&
+        reinterpret_cast<intptr_t>(stack_top) % kMaxStackAlignment == 0);
 
     child_pid = clone(&ExecDeathTestChildMain, stack_top, SIGCHLD, &args);
 
     GTEST_DEATH_TEST_CHECK_(munmap(stack, stack_size) != -1);
   }
-#  else
+#   else
   const bool use_fork = true;
-#  endif  
+#   endif  
 
   if (use_fork && (child_pid = fork()) == 0) {
       ExecDeathTestChildMain(&args);
       _exit(0);
   }
+#  endif  
+#  if GTEST_OS_LINUX
+  GTEST_DEATH_TEST_CHECK_SYSCALL_(
+      sigaction(SIGPROF, &saved_sigprof_action, NULL));
+#  endif  
 
   GTEST_DEATH_TEST_CHECK_(child_pid != -1);
   return child_pid;
@@ -1015,7 +1129,7 @@ DeathTest::TestRole ExecDeathTest::AssumeRole() {
                      GTEST_FLAG_PREFIX_, kInternalRunDeathTestFlag,
                      file_, line_, death_test_index, pipe_fd[1]);
   Arguments args;
-  args.AddArguments(GetArgvs());
+  args.AddArguments(GetArgvsForDeathTestChildProcess());
   args.AddArgument(filter_flag.c_str());
   args.AddArgument(internal_flag.c_str());
 
@@ -1026,7 +1140,7 @@ DeathTest::TestRole ExecDeathTest::AssumeRole() {
   
   FlushInfoLog();
 
-  const pid_t child_pid = ExecDeathTestFork(args.Argv(), pipe_fd[0]);
+  const pid_t child_pid = ExecDeathTestSpawnChild(args.Argv(), pipe_fd[0]);
   GTEST_DEATH_TEST_CHECK_SYSCALL_(close(pipe_fd[1]));
   set_child_pid(child_pid);
   set_read_fd(pipe_fd[0]);

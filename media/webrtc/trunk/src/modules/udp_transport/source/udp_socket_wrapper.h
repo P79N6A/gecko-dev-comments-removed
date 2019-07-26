@@ -40,7 +40,6 @@ typedef void(*IncomingSocketCallback)(CallbackObj obj, const WebRtc_Word8* buf,
 class UdpSocketWrapper
 {
 public:
-    virtual ~UdpSocketWrapper();
     static UdpSocketWrapper* CreateSocket(const WebRtc_Word32 id,
                                           UdpSocketManager* mgr,
                                           CallbackObj obj,
@@ -97,7 +96,10 @@ public:
     virtual WebRtc_UWord32 ReceiveBuffers() {return 0;};
 
 protected:
+    
     UdpSocketWrapper();
+    
+    virtual ~UdpSocketWrapper();
 
     bool _wantsIncoming;
     EventWrapper*  _deleteEvent;

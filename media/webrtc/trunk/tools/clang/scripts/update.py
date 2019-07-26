@@ -25,10 +25,9 @@ def main():
   
   
   
-  
   return subprocess.call(
       [os.path.join(os.path.dirname(__file__), 'update.sh')] +  sys.argv[1:],
-      stderr=sys.stdin)
+      stderr=os.fdopen(os.dup(sys.stdin.fileno())))
 
 
 if __name__ == '__main__':

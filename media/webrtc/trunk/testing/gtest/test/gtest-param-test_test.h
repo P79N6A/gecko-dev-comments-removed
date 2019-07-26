@@ -43,12 +43,14 @@
 
 
 
-class ExternalInstantiationTest : public ::testing::TestWithParam<int> {};
+class ExternalInstantiationTest : public ::testing::TestWithParam<int> {
+};
 
 
 
 class InstantiationInMultipleTranslaionUnitsTest
-    : public ::testing::TestWithParam<int> {};
+    : public ::testing::TestWithParam<int> {
+};
 
 #endif  
 

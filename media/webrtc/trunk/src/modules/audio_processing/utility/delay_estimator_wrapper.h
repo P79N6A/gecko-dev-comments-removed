@@ -45,10 +45,9 @@ void WebRtc_FreeDelayEstimator(void* handle);
 
 
 
-int WebRtc_CreateDelayEstimator(void** handle,
-                                int spectrum_size,
-                                int max_delay,
-                                int lookahead);
+
+void* WebRtc_CreateDelayEstimator(int spectrum_size, int max_delay,
+                                  int lookahead);
 
 
 

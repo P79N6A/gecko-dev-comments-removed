@@ -17,12 +17,13 @@
 #include <fstream>
 #include <cstdlib>
 
-class Test
+class CodecTest
 {
 public:
-    Test(std::string name, std::string description);
-    Test(std::string name, std::string description, WebRtc_UWord32 bitRate);
-    virtual ~Test() {};
+    CodecTest(std::string name, std::string description);
+    CodecTest(std::string name, std::string description,
+              WebRtc_UWord32 bitRate);
+    virtual ~CodecTest() {};
     virtual void Perform()=0;
     virtual void Print();
     void SetEncoder(webrtc::VideoEncoder *encoder);
@@ -40,9 +41,10 @@ protected:
     virtual bool PacketLoss(double lossRate, int );
     static double RandUniform() { return (std::rand() + 1.0)/(RAND_MAX + 1.0); }
     static void VideoBufferToRawImage(TestVideoBuffer& videoBuffer,
-                                      webrtc::RawImage &image);
-    static void VideoEncodedBufferToEncodedImage(TestVideoEncodedBuffer& videoBuffer,
-                                                 webrtc::EncodedImage &image);
+                                      webrtc::VideoFrame &image);
+    static void VideoEncodedBufferToEncodedImage(
+        TestVideoEncodedBuffer& videoBuffer,
+        webrtc::EncodedImage &image);
 
     webrtc::VideoEncoder*   _encoder;
     webrtc::VideoDecoder*   _decoder;

@@ -8,7 +8,7 @@
 
 
 
-#include "assert.h"
+#include <assert.h>
 
 #include "system_wrappers/interface/rw_lock_wrapper.h"
 #include "video_engine/vie_manager_base.h"
@@ -50,8 +50,8 @@ ViEManagerScopedBase::~ViEManagerScopedBase() {
   vie_manager_->ReleaseLockManager();
 }
 
-ViEManagerWriteScoped::ViEManagerWriteScoped(ViEManagerBase& vie_manager)
-    : vie_manager_(&vie_manager) {
+ViEManagerWriteScoped::ViEManagerWriteScoped(ViEManagerBase* vie_manager)
+    : vie_manager_(vie_manager) {
   vie_manager_->WriteLockManager();
 }
 
@@ -60,13 +60,13 @@ ViEManagerWriteScoped::~ViEManagerWriteScoped() {
 }
 
 ViEManagedItemScopedBase::ViEManagedItemScopedBase(
-    ViEManagerScopedBase& vie_scoped_manager)
+    ViEManagerScopedBase* vie_scoped_manager)
     : vie_scoped_manager_(vie_scoped_manager) {
-  vie_scoped_manager_.ref_count_++;
+  vie_scoped_manager_->ref_count_++;
 }
 
 ViEManagedItemScopedBase::~ViEManagedItemScopedBase() {
-  vie_scoped_manager_.ref_count_--;
+  vie_scoped_manager_->ref_count_--;
 }
 
 }  

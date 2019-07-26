@@ -10,7 +10,6 @@
 
 #include <vector>
 
-#include "gflags/gflags.h"
 #include "gtest/gtest.h"
 #include "testsupport/fileutils.h"
 #include "testsupport/metrics/video_metrics.h"
@@ -184,7 +183,9 @@ TEST_F(ViEVideoVerificationTest, RunsCodecTestWithoutErrors)  {
 
 
 
-TEST_F(ViEVideoVerificationTest, RunsFullStackWithoutErrors)  {
+
+
+TEST_F(ViEVideoVerificationTest, DISABLED_RunsFullStackWithoutErrors)  {
   FrameDropDetector detector;
   local_file_renderer_ = new ViEToFileRenderer();
   remote_file_renderer_ = new FrameDropMonitoringRemoteFileRenderer(&detector);

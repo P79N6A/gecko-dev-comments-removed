@@ -168,7 +168,11 @@ int main(int argc, char* argv[])
 
     
 
-    fwrite(encoded_data, sizeof(WebRtc_Word16), ((len+1)/sizeof(WebRtc_Word16)), efileid);
+    if (fwrite(encoded_data, sizeof(WebRtc_Word16),
+               ((len+1)/sizeof(WebRtc_Word16)), efileid) !=
+        (size_t)(((len+1)/sizeof(WebRtc_Word16)))) {
+      return -1;
+    }
 
     
     if (argc==6) {
@@ -204,7 +208,10 @@ int main(int argc, char* argv[])
 
     
 
-    fwrite(decoded_data,sizeof(WebRtc_Word16),len,ofileid);
+    if (fwrite(decoded_data, sizeof(WebRtc_Word16), len,
+               ofileid) != (size_t)len) {
+      return -1;
+    }
   }
 
   

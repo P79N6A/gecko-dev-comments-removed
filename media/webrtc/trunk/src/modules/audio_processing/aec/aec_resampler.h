@@ -25,11 +25,11 @@ int WebRtcAec_FreeResampler(void *resampInst);
 int WebRtcAec_GetSkew(void *resampInst, int rawSkew, float *skewEst);
 
 
-
-int WebRtcAec_ResampleLinear(void *resampInst,
-                             const short *inspeech,
-                             int size,
-                             float skew,
-                             short *outspeech);
+void WebRtcAec_ResampleLinear(void *resampInst,
+                              const short *inspeech,
+                              int size,
+                              float skew,
+                              short *outspeech,
+                              int *size_out);
 
 #endif  

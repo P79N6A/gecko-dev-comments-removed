@@ -16,8 +16,8 @@ namespace webrtc {
 class RWLockWrapper;
 
 class ViEManagerBase {
-  friend class ViEManagerScopedBase;
   friend class ViEManagedItemScopedBase;
+  friend class ViEManagerScopedBase;
   friend class ViEManagerWriteScoped;
  public:
   ViEManagerBase();
@@ -41,7 +41,7 @@ class ViEManagerBase {
 
 class ViEManagerWriteScoped {
  public:
-  explicit ViEManagerWriteScoped(ViEManagerBase& vie_manager);
+  explicit ViEManagerWriteScoped(ViEManagerBase* vie_manager);
   ~ViEManagerWriteScoped();
 
  private:
@@ -63,10 +63,11 @@ class ViEManagerScopedBase {
 
 class ViEManagedItemScopedBase {
  public:
-  explicit ViEManagedItemScopedBase(ViEManagerScopedBase& vie_scoped_manager);
+  explicit ViEManagedItemScopedBase(ViEManagerScopedBase* vie_scoped_manager);
   ~ViEManagedItemScopedBase();
+
  protected:
-  ViEManagerScopedBase& vie_scoped_manager_;
+  ViEManagerScopedBase* vie_scoped_manager_;
 };
 
 }  

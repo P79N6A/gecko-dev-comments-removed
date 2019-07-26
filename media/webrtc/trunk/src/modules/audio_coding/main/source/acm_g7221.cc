@@ -80,7 +80,6 @@
 
 
 
-
 #include "g7221_interface.h"
 #endif
 
@@ -159,11 +158,6 @@ void ACMG722_1::DestructDecoderSafe() {
 
 void ACMG722_1::InternalDestructEncoderInst(void* ) {
   return;
-}
-
-WebRtc_Word16 ACMG722_1::UnregisterFromNetEqSafe(
-    ACMNetEQ* ,  WebRtc_Word16 ) {
-  return -1;
 }
 
 #else     
@@ -491,36 +485,6 @@ void ACMG722_1::InternalDestructEncoderInst(void* ptrInst) {
     delete ptrInst;
   }
   return;
-}
-
-WebRtc_Word16 ACMG722_1::UnregisterFromNetEqSafe(ACMNetEQ* netEq,
-                                                 WebRtc_Word16 payloadType) {
-  if (payloadType != _decoderParams.codecInstant.pltype) {
-    WEBRTC_TRACE(webrtc::kTraceError,
-                 webrtc::kTraceAudioCoding,
-                 _uniqueID,
-                 "Cannot unregister codec %s given payload-type %d does not "
-                 "match the stored payload type",
-                 _decoderParams.codecInstant.plname, payloadType,
-                 _decoderParams.codecInstant.pltype);
-    return -1;
-  }
-  switch (_operationalRate) {
-    case 16000: {
-      return netEq->RemoveCodec(kDecoderG722_1_16);
-    }
-    case 24000: {
-      return netEq->RemoveCodec(kDecoderG722_1_24);
-    }
-    case 32000: {
-      return netEq->RemoveCodec(kDecoderG722_1_32);
-    }
-    default: {
-      WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-                   "UnregisterFromNetEqSafe: Wrong rate for G722_1.");
-      return -1;
-    }
-  }
 }
 
 #endif

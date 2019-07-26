@@ -47,12 +47,13 @@ typedef struct {
 
 
 
+
+
 void WebRtc_FreeBinaryDelayEstimator(BinaryDelayEstimator* handle);
 
 
-int WebRtc_CreateBinaryDelayEstimator(BinaryDelayEstimator** handle,
-                                      int max_delay,
-                                      int lookahead);
+BinaryDelayEstimator* WebRtc_CreateBinaryDelayEstimator(int max_delay,
+                                                        int lookahead);
 
 
 
@@ -62,7 +63,7 @@ int WebRtc_CreateBinaryDelayEstimator(BinaryDelayEstimator** handle,
 
 
 
-int WebRtc_InitBinaryDelayEstimator(BinaryDelayEstimator* handle);
+void WebRtc_InitBinaryDelayEstimator(BinaryDelayEstimator* handle);
 
 
 
@@ -96,18 +97,6 @@ int WebRtc_ProcessBinarySpectrum(BinaryDelayEstimator* handle,
 
 
 int WebRtc_binary_last_delay(BinaryDelayEstimator* handle);
-
-
-
-
-
-
-
-
-
-
-
-int WebRtc_history_size(BinaryDelayEstimator* handle);
 
 
 

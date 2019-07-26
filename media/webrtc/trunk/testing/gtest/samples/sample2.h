@@ -44,7 +44,6 @@ class MyString {
   const MyString& operator=(const MyString& rhs);
 
  public:
-
   
   static const char* CloneCString(const char* a_c_string);
 

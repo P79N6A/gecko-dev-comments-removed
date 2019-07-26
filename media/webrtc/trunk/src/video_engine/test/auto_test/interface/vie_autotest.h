@@ -59,6 +59,7 @@ public:
     int ViELoopbackCall();
     int ViESimulcastCall();
     int ViECustomCall();
+    int ViERecordCall();
 
     
     

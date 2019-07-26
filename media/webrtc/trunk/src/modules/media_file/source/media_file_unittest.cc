@@ -11,7 +11,7 @@
 #include "gtest/gtest.h"
 #include "modules/media_file/interface/media_file.h"
 #include "testsupport/fileutils.h"
-#include "voice_engine/main/source/voice_engine_defines.h" 
+#include "voice_engine/voice_engine_defines.h" 
 
 class MediaFileTest : public testing::Test {
  protected:
@@ -31,7 +31,7 @@ TEST_F(MediaFileTest, StartPlayingAudioFileWithoutError) {
   
   
   const std::string audio_file = webrtc::test::ProjectRootPath() +
-      "test/data/voice_engine/audio_tiny48.wav";
+      "data/voice_engine/audio_tiny48.wav";
   ASSERT_EQ(0, media_file_->StartPlayingAudioFile(
       audio_file.c_str(),
       0,

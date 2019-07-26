@@ -13,6 +13,7 @@
 
 #include <string>
 
+#include "constructor_magic.h"
 #include "common_types.h"
 #include "video_engine/include/vie_base.h"
 #include "video_engine/include/vie_capture.h"
@@ -31,7 +32,7 @@ class TbInterfaces
 {
 public:
     
-    TbInterfaces(std::string test_name);
+    TbInterfaces(const std::string& test_name);
     ~TbInterfaces(void);
 
     webrtc::VideoEngine* video_engine;
@@ -47,6 +48,9 @@ public:
     int LastError() {
         return base->LastError();
     }
+
+private:
+    DISALLOW_COPY_AND_ASSIGN(TbInterfaces);
 };
 
 #endif  

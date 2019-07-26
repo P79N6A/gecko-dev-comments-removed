@@ -419,7 +419,7 @@ class XCObject(object):
       hash.update(struct.pack('>i', len(data)))
       hash.update(data)
 
-    if hash == None:
+    if hash is None:
       hash = _new_sha1()
 
     hashables = self.Hashables()
@@ -431,7 +431,7 @@ class XCObject(object):
       for child in self.Children():
         child.ComputeIDs(recursive, overwrite, hash.copy())
 
-    if overwrite or self.id == None:
+    if overwrite or self.id is None:
       
       
       
@@ -736,7 +736,7 @@ class XCObject(object):
     references added.
     """
 
-    if properties == None:
+    if properties is None:
       return
 
     for property, value in properties.iteritems():
@@ -918,7 +918,7 @@ class XCHierarchicalElement(XCObject):
         self._properties['sourceTree'] = source_tree
       if path != None:
         self._properties['path'] = path
-      if source_tree != None and path == None and \
+      if source_tree != None and path is None and \
          not 'name' in self._properties:
         
         
@@ -1068,7 +1068,7 @@ class XCHierarchicalElement(XCObject):
     xche = self
     path = None
     while isinstance(xche, XCHierarchicalElement) and \
-          (path == None or \
+          (path is None or \
            (not path.startswith('/') and not path.startswith('$'))):
       this_path = xche.PathFromSourceTreeAndPath()
       if this_path != None and path != None:
@@ -1199,11 +1199,9 @@ class PBXGroup(XCHierarchicalElement):
     is_dir = False
     if path.endswith('/'):
       is_dir = True
-    normpath = posixpath.normpath(path)
+    path = posixpath.normpath(path)
     if is_dir:
-      normpath = path + '/'
-    else:
-      normpath = path
+      path = path + '/'
 
     
     
@@ -1222,7 +1220,7 @@ class PBXGroup(XCHierarchicalElement):
       grandparent = None
 
     
-    assert not is_dir or variant_name == None
+    assert not is_dir or variant_name is None
 
     path_split = path.split(posixpath.sep)
     if len(path_split) == 1 or \
@@ -1230,9 +1228,9 @@ class PBXGroup(XCHierarchicalElement):
        not hierarchical:
       
       
-      if variant_name == None:
+      if variant_name is None:
         
-        file_ref = self.GetChildByPath(normpath)
+        file_ref = self.GetChildByPath(path)
         if file_ref != None:
           assert file_ref.__class__ == PBXFileReference
         else:
@@ -1583,14 +1581,14 @@ class XCConfigurationList(XCObject):
     value = None
     for configuration in self._properties['buildConfigurations']:
       configuration_has = configuration.HasBuildSetting(key)
-      if has == None:
+      if has is None:
         has = configuration_has
       elif has != configuration_has:
         return -1
 
       if configuration_has:
         configuration_value = configuration.GetBuildSetting(key)
-        if value == None:
+        if value is None:
           value = configuration_value
         elif value != configuration_value:
           return -1
@@ -1613,7 +1611,7 @@ class XCConfigurationList(XCObject):
     value = None
     for configuration in self._properties['buildConfigurations']:
       configuration_value = configuration.GetBuildSetting(key)
-      if value == None:
+      if value is None:
         value = configuration_value
       else:
         if value != configuration_value:
@@ -1941,7 +1939,7 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
 
       if path_tree in self.path_tree_to_subfolder:
         subfolder = self.path_tree_to_subfolder[path_tree]
-        if relative_path == None:
+        if relative_path is None:
           relative_path = ''
       else:
         
@@ -2118,7 +2116,6 @@ class XCTarget(XCRemoteObject):
     other_pbxproject = other.PBXProjectAncestor()
     if pbxproject == other_pbxproject:
       
-      
       container = PBXContainerItemProxy({'containerPortal':      pbxproject,
                                          'proxyType':            1,
                                          'remoteGlobalIDString': other,
@@ -2127,7 +2124,6 @@ class XCTarget(XCRemoteObject):
                                         'targetProxy': container})
       self.AppendProperty('dependencies', dependency)
     else:
-      
       
       other_project_ref = \
           pbxproject.AddOrGetProjectReference(other_pbxproject)[1]
@@ -2257,7 +2253,7 @@ class PBXNativeTarget(XCTarget):
           self.SetBuildSetting('MACH_O_TYPE', 'mh_bundle')
           self.SetBuildSetting('DYLIB_CURRENT_VERSION', '')
           self.SetBuildSetting('DYLIB_COMPATIBILITY_VERSION', '')
-          if force_extension == None:
+          if force_extension is None:
             force_extension = suffix[1:]
 
         if force_extension is not None:
@@ -2327,14 +2323,14 @@ class PBXNativeTarget(XCTarget):
         
         
         
-        assert the_phase == None
+        assert the_phase is None
         the_phase = phase
 
     return the_phase
 
   def HeadersPhase(self):
     headers_phase = self.GetBuildPhaseByType(PBXHeadersBuildPhase)
-    if headers_phase == None:
+    if headers_phase is None:
       headers_phase = PBXHeadersBuildPhase()
 
       
@@ -2355,7 +2351,7 @@ class PBXNativeTarget(XCTarget):
 
   def ResourcesPhase(self):
     resources_phase = self.GetBuildPhaseByType(PBXResourcesBuildPhase)
-    if resources_phase == None:
+    if resources_phase is None:
       resources_phase = PBXResourcesBuildPhase()
 
       
@@ -2375,7 +2371,7 @@ class PBXNativeTarget(XCTarget):
 
   def SourcesPhase(self):
     sources_phase = self.GetBuildPhaseByType(PBXSourcesBuildPhase)
-    if sources_phase == None:
+    if sources_phase is None:
       sources_phase = PBXSourcesBuildPhase()
       self.AppendProperty('buildPhases', sources_phase)
 
@@ -2383,7 +2379,7 @@ class PBXNativeTarget(XCTarget):
 
   def FrameworksPhase(self):
     frameworks_phase = self.GetBuildPhaseByType(PBXFrameworksBuildPhase)
-    if frameworks_phase == None:
+    if frameworks_phase is None:
       frameworks_phase = PBXFrameworksBuildPhase()
       self.AppendProperty('buildPhases', frameworks_phase)
 
@@ -2492,7 +2488,7 @@ class PBXProject(XCContainerPortal):
 
     main_group = self._properties['mainGroup']
     group = main_group.GetChildByName(name)
-    if group == None:
+    if group is None:
       group = PBXGroup({'name': name})
       main_group.AppendChild(group)
 
@@ -2696,7 +2692,7 @@ class PBXProject(XCContainerPortal):
         continue
 
       other_fileref = target._properties['productReference']
-      if product_group.GetChildByRemoteObject(other_fileref) == None:
+      if product_group.GetChildByRemoteObject(other_fileref) is None:
         
         
         container_item = PBXContainerItemProxy({

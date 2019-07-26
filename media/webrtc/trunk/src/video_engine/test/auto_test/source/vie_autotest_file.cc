@@ -39,7 +39,7 @@ void ViEAutoTest::ViEFileStandardTest()
     {
         ViETest::Log("Starting a loopback call...");
 
-        TbInterfaces interfaces = TbInterfaces("ViEFileStandardTest");
+        TbInterfaces interfaces("ViEFileStandardTest");
 
         webrtc::VideoEngine* ptrViE = interfaces.video_engine;
         webrtc::ViEBase* ptrViEBase = interfaces.base;
@@ -168,6 +168,10 @@ void ViEAutoTest::ViEFileStandardTest()
         int fileId;
 
         AutoTestSleep(TEST_SPACING);
+
+        
+        EXPECT_EQ(0, ptrViEFile->StartDebugRecording(videoChannel,
+                     "vie_autotest_debug.yuv"));
 
         
         {
@@ -458,14 +462,18 @@ void ViEAutoTest::ViEFileStandardTest()
         }
 
         
+        EXPECT_EQ(0, ptrViEFile->StopDebugRecording(videoChannel));
+
+        
         
         
 
         EXPECT_EQ(0, ptrViEBase->DisconnectAudioChannel(videoChannel));
         EXPECT_EQ(0, ptrViEBase->SetVoiceEngine(NULL));
         EXPECT_EQ(0, ptrVEBase->DeleteChannel(audioChannel));
-        EXPECT_EQ(0, ptrVEBase->Release());
-        EXPECT_EQ(0, ptrVECodec->Release());
+        
+        EXPECT_NE(0, ptrVEBase->Release());
+        EXPECT_NE(0, ptrVECodec->Release());
         EXPECT_TRUE(webrtc::VoiceEngine::Delete(ptrVEEngine));
 
         EXPECT_EQ(0, ptrViEBase->StopReceive(videoChannel));

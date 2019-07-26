@@ -247,16 +247,6 @@ ACMISAC::GetRedPayloadSafe(
     return -1;
 }
 
-
-WebRtc_Word16
-ACMISAC::UnregisterFromNetEqSafe(
-    ACMNetEQ*     ,
-    WebRtc_Word16 )
-{
-    return -1;
-}
-
-
 WebRtc_Word16
 ACMISAC::UpdateDecoderSampFreq(
     WebRtc_Word16 )
@@ -898,8 +888,8 @@ ACMISAC::SetBitRateSafe(
 WebRtc_Word32
 ACMISAC::GetEstimatedBandwidthSafe()
 {
-    WebRtc_Word16 bandwidthIndex;
-    WebRtc_Word16 delayIndex;
+    WebRtc_Word16 bandwidthIndex = 0;
+    WebRtc_Word16 delayIndex = 0;
     IsacSamplingRate sampRate;
 
     
@@ -996,35 +986,6 @@ ACMISAC::GetRedPayloadSafe(
     return 0;
 #endif
 }
-
-
-WebRtc_Word16
-ACMISAC::UnregisterFromNetEqSafe(
-    ACMNetEQ*     netEq,
-    WebRtc_Word16 payloadType)
-{
-    if(payloadType == _decoderParams.codecInstant.pltype)
-    {
-        return netEq->RemoveCodec(kDecoderISAC);
-    }
-    else if(payloadType == _decoderParams32kHz.codecInstant.pltype)
-    {
-        return netEq->RemoveCodec(kDecoderISACswb);
-    }
-    else
-    {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-            "Cannot unregister codec %s given payload-type %d does not match \
-the stored payload type %d or %d",
-            _decoderParams.codecInstant.plname,
-            payloadType,
-            _decoderParams.codecInstant.pltype,
-            _decoderParams32kHz.codecInstant.pltype);
-
-        return -1;
-    }
-}
-
 
 WebRtc_Word16
 ACMISAC::UpdateDecoderSampFreq(

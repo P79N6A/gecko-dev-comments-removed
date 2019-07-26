@@ -606,25 +606,6 @@ public:
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    WebRtc_Word32 UnregisterFromNetEq(
-        ACMNetEQ*       netEq,
-        WebRtc_Word16   payloadType);
-
-
-    
-    
-    
-    
-    
-    
-    
     void SetUniqueID(
         const WebRtc_UWord32 id);
 
@@ -1005,15 +986,6 @@ protected:
     
     virtual WebRtc_Word32 IsInternalDTXReplacedSafe(
         bool* internalDTXReplaced);
-
-    
-    
-    
-    
-    virtual WebRtc_Word16 UnregisterFromNetEqSafe(
-        ACMNetEQ*     netEq,
-        WebRtc_Word16 payloadType) = 0;
-
 
     
     

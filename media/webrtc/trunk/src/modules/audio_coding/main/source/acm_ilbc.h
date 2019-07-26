@@ -65,10 +65,6 @@ protected:
     void InternalDestructEncoderInst(
         void* ptrInst);
 
-    WebRtc_Word16 UnregisterFromNetEqSafe(
-        ACMNetEQ*       netEq,
-        WebRtc_Word16   payloadType);
-
     iLBC_encinst_t_* _encoderInstPtr;
     iLBC_decinst_t_* _decoderInstPtr;
 };

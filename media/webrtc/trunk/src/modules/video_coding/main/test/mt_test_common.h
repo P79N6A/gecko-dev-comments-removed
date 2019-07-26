@@ -47,8 +47,7 @@ class TransportCallback:public RTPSendCompleteCallback
 {
  public:
     
-    TransportCallback(webrtc::RtpRtcp* rtp, TickTimeBase* clock,
-                      const char* filename = NULL);
+    TransportCallback(TickTimeBase* clock, const char* filename = NULL);
     virtual ~TransportCallback();
     
     

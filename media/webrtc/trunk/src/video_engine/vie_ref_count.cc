@@ -8,9 +8,9 @@
 
 
 
-#include "vie_ref_count.h"
+#include "video_engine/vie_ref_count.h"
 
-#include "critical_section_wrapper.h"
+#include "system_wrappers/interface/critical_section_wrapper.h"
 
 namespace webrtc {
 
@@ -22,13 +22,13 @@ ViERefCount::ViERefCount()
 ViERefCount::~ViERefCount() {
 }
 
-ViERefCount& ViERefCount::operator++(int) {
+ViERefCount& ViERefCount::operator++(int) {  
   CriticalSectionScoped lock(crit_.get());
   count_++;
   return *this;
 }
 
-ViERefCount& ViERefCount::operator--(int) {
+ViERefCount& ViERefCount::operator--(int) {  
   CriticalSectionScoped lock(crit_.get());
   count_--;
   return *this;

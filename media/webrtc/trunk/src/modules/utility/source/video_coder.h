@@ -51,15 +51,15 @@ private:
     
     
     WebRtc_Word32 SendData(
-        const FrameType ,
-        const WebRtc_UWord8 ,
-        const WebRtc_UWord32 ,
+        FrameType ,
+        WebRtc_UWord8 ,
+        WebRtc_UWord32 ,
+        int64_t capture_time_ms,
         const WebRtc_UWord8* payloadData,
-        const WebRtc_UWord32 payloadSize,
+        WebRtc_UWord32 payloadSize,
         const RTPFragmentationHeader& ,
         const RTPVideoHeader* rtpTypeHdr);
 
-    WebRtc_UWord32 _instanceID;
     VideoCodingModule* _vcm;
     VideoFrame* _decodedVideo;
     EncodedVideoData* _videoEncodedData;

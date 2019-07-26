@@ -34,7 +34,6 @@
     
     
     
-    
     #include "gsmfr_interface.h"
 #endif
 
@@ -156,16 +155,6 @@ ACMGSMFR::InternalDestructEncoderInst(
 {
     return;
 }
-
-
-WebRtc_Word16
-ACMGSMFR::UnregisterFromNetEqSafe(
-    ACMNetEQ*     ,
-    WebRtc_Word16 )
-{
-    return -1;
-}
-
 
 #else     
 
@@ -390,25 +379,6 @@ ACMGSMFR::InternalDestructEncoderInst(
         WebRtcGSMFR_FreeEnc((GSMFR_encinst_t_*)ptrInst);
     }
     return;
-}
-
-
-WebRtc_Word16
-ACMGSMFR::UnregisterFromNetEqSafe(
-    ACMNetEQ*     netEq,
-    WebRtc_Word16 payloadType)
-{
-    if(payloadType != _decoderParams.codecInstant.pltype)
-    {
-      WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-      "Cannot unregister codec: payload-type does not match \
-the stored payload type",
-            _decoderParams.codecInstant.plname,
-            payloadType,
-            _decoderParams.codecInstant.pltype);
-        return -1;
-    }
-    return netEq->RemoveCodec(kDecoderGSMFR);
 }
 
 #endif

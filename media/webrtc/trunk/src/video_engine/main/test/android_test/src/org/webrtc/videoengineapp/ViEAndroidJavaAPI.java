@@ -43,7 +43,6 @@ public class ViEAndroidJavaAPI {
     public native int Init(boolean enableTrace);
     public native int Terminate();
 
-
     public native int StartSend(int channel);
     public native int StopRender(int channel);
     public native int StopSend(int channel);
@@ -53,8 +52,9 @@ public class ViEAndroidJavaAPI {
     public native int CreateChannel(int voiceChannel);
     
     public native int SetLocalReceiver(int channel, int port);
-    public native int SetSendDestination(int channel, int port, byte ipadr[]);
+    public native int SetSendDestination(int channel, int port, String ipaddr);
     
+    public native String[] GetCodecs();
     public native int SetReceiveCodec(int channel, int codecNum,
             int intbitRate, int width,
             int height, int frameRate);
@@ -81,13 +81,15 @@ public class ViEAndroidJavaAPI {
     
     public native int SetCallback(int channel, IViEAndroidCallback callback);
 
+    public native int StartIncomingRTPDump(int channel, String file);
+    public native int StopIncomingRTPDump(int channel);
+
     
     
-    public native boolean VoE_Create(Activity context);
+    public native boolean VoE_Create();
     public native boolean VoE_Delete();
 
     
-    public native int VoE_Authenticate(String key);
     public native int VoE_Init(boolean enableTrace);
     public native int VoE_Terminate();
 
@@ -98,7 +100,7 @@ public class ViEAndroidJavaAPI {
     
     public native int VoE_SetLocalReceiver(int channel, int port);
     public native int VoE_SetSendDestination(int channel, int port,
-            String ipaddr);
+                                             String ipaddr);
 
     
     public native int VoE_StartListen(int channel);
@@ -115,24 +117,30 @@ public class ViEAndroidJavaAPI {
     public native int VoE_SetLoudspeakerStatus(boolean enable);
 
     
-    public native int VoE_StartPlayingFileLocally(int channel,
-            String fileName,
-            boolean loop);
+    public native int VoE_StartPlayingFileLocally(
+        int channel,
+        String fileName,
+        boolean loop);
     public native int VoE_StopPlayingFileLocally(int channel);
 
     
-    public native int VoE_StartPlayingFileAsMicrophone(int channel,
-            String fileName,
-            boolean loop);
+    public native int VoE_StartPlayingFileAsMicrophone(
+        int channel,
+        String fileName,
+        boolean loop);
     public native int VoE_StopPlayingFileAsMicrophone(int channel);
 
     
     public native int VoE_NumOfCodecs();
+    public native String[] VoE_GetCodecs();
     public native int VoE_SetSendCodec(int channel, int index);
 
     
-    public native int VoE_SetECStatus(boolean enable, int mode,
-            int AESmode, int AESattenuation);
-    public native int VoE_SetAGCStatus(boolean enable, int mode);
-    public native int VoE_SetNSStatus(boolean enable, int mode);
+    public native int VoE_SetECStatus(boolean enable);
+    public native int VoE_SetAGCStatus(boolean enable);
+    public native int VoE_SetNSStatus(boolean enable);
+    public native int VoE_StartDebugRecording(String file);
+    public native int VoE_StopDebugRecording();
+    public native int VoE_StartIncomingRTPDump(int channel, String file);
+    public native int VoE_StopIncomingRTPDump(int channel);
 }

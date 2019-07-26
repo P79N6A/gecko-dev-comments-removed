@@ -70,9 +70,6 @@ class ACMAMRwb: public ACMGenericCodec {
 
   WebRtc_Word16 DisableDTX();
 
-  WebRtc_Word16 UnregisterFromNetEqSafe(ACMNetEQ* netEq,
-                                        WebRtc_Word16 payloadType);
-
   AMRWB_encinst_t_* _encoderInstPtr;
   AMRWB_decinst_t_* _decoderInstPtr;
 

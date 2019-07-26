@@ -52,6 +52,10 @@ using testing::internal::AlwaysTrue;
 # include <signal.h>
 # include <stdio.h>
 
+# if GTEST_OS_LINUX
+#  include <sys/time.h>
+# endif  
+
 # include "gtest/gtest-spi.h"
 
 
@@ -71,6 +75,7 @@ using testing::internal::DeathTestFactory;
 using testing::internal::FilePath;
 using testing::internal::GetLastErrnoDescription;
 using testing::internal::GetUnitTestImpl;
+using testing::internal::InDeathTestChild;
 using testing::internal::ParseNaturalNumber;
 using testing::internal::String;
 
@@ -372,6 +377,58 @@ TEST_F(TestForDeathTest, FastDeathTestInChangedDir) {
   ASSERT_DEATH(_exit(1), "");
 }
 
+# if GTEST_OS_LINUX
+void SigprofAction(int, siginfo_t*, void*) {  }
+
+
+void SetSigprofActionAndTimer() {
+  struct itimerval timer;
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_usec = 1;
+  timer.it_value = timer.it_interval;
+  ASSERT_EQ(0, setitimer(ITIMER_PROF, &timer, NULL));
+  struct sigaction signal_action;
+  memset(&signal_action, 0, sizeof(signal_action));
+  sigemptyset(&signal_action.sa_mask);
+  signal_action.sa_sigaction = SigprofAction;
+  signal_action.sa_flags = SA_RESTART | SA_SIGINFO;
+  ASSERT_EQ(0, sigaction(SIGPROF, &signal_action, NULL));
+}
+
+
+void DisableSigprofActionAndTimer(struct sigaction* old_signal_action) {
+  struct itimerval timer;
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_usec = 0;
+  timer.it_value = timer.it_interval;
+  ASSERT_EQ(0, setitimer(ITIMER_PROF, &timer, NULL));
+  struct sigaction signal_action;
+  memset(&signal_action, 0, sizeof(signal_action));
+  sigemptyset(&signal_action.sa_mask);
+  signal_action.sa_handler = SIG_IGN;
+  ASSERT_EQ(0, sigaction(SIGPROF, &signal_action, old_signal_action));
+}
+
+
+TEST_F(TestForDeathTest, FastSigprofActionSet) {
+  testing::GTEST_FLAG(death_test_style) = "fast";
+  SetSigprofActionAndTimer();
+  EXPECT_DEATH(_exit(1), "");
+  struct sigaction old_signal_action;
+  DisableSigprofActionAndTimer(&old_signal_action);
+  EXPECT_TRUE(old_signal_action.sa_sigaction == SigprofAction);
+}
+
+TEST_F(TestForDeathTest, ThreadSafeSigprofActionSet) {
+  testing::GTEST_FLAG(death_test_style) = "threadsafe";
+  SetSigprofActionAndTimer();
+  EXPECT_DEATH(_exit(1), "");
+  struct sigaction old_signal_action;
+  DisableSigprofActionAndTimer(&old_signal_action);
+  EXPECT_TRUE(old_signal_action.sa_sigaction == SigprofAction);
+}
+# endif  
+
 
 
 TEST_F(TestForDeathTest, StaticMemberFunctionThreadsafeStyle) {
@@ -571,8 +628,8 @@ TEST_F(TestForDeathTest, ReturnIsFailure) {
 TEST_F(TestForDeathTest, TestExpectDebugDeath) {
   int sideeffect = 0;
 
-  EXPECT_DEBUG_DEATH(DieInDebugElse12(&sideeffect),
-                     "death.*DieInDebugElse12");
+  EXPECT_DEBUG_DEATH(DieInDebugElse12(&sideeffect), "death.*DieInDebugElse12")
+      << "Must accept a streamed message";
 
 # ifdef NDEBUG
 
@@ -597,12 +654,8 @@ TEST_F(TestForDeathTest, TestExpectDebugDeath) {
 TEST_F(TestForDeathTest, TestAssertDebugDeath) {
   int sideeffect = 0;
 
-  ASSERT_DEBUG_DEATH({  
-    
-    EXPECT_EQ(12, DieInDebugElse12(&sideeffect));
-    
-    EXPECT_EQ(12, sideeffect);
-  }, "death.*DieInDebugElse12");
+  ASSERT_DEBUG_DEATH(DieInDebugElse12(&sideeffect), "death.*DieInDebugElse12")
+      << "Must accept a streamed message";
 
 # ifdef NDEBUG
 
@@ -673,7 +726,7 @@ static void TestExitMacros() {
   
   
   
-  EXPECT_EXIT(raise(SIGABRT), testing::ExitedWithCode(3), "");
+  EXPECT_EXIT(raise(SIGABRT), testing::ExitedWithCode(3), "") << "b_ar";
 
 # else
 
@@ -682,14 +735,14 @@ static void TestExitMacros() {
 
   EXPECT_FATAL_FAILURE({  
     ASSERT_EXIT(_exit(0), testing::KilledBySignal(SIGSEGV), "")
-        << "This failure is expected, too.";
+      << "This failure is expected, too.";
   }, "This failure is expected, too.");
 
 # endif  
 
   EXPECT_NONFATAL_FAILURE({  
     EXPECT_EXIT(raise(SIGSEGV), testing::ExitedWithCode(0), "")
-        << "This failure is expected.";
+      << "This failure is expected.";
   }, "This failure is expected.");
 }
 
@@ -839,6 +892,7 @@ class MockDeathTest : public DeathTest {
   virtual void Abort(AbortReason reason) {
     parent_->abort_args_.push_back(reason);
   }
+
  private:
   MockDeathTestFactory* const parent_;
   const TestRole role_;
@@ -1287,6 +1341,26 @@ TEST(ConditionalDeathMacrosSyntaxDeathTest, SwitchStatement) {
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif  
+}
+
+TEST(InDeathTestChildDeathTest, ReportsDeathTestCorrectlyInFastStyle) {
+  testing::GTEST_FLAG(death_test_style) = "fast";
+  EXPECT_FALSE(InDeathTestChild());
+  EXPECT_DEATH({
+    fprintf(stderr, InDeathTestChild() ? "Inside" : "Outside");
+    fflush(stderr);
+    _exit(1);
+  }, "Inside");
+}
+
+TEST(InDeathTestChildDeathTest, ReportsDeathTestCorrectlyInThreadSafeStyle) {
+  testing::GTEST_FLAG(death_test_style) = "threadsafe";
+  EXPECT_FALSE(InDeathTestChild());
+  EXPECT_DEATH({
+    fprintf(stderr, InDeathTestChild() ? "Inside" : "Outside");
+    fflush(stderr);
+    _exit(1);
+  }, "Inside");
 }
 
 

@@ -15,7 +15,9 @@
 
 #include <string>
 
+#include "receiver_tests.h"  
 #include "rtp_rtcp.h"
+#include "test_callbacks.h"
 #include "test_util.h"
 #include "video_coding.h"
 #include "video_source.h"
@@ -52,6 +54,9 @@ private:
 
     webrtc::VideoCodingModule*       _vcm;
     webrtc::RtpRtcp*                 _rtp;
+    webrtc::RTPSendCompleteCallback* _outgoingTransport;
+    RtpDataCallback*                 _dataCallback;
+
     webrtc::TickTimeBase*            _clock;
     std::string                      _inname;
     std::string                      _outname;

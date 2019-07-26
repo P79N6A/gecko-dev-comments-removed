@@ -123,10 +123,6 @@ protected:
         WebRtc_Word32  rate,
         bool           isRED);
 
-    WebRtc_Word16 UnregisterFromNetEqSafe(
-        ACMNetEQ*     netEq,
-        WebRtc_Word16 payloadType);
-
     void CurrentRate(WebRtc_Word32& rateBitPerSec);
 
     void UpdateFrameLen();

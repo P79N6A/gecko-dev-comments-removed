@@ -47,9 +47,9 @@
 #endif
 
 #include <string.h>
-#include "gtest/internal/gtest-port.h"
-
 #include <string>
+
+#include "gtest/internal/gtest-port.h"
 
 namespace testing {
 namespace internal {
@@ -81,15 +81,6 @@ namespace internal {
 class GTEST_API_ String {
  public:
   
-
-  
-  
-  
-  
-  
-  
-  
-  static String ShowCStringQuoted(const char* c_str);
 
   
   
@@ -138,10 +129,6 @@ class GTEST_API_ String {
   
   
   static String ShowWideCString(const wchar_t* wide_c_str);
-
-  
-  
-  static String ShowWideCStringQuoted(const wchar_t* wide_c_str);
 
   
   
@@ -223,14 +210,14 @@ class GTEST_API_ String {
   
   
   
-  String(const ::std::string& str) {
+  String(const ::std::string& str) {  
     ConstructNonNull(str.c_str(), str.length());
   }
 
   operator ::std::string() const { return ::std::string(c_str(), length()); }
 
 #if GTEST_HAS_GLOBAL_STRING
-  String(const ::string& str) {
+  String(const ::string& str) {  
     ConstructNonNull(str.c_str(), str.length());
   }
 

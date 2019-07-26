@@ -137,6 +137,8 @@ TEST_F(CxxExceptionInConstructorTest, ThrowsExceptionInConstructor) {
                 << "called unexpectedly.";
 }
 
+
+#if !defined(__GXX_EXPERIMENTAL_CXX0X__) &&  __cplusplus < 201103L
 class CxxExceptionInDestructorTest : public Test {
  public:
   static void TearDownTestCase() {
@@ -153,6 +155,7 @@ class CxxExceptionInDestructorTest : public Test {
 };
 
 TEST_F(CxxExceptionInDestructorTest, ThrowsExceptionInDestructor) {}
+#endif  
 
 class CxxExceptionInSetUpTestCaseTest : public Test {
  public:

@@ -20,7 +20,7 @@
 #include "module_common_types.h"
 #include "video_processing_defines.h"
 
-#include "common_video/libyuv/include/libyuv.h"
+#include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "common_video/libyuv/include/scaler.h"
 
 namespace webrtc {

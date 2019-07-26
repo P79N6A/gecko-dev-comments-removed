@@ -8,7 +8,6 @@
 Verifies that .d files and all.deps are properly generated.
 """
 
-import os
 import TestGyp
 
 
@@ -23,9 +22,5 @@ test.must_contain(deps_file, "main.h")
 
 
 test.build('dependencies.gyp', test.ALL)
-
-all_deps_file = test.built_file_path(".deps/all.deps")
-test.must_contain(all_deps_file, "main.h")
-test.must_contain(all_deps_file, "cmd_")
 
 test.pass_test()

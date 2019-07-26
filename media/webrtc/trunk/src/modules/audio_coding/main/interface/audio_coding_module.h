@@ -124,8 +124,9 @@ class AudioCodingModule: public Module {
   
   
   
-  static WebRtc_Word32 Codec(const char* payloadName, CodecInst& codec,
-                             const WebRtc_Word32 samplingFreqHz = -1);
+  
+  static WebRtc_Word32 Codec(const char* payload_name, CodecInst& codec,
+                             int sampling_freq_hz, int channels);
 
   
   
@@ -142,8 +143,9 @@ class AudioCodingModule: public Module {
   
   
   
-  static WebRtc_Word32 Codec(const char* payloadName,
-                             const WebRtc_Word32 samplingFreqHz = -1);
+  
+  static WebRtc_Word32 Codec(const char* payload_name, int sampling_freq_hz,
+                             int channels);
 
   
   
@@ -188,6 +190,9 @@ class AudioCodingModule: public Module {
   
   virtual WebRtc_Word32 ResetEncoder() = 0;
 
+  
+  
+  
   
   
   
@@ -340,6 +345,8 @@ class AudioCodingModule: public Module {
   
   
 
+  
+  
   
   
   

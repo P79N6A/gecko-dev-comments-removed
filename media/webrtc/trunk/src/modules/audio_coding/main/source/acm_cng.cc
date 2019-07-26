@@ -138,20 +138,4 @@ void ACMCNG::InternalDestructEncoderInst(void* ptrInst) {
   return;
 }
 
-WebRtc_Word16 ACMCNG::UnregisterFromNetEqSafe(ACMNetEQ* netEq,
-                                              WebRtc_Word16 payloadType) {
-  if (payloadType != _decoderParams.codecInstant.pltype) {
-    WEBRTC_TRACE(
-                 webrtc::kTraceError,
-                 webrtc::kTraceAudioCoding,
-                 _uniqueID,
-                 "Cannot unregister codec %s given payload-type %d does not "
-                 "match the stored payload type",
-                 _decoderParams.codecInstant.plname, payloadType,
-                 _decoderParams.codecInstant.pltype);
-    return -1;
-  }
-  return netEq->RemoveCodec(kDecoderCNG);
-}
-
 } 

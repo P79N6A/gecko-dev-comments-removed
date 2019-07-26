@@ -51,6 +51,11 @@
 # include <mach/vm_map.h>
 #endif  
 
+#if GTEST_OS_QNX
+# include <devctl.h>
+# include <sys/procfs.h>
+#endif  
+
 #include "gtest/gtest-spi.h"
 #include "gtest/gtest-message.h"
 #include "gtest/internal/gtest-internal.h"
@@ -93,6 +98,26 @@ size_t GetThreadCount() {
                   reinterpret_cast<vm_address_t>(thread_list),
                   sizeof(thread_t) * thread_count);
     return static_cast<size_t>(thread_count);
+  } else {
+    return 0;
+  }
+}
+
+#elif GTEST_OS_QNX
+
+
+
+size_t GetThreadCount() {
+  const int fd = open("/proc/self/as", O_RDONLY);
+  if (fd < 0) {
+    return 0;
+  }
+  procfs_info process_info;
+  const int status =
+      devctl(fd, DCMD_PROC_INFO, &process_info, sizeof(process_info), NULL);
+  close(fd);
+  if (status == EOK) {
+    return static_cast<size_t>(process_info.num_threads);
   } else {
     return 0;
   }
@@ -489,7 +514,6 @@ class CapturedStream {
  public:
   
   CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd)) {
-
 # if GTEST_OS_WINDOWS
     char temp_dir_path[MAX_PATH + 1] = { '\0' };  
     char temp_file_path[MAX_PATH + 1] = { '\0' };  
@@ -509,7 +533,12 @@ class CapturedStream {
     
     
     
+    
+#  if GTEST_OS_LINUX_ANDROID
+    char name_template[] = "/mnt/sdcard/gtest_captured_stream.XXXXXX";
+#  else
     char name_template[] = "/tmp/captured_stream.XXXXXX";
+#  endif  
     const int captured_fd = mkstemp(name_template);
     filename_ = name_template;
 # endif  
@@ -628,11 +657,23 @@ String GetCapturedStderr() { return GetCapturedStream(&g_captured_stderr); }
 #if GTEST_HAS_DEATH_TEST
 
 
-::std::vector<String> g_argvs;
+::std::vector<testing::internal::string> g_argvs;
 
+static const ::std::vector<testing::internal::string>* g_injected_test_argvs =
+                                        NULL;  
 
-const ::std::vector<String>& GetArgvs() { return g_argvs; }
+void SetInjectableArgvs(const ::std::vector<testing::internal::string>* argvs) {
+  if (g_injected_test_argvs != argvs)
+    delete g_injected_test_argvs;
+  g_injected_test_argvs = argvs;
+}
 
+const ::std::vector<testing::internal::string>& GetInjectableArgvs() {
+  if (g_injected_test_argvs != NULL) {
+    return *g_injected_test_argvs;
+  }
+  return g_argvs;
+}
 #endif  
 
 #if GTEST_OS_WINDOWS_MOBILE

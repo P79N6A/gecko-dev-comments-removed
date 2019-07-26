@@ -19,7 +19,7 @@
 #include "test_callbacks.h"
 #include "test_macros.h"
 #include "testsupport/metrics/video_metrics.h"
-#include "common_video/libyuv/include/libyuv.h"
+#include "common_video/libyuv/include/webrtc_libyuv.h"
 
 using namespace webrtc;
 
@@ -419,9 +419,12 @@ VCMQMDecodeCompleCallback::FrameToRender(VideoFrame& videoFrame)
 {
     if ((_origWidth == videoFrame.Width()) && (_origHeight == videoFrame.Height()))
     {
-        fwrite(videoFrame.Buffer(), 1, videoFrame.Length(), _decodedFile);
-        _frameCnt++;
-        
+      if (fwrite(videoFrame.Buffer(), 1, videoFrame.Length(),
+                 _decodedFile) !=  videoFrame.Length()) {
+        return -1;
+      }
+      _frameCnt++;
+      
         
         if (_decBuffer != NULL)
         {
@@ -446,7 +449,10 @@ VCMQMDecodeCompleCallback::FrameToRender(VideoFrame& videoFrame)
         }
 
 
-        fwrite(_decBuffer, 1, _origWidth*_origHeight*3/2, _decodedFile);
+        if (fwrite(_decBuffer, 1, _origWidth*_origHeight * 3/2,
+                   _decodedFile) !=  _origWidth*_origHeight * 3/2) {
+          return -1;
+        }
         _frameCnt++;
     }
 

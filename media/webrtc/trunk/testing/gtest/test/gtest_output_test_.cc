@@ -32,6 +32,9 @@
 
 
 
+
+
+
 #include "gtest/gtest-spi.h"
 #include "gtest/gtest.h"
 
@@ -100,6 +103,16 @@ TEST_P(FailingParamTest, Fails) {
 INSTANTIATE_TEST_CASE_P(PrintingFailingParams,
                         FailingParamTest,
                         testing::Values(2));
+
+static const char kGoldenString[] = "\"Line\0 1\"\nLine 2";
+
+TEST(NonfatalFailureTest, EscapesStringOperands) {
+  std::string actual = "actual \"string\"";
+  EXPECT_EQ(kGoldenString, actual);
+
+  const char* golden = kGoldenString;
+  EXPECT_EQ(golden, actual);
+}
 
 
 TEST(FatalFailureTest, FatalFailureInSubroutine) {
@@ -221,13 +234,13 @@ TEST(SCOPED_TRACETest, CanBeRepeated) {
 
   {
     SCOPED_TRACE("C");
-    ADD_FAILURE() << "This failure is expected, and should contain "
-                  << "trace point A, B, and C.";
+    ADD_FAILURE() << "This failure is expected, and should "
+                  << "contain trace point A, B, and C.";
   }
 
   SCOPED_TRACE("D");
-  ADD_FAILURE() << "This failure is expected, and should contain "
-                << "trace point A, B, and D.";
+  ADD_FAILURE() << "This failure is expected, and should "
+                << "contain trace point A, B, and D.";
 }
 
 #if GTEST_IS_THREADSAFE
@@ -378,6 +391,7 @@ class FatalFailureInFixtureConstructorTest : public testing::Test {
                   << "We should never get here, as the test fixture c'tor "
                   << "had a fatal failure.";
   }
+
  private:
   void Init() {
     FAIL() << "Expected failure #1, in the test fixture c'tor.";

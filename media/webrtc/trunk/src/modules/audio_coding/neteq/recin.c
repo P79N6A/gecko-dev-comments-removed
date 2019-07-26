@@ -364,9 +364,18 @@ int WebRtcNetEQ_GetTimestampScaling(MCUInst_t *MCU_inst, int rtpPayloadType)
     switch (codec)
     {
         case kDecoderG722:
+        case kDecoderG722_2ch:
         {
             
             MCU_inst->scalingFactor = kTSscalingTwo;
+            break;
+        }
+        case kDecoderOpus:
+        {
+            
+
+
+            MCU_inst->scalingFactor = kTSscalingTwoThirds;
             break;
         }
         case kDecoderAVT:

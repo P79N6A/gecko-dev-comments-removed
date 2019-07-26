@@ -55,8 +55,14 @@ class ProducerFecTest : public ::testing::Test {
 };
 
 TEST_F(ProducerFecTest, OneFrameFec) {
+  
+  
+  
+  
+  
+  
   const int kNumPackets = 4;
-  FecProtectionParams params = {5, false, 3};
+  FecProtectionParams params = {15, false, 3};
   std::list<RtpPacket*> rtp_packets;
   generator_->NewFrame(kNumPackets);
   producer_->SetFecParameters(&params, 0);  
@@ -73,7 +79,8 @@ TEST_F(ProducerFecTest, OneFrameFec) {
   uint16_t seq_num = generator_->NextSeqNum();
   RedPacket* packet = producer_->GetFecPacket(kRedPayloadType,
                                               kFecPayloadType,
-                                              seq_num);
+                                              seq_num,
+                                              kRtpHeaderSize);
   EXPECT_FALSE(producer_->FecAvailable());
   ASSERT_TRUE(packet != NULL);
   VerifyHeader(seq_num, last_timestamp,
@@ -86,9 +93,17 @@ TEST_F(ProducerFecTest, OneFrameFec) {
 }
 
 TEST_F(ProducerFecTest, TwoFrameFec) {
+  
+  
+  
+  
+  
+  
+  
   const int kNumPackets = 2;
   const int kNumFrames = 2;
-  FecProtectionParams params = {5, 0, 3};
+
+  FecProtectionParams params = {15, 0, 3};
   std::list<RtpPacket*> rtp_packets;
   producer_->SetFecParameters(&params, 0);  
   uint32_t last_timestamp = 0;
@@ -107,7 +122,8 @@ TEST_F(ProducerFecTest, TwoFrameFec) {
   uint16_t seq_num = generator_->NextSeqNum();
   RedPacket* packet = producer_->GetFecPacket(kRedPayloadType,
                                               kFecPayloadType,
-                                              seq_num);
+                                              seq_num,
+                                              kRtpHeaderSize);
   EXPECT_FALSE(producer_->FecAvailable());
   EXPECT_TRUE(packet != NULL);
   VerifyHeader(seq_num, last_timestamp,

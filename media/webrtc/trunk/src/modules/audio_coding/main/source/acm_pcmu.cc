@@ -8,9 +8,10 @@
 
 
 
+#include "acm_pcmu.h"
+
 #include "acm_common_defs.h"
 #include "acm_neteq.h"
-#include "acm_pcmu.h"
 #include "trace.h"
 #include "webrtc_neteq.h"
 #include "webrtc_neteq_help_macros.h"
@@ -18,150 +19,94 @@
 
 #include "g711_interface.h"
 
-namespace webrtc
-{
+namespace webrtc {
 
-ACMPCMU::ACMPCMU(WebRtc_Word16 codecID)
-{
-    _codecID = codecID;
+ACMPCMU::ACMPCMU(WebRtc_Word16 codecID) {
+  _codecID = codecID;
 }
 
-
-ACMPCMU::~ACMPCMU()
-{
-    return;
+ACMPCMU::~ACMPCMU() {
+  return;
 }
 
-
-WebRtc_Word16
-ACMPCMU::InternalEncode(
-    WebRtc_UWord8* bitStream,
-    WebRtc_Word16* bitStreamLenByte)
-{
-    *bitStreamLenByte = WebRtcG711_EncodeU(NULL, &_inAudio[_inAudioIxRead],
-        _frameLenSmpl*_noChannels, (WebRtc_Word16*)bitStream);
-    
-    
-    _inAudioIxRead += _frameLenSmpl*_noChannels;
-    return *bitStreamLenByte;
+WebRtc_Word16 ACMPCMU::InternalEncode(WebRtc_UWord8* bitStream,
+                                      WebRtc_Word16* bitStreamLenByte) {
+  *bitStreamLenByte = WebRtcG711_EncodeU(NULL, &_inAudio[_inAudioIxRead],
+                                         _frameLenSmpl * _noChannels,
+                                         (WebRtc_Word16*) bitStream);
+  
+  
+  _inAudioIxRead += _frameLenSmpl * _noChannels;
+  return *bitStreamLenByte;
 }
 
-
-WebRtc_Word16
-ACMPCMU::DecodeSafe(
-    WebRtc_UWord8* ,
-    WebRtc_Word16  ,
-    WebRtc_Word16* ,
-    WebRtc_Word16* ,
-    WebRtc_Word8*  )
-{
-    return 0;
+WebRtc_Word16 ACMPCMU::DecodeSafe(WebRtc_UWord8* ,
+                                  WebRtc_Word16 ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word16* ,
+                                  WebRtc_Word8* ) {
+  return 0;
 }
 
-
-WebRtc_Word16
-ACMPCMU::InternalInitEncoder(
-    WebRtcACMCodecParams* )
-{
-    
-    
-    return 0;
+WebRtc_Word16 ACMPCMU::InternalInitEncoder(
+    WebRtcACMCodecParams* ) {
+  
+  return 0;
 }
 
-
-WebRtc_Word16
-ACMPCMU::InternalInitDecoder(
-    WebRtcACMCodecParams* )
-{
-   
+WebRtc_Word16 ACMPCMU::InternalInitDecoder(
+    WebRtcACMCodecParams* ) {
    
    return 0;
 }
 
-
-WebRtc_Word32
-ACMPCMU::CodecDef(
-    WebRtcNetEQ_CodecDef& codecDef,
-    const CodecInst&      codecInst)
-{
+WebRtc_Word32 ACMPCMU::CodecDef(WebRtcNetEQ_CodecDef& codecDef,
+                                const CodecInst& codecInst) {
+  
+  
+  
+  if (codecInst.channels == 1) {
     
+    SET_CODEC_PAR(codecDef, kDecoderPCMu, codecInst.pltype, NULL, 8000);
+  } else {
     
-    
-    
-    SET_CODEC_PAR((codecDef), kDecoderPCMu, codecInst.pltype, NULL, 8000);
-    SET_PCMU_FUNCTIONS((codecDef));
-    return 0;
+    SET_CODEC_PAR(codecDef, kDecoderPCMu_2ch, codecInst.pltype, NULL, 8000);
+  }
+  SET_PCMU_FUNCTIONS(codecDef);
+  return 0;
 }
 
-
-ACMGenericCodec*
-ACMPCMU::CreateInstance(void)
-{
-    return NULL;
+ACMGenericCodec* ACMPCMU::CreateInstance(void) {
+  return NULL;
 }
 
-
-WebRtc_Word16
-ACMPCMU::InternalCreateEncoder()
-{
-    
-    return 0;
+WebRtc_Word16 ACMPCMU::InternalCreateEncoder() {
+  
+  return 0;
 }
 
-
-WebRtc_Word16
-ACMPCMU::InternalCreateDecoder()
-{
-    
-    return 0;
+WebRtc_Word16 ACMPCMU::InternalCreateDecoder() {
+  
+  return 0;
 }
 
-
-void
-ACMPCMU::InternalDestructEncoderInst(
-    void* )
-{
-    
-    return;
+void ACMPCMU::InternalDestructEncoderInst(void* ) {
+  
+  return;
 }
 
-
-void
-ACMPCMU::DestructEncoderSafe()
-{
-    
-    _encoderExist = false;
-    _encoderInitialized = false;
-    return;
+void ACMPCMU::DestructEncoderSafe() {
+  
+  _encoderExist = false;
+  _encoderInitialized = false;
+  return;
 }
 
-void ACMPCMU::DestructDecoderSafe()
-{
-    
-    _decoderInitialized = false;
-    _decoderExist = false;
-    return;
-}
-
-
-WebRtc_Word16
-ACMPCMU::UnregisterFromNetEqSafe(
-    ACMNetEQ*     netEq,
-    WebRtc_Word16 payloadType)
-{
-
-    if(payloadType != _decoderParams.codecInstant.pltype)
-    {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, _uniqueID,
-            "Cannot unregister codec %s given payload-type %d does not match \
-the stored payload type",
-            _decoderParams.codecInstant.plname,
-            payloadType,
-            _decoderParams.codecInstant.pltype);
-        return -1;
-    }
-
-    return netEq->RemoveCodec(kDecoderPCMu);
+void ACMPCMU::DestructDecoderSafe() {
+  
+  _decoderInitialized = false;
+  _decoderExist = false;
+  return;
 }
 
 

@@ -57,9 +57,6 @@ class ACMG722_1: public ACMGenericCodec {
 
   void InternalDestructEncoderInst(void* ptrInst);
 
-  WebRtc_Word16 UnregisterFromNetEqSafe(ACMNetEQ* netEq,
-                                        WebRtc_Word16 payloadType);
-
   WebRtc_Word32 _operationalRate;
 
   G722_1_Inst_t_* _encoderInstPtr;

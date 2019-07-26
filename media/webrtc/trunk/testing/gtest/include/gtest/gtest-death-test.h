@@ -51,6 +51,17 @@ GTEST_DECLARE_string_(death_test_style);
 
 #if GTEST_HAS_DEATH_TEST
 
+namespace internal {
+
+
+
+
+
+
+GTEST_API_ bool InDeathTestChild();
+
+}  
+
 
 
 
@@ -245,10 +256,10 @@ class GTEST_API_ KilledBySignal {
 # ifdef NDEBUG
 
 #  define EXPECT_DEBUG_DEATH(statement, regex) \
-  do { statement; } while (::testing::internal::AlwaysFalse())
+  GTEST_EXECUTE_STATEMENT_(statement, regex)
 
 #  define ASSERT_DEBUG_DEATH(statement, regex) \
-  do { statement; } while (::testing::internal::AlwaysFalse())
+  GTEST_EXECUTE_STATEMENT_(statement, regex)
 
 # else
 

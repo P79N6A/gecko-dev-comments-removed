@@ -101,7 +101,7 @@ TEST_F(IntegerFunctionTest, Factorial) {
   
   EXPECT_EQ(1, Factorial(-5));
   EXPECT_EQ(1, Factorial(-1));
-  EXPECT_TRUE(Factorial(-10) > 0);
+  EXPECT_GT(Factorial(-10), 0);
 
   
   EXPECT_EQ(1, Factorial(0));
@@ -117,20 +117,20 @@ TEST_F(IntegerFunctionTest, Factorial) {
 
 TEST_F(IntegerFunctionTest, IsPrime) {
   
-  EXPECT_TRUE(!IsPrime(-1));
-  EXPECT_TRUE(!IsPrime(-2));
-  EXPECT_TRUE(!IsPrime(INT_MIN));
+  EXPECT_FALSE(IsPrime(-1));
+  EXPECT_FALSE(IsPrime(-2));
+  EXPECT_FALSE(IsPrime(INT_MIN));
 
   
-  EXPECT_TRUE(!IsPrime(0));
-  EXPECT_TRUE(!IsPrime(1));
+  EXPECT_FALSE(IsPrime(0));
+  EXPECT_FALSE(IsPrime(1));
   EXPECT_TRUE(IsPrime(2));
   EXPECT_TRUE(IsPrime(3));
 
   
-  EXPECT_TRUE(!IsPrime(4));
+  EXPECT_FALSE(IsPrime(4));
   EXPECT_TRUE(IsPrime(5));
-  EXPECT_TRUE(!IsPrime(6));
+  EXPECT_FALSE(IsPrime(6));
   EXPECT_TRUE(IsPrime(23));
 }
 

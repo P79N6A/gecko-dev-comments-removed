@@ -4,7 +4,7 @@
 
 """Visual Studio project reader/writer."""
 
-import common
+import gyp.common
 import gyp.easy_xml as easy_xml
 
 

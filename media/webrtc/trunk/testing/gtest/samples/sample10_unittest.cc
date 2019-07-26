@@ -89,8 +89,7 @@ class LeakChecker : public EmptyTestEventListener {
     
     
     
-    EXPECT_TRUE(difference <= 0)
-        << "Leaked " << difference << " unit(s) of Water!";
+    EXPECT_LE(difference, 0) << "Leaked " << difference << " unit(s) of Water!";
   }
 
   int initially_allocated_;

@@ -18,7 +18,7 @@
     #include <windows.h>
 #endif
 
-#include "common_video/libyuv/include/libyuv.h"
+#include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "system_wrappers/interface/event_wrapper.h"
 #include "modules/video_coding/codecs/test_framework/video_source.h"
 #include "testsupport/fileutils.h"

@@ -5,27 +5,27 @@
 
 
 """
-Verifies that .hpp files are ignored when included in the source list on all
-platforms.
+A basic test of compiling assembler files.
 """
 
 import sys
 import TestGyp
 
+if sys.platform != 'win32':
+  
+  test = TestGyp.TestGyp(formats=['!msvs'])
 
-test = TestGyp.TestGyp(formats=['make', 'ninja', 'scons', 'xcode'])
+  test.run_gyp('assembly.gyp', chdir='src')
 
-test.run_gyp('assembly.gyp', chdir='src')
+  test.relocate('src', 'relocate/src')
 
-test.relocate('src', 'relocate/src')
+  test.build('assembly.gyp', test.ALL, chdir='relocate/src')
 
-test.build('assembly.gyp', test.ALL, chdir='relocate/src')
-
-expect = """\
+  expect = """\
 Hello from program.c
 Got 42.
 """
-test.run_built_executable('program', chdir='relocate/src', stdout=expect)
+  test.run_built_executable('program', chdir='relocate/src', stdout=expect)
 
 
-test.pass_test()
+  test.pass_test()

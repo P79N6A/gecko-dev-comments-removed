@@ -20,10 +20,15 @@
 
 
 
-#include "module.h"
-#include "video_render_defines.h"
+#include "modules/interface/module.h"
+#include "modules/video_render/main/interface/video_render_defines.h"
 
 namespace webrtc {
+
+#if defined(WEBRTC_ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
+WebRtc_Word32 SetRenderAndroidVM(void* javaVM);
+#endif
+
 
 class VideoRender: public Module
 {
@@ -273,8 +278,6 @@ public:
                                              const bool enable,
                                              const bool mirrorXAxis,
                                              const bool mirrorYAxis) = 0;
-
-    static WebRtc_Word32 SetAndroidObjects(void* javaVM);
 };
 } 
 #endif  

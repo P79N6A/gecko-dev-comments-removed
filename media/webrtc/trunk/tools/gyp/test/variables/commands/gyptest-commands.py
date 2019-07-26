@@ -17,8 +17,8 @@ test = TestGyp.TestGyp(format='gypd')
 expect = test.read('commands.gyp.stdout').replace('\r', '')
 
 test.run_gyp('commands.gyp',
-             '--debug', 'variables', '--debug', 'general',
-             stdout=expect)
+             '--debug', 'variables',
+             stdout=expect, ignore_line_numbers=False)
 
 
 

@@ -70,10 +70,6 @@ protected:
     WebRtc_Word32 IsInternalDTXReplacedSafe(
         bool* internalDTXReplaced);
 
-    WebRtc_Word16 UnregisterFromNetEqSafe(
-        ACMNetEQ*     netEq,
-        WebRtc_Word16 payloadType);
-
     G729_encinst_t_* _encoderInstPtr;
     G729_decinst_t_* _decoderInstPtr;
 

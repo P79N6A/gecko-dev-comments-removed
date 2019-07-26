@@ -220,6 +220,17 @@ GTEST_API_ bool ExitedUnsuccessfully(int exit_status);
 
 
 
+
+# define GTEST_EXECUTE_STATEMENT_(statement, regex) \
+  GTEST_AMBIGUOUS_ELSE_BLOCKER_ \
+  if (::testing::internal::AlwaysTrue()) { \
+     GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement); \
+  } else \
+    ::testing::Message()
+
+
+
+
 class InternalRunDeathTestFlag {
  public:
   InternalRunDeathTestFlag(const String& a_file,

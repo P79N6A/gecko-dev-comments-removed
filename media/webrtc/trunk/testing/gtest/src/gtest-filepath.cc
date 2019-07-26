@@ -39,7 +39,7 @@
 #elif GTEST_OS_WINDOWS
 # include <direct.h>
 # include <io.h>
-#elif GTEST_OS_SYMBIAN || GTEST_OS_NACL
+#elif GTEST_OS_SYMBIAN
 
 # include <sys/syslimits.h>
 #else

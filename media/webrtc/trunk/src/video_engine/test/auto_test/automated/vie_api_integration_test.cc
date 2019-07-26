@@ -25,7 +25,8 @@ TEST_F(ViEApiIntegrationTest, RunsBaseTestWithoutErrors) {
   tests_->ViEBaseAPITest();
 }
 
-TEST_F(ViEApiIntegrationTest, RunsCaptureTestWithoutErrors) {
+
+TEST_F(ViEApiIntegrationTest, DISABLED_RunsCaptureTestWithoutErrors) {
   tests_->ViECaptureAPITest();
 }
 

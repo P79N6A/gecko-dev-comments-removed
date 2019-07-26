@@ -81,12 +81,6 @@ void ACMDTMFPlayout::DestructDecoderSafe() {
   return;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::UnregisterFromNetEqSafe(
-    ACMNetEQ* ,
-    WebRtc_Word16 ) {
-  return -1;
-}
-
 #else     
 
 ACMDTMFPlayout::ACMDTMFPlayout(WebRtc_Word16 codecID) {
@@ -165,21 +159,6 @@ void ACMDTMFPlayout::DestructDecoderSafe() {
   return;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::UnregisterFromNetEqSafe(
-    ACMNetEQ* netEq,
-    WebRtc_Word16 payloadType) {
-  if (payloadType != _decoderParams.codecInstant.pltype) {
-    WEBRTC_TRACE(webrtc::kTraceError,
-                 webrtc::kTraceAudioCoding,
-                 _uniqueID,
-                 "Cannot unregister codec %s given payload-type %d does not "
-                 "match the stored payload type",
-                 _decoderParams.codecInstant.plname, payloadType,
-                 _decoderParams.codecInstant.pltype);
-    return -1;
-  }
-  return netEq->RemoveCodec(kDecoderAVT);
-}
 #endif
 
 } 

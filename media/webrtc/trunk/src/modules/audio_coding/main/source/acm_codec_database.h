@@ -36,12 +36,21 @@ class ACMCodecDB {
 # endif
 #endif
 #ifdef WEBRTC_CODEC_PCM16
+    
     , kPCM16B
     , kPCM16Bwb
     , kPCM16Bswb32kHz
+    
+    , kPCM16B_2ch
+    , kPCM16Bwb_2ch
+    , kPCM16Bswb32kHz_2ch
 #endif
+    
     , kPCMU
     , kPCMA
+    
+    , kPCMU_2ch
+    , kPCMA_2ch
 #ifdef WEBRTC_CODEC_ILBC
     , kILBC
 #endif
@@ -52,10 +61,16 @@ class ACMCodecDB {
     , kGSMAMRWB
 #endif
 #ifdef WEBRTC_CODEC_CELT
+    
     , kCELT32
+    
+    , kCELT32_2ch
 #endif
 #ifdef WEBRTC_CODEC_G722
+    
     , kG722
+    
+    , kG722_2ch
 #endif
 #ifdef WEBRTC_CODEC_G722_1
     , kG722_1_32
@@ -75,6 +90,9 @@ class ACMCodecDB {
 #endif
 #ifdef WEBRTC_CODEC_GSMFR
     , kGSMFR
+#endif
+#ifdef WEBRTC_CODEC_OPUS
+    , kOpus
 #endif
 #ifdef WEBRTC_CODEC_SPEEX
     , kSPEEX8
@@ -100,9 +118,14 @@ class ACMCodecDB {
 # endif
 #endif
 #ifndef WEBRTC_CODEC_PCM16
+  
   enum {kPCM16B = -1};
   enum {kPCM16Bwb = -1};
   enum {kPCM16Bswb32kHz = -1};
+  
+  enum {kPCM16B_2ch = -1};
+  enum {kPCM16Bwb_2ch = -1};
+  enum {kPCM16Bswb32kHz_2ch = -1};
 #endif
   
   enum {kPCM16Bswb48kHz = -1};
@@ -116,10 +139,16 @@ class ACMCodecDB {
   enum {kGSMAMRWB = -1};
 #endif
 #ifndef WEBRTC_CODEC_CELT
+  
   enum {kCELT32 = -1};
+  
+  enum {kCELT32_2ch = -1};
 #endif
 #ifndef WEBRTC_CODEC_G722
+  
   enum {kG722 = -1};
+  
+  enum {kG722_2ch = -1};
 #endif
 #ifndef WEBRTC_CODEC_G722_1
   enum {kG722_1_32 = -1};
@@ -139,6 +168,9 @@ class ACMCodecDB {
 #endif
 #ifndef WEBRTC_CODEC_GSMFR
   enum {kGSMFR = -1};
+#endif
+#ifndef WEBRTC_CODEC_OPUS
+  enum {kOpus = -1};
 #endif
 #ifndef WEBRTC_CODEC_SPEEX
   enum {kSPEEX8 = -1};
@@ -212,6 +244,8 @@ class ACMCodecDB {
   static int CodecNumber(const CodecInst* codec_inst, int* mirror_id,
                          char* err_message, int max_message_len_byte);
   static int CodecNumber(const CodecInst* codec_inst, int* mirror_id);
+  static int CodecId(const CodecInst* codec_inst);
+  static int CodecId(const char* payload_name, int frequency, int channels);
   static int ReceiverCodecNumber(const CodecInst* codec_inst, int* mirror_id);
 
   
@@ -247,18 +281,6 @@ class ACMCodecDB {
   
   
   
-  static int CodecsVersion(char* version, size_t* remaining_buffer_bytes,
-                           size_t* position);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   static int MirrorID(int codec_id);
@@ -282,6 +304,7 @@ class ACMCodecDB {
   static bool IsAMRwbRateValid(int rate);
   static bool IsG7291RateValid(int rate);
   static bool IsSpeexRateValid(int rate);
+  static bool IsOpusRateValid(int rate);
   static bool IsCeltRateValid(int rate);
 
   

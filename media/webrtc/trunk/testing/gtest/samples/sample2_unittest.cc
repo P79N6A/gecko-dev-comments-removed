@@ -79,7 +79,7 @@ const char kHelloString[] = "Hello, world!";
 
 TEST(MyString, ConstructorFromCString) {
   const MyString s(kHelloString);
-  EXPECT_TRUE(strcmp(s.c_string(), kHelloString) == 0);
+  EXPECT_EQ(0, strcmp(s.c_string(), kHelloString));
   EXPECT_EQ(sizeof(kHelloString)/sizeof(kHelloString[0]) - 1,
             s.Length());
 }
@@ -88,7 +88,7 @@ TEST(MyString, ConstructorFromCString) {
 TEST(MyString, CopyConstructor) {
   const MyString s1(kHelloString);
   const MyString s2 = s1;
-  EXPECT_TRUE(strcmp(s2.c_string(), kHelloString) == 0);
+  EXPECT_EQ(0, strcmp(s2.c_string(), kHelloString));
 }
 
 
@@ -96,12 +96,12 @@ TEST(MyString, Set) {
   MyString s;
 
   s.Set(kHelloString);
-  EXPECT_TRUE(strcmp(s.c_string(), kHelloString) == 0);
+  EXPECT_EQ(0, strcmp(s.c_string(), kHelloString));
 
   
   
   s.Set(s.c_string());
-  EXPECT_TRUE(strcmp(s.c_string(), kHelloString) == 0);
+  EXPECT_EQ(0, strcmp(s.c_string(), kHelloString));
 
   
   s.Set(NULL);

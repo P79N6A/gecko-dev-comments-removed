@@ -75,7 +75,7 @@
 #define WEBRTC_SPL_UDIV(a, b) \
     ((WebRtc_UWord32) ((WebRtc_UWord32)(a) / (WebRtc_UWord32)(b)))
 
-#ifndef WEBRTC_ARCH_ARM_V7A
+#ifndef WEBRTC_ARCH_ARM_V7
 
 #define WEBRTC_SPL_MUL_16_16(a, b) \
     ((WebRtc_Word32) (((WebRtc_Word16)(a)) * ((WebRtc_Word16)(b))))
@@ -283,7 +283,11 @@ int32_t WebRtcSpl_MinValueW32(const int32_t* vector, int length);
 
 
 
+
+
+
 int WebRtcSpl_MaxAbsIndexW16(const int16_t* vector, int length);
+
 
 
 
@@ -303,6 +307,7 @@ int WebRtcSpl_MaxIndexW16(const int16_t* vector, int length);
 
 
 
+
 int WebRtcSpl_MaxIndexW32(const int32_t* vector, int length);
 
 
@@ -313,7 +318,9 @@ int WebRtcSpl_MaxIndexW32(const int32_t* vector, int length);
 
 
 
+
 int WebRtcSpl_MinIndexW16(const int16_t* vector, int length);
+
 
 
 
@@ -420,31 +427,145 @@ void WebRtcSpl_AffineTransformVector(WebRtc_Word16* out_vector,
 
 
 
-int WebRtcSpl_AutoCorrelation(G_CONST WebRtc_Word16* vector,
-                              int vector_length, int order,
-                              WebRtc_Word32* result_vector,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int WebRtcSpl_AutoCorrelation(const int16_t* in_vector,
+                              int in_vector_length,
+                              int order,
+                              int32_t* result,
                               int* scale);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 WebRtc_Word16 WebRtcSpl_LevinsonDurbin(WebRtc_Word32* auto_corr,
                                        WebRtc_Word16* lpc_coef,
                                        WebRtc_Word16* refl_coef,
                                        WebRtc_Word16 order);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void WebRtcSpl_ReflCoefToLpc(G_CONST WebRtc_Word16* refl_coef,
                              int use_order,
                              WebRtc_Word16* lpc_coef);
+
+
+
+
+
+
+
+
+
+
+
+
 void WebRtcSpl_LpcToReflCoef(WebRtc_Word16* lpc_coef,
                              int use_order,
                              WebRtc_Word16* refl_coef);
+
+
+
+
+
+
+
+
+
 void WebRtcSpl_AutoCorrToReflCoef(G_CONST WebRtc_Word32* auto_corr,
                                   int use_order,
                                   WebRtc_Word16* refl_coef);
-void WebRtcSpl_CrossCorrelation(WebRtc_Word32* cross_corr,
-                                WebRtc_Word16* vector1,
-                                WebRtc_Word16* vector2,
-                                WebRtc_Word16 dim_vector,
-                                WebRtc_Word16 dim_cross_corr,
-                                WebRtc_Word16 right_shifts,
-                                WebRtc_Word16 step_vector2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void WebRtcSpl_CrossCorrelation(int32_t* cross_correlation,
+                                const int16_t* seq1,
+                                const int16_t* seq2,
+                                int16_t dim_seq,
+                                int16_t dim_cross_correlation,
+                                int16_t right_shifts,
+                                int16_t step_seq2);
+
+
+
+
+
+
+
+
+
 void WebRtcSpl_GetHanningWindow(WebRtc_Word16* window, WebRtc_Word16 size);
+
+
+
+
+
+
+
+
+
+
 void WebRtcSpl_SqrtOfOneMinusXSquared(WebRtc_Word16* in_vector,
                                       int vector_length,
                                       WebRtc_Word16* out_vector);
@@ -478,10 +599,21 @@ WebRtc_Word32 WebRtcSpl_Energy(WebRtc_Word16* vector,
                                int vector_length,
                                int* scale_factor);
 
-WebRtc_Word32 WebRtcSpl_DotProductWithScale(WebRtc_Word16* vector1,
-                                            WebRtc_Word16* vector2,
-                                            int vector_length,
-                                            int scaling);
+
+
+
+
+
+
+
+
+
+
+
+int32_t WebRtcSpl_DotProductWithScale(const int16_t* vector1,
+                                      const int16_t* vector2,
+                                      int length,
+                                      int scaling);
 
 
 int WebRtcSpl_FilterAR(G_CONST WebRtc_Word16* ar_coef, int ar_coef_length,
@@ -752,164 +884,6 @@ void WebRtcSpl_SynthesisQMF(const WebRtc_Word16* low_band,
 }
 #endif 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
