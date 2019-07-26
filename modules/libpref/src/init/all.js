@@ -1778,6 +1778,9 @@ pref("layout.css.masking.enabled", true);
 #endif
 
 
+pref("layout.css.mix-blend-mode.enabled", false);
+
+
 pref("layout.css.supports-rule.enabled", true);
 
 
@@ -4077,6 +4080,8 @@ pref("layers.draw-borders", false);
 pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);
 pref("layers.frame-counter", false);
+
+pref("layers.max-active", -1);
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
