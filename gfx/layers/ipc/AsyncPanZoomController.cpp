@@ -839,9 +839,7 @@ void AsyncPanZoomController::SetPageRect(const CSSRect& aCSSPageRect) {
   
   
   
-  LayerIntRect pageSize = LayerRect::FromCSSRectRoundOut(aCSSPageRect, resolution);
-  metrics.mContentRect = nsIntRect(pageSize.x, pageSize.y,
-                                   pageSize.width, pageSize.height);
+  metrics.mContentRect = LayerRect::FromCSSRectRoundOut(aCSSPageRect, resolution);
   metrics.mScrollableRect = aCSSPageRect;
 
   mFrameMetrics = metrics;

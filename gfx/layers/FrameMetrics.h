@@ -131,7 +131,7 @@ public:
   
   
   
-  nsIntRect mContentRect;
+  LayerIntRect mContentRect;
 
   
   
