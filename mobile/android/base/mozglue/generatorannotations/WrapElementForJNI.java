@@ -44,4 +44,6 @@ public @interface WrapElementForJNI {
 
 
     boolean noThrow() default false;
+
+    boolean narrowChars() default false;
 }
