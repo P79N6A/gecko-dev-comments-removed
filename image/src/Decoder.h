@@ -59,7 +59,7 @@ public:
 
 
 
-  void Finish();
+  void Finish(RasterImage::eShutdownIntent aShutdownIntent);
 
   
 

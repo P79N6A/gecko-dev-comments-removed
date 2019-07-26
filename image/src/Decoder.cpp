@@ -80,7 +80,7 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
 }
 
 void
-Decoder::Finish()
+Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
 {
   
   if (!HasError())
@@ -114,16 +114,22 @@ Decoder::Finish()
       }
     }
 
-    
-    bool salvage = !HasDecoderError() && mImage.GetNumFrames();
+    bool usable = true;
+    if (aShutdownIntent != RasterImage::eShutdownIntent_Interrupted && !HasDecoderError()) {
+      
+      if (mImage.GetNumFrames() == 0) {
+        usable = false;
+      }
+    }
 
     
-    if (salvage)
-      mImage.DecodingComplete();
-
     
-    if (mObserver) {
-      mObserver->OnStopDecode(salvage ? NS_OK : NS_ERROR_FAILURE);
+    if (usable) {
+      PostDecodeDone();
+    } else {
+      if (mObserver) {
+        mObserver->OnStopDecode(NS_ERROR_FAILURE);
+      }
     }
   }
 }

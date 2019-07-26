@@ -311,6 +311,14 @@ public:
   
   void ScalingDone(ScaleRequest* request, ScaleStatus status);
 
+  
+  enum eShutdownIntent {
+    eShutdownIntent_Done        = 0,
+    eShutdownIntent_Interrupted = 1,
+    eShutdownIntent_Error       = 2,
+    eShutdownIntent_AllCount    = 3
+  };
+
 private:
   struct Anim
   {
@@ -710,13 +718,6 @@ private:
   
   ScaleRequest* mScaleRequest;
 
-  
-  enum eShutdownIntent {
-    eShutdownIntent_Done        = 0,
-    eShutdownIntent_Interrupted = 1,
-    eShutdownIntent_Error       = 2,
-    eShutdownIntent_AllCount    = 3
-  };
   nsresult ShutdownDecoder(eShutdownIntent aIntent);
 
   
