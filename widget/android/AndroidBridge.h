@@ -29,6 +29,7 @@
 #include "nsISmsRequest.h"
 
 #include "mozilla/Likely.h"
+#include "mozilla/StaticPtr.h"
 
 
 
@@ -368,6 +369,7 @@ public:
 
 protected:
     static AndroidBridge *sBridge;
+    static StaticAutoPtr<nsTArray<nsCOMPtr<nsISmsRequest> > > sSmsRequests;
 
     
     JavaVM *mJavaVM;
