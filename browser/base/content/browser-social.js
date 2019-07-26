@@ -202,19 +202,21 @@ let SocialUI = {
   
   
   _activationEventHandler: function SocialUI_activationHandler(e) {
-    let targetDoc = e.target;
-
-    
+    let targetDoc;
+    let node;
+    if (e.target instanceof HTMLDocument) {
+      
+      targetDoc = e.target;
+      node = targetDoc.documentElement
+    } else {
+      targetDoc = e.target.ownerDocument;
+      node = e.target;
+    }
     if (!(targetDoc instanceof HTMLDocument))
       return;
 
     
-    if (targetDoc.defaultView.top != content)
-      return;
-
-    
-    let providerOrigin = targetDoc.nodePrincipal.origin;
-    if (!Social.canActivateOrigin(providerOrigin))
+    if (targetDoc.defaultView != content)
       return;
 
     
@@ -229,10 +231,33 @@ let SocialUI = {
     Social.lastEventReceived = now;
 
     
+    let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIDOMWindowUtils);
+    if (!dwu.isHandlingUserInput) {
+      Cu.reportError("attempt to activate provider without user input from " + targetDoc.nodePrincipal.origin);
+      return;
+    }
+
+    let data = node.getAttribute("data-service");
+    if (data) {
+      try {
+        data = JSON.parse(data);
+      } catch(e) {
+        Cu.reportError("Social Service manifest parse error: "+e);
+        return;
+      }
+    }
+    Social.installProvider(targetDoc.location.href, data, function(manifest) {
+      this.doActivation(manifest.origin);
+    }.bind(this));
+  },
+
+  doActivation: function SocialUI_doActivation(origin) {
+    
     let oldOrigin = Social.provider ? Social.provider.origin : "";
 
     
-    Social.activateFromOrigin(providerOrigin, function(provider) {
+    Social.activateFromOrigin(origin, function(provider) {
       
       if (!provider)
         return;
@@ -271,6 +296,7 @@ let SocialUI = {
     let oldOrigin = this.notificationPanel.getAttribute("oldorigin");
     Social.deactivateFromOrigin(origin, oldOrigin);
     this.notificationPanel.hidePopup();
+    Social.uninstallProvider(origin);
   },
 
   get notificationPanel() {
@@ -365,7 +391,7 @@ let SocialChatBar = {
     let command = document.getElementById("Social:FocusChat");
     if (!this.isAvailable) {
       this.chatbar.removeAll();
-      command.hidden = true;
+      this.chatbar.hidden = command.hidden = true;
     } else {
       this.chatbar.hidden = command.hidden = document.mozFullScreen;
     }

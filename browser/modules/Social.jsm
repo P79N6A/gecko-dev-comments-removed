@@ -173,6 +173,14 @@ this.Social = {
     return null;
   },
 
+  installProvider: function(origin ,sourceURI, data, installCallback) {
+    SocialService.installProvider(origin ,sourceURI, data, installCallback);
+  },
+
+  uninstallProvider: function(origin) {
+    SocialService.uninstallProvider(origin);
+  },
+
   
   activateFromOrigin: function (origin, callback) {
     
@@ -198,10 +206,6 @@ this.Social = {
     this.provider = oldProvider;
     if (provider)
       SocialService.removeProvider(origin);
-  },
-
-  canActivateOrigin: function (origin) {
-    return SocialService.canActivateOrigin(origin);
   },
 
   
