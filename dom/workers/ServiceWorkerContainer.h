@@ -36,6 +36,7 @@ public:
   explicit ServiceWorkerContainer(nsPIDOMWindow* aWindow)
     : mWindow(aWindow)
   {
+    
     SetIsDOMBinding();
   }
 
@@ -82,7 +83,9 @@ public:
                                        ErrorResult& aRv);
 private:
   ~ServiceWorkerContainer()
-  { }
+  {
+    
+  }
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
 };
