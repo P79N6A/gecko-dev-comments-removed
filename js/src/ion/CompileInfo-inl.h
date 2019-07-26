@@ -8,10 +8,33 @@
 #define jsion_compileinfo_inl_h__
 
 #include "CompileInfo.h"
+#include "jsgcinlines.h"
 #include "jsscriptinlines.h"
 
 using namespace js;
 using namespace ion;
+
+CompileInfo::CompileInfo(JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing,
+                         ExecutionMode executionMode)
+  : script_(script), fun_(fun), osrPc_(osrPc), constructing_(constructing),
+    executionMode_(executionMode)
+{
+    JS_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOP_LOOPENTRY);
+
+    
+    
+    if (fun_) {
+        fun_ = fun_->nonLazyScript()->function();
+        JS_ASSERT(fun_->isTenured());
+    }
+
+    nimplicit_ = StartArgSlot(script, fun)              
+               + (fun ? 1 : 0);                         
+    nargs_ = fun ? fun->nargs : 0;
+    nlocals_ = script->nfixed;
+    nstack_ = script->nslots - script->nfixed;
+    nslots_ = nimplicit_ + nargs_ + nlocals_ + nstack_;
+}
 
 const char *
 CompileInfo::filename() const

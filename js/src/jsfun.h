@@ -443,8 +443,7 @@ XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope,
                        HandleScript enclosingScript, MutableHandleObject objp);
 
 extern JSObject *
-CloneInterpretedFunction(JSContext *cx, HandleObject enclosingScope, HandleFunction fun,
-                         NewObjectKind newKind = GenericObject);
+CloneFunctionAndScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun);
 
 
 
