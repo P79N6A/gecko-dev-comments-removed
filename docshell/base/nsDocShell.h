@@ -810,6 +810,7 @@ protected:
     bool                       mIsAppTab;
     bool                       mUseGlobalHistory;
     bool                       mInPrivateBrowsing;
+    bool                       mDeviceSizeIsPageSize;
 
     
     
