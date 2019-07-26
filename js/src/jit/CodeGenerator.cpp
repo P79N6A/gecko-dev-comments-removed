@@ -1014,7 +1014,10 @@ CodeGenerator::visitLambdaArrow(LLambdaArrow *lir)
 
     
     MOZ_ASSERT(info.flags & JSFunction::EXTENDED);
-    masm.storeValue(thisv, Address(output, FunctionExtended::offsetOfArrowThisSlot()));
+    static_assert(FunctionExtended::NUM_EXTENDED_SLOTS == 2, "All slots must be initialized");
+    static_assert(FunctionExtended::ARROW_THIS_SLOT == 0, "|this| must be stored in first slot");
+    masm.storeValue(thisv, Address(output, FunctionExtended::offsetOfExtendedSlot(0)));
+    masm.storeValue(UndefinedValue(), Address(output, FunctionExtended::offsetOfExtendedSlot(1)));
 
     masm.bind(ool->rejoin());
     return true;
