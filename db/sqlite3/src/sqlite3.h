@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.8.4.2"
-#define SQLITE_VERSION_NUMBER 3008004
-#define SQLITE_SOURCE_ID      "2014-03-26 18:51:19 02ea166372bdb2ef9d8dfbb05e78a97609673a8e"
+#define SQLITE_VERSION        "3.8.5"
+#define SQLITE_VERSION_NUMBER 3008005
+#define SQLITE_SOURCE_ID      "2014-06-04 14:06:34 b1ed4f2a34ba66c29b130f8d13e9092758019212"
 
 
 
@@ -562,6 +562,9 @@ SQLITE_API int sqlite3_exec(
 
 
 
+
+
+
 #define SQLITE_IOCAP_ATOMIC                 0x00000001
 #define SQLITE_IOCAP_ATOMIC512              0x00000002
 #define SQLITE_IOCAP_ATOMIC1K               0x00000004
@@ -575,6 +578,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_IOCAP_SEQUENTIAL             0x00000400
 #define SQLITE_IOCAP_UNDELETABLE_WHEN_OPEN  0x00000800
 #define SQLITE_IOCAP_POWERSAFE_OVERWRITE    0x00001000
+#define SQLITE_IOCAP_IMMUTABLE              0x00002000
 
 
 
@@ -945,6 +949,12 @@ struct sqlite3_io_methods {
 
 
 
+
+
+
+
+
+
 #define SQLITE_FCNTL_LOCKSTATE               1
 #define SQLITE_GET_LOCKPROXYFILE             2
 #define SQLITE_SET_LOCKPROXYFILE             3
@@ -966,6 +976,7 @@ struct sqlite3_io_methods {
 #define SQLITE_FCNTL_HAS_MOVED              20
 #define SQLITE_FCNTL_SYNC                   21
 #define SQLITE_FCNTL_COMMIT_PHASETWO        22
+#define SQLITE_FCNTL_WIN32_SET_HANDLE       23
 
 
 
@@ -2632,6 +2643,31 @@ SQLITE_API SQLITE_EXPERIMENTAL void *sqlite3_profile(sqlite3*,
 
 
 SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6123,7 +6159,8 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_EXPLAIN_STMT            19
 #define SQLITE_TESTCTRL_NEVER_CORRUPT           20
 #define SQLITE_TESTCTRL_VDBE_COVERAGE           21
-#define SQLITE_TESTCTRL_LAST                    21
+#define SQLITE_TESTCTRL_BYTEORDER               22
+#define SQLITE_TESTCTRL_LAST                    22
 
 
 
@@ -7346,6 +7383,16 @@ extern "C" {
 #endif
 
 typedef struct sqlite3_rtree_geometry sqlite3_rtree_geometry;
+typedef struct sqlite3_rtree_query_info sqlite3_rtree_query_info;
+
+
+
+
+#ifdef SQLITE_RTREE_INT_ONLY
+  typedef sqlite3_int64 sqlite3_rtree_dbl;
+#else
+  typedef double sqlite3_rtree_dbl;
+#endif
 
 
 
@@ -7356,11 +7403,7 @@ typedef struct sqlite3_rtree_geometry sqlite3_rtree_geometry;
 SQLITE_API int sqlite3_rtree_geometry_callback(
   sqlite3 *db,
   const char *zGeom,
-#ifdef SQLITE_RTREE_INT_ONLY
-  int (*xGeom)(sqlite3_rtree_geometry*, int n, sqlite3_int64 *a, int *pRes),
-#else
-  int (*xGeom)(sqlite3_rtree_geometry*, int n, double *a, int *pRes),
-#endif
+  int (*xGeom)(sqlite3_rtree_geometry*, int, sqlite3_rtree_dbl*,int*),
   void *pContext
 );
 
@@ -7372,10 +7415,59 @@ SQLITE_API int sqlite3_rtree_geometry_callback(
 struct sqlite3_rtree_geometry {
   void *pContext;                 
   int nParam;                     
-  double *aParam;                 
+  sqlite3_rtree_dbl *aParam;      
   void *pUser;                    
   void (*xDelUser)(void *);       
 };
+
+
+
+
+
+
+
+SQLITE_API int sqlite3_rtree_query_callback(
+  sqlite3 *db,
+  const char *zQueryFunc,
+  int (*xQueryFunc)(sqlite3_rtree_query_info*),
+  void *pContext,
+  void (*xDestructor)(void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_rtree_query_info {
+  void *pContext;                   
+  int nParam;                       
+  sqlite3_rtree_dbl *aParam;        
+  void *pUser;                      
+  void (*xDelUser)(void*);          
+  sqlite3_rtree_dbl *aCoord;        
+  unsigned int *anQueue;            
+  int nCoord;                       
+  int iLevel;                       
+  int mxLevel;                      
+  sqlite3_int64 iRowid;             
+  sqlite3_rtree_dbl rParentScore;   
+  int eParentWithin;                
+  int eWithin;                      
+  sqlite3_rtree_dbl rScore;         
+};
+
+
+
+
+#define NOT_WITHIN       0   /* Object completely outside of query region */
+#define PARTLY_WITHIN    1   /* Object partially overlaps query region */
+#define FULLY_WITHIN     2   /* Object fully contained within query region */
 
 
 #ifdef __cplusplus
