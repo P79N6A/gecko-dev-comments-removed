@@ -531,7 +531,7 @@ nsWindow::GetDefaultScaleInternal()
         return 1.5; 
     }
     
-    return floor(dpi / 150.0);
+    return floor(dpi / 150.0 + 0.5);
 }
 
 LayerManager *
