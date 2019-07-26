@@ -148,6 +148,11 @@ ToolSidebar.prototype = {
 
   handleEvent: function ToolSidebar_eventHandler(event) {
     if (event.type == "select") {
+      if (this._currentTool == this.getCurrentTabID()) {
+        
+        return;
+      }
+
       let previousTool = this._currentTool;
       this._currentTool = this.getCurrentTabID();
       if (previousTool) {
