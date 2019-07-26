@@ -420,7 +420,11 @@ nsresult LoadInfo::UpdateSystemLoad()
   return NS_OK;
 #elif defined(__DragonFly__) || defined(__FreeBSD__) \
    || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__NetBSD__)
+  uint64_t cp_time[CPUSTATES];
+#else
   long cp_time[CPUSTATES];
+#endif 
   size_t sz = sizeof(cp_time);
 #ifdef KERN_CP_TIME
   int mib[] = {
