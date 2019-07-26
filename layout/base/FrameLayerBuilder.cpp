@@ -2052,6 +2052,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
     
     if (layerState == LAYER_ACTIVE_FORCE ||
+        (layerState == LAYER_INACTIVE && !mManager->IsWidgetLayerManager()) ||
         (!forceInactive &&
          (layerState == LAYER_ACTIVE_EMPTY ||
           layerState == LAYER_ACTIVE))) {
@@ -2696,7 +2697,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   gfxMatrix transform2d;
   bool canDraw2D = transform.CanDraw2D(&transform2d);
   gfxSize scale;
-  bool isRetained = aLayerBuilder->GetRetainingLayerManager() == aLayer->Manager();
+  bool isRetained = aLayer->Manager()->IsWidgetLayerManager();
   
   
   
