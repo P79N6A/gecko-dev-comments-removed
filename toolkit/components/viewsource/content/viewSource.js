@@ -546,7 +546,7 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
 
   
   var treewalker = window.content.document
-      .createTreeWalker(pre, NodeFilter.SHOW_TEXT, null, false);
+      .createTreeWalker(pre, NodeFilter.SHOW_TEXT, null);
 
   
   var firstCol = 1;
