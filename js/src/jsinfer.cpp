@@ -310,29 +310,6 @@ TemporaryTypeSet::TemporaryTypeSet(Type type)
     }
 }
 
-static inline TypeFlags
-PrimitiveMIRType(jit::MIRType type)
-{
-    switch (type) {
-      case jit::MIRType_Undefined:
-        return TYPE_FLAG_UNDEFINED;
-      case jit::MIRType_Null:
-        return TYPE_FLAG_NULL;
-      case jit::MIRType_Boolean:
-        return TYPE_FLAG_BOOLEAN;
-      case jit::MIRType_Int32:
-        return TYPE_FLAG_INT32;
-      case jit::MIRType_Double:
-        return TYPE_FLAG_DOUBLE;
-      case jit::MIRType_String:
-        return TYPE_FLAG_STRING;
-      case jit::MIRType_Magic:
-        return TYPE_FLAG_LAZYARGS;
-      default:
-        MOZ_ASSUME_UNREACHABLE("Bad MIR type");
-    }
-}
-
 bool
 TypeSet::mightBeMIRType(jit::MIRType type)
 {
@@ -342,7 +319,37 @@ TypeSet::mightBeMIRType(jit::MIRType type)
     if (type == jit::MIRType_Object)
         return unknownObject() || baseObjectCount() != 0;
 
-    return baseFlags() & PrimitiveMIRType(type);
+    switch (type) {
+      case jit::MIRType_Undefined:
+        return baseFlags() & TYPE_FLAG_UNDEFINED;
+      case jit::MIRType_Null:
+        return baseFlags() & TYPE_FLAG_NULL;
+      case jit::MIRType_Boolean:
+        return baseFlags() & TYPE_FLAG_BOOLEAN;
+      case jit::MIRType_Int32:
+        return baseFlags() & TYPE_FLAG_INT32;
+      case jit::MIRType_Float32: 
+      case jit::MIRType_Double:
+        return baseFlags() & TYPE_FLAG_DOUBLE;
+      case jit::MIRType_String:
+        return baseFlags() & TYPE_FLAG_STRING;
+      case jit::MIRType_MagicOptimizedArguments:
+        return baseFlags() & TYPE_FLAG_LAZYARGS;
+      case jit::MIRType_MagicHole:
+      case jit::MIRType_MagicIsConstructing:
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return false;
+      default:
+        MOZ_ASSUME_UNREACHABLE("Bad MIR type");
+    }
 }
 
 bool
@@ -1182,7 +1189,7 @@ GetMIRTypeFromTypeFlags(TypeFlags flags)
       case TYPE_FLAG_STRING:
         return jit::MIRType_String;
       case TYPE_FLAG_LAZYARGS:
-        return jit::MIRType_Magic;
+        return jit::MIRType_MagicOptimizedArguments;
       case TYPE_FLAG_ANYOBJECT:
         return jit::MIRType_Object;
       default:

@@ -294,7 +294,8 @@ TypeBarrierPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
         JS_ASSERT(outputType != MIRType_Value);
 
         
-        if (IsNullOrUndefined(outputType) || outputType == MIRType_Magic) {
+        
+        if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
             JS_ASSERT(ins->defUseCount() == 0);
             ins->setResultType(MIRType_Value);
             return true;
