@@ -9,285 +9,226 @@
 #include "MP3FrameParser.h"
 #include "VideoUtils.h"
 
+
 namespace mozilla {
 
 
 
 
 
-class ID3Buffer
-{
-public:
 
-  enum {
-    ID3_HEADER_LENGTH = 10
-  };
 
-  ID3Buffer(const uint8_t* aBuffer, uint32_t aLength)
-  : mBuffer(aBuffer),
-    mLength(aLength),
-    mSize(0)
-  {
-    MOZ_ASSERT(mBuffer || !mLength);
+
+
+const uint8_t mpeg_versions[4] = { 25, 0, 2, 1 };
+
+
+const uint8_t mpeg_layers[4] = { 0, 3, 2, 1 };
+
+
+const uint16_t mpeg_bitrates[4][4][16] = {
+  { 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
+    { 0,   8,  16,  24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160, 0 }, 
+    { 0,   8,  16,  24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160, 0 }, 
+    { 0,  32,  48,  56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256, 0 }  
+  },
+  { 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }  
+  },
+  { 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
+    { 0,   8,  16,  24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160, 0 }, 
+    { 0,   8,  16,  24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160, 0 }, 
+    { 0,  32,  48,  56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256, 0 }  
+  },
+  { 
+    { 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0 }, 
+    { 0,  32,  40,  48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 0 }, 
+    { 0,  32,  48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384, 0 }, 
+    { 0,  32,  64,  96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0 }, 
   }
-
-  nsresult Parse();
-
-  int64_t Length() const {
-    return ID3_HEADER_LENGTH + mSize;
-  }
-
-private:
-  const uint8_t* mBuffer;
-  uint32_t       mLength;
-  uint32_t       mSize;
 };
 
-nsresult ID3Buffer::Parse()
-{
-  NS_ENSURE_TRUE(mBuffer && mLength >= ID3_HEADER_LENGTH, NS_ERROR_INVALID_ARG);
 
-  if ((mBuffer[0] != 'I') ||
-      (mBuffer[1] != 'D') ||
-      (mBuffer[2] != '3') ||
-      (mBuffer[6] & 0x80) ||
-      (mBuffer[7] & 0x80) ||
-      (mBuffer[8] & 0x80) ||
-      (mBuffer[9] & 0x80)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  mSize = ((static_cast<uint32_t>(mBuffer[6])<<21) |
-           (static_cast<uint32_t>(mBuffer[7])<<14) |
-           (static_cast<uint32_t>(mBuffer[8])<<7)  |
-            static_cast<uint32_t>(mBuffer[9]));
-
-  return NS_OK;
-}
-
-
-
-
-
-class MP3Buffer
-{
-public:
-
-  enum {
-    MP3_HEADER_LENGTH   = 4,
-    MP3_FRAMESIZE_CONST = 144000,
-    MP3_DURATION_CONST  = 8000
-  };
-
-  MP3Buffer(const uint8_t* aBuffer, uint32_t aLength)
-  : mBuffer(aBuffer),
-    mLength(aLength),
-    mDurationUs(0),
-    mNumFrames(0),
-    mBitRateSum(0),
-    mSampleRate(0),
-    mFrameSizeSum(0)
-  {
-    MOZ_ASSERT(mBuffer || !mLength);
-  }
-
-  nsresult Parse();
-
-  int64_t GetDuration() const {
-    return mDurationUs;
-  }
-
-  int64_t GetNumberOfFrames() const {
-    return mNumFrames;
-  }
-
-  int64_t GetBitRateSum() const {
-    return mBitRateSum;
-  }
-
-  int16_t GetSampleRate() const {
-    return mSampleRate;
-  }
-
-  int64_t GetFrameSizeSum() const {
-    return mFrameSizeSum;
-  }
-
-private:
-
-  enum MP3FrameHeaderField {
-    MP3_HDR_FIELD_SYNC,
-    MP3_HDR_FIELD_VERSION,
-    MP3_HDR_FIELD_LAYER,
-    MP3_HDR_FIELD_BITRATE,
-    MP3_HDR_FIELD_SAMPLERATE,
-    MP3_HDR_FIELD_PADDING,
-    MP3_HDR_FIELDS 
-  };
-
-  enum {
-    MP3_HDR_CONST_FRAMESYNC = 0x7ff,
-    MP3_HDR_CONST_VERSION   = 3,
-    MP3_HDR_CONST_LAYER     = 1
-  };
-
-  static uint32_t ExtractBits(uint32_t aValue, uint32_t aOffset,
-                              uint32_t aBits);
-  static uint32_t ExtractFrameHeaderField(uint32_t aHeader,
-                                          enum MP3FrameHeaderField aField);
-  static uint32_t ExtractFrameHeader(const uint8_t* aBuffer);
-  static nsresult DecodeFrameHeader(const uint8_t* aBuffer,
-                                    uint32_t* aFrameSize,
-                                    uint32_t* aBitRate,
-                                    uint16_t* aSampleRate,
-                                    uint64_t* aDuration);
-
-  static const uint16_t sBitRate[16];
-  static const uint16_t sSampleRate[4];
-
-  const uint8_t* mBuffer;
-  uint32_t       mLength;
-
-  
-  int64_t mDurationUs;
-
-  
-  int64_t mNumFrames;
-
-  
-  int64_t mBitRateSum;
-
-  
-  int16_t mSampleRate;
-
-  
-  int32_t mFrameSizeSum;
+const uint16_t mpeg_srates[4][4] = {
+    { 11025, 12000,  8000, 0 }, 
+    {     0,     0,     0, 0 }, 
+    { 22050, 24000, 16000, 0 }, 
+    { 44100, 48000, 32000, 0 }  
 };
 
-const uint16_t MP3Buffer::sBitRate[16] = {
-  0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0
+
+const uint16_t mpeg_frame_samples[4][4] = {
+
+    {    0,  576, 1152,  384 }, 
+    {    0,    0,    0,    0 }, 
+    {    0,  576, 1152,  384 }, 
+    {    0, 1152, 1152,  384 }  
 };
 
-const uint16_t MP3Buffer::sSampleRate[4] = {
-  44100, 48000, 32000, 0
-};
 
-uint32_t MP3Buffer::ExtractBits(uint32_t aValue, uint32_t aOffset, uint32_t aBits)
+const uint8_t mpeg_slot_size[4] = { 0, 1, 1, 4 }; 
+
+uint16_t
+MP3Frame::CalculateLength()
 {
-  return (aValue >> aOffset) & ((0x1ul << aBits) - 1);
+  
+  uint32_t  bitrate   = mpeg_bitrates[mVersion][mLayer][mBitrate] * 1000;
+  uint32_t  samprate  = mpeg_srates[mVersion][mSampleRate];
+  uint16_t  samples   = mpeg_frame_samples[mVersion][mLayer];
+  uint8_t   slot_size = mpeg_slot_size[mLayer];
+
+  
+  float     bps       = (float)samples / 8.0;
+  float     fsize     = ( (bps * (float)bitrate) / (float)samprate )
+    + ( (mPad) ? slot_size : 0 );
+
+  
+  return (uint16_t)fsize;
 }
 
-uint32_t MP3Buffer::ExtractFrameHeaderField(uint32_t aHeader, enum MP3FrameHeaderField aField)
-{
-  static const uint8_t sField[MP3_HDR_FIELDS][2] = {
-    {21, 11}, {19, 2}, {17, 2}, {12, 4}, {10, 2}, {9, 1}
-  };
 
-  MOZ_ASSERT(aField < MP3_HDR_FIELDS);
-  return ExtractBits(aHeader, sField[aField][0], sField[aField][1]);
+
+
+
+
+MP3Parser::MP3Parser()
+  : mCurrentChar(0)
+{ }
+
+void
+MP3Parser::Reset()
+{
+  mCurrentChar = 0;
 }
 
-uint32_t MP3Buffer::ExtractFrameHeader(const uint8_t* aBuffer)
+uint16_t
+MP3Parser::ParseFrameLength(uint8_t ch)
 {
-  MOZ_ASSERT(aBuffer);
+  mData.mRaw[mCurrentChar] = ch;
 
-  uint32_t header = (static_cast<uint32_t>(aBuffer[0])<<24) |
-                    (static_cast<uint32_t>(aBuffer[1])<<16) |
-                    (static_cast<uint32_t>(aBuffer[2])<<8)  |
-                     static_cast<uint32_t>(aBuffer[3]);
-
-  uint32_t frameSync = ExtractFrameHeaderField(header, MP3_HDR_FIELD_SYNC);
-  uint32_t version = ExtractFrameHeaderField(header, MP3_HDR_FIELD_VERSION);
-  uint32_t layer = ExtractFrameHeaderField(header, MP3_HDR_FIELD_LAYER);
-  uint32_t bitRate = sBitRate[ExtractFrameHeaderField(header, MP3_HDR_FIELD_BITRATE)];
-  uint32_t sampleRate = sSampleRate[ExtractFrameHeaderField(header, MP3_HDR_FIELD_SAMPLERATE)];
+  MP3Frame &frame = mData.mFrame;
 
   
   
   
-  
-  
-  
-  
-  return (frameSync == uint32_t(MP3_HDR_CONST_FRAMESYNC)) *
-         (version == uint32_t(MP3_HDR_CONST_VERSION)) *
-         (layer == uint32_t(MP3_HDR_CONST_LAYER)) * !!bitRate * !!sampleRate * header;
-}
 
-nsresult MP3Buffer::DecodeFrameHeader(const uint8_t* aBuffer,
-                                      uint32_t* aFrameSize,
-                                      uint32_t* aBitRate,
-                                      uint16_t* aSampleRate,
-                                      uint64_t* aDuration)
-{
-  uint32_t header = ExtractFrameHeader(aBuffer);
-
-  if (!header) {
-    return NS_ERROR_INVALID_ARG;
+  
+  
+  if (ch == 0xff) {
+    mCurrentChar = 0;
   }
 
-  uint32_t bitRate = sBitRate[ExtractFrameHeaderField(header, MP3_HDR_FIELD_BITRATE)];
-  uint32_t sampleRate = sSampleRate[ExtractFrameHeaderField(header, MP3_HDR_FIELD_SAMPLERATE)];
-
-  uint32_t padding = ExtractFrameHeaderField(header, MP3_HDR_FIELD_PADDING);
-  uint32_t frameSize = (uint64_t(MP3_FRAMESIZE_CONST) * bitRate) / sampleRate + padding;
-
-  MOZ_ASSERT(aBitRate);
-  *aBitRate = bitRate;
-
-  MOZ_ASSERT(aFrameSize);
-  *aFrameSize = frameSize;
-
-  MOZ_ASSERT(aDuration);
-  *aDuration = (uint64_t(MP3_DURATION_CONST) * frameSize) / bitRate;
-
-  MOZ_ASSERT(aSampleRate);
-  *aSampleRate = sampleRate;
-
-  return NS_OK;
-}
-
-nsresult MP3Buffer::Parse()
-{
   
-  
-  
-
-  const uint8_t* buffer = mBuffer;
-  uint32_t length = mLength;
-
-  while (length >= MP3_HEADER_LENGTH) {
-
-    uint32_t frameSize;
-    uint32_t bitRate;
-    uint16_t sampleRate;
-    uint64_t duration;
-
-    nsresult rv = DecodeFrameHeader(buffer, &frameSize, &bitRate,
-                                    &sampleRate, &duration);
-    if (NS_FAILED(rv)) {
-      return rv;
+  if (mCurrentChar == 2) {
+    if (frame.mBitrate == 0x0f) {
+      goto fail;
     }
+  } else if (mCurrentChar == 1) {
+    if (frame.mSync2 != 0x07
+        || frame.mVersion == 0x01
+        || frame.mLayer == 0x00) {
+      goto fail;
+    }
+  }
 
-    mBitRateSum += bitRate;
-    mDurationUs += duration;
-    ++mNumFrames;
+  
+  
+  if (mCurrentChar == 0 && frame.mSync1 != 0xff) {
+    
+    return 0;
+  }
 
-    mFrameSizeSum += frameSize;
+  mCurrentChar++;
+  MOZ_ASSERT(mCurrentChar <= sizeof(MP3Frame));
 
-    mSampleRate = sampleRate;
+  
+  if (mCurrentChar < sizeof(MP3Frame)) {
+    return 0;
+  }
 
-    if (frameSize <= length) {
-      length -= frameSize;
+  
+  mCurrentChar = 0;
+  return frame.CalculateLength();
+
+fail:
+  Reset();
+  return 0;
+}
+
+uint32_t
+MP3Parser::GetSampleRate()
+{
+  MP3Frame &frame = mData.mFrame;
+  return mpeg_srates[frame.mVersion][frame.mSampleRate];
+}
+
+
+
+
+const char sID3Head[3] = { 'I', 'D', '3' };
+const uint32_t ID3_HEADER_LENGTH = 10;
+
+ID3Parser::ID3Parser()
+  : mCurrentChar(0)
+  , mHeaderLength(0)
+{ }
+
+void
+ID3Parser::Reset()
+{
+  mCurrentChar = mHeaderLength = 0;
+}
+
+bool
+ID3Parser::ParseChar(char ch)
+{
+  
+  if (mCurrentChar < sizeof(sID3Head) / sizeof(*sID3Head)
+      && ch != sID3Head[mCurrentChar]) {
+    goto fail;
+  }
+
+  
+  
+  if (mCurrentChar >= 6 && mCurrentChar < ID3_HEADER_LENGTH) {
+    if (ch & 0x80) {
+      goto fail;
     } else {
-      length = 0;
+      mHeaderLength <<= 7;
+      mHeaderLength |= ch;
     }
-
-    buffer += frameSize;
   }
 
-  return NS_OK;
+  mCurrentChar++;
+
+  return IsParsed();
+
+fail:
+  Reset();
+  return false;
 }
+
+bool
+ID3Parser::IsParsed() const
+{
+  return mCurrentChar >= ID3_HEADER_LENGTH;
+}
+
+uint32_t
+ID3Parser::GetHeaderLength() const
+{
+  MOZ_ASSERT(IsParsed(),
+             "Queried length of ID3 header before parsing finished.");
+  return mHeaderLength;
+}
+
+
+
 
 
 
@@ -300,17 +241,17 @@ static const uint32_t MAX_SKIPPED_BYTES = 200 * 1024;
 
 static const uint32_t SAMPLES_PER_FRAME = 1152;
 
+enum {
+  MP3_HEADER_LENGTH   = 4,
+};
+
 MP3FrameParser::MP3FrameParser(int64_t aLength)
-: mBufferLength(0),
-  mLock("MP3FrameParser.mLock"),
-  mDurationUs(0),
-  mBitRateSum(0),
+: mLock("MP3FrameParser.mLock"),
   mTotalFrameSize(0),
   mNumFrames(0),
   mOffset(0),
   mLength(aLength),
   mMP3Offset(-1),
-  mSkippedBytes(0),
   mSampleRate(0),
   mIsMP3(MAYBE_MP3)
 { }
@@ -322,60 +263,55 @@ nsresult MP3FrameParser::ParseBuffer(const uint8_t* aBuffer,
 {
   
   
-  uint32_t bufferOffset = 0;
-  uint32_t headersParsed = 0;
-  while (bufferOffset < aLength) {
-    const uint8_t* buffer = aBuffer + bufferOffset;
-    const uint32_t length = aLength - bufferOffset;
-    if (mMP3Offset == -1) {
-      
-      
-      if (length < ID3Buffer::ID3_HEADER_LENGTH) {
+
+  const uint8_t *buffer = aBuffer;
+  const uint8_t *bufferEnd = aBuffer + aLength;
+
+  
+  
+  if (mMP3Offset < 0) {
+    for (const uint8_t *ch = buffer; ch < bufferEnd; ch++) {
+      if (mID3Parser.ParseChar(*ch)) {
         
-        break;
-      }
-      ID3Buffer id3Buffer(buffer, length);
-      if (NS_SUCCEEDED(id3Buffer.Parse())) {
-        bufferOffset += id3Buffer.Length();
         
-        headersParsed++;
-        continue;
+        buffer = ch + mID3Parser.GetHeaderLength() - (ID3_HEADER_LENGTH - 1);
+        ch = buffer;
+
+        
+        mIsMP3 = DEFINITELY_MP3;
+
+        mID3Parser.Reset();
       }
     }
-    if (length < MP3Buffer::MP3_HEADER_LENGTH) {
-      
-      break;
-    }
-    MP3Buffer mp3Buffer(buffer, length);
-    if (NS_SUCCEEDED(mp3Buffer.Parse())) {
-      headersParsed++;
-      if (mMP3Offset == -1) {
-        mMP3Offset = aStreamOffset + bufferOffset;
+  }
+
+  while (buffer < bufferEnd) {
+    uint16_t frameLen = mMP3Parser.ParseFrameLength(*buffer);
+
+    if (frameLen) {
+
+      if (mMP3Offset < 0) {
+        
+        
+        mIsMP3 = DEFINITELY_MP3;
+        
+        
+        mMP3Offset = aStreamOffset
+          + (buffer - aBuffer)
+          - (sizeof(MP3Frame) - 1);
       }
-      mDurationUs += mp3Buffer.GetDuration();
-      mBitRateSum += mp3Buffer.GetBitRateSum();
-      mTotalFrameSize += mp3Buffer.GetFrameSizeSum();
-      mSampleRate = mp3Buffer.GetSampleRate();
-      mNumFrames += mp3Buffer.GetNumberOfFrames();
-      bufferOffset += mp3Buffer.GetFrameSizeSum();
+
+      mSampleRate = mMP3Parser.GetSampleRate();
+      mTotalFrameSize += frameLen;
+      mNumFrames++;
+
+      buffer += frameLen - sizeof(MP3Frame);
     } else {
-      
-      ++bufferOffset;
+      buffer++;
     }
   }
-  if (headersParsed == 0) {
-    if (mIsMP3 == MAYBE_MP3) {
-      mSkippedBytes += aLength;
-      if (mSkippedBytes > MAX_SKIPPED_BYTES) {
-        mIsMP3 = NOT_MP3;
-        return NS_ERROR_FAILURE;
-      }
-    }
-  } else {
-    mIsMP3 = DEFINITELY_MP3;
-    mSkippedBytes = 0;
-  }
-  *aOutBytesRead = bufferOffset;
+
+  *aOutBytesRead = buffer - aBuffer;
   return NS_OK;
 }
 
@@ -384,77 +320,46 @@ void MP3FrameParser::Parse(const char* aBuffer, uint32_t aLength, int64_t aOffse
   MutexAutoLock mon(mLock);
 
   const uint8_t* buffer = reinterpret_cast<const uint8_t*>(aBuffer);
-  const int64_t lastChunkEnd = mOffset + mBufferLength;
-  if (aOffset + aLength <= lastChunkEnd) {
-    
-    return;
-  } else if (aOffset < lastChunkEnd) {
-    
-    aLength -= lastChunkEnd - aOffset;
-    buffer += lastChunkEnd - aOffset;
-    aOffset = lastChunkEnd;
-  } else if (aOffset > lastChunkEnd) {
-    
-    mOffset += aOffset - lastChunkEnd;
-    mSkippedBytes = 0;
+  int32_t length = aLength;
+  int64_t offset = aOffset;
+
+  
+  if (aOffset < mOffset) {
+    buffer += mOffset - aOffset;
+    length -= mOffset - aOffset;
+    offset = mOffset;
+
+    if (length <= 0) {
+      return;
+    }
   }
 
-  if (mBufferLength > 0) {
-    
-    
-    
-    uint32_t copyLength = std::min<size_t>(NS_ARRAY_LENGTH(mBuffer)-mBufferLength, aLength);
-    memcpy(mBuffer+mBufferLength, buffer, copyLength*sizeof(*mBuffer));
-    
-    int64_t streamOffset = mOffset - mBufferLength;
-    uint32_t bufferLength = mBufferLength + copyLength;
-    uint32_t bytesRead = 0;
-    if (NS_FAILED(ParseBuffer(mBuffer,
-                              bufferLength,
-                              streamOffset,
-                              &bytesRead))) {
-      return;
-    }
-    MOZ_ASSERT(bytesRead >= mBufferLength, "Parse should leave original buffer");
-
-    
-    
-    uint32_t adjust = bytesRead - mBufferLength;
-    mBufferLength = 0;
-    if (adjust >= aLength) {
+  
+  
+  if (mOffset < aOffset) {
+    if (!mID3Parser.IsParsed()) {
       
-      
-      mOffset = streamOffset + bytesRead;
-      if (mOffset > mLength) {
-        mLength = mOffset;
-      }
-      return;
+      mID3Parser.Reset();
     }
-    aOffset += adjust;
-    MOZ_ASSERT(aLength >= adjust);
-    aLength -= adjust;
+    mMP3Parser.Reset();
   }
 
   uint32_t bytesRead = 0;
   if (NS_FAILED(ParseBuffer(buffer,
-                            aLength,
-                            aOffset,
+                            length,
+                            offset,
                             &bytesRead))) {
     return;
   }
-  mOffset += bytesRead;
 
-  if (bytesRead < aLength) {
-    
-    
-    uint32_t trailing = aLength - bytesRead;
-    MOZ_ASSERT(trailing < (NS_ARRAY_LENGTH(mBuffer)*sizeof(mBuffer[0])));
-    memcpy(mBuffer, buffer+(aLength-trailing), trailing);
-    mBufferLength = trailing;
-  }
+  MOZ_ASSERT(length <= (int)bytesRead, "All bytes should have been consumed");
 
-  if (mOffset > mLength) {
-    mLength = mOffset;
+  
+  mOffset = offset + bytesRead;
+
+  
+  if (!mID3Parser.IsParsed() && !mNumFrames && mOffset > MAX_SKIPPED_BYTES) {
+    mIsMP3 = NOT_MP3;
   }
 }
 

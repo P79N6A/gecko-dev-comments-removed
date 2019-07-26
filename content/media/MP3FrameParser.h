@@ -12,6 +12,63 @@ namespace mozilla {
 
 
 
+class ID3Parser
+{
+public:
+  ID3Parser();
+
+  void Reset();
+  bool ParseChar(char ch);
+  bool IsParsed() const;
+  uint32_t GetHeaderLength() const;
+
+private:
+  uint32_t mCurrentChar;
+  uint32_t mHeaderLength;
+};
+
+struct MP3Frame {
+  uint16_t mSync1 : 8;      
+  uint16_t mProtected : 1;  
+  uint16_t mLayer : 2;
+  uint16_t mVersion : 2;
+  uint16_t mSync2 : 3;      
+  uint16_t mPrivate : 1;    
+  uint16_t mPad : 1;
+  uint16_t mSampleRate : 2; 
+  uint16_t mBitrate : 4;    
+
+  uint16_t CalculateLength();
+};
+
+
+class MP3Parser
+{
+public:
+  MP3Parser();
+
+  
+  void Reset();
+
+  
+  
+  uint16_t ParseFrameLength(uint8_t ch);
+
+  
+  uint32_t GetSampleRate();
+
+private:
+  uint32_t mCurrentChar;
+  union {
+    uint8_t mRaw[3];
+    MP3Frame mFrame;
+  } mData;
+};
+
+
+
+
+
 
 
 
@@ -69,16 +126,16 @@ private:
                        uint32_t* aOutBytesRead);
 
   
-  
-  uint8_t  mBuffer[32];
-  uint32_t mBufferLength;
-
-  
   Mutex mLock;
 
   
-  uint64_t mDurationUs;
-  uint64_t mBitRateSum;
+  
+  ID3Parser mID3Parser;
+
+  
+  MP3Parser mMP3Parser;
+
+  
   uint64_t mTotalFrameSize;
   uint64_t mNumFrames;
 
@@ -93,11 +150,6 @@ private:
   
   
   int64_t mMP3Offset;
-
-  
-  
-  
-  uint32_t mSkippedBytes;
 
   
   uint16_t mSampleRate;
