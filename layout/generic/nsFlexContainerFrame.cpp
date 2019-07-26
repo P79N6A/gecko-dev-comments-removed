@@ -125,6 +125,25 @@ GetSizePropertyForAxis(const nsIFrame* aFrame, AxisOrientationType aAxis)
     stylePos->mHeight;
 }
 
+
+
+
+
+
+
+
+
+
+static nscoord
+PhysicalPosFromLogicalPos(nscoord aLogicalPosn,
+                          nscoord aLogicalContainerSize,
+                          AxisOrientationType aAxis) {
+  if (AxisGrowsInPositiveDirection(aAxis)) {
+    return aLogicalPosn;
+  }
+  return aLogicalContainerSize - aLogicalPosn;
+}
+
 static nscoord
 MarginComponentForSide(const nsMargin& aMargin, Side aSide)
 {
@@ -225,24 +244,18 @@ public:
 
 
 
-  nsPoint PhysicalPositionFromLogicalPosition(nscoord aMainPosn,
-                                              nscoord aCrossPosn,
-                                              nscoord aContainerMainSize,
-                                              nscoord aContainerCrossSize) const {
-    
-    
-    
-    
-    if (!AxisGrowsInPositiveDirection(mMainAxis)) {
-      aMainPosn = aContainerMainSize - aMainPosn;
-    }
-    if (!AxisGrowsInPositiveDirection(mCrossAxis)) {
-      aCrossPosn = aContainerCrossSize - aCrossPosn;
-    }
+  nsPoint PhysicalPointFromLogicalPoint(nscoord aMainPosn,
+                                        nscoord aCrossPosn,
+                                        nscoord aContainerMainSize,
+                                        nscoord aContainerCrossSize) const {
+    nscoord physicalPosnInMainAxis =
+      PhysicalPosFromLogicalPos(aMainPosn, aContainerMainSize, mMainAxis);
+    nscoord physicalPosnInCrossAxis =
+      PhysicalPosFromLogicalPos(aCrossPosn, aContainerCrossSize, mCrossAxis);
 
     return IsAxisHorizontal(mMainAxis) ?
-      nsPoint(aMainPosn, aCrossPosn) :
-      nsPoint(aCrossPosn, aMainPosn);
+      nsPoint(physicalPosnInMainAxis, physicalPosnInCrossAxis) :
+      nsPoint(physicalPosnInCrossAxis, physicalPosnInMainAxis);
   }
   nsSize PhysicalSizeFromLogicalSizes(nscoord aMainSize,
                                       nscoord aCrossSize) const {
@@ -2691,12 +2704,26 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  
-  nscoord flexContainerAscent =
-    lines[0].GetBaselineOffsetFromCrossStart();
-  if (flexContainerAscent != nscoord_MIN) {
+  nscoord flexContainerAscent;
+  nscoord firstLineBaselineOffset = lines[0].GetBaselineOffsetFromCrossStart();
+  if (firstLineBaselineOffset == nscoord_MIN) {
     
-    flexContainerAscent += aReflowState.mComputedBorderPadding.top;
+    
+    flexContainerAscent = nscoord_MIN;
+  } else {
+    
+    
+    
+    nscoord firstLineBaselineOffsetWRTContainer =
+      firstLineBaselineOffset + crossAxisPosnTracker.GetPosition();
+
+    
+    
+    
+    flexContainerAscent = aReflowState.mComputedBorderPadding.top +
+      PhysicalPosFromLogicalPos(firstLineBaselineOffsetWRTContainer,
+                                contentBoxCrossSize,
+                                axisTracker.GetCrossAxis());
   }
 
   for (uint32_t lineIdx = 0; lineIdx < lines.Length(); ++lineIdx) {
@@ -2731,7 +2758,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
       FlexItem& curItem = line.mItems[i];
 
-      nsPoint physicalPosn = axisTracker.PhysicalPositionFromLogicalPosition(
+      nsPoint physicalPosn = axisTracker.PhysicalPointFromLogicalPoint(
                                curItem.GetMainPosition(),
                                curItem.GetCrossPosition(),
                                contentBoxMainSize,
