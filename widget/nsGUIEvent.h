@@ -56,7 +56,6 @@ enum nsEventStructType {
 
   
   NS_MOUSE_EVENT,                    
-  NS_POPUP_EVENT,                    
   NS_MOUSE_SCROLL_EVENT,             
   NS_DRAG_EVENT,                     
   NS_WHEEL_EVENT,                    
