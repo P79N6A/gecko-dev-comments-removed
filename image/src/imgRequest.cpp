@@ -474,10 +474,7 @@ GetApplicationCache(nsIRequest* aRequest)
 bool
 imgRequest::CacheChanged(nsIRequest* aNewRequest)
 {
-  nsresult rv;
-
   nsCOMPtr<nsIApplicationCache> newAppCache = GetApplicationCache(aNewRequest);
-  NS_ENSURE_SUCCESS(rv, true); 
 
   
   
@@ -487,6 +484,8 @@ imgRequest::CacheChanged(nsIRequest* aNewRequest)
   
   
   if (newAppCache && mApplicationCache) {
+    nsresult rv;
+
     nsAutoCString oldAppCacheClientId, newAppCacheClientId;
     rv = mApplicationCache->GetClientID(oldAppCacheClientId);
     NS_ENSURE_SUCCESS(rv, true);
