@@ -785,15 +785,21 @@ nsXMLContentSerializer::IsJavaScript(nsIContent * aContent, nsIAtom* aAttrNameAt
       return false;
   }
 
+  
+  
   if (isHtml) {
-    return nsContentUtils::IsEventAttributeName(aAttrNameAtom, EventNameType_HTML);
+    return nsContentUtils::IsEventAttributeName(aAttrNameAtom,
+                                                EventNameType_HTML |
+                                                EventNameType_HTMLBodyOrFramesetOnly);
   }
   else if (isXul) {
     return nsContentUtils::IsEventAttributeName(aAttrNameAtom, EventNameType_XUL);
   }
   else if (isSvg) {
     return nsContentUtils::IsEventAttributeName(aAttrNameAtom,
-                                                EventNameType_SVGGraphic | EventNameType_SVGSVG);
+                                                EventNameType_SVGGraphic |
+                                                EventNameType_SVGSVG |
+                                                EventNameType_SMIL);
   }
   return false;
 }

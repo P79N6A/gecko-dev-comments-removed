@@ -836,10 +836,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
         return NS_ERROR_OUT_OF_MEMORY;
       }
       listener->SetHandler(handlerCallback);
-    } else if (listener->EventName() == nsGkAtoms::onbeforeunload) {
-      
-      
-      
+    } else if (listener->EventName() == nsGkAtoms::onbeforeunload && win) {
       bool ok;
       JSAutoRequest ar(context->GetNativeContext());
       nsRefPtr<BeforeUnloadEventHandlerNonNull> handlerCallback =
