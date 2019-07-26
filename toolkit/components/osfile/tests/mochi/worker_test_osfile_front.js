@@ -652,21 +652,25 @@ function test_info() {
   
   
   
-  let startMs = start.getTime() - 2500;
-  let stopMs  = stop.getTime() + 2500;
+  
+  let SLOPPY_FILE_SYSTEM_ADJUSTMENT = 3000;
+  let startMs = start.getTime() - SLOPPY_FILE_SYSTEM_ADJUSTMENT;
+  let stopMs  = stop.getTime() + SLOPPY_FILE_SYSTEM_ADJUSTMENT;
+  info("Testing stat with bounds [ " + startMs + ", " + stopMs +" ]");
 
   (function() {
     let birth;
-    if ("winBirthDate" in info) {
-      birth = info.winBirthDate;
-    } else if ("macBirthDate" in info) {
-      birth = info.macBirthDate;
+    if ("winBirthDate" in stat) {
+      birth = stat.winBirthDate;
+    } else if ("macBirthDate" in stat) {
+      birth = stat.macBirthDate;
     } else {
       ok(true, "Skipping birthdate test");
       return;
     }
     ok(birth.getTime() <= stopMs,
-    "test_info: file was created before now - " + stop + ", " + birth);
+    "test_info: platformBirthDate is consistent");
+    
     
     
     
@@ -677,9 +681,9 @@ function test_info() {
   });
 
   let change = stat.lastModificationDate;
-  ok(change.getTime() >= startMs
-     && change.getTime() <= stopMs,
-     "test_info: file has changed between the start of the test and now - " + start + ", " + stop + ", " + change);
+  info("Testing lastModificationDate: " + change);
+  ok(change.getTime() >= startMs && change.getTime() <= stopMs,
+     "test_info: lastModificationDate is consistent");
 
   
   file = OS.File.open(filename);
@@ -697,22 +701,19 @@ function test_info() {
   stop = new Date();
 
   
-  startMs = start.getTime() - 1000;
-  stopMs  = stop.getTime() + 1000;
-
-  let birth = stat.creationDate;
-  ok(birth.getTime() <= stopMs,
-      "test_info: file 2 was created between the start of the test and now - " + start +  ", " + stop + ", " + birth);
+  startMs = start.getTime() - SLOPPY_FILE_SYSTEM_ADJUSTMENT;
+  stopMs  = stop.getTime() + SLOPPY_FILE_SYSTEM_ADJUSTMENT;
+  info("Testing stat 2 with bounds [ " + startMs + ", " + stopMs +" ]");
 
   let access = stat.lastAccessDate;
-  ok(access.getTime() >= startMs
-     && access.getTime() <= stopMs,
-     "test_info: file 2 was accessed between the start of the test and now - " + start + ", " + stop + ", " + access);
+  info("Testing lastAccessDate: " + access);
+  ok(access.getTime() >= startMs && access.getTime() <= stopMs,
+     "test_info: lastAccessDate is consistent");
 
   change = stat.lastModificationDate;
-  ok(change.getTime() >= startMs
-     && change.getTime() <= stopMs,
-     "test_info: file 2 has changed between the start of the test and now - " + start + ", " + stop + ", " + change);
+  info("Testing lastModificationDate 2: " + change);
+  ok(change.getTime() >= startMs && change.getTime() <= stopMs,
+     "test_info: lastModificationDate 2 is consistent");
 
   
   stat = OS.File.stat(OS.File.getCurrentDirectory());
