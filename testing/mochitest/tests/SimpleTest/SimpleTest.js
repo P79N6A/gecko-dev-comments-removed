@@ -328,55 +328,108 @@ SimpleTest.requestCompleteLog = function() {
     });
 };
 
+
+
+
+
+
+SimpleTest._bufferedMessages = [];
 SimpleTest._logResult = (function () {
-    var numCoalescedMessages = 1;
-    var coalesceThreshold = 100;
+    var bufferingThreshold = 100;
+    var outputIndex = 0;
 
     function logResult(test, passString, failString) {
+        var url = SimpleTest._getCurrentTestURL();
+        var resultString = test.result ? passString : failString;
+        var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
+        var msg = [resultString, url, diagnostic].join(" | ");
         var isError = !test.result == !test.todo;
-        var outputCoalescedMessage = numCoalescedMessages == coalesceThreshold;
 
-        var runningSingleTest = ((parentRunner &&
-                                  parentRunner._urls.length == 1)
-                                 || isSingleTestRun);
         
         
         
-        
-        
-        
-        
-        var shouldLog = (isError ||
-                         passString == "TEST-INFO" ||
-                         outputCoalescedMessage ||
-                         runningSingleTest ||
-                         SimpleTest._forceLogMessageOutput);
+        function dumpMessage(msg, isError) {
+            if (parentRunner) {
+                if (isError) {
+                    parentRunner.addFailedTest(url);
+                    parentRunner.error(msg);
+                } else {
+                    parentRunner.log(msg);
+                }
+            } else if (typeof dump === "function") {
+                dump(msg + "\n");
+            } else {
+                
+            }
+        }
 
-        if (!shouldLog) {
-            ++numCoalescedMessages;
+        
+        
+        
+        if (SimpleTest._bufferedMessages.length == 0) {
+            outputIndex = 0;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (isError) {
+            
+            if (SimpleTest._bufferedMessages.length > 0) {
+                dumpMessage("TEST-INFO | dumping last " + SimpleTest._bufferedMessages.length + " message(s)");
+                dumpMessage("TEST-INFO | if you need more context, please use SimpleTest.requestCompleteLog() in your test");
+
+                function dumpBufferedMessage(m) {
+                    dumpMessage(m, false);
+                }
+                
+                
+                var earliest = SimpleTest._bufferedMessages.slice(outputIndex);
+                var latest = SimpleTest._bufferedMessages.slice(0, outputIndex);
+                earliest.map(dumpBufferedMessage);
+                latest.map(dumpBufferedMessage);
+
+                SimpleTest._bufferedMessages = [];
+            }
+
+            dumpMessage(msg);
             return;
         }
 
-        var resultString = test.result ? passString : failString;
-        var url = SimpleTest._getCurrentTestURL();
-        var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
-        if (outputCoalescedMessage) {
-            diagnostic += " (elided " + numCoalescedMessages + " passes or known failures)";
-            numCoalescedMessages = 1;
-        }
-        var msg = [resultString, url, diagnostic].join(" | ");
-        if (parentRunner) {
-            if (isError) {
-                parentRunner.addFailedTest(url);
-                parentRunner.error(msg);
-            } else {
-                parentRunner.log(msg);
-            }
-        } else if (typeof dump === "function") {
-            dump(msg + "\n");
-        } else {
+        var runningSingleTest = ((parentRunner &&
+                                  parentRunner._urls.length == 1) ||
+                                 isSingleTestRun);
+        var shouldLogImmediately = (runningSingleTest ||
+                                    SimpleTest._forceLogMessageOutput);
+
+        if (!shouldLogImmediately) {
             
+            if (SimpleTest._bufferedMessages.length >= bufferingThreshold) {
+                if (outputIndex >= bufferingThreshold) {
+                    outputIndex = 0;
+                }
+                SimpleTest._bufferedMessages[outputIndex] = msg;
+                outputIndex++;
+            } else {
+                SimpleTest._bufferedMessages.push(msg);
+            }
+            return;
         }
+
+        dumpMessage(msg);
     }
 
     return logResult;
@@ -1032,6 +1085,7 @@ SimpleTest.isIgnoringAllUncaughtExceptions = function () {
 SimpleTest.reset = function () {
     SimpleTest._ignoringAllUncaughtExceptions = false;
     SimpleTest._expectingUncaughtException = false;
+    SimpleTest._bufferedMessages = [];
 };
 
 if (isPrimaryTestWindow) {
