@@ -13,7 +13,6 @@ const { validateOptions } = require('../deprecated/api-utils');
 const { isValidURI, URL } = require('../url');
 const file = require('../io/file');
 const { contract } = require('../util/contract');
-const { isString, instanceOf } = require('../lang/type');
 
 const LOCAL_URI_SCHEMES = ['resource', 'data'];
 
@@ -33,7 +32,7 @@ const valid = {
     msg: 'The `contentURL` option must be a valid URL.'
   },
   contentScriptFile: {
-    is: ['undefined', 'null', 'string', 'array', 'object'],
+    is: ['undefined', 'null', 'string', 'array'],
     map: ensureNull,
     ok: function(value) {
       if (value === null)
@@ -42,12 +41,7 @@ const valid = {
       value = [].concat(value);
 
       
-      
       return value.every(function (item) {
-
-        if (!isString(item) && !(item instanceof URL)) 
-          return false;
-
         try {
           return ~LOCAL_URI_SCHEMES.indexOf(URL(item).scheme);
         }

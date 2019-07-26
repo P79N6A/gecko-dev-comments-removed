@@ -210,27 +210,6 @@ exports.testInvalidJSON = function (assert, done) {
   });
 };
 
-exports.testDelete = function (assert, done) {
-  let srv = startServerAsync(port, basePath);
-
-  srv.registerPathHandler("/test-delete",
-      function handle(request, response) {
-    response.setHeader("Content-Type", "text/plain", false);
-  });
-
-  Request({
-    url: "http://localhost:" + port + "/test-delete",
-    onComplete: function (response) {
-      
-      
-      assert.equal(response.text, "");
-      assert.equal(response.statusText, "OK");
-      assert.equal(response.headers["Content-Type"], "text/plain");
-      srv.stop(done);
-    }
-  }).delete();
-};
-
 exports.testHead = function (assert, done) {
   let srv = startServerAsync(port, basePath);
 

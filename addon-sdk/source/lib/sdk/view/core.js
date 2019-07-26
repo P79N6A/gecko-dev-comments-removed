@@ -16,9 +16,13 @@ var method = require("method/core");
 
 
 let getNodeView = method("getNodeView");
-getNodeView.define(x => x instanceof Ci.nsIDOMNode ? x : null);
+getNodeView.define(function(value) {
+  if (value instanceof Ci.nsIDOMNode)
+    return value;
+  return null;
+});
+
 exports.getNodeView = getNodeView;
-exports.viewFor = getNodeView;
 
 let getActiveView = method("getActiveView");
 exports.getActiveView = getActiveView;

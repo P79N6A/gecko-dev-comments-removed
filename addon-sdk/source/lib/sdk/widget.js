@@ -26,19 +26,12 @@ const ERR_CONTENT = "No content or contentURL property found. Widgets must "
                "position.",
       ERR_DESTROYED = "The widget has been destroyed and can no longer be used.";
 
-const INSERTION_PREF_ROOT = "extensions.sdk-widget-inserted.";
-
 
 const EVENTS = {
   "click": "click",
   "mouseover": "mouseover",
   "mouseout": "mouseout",
 };
-
-
-
-
-const AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF = 70;
 
 const { validateOptions } = require("./deprecated/api-utils");
 const panels = require("./panel");
@@ -52,8 +45,8 @@ const { WindowTracker } = require("./deprecated/window-utils");
 const { isBrowser } = require("./window/utils");
 const { setTimeout } = require("./timers");
 const unload = require("./system/unload");
+const { uuid } = require("./util/uuid");
 const { getNodeView } = require("./view/core");
-const prefs = require('./preferences/service');
 
 
 const valid = {
@@ -222,13 +215,6 @@ let model = {
 
 };
 
-function saveInserted(widgetId) {
-  prefs.set(INSERTION_PREF_ROOT + widgetId, true);
-}
-
-function haveInserted(widgetId) {
-  return prefs.has(INSERTION_PREF_ROOT + widgetId);
-}
 
 
 
@@ -569,9 +555,6 @@ let browserManager = {
     let idx = this.items.indexOf(item);
     if (idx > -1)
       this.items.splice(idx, 1);
-  },
-  propagateCurrentset: function browserManager_propagateCurrentset(id, currentset) {
-    this.windows.forEach(function (w) w.doc.getElementById(id).setAttribute("currentset", currentset));
   }
 };
 
@@ -622,14 +605,36 @@ BrowserWindow.prototype = {
     if (this.window.CustomizableUI) {
       let placement = this.window.CustomizableUI.getPlacementOfWidget(node.id);
       if (!placement) {
-        if (haveInserted(node.id)) {
-          return;
-        }
         placement = {area: 'nav-bar', position: undefined};
-        saveInserted(node.id);
       }
       this.window.CustomizableUI.addWidgetToArea(node.id, placement.area, placement.position);
-      this.window.CustomizableUI.ensureWidgetPlacedInWindow(node.id, this.window);
+
+      
+      
+      if (node.parentNode != palette) {
+        return;
+      }
+      
+      let container = this.doc.getElementById(placement.area);
+      if (container.customizationTarget) {
+        container = container.customizationTarget;
+      }
+
+      if (placement.position !== undefined) {
+        
+        let items = this.window.CustomizableUI.getWidgetIdsInArea(placement.area);
+        let itemIndex = placement.position;
+        for (let l = items.length; itemIndex < l; itemIndex++) {
+          let realItems = container.getElementsByAttribute("id", items[itemIndex]);
+          if (realItems[0]) {
+            container.insertBefore(node, realItems[0]);
+            break;
+          }
+        }
+      }
+      if (node.parentNode != container) {
+        container.appendChild(node);
+      }
       return;
     }
 
@@ -645,14 +650,10 @@ BrowserWindow.prototype = {
     }
 
     
-    let needToPropagateCurrentset = false;
+    
+    
     if (!container) {
-      if (haveInserted(node.id)) {
-        return;
-      }
       container = this.doc.getElementById("addon-bar");
-      saveInserted(node.id);
-      needToPropagateCurrentset = true;
       
       
       
@@ -683,11 +684,9 @@ BrowserWindow.prototype = {
     
     
     if (ids.indexOf(id) == -1) {
-      let set = container.currentSet;
-      container.setAttribute("currentset", set);
+      container.setAttribute("currentset", container.currentSet);
       
       this.window.document.persist(container.id, "currentset");
-      browserManager.propagateCurrentset(container.id, set);
     }
   }
 }
@@ -737,6 +736,7 @@ WidgetChrome.prototype.update = function WC_update(updatedItem, property, value)
 WidgetChrome.prototype._createNode = function WC__createNode() {
   
   let node = this._doc.createElement("toolbaritem");
+  let guid = String(uuid());
 
   
   let jetpackID = "testID";
@@ -752,14 +752,6 @@ WidgetChrome.prototype._createNode = function WC__createNode() {
   node.setAttribute("align", "center");
   
   node.setAttribute("context", "");
-
-  
-  node.setAttribute("sdkstylewidget", "true");
-  
-  if (this.window.CustomizableUI &&
-      this._widget.width > AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF) {
-    node.classList.add("panel-wide-item");
-  }
 
   
   
@@ -791,13 +783,6 @@ WidgetChrome.prototype.fill = function WC_fill() {
   
   
   this.node.appendChild(iframe);
-
-  var label = this._doc.createElement("label");
-  label.setAttribute("value", this._widget.label);
-  label.className = "toolbarbutton-text";
-  label.setAttribute("crop", "right");
-  label.setAttribute("flex", "1");
-  this.node.appendChild(label);
 
   
   this.addEventHandlers();
