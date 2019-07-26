@@ -559,7 +559,7 @@ protected:
       
       
       
-      *((intptr_t*)(tramp+pJmp32+1)) += origBytes + pJmp32 - tramp;
+      *((intptr_t*)(tramp+pJmp32+1)) += origBytes - tramp;
     } else {
       tramp[nBytes] = 0xE9; 
       *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
