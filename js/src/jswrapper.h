@@ -26,18 +26,6 @@ class DummyFrameGuard;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 class JS_FRIEND_API(Wrapper)
 {
     unsigned mFlags;
@@ -115,47 +103,6 @@ class JS_FRIEND_API(Wrapper)
 
     virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act,
                        bool *bp);
-};
-
-
-
-
-
-
-
-class JS_FRIEND_API(IndirectWrapper) : public Wrapper,
-                                       public IndirectProxyHandler
-{
-  public:
-    explicit IndirectWrapper(unsigned flags);
-
-    virtual BaseProxyHandler* toBaseProxyHandler() {
-        return this;
-    }
-
-    virtual Wrapper *toWrapper() {
-        return this;
-    }
-
-    
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
-                                       jsid id, bool set,
-                                       PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
-                                          jsid id, bool set,
-                                          PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
-                                PropertyDescriptor *desc) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
-                                     AutoIdVector &props) MOZ_OVERRIDE;
-    virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id,
-                         bool *bp) MOZ_OVERRIDE;
-    virtual bool enumerate(JSContext *cx, JSObject *wrapper,
-                           AutoIdVector &props) MOZ_OVERRIDE;
-
-    
-    virtual bool defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint,
-                              Value *vp) MOZ_OVERRIDE;
 };
 
 

@@ -134,11 +134,6 @@ js::IsCrossCompartmentWrapper(RawObject wrapper)
            !!(Wrapper::wrapperHandler(wrapper)->flags() & Wrapper::CROSS_COMPARTMENT);
 }
 
-IndirectWrapper::IndirectWrapper(unsigned flags) : Wrapper(flags),
-    IndirectProxyHandler(&sWrapperFamily)
-{
-}
-
 #define CHECKED(op, act)                                                     \
     JS_BEGIN_MACRO                                                           \
         bool status;                                                         \
@@ -149,93 +144,6 @@ IndirectWrapper::IndirectWrapper(unsigned flags) : Wrapper(flags),
 
 #define SET(action) CHECKED(action, SET)
 #define GET(action) CHECKED(action, GET)
-
-bool
-IndirectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
-                                       jsid id, bool set,
-                                       PropertyDescriptor *desc)
-{
-    desc->obj = NULL; 
-    CHECKED(IndirectProxyHandler::getPropertyDescriptor(cx, wrapper, id, set, desc),
-            set ? SET : GET);
-}
-
-bool
-IndirectWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
-                                          jsid id, bool set,
-                                          PropertyDescriptor *desc)
-{
-    desc->obj = NULL; 
-    CHECKED(IndirectProxyHandler::getOwnPropertyDescriptor(cx, wrapper, id, set, desc), GET);
-}
-
-bool
-IndirectWrapper::defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
-                                PropertyDescriptor *desc)
-{
-    SET(IndirectProxyHandler::defineProperty(cx, wrapper, id, desc));
-}
-
-bool
-IndirectWrapper::getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
-                                     AutoIdVector &props)
-{
-    
-    jsid id = JSID_VOID;
-    GET(IndirectProxyHandler::getOwnPropertyNames(cx, wrapper, props));
-}
-
-bool
-IndirectWrapper::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
-{
-    *bp = true; 
-    SET(IndirectProxyHandler::delete_(cx, wrapper, id, bp));
-}
-
-bool
-IndirectWrapper::enumerate(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
-{
-    
-    static jsid id = JSID_VOID;
-    GET(IndirectProxyHandler::enumerate(cx, wrapper, props));
-}
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-IndirectWrapper::defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint, Value *vp)
-{
-    RootedObject wrapper(cx, wrapper_);
-
-    bool status;
-    if (!enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status)) {
-        RootedValue v(cx);
-        JS_ClearPendingException(cx);
-        if (!DefaultValue(cx, wrapper, hint, &v))
-            return false;
-        *vp = v;
-        return true;
-    }
-    
-
-
-
-
-
-
-
-    AutoCompartment call(cx, wrappedObject(wrapper));
-    return IndirectProxyHandler::defaultValue(cx, wrapper_, hint, vp);
-}
 
 DirectWrapper::DirectWrapper(unsigned flags, bool hasPrototype) : Wrapper(flags),
         DirectProxyHandler(&sWrapperFamily)
