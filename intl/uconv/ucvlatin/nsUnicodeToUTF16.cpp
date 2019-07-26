@@ -3,7 +3,7 @@
 
 
 
-#include "nsUnicodeToUCS2BE.h"
+#include "nsUnicodeToUTF16.h"
 #include <string.h>
 
 inline static void SwapBytes(char *aDest, const PRUnichar* aSrc, int32_t aLen);

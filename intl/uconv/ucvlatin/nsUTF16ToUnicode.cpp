@@ -4,7 +4,7 @@
 
 
 #include "nsUCConstructors.h"
-#include "nsUCS2BEToUnicode.h"
+#include "nsUTF16ToUnicode.h"
 #include "nsUCvLatinDll.h"
 #include "nsCharTraits.h"
 #include <string.h>

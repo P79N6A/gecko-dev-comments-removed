@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsUnicodeToUCS2BE_h___
-#define nsUnicodeToUCS2BE_h___
+#ifndef nsUnicodeToUTF16_h_
+#define nsUnicodeToUTF16_h_
 
 #include "nsUCSupport.h"
 
