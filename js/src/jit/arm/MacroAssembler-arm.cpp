@@ -3830,6 +3830,58 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
     bind(&fin);
 }
 
+void
+MacroAssemblerARMCompat::floorf(FloatRegister input, Register output, Label *bail)
+{
+    Label handleZero;
+    Label handleNeg;
+    Label fin;
+    compareFloat(input, InvalidFloatReg);
+    ma_b(&handleZero, Assembler::Equal);
+    ma_b(&handleNeg, Assembler::Signed);
+    
+    ma_b(bail, Assembler::Overflow);
+
+    
+    
+    
+    
+    ma_vcvt_F32_U32(input, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+    ma_mov(output, output, SetCond);
+    ma_b(bail, Signed);
+    ma_b(&fin);
+
+    bind(&handleZero);
+    
+    
+    as_vxfer(output, InvalidReg, VFPRegister(input).singleOverlay(), FloatToCore, Always, 0);
+    ma_cmp(output, Imm32(0));
+    ma_b(bail, NonZero);
+    ma_b(&fin);
+
+    bind(&handleNeg);
+    
+    ma_vneg_f32(input, input);
+    ma_vcvt_F32_U32(input, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+    ma_vcvt_U32_F32(ScratchFloatReg, ScratchFloatReg);
+    compareFloat(ScratchFloatReg, input);
+    ma_add(output, Imm32(1), output, NoSetCond, NotEqual);
+    
+    
+    ma_rsb(output, Imm32(0), output, SetCond);
+    
+    ma_vneg_f32(input, input);
+    
+    
+    
+    
+    ma_b(bail, Unsigned);
+
+    bind(&fin);
+}
+
 CodeOffsetLabel
 MacroAssemblerARMCompat::toggledJump(Label *label)
 {

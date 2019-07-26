@@ -4375,9 +4375,16 @@ class LFloor : public LInstructionHelper<1, 1, 0>
     LFloor(const LAllocation &num) {
         setOperand(0, num);
     }
+};
 
-    MRound *mir() const {
-        return mir_->toRound();
+
+class LFloorF : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(FloorF)
+
+    LFloorF(const LAllocation &num) {
+        setOperand(0, num);
     }
 };
 

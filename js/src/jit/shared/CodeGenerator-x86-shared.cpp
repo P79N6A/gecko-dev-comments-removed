@@ -1449,6 +1449,73 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
 }
 
 bool
+CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        Assembler::Condition bailCond = masm.testNegativeZeroFloat32(input, output);
+        if (!bailoutIf(bailCond, lir->snapshot()))
+            return false;
+
+        
+        masm.roundss(input, scratch, JSC::X86Assembler::RoundDown);
+
+        masm.cvttss2si(scratch, output);
+        masm.cmp32(output, Imm32(INT_MIN));
+        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            return false;
+    } else {
+        Label negative, end;
+
+        
+        masm.xorps(scratch, scratch);
+        masm.branchFloat(Assembler::DoubleLessThan, input, scratch, &negative);
+
+        
+        Assembler::Condition bailCond = masm.testNegativeZeroFloat32(input, output);
+        if (!bailoutIf(bailCond, lir->snapshot()))
+            return false;
+
+        
+        masm.cvttss2si(input, output);
+        masm.cmp32(output, Imm32(INT_MIN));
+        if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+            return false;
+
+        masm.jump(&end);
+
+        
+        
+        
+        masm.bind(&negative);
+        {
+            
+            
+            masm.cvttss2si(input, output);
+            masm.cmp32(output, Imm32(INT_MIN));
+            if (!bailoutIf(Assembler::Equal, lir->snapshot()))
+                return false;
+
+            
+            masm.convertInt32ToFloat32(output, scratch);
+            masm.branchFloat(Assembler::DoubleEqualOrUnordered, input, scratch, &end);
+
+            
+            
+            masm.subl(Imm32(1), output);
+            
+        }
+
+        masm.bind(&end);
+    }
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
