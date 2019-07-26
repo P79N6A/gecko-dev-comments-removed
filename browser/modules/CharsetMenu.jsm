@@ -51,7 +51,6 @@ const kEncodings = new Set([
   "ISO-8859-7",
   
   "windows-1255",
-  "ISO-8859-8-I",
   "ISO-8859-8",
   
   "Shift_JIS",
