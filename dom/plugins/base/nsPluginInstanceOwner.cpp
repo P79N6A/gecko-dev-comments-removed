@@ -2775,7 +2775,13 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
   
   bool windowless = false;
   mInstance->IsWindowless(&windowless);
-  if (!windowless && !nsIWidget::UsePuppetWidgets()) {
+  if (!windowless
+
+
+#ifndef XP_MACOSX
+      && !nsIWidget::UsePuppetWidgets()
+#endif
+      ) {
     
     
     nsCOMPtr<nsIWidget> parentWidget;
@@ -2890,13 +2896,19 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
   if (!widget)
     return nullptr;
   void *cocoaTopLevelWindow = widget->GetNativeData(NS_NATIVE_WINDOW);
-  if (!cocoaTopLevelWindow)
+  
+  if (!cocoaTopLevelWindow && XRE_GetProcessType() == GeckoProcessType_Default) {
     return nullptr;
+  }
 
   nsIntPoint pluginOrigin;
   nsIntRect widgetClip;
   bool widgetVisible;
   pluginWidget->GetPluginClipRect(widgetClip, pluginOrigin, widgetVisible);
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    widgetVisible = true;
+  }
   mWidgetVisible = widgetVisible;
 
   
@@ -2909,7 +2921,9 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
   nsIntPoint geckoScreenCoords = mWidget->WidgetToScreenOffset();
 
   nsRect windowRect;
-  NS_NPAPI_CocoaWindowFrame(cocoaTopLevelWindow, windowRect);
+  if (cocoaTopLevelWindow) {
+    NS_NPAPI_CocoaWindowFrame(cocoaTopLevelWindow, windowRect);
+  }
 
   double scaleFactor = 1.0;
   GetContentsScaleFactor(&scaleFactor);
@@ -2921,7 +2935,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
   mPluginWindow->y = geckoScreenCoords.y/intScaleFactor - windowRect.y;
 
   NPRect oldClipRect = mPluginWindow->clipRect;
-  
+
   
   mPluginWindow->clipRect.top    = widgetClip.y;
   mPluginWindow->clipRect.left   = widgetClip.x;
@@ -2930,10 +2944,19 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top;
     mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left;
   }
+  else if (XRE_GetProcessType() != GeckoProcessType_Default)
+  {
+    
+    
+    
+    
+    mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top + mPluginWindow->height;
+    mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left + mPluginWindow->width;
+  }
   else if (inPaintState == ePluginPaintEnable)
   {
     mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top + widgetClip.height;
-    mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left + widgetClip.width; 
+    mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left + widgetClip.width;
   }
 
   
@@ -2963,7 +2986,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     NPCocoaEvent cocoaEvent;
     InitializeNPCocoaEvent(&cocoaEvent);
     cocoaEvent.type = NPCocoaEventWindowFocusChanged;
-    cocoaEvent.data.focus.hasFocus = NS_NPAPI_CocoaWindowIsMain(cocoaTopLevelWindow);
+    cocoaEvent.data.focus.hasFocus = cocoaTopLevelWindow ? NS_NPAPI_CocoaWindowIsMain(cocoaTopLevelWindow) : true;
     pluginEvent.pluginEvent = &cocoaEvent;
     ProcessEvent(pluginEvent);
   }
