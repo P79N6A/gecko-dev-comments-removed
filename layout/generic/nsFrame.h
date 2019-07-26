@@ -413,9 +413,6 @@ public:
   void ConsiderChildOverflow(nsOverflowAreas& aOverflowAreas,
                              nsIFrame* aChildFrame);
 
-  virtual const void* StyleDataExternal(nsStyleStructID aSID) const MOZ_OVERRIDE;
-
-
   
 
 

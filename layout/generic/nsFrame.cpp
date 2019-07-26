@@ -7291,13 +7291,6 @@ nsFrame::GetFirstLeaf(nsPresContext* aPresContext, nsIFrame **aFrame)
   }
 }
 
- const void*
-nsFrame::StyleDataExternal(nsStyleStructID aSID) const
-{
-  NS_ASSERTION(mStyleContext, "unexpected null pointer");
-  return mStyleContext->StyleData(aSID);
-}
-
  bool
 nsIFrame::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
 {
