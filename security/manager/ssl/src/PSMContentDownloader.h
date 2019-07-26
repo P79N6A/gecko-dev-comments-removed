@@ -118,14 +118,6 @@ class NS_NO_VTABLE nsINSSComponent : public nsISupports {
                                            uint32_t numParams,
                                            nsAString &outString) = 0;
 
-  
-  
-  NS_IMETHOD SkipOcsp() = 0;
-
-  
-  
-  NS_IMETHOD SkipOcspOff() = 0;
-
   NS_IMETHOD LogoutAuthenticatedPK11() = 0;
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
@@ -191,8 +183,6 @@ public:
                                            const char16_t **params,
                                            uint32_t numParams,
                                            nsAString &outString);
-  NS_IMETHOD SkipOcsp();
-  NS_IMETHOD SkipOcspOff();
   NS_IMETHOD LogoutAuthenticatedPK11();
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
