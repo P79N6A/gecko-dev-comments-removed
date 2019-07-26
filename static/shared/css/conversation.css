@@ -41,3 +41,12 @@
 .conversation .media.side-by-side .local {
   width: 50%;
 }
+
+
+
+
+
+
+.conversation .OT_video-container {
+  position: inherit;
+}
