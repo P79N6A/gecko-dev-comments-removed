@@ -167,11 +167,11 @@ class RegExpShared
     inline void prepareForUse(JSContext *cx);
 
     
-    RegExpRunStatus execute(JSContext *cx, StableCharPtr chars, size_t length,
+    RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length,
                             size_t *lastIndex, MatchPairs &matches);
 
     
-    RegExpRunStatus executeMatchOnly(JSContext *cx, StableCharPtr chars, size_t length,
+    RegExpRunStatus executeMatchOnly(JSContext *cx, const jschar *chars, size_t length,
                                      size_t *lastIndex, MatchPair &match);
 
     
@@ -301,11 +301,11 @@ class RegExpObject : public JSObject
 
 
     static RegExpObject *
-    create(JSContext *cx, RegExpStatics *res, StableCharPtr chars, size_t length,
+    create(JSContext *cx, RegExpStatics *res, const jschar *chars, size_t length,
            RegExpFlag flags, frontend::TokenStream *ts);
 
     static RegExpObject *
-    createNoStatics(JSContext *cx, StableCharPtr chars, size_t length, RegExpFlag flags,
+    createNoStatics(JSContext *cx, const jschar *chars, size_t length, RegExpFlag flags,
                     frontend::TokenStream *ts);
 
     static RegExpObject *

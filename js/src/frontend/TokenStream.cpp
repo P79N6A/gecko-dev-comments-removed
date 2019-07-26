@@ -114,15 +114,15 @@ frontend::IsIdentifier(JSLinearString *str)
 
 
 TokenStream::TokenStream(JSContext *cx, const CompileOptions &options,
-                         StableCharPtr base, size_t length, StrictModeGetter *smg)
+                         const jschar *base, size_t length, StrictModeGetter *smg)
   : tokens(),
     cursor(),
     lookahead(),
     lineno(options.lineno),
     flags(),
-    linebase(base.get()),
+    linebase(base),
     prevLinebase(NULL),
-    userbuf(base.get(), length),
+    userbuf(base, length),
     filename(options.filename),
     sourceMap(NULL),
     listenerTSData(),
@@ -141,7 +141,7 @@ TokenStream::TokenStream(JSContext *cx, const CompileOptions &options,
     void *listenerData = cx->runtime->debugHooks.sourceHandlerData;
 
     if (listener)
-        listener(options.filename, options.lineno, base.get(), length, &listenerTSData, listenerData);
+        listener(options.filename, options.lineno, base, length, &listenerTSData, listenerData);
 
     
 
