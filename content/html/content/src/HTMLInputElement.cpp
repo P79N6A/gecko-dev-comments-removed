@@ -5744,49 +5744,29 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
   uint32_t length = value.Length();
 
   
-  if (length == 0 || value[length - 1] == '.' || value[length - 1] == '-') {
-    return false;
-  }
-
-  uint32_t atPos = (uint32_t)value.FindChar('@');
-  
-  if (atPos == (uint32_t)kNotFound || atPos == 0 || atPos == length - 1) {
-    return false;
-  }
-
-  
   nsCOMPtr<nsIIDNService> idnSrv = do_GetService(NS_IDNSERVICE_CONTRACTID);
   if (idnSrv) {
-    
-    
-    const nsDependentCSubstring username = Substring(value, 0, atPos);
     bool ace;
-    if (NS_SUCCEEDED(idnSrv->IsACE(username, &ace)) && !ace) {
-      nsAutoCString usernameACE;
-      
-      
-      if (NS_SUCCEEDED(idnSrv->ConvertUTF8toACE(username, usernameACE))) {
-        value.Replace(0, atPos, usernameACE);
-        atPos = usernameACE.Length();
+    if (NS_SUCCEEDED(idnSrv->IsACE(value, &ace)) && !ace) {
+      nsAutoCString punyCodedValue;
+      if (NS_SUCCEEDED(idnSrv->ConvertUTF8toACE(value, punyCodedValue))) {
+        value = punyCodedValue;
+        length = value.Length();
       }
     }
-
-    const nsDependentCSubstring domain = Substring(value, atPos + 1);
-    if (NS_SUCCEEDED(idnSrv->IsACE(domain, &ace)) && !ace) {
-      nsAutoCString domainACE;
-      if (NS_FAILED(idnSrv->ConvertUTF8toACE(domain, domainACE))) {
-        return false;
-      }
-      value.Replace(atPos + 1, domain.Length(), domainACE);
-    }
-
-    length = value.Length();
   } else {
     NS_ERROR("nsIIDNService isn't present!");
   }
 
   
-  for (; i < atPos; ++i) {
+  
+  if (length == 0 || value[0] == '@' || value[length-1] == '.' ||
+      value[length-1] == '-') {
+    return false;
+  }
+
+  
+  for (; i < length && value[i] != '@'; ++i) {
     PRUnichar c = value[i];
 
     
@@ -5800,7 +5780,9 @@ HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
   }
 
   
-  ++i;
+  if (++i >= length) {
+    return false;
+  }
 
   
   if (value[i] == '.' || value[i] == '-') {
