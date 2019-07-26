@@ -2126,14 +2126,16 @@ Debugger::construct(JSContext *cx, unsigned argc, Value *vp)
     for (unsigned slot = JSSLOT_DEBUG_PROTO_START; slot < JSSLOT_DEBUG_PROTO_STOP; slot++)
         obj->setReservedSlot(slot, proto->getReservedSlot(slot));
 
+    
     Debugger *dbg = cx->new_<Debugger>(cx, obj.get());
     if (!dbg)
         return false;
-    obj->setPrivate(dbg);
     if (!dbg->init(cx)) {
         js_delete(dbg);
         return false;
     }
+    obj->setPrivate(dbg);
+    
 
     
     for (unsigned i = 0; i < argc; i++) {
