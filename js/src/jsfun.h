@@ -143,16 +143,6 @@ class JSFunction : public JSObject
     }
 
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     bool isArrow()                  const { return flags() & ARROW; }
 
     
@@ -162,7 +152,7 @@ class JSFunction : public JSObject
     bool isInterpretedConstructor() const {
         
         
-        return isInterpreted() && !isFunctionPrototype() &&
+        return isInterpreted() && !isFunctionPrototype() && !isArrow() &&
                (!isSelfHostedBuiltin() || isSelfHostedConstructor());
     }
     bool isNamedLambda() const {
@@ -547,6 +537,10 @@ class FunctionExtended : public JSFunction
 {
   public:
     static const unsigned NUM_EXTENDED_SLOTS = 2;
+
+    static inline size_t offsetOfArrowThisSlot() {
+        return offsetof(FunctionExtended, extendedSlots) + 0 * sizeof(extendedSlots[0]);
+    }
 
   private:
     friend class JSFunction;

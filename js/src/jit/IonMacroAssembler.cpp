@@ -1857,10 +1857,9 @@ MacroAssembler::branchIfNotInterpretedConstructor(Register fun, Register scratch
     
     
     Label done;
-    uint32_t bits = (JSFunction::IS_FUN_PROTO | JSFunction::SELF_HOSTED) << 16;
+    uint32_t bits = (JSFunction::IS_FUN_PROTO | JSFunction::ARROW | JSFunction::SELF_HOSTED) << 16;
     branchTest32(Assembler::Zero, scratch, Imm32(bits), &done);
     {
-        
         
         
         
