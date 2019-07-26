@@ -191,6 +191,12 @@ public:
   virtual void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* aTiledBuffer) = 0;
 
   virtual void MemoryPressure() = 0;
+
+  
+
+
+
+  virtual const nsIntRegion& GetValidLowPrecisionRegion() const = 0;
 };
 
 
