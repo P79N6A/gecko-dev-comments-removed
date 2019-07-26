@@ -229,17 +229,18 @@ EventQueue::CoalesceReorderEvents(AccEvent* aTailEvent)
     
     
     
-    
-    
     Accessible* thisParent = thisEvent->mAccessible;
     while (thisParent && thisParent != mDocument) {
       if (thisParent->Parent() == aTailEvent->mAccessible) {
         AccReorderEvent* tailReorder = downcast_accEvent(aTailEvent);
         uint32_t eventType = tailReorder->IsShowHideEventTarget(thisParent);
 
-        if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
-           NS_ERROR("Accessible tree was created after it was modified! Huh?");
-        } else if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
+        
+        
+        
+        
+        if (eventType == nsIAccessibleEvent::EVENT_SHOW ||
+            eventType == nsIAccessibleEvent::EVENT_HIDE) {
           AccReorderEvent* thisReorder = downcast_accEvent(thisEvent);
           thisReorder->DoNotEmitAll();
         } else {
