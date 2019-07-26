@@ -3,6 +3,8 @@
 
 
 import os
+import stat
+
 from mozpack.errors import errors
 from mozpack.files import (
     BaseFile,
@@ -13,24 +15,6 @@ import errno
 from collections import (
     OrderedDict,
 )
-
-
-def ensure_parent_dir(file):
-    '''Ensures the directory parent to the given file exists'''
-    dir = os.path.dirname(file)
-    if not dir:
-        return
-
-    try:
-        os.makedirs(dir)
-    except OSError as error:
-        if error.errno != errno.EEXIST:
-            raise
-
-    if not os.access(dir, os.W_OK):
-        umask = os.umask(0077)
-        os.umask(umask)
-        os.chmod(dir, 0777 & ~umask)
 
 
 class FileRegistry(object):
@@ -180,25 +164,109 @@ class FileCopier(FileRegistry):
         '''
         assert isinstance(destination, basestring)
         assert not os.path.exists(destination) or os.path.isdir(destination)
+
         result = FileCopyResult()
+        have_symlinks = hasattr(os, 'symlink')
         destination = os.path.normpath(destination)
+
+        
+        
+        
+        
+
+        required_dirs = set()
         dest_files = set()
-        for path, file in self:
-            destfile = os.path.normpath(os.path.join(destination, path))
-            dest_files.add(destfile)
-            ensure_parent_dir(destfile)
-            if file.copy(destfile, skip_if_older):
-                result.updated_files.add(destfile)
-            else:
-                result.existing_files.add(destfile)
 
-        actual_dest_files = set()
+        for p, f in self:
+            required_dirs.add(os.path.normpath(os.path.dirname(p)))
+            dest_files.add(os.path.normpath(os.path.join(destination, p)))
+
+        
+        extra = set()
+        for d in required_dirs:
+            parent = d
+            while parent:
+                parent = os.path.dirname(parent)
+                extra.add(parent)
+
+        required_dirs |= extra
+        required_dirs = set(os.path.normpath(os.path.join(destination, d))
+            for d in required_dirs)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        for d in sorted(required_dirs, key=len):
+            try:
+                os.mkdir(d)
+            except OSError as error:
+                if error.errno != errno.EEXIST:
+                    raise
+
+            
+            
+            
+            if have_symlinks and d != destination:
+                st = os.lstat(d)
+                if stat.S_ISLNK(st.st_mode):
+                    
+                    
+                    
+                    os.remove(d)
+                    os.mkdir(d)
+
+            if not os.access(d, os.W_OK):
+                umask = os.umask(0077)
+                os.umask(umask)
+                os.chmod(d, 0777 & ~umask)
+
+        
+        
+        
+        existing_dirs = set()
+        existing_files = set()
         for root, dirs, files in os.walk(destination):
-            for f in files:
-                actual_dest_files.add(os.path.normpath(os.path.join(root, f)))
+            
+            
+            
+            if have_symlinks:
+                filtered = []
+                for d in dirs:
+                    full = os.path.join(root, d)
+                    st = os.lstat(full)
+                    if stat.S_ISLNK(st.st_mode):
+                        os.remove(full)
+                        
+                        
+                    else:
+                        filtered.append(d)
 
+                dirs[:] = filtered
+
+            existing_dirs.add(os.path.normpath(root))
+
+            for d in dirs:
+                existing_dirs.add(os.path.normpath(os.path.join(root, d)))
+
+            for f in files:
+                existing_files.add(os.path.normpath(os.path.join(root, f)))
+
+        
+
+        
         if remove_unaccounted:
-            for f in actual_dest_files - dest_files:
+            for f in existing_files - dest_files:
                 
                 if os.name == 'nt' and not os.access(f, os.W_OK):
                     
@@ -208,15 +276,47 @@ class FileCopier(FileRegistry):
                 os.remove(f)
                 result.removed_files.add(f)
 
-        for root, dirs, files in os.walk(destination):
-            if files or dirs:
-                continue
+        
+        for p, f in self:
+            destfile = os.path.normpath(os.path.join(destination, p))
+            if f.copy(destfile, skip_if_older):
+                result.updated_files.add(destfile)
+            else:
+                result.existing_files.add(destfile)
 
+        
+        
+        
+        
+
+        
+        remove_dirs = existing_dirs - required_dirs
+
+        
+        
+        if not remove_unaccounted:
+            for f in existing_files:
+                parent = f
+                previous = ''
+                parents = set()
+                while True:
+                    parent = os.path.dirname(parent)
+                    parents.add(parent)
+
+                    if previous == parent:
+                        break
+
+                    previous = parent
+
+                remove_dirs -= parents
+
+        
+        for d in sorted(remove_dirs, key=len, reverse=True):
             
             
-            os.chmod(root, 0700)
-            os.removedirs(root)
-            result.removed_directories.add(root)
+            os.chmod(d, 0700)
+            os.rmdir(d)
+            result.removed_directories.add(d)
 
         return result
 
