@@ -110,7 +110,6 @@ pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
 pref("layers.enable-tiles", true);
 pref("layers.low-precision-buffer", true);
-pref("layers.low-precision-opacity", "0.5");
 
 
 
@@ -910,9 +909,6 @@ pref("gfx.canvas.max-size-for-skia-gl", -1);
 
 
 pref("gfx.gralloc.fence-with-readpixels", true);
-
-
-pref("ril.cellbroadcast.disabled", false);
 
 
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
