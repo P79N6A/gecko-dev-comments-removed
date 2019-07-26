@@ -790,6 +790,11 @@ setting[type="directory"] > .preferences-alignment {
   -moz-box-align: center;
 }
 
+
+setting[type="radio"] > vbox {
+  display: none;
+}
+
 #prefs-homepage-options, #prefs-homepage-popup {
   min-width: 200px;
 }
