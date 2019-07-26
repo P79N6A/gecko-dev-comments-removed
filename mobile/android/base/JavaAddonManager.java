@@ -147,7 +147,7 @@ class JavaAddonManager implements GeckoEventListener {
             
             
             Bundle b = new Bundle();
-            for (Iterator keys = json.keys(); keys.hasNext(); ) {
+            for (Iterator<?> keys = json.keys(); keys.hasNext(); ) {
                 try {
                     String key = (String)keys.next();
                     Object value = json.get(key);
