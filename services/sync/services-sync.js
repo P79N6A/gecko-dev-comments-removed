@@ -19,7 +19,7 @@ pref("services.sync.scheduler.activeInterval",       600);
 pref("services.sync.scheduler.immediateInterval",    90);    
 pref("services.sync.scheduler.idleTime",             300);   
 
-pref("services.sync.errorhandler.networkFailureReportTimeout", 604800); 
+pref("services.sync.errorhandler.networkFailureReportTimeout", 1209600); 
 
 pref("services.sync.engine.addons", true);
 pref("services.sync.engine.bookmarks", true);
