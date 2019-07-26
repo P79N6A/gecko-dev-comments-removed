@@ -3,3 +3,7 @@
 
 
 %include ../../shared/customizableui/panelUIOverlay.inc.css
+
+#BMB_bookmarksPopup > menuitem[type="checkbox"] {
+  -moz-appearance: none !important; 
+}
