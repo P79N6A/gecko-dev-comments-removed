@@ -1500,6 +1500,9 @@ js::Function(JSContext *cx, unsigned argc, Value *vp)
     size_t length = linear->length();
 
     
+    SkipRoot skip(cx, &chars);
+
+    
 
 
 
