@@ -201,7 +201,20 @@ class IonFrameIterator
     MachineState machineState() const;
 
     template <class Op>
-    inline void forEachCanonicalActualArg(Op op, unsigned start, unsigned count) const;
+    void forEachCanonicalActualArg(Op op, unsigned start, unsigned count) const {
+        JS_ASSERT(isBaselineJS());
+
+        unsigned nactual = numActualArgs();
+        if (count == unsigned(-1))
+            count = nactual - start;
+
+        unsigned end = start + count;
+        JS_ASSERT(start <= end && end <= nactual);
+
+        Value *argv = actualArgs();
+        for (unsigned i = start; i < end; i++)
+            op(argv[i]);
+    }
 
     void dump() const;
 
@@ -248,9 +261,41 @@ class SnapshotIterator : public SnapshotReader
     }
 
     template <class Op>
-    inline void readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Value *thisv,
-                              unsigned start, unsigned formalEnd, unsigned iterEnd,
-                              JSScript *script);
+    void readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Value *thisv,
+                       unsigned start, unsigned formalEnd, unsigned iterEnd, JSScript *script)
+    {
+        if (scopeChain)
+            *scopeChain = read();
+        else
+            skip();
+
+        
+        if (script->argumentsHasVarBinding())
+            skip();
+
+        if (thisv)
+            *thisv = read();
+        else
+            skip();
+
+        unsigned i = 0;
+        if (formalEnd < start)
+            i = start;
+
+        for (; i < start; i++)
+            skip();
+        for (; i < formalEnd && i < iterEnd; i++) {
+            
+            
+            
+            Value v = maybeRead();
+            op(v);
+        }
+        if (iterEnd >= formalEnd) {
+            for (; i < iterEnd; i++)
+                op(argv[i]);
+        }
+    }
 
     Value maybeReadSlotByIndex(size_t index) {
         while (index--) {
@@ -285,9 +330,29 @@ class InlineFrameIteratorMaybeGC
     void findNextFrame();
 
   public:
-    inline InlineFrameIteratorMaybeGC(JSContext *cx, const IonFrameIterator *iter);
-    inline InlineFrameIteratorMaybeGC(JSContext *cx, const IonBailoutIterator *iter);
-    inline InlineFrameIteratorMaybeGC(JSContext *cx, const InlineFrameIteratorMaybeGC *iter);
+    InlineFrameIteratorMaybeGC(JSContext *cx, const IonFrameIterator *iter)
+      : callee_(cx),
+        script_(cx)
+    {
+        resetOn(iter);
+    }
+
+    InlineFrameIteratorMaybeGC(JSContext *cx, const IonBailoutIterator *iter);
+
+    InlineFrameIteratorMaybeGC(JSContext *cx, const InlineFrameIteratorMaybeGC *iter)
+      : frame_(iter ? iter->frame_ : NULL),
+        framesRead_(0),
+        callee_(cx),
+        script_(cx)
+    {
+        if (frame_) {
+            start_ = SnapshotIterator(*frame_);
+            
+            
+            framesRead_ = iter->framesRead_ - 1;
+            findNextFrame();
+        }
+    }
 
     bool more() const {
         return frame_ && framesRead_ < start_.frameCount();
@@ -299,10 +364,64 @@ class InlineFrameIteratorMaybeGC
     JSFunction *maybeCallee() const {
         return callee_;
     }
-    inline unsigned numActualArgs() const;
+
+    unsigned numActualArgs() const {
+        
+        
+        
+        
+        
+        if (more())
+            return numActualArgs_;
+
+        return frame_->numActualArgs();
+    }
 
     template <class Op>
-    inline void forEachCanonicalActualArg(JSContext *cx, Op op, unsigned start, unsigned count) const;
+    void forEachCanonicalActualArg(JSContext *cx, Op op, unsigned start, unsigned count) const {
+        unsigned nactual = numActualArgs();
+        if (count == unsigned(-1))
+            count = nactual - start;
+
+        unsigned end = start + count;
+        unsigned nformal = callee()->nargs;
+
+        JS_ASSERT(start <= end && end <= nactual);
+
+        if (more()) {
+            
+            
+            
+            
+            
+
+            
+            unsigned formal_end = (end < nformal) ? end : nformal;
+            SnapshotIterator s(si_);
+            s.readFrameArgs(op, NULL, NULL, NULL, start, nformal, formal_end, script());
+
+            
+            
+            InlineFrameIteratorMaybeGC it(cx, this);
+            ++it;
+            unsigned argsObjAdj = it.script()->argumentsHasVarBinding() ? 1 : 0;
+            SnapshotIterator parent_s(it.snapshotIterator());
+
+            
+            
+            JS_ASSERT(parent_s.slots() >= nactual + 2 + argsObjAdj);
+            unsigned skip = parent_s.slots() - nactual - 2 - argsObjAdj;
+            for (unsigned j = 0; j < skip; j++)
+                parent_s.skip();
+
+            
+            parent_s.readFrameArgs(op, NULL, NULL, NULL, nformal, nactual, end, it.script());
+        } else {
+            SnapshotIterator s(si_);
+            Value *argv = frame_->actualArgs();
+            s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end, script());
+        }
+    }
 
     JSScript *script() const {
         return script_;
@@ -315,9 +434,42 @@ class InlineFrameIteratorMaybeGC
     }
     bool isFunctionFrame() const;
     bool isConstructing() const;
-    inline JSObject *scopeChain() const;
-    inline JSObject *thisObject() const;
-    inline InlineFrameIteratorMaybeGC &operator++();
+
+    JSObject *scopeChain() const {
+        SnapshotIterator s(si_);
+
+        
+        Value v = s.read();
+        if (v.isObject()) {
+            JS_ASSERT_IF(script()->hasAnalysis(), script()->analysis()->usesScopeChain());
+            return &v.toObject();
+        }
+
+        return callee()->environment();
+    }
+
+    JSObject *thisObject() const {
+        
+        SnapshotIterator s(si_);
+
+        
+        s.skip();
+
+        
+        if (script()->argumentsHasVarBinding())
+            s.skip();
+
+        
+        
+        Value v = s.read();
+        JS_ASSERT(v.isObject());
+        return &v.toObject();
+    }
+
+    InlineFrameIteratorMaybeGC &operator++() {
+        findNextFrame();
+        return *this;
+    }
 
     void dump() const;
 
