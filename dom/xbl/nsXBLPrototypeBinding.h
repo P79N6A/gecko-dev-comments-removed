@@ -9,7 +9,6 @@
 #include "nsClassHashtable.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
-#include "nsHashtable.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsInterfaceHashtable.h"
 #include "nsWeakReference.h"
@@ -22,8 +21,9 @@
 class nsIAtom;
 class nsIContent;
 class nsIDocument;
-class nsXBLProtoImplField;
+class nsXBLAttributeEntry;
 class nsXBLBinding;
+class nsXBLProtoImplField;
 
 
 
@@ -245,6 +245,9 @@ public:
                              nsIContent* aTemplChild);
 
   bool ChromeOnlyContent() { return mChromeOnlyContent; }
+
+  typedef nsClassHashtable<nsISupportsHashKey, nsXBLAttributeEntry> InnerAttributeTable;
+
 protected:
   
   void EnsureAttributeTable();
@@ -278,9 +281,10 @@ protected:
 
   nsXBLDocumentInfo* mXBLDocInfoWeak; 
 
-  nsObjectHashtable* mAttributeTable; 
-                                      
-                                      
+  
+  
+  
+  nsAutoPtr<nsClassHashtable<nsUint32HashKey, InnerAttributeTable>> mAttributeTable;
 
   class IIDHashKey : public PLDHashEntryHdr
   {
