@@ -110,11 +110,11 @@ void genProfileEntry(UnwinderThreadBuffer* utb,
           jsbytecode *jspc = js::ProfilingGetPC(stack->mRuntime, entry.script(),
                                                 lastpc);
           if (jspc) {
-            lineno = JS_PCToLineNumber(NULL, entry.script(), jspc);
+            lineno = JS_PCToLineNumber(nullptr, entry.script(), jspc);
           }
         }
       } else {
-        lineno = JS_PCToLineNumber(NULL, entry.script(), entry.pc());
+        lineno = JS_PCToLineNumber(nullptr, entry.script(), entry.pc());
       }
     } else {
       lineno = entry.line();
@@ -294,13 +294,13 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
 #   elif defined(SPS_OS_windows)
     
 
-    void* ucV = NULL;
+    void* ucV = nullptr;
 #   else
 #     error "Unsupported platform"
 #   endif
     releaseFunction(&sampledThreadProfile, utb, ucV);
   } else {
-    releaseFunction(&sampledThreadProfile, utb, NULL);
+    releaseFunction(&sampledThreadProfile, utb, nullptr);
   }
 }
 

@@ -349,11 +349,11 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
           jsbytecode *jspc = js::ProfilingGetPC(stack->mRuntime, entry.script(),
                                                 lastpc);
           if (jspc) {
-            lineno = JS_PCToLineNumber(NULL, entry.script(), jspc);
+            lineno = JS_PCToLineNumber(nullptr, entry.script(), jspc);
           }
         }
       } else {
-        lineno = JS_PCToLineNumber(NULL, entry.script(), entry.pc());
+        lineno = JS_PCToLineNumber(nullptr, entry.script(), entry.pc());
       }
     } else {
       lineno = entry.line();
@@ -673,7 +673,7 @@ static void print_callback(const ProfileEntry& entry, const char* tagStringData)
 void mozilla_sampler_print_location1()
 {
   if (!stack_key_initialized)
-    profiler_init(NULL);
+    profiler_init(nullptr);
 
   SyncProfile* syncProfile = NewSyncProfile();
   if (!syncProfile) {
@@ -681,7 +681,7 @@ void mozilla_sampler_print_location1()
   }
 
   syncProfile->BeginUnwind();
-  doSampleStackTrace(syncProfile->GetPseudoStack(), *syncProfile, NULL);
+  doSampleStackTrace(syncProfile->GetPseudoStack(), *syncProfile, nullptr);
   syncProfile->EndUnwind();
 
   printf_stderr("Backtrace:\n");
