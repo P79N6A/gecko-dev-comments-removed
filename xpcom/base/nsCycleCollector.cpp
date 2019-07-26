@@ -204,7 +204,7 @@ struct nsCycleCollectorParams
     bool mLogShutdown;
     bool mAllTracesAtShutdown;
     bool mDoNothing;
-    
+
     nsCycleCollectorParams() :
         mLogAll      (PR_GetEnv("XPCOM_CC_LOG_ALL") != NULL),
         mLogShutdown (PR_GetEnv("XPCOM_CC_LOG_SHUTDOWN") != NULL),
@@ -1478,7 +1478,7 @@ public:
         if (!mDisableLog) {
             fprintf(mStream, "%p [rc=%u] %s\n", (void*)aAddress, refCount,
                     aObjectDescription);
-        }                          
+        }
         if (mWantAfterProcessing) {
             CCGraphDescriber* d = mDescribers.AppendElement();
             NS_ENSURE_TRUE(d, NS_ERROR_OUT_OF_MEMORY);
@@ -1488,7 +1488,7 @@ public:
             d->mAddress = mCurrentAddress;
             d->mCnt = refCount;
             d->mName.Append(aObjectDescription);
-        }                     
+        }
         return NS_OK;
     }
     NS_IMETHOD NoteGCedObject(uint64_t aAddress, bool aMarked,
@@ -1529,7 +1529,7 @@ public:
     {
         if (!mDisableLog) {
             fputs("==========\n", mStream);
-        }                     
+        }
         return NS_OK;
     }
     NS_IMETHOD DescribeRoot(uint64_t aAddress, uint32_t aKnownEdges)
@@ -1678,7 +1678,7 @@ private:
     bool mDisableLog;
     bool mWantAfterProcessing;
     nsString mFilenameIdentifier;
-    nsCString mCurrentAddress; 
+    nsCString mCurrentAddress;
     nsTArray<CCGraphDescriber> mDescribers;
     uint32_t mNextIndex;
 };
@@ -1968,7 +1968,7 @@ GCGraphBuilder::DescribeGCedNode(bool isMarked, const char *objName)
 }
 
 NS_IMETHODIMP_(void)
-GCGraphBuilder::NoteXPCOMChild(nsISupports *child) 
+GCGraphBuilder::NoteXPCOMChild(nsISupports *child)
 {
     nsCString edgeName;
     if (WantDebugInfo()) {
@@ -2002,7 +2002,7 @@ GCGraphBuilder::NoteNativeChild(void *child,
 }
 
 NS_IMETHODIMP_(void)
-GCGraphBuilder::NoteJSChild(void *child) 
+GCGraphBuilder::NoteJSChild(void *child)
 {
     if (!child) {
         return;
@@ -2175,13 +2175,13 @@ nsPurpleBuffer::RemoveSkippable(bool removeChildlessNodes)
     VisitEntries(visitor);
 }
 
-void 
+void
 nsCycleCollector::SelectPurple(GCGraphBuilder &builder)
 {
     mPurpleBuf.SelectPointers(builder);
 }
 
-void 
+void
 nsCycleCollector::ForgetSkippable(bool removeChildlessNodes)
 {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -2226,7 +2226,7 @@ struct ScanBlackVisitor
     }
 
     bool ShouldVisitNode(PtrInfo const *pi)
-    { 
+    {
         return pi->mColor != black;
     }
 
@@ -2248,7 +2248,7 @@ struct scanVisitor
     }
 
     bool ShouldVisitNode(PtrInfo const *pi)
-    { 
+    {
         return pi->mColor == grey;
     }
 
@@ -2317,7 +2317,7 @@ nsCycleCollector::ScanRoots()
     
     
     
-    GraphWalker<scanVisitor>(scanVisitor(mWhiteNodeCount)).WalkFromRoots(mGraph); 
+    GraphWalker<scanVisitor>(scanVisitor(mWhiteNodeCount)).WalkFromRoots(mGraph);
 
     ScanWeakMaps();
 }
