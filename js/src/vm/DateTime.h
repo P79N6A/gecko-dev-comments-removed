@@ -98,15 +98,21 @@ class DateTimeInfo
 {
   public:
     DateTimeInfo();
-    int64_t getDSTOffsetMilliseconds(int64_t localTimeMilliseconds);
+
+    
+
+
+
+
+
+    int64_t getDSTOffsetMilliseconds(int64_t utcMilliseconds);
+
     void updateTimeZoneAdjustment();
 
     
     double localTZA() { return localTZA_; }
 
   private:
-    int64_t computeDSTOffsetMilliseconds(int64_t localTimeSeconds);
-
     
 
 
@@ -119,11 +125,19 @@ class DateTimeInfo
 
     double localTZA_;
 
+    
+
+
+
+
+
+    int64_t computeDSTOffsetMilliseconds(int64_t utcSeconds);
+
     int64_t offsetMilliseconds;
-    int64_t rangeStartSeconds, rangeEndSeconds;
+    int64_t rangeStartSeconds, rangeEndSeconds; 
 
     int64_t oldOffsetMilliseconds;
-    int64_t oldRangeStartSeconds, oldRangeEndSeconds;
+    int64_t oldRangeStartSeconds, oldRangeEndSeconds; 
 
     static const int64_t MaxUnixTimeT = 2145859200; 
 
