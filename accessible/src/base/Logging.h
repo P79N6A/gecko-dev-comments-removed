@@ -53,6 +53,11 @@ bool IsEnabled(uint32_t aModules);
 
 
 
+bool IsEnabled(const nsAString& aModules);
+
+
+
+
 void DocLoad(const char* aMsg, nsIWebProgress* aWebProgress,
              nsIRequest* aRequest, uint32_t aStateFlags);
 void DocLoad(const char* aMsg, nsIDocument* aDocumentNode);

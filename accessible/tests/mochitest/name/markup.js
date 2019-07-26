@@ -14,7 +14,7 @@ var gDumpToConsole = false;
 
 function testNames()
 {
-  
+  enableLogging("tree,stack"); 
 
   var request = new XMLHttpRequest();
   request.open("get", gNameRulesFileURL, false);
@@ -142,7 +142,8 @@ function testNamesForMarkupRules(aMarkupElm, aContainer)
 
   
   
-  if (isAccessible(elm))
+  
+  if (isAccessible(elm) || isLogged("stack"))
     processMarkupRules();
   else
     waitForEvent(EVENT_SHOW, elm, processMarkupRules);
