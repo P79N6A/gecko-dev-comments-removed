@@ -1282,7 +1282,11 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 
   switch (aCallState) {
     case nsITelephonyProvider::CALL_STATE_HELD:
-      sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+      if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+        sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_NOACTIVE;
+      } else {
+        sCINDItems[CINDType::CALLHELD].value = CallHeldState::ONHOLD_ACTIVE;
+      }
       SendCommand("+CIEV: ", CINDType::CALLHELD);
       break;
     case nsITelephonyProvider::CALL_STATE_INCOMING:
@@ -1340,24 +1344,26 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           UpdateCIND(CINDType::CALL, CallState::IN_PROGRESS, aSend);
           UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, aSend);
           break;
-        case nsITelephonyProvider::CALL_STATE_HELD:
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD) &&
-              GetNumberOfCalls(
-                nsITelephonyProvider::CALL_STATE_CONNECTED) == 1) {
-            UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
-          }
-          break;
         default:
           NS_WARNING("Not handling state changed");
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_CONNECTED) == 1) {
+        if (FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD)) {
+          UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_ACTIVE, aSend);
+        } else if (prevCallState == nsITelephonyProvider::CALL_STATE_HELD) {
+          UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
+        }
       }
       break;
     case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
@@ -1378,11 +1384,17 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
             UpdateCIND(CINDType::CALL, CallState::NO_CALL, aSend);
           }
           break;
-        case nsITelephonyProvider::CALL_STATE_HELD:
-          UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
-          break;
         default:
           NS_WARNING("Not handling state changed");
+      }
+
+      
+      if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD)) {
+        UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
+      } else if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+        UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_NOACTIVE, aSend);
+      } else {
+        UpdateCIND(CINDType::CALLHELD, CallHeldState::ONHOLD_ACTIVE, aSend);
       }
 
       
