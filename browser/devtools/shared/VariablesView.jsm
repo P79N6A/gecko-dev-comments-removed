@@ -16,6 +16,8 @@ const LAZY_APPEND_BATCH = 100;
 const PAGE_SIZE_SCROLL_HEIGHT_RATIO = 100;
 const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 1000; 
+const ELEMENT_INPUT_DEFAULT_WIDTH = 100; 
+const ELEMENT_INPUT_EXTRA_SPACE = 4; 
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1494,7 +1496,10 @@ Scope.prototype = {
   
 
 
-  _onClick: function S__onClick() {
+  _onClick: function S__onClick(e) {
+    if (e.target == this._inputNode) {
+      return;
+    }
     this.toggle();
     this._variablesView._focusItem(this);
   },
@@ -2280,8 +2285,14 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     let input = this.document.createElement("textbox");
     input.setAttribute("value", initialString);
     input.className = "plain " + aClassName;
-    input.width = this._target.clientWidth;
 
+    
+    let style = this.window.getComputedStyle(aLabel);
+    input.width = (parseInt(style.getPropertyValue("width")) ||
+      ELEMENT_INPUT_DEFAULT_WIDTH) + 
+      ELEMENT_INPUT_EXTRA_SPACE; 
+
+    
     aLabel.parentNode.replaceChild(input, aLabel);
     input.select();
 
@@ -2302,6 +2313,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     this.hideArrow();
     this._locked = true;
 
+    this._inputNode = input;
     this._stopThrobber();
   },
 
@@ -2322,6 +2334,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     this.twisty = this._prevExpandable;
     this.expanded = this._prevExpanded;
 
+    this._inputNode = null;
     this._stopThrobber();
   },
 
@@ -2522,6 +2535,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   _isUndefined: false,
   _separatorLabel: null,
   _valueLabel: null,
+  _inputNode: null,
   _editNode: null,
   _deleteNode: null,
   _tooltip: null,
