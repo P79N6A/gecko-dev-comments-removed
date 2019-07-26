@@ -1368,9 +1368,6 @@ ICUpdatedStub::addUpdateStubForValue(JSContext *cx, HandleScript script, HandleO
         return true;
     }
 
-    if (!obj->getType(cx))
-        return false;
-
     types::EnsureTrackPropertyTypes(cx, obj, id);
 
     if (val.isPrimitive()) {
@@ -5327,6 +5324,10 @@ TryAttachGlobalNameStub(JSContext *cx, HandleScript script, ICGetName_Fallback *
     RootedId id(cx, NameToId(name));
 
     
+    if (IsIonEnabled(cx))
+        types::EnsureTrackPropertyTypes(cx, global, NameToId(name));
+
+    
     RootedShape shape(cx, global->nativeLookup(cx, id));
     if (!shape || !shape->hasDefaultGetter() || !shape->hasSlot())
         return true;
@@ -5382,6 +5383,10 @@ TryAttachScopeNameStub(JSContext *cx, HandleScript script, ICGetName_Fallback *s
 
     if (!IsCacheableGetPropReadSlot(scopeChain, scopeChain, shape))
         return true;
+
+    
+    if (scopeChain->hasSingletonType() && IsIonEnabled(cx))
+        types::EnsureTrackPropertyTypes(cx, scopeChain, NameToId(name));
 
     bool isFixedSlot;
     uint32_t offset;
@@ -5810,6 +5815,10 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         uint32_t offset;
         GetFixedOrDynamicSlotOffset(holder, shape->slot(), &isFixedSlot, &offset);
 
+        
+        if (IsIonEnabled(cx))
+            types::EnsureTrackPropertyTypes(cx, holder, NameToId(name));
+
         ICStub::Kind kind = (obj == holder) ? ICStub::GetProp_Native
                                             : ICStub::GetProp_NativePrototype;
 
@@ -5918,6 +5927,10 @@ TryAttachStringGetPropStub(JSContext *cx, HandleScript script, ICGetProp_Fallbac
     RootedObject stringProto(cx, script->global().getOrCreateStringPrototype(cx));
     if (!stringProto)
         return false;
+
+    
+    if (IsIonEnabled(cx))
+        types::EnsureTrackPropertyTypes(cx, stringProto, NameToId(name));
 
     
     RootedId propId(cx, NameToId(name));
@@ -7464,6 +7477,11 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
             stub->addNewStub(newStub);
             return true;
         }
+
+        
+        
+        if (IsIonEnabled(cx))
+            types::EnsureTrackPropertyTypes(cx, fun, NameToId(cx->names().prototype));
 
         IonSpew(IonSpew_BaselineIC,
                 "  Generating Call_Scripted stub (fun=%p, %s:%d, cons=%s)",

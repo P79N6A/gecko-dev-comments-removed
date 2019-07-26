@@ -177,8 +177,7 @@ namespace types {
 
 class TypeCompartment;
 class TypeSet;
-
-struct TypeObjectKey;
+class TypeObjectKey;
 
 
 
@@ -542,6 +541,10 @@ class TypeSet
 
     
     inline void setConfiguredProperty(ExclusiveContext *cx);
+
+    
+    typedef Vector<Type, 1, SystemAllocPolicy> TypeList;
+    bool enumerateTypes(TypeList *list);
 
     
 
@@ -1220,7 +1223,8 @@ typedef HashMap<AllocationSiteKey,ReadBarriered<TypeObject>,AllocationSiteKey,Sy
 class HeapTypeSetKey;
 
 
-struct TypeObjectKey {
+struct TypeObjectKey
+{
     static intptr_t keyBits(TypeObjectKey *obj) { return (intptr_t) obj; }
     static TypeObjectKey *getKey(TypeObjectKey *obj) { return obj; }
 
@@ -1259,14 +1263,40 @@ struct TypeObjectKey {
     void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
     void watchStateChangeForNewScriptTemplate(CompilerConstraintList *constraints);
     void watchStateChangeForTypedArrayBuffer(CompilerConstraintList *constraints);
-    HeapTypeSetKey property(jsid id);
+    HeapTypeSetKey property(jsid id, JSContext *maybecx = NULL);
+
+    TypeObject *maybeType();
 };
+
+
+
+
+
+
+
+
 
 class HeapTypeSetKey
 {
+    friend class TypeObjectKey;
+
+    
+    TypeObjectKey *object_;
+    jsid id_;
+
+    
+    HeapTypeSet *maybeTypes_;
+
   public:
-    TypeObject *actualObject;
-    HeapTypeSet *actualTypes;
+    HeapTypeSetKey()
+      : object_(NULL), id_(JSID_EMPTY), maybeTypes_(NULL)
+    {}
+
+    TypeObjectKey *object() const { return object_; }
+    jsid id() const { return id_; }
+    HeapTypeSet *maybeTypes() const { return maybeTypes_; }
+
+    bool instantiate(JSContext *cx);
 
     void freeze(CompilerConstraintList *constraints);
     JSValueType knownTypeTag(CompilerConstraintList *constraints);

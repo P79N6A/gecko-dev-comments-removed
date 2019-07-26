@@ -690,6 +690,16 @@ class IonBuilder : public MIRGenerator
         return callerBuilder_ != nullptr;
     }
 
+    JSContext *context() {
+        
+        
+        
+        
+        if (info().executionMode() == DefinitePropertiesAnalysis)
+            return cx;
+        return NULL;
+    }
+
   private:
     bool init();
 
