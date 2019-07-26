@@ -11,7 +11,6 @@
 #include "xpcprivate.h"
 #include "XPCInlines.h"
 #include "XPCQuickStubs.h"
-#include "XPCWrapper.h"
 #include "mozilla/dom/BindingUtils.h"
 
 using namespace mozilla;
@@ -550,8 +549,9 @@ getWrapper(JSContext *cx,
     
     
     if (js::IsWrapper(obj)) {
-        obj = XPCWrapper::Unwrap(cx, obj, false);
+        obj = js::UnwrapObjectChecked(obj,  false);
 
+        
         
         
         if (!obj)
