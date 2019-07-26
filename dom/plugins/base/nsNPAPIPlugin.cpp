@@ -2813,7 +2813,13 @@ _scheduletimer(NPP instance, uint32_t interval, NPBool repeat, PluginTimerFunc t
 void NP_CALLBACK
 _unscheduletimer(NPP instance, uint32_t timerID)
 {
+#ifdef MOZ_WIDGET_ANDROID
+  
+  
+  nsNPAPIPluginInstance *inst = nsNPAPIPluginInstance::GetFromNPP(instance);
+#else
   nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
+#endif
   if (!inst)
     return;
 
