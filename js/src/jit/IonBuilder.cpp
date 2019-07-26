@@ -23,6 +23,8 @@
 #include "jit/Lowering.h"
 #include "jit/MIRGraph.h"
 
+#include "vm/ArgumentsObject.h"
+
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 #include "jsscriptinlines.h"
@@ -1033,7 +1035,7 @@ IonBuilder::maybeAddOsrTypeBarriers()
         if (info().isSlotAliased(i))
             continue;
 
-        MInstruction *def = osrBlock->getSlot(i)->toOsrValue();
+        MInstruction *def = osrBlock->getSlot(i)->toInstruction();
 
         JS_ASSERT(headerPhi->slot() == i);
         MPhi *preheaderPhi = preheader->getSlot(i)->toPhi();
@@ -5755,10 +5757,13 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     }
 
     
-    
-    JS_ASSERT(!info().needsArgsObj());
+    bool needsArgsObj = info().needsArgsObj();
+    MInstruction *argsObj = NULL;
     if (info().hasArguments()) {
-        MInstruction *argsObj = MConstant::New(UndefinedValue());
+        if (needsArgsObj)
+            argsObj = MOsrArgumentsObject::New(entry);
+        else
+            argsObj = MConstant::New(UndefinedValue());
         osrBlock->add(argsObj);
         osrBlock->initSlot(info().argsObjSlot(), argsObj);
     }
@@ -5774,14 +5779,30 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
 
         
         for (uint32_t i = 0; i < info().nargs(); i++) {
-            
-            
-            uint32_t slot = info().argSlot(i);
-            ptrdiff_t offset = StackFrame::offsetOfFormalArg(info().fun(), i);
+            uint32_t slot = needsArgsObj ? info().argSlotUnchecked(i) : info().argSlot(i);
 
-            MOsrValue *osrv = MOsrValue::New(entry, offset);
-            osrBlock->add(osrv);
-            osrBlock->initSlot(slot, osrv);
+            if (needsArgsObj) {
+                JS_ASSERT(argsObj && argsObj->isOsrArgumentsObject());
+                
+                
+                
+                
+                
+                
+                MInstruction *osrv;
+                if (script()->formalIsAliased(i))
+                    osrv = MConstant::New(UndefinedValue());
+                else
+                    osrv = MGetArgumentsObjectArg::New(argsObj, i);
+
+                osrBlock->add(osrv);
+                osrBlock->initSlot(slot, osrv);
+            } else {
+                ptrdiff_t offset = StackFrame::offsetOfFormalArg(info().fun(), i);
+                MOsrValue *osrv = MOsrValue::New(entry, offset);
+                osrBlock->add(osrv);
+                osrBlock->initSlot(slot, osrv);
+            }
         }
     }
 
@@ -5834,7 +5855,7 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     for (uint32_t i = info().startArgSlot(); i < osrBlock->stackDepth(); i++) {
         MDefinition *existing = current->getSlot(i);
         MDefinition *def = osrBlock->getSlot(i);
-        JS_ASSERT(def->type() == MIRType_Value);
+        JS_ASSERT_IF(!needsArgsObj || !info().isSlotAliased(i), def->type() == MIRType_Value);
 
         
         
@@ -5892,12 +5913,16 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc, bool 
             Value existingValue;
             uint32_t arg = i - info().firstArgSlot();
             uint32_t var = i - info().firstLocalSlot();
-            if (info().fun() && i == info().thisSlot())
+            if (info().fun() && i == info().thisSlot()) {
                 existingValue = baselineFrame_->thisValue();
-            else if (arg < info().nargs())
-                existingValue = baselineFrame_->unaliasedFormal(arg);
-            else
+            } else if (arg < info().nargs()) {
+                if (info().needsArgsObj())
+                    existingValue = baselineFrame_->argsObj().arg(arg);
+                else
+                    existingValue = baselineFrame_->unaliasedFormal(arg);
+            } else {
                 existingValue = baselineFrame_->unaliasedVar(var);
+            }
 
             
             MIRType type = existingValue.isDouble()

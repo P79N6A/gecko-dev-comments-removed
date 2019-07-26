@@ -850,6 +850,10 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
     
     uint8_t *stackFrame = info->stackFrame;
     *((JSObject **) (stackFrame + StackFrame::offsetOfScopeChain())) = frame->scopeChain();
+    if (frame->script()->needsArgsObj()) {
+        JS_ASSERT(frame->hasArgsObj());
+        *((JSObject **) (stackFrame + StackFrame::offsetOfArgumentsObject())) = &frame->argsObj();
+    }
     if (frame->isFunctionFrame()) {
         
         *((JSFunction **) (stackFrame + StackFrame::offsetOfExec())) = frame->fun();

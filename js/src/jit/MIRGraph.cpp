@@ -456,9 +456,20 @@ MBasicBlock::linkOsrValues(MStart *start)
             if (def->isOsrScopeChain())
                 def->toOsrScopeChain()->setResumePoint(res);
         } else if (info().hasArguments() && i == info().argsObjSlot()) {
-            JS_ASSERT(def->isConstant() && def->toConstant()->value() == UndefinedValue());
+            JS_ASSERT(def->isConstant() || def->isOsrArgumentsObject());
+            JS_ASSERT_IF(def->isConstant(), def->toConstant()->value() == UndefinedValue());
+            if (def->isOsrArgumentsObject())
+                def->toOsrArgumentsObject()->setResumePoint(res);
         } else {
-            def->toOsrValue()->setResumePoint(res);
+            JS_ASSERT(def->isOsrValue() || def->isGetArgumentsObjectArg() || def->isConstant());
+            
+            
+            JS_ASSERT_IF(def->isConstant(), def->toConstant()->value() == UndefinedValue());
+
+            if (def->isOsrValue())
+                def->toOsrValue()->setResumePoint(res);
+            else if (def->isGetArgumentsObjectArg())
+                def->toGetArgumentsObjectArg()->setResumePoint(res);
         }
     }
 }
