@@ -67,7 +67,7 @@
 #include "nsDocShellCID.h"
 #include "nsDocument.h"
 #include "nsDOMCID.h"
-#include "nsDOMDataTransfer.h"
+#include "mozilla/dom/DataTransfer.h"
 #include "nsDOMJSUtils.h"
 #include "nsDOMMutationObserver.h"
 #include "nsDOMTouchEvent.h"
@@ -4981,7 +4981,7 @@ nsContentUtils::SetDataTransferInEvent(WidgetDragEvent* aDragEvent)
     
     
     
-    initialDataTransfer = new nsDOMDataTransfer(aDragEvent->message, true, -1);
+    initialDataTransfer = new DataTransfer(aDragEvent->message, true, -1);
 
     NS_ENSURE_TRUE(initialDataTransfer, NS_ERROR_OUT_OF_MEMORY);
 

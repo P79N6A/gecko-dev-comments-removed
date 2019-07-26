@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsDOMDataTransfer_h__
-#define nsDOMDataTransfer_h__
+#ifndef mozilla_dom_DataTransfer_h
+#define mozilla_dom_DataTransfer_h
 
 #include "nsString.h"
 #include "nsTArray.h"
@@ -18,9 +18,13 @@
 #include "nsDOMFile.h"
 #include "mozilla/Attributes.h"
 
+class nsEventStateManager;
 class nsITransferable;
 class nsISupportsArray;
 class nsILoadContext;
+
+namespace mozilla {
+namespace dom {
 
 
 
@@ -35,36 +39,36 @@ struct TransferItem {
   nsCOMPtr<nsIVariant> mData;
 };
 
-class nsDOMDataTransfer MOZ_FINAL : public nsIDOMDataTransfer
+class DataTransfer MOZ_FINAL : public nsIDOMDataTransfer
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIDOMDATATRANSFER
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMDataTransfer, nsIDOMDataTransfer)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(DataTransfer, nsIDOMDataTransfer)
 
-  friend class nsEventStateManager;
+  friend class ::nsEventStateManager;
 
 protected:
 
   
-  nsDOMDataTransfer();
+  DataTransfer();
 
   
   
-  nsDOMDataTransfer(uint32_t aEventType,
-                    const uint32_t aEffectAllowed,
-                    bool aCursorState,
-                    bool aIsExternal,
-                    bool aUserCancelled,
-                    bool aIsCrossDomainSubFrameDrop,
-                    int32_t aClipboardType,
-                    nsTArray<nsTArray<TransferItem> >& aItems,
-                    nsIDOMElement* aDragImage,
-                    uint32_t aDragImageX,
-                    uint32_t aDragImageY);
+  DataTransfer(uint32_t aEventType,
+               const uint32_t aEffectAllowed,
+               bool aCursorState,
+               bool aIsExternal,
+               bool aUserCancelled,
+               bool aIsCrossDomainSubFrameDrop,
+               int32_t aClipboardType,
+               nsTArray<nsTArray<TransferItem> >& aItems,
+               nsIDOMElement* aDragImage,
+               uint32_t aDragImageX,
+               uint32_t aDragImageY);
 
-  ~nsDOMDataTransfer()
+  ~DataTransfer()
   {
     if (mFiles) {
       mFiles->Disconnect();
@@ -86,7 +90,7 @@ public:
   
   
   
-  nsDOMDataTransfer(uint32_t aEventType, bool aIsExternal, int32_t aClipboardType);
+  DataTransfer(uint32_t aEventType, bool aIsExternal, int32_t aClipboardType);
 
   void GetDragTarget(nsIDOMElement** aDragTarget)
   {
@@ -200,6 +204,9 @@ protected:
   uint32_t mDragImageX;
   uint32_t mDragImageY;
 };
+
+} 
+} 
 
 #endif 
 
