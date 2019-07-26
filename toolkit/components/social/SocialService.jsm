@@ -246,6 +246,8 @@ function SocialProvider(input) {
   this.workerURL = input.workerURL;
   this.sidebarURL = input.sidebarURL;
   this.origin = input.origin;
+  let originUri = Services.io.newURI(input.origin, null, null);
+  this.principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(originUri);
   this.ambientNotificationIcons = {};
   this.errorState = null;
   this._active = ActiveProviders.has(this.origin);
@@ -337,13 +339,15 @@ SocialProvider.prototype = {
         return;
       }
       
-      url = Services.io.newURI(this.origin, null, null).resolve(url);
-      let uri = Services.io.newURI(url, null, null);
-      if (!uri.schemeIs("http") && !uri.schemeIs("https") && !uri.schemeIs("data")) {
-        reportError('images["' + sub + '"] does not have a valid scheme');
+      
+      
+      
+      let imgUri = this.resolveUri(url);
+      if (!imgUri) {
+        reportError('images["' + sub + '"] is an invalid URL');
         return;
       }
-      promptImages[sub] = url;
+      promptImages[sub] = imgUri.spec;
     }
     for (let sub of ["shareTooltip", "unshareTooltip",
                      "sharedLabel", "unsharedLabel", "unshareLabel",
@@ -451,5 +455,52 @@ SocialProvider.prototype = {
       return null;
     return getFrameWorkerHandle(this.workerURL, window,
                                 "SocialProvider:" + this.origin, this.origin).port;
+  },
+
+  
+
+
+
+
+
+
+  isSameOrigin: function isSameOrigin(uri, allowIfInheritsPrincipal) {
+    if (!uri)
+      return false;
+    if (typeof uri == "string") {
+      try {
+        uri = Services.io.newURI(uri, null, null);
+      } catch (ex) {
+        
+        return false;
+      }
+    }
+    try {
+      this.principal.checkMayLoad(
+        uri, 
+        false, 
+        allowIfInheritsPrincipal
+      );
+      return true;
+    } catch (ex) {
+      return false;
+    }
+  },
+
+  
+
+
+
+
+
+
+  resolveUri: function resolveUri(url) {
+    try {
+      let fullURL = this.principal.URI.resolve(url);
+      return Services.io.newURI(fullURL, null, null);
+    } catch (ex) {
+      Cu.reportError("mozSocial: failed to resolve window URL: " + url + "; " + ex);
+      return null;
+    }
   }
 }
