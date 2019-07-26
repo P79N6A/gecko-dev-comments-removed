@@ -364,7 +364,14 @@ class nsStyleSet
     eNoFlags =          0,
     eIsLink =           1 << 0,
     eIsVisitedLink =    1 << 1,
-    eDoAnimation =      1 << 2
+    eDoAnimation =      1 << 2,
+
+    
+    
+    
+    
+    
+    eSkipFlexItemStyleFixup = 1 << 3
   };
 
   already_AddRefed<nsStyleContext>

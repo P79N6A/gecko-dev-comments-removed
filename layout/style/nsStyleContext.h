@@ -57,9 +57,14 @@ public:
 
 
 
+
+
+
+
   nsStyleContext(nsStyleContext* aParent, nsIAtom* aPseudoTag,
                  nsCSSPseudoElements::Type aPseudoType,
-                 nsRuleNode* aRuleNode);
+                 nsRuleNode* aRuleNode,
+                 bool aSkipFlexItemStyleFixup);
   ~nsStyleContext();
 
   void* operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
@@ -341,7 +346,7 @@ protected:
   void AddChild(nsStyleContext* aChild);
   void RemoveChild(nsStyleContext* aChild);
 
-  void ApplyStyleFixups();
+  void ApplyStyleFixups(bool aSkipFlexItemStyleFixup);
 
   void FreeAllocations(nsPresContext* aPresContext);
 
@@ -434,5 +439,6 @@ already_AddRefed<nsStyleContext>
 NS_NewStyleContext(nsStyleContext* aParentContext,
                    nsIAtom* aPseudoTag,
                    nsCSSPseudoElements::Type aPseudoType,
-                   nsRuleNode* aRuleNode);
+                   nsRuleNode* aRuleNode,
+                   bool aSkipFlexItemStyleFixup);
 #endif
