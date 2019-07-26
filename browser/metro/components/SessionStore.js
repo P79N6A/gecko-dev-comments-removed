@@ -514,9 +514,14 @@ SessionStore.prototype = {
 
   saveState: function ss_saveState() {
     let data = this._getCurrentState();
-    this._writeFile(this._sessionFile, JSON.stringify(data));
+    
+    if (data.windows && data.windows.length && data.selectedWindow) {
+      this._writeFile(this._sessionFile, JSON.stringify(data));
 
-    this._lastSaveTime = Date.now();
+      this._lastSaveTime = Date.now();
+    } else {
+      dump("SessionStore: Not saving state with invalid data: " + JSON.stringify(data) + "\n");
+    }
   },
 
   _getCurrentState: function ss_getCurrentState() {
@@ -847,7 +852,7 @@ SessionStore.prototype = {
 
           tab.browser.__SS_extdata = tabData.extData;
         }
-    
+
         notifyObservers();
       }.bind(this));
     } catch (ex) {
