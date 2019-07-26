@@ -17,6 +17,7 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTArray.h"                   
+#include "prlog.h"                      
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 #include <ui/Fence.h>
@@ -24,6 +25,24 @@
 
 namespace mozilla {
 namespace layers {
+
+
+
+
+
+#ifdef PR_LOGGING
+#  define TILING_PRLOG(_args) PR_LOG(gTilingLog, PR_LOG_DEBUG, _args)
+#  define TILING_PRLOG_OBJ(_args, obj) \
+    { \
+    nsAutoCString tmpstr; \
+    AppendToString(tmpstr, obj); \
+    PR_LOG(gTilingLog, PR_LOG_DEBUG, _args); \
+    }
+   extern PRLogModuleInfo* gTilingLog;
+#else
+#  define TILING_PRLOG(_args)
+#  define TILING_PRLOG_OBJ(_args, obj)
+#endif
 
 
 
