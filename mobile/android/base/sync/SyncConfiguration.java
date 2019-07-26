@@ -261,14 +261,6 @@ public class SyncConfiguration {
 
   private static final String API_VERSION = "1.5";
 
-  
-
-
-
-  public SyncConfiguration(String username, AuthHeaderProvider authHeaderProvider, String prefsPath, PrefsSource prefsSource) {
-    this(username, authHeaderProvider, prefsSource.getPrefs(prefsPath, Utils.SHARED_PREFERENCES_MODE));
-  }
-
   public SyncConfiguration(String username, AuthHeaderProvider authHeaderProvider, SharedPreferences prefs) {
     this.username = username;
     this.authHeaderProvider = authHeaderProvider;
