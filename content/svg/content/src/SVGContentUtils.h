@@ -249,7 +249,7 @@ public:
 
 
 
-  static mozilla::RefPtr<mozilla::gfx::Path>
+  static mozilla::TemporaryRef<mozilla::gfx::Path>
   GetPath(const nsAString& aPathString);
 };
 
