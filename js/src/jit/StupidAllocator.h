@@ -39,7 +39,7 @@ class StupidAllocator : public RegisterAllocator
     };
 
     
-    mozilla::Array<AllocatedRegister, MAX_REGISTERS> registers;
+    AllocatedRegister registers[MAX_REGISTERS];
     uint32_t registerCount;
 
     
