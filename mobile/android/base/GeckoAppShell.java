@@ -1958,7 +1958,8 @@ public class GeckoAppShell
     static String[] getPluginDirectories() {
 
         
-        boolean isTegra = (new File("/system/lib/hw/gralloc.tegra.so")).exists();
+        boolean isTegra = (new File("/system/lib/hw/gralloc.tegra.so")).exists() ||
+                          (new File("/system/lib/hw/gralloc.tegra3.so")).exists();
         if (isTegra) {
             
             File vfile = new File("/proc/version");
@@ -1985,6 +1986,12 @@ public class GeckoAppShell
                 } catch (IOException ex) {
                     
                 }
+            }
+
+            
+            if (Build.VERSION.SDK_INT >= 19) {
+                Log.w(LOGTAG, "Blocking plugins because of Tegra (bug 957694)");
+                return null;
             }
         }
 
