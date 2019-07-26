@@ -1241,8 +1241,6 @@ var gBrowserInit = {
     gNavToolbox.addEventListener("customizationstarting", CustomizationHandler);
     gNavToolbox.addEventListener("customizationending", CustomizationHandler);
 
-    gCustomizeMode.init();
-
     
     
     try {
@@ -1353,7 +1351,6 @@ var gBrowserInit = {
       IndexedDBPromptHelper.uninit();
       SocialUI.uninit();
       LightweightThemeListener.uninit();
-      gCustomizeMode.uninit();
       PanelUI.uninit();
     }
 
@@ -3752,6 +3749,17 @@ var XULBrowserWindow = {
 
         
         gFindBar.getElement("highlight").checked = false;
+      }
+
+      
+      
+      let customizingURI = "about:customizing";
+      if (location == customizingURI &&
+          !CustomizationHandler.isCustomizing()) {
+        gCustomizeMode.enter();
+      } else if (location != customizingURI &&
+                 CustomizationHandler.isCustomizing()) {
+        gCustomizeMode.exit();
       }
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);

@@ -31,6 +31,12 @@ function CustomizeMode(aWindow) {
   this.window = aWindow;
   this.document = aWindow.document;
   this.browser = aWindow.gBrowser;
+
+  
+  
+  
+  
+  this.visiblePalette = this.document.getElementById(kPaletteId);
 };
 
 CustomizeMode.prototype = {
@@ -53,22 +59,6 @@ CustomizeMode.prototype = {
 
   get panelUIContents() {
     return this.document.getElementById("PanelUI-contents");
-  },
-
-  init: function() {
-    
-    
-    
-    
-    this.visiblePalette = this.document.getElementById(kPaletteId);
-
-    this.browser.tabContainer.addEventListener("TabSelect", this, false);
-    this.browser.addTabsProgressListener(this);
-  },
-
-  uninit: function() {
-    this.browser.tabContainer.removeEventListener("TabSelect", this, false);
-    this.browser.removeTabsProgressListener(this);
   },
 
   enter: function() {
@@ -649,9 +639,6 @@ CustomizeMode.prototype = {
           aEvent.preventDefault();
         }
         break;
-      case "TabSelect":
-        this._onTabSelect(aEvent);
-        break;
     }
   },
 
@@ -983,34 +970,6 @@ CustomizeMode.prototype = {
       aElement = aElement.parentNode;
     }
     return aElement;
-  },
-
-  _onTabSelect: function(aEvent) {
-    this._toggleCustomizationModeIfNecessary();
-  },
-
-  onLocationChange: function(aBrowser, aProgress, aRequest, aLocation, aFlags) {
-    if (this.browser.selectedBrowser != aBrowser) {
-      return;
-    }
-
-    this._toggleCustomizationModeIfNecessary();
-  },
-
-  
-
-
-
-
-  _toggleCustomizationModeIfNecessary: function() {
-    let browser = this.browser.selectedBrowser;
-    if (browser.currentURI.spec == kAboutURI &&
-        !this._customizing) {
-      this.enter();
-    } else if (browser.currentURI.spec != kAboutURI &&
-               this._customizing) {
-      this.exit();
-    }
   },
 
   _showPanelCustomizationPlaceholders: function() {
