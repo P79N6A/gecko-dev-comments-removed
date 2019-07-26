@@ -27,7 +27,7 @@ BEGIN_TEST(testLookup_bug522590)
 
     
     JS::RootedValue r(cx);
-    CHECK(JS_LookupProperty(cx, xobj, "f", r.address()));
+    CHECK(JS_LookupProperty(cx, xobj, "f", &r));
     CHECK(r.isObject());
     JSObject *funobj = &r.toObject();
     CHECK(funobj->is<JSFunction>());
