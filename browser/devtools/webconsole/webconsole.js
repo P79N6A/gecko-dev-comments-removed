@@ -1446,11 +1446,20 @@ WebConsoleFrame.prototype = {
 
   addMoreInfoLink: function WCF_addMoreInfoLink(aNode, aScriptError)
   {
-    
-    
+    let url;
     if (aScriptError.category == "Insecure Password Field") {
-      this.addInsecurePasswordsWarningNode(aNode);
+      url = INSECURE_PASSWORDS_LEARN_MORE;
     }
+    else if (aScriptError.category == "Mixed Content Message" ||
+               aScriptError.category == "Mixed Content Blocker") {
+      url = MIXED_CONTENT_LEARN_MORE;
+    }
+    else {
+      
+      return;
+    }
+
+    this.addLearnMoreWarningNode(aNode, url);
   },
 
   
@@ -1459,8 +1468,14 @@ WebConsoleFrame.prototype = {
 
 
 
-  addInsecurePasswordsWarningNode:
-  function WCF_addInsecurePasswordsWarningNode(aNode)
+
+
+
+
+
+
+  addLearnMoreWarningNode:
+  function WCF_addLearnMoreWarningNode(aNode, aURL)
   {
     let moreInfoLabel =
       "[" + l10n.getStr("webConsoleMoreInfoLabel") + "]";
@@ -1480,7 +1495,7 @@ WebConsoleFrame.prototype = {
     warningNode.classList.add("webconsole-learn-more-link");
 
     warningNode.addEventListener("click", function(aEvent) {
-      this.owner.openLink(INSECURE_PASSWORDS_LEARN_MORE);
+      this.owner.openLink(aURL);
       aEvent.preventDefault();
       aEvent.stopPropagation();
     }.bind(this));
@@ -2304,7 +2319,6 @@ WebConsoleFrame.prototype = {
     let bodyNode = this.document.createElementNS(XUL_NS, "description");
     bodyNode.flex = 1;
     bodyNode.classList.add("webconsole-msg-body");
-    bodyNode.classList.add("devtools-monospace");
 
     
     let body = aBody;
@@ -2351,8 +2365,6 @@ WebConsoleFrame.prototype = {
     
     let timestampNode = this.document.createElementNS(XUL_NS, "label");
     timestampNode.classList.add("webconsole-timestamp");
-    timestampNode.classList.add("devtools-monospace");
-
     let timestamp = aTimeStamp || Date.now();
     let timestampString = l10n.timestampString(timestamp);
     timestampNode.setAttribute("value", timestampString);
@@ -2577,7 +2589,6 @@ WebConsoleFrame.prototype = {
     locationNode.setAttribute("tooltiptext", aSourceURL);
     locationNode.classList.add("webconsole-location");
     locationNode.classList.add("text-link");
-    locationNode.classList.add("devtools-monospace");
 
     
     locationNode.addEventListener("click", () => {
@@ -4551,6 +4562,7 @@ var Utils = {
         return CATEGORY_CSS;
 
       case "Mixed Content Blocker":
+      case "Mixed Content Message":
       case "CSP":
       case "Invalid HSTS Headers":
       case "Insecure Password Field":
