@@ -103,6 +103,11 @@ public:
   
   
 
+  DECL_GFX_PREFS(Live, "gfx.color_management.enablev4",         CMSEnableV4, bool, false);
+  DECL_GFX_PREFS(Live, "gfx.color_management.mode",             CMSMode, int32_t,-1);
+  
+  DECL_GFX_PREFS(Live, "gfx.color_management.rendering_intent", CMSRenderingIntent, int32_t, 0);
+
 public:
   
   static gfxPrefs& One()
