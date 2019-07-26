@@ -8,7 +8,7 @@ import re, sys, os
 import subprocess
 import runxpcshelltests as xpcshell
 from automationutils import *
-import devicemanager, devicemanagerADB, devicemanagerSUT
+from mozdevice import devicemanager, devicemanagerADB, devicemanagerSUT
 
 
 
