@@ -68,8 +68,8 @@ public:
   float GetAnimValInSpecifiedUnits() const { return mAnimVal; }
 
   static nsresult ToDOMSVGAngle(nsISupports **aResult);
-  nsresult ToDOMAnimatedAngle(nsISupports **aResult,
-                              nsSVGElement* aSVGElement);
+  already_AddRefed<mozilla::dom::SVGAnimatedAngle>
+    ToDOMAnimatedAngle(nsSVGElement* aSVGElement);
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
 
