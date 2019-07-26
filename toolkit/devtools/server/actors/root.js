@@ -193,17 +193,6 @@ RootActor.prototype = {
   
 
 
-  get webProgress() {
-    return this.window
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIDocShell)
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIWebProgress);
-  },
-
-  
-
-
   disconnect: function() {
     
     if (this._parameters.tabList) {
