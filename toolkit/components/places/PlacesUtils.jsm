@@ -76,12 +76,6 @@ function QI_node(aNode, aIID) {
   }
   return result;
 }
-function asVisit(aNode) {
-  Deprecated.warning(
-    "asVisit is deprecated and will be removed in a future version",
-    "https://bugzilla.mozilla.org/show_bug.cgi?id=561450");
-  return aNode;
-};
 function asContainer(aNode) QI_node(aNode, Ci.nsINavHistoryContainerResultNode);
 function asQuery(aNode) QI_node(aNode, Ci.nsINavHistoryQueryResultNode);
 
@@ -119,7 +113,6 @@ this.PlacesUtils = {
   TOPIC_BOOKMARKS_RESTORE_SUCCESS: "bookmarks-restore-success",
   TOPIC_BOOKMARKS_RESTORE_FAILED: "bookmarks-restore-failed",
 
-  asVisit: function(aNode) asVisit(aNode),
   asContainer: function(aNode) asContainer(aNode),
   asQuery: function(aNode) asQuery(aNode),
 
@@ -194,28 +187,6 @@ this.PlacesUtils = {
 
 
 
-  nodeIsVisit: function PU_nodeIsVisit(aNode) {
-    Deprecated.warning(
-      "nodeIsVisit is deprecated ans will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=561450");
-    return this.nodeIsURI(aNode) && aNode.parent &&
-           this.nodeIsQuery(aNode.parent) &&
-           asQuery(aNode.parent).queryOptions.resultType ==
-             Ci.nsINavHistoryQueryOptions.RESULTS_AS_VISIT;
-  },
-
-  
-
-
-
-
-
-  get uriTypes() {
-    Deprecated.warning(
-      "uriTypes is deprecated ans will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=561450");
-    return [Ci.nsINavHistoryResultNode.RESULT_TYPE_URI];
-  },
   nodeIsURI: function PU_nodeIsURI(aNode) {
     return aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_URI;
   },
@@ -1141,155 +1112,6 @@ this.PlacesUtils = {
 
 
 
-  importJSONNode: function PU_importJSONNode(aData, aContainer, aIndex, aGrandParentId) {
-    Deprecated.warning(
-      "importJSONNode is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=855842");
-
-    var folderIdMap = [];
-    var searchIds = [];
-    var id = -1;
-    switch (aData.type) {
-      case this.TYPE_X_MOZ_PLACE_CONTAINER:
-        if (aContainer == PlacesUtils.tagsFolderId) {
-          
-          if (aData.children) {
-            aData.children.forEach(function(aChild) {
-              try {
-                this.tagging.tagURI(this._uri(aChild.uri), [aData.title]);
-              } catch (ex) {
-                
-              }
-            }, this);
-            return [folderIdMap, searchIds];
-          }
-        }
-        else if (aData.livemark && aData.annos) {
-          
-          var feedURI = null;
-          var siteURI = null;
-          aData.annos = aData.annos.filter(function(aAnno) {
-            switch (aAnno.name) {
-              case this.LMANNO_FEEDURI:
-                feedURI = this._uri(aAnno.value);
-                return false;
-              case this.LMANNO_SITEURI:
-                siteURI = this._uri(aAnno.value);
-                return false;
-              default:
-                return true;
-            }
-          }, this);
-
-          if (feedURI) {
-            this.livemarks.addLivemark(
-              { title: aData.title
-              , feedURI: feedURI
-              , parentId: aContainer
-              , index: aIndex
-              , lastModified: aData.lastModified
-              , siteURI: siteURI
-              },
-              (function(aStatus, aLivemark) {
-                if (Components.isSuccessCode(aStatus)) {
-                  let id = aLivemark.id;
-                  if (aData.dateAdded)
-                    this.bookmarks.setItemDateAdded(id, aData.dateAdded);
-                  if (aData.annos && aData.annos.length)
-                    this.setAnnotationsForItem(id, aData.annos);
-                }
-              }).bind(this)
-            );
-          }
-        }
-        else {
-          id = this.bookmarks.createFolder(aContainer, aData.title, aIndex);
-          folderIdMap[aData.id] = id;
-          
-          if (aData.children) {
-            aData.children.forEach(function(aChild, aIndex) {
-              var [folders, searches] = this.importJSONNode(aChild, id, aIndex, aContainer);
-              for (var i = 0; i < folders.length; i++) {
-                if (folders[i])
-                  folderIdMap[i] = folders[i];
-              }
-              searchIds = searchIds.concat(searches);
-            }, this);
-          }
-        }
-        break;
-      case this.TYPE_X_MOZ_PLACE:
-        id = this.bookmarks.insertBookmark(aContainer, this._uri(aData.uri),
-                                           aIndex, aData.title);
-        if (aData.keyword)
-          this.bookmarks.setKeywordForBookmark(id, aData.keyword);
-        if (aData.tags) {
-          var tags = aData.tags.split(", ");
-          if (tags.length)
-            this.tagging.tagURI(this._uri(aData.uri), tags);
-        }
-        if (aData.charset) {
-            this.setCharsetForURI(this._uri(aData.uri), aData.charset);
-        }
-        if (aData.uri.substr(0, 6) == "place:")
-          searchIds.push(id);
-        if (aData.icon) {
-          try {
-            
-            let faviconURI = this._uri("fake-favicon-uri:" + aData.uri);
-            this.favicons.replaceFaviconDataFromDataURL(faviconURI, aData.icon, 0);
-            this.favicons.setAndFetchFaviconForPage(this._uri(aData.uri), faviconURI, false,
-              this.favicons.FAVICON_LOAD_NON_PRIVATE);
-          } catch (ex) {
-            Components.utils.reportError("Failed to import favicon data:"  + ex);
-          }
-        }
-        if (aData.iconUri) {
-          try {
-            this.favicons.setAndFetchFaviconForPage(this._uri(aData.uri),
-                                                    this._uri(aData.iconUri),
-                                                    false,
-                                                    this.favicons.FAVICON_LOAD_NON_PRIVATE);
-          } catch (ex) {
-            Components.utils.reportError("Failed to import favicon URI:"  + ex);
-          }
-        }
-        break;
-      case this.TYPE_X_MOZ_PLACE_SEPARATOR:
-        id = this.bookmarks.insertSeparator(aContainer, aIndex);
-        break;
-      default:
-        
-    }
-
-    
-    if (id != -1 &&
-        aContainer != PlacesUtils.tagsFolderId &&
-        aGrandParentId != PlacesUtils.tagsFolderId) {
-      if (aData.dateAdded)
-        this.bookmarks.setItemDateAdded(id, aData.dateAdded);
-      if (aData.lastModified)
-        this.bookmarks.setItemLastModified(id, aData.lastModified);
-      if (aData.annos && aData.annos.length)
-        this.setAnnotationsForItem(id, aData.annos);
-    }
-
-    return [folderIdMap, searchIds];
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1489,89 +1311,6 @@ this.PlacesUtils = {
     else {
       throw Cr.NS_ERROR_UNEXPECTED;
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  serializeNodeAsJSONToOutputStream:
-  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
-                                                aResolveShortcuts,
-                                                aExcludeItems) {
-    Deprecated.warning(
-      "serializeNodeAsJSONToOutputStream is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=854761");
-
-    this._serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
-                                            aResolveShortcuts, aExcludeItems);
-  },
-
-  
-
-
-
-
-
-
-
-  restoreBookmarksFromJSONFile:
-  function PU_restoreBookmarksFromJSONFile(aFile) {
-    Deprecated.warning(
-      "restoreBookmarksFromJSONFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=854388");
-
-    BookmarkJSONUtils.importFromFile(aFile, true);
-  },
-
-  
-
-
-
-
-  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
-    Deprecated.warning(
-      "backupBookmarksToFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=852041");
-    return PlacesBackups.saveBookmarksToJSONFile(aFile);
-  },
-
-  
-
-
-
-
-
-  archiveBookmarksFile:
-  function PU_archiveBookmarksFile(aMaxBackups, aForceBackup) {
-    Deprecated.warning(
-      "archiveBookmarksFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=857429");
-    return PlacesBackups.create(aMaxBackups, aForceBackup);
-  },
-
-  
-
-
-  get backups() {
-    Deprecated.warning(
-      "PlacesUtils.backups is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=857429");
-    return PlacesBackups;
   },
 
   
