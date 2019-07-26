@@ -69,6 +69,7 @@ pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
 
 
+pref("network.seer.enable", false); 
 pref("network.seer.max-db-size", 2097152); 
 pref("network.seer.preserve", 50); 
 
@@ -702,8 +703,6 @@ pref("dom.ipc.processPrelaunch.enabled", true);
 
 pref("dom.ipc.processPrelaunch.delayMs", 5000);
 #endif
-
-pref("dom.ipc.reuse_parent_app", false);
 
 
 
