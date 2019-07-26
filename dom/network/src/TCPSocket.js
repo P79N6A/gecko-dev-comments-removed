@@ -162,6 +162,10 @@ TCPSocket.prototype = {
   _waitingForStartTLS: false,
   _pendingDataAfterStartTLS: [],
 
+  
+  _onUpdateBufferedAmount: null,
+  _trackingNumber: 0,
+
 #ifdef MOZ_WIDGET_GONK
   
   _txBytes: 0,
@@ -242,6 +246,12 @@ TCPSocket.prototype = {
              .createTransport(options, 1, host, port, null);
   },
 
+  _sendBufferedAmount: function ts_sendBufferedAmount() {
+    if (this._onUpdateBufferedAmount) {
+      this._onUpdateBufferedAmount(this.bufferedAmount, this._trackingNumber);
+    }
+  },
+
   _ensureCopying: function ts_ensureCopying() {
     let self = this;
     if (this._asyncCopierActive) {
@@ -254,6 +264,7 @@ TCPSocket.prototype = {
       onStopRequest: function ts_output_onStopRequest(request, context, status) {
         self._asyncCopierActive = false;
         self._multiplexStream.removeStream(0);
+        self._sendBufferedAmount();
 
         if (!Components.isSuccessCode(status)) {
           
@@ -280,7 +291,9 @@ TCPSocket.prototype = {
             }
           }
 
-          if (self._waitingForDrain) {
+          
+          
+          if (self._waitingForDrain && !self._onUpdateBufferedAmount) {
             self._waitingForDrain = false;
             self.callListener("drain");
           }
@@ -382,9 +395,36 @@ TCPSocket.prototype = {
     this.callListener(type);
   },
 
-  updateReadyStateAndBuffered: function ts_setReadyState(readyState, bufferedAmount) {
+  
+
+
+
+  updateReadyState: function ts_updateReadyState(readyState) {
+    if (!this._inChild) {
+      LOG("Calling updateReadyState in parent, which should only be called " +
+          "in child");
+      return;
+    }
     this._readyState = readyState;
+  },
+
+  updateBufferedAmount: function ts_updateBufferedAmount(bufferedAmount, trackingNumber) {
+    if (trackingNumber != this._trackingNumber) {
+      LOG("updateBufferedAmount is called but trackingNumber is not matched " +
+          "parent's trackingNumber: " + trackingNumber + ", child's trackingNumber: " +
+          this._trackingNumber);
+      return;
+    }
     this._bufferedAmount = bufferedAmount;
+    if (bufferedAmount == 0) {
+      if (this._waitingForDrain) {
+        this._waitingForDrain = false;
+        this.callListener("drain");
+      }
+    } else {
+      LOG("bufferedAmount is updated but haven't reaches zero. bufferedAmount: " +
+          bufferedAmount);
+    }
   },
 
   createAcceptedParent: function ts_createAcceptedParent(transport, binaryType) {
@@ -418,6 +458,25 @@ TCPSocket.prototype = {
 #else
     
 #endif
+  },
+
+  setOnUpdateBufferedAmountHandler: function(aFunction) {
+    if (typeof(aFunction) == 'function') {
+      this._onUpdateBufferedAmount = aFunction;
+    } else {
+      throw new Error("only function can be passed to " +
+                      "setOnUpdateBufferedAmountHandler");
+    }
+  },
+
+  
+
+
+
+
+  onRecvSendFromChild: function(data, byteOffset, byteLength, trackingNumber) {
+    this._trackingNumber = trackingNumber;
+    this.send(data, byteOffset, byteLength);
   },
 
   
@@ -605,15 +664,27 @@ TCPSocket.prototype = {
     }
 
     if (this._inChild) {
-      this._socketBridge.sendSend(data, byteOffset, byteLength);
+      this._socketBridge.sendSend(data, byteOffset, byteLength, ++this._trackingNumber);
     }
 
     let length = this._binaryType === "arraybuffer" ? byteLength : data.length;
+    let newBufferedAmount = this.bufferedAmount + length;
+    let bufferFull = newBufferedAmount >= BUFFER_SIZE;
 
-    var newBufferedAmount = this.bufferedAmount + length;
-    var bufferNotFull = newBufferedAmount < BUFFER_SIZE;
+    if (bufferFull) {
+      
+      
+      
+      
+      
+      this._waitingForDrain = true;
+    }
+
     if (this._inChild) {
-      return bufferNotFull;
+      
+      
+      this._bufferedAmount = newBufferedAmount;
+      return !bufferFull;
     }
 
     let new_stream;
@@ -633,15 +704,6 @@ TCPSocket.prototype = {
       this._multiplexStream.appendStream(new_stream);
     }
 
-    if (newBufferedAmount >= BUFFER_SIZE) {
-      
-      
-      
-      
-      
-      this._waitingForDrain = true;
-    }
-
     this._ensureCopying();
 
 #ifdef MOZ_WIDGET_GONK
@@ -650,7 +712,7 @@ TCPSocket.prototype = {
     this._saveNetworkStats(false);
 #endif
 
-    return bufferNotFull;
+    return !bufferFull;
   },
 
   suspend: function ts_suspend() {

@@ -20,7 +20,9 @@ TCPSocketParentIntermediary.prototype = {
 
     
     
-    ["open", "drain", "data", "error", "close"].forEach(
+    
+    
+    ["open", "data", "error", "close"].forEach(
       function(p) {
         socket["on" + p] = function(data) {
           aParentSide.sendEvent(p, data.data, socket.readyState,
@@ -28,7 +30,11 @@ TCPSocketParentIntermediary.prototype = {
         };
       }
     );
- },
+  },
+
+  _onUpdateBufferedAmountHandler: function(aParentSide, aBufferedAmount, aTrackingNumber) {
+    aParentSide.sendUpdateBufferedAmount(aBufferedAmount, aTrackingNumber);
+  },
 
   open: function(aParentSide, aHost, aPort, aUseSSL, aBinaryType, aAppId) {
     let baseSocket = Cc["@mozilla.org/tcp-socket;1"].createInstance(Ci.nsIDOMTCPSocket);
@@ -40,6 +46,10 @@ TCPSocketParentIntermediary.prototype = {
     if (socketInternal) {
       socketInternal.setAppId(aAppId);
     }
+
+    
+    socketInternal.setOnUpdateBufferedAmountHandler(
+      this._onUpdateBufferedAmountHandler.bind(this, aParentSide));
 
     
     this._setCallbacks(aParentSide, socket);
@@ -79,12 +89,15 @@ TCPSocketParentIntermediary.prototype = {
     return serverSocket;
   },
 
-  onRecvSendString: function(aData) {
-    return this._socket.send(aData);
+  onRecvSendString: function(aData, aTrackingNumber) {
+    let socketInternal = this._socket.QueryInterface(Ci.nsITCPSocketInternal);
+    return socketInternal.onRecvSendFromChild(aData, 0, 0, aTrackingNumber);
   },
 
-  onRecvSendArrayBuffer: function(aData) {
-    return this._socket.send(aData, 0, aData.byteLength);
+  onRecvSendArrayBuffer: function(aData, aTrackingNumber) {
+    let socketInternal = this._socket.QueryInterface(Ci.nsITCPSocketInternal);
+    return socketInternal.onRecvSendFromChild(aData, 0, aData.byteLength,
+                                              aTrackingNumber);
   },
 
   classID: Components.ID("{afa42841-a6cb-4a91-912f-93099f6a3d18}"),
