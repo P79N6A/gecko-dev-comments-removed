@@ -253,12 +253,24 @@ private:
 
 };
 
-static void
-DestroyImpl(UnixSocketImpl* impl)
+template<class T>
+class DeleteInstanceRunnable : public nsRunnable
 {
-  MOZ_ASSERT(impl);
-  delete impl;
-}
+public:
+  DeleteInstanceRunnable(T* aInstance)
+  : mInstance(aInstance)
+  { }
+
+  NS_IMETHOD Run()
+  {
+    delete mInstance;
+
+    return NS_OK;
+  }
+
+private:
+  T* mInstance;
+};
 
 class OnSocketEventTask : public nsRunnable
 {
@@ -612,9 +624,18 @@ UnixSocketConsumer::CloseSocket()
   
   impl->mConsumer.forget();
   impl->StopTask();
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   NewRunnableFunction(DestroyImpl,
-                                                       impl));
+
+  
+  
+  
+  
+  
+  nsRefPtr<nsIRunnable> t(new DeleteInstanceRunnable<UnixSocketImpl>(impl));
+  NS_ENSURE_TRUE_VOID(t);
+  nsresult rv = NS_DispatchToMainThread(t);
+  NS_ENSURE_SUCCESS_VOID(rv);
+  t.forget();
+
   NotifyDisconnect();
 }
 
