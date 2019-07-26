@@ -418,13 +418,13 @@ nsresult nsAutoConfig::evaluateLocalFile(nsIFile *file)
         return rv;
         
     int64_t fileSize;
-    uint32_t fs, amt=0;
     file->GetFileSize(&fileSize);
-    LL_L2UI(fs, fileSize); 
+    uint32_t fs = fileSize; 
     char *buf = (char *)PR_Malloc(fs * sizeof(char));
     if (!buf) 
         return NS_ERROR_OUT_OF_MEMORY;
-    
+
+    uint32_t amt = 0;
     rv = inStr->Read(buf, fs, &amt);
     if (NS_SUCCEEDED(rv)) {
       EvaluateAdminConfigScript(buf, fs, nullptr, false, 

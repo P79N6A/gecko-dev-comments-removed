@@ -1012,7 +1012,7 @@ static int32_t kShift = 6;
         
         
         
-        LL_L2UI(gCounter, PR_Now());
+        gCounter = uint32_t(PR_Now());
     }
 
     nsresult rv;

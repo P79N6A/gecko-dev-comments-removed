@@ -787,10 +787,7 @@ nsProtocolProxyService::SecondsSinceSessionStart()
     diff /= ups;
 
     
-    uint32_t dsec;
-    LL_L2UI(dsec, diff);
-
-    return dsec;
+    return uint32_t(diff);
 }
 
 void

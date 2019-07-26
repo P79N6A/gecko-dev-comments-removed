@@ -770,8 +770,7 @@ mozJSComponentLoader::GlobalForLocation(nsIFile *aComponentFile,
             
             FileMapAutoCloser mapCloser(map);
 
-            uint32_t fileSize32;
-            LL_L2UI(fileSize32, fileSize);
+            uint32_t fileSize32 = fileSize;
 
             char *buf = static_cast<char*>(PR_MemMap(map, 0, fileSize32));
             if (!buf) {
