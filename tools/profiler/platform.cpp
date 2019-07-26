@@ -20,10 +20,6 @@
 #include "mozilla/Services.h"
 #include "nsThreadUtils.h"
 
-#ifdef ANDROID
-  #include "AndroidBridge.h"
-#endif
-
 mozilla::ThreadLocal<PseudoStack *> tlsPseudoStack;
 mozilla::ThreadLocal<TableTicker *> tlsTicker;
 
@@ -33,7 +29,6 @@ mozilla::ThreadLocal<TableTicker *> tlsTicker;
 bool stack_key_initialized;
 
 TimeStamp   sLastTracerEvent; 
-TimeStamp   sStartTime;
 int         sFrameNumber = 0;
 int         sLastFrameNumber = 0;
 int         sInitCount = 0; 
@@ -388,7 +383,6 @@ const char** mozilla_sampler_get_features()
     
     "unwinder",
 #endif
-    "java",
     
     "jank",
     
@@ -450,17 +444,6 @@ void mozilla_sampler_start(int aProfileEntries, int aInterval,
         thread_profile->GetPseudoStack()->enableJSSampling();
       }
   }
-
-#ifdef ANDROID
-  if (t->ProfileJava()) {
-    int javaInterval = aInterval;
-    
-    if (javaInterval < 10) {
-      aInterval = 10;
-    }
-    mozilla::AndroidBridge::Bridge()->StartJavaProfiling(javaInterval, 1000);
-  }
-#endif
 
   sIsProfiling = true;
 
@@ -575,12 +558,6 @@ bool mozilla_sampler_register_thread(const char* aName)
 void mozilla_sampler_unregister_thread()
 {
   Sampler::UnregisterCurrentThread();
-}
-
-double mozilla_sampler_time()
-{
-  TimeDuration delta = TimeStamp::Now() - sStartTime;
-  return delta.ToMilliseconds();
 }
 
 
