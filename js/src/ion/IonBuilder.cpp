@@ -3676,41 +3676,6 @@ IonBuilder::jsop_funapply(uint32 argc)
     return pushTypeBarrier(apply, types, barrier);
 }
 
-
-static bool
-GetBuiltinRegExpTest(JSContext *cx, JSScript *script, JSFunction **result)
-{
-    JS_ASSERT(*result == NULL);
-
-    
-    RootedObject proto(cx, script->global().getOrCreateRegExpPrototype(cx));
-    if (!proto)
-        return false;
-
-    
-    
-    RootedShape shape(cx);
-    RootedObject holder(cx);
-    if (!JSObject::lookupProperty(cx, proto, cx->names().test, &holder, &shape))
-        return false;
-
-    if (proto != holder || !shape || !shape->hasDefaultGetter() || !shape->hasSlot())
-        return true;
-
-    
-    
-    Value val = holder->getSlot(shape->slot());
-    if (!val.isObject())
-        return true;
-
-    JSObject *obj = &val.toObject();
-    if (!obj->isFunction() || obj->toFunction()->maybeNative() != regexp_test)
-        return true;
-
-    *result = obj->toFunction();
-    return true;
-}
-
 bool
 IonBuilder::jsop_call(uint32 argc, bool constructing)
 {
@@ -3740,20 +3705,6 @@ IonBuilder::jsop_call(uint32 argc, bool constructing)
     }
 
     RootedFunction target(cx, NULL);
-    if (numTargets == 1) {
-        target = targets[0]->toFunction();
-
-        
-        
-        if (target->maybeNative() == regexp_exec && !CallResultEscapes(pc)) {
-            JSFunction *newTarget = NULL;
-            if (!GetBuiltinRegExpTest(cx, script_, &newTarget))
-                return false;
-            if (newTarget)
-                target = newTarget;
-        }
-    }
-
     return makeCallBarrier(target, argc, constructing, types, barrier);
 }
 

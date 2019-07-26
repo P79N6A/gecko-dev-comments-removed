@@ -561,17 +561,12 @@ GetSharedForGreedyStar(JSContext *cx, JSAtom *source, RegExpFlag flags, RegExpGu
     return cx->compartment->regExps.getHack(cx, source, hackedSource, flags, g);
 }
 
-
-
-
-
-
-
-static bool
-ExecuteRegExp(JSContext *cx, RegExpExecType execType, CallArgs args)
+bool
+js::ExecuteRegExp(JSContext *cx, RegExpExecType execType, HandleObject regexp,
+                  HandleString string, MutableHandleValue rval)
 {
     
-    Rooted<RegExpObject*> reobj(cx, &args.thisv().toObject().asRegExp());
+    Rooted<RegExpObject*> reobj(cx, &regexp->asRegExp());
 
     RegExpGuard re;
     if (StartsWithGreedyStar(reobj->getSource())) {
@@ -585,12 +580,7 @@ ExecuteRegExp(JSContext *cx, RegExpExecType execType, CallArgs args)
     RegExpStatics *res = cx->regExpStatics();
 
     
-    JSString *input = ToString(cx, (args.length() > 0) ? args[0] : UndefinedValue());
-    if (!input)
-        return false;
-
-    
-    Rooted<JSLinearString*> linearInput(cx, input->ensureLinear(cx));
+    Rooted<JSLinearString*> linearInput(cx, string->ensureLinear(cx));
     if (!linearInput)
         return false;
 
@@ -612,26 +602,46 @@ ExecuteRegExp(JSContext *cx, RegExpExecType execType, CallArgs args)
     
     if (i < 0 || i > length) {
         reobj->zeroLastIndex();
-        args.rval().setNull();
+        rval.setNull();
         return true;
     }
 
     
     size_t lastIndexInt(i);
-    if (!ExecuteRegExp(cx, res, *re, linearInput, chars, length, &lastIndexInt, execType,
-                       args.rval().address())) {
+    if (!ExecuteRegExp(cx, res, *re, linearInput.get(), chars, length, &lastIndexInt, execType,
+                       rval.address())) {
         return false;
     }
 
     
-    if (re->global() || (!args.rval().isNull() && re->sticky())) {
-        if (args.rval().isNull())
+    if (re->global() || (!rval.isNull() && re->sticky())) {
+        if (rval.isNull())
             reobj->zeroLastIndex();
         else
             reobj->setLastIndex(lastIndexInt);
     }
 
     return true;
+}
+
+
+
+
+
+
+
+static bool
+ExecuteRegExp(JSContext *cx, RegExpExecType execType, CallArgs args)
+{
+    
+    RootedObject regexp(cx, &args.thisv().toObject());
+
+    
+    RootedString string(cx, ToString(cx, (args.length() > 0) ? args[0] : UndefinedValue()));
+    if (!string)
+        return false;
+
+    return ExecuteRegExp(cx, execType, regexp, string, args.rval());
 }
 
 
