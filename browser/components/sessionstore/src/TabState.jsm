@@ -169,6 +169,11 @@ let TabStateInternal = {
       let history = yield Messenger.send(tab, "SessionStore:collectSessionHistory");
 
       
+      if (!tab.linkedBrowser) {
+        return;
+      }
+
+      
       let tabData = this._collectBaseTabData(tab);
 
       
