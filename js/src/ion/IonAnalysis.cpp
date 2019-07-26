@@ -85,6 +85,9 @@ IsPhiObservable(MPhi *phi)
     return false;
 }
 
+
+
+
 static inline MDefinition *
 IsPhiRedundant(MPhi *phi)
 {
@@ -142,14 +145,25 @@ ion::EliminatePhis(MIRGraph &graph)
 
         
         if (MDefinition *redundant = IsPhiRedundant(phi)) {
+            
+            for (MUseDefIterator it(phi); it; it++) {
+                if (it.def()->isPhi()) {
+                    MPhi *use = it.def()->toPhi();
+                    if (!use->isUnused()) {
+                        use->setUnusedUnchecked();
+                        use->setInWorklist();
+                        if (!worklist.append(use))
+                            return false;
+                    }
+                }
+            }
             phi->replaceAllUsesWith(redundant);
-            if (redundant->isPhi())
-                redundant->setUnusedUnchecked();
         } else {
             
             phi->setNotUnused();
         }
 
+        
         for (size_t i = 0; i < phi->numOperands(); i++) {
             MDefinition *in = phi->getOperand(i);
             if (!in->isPhi() || !in->isUnused() || in->isInWorklist())
