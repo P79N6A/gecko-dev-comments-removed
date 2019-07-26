@@ -16,17 +16,21 @@ let { Services } = Components.utils.import("resource://gre/modules/Services.jsm"
 this.safeErrorString = function safeErrorString(aError) {
   try {
     let errorString = aError.toString();
-    if (typeof errorString === "string") {
+    if (typeof errorString == "string") {
       
       
       try {
         if (aError.stack) {
           let stack = aError.stack.toString();
-          if (typeof stack === "string") {
+          if (typeof stack == "string") {
             errorString += "\nStack: " + stack;
           }
         }
       } catch (ee) { }
+
+      if (typeof aError.lineNumber == "number" && typeof aError.columnNumber == "number") {
+        errorString += ", line: " + aError.lineNumber + ", column: " + aError.columnNumber;
+      }
 
       return errorString;
     }

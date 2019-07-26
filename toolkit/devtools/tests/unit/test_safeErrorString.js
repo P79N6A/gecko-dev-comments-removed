@@ -19,6 +19,9 @@ function test_with_error() {
   
   do_check_true(s.contains("test_with_error"))
   do_check_true(s.contains("test_safeErrorString.js"));
+  
+  do_check_true(s.contains("line"));
+  do_check_true(s.contains("column"));
 }
 
 function test_with_tricky_error() {

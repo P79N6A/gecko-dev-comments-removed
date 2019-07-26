@@ -9,6 +9,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+const { DevToolsUtils } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this,
   "Reflect", "resource://gre/modules/reflect.jsm");
@@ -65,7 +66,7 @@ Parser.prototype = {
         syntaxTrees.push(new SyntaxTree(nodes, aUrl, length));
       } catch (e) {
         this.errors.push(e);
-        log(aUrl, e);
+        DevToolsUtils.reportException(aUrl, e);
       }
     }
     
@@ -79,7 +80,7 @@ Parser.prototype = {
           syntaxTrees.push(new SyntaxTree(nodes, aUrl, length, offset));
         } catch (e) {
           this.errors.push(e);
-          log(aUrl, e);
+          DevToolsUtils.reportException(aUrl, e);
         }
       }
     }
@@ -225,7 +226,7 @@ SyntaxTreesPool.prototype = {
         
         
         
-        log("syntax tree", e);
+        DevToolsUtils.reportException("syntax tree", e);
       }
     }
     this._cache.set(requestId, results);
@@ -2339,28 +2340,6 @@ let SyntaxTreeVisitor = {
       aCallbacks.onLiteral(aNode);
     }
   }
-};
-
-
-
-
-
-
-
-
-
-function log(aStr, aEx) {
-  let msg = "Warning: " + aStr + ", " + aEx.message;
-
-  if ("lineNumber" in aEx && "columnNumber" in aEx) {
-    msg += ", line: " + aEx.lineNumber + ", column: " + aEx.columnNumber;
-  }
-  if ("stack" in aEx) {
-    msg += "\n" + aEx.stack;
-  }
-
-  Cu.reportError(msg);
-  dump(msg + "\n");
 };
 
 XPCOMUtils.defineLazyGetter(Parser, "reflectionAPI", () => Reflect);
