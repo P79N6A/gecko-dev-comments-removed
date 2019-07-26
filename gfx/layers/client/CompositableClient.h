@@ -27,7 +27,6 @@ class ImageBridgeChild;
 class CompositableForwarder;
 class CompositableChild;
 class SurfaceDescriptor;
-class TextureClientData;
 class PCompositableChild;
 
 

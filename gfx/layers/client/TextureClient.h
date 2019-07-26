@@ -96,28 +96,6 @@ public:
 
 
 
-class TextureClientData {
-public:
-  virtual void DeallocateSharedData(ISurfaceAllocator* allocator) = 0;
-  virtual ~TextureClientData() {}
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -352,16 +330,6 @@ protected:
 
 
 
-  virtual TextureClientData* DropTextureData() = 0;
-
-  
-
-
-
-
-
-
-
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
 
   void AddFlags(TextureFlags  aFlags)
@@ -470,8 +438,6 @@ public:
 
   virtual bool IsAllocated() const MOZ_OVERRIDE { return mAllocated; }
 
-  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
-
   virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return true; }
 
   mozilla::ipc::Shmem& GetShmem() { return mShmem; }
@@ -505,8 +471,6 @@ public:
   virtual bool IsAllocated() const MOZ_OVERRIDE { return mBuffer != nullptr; }
 
   virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return true; }
-
-  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
 
 protected:
   uint8_t* mBuffer;
