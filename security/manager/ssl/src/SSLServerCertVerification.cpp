@@ -835,7 +835,8 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
 }
 
 SECStatus
-AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert)
+AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert,
+                uint32_t providerFlags)
 {
   if (cert->serialNumber.data &&
       cert->issuerName &&
@@ -921,37 +922,41 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert)
     }
     
     nsCOMPtr<nsINSSComponent> nssComponent;
-      
-    for (CERTCertListNode *node = CERT_LIST_HEAD(certList);
-         !CERT_LIST_END(node, certList);
-         node = CERT_LIST_NEXT(node)) {
 
-      if (node->cert->slot) {
-        
-        continue;
-      }
+    
+    
+    if (!(providerFlags & nsISocketProvider::NO_PERMANENT_STORAGE)) {
+      for (CERTCertListNode *node = CERT_LIST_HEAD(certList);
+           !CERT_LIST_END(node, certList);
+           node = CERT_LIST_NEXT(node)) {
 
-      if (node->cert->isperm) {
-        
-        continue;
-      }
-        
-      if (node->cert == cert) {
-        
-        
-        continue;
-      }
-
-      
-      char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
-      if (nickname && *nickname) {
-        ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
-        if (slot) {
-          PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
-                          nickname, false);
+        if (node->cert->slot) {
+          
+          continue;
         }
+
+        if (node->cert->isperm) {
+          
+          continue;
+        }
+
+        if (node->cert == cert) {
+          
+          
+          continue;
+        }
+
+        
+        char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
+        if (nickname && *nickname) {
+          ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+          if (slot) {
+            PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
+                            nickname, false);
+          }
+        }
+        PR_FREEIF(nickname);
       }
-      PR_FREEIF(nickname);
     }
 
     
@@ -1043,7 +1048,7 @@ SSLServerCertVerificationJob::Run()
     
     
     PR_SetError(0, 0); 
-    SECStatus rv = AuthCertificate(mInfoObject, mCert);
+    SECStatus rv = AuthCertificate(mInfoObject, mCert, mProviderFlags);
     if (rv == SECSuccess) {
       RefPtr<SSLServerCertVerificationResult> restart(
         new SSLServerCertVerificationResult(mInfoObject, 0));
@@ -1168,7 +1173,7 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   
   
   
-  SECStatus rv = AuthCertificate(socketInfo, serverCert);
+  SECStatus rv = AuthCertificate(socketInfo, serverCert, providerFlags);
   if (rv == SECSuccess) {
     return SECSuccess;
   }
