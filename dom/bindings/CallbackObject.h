@@ -129,7 +129,7 @@ protected:
   public:
     
     
-    CallSetup(JS::Handle<JSObject*> aCallable, ErrorResult& aRv,
+    CallSetup(CallbackObject* aCallback, ErrorResult& aRv,
               ExceptionHandling aExceptionHandling,
               JSCompartment* aCompartment = nullptr);
     ~CallSetup();
