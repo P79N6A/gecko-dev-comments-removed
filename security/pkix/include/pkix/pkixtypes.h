@@ -100,6 +100,11 @@ public:
                                     PRTime time,
                         const SECItem* stapledOCSPresponse) = 0;
 
+  
+  
+  
+  virtual SECStatus IsChainValid(const CERTCertList* certChain) = 0;
+
 protected:
   TrustDomain() { }
 

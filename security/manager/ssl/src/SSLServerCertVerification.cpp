@@ -634,8 +634,9 @@ NSSDetermineCertOverrideErrors(CertVerifier& certVerifier,
   
   
   
-  certVerifier.VerifyCert(cert, stapledOCSPResponse, certificateUsageSSLServer,
-                          now, infoObject, 0, nullptr, nullptr, verify_log);
+  certVerifier.VerifyCert(cert, certificateUsageSSLServer,
+                          now, infoObject, infoObject->GetHostNameRaw(),
+                          0, stapledOCSPResponse, nullptr, nullptr, verify_log);
 
   
   if (CERT_VerifyCertName(cert, infoObject->GetHostNameRaw()) != SECSuccess) {

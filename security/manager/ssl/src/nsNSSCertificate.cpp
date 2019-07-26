@@ -829,10 +829,12 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
 
   
   
-  certVerifier->VerifyCert(mCert.get(), nullptr,
+  certVerifier->VerifyCert(mCert.get(),
                            certificateUsageSSLServer, PR_Now(),
                            nullptr, 
+                           nullptr, 
                            CertVerifier::FLAG_LOCAL_ONLY,
+                           nullptr, 
                            &nssChain);
   
   
@@ -851,10 +853,12 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
            ("pipnss: PKIX attempting chain(%d) for '%s'\n",
             usage, mCert->nickname));
-    certVerifier->VerifyCert(mCert.get(), nullptr,
+    certVerifier->VerifyCert(mCert.get(),
                              usage, PR_Now(),
                              nullptr, 
+                             nullptr, 
                              CertVerifier::FLAG_LOCAL_ONLY,
+                             nullptr, 
                              &nssChain);
   }
 
@@ -1467,10 +1471,11 @@ nsNSSCertificate::hasValidEVOidTag(SECOidTag& resultOidTag, bool& validEV)
 
   uint32_t flags = mozilla::psm::CertVerifier::FLAG_LOCAL_ONLY |
     mozilla::psm::CertVerifier::FLAG_MUST_BE_EV;
-  SECStatus rv = certVerifier->VerifyCert(mCert.get(), nullptr,
+  SECStatus rv = certVerifier->VerifyCert(mCert.get(),
     certificateUsageSSLServer, PR_Now(),
     nullptr ,
-    flags, nullptr, &resultOidTag);
+    nullptr ,
+    flags, nullptr  , nullptr, &resultOidTag);
 
   if (rv != SECSuccess) {
     resultOidTag = SEC_OID_UNKNOWN;

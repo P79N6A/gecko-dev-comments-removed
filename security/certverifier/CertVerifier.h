@@ -12,6 +12,8 @@
 
 namespace mozilla { namespace psm {
 
+struct ChainValidationCallbackState;
+
 class CertVerifier
 {
 public:
@@ -24,11 +26,12 @@ public:
   
   
   SECStatus VerifyCert(CERTCertificate* cert,
-           const SECItem* stapledOCSPResponse,
                        const SECCertificateUsage usage,
                        const PRTime time,
                        void* pinArg,
+                       const char* hostname,
                        const Flags flags = 0,
+        const SECItem* stapledOCSPResponse = nullptr,
        mozilla::pkix::ScopedCERTCertList* validationChain = nullptr,
        SECOidTag* evOidPolicy = nullptr ,
        CERTVerifyLog* verifyLog = nullptr);
@@ -52,6 +55,12 @@ public:
     mozillapkix = 2
   };
 
+  enum pinning_enforcement_config {
+    pinningDisabled = 0,
+    pinningAllowUserCAMITM = 1,
+    pinningStrict = 2
+  };
+
   enum missing_cert_download_config { missing_cert_download_off = 0, missing_cert_download_on };
   enum crl_download_config { crl_local_only = 0, crl_download_allowed };
   enum ocsp_download_config { ocsp_off = 0, ocsp_on };
@@ -65,7 +74,8 @@ public:
                missing_cert_download_config ac, crl_download_config cdc,
 #endif
                ocsp_download_config odc, ocsp_strict_config osc,
-               ocsp_get_config ogc);
+               ocsp_get_config ogc,
+               pinning_enforcement_config pinningEnforcementLevel);
   ~CertVerifier();
 
   void ClearOCSPCache() { mOCSPCache.Clear(); }
@@ -78,6 +88,7 @@ public:
   const bool mOCSPDownloadEnabled;
   const bool mOCSPStrict;
   const bool mOCSPGETEnabled;
+  const pinning_enforcement_config mPinningEnforcementLevel;
 
 private:
   SECStatus MozillaPKIXVerifyCert(CERTCertificate* cert,
@@ -85,6 +96,7 @@ private:
       const PRTime time,
       void* pinArg,
       const Flags flags,
+      ChainValidationCallbackState* callbackState,
        const SECItem* stapledOCSPResponse,
        mozilla::pkix::ScopedCERTCertList* validationChain,
        SECOidTag* evOidPolicy);

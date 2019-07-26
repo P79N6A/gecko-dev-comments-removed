@@ -35,6 +35,8 @@ public:
                              CERTCertificate* issuerCertToDup,
                             PRTime time,
                              const SECItem* stapledOCSPresponse);
+  SECStatus IsChainValid(const CERTCertList* certChain) { return SECSuccess; }
+
 private:
   void* mPinArg; 
   mozilla::pkix::ScopedCERTCertificate mTrustedRoot;
