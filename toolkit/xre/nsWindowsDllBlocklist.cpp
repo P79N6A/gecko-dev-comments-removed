@@ -122,6 +122,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
 
+  
+  { "mfflac.dll", ALL_VERSIONS },
+
   { NULL, 0 }
 };
 
