@@ -10,6 +10,11 @@ prettyprinters.clear_module_printers(__name__)
 
 class JSObjectTypeCache(object):
     def __init__(self, value, cache):
+        
+        
+        
+        
+        gdb.lookup_type('js::BaseShape')
         baseshape_flags = gdb.lookup_type('js::BaseShape::Flag')
         self.flag_DELEGATE = prettyprinters.enum_value(baseshape_flags, 'js::BaseShape::DELEGATE')
         self.func_ptr_type = gdb.lookup_type('JSFunction').pointer()
