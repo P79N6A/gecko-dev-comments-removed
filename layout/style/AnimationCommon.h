@@ -223,6 +223,21 @@ struct AnimationProperty
 
 
 
+
+
+
+struct AnimationTiming
+{
+  mozilla::TimeDuration mIterationDuration;
+  float mIterationCount; 
+  uint8_t mDirection;
+  uint8_t mFillMode;
+};
+
+
+
+
+
 struct ElementAnimation
 {
   ElementAnimation()
@@ -241,18 +256,16 @@ struct ElementAnimation
   }
 
   nsString mName; 
-  float mIterationCount; 
-  uint8_t mDirection;
-  uint8_t mFillMode;
+  AnimationTiming mTiming;
   uint8_t mPlayState;
 
   bool FillsForwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
+    return mTiming.mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
+           mTiming.mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
   }
   bool FillsBackwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
+    return mTiming.mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
+           mTiming.mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
   }
 
   bool IsPaused() const {
@@ -276,7 +289,6 @@ struct ElementAnimation
   mozilla::TimeStamp mStartTime;
   mozilla::TimeStamp mPauseStart;
   mozilla::TimeDuration mDelay;
-  mozilla::TimeDuration mIterationDuration;
   bool mIsRunningOnCompositor;
 
   enum {

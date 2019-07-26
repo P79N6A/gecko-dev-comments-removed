@@ -171,7 +171,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       ElementAnimation* anim = mAnimations[animIdx];
 
       if (anim->mProperties.IsEmpty() ||
-          anim->mIterationDuration.ToMilliseconds() <= 0.0) {
+          anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
         continue;
       }
 
@@ -179,8 +179,9 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       double positionInIteration =
         GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                               anim->mIterationDuration, anim->mIterationCount,
-                               anim->mDirection,
+                               anim->mTiming.mIterationDuration,
+                               anim->mTiming.mIterationCount,
+                               anim->mTiming.mDirection,
                                NS_STYLE_ANIMATION_FILL_MODE_BOTH);
 
       
@@ -224,7 +225,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       ElementAnimation* anim = mAnimations[animIdx];
 
       if (anim->mProperties.IsEmpty() ||
-          anim->mIterationDuration.ToMilliseconds() <= 0.0) {
+          anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
         
         continue;
       }
@@ -233,8 +234,10 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       double positionInIteration =
         GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                               anim->mIterationDuration, anim->mIterationCount,
-                               anim->mDirection, anim->mFillMode);
+                               anim->mTiming.mIterationDuration,
+                               anim->mTiming.mIterationCount,
+                               anim->mTiming.mDirection,
+                               anim->mTiming.mFillMode);
       
       
       
@@ -335,14 +338,16 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
     
     
     if (anim->mProperties.IsEmpty() ||
-        anim->mIterationDuration.ToMilliseconds() <= 0.0) {
+        anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
       
       continue;
     }
 
     GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                           anim->mIterationDuration, anim->mIterationCount,
-                           anim->mDirection, anim->mFillMode,
+                           anim->mTiming.mIterationDuration,
+                           anim->mTiming.mIterationCount,
+                           anim->mTiming.mDirection,
+                           anim->mTiming.mFillMode,
                            anim, this, &aEventsToDispatch);
   }
 }
@@ -754,9 +759,12 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       *aAnimations.AppendElement(new ElementAnimation());
 
     dest->mName = src.GetName();
-    dest->mIterationCount = src.GetIterationCount();
-    dest->mDirection = src.GetDirection();
-    dest->mFillMode = src.GetFillMode();
+
+    dest->mTiming.mIterationDuration =
+      TimeDuration::FromMilliseconds(src.GetDuration());
+    dest->mTiming.mIterationCount = src.GetIterationCount();
+    dest->mTiming.mDirection = src.GetDirection();
+    dest->mTiming.mFillMode = src.GetFillMode();
     dest->mPlayState = src.GetPlayState();
 
     dest->mDelay = TimeDuration::FromMilliseconds(src.GetDelay());
@@ -766,9 +774,6 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     } else {
       dest->mPauseStart = TimeStamp();
     }
-
-    dest->mIterationDuration =
-      TimeDuration::FromMilliseconds(src.GetDuration());
 
     nsCSSKeyframesRule* rule =
       mPresContext->StyleSet()->KeyframesRuleForName(mPresContext,
