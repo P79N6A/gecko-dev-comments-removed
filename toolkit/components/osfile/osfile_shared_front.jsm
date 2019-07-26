@@ -340,6 +340,8 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
+
+
 AbstractFile.writeAtomic =
      function writeAtomic(path, buffer, options = {}) {
 
@@ -358,35 +360,36 @@ AbstractFile.writeAtomic =
     buffer = new TextEncoder(encoding).encode(buffer);
   }
 
-  if (!options.flush) {
+  let bytesWritten = 0;
+
+  if (!options.tmpPath) {
     
     let dest = OS.File.open(path, {write: true, truncate: true});
     try {
-      return dest.write(buffer, options);
+      bytesWritten = dest.write(buffer, options);
+      if (options.flush) {
+        dest.flush();
+      }
     } finally {
       dest.close();
     }
+    return bytesWritten;
   }
 
-  let tmpPath = options.tmpPath;
-  if (!tmpPath) {
-    throw new TypeError("Expected option tmpPath");
-  }
-
-
-  let tmpFile = OS.File.open(tmpPath, {write: true, truncate: true});
-  let bytesWritten;
+  let tmpFile = OS.File.open(options.tmpPath, {write: true, truncate: true});
   try {
     bytesWritten = tmpFile.write(buffer, options);
-    tmpFile.flush();
+    if (options.flush) {
+      tmpFile.flush();
+    }
   } catch (x) {
-    OS.File.remove(tmpPath);
+    OS.File.remove(options.tmpPath);
     throw x;
   } finally {
     tmpFile.close();
   }
 
-  OS.File.move(tmpPath, path, {noCopy: true});
+  OS.File.move(options.tmpPath, path, {noCopy: true});
   return bytesWritten;
 };
 
