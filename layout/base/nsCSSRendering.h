@@ -400,6 +400,12 @@ struct nsCSSRendering {
 
 
 
+  static bool AreAllBackgroundImagesDecodedForFrame(nsIFrame* aFrame);
+
+  
+
+
+
   static void BeginFrameTreesLocked();
   
 
