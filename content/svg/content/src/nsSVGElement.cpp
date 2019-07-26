@@ -1123,7 +1123,7 @@ NS_IMETHODIMP nsSVGElement::SetId(const nsAString & aId)
 
 
 NS_IMETHODIMP
-nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
+nsSVGElement::GetOwnerSVGElement(nsIDOMSVGElement * *aOwnerSVGElement)
 {
   ErrorResult rv;
   NS_IF_ADDREF(*aOwnerSVGElement = GetOwnerSVGElement(rv));
