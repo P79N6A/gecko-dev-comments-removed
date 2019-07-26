@@ -150,6 +150,18 @@
 
 
 
+
+#ifdef MOZ_B2G
+    
+#   define MOZ_MALLOC_OPTIONS "ff"
+#else
+#   define MOZ_MALLOC_OPTIONS ""
+#endif
+
+
+
+
+
 #define MALLOC_STATS
 
 #ifndef MALLOC_PRODUCTION
@@ -1277,7 +1289,7 @@ static chunk_stats_t	stats_chunks;
 
 
 
-const char	*_malloc_options;
+const char	*_malloc_options = MOZ_MALLOC_OPTIONS;
 
 #ifndef MALLOC_PRODUCTION
 static bool	opt_abort = true;
