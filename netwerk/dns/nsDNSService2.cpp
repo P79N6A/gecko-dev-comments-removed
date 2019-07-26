@@ -695,15 +695,6 @@ nsDNSService::Resolve(const nsACString &hostname,
                       uint32_t          flags,
                       nsIDNSRecord    **result)
 {
-    NS_WARNING("Do not use synchronous DNS resolution! This API may be removed soon.");
-
-    
-    
-    if (NS_IsMainThread()) {
-        NS_ERROR("Synchronous DNS resolve failing - not allowed on the main thread!");
-        return NS_ERROR_FAILURE;
-    }
-
     
     
     nsRefPtr<nsHostResolver> res;
