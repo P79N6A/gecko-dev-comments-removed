@@ -1283,7 +1283,12 @@ void MediaDecoder::PlaybackPositionChanged()
         
         
         
-        mCurrentTime = mDecoderStateMachine->GetCurrentTime();
+        if (GetDecodedStream()) {
+          mCurrentTime = mDecoderStateMachine->GetCurrentTimeViaMediaStreamSync()/
+            static_cast<double>(USECS_PER_S);
+        } else {
+          mCurrentTime = mDecoderStateMachine->GetCurrentTime();
+        }
       }
       mDecoderStateMachine->ClearPositionChangeFlag();
     }

@@ -334,6 +334,7 @@ public:
   
   
   void SetSyncPointForMediaStream();
+  int64_t GetCurrentTimeViaMediaStreamSync();
 
   
   
