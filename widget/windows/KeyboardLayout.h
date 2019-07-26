@@ -328,12 +328,6 @@ private:
 
   bool IsIMEDoingKakuteiUndo() const;
 
-  
-
-
-
-  bool RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg) const;
-
   bool IsKeyDownMessage() const
   {
     return (mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
@@ -374,9 +368,8 @@ private:
   {
     return (aMessage == WM_SYSCHAR || aMessage == WM_SYSDEADCHAR);
   }
-  bool IsFollowedByCharMessage() const;
   bool IsFollowedByDeadCharMessage() const;
-  MSG RemoveFollowingCharMessage() const;
+  bool GetFollowingCharMessage(MSG& aCharMsg) const;
 
   
 
@@ -426,7 +419,7 @@ private:
 
 
 
-  bool DispatchKeyPressEventForFollowingCharMessage() const;
+  bool DispatchKeyPressEventForFollowingCharMessage(const MSG& aCharMsg) const;
 
   
 
