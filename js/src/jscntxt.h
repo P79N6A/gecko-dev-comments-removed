@@ -702,13 +702,21 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                gcSweepOnBackgroundThread;
 
     
+    bool                gcFoundBlackGrayEdges;
+
+    
     JSCompartment       *gcSweepingCompartments;
+
+    
+    unsigned            gcCompartmentGroupIndex;
 
     
 
 
+    JSCompartment       *gcRemainingCompartmentGroups;
+    JSCompartment       *gcCompartmentGroup;
     int                 gcSweepPhase;
-    ptrdiff_t           gcSweepCompartmentIndex;
+    JSCompartment       *gcSweepCompartment;
     int                 gcSweepKindIndex;
 
     

@@ -206,7 +206,24 @@ Shape::finalize(FreeOp *fop)
 
 
 
-        if (parent && parent->isMarked())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (parent && parent->isMarked() && parent->compartment() == compartment())
             parent->removeChild(this);
 
         if (kids.isHash())

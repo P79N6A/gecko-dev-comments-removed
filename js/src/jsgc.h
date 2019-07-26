@@ -48,7 +48,6 @@ enum State {
     MARK_ROOTS,
     MARK,
     SWEEP,
-    SWEEP_END,
     INVALID
 };
 
@@ -948,11 +947,16 @@ struct GCMarker : public JSTracer {
 
 
 
-
     void setMarkColorGray() {
         JS_ASSERT(isDrained());
         JS_ASSERT(color == gc::BLACK);
         color = gc::GRAY;
+    }
+
+    void setMarkColorBlack() {
+        JS_ASSERT(isDrained());
+        JS_ASSERT(color == gc::GRAY);
+        color = gc::BLACK;
     }
 
     inline void delayMarkingArena(gc::ArenaHeader *aheader);

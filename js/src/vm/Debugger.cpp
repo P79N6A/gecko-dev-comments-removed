@@ -1448,7 +1448,7 @@ Debugger::markAllIteratively(GCMarker *trc)
 
 
                 HeapPtrObject &dbgobj = dbg->toJSObjectRef();
-                if (!dbgobj->compartment()->isCollecting())
+                if (!dbgobj->compartment()->isGCMarking())
                     continue;
 
                 bool dbgMarked = IsObjectMarked(&dbgobj);
