@@ -15,6 +15,7 @@
 #include "nsICacheStorage.h"
 #include "nsISerializable.h"
 #include "nsIStreamTransportService.h"
+#include "nsISizeOf.h"
 
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
@@ -1543,6 +1544,41 @@ NS_IMETHODIMP CacheOutputCloseListener::Run()
 {
   mEntry->OnOutputClosed();
   return NS_OK;
+}
+
+
+
+size_t CacheEntry::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  size_t n = 0;
+  nsCOMPtr<nsISizeOf> sizeOf;
+
+  n += mCallbacks.SizeOfExcludingThis(mallocSizeOf);
+  if (mFile) {
+    n += mFile->SizeOfIncludingThis(mallocSizeOf);
+  }
+
+  sizeOf = do_QueryInterface(mURI);
+  if (sizeOf) {
+    n += sizeOf->SizeOfIncludingThis(mallocSizeOf);
+  }
+
+  n += mEnhanceID.SizeOfExcludingThisIfUnshared(mallocSizeOf);
+  n += mStorageID.SizeOfExcludingThisIfUnshared(mallocSizeOf);
+
+  
+  
+  
+  
+  
+  
+
+  return n;
+}
+
+size_t CacheEntry::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
 }
 
 } 

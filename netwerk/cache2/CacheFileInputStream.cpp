@@ -630,5 +630,17 @@ CacheFileInputStream::MaybeNotifyListener()
   }
 }
 
+
+
+size_t
+CacheFileInputStream::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  
+  
+  
+  
+  return mallocSizeOf(this);
+}
+
 } 
 } 

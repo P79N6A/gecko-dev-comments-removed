@@ -933,7 +933,7 @@ CacheFile::Unlock()
 }
 
 void
-CacheFile::AssertOwnsLock()
+CacheFile::AssertOwnsLock() const
 {
   mLock.AssertCurrentThreadOwns();
 }
@@ -1576,6 +1576,58 @@ CacheFile::InitIndexEntry()
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+
+
+namespace { 
+
+size_t
+CollectChunkSize(uint32_t const & aIdx,
+                 nsRefPtr<mozilla::net::CacheFileChunk> const & aChunk,
+                 mozilla::MallocSizeOf mallocSizeOf, void* aClosure)
+{
+  return aChunk->SizeOfIncludingThis(mallocSizeOf);
+}
+
+} 
+
+size_t
+CacheFile::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  CacheFileAutoLock lock(const_cast<CacheFile*>(this));
+
+  size_t n = 0;
+  n += mChunks.SizeOfExcludingThis(CollectChunkSize, mallocSizeOf);
+  n += mCachedChunks.SizeOfExcludingThis(CollectChunkSize, mallocSizeOf);
+  if (mMetadata) {
+    n += mMetadata->SizeOfIncludingThis(mallocSizeOf);
+  }
+
+  
+  n += mInputs.SizeOfExcludingThis(mallocSizeOf);
+  for (uint32_t i = 0; i < mInputs.Length(); ++i) {
+    n += mInputs[i]->SizeOfIncludingThis(mallocSizeOf);
+  }
+
+  
+  if (mOutput) {
+    n += mOutput->SizeOfIncludingThis(mallocSizeOf);
+  }
+
+  
+  n += mChunkListeners.SizeOfExcludingThis(nullptr, mallocSizeOf);
+  n += mObjsToRelease.SizeOfExcludingThis(mallocSizeOf);
+
+  
+
+  return n;
+}
+
+size_t
+CacheFile::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
 }
 
 } 
