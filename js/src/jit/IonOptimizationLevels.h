@@ -79,6 +79,9 @@ class OptimizationInfo
     bool rangeAnalysis_;
 
     
+    bool autoTruncate_;
+
+    
     IonRegisterAllocator registerAllocator_;
 
     
@@ -141,6 +144,10 @@ class OptimizationInfo
 
     bool rangeAnalysisEnabled() const {
         return rangeAnalysis_ && !js_JitOptions.disableRangeAnalysis;
+    }
+
+    bool autoTruncateEnabled() const {
+        return autoTruncate_ && rangeAnalysisEnabled();
     }
 
     bool eaaEnabled() const {

@@ -2530,6 +2530,12 @@ RangeAnalysis::truncate()
 {
     IonSpew(IonSpew_Range, "Do range-base truncation (backward loop)");
 
+    
+    
+    
+    
+    MOZ_ASSERT(!mir->compilingAsmJS());
+
     Vector<MInstruction *, 16, SystemAllocPolicy> worklist;
     Vector<MBinaryBitwiseInstruction *, 16, SystemAllocPolicy> bitops;
 
