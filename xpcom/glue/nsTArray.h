@@ -1349,7 +1349,9 @@ private:
   
   union {
     char mAutoBuf[sizeof(nsTArrayHeader) + N * sizeof(elem_type)];
-    mozilla::AlignedElem<PR_MAX(MOZ_ALIGNOF(Header), MOZ_ALIGNOF(elem_type))> mAlign;
+    
+    mozilla::AlignedElem<(MOZ_ALIGNOF(Header) > MOZ_ALIGNOF(elem_type))
+                         ? MOZ_ALIGNOF(Header) : MOZ_ALIGNOF(elem_type)> mAlign;
   };
 };
 
