@@ -3494,17 +3494,16 @@ function OpenBrowserWindow(options)
   var wintype = document.documentElement.getAttribute('windowtype');
 
   var extraFeatures = "";
-  var forcePrivate = false;
 #ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-  forcePrivate = typeof options == "object" && "private" in options && options.private;
+  if (typeof options == "object" && options.private) {
 #else
-  forcePrivate = gPrivateBrowsingUI.privateBrowsingEnabled;
+  if (gPrivateBrowsingUI.privateBrowsingEnabled) {
 #endif
-
-  if (forcePrivate) {
     extraFeatures = ",private";
     
     defaultArgs = "about:privatebrowsing";
+  } else {
+    extraFeatures = ",non-private";
   }
 
   
