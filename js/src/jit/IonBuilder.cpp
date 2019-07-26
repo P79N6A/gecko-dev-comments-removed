@@ -1017,6 +1017,13 @@ IonBuilder::maybeAddOsrTypeBarriers()
         headerPhi++;
 
     for (uint32_t i = info().startArgSlot(); i < osrBlock->stackDepth(); i++, headerPhi++) {
+
+        
+        
+        
+        if (info().isSlotAliased(i))
+            continue;
+
         MInstruction *def = osrBlock->getSlot(i)->toOsrValue();
 
         JS_ASSERT(headerPhi->slot() == i);
@@ -5799,6 +5806,11 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
         MDefinition *def = osrBlock->getSlot(i);
         JS_ASSERT(def->type() == MIRType_Value);
 
+        
+        
+        if (info().isSlotAliased(i))
+            continue;
+
         def->setResultType(existing->type());
         def->setResultTypeSet(existing->resultTypeSet());
     }
@@ -5833,37 +5845,40 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc, bool 
 
         
         for (uint32_t i = info().startArgSlot(); i < block->stackDepth(); i++) {
+
+            
+            
+            if (info().isSlotAliased(i))
+                continue;
+
+            
+            
+            uint32_t var = i - info().firstLocalSlot();
+            if (var >= info().nlocals())
+                continue;
+
             MPhi *phi = block->getSlot(i)->toPhi();
 
-            bool haveValue = false;
+            
             Value existingValue;
-            if (info().fun() && i == info().thisSlot()) {
-                haveValue = true;
+            uint32_t arg = i - info().firstArgSlot();
+            if (info().fun() && i == info().thisSlot())
                 existingValue = baselineFrame_->thisValue();
-            } else {
-                uint32_t arg = i - info().firstArgSlot();
-                uint32_t var = i - info().firstLocalSlot();
-                if (arg < info().nargs()) {
-                    if (!script()->formalIsAliased(arg)) {
-                        haveValue = true;
-                        existingValue = baselineFrame_->unaliasedFormal(arg);
-                    }
-                } else if (var < info().nlocals()) {
-                    if (!script()->varIsAliased(var)) {
-                        haveValue = true;
-                        existingValue = baselineFrame_->unaliasedVar(var);
-                    }
-                }
-            }
-            if (haveValue) {
-                MIRType type = existingValue.isDouble()
-                             ? MIRType_Double
-                             : MIRTypeFromValueType(existingValue.extractNonDoubleType());
-                types::Type ntype = types::GetValueType(existingValue);
-                types::StackTypeSet *typeSet =
-                    GetIonContext()->temp->lifoAlloc()->new_<types::StackTypeSet>(ntype);
-                phi->addBackedgeType(type, typeSet);
-            }
+            else if (arg < info().nargs())
+                existingValue = baselineFrame_->unaliasedFormal(arg);
+            else
+                existingValue = baselineFrame_->unaliasedVar(var);
+
+            
+            MIRType type = existingValue.isDouble()
+                         ? MIRType_Double
+                         : MIRTypeFromValueType(existingValue.extractNonDoubleType());
+            types::Type ntype = types::GetValueType(existingValue);
+            types::StackTypeSet *typeSet =
+                GetIonContext()->temp->lifoAlloc()->new_<types::StackTypeSet>(ntype);
+            if (!typeSet)
+                return NULL;
+            phi->addBackedgeType(type, typeSet);
         }
     }
 
