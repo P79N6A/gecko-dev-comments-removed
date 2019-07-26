@@ -84,6 +84,22 @@ CompartmentStats::GCHeapThingsSize()
 }
 
 static void
+DecommittedArenasChunkCallback(JSRuntime *rt, void *data, gc::Chunk *chunk)
+{
+    
+    if (chunk->decommittedArenas.isAllClear())
+        return;
+
+    size_t n = 0;
+    for (size_t i = 0; i < gc::ArenasPerChunk; i++) {
+        if (chunk->decommittedArenas.get(i))
+            n += gc::ArenaSize;
+    }
+    JS_ASSERT(n > 0);
+    *static_cast<size_t *>(data) += n;
+}
+
+static void
 StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
 {
     
@@ -120,15 +136,6 @@ StatsZoneCallback(JSRuntime *rt, void *data, Zone *zone)
 
     zone->sizeOfIncludingThis(rtStats->mallocSizeOf_,
                               &zStats.typePool);
-}
-
-static void
-StatsChunkCallback(JSRuntime *rt, void *data, gc::Chunk *chunk)
-{
-    RuntimeStats *rtStats = static_cast<RuntimeStats *>(data);
-    for (size_t i = 0; i < gc::ArenasPerChunk; i++)
-        if (chunk->decommittedArenas.get(i))
-            rtStats->gcHeapDecommittedArenas += gc::ArenaSize;
 }
 
 static void
@@ -300,8 +307,8 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
     rtStats->gcHeapUnusedChunks =
         size_t(JS_GetGCParameter(rt, JSGC_UNUSED_CHUNKS)) * gc::ChunkSize;
 
-    
-    IterateChunks(rt, rtStats, StatsChunkCallback);
+    IterateChunks(rt, &rtStats->gcHeapDecommittedArenas,
+                  DecommittedArenasChunkCallback);
 
     
     IteratorClosure closure(rtStats, opv);
@@ -366,6 +373,11 @@ JS::GetExplicitNonHeapForRuntime(JSRuntime *rt, JSMallocSizeOfFun mallocSizeOf)
 {
     
     size_t n = size_t(JS_GetGCParameter(rt, JSGC_TOTAL_CHUNKS)) * gc::ChunkSize;
+
+    
+    size_t decommittedArenas = 0;
+    IterateChunks(rt, &decommittedArenas, DecommittedArenasChunkCallback);
+    n -= decommittedArenas;
 
     
     
