@@ -367,6 +367,19 @@ public:
 
   static bool IsHTMLVoid(nsIAtom* aLocalName);
 
+  enum ParseHTMLIntegerResultFlags {
+    eParseHTMLInteger_NoFlags               = 0,
+    eParseHTMLInteger_IsPercent             = 1 << 0,
+    eParseHTMLInteger_NonStandard           = 1 << 1,
+    eParseHTMLInteger_DidNotConsumeAllInput = 1 << 2,
+    
+    eParseHTMLInteger_Error                 = 1 << 3,
+    eParseHTMLInteger_ErrorNoValue          = 1 << 4,
+    eParseHTMLInteger_ErrorOverflow         = 1 << 5
+  };
+  static int32_t ParseHTMLInteger(const nsAString& aValue,
+                                  ParseHTMLIntegerResultFlags *aResult);
+
   
 
 

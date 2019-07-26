@@ -427,13 +427,6 @@ private:
     GetStringBuffer(const nsAString& aValue) const;
   
   
-  int32_t StringToInteger(const nsAString& aValue,
-                          bool* aStrict,
-                          nsresult* aErrorCode,
-                          bool aCanBePercent = false,
-                          bool* aIsPercent = nullptr) const;
-  
-  
   int32_t EnumTableEntryToValue(const EnumTable* aEnumTable,
                                 const EnumTable* aTableEntry);  
 
