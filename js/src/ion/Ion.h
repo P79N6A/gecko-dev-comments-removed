@@ -239,7 +239,7 @@ IonExecStatus Cannon(JSContext *cx, StackFrame *fp);
 IonExecStatus SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc);
 
 
-IonExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args);
+IonExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgsList &args);
 
 
 void Invalidate(types::TypeCompartment &types, FreeOp *fop,
