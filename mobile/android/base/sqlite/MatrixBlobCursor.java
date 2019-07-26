@@ -17,6 +17,8 @@
 
 package org.mozilla.gecko.sqlite;
 
+import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
+
 import android.database.AbstractCursor;
 import android.database.CursorIndexOutOfBoundsException;
 
@@ -50,6 +52,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
 
 
+    @WrapElementForJNI
     public MatrixBlobCursor(String[] columnNames, int initialCapacity) {
         this.columnNames = columnNames;
         this.columnCount = columnNames.length;
@@ -67,6 +70,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
 
 
+    @WrapElementForJNI
     public MatrixBlobCursor(String[] columnNames) {
         this(columnNames, 16);
     }
@@ -112,6 +116,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
 
 
+    @WrapElementForJNI
     public void addRow(Object[] columnValues) {
         if (columnValues.length != columnCount) {
             throw new IllegalArgumentException("columnNames.length = "
@@ -133,6 +138,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
 
 
+    @WrapElementForJNI
     public void addRow(Iterable<?> columnValues) {
         int start = rowCount * columnCount;
         int end = start + columnCount;
@@ -165,6 +171,7 @@ public class MatrixBlobCursor extends AbstractCursor {
     }
 
     
+    @WrapElementForJNI
     private void addRow(ArrayList<?> columnValues, int start) {
         int size = columnValues.size();
         if (size != columnCount) {
