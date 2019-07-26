@@ -28,7 +28,7 @@ public:
   NS_FORWARD_TO_NSDOMUIEVENT
 
   virtual nsresult InitFromCtor(const nsAString& aType,
-                                JSContext* aCx, jsval* aVal);
+                                JSContext* aCx, JS::Value* aVal);
 protected:
   
   virtual nsresult Which(uint32_t* aWhich);
