@@ -352,6 +352,22 @@ class RegisterAllocator
         }
         return i;
     }
+
+    CodePosition minimalDefEnd(LInstruction *ins) {
+        
+        
+        
+        
+        
+        while (true) {
+            LInstruction *next = insData[outputOf(ins).next()].ins();
+            if (!next->isNop() && !next->isOsiPoint())
+                break;
+            ins = next;
+        }
+
+        return outputOf(ins);
+    }
 };
 
 static inline AnyRegister

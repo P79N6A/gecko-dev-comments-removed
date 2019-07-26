@@ -1330,23 +1330,6 @@ BacktrackingAllocator::computePriority(const VirtualRegisterGroup *group)
     return priority;
 }
 
-CodePosition
-BacktrackingAllocator::minimalDefEnd(LInstruction *ins)
-{
-    
-    
-    
-    
-    
-    while (true) {
-        LInstruction *next = insData[outputOf(ins).next()].ins();
-        if (!next->isNop() && !next->isOsiPoint())
-            break;
-        ins = next;
-    }
-    return outputOf(ins);
-}
-
 bool
 BacktrackingAllocator::minimalDef(const LiveInterval *interval, LInstruction *ins)
 {
