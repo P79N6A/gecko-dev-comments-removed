@@ -28,12 +28,13 @@ this.RecentWindow = {
   getMostRecentBrowserWindow: function RW_getMostRecentBrowserWindow(aOptions) {
     let checkPrivacy = typeof aOptions == "object" &&
                        "private" in aOptions;
+    let wantPrivate = checkPrivacy && aOptions.private;
 
     function isSuitableBrowserWindow(win) {
       return (!win.closed &&
               win.toolbar.visible &&
               (!checkPrivacy ||
-               PrivateBrowsingUtils.isWindowPrivate(win) == aOptions.private));
+               PrivateBrowsingUtils.isWindowPrivate(win) == wantPrivate));
     }
 
 #ifdef BROKEN_WM_Z_ORDER
