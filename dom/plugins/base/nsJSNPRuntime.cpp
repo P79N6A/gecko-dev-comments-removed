@@ -823,7 +823,7 @@ nsJSObjWrapper::NP_RemoveProperty(NPObject *npobj, NPIdentifier id)
 
   NS_ASSERTION(NPIdentifierIsInt(id) || NPIdentifierIsString(id),
                "id must be either string or int!\n");
-  ok = ::JS_DeletePropertyById2(cx, npjsobj->mJSObj, NPIdentifierToJSId(id), deleted.address());
+  ok = ::JS_DeletePropertyById2(cx, npjsobj->mJSObj, NPIdentifierToJSId(id), &deleted);
   if (ok && deleted == JSVAL_TRUE) {
     
     
