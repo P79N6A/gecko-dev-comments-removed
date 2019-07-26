@@ -56,13 +56,30 @@ SECItem* DoOCSPRequest(PLArenaPool* arena, const char* url,
     PR_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION, 0);
     return nullptr;
   }
+  if (schemeLen < 0 || authorityLen < 0) {
+    PR_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION, 0);
+    return nullptr;
+  }
+  nsAutoCString scheme(url + schemePos, schemeLen);
+  if (!scheme.LowerCaseEqualsLiteral("http")) {
+    
+    PR_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION, 0);
+    return nullptr;
+  }
+
   uint32_t hostnamePos;
   int32_t hostnameLen;
   int32_t port;
+  
+  
   rv = urlParser->ParseAuthority(url + authorityPos, authorityLen,
                                  nullptr, nullptr, nullptr, nullptr,
                                  &hostnamePos, &hostnameLen, &port);
   if (NS_FAILED(rv)) {
+    PR_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION, 0);
+    return nullptr;
+  }
+  if (hostnameLen < 0) {
     PR_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION, 0);
     return nullptr;
   }
@@ -80,7 +97,12 @@ SECItem* DoOCSPRequest(PLArenaPool* arena, const char* url,
 
   ScopedHTTPServerSession serverSession(
     reinterpret_cast<nsNSSHttpServerSession*>(serverSessionPtr));
-  nsAutoCString path(url + pathPos, pathLen);
+  nsAutoCString path;
+  if (pathLen > 0) {
+    path.Assign(url + pathPos, pathLen);
+  } else {
+    path.Assign("/");
+  }
   SEC_HTTP_REQUEST_SESSION requestSessionPtr;
   if (nsNSSHttpInterface::createFcn(serverSession.get(), "http",
                                     path.BeginReading(), "POST",
