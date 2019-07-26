@@ -136,7 +136,7 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
   }
 
   
-  nsIFrame* box = body->GetChildBox();
+  nsIFrame* box = nsBox::GetChildBox(body);
 
   
   nscoord rowHeight = body->GetRowHeightAppUnits();
@@ -185,7 +185,7 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
     yOffset += size;
     availableHeight -= size;
     
-    box = box->GetNextBox();
+    box = nsBox::GetNextBox(box);
   }
   
   

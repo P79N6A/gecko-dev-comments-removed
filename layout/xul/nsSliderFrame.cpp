@@ -303,7 +303,7 @@ nsSliderFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                            const nsDisplayListSet& aLists)
 {
   
-  nsIFrame* thumb = GetChildBox();
+  nsIFrame* thumb = nsBox::GetChildBox(this);
 
   if (thumb) {
     nsRect thumbRect(thumb->GetRect());
@@ -325,7 +325,7 @@ NS_IMETHODIMP
 nsSliderFrame::DoLayout(nsBoxLayoutState& aState)
 {
   
-  nsIFrame* thumbBox = GetChildBox();
+  nsIFrame* thumbBox = nsBox::GetChildBox(this);
 
   if (!thumbBox) {
     SyncLayout(aState);

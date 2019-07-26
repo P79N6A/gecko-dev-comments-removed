@@ -2658,20 +2658,6 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
                          bool aRemoveOverflowAreas = false) = 0;
   NS_HIDDEN_(nsresult) Layout(nsBoxLayoutState& aBoxLayoutState);
-  nsIFrame* GetChildBox() const
-  {
-    
-    
-    return IsBoxFrame() ? GetFirstPrincipalChild() : nullptr;
-  }
-  nsIFrame* GetNextBox() const
-  {
-    return (mParent && mParent->IsBoxFrame()) ? mNextSibling : nullptr;
-  }
-  nsIFrame* GetParentBox() const
-  {
-    return (mParent && mParent->IsBoxFrame()) ? mParent : nullptr;
-  }
   
   
   virtual nsresult GetBorderAndPadding(nsMargin& aBorderAndPadding);

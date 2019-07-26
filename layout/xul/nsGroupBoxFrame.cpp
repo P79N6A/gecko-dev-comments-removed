@@ -208,21 +208,21 @@ nsIFrame*
 nsGroupBoxFrame::GetCaptionBox(nsPresContext* aPresContext, nsRect& aCaptionRect)
 {
     
-    nsIFrame* box = GetChildBox();
+    nsIFrame* box = nsBox::GetChildBox(this);
 
     
     if (!box)
       return nullptr;
 
     
-    box = box->GetChildBox();
+    box = nsBox::GetChildBox(box);
 
     
     if (!box)
       return nullptr;
 
     
-    nsIFrame* child = box->GetChildBox();
+    nsIFrame* child = nsBox::GetChildBox(box);
 
     if (child) {
        

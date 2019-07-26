@@ -255,7 +255,7 @@ nsGrid::FindRowsAndColumns(nsIFrame** aRows, nsIFrame** aColumns)
   nsIFrame* child = nullptr;
   
   if (mBox)
-    child = mBox->GetChildBox();
+    child = nsBox::GetChildBox(mBox);
 
   while(child)
   {
@@ -287,7 +287,7 @@ nsGrid::FindRowsAndColumns(nsIFrame** aRows, nsIFrame** aColumns)
       child = oldBox;
     }
 
-    child = child->GetNextBox();
+    child = nsBox::GetNextBox(child);
   }
 }
 
@@ -419,7 +419,7 @@ nsGrid::PopulateCellMap(nsGridRow* aRows, nsGridRow* aColumns, int32_t aRowCount
 
      child = row->mBox;
      if (child) {
-       child = child->GetChildBox();
+       child = nsBox::GetChildBox(child);
 
        j = 0;
 
@@ -438,7 +438,7 @@ nsGrid::PopulateCellMap(nsGridRow* aRows, nsGridRow* aColumns, int32_t aRowCount
          else
            GetCellAt(i,j)->SetBoxInColumn(child);
 
-         child = child->GetNextBox();
+         child = nsBox::GetNextBox(child);
 
          j++;
        }
@@ -1115,13 +1115,13 @@ nsGrid::GetRowFlex(nsBoxLayoutState& aState, int32_t aIndex, bool aIsHorizontal)
     
 
     box = GetScrollBox(box);
-    nsIFrame* parent = box->GetParentBox();
+    nsIFrame* parent = nsBox::GetParentBox(box);
     nsIFrame* parentsParent=nullptr;
 
     while(parent)
     {
       parent = GetScrollBox(parent);
-      parentsParent = parent->GetParentBox();
+      parentsParent = nsBox::GetParentBox(parent);
 
       
       
@@ -1248,7 +1248,7 @@ nsGrid::GetScrollBox(nsIFrame* aChild)
     return nullptr;
 
   
-  nsIFrame* parent = aChild->GetParentBox();
+  nsIFrame* parent = nsBox::GetParentBox(aChild);
 
   
   
@@ -1265,7 +1265,7 @@ nsGrid::GetScrollBox(nsIFrame* aChild)
     if (parentGridRow) 
       break;
 
-    parent = parent->GetParentBox();
+    parent = nsBox::GetParentBox(parent);
   }
 
   return aChild;
