@@ -1068,7 +1068,7 @@ Parser<ParseHandler>::functionBody(FunctionSyntaxKind kind, FunctionBodyType typ
         if (!pn)
             return null();
 
-        if (pc->sc->asFunctionBox()->isGenerator()) {
+        if (pc->sc->asFunctionBox()->isLegacyGenerator()) {
             reportBadReturn(pn, ParseError,
                             JSMSG_BAD_GENERATOR_RETURN,
                             JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -4407,6 +4407,8 @@ Parser<ParseHandler>::returnStatementOrYieldExpression()
         return null();
     }
 
+    
+    
     if (isYield) {
         if (!abortIfSyntaxParser())
             return null();
@@ -4415,7 +4417,7 @@ Parser<ParseHandler>::returnStatementOrYieldExpression()
         
         
         if (pc->parenDepth == 0) {
-            pc->sc->asFunctionBox()->setIsGenerator();
+            pc->sc->asFunctionBox()->setIsLegacyGenerator();
         } else {
             pc->yieldCount++;
             pc->yieldOffset = begin;
@@ -4464,7 +4466,7 @@ Parser<ParseHandler>::returnStatementOrYieldExpression()
     if (!pn)
         return null();
 
-    if (pc->funHasReturnExpr && pc->sc->asFunctionBox()->isGenerator()) {
+    if (pc->funHasReturnExpr && pc->sc->asFunctionBox()->isLegacyGenerator()) {
         
         reportBadReturn(pn, ParseError, JSMSG_BAD_GENERATOR_RETURN,
                         JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -5430,6 +5432,9 @@ class CompExprTransplanter
 
 
 
+
+
+
 template <typename ParseHandler>
 class GenexpGuard
 {
@@ -5453,7 +5458,7 @@ class GenexpGuard
 
     void endBody();
     bool checkValidBody(Node pn, unsigned err = JSMSG_BAD_GENEXP_BODY);
-    bool maybeNoteGenerator(Node pn);
+    bool maybeNoteLegacyGenerator(Node pn);
 };
 
 template <typename ParseHandler>
@@ -5497,17 +5502,21 @@ GenexpGuard<ParseHandler>::checkValidBody(Node pn, unsigned err)
 
 template <typename ParseHandler>
 bool
-GenexpGuard<ParseHandler>::maybeNoteGenerator(Node pn)
+GenexpGuard<ParseHandler>::maybeNoteLegacyGenerator(Node pn)
 {
     ParseContext<ParseHandler> *pc = parser->pc;
+    
     if (pc->yieldCount > 0) {
         if (!pc->sc->isFunctionBox()) {
+            
+            
             parser->report(ParseError, false, ParseHandler::null(),
                            JSMSG_BAD_RETURN_OR_YIELD, js_yield_str);
             return false;
         }
-        pc->sc->asFunctionBox()->setIsGenerator();
+        pc->sc->asFunctionBox()->setIsLegacyGenerator();
         if (pc->funHasReturnExpr) {
+            
             
             parser->reportBadReturn(pn, ParseError,
                                     JSMSG_BAD_GENERATOR_RETURN, JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -5871,7 +5880,7 @@ Parser<FullParseHandler>::comprehensionTail(ParseNode *kid, unsigned blockid, bo
             if (!guard.checkValidBody(pn2))
                 return null();
         } else {
-            if (!guard.maybeNoteGenerator(pn2))
+            if (!guard.maybeNoteLegacyGenerator(pn2))
                 return null();
         }
 
@@ -6057,7 +6066,7 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
         if (outerpc->sc->isFunctionBox())
             genFunbox->funCxFlags = outerpc->sc->asFunctionBox()->funCxFlags;
 
-        genFunbox->setIsGenerator();
+        genFunbox->setIsLegacyGenerator();
         genFunbox->inGenexpLambda = true;
         genfn->pn_blockid = genpc.bodyid;
 
@@ -6147,7 +6156,7 @@ Parser<ParseHandler>::argumentList(Node listNode)
             }
         } else
 #endif
-        if (arg0 && !guard.maybeNoteGenerator(argNode))
+        if (arg0 && !guard.maybeNoteLegacyGenerator(argNode))
             return false;
 
         arg0 = false;
@@ -6816,7 +6825,7 @@ Parser<ParseHandler>::parenExpr(bool *genexp)
     } else
 #endif 
 
-    if (!guard.maybeNoteGenerator(pn))
+    if (!guard.maybeNoteLegacyGenerator(pn))
         return null();
 
     return pn;

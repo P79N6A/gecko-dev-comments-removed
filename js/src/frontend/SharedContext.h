@@ -74,7 +74,8 @@ class FunctionContextFlags
     friend class FunctionBox;
 
     
-    bool isGenerator:1;
+    
+    bool isLegacyGenerator:1;
 
     
     
@@ -129,7 +130,7 @@ class FunctionContextFlags
 
   public:
     FunctionContextFlags()
-     :  isGenerator(false),
+     :  isLegacyGenerator(false),
         mightAliasLocals(false),
         hasExtensibleScope(false),
         needsDeclEnvObject(false),
@@ -284,14 +285,16 @@ class FunctionBox : public ObjectBox, public SharedContext
     ObjectBox *toObjectBox() { return this; }
     JSFunction *function() const { return &object->as<JSFunction>(); }
 
-    bool isGenerator()              const { return funCxFlags.isGenerator; }
+    
+    bool isGenerator()              const { return isLegacyGenerator(); }
+    bool isLegacyGenerator()        const { return funCxFlags.isLegacyGenerator; }
     bool mightAliasLocals()         const { return funCxFlags.mightAliasLocals; }
     bool hasExtensibleScope()       const { return funCxFlags.hasExtensibleScope; }
     bool needsDeclEnvObject()       const { return funCxFlags.needsDeclEnvObject; }
     bool argumentsHasLocalBinding() const { return funCxFlags.argumentsHasLocalBinding; }
     bool definitelyNeedsArgsObj()   const { return funCxFlags.definitelyNeedsArgsObj; }
 
-    void setIsGenerator()                  { funCxFlags.isGenerator              = true; }
+    void setIsLegacyGenerator()            { funCxFlags.isLegacyGenerator        = true; }
     void setMightAliasLocals()             { funCxFlags.mightAliasLocals         = true; }
     void setHasExtensibleScope()           { funCxFlags.hasExtensibleScope       = true; }
     void setNeedsDeclEnvObject()           { funCxFlags.needsDeclEnvObject       = true; }

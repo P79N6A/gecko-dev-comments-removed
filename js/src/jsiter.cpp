@@ -1023,6 +1023,7 @@ js::CloseIterator(JSContext *cx, HandleObject obj)
             ni->props_cursor = ni->props_array;
         }
     } else if (obj->is<GeneratorObject>()) {
+        
         return CloseGenerator(cx, obj);
     }
     return true;
@@ -1625,6 +1626,8 @@ CloseGenerator(JSContext *cx, HandleObject obj)
         return true;
     }
 
+    
+
     if (gen->state == JSGEN_CLOSED)
         return true;
 
@@ -1640,6 +1643,7 @@ IsGenerator(const Value &v)
 JS_ALWAYS_INLINE bool
 generator_send_impl(JSContext *cx, CallArgs args)
 {
+    
     JS_ASSERT(IsGenerator(args.thisv()));
 
     RootedObject thisObj(cx, &args.thisv().toObject());
@@ -1657,6 +1661,8 @@ generator_send_impl(JSContext *cx, CallArgs args)
         return false;
     }
 
+    
+    
     if (!SendToGenerator(cx, JSGENOP_SEND, thisObj, gen, args.get(0)))
         return false;
 
@@ -1667,6 +1673,7 @@ generator_send_impl(JSContext *cx, CallArgs args)
 JSBool
 generator_send(JSContext *cx, unsigned argc, Value *vp)
 {
+    
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<IsGenerator, generator_send_impl>(cx, args);
 }
@@ -1729,6 +1736,7 @@ generator_throw(JSContext *cx, unsigned argc, Value *vp)
 JS_ALWAYS_INLINE bool
 generator_close_impl(JSContext *cx, CallArgs args)
 {
+    
     JS_ASSERT(IsGenerator(args.thisv()));
 
     RootedObject thisObj(cx, &args.thisv().toObject());
@@ -1756,6 +1764,7 @@ generator_close_impl(JSContext *cx, CallArgs args)
 JSBool
 generator_close(JSContext *cx, unsigned argc, Value *vp)
 {
+    
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<IsGenerator, generator_close_impl>(cx, args);
 }

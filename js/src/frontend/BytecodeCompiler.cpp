@@ -67,7 +67,7 @@ CheckArgumentsWithinEval(JSContext *cx, Parser<FullParseHandler> &parser, Handle
     }
 
     
-    if (script->isGeneratorExp) {
+    if (script->isGeneratorExp && script->isLegacyGenerator) {
         parser.report(ParseError, false, NULL, JSMSG_BAD_GENEXP_BODY, js_arguments_str);
         return false;
     }

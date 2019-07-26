@@ -561,8 +561,16 @@ class JSScript : public js::gc::Cell
     bool            hadFrequentBailoutsPad:1;
 #endif
     bool            invalidatedIdempotentCache:1; 
-    bool            isGenerator:1;    
-    bool            isGeneratorExp:1; 
+
+    
+    bool            isGenerator:1;
+    
+    
+    bool            isGeneratorExp:1;
+    
+    
+    bool            isLegacyGenerator:1;
+
     bool            hasScriptCounts:1;
 
     bool            hasDebugScript:1; 
