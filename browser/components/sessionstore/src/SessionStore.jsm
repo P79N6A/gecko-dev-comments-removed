@@ -1479,7 +1479,7 @@ let SessionStoreInternal = {
 
     TabStateCache.delete(aTab);
     this._setWindowStateBusy(window);
-    this.restoreHistoryPrecursor(window, [aTab], [tabState], 0, 0, 0);
+    this.restoreHistoryPrecursor(window, [aTab], [tabState], 0);
   },
 
   duplicateTab: function ssi_duplicateTab(aWindow, aTab, aDelta = 0) {
@@ -1499,7 +1499,7 @@ let SessionStoreInternal = {
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
 
-    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0, 0, 0,
+    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0,
                                  true );
 
     return newTab;
@@ -1579,7 +1579,7 @@ let SessionStoreInternal = {
     let tab = tabbrowser.addTab();
 
     
-    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
+    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1);
 
     
     tabbrowser.moveTabTo(tab, closedTab.pos);
@@ -2352,7 +2352,7 @@ let SessionStoreInternal = {
     }
 
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
-      (overwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
+      (overwriteTabs ? (parseInt(winData.selected) || 1) : 0));
 
     if (aState.scratchpads) {
       ScratchpadManager.restoreSession(aState.scratchpads);
@@ -2460,35 +2460,12 @@ let SessionStoreInternal = {
 
 
 
-
-
-
-
   restoreHistoryPrecursor:
     function ssi_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
-                                         aIx, aCount, aRestoreImmediately = false) {
+                                         aRestoreImmediately = false)
+  {
 
     var tabbrowser = aWindow.gBrowser;
-
-    
-    
-    for (var t = aIx; t < aTabs.length; t++) {
-      try {
-        if (!tabbrowser.getBrowserForTab(aTabs[t]).webNavigation.sessionHistory) {
-          throw new Error();
-        }
-      }
-      catch (ex) { 
-        if (aCount < 10) {
-          var restoreHistoryFunc = function(self) {
-            self.restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
-                                         aIx, aCount + 1, aRestoreImmediately);
-          };
-          aWindow.setTimeout(restoreHistoryFunc, 100, this);
-          return;
-        }
-      }
-    }
 
     if (!this._isWindowLoaded(aWindow)) {
       
@@ -2523,7 +2500,7 @@ let SessionStoreInternal = {
     
     
     
-    for (t = 0; t < aTabs.length; t++) {
+    for (let t = 0; t < aTabs.length; t++) {
       let tab = aTabs[t];
       let browser = tabbrowser.getBrowserForTab(tab);
       let tabData = aTabData[t];
@@ -2595,8 +2572,8 @@ let SessionStoreInternal = {
 
     
     
-    var idMap = { used: {} };
-    var docIdentMap = {};
+    let idMap = { used: {} };
+    let docIdentMap = {};
     this.restoreHistory(aWindow, aTabs, aTabData, idMap, docIdentMap,
                         aRestoreImmediately);
   },
