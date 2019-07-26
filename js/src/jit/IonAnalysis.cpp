@@ -2144,6 +2144,13 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
             }
         }
 
+        
+        
+        
+        
+        if (ins->block()->loopDepth() != 0)
+            definitelyExecuted = false;
+
         bool handled = false;
         if (!AnalyzePoppedThis(cx, type, thisValue, ins, definitelyExecuted,
                                baseobj, initializerList, &accessedProperties, &handled))
