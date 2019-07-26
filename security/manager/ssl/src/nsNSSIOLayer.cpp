@@ -981,7 +981,8 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
       
       
     conditional:
-      if (range.max <= SSL_LIBRARY_VERSION_TLS_1_0 ||
+      if ((err == PR_CONNECT_RESET_ERROR &&
+           range.max <= SSL_LIBRARY_VERSION_TLS_1_0) ||
           socketInfo->GetHasCleartextPhase()) {
         return false;
       }
