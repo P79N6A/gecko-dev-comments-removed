@@ -8,6 +8,8 @@
 #include "nsAutoPtr.h"
 #include "prlog.h"
 #include "nsThreadUtils.h"
+#include "prthread.h"
+#include "mozilla/ChaosMode.h"
 
 using namespace mozilla;
 
@@ -85,6 +87,14 @@ nsEventQueue::PutEvent(nsIRunnable *runnable)
   nsRefPtr<nsIRunnable> event(runnable);
   bool rv = true;
   {
+    if (ChaosMode::isActive()) {
+      
+      
+      if (ChaosMode::randomUint32LessThan(2)) {
+        PR_Sleep(PR_INTERVAL_NO_WAIT);
+      }
+    }
+
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
     if (!mHead) {
