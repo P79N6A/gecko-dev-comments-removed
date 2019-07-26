@@ -97,7 +97,9 @@ function createMediaElement(type, label) {
 
 
 function getUserMedia(constraints, onSuccess, onError) {
-  constraints["fake"] = FAKE_ENABLED;
+  if (!("fake" in constraints)) {
+    constraints["fake"] = FAKE_ENABLED;
+  }
 
   info("Call getUserMedia for " + JSON.stringify(constraints));
   navigator.mozGetUserMedia(constraints, onSuccess, onError);
