@@ -68,6 +68,13 @@ def isObject(path):
     ends with OBJ_SUFFIX or .i_o'''
     return os.path.splitext(path)[1] in [conf.OBJ_SUFFIX, '.i_o']
 
+def isDynamicLib(path):
+    '''Returns whether the given path points to a dynamic library, that is,
+    ends with DLL_SUFFIX.'''
+    
+    
+    return os.path.splitext(path)[1] == conf.DLL_SUFFIX or os.path.basename(path) == 'XUL'
+
 class LibDescriptor(dict):
     KEYS = ['OBJS', 'LIBS']
 
