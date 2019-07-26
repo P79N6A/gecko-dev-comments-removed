@@ -37,6 +37,9 @@ XPCOMUtils.defineLazyGetter(this, "DebuggerServer", function () {
 
 
 
+
+
+
 function ProfileUI(uid, panel) {
   let doc = panel.document;
   let win = panel.window;
@@ -63,27 +66,45 @@ function ProfileUI(uid, panel) {
       return;
     }
 
+    let label = doc.querySelector("li#profile-" + this.uid + " > h1");
     switch (event.data.status) {
       case "loaded":
+        if (this.panel._runningUid !== null) {
+          this.iframe.contentWindow.postMessage(JSON.stringify({
+            uid: this._runningUid,
+            isCurrent: this._runningUid === uid,
+            task: "onStarted"
+          }), "*");
+        }
+
         this.isReady = true;
         this.emit("ready");
         break;
       case "start":
         
         
+        
+        
         this.panel.startProfiling(function onStart() {
-          var data = JSON.stringify({task: "onStarted"});
-          this.iframe.contentWindow.postMessage(data, "*");
+          this.panel.broadcast(this.uid, {task: "onStarted"});
+          label.textContent = label.textContent + " *";
         }.bind(this));
 
         break;
       case "stop":
         
         
+        
         this.panel.stopProfiling(function onStop() {
-          var data = JSON.stringify({task: "onStopped"});
-          this.iframe.contentWindow.postMessage(data, "*");
+          this.panel.broadcast(this.uid, {task: "onStopped"});
+          label.textContent = label.textContent.replace(/\s\*$/, "");
         }.bind(this));
+        break;
+      case "disabled":
+        this.emit("disabled");
+        break;
+      case "enabled":
+        this.emit("enabled");
     }
   }.bind(this));
 }
@@ -188,15 +209,16 @@ function ProfilerPanel(frame, toolbox) {
 }
 
 ProfilerPanel.prototype = {
-  isReady:    null,
-  window:     null,
-  document:   null,
-  target:     null,
-  controller: null,
-  profiles:   null,
+  isReady:     null,
+  window:      null,
+  document:    null,
+  target:      null,
+  controller:  null,
+  profiles:    null,
 
-  _uid:       null,
-  _activeUid: null,
+  _uid:        null,
+  _activeUid:  null,
+  _runningUid: null,
 
   get activeProfile() {
     return this.profiles.get(this._activeUid);
@@ -357,6 +379,41 @@ ProfilerPanel.prototype = {
         this.emit("stopped");
       }.bind(this));
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  broadcast: function PP_broadcast(target, data) {
+    if (!this.profiles) {
+      return;
+    }
+
+    if (data.task === "onStarted") {
+      this._runningUid = target;
+    } else {
+      this._runningUid = null;
+    }
+
+    let uid = this._uid;
+    while (uid >= 0) {
+      if (this.profiles.has(uid)) {
+        let iframe = this.profiles.get(uid).iframe;
+        iframe.contentWindow.postMessage(JSON.stringify({
+          uid: target,
+          isCurrent: target === uid,
+          task: data.task
+        }), "*");
+      }
+      uid -= 1;
+    }
   },
 
   
