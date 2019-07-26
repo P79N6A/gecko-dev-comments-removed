@@ -542,7 +542,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
 
-    void callWithABI(void *fun, Result result = GENERAL) {
+    template <typename T>
+    void callWithABI(const T &fun, Result result = GENERAL) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callWithABI(fun, result);
         reenterSPSFrame();

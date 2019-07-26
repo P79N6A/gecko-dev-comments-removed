@@ -2776,23 +2776,24 @@ void MacroAssemblerARMCompat::checkStackAlignment()
 }
 
 void
-MacroAssemblerARMCompat::callWithABI(void *fun, Result result)
+MacroAssemblerARMCompat::callWithABIPre(uint32_t *stackAdjust)
 {
     JS_ASSERT(inCall_);
 #ifdef JS_CPU_ARM_HARDFP
-    uint32_t stackAdjust = ((usedIntSlots_ > NumIntArgRegs) ? usedIntSlots_ - NumIntArgRegs : 0) * STACK_SLOT_SIZE;
-    stackAdjust += 2*((usedFloatSlots_ > NumFloatArgRegs) ? usedFloatSlots_ - NumFloatArgRegs : 0) * STACK_SLOT_SIZE;
+    *stackAdjust = ((usedIntSlots_ > NumIntArgRegs) ? usedIntSlots_ - NumIntArgRegs : 0) * STACK_SLOT_SIZE;
+    *stackAdjust += 2*((usedFloatSlots_ > NumFloatArgRegs) ? usedFloatSlots_ - NumFloatArgRegs : 0) * STACK_SLOT_SIZE;
 #else
-    uint32_t stackAdjust = ((usedSlots_ > NumIntArgRegs) ? usedSlots_ - NumIntArgRegs : 0) * STACK_SLOT_SIZE;
+    *stackAdjust = ((usedSlots_ > NumIntArgRegs) ? usedSlots_ - NumIntArgRegs : 0) * STACK_SLOT_SIZE;
 #endif
-    if (!dynamicAlignment_)
-        stackAdjust +=
-            ComputeByteAlignment(framePushed_ + stackAdjust, StackAlignment);
-    else
+    if (!dynamicAlignment_) {
+        *stackAdjust += ComputeByteAlignment(framePushed_ + *stackAdjust, StackAlignment);
+    } else {
         
-        stackAdjust += ComputeByteAlignment(stackAdjust + STACK_SLOT_SIZE, StackAlignment);
+        *stackAdjust += ComputeByteAlignment(*stackAdjust + STACK_SLOT_SIZE, StackAlignment);
+    }
 
-    reserveStack(stackAdjust);
+    reserveStack(*stackAdjust);
+
     
     {
         enoughMemory_ = enoughMemory_ && moveResolver_.resolve();
@@ -2808,8 +2809,11 @@ MacroAssemblerARMCompat::callWithABI(void *fun, Result result)
             ma_vxfer(floatArgsInGPR[i], Register::FromCode(i*2), Register::FromCode(i*2+1));
     }
     checkStackAlignment();
-    ma_call(fun);
+}
 
+void
+MacroAssemblerARMCompat::callWithABIPost(uint32_t stackAdjust, Result result)
+{
     if (result == DOUBLE) {
 #ifdef JS_CPU_ARM_HARDFP
         as_vmov(ReturnFloatReg, d0);
@@ -2820,6 +2824,7 @@ MacroAssemblerARMCompat::callWithABI(void *fun, Result result)
     }
 
     freeStack(stackAdjust);
+
     if (dynamicAlignment_) {
         
         
@@ -2828,6 +2833,28 @@ MacroAssemblerARMCompat::callWithABI(void *fun, Result result)
 
     JS_ASSERT(inCall_);
     inCall_ = false;
+}
+
+void
+MacroAssemblerARMCompat::callWithABI(void *fun, Result result)
+{
+    uint32_t stackAdjust;
+    callWithABIPre(&stackAdjust);
+    ma_call(fun);
+    callWithABIPost(stackAdjust, result);
+}
+
+void
+MacroAssemblerARMCompat::callWithABI(const Address &fun, Result result)
+{
+    
+    
+    
+    ma_ldr(fun, r12);
+    uint32_t stackAdjust;
+    callWithABIPre(&stackAdjust);
+    call(r12);
+    callWithABIPost(stackAdjust, result);
 }
 
 void

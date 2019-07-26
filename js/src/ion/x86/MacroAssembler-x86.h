@@ -719,8 +719,14 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     void passABIArg(const Register &reg);
     void passABIArg(const FloatRegister &reg);
 
+  private:
+    void callWithABIPre(uint32_t *stackAdjust);
+    void callWithABIPost(uint32_t stackAdjust, Result result);
+
+  public:
     
     void callWithABI(void *fun, Result result = GENERAL);
+    void callWithABI(const Address &fun, Result result = GENERAL);
 
     
     void handleException();
