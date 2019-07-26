@@ -1708,8 +1708,24 @@ nsCookieService::NotifyThirdParty(nsIURI *aHostURI, bool aIsAccepted, nsIChannel
   if (!mObserverService) {
     return;
   }
-  const char* topic = aIsAccepted ? "third-party-cookie-accepted"
-    : "third-party-cookie-rejected";
+
+  const char* topic;
+
+  if (mDBState != mPrivateDBState) {
+    
+    if (aIsAccepted) {
+      topic = "third-party-cookie-accepted";
+    } else {
+      topic = "third-party-cookie-rejected";
+    }
+  } else {
+    
+    if (aIsAccepted) {
+      topic = "private-third-party-cookie-accepted";
+    } else {
+      topic = "private-third-party-cookie-rejected";
+    }
+  }
 
   do {
     
