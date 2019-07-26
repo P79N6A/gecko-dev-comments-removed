@@ -227,8 +227,15 @@ ContentParent::MaybeTakePreallocatedAppProcess()
 {
     nsRefPtr<ContentParent> process = sPreallocatedAppProcess.get();
     sPreallocatedAppProcess = nullptr;
-    ScheduleDelayedPreallocateAppProcess();
     return process.forget();
+}
+
+ void
+ContentParent::FirstIdle(void)
+{
+  
+  
+  ScheduleDelayedPreallocateAppProcess();
 }
 
  void
@@ -247,7 +254,10 @@ ContentParent::StartUp()
             "dom.ipc.processPrelaunch.delayMs", 1000);
 
         MOZ_ASSERT(!sPreallocateAppProcessTask);
-        ScheduleDelayedPreallocateAppProcess();
+
+        
+        
+        MessageLoop::current()->PostIdleTask(FROM_HERE, NewRunnableFunction(FirstIdle));
     }
 }
 
@@ -1000,6 +1010,17 @@ ContentParent::RecvGetShowPasswordSetting(bool* showPassword)
     if (AndroidBridge::Bridge() != nullptr)
         *showPassword = AndroidBridge::Bridge()->GetShowPasswordSetting();
 #endif
+    return true;
+}
+
+bool
+ContentParent::RecvFirstIdle()
+{
+    
+    
+    
+    
+    ScheduleDelayedPreallocateAppProcess();
     return true;
 }
 
