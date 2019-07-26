@@ -230,6 +230,11 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
 
       if (IsAsync()) {
         ScheduleComposition(op);
+        
+        
+        if (compositable->GetLayer()) {
+          compositable->GetLayer()->SetInvalidRectToVisibleRegion();
+        }
       }
       break;
     }
