@@ -14,7 +14,6 @@
 #include "nsITableEditor.h"
 #include "nsIEditorMailSupport.h"
 #include "nsIEditorStyleSheets.h"
-#include "nsITextServicesDocument.h"
 
 #include "nsEditor.h"
 #include "nsIDOMElement.h"
@@ -765,9 +764,6 @@ protected:
   
   
   nsTArray<PropItem*> mDefaultStyles;
-
-   
-   nsCOMPtr<nsITextServicesDocument> mTextServices;
 
 protected:
 
