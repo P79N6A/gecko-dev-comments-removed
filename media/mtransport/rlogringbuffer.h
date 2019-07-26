@@ -53,11 +53,11 @@
 #ifndef rlogringbuffer_h__
 #define rlogringbuffer_h__
 
-#include <stdint.h>
-
 #include <deque>
 #include <string>
 #include <vector>
+
+#include "mozilla/Mutex.h"
 
 #include "m_cpp_utils.h"
 
@@ -110,6 +110,7 @@ class RLogRingBuffer {
     std::deque<std::string> log_messages_;
     
     uint32_t log_limit_;
+    mozilla::Mutex mutex_;
 
     DISALLOW_COPY_ASSIGN(RLogRingBuffer);
 }; 
