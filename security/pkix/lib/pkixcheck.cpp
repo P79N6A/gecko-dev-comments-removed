@@ -15,6 +15,8 @@
 
 
 
+#include <limits>
+
 #include "pkix/pkix.h"
 #include "pkixcheck.h"
 #include "pkixder.h"
@@ -148,6 +150,62 @@ CheckCertificatePolicies(BackCert& cert, EndEntityOrCA endEntityOrCA,
 }
 
 
+
+
+der::Result
+DecodeBasicConstraints(const SECItem* encodedBasicConstraints,
+                       CERTBasicConstraints& basicConstraints)
+{
+  PR_ASSERT(encodedBasicConstraints);
+  if (!encodedBasicConstraints) {
+    return der::Fail(SEC_ERROR_INVALID_ARGS);
+  }
+
+  basicConstraints.isCA = false;
+  basicConstraints.pathLenConstraint = 0;
+
+  der::Input input;
+  if (input.Init(encodedBasicConstraints->data, encodedBasicConstraints->len)
+        != der::Success) {
+    return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+  }
+
+  if (der::ExpectTagAndIgnoreLength(input, der::SEQUENCE) != der::Success) {
+    return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+  }
+
+  bool isCA = false;
+  if (der::OptionalBoolean(input, isCA) != der::Success) {
+    return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+  }
+  basicConstraints.isCA = isCA;
+
+  if (input.Peek(der::INTEGER)) {
+    SECItem pathLenConstraintEncoded;
+    if (der::Integer(input, pathLenConstraintEncoded) != der::Success) {
+      return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+    }
+    long pathLenConstraint = DER_GetInteger(&pathLenConstraintEncoded);
+    if (pathLenConstraint >= std::numeric_limits<int>::max() ||
+        pathLenConstraint < 0) {
+      return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+    }
+    basicConstraints.pathLenConstraint = static_cast<int>(pathLenConstraint);
+    
+    
+    
+  } else if (basicConstraints.isCA) {
+    
+    basicConstraints.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
+  }
+
+  if (der::End(input) != der::Success) {
+    return der::Fail(SEC_ERROR_EXTENSION_VALUE_INVALID);
+  }
+  return der::Success;
+}
+
+
 Result
 CheckBasicConstraints(const BackCert& cert,
                       EndEntityOrCA endEntityOrCA,
@@ -156,10 +214,9 @@ CheckBasicConstraints(const BackCert& cert,
 {
   CERTBasicConstraints basicConstraints;
   if (cert.encodedBasicConstraints) {
-    SECStatus rv = CERT_DecodeBasicConstraintValue(&basicConstraints,
-                                                   cert.encodedBasicConstraints);
-    if (rv != SECSuccess) {
-      return MapSECStatus(rv);
+    if (DecodeBasicConstraints(cert.encodedBasicConstraints,
+                               basicConstraints) != der::Success) {
+      return RecoverableError;
     }
   } else {
     
