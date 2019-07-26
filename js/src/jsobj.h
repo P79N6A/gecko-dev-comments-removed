@@ -223,7 +223,6 @@ class ArrayBufferObject;
 class BooleanObject;
 class ClonedBlockObject;
 class DebugScopeObject;
-class DeclEnvObject;
 class GlobalObject;
 class MapObject;
 class NestedScopeObject;
@@ -976,7 +975,6 @@ class JSObject : public js::ObjectImpl
     inline bool isWeakMap()          const { return hasClass(&js::WeakMapClass); }
 
     
-    inline bool isDeclEnv()     const { return hasClass(&js::DeclEnvClass); }
     inline bool isNestedScope() const;
     inline bool isWith()        const { return hasClass(&js::WithClass); }
     inline bool isClonedBlock() const;
@@ -995,7 +993,6 @@ class JSObject : public js::ObjectImpl
 
     inline js::BooleanObject &asBoolean();
     inline js::ClonedBlockObject &asClonedBlock();
-    inline js::DeclEnvObject &asDeclEnv();
     inline js::DebugScopeObject &asDebugScope();
     inline js::GlobalObject &asGlobal();
     inline js::MapObject &asMap();
