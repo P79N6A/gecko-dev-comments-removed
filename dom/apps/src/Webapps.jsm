@@ -182,82 +182,81 @@ let DOMApplicationRegistry = {
   
   
   
-  
+  installSystemApps: function installSystemApps(aNext) {
+    let file;
+    try {
+      file = FileUtils.getFile("coreAppsDir", ["webapps", "webapps.json"], false);
+    } catch(e) { }
+
+    if (file && file.exists()) {
+      
+      this._loadJSONAsync(file, (function loadCoreRegistry(aData) {
+        if (!aData) {
+          aNext();
+          return;
+        }
+
+        
+        for (let id in this.webapps) {
+          if (id in aData || this.webapps[id].removable)
+            continue;
+          delete this.webapps[id];
+          
+          let localId = this.webapps[id].localId;
+          let permMgr = Cc["@mozilla.org/permissionmanager;1"]
+                          .getService(Ci.nsIPermissionManager);
+          permMgr.RemovePermissionsForApp(localId);
+          Services.cookies.removeCookiesForApp(localId, false);
+          this._clearPrivateData(localId, false);
+        }
+
+        let appDir = FileUtils.getDir("coreAppsDir", ["webapps"], false);
+        
+        for (let id in aData) {
+          
+          
+          if (!(id in this.webapps)) {
+            this.webapps[id] = aData[id];
+            this.webapps[id].basePath = appDir.path;
+
+            
+            this.webapps[id].localId = this._nextLocalId();
+
+            
+            if (this.webapps[id].removable === undefined) {
+              this.webapps[id].removable = false;
+            }
+          }
+        }
+        aNext();
+      }).bind(this));
+    } else {
+      aNext();
+    }
+  },
+
   loadAndUpdateApps: function loadAndUpdateApps() {
     let runUpdate = AppsUtils.isFirstRun(Services.prefs);
 
-    
-    this.loadCurrentRegistry((function() {
-#ifdef MOZ_WIDGET_GONK
-    
-    if (runUpdate) {
-      let file;
-      try {
-        file = FileUtils.getFile("coreAppsDir", ["webapps", "webapps.json"], false);
-      } catch(e) { }
-
-      if (file && file.exists()) {
-        
-        this._loadJSONAsync(file, (function loadCoreRegistry(aData) {
-          if (!aData) {
-            this.registerAppsHandlers();
-            return;
-          }
-
-          
-          for (let id in this.webapps) {
-            if (id in aData || this.webapps[id].removable)
-              continue;
-            delete this.webapps[id];
-            
-            let localId = this.webapps[id].localId;
-            let permMgr = Cc["@mozilla.org/permissionmanager;1"]
-                            .getService(Ci.nsIPermissionManager);
-            permMgr.RemovePermissionsForApp(localId);
-            Services.cookies.removeCookiesForApp(localId, false);
-            this._clearPrivateData(localId, false);
-          }
-
-          let appDir = FileUtils.getDir("coreAppsDir", ["webapps"], false);
-          
-          for (let id in aData) {
-            
-            
-            if (!(id in this.webapps)) {
-              this.webapps[id] = aData[id];
-              this.webapps[id].basePath = appDir.path;
-
-              
-              this.webapps[id].localId = this._nextLocalId();
-
-              
-              if (this.webapps[id].removable === undefined) {
-                this.webapps[id].removable = false;
-              }
-            }
-
-            this.updatePermissionsForApp(id);
-          }
-          this.registerAppsHandlers();
-        }).bind(this));
-      } else {
+    let onAppsLoaded = (function onAppsLoaded() {
+      if (runUpdate) {
         
         for (let id in this.webapps) {
           this.updatePermissionsForApp(id);
         }
-        this.registerAppsHandlers();
       }
-    } else {
       this.registerAppsHandlers();
-    }
-#else
-    if (runUpdate) {
+    }).bind(this);
+
+    this.loadCurrentRegistry((function() {
+#ifdef MOZ_WIDGET_GONK
       
-      for (let id in this.webapps) {
-        this.updatePermissionsForApp(id);
-      }
-    }
-    this.registerAppsHandlers();
+      if (runUpdate)
+        this.installSystemApps(onAppsLoaded);
+      else
+        onAppsLoaded();
+#else
+      onAppsLoaded();
 #endif
     }).bind(this));
   },
