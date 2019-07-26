@@ -74,7 +74,7 @@ public:
 
 
 
-  explicit nsDependentJSString(jsid id)
+  explicit nsDependentJSString(JS::Handle<jsid> id)
     : nsDependentString(JS_GetInternedStringChars(JSID_TO_STRING(id)),
                         JS_GetStringLength(JSID_TO_STRING(id)))
   {
