@@ -16,11 +16,6 @@
 #define PREF_BDM_SHOWWHENSTARTING "browser.download.manager.showWhenStarting"
 #define PREF_BDM_FOCUSWHENSTARTING "browser.download.manager.focusWhenStarting"
 
-
-
-
-
-
 class nsDownloadProxy : public nsITransfer
 {
 public:
@@ -146,12 +141,6 @@ public:
   {
     NS_ENSURE_TRUE(mInner, NS_ERROR_NOT_INITIALIZED);
     return mInner->OnSecurityChange(aWebProgress, aRequest, aState);
-  }
-
-  NS_IMETHODIMP SetSha256Hash(const nsACString& aHash)
-  {
-    NS_ENSURE_TRUE(mInner, NS_ERROR_NOT_INITIALIZED);
-    return mInner->SetSha256Hash(aHash);
   }
 
 private:

@@ -141,8 +141,8 @@ PRLogModuleInfo* nsExternalHelperAppService::mLog = nullptr;
 
 
 #undef LOG
-#define LOG(args) PR_LOG(nsExternalHelperAppService::mLog, 3, args)
-#define LOG_ENABLED() PR_LOG_TEST(nsExternalHelperAppService::mLog, 3)
+#define LOG(args) PR_LOG(mLog, 3, args)
+#define LOG_ENABLED() PR_LOG_TEST(mLog, 3)
 
 static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] =
   "browser.helperApps.neverAsk.saveToDisk";
@@ -1111,13 +1111,14 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 , mForceSave(aForceSave)
 , mCanceled(false)
 , mShouldCloseWindow(false)
+, mReceivedDispositionInfo(false)
 , mStopRequestIssued(false)
+, mProgressListenerInitialized(false)
 , mReason(aReason)
 , mContentLength(-1)
 , mProgress(0)
 , mSaver(nullptr)
-, mDialogProgressListener(nullptr)
-, mTransfer(nullptr)
+, mKeepRequestAlive(false)
 , mRequest(nullptr)
 , mExtProtSvc(aExtProtSvc)
 {
@@ -1156,10 +1157,25 @@ nsExternalAppHandler::~nsExternalAppHandler()
 }
 
 NS_IMETHODIMP nsExternalAppHandler::SetWebProgressListener(nsIWebProgressListener2 * aWebProgressListener)
-{
+{ 
   
   
-  mDialogProgressListener = aWebProgressListener;
+  
+  
+  if (mReceivedDispositionInfo)
+    mProgressListenerInitialized = true;
+
+  
+  mWebProgressListener = aWebProgressListener;
+
+  
+  
+  
+  if (mStopRequestIssued && aWebProgressListener)
+  {
+    return ExecuteDesiredAction();
+  }
+
   return NS_OK;
 }
 
@@ -1194,6 +1210,13 @@ NS_IMETHODIMP nsExternalAppHandler::GetTimeDownloadStarted(PRTime* aTime)
 NS_IMETHODIMP nsExternalAppHandler::GetContentLength(int64_t *aContentLength)
 {
   *aContentLength = mContentLength;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExternalAppHandler::CloseProgressWindow()
+{
+  
+  mWebProgressListener = nullptr;
   return NS_OK;
 }
 
@@ -1376,10 +1399,6 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
     mSaver = nullptr;
     return rv;
   }
-
-  rv = mSaver->EnableSha256();
-  NS_ENSURE_SUCCESS(rv, rv);
-  LOG(("Enabled hashing"));
 
   rv = mSaver->SetTarget(mTempFile, false);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1576,9 +1595,15 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   if (alwaysAsk)
   {
     
+    
+    mReceivedDispositionInfo = false; 
+    mKeepRequestAlive = true;
+
+    
     mDialog = do_CreateInstance( NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv );
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
     
     
     rv = mDialog->Show( this, mWindowContext, mReason );
@@ -1587,6 +1612,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   }
   else
   {
+    mReceivedDispositionInfo = true; 
 
     
 #ifdef XP_WIN
@@ -1698,7 +1724,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
     }
     PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
         ("Error: %s, type=%i, listener=0x%p, rv=0x%08X\n",
-         NS_LossyConvertUTF16toASCII(msgId).get(), type, mDialogProgressListener.get(), rv));
+         NS_LossyConvertUTF16toASCII(msgId).get(), type, mWebProgressListener.get(), rv));
     PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
         ("       path='%s'\n", NS_ConvertUTF16toUTF8(path).get()));
 
@@ -1714,12 +1740,10 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
             const PRUnichar *strings[] = { path.get() };
             if(NS_SUCCEEDED(bundle->FormatStringFromName(msgId.get(), strings, 1, getter_Copies(msgText))))
             {
-              if (mDialogProgressListener)
+              if (mWebProgressListener)
               {
                 
-                mDialogProgressListener->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
-              } else if (mTransfer) {
-                mTransfer->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
+                mWebProgressListener->OnStatusChange(nullptr, (type == kReadError) ? aRequest : nullptr, rv, msgText);
               }
               else
               if (XRE_GetProcessType() == GeckoProcessType_Default) {
@@ -1760,10 +1784,11 @@ nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
     if (NS_SUCCEEDED(rv))
     {
       
-      if (mTransfer) {
-        mTransfer->OnProgressChange64(nullptr, request, mProgress,
-                                      mContentLength, mProgress,
-                                      mContentLength);
+      if (mWebProgressListener)
+      {
+        mWebProgressListener->OnProgressChange64(nullptr, request, mProgress,
+                                                 mContentLength, mProgress,
+                                                 mContentLength);
       }
     }
     else
@@ -1785,6 +1810,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISuppor
                                                   nsresult aStatus)
 {
   mStopRequestIssued = true;
+
+  if (!mKeepRequestAlive)
+    mRequest = nullptr;
 
   
   if (!mCanceled && NS_FAILED(aStatus))
@@ -1817,10 +1845,6 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
                                      nsresult aStatus)
 {
   
-  nsresult rv = mSaver->GetSha256Hash(mHash);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   mSaver = nullptr;
 
   if (mCanceled)
@@ -1836,47 +1860,56 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
   }
 
   
+  ExecuteDesiredAction();
+
   
   
   
-  if (mTransfer) {
-    rv = NotifyTransfer();
-    NS_ENSURE_SUCCESS(rv, rv);
+  mWebProgressListener = nullptr;
+
+  return NS_OK;
+}
+
+nsresult nsExternalAppHandler::ExecuteDesiredAction()
+{
+  nsresult rv = NS_OK;
+  if (mProgressListenerInitialized && !mCanceled)
+  {
+    rv = MoveFile(mFinalFileDestination);
+    if (NS_SUCCEEDED(rv))
+    {
+      nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
+      mMimeInfo->GetPreferredAction(&action);
+      if (action == nsIMIMEInfo::useHelperApp ||
+          action == nsIMIMEInfo::useSystemDefault)
+      {
+        rv = OpenWithApplication();
+      }
+      else if(action == nsIMIMEInfo::saveToDisk)
+      {
+        mExtProtSvc->FixFilePermissions(mFinalFileDestination);
+      }
+    }
+
+    
+    
+    
+    if(mWebProgressListener)
+    {
+      if (!mCanceled)
+      {
+        mWebProgressListener->OnProgressChange64(nullptr, nullptr, mProgress, mContentLength, mProgress, mContentLength);
+      }
+      mWebProgressListener->OnStateChange(nullptr, nullptr,
+        nsIWebProgressListener::STATE_STOP |
+        nsIWebProgressListener::STATE_IS_REQUEST |
+        nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
+    }
   }
 
-  return NS_OK;
+  return rv;
 }
 
-nsresult nsExternalAppHandler::NotifyTransfer()
-{
-  MOZ_ASSERT(NS_IsMainThread(), "Must notify on main thread");
-  MOZ_ASSERT(!mCanceled, "Can't notify if canceled or action "
-             "hasn't been chosen");
-  MOZ_ASSERT(mTransfer, "We must have an nsITransfer");
-
-  LOG(("Notifying progress listener"));
-
-  nsresult rv = mTransfer->SetSha256Hash(mHash);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mTransfer->OnProgressChange64(nullptr, nullptr, mProgress,
-    mContentLength, mProgress, mContentLength);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mTransfer->OnStateChange(nullptr, nullptr,
-    nsIWebProgressListener::STATE_STOP |
-    nsIWebProgressListener::STATE_IS_REQUEST |
-    nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  mTransfer = nullptr;
-
-  return NS_OK;
-}
- 
 NS_IMETHODIMP nsExternalAppHandler::GetMIMEInfo(nsIMIMEInfo ** aMIMEInfo)
 {
   *aMIMEInfo = mMimeInfo;
@@ -1904,14 +1937,14 @@ nsresult nsExternalAppHandler::InitializeDownload(nsITransfer* aTransfer)
   
   nsCOMPtr<nsIURI> target;
   rv = NS_NewFileURI(getter_AddRefs(target), mFinalFileDestination);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
 
   rv = aTransfer->Init(mSourceUrl, target, EmptyString(),
                        mMimeInfo, mTimeDownloadStarted, mTempFile, this,
                        channel && NS_UsePrivateBrowsing(channel));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) return rv;
 
   
   nsCOMPtr<nsIDownloadHistory> dh(do_GetService(NS_DOWNLOADHISTORY_CONTRACTID));
@@ -1930,38 +1963,31 @@ nsresult nsExternalAppHandler::InitializeDownload(nsITransfer* aTransfer)
   return rv;
 }
 
-nsresult nsExternalAppHandler::CreateTransfer()
+nsresult nsExternalAppHandler::CreateProgressListener()
 {
   
   
   
   
-  
   mDialog = nullptr;
-  if (!mDialogProgressListener) {
-    NS_WARNING("The dialog should nullify the dialog progress listener");
-  }
   nsresult rv;
-
   
-  
-  mTransfer = do_CreateInstance(NS_TRANSFER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = InitializeDownload(mTransfer);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsITransfer> tr = do_CreateInstance(NS_TRANSFER_CONTRACTID, &rv);
+  if (NS_SUCCEEDED(rv))
+    InitializeDownload(tr);
 
-  rv = mTransfer->OnStateChange(nullptr, mRequest,
-    nsIWebProgressListener::STATE_START |
-    nsIWebProgressListener::STATE_IS_REQUEST |
-    nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (tr)
+    tr->OnStateChange(nullptr, mRequest, nsIWebProgressListener::STATE_START |
+      nsIWebProgressListener::STATE_IS_REQUEST |
+      nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
 
   
   
   
-  if (mStopRequestIssued && !mSaver) {
-    return NotifyTransfer();
-  }
+  
+  
+  
+  SetWebProgressListener(tr);
 
   mRequest = nullptr;
 
@@ -2023,6 +2049,65 @@ void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultF
   }
 }
 
+nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
+{
+  nsresult rv = NS_OK;
+  NS_ASSERTION(mStopRequestIssued, "uhoh, how did we get here if we aren't done getting data?");
+ 
+  
+  if (mStopRequestIssued && aNewFileLocation)
+  {
+    
+    
+    
+    
+    bool equalToTempFile = false;
+    bool filetoUseAlreadyExists = false;
+    aNewFileLocation->Equals(mTempFile, &equalToTempFile);
+    aNewFileLocation->Exists(&filetoUseAlreadyExists);
+    if (filetoUseAlreadyExists && !equalToTempFile)
+      aNewFileLocation->Remove(false);
+
+     
+     nsAutoString fileName;
+     aNewFileLocation->GetLeafName(fileName);
+     nsCOMPtr<nsIFile> directoryLocation;
+     rv = aNewFileLocation->GetParent(getter_AddRefs(directoryLocation));
+     if (directoryLocation)
+     {
+       rv = mTempFile->MoveTo(directoryLocation, fileName);
+     }
+     if (NS_FAILED(rv))
+     {
+       
+       nsAutoString path;
+       aNewFileLocation->GetPath(path);
+       SendStatusChange(kWriteError, rv, nullptr, path);
+       Cancel(rv); 
+     }
+#if defined(XP_OS2)
+     else
+     {
+       
+       nsCOMPtr<nsILocalFileOS2> localFileOS2 = do_QueryInterface(aNewFileLocation);
+       if (localFileOS2)
+       {
+         nsAutoCString url;
+         mSourceUrl->GetSpec(url);
+         localFileOS2->SetFileSource(url);
+       }
+     }
+#endif
+  }
+
+  return rv;
+}
+
+
+
+
+
+
 
 
 
@@ -2032,6 +2117,9 @@ NS_IMETHODIMP nsExternalAppHandler::SaveToDisk(nsIFile * aNewFileLocation, bool 
     return NS_OK;
 
   mMimeInfo->SetPreferredAction(nsIMIMEInfo::saveToDisk);
+
+  
+  mReceivedDispositionInfo = true;
 
   if (!aNewFileLocation) {
     if (mSuggestedFileName.IsEmpty())
@@ -2055,9 +2143,6 @@ NS_IMETHODIMP nsExternalAppHandler::SaveToDisk(nsIFile * aNewFileLocation, bool 
 }
 nsresult nsExternalAppHandler::ContinueSave(nsIFile * aNewFileLocation)
 {
-  if (mCanceled)
-    return NS_OK;
-
   NS_PRECONDITION(aNewFileLocation, "Must be called with a non-null file");
 
   nsresult rv = NS_OK;
@@ -2067,8 +2152,7 @@ nsresult nsExternalAppHandler::ContinueSave(nsIFile * aNewFileLocation)
   
   
   
-  
-  if (mFinalFileDestination && mSaver && !mStopRequestIssued)
+  if (mFinalFileDestination && !mStopRequestIssued)
   {
     nsCOMPtr<nsIFile> movedFile;
     mFinalFileDestination->Clone(getter_AddRefs(movedFile));
@@ -2079,22 +2163,24 @@ nsresult nsExternalAppHandler::ContinueSave(nsIFile * aNewFileLocation)
       name.AppendLiteral(".part");
       movedFile->SetLeafName(name);
 
-      rv = mSaver->SetTarget(movedFile, true);
-      if (NS_FAILED(rv)) {
-        nsAutoString path;
-        mTempFile->GetPath(path);
-        SendStatusChange(kWriteError, rv, nullptr, path);
-        Cancel(rv);
-        return NS_OK;
+      if (mSaver)
+      {
+        rv = mSaver->SetTarget(movedFile, true);
+        if (NS_FAILED(rv)) {
+          nsAutoString path;
+          mTempFile->GetPath(path);
+          SendStatusChange(kWriteError, rv, nullptr, path);
+          Cancel(rv);
+          return NS_OK;
+        }
       }
 
       mTempFile = movedFile;
     }
   }
 
-  
-  
-  CreateTransfer();
+  if (!mProgressListenerInitialized)
+    CreateProgressListener();
 
   
   
@@ -2104,6 +2190,65 @@ nsresult nsExternalAppHandler::ContinueSave(nsIFile * aNewFileLocation)
 
   return NS_OK;
 }
+
+
+nsresult nsExternalAppHandler::OpenWithApplication()
+{
+  nsresult rv = NS_OK;
+  if (mCanceled)
+    return NS_OK;
+  
+  
+
+  NS_ASSERTION(mStopRequestIssued, "uhoh, how did we get here if we aren't done getting data?");
+  
+  if (mStopRequestIssued)
+  {
+
+    
+    
+    
+    
+    bool deleteTempFileOnExit =
+      Preferences::GetBool("browser.helperApps.deleteTempFileOnExit",
+#if !defined(XP_MACOSX)
+                           true);
+#else
+                           false);
+#endif
+
+
+    NS_ASSERTION(mRequest, "This should never be called with a null request");
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
+    bool inPrivateBrowsing = channel && NS_UsePrivateBrowsing(channel);
+
+    
+    
+    if (deleteTempFileOnExit || inPrivateBrowsing)
+      mFinalFileDestination->SetPermissions(0400);
+
+    rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);
+    if (NS_FAILED(rv))
+    {
+      
+      nsAutoString path;
+      mFinalFileDestination->GetPath(path);
+      SendStatusChange(kLaunchError, rv, nullptr, path);
+      Cancel(rv); 
+    }
+    
+    
+    else if (deleteTempFileOnExit) {
+      mExtProtSvc->DeleteTemporaryFileOnExit(mFinalFileDestination);
+    }
+    else if (inPrivateBrowsing) {
+      mExtProtSvc->DeleteTemporaryPrivateFileWhenPossible(mFinalFileDestination);
+    }
+  }
+
+  return rv;
+}
+
 
 
 
@@ -2117,6 +2262,7 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   
   ProcessAnyRefreshTags(); 
   
+  mReceivedDispositionInfo = true; 
   if (mMimeInfo && aApplication) {
     PlatformLocalHandlerApp_t *handlerApp =
       new PlatformLocalHandlerApp_t(EmptyString(), aApplication);
@@ -2151,8 +2297,7 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   
   
   
-  
-  
+
   nsCOMPtr<nsIFile> fileToUse;
   (void) GetDownloadDirectory(getter_AddRefs(fileToUse));
 
@@ -2173,7 +2318,8 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   {
     mFinalFileDestination = do_QueryInterface(fileToUse);
     
-    CreateTransfer();
+    if (!mProgressListenerInitialized)
+      CreateProgressListener();
   }
   else
   {
@@ -2205,8 +2351,7 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
 
   
   
-  mDialogProgressListener = nullptr;
-  mTransfer = nullptr;
+  mWebProgressListener = nullptr;
 
   return NS_OK;
 }

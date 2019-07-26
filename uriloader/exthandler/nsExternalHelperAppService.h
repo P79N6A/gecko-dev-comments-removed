@@ -284,7 +284,10 @@ protected:
   
 
 
+
+  bool mReceivedDispositionInfo;
   bool mStopRequestIssued; 
+  bool mProgressListenerInitialized;
 
   bool mIsFileChannel;
 
@@ -323,11 +326,6 @@ protected:
   
 
 
-  nsAutoCString mHash;
-
-  
-
-
 
   nsresult SetUpTempFile(nsIChannel * aChannel);
   
@@ -341,7 +339,9 @@ protected:
 
 
 
-  nsresult CreateTransfer();
+
+
+  nsresult CreateProgressListener();
 
 
   
@@ -383,8 +383,20 @@ protected:
   
 
 
-  nsresult NotifyTransfer();
 
+  nsresult MoveFile(nsIFile * aNewFileLocation);
+  
+
+
+
+
+  nsresult OpenWithApplication();
+  
+  
+
+
+
+  nsresult ExecuteDesiredAction();
   
 
 
@@ -415,17 +427,7 @@ protected:
 
   nsresult MaybeCloseWindow();
 
-  
-
-
-
-  nsCOMPtr<nsIWebProgressListener2> mDialogProgressListener;
-  
-
-
-
-  nsCOMPtr<nsITransfer> mTransfer;
-
+  nsCOMPtr<nsIWebProgressListener2> mWebProgressListener;
   nsCOMPtr<nsIChannel> mOriginalChannel; 
   nsCOMPtr<nsIHelperAppLauncherDialog> mDialog;
 

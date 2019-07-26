@@ -52,8 +52,7 @@ MockTransfer.prototype = {
   onRefreshAttempted: function () {},
 
   
-  init: function() {},
-  setSha256Hash: function() {}
+  init: function () {}
 };
 
 
