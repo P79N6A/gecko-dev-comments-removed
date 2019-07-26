@@ -83,7 +83,7 @@ static void fatal_error(const char *str)
 {
   write(write_end_of_the_pipe, str, strlen(str));
   write(write_end_of_the_pipe, "\n", 1);
-  exit(EXIT_FAILURE);
+  _exit(EXIT_FAILURE);
 }
 
 static int
@@ -97,11 +97,18 @@ x_error_handler(Display *, XErrorEvent *ev)
                         ev->request_code,
                         ev->minor_code);
   write(write_end_of_the_pipe, buf, length);
-  exit(EXIT_FAILURE);
+  _exit(EXIT_FAILURE);
   return 0;
 }
 
-static void glxtest()
+
+
+
+
+
+extern "C" {
+
+void glxtest()
 {
   
   
@@ -245,6 +252,8 @@ static void glxtest()
   write(write_end_of_the_pipe, buf, length);
 }
 
+}
+
 
 bool fire_glxtest_process()
 {
@@ -267,7 +276,7 @@ bool fire_glxtest_process()
       write_end_of_the_pipe = pfd[1];
       glxtest();
       close(pfd[1]);
-      exit(0);
+      _exit(0);
   }
 
   close(pfd[1]);
