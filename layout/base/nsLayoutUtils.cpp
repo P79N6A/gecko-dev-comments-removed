@@ -1260,6 +1260,13 @@ nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
     nsIFrame* parent = GetCrossDocParentFrame(f);
     if (!parent)
       break;
+    nsIAtom* parentType = parent->GetType();
+#ifdef ANDROID
+    
+    
+    if (parentType == nsGkAtoms::sliderFrame)
+      break;
+#endif
     
     
     
@@ -1267,8 +1274,8 @@ nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
         !stickyFrame) {
       stickyFrame = f;
     }
-    nsIScrollableFrame* sf = do_QueryFrame(parent);
-    if (sf) {
+    if (parentType == nsGkAtoms::scrollFrame) {
+      nsIScrollableFrame* sf = do_QueryFrame(parent);
       if (sf->IsScrollingActive() && sf->GetScrolledFrame() == f) {
         
         
