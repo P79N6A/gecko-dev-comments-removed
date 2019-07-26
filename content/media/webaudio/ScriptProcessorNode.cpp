@@ -12,7 +12,7 @@
 #include "AudioNodeStream.h"
 #include "AudioProcessingEvent.h"
 #include "WebAudioUtils.h"
-#include "nsCxPusher.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/PodOperations.h"
 #include <deque>
@@ -402,44 +402,51 @@ private:
           return NS_OK;
         }
 
-        AutoPushJSContext cx(node->Context()->GetJSContext());
-        if (cx) {
-
-          
-          nsRefPtr<AudioBuffer> inputBuffer;
-          if (!mNullInput) {
-            inputBuffer = new AudioBuffer(node->Context(),
-                                          node->BufferSize(),
-                                          node->Context()->SampleRate());
-            if (!inputBuffer->InitializeBuffers(mInputChannels.Length(), cx)) {
-              return NS_OK;
-            }
-            
-            for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
-              inputBuffer->SetRawChannelContents(cx, i, mInputChannels[i]);
-            }
-          }
-
-          
-          
-          
-          
-          
-          nsRefPtr<AudioProcessingEvent> event = new AudioProcessingEvent(node, nullptr, nullptr);
-          event->InitEvent(inputBuffer,
-                           mInputChannels.Length(),
-                           mPlaybackTime);
-          node->DispatchTrustedEvent(event);
-
-          
-          nsRefPtr<ThreadSharedFloatArrayBufferList> output;
-          if (event->HasOutputBuffer()) {
-            output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx);
-          }
-
-          
-          node->GetSharedBuffers()->FinishProducingOutputBuffer(output, node->BufferSize());
+        
+        JSObject* global = node->Context()->GetGlobalJSObject();
+        if (NS_WARN_IF(!global)) {
+          return NS_OK;
         }
+
+        AutoJSAPI jsapi;
+        JSContext* cx = jsapi.cx();
+        JSAutoCompartment ac(cx, global);
+
+        
+        nsRefPtr<AudioBuffer> inputBuffer;
+        if (!mNullInput) {
+          inputBuffer = new AudioBuffer(node->Context(),
+                                        node->BufferSize(),
+                                        node->Context()->SampleRate());
+          if (!inputBuffer->InitializeBuffers(mInputChannels.Length(), cx)) {
+            return NS_OK;
+          }
+          
+          for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
+            inputBuffer->SetRawChannelContents(cx, i, mInputChannels[i]);
+          }
+        }
+
+        
+        
+        
+        
+        
+        nsRefPtr<AudioProcessingEvent> event = new AudioProcessingEvent(node, nullptr, nullptr);
+        event->InitEvent(inputBuffer,
+                         mInputChannels.Length(),
+                         mPlaybackTime);
+        node->DispatchTrustedEvent(event);
+
+        
+        nsRefPtr<ThreadSharedFloatArrayBufferList> output;
+        if (event->HasOutputBuffer()) {
+          output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx);
+        }
+
+        
+        node->GetSharedBuffers()->FinishProducingOutputBuffer(output, node->BufferSize());
+
         return NS_OK;
       }
     private:
