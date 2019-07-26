@@ -96,7 +96,11 @@ void SetDirectionFromNewTextNode(nsIContent* aTextNode);
 
 
 
-void ResetDirectionSetByTextNode(nsTextNode* aTextNode);
+
+
+
+
+void ResetDirectionSetByTextNode(nsTextNode* aTextNode, bool aNullParent);
 
 
 
