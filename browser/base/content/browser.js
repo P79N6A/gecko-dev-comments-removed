@@ -5688,6 +5688,7 @@ function SelectDetector(event, doReload)
 
 function BrowserSetForcedCharacterSet(aCharset)
 {
+  gBrowser.docShell.gatherCharsetMenuTelemetry();
   gBrowser.docShell.charset = aCharset;
   
   if (!PrivateBrowsingUtils.isWindowPrivate(window))
