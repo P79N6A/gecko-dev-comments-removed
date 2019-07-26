@@ -43,6 +43,41 @@ typedef bool
 (* EnumerateProperties)(JSContext* cx, JSObject* wrapper,
                         JS::AutoIdVector& props);
 
+struct ConstantSpec
+{
+  const char* name;
+  JS::Value value;
+};
+
+template<typename T>
+struct Prefable {
+  
+  bool enabled;
+  
+  
+  
+  T* specs;
+};
+
+struct NativeProperties
+{
+  Prefable<JSFunctionSpec>* staticMethods;
+  jsid* staticMethodIds;
+  JSFunctionSpec* staticMethodsSpecs;
+  Prefable<JSFunctionSpec>* methods;
+  jsid* methodIds;
+  JSFunctionSpec* methodsSpecs;
+  Prefable<JSPropertySpec>* attributes;
+  jsid* attributeIds;
+  JSPropertySpec* attributeSpecs;
+  Prefable<JSPropertySpec>* unforgeableAttributes;
+  jsid* unforgeableAttributeIds;
+  JSPropertySpec* unforgeableAttributeSpecs;
+  Prefable<ConstantSpec>* constants;
+  jsid* constantIds;
+  ConstantSpec* constantSpecs;
+};
+
 struct NativePropertyHooks
 {
   ResolveProperty mResolveOwnProperty;

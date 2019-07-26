@@ -317,46 +317,11 @@ DestroyProtoAndIfaceCache(JSObject* obj)
   delete [] protoAndIfaceArray;
 }
 
-struct ConstantSpec
-{
-  const char* name;
-  JS::Value value;
-};
-
 
 
 
 bool
 DefineConstants(JSContext* cx, JSObject* obj, ConstantSpec* cs);
-
-template<typename T>
-struct Prefable {
-  
-  bool enabled;
-  
-  
-  
-  T* specs;
-};
-
-struct NativeProperties
-{
-  Prefable<JSFunctionSpec>* staticMethods;
-  jsid* staticMethodIds;
-  JSFunctionSpec* staticMethodsSpecs;
-  Prefable<JSFunctionSpec>* methods;
-  jsid* methodIds;
-  JSFunctionSpec* methodsSpecs;
-  Prefable<JSPropertySpec>* attributes;
-  jsid* attributeIds;
-  JSPropertySpec* attributeSpecs;
-  Prefable<JSPropertySpec>* unforgeableAttributes;
-  jsid* unforgeableAttributeIds;
-  JSPropertySpec* unforgeableAttributeSpecs;
-  Prefable<ConstantSpec>* constants;
-  jsid* constantIds;
-  ConstantSpec* constantSpecs;
-};
 
 
 
