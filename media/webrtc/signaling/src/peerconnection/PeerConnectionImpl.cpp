@@ -573,6 +573,12 @@ PeerConnectionImpl::ConvertRTCConfiguration(const RTCConfiguration& aSrc,
   for (uint32_t i = 0; i < aSrc.mIceServers.Value().Length(); i++) {
     const RTCIceServer& server = aSrc.mIceServers.Value()[i];
     NS_ENSURE_TRUE(server.mUrl.WasPassed(), NS_ERROR_UNEXPECTED);
+
+    
+    
+    
+    
+    
     nsRefPtr<nsIURI> url;
     nsresult rv = NS_NewURI(getter_AddRefs(url), server.mUrl.Value());
     NS_ENSURE_SUCCESS(rv, rv);
@@ -591,6 +597,7 @@ PeerConnectionImpl::ConvertRTCConfiguration(const RTCConfiguration& aSrc,
     
     int32_t port;
     nsAutoCString host;
+    nsAutoCString transport;
     {
       uint32_t hostPos;
       int32_t hostLen;
@@ -601,6 +608,17 @@ PeerConnectionImpl::ConvertRTCConfiguration(const RTCConfiguration& aSrc,
       
       int32_t questionmark = path.FindChar('?');
       if (questionmark >= 0) {
+        const nsCString match = NS_LITERAL_CSTRING("transport=");
+
+        for (int32_t i = questionmark, endPos; i >= 0; i = endPos) {
+          endPos = path.FindCharInSet("&", i + 1);
+          const nsDependentCSubstring fieldvaluepair = Substring(path, i + 1,
+                                                                 endPos);
+          if (StringBeginsWith(fieldvaluepair, match)) {
+            transport = Substring(fieldvaluepair, match.Length());
+            ToLowerCase(transport);
+          }
+        }
         path.SetLength(questionmark);
       }
 
@@ -625,7 +643,9 @@ PeerConnectionImpl::ConvertRTCConfiguration(const RTCConfiguration& aSrc,
 
       if (!aDst->addTurnServer(host.get(), port,
                                username.get(),
-                               credential.get())) {
+                               credential.get(),
+                               (transport.IsEmpty() ?
+                                kNrIceTransportUdp : transport.get()))) {
         return NS_ERROR_FAILURE;
       }
     } else {
