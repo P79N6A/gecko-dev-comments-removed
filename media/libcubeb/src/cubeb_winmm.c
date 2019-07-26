@@ -511,8 +511,6 @@ winmm_stream_destroy(cubeb_stream * stm)
 static int
 winmm_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 {
-  MMRESULT rv;
-  LPWAVEOUTCAPS waveout_caps;
   assert(ctx && max_channels);
 
   
@@ -526,6 +524,33 @@ winmm_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * latenc
 {
   
   *latency = ctx->minimum_latency;
+
+  return CUBEB_OK;
+}
+
+static int
+winmm_get_preferred_sample_rate(cubeb * ctx, cubeb_stream_params params, uint32_t * rate)
+{
+  LPWAVEOUTCAPS pwoc;
+  UINT cbwoc;
+  MMRESULT r;
+
+  cbwoc = sizeof(WAVEOUTCAPS);
+
+  r = waveOutGetDevCaps(WAVE_MAPPER, pwoc, cbwoc);
+
+  if (r != MMSYSERR_NOERROR) {
+    return CUBEB_ERROR;
+  }
+
+  
+  if (!(pwoc->dwFormats & WAVE_FORMAT_4S16) &&
+      pwoc->dwFormats & WAVE_FORMAT_48S16) {
+    *rate = 48000;
+    return CUBEB_OK;
+  }
+  
+  *rate = 44100;
 
   return CUBEB_OK;
 }
@@ -609,6 +634,7 @@ static struct cubeb_ops const winmm_ops = {
    winmm_get_backend_id,
    winmm_get_max_channel_count,
    winmm_get_min_latency,
+   winmm_get_preferred_sample_rate,
    winmm_destroy,
    winmm_stream_init,
    winmm_stream_destroy,

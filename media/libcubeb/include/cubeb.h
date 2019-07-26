@@ -201,6 +201,14 @@ int cubeb_get_min_latency(cubeb * context, cubeb_stream_params params, uint32_t 
 
 
 
+
+
+
+
+int cubeb_get_preferred_sample_rate(cubeb * context, uint32_t * rate);
+
+
+
 void cubeb_destroy(cubeb * context);
 
 

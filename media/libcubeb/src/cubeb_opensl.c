@@ -276,6 +276,37 @@ opensl_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * laten
   return CUBEB_OK;
 }
 
+static int
+opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
+{
+  
+
+
+  int rv;
+  void * libmedia;
+  uint32_t (*get_primary_output_samplingrate)();
+  uint32_t primary_sampling_rate;
+
+  libmedia = dlopen("libmedia.so", RTLD_LAZY);
+  if (!libmedia) {
+    return CUBEB_ERROR;
+  }
+
+  
+  get_primary_output_samplingrate =
+    dlsym(libmedia, "_ZN7android11AudioSystem28getPrimaryOutputSamplingRateEv");
+  if (!get_primary_output_samplingrate) {
+    dlclose(libmedia);
+    return CUBEB_ERROR;
+  }
+
+  *rate = get_primary_output_samplingrate();
+
+  dlclose(libmedia);
+
+  return CUBEB_OK;
+}
+
 
 static void
 opensl_destroy(cubeb * ctx)
@@ -483,6 +514,7 @@ static struct cubeb_ops const opensl_ops = {
   .get_backend_id = opensl_get_backend_id,
   .get_max_channel_count = opensl_get_max_channel_count,
   .get_min_latency = opensl_get_min_latency,
+  .get_preferred_sample_rate = opensl_get_preferred_sample_rate,
   .destroy = opensl_destroy,
   .stream_init = opensl_stream_init,
   .stream_destroy = opensl_stream_destroy,
