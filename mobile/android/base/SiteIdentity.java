@@ -21,8 +21,8 @@ public class SiteIdentity {
     
     public enum SecurityMode {
         UNKNOWN("unknown"),
-        VERIFIED("verified"),
         IDENTIFIED("identified"),
+        VERIFIED("verified"),
         MIXED_CONTENT_BLOCKED("mixed_content_blocked"),
         MIXED_CONTENT_LOADED("mixed_content_loaded");
 
