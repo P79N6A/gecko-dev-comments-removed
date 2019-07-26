@@ -1505,6 +1505,11 @@ this.DOMApplicationRegistry = {
     let localId = this.getAppLocalIdByManifestURL(manifestURL);
 
     
+    if (localId && !id) {
+      id = this._appIdForManifestURL(manifestURL);
+    }
+
+    
     if (id) {
       isReinstall = true;
       let dir = this._getAppDir(id);
