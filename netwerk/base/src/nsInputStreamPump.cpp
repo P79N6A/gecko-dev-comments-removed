@@ -579,12 +579,10 @@ nsInputStreamPump::OnStateTransfer()
 }
 
 nsresult
-nsInputStreamPump::OnStateStopForFailure()
+nsInputStreamPump::CallOnStateStop()
 {
-    MOZ_ASSERT(NS_FAILED(mStatus), "OnStateStopForFailure should be called "
-                                   "in a failed state");
-    MOZ_ASSERT(NS_IsMainThread(), "OnStateStopForFailure should be on the "
-                                  "main thread");
+    MOZ_ASSERT(NS_IsMainThread(),
+               "CallOnStateStop should only be called on the main thread.");
 
     mState = OnStateStop();
     return NS_OK;
@@ -593,20 +591,17 @@ nsInputStreamPump::OnStateStopForFailure()
 uint32_t
 nsInputStreamPump::OnStateStop()
 {
-    if (NS_FAILED(mStatus)) {
+    if (!NS_IsMainThread()) {
         
         
         
         
-        if (!NS_IsMainThread()) {
-            nsresult rv = NS_DispatchToMainThread(
-                NS_NewRunnableMethod(this, &nsInputStreamPump::OnStateStopForFailure));
-            NS_ENSURE_SUCCESS(rv, STATE_IDLE);
-            return STATE_IDLE;
-        }
-    } else {
-        MOZ_ASSERT(NS_IsMainThread(), "In a success state, OnStateStop should "
-                                      "be on the main thread");
+        MOZ_ASSERT(NS_IsMainThread(),
+                   "OnStateStop should only be called on the main thread.");
+        nsresult rv = NS_DispatchToMainThread(
+            NS_NewRunnableMethod(this, &nsInputStreamPump::CallOnStateStop));
+        NS_ENSURE_SUCCESS(rv, STATE_IDLE);
+        return STATE_IDLE;
     }
 
     PROFILER_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
@@ -615,6 +610,12 @@ nsInputStreamPump::OnStateStop()
     
     
     
+
+    if (!mAsyncStream || !mListener) {
+        MOZ_ASSERT(mAsyncStream, "null mAsyncStream: OnStateStop called twice?");
+        MOZ_ASSERT(mListener, "null mListener: OnStateStop called twice?");
+        return STATE_IDLE;
+    }
 
     if (NS_FAILED(mStatus))
         mAsyncStream->CloseWithStatus(mStatus);

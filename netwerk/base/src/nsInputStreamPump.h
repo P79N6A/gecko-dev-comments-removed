@@ -60,15 +60,7 @@ public:
 
 
 
-
-
-    void OnStateStopCleanup();
-
-    
-
-
-
-    nsresult OnStateStopForFailure();
+    nsresult CallOnStateStop();
 
 protected:
 
