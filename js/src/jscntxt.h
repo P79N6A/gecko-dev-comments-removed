@@ -632,7 +632,7 @@ typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
 
 } 
 
-struct JSRuntime : js::RuntimeFriendFields,
+struct JSRuntime : private JS::shadow::Runtime,
                    public js::MallocProvider<JSRuntime>
 {
     
@@ -646,6 +646,12 @@ struct JSRuntime : js::RuntimeFriendFields,
 
 
     js::PerThreadData   mainThread;
+
+    
+
+
+
+    volatile int32_t    interrupt;
 
     
     JSCompartment       *atomsCompartment;
@@ -1083,6 +1089,14 @@ struct JSRuntime : js::RuntimeFriendFields,
     volatile ptrdiff_t  gcMallocBytes;
 
   public:
+    void setNeedsBarrier(bool needs) {
+        needsBarrier_ = needs;
+    }
+
+    bool needsBarrier() const {
+        return needsBarrier_;
+    }
+
     
 
 
