@@ -3400,6 +3400,46 @@ RilObject.prototype = {
     return Math.floor((signal - min) * 100 / (max - min));
   },
 
+  
+
+
+
+
+
+
+
+
+  _processLteSignal: function(signal) {
+    
+    if (signal.lteSignalStrength === undefined ||
+        signal.lteSignalStrength < 0 ||
+        signal.lteSignalStrength > 63) {
+      return;
+    }
+
+    let info = {
+      voice: {
+        signalStrength:    null,
+        relSignalStrength: null
+      },
+      data: {
+        signalStrength:    null,
+        relSignalStrength: null
+      }
+    };
+
+    
+    
+    let signalStrength = -111 + signal.lteSignalStrength;
+    info.voice.signalStrength = info.data.signalStrength = signalStrength;
+    
+    
+    let signalLevel = this._processSignalLevel(signal.lteSignalStrength, 0, 12);
+    info.voice.relSignalStrength = info.data.relSignalStrength = signalLevel;
+
+    return info;
+  },
+
   _processSignalStrength: function(signal) {
     let info = {
       voice: {
@@ -3412,7 +3452,7 @@ RilObject.prototype = {
       }
     };
 
-    if (this._isCdma) {
+    if (!this._isGsmTechGroup(this.voiceRegistrationState.radioTech)) {
       
       
       
@@ -3443,20 +3483,27 @@ RilObject.prototype = {
     } else {
       
       
-      
-      
-      
-      
-      if (signal.gsmSignalStrength &&
-          signal.gsmSignalStrength >= 0 &&
-          signal.gsmSignalStrength <= 31) {
-        let signalStrength = -113 + 2 * signal.gsmSignalStrength;
-        info.voice.signalStrength = info.data.signalStrength = signalStrength;
+      let lteInfo = this._processLteSignal(signal);
+      if (lteInfo) {
+        info = lteInfo;
+      } else {
+        
+        
+        
+        
+        
+        
+        if (signal.gsmSignalStrength &&
+            signal.gsmSignalStrength >= 0 &&
+            signal.gsmSignalStrength <= 31) {
+          let signalStrength = -113 + 2 * signal.gsmSignalStrength;
+          info.voice.signalStrength = info.data.signalStrength = signalStrength;
 
-        
-        
-        let signalLevel = this._processSignalLevel(signalStrength, -110, -85);
-        info.voice.relSignalStrength = info.data.relSignalStrength = signalLevel;
+          
+          
+          let signalLevel = this._processSignalLevel(signalStrength, -110, -85);
+          info.voice.relSignalStrength = info.data.relSignalStrength = signalLevel;
+        }
       }
     }
 
@@ -4142,9 +4189,10 @@ RilObject.prototype = {
   
 
 
-  _processRadioTech: function(radioTech) {
-    let isCdma = true;
-    this.radioTech = radioTech;
+  _isGsmTechGroup: function(radioTech) {
+    if (!radioTech) {
+      return true;
+    }
 
     switch(radioTech) {
       case NETWORK_CREG_TECH_GPRS:
@@ -4156,8 +4204,18 @@ RilObject.prototype = {
       case NETWORK_CREG_TECH_LTE:
       case NETWORK_CREG_TECH_HSPAP:
       case NETWORK_CREG_TECH_GSM:
-        isCdma = false;
+        return true;
     }
+
+    return false;
+  },
+
+  
+
+
+  _processRadioTech: function(radioTech) {
+    let isCdma = !this._isGsmTechGroup(radioTech);
+    this.radioTech = radioTech;
 
     if (DEBUG) {
       this.context.debug("Radio tech is set to: " + GECKO_RADIO_TECH[radioTech] +
