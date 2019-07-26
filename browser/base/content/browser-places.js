@@ -886,6 +886,10 @@ let PlacesToolbarHelper = {
 
     
     
+    CustomizableUI.addListener(this);
+
+    
+    
     
     
     
@@ -899,7 +903,11 @@ let PlacesToolbarHelper = {
     if (forceToolbarOverflowCheck) {
       viewElt._placesView.updateOverflowStatus();
     }
-    this.customizeChange();
+    this._setupPlaceholder();
+  },
+
+  uninit: function PTH_uninit() {
+    CustomizableUI.removeListener(this);
   },
 
   customizeStart: function PTH_customizeStart() {
@@ -914,10 +922,15 @@ let PlacesToolbarHelper = {
   },
 
   customizeChange: function PTH_customizeChange() {
+    this._setupPlaceholder();
+  },
+
+  _setupPlaceholder: function PTH_setupPlaceholder() {
     let placeholder = this._placeholder;
     if (!placeholder) {
       return;
     }
+
     let shouldWrapNow = this._getShouldWrap();
     if (this._shouldWrap != shouldWrapNow) {
       if (shouldWrapNow) {
@@ -958,7 +971,40 @@ let PlacesToolbarHelper = {
       element = element.parentNode;
     }
     return null;
-  }
+  },
+
+  onWidgetUnderflow: function(aNode, aContainer) {
+    
+    
+    let win = aNode.ownerDocument.defaultView;
+    if (aNode.id == "personal-bookmarks" && win == window) {
+      this._resetView();
+    }
+  },
+
+  onWidgetAdded: function(aWidgetId, aArea, aPosition) {
+    if (aWidgetId == "personal-bookmarks" && !this._isCustomizing) {
+      
+      
+      
+      
+      
+      this._resetView();
+    }
+  },
+
+  _resetView: function() {
+    if (this._viewElt) {
+      
+      
+      
+      
+      if (this._viewElt._placesView) {
+        this._viewElt._placesView.uninit();
+      }
+      this.init(true);
+    }
+  },
 };
 
 
@@ -1164,6 +1210,16 @@ let BookmarkingUI = {
     
     if (this.button._placesView)
       this.button._placesView.uninit();
+
+    
+    
+    const kSpecialViewNodeIDs = ["BMB_bookmarksToolbar", "BMB_unsortedBookmarks"];
+    for (let viewNodeID of kSpecialViewNodeIDs) {
+      let elem = document.getElementById(viewNodeID);
+      if (elem && elem._placesView) {
+        elem._placesView.uninit();
+      }
+    }
   },
 
   onCustomizeStart: function BUI_customizeStart(aWindow) {
