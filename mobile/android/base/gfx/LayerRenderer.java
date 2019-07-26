@@ -504,9 +504,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             
             runRenderTasks(mTasks, false, mFrameStartTime);
 
-            boolean hideScrollbars = (mView.getFullScreenState() == FullScreenState.NON_ROOT_ELEMENT);
-            if (!mPageContext.fuzzyEquals(mLastPageContext) && !hideScrollbars) {
-                
+            if (!mPageContext.fuzzyEquals(mLastPageContext) && !mView.isFullScreen()) {
                 
                 
                 mVertScrollLayer.unfade();

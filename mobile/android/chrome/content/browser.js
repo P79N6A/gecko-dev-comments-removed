@@ -346,19 +346,12 @@ var BrowserApp = {
       });
     }, false);
 
-    window.addEventListener("mozfullscreenchange", function(e) {
-      
-      
-      
-      
-      
-      let doc = e.target;
+    window.addEventListener("mozfullscreenchange", function() {
       sendMessageToJava({
-        type: doc.mozFullScreen ? "DOMFullScreen:Start" : "DOMFullScreen:Stop",
-        rootElement: (doc.mozFullScreen && doc.mozFullScreenElement == doc.documentElement)
+        type: document.mozFullScreen ? "DOMFullScreen:Start" : "DOMFullScreen:Stop"
       });
 
-      if (doc.mozFullScreen)
+      if (document.mozFullScreen)
         showFullScreenWarning();
     }, false);
 
