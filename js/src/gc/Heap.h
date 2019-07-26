@@ -701,8 +701,7 @@ struct ChunkBitmap
         PodArrayZero(bitmap);
     }
 
-#ifdef DEBUG
-    bool noBitsSet(ArenaHeader *aheader) {
+    uintptr_t *arenaBits(ArenaHeader *aheader) {
         
 
 
@@ -712,13 +711,8 @@ struct ChunkBitmap
 
         uintptr_t *word, unused;
         getMarkWordAndMask(reinterpret_cast<Cell *>(aheader->address()), BLACK, &word, &unused);
-        for (size_t i = 0; i != ArenaBitmapWords; i++) {
-            if (word[i])
-                return false;
-        }
-        return true;
+        return word;
     }
-#endif
 };
 
 JS_STATIC_ASSERT(ArenaBitmapBytes * ArenasPerChunk == sizeof(ChunkBitmap));

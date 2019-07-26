@@ -9,9 +9,7 @@
 #include "HyperTextAccessibleWrap.h"
 #include "nsIAccessibleTable.h"
 #include "TableAccessible.h"
-#include "TableCellAccessible.h"
 #include "xpcAccessibleTable.h"
-#include "xpcAccessibleTableCell.h"
 
 class nsITableLayout;
 class nsITableCellLayout;
@@ -23,9 +21,7 @@ namespace a11y {
 
 
 class HTMLTableCellAccessible : public HyperTextAccessibleWrap,
-                                public nsIAccessibleTableCell,
-                                public TableCellAccessible,
-                                public xpcAccessibleTableCell
+                                public nsIAccessibleTableCell
 {
 public:
   HTMLTableCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -34,25 +30,13 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
+  NS_DECL_NSIACCESSIBLETABLECELL
 
   
-  virtual TableCellAccessible* AsTableCell() { return this; }
-  virtual void Shutdown();
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeInteractiveState() const;
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-
-  
-  virtual TableAccessible* Table() const MOZ_OVERRIDE;
-  virtual uint32_t ColIdx() const MOZ_OVERRIDE;
-  virtual uint32_t RowIdx() const MOZ_OVERRIDE;
-  virtual uint32_t ColExtent() const MOZ_OVERRIDE;
-  virtual uint32_t RowExtent() const MOZ_OVERRIDE;
-  virtual void ColHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE;
-  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE;
-  virtual bool Selected() MOZ_OVERRIDE;
 
 protected:
   
@@ -63,12 +47,18 @@ protected:
   
 
 
-  nsITableCellLayout* GetCellLayout() const;
+  nsITableCellLayout* GetCellLayout();
 
   
 
 
-  nsresult GetCellIndexes(int32_t& aRowIdx, int32_t& aColIdx) const;
+  nsresult GetCellIndexes(PRInt32& aRowIdx, PRInt32& aColIdx);
+
+  
+
+
+  nsresult GetHeaderCells(PRInt32 aRowOrColumnHeaderCell,
+                          nsIArray **aHeaderCells);
 };
 
 
@@ -105,56 +95,41 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLE(xpcAccessibleTable::)
+  NS_DECL_OR_FORWARD_NSIACCESSIBLETABLE_WITH_XPCACCESSIBLETABLE
 
   
   virtual Accessible* Caption();
   virtual void Summary(nsString& aSummary);
-  virtual uint32_t ColCount();
-  virtual uint32_t RowCount();
-  virtual Accessible* CellAt(uint32_t aRowIndex, uint32_t aColumnIndex);
-  virtual int32_t CellIndexAt(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual int32_t ColIndexAt(uint32_t aCellIdx);
-  virtual int32_t RowIndexAt(uint32_t aCellIdx);
-  virtual void RowAndColIndicesAt(uint32_t aCellIdx, int32_t* aRowIdx,
-                                  int32_t* aColIdx);
-  virtual uint32_t ColExtentAt(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual uint32_t RowExtentAt(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual bool IsColSelected(uint32_t aColIdx);
-  virtual bool IsRowSelected(uint32_t aRowIdx);
-  virtual bool IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual uint32_t SelectedCellCount();
-  virtual uint32_t SelectedColCount();
-  virtual uint32_t SelectedRowCount();
-  virtual void SelectedCells(nsTArray<Accessible*>* aCells);
-  virtual void SelectedCellIndices(nsTArray<uint32_t>* aCells);
-  virtual void SelectedColIndices(nsTArray<uint32_t>* aCols);
-  virtual void SelectedRowIndices(nsTArray<uint32_t>* aRows);
-  virtual void SelectCol(uint32_t aColIdx);
-  virtual void SelectRow(uint32_t aRowIdx);
-  virtual void UnselectCol(uint32_t aColIdx);
-  virtual void UnselectRow(uint32_t aRowIdx);
+  virtual PRUint32 ColCount();
+  virtual PRUint32 RowCount();
+  virtual Accessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
+  virtual PRInt32 CellIndexAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual PRUint32 ColExtentAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual PRUint32 RowExtentAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual void SelectCol(PRUint32 aColIdx);
+  virtual void SelectRow(PRUint32 aRowIdx);
+  virtual void UnselectCol(PRUint32 aColIdx);
+  virtual void UnselectRow(PRUint32 aRowIdx);
   virtual bool IsProbablyLayoutTable();
-  virtual Accessible* AsAccessible() { return this; }
 
   
   virtual void Shutdown();
 
   
-  virtual TableAccessible* AsTable() { return this; }
+  virtual mozilla::a11y::TableAccessible* AsTable() { return this; }
   virtual void Description(nsString& aDescription);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-  virtual Relation RelationByType(uint32_t aRelationType);
+  virtual Relation RelationByType(PRUint32 aRelationType);
 
   
 
   
 
 
-  nsresult GetCellAt(int32_t aRowIndex, int32_t aColIndex,
+  nsresult GetCellAt(PRInt32 aRowIndex, PRInt32 aColIndex,
                      nsIDOMElement* &aCell);
 
   
@@ -176,7 +151,7 @@ protected:
 
 
 
-  nsresult AddRowOrColumnToSelection(int32_t aIndex, uint32_t aTarget);
+  nsresult AddRowOrColumnToSelection(PRInt32 aIndex, PRUint32 aTarget);
 
   
 
@@ -187,8 +162,8 @@ protected:
 
 
 
-  nsresult RemoveRowsOrColumnsFromSelection(int32_t aIndex,
-                                            uint32_t aTarget,
+  nsresult RemoveRowsOrColumnsFromSelection(PRInt32 aIndex,
+                                            PRUint32 aTarget,
                                             bool aIsOuter);
 
   
@@ -219,7 +194,7 @@ public:
 
   
   virtual a11y::role NativeRole();
-  virtual Relation RelationByType(uint32_t aRelationType);
+  virtual Relation RelationByType(PRUint32 aRelationType);
 };
 
 } 

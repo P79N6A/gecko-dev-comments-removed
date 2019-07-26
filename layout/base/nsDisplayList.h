@@ -2020,6 +2020,39 @@ public:
 
 
 
+class nsDisplaySimpleScrollLayer : public nsDisplayWrapList {
+public:
+  nsDisplaySimpleScrollLayer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                             nsDisplayList* aList);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplaySimpleScrollLayer();
+#endif
+
+  virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                 nsRegion* aVisibleRegion,
+                                 const nsRect& aAllowVisibleRegionExpansion);
+
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters);
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager,
+                                   const ContainerParameters& aParameters)
+  {
+    return mozilla::LAYER_ACTIVE;
+  }
+  virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem)
+  {
+    return false;
+  }
+  NS_DISPLAY_DECL_NAME("SimpleScrollLayer", TYPE_SIMPLE_SCROLL_LAYER)
+};
+
+
+
+
+
+
 class nsDisplayClip : public nsDisplayWrapList {
 public:
   

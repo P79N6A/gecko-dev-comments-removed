@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "LayerManagerD3D9.h"
 
@@ -42,7 +42,7 @@ LayerManagerD3D9::Initialize(bool force)
 {
   ScopedGfxFeatureReporter reporter("D3D9 Layers", force);
 
-  
+  /* XXX: this preference and blacklist code should move out of the layer manager */
   bool forceAccelerate =
     Preferences::GetBool("layers.acceleration.force-enabled", false);
 
@@ -95,9 +95,9 @@ LayerManagerD3D9::Destroy()
     if (mRoot) {
       static_cast<LayerD3D9*>(mRoot->ImplData())->LayerManagerDestroyed();
     }
-    
-
-
+    /* Important to release this first since it also holds a reference to the
+     * device manager
+     */
     mSwapChain = nsnull;
     mDeviceManager = nsnull;
   }
@@ -123,10 +123,10 @@ LayerManagerD3D9::EndConstruction()
 bool
 LayerManagerD3D9::EndEmptyTransaction()
 {
-  
-  
-  
-  
+  // If the device reset count from our last EndTransaction doesn't match
+  // the current device reset count, the device must have been reset one or
+  // more times since our last transaction. In that case, an empty transaction
+  // is not possible, because layers may need to be rerendered.
   if (!mRoot || mDeviceResetCount != mDeviceManager->GetDeviceResetCount())
     return false;
 
@@ -145,17 +145,17 @@ LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
     mCurrentCallbackInfo.Callback = aCallback;
     mCurrentCallbackInfo.CallbackData = aCallbackData;
 
-    
-    
+    // The results of our drawing always go directly into a pixel buffer,
+    // so we don't need to pass any global transform here.
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
 
     Render();
-    
+    /* Clean this out for sanity */
     mCurrentCallbackInfo.Callback = NULL;
     mCurrentCallbackInfo.CallbackData = NULL;
   }
 
-  
+  // Clear mTarget, next transaction could have no target
   mTarget = NULL;
 }
 
@@ -265,7 +265,7 @@ void ReleaseTexture(void *texture)
 void
 LayerManagerD3D9::ReportFailure(const nsACString &aMsg, HRESULT aCode)
 {
-  
+  // We could choose to abort here when hr == E_OUTOFMEMORY.
   nsCString msg;
   msg.Append(aMsg);
   msg.AppendLiteral(" Error code: ");
@@ -328,10 +328,10 @@ LayerManagerD3D9::SetupPipeline()
   mWidget->GetClientBounds(rect);
 
   gfx3DMatrix viewMatrix;
-  
-
-
-
+  /*
+   * Matrix to transform to viewport space ( <-1.0, 1.0> topleft,
+   * <1.0, -1.0> bottomright)
+   */
   viewMatrix._11 = 2.0f / rect.width;
   viewMatrix._22 = -2.0f / rect.height;
   viewMatrix._33 = 0.0f;
@@ -397,5 +397,5 @@ LayerD3D9::LayerD3D9(LayerManagerD3D9 *aManager)
 {
 }
 
-} 
-} 
+} /* namespace layers */
+} /* namespace mozilla */

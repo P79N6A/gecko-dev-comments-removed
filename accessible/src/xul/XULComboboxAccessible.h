@@ -22,18 +22,18 @@ public:
   XULComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD DoAction(uint8_t aIndex);
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
   virtual bool CanHaveAnonChildren();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual bool IsActiveWidget() const;

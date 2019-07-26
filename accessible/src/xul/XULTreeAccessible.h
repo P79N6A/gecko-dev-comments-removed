@@ -17,8 +17,8 @@ namespace a11y {
 
 
 
-const uint32_t kMaxTreeColumns = 100;
-const uint32_t kDefaultTreeCacheSize = 256;
+const PRUint32 kMaxTreeColumns = 100;
+const PRUint32 kDefaultTreeCacheSize = 256;
 
 
 
@@ -41,21 +41,21 @@ public:
   
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
+  virtual PRUint64 NativeState();
+  virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    EWhichChildAtPoint aWhichChild);
 
-  virtual Accessible* GetChildAt(uint32_t aIndex);
-  virtual uint32_t ChildCount() const;
+  virtual Accessible* GetChildAt(PRUint32 aIndex);
+  virtual PRUint32 ChildCount() const;
 
   
   virtual bool IsSelect();
   virtual already_AddRefed<nsIArray> SelectedItems();
-  virtual uint32_t SelectedItemCount();
-  virtual Accessible* GetSelectedItem(uint32_t aIndex);
-  virtual bool IsItemSelected(uint32_t aIndex);
-  virtual bool AddItemToSelection(uint32_t aIndex);
-  virtual bool RemoveItemFromSelection(uint32_t aIndex);
+  virtual PRUint32 SelectedItemCount();
+  virtual Accessible* GetSelectedItem(PRUint32 aIndex);
+  virtual bool IsItemSelected(PRUint32 aIndex);
+  virtual bool AddItemToSelection(PRUint32 aIndex);
+  virtual bool RemoveItemFromSelection(PRUint32 aIndex);
   virtual bool SelectAll();
   virtual bool UnselectAll();
 
@@ -76,7 +76,7 @@ public:
 
 
 
-  Accessible* GetTreeItemAccessible(int32_t aRow);
+  Accessible* GetTreeItemAccessible(PRInt32 aRow);
 
   
 
@@ -86,7 +86,7 @@ public:
 
 
 
-  void InvalidateCache(int32_t aRow, int32_t aCount);
+  void InvalidateCache(PRInt32 aRow, PRInt32 aCount);
 
   
 
@@ -97,8 +97,8 @@ public:
 
 
 
-  void TreeViewInvalidated(int32_t aStartRow, int32_t aEndRow,
-                           int32_t aStartCol, int32_t aEndCol);
+  void TreeViewInvalidated(PRInt32 aStartRow, PRInt32 aEndRow,
+                           PRInt32 aStartCol, PRInt32 aEndCol);
 
   
 
@@ -109,7 +109,7 @@ protected:
   
 
 
-  virtual already_AddRefed<Accessible> CreateTreeItemAccessible(int32_t aRow);
+  virtual already_AddRefed<Accessible> CreateTreeItemAccessible(PRInt32 aRow);
 
   nsCOMPtr<nsITreeBoxObject> mTree;
   nsITreeView* mTreeView;
@@ -135,7 +135,7 @@ public:
 
   XULTreeItemAccessibleBase(nsIContent* aContent, DocAccessible* aDoc,
                             Accessible* aParent, nsITreeBoxObject* aTree,
-                            nsITreeView* aTreeView, int32_t aRow);
+                            nsITreeView* aTreeView, PRInt32 aRow);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -143,28 +143,29 @@ public:
                                            AccessibleWrap)
 
   
-  NS_IMETHOD GetBounds(int32_t *aX, int32_t *aY,
-                       int32_t *aWidth, int32_t *aHeight);
+  NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
+                       PRInt32 *aWidth, PRInt32 *aHeight);
 
   NS_IMETHOD SetSelected(bool aSelect);
   NS_IMETHOD TakeFocus();
 
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
   virtual void Shutdown();
+  virtual bool IsPrimaryForNode() const;
 
   
   virtual GroupPos GroupPosition();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
-  virtual int32_t IndexInParent() const;
-  virtual Relation RelationByType(uint32_t aType);
+  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeInteractiveState() const;
+  virtual PRInt32 IndexInParent() const;
+  virtual Relation RelationByType(PRUint32 aType);
   virtual Accessible* FocusedChild();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual Accessible* ContainerWidget() const;
@@ -175,27 +176,27 @@ public:
   
 
 
-  int32_t GetRowIndex() const { return mRow; }
+  PRInt32 GetRowIndex() const { return mRow; }
 
   
 
 
 
   virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn)
-    { return nullptr; }
+    { return nsnull; }
 
   
 
 
-  virtual void RowInvalidated(int32_t aStartColIdx, int32_t aEndColIdx) = 0;
+  virtual void RowInvalidated(PRInt32 aStartColIdx, PRInt32 aEndColIdx) = 0;
 
 protected:
   enum { eAction_Click = 0, eAction_Expand = 1 };
 
   
-  virtual void DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex);
-  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult *aError = nullptr) const;
+  virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
+  virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                         nsresult *aError = nsnull) const;
 
   
 
@@ -211,7 +212,7 @@ protected:
 
   nsCOMPtr<nsITreeBoxObject> mTree;
   nsITreeView* mTreeView;
-  int32_t mRow;
+  PRInt32 mRow;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(XULTreeItemAccessibleBase,
@@ -226,7 +227,7 @@ class XULTreeItemAccessible : public XULTreeItemAccessibleBase
 public:
   XULTreeItemAccessible(nsIContent* aContent, DocAccessible* aDoc,
                         Accessible* aParent, nsITreeBoxObject* aTree,
-                        nsITreeView* aTreeView, int32_t aRow);
+                        nsITreeView* aTreeView, PRInt32 aRow);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -234,7 +235,7 @@ public:
                                            XULTreeItemAccessibleBase)
 
   
-  virtual void Init();
+  virtual bool Init();
   virtual void Shutdown();
 
   
@@ -242,7 +243,7 @@ public:
   virtual a11y::role NativeRole();
 
   
-  virtual void RowInvalidated(int32_t aStartColIdx, int32_t aEndColIdx);
+  virtual void RowInvalidated(PRInt32 aStartColIdx, PRInt32 aEndColIdx);
 
 protected:
 
@@ -266,8 +267,8 @@ public:
 protected:
 
   
-  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult *aError = nullptr) const;
+  virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                         nsresult *aError = nsnull) const;
 };
 
 } 
@@ -280,7 +281,7 @@ inline mozilla::a11y::XULTreeAccessible*
 Accessible::AsXULTree()
 {
   return IsXULTree() ?
-    static_cast<mozilla::a11y::XULTreeAccessible*>(this) : nullptr;
+    static_cast<mozilla::a11y::XULTreeAccessible*>(this) : nsnull;
 }
 
 #endif

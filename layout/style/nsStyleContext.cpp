@@ -665,7 +665,7 @@ void*
 nsStyleContext::operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW
 {
   
-  return aPresContext->AllocateFromShell(sz);
+  return aPresContext->PresShell()->AllocateByObjectID(nsPresArena::nsStyleContext_id, sz);
 }
 
 
@@ -681,7 +681,7 @@ nsStyleContext::Destroy()
 
   
   
-  presContext->FreeToShell(sizeof(nsStyleContext), this);
+  presContext->PresShell()->FreeByObjectID(nsPresArena::nsStyleContext_id, this);
 }
 
 already_AddRefed<nsStyleContext>

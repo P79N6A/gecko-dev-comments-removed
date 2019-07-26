@@ -14,7 +14,6 @@
 #include "Role.h"
 #include "States.h"
 
-#include "nsIMutableArray.h"
 #include "nsITreeSelection.h"
 #include "nsComponentManagerUtils.h"
 
@@ -40,169 +39,416 @@ NS_IMPL_ISUPPORTS_INHERITED1(XULTreeGridAccessible,
 
 
 
-uint32_t
+PRUint32
 XULTreeGridAccessible::ColCount()
 {
   return nsCoreUtils::GetSensibleColumnCount(mTree);
 }
 
-uint32_t
+PRUint32
 XULTreeGridAccessible::RowCount()
 {
   if (!mTreeView)
     return 0;
 
-  int32_t rowCount = 0;
+  PRInt32 rowCount = 0;
   mTreeView->GetRowCount(&rowCount);
   return rowCount >= 0 ? rowCount : 0;
 }
 
-uint32_t
-XULTreeGridAccessible::SelectedCellCount()
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedCellCount(PRUint32* aCount)
 {
-  return SelectedRowCount() * ColCount();
+  NS_ENSURE_ARG_POINTER(aCount);
+  *aCount = 0;
+
+  PRUint32 selectedrowCount = 0;
+  nsresult rv = GetSelectedRowCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 columnCount = 0;
+  rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aCount = selectedrowCount * columnCount;
+  return NS_OK;
 }
 
-uint32_t
-XULTreeGridAccessible::SelectedColCount()
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedColumnCount(PRUint32* aCount)
 {
+  NS_ENSURE_ARG_POINTER(aCount);
+  *aCount = 0;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
   
   
 
-  int32_t selectedRowCount = 0;
-  nsresult rv = GetSelectionCount(&selectedRowCount);
-  NS_ENSURE_SUCCESS(rv, 0);
+  PRInt32 rowCount = 0;
+  nsresult rv = GetRowCount(&rowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return selectedRowCount > 0 && selectedRowCount == RowCount() ? ColCount() : 0;
+  PRInt32 selectedrowCount = 0;
+  rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (rowCount == selectedrowCount) {
+    PRInt32 columnCount = 0;
+    rv = GetColumnCount(&columnCount);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    *aCount = columnCount;
+  }
+
+  return NS_OK;
 }
 
-uint32_t
-XULTreeGridAccessible::SelectedRowCount()
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedRowCount(PRUint32* aCount)
 {
-  int32_t selectedRowCount = 0;
-  nsresult rv = GetSelectionCount(&selectedRowCount);
-  NS_ENSURE_SUCCESS(rv, 0);
+  NS_ENSURE_ARG_POINTER(aCount);
+  *aCount = 0;
 
-  return selectedRowCount >= 0 ? selectedRowCount : 0;
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  PRInt32 selectedrowCount = 0;
+  nsresult rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aCount = selectedrowCount;
+  return NS_OK;
 }
 
-void
-XULTreeGridAccessible::SelectedCells(nsTArray<Accessible*>* aCells)
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedCells(nsIArray** aCells)
 {
-  uint32_t colCount = ColCount(), rowCount = RowCount();
+  NS_ENSURE_ARG_POINTER(aCells);
+  *aCells = nsnull;
 
-  for (uint32_t rowIdx = 0; rowIdx < rowCount; rowIdx++) {
-    if (IsRowSelected(rowIdx)) {
-      for (uint32_t colIdx = 0; colIdx < colCount; colIdx++) {
-        Accessible* cell = CellAt(rowIdx, colIdx);
-        aCells->AppendElement(cell);
+  if (!mTreeView)
+    return NS_OK;
+
+  nsCOMPtr<nsIMutableArray> selCells = do_CreateInstance(NS_ARRAY_CONTRACTID);
+  NS_ENSURE_TRUE(selCells, NS_ERROR_FAILURE);
+
+  PRInt32 selectedrowCount = 0;
+  nsresult rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 columnCount = 0;
+  rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsITreeSelection> selection;
+  rv = mTreeView->GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 rowCount = 0;
+  rv = GetRowCount(&rowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool isSelected;
+  for (PRInt32 rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+    selection->IsSelected(rowIdx, &isSelected);
+    if (isSelected) {
+      for (PRInt32 colIdx = 0; colIdx < columnCount; colIdx++) {
+        nsCOMPtr<nsIAccessible> cell;
+        GetCellAt(rowIdx, colIdx, getter_AddRefs(cell));
+        selCells->AppendElement(cell, false);
       }
     }
   }
+
+  NS_ADDREF(*aCells = selCells);
+  return NS_OK;
 }
 
-void
-XULTreeGridAccessible::SelectedCellIndices(nsTArray<uint32_t>* aCells)
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedCellIndices(PRUint32* aCellsCount,
+                                              PRInt32** aCells)
 {
-  uint32_t colCount = ColCount(), rowCount = RowCount();
+  NS_ENSURE_ARG_POINTER(aCellsCount);
+  *aCellsCount = 0;
+  NS_ENSURE_ARG_POINTER(aCells);
+  *aCells = nsnull;
 
-  for (uint32_t rowIdx = 0; rowIdx < rowCount; rowIdx++)
-    if (IsRowSelected(rowIdx))
-      for (uint32_t colIdx = 0; colIdx < colCount; colIdx++)
-        aCells->AppendElement(rowIdx * colCount + colIdx);
+  if (!mTreeView)
+    return NS_OK;
+
+  PRInt32 selectedrowCount = 0;
+  nsresult rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 columnCount = 0;
+  rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 selectedCellCount = selectedrowCount * columnCount;
+  PRInt32* outArray = static_cast<PRInt32*>(
+    nsMemory::Alloc(selectedCellCount * sizeof(PRInt32)));
+  NS_ENSURE_TRUE(outArray, NS_ERROR_OUT_OF_MEMORY);
+
+  nsCOMPtr<nsITreeSelection> selection;
+  rv = mTreeView->GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 rowCount = 0;
+  rv = GetRowCount(&rowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool isSelected;
+  for (PRInt32 rowIdx = 0, arrayIdx = 0; rowIdx < rowCount; rowIdx++) {
+    selection->IsSelected(rowIdx, &isSelected);
+    if (isSelected) {
+      for (PRInt32 colIdx = 0; colIdx < columnCount; colIdx++)
+        outArray[arrayIdx++] = rowIdx * columnCount + colIdx;
+    }
+  }
+
+  *aCellsCount = selectedCellCount;
+  *aCells = outArray;
+  return NS_OK;
 }
 
-void
-XULTreeGridAccessible::SelectedColIndices(nsTArray<uint32_t>* aCols)
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedColumnIndices(PRUint32* acolumnCount,
+                                                PRInt32** aColumns)
 {
-  if (RowCount() != SelectedRowCount())
-    return;
+  NS_ENSURE_ARG_POINTER(acolumnCount);
+  *acolumnCount = 0;
+  NS_ENSURE_ARG_POINTER(aColumns);
+  *aColumns = nsnull;
 
-  uint32_t colCount = ColCount();
-  aCols->SetCapacity(colCount);
-  for (uint32_t colIdx = 0; colIdx < colCount; colIdx++)
-    aCols->AppendElement(colIdx);
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  
+  
+
+  PRInt32 rowCount = 0;
+  nsresult rv = GetRowCount(&rowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 selectedrowCount = 0;
+  rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (rowCount != selectedrowCount)
+    return NS_OK;
+
+  PRInt32 columnCount = 0;
+  rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32* outArray = static_cast<PRInt32*>(
+    nsMemory::Alloc(columnCount * sizeof(PRInt32)));
+  NS_ENSURE_TRUE(outArray, NS_ERROR_OUT_OF_MEMORY);
+
+  for (PRInt32 colIdx = 0; colIdx < columnCount; colIdx++)
+    outArray[colIdx] = colIdx;
+
+  *acolumnCount = columnCount;
+  *aColumns = outArray;
+  return NS_OK;
 }
 
-void
-XULTreeGridAccessible::SelectedRowIndices(nsTArray<uint32_t>* aRows)
+NS_IMETHODIMP
+XULTreeGridAccessible::GetSelectedRowIndices(PRUint32* arowCount,
+                                             PRInt32** aRows)
 {
-  uint32_t rowCount = RowCount();
-  for (uint32_t rowIdx = 0; rowIdx < rowCount; rowIdx++)
-    if (IsRowSelected(rowIdx))
-      aRows->AppendElement(rowIdx);
+  NS_ENSURE_ARG_POINTER(arowCount);
+  *arowCount = 0;
+  NS_ENSURE_ARG_POINTER(aRows);
+  *aRows = nsnull;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  if (!mTreeView)
+    return NS_OK;
+
+  PRInt32 selectedrowCount = 0;
+  nsresult rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32* outArray = static_cast<PRInt32*>(
+    nsMemory::Alloc(selectedrowCount * sizeof(PRInt32)));
+  NS_ENSURE_TRUE(outArray, NS_ERROR_OUT_OF_MEMORY);
+
+  nsCOMPtr<nsITreeSelection> selection;
+  rv = mTreeView->GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 rowCount = 0;
+  rv = GetRowCount(&rowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool isSelected;
+  for (PRInt32 rowIdx = 0, arrayIdx = 0; rowIdx < rowCount; rowIdx++) {
+    selection->IsSelected(rowIdx, &isSelected);
+    if (isSelected)
+      outArray[arrayIdx++] = rowIdx;
+  }
+
+  *arowCount = selectedrowCount;
+  *aRows = outArray;
+  return NS_OK;
 }
 
 Accessible*
-XULTreeGridAccessible::CellAt(uint32_t aRowIndex, uint32_t aColumnIndex)
+XULTreeGridAccessible::CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex)
 { 
   Accessible* row = GetTreeItemAccessible(aRowIndex);
   if (!row)
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<nsITreeColumn> column =
     nsCoreUtils::GetSensibleColumnAt(mTree, aColumnIndex);
   if (!column)
-    return nullptr;
+    return nsnull;
 
   nsRefPtr<XULTreeItemAccessibleBase> rowAcc = do_QueryObject(row);
   if (!rowAcc)
-    return nullptr;
+    return nsnull;
 
   return rowAcc->GetCellAccessible(column);
 }
 
-void
-XULTreeGridAccessible::ColDescription(uint32_t aColIdx, nsString& aDescription)
+NS_IMETHODIMP
+XULTreeGridAccessible::GetColumnIndexAt(PRInt32 aCellIndex,
+                                        PRInt32* aColumnIndex)
+{
+  NS_ENSURE_ARG_POINTER(aColumnIndex);
+  *aColumnIndex = -1;
+
+  PRInt32 columnCount = 0;
+  nsresult rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aColumnIndex = aCellIndex % columnCount;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridAccessible::GetRowIndexAt(PRInt32 aCellIndex, PRInt32* aRowIndex)
+{
+  NS_ENSURE_ARG_POINTER(aRowIndex);
+  *aRowIndex = -1;
+
+  PRInt32 columnCount;
+  nsresult rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aRowIndex = aCellIndex / columnCount;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridAccessible::GetRowAndColumnIndicesAt(PRInt32 aCellIndex,
+                                                PRInt32* aRowIndex,
+                                                PRInt32* aColumnIndex)
+{
+  NS_ENSURE_ARG_POINTER(aRowIndex);
+  *aRowIndex = -1;
+  NS_ENSURE_ARG_POINTER(aColumnIndex);
+  *aColumnIndex = -1;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  PRInt32 columnCount = 0;
+  nsresult rv = GetColumnCount(&columnCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aColumnIndex = aCellIndex % columnCount;
+  *aRowIndex = aCellIndex / columnCount;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridAccessible::GetColumnDescription(PRInt32 aColumnIndex,
+                                            nsAString& aDescription)
 {
   aDescription.Truncate();
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIAccessible> treeColumns;
   Accessible::GetFirstChild(getter_AddRefs(treeColumns));
   if (treeColumns) {
     nsCOMPtr<nsIAccessible> treeColumnItem;
-    treeColumns->GetChildAt(aColIdx, getter_AddRefs(treeColumnItem));
+    treeColumns->GetChildAt(aColumnIndex, getter_AddRefs(treeColumnItem));
     if (treeColumnItem)
-      treeColumnItem->GetName(aDescription);
+      return treeColumnItem->GetName(aDescription);
   }
+
+  return NS_OK;
 }
 
-bool
-XULTreeGridAccessible::IsColSelected(uint32_t aColIdx)
+NS_IMETHODIMP
+XULTreeGridAccessible::GetRowDescription(PRInt32 aRowIndex,
+                                         nsAString& aDescription)
 {
+  aDescription.Truncate();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridAccessible::IsColumnSelected(PRInt32 aColumnIndex, bool* aIsSelected)
+{
+  NS_ENSURE_ARG_POINTER(aIsSelected);
+  *aIsSelected = false;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
   
   
 
-  int32_t selectedrowCount = 0;
-  nsresult rv = GetSelectionCount(&selectedrowCount);
-  NS_ENSURE_SUCCESS(rv, false);
+  PRInt32 rowCount = 0;
+  nsresult rv = GetRowCount(&rowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return selectedrowCount == RowCount();
+  PRInt32 selectedrowCount = 0;
+  rv = GetSelectionCount(&selectedrowCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aIsSelected = rowCount == selectedrowCount;
+  return NS_OK;
 }
 
-bool
-XULTreeGridAccessible::IsRowSelected(uint32_t aRowIdx)
+NS_IMETHODIMP
+XULTreeGridAccessible::IsRowSelected(PRInt32 aRowIndex, bool* aIsSelected)
 {
+  NS_ENSURE_ARG_POINTER(aIsSelected);
+  *aIsSelected = false;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
   if (!mTreeView)
-    return false;
+    return NS_ERROR_INVALID_ARG;
 
   nsCOMPtr<nsITreeSelection> selection;
   nsresult rv = mTreeView->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(rv, false);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  bool isSelected = false;
-  selection->IsSelected(aRowIdx, &isSelected);
-  return isSelected;
+  return selection->IsSelected(aRowIndex, aIsSelected);
 }
 
-bool
-XULTreeGridAccessible::IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx)
+NS_IMETHODIMP
+XULTreeGridAccessible::IsCellSelected(PRInt32 aRowIndex, PRInt32 aColumnIndex,
+                                      bool* aIsSelected)
 {
-  return IsRowSelected(aRowIdx);
+  return IsRowSelected(aRowIndex, aIsSelected);
 }
 
 void
-XULTreeGridAccessible::SelectRow(uint32_t aRowIdx)
+XULTreeGridAccessible::SelectRow(PRUint32 aRowIdx)
 {
   if (!mTreeView)
     return;
@@ -215,7 +461,7 @@ XULTreeGridAccessible::SelectRow(uint32_t aRowIdx)
 }
 
 void
-XULTreeGridAccessible::UnselectRow(uint32_t aRowIdx)
+XULTreeGridAccessible::UnselectRow(PRUint32 aRowIdx)
 {
   if (!mTreeView)
     return;
@@ -233,7 +479,7 @@ XULTreeGridAccessible::UnselectRow(uint32_t aRowIdx)
 void
 XULTreeGridAccessible::Shutdown()
 {
-  mTable = nullptr;
+  mTable = nsnull;
   XULTreeAccessible::Shutdown();
 }
 
@@ -260,7 +506,7 @@ XULTreeGridAccessible::NativeRole()
 
 
 already_AddRefed<Accessible>
-XULTreeGridAccessible::CreateTreeItemAccessible(int32_t aRow)
+XULTreeGridAccessible::CreateTreeItemAccessible(PRInt32 aRow)
 {
   nsRefPtr<Accessible> accessible =
     new XULTreeGridRowAccessible(mContent, mDoc, this, mTree, mTreeView, aRow);
@@ -276,7 +522,7 @@ XULTreeGridAccessible::CreateTreeItemAccessible(int32_t aRow)
 XULTreeGridRowAccessible::
   XULTreeGridRowAccessible(nsIContent* aContent, DocAccessible* aDoc,
                            Accessible* aTreeAcc, nsITreeBoxObject* aTree,
-                           nsITreeView* aTreeView, int32_t aRow) :
+                           nsITreeView* aTreeView, PRInt32 aRow) :
   XULTreeItemAccessibleBase(aContent, aDoc, aTreeAcc, aTree, aTreeView, aRow)
 {
   mAccessibleCache.Init(kDefaultTreeCacheSize);
@@ -347,52 +593,52 @@ XULTreeGridRowAccessible::Name(nsString& aName)
 }
 
 Accessible*
-XULTreeGridRowAccessible::ChildAtPoint(int32_t aX, int32_t aY,
+XULTreeGridRowAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                        EWhichChildAtPoint aWhichChild)
 {
   nsIFrame *frame = GetFrame();
   if (!frame)
-    return nullptr;
+    return nsnull;
 
   nsPresContext *presContext = frame->PresContext();
   nsIPresShell* presShell = presContext->PresShell();
 
   nsIFrame *rootFrame = presShell->GetRootFrame();
-  NS_ENSURE_TRUE(rootFrame, nullptr);
+  NS_ENSURE_TRUE(rootFrame, nsnull);
 
   nsIntRect rootRect = rootFrame->GetScreenRect();
 
-  int32_t clientX = presContext->DevPixelsToIntCSSPixels(aX) - rootRect.x;
-  int32_t clientY = presContext->DevPixelsToIntCSSPixels(aY) - rootRect.y;
+  PRInt32 clientX = presContext->DevPixelsToIntCSSPixels(aX) - rootRect.x;
+  PRInt32 clientY = presContext->DevPixelsToIntCSSPixels(aY) - rootRect.y;
 
-  int32_t row = -1;
+  PRInt32 row = -1;
   nsCOMPtr<nsITreeColumn> column;
-  nsAutoCString childEltUnused;
+  nsCAutoString childEltUnused;
   mTree->GetCellAt(clientX, clientY, &row, getter_AddRefs(column),
                    childEltUnused);
 
   
   if (row != mRow || !column)
-    return nullptr;
+    return nsnull;
 
   return GetCellAccessible(column);
 }
 
 Accessible*
-XULTreeGridRowAccessible::GetChildAt(uint32_t aIndex)
+XULTreeGridRowAccessible::GetChildAt(PRUint32 aIndex)
 {
   if (IsDefunct())
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<nsITreeColumn> column =
     nsCoreUtils::GetSensibleColumnAt(mTree, aIndex);
   if (!column)
-    return nullptr;
+    return nsnull;
 
   return GetCellAccessible(column);
 }
 
-uint32_t
+PRUint32
 XULTreeGridRowAccessible::ChildCount() const
 {
   return nsCoreUtils::GetSensibleColumnCount(mTree);
@@ -416,25 +662,25 @@ XULTreeGridRowAccessible::GetCellAccessible(nsITreeColumn* aColumn)
                                       mTreeView, mRow, aColumn);
   if (cell) {
     mAccessibleCache.Put(key, cell);
-    if (Document()->BindToDocument(cell, nullptr))
+    if (Document()->BindToDocument(cell, nsnull))
       return cell;
 
     mAccessibleCache.Remove(key);
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 void
-XULTreeGridRowAccessible::RowInvalidated(int32_t aStartColIdx,
-                                         int32_t aEndColIdx)
+XULTreeGridRowAccessible::RowInvalidated(PRInt32 aStartColIdx,
+                                         PRInt32 aEndColIdx)
 {
   nsCOMPtr<nsITreeColumns> treeColumns;
   mTree->GetColumns(getter_AddRefs(treeColumns));
   if (!treeColumns)
     return;
 
-  for (int32_t colIdx = aStartColIdx; colIdx <= aEndColIdx; ++colIdx) {
+  for (PRInt32 colIdx = aStartColIdx; colIdx <= aEndColIdx; ++colIdx) {
     nsCOMPtr<nsITreeColumn> column;
     treeColumns->GetColumnAt(colIdx, getter_AddRefs(column));
     if (column && !nsCoreUtils::IsColumnHidden(column)) {
@@ -464,12 +710,11 @@ XULTreeGridCellAccessible::
   XULTreeGridCellAccessible(nsIContent* aContent, DocAccessible* aDoc,
                             XULTreeGridRowAccessible* aRowAcc,
                             nsITreeBoxObject* aTree, nsITreeView* aTreeView,
-                            int32_t aRow, nsITreeColumn* aColumn) :
-  LeafAccessible(aContent, aDoc), xpcAccessibleTableCell(this), mTree(aTree),
+                            PRInt32 aRow, nsITreeColumn* aColumn) :
+  LeafAccessible(aContent, aDoc), mTree(aTree),
   mTreeView(aTreeView), mRow(aRow), mColumn(aColumn)
 {
   mParent = aRowAcc;
-  mFlags |= eSharedNode;
 }
 
 
@@ -500,17 +745,10 @@ NS_IMPL_RELEASE_INHERITED(XULTreeGridCellAccessible, LeafAccessible)
 
 
 
-void
-XULTreeGridCellAccessible::Shutdown()
-{
-  mTableCell = nullptr;
-  LeafAccessible::Shutdown();
-}
-
 Accessible*
 XULTreeGridCellAccessible::FocusedChild()
 {
-  return nullptr;
+  return nsnull;
 }
 
 ENameValueFlag
@@ -535,8 +773,8 @@ XULTreeGridCellAccessible::Name(nsString& aName)
 }
 
 NS_IMETHODIMP
-XULTreeGridCellAccessible::GetBounds(int32_t* aX, int32_t* aY,
-                                     int32_t* aWidth, int32_t* aHeight)
+XULTreeGridCellAccessible::GetBounds(PRInt32* aX, PRInt32* aY,
+                                     PRInt32* aWidth, PRInt32* aHeight)
 {
   NS_ENSURE_ARG_POINTER(aX);
   *aX = 0;
@@ -555,13 +793,13 @@ XULTreeGridCellAccessible::GetBounds(int32_t* aX, int32_t* aY,
   nsCOMPtr<nsIBoxObject> boxObj = nsCoreUtils::GetTreeBodyBoxObject(mTree);
   NS_ENSURE_STATE(boxObj);
 
-  int32_t x = 0, y = 0, width = 0, height = 0;
+  PRInt32 x = 0, y = 0, width = 0, height = 0;
   nsresult rv = mTree->GetCoordsForCellItem(mRow, mColumn,
                                             NS_LITERAL_CSTRING("cell"),
                                             &x, &y, &width, &height);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  int32_t tcX = 0, tcY = 0;
+  PRInt32 tcX = 0, tcY = 0;
   boxObj->GetScreenX(&tcX);
   boxObj->GetScreenY(&tcY);
   x += tcX;
@@ -576,7 +814,7 @@ XULTreeGridCellAccessible::GetBounds(int32_t* aX, int32_t* aY,
   return NS_OK;
 }
 
-uint8_t
+PRUint8
 XULTreeGridCellAccessible::ActionCount()
 {
   bool isCycler = false;
@@ -584,7 +822,7 @@ XULTreeGridCellAccessible::ActionCount()
   if (isCycler)
     return 1;
 
-  int16_t type;
+  PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX && IsEditable())
     return 1;
@@ -593,7 +831,7 @@ XULTreeGridCellAccessible::ActionCount()
 }
 
 NS_IMETHODIMP
-XULTreeGridCellAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+XULTreeGridCellAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   aName.Truncate();
 
@@ -610,7 +848,7 @@ XULTreeGridCellAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
     return NS_OK;
   }
 
-  int16_t type;
+  PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX && IsEditable()) {
     nsAutoString value;
@@ -627,7 +865,7 @@ XULTreeGridCellAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
 }
 
 NS_IMETHODIMP
-XULTreeGridCellAccessible::DoAction(uint8_t aIndex)
+XULTreeGridCellAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Click)
     return NS_ERROR_INVALID_ARG;
@@ -642,7 +880,7 @@ XULTreeGridCellAccessible::DoAction(uint8_t aIndex)
     return NS_OK;
   }
 
-  int16_t type;
+  PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX && IsEditable()) {
     DoCommand();
@@ -655,73 +893,151 @@ XULTreeGridCellAccessible::DoAction(uint8_t aIndex)
 
 
 
-TableAccessible*
-XULTreeGridCellAccessible::Table() const
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetTable(nsIAccessibleTable** aTable)
 {
+  NS_ENSURE_ARG_POINTER(aTable);
+  *aTable = nsnull;
+
+  if (IsDefunct())
+    return NS_OK;
+
   Accessible* grandParent = mParent->Parent();
   if (grandParent)
-    return grandParent->AsTable();
+    CallQueryInterface(grandParent, aTable);
 
-  return nullptr;
+  return NS_OK;
 }
 
-uint32_t
-XULTreeGridCellAccessible::ColIdx() const
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetColumnIndex(PRInt32* aColumnIndex)
 {
-  uint32_t colIdx = 0;
-  nsCOMPtr<nsITreeColumn> column = mColumn;
-  while ((column = nsCoreUtils::GetPreviousSensibleColumn(column)))
-    colIdx++;
+  NS_ENSURE_ARG_POINTER(aColumnIndex);
+  *aColumnIndex = -1;
 
-  return colIdx;
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  *aColumnIndex = GetColumnIndex();
+  return NS_OK;
 }
 
-uint32_t
-XULTreeGridCellAccessible::RowIdx() const
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetRowIndex(PRInt32* aRowIndex)
 {
-  return mRow;
+  NS_ENSURE_ARG_POINTER(aRowIndex);
+  *aRowIndex = -1;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  *aRowIndex = mRow;
+  return NS_OK;
 }
 
-void
-XULTreeGridCellAccessible::ColHeaderCells(nsTArray<Accessible*>* aHeaderCells)
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetColumnExtent(PRInt32* aExtentCount)
 {
+  NS_ENSURE_ARG_POINTER(aExtentCount);
+  *aExtentCount = 1;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetRowExtent(PRInt32* aExtentCount)
+{
+  NS_ENSURE_ARG_POINTER(aExtentCount);
+  *aExtentCount = 1;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetColumnHeaderCells(nsIArray** aHeaderCells)
+{
+  NS_ENSURE_ARG_POINTER(aHeaderCells);
+  *aHeaderCells = nsnull;
+
+  if (IsDefunct() || !mDoc)
+    return NS_ERROR_FAILURE;
+
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIMutableArray> headerCells =
+    do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCOMPtr<nsIDOMElement> columnElm;
   mColumn->GetElement(getter_AddRefs(columnElm));
 
   nsCOMPtr<nsIContent> columnContent(do_QueryInterface(columnElm));
   Accessible* headerCell = mDoc->GetAccessible(columnContent);
+
   if (headerCell)
-    aHeaderCells->AppendElement(headerCell);
+    headerCells->AppendElement(static_cast<nsIAccessible*>(headerCell),
+                               false);
+
+  NS_ADDREF(*aHeaderCells = headerCells);
+  return NS_OK;
 }
 
-bool
-XULTreeGridCellAccessible::Selected()
+NS_IMETHODIMP
+XULTreeGridCellAccessible::GetRowHeaderCells(nsIArray** aHeaderCells)
 {
+  NS_ENSURE_ARG_POINTER(aHeaderCells);
+  *aHeaderCells = nsnull;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIMutableArray> headerCells =
+    do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ADDREF(*aHeaderCells = headerCells);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+XULTreeGridCellAccessible::IsSelected(bool* aIsSelected)
+{
+  NS_ENSURE_ARG_POINTER(aIsSelected);
+  *aIsSelected = false;
+
+  if (IsDefunct() || !mTreeView)
+    return NS_ERROR_FAILURE;
+
   nsCOMPtr<nsITreeSelection> selection;
   nsresult rv = mTreeView->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(rv, false);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  bool selected = false;
-  selection->IsSelected(mRow, &selected);
-  return selected;
+  return selection->IsSelected(mRow, aIsSelected);
 }
 
 
 
 
-void
+bool
 XULTreeGridCellAccessible::Init()
 {
-  LeafAccessible::Init();
+  if (!LeafAccessible::Init() || !mTreeView)
+    return false;
 
-  NS_ASSERTION(mTreeView, "mTreeView is null");
-
-  int16_t type;
+  PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX)
     mTreeView->GetCellValue(mRow, mColumn, mCachedTextEquiv);
   else
     mTreeView->GetCellText(mRow, mColumn, mCachedTextEquiv);
+
+  return true;
+}
+
+bool
+XULTreeGridCellAccessible::IsPrimaryForNode() const
+{
+  return false;
 }
 
 
@@ -736,13 +1052,25 @@ XULTreeGridCellAccessible::GetAttributesInternal(nsIPersistentProperties* aAttri
     return NS_ERROR_FAILURE;
 
   
-  TableAccessible* table = Table();
-  if (!table)
+  Accessible* grandParent = mParent->Parent();
+  if (!grandParent)
+    return NS_OK;
+
+  nsCOMPtr<nsIAccessibleTable> tableAccessible = do_QueryObject(grandParent);
+
+  
+  if (!tableAccessible)
     return NS_ERROR_FAILURE;
 
+  PRInt32 colIdx = GetColumnIndex();
+
+  PRInt32 cellIdx = -1;
+  tableAccessible->GetCellIndexAt(mRow, colIdx, &cellIdx);
+
   nsAutoString stringIdx;
-  stringIdx.AppendInt(table->CellIndexAt(mRow, ColIdx()));
-  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::tableCellIndex, stringIdx);
+  stringIdx.AppendInt(cellIdx);
+  nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::tableCellIndex,
+                         stringIdx);
 
   
   bool isCycler = false;
@@ -760,14 +1088,14 @@ XULTreeGridCellAccessible::NativeRole()
   return roles::GRID_CELL;
 }
 
-uint64_t
+PRUint64
 XULTreeGridCellAccessible::NativeState()
 {
   if (!mTreeView)
     return states::DEFUNCT;
 
   
-  uint64_t states = states::SELECTABLE; 
+  PRUint64 states = states::SELECTABLE; 
 
   nsCOMPtr<nsITreeSelection> selection;
   mTreeView->GetSelection(getter_AddRefs(selection));
@@ -779,7 +1107,7 @@ XULTreeGridCellAccessible::NativeState()
   }
 
   
-  int16_t type;
+  PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX) {
     states |= states::CHECKABLE;
@@ -792,26 +1120,41 @@ XULTreeGridCellAccessible::NativeState()
   return states;
 }
 
-uint64_t
+PRUint64
 XULTreeGridCellAccessible::NativeInteractiveState() const
 {
   return states::SELECTABLE;
 }
 
-int32_t
+PRInt32
 XULTreeGridCellAccessible::IndexInParent() const
 {
-  return ColIdx();
+  return GetColumnIndex();
 }
 
 Relation
-XULTreeGridCellAccessible::RelationByType(uint32_t aType)
+XULTreeGridCellAccessible::RelationByType(PRUint32 aType)
 {
   return Relation();
 }
 
 
 
+
+PRInt32
+XULTreeGridCellAccessible::GetColumnIndex() const
+{
+  PRInt32 index = 0;
+  nsCOMPtr<nsITreeColumn> column = mColumn;
+  while (true) {
+    column = nsCoreUtils::GetPreviousSensibleColumn(column);
+    if (!column)
+      break;
+    index++;
+  }
+
+  return index;
+}
 
 void
 XULTreeGridCellAccessible::CellInvalidated()
@@ -821,7 +1164,7 @@ XULTreeGridCellAccessible::CellInvalidated()
 
   nsAutoString textEquiv;
 
-  int16_t type;
+  PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX) {
     mTreeView->GetCellValue(mRow, mColumn, textEquiv);
@@ -848,7 +1191,7 @@ XULTreeGridCellAccessible::CellInvalidated()
 
 
 Accessible*
-XULTreeGridCellAccessible::GetSiblingAtOffset(int32_t aOffset,
+XULTreeGridCellAccessible::GetSiblingAtOffset(PRInt32 aOffset,
                                               nsresult* aError) const
 {
   if (aError)
@@ -856,19 +1199,19 @@ XULTreeGridCellAccessible::GetSiblingAtOffset(int32_t aOffset,
 
   nsCOMPtr<nsITreeColumn> columnAtOffset(mColumn), column;
   if (aOffset < 0) {
-    for (int32_t index = aOffset; index < 0 && columnAtOffset; index++) {
+    for (PRInt32 index = aOffset; index < 0 && columnAtOffset; index++) {
       column = nsCoreUtils::GetPreviousSensibleColumn(columnAtOffset);
       column.swap(columnAtOffset);
     }
   } else {
-    for (int32_t index = aOffset; index > 0 && columnAtOffset; index--) {
+    for (PRInt32 index = aOffset; index > 0 && columnAtOffset; index--) {
       column = nsCoreUtils::GetNextSensibleColumn(columnAtOffset);
       column.swap(columnAtOffset);
     }
   }
 
   if (!columnAtOffset)
-    return nullptr;
+    return nsnull;
 
   nsRefPtr<XULTreeItemAccessibleBase> rowAcc = do_QueryObject(Parent());
   return rowAcc->GetCellAccessible(columnAtOffset);
@@ -876,7 +1219,7 @@ XULTreeGridCellAccessible::GetSiblingAtOffset(int32_t aOffset,
 
 void
 XULTreeGridCellAccessible::DispatchClickEvent(nsIContent* aContent,
-                                              uint32_t aActionIndex)
+                                              PRUint32 aActionIndex)
 {
   if (IsDefunct())
     return;

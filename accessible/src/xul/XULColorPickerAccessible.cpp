@@ -48,17 +48,17 @@ XULColorPickerTileAccessible::NativeRole()
   return roles::PUSHBUTTON;
 }
 
-uint64_t
+PRUint64
 XULColorPickerTileAccessible::NativeState()
 {
-  uint64_t state = AccessibleWrap::NativeState();
+  PRUint64 state = AccessibleWrap::NativeState();
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::selected))
     state |= states::SELECTED;
 
   return state;
 }
 
-uint64_t
+PRUint64
 XULColorPickerTileAccessible::NativeInteractiveState() const
 {
   return NativelyUnavailable() ?
@@ -77,7 +77,7 @@ XULColorPickerTileAccessible::ContainerWidget() const
     if (grandParent && grandParent->IsMenuButton())
       return grandParent;
   }
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -94,10 +94,10 @@ XULColorPickerAccessible::
 
 
 
-uint64_t
+PRUint64
 XULColorPickerAccessible::NativeState()
 {
-  uint64_t state = AccessibleWrap::NativeState();
+  PRUint64 state = AccessibleWrap::NativeState();
   return state | states::HASPOPUP;
 }
 
@@ -125,7 +125,7 @@ XULColorPickerAccessible::IsActiveWidget() const
 bool
 XULColorPickerAccessible::AreItemsOperable() const
 {
-  Accessible* menuPopup = mChildren.SafeElementAt(0, nullptr);
+  Accessible* menuPopup = mChildren.SafeElementAt(0, nsnull);
   if (menuPopup) {
     nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(menuPopup->GetFrame());
     return menuPopupFrame && menuPopupFrame->IsOpen();
@@ -143,9 +143,9 @@ XULColorPickerAccessible::CacheChildren()
 
   nsAccTreeWalker walker(mDoc, mContent, true);
 
-  Accessible* child = nullptr;
+  Accessible* child = nsnull;
   while ((child = walker.NextChild())) {
-    uint32_t role = child->Role();
+    PRUint32 role = child->Role();
 
     
     if (role == roles::ALERT) {

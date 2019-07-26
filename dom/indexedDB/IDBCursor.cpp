@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 
@@ -29,6 +29,7 @@
 #include "IndexedDatabaseInlines.h"
 
 USING_INDEXEDDB_NAMESPACE
+using namespace mozilla::dom::indexedDB::ipc;
 
 MOZ_STATIC_ASSERT(sizeof(size_t) >= sizeof(IDBCursor::Direction),
                   "Relying on conversion between size_t and "
@@ -39,8 +40,6 @@ namespace {
 class CursorHelper : public AsyncConnectionHelper
 {
 public:
-  typedef ipc::CursorRequestParams CursorRequestParams;
-
   CursorHelper(IDBCursor* aCursor)
   : AsyncConnectionHelper(aCursor->Transaction(), aCursor->Request()),
     mCursor(aCursor), mActor(nsnull)
@@ -74,7 +73,7 @@ GenerateRequest(IDBCursor* aCursor)
   return IDBRequest::Create(aCursor, database, aCursor->Transaction());
 }
 
-} 
+} // anonymous namespace
 
 BEGIN_INDEXEDDB_NAMESPACE
 
@@ -133,7 +132,7 @@ protected:
       NS_ASSERTION(mCursor->mType == IDBCursor::OBJECTSTORE ||
                    !mObjectKey.IsUnset(), "Bad key!");
 
-      
+      // Set new values.
       mCursor->mKey = mKey;
       mCursor->mObjectKey = mObjectKey;
       mCursor->mContinueToKey.Unset();
@@ -189,7 +188,7 @@ private:
 
 END_INDEXEDDB_NAMESPACE
 
-
+// static
 already_AddRefed<IDBCursor>
 IDBCursor::Create(IDBRequest* aRequest,
                   IDBTransaction* aTransaction,
@@ -217,7 +216,7 @@ IDBCursor::Create(IDBRequest* aRequest,
   return cursor.forget();
 }
 
-
+// static
 already_AddRefed<IDBCursor>
 IDBCursor::Create(IDBRequest* aRequest,
                   IDBTransaction* aTransaction,
@@ -247,7 +246,7 @@ IDBCursor::Create(IDBRequest* aRequest,
   return cursor.forget();
 }
 
-
+// static
 already_AddRefed<IDBCursor>
 IDBCursor::Create(IDBRequest* aRequest,
                   IDBTransaction* aTransaction,
@@ -279,7 +278,7 @@ IDBCursor::Create(IDBRequest* aRequest,
   return cursor.forget();
 }
 
-
+// static
 nsresult
 IDBCursor::ParseDirection(const nsAString& aDirection, Direction* aResult)
 {
@@ -302,7 +301,7 @@ IDBCursor::ParseDirection(const nsAString& aDirection, Direction* aResult)
   return NS_OK;
 }
 
-
+// static
 already_AddRefed<IDBCursor>
 IDBCursor::CreateCommon(IDBRequest* aRequest,
                         IDBTransaction* aTransaction,
@@ -457,26 +456,14 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBCursor)
                "Should have a cached primary key");
   NS_ASSERTION(tmp->mHaveCachedValue || JSVAL_IS_VOID(tmp->mCachedValue),
                "Should have a cached value");
-  if (tmp->mScriptOwner) {
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(tmp->mScriptOwner,
-                                               "mScriptOwner")
-  }
-  if (JSVAL_IS_GCTHING(tmp->mCachedKey)) {
-    void *gcThing = JSVAL_TO_GCTHING(tmp->mCachedKey);
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(gcThing, "mCachedKey")
-  }
-  if (JSVAL_IS_GCTHING(tmp->mCachedPrimaryKey)) {
-    void *gcThing = JSVAL_TO_GCTHING(tmp->mCachedPrimaryKey);
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(gcThing, "mCachedPrimaryKey")
-  }
-  if (JSVAL_IS_GCTHING(tmp->mCachedValue)) {
-    void *gcThing = JSVAL_TO_GCTHING(tmp->mCachedValue);
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(gcThing, "mCachedValue")
-  }
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mScriptOwner)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mCachedKey)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mCachedPrimaryKey)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mCachedValue)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IDBCursor)
-  
+  // Don't unlink mObjectStore, mIndex, or mTransaction!
   if (tmp->mRooted) {
     NS_DROP_JS_OBJECTS(tmp, IDBCursor);
     tmp->mScriptOwner = nsnull;
@@ -708,12 +695,12 @@ IDBCursor::Update(const jsval& aValue,
   Key& objectKey = (mType == OBJECTSTORE) ? mKey : mObjectKey;
 
   if (!mObjectStore->KeyPath().IsEmpty()) {
-    
+    // This has to be an object.
     if (JSVAL_IS_PRIMITIVE(aValue)) {
       return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
     }
 
-    
+    // Make sure the object given has the correct keyPath value set on it.
     const nsString& keyPath = mObjectStore->KeyPath();
 
     jsval prop;
@@ -819,13 +806,13 @@ CursorHelper::Dispatch(nsIEventTarget* aDatabaseThread)
 nsresult
 ContinueHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
-  
-  
-  
-  
-  
-  
-  
+  // We need to pick a query based on whether or not the cursor's mContinueToKey
+  // is set. If it is unset then othing was passed to continue so we'll grab the
+  // next item in the database that is greater than (less than, if we're running
+  // a PREV cursor) the current key. If it is set then a key was passed to
+  // continue so we'll grab the next item in the database that is greater than
+  // (less than, if we're running a PREV cursor) or equal to the key that was
+  // specified.
 
   nsCAutoString query;
   if (mCursor->mContinueToKey.IsUnset()) {
@@ -889,7 +876,7 @@ ContinueHelper::GetSuccessResult(JSContext* aCx,
 nsresult
 ContinueHelper::PackArgumentsForParentProcess(CursorRequestParams& aParams)
 {
-  ipc::ContinueParams params;
+  ContinueParams params;
 
   params.key() = mCursor->mContinueToKey;
   params.count() = uint32_t(mCount);
@@ -914,12 +901,12 @@ ContinueHelper::MaybeSendResponseToChildProcess(nsresult aResultCode)
     return Error;
   }
 
-  ipc::ResponseValue response;
+  ResponseValue response;
   if (NS_FAILED(aResultCode)) {
     response = aResultCode;
   }
   else {
-    ipc::ContinueResponse continueResponse;
+    ContinueResponse continueResponse;
     continueResponse.key() = mKey;
     continueResponse.objectKey() = mObjectKey;
     continueResponse.cloneInfo() = mCloneReadInfo;
@@ -942,7 +929,7 @@ ContinueHelper::UnpackResponseFromParentProcess(
   NS_ASSERTION(aResponseValue.type() == ResponseValue::TContinueResponse,
                "Bad response type!");
 
-  const ipc::ContinueResponse& response = aResponseValue.get_ContinueResponse();
+  const ContinueResponse& response = aResponseValue.get_ContinueResponse();
 
   mKey = response.key();
   mObjectKey = response.objectKey();
@@ -965,7 +952,7 @@ nsresult
 ContinueObjectStoreHelper::BindArgumentsToStatement(
                                                mozIStorageStatement* aStatement)
 {
-  
+  // Bind object store id.
   nsresult rv = aStatement->BindInt64ByName(NS_LITERAL_CSTRING("id"),
                                             mCursor->mObjectStore->Id());
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
@@ -973,7 +960,7 @@ ContinueObjectStoreHelper::BindArgumentsToStatement(
   NS_NAMED_LITERAL_CSTRING(currentKeyName, "current_key");
   NS_NAMED_LITERAL_CSTRING(rangeKeyName, "range_key");
 
-  
+  // Bind current key.
   const Key& currentKey = mCursor->mContinueToKey.IsUnset() ?
                           mCursor->mKey :
                           mCursor->mContinueToKey;
@@ -981,7 +968,7 @@ ContinueObjectStoreHelper::BindArgumentsToStatement(
   rv = currentKey.BindToStatement(aStatement, currentKeyName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Bind range key if it is specified.
   const Key& rangeKey = mCursor->mRangeKey;
 
   if (!rangeKey.IsUnset()) {
@@ -996,7 +983,7 @@ nsresult
 ContinueObjectStoreHelper::GatherResultsFromStatement(
                                                mozIStorageStatement* aStatement)
 {
-  
+  // Figure out what kind of key we have next.
   nsresult rv = mKey.SetFromStatement(aStatement, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1010,14 +997,14 @@ ContinueObjectStoreHelper::GatherResultsFromStatement(
 nsresult
 ContinueIndexHelper::BindArgumentsToStatement(mozIStorageStatement* aStatement)
 {
-  
+  // Bind index id.
   nsresult rv = aStatement->BindInt64ByName(NS_LITERAL_CSTRING("id"),
                                             mCursor->mIndex->Id());
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   NS_NAMED_LITERAL_CSTRING(currentKeyName, "current_key");
 
-  
+  // Bind current key.
   const Key& currentKey = mCursor->mContinueToKey.IsUnset() ?
                           mCursor->mKey :
                           mCursor->mContinueToKey;
@@ -1025,15 +1012,15 @@ ContinueIndexHelper::BindArgumentsToStatement(mozIStorageStatement* aStatement)
   rv = currentKey.BindToStatement(aStatement, currentKeyName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Bind range key if it is specified.
   if (!mCursor->mRangeKey.IsUnset()) {
     NS_NAMED_LITERAL_CSTRING(rangeKeyName, "range_key");
     rv = mCursor->mRangeKey.BindToStatement(aStatement, rangeKeyName);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-  
+  // Bind object key if duplicates are allowed and we're not continuing to a
+  // specific key.
   if ((mCursor->mDirection == IDBCursor::NEXT ||
        mCursor->mDirection == IDBCursor::PREV) &&
        mCursor->mContinueToKey.IsUnset()) {

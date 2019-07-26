@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsDesktopNotification_h
 #define nsDesktopNotification_h
@@ -25,15 +25,15 @@
 #include "nsThreadUtils.h"
 
 #include "nsDOMEventTargetHelper.h"
-#include "nsIPrivateDOMEvent.h"
+#include "nsIDOMEvent.h"
 #include "nsIDocument.h"
 
 class AlertServiceObserver;
 
-
-
-
-
+/*
+ * nsDesktopNotificationCenter
+ * Object hangs off of the navigator object and hands out nsDOMDesktopNotification objects
+ */
 class nsDesktopNotificationCenter : public nsIDOMDesktopNotificationCenter
 {
 public:
@@ -44,7 +44,7 @@ public:
   {
     mOwner = aWindow;
 
-    
+    // Grab the uri of the document
     nsCOMPtr<nsIDOMDocument> domdoc;
     mOwner->GetDocument(getter_AddRefs(domdoc));
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
@@ -83,17 +83,17 @@ public:
 
   virtual ~nsDOMDesktopNotification();
 
-  
-
-
-
+  /*
+   * PostDesktopNotification
+   * Uses alert service to display a notification
+   */
   void PostDesktopNotification();
 
   void SetAllow(bool aAllow);
 
-  
-
-
+  /*
+   * Creates and dispatches a dom event of type aName
+   */
   void DispatchNotificationEvent(const nsString& aName);
 
   void HandleAlertServiceNotification(const char *aTopic);
@@ -113,9 +113,9 @@ protected:
   bool mShowHasBeenCalled;
 };
 
-
-
-
+/*
+ * Simple Request
+ */
 class nsDesktopNotificationRequest : public nsIContentPermissionRequest,
                                      public nsRunnable, 
                                      public PCOMContentPermissionRequestChild
@@ -172,7 +172,7 @@ class AlertServiceObserver: public nsIObserver
           const char *aTopic,
           const PRUnichar *aData)
   {
-    
+    // forward to parent
     if (mNotification)
       mNotification->HandleAlertServiceNotification(aTopic);
     return NS_OK;
@@ -182,4 +182,4 @@ class AlertServiceObserver: public nsIObserver
   nsDOMDesktopNotification* mNotification;
 };
 
-#endif 
+#endif /* nsDesktopNotification_h */

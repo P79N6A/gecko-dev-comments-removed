@@ -5312,6 +5312,8 @@ NestingPrologue(JSContext *cx, StackFrame *fp)
             MarkTypeObjectFlags(cx, fp->fun(), OBJECT_FLAG_REENTRANT_FUNCTION);
         }
 
+        
+        JS_ASSERT(!script->funHasExtensibleScope);
         nesting->activeCall = &fp->callObj();
         nesting->argArray = Valueify(nesting->activeCall->argArray());
         nesting->varArray = Valueify(nesting->activeCall->varArray());

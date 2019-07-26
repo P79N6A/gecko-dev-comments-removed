@@ -1456,7 +1456,6 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
   
   if (mBytesDecoded == 0) {
     
-    bool wasAnimating = mAnimating;
     if (mAnimating) {
       StopAnimation();
       mAnimating = false;

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsHTMLEditRules_h__
 #define nsHTMLEditRules_h__
@@ -53,14 +53,14 @@ public:
   virtual   ~nsHTMLEditRules();
 
 
-  // nsIEditRules methods
+  
   NS_IMETHOD Init(nsPlaintextEditor *aEditor);
   NS_IMETHOD DetachEditor();
   NS_IMETHOD BeforeEdit(nsEditor::OperationID action,
                         nsIEditor::EDirection aDirection);
   NS_IMETHOD AfterEdit(nsEditor::OperationID action,
                        nsIEditor::EDirection aDirection);
-  NS_IMETHOD WillDoAction(nsTypedSelection* aSelection, nsRulesInfo* aInfo,
+  NS_IMETHOD WillDoAction(mozilla::Selection* aSelection, nsRulesInfo* aInfo,
                           bool* aCancel, bool* aHandled);
   NS_IMETHOD DidDoAction(nsISelection *aSelection, nsRulesInfo *aInfo, nsresult aResult);
   NS_IMETHOD DocumentModified();
@@ -72,7 +72,7 @@ public:
   nsresult GetParagraphState(bool *aMixed, nsAString &outFormat);
   nsresult MakeSureElemStartsOrEndsOnCR(nsIDOMNode *aNode);
 
-  // nsIEditActionListener methods
+  
   
   NS_IMETHOD WillCreateNode(const nsAString& aTag, nsIDOMNode *aParent, PRInt32 aPosition);
   NS_IMETHOD DidCreateNode(const nsAString& aTag, nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aPosition, nsresult aResult);
@@ -105,21 +105,22 @@ protected:
     kBlockEnd
   };
 
-  // nsHTMLEditRules implementation methods
+  
   nsresult WillInsert(nsISelection *aSelection, bool *aCancel);
   nsresult WillInsertText(  nsEditor::OperationID aAction,
-                            nsISelection *aSelection, 
+                            mozilla::Selection* aSelection,
                             bool            *aCancel,
                             bool            *aHandled,
                             const nsAString *inString,
                             nsAString       *outString,
                             PRInt32          aMaxLength);
   nsresult WillLoadHTML(nsISelection *aSelection, bool *aCancel);
-  nsresult WillInsertBreak(nsISelection *aSelection, bool *aCancel, bool *aHandled);
+  nsresult WillInsertBreak(mozilla::Selection* aSelection,
+                           bool* aCancel, bool* aHandled);
   nsresult StandardBreakImpl(nsIDOMNode *aNode, PRInt32 aOffset, nsISelection *aSelection);
   nsresult DidInsertBreak(nsISelection *aSelection, nsresult aResult);
   nsresult SplitMailCites(nsISelection *aSelection, bool aPlaintext, bool *aHandled);
-  nsresult WillDeleteSelection(nsISelection* aSelection,
+  nsresult WillDeleteSelection(mozilla::Selection* aSelection,
                                nsIEditor::EDirection aAction,
                                nsIEditor::EStripWrappers aStripWrappers,
                                bool* aCancel, bool* aHandled);
@@ -280,7 +281,7 @@ protected:
   nsresult RelativeChangeIndentationOfElementNode(nsIDOMNode *aNode, PRInt8 aRelativeChange);
   void DocumentModifiedWorker();
 
-// data members
+
 protected:
   nsHTMLEditor           *mHTMLEditor;
   nsRefPtr<nsRange>       mDocChangeRange;
@@ -290,11 +291,11 @@ protected:
   bool                    mDidRangedDelete;
   bool                    mRestoreContentEditableCount;
   nsRefPtr<nsRange>       mUtilRange;
-  PRUint32                mJoinOffset;  // need to remember an int across willJoin/didJoin...
+  PRUint32                mJoinOffset;  
   nsCOMPtr<nsIDOMNode>    mNewBlock;
   nsRangeStore            mRangeItem;
   StyleCache              mCachedStyles[SIZE_STYLE_TABLE];
 };
 
-#endif //nsHTMLEditRules_h__
+#endif
 

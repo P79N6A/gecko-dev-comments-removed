@@ -8,9 +8,7 @@
 
 #include "XULTreeAccessible.h"
 #include "TableAccessible.h"
-#include "TableCellAccessible.h"
 #include "xpcAccessibleTable.h"
-#include "xpcAccessibleTableCell.h"
 
 namespace mozilla {
 namespace a11y {
@@ -30,26 +28,14 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLE(xpcAccessibleTable::)
+  NS_DECL_OR_FORWARD_NSIACCESSIBLETABLE_WITH_XPCACCESSIBLETABLE
 
   
-  virtual uint32_t ColCount();
-  virtual uint32_t RowCount();
-  virtual Accessible* CellAt(uint32_t aRowIndex, uint32_t aColumnIndex);
-  virtual void ColDescription(uint32_t aColIdx, nsString& aDescription);
-  virtual bool IsColSelected(uint32_t aColIdx);
-  virtual bool IsRowSelected(uint32_t aRowIdx);
-  virtual bool IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual uint32_t SelectedCellCount();
-  virtual uint32_t SelectedColCount();
-  virtual uint32_t SelectedRowCount();
-  virtual void SelectedCells(nsTArray<Accessible*>* aCells);
-  virtual void SelectedCellIndices(nsTArray<uint32_t>* aCells);
-  virtual void SelectedColIndices(nsTArray<uint32_t>* aCols);
-  virtual void SelectedRowIndices(nsTArray<uint32_t>* aRows);
-  virtual void SelectRow(uint32_t aRowIdx);
-  virtual void UnselectRow(uint32_t aRowIdx);
-  virtual Accessible* AsAccessible() { return this; }
+  virtual PRUint32 ColCount();
+  virtual PRUint32 RowCount();
+  virtual Accessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
+  virtual void SelectRow(PRUint32 aRowIdx);
+  virtual void UnselectRow(PRUint32 aRowIdx);
 
   
   virtual void Shutdown();
@@ -61,7 +47,7 @@ public:
 protected:
 
   
-  virtual already_AddRefed<Accessible> CreateTreeItemAccessible(int32_t aRow);
+  virtual already_AddRefed<Accessible> CreateTreeItemAccessible(PRInt32 aRow);
 };
 
 
@@ -76,7 +62,7 @@ public:
 
   XULTreeGridRowAccessible(nsIContent* aContent, DocAccessible* aDoc,
                            Accessible* aParent, nsITreeBoxObject* aTree,
-                           nsITreeView* aTreeView, int32_t aRow);
+                           nsITreeView* aTreeView, PRInt32 aRow);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -89,15 +75,15 @@ public:
   
   virtual a11y::role NativeRole();
   virtual ENameValueFlag Name(nsString& aName);
-  virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
+  virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    EWhichChildAtPoint aWhichChild);
 
-  virtual Accessible* GetChildAt(uint32_t aIndex);
-  virtual uint32_t ChildCount() const;
+  virtual Accessible* GetChildAt(PRUint32 aIndex);
+  virtual PRUint32 ChildCount() const;
 
   
   virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn);
-  virtual void RowInvalidated(int32_t aStartColIdx, int32_t aEndColIdx);
+  virtual void RowInvalidated(PRInt32 aStartColIdx, PRInt32 aEndColIdx);
 
 protected:
 
@@ -123,16 +109,14 @@ protected:
 }
 
 class XULTreeGridCellAccessible : public LeafAccessible,
-                                  public nsIAccessibleTableCell,
-                                  public TableCellAccessible,
-                                  public xpcAccessibleTableCell
+                                  public nsIAccessibleTableCell
 {
 public:
 
   XULTreeGridCellAccessible(nsIContent* aContent, DocAccessible* aDoc,
                             XULTreeGridRowAccessible* aRowAcc,
                             nsITreeBoxObject* aTree, nsITreeView* aTreeView,
-                            int32_t aRow, nsITreeColumn* aColumn);
+                            PRInt32 aRow, nsITreeColumn* aColumn);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -141,43 +125,39 @@ public:
 
   
 
-  NS_IMETHOD GetBounds(int32_t* aX, int32_t* aY,
-                       int32_t* aWidth, int32_t* aHeight);
+  NS_IMETHOD GetBounds(PRInt32* aX, PRInt32* aY,
+                       PRInt32* aWidth, PRInt32* aHeight);
 
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
-
-  
-  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual void Init();
+  NS_DECL_NSIACCESSIBLETABLECELL
 
   
-  virtual TableCellAccessible* AsTableCell() { return this; }
-  virtual void Shutdown();
+  virtual bool Init();
+  virtual bool IsPrimaryForNode() const;
+
+  
   virtual ENameValueFlag Name(nsString& aName);
   virtual Accessible* FocusedChild();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
-  virtual int32_t IndexInParent() const;
-  virtual Relation RelationByType(uint32_t aType);
+  virtual PRInt32 IndexInParent() const;
+  virtual Relation RelationByType(PRUint32 aType);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeInteractiveState() const;
 
   
-  virtual uint8_t ActionCount();
-
-  
-  virtual TableAccessible* Table() const MOZ_OVERRIDE;
-  virtual uint32_t ColIdx() const MOZ_OVERRIDE;
-  virtual uint32_t RowIdx() const MOZ_OVERRIDE;
-  virtual void ColHeaderCells(nsTArray<Accessible*>* aHeaderCells) MOZ_OVERRIDE;
-  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE { }
-  virtual bool Selected() MOZ_OVERRIDE;
+  virtual PRUint8 ActionCount();
 
   
   NS_DECLARE_STATIC_IID_ACCESSOR(XULTREEGRIDCELLACCESSIBLE_IMPL_CID)
+
+  
+
+
+  PRInt32 GetColumnIndex() const;
 
   
 
@@ -187,9 +167,9 @@ public:
 
 protected:
   
-  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult* aError = nullptr) const;
-  virtual void DispatchClickEvent(nsIContent* aContent, uint32_t aActionIndex);
+  virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                         nsresult* aError = nsnull) const;
+  virtual void DispatchClickEvent(nsIContent* aContent, PRUint32 aActionIndex);
 
   
 
@@ -203,7 +183,7 @@ protected:
   nsCOMPtr<nsITreeBoxObject> mTree;
   nsITreeView* mTreeView;
 
-  int32_t mRow;
+  PRInt32 mRow;
   nsCOMPtr<nsITreeColumn> mColumn;
 
   nsString mCachedTextEquiv;

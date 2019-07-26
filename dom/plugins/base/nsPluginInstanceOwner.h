@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+// vim:set ts=2 sts=2 sw=2 et cin:
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsPluginInstanceOwner_h_
 #define nsPluginInstanceOwner_h_
@@ -20,7 +20,7 @@
 #include "nsWeakReference.h"
 #include "gfxRect.h"
 
-
+// X.h defines KeyPress
 #ifdef KeyPress
 #undef KeyPress
 #endif
@@ -57,7 +57,7 @@ namespace mozilla {
 }
 #endif
 
-
+// X.h defines KeyPress
 #ifdef KeyPress
 #undef KeyPress
 #endif
@@ -93,10 +93,10 @@ public:
   virtual NPError FinalizeAsyncSurface(NPAsyncSurface *surface);
   virtual void SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *changed);
 
-  
+  //nsIPluginTagInfo interface
   NS_DECL_NSIPLUGINTAGINFO
   
-  
+  // nsIDOMEventListener interfaces 
   NS_DECL_NSIDOMEVENTLISTENER
   
   nsresult MouseDown(nsIDOMEvent* aKeyEvent);
@@ -127,11 +127,11 @@ public:
 #endif
   void SendIdleEvent();
   
-  
+  // nsIScrollPositionListener interface
   virtual void ScrollPositionWillChange(nscoord aX, nscoord aY);
   virtual void ScrollPositionDidChange(nscoord aX, nscoord aY);
   
-  
+  //locals
   
   nsresult Init(nsIContent* aContent);
   
@@ -149,32 +149,32 @@ public:
   static void CARefresh(nsITimer *aTimer, void *aClosure);
   void AddToCARefreshTimer();
   void RemoveFromCARefreshTimer();
-  
+  // This calls into the plugin (NPP_SetWindow) and can run script.
   void* FixUpPluginWindow(PRInt32 inPaintState);
   void HidePluginWindow();
-  
-  
+  // Set a flag that (if true) indicates the plugin port info has changed and
+  // SetWindow() needs to be called.
   void SetPluginPortChanged(bool aState) { mPluginPortChanged = aState; }
-  
-  
+  // Return a pointer to the internal nsPluginPort structure that's used to
+  // store a copy of plugin port info and to detect when it's been changed.
   void* GetPluginPortCopy();
-  
-  
-  
-  
+  // Set plugin port info in the plugin (in the 'window' member of the
+  // NPWindow structure passed to the plugin by SetWindow()) and set a
+  // flag (mPluginPortChanged) to indicate whether or not this info has
+  // changed, and SetWindow() needs to be called again.
   void* SetPluginPortAndDetectChange();
-  
-  
-  
-  
-  
+  // Flag when we've set up a Thebes (and CoreGraphics) context in
+  // nsObjectFrame::PaintPlugin().  We need to know this in
+  // FixUpPluginWindow() (i.e. we need to know when FixUpPluginWindow() has
+  // been called from nsObjectFrame::PaintPlugin() when we're using the
+  // CoreGraphics drawing model).
   void BeginCGPaint();
   void EndCGPaint();
-#else 
+#else // XP_MACOSX
   void UpdateWindowPositionAndClipRect(bool aSetWindow);
   void UpdateWindowVisibility(bool aVisible);
   void UpdateDocumentActiveState(bool aIsActive);
-#endif 
+#endif // XP_MACOSX
 
   void SetFrame(nsObjectFrame *aFrame);
   nsObjectFrame* GetFrame();
@@ -222,7 +222,7 @@ public:
   bool SendNativeEvents()
   {
 #ifdef XP_WIN
-    
+    // XXX we should remove the plugin name check
     return mPluginWindow->type == NPWindowTypeDrawable &&
     (MatchPluginName("Shockwave Flash") ||
      MatchPluginName("Test Plug-in"));
@@ -240,19 +240,19 @@ public:
   
   void NotifyPaintWaiter(nsDisplayListBuilder* aBuilder);
 
-  
+  // Returns the image container that has our currently displayed image.
   already_AddRefed<ImageContainer> GetImageContainer();
 
-  
-
-
-
-
+  /**
+   * Returns the bounds of the current async-rendered surface. This can only
+   * change in response to messages received by the event loop (i.e. not during
+   * painting).
+   */
   nsIntSize GetCurrentImageSize();
   
-  
-  
-  
+  // Methods to update the background image we send to async plugins.
+  // The eventual target of these operations is PluginInstanceParent,
+  // but it takes several hops to get there.
   void SetBackgroundUnknown();
   already_AddRefed<gfxContext> BeginUpdateBackground(const nsIntRect& aRect);
   void EndUpdateBackground(gfxContext* aContext, const nsIntRect& aRect);
@@ -281,13 +281,13 @@ public:
   void RequestFullScreen();
   void ExitFullScreen();
 
-  
+  // Called from AndroidJNI when we removed the fullscreen view.
   static void ExitFullScreen(jobject view);
 #endif
   
 private:
   
-  
+  // return FALSE if LayerSurface dirty (newly created and don't have valid plugin content yet)
   bool IsUpToDate()
   {
     nsIntSize size;
@@ -299,6 +299,7 @@ private:
 #ifdef MOZ_WIDGET_ANDROID
   void SendSize(int width, int height);
 
+  gfxRect GetPluginRect();
   bool AddPluginView(const gfxRect& aRect = gfxRect(0, 0, 0, 0));
   void RemovePluginView();
 
@@ -307,14 +308,14 @@ private:
 
   void* mJavaView;
 
-  
+  // For kOpenGL_ANPDrawingModel
   nsRefPtr<mozilla::AndroidMediaLayer> mLayer;
 #endif 
  
   nsPluginNativeWindow       *mPluginWindow;
   nsRefPtr<nsNPAPIPluginInstance> mInstance;
   nsObjectFrame              *mObjectFrame;
-  nsIContent                 *mContent; 
+  nsIContent                 *mContent; // WEAK, content owns us
   nsCString                   mDocumentBase;
   char                       *mTagText;
   bool                        mWidgetCreationComplete;
@@ -334,21 +335,21 @@ private:
   static nsTArray<nsPluginInstanceOwner*>  *sCARefreshListeners;
   bool                                      mSentInitialTopLevelWindowEvent;
 #endif
-  
-  
+  // We need to know if async hide window is required since we
+  // can not check UseAsyncRendering when executing StopPlugin
   bool                                      mAsyncHidePluginWindow;
   
-  
-  
-  
+  // Initially, the event loop nesting level we were created on, it's updated
+  // if we detect the appshell is on a lower level as long as we're not stopped.
+  // We delay DoStopPlugin() until the appshell reaches this level or lower.
   PRUint32                    mLastEventloopNestingLevel;
   bool                        mContentFocused;
-  bool                        mWidgetVisible;    
+  bool                        mWidgetVisible;    // used on Mac to store our widget's visible state
 #ifdef XP_MACOSX
   bool                        mPluginPortChanged;
 #endif
 #ifdef MOZ_X11
-  
+  // Used with windowless plugins only, initialized in CreateWidget().
   bool                        mFlash10Quirks;
 #endif
   bool                        mPluginWindowVisible;
@@ -361,14 +362,14 @@ private:
   
 #ifdef XP_MACOSX
   NPEventModel mEventModel;
-  
-  
-  
-  
+  // This is a hack! UseAsyncRendering() can incorrectly return false
+  // when we don't have an object frame (possible as of bug 90268).
+  // We hack around this by always returning true if we've ever
+  // returned true.
   bool mUseAsyncRendering;
 #endif
   
-  
+  // pointer to wrapper for nsIDOMContextMenuListener
   nsRefPtr<nsPluginDOMContextMenuListener> mCXMenuListener;
   
   nsresult DispatchKeyToPlugin(nsIDOMEvent* aKeyEvent);
@@ -404,5 +405,5 @@ private:
   bool mWaitingForPaint;
 };
 
-#endif 
+#endif // nsPluginInstanceOwner_h_
 

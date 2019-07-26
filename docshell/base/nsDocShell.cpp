@@ -165,9 +165,7 @@
 
 #include "nsIGlobalHistory2.h"
 
-#ifdef DEBUG_DOCSHELL_FOCUS
 #include "nsEventStateManager.h"
-#endif
 
 #include "nsIFrame.h"
 
@@ -1401,6 +1399,17 @@ nsDocShell::LoadURI(nsIURI * aURI,
 #endif
 
         return LoadHistoryEntry(shEntry, loadType);
+    }
+
+    
+    
+    
+    
+    
+    
+    if ((loadType == LOAD_NORMAL || loadType == LOAD_STOP_CONTENT) &&
+        ShouldBlockLoadingForBackButton()) {
+        return NS_OK;
     }
 
     
@@ -11566,6 +11575,16 @@ nsDocShell::OnLinkClick(nsIContent* aContent,
     return NS_OK;
   }
 
+  
+  
+  
+  
+  
+  
+  if (ShouldBlockLoadingForBackButton()) {
+    return NS_OK;
+  }
+
   if (aContent->IsEditable()) {
     return NS_OK;
   }
@@ -11608,6 +11627,13 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
   }
 
   if (!IsOKToLoadURI(aURI)) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  if (nsGkAtoms::form == aContent->Tag() && ShouldBlockLoadingForBackButton()) {
     return NS_OK;
   }
 
@@ -11758,6 +11784,20 @@ nsDocShell::OnLeaveLink()
                                     EmptyString().get());
   }
   return rv;
+}
+
+bool
+nsDocShell::ShouldBlockLoadingForBackButton()
+{
+  if (!(mLoadType & LOAD_CMD_HISTORY) ||
+      nsEventStateManager::IsHandlingUserInput() ||
+      !Preferences::GetBool("accessibility.blockjsredirection")) {
+    return false;
+  }
+
+  bool canGoForward = false;
+  GetCanGoForward(&canGoForward);
+  return canGoForward;
 }
 
 

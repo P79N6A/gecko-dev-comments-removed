@@ -2006,6 +2006,15 @@ DocAccessible::CacheChildrenInSubtree(Accessible* aRoot)
     if (child && child->IsContent())
       CacheChildrenInSubtree(child);
   }
+
+  
+  
+  if (aRoot->HasARIARole() && !aRoot->IsDoc()) {
+    a11y::role role = aRoot->ARIARole();
+    if (role == roles::DIALOG || role == roles::DOCUMENT)
+      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE,
+                                 aRoot->GetContent());
+  }
 }
 
 void

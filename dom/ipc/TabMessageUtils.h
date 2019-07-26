@@ -1,13 +1,13 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef TABMESSAGE_UTILS_H
 #define TABMESSAGE_UTILS_H
 
 #include "IPC/IPCMessageUtils.h"
-#include "nsIPrivateDOMEvent.h"
+#include "nsIDOMEvent.h"
 #include "nsCOMPtr.h"
 
 #ifdef MOZ_CRASHREPORTER
@@ -18,7 +18,7 @@ namespace mozilla {
 namespace dom {
 struct RemoteDOMEvent
 {
-  nsCOMPtr<nsIPrivateDOMEvent> mEvent;
+  nsCOMPtr<nsIDOMEvent> mEvent;
 };
 
 bool ReadRemoteEvent(const IPC::Message* aMsg, void** aIter,
@@ -27,7 +27,7 @@ bool ReadRemoteEvent(const IPC::Message* aMsg, void** aIter,
 #ifdef MOZ_CRASHREPORTER
 typedef CrashReporter::ThreadId NativeThreadId;
 #else
-
+// unused in this case
 typedef int32 NativeThreadId;
 #endif
 

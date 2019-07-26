@@ -24,21 +24,21 @@ public:
   XULMenuitemAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD DoAction(uint8_t index);
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
   virtual void Description(nsString& aDescription);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
-  virtual int32_t GetLevelInternal();
+  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeInteractiveState() const;
+  virtual PRInt32 GetLevelInternal();
 
   virtual bool CanHaveAnonChildren();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
   virtual KeyBinding AccessKey() const;
   virtual KeyBinding KeyboardShortcut() const;
 
@@ -57,16 +57,16 @@ public:
   XULMenuSeparatorAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  NS_IMETHOD DoAction(uint8_t index);
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -81,7 +81,7 @@ public:
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
   virtual bool IsWidget() const;

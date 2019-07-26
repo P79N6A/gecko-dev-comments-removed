@@ -345,7 +345,7 @@ Accessible::Description(nsString& aDescription)
 }
 
 NS_IMETHODIMP
-Accessible::GetKeyboardShortcut(nsAString& aAccessKey)
+Accessible::GetAccessKey(nsAString& aAccessKey)
 {
   aAccessKey.Truncate();
 
@@ -881,88 +881,14 @@ Accessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
 void
 Accessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame)
 {
-
-
-
-
-
-
-
-
-
-
-
-  
-  *aBoundingFrame = nsnull;
-  nsIFrame* firstFrame = GetFrame();
-  if (!firstFrame)
-    return;
-
-  
-  
-  
-  nsIFrame *ancestorFrame = firstFrame;
-
-  while (ancestorFrame) {  
-    *aBoundingFrame = ancestorFrame;
-    
-    
-    if (ancestorFrame->GetType() != nsGkAtoms::inlineFrame &&
-        ancestorFrame->GetType() != nsGkAtoms::textFrame)
-      break;
-    ancestorFrame = ancestorFrame->GetParent();
-  }
-
-  nsIFrame *iterFrame = firstFrame;
-  nsCOMPtr<nsIContent> firstContent(mContent);
-  nsIContent* iterContent = firstContent;
-  PRInt32 depth = 0;
-
-  
-  while (iterContent == firstContent || depth > 0) {
-    
-    nsRect currFrameBounds = iterFrame->GetRect();
-    
-    
-    currFrameBounds +=
-      iterFrame->GetParent()->GetOffsetToExternal(*aBoundingFrame);
-
-    
-    aTotalBounds.UnionRect(aTotalBounds, currFrameBounds);
-
-    nsIFrame *iterNextFrame = nsnull;
-
-    if (iterFrame->GetType() == nsGkAtoms::inlineFrame) {
-      
-      
-      iterNextFrame = iterFrame->GetFirstPrincipalChild();
-    }
-
-    if (iterNextFrame) 
-      ++depth;  
-    else {  
-      
-      
-      while (iterFrame) {
-        iterNextFrame = iterFrame->GetNextContinuation();
-        if (!iterNextFrame)
-          iterNextFrame = iterFrame->GetNextSibling();
-        if (iterNextFrame || --depth < 0) 
-          break;
-        iterFrame = iterFrame->GetParent();
-      }
-    }
-
-    
-    iterFrame = iterNextFrame;
-    if (iterFrame == nsnull)
-      break;
-    iterContent = nsnull;
-    if (depth == 0)
-      iterContent = iterFrame->GetContent();
+  nsIFrame* frame = GetFrame();
+  if (frame) {
+    *aBoundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
+    aTotalBounds = nsLayoutUtils::
+      GetAllInFlowRectsUnion(frame, *aBoundingFrame,
+                             nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS);
   }
 }
-
 
 
 NS_IMETHODIMP
@@ -1753,34 +1679,13 @@ Accessible::SetName(const nsAString& aName)
 }
 
 NS_IMETHODIMP
-Accessible::GetDefaultKeyBinding(nsAString& aKeyBinding)
+Accessible::GetKeyboardShortcut(nsAString& aKeyBinding)
 {
   aKeyBinding.Truncate();
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
   KeyboardShortcut().ToString(aKeyBinding);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-Accessible::GetKeyBindings(PRUint8 aActionIndex,
-                             nsIDOMDOMStringList** aKeyBindings)
-{
-  
-  NS_ENSURE_TRUE(aActionIndex == 0, NS_ERROR_INVALID_ARG);
-
-  nsAccessibleDOMStringList* keyBindings = new nsAccessibleDOMStringList();
-  NS_ENSURE_TRUE(keyBindings, NS_ERROR_OUT_OF_MEMORY);
-
-  nsAutoString defaultKey;
-  nsresult rv = GetDefaultKeyBinding(defaultKey);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!defaultKey.IsEmpty())
-    keyBindings->Add(defaultKey);
-
-  NS_ADDREF(*aKeyBindings = keyBindings);
   return NS_OK;
 }
 

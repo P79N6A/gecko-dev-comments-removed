@@ -37,7 +37,6 @@
 #include "nsUnicharUtils.h"
 #include "nsEventStateManager.h"
 #include "nsIDOMEvent.h"
-#include "nsIPrivateDOMEvent.h"
 #include "nsDOMCID.h"
 #include "nsIServiceManager.h"
 #include "nsIDOMCSSStyleDeclaration.h"
@@ -135,8 +134,6 @@ NS_DEFINE_IID(kThisPtrOffsetsSID, NS_THISPTROFFSETS_SID);
 PRInt32 nsIContent::sTabFocusModel = eTabFocus_any;
 bool nsIContent::sTabFocusModelAppliesToXUL = false;
 PRUint32 nsMutationGuard::sMutationCount = 0;
-
-nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult);
 
 
 
@@ -3215,6 +3212,29 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
+class RemoveFromBindingManagerRunnable : public nsRunnable {
+public:
+  RemoveFromBindingManagerRunnable(nsBindingManager* aManager,
+                                   Element* aElement,
+                                   nsIDocument* aDoc,
+                                   nsIContent* aBindingParent):
+    mManager(aManager), mElement(aElement), mDoc(aDoc),
+    mBindingParent(aBindingParent)
+  {}
+
+  NS_IMETHOD Run()
+  {
+    mManager->RemovedFromDocumentInternal(mElement, mDoc, mBindingParent);
+    return NS_OK;
+  }
+
+private:
+  nsRefPtr<nsBindingManager> mManager;
+  nsRefPtr<Element> mElement;
+  nsCOMPtr<nsIDocument> mDoc;
+  nsCOMPtr<nsIContent> mBindingParent;
+};
+
 void
 nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
@@ -3257,7 +3277,11 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
   if (document) {
     
     
-    document->BindingManager()->RemovedFromDocument(this, document);
+    if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
+      nsContentUtils::AddScriptRunner(
+        new RemoveFromBindingManagerRunnable(document->BindingManager(), this,
+                                             document, GetBindingParent()));
+    }
 
     document->ClearBoxObjectFor(this);
   }
@@ -3520,7 +3544,7 @@ nsGenericElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
   return NS_OK;
 }
 
-nsIDOMCSSStyleDeclaration*
+nsICSSDeclaration*
 nsGenericElement::GetSMILOverrideStyle()
 {
   nsGenericElement::nsDOMSlots *slots = DOMSlots();
@@ -3561,6 +3585,12 @@ nsGenericElement::SetSMILOverrideStyleRule(css::StyleRule* aStyleRule,
   }
 
   return NS_OK;
+}
+
+bool
+nsGenericElement::IsLabelable() const
+{
+  return false;
 }
 
 css::StyleRule*
@@ -4180,19 +4210,11 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
 
   nsIDocument* doc = OwnerDoc();
   nsIContent* newContent = static_cast<nsIContent*>(aNewChild);
-  PRInt32 insPos;
-
-  mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
-
-  
-  if (aRefChild) {
-    insPos = IndexOf(aRefChild);
-    if (insPos < 0) {
-      return NS_ERROR_DOM_NOT_FOUND_ERR;
-    }
-  }
-  else {
-    insPos = GetChildCount();
+  if (newContent->IsRootOfAnonymousSubtree()) {
+    
+    
+    
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
   
@@ -4200,18 +4222,17 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
-  nsAutoMutationBatch mb;
   
+  nsINode* nodeToInsertBefore;
   if (aReplace) {
-    mb.Init(this, true, true);
-    RemoveChildAt(insPos, true);
+    nodeToInsertBefore = aRefChild->GetNextSibling();
+  } else {
+    nodeToInsertBefore = aRefChild;
   }
-
-  if (newContent->IsRootOfAnonymousSubtree()) {
+  if (nodeToInsertBefore == aNewChild) {
     
     
-    
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    nodeToInsertBefore = nodeToInsertBefore->GetNextSibling();
   }
 
   
@@ -4224,19 +4245,95 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
 
-    nsAutoMutationBatch mb(oldParent, true, true);
-    oldParent->RemoveChildAt(removeIndex, true);
-    if (nsAutoMutationBatch::GetCurrentBatch() == &mb) {
-      mb.RemovalDone();
-      mb.SetPrevSibling(oldParent->GetChildAt(removeIndex - 1));
-      mb.SetNextSibling(oldParent->GetChildAt(removeIndex));
-    }
+    
+    nsCOMPtr<nsINode> kungFuDeathGrip = nodeToInsertBefore;
+
+    
+    nsMutationGuard guard;
 
     
     
-    if (oldParent == this && removeIndex < insPos) {
-      --insPos;
+    {
+      mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
+      nsAutoMutationBatch mb(oldParent, true, true);
+      oldParent->RemoveChildAt(removeIndex, true);
+      if (nsAutoMutationBatch::GetCurrentBatch() == &mb) {
+        mb.RemovalDone();
+        mb.SetPrevSibling(oldParent->GetChildAt(removeIndex - 1));
+        mb.SetNextSibling(oldParent->GetChildAt(removeIndex));
+      }
     }
+
+    
+    if (guard.Mutated(1)) {
+      
+      
+      
+      
+      if (nodeToInsertBefore && nodeToInsertBefore->GetParent() != this) {
+        return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+      }
+
+      
+      if (newContent->GetParent()) {
+        return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+      }
+
+      
+      if (aNewChild == aRefChild) {
+        
+        
+        if (!IsAllowedAsChild(newContent, this, false, nodeToInsertBefore)) {
+          return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+        }
+      } else {
+        if ((aRefChild && aRefChild->GetParent() != this) ||
+            !IsAllowedAsChild(newContent, this, aReplace, aRefChild)) {
+          return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+        }
+        
+        if (aReplace) {
+          nodeToInsertBefore = aRefChild->GetNextSibling();
+        } else {
+          nodeToInsertBefore = aRefChild;
+        }
+      }
+    }
+  }
+
+  mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
+  nsAutoMutationBatch mb;
+
+  
+  
+  
+  
+  PRInt32 insPos;
+  if (nodeToInsertBefore) {
+    insPos = IndexOf(nodeToInsertBefore);
+    if (insPos < 0) {
+      
+      return NS_ERROR_DOM_NOT_FOUND_ERR;
+    }
+  }
+  else {
+    insPos = GetChildCount();
+  }
+
+  
+  if (aReplace && aRefChild != aNewChild) {
+    mb.Init(this, true, true);
+
+    
+    
+    NS_ASSERTION(aRefChild->GetNextSibling() == nodeToInsertBefore,
+                 "Unexpected nodeToInsertBefore");
+
+    
+    
+    NS_ASSERTION(insPos >= 1, "insPos too small");
+    RemoveChildAt(insPos-1, true);
+    --insPos;
   }
 
   nsresult res = NS_OK;
@@ -6128,7 +6225,7 @@ inline static nsresult FindMatchingElements(nsINode* aRoot,
 
   nsIDocument* doc = aRoot->OwnerDoc();  
   TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
-                                   doc);
+                                   doc, TreeMatchContext::eNeverMatchVisited);
   doc->FlushPendingLinkUpdates();
 
   
@@ -6242,7 +6339,8 @@ nsGenericElement::MozMatchesSelector(const nsAString& aSelector, nsresult* aResu
     OwnerDoc()->FlushPendingLinkUpdates();
     TreeMatchContext matchingContext(false,
                                      nsRuleWalker::eRelevantLinkUnvisited,
-                                     OwnerDoc());
+                                     OwnerDoc(),
+                                     TreeMatchContext::eNeverMatchVisited);
     matches = nsCSSRuleProcessor::SelectorListMatches(this, matchingContext,
                                                       selectorList);
   }

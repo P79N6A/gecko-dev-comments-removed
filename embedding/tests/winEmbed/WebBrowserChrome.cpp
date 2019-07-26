@@ -495,6 +495,12 @@ NS_IMETHODIMP WebBrowserChrome::SetFocus()
 }
 
 
+NS_IMETHODIMP WebBrowserChrome::Blur()
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
 NS_IMETHODIMP WebBrowserChrome::GetTitle(PRUnichar * *aTitle)
 {
    NS_ENSURE_ARG_POINTER(aTitle);

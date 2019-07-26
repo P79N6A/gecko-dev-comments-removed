@@ -257,6 +257,9 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
       !(parent->GetType() == nsGkAtoms::scrollFrame &&
         parent->GetStyleDisplay()->mOverflowY != NS_STYLE_OVERFLOW_HIDDEN)) {
     frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+  } else if (type == nsGkAtoms::svgForeignObjectFrame) {
+    
+    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
   } else if ((mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto ||
               mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_None) &&
               
@@ -305,12 +308,6 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
-
-  if (frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
-    
-    
-    nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
-  }
 }
 
 void nsHTMLReflowState::InitCBReflowState()
@@ -364,34 +361,91 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs, nsIAtom* aFrameType)
 void
 nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType)
 {
-  mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
-                    frame->GetSize().width !=
-                      mComputedWidth + mComputedBorderPadding.LeftRight();
-  if (mFlags.mHResize &&
+  bool isHResize = frame->GetSize().width !=
+                     mComputedWidth + mComputedBorderPadding.LeftRight();
+
+  if ((frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) &&
       nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
+    if (dirty || (!frame->GetParent() && isHResize)) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
-    
-    
-    
-    
-    
-    frame->AddStateBits(NS_FRAME_IS_DIRTY);
+      
+      
+      
+      
+      
+      if (frame->GetType() == nsGkAtoms::svgForeignObjectFrame) {
+        
+        frame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+        nsIFrame *kid = frame->GetFirstPrincipalChild();
+        if (kid) {
+          kid->AddStateBits(NS_FRAME_IS_DIRTY);
+        }
+      } else {
+        frame->AddStateBits(NS_FRAME_IS_DIRTY);
+      }
+
+      
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+
+      nsAutoTArray<nsIFrame*, 32> stack;
+      stack.AppendElement(frame);
+
+      do {
+        nsIFrame *f = stack.ElementAt(stack.Length() - 1);
+        stack.RemoveElementAt(stack.Length() - 1);
+
+        nsIFrame::ChildListIterator lists(f);
+        for (; !lists.IsDone(); lists.Next()) {
+          nsFrameList::Enumerator childFrames(lists.CurrentList());
+          for (; !childFrames.AtEnd(); childFrames.Next()) {
+            nsIFrame* kid = childFrames.get();
+            kid->MarkIntrinsicWidthsDirty();
+            stack.AppendElement(kid);
+          }
+        }
+      } while (stack.Length() != 0);
+    }
   }
+
+  mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
+                    isHResize;
 
   
   

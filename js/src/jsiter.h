@@ -226,37 +226,66 @@ Next(JSContext *cx, HandleObject iter, Value *vp)
 
 
 
-template <class Op>
-bool
-ForOf(JSContext *cx, const Value &iterable, Op op)
-{
-    Value iterv(iterable);
-    if (!ValueToIterator(cx, JSITER_FOR_OF, &iterv))
-        return false;
-    RootedObject iter(cx, &iterv.toObject());
 
-    bool ok = true;
-    while (ok) {
-        Value v;
-        ok = Next(cx, iter, &v);
-        if (ok) {
-            if (v.isMagic(JS_NO_ITER_VALUE))
-                break;
-            ok = op(cx, v);
+
+
+
+
+
+class ForOfIterator {
+  private:
+    JSContext *cx;
+    RootedObject iterator;
+    RootedValue currentValue;
+    bool ok;
+    bool closed;
+
+    ForOfIterator(const ForOfIterator &) MOZ_DELETE;
+    ForOfIterator &operator=(const ForOfIterator &) MOZ_DELETE;
+
+  public:
+    ForOfIterator(JSContext *cx, const Value &iterable)
+        : cx(cx), iterator(cx, NULL), currentValue(cx), closed(false)
+    {
+        RootedValue iterv(cx, iterable);
+        ok = ValueToIterator(cx, JSITER_FOR_OF, iterv.address());
+        iterator = ok ? &iterv.reference().toObject() : NULL;
+    }
+
+    ~ForOfIterator() {
+        if (!closed)
+            close();
+    }
+
+    bool next() {
+        JS_ASSERT(!closed);
+        ok = ok && Next(cx, iterator, currentValue.address());
+        return ok && !currentValue.reference().isMagic(JS_NO_ITER_VALUE);
+    }
+
+    Value &value() {
+        JS_ASSERT(ok);
+        JS_ASSERT(!closed);
+        return currentValue.reference();
+    }
+
+    bool close() {
+        JS_ASSERT(!closed);
+        closed = true;
+        if (!iterator)
+            return false;
+        bool throwing = cx->isExceptionPending();
+        RootedValue exc(cx);
+        if (throwing) {
+            exc = cx->getPendingException();
+            cx->clearPendingException();
         }
+        bool closedOK = CloseIterator(cx, iterator);
+        if (throwing && closedOK)
+            cx->setPendingException(exc);
+        return ok && !throwing && closedOK;
     }
-
-    bool throwing = !ok && cx->isExceptionPending();
-    Value exc;
-    if (throwing) {
-        exc = cx->getPendingException();
-        cx->clearPendingException();
-    }
-    bool closedOK = CloseIterator(cx, iter);
-    if (throwing && closedOK)
-        cx->setPendingException(exc);
-    return ok && closedOK;
-}
+};
 
 } 
 

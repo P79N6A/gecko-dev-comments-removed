@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsDesktopNotification.h"
 
@@ -14,15 +14,15 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-
-
-
+/* ------------------------------------------------------------------------ */
+/* AlertServiceObserver                                                     */
+/* ------------------------------------------------------------------------ */
 
 NS_IMPL_ISUPPORTS1(AlertServiceObserver, nsIObserver)
 
-
-
-
+/* ------------------------------------------------------------------------ */
+/* nsDesktopNotification                                                    */
+/* ------------------------------------------------------------------------ */
 
 void
 nsDOMDesktopNotification::PostDesktopNotification()
@@ -80,8 +80,8 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
     return;
   }
 
-  
-  
+  // If we are in testing mode (running mochitests, for example)
+  // and we are suppose to allow requests, then just post an allow event.
   if (Preferences::GetBool("notification.prompt.testing", false) &&
       Preferences::GetBool("notification.prompt.testing.allow", true)) {
     mAllow = true;
@@ -90,21 +90,21 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
 
   nsRefPtr<nsDesktopNotificationRequest> request = new nsDesktopNotificationRequest(this);
 
-  
+  // if we are in the content process, then remote it to the parent.
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
 
-    
-    
-    
+    // if for some reason mOwner is null, just silently
+    // bail.  The user will not see a notification, and that
+    // is fine.
     if (!GetOwner())
       return;
 
-    
-    
+    // because owner implements nsITabChild, we can assume that it is
+    // the one and only TabChild for this docshell.
     TabChild* child = GetTabChildFrom(GetOwner()->GetDocShell());
     
-    
-    
+    // Retain a reference so the object isn't deleted without IPDL's knowledge.
+    // Corresponding release occurs in DeallocPContentPermissionRequest.
     nsRefPtr<nsDesktopNotificationRequest> copy = request;
 
     nsCString type = NS_LITERAL_CSTRING("desktop-notification");
@@ -114,7 +114,7 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
     return;
   }
 
-  
+  // otherwise, dispatch it
   NS_DispatchToMainThread(request);
 
 }
@@ -136,11 +136,10 @@ nsDOMDesktopNotification::DispatchNotificationEvent(const nsString& aName)
   nsCOMPtr<nsIDOMEvent> event;
   nsresult rv = NS_NewDOMEvent(getter_AddRefs(event), nsnull, nsnull);
   if (NS_SUCCEEDED(rv)) {
-    
+    // it doesn't bubble, and it isn't cancelable
     rv = event->InitEvent(aName, false, false);
     if (NS_SUCCEEDED(rv)) {
-      nsCOMPtr<nsIPrivateDOMEvent> privateEvent = do_QueryInterface(event);
-      privateEvent->SetTrusted(true);
+      event->SetTrusted(true);
       DispatchDOMEvent(nsnull, event, nsnull, nsnull);
     }
   }
@@ -151,7 +150,7 @@ nsDOMDesktopNotification::SetAllow(bool aAllow)
 {
   mAllow = aAllow;
 
-  
+  // if we have called Show() already, lets go ahead and post a notification
   if (mShowHasBeenCalled && aAllow)
     PostDesktopNotification();
 }
@@ -207,9 +206,9 @@ NS_IMETHODIMP nsDOMDesktopNotification::SetOnclose(nsIDOMEventListener * aOnclos
                                 aOnclose);
 }
 
-
-
-
+/* ------------------------------------------------------------------------ */
+/* nsDesktopNotificationCenter                                              */
+/* ------------------------------------------------------------------------ */
 
 DOMCI_DATA(DesktopNotificationCenter, nsDesktopNotificationCenter)
 
@@ -239,9 +238,9 @@ nsDesktopNotificationCenter::CreateNotification(const nsAString & title,
 }
 
 
-
-
-
+/* ------------------------------------------------------------------------ */
+/* nsDesktopNotificationRequest                                             */
+/* ------------------------------------------------------------------------ */
 
 NS_IMPL_ISUPPORTS2(nsDesktopNotificationRequest,
                    nsIContentPermissionRequest,

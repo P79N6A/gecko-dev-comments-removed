@@ -59,9 +59,14 @@ public:
 
 namespace {
 
-static void DestroyRegion(void* aPropertyValue)
+class RefCountedRegion : public RefCounted<RefCountedRegion> {
+public:
+  nsRegion mRegion;
+};
+
+static void DestroyRefCountedRegion(void* aPropertyValue)
 {
-  delete static_cast<nsRegion*>(aPropertyValue);
+  static_cast<RefCountedRegion*>(aPropertyValue)->Release();
 }
 
 
@@ -78,7 +83,7 @@ static void DestroyRegion(void* aPropertyValue)
 
 
 
-NS_DECLARE_FRAME_PROPERTY(ThebesLayerInvalidRegionProperty, DestroyRegion)
+NS_DECLARE_FRAME_PROPERTY(ThebesLayerInvalidRegionProperty, DestroyRefCountedRegion)
 
 static void DestroyPoint(void* aPropertyValue)
 {
@@ -675,8 +680,13 @@ FrameLayerBuilder::WillEndTransaction(LayerManager* aManager)
                "Some frame must have a layer!");
 }
 
+
+
+
+
 static void
-SetHasContainerLayer(nsIFrame* aFrame, nsPoint aOffsetToRoot)
+SetHasContainerLayer(nsIFrame* aFrame, nsPoint aOffsetToRoot,
+                     RefCountedRegion** aThebesLayerInvalidRegion)
 {
   aFrame->AddStateBits(NS_FRAME_HAS_CONTAINER_LAYER);
   for (nsIFrame* f = aFrame;
@@ -692,6 +702,24 @@ SetHasContainerLayer(nsIFrame* aFrame, nsPoint aOffsetToRoot)
     *lastPaintOffset = aOffsetToRoot;
   } else {
     props.Set(ThebesLayerLastPaintOffsetProperty(), new nsPoint(aOffsetToRoot));
+  }
+
+  
+  
+  if (*aThebesLayerInvalidRegion) {
+    (*aThebesLayerInvalidRegion)->AddRef();
+    props.Set(ThebesLayerInvalidRegionProperty(), *aThebesLayerInvalidRegion);
+  } else {
+    RefCountedRegion* invalidRegion = static_cast<RefCountedRegion*>
+      (props.Get(ThebesLayerInvalidRegionProperty()));
+    if (invalidRegion) {
+      invalidRegion->mRegion.SetEmpty();
+    } else {
+      invalidRegion = new RefCountedRegion();
+      invalidRegion->AddRef();
+      props.Set(ThebesLayerInvalidRegionProperty(), invalidRegion);
+    }
+    *aThebesLayerInvalidRegion = invalidRegion;
   }
 }
 
@@ -722,19 +750,7 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
     return PL_DHASH_REMOVE;
   }
 
-  if (newDisplayItems->HasNonEmptyContainerLayer()) {
-    
-    
-    
-    
-    nsRegion* invalidRegion = static_cast<nsRegion*>
-      (props.Get(ThebesLayerInvalidRegionProperty()));
-    if (invalidRegion) {
-      invalidRegion->SetEmpty();
-    } else {
-      props.Set(ThebesLayerInvalidRegionProperty(), new nsRegion());
-    }
-  } else {
+  if (!newDisplayItems->HasNonEmptyContainerLayer()) {
     SetNoContainerLayer(f);
   }
 
@@ -761,10 +777,6 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
 
   newEntry->mData.SwapElements(aEntry->mData);
   props.Set(LayerManagerDataProperty(), data);
-
-  if (f->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
-    props.Set(ThebesLayerInvalidRegionProperty(), new nsRegion());
-  }
   return PL_DHASH_REMOVE;
 }
 
@@ -1131,11 +1143,7 @@ ContainerState::ThebesLayerData::UpdateCommonClipCount(
 already_AddRefed<ImageContainer>
 ContainerState::ThebesLayerData::CanOptimizeImageLayer()
 {
-#ifdef MOZ_ENABLE_MASK_LAYERS
   if (!mImage) {
-#else
-  if (!mImage || !mItemClip.mRoundedClipRects.IsEmpty()) {
-#endif
     return nsnull;
   }
 
@@ -1165,10 +1173,6 @@ ContainerState::PopThebesLayerData()
       gfx3DMatrix transform = imageLayer->GetTransform()*
         gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
       imageLayer->SetTransform(transform);
-#ifndef MOZ_ENABLE_MASK_LAYERS
-      NS_ASSERTION(data->mItemClip.mRoundedClipRects.IsEmpty(),
-                   "How did we get rounded clip rects here?");
-#endif
       if (data->mItemClip.mHaveClipRect) {
         nsIntRect clip = ScaleToNearestPixels(data->mItemClip.mClipRect);
         imageLayer->IntersectClipRect(clip);
@@ -1250,7 +1254,6 @@ ContainerState::PopThebesLayerData()
     }
     userData->mForcedBackgroundColor = backgroundColor;
 
-#ifdef MOZ_ENABLE_MASK_LAYERS
     
     PRInt32 commonClipCount = data->mCommonClipCount;
     NS_ASSERTION(commonClipCount >= 0, "Inconsistent clip count.");
@@ -1262,7 +1265,6 @@ ContainerState::PopThebesLayerData()
   } else {
     
     SetupMaskLayer(layer, data->mItemClip);
-#endif
   }
   PRUint32 flags;
   if (isOpaque && !data->mForceTransparentSurface) {
@@ -1625,16 +1627,10 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     
     if (layerState == LAYER_ACTIVE_FORCE ||
         layerState == LAYER_ACTIVE_EMPTY ||
-#ifdef MOZ_ENABLE_MASK_LAYERS
         layerState == LAYER_ACTIVE) {
-#else
-        (layerState == LAYER_ACTIVE &&
-         (aClip.mRoundedClipRects.IsEmpty() ||
-          !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect())))) {
-#endif
 
-
-
+      
+      
       NS_ASSERTION(layerState != LAYER_ACTIVE_EMPTY ||
                    itemVisibleRect.IsEmpty(),
                    "State is LAYER_ACTIVE_EMPTY but visible rect is not.");
@@ -1693,13 +1689,11 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       }
       RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
 
-#ifdef MOZ_ENABLE_MASK_LAYERS
       
       
       if (aClip.IsRectClippedByRoundedCorner(itemContent)) {
           SetupMaskLayer(ownLayer, aClip);
       }
-#endif
 
       ContainerLayer* oldContainer = ownLayer->GetParent();
       if (oldContainer && oldContainer != mContainerLayer) {
@@ -2025,26 +2019,22 @@ ApplyThebesLayerInvalidation(nsDisplayListBuilder* aBuilder,
                              ContainerState& aState,
                              nsPoint* aCurrentOffset)
 {
-  FrameProperties props = aContainerFrame->Properties();
-  nsPoint* offsetAtLastPaint = static_cast<nsPoint*>
-    (props.Get(ThebesLayerLastPaintOffsetProperty()));
   *aCurrentOffset = aContainerItem ? aContainerItem->ToReferenceFrame()
     : aBuilder->ToReferenceFrame(aContainerFrame);
 
-  nsRegion* invalidThebesContent = static_cast<nsRegion*>
+  FrameProperties props = aContainerFrame->Properties();
+  RefCountedRegion* invalidThebesContent = static_cast<RefCountedRegion*>
     (props.Get(ThebesLayerInvalidRegionProperty()));
   if (invalidThebesContent) {
-    nsPoint offset = offsetAtLastPaint ? *offsetAtLastPaint : *aCurrentOffset;
-    invalidThebesContent->MoveBy(offset);
     const FrameLayerBuilder::ContainerParameters& scaleParameters = aState.ScaleParameters();
-    aState.AddInvalidThebesContent(invalidThebesContent->
+    aState.AddInvalidThebesContent(invalidThebesContent->mRegion.
       ScaleToOutsidePixels(scaleParameters.mXScale, scaleParameters.mYScale,
                            aState.GetAppUnitsPerDevPixel()));
     
     
     
     
-    invalidThebesContent->MoveBy(-offset);
+    
   } else {
     
     
@@ -2119,7 +2109,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     nsPoint currentOffset;
     ApplyThebesLayerInvalidation(aBuilder, aContainerFrame, aContainerItem, state,
                                  &currentOffset);
-    SetHasContainerLayer(aContainerFrame, currentOffset);
+    RefCountedRegion* thebesLayerInvalidRegion = nsnull;
+    SetHasContainerLayer(aContainerFrame, currentOffset, &thebesLayerInvalidRegion);
 
     nsAutoTArray<nsIFrame*,4> mergedFrames;
     if (aContainerItem) {
@@ -2135,7 +2126,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
       }
       ApplyThebesLayerInvalidation(aBuilder, mergedFrame, nsnull, state,
                                    &currentOffset);
-      SetHasContainerLayer(mergedFrame, currentOffset);
+      SetHasContainerLayer(mergedFrame, currentOffset, &thebesLayerInvalidRegion);
     }
   }
 
@@ -2195,12 +2186,19 @@ FrameLayerBuilder::GetLeafLayerFor(nsDisplayListBuilder* aBuilder,
 FrameLayerBuilder::InvalidateThebesLayerContents(nsIFrame* aFrame,
                                                  const nsRect& aRect)
 {
-  nsRegion* invalidThebesContent = static_cast<nsRegion*>
-    (aFrame->Properties().Get(ThebesLayerInvalidRegionProperty()));
+  FrameProperties props = aFrame->Properties();
+  RefCountedRegion* invalidThebesContent = static_cast<RefCountedRegion*>
+    (props.Get(ThebesLayerInvalidRegionProperty()));
   if (!invalidThebesContent)
     return;
-  invalidThebesContent->Or(*invalidThebesContent, aRect);
-  invalidThebesContent->SimplifyOutward(20);
+
+  nsPoint* offsetAtLastPaint = static_cast<nsPoint*>
+    (props.Get(ThebesLayerLastPaintOffsetProperty()));
+  NS_ASSERTION(offsetAtLastPaint,
+               "This must have been set up along with ThebesLayerInvalidRegionProperty");
+  invalidThebesContent->mRegion.Or(invalidThebesContent->mRegion,
+          aRect + *offsetAtLastPaint);
+  invalidThebesContent->mRegion.SimplifyOutward(20);
 }
 
 
@@ -2814,7 +2812,6 @@ void
 ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aClip,
                                PRUint32 aRoundedRectClipCount) 
 {
-#ifdef MOZ_ENABLE_MASK_LAYERS
   nsIntRect boundingRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
   
   if (aClip.mRoundedClipRects.IsEmpty() ||
@@ -2909,7 +2906,6 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   userData->mBounds = aLayer->GetEffectiveVisibleRegion().GetBounds();
 
   aLayer->SetMaskLayer(maskLayer);
-#endif
   return;
 }
 

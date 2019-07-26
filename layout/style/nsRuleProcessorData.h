@@ -192,10 +192,16 @@ struct NS_STACK_CLASS TreeMatchContext {
   
   bool mUsingPrivateBrowsing;
 
+  enum MatchVisited {
+    eNeverMatchVisited,
+    eMatchVisitedDefault
+  };
+
   
   TreeMatchContext(bool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling,
-                   nsIDocument* aDocument)
+                   nsIDocument* aDocument,
+                   MatchVisited aMatchVisited = eMatchVisitedDefault)
     : mForStyling(aForStyling)
     , mHaveRelevantLink(false)
     , mVisitedHandling(aVisitedHandling)
@@ -205,12 +211,14 @@ struct NS_STACK_CLASS TreeMatchContext {
     , mCompatMode(aDocument->GetCompatibilityMode())
     , mUsingPrivateBrowsing(false)
   {
-    nsCOMPtr<nsISupports> container = mDocument->GetContainer();
-    if (container) {
-      nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(container);
-      NS_ASSERTION(loadContext, "Couldn't get loadContext from container; assuming no private browsing.");
-      if (loadContext) {
-        mUsingPrivateBrowsing = loadContext->UsePrivateBrowsing();
+    if (aMatchVisited != eNeverMatchVisited) {
+      nsCOMPtr<nsISupports> container = mDocument->GetContainer();
+      if (container) {
+        nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(container);
+        NS_ASSERTION(loadContext, "Couldn't get loadContext from container; assuming no private browsing.");
+        if (loadContext) {
+          mUsingPrivateBrowsing = loadContext->UsePrivateBrowsing();
+        }
       }
     }
   }

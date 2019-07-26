@@ -318,6 +318,9 @@ pref("toolkit.telemetry.debugSlowSql", false);
 
 pref("devtools.debugger.log", false);
 
+pref("devtools.debugger.remote-enabled", false);
+pref("devtools.debugger.remote-port", 6000);
+
 
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);

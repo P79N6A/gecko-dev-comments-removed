@@ -595,6 +595,10 @@ private:
   static void operator delete(void* ) {}
 };
 
-#define NS_EVENT_NEEDS_FRAME(event) (!NS_IS_ACTIVATION_EVENT(event))
+
+
+#define NS_EVENT_NEEDS_FRAME(event) \
+    (!NS_IS_ACTIVATION_EVENT(event) && (event)->message != NS_MOUSE_CLICK && \
+     (event)->message != NS_MOUSE_DOUBLECLICK)
 
 #endif 

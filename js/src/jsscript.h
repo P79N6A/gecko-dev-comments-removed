@@ -535,6 +535,7 @@ struct JSScript : public js::gc::Cell
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            bindingsAccessedDynamically:1; 
+    bool            funHasExtensibleScope:1;       
     bool            warnedAboutTwoArgumentEval:1; 
 
 

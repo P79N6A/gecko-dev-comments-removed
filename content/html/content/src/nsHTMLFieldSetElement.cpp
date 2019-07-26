@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
@@ -21,10 +21,10 @@ nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNode
   , mElements(nsnull)
   , mFirstLegend(nsnull)
 {
-  // <fieldset> is always barred from constraint validation.
+  
   SetBarredFromConstraintValidation(true);
 
-  // We start out enabled
+  
   AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }
 
@@ -36,7 +36,7 @@ nsHTMLFieldSetElement::~nsHTMLFieldSetElement()
   }
 }
 
-// nsISupports
+
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHTMLFieldSetElement,
                                                 nsGenericHTMLFormElement)
@@ -54,7 +54,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLFieldSetElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLFieldSetElement, nsHTMLFieldSetElement)
 
-// QueryInterface implementation for nsHTMLFieldSetElement
+
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLFieldSetElement)
   NS_HTML_CONTENT_INTERFACE_TABLE2(nsHTMLFieldSetElement,
                                    nsIDOMHTMLFieldSetElement,
@@ -69,14 +69,14 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLFieldSetElement)
 NS_IMPL_BOOL_ATTR(nsHTMLFieldSetElement, Disabled, disabled)
 NS_IMPL_STRING_ATTR(nsHTMLFieldSetElement, Name, name)
 
-// nsIConstraintValidation
+
 NS_IMPL_NSICONSTRAINTVALIDATION(nsHTMLFieldSetElement)
 
-// nsIContent
+
 nsresult
 nsHTMLFieldSetElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
-  // Do not process any DOM events if the element is disabled.
+  
   aVisitor.mCanHandle = false;
   if (IsElementDisabledForEvents(aVisitor.mEvent->message, NULL)) {
     return NS_OK;
@@ -107,7 +107,7 @@ nsHTMLFieldSetElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                                 aValue, aNotify);
 }
 
-// nsIDOMHTMLFieldSetElement
+
 
 NS_IMETHODIMP
 nsHTMLFieldSetElement::GetForm(nsIDOMHTMLFormElement** aForm)
@@ -122,14 +122,13 @@ nsHTMLFieldSetElement::GetType(nsAString& aType)
   return NS_OK;
 }
 
-/* static */
+
 bool
 nsHTMLFieldSetElement::MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
                                            nsIAtom* aAtom, void* aData)
 {
   nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aContent);
-  return formControl && formControl->GetType() != NS_FORM_LABEL &&
-                        formControl->GetType() != NS_FORM_METER;
+  return formControl && formControl->GetType() != NS_FORM_LABEL;
 }
 
 NS_IMETHODIMP
@@ -144,7 +143,7 @@ nsHTMLFieldSetElement::GetElements(nsIDOMHTMLCollection** aElements)
   return NS_OK;
 }
 
-// nsIFormControl
+
 
 nsresult
 nsHTMLFieldSetElement::Reset()
@@ -167,10 +166,10 @@ nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
   if (aChild->IsHTML(nsGkAtoms::legend)) {
     if (!mFirstLegend) {
       mFirstLegend = aChild;
-      // We do not want to notify the first time mFirstElement is set.
+      
     } else {
-      // If mFirstLegend is before aIndex, we do not change it.
-      // Otherwise, mFirstLegend is now aChild.
+      
+      
       if (PRInt32(aIndex) <= IndexOf(mFirstLegend)) {
         mFirstLegend = aChild;
         firstLegendHasChanged = true;
@@ -194,7 +193,7 @@ nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
   bool firstLegendHasChanged = false;
 
   if (mFirstLegend && (GetChildAt(aIndex) == mFirstLegend)) {
-    // If we are removing the first legend we have to found another one.
+    
     nsIContent* child = mFirstLegend->GetNextSibling();
     mFirstLegend = nsnull;
     firstLegendHasChanged = true;
@@ -217,12 +216,12 @@ nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 void
 nsHTMLFieldSetElement::NotifyElementsForFirstLegendChange(bool aNotify)
 {
-  /**
-   * NOTE: this could be optimized if only call when the fieldset is currently
-   * disabled.
-   * This should also make sure that mElements is set when we happen to be here.
-   * However, this method shouldn't be called very often in normal use cases.
-   */
+  
+
+
+
+
+
   if (!mElements) {
     mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
                                   true);

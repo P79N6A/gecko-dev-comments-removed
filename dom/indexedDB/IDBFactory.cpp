@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 
@@ -52,7 +52,7 @@ struct ObjectStoreInfoMap
   ObjectStoreInfo* info;
 };
 
-} 
+} // anonymous namespace
 
 IDBFactory::IDBFactory()
 : mOwningObject(nsnull), mActorChild(nsnull), mActorParent(nsnull)
@@ -69,7 +69,7 @@ IDBFactory::~IDBFactory()
   }
 }
 
-
+// static
 nsresult
 IDBFactory::Create(nsPIDOMWindow* aWindow,
                    const nsACString& aASCIIOrigin,
@@ -86,8 +86,8 @@ IDBFactory::Create(nsPIDOMWindow* aWindow,
     NS_ENSURE_TRUE(aWindow, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
   }
 
-  
-  
+  // Make sure that the manager is up before we do anything here since lots of
+  // decisions depend on which process we're running in.
   nsRefPtr<indexedDB::IndexedDatabaseManager> mgr =
     indexedDB::IndexedDatabaseManager::GetOrCreate();
   NS_ENSURE_TRUE(mgr, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
@@ -98,7 +98,7 @@ IDBFactory::Create(nsPIDOMWindow* aWindow,
   if (origin.IsEmpty()) {
     rv = IndexedDatabaseManager::GetASCIIOriginFromWindow(aWindow, origin);
     if (NS_FAILED(rv)) {
-      
+      // Not allowed.
       *aFactory = nsnull;
       return NS_OK;
     }
@@ -130,7 +130,7 @@ IDBFactory::Create(nsPIDOMWindow* aWindow,
   return NS_OK;
 }
 
-
+// static
 nsresult
 IDBFactory::Create(JSContext* aCx,
                    JSObject* aOwningObject,
@@ -156,7 +156,7 @@ IDBFactory::Create(JSContext* aCx,
   return NS_OK;
 }
 
-
+// static
 already_AddRefed<mozIStorageConnection>
 IDBFactory::GetConnection(const nsAString& aDatabaseFilePath)
 {
@@ -184,7 +184,7 @@ IDBFactory::GetConnection(const nsAString& aDatabaseFilePath)
                                getter_AddRefs(connection));
   NS_ENSURE_SUCCESS(rv, nsnull);
 
-  
+  // Turn on foreign key constraints!
   rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
     "PRAGMA foreign_keys = ON;"
   ));
@@ -200,7 +200,7 @@ IgnoreWhitespace(PRUnichar c)
   return false;
 }
 
-
+// static
 nsresult
 IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
                                     nsIAtom* aDatabaseId,
@@ -212,7 +212,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
 
   aObjectStores.Clear();
 
-   
+   // Load object store names and ids.
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT name, id, key_path, auto_increment "
@@ -248,9 +248,9 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!keyPath.IsEmpty() && keyPath.First() == ',') {
-        
-        
-        
+        // We use a comma in the beginning to indicate that it's an array of
+        // key paths. This is to be able to tell a string-keypath from an
+        // array-keypath which contains only one item.
         nsCharSeparatedTokenizerTemplate<IgnoreWhitespace>
           tokenizer(keyPath, ',');
         tokenizer.nextToken();
@@ -279,7 +279,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Load index information
   rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT object_store_id, id, name, key_path, unique_index, multientry "
     "FROM object_store_index"
@@ -314,9 +314,9 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
     rv = stmt->GetString(3, keyPath);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!keyPath.IsEmpty() && keyPath.First() == ',') {
-      
-      
-      
+      // We use a comma in the beginning to indicate that it's an array of
+      // key paths. This is to be able to tell a string-keypath from an
+      // array-keypath which contains only one item.
       nsCharSeparatedTokenizerTemplate<IgnoreWhitespace>
         tokenizer(keyPath, ',');
       tokenizer.nextToken();
@@ -335,7 +335,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Load version information.
   rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT version "
     "FROM database"
@@ -358,7 +358,7 @@ IDBFactory::LoadDatabaseInformation(mozIStorageConnection* aConnection,
   return rv;
 }
 
-
+// static
 nsresult
 IDBFactory::SetDatabaseMetadata(DatabaseInfo* aDatabaseInfo,
                                 PRUint64 aVersion,
@@ -416,10 +416,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IDBFactory)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBFactory)
-  if (tmp->mOwningObject) {
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_CALLBACK(tmp->mOwningObject,
-                                               "mOwningObject")
-  }
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mOwningObject)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 DOMCI_DATA(IDBFactory, IDBFactory)

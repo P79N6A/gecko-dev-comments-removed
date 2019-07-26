@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef nsJSEnvironment_h
 #define nsJSEnvironment_h
 
@@ -25,8 +25,8 @@ namespace mozilla {
 template <class> class Maybe;
 }
 
-
-
+// The amount of time we wait between a request to GC (due to leaving
+// a page) and doing the actual GC.
 #define NS_GC_DELAY                 4000 // ms
 
 class nsJSContext : public nsIScriptContext,
@@ -149,8 +149,8 @@ public:
                                 PRUint32 aGckind,
                                 bool aGlobal);
   static void ShrinkGCBuffersNow();
-  
-  
+  // If aExtraForgetSkippableCalls is -1, forgetSkippable won't be
+  // called even if the previous collection was GC.
   static void CycleCollectNow(nsICycleCollectorListener *aListener = nsnull,
                               PRInt32 aExtraForgetSkippableCalls = 0);
 
@@ -163,6 +163,7 @@ public:
   static void MaybePokeCC();
   static void KillCCTimer();
   static void KillFullGCTimer();
+  static void KillInterSliceGCTimer();
 
   virtual void GC(js::gcreason::Reason aReason);
 
@@ -170,15 +171,15 @@ public:
 
   nsIScriptGlobalObject* GetCachedGlobalObject()
   {
-    
-    
+    // Verify that we have a global so that this
+    // does always return a null when GetGlobalObject() is null.
     JSObject* global = JS_GetGlobalObject(mContext);
     return global ? mGlobalObjectRef.get() : nsnull;
   }
 protected:
   nsresult InitializeExternalClasses();
 
-  
+  // Helper to convert xpcom datatypes to jsvals.
   nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
                                    JSObject *aScope,
                                    PRUint32 *aArgc,
@@ -187,14 +188,14 @@ protected:
 
   nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv);
 
-  
-  
+  // given an nsISupports object (presumably an event target or some other
+  // DOM object), get (or create) the JSObject wrapping it.
   nsresult JSObjectFromInterface(nsISupports *aSup, JSObject *aScript,
                                  JSObject **aRet);
 
-  
-  
-  
+  // Report the pending exception on our mContext, if any.  This
+  // function will set aside the frame chain on mContext before
+  // reporting.
   void ReportPendingException();
 private:
   void DestroyJSContext();
@@ -238,10 +239,10 @@ protected:
     }
     ~TerminationFuncHolder()
     {
-      
-      
-      
-      
+      // Have to be careful here.  mContext might have picked up new
+      // termination funcs while the script was evaluating.  Prepend whatever
+      // we have to the current termination funcs on the context (since our
+      // termination funcs were posted first).
       if (mTerminations) {
         TerminationFuncClosure* cur = mTerminations;
         while (cur->mNext) {
@@ -274,8 +275,8 @@ private:
   nsJSContext *mNext;
   nsJSContext **mPrev;
 
-  
-  
+  // mGlobalObjectRef ensures that the outer window stays alive as long as the
+  // context does. It is eventually collected by the cycle collector.
   nsCOMPtr<nsIScriptGlobalObject> mGlobalObjectRef;
 
   static int JSOptionChangedCallback(const char *pref, void *data);
@@ -288,11 +289,11 @@ class nsIJSRuntimeService;
 class nsJSRuntime : public nsIScriptRuntime
 {
 public:
-  
+  // let people who can see us use our runtime for convenience.
   static JSRuntime *sRuntime;
 
 public:
-  
+  // nsISupports
   NS_DECL_ISUPPORTS
 
   virtual already_AddRefed<nsIScriptContext> CreateContext();
@@ -304,16 +305,16 @@ public:
   
   static void Startup();
   static void Shutdown();
-  
+  // Setup all the statics etc - safe to call multiple times after Startup()
   static nsresult Init();
-  
+  // Get the NameSpaceManager, creating if necessary
   static nsScriptNameSpaceManager* GetNameSpaceManager();
 };
 
-
-
-
-
+// An interface for fast and native conversion to/from nsIArray. If an object
+// supports this interface, JS can reach directly in for the argv, and avoid
+// nsISupports conversion. If this interface is not supported, the object will
+// be queried for nsIArray, and everything converted via xpcom objects.
 #define NS_IJSARGARRAY_IID \
 { 0xb6acdac8, 0xf5c6, 0x432c, \
   { 0xa8, 0x6e, 0x33, 0xee, 0xb1, 0xb0, 0xcd, 0xdc } }
@@ -322,18 +323,18 @@ class nsIJSArgArray : public nsIArray
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IJSARGARRAY_IID)
-  
-  
-  
+  // Bug 312003 describes why this must be "void **", but after calling argv
+  // may be cast to jsval* and the args found at:
+  //    ((jsval*)argv)[0], ..., ((jsval*)argv)[argc - 1]
   virtual nsresult GetArgs(PRUint32 *argc, void **argv) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIJSArgArray, NS_IJSARGARRAY_IID)
 
-
+/* factory functions */
 nsresult NS_CreateJSRuntime(nsIScriptRuntime **aRuntime);
 
-
+/* prototypes */
 void NS_ScriptErrorReporter(JSContext *cx, const char *message, JSErrorReport *report);
 
 JSObject* NS_DOMReadStructuredClone(JSContext* cx,
@@ -346,4 +347,4 @@ JSBool NS_DOMWriteStructuredClone(JSContext* cx,
 
 void NS_DOMStructuredCloneError(JSContext* cx, uint32_t errorid);
 
-#endif 
+#endif /* nsJSEnvironment_h */

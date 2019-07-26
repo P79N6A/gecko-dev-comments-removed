@@ -29,7 +29,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
 #include "nsIPresShell.h"
-#include "nsIPrivateDOMEvent.h"
 #include "nsISelectionController.h"
 #include "nsGUIEvent.h"
 #include "mozilla/Preferences.h"
@@ -458,12 +457,11 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
                                               bool aIgnoreShiftKey)
 {
   nsresult rv;
-  nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(aKeyEvent));
 
   
   for (nsXBLPrototypeHandler *currHandler = aHandler; currHandler;
        currHandler = currHandler->GetNextHandler()) {
-    bool stopped = privateEvent->IsDispatchStopped();
+    bool stopped = aKeyEvent->IsDispatchStopped();
     if (stopped) {
       
       return NS_OK;

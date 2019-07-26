@@ -227,7 +227,9 @@ WebGLContext::DestroyResourcesAndContext()
     
     
 #ifdef DEBUG
-    printf_stderr("--- WebGL context destroyed: %p\n", gl.get());
+    if (gl->DebugMode()) {
+        printf_stderr("--- WebGL context destroyed: %p\n", gl.get());
+    }
 #endif
 
     gl = nsnull;
@@ -519,7 +521,9 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 
 #ifdef DEBUG
-    printf_stderr ("--- WebGL context created: %p\n", gl.get());
+    if (gl->DebugMode()) {
+        printf_stderr("--- WebGL context created: %p\n", gl.get());
+    }
 #endif
 
     mWidth = width;

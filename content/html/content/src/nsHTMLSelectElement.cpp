@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -21,9 +21,8 @@
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsEventStates.h"
 #include "nsGUIEvent.h"
-#include "nsIPrivateDOMEvent.h"
 
-// Notify/query select frame for selectedIndex
+
 #include "nsIDocument.h"
 #include "nsIFormControlFrame.h"
 #include "nsIComboboxControlFrame.h"
@@ -44,10 +43,10 @@ using namespace mozilla::dom;
 NS_IMPL_ISUPPORTS1(nsSelectState, nsSelectState)
 NS_DEFINE_STATIC_IID_ACCESSOR(nsSelectState, NS_SELECT_STATE_IID)
 
-//----------------------------------------------------------------------
-//
-// nsSafeOptionListMutation
-//
+
+
+
+
 
 nsSafeOptionListMutation::nsSafeOptionListMutation(nsIContent* aSelect,
                                                    nsIContent* aParent,
@@ -63,10 +62,10 @@ nsSafeOptionListMutation::nsSafeOptionListMutation(nsIContent* aSelect,
     if (mTopLevelMutation) {
       mSelect->mMutating = true;
     } else {
-      // This is very unfortunate, but to handle mutation events properly,
-      // option list must be up-to-date before inserting or removing options.
-      // Fortunately this is called only if mutation event listener
-      // adds or removes options.
+      
+      
+      
+      
       mSelect->RebuildOptionsArray(aNotify);
     }
     nsresult rv;
@@ -94,12 +93,12 @@ nsSafeOptionListMutation::~nsSafeOptionListMutation()
   }
 }
 
-//----------------------------------------------------------------------
-//
-// nsHTMLSelectElement
-//
 
-// construction, destruction
+
+
+
+
+
 
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Select)
@@ -120,10 +119,10 @@ nsHTMLSelectElement::nsHTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo
     mOptGroupCount(0),
     mSelectedIndex(-1)
 {
-  // DoneAddingChildren() will be called later if it's from the parser,
-  // otherwise it is
+  
+  
 
-  // Set up our default state: enabled, optional, and valid.
+  
   AddStatesSilently(NS_EVENT_STATE_ENABLED |
                     NS_EVENT_STATE_OPTIONAL |
                     NS_EVENT_STATE_VALID);
@@ -134,7 +133,7 @@ nsHTMLSelectElement::~nsHTMLSelectElement()
   mOptions->DropReference();
 }
 
-// ISupports
+
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLSelectElement)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLSelectElement,
@@ -149,7 +148,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLSelectElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLSelectElement, nsHTMLSelectElement)
 
-// QueryInterface implementation for nsHTMLSelectElement
+
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLSelectElement)
   NS_HTML_CONTENT_INTERFACE_TABLE2(nsHTMLSelectElement,
                                    nsIDOMHTMLSelectElement,
@@ -159,12 +158,12 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLSelectElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLSelectElement)
 
 
-// nsIDOMHTMLSelectElement
+
 
 
 NS_IMPL_ELEMENT_CLONE(nsHTMLSelectElement)
 
-// nsIConstraintValidation
+
 NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLSelectElement)
 
 NS_IMETHODIMP
@@ -204,7 +203,7 @@ nsHTMLSelectElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 }
 
 
-// SelectElement methods
+
 
 nsresult
 nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
@@ -216,26 +215,26 @@ nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
   nsresult rv = InsertOptionsIntoListRecurse(aOptions, &insertIndex, aDepth);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Deal with the selected list
+  
   if (insertIndex - aListIndex) {
-    // Fix the currently selected index
+    
     if (aListIndex <= mSelectedIndex) {
       mSelectedIndex += (insertIndex - aListIndex);
       SetSelectionChanged(true, aNotify);
     }
 
-    // Get the frame stuff for notification. No need to flush here
-    // since if there's no frame for the select yet the select will
-    // get into the right state once it's created.
+    
+    
+    
     nsISelectControlFrame* selectFrame = nsnull;
     nsWeakFrame weakSelectFrame;
     bool didGetFrame = false;
 
-    // Actually select the options if the added options warrant it
+    
     nsCOMPtr<nsIDOMNode> optionNode;
     nsCOMPtr<nsIDOMHTMLOptionElement> option;
     for (PRInt32 i = aListIndex; i < insertIndex; i++) {
-      // Notify the frame that the option is added
+      
       if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
         selectFrame = GetSelectFrame();
         weakSelectFrame = do_QueryFrame(selectFrame);
@@ -252,14 +251,14 @@ nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
         bool selected;
         option->GetSelected(&selected);
         if (selected) {
-          // Clear all other options
+          
           if (!HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
             SetOptionsSelectedByIndex(i, i, true, true, true, true, nsnull);
           }
 
-          // This is sort of a hack ... we need to notify that the option was
-          // set and change selectedIndex even though we didn't really change
-          // its value.
+          
+          
+          
           OnOptionSelected(selectFrame, i, true, false, false);
         }
       }
@@ -283,7 +282,7 @@ nsHTMLSelectElement::RemoveOptionsFromList(nsIContent* aOptions,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (numRemoved) {
-    // Tell the widget we removed the options
+    
     nsISelectControlFrame* selectFrame = GetSelectFrame();
     if (selectFrame) {
       nsAutoScriptBlocker scriptBlocker;
@@ -292,25 +291,25 @@ nsHTMLSelectElement::RemoveOptionsFromList(nsIContent* aOptions,
       }
     }
 
-    // Fix the selected index
+    
     if (aListIndex <= mSelectedIndex) {
       if (mSelectedIndex < (aListIndex+numRemoved)) {
-        // aListIndex <= mSelectedIndex < aListIndex+numRemoved
-        // Find a new selected index if it was one of the ones removed.
+        
+        
         FindSelectedIndex(aListIndex, aNotify);
       } else {
-        // Shift the selected index if something in front of it was removed
-        // aListIndex+numRemoved <= mSelectedIndex
+        
+        
         mSelectedIndex -= numRemoved;
         SetSelectionChanged(true, aNotify);
       }
     }
 
-    // Select something in case we removed the selected option on a
-    // single select
+    
+    
     if (!CheckSelectSomething(aNotify) && mSelectedIndex == -1) {
-      // Update the validity state in case of we've just removed the last
-      // option.
+      
+      
       UpdateValueMissingValidityState();
 
       UpdateState(aNotify);
@@ -320,18 +319,18 @@ nsHTMLSelectElement::RemoveOptionsFromList(nsIContent* aOptions,
   return NS_OK;
 }
 
-// If the document is such that recursing over these options gets us
-// deeper than four levels, there is something terribly wrong with the
-// world.
+
+
+
 nsresult
 nsHTMLSelectElement::InsertOptionsIntoListRecurse(nsIContent* aOptions,
                                                   PRInt32* aInsertIndex,
                                                   PRInt32 aDepth)
 {
-  // We *assume* here that someone's brain has not gone horribly
-  // wrong by putting <option> inside of <option>.  I'm sorry, I'm
-  // just not going to look for an option inside of an option.
-  // Sue me.
+  
+  
+  
+  
 
   nsHTMLOptionElement *optElement = nsHTMLOptionElement::FromContent(aOptions);
   if (optElement) {
@@ -341,13 +340,13 @@ nsHTMLSelectElement::InsertOptionsIntoListRecurse(nsIContent* aOptions,
     return NS_OK;
   }
 
-  // If it's at the top level, then we just found out there are non-options
-  // at the top level, which will throw off the insert count
+  
+  
   if (aDepth == 0) {
     mNonOptionChildren++;
   }
 
-  // Recurse down into optgroups
+  
   if (aOptions->IsHTML(nsGkAtoms::optgroup)) {
     mOptGroupCount++;
 
@@ -363,18 +362,18 @@ nsHTMLSelectElement::InsertOptionsIntoListRecurse(nsIContent* aOptions,
   return NS_OK;
 }
 
-// If the document is such that recursing over these options gets us deeper than
-// four levels, there is something terribly wrong with the world.
+
+
 nsresult
 nsHTMLSelectElement::RemoveOptionsFromListRecurse(nsIContent* aOptions,
                                                   PRInt32 aRemoveIndex,
                                                   PRInt32* aNumRemoved,
                                                   PRInt32 aDepth)
 {
-  // We *assume* here that someone's brain has not gone horribly
-  // wrong by putting <option> inside of <option>.  I'm sorry, I'm
-  // just not going to look for an option inside of an option.
-  // Sue me.
+  
+  
+  
+  
 
   nsCOMPtr<nsIDOMHTMLOptionElement> optElement(do_QueryInterface(aOptions));
   if (optElement) {
@@ -387,12 +386,12 @@ nsHTMLSelectElement::RemoveOptionsFromListRecurse(nsIContent* aOptions,
     return NS_OK;
   }
 
-  // Yay, one less artifact at the top level.
+  
   if (aDepth == 0) {
     mNonOptionChildren--;
   }
 
-  // Recurse down deeper for options
+  
   if (mOptGroupCount && aOptions->IsHTML(nsGkAtoms::optgroup)) {
     mOptGroupCount--;
 
@@ -410,11 +409,11 @@ nsHTMLSelectElement::RemoveOptionsFromListRecurse(nsIContent* aOptions,
   return NS_OK;
 }
 
-// XXXldb Doing the processing before the content nodes have been added
-// to the document (as the name of this function seems to require, and
-// as the callers do), is highly unusual.  Passing around unparented
-// content to other parts of the app can make those things think the
-// options are the root content node.
+
+
+
+
+
 NS_IMETHODIMP
 nsHTMLSelectElement::WillAddOptions(nsIContent* aOptions,
                                     nsIContent* aParent,
@@ -426,24 +425,24 @@ nsHTMLSelectElement::WillAddOptions(nsIContent* aOptions,
     return NS_ERROR_FAILURE;
   }
 
-  // Get the index where the options will be inserted
+  
   PRInt32 ind = -1;
   if (!mNonOptionChildren) {
-    // If there are no artifacts, aContentIndex == ind
+    
     ind = aContentIndex;
   } else {
-    // If there are artifacts, we have to get the index of the option the
-    // hard way
+    
+    
     PRInt32 children = aParent->GetChildCount();
 
     if (aContentIndex >= children) {
-      // If the content insert is after the end of the parent, then we want to get
-      // the next index *after* the parent and insert there.
+      
+      
       ind = GetOptionIndexAfter(aParent);
     } else {
-      // If the content insert is somewhere in the middle of the container, then
-      // we want to get the option currently at the index and insert in front of
-      // that.
+      
+      
+      
       nsIContent *currentKid = aParent->GetChildAt(aContentIndex);
       NS_ASSERTION(currentKid, "Child not found!");
       if (currentKid) {
@@ -468,16 +467,16 @@ nsHTMLSelectElement::WillRemoveOptions(nsIContent* aParent,
     return NS_ERROR_FAILURE;
   }
 
-  // Get the index where the options will be removed
+  
   nsIContent *currentKid = aParent->GetChildAt(aContentIndex);
   if (currentKid) {
     PRInt32 ind;
     if (!mNonOptionChildren) {
-      // If there are no artifacts, aContentIndex == ind
+      
       ind = aContentIndex;
     } else {
-      // If there are artifacts, we have to get the index of the option the
-      // hard way
+      
+      
       ind = GetFirstOptionIndex(currentKid);
     }
     if (ind != -1) {
@@ -510,8 +509,8 @@ nsHTMLSelectElement::GetContentDepth(nsIContent* aContent)
 PRInt32
 nsHTMLSelectElement::GetOptionIndexAt(nsIContent* aOptions)
 {
-  // Search this node and below.
-  // If not found, find the first one *after* this node.
+  
+  
   PRInt32 retval = GetFirstOptionIndex(aOptions);
   if (retval == -1) {
     retval = GetOptionIndexAfter(aOptions);
@@ -523,10 +522,10 @@ nsHTMLSelectElement::GetOptionIndexAt(nsIContent* aOptions)
 PRInt32
 nsHTMLSelectElement::GetOptionIndexAfter(nsIContent* aOptions)
 {
-  // - If this is the select, the next option is the last.
-  // - If not, search all the options after aOptions and up to the last option
-  //   in the parent.
-  // - If it's not there, search for the first option after the parent.
+  
+  
+  
+  
   if (aOptions == this) {
     PRUint32 len;
     GetLength(&len);
@@ -558,8 +557,8 @@ nsHTMLSelectElement::GetFirstOptionIndex(nsIContent* aOptions)
   nsHTMLOptionElement *optElement = nsHTMLOptionElement::FromContent(aOptions);
   if (optElement) {
     GetOptionIndex(optElement, 0, true, &listIndex);
-    // If you nested stuff under the option, you're just plain
-    // screwed.  *I'm* not going to aid and abet your evil deed.
+    
+    
     return listIndex;
   }
 
@@ -608,13 +607,13 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
     return AppendChild(aElement, getter_AddRefs(added));
   }
 
-  // Just in case we're not the parent, get the parent of the reference
-  // element
+  
+  
   nsCOMPtr<nsIDOMNode> parent;
   aBefore->GetParentNode(getter_AddRefs(parent));
   if (!parent) {
-    // NOT_FOUND_ERR: Raised if before is not a descendant of the SELECT
-    // element.
+    
+    
     return NS_ERROR_DOM_NOT_FOUND_ERR;
   }
 
@@ -623,15 +622,15 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
   while (ancestor != static_cast<nsIDOMNode*>(this)) {
     ancestor->GetParentNode(getter_AddRefs(temp));
     if (!temp) {
-      // NOT_FOUND_ERR: Raised if before is not a descendant of the SELECT
-      // element.
+      
+      
       return NS_ERROR_DOM_NOT_FOUND_ERR;
     }
     temp.swap(ancestor);
   }
 
-  // If the before parameter is not null, we are equivalent to the
-  // insertBefore method on the parent of before.
+  
+  
   return parent->InsertBefore(aElement, aBefore, getter_AddRefs(added));
 }
 
@@ -643,7 +642,7 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
   nsresult rv = aBefore->GetDataType(&dataType);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // aBefore is omitted, undefined or null
+  
   if (dataType == nsIDataType::VTYPE_EMPTY ||
       dataType == nsIDataType::VTYPE_VOID) {
     return Add(aElement);
@@ -652,7 +651,7 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
   nsCOMPtr<nsISupports> supports;
   nsCOMPtr<nsIDOMHTMLElement> beforeElement;
 
-  // whether aBefore is nsIDOMHTMLElement...
+  
   if (NS_SUCCEEDED(aBefore->GetAsISupports(getter_AddRefs(supports)))) {
     beforeElement = do_QueryInterface(supports);
 
@@ -660,12 +659,12 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
     return Add(aElement, beforeElement);
   }
 
-  // otherwise, whether aBefore is long
+  
   PRInt32 index;
   NS_ENSURE_SUCCESS(aBefore->GetAsInt32(&index), NS_ERROR_DOM_SYNTAX_ERR);
 
-  // If item index is out of range, insert to last.
-  // (since beforeElement becomes null, it is inserted to last)
+  
+  
   nsCOMPtr<nsIDOMNode> beforeNode;
   if (NS_SUCCEEDED(Item(index, getter_AddRefs(beforeNode)))) {
     beforeElement = do_QueryInterface(beforeNode);
@@ -731,7 +730,7 @@ nsHTMLSelectElement::SetLength(PRUint32 aLength)
     curlen = 0;
   }
 
-  if (curlen > aLength) { // Remove extra options
+  if (curlen > aLength) { 
     for (PRUint32 i = curlen; i > aLength && NS_SUCCEEDED(rv); --i) {
       rv = Remove(i - 1);
     }
@@ -740,7 +739,7 @@ nsHTMLSelectElement::SetLength(PRUint32 aLength)
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
     
-    // This violates the W3C DOM but we do this for backwards compatibility
+    
     nsCOMPtr<nsINodeInfo> nodeInfo;
 
     nsContentUtils::NameChanged(mNodeInfo, nsGkAtoms::option,
@@ -780,7 +779,7 @@ nsHTMLSelectElement::SetLength(PRUint32 aLength)
   return NS_OK;
 }
 
-//NS_IMPL_INT_ATTR(nsHTMLSelectElement, SelectedIndex, selectedindex)
+
 
 NS_IMETHODIMP
 nsHTMLSelectElement::GetSelectedIndex(PRInt32* aValue)
@@ -843,7 +842,7 @@ nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
                                       bool aChangeOptionState,
                                       bool aNotify)
 {
-  // Set the selected index
+  
   if (aSelected && (aIndex < mSelectedIndex || mSelectedIndex < 0)) {
     mSelectedIndex = aIndex;
     SetSelectionChanged(true, aNotify);
@@ -852,7 +851,7 @@ nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
   }
 
   if (aChangeOptionState) {
-    // Tell the option to get its bad self selected
+    
     nsCOMPtr<nsIDOMNode> option;
     Item(aIndex, getter_AddRefs(option));
     if (option) {
@@ -862,7 +861,7 @@ nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
     }
   }
 
-  // Let the frame know too
+  
   if (aSelectFrame) {
     aSelectFrame->OnOptionSelected(aIndex, aSelected);
   }
@@ -887,30 +886,30 @@ nsHTMLSelectElement::FindSelectedIndex(PRInt32 aStartIndex, bool aNotify)
   }
 }
 
-// XXX Consider splitting this into two functions for ease of reading:
-// SelectOptionsByIndex(startIndex, endIndex, clearAll, checkDisabled)
-//   startIndex, endIndex - the range of options to turn on
-//                          (-1, -1) will clear all indices no matter what.
-//   clearAll - will clear all other options unless checkDisabled is on
-//              and all the options attempted to be set are disabled
-//              (note that if it is not multiple, and an option is selected,
-//              everything else will be cleared regardless).
-//   checkDisabled - if this is TRUE, and an option is disabled, it will not be
-//                   changed regardless of whether it is selected or not.
-//                   Generally the UI passes TRUE and JS passes FALSE.
-//                   (setDisabled currently is the opposite)
-// DeselectOptionsByIndex(startIndex, endIndex, checkDisabled)
-//   startIndex, endIndex - the range of options to turn on
-//                          (-1, -1) will clear all indices no matter what.
-//   checkDisabled - if this is TRUE, and an option is disabled, it will not be
-//                   changed regardless of whether it is selected or not.
-//                   Generally the UI passes TRUE and JS passes FALSE.
-//                   (setDisabled currently is the opposite)
-//
-// XXXbz the above comment is pretty confusing.  Maybe we should actually
-// document the args to this function too, in addition to documenting what
-// things might end up looking like?  In particular, pay attention to the
-// setDisabled vs checkDisabled business.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
                                                PRInt32 aEndIndex,
@@ -929,23 +928,23 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
     *aChangedSomething = false;
   }
 
-  // Don't bother if the select is disabled
+  
   if (!aSetDisabled && IsDisabled()) {
     return NS_OK;
   }
 
-  // Don't bother if there are no options
+  
   PRUint32 numItems = 0;
   GetLength(&numItems);
   if (numItems == 0) {
     return NS_OK;
   }
 
-  // First, find out whether multiple items can be selected
+  
   bool isMultiple = HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
 
-  // These variables tell us whether any options were selected
-  // or deselected.
+  
+  
   bool optionsSelected = false;
   bool optionsDeselected = false;
 
@@ -954,39 +953,39 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
   nsWeakFrame weakSelectFrame;
 
   if (aIsSelected) {
-    // Setting selectedIndex to an out-of-bounds index means -1. (HTML5)
+    
     if (aStartIndex >= (PRInt32)numItems || aStartIndex < 0 ||
         aEndIndex >= (PRInt32)numItems || aEndIndex < 0) {
       aStartIndex = -1;
       aEndIndex = -1;
     }
 
-    // Only select the first value if it's not multiple
+    
     if (!isMultiple) {
       aEndIndex = aStartIndex;
     }
 
-    // This variable tells whether or not all of the options we attempted to
-    // select are disabled.  If ClearAll is passed in as true, and we do not
-    // select anything because the options are disabled, we will not clear the
-    // other options.  (This is to make the UI work the way one might expect.)
+    
+    
+    
+    
     bool allDisabled = !aSetDisabled;
 
-    //
-    // Save a little time when clearing other options
-    //
+    
+    
+    
     PRInt32 previousSelectedIndex = mSelectedIndex;
 
-    //
-    // Select the requested indices
-    //
-    // If index is -1, everything will be deselected (bug 28143)
+    
+    
+    
+    
     if (aStartIndex != -1) {
-      // Loop through the options and select them (if they are not disabled and
-      // if they are not already selected).
+      
+      
       for (PRInt32 optIndex = aStartIndex; optIndex <= aEndIndex; optIndex++) {
 
-        // Ignore disabled options.
+        
         if (!aSetDisabled) {
           bool isDisabled;
           IsOptionDisabled(optIndex, &isDisabled);
@@ -1000,14 +999,14 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
 
         nsIDOMHTMLOptionElement *option = mOptions->ItemAsOption(optIndex);
         if (option) {
-          // If the index is already selected, ignore it.
+          
           bool isSelected = false;
           option->GetSelected(&isSelected);
           if (!isSelected) {
-            // To notify the frame if anything gets changed. No need
-            // to flush here, if there's no frame yet we don't need to
-            // force it to be created just to notify it about a change
-            // in the select.
+            
+            
+            
+            
             selectFrame = GetSelectFrame();
             weakSelectFrame = do_QueryFrame(selectFrame);
             didGetFrame = true;
@@ -1019,8 +1018,8 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
       }
     }
 
-    // Next remove all other options if single select or all is clear
-    // If index is -1, everything will be deselected (bug 28143)
+    
+    
     if (((!isMultiple && optionsSelected)
        || (aClearAll && !allDisabled)
        || aStartIndex == -1)
@@ -1031,14 +1030,14 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
         if (optIndex < aStartIndex || optIndex > aEndIndex) {
           nsIDOMHTMLOptionElement *option = mOptions->ItemAsOption(optIndex);
           if (option) {
-            // If the index is already selected, ignore it.
+            
             bool isSelected = false;
             option->GetSelected(&isSelected);
             if (isSelected) {
               if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
-                // To notify the frame if anything gets changed, don't
-                // flush, if the frame doesn't exist we don't need to
-                // create it just to tell it about this change.
+                
+                
+                
                 selectFrame = GetSelectFrame();
                 weakSelectFrame = do_QueryFrame(selectFrame);
 
@@ -1049,7 +1048,7 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
                                aNotify);
               optionsDeselected = true;
 
-              // Only need to deselect one option if not multiple
+              
               if (!isMultiple) {
                 break;
               }
@@ -1061,8 +1060,8 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
 
   } else {
 
-    // If we're deselecting, loop through all selected items and deselect
-    // any that are in the specified range.
+    
+    
     for (PRInt32 optIndex = aStartIndex; optIndex <= aEndIndex; optIndex++) {
       if (!aSetDisabled) {
         bool isDisabled;
@@ -1074,14 +1073,14 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
 
       nsIDOMHTMLOptionElement *option = mOptions->ItemAsOption(optIndex);
       if (option) {
-        // If the index is already selected, ignore it.
+        
         bool isSelected = false;
         option->GetSelected(&isSelected);
         if (isSelected) {
           if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
-            // To notify the frame if anything gets changed, don't
-            // flush, if the frame doesn't exist we don't need to
-            // create it just to tell it about this change.
+            
+            
+            
             selectFrame = GetSelectFrame();
             weakSelectFrame = do_QueryFrame(selectFrame);
 
@@ -1095,12 +1094,12 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
     }
   }
 
-  // Make sure something is selected unless we were set to -1 (none)
+  
   if (optionsDeselected && aStartIndex != -1) {
     optionsSelected = CheckSelectSomething(aNotify) || optionsSelected;
   }
 
-  // Let the caller know whether anything was changed
+  
   if (optionsSelected || optionsDeselected) {
     if (aChangedSomething)
       *aChangedSomething = true;
@@ -1127,19 +1126,19 @@ nsHTMLSelectElement::IsOptionDisabled(PRInt32 aIndex, bool* aIsDisabled)
     }
   }
 
-  // Check for disabled optgroups
-  // If there are no artifacts, there are no optgroups
+  
+  
   if (mNonOptionChildren) {
     nsCOMPtr<nsIDOMNode> parent;
     while (1) {
       optionNode->GetParentNode(getter_AddRefs(parent));
 
-      // If we reached the top of the doc (scary), we're done
+      
       if (!parent) {
         break;
       }
 
-      // If we reached the select element, we're done
+      
       nsCOMPtr<nsIDOMHTMLSelectElement> selectElement =
         do_QueryInterface(parent);
       if (selectElement) {
@@ -1158,8 +1157,8 @@ nsHTMLSelectElement::IsOptionDisabled(PRInt32 aIndex, bool* aIsDisabled)
           return NS_OK;
         }
       } else {
-        // If you put something else between you and the optgroup, you're a
-        // moron and you deserve not to have optgroup disabling work.
+        
+        
         break;
       }
 
@@ -1269,7 +1268,7 @@ nsHTMLSelectElement::CheckSelectSomething(bool aNotify)
 bool
 nsHTMLSelectElement::SelectSomething(bool aNotify)
 {
-  // If we're not done building the select, don't play with this yet.
+  
   if (!mIsDoneAddingChildren) {
     return false;
   }
@@ -1304,13 +1303,13 @@ nsHTMLSelectElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                      aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // If there is a disabled fieldset in the parent chain, the element is now
-  // barred from constraint validation.
-  // XXXbz is this still needed now that fieldset changes always call
-  // FieldSetDisabledChanged?
+  
+  
+  
+  
   UpdateBarredFromConstraintValidation();
 
-  // And now make sure our state is up to date
+  
   UpdateState(false);
 
   return rv;
@@ -1321,12 +1320,12 @@ nsHTMLSelectElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 
-  // We might be no longer disabled because our parent chain changed.
-  // XXXbz is this still needed now that fieldset changes always call
-  // FieldSetDisabledChanged?
+  
+  
+  
   UpdateBarredFromConstraintValidation();
 
-  // And now make sure our state is up to date
+  
   UpdateState(false);
 }
 
@@ -1368,12 +1367,12 @@ nsHTMLSelectElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
 {
   if (aNotify && aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::multiple) {
-    // We're changing from being a multi-select to a single-select.
-    // Make sure we only have one option selected before we do that.
-    // Note that this needs to come before we really unset the attr,
-    // since SetOptionsSelectedByIndex does some bail-out type
-    // optimization for cases when the select is not multiple that
-    // would lead to only a single option getting deselected.
+    
+    
+    
+    
+    
+    
     if (mSelectedIndex >= 0) {
       SetSelectedIndexInternal(mSelectedIndex, aNotify);
     }
@@ -1385,8 +1384,8 @@ nsHTMLSelectElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
 
   if (aNotify && aNameSpaceID == kNameSpaceID_None &&
       aAttribute == nsGkAtoms::multiple) {
-    // We might have become a combobox; make sure _something_ gets
-    // selected in that case
+    
+    
     CheckSelectSomething(aNotify);
   }
 
@@ -1400,32 +1399,32 @@ nsHTMLSelectElement::DoneAddingChildren(bool aHaveNotified)
 
   nsISelectControlFrame* selectFrame = GetSelectFrame();
 
-  // If we foolishly tried to restore before we were done adding
-  // content, restore the rest of the options proper-like
+  
+  
   if (mRestoreState) {
     RestoreStateTo(mRestoreState);
     mRestoreState = nsnull;
   }
 
-  // Notify the frame
+  
   if (selectFrame) {
     selectFrame->DoneAddingChildren(true);
   }
 
-  // Restore state
+  
   if (!mInhibitStateRestoration) {
     RestoreFormControlState(this, this);
   }
 
-  // Now that we're done, select something (if it's a single select something
-  // must be selected)
+  
+  
   if (!CheckSelectSomething(false)) {
-    // If an option has @selected set, it will be selected during parsing but
-    // with an empty value. We have to make sure the select element updates it's
-    // validity state to take this into account.
+    
+    
+    
     UpdateValueMissingValidityState();
 
-    // And now make sure we update our content state too
+    
     UpdateState(aHaveNotified);
   }
 
@@ -1505,16 +1504,16 @@ nsresult
 nsHTMLSelectElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
-    // If the invalid UI is shown, we should show it while focused and
-    // update the invalid/valid UI.
+    
+    
     mCanShowInvalidUI = !IsValid() && ShouldShowValidityUI();
 
-    // If neither invalid UI nor valid UI is shown, we shouldn't show the valid
-    // UI while focused.
+    
+    
     mCanShowValidUI = ShouldShowValidityUI();
 
-    // We don't have to update NS_EVENT_STATE_MOZ_UI_INVALID nor
-    // NS_EVENT_STATE_MOZ_UI_VALID given that the states should not change.
+    
+    
   } else if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
     mCanShowInvalidUI = true;
     mCanShowValidUI = true;
@@ -1543,15 +1542,15 @@ nsHTMLSelectElement::IntrinsicState() const
       }
     }
 
-    // :-moz-ui-valid applies if all the following are true:
-    // 1. The element is not focused, or had either :-moz-ui-valid or
-    //    :-moz-ui-invalid applying before it was focused ;
-    // 2. The element is either valid or isn't allowed to have
-    //    :-moz-ui-invalid applying ;
-    // 3. The element has no form owner or its form owner doesn't have the
-    //    novalidate attribute set ;
-    // 4. The element has already been modified or the user tried to submit the
-    //    form owner while invalid.
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if ((!mForm || !mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) &&
         (mCanShowValidUI && ShouldShowValidityUI() &&
          (IsValid() || (state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
@@ -1569,7 +1568,7 @@ nsHTMLSelectElement::IntrinsicState() const
   return state;
 }
 
-// nsIFormControl
+
 
 NS_IMETHODIMP
 nsHTMLSelectElement::SaveState()
@@ -1598,8 +1597,8 @@ nsHTMLSelectElement::SaveState()
     presState->SetStateProperty(state);
 
     if (mDisabledChanged) {
-      // We do not want to save the real disabled state but the disabled
-      // attribute.
+      
+      
       presState->SetDisabled(HasAttr(kNameSpaceID_None, nsGkAtoms::disabled));
     }
   }
@@ -1610,15 +1609,15 @@ nsHTMLSelectElement::SaveState()
 bool
 nsHTMLSelectElement::RestoreState(nsPresState* aState)
 {
-  // Get the presentation state object to retrieve our stuff out of.
+  
   nsCOMPtr<nsSelectState> state(
     do_QueryInterface(aState->GetStateProperty()));
 
   if (state) {
     RestoreStateTo(state);
 
-    // Don't flush, if the frame doesn't exist yet it doesn't care if
-    // we're reset or not.
+    
+    
     DispatchContentReset();
   }
 
@@ -1640,10 +1639,10 @@ nsHTMLSelectElement::RestoreStateTo(nsSelectState* aNewSelected)
   PRUint32 len;
   GetLength(&len);
 
-  // First clear all
+  
   SetOptionsSelectedByIndex(-1, -1, true, true, true, true, nsnull);
 
-  // Next set the proper ones
+  
   for (PRInt32 i = 0; i < PRInt32(len); i++) {
     nsIDOMHTMLOptionElement *option = mOptions->ItemAsOption(i);
     if (option) {
@@ -1661,9 +1660,9 @@ nsHTMLSelectElement::Reset()
 {
   PRUint32 numSelected = 0;
 
-  //
-  // Cycle through the options array and reset the options
-  //
+  
+  
+  
   PRUint32 numOptions;
   nsresult rv = GetLength(&numOptions);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1677,9 +1676,9 @@ nsHTMLSelectElement::Reset()
 
     NS_ASSERTION(option, "option not an OptionElement");
     if (option) {
-      //
-      // Reset the option to its default value
-      //
+      
+      
+      
       bool selected = false;
       option->GetDefaultSelected(&selected);
       SetOptionsSelectedByIndex(i, i, selected,
@@ -1690,21 +1689,21 @@ nsHTMLSelectElement::Reset()
     }
   }
 
-  //
-  // If nothing was selected and it's not multiple, select something
-  //
+  
+  
+  
   if (numSelected == 0 && IsCombobox()) {
     SelectSomething(true);
   }
 
   SetSelectionChanged(false, true);
 
-  //
-  // Let the frame know we were reset
-  //
-  // Don't flush, if there's no frame yet it won't care about us being
-  // reset even if we forced it to be created now.
-  //
+  
+  
+  
+  
+  
+  
   DispatchContentReset();
 
   return NS_OK;
@@ -1715,23 +1714,23 @@ static NS_DEFINE_CID(kFormProcessorCID, NS_FORMPROCESSOR_CID);
 NS_IMETHODIMP
 nsHTMLSelectElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 {
-  // Disabled elements don't submit
+  
   if (IsDisabled()) {
     return NS_OK;
   }
 
-  //
-  // Get the name (if no name, no submit)
-  //
+  
+  
+  
   nsAutoString name;
   GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
   if (name.IsEmpty()) {
     return NS_OK;
   }
 
-  //
-  // Submit
-  //
+  
+  
+  
   PRUint32 len;
   GetLength(&len);
 
@@ -1743,7 +1742,7 @@ nsHTMLSelectElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
   }
 
   for (PRUint32 optIndex = 0; optIndex < len; optIndex++) {
-    // Don't send disabled options
+    
     bool disabled;
     nsresult rv = IsOptionDisabled(optIndex, &disabled);
     if (NS_FAILED(rv) || disabled) {
@@ -1786,8 +1785,8 @@ nsHTMLSelectElement::DispatchContentReset()
 {
   nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
   if (formControlFrame) {
-    // Only dispatch content reset notification if this is a list control
-    // frame or combo box control frame.
+    
+    
     if (IsCombobox()) {
       nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
       if (comboFrame) {
@@ -1810,7 +1809,7 @@ AddOptionsRecurse(nsIContent* aRoot, nsHTMLOptionCollection* aArray)
        cur = cur->GetNextSibling()) {
     nsHTMLOptionElement* opt = nsHTMLOptionElement::FromContent(cur);
     if (opt) {
-      // If we fail here, then at least we've tried our best
+      
       aArray->AppendOption(opt);
     } else if (cur->IsHTML(nsGkAtoms::optgroup)) {
       AddOptionsRecurse(cur, aArray);
@@ -1914,17 +1913,17 @@ nsHTMLSelectElement::VerifyOptionsArray()
 
 #endif
 
-//----------------------------------------------------------------------
-//
-// nsHTMLOptionCollection implementation
-//
+
+
+
+
 
 nsHTMLOptionCollection::nsHTMLOptionCollection(nsHTMLSelectElement* aSelect)
 {
   SetIsDOMBinding();
 
-  // Do not maintain a reference counted reference. When
-  // the select goes away, it will let us know.
+  
+  
   mSelect = aSelect;
 }
 
@@ -1936,7 +1935,7 @@ nsHTMLOptionCollection::~nsHTMLOptionCollection()
 void
 nsHTMLOptionCollection::DropReference()
 {
-  // Drop our (non ref-counted) reference
+  
   mSelect = nsnull;
 }
 
@@ -1946,11 +1945,11 @@ nsHTMLOptionCollection::GetOptionIndex(mozilla::dom::Element* aOption,
                                        bool aForward,
                                        PRInt32* aIndex)
 {
-  // NOTE: aIndex shouldn't be set if the returned value isn't NS_OK.
+  
 
   PRInt32 index;
 
-  // Make the common case fast
+  
   if (aStartIndex == 0 && aForward) {
     index = mElements.IndexOf(aOption);
     if (index == -1) {
@@ -1994,11 +1993,11 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsHTMLOptionCollection)
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-// nsISupports
+
 
 DOMCI_DATA(HTMLOptionsCollection, nsHTMLOptionCollection)
 
-// QueryInterface implementation for nsHTMLOptionCollection
+
 NS_INTERFACE_TABLE_HEAD(nsHTMLOptionCollection)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_TABLE3(nsHTMLOptionCollection,
@@ -2048,12 +2047,12 @@ nsHTMLOptionCollection::SetOption(PRUint32 aIndex,
     return NS_OK;
   }
 
-  // if the new option is null, just remove this option.  Note that it's safe
-  // to pass a too-large aIndex in here.
+  
+  
   if (!aOption) {
     mSelect->Remove(aIndex);
 
-    // We're done.
+    
     return NS_OK;
   }
 
@@ -2061,10 +2060,10 @@ nsHTMLOptionCollection::SetOption(PRUint32 aIndex,
 
   PRUint32 index = PRUint32(aIndex);
 
-  // Now we're going to be setting an option in our collection
+  
   if (index > mElements.Length()) {
-    // Fill our array with blank options up to (but not including, since we're
-    // about to change it) aIndex, for compat with other browsers.
+    
+    
     rv = SetLength(index);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -2075,8 +2074,8 @@ nsHTMLOptionCollection::SetOption(PRUint32 aIndex,
   if (index == mElements.Length()) {
     rv = mSelect->AppendChild(aOption, getter_AddRefs(ret));
   } else {
-    // Find the option they're talking about and replace it
-    // hold a strong reference to follow COM rules.
+    
+    
     nsCOMPtr<nsIDOMHTMLOptionElement> refChild = ItemAsOption(index);
     NS_ENSURE_TRUE(refChild, NS_ERROR_UNEXPECTED);
 

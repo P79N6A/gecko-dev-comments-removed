@@ -30,7 +30,6 @@
 #include "nsIBaseWindow.h"
 #include "nsISelection.h"
 #include "nsFrameSelection.h"
-#include "nsIPrivateDOMEvent.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsIEnumerator.h"
@@ -3175,10 +3174,10 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         if (!mCurrentTarget) {
           GetEventTarget();
         }
-        if (mCurrentTarget) {
-          ret = CheckForAndDispatchClick(presContext, (nsMouseEvent*)aEvent,
-                                         aStatus);
-        }
+        
+        
+        ret = CheckForAndDispatchClick(presContext, (nsMouseEvent*)aEvent,
+                                       aStatus);
       }
 
       nsIPresShell *shell = presContext->GetPresShell();
