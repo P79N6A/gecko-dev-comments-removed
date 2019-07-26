@@ -21,7 +21,7 @@
 
 
 #if defined(WEBRTC_MAC) || defined(WEBRTC_LINUX) || \
-    defined(WEBRTC_ANDROID)
+    defined(WEBRTC_ANDROID) || defined(WEBRTC_BSD)
 #define WEBRTC_POSIX
 #endif
 
