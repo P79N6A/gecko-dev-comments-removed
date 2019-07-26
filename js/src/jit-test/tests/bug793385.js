@@ -1,4 +1,5 @@
 
+
 gcparam("maxBytes", gcparam("gcBytes") + 4*1024);
 function f() {
     var upvar = "";

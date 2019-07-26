@@ -84,6 +84,8 @@ class Test:
         self.jitflags = []     
         self.slow = False      
         self.allow_oom = False 
+        self.allow_overrecursed = False 
+                                        
         self.valgrind = False  
         self.tz_pacific = False 
         self.expect_error = '' 
@@ -94,6 +96,7 @@ class Test:
         t.jitflags = self.jitflags[:]
         t.slow = self.slow
         t.allow_oom = self.allow_oom
+        t.allow_overrecursed = self.allow_overrecursed
         t.valgrind = self.valgrind
         t.tz_pacific = self.tz_pacific
         t.expect_error = self.expect_error
@@ -138,6 +141,8 @@ class Test:
                         test.slow = True
                     elif name == 'allow-oom':
                         test.allow_oom = True
+                    elif name == 'allow-overrecursed':
+                        test.allow_overrecursed = True
                     elif name == 'valgrind':
                         test.valgrind = options.valgrind
                     elif name == 'tz-pacific':
@@ -382,7 +387,15 @@ def check_output(out, err, rc, timed_out, test):
 
         
         
-        return test.allow_oom and 'out of memory' in err and 'Assertion failure' not in err
+        if test.allow_oom and 'out of memory' in err and 'Assertion failure' not in err:
+            return True
+
+        
+        
+        if test.allow_overrecursed and 'too much recursion' in err and 'Assertion failure' not in err:
+            return True
+
+        return False
 
     return True
 
