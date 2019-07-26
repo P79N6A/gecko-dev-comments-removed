@@ -21,12 +21,6 @@ class AccessibleWrap : public Accessible
 public: 
   AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~AccessibleWrap();
-
-  protected:
-    virtual nsresult FirePlatformEvent(AccEvent* aEvent)
-    {
-      return NS_OK;
-    }
 };
 
 } 

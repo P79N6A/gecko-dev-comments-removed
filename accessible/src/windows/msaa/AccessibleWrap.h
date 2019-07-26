@@ -243,7 +243,6 @@ public:
   static IDispatch *NativeAccessible(nsIAccessible *aXPAccessible);
 
 protected:
-  virtual nsresult FirePlatformEvent(AccEvent* aEvent);
 
   
 

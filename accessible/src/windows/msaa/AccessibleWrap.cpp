@@ -1505,15 +1505,6 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
   nsresult rv = Accessible::HandleAccEvent(aEvent);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return FirePlatformEvent(aEvent);
-}
-
-
-
-
-nsresult
-AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
-{
   
   
   
@@ -1582,6 +1573,9 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
 
   return NS_OK;
 }
+
+
+
 
 
 

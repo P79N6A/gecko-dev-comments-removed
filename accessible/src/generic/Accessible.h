@@ -882,16 +882,6 @@ protected:
   AccGroupInfo* GetGroupInfo();
 
   
-
-
-
-
-
-
-
-  virtual nsresult FirePlatformEvent(AccEvent* aEvent) = 0;
-
-  
   nsRefPtr<Accessible> mParent;
   nsTArray<nsRefPtr<Accessible> > mChildren;
   int32_t mIndexInParent;
