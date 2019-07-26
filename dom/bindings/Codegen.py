@@ -4079,7 +4079,7 @@ def instantiateJSToNativeConversion(info, replacements, checkForValue=False):
 
 def convertConstIDLValueToJSVal(value):
     if isinstance(value, IDLNullValue):
-        return "JSVAL_NULL"
+        return "JS::NullValue()"
     tag = value.type.tag()
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
                IDLType.Tags.uint16, IDLType.Tags.int32]:
@@ -4265,7 +4265,34 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
     
     exceptionCodeIndented = CGIndenter(CGGeneric(exceptionCode))
 
-    def setValue(value, wrapAsType=None):
+    def setUndefined():
+        return _setValue("", setter="setUndefined")
+
+    def setNull():
+        return _setValue("", setter="setNull")
+
+    def setInt32(value):
+        return _setValue(value, setter="setInt32")
+
+    def setString(value):
+        return _setValue(value, setter="setString")
+
+    def setObject(value, wrapAsType=None):
+        return _setValue(value, wrapAsType=wrapAsType, setter="setObject")
+
+    def setObjectOrNull(value, wrapAsType=None):
+        return _setValue(value, wrapAsType=wrapAsType, setter="setObjectOrNull")
+
+    def setUint32(value):
+        return _setValue(value, setter="setNumber")
+
+    def setDouble(value):
+        return _setValue("JS_NumberValue(%s)" % value)
+
+    def setBoolean(value):
+        return _setValue(value, setter="setBoolean")
+
+    def _setValue(value, wrapAsType=None, setter="set"):
         """
         Returns the code to set the jsval to value.
 
@@ -4281,8 +4308,8 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
                                exceptionCodeIndented.define())) +
                     "}\n" +
                     successCode)
-        return ("${jsvalRef}.set(%s);\n" +
-                tail) % (value)
+        return ("${jsvalRef}.%s(%s);\n" +
+                tail) % (setter, value)
 
     def wrapAndSetPtr(wrapCall, failureCode=None):
         """
@@ -4298,7 +4325,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
         return str
 
     if type is None or type.isVoid():
-        return (setValue("JSVAL_VOID"), True)
+        return (setUndefined(), True)
 
     if type.isArray():
         raise TypeError("Can't handle array return values yet")
@@ -4314,7 +4341,7 @@ def getWrapTemplateForType(type, descriptorProvider, result, successCode,
 if (%s.IsNull()) {
 %s
 }
-%s""" % (result, CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define(), recTemplate), recInfall)
+%s""" % (result, CGIndenter(CGGeneric(setNull())).define(), recTemplate), recInfall)
 
         
         
@@ -4361,13 +4388,13 @@ if (!returnArray) {
           index, index, index,
           innerTemplate, index,
           CGIndenter(exceptionCodeIndented, 4).define())) +
-                setValue("JS::ObjectValue(*returnArray)"), False)
+                setObject("*returnArray"), False)
 
     if type.isGeckoInterface() and not type.isCallbackInterface():
         descriptor = descriptorProvider.getDescriptor(type.unroll().inner.identifier.name)
         if type.nullable():
             wrappingCode = ("if (!%s) {\n" % (result) +
-                            CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
+                            CGIndenter(CGGeneric(setNull())).define() + "\n" +
                             "}\n")
         else:
             wrappingCode = ""
@@ -4434,26 +4461,26 @@ if (!returnArray) {
 """ % { "result" : resultLoc,
         "strings" : type.unroll().inner.identifier.name + "Values::" + ENUM_ENTRY_VARIABLE_NAME,
         "exceptionCode" : CGIndenter(exceptionCodeIndented).define() } +
-        CGIndenter(CGGeneric(setValue("JS::StringValue(resultStr)"))).define() +
+        CGIndenter(CGGeneric(setString("resultStr"))).define() +
                       "\n}")
 
         if type.nullable():
             conversion = CGIfElseWrapper(
                 "%s.IsNull()" % result,
-                CGGeneric(setValue("JS::NullValue()")),
+                CGGeneric(setNull()),
                 CGGeneric(conversion)).define()
         return conversion, False
 
     if type.isCallback() or type.isCallbackInterface():
-        wrapCode = setValue(
-            "JS::ObjectValue(*GetCallbackFromCallbackObject(%(result)s))",
+        wrapCode = setObject(
+            "*GetCallbackFromCallbackObject(%(result)s)",
             wrapAsType=type)
         if type.nullable():
             wrapCode = (
                 "if (%(result)s) {\n" +
                 CGIndenter(CGGeneric(wrapCode)).define() + "\n"
                 "} else {\n" +
-                CGIndenter(CGGeneric(setValue("JS::NullValue()"))).define() + "\n"
+                CGIndenter(CGGeneric(setNull())).define() + "\n"
                 "}")
         wrapCode = wrapCode % { "result": result }
         return wrapCode, False
@@ -4462,18 +4489,20 @@ if (!returnArray) {
         
         
         
-        return (setValue(result, wrapAsType=type), False)
+        return (_setValue(result, wrapAsType=type), False)
 
     if (type.isObject() or (type.isSpiderMonkeyInterface() and
                             not typedArraysAreStructs)):
         
         
         if type.nullable():
-            toValue = "JS::ObjectOrNullValue(%s)"
+            toValue = "%s"
+            setter = setObjectOrNull
         else:
-            toValue = "JS::ObjectValue(*%s)"
+            toValue = "*%s"
+            setter = setObject
         
-        return (setValue(toValue % result, wrapAsType=type), False)
+        return (setter(toValue % result, wrapAsType=type), False)
 
     if not (type.isUnion() or type.isPrimitive() or type.isDictionary() or
             type.isDate() or
@@ -4486,7 +4515,7 @@ if (!returnArray) {
                                                          returnsNewObject, exceptionCode,
                                                          typedArraysAreStructs)
         return ("if (%s.IsNull()) {\n" % result +
-                CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
+                CGIndenter(CGGeneric(setNull())).define() + "\n" +
                 "}\n" + recTemplate, recInfal)
 
     if type.isSpiderMonkeyInterface():
@@ -4494,8 +4523,8 @@ if (!returnArray) {
         
         
         
-        return (setValue("JS::ObjectValue(*%s.Obj())" % result,
-                         wrapAsType=type), False)
+        return (setObject("*%s.Obj()" % result,
+                          wrapAsType=type), False)
 
     if type.isUnion():
         return (wrapAndSetPtr("%s.ToJSVal(cx, ${obj}, ${jsvalHandle})" % result),
@@ -4513,20 +4542,20 @@ if (!returnArray) {
 
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
                IDLType.Tags.uint16, IDLType.Tags.int32]:
-        return (setValue("INT_TO_JSVAL(int32_t(%s))" % result), True)
+        return (setInt32("int32_t(%s)" % result), True)
 
     elif tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
                  IDLType.Tags.unrestricted_float, IDLType.Tags.float,
                  IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
         
         
-        return (setValue("JS_NumberValue(double(%s))" % result), True)
+        return (setDouble("double(%s)" % result), True)
 
     elif tag == IDLType.Tags.uint32:
-        return (setValue("UINT_TO_JSVAL(%s)" % result), True)
+        return (setUint32(result), True)
 
     elif tag == IDLType.Tags.bool:
-        return (setValue("BOOLEAN_TO_JSVAL(%s)" % result), True)
+        return (setBoolean(result), True)
 
     else:
         raise TypeError("Need to learn to wrap primitive: %s" % type)
@@ -5042,7 +5071,7 @@ class CGPerSignatureCall(CGThing):
             if setter:
                 lenientFloatCode = "return true;"
             elif idlNode.isMethod():
-                lenientFloatCode = ("args.rval().set(JSVAL_VOID);\n"
+                lenientFloatCode = ("args.rval().setUndefined();\n"
                                     "return true;")
 
         argsPre = []
