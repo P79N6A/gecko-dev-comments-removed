@@ -194,6 +194,7 @@ const UnsolicitedNotifications = {
   "newSource": "newSource",
   "tabDetached": "tabDetached",
   "tabListChanged": "tabListChanged",
+  "addonListChanged": "addonListChanged",
   "tabNavigated": "tabNavigated",
   "pageError": "pageError",
   "webappsEvent": "webappsEvent",
@@ -425,6 +426,12 @@ DebuggerClient.prototype = {
 
 
   listTabs: function(aOnResponse) { return this.mainRoot.listTabs(aOnResponse); },
+
+  
+
+
+
+  listAddons: function(aOnResponse) { return this.mainRoot.listAddons(aOnResponse); },
 
   
 
@@ -1033,10 +1040,18 @@ RootClient.prototype = {
 
 
 
+
+
+  listAddons: DebuggerClient.requester({ type: "listAddons" },
+                                       { telemetry: "LISTADDONS" }),
+
+  
+
+
+
   get _transport() { return this._client._transport; },
   get request()    { return this._client.request;    }
 };
-
 
 
 
@@ -1993,9 +2008,8 @@ SourceClient.prototype = {
         return;
       }
 
-      let { contentType, source } = aResponse;
       let longString = this._client.activeThread.threadLongString(
-        source);
+        aResponse.source);
       longString.substring(0, longString.length, function (aResponse) {
         if (aResponse.error) {
           aCallback(aResponse);
@@ -2003,8 +2017,7 @@ SourceClient.prototype = {
         }
 
         aCallback({
-          source: aResponse.substring,
-          contentType: contentType
+          source: aResponse.substring
         });
       });
     }.bind(this));

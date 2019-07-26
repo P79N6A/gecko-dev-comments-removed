@@ -146,10 +146,16 @@ function CommonAppendExtraActors(aObject) {
 
 
 
+
+
+
+
+
 function RootActor(aConnection, aParameters) {
   this.conn = aConnection;
   this._parameters = aParameters;
   this._onTabListChanged = this.onTabListChanged.bind(this);
+  this._onAddonListChanged = this.onAddonListChanged.bind(this);
   this._extraActors = {};
 }
 
@@ -189,6 +195,9 @@ RootActor.prototype = {
     
     if (this._parameters.tabList) {
       this._parameters.tabList.onListChanged = null;
+    }
+    if (this._parameters.addonList) {
+      this._parameters.addonList.onListChanged = null;
     }
     if (typeof this._parameters.onShutdown === 'function') {
       this._parameters.onShutdown();
@@ -245,7 +254,7 @@ RootActor.prototype = {
       let reply = {
         "from": this.actorID,
         "selected": selected || 0,
-        "tabs": [actor.grip() for (actor of tabActorList)],
+        "tabs": [actor.form() for (actor of tabActorList)],
       };
 
       
@@ -266,6 +275,39 @@ RootActor.prototype = {
     this.conn.send({ from: this.actorID, type:"tabListChanged" });
     
     this._parameters.tabList.onListChanged = null;
+  },
+
+  onListAddons: function () {
+    let addonList = this._parameters.addonList;
+    if (!addonList) {
+      return { from: this.actorID, error: "noAddons",
+               message: "This root actor has no browser addons." };
+    }
+
+    return addonList.getList().then((addonActors) => {
+      let addonActorPool = new ActorPool(this.conn);
+      for (let addonActor of addonActors) {
+          addonActorPool.addActor(addonActor);
+      }
+
+      if (this._addonActorPool) {
+        this.conn.removeActorPool(this._addonActorPool);
+      }
+      this._addonActorPool = addonActorPool;
+      this.conn.addActorPool(this._addonActorPool);
+
+      addonList.onListChanged = this._onAddonListChanged;
+
+      return {
+        "from": this.actorID,
+        "addons": [addonActor.form() for (addonActor of addonActors)]
+      };
+    });
+  },
+
+  onAddonListChanged: function () {
+    this.conn.send({ from: this.actorID, type: "addonListChanged" });
+    this._parameters.addonList.onListChanged = null;
   },
 
   
@@ -340,5 +382,6 @@ RootActor.prototype = {
 
 RootActor.prototype.requestTypes = {
   "listTabs": RootActor.prototype.onListTabs,
+  "listAddons": RootActor.prototype.onListAddons,
   "echo": RootActor.prototype.onEcho
 };
