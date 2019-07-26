@@ -100,7 +100,6 @@ private:
   };
 
   nsRefPtr<ClientLayerManager> mLayerManager;
-  nsCOMPtr<nsIObserver> mMemoryPressureObserver;
 
   
   
