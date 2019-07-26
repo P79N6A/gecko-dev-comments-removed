@@ -30,7 +30,6 @@ static const uint32_t MAX_BUFFER_SIZE = (1 << 30) - 1;
 
 
 static const uint32_t SNAPSHOT_MAX_NARGS = 127;
-static const uint32_t SNAPSHOT_MAX_STACK = 127;
 
 class MacroAssembler;
 class CodeOffsetLabel;
