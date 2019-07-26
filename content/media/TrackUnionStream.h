@@ -298,6 +298,11 @@ protected:
 
         if (inputStartTicks < 0) {
           
+          
+          
+          
+          
+          
           segment->AppendNullData(-inputStartTicks);
           inputStartTicks = 0;
         }
