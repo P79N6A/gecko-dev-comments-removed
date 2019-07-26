@@ -48,7 +48,7 @@ struct Zone;
 
 
 
-typedef enum JSVersion {
+enum JSVersion {
     JSVERSION_ECMA_3  = 148,
     JSVERSION_1_6     = 160,
     JSVERSION_1_7     = 170,
@@ -57,10 +57,10 @@ typedef enum JSVersion {
     JSVERSION_DEFAULT = 0,
     JSVERSION_UNKNOWN = -1,
     JSVERSION_LATEST  = JSVERSION_ECMA_5
-} JSVersion;
+};
 
 
-typedef enum JSType {
+enum JSType {
     JSTYPE_VOID,                
     JSTYPE_OBJECT,              
     JSTYPE_FUNCTION,            
@@ -69,21 +69,21 @@ typedef enum JSType {
     JSTYPE_BOOLEAN,             
     JSTYPE_NULL,                
     JSTYPE_LIMIT
-} JSType;
+};
 
 
-typedef enum JSProtoKey {
+enum JSProtoKey {
 #define PROTOKEY_AND_INITIALIZER(name,code,init,clasp) JSProto_##name = code,
     JS_FOR_EACH_PROTOTYPE(PROTOKEY_AND_INITIALIZER)
 #undef PROTOKEY_AND_INITIALIZER
     JSProto_LIMIT
-} JSProtoKey;
+};
 
 
 
 
 
-typedef enum JSIterateOp {
+enum JSIterateOp {
     
     JSENUMERATE_INIT,
 
@@ -95,10 +95,10 @@ typedef enum JSIterateOp {
 
     
     JSENUMERATE_DESTROY
-} JSIterateOp;
+};
 
 
-typedef enum {
+enum JSGCTraceKind {
     JSTRACE_OBJECT,
     JSTRACE_STRING,
     JSTRACE_SCRIPT,
@@ -113,29 +113,29 @@ typedef enum {
     JSTRACE_BASE_SHAPE,
     JSTRACE_TYPE_OBJECT,
     JSTRACE_LAST = JSTRACE_TYPE_OBJECT
-} JSGCTraceKind;
+};
 
 
-typedef struct JSClass                      JSClass;
-typedef struct JSCompartment                JSCompartment;
-typedef struct JSConstDoubleSpec            JSConstDoubleSpec;
-typedef struct JSCrossCompartmentCall       JSCrossCompartmentCall;
-typedef struct JSErrorReport                JSErrorReport;
-typedef struct JSExceptionState             JSExceptionState;
-typedef struct JSFunctionSpec               JSFunctionSpec;
-typedef struct JSIdArray                    JSIdArray;
-typedef struct JSLocaleCallbacks            JSLocaleCallbacks;
-typedef struct JSObjectMap                  JSObjectMap;
-typedef struct JSPrincipals                 JSPrincipals;
-typedef struct JSPropertyDescriptor         JSPropertyDescriptor;
-typedef struct JSPropertyName               JSPropertyName;
-typedef struct JSPropertySpec               JSPropertySpec;
-typedef struct JSRuntime                    JSRuntime;
-typedef struct JSSecurityCallbacks          JSSecurityCallbacks;
-typedef struct JSStructuredCloneCallbacks   JSStructuredCloneCallbacks;
-typedef struct JSStructuredCloneReader      JSStructuredCloneReader;
-typedef struct JSStructuredCloneWriter      JSStructuredCloneWriter;
-typedef struct JSTracer                     JSTracer;
+struct JSClass;
+struct JSCompartment;
+struct JSConstDoubleSpec;
+struct JSCrossCompartmentCall;
+struct JSErrorReport;
+struct JSExceptionState;
+struct JSFunctionSpec;
+struct JSIdArray;
+struct JSLocaleCallbacks;
+struct JSObjectMap;
+struct JSPrincipals;
+struct JSPropertyDescriptor;
+struct JSPropertyName;
+struct JSPropertySpec;
+struct JSRuntime;
+struct JSSecurityCallbacks;
+struct JSStructuredCloneCallbacks;
+struct JSStructuredCloneReader;
+struct JSStructuredCloneWriter;
+struct JSTracer;
 
 class                                       JSFlatString;
 
