@@ -56,7 +56,7 @@
 #include "UeventPoller.h"
 
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk", args)
-#define NsecPerMsec  1000000
+#define NsecPerMsec  1000000LL
 #define NsecPerSec   1000000000
 
 
@@ -603,45 +603,42 @@ GetLight(hal::LightType light, hal::LightConfiguration* aConfig)
   return true;
 }
 
-
-
-
-
-
-static int
-sys_clock_settime(clockid_t clk_id, const struct timespec *tp)
-{
-  return syscall(__NR_clock_settime, clk_id, tp);
-}
-
 void
 AdjustSystemClock(int64_t aDeltaMilliseconds)
 {
+  int fd;
+  struct timespec now;
+
   if (aDeltaMilliseconds == 0) {
     return;
   }
 
-  struct timespec now;
-
   
   sched_yield();
   clock_gettime(CLOCK_REALTIME, &now);
-  now.tv_sec += aDeltaMilliseconds / 1000;
-  now.tv_nsec += (aDeltaMilliseconds % 1000) * NsecPerMsec;
-  if (now.tv_nsec >= NsecPerSec)
-  {
+  now.tv_sec += (time_t)(aDeltaMilliseconds / 1000LL);
+  now.tv_nsec += (long)((aDeltaMilliseconds % 1000LL) * NsecPerMsec);
+  if (now.tv_nsec >= NsecPerSec) {
     now.tv_sec += 1;
     now.tv_nsec -= NsecPerSec;
   }
 
-  if (now.tv_nsec < 0)
-  {
+  if (now.tv_nsec < 0) {
     now.tv_nsec += NsecPerSec;
     now.tv_sec -= 1;
   }
-  
-  if (sys_clock_settime(CLOCK_REALTIME, &now) != 0) {
-    NS_ERROR("sys_clock_settime failed");
+
+  do {
+    fd = open("/dev/alarm", O_RDWR);
+  } while (fd == -1 && errno == EINTR);
+  ScopedClose autoClose(fd);
+  if (fd < 0) {
+    HAL_LOG(("Failed to open /dev/alarm: %s", strerror(errno)));
+    return;
+  }
+
+  if (ioctl(fd, ANDROID_ALARM_SET_RTC, &now) < 0) {
+    HAL_LOG(("ANDROID_ALARM_SET_RTC failed: %s", strerror(errno)));
     return;
   }
 
