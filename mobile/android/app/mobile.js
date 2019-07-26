@@ -656,6 +656,8 @@ pref("ui.scrolling.min_scrollable_distance", -1);
 
 pref("ui.scrolling.axis_lock_mode", "standard");
 
+pref("ui.scrolling.negate_wheel_scrollY", true);
+
 
 
 pref("accessibility.accessfu.activate", 2);
