@@ -313,6 +313,9 @@ private:
   nsresult SetJournalMode(bool aIsWal);
   nsresult TryJournalMode();
 
+  
+  nsresult ConfigureWALBehavior();
+
   void SetHigherPriority();
   void SetDefaultPriority();
 
