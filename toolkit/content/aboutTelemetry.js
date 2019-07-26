@@ -9,6 +9,7 @@ const Cc = Components.classes;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/TelemetryTimestamps.jsm");
 
 const Telemetry = Services.telemetry;
 const bundle = Services.strings.createBundle(
@@ -772,21 +773,20 @@ let LateWritesSingleton = {
 
 
 function sortStartupMilestones(aSimpleMeasurements) {
-  
-  const startupMilestones =
-    ["start", "main", "startupCrashDetectionBegin", "createTopLevelWindow",
-     "firstPaint", "delayedStartupStarted", "firstLoadURI",
-     "sessionRestoreInitialized", "sessionRestoreRestoring", "sessionRestored",
-     "delayedStartupFinished", "startupCrashDetectionEnd",
-     "AMI_startup_begin", "AMI_startup_end", "XPI_startup_begin", "XPI_startup_end",
-     "XPI_bootstrap_addons_begin", "XPI_bootstrap_addons_end"];
+  const telemetryTimestamps = TelemetryTimestamps.get();
+  let startupEvents = Services.startup.getStartupInfo();
+  delete startupEvents['process'];
+
+  function keyIsMilestone(k) {
+    return (k in startupEvents) || (k in telemetryTimestamps);
+  }
 
   let sortedKeys = Object.keys(aSimpleMeasurements);
 
   
   sortedKeys.sort(function keyCompare(keyA, keyB) {
-    let isKeyAMilestone = (startupMilestones.indexOf(keyA) > -1);
-    let isKeyBMilestone = (startupMilestones.indexOf(keyB) > -1);
+    let isKeyAMilestone = keyIsMilestone(keyA);
+    let isKeyBMilestone = keyIsMilestone(keyB);
 
     
     if (isKeyAMilestone && !isKeyBMilestone)
