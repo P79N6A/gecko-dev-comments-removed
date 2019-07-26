@@ -3320,9 +3320,6 @@ for (uint32_t i = 0; i < length; ++i) {
             "Default": "eStringify",
             "EmptyString": "eEmpty",
             "Null": "eNull",
-            
-            
-            "Missing": "eStringify"
         }
         if type.nullable():
             
@@ -3842,11 +3839,8 @@ class CGArgumentConverter(CGThing):
             "args[${index}]"
             ).substitute(replacer)
         self.replacementVariables["mutableVal"] = self.replacementVariables["val"]
-        if argument.treatUndefinedAs == "Missing":
-            haveValueCheck = "args.hasDefined(${index})"
-        else:
-            haveValueCheck = "${index} < args.length()"
-        haveValueCheck = string.Template(haveValueCheck).substitute(replacer)
+        haveValueCheck = string.Template(
+            "args.hasDefined(${index})").substitute(replacer)
         self.replacementVariables["haveValue"] = haveValueCheck
         self.descriptorProvider = descriptorProvider
         if self.argument.optional and not self.argument.defaultValue:
