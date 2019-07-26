@@ -30,6 +30,8 @@ using namespace mozilla::layers;
 
 
 
+namespace mozilla {
+namespace layers {
 
 
 void SetupSurface(gfxImageSurface* surface) {
@@ -202,6 +204,9 @@ void TestTextureClientYCbCr(TextureClient* client, PlanarYCbCrData& ycbcrData) {
   AssertYCbCrSurfacesEqual(&ycbcrData, &data);
   host->Unlock();
 }
+
+} 
+} 
 
 TEST(Layers, TextureSerialization) {
   
