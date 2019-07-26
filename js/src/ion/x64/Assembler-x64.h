@@ -362,12 +362,27 @@ class Assembler : public AssemblerX86Shared
     }
 
     CodeOffsetLabel movWithPatch(const ImmWord &word, const Register &dest) {
-        movq(word, dest);
+        masm.movq_i64r(word.value, dest.code());
         return masm.currentOffset();
     }
 
+    
+    
+    
     void movq(ImmWord word, const Register &dest) {
-        masm.movq_i64r(word.value, dest.code());
+        
+        
+        
+        if (word.value <= UINT32_MAX) {
+            
+            masm.movl_i32r((uint32_t)word.value, dest.code());
+        } else if ((intptr_t)word.value >= INT32_MIN && (intptr_t)word.value <= INT32_MAX) {
+            
+            masm.movq_i32r((int32_t)(intptr_t)word.value, dest.code());
+        } else {
+            
+            masm.movq_i64r(word.value, dest.code());
+        }
     }
     void movq(ImmGCPtr ptr, const Register &dest) {
         masm.movq_i64r(ptr.value, dest.code());
@@ -523,16 +538,7 @@ class Assembler : public AssemblerX86Shared
     }
 
     void mov(ImmWord word, const Register &dest) {
-        
-        
-        
-        if (word.value <= UINT32_MAX) {
-            uint32_t value32 = static_cast<uint32_t>(word.value);
-            Imm32 imm32(static_cast<int32_t>(value32));
-            movl(imm32, dest);
-        } else {
-            movq(word, dest);
-        }
+        movq(word, dest);
     }
     void mov(const Imm32 &imm32, const Register &dest) {
         movl(imm32, dest);

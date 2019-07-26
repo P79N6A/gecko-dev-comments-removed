@@ -1678,7 +1678,15 @@ public:
     
     
     
-    void movq_i32r(int imm, RegisterID dst);
+    
+    
+    
+    void movq_i32r(int imm, RegisterID dst) {
+        spew("movq       $%d, %s",
+             imm, nameIReg(dst));
+        m_formatter.oneByteOp64(OP_GROUP11_EvIz, GROUP11_MOV, dst);
+        m_formatter.immediate32(imm);
+    }
 
     void movq_i64r(int64_t imm, RegisterID dst)
     {
