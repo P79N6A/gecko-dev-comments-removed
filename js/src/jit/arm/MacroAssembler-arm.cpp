@@ -1816,6 +1816,76 @@ MacroAssemblerARMCompat::freeStack(Register amount)
 }
 
 void
+MacroAssembler::PushRegsInMask(RegisterSet set)
+{
+    int32_t diffF = set.fpus().size() * sizeof(double);
+    int32_t diffG = set.gprs().size() * sizeof(intptr_t);
+
+    if (set.gprs().size() > 1) {
+        adjustFrame(diffG);
+        startDataTransferM(IsStore, StackPointer, DB, WriteBack);
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); iter++) {
+            diffG -= sizeof(intptr_t);
+            transferReg(*iter);
+        }
+        finishDataTransfer();
+    } else {
+        reserveStack(diffG);
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); iter++) {
+            diffG -= sizeof(intptr_t);
+            storePtr(*iter, Address(StackPointer, diffG));
+        }
+    }
+    JS_ASSERT(diffG == 0);
+
+    adjustFrame(diffF);
+    diffF += transferMultipleByRuns(set.fpus(), IsStore, StackPointer, DB);
+    JS_ASSERT(diffF == 0);
+}
+
+void
+MacroAssembler::PopRegsInMaskIgnore(RegisterSet set, RegisterSet ignore)
+{
+    int32_t diffG = set.gprs().size() * sizeof(intptr_t);
+    int32_t diffF = set.fpus().size() * sizeof(double);
+    const int32_t reservedG = diffG;
+    const int32_t reservedF = diffF;
+
+    
+    
+    if (ignore.empty(true)) {
+        diffF -= transferMultipleByRuns(set.fpus(), IsLoad, StackPointer, IA);
+        adjustFrame(-reservedF);
+    } else {
+        for (FloatRegisterBackwardIterator iter(set.fpus()); iter.more(); iter++) {
+            diffF -= sizeof(double);
+            if (!ignore.has(*iter))
+                loadDouble(Address(StackPointer, diffF), *iter);
+        }
+        freeStack(reservedF);
+    }
+    JS_ASSERT(diffF == 0);
+
+    if (set.gprs().size() > 1 && ignore.empty(false)) {
+        startDataTransferM(IsLoad, StackPointer, IA, WriteBack);
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); iter++) {
+            diffG -= sizeof(intptr_t);
+            transferReg(*iter);
+        }
+        finishDataTransfer();
+        adjustFrame(-reservedG);
+    } else {
+        for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); iter++) {
+            diffG -= sizeof(intptr_t);
+            if (!ignore.has(*iter))
+                loadPtr(Address(StackPointer, diffG), *iter);
+        }
+        freeStack(reservedG);
+    }
+    JS_ASSERT(diffG == 0);
+}
+
+void
 MacroAssemblerARMCompat::add32(Register src, Register dest)
 {
     ma_add(src, dest, SetCond);
@@ -2341,6 +2411,60 @@ MacroAssemblerARMCompat::storePtr(const Register &src, const AbsoluteAddress &de
 {
     movePtr(ImmWord(uintptr_t(dest.addr)), ScratchRegister);
     storePtr(src, Address(ScratchRegister, 0x0));
+}
+
+
+void
+MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
+{
+    JS_ASSERT(input != ScratchFloatReg);
+    ma_vimm(0.5, ScratchFloatReg);
+    if (hasVFPv3()) {
+        Label notSplit;
+        ma_vadd(input, ScratchFloatReg, ScratchFloatReg);
+        
+        
+        as_vcvtFixed(ScratchFloatReg, false, 24, true);
+        
+        as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
+        
+        
+        
+        ma_tst(output, Imm32(0x00ffffff));
+        
+        ma_lsr(Imm32(24), output, output);
+        
+        
+        ma_b(&notSplit, NonZero);
+        as_vxfer(ScratchRegister, InvalidReg, input, FloatToCore);
+        ma_cmp(ScratchRegister, Imm32(0));
+        
+        
+        ma_bic(Imm32(1), output, NoSetCond, Zero);
+        bind(&notSplit);
+    } else {
+        Label outOfRange;
+        ma_vcmpz(input);
+        
+        ma_vadd(input, ScratchFloatReg, input);
+        
+        as_vcvt(VFPRegister(ScratchFloatReg).uintOverlay(), VFPRegister(input));
+        
+        as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
+        as_vmrs(pc);
+        ma_mov(Imm32(0), output, NoSetCond, Overflow);  
+        ma_b(&outOfRange, Overflow);  
+        ma_cmp(output, Imm32(0xff));
+        ma_mov(Imm32(0xff), output, NoSetCond, Above);
+        ma_b(&outOfRange, Above);
+        
+        as_vcvt(ScratchFloatReg, VFPRegister(ScratchFloatReg).uintOverlay());
+        
+        as_vcmp(ScratchFloatReg, input);
+        as_vmrs(pc);
+        ma_bic(Imm32(1), output, NoSetCond, Zero);
+        bind(&outOfRange);
+    }
 }
 
 void
