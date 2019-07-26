@@ -230,14 +230,7 @@ public:
           if (!stream) {
             CSFLogError(logTag, "%s: GetMediaStream returned NULL", __FUNCTION__);
           } else {
-            
-            
-            
-            
-            
-            
-            
-            mObserver->OnAddStream(stream, "video");
+            mObserver->OnAddStream(stream);
           }
           break;
         }
@@ -389,7 +382,6 @@ PeerConnectionImpl::ConvertRTCConfiguration(const JS::Value& aSrc,
     return NS_ERROR_FAILURE;
   }
   for (uint32_t i = 0; i < config.mIceServers.Value().Length(); i++) {
-    
     RTCIceServer& server = config.mIceServers.Value()[i];
     if (!server.mUrl.WasPassed()) {
       return NS_ERROR_FAILURE;

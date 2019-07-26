@@ -8311,7 +8311,8 @@ class CGNativeMember(ClassMethod):
                 
                 
                 
-                returnCode = "return ${holderName}.forget();"
+                returnCode = ("(void)${declName}; // avoid warning. May end up not being read\n"
+                              "return ${holderName}.forget();")
             elif iface.isCallback():
                 
                 

@@ -563,10 +563,9 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  setLocalDescription : function PCW_setLocalDescription(sdp, onSuccess) {
+  setLocalDescription : function PCW_setLocalDescription(desc, onSuccess) {
     var self = this;
-
-    this._pc.setLocalDescription(sdp, function () {
+    this._pc.setLocalDescription(desc, function () {
       info("Successfully set the local description for " + self.label);
       onSuccess();
     }, unexpectedCallbackAndFinish(new Error));
@@ -580,10 +579,9 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  setRemoteDescription : function PCW_setRemoteDescription(sdp, onSuccess) {
+  setRemoteDescription : function PCW_setRemoteDescription(desc, onSuccess) {
     var self = this;
-
-    this._pc.setRemoteDescription(sdp, function () {
+    this._pc.setRemoteDescription(desc, function () {
       info("Successfully set remote description for " + self.label);
       onSuccess();
     }, unexpectedCallbackAndFinish(new Error));

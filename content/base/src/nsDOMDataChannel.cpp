@@ -22,7 +22,6 @@ extern PRLogModuleInfo* GetDataChannelLog();
 #include "nsIDOMFile.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsIDOMDataChannel.h"
-#include "nsIDOMRTCPeerConnection.h"
 #include "nsIDOMMessageEvent.h"
 #include "nsDOMClassInfo.h"
 #include "nsDOMEventTargetHelper.h"
@@ -115,11 +114,6 @@ private:
 
 DOMCI_DATA(DataChannel, nsDOMDataChannel)
 
-
-
-
-DOMCI_DATA(RTCPeerConnection, nsIDOMRTCPeerConnection)
-
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMDataChannel,
                                                   nsDOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -166,10 +160,6 @@ nsDOMDataChannel::Init(nsPIDOMWindow* aDOMWindow)
   
   rv = CheckInnerWindowCorrectness();
   NS_ENSURE_SUCCESS(rv,rv);
-
-  
-  
-  
 
   rv = nsContentUtils::GetUTFOrigin(principal,mOrigin);
   LOG(("%s: origin = %s\n",__FUNCTION__,NS_LossyConvertUTF16toASCII(mOrigin).get()));
