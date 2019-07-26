@@ -2,24 +2,16 @@
 
 
 
-import os
 from setuptools import setup
 
-PACKAGE_VERSION = '0.17'
-
-
-here = os.path.dirname(os.path.abspath(__file__))
-try:
-    description = file(os.path.join(here, 'README.md')).read()
-except (OSError, IOError):
-    description = ''
+PACKAGE_VERSION = '0.18'
 
 deps = ['mozprocess == 0.8']
 
 setup(name='mozdevice',
       version=PACKAGE_VERSION,
       description="Mozilla-authored device management",
-      long_description=description,
+      long_description="see http://mozbase.readthedocs.org/",
       classifiers=[], 
       keywords='',
       author='Mozilla Automation and Testing Team',
