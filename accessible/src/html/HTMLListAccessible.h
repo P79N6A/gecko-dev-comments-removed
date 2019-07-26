@@ -56,6 +56,11 @@ public:
   virtual uint64_t NativeState();
 
   
+  virtual int32_t FindOffset(int32_t aOffset, nsDirection aDirection,
+                             nsSelectionAmount aAmount,
+                             EWordMovementType aWordMovementType) MOZ_OVERRIDE;
+
+  
   void UpdateBullet(bool aHasBullet);
 
 protected:

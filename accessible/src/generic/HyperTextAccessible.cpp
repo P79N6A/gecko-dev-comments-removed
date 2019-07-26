@@ -658,30 +658,15 @@ HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
   
   
   
-  int32_t hyperTextOffset;
+  int32_t hyperTextOffset = 0;
   Accessible* finalAccessible =
     DOMPointToHypertextOffset(pos.mResultContent, pos.mContentOffset,
                               &hyperTextOffset, aDirection == eDirNext);
 
-  if (!finalAccessible && aDirection == eDirPrevious) {
-    
-    
-    hyperTextOffset = 0;
-  }  
-  else if (aAmount == eSelectBeginLine) {
-    Accessible* firstChild = mChildren.SafeElementAt(0, nullptr);
-    
-    if (pos.mContentOffset == 0 && firstChild &&
-        firstChild->Role() == roles::STATICTEXT &&
-        static_cast<int32_t>(nsAccUtils::TextLength(firstChild)) == hyperTextOffset) {
-      
-      hyperTextOffset = 0;
-    }
-    if (aWordMovementType != eStartWord && aAmount != eSelectBeginLine &&
-        hyperTextOffset > 0) {
-      -- hyperTextOffset;
-    }
-  }
+  
+  
+  if (!finalAccessible && aDirection == eDirPrevious)
+    return 0;
 
   return hyperTextOffset;
 }

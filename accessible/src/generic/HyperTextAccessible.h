@@ -432,9 +432,9 @@ protected:
 
 
 
-  int32_t FindOffset(int32_t aOffset, nsDirection aDirection,
-                     nsSelectionAmount aAmount,
-                     EWordMovementType aWordMovementType = eDefaultBehavior);
+  virtual int32_t FindOffset(int32_t aOffset, nsDirection aDirection,
+                             nsSelectionAmount aAmount,
+                             EWordMovementType aWordMovementType = eDefaultBehavior);
 
   
 
