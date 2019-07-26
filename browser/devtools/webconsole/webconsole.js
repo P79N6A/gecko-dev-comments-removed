@@ -81,6 +81,7 @@ const CATEGORY_JS = 2;
 const CATEGORY_WEBDEV = 3;
 const CATEGORY_INPUT = 4;   
 const CATEGORY_OUTPUT = 5;  
+const CATEGORY_SECURITY = 6;
 
 
 
@@ -97,6 +98,7 @@ const CATEGORY_CLASS_FRAGMENTS = [
   "console",
   "input",
   "output",
+  "security",
 ];
 
 
@@ -120,6 +122,7 @@ const MESSAGE_PREFERENCE_KEYS = [
   [ "error",      "warn",       "info", "log",         ],  
   [ null,         null,         null,   null,          ],  
   [ null,         null,         null,   null,          ],  
+  [ "secerror",   "secwarn",    null,   null,          ],  
 ];
 
 
@@ -192,7 +195,7 @@ function WebConsoleFrame(aWebConsoleOwner)
   this.owner = aWebConsoleOwner;
   this.hudId = this.owner.hudId;
 
-  this._cssNodes = {};
+  this._repeatNodes = {};
   this._outputQueue = [];
   this._pruneCategoriesQueue = {};
   this._networkRequests = {};
@@ -293,7 +296,7 @@ WebConsoleFrame.prototype = {
 
 
 
-  _cssNodes: null,
+  _repeatNodes: null,
 
   
 
@@ -509,6 +512,8 @@ WebConsoleFrame.prototype = {
       info: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "info"),
       warn: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "warn"),
       log: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "log"),
+      secerror: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "secerror"),
+      secwarn: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "secwarn"),
     };
   },
 
@@ -898,10 +903,11 @@ WebConsoleFrame.prototype = {
     let uid = repeatNode._uid;
     let dupeNode = null;
 
-    if (aNode.classList.contains("webconsole-msg-cssparser")) {
-      dupeNode = this._cssNodes[uid];
+    if (aNode.classList.contains("webconsole-msg-cssparser") ||
+        aNode.classList.contains("webconsole-msg-security")) {
+      dupeNode = this._repeatNodes[uid];
       if (!dupeNode) {
-        this._cssNodes[uid] = aNode;
+        this._repeatNodes[uid] = aNode;
       }
     }
     else if (!aNode.classList.contains("webconsole-msg-network") &&
@@ -1972,10 +1978,11 @@ WebConsoleFrame.prototype = {
       aNode._objectActors.clear();
     }
 
-    if (aNode.classList.contains("webconsole-msg-cssparser")) {
+    if (aNode.classList.contains("webconsole-msg-cssparser") ||
+        aNode.classList.contains("webconsole-msg-security")) {
       let repeatNode = aNode.getElementsByClassName("webconsole-msg-repeat")[0];
       if (repeatNode && repeatNode._uid) {
-        delete this._cssNodes[repeatNode._uid];
+        delete this._repeatNodes[repeatNode._uid];
       }
     }
     else if (aNode._connectionId &&
@@ -2583,7 +2590,7 @@ WebConsoleFrame.prototype = {
 
     this._destroyer = Promise.defer();
 
-    this._cssNodes = {};
+    this._repeatNodes = {};
     this._outputQueue = [];
     this._pruneCategoriesQueue = {};
     this._networkRequests = {};
@@ -3598,7 +3605,7 @@ JSTerm.prototype = {
     hud._outputQueue.forEach(hud._pruneItemFromQueue, hud);
     hud._outputQueue = [];
     hud._networkRequests = {};
-    hud._cssNodes = {};
+    hud._repeatNodes = {};
 
     if (aClearStorage) {
       this.webConsoleClient.clearMessagesCache();
@@ -4269,6 +4276,9 @@ var Utils = {
       case "CSS Parser":
       case "CSS Loader":
         return CATEGORY_CSS;
+
+      case "Mixed Content Blocker":
+        return CATEGORY_SECURITY;
 
       default:
         return CATEGORY_JS;
