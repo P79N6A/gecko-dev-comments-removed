@@ -10,19 +10,6 @@
 
 
 
-#ifdef JS_VERSION
-# if JS_VERSION == 185
-#  warning "JS_VERSION defined but unsupported (legacy)"
-# elif JS_VERSION < 185
-#  error "Unsupported JS_VERSION"
-# else
-#  error "Unknown JS_VERSION"
-# endif
-#endif
-
-
-
-
 #define JS_HAS_STR_HTML_HELPERS 1       /* has str.anchor, str.bold, etc. */
 #define JS_HAS_OBJ_PROTO_PROP   1       /* has o.__proto__ etc. */
 #define JS_HAS_OBJ_WATCHPOINT   1       /* has o.watch and o.unwatch */
