@@ -243,7 +243,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                     }
                 } else if (JSVAL_IS_NUMBER(jsexception)) {
                     
-                    if (JSVAL_IS_DOUBLE(jsexception))
+                    if (jsexception.isDouble())
                         
                         
                         
