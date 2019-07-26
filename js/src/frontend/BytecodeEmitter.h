@@ -28,13 +28,13 @@ template <typename ParseHandler> class Parser;
 class SharedContext;
 class TokenStream;
 
-struct CGTryNoteList {
-    Vector<JSTryNote> list;
-    CGTryNoteList(ExclusiveContext *cx) : list(cx) {}
-
-    bool append(JSTryNoteKind kind, unsigned stackDepth, size_t start, size_t end);
+class CGConstList {
+    Vector<Value> list;
+  public:
+    CGConstList(ExclusiveContext *cx) : list(cx) {}
+    bool append(Value v) { JS_ASSERT_IF(v.isString(), v.toString()->isAtom()); return list.append(v); }
     size_t length() const { return list.length(); }
-    void finish(TryNoteArray *array);
+    void finish(ConstArray *array);
 };
 
 struct CGObjectList {
@@ -48,13 +48,23 @@ struct CGObjectList {
     void finish(ObjectArray *array);
 };
 
-class CGConstList {
-    Vector<Value> list;
-  public:
-    CGConstList(ExclusiveContext *cx) : list(cx) {}
-    bool append(Value v) { JS_ASSERT_IF(v.isString(), v.toString()->isAtom()); return list.append(v); }
+struct CGTryNoteList {
+    Vector<JSTryNote> list;
+    CGTryNoteList(ExclusiveContext *cx) : list(cx) {}
+
+    bool append(JSTryNoteKind kind, unsigned stackDepth, size_t start, size_t end);
     size_t length() const { return list.length(); }
-    void finish(ConstArray *array);
+    void finish(TryNoteArray *array);
+};
+
+struct CGBlockScopeList {
+    Vector<BlockScopeNote> list;
+    CGBlockScopeList(ExclusiveContext *cx) : list(cx) {}
+
+    bool append(uint32_t scopeObject, uint32_t offset);
+    void recordEnd(uint32_t index, uint32_t offset);
+    size_t length() const { return list.length(); }
+    void finish(BlockScopeArray *array);
 };
 
 struct StmtInfoBCE;
@@ -104,8 +114,6 @@ struct BytecodeEmitter
     int             stackDepth;     
     unsigned        maxStackDepth;  
 
-    CGTryNoteList   tryNoteList;    
-
     unsigned        arrayCompDepth; 
 
     unsigned        emitLevel;      
@@ -115,6 +123,8 @@ struct BytecodeEmitter
     CGObjectList    objectList;     
     CGObjectList    regexpList;     
 
+    CGTryNoteList   tryNoteList;    
+    CGBlockScopeList blockScopeList;
 
     uint16_t        typesetCount;   
 
