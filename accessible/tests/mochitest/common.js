@@ -667,6 +667,23 @@ function shortenString(aString, aMaxLength)
 
 
 
+function getMainChromeWindow(aWindow)
+{
+  return aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                .getInterface(Components.interfaces.nsIWebNavigation)
+                .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+                .rootTreeItem
+                .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                .getInterface(Components.interfaces.nsIDOMWindow);
+}
+
+
+
+
+
+
+
+
 
 function getNodePrettyName(aNode)
 {
