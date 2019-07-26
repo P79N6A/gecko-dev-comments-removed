@@ -432,7 +432,7 @@ DecoderTraits::CanHandleMediaType(const char* aMIMEType,
       
       return CANPLAY_NO;
     }
-    expectMoreTokens = tokenizer.lastTokenEndedWithSeparator();
+    expectMoreTokens = tokenizer.separatorAfterCurrentToken();
   }
   if (expectMoreTokens) {
     

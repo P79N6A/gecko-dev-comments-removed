@@ -4,15 +4,16 @@
 
 
 #include "SVGMotionSMILAnimationFunction.h"
-#include "nsSMILParserUtils.h"
-#include "nsSVGAngle.h"
-#include "SVGMotionSMILType.h"
-#include "SVGMotionSMILPathUtils.h"
-#include "nsSVGPathDataParser.h"
 #include "mozilla/dom/SVGAnimationElement.h"
 #include "mozilla/dom/SVGPathElement.h" 
 #include "mozilla/dom/SVGMPathElement.h"
+#include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
+#include "nsSMILParserUtils.h"
+#include "nsSVGAngle.h"
+#include "nsSVGPathDataParser.h"
+#include "SVGMotionSMILType.h"
+#include "SVGMotionSMILPathUtils.h"
 
 namespace mozilla {
 
