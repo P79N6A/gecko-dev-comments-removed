@@ -1676,6 +1676,10 @@ var BrowserApp = {
         }
 
         Services.prefs.setBoolPref("intl.locale.matchOS", !aData);
+
+        
+        
+        Services.strings.flushBundles();
         break;
 
       default:
