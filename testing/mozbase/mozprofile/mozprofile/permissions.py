@@ -308,15 +308,16 @@ class Permissions(object):
         
         
         pacURL = """data:text/plain,
+var uriRegex = new RegExp('^([a-z][-a-z0-9+.]*)' +
+                          '://' +
+                          '(?:[^/@]*@)?' +
+                          '(.*?)' +
+                          '(?::(\\\\d+))?/');
+
 function FindProxyForURL(url, host)
 {
   var origins = [%(origins)s];
-  var regex = new RegExp('^([a-z][-a-z0-9+.]*)' +
-                         '://' +
-                         '(?:[^/@]*@)?' +
-                         '(.*?)' +
-                         '(?::(\\\\d+))?/');
-  var matches = regex.exec(url);
+  var matches = uriRegex.exec(url);
   if (!matches)
     return 'DIRECT';
   var isHttp = matches[1] == 'http';
