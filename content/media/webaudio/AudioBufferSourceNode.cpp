@@ -541,6 +541,11 @@ AudioBufferSourceNode::SendOffsetAndDurationParametersToStream(AudioNodeStream* 
                      length : std::min(aOffset + aDuration, length);
 
   if (offset >= endOffset) {
+    
+    
+    
+    ErrorResult rv;
+    Stop(0.0, rv);
     return;
   }
 
