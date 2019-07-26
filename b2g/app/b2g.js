@@ -73,7 +73,7 @@ pref("mozilla.widget.force-24bpp", true);
 pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
-pref("layers.force-tiles", true);
+pref("layers.force-tiles", false);
 
 
 pref("browser.download.useDownloadDir", true);
@@ -553,7 +553,6 @@ pref("dom.disable_window_showModalDialog", true);
 
 
 pref("dom.experimental_forms", true);
-pref("dom.forms.number", true);
 
 
 pref("gfx.gralloc.enabled", false);
@@ -707,8 +706,6 @@ pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
 
 pref("layout.imagevisibility.enabled", false);
-pref("layout.imagevisibility.numscrollportwidths", 1);
-pref("layout.imagevisibility.numscrollportheights", 1);
 
 
 pref("dom.identity.enabled", true);
@@ -780,6 +777,3 @@ pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
 
 pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.canvas.azure.accelerated", true);
-
-
-pref("dom.telephony.enabled", true);
