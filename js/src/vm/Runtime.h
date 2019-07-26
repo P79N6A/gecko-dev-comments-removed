@@ -370,7 +370,7 @@ class NewObjectCache
         Entry *entry = &entries[*pentry];
 
         
-        return (entry->clasp == clasp && entry->key == key);
+        return entry->clasp == clasp && entry->key == key;
     }
 
     void fill(EntryIndex entry_, const Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj) {

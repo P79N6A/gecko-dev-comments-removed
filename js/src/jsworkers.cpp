@@ -535,7 +535,7 @@ GlobalWorkerThreadState::canStartAsmJSCompile()
 {
     
     JS_ASSERT(isLocked());
-    return (!asmJSWorklist().empty() && !numAsmJSFailedJobs);
+    return !asmJSWorklist().empty() && !numAsmJSFailedJobs;
 }
 
 bool
