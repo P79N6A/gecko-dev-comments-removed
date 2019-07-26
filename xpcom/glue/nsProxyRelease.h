@@ -114,7 +114,7 @@ public:
   }
 
   
-  virtual ~nsMainThreadPtrHolder() {
+  ~nsMainThreadPtrHolder() {
     if (NS_IsMainThread()) {
       NS_IF_RELEASE(mRawPtr);
     } else if (mRawPtr) {
