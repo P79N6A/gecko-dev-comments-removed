@@ -2732,7 +2732,7 @@ nsLayoutUtils::GetNextContinuationOrSpecialSibling(nsIFrame *aFrame)
     
     aFrame = aFrame->FirstContinuation();
 
-    void* value = aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling());
+    void* value = aFrame->Properties().Get(nsIFrame::IBSplitSibling());
     return static_cast<nsIFrame*>(value);
   }
 

@@ -424,7 +424,7 @@ static nsIFrame* GetSpecialSibling(nsIFrame* aFrame)
   
   return static_cast<nsIFrame*>
     (aFrame->FirstContinuation()->
-       Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+       Properties().Get(nsIFrame::IBSplitSibling()));
 }
 
 static nsIFrame* GetSpecialPrevSibling(nsIFrame* aFrame)
@@ -478,7 +478,7 @@ SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
     
     
     FramePropertyTable* props = aFrame->PresContext()->PropertyTable();
-    props->Set(aFrame, nsIFrame::IBSplitSpecialSibling(), aSpecialSibling);
+    props->Set(aFrame, nsIFrame::IBSplitSibling(), aSpecialSibling);
     props->Set(aSpecialSibling, nsIFrame::IBSplitSpecialPrevSibling(), aFrame);
   }
 }
