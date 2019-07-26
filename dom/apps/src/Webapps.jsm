@@ -125,14 +125,19 @@ let DOMApplicationRegistry = {
   },
 
   
+  notifyAppsRegistryStart: function notifyAppsRegistryStart() {
+    Services.obs.notifyObservers(this, "webapps-registry-start", null);
+  },
+
   
-  onInitDone: function onInitDone() {
+  notifyAppsRegistryReady: function notifyAppsRegistryReady() {
     Services.obs.notifyObservers(this, "webapps-registry-ready", null);
     this._saveApps();
   },
 
   
   registerAppsHandlers: function registerAppsHandlers() {
+    this.notifyAppsRegistryStart();
 #ifdef MOZ_SYS_MSG
     let ids = [];
     for (let id in this.webapps) {
@@ -141,7 +146,7 @@ let DOMApplicationRegistry = {
     this._processManifestForIds(ids);
 #else
     
-    this.onInitDone();
+    this.notifyAppsRegistryReady();
 #endif
   },
 
@@ -248,7 +253,6 @@ let DOMApplicationRegistry = {
   },
 
 #ifdef MOZ_SYS_MSG
-
   
   
   _registerSystemMessagesForEntryPoint: function(aManifest, aApp, aEntryPoint) {
@@ -370,10 +374,14 @@ let DOMApplicationRegistry = {
     }
   },
 
-  _processManifestForIds: function(aIds) {
+  _initRegisterActivities: function() {
     this.activitiesToRegister = 0;
     this.activitiesRegistered = 0;
     this.allActivitiesSent = false;
+  },
+
+  _processManifestForIds: function(aIds) {
+    this._initRegisterActivities();
     this._readManifests(aIds, (function registerManifests(aResults) {
       aResults.forEach(function registerManifest(aResult) {
         let app = this.webapps[aResult.id];
@@ -540,7 +548,7 @@ let DOMApplicationRegistry = {
         this.activitiesRegistered++;
         if (this.allActivitiesSent &&
             this.activitiesRegistered === this.activitiesToRegister) {
-          this.onInitDone();
+          this.notifyAppsRegistryReady();
         }
         break;
       case "child-process-shutdown":
@@ -775,13 +783,19 @@ let DOMApplicationRegistry = {
       debug("updateHostedApp");
       let id = this._appId(app.origin);
 
-#ifdef MOZ_SYS_MSG
       
+      this.notifyAppsRegistryStart();
+#ifdef MOZ_SYS_MSG
+      this._initRegisterActivities();
       this._readManifests([{ id: id }], (function unregisterManifest(aResult) {
         this._unregisterActivities(aResult[0].manifest, app);
         this._registerSystemMessages(aManifest, app);
         this._registerActivities(aManifest, app);
+        this.allActivitiesSent = true;
       }).bind(this));
+#else
+      
+      this.notifyAppsRegistryReady();
 #endif
 
       
@@ -982,12 +996,18 @@ let DOMApplicationRegistry = {
         this.broadcastMessage("Webapps:AddApp", { id: id, app: appObject });
       }).bind(this));
 
-#ifdef MOZ_SYS_MSG
     if (!aData.isPackage) {
+      this.notifyAppsRegistryStart();
+#ifdef MOZ_SYS_MSG
+      this._initRegisterActivities();
       this._registerSystemMessages(app.manifest, app);
       this._registerActivities(app.manifest, app);
-    }
+      this.allActivitiesSent = true;
+#else
+      
+      this.notifyAppsRegistryReady();
 #endif
+    }
 
     this.startOfflineCacheDownload(manifest, appObject, aProfileDir, aOfflineCacheObserver);
     if (manifest.package_path) {
