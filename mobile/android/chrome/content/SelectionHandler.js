@@ -20,7 +20,7 @@ var SelectionHandler = {
   
   _cache: null,
   _activeType: 0, 
-  _ignoreSelectionChanges: false, 
+  _draggingHandles: false, 
   _ignoreCompositionChanges: false, 
 
   
@@ -119,9 +119,9 @@ var SelectionHandler = {
       case "TextSelection:Move": {
         let data = JSON.parse(aData);
         if (this._activeType == this.TYPE_SELECTION) {
-          
-          this._ignoreSelectionChanges = true;
+          this._startDraggingHandles();
           this._moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
+
         } else if (this._activeType == this.TYPE_CURSOR) {
           
           this._ignoreCompositionChanges = true;
@@ -136,11 +136,10 @@ var SelectionHandler = {
       }
       case "TextSelection:Position": {
         if (this._activeType == this.TYPE_SELECTION) {
-          
-          this._ignoreSelectionChanges = true;
+          this._startDraggingHandles();
+
           
           let isStartHandle = JSON.parse(aData).handleType == this.HANDLE_TYPE_START;
-
           try {
             let selectionReversed = this._updateCacheForSelection(isStartHandle);
             if (selectionReversed) {
@@ -157,8 +156,7 @@ var SelectionHandler = {
             break;
           }
 
-          
-          this._ignoreSelectionChanges = false;
+          this._stopDraggingHandles();
           this._positionHandles();
 
         } else if (this._activeType == this.TYPE_CURSOR) {
@@ -180,6 +178,24 @@ var SelectionHandler = {
           text: this._getSelectedText()
         });
         break;
+    }
+  },
+
+  
+  
+  _startDraggingHandles: function sh_startDraggingHandles() {
+    if (!this._draggingHandles) {
+      this._draggingHandles = true;
+      sendMessageToJava({ type: "TextSelection:IMECompositions", suppress: true });
+    }
+  },
+
+  
+  
+  _stopDraggingHandles: function sh_stopDraggingHandles() {
+    if (this._draggingHandles) {
+      this._draggingHandles = false;
+      sendMessageToJava({ type: "TextSelection:IMECompositions", suppress: false });
     }
   },
 
@@ -225,7 +241,7 @@ var SelectionHandler = {
 
   notifySelectionChanged: function sh_notifySelectionChanged(aDocument, aSelection, aReason) {
     
-    if (this._ignoreSelectionChanges) {
+    if (this._draggingHandles) {
       return;
     }
 
@@ -588,6 +604,7 @@ var SelectionHandler = {
       aElement.focus();
     }
 
+    this._stopDraggingHandles();
     this._contentWindow = aElement.ownerDocument.defaultView;
     this._isRTL = (this._contentWindow.getComputedStyle(aElement, "").direction == "rtl");
 
@@ -840,6 +857,7 @@ var SelectionHandler = {
   },
 
   _deactivate: function sh_deactivate() {
+    this._stopDraggingHandles();
     sendMessageToJava({ type: "TextSelection:HideHandles" });
 
     this._removeObservers();
@@ -856,7 +874,6 @@ var SelectionHandler = {
     this._targetElement = null;
     this._isRTL = false;
     this._cache = null;
-    this._ignoreSelectionChanges = false;
     this._ignoreCompositionChanges = false;
 
     this._activeType = this.TYPE_NONE;
