@@ -378,12 +378,11 @@ pref("gfx.bundled_fonts.force-enabled", false);
 pref("gfx.filter.nearest.force-enabled", false);
 
 
-#ifdef XP_WIN
 pref("gfx.font_loader.families_per_slice", 3); 
+#ifdef XP_WIN
 pref("gfx.font_loader.delay", 120000);         
 pref("gfx.font_loader.interval", 1000);        
 #else
-pref("gfx.font_loader.families_per_slice", 3); 
 pref("gfx.font_loader.delay", 8000);           
 pref("gfx.font_loader.interval", 50);          
 #endif
@@ -2683,7 +2682,7 @@ pref("ui.window_class_override", "");
 
 pref("ui.elantech_gesture_hacks.enabled", -1);
 
-# WINNT
+# XP_WIN
 #endif
 
 #ifdef XP_MACOSX
