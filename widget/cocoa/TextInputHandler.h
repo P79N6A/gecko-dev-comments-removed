@@ -955,9 +955,9 @@ protected:
   
   nsCOMPtr<nsITimer> mTimer;
   enum {
-    kResetIMEWindowLevel     = 1,
-    kDiscardIMEComposition   = 2,
-    kSyncASCIICapableOnly    = 4
+    kNotifyIMEOfFocusChangeInGecko = 1,
+    kDiscardIMEComposition         = 2,
+    kSyncASCIICapableOnly          = 4
   };
   uint32_t mPendingMethods;
 
@@ -1006,7 +1006,7 @@ private:
   void OpenSystemPreferredLanguageIME();
 
   
-  void ResetIMEWindowLevel();
+  void NotifyIMEOfFocusChangeInGecko();
   void DiscardIMEComposition();
   void SyncASCIICapableOnly();
 
