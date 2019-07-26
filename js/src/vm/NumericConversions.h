@@ -7,9 +7,10 @@
 #ifndef NumericConversions_h___
 #define NumericConversions_h___
 
+#include "mozilla/Assertions.h"
+#include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
-
-#include "jscpucfg.h"
+#include "mozilla/TypeTraits.h"
 
 #include <math.h>
 
@@ -20,136 +21,112 @@ namespace js {
 
 namespace detail {
 
-union DoublePun {
-    struct {
-#if defined(IS_LITTLE_ENDIAN)
-        uint32_t lo, hi;
-#else
-        uint32_t hi, lo;
-#endif
-    } s;
-    uint64_t u64;
-    double d;
-};
-
-} 
 
 
-template<size_t width, typename ResultType>
+
+
+
+
+
+
+
+
+
+
+
+template<typename ResultType>
+inline ResultType
+ToUintWidth(double d)
+{
+    MOZ_STATIC_ASSERT(mozilla::IsUnsigned<ResultType>::value,
+                      "ResultType must be an unsigned type");
+
+    uint64_t bits = mozilla::BitwiseCast<uint64_t>(d);
+
+    
+    
+    int_fast16_t exp =
+        int_fast16_t((bits & mozilla::DoubleExponentBits) >> mozilla::DoubleExponentShift) -
+        int_fast16_t(mozilla::DoubleExponentBias);
+
+    
+    
+    if (exp < 0)
+        return 0;
+
+    uint_fast16_t exponent = mozilla::SafeCast<uint_fast16_t>(exp);
+
+    
+    
+    
+    
+    
+    
+    const size_t ResultWidth = CHAR_BIT * sizeof(ResultType);
+    if (exponent >= mozilla::DoubleExponentShift + ResultWidth)
+        return 0;
+
+    
+    
+    
+    MOZ_STATIC_ASSERT(sizeof(ResultType) <= sizeof(uint64_t),
+                      "Left-shifting below would lose upper bits");
+    ResultType result = (exponent > mozilla::DoubleExponentShift)
+                        ? ResultType(bits << (exponent - mozilla::DoubleExponentShift))
+                        : ResultType(bits >> (mozilla::DoubleExponentShift - exponent));
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (exponent < ResultWidth) {
+        ResultType implicitOne = ResultType(1) << exponent;
+        result &= implicitOne - 1; 
+        result += implicitOne; 
+    }
+
+    
+    return (bits & mozilla::DoubleSignBit) ? ~result + 1 : result;
+}
+
+template<typename ResultType>
 inline ResultType
 ToIntWidth(double d)
 {
-#if defined(__i386__) || defined(__i386) || defined(__x86_64__) || \
-    defined(_M_IX86) || defined(_M_X64)
-    detail::DoublePun du, duh, twoWidth;
-    uint32_t di_h, u_tmp, expon, shift_amount;
-    int32_t mask32;
+    MOZ_STATIC_ASSERT(mozilla::IsSigned<ResultType>::value,
+                      "ResultType must be a signed type");
 
-    
+    const ResultType MaxValue = (1ULL << (CHAR_BIT * sizeof(ResultType) - 1)) - 1;
+    const ResultType MinValue = -MaxValue - 1;
 
-
-
-
-
-
-
-
-
-
-
-
-
-    du.d = d;
-    di_h = du.s.hi;
-
-    u_tmp = (di_h & 0x7ff00000) - 0x3ff00000;
-    if (u_tmp >= ((width + 52) << 20)) {
-        
-        
-        
-        return 0;
-    }
-
-    if (u_tmp < ((width - 1) << 20)) {
-        
-        return ResultType(d);
-    }
-
-    if (u_tmp > ((width - 1) << 20)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        expon = u_tmp >> 20;
-        shift_amount = expon - (width - 11);
-        mask32 = 0x80000000;
-        if (shift_amount < 32) {
-            
-            mask32 >>= shift_amount;
-            duh.s.hi = du.s.hi & mask32;
-            duh.s.lo = 0;
-        } else {
-            
-            mask32 >>= (shift_amount-32);
-            duh.s.hi = du.s.hi;
-            duh.s.lo = du.s.lo & mask32;
-        }
-        du.d -= duh.d;
-    }
-
-    di_h = du.s.hi;
-
-    
-    u_tmp = (di_h & 0x7ff00000);
-    if (u_tmp >= (0x3ff00000 + ((width - 1) << 20))) {
-        
-        expon = u_tmp >> 20;
-
-        
-        shift_amount = expon - (0x3ff - 11);
-        mask32 = 0x80000000;
-        if (shift_amount < 32) {
-            
-            mask32 >>= shift_amount;
-            du.s.hi &= mask32;
-            du.s.lo = 0;
-        } else {
-            
-            mask32 >>= (shift_amount-32);
-            du.s.lo &= mask32;
-        }
-        
-        twoWidth.s.hi = (0x3ff00000 + (width << 20)) ^ (du.s.hi & 0x80000000);
-        twoWidth.s.lo = 0;
-        du.d -= twoWidth.d;
-    }
-
-    return ResultType(du.d);
-#else
-    double twoWidth, twoWidthMin1;
-
-    if (!mozilla::IsFinite(d))
-        return 0;
-
-    
-    ResultType i = (ResultType) d;
-    if ((double) i == d)
-        return ResultType(i);
-
-    twoWidth = width == 32 ? 4294967296.0 : 18446744073709551616.0;
-    twoWidthMin1 = width == 32 ? 2147483648.0 : 9223372036854775808.0;
-    d = fmod(d, twoWidth);
-    d = (d >= 0) ? floor(d) : ceil(d) + twoWidth;
-    return (ResultType) (d >= twoWidthMin1 ? d - twoWidth : d);
-#endif
+    typedef typename mozilla::MakeUnsigned<ResultType>::Type UnsignedResult;
+    UnsignedResult u = ToUintWidth<UnsignedResult>(d);
+    if (u <= UnsignedResult(MaxValue))
+        return static_cast<ResultType>(u);
+    return (MinValue + static_cast<ResultType>(u - MaxValue)) - 1;
 }
+
+} 
 
 
 inline int32_t
@@ -277,7 +254,7 @@ ToInt32(double d)
         );
     return i;
 #else
-    return ToIntWidth<32, int32_t>(d);
+    return detail::ToIntWidth<int32_t>(d);
 #endif
 }
 
@@ -285,21 +262,21 @@ ToInt32(double d)
 inline uint32_t
 ToUint32(double d)
 {
-    return uint32_t(ToInt32(d));
+    return detail::ToUintWidth<uint32_t>(d);
 }
 
 
 inline int64_t
 ToInt64(double d)
 {
-    return ToIntWidth<64, int64_t>(d);
+    return detail::ToIntWidth<int64_t>(d);
 }
 
 
 inline uint64_t
 ToUint64(double d)
 {
-    return uint64_t(ToInt64(d));
+    return detail::ToUintWidth<uint64_t>(d);
 }
 
 
