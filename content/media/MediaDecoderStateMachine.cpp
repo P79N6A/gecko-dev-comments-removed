@@ -414,7 +414,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   
   
   
-#if defined(MOZ_WIDGET_GONK) || defined(MOZ_MEDIA_PLUGINS)
+#if defined(MOZ_OMX_DECODER) || defined(MOZ_MEDIA_PLUGINS)
   
   
   

@@ -300,7 +300,7 @@ VideoData* VideoData::CreateFromImage(VideoInfo& aInfo,
   return v.forget();
 }
 
-#ifdef MOZ_WIDGET_GONK
+#ifdef MOZ_OMX_DECODER
 VideoData* VideoData::Create(VideoInfo& aInfo,
                              ImageContainer* aContainer,
                              int64_t aOffset,
