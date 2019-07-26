@@ -2415,16 +2415,6 @@ public:
 
     virtual void ReleaseSurface() {}
 
-    void *GetUserData(void *aKey) {
-        void *result = nullptr;
-        mUserData.Get(aKey, &result);
-        return result;
-    }
-
-    void SetUserData(void *aKey, void *aValue) {
-        mUserData.Put(aKey, aValue);
-    }
-
     
     
     void MarkDestroyed();
@@ -2910,8 +2900,6 @@ public:
     bool IsOffscreenSizeAllowed(const gfxIntSize& aSize) const;
 
 protected:
-    nsDataHashtable<nsPtrHashKey<void>, void*> mUserData;
-
     GLuint mReadTextureImagePrograms[4];
 
     bool InitWithPrefix(const char *prefix, bool trygl);
