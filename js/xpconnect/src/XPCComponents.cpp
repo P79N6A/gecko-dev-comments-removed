@@ -2709,15 +2709,15 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
 
         
         *retval = JSVAL_VOID;
-        Rooted<JSPropertyDescriptor> desc(cx);
-        if (!JS_GetPropertyDescriptorById(cx, xray, methodId, 0, desc.address()))
+        JSPropertyDescriptor desc;
+        if (!JS_GetPropertyDescriptorById(cx, xray, methodId, 0, &desc))
             return NS_ERROR_FAILURE;
 
         
         
-        JSObject *methodObj = desc.value().isObject() ? &desc.value().toObject() : NULL;
-        if (!methodObj && desc.hasGetterObject())
-            methodObj = desc.getterObject();
+        JSObject *methodObj = desc.value.isObject() ? &desc.value.toObject() : NULL;
+        if (!methodObj && (desc.attrs & JSPROP_GETTER))
+            methodObj = JS_FUNC_TO_DATA_PTR(JSObject *, desc.getter);
 
         
         
