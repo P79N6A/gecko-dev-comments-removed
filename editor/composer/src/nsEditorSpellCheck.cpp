@@ -756,8 +756,10 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
     dictName.Assign(preferedDict);
   }
 
-  if (dictName.IsEmpty())
-  {
+  
+  rv = SetCurrentDictionary(dictName);
+
+  if (NS_FAILED(rv)) {
     
     
 
@@ -768,61 +770,60 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
       nsAutoCString utf8DictName;
       rv = packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"),
                                               utf8DictName);
-      AppendUTF8toUTF16(utf8DictName, dictName);
+      CopyUTF8toUTF16(utf8DictName, dictName);
     }
-  }
-
-  if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
-    rv = SetCurrentDictionary(dictName);
-    if (NS_FAILED(rv)) {
-      
-      
-
-      nsAutoString langCode;
-      int32_t dashIdx = dictName.FindChar('-');
-      if (dashIdx != -1) {
-        langCode.Assign(Substring(dictName, 0, dashIdx));
-      } else {
-        langCode.Assign(dictName);
-      }
-
-      nsDefaultStringComparator comparator;
-
-      
-      
-      if (!preferedDict.IsEmpty() && !dictName.Equals(preferedDict) && 
-          nsStyleUtil::DashMatchCompare(preferedDict, langCode, comparator)) {
-        rv = SetCurrentDictionary(preferedDict);
-      }
-
-      
+    if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
+      rv = SetCurrentDictionary(dictName);
       if (NS_FAILED(rv)) {
-        if (!dictName.Equals(langCode) && !preferedDict.Equals(langCode)) {
-          rv = SetCurrentDictionary(langCode);
+        
+        
+
+        nsAutoString langCode;
+        int32_t dashIdx = dictName.FindChar('-');
+        if (dashIdx != -1) {
+          langCode.Assign(Substring(dictName, 0, dashIdx));
+        } else {
+          langCode.Assign(dictName);
         }
-      }
 
-      
-      if (NS_FAILED(rv)) {
+        nsDefaultStringComparator comparator;
+
         
         
-        nsTArray<nsString> dictList;
-        rv = mSpellChecker->GetDictionaryList(&dictList);
-        NS_ENSURE_SUCCESS(rv, rv);
-        int32_t i, count = dictList.Length();
-        for (i = 0; i < count; i++) {
-          nsAutoString dictStr(dictList.ElementAt(i));
+        if (!preferedDict.IsEmpty() && !dictName.Equals(preferedDict) && 
+            nsStyleUtil::DashMatchCompare(preferedDict, langCode, comparator)) {
+          rv = SetCurrentDictionary(preferedDict);
+        }
 
-          if (dictStr.Equals(dictName) ||
-              dictStr.Equals(preferedDict) ||
-              dictStr.Equals(langCode)) {
-            
-            continue;
+        
+        if (NS_FAILED(rv)) {
+          if (!dictName.Equals(langCode) && !preferedDict.Equals(langCode)) {
+            rv = SetCurrentDictionary(langCode);
           }
+        }
 
-          if (nsStyleUtil::DashMatchCompare(dictStr, langCode, comparator) &&
-              NS_SUCCEEDED(SetCurrentDictionary(dictStr))) {
-              break;
+        
+        if (NS_FAILED(rv)) {
+          
+          
+          nsTArray<nsString> dictList;
+          rv = mSpellChecker->GetDictionaryList(&dictList);
+          NS_ENSURE_SUCCESS(rv, rv);
+          int32_t i, count = dictList.Length();
+          for (i = 0; i < count; i++) {
+            nsAutoString dictStr(dictList.ElementAt(i));
+
+            if (dictStr.Equals(dictName) ||
+                dictStr.Equals(preferedDict) ||
+                dictStr.Equals(langCode)) {
+              
+              continue;
+            }
+
+            if (nsStyleUtil::DashMatchCompare(dictStr, langCode, comparator) &&
+                NS_SUCCEEDED(SetCurrentDictionary(dictStr))) {
+                break;
+            }
           }
         }
       }
