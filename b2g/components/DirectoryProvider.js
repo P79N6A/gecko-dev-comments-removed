@@ -86,13 +86,15 @@ DirectoryProvider.prototype = {
       
       
       
-      return this.getUpdateDir(persistent, UPDATES_DIR);
+      
+      return this.getUpdateDir(persistent, UPDATES_DIR, 2.1);
     }
     if (prop == XRE_OS_UPDATE_APPLY_TO_DIR) {
       
       
       
-      return this.getUpdateDir(persistent, FOTA_DIR);
+      
+      return this.getUpdateDir(persistent, FOTA_DIR, 1.1);
     }
 #else
     
@@ -171,7 +173,7 @@ DirectoryProvider.prototype = {
     return null;
   },
 
-  getUpdateDir: function dp_getUpdateDir(persistent, subdir) {
+  getUpdateDir: function dp_getUpdateDir(persistent, subdir, multiple) {
     let defaultUpdateDir = this.getDefaultUpdateDir();
     persistent.value = false;
 
@@ -189,7 +191,7 @@ DirectoryProvider.prototype = {
       return defaultUpdateDir;
     }
 
-    let requiredSpace = selectedPatch.size * 2;
+    let requiredSpace = selectedPatch.size * multiple;
     let updateDir = this.findUpdateDirWithFreeSpace(requiredSpace, subdir);
     if (updateDir) {
       return updateDir;
