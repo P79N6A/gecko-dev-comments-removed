@@ -337,7 +337,12 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
           aSuggestedDriverVersion.AssignLiteral("Mesa 7.10.3");
         }
-        else if (mIsOldSwrast || mIsLlvmpipe) {
+        else if (mIsOldSwrast) {
+          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+        }
+        else if (mIsLlvmpipe && version(mMajorVersion, mMinorVersion) < version(9, 1)) {
+          
+          
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
         }
         else if (aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA)
