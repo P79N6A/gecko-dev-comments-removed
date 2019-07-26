@@ -34,8 +34,8 @@ public:
 
 
 
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
+  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
 
   
 
@@ -43,7 +43,7 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, bool aShrinkWrap);
+                                 nsSize aPadding, bool aShrinkWrap) MOZ_OVERRIDE;
 
   
 
@@ -64,7 +64,7 @@ public:
                       const nsHTMLReflowState& aReflowState,
                       nsReflowStatus&      aStatus);
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
   {
     
     

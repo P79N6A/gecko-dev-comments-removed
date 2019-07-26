@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 #include "nsSVGContainerFrame.h"
 #include "nsISVGSVGFrame.h"
 #include "gfxMatrix.h"
@@ -61,7 +62,7 @@ public:
   virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const;
 
   
-  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags);
+  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags) MOZ_OVERRIDE;
 
 protected:
 

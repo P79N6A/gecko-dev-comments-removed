@@ -77,7 +77,7 @@ public:
   friend nsIFrame* NS_NewTableRowGroupFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
   virtual ~nsTableRowGroupFrame();
   
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
   
   NS_IMETHOD AppendFrames(ChildListID     aListID,
                           nsFrameList&    aFrameList) MOZ_OVERRIDE;
@@ -89,9 +89,9 @@ public:
   NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
-  virtual nsMargin GetUsedMargin() const;
-  virtual nsMargin GetUsedBorder() const;
-  virtual nsMargin GetUsedPadding() const;
+  virtual nsMargin GetUsedMargin() const MOZ_OVERRIDE;
+  virtual nsMargin GetUsedBorder() const MOZ_OVERRIDE;
+  virtual nsMargin GetUsedPadding() const MOZ_OVERRIDE;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
@@ -109,19 +109,19 @@ public:
   NS_IMETHOD Reflow(nsPresContext*           aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
-                    nsReflowStatus&          aStatus);
+                    nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
   
 
 
 
 
-  virtual nsIAtom* GetType() const;
+  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
   nsTableRowFrame* GetFirstRow();
 
 #ifdef DEBUG
-  NS_IMETHOD GetFrameName(nsAString& aResult) const;
+  NS_IMETHOD GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
 #endif
 
   
@@ -323,9 +323,9 @@ public:
 
   FrameCursorData* SetupRowCursor();
 
-  virtual nsILineIterator* GetLineIterator() { return this; }
+  virtual nsILineIterator* GetLineIterator() MOZ_OVERRIDE { return this; }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
   {
     return nsContainerFrame::IsFrameOfType(aFlags & ~(nsIFrame::eTablePart));
   }

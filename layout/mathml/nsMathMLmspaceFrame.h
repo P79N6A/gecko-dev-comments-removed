@@ -21,14 +21,14 @@ public:
   friend nsIFrame* NS_NewMathMLmspaceFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   NS_IMETHOD
-  TransmitAutomaticData() {
+  TransmitAutomaticData() MOZ_OVERRIDE {
     
     
     mPresentationData.flags |= NS_MATHML_SPACE_LIKE;
     return NS_OK;
   }
 
-  virtual bool IsLeaf() const;
+  virtual bool IsLeaf() const MOZ_OVERRIDE;
 
   NS_IMETHOD
   Reflow(nsPresContext*          aPresContext,

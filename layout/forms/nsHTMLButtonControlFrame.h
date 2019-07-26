@@ -56,7 +56,7 @@ public:
                     nsIFrame*        aParent,
                     nsIFrame*        asPrevInFlow) MOZ_OVERRIDE;
 
-  virtual nsStyleContext* GetAdditionalStyleContext(int32_t aIndex) const;
+  virtual nsStyleContext* GetAdditionalStyleContext(int32_t aIndex) const MOZ_OVERRIDE;
   virtual void SetAdditionalStyleContext(int32_t aIndex, 
                                          nsStyleContext* aStyleContext) MOZ_OVERRIDE;
  
@@ -82,18 +82,18 @@ public:
   }
 #endif
 
-  virtual bool HonorPrintBackgroundSettings() { return false; }
+  virtual bool HonorPrintBackgroundSettings() MOZ_OVERRIDE { return false; }
 
   
-  void SetFocus(bool aOn, bool aRepaint);
+  void SetFocus(bool aOn, bool aRepaint) MOZ_OVERRIDE;
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetContentInsertionFrame() {
+  virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
   {
     return nsContainerFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));

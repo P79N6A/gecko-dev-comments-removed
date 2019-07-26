@@ -59,7 +59,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
+  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) MOZ_OVERRIDE;
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
                                         uint32_t aFilter) MOZ_OVERRIDE;
   virtual nsIFrame* CreateFrameFor(nsIContent* aContent) MOZ_OVERRIDE;
@@ -123,10 +123,10 @@ public:
 
 
 
-  virtual void SetFocus(bool aOn, bool aRepaint);
+  virtual void SetFocus(bool aOn, bool aRepaint) MOZ_OVERRIDE;
 
   
-  virtual bool IsDroppedDown() { return mDroppedDown; }
+  virtual bool IsDroppedDown() MOZ_OVERRIDE { return mDroppedDown; }
   
 
 
@@ -156,7 +156,7 @@ public:
   virtual void OnContentReset() MOZ_OVERRIDE;
 
   
-  NS_IMETHOD AddOption(int32_t index);
+  NS_IMETHOD AddOption(int32_t index) MOZ_OVERRIDE;
   NS_IMETHOD RemoveOption(int32_t index) MOZ_OVERRIDE;
   NS_IMETHOD DoneAddingChildren(bool aIsDone) MOZ_OVERRIDE;
   NS_IMETHOD OnOptionSelected(int32_t aIndex, bool aSelected) MOZ_OVERRIDE;

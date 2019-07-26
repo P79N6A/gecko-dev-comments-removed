@@ -24,9 +24,9 @@ public:
                     nsIFrame*        aParent,
                     nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
   
-  virtual nsSplittableType GetSplittableType() const;
+  virtual nsSplittableType GetSplittableType() const MOZ_OVERRIDE;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot);
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
 
   
 
@@ -45,8 +45,8 @@ public:
   NS_IMETHOD SetNextContinuation(nsIFrame*) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetFirstContinuation() const;
-  virtual nsIFrame* GetLastContinuation() const;
+  virtual nsIFrame* GetFirstContinuation() const MOZ_OVERRIDE;
+  virtual nsIFrame* GetLastContinuation() const MOZ_OVERRIDE;
 
 #ifdef DEBUG
   
@@ -66,8 +66,8 @@ public:
   NS_IMETHOD  SetNextInFlow(nsIFrame*) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetFirstInFlow() const;
-  virtual nsIFrame* GetLastInFlow() const;
+  virtual nsIFrame* GetFirstInFlow() const MOZ_OVERRIDE;
+  virtual nsIFrame* GetLastInFlow() const MOZ_OVERRIDE;
 
   
   

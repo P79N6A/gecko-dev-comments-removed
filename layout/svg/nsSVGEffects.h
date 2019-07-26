@@ -166,7 +166,7 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  virtual void Invalidate() { DoUpdate(); }
+  virtual void Invalidate() MOZ_OVERRIDE { DoUpdate(); }
 
 private:
   
