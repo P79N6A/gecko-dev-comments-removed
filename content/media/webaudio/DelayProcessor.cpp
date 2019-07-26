@@ -109,7 +109,10 @@ DelayProcessor::EnsureBuffer(uint32_t aNumberOfChannels)
     if (!mBuffer.SetLength(aNumberOfChannels)) {
       return false;
     }
-    const int numFrames = mMaxDelayFrames;
+    
+    
+    
+    const int numFrames = mMaxDelayFrames + 1;
     for (uint32_t channel = 0; channel < aNumberOfChannels; ++channel) {
       if (!mBuffer[channel].SetLength(numFrames)) {
         return false;
