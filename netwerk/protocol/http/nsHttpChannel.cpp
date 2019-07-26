@@ -4548,6 +4548,7 @@ nsHttpChannel::BeginConnect()
         
         
         
+        LOG(("nsHttpChannel::BeginConnect [this=%p] prefetching\n", this));
         mDNSPrefetch = new nsDNSPrefetch(mURI, mTimingEnabled);
         mDNSPrefetch->PrefetchHigh();
     }
