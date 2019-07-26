@@ -36,11 +36,12 @@
 #include "mozilla/dom/Element.h"
 #include "nsContentUtils.h"
 
-NS_IMPL_ISUPPORTS5(nsFormFillController,
+NS_IMPL_ISUPPORTS6(nsFormFillController,
                    nsIFormFillController,
                    nsIAutoCompleteInput,
                    nsIAutoCompleteSearch,
                    nsIDOMEventListener,
+                   nsIFormAutoCompleteObserver,
                    nsIMutationObserver)
 
 nsFormFillController::nsFormFillController() :
@@ -600,11 +601,15 @@ nsFormFillController::StartSearch(const nsAString &aSearchString, const nsAStrin
     
     
     rv = mLoginManager->AutoCompleteSearch(aSearchString,
-                                         aPreviousResult,
-                                         mFocusedInput,
-                                         getter_AddRefs(result));
+                                           aPreviousResult,
+                                           mFocusedInput,
+                                           getter_AddRefs(result));
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (aListener) {
+      aListener->OnSearchResult(this, result);
+    }
   } else {
-    nsCOMPtr<nsIAutoCompleteResult> formHistoryResult;
+    mLastListener = aListener;
 
     
     
@@ -613,48 +618,65 @@ nsFormFillController::StartSearch(const nsAString &aSearchString, const nsAStrin
         do_GetService("@mozilla.org/satchel/form-autocomplete;1", &rv);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = formAutoComplete->AutoCompleteSearch(aSearchParam,
+      formAutoComplete->AutoCompleteSearchAsync(aSearchParam,
                                                 aSearchString,
                                                 mFocusedInput,
                                                 aPreviousResult,
-                                                getter_AddRefs(formHistoryResult));
+                                                this);
+      mLastFormAutoComplete = formAutoComplete;
+    } else {
+      mLastSearchString = aSearchString;
 
-      NS_ENSURE_SUCCESS(rv, rv);
+      
+      
+      
+      return PerformInputListAutoComplete(aPreviousResult);
     }
+  }
 
-    mLastSearchResult = formHistoryResult;
-    mLastListener = aListener;
-    mLastSearchString = aSearchString;
+  return NS_OK;
+}
 
-    nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
-      do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+nsresult
+nsFormFillController::PerformInputListAutoComplete(nsIAutoCompleteResult* aPreviousResult)
+{
+  
+  
 
-    rv = inputListAutoComplete->AutoCompleteSearch(formHistoryResult,
-                                                   aSearchString,
-                                                   mFocusedInput,
-                                                   getter_AddRefs(result));
+  nsresult rv;
+  nsCOMPtr<nsIAutoCompleteResult> result;
 
-    if (mFocusedInput) {
-      nsCOMPtr<nsIDOMHTMLElement> list;
-      mFocusedInput->GetList(getter_AddRefs(list));
+  nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
+    do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = inputListAutoComplete->AutoCompleteSearch(aPreviousResult,
+                                                 mLastSearchString,
+                                                 mFocusedInput,
+                                                 getter_AddRefs(result));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-      nsCOMPtr<nsINode> node = do_QueryInterface(list);
-      if (mListNode != node) {
-        if (mListNode) {
-          mListNode->RemoveMutationObserver(this);
-          mListNode = nullptr;
-        }
-        if (node) {
-          node->AddMutationObserverUnlessExists(this);
-          mListNode = node;
-        }
+  if (mFocusedInput) {
+    nsCOMPtr<nsIDOMHTMLElement> list;
+    mFocusedInput->GetList(getter_AddRefs(list));
+
+    
+    
+    nsCOMPtr<nsINode> node = do_QueryInterface(list);
+    if (mListNode != node) {
+      if (mListNode) {
+        mListNode->RemoveMutationObserver(this);
+        mListNode = nullptr;
+      }
+      if (node) {
+        node->AddMutationObserverUnlessExists(this);
+        mListNode = node;
       }
     }
   }
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  aListener->OnSearchResult(this, result);
+  if (mLastListener) {
+    mLastListener->OnSearchResult(this, result);
+  }
 
   return NS_OK;
 }
@@ -707,7 +729,29 @@ void nsFormFillController::RevalidateDataList()
 NS_IMETHODIMP
 nsFormFillController::StopSearch()
 {
+  
+  
+  if (mLastFormAutoComplete) {
+    mLastFormAutoComplete->StopAutoCompleteSearch();
+    mLastFormAutoComplete = nullptr;
+  }
   return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP
+nsFormFillController::OnSearchCompletion(nsIAutoCompleteResult *aResult)
+{
+  nsCOMPtr<nsIAutoCompleteResult> resultParam = do_QueryInterface(aResult);
+
+  nsAutoString searchString;
+  resultParam->GetSearchString(searchString);
+  mLastSearchResult = aResult;
+  mLastSearchString = searchString;
+
+  return PerformInputListAutoComplete(resultParam);
 }
 
 
@@ -1178,4 +1222,3 @@ static const mozilla::Module kSatchelModule = {
 };
 
 NSMODULE_DEFN(satchel) = &kSatchelModule;
-
