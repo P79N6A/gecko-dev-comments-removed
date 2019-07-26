@@ -2040,13 +2040,8 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
         aRv.Throw(rv);
         return nullptr;
       }
-      
-      
-      
-      if (!initReturn.isUndefined()) {
-        MOZ_ASSERT(false, "The init() method for JS-implemented WebIDL should not return anything");
-        MOZ_CRASH();
-      }
+      MOZ_ASSERT(initReturn.isUndefined(),
+                 "nsIDOMGlobalPropertyInitializer should return undefined");
     }
     
     nsCOMPtr<nsIXPConnectWrappedJS> implWrapped =
