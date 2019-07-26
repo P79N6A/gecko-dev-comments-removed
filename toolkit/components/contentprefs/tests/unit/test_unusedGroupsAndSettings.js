@@ -2,8 +2,7 @@
 
 
 
-var cps = Cc["@mozilla.org/content-pref/service;1"].
-          getService(Ci.nsIContentPrefService);
+var cps = new ContentPrefInstance(null);
           
 function run_test() {
   var uri1 = ContentPrefTest.getURI("http://www.domain1.com/");

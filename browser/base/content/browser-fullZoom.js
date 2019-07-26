@@ -10,6 +10,15 @@
 
 const MOUSE_SCROLL_ZOOM = 3;
 
+Cu.import('resource://gre/modules/ContentPrefInstance.jsm');
+
+function getContentPrefs(aWindow) {
+  let context = aWindow ? aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIWebNavigation)
+                                 .QueryInterface(Ci.nsILoadContext) : null;
+  return new ContentPrefInstance(context);
+}
+
 
 
 
@@ -21,7 +30,7 @@ var FullZoom = {
   
   
   get globalValue() {
-    var globalValue = Services.contentPrefs.getPref(null, this.name);
+    var globalValue = getContentPrefs(gBrowser.contentDocument.defaultView).getPref(null, this.name);
     if (typeof globalValue != "undefined")
       globalValue = this._ensureValid(globalValue);
     delete this.globalValue;
@@ -55,7 +64,7 @@ var FullZoom = {
     window.addEventListener("DOMMouseScroll", this, false);
 
     
-    Services.contentPrefs.addObserver(this.name, this);
+    getContentPrefs().addObserver(this.name, this);
 
     this._siteSpecificPref =
       gPrefService.getBoolPref("browser.zoom.siteSpecific");
@@ -68,7 +77,7 @@ var FullZoom = {
 
   destroy: function FullZoom_destroy() {
     gPrefService.removeObserver("browser.zoom.", this);
-    Services.contentPrefs.removeObserver(this.name, this);
+    getContentPrefs().removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
   },
 
@@ -149,7 +158,8 @@ var FullZoom = {
   
 
   onContentPrefSet: function FullZoom_onContentPrefSet(aGroup, aName, aValue) {
-    if (aGroup == Services.contentPrefs.grouper.group(gBrowser.currentURI))
+    let contentPrefs = getContentPrefs(gBrowser.contentDocument.defaultView);
+    if (aGroup == contentPrefs.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting(aValue);
     else if (aGroup == null) {
       this.globalValue = this._ensureValid(aValue);
@@ -157,13 +167,14 @@ var FullZoom = {
       
       
       
-      if (!Services.contentPrefs.hasPref(gBrowser.currentURI, this.name))
+      if (!contentPrefs.hasPref(gBrowser.currentURI, this.name))
         this._applyPrefToSetting();
     }
   },
 
   onContentPrefRemoved: function FullZoom_onContentPrefRemoved(aGroup, aName) {
-    if (aGroup == Services.contentPrefs.grouper.group(gBrowser.currentURI))
+    let contentPrefs = getContentPrefs(gBrowser.contentDocument.defaultView);
+    if (aGroup == contentPrefs.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting();
     else if (aGroup == null) {
       this.globalValue = undefined;
@@ -171,7 +182,7 @@ var FullZoom = {
       
       
       
-      if (!Services.contentPrefs.hasPref(gBrowser.currentURI, this.name))
+      if (!contentPrefs.hasPref(gBrowser.currentURI, this.name))
         this._applyPrefToSetting();
     }
   },
@@ -207,12 +218,13 @@ var FullZoom = {
       return;
     }
 
-    if (Services.contentPrefs.hasCachedPref(aURI, this.name)) {
-      let zoomValue = Services.contentPrefs.getPref(aURI, this.name);
+    let contentPrefs = getContentPrefs(gBrowser.contentDocument.defaultView);
+    if (contentPrefs.hasCachedPref(aURI, this.name)) {
+      let zoomValue = contentPrefs.getPref(aURI, this.name);
       this._applyPrefToSetting(zoomValue, browser);
     } else {
       var self = this;
-      Services.contentPrefs.getPref(aURI, this.name, function (aResult) {
+      contentPrefs.getPref(aURI, this.name, function (aResult) {
         
         
         
@@ -297,12 +309,12 @@ var FullZoom = {
       return;
 
     var zoomLevel = ZoomManager.zoom;
-    Services.contentPrefs.setPref(gBrowser.currentURI, this.name, zoomLevel);
+    getContentPrefs(gBrowser.contentDocument.defaultView).setPref(gBrowser.currentURI, this.name, zoomLevel);
   },
 
   _removePref: function FullZoom__removePref() {
     if (!(content.document.mozSyntheticDocument))
-      Services.contentPrefs.removePref(gBrowser.currentURI, this.name);
+      getContentPrefs(gBrowser.contentDocument.defaultView).removePref(gBrowser.currentURI, this.name);
   },
 
 

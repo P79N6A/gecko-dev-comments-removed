@@ -2,37 +2,15 @@
 
 
 
-var _PBSvc = null;
-function get_PBSvc() {
-  if (_PBSvc)
-    return _PBSvc;
-
-  try {
-    _PBSvc = Cc["@mozilla.org/privatebrowsing;1"].
-             getService(Ci.nsIPrivateBrowsingService);
-    return _PBSvc;
-  } catch (e) {}
-  return null;
-}
-
-var _CMSvc = null;
-function get_ContentPrefs() {
-  if (_CMSvc)
-    return _CMSvc;
-
-  return Cc["@mozilla.org/content-pref/service;1"].
-         createInstance(Ci.nsIContentPrefService);
-}
-
 function run_test() {
-  var pb = get_PBSvc();
-  if (pb) { 
     var prefBranch = Cc["@mozilla.org/preferences-service;1"].
                      getService(Ci.nsIPrefBranch);
     prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+    
+    let loadContext = { get usePrivateBrowsing() { return gInPrivateBrowsing; } };
 
     ContentPrefTest.deleteDatabase();
-    var cp = get_ContentPrefs();
+    var cp = new ContentPrefInstance(loadContext);
     do_check_neq(cp, null, "Retrieving the content prefs service failed");
 
     try {
@@ -45,7 +23,7 @@ function run_test() {
       
       do_check_eq(cp.getPref(uri1, pref_name), zoomA);
       
-      pb.privateBrowsingEnabled = true;
+      enterPBMode();
       
       do_check_eq(cp.getPref(uri1, pref_name), zoomA);
       
@@ -57,7 +35,7 @@ function run_test() {
       
       do_check_eq(cp.getPref(uri1, pref_name), zoomA_new);
       
-      pb.privateBrowsingEnabled = false;
+      exitPBMode();
       
       do_check_eq(cp.getPref(uri1, pref_name), zoomA);
       
@@ -67,5 +45,4 @@ function run_test() {
     }
 
     prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
-  }
 }

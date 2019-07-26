@@ -356,7 +356,7 @@ Sanitizer.prototype = {
         
         var cps = Components.classes["@mozilla.org/content-pref/service;1"]
                             .getService(Components.interfaces.nsIContentPrefService);
-        cps.removeGroupedPrefs();
+        cps.removeGroupedPrefs(null);
         
         
         

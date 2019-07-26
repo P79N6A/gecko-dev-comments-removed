@@ -20,18 +20,18 @@ function run_test() {
   catch(e) { }
 
   
-  cps.setPref("group", "browser.upload.lastDir", "childValue");
-  do_check_eq(cps.getPref("group", "browser.upload.lastDir"), "childValue");
+  cps.setPref("group", "browser.upload.lastDir", "childValue", null);
+  do_check_eq(cps.getPref("group", "browser.upload.lastDir", null), "childValue");
 
   
   var ioSvc = Cc["@mozilla.org/network/io-service;1"].
               getService(Ci.nsIIOService);
   var uri = ioSvc.newURI("http://mozilla.org", null, null);
-  cps.setPref(uri, "browser.upload.lastDir", "childValue2");
-  do_check_eq(cps.getPref(uri, "browser.upload.lastDir"), "childValue2");
+  cps.setPref(uri, "browser.upload.lastDir", "childValue2", null);
+  do_check_eq(cps.getPref(uri, "browser.upload.lastDir", null), "childValue2");
 
   
-  do_check_eq(cps.getPref("group", "browser.upload.lastDir"), "childValue");
+  do_check_eq(cps.getPref("group", "browser.upload.lastDir", null), "childValue");
 
   
   cps.wrappedJSObject.messageManager.sendSyncMessage('ContentPref:QUIT');

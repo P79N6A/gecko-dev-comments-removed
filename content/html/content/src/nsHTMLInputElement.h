@@ -38,7 +38,7 @@ public:
 
 
 
-  nsresult FetchLastUsedDirectory(nsIURI* aURI, nsIFile** aFile);
+  nsresult FetchLastUsedDirectory(nsIDocument* aDoc, nsIFile** aFile);
 
   
 
@@ -47,7 +47,7 @@ public:
 
 
 
-  nsresult StoreLastUsedDirectory(nsIURI* aURI, nsIFile* aFile);
+  nsresult StoreLastUsedDirectory(nsIDocument* aDoc, nsIFile* aFile);
 };
 
 class nsHTMLInputElement : public nsGenericHTMLFormElement,

@@ -3,8 +3,7 @@
 
 
 
-let cps = Cc["@mozilla.org/content-pref/service;1"].
-          getService(Ci.nsIContentPrefService);
+let cps = new ContentPrefInstance(null);
 
 function run_test() {
   testCacheWorks("test1.example.com", "test-pref1");

@@ -101,7 +101,7 @@ Sanitizer.prototype = {
         Services.perms.removeAll();
 
         
-        Services.contentPrefs.removeGroupedPrefs();
+        Services.contentPrefs.removeGroupedPrefs(null);
 
         
         

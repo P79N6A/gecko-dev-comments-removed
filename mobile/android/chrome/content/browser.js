@@ -5834,11 +5834,13 @@ var PermissionsHelper = {
       case "Permissions:Clear":
         
         let permissionsToClear = JSON.parse(aData);
+        let privacyContext = BrowserApp.selectedBrowser.docShell
+                               .QueryInterface(Ci.nsILoadContext);
 
         for (let i = 0; i < permissionsToClear.length; i++) {
           let indexToClear = permissionsToClear[i];
           let permissionType = this._currentPermissions[indexToClear]["type"];
-          this.clearPermission(uri, permissionType);
+          this.clearPermission(uri, permissionType, privacyContext);
         }
         break;
     }
@@ -5883,7 +5885,7 @@ var PermissionsHelper = {
 
 
 
-  clearPermission: function clearPermission(aURI, aType) {
+  clearPermission: function clearPermission(aURI, aType, aContext) {
     
     
     if (aType == "password") {
@@ -5897,7 +5899,7 @@ var PermissionsHelper = {
     } else {
       Services.perms.remove(aURI.host, aType);
       
-      Services.contentPrefs.removePref(aURI, aType + ".request.remember");
+      Services.contentPrefs.removePref(aURI, aType + ".request.remember", aContext);
     }
   }
 };
