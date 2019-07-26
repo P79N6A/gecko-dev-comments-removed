@@ -120,9 +120,8 @@ function test() {
 
 
 function resetDownloads(){
-  var defd = Promise.defer();
   
-    
+  
 
   let promisedResult = getPromisedDbResult(
     "DELETE FROM moz_downloads"
@@ -190,7 +189,7 @@ function addDownloadRow(aDataRow) {
 
 function gen_addDownloadRows(aDataRows){
   if (!aDataRows.length) {
-    yield;
+    yield null;
   }
 
   try {
@@ -238,17 +237,17 @@ gTests.push({
 
     yield resetDownloads();
 
-    let downloadslist = document.getElementById("downloads-list");
+    let downloadsList = document.getElementById("downloads-list");
 
     
     
-    let isReady = waitForEvent(downloadslist, "DownloadsReady", 2000);
+    let isReady = waitForEvent(downloadsList, "DownloadsReady", 2000);
     
     DownloadsPanelView._view.getDownloads();
 
     yield isReady;
 
-    let count = downloadslist.children.length;
+    let count = downloadsList.children.length;
     is(count, 0, "Zero items in grid view with empty downloads db");
   }
 });
@@ -272,11 +271,16 @@ gTests.push({
       { endTime: 1180493839859232, state: nsIDM.DOWNLOAD_CANCELED },
       { endTime: 1180493839859231, state: nsIDM.DOWNLOAD_BLOCKED_PARENTAL },
       { endTime: 1180493839859230, state: nsIDM.DOWNLOAD_DIRTY },
-      { endTime: 1180493839859229, state: nsIDM.DOWNLOAD_BLOCKED_POLICY },
+      { endTime: 1180493839859229, state: nsIDM.DOWNLOAD_BLOCKED_POLICY }
     ];
 
     yield resetDownloads();
-    DownloadsPanelView._view.getDownloads();
+
+    
+    let downloadsList = document.getElementById("downloads-list");
+    
+    
+    let isReady = waitForEvent(downloadsList, "DownloadsReady", 2000);
 
     
 
@@ -284,12 +288,6 @@ gTests.push({
       
       
       yield spawn( gen_addDownloadRows( DownloadData ) );
-
-      
-      let downloadslist = document.getElementById("downloads-list");
-      
-      
-      let isReady = waitForEvent(downloadslist, "DownloadsReady", 2000);
 
       
       DownloadsPanelView._view.getDownloads();
@@ -300,11 +298,11 @@ gTests.push({
         ok(false, "DownloadsReady event never fired");
       }
 
-      is(downloadslist.children.length, DownloadData.length,
+      is(downloadsList.children.length, DownloadData.length,
          "There is the correct number of richlistitems");
 
-      for (let i = 0; i < downloadslist.children.length; i++) {
-        let element = downloadslist.children[i];
+      for (let i = 0; i < downloadsList.children.length; i++) {
+        let element = downloadsList.children[i];
         let id = element.getAttribute("downloadId");
         let dataItem = Downloads.manager.getDownload(id); 
 
@@ -365,10 +363,10 @@ gTests.push({
       yield spawn( gen_addDownloadRows( DownloadData ) );
 
       
-      let downloadslist = document.getElementById("downloads-list");
+      let downloadsList = document.getElementById("downloads-list");
       
       
-      let isReady = waitForEvent(downloadslist, "DownloadsReady", 2000);
+      let isReady = waitForEvent(downloadsList, "DownloadsReady", 2000);
       
       DownloadsPanelView._view.getDownloads();
 
@@ -395,7 +393,7 @@ gTests.push({
       is(downloadRows.length, 3, "Correct number of downloads in the db before removal");
 
       
-      let itemNode = downloadslist.children[0];
+      let itemNode = downloadsList.children[0];
       let id = itemNode.getAttribute("downloadId");
       
       let download = Downloads.manager.getDownload( id );
@@ -421,7 +419,7 @@ gTests.push({
 
       is(downloadRows.length, 2, "Correct number of downloads in the db after removal");
 
-      is(2, downloadslist.children.length,
+      is(2, downloadsList.children.length,
          "Removing a download updates the items list");
       ok(file && file.exists(), "File still exists after download removal");
 
