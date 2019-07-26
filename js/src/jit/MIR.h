@@ -117,6 +117,15 @@ class MUse : public TempObject, public InlineListNode<MUse>
         consumer_(consumer)
     { }
 
+    
+    
+    void setProducerUnchecked(MDefinition *producer) {
+        MOZ_ASSERT(consumer_);
+        MOZ_ASSERT(producer_);
+        MOZ_ASSERT(producer);
+        producer_ = producer;
+    }
+
   public:
     
     MUse()
