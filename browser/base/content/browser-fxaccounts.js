@@ -7,6 +7,7 @@ XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function () {
 });
 
 const PREF_SYNC_START_DOORHANGER = "services.sync.ui.showSyncStartDoorhanger";
+const DOORHANGER_ACTIVATE_DELAY_MS = 5000;
 
 let gFxAccounts = {
 
@@ -33,16 +34,6 @@ let gFxAccounts = {
     ];
   },
 
-  
-  get activeWindowTopics() {
-    
-    delete this.activeWindowTopics;
-    return this.activeWindowTopics = new Set([
-      "weave:service:sync:start",
-      FxAccountsCommon.ONVERIFIED_NOTIFICATION
-    ]);
-  },
-
   get button() {
     delete this.button;
     return this.button = document.getElementById("PanelUI-fxa-status");
@@ -64,9 +55,8 @@ let gFxAccounts = {
   },
 
   get isActiveWindow() {
-    let mostRecentNonPopupWindow =
-      RecentWindow.getMostRecentBrowserWindow({allowPopups: false});
-    return window == mostRecentNonPopupWindow;
+    let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+    return fm.activeWindow == window;
   },
 
   init: function () {
@@ -79,6 +69,7 @@ let gFxAccounts = {
       Services.obs.addObserver(this, topic, false);
     }
 
+    addEventListener("activate", this);
     gNavToolbox.addEventListener("customizationstarting", this);
     gNavToolbox.addEventListener("customizationending", this);
 
@@ -100,11 +91,6 @@ let gFxAccounts = {
   },
 
   observe: function (subject, topic) {
-    
-    if (this.activeWindowTopics.has(topic) && !this.isActiveWindow) {
-      return;
-    }
-
     switch (topic) {
       case FxAccountsCommon.ONVERIFIED_NOTIFICATION:
         Services.prefs.setBoolPref(PREF_SYNC_START_DOORHANGER, true);
@@ -119,6 +105,10 @@ let gFxAccounts = {
   },
 
   onSyncStart: function () {
+    if (!this.isActiveWindow) {
+      return;
+    }
+
     let showDoorhanger = false;
 
     try {
@@ -132,8 +122,17 @@ let gFxAccounts = {
   },
 
   handleEvent: function (event) {
-    this._inCustomizationMode = event.type == "customizationstarting";
-    this.updateUI();
+    if (event.type == "activate") {
+      
+      
+      
+      
+      
+      setTimeout(() => this.onSyncStart(), DOORHANGER_ACTIVATE_DELAY_MS);
+    } else {
+      this._inCustomizationMode = event.type == "customizationstarting";
+      this.updateUI();
+    }
   },
 
   showDoorhanger: function (id) {
