@@ -127,6 +127,10 @@ class MIRGenerator
         return asmJSGlobalAccesses_;
     }
 
+    bool modifiesFrameArguments() const {
+        return modifiesFrameArguments_;
+    }
+
   public:
     CompileCompartment *compartment;
 
@@ -145,6 +149,11 @@ class MIRGenerator
     AsmJSHeapAccessVector asmJSHeapAccesses_;
     AsmJSGlobalAccessVector asmJSGlobalAccesses_;
     uint32_t minAsmJSHeapLength_;
+
+    
+    
+    
+    bool modifiesFrameArguments_;
 
 #if defined(JS_ION_PERF)
     AsmJSPerfSpewer asmJSPerfSpewer_;
