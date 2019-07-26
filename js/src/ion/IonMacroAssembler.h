@@ -59,6 +59,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     mozilla::Maybe<IonContext> ionContext_;
     mozilla::Maybe<AutoIonContextAlloc> alloc_;
     bool enoughMemory_;
+    bool embedsNurseryPointers_;
 
   private:
     
@@ -74,6 +75,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     MacroAssembler()
       : enoughMemory_(true),
+        embedsNurseryPointers_(false),
         sps_(NULL)
     {
         JSContext *cx = GetIonContext()->cx;
@@ -95,6 +97,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     MacroAssembler(JSContext *cx)
       : enoughMemory_(true),
+        embedsNurseryPointers_(false),
         sps_(NULL)
     {
         constructRoot(cx);
@@ -132,6 +135,10 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
     bool oom() const {
         return !enoughMemory_ || MacroAssemblerSpecific::oom();
+    }
+
+    bool embedsNurseryPointers() const {
+        return embedsNurseryPointers_;
     }
 
     
@@ -502,6 +509,10 @@ class MacroAssembler : public MacroAssemblerSpecific
         align(8);
         bind(&done);
     }
+
+    void branchNurseryPtr(Condition cond, const Address &ptr1, const ImmMaybeNurseryPtr &ptr2,
+                          Label *label);
+    void moveNurseryPtr(const ImmMaybeNurseryPtr &ptr, const Register &reg);
 
     void canonicalizeDouble(FloatRegister reg) {
         Label notNaN;
