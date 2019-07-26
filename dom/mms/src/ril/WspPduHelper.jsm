@@ -2154,7 +2154,10 @@ this.PduHelper = {
       let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                  .createInstance(Ci.nsIScriptableUnicodeConverter);
 
-      let entry = WSP_WELL_KNOWN_CHARSETS[charset];
+      let entry;
+      if (charset) {
+        entry = WSP_WELL_KNOWN_CHARSETS[charset];
+      }
       
       
       conv.charset = (entry && entry.converter) || "UTF-8";
@@ -2164,6 +2167,33 @@ this.PduHelper = {
       }
       return null;
   },
+
+  
+
+
+
+
+
+
+
+  encodeStringContent: function encodeStringContent(strContent, charset) {
+    let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+               .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+    let entry;
+    if (charset) {
+      entry = WSP_WELL_KNOWN_CHARSETS[charset];
+    }
+    
+    
+    conv.charset = (entry && entry.converter) || "UTF-8";
+    try {
+      return conv.convertToByteArray(strContent);
+    } catch (e) {
+    }
+    return null;
+  },
+
   
 
 
@@ -2394,7 +2424,19 @@ this.PduHelper = {
       
       let headersLen = data.offset;
       UintVar.encode(data, headersLen);
-      UintVar.encode(data, part.content.length);
+      if (typeof part.content === "string") {
+        let charset;
+        if (contentType && contentType.params && contentType.params.charset &&
+          contentType.params.charset.charset) {
+          charset = contentType.params.charset.charset;
+        }
+        part.content = this.encodeStringContent(part.content, charset);
+        UintVar.encode(data, part.content.length);
+      } else if (part.content instanceof Uint8Array) {
+        UintVar.encode(data, part.content.length);
+      } else {
+        throw new TypeError();
+      }
 
       
       let slice1 = data.array.slice(headersLen);
