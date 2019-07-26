@@ -64,6 +64,10 @@ WeaveSvc.prototype = {
   metaURL: null,
   cryptoKeyURL: null,
 
+  get enabledEngineNames() {
+    return [e.name for each (e in this.engineManager.getEnabled())];
+  },
+
   get serverURL() Svc.Prefs.get("serverURL"),
   set serverURL(value) {
     
@@ -390,6 +394,9 @@ WeaveSvc.prototype = {
 
 
   _registerEngines: function _registerEngines() {
+    
+    this.engineManager = Engines;
+
     let engines = [];
     
     
@@ -399,7 +406,7 @@ WeaveSvc.prototype = {
     }
 
     
-    Engines.register(engines.map(function onItem(name) {
+    this.engineManager.register(engines.map(function onItem(name) {
       return Weave[name + "Engine"];
     }));
   },
@@ -781,7 +788,7 @@ WeaveSvc.prototype = {
     
     if (this.clusterURL != "") {
       
-      for each (let engine in [Clients].concat(Engines.getAll())) {
+      for each (let engine in [Clients].concat(this.engineManager.getAll())) {
         try {
           engine.removeClientData();
         } catch(ex) {
@@ -1200,9 +1207,8 @@ WeaveSvc.prototype = {
     Records.set(this.metaURL, meta);
 
     
-    let collections = [Clients].concat(Engines.getAll()).map(function(engine) {
-      return engine.name;
-    });
+    let engines = [Clients].concat(this.engineManager.getAll());
+    let collections = [engine.name for each (engine in engines)];
 
     
     
@@ -1275,11 +1281,11 @@ WeaveSvc.prototype = {
       
       this.resetService();
 
-      engines = [Clients].concat(Engines.getAll());
+      engines = [Clients].concat(this.engineManager.getAll());
     }
     
     else {
-      engines = Engines.get(engines);
+      engines = this.engineManager.get(engines);
     }
 
     
@@ -1351,11 +1357,11 @@ WeaveSvc.prototype = {
         
         this.resetService();
 
-        engines = [Clients].concat(Engines.getAll());
+        engines = [Clients].concat(this.engineManager.getAll());
       }
       
       else {
-        engines = Engines.get(engines);
+        engines = this.engineManager.get(engines);
       }
 
       

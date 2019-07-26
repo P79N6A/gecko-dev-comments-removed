@@ -2,13 +2,15 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Engines', 'Engine', 'SyncEngine',
-                          'Tracker', 'Store'];
+const EXPORTED_SYMBOLS = [
+  "Engines",
+  "Engine",
+  "SyncEngine",
+  "Tracker",
+  "Store"
+];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/record.js");
@@ -352,20 +354,18 @@ Store.prototype = {
 };
 
 
-
-
 XPCOMUtils.defineLazyGetter(this, "Engines", function() {
-  return new EngineManagerSvc();
+  return new EngineManager();
 });
 
-function EngineManagerSvc() {
+function EngineManager() {
   this._engines = {};
   this._log = Log4Moz.repository.getLogger("Sync.EngineManager");
   this._log.level = Log4Moz.Level[Svc.Prefs.get(
     "log.logger.service.engines", "Debug")];
 }
-EngineManagerSvc.prototype = {
-  get: function EngMgr_get(name) {
+EngineManager.prototype = {
+  get: function get(name) {
     
     if (Array.isArray(name)) {
       let engines = [];
@@ -385,14 +385,16 @@ EngineManagerSvc.prototype = {
     }
     return engine;
   },
-  getAll: function EngMgr_getAll() {
+
+  getAll: function getAll() {
     return [engine for ([name, engine] in Iterator(Engines._engines))];
   },
-  getEnabled: function EngMgr_getEnabled() {
+
+  getEnabled: function getEnabled() {
     return this.getAll().filter(function(engine) engine.enabled);
   },
+
   
-  
 
 
 
@@ -400,7 +402,7 @@ EngineManagerSvc.prototype = {
 
 
 
-  register: function EngMgr_register(engineObject) {
+  register: function register(engineObject) {
     if (Array.isArray(engineObject))
       return engineObject.map(this.register, this);
 
@@ -424,12 +426,13 @@ EngineManagerSvc.prototype = {
       return engineObject;
     }
   },
-  unregister: function EngMgr_unregister(val) {
+
+  unregister: function unregister(val) {
     let name = val;
     if (val instanceof Engine)
       name = val.name;
     delete this._engines[name];
-  }
+  },
 };
 
 function Engine(name) {

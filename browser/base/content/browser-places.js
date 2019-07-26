@@ -652,8 +652,9 @@ HistoryMenu.prototype = {
 
     
     
-    let enabled = Weave.Service.isLoggedIn && Weave.Engines.get("tabs") &&
-                  Weave.Engines.get("tabs").enabled;
+    let enabled = Weave.Service.isLoggedIn &&
+                  Weave.Service.engineManager.get("tabs") &&
+                  Weave.Service.engineManager.get("tabs").enabled;
     menuitem.setAttribute("disabled", !enabled);
     menuitem.setAttribute("hidden", false);
 #endif

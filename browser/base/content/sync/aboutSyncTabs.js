@@ -57,8 +57,8 @@ let RemoteTabViewer = {
       let item = this._tabsList.getItemAtIndex(i);
       let hide = false;
       if (item.getAttribute("type") == "tab") {
-        if (!item.getAttribute("url").toLowerCase().contains(val) && 
-            !item.getAttribute("title").toLowerCase().contains(val))
+        if (item.getAttribute("url").toLowerCase().indexOf(val) == -1 &&
+            item.getAttribute("title").toLowerCase().indexOf(val) == -1)
           hide = true;
         else
           clientTabs++;
@@ -130,7 +130,7 @@ let RemoteTabViewer = {
   },
 
   _generateTabList: function() {
-    let engine = Weave.Engines.get("tabs");
+    let engine = Weave.Service.engineManager.get("tabs");
     let list = this._tabsList;
 
     
@@ -215,7 +215,7 @@ let RemoteTabViewer = {
       Weave.Clients.sync();
 
     
-    let engine = Weave.Engines.get("tabs");
+    let engine = Weave.Service.engineManager.get("tabs");
     engine.lastModified = null;
     engine.sync();
     Services.prefs.setIntPref("services.sync.lastTabFetch",
