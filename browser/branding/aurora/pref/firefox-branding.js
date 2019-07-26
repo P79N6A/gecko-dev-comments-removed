@@ -11,8 +11,7 @@ pref("startup.homepage_welcome_url","");
 pref("app.update.interval", 28800); 
 
 
-
-pref("app.update.download.backgroundInterval", 0);
+pref("app.update.download.backgroundInterval", 60);
 
 pref("app.update.promptWaitTime", 86400);
 
