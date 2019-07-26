@@ -6409,20 +6409,20 @@ function warnAboutClosingWindow() {
   
   let e = Services.wm.getEnumerator("navigator:browser");
   let otherPBWindowExists = false;
-  let nonPopupPresent = false;
+  let warnAboutClosingTabs = false;
   while (e.hasMoreElements()) {
     let win = e.getNext();
     if (win != window) {
       if (isPBWindow && PrivateBrowsingUtils.isWindowPrivate(win))
         otherPBWindowExists = true;
       if (win.toolbar.visible)
-        nonPopupPresent = true;
+        warnAboutClosingTabs = true;
       
       
       
       
       
-      if ((!isPBWindow || otherPBWindowExists) && nonPopupPresent)
+      if ((!isPBWindow || otherPBWindowExists) && warnAboutClosingTabs)
         break;
     }
   }
@@ -6437,8 +6437,7 @@ function warnAboutClosingWindow() {
     if (exitingCanceled.data)
       return false;
   }
-
-  if (!isPBWindow && nonPopupPresent)
+  if (warnAboutClosingTabs)
     return gBrowser.warnAboutClosingTabs(true);
 
   let os = Services.obs;
