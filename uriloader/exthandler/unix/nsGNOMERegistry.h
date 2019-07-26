@@ -2,6 +2,9 @@
 
 
 
+#ifndef nsGNOMERegistry_h
+#define nsGNOMERegistry_h
+
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
 
@@ -21,3 +24,5 @@ class nsGNOMERegistry
 
   static already_AddRefed<nsMIMEInfoBase> GetFromType(const nsACString& aMIMEType);
 };
+
+#endif 

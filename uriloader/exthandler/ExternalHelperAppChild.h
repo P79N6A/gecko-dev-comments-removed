@@ -4,6 +4,8 @@
 
 
 
+#ifndef mozilla_dom_ExternalHelperAppChild_h
+#define mozilla_dom_ExternalHelperAppChild_h
 
 #include "mozilla/dom/PExternalHelperAppChild.h"
 #include "nsIStreamListener.h"
@@ -34,3 +36,5 @@ private:
 
 } 
 } 
+
+#endif 
