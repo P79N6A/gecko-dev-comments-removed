@@ -887,7 +887,7 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   bool firstReflow = (firstKid->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
 
   ReflowChild(firstKid, aPresContext, kidSize, kidReflowState,
-              kidOrigin.x, kidOrigin.y, NS_FRAME_INVALIDATE_ON_MOVE, aStatus);
+              kidOrigin.x, kidOrigin.y, 0, aStatus);
   if (NS_FRAME_OVERFLOW_IS_INCOMPLETE(aStatus)) {
     
     
