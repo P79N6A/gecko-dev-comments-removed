@@ -165,6 +165,8 @@ void nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
   else
     format = gfxASurface::ImageFormatRGB24;
 
+  MOZ_ASSERT(HasSize());
+
   
   
   if (mGIFStruct.images_decoded) {
@@ -172,11 +174,22 @@ void nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
     NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
                  mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
                  format, aDepth);
-  } else {
+  }
+
+  
+  
+  else if (mGIFStruct.x_offset != 0 || mGIFStruct.y_offset != 0 ||
+           int32_t(mGIFStruct.width) != mImageMetadata.GetWidth() ||
+           int32_t(mGIFStruct.height) != mImageMetadata.GetHeight()) {
     
     NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
                  mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
                  format);
+  } else {
+    
+    if (format == gfxASurface::ImageFormatRGB24) {
+      GetCurrentFrame()->SetHasNoAlpha();
+    }
   }
 
   mCurrentFrame = mGIFStruct.images_decoded;
@@ -893,19 +906,23 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       mColorMask = 0xFF >> (8 - realDepth);
       BeginImageFrame(realDepth);
 
-      
-      
-      
-      uint32_t size = len + mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold;
-      if (size) {
-        if (SetHold(q, mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold, buf, len)) {
-          
-          GETN(9, gif_image_header_continue);
-          return;
+      if (NeedsNewFrame()) {
+        
+        
+        
+        uint32_t size = len + mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold;
+        if (size) {
+          if (SetHold(q, mGIFStruct.bytes_to_consume + mGIFStruct.bytes_in_hold, buf, len)) {
+            
+            GETN(9, gif_image_header_continue);
+            return;
+          }
         }
+        break;
+      } else {
+        
       }
     }
-    break;
 
     case gif_image_header_continue:
     {
