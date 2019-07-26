@@ -278,7 +278,7 @@ void ARTPConnection::onPollStreams() {
         moz_xcalloc(pollCount, sizeof(PRPollDesc));
 
     
-    int numSocketsToPoll = 0, pollIndex = 0;
+    uint32_t numSocketsToPoll = 0, pollIndex = 0;
     for (List<StreamInfo>::iterator it = mStreams.begin();
          it != mStreams.end(); ++it, pollIndex += 2) {
         if (pollIndex >= pollCount) {
