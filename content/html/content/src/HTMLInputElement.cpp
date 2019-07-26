@@ -2767,6 +2767,7 @@ HTMLInputElement::SetValueInternal(const nsAString& aValue,
       if (!mParserCreating) {
         SanitizeValue(value);
       }
+      
 
       if (aSetValueChanged) {
         SetValueChanged(true);
@@ -2774,6 +2775,9 @@ HTMLInputElement::SetValueInternal(const nsAString& aValue,
 
       if (IsSingleLineTextControl(false)) {
         mInputData.mState->SetValue(value, aUserInput, aSetValueChanged);
+        if (mType == NS_FORM_INPUT_EMAIL) {
+          UpdateAllValidityStates(mParserCreating);
+        }
       } else {
         mInputData.mValue = ToNewUnicode(value);
         if (aSetValueChanged) {
@@ -3471,7 +3475,7 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
         numberControlFrame->GetValueOfAnonTextControl(value);
         numberControlFrame->HandlingInputEvent(true);
         nsWeakFrame weakNumberControlFrame(numberControlFrame);
-        SetValueInternal(value, false, true);
+        SetValueInternal(value, true, true);
         if (weakNumberControlFrame.IsAlive()) {
           numberControlFrame->HandlingInputEvent(false);
         }
@@ -6422,6 +6426,103 @@ HTMLInputElement::HasStepMismatch() const
   return NS_floorModulo(value - GetStepBase(), step) != 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+static bool PunycodeEncodeEmailAddress(const nsAString& aEmail,
+                                       nsAutoCString& aEncodedEmail,
+                                       uint32_t* aIndexOfAt)
+{
+  nsAutoCString value = NS_ConvertUTF16toUTF8(aEmail);
+  uint32_t length = value.Length();
+
+  uint32_t atPos = (uint32_t)value.FindChar('@');
+  
+  if (atPos == (uint32_t)kNotFound || atPos == 0 || atPos == length - 1) {
+    return false;
+  }
+
+  nsCOMPtr<nsIIDNService> idnSrv = do_GetService(NS_IDNSERVICE_CONTRACTID);
+  if (!idnSrv) {
+    NS_ERROR("nsIIDNService isn't present!");
+    return false;
+  }
+
+  const nsDependentCSubstring username = Substring(value, 0, atPos);
+  bool ace;
+  if (NS_SUCCEEDED(idnSrv->IsACE(username, &ace)) && !ace) {
+    nsAutoCString usernameACE;
+    
+    
+    if (NS_SUCCEEDED(idnSrv->ConvertUTF8toACE(username, usernameACE))) {
+      value.Replace(0, atPos, usernameACE);
+      atPos = usernameACE.Length();
+    }
+  }
+
+  const nsDependentCSubstring domain = Substring(value, atPos + 1);
+  if (NS_SUCCEEDED(idnSrv->IsACE(domain, &ace)) && !ace) {
+    nsAutoCString domainACE;
+    if (NS_FAILED(idnSrv->ConvertUTF8toACE(domain, domainACE))) {
+      return false;
+    }
+    value.Replace(atPos + 1, domain.Length(), domainACE);
+  }
+
+  aEncodedEmail = value;
+  *aIndexOfAt = atPos;
+  return true;
+}
+
+bool
+HTMLInputElement::HasBadInput() const
+{
+  if (mType == NS_FORM_INPUT_NUMBER) {
+    nsAutoString value;
+    GetValueInternal(value);
+    if (!value.IsEmpty()) {
+      
+      
+      NS_ASSERTION(!GetValueAsDecimal().isNaN(), "Should have sanitized");
+      return false;
+    }
+    nsNumberControlFrame* numberControlFrame =
+      do_QueryFrame(GetPrimaryFrame());
+    if (numberControlFrame &&
+        !numberControlFrame->AnonTextControlIsEmpty()) {
+      
+      return true;
+    }
+    return false;
+  }
+  if (mType == NS_FORM_INPUT_EMAIL) {
+    
+    
+    
+    
+    nsAutoString value;
+    nsAutoCString unused;
+    uint32_t unused2;
+    NS_ENSURE_SUCCESS(GetValueInternal(value), false);
+    HTMLSplitOnSpacesTokenizer tokenizer(value, ',');
+    while (tokenizer.hasMoreTokens()) {
+      if (!PunycodeEncodeEmailAddress(tokenizer.nextToken(), unused, &unused2)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  return false;
+}
+
 void
 HTMLInputElement::UpdateTooLongValidityState()
 {
@@ -6519,6 +6620,12 @@ HTMLInputElement::UpdateStepMismatchValidityState()
 }
 
 void
+HTMLInputElement::UpdateBadInputValidityState()
+{
+  SetValidityState(VALIDITY_STATE_BAD_INPUT, HasBadInput());
+}
+
+void
 HTMLInputElement::UpdateAllValidityStates(bool aNotify)
 {
   bool validBefore = IsValid();
@@ -6529,6 +6636,7 @@ HTMLInputElement::UpdateAllValidityStates(bool aNotify)
   UpdateRangeOverflowValidityState();
   UpdateRangeUnderflowValidityState();
   UpdateStepMismatchValidityState();
+  UpdateBadInputValidityState();
 
   if (validBefore != IsValid()) {
     UpdateState(aNotify);
@@ -6753,6 +6861,22 @@ HTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
       aValidationMessage = message;
       break;
     }
+    case VALIDITY_STATE_BAD_INPUT:
+    {
+      nsXPIDLString message;
+      nsAutoCString key;
+      if (mType == NS_FORM_INPUT_NUMBER) {
+        key.AssignLiteral("FormValidationBadInputNumber");
+      } else if (mType == NS_FORM_INPUT_EMAIL) {
+        key.AssignLiteral("FormValidationInvalidEmail");
+      } else {
+        return NS_ERROR_UNEXPECTED;
+      }
+      rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
+                                              key.get(), message);
+      aValidationMessage = message;
+      break;
+    }
     default:
       rv = nsIConstraintValidation::GetValidationMessage(aValidationMessage, aType);
   }
@@ -6779,51 +6903,25 @@ HTMLInputElement::IsValidEmailAddressList(const nsAString& aValue)
 bool
 HTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
 {
-  nsAutoCString value = NS_ConvertUTF16toUTF8(aValue);
-  uint32_t i = 0;
-  uint32_t length = value.Length();
-
   
-  if (length == 0 || value[length - 1] == '.' || value[length - 1] == '-') {
+  if (aValue.IsEmpty() || aValue.Last() == '.' || aValue.Last() == '-') {
     return false;
   }
 
-  uint32_t atPos = (uint32_t)value.FindChar('@');
+  uint32_t atPos;
+  nsAutoCString value;
+  if (!PunycodeEncodeEmailAddress(aValue, value, &atPos)) {
+    return false;
+  }
+
+  uint32_t length = value.Length();
+
   
   if (atPos == (uint32_t)kNotFound || atPos == 0 || atPos == length - 1) {
     return false;
   }
 
-  
-  nsCOMPtr<nsIIDNService> idnSrv = do_GetService(NS_IDNSERVICE_CONTRACTID);
-  if (idnSrv) {
-    
-    
-    const nsDependentCSubstring username = Substring(value, 0, atPos);
-    bool ace;
-    if (NS_SUCCEEDED(idnSrv->IsACE(username, &ace)) && !ace) {
-      nsAutoCString usernameACE;
-      
-      
-      if (NS_SUCCEEDED(idnSrv->ConvertUTF8toACE(username, usernameACE))) {
-        value.Replace(0, atPos, usernameACE);
-        atPos = usernameACE.Length();
-      }
-    }
-
-    const nsDependentCSubstring domain = Substring(value, atPos + 1);
-    if (NS_SUCCEEDED(idnSrv->IsACE(domain, &ace)) && !ace) {
-      nsAutoCString domainACE;
-      if (NS_FAILED(idnSrv->ConvertUTF8toACE(domain, domainACE))) {
-        return false;
-      }
-      value.Replace(atPos + 1, domain.Length(), domainACE);
-    }
-
-    length = value.Length();
-  } else {
-    NS_ERROR("nsIIDNService isn't present!");
-  }
+  uint32_t i = 0;
 
   
   for (; i < atPos; ++i) {

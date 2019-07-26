@@ -95,6 +95,8 @@ public:
 
   void GetValueOfAnonTextControl(nsAString& aValue);
 
+  bool AnonTextControlIsEmpty();
+
   
 
 
