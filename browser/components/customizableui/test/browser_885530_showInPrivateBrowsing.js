@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 const kWidgetId = "some-widget";
 
 function assertWidgetExists(aWindow, aExists) {
@@ -14,138 +16,125 @@ function assertWidgetExists(aWindow, aExists) {
   }
 }
 
-let gTests = [
-  {
-    desc: "A widget that is created with showInPrivateBrowsing undefined should " +
-          "have that value default to true.",
-    run: function() {
-      let wrapper = CustomizableUI.createWidget({
-        id: kWidgetId
-      });
-      ok(wrapper.showInPrivateBrowsing,
-         "showInPrivateBrowsing should have defaulted to true.");
-      CustomizableUI.destroyWidget(kWidgetId);
-    },
-  },
-  {
-    desc: "Add a widget via the API with showInPrivateBrowsing set to false " +
-          "and ensure it does not appear in pre-existing or newly created " +
-          "private windows.",
-    run: function() {
-      let plain = yield openAndLoadWindow();
-      let private = yield openAndLoadWindow({private: true});
 
-      CustomizableUI.createWidget({
-        id: kWidgetId,
-        removable: true,
-        showInPrivateBrowsing: false
-      });
-      CustomizableUI.addWidgetToArea(kWidgetId,
-                                     CustomizableUI.AREA_NAVBAR);
-      assertWidgetExists(plain, true);
-      assertWidgetExists(private, false);
 
-      
-      
-      let plain2 = yield openAndLoadWindow();
-      let private2 = yield openAndLoadWindow({private: true});
+add_task(function() {
+  let wrapper = CustomizableUI.createWidget({
+    id: kWidgetId
+  });
+  ok(wrapper.showInPrivateBrowsing,
+     "showInPrivateBrowsing should have defaulted to true.");
+  CustomizableUI.destroyWidget(kWidgetId);
+});
 
-      assertWidgetExists(plain2, true);
-      assertWidgetExists(private2, false);
 
-      
-      
-      CustomizableUI.addWidgetToArea(kWidgetId,
-                                     CustomizableUI.AREA_TABSTRIP);
-      assertWidgetExists(plain, true);
-      assertWidgetExists(plain2, true);
-      assertWidgetExists(private, false);
-      assertWidgetExists(private2, false);
 
-      
-      CustomizableUI.moveWidgetWithinArea(kWidgetId, 0);
-      assertWidgetExists(plain, true);
-      assertWidgetExists(plain2, true);
-      assertWidgetExists(private, false);
-      assertWidgetExists(private2, false);
 
-      CustomizableUI.removeWidgetFromArea("some-widget");
-      assertWidgetExists(plain, false);
-      assertWidgetExists(plain2, false);
-      assertWidgetExists(private, false);
-      assertWidgetExists(private2, false);
+add_task(function() {
+  let plain1 = yield openAndLoadWindow();
+  let private1 = yield openAndLoadWindow({private: true});
+  CustomizableUI.createWidget({
+    id: kWidgetId,
+    removable: true,
+    showInPrivateBrowsing: false
+  });
+  CustomizableUI.addWidgetToArea(kWidgetId,
+                                 CustomizableUI.AREA_NAVBAR);
+  assertWidgetExists(plain1, true);
+  assertWidgetExists(private1, false);
 
-      plain.close();
-      plain2.close();
-      private.close();
-      private2.close();
+  
+  
+  let plain2 = yield openAndLoadWindow();
+  let private2 = yield openAndLoadWindow({private: true});
+  assertWidgetExists(plain2, true);
+  assertWidgetExists(private2, false);
 
-      CustomizableUI.destroyWidget("some-widget");
-    },
-  },
-  {
-    desc: "Add a widget via the API with showInPrivateBrowsing set to true, " +
-          "and ensure that it appears in pre-existing or newly created " +
-          "private browsing windows.",
-    run: function() {
-      let plain = yield openAndLoadWindow();
-      let private = yield openAndLoadWindow({private: true});
+  
+  
+  CustomizableUI.addWidgetToArea(kWidgetId,
+                                 CustomizableUI.AREA_TABSTRIP);
+  assertWidgetExists(plain1, true);
+  assertWidgetExists(plain2, true);
+  assertWidgetExists(private1, false);
+  assertWidgetExists(private2, false);
 
-      CustomizableUI.createWidget({
-        id: kWidgetId,
-        removable: true,
-        showInPrivateBrowsing: true
-      });
-      CustomizableUI.addWidgetToArea(kWidgetId,
-                                     CustomizableUI.AREA_NAVBAR);
-      assertWidgetExists(plain, true);
-      assertWidgetExists(private, true);
+  
+  CustomizableUI.moveWidgetWithinArea(kWidgetId, 0);
+  assertWidgetExists(plain1, true);
+  assertWidgetExists(plain2, true);
+  assertWidgetExists(private1, false);
+  assertWidgetExists(private2, false);
 
-      
-      
-      let plain2 = yield openAndLoadWindow();
-      let private2 = yield openAndLoadWindow({private: true});
+  CustomizableUI.removeWidgetFromArea("some-widget");
+  assertWidgetExists(plain1, false);
+  assertWidgetExists(plain2, false);
+  assertWidgetExists(private1, false);
+  assertWidgetExists(private2, false);
 
-      assertWidgetExists(plain2, true);
-      assertWidgetExists(private2, true);
+  plain1.close();
+  plain2.close();
+  private1.close();
+  private2.close();
 
-      
-      
-      CustomizableUI.addWidgetToArea(kWidgetId,
-                                     CustomizableUI.AREA_TABSTRIP);
-      assertWidgetExists(plain, true);
-      assertWidgetExists(plain2, true);
-      assertWidgetExists(private, true);
-      assertWidgetExists(private2, true);
+  CustomizableUI.destroyWidget("some-widget");
+});
 
-      
-      CustomizableUI.moveWidgetWithinArea(kWidgetId, 0);
-      assertWidgetExists(plain, true);
-      assertWidgetExists(plain2, true);
-      assertWidgetExists(private, true);
-      assertWidgetExists(private2, true);
 
-      CustomizableUI.removeWidgetFromArea("some-widget");
-      assertWidgetExists(plain, false);
-      assertWidgetExists(plain2, false);
-      assertWidgetExists(private, false);
-      assertWidgetExists(private2, false);
 
-      plain.close();
-      plain2.close();
-      private.close();
-      private2.close();
 
-      CustomizableUI.destroyWidget("some-widget");
-    },
-  }
-];
+add_task(function() {
+  let plain1 = yield openAndLoadWindow();
+  let private1 = yield openAndLoadWindow({private: true});
 
-function asyncCleanup() {
+  CustomizableUI.createWidget({
+    id: kWidgetId,
+    removable: true,
+    showInPrivateBrowsing: true
+  });
+  CustomizableUI.addWidgetToArea(kWidgetId,
+                                 CustomizableUI.AREA_NAVBAR);
+  assertWidgetExists(plain1, true);
+  assertWidgetExists(private1, true);
+
+  
+  
+  let plain2 = yield openAndLoadWindow();
+  let private2 = yield openAndLoadWindow({private: true});
+
+  assertWidgetExists(plain2, true);
+  assertWidgetExists(private2, true);
+
+  
+  
+  CustomizableUI.addWidgetToArea(kWidgetId,
+                                 CustomizableUI.AREA_TABSTRIP);
+  assertWidgetExists(plain1, true);
+  assertWidgetExists(plain2, true);
+  assertWidgetExists(private1, true);
+  assertWidgetExists(private2, true);
+
+  
+  CustomizableUI.moveWidgetWithinArea(kWidgetId, 0);
+  assertWidgetExists(plain1, true);
+  assertWidgetExists(plain2, true);
+  assertWidgetExists(private1, true);
+  assertWidgetExists(private2, true);
+
+  CustomizableUI.removeWidgetFromArea("some-widget");
+  assertWidgetExists(plain1, false);
+  assertWidgetExists(plain2, false);
+  assertWidgetExists(private1, false);
+  assertWidgetExists(private2, false);
+
+  plain1.close();
+  plain2.close();
+  private1.close();
+  private2.close();
+
+  CustomizableUI.destroyWidget("some-widget");
+});
+
+add_task(function asyncCleanup() {
   yield resetCustomization();
-}
-
-function test() {
-  waitForExplicitFinish();
-  runTests(gTests, asyncCleanup);
-}
+});
