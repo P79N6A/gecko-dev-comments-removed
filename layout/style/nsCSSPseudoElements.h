@@ -33,6 +33,8 @@
 
 #define CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE  (1<<3)
 
+#define CSS_PSEUDO_ELEMENT_IS_CHROME_ONLY              (1<<4)
+
 
 
 class nsICSSPseudoElement : public nsIAtom {};
@@ -90,6 +92,11 @@ public:
   }
 
   static bool PseudoElementSupportsUserActionState(const Type aType);
+
+  static bool PseudoElementIsChromeOnly(const Type aType) {
+    MOZ_ASSERT(aType < ePseudo_PseudoElementCount);
+    return PseudoElementHasFlags(aType, CSS_PSEUDO_ELEMENT_IS_CHROME_ONLY);
+  }
 
 private:
   static uint32_t FlagsForPseudoElement(const Type aType);
