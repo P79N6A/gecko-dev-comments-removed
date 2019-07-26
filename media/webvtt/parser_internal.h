@@ -29,6 +29,18 @@
 # define __INTERN_PARSER_H__
 # include <webvtt/parser.h>
 # include "string_internal.h"
+# ifndef NDEBUG
+#   define NDEBUG
+# endif
+
+# if defined(FATAL_ASSERTION)
+#   undef NDEBUG
+#   include <assert.h>
+# else
+#   if defined(BREAK_ON_ASSERTION) && !WEBVTT_OS_WIN32
+static void break_on_assert();
+#   endif
+# endif
 
 typedef enum
 webvtt_token_t {
@@ -217,20 +229,102 @@ WEBVTT_INTERN webvtt_token webvtt_lex( webvtt_parser self, const webvtt_byte *bu
 WEBVTT_INTERN webvtt_status webvtt_lex_word( webvtt_parser self, webvtt_string *pba, const webvtt_byte *buffer, webvtt_uint *pos, webvtt_uint length, webvtt_bool finish );
 WEBVTT_INTERN int parse_timestamp( const webvtt_byte *b, webvtt_timestamp *result );
 
+
+
+
+
+typedef
+enum webvtt_token_flags_t
+{
+  
+  TF_POSITIVE = 0x80000000,
+
+  
+  TF_NEGATIVE = 0x40000000,
+  
+
+
+  TF_SIGN_MASK = ( TF_POSITIVE | TF_NEGATIVE ),
+
+  
+
+  TF_FLAGS_MASK = TF_SIGN_MASK,
+
+  
+  TF_TOKEN_MASK = ( 0xFFFFFFFF & ~TF_FLAGS_MASK ),
+} webvtt_token_flags;
+
+
+
+
+
+
+
+
+WEBVTT_INTERN webvtt_bool token_in_list( webvtt_token search_for,
+  const webvtt_token token_list[] );
+
+
+
+
+
+
+
+
+
+
+
+WEBVTT_INTERN int find_token( webvtt_token search_for,
+  const webvtt_token token_list[] );
+
 #define BAD_TIMESTAMP(ts) ( ( ts ) == 0xFFFFFFFFFFFFFFFF )
 
-#define ERROR(Code) \
+#ifdef FATAL_ASSERTION
+#  define SAFE_ASSERT(condition) assert(condition)
+#  define DIE_IF(condition) assert( !(condition) )
+#else
+#  ifdef BREAK_ON_ASSERTION
+static void
+break_on_assert(void) {
+#if WEBVTT_OS_WIN32
+  
+  __declspec(dllimport) void __stdcall DebugBreak( void );
+  DebugBreak();
+#else
+  volatile int *ptr = (volatile int *)0;
+  *ptr = 1;
+#endif
+}
+#    define SAFE_ASSERT(condition) \
+if( !(condition) ) { \
+  break_on_assert(); \
+  return WEBVTT_FAILED_ASSERTION; \
+}
+#    define DIE_IF(condition) \
+if( (condition) ) { \
+  break_on_assert(); \
+}
+#  else
+#    define SAFE_ASSERT(condition) \
+if( !(condition) ) { \
+  return WEBVTT_FAILED_ASSERTION; \
+}
+#    define DIE_IF(condition)
+#  endif
+#endif
+
+#define ERROR_AT(errno, line, column) \
 do \
 { \
-  if( !self->error || self->error(self->userdata,self->line,self->column,Code) < 0 ) \
+  if( !self->error \
+    || self->error( (self->userdata), (line), (column), (errno) ) < 0 ) { \
     return WEBVTT_PARSE_ERROR; \
+  } \
 } while(0)
 
-#define ERROR_AT_COLUMN(Code,Column) \
-do \
-{ \
-  if( !self->error || self->error(self->userdata,self->line,(Column),Code) < 0 ) \
-    return WEBVTT_PARSE_ERROR; \
-} while(0)
+#define ERROR(error) \
+  ERROR_AT( (error), (self->line), (self->column) )
 
+#define ERROR_AT_COLUMN(error, column) \
+  ERROR_AT( (error), (self->line), (column) )
 #endif

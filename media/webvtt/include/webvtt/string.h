@@ -158,6 +158,15 @@ WEBVTT_EXPORT webvtt_status webvtt_string_putc( webvtt_string *str, webvtt_byte 
 
 
 
+WEBVTT_EXPORT webvtt_bool webvtt_string_is_equal( webvtt_string *str, webvtt_byte *to_compare, webvtt_uint len );
+
+
+
+
+
+
+
+
 WEBVTT_EXPORT webvtt_status webvtt_string_append( webvtt_string *str, const webvtt_byte *buffer, int len );
 
 

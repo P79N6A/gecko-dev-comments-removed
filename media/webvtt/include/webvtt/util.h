@@ -192,6 +192,17 @@ extern "C" {
 
 
     WEBVTT_NEXT_CUESETTING = -12,
+
+    
+
+
+     WEBVTT_NO_MATCH_FOUND = -13,
+
+    
+
+
+
+    WEBVTT_FAILED_ASSERTION = -14,
   };
 
   typedef enum webvtt_status_t webvtt_status;

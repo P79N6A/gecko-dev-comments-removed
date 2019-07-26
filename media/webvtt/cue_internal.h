@@ -27,26 +27,7 @@
 
 #ifndef __INTERN_CUE_H__
 # define __INTERN_CUE_H__
-# include <webvtt/string.h>
 # include <webvtt/cue.h>
-
-
-
-
-WEBVTT_INTERN webvtt_status webvtt_create_node( webvtt_node **node, webvtt_node_kind kind, webvtt_node *parent );
-WEBVTT_INTERN webvtt_status webvtt_create_internal_node( webvtt_node **node, webvtt_node *parent, webvtt_node_kind kind, webvtt_stringlist *css_classes, webvtt_string *annotation );
-
-
-
-
-WEBVTT_INTERN webvtt_status webvtt_create_head_node( webvtt_node **node );
-WEBVTT_INTERN webvtt_status webvtt_create_time_stamp_leaf_node( webvtt_node **node, webvtt_node *parent, webvtt_timestamp time_stamp );
-WEBVTT_INTERN webvtt_status webvtt_create_text_leaf_node( webvtt_node **node, webvtt_node *parent, webvtt_string *text );
-
-
-
-
-WEBVTT_INTERN webvtt_status webvtt_attach_internal_node( webvtt_node *parent, webvtt_node *to_attach );
 
 
 
@@ -63,6 +44,12 @@ enum {
 
   CUE_HAVE_CUEPARAMS = 0x40000000,
   CUE_HAVE_ID = 0x80000000,
+  CUE_HEADER_MASK = CUE_HAVE_CUEPARAMS|CUE_HAVE_ID,
 };
+
+static webvtt_bool
+cue_is_incomplete( const webvtt_cue *cue ) {
+  return !cue || ( cue->flags & CUE_HEADER_MASK ) == CUE_HAVE_ID;
+}
 
 #endif
