@@ -15,6 +15,8 @@ import org.mozilla.gecko.tests.UITestContext.ComponentType;
 import com.jayway.android.robotium.solo.Condition;
 import com.jayway.android.robotium.solo.Solo;
 
+import java.util.regex.Pattern;
+
 
 
 
@@ -131,7 +133,7 @@ public final class WaitHelper {
                 ToolbarTitleTextChangeVerifier.class.getSimpleName() + ": ";
 
         
-        private static final String LOADING_REGEX = "^[A-Za-z]{3,9}://";
+        private static final Pattern LOADING_PREFIX = Pattern.compile("[A-Za-z]{3,9}://");
 
         private CharSequence mOldTitleText;
 
@@ -157,7 +159,7 @@ public final class WaitHelper {
             
             
             
-            final boolean isLoading = title.toString().matches(LOADING_REGEX);
+            final boolean isLoading = LOADING_PREFIX.matcher(title).lookingAt();
             final boolean hasStateChanged = !isLoading && !mOldTitleText.equals(title);
 
             if (hasStateChanged) {
