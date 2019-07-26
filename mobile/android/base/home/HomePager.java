@@ -156,6 +156,11 @@ public class HomePager extends ViewPager {
         mInitialPanelId = panelId;
 
         
+        if (mHomeBanner != null) {
+            mHomeBanner.update();
+        }
+
+        
         final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
 
         final HomeAdapter adapter = new HomeAdapter(mContext, fm);
