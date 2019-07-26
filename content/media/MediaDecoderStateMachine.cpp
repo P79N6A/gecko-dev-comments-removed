@@ -1521,7 +1521,7 @@ void
 MediaDecoderStateMachine::DispatchDecodeTasksIfNeeded()
 {
   AssertCurrentThreadInMonitor();
-  
+
   
   
   
@@ -2274,9 +2274,16 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         int64_t clockTime = std::max(mEndTime, std::max(videoTime, GetAudioClock()));
         UpdatePlaybackPosition(clockTime);
 
-        nsCOMPtr<nsIRunnable> event =
-          NS_NewRunnableMethod(mDecoder, &MediaDecoder::PlaybackEnded);
-        NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+        {
+          
+          
+          
+          
+          ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+          nsCOMPtr<nsIRunnable> event =
+            NS_NewRunnableMethod(mDecoder, &MediaDecoder::PlaybackEnded);
+          NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+        }
       }
       return NS_OK;
     }
@@ -2753,6 +2760,12 @@ nsresult MediaDecoderStateMachine::ScheduleStateMachine(int64_t aUsecs) {
     
     
     
+    return NS_OK;
+  }
+
+  
+  
+  if (mRunAgain) {
     return NS_OK;
   }
 
