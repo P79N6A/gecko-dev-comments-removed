@@ -63,7 +63,6 @@ included_inclnames_to_ignore = set([
     'double-conversion.h',      
     'javascript-trace.h',       
     'jsautokw.h',               
-    'jsautooplen.h',            
     'jscustomallocator.h',      
     'js-config.h',              
     'pratom.h',                 
