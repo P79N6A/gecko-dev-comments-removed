@@ -1367,9 +1367,14 @@ NativeKey::GetFollowingCharMessage(MSG& aCharMsg) const
       continue;
     }
 
+    
+    
+    
+    static const LPARAM kScanCodeMask = 0x00FF0000;
     if (removedMsg.message != nextKeyMsg.message ||
         removedMsg.wParam != nextKeyMsg.wParam ||
-        removedMsg.lParam != nextKeyMsg.lParam) {
+        (removedMsg.lParam & ~kScanCodeMask) !=
+          (nextKeyMsg.lParam & ~kScanCodeMask)) {
 #ifdef MOZ_CRASHREPORTER
       nsPrintfCString info("\nHandling message: %s (0x%08X), wParam: 0x%08X, "
                            "lParam: 0x%08X, InSendMessageEx()=%s, \n"
