@@ -518,7 +518,9 @@ bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
     IsOggType(aType) ||
 #endif
 #ifdef MOZ_OMX_DECODER
-    IsOmxSupportedType(aType) ||
+    
+    
+    (IsOmxSupportedType(aType) && !aType.EqualsASCII("audio/amr")) ||
 #endif
 #ifdef MOZ_WEBM
     IsWebMType(aType) ||
