@@ -113,7 +113,7 @@ nsSVGDisplayContainerFrame::InsertFrames(ChildListID aListID,
   
   
   
-  nsIFrame* firstOldFrame = aPrevFrame ?
+  nsIFrame* nextFrame = aPrevFrame ?
     aPrevFrame->GetNextSibling() : GetChildList(aListID).FirstChild();
   nsIFrame* firstNewFrame = aFrameList.FirstChild();
   
@@ -125,7 +125,7 @@ nsSVGDisplayContainerFrame::InsertFrames(ChildListID aListID,
   if (!(GetStateBits() &
         (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN |
          NS_FRAME_IS_NONDISPLAY))) {
-    for (nsIFrame* kid = firstNewFrame; kid != firstOldFrame;
+    for (nsIFrame* kid = firstNewFrame; kid != nextFrame;
          kid = kid->GetNextSibling()) {
       nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
       if (SVGFrame) {
@@ -266,21 +266,24 @@ nsSVGDisplayContainerFrame::GetCoveredRegion()
 
 
 static void
-ReflowSVGNonDisplayText(nsSVGContainerFrame* aContainer)
+ReflowSVGNonDisplayText(nsIFrame* aContainer)
 {
   NS_ASSERTION(aContainer->GetStateBits() & NS_FRAME_IS_DIRTY,
                "expected aContainer to be NS_FRAME_IS_DIRTY");
-  NS_ASSERTION(aContainer->GetStateBits() & NS_FRAME_IS_NONDISPLAY,
+  NS_ASSERTION((aContainer->GetStateBits() & NS_FRAME_IS_NONDISPLAY) ||
+               !aContainer->IsFrameOfType(nsIFrame::eSVG),
                "it is wasteful to call ReflowSVGNonDisplayText on a container "
                "frame that is not NS_FRAME_IS_NONDISPLAY");
   for (nsIFrame* kid = aContainer->GetFirstPrincipalChild(); kid;
        kid = kid->GetNextSibling()) {
-    if (kid->GetType() == nsGkAtoms::svgTextFrame2) {
+    nsIAtom* type = kid->GetType();
+    if (type == nsGkAtoms::svgTextFrame2) {
       static_cast<nsSVGTextFrame2*>(kid)->ReflowSVGNonDisplayText();
     } else {
-      nsSVGContainerFrame* kidContainer = do_QueryFrame(kid);
-      if (kidContainer && kidContainer->GetContent()->IsSVG()) {
-        ReflowSVGNonDisplayText(kidContainer);
+      if (kid->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer) ||
+          type == nsGkAtoms::svgForeignObjectFrame ||
+          !kid->IsFrameOfType(nsIFrame::eSVG)) {
+        ReflowSVGNonDisplayText(kid);
       }
     }
   }
