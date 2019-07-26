@@ -487,6 +487,11 @@ protected:
   
 
 
+  void DispatchRepaintRequest(const FrameMetrics& aFrameMetrics);
+
+  
+
+
 
 
 
@@ -635,6 +640,11 @@ private:
   
   
   FrameMetrics mLastPaintRequestMetrics;
+  
+  
+  
+  
+  FrameMetrics mLastDispatchedPaintMetrics;
 
   nsTArray<MultiTouchInput> mTouchQueue;
 
