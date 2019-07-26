@@ -322,8 +322,16 @@ nsTArray<nsAutoPtr<DelayedNote> >* gDelayedAnnotations;
 typedef LPTOP_LEVEL_EXCEPTION_FILTER (WINAPI *SetUnhandledExceptionFilter_func)
   (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
 static SetUnhandledExceptionFilter_func stub_SetUnhandledExceptionFilter = 0;
+static LPTOP_LEVEL_EXCEPTION_FILTER previousUnhandledExceptionFilter = nullptr;
 static WindowsDllInterceptor gKernel32Intercept;
 static bool gBlockUnhandledExceptionFilter = true;
+
+static void NotePreviousUnhandledExceptionFilter()
+{
+  
+  previousUnhandledExceptionFilter = SetUnhandledExceptionFilter(nullptr);
+  SetUnhandledExceptionFilter(previousUnhandledExceptionFilter);
+}
 
 static LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
 patched_SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
@@ -331,6 +339,13 @@ patched_SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExce
   if (!gBlockUnhandledExceptionFilter) {
     
     return stub_SetUnhandledExceptionFilter(lpTopLevelExceptionFilter);
+  }
+
+  if (lpTopLevelExceptionFilter == previousUnhandledExceptionFilter) {
+    
+    previousUnhandledExceptionFilter =
+      stub_SetUnhandledExceptionFilter(lpTopLevelExceptionFilter);
+    return previousUnhandledExceptionFilter;
   }
 
   
@@ -1016,6 +1031,10 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   
 #ifdef XP_LINUX
   MinidumpDescriptor descriptor(tempPath.get());
+#endif
+
+#ifdef XP_WIN
+  NotePreviousUnhandledExceptionFilter();
 #endif
 
   gExceptionHandler = new google_breakpad::
