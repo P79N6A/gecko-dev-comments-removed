@@ -75,7 +75,7 @@ private:
 };
 
 
-class ShutdownThreadEvent : public nsRunnable 
+class ShutdownThreadEvent : public nsRunnable
 {
 public:
   ShutdownThreadEvent(nsIThread* aThread) : mThread(aThread) {}
@@ -90,12 +90,9 @@ private:
 };
 
 class MediaResource;
-} 
 
-namespace mozilla {
 namespace dom {
 class TimeRanges;
-}
 }
 
 
@@ -149,5 +146,9 @@ void ScaleDisplayByAspectRatio(nsIntSize& aDisplay, float aAspectRatio);
 
 #define MEDIA_THREAD_STACK_SIZE nsIThreadManager::DEFAULT_STACK_SIZE
 #endif
+
+bool IsVideoContentType(const nsCString& aContentType);
+
+} 
 
 #endif
