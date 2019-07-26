@@ -187,71 +187,6 @@ class AutoSetHandlingSignal
     }
 };
 
-
-
-
-#if !defined(XP_MACOSX)
-# if defined(JS_THREADSAFE)
-#  include "jslock.h"
-
-namespace {
-
-class InstallSignalHandlersMutex
-{
-    PRLock *mutex_;
-
-  public:
-    InstallSignalHandlersMutex() {
-        mutex_ = PR_NewLock();
-        if (!mutex_)
-            MOZ_CRASH();
-    }
-    ~InstallSignalHandlersMutex() {
-        PR_DestroyLock(mutex_);
-    }
-    class Lock {
-        static bool sHandlersInstalled;
-      public:
-        Lock();
-        ~Lock();
-        bool handlersInstalled() const { return sHandlersInstalled; }
-        void setHandlersInstalled() { sHandlersInstalled = true; }
-    };
-} signalMutex;
-
-} 
-
-bool InstallSignalHandlersMutex::Lock::sHandlersInstalled = false;
-
-InstallSignalHandlersMutex::Lock::Lock()
-{
-    PR_Lock(signalMutex.mutex_);
-}
-
-InstallSignalHandlersMutex::Lock::~Lock()
-{
-    PR_Unlock(signalMutex.mutex_);
-}
-# else  
-namespace {
-
-struct InstallSignalHandlersMutex
-{
-    class Lock {
-        static bool sHandlersInstalled;
-      public:
-        Lock() { (void)this; }
-        bool handlersInstalled() const { return sHandlersInstalled; }
-        void setHandlersInstalled() { sHandlersInstalled = true; }
-    };
-};
-
-} 
-
-bool InstallSignalHandlersMutex::Lock::sHandlersInstalled = false;
-# endif  
-#endif   
-
 #if defined(JS_CPU_X64)
 template <class T>
 static void
@@ -993,6 +928,8 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
 }
 #endif
 
+static bool sHandlersInstalled = false;
+
 bool
 js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 {
@@ -1005,8 +942,7 @@ js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 #else
     
     
-    InstallSignalHandlersMutex::Lock lock;
-    if (lock.handlersInstalled())
+    if (sHandlersInstalled)
         return true;
 
 # if defined(XP_WIN)
@@ -1024,7 +960,7 @@ js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
         return false;
 # endif
 
-    lock.setHandlersInstalled();
+    sHandlersInstalled = true;
 #endif
     return true;
 }
