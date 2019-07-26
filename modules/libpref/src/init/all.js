@@ -568,6 +568,9 @@ pref("devtools.chrome.enabled", false);
 
 pref("devtools.debugger.log", false);
 
+pref("devtools.debugger.show-server-notifications", true);
+
+
 pref("devtools.debugger.remote-enabled", false);
 pref("devtools.debugger.remote-port", 6000);
 
@@ -1336,9 +1339,6 @@ pref("network.seer.preserve", 80);
 
 
 
-
-
-pref("network.negotiate-auth.allow-insecure-ntlm-v1", false);
 
 
 

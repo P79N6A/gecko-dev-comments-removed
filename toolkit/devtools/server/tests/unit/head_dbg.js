@@ -17,8 +17,6 @@ const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 Services.prefs.setBoolPref("devtools.debugger.log", true);
 
-Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
-
 function tryImport(url) {
   try {
     Cu.import(url);
