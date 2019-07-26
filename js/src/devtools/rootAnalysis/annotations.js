@@ -11,6 +11,12 @@ var ignoreIndirectCalls = {
     "__convf" : true,
     "prerrortable.c:callback_newtable" : true,
     "mozalloc_oom.cpp:void (* gAbortHandler)(size_t)" : true,
+
+    
+    "nsTraceRefcntImpl.cpp:void (* leakyLogAddRef)(void*": true,
+    "nsTraceRefcntImpl.cpp:void (* leakyLogAddRef)(void*, int, int)": true,
+    "nsTraceRefcntImpl.cpp:void (* leakyLogRelease)(void*": true,
+    "nsTraceRefcntImpl.cpp:void (* leakyLogRelease)(void*, int, int)": true,
 };
 
 function indirectCallCannotGC(caller, name)
@@ -143,6 +149,19 @@ var ignoreFunctions = {
     "uint8 NS_IsMainThread()" : true,
 
     
+    "NS_LogInit": true,
+    "NS_LogTerm": true,
+    "NS_LogAddRef": true,
+    "NS_LogRelease": true,
+    "NS_LogCtor": true,
+    "NS_LogDtor": true,
+    "NS_LogCOMPtrAddRef": true,
+    "NS_LogCOMPtrRelease": true,
+
+    
+    "NS_DebugBreak": true,
+
+    
     
     "void js::AutoCompartment::~AutoCompartment(int32)" : true,
     "void JSAutoCompartment::~JSAutoCompartment(int32)" : true,
@@ -170,6 +189,8 @@ function ignoreGCFunction(fun)
 function isRootedTypeName(name)
 {
     if (name == "mozilla::ErrorResult" ||
+        name == "JSErrorResult" ||
+        name == "WrappableJSErrorResult" ||
         name == "js::frontend::TokenStream" ||
         name == "js::frontend::TokenStream::Position" ||
         name == "ModuleCompiler")
