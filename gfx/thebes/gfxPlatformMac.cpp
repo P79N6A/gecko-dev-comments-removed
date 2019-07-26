@@ -429,12 +429,7 @@ gfxPlatformMac::UseAcceleratedCanvas()
 bool
 gfxPlatformMac::SupportsOffMainThreadCompositing()
 {
-  
-  
-  if (OSXVersion() >= 0x1070) {
-    return true;
-  }
-  return GetPrefLayersOffMainThreadCompositionForceEnabled();
+  return true;
 }
 
 qcms_profile *
