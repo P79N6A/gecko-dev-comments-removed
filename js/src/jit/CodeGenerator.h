@@ -108,7 +108,8 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitSlots(LSlots *lir);
     bool visitLoadSlotT(LLoadSlotT *lir);
     bool visitLoadSlotV(LLoadSlotV *lir);
-    bool visitStoreSlotV(LStoreSlotV *store);
+    bool visitStoreSlotT(LStoreSlotT *lir);
+    bool visitStoreSlotV(LStoreSlotV *lir);
     bool visitElements(LElements *lir);
     bool visitConvertElementsToDoubles(LConvertElementsToDoubles *lir);
     bool visitMaybeToDoubleElement(LMaybeToDoubleElement *lir);
@@ -439,6 +440,9 @@ class CodeGenerator : public CodeGeneratorSpecific
     
     
     Label *getJumpLabelForBranch(MBasicBlock *block);
+
+    void emitStoreElementTyped(const LAllocation *value, MIRType valueType, MIRType elementType,
+                               Register elements, const LAllocation *index);
 
     
     bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);
