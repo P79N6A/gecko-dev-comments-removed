@@ -18,7 +18,6 @@ function Finder(docShell) {
   this._docShell = docShell;
   this._listeners = [];
   this._previousLink = null;
-  this._drewOutline = false;
   this._searchString = null;
 
   docShell.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -36,12 +35,12 @@ Finder.prototype = {
     this._listeners = this._listeners.filter(l => l != aListener);
   },
 
-  _notify: function (aResult, aFindBackwards, aLinksOnly) {
-    this._outlineLink(aLinksOnly);
+  _notify: function (aResult, aFindBackwards, aDrawOutline) {
+    this._outlineLink(aDrawOutline);
 
     let foundLink = this._fastFind.foundLink;
     let linkURL = null;
-    if (aLinksOnly && foundLink) {
+    if (foundLink) {
       let docCharset = null;
       let ownerDoc = foundLink.ownerDocument;
       if (ownerDoc)
@@ -68,14 +67,30 @@ Finder.prototype = {
     this._fastFind.caseSensitive = aSensitive;
   },
 
-  fastFind: function (aSearchString, aLinksOnly) {
+  
+
+
+
+
+
+
+  fastFind: function (aSearchString, aLinksOnly, aDrawOutline) {
     let result = this._fastFind.find(aSearchString, aLinksOnly);
-    this._notify(result, false, aLinksOnly);
+    this._notify(result, false, aDrawOutline);
   },
 
-  findAgain: function (aFindBackwards, aLinksOnly) {
+  
+
+
+
+
+
+
+
+
+  findAgain: function (aFindBackwards, aLinksOnly, aDrawOutline) {
     let result = this._fastFind.findAgain(aFindBackwards, aLinksOnly);
-    this._notify(result, aFindBackwards, aLinksOnly);
+    this._notify(result, aFindBackwards, aDrawOutline);
   },
 
   highlight: function (aHighlight, aWord) {
@@ -93,11 +108,7 @@ Finder.prototype = {
     fastFind.collapseSelection();
     fastFind.setSelectionModeAndRepaint(Ci.nsISelectionController.SELECTION_ON);
 
-    
-    if (this._previousLink && this._drewOutline) {
-      this._previousLink.style.outline = this._tmpOutline;
-      this._previousLink.style.outlineOffset = this._tmpOutlineOffset;
-    }
+    this._restoreOriginalOutline();
   },
 
   focusContent: function() {
@@ -150,20 +161,17 @@ Finder.prototype = {
     return this._docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
   },
 
-  _outlineLink: function (aLinksOnly) {
+  _outlineLink: function (aDrawOutline) {
     let foundLink = this._fastFind.foundLink;
 
-    if (foundLink == this._previousLink)
+    
+    
+    if (foundLink == this._previousLink && aDrawOutline)
       return;
 
-    if (this._previousLink && this._drewOutline) {
-      
-      this._previousLink.style.outline = this._tmpOutline;
-      this._previousLink.style.outlineOffset = this._tmpOutlineOffset;
-    }
+    this._restoreOriginalOutline();
 
-    this._drewOutline = (foundLink && aLinksOnly);
-    if (this._drewOutline) {
+    if (foundLink && aDrawOutline) {
       
       this._tmpOutline = foundLink.style.outline;
       this._tmpOutlineOffset = foundLink.style.outlineOffset;
@@ -175,9 +183,18 @@ Finder.prototype = {
       
       foundLink.style.outline = "1px dotted";
       foundLink.style.outlineOffset = "0";
-    }
 
-    this._previousLink = foundLink;
+      this._previousLink = foundLink;
+    }
+  },
+
+  _restoreOriginalOutline: function () {
+    
+    if (this._previousLink) {
+      this._previousLink.style.outline = this._tmpOutline;
+      this._previousLink.style.outlineOffset = this._tmpOutlineOffset;
+      this._previousLink = null;
+    }
   },
 
   _highlight: function (aHighlight, aWord, aWindow) {
