@@ -259,6 +259,13 @@ public:
 
   void UpdateScrollOffset(CSSPoint aScrollOffset);
 
+  
+
+
+
+
+  void CancelAnimation();
+
 protected:
   
 
@@ -357,15 +364,6 @@ protected:
 
 
   void ScheduleComposite();
-
-  
-
-
-
-
-
-
-  void CancelAnimation();
 
   
 

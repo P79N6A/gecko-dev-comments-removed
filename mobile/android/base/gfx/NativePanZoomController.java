@@ -69,9 +69,7 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
         
     }
 
-    public void abortAnimation() {
-        
-    }
+    public native void abortAnimation();
 
     private native void init();
     private native void handleTouchEvent(GeckoEvent event);
