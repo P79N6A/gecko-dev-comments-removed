@@ -423,7 +423,7 @@ private:
           }
           
           for (uint32_t i = 0; i < mInputChannels.Length(); ++i) {
-            inputBuffer->SetRawChannelContents(cx, i, mInputChannels[i]);
+            inputBuffer->SetRawChannelContents(i, mInputChannels[i]);
           }
         }
 
