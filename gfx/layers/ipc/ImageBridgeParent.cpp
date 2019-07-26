@@ -128,6 +128,16 @@ ImageBridgeParent::Create(Transport* aTransport, ProcessId aOtherProcess)
 
 bool ImageBridgeParent::RecvStop()
 {
+  
+  
+  
+  
+  InfallibleTArray<PTextureParent*> textures;
+  ManagedPTextureParent(textures);
+  for (unsigned int i = 0; i < textures.Length(); ++i) {
+    RefPtr<TextureHost> tex = TextureHost::AsTextureHost(textures[i]);
+    tex->DeallocateDeviceData();
+  }
   return true;
 }
 
