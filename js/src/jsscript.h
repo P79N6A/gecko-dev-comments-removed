@@ -951,7 +951,15 @@ class JSScript : public js::gc::Cell
 
 
 
-    inline bool isEmpty() const;
+    bool isEmpty() const {
+        if (length > 3)
+            return false;
+
+        jsbytecode *pc = code;
+        if (noScriptRval && JSOp(*pc) == JSOP_FALSE)
+            ++pc;
+        return JSOp(*pc) == JSOP_STOP;
+    }
 
     bool varIsAliased(unsigned varSlot);
     bool formalIsAliased(unsigned argSlot);
