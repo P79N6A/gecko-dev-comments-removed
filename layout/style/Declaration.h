@@ -79,10 +79,13 @@ public:
 
 
 
+
+
   void AddVariableDeclaration(const nsAString& aName,
                               CSSVariableDeclarations::Type aType,
                               const nsString& aValue,
-                              bool aIsImportant);
+                              bool aIsImportant,
+                              bool aOverrideImportant);
 
   
 

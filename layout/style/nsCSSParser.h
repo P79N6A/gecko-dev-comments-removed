@@ -130,6 +130,15 @@ public:
                          bool                aIsSVGMode = false);
 
   
+  nsresult ParseVariable(const nsAString&    aVariableName,
+                         const nsAString&    aPropValue,
+                         nsIURI*             aSheetURL,
+                         nsIURI*             aBaseURL,
+                         nsIPrincipal*       aSheetPrincipal,
+                         mozilla::css::Declaration* aDeclaration,
+                         bool*               aChanged,
+                         bool                aIsImportant);
+  
 
 
 
