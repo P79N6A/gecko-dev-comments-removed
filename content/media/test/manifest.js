@@ -333,6 +333,32 @@ var gFragmentTests = [
 
 
 
+var gChainingTests = [
+  
+  
+  { name:"chain.ogg", type:"audio/ogg", links: 4},
+  { name:"chain.opus", type:"audio/ogg; codec=opus", links: 4},
+  
+  
+  { name:"variable-channel.ogg", type:"audio/ogg", links: 1 },
+  { name:"variable-channel.opus", type:"audio/ogg; codec=opus", links: 1 },
+  
+  
+  { name:"variable-samplerate.ogg", type:"audio/ogg", links: 1 },
+  
+  
+  
+  { name:"variable-samplerate.opus", type:"audio/ogg; codec=opus", links: 2 },
+  
+  
+  { name:"chained-video.ogv", type:"video/ogg", links: 1 },
+  
+  
+  { name:"chained-audio-video.ogg", type:"video/ogg", links: 4 },
+  { name:"bogus.duh", type:"bogus/duh" }
+];
+
+
 
 var gMetadataTests = [
   
