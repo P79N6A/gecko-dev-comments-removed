@@ -5,6 +5,9 @@
 
 #include "ThreadStackHelper.h"
 #include "MainThreadUtils.h"
+#include "nsJSPrincipals.h"
+#include "nsScriptSecurityManager.h"
+#include "jsfriendapi.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Move.h"
@@ -208,6 +211,51 @@ ThreadStackHelper::PrepareStackBuffer(Stack& aStack)
 #endif
 }
 
+#ifdef MOZ_ENABLE_PROFILER_SPS
+
+namespace {
+
+bool
+IsChromeJSScript(JSScript* aScript)
+{
+  
+  
+
+  nsIScriptSecurityManager* const secman =
+    nsScriptSecurityManager::GetScriptSecurityManager();
+  NS_ENSURE_TRUE(secman, false);
+
+  JSPrincipals* const principals = JS_GetScriptPrincipals(aScript);
+  return secman->IsSystemPrincipal(nsJSPrincipals::get(principals));
+}
+
+} 
+
+const char*
+ThreadStackHelper::AppendJSEntry(const volatile StackEntry* aEntry,
+                                 const char* aPrevLabel)
+{
+  
+  
+  MOZ_ASSERT(aEntry->isJs());
+  MOZ_ASSERT(aEntry->script());
+
+  const char* label;
+  if (IsChromeJSScript(aEntry->script())) {
+    label = "(chrome script)";
+  } else {
+    label = "(content script)";
+  }
+
+  if (label == aPrevLabel) {
+    return aPrevLabel;
+  }
+  mStackBuffer.infallibleAppend(label);
+  return label;
+}
+
+#endif 
+
 void
 ThreadStackHelper::FillStackBuffer()
 {
@@ -223,6 +271,10 @@ ThreadStackHelper::FillStackBuffer()
     
 
     if (entry->isCopyLabel()) {
+      continue;
+    }
+    if (entry->isJs()) {
+      prevLabel = AppendJSEntry(entry, prevLabel);
       continue;
     }
     const char* const label = entry->label();
