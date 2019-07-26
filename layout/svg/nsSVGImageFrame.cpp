@@ -469,10 +469,28 @@ nsSVGImageFrame::ReflowSVG()
 
   gfxContext tmpCtx(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  gfxMatrix identity;
-  GeneratePath(&tmpCtx, identity);
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfxSize scaleFactors = GetCanvasTM(FOR_OUTERSVG_TM).ScaleFactors(true);
+  bool applyScaling = fabs(scaleFactors.width) >= 1e-6 &&
+                      fabs(scaleFactors.height) >= 1e-6;
+  gfxMatrix scaling;
+  if (applyScaling) {
+    scaling.Scale(scaleFactors.width, scaleFactors.height);
+  } 
+  GeneratePath(&tmpCtx, scaling);
   gfxRect extent = tmpCtx.GetUserPathExtent();
+  if (applyScaling) {
+    extent.Scale(1 / scaleFactors.width, 1 / scaleFactors.height);
+  }
 
   if (!extent.IsEmpty()) {
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 

@@ -309,7 +309,28 @@ nsSVGPathGeometryFrame::ReflowSVG()
   if ((hitTestFlags & SVG_HIT_TEST_STROKE)) {
    flags |= nsSVGUtils::eBBoxIncludeStrokeGeometry;
   }
-  gfxRect extent = GetBBoxContribution(gfxMatrix(), flags);
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfxSize scaleFactors = GetCanvasTM(FOR_OUTERSVG_TM).ScaleFactors(true);
+  bool applyScaling = fabs(scaleFactors.width) >= 1e-6 &&
+                      fabs(scaleFactors.height) >= 1e-6;
+  gfxMatrix scaling;
+  if (applyScaling) {
+    scaling.Scale(scaleFactors.width, scaleFactors.height);
+  }
+  gfxRect extent = GetBBoxContribution(scaling, flags);
+  if (applyScaling) {
+    extent.Scale(1 / scaleFactors.width, 1 / scaleFactors.height);
+  }
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent,
             PresContext()->AppUnitsPerCSSPixel());
 
