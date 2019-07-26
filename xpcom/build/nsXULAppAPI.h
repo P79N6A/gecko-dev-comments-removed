@@ -129,6 +129,13 @@
 
 
 
+#define XRE_OS_UPDATE_APPLY_TO_DIR "OSUpdApplyToD"
+
+
+
+
+
+
 
 #define XRE_MAIN_FLAG_USE_METRO 0x01
 
