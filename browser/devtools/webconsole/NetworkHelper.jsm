@@ -99,6 +99,8 @@ var NetworkHelper =
       return conv.ConvertToUnicode(aText);
     }
     catch (ex) {
+      Cu.reportError("NH_convertToUnicode(aText, '" +
+        aCharset + "') exception: " + ex);
       return aText;
     }
   },
@@ -175,24 +177,8 @@ var NetworkHelper =
   readPostTextFromPage: function NH_readPostTextFromPage(aDocShell, aCharset)
   {
     let webNav = aDocShell.QueryInterface(Ci.nsIWebNavigation);
-    return this.readPostTextFromPageViaWebNav(webNav, aCharset);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  readPostTextFromPageViaWebNav:
-  function NH_readPostTextFromPageViaWebNav(aWebNav, aCharset)
-  {
-    if (aWebNav instanceof Ci.nsIWebPageDescriptor) {
-      let descriptor = aWebNav.currentDescriptor;
+    if (webNav instanceof Ci.nsIWebPageDescriptor) {
+      let descriptor = webNav.currentDescriptor;
 
       if (descriptor instanceof Ci.nsISHEntry && descriptor.postData &&
           descriptor instanceof Ci.nsISeekableStream) {
