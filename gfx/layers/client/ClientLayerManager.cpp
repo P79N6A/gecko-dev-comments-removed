@@ -32,11 +32,10 @@
 #include "AndroidBridge.h"
 #endif
 
-using namespace mozilla::dom;
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 ClientLayerManager::ClientLayerManager(nsIWidget* aWidget)
   : mPhase(PHASE_NONE)
@@ -131,8 +130,8 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   
-  ScreenOrientation orientation;
-  if (TabChild* window = mWidget->GetOwningTabChild()) {
+  dom::ScreenOrientation orientation;
+  if (dom::TabChild* window = mWidget->GetOwningTabChild()) {
     orientation = window->GetOrientation();
   } else {
     hal::ScreenConfiguration currentConfig;
@@ -150,7 +149,7 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   if (mWidget) {
-    if (TabChild* window = mWidget->GetOwningTabChild()) {
+    if (dom::TabChild* window = mWidget->GetOwningTabChild()) {
       mCompositorMightResample = window->IsAsyncPanZoomEnabled();
     }
   }

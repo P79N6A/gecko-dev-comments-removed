@@ -18,10 +18,10 @@
 #include "nsISupportsImpl.h"            
 #include "nsRegion.h"                   
 
-using namespace mozilla::gfx;
-
 namespace mozilla {
 namespace layers {
+
+using namespace mozilla::gfx;
 
 class ClientImageLayer : public ImageLayer, 
                          public ClientLayer {
