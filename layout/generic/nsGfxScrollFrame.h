@@ -279,7 +279,7 @@ public:
   void UpdateSticky();
 
   bool IsRectNearlyVisible(const nsRect& aRect) const;
-  nsRect ExpandRect(const nsRect& aRect) const;
+  nsRect ExpandRectToNearlyVisible(const nsRect& aRect) const;
 
   
   
@@ -671,8 +671,8 @@ public:
   virtual bool IsRectNearlyVisible(const nsRect& aRect) MOZ_OVERRIDE {
     return mHelper.IsRectNearlyVisible(aRect);
   }
-  virtual nsRect ExpandRect(const nsRect& aRect) const MOZ_OVERRIDE {
-    return mHelper.ExpandRect(aRect);
+  virtual nsRect ExpandRectToNearlyVisible(const nsRect& aRect) const MOZ_OVERRIDE {
+    return mHelper.ExpandRectToNearlyVisible(aRect);
   }
   virtual nsIAtom* OriginOfLastScroll() MOZ_OVERRIDE {
     return mHelper.OriginOfLastScroll();
@@ -990,8 +990,8 @@ public:
   virtual bool IsRectNearlyVisible(const nsRect& aRect) MOZ_OVERRIDE {
     return mHelper.IsRectNearlyVisible(aRect);
   }
-  virtual nsRect ExpandRect(const nsRect& aRect) const MOZ_OVERRIDE {
-    return mHelper.ExpandRect(aRect);
+  virtual nsRect ExpandRectToNearlyVisible(const nsRect& aRect) const MOZ_OVERRIDE {
+    return mHelper.ExpandRectToNearlyVisible(aRect);
   }
   virtual nsIAtom* OriginOfLastScroll() MOZ_OVERRIDE {
     return mHelper.OriginOfLastScroll();

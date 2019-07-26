@@ -290,7 +290,7 @@ public:
 
 
 
-  virtual nsRect ExpandRect(const nsRect& aRect) const = 0;
+  virtual nsRect ExpandRectToNearlyVisible(const nsRect& aRect) const = 0;
   
 
 

@@ -423,7 +423,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
           
           
           nsIScrollableFrame* rootScrollableFrame = do_QueryFrame(rootScrollFrame);
-          dirty = rootScrollableFrame->ExpandRect(dirty);
+          dirty = rootScrollableFrame->ExpandRectToNearlyVisible(dirty);
         }
       }
     }
