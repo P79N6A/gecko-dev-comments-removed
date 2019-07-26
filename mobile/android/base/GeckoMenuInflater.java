@@ -16,16 +16,20 @@ import android.view.InflateException;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.SubMenu;
 
 import java.io.IOException;
 
 public class GeckoMenuInflater extends MenuInflater { 
     private static final String LOGTAG = "GeckoMenuInflater";
 
+    private static final String TAG_MENU = "menu";
     private static final String TAG_ITEM = "item";
     private static final int NO_ID = 0;
 
     private Context mContext;
+
+    private boolean isSubMenu;
 
     
     private class ParsedItem {
@@ -43,12 +47,12 @@ public class GeckoMenuInflater extends MenuInflater {
     public GeckoMenuInflater(Context context) {
         super(context);
         mContext = context;
+
+        isSubMenu = false;
     }
 
     public void inflate(int menuRes, Menu menu) {
 
-        
-        
         
 
         XmlResourceParser parser = null;
@@ -57,6 +61,8 @@ public class GeckoMenuInflater extends MenuInflater {
             AttributeSet attrs = Xml.asAttributeSet(parser);
 
             ParsedItem item = null;
+            SubMenu subMenu = null;
+            MenuItem menuItem = null;
    
             String tag;
             int eventType = parser.getEventType();
@@ -70,14 +76,35 @@ public class GeckoMenuInflater extends MenuInflater {
                             
                             item = new ParsedItem();
                             parseItem(item, attrs);
-                         }
+                         } else if (tag.equals(TAG_MENU)) {
+                            if (item != null) {
+                                
+                                isSubMenu = true;
+                                subMenu = menu.addSubMenu(NO_ID, item.id, item.order, item.title);
+                                menuItem = subMenu.getItem();
+
+                                
+                                setValues(item, menuItem);
+                            }
+                        }
                         break;
                         
                     case XmlPullParser.END_TAG:
                         if (parser.getName().equals(TAG_ITEM)) {
+                            if (isSubMenu && subMenu == null) {
+                                isSubMenu = false;
+                            } else {
+                                
+                                if (subMenu == null)
+                                    menuItem = menu.add(NO_ID, item.id, item.order, item.title);
+                                else
+                                    menuItem = subMenu.add(NO_ID, item.id, item.order, item.title);
+
+                                setValues(item, menuItem);
+                            }
+                        } else if (tag.equals(TAG_MENU)) {
                             
-                            MenuItem menuItem = menu.add(NO_ID, item.id, item.order, item.title);
-                            setValues(item, menuItem);
+                            subMenu = null;
                         }
                         break;
                 }
