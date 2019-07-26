@@ -30,6 +30,7 @@
 
 
 #include <stdio.h>
+#include <math.h>
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -281,15 +282,16 @@ static void* SignalSender(void* arg) {
     
     
     
-    const useconds_t interval =
-      SamplerRegistry::sampler->interval() * 1000 - 100;
-    
-    usleep(interval);
+    int interval = floor(SamplerRegistry::sampler->interval() * 1000 + 0.5) - 100;
+    if (interval <= 0) {
+      interval = 1;
+    }
+    OS::SleepMicro(interval);
   }
   return initialize_atfork; 
 }
 
-Sampler::Sampler(int interval, bool profiling, int entrySize)
+Sampler::Sampler(double interval, bool profiling, int entrySize)
     : interval_(interval),
       profiling_(profiling),
       paused_(false),
@@ -434,4 +436,9 @@ void OS::RegisterStartHandler()
   }
 }
 #endif
+
+void OS::SleepMicro(int microseconds)
+{
+  usleep(microseconds);
+}
 
