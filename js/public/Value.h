@@ -908,17 +908,6 @@ class Value
 
     
 
-
-
-#if defined(__clang__) && (__clang_major__ == 4) && (__clang_minor__ <= 1)
-    Value &operator=(const Value &r) {
-        data = r.data;
-        return *this;
-    }
-#endif
-
-    
-
     void setNull() {
         data.asBits = BUILD_JSVAL(JSVAL_TAG_NULL, 0).asBits;
     }
