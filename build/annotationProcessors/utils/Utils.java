@@ -5,6 +5,9 @@
 package org.mozilla.gecko.annotationProcessors.utils;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -70,9 +73,23 @@ public class Utils {
         sInstanceCallTypes.put("short", "CallShortMethod");
     }
 
+    private static final HashMap<String, String> sFieldTypes = new HashMap<String, String>();
+
+    static {
+        sFieldTypes.put("int", "Int");
+        sFieldTypes.put("boolean", "Boolean");
+        sFieldTypes.put("long", "Long");
+        sFieldTypes.put("double", "Double");
+        sFieldTypes.put("float", "Float");
+        sFieldTypes.put("char", "Char");
+        sFieldTypes.put("byte", "Byte");
+        sFieldTypes.put("short", "Short");
+    }
+
     private static final HashMap<String, String> sFailureReturns = new HashMap<String, String>();
 
     static {
+        sFailureReturns.put("java.lang.Void", "");
         sFailureReturns.put("void", "");
         sFailureReturns.put("int", " 0");
         sFailureReturns.put("boolean", " false");
@@ -87,6 +104,7 @@ public class Utils {
     private static final HashMap<String, String> sCanonicalSignatureParts = new HashMap<String, String>();
 
     static {
+        sCanonicalSignatureParts.put("java/lang/Void", "V");
         sCanonicalSignatureParts.put("void", "V");
         sCanonicalSignatureParts.put("int", "I");
         sCanonicalSignatureParts.put("boolean", "Z");
@@ -164,13 +182,30 @@ public class Utils {
 
 
     public static String getCReturnType(Class<?> type) {
-        
+        if (type.getCanonicalName().equals("java.lang.Void")) {
+            return "void";
+        }
         String cParameterType = getCParameterType(type);
         if (cParameterType.equals("const nsAString&")) {
             return "jstring";
         } else {
             return cParameterType;
         }
+    }
+
+    
+
+
+
+
+
+    public static String getFieldType(Class<?> aFieldType) {
+        String name = aFieldType.getCanonicalName();
+
+        if (sFieldTypes.containsKey(name)) {
+            return sFieldTypes.get(name);
+        }
+        return "Object";
     }
 
     
@@ -217,10 +252,10 @@ public class Utils {
 
 
 
-    public static String getTypeSignatureString(Method aMethod) {
-        Class<?>[] arguments = aMethod.getParameterTypes();
-        Class<?> returnType = aMethod.getReturnType();
 
+
+
+    private static String getTypeSignatureInternal(Class<?>[] arguments, Class<?> returnType) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');
         
@@ -239,14 +274,88 @@ public class Utils {
 
 
 
+    protected static String getTypeSignatureStringForField(Field aField) {
+        StringBuilder sb = new StringBuilder();
+        writeTypeSignature(sb, aField.getType());
+        return sb.toString();
+    }
+
+    
+
+
+
+
+
+    protected static String getTypeSignatureStringForMethod(Method aMethod) {
+        Class<?>[] arguments = aMethod.getParameterTypes();
+        Class<?> returnType = aMethod.getReturnType();
+
+        return getTypeSignatureInternal(arguments, returnType);
+    }
+
+    
+
+
+
+
+
+    protected static String getTypeSignatureStringForConstructor(Constructor aConstructor) {
+        Class<?>[] arguments = aConstructor.getParameterTypes();
+
+        return getTypeSignatureInternal(arguments, Void.class);
+    }
+
+    public static String getTypeSignatureStringForMember(Member aMember) {
+        if (aMember instanceof Method) {
+            return getTypeSignatureStringForMethod((Method) aMember);
+        } else if (aMember instanceof Field) {
+            return getTypeSignatureStringForField((Field) aMember);
+        } else {
+            return getTypeSignatureStringForConstructor((Constructor) aMember);
+        }
+    }
+
+    public static String getTypeSignatureString(Constructor aConstructor) {
+        Class<?>[] arguments = aConstructor.getParameterTypes();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        
+        for (int i = 0; i < arguments.length; i++) {
+            writeTypeSignature(sb, arguments[i]);
+        }
+
+        
+        sb.append(")V");
+        return sb.toString();
+    }
+
+    
+
+
+
+
+
 
     private static void writeTypeSignature(StringBuilder sb, Class<?> c) {
         String name = c.getCanonicalName().replaceAll("\\.", "/");
+
         
         int len = name.length();
         while (name.endsWith("[]")) {
             sb.append('[');
             name = name.substring(0, len - 2);
+        }
+
+        if (c.isArray()) {
+            c = c.getComponentType();
+        }
+
+        Class<?> containerClass = c.getDeclaringClass();
+        if (containerClass != null) {
+            
+            final int lastSlash = name.lastIndexOf('/');
+            name = name.substring(0, lastSlash) + '$' + name.substring(lastSlash+1);
         }
 
         
@@ -269,34 +378,27 @@ public class Utils {
 
 
 
-    public static String getCImplementationMethodSignature(Method aMethod, String aCMethodName) {
-        Class<?>[] argumentTypes = aMethod.getParameterTypes();
-        Class<?> returnType = aMethod.getReturnType();
 
+
+    public static String getCImplementationMethodSignature(Class<?>[] aArgumentTypes, Class<?> aReturnType, String aCMethodName, String aCClassName) {
         StringBuilder retBuffer = new StringBuilder();
-        
-        retBuffer.append(getCReturnType(returnType));
-        retBuffer.append(" AndroidBridge::");
+
+        retBuffer.append(getCReturnType(aReturnType));
+        retBuffer.append(' ');
+        retBuffer.append(aCClassName);
+        retBuffer.append("::");
         retBuffer.append(aCMethodName);
         retBuffer.append('(');
 
         
-        if (!isMethodStatic(aMethod)) {
-            retBuffer.append("jobject aTarget");
-            if (argumentTypes.length > 0) {
-                retBuffer.append(", ");
-            }
-        }
-
-        
-        for (int aT = 0; aT < argumentTypes.length; aT++) {
-            retBuffer.append(getCParameterType(argumentTypes[aT]));
+        for (int aT = 0; aT < aArgumentTypes.length; aT++) {
+            retBuffer.append(getCParameterType(aArgumentTypes[aT]));
             retBuffer.append(" a");
             
             
             
             retBuffer.append(aT);
-            if (aT != argumentTypes.length - 1) {
+            if (aT != aArgumentTypes.length - 1) {
                 retBuffer.append(", ");
             }
         }
@@ -312,14 +414,18 @@ public class Utils {
 
 
 
-    public static String getCHeaderMethodSignature(Method aMethod, String aCMethodName, boolean aIsStaticStub) {
-        Class<?>[] argumentTypes = aMethod.getParameterTypes();
+    
 
-        
-        
-        Annotation[][] argumentAnnotations = aMethod.getParameterAnnotations();
-        Class<?> returnType = aMethod.getReturnType();
 
+
+
+
+
+
+
+
+
+    public static String getCHeaderMethodSignature(Class<?>[] aArgumentTypes, Annotation[][] aArgumentAnnotations, Class<?> aReturnType, String aCMethodName, String aCClassName, boolean aIsStaticStub) {
         StringBuilder retBuffer = new StringBuilder();
 
         
@@ -328,22 +434,14 @@ public class Utils {
         }
 
         
-        retBuffer.append(getCReturnType(returnType));
+        retBuffer.append(getCReturnType(aReturnType));
         retBuffer.append(' ');
         retBuffer.append(aCMethodName);
         retBuffer.append('(');
 
         
-        if (!isMethodStatic(aMethod)) {
-            retBuffer.append("jobject aTarget");
-            if (argumentTypes.length > 0) {
-                retBuffer.append(", ");
-            }
-        }
-
-        
-        for (int aT = 0; aT < argumentTypes.length; aT++) {
-            retBuffer.append(getCParameterType(argumentTypes[aT]));
+        for (int aT = 0; aT < aArgumentTypes.length; aT++) {
+            retBuffer.append(getCParameterType(aArgumentTypes[aT]));
             retBuffer.append(" a");
             
             
@@ -351,9 +449,9 @@ public class Utils {
             retBuffer.append(aT);
 
             
-            retBuffer.append(getDefaultValueString(argumentTypes[aT], argumentAnnotations[aT]));
+            retBuffer.append(getDefaultValueString(aArgumentTypes[aT], aArgumentAnnotations[aT]));
 
-            if (aT != argumentTypes.length - 1) {
+            if (aT != aArgumentTypes.length - 1) {
                 retBuffer.append(", ");
             }
         }
@@ -375,7 +473,7 @@ public class Utils {
         for (int i = 0; i < aArgumentAnnotations.length; i++) {
             Class<? extends Annotation> annotationType = aArgumentAnnotations[i].annotationType();
             final String annotationTypeName = annotationType.getName();
-            if (annotationTypeName.equals("org.mozilla.gecko.mozglue.OptionalGeneratedParameter")) {
+            if (annotationTypeName.equals("org.mozilla.gecko.mozglue.generatorannotations.OptionalGeneratedParameter")) {
                 return " = " + getDefaultParameterValueForType(aArgumentType);
             }
         }
@@ -408,11 +506,10 @@ public class Utils {
 
 
 
-    public static int enumerateReferenceArguments(Method m) {
+    public static int enumerateReferenceArguments(Class<?>[] aArgs) {
         int ret = 0;
-        Class<?>[] args = m.getParameterTypes();
-        for (int i = 0; i < args.length; i++) {
-            String name = args[i].getCanonicalName();
+        for (int i = 0; i < aArgs.length; i++) {
+            String name = aArgs[i].getCanonicalName();
             if (!sBasicCTypes.containsKey(name)) {
                 ret++;
             }
@@ -452,7 +549,7 @@ public class Utils {
             sb.append(" = ").append(argName).append(";\n");
         } else {
             if (isCharSequence(type)) {
-                sb.append("l = NewJavaString(env, ").append(argName).append(");\n");
+                sb.append("l = AndroidBridge::NewJavaString(env, ").append(argName).append(");\n");
             } else {
                 sb.append("l = ").append(argName).append(";\n");
             }
@@ -467,10 +564,8 @@ public class Utils {
 
 
 
-
-    public static boolean doesReturnObjectType(Method aMethod) {
-        Class<?> returnType = aMethod.getReturnType();
-        return !sBasicCTypes.containsKey(returnType.getCanonicalName());
+    public static boolean isObjectType(Class<?> aType) {
+        return !sBasicCTypes.containsKey(aType.getCanonicalName());
     }
 
     
@@ -495,7 +590,16 @@ public class Utils {
         sb.append("    ");
         sb.append(getClassReferenceName(aClass));
         sb.append(" = getClassGlobalRef(\"");
-        sb.append(aClass.getCanonicalName().replaceAll("\\.", "/"));
+
+        String name = aClass.getCanonicalName().replaceAll("\\.", "/");
+        Class<?> containerClass = aClass.getDeclaringClass();
+        if (containerClass != null) {
+            
+            final int lastSlash = name.lastIndexOf('/');
+            name = name.substring(0, lastSlash) + '$' + name.substring(lastSlash+1);
+        }
+
+        sb.append(name);
         sb.append("\");\n");
         return sb.toString();
     }
@@ -523,8 +627,18 @@ public class Utils {
 
 
 
-    public static boolean isMethodStatic(Method aMethod) {
-        int aMethodModifiers = aMethod.getModifiers();
+    public static boolean isMemberStatic(Member aMember) {
+        int aMethodModifiers = aMember.getModifiers();
         return Modifier.isStatic(aMethodModifiers);
+    }
+
+    
+
+
+
+
+    public static boolean isMemberFinal(Member aMember) {
+        int aMethodModifiers = aMember.getModifiers();
+        return Modifier.isFinal(aMethodModifiers);
     }
 }
