@@ -1276,7 +1276,9 @@ void AsyncPanZoomController::RequestContentRepaint() {
             mFrameMetrics.mScrollOffset.x) < EPSILON &&
       fabsf(mLastPaintRequestMetrics.mScrollOffset.y -
             mFrameMetrics.mScrollOffset.y) < EPSILON &&
-      mFrameMetrics.mZoom == mLastPaintRequestMetrics.mZoom) {
+      mFrameMetrics.mZoom == mLastPaintRequestMetrics.mZoom &&
+      fabsf(mFrameMetrics.mViewport.width - mLastPaintRequestMetrics.mViewport.width) < EPSILON &&
+      fabsf(mFrameMetrics.mViewport.height - mLastPaintRequestMetrics.mViewport.height) < EPSILON) {
     return;
   }
 
@@ -1463,8 +1465,10 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       aLayerMetrics.mCompositionBounds.height == mFrameMetrics.mCompositionBounds.height) {
     
     
-    if (mFrameMetrics.mViewport.width != aLayerMetrics.mViewport.width)
+    if (mFrameMetrics.mViewport.width != aLayerMetrics.mViewport.width ||
+        mFrameMetrics.mViewport.height != aLayerMetrics.mViewport.height) {
       needContentRepaint = true;
+    }
     mFrameMetrics.mViewport = aLayerMetrics.mViewport;
   }
 
