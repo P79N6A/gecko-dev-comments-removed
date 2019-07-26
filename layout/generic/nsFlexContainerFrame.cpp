@@ -2019,6 +2019,10 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
          ("Reflow() for nsFlexContainerFrame %p\n", this));
 
+  if (IsFrameTreeTooDeep(aReflowState, aDesiredSize, aStatus)) {
+    return NS_OK;
+  }
+
   
   
   
