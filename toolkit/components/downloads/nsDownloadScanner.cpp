@@ -459,10 +459,10 @@ nsDownloadScanner::Scan::DoScanAES()
       bool gotException = false;
       MOZ_SEH_TRY {
         (void)ae->SetClientGuid(GUID_MozillaVirusScannerPromptGeneric);
-        (void)ae->SetLocalPath(mPath.BeginWriting());
+        (void)ae->SetLocalPath(mPath.get());
         
         if (!mSkipSource)
-          (void)ae->SetSource(mOrigin.BeginWriting());
+          (void)ae->SetSource(mOrigin.get());
 
         
         hr = ae->Save();

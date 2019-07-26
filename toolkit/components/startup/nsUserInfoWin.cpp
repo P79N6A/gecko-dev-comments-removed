@@ -32,7 +32,7 @@ nsUserInfo::GetUsername(char **aUsername)
   *aUsername = nullptr;
 
   
-  PRUnichar username[UNLEN +1];
+  wchar_t username[UNLEN +1];
   DWORD size = mozilla::ArrayLength(username);
   if (!GetUserNameW(username, &size))
     return NS_ERROR_FAILURE;
@@ -47,7 +47,7 @@ nsUserInfo::GetFullname(PRUnichar **aFullname)
   NS_ENSURE_ARG_POINTER(aFullname);
   *aFullname = nullptr;
 
-  PRUnichar fullName[512];
+  wchar_t fullName[512];
   DWORD size = mozilla::ArrayLength(fullName);
 
   if (GetUserNameExW(NameDisplay, fullName, &size)) {
@@ -57,7 +57,7 @@ nsUserInfo::GetFullname(PRUnichar **aFullname)
 
     
     
-    PRUnichar username[UNLEN + 1];
+    wchar_t username[UNLEN + 1];
     size = mozilla::ArrayLength(username);
     if (!GetUserNameW(username, &size)) {
       
@@ -119,7 +119,7 @@ nsUserInfo::GetEmailAddress(char **aEmailAddress)
   *aEmailAddress = nullptr;
 
   
-  PRUnichar emailAddress[255];
+  wchar_t emailAddress[255];
   DWORD size = mozilla::ArrayLength(emailAddress);
 
   if (!GetUserNameExW(NameUserPrincipal, emailAddress, &size)) {
