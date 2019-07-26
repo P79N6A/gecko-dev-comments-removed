@@ -4467,14 +4467,6 @@ JS_ErrorFromException(JSContext *cx, JS::HandleValue v);
 
 
 
-
-extern JS_PUBLIC_API(bool)
-JS_ThrowReportedError(JSContext *cx, const char *message,
-                      JSErrorReport *reportp);
-
-
-
-
 extern JS_PUBLIC_API(bool)
 JS_ThrowStopIteration(JSContext *cx);
 
