@@ -46,6 +46,7 @@
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsDirectoryServiceDefs.h"
+#include "nsXULAppAPI.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "mozJSComponentLoader.h"
 
@@ -91,6 +92,21 @@ struct Paths {
 
 
   nsString desktopDir;
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsString userApplicationDataDir;
 
 #if defined(XP_WIN)
   
@@ -123,6 +139,7 @@ struct Paths {
     localProfileDir.SetIsVoid(true);
     homeDir.SetIsVoid(true);
     desktopDir.SetIsVoid(true);
+    userApplicationDataDir.SetIsVoid(true);
 
 #if defined(XP_WIN)
     winAppDataDir.SetIsVoid(true);
@@ -218,7 +235,7 @@ nsresult InitOSFileConstants()
 
   
   nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_GetSpecialDirectory("XpcomLib", getter_AddRefs(file));
+  nsresult rv = NS_GetSpecialDirectory(NS_XPCOM_LIBRARY_FILE, getter_AddRefs(file));
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -262,6 +279,7 @@ nsresult InitOSFileConstants()
   GetPathToSpecialDir(NS_OS_TEMP_DIR, paths->tmpDir);
   GetPathToSpecialDir(NS_OS_HOME_DIR, paths->homeDir);
   GetPathToSpecialDir(NS_OS_DESKTOP_DIR, paths->desktopDir);
+  GetPathToSpecialDir(XRE_USER_APP_DATA_DIR, paths->userApplicationDataDir);
 
 #if defined(XP_WIN)
   GetPathToSpecialDir(NS_WIN_APPDATA_DIR, paths->winAppDataDir);
@@ -854,6 +872,10 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   }
 
   if (!SetStringProperty(cx, objPath, "desktopDir", gPaths->desktopDir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "userApplicationDataDir", gPaths->userApplicationDataDir)) {
     return false;
   }
 
