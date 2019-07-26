@@ -170,13 +170,16 @@ js::DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
 JS_FRIEND_API(bool)
 JS_SetDebugModeForAllCompartments(JSContext *cx, bool debug)
 {
-    AutoDebugModeGC dmgc(cx->runtime());
-
-    for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
+    for (ZonesIter zone(cx->runtime(), SkipAtoms); !zone.done(); zone.next()) {
         
-        if (c->principals) {
-            if (!c->setDebugModeFromC(cx, !!debug, dmgc))
-                return false;
+        
+        AutoDebugModeInvalidation invalidate(zone);
+        for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
+            
+            if (c->principals) {
+                if (!c->setDebugModeFromC(cx, !!debug, invalidate))
+                    return false;
+            }
         }
     }
     return true;
@@ -185,8 +188,8 @@ JS_SetDebugModeForAllCompartments(JSContext *cx, bool debug)
 JS_FRIEND_API(bool)
 JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, bool debug)
 {
-    AutoDebugModeGC dmgc(cx->runtime());
-    return comp->setDebugModeFromC(cx, !!debug, dmgc);
+    AutoDebugModeInvalidation invalidate(comp);
+    return comp->setDebugModeFromC(cx, !!debug, invalidate);
 }
 
 static bool
