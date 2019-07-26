@@ -70,11 +70,6 @@ struct IonOptions
     
     
     
-    bool parallelCompilation;
-
-    
-    
-    
     
     uint32 usesBeforeCompile;
 
@@ -145,8 +140,6 @@ struct IonOptions
         
         usesBeforeInlining = 0;
         smallFunctionUsesBeforeInlining = 0;
-
-        parallelCompilation = false;
     }
 
     IonOptions()
@@ -159,7 +152,6 @@ struct IonOptions
         inlining(true),
         edgeCaseAnalysis(true),
         rangeAnalysis(false),
-        parallelCompilation(false),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
         usesBeforeInlining(usesBeforeCompile),
@@ -171,8 +163,7 @@ struct IonOptions
         inlineMaxTotalBytecodeLength(800),
         eagerCompilation(false),
         slowCallLimit(512)
-    {
-    }
+    { }
 };
 
 enum MethodStatus
@@ -238,13 +229,6 @@ bool Invalidate(JSContext *cx, JSScript *script, bool resetUses = true);
 void MarkFromIon(JSCompartment *comp, Value *vp);
 
 void ToggleBarriers(JSCompartment *comp, bool needs);
-
-class IonBuilder;
-
-bool CompileBackEnd(IonBuilder *builder);
-void AttachFinishedCompilations(JSContext *cx);
-void FinishOffThreadBuilder(IonBuilder *builder);
-bool TestIonCompile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing);
 
 static inline bool IsEnabled(JSContext *cx)
 {

@@ -22,14 +22,10 @@ class TempAllocator
     LifoAlloc *lifoAlloc_;
     void *mark_;
 
-    
-    JS::CompilerRootNode *rootList_;
-
   public:
     TempAllocator(LifoAlloc *lifoAlloc)
       : lifoAlloc_(lifoAlloc),
-        mark_(lifoAlloc->mark()),
-        rootList_(NULL)
+        mark_(lifoAlloc->mark())
     { }
 
     ~TempAllocator()
@@ -57,35 +53,11 @@ class TempAllocator
         return lifoAlloc_;
     }
 
-    JS::CompilerRootNode *&rootList()
-    {
-        return rootList_;
-    }
-
     bool ensureBallast() {
         
         
         return lifoAlloc_->ensureUnusedApproximate(16 * 1024);
     }
-};
-
-
-class AutoTempAllocatorRooter : private AutoGCRooter
-{
-  public:
-    explicit AutoTempAllocatorRooter(JSContext *cx, TempAllocator *temp
-                                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, IONALLOC), temp(temp)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    void trace(JSTracer *trc);
-
-  private:
-    TempAllocator *temp;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 class IonAllocPolicy
