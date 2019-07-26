@@ -283,24 +283,6 @@ DevToolsLoader.prototype = {
 
 
 
-
-
-
-
-  lazyRequireGetter: function (obj, property, module) {
-    Object.defineProperty(obj, property, {
-      get: () => this.require(module)
-    });
-  },
-
-  
-
-
-
-
-
-
-
   loadURI: function(id, uri) {
     let module = loader.Module(id, uri);
     return loader.load(this.provider.loader, module).exports;
