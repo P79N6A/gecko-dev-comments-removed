@@ -9,5 +9,15 @@ import org.mozilla.gecko.mozglue.RobocopTarget;
 
 @RobocopTarget
 public interface NativeEventListener {
-    void handleMessage(String event, NativeJSObject message);
+    
+
+
+
+
+
+
+
+
+
+    void handleMessage(String event, NativeJSObject message, EventCallback callback);
 }
