@@ -46,6 +46,7 @@ class nsIURI;
 class nsNodeSupportsWeakRefTearoff;
 class nsNodeWeakReference;
 class nsXPCClassInfo;
+class nsDOMMutationObserver;
 
 namespace mozilla {
 namespace dom {
@@ -1473,6 +1474,8 @@ public:
   
   
   void UnbindObject(nsISupports* aObject);
+
+  void GetBoundMutationObservers(nsTArray<nsRefPtr<nsDOMMutationObserver> >& aResult);
 
   
 
