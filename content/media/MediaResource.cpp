@@ -187,7 +187,11 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       
       
       
-      if (responseStatus != HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE) {
+      if (responseStatus == HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE) {
+        
+        
+        mCacheStream.NotifyDataEnded(status);
+      } else {
         mDecoder->NetworkError();
       }
 
