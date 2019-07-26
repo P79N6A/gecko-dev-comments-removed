@@ -547,7 +547,17 @@ WrapperFactory::WaiveXrayAndWrap(JSContext *cx, jsval *vp)
         return true;
     }
 
-    obj = WaiveXray(cx, obj);
+    
+    
+    
+    
+    
+    
+    
+    
+    JSCompartment *target = js::GetContextCompartment(cx);
+    JSCompartment *origin = js::GetObjectCompartment(obj);
+    obj = AccessCheck::subsumes(target, origin) ? WaiveXray(cx, obj) : obj;
     if (!obj)
         return false;
 
