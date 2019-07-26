@@ -188,6 +188,25 @@ public:
     virtual mozilla::TemporaryRef<mozilla::gfx::ScaledFont>
       GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
 
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual already_AddRefed<gfxASurface>
+      CreateThebesSurfaceAliasForDrawTarget_hack(mozilla::gfx::DrawTarget *aTarget) {
+      
+      
+      return GetThebesSurfaceForDrawTarget(aTarget);
+    }
+
     virtual already_AddRefed<gfxASurface>
       GetThebesSurfaceForDrawTarget(mozilla::gfx::DrawTarget *aTarget);
 
