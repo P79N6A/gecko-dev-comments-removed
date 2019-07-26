@@ -3942,7 +3942,7 @@ GetPropertyHelperInline(JSContext *cx,
             }
 
             
-            if (!cx->hasExtraWarningsOption() || (op != JSOP_GETPROP && op != JSOP_GETELEM))
+            if (!cx->hasStrictOption() || (op != JSOP_GETPROP && op != JSOP_GETELEM))
                 return true;
 
             
@@ -4163,8 +4163,7 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
             return true;
 
         
-        
-        if (!script->strict && !cx->hasExtraWarningsOption())
+        if (!script->strict && !cx->hasStrictOption())
             return true;
     }
 
@@ -4187,8 +4186,7 @@ js::ReportIfUndeclaredVarAssignment(JSContext *cx, HandleString propname)
             return true;
 
         
-        
-        if (!script->strict && !cx->hasExtraWarningsOption())
+        if (!script->strict && !cx->hasStrictOption())
             return true;
 
         
@@ -4290,7 +4288,7 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
                 if (pd.attrs & JSPROP_READONLY) {
                     if (strict)
                         return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
-                    if (cx->hasExtraWarningsOption())
+                    if (cx->hasStrictOption())
                         return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                     return true;
                 }
@@ -4337,7 +4335,7 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
                 
                 if (strict)
                     return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
-                if (cx->hasExtraWarningsOption())
+                if (cx->hasStrictOption())
                     return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                 return JS_TRUE;
             }
@@ -4414,7 +4412,7 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
             
             if (strict)
                 return obj->reportNotExtensible(cx);
-            if (cx->hasExtraWarningsOption())
+            if (cx->hasStrictOption())
                 return obj->reportNotExtensible(cx, JSREPORT_STRICT | JSREPORT_WARNING);
             return true;
         }
