@@ -88,6 +88,9 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   
   
   
+  
+  
+  
 
   const char16_t* in = aIdent.BeginReading();
   const char16_t* const end = aIdent.EndReading();
@@ -97,7 +100,13 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
 
   
   
-  if (in + 1 != end && *in == '-') {
+  if (*in == '-') {
+    if (in + 1 == end) {
+      aReturn.Append(char16_t('\\'));
+      aReturn.Append(char16_t('-'));
+      return true;
+    }
+
     aReturn.Append(char16_t('-'));
     ++in;
   }
@@ -105,16 +114,8 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   
   
   
-  
-  
-  if (in != end && (*in == '-' ||
-                    ('0' <= *in && *in <= '9'))) {
-    if (*in == '-') {
-      aReturn.Append(char16_t('\\'));
-      aReturn.Append(char16_t('-'));
-    } else {
-      aReturn.AppendPrintf("\\%hX ", *in);
-    }
+  if (in != end && ('0' <= *in && *in <= '9')) {
+    aReturn.AppendPrintf("\\%hX ", *in);
     ++in;
   }
 
