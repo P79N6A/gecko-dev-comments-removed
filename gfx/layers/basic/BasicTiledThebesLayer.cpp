@@ -287,7 +287,10 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
     
     
-    if (BasicManager()->ShouldAbortProgressiveUpdate(hasNewContent)) {
+    
+    gfx::Rect viewport;
+    float scaleX, scaleY;
+    if (BasicManager()->ProgressiveUpdateCallback(hasNewContent, viewport, scaleX, scaleY)) {
       return;
     }
 

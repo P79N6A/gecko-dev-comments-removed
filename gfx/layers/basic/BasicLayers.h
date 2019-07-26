@@ -278,7 +278,14 @@ public:
 
 
 
-  bool ShouldAbortProgressiveUpdate(bool aHasPendingNewThebesContent);
+
+
+
+
+  bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
+                                 gfx::Rect& aViewport,
+                                 float& aScaleX,
+                                 float& aScaleY);
 
 private:
   

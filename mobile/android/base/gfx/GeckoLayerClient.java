@@ -73,6 +73,9 @@ public class GeckoLayerClient
     private final ViewTransform mCurrentViewTransform;
 
     
+    private final ProgressiveUpdateData mProgressiveUpdateData;
+
+    
     private volatile boolean mCompositorCreated;
 
     private boolean mForceRedraw;
@@ -109,6 +112,7 @@ public class GeckoLayerClient
         mRecordDrawTimes = true;
         mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
+        mProgressiveUpdateData = new ProgressiveUpdateData();
         mCompositorCreated = false;
 
         mForceRedraw = true;
@@ -362,17 +366,21 @@ public class GeckoLayerClient
     
     
     
-    public boolean shouldAbortProgressiveUpdate(boolean aHasPendingNewThebesContent,
-                                                float x, float y, float width, float height, float resolution) {
+    public ProgressiveUpdateData progressiveUpdateCallback(boolean aHasPendingNewThebesContent,
+                                                           float x, float y, float width, float height, float resolution) {
         
         
         DisplayPortMetrics displayPort = mDisplayPort;
+        ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
+        mProgressiveUpdateData.setViewport(viewportMetrics);
+        mProgressiveUpdateData.abort = false;
 
         
         
         if (!FloatUtils.fuzzyEquals(resolution, displayPort.resolution)) {
             Log.d(LOGTAG, "Aborting draw due to resolution change");
-            return true;
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
         }
 
         
@@ -388,7 +396,7 @@ public class GeckoLayerClient
             Math.abs(displayPort.getTop() - y) <= 1 &&
             Math.abs(displayPort.getBottom() - (y + height)) <= 1 &&
             Math.abs(displayPort.getRight() - (x + width)) <= 1) {
-            return false;
+            return mProgressiveUpdateData;
         }
 
         
@@ -396,14 +404,13 @@ public class GeckoLayerClient
         
         
         
-        
-        ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
         if (Math.max(viewportMetrics.viewportRectLeft, viewportMetrics.pageRectLeft) + 1 < x ||
             Math.max(viewportMetrics.viewportRectTop, viewportMetrics.pageRectTop) + 1 < y ||
             Math.min(viewportMetrics.viewportRectRight, viewportMetrics.pageRectRight) - 1 > x + width ||
             Math.min(viewportMetrics.viewportRectBottom, viewportMetrics.pageRectBottom) - 1 > y + height) {
             Log.d(LOGTAG, "Aborting update due to viewport not in display-port");
-            return true;
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
         }
 
         
@@ -414,10 +421,11 @@ public class GeckoLayerClient
         
         if (!aHasPendingNewThebesContent) {
             Log.d(LOGTAG, "Aborting update due to more relevant display-port in event queue");
-            return true;
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
         }
 
-        return false;
+        return mProgressiveUpdateData;
     }
 
     
