@@ -234,6 +234,10 @@ var FullZoom = {
 
   onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
     
+    if (gMultiProcessBrowser)
+      return;
+
+    
     
     
     let browser = aBrowser || gBrowser.selectedBrowser;
