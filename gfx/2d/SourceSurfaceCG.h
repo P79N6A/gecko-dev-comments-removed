@@ -3,7 +3,8 @@
 
 
 
-#pragma once
+#ifndef _MOZILLA_GFX_SOURCESURFACECG_H
+#define _MOZILLA_GFX_SOURCESURFACECG_H
 
 #include <ApplicationServices/ApplicationServices.h>
 
@@ -187,3 +188,5 @@ private:
 
 }
 }
+
+#endif 

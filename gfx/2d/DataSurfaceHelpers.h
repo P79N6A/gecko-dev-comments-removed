@@ -3,7 +3,8 @@
 
 
 
-#pragma once
+#ifndef _MOZILLA_GFX_DATASURFACEHELPERS_H
+#define _MOZILLA_GFX_DATASURFACEHELPERS_H
 
 #include "2D.h"
 
@@ -46,3 +47,5 @@ SurfaceToPackedBGR(DataSourceSurface *aSurface);
 
 }
 }
+
+#endif 
