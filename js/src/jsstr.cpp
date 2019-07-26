@@ -1876,14 +1876,8 @@ DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearS
     
     
     
-    if (g.regExpIsObject()) {
-        
-        
-        RootedValue zero(cx, Int32Value(0));
-        HandleObject regex = g.regExpObject();
-        if (!JSObject::setProperty(cx, regex, regex, cx->names().lastIndex, &zero, true))
-            return false;
-    }
+    if (!g.zeroLastIndex(cx))
+        return false;
 
     
     AutoValueVector elements(cx);
