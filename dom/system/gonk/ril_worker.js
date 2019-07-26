@@ -92,9 +92,6 @@ let RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD;
 
 let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND;
 
-
-let PENDING_NETWORK_TYPE = {};
-
 let Buf = {
   __proto__: (function(){
     return require("resource://gre/modules/workers/worker_buf.js").Buf;
@@ -229,6 +226,11 @@ let RIL = {
 
 
   preferredNetworkType: null,
+
+  
+
+
+  pendingNetworkType: {},
 
   
 
@@ -3142,7 +3144,7 @@ let RIL = {
 
     
     if (!(type in pending)) {
-      pending[type] = PENDING_NETWORK_TYPE;
+      pending[type] = this.pendingNetworkType;
     }
 
     
@@ -3159,7 +3161,7 @@ let RIL = {
     
     
     for (let key in pending) {
-      if (pending[key] == PENDING_NETWORK_TYPE) {
+      if (pending[key] == this.pendingNetworkType) {
         delete pending[key];
       }
     }
