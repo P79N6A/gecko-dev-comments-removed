@@ -120,7 +120,7 @@ SelectionManager::ProcessTextSelChangeEvent(AccEvent* aEvent)
   
   nsINode* caretCntrNode =
     nsCoreUtils::GetDOMNodeFromDOMPoint(sel->GetFocusNode(),
-                                        sel->GetFocusOffset());
+                                        sel->FocusOffset());
   if (!caretCntrNode)
     return;
 

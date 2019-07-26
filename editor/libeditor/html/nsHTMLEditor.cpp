@@ -2288,7 +2288,7 @@ nsHTMLEditor::GetElementOrParentByTagName(const nsAString& aTagName, nsIDOMNode 
 
     
     if (anchorNode->HasChildNodes() && anchorNode->IsContent()) {
-      int32_t offset = selection->GetAnchorOffset();
+      uint32_t offset = selection->AnchorOffset();
       current = anchorNode->GetChildAt(offset);
     }
     

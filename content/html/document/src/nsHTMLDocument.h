@@ -239,7 +239,7 @@ public:
   {
     
   }
-  already_AddRefed<nsISelection> GetSelection(mozilla::ErrorResult& rv);
+  already_AddRefed<mozilla::Selection> GetSelection(mozilla::ErrorResult& rv);
   
   
   
