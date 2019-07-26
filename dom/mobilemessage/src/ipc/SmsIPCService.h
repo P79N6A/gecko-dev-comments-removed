@@ -23,13 +23,10 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISMSSERVICE
   NS_DECL_NSIMOBILEMESSAGEDATABASESERVICE
-
-private:
-  static PSmsChild* GetSmsChild();
 };
 
 } 
 } 
 } 
 
-#endif 
+#endif
