@@ -419,6 +419,16 @@ inDOMUtils::GetCSSPropertyNames(uint32_t aFlags, uint32_t* aCount,
   return NS_OK;
 }
 
+static void InsertNoDuplicates(nsTArray<nsString>& aArray,
+                               const nsAString& aString)
+{
+  size_t i = aArray.IndexOfFirstElementGt(aString);
+  if (i > 0 && aArray[i-1].Equals(aString)) {
+    return;
+  }
+  aArray.InsertElementAt(i, aString);
+}
+
 static void GetKeywordsForProperty(const nsCSSProperty aProperty,
                                    nsTArray<nsString>& aArray)
 {
@@ -431,8 +441,8 @@ static void GetKeywordsForProperty(const nsCSSProperty aProperty,
     size_t i = 0;
     while (nsCSSKeyword(keywordTable[i]) != eCSSKeyword_UNKNOWN) {
       nsCSSKeyword word = nsCSSKeyword(keywordTable[i]);
-      CopyASCIItoUTF16(nsCSSKeywords::GetStringValue(word),
-          *aArray.AppendElement());
+      InsertNoDuplicates(aArray,
+                         NS_ConvertASCIItoUTF16(nsCSSKeywords::GetStringValue(word)));
       
       
       i += 2;
@@ -440,11 +450,10 @@ static void GetKeywordsForProperty(const nsCSSProperty aProperty,
   }
 }
 
-static void GetColorsForProperty(const nsCSSProperty propertyID,
+static void GetColorsForProperty(const uint32_t aParserVariant,
                                  nsTArray<nsString>& aArray)
 {
-  uint32_t propertyParserVariant = nsCSSProps::ParserVariant(propertyID);
-  if (propertyParserVariant & VARIANT_COLOR) {
+  if (aParserVariant & VARIANT_COLOR) {
     size_t size;
     const char * const *allColorNames = NS_AllColorNames(&size);
     for (size_t i = 0; i < size; i++) {
@@ -452,6 +461,45 @@ static void GetColorsForProperty(const nsCSSProperty propertyID,
     }
   }
   return;
+}
+
+static void GetOtherValuesForProperty(const uint32_t aParserVariant,
+                                      nsTArray<nsString>& aArray)
+{
+  if (aParserVariant & VARIANT_AUTO) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("auto"));
+  }
+  if (aParserVariant & VARIANT_NORMAL) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("normal"));
+  }
+  if(aParserVariant & VARIANT_ALL) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("all"));
+  }
+  if (aParserVariant & VARIANT_NONE) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("none"));
+  }
+  if (aParserVariant & VARIANT_ELEMENT) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("-moz-element"));
+  }
+  if (aParserVariant & VARIANT_IMAGE_RECT) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("-moz-image-rect"));
+  }
+  if (aParserVariant & VARIANT_COLOR) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("rgb"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("hsl"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("-moz-rgba"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("-moz-hsla"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("rgba"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("hsla"));
+  }
+  if (aParserVariant & VARIANT_TIMING_FUNCTION) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("cubic-bezier"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("steps"));
+  }
+  if (aParserVariant & VARIANT_CALC) {
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("calc"));
+    InsertNoDuplicates(aArray, NS_LITERAL_STRING("-moz-calc"));
+  }
 }
 
 NS_IMETHODIMP
@@ -467,19 +515,27 @@ inDOMUtils::GetCSSValuesForProperty(const nsAString& aProperty,
 
   nsTArray<nsString> array;
   
-  array.AppendElement(NS_LITERAL_STRING("-moz-initial"));
-  array.AppendElement(NS_LITERAL_STRING("inherit"));
+  
   if (!nsCSSProps::IsShorthand(propertyID)) {
     
+    uint32_t propertyParserVariant = nsCSSProps::ParserVariant(propertyID);
+    
+    GetColorsForProperty(propertyParserVariant, array);
     GetKeywordsForProperty(propertyID, array);
-    GetColorsForProperty(propertyID, array);
+    GetOtherValuesForProperty(propertyParserVariant, array);
   } else {
     
     CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(subproperty, propertyID) {
+      uint32_t propertyParserVariant = nsCSSProps::ParserVariant(*subproperty);
+      
+      GetColorsForProperty(propertyParserVariant, array);
       GetKeywordsForProperty(*subproperty, array);
-      GetColorsForProperty(*subproperty, array);
+      GetOtherValuesForProperty(propertyParserVariant, array);
     }
   }
+  
+  InsertNoDuplicates(array, NS_LITERAL_STRING("-moz-initial"));
+  InsertNoDuplicates(array, NS_LITERAL_STRING("inherit"));
 
   *aLength = array.Length();
   PRUnichar** ret =
