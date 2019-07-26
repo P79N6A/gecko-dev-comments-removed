@@ -104,6 +104,8 @@ FrameWorker.prototype = {
     this.ports = {};
     
     
+    this.loaded = false;
+    
     
     
     this.reloading = true;
@@ -247,7 +249,6 @@ FrameWorker.prototype = {
     
     workerWindow.addEventListener("unload", function unloadListener() {
       workerWindow.removeEventListener("unload", unloadListener);
-      delete workerCache[worker.url];
       
       for (let [portid, port] in Iterator(worker.ports)) {
         
