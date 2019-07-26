@@ -671,7 +671,12 @@ HyperTextAccessible::TextAtOffset(int32_t aOffset,
 
   switch (aBoundaryType) {
     case BOUNDARY_CHAR:
-      CharAt(adjustedOffset, aText, aStartOffset, aEndOffset);
+      
+      
+      if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET && IsCaretAtEndOfLine())
+        *aStartOffset = *aEndOffset = adjustedOffset;
+      else
+        CharAt(adjustedOffset, aText, aStartOffset, aEndOffset);
       break;
 
     case BOUNDARY_WORD_START:
@@ -734,7 +739,12 @@ HyperTextAccessible::TextAfterOffset(int32_t aOffset,
 
   switch (aBoundaryType) {
     case BOUNDARY_CHAR:
-      CharAt(convertedOffset + 1, aText, aStartOffset, aEndOffset);
+      
+      
+      if (adjustedOffset >= CharacterCount())
+        *aStartOffset = *aEndOffset = CharacterCount();
+      else
+        CharAt(adjustedOffset + 1, aText, aStartOffset, aEndOffset);
       break;
 
     case BOUNDARY_WORD_START:

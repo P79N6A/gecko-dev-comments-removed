@@ -400,6 +400,11 @@ protected:
   
 
 
+  bool IsCaretAtEndOfLine() const;
+
+  
+
+
   bool IsEmptyLastLineOffset(int32_t aOffset)
   {
     return aOffset == static_cast<int32_t>(CharacterCount()) &&
