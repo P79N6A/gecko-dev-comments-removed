@@ -61,6 +61,7 @@ function WebConsoleActor(aConnection, aParentActor)
 
   this._protoChains = new Map();
   this._netEvents = new Map();
+  this._gripDepth = 0;
 
   this._onObserverNotification = this._onObserverNotification.bind(this);
   if (this.parentActor.isRootActor) {
@@ -79,6 +80,13 @@ WebConsoleActor.prototype =
 
 
   dbg: null,
+
+  
+
+
+
+
+  _gripDepth: null,
 
   
 

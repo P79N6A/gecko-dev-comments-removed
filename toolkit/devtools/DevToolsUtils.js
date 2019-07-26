@@ -6,6 +6,7 @@
 
 
 
+let Cu = Components.utils;
 let { Promise: promise } = Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
 let { Services } = Components.utils.import("resource://gre/modules/Services.jsm", {});
 
@@ -235,5 +236,26 @@ this.getProperty = function getProperty(aObj, aKey) {
 this.hasSafeGetter = function hasSafeGetter(aDesc) {
   let fn = aDesc.get;
   return fn && fn.callable && fn.class == "Function" && fn.script === undefined;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.isSafeJSObject = function isSafeJSObject(aObj) {
+  if (Cu.getGlobalForObject(aObj) ==
+      Cu.getGlobalForObject(isSafeJSObject)) {
+    return true; 
+  }
+
+  return Cu.isXrayWrapper(aObj);
 };
 
