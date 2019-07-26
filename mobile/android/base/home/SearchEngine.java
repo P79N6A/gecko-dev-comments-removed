@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.home;
 
 import android.graphics.Bitmap;
 

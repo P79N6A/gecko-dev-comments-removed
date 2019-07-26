@@ -2,7 +2,9 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.home;
+
+import org.mozilla.gecko.GeckoAppShell;
 
 import org.json.JSONArray;
 
