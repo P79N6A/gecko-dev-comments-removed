@@ -22,6 +22,7 @@ this.EXPORTED_SYMBOLS = [
   "CrashDirectoryService",
   "CrashesProvider",
   "PlacesProvider",
+  "SearchesProvider",
   "SessionsProvider",
   "SysInfoProvider",
 ];
@@ -951,6 +952,97 @@ PlacesProvider.prototype = Object.freeze({
     });
 
     return deferred.promise;
+  },
+});
+
+
+
+
+
+function SearchCountMeasurement() {
+  Metrics.Measurement.call(this);
+}
+
+SearchCountMeasurement.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "counts",
+  version: 1,
+
+  
+  
+  PARTNER_ENGINES: [
+    "amazon.com",
+    "bing",
+    "google",
+    "yahoo",
+  ],
+
+  SOURCES: [
+    "abouthome",
+    "contextmenu",
+    "searchbar",
+    "urlbar",
+  ],
+
+  configureStorage: function () {
+    
+    
+    let engines = this.PARTNER_ENGINES.concat("other");
+
+    let promise;
+
+    
+    
+    for (let engine of engines) {
+      for (let source of this.SOURCES) {
+        promise = this.registerStorageField(engine + "." + source,
+                                            this.storage.FIELD_DAILY_COUNTER);
+      }
+    }
+
+    return promise;
+  },
+});
+
+this.SearchesProvider = function () {
+  Metrics.Provider.call(this);
+};
+
+this.SearchesProvider.prototype = Object.freeze({
+  __proto__: Metrics.Provider.prototype,
+
+  name: "org.mozilla.searches",
+  measurementTypes: [SearchCountMeasurement],
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  recordSearch: function (engine, source) {
+    let m = this.getMeasurement("counts", 1);
+
+    if (m.SOURCES.indexOf(source) == -1) {
+      throw new Error("Unknown source for search: " + source);
+    }
+
+    let normalizedEngine = engine.toLowerCase();
+    if (m.PARTNER_ENGINES.indexOf(normalizedEngine) == -1) {
+      normalizedEngine = "other";
+    }
+
+    return this.enqueueStorageOperation(function recordSearch() {
+      return m.incrementDailyCounter(normalizedEngine + "." + source);
+    });
   },
 });
 
