@@ -6267,6 +6267,9 @@ var IdentityHandler = {
     return result;
   },
 
+  
+
+
   getIdentityMode: function getIdentityMode(aState) {
     if (aState & Ci.nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT)
       return this.IDENTITY_MODE_MIXED_CONTENT_BLOCKED;
@@ -6314,7 +6317,9 @@ var IdentityHandler = {
     let result = { mode: mode };
 
     
-    if (mode == this.IDENTITY_MODE_UNKNOWN)
+    
+    if (mode == this.IDENTITY_MODE_UNKNOWN ||
+        aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN)
       return result;
 
     
