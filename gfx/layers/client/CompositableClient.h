@@ -145,6 +145,15 @@ public:
 
   virtual void ClearCachedResources() {}
 
+  
+
+
+
+
+
+
+  virtual void RemoveTexture(TextureClient* aTexture);
+
   static CompositableClient* FromIPDLActor(PCompositableChild* aActor);
 
   
@@ -173,6 +182,28 @@ protected:
   TextureFlags mTextureFlags;
 
   friend class CompositableChild;
+};
+
+
+
+
+struct AutoRemoveTexture MOZ_STACK_CLASS {
+  AutoRemoveTexture(CompositableClient* aCompositable,
+                    TextureClient* aTexture = nullptr)
+    : mCompositable(aCompositable)
+    , mTexture(aTexture)
+  {}
+
+  ~AutoRemoveTexture()
+  {
+    if (mCompositable && mTexture) {
+      mCompositable->RemoveTexture(mTexture);
+    }
+  }
+
+  RefPtr<TextureClient> mTexture;
+private:
+  CompositableClient* mCompositable;
 };
 
 } 
