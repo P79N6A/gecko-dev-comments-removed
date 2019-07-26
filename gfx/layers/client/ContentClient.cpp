@@ -88,7 +88,7 @@ ContentClientBasic::CreateBuffer(ContentType aType,
 {
   MOZ_ASSERT(!(aFlags & BUFFER_COMPONENT_ALPHA));
   if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
-    gfxASurface::gfxImageFormat format =
+    gfxImageFormat format =
       gfxPlatform::GetPlatform()->OptimalFormatForContent(aType);
 
     *aBlackDT = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
@@ -706,7 +706,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
           !aLayer->GetParent()->SupportsComponentAlphaChildren()) {
         mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
       } else {
-        contentType = gfxASurface::CONTENT_COLOR;
+        contentType = GFX_CONTENT_COLOR;
       }
     }
 
@@ -715,7 +715,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
          neededRegion.GetNumRects() > 1)) {
       
       if (mode == Layer::SURFACE_OPAQUE) {
-        contentType = gfxASurface::CONTENT_COLOR_ALPHA;
+        contentType = GFX_CONTENT_COLOR_ALPHA;
         mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
       }
       
@@ -903,7 +903,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
   
   gfxUtils::ClipToRegion(result.mContext, result.mRegionToDraw);
 
-  if (mContentType == gfxASurface::CONTENT_COLOR_ALPHA) {
+  if (mContentType == GFX_CONTENT_COLOR_ALPHA) {
     result.mContext->SetOperator(gfxContext::OPERATOR_CLEAR);
     result.mContext->Paint();
     result.mContext->SetOperator(gfxContext::OPERATOR_OVER);

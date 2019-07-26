@@ -82,7 +82,7 @@ gfxWindowsSurface::gfxWindowsSurface(HDC dc, const gfxIntSize& realSize, gfxImag
 
     if (mSurfaceValid) {
         
-        int bytesPerPixel = ((imageFormat == gfxASurface::ImageFormatRGB24) ? 3 : 4);
+        int bytesPerPixel = ((imageFormat == gfxImageFormatRGB24) ? 3 : 4);
         RecordMemoryUsed(size.width * size.height * bytesPerPixel + sizeof(gfxWindowsSurface));
     }
 
@@ -125,7 +125,7 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
     }
 
     cairo_surface_t *surface;
-    if (GetContentType() == CONTENT_COLOR_ALPHA) {
+    if (GetContentType() == GFX_CONTENT_COLOR_ALPHA) {
         
         
         
@@ -205,7 +205,7 @@ gfxWindowsSurface::OptimizeToDDB(HDC dc, const gfxIntSize& size, gfxImageFormat 
     if (mForPrinting)
         return nullptr;
 
-    if (format != ImageFormatRGB24)
+    if (format != gfxImageFormatRGB24)
         return nullptr;
 
     nsRefPtr<gfxWindowsSurface> wsurf = new gfxWindowsSurface(dc, size, format);
@@ -333,8 +333,8 @@ gfxWindowsSurface::GetSize() const
                       cairo_win32_surface_get_height(mSurface));
 }
 
-gfxASurface::MemoryLocation
+gfxMemoryLocation
 gfxWindowsSurface::GetMemoryLocation() const
 {
-    return MEMORY_IN_PROCESS_NONHEAP;
+    return GFX_MEMORY_IN_PROCESS_NONHEAP;
 }

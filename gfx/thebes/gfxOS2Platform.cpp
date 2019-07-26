@@ -50,7 +50,7 @@ gfxOS2Platform::~gfxOS2Platform()
 
 already_AddRefed<gfxASurface>
 gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
-                                       gfxASurface::gfxContentType contentType)
+                                       gfxContentType contentType)
 {
 #ifdef DEBUG_thebes_2
     printf("gfxOS2Platform::CreateOffscreenSurface(%d/%d, %d)\n",
@@ -60,11 +60,11 @@ gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
 
     
     
-    if (contentType == gfxASurface::CONTENT_COLOR_ALPHA ||
-        contentType == gfxASurface::CONTENT_COLOR)
+    if (contentType == GFX_CONTENT_COLOR_ALPHA ||
+        contentType == GFX_CONTENT_COLOR)
     {
         newSurface = new gfxOS2Surface(aSize, OptimalFormatForContent(contentType));
-    } else if (contentType == gfxASurface::CONTENT_ALPHA) {
+    } else if (contentType == GFX_CONTENT_ALPHA) {
         newSurface = new gfxImageSurface(aSize, OptimalFormatForContent(contentType));
     } else {
         return nullptr;

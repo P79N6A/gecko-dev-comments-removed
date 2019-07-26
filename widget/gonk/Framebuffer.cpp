@@ -109,7 +109,7 @@ Open()
     
     
     
-    gfxASurface::gfxImageFormat format = gfxASurface::ImageFormatRGB16_565;
+    gfxImageFormat format = gfxImageFormatRGB16_565;
     int bytesPerPixel = gfxASurface::BytePerPixelFromFormat(format);
     if (!sScreenSize) {
         sScreenSize = new gfxIntSize(sVi.xres, sVi.yres);

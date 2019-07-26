@@ -76,7 +76,7 @@ public:
 
     
     
-    virtual gfxASurface::MemoryLocation GetMemoryLocation() const;
+    virtual gfxMemoryLocation GetMemoryLocation() const;
 
 #if defined(GL_PROVIDER_GLX)
     GLXPixmap GetGLXPixmap();

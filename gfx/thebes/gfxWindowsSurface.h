@@ -35,12 +35,12 @@ public:
 
     
     gfxWindowsSurface(const gfxIntSize& size,
-                      gfxImageFormat imageFormat = ImageFormatRGB24);
+                      gfxImageFormat imageFormat = gfxImageFormatRGB24);
 
     
     gfxWindowsSurface(HDC dc,
                       const gfxIntSize& size,
-                      gfxImageFormat imageFormat = ImageFormatRGB24);
+                      gfxImageFormat imageFormat = gfxImageFormatRGB24);
 
     gfxWindowsSurface(cairo_surface_t *csurf);
 
@@ -79,7 +79,7 @@ public:
 
     
     
-    virtual gfxASurface::MemoryLocation GetMemoryLocation() const;
+    virtual gfxMemoryLocation GetMemoryLocation() const;
 
 private:
     void MakeInvalid(gfxIntSize& size);

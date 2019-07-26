@@ -57,7 +57,7 @@ gfxAlphaBoxBlur::Init(const gfxRect& aRect,
     
     
     mImageSurface = new gfxImageSurface(gfxIntSize(size.width, size.height),
-                                        gfxASurface::ImageFormatA8,
+                                        gfxImageFormatA8,
                                         mBlur->GetStride(),
                                         blurDataSize,
                                         true);

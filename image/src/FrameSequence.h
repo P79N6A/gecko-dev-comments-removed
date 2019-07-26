@@ -173,7 +173,7 @@ public:
   
   uint32_t GetNumFrames() const;
 
-  size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation,
+  size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                  mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private: 

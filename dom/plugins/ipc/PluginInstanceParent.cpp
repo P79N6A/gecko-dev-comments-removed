@@ -606,7 +606,7 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
         
         
 #ifdef MOZ_X11
-        if (mFrontSurface->GetType() == gfxASurface::SurfaceTypeXlib) {
+        if (mFrontSurface->GetType() == gfxSurfaceTypeXlib) {
             
             
             
@@ -879,7 +879,7 @@ PluginInstanceParent::CreateBackground(const nsIntSize& aSize)
         gfxSharedImageSurface::CreateUnsafe(
             this,
             gfxIntSize(aSize.width, aSize.height),
-            gfxASurface::ImageFormatRGB24);
+            gfxImageFormatRGB24);
     return !!mBackground;
 #else
     return nullptr;

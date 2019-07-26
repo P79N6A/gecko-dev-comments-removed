@@ -60,48 +60,48 @@ public:
 
 
     typedef enum {
-        ImageFormatARGB32, 
-        ImageFormatRGB24,  
-        ImageFormatA8,     
-        ImageFormatA1,     
-        ImageFormatRGB16_565,  
-        ImageFormatUnknown
+        gfxImageFormatARGB32, 
+        gfxImageFormatRGB24,  
+        gfxImageFormatA8,     
+        gfxImageFormatA1,     
+        gfxImageFormatRGB16_565,  
+        gfxImageFormatUnknown
     } gfxImageFormat;
 
     typedef enum {
-        SurfaceTypeImage,
-        SurfaceTypePDF,
-        SurfaceTypePS,
-        SurfaceTypeXlib,
-        SurfaceTypeXcb,
-        SurfaceTypeGlitz,           
-        SurfaceTypeQuartz,
-        SurfaceTypeWin32,
-        SurfaceTypeBeOS,
-        SurfaceTypeDirectFB,        
-        SurfaceTypeSVG,
-        SurfaceTypeOS2,
-        SurfaceTypeWin32Printing,
-        SurfaceTypeQuartzImage,
-        SurfaceTypeScript,
-        SurfaceTypeQPainter,
-        SurfaceTypeRecording,
-        SurfaceTypeVG,
-        SurfaceTypeGL,
-        SurfaceTypeDRM,
-        SurfaceTypeTee,
-        SurfaceTypeXML,
-        SurfaceTypeSkia,
-        SurfaceTypeSubsurface,
-        SurfaceTypeD2D,
-        SurfaceTypeMax
+        gfxSurfaceTypeImage,
+        gfxSurfaceTypePDF,
+        gfxSurfaceTypePS,
+        gfxSurfaceTypeXlib,
+        gfxSurfaceTypeXcb,
+        gfxSurfaceTypeGlitz,           
+        gfxSurfaceTypeQuartz,
+        gfxSurfaceTypeWin32,
+        gfxSurfaceTypeBeOS,
+        gfxSurfaceTypeDirectFB,        
+        gfxSurfaceTypeSVG,
+        gfxSurfaceTypeOS2,
+        gfxSurfaceTypeWin32Printing,
+        gfxSurfaceTypeQuartzImage,
+        gfxSurfaceTypeScript,
+        gfxSurfaceTypeQPainter,
+        gfxSurfaceTypeRecording,
+        gfxSurfaceTypeVG,
+        gfxSurfaceTypeGL,
+        gfxSurfaceTypeDRM,
+        gfxSurfaceTypeTee,
+        gfxSurfaceTypeXML,
+        gfxSurfaceTypeSkia,
+        gfxSurfaceTypeSubsurface,
+        gfxSurfaceTypeD2D,
+        gfxSurfaceTypeMax
     } gfxSurfaceType;
 
     typedef enum {
-        CONTENT_COLOR       = 0x1000,
-        CONTENT_ALPHA       = 0x2000,
-        CONTENT_COLOR_ALPHA = 0x3000,
-        CONTENT_SENTINEL    = 0xffff
+        GFX_CONTENT_COLOR       = 0x1000,
+        GFX_CONTENT_ALPHA       = 0x2000,
+        GFX_CONTENT_COLOR_ALPHA = 0x3000,
+        GFX_CONTENT_SENTINEL    = 0xffff
     } gfxContentType;
 
     
@@ -197,7 +197,7 @@ public:
 
 
 
-    static void RecordMemoryUsedForSurfaceType(gfxASurface::gfxSurfaceType aType,
+    static void RecordMemoryUsedForSurfaceType(gfxSurfaceType aType,
                                                int32_t aBytes);
 
     
@@ -228,9 +228,9 @@ public:
 
 
     enum MemoryLocation {
-      MEMORY_IN_PROCESS_HEAP,
-      MEMORY_IN_PROCESS_NONHEAP,
-      MEMORY_OUT_OF_PROCESS
+      GFX_MEMORY_IN_PROCESS_HEAP,
+      GFX_MEMORY_IN_PROCESS_NONHEAP,
+      GFX_MEMORY_OUT_OF_PROCESS
     };
 
     

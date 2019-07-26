@@ -617,7 +617,7 @@ public:
     
 
 
-    void PushGroup(gfxASurface::gfxContentType content = gfxASurface::CONTENT_COLOR);
+    void PushGroup(gfxContentType content = GFX_CONTENT_COLOR);
     
 
 
@@ -629,7 +629,7 @@ public:
 
 
 
-    void PushGroupAndCopyBackground(gfxASurface::gfxContentType content = gfxASurface::CONTENT_COLOR);
+    void PushGroupAndCopyBackground(gfxContentType content = GFX_CONTENT_COLOR);
     already_AddRefed<gfxPattern> PopGroup();
     void PopGroupToSource();
 
@@ -774,7 +774,7 @@ private:
   Rect GetAzureDeviceSpaceClipBounds();
   Matrix GetDeviceTransform() const;
   Matrix GetDTTransform() const;
-  void PushNewDT(gfxASurface::gfxContentType content);
+  void PushNewDT(gfxContentType content);
 
   bool mPathIsRect;
   bool mTransformChanged;

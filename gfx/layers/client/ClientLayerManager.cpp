@@ -263,7 +263,7 @@ ClientLayerManager::MakeSnapshotIfRequired()
       mWidget->GetBounds(bounds);
       SurfaceDescriptor inSnapshot, snapshot;
       if (AllocSurfaceDescriptor(bounds.Size(),
-                                 gfxASurface::CONTENT_COLOR_ALPHA,
+                                 GFX_CONTENT_COLOR_ALPHA,
                                  &inSnapshot) &&
           
           

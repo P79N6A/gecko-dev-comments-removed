@@ -179,7 +179,7 @@ nsWindow::nsWindow()
 
         if (sUsingOMTC) {
           sOMTCSurface = new gfxImageSurface(gfxIntSize(1, 1),
-                                             gfxASurface::ImageFormatRGB24);
+                                             gfxImageFormatRGB24);
         }
     }
 }
@@ -636,7 +636,7 @@ nsWindow::GetThebesSurface()
 
     
     
-    return new gfxImageSurface(gfxIntSize(5,5), gfxImageSurface::ImageFormatRGB24);
+    return new gfxImageSurface(gfxIntSize(5,5), gfxImageFormatRGB24);
 }
 
 void

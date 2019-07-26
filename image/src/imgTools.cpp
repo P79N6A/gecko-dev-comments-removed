@@ -143,7 +143,7 @@ NS_IMETHODIMP imgTools::EncodeScaledImage(imgIContainer *aContainer,
 
   
   nsRefPtr<gfxImageSurface> dest = new gfxImageSurface(gfxIntSize(aScaledWidth, aScaledHeight),
-                                                       gfxASurface::ImageFormatARGB32);
+                                                       gfxImageFormatARGB32);
   gfxContext ctx(dest);
 
   
@@ -201,7 +201,7 @@ NS_IMETHODIMP imgTools::EncodeCroppedImage(imgIContainer *aContainer,
 
   
   nsRefPtr<gfxImageSurface> dest = new gfxImageSurface(gfxIntSize(aWidth, aHeight),
-                                                       gfxASurface::ImageFormatARGB32);
+                                                       gfxImageFormatARGB32);
   gfxContext ctx(dest);
 
   

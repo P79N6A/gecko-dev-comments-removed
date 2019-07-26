@@ -396,7 +396,7 @@ public:
 
   virtual already_AddRefed<gfxASurface>
     CreateOptimalSurface(const gfxIntSize &aSize,
-                         gfxASurface::gfxImageFormat imageFormat);
+                         gfxImageFormat imageFormat);
 
   
 

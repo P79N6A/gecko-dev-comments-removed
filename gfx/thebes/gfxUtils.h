@@ -57,7 +57,7 @@ public:
                                  const gfxRect&   aSourceRect,
                                  const gfxRect&   aImageRect,
                                  const gfxRect&   aFill,
-                                 const gfxImageSurface::gfxImageFormat aFormat,
+                                 const gfxImageFormat aFormat,
                                  gfxPattern::GraphicsFilter aFilter,
                                  uint32_t         aImageFlags = imgIContainer::FLAG_NONE);
 
@@ -94,7 +94,7 @@ public:
     
 
 
-    static int ImageFormatToDepth(gfxASurface::gfxImageFormat aFormat);
+    static int ImageFormatToDepth(gfxImageFormat aFormat);
 
     
 
@@ -130,7 +130,7 @@ public:
 
     static void
     GetYCbCrToRGBDestFormatAndSize(const mozilla::layers::PlanarYCbCrImage::Data& aData,
-                                   gfxASurface::gfxImageFormat& aSuggestedFormat,
+                                   gfxImageFormat& aSuggestedFormat,
                                    gfxIntSize& aSuggestedSize);
 
     
@@ -140,7 +140,7 @@ public:
 
     static void
     ConvertYCbCrToRGB(const mozilla::layers::PlanarYCbCrImage::Data& aData,
-                      const gfxASurface::gfxImageFormat& aDestFormat,
+                      const gfxImageFormat& aDestFormat,
                       const gfxIntSize& aDestSize,
                       unsigned char* aDestBuffer,
                       int32_t aStride);

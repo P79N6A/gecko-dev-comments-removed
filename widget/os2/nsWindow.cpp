@@ -1475,7 +1475,7 @@ HBITMAP nsWindow::CreateBitmapRGB(uint8_t* aImageData,
 
 
 
-HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
+HBITMAP nsWindow::CreateTransparencyMask(gfxImageFormat format,
                                          uint8_t* aImageData,
                                          uint32_t aWidth,
                                          uint32_t aHeight)
@@ -1492,7 +1492,7 @@ HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
 
   
   
-  if (format == gfxASurface::ImageFormatARGB32) {
+  if (format == gfxImageFormatARGB32) {
 
     
     int32_t* pSrc = (int32_t*)aImageData;

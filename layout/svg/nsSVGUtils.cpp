@@ -864,7 +864,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
       }
       aContext->IntersectClip(overflowRect);
     }
-    gfx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    gfx->PushGroup(GFX_CONTENT_COLOR_ALPHA);
   }
 
   
@@ -920,7 +920,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
 
   nsRefPtr<gfxPattern> clipMaskSurface;
   if (clipPathFrame && !isTrivialClip) {
-    gfx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    gfx->PushGroup(GFX_CONTENT_COLOR_ALPHA);
 
     nsresult rv = clipPathFrame->ClipPaint(aContext, aFrame, matrix);
     clipMaskSurface = gfx->PopGroup();
@@ -928,7 +928,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     if (NS_SUCCEEDED(rv) && clipMaskSurface) {
       
       if (maskSurface || opacity != 1.0f) {
-        gfx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+        gfx->PushGroup(GFX_CONTENT_COLOR_ALPHA);
         gfx->Mask(clipMaskSurface);
         gfx->PopGroupToSource();
       } else {

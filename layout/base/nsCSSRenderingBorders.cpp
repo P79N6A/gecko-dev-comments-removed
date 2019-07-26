@@ -1224,8 +1224,8 @@ nsCSSBorderRenderer::CreateCornerGradient(mozilla::css::Corner aCorner,
   float gradientOffset;
   
   if (mContext->IsCairo() &&
-      (mContext->OriginalSurface()->GetType() == gfxASurface::SurfaceTypeD2D ||
-       mContext->OriginalSurface()->GetType() == gfxASurface::SurfaceTypeQuartz))
+      (mContext->OriginalSurface()->GetType() == gfxSurfaceTypeD2D ||
+       mContext->OriginalSurface()->GetType() == gfxSurfaceTypeQuartz))
   {
     
     

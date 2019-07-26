@@ -43,7 +43,7 @@ public:
   
 
 
-  virtual gfxASurface::gfxImageFormat Format() = 0;
+  virtual gfxImageFormat Format() = 0;
 
   
 

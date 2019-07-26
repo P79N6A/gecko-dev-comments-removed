@@ -2285,7 +2285,7 @@ protected:
 
     typedef class gfx::SharedSurface SharedSurface;
     typedef gfx::SharedSurfaceType SharedSurfaceType;
-    typedef gfxASurface::gfxImageFormat ImageFormat;
+    typedef gfxImageFormat ImageFormat;
     typedef gfx::SurfaceFormat SurfaceFormat;
 
 public:
@@ -2652,7 +2652,7 @@ public:
                        TextureImage::ContentType aContentType,
                        GLenum aWrapMode,
                        TextureImage::Flags aFlags = TextureImage::NoFlags,
-                       TextureImage::ImageFormat aImageFormat = gfxASurface::ImageFormatUnknown);
+                       TextureImage::ImageFormat aImageFormat = gfxImageFormatUnknown);
 
     
 
@@ -2665,7 +2665,7 @@ public:
     TileGenFunc(const nsIntSize& aSize,
                 TextureImage::ContentType aContentType,
                 TextureImage::Flags aFlags = TextureImage::NoFlags,
-                TextureImage::ImageFormat aImageFormat = gfxASurface::ImageFormatUnknown)
+                TextureImage::ImageFormat aImageFormat = gfxImageFormatUnknown)
     {
         return nullptr;
     }
@@ -2762,7 +2762,7 @@ public:
 
     SurfaceFormat UploadImageDataToTexture(unsigned char* aData,
                                            int32_t aStride,
-                                           gfxASurface::gfxImageFormat aFormat,
+                                           gfxImageFormat aFormat,
                                            const nsIntRegion& aDstRegion,
                                            GLuint& aTexture,
                                            bool aOverwrite = false,

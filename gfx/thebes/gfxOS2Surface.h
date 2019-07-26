@@ -17,7 +17,7 @@ class gfxOS2Surface : public gfxASurface {
 public:
     
     gfxOS2Surface(const gfxIntSize& aSize,
-                  gfxASurface::gfxImageFormat aImageFormat);
+                  gfxImageFormat aImageFormat);
     
     gfxOS2Surface(HWND aWnd);
     

@@ -121,7 +121,7 @@ const uint32_t kMaxLenPrefLangList = 32;
 
 #define UNINITIALIZED_VALUE  (-1)
 
-typedef gfxASurface::gfxImageFormat gfxImageFormat;
+typedef gfxImageFormat gfxImageFormat;
 
 inline const char*
 GetBackendName(mozilla::gfx::BackendType aBackend)
@@ -168,7 +168,7 @@ public:
 
 
     virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(const gfxIntSize& size,
-                                                                 gfxASurface::gfxContentType contentType) = 0;
+                                                                 gfxContentType contentType) = 0;
 
     
 
@@ -180,10 +180,10 @@ public:
 
     virtual already_AddRefed<gfxASurface>
       CreateOffscreenImageSurface(const gfxIntSize& aSize,
-                                  gfxASurface::gfxContentType aContentType);
+                                  gfxContentType aContentType);
 
     virtual already_AddRefed<gfxASurface> OptimizeImage(gfxImageSurface *aSurface,
-                                                        gfxASurface::gfxImageFormat format);
+                                                        gfxImageFormat format);
 
     
 
@@ -575,12 +575,12 @@ public:
 
     gfxASurface* ScreenReferenceSurface() { return mScreenReferenceSurface; }
 
-    virtual mozilla::gfx::SurfaceFormat Optimal2DFormatForContent(gfxASurface::gfxContentType aContent);
+    virtual mozilla::gfx::SurfaceFormat Optimal2DFormatForContent(gfxContentType aContent);
 
-    virtual gfxImageFormat OptimalFormatForContent(gfxASurface::gfxContentType aContent);
+    virtual gfxImageFormat OptimalFormatForContent(gfxContentType aContent);
 
     virtual gfxImageFormat GetOffscreenFormat()
-    { return gfxASurface::ImageFormatRGB24; }
+    { return gfxImageFormatRGB24; }
 
     
 

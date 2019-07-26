@@ -54,7 +54,7 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
     switch (currentTarget->GetType()) {
 
 #ifdef MOZ_X11
-        case gfxASurface::SurfaceTypeXlib:
+        case gfxSurfaceTypeXlib:
         {
             
             
@@ -151,7 +151,7 @@ already_AddRefed<gfxSurfaceDrawable>
 gfxCallbackDrawable::MakeSurfaceDrawable(const gfxPattern::GraphicsFilter aFilter)
 {
     nsRefPtr<gfxASurface> surface =
-        gfxPlatform::GetPlatform()->CreateOffscreenSurface(mSize, gfxASurface::CONTENT_COLOR_ALPHA);
+        gfxPlatform::GetPlatform()->CreateOffscreenSurface(mSize, GFX_CONTENT_COLOR_ALPHA);
     if (!surface || surface->CairoStatus() != 0)
         return nullptr;
 

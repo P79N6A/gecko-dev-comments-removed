@@ -675,7 +675,7 @@ public:
 
 
 
-  virtual void EnsureBuffer(const nsIntSize& aSize, gfxASurface::gfxContentType aType)
+  virtual void EnsureBuffer(const nsIntSize& aSize, gfxContentType aType)
   {
     NS_RUNTIMEABORT("DeprecatedTextureHost doesn't support EnsureBuffer");
   }

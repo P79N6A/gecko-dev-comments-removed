@@ -150,7 +150,7 @@ imgFrame::~imgFrame()
 }
 
 nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
-                        gfxASurface::gfxImageFormat aFormat, uint8_t aPaletteDepth )
+                        gfxImageFormat aFormat, uint8_t aPaletteDepth )
 {
   
   if (!AllowedImageSize(aWidth, aHeight)) {
@@ -257,12 +257,12 @@ nsresult imgFrame::Optimize()
 
     if (pixelCount == 0) {
       
-      if (mFormat == gfxASurface::ImageFormatARGB32 ||
-          mFormat == gfxASurface::ImageFormatRGB24)
+      if (mFormat == gfxImageFormatARGB32 ||
+          mFormat == gfxImageFormatRGB24)
       {
         
         gfxRGBA::PackedColorType inputType = gfxRGBA::PACKED_XRGB;
-        if (mFormat == gfxASurface::ImageFormatARGB32)
+        if (mFormat == gfxImageFormatARGB32)
           inputType = gfxRGBA::PACKED_ARGB_PREMULTIPLIED;
 
         mSinglePixelColor = gfxRGBA(firstPixel, inputType);
@@ -409,7 +409,7 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
     
     
     
-    gfxImageSurface::gfxImageFormat format = gfxASurface::ImageFormatARGB32;
+    gfxImageFormat format = gfxImageFormatARGB32;
     nsRefPtr<gfxASurface> surface =
       gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, gfxImageSurface::ContentFromFormat(format));
     if (!surface || surface->CairoStatus())
@@ -519,7 +519,7 @@ nsIntRect imgFrame::GetRect() const
   return nsIntRect(mOffset, mSize);
 }
 
-gfxASurface::gfxImageFormat imgFrame::GetFormat() const
+gfxImageFormat imgFrame::GetFormat() const
 {
   return mFormat;
 }
@@ -527,7 +527,7 @@ gfxASurface::gfxImageFormat imgFrame::GetFormat() const
 bool imgFrame::GetNeedsBackground() const
 {
   
-  return (mFormat == gfxASurface::ImageFormatARGB32 || !ImageComplete());
+  return (mFormat == gfxImageFormatARGB32 || !ImageComplete());
 }
 
 uint32_t imgFrame::GetImageBytesPerRow() const
@@ -577,7 +577,7 @@ bool imgFrame::GetIsPaletted() const
 
 bool imgFrame::GetHasAlpha() const
 {
-  return mFormat == gfxASurface::ImageFormatARGB32;
+  return mFormat == gfxImageFormatARGB32;
 }
 
 void imgFrame::GetPaletteData(uint32_t **aPalette, uint32_t *length) const
@@ -624,7 +624,7 @@ nsresult imgFrame::LockImageData()
   if ((mOptSurface || mSinglePixel) && !mImageSurface) {
     
     mImageSurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height),
-                                        gfxImageSurface::ImageFormatARGB32);
+                                        gfxImageFormatARGB32);
     if (!mImageSurface || mImageSurface->CairoStatus())
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -811,8 +811,8 @@ bool imgFrame::ImageComplete() const
 
 void imgFrame::SetHasNoAlpha()
 {
-  if (mFormat == gfxASurface::ImageFormatARGB32) {
-      mFormat = gfxASurface::ImageFormatRGB24;
+  if (mFormat == gfxImageFormatARGB32) {
+      mFormat = gfxImageFormatRGB24;
       mFormatChanged = true;
       ThebesSurface()->SetOpaqueRect(gfxRect(0, 0, mSize.width, mSize.height));
   }
@@ -837,18 +837,18 @@ void imgFrame::SetCompositingFailed(bool val)
 
 
 size_t
-imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation, mozilla::MallocSizeOf aMallocSizeOf) const
+imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocation, mozilla::MallocSizeOf aMallocSizeOf) const
 {
   
   
   NS_ABORT_IF_FALSE(
-    (aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP &&  aMallocSizeOf) ||
-    (aLocation != gfxASurface::MEMORY_IN_PROCESS_HEAP && !aMallocSizeOf),
+    (aLocation == GFX_MEMORY_IN_PROCESS_HEAP &&  aMallocSizeOf) ||
+    (aLocation != GFX_MEMORY_IN_PROCESS_HEAP && !aMallocSizeOf),
     "mismatch between aLocation and aMallocSizeOf");
 
   size_t n = 0;
 
-  if (mPalettedImageData && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
+  if (mPalettedImageData && aLocation == GFX_MEMORY_IN_PROCESS_HEAP) {
     size_t n2 = aMallocSizeOf(mPalettedImageData);
     if (n2 == 0) {
       n2 = GetImageDataLength() + PaletteDataLength();
@@ -862,13 +862,13 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocat
   } else
 #endif
 #ifdef XP_MACOSX
-  if (mQuartzSurface && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
+  if (mQuartzSurface && aLocation == GFX_MEMORY_IN_PROCESS_HEAP) {
     n += mSize.width * mSize.height * 4;
   } else
 #endif
   if (mImageSurface && aLocation == mImageSurface->GetMemoryLocation()) {
     size_t n2 = 0;
-    if (aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) { 
+    if (aLocation == GFX_MEMORY_IN_PROCESS_HEAP) { 
       n2 = mImageSurface->SizeOfIncludingThis(aMallocSizeOf);
     }
     if (n2 == 0) {  
@@ -879,7 +879,7 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocat
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {
     size_t n2 = 0;
-    if (aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP &&
+    if (aLocation == GFX_MEMORY_IN_PROCESS_HEAP &&
         mOptSurface->SizeOfIsMeasured()) {
       
       n2 = mOptSurface->SizeOfIncludingThis(aMallocSizeOf);

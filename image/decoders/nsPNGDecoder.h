@@ -33,7 +33,7 @@ public:
 
   void CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
                    int32_t width, int32_t height,
-                   gfxASurface::gfxImageFormat format);
+                   gfxImageFormat format);
   void EndImageFrame();
 
   
@@ -76,7 +76,7 @@ public:
   qcms_profile *mInProfile;
   qcms_transform *mTransform;
 
-  gfxASurface::gfxImageFormat format;
+  gfxImageFormat format;
 
   
   uint8_t mSizeBytes[8]; 

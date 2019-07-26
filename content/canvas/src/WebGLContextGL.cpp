@@ -2532,7 +2532,7 @@ WebGLContext::SurfaceFromElementResultToImageSurface(nsLayoutUtils::SurfaceFromE
 {
     if (!res.mSurface)
         return NS_ERROR_FAILURE;
-    if (res.mSurface->GetType() != gfxASurface::SurfaceTypeImage) {
+    if (res.mSurface->GetType() != gfxSurfaceTypeImage) {
         
         return NS_ERROR_FAILURE;
     }
@@ -2578,16 +2578,16 @@ WebGLContext::SurfaceFromElementResultToImageSurface(nsLayoutUtils::SurfaceFromE
     *imageOut = surf;
 
     switch (surf->Format()) {
-        case gfxASurface::ImageFormatARGB32:
+        case gfxImageFormatARGB32:
             *format = WebGLTexelConversions::BGRA8; 
             break;
-        case gfxASurface::ImageFormatRGB24:
+        case gfxImageFormatRGB24:
             *format = WebGLTexelConversions::BGRX8; 
             break;
-        case gfxASurface::ImageFormatA8:
+        case gfxImageFormatA8:
             *format = WebGLTexelConversions::A8;
             break;
-        case gfxASurface::ImageFormatRGB16_565:
+        case gfxImageFormatRGB16_565:
             *format = WebGLTexelConversions::RGB565;
             break;
         default:
