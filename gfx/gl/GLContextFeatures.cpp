@@ -112,6 +112,18 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        
+        "frag_color_float",
+        300, 
+        300, 
+        {
+            GLContext::ARB_color_buffer_float,
+            GLContext::EXT_color_buffer_float,
+            GLContext::EXT_color_buffer_half_float,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "frag_depth",
         200, 
         300, 
@@ -253,6 +265,26 @@ static const FeatureInfo sFeatureInfoArr[] = {
 
     },
     {
+        "renderbuffer_float",
+        300, 
+        300, 
+        {
+            GLContext::ARB_texture_float,
+            GLContext::EXT_color_buffer_float,
+            GLContext::Extensions_End
+        }
+    },
+    {
+        "renderbuffer_half_float",
+        300, 
+        300, 
+        {
+            GLContext::ARB_texture_float,
+            GLContext::EXT_color_buffer_half_float,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "robustness",
         0,   
         0,   
@@ -282,7 +314,7 @@ static const FeatureInfo sFeatureInfoArr[] = {
     },
     {
         "texture_float",
-        310, 
+        300, 
         300, 
         {
             GLContext::ARB_texture_float,
@@ -302,7 +334,7 @@ static const FeatureInfo sFeatureInfoArr[] = {
     },
     {
         "texture_half_float",
-        310, 
+        300, 
         300, 
         {
             GLContext::ARB_half_float_pixel,
