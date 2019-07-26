@@ -802,6 +802,7 @@ pref("dom.min_background_timeout_value", 1000);
 
 
 pref("dom.experimental_forms", false);
+pref("dom.forms.number", false);
 
 
 pref("dom.experimental_forms_range", true);

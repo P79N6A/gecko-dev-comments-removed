@@ -162,6 +162,7 @@ pref("layout.spellcheckDefault", 0);
 
 
 pref("dom.experimental_forms", true);
+pref("dom.forms.number", true);
 
 
 pref("xpinstall.whitelist.add", "addons.mozilla.org");

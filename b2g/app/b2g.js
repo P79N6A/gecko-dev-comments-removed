@@ -553,6 +553,7 @@ pref("dom.disable_window_showModalDialog", true);
 
 
 pref("dom.experimental_forms", true);
+pref("dom.forms.number", true);
 
 
 pref("gfx.gralloc.enabled", false);
