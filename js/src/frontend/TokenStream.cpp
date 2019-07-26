@@ -153,7 +153,9 @@ TokenStream::SourceCoords::add(uint32_t lineNum, uint32_t lineStartOffset)
         
         
         lineStartOffsets_[lineIndex] = lineStartOffset;
-        (void)lineStartOffsets_.append(MAX_PTR);
+
+        uint32_t maxPtr = MAX_PTR;
+        (void)lineStartOffsets_.append(maxPtr);
 
     } else {
         
