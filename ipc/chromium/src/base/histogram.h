@@ -374,6 +374,8 @@ class Histogram {
     double log_sum_squares_; 
 
    private:
+    void Accumulate(Sample value, Count count, size_t index);
+
     
     FRIEND_TEST(HistogramTest, CorruptSampleCounts);
 
