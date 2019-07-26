@@ -1388,6 +1388,12 @@ let CustomizableUIInternal = {
       }
       
       
+      if (target.getAttribute("disabled") == "true") {
+        return true;
+      }
+
+      
+      
       if (inInput || inItem || target == panel) {
         break;
       }
@@ -1401,6 +1407,7 @@ let CustomizableUIInternal = {
         target = target.parentNode;
       }
     }
+
     
     if (inMenu) {
       
