@@ -1,3 +1,4 @@
+#filter substitution
 
 
 
@@ -7106,12 +7107,16 @@ var RemoteDebugger = {
 
 var Telemetry = {
   _PREF_TELEMETRY_PROMPTED: "toolkit.telemetry.prompted",
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+  _PREF_TELEMETRY_ENABLED: "toolkit.telemetry.enabledPreRelease",
+#else
   _PREF_TELEMETRY_ENABLED: "toolkit.telemetry.enabled",
+#endif
   _PREF_TELEMETRY_REJECTED: "toolkit.telemetry.rejected",
   _PREF_TELEMETRY_SERVER_OWNER: "toolkit.telemetry.server_owner",
 
   
-  _TELEMETRY_PROMPT_REV: 2,
+  _TELEMETRY_PROMPT_REV: "@MOZ_TELEMETRY_DISPLAY_REV@",
 
   init: function init() {
     Services.obs.addObserver(this, "Preferences:Set", false);

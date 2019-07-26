@@ -27,7 +27,8 @@ var WebAppRT = {
     
     pref("xpinstall.enabled", false),
     
-    pref("toolkit.telemetry.prompted", 2)
+#expand user_pref("toolkit.telemetry.prompted", __MOZ_TELEMETRY_DISPLAY_REV__),
+#expand user_pref("toolkit.telemetry.notifiedOptOut", __MOZ_TELEMETRY_DISPLAY_REV__)
   ],
 
   init: function(isUpdate, url) {
