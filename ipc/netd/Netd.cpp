@@ -84,10 +84,10 @@ namespace mozilla {
 namespace ipc {
 
 NetdClient::NetdClient()
-  : mSocket(INVALID_SOCKET)
+  : LineWatcher('\0', MAX_COMMAND_SIZE)
+  , mSocket(INVALID_SOCKET)
   , mIOLoop(MessageLoopForIO::current())
   , mCurrentWriteOffset(0)
-  , mReceivedIndex(0)
   , mReConnectTimes(0)
 {
   MOZ_COUNT_CTOR(NetdClient);
@@ -147,63 +147,25 @@ NetdClient::OpenSocket()
   return true;
 }
 
-void
-NetdClient::OnFileCanReadWithoutBlocking(int aFd)
+void NetdClient::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
 {
-  ssize_t length = 0;
+  
+  errno = 0;
+  
+  
+  
+  int responseCode = strtol(aMessage.Data(), nullptr, 10);
+  
+  if (!errno && responseCode < 600) {
+    NetdCommand* response = new NetdCommand();
+    
+    response->mSize = aMessage.Length();
+    memcpy(response->mData, aMessage.Data(), aMessage.Length());
+    gNetdConsumer->MessageReceived(response);
+  }
 
-  MOZ_ASSERT(aFd == mSocket.get());
-  while (true) {
-    errno = 0;
-    MOZ_ASSERT(mReceivedIndex < MAX_COMMAND_SIZE);
-    length = read(aFd, &mReceiveBuffer[mReceivedIndex], MAX_COMMAND_SIZE - mReceivedIndex);
-    MOZ_ASSERT(length <= ssize_t(MAX_COMMAND_SIZE - mReceivedIndex));
-    if (length <= 0) {
-      if (length == -1) {
-        if (errno == EINTR) {
-          continue; 
-        }
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          return; 
-        }
-      }
-      LOG("Can't read from netd error: %d (%s) length: %d", errno, strerror(errno), length);
-      
-      
-      Restart();
-      return;
-    }
-
-    while (length-- > 0) {
-      MOZ_ASSERT(mReceivedIndex < MAX_COMMAND_SIZE);
-      if (mReceiveBuffer[mReceivedIndex] == '\0') {
-        
-        
-        
-        errno = 0;
-        int responseCode = strtol(mReceiveBuffer, nullptr, 10);
-        
-        if (!errno && responseCode < 600) {
-          NetdCommand* response = new NetdCommand();
-          
-          response->mSize = mReceivedIndex + 1;
-          memcpy(response->mData, mReceiveBuffer, mReceivedIndex + 1);
-          gNetdConsumer->MessageReceived(response);
-        }
-        if (!responseCode || errno) {
-          LOG("Can't parse netd's response: %d (%s)", errno, strerror(errno));
-        }
-        
-        
-        if (length > 0) {
-          MOZ_ASSERT(mReceivedIndex < (MAX_COMMAND_SIZE - 1));
-          memmove(&mReceiveBuffer[0], &mReceiveBuffer[mReceivedIndex + 1], length);
-        }
-        mReceivedIndex = 0;
-      } else {
-        mReceivedIndex++;
-      }
-    }
+  if (!responseCode) {
+    LOG("Can't parse netd's response");
   }
 }
 
@@ -215,7 +177,7 @@ NetdClient::OnFileCanWriteWithoutBlocking(int aFd)
 }
 
 void
-NetdClient::Restart()
+NetdClient::OnError()
 {
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
@@ -223,7 +185,6 @@ NetdClient::Restart()
   mWriteWatcher.StopWatchingFileDescriptor();
 
   mSocket.dispose();
-  mReceivedIndex = 0;
   mCurrentWriteOffset = 0;
   mCurrentNetdCommand = nullptr;
   while (!mOutgoingQ.empty()) {
@@ -299,7 +260,7 @@ NetdClient::WriteNetdCommand()
                             write_amount);
     if (written < 0) {
       LOG("Cannot write to network, error %d\n", (int) written);
-      Restart();
+      OnError();
       return;
     }
 

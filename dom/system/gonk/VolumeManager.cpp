@@ -32,9 +32,9 @@ VolumeManager::StateObserverList VolumeManager::mStateObserverList;
 
 
 VolumeManager::VolumeManager()
-  : mSocket(-1),
-    mCommandPending(false),
-    mRcvIdx(0)
+  : LineWatcher('\0', kRcvBufSize),
+    mSocket(-1),
+    mCommandPending(false)
 {
   DBG("VolumeManager constructor called");
 }
@@ -272,75 +272,37 @@ VolumeManager::WriteCommandData()
 }
 
 void
-VolumeManager::OnFileCanReadWithoutBlocking(int aFd)
+VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
 {
   MOZ_ASSERT(aFd == mSocket.get());
-  while (true) {
-    ssize_t bytesRemaining = read(aFd, &mRcvBuf[mRcvIdx], sizeof(mRcvBuf) - mRcvIdx);
-    if (bytesRemaining < 0) {
-      if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-        return;
-      }
-      if (errno == EINTR) {
-        continue;
-      }
-      ERR("Unknown read error: %d (%s) - restarting", errno, strerror(errno));
-      Restart();
-      return;
-    }
-    if (bytesRemaining == 0) {
-      
-      ERR("Vold appears to have crashed - restarting");
-      Restart();
-      return;
-    }
+  char *endPtr;
+  int responseCode = strtol(aMessage.Data(), &endPtr, 10);
+  if (*endPtr == ' ') {
+    endPtr++;
+  }
+
+  
+  nsDependentCString  responseLine(endPtr, aMessage.Length() - (endPtr - aMessage.Data()));
+  DBG("Rcvd: %d '%s'", responseCode, responseLine.Data());
+
+  if (responseCode >= ResponseCode::UnsolicitedInformational) {
     
-    DBG("Read %ld bytes", bytesRemaining);
-    while (bytesRemaining > 0) {
-      bytesRemaining--;
-      if (mRcvBuf[mRcvIdx] == '\0') {
+    
+    HandleBroadcast(responseCode, responseLine);
+  } else {
+    
+    if (mCommands.size() > 0) {
+      VolumeCommand *cmd = mCommands.front();
+      cmd->HandleResponse(responseCode, responseLine);
+      if (responseCode >= ResponseCode::CommandOkay) {
         
+        mCommands.pop();
+        mCommandPending = false;
         
-        
-        char *endPtr;
-        int responseCode = strtol(mRcvBuf, &endPtr, 10);
-        if (*endPtr == ' ') {
-          endPtr++;
-        }
-
-        
-        nsDependentCString  responseLine(endPtr, &mRcvBuf[mRcvIdx] - endPtr);
-        DBG("Rcvd: %d '%s'", responseCode, responseLine.Data());
-
-        if (responseCode >= ResponseCode::UnsolicitedInformational) {
-          
-          
-          HandleBroadcast(responseCode, responseLine);
-        } else {
-          
-          if (mCommands.size() > 0) {
-            VolumeCommand *cmd = mCommands.front();
-            cmd->HandleResponse(responseCode, responseLine);
-            if (responseCode >= ResponseCode::CommandOkay) {
-              
-              mCommands.pop();
-              mCommandPending = false;
-              
-              WriteCommandData();
-            }
-          } else {
-            ERR("Response with no command");
-          }
-        }
-        if (bytesRemaining > 0) {
-          
-          
-          memmove(&mRcvBuf[0], &mRcvBuf[mRcvIdx + 1], bytesRemaining);
-        }
-        mRcvIdx = 0;
-      } else {
-        mRcvIdx++;
+        WriteCommandData();
       }
+    } else {
+      ERR("Response with no command");
     }
   }
 }
@@ -382,7 +344,6 @@ VolumeManager::Restart()
   }
   mCommandPending = false;
   mSocket.dispose();
-  mRcvIdx = 0;
   Start();
 }
 
@@ -403,6 +364,12 @@ VolumeManager::Start()
                       NewRunnableFunction(VolumeManager::Start),
                       1000);
   }
+}
+
+void
+VolumeManager::OnError()
+{
+  Restart();
 }
 
 
