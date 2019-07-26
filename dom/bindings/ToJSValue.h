@@ -194,6 +194,16 @@ ToJSValue(JSContext* aCx,
 }
 
 
+template <class T>
+typename EnableIf<IsBaseOf<DictionaryBase, T>::value, bool>::Type
+ToJSValue(JSContext* aCx,
+          const T& aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  return aArgument.ToObject(aCx, aValue);
+}
+
+
 template <typename T>
 bool
 ToJSValue(JSContext* aCx,
