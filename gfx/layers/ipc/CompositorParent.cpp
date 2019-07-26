@@ -859,9 +859,6 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
   
   if (LayerUserData* data = aLayer->GetUserData(&sPanZoomUserDataKey)) {
     controller = static_cast<PanZoomUserData*>(data)->mController;
-  } else {
-    
-    controller = GetDefaultPanZoomController();
   }
 
   if (controller) {

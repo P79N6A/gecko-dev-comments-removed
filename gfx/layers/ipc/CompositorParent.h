@@ -181,10 +181,6 @@ protected:
                                 nsIntPoint& aScrollOffset, float& aScaleX, float& aScaleY,
                                 gfx::Margin& aFixedLayerMargins);
   void SetEGLSurfaceSize(int width, int height);
-  
-  
-  
-  virtual AsyncPanZoomController* GetDefaultPanZoomController() { return nullptr; }
 
 private:
   void PauseComposition();
