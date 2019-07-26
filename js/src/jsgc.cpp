@@ -3518,8 +3518,13 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
                 break;
             }
         }
+
         if (rt->gcFinalizeCallback)
             rt->gcFinalizeCallback(&fop, JSFINALIZE_COLLECTION_END, !isFull);
+
+        
+        if (isFull)
+            rt->gcGrayBitsValid = true;
     }
 
     

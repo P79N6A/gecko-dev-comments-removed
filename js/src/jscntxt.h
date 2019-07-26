@@ -653,6 +653,12 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
+    bool                gcGrayBitsValid;
+
+    
+
+
+
 
     volatile uintptr_t  gcIsNeeded;
 

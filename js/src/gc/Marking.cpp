@@ -1488,3 +1488,105 @@ js::CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind)
     MarkKind(trc, &tmp, kind);
     JS_ASSERT(tmp == thing);
 }
+
+static void
+UnmarkGrayGCThing(void *thing)
+{
+    static_cast<js::gc::Cell *>(thing)->unmark(js::gc::GRAY);
+}
+
+struct UnmarkGrayTracer : public JSTracer
+{
+    UnmarkGrayTracer() : tracingShape(false), previousShape(NULL) {}
+    UnmarkGrayTracer(JSTracer *trc, bool tracingShape)
+        : tracingShape(tracingShape), previousShape(NULL)
+    {
+        JS_TracerInit(this, trc->runtime, trc->callback);
+    }
+
+    
+    bool tracingShape;
+
+    
+    void *previousShape;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
+{
+    void *thing = *thingp;
+    int stackDummy;
+    if (!JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(trc->runtime), &stackDummy)) {
+        
+
+
+
+        trc->runtime->gcGrayBitsValid = false;
+        return;
+    }
+
+    if (!GCThingIsMarkedGray(thing))
+        return;
+
+    UnmarkGrayGCThing(thing);
+
+    
+
+
+
+
+
+
+    UnmarkGrayTracer *tracer = static_cast<UnmarkGrayTracer *>(trc);
+    UnmarkGrayTracer childTracer(tracer, kind == JSTRACE_SHAPE);
+
+    if (kind != JSTRACE_SHAPE) {
+        JS_TraceChildren(&childTracer, thing, kind);
+        JS_ASSERT(!childTracer.previousShape);
+        return;
+    }
+
+    if (tracer->tracingShape) {
+        JS_ASSERT(!tracer->previousShape);
+        tracer->previousShape = thing;
+        return;
+    }
+
+    do {
+        JS_ASSERT(!GCThingIsMarkedGray(thing));
+        JS_TraceChildren(&childTracer, thing, JSTRACE_SHAPE);
+        thing = childTracer.previousShape;
+        childTracer.previousShape = NULL;
+    } while (thing);
+}
+
+JS_FRIEND_API(void)
+js::UnmarkGrayGCThingRecursively(void *thing, JSGCTraceKind kind)
+{
+    JS_ASSERT(kind != JSTRACE_SHAPE);
+
+    if (!GCThingIsMarkedGray(thing))
+        return;
+
+    UnmarkGrayGCThing(thing);
+
+    JSRuntime *rt = static_cast<Cell *>(thing)->compartment()->rt;
+    UnmarkGrayTracer trc;
+    JS_TracerInit(&trc, rt, UnmarkGrayChildren);
+    JS_TraceChildren(&trc, thing, kind);
+}

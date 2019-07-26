@@ -269,14 +269,21 @@ TraceWeakMaps(WeakMapTracer *trc);
 extern JS_FRIEND_API(bool)
 GCThingIsMarkedGray(void *thing);
 
-JS_FRIEND_API(void)
-UnmarkGrayGCThing(void *thing);
+extern JS_FRIEND_API(bool)
+AreGCGrayBitsValid(JSRuntime *rt);
 
-typedef void
-(GCThingCallback)(void *closure, void *gcthing);
+
+
+
 
 extern JS_FRIEND_API(void)
-VisitGrayWrapperTargets(JSCompartment *comp, GCThingCallback *callback, void *closure);
+UnmarkGrayGCThingRecursively(void *thing, JSGCTraceKind kind);
+
+typedef void
+(*GCThingCallback)(void *closure, void *gcthing);
+
+extern JS_FRIEND_API(void)
+VisitGrayWrapperTargets(JSCompartment *comp, GCThingCallback callback, void *closure);
 
 extern JS_FRIEND_API(JSObject *)
 GetWeakmapKeyDelegate(JSObject *key);
@@ -288,7 +295,7 @@ GCThingTraceKind(void *thing);
 
 
 extern JS_FRIEND_API(void)
-IterateGrayObjects(JSCompartment *compartment, GCThingCallback *cellCallback, void *data);
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback cellCallback, void *data);
 
 
 
