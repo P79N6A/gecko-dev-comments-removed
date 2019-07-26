@@ -48,13 +48,6 @@ enum ImageFormat {
   
 
 
-
-
-  GONK_IO_SURFACE,
-
-  
-
-
   REMOTE_IMAGE_BITMAP,
 
   

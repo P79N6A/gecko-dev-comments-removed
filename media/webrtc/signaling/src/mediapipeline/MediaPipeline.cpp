@@ -23,7 +23,7 @@
 #include "ImageContainer.h"
 #include "VideoUtils.h"
 #ifdef MOZ_WIDGET_GONK
-#include "GonkIOSurfaceImage.h"
+#include "GrallocImages.h"
 #endif
 #endif
 
@@ -823,8 +823,8 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
   ImageFormat format = img->GetFormat();
 #ifdef MOZ_WIDGET_GONK
-  if (format == GONK_IO_SURFACE) {
-    layers::GonkIOSurfaceImage *nativeImage = static_cast<layers::GonkIOSurfaceImage*>(img);
+  if (format == GRALLOC_PLANAR_YCBCR) {
+    layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(img);
     layers::SurfaceDescriptor handle = nativeImage->GetSurfaceDescriptor();
     layers::SurfaceDescriptorGralloc grallocHandle = handle.get_SurfaceDescriptorGralloc();
 
