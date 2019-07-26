@@ -85,10 +85,10 @@ pluginInstanceInit(InstanceData* instanceData)
   if (!instanceData->platformData)
     return NPERR_OUT_OF_MEMORY_ERROR;
 
-  instanceData->platformData->display = NULL;
-  instanceData->platformData->visual = NULL;
+  instanceData->platformData->display = nullptr;
+  instanceData->platformData->visual = nullptr;
   instanceData->platformData->colormap = None;  
-  instanceData->platformData->plug = NULL;
+  instanceData->platformData->plug = nullptr;
 
   return NPERR_NO_ERROR;
 #else
@@ -122,7 +122,7 @@ pluginInstanceShutdown(InstanceData* instanceData)
     } else {
       
       g_signal_handlers_disconnect_matched(plug, G_SIGNAL_MATCH_DATA, 0, 0,
-                                           NULL, NULL, instanceData);
+                                           nullptr, nullptr, instanceData);
     }
   }
 
@@ -693,7 +693,7 @@ CrasherThread(void* data)
   _exit(1);
 
   
-  return(NULL);
+  return(nullptr);
 }
 
 bool
@@ -704,7 +704,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
 
   
   bool found_event = false;
-  while (g_main_context_iteration(NULL, FALSE)) {
+  while (g_main_context_iteration(nullptr, FALSE)) {
     found_event = true;
   }
   if (!found_event) {
@@ -722,7 +722,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
 
   
   pthread_t crasherThread;
-  if (0 != pthread_create(&crasherThread, NULL, CrasherThread, NULL)) {
+  if (0 != pthread_create(&crasherThread, nullptr, CrasherThread, nullptr)) {
     g_warning("Failed to create thread");
     return true; 
   }
@@ -731,7 +731,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   
   
   found_event = false;
-  while (g_main_context_iteration(NULL, FALSE)) {
+  while (g_main_context_iteration(nullptr, FALSE)) {
     found_event = true;
   }
   if (found_event) {
