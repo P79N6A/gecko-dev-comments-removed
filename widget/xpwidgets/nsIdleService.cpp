@@ -150,6 +150,10 @@ nsIdleServiceDaily::Init()
     __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback started");
 #endif
     
+    
+    mDailyTimerStart = lastDaily * PR_USEC_PER_SEC;
+
+    
     DailyCallback(nullptr, this);
   }
   else {
