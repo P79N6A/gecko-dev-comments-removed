@@ -64,6 +64,12 @@ public:
     return nsContainerFrame::StealFrame(aPresContext, aChild, true);
   }
 
+  virtual bool IsFrameOfType(uint32_t aFlags) const
+   {
+     return nsContainerFrame::IsFrameOfType(aFlags &
+              ~(nsIFrame::eCanContainOverflowContainers));
+   }
+
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
@@ -132,7 +138,8 @@ protected:
 
 
 
-  ReflowConfig ChooseColumnStrategy(const nsHTMLReflowState& aReflowState);
+  ReflowConfig ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
+                                    bool aForceAuto);
 
   
 
@@ -259,10 +266,14 @@ NS_IMETHODIMP
 nsColumnSetFrame::SetInitialChildList(ChildListID     aListID,
                                       nsFrameList&    aChildList)
 {
+  if (aListID == kAbsoluteList) {
+    return nsContainerFrame::SetInitialChildList(aListID, aChildList);
+  }
+
   NS_ASSERTION(aListID == kPrincipalList,
                "Only default child list supported");
   NS_ASSERTION(aChildList.OnlyChild(),
-               "initial child list must have exactly one child");
+               "initial child list must have exaisRevertingctly one child");
   
   return nsContainerFrame::SetInitialChildList(kPrincipalList, aChildList);
 }
@@ -308,7 +319,8 @@ GetColumnGap(nsColumnSetFrame*    aFrame,
 }
 
 nsColumnSetFrame::ReflowConfig
-nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
+nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
+                                       bool aForceAuto = false)
 {
   const nsStyleColumn* colStyle = StyleColumn();
   nscoord availContentWidth = GetAvailableContentWidth(aReflowState);
@@ -326,7 +338,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
   int32_t numColumns = colStyle->mColumnCount;
 
   
-  const bool isBalancing = colStyle->mColumnFill == NS_STYLE_COLUMN_FILL_BALANCE;
+  const bool isBalancing = colStyle->mColumnFill == NS_STYLE_COLUMN_FILL_BALANCE
+                           && !aForceAuto;
   if (isBalancing) {
     const uint32_t MAX_NESTED_COLUMN_BALANCING = 2;
     uint32_t cnt = 0;
@@ -404,6 +417,16 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
     
     
     numColumns = INT32_MAX;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    colHeight = std::max(colHeight, nsPresContext::CSSPixelsToAppUnits(1));
   }
 
 #ifdef DEBUG_roc
@@ -611,7 +634,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       if (aUnboundedLastColumn && columnCount == aConfig.mBalanceColCount - 1) {
         availSize.height = GetAvailableContentHeight(aReflowState);
       }
-  
+
       if (reflowNext)
         child->AddStateBits(NS_FRAME_IS_DIRTY);
 
@@ -919,9 +942,8 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
   do {
     if (colData.mShouldRevertToAuto) {
-      config = ChooseColumnStrategy(aReflowState);
+      config = ChooseColumnStrategy(aReflowState, true);
       isBalancing = false;
-      config.mBalanceColCount = INT32_MAX;
     }
 
     bool feasible = ReflowChildren(aDesiredSize, aReflowState,
@@ -1067,10 +1089,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
       aStatus = NS_FRAME_COMPLETE;
     }
 
-    
-    
-    
-    FinishAndStoreOverflow(&aDesiredSize);
+    FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus, false);
 
     aDesiredSize.mCarriedOutBottomMargin = carriedOutBottomMargin;
 
@@ -1103,8 +1122,12 @@ NS_IMETHODIMP
 nsColumnSetFrame::AppendFrames(ChildListID     aListID,
                                nsFrameList&    aFrameList)
 {
-  NS_NOTREACHED("AppendFrames not supported");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (aListID == kAbsoluteList) {
+    return nsContainerFrame::AppendFrames(aListID, aFrameList);
+  }
+
+  NS_ERROR("unexpected child list");
+  return NS_ERROR_INVALID_ARG;
 }
 
 NS_IMETHODIMP
@@ -1112,14 +1135,22 @@ nsColumnSetFrame::InsertFrames(ChildListID     aListID,
                                nsIFrame*       aPrevFrame,
                                nsFrameList&    aFrameList)
 {
-  NS_NOTREACHED("InsertFrames not supported");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (aListID == kAbsoluteList) {
+    return nsContainerFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
+  }
+
+  NS_ERROR("unexpected child list");
+  return NS_ERROR_INVALID_ARG;
 }
 
 NS_IMETHODIMP
 nsColumnSetFrame::RemoveFrame(ChildListID     aListID,
                               nsIFrame*       aOldFrame)
 {
-  NS_NOTREACHED("RemoveFrame not supported");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (aListID == kAbsoluteList) {
+    return nsContainerFrame::RemoveFrame(aListID, aOldFrame);
+  }
+
+  NS_ERROR("unexpected child list");
+  return NS_ERROR_INVALID_ARG;
 }
