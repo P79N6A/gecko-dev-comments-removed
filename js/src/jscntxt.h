@@ -426,7 +426,7 @@ struct JSContext : public js::ExclusiveContext,
   private:
     
     bool                throwing;            
-    js::Value           exception;           
+    js::Value           unwrappedException_; 
 
     
     JS::ContextOptions  options_;
@@ -467,9 +467,6 @@ struct JSContext : public js::ExclusiveContext,
         JS_ASSERT(!options().noDefaultCompartmentObject());
         return defaultCompartmentObject_;
     }
-
-    
-    void wrapPendingException();
 
     
     js::ObjectSet       cycleDetectorSet;
@@ -583,16 +580,13 @@ struct JSContext : public js::ExclusiveContext,
         return throwing;
     }
 
-    js::Value getPendingException() {
-        JS_ASSERT(throwing);
-        return exception;
-    }
+    bool getPendingException(JS::MutableHandleValue rval);
 
     void setPendingException(js::Value v);
 
     void clearPendingException() {
         throwing = false;
-        exception.setUndefined();
+        unwrappedException_.setUndefined();
     }
 
 #ifdef DEBUG
