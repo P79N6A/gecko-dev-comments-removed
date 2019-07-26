@@ -15,7 +15,6 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
 #endif
 Cu.import("resource://gre/modules/ctypes.jsm");
-Cu.import("resource://gre/modules/ThirdPartyCookieProbe.jsm");
 
 
 const PAYLOAD_VERSION = 1;
@@ -763,10 +762,6 @@ TelemetryPing.prototype = {
 
   setup: function setup() {
     
-    this._thirdPartyCookies = new ThirdPartyCookieProbe();
-    this._thirdPartyCookies.init();
-
-    
     
     let previousBuildID = undefined;
     try {
@@ -1007,7 +1002,7 @@ TelemetryPing.prototype = {
 
 
   uninstall: function uninstall() {
-    this.detachObservers();
+    this.detachObservers()
     if (this._hasWindowRestoredObserver) {
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
       this._hasWindowRestoredObserver = false;
