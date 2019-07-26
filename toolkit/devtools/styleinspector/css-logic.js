@@ -928,6 +928,70 @@ CssLogic.findCssSelector = function CssLogic_findCssSelector(ele) {
   return selector;
 };
 
+const TAB_CHARS = "\t";
+
+
+
+
+
+
+
+
+CssLogic.prettifyCSS = function(text) {
+  if (CssLogic.LINE_SEPARATOR == null) {
+    let os = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
+    CssLogic.LINE_SEPARATOR = (os === "WINNT" ? "\r\n" : "\n");
+  }
+
+  
+  text = text.replace(/(?:^\s*<!--[\r\n]*)|(?:\s*-->\s*$)/g, "");
+
+  let parts = [];    
+  let partStart = 0; 
+  let indent = "";
+  let indentLevel = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    let c = text[i];
+    let shouldIndent = false;
+
+    switch (c) {
+      case "}":
+        if (i - partStart > 1) {
+          
+          parts.push(indent + text.substring(partStart, i));
+          partStart = i;
+        }
+        indent = TAB_CHARS.repeat(--indentLevel);
+        
+      case ";":
+      case "{":
+        shouldIndent = true;
+        break;
+    }
+
+    if (shouldIndent) {
+      let la = text[i+1]; 
+      if (!/\n/.test(la) || /^\s+$/.test(text.substring(i+1, text.length))) {
+        
+        
+        parts.push(indent + text.substring(partStart, i + 1));
+        if (c == "}") {
+          parts.push(""); 
+        }
+        partStart = i + 1;
+      } else {
+        return text; 
+      }
+    }
+
+    if (c == "{") {
+      indent = TAB_CHARS.repeat(++indentLevel);
+    }
+  }
+  return parts.join(CssLogic.LINE_SEPARATOR);
+};
+
 
 
 

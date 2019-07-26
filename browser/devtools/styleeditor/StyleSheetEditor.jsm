@@ -226,7 +226,7 @@ StyleSheetEditor.prototype = {
   fetchSource: function(callback) {
     return this.styleSheet.getText().then((longStr) => {
       longStr.string().then((source) => {
-        this._state.text = prettifyCSS(source);
+        this._state.text = CssLogic.prettifyCSS(source);
         this.sourceLoaded = true;
 
         if (callback) {
@@ -638,73 +638,6 @@ StyleSheetEditor.prototype = {
     this.cssSheet.off("media-rules-changed", this._onMediaRulesChanged);
     this.styleSheet.off("error", this._onError);
   }
-}
-
-
-const TAB_CHARS = "\t";
-
-const CURRENT_OS = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS;
-const LINE_SEPARATOR = CURRENT_OS === "WINNT" ? "\r\n" : "\n";
-
-
-
-
-
-
-
-
-
-
-
-function prettifyCSS(text)
-{
-  
-  text = text.replace(/(?:^\s*<!--[\r\n]*)|(?:\s*-->\s*$)/g, "");
-
-  let parts = [];    
-  let partStart = 0; 
-  let indent = "";
-  let indentLevel = 0;
-
-  for (let i = 0; i < text.length; i++) {
-    let c = text[i];
-    let shouldIndent = false;
-
-    switch (c) {
-      case "}":
-        if (i - partStart > 1) {
-          
-          parts.push(indent + text.substring(partStart, i));
-          partStart = i;
-        }
-        indent = TAB_CHARS.repeat(--indentLevel);
-        
-      case ";":
-      case "{":
-        shouldIndent = true;
-        break;
-    }
-
-    if (shouldIndent) {
-      let la = text[i+1]; 
-      if (!/\n/.test(la) || /^\s+$/.test(text.substring(i+1, text.length))) {
-        
-        
-        parts.push(indent + text.substring(partStart, i + 1));
-        if (c == "}") {
-          parts.push(""); 
-        }
-        partStart = i + 1;
-      } else {
-        return text; 
-      }
-    }
-
-    if (c == "{") {
-      indent = TAB_CHARS.repeat(++indentLevel);
-    }
-  }
-  return parts.join(LINE_SEPARATOR);
 }
 
 
