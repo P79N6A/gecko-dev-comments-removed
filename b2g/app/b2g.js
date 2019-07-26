@@ -605,8 +605,7 @@ pref("gfx.gralloc.enabled", false);
 
 
 
-
-pref("javascript.options.discardSystemSource", false);
+pref("javascript.options.discardSystemSource", true);
 
 
 pref("javascript.options.mem.log", false);
