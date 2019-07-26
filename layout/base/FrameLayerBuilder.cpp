@@ -35,6 +35,8 @@ using namespace mozilla::gfx;
 
 namespace mozilla {
 
+class ContainerState;
+
 FrameLayerBuilder::DisplayItemData::DisplayItemData(LayerManagerData* aParent, uint32_t aKey, 
                                                     Layer* aLayer, LayerState aLayerState, uint32_t aGeneration)
 
@@ -224,6 +226,210 @@ static inline MaskLayerImageCache* GetMaskLayerImageCache()
 
 
 
+
+
+
+
+
+class ThebesLayerData {
+public:
+  ThebesLayerData() :
+    mAnimatedGeometryRoot(nullptr), mReferenceFrame(nullptr),
+    mLayer(nullptr),
+    mIsSolidColorInVisibleRegion(false),
+    mNeedComponentAlpha(false),
+    mForceTransparentSurface(false),
+    mImage(nullptr),
+    mCommonClipCount(-1),
+    mAllDrawingAbove(false) {}
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void Accumulate(ContainerState* aState,
+                  nsDisplayItem* aItem,
+                  const nsIntRect& aVisibleRect,
+                  const nsIntRect& aDrawRect,
+                  const DisplayItemClip& aClip);
+  const nsIFrame* GetAnimatedGeometryRoot() { return mAnimatedGeometryRoot; }
+
+  
+
+
+
+
+  already_AddRefed<ImageContainer> CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder);
+
+  void AddDrawAboveRegion(const nsIntRegion& aAbove)
+  {
+    if (!mAllDrawingAbove) {
+      mDrawAboveRegion.Or(mDrawAboveRegion, aAbove);
+      mDrawAboveRegion.SimplifyOutward(4);
+    }
+  }
+
+  void AddVisibleAboveRegion(const nsIntRegion& aAbove)
+  {
+    if (!mAllDrawingAbove) {
+      mVisibleAboveRegion.Or(mVisibleAboveRegion, aAbove);
+      mVisibleAboveRegion.SimplifyOutward(4);
+    }
+  }
+
+  void CopyAboveRegion(ThebesLayerData* aOther)
+  {
+    if (aOther->mAllDrawingAbove || mAllDrawingAbove) {
+      SetAllDrawingAbove();
+    } else {
+      mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
+      mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleRegion);
+      mVisibleAboveRegion.SimplifyOutward(4);
+      mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawAboveRegion);
+      mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawRegion);
+      mDrawAboveRegion.SimplifyOutward(4);
+   }
+  }
+
+  void SetAllDrawingAbove()
+  {
+    mAllDrawingAbove = true;
+    mDrawAboveRegion.SetEmpty();
+    mVisibleAboveRegion.SetEmpty();
+  }
+
+  bool IsBelow(const nsIntRect& aRect)
+  {
+    return mAllDrawingAbove || mDrawAboveRegion.Intersects(aRect);
+  }
+
+  bool IntersectsVisibleAboveRegion(const nsIntRegion& aVisibleRegion)
+  {
+    if (mAllDrawingAbove) {
+      return true;
+    }
+    nsIntRegion visibleAboveIntersection;
+    visibleAboveIntersection.And(mVisibleAboveRegion, aVisibleRegion);
+    if (visibleAboveIntersection.IsEmpty()) {
+      return false;
+    }
+    return true;
+  }
+
+  
+
+
+
+
+  nsIntRegion  mVisibleRegion;
+  
+
+
+
+
+
+  nsIntRegion  mDrawRegion;
+  
+
+
+
+  nsIntRegion  mOpaqueRegion;
+  
+
+
+
+
+  const nsIFrame* mAnimatedGeometryRoot;
+  const nsIFrame* mReferenceFrame;
+  ThebesLayer* mLayer;
+  
+
+
+
+  nscolor      mSolidColor;
+  
+
+
+  bool mIsSolidColorInVisibleRegion;
+  
+
+
+
+  bool mNeedComponentAlpha;
+  
+
+
+
+
+
+  bool mForceTransparentSurface;
+
+  
+
+
+
+  nsDisplayImageContainer* mImage;
+  
+
+
+
+
+
+
+
+  DisplayItemClip mItemClip;
+  
+
+
+
+
+
+  int32_t mCommonClipCount;
+  
+
+
+
+
+
+  void UpdateCommonClipCount(const DisplayItemClip& aCurrentClip);
+
+private:
+  
+
+
+
+
+
+
+  nsIntRegion  mVisibleAboveRegion;
+  
+
+
+
+
+
+
+
+  nsIntRegion  mDrawAboveRegion;
+  
+
+
+
+  bool mAllDrawingAbove;
+};
+
+
+
+
+
 class ContainerState {
 public:
   ContainerState(nsDisplayListBuilder* aBuilder,
@@ -312,209 +518,6 @@ public:
   }
 
 protected:
-  
-
-
-
-
-
-
-
-
-  class ThebesLayerData {
-  public:
-    ThebesLayerData() :
-      mAnimatedGeometryRoot(nullptr), mReferenceFrame(nullptr),
-      mLayer(nullptr),
-      mIsSolidColorInVisibleRegion(false),
-      mNeedComponentAlpha(false),
-      mForceTransparentSurface(false),
-      mImage(nullptr),
-      mCommonClipCount(-1),
-      mAllDrawingAbove(false) {}
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    void Accumulate(ContainerState* aState,
-                    nsDisplayItem* aItem,
-                    const nsIntRect& aVisibleRect,
-                    const nsIntRect& aDrawRect,
-                    const DisplayItemClip& aClip);
-    const nsIFrame* GetAnimatedGeometryRoot() { return mAnimatedGeometryRoot; }
-
-    
-
-
-
-
-    already_AddRefed<ImageContainer> CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder);
-
-    void AddDrawAboveRegion(const nsIntRegion& aAbove)
-    {
-      if (!mAllDrawingAbove) {
-        mDrawAboveRegion.Or(mDrawAboveRegion, aAbove);
-        mDrawAboveRegion.SimplifyOutward(4);
-      }
-    }
-
-    void AddVisibleAboveRegion(const nsIntRegion& aAbove)
-    {
-      if (!mAllDrawingAbove) {
-        mVisibleAboveRegion.Or(mVisibleAboveRegion, aAbove);
-        mVisibleAboveRegion.SimplifyOutward(4);
-      }
-    }
-
-    void CopyAboveRegion(ThebesLayerData* aOther)
-    {
-      if (aOther->mAllDrawingAbove || mAllDrawingAbove) {
-        SetAllDrawingAbove();
-      } else {
-        mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
-        mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleRegion);
-        mVisibleAboveRegion.SimplifyOutward(4);
-        mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawAboveRegion);
-        mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawRegion);
-        mDrawAboveRegion.SimplifyOutward(4);
-     }
-    }
-
-    void SetAllDrawingAbove()
-    {
-      mAllDrawingAbove = true;
-      mDrawAboveRegion.SetEmpty();
-      mVisibleAboveRegion.SetEmpty();
-    }
-
-    bool IsBelow(const nsIntRect& aRect)
-    {
-      return mAllDrawingAbove || mDrawAboveRegion.Intersects(aRect);
-    }
-
-    bool IntersectsVisibleAboveRegion(const nsIntRegion& aVisibleRegion)
-    {
-      if (mAllDrawingAbove) {
-        return true;
-      }
-      nsIntRegion visibleAboveIntersection;
-      visibleAboveIntersection.And(mVisibleAboveRegion, aVisibleRegion);
-      if (visibleAboveIntersection.IsEmpty()) {
-        return false;
-      }
-      return true;
-    }
-
-    
-
-
-
-
-    nsIntRegion  mVisibleRegion;
-    
-
-
-
-
-
-    nsIntRegion  mDrawRegion;
-    
-
-
-
-    nsIntRegion  mOpaqueRegion;
-    
-
-
-
-
-    const nsIFrame* mAnimatedGeometryRoot;
-    const nsIFrame* mReferenceFrame;
-    ThebesLayer* mLayer;
-    
-
-
-
-    nscolor      mSolidColor;
-    
-
-
-    bool mIsSolidColorInVisibleRegion;
-    
-
-
-
-    bool mNeedComponentAlpha;
-    
-
-
-
-
-
-    bool mForceTransparentSurface;
-
-    
-
-
-
-    nsDisplayImageContainer* mImage;
-    
-
-
-
-
-
-
-
-    DisplayItemClip mItemClip;
-    
-
-
-
-
-
-    int32_t mCommonClipCount;
-    
-
-
-
-
-
-    void UpdateCommonClipCount(const DisplayItemClip& aCurrentClip);
-
-  private:
-    
-
-
-
-
-
-
-    nsIntRegion  mVisibleAboveRegion;
-    
-
-
-
-
-
-
-
-    nsIntRegion  mDrawAboveRegion;
-    
-
-
-
-    bool mAllDrawingAbove;
-  };
   friend class ThebesLayerData;
 
   
@@ -604,11 +607,11 @@ protected:
 
 
   ThebesLayerData* FindThebesLayerFor(nsDisplayItem* aItem,
-                                                   const nsIntRect& aVisibleRect,
-                                                   const nsIntRect& aDrawRect,
-                                                   const DisplayItemClip& aClip,
-                                                   const nsIFrame* aAnimatedGeometryRoot,
-                                                   const nsPoint& aTopLeft);
+                                      const nsIntRect& aVisibleRect,
+                                      const nsIntRect& aDrawRect,
+                                      const DisplayItemClip& aClip,
+                                      const nsIFrame* aAnimatedGeometryRoot,
+                                      const nsPoint& aTopLeft);
   ThebesLayerData* GetTopThebesLayerData()
   {
     return mThebesLayerDataStack.IsEmpty() ? nullptr
@@ -1596,7 +1599,7 @@ ContainerState::FindOpaqueBackgroundColorFor(int32_t aThebesLayerIndex)
 }
 
 void
-ContainerState::ThebesLayerData::UpdateCommonClipCount(
+ThebesLayerData::UpdateCommonClipCount(
     const DisplayItemClip& aCurrentClip)
 {
   if (mCommonClipCount >= 0) {
@@ -1608,7 +1611,7 @@ ContainerState::ThebesLayerData::UpdateCommonClipCount(
 }
 
 already_AddRefed<ImageContainer>
-ContainerState::ThebesLayerData::CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder)
+ThebesLayerData::CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder)
 {
   if (!mImage) {
     return nullptr;
@@ -1855,11 +1858,11 @@ WindowHasTransparency(nsDisplayListBuilder* aBuilder)
 }
 
 void
-ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
-                                            nsDisplayItem* aItem,
-                                            const nsIntRect& aVisibleRect,
-                                            const nsIntRect& aDrawRect,
-                                            const DisplayItemClip& aClip)
+ThebesLayerData::Accumulate(ContainerState* aState,
+                            nsDisplayItem* aItem,
+                            const nsIntRect& aVisibleRect,
+                            const nsIntRect& aDrawRect,
+                            const DisplayItemClip& aClip)
 {
   if (aState->mBuilder->NeedToForceTransparentSurfaceForItem(aItem)) {
     mForceTransparentSurface = true;
@@ -1982,7 +1985,7 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
   }
 }
 
-ContainerState::ThebesLayerData*
+ThebesLayerData*
 ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
                                    const nsIntRect& aVisibleRect,
                                    const nsIntRect& aDrawRect,
