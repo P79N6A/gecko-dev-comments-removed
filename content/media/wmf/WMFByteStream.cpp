@@ -6,13 +6,14 @@
 
 #include "WMF.h"
 
-#include "Unknwn.h"
+#include <unknwn.h>
 #include <ole2.h>
 
 #include "WMFByteStream.h"
 #include "WMFUtils.h"
 #include "MediaResource.h"
 #include "nsISeekableStream.h"
+#include "mozilla/RefPtr.h"
 
 namespace mozilla {
 
@@ -139,15 +140,15 @@ WMFByteStream::BeginRead(BYTE *aBuffer,
       mOffset, mResource->Tell(), aLength);
 
   
-  IUnknownPtr requestState = new AsyncReadRequestState(mOffset, aBuffer, aLength);
+  RefPtr<IUnknown> requestState = new AsyncReadRequestState(mOffset, aBuffer, aLength);
 
   
   
-  IMFAsyncResultPtr callersResult;
+  RefPtr<IMFAsyncResult> callersResult;
   HRESULT hr = wmf::MFCreateAsyncResult(requestState,
                                         aCallback,
                                         aCallerState,
-                                        &callersResult);
+                                        byRef(callersResult));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   
@@ -173,18 +174,18 @@ WMFByteStream::Invoke(IMFAsyncResult* aResult)
   
 
   
-  IMFAsyncResultPtr callerResult;
-  IUnknownPtr unknown;
-  HRESULT hr = aResult->GetState(&unknown);
+  RefPtr<IMFAsyncResult> callerResult;
+  RefPtr<IUnknown> unknown;
+  HRESULT hr = aResult->GetState(byRef(unknown));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-  callerResult = unknown;
-  NS_ENSURE_TRUE(callerResult, E_FAIL);
+  hr = unknown->QueryInterface(static_cast<IMFAsyncResult**>(byRef(callerResult)));
+  NS_ENSURE_TRUE(SUCCEEDED(hr), E_FAIL);
 
   
-  hr = callerResult->GetObject(&unknown);
+  hr = callerResult->GetObject(byRef(unknown));
   NS_ENSURE_TRUE(SUCCEEDED(hr) && unknown, hr);
   AsyncReadRequestState* requestState =
-    static_cast<AsyncReadRequestState*>(unknown.GetInterfacePtr());
+    static_cast<AsyncReadRequestState*>(unknown.get());
 
   
   
@@ -256,13 +257,13 @@ WMFByteStream::EndRead(IMFAsyncResult* aResult, ULONG *aBytesRead)
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
   
-  IUnknownPtr unknown;
-  HRESULT hr = aResult->GetObject(&unknown);
+  RefPtr<IUnknown> unknown;
+  HRESULT hr = aResult->GetObject(byRef(unknown));
   if (FAILED(hr) || !unknown) {
     return E_INVALIDARG;
   }
   AsyncReadRequestState* requestState =
-    static_cast<AsyncReadRequestState*>(unknown.GetInterfacePtr());
+    static_cast<AsyncReadRequestState*>(unknown.get());
 
   
   
