@@ -199,6 +199,30 @@
 
 
 
+
+
+
+
+     File.prototype.setDates = function setDates(accessDate, modificationDate) {
+       accessDate = Date_to_FILETIME("File.prototype.setDates", accessDate);
+       modificationDate = Date_to_FILETIME("File.prototype.setDates",
+                                           modificationDate);
+       throw_on_zero("setDates",
+                     WinFile.SetFileTime(this.fd, null, accessDate.address(),
+                                         modificationDate.address()));
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
      File.prototype.flush = function flush() {
        throw_on_zero("flush", WinFile.FlushFileBuffers(this.fd));
      };
@@ -515,6 +539,38 @@
 
 
 
+     let Date_to_FILETIME = function Date_to_FILETIME(fn, date) {
+       if (typeof date === "number") {
+         date = new Date(date);
+       } else if (!date) {
+         date = new Date();
+       } else if (typeof date.getUTCFullYear !== "function") {
+         throw new TypeError("|date| parameter of " + fn + " must be a " +
+                             "|Date| instance or number");
+       }
+       gSystemTime.wYear = date.getUTCFullYear();
+       
+       gSystemTime.wMonth = date.getUTCMonth() + 1;
+       gSystemTime.wDay = date.getUTCDate();
+       gSystemTime.wHour = date.getUTCHours();
+       gSystemTime.wMinute = date.getUTCMinutes();
+       gSystemTime.wSecond = date.getUTCSeconds();
+       gSystemTime.wMilliseconds = date.getUTCMilliseconds();
+       let result = new OS.Shared.Type.FILETIME.implementation();
+       throw_on_zero("Date_to_FILETIME",
+                     WinFile.SystemTimeToFileTime(gSystemTimePtr,
+                                                  result.address()));
+       return result;
+     };
+
+     
+
+
+
+
+
+
+
 
 
 
@@ -767,6 +823,50 @@
      const FILE_STAT_OPTIONS = {
        
        winAccess: 0,
+       
+       winFlags: Const.FILE_FLAG_BACKUP_SEMANTICS,
+       winDisposition: Const.OPEN_EXISTING
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.setDates = function setDates(path, accessDate, modificationDate) {
+       let file = File.open(path, FILE_SETDATES_MODE, FILE_SETDATES_OPTIONS);
+       try {
+         return file.setDates(accessDate, modificationDate);
+       } finally {
+         file.close();
+       }
+     };
+     
+     
+     const FILE_SETDATES_MODE = {
+       write: true
+     };
+     const FILE_SETDATES_OPTIONS = {
+       winAccess: Const.GENERIC_WRITE,
        
        winFlags: Const.FILE_FLAG_BACKUP_SEMANTICS,
        winDisposition: Const.OPEN_EXISTING

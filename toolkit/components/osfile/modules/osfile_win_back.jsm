@@ -237,6 +237,12 @@
                     Type.FILETIME.in_ptr,
                      Type.SystemTime.out_ptr);
 
+       declareLazyFFI(SysFile, "SystemTimeToFileTime", libc,
+         "SystemTimeToFileTime", ctypes.winapi_abi,
+                       Type.zero_or_nothing,
+                      Type.SystemTime.in_ptr,
+                     Type.FILETIME.out_ptr);
+
        declareLazyFFI(SysFile, "FindFirstFile", libc,
          "FindFirstFileW", ctypes.winapi_abi,
                      Type.find_HANDLE,
@@ -315,6 +321,15 @@
                     Type.long,
                      Type.long.in_ptr,
                      Type.DWORD);
+
+       declareLazyFFI(SysFile, "SetFileTime", libc,
+         "SetFileTime",  ctypes.winapi_abi,
+                       Type.zero_or_nothing,
+                         Type.HANDLE,
+                     Type.FILETIME.in_ptr,
+                       Type.FILETIME.in_ptr,
+                        Type.FILETIME.in_ptr);
+
 
        declareLazyFFI(SysFile, "WriteFile", libc,
          "WriteFile", ctypes.winapi_abi,
