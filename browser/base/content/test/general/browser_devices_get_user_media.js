@@ -1,3 +1,7 @@
+
+
+
+
 const kObservedTopics = [
   "getUserMedia:response:allow",
   "getUserMedia:revoke",
@@ -735,6 +739,50 @@ let gTests = [
     yield stopAndCheckPerm(true, false);
     info("request video, stop sharing resets video only");
     yield stopAndCheckPerm(false, true);
+  }
+},
+
+{
+  desc: "'Always Allow' ignored and not shown on http pages",
+  run: function checkNoAlwaysOnHttp() {
+    
+    let deferred = Promise.defer();
+    let browser = gBrowser.selectedTab.linkedBrowser;
+    browser.addEventListener("load", function onload() {
+      browser.removeEventListener("load", onload, true);
+      deferred.resolve();
+    }, true);
+    content.location = content.location.href.replace("https://", "http://");
+    yield deferred.promise;
+
+    
+    let Perms = Services.perms;
+    let uri = content.document.documentURIObject;
+    Perms.add(uri, "microphone", Perms.ALLOW_ACTION);
+    Perms.add(uri, "camera", Perms.ALLOW_ACTION);
+
+    
+    
+    yield promisePopupNotificationShown("webRTC-shareDevices", () => {
+      content.wrappedJSObject.requestDevice(true, true);
+    });
+    expectObserverCalled("getUserMedia:request");
+
+    
+    let alwaysLabel = gNavigatorBundle.getString("getUserMedia.always.label");
+    ok(!!alwaysLabel, "found the 'Always Allow' localized label");
+    let labels = [];
+    let notification = PopupNotifications.panel.firstChild;
+    for (let node of notification.childNodes) {
+      if (node.localName == "menuitem")
+        labels.push(node.getAttribute("label"));
+    }
+    is(labels.indexOf(alwaysLabel), -1, "The 'Always Allow' item isn't shown");
+
+    
+    yield closeStream(true);
+    Perms.remove(uri.host, "camera");
+    Perms.remove(uri.host, "microphone");
   }
 }
 

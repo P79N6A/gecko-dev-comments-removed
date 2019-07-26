@@ -141,14 +141,6 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
 
   let secondaryActions = [
     {
-      label: stringBundle.getString("getUserMedia.always.label"),
-      accessKey: stringBundle.getString("getUserMedia.always.accesskey"),
-      callback: function () {
-        
-        mainAction.callback(aSecure);
-      }
-    },
-    {
       label: stringBundle.getString("getUserMedia.denyRequest.label"),
       accessKey: stringBundle.getString("getUserMedia.denyRequest.accesskey"),
       callback: function () {
@@ -160,8 +152,8 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
       accessKey: stringBundle.getString("getUserMedia.never.accesskey"),
       callback: function () {
         denyRequest(aCallID);
-	
-	
+        
+        
         let perms = Services.perms;
         if (audioDevices.length)
           perms.add(uri, "microphone", perms.DENY_ACTION);
@@ -170,6 +162,17 @@ function prompt(aContentWindow, aCallID, aAudioRequested, aVideoRequested, aDevi
       }
     }
   ];
+
+  if (aSecure) {
+    
+    secondaryActions.unshift({
+      label: stringBundle.getString("getUserMedia.always.label"),
+      accessKey: stringBundle.getString("getUserMedia.always.accesskey"),
+      callback: function () {
+        mainAction.callback(true);
+      }
+    });
+  }
 
   let options = {
     eventCallback: function(aTopic, aNewBrowser) {
