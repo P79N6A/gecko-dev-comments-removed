@@ -135,7 +135,7 @@ nsConsoleService::LogMessage(nsIConsoleMessage *message)
         return NS_ERROR_FAILURE;
     }
 
-    nsRefPtr<LogMessageRunnable> r = new LogMessageRunnable(message, this);
+    nsRefPtr<LogMessageRunnable> r;
     nsIConsoleMessage *retiredMessage;
 
     NS_ADDREF(message); 
@@ -182,12 +182,20 @@ nsConsoleService::LogMessage(nsIConsoleMessage *message)
 
 
 
-        mListeners.EnumerateRead(CollectCurrentListeners, r);
+
+
+
+        if (mListeners.Count() > 0) {
+            r = new LogMessageRunnable(message, this);
+            mListeners.EnumerateRead(CollectCurrentListeners, r);
+        }
     }
+
     if (retiredMessage != nullptr)
         NS_RELEASE(retiredMessage);
 
-    NS_DispatchToMainThread(r);
+    if (r)
+        NS_DispatchToMainThread(r);
 
     return NS_OK;
 }
