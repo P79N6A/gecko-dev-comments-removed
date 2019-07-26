@@ -8,6 +8,7 @@
 
 #include "nsGridContainerFrame.h"
 
+#include "nsCSSAnonBoxes.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
 
@@ -48,6 +49,10 @@ nsGridContainerFrame::Reflow(nsPresContext*           aPresContext,
     return;
   }
 
+#ifdef DEBUG
+  SanityCheckAnonymousGridItems();
+#endif 
+
   nsMargin bp = aReflowState.ComputedPhysicalBorderPadding();
   ApplySkipSides(bp);
   nscoord contentHeight = GetEffectiveComputedHeight(aReflowState);
@@ -74,3 +79,64 @@ nsGridContainerFrame::GetFrameName(nsAString& aResult) const
   return MakeFrameName(NS_LITERAL_STRING("GridContainer"), aResult);
 }
 #endif
+
+#ifdef DEBUG
+static bool
+FrameWantsToBeInAnonymousGridItem(nsIFrame* aFrame)
+{
+  
+  
+  return (aFrame->IsFrameOfType(nsIFrame::eLineParticipant) ||
+          nsGkAtoms::placeholderFrame == aFrame->GetType());
+}
+
+
+
+
+
+
+
+void
+nsGridContainerFrame::SanityCheckAnonymousGridItems() const
+{
+  
+  
+  ChildListIDs noCheckLists = kAbsoluteList | kFixedList;
+  ChildListIDs checkLists = kPrincipalList | kOverflowList;
+  for (nsIFrame::ChildListIterator childLists(this);
+       !childLists.IsDone(); childLists.Next()) {
+    if (!checkLists.Contains(childLists.CurrentID())) {
+      MOZ_ASSERT(noCheckLists.Contains(childLists.CurrentID()),
+                 "unexpected non-empty child list");
+      continue;
+    }
+
+    bool prevChildWasAnonGridItem = false;
+    nsFrameList children = childLists.CurrentList();
+    for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
+      nsIFrame* child = e.get();
+      MOZ_ASSERT(!FrameWantsToBeInAnonymousGridItem(child),
+                 "frame wants to be inside an anonymous grid item, "
+                 "but it isn't");
+      if (child->StyleContext()->GetPseudo() ==
+            nsCSSAnonBoxes::anonymousGridItem) {
+
+
+
+
+
+
+
+
+        MOZ_ASSERT(!prevChildWasAnonGridItem, "two anon grid items in a row");
+        nsIFrame* firstWrappedChild = child->GetFirstPrincipalChild();
+        MOZ_ASSERT(firstWrappedChild,
+                   "anonymous grid item is empty (shouldn't happen)");
+        prevChildWasAnonGridItem = true;
+      } else {
+        prevChildWasAnonGridItem = false;
+      }
+    }
+  }
+}
+#endif 
