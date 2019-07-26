@@ -555,16 +555,8 @@ function enableNat(params, callback) {
 }
 
 function disableNat(params, callback) {
-  let command;
-
-  
-  
-  if ("interfaceList" in params && params.interfaceList.length > 1) {
-    command = DUMMY_COMMAND;
-  } else {
-    command = "nat disable " + params.internalIfname + " " +
-              params.externalIfname + " " + "0";
-  }
+  let command = "nat disable " + params.internalIfname + " " +
+                 params.externalIfname + " " + "0";
   return doCommand(command, callback);
 }
 
