@@ -18,6 +18,7 @@
 #include "nsAsyncDOMEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsAutoPtr.h"
+#include "nsComponentManagerUtils.h"
 
 
 struct nsTreeRange
