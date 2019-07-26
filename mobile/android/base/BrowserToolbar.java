@@ -765,7 +765,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         
         
-        if (!hasCompositionString(s)) {
+        if (!hasCompositionString(s) ||
+            InputMethods.isGestureKeyboard(mUrlEditText.getContext())) {
             updateGoButton(text);
         }
 
