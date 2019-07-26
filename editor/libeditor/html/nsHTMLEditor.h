@@ -344,7 +344,8 @@ public:
   
   
   
-  nsresult CollapseSelectionToDeepestNonTableFirstChild(nsISelection *aSelection, nsIDOMNode *aNode);
+  void CollapseSelectionToDeepestNonTableFirstChild(
+                          mozilla::dom::Selection* aSelection, nsINode* aNode);
 
   
 
