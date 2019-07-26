@@ -1400,7 +1400,12 @@ class JitActivation : public Activation
                                                 size_t inlineDepth = 0);
 
     
+    
     RematerializedFrame *lookupRematerializedFrame(uint8_t *top, size_t inlineDepth = 0);
+
+    bool hasRematerializedFrame(uint8_t *top, size_t inlineDepth = 0) {
+        return !!lookupRematerializedFrame(top, inlineDepth);
+    }
 
     
     void removeRematerializedFrame(uint8_t *top);

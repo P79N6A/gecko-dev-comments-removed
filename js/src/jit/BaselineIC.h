@@ -9,6 +9,8 @@
 
 #ifdef JS_ION
 
+#include "mozilla/Assertions.h"
+
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsgc.h"
@@ -206,15 +208,49 @@ class ICEntry
     uint32_t returnOffset_;
 
     
-    uint32_t pcOffset_ : 31;
-
-    
-    uint32_t isForOp_ : 1;
+    uint32_t pcOffset_ : 29;
 
   public:
-    ICEntry(uint32_t pcOffset, bool isForOp)
-      : firstStub_(nullptr), returnOffset_(), pcOffset_(pcOffset), isForOp_(isForOp)
-    {}
+    enum Kind {
+        
+        Kind_Op = 0,
+
+        
+        Kind_NonOp,
+
+        
+        Kind_CallVM,
+
+        
+        Kind_DebugTrap,
+
+        
+        
+        Kind_DebugPrologue,
+        Kind_DebugEpilogue
+    };
+
+  private:
+    
+    Kind kind_ : 3;
+
+    
+    void setKind(Kind kind) {
+        kind_ = kind;
+        MOZ_ASSERT(this->kind() == kind);
+    }
+
+  public:
+    ICEntry(uint32_t pcOffset, Kind kind)
+      : firstStub_(nullptr), returnOffset_(), pcOffset_(pcOffset)
+    {
+        
+        
+        MOZ_ASSERT(pcOffset_ == pcOffset);
+        JS_STATIC_ASSERT(BaselineScript::MAX_JSSCRIPT_LENGTH < 0x1fffffffu);
+        MOZ_ASSERT(pcOffset <= BaselineScript::MAX_JSSCRIPT_LENGTH);
+        setKind(kind);
+    }
 
     CodeOffsetLabel returnOffset() const {
         return CodeOffsetLabel(returnOffset_);
@@ -240,8 +276,21 @@ class ICEntry
         return script->offsetToPC(pcOffset_);
     }
 
+    Kind kind() const {
+        
+        return (Kind)(kind_ & 0x7);
+    }
     bool isForOp() const {
-        return isForOp_;
+        return kind() == Kind_Op;
+    }
+
+    void setForDebugPrologue() {
+        MOZ_ASSERT(kind() == Kind_CallVM);
+        setKind(Kind_DebugPrologue);
+    }
+    void setForDebugEpilogue() {
+        MOZ_ASSERT(kind() == Kind_CallVM);
+        setKind(Kind_DebugEpilogue);
     }
 
     bool hasStub() const {
@@ -1043,6 +1092,8 @@ class ICStubCompiler
     
     void enterStubFrame(MacroAssembler &masm, Register scratch);
     void leaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false);
+    void leaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon = false);
+    void leaveStubFrameCommonTail(MacroAssembler &masm);
 
     
     
@@ -4041,7 +4092,8 @@ class ICGetProp_Fallback : public ICMonitoredFallbackStub
 
     class Compiler : public ICStubCompiler {
       protected:
-        uint32_t returnOffset_;
+        uint32_t returnFromIonOffset_;
+        uint32_t returnFromStubOffset_;
         bool generateStubCode(MacroAssembler &masm);
         bool postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code);
 
@@ -4934,7 +4986,8 @@ class ICSetProp_Fallback : public ICFallbackStub
 
     class Compiler : public ICStubCompiler {
       protected:
-        uint32_t returnOffset_;
+        uint32_t returnFromIonOffset_;
+        uint32_t returnFromStubOffset_;
         bool generateStubCode(MacroAssembler &masm);
         bool postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code);
 
@@ -5358,7 +5411,8 @@ class ICCall_Fallback : public ICMonitoredFallbackStub
     class Compiler : public ICCallStubCompiler {
       protected:
         bool isConstructing_;
-        uint32_t returnOffset_;
+        uint32_t returnFromIonOffset_;
+        uint32_t returnFromStubOffset_;
         bool generateStubCode(MacroAssembler &masm);
         bool postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code);
 
@@ -5752,7 +5806,7 @@ class ICTableSwitch : public ICStub
         return space->allocate<ICTableSwitch>(code, table, min, length, defaultTarget);
     }
 
-    void fixupJumpTable(HandleScript script, BaselineScript *baseline);
+    void fixupJumpTable(JSScript *script, BaselineScript *baseline);
 
     class Compiler : public ICStubCompiler {
         bool generateStubCode(MacroAssembler &masm);

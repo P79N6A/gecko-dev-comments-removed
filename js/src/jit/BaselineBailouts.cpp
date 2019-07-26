@@ -11,6 +11,7 @@
 #include "jit/CompileInfo.h"
 #include "jit/IonSpewer.h"
 #include "jit/Recover.h"
+#include "jit/RematerializedFrame.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/TraceLogging.h"
 
@@ -384,12 +385,12 @@ static inline void*
 GetStubReturnAddress(JSContext *cx, jsbytecode *pc)
 {
     if (IsGetPropPC(pc))
-        return cx->compartment()->jitCompartment()->baselineGetPropReturnAddr();
+        return cx->compartment()->jitCompartment()->baselineGetPropReturnFromIonAddr();
     if (IsSetPropPC(pc))
-        return cx->compartment()->jitCompartment()->baselineSetPropReturnAddr();
+        return cx->compartment()->jitCompartment()->baselineSetPropReturnFromIonAddr();
     
     JS_ASSERT(IsCallPC(pc));
-    return cx->compartment()->jitCompartment()->baselineCallReturnAddr();
+    return cx->compartment()->jitCompartment()->baselineCallReturnFromIonAddr();
 }
 
 static inline jsbytecode *
@@ -1535,6 +1536,34 @@ HandleBaselineInfoBailout(JSContext *cx, JSScript *outerScript, JSScript *innerS
     return Invalidate(cx, outerScript);
 }
 
+static void
+CopyFromRematerializedFrame(JSContext *cx, JitActivation *act, uint8_t *fp, size_t inlineDepth,
+                            BaselineFrame *frame)
+{
+    RematerializedFrame *rematFrame = act->lookupRematerializedFrame(fp, inlineDepth);
+
+    
+    
+    if (!rematFrame)
+        return;
+
+    MOZ_ASSERT(rematFrame->script() == frame->script());
+    MOZ_ASSERT(rematFrame->numActualArgs() == frame->numActualArgs());
+
+    frame->setScopeChain(rematFrame->scopeChain());
+    frame->thisValue() = rematFrame->thisValue();
+
+    for (unsigned i = 0; i < frame->numActualArgs(); i++)
+        frame->argv()[i] = rematFrame->argv()[i];
+
+    for (size_t i = 0; i < frame->script()->nfixed(); i++)
+        *frame->valueSlot(i) = rematFrame->locals()[i];
+
+    IonSpew(IonSpew_BaselineBailouts,
+            "  Copied from rematerialized frame at (%p,%u)",
+            fp, inlineDepth);
+}
+
 uint32_t
 jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 {
@@ -1574,6 +1603,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
     JS_ASSERT(cx->currentlyRunningInJit());
     JitFrameIterator iter(cx);
+    uint8_t *outerFp = nullptr;
 
     uint32_t frameno = 0;
     while (frameno < numFrames) {
@@ -1607,8 +1637,10 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
             if (frameno == 0)
                 innerScript = frame->script();
 
-            if (frameno == numFrames - 1)
+            if (frameno == numFrames - 1) {
                 outerScript = frame->script();
+                outerFp = iter.fp();
+            }
 
             frameno++;
         }
@@ -1616,8 +1648,31 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
         ++iter;
     }
 
-    JS_ASSERT(innerScript);
-    JS_ASSERT(outerScript);
+    MOZ_ASSERT(innerScript);
+    MOZ_ASSERT(outerScript);
+    MOZ_ASSERT(outerFp);
+
+    
+    
+    
+    
+    JitActivation *act = cx->mainThread().activation()->asJit();
+    if (act->hasRematerializedFrame(outerFp)) {
+        JitFrameIterator iter(cx);
+        size_t inlineDepth = numFrames;
+        while (inlineDepth > 0) {
+            if (iter.isBaselineJS()) {
+                inlineDepth--;
+                CopyFromRematerializedFrame(cx, act, outerFp, inlineDepth, iter.baselineFrame());
+            }
+            ++iter;
+        }
+
+        
+        
+        act->removeRematerializedFrame(outerFp);
+    }
+
     IonSpew(IonSpew_BaselineBailouts,
             "  Restored outerScript=(%s:%u,%u) innerScript=(%s:%u,%u) (bailoutKind=%u)",
             outerScript->filename(), outerScript->lineno(), outerScript->getUseCount(),

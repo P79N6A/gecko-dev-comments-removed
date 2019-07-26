@@ -11,6 +11,7 @@
 #include "jsscript.h"
 
 #include "gc/Marking.h"
+#include "jit/BaselineDebugModeOSR.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
@@ -225,10 +226,18 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
     if (scriptRes)
         *scriptRes = script;
     uint8_t *retAddr = returnAddressToFp();
+
+    
+    
+    if (BaselineDebugModeOSRInfo *info = baselineFrame()->getDebugModeOSRInfo())
+        retAddr = info->resumeAddr;
+
     if (pcRes) {
         
         
-        if (retAddr == script->baselineScript()->prologueEntryAddr()) {
+        if (retAddr == script->baselineScript()->prologueEntryAddr() ||
+            retAddr == script->baselineScript()->postDebugPrologueAddr())
+        {
             *pcRes = script->code();
             return;
         }
@@ -568,6 +577,13 @@ HandleExceptionBaseline(JSContext *cx, const JitFrameIterator &frame, ResumeFrom
 
 }
 
+struct AutoDeleteDebugModeOSRInfo
+{
+    BaselineFrame *frame;
+    AutoDeleteDebugModeOSRInfo(BaselineFrame *frame) : frame(frame) { MOZ_ASSERT(frame); }
+    ~AutoDeleteDebugModeOSRInfo() { frame->deleteDebugModeOSRInfo(); }
+};
+
 void
 HandleException(ResumeFromException *rfe)
 {
@@ -638,6 +654,16 @@ HandleException(ResumeFromException *rfe)
             bool calledDebugEpilogue = false;
 
             HandleExceptionBaseline(cx, iter, rfe, &calledDebugEpilogue);
+
+            
+            
+            
+            
+            
+            
+            
+            AutoDeleteDebugModeOSRInfo deleteDebugModeOSRInfo(iter.baselineFrame());
+
             if (rfe->kind != ResumeFromException::RESUME_ENTRY_FRAME)
                 return;
 

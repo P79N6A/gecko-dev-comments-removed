@@ -174,6 +174,14 @@ class BaselineCompiler : public BaselineCompilerSpecific
     CodeOffsetLabel prologueOffset_;
 
     
+    
+    CodeOffsetLabel epilogueOffset_;
+
+    
+    
+    CodeOffsetLabel postDebugPrologueOffset_;
+
+    
     bool modifiesArguments_;
 
     Label *labelOf(jsbytecode *pc) {
@@ -188,7 +196,7 @@ class BaselineCompiler : public BaselineCompilerSpecific
     }
 
   public:
-    BaselineCompiler(JSContext *cx, TempAllocator &alloc, HandleScript script);
+    BaselineCompiler(JSContext *cx, TempAllocator &alloc, JSScript *script);
     bool init();
 
     MethodStatus compile();
@@ -201,12 +209,12 @@ class BaselineCompiler : public BaselineCompilerSpecific
 #ifdef JSGC_GENERATIONAL
     bool emitOutOfLinePostBarrierSlot();
 #endif
-    bool emitIC(ICStub *stub, bool isForOp);
+    bool emitIC(ICStub *stub, ICEntry::Kind kind);
     bool emitOpIC(ICStub *stub) {
-        return emitIC(stub, true);
+        return emitIC(stub, ICEntry::Kind_Op);
     }
     bool emitNonOpIC(ICStub *stub) {
-        return emitIC(stub, false);
+        return emitIC(stub, ICEntry::Kind_NonOp);
     }
 
     bool emitStackCheck(bool earlyCheck=false);

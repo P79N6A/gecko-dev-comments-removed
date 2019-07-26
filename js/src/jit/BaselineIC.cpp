@@ -13,6 +13,7 @@
 #include "jstypes.h"
 
 #include "builtin/Eval.h"
+#include "jit/BaselineDebugModeOSR.h"
 #include "jit/BaselineHelpers.h"
 #include "jit/BaselineJIT.h"
 #include "jit/IonLinker.h"
@@ -667,6 +668,20 @@ ICStubCompiler::leaveStubFrame(MacroAssembler &masm, bool calledIntoIon)
 {
     JS_ASSERT(entersStubFrame_);
     EmitLeaveStubFrame(masm, calledIntoIon);
+}
+
+void
+ICStubCompiler::leaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon)
+{
+    JS_ASSERT(entersStubFrame_);
+    EmitLeaveStubFrameHead(masm, calledIntoIon);
+}
+
+void
+ICStubCompiler::leaveStubFrameCommonTail(MacroAssembler &masm)
+{
+    JS_ASSERT(entersStubFrame_);
+    EmitLeaveStubFrameCommonTail(masm);
 }
 
 void
@@ -1757,9 +1772,12 @@ ICNewObject_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
-DoCompareFallback(JSContext *cx, BaselineFrame *frame, ICCompare_Fallback *stub, HandleValue lhs,
+DoCompareFallback(JSContext *cx, BaselineFrame *frame, ICCompare_Fallback *stub_, HandleValue lhs,
                   HandleValue rhs, MutableHandleValue ret)
 {
+    
+    DebugModeOSRVolatileStub<ICCompare_Fallback *> stub(frame, stub_);
+
     jsbytecode *pc = stub->icEntry()->pc(frame->script());
     JSOp op = JSOp(*pc);
 
@@ -1815,6 +1833,10 @@ DoCompareFallback(JSContext *cx, BaselineFrame *frame, ICCompare_Fallback *stub,
     }
 
     ret.setBoolean(out);
+
+    
+    if (stub.invalid())
+        return true;
 
     
     if (stub->numOptimizedStubs() >= ICCompare_Fallback::MAX_OPTIMIZED_STUBS) {
@@ -2489,9 +2511,12 @@ ICToNumber_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 # pragma optimize("g", off)
 #endif
 static bool
-DoBinaryArithFallback(JSContext *cx, BaselineFrame *frame, ICBinaryArith_Fallback *stub,
+DoBinaryArithFallback(JSContext *cx, BaselineFrame *frame, ICBinaryArith_Fallback *stub_,
                       HandleValue lhs, HandleValue rhs, MutableHandleValue ret)
 {
+    
+    DebugModeOSRVolatileStub<ICBinaryArith_Fallback *> stub(frame, stub_);
+
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
     JSOp op = JSOp(*pc);
@@ -2570,6 +2595,10 @@ DoBinaryArithFallback(JSContext *cx, BaselineFrame *frame, ICBinaryArith_Fallbac
       default:
         MOZ_ASSUME_UNREACHABLE("Unhandled baseline arith op");
     }
+
+    
+    if (stub.invalid())
+        return true;
 
     if (ret.isDouble())
         stub->setSawDoubleResult();
@@ -3048,9 +3077,12 @@ ICBinaryArith_DoubleWithInt32::Compiler::generateStubCode(MacroAssembler &masm)
 # pragma optimize("g", off)
 #endif
 static bool
-DoUnaryArithFallback(JSContext *cx, BaselineFrame *frame, ICUnaryArith_Fallback *stub,
+DoUnaryArithFallback(JSContext *cx, BaselineFrame *frame, ICUnaryArith_Fallback *stub_,
                      HandleValue val, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICUnaryArith_Fallback *> stub(frame, stub_);
+
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
     JSOp op = JSOp(*pc);
@@ -3071,6 +3103,10 @@ DoUnaryArithFallback(JSContext *cx, BaselineFrame *frame, ICUnaryArith_Fallback 
       default:
         MOZ_ASSUME_UNREACHABLE("Unexpected op");
     }
+
+    
+    if (stub.invalid())
+        return true;
 
     if (res.isDouble())
         stub->setSawDoubleResult();
@@ -3977,9 +4013,13 @@ TryAttachGetElemStub(JSContext *cx, JSScript *script, jsbytecode *pc, ICGetElem_
 }
 
 static bool
-DoGetElemFallback(JSContext *cx, BaselineFrame *frame, ICGetElem_Fallback *stub, HandleValue lhs,
+DoGetElemFallback(JSContext *cx, BaselineFrame *frame, ICGetElem_Fallback *stub_, HandleValue lhs,
                   HandleValue rhs, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICGetElem_Fallback *> stub(frame, stub_);
+
+    RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(frame->script());
     JSOp op = JSOp(*pc);
     FallbackICSpew(cx, stub, "GetElem(%s)", js_CodeName[op]);
@@ -4003,6 +4043,10 @@ DoGetElemFallback(JSContext *cx, BaselineFrame *frame, ICGetElem_Fallback *stub,
             return false;
         types::TypeScript::Monitor(cx, frame->script(), pc, res);
     }
+
+    
+    if (stub.invalid())
+        return true;
 
     
     if (!stub->addMonitorStubForValue(cx, frame->script(), res))
@@ -4945,9 +4989,12 @@ CanOptimizeDenseSetElem(JSContext *cx, HandleObject obj, uint32_t index,
 }
 
 static bool
-DoSetElemFallback(JSContext *cx, BaselineFrame *frame, ICSetElem_Fallback *stub, Value *stack,
+DoSetElemFallback(JSContext *cx, BaselineFrame *frame, ICSetElem_Fallback *stub_, Value *stack,
                   HandleValue objv, HandleValue index, HandleValue rhs)
 {
+    
+    DebugModeOSRVolatileStub<ICSetElem_Fallback *> stub(frame, stub_);
+
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
     JSOp op = JSOp(*pc);
@@ -4986,6 +5033,10 @@ DoSetElemFallback(JSContext *cx, BaselineFrame *frame, ICSetElem_Fallback *stub,
     
     JS_ASSERT(stack[2] == objv);
     stack[2] = rhs;
+
+    
+    if (stub.invalid())
+        return true;
 
     if (stub->numOptimizedStubs() >= ICSetElem_Fallback::MAX_OPTIMIZED_STUBS) {
         
@@ -5757,9 +5808,12 @@ TryAttachScopeNameStub(JSContext *cx, HandleScript script, ICGetName_Fallback *s
 }
 
 static bool
-DoGetNameFallback(JSContext *cx, BaselineFrame *frame, ICGetName_Fallback *stub,
+DoGetNameFallback(JSContext *cx, BaselineFrame *frame, ICGetName_Fallback *stub_,
                   HandleObject scopeChain, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICGetName_Fallback *> stub(frame, stub_);
+
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
     mozilla::DebugOnly<JSOp> op = JSOp(*pc);
@@ -5778,6 +5832,10 @@ DoGetNameFallback(JSContext *cx, BaselineFrame *frame, ICGetName_Fallback *stub,
     }
 
     types::TypeScript::Monitor(cx, script, pc, res);
+
+    
+    if (stub.invalid())
+        return true;
 
     
     if (!stub->addMonitorStubForValue(cx, script, res))
@@ -5934,9 +5992,12 @@ ICBindName_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
-DoGetIntrinsicFallback(JSContext *cx, BaselineFrame *frame, ICGetIntrinsic_Fallback *stub,
+DoGetIntrinsicFallback(JSContext *cx, BaselineFrame *frame, ICGetIntrinsic_Fallback *stub_,
                        MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICGetIntrinsic_Fallback *> stub(frame, stub_);
+
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
     mozilla::DebugOnly<JSOp> op = JSOp(*pc);
@@ -5952,6 +6013,10 @@ DoGetIntrinsicFallback(JSContext *cx, BaselineFrame *frame, ICGetIntrinsic_Fallb
     
 
     types::TypeScript::Monitor(cx, script, pc, res);
+
+    
+    if (stub.invalid())
+        return true;
 
     IonSpew(IonSpew_BaselineIC, "  Generating GetIntrinsic optimized stub");
     ICGetIntrinsic_Constant::Compiler compiler(cx, res);
@@ -6314,9 +6379,12 @@ TryAttachPrimitiveGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc
 }
 
 static bool
-DoGetPropFallback(JSContext *cx, BaselineFrame *frame, ICGetProp_Fallback *stub,
+DoGetPropFallback(JSContext *cx, BaselineFrame *frame, ICGetProp_Fallback *stub_,
                   MutableHandleValue val, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICGetProp_Fallback *> stub(frame, stub_);
+
     jsbytecode *pc = stub->icEntry()->pc(frame->script());
     JSOp op = JSOp(*pc);
     FallbackICSpew(cx, stub, "GetProp(%s)", js_CodeName[op]);
@@ -6361,6 +6429,10 @@ DoGetPropFallback(JSContext *cx, BaselineFrame *frame, ICGetProp_Fallback *stub,
 #endif
 
     types::TypeScript::Monitor(cx, frame->script(), pc, res);
+
+    
+    if (stub.invalid())
+        return true;
 
     
     if (!stub->addMonitorStubForValue(cx, frame->script(), res))
@@ -6425,15 +6497,25 @@ ICGetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
-    returnOffset_ = masm.currentOffset();
-
+    
+    
     
     
 #ifdef DEBUG
     entersStubFrame_ = true;
 #endif
 
-    leaveStubFrame(masm, true);
+    Label leaveStubCommon;
+
+    returnFromStubOffset_ = masm.currentOffset();
+    leaveStubFrameHead(masm, false);
+    masm.jump(&leaveStubCommon);
+
+    returnFromIonOffset_ = masm.currentOffset();
+    leaveStubFrameHead(masm, true);
+
+    masm.bind(&leaveStubCommon);
+    leaveStubFrameCommonTail(masm);
 
     
     
@@ -6448,9 +6530,16 @@ ICGetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICGetProp_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
-    CodeOffsetLabel offset(returnOffset_);
-    offset.fixup(&masm);
-    cx->compartment()->jitCompartment()->initBaselineGetPropReturnAddr(code->raw() + offset.offset());
+    JitCompartment *comp = cx->compartment()->jitCompartment();
+
+    CodeOffsetLabel fromIon(returnFromIonOffset_);
+    fromIon.fixup(&masm);
+    comp->initBaselineGetPropReturnFromIonAddr(code->raw() + fromIon.offset());
+
+    CodeOffsetLabel fromVM(returnFromStubOffset_);
+    fromVM.fixup(&masm);
+    comp->initBaselineGetPropReturnFromStubAddr(code->raw() + fromVM.offset());
+
     return true;
 }
 
@@ -7248,9 +7337,12 @@ TryAttachSetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc, ICSetPr
 }
 
 static bool
-DoSetPropFallback(JSContext *cx, BaselineFrame *frame, ICSetProp_Fallback *stub, HandleValue lhs,
-                  HandleValue rhs, MutableHandleValue res)
+DoSetPropFallback(JSContext *cx, BaselineFrame *frame, ICSetProp_Fallback *stub_,
+                  HandleValue lhs, HandleValue rhs, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICSetProp_Fallback *> stub(frame, stub_);
+
     RootedScript script(cx, frame->script());
     jsbytecode *pc = stub->icEntry()->pc(script);
     JSOp op = JSOp(*pc);
@@ -7299,6 +7391,10 @@ DoSetPropFallback(JSContext *cx, BaselineFrame *frame, ICSetProp_Fallback *stub,
     
     res.set(rhs);
 
+    
+    if (stub.invalid())
+        return true;
+
     if (stub->numOptimizedStubs() >= ICSetProp_Fallback::MAX_OPTIMIZED_STUBS) {
         
         return true;
@@ -7346,15 +7442,25 @@ ICSetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
-    returnOffset_ = masm.currentOffset();
-
+    
+    
     
     
 #ifdef DEBUG
     entersStubFrame_ = true;
 #endif
 
-    leaveStubFrame(masm, true);
+    Label leaveStubCommon;
+
+    returnFromStubOffset_ = masm.currentOffset();
+    leaveStubFrameHead(masm, false);
+    masm.jump(&leaveStubCommon);
+
+    returnFromIonOffset_ = masm.currentOffset();
+    leaveStubFrameHead(masm, true);
+
+    masm.bind(&leaveStubCommon);
+    leaveStubFrameCommonTail(masm);
 
     
     EmitUnstowICValues(masm, 1);
@@ -7366,9 +7472,16 @@ ICSetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICSetProp_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
-    CodeOffsetLabel offset(returnOffset_);
-    offset.fixup(&masm);
-    cx->compartment()->jitCompartment()->initBaselineSetPropReturnAddr(code->raw() + offset.offset());
+    JitCompartment *comp = cx->compartment()->jitCompartment();
+
+    CodeOffsetLabel fromIon(returnFromIonOffset_);
+    fromIon.fixup(&masm);
+    comp->initBaselineSetPropReturnFromIonAddr(code->raw() + fromIon.offset());
+
+    CodeOffsetLabel fromVM(returnFromStubOffset_);
+    fromVM.fixup(&masm);
+    comp->initBaselineSetPropReturnFromStubAddr(code->raw() + fromVM.offset());
+
     return true;
 }
 
@@ -8084,9 +8197,12 @@ MaybeCloneFunctionAtCallsite(JSContext *cx, MutableHandleValue callee, HandleScr
 }
 
 static bool
-DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub, uint32_t argc,
+DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_, uint32_t argc,
                Value *vp, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICCall_Fallback *> stub(frame, stub_);
+
     
     AutoArrayRooter vpRoot(cx, argc + 2, vp);
 
@@ -8137,6 +8253,10 @@ DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub, uint3
     }
 
     types::TypeScript::Monitor(cx, script, pc, res);
+
+    
+    if (stub.invalid())
+        return true;
 
     
     ICTypeMonitor_Fallback *typeMonFbStub = stub->fallbackMonitorStub();
@@ -8385,14 +8505,32 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     
     
     
-    returnOffset_ = masm.currentOffset();
+    Label leaveStubCommon;
+    returnFromStubOffset_ = masm.currentOffset();
 
     
     
     
     masm.loadValue(Address(BaselineStackReg, 3 * sizeof(size_t)), R1);
 
-    leaveStubFrame(masm, true);
+    
+    leaveStubFrameHead(masm,  false);
+
+    
+    masm.jump(&leaveStubCommon);
+
+    
+    
+    returnFromIonOffset_ = masm.currentOffset();
+
+    masm.loadValue(Address(BaselineStackReg, 3 * sizeof(size_t)), R1);
+
+    
+    leaveStubFrameHead(masm,  true);
+
+    
+    masm.bind(&leaveStubCommon);
+    leaveStubFrameCommonTail(masm);
 
     
     regs = availableGeneralRegs(2);
@@ -8427,9 +8565,16 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICCall_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
-    CodeOffsetLabel offset(returnOffset_);
-    offset.fixup(&masm);
-    cx->compartment()->jitCompartment()->initBaselineCallReturnAddr(code->raw() + offset.offset());
+    JitCompartment *comp = cx->compartment()->jitCompartment();
+
+    CodeOffsetLabel fromIon(returnFromIonOffset_);
+    fromIon.fixup(&masm);
+    comp->initBaselineCallReturnFromIonAddr(code->raw() + fromIon.offset());
+
+    CodeOffsetLabel fromVM(returnFromStubOffset_);
+    fromVM.fixup(&masm);
+    comp->initBaselineCallReturnFromStubAddr(code->raw() + fromVM.offset());
+
     return true;
 }
 
@@ -9202,7 +9347,7 @@ ICTableSwitch::Compiler::getStub(ICStubSpace *space)
 }
 
 void
-ICTableSwitch::fixupJumpTable(HandleScript script, BaselineScript *baseline)
+ICTableSwitch::fixupJumpTable(JSScript *script, BaselineScript *baseline)
 {
     defaultTarget_ = baseline->nativeCodeForPC(script, (jsbytecode *) defaultTarget_);
 
@@ -9251,15 +9396,22 @@ ICIteratorNew_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
-DoIteratorMoreFallback(JSContext *cx, BaselineFrame *frame, ICIteratorMore_Fallback *stub,
+DoIteratorMoreFallback(JSContext *cx, BaselineFrame *frame, ICIteratorMore_Fallback *stub_,
                        HandleValue iterValue, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICIteratorMore_Fallback *> stub(frame, stub_);
+
     FallbackICSpew(cx, stub, "IteratorMore");
 
     bool cond;
     if (!IteratorMore(cx, &iterValue.toObject(), &cond, res))
         return false;
     res.setBoolean(cond);
+
+    
+    if (stub.invalid())
+        return true;
 
     if (iterValue.toObject().is<PropertyIteratorObject>() &&
         !stub->hasStub(ICStub::IteratorMore_Native))
@@ -9332,14 +9484,21 @@ ICIteratorMore_Native::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
-DoIteratorNextFallback(JSContext *cx, BaselineFrame *frame, ICIteratorNext_Fallback *stub,
+DoIteratorNextFallback(JSContext *cx, BaselineFrame *frame, ICIteratorNext_Fallback *stub_,
                        HandleValue iterValue, MutableHandleValue res)
 {
+    
+    DebugModeOSRVolatileStub<ICIteratorNext_Fallback *> stub(frame, stub_);
+
     FallbackICSpew(cx, stub, "IteratorNext");
 
     RootedObject iteratorObject(cx, &iterValue.toObject());
     if (!IteratorNext(cx, iteratorObject, res))
         return false;
+
+    
+    if (stub.invalid())
+        return true;
 
     if (!res.isString() && !stub->hasNonStringResult())
         stub->setHasNonStringResult();

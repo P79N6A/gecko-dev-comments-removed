@@ -15,6 +15,8 @@
 namespace js {
 namespace jit {
 
+struct BaselineDebugModeOSRInfo;
+
 
 
 
@@ -57,7 +59,11 @@ class BaselineFrame
         HAS_PUSHED_SPS_FRAME = 1 << 8,
 
         
-        OVER_RECURSED    = 1 << 9
+        OVER_RECURSED    = 1 << 9,
+
+        
+        
+        HAS_DEBUG_MODE_OSR_INFO = 1 << 10
     };
 
   protected: 
@@ -296,6 +302,24 @@ class BaselineFrame
         flags_ |= OVER_RECURSED;
     }
 
+    BaselineDebugModeOSRInfo *debugModeOSRInfo() {
+        MOZ_ASSERT(flags_ & HAS_DEBUG_MODE_OSR_INFO);
+        return *reinterpret_cast<BaselineDebugModeOSRInfo **>(&loScratchValue_);
+    }
+
+    BaselineDebugModeOSRInfo *getDebugModeOSRInfo() {
+        if (flags_ & HAS_DEBUG_MODE_OSR_INFO)
+            return debugModeOSRInfo();
+        return nullptr;
+    }
+
+    void setDebugModeOSRInfo(BaselineDebugModeOSRInfo *info) {
+        flags_ |= HAS_DEBUG_MODE_OSR_INFO;
+        *reinterpret_cast<BaselineDebugModeOSRInfo **>(&loScratchValue_) = info;
+    }
+
+    void deleteDebugModeOSRInfo();
+
     void trace(JSTracer *trc, JitFrameIterator &frame);
 
     bool isFunctionFrame() const {
@@ -386,6 +410,6 @@ JS_STATIC_ASSERT(((sizeof(BaselineFrame) + BaselineFrame::FramePointerOffset) % 
 } 
 } 
 
-#endif 
+#endif
 
-#endif 
+#endif
