@@ -58,6 +58,7 @@ protected:
                     bool aIsExternal,
                     bool aUserCancelled,
                     bool aIsCrossDomainSubFrameDrop,
+                    int32_t aClipboardType,
                     nsTArray<nsTArray<TransferItem> >& aItems,
                     nsIDOMElement* aDragImage,
                     uint32_t aDragImageX,
@@ -83,7 +84,9 @@ public:
   
   
   
-  nsDOMDataTransfer(uint32_t aEventType, bool aIsExternal);
+  
+  
+  nsDOMDataTransfer(uint32_t aEventType, bool aIsExternal, int32_t aClipboardType);
 
   void GetDragTarget(nsIDOMElement** aDragTarget)
   {
@@ -177,6 +180,10 @@ protected:
   
   
   bool mIsCrossDomainSubFrameDrop;
+
+  
+  
+  int32_t mClipboardType;
 
   
   nsTArray<nsTArray<TransferItem> > mItems;
