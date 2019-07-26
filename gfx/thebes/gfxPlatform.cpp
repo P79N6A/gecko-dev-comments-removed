@@ -421,11 +421,6 @@ gfxPlatform::Init()
     mozilla::layers::InitGralloc();
 #endif
 
-    
-    
-    nsCOMPtr<nsISupports> forceReg
-        = do_CreateInstance("@mozilla.org/gfx/init;1");
-
     Preferences::RegisterCallbackAndCall(RecordingPrefChanged, "gfx.2d.recording", nullptr);
 
     CreateCMSOutputProfile();

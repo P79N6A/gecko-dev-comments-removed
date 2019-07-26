@@ -70,6 +70,7 @@
 #include "nsDOMBlobBuilder.h"
 #include "nsDOMFileReader.h"
 
+#include "gfxPlatform.h"
 #include "nsFormData.h"
 #include "nsHostObjectProtocolHandler.h"
 #include "nsHostObjectURI.h"
@@ -1250,6 +1251,10 @@ LayoutModuleDtor()
   nsContentUtils::XPCOMShutdown();
   nsScriptSecurityManager::Shutdown();
   xpcModuleDtor();
+
+  
+  
+  gfxPlatform::Shutdown();
 }
 
 static const mozilla::Module kLayoutModule = {
