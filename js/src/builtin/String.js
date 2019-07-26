@@ -8,6 +8,30 @@
 var collatorCache = new Record();
 
 
+function String_repeat(count) {
+    
+    CheckObjectCoercible(this);
+    var S = ToString(this);
+
+    
+    var n = ToInteger(count);
+
+    
+    if (n < 0 || n === std_Number_POSITIVE_INFINITY)
+        ThrowError(JSMSG_REPEAT_RANGE);
+
+    
+    if (n === 0)
+        return "";
+
+    var result = S;
+    for (var i = 1; i <= n / 2; i *= 2)
+        result += result;
+    for (; i < n; i++)
+        result += S;
+    return result;
+}
+
 
 
 
