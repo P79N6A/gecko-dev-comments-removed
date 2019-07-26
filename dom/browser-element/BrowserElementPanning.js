@@ -29,6 +29,27 @@ const ContentPanning = {
   hybridEvents: false,
 
   init: function cp_init() {
+    
+    
+    
+    if (docShell.asyncPanZoomEnabled === false) {
+      this._setupListenersForPanning();
+    }
+
+    addEventListener("unload",
+		     this._unloadHandler.bind(this),
+		      false,
+		      false);
+
+    addMessageListener("Viewport:Change", this._recvViewportChange.bind(this));
+    addMessageListener("Gesture:DoubleTap", this._recvDoubleTap.bind(this));
+    addEventListener("visibilitychange", this._handleVisibilityChange.bind(this));
+    kObservedEvents.forEach((topic) => {
+      Services.obs.addObserver(this, topic, false);
+    });
+  },
+
+  _setupListenersForPanning: function cp_setupListenersForPanning() {
     var events;
     try {
       content.document.createEvent('TouchEvent');
@@ -60,18 +81,6 @@ const ContentPanning = {
                                  this.handleEvent.bind(this),
                                   false);
     }.bind(this));
-
-    addEventListener("unload",
-		     this._unloadHandler.bind(this),
-		      false,
-		      false);
-
-    addMessageListener("Viewport:Change", this._recvViewportChange.bind(this));
-    addMessageListener("Gesture:DoubleTap", this._recvDoubleTap.bind(this));
-    addEventListener("visibilitychange", this._handleVisibilityChange.bind(this));
-    kObservedEvents.forEach((topic) => {
-      Services.obs.addObserver(this, topic, false);
-    });
   },
 
   handleEvent: function cp_handleEvent(evt) {
@@ -195,8 +204,7 @@ const ContentPanning = {
 
     
     
-    if (docShell.asyncPanZoomEnabled === false &&
-        (this.panning || this.preventNextClick)) {
+    if ((this.panning || this.preventNextClick)) {
       evt.preventDefault();
     }
   },
@@ -235,7 +243,7 @@ const ContentPanning = {
         let view = target.ownerDocument ? target.ownerDocument.defaultView
                                         : target;
         view.addEventListener('click', this, true, true);
-      } else if (docShell.asyncPanZoomEnabled === false) {
+      } else {
         
         evt.preventDefault();
       }
@@ -285,17 +293,14 @@ const ContentPanning = {
     }
 
     
-    
-    if (docShell.asyncPanZoomEnabled === false) {
-      this.scrollCallback(delta.scale(-1));
-    }
+    this.scrollCallback(delta.scale(-1));
 
     if (!this.panning && isPan) {
       this.panning = true;
       this._activationTimer.cancel();
     }
 
-    if (this.panning && docShell.asyncPanZoomEnabled === false) {
+    if (this.panning) {
       
       
       evt.stopPropagation();
@@ -593,8 +598,7 @@ const ContentPanning = {
     this._activationTimer.cancel();
 
     
-    
-    if (this.panning && docShell.asyncPanZoomEnabled === false) {
+    if (this.panning) {
       KineticPanning.start(this);
     }
   },
