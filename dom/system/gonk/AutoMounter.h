@@ -73,6 +73,24 @@ AutoMounterFormatVolume(const nsCString& aVolumeName);
 
 
 
+
+void
+AutoMounterMountVolume(const nsCString& aVolumeName);
+
+
+
+
+
+
+
+void
+AutoMounterUnmountVolume(const nsCString& aVolumeName);
+
+
+
+
+
+
 void
 ShutdownAutoMounter();
 
