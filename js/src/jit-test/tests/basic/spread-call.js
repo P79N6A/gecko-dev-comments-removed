@@ -42,9 +42,6 @@ function checkCommon(f, makeFn) {
 
   
   
-  
-  
-  
   assertThrowsInstanceOf(makeFn("1, ...null, 2, 3"), TypeError);
   assertThrowsInstanceOf(makeFn("1, ...undefined, 2, 3"), TypeError);
 }

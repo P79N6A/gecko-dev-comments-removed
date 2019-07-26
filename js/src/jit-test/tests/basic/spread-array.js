@@ -45,9 +45,6 @@ assertEqArray([...a=b], [1, 2, 3]);
 
 
 
-
-
-
 assertThrowsInstanceOf(() => [...null], TypeError);
 assertThrowsInstanceOf(() => [...undefined], TypeError);
 

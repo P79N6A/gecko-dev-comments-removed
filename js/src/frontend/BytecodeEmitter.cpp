@@ -4381,6 +4381,26 @@ EmitWith(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     return true;
 }
 
+
+
+
+
+static bool
+EmitIterator(ExclusiveContext *cx, BytecodeEmitter *bce)
+{
+    
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                          
+        return false;
+    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) 
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
+        return false;
+    if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                   
+        return false;
+    CheckTypeSet(cx, bce, JSOP_CALL);
+    return true;
+}
+
 static bool
 EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
@@ -4409,16 +4429,8 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
     if (!EmitTree(cx, bce, forHead->pn_kid3))
         return false;
 
-    
-    if (Emit1(cx, bce, JSOP_DUP) < 0)                          
+    if (!EmitIterator(cx, bce))
         return false;
-    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) 
-        return false;
-    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
-        return false;
-    if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                   
-        return false;
-    CheckTypeSet(cx, bce, JSOP_CALL);
 
     
     if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                    
@@ -6085,6 +6097,8 @@ EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t co
                 return false;
         }
         if (pn2->isKind(PNK_SPREAD)) {
+            if (!EmitIterator(cx, bce))
+                return false;
             if (Emit1(cx, bce, JSOP_SPREAD) < 0)
                 return false;
         } else if (afterSpread) {

@@ -50,8 +50,5 @@ assertEq(eval(...c=["c[0] + d"]), "c[0] + dD");
 
 
 
-
-
-
 assertThrowsInstanceOf(() => eval("a + b", ...null), TypeError);
 assertThrowsInstanceOf(() => eval("a + b", ...undefined), TypeError);

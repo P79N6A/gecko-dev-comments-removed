@@ -38,9 +38,6 @@ function checkCommon(f) {
 
   
   
-  
-  
-  
   assertThrowsInstanceOf(() => f.apply(null, ...null, [1, 2, 3]), TypeError);
   assertThrowsInstanceOf(() => f.apply(null, ...undefined, [1, 2, 3]), TypeError);
 }
