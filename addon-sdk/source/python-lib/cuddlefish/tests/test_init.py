@@ -3,6 +3,7 @@
 
 
 import os, unittest, shutil
+import zipfile
 from StringIO import StringIO
 from cuddlefish import initializer
 from cuddlefish.templates import TEST_MAIN_JS, PACKAGE_JSON
@@ -195,6 +196,21 @@ class TestCfxQuits(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("1 of 1 tests passed.", err)
         self.assertIn("Program terminated successfully.", err)
+
+    def test_cfx_xpi(self):
+        addon_path = os.path.join(tests_path,
+                                  "addons", "simplest-test")
+        rc, out, err = self.run_cfx(addon_path, \
+          ["xpi", "--manifest-overload", "manifest-overload.json"])
+        self.assertEqual(rc, 0)
+        
+        
+        xpi_path = os.path.join(addon_path, "simplest-test.xpi")
+        xpi = zipfile.ZipFile(xpi_path, "r")
+        manifest = xpi.read("install.rdf")
+        self.assertIn("<em:version>1.0-nightly</em:version>", manifest)
+        xpi.close()
+        os.remove(xpi_path)
 
     def test_cfx_init(self):
         

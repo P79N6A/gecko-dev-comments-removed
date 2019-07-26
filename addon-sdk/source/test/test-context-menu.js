@@ -3138,6 +3138,488 @@ exports.testSelectionInOuterFrameNoMatch = function (assert, done) {
 
 
 
+exports.testPredicateContextControl = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let itemTrue = loader.cm.Item({
+    label: "visible",
+    context: loader.cm.PredicateContext(function () { return true; })
+  });
+
+  let itemFalse = loader.cm.Item({
+    label: "hidden",
+    context: loader.cm.PredicateContext(function () { return false; })
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([itemTrue, itemFalse], [itemFalse], []);
+    test.done();
+  });
+};
+
+
+exports.testPredicateContextDocumentType = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.equal(data.documentType, 'text/html');
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(null, function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextDocumentURL = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.equal(data.documentURL, TEST_DOC_URL);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(null, function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+exports.testPredicateContextTargetName = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.targetName, "input");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("button"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+exports.testPredicateContextTargetIDSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.targetID, "button");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("button"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetIDNotSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.targetID, null);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementsByClassName("predicate-test-a")[0], function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTextBoxIsEditable = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, true);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("textbox"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextReadonlyTextBoxIsNotEditable = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, false);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("readonly-textbox"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextDisabledTextBoxIsNotEditable = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, false);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("disabled-textbox"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTextAreaIsEditable = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, true);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("textfield"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextButtonIsNotEditable = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, false);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("button"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+exports.testPredicateContextNonInputIsNotEditable = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, false);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("image"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+exports.testPredicateContextEditableElement = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.isEditable, true);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("editable"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+exports.testPredicateContextNoSelectionInPage = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.selectionText, null);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(null, function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextSelectionInPage = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      
+      assert.ok(data.selectionText && data.selectionText.search(/^\s*Some text.\s*$/) != -1,
+		'Expected "Some text.", got "' + data.selectionText + '"');
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    window.getSelection().selectAllChildren(doc.getElementById("text"));
+    test.showMenu(null, function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextSelectionInTextBox = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      
+      assert.strictEqual(data.selectionText, "t v");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    let textbox = doc.getElementById("textbox");
+    textbox.focus();
+    textbox.setSelectionRange(3, 6);
+    test.showMenu(textbox, function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetSrcSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+  let image;
+  
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.srcURL, image.src);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    image = doc.getElementById("image");
+    test.showMenu(image, function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetSrcNotSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+  
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.srcURL, null);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("link"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+exports.testPredicateContextTargetLinkSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+  let image;
+  
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.linkURL, TEST_DOC_URL + "#test");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementsByClassName("predicate-test-a")[0], function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetLinkNotSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+  
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.linkURL, null);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("image"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetValueSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+  let image;
+  
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.value, "test value");
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("textbox"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+exports.testPredicateContextTargetValueNotSet = function (assert, done) {
+  let test = new TestHelper(assert, done);
+  let loader = test.newLoader();
+  
+  let items = [loader.cm.Item({
+    label: "item",
+    context: loader.cm.PredicateContext(function (data) {
+      assert.strictEqual(data.value, null);
+      return true;
+    })
+  })];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("image"), function (popup) {
+      test.checkMenu(items, [], []);
+      test.done();
+    });
+  });
+};
+
+
+
+
+
 
 
 

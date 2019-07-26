@@ -315,14 +315,24 @@ function getElementWithSelection() {
   if (!element)
     return null;
 
-  let { value, selectionStart, selectionEnd } = element;
+  try {
+    
+    
+    
 
-  let hasSelection = typeof value === "string" &&
+    let { value, selectionStart, selectionEnd } = element;
+
+    let hasSelection = typeof value === "string" &&
                       !isNaN(selectionStart) &&
                       !isNaN(selectionEnd) &&
                       selectionStart !== selectionEnd;
 
-  return hasSelection ? element : null;
+    return hasSelection ? element : null;
+  }
+  catch (err) {
+    return null;
+  }
+
 }
 
 
