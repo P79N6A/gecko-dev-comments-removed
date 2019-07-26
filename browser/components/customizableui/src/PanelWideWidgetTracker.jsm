@@ -26,25 +26,35 @@ let gSeenWidgets = new Set();
 
 const kWidePanelItemClass = "panel-combined-item";
 
+
+
+const kColumnsInMenuPanel = 3;
+
 let PanelWideWidgetTracker = {
   
   onWidgetAdded: function(aWidgetId, aArea, aPosition) {
     if (aArea == gPanel) {
+      gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
       let moveForward = this.shouldMoveForward(aWidgetId, aPosition);
-      this.adjustWidgets(aWidgetId, aPosition, moveForward);
+      this.adjustWidgets(aWidgetId, moveForward);
     }
   },
   onWidgetMoved: function(aWidgetId, aArea, aOldPosition, aNewPosition) {
     if (aArea == gPanel) {
+      gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
       let moveForward = this.shouldMoveForward(aWidgetId, aNewPosition);
-      this.adjustWidgets(aWidgetId, Math.min(aOldPosition, aNewPosition), moveForward);
+      this.adjustWidgets(aWidgetId, moveForward);
     }
   },
   onWidgetRemoved: function(aWidgetId, aPrevArea) {
     if (aPrevArea == gPanel) {
+      gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
       let pos = gPanelPlacements.indexOf(aWidgetId);
-      this.adjustWidgets(aWidgetId, pos);
+      this.adjustWidgets(aWidgetId, false);
     }
+  },
+  onWidgetReset: function(aWidgetId) {
+    gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
   },
   
   
@@ -63,46 +73,31 @@ let PanelWideWidgetTracker = {
     gWideWidgets.delete(aWidgetId);
   },
   shouldMoveForward: function(aWidgetId, aPosition) {
-    let currentWidgetAtPosition = gPanelPlacements[aPosition];
+    let currentWidgetAtPosition = gPanelPlacements[aPosition + 1];
     return gWideWidgets.has(currentWidgetAtPosition) && !gWideWidgets.has(aWidgetId);
   },
-  adjustWidgets: function(aWidgetId, aPosition, aMoveForwards) {
-    if (this.adjustmentStack == 0) {
-      this.movingForward = aMoveForwards;
-    }
-    gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
-    
-    let widgetsAffected = [];
-    for (let widget of gWideWidgets) {
-      let wideWidgetPos = gPanelPlacements.indexOf(widget);
-      
-      
-      
-      
-      
-      if (wideWidgetPos > aPosition || (!this.adjustmentStack && wideWidgetPos == aPosition)) {
-        widgetsAffected.push(widget);
-      }
-    }
-    if (!widgetsAffected.length) {
+  adjustWidgets: function(aWidgetId, aMoveForwards) {
+    if (this.adjusting) {
       return;
     }
-    widgetsAffected.sort(function(a, b) gPanelPlacements.indexOf(a) < gPanelPlacements.indexOf(b));
-    this.adjustmentStack++;
-    this.adjustPosition(widgetsAffected[0]);
-    this.adjustmentStack--;
-    if (this.adjustmentStack == 0) {
-      delete this.movingForward;
+    this.adjusting = true;
+    let widgetsAffected = [w for (w of gPanelPlacements) if (gWideWidgets.has(w))];
+    
+    
+    
+    
+    let compareFn = aMoveForwards ? (function(a, b) a < b) : (function(a, b) a > b)
+    widgetsAffected.sort(function(a, b) compareFn(gPanelPlacements.indexOf(a),
+                                                  gPanelPlacements.indexOf(b)));
+    for (let widget of widgetsAffected) {
+      this.adjustPosition(widget, aMoveForwards);
     }
+    this.adjusting = false;
   },
   
   
   
-  adjustPosition: function(aWidgetId) {
-    
-    
-    const kColumnsInMenuPanel = 3;
-
+  adjustPosition: function(aWidgetId, aMoveForwards) {
     
     let placementIndex = gPanelPlacements.indexOf(aWidgetId);
     let prevSiblingCount = 0;
@@ -140,20 +135,15 @@ let PanelWideWidgetTracker = {
 
     if (fixedPos !== null || prevSiblingCount % kColumnsInMenuPanel) {
       let desiredPos = (fixedPos !== null) ? fixedPos : gPanelPlacements.indexOf(aWidgetId);
-      if (this.movingForward) {
+      let desiredChange = -(prevSiblingCount % kColumnsInMenuPanel);
+      if (aMoveForwards && fixedPos == null) {
         
-        desiredPos += (kColumnsInMenuPanel - (prevSiblingCount % kColumnsInMenuPanel)) + 1;
-      } else {
-        desiredPos -= prevSiblingCount % kColumnsInMenuPanel;
+        desiredChange = kColumnsInMenuPanel + desiredChange + 1;
       }
-      
-      
-      
-      
+      desiredPos += desiredChange;
       CustomizableUI.moveWidgetWithinArea(aWidgetId, desiredPos);
     }
   },
-  adjustmentStack: 0,
   init: function() {
     
     gPanelPlacements = CustomizableUI.getWidgetIdsInArea(gPanel);
