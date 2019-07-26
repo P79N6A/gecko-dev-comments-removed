@@ -659,9 +659,18 @@ pref("plugins.update.notifyUser", false);
 
 pref("plugins.click_to_play", true);
 
+#ifdef RELEASE_BUILD
 
+
+pref("plugin.default.state", 2);
+#else
 pref("plugin.default.state", 1);
+#endif
+
+
+
 pref("plugin.state.flash", 2);
+pref("plugin.state.java", 1);
 
 
 pref("plugins.notifyMissingFlash", true);
