@@ -64,51 +64,23 @@ function test() {
       
       Services.prefs.clearUserPref("social.allowMultipleWorkers");
       Services.prefs.clearUserPref("social.whitelist");
-
-      
-      
-      
-      is(currentsetAtStart, toolbar.currentSet, "toolbar currentset unchanged");
-      openWindowAndWaitForInit(function(w1) {
-        checkSocialUI(w1);
-        
-        
-        
-        
-        
-        
-        let tb1 = w1.document.getElementById("nav-bar");
-        let startupSet = Set(toolbar.currentSet.split(','));
-        let newSet = Set(tb1.currentSet.split(','));
-        let intersect = Set([x for (x of startupSet) if (newSet.has(x))]);
-        let difference = Set([x for (x of newSet) if (!startupSet.has(x))]);
-        is(startupSet.size, intersect.size, "new window toolbar same as old");
-        
-        let id = SocialMarks._toolbarHelper.idFromOrgin(manifest2.origin);
-        ok(!difference.has(id), "mark button not persisted at end");
-        w1.close();
-        finish();
-      });
+      ok(CustomizableUI.inDefaultState, "Should be in the default state when we finish");
+      CustomizableUI.reset();
+      finish();
     });
   });
 }
 
 var tests = {
-  testNoButtonOnInstall: function(next) {
+  testNoButtonOnEnable: function(next) {
     
     
-    info("Waiting for install dialog");
     let panel = document.getElementById("servicesInstall-notification");
     PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
       PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
       info("servicesInstall-notification panel opened");
       panel.button.click();
-    })
-
-    let id = "social-mark-button-" + manifest3.origin;
-    let toolbar = document.getElementById("nav-bar");
-    let currentset = toolbar.getAttribute("currentset").split(',');
-    ok(currentset.indexOf(id) < 0, "button is not part of currentset at start");
+    });
 
     let activationURL = manifest3.origin + "/browser/browser/base/content/test/social/social_activate.html"
     addTab(activationURL, function(tab) {
@@ -116,9 +88,10 @@ var tests = {
       Social.installProvider(doc, manifest3, function(addonManifest) {
         
         SocialService.addBuiltinProvider(manifest3.origin, function(provider) {
-          ok(provider, "provider is installed");
-          currentset = toolbar.getAttribute("currentset").split(',');
-          ok(currentset.indexOf(id) < 0, "button was not added to currentset");
+          is(provider.origin, manifest3.origin, "provider is installed");
+          let id = SocialMarks._toolbarHelper.idFromOrigin(provider.origin);
+          let widget = CustomizableUI.getWidget(id);
+          ok(!widget || !widget.forWindow(window).node, "no button added to widget set");
           Social.uninstallProvider(manifest3.origin, function() {
             gBrowser.removeTab(tab);
             next();
@@ -128,48 +101,29 @@ var tests = {
     });
   },
 
-  testButtonOnInstall: function(next) {
-    
-    
-    info("Waiting for install dialog");
+  testButtonOnEnable: function(next) {
     let panel = document.getElementById("servicesInstall-notification");
     PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
       PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
       info("servicesInstall-notification panel opened");
       panel.button.click();
-    })
+    });
 
+    
     let activationURL = manifest2.origin + "/browser/browser/base/content/test/social/social_activate.html"
     addTab(activationURL, function(tab) {
       let doc = tab.linkedBrowser.contentDocument;
       Social.installProvider(doc, manifest2, function(addonManifest) {
-        
-        let id = "social-mark-button-" + manifest2.origin;
-        let toolbar = document.getElementById("nav-bar");
-
-        waitForCondition(function() {
-                            let currentset = toolbar.getAttribute("currentset").split(',');
-                            return currentset.indexOf(id) >= 0;
-                         },
-                         function() {
-                           
-                           gBrowser.removeTab(tab);
-                           next();
-                         }, "mark button added to currentset");
+        SocialService.addBuiltinProvider(manifest2.origin, function(provider) {
+          is(provider.origin, manifest2.origin, "provider is installed");
+          let id = SocialMarks._toolbarHelper.idFromOrigin(manifest2.origin);
+          let widget = CustomizableUI.getWidget(id).forWindow(window)
+          ok(widget.node, "button added to widget set");
+          checkSocialUI(window);
+          gBrowser.removeTab(tab);
+          next();
+        });
       });
-    });
-  },
-
-  testButtonOnEnable: function(next) {
-    
-    SocialService.addBuiltinProvider(manifest2.origin, function(provider) {
-      ok(provider, "provider is installed");
-      let id = "social-mark-button-" + manifest2.origin;
-      waitForCondition(function() { return document.getElementById(id) },
-                       function() {
-                         checkSocialUI(window);
-                         next();
-                       }, "button exists after enabling social");
     });
   },
 
@@ -177,8 +131,9 @@ var tests = {
     
     let provider = Social._getProviderFromOrigin(manifest2.origin);
     ok(provider.enabled, "provider is enabled");
-    let id = "social-mark-button-" + provider.origin;
-    let btn = document.getElementById(id)
+    let id = SocialMarks._toolbarHelper.idFromOrigin(manifest2.origin);
+    let widget = CustomizableUI.getWidget(id);
+    let btn = widget.forWindow(window).node;
     ok(btn, "got a mark button");
     let port = provider.getWorkerPort();
     ok(port, "got a port");
@@ -300,23 +255,15 @@ var tests = {
     let provider = Social._getProviderFromOrigin(manifest2.origin);
     ok(provider, "provider is installed");
     SocialService.removeProvider(manifest2.origin, function() {
-      let id = "social-mark-button-" + manifest2.origin;
-      waitForCondition(function() { return !document.getElementById(id) },
+      let id = SocialMarks._toolbarHelper.idFromOrigin(manifest2.origin);
+      waitForCondition(function() {
+                        
+                        return !CustomizableUI.getWidget(id)
+                       },
                        function() {
                          checkSocialUI(window);
-                         next();
+                         Social.uninstallProvider(manifest2.origin, next);
                        }, "button does not exist after disabling the provider");
-    });
-  },
-
-  testButtonOnUninstall: function(next) {
-    Social.uninstallProvider(manifest2.origin, function() {
-      
-      let id = "social-mark-button-" + manifest2.origin;
-      let toolbar = document.getElementById("nav-bar");
-      let currentset = toolbar.getAttribute("currentset").split(',');
-      is(currentset.indexOf(id), -1, "button no longer in currentset");
-      next();
     });
   },
 
@@ -348,31 +295,24 @@ var tests = {
       })
 
       let activationURL = manifest.origin + "/browser/browser/base/content/test/social/social_activate.html"
-      let id = "social-mark-button-" + manifest.origin;
+      let id = SocialMarks._toolbarHelper.idFromOrigin(manifest.origin);
       let toolbar = document.getElementById("nav-bar");
       addTab(activationURL, function(tab) {
         let doc = tab.linkedBrowser.contentDocument;
         Social.installProvider(doc, manifest, function(addonManifest) {
-
-          waitForCondition(function() {
-            let currentset = toolbar.getAttribute("currentset").split(',');
-            return currentset.indexOf(id) >= 0;
-          },
-          function() {
-            
-            SocialService.addBuiltinProvider(manifest.origin, function(provider) {
-              waitForCondition(function() { return document.getElementById(id) },
-                               function() {
-                gBrowser.removeTab(tab);
-                installed.push(manifest.origin);
-                
-                checkSocialUI(window);
-                executeSoon(function() {
-                  addProviders(callback);
-                });
-              }, "button exists after enabling social");
-            });
-          }, "mark button added to currentset");
+          
+          SocialService.addBuiltinProvider(manifest.origin, function(provider) {
+            waitForCondition(function() { return CustomizableUI.getWidget(id) },
+                             function() {
+              gBrowser.removeTab(tab);
+              installed.push(manifest.origin);
+              
+              checkSocialUI(window);
+              executeSoon(function() {
+                addProviders(callback);
+              });
+            }, "button exists after enabling social");
+          });
         });
       });
     }
