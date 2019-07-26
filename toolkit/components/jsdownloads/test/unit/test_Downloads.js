@@ -122,26 +122,6 @@ add_task(function test_getList()
 
 
 
-
-
-add_task(function test_getSummary()
-{
-  let publicSummaryOne = yield Downloads.getSummary(Downloads.PUBLIC);
-  let privateSummaryOne = yield Downloads.getSummary(Downloads.PRIVATE);
-
-  let publicSummaryTwo = yield Downloads.getSummary(Downloads.PUBLIC);
-  let privateSummaryTwo = yield Downloads.getSummary(Downloads.PRIVATE);
-
-  do_check_eq(publicSummaryOne, publicSummaryTwo);
-  do_check_eq(privateSummaryOne, privateSummaryTwo);
-
-  do_check_neq(publicSummaryOne, privateSummaryOne);
-});
-
-
-
-
-
 add_task(function test_getSystemDownloadsDirectory()
 {
   let downloadDir = yield Downloads.getSystemDownloadsDirectory();
