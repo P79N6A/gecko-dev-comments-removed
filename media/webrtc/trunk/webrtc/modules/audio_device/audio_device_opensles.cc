@@ -8,7 +8,7 @@
 
 
 
-#include "modules/audio_device/android/audio_device_opensles_android.h"
+#include "modules/audio_device/audio_device_opensles.h"
 
 #ifdef WEBRTC_ANDROID_DEBUG
 #include <android/log.h>
