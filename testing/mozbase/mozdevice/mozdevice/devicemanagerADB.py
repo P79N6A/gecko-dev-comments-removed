@@ -762,6 +762,35 @@ class DeviceManagerADB(DeviceManager):
             return None
         return str(int(timestr)*1000)
 
+    def recordLogcat(self):
+        """
+        Clears the logcat file making it easier to view specific events
+        """
+        
+        try:
+            self.shellCheckOutput(['/system/bin/logcat', '-c'])
+        except DMError, e:
+            print "DeviceManager: Error recording logcat '%s'" % e.msg
+            
+            pass
+
+    def getLogcat(self):
+        """
+        Returns the contents of the logcat file as a string
+
+        returns:
+          success: contents of logcat, string
+          failure: None
+        """
+        
+        try:
+            output = self.shellCheckOutput(["/system/bin/logcat", "-d", "dalvikvm:S", "ConnectivityService:S", "WifiMonitor:S", "WifiStateTracker:S", "wpa_supplicant:S", "NetworkStateTracker:S"])
+            return output.split('\r')
+        except DMError, e:
+            
+            print "DeviceManager: Error recording logcat '%s'" % e.msg
+            pass
+
     def getInfo(self, directive=None):
         """
         Returns information about the device:
