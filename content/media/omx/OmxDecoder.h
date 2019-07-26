@@ -225,7 +225,6 @@ public:
   
   void onMessageReceived(const sp<AMessage> &msg);
 
-  bool ProcessCachedData(int64_t aOffset, bool aWaitForCompletion);
 };
 
 }
