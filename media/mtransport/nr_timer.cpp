@@ -155,10 +155,13 @@ int NR_async_schedule(NR_async_cb cb, void *arg, char *func, int l) {
 }
 
 int NR_async_timer_cancel(void *handle) {
-  CheckSTSThread();
-
+  
+  
+  
   if (!handle)
     return 0;
+
+  CheckSTSThread();
 
   nsITimer *timer = static_cast<nsITimer *>(handle);
 
