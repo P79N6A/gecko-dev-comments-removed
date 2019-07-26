@@ -22,6 +22,10 @@ public class testHomeBanner extends UITest {
 
         
         addBannerTest();
+
+        
+        hideOnToolbarFocusTest();
+
         
         
         
@@ -94,6 +98,18 @@ public class testHomeBanner extends UITest {
         eventExpecter.blockForEvent();
 
         mAboutHome.assertBannerNotVisible();
+    }
+
+    private void hideOnToolbarFocusTest() {
+        NavigationHelper.enterAndLoadUrl("about:home");
+        mAboutHome.assertVisible()
+                  .assertBannerVisible();
+
+        mToolbar.enterEditingMode();
+        mAboutHome.assertBannerNotVisible();
+
+        mToolbar.dismissEditingMode();
+        mAboutHome.assertBannerVisible();
     }
 
     

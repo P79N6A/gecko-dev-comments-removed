@@ -244,6 +244,12 @@ public class HomePager extends ViewPager {
         return super.dispatchTouchEvent(event);
     }
 
+    public void onToolbarFocusChange(boolean hasFocus) {
+        
+        final boolean enabled = !hasFocus && getCurrentItem() == mDefaultPageIndex;
+        mHomeBanner.setEnabled(enabled);
+    }
+
     private void updateUiFromPanelConfigs(List<PanelConfig> panelConfigs) {
         
         
