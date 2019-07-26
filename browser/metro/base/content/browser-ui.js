@@ -258,23 +258,49 @@ var BrowserUI = {
       return;
     }
     let lastCrashID = this.lastCrashID;
+
     if (!lastCrashID || !lastCrashID.length) {
       return;
     }
+
     let shouldReport = Services.prefs.getBoolPref("app.crashreporter.autosubmit");
     let didPrompt = Services.prefs.getBoolPref("app.crashreporter.prompted");
 
     if (!shouldReport && !didPrompt) {
-      
-      
-      
+      let crashBundle = Services.strings.createBundle("chrome://browser/locale/crashprompt.properties");
+      let title = crashBundle.GetStringFromName("crashprompt.dialog.title");
+      let acceptbutton = crashBundle.GetStringFromName("crashprompt.dialog.acceptbutton");
+      let refusebutton = crashBundle.GetStringFromName("crashprompt.dialog.refusebutton");
+      let bodyText = crashBundle.GetStringFromName("crashprompt.dialog.statement1");
+
+      let buttonPressed =
+            Services.prompt.confirmEx(
+                null,
+                title,
+                bodyText,
+                Ci.nsIPrompt.BUTTON_POS_0 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING
+              + Ci.nsIPrompt.BUTTON_POS_1 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING
+              + Ci.nsIPrompt.BUTTON_POS_1_DEFAULT,
+                acceptbutton,
+                refusebutton,
+                null,
+                null,
+                { value: false });
+
       Services.prefs.setBoolPref("app.crashreporter.prompted", true);
-      DialogUI.importModal(document, "chrome://browser/content/prompt/crash.xul");
-      return;
+
+      if (buttonPressed == 0) {
+        Services.prefs.setBoolPref('app.crashreporter.autosubmit', true);
+        BrowserUI.crashReportingPrefChanged(true);
+        shouldReport = true;
+      } else {
+        Services.prefs.setBoolPref('app.crashreporter.autosubmit', false);
+        BrowserUI.crashReportingPrefChanged(false);
+      }
     }
 
     
-    if (!shouldReport && didPrompt) {
+    if (!shouldReport) {
       return;
     }
 
@@ -735,11 +761,6 @@ var BrowserUI = {
     }
 
     
-    if (DialogUI.modals.length > 0) {
-      return;
-    }
-
-    
     if (PanelUI.isVisible) {
       PanelUI.hide();
       return;
@@ -1109,7 +1130,6 @@ var StartUI = {
       if (section.init)
         section.init();
     });
-
   },
 
   uninit: function() {
@@ -1313,66 +1333,6 @@ var DialogUI = {
 
   init: function() {
     window.addEventListener("mousedown", this, true);
-  },
-
-  
-
-
-
-  get modals() {
-    return document.getElementsByClassName("modal-block");
-  },
-
-  importModal: function importModal(aParent, aSrc, aArguments) {
-  
-    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
-    xhr.open("GET", aSrc, false);
-    xhr.overrideMimeType("text/xml");
-    xhr.send(null);
-    if (!xhr.responseXML)
-      return null;
-
-    let currentNode;
-    let nodeIterator = xhr.responseXML.createNodeIterator(xhr.responseXML, NodeFilter.SHOW_TEXT, null, false);
-    while (!!(currentNode = nodeIterator.nextNode())) {
-      let trimmed = currentNode.nodeValue.replace(/^\s\s*/, "").replace(/\s\s*$/, "");
-      if (!trimmed.length)
-        currentNode.parentNode.removeChild(currentNode);
-    }
-
-    let doc = xhr.responseXML.documentElement;
-
-    let dialog  = null;
-
-    
-    
-    let contentMenuContainer = document.getElementById("context-container");
-    let parentNode = contentMenuContainer.parentNode;
-
-    
-    let event = document.createEvent("Events");
-    event.initEvent("DOMWillOpenModalDialog", true, false);
-    let dispatcher = aParent || getBrowser();
-    dispatcher.dispatchEvent(event);
-
-    
-    
-    let back = document.getElementById("dialog-modal-block");
-    if (!back) {
-      back = document.createElement("box");
-    } else {
-      while (back.hasChildNodes()) {
-        back.removeChild(back.firstChild);
-      }
-    }
-    back.setAttribute("class", "modal-block");
-    back.setAttribute("id", "dialog-modal-block");
-    dialog = back.appendChild(document.importNode(doc, true));
-    parentNode.insertBefore(back, contentMenuContainer);
-
-    dialog.arguments = aArguments;
-    dialog.parent = aParent;
-    return dialog;
   },
 
   

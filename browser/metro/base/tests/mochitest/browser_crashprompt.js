@@ -30,6 +30,7 @@ var newFactory = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
 };
 
+let oldPrompt;
 function initMockAppInfo() {
   var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
   gAppInfoClassID = registrar.contractIDToCID(CONTRACT_ID);
@@ -38,6 +39,8 @@ function initMockAppInfo() {
   var components = [MockAppInfo];
   registrar.registerFactory(gAppInfoClassID, "", CONTRACT_ID, newFactory);
   gIncOldFactory = Cm.getClassObject(Cc[CONTRACT_ID], Ci.nsIFactory);
+
+  oldPrompt = Services.prompt;
 }
 
 function cleanupMockAppInfo() {
@@ -47,6 +50,8 @@ function cleanupMockAppInfo() {
     registrar.registerFactory(gAppInfoClassID, "", CONTRACT_ID, gIncOldFactory);
   }
   gIncOldFactory = null;
+
+  Services.prompt = oldPrompt;
 }
 
 MockAppInfo.prototype = {
@@ -74,33 +79,37 @@ gTests.push({
   set promptedPref(aValue) {
     Services.prefs.setBoolPref('app.crashreporter.prompted', aValue);
   },
-  get dialog() {
-    return document.getElementById("crash-prompt-dialog");
-  },
 
   run: function() {
     MockAppInfo.crashid = "testid";
 
     
+    
+    Services.prompt = {
+      confirmEx: function() {
+        return this.retVal;
+      }
+    };
+
+    
+    
+
+    
     this.autosubmitPref = false;
     this.promptedPref = false;
 
-    BrowserUI.startupCrashCheck();
-
-    yield waitForMs(100);
-
-    ok(this.dialog, "prompt dialog exists");
-    ok(!this.dialog.hidden, "prompt dialog is visible");
-
     
-    let refuseButton = document.getElementById("crash-button-refuse");
-    sendElementTap(window, refuseButton, 20, 20);
+    
+    Services.prompt.retVal = 1;
 
-    yield waitForCondition(() => this.dialog == null);
-
+    BrowserUI.startupCrashCheck();
     ok(!this.autosubmitPref, "auto submit disabled?");
     ok(this.promptedPref, "prompted should be true");
 
+
+    
+    
+
     
     this.autosubmitPref = false;
     this.promptedPref = false;
@@ -108,46 +117,34 @@ gTests.push({
     
     gMockAppInfoQueried = false;
 
+    
+    
+    Services.prompt.retVal = 0;
+
     BrowserUI.startupCrashCheck();
-
-    yield waitForMs(100);
-
-    ok(this.dialog, "prompt dialog exists");
-    ok(!this.dialog.hidden, "prompt dialog is visible");
     ok(gMockAppInfoQueried, "id queried");
-
-    
-    gMockAppInfoQueried = false;
-
-    
-    let submitButton = document.getElementById("crash-button-accept");
-    sendElementTap(window, submitButton, 20, 20);
-
-    yield waitForCondition(() => this.dialog == null);
-
     ok(this.autosubmitPref, "auto submit enabled?");
     ok(this.promptedPref, "prompted should be true");
-    ok(gMockAppInfoQueried, "id queried");
 
+
+    
+    
+    Services.prompt.confirmEx = function() {
+      ok(false, "Should not attempt to launch crash reporter prompt");
+    };
+
+    
+    
     
     this.autosubmitPref = false;
     this.promptedPref = true;
-
     BrowserUI.startupCrashCheck();
 
-    yield waitForMs(100);
-
-    ok(!this.dialog, "prompt dialog does not exists");
-
+    
     
     this.autosubmitPref = true;
     this.promptedPref = false;
-
     BrowserUI.startupCrashCheck();
-
-    yield waitForMs(100);
-
-    ok(!this.dialog, "prompt dialog does not exists");
   }
 });
 
