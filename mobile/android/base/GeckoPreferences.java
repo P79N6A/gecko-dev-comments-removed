@@ -77,7 +77,7 @@ public class GeckoPreferences
     private static String PREFS_HEALTHREPORT_LINK = NON_PREF_PREFIX + "healthreport.link";
     private static String PREFS_DEVTOOLS_REMOTE_ENABLED = "devtools.debugger.remote-enabled";
 
-    public static String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession";
+    public static String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession2";
 
     
     private static int REQUEST_CODE_PREF_SCREEN = 5;
@@ -321,6 +321,15 @@ public class GeckoPreferences
                             return true;
                         }
                     });
+                } else if (PREFS_RESTORE_SESSION.equals(key)) {
+                    
+                    
+                    
+                    
+                    ListPreference listPref = (ListPreference) pref;
+                    CharSequence selectedEntry = listPref.getEntry();
+                    listPref.setSummary(selectedEntry);
+                    continue;
                 }
 
                 
@@ -452,6 +461,9 @@ public class GeckoPreferences
         String prefName = preference.getKey();
         if (PREFS_MP_ENABLED.equals(prefName)) {
             showDialog((Boolean) newValue ? DIALOG_CREATE_MASTER_PASSWORD : DIALOG_REMOVE_MASTER_PASSWORD);
+
+            
+            
             return false;
         } else if (PREFS_MENU_CHAR_ENCODING.equals(prefName)) {
             setCharEncodingState(((String) newValue).equals("true"));
@@ -467,20 +479,16 @@ public class GeckoPreferences
             
             
             broadcastHealthReportUploadPref(GeckoAppShell.getContext(), ((Boolean) newValue).booleanValue());
-            return true;
         } else if (PREFS_GEO_REPORTING.equals(prefName)) {
             
-            PrefsHelper.setPref(prefName, (Boolean) newValue ? 1 : 0);
-            return true;
-        } else if (PREFS_RESTORE_SESSION.equals(prefName)) {
-            
-            
-            return true;
+            newValue = ((Boolean) newValue) ? 1 : 0;
         }
 
-        if (!TextUtils.isEmpty(prefName)) {
+        
+        if (!TextUtils.isEmpty(prefName) && !prefName.startsWith(NON_PREF_PREFIX)) {
             PrefsHelper.setPref(prefName, newValue);
         }
+
         if (preference instanceof ListPreference) {
             
             int newIndex = ((ListPreference) preference).findIndexOfValue((String) newValue);
@@ -493,6 +501,7 @@ public class GeckoPreferences
             final FontSizePreference fontSizePref = (FontSizePreference) preference;
             fontSizePref.setSummary(fontSizePref.getSavedFontSizeName());
         }
+
         return true;
     }
 
