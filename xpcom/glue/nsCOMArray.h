@@ -89,8 +89,6 @@ protected:
         mArray.SwapElements(aOther.mArray);
     }
 
-    void Adopt(nsISupports** aElements, uint32_t aCount);
-    uint32_t Forget(nsISupports*** aElements);
 public:
     
     int32_t Count() const {
@@ -232,15 +230,7 @@ class nsCOMArray : public nsCOMArray_base
     explicit
     nsCOMArray(const nsCOMArray<T>& aOther) : nsCOMArray_base(aOther) { }
 
-    nsCOMArray(nsCOMArray<T>&& aOther) { SwapElements(aOther); }
-
     ~nsCOMArray() {}
-
-    
-    nsCOMArray<T>& operator=(nsCOMArray<T>&& aOther) {
-        SwapElements(aOther);
-        return *this;
-    }
 
     
     T* ObjectAt(int32_t aIndex) const {
@@ -395,35 +385,6 @@ class nsCOMArray : public nsCOMArray_base
         return nsCOMArray_base::SizeOfExcludingThis(
                  nsBaseArraySizeOfElementIncludingThisFunc(aSizeOfElementIncludingThis),
                  aMallocSizeOf, aData);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-    void Adopt(T** aElements, uint32_t aSize) {
-        nsCOMArray_base::Adopt(reinterpret_cast<nsISupports**>(aElements),
-            aSize);
-    }
-
-    
-
-
-
-
-
-
-
-    uint32_t Forget(T*** elements) {
-        return nsCOMArray_base::Forget(
-            reinterpret_cast<nsISupports***>(elements));
     }
 
 private:
