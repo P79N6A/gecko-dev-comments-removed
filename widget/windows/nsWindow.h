@@ -539,6 +539,11 @@ protected:
   
   TimeStamp mLastPaintEndTime;
 
+  
+  POINT mCachedHitTestPoint;
+  TimeStamp mCachedHitTestTime;
+  int32_t mCachedHitTestResult;
+
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();
 };
