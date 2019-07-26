@@ -35,6 +35,7 @@ class Build(MachCommandBase):
         
         from mozbuild.compilation.warnings import WarningsCollector
         from mozbuild.compilation.warnings import WarningsDatabase
+        from mozbuild.util import resolve_target_to_make
 
         warnings_path = self._get_state_filename('warnings.json')
         warnings_database = WarningsDatabase()
@@ -60,50 +61,6 @@ class Build(MachCommandBase):
 
             self.log(logging.INFO, 'build_output', {'line': line}, '{line}')
 
-        def resolve_target_to_make(target):
-            if os.path.isabs(target):
-                print('Absolute paths for make targets are not allowed.')
-                return (None, None)
-
-            target = target.replace(os.sep, '/')
-
-            abs_target = os.path.join(self.topobjdir, target)
-
-            
-            
-            
-            if os.path.isdir(abs_target):
-                current = abs_target
-
-                while True:
-                    make_path = os.path.join(current, 'Makefile')
-                    if os.path.exists(make_path):
-                        return (current[len(self.topobjdir) + 1:], None)
-
-                    current = os.path.dirname(current)
-
-            
-            
-            if '/' not in target:
-                return (None, target)
-
-            
-            
-            
-            reldir = os.path.dirname(target)
-            target = os.path.basename(target)
-
-            while True:
-                make_path = os.path.join(self.topobjdir, reldir, 'Makefile')
-
-                if os.path.exists(make_path):
-                    return (reldir, target)
-
-                target = os.path.join(os.path.basename(reldir), target)
-                reldir = os.path.dirname(reldir)
-
-        
-
         if what:
             top_make = os.path.join(self.topobjdir, 'Makefile')
             if not os.path.exists(top_make):
@@ -112,7 +69,8 @@ class Build(MachCommandBase):
                 return 1
 
             for target in what:
-                make_dir, make_target = resolve_target_to_make(target)
+                make_dir, make_target = resolve_target_to_make(self.topobjdir,
+                    target)
 
                 if make_dir is None and make_target is None:
                     return 1
