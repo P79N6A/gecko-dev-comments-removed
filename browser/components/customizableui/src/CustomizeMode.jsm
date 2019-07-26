@@ -198,7 +198,7 @@ CustomizeMode.prototype = {
     
     
     this.dispatchToolboxEvent("customizationending");
-    window.PanelUI.replaceMainView(window.PanelUI.mainView);
+    window.PanelUI.setMainView(window.PanelUI.mainView);
 
     let browser = document.getElementById("browser");
     browser.parentNode.selectedPanel = browser;
