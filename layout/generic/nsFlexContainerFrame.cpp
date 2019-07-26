@@ -8,6 +8,7 @@
 
 
 #include "nsFlexContainerFrame.h"
+#include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
 #include "nsPresContext.h"
@@ -220,46 +221,6 @@ public:
 private:
   AxisOrientationType mMainAxis;
   AxisOrientationType mCrossAxis;
-};
-
-
-
-
-class SortableFrame {
-public:
-  SortableFrame(nsIFrame* aFrame,
-                int32_t aOrderValue,
-                uint32_t aIndexInFrameList)
-  : mFrame(aFrame),
-    mOrderValue(aOrderValue),
-    mIndexInFrameList(aIndexInFrameList)
-  {
-    MOZ_ASSERT(aFrame, "expecting a non-null child frame");
-  }
-
-  
-  bool operator==(const SortableFrame& rhs) const {
-    MOZ_ASSERT(mFrame != rhs.mFrame ||
-               (mOrderValue == rhs.mOrderValue &&
-                mIndexInFrameList == rhs.mIndexInFrameList),
-               "if frames are equal, the other member data should be too");
-    return mFrame == rhs.mFrame;
-  }
-
-  bool operator<(const SortableFrame& rhs) const {
-    if (mOrderValue == rhs.mOrderValue) {
-      return mIndexInFrameList < rhs.mIndexInFrameList;
-    }
-    return mOrderValue < rhs.mOrderValue;
-  }
-
-  
-  inline nsIFrame* Frame() const { return mFrame; }
-
-protected:
-  nsIFrame* const mFrame;     
-  int32_t   const mOrderValue; 
-  uint32_t  const mIndexInFrameList; 
 };
 
 
@@ -489,6 +450,101 @@ protected:
                       
                       
 };
+
+
+
+
+
+
+
+
+
+static nsIContent*
+GetContentForComparison(const nsIFrame* aFrame)
+{
+  MOZ_ASSERT(aFrame, "null frame passed to GetContentForComparison()");
+  MOZ_ASSERT(aFrame->IsFlexItem(), "only intended for flex items");
+
+  while (true) {
+    nsIAtom* pseudoTag = aFrame->GetStyleContext()->GetPseudo();
+
+    
+    if (!pseudoTag ||                                 
+        !nsCSSAnonBoxes::IsAnonBox(pseudoTag) ||      
+        pseudoTag == nsCSSAnonBoxes::mozNonElement) { 
+      return aFrame->GetContent();
+    }
+
+    
+    aFrame = aFrame->GetFirstPrincipalChild();
+    MOZ_ASSERT(aFrame, "why do we have an anonymous box without any children?");
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+IsOrderLEQWithDOMFallback(nsIFrame* aFrame1,
+                          nsIFrame* aFrame2)
+{
+  if (aFrame1 == aFrame2) {
+    
+    
+    NS_ERROR("Why are we checking if a frame is LEQ itself?");
+    return true;
+  }
+
+  int32_t order1 = aFrame1->GetStylePosition()->mOrder;
+  int32_t order2 = aFrame2->GetStylePosition()->mOrder;
+
+  if (order1 != order2) {
+    return order1 < order2;
+  }
+
+  
+  nsIContent* content1 = GetContentForComparison(aFrame1);
+  nsIContent* content2 = GetContentForComparison(aFrame2);
+  MOZ_ASSERT(content1 != content2,
+             "Two different flex items are using the same nsIContent node for "
+             "comparison, so we may be sorting them in an arbitrary order");
+
+  return nsContentUtils::PositionIsBefore(content1, content2);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+IsOrderLEQ(nsIFrame* aFrame1,
+           nsIFrame* aFrame2)
+{
+  int32_t order1 = aFrame1->GetStylePosition()->mOrder;
+  int32_t order2 = aFrame2->GetStylePosition()->mOrder;
+
+  return order1 <= order2;
+}
 
 bool
 nsFlexContainerFrame::IsHorizontal()
@@ -940,6 +996,18 @@ nsFlexContainerFrame::~nsFlexContainerFrame()
 {
 }
 
+template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+ bool
+nsFlexContainerFrame::SortChildrenIfNeeded()
+{
+  if (nsLayoutUtils::IsFrameListSorted<IsLessThanOrEqual>(mFrames)) {
+    return false;
+  }
+
+  nsLayoutUtils::SortFrameList<IsLessThanOrEqual>(mFrames);
+  return true;
+}
+
 
 nsIAtom*
 nsFlexContainerFrame::GetType() const
@@ -978,6 +1046,9 @@ nsFlexContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                        const nsRect&           aDirtyRect,
                                        const nsDisplayListSet& aLists)
 {
+  MOZ_ASSERT(nsLayoutUtils::IsFrameListSorted<IsOrderLEQWithDOMFallback>(mFrames),
+             "Frame list should've been sorted in reflow");
+
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1298,25 +1369,6 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
                "All flexible lengths should've been resolved");
   }
 #endif 
-}
-
-void
-BuildSortedChildArray(const nsFrameList& aChildren,
-		      nsTArray<SortableFrame>& aSortedChildren)
-{
-  aSortedChildren.SetCapacity(aChildren.GetLength());
-
-  
-  uint32_t indexInFrameList = 0;
-  for (nsFrameList::Enumerator e(aChildren); !e.AtEnd(); e.Next()) {
-    int32_t orderValue = e.get()->GetStylePosition()->mOrder;
-    aSortedChildren.AppendElement(SortableFrame(e.get(), orderValue,
-						indexInFrameList));
-    indexInFrameList++;
-  }
-
-  
-  aSortedChildren.Sort();
 }
 
 MainAxisPositionTracker::
@@ -1788,17 +1840,10 @@ nsFlexContainerFrame::GenerateFlexItems(
   MOZ_ASSERT(aFlexItems.IsEmpty(), "Expecting outparam to start out empty");
 
   
-  nsTArray<SortableFrame> sortedChildren;
-  BuildSortedChildArray(mFrames, sortedChildren);
-
   
-
-  
-  
-  aFlexItems.SetCapacity(sortedChildren.Length());
-  for (uint32_t i = 0; i < sortedChildren.Length(); ++i) {
-    nsresult rv = AppendFlexItemForChild(aPresContext,
-                                         sortedChildren[i].Frame(),
+  aFlexItems.SetCapacity(mFrames.GetLength());
+  for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+    nsresult rv = AppendFlexItemForChild(aPresContext, e.get(),
                                          aReflowState, aAxisTracker,
                                          aFlexItems);
     NS_ENSURE_SUCCESS(rv,rv);
@@ -1997,6 +2042,22 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   bool shouldReflowChildren =
     NS_SUBTREE_DIRTY(this) || aReflowState.ShouldReflowAllKids();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!mChildrenHaveBeenReordered) {
+    mChildrenHaveBeenReordered =
+      SortChildrenIfNeeded<IsOrderLEQ>();
+  } else {
+    SortChildrenIfNeeded<IsOrderLEQWithDOMFallback>();
+  }
 
   const FlexboxAxisTracker axisTracker(this);
 

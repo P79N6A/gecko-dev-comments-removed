@@ -61,9 +61,22 @@ protected:
   nsFlexContainerFrame(nsStyleContext* aContext) :
     nsFlexContainerFrameSuper(aContext),
     mCachedContentBoxCrossSize(nscoord_MIN),
-    mCachedAscent(nscoord_MIN)
+    mCachedAscent(nscoord_MIN),
+    mChildrenHaveBeenReordered(false)
   {}
   virtual ~nsFlexContainerFrame();
+
+  
+
+
+
+
+
+
+
+
+  template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
+  bool SortChildrenIfNeeded();
 
   
 #ifdef DEBUG
@@ -113,6 +126,8 @@ protected:
   
   nscoord mCachedContentBoxCrossSize; 
   nscoord mCachedAscent;              
+  bool    mChildrenHaveBeenReordered; 
+                                      
 };
 
 #endif 
