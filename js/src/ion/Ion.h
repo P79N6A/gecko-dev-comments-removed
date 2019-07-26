@@ -230,10 +230,27 @@ MethodStatus CanEnterUsingFastInvoke(JSContext *cx, HandleScript script, uint32_
 
 enum IonExecStatus
 {
+    
+    
+    IonExec_Aborted,
+
+    
+    
     IonExec_Error,
+
+    
     IonExec_Ok,
+
+    
+    
     IonExec_Bailout
 };
+
+static inline bool
+IsErrorStatus(IonExecStatus status)
+{
+    return status == IonExec_Error || status == IonExec_Aborted;
+}
 
 IonExecStatus Cannon(JSContext *cx, StackFrame *fp);
 IonExecStatus SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc);
