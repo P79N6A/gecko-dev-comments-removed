@@ -1192,9 +1192,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
       newContext = prevContinuationContext;
-      
-      
-      nonInheritedHints = nsChangeHint_Hints_NotHandledForDescendants;
     }
     else if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
       NS_ASSERTION(localContent,
