@@ -39,6 +39,9 @@ static const Register ExtractTemp0        = InvalidReg;
 static const Register ExtractTemp1        = InvalidReg;
 
 
+static const Register BaselineSecondScratchReg = r6;
+
+
 
 
 
