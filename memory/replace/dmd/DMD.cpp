@@ -149,6 +149,13 @@ public:
   static void reportAllocOverflow() { ExitOnFailure(nullptr); }
 };
 
+
+static size_t
+MallocSizeOf(const void* aPtr)
+{
+  return gMallocTable->malloc_usable_size(const_cast<void*>(aPtr));
+}
+
 static void
 StatusMsg(const char* aFmt, ...)
 {
@@ -778,46 +785,33 @@ public:
 
 class BlockSize
 {
-  static const size_t kSlopBits = sizeof(size_t) * 8 - 1;  
+  static const size_t kReqBits = sizeof(size_t) * 8 - 1;    
+
+  
+  
+  const size_t mReq:kReqBits;   
+  const size_t mSampled:1;      
 
 public:
-  size_t mReq;              
-  size_t mSlop:kSlopBits;   
-  size_t mSampled:1;        
-                            
-  BlockSize()
-    : mReq(0),
-      mSlop(0),
-      mSampled(false)
-  {}
-
-  BlockSize(size_t aReq, size_t aSlop, bool aSampled)
+  BlockSize(size_t aReq, bool aSampled)
     : mReq(aReq),
-      mSlop(aSlop),
       mSampled(aSampled)
   {}
 
-  size_t Usable() const { return mReq + mSlop; }
+  size_t Req() const { return mReq; }
 
-  void Add(const BlockSize& aBlockSize)
+  
+  size_t Slop(const void* aPtr) const
   {
-    mReq  += aBlockSize.mReq;
-    mSlop += aBlockSize.mSlop;
-    mSampled = mSampled || aBlockSize.mSampled;
+    return mSampled ? 0 : MallocSizeOf(aPtr) - mReq;
   }
 
-  static int Cmp(const BlockSize& aA, const BlockSize& aB)
+  size_t Usable(const void* aPtr) const
   {
-    
-    if (aA.Usable() > aB.Usable()) return -1;
-    if (aA.Usable() < aB.Usable()) return  1;
-
-    
-    if (!aA.mSampled &&  aB.mSampled) return -1;
-    if ( aA.mSampled && !aB.mSampled) return  1;
-
-    return 0;
+    return mSampled ? mReq : MallocSizeOf(aPtr);
   }
+
+  bool IsSampled() const { return mSampled; }
 };
 
 
@@ -827,13 +821,13 @@ public:
   const BlockSize mBlockSize;
 
 public:
-  LiveBlock(size_t aReqSize, size_t aSlopSize,
-            const StackTrace* aAllocStackTrace, bool aIsExact)
+  LiveBlock(size_t aReqSize, const StackTrace* aAllocStackTrace, bool aSampled)
     : LiveBlockKey(aAllocStackTrace),
-      mBlockSize(aReqSize, aSlopSize, aIsExact)
+      mBlockSize(aReqSize, aSampled)
   {}
 
-  void Report(Thread* aT, const char* aReporterName, bool aReportedOnAlloc);
+  void Report(Thread* aT, const void* aPtr, const char* aReporterName,
+              bool aReportedOnAlloc);
 
   void UnreportIfNotReportedOnAlloc();
 };
@@ -863,7 +857,6 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
   AutoBlockIntercepts block(aT);
 
   size_t actualSize = gMallocTable->malloc_usable_size(aPtr);
-  size_t slopSize   = actualSize - aReqSize;
 
   if (actualSize < gSampleBelowSize) {
     
@@ -874,13 +867,12 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
     if (gSmallBlockActualSizeCounter >= gSampleBelowSize) {
       gSmallBlockActualSizeCounter -= gSampleBelowSize;
 
-      LiveBlock b(gSampleBelowSize,  0, StackTrace::Get(aT),
-                   true);
+      LiveBlock b(gSampleBelowSize, StackTrace::Get(aT),  true);
       (void)gLiveBlockTable->putNew(aPtr, b);
     }
   } else {
     
-    LiveBlock b(aReqSize, slopSize, StackTrace::Get(aT),  false);
+    LiveBlock b(aReqSize, StackTrace::Get(aT),  false);
     (void)gLiveBlockTable->putNew(aPtr, b);
   }
 }
@@ -1045,6 +1037,55 @@ namespace dmd {
 
 
 
+class GroupSize
+{
+  static const size_t kReqBits = sizeof(size_t) * 8 - 1;  
+
+  size_t mReq;              
+  size_t mSlop:kReqBits;    
+  size_t mSampled:1;        
+                            
+public:
+  GroupSize()
+    : mReq(0),
+      mSlop(0),
+      mSampled(false)
+  {}
+
+  size_t Req()    const { return mReq; }
+  size_t Slop()   const { return mSlop; }
+  size_t Usable() const { return mReq + mSlop; }
+
+  bool IsSampled() const { return mSampled; }
+
+  void Add(const void* aPtr, const BlockSize& aBlockSize)
+  {
+    mReq  += aBlockSize.Req();
+    mSlop += aBlockSize.Slop(aPtr);
+    mSampled = mSampled || aBlockSize.IsSampled();
+  }
+
+  void Add(const GroupSize& aGroupSize)
+  {
+    mReq  += aGroupSize.Req();
+    mSlop += aGroupSize.Slop();
+    mSampled = mSampled || aGroupSize.IsSampled();
+  }
+
+  static int Cmp(const GroupSize& aA, const GroupSize& aB)
+  {
+    
+    if (aA.Usable() > aB.Usable()) return -1;
+    if (aA.Usable() < aB.Usable()) return  1;
+
+    
+    if (!aA.mSampled &&  aB.mSampled) return -1;
+    if ( aA.mSampled && !aB.mSampled) return  1;
+
+    return 0;
+  }
+};
+
 class BlockGroup
 {
 protected:
@@ -1052,22 +1093,22 @@ protected:
   
   
   mutable uint32_t  mNumBlocks;     
-  mutable BlockSize mCombinedSize;  
+  mutable GroupSize mGroupSize;     
 
 public:
   BlockGroup()
     : mNumBlocks(0),
-      mCombinedSize()
+      mGroupSize()
   {}
 
-  const BlockSize& CombinedSize() const { return mCombinedSize; }
+  const GroupSize& GroupSize() const { return mGroupSize; }
 
   
   
-  void Add(const LiveBlock& aB) const
+  void Add(const void* aPtr, const LiveBlock& aB) const
   {
     mNumBlocks++;
-    mCombinedSize.Add(aB.mBlockSize);
+    mGroupSize.Add(aPtr, aB.mBlockSize);
   }
 
   static const char* const kName;   
@@ -1098,7 +1139,7 @@ public:
     const LiveBlockGroup* const b =
       *static_cast<const LiveBlockGroup* const*>(aB);
 
-    return BlockSize::Cmp(a->mCombinedSize, b->mCombinedSize);
+    return GroupSize::Cmp(a->mGroupSize, b->mGroupSize);
   }
 };
 
@@ -1111,7 +1152,7 @@ LiveBlockGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
                       size_t aCategoryUsableSize, size_t aCumulativeUsableSize,
                       size_t aTotalUsableSize) const
 {
-  bool showTilde = mCombinedSize.mSampled;
+  bool showTilde = mGroupSize.IsSampled();
 
   W("%s: %s block%s in block group %s of %s\n",
     aStr,
@@ -1120,15 +1161,15 @@ LiveBlockGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
     Show(aN, gBuf3, kBufLen));
 
   W(" %s bytes (%s requested / %s slop)\n",
-    Show(mCombinedSize.Usable(), gBuf1, kBufLen, showTilde),
-    Show(mCombinedSize.mReq,     gBuf2, kBufLen, showTilde),
-    Show(mCombinedSize.mSlop,    gBuf3, kBufLen, showTilde));
+    Show(mGroupSize.Usable(), gBuf1, kBufLen, showTilde),
+    Show(mGroupSize.Req(),    gBuf2, kBufLen, showTilde),
+    Show(mGroupSize.Slop(),   gBuf3, kBufLen, showTilde));
 
   W(" %4.2f%% of the heap (%4.2f%% cumulative); "
     " %4.2f%% of %s (%4.2f%% cumulative)\n",
-    Percent(mCombinedSize.Usable(), aTotalUsableSize),
+    Percent(mGroupSize.Usable(), aTotalUsableSize),
     Percent(aCumulativeUsableSize, aTotalUsableSize),
-    Percent(mCombinedSize.Usable(), aCategoryUsableSize),
+    Percent(mGroupSize.Usable(), aCategoryUsableSize),
     astr,
     Percent(aCumulativeUsableSize, aCategoryUsableSize));
 
@@ -1165,7 +1206,7 @@ public:
     const DoubleReportBlockGroup* const b =
       *static_cast<const DoubleReportBlockGroup* const*>(aB);
 
-    return BlockSize::Cmp(a->mCombinedSize, b->mCombinedSize);
+    return GroupSize::Cmp(a->mGroupSize, b->mGroupSize);
   }
 };
 
@@ -1180,7 +1221,7 @@ DoubleReportBlockGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
                               size_t aCumulativeUsableSize,
                               size_t aTotalUsableSize) const
 {
-  bool showTilde = mCombinedSize.mSampled;
+  bool showTilde = mGroupSize.IsSampled();
 
   W("%s: %s block%s in block group %s of %s\n",
     aStr,
@@ -1189,9 +1230,9 @@ DoubleReportBlockGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
     Show(aN, gBuf3, kBufLen));
 
   W(" %s bytes (%s requested / %s slop)\n",
-    Show(mCombinedSize.Usable(), gBuf1, kBufLen, showTilde),
-    Show(mCombinedSize.mReq,     gBuf2, kBufLen, showTilde),
-    Show(mCombinedSize.mSlop,    gBuf3, kBufLen, showTilde));
+    Show(mGroupSize.Usable(), gBuf1, kBufLen, showTilde),
+    Show(mGroupSize.Req(),    gBuf2, kBufLen, showTilde),
+    Show(mGroupSize.Slop(),   gBuf3, kBufLen, showTilde));
 
   W(" Allocated at\n");
   mAllocStackTrace->Print(aWriter);
@@ -1218,17 +1259,17 @@ class FrameGroup
   const void* const mPc;
   mutable size_t    mNumBlocks;
   mutable size_t    mNumBlockGroups;
-  mutable BlockSize mCombinedSize;
+  mutable GroupSize mGroupSize;
 
 public:
   explicit FrameGroup(const void* aPc)
     : mPc(aPc),
       mNumBlocks(0),
       mNumBlockGroups(0),
-      mCombinedSize()
+      mGroupSize()
   {}
 
-  const BlockSize& CombinedSize() const { return mCombinedSize; }
+  const GroupSize& GroupSize() const { return mGroupSize; }
 
   
   
@@ -1236,7 +1277,7 @@ public:
   {
     mNumBlocks += aBg.mNumBlocks;
     mNumBlockGroups++;
-    mCombinedSize.Add(aBg.mCombinedSize);
+    mGroupSize.Add(aBg.mGroupSize);
   }
 
   void Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
@@ -1249,7 +1290,7 @@ public:
     const FrameGroup* const a = *static_cast<const FrameGroup* const*>(aA);
     const FrameGroup* const b = *static_cast<const FrameGroup* const*>(aB);
 
-    return BlockSize::Cmp(a->mCombinedSize, b->mCombinedSize);
+    return GroupSize::Cmp(a->mGroupSize, b->mGroupSize);
   }
 
   static const char* const kName;   
@@ -1282,7 +1323,7 @@ FrameGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
 {
   (void)aCumulativeUsableSize;
 
-  bool showTilde = mCombinedSize.mSampled;
+  bool showTilde = mGroupSize.IsSampled();
 
   nsCodeAddressDetails details;
   PcInfo(mPc, &details);
@@ -1295,13 +1336,13 @@ FrameGroup::Print(const Writer& aWriter, uint32_t aM, uint32_t aN,
     Show(aN, gBuf4, kBufLen));
 
   W(" %s bytes (%s requested / %s slop)\n",
-    Show(mCombinedSize.Usable(), gBuf1, kBufLen, showTilde),
-    Show(mCombinedSize.mReq,     gBuf2, kBufLen, showTilde),
-    Show(mCombinedSize.mSlop,    gBuf3, kBufLen, showTilde));
+    Show(mGroupSize.Usable(), gBuf1, kBufLen, showTilde),
+    Show(mGroupSize.Req(),    gBuf2, kBufLen, showTilde),
+    Show(mGroupSize.Slop(),   gBuf3, kBufLen, showTilde));
 
   W(" %4.2f%% of the heap;  %4.2f%% of %s\n",
-    Percent(mCombinedSize.Usable(), aTotalUsableSize),
-    Percent(mCombinedSize.Usable(), aCategoryUsableSize),
+    Percent(mGroupSize.Usable(), aTotalUsableSize),
+    Percent(mGroupSize.Usable(), aCategoryUsableSize),
     astr);
 
   W(" PC is\n");
@@ -1530,7 +1571,8 @@ Init(const malloc_table_t* aMallocTable)
 
 
 void
-LiveBlock::Report(Thread* aT, const char* aReporterName, bool aOnAlloc)
+LiveBlock::Report(Thread* aT, const void* aPtr, const char* aReporterName,
+                  bool aOnAlloc)
 {
   if (IsReported()) {
     DoubleReportBlockKey doubleReportKey(mAllocStackTrace,
@@ -1542,7 +1584,7 @@ LiveBlock::Report(Thread* aT, const char* aReporterName, bool aOnAlloc)
       DoubleReportBlockGroup bg(doubleReportKey);
       (void)gDoubleReportBlockGroupTable->add(p, bg);
     }
-    p->Add(*this);
+    p->Add(aPtr, *this);
 
   } else {
     mReporterName     = aReporterName;
@@ -1573,7 +1615,7 @@ ReportHelper(const void* aPtr, const char* aReporterName, bool aOnAlloc)
   AutoLockState lock;
 
   if (LiveBlockTable::Ptr p = gLiveBlockTable->lookup(aPtr)) {
-    p->value.Report(t, aReporterName, aOnAlloc);
+    p->value.Report(t, aPtr, aReporterName, aOnAlloc);
   } else {
     
     
@@ -1637,7 +1679,7 @@ PrintSortedGroups(const Writer& aWriter, const char* aStr, const char* astr,
   size_t cumulativeUsableSize = 0;
   for (uint32_t i = 0; i < numTGroups; i++) {
     const TGroup* tg = tgArray[i];
-    cumulativeUsableSize += tg->CombinedSize().Usable();
+    cumulativeUsableSize += tg->GroupSize().Usable();
     if (i < MaxTGroups) {
       tg->Print(aWriter, i+1, numTGroups, aStr, astr, aCategoryUsableSize,
                 cumulativeUsableSize, aTotalUsableSize);
@@ -1697,13 +1739,6 @@ PrintSortedBlockAndFrameGroups(const Writer& aWriter,
   }
   PrintSortedGroups(aWriter, aStr, astr, frameGroupTable, kNoSize,
                     aTotalUsableSize);
-}
-
-
-static size_t
-MallocSizeOf(const void* aPtr)
-{
-  return gMallocTable->malloc_usable_size(const_cast<void*>(aPtr));
 }
 
 
@@ -1777,10 +1812,11 @@ Dump(Writer aWriter)
   for (LiveBlockTable::Range r = gLiveBlockTable->all();
        !r.empty();
        r.popFront()) {
+    const void* pc = r.front().key;
     const LiveBlock& b = r.front().value;
 
     size_t& size = !b.IsReported() ? unreportedUsableSize : reportedUsableSize;
-    size += b.mBlockSize.Usable();
+    size += b.mBlockSize.Usable(pc);
 
     LiveBlockGroupTable& table = !b.IsReported()
                                ? unreportedLiveBlockGroupTable
@@ -1790,9 +1826,9 @@ Dump(Writer aWriter)
       LiveBlockGroup bg(b);
       (void)table.add(p, bg);
     }
-    p->Add(b);
+    p->Add(pc, b);
 
-    anyBlocksSampled = anyBlocksSampled || b.mBlockSize.mSampled;
+    anyBlocksSampled = anyBlocksSampled || b.mBlockSize.IsSampled();
   }
   size_t totalUsableSize = unreportedUsableSize + reportedUsableSize;
 
