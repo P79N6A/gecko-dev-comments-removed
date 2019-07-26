@@ -694,8 +694,20 @@ const KineticPanning = {
 
   momentums: [],
   record: function kp_record(delta, timestamp) {
-    this.momentums.push({ 'time': timestamp, 'dx' : delta.x, 'dy' : delta.y });
+    this.momentums.push({ 'time': this._getTime(timestamp),
+                          'dx' : delta.x, 'dy' : delta.y });
     this.distance.add(delta.x, delta.y);
+  },
+
+  _getTime: function kp_getTime(time) {
+    
+    
+    
+    if (time > Date.now()) {
+      return Math.floor(time / 1000);
+    } else {
+      return time;
+    }
   },
 
   get threshold() {
