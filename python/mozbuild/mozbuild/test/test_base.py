@@ -16,6 +16,7 @@ from mach.logging import LoggingManager
 from mozbuild.base import (
     BuildConfig,
     MozbuildObject,
+    PathArgument,
 )
 
 
@@ -50,6 +51,44 @@ class TestMozbuildObject(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
+
+class TestPathArgument(unittest.TestCase):
+    def test_path_argument(self):
+        
+        p = PathArgument("/obj/foo", "/src", "/obj", "/src")
+        self.assertEqual(p.relpath(), "foo")
+        self.assertEqual(p.srcdir_path(), "/src/foo")
+        self.assertEqual(p.objdir_path(), "/obj/foo")
+
+        
+        p = PathArgument("foo", "/src", "/obj", "/src")
+        self.assertEqual(p.relpath(), "foo")
+        self.assertEqual(p.srcdir_path(), "/src/foo")
+        self.assertEqual(p.objdir_path(), "/obj/foo")
+
+        
+        p = PathArgument("bar", "/src", "/obj", "/src/foo")
+        self.assertEqual(p.relpath(), "foo/bar")
+        self.assertEqual(p.srcdir_path(), "/src/foo/bar")
+        self.assertEqual(p.objdir_path(), "/obj/foo/bar")
+
+        
+        p = PathArgument("foo", "/src", "/obj", "/obj")
+        self.assertEqual(p.relpath(), "foo")
+        self.assertEqual(p.srcdir_path(), "/src/foo")
+        self.assertEqual(p.objdir_path(), "/obj/foo")
+
+        
+        p = PathArgument(".", "/src", "/obj", "/src/foo")
+        self.assertEqual(p.relpath(), "foo")
+        self.assertEqual(p.srcdir_path(), "/src/foo")
+        self.assertEqual(p.objdir_path(), "/obj/foo")
+
+        
+        p = PathArgument("bar", "/src", "/src/obj", "/src/obj/foo")
+        self.assertEqual(p.relpath(), "foo/bar")
+        self.assertEqual(p.srcdir_path(), "/src/foo/bar")
+        self.assertEqual(p.objdir_path(), "/src/obj/foo/bar")
 
 if __name__ == '__main__':
     main()
