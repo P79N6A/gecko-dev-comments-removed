@@ -82,7 +82,7 @@ private:
   Maybe<bool> mShouldClip;        
 
   friend class DrawSingleTileCallback;
-  friend class ImageFactory;
+  friend class ImageOps;
 };
 
 } 
