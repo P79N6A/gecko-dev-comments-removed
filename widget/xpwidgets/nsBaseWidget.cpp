@@ -901,7 +901,7 @@ void nsBaseWidget::CreateCompositor()
   }
 }
 
-bool nsBaseWidget::UseOffMainThreadCompositing()
+bool nsBaseWidget::ShouldUseOffMainThreadCompositing()
 {
   bool isSmallPopup = ((mWindowType == eWindowType_popup) &&
                       (mPopupType != ePopupTypePanel));
@@ -918,7 +918,7 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
     mUseLayersAcceleration = ComputeShouldAccelerate(mUseLayersAcceleration);
 
     
-    if (UseOffMainThreadCompositing()) {
+    if (ShouldUseOffMainThreadCompositing()) {
       
       
       NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");

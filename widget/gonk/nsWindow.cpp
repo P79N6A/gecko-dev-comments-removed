@@ -190,7 +190,7 @@ nsWindow::nsWindow()
         
         
         gfxPlatform::GetPlatform();
-        sUsingOMTC = UseOffMainThreadCompositing();
+        sUsingOMTC = ShouldUseOffMainThreadCompositing();
         sUsingHwc = Preferences::GetBool("layers.composer2d.enabled", false);
 
         if (sUsingOMTC) {

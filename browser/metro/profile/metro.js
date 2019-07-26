@@ -22,6 +22,9 @@ pref("metro.debug.selection.dumpRanges", false);
 pref("metro.debug.selection.dumpEvents", false);
 
 
+pref("layers.offmainthreadcomposition.enabled", false);
+
+
 pref("formhelper.mode", 0);
 
 pref("formhelper.autozoom", true);

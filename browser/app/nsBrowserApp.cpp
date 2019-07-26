@@ -28,6 +28,10 @@
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
+
+
+
+
 #ifdef XP_WIN
 
 #include "nsWindowsWMain.cpp"
@@ -467,6 +471,9 @@ InitXPCOMGlue(const char *argv0, nsIFile **xreDirectory)
 
 int main(int argc, char* argv[])
 {
+#ifdef DEBUG_delay_start_metro
+  Sleep(5000);
+#endif
   PRTime start = _PR_Now();
 
 #ifdef XP_MACOSX

@@ -690,7 +690,7 @@ nsWindow::GetLayerManager(PLayersChild*, LayersBackend, LayerManagerPersistence,
     }
     
     
-    if (UseOffMainThreadCompositing()) {
+    if (ShouldUseOffMainThreadCompositing()) {
         return sLayerManager;
     }
     return nullptr;
@@ -711,7 +711,7 @@ nsWindow::CreateLayerManager()
 
     mUseLayersAcceleration = ComputeShouldAccelerate(mUseLayersAcceleration);
 
-    if (UseOffMainThreadCompositing()) {
+    if (ShouldUseOffMainThreadCompositing()) {
         if (sLayerManager) {
             return;
         }

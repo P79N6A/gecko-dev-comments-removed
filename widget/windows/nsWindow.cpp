@@ -3211,7 +3211,7 @@ GetLayerManagerPrefs(LayerManagerPrefs* aManagerPrefs)
 }
 
 bool
-nsWindow::UseOffMainThreadCompositing()
+nsWindow::ShouldUseOffMainThreadCompositing()
 {
   
   return false;
@@ -3318,7 +3318,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     
     if (!mLayerManager) {
       
-      if (UseOffMainThreadCompositing()) {
+      if (ShouldUseOffMainThreadCompositing()) {
         
         
         NS_ASSERTION(aShadowManager == nullptr, "Async Compositor not supported with e10s");

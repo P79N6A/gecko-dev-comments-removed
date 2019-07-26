@@ -279,7 +279,7 @@ public:
 
   static void             SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, uint32_t aModifiers);
 
-  virtual bool            UseOffMainThreadCompositing();
+  virtual bool            ShouldUseOffMainThreadCompositing();
 protected:
 
   

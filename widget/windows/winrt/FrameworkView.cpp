@@ -114,7 +114,7 @@ FrameworkView::Run()
   
   mWindow->Activate();
 
-  UpdateSizeAndPosition();
+  UpdateWidgetSizeAndPosition();
 
   MetroUtils::GetViewState(mViewState);
 
@@ -248,31 +248,27 @@ FrameworkView::UpdateLogicalDPI()
 void
 FrameworkView::GetBounds(nsIntRect &aRect)
 {
+  
   if (mShuttingDown) {
     return;
   }
-  NS_ASSERTION(mWindow, "SetWindow must be called before GetBounds!");
-  Rect msrect;
-  mWindow->get_Bounds(&msrect);
-  nsIntRect mozrect(0, 0, (uint32_t)ceil(msrect.Width),
-                    (uint32_t)ceil(msrect.Height));
+  nsIntRect mozrect(0, 0, (uint32_t)ceil(mWindowBounds.Width),
+                    (uint32_t)ceil(mWindowBounds.Height));
   aRect = mozrect;
 }
 
 void
-FrameworkView::UpdateSizeAndPosition()
+FrameworkView::UpdateWidgetSizeAndPosition()
 {
   if (mShuttingDown)
     return;
 
-  NS_ASSERTION(mWindow, "SetWindow must be called before UpdateSizeAndPosition!");
-  NS_ASSERTION(mWidget, "SetWidget must be called before UpdateSizeAndPosition!");
+  NS_ASSERTION(mWindow, "SetWindow must be called before UpdateWidgetSizeAndPosition!");
+  NS_ASSERTION(mWidget, "SetWidget must be called before UpdateWidgetSizeAndPosition!");
 
-  Rect rect;
-  mWindow->get_Bounds(&rect);
   mWidget->Move(0, 0);
-  mWidget->Resize(0, 0, (uint32_t)ceil(rect.Width),
-                  (uint32_t)ceil(rect.Height), true);
+  mWidget->Resize(0, 0, (uint32_t)ceil(mWindowBounds.Width),
+                  (uint32_t)ceil(mWindowBounds.Height), true);
   mWidget->SizeModeChanged();
 }
 
@@ -296,9 +292,8 @@ void FrameworkView::SetDpi(float aDpi)
   if (aDpi != mDPI) {
       mDPI = aDpi;
       
-      
-      
-      UpdateForWindowSizeChange();
+      NS_ASSERTION(mWindow, "SetWindow must be called before SetDpi!");
+      mWindow->get_Bounds(&mWindowBounds);
   }
 }
 
@@ -313,17 +308,6 @@ FrameworkView::SetWidget(MetroWidget* aWidget)
 }
 
 
-void
-FrameworkView::UpdateForWindowSizeChange()
-{
-  if (mShuttingDown) {
-    return;
-  }
-  NS_ASSERTION(mWindow, "SetWindow must be called before UpdateForWindowSizeChange!");
-  mWindow->get_Bounds(&mWindowBounds);
-}
-
-
 
 
 void
@@ -334,7 +318,7 @@ FrameworkView::SendActivationEvent()
   }
   NS_ASSERTION(mWindow, "SetWindow must be called before SendActivationEvent!");
   mWidget->Activated(mWinActiveState);
-  UpdateSizeAndPosition();
+  UpdateWidgetSizeAndPosition();
   EnsureAutomationProviderCreated();
 }
 
@@ -436,8 +420,15 @@ HRESULT
 FrameworkView::OnWindowSizeChanged(ICoreWindow* aSender, IWindowSizeChangedEventArgs* aArgs)
 {
   LogFunction();
-  UpdateForWindowSizeChange();
-  UpdateSizeAndPosition();
+
+  if (mShuttingDown) {
+    return S_OK;
+  }
+
+  NS_ASSERTION(mWindow, "SetWindow must be called before OnWindowSizeChanged!");
+  mWindow->get_Bounds(&mWindowBounds);
+
+  UpdateWidgetSizeAndPosition();
   FireViewStateObservers();
   return S_OK;
 }
