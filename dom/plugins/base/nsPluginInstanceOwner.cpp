@@ -290,6 +290,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mNumCachedParams = 0;
   mCachedAttrParamNames = nullptr;
   mCachedAttrParamValues = nullptr;
+  mLastMouseDownButtonType = -1;
 
 #ifdef XP_MACOSX
 #ifndef NP_NO_CARBON
@@ -1860,8 +1861,9 @@ nsPluginInstanceOwner::ProcessMouseDown(nsIDOMEvent* aMouseEvent)
   }
 
   nsEvent* event = aMouseEvent->GetInternalNSEvent();
-    if (event && event->eventStructType == NS_MOUSE_EVENT) {
-      nsEventStatus rv = ProcessEvent(*static_cast<nsGUIEvent*>(event));
+  if (event && event->eventStructType == NS_MOUSE_EVENT) {
+    mLastMouseDownButtonType = static_cast<nsMouseEvent*>(event)->button;
+    nsEventStatus rv = ProcessEvent(*static_cast<nsGUIEvent*>(event));
     if (nsEventStatus_eConsumeNoDefault == rv) {
       return aMouseEvent->PreventDefault(); 
     }
@@ -1887,6 +1889,9 @@ nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent)
     if (nsEventStatus_eConsumeNoDefault == rv) {
       aMouseEvent->PreventDefault();
       aMouseEvent->StopPropagation();
+    }
+    if (event->message == NS_MOUSE_BUTTON_UP) {
+      mLastMouseDownButtonType = -1;
     }
   }
   return NS_OK;
@@ -1915,7 +1920,11 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
     
     
     
-    if (!mContentFocused) {
+    
+    
+    nsMouseEvent *event =
+      static_cast<nsMouseEvent*>(aEvent->GetInternalNSEvent());
+    if (event && ((int) event->button != mLastMouseDownButtonType)) {
       aEvent->PreventDefault();
       return NS_OK;
     }

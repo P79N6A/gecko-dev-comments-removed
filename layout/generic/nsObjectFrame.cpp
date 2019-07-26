@@ -2015,23 +2015,29 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
     
     return rv;
   }
+
+  
+  
+  
+  
+  if (anEvent->message == NS_MOUSE_BUTTON_DOWN) {
+    nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
+  }
 #endif
 
-  return nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
-}
+  rv = nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
+
+  
+  
 
 #ifdef XP_MACOSX
-
-
-NS_IMETHODIMP
-nsObjectFrame::HandlePress(nsPresContext* aPresContext,
-                           nsGUIEvent*    anEvent,
-                           nsEventStatus* anEventStatus)
-{
-  nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
-  return nsObjectFrameSuper::HandlePress(aPresContext, anEvent, anEventStatus);
-}
+  if (anEvent->message == NS_MOUSE_BUTTON_UP) {
+    nsIPresShell::SetCapturingContent(nullptr, 0);
+  }
 #endif
+
+  return rv;
+}
 
 nsresult
 nsObjectFrame::GetPluginInstance(nsNPAPIPluginInstance** aPluginInstance)
