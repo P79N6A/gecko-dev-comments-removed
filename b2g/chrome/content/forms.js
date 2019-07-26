@@ -667,6 +667,9 @@ let FormAssistant = {
 
   
   updateSelection: function fa_updateSelection() {
+    if (!this.focusedElement) {
+      return;
+    }
     let selectionInfo = this.getSelectionInfo();
     if (selectionInfo.changed) {
       sendAsyncMessage("Forms:SelectionChange", this.getSelectionInfo());
