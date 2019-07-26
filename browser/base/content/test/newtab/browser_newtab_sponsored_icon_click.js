@@ -5,6 +5,10 @@ function runTests() {
   yield setLinks("0");
   yield addNewTabPageTab();
 
+  
+  
+  yield whenSearchInitDone();
+
   let site = getCell(0).node.querySelector(".newtab-site");
   site.setAttribute("type", "sponsored");
 

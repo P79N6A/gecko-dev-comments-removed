@@ -11,7 +11,7 @@ function runTests() {
   
   
   
-  let FOCUS_COUNT = 28;
+  let FOCUS_COUNT = 30;
 
   
   yield setLinks("0,1,2,3,4,5,6,7,8");
