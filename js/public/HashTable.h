@@ -853,8 +853,9 @@ class HashTable : private AllocPolicy
     mozilla::DebugOnly<uint64_t>     mutationCount;
 
     
-    static const unsigned sMinSizeLog2  = 2;
-    static const unsigned sMinSize      = 1 << sMinSizeLog2;
+    
+    static const unsigned sMinCapacityLog2 = 2;
+    static const unsigned sMinCapacity  = 1 << sMinCapacityLog2;
     static const unsigned sMaxInit      = JS_BIT(23);
     static const unsigned sMaxCapacity  = JS_BIT(24);
     static const unsigned sHashBits     = tl::BitSize<HashNumber>::result;
@@ -925,11 +926,11 @@ class HashTable : private AllocPolicy
         }
         uint32_t capacity = (length * sInvMaxAlpha) >> 7;
 
-        if (capacity < sMinSize)
-            capacity = sMinSize;
+        if (capacity < sMinCapacity)
+            capacity = sMinCapacity;
 
         
-        uint32_t roundUp = sMinSize, roundUpLog2 = sMinSizeLog2;
+        uint32_t roundUp = sMinCapacity, roundUpLog2 = sMinCapacityLog2;
         while (roundUp < capacity) {
             roundUp <<= 1;
             ++roundUpLog2;
@@ -993,7 +994,7 @@ class HashTable : private AllocPolicy
     
     static bool wouldBeUnderloaded(uint32_t capacity, uint32_t entryCount)
     {
-        return capacity > sMinSize && entryCount <= ((sMinAlphaFrac * capacity) >> 8);
+        return capacity > sMinCapacity && entryCount <= ((sMinAlphaFrac * capacity) >> 8);
     }
 
     bool underloaded()
