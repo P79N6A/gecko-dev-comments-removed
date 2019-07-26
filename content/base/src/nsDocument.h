@@ -995,8 +995,11 @@ public:
   bool SetPointerLock(Element* aElement, int aCursorStyle);
   static void UnlockPointer();
 
-  virtual void UpdateVisibilityState(bool aFireEventSync);
-  void FireVisibilityChangeEvent();
+  
+  
+  void UpdateVisibilityState();
+  
+  virtual void PostVisibilityUpdateEvent();
 
   virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
   
