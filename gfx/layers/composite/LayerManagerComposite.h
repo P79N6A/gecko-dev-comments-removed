@@ -11,7 +11,6 @@
 #include "Layers.h"
 #include "gfx3DMatrix.h"                
 #include "gfxMatrix.h"                  
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
@@ -53,6 +52,7 @@ namespace layers {
 
 class CanvasLayerComposite;
 class ColorLayerComposite;
+class Composer2D;
 class CompositableHost;
 class Compositor;
 class ContainerLayerComposite;
@@ -118,7 +118,7 @@ public:
 
   
   
-  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) MOZ_OVERRIDE;
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) MOZ_OVERRIDE;
 
   virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE
   {
@@ -149,7 +149,7 @@ public:
   }
 
   virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfxIntSize &aSize) MOZ_OVERRIDE;
+    CreateOptimalMaskSurface(const gfx::IntSize &aSize) MOZ_OVERRIDE;
 
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
 
@@ -259,6 +259,9 @@ private:
   void WorldTransformRect(nsIntRect& aRect);
 
   RefPtr<Compositor> mCompositor;
+
+  
+  nsRefPtr<Composer2D> mComposer2D;
 
   gfxMatrix mWorldMatrix;
 

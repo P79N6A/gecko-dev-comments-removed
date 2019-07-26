@@ -423,7 +423,7 @@ public:
 
 
   virtual already_AddRefed<gfxASurface>
-    CreateOptimalSurface(const gfxIntSize &aSize,
+    CreateOptimalSurface(const gfx::IntSize &aSize,
                          gfxImageFormat imageFormat);
 
   
@@ -433,7 +433,7 @@ public:
 
 
   virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfxIntSize &aSize);
+    CreateOptimalMaskSurface(const gfx::IntSize &aSize);
 
   
 
@@ -443,7 +443,7 @@ public:
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
-  virtual bool CanUseCanvasLayerForSize(const gfxIntSize &aSize) { return true; }
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) { return true; }
 
   
 

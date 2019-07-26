@@ -8,8 +8,8 @@
 
 #include "Layers.h"                     
 #include "GraphicsFilter.h"             
-#include "gfxPoint.h"                   
 #include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/LayersTypes.h"
 #include "nsAutoPtr.h"                  
 #include "nscore.h"                     
@@ -50,7 +50,7 @@ public:
 
 
 
-  void SetScaleToSize(const gfxIntSize &aSize, ScaleMode aMode)
+  void SetScaleToSize(const gfx::IntSize &aSize, ScaleMode aMode)
   {
     if (mScaleToSize != aSize || mScaleMode != aMode) {
       mScaleToSize = aSize;
@@ -62,7 +62,7 @@ public:
 
   ImageContainer* GetContainer() { return mContainer; }
   GraphicsFilter GetFilter() { return mFilter; }
-  const gfxIntSize& GetScaleToSize() { return mScaleToSize; }
+  const gfx::IntSize& GetScaleToSize() { return mScaleToSize; }
   ScaleMode GetScaleMode() { return mScaleMode; }
 
   MOZ_LAYER_DECL_NAME("ImageLayer", TYPE_IMAGE)
@@ -89,7 +89,7 @@ protected:
 
   nsRefPtr<ImageContainer> mContainer;
   GraphicsFilter mFilter;
-  gfxIntSize mScaleToSize;
+  gfx::IntSize mScaleToSize;
   ScaleMode mScaleMode;
   bool mDisallowBigImage;
 };
