@@ -937,7 +937,7 @@ AndroidGeckoLayerClient::SyncFrameMetrics(const ScreenPoint& aScrollOffset, floa
     AutoLocalJNIFrame jniFrame(env);
 
     
-    LayerRect dpUnrounded = LayerRect::FromCSSRect(aDisplayPort, aDisplayResolution, aDisplayResolution);
+    LayerRect dpUnrounded = aDisplayPort * CSSToLayerScale(aDisplayResolution);
     dpUnrounded += LayerPoint::FromUnknownPoint(aScrollOffset.ToUnknownPoint());
     LayerIntRect dp = gfx::RoundedToInt(dpUnrounded);
 
