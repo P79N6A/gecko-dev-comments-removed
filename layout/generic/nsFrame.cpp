@@ -698,13 +698,22 @@ nsFrame::GetOffsets(int32_t &aStart, int32_t &aEnd) const
  void
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  if (IsSVGText() && !(mState & NS_FRAME_FIRST_REFLOW)) {
+  if (IsSVGText()) {
     nsSVGTextFrame2* svgTextFrame = static_cast<nsSVGTextFrame2*>(
         nsLayoutUtils::GetClosestFrameOfType(this, nsGkAtoms::svgTextFrame2));
+    nsIFrame* anonBlock = svgTextFrame->GetFirstPrincipalChild();
     
     
     
-    if (svgTextFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY) {
+    
+    
+    
+    
+    
+    
+    
+    if (anonBlock && !(anonBlock->GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
+        (svgTextFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
       svgTextFrame->ScheduleReflowSVGNonDisplayText();
     }
   }
@@ -1481,20 +1490,25 @@ nsIFrame::GetCaretColorAt(int32_t aOffset)
   return StyleColor()->mColor;
 }
 
-bool
-nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder* aBuilder,
-                                        const nsDisplayListSet& aLists,
-                                        bool aForceBackground)
+void
+nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*       aBuilder,
+                                        const nsDisplayListSet&     aLists,
+                                        bool                        aForceBackground,
+                                        bool*                       aAppendedThemedBackground)
 {
+  if (aAppendedThemedBackground) {
+    *aAppendedThemedBackground = false;
+  }
+
   
   
   
   if (aBuilder->IsForEventDelivery() || aForceBackground ||
       !StyleBackground()->IsTransparent() || StyleDisplay()->mAppearance) {
-    return nsDisplayBackgroundImage::AppendBackgroundItemsToTop(
-        aBuilder, this, aLists.BorderBackground());
+    nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder, this,
+                                                         aLists.BorderBackground(),
+                                                         aAppendedThemedBackground);
   }
-  return false;
 }
 
 void
@@ -1514,8 +1528,9 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
       nsDisplayBoxShadowOuter(aBuilder, this));
   }
 
-  bool bgIsThemed = DisplayBackgroundUnconditional(aBuilder, aLists,
-                                                   aForceBackground);
+  bool bgIsThemed;
+  DisplayBackgroundUnconditional(aBuilder, aLists, aForceBackground,
+                                 &bgIsThemed);
 
   if (shadows && shadows->HasShadowWithInset(true)) {
     aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
