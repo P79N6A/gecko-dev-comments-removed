@@ -1105,7 +1105,10 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       
       rv = mImage->Init(this, mContentType.get(), uriString.get(), imageFlags);
-      if (NS_FAILED(rv)) { 
+
+      
+      
+      if (NS_FAILED(rv) && !mIsMultiPartChannel) { 
 
         this->Cancel(rv);
         return NS_BINDING_ABORTED;
