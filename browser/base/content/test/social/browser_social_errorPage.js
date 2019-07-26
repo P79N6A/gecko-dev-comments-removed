@@ -174,5 +174,36 @@ var tests = {
         });
       }
     );
+  },
+
+  testChatWindowAfterTearOff: function(next) {
+    
+    let url = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
+    let panelCallbackCount = 0;
+    
+    openChat(
+      url,
+      null,
+      function() { 
+        executeSoon(function() {
+          let chat = SocialChatBar.chatbar.selectedChat;
+          is(chat.contentDocument.location.href, url, "correct url loaded");
+          
+          chat.swapWindows().then(
+            chat => {
+              
+              goOffline();
+              chat.contentDocument.location.reload();
+              waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
+                               function() {
+                                chat.close();
+                                next();
+                                },
+                               "error page didn't appear");
+            }
+          );
+        });
+      }
+    );
   }
 }

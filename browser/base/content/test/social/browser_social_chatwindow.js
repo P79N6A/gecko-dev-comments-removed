@@ -44,6 +44,11 @@ function openChat(provider, callback) {
   gURLsNotRemembered.push(url);
 }
 
+function windowHasChats(win) {
+  let chatbar = win.document.getElementById("pinnedchats");
+  return !!chatbar.firstElementChild;
+}
+
 function test() {
   requestLongerTimeout(2); 
   waitForExplicitFinish();
@@ -341,61 +346,6 @@ var tests = {
     });
   },
 
-  testActivity: function(next) {
-    let port = SocialSidebar.provider.getWorkerPort();
-    port.postMessage({topic: "test-init"});
-    get3ChatsForCollapsing("normal", function(first, second, third) {
-      let chatbar = window.SocialChatBar.chatbar;
-      is(chatbar.selectedChat, third, "third chat should be selected");
-      ok(!chatbar.selectedChat.hasAttribute("activity"), "third chat should have no activity");
-      
-      ok(!second.hasAttribute("activity"), "second chat should have no activity");
-      let chat2 = second.content;
-      let evt = chat2.contentDocument.createEvent("CustomEvent");
-      evt.initCustomEvent("socialChatActivity", true, true, {});
-      chat2.contentDocument.documentElement.dispatchEvent(evt);
-      
-      ok(second.hasAttribute("activity"), "second chat should now have activity");
-      
-      chatbar.selectedChat = second;
-      ok(!second.hasAttribute("activity"), "second chat should no longer have activity");
-      
-      ok(!first.hasAttribute("activity"), "first chat should have no activity");
-      let chat1 = first.content;
-      let evt = chat1.contentDocument.createEvent("CustomEvent");
-      evt.initCustomEvent("socialChatActivity", true, true, {});
-      chat1.contentDocument.documentElement.dispatchEvent(evt);
-      ok(first.hasAttribute("activity"), "first chat should now have activity");
-      ok(chatbar.nub.hasAttribute("activity"), "nub should also have activity");
-      
-      chatbar.openChat(SocialSidebar.provider, first.getAttribute("src"));
-      ok(!first.hasAttribute("activity"), "first chat should no longer have activity");
-      
-      todo(!chatbar.nub.hasAttribute("activity"), "Bug 806266 - nub should no longer have activity");
-      
-      
-      
-      
-      
-      ok(!second.hasAttribute("activity"), "second chat should have no activity");
-      let subiframe = chat2.contentDocument.getElementById("iframe");
-      subiframe.contentWindow.addEventListener("unload", function subunload() {
-        subiframe.contentWindow.removeEventListener("unload", subunload);
-        
-        executeSoon(function() {
-          let evt = chat2.contentDocument.createEvent("CustomEvent");
-          evt.initCustomEvent("socialChatActivity", true, true, {});
-          chat2.contentDocument.documentElement.dispatchEvent(evt);
-          ok(second.hasAttribute("activity"), "second chat still has activity after unloading sub-iframe");
-          closeAllChats();
-          port.close();
-          next();
-        })
-      })
-      subiframe.setAttribute("src", "data:text/plain:new location for iframe");
-    });
-  },
-
   testOnlyOneCallback: function(next) {
     let chats = document.getElementById("pinnedchats");
     let port = SocialSidebar.provider.getWorkerPort();
@@ -448,31 +398,31 @@ var tests = {
     
     
     
-    ok(!window.SocialChatBar.hasChats, "first window should start with no chats");
+    ok(!windowHasChats(window), "first window should start with no chats");
     openChat(SocialSidebar.provider, function() {
-      ok(window.SocialChatBar.hasChats, "first window has the chat");
+      ok(windowHasChats(window), "first window has the chat");
       
       
       let secondWindow = OpenBrowserWindow();
       secondWindow.addEventListener("load", function loadListener() {
         secondWindow.removeEventListener("load", loadListener);
-        ok(!secondWindow.SocialChatBar.hasChats, "second window has no chats");
+        ok(!windowHasChats(secondWindow), "second window has no chats");
         openChat(SocialSidebar.provider, function() {
-          ok(secondWindow.SocialChatBar.hasChats, "second window now has chats");
+          ok(windowHasChats(secondWindow), "second window now has chats");
           is(window.SocialChatBar.chatbar.childElementCount, 1, "first window still has 1 chat");
           window.SocialChatBar.chatbar.removeAll();
           
           openChat(SocialSidebar.provider, function() {
-            ok(!window.SocialChatBar.hasChats, "first window has no chats");
-            ok(secondWindow.SocialChatBar.hasChats, "second window has a chat");
+            ok(!windowHasChats(window), "first window has no chats");
+            ok(windowHasChats(secondWindow), "second window has a chat");
 
             
             
             waitForFocus(function() {
               openChat(SocialSidebar.provider, function() {
-                ok(window.SocialChatBar.hasChats, "first window has chats");
+                ok(windowHasChats(window), "first window has chats");
                 window.SocialChatBar.chatbar.removeAll();
-                ok(!window.SocialChatBar.hasChats, "first window has no chats");
+                ok(!windowHasChats(window), "first window has no chats");
 
                 let privateWindow = OpenBrowserWindow({private: true});
                 privateWindow.addEventListener("load", function loadListener() {
@@ -486,7 +436,7 @@ var tests = {
                     let os = Services.appinfo.OS;
                     const BROKEN_WM_Z_ORDER = os != "WINNT" && os != "Darwin";
                     let fn = BROKEN_WM_Z_ORDER ? todo : ok;
-                    fn(window.SocialChatBar.hasChats, "first window has a chat");
+                    fn(windowHasChats(window), "first window has a chat");
                     window.SocialChatBar.chatbar.removeAll();
 
                     privateWindow.close();

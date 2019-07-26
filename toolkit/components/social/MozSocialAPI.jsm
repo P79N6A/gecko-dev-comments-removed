@@ -8,6 +8,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "SocialService", "resource://gre/modules/SocialService.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Social", "resource:///modules/Social.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Chat", "resource:///modules/Chat.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 this.EXPORTED_SYMBOLS = ["MozSocialAPI", "openChatWindow", "findChromeWindowForChats", "closeAllChatWindows"];
@@ -125,7 +127,7 @@ function attachToWindow(provider, targetWindow) {
       writable: true,
       value: function(toURL, callback) {
         let url = targetWindow.document.documentURIObject.resolve(toURL);
-        openChatWindow(getChromeWindow(targetWindow), provider, url, callback);
+        openChatWindow(targetWindow, provider, url, callback);
       }
     },
     openPanel: {
@@ -270,92 +272,31 @@ function getChromeWindow(contentWin) {
                    .getInterface(Ci.nsIDOMWindow);
 }
 
-function isWindowGoodForChats(win) {
-  return win.SocialChatBar
-         && win.SocialChatBar.isAvailable
-         && !PrivateBrowsingUtils.isWindowPrivate(win);
-}
-
-function findChromeWindowForChats(preferredWindow) {
-  if (preferredWindow && isWindowGoodForChats(preferredWindow))
-    return preferredWindow;
-  
-  
-  
-
-  
-  
-  
-  
-
-  let mostRecent = Services.wm.getMostRecentWindow("navigator:browser");
-  if (isWindowGoodForChats(mostRecent))
-    return mostRecent;
-
-  let topMost, enumerator;
-  
-  
-  
-  
-  let os = Services.appinfo.OS;
-  const BROKEN_WM_Z_ORDER = os != "WINNT" && os != "Darwin";
-  if (BROKEN_WM_Z_ORDER) {
-    
-    enumerator = Services.wm.getEnumerator("navigator:browser");
-  } else {
-    
-    
-    enumerator = Services.wm.getZOrderDOMWindowEnumerator("navigator:browser", false);
-  }
-  while (enumerator.hasMoreElements()) {
-    let win = enumerator.getNext();
-    if (!win.closed && isWindowGoodForChats(win))
-      topMost = win;
-  }
-  return topMost;
-}
-
 this.openChatWindow =
- function openChatWindow(chromeWindow, provider, url, callback, mode) {
-  chromeWindow = findChromeWindowForChats(chromeWindow);
-  if (!chromeWindow) {
-    Cu.reportError("Failed to open a social chat window - no host window could be found.");
-    return;
-  }
+ function openChatWindow(contentWindow, provider, url, callback, mode) {
   let fullURI = provider.resolveUri(url);
   if (!provider.isSameOrigin(fullURI)) {
     Cu.reportError("Failed to open a social chat window - the requested URL is not the same origin as the provider.");
     return;
   }
-  if (!chromeWindow.SocialChatBar.openChat(provider, fullURI.spec, callback, mode)) {
-    Cu.reportError("Failed to open a social chat window - the chatbar is not available in the target window.");
-    return;
+
+  let thisCallback = function(chatbox) {
+    
+    Social.setErrorListener(chatbox.content, function(aBrowser) {
+      aBrowser.webNavigation.loadURI("about:socialerror?mode=compactInfo&origin=" +
+                             encodeURIComponent(aBrowser.getAttribute("origin")),
+                             null, null, null, null);
+    });
   }
-  
-  
-  chromeWindow.getAttention();
+  let chatbox = Chat.open(contentWindow, provider.origin, provider.name,
+                          fullURI.spec, mode, undefined, thisCallback);
+  if (callback) {
+    chatbox.promiseChatLoaded.then(() => {
+      callback(chatbox.contentWindow);
+    });
+  }
 }
 
-this.closeAllChatWindows =
- function closeAllChatWindows(provider) {
-  
-  let winEnum = Services.wm.getEnumerator("navigator:browser");
-  while (winEnum.hasMoreElements()) {
-    let win = winEnum.getNext();
-    if (!win.SocialChatBar)
-      continue;
-    let chats = [c for (c of win.SocialChatBar.chatbar.children) if (c.content.getAttribute("origin") == provider.origin)];
-    [c.close() for (c of chats)];
-  }
-
-  
-  winEnum = Services.wm.getEnumerator("Social:Chat");
-  while (winEnum.hasMoreElements()) {
-    let win = winEnum.getNext();
-    if (win.closed)
-      continue;
-    let origin = win.document.getElementById("chatter").content.getAttribute("origin");
-    if (provider.origin == origin)
-      win.close();
-  }
+this.closeAllChatWindows = function closeAllChatWindows(provider) {
+  return Chat.closeAll(provider.origin);
 }
