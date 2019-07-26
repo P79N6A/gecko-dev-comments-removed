@@ -1016,7 +1016,6 @@ void MediaDecoderStateMachine::AudioLoop()
     }
   }
   while (1) {
-
     
     
     {
@@ -1286,7 +1285,7 @@ void MediaDecoderStateMachine::StartPlayback()
 
   NS_ASSERTION(!IsPlaying(), "Shouldn't be playing when StartPlayback() is called");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-  LOG(PR_LOG_DEBUG, ("%p StartPlayback", mDecoder.get()));
+
   mDecoder->NotifyPlaybackStarted();
   mPlayStartTime = TimeStamp::Now();
 
@@ -2058,6 +2057,14 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         StopPlayback();
       }
       StopAudioThread();
+      
+      
+      
+      
+      if (mAudioThread) {
+        MOZ_ASSERT(mStopAudioThread);
+        return NS_OK;
+      }
       StopDecodeThread();
       
       
@@ -2220,7 +2227,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         NS_ASSERTION(IsStateMachineScheduled(), "Must have timer scheduled");
         return NS_OK;
       }
- 
+
       StopAudioThread();
       if (mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING) {
         int64_t videoTime = HasVideo() ? mVideoFrameEndTime : 0;
@@ -2659,7 +2666,7 @@ void MediaDecoderStateMachine::TimeoutExpired()
 void MediaDecoderStateMachine::ScheduleStateMachineWithLockAndWakeDecoder() {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   mon.NotifyAll();
-  ScheduleStateMachine(0);
+  ScheduleStateMachine();
 }
 
 nsresult MediaDecoderStateMachine::ScheduleStateMachine(int64_t aUsecs) {
