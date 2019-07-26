@@ -668,12 +668,46 @@ public class Tabs implements GeckoEventListener {
             if (isPrivate != null && isPrivate != tab.isPrivate()) {
                 continue;
             }
+            if (url.equals(tab.getURL())) {
+                return tab;
+            }
+        }
+
+        return null;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public Tab getFirstReaderTabForUrl(String url, boolean isPrivate) {
+        if (url == null) {
+            return null;
+        }
+
+        if (AboutPages.isAboutReader(url)) {
+            url = ReaderModeUtils.getUrlFromAboutReader(url);
+        }
+        for (Tab tab : mOrder) {
+            if (isPrivate != tab.isPrivate()) {
+                continue;
+            }
             String tabUrl = tab.getURL();
             if (AboutPages.isAboutReader(tabUrl)) {
                 tabUrl = ReaderModeUtils.getUrlFromAboutReader(tabUrl);
-            }
-            if (url.equals(tabUrl)) {
-                return tab;
+                if (url.equals(tabUrl)) {
+                    return tab;
+                }
             }
         }
 
