@@ -606,9 +606,6 @@ pref("ui.scrolling.friction_slow", -1);
 pref("ui.scrolling.friction_fast", -1);
 
 
-pref("ui.scrolling.velocity_threshold", -1);
-
-
 pref("ui.scrolling.max_event_acceleration", -1);
 
 pref("ui.scrolling.overscroll_decel_rate", -1);
@@ -617,9 +614,6 @@ pref("ui.scrolling.overscroll_snap_limit", -1);
 
 
 pref("ui.scrolling.min_scrollable_distance", -1);
-
-
-pref("ui.zooming.animation_frames", "");
 
 
 pref("accessibility.accessfu.activate", 2);
