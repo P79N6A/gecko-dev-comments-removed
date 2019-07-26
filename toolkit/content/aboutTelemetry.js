@@ -21,6 +21,7 @@ const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].
 
 
 const MAX_BAR_HEIGHT = 18;
+const MAX_BAR_CHARS = 25;
 const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
 #ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
 const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabledPreRelease";
@@ -30,6 +31,12 @@ const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
 const PREF_SYMBOL_SERVER_URI = "profiler.symbolicationUrl";
 const DEFAULT_SYMBOL_SERVER_URI = "http://symbolapi.mozilla.org";
+
+#ifdef XP_WIN
+const EOL = "\r\n";
+#else
+const EOL = "\n";
+#endif
 
 
 let documentRTLMode = "";
@@ -407,6 +414,8 @@ let Histogram = {
 
   hgramSumCaption: bundle.GetStringFromName("histogramSum"),
 
+  hgramCopyCaption: bundle.GetStringFromName("histogramCopy"),
+
   
 
 
@@ -437,7 +446,18 @@ let Histogram = {
     if (isRTL())
       hgram.values.reverse();
 
-    this.renderValues(outerDiv, hgram.values, hgram.max);
+    let textData = this.renderValues(outerDiv, hgram.values, hgram.max, hgram.sample_count);
+
+    
+    let copyButton = document.createElement("button");
+    copyButton.className = "copy-node";
+    copyButton.appendChild(document.createTextNode(this.hgramCopyCaption));
+    copyButton.histogramText = aName + EOL + stats + EOL + EOL + textData;
+    copyButton.addEventListener("click", function(){
+      Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper)
+                                                 .copyString(this.histogramText);
+    });
+    outerDiv.appendChild(copyButton);
 
     aParent.appendChild(outerDiv);
   },
@@ -497,8 +517,22 @@ let Histogram = {
 
 
 
-  renderValues: function Histogram_renderValues(aDiv, aValues, aMaxValue) {
+
+
+
+  renderValues: function Histogram_renderValues(aDiv, aValues, aMaxValue, aSumValues) {
+    let text = "";
+    
+    let labelPadTo = String(aValues[aValues.length -1][0]).length;
+
     for (let [label, value] of aValues) {
+      
+      text += EOL
+              + " ".repeat(Math.max(0, labelPadTo - String(label).length)) + label 
+              + " |" + "#".repeat(Math.round(MAX_BAR_CHARS * value / aMaxValue)) + value 
+              + "  " + Math.round(100 * value / aSumValues) + "%"; 
+
+      
       let belowEm = Math.round(MAX_BAR_HEIGHT * (value / aMaxValue) * 10) / 10;
       let aboveEm = MAX_BAR_HEIGHT - belowEm;
 
@@ -520,6 +554,8 @@ let Histogram = {
 
       aDiv.appendChild(barDiv);
     }
+
+    return text.substr(EOL.length); 
   }
 };
 
