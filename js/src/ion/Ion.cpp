@@ -909,11 +909,10 @@ namespace ion {
 bool
 OptimizeMIR(MIRGenerator *mir)
 {
-    IonSpewPass("BuildSSA");
-    
-    
-
     MIRGraph &graph = mir->graph();
+
+    IonSpewPass("BuildSSA");
+    AssertBasicGraphCoherency(graph);
 
     if (mir->shouldCancel("Start"))
         return false;
