@@ -38,11 +38,11 @@
 #include "mozilla/Selection.h"
 #include "nsEventListenerManager.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "mozilla/Preferences.h"
 #include "nsTextNode.h"
 #include "nsIController.h"
 #include "mozilla/TextEvents.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1288,8 +1288,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     
     
     
-    nsCxPusher pusher;
-    pusher.PushNull();
+    AutoSystemCaller asc;
 
     rv = newEditor->Init(domdoc, GetRootNode(), mSelCon, editorFlags);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1778,8 +1777,7 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
     
     
     { 
-      nsCxPusher pusher;
-      pusher.PushNull();
+      AutoSystemCaller asc;
 
       mEditor->OutputToString(NS_LITERAL_STRING("text/plain"), flags,
                               aValue);
@@ -1857,9 +1855,8 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
       
       
       
-      { 
-        nsCxPusher pusher;
-        pusher.PushNull();
+      {
+        AutoSystemCaller asc;
 
         nsCOMPtr<nsISelection> domSel;
         nsCOMPtr<nsISelectionPrivate> selPriv;

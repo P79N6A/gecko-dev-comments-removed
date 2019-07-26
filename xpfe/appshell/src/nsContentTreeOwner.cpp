@@ -12,7 +12,6 @@
 
 #include "nsIServiceManager.h"
 #include "nsAutoPtr.h"
-#include "nsCxPusher.h"
 
 
 #include "nsIDOMNode.h"
@@ -47,6 +46,7 @@
 
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 using namespace mozilla;
 
@@ -945,8 +945,7 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
   *aWindowIsNew = (containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW);
 
   {
-    nsCxPusher pusher;
-    pusher.PushNull();
+    dom::AutoSystemCaller asc;
 
     
     
