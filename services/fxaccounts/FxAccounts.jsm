@@ -525,8 +525,7 @@ this.FxAccounts.prototype = Object.freeze({
         if (!internal.isUserEmailVerified(data)) {
           
           
-          
-          internal.startVerifiedCheck(credentials);
+          internal.startVerifiedCheck(data);
         }
         return data;
       });
