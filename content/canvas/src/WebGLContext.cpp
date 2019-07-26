@@ -1183,7 +1183,7 @@ WebGLContext::TryToRestoreContext()
 
 class UpdateContextLossStatusTask : public nsRunnable
 {
-    WebGLContext* const mContext;
+    nsRefPtr<WebGLContext> mContext;
 
 public:
     UpdateContextLossStatusTask(WebGLContext* context)
@@ -1232,6 +1232,7 @@ WebGLContext::UpdateContextLossStatus()
         
 
         bool isGuilty = true;
+        MOZ_ASSERT(gl); 
         bool isContextLost = CheckContextLost(gl, &isGuilty);
 
         if (isContextLost) {
