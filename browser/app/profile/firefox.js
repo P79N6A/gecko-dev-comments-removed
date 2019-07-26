@@ -1283,7 +1283,7 @@ pref("devtools.eyedropper.zoom", 6);
 
 
 
-pref("devtools.editor.tabsize", 2);
+pref("devtools.editor.tabsize", 4);
 pref("devtools.editor.expandtab", true);
 pref("devtools.editor.keymap", "default");
 pref("devtools.editor.autoclosebrackets", true);
