@@ -222,9 +222,6 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  void MaybeFireAsyncClickHandler(nsEventChainPostVisitor& aVisitor);
-  NS_IMETHOD FireAsyncClickHandler();
-
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLInputElement,
                                            nsGenericHTMLFormElementWithState)
 
@@ -1083,6 +1080,25 @@ protected:
 
   bool ShouldPreventDOMActivateDispatch(EventTarget* aOriginalTarget);
 
+  
+
+
+
+
+  nsresult MaybeInitPickers(nsEventChainPostVisitor& aVisitor);
+
+  nsresult InitFilePicker();
+  nsresult InitColorPicker();
+
+  
+
+
+
+
+
+
+  bool IsPopupBlocked() const;
+
   nsCOMPtr<nsIControllers> mControllers;
 
   
@@ -1228,21 +1244,6 @@ private:
     
     
     bool mIsTrusted; 
-  };
-
-  class AsyncClickHandler
-    : public nsRunnable
-  {
-  public:
-    AsyncClickHandler(HTMLInputElement* aInput);
-    NS_IMETHOD Run() MOZ_OVERRIDE;
-
-  protected:
-    nsresult InitFilePicker();
-    nsresult InitColorPicker();
-
-    nsRefPtr<HTMLInputElement> mInput;
-    PopupControlState mPopupControlState;
   };
 
   class nsFilePickerShownCallback
