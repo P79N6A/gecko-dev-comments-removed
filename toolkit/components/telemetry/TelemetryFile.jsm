@@ -1,8 +1,3 @@
-
-
-
-
-
 "use strict";
 
 this.EXPORTED_SYMBOLS = ["TelemetryFile"];
@@ -12,13 +7,20 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/Deprecated.jsm", this);
-Cu.import("resource://gre/modules/osfile.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
-Cu.import("resource://gre/modules/Promise.jsm", this);
+let imports = {};
+Cu.import("resource://gre/modules/Services.jsm", imports);
+Cu.import("resource://gre/modules/Deprecated.jsm", imports);
+Cu.import("resource://gre/modules/NetUtil.jsm", imports);
 
-const Telemetry = Services.telemetry;
+let {Services, Deprecated, NetUtil} = imports;
+
+
+const PR_WRONLY = 0x2;
+const PR_CREATE_FILE = 0x8;
+const PR_TRUNCATE = 0x20;
+const PR_EXCL = 0x80;
+const RW_OWNER = parseInt("0600", 8);
+const RWX_OWNER = parseInt("0700", 8);
 
 
 
@@ -33,6 +35,9 @@ const OVERDUE_PING_FILE_AGE = 7 * 24 * 60 * 60 * 1000;
 let pingsLoaded = 0;
 
 
+let pingLoadsCompleted = 0;
+
+
 
 let pingsDiscarded = 0;
 
@@ -41,9 +46,11 @@ let pingsDiscarded = 0;
 let pingsOverdue = 0;
 
 
-let pendingPings = [];
 
-let isPingDirectoryCreated = false;
+let shouldNotifyUponSave = false;
+
+
+let pendingPings = [];
 
 this.TelemetryFile = {
 
@@ -55,10 +62,6 @@ this.TelemetryFile = {
     return OVERDUE_PING_FILE_AGE;
   },
 
-  get pingDirectoryPath() {
-    return OS.Path.join(OS.Constants.Path.profileDir, "saved-telemetry-pings");
-  },
-
   
 
 
@@ -68,14 +71,49 @@ this.TelemetryFile = {
 
 
 
-  savePingToFile: function(ping, file, overwrite) {
+
+  savePingToFile: function(ping, file, sync, overwrite) {
     let pingString = JSON.stringify(ping);
-    return OS.File.writeAtomic(file, pingString, {tmpPath: file + ".tmp",
-                                noOverwrite: !overwrite});
+
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+    converter.charset = "UTF-8";
+
+    let ostream = Cc["@mozilla.org/network/file-output-stream;1"]
+                  .createInstance(Ci.nsIFileOutputStream);
+    let initFlags = PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE;
+    if (!overwrite) {
+      initFlags |= PR_EXCL;
+    }
+    try {
+      ostream.init(file, initFlags, RW_OWNER, 0);
+    } catch (e) {
+      
+      return;
+    }
+
+    if (sync) {
+      let utf8String = converter.ConvertFromUnicode(pingString);
+      utf8String += converter.Finish();
+      let success = false;
+      try {
+        let amount = ostream.write(utf8String, utf8String.length);
+        success = amount == utf8String.length;
+      } catch (e) {
+      }
+      finishTelemetrySave(success, ostream);
+    } else {
+      let istream = converter.convertToInputStream(pingString);
+      let self = this;
+      NetUtil.asyncCopy(istream, ostream,
+                        function(result) {
+                          finishTelemetrySave(Components.isSuccessCode(result),
+                              ostream);
+                        });
+    }
   },
 
   
-
 
 
 
@@ -83,64 +121,35 @@ this.TelemetryFile = {
 
 
   savePing: function(ping, overwrite) {
-    return Task.spawn(function*() {
-      yield getPingDirectory();
-      let file = pingFilePath(ping);
-      return this.savePingToFile(ping, file, overwrite);
-    }.bind(this));
+    this.savePingToFile(ping,
+      getSaveFileForPing(ping), true, overwrite);
   },
 
   
-
 
 
 
 
   savePendingPings: function(sessionPing) {
-    let p = pendingPings.reduce((p, ping) => {
-      p.push(this.savePing(ping, false));
-      return p;}, [this.savePing(sessionPing, true)]);
-
+    this.savePing(sessionPing, true);
+    pendingPings.forEach(function sppcb(e, i, a) {
+      this.savePing(e, false);
+    }, this);
     pendingPings = [];
-    return Promise.all(p);
   },
 
   
-
 
 
 
 
   cleanupPingFile: function(ping) {
-    return OS.File.remove(pingFilePath(ping));
-  },
-
-  
-
-
-
-
-
-
-
-  loadSavedPings: function() {
-    return Task.spawn(function*() {
-      let directory = TelemetryFile.pingDirectoryPath;
-      let iter = new OS.File.DirectoryIterator(directory);
-      let exists = yield iter.exists();
-
-      if (exists) {
-        let entries = yield iter.nextBatch();
-        yield iter.close();
-
-        let p = [e for (e of entries) if (!e.isDir)].
-            map((e) => this.loadHistograms(e.path));
-
-        yield Promise.all(p);
-      }
-
-      yield iter.close();
-    }.bind(this));
+    
+    let file = getSaveFileForPing(ping);
+    try {
+      file.remove(true); 
+    } catch(e) {
+    }
   },
 
   
@@ -152,23 +161,66 @@ this.TelemetryFile = {
 
 
 
-  loadHistograms: function loadHistograms(file) {
-    return OS.File.stat(file).then(function(info){
-      let now = Date.now();
-      if (now - info.lastModificationDate > MAX_PING_FILE_AGE) {
-        
-        pingsDiscarded++;
-        return OS.File.remove(file);
-      }
 
+
+  loadSavedPings: function(sync, onLoad = null, onDone = null) {
+    let directory = ensurePingDirectory();
+    let entries = directory.directoryEntries
+                           .QueryInterface(Ci.nsIDirectoryEnumerator);
+    pingsLoaded = 0;
+    pingLoadsCompleted = 0;
+    try {
+      while (entries.hasMoreElements()) {
+        this.loadHistograms(entries.nextFile, sync, onLoad, onDone);
+      }
+    } finally {
+      entries.close();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  loadHistograms: function loadHistograms(file, sync, onLoad = null, onDone = null) {
+    let now = Date.now();
+    if (now - file.lastModifiedTime > MAX_PING_FILE_AGE) {
       
-      if (now - info.lastModificationDate > OVERDUE_PING_FILE_AGE) {
-        pingsOverdue++;
-      }
+      file.remove(true);
+      pingsDiscarded++;
+      return;
+    }
 
-      pingsLoaded++;
-      return addToPendingPings(file);
-    });
+    
+    if (now - file.lastModifiedTime > OVERDUE_PING_FILE_AGE) {
+      pingsOverdue++;
+    }
+
+    pingsLoaded++;
+    if (sync) {
+      let stream = Cc["@mozilla.org/network/file-input-stream;1"]
+                   .createInstance(Ci.nsIFileInputStream);
+      stream.init(file, -1, -1, 0);
+      addToPendingPings(file, stream, onLoad, onDone);
+    } else {
+      let channel = NetUtil.newChannel(file);
+      channel.contentType = "application/json";
+
+      NetUtil.asyncFetch(channel, (function(stream, result) {
+        if (!Components.isSuccessCode(result)) {
+          return;
+        }
+        addToPendingPings(file, stream, onLoad, onDone);
+      }).bind(this));
+    }
   },
 
   
@@ -199,7 +251,7 @@ this.TelemetryFile = {
 
 
 
-  popPendingPings: function*(reason) {
+  popPendingPings: function(reason) {
     while (pendingPings.length > 0) {
       let data = pendingPings.pop();
       
@@ -210,53 +262,74 @@ this.TelemetryFile = {
     }
   },
 
-  testLoadHistograms: function(file) {
+  set shouldNotifyUponSave(value) {
+    shouldNotifyUponSave = value;
+  },
+
+  testLoadHistograms: function(file, sync, onLoad) {
     pingsLoaded = 0;
-    return this.loadHistograms(file.path);
+    pingLoadsCompleted = 0;
+    this.loadHistograms(file, sync, onLoad);
   }
 };
 
 
-function pingFilePath(ping) {
-  return OS.Path.join(TelemetryFile.pingDirectoryPath, ping.slug);
-}
 
-function getPingDirectory() {
-  return Task.spawn(function*() {
-    let directory = TelemetryFile.pingDirectoryPath;
+function getSaveFileForPing(ping) {
+  let file = ensurePingDirectory();
+  file.append(ping.slug);
+  return file;
+};
 
-    if (!isPingDirectoryCreated) {
-      yield OS.File.makeDir(directory, { unixMode: OS.Constants.S_IRWXU });
-      isPingDirectoryCreated = true;
+function ensurePingDirectory() {
+  let directory = Services.dirsvc.get("ProfD", Ci.nsILocalFile).clone();
+  directory.append("saved-telemetry-pings");
+  try {
+    directory.create(Ci.nsIFile.DIRECTORY_TYPE, RWX_OWNER);
+  } catch (e) {
+    
+  }
+  return directory;
+};
+
+function addToPendingPings(file, stream, onLoad, onDone) {
+  let success = false;
+
+  try {
+    let string = NetUtil.readInputStreamToString(stream, stream.available(),
+      { charset: "UTF-8" });
+    stream.close();
+    let ping = JSON.parse(string);
+    
+    if (typeof(ping.payload) == "string") {
+      ping.payload = JSON.parse(ping.payload);
     }
-
-    return directory;
-  });
-}
-
-function addToPendingPings(file) {
-  function onLoad(success) {
-    let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
-    success_histogram.add(success);
+    pingLoadsCompleted++;
+    pendingPings.push(ping);
+    success = true;
+  } catch (e) {
+    
+    stream.close();           
+    file.remove(true); 
   }
 
-  return Task.spawn(function*() {
-    try {
-      let array = yield OS.File.read(file);
-      let decoder = new TextDecoder();
-      let string = decoder.decode(array);
+  if (onLoad) {
+    onLoad(success);
+  }
 
-      let ping = JSON.parse(string);
-      
-      if (typeof(ping.payload) == "string") {
-        ping.payload = JSON.parse(ping.payload);
-      }
-
-      pendingPings.push(ping);
-      onLoad(true);
-    } catch (e) {
-      onLoad(false);
-      yield OS.File.remove(file);
+  if (pingLoadsCompleted == pingsLoaded) {
+    if (onDone) {
+      onDone();
     }
-  });
-}
+    if (shouldNotifyUponSave) {
+      Services.obs.notifyObservers(null, "telemetry-test-load-complete", null);
+    }
+  }
+};
+
+function finishTelemetrySave(ok, stream) {
+  stream.close();
+  if (shouldNotifyUponSave && ok) {
+    Services.obs.notifyObservers(null, "telemetry-test-save-complete", null);
+  }
+};

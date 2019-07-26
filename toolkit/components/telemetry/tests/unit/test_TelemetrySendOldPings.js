@@ -10,20 +10,16 @@
 
 
 
-"use strict"
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://testing-common/httpd.js", this);
-Cu.import("resource://gre/modules/Promise.jsm", this);
-Cu.import("resource://gre/modules/TelemetryFile.jsm", this);
-Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
-Cu.import("resource://gre/modules/osfile.jsm", this);
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/TelemetryFile.jsm");
+Cu.import("resource://gre/modules/TelemetryPing.jsm");
 
 
 
@@ -55,30 +51,25 @@ let gSeenPings = 0;
 
 
 function createSavedPings(aNum, aAge) {
-  return Task.spawn(function*(){
-    
-    
-    
-    let pings = [];
-    let age = Date.now() - aAge;
-
-    for (let i = 0; i < aNum; ++i) {
-      let payload = TelemetryPing.getPayload();
-      let ping = { slug: "test-ping-" + gCreatedPings, reason: "test", payload: payload };
-
-      yield TelemetryFile.savePing(ping);
-
-      if (aAge) {
-        
-        
-        let file = getSaveFileForPing(ping);
-        file.lastModifiedTime = age;
-      }
-      gCreatedPings++;
-      pings.push(ping);
+  
+  
+  
+  let pings = [];
+  let age = Date.now() - aAge;
+  for (let i = 0; i < aNum; ++i) {
+    let payload = TelemetryPing.getPayload();
+    let ping = { slug: "test-ping-" + gCreatedPings, reason: "test", payload: payload };
+    TelemetryFile.savePing(ping);
+    if (aAge) {
+      
+      
+      let file = getSaveFileForPing(ping);
+      file.lastModifiedTime = age;
     }
-    return pings;
-  });
+    gCreatedPings++;
+    pings.push(ping);
+  }
+  return pings;
 }
 
 
@@ -115,8 +106,40 @@ function getSaveFileForPing(aPing) {
 
 
 
+function assertReceivedNoPings() {
+  let deferred = Promise.defer();
+
+  do_timeout(PING_TIMEOUT_LENGTH, function() {
+    if (gSeenPings > 0) {
+      deferred.reject();
+    } else {
+      deferred.resolve();
+    }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
 function assertReceivedPings(aExpectedNum) {
-  do_check_eq(gSeenPings, aExpectedNum);
+  let deferred = Promise.defer();
+
+  do_timeout(PING_TIMEOUT_LENGTH, function() {
+    if (gSeenPings == aExpectedNum) {
+      deferred.resolve();
+    } else {
+      deferred.reject("Saw " + gSeenPings + " TelemetryPings, " +
+                      "but expected " + aExpectedNum);
+    }
+  })
+
+  return deferred.promise;
 }
 
 
@@ -167,13 +190,11 @@ function stopHttpServer() {
 
 
 function resetTelemetry() {
-  return Task.spawn(function*(){
-    yield TelemetryPing.uninstall();
-    
-    
-    let gen = TelemetryFile.popPendingPings();
-    for (let item of gen) {};
-  });
+  TelemetryPing.uninstall();
+  
+  
+  let gen = TelemetryFile.popPendingPings();
+  for (let item of gen) {};
 }
 
 
@@ -181,7 +202,7 @@ function resetTelemetry() {
 
 
 function startTelemetry() {
-  return TelemetryPing.setup();
+  TelemetryPing.setup();
 }
 
 function run_test() {
@@ -199,21 +220,21 @@ function run_test() {
 
 
 add_task(function test_expired_pings_are_deleted() {
-  let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
-  yield startTelemetry();
-  assertReceivedPings(0);
+  let expiredPings = createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
+  startTelemetry();
+  yield assertReceivedNoPings();
   assertNotSaved(expiredPings);
-  yield resetTelemetry();
+  resetTelemetry();
 });
 
 
 
 
 add_task(function test_recent_pings_not_sent() {
-  let recentPings = yield createSavedPings(RECENT_PINGS);
-  yield startTelemetry();
-  assertReceivedPings(0);
-  yield resetTelemetry();
+  let recentPings = createSavedPings(RECENT_PINGS);
+  startTelemetry();
+  yield assertReceivedNoPings();
+  resetTelemetry();
   clearPings(recentPings);
 });
 
@@ -223,17 +244,17 @@ add_task(function test_recent_pings_not_sent() {
 
 
 add_task(function test_overdue_pings_trigger_send() {
-  let recentPings = yield createSavedPings(RECENT_PINGS);
-  let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
-  let overduePings = yield createSavedPings(OVERDUE_PINGS, OVERDUE_PING_FILE_AGE);
+  let recentPings = createSavedPings(RECENT_PINGS);
+  let expiredPings = createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
+  let overduePings = createSavedPings(OVERDUE_PINGS, OVERDUE_PING_FILE_AGE);
 
-  yield startTelemetry();
-  assertReceivedPings(TOTAL_EXPECTED_PINGS);
+  startTelemetry();
+  yield assertReceivedPings(TOTAL_EXPECTED_PINGS);
 
   assertNotSaved(recentPings);
   assertNotSaved(expiredPings);
   assertNotSaved(overduePings);
-  yield resetTelemetry();
+  resetTelemetry();
 });
 
 add_task(function teardown() {
