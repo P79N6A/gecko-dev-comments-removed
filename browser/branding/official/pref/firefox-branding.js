@@ -2,7 +2,7 @@
 
 
 
-pref("startup.homepage_override_url","https://www.mozilla.org/%LOCALE%/firefox/%VERSION%/whatsnew/?oldversion=%OLD_VERSION%");
+pref("startup.homepage_override_url","");
 pref("startup.homepage_welcome_url","https://www.mozilla.org/%LOCALE%/firefox/%VERSION%/firstrun/");
 
 pref("app.update.interval", 43200); 
