@@ -3242,6 +3242,15 @@ JS_DefineProperties(JSContext *cx, JSObject *objArg, const JSPropertySpec *ps)
             
             
             JS_ASSERT(!ps->getter.op && !ps->setter.op);
+            
+
+
+
+
+
+
+            if (cx->runtime()->isSelfHostingGlobal(cx->global()))
+                continue;
 
             ok = DefineSelfHostedProperty(cx, obj, ps->name,
                                           ps->selfHostedGetter,
@@ -4146,6 +4155,8 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, const JSFunctionSpec *fs)
 
 
         if (fs->selfHostedName) {
+            JS_ASSERT(!fs->call.op);
+            JS_ASSERT(!fs->call.info);
             
 
 
@@ -4153,8 +4164,6 @@ JS_DefineFunctions(JSContext *cx, JSObject *objArg, const JSFunctionSpec *fs)
 
 
 
-            JS_ASSERT(!fs->call.op);
-            JS_ASSERT(!fs->call.info);
             if (cx->runtime()->isSelfHostingGlobal(cx->global()))
                 continue;
 
