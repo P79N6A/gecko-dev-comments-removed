@@ -475,7 +475,7 @@ FindObjectForHasInstance(JSContext *cx, JSObject *obj)
     while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && !IsDOMObject(obj))
     {
         if (js::IsWrapper(obj))
-            obj = js::UnwrapObjectChecked(obj,  false);
+            obj = js::CheckedUnwrap(obj,  false);
         else if (!js::GetObjectProto(cx, obj, &obj))
             return nullptr;
     }
@@ -909,7 +909,7 @@ xpc_JSObjectToID(JSContext *cx, JSObject* obj)
 
     
     XPCWrappedNative* wrapper = nullptr;
-    obj = js::UnwrapObjectChecked(obj);
+    obj = js::CheckedUnwrap(obj);
     if (obj && IS_WN_WRAPPER(obj))
         wrapper = XPCWrappedNative::Get(obj);
     if (wrapper &&
@@ -927,7 +927,7 @@ xpc_JSObjectIsID(JSContext *cx, JSObject* obj)
     NS_ASSERTION(cx && obj, "bad param");
     
     XPCWrappedNative* wrapper = nullptr;
-    obj = js::UnwrapObjectChecked(obj);
+    obj = js::CheckedUnwrap(obj);
     if (obj && IS_WN_WRAPPER(obj))
         wrapper = XPCWrappedNative::Get(obj);
     return wrapper &&

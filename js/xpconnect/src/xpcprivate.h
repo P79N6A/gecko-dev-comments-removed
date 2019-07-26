@@ -2775,7 +2775,7 @@ public:
     static XPCWrappedNative*
     GetAndMorphWrappedNativeOfJSObject(JSContext* cx, JSObject* obj)
     {
-        obj = js::UnwrapObjectChecked(obj,  false);
+        obj = js::CheckedUnwrap(obj,  false);
         if (!obj)
             return nullptr;
         if (!IS_WRAPPER_CLASS(js::GetObjectClass(obj)))

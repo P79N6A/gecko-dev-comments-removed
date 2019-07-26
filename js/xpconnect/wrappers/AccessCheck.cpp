@@ -83,7 +83,7 @@ bool
 AccessCheck::wrapperSubsumes(JSObject *wrapper)
 {
     MOZ_ASSERT(js::IsWrapper(wrapper));
-    JSObject *wrapped = js::UnwrapObject(wrapper);
+    JSObject *wrapped = js::UncheckedUnwrap(wrapper);
     return AccessCheck::subsumes(js::GetObjectCompartment(wrapper),
                                  js::GetObjectCompartment(wrapped));
 }
@@ -328,7 +328,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     JSObject *hallpass = &exposedProps.toObject();
 
-    if (!AccessCheck::subsumes(js::UnwrapObject(hallpass), wrappedObject)) {
+    if (!AccessCheck::subsumes(js::UncheckedUnwrap(hallpass), wrappedObject)) {
         EnterAndThrow(cx, wrapper, "Invalid __exposedProps__");
         return false;
     }
