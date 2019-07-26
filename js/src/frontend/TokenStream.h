@@ -529,6 +529,15 @@ class MOZ_STACK_CLASS TokenStream
         return tt;
     }
 
+    TokenPos peekTokenPos(Modifier modifier = None) {
+        if (lookahead != 0)
+            return tokens[(cursor + 1) & ntokensMask].pos;
+        getTokenInternal(modifier);
+        ungetToken();
+        JS_ASSERT(lookahead != 0);
+        return tokens[(cursor + 1) & ntokensMask].pos;
+    }
+
     
     
     
@@ -613,6 +622,14 @@ class MOZ_STACK_CLASS TokenStream
 
     size_t positionToOffset(const Position &pos) const {
         return pos.buf - userbuf.base();
+    }
+
+    const jschar *rawBase() const {
+        return userbuf.base();
+    }
+
+    const jschar *rawLimit() const {
+        return userbuf.limit();
     }
 
     bool hasSourceURL() const {
