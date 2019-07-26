@@ -24,7 +24,6 @@ Decoder::Decoder(RasterImage &aImage, imgDecoderObserver* aObserver)
   , mSizeDecode(false)
   , mInFrame(false)
   , mIsAnimated(false)
-  , mFirstWrite(true)
 {
 }
 
@@ -44,6 +43,10 @@ Decoder::Init()
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
   
+  if (!IsSizeDecode() && mObserver)
+      mObserver->OnStartDecode();
+
+  
   InitInternal();
   mInitialized = true;
 }
@@ -57,9 +60,6 @@ Decoder::InitSharedDecoder()
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
   
-  mFirstWrite = false;
-
-  
   InitInternal();
   mInitialized = true;
 }
@@ -70,14 +70,6 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   
   NS_ABORT_IF_FALSE(!HasDecoderError(),
                     "Not allowed to make more decoder calls after error!");
-
-  
-  if (mFirstWrite) {
-    if (!IsSizeDecode() && mObserver)
-      mObserver->OnStartDecode();
-
-    mFirstWrite = false;
-  }
 
   
   if (HasDataError())
