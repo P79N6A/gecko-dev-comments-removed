@@ -263,33 +263,4 @@ protected:
 
 };
 
-
-
-class StCaretHider
-{
-public:
-               StCaretHider(nsCaret* aSelCon)
-               : mWasVisible(false), mCaret(aSelCon)
-               {
-                 if (mCaret)
-                 {
-                   mCaret->GetCaretVisible(&mWasVisible);
-                   if (mWasVisible)
-                     mCaret->SetCaretVisible(false);
-                 }
-               }
-
-               ~StCaretHider()
-               {
-                 if (mCaret && mWasVisible)
-                   mCaret->SetCaretVisible(true);
-                 
-               }
-
-protected:
-
-    bool                    mWasVisible;
-    nsCOMPtr<nsCaret>  mCaret;
-};
-
 #endif 

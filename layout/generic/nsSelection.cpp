@@ -5360,8 +5360,6 @@ Selection::ScrollIntoView(SelectionRegion aRegion,
         return result;
     }
 
-    StCaretHider  caretHider(caret);      
-
     
     
     

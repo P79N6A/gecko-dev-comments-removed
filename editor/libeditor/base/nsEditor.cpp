@@ -939,8 +939,6 @@ nsEditor::EndPlaceHolderTransaction()
       if (presShell)
         caret = presShell->GetCaret();
 
-      StCaretHider caretHider(caret);
-
       
       EndUpdateViewBatch();
       
@@ -4182,19 +4180,6 @@ nsresult nsEditor::EndUpdateViewBatch()
 
   if (0 == mUpdateCount)
   {
-    
-    
-    
-    
-
-    nsRefPtr<nsCaret> caret;
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-
-    if (presShell)
-      caret = presShell->GetCaret();
-
-    StCaretHider caretHider(caret);
-
     
 
     nsCOMPtr<nsISelection>selection;
