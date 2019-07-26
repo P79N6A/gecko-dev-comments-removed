@@ -338,29 +338,14 @@ EventListenerManager::DispatchEvent(JSContext* aCx, const EventTarget& aTarget,
     return false;
   }
 
-  ContextAllocPolicy ap(aCx);
-
-  
-  
-  
-  
-  js::Vector<nsAutoJSValHolder, 10, ContextAllocPolicy> listeners(ap);
-
+  JS::AutoValueVector listeners(aCx);
   for (ListenerData* listenerData = collection->mListeners.getFirst();
        listenerData;
        listenerData = listenerData->getNext()) {
     
     
     if (eventIsTrusted || listenerData->mWantsUntrusted) {
-      nsAutoJSValHolder holder;
-      if (!holder.Hold(aCx)) {
-        aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-        return false;
-      }
-
-      holder = listenerData->mListener;
-
-      if (!listeners.append(holder)) {
+      if (!listeners.append(OBJECT_TO_JSVAL(listenerData->mListener))) {
         aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
         return false;
       }
