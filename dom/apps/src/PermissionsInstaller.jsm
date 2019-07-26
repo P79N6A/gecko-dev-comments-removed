@@ -5,20 +5,39 @@
 "use strict";
 
 const Ci = Components.interfaces;
+const Cu = Components.utils;
 
-var EXPORTED_SYMBOLS = ["PermissionsTable",
-                        "UNKNOWN_ACTION",
-                        "ALLOW_ACTION",
-                        "DENY_ACTION",
-                        "PROMPT_ACTION",
-                        "AllPossiblePermissions",
-                        "mapSuffixes",
-                       ];
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/AppsUtils.jsm");
+
+var EXPORTED_SYMBOLS = ["PermissionsInstaller"];
 
 const UNKNOWN_ACTION = Ci.nsIPermissionManager.UNKNOWN_ACTION;
 const ALLOW_ACTION = Ci.nsIPermissionManager.ALLOW_ACTION;
 const DENY_ACTION = Ci.nsIPermissionManager.DENY_ACTION;
 const PROMPT_ACTION = Ci.nsIPermissionManager.PROMPT_ACTION;
+
+
+const READONLY = "readonly";
+const CREATEONLY = "createonly";
+const READCREATE = "readcreate";
+const READWRITE = "readwrite";
+
+const PERM_TO_STRING = ["unknown", "allow", "deny", "prompt"];
+
+XPCOMUtils.defineLazyServiceGetter(this,
+                                   "PermSettings",
+                                   "@mozilla.org/permissionSettings;1",
+                                   "nsIDOMPermissionSettings");
+
+XPCOMUtils.defineLazyServiceGetter(this,
+                                   "permissionManager",
+                                   "@mozilla.org/permissionmanager;1",
+                                   "nsIPermissionManager");
+
+function debug(aMsg) {
+  
+}
 
 
 
@@ -176,5 +195,156 @@ for (let permName in PermissionsTable) {
   }
   else {
     AllPossiblePermissions.push(permName);
+  }
+}
+
+
+
+
+
+
+
+
+
+function expandPermissions(aPermName, aAccess) {
+  if (!PermissionsTable[aPermName]) {
+    Cu.reportError("PermissionsTable.jsm: expandPermissions: Unknown Permission: " + aPermName);
+    throw new Error("PermissionsTable.jsm: expandPermissions: Unknown Permission: " + aPermName);
+  }
+  if (!aAccess && PermissionsTable[aPermName].access ||
+      aAccess && !PermissionsTable[aPermName].access) {
+    Cu.reportError("PermissionsTable.jsm: expandPermissions: Invalid Manifest");
+    throw new Error("PermissionsTable.jsm: expandPermissions: Invalid Manifest");
+  }
+  if (!PermissionsTable[aPermName].access) {
+    return [aPermName];
+  }
+
+  let requestedSuffixes = [];
+  switch(aAccess) {
+  case READONLY:
+    requestedSuffixes.push("read");
+    break;
+  case CREATEONLY:
+    requestedSuffixes.push("create");
+    break;
+  case READCREATE:
+    requestedSuffixes.push("read", "create");
+    break;
+  case READWRITE:
+    requestedSuffixes.push("read", "create", "write");
+    break;
+  default:
+    return [];
+  }
+
+  let permArr = mapSuffixes(aPermName, requestedSuffixes);
+
+  let expandedPerms = [];
+  for (let idx in permArr) {
+    if (PermissionsTable[aPermName].access.indexOf(requestedSuffixes[idx]) != -1) {
+      expandedPerms.push(permArr[idx]);
+    }
+  }
+  return expandedPerms;
+}
+
+let PermissionsInstaller = {
+
+
+
+
+
+
+
+
+  installPermissions: function installPermissions(aApp, aIsReinstall, aOnError) {
+    try {
+      let newManifest = new ManifestHelper(aApp.manifest, aApp.origin);
+      if (!newManifest.permissions && !aIsReinstall) {
+        return;
+      }
+
+      if (aIsReinstall) {
+        
+        
+
+        if (newManifest.permissions) {
+          
+          let newPerms = [];
+          for (let perm in newManifest.permissions) {
+            let _perms = expandPermissions(perm,
+                                           newManifest.permissions[perm].access);
+            newPerms = newPerms.concat(_perms);
+          }
+
+          for (let idx in AllPossiblePermissions) {
+            let index = newPerms.indexOf(AllPossiblePermissions[idx]);
+            if (index == -1) {
+              
+              let _perm = PermSettings.get(AllPossiblePermissions[idx],
+                                           aApp.manifestURL,
+                                           aApp.origin,
+                                           false);
+              if (_perm == "unknown" || _perm == "deny") {
+                
+                continue;
+              }
+              
+              
+              PermSettings.set(AllPossiblePermissions[idx],
+                               "unknown",
+                               aApp.manifestURL,
+                               aApp.origin,
+                               false);
+            }
+          }
+        }
+      }
+
+      let installPermType;
+      
+      switch (AppsUtils.getAppManifestStatus(newManifest)) {
+      case Ci.nsIPrincipal.APP_STATUS_CERTIFIED:
+        installPermType = "certified";
+        break;
+      case Ci.nsIPrincipal.APP_STATUS_PRIVILEGED:
+        installPermType = "privileged";
+        break;
+      case Ci.nsIPrincipal.APP_STATUS_INSTALLED:
+        installPermType = "app";
+        break;
+      default:
+        
+        throw new Error("Webapps.jsm: Cannot determine app type, install cancelled");
+      }
+
+      for (let permName in newManifest.permissions) {
+        if (!PermissionsTable[permName]) {
+          throw new Error("Webapps.jsm: '" + permName + "'" +
+                         " is not a valid Webapps permission type. Aborting Webapp installation");
+          return;
+        }
+
+        let perms = expandPermissions(permName,
+                                      newManifest.permissions[permName].access);
+        for (let idx in perms) {
+          let perm = PermissionsTable[permName][installPermType];
+          let permValue = PERM_TO_STRING[perm];
+          PermSettings.set(perms[idx],
+                           permValue,
+                           aApp.manifestURL,
+                           aApp.origin,
+                           false);
+        }
+      }
+    }
+    catch (ex) {
+      debug("Caught webapps install permissions error");
+      Cu.reportError(ex);
+      if (aOnError) {
+        aOnError();
+      }
+    }
   }
 }

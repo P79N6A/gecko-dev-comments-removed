@@ -176,6 +176,27 @@ let AppsUtils = {
     }
 
     return true;
+  },
+
+  
+
+
+
+
+
+  getAppManifestStatus: function getAppManifestStatus(aManifest) {
+    let type = aManifest.type || "web";
+
+    switch(type) {
+    case "web":
+      return Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+    case "privileged":
+      return Ci.nsIPrincipal.APP_STATUS_PRIVILEGED;
+    case "certified":
+      return Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
+    default:
+      throw new Error("Webapps.jsm: Undetermined app manifest type");
+    }
   }
 }
 
