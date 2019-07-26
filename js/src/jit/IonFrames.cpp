@@ -1107,6 +1107,8 @@ MarkRectifierFrame(JSTracer *trc, const IonFrameIterator &frame)
 {
     
     
+    
+    
     IonRectifierFrameLayout *layout = (IonRectifierFrameLayout *)frame.fp();
     gc::MarkValueRoot(trc, &layout->argv()[0], "ion-thisv");
 }
