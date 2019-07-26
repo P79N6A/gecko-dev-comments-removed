@@ -201,6 +201,9 @@ struct LayerPixel {
 
 
 struct ScreenPixel {
+  static ScreenIntPoint FromUntyped(const nsIntPoint& aPoint) {
+    return ScreenIntPoint(aPoint.x, aPoint.y);
+  }
 };
 
 
