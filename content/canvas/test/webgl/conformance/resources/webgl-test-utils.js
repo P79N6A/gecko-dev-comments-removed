@@ -768,6 +768,50 @@ var loadTextFileAsync = function(url, callback) {
 };
 
 
+var browserPrefixes = [
+  "",
+  "MOZ_",
+  "OP_",
+  "WEBKIT_"
+];
+
+
+
+
+
+
+
+
+
+var getSupportedExtensionWithKnownPrefixes = function(gl, name) {
+  var supported = gl.getSupportedExtensions();
+  for (var ii = 0; ii < browserPrefixes.length; ++ii) {
+    var prefixedName = browserPrefixes[ii] + name;
+    if (supported.indexOf(prefixedName) >= 0) {
+      return prefixedName;
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+var getExtensionWithKnownPrefixes = function(gl, name) {
+  for (var ii = 0; ii < browserPrefixes.length; ++ii) {
+    var prefixedName = browserPrefixes[ii] + name;
+    var ext = gl.getExtension(prefixedName);
+    if (ext) {
+      return ext;
+    }
+  }
+};
+
+
 
 
 
@@ -1277,9 +1321,11 @@ return {
   createColoredTexture: createColoredTexture,
   drawQuad: drawQuad,
   endsWith: endsWith,
+  getExtensionWithKnownPrefixes: getExtensionWithKnownPrefixes,
   getFileListAsync: getFileListAsync,
   getLastError: getLastError,
   getScript: getScript,
+  getSupportedExtensionWithKnownPrefixes: getSupportedExtensionWithKnownPrefixes,
   getUrlArguments: getUrlArguments,
   glEnumToString: glEnumToString,
   glErrorShouldBe: glErrorShouldBe,
