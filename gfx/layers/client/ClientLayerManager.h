@@ -257,6 +257,7 @@ private:
   nsRefPtr<gfxContext> mShadowTarget;
 
   nsRefPtr<TransactionIdAllocator> mTransactionIdAllocator;
+  uint64_t mLatestTransactionId;
 
   
   
