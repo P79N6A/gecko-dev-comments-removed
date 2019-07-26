@@ -23,6 +23,7 @@ namespace gl {
 class GLContext;
 class TextureImage;
 }
+using namespace gl;
 
 namespace layers {
 
@@ -415,8 +416,8 @@ public:
 
 
 
-  static already_AddRefed<gl::TextureImage>
-  OpenDescriptorForDirectTexturing(gl::GLContext* aContext,
+  static already_AddRefed<TextureImage>
+  OpenDescriptorForDirectTexturing(GLContext* aContext,
                                    const SurfaceDescriptor& aDescriptor,
                                    GLenum aWrapMode);
 
