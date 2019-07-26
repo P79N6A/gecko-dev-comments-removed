@@ -92,6 +92,7 @@ public:
   MediaEngineWebRTCVideoSource(int aIndex)
     : mCameraControl(nullptr)
     , mCallbackMonitor("WebRTCCamera.CallbackMonitor")
+    , mSensorAngle(0)
     , mCaptureIndex(aIndex)
     , mMonitor("WebRTCCamera.Monitor")
     , mWidth(0)
@@ -171,6 +172,7 @@ public:
   void StartImpl(webrtc::CaptureCapability aCapability);
   void StopImpl();
   void SnapshotImpl();
+  void RotateImage(layers::Image* aImage);
 #endif
 
   
@@ -205,6 +207,7 @@ private:
   nsRefPtr<ICameraControl> mCameraControl;
   mozilla::ReentrantMonitor mCallbackMonitor; 
   nsRefPtr<nsIDOMFile> mLastCapture;
+  int mSensorAngle;
 #else
   webrtc::VideoEngine* mVideoEngine; 
   webrtc::ViEBase* mViEBase;
