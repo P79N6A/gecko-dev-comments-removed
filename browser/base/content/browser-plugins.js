@@ -623,6 +623,8 @@ var gPluginHandler = {
   _clickToPlayNotificationEventCallback: function PH_ctpEventCallback(event) {
     if (event == "showing") {
       gPluginHandler._makeCenterActions(this);
+      Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_SHOWN")
+        .add(!this.options.primaryPlugin);
     }
     else if (event == "dismissed") {
       
@@ -703,6 +705,14 @@ var gPluginHandler = {
     });
 
     notification.options.centerActions = centerActions;
+
+    
+    let histogramCount = centerActions.length - 1;
+    if (histogramCount > 4) {
+      histogramCount = 4;
+    }
+    Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_PLUGIN_COUNT")
+      .add(histogramCount);
   },
 
   
@@ -714,12 +724,15 @@ var gPluginHandler = {
     let permission;
     let expireType;
     let expireTime;
+    let histogram =
+      Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_USER_ACTION");
 
     switch (aNewState) {
       case "allownow":
         permission = Ci.nsIPermissionManager.ALLOW_ACTION;
         expireType = Ci.nsIPermissionManager.EXPIRE_SESSION;
         expireTime = Date.now() + Services.prefs.getIntPref(this.PREF_SESSION_PERSIST_MINUTES) * 60 * 1000;
+        histogram.add(0);
         break;
 
       case "allowalways":
@@ -727,12 +740,14 @@ var gPluginHandler = {
         expireType = Ci.nsIPermissionManager.EXPIRE_TIME;
         expireTime = Date.now() +
           Services.prefs.getIntPref(this.PREF_PERSISTENT_DAYS) * 24 * 60 * 60 * 1000;
+        histogram.add(1);
         break;
 
       case "block":
         permission = Ci.nsIPermissionManager.PROMPT_ACTION;
         expireType = Ci.nsIPermissionManager.EXPIRE_NEVER;
         expireTime = 0;
+        histogram.add(2);
         break;
 
       
