@@ -119,13 +119,5 @@ VPX_CTRL_USE_TYPE(VP8_SET_DBG_DISPLAY_MV,      int)
 
 
 
-#if !defined(VPX_CODEC_DISABLE_COMPAT) || !VPX_CODEC_DISABLE_COMPAT
-
-
-
-
-DECLSPEC_DEPRECATED extern vpx_codec_iface_t vpx_codec_vp8_algo DEPRECATED;
-#endif
-
 #include "vpx_codec_impl_bottom.h"
 #endif

@@ -13,7 +13,6 @@
 #include "onyx_int.h"
 #include "quantize.h"
 #include "vpx_mem/vpx_mem.h"
-#include "vpx_scale/yv12extend.h"
 #include "vpx_scale/vpxscale.h"
 #include "vp8/common/alloccommon.h"
 #include "vp8/common/loopfilter.h"
@@ -21,28 +20,17 @@
 #include "vpx_ports/arm.h"
 #endif
 
-extern int vp8_calc_ss_err(YV12_BUFFER_CONFIG *source, YV12_BUFFER_CONFIG *dest, const vp8_variance_rtcd_vtable_t *rtcd);
+extern int vp8_calc_ss_err(YV12_BUFFER_CONFIG *source, YV12_BUFFER_CONFIG *dest);
 
-#if CONFIG_RUNTIME_CPU_DETECT
-#define IF_RTCD(x) (x)
-#else
-#define IF_RTCD(x) NULL
-#endif
-
-extern void (*vp8_yv12_copy_partial_frame_ptr)(YV12_BUFFER_CONFIG *src_ybc,
-                                               YV12_BUFFER_CONFIG *dst_ybc);
-
-void vp8_yv12_copy_partial_frame(YV12_BUFFER_CONFIG *src_ybc,
-                                 YV12_BUFFER_CONFIG *dst_ybc)
+void vp8_yv12_copy_partial_frame_c(YV12_BUFFER_CONFIG *src_ybc,
+                                   YV12_BUFFER_CONFIG *dst_ybc)
 {
     unsigned char *src_y, *dst_y;
     int yheight;
     int ystride;
-    int border;
     int yoffset;
     int linestocopy;
 
-    border   = src_ybc->border;
     yheight  = src_ybc->y_height;
     ystride  = src_ybc->y_stride;
 
@@ -64,8 +52,7 @@ void vp8_yv12_copy_partial_frame(YV12_BUFFER_CONFIG *src_ybc,
 }
 
 static int calc_partial_ssl_err(YV12_BUFFER_CONFIG *source,
-                                YV12_BUFFER_CONFIG *dest,
-                                const vp8_variance_rtcd_vtable_t *rtcd)
+                                YV12_BUFFER_CONFIG *dest)
 {
     int i, j;
     int Total = 0;
@@ -88,12 +75,14 @@ static int calc_partial_ssl_err(YV12_BUFFER_CONFIG *source,
     dst += dstoffset;
 
     
+
+
     for (i = 0; i < linestocopy; i += 16)
     {
         for (j = 0; j < source->y_width; j += 16)
         {
             unsigned int sse;
-            Total += VARIANCE_INVOKE(rtcd, mse16x16)(src + j, source->y_stride,
+            Total += vp8_mse16x16(src + j, source->y_stride,
                                                      dst + j, dest->y_stride,
                                                      &sse);
         }
@@ -132,8 +121,9 @@ static int get_max_filter_level(VP8_COMP *cpi, int base_qindex)
     
 
     
-    
-    int max_filter_level = MAX_LOOP_FILTER ;
+
+
+    int max_filter_level = MAX_LOOP_FILTER;
     (void)base_qindex;
 
     if (cpi->twopass.section_intra_rating > 8)
@@ -169,6 +159,8 @@ void vp8cx_pick_filter_level_fast(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
     }
 
     
+
+
     if (cm->filter_level < min_filter_level)
         cm->filter_level = min_filter_level;
     else if (cm->filter_level > max_filter_level)
@@ -180,11 +172,10 @@ void vp8cx_pick_filter_level_fast(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
     
 
     
-    vp8_yv12_copy_partial_frame_ptr(saved_frame, cm->frame_to_show);
+    vp8_yv12_copy_partial_frame(saved_frame, cm->frame_to_show);
     vp8_loop_filter_partial_frame(cm, &cpi->mb.e_mbd, filt_val);
 
-    best_err = calc_partial_ssl_err(sd, cm->frame_to_show,
-                                    IF_RTCD(&cpi->common.rtcd.variance));
+    best_err = calc_partial_ssl_err(sd, cm->frame_to_show);
 
     filt_val -= 1 + (filt_val > 10);
 
@@ -192,12 +183,11 @@ void vp8cx_pick_filter_level_fast(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
     while (filt_val >= min_filter_level)
     {
         
-        vp8_yv12_copy_partial_frame_ptr(saved_frame, cm->frame_to_show);
+        vp8_yv12_copy_partial_frame(saved_frame, cm->frame_to_show);
         vp8_loop_filter_partial_frame(cm, &cpi->mb.e_mbd, filt_val);
 
         
-        filt_err = calc_partial_ssl_err(sd, cm->frame_to_show,
-                                        IF_RTCD(&cpi->common.rtcd.variance));
+        filt_err = calc_partial_ssl_err(sd, cm->frame_to_show);
 
         
         if (filt_err < best_err)
@@ -223,18 +213,19 @@ void vp8cx_pick_filter_level_fast(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
         while (filt_val < max_filter_level)
         {
             
-            vp8_yv12_copy_partial_frame_ptr(saved_frame, cm->frame_to_show);
+            vp8_yv12_copy_partial_frame(saved_frame, cm->frame_to_show);
 
             vp8_loop_filter_partial_frame(cm, &cpi->mb.e_mbd, filt_val);
 
             
-            filt_err = calc_partial_ssl_err(sd, cm->frame_to_show,
-                                            IF_RTCD(&cpi->common.rtcd.variance));
+            filt_err = calc_partial_ssl_err(sd, cm->frame_to_show);
 
             
             if (filt_err < best_err)
             {
                 
+
+
                 best_err = filt_err - (filt_err >> 10);
 
                 best_filt_val = filt_val;
@@ -282,12 +273,14 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
 
     int filter_step;
     int filt_high = 0;
-    int filt_mid = cm->filter_level;      
+    
+    int filt_mid = cm->filter_level;
     int filt_low = 0;
     int filt_best;
     int filt_direction = 0;
 
-    int Bias = 0;                       
+    
+    int Bias = 0;
 
     int ss_err[MAX_LOOP_FILTER + 1];
 
@@ -304,6 +297,8 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
         cm->sharpness_level = cpi->oxcf.Sharpness;
 
     
+
+
     filt_mid = cm->filter_level;
 
     if (filt_mid < min_filter_level)
@@ -317,13 +312,12 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
     
 
     
-    vp8_yv12_copy_y_ptr(saved_frame, cm->frame_to_show);
+    vp8_yv12_copy_y(saved_frame, cm->frame_to_show);
 
     vp8cx_set_alt_lf_level(cpi, filt_mid);
     vp8_loop_filter_frame_yonly(cm, &cpi->mb.e_mbd, filt_mid);
 
-    best_err = vp8_calc_ss_err(sd, cm->frame_to_show,
-                               IF_RTCD(&cpi->common.rtcd.variance));
+    best_err = vp8_calc_ss_err(sd, cm->frame_to_show);
 
     ss_err[filt_mid] = best_err;
 
@@ -331,9 +325,8 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
 
     while (filter_step > 0)
     {
-        Bias = (best_err >> (15 - (filt_mid / 8))) * filter_step; 
+        Bias = (best_err >> (15 - (filt_mid / 8))) * filter_step;
 
-        
         if (cpi->twopass.section_intra_rating < 20)
             Bias = Bias * cpi->twopass.section_intra_rating / 20;
 
@@ -345,18 +338,19 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
             if(ss_err[filt_low] == 0)
             {
                 
-                vp8_yv12_copy_y_ptr(saved_frame, cm->frame_to_show);
+                vp8_yv12_copy_y(saved_frame, cm->frame_to_show);
                 vp8cx_set_alt_lf_level(cpi, filt_low);
                 vp8_loop_filter_frame_yonly(cm, &cpi->mb.e_mbd, filt_low);
 
-                filt_err = vp8_calc_ss_err(sd, cm->frame_to_show,
-                                           IF_RTCD(&cpi->common.rtcd.variance));
+                filt_err = vp8_calc_ss_err(sd, cm->frame_to_show);
                 ss_err[filt_low] = filt_err;
             }
             else
                 filt_err = ss_err[filt_low];
 
             
+
+
             if ((filt_err - Bias) < best_err)
             {
                 
@@ -372,12 +366,11 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
         {
             if(ss_err[filt_high] == 0)
             {
-                vp8_yv12_copy_y_ptr(saved_frame, cm->frame_to_show);
+                vp8_yv12_copy_y(saved_frame, cm->frame_to_show);
                 vp8cx_set_alt_lf_level(cpi, filt_high);
                 vp8_loop_filter_frame_yonly(cm, &cpi->mb.e_mbd, filt_high);
 
-                filt_err = vp8_calc_ss_err(sd, cm->frame_to_show,
-                                           IF_RTCD(&cpi->common.rtcd.variance));
+                filt_err = vp8_calc_ss_err(sd, cm->frame_to_show);
                 ss_err[filt_high] = filt_err;
             }
             else
@@ -392,6 +385,8 @@ void vp8cx_pick_filter_level(YV12_BUFFER_CONFIG *sd, VP8_COMP *cpi)
         }
 
         
+
+
         if (filt_best == filt_mid)
         {
             filter_step = filter_step / 2;

@@ -9,9 +9,9 @@
 
 
 #include "vpx_config.h"
-#include "vp8/encoder/dct.h"
+#include "vpx_rtcd.h"
 
-#if HAVE_ARMV6
+#if HAVE_MEDIA
 
 void vp8_short_fdct8x4_armv6(short *input, short *output, int pitch)
 {

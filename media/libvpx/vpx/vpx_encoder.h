@@ -32,8 +32,19 @@ extern "C" {
 #define VPX_ENCODER_H
 #include "vpx_codec.h"
 
-#define MAX_PERIODICITY 16
-#define MAX_LAYERS       5
+
+
+
+#define VPX_TS_MAX_PERIODICITY 16
+
+
+#define VPX_TS_MAX_LAYERS       5
+
+
+#define MAX_PERIODICITY VPX_TS_MAX_PERIODICITY
+
+
+#define MAX_LAYERS      VPX_TS_MAX_LAYERS
 
     
 
@@ -608,14 +619,14 @@ extern "C" {
 
 
 
-        unsigned int           ts_target_bitrate[MAX_LAYERS];
+        unsigned int           ts_target_bitrate[VPX_TS_MAX_LAYERS];
 
         
 
 
 
 
-        unsigned int           ts_rate_decimator[MAX_LAYERS];
+        unsigned int           ts_rate_decimator[VPX_TS_MAX_LAYERS];
 
         
 
@@ -633,11 +644,15 @@ extern "C" {
 
 
 
-        unsigned int           ts_layer_id[MAX_PERIODICITY];
+        unsigned int           ts_layer_id[VPX_TS_MAX_PERIODICITY];
     } vpx_codec_enc_cfg_t; 
 
 
     
+
+
+
+
 
 
 

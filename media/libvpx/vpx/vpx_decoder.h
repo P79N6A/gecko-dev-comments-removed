@@ -128,6 +128,10 @@ extern "C" {
 
 
 
+
+
+
+
     vpx_codec_err_t vpx_codec_dec_init_ver(vpx_codec_ctx_t      *ctx,
                                            vpx_codec_iface_t    *iface,
                                            vpx_codec_dec_cfg_t  *cfg,
@@ -326,8 +330,4 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif
-
-#if !defined(VPX_CODEC_DISABLE_COMPAT) || !VPX_CODEC_DISABLE_COMPAT
-#include "vpx_decoder_compat.h"
 #endif

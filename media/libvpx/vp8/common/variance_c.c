@@ -265,7 +265,7 @@ static void var_filter_block2d_bil_second_pass
         for (j = 0; j < output_width; j++)
         {
             
-            Temp = ((int)src_ptr[0]         * vp8_filter[0]) +
+            Temp = ((int)src_ptr[0]          * vp8_filter[0]) +
                    ((int)src_ptr[pixel_step] * vp8_filter[1]) +
                    (VP8_FILTER_WEIGHT / 2);
             output_ptr[j] = (unsigned int)(Temp >> VP8_FILTER_SHIFT);
@@ -455,30 +455,4 @@ unsigned int vp8_sub_pixel_variance8x16_c
     var_filter_block2d_bil_second_pass(FData3, temp2, 8, 8, 16, 8, VFilter);
 
     return vp8_variance8x16_c(temp2, 8, dst_ptr, dst_pixels_per_line, sse);
-}
-
-unsigned int vp8_get4x4sse_cs_c
-(
-    const unsigned char *src_ptr,
-    int  source_stride,
-    const unsigned char *ref_ptr,
-    int  recon_stride
-)
-{
-    int distortion = 0;
-    int r, c;
-
-    for (r = 0; r < 4; r++)
-    {
-        for (c = 0; c < 4; c++)
-        {
-            int diff = src_ptr[c] - ref_ptr[c];
-            distortion += diff * diff;
-        }
-
-        src_ptr += source_stride;
-        ref_ptr += recon_stride;
-    }
-
-    return distortion;
 }

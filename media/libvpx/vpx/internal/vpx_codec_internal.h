@@ -165,7 +165,7 @@ typedef vpx_codec_err_t (*vpx_codec_control_fn_t)(vpx_codec_alg_priv_t  *ctx,
 
 
 
-typedef const struct
+typedef const struct vpx_codec_ctrl_fn_map
 {
     int                    ctrl_id;
     vpx_codec_control_fn_t   fn;
@@ -280,7 +280,7 @@ typedef vpx_codec_err_t
 
 
 
-typedef const struct
+typedef const struct vpx_codec_enc_cfg_map
 {
     int                 usage;
     vpx_codec_enc_cfg_t cfg;
@@ -302,14 +302,14 @@ struct vpx_codec_iface
     vpx_codec_ctrl_fn_map_t  *ctrl_maps;   
     vpx_codec_get_mmap_fn_t   get_mmap;    
     vpx_codec_set_mmap_fn_t   set_mmap;    
-    struct
+    struct vpx_codec_dec_iface
     {
         vpx_codec_peek_si_fn_t    peek_si;     
         vpx_codec_get_si_fn_t     get_si;      
         vpx_codec_decode_fn_t     decode;      
         vpx_codec_get_frame_fn_t  get_frame;   
     } dec;
-    struct
+    struct vpx_codec_enc_iface
     {
         vpx_codec_enc_cfg_map_t           *cfg_maps;      
         vpx_codec_encode_fn_t              encode;        

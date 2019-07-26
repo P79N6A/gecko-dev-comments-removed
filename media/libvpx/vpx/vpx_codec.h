@@ -49,15 +49,22 @@ extern "C" {
 #ifndef DEPRECATED
 #if defined(__GNUC__) && __GNUC__
 #define DEPRECATED          __attribute__ ((deprecated))
-#define DECLSPEC_DEPRECATED
 #elif defined(_MSC_VER)
 #define DEPRECATED
-#define DECLSPEC_DEPRECATED __declspec(deprecated) /**< \copydoc #DEPRECATED */
 #else
 #define DEPRECATED
+#endif
+#endif  
+
+#ifndef DECLSPEC_DEPRECATED
+#if defined(__GNUC__) && __GNUC__
+#define DECLSPEC_DEPRECATED
+#elif defined(_MSC_VER)
+#define DECLSPEC_DEPRECATED __declspec(deprecated) /**< \copydoc #DEPRECATED */
+#else
 #define DECLSPEC_DEPRECATED
 #endif
-#endif
+#endif  
 
     
 #ifdef UNUSED

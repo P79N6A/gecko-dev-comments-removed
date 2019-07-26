@@ -24,6 +24,7 @@
 #include "bitstream.h"
 
 #include "defaultcoefcounts.h"
+#include "vp8/common/common.h"
 
 const int vp8cx_base_skip_false_prob[128] =
 {
@@ -117,7 +118,7 @@ static void update_mbintra_mode_probs(VP8_COMP *cpi)
 
         update_mode(
             w, VP8_YMODES, vp8_ymode_encodings, vp8_ymode_tree,
-            Pnew, x->fc.ymode_prob, bct, (unsigned int *)cpi->ymode_count
+            Pnew, x->fc.ymode_prob, bct, (unsigned int *)cpi->mb.ymode_count
         );
     }
     {
@@ -126,7 +127,7 @@ static void update_mbintra_mode_probs(VP8_COMP *cpi)
 
         update_mode(
             w, VP8_UV_MODES, vp8_uv_mode_encodings, vp8_uv_mode_tree,
-            Pnew, x->fc.uv_mode_prob, bct, (unsigned int *)cpi->uv_mode_count
+            Pnew, x->fc.uv_mode_prob, bct, (unsigned int *)cpi->mb.uv_mode_count
         );
     }
 }
@@ -159,9 +160,9 @@ static void write_split(vp8_writer *bc, int x)
     );
 }
 
-static void pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
+void vp8_pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
 {
-    const TOKENEXTRA *const stop = p + xcount;
+    const TOKENEXTRA *stop = p + xcount;
     unsigned int split;
     unsigned int shift;
     int count = w->count;
@@ -171,8 +172,8 @@ static void pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
     while (p < stop)
     {
         const int t = p->Token;
-        vp8_token *const a = vp8_coef_encodings + t;
-        const vp8_extra_bit_struct *const b = vp8_extra_bits + t;
+        vp8_token *a = vp8_coef_encodings + t;
+        const vp8_extra_bit_struct *b = vp8_extra_bits + t;
         int i = 0;
         const unsigned char *pp = p->context_tree;
         int v = a->value;
@@ -382,219 +383,23 @@ static void pack_tokens_into_partitions_c(VP8_COMP *cpi, unsigned char *cx_data,
     int i;
     unsigned char *ptr = cx_data;
     unsigned char *ptr_end = cx_data_end;
-    unsigned int shift;
-    vp8_writer *w;
-    ptr = cx_data;
+    vp8_writer * w;
 
     for (i = 0; i < num_part; i++)
     {
+        int mb_row;
+
         w = cpi->bc + i + 1;
+
         vp8_start_encode(w, ptr, ptr_end);
+
+        for (mb_row = i; mb_row < cpi->common.mb_rows; mb_row += num_part)
         {
-            unsigned int split;
-            int count = w->count;
-            unsigned int range = w->range;
-            unsigned int lowvalue = w->lowvalue;
-            int mb_row;
+            const TOKENEXTRA *p    = cpi->tplist[mb_row].start;
+            const TOKENEXTRA *stop = cpi->tplist[mb_row].stop;
+            int tokens = (int)(stop - p);
 
-            for (mb_row = i; mb_row < cpi->common.mb_rows; mb_row += num_part)
-            {
-                TOKENEXTRA *p    = cpi->tplist[mb_row].start;
-                TOKENEXTRA *stop = cpi->tplist[mb_row].stop;
-
-                while (p < stop)
-                {
-                    const int t = p->Token;
-                    vp8_token *const a = vp8_coef_encodings + t;
-                    const vp8_extra_bit_struct *const b = vp8_extra_bits + t;
-                    int i = 0;
-                    const unsigned char *pp = p->context_tree;
-                    int v = a->value;
-                    int n = a->Len;
-
-                    if (p->skip_eob_node)
-                    {
-                        n--;
-                        i = 2;
-                    }
-
-                    do
-                    {
-                        const int bb = (v >> --n) & 1;
-                        split = 1 + (((range - 1) * pp[i>>1]) >> 8);
-                        i = vp8_coef_tree[i+bb];
-
-                        if (bb)
-                        {
-                            lowvalue += split;
-                            range = range - split;
-                        }
-                        else
-                        {
-                            range = split;
-                        }
-
-                        shift = vp8_norm[range];
-                        range <<= shift;
-                        count += shift;
-
-                        if (count >= 0)
-                        {
-                            int offset = shift - count;
-
-                            if ((lowvalue << (offset - 1)) & 0x80000000)
-                            {
-                                int x = w->pos - 1;
-
-                                while (x >= 0 && w->buffer[x] == 0xff)
-                                {
-                                    w->buffer[x] = (unsigned char)0;
-                                    x--;
-                                }
-
-                                w->buffer[x] += 1;
-                            }
-
-                            validate_buffer(w->buffer + w->pos,
-                                            1,
-                                            cx_data_end,
-                                            &cpi->common.error);
-
-                            w->buffer[w->pos++] = (lowvalue >> (24 - offset));
-
-                            lowvalue <<= offset;
-                            shift = count;
-                            lowvalue &= 0xffffff;
-                            count -= 8 ;
-                        }
-
-                        lowvalue <<= shift;
-                    }
-                    while (n);
-
-
-                    if (b->base_val)
-                    {
-                        const int e = p->Extra, L = b->Len;
-
-                        if (L)
-                        {
-                            const unsigned char *pp = b->prob;
-                            int v = e >> 1;
-                            int n = L;              
-                            int i = 0;
-
-                            do
-                            {
-                                const int bb = (v >> --n) & 1;
-                                split = 1 + (((range - 1) * pp[i>>1]) >> 8);
-                                i = b->tree[i+bb];
-
-                                if (bb)
-                                {
-                                    lowvalue += split;
-                                    range = range - split;
-                                }
-                                else
-                                {
-                                    range = split;
-                                }
-
-                                shift = vp8_norm[range];
-                                range <<= shift;
-                                count += shift;
-
-                                if (count >= 0)
-                                {
-                                    int offset = shift - count;
-
-                                    if ((lowvalue << (offset - 1)) & 0x80000000)
-                                    {
-                                        int x = w->pos - 1;
-
-                                        while (x >= 0 && w->buffer[x] == 0xff)
-                                        {
-                                            w->buffer[x] = (unsigned char)0;
-                                            x--;
-                                        }
-
-                                        w->buffer[x] += 1;
-                                    }
-
-                                    validate_buffer(w->buffer + w->pos,
-                                                    1,
-                                                    cx_data_end,
-                                                    &cpi->common.error);
-
-                                    w->buffer[w->pos++] =
-                                        (lowvalue >> (24 - offset));
-
-                                    lowvalue <<= offset;
-                                    shift = count;
-                                    lowvalue &= 0xffffff;
-                                    count -= 8 ;
-                                }
-
-                                lowvalue <<= shift;
-                            }
-                            while (n);
-                        }
-
-                        {
-                            split = (range + 1) >> 1;
-
-                            if (e & 1)
-                            {
-                                lowvalue += split;
-                                range = range - split;
-                            }
-                            else
-                            {
-                                range = split;
-                            }
-
-                            range <<= 1;
-
-                            if ((lowvalue & 0x80000000))
-                            {
-                                int x = w->pos - 1;
-
-                                while (x >= 0 && w->buffer[x] == 0xff)
-                                {
-                                    w->buffer[x] = (unsigned char)0;
-                                    x--;
-                                }
-
-                                w->buffer[x] += 1;
-
-                            }
-
-                            lowvalue  <<= 1;
-
-                            if (!++count)
-                            {
-                                count = -8;
-                                validate_buffer(w->buffer + w->pos,
-                                                1,
-                                                cx_data_end,
-                                                &cpi->common.error);
-
-                                w->buffer[w->pos++] = (lowvalue >> 24);
-
-                                lowvalue &= 0xffffff;
-                            }
-                        }
-
-                    }
-
-                    ++p;
-                }
-            }
-
-            w->count    = count;
-            w->lowvalue = lowvalue;
-            w->range    = range;
-
+            vp8_pack_tokens_c(w, p, tokens);
         }
 
         vp8_stop_encode(w);
@@ -605,208 +410,16 @@ static void pack_tokens_into_partitions_c(VP8_COMP *cpi, unsigned char *cx_data,
 
 static void pack_mb_row_tokens_c(VP8_COMP *cpi, vp8_writer *w)
 {
-
-    unsigned int split;
-    int count = w->count;
-    unsigned int range = w->range;
-    unsigned int lowvalue = w->lowvalue;
-    unsigned int shift;
     int mb_row;
 
     for (mb_row = 0; mb_row < cpi->common.mb_rows; mb_row++)
     {
-        TOKENEXTRA *p    = cpi->tplist[mb_row].start;
-        TOKENEXTRA *stop = cpi->tplist[mb_row].stop;
+        const TOKENEXTRA *p    = cpi->tplist[mb_row].start;
+        const TOKENEXTRA *stop = cpi->tplist[mb_row].stop;
+        int tokens = (int)(stop - p);
 
-        while (p < stop)
-        {
-            const int t = p->Token;
-            vp8_token *const a = vp8_coef_encodings + t;
-            const vp8_extra_bit_struct *const b = vp8_extra_bits + t;
-            int i = 0;
-            const unsigned char *pp = p->context_tree;
-            int v = a->value;
-            int n = a->Len;
-
-            if (p->skip_eob_node)
-            {
-                n--;
-                i = 2;
-            }
-
-            do
-            {
-                const int bb = (v >> --n) & 1;
-                split = 1 + (((range - 1) * pp[i>>1]) >> 8);
-                i = vp8_coef_tree[i+bb];
-
-                if (bb)
-                {
-                    lowvalue += split;
-                    range = range - split;
-                }
-                else
-                {
-                    range = split;
-                }
-
-                shift = vp8_norm[range];
-                range <<= shift;
-                count += shift;
-
-                if (count >= 0)
-                {
-                    int offset = shift - count;
-
-                    if ((lowvalue << (offset - 1)) & 0x80000000)
-                    {
-                        int x = w->pos - 1;
-
-                        while (x >= 0 && w->buffer[x] == 0xff)
-                        {
-                            w->buffer[x] = (unsigned char)0;
-                            x--;
-                        }
-
-                        w->buffer[x] += 1;
-                    }
-
-                    validate_buffer(w->buffer + w->pos,
-                                    1,
-                                    w->buffer_end,
-                                    w->error);
-
-                    w->buffer[w->pos++] = (lowvalue >> (24 - offset));
-                    lowvalue <<= offset;
-                    shift = count;
-                    lowvalue &= 0xffffff;
-                    count -= 8 ;
-                }
-
-                lowvalue <<= shift;
-            }
-            while (n);
-
-
-            if (b->base_val)
-            {
-                const int e = p->Extra, L = b->Len;
-
-                if (L)
-                {
-                    const unsigned char *pp = b->prob;
-                    int v = e >> 1;
-                    int n = L;              
-                    int i = 0;
-
-                    do
-                    {
-                        const int bb = (v >> --n) & 1;
-                        split = 1 + (((range - 1) * pp[i>>1]) >> 8);
-                        i = b->tree[i+bb];
-
-                        if (bb)
-                        {
-                            lowvalue += split;
-                            range = range - split;
-                        }
-                        else
-                        {
-                            range = split;
-                        }
-
-                        shift = vp8_norm[range];
-                        range <<= shift;
-                        count += shift;
-
-                        if (count >= 0)
-                        {
-                            int offset = shift - count;
-
-                            if ((lowvalue << (offset - 1)) & 0x80000000)
-                            {
-                                int x = w->pos - 1;
-
-                                while (x >= 0 && w->buffer[x] == 0xff)
-                                {
-                                    w->buffer[x] = (unsigned char)0;
-                                    x--;
-                                }
-
-                                w->buffer[x] += 1;
-                            }
-
-                            validate_buffer(w->buffer + w->pos,
-                                            1,
-                                            w->buffer_end,
-                                            w->error);
-
-                            w->buffer[w->pos++] = (lowvalue >> (24 - offset));
-                            lowvalue <<= offset;
-                            shift = count;
-                            lowvalue &= 0xffffff;
-                            count -= 8 ;
-                        }
-
-                        lowvalue <<= shift;
-                    }
-                    while (n);
-                }
-
-                {
-                    split = (range + 1) >> 1;
-
-                    if (e & 1)
-                    {
-                        lowvalue += split;
-                        range = range - split;
-                    }
-                    else
-                    {
-                        range = split;
-                    }
-
-                    range <<= 1;
-
-                    if ((lowvalue & 0x80000000))
-                    {
-                        int x = w->pos - 1;
-
-                        while (x >= 0 && w->buffer[x] == 0xff)
-                        {
-                            w->buffer[x] = (unsigned char)0;
-                            x--;
-                        }
-
-                        w->buffer[x] += 1;
-
-                    }
-
-                    lowvalue  <<= 1;
-
-                    if (!++count)
-                    {
-                        count = -8;
-
-                        validate_buffer(w->buffer + w->pos,
-                                        1,
-                                        w->buffer_end,
-                                        w->error);
-
-                        w->buffer[w->pos++] = (lowvalue >> 24);
-                        lowvalue &= 0xffffff;
-                    }
-                }
-
-            }
-
-            ++p;
-        }
+        vp8_pack_tokens_c(w, p, tokens);
     }
-
-    w->count = count;
-    w->lowvalue = lowvalue;
-    w->range = range;
 
 }
 
@@ -880,7 +493,7 @@ static void write_mb_features(vp8_writer *w, const MB_MODE_INFO *mi, const MACRO
 }
 void vp8_convert_rfct_to_prob(VP8_COMP *const cpi)
 {
-    const int *const rfct = cpi->count_mb_ref_frame_usage;
+    const int *const rfct = cpi->mb.count_mb_ref_frame_usage;
     const int rf_intra = rfct[INTRA_FRAME];
     const int rf_inter = rfct[LAST_FRAME] + rfct[GOLDEN_FRAME] + rfct[ALTREF_FRAME];
 
@@ -908,12 +521,11 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
     const MV_CONTEXT *mvc = pc->fc.mvc;
 
 
-    MODE_INFO *m = pc->mi, *ms;
+    MODE_INFO *m = pc->mi;
     const int mis = pc->mode_info_stride;
     int mb_row = -1;
 
     int prob_skip_false = 0;
-    ms = pc->mi - 1;
 
     cpi->mb.partition_info = cpi->mb.pi;
 
@@ -925,7 +537,9 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
 
     if (pc->mb_no_coeff_skip)
     {
-        prob_skip_false = cpi->skip_false_count * 256 / (cpi->skip_false_count + cpi->skip_true_count);
+        int total_mbs = pc->mb_rows * pc->mb_cols;
+
+        prob_skip_false = (total_mbs - cpi->mb.skip_true_count ) * 256 / total_mbs;
 
         if (prob_skip_false <= 1)
             prob_skip_false = 1;
@@ -958,7 +572,9 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
             MACROBLOCKD *xd = &cpi->mb.e_mbd;
 
             
-            
+
+
+
             xd->mb_to_left_edge = -((mb_col * 16) << 3);
             xd->mb_to_right_edge = ((pc->mb_cols - 1 - mb_col) * 16) << 3;
             xd->mb_to_top_edge = -((mb_row * 16)) << 3;
@@ -1112,7 +728,9 @@ static void write_kfmodes(VP8_COMP *cpi)
 
     if (c->mb_no_coeff_skip)
     {
-        prob_skip_false = cpi->skip_false_count * 256 / (cpi->skip_false_count + cpi->skip_true_count);
+        int total_mbs = c->mb_rows * c->mb_cols;
+
+        prob_skip_false = (total_mbs - cpi->mb.skip_true_count ) * 256 / total_mbs;
 
         if (prob_skip_false <= 1)
             prob_skip_false = 1;
@@ -1138,7 +756,7 @@ static void write_kfmodes(VP8_COMP *cpi)
             if (c->mb_no_coeff_skip)
                 vp8_encode_bool(bc, m->mbmi.mb_skip_coeff, prob_skip_false);
 
-            kfwrite_ymode(bc, ym, c->kf_ymode_prob);
+            kfwrite_ymode(bc, ym, vp8_kf_ymode_prob);
 
             if (ym == B_PRED)
             {
@@ -1155,18 +773,19 @@ static void write_kfmodes(VP8_COMP *cpi)
                     ++intra_mode_stats [A] [L] [bm];
 #endif
 
-                    write_bmode(bc, bm, c->kf_bmode_prob [A] [L]);
+                    write_bmode(bc, bm, vp8_kf_bmode_prob [A] [L]);
                 }
                 while (++i < 16);
             }
 
-            write_uv_mode(bc, (m++)->mbmi.uv_mode, c->kf_uv_mode_prob);
+            write_uv_mode(bc, (m++)->mbmi.uv_mode, vp8_kf_uv_mode_prob);
         }
 
         m++;    
     }
 }
 
+#if 0
 
 static void print_prob_tree(vp8_prob
      coef_probs[BLOCK_TYPES][COEF_BANDS][PREV_COEF_CONTEXTS][ENTROPY_NODES])
@@ -1198,6 +817,7 @@ static void print_prob_tree(vp8_prob
     fprintf(f, "}\n");
     fclose(f);
 }
+#endif
 
 static void sum_probs_over_prev_coef_context(
         const unsigned int probs[PREV_COEF_CONTEXTS][MAX_ENTROPY_TOKENS],
@@ -1231,6 +851,7 @@ static int prob_update_savings(const unsigned int *ct,
 
 static int independent_coef_context_savings(VP8_COMP *cpi)
 {
+    MACROBLOCK *const x = & cpi->mb;
     int savings = 0;
     int i = 0;
     do
@@ -1247,7 +868,7 @@ static int independent_coef_context_savings(VP8_COMP *cpi)
 
 
             probs = (const unsigned int (*)[MAX_ENTROPY_TOKENS])
-                                                    cpi->coef_counts[i][j];
+                x->coef_counts[i][j];
 
             
             if (cpi->common.frame_type == KEY_FRAME)
@@ -1260,9 +881,6 @@ static int independent_coef_context_savings(VP8_COMP *cpi)
                 
 
                 
-                
-                
-
                 int t = 0;      
 
                 vp8_tree_probs_from_distribution(
@@ -1309,6 +927,7 @@ static int independent_coef_context_savings(VP8_COMP *cpi)
 
 static int default_coef_context_savings(VP8_COMP *cpi)
 {
+    MACROBLOCK *const x = & cpi->mb;
     int savings = 0;
     int i = 0;
     do
@@ -1322,17 +941,13 @@ static int default_coef_context_savings(VP8_COMP *cpi)
                 
 
                 
-                
-                
-
                 int t = 0;      
-
 
                 vp8_tree_probs_from_distribution(
                     MAX_ENTROPY_TOKENS, vp8_coef_encodings, vp8_coef_tree,
                     cpi->frame_coef_probs [i][j][k],
                     cpi->frame_branch_ct [i][j][k],
-                    cpi->coef_counts [i][j][k],
+                    x->coef_counts [i][j][k],
                     256, 1
                 );
 
@@ -1381,13 +996,13 @@ int vp8_estimate_entropy_savings(VP8_COMP *cpi)
 {
     int savings = 0;
 
-    const int *const rfct = cpi->count_mb_ref_frame_usage;
+    const int *const rfct = cpi->mb.count_mb_ref_frame_usage;
     const int rf_intra = rfct[INTRA_FRAME];
     const int rf_inter = rfct[LAST_FRAME] + rfct[GOLDEN_FRAME] + rfct[ALTREF_FRAME];
     int new_intra, new_last, new_garf, oldtotal, newtotal;
     int ref_frame_cost[MAX_REF_FRAMES];
 
-    vp8_clear_system_state(); 
+    vp8_clear_system_state();
 
     if (cpi->common.frame_type != KEY_FRAME)
     {
@@ -1432,13 +1047,36 @@ int vp8_estimate_entropy_savings(VP8_COMP *cpi)
     return savings;
 }
 
-static void update_coef_probs(VP8_COMP *cpi)
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+int vp8_update_coef_context(VP8_COMP *cpi)
 {
-    int i = 0;
-    vp8_writer *const w = cpi->bc;
     int savings = 0;
 
-    vp8_clear_system_state(); 
+
+    if (cpi->common.frame_type == KEY_FRAME)
+    {
+        
+        vp8_copy(cpi->coef_counts, default_coef_counts);
+    }
+
+    if (cpi->oxcf.error_resilient_mode & VPX_ERROR_RESILIENT_PARTITIONS)
+        savings += independent_coef_context_savings(cpi);
+    else
+        savings += default_coef_context_savings(cpi);
+
+    return savings;
+}
+#endif
+
+void vp8_update_coef_probs(VP8_COMP *cpi)
+{
+    int i = 0;
+#if !(CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING)
+    vp8_writer *const w = cpi->bc;
+#endif
+    int savings = 0;
+
+    vp8_clear_system_state();
 
     do
     {
@@ -1471,19 +1109,13 @@ static void update_coef_probs(VP8_COMP *cpi)
             do
             {
                 
+
+
+
                 
 
                 
-                
-                
-
                 int t = 0;      
-
-                
-                
-                
-                
-                
 
                 do
                 {
@@ -1515,7 +1147,11 @@ static void update_coef_probs(VP8_COMP *cpi)
                         cpi->common.frame_type == KEY_FRAME && newp != *Pold)
                         u = 1;
 
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+                    cpi->update_probs[i][j][k][t] = u;
+#else
                     vp8_write(w, u, upd);
+#endif
 
 
 #ifdef ENTROPY_STATS
@@ -1527,7 +1163,9 @@ static void update_coef_probs(VP8_COMP *cpi)
                         
 
                         *Pold = newp;
+#if !(CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING)
                         vp8_write_literal(w, newp, 8);
+#endif
 
                         savings += s;
 
@@ -1556,6 +1194,50 @@ static void update_coef_probs(VP8_COMP *cpi)
     while (++i < BLOCK_TYPES);
 
 }
+
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+static void pack_coef_probs(VP8_COMP *cpi)
+{
+    int i = 0;
+    vp8_writer *const w = cpi->bc;
+
+    do
+    {
+        int j = 0;
+
+        do
+        {
+            int k = 0;
+
+            do
+            {
+                int t = 0;      
+
+                do
+                {
+                    const vp8_prob newp = cpi->common.fc.coef_probs [i][j][k][t];
+                    const vp8_prob upd = vp8_coef_update_probs [i][j][k][t];
+
+                    const char u = cpi->update_probs[i][j][k][t] ;
+
+                    vp8_write(w, u, upd);
+
+                    if (u)
+                    {
+                        
+                        vp8_write_literal(w, newp, 8);
+                    }
+                }
+                while (++t < ENTROPY_NODES);
+            }
+            while (++k < PREV_COEF_CONTEXTS);
+        }
+        while (++j < COEF_BANDS);
+    }
+    while (++i < BLOCK_TYPES);
+}
+#endif
+
 #ifdef PACKET_TESTING
 FILE *vpxlogc = 0;
 #endif
@@ -1606,11 +1288,8 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 #endif
 
     
-    
-    
-    
 
-    
+
     if (oh.type == KEY_FRAME)
     {
         int v;
@@ -1710,12 +1389,13 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         }
     }
 
-    
     vp8_write_bit(bc, pc->filter_type);
     vp8_write_literal(bc, pc->filter_level, 6);
     vp8_write_literal(bc, pc->sharpness_level, 3);
 
     
+
+
     vp8_write_bit(bc, xd->mode_ref_lf_delta_enabled);
 
     if (xd->mode_ref_lf_delta_enabled)
@@ -1800,13 +1480,19 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
     put_delta_q(bc, pc->uvac_delta_q);
 
     
+
+
     if (pc->frame_type != KEY_FRAME)
     {
         
+
+
         vp8_write_bit(bc, pc->refresh_golden_frame);
         vp8_write_bit(bc, pc->refresh_alt_ref_frame);
 
         
+
+
         if (!pc->refresh_golden_frame)
             vp8_write_literal(bc, pc->copy_buffer_to_gf, 2);
 
@@ -1814,10 +1500,13 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
             vp8_write_literal(bc, pc->copy_buffer_to_arf, 2);
 
         
+
+
         vp8_write_bit(bc, pc->ref_frame_sign_bias[GOLDEN_FRAME]);
         vp8_write_bit(bc, pc->ref_frame_sign_bias[ALTREF_FRAME]);
     }
 
+#if !(CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING)
     if (cpi->oxcf.error_resilient_mode & VPX_ERROR_RESILIENT_PARTITIONS)
     {
         if (pc->frame_type == KEY_FRAME)
@@ -1825,6 +1514,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         else
             pc->refresh_entropy_probs = 0;
     }
+#endif
 
     vp8_write_bit(bc, pc->refresh_entropy_probs);
 
@@ -1840,15 +1530,19 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 
 #endif
 
-    vp8_clear_system_state();  
+    vp8_clear_system_state();
 
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+    pack_coef_probs(cpi);
+#else
     if (pc->refresh_entropy_probs == 0)
     {
         
         vpx_memcpy(&cpi->common.lfc, &cpi->common.fc, sizeof(cpi->common.fc));
     }
 
-    update_coef_probs(cpi);
+    vp8_update_coef_probs(cpi);
+#endif
 
 #ifdef ENTROPY_STATS
     active_section = 2;
@@ -1896,6 +1590,45 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 
     cpi->partition_sz[0] = *size;
 
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+    {
+        const int num_part = (1 << pc->multi_token_partition);
+        unsigned char * dp = cpi->partition_d[0] + cpi->partition_sz[0];
+
+        if (num_part > 1)
+        {
+            
+            validate_buffer(dp, 3 * (num_part - 1), cpi->partition_d_end[0],
+                            &pc->error);
+
+            cpi->partition_sz[0] += 3*(num_part-1);
+
+            for(i = 1; i < num_part; i++)
+            {
+                write_partition_size(dp, cpi->partition_sz[i]);
+                dp += 3;
+            }
+        }
+
+        if (!cpi->output_partition)
+        {
+            
+            for(i = 0; i < num_part; i++)
+            {
+                vpx_memmove(dp, cpi->partition_d[i+1], cpi->partition_sz[i+1]);
+                cpi->partition_d[i+1] = dp;
+                dp += cpi->partition_sz[i+1];
+            }
+        }
+
+        
+        *size = 0;
+        for(i = 0; i < num_part+1; i++)
+        {
+            *size += cpi->partition_sz[i];
+        }
+    }
+#else
     if (pc->multi_token_partition != ONE_PARTITION)
     {
         int num_part = 1 << pc->multi_token_partition;
@@ -1945,6 +1678,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         *size += cpi->bc[1].pos;
         cpi->partition_sz[1] = cpi->bc[1].pos;
     }
+#endif
 }
 
 #ifdef ENTROPY_STATS

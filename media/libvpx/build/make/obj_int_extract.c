@@ -725,7 +725,7 @@ int parse_coff(uint8_t *buf, size_t sz)
         }
         strcpy(sectionlist[i], sectionname);
 
-        if (!strcmp(sectionname, ".data")) sectionrawdata_ptr = get_le32(ptr + 20);
+        if (!strcmp(sectionname, ".rdata")) sectionrawdata_ptr = get_le32(ptr + 20);
 
         ptr += 40;
     }

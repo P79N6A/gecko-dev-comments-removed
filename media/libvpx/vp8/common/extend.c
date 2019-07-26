@@ -157,7 +157,10 @@ void vp8_copy_and_extend_frame_with_rect(YV12_BUFFER_CONFIG *src,
 
 
 
-void vp8_extend_mb_row(YV12_BUFFER_CONFIG *ybf, unsigned char *YPtr, unsigned char *UPtr, unsigned char *VPtr)
+void vp8_extend_mb_row(YV12_BUFFER_CONFIG *ybf,
+                       unsigned char *YPtr,
+                       unsigned char *UPtr,
+                       unsigned char *VPtr)
 {
     int i;
 

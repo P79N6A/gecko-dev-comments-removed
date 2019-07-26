@@ -44,21 +44,21 @@ void vp8_fast_quantize_b_c(BLOCK *b, BLOCKD *d)
         z    = coeff_ptr[rc];
         zbin = zbin_ptr[rc] ;
 
-        sz = (z >> 31);                                 
-        x  = (z ^ sz) - sz;                             
+        sz = (z >> 31);                              
+        x  = (z ^ sz) - sz;                          
 
         if (x >= zbin)
         {
             x += round_ptr[rc];
             y  = (((x * quant_ptr[rc]) >> 16) + x)
-                 >> quant_shift_ptr[rc];                
-            x  = (y ^ sz) - sz;                         
-            qcoeff_ptr[rc] = x;                          
-            dqcoeff_ptr[rc] = x * dequant_ptr[rc];        
+                 >> quant_shift_ptr[rc];             
+            x  = (y ^ sz) - sz;                      
+            qcoeff_ptr[rc] = x;                      
+            dqcoeff_ptr[rc] = x * dequant_ptr[rc];   
 
             if (y)
             {
-                eob = i;                                
+                eob = i;                             
             }
         }
     }
@@ -84,17 +84,17 @@ void vp8_fast_quantize_b_c(BLOCK *b, BLOCKD *d)
         rc   = vp8_default_zig_zag1d[i];
         z    = coeff_ptr[rc];
 
-        sz = (z >> 31);                                 
-        x  = (z ^ sz) - sz;                             
+        sz = (z >> 31);                              
+        x  = (z ^ sz) - sz;                          
 
         y  = ((x + round_ptr[rc]) * quant_ptr[rc]) >> 16; 
-        x  = (y ^ sz) - sz;                         
+        x  = (y ^ sz) - sz;                          
         qcoeff_ptr[rc] = x;                          
-        dqcoeff_ptr[rc] = x * dequant_ptr[rc];        
+        dqcoeff_ptr[rc] = x * dequant_ptr[rc];       
 
         if (y)
         {
-            eob = i;                                
+            eob = i;                                 
         }
     }
     *d->eob = (char)(eob + 1);
@@ -103,7 +103,7 @@ void vp8_fast_quantize_b_c(BLOCK *b, BLOCKD *d)
 #endif
 
 #ifdef EXACT_QUANT
-void vp8_regular_quantize_b(BLOCK *b, BLOCKD *d)
+void vp8_regular_quantize_b_c(BLOCK *b, BLOCKD *d)
 {
     int i, rc, eob;
     int zbin;
@@ -132,22 +132,22 @@ void vp8_regular_quantize_b(BLOCK *b, BLOCKD *d)
         zbin = zbin_ptr[rc] + *zbin_boost_ptr + zbin_oq_value;
 
         zbin_boost_ptr ++;
-        sz = (z >> 31);                                 
-        x  = (z ^ sz) - sz;                             
+        sz = (z >> 31);                              
+        x  = (z ^ sz) - sz;                          
 
         if (x >= zbin)
         {
             x += round_ptr[rc];
             y  = (((x * quant_ptr[rc]) >> 16) + x)
-                 >> quant_shift_ptr[rc];                
-            x  = (y ^ sz) - sz;                         
-            qcoeff_ptr[rc]  = x;                        
-            dqcoeff_ptr[rc] = x * dequant_ptr[rc];      
+                 >> quant_shift_ptr[rc];             
+            x  = (y ^ sz) - sz;                      
+            qcoeff_ptr[rc]  = x;                     
+            dqcoeff_ptr[rc] = x * dequant_ptr[rc];   
 
             if (y)
             {
-                eob = i;                                
-                zbin_boost_ptr = b->zrun_zbin_boost;    
+                eob = i;                             
+                zbin_boost_ptr = b->zrun_zbin_boost; 
             }
         }
     }
@@ -156,7 +156,7 @@ void vp8_regular_quantize_b(BLOCK *b, BLOCKD *d)
 }
 
 
-void vp8_strict_quantize_b(BLOCK *b, BLOCKD *d)
+void vp8_strict_quantize_b_c(BLOCK *b, BLOCKD *d)
 {
     int i;
     int rc;
@@ -215,7 +215,7 @@ void vp8_strict_quantize_b(BLOCK *b, BLOCKD *d)
 
 #else
 
-void vp8_regular_quantize_b(BLOCK *b, BLOCKD *d)
+void vp8_regular_quantize_b_c(BLOCK *b, BLOCKD *d)
 {
     int i, rc, eob;
     int zbin;
@@ -240,26 +240,23 @@ void vp8_regular_quantize_b(BLOCK *b, BLOCKD *d)
         rc   = vp8_default_zig_zag1d[i];
         z    = coeff_ptr[rc];
 
-        
-        
-        
         zbin = zbin_ptr[rc] + *zbin_boost_ptr + zbin_oq_value;
 
         zbin_boost_ptr ++;
-        sz = (z >> 31);                                 
-        x  = (z ^ sz) - sz;                             
+        sz = (z >> 31);                              
+        x  = (z ^ sz) - sz;                          
 
         if (x >= zbin)
         {
             y  = ((x + round_ptr[rc]) * quant_ptr[rc]) >> 16; 
-            x  = (y ^ sz) - sz;                         
-            qcoeff_ptr[rc]  = x;                         
-            dqcoeff_ptr[rc] = x * dequant_ptr[rc];        
+            x  = (y ^ sz) - sz;                      
+            qcoeff_ptr[rc]  = x;                     
+            dqcoeff_ptr[rc] = x * dequant_ptr[rc];   
 
             if (y)
             {
-                eob = i;                                
-                zbin_boost_ptr = &b->zrun_zbin_boost[0];    
+                eob = i;                             
+                zbin_boost_ptr = &b->zrun_zbin_boost[0]; 
             }
         }
     }
@@ -590,20 +587,20 @@ void vp8cx_init_quantizer(VP8_COMP *cpi)
 
 #define ZBIN_EXTRA_Y \
     (( cpi->common.Y1dequant[QIndex][1] *  \
-    ( cpi->zbin_over_quant +  \
-      cpi->zbin_mode_boost +  \
+    ( x->zbin_over_quant +  \
+      x->zbin_mode_boost +  \
       x->act_zbin_adj ) ) >> 7)
 
 #define ZBIN_EXTRA_UV \
     (( cpi->common.UVdequant[QIndex][1] *  \
-    ( cpi->zbin_over_quant +  \
-      cpi->zbin_mode_boost +  \
+    ( x->zbin_over_quant +  \
+      x->zbin_mode_boost +  \
       x->act_zbin_adj ) ) >> 7)
 
 #define ZBIN_EXTRA_Y2 \
     (( cpi->common.Y2dequant[QIndex][1] *  \
-    ( (cpi->zbin_over_quant / 2) +  \
-       cpi->zbin_mode_boost +  \
+    ( (x->zbin_over_quant / 2) +  \
+       x->zbin_mode_boost +  \
        x->act_zbin_adj ) ) >> 7)
 
 void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x, int ok_to_skip)
@@ -618,13 +615,13 @@ void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x, int ok_to_skip)
     {
         
         if (xd->mb_segement_abs_delta == SEGMENT_ABSDATA)
-
             QIndex = xd->segment_feature_data[MB_LVL_ALT_Q][xd->mode_info_context->mbmi.segment_id];
         
         else
         {
             QIndex = cpi->common.base_qindex + xd->segment_feature_data[MB_LVL_ALT_Q][xd->mode_info_context->mbmi.segment_id];
-            QIndex = (QIndex >= 0) ? ((QIndex <= MAXQ) ? QIndex : MAXQ) : 0;    
+            
+            QIndex = (QIndex >= 0) ? ((QIndex <= MAXQ) ? QIndex : MAXQ) : 0;
         }
     }
     else
@@ -657,10 +654,10 @@ void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x, int ok_to_skip)
 
 
         for (i = 0; i < 16; i++)
-            x->e_mbd.block[i].dequant = xd->dequant_y1; 
+            x->e_mbd.block[i].dequant = xd->dequant_y1;
         for (i = 16; i < 24; i++)
-            x->e_mbd.block[i].dequant = xd->dequant_uv; 
-        x->e_mbd.block[24].dequant = xd->dequant_y2; 
+            x->e_mbd.block[i].dequant = xd->dequant_uv;
+        x->e_mbd.block[24].dequant = xd->dequant_y2;
 #endif
 
         
@@ -705,15 +702,15 @@ void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x, int ok_to_skip)
         
         x->q_index = QIndex;
 
-        cpi->last_zbin_over_quant = cpi->zbin_over_quant;
-        cpi->last_zbin_mode_boost = cpi->zbin_mode_boost;
+        x->last_zbin_over_quant = x->zbin_over_quant;
+        x->last_zbin_mode_boost = x->zbin_mode_boost;
         x->last_act_zbin_adj = x->act_zbin_adj;
 
 
 
     }
-    else if(cpi->last_zbin_over_quant != cpi->zbin_over_quant
-            || cpi->last_zbin_mode_boost != cpi->zbin_mode_boost
+    else if(x->last_zbin_over_quant != x->zbin_over_quant
+            || x->last_zbin_mode_boost != x->zbin_mode_boost
             || x->last_act_zbin_adj != x->act_zbin_adj)
     {
         
@@ -732,8 +729,8 @@ void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x, int ok_to_skip)
         zbin_extra = ZBIN_EXTRA_Y2;
         x->block[24].zbin_extra = (short)zbin_extra;
 
-        cpi->last_zbin_over_quant = cpi->zbin_over_quant;
-        cpi->last_zbin_mode_boost = cpi->zbin_mode_boost;
+        x->last_zbin_over_quant = x->zbin_over_quant;
+        x->last_zbin_mode_boost = x->zbin_mode_boost;
         x->last_act_zbin_adj = x->act_zbin_adj;
     }
 }
@@ -767,7 +764,7 @@ void vp8_update_zbin_extra(VP8_COMP *cpi, MACROBLOCK *x)
 void vp8cx_frame_init_quantizer(VP8_COMP *cpi)
 {
     
-    cpi->zbin_mode_boost = 0;
+    cpi->mb.zbin_mode_boost = 0;
 
     
     vp8cx_mb_init_quantizer(cpi, &cpi->mb, 0);

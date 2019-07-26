@@ -18,4 +18,7 @@ extern int rand(void)
 {
   return __rand();
 }
+#else
+
+int vp8_unused;
 #endif

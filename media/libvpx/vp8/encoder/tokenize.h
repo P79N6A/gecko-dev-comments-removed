@@ -40,11 +40,11 @@ void print_context_counters();
 extern _int64 context_counters[BLOCK_TYPES] [COEF_BANDS] [PREV_COEF_CONTEXTS] [MAX_ENTROPY_TOKENS];
 #endif
 
-extern const int *vp8_dct_value_cost_ptr;
+extern const short *const vp8_dct_value_cost_ptr;
 
 
 
 
-extern const TOKENVALUE *vp8_dct_value_tokens_ptr;
+extern const TOKENVALUE *const vp8_dct_value_tokens_ptr;
 
 #endif  

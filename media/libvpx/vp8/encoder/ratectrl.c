@@ -47,6 +47,7 @@ extern int inter_b_modes[10];
 
 
 
+
 const int vp8_bits_per_mb[2][QINDEX_RANGE] =
 {
     
@@ -225,9 +226,10 @@ void vp8_save_coding_context(VP8_COMP *cpi)
     CODING_CONTEXT *const cc = & cpi->coding_context;
 
     
-    
-    
-    
+
+
+
+
 
     cc->frames_since_key          = cpi->frames_since_key;
     cc->filter_level             = cpi->common.filter_level;
@@ -235,15 +237,13 @@ void vp8_save_coding_context(VP8_COMP *cpi)
     cc->frames_since_golden       = cpi->common.frames_since_golden;
 
     vp8_copy(cc->mvc,      cpi->common.fc.mvc);
-    vp8_copy(cc->mvcosts,  cpi->mb.mvcosts);
+    vp8_copy(cc->mvcosts,  cpi->rd_costs.mvcosts);
 
-    vp8_copy(cc->kf_ymode_prob,   cpi->common.kf_ymode_prob);
     vp8_copy(cc->ymode_prob,   cpi->common.fc.ymode_prob);
-    vp8_copy(cc->kf_uv_mode_prob,  cpi->common.kf_uv_mode_prob);
     vp8_copy(cc->uv_mode_prob,  cpi->common.fc.uv_mode_prob);
 
-    vp8_copy(cc->ymode_count, cpi->ymode_count);
-    vp8_copy(cc->uv_mode_count, cpi->uv_mode_count);
+    vp8_copy(cc->ymode_count, cpi->mb.ymode_count);
+    vp8_copy(cc->uv_mode_count, cpi->mb.uv_mode_count);
 
 
     
@@ -265,7 +265,8 @@ void vp8_restore_coding_context(VP8_COMP *cpi)
     CODING_CONTEXT *const cc = & cpi->coding_context;
 
     
-    
+
+
 
     cpi->frames_since_key         =   cc->frames_since_key;
     cpi->common.filter_level     =   cc->filter_level;
@@ -274,15 +275,13 @@ void vp8_restore_coding_context(VP8_COMP *cpi)
 
     vp8_copy(cpi->common.fc.mvc, cc->mvc);
 
-    vp8_copy(cpi->mb.mvcosts, cc->mvcosts);
+    vp8_copy(cpi->rd_costs.mvcosts, cc->mvcosts);
 
-    vp8_copy(cpi->common.kf_ymode_prob,   cc->kf_ymode_prob);
     vp8_copy(cpi->common.fc.ymode_prob,   cc->ymode_prob);
-    vp8_copy(cpi->common.kf_uv_mode_prob,  cc->kf_uv_mode_prob);
     vp8_copy(cpi->common.fc.uv_mode_prob,  cc->uv_mode_prob);
 
-    vp8_copy(cpi->ymode_count, cc->ymode_count);
-    vp8_copy(cpi->uv_mode_count, cc->uv_mode_count);
+    vp8_copy(cpi->mb.ymode_count, cc->ymode_count);
+    vp8_copy(cpi->mb.uv_mode_count, cc->uv_mode_count);
 
     
 #ifdef MODE_STATS
@@ -305,32 +304,26 @@ void vp8_setup_key_frame(VP8_COMP *cpi)
 
     vp8_default_coef_probs(& cpi->common);
 
-
-    vp8_kf_default_bmode_probs(cpi->common.kf_bmode_prob);
-
     vpx_memcpy(cpi->common.fc.mvc, vp8_default_mv_context, sizeof(vp8_default_mv_context));
     {
         int flag[2] = {1, 1};
         vp8_build_component_cost_table(cpi->mb.mvcost, (const MV_CONTEXT *) cpi->common.fc.mvc, flag);
     }
 
-    vpx_memset(cpi->common.fc.pre_mvc, 0, sizeof(cpi->common.fc.pre_mvc));  
+    
 
-    
-    
+
     vpx_memcpy(&cpi->lfc_a, &cpi->common.fc, sizeof(cpi->common.fc));
     vpx_memcpy(&cpi->lfc_g, &cpi->common.fc, sizeof(cpi->common.fc));
     vpx_memcpy(&cpi->lfc_n, &cpi->common.fc, sizeof(cpi->common.fc));
 
-    
     cpi->common.filter_level = cpi->common.base_qindex * 3 / 8 ;
 
     
     if (cpi->auto_gold)
-        
         cpi->frames_till_gf_update_due = cpi->baseline_gf_interval;
     else
-        cpi->frames_till_gf_update_due = cpi->goldfreq;
+        cpi->frames_till_gf_update_due = DEFAULT_GF_INTERVAL;
 
     cpi->common.refresh_golden_frame = 1;
     cpi->common.refresh_alt_ref_frame = 1;
@@ -357,10 +350,10 @@ static void calc_iframe_target_size(VP8_COMP *cpi)
 {
     
     int kf_boost;
-    int target;
+    uint64_t target;
 
     
-    vp8_clear_system_state();  
+    vp8_clear_system_state();
 
     if (cpi->oxcf.fixed_q >= 0)
     {
@@ -392,8 +385,15 @@ static void calc_iframe_target_size(VP8_COMP *cpi)
         int Q = (cpi->common.frame_flags & FRAMEFLAGS_KEY)
                 ? cpi->avg_frame_qindex : cpi->ni_av_qi;
 
+        int initial_boost = 32; 
         
-        kf_boost = (int)(2 * cpi->output_frame_rate - 16);
+        if (cpi->oxcf.number_of_layers == 1) {
+          kf_boost = MAX(initial_boost, (int)(2 * cpi->output_frame_rate - 16));
+        }
+        else {
+          
+          kf_boost = initial_boost;
+        }
 
         
         kf_boost = kf_boost * kf_boost_qadjustment[Q] / 100;
@@ -403,6 +403,7 @@ static void calc_iframe_target_size(VP8_COMP *cpi)
             kf_boost = (int)(kf_boost
                        * cpi->frames_since_key / (cpi->output_frame_rate / 2));
 
+        
         if (kf_boost < 16)
             kf_boost = 16;
 
@@ -419,10 +420,11 @@ static void calc_iframe_target_size(VP8_COMP *cpi)
             target = max_rate;
     }
 
-    cpi->this_frame_target = target;
+    cpi->this_frame_target = (int)target;
 
     
-    
+
+
     if (cpi->pass != 2)
         cpi->active_worst_quality = cpi->worst_quality;
 
@@ -431,9 +433,6 @@ static void calc_iframe_target_size(VP8_COMP *cpi)
         FILE *f;
 
         f = fopen("kf_boost.stt", "a");
-        
-        
-
         fprintf(f, " %8u %10d %10d %10d\n",
                 cpi->common.current_video_frame,  cpi->gfu_boost, cpi->baseline_gf_interval, cpi->source_alt_ref_pending);
 
@@ -441,6 +440,7 @@ static void calc_iframe_target_size(VP8_COMP *cpi)
     }
 #endif
 }
+
 
 
 
@@ -457,9 +457,6 @@ static void calc_gf_params(VP8_COMP *cpi)
                   cpi->recent_ref_frame_usage[ALTREF_FRAME];
 
     int pct_gf_active = (100 * cpi->gf_active_count) / (cpi->common.mb_rows * cpi->common.mb_cols);
-
-    
-    
 
     if (tot_mbs)
         gf_frame_useage = (cpi->recent_ref_frame_usage[GOLDEN_FRAME] + cpi->recent_ref_frame_usage[ALTREF_FRAME]) * 100 / tot_mbs;
@@ -484,7 +481,7 @@ static void calc_gf_params(VP8_COMP *cpi)
             int frames_to_scan = (cpi->max_gf_interval <= MAX_LAG_BUFFERS) ? cpi->max_gf_interval : MAX_LAG_BUFFERS;
 
             
-
+            
 
 
 
@@ -541,6 +538,8 @@ static void calc_gf_params(VP8_COMP *cpi)
         }
 
         
+
+
         if (!cpi->sf.recode_loop)
         {
             if (cpi->compressor_speed == 2)
@@ -561,7 +560,8 @@ static void calc_gf_params(VP8_COMP *cpi)
     }
 
     
-    
+
+
     if (cpi->oxcf.fixed_q == -1)
     {
         if (cpi->pass == 2)         
@@ -639,69 +639,12 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
     {
         if (cpi->pass == 2)
         {
-            cpi->per_frame_bandwidth = cpi->twopass.gf_bits;                       
+            
+            cpi->per_frame_bandwidth = cpi->twopass.gf_bits;
             cpi->this_frame_target = cpi->per_frame_bandwidth;
         }
 
         
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     
@@ -716,7 +659,9 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
         else
         {
             
-            
+
+
+
             if (cpi->kf_overspend_bits > 0)
             {
                 Adjustment = (cpi->kf_bitrate_adjustment <= cpi->kf_overspend_bits) ? cpi->kf_bitrate_adjustment : cpi->kf_overspend_bits;
@@ -727,7 +672,9 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                 cpi->kf_overspend_bits -= Adjustment;
 
                 
-                
+
+
+
                 cpi->this_frame_target = cpi->per_frame_bandwidth - Adjustment;
 
                 if (cpi->this_frame_target < min_frame_target)
@@ -737,6 +684,8 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                 cpi->this_frame_target = cpi->per_frame_bandwidth;
 
             
+
+
             if ((cpi->gf_overspend_bits > 0) && (cpi->this_frame_target > min_frame_target))
             {
                 int Adjustment = (cpi->non_gf_bitrate_adjustment <= cpi->gf_overspend_bits) ? cpi->non_gf_bitrate_adjustment : cpi->gf_overspend_bits;
@@ -775,10 +724,13 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
     }
 
     
-    
-    
-    
-    
+
+
+
+
+
+
+
     if (cpi->this_frame_target < min_frame_target)
         cpi->this_frame_target = min_frame_target;
 
@@ -792,7 +744,8 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
         
         if (cpi->buffered_mode)
         {
-            int one_percent_bits = 1 + cpi->oxcf.optimal_buffer_level / 100;
+            int one_percent_bits = (int)
+                (1 + cpi->oxcf.optimal_buffer_level / 100);
 
             if ((cpi->buffer_level < cpi->oxcf.optimal_buffer_level) ||
                 (cpi->bits_off_target < cpi->oxcf.optimal_buffer_level))
@@ -800,16 +753,18 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                 int percent_low = 0;
 
                 
-                
-                
-                
-                
+
+
+
+
+
+
                 if ((cpi->oxcf.end_usage == USAGE_STREAM_FROM_SERVER) &&
                     (cpi->buffer_level < cpi->oxcf.optimal_buffer_level))
                 {
-                    percent_low =
-                        (cpi->oxcf.optimal_buffer_level - cpi->buffer_level) /
-                        one_percent_bits;
+                    percent_low = (int)
+                        ((cpi->oxcf.optimal_buffer_level - cpi->buffer_level) /
+                        one_percent_bits);
                 }
                 
                 else if (cpi->bits_off_target < 0)
@@ -829,35 +784,41 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                         (cpi->this_frame_target * percent_low) / 200;
 
                 
-                
+
+
                 if (cpi->auto_worst_q && cpi->ni_frames > 150)
                 {
-                    int critical_buffer_level;
+                    int64_t critical_buffer_level;
 
                     
-                    
-                    
-                    
-                    
+
+
+
+
+
                     if (cpi->oxcf.end_usage == USAGE_STREAM_FROM_SERVER)
                     {
                         
-                        
+
+
                         critical_buffer_level =
                             (cpi->buffer_level < cpi->bits_off_target)
                             ? cpi->buffer_level : cpi->bits_off_target;
                     }
                     
-                    
+
+
                     else
                     {
                         
-                        
+
+
                         critical_buffer_level = cpi->bits_off_target;
                     }
 
                     
-                    
+
+
                     if (critical_buffer_level < cpi->oxcf.optimal_buffer_level)
                     {
                         if ( critical_buffer_level >
@@ -870,14 +831,15 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                                        (cpi->oxcf.optimal_buffer_level >> 2));
 
                             
-                            
-                            
-                            
-                            
-                            
+
+
+
+
+
+
                             cpi->active_worst_quality =
                                 cpi->worst_quality -
-                                ((qadjustment_range * above_base) /
+                                (int)((qadjustment_range * above_base) /
                                  (cpi->oxcf.optimal_buffer_level*3>>2));
                         }
                         else
@@ -902,9 +864,9 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                 if ((cpi->oxcf.end_usage == USAGE_STREAM_FROM_SERVER)
                      && (cpi->buffer_level > cpi->oxcf.optimal_buffer_level))
                 {
-                    percent_high = (cpi->buffer_level
+                    percent_high = (int)((cpi->buffer_level
                                     - cpi->oxcf.optimal_buffer_level)
-                                   / one_percent_bits;
+                                   / one_percent_bits);
                 }
                 else if (cpi->bits_off_target > cpi->oxcf.optimal_buffer_level)
                 {
@@ -921,10 +883,13 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                                           percent_high) / 200;
 
                 
-                
+
+
                 if (cpi->auto_worst_q && cpi->ni_frames > 150)
                 {
                     
+
+
                     cpi->active_worst_quality = cpi->ni_av_qi;
                 }
                 else
@@ -951,8 +916,9 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
         }
 
         
-        
-        
+
+
+
         if ( cpi->oxcf.end_usage == USAGE_CONSTRAINED_QUALITY &&
              cpi->active_worst_quality < cpi->cq_target_quality)
         {
@@ -961,15 +927,18 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
     }
 
     
-    
-    
-    
-    
-    if (cpi->drop_frames_allowed && cpi->buffered_mode &&
+
+
+
+
+
+    if (cpi->drop_frames_allowed &&
         (cpi->oxcf.end_usage == USAGE_STREAM_FROM_SERVER) &&
-        ((cpi->common.frame_type != KEY_FRAME))) 
+        ((cpi->common.frame_type != KEY_FRAME)))
     {
         
+
+
         if ((cpi->buffer_level < 0))
         {
 #if 0
@@ -980,38 +949,20 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                     (cpi->buffer_level * 100) / cpi->oxcf.optimal_buffer_level);
             fclose(f);
 #endif
-            
-
             cpi->drop_frame = 1;
-        }
 
-#if 0
-        
-        else if ((cpi->buffer_level < cpi->oxcf.drop_frames_water_mark * cpi->oxcf.optimal_buffer_level / 100) &&
-                 (cpi->drop_count < cpi->max_drop_count) && (cpi->pass == 0))
-        {
-            cpi->drop_frame = 1;
-        }
-
-#endif
-
-        if (cpi->drop_frame)
-        {
             
             cpi->bits_off_target += cpi->av_per_frame_bandwidth;
             if (cpi->bits_off_target > cpi->oxcf.maximum_buffer_size)
-              cpi->bits_off_target = cpi->oxcf.maximum_buffer_size;
+              cpi->bits_off_target = (int)cpi->oxcf.maximum_buffer_size;
             cpi->buffer_level = cpi->bits_off_target;
         }
-        else
-            cpi->drop_count = 0;
     }
 
     
     if (cpi->oxcf.error_resilient_mode == 0 &&
         (cpi->frames_till_gf_update_due == 0) && !cpi->drop_frame)
     {
-        
         int Q = (cpi->oxcf.fixed_q < 0) ? cpi->last_q[INTER_FRAME] : cpi->oxcf.fixed_q;
 
         int gf_frame_useage = 0;      
@@ -1021,9 +972,6 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                       cpi->recent_ref_frame_usage[ALTREF_FRAME];
 
         int pct_gf_active = (100 * cpi->gf_active_count) / (cpi->common.mb_rows * cpi->common.mb_cols);
-
-        
-        
 
         if (tot_mbs)
             gf_frame_useage = (cpi->recent_ref_frame_usage[GOLDEN_FRAME] + cpi->recent_ref_frame_usage[ALTREF_FRAME]) * 100 / tot_mbs;
@@ -1035,6 +983,8 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
         if (cpi->auto_gold)
         {
             
+
+
             if ((cpi->pass == 0) && (cpi->this_frame_percent_intra < 15 || gf_frame_useage >= 5))
                 cpi->common.refresh_golden_frame = 1;
 
@@ -1062,7 +1012,7 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
         {
 #if 0
 
-            if (0)   
+            if (0)
             {
                 FILE *f;
 
@@ -1079,15 +1029,19 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
             }
 
             
-            
-            
+
+
+
             if (!cpi->source_alt_ref_active)
             {
                 if (cpi->oxcf.fixed_q < 0)
                 {
                     if (cpi->pass == 2)
                     {
-                        cpi->this_frame_target = cpi->per_frame_bandwidth;          
+                        
+
+
+                        cpi->this_frame_target = cpi->per_frame_bandwidth;
                     }
                     else
                     {
@@ -1097,6 +1051,8 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
                         int bits_in_section = cpi->inter_frame_target * frames_in_section;
 
                         
+
+
                         while (Boost > 1000)
                         {
                             Boost /= 2;
@@ -1117,9 +1073,10 @@ static void calc_pframe_target_size(VP8_COMP *cpi)
 
             }
             
-            
-            
-            
+
+
+
+
             else
             {
                 cpi->this_frame_target = 0;
@@ -1144,7 +1101,7 @@ void vp8_update_rate_correction_factors(VP8_COMP *cpi, int damp_var)
     int    projected_size_based_on_q = 0;
 
     
-    vp8_clear_system_state();  
+    vp8_clear_system_state();
 
     if (cpi->common.frame_type == KEY_FRAME)
     {
@@ -1152,23 +1109,26 @@ void vp8_update_rate_correction_factors(VP8_COMP *cpi, int damp_var)
     }
     else
     {
-        if (cpi->common.refresh_alt_ref_frame || cpi->common.refresh_golden_frame)
+        if (cpi->oxcf.number_of_layers == 1 &&
+           (cpi->common.refresh_alt_ref_frame ||
+            cpi->common.refresh_golden_frame))
             rate_correction_factor = cpi->gf_rate_correction_factor;
         else
             rate_correction_factor = cpi->rate_correction_factor;
     }
 
     
-    
-    
+
+
+
     projected_size_based_on_q = (int)(((.5 + rate_correction_factor * vp8_bits_per_mb[cpi->common.frame_type][Q]) * cpi->common.MBs) / (1 << BPER_MB_NORMBITS));
 
     
-    if (cpi->zbin_over_quant > 0)
+    if (cpi->mb.zbin_over_quant > 0)
     {
-        int Z = cpi->zbin_over_quant;
+        int Z = cpi->mb.zbin_over_quant;
         double Factor = 0.99;
-        double factor_adjustment = 0.01 / 256.0; 
+        double factor_adjustment = 0.01 / 256.0;
 
         while (Z > 0)
         {
@@ -1183,12 +1143,12 @@ void vp8_update_rate_correction_factors(VP8_COMP *cpi, int damp_var)
     }
 
     
-    
-    
     if (projected_size_based_on_q > 0)
         correction_factor = (100 * cpi->projected_frame_size) / projected_size_based_on_q;
 
     
+
+
     switch (damp_var)
     {
     case 0:
@@ -1203,7 +1163,6 @@ void vp8_update_rate_correction_factors(VP8_COMP *cpi, int damp_var)
         break;
     }
 
-    
     if (correction_factor > 102)
     {
         
@@ -1214,7 +1173,6 @@ void vp8_update_rate_correction_factors(VP8_COMP *cpi, int damp_var)
         if (rate_correction_factor > MAX_BPB_FACTOR)
             rate_correction_factor = MAX_BPB_FACTOR;
     }
-    
     else if (correction_factor < 99)
     {
         
@@ -1230,7 +1188,9 @@ void vp8_update_rate_correction_factors(VP8_COMP *cpi, int damp_var)
         cpi->key_frame_rate_correction_factor = rate_correction_factor;
     else
     {
-        if (cpi->common.refresh_alt_ref_frame || cpi->common.refresh_golden_frame)
+        if (cpi->oxcf.number_of_layers == 1 &&
+           (cpi->common.refresh_alt_ref_frame ||
+            cpi->common.refresh_golden_frame))
             cpi->gf_rate_correction_factor = rate_correction_factor;
         else
             cpi->rate_correction_factor = rate_correction_factor;
@@ -1243,7 +1203,7 @@ int vp8_regulate_q(VP8_COMP *cpi, int target_bits_per_frame)
     int Q = cpi->active_worst_quality;
 
     
-    cpi->zbin_over_quant = 0;
+    cpi->mb.zbin_over_quant = 0;
 
     if (cpi->oxcf.fixed_q >= 0)
     {
@@ -1253,11 +1213,13 @@ int vp8_regulate_q(VP8_COMP *cpi, int target_bits_per_frame)
         {
             Q = cpi->oxcf.key_q;
         }
-        else if (cpi->common.refresh_alt_ref_frame)
+        else if (cpi->oxcf.number_of_layers == 1 &&
+            cpi->common.refresh_alt_ref_frame)
         {
             Q = cpi->oxcf.alt_q;
         }
-        else if (cpi->common.refresh_golden_frame)
+        else if (cpi->oxcf.number_of_layers == 1  &&
+            cpi->common.refresh_golden_frame)
         {
             Q = cpi->oxcf.gold_q;
         }
@@ -1276,15 +1238,20 @@ int vp8_regulate_q(VP8_COMP *cpi, int target_bits_per_frame)
             correction_factor = cpi->key_frame_rate_correction_factor;
         else
         {
-            if (cpi->common.refresh_alt_ref_frame || cpi->common.refresh_golden_frame)
+            if (cpi->oxcf.number_of_layers == 1 &&
+               (cpi->common.refresh_alt_ref_frame ||
+                cpi->common.refresh_golden_frame))
                 correction_factor = cpi->gf_rate_correction_factor;
             else
                 correction_factor = cpi->rate_correction_factor;
         }
 
         
+
+
         if (target_bits_per_frame >= (INT_MAX >> BPER_MB_NORMBITS))
-            target_bits_per_mb = (target_bits_per_frame / cpi->common.MBs) << BPER_MB_NORMBITS;       
+            
+            target_bits_per_mb = (target_bits_per_frame / cpi->common.MBs) << BPER_MB_NORMBITS;
         else
             target_bits_per_mb = (target_bits_per_frame << BPER_MB_NORMBITS) / cpi->common.MBs;
 
@@ -1310,17 +1277,22 @@ int vp8_regulate_q(VP8_COMP *cpi, int target_bits_per_frame)
 
 
         
-        
+
+
+
         if (Q >= MAXQ)
         {
             int zbin_oqmax;
 
             double Factor = 0.99;
-            double factor_adjustment = 0.01 / 256.0; 
+            double factor_adjustment = 0.01 / 256.0;
 
             if (cpi->common.frame_type == KEY_FRAME)
-                zbin_oqmax = 0; 
-            else if (cpi->common.refresh_alt_ref_frame || (cpi->common.refresh_golden_frame && !cpi->source_alt_ref_active))
+                zbin_oqmax = 0;
+            else if (cpi->oxcf.number_of_layers == 1 &&
+                (cpi->common.refresh_alt_ref_frame ||
+                (cpi->common.refresh_golden_frame &&
+                 !cpi->source_alt_ref_active)))
                 zbin_oqmax = 16;
             else
                 zbin_oqmax = ZBIN_OQ_MAX;
@@ -1340,15 +1312,18 @@ int vp8_regulate_q(VP8_COMP *cpi, int target_bits_per_frame)
 
 
             
-            
-            
-            
-            while (cpi->zbin_over_quant < zbin_oqmax)
-            {
-                cpi->zbin_over_quant ++;
 
-                if (cpi->zbin_over_quant > zbin_oqmax)
-                    cpi->zbin_over_quant = zbin_oqmax;
+
+
+
+
+
+            while (cpi->mb.zbin_over_quant < zbin_oqmax)
+            {
+                cpi->mb.zbin_over_quant ++;
+
+                if (cpi->mb.zbin_over_quant > zbin_oqmax)
+                    cpi->mb.zbin_over_quant = zbin_oqmax;
 
                 
                 bits_per_mb_at_this_q = (int)(Factor * bits_per_mb_at_this_q);
@@ -1357,7 +1332,8 @@ int vp8_regulate_q(VP8_COMP *cpi, int target_bits_per_frame)
                 if (Factor  >= 0.999)
                     Factor = 0.999;
 
-                if (bits_per_mb_at_this_q <= target_bits_per_mb)    
+                
+                if (bits_per_mb_at_this_q <= target_bits_per_mb)
                     break;
             }
 
@@ -1465,6 +1441,8 @@ void vp8_compute_frame_size_bounds(VP8_COMP *cpi, int *frame_under_shoot_limit, 
     if (cpi->oxcf.fixed_q >= 0)
     {
         
+
+
         *frame_under_shoot_limit = 0;
         *frame_over_shoot_limit  = INT_MAX;
     }
@@ -1492,12 +1470,16 @@ void vp8_compute_frame_size_bounds(VP8_COMP *cpi, int *frame_under_shoot_limit, 
                     if (cpi->buffer_level >= ((cpi->oxcf.optimal_buffer_level + cpi->oxcf.maximum_buffer_size) >> 1))
                     {
                         
+
+
                         *frame_over_shoot_limit  = cpi->this_frame_target * 12 / 8;
                         *frame_under_shoot_limit = cpi->this_frame_target * 6 / 8;
                     }
                     else if (cpi->buffer_level <= (cpi->oxcf.optimal_buffer_level >> 1))
                     {
                         
+
+
                         *frame_over_shoot_limit  = cpi->this_frame_target * 10 / 8;
                         *frame_under_shoot_limit = cpi->this_frame_target * 4 / 8;
                     }
@@ -1509,6 +1491,8 @@ void vp8_compute_frame_size_bounds(VP8_COMP *cpi, int *frame_under_shoot_limit, 
                 }
                 
                 
+
+
                 else
                 {
                     
@@ -1525,6 +1509,16 @@ void vp8_compute_frame_size_bounds(VP8_COMP *cpi, int *frame_under_shoot_limit, 
                 }
             }
         }
+
+        
+
+
+
+        *frame_over_shoot_limit += 200;
+        *frame_under_shoot_limit -= 200;
+        if ( *frame_under_shoot_limit < 0 )
+            *frame_under_shoot_limit = 0;
+
     }
 }
 
@@ -1544,7 +1538,6 @@ int vp8_pick_frame_size(VP8_COMP *cpi)
         if (cpi->drop_frame)
         {
             cpi->drop_frame = 0;
-            cpi->drop_count++;
             return 0;
         }
     }

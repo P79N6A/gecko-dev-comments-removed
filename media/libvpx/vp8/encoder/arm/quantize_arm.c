@@ -9,14 +9,16 @@
 
 
 
+#include "vpx_config.h"
+#include "vpx_rtcd.h"
+#include "vp8/encoder/block.h"
 #include <math.h>
 #include "vpx_mem/vpx_mem.h"
-
 #include "vp8/encoder/quantize.h"
 #include "vp8/common/entropy.h"
 
 
-#if HAVE_ARMV7
+#if HAVE_NEON
 
 
 

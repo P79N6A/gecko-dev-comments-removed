@@ -15,6 +15,10 @@
 #include "vpx_scale/yv12config.h"
 #include "vp8/common/blockd.h"
 
+#if CONFIG_POSTPROC
+#include "postproc.h"
+#endif 
+
 BEGIN
 
 
@@ -30,12 +34,17 @@ DEFINE(yv12_buffer_config_v_buffer,             offsetof(YV12_BUFFER_CONFIG, v_b
 DEFINE(yv12_buffer_config_border,               offsetof(YV12_BUFFER_CONFIG, border));
 DEFINE(VP8BORDERINPIXELS_VAL,                   VP8BORDERINPIXELS);
 
+#if CONFIG_POSTPROC
+
+DEFINE(MFQE_PRECISION_VAL,                      MFQE_PRECISION);
+#endif 
+
 END
 
 
 
 
-#if HAVE_ARMV6
+#if HAVE_MEDIA
 
 ct_assert(B_DC_PRED, B_DC_PRED == 0);
 ct_assert(B_TM_PRED, B_TM_PRED == 1);
@@ -49,7 +58,14 @@ ct_assert(B_HD_PRED, B_HD_PRED == 8);
 ct_assert(B_HU_PRED, B_HU_PRED == 9);
 #endif
 
-#if HAVE_ARMV7
+#if HAVE_NEON
 
 ct_assert(VP8BORDERINPIXELS_VAL, VP8BORDERINPIXELS == 32)
 #endif
+
+#if HAVE_SSE2
+#if CONFIG_POSTPROC
+
+ct_assert(MFQE_PRECISION_VAL, MFQE_PRECISION == 4)
+#endif 
+#endif 

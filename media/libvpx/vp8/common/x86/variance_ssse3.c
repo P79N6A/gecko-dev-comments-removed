@@ -80,7 +80,8 @@ unsigned int vp8_sub_pixel_variance16x16_ssse3
     unsigned int xxsum0;
 
     
-    
+
+
     if (xoffset == 4 && yoffset == 0)
     {
         vp8_half_horiz_variance16x_h_sse2(

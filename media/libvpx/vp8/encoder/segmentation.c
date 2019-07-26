@@ -36,8 +36,10 @@ void vp8_update_gf_useage_maps(VP8_COMP *cpi, VP8_COMMON *cm, MACROBLOCK *x)
             {
 
                 
-                
-                
+
+
+
+
                 if ((this_mb_mode_info->mbmi.ref_frame == GOLDEN_FRAME) || (this_mb_mode_info->mbmi.ref_frame == ALTREF_FRAME))
                 {
                     if (*(x->gf_active_ptr) == 0)
@@ -53,7 +55,7 @@ void vp8_update_gf_useage_maps(VP8_COMP *cpi, VP8_COMMON *cm, MACROBLOCK *x)
                 }
 
                 x->gf_active_ptr++;          
-                this_mb_mode_info++;           
+                this_mb_mode_info++;         
 
             }
 

@@ -117,6 +117,13 @@ vpx_codec_err_t vpx_codec_enc_init_multi_ver(vpx_codec_ctx_t      *ctx,
                 mr_cfg.mr_down_sampling_factor.num = dsf->num;
                 mr_cfg.mr_down_sampling_factor.den = dsf->den;
 
+                
+
+
+
+                if(mr_cfg.mr_encoder_id)
+                    cfg->kf_mode = VPX_KF_DISABLED;
+
                 ctx->iface = iface;
                 ctx->name = iface->name;
                 ctx->priv = NULL;
@@ -126,8 +133,20 @@ vpx_codec_err_t vpx_codec_enc_init_multi_ver(vpx_codec_ctx_t      *ctx,
 
                 if (res)
                 {
-                    ctx->err_detail = ctx->priv ? ctx->priv->err_detail : NULL;
+                    const char *error_detail =
+                        ctx->priv ? ctx->priv->err_detail : NULL;
+                    
+                    ctx->err_detail = error_detail;
                     vpx_codec_destroy(ctx);
+
+                    
+                    while (i)
+                    {
+                        ctx--;
+                        ctx->err_detail = error_detail;
+                        vpx_codec_destroy(ctx);
+                        i--;
+                    }
                 }
 
                 if (ctx->priv)

@@ -239,18 +239,6 @@ typedef struct vpx_scaling_mode
 
 
 
-typedef enum
-{
-    VP8_BEST_QUALITY_ENCODING,
-    VP8_GOOD_QUALITY_ENCODING,
-    VP8_REAL_TIME_ENCODING
-} vp8e_encoding_mode;
-
-
-
-
-
-
 
 
 typedef enum
@@ -298,12 +286,12 @@ VPX_CTRL_USE_TYPE(VP8E_SET_ENABLEAUTOALTREF,   unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_NOISE_SENSITIVITY,  unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_SHARPNESS,          unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_STATIC_THRESHOLD,   unsigned int)
-VPX_CTRL_USE_TYPE(VP8E_SET_TOKEN_PARTITIONS,   vp8e_token_partitions)
+VPX_CTRL_USE_TYPE(VP8E_SET_TOKEN_PARTITIONS,   int) 
 
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_MAXFRAMES,     unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_STRENGTH ,     unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_TYPE     ,     unsigned int)
-VPX_CTRL_USE_TYPE(VP8E_SET_TUNING,             vp8e_tuning)
+VPX_CTRL_USE_TYPE(VP8E_SET_TUNING,             int) 
 VPX_CTRL_USE_TYPE(VP8E_SET_CQ_LEVEL     ,      unsigned int)
 
 VPX_CTRL_USE_TYPE(VP8E_GET_LAST_QUANTIZER,     int *)

@@ -39,14 +39,6 @@ extern "C"
 
     typedef enum
     {
-        VP8_LAST_FLAG = 1,
-        VP8_GOLD_FLAG = 2,
-        VP8_ALT_FLAG = 4
-    } VP8_REFFRAME;
-
-
-    typedef enum
-    {
         USAGE_STREAM_FROM_SERVER    = 0x0,
         USAGE_LOCAL_FILE_PLAYBACK   = 0x1,
         USAGE_CONSTRAINED_QUALITY   = 0x2
@@ -102,43 +94,60 @@ extern "C"
 
     typedef struct
     {
-        int Version;            
-        int Width;              
-        int Height;             
-        struct vpx_rational  timebase;
-        int target_bandwidth;    
+        
 
-        int noise_sensitivity;   
-        int Sharpness;          
+
+        int Version;
+        int Width;
+        int Height;
+        struct vpx_rational  timebase;
+        unsigned int target_bandwidth;    
+
+        
+        int noise_sensitivity;
+
+        
+        int Sharpness;
         int cpu_used;
         unsigned int rc_max_intra_bitrate_pct;
 
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        int Mode;               
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        int Mode;
 
         
-        int auto_key;            
-        int key_freq;            
-
-        int allow_lag;           
-        int lag_in_frames;        
+        int auto_key;       
+        int key_freq;       
 
         
+        int allow_lag;
+        int lag_in_frames; 
+
         
+
+
 
         int end_usage; 
 
@@ -147,11 +156,11 @@ extern "C"
         int over_shoot_pct;
 
         
-        int64_t starting_buffer_level;  
+        int64_t starting_buffer_level;
         int64_t optimal_buffer_level;
         int64_t maximum_buffer_size;
 
-        int64_t starting_buffer_level_in_ms;  
+        int64_t starting_buffer_level_in_ms;
         int64_t optimal_buffer_level_in_ms;
         int64_t maximum_buffer_size_in_ms;
 
@@ -171,11 +180,12 @@ extern "C"
         int drop_frames_water_mark;
 
         
-        int two_pass_vbrbias;        
+        int two_pass_vbrbias;
         int two_pass_vbrmin_section;
         int two_pass_vbrmax_section;
+
         
-        
+
 
 
         
@@ -188,29 +198,31 @@ extern "C"
 
         int multi_threaded;   
         int token_partitions; 
-        int encode_breakout;  
 
-        unsigned int error_resilient_mode; 
-                                   
-                                   
-                                   
-                                   
+        
+        int encode_breakout;
+
+        
+
+
+
+        unsigned int error_resilient_mode;
 
         int arnr_max_frames;
-        int arnr_strength ;
-        int arnr_type     ;
+        int arnr_strength;
+        int arnr_type;
 
-        struct vpx_fixed_buf         two_pass_stats_in;
+        struct vpx_fixed_buf        two_pass_stats_in;
         struct vpx_codec_pkt_list  *output_pkt_list;
 
         vp8e_tuning tuning;
 
         
         unsigned int number_of_layers;
-        unsigned int target_bitrate[MAX_PERIODICITY];
-        unsigned int rate_decimator[MAX_PERIODICITY];
+        unsigned int target_bitrate[VPX_TS_MAX_PERIODICITY];
+        unsigned int rate_decimator[VPX_TS_MAX_PERIODICITY];
         unsigned int periodicity;
-        unsigned int layer_id[MAX_PERIODICITY];
+        unsigned int layer_id[VPX_TS_MAX_PERIODICITY];
 
 #if CONFIG_MULTI_RES_ENCODING
         
@@ -236,16 +248,14 @@ extern "C"
     void vp8_init_config(struct VP8_COMP* onyx, VP8_CONFIG *oxcf);
     void vp8_change_config(struct VP8_COMP* onyx, VP8_CONFIG *oxcf);
 
-
-
     int vp8_receive_raw_frame(struct VP8_COMP* comp, unsigned int frame_flags, YV12_BUFFER_CONFIG *sd, int64_t time_stamp, int64_t end_time_stamp);
     int vp8_get_compressed_data(struct VP8_COMP* comp, unsigned int *frame_flags, unsigned long *size, unsigned char *dest, unsigned char *dest_end, int64_t *time_stamp, int64_t *time_end, int flush);
     int vp8_get_preview_raw_frame(struct VP8_COMP* comp, YV12_BUFFER_CONFIG *dest, vp8_ppflags_t *flags);
 
     int vp8_use_as_reference(struct VP8_COMP* comp, int ref_frame_flags);
     int vp8_update_reference(struct VP8_COMP* comp, int ref_frame_flags);
-    int vp8_get_reference(struct VP8_COMP* comp, VP8_REFFRAME ref_frame_flag, YV12_BUFFER_CONFIG *sd);
-    int vp8_set_reference(struct VP8_COMP* comp, VP8_REFFRAME ref_frame_flag, YV12_BUFFER_CONFIG *sd);
+    int vp8_get_reference(struct VP8_COMP* comp, enum vpx_ref_frame_type ref_frame_flag, YV12_BUFFER_CONFIG *sd);
+    int vp8_set_reference(struct VP8_COMP* comp, enum vpx_ref_frame_type ref_frame_flag, YV12_BUFFER_CONFIG *sd);
     int vp8_update_entropy(struct VP8_COMP* comp, int update);
     int vp8_set_roimap(struct VP8_COMP* comp, unsigned char *map, unsigned int rows, unsigned int cols, int delta_q[4], int delta_lf[4], unsigned int threshold[4]);
     int vp8_set_active_map(struct VP8_COMP* comp, unsigned char *map, unsigned int rows, unsigned int cols);

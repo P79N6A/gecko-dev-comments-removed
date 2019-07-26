@@ -9,25 +9,20 @@
 
 
 
+#include "vpx_rtcd.h"
 #include "vpx/vpx_codec.h"
 #include "vpx/internal/vpx_codec_internal.h"
 #include "vpx_version.h"
 #include "vp8/encoder/onyx_int.h"
-#include "vpx/vp8e.h"
+#include "vpx/vp8cx.h"
 #include "vp8/encoder/firstpass.h"
 #include "vp8/common/onyx.h"
 #include <stdlib.h>
 #include <string.h>
 
-
-
-
-#define NO_MODE_SET 255
-
 struct vp8_extracfg
 {
     struct vpx_codec_pkt_list *pkt_list;
-    vp8e_encoding_mode      encoding_mode;               
     int                         cpu_used;                    
     unsigned int                enable_auto_alt_ref;           
     unsigned int                noise_sensitivity;
@@ -56,17 +51,19 @@ static const struct extraconfig_map extracfg_map[] =
         {
             NULL,
 #if !(CONFIG_REALTIME_ONLY)
-            VP8_BEST_QUALITY_ENCODING,  
             0,                          
 #else
-            VP8_REAL_TIME_ENCODING,     
             4,                          
 #endif
             0,                          
             0,                          
             0,                          
             0,                          
+#if (CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING)
+            VP8_EIGHT_TOKENPARTITION,
+#else
             VP8_ONE_TOKENPARTITION,     
+#endif
             0,                          
             3,                          
             3,                          
@@ -89,8 +86,8 @@ struct vpx_codec_alg_priv
     vpx_image_t             preview_img;
     unsigned int            next_frame_flag;
     vp8_postproc_cfg_t      preview_ppcfg;
-    vpx_codec_pkt_list_decl(64) pkt_list;              
-    int                         deprecated_mode;
+    
+    vpx_codec_pkt_list_decl(64) pkt_list;
     unsigned int                fixed_kf_cntr;
 };
 
@@ -148,25 +145,39 @@ static vpx_codec_err_t validate_config(vpx_codec_alg_priv_t      *ctx,
     RANGE_CHECK_HI(cfg, rc_max_quantizer,   63);
     RANGE_CHECK_HI(cfg, rc_min_quantizer,   cfg->rc_max_quantizer);
     RANGE_CHECK_HI(cfg, g_threads,          64);
-#if !(CONFIG_REALTIME_ONLY)
-    RANGE_CHECK_HI(cfg, g_lag_in_frames,    25);
-#else
+#if CONFIG_REALTIME_ONLY
     RANGE_CHECK_HI(cfg, g_lag_in_frames,    0);
+#elif CONFIG_MULTI_RES_ENCODING
+    if (ctx->base.enc.total_encoders > 1)
+        RANGE_CHECK_HI(cfg, g_lag_in_frames,    0);
+#else
+    RANGE_CHECK_HI(cfg, g_lag_in_frames,    25);
 #endif
     RANGE_CHECK(cfg, rc_end_usage,          VPX_VBR, VPX_CQ);
     RANGE_CHECK_HI(cfg, rc_undershoot_pct,  1000);
     RANGE_CHECK_HI(cfg, rc_overshoot_pct,   1000);
     RANGE_CHECK_HI(cfg, rc_2pass_vbr_bias_pct, 100);
     RANGE_CHECK(cfg, kf_mode,               VPX_KF_DISABLED, VPX_KF_AUTO);
-    
-    RANGE_CHECK_BOOL(cfg,                   rc_resize_allowed);
+
+
+
+#if CONFIG_MULTI_RES_ENCODING
+    if (ctx->base.enc.total_encoders > 1)
+        RANGE_CHECK_HI(cfg, rc_resize_allowed,     0);
+#else
+    RANGE_CHECK_BOOL(cfg, rc_resize_allowed);
+#endif
     RANGE_CHECK_HI(cfg, rc_dropframe_thresh,   100);
     RANGE_CHECK_HI(cfg, rc_resize_up_thresh,   100);
     RANGE_CHECK_HI(cfg, rc_resize_down_thresh, 100);
-#if !(CONFIG_REALTIME_ONLY)
-    RANGE_CHECK(cfg,        g_pass,         VPX_RC_ONE_PASS, VPX_RC_LAST_PASS);
-#else
+
+#if CONFIG_REALTIME_ONLY
     RANGE_CHECK(cfg,        g_pass,         VPX_RC_ONE_PASS, VPX_RC_ONE_PASS);
+#elif CONFIG_MULTI_RES_ENCODING
+    if (ctx->base.enc.total_encoders > 1)
+        RANGE_CHECK(cfg,    g_pass,         VPX_RC_ONE_PASS, VPX_RC_ONE_PASS);
+#else
+    RANGE_CHECK(cfg,        g_pass,         VPX_RC_ONE_PASS, VPX_RC_LAST_PASS);
 #endif
 
     
@@ -180,15 +191,14 @@ static vpx_codec_err_t validate_config(vpx_codec_alg_priv_t      *ctx,
     RANGE_CHECK_BOOL(vp8_cfg,               enable_auto_alt_ref);
     RANGE_CHECK(vp8_cfg, cpu_used,           -16, 16);
 
-#if !(CONFIG_REALTIME_ONLY)
-    RANGE_CHECK(vp8_cfg, encoding_mode,      VP8_BEST_QUALITY_ENCODING, VP8_REAL_TIME_ENCODING);
-    RANGE_CHECK_HI(vp8_cfg, noise_sensitivity,  6);
-#else
-    RANGE_CHECK(vp8_cfg, encoding_mode,      VP8_REAL_TIME_ENCODING, VP8_REAL_TIME_ENCODING);
+#if CONFIG_REALTIME_ONLY && !CONFIG_TEMPORAL_DENOISING
     RANGE_CHECK(vp8_cfg, noise_sensitivity,  0, 0);
+#else
+    RANGE_CHECK_HI(vp8_cfg, noise_sensitivity,  6);
 #endif
 
-    RANGE_CHECK(vp8_cfg, token_partitions,   VP8_ONE_TOKENPARTITION, VP8_EIGHT_TOKENPARTITION);
+    RANGE_CHECK(vp8_cfg, token_partitions,   VP8_ONE_TOKENPARTITION,
+                VP8_EIGHT_TOKENPARTITION);
     RANGE_CHECK_HI(vp8_cfg, Sharpness,       7);
     RANGE_CHECK(vp8_cfg, arnr_max_frames, 0, 15);
     RANGE_CHECK_HI(vp8_cfg, arnr_strength,   6);
@@ -202,7 +212,8 @@ static vpx_codec_err_t validate_config(vpx_codec_alg_priv_t      *ctx,
     if (cfg->g_pass == VPX_RC_LAST_PASS)
     {
         size_t           packet_sz = sizeof(FIRSTPASS_STATS);
-        int              n_packets = cfg->rc_twopass_stats_in.sz / packet_sz;
+        int              n_packets = (int)(cfg->rc_twopass_stats_in.sz /
+                                          packet_sz);
         FIRSTPASS_STATS *stats;
 
         if (!cfg->rc_twopass_stats_in.buf)
@@ -226,7 +237,7 @@ static vpx_codec_err_t validate_config(vpx_codec_alg_priv_t      *ctx,
 
     if (cfg->ts_number_layers > 1)
     {
-        int i;
+        unsigned int i;
         RANGE_CHECK_HI(cfg, ts_periodicity, 16);
 
         for (i=1; i<cfg->ts_number_layers; i++)
@@ -240,6 +251,11 @@ static vpx_codec_err_t validate_config(vpx_codec_alg_priv_t      *ctx,
 
         RANGE_CHECK_HI(cfg, ts_layer_id[i], cfg->ts_number_layers-1);
     }
+
+#if (CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING)
+    if(cfg->g_threads > (1 << vp8_cfg->token_partitions))
+        ERROR("g_threads cannot be bigger than number of token partitions");
+#endif
 
     return VPX_CODEC_OK;
 }
@@ -293,7 +309,7 @@ static vpx_codec_err_t set_vp8e_config(VP8_CONFIG *oxcf,
         break;
     }
 
-    if (cfg.g_pass == VPX_RC_FIRST_PASS)
+    if (cfg.g_pass == VPX_RC_FIRST_PASS || cfg.g_pass == VPX_RC_ONE_PASS)
     {
         oxcf->allow_lag     = 0;
         oxcf->lag_in_frames = 0;
@@ -349,7 +365,6 @@ static vpx_codec_err_t set_vp8e_config(VP8_CONFIG *oxcf,
 
     oxcf->auto_key                 = cfg.kf_mode == VPX_KF_AUTO
                                        && cfg.kf_min_dist != cfg.kf_max_dist;
-    
     oxcf->key_freq                 = cfg.kf_max_dist;
 
     oxcf->number_of_layers         = cfg.ts_number_layers;
@@ -378,9 +393,6 @@ static vpx_codec_err_t set_vp8e_config(VP8_CONFIG *oxcf,
         oxcf->mr_low_res_mode_info        = mr_cfg->mr_low_res_mode_info;
     }
 #endif
-
-    
-    
 
     oxcf->cpu_used               = vp8_cfg.cpu_used;
     oxcf->encode_breakout        = vp8_cfg.static_thresh;
@@ -440,7 +452,8 @@ static vpx_codec_err_t vp8e_set_config(vpx_codec_alg_priv_t       *ctx,
 {
     vpx_codec_err_t res;
 
-    if ((cfg->g_w != ctx->cfg.g_w) || (cfg->g_h != ctx->cfg.g_h))
+    if (((cfg->g_w != ctx->cfg.g_w) || (cfg->g_h != ctx->cfg.g_h))
+        && (cfg->g_lag_in_frames > 1 || cfg->g_pass != VPX_RC_ONE_PASS))
         ERROR("Cannot change width or height after initialization");
 
     
@@ -500,7 +513,6 @@ static vpx_codec_err_t set_param(vpx_codec_alg_priv_t *ctx,
 
     switch (ctrl_id)
     {
-        MAP(VP8E_SET_ENCODING_MODE,         ctx->deprecated_mode);
         MAP(VP8E_SET_CPUUSED,               xcfg.cpu_used);
         MAP(VP8E_SET_ENABLEAUTOALTREF,      xcfg.enable_auto_alt_ref);
         MAP(VP8E_SET_NOISE_SENSITIVITY,     xcfg.noise_sensitivity);
@@ -536,31 +548,41 @@ static vpx_codec_err_t vp8e_mr_alloc_mem(const vpx_codec_enc_cfg_t *cfg,
     vpx_codec_err_t res = 0;
 
 #if CONFIG_MULTI_RES_ENCODING
+    LOWER_RES_FRAME_INFO *shared_mem_loc;
     int mb_rows = ((cfg->g_w + 15) >>4);
     int mb_cols = ((cfg->g_h + 15) >>4);
 
-    *mem_loc = calloc(mb_rows*mb_cols, sizeof(LOWER_RES_INFO));
-    if(!(*mem_loc))
+    shared_mem_loc = calloc(1, sizeof(LOWER_RES_FRAME_INFO));
+    if(!shared_mem_loc)
     {
-        free(*mem_loc);
+        res = VPX_CODEC_MEM_ERROR;
+    }
+
+    shared_mem_loc->mb_info = calloc(mb_rows*mb_cols, sizeof(LOWER_RES_MB_INFO));
+    if(!(shared_mem_loc->mb_info))
+    {
         res = VPX_CODEC_MEM_ERROR;
     }
     else
+    {
+        *mem_loc = (void *)shared_mem_loc;
         res = VPX_CODEC_OK;
+    }
 #endif
-
     return res;
 }
 
 static vpx_codec_err_t vp8e_init(vpx_codec_ctx_t *ctx,
                                  vpx_codec_priv_enc_mr_cfg_t *mr_cfg)
 {
-    vpx_codec_err_t        res = VPX_DEC_OK;
+    vpx_codec_err_t        res = VPX_CODEC_OK;
     struct vpx_codec_alg_priv *priv;
     vpx_codec_enc_cfg_t       *cfg;
     unsigned int               i;
 
     struct VP8_COMP *optr;
+
+    vpx_rtcd();
 
     if (!ctx->priv)
     {
@@ -610,19 +632,15 @@ static vpx_codec_err_t vp8e_init(vpx_codec_ctx_t *ctx,
             return VPX_CODEC_MEM_ERROR;
         }
 
-        priv->deprecated_mode = NO_MODE_SET;
-
-        vp8_initialize();
+        if(mr_cfg)
+            ctx->priv->enc.total_encoders   = mr_cfg->mr_total_resolutions;
+        else
+            ctx->priv->enc.total_encoders   = 1;
 
         res = validate_config(priv, &priv->cfg, &priv->vp8_cfg, 0);
 
         if (!res)
         {
-            if(mr_cfg)
-                ctx->priv->enc.total_encoders   = mr_cfg->mr_total_resolutions;
-            else
-                ctx->priv->enc.total_encoders   = 1;
-
             set_vp8e_config(&ctx->priv->alg_priv->oxcf,
                              ctx->priv->alg_priv->cfg,
                              ctx->priv->alg_priv->vp8_cfg,
@@ -645,7 +663,11 @@ static vpx_codec_err_t vp8e_destroy(vpx_codec_alg_priv_t *ctx)
 #if CONFIG_MULTI_RES_ENCODING
     
     if (ctx->oxcf.mr_total_resolutions > 0 && (ctx->oxcf.mr_encoder_id == ctx->oxcf.mr_total_resolutions-1))
+    {
+        LOWER_RES_FRAME_INFO *shared_mem_loc = (LOWER_RES_FRAME_INFO *)ctx->oxcf.mr_low_res_mode_info;
+        free(shared_mem_loc->mb_info);
         free(ctx->oxcf.mr_low_res_mode_info);
+    }
 #endif
 
     free(ctx->cx_data);
@@ -671,7 +693,7 @@ static vpx_codec_err_t image2yuvconfig(const vpx_image_t   *img,
     yv12->uv_stride = img->stride[VPX_PLANE_U];
 
     yv12->border  = (img->stride[VPX_PLANE_Y] - img->w) / 2;
-    yv12->clrtype = (img->fmt == VPX_IMG_FMT_VPXI420 || img->fmt == VPX_IMG_FMT_VPXYV12); 
+    yv12->clrtype = (img->fmt == VPX_IMG_FMT_VPXI420 || img->fmt == VPX_IMG_FMT_VPXYV12);
     return res;
 }
 
@@ -704,19 +726,6 @@ static void pick_quickcompress_mode(vpx_codec_alg_priv_t  *ctx,
     new_qc = MODE_REALTIME;
 #endif
 
-    switch (ctx->deprecated_mode)
-    {
-    case VP8_BEST_QUALITY_ENCODING:
-        new_qc = MODE_BESTQUALITY;
-        break;
-    case VP8_GOOD_QUALITY_ENCODING:
-        new_qc = MODE_GOODQUALITY;
-        break;
-    case VP8_REAL_TIME_ENCODING:
-        new_qc = MODE_REALTIME;
-        break;
-    }
-
     if (ctx->cfg.g_pass == VPX_RC_FIRST_PASS)
         new_qc = MODE_FIRSTPASS;
     else if (ctx->cfg.g_pass == VPX_RC_LAST_PASS)
@@ -741,6 +750,12 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
 {
     vpx_codec_err_t res = VPX_CODEC_OK;
 
+    if (!ctx->cfg.rc_target_bitrate)
+        return res;
+
+    if (!ctx->cfg.rc_target_bitrate)
+        return res;
+
     if (img)
         res = validate_img(ctx, img);
 
@@ -764,13 +779,13 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
         int ref = 7;
 
         if (flags & VP8_EFLAG_NO_REF_LAST)
-            ref ^= VP8_LAST_FLAG;
+            ref ^= VP8_LAST_FRAME;
 
         if (flags & VP8_EFLAG_NO_REF_GF)
-            ref ^= VP8_GOLD_FLAG;
+            ref ^= VP8_GOLD_FRAME;
 
         if (flags & VP8_EFLAG_NO_REF_ARF)
-            ref ^= VP8_ALT_FLAG;
+            ref ^= VP8_ALTR_FRAME;
 
         vp8_use_as_reference(ctx->cpi, ref);
     }
@@ -782,13 +797,13 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
         int upd = 7;
 
         if (flags & VP8_EFLAG_NO_UPD_LAST)
-            upd ^= VP8_LAST_FLAG;
+            upd ^= VP8_LAST_FRAME;
 
         if (flags & VP8_EFLAG_NO_UPD_GF)
-            upd ^= VP8_GOLD_FLAG;
+            upd ^= VP8_GOLD_FRAME;
 
         if (flags & VP8_EFLAG_NO_UPD_ARF)
-            upd ^= VP8_ALT_FLAG;
+            upd ^= VP8_ALTR_FRAME;
 
         vp8_update_reference(ctx->cpi, upd);
     }
@@ -877,15 +892,16 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
                 VP8_COMP *cpi = (VP8_COMP *)ctx->cpi;
 
                 
-                round = 1000000 * ctx->cfg.g_timebase.num / 2 - 1;
+                round = (vpx_codec_pts_t)1000000
+                        * ctx->cfg.g_timebase.num / 2 - 1;
                 delta = (dst_end_time_stamp - dst_time_stamp);
                 pkt.kind = VPX_CODEC_CX_FRAME_PKT;
                 pkt.data.frame.pts =
                     (dst_time_stamp * ctx->cfg.g_timebase.den + round)
                     / ctx->cfg.g_timebase.num / 10000000;
-                pkt.data.frame.duration =
-                    (delta * ctx->cfg.g_timebase.den + round)
-                    / ctx->cfg.g_timebase.num / 10000000;
+                pkt.data.frame.duration = (unsigned long)
+                    ((delta * ctx->cfg.g_timebase.den + round)
+                    / ctx->cfg.g_timebase.num / 10000000);
                 pkt.data.frame.flags = lib_flags << 16;
 
                 if (lib_flags & FRAMEFLAGS_KEY)
@@ -896,9 +912,10 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
                     pkt.data.frame.flags |= VPX_FRAME_IS_INVISIBLE;
 
                     
-                    
-                    
-                    
+
+
+
+
                     pkt.data.frame.pts = ((cpi->last_time_stamp_seen
                         * ctx->cfg.g_timebase.den + round)
                         / ctx->cfg.g_timebase.num / 10000000) + 1;
@@ -918,16 +935,28 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
 
                     for (i = 0; i < num_partitions; ++i)
                     {
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+                        pkt.data.frame.buf = cpi->partition_d[i];
+#else
                         pkt.data.frame.buf = cx_data;
+                        cx_data += cpi->partition_sz[i];
+                        cx_data_sz -= cpi->partition_sz[i];
+#endif
                         pkt.data.frame.sz = cpi->partition_sz[i];
                         pkt.data.frame.partition_id = i;
                         
                         if (i == (num_partitions - 1))
                             pkt.data.frame.flags &= ~VPX_FRAME_IS_FRAGMENT;
                         vpx_codec_pkt_list_add(&ctx->pkt_list.head, &pkt);
-                        cx_data += cpi->partition_sz[i];
-                        cx_data_sz -= cpi->partition_sz[i];
                     }
+#if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
+                    
+
+
+
+
+                    cx_data_sz -= ctx->cx_data_sz / 2;
+#endif
                 }
                 else
                 {
@@ -938,8 +967,6 @@ static vpx_codec_err_t vp8e_encode(vpx_codec_alg_priv_t  *ctx,
                     cx_data += size;
                     cx_data_sz -= size;
                 }
-
-                
             }
         }
     }
@@ -1178,7 +1205,6 @@ static vpx_codec_ctrl_fn_map_t vp8e_ctf_maps[] =
     {VP8E_SET_ROI_MAP,                  vp8e_set_roi_map},
     {VP8E_SET_ACTIVEMAP,                vp8e_set_activemap},
     {VP8E_SET_SCALEMODE,                vp8e_set_scalemode},
-    {VP8E_SET_ENCODING_MODE,            set_param},
     {VP8E_SET_CPUUSED,                  set_param},
     {VP8E_SET_NOISE_SENSITIVITY,        set_param},
     {VP8E_SET_ENABLEAUTOALTREF,         set_param},
@@ -1282,91 +1308,6 @@ CODEC_INTERFACE(vpx_codec_vp8_cx) =
     {
         vp8e_usage_cfg_map, 
         vp8e_encode,        
-        vp8e_get_cxdata,    
-        vp8e_set_config,
-        NOT_IMPLEMENTED,
-        vp8e_get_preview,
-        vp8e_mr_alloc_mem,
-    } 
-};
-
-
-
-
-
-#define FORCE_KEY   2
-static vpx_codec_err_t api1_control(vpx_codec_alg_priv_t *ctx,
-                                    int                   ctrl_id,
-                                    va_list               args)
-{
-    vpx_codec_ctrl_fn_map_t *entry;
-
-    switch (ctrl_id)
-    {
-    case VP8E_SET_FLUSHFLAG:
-        
-
-
-        return vp8e_encode(ctx, NULL, 0, 0, 0, 0);
-    case VP8E_SET_FRAMETYPE:
-        ctx->base.enc.tbd |= FORCE_KEY;
-        return VPX_CODEC_OK;
-    }
-
-    for (entry = vp8e_ctf_maps; entry && entry->fn; entry++)
-    {
-        if (!entry->ctrl_id || entry->ctrl_id == ctrl_id)
-        {
-            return entry->fn(ctx, ctrl_id, args);
-        }
-    }
-
-    return VPX_CODEC_ERROR;
-}
-
-
-static vpx_codec_ctrl_fn_map_t api1_ctrl_maps[] =
-{
-    {0, api1_control},
-    { -1, NULL}
-};
-
-
-static vpx_codec_err_t api1_encode(vpx_codec_alg_priv_t  *ctx,
-                                   const vpx_image_t     *img,
-                                   vpx_codec_pts_t        pts,
-                                   unsigned long          duration,
-                                   vpx_enc_frame_flags_t  flags,
-                                   unsigned long          deadline)
-{
-    int force = ctx->base.enc.tbd;
-
-    ctx->base.enc.tbd = 0;
-    return vp8e_encode
-           (ctx,
-            img,
-            pts,
-            duration,
-            flags | ((force & FORCE_KEY) ? VPX_EFLAG_FORCE_KF : 0),
-            deadline);
-}
-
-
-vpx_codec_iface_t vpx_enc_vp8_algo =
-{
-    "WebM Project VP8 Encoder (Deprecated API)" VERSION_STRING,
-    VPX_CODEC_INTERNAL_ABI_VERSION,
-    VPX_CODEC_CAP_ENCODER,
-    
-    vp8e_init,          
-    vp8e_destroy,       
-    api1_ctrl_maps,     
-    NOT_IMPLEMENTED,    
-    NOT_IMPLEMENTED,    
-    {NOT_IMPLEMENTED},  
-    {
-        vp8e_usage_cfg_map, 
-        api1_encode,        
         vp8e_get_cxdata,    
         vp8e_set_config,
         NOT_IMPLEMENTED,
