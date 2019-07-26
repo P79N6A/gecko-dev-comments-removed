@@ -563,7 +563,7 @@ Assembler::getCF32Target(Iter *iter)
     }
 
     if (inst1->is<InstMovW>() && inst2->is<InstMovT>() &&
-        (inst3->is<InstBranchReg>() || inst4->is<InstBranchReg>()))
+        (inst3->is<InstNOP>() || inst3->is<InstBranchReg>() || inst4->is<InstBranchReg>()))
     {
         
         
@@ -592,9 +592,15 @@ Assembler::getCF32Target(Iter *iter)
         JS_ASSERT(top->checkDest(temp));
 
         
-        InstBranchReg *realBranch = inst3->is<InstBranchReg>() ? inst3->as<InstBranchReg>()
-                                                               : inst4->as<InstBranchReg>();
-        JS_ASSERT(realBranch->checkDest(temp));
+#ifdef DEBUG
+        
+        
+        if (!inst3->is<InstNOP>()) {
+            InstBranchReg *realBranch = inst3->is<InstBranchReg>() ? inst3->as<InstBranchReg>()
+                                                                   : inst4->as<InstBranchReg>();
+            JS_ASSERT(realBranch->checkDest(temp));
+        }
+#endif
 
         uint32_t *dest = (uint32_t*) (targ_bot.decode() | (targ_top.decode() << 16));
         return dest;
