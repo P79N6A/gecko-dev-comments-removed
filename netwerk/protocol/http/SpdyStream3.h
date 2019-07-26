@@ -170,6 +170,9 @@ private:
   uint32_t                     mReceivedData         : 1;
 
   
+  uint32_t                     mSetTCPSocketBuffer   : 1;
+
+  
   
   nsAutoArrayPtr<char>         mTxInlineFrame;
   uint32_t                     mTxInlineFrameSize;
