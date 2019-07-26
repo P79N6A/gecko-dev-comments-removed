@@ -1831,6 +1831,14 @@ public class GeckoAppShell
         });
     }
 
+    static void setUriTitle(final String uri, final String title) {    
+        getHandler().post(new Runnable() {
+            public void run() {
+                GlobalHistory.getInstance().update(uri, title);
+            }
+        });
+    }
+
     static void hideProgressDialog() {
         
     }
