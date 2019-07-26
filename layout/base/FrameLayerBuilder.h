@@ -13,6 +13,7 @@
 #include "nsIFrame.h"
 #include "ImageLayers.h"
 #include "DisplayItemClip.h"
+#include "mozilla/layers/LayersTypes.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -30,6 +31,7 @@ class ThebesLayer;
 
 class FrameLayerBuilder;
 class LayerManagerData;
+class ThebesLayerData;
 
 enum LayerState {
   LAYER_NONE,
@@ -144,6 +146,7 @@ public:
   typedef layers::ImageLayer ImageLayer;
   typedef layers::LayerManager LayerManager;
   typedef layers::BasicLayerManager BasicLayerManager;
+  typedef layers::EventRegions EventRegions;
 
   FrameLayerBuilder() :
     mRetainingManager(nullptr),
@@ -161,7 +164,8 @@ public:
 
   static void Shutdown();
 
-  void Init(nsDisplayListBuilder* aBuilder, LayerManager* aManager);
+  void Init(nsDisplayListBuilder* aBuilder, LayerManager* aManager,
+            ThebesLayerData* aLayerData = nullptr);
 
   
 
@@ -287,7 +291,7 @@ public:
 
 
 
-  void AddThebesDisplayItem(ThebesLayer* aLayer,
+  void AddThebesDisplayItem(ThebesLayerData* aLayer,
                             nsDisplayItem* aItem,
                             const DisplayItemClip& aClip,
                             nsIFrame* aContainerLayerFrame,
@@ -582,6 +586,11 @@ public:
     return mThebesLayerItems.GetEntry(aLayer);
   }
 
+  ThebesLayerData* GetContainingThebesLayerData()
+  {
+    return mContainingThebesLayer;
+  }
+
 protected:
   void RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
                                                     bool aRemoveThebesItems,
@@ -621,6 +630,13 @@ protected:
 
 
   nsTHashtable<ThebesLayerItemsEntry> mThebesLayerItems;
+
+  
+
+
+
+  ThebesLayerData*                    mContainingThebesLayer;
+
   
 
 
