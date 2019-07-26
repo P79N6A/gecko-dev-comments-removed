@@ -4306,9 +4306,10 @@ var BrowserEventHandler = {
             this._sendMouseEvent("mouseup",   element, x, y);
 
             
-            if ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
-                (element instanceof HTMLTextAreaElement))
-               SelectionHandler.attachCaret(element);
+            if (!element.disabled &&
+                ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
+                (element instanceof HTMLTextAreaElement)))
+              SelectionHandler.attachCaret(element);
 
             
             BrowserApp.scrollToFocusedInput(BrowserApp.selectedBrowser);
