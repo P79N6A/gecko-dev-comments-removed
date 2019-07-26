@@ -40,6 +40,7 @@ pref("gfx.azpc.touch_start_tolerance", "0.1");
 pref("gfx.azpc.pan_repaint_interval", "50");   
 pref("gfx.azpc.fling_repaint_interval", "50"); 
 pref("gfx.axis.fling_friction", "0.002");
+pref("gfx.axis.fling_stopped_threshold", "0.2");
 
 
 pref("intl.enable_tsf_support", true);
@@ -442,11 +443,7 @@ pref("app.update.silent", true);
 pref("app.update.staging.enabled", true);
 
 
-#ifdef NIGHTLY_BUILD
 pref("app.update.url", "https://aus4.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
-#else
-pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
-#endif
 
 
 pref("app.update.idletime", 60);
@@ -514,19 +511,10 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
-
-
-#ifdef NIGHTLY_BUILD
 pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
 pref("app.update.certs.1.commonName", "aus4.mozilla.org");
 pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
 pref("app.update.certs.2.commonName", "aus4.mozilla.org");
-#else
-pref("app.update.certs.1.issuerName", "OU=Equifax Secure Certificate Authority,O=Equifax,C=US");
-pref("app.update.certs.1.commonName", "aus3.mozilla.org");
-pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
-pref("app.update.certs.2.commonName", "aus3.mozilla.org");
-#endif
 
 
 
