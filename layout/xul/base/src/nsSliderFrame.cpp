@@ -696,7 +696,7 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   thumbFrame->SetRect(newThumbRect);
 
   
-  
+  SchedulePaint();
 
   mCurPos = curPos;
 
