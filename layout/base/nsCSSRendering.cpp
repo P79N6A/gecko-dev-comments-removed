@@ -3110,7 +3110,10 @@ DrawBorderImage(nsPresContext*       aPresContext,
         value = 0;
         break;
     }
-    border.Side(s) = NS_lround(value);
+    
+    
+    MOZ_ASSERT(value >= 0);
+    border.Side(s) = NSToCoordRoundWithClamp(value);
     MOZ_ASSERT(border.Side(s) >= 0);
   }
 
